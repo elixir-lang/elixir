@@ -121,7 +121,7 @@ defmodule Logger do
 
     * `:process_label` - (available from Erlang/OTP 27+) an arbitrary term
       which can be added to a process with `:proc_lib.set_label/1` for
-      debugging purpose.
+      debugging purposes.
 
     * `:domain` - a list of domains for the logged message. For example,
       all Elixir reports default to `[:elixir]`. Erlang reports may start
