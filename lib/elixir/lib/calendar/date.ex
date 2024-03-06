@@ -800,6 +800,29 @@ defmodule Date do
     shift(date, Duration.new(duration_units))
   end
 
+  @doc """
+  Shifts given `date` by `duration` according to its calendar.
+
+  Same as shift/2 but raises RuntimeError.
+
+  ## Examples
+
+      iex> Date.shift!(~D[2016-01-03], month: 2)
+      ~D[2016-03-03]
+
+  """
+  @doc since: "1.7.0"
+  @spec shift(Calendar.date(), Duration.t() | [Duration.unit()]) :: t
+  def shift!(date, duration_units) do
+    case shift(date, duration_units) do
+      {:ok, date} ->
+        date
+
+      reason ->
+        raise RuntimeError, "cannot shift date, reason: #{inspect(reason)}"
+    end
+  end
+
   @doc false
   def to_iso_days(%{calendar: Calendar.ISO, year: year, month: month, day: day}) do
     {Calendar.ISO.date_to_iso_days(year, month, day), {0, 86_400_000_000}}

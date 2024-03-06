@@ -1765,6 +1765,42 @@ defmodule DateTime do
   end
 
   @doc """
+  Shifts given `datetime` by `duration` according to its calendar.
+
+  Same as shift/2 but raises ArgumentError.
+
+  ## Examples
+
+      iex> DateTime.shift!(~U[2016-01-01 00:00:00Z], month: 2)
+      ~U[2016-03-01 00:00:00Z]
+
+  """
+  @doc since: "1.7.0"
+  @spec shift!(Calendar.datetime(), Duration.t() | [Duration.unit()]) :: t
+  def shift!(%{time_zone: time_zone} = datetime, duration_units) do
+    case shift(datetime, duration_units) do
+      {:ok, datetime} ->
+        datetime
+
+      {:ambiguous, dt1, dt2} ->
+        raise ArgumentError,
+              "cannot shift datetime #{inspect(datetime)} by #{inspect(duration_units)} because the result " <>
+                "is ambiguous in time zone #{time_zone} as there is an overlap " <>
+                "between #{inspect(dt1)} and #{inspect(dt2)}"
+
+      {:gap, dt1, dt2} ->
+        raise ArgumentError,
+              "cannot shift datetime #{inspect(datetime)} by #{inspect(duration_units)} because the result " <>
+                "does not exist in time zone #{time_zone} as there is a gap " <>
+                "between #{inspect(dt1)} and #{inspect(dt2)}"
+
+      {:error, reason} ->
+        raise ArgumentError,
+              "cannot shift datetime #{inspect(datetime)} by #{inspect(duration_units)}, reason: #{inspect(reason)}"
+    end
+  end
+
+  @doc """
   Returns the given datetime with the microsecond field truncated to the given
   precision (`:microsecond`, `:millisecond` or `:second`).
 

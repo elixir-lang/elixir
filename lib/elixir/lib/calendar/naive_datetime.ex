@@ -640,6 +640,29 @@ defmodule NaiveDateTime do
   end
 
   @doc """
+  Shifts given `naive_datetime` by `duration` according to its calendar.
+
+  Same as shift/2 but raises RuntimeError.
+
+  ## Examples
+
+      iex> NaiveDateTime.shift!(~N[2016-01-31 00:00:00], month: 1)
+      ~N[2016-02-29 00:00:00]
+
+  """
+  @doc since: "1.7.0"
+  @spec shift!(Calendar.naive_datetime(), Duration.t() | [Duration.unit()]) :: t
+  def shift!(naive_datetime, duration_units) do
+    case shift(naive_datetime, duration_units) do
+      {:ok, naive_datetime} ->
+        naive_datetime
+
+      reason ->
+        raise RuntimeError, "cannot shift naive_datetime, reason: #{inspect(reason)}"
+    end
+  end
+
+  @doc """
   Returns the given naive datetime with the microsecond field truncated to the
   given precision (`:microsecond`, `:millisecond` or `:second`).
 

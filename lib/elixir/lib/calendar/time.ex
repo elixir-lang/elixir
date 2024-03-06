@@ -606,6 +606,29 @@ defmodule Time do
   end
 
   @doc """
+  Shifts given `time` by `duration` according to its calendar.
+
+  Same as shift/2 but raises RuntimeError.
+
+  ## Examples
+
+      iex> Time.shift!(~T[01:00:15], hour: 12)
+      ~T[13:00:15]
+
+  """
+  @doc since: "1.7.0"
+  @spec shift!(Calendar.time(), Duration.t() | [Duration.unit()]) :: t
+  def shift!(time, duration_units) do
+    case shift(time, duration_units) do
+      {:ok, time} ->
+        time
+
+      reason ->
+        raise RuntimeError, "cannot shift time, reason: #{inspect(reason)}"
+    end
+  end
+
+  @doc """
   Compares two time structs.
 
   Returns `:gt` if first time is later than the second
