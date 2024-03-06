@@ -575,8 +575,7 @@ defmodule Time do
       {:ok, ~T[01:00:15.000100]}
 
   """
-  @spec shift(Calendar.time(), Duration.t() | [Duration.unit()]) ::
-          {:ok, t} | {:error, :invalid_duration}
+  @spec shift(Calendar.time(), Duration.t() | [Duration.unit()]) :: {:ok, t}
   def shift(%Time{calendar: calendar} = time, %Duration{} = duration) do
     %{hour: hour, minute: minute, second: second, microsecond: microsecond} = time
 
@@ -594,13 +593,7 @@ defmodule Time do
   end
 
   def shift(%Time{} = date = date, duration_units) do
-    case Duration.new(duration_units) do
-      {:ok, duration} ->
-        shift(date, duration)
-
-      {:error, :invalid_duration} ->
-        {:error, :invalid_duration}
-    end
+    shift(date, Duration.new(duration_units))
   end
 
   @doc """

@@ -591,7 +591,7 @@ defmodule NaiveDateTime do
   @spec shift(
           Calendar.naive_datetime(),
           Duration.t() | [Duration.unit()]
-        ) :: {:ok, t} | {:error, :invalid_duration}
+        ) :: {:ok, t}
   def shift(%NaiveDateTime{calendar: calendar} = naive_datetime, %Duration{} = duration) do
     %{
       year: year,
@@ -629,13 +629,7 @@ defmodule NaiveDateTime do
   end
 
   def shift(%NaiveDateTime{} = naive_datetime, duration_units) do
-    case Duration.new(duration_units) do
-      {:ok, duration} ->
-        shift(naive_datetime, duration)
-
-      {:error, :invalid_duration} ->
-        {:error, :invalid_duration}
-    end
+    shift(naive_datetime, Duration.new(duration_units))
   end
 
   @doc """

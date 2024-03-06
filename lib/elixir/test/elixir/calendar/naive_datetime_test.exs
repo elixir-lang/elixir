@@ -444,6 +444,8 @@ defmodule NaiveDateTimeTest do
              microsecond: -8
            ) == {:ok, ~N[1998-10-06 18:53:52.999992]}
 
-    assert NaiveDateTime.shift(naive_datetime, months: 12) == {:error, :invalid_duration}
+    assert_raise KeyError, ~s/key :months not found/, fn ->
+      NaiveDateTime.shift(naive_datetime, months: 12)
+    end
   end
 end

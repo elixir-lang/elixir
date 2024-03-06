@@ -1696,8 +1696,7 @@ defmodule DateTime do
           | {:error,
              :incompatible_calendars
              | :time_zone_not_found
-             | :utc_only_time_zone_database
-             | :invalid_duration}
+             | :utc_only_time_zone_database}
   def shift(datetime, duration, time_zone_database \\ Calendar.get_time_zone_database())
 
   def shift(
@@ -1737,13 +1736,7 @@ defmodule DateTime do
   end
 
   def shift(%DateTime{} = datetime, duration_units, time_zone_database) do
-    case Duration.new(duration_units) do
-      {:ok, duration} ->
-        shift(datetime, duration, time_zone_database)
-
-      {:error, :invalid_duration} ->
-        {:error, :invalid_duration}
-    end
+    shift(datetime, Duration.new(duration_units), time_zone_database)
   end
 
   @doc """

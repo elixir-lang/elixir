@@ -5,17 +5,10 @@ defmodule DurationTest do
   doctest Duration
 
   test "new/1" do
-    assert Duration.new(year: 2, month: 1, week: 3) ==
-             {:ok, %Duration{year: 2, month: 1, week: 3}}
-
-    assert Duration.new(months: 1) == {:error, :invalid_duration}
-  end
-
-  test "new!/1" do
-    assert Duration.new!(year: 2, month: 1, week: 3) == %Duration{year: 2, month: 1, week: 3}
+    assert Duration.new(year: 2, month: 1, week: 3) == %Duration{year: 2, month: 1, week: 3}
 
     assert_raise KeyError, ~s/key :months not found/, fn ->
-      Duration.new!(months: 1)
+      Duration.new(months: 1)
     end
   end
 

@@ -430,42 +430,42 @@ defmodule Calendar.ISOTest do
   end
 
   test "shift_date/2" do
-    assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new!([])) == {2024, 3, 2}
-    assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new!(year: 1)) == {2025, 3, 2}
-    assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new!(month: 2)) == {2024, 5, 2}
-    assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new!(week: 3)) == {2024, 3, 23}
-    assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new!(day: 5)) == {2024, 3, 7}
-    assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new!(hour: 24)) == {2024, 3, 3}
-    assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new!(minute: 1440)) == {2024, 3, 3}
-    assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new!(second: 86400)) == {2024, 3, 3}
+    assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new([])) == {2024, 3, 2}
+    assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new(year: 1)) == {2025, 3, 2}
+    assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new(month: 2)) == {2024, 5, 2}
+    assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new(week: 3)) == {2024, 3, 23}
+    assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new(day: 5)) == {2024, 3, 7}
+    assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new(hour: 24)) == {2024, 3, 3}
+    assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new(minute: 1440)) == {2024, 3, 3}
+    assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new(second: 86400)) == {2024, 3, 3}
 
-    assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new!(microsecond: 86400 * 1_000_000)) ==
+    assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new(microsecond: 86400 * 1_000_000)) ==
              {2024, 3, 3}
 
-    assert Calendar.ISO.shift_date(0, 1, 1, Duration.new!(month: 1)) == {0, 2, 1}
-    assert Calendar.ISO.shift_date(0, 1, 1, Duration.new!(year: 1)) == {1, 1, 1}
-    assert Calendar.ISO.shift_date(0, 1, 1, Duration.new!(year: -2, month: 2)) == {-2, 3, 1}
-    assert Calendar.ISO.shift_date(-4, 1, 1, Duration.new!(year: -1)) == {-5, 1, 1}
+    assert Calendar.ISO.shift_date(0, 1, 1, Duration.new(month: 1)) == {0, 2, 1}
+    assert Calendar.ISO.shift_date(0, 1, 1, Duration.new(year: 1)) == {1, 1, 1}
+    assert Calendar.ISO.shift_date(0, 1, 1, Duration.new(year: -2, month: 2)) == {-2, 3, 1}
+    assert Calendar.ISO.shift_date(-4, 1, 1, Duration.new(year: -1)) == {-5, 1, 1}
 
-    assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new!(year: 1, month: 2, week: 3, day: 5)) ==
+    assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new(year: 1, month: 2, week: 3, day: 5)) ==
              {2025, 5, 28}
 
-    assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new!(year: -1, month: -2, week: -3)) ==
+    assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new(year: -1, month: -2, week: -3)) ==
              {2022, 12, 12}
 
-    assert Calendar.ISO.shift_date(2020, 2, 28, Duration.new!(day: 1)) == {2020, 2, 29}
-    assert Calendar.ISO.shift_date(2020, 2, 29, Duration.new!(year: 1)) == {2021, 2, 28}
-    assert Calendar.ISO.shift_date(2024, 3, 31, Duration.new!(month: -1)) == {2024, 2, 29}
-    assert Calendar.ISO.shift_date(2024, 3, 31, Duration.new!(month: -2)) == {2024, 1, 31}
-    assert Calendar.ISO.shift_date(2024, 1, 31, Duration.new!(month: 1)) == {2024, 2, 29}
-    assert Calendar.ISO.shift_date(2024, 1, 31, Duration.new!(month: 2)) == {2024, 3, 31}
-    assert Calendar.ISO.shift_date(2024, 1, 31, Duration.new!(month: 3)) == {2024, 4, 30}
-    assert Calendar.ISO.shift_date(2024, 1, 31, Duration.new!(month: 4)) == {2024, 5, 31}
-    assert Calendar.ISO.shift_date(2024, 1, 31, Duration.new!(month: 5)) == {2024, 6, 30}
-    assert Calendar.ISO.shift_date(2024, 1, 31, Duration.new!(month: 6)) == {2024, 7, 31}
-    assert Calendar.ISO.shift_date(2024, 1, 31, Duration.new!(month: 7)) == {2024, 8, 31}
-    assert Calendar.ISO.shift_date(2024, 1, 31, Duration.new!(month: 8)) == {2024, 9, 30}
-    assert Calendar.ISO.shift_date(2024, 1, 31, Duration.new!(month: 9)) == {2024, 10, 31}
+    assert Calendar.ISO.shift_date(2020, 2, 28, Duration.new(day: 1)) == {2020, 2, 29}
+    assert Calendar.ISO.shift_date(2020, 2, 29, Duration.new(year: 1)) == {2021, 2, 28}
+    assert Calendar.ISO.shift_date(2024, 3, 31, Duration.new(month: -1)) == {2024, 2, 29}
+    assert Calendar.ISO.shift_date(2024, 3, 31, Duration.new(month: -2)) == {2024, 1, 31}
+    assert Calendar.ISO.shift_date(2024, 1, 31, Duration.new(month: 1)) == {2024, 2, 29}
+    assert Calendar.ISO.shift_date(2024, 1, 31, Duration.new(month: 2)) == {2024, 3, 31}
+    assert Calendar.ISO.shift_date(2024, 1, 31, Duration.new(month: 3)) == {2024, 4, 30}
+    assert Calendar.ISO.shift_date(2024, 1, 31, Duration.new(month: 4)) == {2024, 5, 31}
+    assert Calendar.ISO.shift_date(2024, 1, 31, Duration.new(month: 5)) == {2024, 6, 30}
+    assert Calendar.ISO.shift_date(2024, 1, 31, Duration.new(month: 6)) == {2024, 7, 31}
+    assert Calendar.ISO.shift_date(2024, 1, 31, Duration.new(month: 7)) == {2024, 8, 31}
+    assert Calendar.ISO.shift_date(2024, 1, 31, Duration.new(month: 8)) == {2024, 9, 30}
+    assert Calendar.ISO.shift_date(2024, 1, 31, Duration.new(month: 9)) == {2024, 10, 31}
   end
 
   test "shift_naive_datetime/2" do
@@ -477,7 +477,7 @@ defmodule Calendar.ISOTest do
              0,
              0,
              {0, 0},
-             Duration.new!([])
+             Duration.new([])
            ) == {2024, 3, 2, 0, 0, 0, {0, 0}}
 
     assert Calendar.ISO.shift_naive_datetime(
@@ -488,7 +488,7 @@ defmodule Calendar.ISOTest do
              0,
              0,
              {0, 0},
-             Duration.new!(year: 1)
+             Duration.new(year: 1)
            ) == {2001, 1, 1, 0, 0, 0, {0, 0}}
 
     assert Calendar.ISO.shift_naive_datetime(
@@ -499,7 +499,7 @@ defmodule Calendar.ISOTest do
              0,
              0,
              {0, 0},
-             Duration.new!(month: 1)
+             Duration.new(month: 1)
            ) == {2000, 2, 1, 0, 0, 0, {0, 0}}
 
     assert Calendar.ISO.shift_naive_datetime(
@@ -510,7 +510,7 @@ defmodule Calendar.ISOTest do
              0,
              0,
              {0, 0},
-             Duration.new!(month: 1, day: 28)
+             Duration.new(month: 1, day: 28)
            ) == {2000, 2, 29, 0, 0, 0, {0, 0}}
 
     assert Calendar.ISO.shift_naive_datetime(
@@ -521,7 +521,7 @@ defmodule Calendar.ISOTest do
              0,
              0,
              {0, 0},
-             Duration.new!(month: 1, day: 30)
+             Duration.new(month: 1, day: 30)
            ) == {2000, 3, 2, 0, 0, 0, {0, 0}}
 
     assert Calendar.ISO.shift_naive_datetime(
@@ -532,7 +532,7 @@ defmodule Calendar.ISOTest do
              0,
              0,
              {0, 0},
-             Duration.new!(month: 2, day: 29)
+             Duration.new(month: 2, day: 29)
            ) == {2000, 3, 30, 0, 0, 0, {0, 0}}
 
     assert Calendar.ISO.shift_naive_datetime(
@@ -543,7 +543,7 @@ defmodule Calendar.ISOTest do
              0,
              0,
              {0, 0},
-             Duration.new!(year: -1)
+             Duration.new(year: -1)
            ) == {1999, 2, 28, 0, 0, 0, {0, 0}}
 
     assert Calendar.ISO.shift_naive_datetime(
@@ -554,7 +554,7 @@ defmodule Calendar.ISOTest do
              0,
              0,
              {0, 0},
-             Duration.new!(month: -1)
+             Duration.new(month: -1)
            ) == {2000, 1, 29, 0, 0, 0, {0, 0}}
 
     assert Calendar.ISO.shift_naive_datetime(
@@ -565,7 +565,7 @@ defmodule Calendar.ISOTest do
              0,
              0,
              {0, 0},
-             Duration.new!(month: -1, day: -28)
+             Duration.new(month: -1, day: -28)
            ) == {2000, 1, 1, 0, 0, 0, {0, 0}}
 
     assert Calendar.ISO.shift_naive_datetime(
@@ -576,7 +576,7 @@ defmodule Calendar.ISOTest do
              0,
              0,
              {0, 0},
-             Duration.new!(month: -1, day: -30)
+             Duration.new(month: -1, day: -30)
            ) == {1999, 12, 30, 0, 0, 0, {0, 0}}
 
     assert Calendar.ISO.shift_naive_datetime(
@@ -587,7 +587,7 @@ defmodule Calendar.ISOTest do
              0,
              0,
              {0, 0},
-             Duration.new!(month: -1, day: -29)
+             Duration.new(month: -1, day: -29)
            ) == {1999, 12, 31, 0, 0, 0, {0, 0}}
   end
 end

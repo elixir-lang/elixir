@@ -775,8 +775,7 @@ defmodule Date do
       {:ok, ~D[2020-02-01]}
 
   """
-  @spec shift(Calendar.date(), Duration.t() | [Duration.unit()]) ::
-          {:ok, t} | {:error, :invalid_duration}
+  @spec shift(Calendar.date(), Duration.t() | [Duration.unit()]) :: {:ok, t}
   def shift(%Date{calendar: calendar} = date, %Duration{} = duration) do
     %{year: year, month: month, day: day} = date
     {year, month, day} = calendar.shift_date(year, month, day, duration)
@@ -784,13 +783,7 @@ defmodule Date do
   end
 
   def shift(%Date{} = date = date, duration_units) do
-    case Duration.new(duration_units) do
-      {:ok, duration} ->
-        shift(date, duration)
-
-      {:error, :invalid_duration} ->
-        {:error, :invalid_duration}
-    end
+    shift(date, Duration.new(duration_units))
   end
 
   @doc false

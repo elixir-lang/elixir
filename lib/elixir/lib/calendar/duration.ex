@@ -3,10 +3,7 @@ defmodule Duration do
   The Duration type.
   """
 
-  @default [year: 0, month: 0, week: 0, day: 0, hour: 0, minute: 0, second: 0, microsecond: 0]
-  @fields Keyword.keys(@default)
-
-  defstruct @default
+  defstruct year: 0, month: 0, week: 0, day: 0, hour: 0, minute: 0, second: 0, microsecond: 0
 
   @typedoc "Duration in calendar units"
   @type t :: %Duration{
@@ -34,38 +31,16 @@ defmodule Duration do
   @doc """
   Create `Duration` struct from valid duration units.
 
-  Returns `{:error, :invalid_duration}` when called with invalid units.
+  Raises a KeyError when called with invalid units.
 
   ## Examples
 
       iex> Duration.new(month: 2)
-      {:ok, %Duration{month: 2}}
-      iex> Duration.new(months: 2)
-      {:error, :invalid_duration}
-
-  """
-  @spec new([unit]) :: {:ok, t} | {:error, :invalid_duration}
-  def new(units) do
-    case Keyword.validate(units, @fields) do
-      {:ok, units} ->
-        {:ok, struct(Duration, units)}
-
-      {:error, _invalid_keys} ->
-        {:error, :invalid_duration}
-    end
-  end
-
-  @doc """
-  Same as `new/1` but raises a KeyError when called with invalid units.
-
-  ## Examples
-
-      iex> Duration.new!(month: 2)
       %Duration{month: 2}
 
   """
-  @spec new!([unit]) :: t
-  def new!(units) do
+  @spec new([unit]) :: t
+  def new(units) do
     struct!(Duration, units)
   end
 
