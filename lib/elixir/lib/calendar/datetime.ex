@@ -1769,7 +1769,7 @@ defmodule DateTime do
   @doc """
   Shifts given `datetime` by `duration` according to its calendar.
 
-  Same as shift/2 but raises ArgumentError.
+  Same as `shift/2` but raises ArgumentError.
 
   ## Examples
 

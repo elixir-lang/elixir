@@ -644,7 +644,7 @@ defmodule NaiveDateTime do
   @doc """
   Shifts given `naive_datetime` by `duration` according to its calendar.
 
-  Same as shift/2 but raises RuntimeError.
+  Same as `shift/2` but raises RuntimeError.
 
   ## Examples
 

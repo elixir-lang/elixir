@@ -610,7 +610,7 @@ defmodule Time do
   @doc """
   Shifts given `time` by `duration` according to its calendar.
 
-  Same as shift/2 but raises RuntimeError.
+  Same as `shift/2` but raises RuntimeError.
 
   ## Examples
 
