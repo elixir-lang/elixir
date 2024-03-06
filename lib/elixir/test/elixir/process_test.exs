@@ -170,7 +170,7 @@ defmodule ProcessTest do
     end
   end
 
-  describe "set_label/2" do
+  describe "set_label/1" do
     test "sets a process label, compatible with OTP 27+ `:proc_lib.get_label/1`" do
       label = {:some_label, :random.uniform(99999)}
       assert :ok = Process.set_label(label)
