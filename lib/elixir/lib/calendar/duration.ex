@@ -3,6 +3,8 @@ defmodule Duration do
   The Duration type.
   """
 
+  @seconds_per_day 86400
+
   @default [year: 0, month: 0, week: 0, day: 0, hour: 0, minute: 0, second: 0, microsecond: 0]
   @fields Keyword.keys(@default)
 
@@ -159,5 +161,97 @@ defmodule Duration do
       second: -duration.second,
       microsecond: -duration.microsecond
     }
+  end
+
+  @doc """
+  Compares two durations.
+
+  Returns `:gt` if the first duration is longer than the second and `:lt` for vice versa.
+  If the two durations are equal in length in seconds `:eq` is returned.
+
+  ## Examples
+
+      iex> Duration.compare(%Duration{hour: 1, minute: 15}, %Duration{hour: 2, minute: -45})
+      :eq
+      iex> Duration.compare(%Duration{year: 1, minute: 15}, %Duration{minute: 15})
+      :gt
+      iex> Duration.compare(%Duration{day: 1, minute: 15}, %Duration{day: 2})
+      :lt
+
+  """
+  @spec compare(t, t) :: :lt | :eq | :gt
+  def compare(%Duration{} = d1, %Duration{} = d2) do
+    case {to_seconds(d1), to_seconds(d2)} do
+      {first, second} when first > second -> :gt
+      {first, second} when first < second -> :lt
+      _ -> :eq
+    end
+  end
+
+  @doc """
+  Converts duration to seconds.
+
+  ## Examples
+
+      iex> Duration.to_seconds(%Duration{day: 1, minute: 15, second: -10})
+      87290
+
+  """
+  @spec to_seconds(t) :: integer
+  def to_seconds(%Duration{
+        year: year,
+        month: month,
+        week: week,
+        day: day,
+        hour: hour,
+        minute: minute,
+        second: second,
+        microsecond: microsecond
+      }) do
+    Enum.sum([
+      year * 365 * @seconds_per_day,
+      month * 30 * @seconds_per_day,
+      week * 7 * @seconds_per_day,
+      day * @seconds_per_day,
+      hour * 60 * 60,
+      minute * 60,
+      second,
+      div(microsecond, 1_000_000)
+    ])
+  end
+
+  @doc """
+  Converts seconds to duration.
+
+  ## Examples
+
+      iex> Duration.from_seconds(87290)
+      %Duration{day: 1, minute: 14, second: 50}
+
+  """
+  @spec from_seconds(integer) :: t
+  def from_seconds(seconds) do
+    {years, seconds} = div_rem(seconds, 365 * @seconds_per_day)
+    {months, seconds} = div_rem(seconds, 30 * @seconds_per_day)
+    {weeks, seconds} = div_rem(seconds, 7 * @seconds_per_day)
+    {days, seconds} = div_rem(seconds, @seconds_per_day)
+    {hours, seconds} = div_rem(seconds, 60 * 60)
+    {minutes, seconds} = div_rem(seconds, 60)
+    {seconds, microseconds} = div_rem(seconds, 1)
+
+    %Duration{
+      year: years,
+      month: months,
+      week: weeks,
+      day: days,
+      hour: hours,
+      minute: minutes,
+      second: seconds,
+      microsecond: microseconds * 1_000_000
+    }
+  end
+
+  defp div_rem(dividend, divisor) do
+    {div(dividend, divisor), rem(dividend, divisor)}
   end
 end
