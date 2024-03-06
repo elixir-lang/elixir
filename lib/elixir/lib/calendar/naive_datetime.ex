@@ -578,6 +578,8 @@ defmodule NaiveDateTime do
 
   Available units are: `:year, :month, :week, :day, :hour, :minute, :second, :microsecond`.
 
+  When used with the default calendar `Calendar.ISO`:
+
   Durations are collapsed before they are applied:
   - when shifting by 1 year and 2 months the date is actually shifted by 14 months
   - when shifting by 2 weeks and 3 days the date is shifted by 17 days
