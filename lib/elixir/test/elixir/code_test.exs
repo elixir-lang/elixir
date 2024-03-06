@@ -572,7 +572,7 @@ defmodule Code.SyncTest do
 
   import PathHelpers
 
-  if :erlang.system_info(:otp_release) >= ~c"26" do
+  if System.otp_release() >= "26" do
     defp assert_cached(path) do
       assert find_path(path) != :nocache
     end

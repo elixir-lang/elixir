@@ -253,7 +253,7 @@ defmodule ExUnit.CaptureIOTest do
       capture_io("\"a", fn ->
         # TODO: Remove me when we require Erlang/OTP 27+
         expected_error =
-          if :erlang.system_info(:otp_release) >= ~c"27" do
+          if System.otp_release() >= "27" do
             {1, :erl_scan, {:unterminated, :string, ~c"a"}}
           else
             {1, :erl_scan, {:string, 34, ~c"a"}}
