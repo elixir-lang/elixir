@@ -3,8 +3,6 @@ defmodule Duration do
   The Duration type.
   """
 
-  @seconds_per_day 86400
-
   @default [year: 0, month: 0, week: 0, day: 0, hour: 0, minute: 0, second: 0, microsecond: 0]
   @fields Keyword.keys(@default)
 
@@ -201,27 +199,9 @@ defmodule Duration do
       87290
 
   """
-  @spec to_seconds(t) :: integer
-  def to_seconds(%Duration{
-        year: year,
-        month: month,
-        week: week,
-        day: day,
-        hour: hour,
-        minute: minute,
-        second: second,
-        microsecond: microsecond
-      }) do
-    Enum.sum([
-      year * 365 * @seconds_per_day,
-      month * 30 * @seconds_per_day,
-      week * 7 * @seconds_per_day,
-      day * @seconds_per_day,
-      hour * 60 * 60,
-      minute * 60,
-      second,
-      div(microsecond, 1_000_000)
-    ])
+  @spec to_seconds(t, Calendar.calendar()) :: integer
+  def to_seconds(duration, calendar \\ Calendar.ISO) do
+    calendar.duration_to_seconds(duration)
   end
 
   @doc """
@@ -233,27 +213,8 @@ defmodule Duration do
       %Duration{day: 1, minute: 14, second: 50}
 
   """
-  @spec from_seconds(integer) :: t
-  def from_seconds(seconds) do
-    {years, seconds} = div_rem(seconds, 365 * @seconds_per_day)
-    {months, seconds} = div_rem(seconds, 30 * @seconds_per_day)
-    {weeks, seconds} = div_rem(seconds, 7 * @seconds_per_day)
-    {days, seconds} = div_rem(seconds, @seconds_per_day)
-    {hours, seconds} = div_rem(seconds, 60 * 60)
-    {minutes, seconds} = div_rem(seconds, 60)
-
-    %Duration{
-      year: years,
-      month: months,
-      week: weeks,
-      day: days,
-      hour: hours,
-      minute: minutes,
-      second: seconds
-    }
-  end
-
-  defp div_rem(dividend, divisor) do
-    {div(dividend, divisor), rem(dividend, divisor)}
+  @spec from_seconds(integer, Calendar.calendar()) :: t
+  def from_seconds(seconds, calendar \\ Calendar.ISO) do
+    calendar.duration_from_seconds(seconds)
   end
 end
