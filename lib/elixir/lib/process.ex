@@ -942,6 +942,7 @@ defmodule Process do
 
   @doc """
   Add a descriptive term to the current process.
+
   The term does not need to be unique, and in Erlang/OTP 27+ will be shown in Observer.
 
   ## Examples
@@ -949,6 +950,7 @@ defmodule Process do
       Process.set_label(:worker)
       #=> :ok
   """
+  @doc since: "1.17.0"
   @spec set_label(term()) :: :ok
   def set_label(label) do
     # TODO: switch to `:proc_lib.set_label/2` when we require Erlang/OTP 27+
