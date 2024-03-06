@@ -530,6 +530,33 @@ defmodule Logger.TranslatorTest do
     assert {%RuntimeError{message: "oops"}, [_ | _]} = process_metadata[:crash_reason]
   end
 
+  @tag skip: System.otp_release() < "27"
+  test "translates :proc_lib crashes with :process_label" do
+    fun = fn ->
+      :proc_lib.set_label({:any, "term"})
+      raise "oops"
+    end
+
+    pid = :proc_lib.spawn_link(__MODULE__, :task, [self(), fun])
+
+    assert capture_log(:info, fn ->
+             ref = Process.monitor(pid)
+             send(pid, :message)
+             send(pid, :go)
+             receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
+           end) =~ ~r"""
+           \[error\] Process #PID<\d+\.\d+\.\d+> terminating
+           \*\* \(RuntimeError\) oops
+           .*
+           Initial Call: Logger.TranslatorTest.task/2
+           Process Label: {:any, \"term\"}
+           Ancestors: \[#PID<\d+\.\d+\.\d+>\]
+           """s
+
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
+    assert {%RuntimeError{message: "oops"}, [_ | _]} = process_metadata[:crash_reason]
+  end
+
   test "translates :proc_lib crashes without initial call" do
     fun = fn ->
       Process.delete(:"$initial_call")
