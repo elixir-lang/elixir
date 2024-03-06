@@ -949,7 +949,7 @@ defmodule Process do
       Process.set_label(:worker)
       #=> :ok
   """
-  @spec set_label(term()) :: nil
+  @spec set_label(term()) :: :ok
   def set_label(label) do
     # TODO: switch to `:proc_lib.set_label/2` when we require Erlang/OTP 27+
     Process.put(:"$process_label", label)
