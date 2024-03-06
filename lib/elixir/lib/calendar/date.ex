@@ -775,6 +775,7 @@ defmodule Date do
       {:ok, ~D[2020-02-01]}
 
   """
+  @doc since: "1.7.0"
   @spec shift(Calendar.date(), Duration.t() | [Duration.unit()]) :: {:ok, t}
   def shift(%Date{calendar: calendar} = date, %Duration{} = duration) do
     %{year: year, month: month, day: day} = date

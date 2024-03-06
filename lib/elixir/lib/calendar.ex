@@ -341,11 +341,13 @@ defmodule Calendar do
   @doc """
   Shifts date by given duration according to its calendar.
   """
+  @doc since: "1.17.0"
   @callback shift_date(year, month, day, Duration.t()) :: {year, month, day}
 
   @doc """
   Shifts naive datetime by given duration according to its calendar.
   """
+  @doc since: "1.17.0"
   @callback shift_naive_datetime(
               year,
               month,
@@ -360,6 +362,7 @@ defmodule Calendar do
   @doc """
   Shifts time by given duration according to its calendar.
   """
+  @doc since: "1.17.0"
   @callback shift_time(hour, minute, second, microsecond, Duration.t()) ::
               {hour, minute, second, microsecond}
 

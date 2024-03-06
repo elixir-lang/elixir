@@ -575,6 +575,7 @@ defmodule Time do
       {:ok, ~T[01:00:15.000100]}
 
   """
+  @doc since: "1.7.0"
   @spec shift(Calendar.time(), Duration.t() | [Duration.unit()]) :: {:ok, t}
   def shift(%Time{calendar: calendar} = time, %Duration{} = duration) do
     %{hour: hour, minute: minute, second: second, microsecond: microsecond} = time

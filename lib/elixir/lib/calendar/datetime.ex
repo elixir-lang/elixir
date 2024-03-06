@@ -1685,6 +1685,7 @@ defmodule DateTime do
       {:ok, ~U[2016-03-03 00:00:00Z]}
 
   """
+  @doc since: "1.7.0"
   @spec shift(
           Calendar.datetime(),
           Duration.t() | [Duration.unit()],
