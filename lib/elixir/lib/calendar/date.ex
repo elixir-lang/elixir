@@ -784,13 +784,13 @@ defmodule Date do
   """
   @doc since: "1.7.0"
   @spec shift(Calendar.date(), Duration.t() | [Duration.unit()]) :: {:ok, t}
-  def shift(%Date{calendar: calendar} = date, %Duration{} = duration) do
+  def shift(%{calendar: calendar} = date, %Duration{} = duration) do
     %{year: year, month: month, day: day} = date
     {year, month, day} = calendar.shift_date(year, month, day, duration)
     {:ok, %Date{calendar: calendar, year: year, month: month, day: day}}
   end
 
-  def shift(%Date{} = date, duration_units) do
+  def shift(date, duration_units) do
     shift(date, Duration.new(duration_units))
   end
 

@@ -581,7 +581,7 @@ defmodule Time do
   """
   @doc since: "1.7.0"
   @spec shift(Calendar.time(), Duration.t() | [Duration.unit()]) :: {:ok, t}
-  def shift(%Time{calendar: calendar} = time, %Duration{} = duration) do
+  def shift(%{calendar: calendar} = time, %Duration{} = duration) do
     %{hour: hour, minute: minute, second: second, microsecond: microsecond} = time
 
     {hour, minute, second, microsecond} =
@@ -597,7 +597,7 @@ defmodule Time do
      }}
   end
 
-  def shift(%Time{} = time, duration_units) do
+  def shift(time, duration_units) do
     shift(time, Duration.new(duration_units))
   end
 
