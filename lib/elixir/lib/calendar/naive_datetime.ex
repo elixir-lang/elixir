@@ -576,7 +576,7 @@ defmodule NaiveDateTime do
   @doc """
   Shifts given `naive_datetime` by `duration` according to its calendar.
 
-  Available units are: `:year, :month, :week, :day, :hour, :minute, :second, :microsecond`.
+  Allowed units are: `:year, :month, :week, :day, :hour, :minute, :second, :microsecond`.
 
   When used with the default calendar `Calendar.ISO`:
 
@@ -636,8 +636,8 @@ defmodule NaiveDateTime do
      }}
   end
 
-  def shift(naive_datetime, duration_units) do
-    shift(naive_datetime, Duration.new(duration_units))
+  def shift(naive_datetime, duration) do
+    shift(naive_datetime, Duration.new(duration))
   end
 
   @doc """
@@ -653,8 +653,8 @@ defmodule NaiveDateTime do
   """
   @doc since: "1.7.0"
   @spec shift!(Calendar.naive_datetime(), Duration.t() | [Duration.unit()]) :: t
-  def shift!(naive_datetime, duration_units) do
-    case shift(naive_datetime, duration_units) do
+  def shift!(naive_datetime, duration) do
+    case shift(naive_datetime, duration) do
       {:ok, naive_datetime} ->
         naive_datetime
 

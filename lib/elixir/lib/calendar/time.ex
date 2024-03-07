@@ -603,8 +603,8 @@ defmodule Time do
      }}
   end
 
-  def shift(time, duration_units) do
-    shift(time, Duration.new(duration_units))
+  def shift(time, duration) do
+    shift(time, Duration.new(duration))
   end
 
   @doc """
@@ -620,8 +620,8 @@ defmodule Time do
   """
   @doc since: "1.7.0"
   @spec shift!(Calendar.time(), Duration.t() | [Duration.unit()]) :: t
-  def shift!(time, duration_units) do
-    case shift(time, duration_units) do
+  def shift!(time, duration) do
+    case shift(time, duration) do
       {:ok, time} ->
         time
 

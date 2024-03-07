@@ -1,10 +1,14 @@
 defmodule Duration do
   @moduledoc """
-  The Duration type implements the concept of duration applicable to all calendar types.
+  Struct and functions for handling durations.
 
-  A `Duration` has time scale units represented as integers with
-  the exception of microseconds, which are represented as a tuple `{microsecond, precision}`,
-  to be compatible with other calendar types implementing time, such as `Time`, `DateTime` and `NaiveDateTime`.
+  A `Duration` struct represents a collection of time scale units,
+  allowing for manipulation and calculation of durations.
+
+  Date and time scale units are represented as integers, allowing for both positive and negative values.
+
+  Microseconds are represented using a tuple `{microsecond, precision}`.
+  This ensures compatibility with other calendar types implementing time, such as `Time`, `DateTime`, and `NaiveDateTime`.
   """
 
   defstruct year: 0,

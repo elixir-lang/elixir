@@ -1679,7 +1679,7 @@ defmodule DateTime do
   @doc """
   Shifts given `datetime` by `duration` according to its calendar.
 
-  Available units are: `:year, :month, :week, :day, :hour, :minute, :second, :microsecond`.
+  Allowed units are: `:year, :month, :week, :day, :hour, :minute, :second, :microsecond`.
 
   First the datetime is converted to a naive datetime. After the shift was applied
   it is converted back to a datetime using its original time zone and time zone database,
@@ -1761,8 +1761,8 @@ defmodule DateTime do
     )
   end
 
-  def shift(datetime, duration_units, time_zone_database) do
-    shift(datetime, Duration.new(duration_units), time_zone_database)
+  def shift(datetime, duration, time_zone_database) do
+    shift(datetime, Duration.new(duration), time_zone_database)
   end
 
   @doc """
@@ -1778,26 +1778,26 @@ defmodule DateTime do
   """
   @doc since: "1.7.0"
   @spec shift!(Calendar.datetime(), Duration.t() | [Duration.unit()]) :: t
-  def shift!(%{time_zone: time_zone} = datetime, duration_units) do
-    case shift(datetime, duration_units) do
+  def shift!(%{time_zone: time_zone} = datetime, duration) do
+    case shift(datetime, duration) do
       {:ok, datetime} ->
         datetime
 
       {:ambiguous, dt1, dt2} ->
         raise ArgumentError,
-              "cannot shift datetime #{inspect(datetime)} by #{inspect(duration_units)} because the result " <>
+              "cannot shift datetime #{inspect(datetime)} by #{inspect(duration)} because the result " <>
                 "is ambiguous in time zone #{time_zone} as there is an overlap " <>
                 "between #{inspect(dt1)} and #{inspect(dt2)}"
 
       {:gap, dt1, dt2} ->
         raise ArgumentError,
-              "cannot shift datetime #{inspect(datetime)} by #{inspect(duration_units)} because the result " <>
+              "cannot shift datetime #{inspect(datetime)} by #{inspect(duration)} because the result " <>
                 "does not exist in time zone #{time_zone} as there is a gap " <>
                 "between #{inspect(dt1)} and #{inspect(dt2)}"
 
       {:error, reason} ->
         raise ArgumentError,
-              "cannot shift datetime #{inspect(datetime)} by #{inspect(duration_units)}, reason: #{inspect(reason)}"
+              "cannot shift datetime #{inspect(datetime)} by #{inspect(duration)}, reason: #{inspect(reason)}"
     end
   end
 

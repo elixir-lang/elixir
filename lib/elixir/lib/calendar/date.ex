@@ -766,7 +766,7 @@ defmodule Date do
   @doc """
   Shifts given `date` by `duration` according to its calendar.
 
-  Available units are: `:year, :month, :week, :day`.
+  Allowed units are: `:year, :month, :week, :day`.
 
   When used with the default calendar `Calendar.ISO`:
 
@@ -798,8 +798,8 @@ defmodule Date do
     {:ok, %Date{calendar: calendar, year: year, month: month, day: day}}
   end
 
-  def shift(date, duration_units) do
-    shift(date, Duration.new(duration_units))
+  def shift(date, duration) do
+    shift(date, Duration.new(duration))
   end
 
   @doc """
@@ -815,8 +815,8 @@ defmodule Date do
   """
   @doc since: "1.7.0"
   @spec shift(Calendar.date(), Duration.t() | [Duration.unit()]) :: t
-  def shift!(date, duration_units) do
-    case shift(date, duration_units) do
+  def shift!(date, duration) do
+    case shift(date, duration) do
       {:ok, date} ->
         date
 
