@@ -500,7 +500,7 @@ defmodule Time do
       iex> result.microsecond
       {21000, 3}
 
-  To move a time by a complex duration supporting all time units and precisions,
+  To shift time by a complex duration supporting all time units and precisions,
   you can use `Time.shift/2`.
   """
   @doc since: "1.6.0"

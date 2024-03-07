@@ -690,8 +690,8 @@ defmodule Date do
   The days are counted as Gregorian days. The date is returned in the same
   calendar as it was given in.
 
-  To move a date by a complex duration supporting various units including years,
-  months and weeks, days, you can use `Date.shift/2`.
+  To shift a date by a complex duration supporting various units including years,
+  months, weeks and days, you can use `Date.shift/2`.
 
   ## Examples
 

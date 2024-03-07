@@ -1610,8 +1610,8 @@ defmodule DateTime do
       iex> result.microsecond
       {21000, 3}
 
-  To move a datetime by a complex duration supporting various units including years,
-  months, weeks as well as time units, you can use `DateTime.shift/2`.
+  To shift a datetime by a complex duration supporting various units including years,
+  months, weeks, days as well as time units, you can use `DateTime.shift/2`.
   """
   @doc since: "1.8.0"
   @spec add(
