@@ -565,11 +565,11 @@ defmodule Time do
 
   Available duration units are: `:hour, :minute, :second, :microsecond`.
 
-  Raises ArgumentError when called with date scale units.
-
   When used with the default calendar `Calendar.ISO`:
 
   All duration units are collapsed to seconds and microseconds before they are applied.
+
+  Raises ArgumentError when called with date scale units.
 
   ## Examples
 

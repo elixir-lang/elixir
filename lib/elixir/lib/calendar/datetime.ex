@@ -1691,8 +1691,7 @@ defmodule DateTime do
 
   Durations are collapsed before they are applied:
   - when shifting by 1 year and 2 months the date is actually shifted by 14 months
-  - when shifting by 2 weeks and 3 days the date is shifted by 17 days
-  - all smaller units are collapsed into seconds and microseconds
+  - weeks, days and smaller units are collapsed into seconds and microseconds
 
   Durations are applied in order of the size of the unit: `month > day > second`.
 
