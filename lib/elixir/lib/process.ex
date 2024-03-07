@@ -949,6 +949,9 @@ defmodule Process do
 
       Process.set_label(:worker)
       #=> :ok
+      
+      Process.set_label({:any, "term"})
+      #=> :ok
   """
   @doc since: "1.17.0"
   @spec set_label(term()) :: :ok
