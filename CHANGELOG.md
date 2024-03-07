@@ -78,6 +78,35 @@ Another [ExDoc](https://github.com/elixir-lang/ex_doc) feature we have incorpora
 
 Finally, we have started enriching our documentation with [Mermaid.js](https://mermaid.js.org/) diagrams. You can find examples in the [GenServer](https://hexdocs.pm/elixir/main/GenServer.html) and [Supervisor](https://hexdocs.pm/elixir/main/Supervisor.html) docs.
 
+## v1.16.2-dev
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [Code] Emit `:defmodule` tracing event on module definition
+
+#### Mix
+
+  * [Mix] Add `Mix.install_project_dir/0`
+  * [Mix] Add environment variable for reusing `Mix.install/2` installation
+  * [Mix.SCM] Add `Mix.SCM.delete/1`
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Code] Fix charlist formatting issue when a single-quoted charlist escapes a double-quote character
+  * [Path] Fix regression on how `Path.relative_to/2` dealt with "." as input
+
+#### IEx
+
+  * [IEx.Helpers] Discard mermaid fenced blocks from ansi docs
+
+#### ExUnit
+
+  * [ExUnit] Properly compared pinned values when building diffs
+
 ## v1.16.1 (2024-01-31)
 
 ### 1. Bug fixes
