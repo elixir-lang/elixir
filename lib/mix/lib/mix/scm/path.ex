@@ -31,6 +31,13 @@ defmodule Mix.SCM.Path do
           """)
         end
 
+        if opts[:optional] do
+          Mix.shell().error("""
+          warning: in-umbrella application #{inspect(app)} has the flag :optional \
+          set to true, but the flag is not supported for umbrella dependencies
+          """)
+        end
+
         path = "../#{app}"
 
         opts
