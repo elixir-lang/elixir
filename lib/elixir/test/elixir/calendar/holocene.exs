@@ -154,4 +154,21 @@ defmodule Calendar.Holocene do
 
   @impl true
   defdelegate iso_days_to_end_of_day(iso_days), to: Calendar.ISO
+
+  # The Holocene calendar extends most year and day count guards implemented in the ISO calendar,
+  # therefore we just return the input date parts.
+  @impl true
+  def shift_date(year, month, day, _duration) do
+    {year, month, day}
+  end
+
+  @impl true
+  def shift_naive_datetime(year, month, day, hour, minute, second, microsecond, _duration) do
+    {year, month, day, hour, minute, second, microsecond}
+  end
+
+  @impl true
+  def shift_time(hour, minute, second, microsecond, _duration) do
+    {hour, minute, second, microsecond}
+  end
 end

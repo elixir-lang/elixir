@@ -202,9 +202,8 @@ defmodule DateTest do
       Date.shift(~D[2012-01-01], months: 12)
     end
 
-    assert_raise UndefinedFunctionError, fn ->
-      date = Calendar.Holocene.date(12000, 01, 01)
-      Date.shift(date, month: 12)
-    end
+    # Implements calendar callback
+    date = Calendar.Holocene.date(10000, 01, 01)
+    assert Date.shift(date, []) == {:ok, ~D[10000-01-01 Calendar.Holocene]}
   end
 end
