@@ -175,7 +175,7 @@ defmodule ProcessTest do
       label = {:some_label, :random.uniform(99999)}
       assert :ok = Process.set_label(label)
 
-      if :erlang.system_info(:otp_release) == ~c"27" do
+      if System.otp_release() >= "27" do
         assert :proc_lib.get_label(self()) == label
       end
     end
