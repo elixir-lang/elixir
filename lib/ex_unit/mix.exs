@@ -34,7 +34,7 @@ defmodule ExUnit.MixProject do
         timeout: 60000,
         trace: false,
         after_suite: [],
-        repeat_until_failure: false
+        repeat_until_failure: 0
       ]
     ]
   end
