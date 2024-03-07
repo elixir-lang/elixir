@@ -943,7 +943,13 @@ defmodule Process do
   @doc """
   Add a descriptive term to the current process.
 
-  The term does not need to be unique, and in Erlang/OTP 27+ will be shown in Observer.
+  The term does not need to be unique, and in Erlang/OTP 27+ will be shown in
+  Observer and in crash logs.
+  This label may be useful for identifying a process as one of multiple in a
+  given role, such as "database connection" or "queue worker".
+  Although any term may be used, concise display and memory efficiency should
+  be taken into account in the choice; a short atom would be ideal on both
+  counts.
 
   ## Examples
 
