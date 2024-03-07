@@ -203,7 +203,9 @@ defmodule DateTest do
     end
 
     # Implements calendar callback
-    date = Calendar.Holocene.date(10000, 01, 01)
-    assert Date.shift(date, []) == {:ok, ~D[10000-01-01 Calendar.Holocene]}
+    assert_raise RuntimeError, "shift_date/4 not implemented", fn ->
+      date = Calendar.Holocene.date(10000, 01, 01)
+      Date.shift(date, month: 1)
+    end
   end
 end
