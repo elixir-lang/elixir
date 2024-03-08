@@ -652,7 +652,6 @@ Protocol.derive(
     :macros,
     :macro_aliases,
     :context_modules,
-    :runtime_modules,
     :lexical_tracker
   ]
 )
