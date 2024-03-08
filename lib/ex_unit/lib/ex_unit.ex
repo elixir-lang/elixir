@@ -216,8 +216,9 @@ defmodule ExUnit do
       System.at_exit(fn
         0 ->
           time = ExUnit.Server.modules_loaded(false)
+          seed = Application.get_env(:ex_unit, :seed)
           options = persist_defaults(configuration())
-          %{failures: failures} = maybe_repeated_run(options, time)
+          %{failures: failures} = maybe_repeated_run(options, seed, time)
 
           if failures > 0 do
             System.at_exit(fn _ -> exit({:shutdown, Keyword.fetch!(options, :exit_status)}) end)
@@ -407,8 +408,9 @@ defmodule ExUnit do
     end
 
     _ = ExUnit.Server.modules_loaded(additional_modules != [])
+    seed = Application.get_env(:ex_unit, :seed)
     options = persist_defaults(configuration())
-    maybe_repeated_run(options)
+    maybe_repeated_run(options, seed, nil)
   end
 
   @doc """
@@ -420,10 +422,11 @@ defmodule ExUnit do
   @doc since: "1.12.0"
   @spec async_run() :: Task.t()
   def async_run() do
+    seed = Application.get_env(:ex_unit, :seed)
     options = persist_defaults(configuration())
 
     Task.async(fn ->
-      maybe_repeated_run(options)
+      maybe_repeated_run(options, seed, nil)
     end)
   end
 
@@ -486,36 +489,33 @@ defmodule ExUnit do
     config
   end
 
-  defp maybe_repeated_run(options, load_us \\ nil) do
+  defp maybe_repeated_run(options, seed, load_us) do
     repeat = Keyword.fetch!(options, :repeat_until_failure)
-    %{stats: stats} = maybe_repeated_run(options, load_us, repeat)
-    stats
+    maybe_repeated_run(options, seed, load_us, repeat)
   end
 
-  defp maybe_repeated_run(options, load_us, repeat) do
-    result = ExUnit.Runner.run(options, load_us)
-    %{stats: stats, modules_to_restore: {async, sync}} = result
+  defp maybe_repeated_run(options, seed, load_us, repeat) do
+    case ExUnit.Runner.run(options, load_us) do
+      {%{failures: 0}, {sync_modules, async_modules}}
+      when repeat > 0 and (sync_modules != [] or async_modules != []) ->
+        ExUnit.Server.restore_modules(async_modules, sync_modules)
 
-    if repeat > 0 and stats.failures == 0 and (async != [] or sync != []) do
-      ExUnit.Server.restore_modules(async, sync)
-      # clear the seed if it was generated
-      if Keyword.get(options, :seed_generated, false) do
-        Application.delete_env(:ex_unit, :seed)
-      end
+        # Clear the seed if it was generated
+        if seed == nil do
+          Application.delete_env(:ex_unit, :seed)
+        end
 
-      # re-run configuration
-      options = persist_defaults(configuration())
-      maybe_repeated_run(options, load_us, repeat - 1)
-    else
-      result
+        # Re-run configuration
+        options = persist_defaults(configuration())
+        maybe_repeated_run(options, seed, load_us, repeat - 1)
+
+      {stats, _} ->
+        stats
     end
   end
 
   defp put_seed(opts) do
     Keyword.put_new_lazy(opts, :seed, fn ->
-      # we want to change the seed when using with `repeat_until_failure`
-      Application.put_env(:ex_unit, :seed_generated, true)
-
       # We're using `rem System.system_time()` here
       # instead of directly using :os.timestamp or using the
       # :microsecond argument because the VM on Windows has odd
