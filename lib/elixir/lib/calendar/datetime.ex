@@ -1681,11 +1681,13 @@ defmodule DateTime do
 
   Allowed units are: `:year, :month, :week, :day, :hour, :minute, :second, :microsecond`.
 
-  First the datetime is converted to a naive datetime. After the shift was applied
-  it is converted back to a datetime using its original time zone and time zone database,
-  potentially resulting in an ambiguous or gap DateTime result tuple.
+  When it comes to time zones, this function is equivalent to shifting the wall time
+  (the time a person at said timezone would see on a clock) by the given duration.
+  Then we validate if the shifted wall time is valid. For example, in time zones that
+  observe "Daylight Saving Time", a particular wall time may not exist when moving
+  the clock forward or be ambiguous when moving the clock back.
 
-  Check `from_naive/3` for more information on ambiguous datetimes.
+  Check `from_naive/3` for more information on the possible result types.
 
   When used with the default calendar `Calendar.ISO`:
 
