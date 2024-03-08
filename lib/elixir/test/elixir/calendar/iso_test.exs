@@ -583,5 +583,73 @@ defmodule Calendar.ISOTest do
              {0, 0},
              Duration.new(month: -1, day: -29)
            ) == {1999, 12, 31, 0, 0, 0, {0, 0}}
+
+    assert Calendar.ISO.shift_naive_datetime(
+             2000,
+             1,
+             1,
+             0,
+             0,
+             0,
+             {0, 0},
+             Duration.new(hour: 12)
+           ) == {2000, 1, 1, 12, 0, 0, {0, 0}}
+
+    assert Calendar.ISO.shift_naive_datetime(
+             2000,
+             1,
+             1,
+             0,
+             0,
+             0,
+             {0, 0},
+             Duration.new(minute: -65)
+           ) == {1999, 12, 31, 22, 55, 0, {0, 0}}
+  end
+
+  test "shift_time/2" do
+    assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new(hour: 1)) == {1, 0, 0, {0, 0}}
+    assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new(hour: -1)) == {23, 0, 0, {0, 0}}
+
+    assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new(minute: 30)) ==
+             {0, 30, 0, {0, 0}}
+
+    assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new(minute: -30)) ==
+             {23, 30, 0, {0, 0}}
+
+    assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new(second: 30)) ==
+             {0, 0, 30, {0, 0}}
+
+    assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new(second: -30)) ==
+             {23, 59, 30, {0, 0}}
+
+    assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new(microsecond: {100, 6})) ==
+             {0, 0, 0, {100, 6}}
+
+    assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new(microsecond: {-100, 6})) ==
+             {23, 59, 59, {999_900, 6}}
+
+    assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new(microsecond: {2000, 4})) ==
+             {0, 0, 0, {2000, 4}}
+
+    assert Calendar.ISO.shift_time(0, 0, 0, {0, 0}, Duration.new(microsecond: {-2000, 4})) ==
+             {23, 59, 59, {998_000, 4}}
+
+    assert Calendar.ISO.shift_time(0, 0, 0, {3500, 6}, Duration.new(microsecond: {-2000, 4})) ==
+             {0, 0, 0, {1500, 4}}
+
+    assert Calendar.ISO.shift_time(0, 0, 0, {3500, 4}, Duration.new(minute: 5)) ==
+             {0, 5, 0, {3500, 4}}
+
+    assert Calendar.ISO.shift_time(0, 0, 0, {3500, 6}, Duration.new(hour: 4)) ==
+             {4, 0, 0, {3500, 6}}
+
+    assert Calendar.ISO.shift_time(
+             23,
+             59,
+             59,
+             {999_900, 6},
+             Duration.new(hour: 4, microsecond: {100, 6})
+           ) == {4, 0, 0, {0, 6}}
   end
 end
