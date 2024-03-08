@@ -35,6 +35,7 @@ defmodule ExUnit.Runner do
 
   defp run_with_trap(opts, load_us) do
     opts = normalize_opts(opts)
+    repeat = Keyword.fetch!(opts, :repeat_until_failure)
     {:ok, manager} = EM.start_link()
     {:ok, stats_pid} = EM.add_handler(manager, ExUnit.RunnerStats, opts)
     config = configure(opts, manager, self(), stats_pid)
@@ -42,7 +43,10 @@ defmodule ExUnit.Runner do
 
     start_time = System.monotonic_time()
     EM.suite_started(config.manager, opts)
-    async_stop_time = async_loop(config, %{}, false)
+
+    %{stop_time: async_stop_time, modules_to_restore: modules_to_restore} =
+      async_loop(config, %{}, false, repeat)
+
     stop_time = System.monotonic_time()
 
     if max_failures_reached?(config) do
@@ -61,7 +65,8 @@ defmodule ExUnit.Runner do
     EM.stop(config.manager)
     after_suite_callbacks = Application.fetch_env!(:ex_unit, :after_suite)
     Enum.each(after_suite_callbacks, fn callback -> callback.(stats) end)
-    stats
+
+    %{stats: stats, modules_to_restore: modules_to_restore}
   end
 
   defp configure(opts, manager, runner_pid, stats_pid) do
@@ -92,22 +97,24 @@ defmodule ExUnit.Runner do
     |> Keyword.put(:include, include)
   end
 
-  defp async_loop(config, running, async_once?) do
+  defp async_loop(config, running, async_once?, repeat, modules_to_restore \\ {[], []}) do
     available = config.max_cases - map_size(running)
 
     cond do
       # No modules available, wait for one
       available <= 0 ->
         running = wait_until_available(config, running)
-        async_loop(config, running, async_once?)
+        async_loop(config, running, async_once?, repeat, modules_to_restore)
 
       # Slots are available, start with async modules
       modules = ExUnit.Server.take_async_modules(available) ->
         running = spawn_modules(config, modules, running)
-        async_loop(config, running, true)
+        modules_to_restore = maybe_store_modules(modules_to_restore, repeat, :async, modules)
+        async_loop(config, running, true, repeat, modules_to_restore)
 
       true ->
         sync_modules = ExUnit.Server.take_sync_modules()
+        modules_to_restore = maybe_store_modules(modules_to_restore, repeat, :sync, sync_modules)
 
         # Wait for all async modules
         0 =
@@ -123,7 +130,7 @@ defmodule ExUnit.Runner do
           running != %{} and wait_until_available(config, running)
         end
 
-        async_stop_time
+        %{stop_time: async_stop_time, modules_to_restore: modules_to_restore}
     end
   end
 
@@ -162,6 +169,16 @@ defmodule ExUnit.Runner do
       {pid, ref} = spawn_monitor(fn -> run_module(config, module) end)
       spawn_modules(config, modules, Map.put(running, ref, pid))
     end
+  end
+
+  defp maybe_store_modules(modules_to_restore, 0, _type, _modules), do: modules_to_restore
+
+  defp maybe_store_modules({async, sync}, _repeat, :async, modules) do
+    {async ++ modules, sync}
+  end
+
+  defp maybe_store_modules({async, sync}, _repeat, :sync, modules) do
+    {async, sync ++ modules}
   end
 
   ## Stacktrace

@@ -34,6 +34,10 @@ defmodule ExUnit.Server do
     GenServer.call(@name, :take_sync_modules, @timeout)
   end
 
+  def restore_modules(async_modules, sync_modules) do
+    GenServer.call(@name, {:restore_modules, async_modules, sync_modules}, @timeout)
+  end
+
   ## Callbacks
 
   def init(:ok) do
@@ -59,6 +63,17 @@ defmodule ExUnit.Server do
   def handle_call(:take_sync_modules, _from, state) do
     %{waiting: nil, loaded: :done, async_modules: []} = state
     {:reply, state.sync_modules, %{state | sync_modules: [], loaded: System.monotonic_time()}}
+  end
+
+  # Called by the runner when --repeat-until-failure is used.
+  def handle_call({:restore_modules, async_modules, sync_modules}, _from, state) do
+    {:reply, :ok,
+     %{
+       state
+       | loaded: :done,
+         async_modules: async_modules,
+         sync_modules: sync_modules
+     }}
   end
 
   def handle_call({:modules_loaded, _}, _from, %{loaded: :done} = state) do

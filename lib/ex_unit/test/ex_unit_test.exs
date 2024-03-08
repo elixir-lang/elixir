@@ -890,6 +890,91 @@ defmodule ExUnitTest do
     end
   end
 
+  describe ":repeat_until_failure" do
+    test "default value 0" do
+      configure_and_reload_on_exit([])
+      ExUnit.start(autorun: false)
+      config = ExUnit.configuration()
+      assert config[:repeat_until_failure] == 0
+    end
+
+    test "sets value of :repeat_until_failure" do
+      configure_and_reload_on_exit([])
+      ExUnit.start(repeat_until_failure: 5, autorun: false)
+      config = ExUnit.configuration()
+      assert config[:repeat_until_failure] == 5
+    end
+
+    test ":repeat_until_failure repeats tests up to the configured number of times" do
+      defmodule TestRepeatUntilFailureReached do
+        use ExUnit.Case
+
+        @tag :skip
+        test "skipped #{__ENV__.line}", do: assert(false)
+
+        test __ENV__.line, do: assert(true)
+        test __ENV__.line, do: assert(true)
+        test __ENV__.line, do: assert(true)
+
+        @tag :exclude
+        test "excluded #{__ENV__.line}", do: assert(false)
+      end
+
+      configure_and_reload_on_exit(repeat_until_failure: 5)
+
+      output =
+        capture_io(fn ->
+          assert ExUnit.run() == %{total: 5, failures: 0, skipped: 1, excluded: 1}
+        end)
+
+      runs = String.split(output, "Excluding", trim: true)
+      # 6 runs in total, 5 repeats
+      assert length(runs) == 6
+    end
+
+    test ":repeat_until_failure stops on failure" do
+      {:ok, pid} = Agent.start_link(fn -> 0 end)
+      Process.register(pid, :ex_unit_repeat_until_failure_count)
+
+      defmodule TestRepeatUntilFailureFailure do
+        use ExUnit.Case
+
+        @tag :skip
+        test "skipped #{__ENV__.line}", do: assert(true)
+
+        test "maybe pass #{__ENV__.line}" do
+          count = Agent.get(:ex_unit_repeat_until_failure_count, & &1)
+
+          if count < 3 do
+            Agent.update(:ex_unit_repeat_until_failure_count, &(&1 + 1))
+            assert(true)
+          else
+            assert(false)
+          end
+        end
+
+        @tag :exclude
+        test "excluded #{__ENV__.line}", do: assert(true)
+
+        @tag :exclude
+        test "excluded #{__ENV__.line}", do: assert(false)
+      end
+
+      configure_and_reload_on_exit(repeat_until_failure: 5)
+
+      output =
+        capture_io(fn ->
+          assert ExUnit.run() == %{total: 4, excluded: 2, failures: 1, skipped: 1}
+        end)
+
+      runs = String.split(output, "Excluding", trim: true)
+      # four runs in total, the first two repeats work fine, the third repeat (4th run)
+      # fails, therefore we stop
+      assert length(runs) == 4
+      assert List.last(runs) =~ "Expected truthy, got false"
+    end
+  end
+
   test "prints warning when all tests are excluded" do
     defmodule OnlyExcludedTests do
       use ExUnit.Case
@@ -924,7 +1009,7 @@ defmodule ExUnitTest do
       |> Keyword.merge(colors: [enabled: false])
 
     output = capture_io(fn -> Process.put(:capture_result, ExUnit.Runner.run(opts, nil)) end)
-    {Process.get(:capture_result), output}
+    {Process.get(:capture_result).stats, output}
   end
 
   defp next_message_in_mailbox() do

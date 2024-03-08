@@ -173,6 +173,12 @@ defmodule Mix.Tasks.Test do
     * `--raise` - immediately raises if the test suite fails, instead of continuing
       the execution of other Mix tasks
 
+    * `--repeat-until-failure` - sets the number of repetitions for running the test suite
+      until it fails. This is useful for debugging flaky tests;
+      `--repeat-until-failure 10000` repeats the test suite up to 10000 times until
+      the first failure. This can be combined with `--max-failures 1` to immediately stop
+      if one test fails. By default, the test suite is run completely.
+
     * `--seed` - seeds the random number generator used to randomize the order of tests;
       `--seed 0` disables randomization so the tests in a single file will always be ran
       in the same order they were defined in
@@ -444,7 +450,8 @@ defmodule Mix.Tasks.Test do
     preload_modules: :boolean,
     warnings_as_errors: :boolean,
     profile_require: :string,
-    exit_status: :integer
+    exit_status: :integer,
+    repeat_until_failure: :integer
   ]
 
   @cover [output: "cover", tool: Mix.Tasks.Test.Coverage]
@@ -676,7 +683,8 @@ defmodule Mix.Tasks.Test do
     :failures_manifest_file,
     :only_test_ids,
     :test_location_relative_path,
-    :exit_status
+    :exit_status,
+    :repeat_until_failure
   ]
 
   @doc false

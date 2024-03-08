@@ -217,7 +217,7 @@ defmodule ExUnit do
         0 ->
           time = ExUnit.Server.modules_loaded(false)
           options = persist_defaults(configuration())
-          %{failures: failures} = ExUnit.Runner.run(options, time)
+          %{failures: failures} = maybe_repeated_run(options, time)
 
           if failures > 0 do
             System.at_exit(fn _ -> exit({:shutdown, Keyword.fetch!(options, :exit_status)}) end)
@@ -408,7 +408,7 @@ defmodule ExUnit do
 
     _ = ExUnit.Server.modules_loaded(additional_modules != [])
     options = persist_defaults(configuration())
-    ExUnit.Runner.run(options, nil)
+    maybe_repeated_run(options)
   end
 
   @doc """
@@ -423,7 +423,7 @@ defmodule ExUnit do
     options = persist_defaults(configuration())
 
     Task.async(fn ->
-      ExUnit.Runner.run(options, nil)
+      maybe_repeated_run(options)
     end)
   end
 
@@ -486,8 +486,36 @@ defmodule ExUnit do
     config
   end
 
+  defp maybe_repeated_run(options, load_us \\ nil) do
+    repeat = Keyword.fetch!(options, :repeat_until_failure)
+    %{stats: stats} = maybe_repeated_run(options, load_us, repeat)
+    stats
+  end
+
+  defp maybe_repeated_run(options, load_us, repeat) do
+    result = ExUnit.Runner.run(options, load_us)
+    %{stats: stats, modules_to_restore: {async, sync}} = result
+
+    if repeat > 0 and stats.failures == 0 and (async != [] or sync != []) do
+      ExUnit.Server.restore_modules(async, sync)
+      # clear the seed if it was generated
+      if Keyword.get(options, :seed_generated, false) do
+        Application.delete_env(:ex_unit, :seed)
+      end
+
+      # re-run configuration
+      options = persist_defaults(configuration())
+      maybe_repeated_run(options, load_us, repeat - 1)
+    else
+      result
+    end
+  end
+
   defp put_seed(opts) do
     Keyword.put_new_lazy(opts, :seed, fn ->
+      # we want to change the seed when using with `repeat_until_failure`
+      Application.put_env(:ex_unit, :seed_generated, true)
+
       # We're using `rem System.system_time()` here
       # instead of directly using :os.timestamp or using the
       # :microsecond argument because the VM on Windows has odd
