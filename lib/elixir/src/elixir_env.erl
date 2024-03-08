@@ -21,6 +21,7 @@ new() ->
     macros => elixir_dispatch:default_macros(),       %% a list with macros imported from module
     macro_aliases => [],                              %% keep aliases defined inside a macro
     context_modules => [],                            %% modules defined in the current context
+    runtime_modules => [],                            %% modules defined in functions (runtime)
     versioned_vars => #{},                            %% a map of vars with their latest versions
     lexical_tracker => nil,                           %% lexical tracker PID
     tracers => []                                     %% available compilation tracers

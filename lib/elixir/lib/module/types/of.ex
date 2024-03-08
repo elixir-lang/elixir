@@ -147,7 +147,7 @@ defmodule Module.Types.Of do
   Handles remote calls.
   """
   def remote(module, fun, arity, meta, stack, context) when is_atom(module) do
-    if Keyword.get(meta, :context_module, false) do
+    if Keyword.get(meta, :runtime_module, false) do
       context
     else
       ParallelChecker.preload_module(stack.cache, module)

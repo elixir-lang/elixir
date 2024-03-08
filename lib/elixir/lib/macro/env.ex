@@ -24,6 +24,7 @@ defmodule Macro.Env do
     * `context` - the context of the environment; it can be `nil`
       (default context), `:guard` (inside a guard) or `:match` (inside a match)
     * `context_modules` - a list of modules defined in the current context
+    * `runtime_modules` - a list of modules defined in functions (runtime)
     * `file` - the current absolute file name as a binary
     * `function` - a tuple as `{atom, integer}`, where the first
       element is the function name and the second its arity; returns
@@ -47,6 +48,7 @@ defmodule Macro.Env do
 
   @type context :: :match | :guard | nil
   @type context_modules :: [module]
+  @type runtime_modules :: [module]
   @type file :: binary
   @type line :: non_neg_integer
   @type name_arity :: {atom, arity}
@@ -66,6 +68,7 @@ defmodule Macro.Env do
           aliases: aliases,
           context: context,
           context_modules: context_modules,
+          runtime_modules: runtime_modules,
           file: file,
           function: name_arity | nil,
           functions: functions,
@@ -83,6 +86,7 @@ defmodule Macro.Env do
     aliases: [],
     context: nil,
     context_modules: [],
+    runtime_modules: [],
     file: "nofile",
     function: nil,
     functions: [],
