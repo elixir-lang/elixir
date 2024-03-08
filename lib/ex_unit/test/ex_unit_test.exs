@@ -933,7 +933,8 @@ defmodule ExUnitTest do
     end
 
     test ":repeat_until_failure stops on failure" do
-      :persistent_term.put(:ex_unit_repeat_until_failure_count, 0)
+      {:ok, pid} = Agent.start_link(fn -> 0 end)
+      Process.register(pid, :ex_unit_repeat_until_failure_count)
 
       defmodule TestRepeatUntilFailureFailure do
         use ExUnit.Case
@@ -942,10 +943,10 @@ defmodule ExUnitTest do
         test "skipped #{__ENV__.line}", do: assert(true)
 
         test "maybe pass #{__ENV__.line}" do
-          count = :persistent_term.get(:ex_unit_repeat_until_failure_count)
+          count = Agent.get(:ex_unit_repeat_until_failure_count, & &1)
 
           if count < 3 do
-            :persistent_term.put(:ex_unit_repeat_until_failure_count, count + 1)
+            Agent.update(:ex_unit_repeat_until_failure_count, &(&1 + 1))
             assert(true)
           else
             assert(false)

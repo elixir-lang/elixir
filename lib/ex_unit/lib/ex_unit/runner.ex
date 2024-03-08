@@ -116,12 +116,12 @@ defmodule ExUnit.Runner do
       # Slots are available, start with async modules
       modules = ExUnit.Server.take_async_modules(available) ->
         running = spawn_modules(config, modules, running)
-        modules_to_restore = maybe_store_modules(modules_to_restore, :async, modules)
+        modules_to_restore = maybe_store_modules(modules_to_restore, repeat, :async, modules)
         async_loop(config, running, true, repeat, modules_to_restore)
 
       true ->
         sync_modules = ExUnit.Server.take_sync_modules()
-        modules_to_restore = maybe_store_modules(modules_to_restore, :sync, sync_modules)
+        modules_to_restore = maybe_store_modules(modules_to_restore, repeat, :sync, sync_modules)
 
         # Wait for all async modules
         0 =
@@ -178,20 +178,14 @@ defmodule ExUnit.Runner do
     end
   end
 
-  defp maybe_store_modules({async, sync}, :async, modules) do
-    if Application.fetch_env!(:ex_unit, :repeat_until_failure) > 0 do
-      {async ++ modules, sync}
-    else
-      {async, sync}
-    end
+  defp maybe_store_modules(modules_to_restore, 0, _type, _modules), do: modules_to_restore
+
+  defp maybe_store_modules({async, sync}, _repeat, :async, modules) do
+    {async ++ modules, sync}
   end
 
-  defp maybe_store_modules({async, sync}, :sync, modules) do
-    if Application.fetch_env!(:ex_unit, :repeat_until_failure) > 0 do
-      {async, sync ++ modules}
-    else
-      {async, sync}
-    end
+  defp maybe_store_modules({async, sync}, _repeat, :sync, modules) do
+    {async, sync ++ modules}
   end
 
   ## Stacktrace
