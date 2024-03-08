@@ -488,18 +488,11 @@ defmodule ExUnit do
 
   defp maybe_repeated_run(options, load_us \\ nil) do
     repeat = Keyword.fetch!(options, :repeat_until_failure)
-
-    %{stats: stats} =
-      if repeat > 0 do
-        repeated_run(options, load_us, repeat)
-      else
-        ExUnit.Runner.run(options, load_us)
-      end
-
+    %{stats: stats} = maybe_repeated_run(options, load_us, repeat)
     stats
   end
 
-  defp repeated_run(options, load_us, repeat) do
+  defp maybe_repeated_run(options, load_us, repeat) do
     result = ExUnit.Runner.run(options, load_us)
     %{stats: stats, modules_to_restore: {async, sync}} = result
 
@@ -512,7 +505,7 @@ defmodule ExUnit do
 
       # re-run configuration
       options = persist_defaults(configuration())
-      repeated_run(options, load_us, repeat - 1)
+      maybe_repeated_run(options, load_us, repeat - 1)
     else
       result
     end
