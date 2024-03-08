@@ -34,12 +34,8 @@ defmodule ExUnit.Server do
     GenServer.call(@name, :take_sync_modules, @timeout)
   end
 
-  def restore_modules() do
-    if Application.fetch_env!(:ex_unit, :repeat_until_failure) == 0 do
-      raise "you cannot use restore_modules when repeat_until_failure is 0"
-    end
-
-    GenServer.call(@name, :restore_modules, @timeout)
+  def restore_modules(async_modules, sync_modules) do
+    GenServer.call(@name, {:restore_modules, async_modules, sync_modules}, @timeout)
   end
 
   ## Callbacks
@@ -52,10 +48,7 @@ defmodule ExUnit.Server do
       loaded: System.monotonic_time(),
       waiting: nil,
       async_modules: [],
-      sync_modules: [],
-      # only used when repeat_until_failure > 0
-      persistent_async_modules: [],
-      persistent_sync_modules: []
+      sync_modules: []
     }
 
     {:ok, state}
@@ -72,13 +65,14 @@ defmodule ExUnit.Server do
     {:reply, state.sync_modules, %{state | sync_modules: [], loaded: System.monotonic_time()}}
   end
 
-  def handle_call(:restore_modules, _from, state) do
+  # Called by the runner when --repeat-until-failure is used.
+  def handle_call({:restore_modules, async_modules, sync_modules}, _from, state) do
     {:reply, :ok,
      %{
        state
        | loaded: :done,
-         async_modules: state.persistent_async_modules,
-         sync_modules: state.persistent_sync_modules
+         async_modules: async_modules,
+         sync_modules: sync_modules
      }}
   end
 
@@ -105,42 +99,18 @@ defmodule ExUnit.Server do
 
   def handle_call({:add, name, :async}, _from, %{loaded: loaded} = state)
       when is_integer(loaded) do
-    state =
-      state.async_modules
-      |> update_in(&[name | &1])
-      |> maybe_add_persistent_async_modules(name)
-
+    state = update_in(state.async_modules, &[name | &1])
     {:reply, :ok, take_modules(state)}
   end
 
   def handle_call({:add, name, :sync}, _from, %{loaded: loaded} = state)
       when is_integer(loaded) do
-    state =
-      state.sync_modules
-      |> update_in(&[name | &1])
-      |> maybe_add_persistent_sync_modules(name)
-
+    state = update_in(state.sync_modules, &[name | &1])
     {:reply, :ok, state}
   end
 
   def handle_call({:add, _name, _type}, _from, state),
     do: {:reply, :already_running, state}
-
-  defp maybe_add_persistent_async_modules(state, name) do
-    if Application.fetch_env!(:ex_unit, :repeat_until_failure) > 0 do
-      update_in(state.persistent_async_modules, &[name | &1])
-    else
-      state
-    end
-  end
-
-  defp maybe_add_persistent_sync_modules(state, name) do
-    if Application.fetch_env!(:ex_unit, :repeat_until_failure) > 0 do
-      update_in(state.persistent_sync_modules, &[name | &1])
-    else
-      state
-    end
-  end
 
   defp take_modules(%{waiting: nil} = state) do
     state
