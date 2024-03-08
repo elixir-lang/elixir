@@ -1009,7 +1009,7 @@ defmodule ExUnitTest do
       |> Keyword.merge(colors: [enabled: false])
 
     output = capture_io(fn -> Process.put(:capture_result, ExUnit.Runner.run(opts, nil)) end)
-    {Process.get(:capture_result), output}
+    {Process.get(:capture_result).stats, output}
   end
 
   defp next_message_in_mailbox() do

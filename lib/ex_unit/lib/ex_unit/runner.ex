@@ -27,15 +27,15 @@ defmodule ExUnit.Runner do
           :ok
         end)
 
-      repeat = Keyword.fetch!(opts, :repeat_until_failure)
-      run_with_trap(opts, load_us, repeat)
+      run_with_trap(opts, load_us)
     after
       System.untrap_signal(:sigquit, id)
     end
   end
 
-  defp run_with_trap(opts, load_us, repeat) do
+  defp run_with_trap(opts, load_us) do
     opts = normalize_opts(opts)
+    repeat = Keyword.fetch!(opts, :repeat_until_failure)
     {:ok, manager} = EM.start_link()
     {:ok, stats_pid} = EM.add_handler(manager, ExUnit.RunnerStats, opts)
     config = configure(opts, manager, self(), stats_pid)
@@ -66,14 +66,7 @@ defmodule ExUnit.Runner do
     after_suite_callbacks = Application.fetch_env!(:ex_unit, :after_suite)
     Enum.each(after_suite_callbacks, fn callback -> callback.(stats) end)
 
-    {async, sync} = modules_to_restore
-
-    if repeat > 0 and stats.failures == 0 and (async != [] or sync != []) do
-      ExUnit.Server.restore_modules(async, sync)
-      run_with_trap(opts, load_us, repeat - 1)
-    else
-      stats
-    end
+    %{stats: stats, modules_to_restore: modules_to_restore}
   end
 
   defp configure(opts, manager, runner_pid, stats_pid) do
