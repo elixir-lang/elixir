@@ -90,7 +90,8 @@ expand({require, Meta, [Ref, Opts]}, S, E) ->
   case lists:keyfind(defined, 1, Meta) of
     {defined, Mod} when is_atom(Mod) ->
       EA = ET#{context_modules := [Mod | ?key(ET, context_modules)]},
-      {ERef, ST, expand_alias(Meta, false, ERef, EOpts, EA)};
+      SU = ST#elixir_ex{runtime_modules=[Mod | ST#elixir_ex.runtime_modules]},
+      {ERef, SU, expand_alias(Meta, false, ERef, EOpts, EA)};
 
     false when is_atom(ERef) ->
       elixir_aliases:ensure_loaded(Meta, ERef, ET),
@@ -515,7 +516,7 @@ expand_fn_capture(Meta, Arg, S, E) ->
     {{remote, Remote, Fun, Arity}, RequireMeta, DotMeta, SE, EE} ->
       is_atom(Remote) andalso
         elixir_env:trace({remote_function, RequireMeta, Remote, Fun, Arity}, E),
-      AttachedMeta = attach_context_module(Remote, RequireMeta, E),
+      AttachedMeta = attach_runtime_module(Remote, RequireMeta, S, E),
       {{'&', Meta, [{'/', [], [{{'.', DotMeta, [Remote, Fun]}, AttachedMeta, []}, Arity]}]}, SE, EE};
     {{local, Fun, Arity}, _, _, _SE, #{function := nil}} ->
       file_error(Meta, E, ?MODULE, {undefined_local_capture, Fun, Arity});
@@ -867,7 +868,7 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, S, SL, #{context := Context}
       {{{'.', DotMeta, [Receiver, Right]}, Meta, []}, SL, E};
 
     true ->
-      AttachedMeta = attach_context_module(Receiver, Meta, E),
+      AttachedMeta = attach_runtime_module(Receiver, Meta, S, E),
       {EArgs, {SA, _}, EA} = mapfold(fun expand_arg/3, {SL, S}, E, Args),
 
       case rewrite(Context, Receiver, DotMeta, Right, AttachedMeta, EArgs, S) of
@@ -883,17 +884,9 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, _, _, E) ->
   Call = {{'.', DotMeta, [Receiver, Right]}, Meta, Args},
   file_error(Meta, E, ?MODULE, {invalid_call, Call}).
 
-attach_context_module(_Receiver, Meta, #{function := nil}) ->
-  Meta;
-attach_context_module(Receiver, Meta, #{context_modules := [Ctx | _], module := Mod})
-    %% If the context is the current module or
-    %% if the receiver is the current module,
-    %% then there is no context module.
-    when Ctx == Mod; Receiver == Mod ->
-  Meta;
-attach_context_module(Receiver, Meta, #{context_modules := ContextModules}) ->
-  case lists:member(Receiver, ContextModules) of
-    true -> [{context_module, true} | Meta];
+attach_runtime_module(Receiver, Meta, S, _E) ->
+  case lists:member(Receiver, S#elixir_ex.runtime_modules) of
+    true -> [{runtime_module, true} | Meta];
     false -> Meta
   end.
 

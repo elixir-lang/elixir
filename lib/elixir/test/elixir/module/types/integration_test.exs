@@ -355,7 +355,7 @@ defmodule Module.Types.IntegrationTest do
       assert_warnings(files, warnings)
     end
 
-    test "do not warn for module defined in local context" do
+    test "do not warn for module defined in local (runtime) context" do
       files = %{
         "a.ex" => """
         defmodule A do
@@ -425,6 +425,89 @@ defmodule Module.Types.IntegrationTest do
         "B.func/3 is undefined or private. Did you mean:",
         "* func/1",
         "a.ex:11:16: A.g/0"
+      ]
+
+      assert_warnings(files, warnings)
+    end
+
+    test "warn for external nested module" do
+      files = %{
+        "a.ex" => """
+        defmodule A.B do
+          def a, do: :ok
+        end
+        defmodule A do
+          alias A.B
+          def a, do: B.a()
+          def b, do: B.a(1)
+          def c, do: B.no_func()
+        end
+        """
+      }
+
+      warnings = [
+        "A.B.a/1 is undefined or private. Did you mean:",
+        "* a/0",
+        " def b, do: B.a(1)",
+        "a.ex:7:16: A.b/0",
+        "A.B.no_func/0 is undefined or private",
+        "def c, do: B.no_func()",
+        "a.ex:8:16: A.c/0"
+      ]
+
+      assert_warnings(files, warnings)
+    end
+
+    test "warn for compile time context module defined before calls" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          defmodule B do
+            def a, do: :ok
+          end
+          def a, do: B.a()
+          def b, do: B.a(1)
+          def c, do: B.no_func()
+        end
+        """
+      }
+
+      warnings = [
+        "A.B.a/1 is undefined or private. Did you mean:",
+        "* a/0",
+        " def b, do: B.a(1)",
+        "a.ex:6:16: A.b/0",
+        "A.B.no_func/0 is undefined or private",
+        "def c, do: B.no_func()",
+        "a.ex:7:16: A.c/0"
+      ]
+
+      assert_warnings(files, warnings)
+    end
+
+    test "warn for compile time context module defined after calls and aliased" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          alias A.B
+          def a, do: B.a()
+          def b, do: B.a(1)
+          def c, do: B.no_func()
+          defmodule B do
+            def a, do: :ok
+          end
+        end
+        """
+      }
+
+      warnings = [
+        "A.B.a/1 is undefined or private. Did you mean:",
+        "* a/0",
+        " def b, do: B.a(1)",
+        "a.ex:4:16: A.b/0",
+        "A.B.no_func/0 is undefined or private",
+        "def c, do: B.no_func()",
+        "a.ex:5:16: A.c/0"
       ]
 
       assert_warnings(files, warnings)
