@@ -174,10 +174,11 @@ defmodule Mix.Tasks.Test do
       the execution of other Mix tasks
 
     * `--repeat-until-failure` - sets the number of repetitions for running the test suite
-      until it fails. This is useful for debugging flaky tests;
-      `--repeat-until-failure 10000` repeats the test suite up to 10000 times until
-      the first failure. This can be combined with `--max-failures 1` to immediately stop
-      if one test fails. By default, the test suite is run completely.
+      until it fails. This is useful for debugging flaky tests within the same instance
+      of the Erlang VM. For example, `--repeat-until-failure 10000` repeats the test suite
+      up to 10000 times until the first failure. This can be combined with `--max-failures 1`
+      to immediately stop if one test fails. However, if there is any leftover global state
+      after running the tests, re-running the suite may trigger unrelated failures.
 
     * `--seed` - seeds the random number generator used to randomize the order of tests;
       `--seed 0` disables randomization so the tests in a single file will always be ran
