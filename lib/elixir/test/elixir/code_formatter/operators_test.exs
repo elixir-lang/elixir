@@ -63,6 +63,15 @@ defmodule Code.Formatter.OperatorsTest do
       assert_format "not !1", "not (!1)"
       assert_format "not(!1)", "not (!1)"
       assert_format "not(1 + 1)", "not (1 + 1)"
+      assert_format "-(2**2)", "-(2 ** 2)"
+    end
+
+    test "wraps operand in ambiguous calls" do
+      assert_same "def -(2 ** 2)"
+      assert_same "def -var"
+      assert_format "def (-(2 ** 2))", "def -(2 ** 2)"
+      assert_format "def --var", "def -- var"
+      assert_format "def -+var", "def -(+var)"
     end
 
     test "does not wrap operand if it is a nestable operator" do

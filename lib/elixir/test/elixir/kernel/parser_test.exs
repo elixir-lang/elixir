@@ -37,6 +37,27 @@ defmodule Kernel.ParserTest do
                 ]}
     end
 
+    test "ambiguous ops" do
+      assert parse!("f -var") ==
+               {:f, [ambiguous_op: nil, line: 1], [{:-, [line: 1], [{:var, [line: 1], nil}]}]}
+
+      assert parse!("f -(var)") ==
+               {:f, [ambiguous_op: nil, line: 1], [{:-, [line: 1], [{:var, [line: 1], nil}]}]}
+
+      assert parse!("f +-var") ==
+               {:f, [{:ambiguous_op, nil}, {:line, 1}],
+                [{:+, [line: 1], [{:-, [line: 1], [{:var, [line: 1], nil}]}]}]}
+
+      assert parse!("f - var") ==
+               {:-, [line: 1], [{:f, [line: 1], nil}, {:var, [line: 1], nil}]}
+
+      assert parse!("f --var") ==
+               {:--, [line: 1], [{:f, [line: 1], nil}, {:var, [line: 1], nil}]}
+
+      assert parse!("(f ->var)") ==
+               [{:->, [line: 1], [[{:f, [line: 1], nil}], {:var, [line: 1], nil}]}]
+    end
+
     test "ambiguous ops in keywords" do
       assert parse!("f(+: :ok)") == {:f, [line: 1], [[+: :ok]]}
       assert parse!("f +: :ok") == {:f, [line: 1], [[+: :ok]]}
