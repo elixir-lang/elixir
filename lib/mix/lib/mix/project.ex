@@ -24,7 +24,7 @@ defmodule Mix.Project do
 
   ## Configuration
 
-  In order to configure Mix, the module that `use`s `Mix.Project` should export
+  In order to configure Mix, the module that calls `use Mix.Project` should export
   a `project/0` function that returns a keyword list representing configuration
   for the project.
 
