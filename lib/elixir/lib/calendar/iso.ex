@@ -1469,8 +1469,8 @@ defmodule Calendar.ISO do
       iex> Calendar.ISO.shift_date(2016, 1, 31, Duration.new(year: 4, day: 1))
       {2020, 2, 1}
   """
-  @spec shift_date(year, month, day, Duration.t()) :: {year, month, day}
   @impl true
+  @spec shift_date(year, month, day, Duration.t()) :: {year, month, day}
   def shift_date(year, month, day, duration) do
     shift_options = shift_date_options(duration)
 
@@ -1498,6 +1498,7 @@ defmodule Calendar.ISO do
       iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, Duration.new(microsecond: {100, 6}))
       {2016, 1, 3, 0, 0, 0, {100, 6}}
   """
+  @impl true
   @spec shift_naive_datetime(
           year,
           month,
@@ -1508,7 +1509,6 @@ defmodule Calendar.ISO do
           microsecond,
           Duration.t()
         ) :: {year, month, day, hour, minute, second, microsecond}
-  @impl true
   def shift_naive_datetime(year, month, day, hour, minute, second, microsecond, duration) do
     shift_options = shift_datetime_options(duration)
 
@@ -1535,9 +1535,9 @@ defmodule Calendar.ISO do
       iex> Calendar.ISO.shift_time(13, 0, 0, {0, 0}, Duration.new(microsecond: {100, 6}))
       {13, 0, 0, {100, 6}}
   """
+  @impl true
   @spec shift_time(hour, minute, second, microsecond, Duration.t()) ::
           {hour, minute, second, microsecond}
-  @impl true
   def shift_time(hour, minute, second, microsecond, duration) do
     shift_options = shift_time_options(duration)
 
