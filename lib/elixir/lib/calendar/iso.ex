@@ -1567,7 +1567,6 @@ defmodule Calendar.ISO do
 
     new_month =
       case rem(total_months, months_in_year) + 1 do
-        0 -> months_in_year
         new_month when new_month < 1 -> new_month + months_in_year
         new_month -> new_month
       end
