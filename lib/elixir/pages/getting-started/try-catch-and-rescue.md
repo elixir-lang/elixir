@@ -104,7 +104,7 @@ Other times, you may fully expect a certain file to exist, and in case it does n
 
 The second approach also works because, as discussed in the [Processes](processes.md) chapter, all Elixir code runs inside processes that are isolated and don't share anything by default. Therefore, an unhandled exception in a process will never crash or corrupt the state of another process. This allows us to define supervisor processes, which are meant to observe when a process terminates unexpectedly, and start a new one in its place.
 
-At the end of the day, "fail fast" / "let it crash" is a way of saying that, when *something _unexpected* happens, it is best to start from scratch within a new process, freshly started by a supervisor, rather than blindly trying to rescue all possible error cases without the full context of when and how they can happen.
+At the end of the day, "fail fast" / "let it crash" is a way of saying that, when *something unexpected* happens, it is best to start from scratch within a new process, freshly started by a supervisor, rather than blindly trying to rescue all possible error cases without the full context of when and how they can happen.
 
 ### Reraise
 
