@@ -500,8 +500,7 @@ defmodule Time do
       iex> result.microsecond
       {21000, 3}
 
-  To shift time by a complex duration supporting all time units and precisions,
-  you can use `Time.shift/2`.
+  To shift a time by a `Duration`, use `Time.shift/2`.
   """
   @doc since: "1.6.0"
   @spec add(Calendar.time(), integer, :hour | :minute | System.time_unit()) :: t
