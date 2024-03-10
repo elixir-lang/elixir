@@ -389,7 +389,7 @@ defmodule Keyword do
       3
 
   """
-  @spec get(t, key, value) :: value | default
+  @spec get(t, key, default) :: value | default
   def get(keywords, key, default \\ nil) when is_list(keywords) and is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
       {^key, value} -> value
@@ -1290,7 +1290,7 @@ defmodule Keyword do
       {1, []}
 
   """
-  @spec pop(t, key, value) :: {value | default, t}
+  @spec pop(t, key, default) :: {value | default, t}
   def pop(keywords, key, default \\ nil) when is_list(keywords) and is_atom(key) do
     case fetch(keywords, key) do
       {:ok, value} -> {value, delete(keywords, key)}
@@ -1406,7 +1406,7 @@ defmodule Keyword do
       {1, [a: 2]}
 
   """
-  @spec pop_first(t, key, value) :: {value | default, t}
+  @spec pop_first(t, key, default) :: {value | default, t}
   def pop_first(keywords, key, default \\ nil) when is_list(keywords) and is_atom(key) do
     case :lists.keytake(key, 1, keywords) do
       {:value, {^key, value}, rest} -> {value, rest}
