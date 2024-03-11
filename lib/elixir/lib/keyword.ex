@@ -101,6 +101,8 @@ defmodule Keyword do
 
   @type key :: atom
   @type value :: any
+
+  @typedoc since: "1.17.0"
   @type default :: any
 
   @type t :: [{key, value}]
