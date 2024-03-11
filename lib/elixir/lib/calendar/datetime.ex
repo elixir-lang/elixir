@@ -1680,13 +1680,9 @@ defmodule DateTime do
 
   Allowed units are: `:year, :month, :week, :day, :hour, :minute, :second, :microsecond`.
 
-  When it comes to time zones, this function is equivalent to shifting the wall time
-  (the time a person at said timezone would see on a clock) by the given duration.
-  Then we validate if the shifted wall time is valid. For example, in time zones that
-  observe "Daylight Saving Time", a particular wall time may not exist when moving
-  the clock forward or be ambiguous when moving the clock back.
-
-  Check `from_naive/3` for more information on the possible result types.
+  This function considers "Daylight Saving Time" and other time gaps across time zones
+  by converting the given datetime to Etc/UTC before executing the shift. Finally,
+  the datetime is converted back to its original time zone.
 
   When used with the default calendar `Calendar.ISO`:
 
@@ -1712,14 +1708,7 @@ defmodule DateTime do
           Calendar.datetime(),
           Duration.t() | [Duration.unit()],
           Calendar.time_zone_database()
-        ) ::
-          {:ok, t}
-          | {:ambiguous, first_datetime :: t, second_datetime :: t}
-          | {:gap, t, t}
-          | {:error,
-             :incompatible_calendars
-             | :time_zone_not_found
-             | :utc_only_time_zone_database}
+        ) :: {:ok, t} | {:error, :time_zone_not_found | :utc_only_time_zone_database}
   def shift(datetime, duration, time_zone_database \\ Calendar.get_time_zone_database())
 
   def shift(
@@ -1727,46 +1716,48 @@ defmodule DateTime do
         %Duration{} = duration,
         time_zone_database
       ) do
-    %{
-      year: year,
-      month: month,
-      day: day,
-      hour: hour,
-      minute: minute,
-      second: second,
-      microsecond: microsecond
-    } = shift_zone!(datetime, "Etc/UTC", time_zone_database)
-
-    {year, month, day, hour, minute, second, microsecond} =
-      calendar.shift_naive_datetime(
-        year,
-        month,
-        day,
-        hour,
-        minute,
-        second,
-        microsecond,
-        duration
-      )
-
-    shift_zone(
-      %DateTime{
-        calendar: calendar,
+    with {:ok, datetime} <- shift_zone(datetime, "Etc/UTC", time_zone_database) do
+      %{
         year: year,
         month: month,
         day: day,
         hour: hour,
         minute: minute,
         second: second,
-        microsecond: microsecond,
-        std_offset: 0,
-        utc_offset: 0,
-        time_zone: "Etc/UTC",
-        zone_abbr: "UTC"
-      },
-      original_time_zone,
-      time_zone_database
-    )
+        microsecond: microsecond
+      } = datetime
+
+      {year, month, day, hour, minute, second, microsecond} =
+        calendar.shift_naive_datetime(
+          year,
+          month,
+          day,
+          hour,
+          minute,
+          second,
+          microsecond,
+          duration
+        )
+
+      shift_zone(
+        %DateTime{
+          calendar: calendar,
+          year: year,
+          month: month,
+          day: day,
+          hour: hour,
+          minute: minute,
+          second: second,
+          microsecond: microsecond,
+          std_offset: 0,
+          utc_offset: 0,
+          time_zone: "Etc/UTC",
+          zone_abbr: "UTC"
+        },
+        original_time_zone,
+        time_zone_database
+      )
+    end
   end
 
   def shift(datetime, duration, time_zone_database) do
@@ -1786,26 +1777,13 @@ defmodule DateTime do
   """
   @doc since: "1.7.0"
   @spec shift!(Calendar.datetime(), Duration.t() | [Duration.unit()]) :: t
-  def shift!(%{time_zone: time_zone} = datetime, duration) do
+  def shift!(datetime, duration) do
     case shift(datetime, duration) do
       {:ok, datetime} ->
         datetime
 
-      {:ambiguous, dt1, dt2} ->
-        raise ArgumentError,
-              "cannot shift datetime #{inspect(datetime)} by #{inspect(duration)} because the result " <>
-                "is ambiguous in time zone #{time_zone} as there is an overlap " <>
-                "between #{inspect(dt1)} and #{inspect(dt2)}"
-
-      {:gap, dt1, dt2} ->
-        raise ArgumentError,
-              "cannot shift datetime #{inspect(datetime)} by #{inspect(duration)} because the result " <>
-                "does not exist in time zone #{time_zone} as there is a gap " <>
-                "between #{inspect(dt1)} and #{inspect(dt2)}"
-
-      {:error, reason} ->
-        raise ArgumentError,
-              "cannot shift datetime #{inspect(datetime)} by #{inspect(duration)}, reason: #{inspect(reason)}"
+      reason ->
+        raise RuntimeError, "cannot shift datetime, reason: #{inspect(reason)}"
     end
   end
 
