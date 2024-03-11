@@ -117,7 +117,9 @@ defmodule Task.Supervised do
               starter: get_from(owner),
               function: fun,
               args: args,
-              reason: {log_value(kind, value), __STACKTRACE__}
+              reason: {log_value(kind, value), __STACKTRACE__},
+              # TODO use Process.get_label/0 when we require Erlang/OTP 27+
+              process_label: Process.get(:"$process_label", :undefined)
             }
           },
           %{
@@ -150,6 +152,7 @@ defmodule Task.Supervised do
           reason: reason
         }
       }) do
+    # TODO confirm if we need to add process_label
     message =
       ~c"** Task ~p terminating~n" ++
         ~c"** Started from ~p~n" ++
