@@ -291,6 +291,39 @@ defmodule Module.Types.Descr do
   """
   def equal?(left, right), do: subtype?(left, right) and subtype?(right, left)
 
+  @doc """
+  Check if two types have a non-empty intersection.
+  """
+  def intersect?(left, right), do: not empty?(intersection(left, right))
+
+  @doc """
+  Checks if a type is a compatible subtype of another.
+
+  If `left` has a static part (i.e., values that are known to appear), then it
+  should be a subtype of `right`'s dynamic part (i.e., the largest type that can
+  appear at runtime).
+
+  If `left` has no static part, then it is a purely dynamic type, and we check
+  that it intersects with `right`, that is, they can produce similar values at
+  runtime.
+
+  This function is used in gradual mode, to type an operator that expects a given
+  type. For instance, `+` expects `integer()` or `float()`, which will be given
+  as the `right` argument. Compatible `left` arguments could then be: `dynamic()`,
+  `integer()`, but also `dynamic() and (integer() or atom())`. Incompatible subtypes
+  include `atom()`, `dynamic() and atom()`.
+  """
+  def compatible?(left, right) do
+    {left_dynamic, left_static} = Map.pop(left, :dynamic, left)
+    right_dynamic = Map.get(right, :dynamic, right)
+
+    if not empty?(left_static) do
+      subtype_static(left_static, right_dynamic)
+    else
+      intersect?(left_dynamic, right_dynamic)
+    end
+  end
+
   ## Bitmaps
 
   defp bitmap_union(v1, v2), do: v1 ||| v2

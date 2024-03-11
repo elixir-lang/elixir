@@ -114,9 +114,7 @@ defmodule Module.Types.Of do
       # will already have checked the type, so we skip the check here
       # as an optimization.
       # TODO: properly handle dynamic. Do we need materialization?
-      if actual_type == dynamic() or
-           (kind == :pattern and is_var(left)) or
-           empty?(difference(actual_type, expected_type)) do
+      if (kind == :pattern and is_var(left)) or compatible?(actual_type, expected_type) do
         {:ok, context}
       else
         hints = if meta[:inferred_bitstring_spec], do: [:inferred_bitstring_spec], else: []
