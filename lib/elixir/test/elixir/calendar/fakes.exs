@@ -113,6 +113,15 @@ defmodule FakeTimeZoneDatabase do
      }}
   end
 
+  defp time_zone_periods_from_utc("Etc/UTC", _erl_datetime) do
+    {:ok,
+     %{
+       std_offset: 0,
+       utc_offset: 0,
+       zone_abbr: "UTC"
+     }}
+  end
+
   defp time_zone_periods_from_utc(time_zone, _) when time_zone != "Europe/Copenhagen" do
     {:error, :time_zone_not_found}
   end
@@ -168,6 +177,15 @@ defmodule FakeTimeZoneDatabase do
        std_offset: 3600,
        utc_offset: 3600,
        zone_abbr: "CEST"
+     }}
+  end
+
+  defp time_zone_periods_from_wall("Etc/UTC", _erl_datetime) do
+    {:ok,
+     %{
+       std_offset: 0,
+       utc_offset: 0,
+       zone_abbr: "UTC"
      }}
   end
 

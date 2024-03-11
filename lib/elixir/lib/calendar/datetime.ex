@@ -1722,7 +1722,11 @@ defmodule DateTime do
              | :utc_only_time_zone_database}
   def shift(datetime, duration, time_zone_database \\ Calendar.get_time_zone_database())
 
-  def shift(%{calendar: calendar} = datetime, %Duration{} = duration, time_zone_database) do
+  def shift(
+        %{calendar: calendar, time_zone: original_time_zone} = datetime,
+        %Duration{} = duration,
+        time_zone_database
+      ) do
     %{
       year: year,
       month: month,
@@ -1730,9 +1734,8 @@ defmodule DateTime do
       hour: hour,
       minute: minute,
       second: second,
-      microsecond: microsecond,
-      time_zone: time_zone
-    } = datetime
+      microsecond: microsecond
+    } = shift_zone!(datetime, "Etc/UTC", time_zone_database)
 
     {year, month, day, hour, minute, second, microsecond} =
       calendar.shift_naive_datetime(
@@ -1746,8 +1749,8 @@ defmodule DateTime do
         duration
       )
 
-    from_naive(
-      %NaiveDateTime{
+    shift_zone(
+      %DateTime{
         calendar: calendar,
         year: year,
         month: month,
@@ -1755,9 +1758,13 @@ defmodule DateTime do
         hour: hour,
         minute: minute,
         second: second,
-        microsecond: microsecond
+        microsecond: microsecond,
+        std_offset: 0,
+        utc_offset: 0,
+        time_zone: "Etc/UTC",
+        zone_abbr: "UTC"
       },
-      time_zone,
+      original_time_zone,
       time_zone_database
     )
   end

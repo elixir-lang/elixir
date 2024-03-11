@@ -1098,15 +1098,24 @@ defmodule DateTimeTest do
              {:ok, ~U[1999-12-31 00:00:00Z]}
 
     datetime =
-      DateTime.new!(
-        Date.new!(2018, 10, 27),
-        Time.new!(2, 30, 0, {0, 0}),
-        "Europe/Copenhagen",
-        FakeTimeZoneDatabase
-      )
+      DateTime.new!(~D[2019-03-31], ~T[01:00:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
 
-    assert {:ambiguous, %DateTime{}, %DateTime{}} =
-             DateTime.shift(datetime, [day: 1], FakeTimeZoneDatabase)
+    assert DateTime.shift(datetime, [hour: 1], FakeTimeZoneDatabase) ==
+             {:ok,
+              %DateTime{
+                calendar: Calendar.ISO,
+                year: 2019,
+                month: 03,
+                day: 31,
+                hour: 3,
+                minute: 00,
+                second: 0,
+                microsecond: {0, 0},
+                time_zone: "Europe/Copenhagen",
+                std_offset: 3600,
+                utc_offset: 3600,
+                zone_abbr: "CEST"
+              }}
 
     assert_raise KeyError, ~s/key :months not found/, fn ->
       DateTime.shift(~U[2012-01-01 00:00:00Z], months: 12)
