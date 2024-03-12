@@ -113,7 +113,6 @@ defmodule Module.Types.Of do
       # If we are in a pattern and we have a variable, the refinement
       # will already have checked the type, so we skip the check here
       # as an optimization.
-      # TODO: properly handle dynamic. Do we need materialization?
       if (kind == :pattern and is_var(left)) or compatible?(actual_type, expected_type) do
         {:ok, context}
       else
