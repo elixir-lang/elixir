@@ -70,14 +70,14 @@ defmodule Calendar do
   @type zone_abbr :: String.t()
 
   @typedoc """
-  The time zone UTC offset in seconds for standard time.
+  The time zone UTC offset in ISO seconds for standard time.
 
   See also `t:std_offset/0`.
   """
   @type utc_offset :: integer
 
   @typedoc """
-  The time zone standard offset in seconds (typically not zero in summer times).
+  The time zone standard offset in ISO seconds (typically not zero in summer times).
 
   It must be added to `t:utc_offset/0` to get the total offset from UTC used for "wall time".
   """
