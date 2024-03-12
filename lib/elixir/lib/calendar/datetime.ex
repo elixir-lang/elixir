@@ -1711,53 +1711,35 @@ defmodule DateTime do
         ) :: {:ok, t} | {:error, :time_zone_not_found | :utc_only_time_zone_database}
   def shift(datetime, duration, time_zone_database \\ Calendar.get_time_zone_database())
 
-  def shift(
-        %{calendar: calendar, time_zone: original_time_zone} = datetime,
-        %Duration{} = duration,
-        time_zone_database
-      ) do
-    with {:ok, datetime} <- shift_zone(datetime, "Etc/UTC", time_zone_database) do
-      %{
-        year: year,
-        month: month,
-        day: day,
-        hour: hour,
-        minute: minute,
-        second: second,
-        microsecond: microsecond
-      } = datetime
+  def shift(%{calendar: calendar} = datetime, %Duration{} = duration, time_zone_database) do
+    %{
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: {_, precision} = microsecond,
+      std_offset: std_offset,
+      utc_offset: utc_offset,
+      time_zone: time_zone
+    } = datetime
 
-      {year, month, day, hour, minute, second, microsecond} =
-        calendar.shift_naive_datetime(
-          year,
-          month,
-          day,
-          hour,
-          minute,
-          second,
-          microsecond,
-          duration
-        )
-
-      shift_zone(
-        %DateTime{
-          calendar: calendar,
-          year: year,
-          month: month,
-          day: day,
-          hour: hour,
-          minute: minute,
-          second: second,
-          microsecond: microsecond,
-          std_offset: 0,
-          utc_offset: 0,
-          time_zone: "Etc/UTC",
-          zone_abbr: "UTC"
-        },
-        original_time_zone,
-        time_zone_database
+    {year, month, day, hour, minute, second, microsecond} =
+      calendar.shift_naive_datetime(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        microsecond,
+        duration
       )
-    end
+
+    calendar.naive_datetime_to_iso_days(year, month, day, hour, minute, second, microsecond)
+    |> apply_tz_offset(utc_offset + std_offset)
+    |> shift_zone_for_iso_days_utc(calendar, precision, time_zone, time_zone_database)
   end
 
   def shift(datetime, duration, time_zone_database) do
