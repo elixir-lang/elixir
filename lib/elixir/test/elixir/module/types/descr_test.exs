@@ -147,6 +147,31 @@ defmodule Module.Types.DescrTest do
     end
   end
 
+  describe "compatible" do
+    test "intersection" do
+      assert compatible?(integer(), intersection(dynamic(), integer()))
+      refute compatible?(intersection(dynamic(), integer()), atom())
+      refute compatible?(atom(), intersection(dynamic(), integer()))
+      refute compatible?(atom(), intersection(dynamic(), atom([:foo, :bar])))
+      assert compatible?(intersection(dynamic(), atom()), atom([:foo, :bar]))
+      assert compatible?(atom([:foo, :bar]), intersection(dynamic(), atom()))
+    end
+
+    test "static" do
+      refute compatible?(atom(), atom([:foo, :bar]))
+      refute compatible?(union(integer(), atom()), integer())
+      refute compatible?(none(), integer())
+      refute compatible?(union(atom(), dynamic()), integer())
+    end
+
+    test "dynamic" do
+      assert compatible?(dynamic(), term())
+      assert compatible?(term(), dynamic())
+      assert compatible?(dynamic(), integer())
+      assert compatible?(integer(), dynamic())
+    end
+  end
+
   describe "to_quoted" do
     test "bitmap" do
       assert union(integer(), union(float(), binary())) |> to_quoted_string() ==
