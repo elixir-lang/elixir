@@ -16,6 +16,7 @@ defmodule ExUnit.CLIFormatter do
       colors: colors(opts),
       width: get_terminal_width(),
       slowest: opts[:slowest],
+      slowest_modules: opts[:slowest_modules],
       test_counter: %{},
       test_timings: [],
       failure_counter: 0,
@@ -43,6 +44,10 @@ defmodule ExUnit.CLIFormatter do
 
     if config.slowest > 0 do
       IO.puts(format_slowest_tests(config, times_us.run))
+    end
+
+    if config.slowest_modules > 0 do
+      IO.puts(format_slowest_modules(config, times_us.run))
     end
 
     print_summary(config, false)
@@ -266,13 +271,49 @@ defmodule ExUnit.CLIFormatter do
     ]
   end
 
+  defp format_slowest_modules(%{slowest_modules: slowest, test_timings: timings}, run_us) do
+    slowest_tests =
+      timings
+      |> Enum.group_by(
+        fn %{module: module, tags: tags} ->
+          {module, tags.file}
+        end,
+        fn %{time: time} -> time end
+      )
+      |> Enum.into([], fn {{module, trace_test_file_line}, timings} ->
+        {module, trace_test_file_line, Enum.sum(timings)}
+      end)
+      |> Enum.sort_by(fn {_module, _, sum_timings} -> sum_timings end, :desc)
+      |> Enum.take(slowest)
+
+    slowest_us =
+      Enum.reduce(slowest_tests, 0, fn {_module, _, sum_timings}, acc ->
+        acc + sum_timings
+      end)
+
+    slowest_time = slowest_us |> normalize_us() |> format_us()
+    percentage = Float.round(slowest_us / run_us * 100, 1)
+
+    [
+      "\nTop #{slowest} slowest (#{slowest_time}s), #{percentage}% of total time:\n\n"
+      | Enum.map(slowest_tests, &format_slow_module/1)
+    ]
+  end
+
   defp format_slow_test(%ExUnit.Test{time: time, module: module} = test) do
     "#{trace_test_started(test)} (#{inspect(module)}) (#{format_us(time)}ms) " <>
       "[#{trace_test_file_line(test)}]\n"
   end
 
-  defp update_test_timings(%{slowest: slowest} = config, %ExUnit.Test{} = test) do
-    if slowest > 0 do
+  defp format_slow_module({module, test_file_path, timings}) do
+    "#{inspect(module)} (#{format_us(timings)}ms)\n [#{Path.relative_to_cwd(test_file_path)}]\n"
+  end
+
+  defp update_test_timings(
+         %{slowest: slowest, slowest_modules: slowest_modules} = config,
+         %ExUnit.Test{} = test
+       ) do
+    if slowest > 0 or slowest_modules > 0 do
       # Do not store logs, as they are not used for timings and consume memory.
       update_in(config.test_timings, &[%{test | logs: ""} | &1])
     else
