@@ -244,7 +244,6 @@ defmodule ExUnitTest do
       use ExUnit.Case
 
       test "slow" do
-        Process.sleep(10)
         refute false
       end
     end
@@ -253,7 +252,7 @@ defmodule ExUnitTest do
       use ExUnit.Case
 
       test "slower" do
-        Process.sleep(12)
+        Process.sleep(5)
         refute false
       end
     end
@@ -262,7 +261,7 @@ defmodule ExUnitTest do
       use ExUnit.Case
 
       test "slowest" do
-        Process.sleep(15)
+        Process.sleep(10)
         refute false
       end
     end
