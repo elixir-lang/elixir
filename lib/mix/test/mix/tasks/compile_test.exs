@@ -376,7 +376,7 @@ defmodule Mix.Tasks.CompileTest do
     end)
   end
 
-  test "code path prunning disabled" do
+  test "code path pruning disabled" do
     Mix.ensure_application!(:parsetools)
 
     in_fixture("no_mixfile", fn ->
