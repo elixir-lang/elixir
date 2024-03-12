@@ -170,6 +170,18 @@ defmodule ProcessTest do
     end
   end
 
+  describe "set_label/1" do
+    test "sets a process label, compatible with OTP 27+ `:proc_lib.get_label/1`" do
+      label = {:some_label, :random.uniform(99999)}
+      assert :ok = Process.set_label(label)
+
+      # TODO: Remove this when we require Erlang/OTP 27+
+      if System.otp_release() >= "27" do
+        assert :proc_lib.get_label(self()) == label
+      end
+    end
+  end
+
   defp expand(expr, env) do
     {expr, _, _} = :elixir_expand.expand(expr, :elixir_env.env_to_ex(env), env)
     expr
