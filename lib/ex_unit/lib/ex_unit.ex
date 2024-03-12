@@ -321,6 +321,10 @@ defmodule ExUnit do
       ExUnit with slow test reporting automatically runs in `trace` mode. It
       is disabled by default;
 
+    * `:slowest_modules` - prints timing information for the N slowest test modules. Running
+      ExUnit with slow test reporting automatically runs in `trace` mode. It
+      is disabled by default;
+
     * `:stacktrace_depth` - configures the stacktrace depth to be used
       on formatting and reporters, defaults to `20`;
 
@@ -532,7 +536,7 @@ defmodule ExUnit do
   end
 
   defp put_slowest(opts) do
-    if opts[:slowest] > 0 do
+    if opts[:slowest] > 0 or opts[:slowest_modules] > 0 do
       Keyword.put(opts, :trace, true)
     else
       opts

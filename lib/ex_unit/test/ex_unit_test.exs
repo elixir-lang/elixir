@@ -239,6 +239,41 @@ defmodule ExUnitTest do
     assert output =~ ~r"\* test delayed \(.+ms\)"
   end
 
+  test "reports slow test modules" do
+    defmodule SlowTestModule do
+      use ExUnit.Case
+
+      test "slow" do
+        refute false
+      end
+    end
+
+    defmodule SlowerTestModule do
+      use ExUnit.Case
+
+      test "slower" do
+        Process.sleep(5)
+        refute false
+      end
+    end
+
+    defmodule SlowestTestModule do
+      use ExUnit.Case
+
+      test "slowest" do
+        Process.sleep(10)
+        refute false
+      end
+    end
+
+    configure_and_reload_on_exit(slowest_modules: 2)
+
+    output = capture_io(fn -> ExUnit.run() end)
+    assert output =~ ~r"Top 2 slowest \(\d+\.\d+s\), \d+.\d% of total time:"
+    assert output =~ ~r"SlowestTestModule \(.+ms\)"
+    assert output =~ ~r"SlowerTestModule \(.+ms\)"
+  end
+
   test "sets max cases to one with trace enabled" do
     configure_and_reload_on_exit(trace: true, max_cases: 10)
     config = ExUnit.configuration()
