@@ -299,28 +299,27 @@ defmodule Module.Types.Descr do
   @doc """
   Checks if a type is a compatible subtype of another.
 
-  If `left` has a static part (i.e., values that are known to appear), then it
-  should be a subtype of `right`'s dynamic part (i.e., the largest type that can
-  appear at runtime).
+  If `input_type` has a static part (i.e., values that are known to appear and
+  need to be handled), then to be compatible it should be a subtype of the
+  the dynamic part of `expected_type` (that is, the largest allowed type at
+  runtime).
 
-  If `left` has no static part, then it is a purely dynamic type, and we check
-  that it intersects with `right`, that is, they can produce similar values at
-  runtime.
+  If `input_type` is a dynamic type, then we check that the two can intersect
+  at runtime, i.e. it is possible to get valid inputs at runtime.
 
-  This function is used in gradual mode, to type an operator that expects a given
-  type. For instance, `+` expects `integer()` or `float()`, which will be given
-  as the `right` argument. Compatible `left` arguments could then be: `dynamic()`,
-  `integer()`, but also `dynamic() and (integer() or atom())`. Incompatible subtypes
-  include `atom()`, `dynamic() and atom()`.
+  The function is used, in gradual mode, to type an operator that expects a given
+  type. For instance, `+` expects `integer() or float()` inputs. Compatible inputs
+  include `dynamic()`, `integer()`, but also `dynamic() and (integer() or atom())`.
+  Incompatible subtypes include `integer() or list()`, `dynamic() and atom()`.
   """
-  def compatible?(left, right) do
-    {left_dynamic, left_static} = Map.pop(left, :dynamic, left)
-    right_dynamic = Map.get(right, :dynamic, right)
+  def compatible?(input_type, expected_type) do
+    {input_dynamic, input_static} = Map.pop(input_type, :dynamic, input_type)
+    expected_dynamic = Map.get(expected_type, :dynamic, expected_type)
 
-    if not empty?(left_static) do
-      subtype_static(left_static, right_dynamic)
+    if not empty?(input_static) do
+      subtype_static(input_static, expected_dynamic)
     else
-      intersect?(left_dynamic, right_dynamic)
+      intersect?(input_dynamic, expected_dynamic)
     end
   end
 
