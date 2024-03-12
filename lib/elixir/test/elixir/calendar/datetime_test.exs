@@ -1085,6 +1085,9 @@ defmodule DateTimeTest do
     assert DateTime.shift(~U[2000-01-01 00:00:00Z], month: 2, day: 29) ==
              {:ok, ~U[2000-03-30 00:00:00Z]}
 
+    assert DateTime.shift(~U[2000-01-01 00:00:00Z], microsecond: {4000, 4}) ==
+             {:ok, ~U[2000-01-01 00:00:00.0040Z]}
+
     assert DateTime.shift(~U[2000-02-29 00:00:00Z], year: -1) == {:ok, ~U[1999-02-28 00:00:00Z]}
     assert DateTime.shift(~U[2000-02-29 00:00:00Z], month: -1) == {:ok, ~U[2000-01-29 00:00:00Z]}
 

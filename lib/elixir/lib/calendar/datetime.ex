@@ -1719,13 +1719,13 @@ defmodule DateTime do
       hour: hour,
       minute: minute,
       second: second,
-      microsecond: {_, precision} = microsecond,
+      microsecond: microsecond,
       std_offset: std_offset,
       utc_offset: utc_offset,
       time_zone: time_zone
     } = datetime
 
-    {year, month, day, hour, minute, second, microsecond} =
+    {year, month, day, hour, minute, second, {_, precision} = microsecond} =
       calendar.shift_naive_datetime(
         year,
         month,
