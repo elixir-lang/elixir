@@ -742,6 +742,32 @@ defmodule Mix.DepTest do
       end)
     end
 
+    test "does not conflict with optional deps on nested deps (reverse order)" do
+      Process.put(:custom_deps_git_repo_opts, optional: true)
+
+      # deps_repo wants all git_repo, git_repo is restricted to only test
+      deps = [
+        {:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), only: :test},
+        {:deps_repo, "0.1.0", path: "custom/deps_repo"}
+      ]
+
+      with_deps(deps, fn ->
+        in_fixture("deps_status", fn ->
+          loaded = Mix.Dep.Converger.converge([])
+          assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
+          assert [unavailable: _, noappfile: {_, _}] = Enum.map(loaded, & &1.status)
+
+          loaded = Mix.Dep.Converger.converge(env: :dev)
+          assert [:deps_repo] = Enum.map(loaded, & &1.app)
+          assert [noappfile: {_, _}] = Enum.map(loaded, & &1.status)
+
+          loaded = Mix.Dep.Converger.converge(env: :test)
+          assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
+          assert [unavailable: _, noappfile: {_, _}] = Enum.map(loaded, & &1.status)
+        end)
+      end)
+    end
+
     test "does not conflict on valid subsets on nested deps" do
       # deps_repo wants git_repo for prod, git_repo is restricted to only prod and test
       deps = [

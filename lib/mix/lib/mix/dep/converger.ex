@@ -159,7 +159,7 @@ defmodule Mix.Dep.Converger do
 
   defp init_all(main, apps, rest, lock, callback, locked?, env_target, cache) do
     state = %{locked?: locked?, env_target: env_target, cache: cache, callback: callback}
-    {deps, _optional, rest, lock} = all(main, [], [], apps, [], rest, lock, state)
+    {deps, _kept, _optional, rest, lock} = all(main, [], [], [], apps, [], rest, lock, state)
     deps = Enum.reverse(deps)
     # When traversing dependencies, we keep skipped ones to
     # find conflicts. We remove them now after traversal.
@@ -206,18 +206,19 @@ defmodule Mix.Dep.Converger do
   # Now, since "d" was specified in a parent project, no
   # exception is going to be raised since d is considered
   # to be the authoritative source.
-  defp all([dep | t], acc, upper, breadths, optional, rest, lock, state) do
+  defp all([dep | t], acc, kept, upper, breadths, optional, rest, lock, state) do
     case match_deps(acc, upper, dep, state.env_target) do
       {:replace, dep, acc} ->
-        all([dep | t], acc, upper, breadths, optional, rest, lock, state)
+        all([dep | t], acc, kept, upper, breadths, optional, rest, lock, state)
 
       {:match, acc} ->
-        all(t, acc, upper, breadths, optional, rest, lock, state)
+        all(t, acc, kept, upper, breadths, optional, rest, lock, state)
 
       :skip ->
         # We still keep skipped dependencies around to detect conflicts.
-        # They must be rejected after every all iteration.
-        all(t, [dep | acc], upper, breadths, optional, rest, lock, state)
+        # They must be rejected after every all iteration but they are not
+        # included in the list of kept dependencies.
+        all(t, [dep | acc], kept, upper, breadths, optional, rest, lock, state)
 
       :nomatch ->
         {%{app: app, deps: deps, opts: opts} = dep, rest, lock} =
@@ -239,21 +240,21 @@ defmodule Mix.Dep.Converger do
         # Something that we previously ruled out as an optional dependency is
         # no longer a dependency. Add it back for traversal.
         {no_longer_optional, optional} = Enum.split_with(optional, &(&1.app == app))
+        t = no_longer_optional ++ t
 
-        {acc, optional, rest, lock} =
-          all(no_longer_optional ++ t, [dep | acc], upper, breadths, optional, rest, lock, state)
+        {acc, kept, optional, rest, lock} =
+          all(t, [dep | acc], [dep.app | kept], upper, breadths, optional, rest, lock, state)
 
         # Now traverse all parent dependencies and see if we have any optional dependency.
-        {discarded, deps} =
-          split_non_fulfilled_optional(deps, Enum.map(acc, & &1.app), opts[:from_umbrella])
+        {discarded, deps} = split_non_fulfilled_optional(deps, kept, opts[:from_umbrella])
 
         new_breadths = Enum.map(deps, & &1.app) ++ breadths
-        all(deps, acc, breadths, new_breadths, discarded ++ optional, rest, lock, state)
+        all(deps, acc, kept, breadths, new_breadths, discarded ++ optional, rest, lock, state)
     end
   end
 
-  defp all([], acc, _upper, _current, optional, rest, lock, _state) do
-    {acc, optional, rest, lock}
+  defp all([], acc, kept, _upper, _current, optional, rest, lock, _state) do
+    {acc, kept, optional, rest, lock}
   end
 
   defp put_lock(%Mix.Dep{app: app} = dep, lock) do
