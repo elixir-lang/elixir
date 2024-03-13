@@ -1695,20 +1695,20 @@ defmodule DateTime do
   ## Examples
 
       iex> DateTime.shift(~U[2016-01-01 00:00:00Z], month: 2)
-      {:ok, ~U[2016-03-01 00:00:00Z]}
+      ~U[2016-03-01 00:00:00Z]
       iex> DateTime.shift(~U[2016-01-01 00:00:00Z], year: 1, week: 4)
-      {:ok, ~U[2017-01-29 00:00:00Z]}
+      ~U[2017-01-29 00:00:00Z]
       iex> DateTime.shift(~U[2016-01-01 00:00:00Z], minute: 25)
-      {:ok, ~U[2016-01-01 00:25:00Z]}
+      ~U[2016-01-01 00:25:00Z]
       iex> DateTime.shift(~U[2016-01-01 00:00:00Z], minute: 5, microsecond: {500, 4})
-      {:ok, ~U[2016-01-01 00:05:00.0005Z]}
+      ~U[2016-01-01 00:05:00.0005Z]
   """
   @doc since: "1.7.0"
   @spec shift(
           Calendar.datetime(),
           Duration.t() | [Duration.unit()],
           Calendar.time_zone_database()
-        ) :: {:ok, t} | {:error, :time_zone_not_found | :utc_only_time_zone_database}
+        ) :: t
   def shift(datetime, duration, time_zone_database \\ Calendar.get_time_zone_database())
 
   def shift(%{calendar: calendar} = datetime, %Duration{} = duration, time_zone_database) do
@@ -1737,36 +1737,24 @@ defmodule DateTime do
         duration
       )
 
-    calendar.naive_datetime_to_iso_days(year, month, day, hour, minute, second, microsecond)
-    |> apply_tz_offset(utc_offset + std_offset)
-    |> shift_zone_for_iso_days_utc(calendar, precision, time_zone, time_zone_database)
+    result =
+      calendar.naive_datetime_to_iso_days(year, month, day, hour, minute, second, microsecond)
+      |> apply_tz_offset(utc_offset + std_offset)
+      |> shift_zone_for_iso_days_utc(calendar, precision, time_zone, time_zone_database)
+
+    case result do
+      {:ok, result_datetime} ->
+        result_datetime
+
+      {:error, error} ->
+        raise ArgumentError,
+              "cannot shift #{inspect(datetime)} to #{inspect(duration)} (with time zone " <>
+                "database #{inspect(time_zone_database)}), reason: #{inspect(error)}"
+    end
   end
 
   def shift(datetime, duration, time_zone_database) do
     shift(datetime, Duration.new(duration), time_zone_database)
-  end
-
-  @doc """
-  Shifts given `datetime` by `duration` according to its calendar.
-
-  Same as `shift/2` but raises ArgumentError.
-
-  ## Examples
-
-      iex> DateTime.shift!(~U[2016-01-01 00:00:00Z], month: 2)
-      ~U[2016-03-01 00:00:00Z]
-
-  """
-  @doc since: "1.7.0"
-  @spec shift!(Calendar.datetime(), Duration.t() | [Duration.unit()]) :: t
-  def shift!(datetime, duration) do
-    case shift(datetime, duration) do
-      {:ok, datetime} ->
-        datetime
-
-      reason ->
-        raise RuntimeError, "cannot shift datetime, reason: #{inspect(reason)}"
-    end
   end
 
   @doc """

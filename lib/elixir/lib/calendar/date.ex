@@ -52,7 +52,7 @@ defmodule Date do
       ~D[2010-04-17]
 
       iex> Date.shift(~D[1970-01-01], year: 40, month: 3, week: 2, day: 2)
-      {:ok, ~D[2010-04-17]}
+      ~D[2010-04-17]
 
   Those functions are optimized to deal with common epochs, such
   as the Unix Epoch above or the Gregorian Epoch (0000-01-01).
@@ -780,48 +780,25 @@ defmodule Date do
   ## Examples
 
       iex> Date.shift(~D[2016-01-03], month: 2)
-      {:ok, ~D[2016-03-03]}
+      ~D[2016-03-03]
       iex> Date.shift(~D[2016-01-30], month: 1)
-      {:ok, ~D[2016-02-29]}
+      ~D[2016-02-29]
       iex> Date.shift(~D[2016-01-31], year: 4, day: 1)
-      {:ok, ~D[2020-02-01]}
+      ~D[2020-02-01]
       iex> Date.shift(~D[2016-01-03], Duration.new(month: 2))
-      {:ok, ~D[2016-03-03]}
-
-  """
-  @doc since: "1.7.0"
-  @spec shift(Calendar.date(), Duration.t() | [Duration.unit()]) :: {:ok, t}
-  def shift(%{calendar: calendar} = date, %Duration{} = duration) do
-    %{year: year, month: month, day: day} = date
-    {year, month, day} = calendar.shift_date(year, month, day, duration)
-    {:ok, %Date{calendar: calendar, year: year, month: month, day: day}}
-  end
-
-  def shift(date, duration) do
-    shift(date, Duration.new(duration))
-  end
-
-  @doc """
-  Shifts given `date` by `duration` according to its calendar.
-
-  Same as `shift/2` but raises RuntimeError.
-
-  ## Examples
-
-      iex> Date.shift!(~D[2016-01-03], month: 2)
       ~D[2016-03-03]
 
   """
   @doc since: "1.7.0"
   @spec shift(Calendar.date(), Duration.t() | [Duration.unit()]) :: t
-  def shift!(date, duration) do
-    case shift(date, duration) do
-      {:ok, date} ->
-        date
+  def shift(%{calendar: calendar} = date, %Duration{} = duration) do
+    %{year: year, month: month, day: day} = date
+    {year, month, day} = calendar.shift_date(year, month, day, duration)
+    %Date{calendar: calendar, year: year, month: month, day: day}
+  end
 
-      reason ->
-        raise RuntimeError, "cannot shift date, reason: #{inspect(reason)}"
-    end
+  def shift(date, duration) do
+    shift(date, Duration.new(duration))
   end
 
   @doc false

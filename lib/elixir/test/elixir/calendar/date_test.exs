@@ -181,18 +181,18 @@ defmodule DateTest do
   end
 
   test "shift/2" do
-    assert Date.shift(~D[2012-02-29], day: -1) == {:ok, ~D[2012-02-28]}
-    assert Date.shift(~D[2012-02-29], month: -1) == {:ok, ~D[2012-01-29]}
-    assert Date.shift(~D[2012-02-29], week: -9) == {:ok, ~D[2011-12-28]}
-    assert Date.shift(~D[2012-02-29], month: 1) == {:ok, ~D[2012-03-29]}
-    assert Date.shift(~D[2012-02-29], year: -1) == {:ok, ~D[2011-02-28]}
-    assert Date.shift(~D[2012-02-29], year: 4) == {:ok, ~D[2016-02-29]}
-    assert Date.shift(~D[0000-01-01], day: -1) == {:ok, ~D[-0001-12-31]}
-    assert Date.shift(~D[0000-01-01], month: -1) == {:ok, ~D[-0001-12-01]}
-    assert Date.shift(~D[0000-01-01], year: -1) == {:ok, ~D[-0001-01-01]}
-    assert Date.shift(~D[0000-01-01], year: -1) == {:ok, ~D[-0001-01-01]}
-    assert Date.shift(~D[2000-01-01], month: 12) == {:ok, ~D[2001-01-01]}
-    assert Date.shift(~D[0000-01-01], day: 2, year: 1, month: 37) == {:ok, ~D[0004-02-03]}
+    assert Date.shift(~D[2012-02-29], day: -1) == ~D[2012-02-28]
+    assert Date.shift(~D[2012-02-29], month: -1) == ~D[2012-01-29]
+    assert Date.shift(~D[2012-02-29], week: -9) == ~D[2011-12-28]
+    assert Date.shift(~D[2012-02-29], month: 1) == ~D[2012-03-29]
+    assert Date.shift(~D[2012-02-29], year: -1) == ~D[2011-02-28]
+    assert Date.shift(~D[2012-02-29], year: 4) == ~D[2016-02-29]
+    assert Date.shift(~D[0000-01-01], day: -1) == ~D[-0001-12-31]
+    assert Date.shift(~D[0000-01-01], month: -1) == ~D[-0001-12-01]
+    assert Date.shift(~D[0000-01-01], year: -1) == ~D[-0001-01-01]
+    assert Date.shift(~D[0000-01-01], year: -1) == ~D[-0001-01-01]
+    assert Date.shift(~D[2000-01-01], month: 12) == ~D[2001-01-01]
+    assert Date.shift(~D[0000-01-01], day: 2, year: 1, month: 37) == ~D[0004-02-03]
 
     assert_raise ArgumentError, ~s/cannot shift date by time units/, fn ->
       Date.shift(~D[2012-02-29], second: 86400)

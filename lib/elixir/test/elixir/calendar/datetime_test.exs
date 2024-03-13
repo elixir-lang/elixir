@@ -1073,72 +1073,64 @@ defmodule DateTimeTest do
   end
 
   test "shift/2" do
-    assert DateTime.shift(~U[2000-01-01 00:00:00Z], year: 1) == {:ok, ~U[2001-01-01 00:00:00Z]}
-    assert DateTime.shift(~U[2000-01-01 00:00:00Z], month: 1) == {:ok, ~U[2000-02-01 00:00:00Z]}
-
-    assert DateTime.shift(~U[2000-01-01 00:00:00Z], month: 1, day: 28) ==
-             {:ok, ~U[2000-02-29 00:00:00Z]}
-
-    assert DateTime.shift(~U[2000-01-01 00:00:00Z], month: 1, day: 30) ==
-             {:ok, ~U[2000-03-02 00:00:00Z]}
-
-    assert DateTime.shift(~U[2000-01-01 00:00:00Z], month: 2, day: 29) ==
-             {:ok, ~U[2000-03-30 00:00:00Z]}
+    assert DateTime.shift(~U[2000-01-01 00:00:00Z], year: 1) == ~U[2001-01-01 00:00:00Z]
+    assert DateTime.shift(~U[2000-01-01 00:00:00Z], month: 1) == ~U[2000-02-01 00:00:00Z]
+    assert DateTime.shift(~U[2000-01-01 00:00:00Z], month: 1, day: 28) == ~U[2000-02-29 00:00:00Z]
+    assert DateTime.shift(~U[2000-01-01 00:00:00Z], month: 1, day: 30) == ~U[2000-03-02 00:00:00Z]
+    assert DateTime.shift(~U[2000-01-01 00:00:00Z], month: 2, day: 29) == ~U[2000-03-30 00:00:00Z]
 
     assert DateTime.shift(~U[2000-01-01 00:00:00Z], microsecond: {4000, 4}) ==
-             {:ok, ~U[2000-01-01 00:00:00.0040Z]}
+             ~U[2000-01-01 00:00:00.0040Z]
 
-    assert DateTime.shift(~U[2000-02-29 00:00:00Z], year: -1) == {:ok, ~U[1999-02-28 00:00:00Z]}
-    assert DateTime.shift(~U[2000-02-29 00:00:00Z], month: -1) == {:ok, ~U[2000-01-29 00:00:00Z]}
+    assert DateTime.shift(~U[2000-02-29 00:00:00Z], year: -1) == ~U[1999-02-28 00:00:00Z]
+    assert DateTime.shift(~U[2000-02-29 00:00:00Z], month: -1) == ~U[2000-01-29 00:00:00Z]
 
     assert DateTime.shift(~U[2000-02-29 00:00:00Z], month: -1, day: -28) ==
-             {:ok, ~U[2000-01-01 00:00:00Z]}
+             ~U[2000-01-01 00:00:00Z]
 
     assert DateTime.shift(~U[2000-02-29 00:00:00Z], month: -1, day: -30) ==
-             {:ok, ~U[1999-12-30 00:00:00Z]}
+             ~U[1999-12-30 00:00:00Z]
 
     assert DateTime.shift(~U[2000-02-29 00:00:00Z], month: -1, day: -29) ==
-             {:ok, ~U[1999-12-31 00:00:00Z]}
+             ~U[1999-12-31 00:00:00Z]
 
     datetime =
       DateTime.new!(~D[2018-06-01], ~T[03:00:00], "America/Los_Angeles", FakeTimeZoneDatabase)
 
     assert DateTime.shift(datetime, [month: -1], FakeTimeZoneDatabase) ==
-             {:ok,
-              %DateTime{
-                calendar: Calendar.ISO,
-                year: 2018,
-                month: 5,
-                day: 1,
-                hour: 3,
-                minute: 00,
-                second: 0,
-                microsecond: {0, 0},
-                time_zone: "America/Los_Angeles",
-                std_offset: 3600,
-                utc_offset: -28800,
-                zone_abbr: "PDT"
-              }}
+             %DateTime{
+               calendar: Calendar.ISO,
+               year: 2018,
+               month: 5,
+               day: 1,
+               hour: 3,
+               minute: 00,
+               second: 0,
+               microsecond: {0, 0},
+               time_zone: "America/Los_Angeles",
+               std_offset: 3600,
+               utc_offset: -28800,
+               zone_abbr: "PDT"
+             }
 
     datetime =
       DateTime.new!(~D[2019-03-31], ~T[01:00:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
 
     assert DateTime.shift(datetime, [hour: 1], FakeTimeZoneDatabase) ==
-             {:ok,
-              %DateTime{
-                calendar: Calendar.ISO,
-                year: 2019,
-                month: 03,
-                day: 31,
-                hour: 3,
-                minute: 00,
-                second: 0,
-                microsecond: {0, 0},
-                time_zone: "Europe/Copenhagen",
-                std_offset: 3600,
-                utc_offset: 3600,
-                zone_abbr: "CEST"
-              }}
+             %DateTime{
+               calendar: Calendar.ISO,
+               year: 2019,
+               month: 03,
+               day: 31,
+               hour: 3,
+               minute: 00,
+               second: 0,
+               microsecond: {0, 0},
+               time_zone: "Europe/Copenhagen",
+               std_offset: 3600,
+               utc_offset: 3600,
+               zone_abbr: "CEST"
+             }
 
     assert_raise KeyError, ~s/key :months not found/, fn ->
       DateTime.shift(~U[2012-01-01 00:00:00Z], months: 12)

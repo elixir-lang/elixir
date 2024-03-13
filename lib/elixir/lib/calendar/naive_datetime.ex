@@ -588,17 +588,17 @@ defmodule NaiveDateTime do
   ## Examples
 
       iex> NaiveDateTime.shift(~N[2016-01-31 00:00:00], month: 1)
-      {:ok, ~N[2016-02-29 00:00:00]}
+      ~N[2016-02-29 00:00:00]
       iex> NaiveDateTime.shift(~N[2016-01-31 00:00:00], year: 4, day: 1)
-      {:ok, ~N[2020-02-01 00:00:00]}
+      ~N[2020-02-01 00:00:00]
       iex> NaiveDateTime.shift(~N[2016-01-31 00:00:00], second: 45)
-      {:ok, ~N[2016-01-31 00:00:45]}
+      ~N[2016-01-31 00:00:45]
       iex> NaiveDateTime.shift(~N[2016-01-31 00:00:00], microsecond: {100, 6})
-      {:ok, ~N[2016-01-31 00:00:00.000100]}
+      ~N[2016-01-31 00:00:00.000100]
 
   """
   @doc since: "1.7.0"
-  @spec shift(Calendar.naive_datetime(), Duration.t() | [Duration.unit()]) :: {:ok, t}
+  @spec shift(Calendar.naive_datetime(), Duration.t() | [Duration.unit()]) :: t
   def shift(%{calendar: calendar} = naive_datetime, %Duration{} = duration) do
     %{
       year: year,
@@ -622,44 +622,20 @@ defmodule NaiveDateTime do
         duration
       )
 
-    {:ok,
-     %NaiveDateTime{
-       calendar: calendar,
-       year: year,
-       month: month,
-       day: day,
-       hour: hour,
-       minute: minute,
-       second: second,
-       microsecond: microsecond
-     }}
+    %NaiveDateTime{
+      calendar: calendar,
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond
+    }
   end
 
   def shift(naive_datetime, duration) do
     shift(naive_datetime, Duration.new(duration))
-  end
-
-  @doc """
-  Shifts given `naive_datetime` by `duration` according to its calendar.
-
-  Same as `shift/2` but raises RuntimeError.
-
-  ## Examples
-
-      iex> NaiveDateTime.shift!(~N[2016-01-31 00:00:00], month: 1)
-      ~N[2016-02-29 00:00:00]
-
-  """
-  @doc since: "1.7.0"
-  @spec shift!(Calendar.naive_datetime(), Duration.t() | [Duration.unit()]) :: t
-  def shift!(naive_datetime, duration) do
-    case shift(naive_datetime, duration) do
-      {:ok, naive_datetime} ->
-        naive_datetime
-
-      reason ->
-        raise RuntimeError, "cannot shift naive_datetime, reason: #{inspect(reason)}"
-    end
   end
 
   @doc """

@@ -573,60 +573,36 @@ defmodule Time do
   ## Examples
 
       iex> Time.shift(~T[01:00:15], hour: 12)
-      {:ok, ~T[13:00:15]}
+      ~T[13:00:15]
       iex> Time.shift(~T[01:15:00], hour: 6, minute: 15)
-      {:ok, ~T[07:30:00]}
+      ~T[07:30:00]
       iex> Time.shift(~T[01:15:00], second: 125)
-      {:ok, ~T[01:17:05]}
+      ~T[01:17:05]
       iex> Time.shift(~T[01:00:15], microsecond: {100, 6})
-      {:ok, ~T[01:00:15.000100]}
+      ~T[01:00:15.000100]
       iex> Time.shift(~T[01:15:00], Duration.new(second: 65))
-      {:ok, ~T[01:16:05]}
+      ~T[01:16:05]
 
   """
   @doc since: "1.7.0"
-  @spec shift(Calendar.time(), Duration.t() | [Duration.unit()]) :: {:ok, t}
+  @spec shift(Calendar.time(), Duration.t() | [Duration.unit()]) :: t
   def shift(%{calendar: calendar} = time, %Duration{} = duration) do
     %{hour: hour, minute: minute, second: second, microsecond: microsecond} = time
 
     {hour, minute, second, microsecond} =
       calendar.shift_time(hour, minute, second, microsecond, duration)
 
-    {:ok,
-     %Time{
-       calendar: calendar,
-       hour: hour,
-       minute: minute,
-       second: second,
-       microsecond: microsecond
-     }}
+    %Time{
+      calendar: calendar,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond
+    }
   end
 
   def shift(time, duration) do
     shift(time, Duration.new(duration))
-  end
-
-  @doc """
-  Shifts given `time` by `duration` according to its calendar.
-
-  Same as `shift/2` but raises RuntimeError.
-
-  ## Examples
-
-      iex> Time.shift!(~T[01:00:15], hour: 12)
-      ~T[13:00:15]
-
-  """
-  @doc since: "1.7.0"
-  @spec shift!(Calendar.time(), Duration.t() | [Duration.unit()]) :: t
-  def shift!(time, duration) do
-    case shift(time, duration) do
-      {:ok, time} ->
-        time
-
-      reason ->
-        raise RuntimeError, "cannot shift time, reason: #{inspect(reason)}"
-    end
   end
 
   @doc """
