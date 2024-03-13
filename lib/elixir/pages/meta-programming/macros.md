@@ -223,7 +223,7 @@ It is important that a macro is defined before its usage. Failing to define a ma
 
 ```elixir
 iex> defmodule Sample do
-...>  def four, do: two + two
+...>  def four, do: two() + two()
 ...>  defmacrop two, do: 2
 ...> end
 ** (CompileError) iex:2: function two/0 undefined
