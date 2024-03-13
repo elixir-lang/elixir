@@ -567,8 +567,10 @@ defmodule Protocol do
     types = Enum.sort(types)
 
     with {:ok, ast_info, specs, compile_info} <- beam_protocol(protocol),
-         {:ok, definitions} <- change_debug_info(protocol, ast_info, types),
-         do: compile(definitions, specs, compile_info)
+         {:ok, updated_specs} <- consolidate_type_t(specs, types),
+         {:ok, definitions} <- change_debug_info(protocol, ast_info, types) do
+      compile(definitions, updated_specs, compile_info)
+    end
   end
 
   defp beam_protocol(protocol) do
@@ -681,6 +683,99 @@ defmodule Protocol do
 
   defp fallback_clause_for(value, _protocol, meta) do
     {meta, [quote(do: _)], [], value}
+  end
+
+  defp consolidate_type_t(specs, types) when length(types) == 0, do: {:ok, specs}
+
+  defp consolidate_type_t(specs, types) when length(types) == 1 do
+    updated_specs =
+      Enum.map(specs, fn attribute ->
+        case attribute do
+          {:attribute, anno, :type, {:t, {:type, 1, :term, []}, []}} ->
+            {:attribute, anno, :type, {:t, type_ast(hd(types)), []}}
+
+          attr ->
+            attr
+        end
+      end)
+
+    {:ok, updated_specs}
+  end
+
+  defp consolidate_type_t(specs, types) when length(types) > 1 do
+    updated_specs =
+      case Enum.member?(types, Any) do
+        true ->
+          specs
+
+        false ->
+          union_type_t(specs, types)
+      end
+
+    {:ok, updated_specs}
+  end
+
+  defp union_type_t(specs, types) do
+    Enum.map(specs, fn attribute ->
+      case attribute do
+        {:attribute, anno, :type, {:t, {:type, 1, :term, []}, []}} ->
+          {:attribute, anno, :type, {:t, {:type, 1, :union, type_asts(types)}, []}}
+
+        attr ->
+          attr
+      end
+    end)
+  end
+
+  defp type_asts(types) do
+    Enum.map(types, &type_ast/1)
+  end
+
+  defp type_ast(type) do
+    case type do
+      Tuple ->
+        {:type, 1, :tuple, :any}
+
+      Atom ->
+        {:type, 1, :atom, []}
+
+      List ->
+        {:type, 1, :list, []}
+
+      BitString ->
+        {:type, 1, :bitstring, []}
+
+      Integer ->
+        {:type, 1, :integer, []}
+
+      Float ->
+        {:type, 1, :float, []}
+
+      Function ->
+        {:type, 1, :function, []}
+
+      PID ->
+        {:type, 1, :pid, []}
+
+      Map ->
+        {:type, 1, :map, :any}
+
+      Port ->
+        {:type, 1, :port, []}
+
+      Reference ->
+        {:type, 1, :reference, []}
+
+      struct_type ->
+        {:type, 1, :map,
+         [
+           {:type, 1, :map_field_exact,
+            [
+              {:atom, 0, :__struct__},
+              {:atom, 0, struct_type}
+            ]}
+         ]}
+    end
   end
 
   defp load_impl(protocol, for) do

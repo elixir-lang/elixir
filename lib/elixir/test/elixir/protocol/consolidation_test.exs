@@ -8,7 +8,13 @@ Kernel.ParallelCompiler.compile_to_path(files, path)
 
 defmodule Protocol.ConsolidationTest do
   use ExUnit.Case, async: true
-  alias Protocol.ConsolidationTest.{Sample, WithAny}
+
+  alias Protocol.ConsolidationTest.{
+    Sample,
+    WithAny,
+    WithDeclaredTypes,
+    WithExplicitTypeT
+  }
 
   defimpl WithAny, for: Map do
     def ok(map) do
@@ -188,6 +194,169 @@ defmodule Protocol.ConsolidationTest do
     assert_raise Protocol.UndefinedError, message, fn ->
       sample = Sample
       sample.ok(:foo)
+    end
+  end
+
+  describe "consolidation of type t()" do
+    test "does not change type t() if it has been exlicitly declared (when protocol has multiple impls)" do
+      {:ok, types} = Code.Typespec.fetch_types(WithExplicitTypeT)
+      original_type_t = extract_type(types, :t)
+
+      assert {:type, anno, :atom, []} = original_type_t
+
+      {:ok, binary} = Protocol.consolidate(WithExplicitTypeT, impl_types())
+      {:ok, types} = Code.Typespec.fetch_types(binary)
+      consolidated_type_t = extract_type(types, :t)
+
+      assert {:type, ^anno, :atom, []} = consolidated_type_t
+    end
+
+    test "does not change type t() if it has been exlicitly declared (when protocol has single impl)" do
+      {:ok, types} = Code.Typespec.fetch_types(WithExplicitTypeT)
+      original_type_t = extract_type(types, :t)
+
+      assert {:type, anno, :atom, []} = original_type_t
+
+      {:ok, binary} = Protocol.consolidate(WithExplicitTypeT, [Tuple])
+      {:ok, types} = Code.Typespec.fetch_types(binary)
+      consolidated_type_t = extract_type(types, :t)
+
+      assert {:type, ^anno, :atom, []} = consolidated_type_t
+    end
+
+    test "does not change type t() if protocol has no implementations" do
+      {:ok, types} = Code.Typespec.fetch_types(WithDeclaredTypes)
+      original_type_t = extract_type(types, :t)
+
+      assert original_type_t == {:type, 1, :term, []}
+
+      {:ok, binary} = Protocol.consolidate(WithDeclaredTypes, [])
+      {:ok, types} = Code.Typespec.fetch_types(binary)
+      consolidated_type_t = extract_type(types, :t)
+
+      assert consolidated_type_t == {:type, 1, :term, []}
+    end
+
+    test "does not change type t() if Any is an implementing type" do
+      {:ok, types} = Code.Typespec.fetch_types(WithDeclaredTypes)
+      original_type_t = extract_type(types, :t)
+
+      assert original_type_t == {:type, 1, :term, []}
+
+      {:ok, binary} = Protocol.consolidate(WithDeclaredTypes, [Any] ++ impl_types())
+      {:ok, types} = Code.Typespec.fetch_types(binary)
+      consolidated_type_t = extract_type(types, :t)
+
+      assert consolidated_type_t == {:type, 1, :term, []}
+    end
+
+    test "produces ASTs that match compiled typespecs, for all possible impl types" do
+      {:ok, compiled_types} = Code.Typespec.fetch_types(WithDeclaredTypes)
+
+      impl_types()
+      |> Enum.each(fn type ->
+        compiled_type = extract_type(compiled_types, declared_type_name(type))
+
+        {:ok, binary} = Protocol.consolidate(WithDeclaredTypes, [type])
+        {:ok, consolidated_types} = Code.Typespec.fetch_types(binary)
+        consolidated_type_t = extract_type(consolidated_types, :t)
+
+        assert consolidated_type_t == strip_anno(compiled_type)
+        assert consolidated_type_t == ast_for(type)
+      end)
+    end
+
+    test "constructs a union type when the protocol has multiple implementations" do
+      {:ok, original_types} = Code.Typespec.fetch_types(WithDeclaredTypes)
+      compiled_union_type = extract_type(original_types, :impl_types)
+
+      {:ok, binary} = Protocol.consolidate(WithDeclaredTypes, impl_types())
+      {:ok, consolidated_types} = Code.Typespec.fetch_types(binary)
+      type_t = extract_type(consolidated_types, :t)
+
+      assert elem(type_t, 2) == :union
+      assert elem(compiled_union_type, 2) == :union
+
+      actual_member_types =
+        elem(type_t, 3)
+        |> Enum.sort()
+
+      expected_member_types =
+        elem(compiled_union_type, 3)
+        |> Enum.map(&strip_anno/1)
+        |> Enum.sort()
+
+      assert length(actual_member_types) == length(impl_types())
+      assert actual_member_types == expected_member_types
+    end
+
+    defp extract_type(types, type_name) do
+      types
+      |> Enum.find_value(fn
+        {:type, {^type_name, type, _args}} ->
+          type
+
+        _ ->
+          false
+      end)
+    end
+
+    def strip_anno({:type, _anno1, :map, [{:type, _anno2, :map_field_exact, args}]}) do
+      {:type, 1, :map, [{:type, 1, :map_field_exact, args}]}
+    end
+
+    def strip_anno({:type, _anno, type, args}) do
+      {:type, 1, type, args}
+    end
+
+    defp impl_types() do
+      [
+        Tuple,
+        Atom,
+        List,
+        BitString,
+        Integer,
+        Float,
+        Function,
+        PID,
+        Map,
+        Port,
+        Reference,
+        ImplStruct
+      ]
+    end
+
+    defp declared_type_name(module_name) do
+      module_name
+      |> Atom.to_string()
+      |> String.split(".")
+      |> List.last()
+      |> String.downcase()
+      |> Kernel.<>("_type")
+      |> String.to_atom()
+    end
+
+    defp ast_for(impl_type) do
+      %{
+        Tuple => {:type, 1, :tuple, :any},
+        Atom => {:type, 1, :atom, []},
+        List => {:type, 1, :list, []},
+        BitString => {:type, 1, :bitstring, []},
+        Integer => {:type, 1, :integer, []},
+        Float => {:type, 1, :float, []},
+        Function => {:type, 1, :function, []},
+        PID => {:type, 1, :pid, []},
+        Map => {:type, 1, :map, :any},
+        Port => {:type, 1, :port, []},
+        Reference => {:type, 1, :reference, []},
+        ImplStruct =>
+          {:type, 1, :map,
+           [
+             {:type, 1, :map_field_exact,
+              [{:atom, 0, :__struct__}, {:atom, 0, Protocol.ConsolidationTest.ImplStruct}]}
+           ]}
+      }
+      |> Map.get(impl_type)
     end
   end
 end
