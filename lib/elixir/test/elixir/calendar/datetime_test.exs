@@ -1095,15 +1095,15 @@ defmodule DateTimeTest do
              ~U[1999-12-31 00:00:00Z]
 
     datetime =
-      DateTime.new!(~D[2018-06-01], ~T[03:00:00], "America/Los_Angeles", FakeTimeZoneDatabase)
+      DateTime.new!(~D[2018-11-04], ~T[03:00:00], "America/Los_Angeles", FakeTimeZoneDatabase)
 
     assert DateTime.shift(datetime, [month: -1], FakeTimeZoneDatabase) ==
              %DateTime{
                calendar: Calendar.ISO,
                year: 2018,
-               month: 5,
-               day: 1,
-               hour: 3,
+               month: 10,
+               day: 4,
+               hour: 4,
                minute: 00,
                second: 0,
                microsecond: {0, 0},
@@ -1111,6 +1111,25 @@ defmodule DateTimeTest do
                std_offset: 3600,
                utc_offset: -28800,
                zone_abbr: "PDT"
+             }
+
+    datetime =
+      DateTime.new!(~D[2018-11-04], ~T[00:00:00], "America/Los_Angeles", FakeTimeZoneDatabase)
+
+    assert DateTime.shift(datetime, [hour: 2], FakeTimeZoneDatabase) ==
+             %DateTime{
+               calendar: Calendar.ISO,
+               year: 2018,
+               month: 11,
+               day: 4,
+               hour: 1,
+               minute: 00,
+               second: 0,
+               microsecond: {0, 0},
+               time_zone: "America/Los_Angeles",
+               std_offset: 0,
+               utc_offset: -28800,
+               zone_abbr: "PST"
              }
 
     datetime =

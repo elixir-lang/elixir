@@ -57,8 +57,16 @@ defmodule FakeTimeZoneDatabase do
     std_offset: 3600,
     utc_offset: -28800,
     zone_abbr: "PDT",
-    from_wall: ~N[2018-03-11 10:00:00],
-    until_wall: ~N[2018-11-04 09:00:00]
+    from_wall: ~N[2018-03-11 02:00:00],
+    until_wall: ~N[2018-11-04 02:00:00]
+  }
+
+  @time_zone_period_usla_winter_2018_2019 %{
+    std_offset: 0,
+    utc_offset: -28800,
+    zone_abbr: "PST",
+    from_wall: ~N[2018-11-04 02:00:00],
+    until_wall: ~N[2019-03-10 03:00:00]
   }
 
   @spec time_zone_period_from_utc_iso_days(Calendar.iso_days(), Calendar.time_zone()) ::
@@ -111,9 +119,15 @@ defmodule FakeTimeZoneDatabase do
   end
 
   defp time_zone_periods_from_utc("America/Los_Angeles", erl_datetime)
-       when erl_datetime >= {{2018, 3, 11}, {10, 0, 0}} and
-              erl_datetime < {{2018, 11, 4}, {9, 0, 0}} do
+       when erl_datetime >= {{2018, 3, 11}, {2, 0, 0}} and
+              erl_datetime < {{2018, 11, 4}, {2, 0, 0}} do
     {:ok, @time_zone_period_usla_summer_2018}
+  end
+
+  defp time_zone_periods_from_utc("America/Los_Angeles", erl_datetime)
+       when erl_datetime >= {{2018, 11, 4}, {2, 0, 0}} and
+              erl_datetime < {{2019, 3, 10}, {3, 0, 0}} do
+    {:ok, @time_zone_period_usla_winter_2018_2019}
   end
 
   defp time_zone_periods_from_utc("Etc/UTC", _erl_datetime) do
@@ -162,9 +176,15 @@ defmodule FakeTimeZoneDatabase do
   end
 
   defp time_zone_periods_from_wall("America/Los_Angeles", erl_datetime)
-       when erl_datetime >= {{2018, 3, 11}, {10, 0, 0}} and
-              erl_datetime < {{2018, 11, 4}, {9, 0, 0}} do
+       when erl_datetime >= {{2018, 3, 11}, {2, 0, 0}} and
+              erl_datetime < {{2018, 11, 4}, {2, 0, 0}} do
     {:ok, @time_zone_period_usla_summer_2018}
+  end
+
+  defp time_zone_periods_from_wall("America/Los_Angeles", erl_datetime)
+       when erl_datetime >= {{2018, 11, 4}, {3, 0, 0}} and
+              erl_datetime < {{2019, 3, 10}, {3, 0, 0}} do
+    {:ok, @time_zone_period_usla_winter_2018_2019}
   end
 
   defp time_zone_periods_from_wall("Europe/Copenhagen", erl_datetime)
