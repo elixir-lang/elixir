@@ -779,24 +779,6 @@ defmodule URI do
     # Parts:    12                        3  4          5       6  7        8 9
     regex = ~r{^(([a-z][a-z0-9\+\-\.]*):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?}i
 
-    # If the regex is not up to date, we lazily recompile it
-    # and store it on persistent term. Otherwise we would
-    # recompile it on every invocation.
-    regex =
-      if regex.re_version == Regex.version() do
-        regex
-      else
-        case :persistent_term.get(__MODULE__, nil) do
-          nil ->
-            regex = Regex.recompile!(regex)
-            :persistent_term.put(__MODULE__, regex)
-            regex
-
-          regex ->
-            regex
-        end
-      end
-
     parts = Regex.run(regex, string)
 
     destructure [
