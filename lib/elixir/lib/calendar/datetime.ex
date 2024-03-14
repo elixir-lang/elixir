@@ -1712,6 +1712,48 @@ defmodule DateTime do
         ) :: t
   def shift(datetime, duration, time_zone_database \\ Calendar.get_time_zone_database())
 
+  def shift(
+        %{calendar: calendar, time_zone: "Etc/UTC"} = datetime,
+        %Duration{} = duration,
+        _time_zone_database
+      ) do
+    %{
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond
+    } = datetime
+
+    {year, month, day, hour, minute, second, microsecond} =
+      calendar.shift_naive_datetime(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        microsecond,
+        duration
+      )
+
+    %DateTime{
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond,
+      time_zone: "Etc/UTC",
+      zone_abbr: "UTC",
+      std_offset: 0,
+      utc_offset: 0
+    }
+  end
+
   def shift(%{calendar: calendar} = datetime, %Duration{} = duration, time_zone_database) do
     %{
       year: year,
