@@ -1680,9 +1680,10 @@ defmodule DateTime do
 
   Allowed units are: `:year, :month, :week, :day, :hour, :minute, :second, :microsecond`.
 
-  This function considers "Daylight Saving Time" and other time gaps across time zones
-  by converting the given datetime to Etc/UTC before executing the shift. Finally,
-  the datetime is converted back to its original time zone.
+  When it comes to non UTC time zones, this function is equivalent to shifting the wall time
+  (the time a person at said time zone would see on a clock) by the given duration.
+  After shifting the wall-clock the original offsets are being re-applied and the
+  datetime is shifted into its original time zone.
 
   When used with the default calendar `Calendar.ISO`:
 
@@ -1690,7 +1691,7 @@ defmodule DateTime do
   - when shifting by 1 year and 2 months the date is actually shifted by 14 months
   - weeks, days and smaller units are collapsed into seconds and microseconds
 
-  Durations are applied in order of the size of the unit: `month > day > second`.
+  Durations are applied in order of the size of the unit: `month > second > microsecond`.
 
   ## Examples
 
