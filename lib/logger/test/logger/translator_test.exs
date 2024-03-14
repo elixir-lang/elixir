@@ -533,7 +533,7 @@ defmodule Logger.TranslatorTest do
   @tag skip: System.otp_release() < "27"
   test "translates :proc_lib crashes with :process_label" do
     fun = fn ->
-      :proc_lib.set_label({:any, "term"})
+      Process.set_label({:any, "term"})
       raise "oops"
     end
 

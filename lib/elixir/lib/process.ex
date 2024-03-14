@@ -952,7 +952,7 @@ defmodule Process do
 
       Process.set_label(:worker)
       #=> :ok
-      
+
       Process.set_label({:any, "term"})
       #=> :ok
   """

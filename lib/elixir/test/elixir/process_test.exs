@@ -171,8 +171,10 @@ defmodule ProcessTest do
   end
 
   describe "set_label/1" do
+    @compile {:no_warn_undefined, :proc_lib}
+
     test "sets a process label, compatible with OTP 27+ `:proc_lib.get_label/1`" do
-      label = {:some_label, :random.uniform(99999)}
+      label = {:some_label, :rand.uniform(99999)}
       assert :ok = Process.set_label(label)
 
       # TODO: Remove this when we require Erlang/OTP 27+
