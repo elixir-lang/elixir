@@ -1099,4 +1099,69 @@ defmodule TaskTest do
       end
     end
   end
+
+  describe "default :logger reporter" do
+    setup do
+      translator = :logger.get_primary_config().filters[:logger_translator]
+      assert :ok = :logger.remove_primary_filter(:logger_translator)
+      on_exit(fn -> :logger.add_primary_filter(:logger_translator, translator) end)
+    end
+
+    test "logs a terminated task" do
+      parent = self()
+      {:ok, pid} = Task.start_link(__MODULE__, :task, [parent])
+
+      assert ExUnit.CaptureLog.capture_log(fn ->
+               ref = Process.monitor(pid)
+               send(pid, :go)
+               receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
+             end) =~ ~r"""
+             \[error\] \*\* Task #PID<\d+\.\d+\.\d+> terminating
+             \*\* Started from #PID<\d+\.\d+\.\d+>
+             \*\* When function  == &TaskTest.task/1
+             \*\*      arguments == \[#PID<\d+\.\d+\.\d+>\]
+             \*\* Reason for termination ==\s
+             \*\* {%RuntimeError{message: "oops"},
+             """
+    end
+
+    @tag skip: System.otp_release() < "27"
+    test "logs a terminated task with a process label" do
+      fun = fn ->
+        :proc_lib.set_label({:any, "term"})
+        raise "oops"
+      end
+
+      parent = self()
+      {:ok, pid} = Task.start_link(__MODULE__, :task, [parent, fun])
+
+      assert ExUnit.CaptureLog.capture_log(fn ->
+               ref = Process.monitor(pid)
+               send(pid, :go)
+               receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
+             end) =~ ~r"""
+             \[error\] \*\* Task #PID<\d+\.\d+\.\d+> terminating
+             \*\* Process Label == {:any, "term"}
+             \*\* Started from #PID<\d+\.\d+\.\d+>
+             \*\* When function  == &TaskTest.task/2
+             \*\*      arguments == \[#PID<\d+\.\d+\.\d+>,
+              #Function<.+>\]
+             \*\* Reason for termination ==\s
+             \*\* {%RuntimeError{message: "oops"},
+             """
+    end
+  end
+
+  def task(parent, fun \\ fn -> raise "oops" end) do
+    mon = Process.monitor(parent)
+    Process.unlink(parent)
+
+    receive do
+      :go ->
+        fun.()
+
+      {:DOWN, ^mon, _, _, _} ->
+        exit(:shutdown)
+    end
+  end
 end
