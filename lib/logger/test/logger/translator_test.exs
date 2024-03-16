@@ -428,6 +428,36 @@ defmodule Logger.TranslatorTest do
     assert {:abnormal, [_ | _]} = task_metadata[:crash_reason]
   end
 
+  @tag skip: System.otp_release() < "27"
+  test "translates Task crashes with label" do
+    fun = fn ->
+      Process.set_label({:any, "term"})
+      raise "oops"
+    end
+
+    {:ok, pid} = Task.start_link(__MODULE__, :task, [self(), fun])
+    parent = self()
+
+    assert capture_log(fn ->
+             ref = Process.monitor(pid)
+             send(pid, :go)
+             receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
+           end) =~
+             ~r"""
+             \[error\] Task #{inspect(pid)} started from #{inspect(self())} terminating
+             \*\* \(RuntimeError\) oops
+             .*
+             Process Label: {:any, \"term\"}
+             Function: &Logger.TranslatorTest.task\/2
+                 Args: \[#PID<\d+\.\d+\.\d+>\, .*]
+             """s
+
+    assert_receive {:event, {:string, ["Task " <> _ | _]}, task_metadata}
+    assert {%RuntimeError{message: "oops"}, [_ | _]} = task_metadata[:crash_reason]
+    assert [parent] == task_metadata[:callers]
+    refute Map.has_key?(task_metadata, :initial_call)
+  end
+
   test "translates application start" do
     assert capture_log(fn ->
              Application.start(:eex)

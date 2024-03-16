@@ -99,7 +99,8 @@ defmodule Logger.Translator do
            starter: starter,
            function: function,
            args: args,
-           reason: reason
+           reason: reason,
+           process_label: process_label
          }}
       ) do
     opts = Application.get_env(:logger, :translator_inspect_opts)
@@ -108,9 +109,16 @@ defmodule Logger.Translator do
     metadata = [crash_reason: reason] ++ registered_name(name)
 
     msg =
-      ["Task #{inspect(name)} started from #{inspect(starter)} terminating"] ++
-        [formatted, "\nFunction: #{inspect(function, opts)}"] ++
+      ["\nFunction: #{inspect(function, opts)}"] ++
         ["\n    Args: #{inspect(args, opts)}"]
+
+    msg =
+      case process_label do
+        :undefined -> msg
+        _ -> ["\nProcess Label: #{inspect(process_label)}"] ++ msg
+      end
+
+    msg = ["Task #{inspect(name)} started from #{inspect(starter)} terminating", formatted] ++ msg
 
     {:ok, msg, metadata}
   end

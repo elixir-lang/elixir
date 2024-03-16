@@ -117,7 +117,9 @@ defmodule Task.Supervised do
               starter: get_from(owner),
               function: fun,
               args: args,
-              reason: {log_value(kind, value), __STACKTRACE__}
+              reason: {log_value(kind, value), __STACKTRACE__},
+              # TODO use Process.get_label/0 when we require Erlang/OTP 27+
+              process_label: Process.get(:"$process_label", :undefined)
             }
           },
           %{
@@ -147,16 +149,27 @@ defmodule Task.Supervised do
           starter: starter,
           function: fun,
           args: args,
-          reason: reason
+          reason: reason,
+          process_label: process_label
         }
       }) do
     message =
-      ~c"** Task ~p terminating~n" ++
-        ~c"** Started from ~p~n" ++
+      ~c"** Started from ~p~n" ++
         ~c"** When function  == ~p~n" ++
         ~c"**      arguments == ~p~n" ++ ~c"** Reason for termination == ~n" ++ ~c"** ~p~n"
 
-    {message, [starter, name, fun, args, get_reason(reason)]}
+    terms = [name, fun, args, get_reason(reason)]
+
+    {message, terms} =
+      case process_label do
+        :undefined -> {message, terms}
+        _ -> {~c"** Process Label == ~p~n" ++ message, [process_label | terms]}
+      end
+
+    message =
+      ~c"** Task ~p terminating~n" ++ message
+
+    {message, [starter | terms]}
   end
 
   defp get_from({node, pid_or_name, _pid}) when node == node(), do: pid_or_name
