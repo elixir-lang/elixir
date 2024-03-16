@@ -1125,10 +1125,9 @@ defmodule TaskTest do
              """
     end
 
-    @tag skip: System.otp_release() < "27"
     test "logs a terminated task with a process label" do
       fun = fn ->
-        :proc_lib.set_label({:any, "term"})
+        Process.set_label({:any, "term"})
         raise "oops"
       end
 
