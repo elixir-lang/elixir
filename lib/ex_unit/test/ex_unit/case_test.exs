@@ -157,7 +157,7 @@ defmodule ExUnit.CaseTest do
         end
       end)
 
-    assert stderr =~ "@tag only affects the next test, did you mean to use @describetag?"
+    assert stderr =~ "found unused @tag before \"describe\", did you mean to use @describetag?"
   end
 end
 

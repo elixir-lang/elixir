@@ -766,7 +766,7 @@ defmodule ExUnit.Callbacks do
     end
 
     if Module.get_attribute(module, :tag) != [] do
-      IO.warn("@tag only affects the next test, did you mean to use @describetag?")
+      IO.warn("found unused @tag before \"describe\", did you mean to use @describetag?")
     end
 
     setup = Module.get_attribute(module, :ex_unit_setup)
