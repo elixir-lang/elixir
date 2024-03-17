@@ -142,6 +142,23 @@ defmodule ExUnit.CaseTest do
                    end
                  end
   end
+
+  test "warns when using @tag outside of describe" do
+    stderr =
+      ExUnit.CaptureIO.capture_io(:stderr, fn ->
+        defmodule TagOutsideOfDescribe do
+          use ExUnit.Case, register: false
+
+          @tag :foo
+          describe "bar" do
+            test "baz" do
+            end
+          end
+        end
+      end)
+
+    assert stderr =~ "found unused @tag before \"describe\", did you mean to use @describetag?"
+  end
 end
 
 defmodule ExUnit.DoubleCaseTest1 do

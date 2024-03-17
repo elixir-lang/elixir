@@ -541,7 +541,7 @@ defmodule ExUnit.Callbacks do
   its process dictionary with all of its ancestors, which will include the test
   process. Additionally, `start_supervised/2` will also store the test process
   in the `$callers` key of the started process, allowing tools that perform
-  either ancestor or caller tracking to reach the test process. You can learn 
+  either ancestor or caller tracking to reach the test process. You can learn
   more about these keys in
   [the `Task` module](`Task#module-ancestor-and-caller-tracking`).
   """
@@ -763,6 +763,10 @@ defmodule ExUnit.Callbacks do
 
     if Module.get_attribute(module, :describetag) != [] do
       raise "@describetag must be set inside describe/2 blocks"
+    end
+
+    if Module.get_attribute(module, :tag) != [] do
+      IO.warn("found unused @tag before \"describe\", did you mean to use @describetag?")
     end
 
     setup = Module.get_attribute(module, :ex_unit_setup)
