@@ -23,10 +23,12 @@ defmodule IEx.Helpers do
   There are many other helpers available, here are some examples:
 
     * `b/1`            - prints callbacks info and docs for a given module
+    * `c/0`            - a shortcut for `continue/0`
     * `c/1`            - compiles a file
     * `c/2`            - compiles a file and writes bytecode to the given path
     * `cd/1`           - changes the current directory
     * `clear/0`        - clears the screen
+    * `continue/0`     - continues execution of the current process
     * `exports/1`      - shows all exports (functions + macros) in a module
     * `flush/0`        - flushes all messages sent to the shell
     * `h/0`            - prints this help message
@@ -35,6 +37,8 @@ defmodule IEx.Helpers do
     * `i/1`            - prints information about the given term
     * `ls/0`           - lists the contents of the current directory
     * `ls/1`           - lists the contents of the specified directory
+    * `n/0`            - a shortcut for `next/0`
+    * `next/0`         - goes to the next line of the current breakpoint
     * `open/1`         - opens the source for the given module or function in your editor
     * `pid/1`          - creates a PID from a string
     * `pid/3`          - creates a PID with the 3 integer arguments passed
