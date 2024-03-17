@@ -147,7 +147,7 @@ defmodule ExUnit.CaseTest do
     stderr =
       ExUnit.CaptureIO.capture_io(:stderr, fn ->
         defmodule TagOutsideOfDescribe do
-          use ExUnit.Case
+          use ExUnit.Case, register: false
 
           @tag :foo
           describe "bar" do
