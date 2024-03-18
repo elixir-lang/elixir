@@ -62,7 +62,9 @@ defmodule Mix.Tasks.Deps do
     * `:app` - when set to `false`, does not read the app file for this
       dependency. By default, the app file is read
 
-    * `:env` - the environment (as an atom) to run the dependency on; defaults to `:prod`
+    * `:env` - the environment (as an atom) to run the dependency on; defaults to `:prod`.
+      This is not necessary for dependencies on other apps within the same umbrella project,
+      see the `:in_umbrella` option below.
 
     * `:compile` - a command (string) to compile the dependency; defaults to a `mix`,
       `rebar` or `make` command
@@ -138,7 +140,7 @@ defmodule Mix.Tasks.Deps do
 
     * `:path`        - the path for the dependency
     * `:in_umbrella` - when `true`, sets a path dependency pointing to
-      "../#{app}", sharing the same environment as the current application
+      `"../#{app}"`, sharing the same environment as the current application
 
   ### Hex options (`:hex`)
 
