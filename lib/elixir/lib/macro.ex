@@ -1736,7 +1736,7 @@ defmodule Macro do
   itself. This function does not traverse the AST, only the root
   node is expanded. The expansion happens as if it was expanded by
   the Elixir compiler and therefore compilation tracers will be invoked
-  during the expansion.
+  and deprecation warnings will be emitted during the expansion.
 
   `expand_once/2` performs the expansion just once. Check `expand/2`
   to perform expansion until the node can no longer be expanded.
@@ -1857,39 +1857,22 @@ defmodule Macro do
        when is_atom(name) and is_list(args) and is_list(meta) do
     arity = length(args)
 
-    if special_form?(name, arity) do
-      {original, false}
-    else
-      module = env.module
+    case Macro.Env.expand_import(env, meta, name, arity) do
+      {:macro, _receiver, expander} ->
+        # We don't want the line to propagate yet, but generated might!
+        {expander.(Keyword.take(meta, [:generated]), args), true}
 
-      extra =
-        if function_exported?(module, :__info__, 1) do
-          [{module, module.__info__(:macros)}]
-        else
-          []
+      {:function, Kernel, op} when op in [:+, :-] and arity == 1 ->
+        case expand_once(hd(args), env) do
+          integer when is_integer(integer) -> {apply(Kernel, op, [integer]), true}
+          _ -> {original, false}
         end
 
-      case :elixir_dispatch.expand_import(meta, name, arity, env, extra, true, true) do
-        {:macro, receiver, expander} ->
-          :elixir_dispatch.check_deprecated(:macro, meta, receiver, name, arity, env)
-          quoted = expander.(args, :elixir_env.env_to_ex(env))
-          next = :elixir_module.next_counter(module)
-          # We don't want the line to propagate yet, but generated might!
-          meta = Keyword.take(meta, [:generated])
-          {:elixir_quote.linify_with_context_counter(meta, {receiver, next}, quoted), true}
+      {:function, _receiver, _name} ->
+        {original, false}
 
-        {:function, Kernel, op} when op in [:+, :-] and arity == 1 ->
-          case expand_once(hd(args), env) do
-            integer when is_integer(integer) -> {apply(Kernel, op, [integer]), true}
-            _ -> {original, false}
-          end
-
-        {:function, _receiver, _name} ->
-          {original, false}
-
-        :error ->
-          {original, false}
-      end
+      :error ->
+        {original, false}
     end
   end
 
