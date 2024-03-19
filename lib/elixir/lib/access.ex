@@ -1085,7 +1085,7 @@ defmodule Access do
   end
 
   defp find(_op, data, _predicate, _next) do
-    raise "Utils.Access.find/1 expected a list, got: #{inspect(data)}"
+    raise "Access.find/1 expected a list, got: #{inspect(data)}"
   end
 
   defp get_and_update_find([], updates, _predicate, _next) do
