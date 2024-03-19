@@ -78,7 +78,6 @@ jobs:
   test_windows:
     name: Windows Server 2019, Erlang/OTP ${{ matrix.otp_version }}
     strategy:
-      fail-fast: false
       matrix:
         otp_version: ["25.3", "26.0"]
     runs-on: windows-2019
