@@ -1070,7 +1070,7 @@ defmodule Access do
       iex>  get_in(%{}, [Access.find(fn a -> a == 10 end)])
        ** (RuntimeError) Access.find/1 expected a list, got: %{}
   """
-  @doc since: "1.17"
+  @doc since: "1.17.0"
   @spec filter((term -> boolean)) :: access_fun(data :: list, current_value :: list)
   def find(predicate) when is_function(predicate, 1) do
     fn op, data, next -> find(op, data, predicate, next) end
