@@ -255,6 +255,12 @@ defmodule Kernel.BinaryTest do
     assert <<1::size((^foo).bar)>> = <<1::5>>
   end
 
+  test "bitsyntax size with pinned integer" do
+    a = 1
+    b = <<2, 3>>
+    assert <<^a, ^b::binary>> = <<1, 2, 3>>
+  end
+
   test "automatic size computation of matched bitsyntax variable" do
     var = "foo"
     <<^var::binary, rest::binary>> = "foobar"
