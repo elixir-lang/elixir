@@ -42,6 +42,11 @@ defmodule Logger.TranslatorTest do
       raise "oops"
     end
 
+    def handle_call({:execute, fun}, state) do
+      fun.()
+      {:ok, :ok, state}
+    end
+
     def handle_info(_msg, state) do
       {:ok, state}
     end
@@ -280,6 +285,28 @@ defmodule Logger.TranslatorTest do
     assert metadata[:registered_name] == config.test
   end
 
+  @tag skip: System.otp_release() < "27"
+  test "translates :gen_event crashes with process label" do
+    {:ok, pid} = :gen_event.start()
+    :ok = :gen_event.add_handler(pid, MyGenEvent, :ok)
+
+    fun = fn -> Process.set_label({:any, "term"}) end
+    :ok = :gen_event.call(pid, MyGenEvent, {:execute, fun})
+
+    assert capture_log(:info, fn ->
+             :gen_event.call(pid, MyGenEvent, :error)
+           end) =~ ~r"""
+           \[error\] :gen_event handler Logger.TranslatorTest.MyGenEvent installed in #PID<\d+\.\d+\.\d+> terminating
+           \*\* \(RuntimeError\) oops
+           .*
+           Process Label: {:any, "term"}
+           Last message: :error
+           """s
+
+    assert_receive {:event, {:string, [":gen_event handler " <> _ | _]}, metadata}
+    assert {%RuntimeError{message: "oops"}, [_ | _]} = metadata[:crash_reason]
+  end
+
   test "translates :gen_event crashes on debug" do
     {:ok, pid} = :gen_event.start()
     :ok = :gen_event.add_handler(pid, MyGenEvent, :ok)
@@ -428,8 +455,7 @@ defmodule Logger.TranslatorTest do
     assert {:abnormal, [_ | _]} = task_metadata[:crash_reason]
   end
 
-  @tag skip: System.otp_release() < "27"
-  test "translates Task crashes with label" do
+  test "translates Task crashes with process label" do
     fun = fn ->
       Process.set_label({:any, "term"})
       raise "oops"
@@ -561,7 +587,7 @@ defmodule Logger.TranslatorTest do
   end
 
   @tag skip: System.otp_release() < "27"
-  test "translates :proc_lib crashes with :process_label" do
+  test "translates :proc_lib crashes with process label" do
     fun = fn ->
       Process.set_label({:any, "term"})
       raise "oops"
