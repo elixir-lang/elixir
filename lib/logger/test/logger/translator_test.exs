@@ -20,6 +20,11 @@ defmodule Logger.TranslatorTest do
       raise "oops"
     end
 
+    def handle_call({:execute, fun}, _, state) do
+      fun.()
+      {:reply, :ok, state}
+    end
+
     def handle_call(:error_on_down, {pid, _}, _) do
       mon = Process.monitor(pid)
       assert_receive {:DOWN, ^mon, _, _, _}
@@ -146,6 +151,20 @@ defmodule Logger.TranslatorTest do
 
     assert gen_server_metadata[:registered_name] == config.test
     refute Map.has_key?(process_metadata, :registered_name)
+  end
+
+  @tag skip: System.otp_release() < "27"
+  test "translates GenServer crashes with process label" do
+    {:ok, pid} = GenServer.start(MyGenServer, :ok)
+    :ok = GenServer.call(pid, {:execute, fn -> Process.set_label({:any, "term"}) end})
+
+    assert capture_log(:info, fn -> catch_exit(GenServer.call(pid, :error)) end) =~ ~r"""
+           \[error\] GenServer #PID<\d+\.\d+\.\d+> terminating
+           \*\* \(RuntimeError\) oops
+           .*
+           Process Label: {:any, \"term\"}
+           Last message \(from #PID<\d+\.\d+\.\d+>\): :error
+           """s
   end
 
   test "translates GenServer crashes with custom inspect options" do

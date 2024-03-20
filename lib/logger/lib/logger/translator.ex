@@ -227,8 +227,17 @@ defmodule Logger.Translator do
     {formatted, reason} = format_reason(reason)
     metadata = [crash_reason: reason] ++ registered_name(name)
 
+    label_msg =
+      case report do
+        %{process_label: process_label} when process_label != :undefined ->
+          ["\nProcess Label: ", inspect(process_label, inspect_opts)]
+
+        _ ->
+          []
+      end
+
     msg =
-      ["GenServer ", inspect(name), " terminating", formatted] ++
+      ["GenServer ", inspect(name), " terminating", formatted, label_msg] ++
         ["\nLast message", format_last_message_from(client), ": ", inspect(last, inspect_opts)]
 
     if min_level == :debug do
