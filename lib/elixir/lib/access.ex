@@ -1071,7 +1071,7 @@ defmodule Access do
       ** (RuntimeError) Access.find/1 expected a list, got: %{}
   """
   @doc since: "1.17.0"
-  @spec find((term -> boolean)) :: access_fun(data :: list, current_value :: list)
+  @spec find((term -> as_boolean(term))) :: access_fun(data :: list, current_value :: term)
   def find(predicate) when is_function(predicate, 1) do
     fn op, data, next -> find(op, data, predicate, next) end
   end
