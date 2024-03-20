@@ -1026,4 +1026,80 @@ defmodule Access do
   defp get_and_update_slice([], _range, _next, updates, gets, _index) do
     {:lists.reverse(gets), :lists.reverse(updates)}
   end
+
+  @doc ~S"""
+  Returns a function that accesses the first element of a list that matches the provided predicate.
+
+  The returned function is typically passed as an accessor to `Kernel.get_in/2`,
+  `Kernel.get_and_update_in/3`, and friends.
+
+  ## Examples
+
+      iex> list = [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]
+      iex> get_in(list, [Access.find(&(&1.salary > 20)), :name])
+      "francine"
+      iex>  get_and_update_in(list, [Access.find(&(&1.salary <= 40)), :name], fn prev ->
+      ...> {prev, String.upcase(prev)}
+      ...>  end)
+      {"john", [%{name: "JOHN", salary: 10}, %{name: "francine", salary: 30}]}
+
+  `find/1` can also be used to pop the first found element out of a list or
+  a key inside of a list:
+
+      iex> list = [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]
+      iex> pop_in(list, [Access.find(&(&1.salary <= 40))])
+      {%{name: "john", salary: 10}, [%{name: "francine", salary: 30}]}
+
+  When no match is found, nil is returned and the update function is never called
+
+      iex> list = [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]
+      iex> get_in(list, [Access.find(&(&1.salary >= 50)), :name])
+      nil
+      iex> get_and_update_in(list, [Access.find(&(&1.salary >= 50)), :name], fn prev ->
+      ...>   {prev, String.upcase(prev)}
+      ...> end)
+      {nil, [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]}
+
+  An error is raised if the predicate is not a function or is of the incorrect arity:
+
+      iex> get_in([], [Access.find(5)])
+      ** (FunctionClauseError) no function clause matching in Access.find/1
+
+  An error is raised if the accessed structure is not a list:
+
+      iex>  get_in(%{}, [Access.find(fn a -> a == 10 end)])
+      ** (RuntimeError) Access.find/1 expected a list, got: %{}
+  """
+  @doc since: "1.17.0"
+  @spec filter((term -> boolean)) :: access_fun(data :: list, current_value :: list)
+  def find(predicate) when is_function(predicate, 1) do
+    fn op, data, next -> find(op, data, predicate, next) end
+  end
+
+  defp find(:get, data, predicate, next) when is_list(data) do
+    data |> Enum.find(predicate) |> next.()
+  end
+
+  defp find(:get_and_update, data, predicate, next) when is_list(data) do
+    get_and_update_find(data, [], predicate, next)
+  end
+
+  defp find(_op, data, _predicate, _next) do
+    raise "Access.find/1 expected a list, got: #{inspect(data)}"
+  end
+
+  defp get_and_update_find([], updates, _predicate, _next) do
+    {nil, :lists.reverse(updates)}
+  end
+
+  defp get_and_update_find([head | rest], updates, predicate, next) do
+    if predicate.(head) do
+      case next.(head) do
+        {get, update} -> {get, :lists.reverse([update | updates], rest)}
+        :pop -> {head, :lists.reverse(updates, rest)}
+      end
+    else
+      get_and_update_find(rest, [head | updates], predicate, next)
+    end
+  end
 end
