@@ -1885,16 +1885,10 @@ defmodule Macro do
         {original, false}
 
       true ->
-        arity = length(args)
-
-        case :elixir_dispatch.expand_require(meta, receiver, name, arity, env, true) do
-          {:macro, receiver, expander} ->
-            :elixir_dispatch.check_deprecated(:macro, meta, receiver, name, arity, env)
-            quoted = expander.(args, :elixir_env.env_to_ex(env))
-            next = :elixir_module.next_counter(env.module)
+        case Macro.Env.expand_require(env, meta, receiver, name, length(args)) do
+          {:macro, _receiver, expander} ->
             # We don't want the line to propagate yet, but generated might!
-            meta = Keyword.take(meta, [:generated])
-            {:elixir_quote.linify_with_context_counter(meta, {receiver, next}, quoted), true}
+            {expander.(Keyword.take(meta, [:generated]), args), true}
 
           :error ->
             {original, false}
