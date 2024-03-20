@@ -115,7 +115,7 @@ defmodule Logger.Translator do
     msg =
       case process_label do
         :undefined -> msg
-        _ -> ["\nProcess Label: #{inspect(process_label)}"] ++ msg
+        _ -> ["\nProcess Label: #{inspect(process_label, opts)}"] ++ msg
       end
 
     msg = ["Task #{inspect(name)} started from #{inspect(starter)} terminating", formatted] ++ msg
