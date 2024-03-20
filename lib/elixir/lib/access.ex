@@ -1068,7 +1068,7 @@ defmodule Access do
   An error is raised if the accessed structure is not a list:
 
       iex>  get_in(%{}, [Access.find(fn a -> a == 10 end)])
-       ** (RuntimeError) Access.find/1 expected a list, got: %{}
+      ** (RuntimeError) Access.find/1 expected a list, got: %{}
   """
   @doc since: "1.17.0"
   @spec filter((term -> boolean)) :: access_fun(data :: list, current_value :: list)
