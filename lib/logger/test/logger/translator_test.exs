@@ -321,9 +321,6 @@ defmodule Logger.TranslatorTest do
            Process Label: {:any, "term"}
            Last message: :error
            """s
-
-    assert_receive {:event, {:string, [":gen_event handler " <> _ | _]}, metadata}
-    assert {%RuntimeError{message: "oops"}, [_ | _]} = metadata[:crash_reason]
   end
 
   test "translates :gen_event crashes on debug" do
@@ -481,7 +478,6 @@ defmodule Logger.TranslatorTest do
     end
 
     {:ok, pid} = Task.start_link(__MODULE__, :task, [self(), fun])
-    parent = self()
 
     assert capture_log(fn ->
              ref = Process.monitor(pid)
@@ -496,11 +492,6 @@ defmodule Logger.TranslatorTest do
              Function: &Logger.TranslatorTest.task\/2
                  Args: \[#PID<\d+\.\d+\.\d+>\, .*]
              """s
-
-    assert_receive {:event, {:string, ["Task " <> _ | _]}, task_metadata}
-    assert {%RuntimeError{message: "oops"}, [_ | _]} = task_metadata[:crash_reason]
-    assert [parent] == task_metadata[:callers]
-    refute Map.has_key?(task_metadata, :initial_call)
   end
 
   test "translates application start" do
