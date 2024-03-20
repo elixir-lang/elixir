@@ -115,7 +115,7 @@ defmodule Logger.Translator do
     msg =
       case process_label do
         :undefined -> msg
-        _ -> ["\nProcess Label: #{inspect(process_label)}"] ++ msg
+        _ -> ["\nProcess Label: #{inspect(process_label, opts)}"] ++ msg
       end
 
     msg = ["Task #{inspect(name)} started from #{inspect(starter)} terminating", formatted] ++ msg
@@ -227,8 +227,17 @@ defmodule Logger.Translator do
     {formatted, reason} = format_reason(reason)
     metadata = [crash_reason: reason] ++ registered_name(name)
 
+    label_msg =
+      case report do
+        %{process_label: process_label} when process_label != :undefined ->
+          ["\nProcess Label: ", inspect(process_label, inspect_opts)]
+
+        _ ->
+          []
+      end
+
     msg =
-      ["GenServer ", inspect(name), " terminating", formatted] ++
+      ["GenServer ", inspect(name), " terminating", formatted, label_msg] ++
         ["\nLast message", format_last_message_from(client), ": ", inspect(last, inspect_opts)]
 
     if min_level == :debug do
@@ -259,9 +268,18 @@ defmodule Logger.Translator do
     {formatted, reason} = format_reason(reason)
     metadata = [crash_reason: reason] ++ registered_name(name)
 
+    label_msg =
+      case report do
+        %{process_label: process_label} when process_label != :undefined ->
+          ["\nProcess Label: ", inspect(process_label, inspect_opts)]
+
+        _ ->
+          []
+      end
+
     msg =
       [":gen_event handler ", inspect(handler), " installed in ", inspect(name), " terminating"] ++
-        [formatted, "\nLast message: ", inspect(last, inspect_opts)]
+        [formatted, label_msg, "\nLast message: ", inspect(last, inspect_opts)]
 
     if min_level == :debug do
       {:ok, [msg, "\nState: ", inspect(state, inspect_opts)], metadata}

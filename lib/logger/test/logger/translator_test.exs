@@ -20,6 +20,11 @@ defmodule Logger.TranslatorTest do
       raise "oops"
     end
 
+    def handle_call({:execute, fun}, _, state) do
+      fun.()
+      {:reply, :ok, state}
+    end
+
     def handle_call(:error_on_down, {pid, _}, _) do
       mon = Process.monitor(pid)
       assert_receive {:DOWN, ^mon, _, _, _}
@@ -40,6 +45,11 @@ defmodule Logger.TranslatorTest do
 
     def handle_call(:error, _) do
       raise "oops"
+    end
+
+    def handle_call({:execute, fun}, state) do
+      fun.()
+      {:ok, :ok, state}
     end
 
     def handle_info(_msg, state) do
@@ -141,6 +151,20 @@ defmodule Logger.TranslatorTest do
 
     assert gen_server_metadata[:registered_name] == config.test
     refute Map.has_key?(process_metadata, :registered_name)
+  end
+
+  @tag skip: System.otp_release() < "27"
+  test "translates GenServer crashes with process label" do
+    {:ok, pid} = GenServer.start(MyGenServer, :ok)
+    :ok = GenServer.call(pid, {:execute, fn -> Process.set_label({:any, "term"}) end})
+
+    assert capture_log(:info, fn -> catch_exit(GenServer.call(pid, :error)) end) =~ ~r"""
+           \[error\] GenServer #PID<\d+\.\d+\.\d+> terminating
+           \*\* \(RuntimeError\) oops
+           .*
+           Process Label: {:any, \"term\"}
+           Last message \(from #PID<\d+\.\d+\.\d+>\): :error
+           """s
   end
 
   test "translates GenServer crashes with custom inspect options" do
@@ -278,6 +302,25 @@ defmodule Logger.TranslatorTest do
     assert_receive {:event, {:string, [":gen_event handler " <> _ | _]}, metadata}
     assert {%RuntimeError{message: "oops"}, [_ | _]} = metadata[:crash_reason]
     assert metadata[:registered_name] == config.test
+  end
+
+  @tag skip: System.otp_release() < "27"
+  test "translates :gen_event crashes with process label" do
+    {:ok, pid} = :gen_event.start()
+    :ok = :gen_event.add_handler(pid, MyGenEvent, :ok)
+
+    fun = fn -> Process.set_label({:any, "term"}) end
+    :ok = :gen_event.call(pid, MyGenEvent, {:execute, fun})
+
+    assert capture_log(:info, fn ->
+             :gen_event.call(pid, MyGenEvent, :error)
+           end) =~ ~r"""
+           \[error\] :gen_event handler Logger.TranslatorTest.MyGenEvent installed in #PID<\d+\.\d+\.\d+> terminating
+           \*\* \(RuntimeError\) oops
+           .*
+           Process Label: {:any, "term"}
+           Last message: :error
+           """s
   end
 
   test "translates :gen_event crashes on debug" do
@@ -428,15 +471,13 @@ defmodule Logger.TranslatorTest do
     assert {:abnormal, [_ | _]} = task_metadata[:crash_reason]
   end
 
-  @tag skip: System.otp_release() < "27"
-  test "translates Task crashes with label" do
+  test "translates Task crashes with process label" do
     fun = fn ->
       Process.set_label({:any, "term"})
       raise "oops"
     end
 
     {:ok, pid} = Task.start_link(__MODULE__, :task, [self(), fun])
-    parent = self()
 
     assert capture_log(fn ->
              ref = Process.monitor(pid)
@@ -451,11 +492,6 @@ defmodule Logger.TranslatorTest do
              Function: &Logger.TranslatorTest.task\/2
                  Args: \[#PID<\d+\.\d+\.\d+>\, .*]
              """s
-
-    assert_receive {:event, {:string, ["Task " <> _ | _]}, task_metadata}
-    assert {%RuntimeError{message: "oops"}, [_ | _]} = task_metadata[:crash_reason]
-    assert [parent] == task_metadata[:callers]
-    refute Map.has_key?(task_metadata, :initial_call)
   end
 
   test "translates application start" do
@@ -561,7 +597,7 @@ defmodule Logger.TranslatorTest do
   end
 
   @tag skip: System.otp_release() < "27"
-  test "translates :proc_lib crashes with :process_label" do
+  test "translates :proc_lib crashes with process label" do
     fun = fn ->
       Process.set_label({:any, "term"})
       raise "oops"
