@@ -36,9 +36,9 @@ expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, S, E, Alignment,
   MatchOrRequireSize = RequireSize or is_match_size(T, EL),
   EType = expr_type(ELeft),
   ExpectSize = case ELeft of
+    _ when not MatchOrRequireSize -> optional;
     {'^', _, [{_, _, _}]} -> {infer, ELeft};
-    _ when MatchOrRequireSize -> required;
-    _ -> optional
+    _ -> required
   end,
   {ERight, EAlignment, SS, ES} = expand_specs(EType, Meta, Right, SL, OriginalS, EL, ExpectSize),
 
