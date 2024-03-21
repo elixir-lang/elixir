@@ -1085,7 +1085,7 @@ defmodule Mix.Tasks.XrefTest do
                  ^first_line | ["Generated sample app" | result]
                ] = receive_until_no_messages([]) |> String.split("\n")
 
-        assert normalize_graph_output(result |> Enum.join("\n")) == expected
+        assert result |> Enum.join("\n") |> normalize_graph_output() == expected
       end)
     end
 
