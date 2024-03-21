@@ -304,6 +304,120 @@ defmodule Macro.Env do
   end
 
   @doc """
+  Expands an import given by `name` and `arity`.
+
+  If the import points to a macro, it returns a tuple
+  with the module and a function that expands the macro.
+  The function expects the metadata to be attached to the
+  expansion and the arguments of the macro.
+
+  If the import points to a function, it returns a tuple
+  with the module and the function name.
+
+  Otherwise returns `:error`.
+
+  ## Options
+
+    * `:allow_locals` - when set to `false`, it does not attempt to capture
+      local macros defined in the current module in `env`
+
+    * `:check_deprecations` - when set to `false`, does not check for deprecations
+      when expanding macros
+
+    * `:trace` - when set to `false`, it disables compilation tracers and
+      lexical tracker. This option must only be used by language servers and
+      other tools that need to introspect code without affecting how it is compiled.
+      Disabling tracer inside macros or regular code expansion is extremely
+      discouraged as it blocks the compiler from accurately tracking dependencies
+
+  """
+  @doc since: "1.17.0"
+  @spec expand_import(t, keyword, atom(), arity(), keyword) ::
+          {:macro, module(), (Macro.meta(), args :: [Macro.t()] -> Macro.t())}
+          | {:function, module(), atom()}
+          | :error
+  def expand_import(env, meta, name, arity, opts \\ [])
+      when is_list(meta) and is_atom(name) and is_integer(arity) and is_list(opts) do
+    case :elixir_import.special_form(name, arity) do
+      true ->
+        :error
+
+      false ->
+        allow_locals = Keyword.get(opts, :allow_locals, true)
+        trace = Keyword.get(opts, :trace, true)
+        module = env.module
+
+        extra =
+          case allow_locals and function_exported?(module, :__info__, 1) do
+            true -> [{module, module.__info__(:macros)}]
+            false -> []
+          end
+
+        result =
+          :elixir_dispatch.expand_import(meta, name, arity, env, extra, allow_locals, trace)
+
+        wrap_expansion(result, meta, name, arity, env, opts)
+    end
+  end
+
+  @doc """
+  Expands a require given by `module`, `name`, and `arity`.
+
+  If the require points to a macro and the module has been
+  required, it returns a tuple with the module and a function
+  that expands the macro. The function expects the metadata
+  to be attached to the expansion and the arguments of the macro.
+
+  Otherwise returns `:error`.
+
+  ## Options
+
+    * `:check_deprecations` - when set to `false`, does not check for deprecations
+      when expanding macros
+
+    * `:trace` - when set to `false`, it disables compilation tracers and
+      lexical tracker. This option must only be used by language servers and
+      other tools that need to introspect code without affecting how it is compiled.
+      Disabling tracer inside macros or regular code expansion is extremely
+      discouraged as it blocks the compiler from accurately tracking dependencies
+
+  """
+  @doc since: "1.17.0"
+  @spec expand_require(t, keyword, module(), atom(), arity(), keyword) ::
+          {:macro, module(), (Macro.meta(), args :: [Macro.t()] -> Macro.t())}
+          | :error
+  def expand_require(env, meta, module, name, arity, opts \\ [])
+      when is_list(meta) and is_atom(module) and is_atom(name) and is_integer(arity) and
+             is_list(opts) do
+    trace = Keyword.get(opts, :trace, true)
+    result = :elixir_dispatch.expand_require(meta, module, name, arity, env, trace)
+    wrap_expansion(result, meta, name, arity, env, opts)
+  end
+
+  defp wrap_expansion(result, meta, name, arity, env, opts) do
+    case result do
+      {:macro, receiver, expander} ->
+        fun = fn expansion_meta, args ->
+          if Keyword.get(opts, :check_deprecations, true) do
+            :elixir_dispatch.check_deprecated(:macro, meta, receiver, name, arity, env)
+          end
+
+          quoted = expander.(args, :elixir_env.env_to_ex(env))
+          next = :elixir_module.next_counter(env.module)
+          :elixir_quote.linify_with_context_counter(expansion_meta, {receiver, next}, quoted)
+        end
+
+        {:macro, receiver, fun}
+
+      {:function, receiver, name} ->
+        {:function, receiver, name}
+
+      :error ->
+        :error
+    end
+  end
+
+  @doc """
   Returns a `Macro.Env` in the match context.
   """
   @spec to_match(t) :: t

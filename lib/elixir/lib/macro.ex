@@ -1734,7 +1734,9 @@ defmodule Macro do
 
   If the expression cannot be expanded, it returns the expression
   itself. This function does not traverse the AST, only the root
-  node is expanded.
+  node is expanded. The expansion happens as if it was expanded by
+  the Elixir compiler and therefore compilation tracers will be invoked
+  and deprecation warnings will be emitted during the expansion.
 
   `expand_once/2` performs the expansion just once. Check `expand/2`
   to perform expansion until the node can no longer be expanded.
@@ -1846,56 +1848,36 @@ defmodule Macro do
     end
   end
 
-  defp do_expand_once({atom, meta, context} = original, _env)
-       when is_atom(atom) and is_list(meta) and is_atom(context) do
+  defp do_expand_once({name, meta, context} = original, _env)
+       when is_atom(name) and is_list(meta) and is_atom(context) do
     {original, false}
   end
 
-  defp do_expand_once({atom, meta, args} = original, env)
-       when is_atom(atom) and is_list(args) and is_list(meta) do
+  defp do_expand_once({name, meta, args} = original, env)
+       when is_atom(name) and is_list(args) and is_list(meta) do
     arity = length(args)
 
-    if special_form?(atom, arity) do
-      {original, false}
-    else
-      module = env.module
+    case Macro.Env.expand_import(env, meta, name, arity) do
+      {:macro, _receiver, expander} ->
+        # We don't want the line to propagate yet, but generated might!
+        {expander.(Keyword.take(meta, [:generated]), args), true}
 
-      extra =
-        if function_exported?(module, :__info__, 1) do
-          [{module, module.__info__(:macros)}]
-        else
-          []
+      {:function, Kernel, op} when op in [:+, :-] and arity == 1 ->
+        case expand_once(hd(args), env) do
+          integer when is_integer(integer) -> {apply(Kernel, op, [integer]), true}
+          _ -> {original, false}
         end
 
-      s = :elixir_env.env_to_ex(env)
+      {:function, _receiver, _name} ->
+        {original, false}
 
-      expand =
-        :elixir_dispatch.expand_import(meta, {atom, length(args)}, args, s, env, extra, true)
-
-      case expand do
-        {:ok, receiver, quoted} ->
-          next = :elixir_module.next_counter(module)
-          # We don't want the line to propagate yet, but generated might!
-          meta = Keyword.take(meta, [:generated])
-          {:elixir_quote.linify_with_context_counter(meta, {receiver, next}, quoted), true}
-
-        {:ok, Kernel, op, [arg]} when op in [:+, :-] ->
-          case expand_once(arg, env) do
-            integer when is_integer(integer) -> {apply(Kernel, op, [integer]), true}
-            _ -> {original, false}
-          end
-
-        {:ok, _receiver, _name, _args} ->
-          {original, false}
-
-        :error ->
-          {original, false}
-      end
+      :error ->
+        {original, false}
     end
   end
 
   # Expand possible macro require invocation
-  defp do_expand_once({{:., _, [left, right]}, meta, args} = original, env) when is_atom(right) do
+  defp do_expand_once({{:., _, [left, name]}, meta, args} = original, env) when is_atom(name) do
     {receiver, _} = do_expand_once(left, env)
 
     case is_atom(receiver) do
@@ -1903,16 +1885,10 @@ defmodule Macro do
         {original, false}
 
       true ->
-        s = :elixir_env.env_to_ex(env)
-        name_arity = {right, length(args)}
-        expand = :elixir_dispatch.expand_require(meta, receiver, name_arity, args, s, env)
-
-        case expand do
-          {:ok, receiver, quoted} ->
-            next = :elixir_module.next_counter(env.module)
+        case Macro.Env.expand_require(env, meta, receiver, name, length(args)) do
+          {:macro, _receiver, expander} ->
             # We don't want the line to propagate yet, but generated might!
-            meta = Keyword.take(meta, [:generated])
-            {:elixir_quote.linify_with_context_counter(meta, {receiver, next}, quoted), true}
+            {expander.(Keyword.take(meta, [:generated]), args), true}
 
           :error ->
             {original, false}

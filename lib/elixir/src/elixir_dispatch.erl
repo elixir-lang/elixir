@@ -4,7 +4,7 @@
 -module(elixir_dispatch).
 -export([dispatch_import/6, dispatch_require/7,
   require_function/5, import_function/4,
-  expand_import/7, expand_require/6,
+  expand_import/7, expand_require/6, check_deprecated/6,
   default_functions/0, default_macros/0, default_requires/0,
   find_import/4, find_imports/3, format_error/1]).
 -include("elixir.hrl").
@@ -97,7 +97,7 @@ import_function(Meta, Name, Arity, E) ->
 require_function(Meta, Receiver, Name, Arity, E) ->
   Required = is_element(Receiver, ?key(E, requires)),
 
-  case is_macro({Name, Arity}, Receiver, Required) of
+  case is_macro(Name, Arity, Receiver, Required) of
     true  -> false;
     false ->
       elixir_env:trace({remote_function, Meta, Receiver, Name, Arity}, E),
@@ -105,7 +105,7 @@ require_function(Meta, Receiver, Name, Arity, E) ->
   end.
 
 remote_function(Meta, Receiver, Name, Arity, E) ->
-  check_deprecated(Meta, function, Receiver, Name, Arity, E),
+  check_deprecated(function, Meta, Receiver, Name, Arity, E),
 
   case elixir_rewrite:inline(Receiver, Name, Arity) of
     {AR, AN} -> {remote, AR, AN, Arity};
@@ -116,11 +116,20 @@ remote_function(Meta, Receiver, Name, Arity, E) ->
 
 dispatch_import(Meta, Name, Args, S, E, Callback) ->
   Arity = length(Args),
-  case expand_import(Meta, {Name, Arity}, Args, S, E, [], false) of
-    {ok, Receiver, Quoted} ->
-      expand_quoted(Meta, Receiver, Name, Arity, Quoted, S, E);
-    {ok, Receiver, NewName, NewArgs} ->
-      elixir_expand:expand({{'.', Meta, [Receiver, NewName]}, Meta, NewArgs}, S, E);
+
+  AllowLocals =
+    %% If we are inside a function, we support reading from locals.
+    case E of
+      #{function := {N, A}} when Name =/= N; Arity =/= A -> true;
+      _ -> false
+    end,
+
+  case expand_import(Meta, Name, Arity, E, [], AllowLocals, true) of
+    {macro, Receiver, Expander} ->
+      check_deprecated(macro, Meta, Receiver, Name, Arity, E),
+      expand_quoted(Meta, Receiver, Name, Arity, Expander(Args, S), S, E);
+    {function, Receiver, NewName} ->
+      elixir_expand:expand({{'.', Meta, [Receiver, NewName]}, Meta, Args}, S, E);
     error ->
       Callback()
   end.
@@ -133,10 +142,12 @@ dispatch_require(Meta, Receiver, Name, Args, S, E, Callback) when is_atom(Receiv
       elixir_env:trace({remote_function, Meta, Receiver, Name, Arity}, E),
       Callback(AR, AN, Args);
     false ->
-      case expand_require(Meta, Receiver, {Name, Arity}, Args, S, E) of
-        {ok, Receiver, Quoted} ->
-          expand_quoted(Meta, Receiver, Name, Arity, Quoted, S, E);
+      case expand_require(Meta, Receiver, Name, Arity, E, true) of
+        {macro, Receiver, Expander} ->
+          check_deprecated(macro, Meta, Receiver, Name, Arity, E),
+          expand_quoted(Meta, Receiver, Name, Arity, Expander(Args, S), S, E);
         error ->
+          check_deprecated(function, Meta, Receiver, Name, Arity, E),
           elixir_env:trace({remote_function, Meta, Receiver, Name, Arity}, E),
           Callback(Receiver, Name, Args)
       end
@@ -147,16 +158,15 @@ dispatch_require(_Meta, Receiver, Name, Args, _S, _E, Callback) ->
 
 %% Macros expansion
 
-expand_import(Meta, {Name, Arity} = Tuple, Args, S, E, Extra, External) ->
+expand_import(Meta, Name, Arity, E, Extra, AllowLocals, Trace) ->
+  Tuple = {Name, Arity},
   Module = ?key(E, module),
-  Function = ?key(E, function),
   Dispatch = find_import_by_name_arity(Meta, Tuple, Extra, E),
 
   case Dispatch of
     {import, _} ->
-      do_expand_import(Meta, Tuple, Args, Module, S, E, Dispatch);
+      do_expand_import(Dispatch, Meta, Name, Arity, Module, E, Trace);
     _ ->
-      AllowLocals = External orelse ((Function /= nil) andalso (Function /= Tuple)),
       Local = AllowLocals andalso elixir_def:local_for(Meta, Name, Arity, [defmacro, defmacrop], E),
 
       case Dispatch of
@@ -168,57 +178,72 @@ expand_import(Meta, {Name, Arity} = Tuple, Args, S, E, Extra, External) ->
 
         %% There is no local. Dispatch the import.
         _ when Local == false ->
-          do_expand_import(Meta, Tuple, Args, Module, S, E, Dispatch);
+          do_expand_import(Dispatch, Meta, Name, Arity, Module, E, Trace);
 
         %% Dispatch to the local.
         _ ->
-          elixir_env:trace({local_macro, Meta, Name, Arity}, E),
-          elixir_locals:record_local(Tuple, Module, Function, Meta, true),
-          {ok, Module, expand_macro_fun(Meta, Local, Module, Name, Args, S, E)}
+          Trace andalso begin
+            elixir_env:trace({local_macro, Meta, Name, Arity}, E),
+            elixir_locals:record_local(Tuple, Module, ?key(E, function), Meta, true)
+          end,
+          {macro, Module, expander_macro_fun(Meta, Local, Module, Name, E)}
       end
   end.
 
-do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, S, E, Result) ->
+do_expand_import(Result, Meta, Name, Arity, Module, E, Trace) ->
   case Result of
     {function, Receiver} ->
-      elixir_env:trace({imported_function, Meta, Receiver, Name, Arity}, E),
-      elixir_locals:record_import(Tuple, Receiver, Module, ?key(E, function)),
-      {ok, Receiver, Name, Args};
+      Trace andalso begin
+        elixir_env:trace({imported_function, Meta, Receiver, Name, Arity}, E),
+        elixir_locals:record_import({Name, Arity}, Receiver, Module, ?key(E, function))
+      end,
+      {function, Receiver, Name};
     {macro, Receiver} ->
-      check_deprecated(Meta, macro, Receiver, Name, Arity, E),
-      elixir_env:trace({imported_macro, Meta, Receiver, Name, Arity}, E),
-      elixir_locals:record_import(Tuple, Receiver, Module, ?key(E, function)),
-      {ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, S, E)};
+      Trace andalso begin
+        elixir_env:trace({imported_macro, Meta, Receiver, Name, Arity}, E),
+        elixir_locals:record_import({Name, Arity}, Receiver, Module, ?key(E, function))
+      end,
+      {macro, Receiver, expander_macro_named(Meta, Receiver, Name, Arity, E)};
     {import, Receiver} ->
-      case expand_require([{required, true} | Meta], Receiver, Tuple, Args, S, E) of
-        {ok, _, _} = Response -> Response;
-        error -> {ok, Receiver, Name, Args}
+      case expand_require(true, Meta, Receiver, Name, Arity, E, Trace) of
+        {macro, _, _} = Response -> Response;
+        error -> {function, Receiver, Name}
       end;
     false when Module == ?kernel ->
       case elixir_rewrite:inline(Module, Name, Arity) of
-        {AR, AN} -> {ok, AR, AN, Args};
+        {AR, AN} -> {function, AR, AN};
         false -> error
       end;
     false ->
       error
   end.
 
-expand_require(Meta, Receiver, {Name, Arity} = Tuple, Args, S, E) ->
-  Required =
-    (Receiver == ?key(E, module)) orelse required(Meta) orelse
-      is_element(Receiver, ?key(E, requires)),
+expand_require(Meta, Receiver, Name, Arity, E, Trace) ->
+  Required = (Receiver == ?key(E, module))
+    orelse (lists:keyfind(required, 1, Meta) == {required, true})
+    orelse is_element(Receiver, ?key(E, requires)),
 
-  case is_macro(Tuple, Receiver, Required) of
+  expand_require(Required, Meta, Receiver, Name, Arity, E, Trace).
+
+expand_require(Required, Meta, Receiver, Name, Arity, E, Trace) ->
+  case is_macro(Name, Arity, Receiver, Required) of
     true ->
-      check_deprecated(Meta, macro, Receiver, Name, Arity, E),
-      elixir_env:trace({remote_macro, Meta, Receiver, Name, Arity}, E),
-      {ok, Receiver, expand_macro_named(Meta, Receiver, Name, Arity, Args, S, E)};
+      Trace andalso elixir_env:trace({remote_macro, Meta, Receiver, Name, Arity}, E),
+      {macro, Receiver, expander_macro_named(Meta, Receiver, Name, Arity, E)};
     false ->
-      check_deprecated(Meta, function, Receiver, Name, Arity, E),
       error
   end.
 
 %% Expansion helpers
+
+expander_macro_fun(Meta, Fun, Receiver, Name, E) ->
+  fun(Args, S) -> expand_macro_fun(Meta, Fun, Receiver, Name, Args, S, E) end.
+
+expander_macro_named(Meta, Receiver, Name, Arity, E) ->
+  ProperName  = elixir_utils:macro_name(Name),
+  ProperArity = Arity + 1,
+  Fun         = fun Receiver:ProperName/ProperArity,
+  fun(Args, S) -> expand_macro_fun(Meta, Fun, Receiver, Name, Args, S, E) end.
 
 expand_macro_fun(Meta, Fun, Receiver, Name, Args, S, E) ->
   Line = ?line(Meta),
@@ -233,12 +258,6 @@ expand_macro_fun(Meta, Fun, Receiver, Name, Args, S, E) ->
       Info = [{Receiver, Name, Arity, [{file, "expanding macro"}]}, caller(Line, E)],
       erlang:raise(Kind, Reason, prune_stacktrace(Stacktrace, MFA, Info, {ok, EArg}))
   end.
-
-expand_macro_named(Meta, Receiver, Name, Arity, Args, S, E) ->
-  ProperName  = elixir_utils:macro_name(Name),
-  ProperArity = Arity + 1,
-  Fun         = fun Receiver:ProperName/ProperArity,
-  expand_macro_fun(Meta, Fun, Receiver, Name, Args, S, E).
 
 expand_quoted(Meta, Receiver, Name, Arity, Quoted, S, E) ->
   Next = elixir_module:next_counter(?key(E, module)),
@@ -257,9 +276,6 @@ caller(Line, E) ->
   elixir_utils:caller(Line, ?key(E, file), ?key(E, module), ?key(E, function)).
 
 %% Helpers
-
-required(Meta) ->
-  lists:keyfind(required, 1, Meta) == {required, true}.
 
 find_imports_by_name([{Mod, Imports} | ModImports], Acc, Name, Meta, E) ->
   NewAcc = find_imports_by_name(Name, Imports, Acc, Mod, Meta, E),
@@ -352,11 +368,11 @@ format_error({deprecated, Mod, Fun, Arity, Message}) ->
 
 %% INTROSPECTION
 
-is_macro(_Tuple, _Module, false) ->
+is_macro(_Name, _Arity, _Module, false) ->
   false;
-is_macro(Tuple, Receiver, true) ->
+is_macro(Name, Arity, Receiver, true) ->
   try Receiver:'__info__'(macros) of
-    Macros -> is_element(Tuple, Macros)
+    Macros -> is_element({Name, Arity}, Macros)
   catch
     error:_ -> false
   end.
@@ -399,7 +415,7 @@ check_deprecated(_, _, erlang, _, _, _) -> ok;
 check_deprecated(_, _, elixir_def, _, _, _) -> ok;
 check_deprecated(_, _, elixir_module, _, _, _) -> ok;
 check_deprecated(_, _, ?kernel, _, _, _) -> ok;
-check_deprecated(Meta, Kind, ?application, Name, Arity, E) ->
+check_deprecated(Kind, Meta, ?application, Name, Arity, E) ->
   case E of
     #{module := Module, function := nil}
     when (Module /= nil) or (Kind == macro), (Name == get_env) orelse (Name == fetch_env) orelse (Name == 'fetch_env!') ->
@@ -408,7 +424,7 @@ check_deprecated(Meta, Kind, ?application, Name, Arity, E) ->
     _ ->
       ok
   end;
-check_deprecated(Meta, Kind, Receiver, Name, Arity, E) ->
+check_deprecated(Kind, Meta, Receiver, Name, Arity, E) ->
   %% Any compile time behavior cannot be verified by the runtime group pass.
   case ((?key(E, function) == nil) or (Kind == macro)) andalso get_deprecations(Receiver) of
     [_ | _] = Deprecations ->
