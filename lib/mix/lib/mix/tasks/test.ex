@@ -118,7 +118,8 @@ defmodule Mix.Tasks.Test do
 
     * `--cover` - runs coverage tool. See "Coverage" section below
 
-    * `--exclude` - excludes tests that match the filter
+    * `--exclude` - excludes tests that match the filter. This option may be given
+      several times to apply different filters, such as `--exclude ci --exclude slow`
 
     * `--exit-status` - use an alternate exit status to use when the test suite
       fails (default is 2).
@@ -133,7 +134,8 @@ defmodule Mix.Tasks.Test do
     * `--formatter` - sets the formatter module that will print the results.
       Defaults to ExUnit's built-in CLI formatter
 
-    * `--include` - includes tests that match the filter
+    * `--include` - includes tests that match the filter. This option may be given
+      several times to apply different filters, such as `--include ci --include slow`
 
     * `--listen-on-stdin` - runs tests, and then listens on stdin. It will
       re-run tests once a newline is received. See the "File system watchers"
