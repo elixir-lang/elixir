@@ -13,11 +13,12 @@ defmodule Mix.Tasks.Deps.Tree do
 
   ## Command line options
 
-    * `--only` - the environment to show dependencies for
+    * `--only` - the environment to show dependencies for.
 
-    * `--target` - the target to show dependencies for
+    * `--target` - the target to show dependencies for.
 
-    * `--exclude` - exclude dependencies which you do not want to see printed.
+    * `--exclude` - exclude dependencies which you do not want to see printed. You can
+      pass this flag multiple times to exclude multiple dependencies.
 
     * `--format` - Can be set to one of either:
 
@@ -30,6 +31,16 @@ defmodule Mix.Tasks.Deps.Tree do
       * `dot` - produces a DOT graph description of the dependency tree
         in `deps_tree.dot` in the current directory.
         Warning: this will override any previously generated file.
+
+  ## Examples
+
+  Print the dependency tree for the `:test` environment:
+
+      $ mix deps.tree --only test
+
+  Exclude the `:logger` and `:phoenix` dependencies:
+
+      $ mix deps.tree --exclude logger --exclude phoenix
 
   """
   @switches [only: :string, target: :string, exclude: :keep, format: :string]
