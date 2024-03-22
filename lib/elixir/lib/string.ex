@@ -393,6 +393,9 @@ defmodule String do
   When the pattern used is a regular expression, the string is
   split using `Regex.split/3`.
 
+  If the pattern cannot be found, a list containing the original  
+  string will be returned.
+
   ## Options
 
     * `:parts` (positive integer or `:infinity`) - the string
@@ -457,6 +460,10 @@ defmodule String do
 
       iex> String.split("abc", "", parts: 3)
       ["", "a", "bc"]
+
+  Splitting on an non-existing pattern returns the original string:
+      iex> String.split("abc", ",")
+      ["abc"]
 
   Be aware that this function can split within or across grapheme boundaries.
   For example, take the grapheme "é" which is made of the characters
