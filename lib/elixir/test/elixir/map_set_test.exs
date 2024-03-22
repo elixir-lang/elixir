@@ -12,7 +12,7 @@ defmodule MapSetTest do
     assert MapSet.is_member(map_set, 2)
     refute MapSet.is_member(map_set, 4)
 
-    assert_raise ArgumentError, ~r/expected a MapSet/, fn ->
+    assert_raise FunctionClauseError, fn ->
       MapSet.is_member(list, 2)
     end
 
