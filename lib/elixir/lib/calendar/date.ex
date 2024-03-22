@@ -773,6 +773,8 @@ defmodule Date do
 
   ## Examples
 
+      iex> Date.shift(~D[2016-01-31], ~P[P4Y1D])
+      ~D[2020-02-01]
       iex> Date.shift(~D[2016-01-03], month: 2)
       ~D[2016-03-03]
       iex> Date.shift(~D[2016-01-30], month: -1)

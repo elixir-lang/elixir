@@ -6656,6 +6656,23 @@ defmodule Kernel do
   end
 
   @doc ~S"""
+  Handles the sigil `~P` to create a `Duration`.
+
+  ## Examples
+
+      iex> ~P[P1Y2M3DT4H5M6S]
+      %Duration{year: 1, month: 2, day: 3, hour: 4, minute: 5, second: 6}
+
+  """
+  defmacro sigil_P(duration_string, modifiers)
+
+  defmacro sigil_P({:<<>>, _, [duration_string]}, []) do
+    quote do
+      Duration.parse!(unquote(duration_string))
+    end
+  end
+
+  @doc ~S"""
   Handles the sigil `~w` for list of words.
 
   It returns a list of "words" split by whitespace. Character unescaping and

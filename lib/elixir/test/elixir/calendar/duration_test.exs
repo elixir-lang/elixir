@@ -217,4 +217,90 @@ defmodule DurationTest do
                microsecond: {0, 0}
              }
   end
+
+  test "parse/1" do
+    assert Duration.parse("P1Y2M3DT4H5M6S") ==
+             {:ok, %Duration{year: 1, month: 2, day: 3, hour: 4, minute: 5, second: 6}}
+
+    assert Duration.parse("P3WT5H3M") == {:ok, %Duration{week: 3, hour: 5, minute: 3}}
+    assert Duration.parse("PT5H3M") == {:ok, %Duration{hour: 5, minute: 3}}
+    assert Duration.parse("P1Y2M3D") == {:ok, %Duration{year: 1, month: 2, day: 3}}
+    assert Duration.parse("PT4H5M6S") == {:ok, %Duration{hour: 4, minute: 5, second: 6}}
+    assert Duration.parse("P1Y2M") == {:ok, %Duration{year: 1, month: 2}}
+    assert Duration.parse("P3D") == {:ok, %Duration{day: 3}}
+    assert Duration.parse("PT4H5M") == {:ok, %Duration{hour: 4, minute: 5}}
+    assert Duration.parse("PT6S") == {:ok, %Duration{second: 6}}
+    assert Duration.parse("P5H3HT4M") == {:error, "unexpected character: H"}
+    assert Duration.parse("P4Y2W3Y") == {:error, "year was already provided"}
+    assert Duration.parse("invalid") == {:error, "invalid duration string"}
+  end
+
+  test "parse!/1" do
+    assert Duration.parse!("P1Y2M3DT4H5M6S") == %Duration{
+             year: 1,
+             month: 2,
+             day: 3,
+             hour: 4,
+             minute: 5,
+             second: 6
+           }
+
+    assert Duration.parse!("P3WT5H3M") == %Duration{week: 3, hour: 5, minute: 3}
+    assert Duration.parse!("PT5H3M") == %Duration{hour: 5, minute: 3}
+    assert Duration.parse!("P1Y2M3D") == %Duration{year: 1, month: 2, day: 3}
+    assert Duration.parse!("PT4H5M6S") == %Duration{hour: 4, minute: 5, second: 6}
+    assert Duration.parse!("P1Y2M") == %Duration{year: 1, month: 2}
+    assert Duration.parse!("P3D") == %Duration{day: 3}
+    assert Duration.parse!("PT4H5M") == %Duration{hour: 4, minute: 5}
+    assert Duration.parse!("PT6S") == %Duration{second: 6}
+
+    assert_raise ArgumentError,
+                 ~s/failed to parse duration. reason: "unexpected character: H"/,
+                 fn ->
+                   Duration.parse!("P5H3HT4M")
+                 end
+
+    assert_raise ArgumentError,
+                 ~s/failed to parse duration. reason: "year was already provided"/,
+                 fn ->
+                   Duration.parse!("P4Y2W3Y")
+                 end
+
+    assert_raise ArgumentError,
+                 ~s/failed to parse duration. reason: "invalid duration string"/,
+                 fn ->
+                   Duration.parse!("invalid")
+                 end
+  end
+
+  test "sigil_P" do
+    assert ~P[P1Y2M3DT4H5M6S] == %Duration{
+             year: 1,
+             month: 2,
+             day: 3,
+             hour: 4,
+             minute: 5,
+             second: 6
+           }
+
+    assert ~P[PT5H3M] == %Duration{hour: 5, minute: 3}
+    assert ~P[P1Y2M3D] == %Duration{year: 1, month: 2, day: 3}
+    assert ~P[PT4H5M6S] == %Duration{hour: 4, minute: 5, second: 6}
+    assert ~P[P1Y2M] == %Duration{year: 1, month: 2}
+    assert ~P[P3D] == %Duration{day: 3}
+    assert ~P[PT4H5M] == %Duration{hour: 4, minute: 5}
+    assert ~P[PT6S] == %Duration{second: 6}
+
+    assert_raise ArgumentError,
+                 ~s/failed to parse duration. reason: "unexpected character: H"/,
+                 fn ->
+                   Code.eval_string("~P[P5H3HT4M]")
+                 end
+
+    assert_raise ArgumentError,
+                 ~s/failed to parse duration. reason: "invalid duration string"/,
+                 fn ->
+                   Code.eval_string("~P[invalid]")
+                 end
+  end
 end

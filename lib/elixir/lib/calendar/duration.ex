@@ -197,4 +197,101 @@ defmodule Duration do
       microsecond: {-ms, p}
     }
   end
+
+  @doc """
+  Parses an ISO 8601-2 formatted duration string to a `Duration` struct.
+
+  ## Examples
+
+      iex> Duration.parse("P1Y2M3DT4H5M6S")
+      {:ok, %Duration{year: 1, month: 2, day: 3, hour: 4, minute: 5, second: 6}}
+
+      iex> Duration.parse("PT10H30M")
+      {:ok, %Duration{hour: 10, minute: 30, second: 0}}
+
+  """
+  @spec parse(String.t()) :: {:ok, t} | {:error, String.t()}
+  def parse("P" <> duration_string) do
+    parse(duration_string, [], "", false)
+  end
+
+  def parse(_) do
+    {:error, "invalid duration string"}
+  end
+
+  @doc """
+  Same as parse/1 but raises an ArgumentError.
+
+  ## Examples
+
+      iex> Duration.parse!("P1Y2M3DT4H5M6S")
+      %Duration{year: 1, month: 2, day: 3, hour: 4, minute: 5, second: 6}
+
+      iex> Duration.parse!("PT10H30M")
+      %Duration{hour: 10, minute: 30, second: 0}
+
+  """
+  @spec parse!(String.t()) :: t
+  def parse!(duration_string) do
+    case parse(duration_string) do
+      {:ok, duration} ->
+        duration
+
+      {:error, reason} ->
+        raise ArgumentError, "failed to parse duration. reason: #{inspect(reason)}"
+    end
+  end
+
+  defp parse(<<>>, duration, "", _), do: {:ok, new(duration)}
+
+  defp parse(<<c::utf8, rest::binary>>, duration, buffer, is_time) when c in ?0..?9 do
+    parse(rest, duration, <<buffer::binary, c::utf8>>, is_time)
+  end
+
+  defp parse(<<"Y", rest::binary>>, duration, buffer, false) do
+    parse(:year, rest, duration, buffer, false)
+  end
+
+  defp parse(<<"M", rest::binary>>, duration, buffer, false) do
+    parse(:month, rest, duration, buffer, false)
+  end
+
+  defp parse(<<"W", rest::binary>>, duration, buffer, false) do
+    parse(:week, rest, duration, buffer, false)
+  end
+
+  defp parse(<<"D", rest::binary>>, duration, buffer, false) do
+    parse(:day, rest, duration, buffer, false)
+  end
+
+  defp parse(<<"T", _::binary>>, _duration, _, true) do
+    {:error, "time delimiter was already provided"}
+  end
+
+  defp parse(<<"T", rest::binary>>, duration, _buffer, false) do
+    parse(rest, duration, "", true)
+  end
+
+  defp parse(<<"H", rest::binary>>, duration, buffer, true) do
+    parse(:hour, rest, duration, buffer, true)
+  end
+
+  defp parse(<<"M", rest::binary>>, duration, buffer, true) do
+    parse(:minute, rest, duration, buffer, true)
+  end
+
+  defp parse(<<"S", rest::binary>>, duration, buffer, true) do
+    parse(:second, rest, duration, buffer, true)
+  end
+
+  defp parse(<<c::utf8, _::binary>>, _, _, _) do
+    {:error, "unexpected character: #{<<c>>}"}
+  end
+
+  defp parse(unit, string, duration, buffer, is_time) do
+    case Keyword.get(duration, unit) do
+      nil -> parse(string, Keyword.put(duration, unit, String.to_integer(buffer)), "", is_time)
+      _ -> {:error, "#{unit} was already provided"}
+    end
+  end
 end
