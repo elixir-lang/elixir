@@ -113,7 +113,13 @@ defmodule Mix.Tasks.Deps.TreeTest do
       Mix.Project.push(OverriddenDepsApp)
 
       assert_raise Mix.Error, "Cannot use both --include and --exclude at the same time", fn ->
-        Mix.Tasks.Deps.Tree.run(["git_repo", "--include", "--exclude", "deps_on_git_repo"])
+        Mix.Tasks.Deps.Tree.run([
+          "git_repo",
+          "--include",
+          "git_repo",
+          "--exclude",
+          "deps_on_git_repo"
+        ])
       end
     end)
   end
