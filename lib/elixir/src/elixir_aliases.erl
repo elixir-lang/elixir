@@ -1,6 +1,6 @@
 -module(elixir_aliases).
 -export([inspect/1, last/1, concat/1, safe_concat/1, format_error/1,
-         ensure_loaded/3, expand/2, expand_or_concat/2, store/5]).
+         ensure_loaded/3, expand/4, expand_or_concat/4, store/6, require/5]).
 -include("elixir.hrl").
 
 inspect(Atom) when is_atom(Atom) ->
@@ -9,12 +9,18 @@ inspect(Atom) when is_atom(Atom) ->
     false -> 'Elixir.Macro':inspect_atom(literal, Atom)
   end.
 
+require(Meta, Ref, Opts, E, Trace) ->
+  Trace andalso elixir_env:trace({require, Meta, Ref, Opts}, E),
+  E#{requires := ordsets:add_element(Ref, ?key(E, requires))}.
+
 %% Store an alias in the given scope
-store(Meta, New, New, _TOpts, #{aliases := Aliases, macro_aliases := MacroAliases}) ->
-  {remove_alias(New, Aliases), remove_macro_alias(Meta, New, MacroAliases)};
-store(Meta, New, Old, TOpts, #{aliases := Aliases, macro_aliases := MacroAliases} = E) ->
-  elixir_env:trace({alias, Meta, Old, New, TOpts}, E),
-  {store_alias(New, Old, Aliases), store_macro_alias(Meta, New, Old, MacroAliases)}.
+store(Meta, New, New, _Opts, #{aliases := Aliases, macro_aliases := MacroAliases} = E, _Trace) ->
+  E#{aliases := remove_alias(New, Aliases),
+     macro_aliases := remove_macro_alias(Meta, New, MacroAliases)};
+store(Meta, New, Old, Opts, #{aliases := Aliases, macro_aliases := MacroAliases} = E, Trace) ->
+  Trace andalso elixir_env:trace({alias, Meta, Old, New, Opts}, E),
+  E#{aliases := store_alias(New, Old, Aliases),
+     macro_aliases := store_macro_alias(Meta, New, Old, MacroAliases)}.
 
 store_alias(New, Old, Aliases) ->
   lists:keystore(New, 1, Aliases, {New, Old}).
@@ -41,20 +47,23 @@ remove_macro_alias(Meta, Atom, Aliases) ->
 %% Expand an alias. It returns an atom (meaning that there
 %% was an expansion) or a list of atoms.
 
-expand({'__aliases__', _Meta, ['Elixir' | _] = List}, _E) ->
-  concat(List);
+expand(_Meta, ['Elixir' | _] = List, _E, _Trace) ->
+  List;
 
-expand({'__aliases__', Meta, _} = Alias, #{aliases := Aliases, macro_aliases := MacroAliases} = E) ->
+expand(_Meta, [H | _] = List, _E, _Trace) when not is_atom(H) ->
+  List;
+
+expand(Meta, List, #{aliases := Aliases, macro_aliases := MacroAliases} = E, Trace) ->
   case lists:keyfind(alias, 1, Meta) of
     {alias, false} ->
-      expand(Alias, MacroAliases, E);
+      expand(Meta, List, MacroAliases, E, Trace);
     {alias, Atom} when is_atom(Atom) ->
       Atom;
     false ->
-      expand(Alias, Aliases, E)
+      expand(Meta, List, Aliases, E, Trace)
   end.
 
-expand({'__aliases__', Meta, [H | T]}, Aliases, E) when is_atom(H) ->
+expand(Meta, [H | T], Aliases, E, Trace) ->
   Lookup  = list_to_atom("Elixir." ++ atom_to_list(H)),
 
   Counter = case lists:keyfind(counter, 1, Meta) of
@@ -65,20 +74,17 @@ expand({'__aliases__', Meta, [H | T]}, Aliases, E) when is_atom(H) ->
   case lookup(Lookup, Aliases, Counter) of
     Lookup -> [H | T];
     Atom ->
-      elixir_env:trace({alias_expansion, Meta, Lookup, Atom}, E),
+      Trace andalso elixir_env:trace({alias_expansion, Meta, Lookup, Atom}, E),
       case T of
         [] -> Atom;
         _  -> concat([Atom | T])
       end
-  end;
-
-expand({'__aliases__', _Meta, List}, _Aliases, _E) ->
-  List.
+  end.
 
 %% Expands or concat if possible.
 
-expand_or_concat(Aliases, E) ->
-  case expand(Aliases, E) of
+expand_or_concat(Meta, List, E, Trace) ->
+  case expand(Meta, List, E, Trace) of
     [H | T] when is_atom(H) -> concat([H | T]);
     AtomOrList -> AtomOrList
   end.

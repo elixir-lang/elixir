@@ -90,12 +90,17 @@ expand({require, Meta, [Ref, Opts]}, S, E) ->
   case lists:keyfind(defined, 1, Meta) of
     {defined, Mod} when is_atom(Mod) ->
       EA = ET#{context_modules := [Mod | ?key(ET, context_modules)]},
-      SU = ST#elixir_ex{runtime_modules=[Mod | ST#elixir_ex.runtime_modules]},
+
+      SU = case E of
+        #{function := nil} -> ST;
+        _ -> ST#elixir_ex{runtime_modules=[Mod | ST#elixir_ex.runtime_modules]}
+      end,
+
       {ERef, SU, expand_alias(Meta, false, ERef, EOpts, EA)};
 
     false when is_atom(ERef) ->
       elixir_aliases:ensure_loaded(Meta, ERef, ET),
-      RE = expand_require(Meta, ERef, EOpts, ET),
+      RE = elixir_aliases:require(Meta, ERef, EOpts, ET, true),
       {ERef, ST, expand_alias(Meta, false, ERef, EOpts, RE)};
 
     false ->
@@ -113,8 +118,8 @@ expand({import, Meta, [Ref, Opts]}, S, E) ->
   if
     is_atom(ERef) ->
       elixir_aliases:ensure_loaded(Meta, ERef, ET),
-      {Functions, Macros} = elixir_import:import(Meta, ERef, EOpts, ET),
-      {ERef, ST, expand_require(Meta, ERef, EOpts, ET#{functions := Functions, macros := Macros})};
+      EI = elixir_import:import(Meta, ERef, EOpts, ET, true),
+      {ERef, ST, elixir_aliases:require(Meta, ERef, EOpts, EI, true)};
     true ->
       file_error(Meta, E, ?MODULE, {expected_compile_time_module, import, Ref})
   end;
@@ -976,15 +981,10 @@ no_alias_expansion({'__aliases__', _, [H | T]}) when is_atom(H) ->
 no_alias_expansion(Other) ->
   Other.
 
-expand_require(Meta, Ref, Opts, E) ->
-  elixir_env:trace({require, Meta, Ref, Opts}, E),
-  E#{requires := ordsets:add_element(Ref, ?key(E, requires))}.
-
 expand_alias(Meta, IncludeByDefault, Ref, Opts, E) ->
   case expand_as(lists:keyfind(as, 1, Opts), Meta, IncludeByDefault, Ref, E) of
     {ok, New} ->
-      {Aliases, MacroAliases} = elixir_aliases:store(Meta, New, Ref, Opts, E),
-      E#{aliases := Aliases, macro_aliases := MacroAliases};
+      elixir_aliases:store(Meta, New, Ref, Opts, E, true);
 
     error ->
       E
@@ -1021,8 +1021,8 @@ expand_without_aliases_report({'__aliases__', _, _} = Alias, S, E) ->
 expand_without_aliases_report(Other, S, E) ->
   expand(Other, S, E).
 
-expand_aliases({'__aliases__', Meta, _} = Alias, S, E, Report) ->
-  case elixir_aliases:expand_or_concat(Alias, E) of
+expand_aliases({'__aliases__', Meta, List} = Alias, S, E, Report) ->
+  case elixir_aliases:expand_or_concat(Meta, List, E, true) of
     Receiver when is_atom(Receiver) ->
       if
         Receiver =:= 'Elixir.True'; Receiver =:= 'Elixir.False'; Receiver =:= 'Elixir.Nil' ->
@@ -1033,12 +1033,12 @@ expand_aliases({'__aliases__', Meta, _} = Alias, S, E, Report) ->
       Report andalso elixir_env:trace({alias_reference, Meta, Receiver}, E),
       {Receiver, S, E};
 
-    Aliases ->
-      {EAliases, SA, EA} = expand_args(Aliases, S, E),
+    [Head | Tail] ->
+      {EHead, SA, EA} = expand(Head, S, E),
 
-      case lists:all(fun is_atom/1, EAliases) of
+      case is_atom(EHead) of
         true ->
-          Receiver = elixir_aliases:concat(EAliases),
+          Receiver = elixir_aliases:concat([EHead | Tail]),
           Report andalso elixir_env:trace({alias_reference, Meta, Receiver}, E),
           {Receiver, SA, EA};
 

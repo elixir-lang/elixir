@@ -5018,17 +5018,15 @@ defmodule Kernel do
   defp alias_meta(_), do: []
 
   # We don't want to trace :alias_reference since we are defining the alias
-  defp expand_module_alias({:__aliases__, _, _} = original, env) do
-    case :elixir_aliases.expand_or_concat(original, env) do
+  defp expand_module_alias({:__aliases__, meta, list} = alias, env) do
+    case :elixir_aliases.expand_or_concat(meta, list, env, true) do
       receiver when is_atom(receiver) ->
         receiver
 
-      aliases ->
-        aliases = :lists.map(&Macro.expand(&1, env), aliases)
-
-        case :lists.all(&is_atom/1, aliases) do
-          true -> :elixir_aliases.concat(aliases)
-          false -> original
+      [head | tail] ->
+        case Macro.expand(head, env) do
+          head when is_atom(head) -> :elixir_aliases.concat([head | tail])
+          _ -> alias
         end
     end
   end

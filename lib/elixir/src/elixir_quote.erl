@@ -309,10 +309,10 @@ do_quote({unquote, _Meta, [Expr]}, #elixir_quote{unquote=true}, _) ->
 
 %% Aliases
 
-do_quote({'__aliases__', Meta, [H | T]} = Alias, #elixir_quote{aliases_hygiene=true} = Q, E)
+do_quote({'__aliases__', Meta, [H | T]}, #elixir_quote{aliases_hygiene=true} = Q, E)
     when is_atom(H), H /= 'Elixir' ->
   Annotation =
-    case elixir_aliases:expand(Alias, E) of
+    case elixir_aliases:expand(Meta, [H | T], E, true) of
       Atom when is_atom(Atom) -> Atom;
       Aliases when is_list(Aliases) -> false
     end,

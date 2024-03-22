@@ -107,8 +107,8 @@ fast_compile({defmodule, Meta, [Mod, [{do, Block}]]}, NoLineE) ->
   E = NoLineE#{line := ?line(Meta)},
 
   Expanded = case Mod of
-    {'__aliases__', _, _} ->
-      case elixir_aliases:expand_or_concat(Mod, E) of
+    {'__aliases__', AliasMeta, List} ->
+      case elixir_aliases:expand_or_concat(AliasMeta, List, E, true) of
         Receiver when is_atom(Receiver) -> Receiver;
         _ -> 'Elixir.Macro':expand(Mod, E)
       end;

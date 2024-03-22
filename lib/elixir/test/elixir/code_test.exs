@@ -275,7 +275,7 @@ defmodule CodeTest do
 
       quoted = quote(do: alias(:dict, as: MyDict))
       {:dict, [], env} = Code.eval_quoted_with_env(quoted, [], env)
-      assert Macro.Env.fetch_alias(env, :MyDict) == {:ok, :dict}
+      assert Keyword.fetch(env.aliases, Elixir.MyDict) == {:ok, :dict}
     end
 
     test "manages env vars" do

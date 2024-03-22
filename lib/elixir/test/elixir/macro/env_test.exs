@@ -12,6 +12,8 @@ defmodule Macro.EnvTest do
 
   import Macro.Env
   import ExUnit.CaptureIO
+
+  alias List, as: CustomList, warn: false
   import MacroEnvMacros, warn: false
 
   def trace(event, _env) do
@@ -21,6 +23,76 @@ defmodule Macro.EnvTest do
 
   def meta, do: [file: "some_file.exs", line: 123]
   def env, do: %{__ENV__ | tracers: [__MODULE__], line: 456}
+
+  doctest Macro.Env
+
+  test "inspect" do
+    assert inspect(__ENV__) =~ "#Macro.Env<"
+  end
+
+  test "prune_compile_info" do
+    assert %Macro.Env{lexical_tracker: nil, tracers: []} =
+             Macro.Env.prune_compile_info(%{__ENV__ | lexical_tracker: self(), tracers: [Foo]})
+  end
+
+  test "stacktrace" do
+    env = %{__ENV__ | file: "foo", line: 12}
+
+    assert Macro.Env.stacktrace(env) ==
+             [{__MODULE__, :"test stacktrace", 1, [file: ~c"foo", line: 12]}]
+
+    env = %{env | function: nil}
+
+    assert Macro.Env.stacktrace(env) == [
+             {__MODULE__, :__MODULE__, 0, [file: ~c"foo", line: 12]}
+           ]
+
+    env = %{env | module: nil}
+
+    assert Macro.Env.stacktrace(env) ==
+             [{:elixir_compiler, :__FILE__, 1, [file: ~c"foo", line: 12]}]
+  end
+
+  test "context modules" do
+    defmodule Foo.Bar do
+      assert __MODULE__ in __ENV__.context_modules
+    end
+
+    assert Foo.Bar in __ENV__.context_modules
+
+    Code.compile_string("""
+    defmodule Foo.Bar.Compiled do
+      true = __MODULE__ in __ENV__.context_modules
+    end
+    """)
+  end
+
+  test "to_match/1" do
+    quote = quote(do: x in [])
+
+    assert {:__block__, [], [{:=, [], [{:_, [], Kernel}, {:x, [], Macro.EnvTest}]}, false]} =
+             Macro.expand_once(quote, __ENV__)
+
+    assert Macro.expand_once(quote, Macro.Env.to_match(__ENV__)) == false
+  end
+
+  test "prepend_tracer" do
+    assert %Macro.Env{tracers: [MyCustomTracer | _]} =
+             Macro.Env.prepend_tracer(__ENV__, MyCustomTracer)
+  end
+
+  describe "expand_alias/4" do
+    test "with tracing" do
+      {:alias, List} = expand_alias(env(), meta(), [:CustomList])
+      assert_received {:alias_expansion, _, Elixir.CustomList, List}
+
+      {:alias, List} = expand_alias(env(), meta(), [:CustomList], trace: false)
+      refute_received {:alias_expansion, _, Elixir.CustomList, List}
+
+      {:alias, List.Continues} = expand_alias(env(), meta(), [:CustomList, :Continues])
+      assert_received {:alias_expansion, _, Elixir.CustomList, List}
+    end
+  end
 
   describe "expand_require/6" do
     test "returns :error for functions and unknown modules" do

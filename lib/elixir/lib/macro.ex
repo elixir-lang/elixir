@@ -1807,23 +1807,23 @@ defmodule Macro do
     elem(do_expand_once(ast, env), 0)
   end
 
-  defp do_expand_once({:__aliases__, meta, _} = original, env) do
-    case :elixir_aliases.expand_or_concat(original, env) do
+  defp do_expand_once({:__aliases__, meta, list} = alias, env) do
+    case :elixir_aliases.expand_or_concat(meta, list, env, true) do
       receiver when is_atom(receiver) ->
         :elixir_env.trace({:alias_reference, meta, receiver}, env)
         {receiver, true}
 
-      aliases ->
-        aliases = :lists.map(&elem(do_expand_once(&1, env), 0), aliases)
+      [head | tail] ->
+        {head, _} = do_expand_once(head, env)
 
-        case :lists.all(&is_atom/1, aliases) do
+        case is_atom(head) do
           true ->
-            receiver = :elixir_aliases.concat(aliases)
+            receiver = :elixir_aliases.concat([head | tail])
             :elixir_env.trace({:alias_reference, meta, receiver}, env)
             {receiver, true}
 
           false ->
-            {original, false}
+            {alias, false}
         end
     end
   end

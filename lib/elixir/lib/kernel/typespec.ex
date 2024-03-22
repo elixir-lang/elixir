@@ -950,17 +950,15 @@ defmodule Kernel.Typespec do
 
   # This is a backport of Macro.expand/2 because we want to expand
   # aliases but we don't them to become compile-time references.
-  defp expand_remote({:__aliases__, _, _} = alias, env) do
-    case :elixir_aliases.expand(alias, env) do
+  defp expand_remote({:__aliases__, meta, list} = alias, env) do
+    case :elixir_aliases.expand_or_concat(meta, list, env, true) do
       receiver when is_atom(receiver) ->
         receiver
 
-      aliases ->
-        aliases = :lists.map(&Macro.expand_once(&1, env), aliases)
-
-        case :lists.all(&is_atom/1, aliases) do
-          true -> :elixir_aliases.concat(aliases)
-          false -> alias
+      [head | tail] ->
+        case Macro.expand_once(head, env) do
+          head when is_atom(head) -> :elixir_aliases.concat([head | tail])
+          _ -> alias
         end
     end
   end

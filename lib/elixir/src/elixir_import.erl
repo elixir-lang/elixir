@@ -2,10 +2,10 @@
 %% between local functions and imports.
 %% For imports dispatch, please check elixir_dispatch.
 -module(elixir_import).
--export([import/4, special_form/2, format_error/1]).
+-export([import/5, special_form/2, format_error/1]).
 -include("elixir.hrl").
 
-import(Meta, Ref, Opts, E) ->
+import(Meta, Ref, Opts, E, Trace) ->
   {Functions, Macros, Added} =
     case keyfind(only, Opts) of
       {only, functions} ->
@@ -32,8 +32,8 @@ import(Meta, Ref, Opts, E) ->
         {Funs, Macs, Added1 or Added2}
     end,
 
-  elixir_env:trace({import, [{imported, Added} | Meta], Ref, Opts}, E),
-  {Functions, Macros}.
+  Trace andalso elixir_env:trace({import, [{imported, Added} | Meta], Ref, Opts}, E),
+  E#{functions := Functions, macros := Macros}.
 
 import_functions(Meta, Ref, Opts, E) ->
   calculate(Meta, Ref, Opts, ?key(E, functions), ?key(E, file), fun() ->

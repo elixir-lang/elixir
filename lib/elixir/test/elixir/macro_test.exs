@@ -1128,65 +1128,6 @@ defmodule MacroTest do
     assert Macro.decompose_call(quote(do: {:foo, :bar, :baz, 42})) == :error
   end
 
-  describe "env" do
-    doctest Macro.Env
-
-    test "inspect" do
-      assert inspect(__ENV__) =~ "#Macro.Env<"
-    end
-
-    test "prune_compile_info" do
-      assert %Macro.Env{lexical_tracker: nil, tracers: []} =
-               Macro.Env.prune_compile_info(%{__ENV__ | lexical_tracker: self(), tracers: [Foo]})
-    end
-
-    test "stacktrace" do
-      env = %{__ENV__ | file: "foo", line: 12}
-
-      assert Macro.Env.stacktrace(env) ==
-               [{__MODULE__, :"test env stacktrace", 1, [file: ~c"foo", line: 12]}]
-
-      env = %{env | function: nil}
-
-      assert Macro.Env.stacktrace(env) == [
-               {__MODULE__, :__MODULE__, 0, [file: ~c"foo", line: 12]}
-             ]
-
-      env = %{env | module: nil}
-
-      assert Macro.Env.stacktrace(env) ==
-               [{:elixir_compiler, :__FILE__, 1, [file: ~c"foo", line: 12]}]
-    end
-
-    test "context modules" do
-      defmodule Foo.Bar do
-        assert __MODULE__ in __ENV__.context_modules
-      end
-
-      assert Foo.Bar in __ENV__.context_modules
-
-      Code.compile_string("""
-      defmodule Foo.Bar.Compiled do
-        true = __MODULE__ in __ENV__.context_modules
-      end
-      """)
-    end
-
-    test "to_match/1" do
-      quote = quote(do: x in [])
-
-      assert {:__block__, [], [{:=, [], [{:_, [], Kernel}, {:x, [], MacroTest}]}, false]} =
-               Macro.expand_once(quote, __ENV__)
-
-      assert Macro.expand_once(quote, Macro.Env.to_match(__ENV__)) == false
-    end
-
-    test "prepend_tracer" do
-      assert %Macro.Env{tracers: [MyCustomTracer | _]} =
-               Macro.Env.prepend_tracer(__ENV__, MyCustomTracer)
-    end
-  end
-
   ## pipe/unpipe
 
   test "pipe/3" do
