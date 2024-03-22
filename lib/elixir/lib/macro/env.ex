@@ -367,7 +367,7 @@ defmodule Macro.Env do
 
   """
   @doc since: "1.17.0"
-  @spec define_alias(t, Macro.metadata(), module, atom) :: t
+  @spec define_alias(t, Macro.metadata(), module, keyword) :: {:ok, t} | {:error, String.t()}
   def define_alias(env, meta, module, opts \\ [])
       when is_list(meta) and is_atom(module) and is_list(opts) do
     {trace, opts} = Keyword.pop(opts, :trace, true)
