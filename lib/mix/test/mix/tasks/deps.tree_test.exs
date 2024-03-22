@@ -86,6 +86,17 @@ defmodule Mix.Tasks.Deps.TreeTest do
     end)
   end
 
+  test "includes the given deps", context do
+    in_tmp(context.test, fn ->
+      Mix.Project.push(OverriddenDepsApp)
+
+      Mix.Tasks.Deps.Tree.run(["--format", "pretty", "--include", "git_repo"])
+      assert_received {:mix_shell, :info, ["sample"]}
+      assert_received {:mix_shell, :info, ["└── git_repo (" <> _]}
+      refute_received {:mix_shell, :info, ["└── deps_on_git_repo ~r/0.2.0/ (" <> _]}
+    end)
+  end
+
   test "excludes the given deps", context do
     in_tmp(context.test, fn ->
       Mix.Project.push(OverriddenDepsApp)
@@ -94,6 +105,16 @@ defmodule Mix.Tasks.Deps.TreeTest do
       assert_received {:mix_shell, :info, ["sample"]}
       assert_received {:mix_shell, :info, ["└── git_repo (" <> _]}
       refute_received {:mix_shell, :info, ["└── deps_on_git_repo ~r/0.2.0/ (" <> _]}
+    end)
+  end
+
+  test "raises an error if both include and exclude are given", context do
+    in_tmp(context.test, fn ->
+      Mix.Project.push(OverriddenDepsApp)
+
+      assert_raise Mix.Error, "Cannot use both --include and --exclude at the same time", fn ->
+        Mix.Tasks.Deps.Tree.run(["git_repo", "--include", "--exclude", "deps_on_git_repo"])
+      end
     end)
   end
 

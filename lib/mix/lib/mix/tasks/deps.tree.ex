@@ -20,6 +20,10 @@ defmodule Mix.Tasks.Deps.Tree do
     * `--exclude` - exclude dependencies which you do not want to see printed. You can
       pass this flag multiple times to exclude multiple dependencies.
 
+    * `--include` - only include dependencies which you want to see printed. You can
+      pass this flag multiple times to include multiple dependencies.
+      *Available since v1.17.0.
+
     * `--format` - Can be set to one of either:
 
       * `pretty` - uses Unicode code points for formatting the tree.
@@ -38,12 +42,17 @@ defmodule Mix.Tasks.Deps.Tree do
 
       $ mix deps.tree --only test
 
-  Exclude the `:logger` and `:phoenix` dependencies:
+  Exclude the `:ecto` and `:phoenix` dependencies:
 
-      $ mix deps.tree --exclude logger --exclude phoenix
+      $ mix deps.tree --exclude ecto --exclude phoenix
+
+  Only print the tree for the `:bandit` and `:phoenix` dependencies:
+
+      $ mix deps.tree --include bandit --include phoenix
 
   """
-  @switches [only: :string, target: :string, exclude: :keep, format: :string]
+
+  @switches [only: :string, target: :string, exclude: :keep, include: :keep, format: :string]
 
   @impl true
   def run(args) do
@@ -89,6 +98,12 @@ defmodule Mix.Tasks.Deps.Tree do
 
   defp callback(formatter, deps, opts) do
     excluded = Keyword.get_values(opts, :exclude) |> Enum.map(&String.to_atom/1)
+    included = Keyword.get_values(opts, :include) |> Enum.map(&String.to_atom/1)
+
+    if included != [] and excluded != [] do
+      Mix.raise("Cannot use both --include and --exclude at the same time")
+    end
+
     top_level = Enum.filter(deps, & &1.top_level)
 
     fn
@@ -102,16 +117,23 @@ defmodule Mix.Tasks.Deps.Tree do
             find_dep(deps, app).deps
           end
 
-        {formatter.(dep), exclude_and_sort(deps, excluded)}
+        {formatter.(dep), select_and_sort(deps, included, excluded)}
 
       app ->
-        {{Atom.to_string(app), nil}, exclude_and_sort(top_level, excluded)}
+        {{Atom.to_string(app), nil}, select_and_sort(top_level, included, excluded)}
     end
   end
 
-  defp exclude_and_sort(deps, excluded) do
+  defp select_and_sort(deps, included, excluded) do
+    predicate =
+      cond do
+        included != [] -> &(&1.app in included)
+        excluded != [] -> &(&1.app not in excluded)
+        true -> fn _ -> true end
+      end
+
     deps
-    |> Enum.reject(&(&1.app in excluded))
+    |> Enum.filter(predicate)
     |> Enum.sort_by(& &1.app)
   end
 
