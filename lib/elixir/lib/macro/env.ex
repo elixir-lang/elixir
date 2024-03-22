@@ -333,7 +333,7 @@ defmodule Macro.Env do
   """
   @doc since: "1.17.0"
   @spec expand_import(t, keyword, atom(), arity(), keyword) ::
-          {:macro, module(), (Macro.meta(), args :: [Macro.t()] -> Macro.t())}
+          {:macro, module(), (Macro.metadata(), args :: [Macro.t()] -> Macro.t())}
           | {:function, module(), atom()}
           | :error
   def expand_import(env, meta, name, arity, opts \\ [])
@@ -384,7 +384,7 @@ defmodule Macro.Env do
   """
   @doc since: "1.17.0"
   @spec expand_require(t, keyword, module(), atom(), arity(), keyword) ::
-          {:macro, module(), (Macro.meta(), args :: [Macro.t()] -> Macro.t())}
+          {:macro, module(), (Macro.metadata(), args :: [Macro.t()] -> Macro.t())}
           | :error
   def expand_require(env, meta, module, name, arity, opts \\ [])
       when is_list(meta) and is_atom(module) and is_atom(name) and is_integer(arity) and
