@@ -1680,10 +1680,15 @@ defmodule DateTime do
 
   Allowed units are: `:year, :month, :week, :day, :hour, :minute, :second, :microsecond`.
 
-  When it comes to non UTC time zones, this function is equivalent to shifting the wall time
-  (the time a person at said time zone would see on a clock) by the given duration.
-  After shifting the wall-clock the original offsets are being re-applied and the
-  datetime is shifted into its original time zone.
+  When dealing with non-UTC time zones, this function shifts the wall time
+  (the time displayed on a clock in the given time zone) by the specified duration.
+  After shifting the wall time, the original time zone offsets are re-applied,
+  adjusting the datetime to its original time zone.
+
+  Shifting datetimes in time zones that observe "Daylight Saving Time" across
+  summer/winter time will always add/remove one hour from the resulting datetime.
+
+  Consistently applying the offsets, ensures `shift/3` always returns a valid datetime.
 
   When used with the default calendar `Calendar.ISO`:
 
