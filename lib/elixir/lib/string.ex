@@ -462,6 +462,7 @@ defmodule String do
       ["", "a", "bc"]
 
   Splitting on an non-existing pattern returns the original string:
+
       iex> String.split("abc", ",")
       ["abc"]
 
