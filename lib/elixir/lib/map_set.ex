@@ -94,12 +94,7 @@ defmodule MapSet do
 
       false ->
         quote do
-          value = unquote(value)
-
-          case unquote(map_set) do
-            %MapSet{map: map} -> is_map_key(map, value)
-            other -> raise ArgumentError, "expected a MapSet, got: #{inspect(other)}"
-          end
+          MapSet.member?(unquote(map_set), unquote(value))
         end
     end
   end
