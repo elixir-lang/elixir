@@ -22,33 +22,44 @@ defmodule IEx.Helpers do
 
   There are many other helpers available, here are some examples:
 
-    * `b/1`            - prints callbacks info and docs for a given module
-    * `c/1`            - compiles a file
-    * `c/2`            - compiles a file and writes bytecode to the given path
-    * `cd/1`           - changes the current directory
-    * `clear/0`        - clears the screen
-    * `exports/1`      - shows all exports (functions + macros) in a module
-    * `flush/0`        - flushes all messages sent to the shell
-    * `h/0`            - prints this help message
-    * `h/1`            - prints help for the given module, function or macro
-    * `i/0`            - prints information about the last value
-    * `i/1`            - prints information about the given term
-    * `ls/0`           - lists the contents of the current directory
-    * `ls/1`           - lists the contents of the specified directory
-    * `open/1`         - opens the source for the given module or function in your editor
-    * `pid/1`          - creates a PID from a string
-    * `pid/3`          - creates a PID with the 3 integer arguments passed
-    * `port/1`         - creates a port from a string
-    * `port/2`         - creates a port with the 2 non-negative integers passed
-    * `pwd/0`          - prints the current working directory
-    * `r/1`            - recompiles the given module's source file
-    * `recompile/0`    - recompiles the current project
-    * `ref/1`          - creates a reference from a string
-    * `ref/4`          - creates a reference with the 4 integer arguments passed
-    * `runtime_info/0` - prints runtime info (versions, memory usage, stats)
-    * `t/1`            - prints the types for the given module or function
-    * `v/0`            - retrieves the last value from the history
-    * `v/1`            - retrieves the nth value from the history
+    * `b/1`             - prints callbacks info and docs for a given module
+    * `c/1`             - compiles a file
+    * `c/2`             - compiles a file and writes bytecode to the given path
+    * `cd/1`            - changes the current directory
+    * `clear/0`         - clears the screen
+    * `exports/1`       - shows all exports (functions + macros) in a module
+    * `flush/0`         - flushes all messages sent to the shell
+    * `h/0`             - prints this help message
+    * `h/1`             - prints help for the given module, function or macro
+    * `i/0`             - prints information about the last value
+    * `i/1`             - prints information about the given term
+    * `ls/0`            - lists the contents of the current directory
+    * `ls/1`            - lists the contents of the specified directory
+    * `open/1`          - opens the source for the given module or function in your editor
+    * `pid/1`           - creates a PID from a string
+    * `pid/3`           - creates a PID with the 3 integer arguments passed
+    * `port/1`          - creates a port from a string
+    * `port/2`          - creates a port with the 2 non-negative integers passed
+    * `pwd/0`           - prints the current working directory
+    * `r/1`             - recompiles the given module's source file
+    * `recompile/0`     - recompiles the current project
+    * `ref/1`           - creates a reference from a string
+    * `ref/4`           - creates a reference with the 4 integer arguments passed
+    * `runtime_info/0`  - prints runtime info (versions, memory usage, stats)
+    * `t/1`             - prints the types for the given module or function
+    * `v/0`             - retrieves the last value from the history
+    * `v/1`             - retrieves the nth value from the history
+
+  There are also several helpers available when debugging, such as:
+
+    * `break!/2`        - sets a breakpoint at `Module.function/arity`
+    * `breaks/0`        - prints all breakpoints to the terminal
+    * `c/0`             - a shortcut for `continue/0`
+    * `continue/0`      - continues execution of the current process
+    * `n/0`             - a shortcut for `next/0`
+    * `next/0`          - goes to the next line of the current breakpoint
+    * `remove_breaks/0` - removes all breakpoints and instrumentation from all modules
+    * `whereami/1`      - prints the current location and stacktrace in a pry session
 
   Help for all of those functions can be consulted directly from
   the command line using the `h/1` helper itself. Try:
@@ -1117,7 +1128,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Sets the number of pending stops in the breakpoint
+  Resets the number of pending stops in the breakpoint
   with the given `id` to zero.
 
   Returns `:ok` if there is such breakpoint ID. `:not_found`
@@ -1131,7 +1142,7 @@ defmodule IEx.Helpers do
   defdelegate reset_break(id), to: IEx.Pry
 
   @doc """
-  Sets the number of pending stops in the given module,
+  Resets the number of pending stops in the given module,
   function and arity to zero.
 
   If the module is not instrumented or if the given function
