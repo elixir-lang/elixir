@@ -50,16 +50,15 @@ defmodule IEx.Helpers do
     * `v/0`             - retrieves the last value from the history
     * `v/1`             - retrieves the nth value from the history
 
-  There are other helpers available used for debugging; here are some examples:
+  There are also several helpers available when debugging, such as:
 
-    * `break!/2`        - sets up a breakpoint in the AST of shape `Module.function/arity` with the number of `stops`
+    * `break!/2`        - sets a breakpoint at `Module.function/arity`
     * `breaks/0`        - prints all breakpoints to the terminal
     * `c/0`             - a shortcut for `continue/0`
     * `continue/0`      - continues execution of the current process
     * `n/0`             - a shortcut for `next/0`
     * `next/0`          - goes to the next line of the current breakpoint
-    * `reset_break/1`   - resets the breaks on a given breakpoint ID.
-    * `remove_breaks/0` - removes all breakpoints and instrumentation from all modules.
+    * `remove_breaks/0` - removes all breakpoints and instrumentation from all modules
     * `whereami/1`      - prints the current location and stacktrace in a pry session
 
   Help for all of those functions can be consulted directly from
