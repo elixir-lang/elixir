@@ -20,8 +20,9 @@ defmodule Mix.Tasks.Deps.Tree do
     * `--exclude` - exclude dependencies which you do not want to see printed. You can
       pass this flag multiple times to exclude multiple dependencies.
 
-    * `--include` - only include dependencies which you want to see printed. You can
-      pass this flag multiple times to include multiple dependencies.
+    * `--umbrella-only` - only include dependencies that are part of the umbrella
+      project. This is useful when you have an umbrella project and want to see
+      the dependency relationship between the apps in the project.
       *Available since v1.17.0.
 
     * `--format` - Can be set to one of either:
@@ -52,7 +53,7 @@ defmodule Mix.Tasks.Deps.Tree do
 
   """
 
-  @switches [only: :string, target: :string, exclude: :keep, include: :keep, format: :string]
+  @switches [only: :string, target: :string, exclude: :keep, umbrella_only: :boolean, format: :string]
 
   @impl true
   def run(args) do
@@ -97,12 +98,8 @@ defmodule Mix.Tasks.Deps.Tree do
   end
 
   defp callback(formatter, deps, opts) do
+    umbrella_only? = Keyword.get(opts, :umbrella_only, false)
     excluded = Keyword.get_values(opts, :exclude) |> Enum.map(&String.to_atom/1)
-    included = Keyword.get_values(opts, :include) |> Enum.map(&String.to_atom/1)
-
-    if included != [] and excluded != [] do
-      Mix.raise("Cannot use both --include and --exclude at the same time")
-    end
 
     top_level = Enum.filter(deps, & &1.top_level)
 
@@ -117,24 +114,26 @@ defmodule Mix.Tasks.Deps.Tree do
             find_dep(deps, app).deps
           end
 
-        {formatter.(dep), select_and_sort(deps, included, excluded)}
+        {formatter.(dep), select_and_sort(deps, excluded, umbrella_only?)}
 
       app ->
-        {{Atom.to_string(app), nil}, select_and_sort(top_level, included, excluded)}
+        {{Atom.to_string(app), nil}, select_and_sort(top_level, excluded, umbrella_only?)}
     end
   end
 
-  defp select_and_sort(deps, included, excluded) do
-    predicate =
-      cond do
-        included != [] -> &(&1.app in included)
-        excluded != [] -> &(&1.app not in excluded)
-        true -> fn _ -> true end
-      end
-
+  defp select_and_sort(deps, excluded, umbrella_only?) do
     deps
-    |> Enum.filter(predicate)
+    |> filter_umbrella_only(umbrella_only?)
+    |> Enum.reject(&(&1.app in excluded))
     |> Enum.sort_by(& &1.app)
+  end
+
+  defp filter_umbrella_only(deps, umbrella_only?) do
+    if umbrella_only? do
+      Enum.filter(deps, fn %Mix.Dep{opts: opts} -> opts[:in_umbrella] end)
+    else
+      deps
+    end
   end
 
   defp format_dot(%{app: app, requirement: requirement, opts: opts}) do

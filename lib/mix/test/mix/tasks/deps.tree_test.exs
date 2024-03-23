@@ -29,6 +29,18 @@ defmodule Mix.Tasks.Deps.TreeTest do
     end
   end
 
+  defmodule UmbrellaApp do
+    def project do
+      [
+        app: :sample,
+        version: "0.1.0",
+        deps: [
+          {:umbrella_dep, in_umbrella: true}
+        ]
+      ]
+    end
+  end
+
   test "shows the dependency tree", context do
     in_tmp(context.test, fn ->
       Mix.Project.push(ConvergedDepsApp)
@@ -53,6 +65,17 @@ defmodule Mix.Tasks.Deps.TreeTest do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         Mix.Task.run("deps.tree", ["--format", "pretty"])
+        assert_received {:mix_shell, :info, ["foo"]}
+        assert_received {:mix_shell, :info, ["bar"]}
+        assert_received {:mix_shell, :info, ["└── foo (../foo)"]}
+      end)
+    end)
+  end
+
+  test "filters umbrela deps only with --umbrella-only" do
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project(:umbrella, ".", fn _ ->
+        Mix.Task.run("deps.tree", ["--format", "pretty", "--umbrella-only"])
         assert_received {:mix_shell, :info, ["foo"]}
         assert_received {:mix_shell, :info, ["bar"]}
         assert_received {:mix_shell, :info, ["└── foo (../foo)"]}
@@ -86,17 +109,6 @@ defmodule Mix.Tasks.Deps.TreeTest do
     end)
   end
 
-  test "includes the given deps", context do
-    in_tmp(context.test, fn ->
-      Mix.Project.push(OverriddenDepsApp)
-
-      Mix.Tasks.Deps.Tree.run(["--format", "pretty", "--include", "git_repo"])
-      assert_received {:mix_shell, :info, ["sample"]}
-      assert_received {:mix_shell, :info, ["└── git_repo (" <> _]}
-      refute_received {:mix_shell, :info, ["└── deps_on_git_repo ~r/0.2.0/ (" <> _]}
-    end)
-  end
-
   test "excludes the given deps", context do
     in_tmp(context.test, fn ->
       Mix.Project.push(OverriddenDepsApp)
@@ -105,22 +117,6 @@ defmodule Mix.Tasks.Deps.TreeTest do
       assert_received {:mix_shell, :info, ["sample"]}
       assert_received {:mix_shell, :info, ["└── git_repo (" <> _]}
       refute_received {:mix_shell, :info, ["└── deps_on_git_repo ~r/0.2.0/ (" <> _]}
-    end)
-  end
-
-  test "raises an error if both include and exclude are given", context do
-    in_tmp(context.test, fn ->
-      Mix.Project.push(OverriddenDepsApp)
-
-      assert_raise Mix.Error, "Cannot use both --include and --exclude at the same time", fn ->
-        Mix.Tasks.Deps.Tree.run([
-          "git_repo",
-          "--include",
-          "git_repo",
-          "--exclude",
-          "deps_on_git_repo"
-        ])
-      end
     end)
   end
 
