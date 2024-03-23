@@ -445,9 +445,9 @@ defmodule Mix.Tasks.XrefTest do
 
       Cycle of length 3:
 
-          lib/b.ex
           lib/a.ex
           lib/b.ex
+          lib/a.ex
 
       """)
     end

@@ -1004,11 +1004,11 @@ defmodule Mix.Tasks.Xref do
 
   defp cycles(graph, opts) do
     # Vertices order in cyclic_strong_components/1 return is arbitrary and changes between
-    # OTP versions, :desc sorting is necessary to make the output stable across versions.
+    # OTP versions, sorting is necessary to make the output stable across versions.
     cycles =
       graph
       |> :digraph_utils.cyclic_strong_components()
-      |> Enum.reduce([], &inner_cycles(graph, Enum.sort(&1, :desc), &2))
+      |> Enum.reduce([], &inner_cycles(graph, Enum.sort(&1), &2))
       |> Enum.map(&{length(&1), &1})
 
     if min = opts[:min_cycle_size], do: Enum.filter(cycles, &(elem(&1, 0) > min)), else: cycles
