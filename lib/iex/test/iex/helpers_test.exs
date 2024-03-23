@@ -342,7 +342,13 @@ defmodule IEx.HelpersTest do
     test "prints Erlang module function specs" do
       captured = capture_io(fn -> h(:timer.sleep() / 1) end)
       assert captured =~ ":timer.sleep/1"
-      assert captured =~ "-spec sleep(Time) -> ok when Time :: timeout()."
+
+      # TODO Fix for OTP 27 once specs are available
+      if System.otp_release() < "27" do
+        assert captured =~ "-spec sleep(Time) -> ok when Time :: timeout()."
+      else
+        assert captured =~ "sleep(Time)"
+      end
     end
 
     @tag :erlang_doc
@@ -1014,18 +1020,39 @@ defmodule IEx.HelpersTest do
     @tag :erlang_doc
     test "prints all types in Erlang module" do
       captured = capture_io(fn -> t(:queue) end)
-      assert captured =~ "-type queue() :: queue(_)"
-      assert captured =~ "-opaque queue(Item)"
+
+      # TODO Fix for OTP 27 once specs are available
+      if System.otp_release() < "27" do
+        assert captured =~ "-type queue() :: queue(_)"
+        assert captured =~ "-opaque queue(Item)"
+      else
+        assert captured =~ "queue()"
+        assert captured =~ "queue(Item)"
+      end
     end
 
     @tag :erlang_doc
     test "prints single type from Erlang module" do
       captured = capture_io(fn -> t(:erlang.iovec()) end)
-      assert captured =~ "-type iovec() :: [binary()]"
+
+      # TODO Fix for OTP 27 once specs are available
+      if System.otp_release() < "27" do
+        assert captured =~ "-type iovec() :: [binary()]"
+      else
+        assert captured =~ "iovec()"
+      end
+
       assert captured =~ "A list of binaries."
 
       captured = capture_io(fn -> t(:erlang.iovec() / 0) end)
-      assert captured =~ "-type iovec() :: [binary()]"
+
+      # TODO Fix for OTP 27 once specs are available
+      if System.otp_release() < "27" do
+        assert captured =~ "-type iovec() :: [binary()]"
+      else
+        assert captured =~ "iovec()"
+      end
+
       assert captured =~ "A list of binaries."
     end
 

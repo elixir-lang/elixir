@@ -24,6 +24,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - otp_version: "27.0-rc2"
           - otp_version: "26.0"
             otp_latest: true
           - otp_version: "25.3"
