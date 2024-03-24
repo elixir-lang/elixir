@@ -71,10 +71,16 @@ defmodule Mix.Tasks.Xref do
 
   ## mix xref graph
 
-  Prints a file dependency graph where an edge from `A` to `B` indicates
+  Emits a file dependency graph where an edge from `A` to `B` indicates
   that `A` (source) depends on `B` (sink).
 
       $ mix xref graph --format stats
+
+  For any non-small project, the output of `mix xref graph` itself, without
+  any additional flags, is not useful: once your project grows, it is hard
+  to gather actionable feedback by looking at the graph as a whole. Instead,
+  `mix xref graph` is better used as a "database", which can help you answer
+  queries about your project.
 
   The following options are accepted:
 
