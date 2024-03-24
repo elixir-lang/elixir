@@ -701,14 +701,6 @@ defmodule Kernel.ErrorsTest do
     )
   end
 
-  test "no macros" do
-    assert_compile_error(["nofile:2:3", "could not load macros from module :lists"], ~c"""
-    defmodule Kernel.ErrorsTest.NoMacros do
-      import :lists, only: :macros
-    end
-    """)
-  end
-
   test "invalid macro" do
     assert_compile_error(
       "invalid quoted expression: {:foo, :bar, :baz, :bat}",

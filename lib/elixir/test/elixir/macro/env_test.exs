@@ -81,6 +81,34 @@ defmodule Macro.EnvTest do
              Macro.Env.prepend_tracer(__ENV__, MyCustomTracer)
   end
 
+  describe "define_import/4" do
+    test "with tracing" do
+      define_import(env(), meta(), List)
+      assert_received {:import, _, List, []}
+
+      define_import(env(), meta(), Integer, only: :macros, trace: false)
+      refute_received {:import, _, Integer, _}
+    end
+
+    test "with errors" do
+      assert define_import(env(), meta(), Integer, only: :unknown) ==
+               {:error,
+                "invalid :only option for import, expected value to be an atom :functions, :macros, or a list literal, got: :unknown"}
+    end
+
+    test "with warnings" do
+      assert capture_io(:stderr, fn ->
+               define_import(env(), meta(), Integer, only: [is_odd: 1, is_odd: 1])
+             end) =~ "invalid :only option for import, is_odd/1 is duplicated"
+
+      assert {:ok, _env} =
+               define_import(env(), meta(), Integer,
+                 only: [is_odd: 1, is_odd: 1],
+                 emit_warnings: false
+               )
+    end
+  end
+
   describe "expand_alias/4" do
     test "with tracing" do
       {:alias, List} = expand_alias(env(), meta(), [:CustomList])

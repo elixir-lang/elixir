@@ -118,8 +118,11 @@ expand({import, Meta, [Ref, Opts]}, S, E) ->
   if
     is_atom(ERef) ->
       elixir_aliases:ensure_loaded(Meta, ERef, ET),
-      EI = elixir_import:import(Meta, ERef, EOpts, ET, true),
-      {ERef, ST, elixir_aliases:require(Meta, ERef, EOpts, EI, true)};
+
+      case elixir_import:import(Meta, ERef, EOpts, ET, true, true) of
+        {ok, EI} -> {ERef, ST, EI};
+        {error, Reason} -> elixir_errors:file_error(Meta, E, elixir_import, Reason)
+      end;
     true ->
       file_error(Meta, E, ?MODULE, {expected_compile_time_module, import, Ref})
   end;

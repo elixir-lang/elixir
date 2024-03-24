@@ -297,9 +297,12 @@ defmodule Macro.Env do
   @doc """
   Defines the given `module` as required in the environment.
 
+  It does not check or assert the module is available.
   This is used by tools which need to mimic the Elixir compiler.
 
-  ## Options
+  ## Additional options
+
+  It accepts the same options as `Kernel.SpecialForm.require/2` plus:
 
     * #{trace_option}
 
@@ -329,7 +332,53 @@ defmodule Macro.Env do
 
     case Keyword.get(opts, :as) do
       nil -> {:ok, env}
-      as -> {:ok, :elixir_aliases.store(meta, as, module, opts, env, trace)}
+      as when is_atom(as) -> {:ok, :elixir_aliases.store(meta, as, module, opts, env, trace)}
+    end
+  end
+
+  @doc """
+  Defines the given `module` as imported in the environment.
+
+  It assumes `module` is available. This is used by tools which
+  need to mimic the Elixir compiler.
+
+  ## Additional options
+
+  It accepts the same options as `Kernel.SpecialForm.import/2` plus:
+
+    * `:emit_warnings` - emit warnings found when defining imports
+
+    * #{trace_option}
+
+  ## Examples
+
+      iex> env = __ENV__
+      iex> Macro.Env.lookup_import(env, {:flatten, 1})
+      []
+      iex> {:ok, env} = Macro.Env.define_import(env, [line: 10], List)
+      iex> Macro.Env.lookup_import(env, {:flatten, 1})
+      [{:function, List}]
+
+  It accepts the same options as `Kernel.SpecialForm.import/2`:
+
+      iex> env = __ENV__
+      iex> Macro.Env.lookup_import(env, {:is_odd, 1})
+      []
+      iex> {:ok, env} = Macro.Env.define_import(env, [line: 10], Integer, only: :macros)
+      iex> Macro.Env.lookup_import(env, {:is_odd, 1})
+      [{:macro, Integer}]
+
+  """
+  @doc since: "1.17.0"
+  @spec define_import(t, Macro.metadata(), module) :: {:ok, t} | {:error, String.t()}
+  def define_import(env, meta, module, opts \\ [])
+      when is_list(meta) and is_atom(module) and is_list(opts) do
+    {trace, opts} = Keyword.pop(opts, :trace, true)
+    {warnings, opts} = Keyword.pop(opts, :emit_warnings, true)
+
+    case :elixir_import.import(meta, module, opts, env, warnings, trace) do
+      {:ok, env} -> {:ok, env}
+      {:error, reason} -> {:error, Kernel.to_string(:elixir_import.format_error(reason))}
     end
   end
 
@@ -338,7 +387,9 @@ defmodule Macro.Env do
 
   This is used by tools which need to mimic the Elixir compiler.
 
-  ## Options
+  ## Additional options
+
+  It accepts the same options as `Kernel.SpecialForm.alias/2` plus:
 
     * #{trace_option}
 
