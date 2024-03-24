@@ -329,11 +329,8 @@ defmodule Macro.Env do
       when is_list(meta) and is_atom(module) and is_list(opts) do
     {trace, opts} = Keyword.pop(opts, :trace, true)
     env = :elixir_aliases.require(meta, module, opts, env, trace)
-
-    case Keyword.get(opts, :as) do
-      nil -> {:ok, env}
-      as when is_atom(as) -> {:ok, :elixir_aliases.store(meta, as, module, opts, env, trace)}
-    end
+    result = :elixir_aliases.alias(meta, module, false, opts, env, trace)
+    maybe_define_error(result, :elixir_aliases)
   end
 
   @doc """
@@ -376,10 +373,8 @@ defmodule Macro.Env do
     {trace, opts} = Keyword.pop(opts, :trace, true)
     {warnings, opts} = Keyword.pop(opts, :emit_warnings, true)
 
-    case :elixir_import.import(meta, module, opts, env, warnings, trace) do
-      {:ok, env} -> {:ok, env}
-      {:error, reason} -> {:error, Kernel.to_string(:elixir_import.format_error(reason))}
-    end
+    result = :elixir_import.import(meta, module, opts, env, warnings, trace)
+    maybe_define_error(result, :elixir_import)
   end
 
   @doc """
@@ -414,7 +409,9 @@ defmodule Macro.Env do
   If it is not possible to infer one, an error is returned:
 
       iex> Macro.Env.define_alias(__ENV__, [line: 10], :an_atom)
-      {:error, "alias cannot be inferred automatically for module: :an_atom"}
+      {:error,
+       "alias cannot be inferred automatically for module: :an_atom, " <>
+         "please use the :as option. Implicit aliasing is only supported with Elixir modules"}
 
   """
   @doc since: "1.17.0"
@@ -422,15 +419,15 @@ defmodule Macro.Env do
   def define_alias(env, meta, module, opts \\ [])
       when is_list(meta) and is_atom(module) and is_list(opts) do
     {trace, opts} = Keyword.pop(opts, :trace, true)
-
-    with :error <- Keyword.fetch(opts, :as),
-         :error <- :elixir_aliases.last(module) do
-      {:error, "alias cannot be inferred automatically for module: #{inspect(module)}"}
-    else
-      {:ok, as} when is_atom(as) ->
-        {:ok, :elixir_aliases.store(meta, as, module, opts, env, trace)}
-    end
+    result = :elixir_aliases.alias(meta, module, true, opts, env, trace)
+    maybe_define_error(result, :elixir_aliases)
   end
+
+  defp maybe_define_error({:ok, env}, _mod),
+    do: {:ok, env}
+
+  defp maybe_define_error({:error, reason}, mod),
+    do: {:error, Kernel.to_string(mod.format_error(reason))}
 
   @doc """
   Expands an alias given by the alias segments.

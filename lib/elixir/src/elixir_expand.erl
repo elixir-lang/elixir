@@ -71,7 +71,7 @@ expand({alias, Meta, [Ref, Opts]}, S, E) ->
 
   if
     is_atom(ERef) ->
-      {ERef, ST, expand_alias(Meta, true, ERef, EOpts, ET)};
+      {ERef, ST, alias(Meta, ERef, true, EOpts, ET)};
     true ->
       file_error(Meta, E, ?MODULE, {expected_compile_time_module, alias, Ref})
   end;
@@ -96,12 +96,12 @@ expand({require, Meta, [Ref, Opts]}, S, E) ->
         _ -> ST#elixir_ex{runtime_modules=[Mod | ST#elixir_ex.runtime_modules]}
       end,
 
-      {ERef, SU, expand_alias(Meta, false, ERef, EOpts, EA)};
+      {ERef, SU, alias(Meta, ERef, false, EOpts, EA)};
 
     false when is_atom(ERef) ->
       elixir_aliases:ensure_loaded(Meta, ERef, ET),
       RE = elixir_aliases:require(Meta, ERef, EOpts, ET, true),
-      {ERef, ST, expand_alias(Meta, false, ERef, EOpts, RE)};
+      {ERef, ST, alias(Meta, ERef, false, EOpts, RE)};
 
     false ->
       file_error(Meta, E, ?MODULE, {expected_compile_time_module, require, Ref})
@@ -984,40 +984,13 @@ no_alias_expansion({'__aliases__', _, [H | T]}) when is_atom(H) ->
 no_alias_expansion(Other) ->
   Other.
 
-expand_alias(Meta, IncludeByDefault, Ref, Opts, E) ->
-  case expand_as(lists:keyfind(as, 1, Opts), Meta, IncludeByDefault, Ref, E) of
-    {ok, New} ->
-      elixir_aliases:store(Meta, New, Ref, Opts, E, true);
-
-    error ->
-      E
-  end.
-
-expand_as({as, Atom}, Meta, _IncludeByDefault, _Ref, E) when is_atom(Atom), not is_boolean(Atom) ->
-  case atom_to_list(Atom) of
-    "Elixir." ++ ([FirstLetter | _] = Rest) when FirstLetter >= $A, FirstLetter =< $Z ->
-      case string:tokens(Rest, ".") of
-        [_] ->
-          {ok, Atom};
-        _ ->
-          file_error(Meta, E, ?MODULE, {invalid_alias_for_as, nested_alias, Atom})
-      end;
-    _ ->
-      file_error(Meta, E, ?MODULE, {invalid_alias_for_as, not_alias, Atom})
-  end;
-expand_as(false, Meta, IncludeByDefault, Ref, E) ->
-  if
-    IncludeByDefault ->
-      case elixir_aliases:last(Ref) of
-        {ok, NewRef} -> {ok, NewRef};
-        error -> file_error(Meta, E, ?MODULE, {invalid_alias_module, Ref})
-      end;
-    true -> error
-  end;
-expand_as({as, Other}, Meta, _IncludeByDefault, _Ref, E) ->
-  file_error(Meta, E, ?MODULE, {invalid_alias_for_as, not_alias, Other}).
-
 %% Aliases
+
+alias(Meta, Ref, IncludeByDefault, Opts, E) ->
+  case elixir_aliases:alias(Meta, Ref, IncludeByDefault, Opts, E, true) of
+    {ok, EA} -> EA;
+    {error, Reason} -> elixir_errors:file_error(Meta, E, elixir_aliases, Reason)
+  end.
 
 expand_without_aliases_report({'__aliases__', _, _} = Alias, S, E) ->
   expand_aliases(Alias, S, E, false);
@@ -1212,9 +1185,6 @@ format_error(unhandled_type_op) ->
   "It is also used in typespecs, such as @type and @spec, to describe inputs and outputs";
 format_error(as_in_multi_alias_call) ->
   ":as option is not supported by multi-alias call";
-format_error({invalid_alias_module, Ref}) ->
-  io_lib:format("alias cannot be inferred automatically for module: ~ts, please use the :as option. Implicit aliasing is only supported with Elixir modules",
-                ['Elixir.Macro':to_string(Ref)]);
 format_error({commonly_mistaken_alias, Ref}) ->
   Module = 'Elixir.Macro':to_string(Ref),
   io_lib:format("reserved alias \"~ts\" expands to the atom :\"Elixir.~ts\". Perhaps you meant to write \"~ts\" instead?", [Module, Module, string:casefold(Module)]);
@@ -1288,14 +1258,6 @@ format_error({invalid_clauses, Name}) ->
     "the function \"~ts\" cannot handle clauses with the -> operator because it is not a macro. "
     "Please make sure you are invoking the proper name and that it is a macro",
   io_lib:format(Message, [Name]);
-format_error({invalid_alias_for_as, Reason, Value}) ->
-  ExpectedGot =
-    case Reason of
-      not_alias -> "expected an alias, got";
-      nested_alias -> "expected a simple alias, got nested alias"
-    end,
-  io_lib:format("invalid value for option :as, ~ts: ~ts",
-                [ExpectedGot, 'Elixir.Macro':to_string(Value)]);
 format_error({invalid_function_call, Expr}) ->
   io_lib:format("invalid function call :~ts.()", [Expr]);
 format_error({invalid_call, Call}) ->
