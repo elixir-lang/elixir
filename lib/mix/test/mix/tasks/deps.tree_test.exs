@@ -29,6 +29,18 @@ defmodule Mix.Tasks.Deps.TreeTest do
     end
   end
 
+  defmodule UmbrellaApp do
+    def project do
+      [
+        app: :sample,
+        version: "0.1.0",
+        deps: [
+          {:umbrella_dep, in_umbrella: true}
+        ]
+      ]
+    end
+  end
+
   test "shows the dependency tree", context do
     in_tmp(context.test, fn ->
       Mix.Project.push(ConvergedDepsApp)
@@ -53,6 +65,17 @@ defmodule Mix.Tasks.Deps.TreeTest do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         Mix.Task.run("deps.tree", ["--format", "pretty"])
+        assert_received {:mix_shell, :info, ["foo"]}
+        assert_received {:mix_shell, :info, ["bar"]}
+        assert_received {:mix_shell, :info, ["└── foo (../foo)"]}
+      end)
+    end)
+  end
+
+  test "filters umbrela deps only with --umbrella-only" do
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project(:umbrella, ".", fn _ ->
+        Mix.Task.run("deps.tree", ["--format", "pretty", "--umbrella-only"])
         assert_received {:mix_shell, :info, ["foo"]}
         assert_received {:mix_shell, :info, ["bar"]}
         assert_received {:mix_shell, :info, ["└── foo (../foo)"]}

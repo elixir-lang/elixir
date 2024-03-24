@@ -20,7 +20,11 @@ defmodule Mix.Tasks.Deps.Tree do
     * `--exclude` - exclude dependencies which you do not want to see printed. You can
       pass this flag multiple times to exclude multiple dependencies.
 
-    * `--format` - Can be set to one of either:
+    * `--umbrella-only` - (since v1.17.0) only include the umbrella applications.
+      This is useful when you have an umbrella project and want to see the
+      relationship between the apps in the project.
+
+    * `--format` - can be set to one of either:
 
       * `pretty` - uses Unicode code points for formatting the tree.
         This is the default except on Windows.
@@ -38,17 +42,30 @@ defmodule Mix.Tasks.Deps.Tree do
 
       $ mix deps.tree --only test
 
-  Exclude the `:logger` and `:phoenix` dependencies:
+  Exclude the `:ecto` and `:phoenix` dependencies:
 
-      $ mix deps.tree --exclude logger --exclude phoenix
+      $ mix deps.tree --exclude ecto --exclude phoenix
+
+  Only print the tree for the `:bandit` and `:phoenix` dependencies:
+
+      $ mix deps.tree --include bandit --include phoenix
 
   """
-  @switches [only: :string, target: :string, exclude: :keep, format: :string]
+
+  @switches [
+    only: :string,
+    target: :string,
+    exclude: :keep,
+    umbrella_only: :boolean,
+    format: :string
+  ]
 
   @impl true
   def run(args) do
     Mix.Project.get!()
     {opts, args, _} = OptionParser.parse(args, switches: @switches)
+
+    dbg(Mix.Project.config())
 
     deps_opts =
       for {switch, key} <- [only: :env, target: :target],
@@ -88,7 +105,13 @@ defmodule Mix.Tasks.Deps.Tree do
   end
 
   defp callback(formatter, deps, opts) do
+    umbrella_only? = Keyword.get(opts, :umbrella_only, false)
     excluded = Keyword.get_values(opts, :exclude) |> Enum.map(&String.to_atom/1)
+
+    if umbrella_only? && !Mix.Project.parent_umbrella_project_file() do
+      Mix.raise("The --umbrella-only option can only be used in umbrella projects")
+    end
+
     top_level = Enum.filter(deps, & &1.top_level)
 
     fn
@@ -102,17 +125,26 @@ defmodule Mix.Tasks.Deps.Tree do
             find_dep(deps, app).deps
           end
 
-        {formatter.(dep), exclude_and_sort(deps, excluded)}
+        {formatter.(dep), select_and_sort(deps, excluded, umbrella_only?)}
 
       app ->
-        {{Atom.to_string(app), nil}, exclude_and_sort(top_level, excluded)}
+        {{Atom.to_string(app), nil}, select_and_sort(top_level, excluded, umbrella_only?)}
     end
   end
 
-  defp exclude_and_sort(deps, excluded) do
+  defp select_and_sort(deps, excluded, umbrella_only?) do
     deps
+    |> filter_umbrella_only(umbrella_only?)
     |> Enum.reject(&(&1.app in excluded))
     |> Enum.sort_by(& &1.app)
+  end
+
+  defp filter_umbrella_only(deps, umbrella_only?) do
+    if umbrella_only? do
+      Enum.filter(deps, fn %Mix.Dep{opts: opts} -> opts[:in_umbrella] end)
+    else
+      deps
+    end
   end
 
   defp format_dot(%{app: app, requirement: requirement, opts: opts}) do
