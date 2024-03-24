@@ -823,16 +823,26 @@ defmodule Kernel.WarningTest do
 
   test "unused import of any of the functions in :only" do
     assert_warn_compile(
-      ["nofile:2:3", "unused import String"],
+      ["nofile:1:1", "unused import String"],
       """
-      defmodule Sample do
-        import String, only: [upcase: 1, downcase: 1]
-        def a, do: nil
-      end
+      import String, only: [upcase: 1, downcase: 1]
       """
     )
-  after
-    purge(Sample)
+  end
+
+  def with(a, b, c), do: [a, b, c]
+
+  test "import matches special form" do
+    assert_warn_compile(
+      [
+        "nofile:1:1",
+        "cannot import Kernel.WarningTest.with/3 because it conflicts with Elixir special forms"
+      ],
+      """
+      import Kernel.WarningTest, only: [with: 3]
+      :ok = with true <- true, true <- true, do: :ok
+      """
+    )
   end
 
   test "duplicated function on import options" do

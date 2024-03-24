@@ -376,7 +376,8 @@ defmodule Macro.Env do
          :error <- :elixir_aliases.last(module) do
       {:error, "alias cannot be inferred automatically for module: #{inspect(module)}"}
     else
-      {:ok, as} -> {:ok, :elixir_aliases.store(meta, as, module, opts, env, trace)}
+      {:ok, as} when is_atom(as) ->
+        {:ok, :elixir_aliases.store(meta, as, module, opts, env, trace)}
     end
   end
 
