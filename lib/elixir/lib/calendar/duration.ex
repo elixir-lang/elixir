@@ -212,7 +212,7 @@ defmodule Duration do
   """
   @spec parse(String.t()) :: {:ok, t} | {:error, String.t()}
   def parse("P" <> duration_string) do
-    parse(duration_string, [], "", false)
+    parse(duration_string, %{}, "", false)
   end
 
   def parse(_) do
@@ -242,9 +242,9 @@ defmodule Duration do
     end
   end
 
-  defp parse(<<>>, duration, "", _), do: {:ok, new(duration)}
+  defp parse(<<>>, duration, "", _), do: {:ok, new(Enum.into(duration, []))}
 
-  defp parse(<<c::utf8, rest::binary>>, duration, buffer, is_time) when c in ?0..?9 do
+  defp parse(<<c::utf8, rest::binary>>, duration, buffer, is_time) when c in ?0..?9 or c == ?. do
     parse(rest, duration, <<buffer::binary, c::utf8>>, is_time)
   end
 
@@ -288,10 +288,40 @@ defmodule Duration do
     {:error, "unexpected character: #{<<c>>}"}
   end
 
+  defp parse(unit, _string, duration, _buffer, _is_time) when is_map_key(duration, unit) do
+    {:error, "#{unit} was already provided"}
+  end
+
+  defp parse(:second, string, duration, buffer, is_time) do
+    case Float.parse(buffer) do
+      {float_second, ""} ->
+        second = trunc(float_second)
+
+        {microsecond, precision} =
+          case trunc((float_second - second) * 1_000_000) do
+            0 -> {0, 0}
+            microsecond -> {microsecond, 6}
+          end
+
+        duration =
+          duration
+          |> Map.put(:second, second)
+          |> Map.put(:microsecond, {microsecond, precision})
+
+        parse(string, duration, "", is_time)
+
+      _ ->
+        {:error, "invalid value for second: #{buffer}"}
+    end
+  end
+
   defp parse(unit, string, duration, buffer, is_time) do
-    case Keyword.get(duration, unit) do
-      nil -> parse(string, Keyword.put(duration, unit, String.to_integer(buffer)), "", is_time)
-      _ -> {:error, "#{unit} was already provided"}
+    case Integer.parse(buffer) do
+      {duration_value, ""} ->
+        parse(string, Map.put(duration, unit, duration_value), "", is_time)
+
+      _ ->
+        {:error, "invalid value for #{unit}: #{buffer}"}
     end
   end
 end

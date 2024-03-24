@@ -253,6 +253,8 @@ defmodule DurationTest do
     assert Duration.parse!("P3D") == %Duration{day: 3}
     assert Duration.parse!("PT4H5M") == %Duration{hour: 4, minute: 5}
     assert Duration.parse!("PT6S") == %Duration{second: 6}
+    assert Duration.parse!("PT1.6S") == %Duration{second: 1, microsecond: {600_000, 6}}
+    assert Duration.parse!("PT1.12345678S") == %Duration{second: 1, microsecond: {123_456, 6}}
 
     assert_raise ArgumentError,
                  ~s/failed to parse duration. reason: "unexpected character: H"/,
@@ -270,6 +272,12 @@ defmodule DurationTest do
                  ~s/failed to parse duration. reason: "invalid duration string"/,
                  fn ->
                    Duration.parse!("invalid")
+                 end
+
+    assert_raise ArgumentError,
+                 ~s/failed to parse duration. reason: "invalid value for year: 4.5"/,
+                 fn ->
+                   Duration.parse!("P4.5YT6S")
                  end
   end
 
