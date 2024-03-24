@@ -52,12 +52,20 @@ defmodule Mix.Tasks.Deps.Tree do
 
   """
 
-  @switches [only: :string, target: :string, exclude: :keep, umbrella_only: :boolean, format: :string]
+  @switches [
+    only: :string,
+    target: :string,
+    exclude: :keep,
+    umbrella_only: :boolean,
+    format: :string
+  ]
 
   @impl true
   def run(args) do
     Mix.Project.get!()
     {opts, args, _} = OptionParser.parse(args, switches: @switches)
+
+    dbg(Mix.Project.config())
 
     deps_opts =
       for {switch, key} <- [only: :env, target: :target],
@@ -99,6 +107,10 @@ defmodule Mix.Tasks.Deps.Tree do
   defp callback(formatter, deps, opts) do
     umbrella_only? = Keyword.get(opts, :umbrella_only, false)
     excluded = Keyword.get_values(opts, :exclude) |> Enum.map(&String.to_atom/1)
+
+    if umbrella_only? && !Mix.Project.parent_umbrella_project_file() do
+      Mix.raise("The --umbrella-only option can only be used in umbrella projects")
+    end
 
     top_level = Enum.filter(deps, & &1.top_level)
 
