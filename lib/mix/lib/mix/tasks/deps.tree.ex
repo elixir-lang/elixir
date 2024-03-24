@@ -20,12 +20,11 @@ defmodule Mix.Tasks.Deps.Tree do
     * `--exclude` - exclude dependencies which you do not want to see printed. You can
       pass this flag multiple times to exclude multiple dependencies.
 
-    * `--umbrella-only` - only include dependencies that are part of the umbrella
-      project. This is useful when you have an umbrella project and want to see
-      the dependency relationship between the apps in the project.
-      *Available since v1.17.0.
+    * `--umbrella-only` - (since v1.17.0) only include the umbrella applications.
+      This is useful when you have an umbrella project and want to see the
+      relationship between the apps in the project.
 
-    * `--format` - Can be set to one of either:
+    * `--format` - can be set to one of either:
 
       * `pretty` - uses Unicode code points for formatting the tree.
         This is the default except on Windows.
