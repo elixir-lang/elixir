@@ -349,7 +349,7 @@ defmodule Mix do
     * `MIX_HOME` - path to Mix's home directory, stores configuration files and scripts used by Mix
       (default: `~/.mix`)
 
-    * `MIX_INSTALL_DIR` - (since v1.12.0) specifies directory where `Mix.install/2` keeps
+    * `MIX_INSTALL_DIR` *(since v1.12.0)* - specifies directory where `Mix.install/2` keeps
        install cache
 
     * `MIX_PATH` - appends extra code paths
@@ -677,23 +677,23 @@ defmodule Mix do
     * `:elixir` - if set, ensures the current Elixir version matches the given
       version requirement (Default: `nil`)
 
-    * `:system_env` (since v1.13.0) - a list or a map of system environment variable
+    * `:system_env` *(since v1.13.0)* - a list or a map of system environment variable
       names with respective values as binaries. The system environment is made part
       of the `Mix.install/2` cache, so different configurations will lead to different apps
 
-    * `:config` (since v1.13.0) - a keyword list of keyword lists of compile-time
+    * `:config` *(since v1.13.0)* - a keyword list of keyword lists of compile-time
       configuration. The configuration is part of the `Mix.install/2` cache, so
       different configurations will lead to different apps. For this reason, you
       want to minimize the amount of configuration set through this option.
       Use `Application.put_all_env/2` for setting other runtime configuration.
 
-    * `:config_path` (since v1.14.0) - path to a configuration file. If a `runtime.exs`
+    * `:config_path` *(since v1.14.0)* - path to a configuration file. If a `runtime.exs`
       file exists in the same directory as the given path, it is loaded too.
 
-    * `:lockfile` (since v1.14.0) - path to a lockfile to be used as a basis of
+    * `:lockfile` *(since v1.14.0)* - path to a lockfile to be used as a basis of
       dependency resolution.
 
-    * `:start_applications` (since v1.15.3) - if `true`, ensures that installed app
+    * `:start_applications` *(since v1.15.3)* - if `true`, ensures that installed app
       and its dependencies are started after install (Default: `true`)
 
   ## Examples

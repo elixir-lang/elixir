@@ -40,7 +40,7 @@ defmodule Mix.Shell do
 
     * `:env` - environment options to the executed command
 
-    * `:cd` - (since v1.11.0) the directory to run the command in
+    * `:cd` *(since v1.11.0)* - the directory to run the command in
 
   All the built-in shells support these.
   """
@@ -101,7 +101,7 @@ defmodule Mix.Shell do
 
   ## Options
 
-    * `:cd` - (since v1.11.0) the directory to run the command in
+    * `:cd` *(since v1.11.0)* - the directory to run the command in
 
     * `:stderr_to_stdout` - redirects stderr to stdout, defaults to true
 

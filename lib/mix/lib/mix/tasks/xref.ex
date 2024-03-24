@@ -129,7 +129,7 @@ defmodule Mix.Tasks.Xref do
       * `dot` - produces a DOT graph description in `xref_graph.dot` in the
         current directory. Warning: this will override any previously generated file
 
-    * `--output` (since v1.15.0) - can be set to one of
+    * `--output` *(since v1.15.0)* - can be set to one of
 
       * `-` - prints the output to standard output;
 

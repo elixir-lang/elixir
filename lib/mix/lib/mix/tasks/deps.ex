@@ -119,10 +119,10 @@ defmodule Mix.Tasks.Deps do
     * `:submodules` - when `true`, initialize submodules for the repo
     * `:sparse` - checkout a single directory inside the Git repository and use it
       as your Mix dependency. Search "sparse Git checkouts" for more information.
-    * `:subdir` - (since v1.13.0) search for the project in the given directory
+    * `:subdir` *(since v1.13.0)* - search for the project in the given directory
       relative to the git checkout. This is similar to `:sparse` option but instead
       of a doing a sparse checkout it does a full checkout.
-    * `:depth` - (since v1.17.0) creates a shallow clone of the Git repository,
+    * `:depth` *(since v1.17.0)* - creates a shallow clone of the Git repository,
       limiting the history to the specified number of commits. This can significantly
       improve clone speed for large repositories when full history is not needed.
       The value must be a positive integer, typically `1`.
