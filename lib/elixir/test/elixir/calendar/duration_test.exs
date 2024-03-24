@@ -255,6 +255,10 @@ defmodule DurationTest do
     assert Duration.parse!("PT6S") == %Duration{second: 6}
     assert Duration.parse!("PT1.6S") == %Duration{second: 1, microsecond: {600_000, 6}}
     assert Duration.parse!("PT1.12345678S") == %Duration{second: 1, microsecond: {123_456, 6}}
+    assert Duration.parse!("P3Y4W-3DT-6S") == %Duration{year: 3, week: 4, day: -3, second: -6}
+    assert Duration.parse!("PT-4.23S") == %Duration{second: -4, microsecond: {-230_000, 6}}
+    assert Duration.parse!("-P3WT5H3M") == %Duration{week: -3, hour: -5, minute: -3}
+    assert Duration.parse!("-P-3WT5H3M") == %Duration{week: 3, hour: -5, minute: -3}
 
     assert_raise ArgumentError,
                  ~s/failed to parse duration. reason: "unexpected character: H"/,

@@ -207,7 +207,8 @@ iex> time_zone
 
 ### Duration
 
-A [%Duration{}](`Duration`) struct represents a collection of time scale units, The `~P` sigil allows developers to create Durations from an ISO 8601-2 formatted duration string:
+A [%Duration{}](`Duration`) struct represents a collection of time scale units.
+The `~P` sigil allows developers to create Durations from an ISO 8601-2 formatted duration string:
 
 ```elixir
 iex> ~P[P1Y2M3DT4H5M6S]

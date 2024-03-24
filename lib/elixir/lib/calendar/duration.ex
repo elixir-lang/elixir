@@ -205,14 +205,29 @@ defmodule Duration do
 
       iex> Duration.parse("P1Y2M3DT4H5M6S")
       {:ok, %Duration{year: 1, month: 2, day: 3, hour: 4, minute: 5, second: 6}}
-
       iex> Duration.parse("PT10H30M")
       {:ok, %Duration{hour: 10, minute: 30, second: 0}}
+      iex> Duration.parse("P3Y-2MT3H")
+      {:ok, %Duration{year: 3, month: -2, hour: 3}}
+      iex> Duration.parse("-P3Y2MT3H")
+      {:ok, %Duration{year: -3, month: -2, hour: -3}}
+      iex> Duration.parse("-P3Y-2MT3H")
+      {:ok, %Duration{year: -3, month: 2, hour: -3}}
 
   """
   @spec parse(String.t()) :: {:ok, t} | {:error, String.t()}
   def parse("P" <> duration_string) do
     parse(duration_string, %{}, "", false)
+  end
+
+  def parse("-P" <> duration_string) do
+    case parse(duration_string, %{}, "", false) do
+      {:ok, duration} ->
+        {:ok, negate(duration)}
+
+      error ->
+        error
+    end
   end
 
   def parse(_) do
@@ -227,9 +242,6 @@ defmodule Duration do
       iex> Duration.parse!("P1Y2M3DT4H5M6S")
       %Duration{year: 1, month: 2, day: 3, hour: 4, minute: 5, second: 6}
 
-      iex> Duration.parse!("PT10H30M")
-      %Duration{hour: 10, minute: 30, second: 0}
-
   """
   @spec parse!(String.t()) :: t
   def parse!(duration_string) do
@@ -242,9 +254,10 @@ defmodule Duration do
     end
   end
 
-  defp parse(<<>>, duration, "", _), do: {:ok, new(Enum.into(duration, []))}
+  defp parse(<<>>, duration, "", _), do: {:ok, new!(Enum.into(duration, []))}
 
-  defp parse(<<c::utf8, rest::binary>>, duration, buffer, is_time) when c in ?0..?9 or c == ?. do
+  defp parse(<<c::utf8, rest::binary>>, duration, buffer, is_time)
+       when c in ?0..?9 or c in [?., ?-] do
     parse(rest, duration, <<buffer::binary, c::utf8>>, is_time)
   end
 
