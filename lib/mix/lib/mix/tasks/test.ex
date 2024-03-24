@@ -109,7 +109,7 @@ defmodule Mix.Tasks.Test do
     * `--all-warnings` (`--no-all-warnings`) - prints all warnings, including previous compilations
       (default is true except on errors)
 
-    * `-b`, `--breakpoints` - (since v1.17.0) sets a breakpoint at the beginning
+    * `-b`, `--breakpoints` *(since v1.17.0)* - sets a breakpoint at the beginning
       of every test. The debugger goes line-by-line and can access all variables
       and imports (but not local functions). You can press `n` for the next line
       and `c` for the next test. This automatically sets `--trace`
@@ -198,7 +198,7 @@ defmodule Mix.Tasks.Test do
     * `--trace` - runs tests with detailed reporting. Automatically sets `--max-cases` to `1`.
       Note that in trace mode test timeouts will be ignored as timeout is set to `:infinity`
 
-    * `--warnings-as-errors` - (since v1.12.0) treats warnings as errors and returns a non-zero
+    * `--warnings-as-errors` *(since v1.12.0)* - treats warnings as errors and returns a non-zero
       exit status. This option only applies to test files. To treat warnings as errors during
       compilation and during tests, run:
           MIX_ENV=test mix do compile --warnings-as-errors + test --warnings-as-errors
