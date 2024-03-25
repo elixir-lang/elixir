@@ -65,8 +65,6 @@ defmodule Mix.Tasks.Deps.Tree do
     Mix.Project.get!()
     {opts, args, _} = OptionParser.parse(args, switches: @switches)
 
-    dbg(Mix.Project.config())
-
     deps_opts =
       for {switch, key} <- [only: :env, target: :target],
           value = opts[switch],
