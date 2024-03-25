@@ -140,26 +140,6 @@ defmodule Kernel.ExpansionTest do
   end
 
   describe "import" do
-    test "raises on invalid options" do
-      message = ~r"invalid :only option for import, expected a keyword list with integer values"
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: import(Kernel, only: [invalid: nil])))
-      end)
-
-      message = ~r"invalid :except option for import, expected a keyword list with integer values"
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: import(Kernel, except: [invalid: nil])))
-      end)
-
-      message = ~r/invalid options for import, expected a keyword list, got: "invalid_options"/
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: import(Kernel, "invalid_options")))
-      end)
-    end
-
     test "raises on conflicting options" do
       message =
         ~r":only and :except can only be given together to import when :only is :functions, :macros, or :sigils"

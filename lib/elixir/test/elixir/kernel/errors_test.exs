@@ -640,8 +640,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_error(
       [
         "nofile:3:3",
-        "invalid :only option for import, expected value to be an atom " <>
-          ":functions, :macros, or a list literal, got: x"
+        "invalid :only option for import, expected value to be an atom :functions, :macros, or a literal keyword list of function names with arity as values, got: x"
       ],
       ~c"""
       defmodule Kernel.ErrorsTest.Only do
@@ -656,8 +655,8 @@ defmodule Kernel.ErrorsTest do
     assert_compile_error(
       [
         "nofile:3:3",
-        "invalid :except option for import, expected value to be a list " <>
-          "literal, got: Module.__get_attribute__(Kernel.ErrorsTest.Only, :x, 3, true)"
+        "invalid :except option for import, expected value to be a literal keyword list of function names " <>
+          "with arity as values, got: Module.__get_attribute__(Kernel.ErrorsTest.Only, :x, 3, true)"
       ],
       ~c"""
       defmodule Kernel.ErrorsTest.Only do

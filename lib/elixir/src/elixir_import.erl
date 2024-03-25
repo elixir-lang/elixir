@@ -25,13 +25,13 @@ import_only_except(Meta, Ref, Opts, E, Warn) ->
       import_only_except(Meta, Ref, MaybeOnly, false, E, Warn);
 
     {except, DupExcept} when is_list(DupExcept) ->
-      case ensure_keyword_list(DupExcept, except, Meta, E) of
+      case ensure_keyword_list(DupExcept) of
         ok ->
           Except = ensure_no_duplicates(DupExcept, except, Meta, E, Warn),
           import_only_except(Meta, Ref, MaybeOnly, Except, E, Warn);
 
-        {error, Reason} ->
-          {error, Reason}
+        error ->
+          {error, {invalid_option, except, DupExcept}}
       end;
 
     {except, Other} ->
@@ -54,7 +54,7 @@ import_only_except(Meta, Ref, MaybeOnly, Except, E, Warn) ->
       {Funs, Macs, Added1 or Added2};
 
     {only, DupOnly} when is_list(DupOnly) ->
-      case ensure_keyword_list(DupOnly, only, Meta, E) of
+      case ensure_keyword_list(DupOnly) of
         ok when Except =:= false ->
           Only = ensure_no_duplicates(DupOnly, only, Meta, E, Warn),
           {Added1, Used1, Funs} = import_listed_functions(Meta, Ref, Only, E, Warn),
@@ -66,8 +66,8 @@ import_only_except(Meta, Ref, MaybeOnly, Except, E, Warn) ->
         ok ->
           {error, only_and_except_given};
 
-        {error, Reason} ->
-          {error, Reason}
+        error ->
+          {error, {invalid_option, only, DupOnly}}
       end;
 
     {only, Other} ->
@@ -167,13 +167,12 @@ is_sigil(_) ->
 
 %% VALIDATION HELPERS\
 
-ensure_keyword_list([], _Kind, _Meta, _E) -> ok;
-
-ensure_keyword_list([{Key, Value} | Rest], Kind, Meta, E) when is_atom(Key), is_integer(Value) ->
-  ensure_keyword_list(Rest, Kind, Meta, E);
-
-ensure_keyword_list(_Other, Kind, Meta, E) ->
-  elixir_errors:file_error(Meta, E, ?MODULE, {invalid_option, Kind}).
+ensure_keyword_list([]) ->
+  ok;
+ensure_keyword_list([{Key, Value} | Rest]) when is_atom(Key), is_integer(Value) ->
+  ensure_keyword_list(Rest);
+ensure_keyword_list(_Other) ->
+  error.
 
 ensure_no_special_form_conflict(Set, Key, Meta, E, Warn) ->
   lists:filter(fun({Name, Arity}) ->
@@ -210,17 +209,13 @@ format_error({invalid_import, {Receiver, Name, Arity}}) ->
   io_lib:format("cannot import ~ts.~ts/~B because it is undefined or private",
     [elixir_aliases:inspect(Receiver), Name, Arity]);
 
-format_error({invalid_option, Option}) ->
-  Message = "invalid :~s option for import, expected a keyword list with integer values",
-  io_lib:format(Message, [Option]);
-
 format_error({invalid_option, only, Value}) ->
   Message = "invalid :only option for import, expected value to be an atom :functions, :macros"
-  ", or a list literal, got: ~s",
+  ", or a literal keyword list of function names with arity as values, got: ~s",
   io_lib:format(Message, ['Elixir.Macro':to_string(Value)]);
 
 format_error({invalid_option, except, Value}) ->
-  Message = "invalid :except option for import, expected value to be a list literal, got: ~s",
+  Message = "invalid :except option for import, expected value to be a literal keyword list of function names with arity as values, got: ~s",
   io_lib:format(Message, ['Elixir.Macro':to_string(Value)]);
 
 format_error({special_form_conflict, {Receiver, Name, Arity}}) ->
