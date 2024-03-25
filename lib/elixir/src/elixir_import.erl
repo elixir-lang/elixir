@@ -25,14 +25,9 @@ import_only_except(Meta, Ref, Opts, E, Warn) ->
       import_only_except(Meta, Ref, MaybeOnly, false, E, Warn);
 
     {except, DupExcept} when is_list(DupExcept) ->
-      case ensure_keyword_list(DupExcept, except, Meta, E) of
-        ok ->
-          Except = ensure_no_duplicates(DupExcept, except, Meta, E, Warn),
-          import_only_except(Meta, Ref, MaybeOnly, Except, E, Warn);
-
-        {error, Reason} ->
-          {error, Reason}
-      end;
+      ensure_keyword_list(DupExcept, except, Meta, E),
+      Except = ensure_no_duplicates(DupExcept, except, Meta, E, Warn),
+      import_only_except(Meta, Ref, MaybeOnly, Except, E, Warn);
 
     {except, Other} ->
       {error, {invalid_option, except, Other}}
@@ -54,8 +49,9 @@ import_only_except(Meta, Ref, MaybeOnly, Except, E, Warn) ->
       {Funs, Macs, Added1 or Added2};
 
     {only, DupOnly} when is_list(DupOnly) ->
-      case ensure_keyword_list(DupOnly, only, Meta, E) of
-        ok when Except =:= false ->
+      ensure_keyword_list(DupOnly, only, Meta, E),
+      case Except of
+        false ->
           Only = ensure_no_duplicates(DupOnly, only, Meta, E, Warn),
           {Added1, Used1, Funs} = import_listed_functions(Meta, Ref, Only, E, Warn),
           {Added2, Used2, Macs} = import_listed_macros(Meta, Ref, Only, E, Warn),
@@ -63,11 +59,8 @@ import_only_except(Meta, Ref, MaybeOnly, Except, E, Warn) ->
             {Name, Arity} <- (Only -- Used1) -- Used2],
           {Funs, Macs, Added1 or Added2};
 
-        ok ->
-          {error, only_and_except_given};
-
-        {error, Reason} ->
-          {error, Reason}
+        _ ->
+          {error, only_and_except_given}
       end;
 
     {only, Other} ->
