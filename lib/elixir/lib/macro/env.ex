@@ -299,6 +299,7 @@ defmodule Macro.Env do
 
   It does not check or assert the module is available.
   This is used by tools which need to mimic the Elixir compiler.
+  The appropriate `:require` compiler tracing event will be emitted.
 
   ## Additional options
 
@@ -337,7 +338,8 @@ defmodule Macro.Env do
   Defines the given `module` as imported in the environment.
 
   It assumes `module` is available. This is used by tools which
-  need to mimic the Elixir compiler.
+  need to mimic the Elixir compiler. The appropriate `:import`
+  compiler tracing event will be emitted.
 
   ## Additional options
 
@@ -381,6 +383,7 @@ defmodule Macro.Env do
   Defines the given `as` an alias to `module` in the environment.
 
   This is used by tools which need to mimic the Elixir compiler.
+  The appropriate `:alias` compiler tracing event will be emitted.
 
   ## Additional options
 
@@ -484,6 +487,9 @@ defmodule Macro.Env do
   If the import points to a function, it returns a tuple
   with the module and the function name.
 
+  If any import is found, the appropriate compiler tracing
+  event will be emitted.
+
   Otherwise returns `:error`.
 
   ## Options
@@ -533,6 +539,9 @@ defmodule Macro.Env do
   required, it returns a tuple with the module and a function
   that expands the macro. The function expects the metadata
   to be attached to the expansion and the arguments of the macro.
+  The appropriate `:remote_macro` compiler tracing event will
+  be emitted if a macro is found (note a `:remote_function`
+  event is not emitted in `:error` cases).
 
   Otherwise returns `:error`.
 
@@ -577,6 +586,15 @@ defmodule Macro.Env do
       :error ->
         :error
     end
+  end
+
+  @doc """
+  Returns an environment in the guard context.
+  """
+  @doc since: "1.17.0"
+  @spec to_guard(t) :: t
+  def to_guard(%{__struct__: Macro.Env} = env) do
+    %{env | context: :guard}
   end
 
   @doc """
