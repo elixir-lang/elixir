@@ -72,7 +72,7 @@ defmodule Mix.Tasks.Deps.TreeTest do
     end)
   end
 
-  test "filters umbrela deps only with --umbrella-only" do
+  test "filters umbrella deps only with --umbrella-only" do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         Mix.Task.run("deps.tree", ["--format", "pretty", "--umbrella-only"])
