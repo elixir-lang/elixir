@@ -1709,7 +1709,7 @@ defmodule DateTime do
       iex> DateTime.shift(~U[2016-01-01 00:00:00Z], minute: 5, microsecond: {500, 4})
       ~U[2016-01-01 00:05:00.0005Z]
   """
-  @doc since: "1.7.0"
+  @doc since: "1.17.0"
   @spec shift(
           Calendar.datetime(),
           Duration.t() | [Duration.unit()],
