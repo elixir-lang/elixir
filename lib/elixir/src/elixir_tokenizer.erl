@@ -1564,10 +1564,15 @@ tokenize_sigil_name([S | T], [], Line, Column, Scope, Tokens) when ?is_upcase(S)
 % If we have an uppercase letter, we keep tokenizing the name.
 tokenize_sigil_name([S | T], NameAcc, Line, Column, Scope, Tokens) when ?is_upcase(S) ->
   tokenize_sigil_name(T, [S | NameAcc], Line, Column + 1, Scope, Tokens);
+% A digit is allowed but an upcase or digit must proceed it.
+tokenize_sigil_name([S | T], [P | _] = NameAcc, Line, Column, Scope, Tokens) when ?is_digit(S) andalso (?is_upcase(P)
+                                                                                                         orelse
+                                                                                                         ?is_digit(P)) ->
+    tokenize_sigil_name(T, [S | NameAcc], Line, Column + 1, Scope, Tokens);
 % With a lowercase letter and a non-empty NameAcc we return an error.
 tokenize_sigil_name([S | _T] = Original, [_ | _] = NameAcc, _Line, _Column, _Scope, _Tokens) when ?is_downcase(S) ->
   Message = "invalid sigil name, it should be either a one-letter lowercase letter or a" ++
-            " sequence of uppercase letters only, got: ",
+            " sequence of uppercase letters and digits, starting with uppercase letters only, got: ",
   {error, Message, [$~] ++ lists:reverse(NameAcc) ++ Original};
 % We finished the letters, so the name is over.
 tokenize_sigil_name(T, NameAcc, Line, Column, Scope, Tokens) ->
