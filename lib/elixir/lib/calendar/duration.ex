@@ -54,7 +54,9 @@ defmodule Duration do
   """
   @spec new([unit]) :: t
   def new(units) do
-    case Keyword.get(units, :microsecond) do
+    {microsecond_unit, duration_units} = Keyword.split(units, [:microsecond])
+
+    case Keyword.get(microsecond_unit, :microsecond) do
       nil ->
         :noop
 
@@ -62,7 +64,13 @@ defmodule Duration do
         :noop
 
       _ ->
-        raise "microseconds must be a tuple {ms, precision}"
+        raise ArgumentError, "microsecond unit must be a tuple {ms, precision}"
+    end
+
+    for {unit, value} <- duration_units do
+      unless is_integer(value) do
+        raise ArgumentError, "duration unit must be an integer, got #{unit}: #{value}"
+      end
     end
 
     struct!(Duration, units)
