@@ -64,6 +64,42 @@ defmodule MapSet do
   defstruct map: :sets.new(version: 2)
 
   @doc """
+  Checks if `map_set` contains `value`. Allowed in guards.
+
+  Otherwise functions like `member?/2`.
+
+  ## Examples
+
+      iex> MapSet.is_member(MapSet.new([1, 2, 3]), 2)
+      true
+
+      iex> MapSet.is_member(MapSet.new([1, 2, 3]), 4)
+      false
+
+      iex> case MapSet.new([1, 2, 3]) do
+      ...>   map_set when MapSet.is_member(map_set, 3) -> true
+      ...>   _ -> false
+      ...> end
+      true
+
+  """
+  @doc guard: true, since: "1.17.0"
+  defmacro is_member(map_set, value) do
+    case Macro.Env.in_guard?(__CALLER__) do
+      true ->
+        quote do
+          (is_struct(unquote(map_set), unquote(__MODULE__)) or :fail) and
+            is_map_key(unquote(map_set).map, unquote(value))
+        end
+
+      false ->
+        quote do
+          MapSet.member?(unquote(map_set), unquote(value))
+        end
+    end
+  end
+
+  @doc """
   Returns a new set.
 
   ## Examples
@@ -243,6 +279,7 @@ defmodule MapSet do
       iex> MapSet.member?(MapSet.new([1, 2, 3]), 4)
       false
 
+  See `is_member/2` for a guard-supported variant.
   """
   @spec member?(t, value) :: boolean
   def member?(%MapSet{map: set}, value) do

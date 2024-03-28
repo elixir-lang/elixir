@@ -5,6 +5,40 @@ defmodule MapSetTest do
 
   doctest MapSet
 
+  test "is_member/2" do
+    map_set = MapSet.new(1..3)
+    list = [1, 2, 3]
+
+    assert MapSet.is_member(map_set, 2)
+    refute MapSet.is_member(map_set, 4)
+
+    assert_raise FunctionClauseError, fn ->
+      MapSet.is_member(list, 2)
+    end
+
+    guards = fn
+      input when MapSet.is_member(input, 4) or input == 4 ->
+        :found_4
+
+      input when (is_struct(input, MapSet) and MapSet.is_member(input, 3)) or input == 3 ->
+        :found_3
+
+      input when MapSet.is_member(input, 2) ->
+        :found_2
+
+      _ ->
+        :error
+    end
+
+    assert guards.(MapSet.new(1..2)) == :found_2
+    assert guards.(MapSet.new(1..3)) == :found_3
+    assert guards.(MapSet.new(1..4)) == :found_4
+    assert guards.(2) == :error
+    assert guards.(3) == :found_3
+    assert guards.(4) == :error
+    assert guards.(list) == :error
+  end
+
   test "new/1" do
     result = MapSet.new(1..5)
     assert MapSet.equal?(result, Enum.into(1..5, MapSet.new()))
