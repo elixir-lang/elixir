@@ -93,6 +93,7 @@ canonical = System.fetch_env!("CANONICAL")
       Bitwise,
       Date,
       DateTime,
+      Duration,
       Exception,
       Float,
       Function,
