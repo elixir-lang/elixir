@@ -67,10 +67,8 @@ defmodule Duration do
         raise ArgumentError, "microsecond unit must be a tuple {ms, precision}"
     end
 
-    for {unit, value} <- duration_units do
-      unless is_integer(value) do
-        raise ArgumentError, "duration unit must be an integer, got #{unit}: #{value}"
-      end
+    unless Enum.all?(duration_units, fn {_unit, value} -> is_integer(value) end) do
+      raise ArgumentError, "duration units must be integers"
     end
 
     struct!(Duration, units)
