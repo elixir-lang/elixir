@@ -54,24 +54,25 @@ defmodule Duration do
   """
   @spec new([unit]) :: t
   def new(units) do
-    {microsecond_unit, duration_units} = Keyword.split(units, [:microsecond])
-
-    case Keyword.get(microsecond_unit, :microsecond) do
-      nil ->
-        :noop
-
-      {ms, precision} when is_integer(ms) and is_integer(precision) ->
-        :noop
-
-      _ ->
-        raise ArgumentError, "microsecond unit must be a tuple {ms, precision}"
-    end
-
-    unless Enum.all?(duration_units, fn {_unit, value} -> is_integer(value) end) do
-      raise ArgumentError, "duration units must be integers"
-    end
-
+    Enum.each(units, &validate_duration_unit!/1)
     struct!(Duration, units)
+  end
+
+  defp validate_duration_unit!({:microsecond, {ms, precision}})
+       when is_integer(ms) and is_integer(precision) do
+    :ok
+  end
+
+  defp validate_duration_unit!({:microsecond, microsecond}) do
+    raise ArgumentError, "expected a tuple {ms, precision} for microsecond, got #{microsecond}"
+  end
+
+  defp validate_duration_unit!({_unit, value}) when is_integer(value) do
+    :ok
+  end
+
+  defp validate_duration_unit!({unit, value}) do
+    raise ArgumentError, "expected an integer for #{unit}, got #{value}"
   end
 
   @doc """
