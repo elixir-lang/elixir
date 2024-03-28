@@ -96,7 +96,7 @@ iex> h trunc/1
 Returns the integer part of number.
 ```
 
-`h trunc/1` works because it is defined in the `Kernel` module. All functions in the `Kernel` module are automatically imported into our namespace. Most often you will also include the module name when looking up for documentation for a given function:
+`h trunc/1` works because it is defined in the `Kernel` module. All functions in the `Kernel` module are automatically imported into our namespace. Most often you will also include the module name when looking up the documentation for a given function:
 
 ```elixir
 iex> h Kernel.trunc/1
