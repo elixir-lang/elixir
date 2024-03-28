@@ -58,7 +58,7 @@ defmodule Duration do
       nil ->
         :noop
 
-      ms when is_tuple(ms) ->
+      {ms, precision} when is_integer(ms) and is_integer(precision) ->
         :noop
 
       _ ->
