@@ -297,7 +297,7 @@ defmodule Logger.Translator do
     %{
       client_info: client,
       name: name,
-      reason: {:error, maybe_exception, maybe_stacktrace},
+      reason: {kind, reason, stack},
       state: {state, data},
       queue: queue,
       postponed: postponed,
@@ -305,7 +305,8 @@ defmodule Logger.Translator do
       state_enter: state_enter?,
     } = report
 
-    {formatted, reason} = format_reason({maybe_exception, maybe_stacktrace})
+    {reason, stack} = exit_reason(kind, reason, stack)
+    {formatted, reason} = format_reason({reason, stack})
     metadata = [crash_reason: reason] ++ registered_name(name)
 
     msg =
