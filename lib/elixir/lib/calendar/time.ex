@@ -562,13 +562,11 @@ defmodule Time do
   @doc """
   Shifts given `time` by `duration` according to its calendar.
 
-  Available duration units are: `:hour, :minute, :second, :microsecond`.
+  Available duration units are: `:hour`, `:minute`, `:second`, `:microsecond`.
 
-  When used with the default calendar `Calendar.ISO`:
+  Duration units are collapsed to seconds and microseconds before they are applied.
 
-  All duration units are collapsed to seconds and microseconds before they are applied.
-
-  Raises ArgumentError when called with date scale units.
+  Raises an `ArgumentError` when called with date scale units.
 
   ## Examples
 

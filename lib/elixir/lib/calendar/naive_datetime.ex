@@ -575,9 +575,7 @@ defmodule NaiveDateTime do
   @doc """
   Shifts given `naive_datetime` by `duration` according to its calendar.
 
-  Allowed units are: `:year, :month, :week, :day, :hour, :minute, :second, :microsecond`.
-
-  When used with the default calendar `Calendar.ISO`:
+  Allowed units are: `:year`, `:month`, `:week`, `:day`, `:hour`, `:minute`, `:second`, `:microsecond`.
 
   Durations are collapsed before they are applied:
   - when shifting by 1 year and 2 months the date is actually shifted by 14 months

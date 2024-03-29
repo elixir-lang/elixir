@@ -765,9 +765,7 @@ defmodule Date do
   @doc """
   Shifts given `date` by `duration` according to its calendar.
 
-  Allowed units are: `:year, :month, :week, :day`.
-
-  When used with the default calendar `Calendar.ISO`:
+  Allowed units are: `:year`, `:month`, `:week`, `:day`.
 
   Durations are collapsed before they are applied:
   - when shifting by 1 year and 2 months the date is actually shifted by 14 months
@@ -775,7 +773,7 @@ defmodule Date do
 
   Durations are applied in order of the size of the unit: `month > day`.
 
-  Raises ArgumentError when called with time scale units.
+  Raises an `ArgumentError` when called with time scale units.
 
   ## Examples
 
