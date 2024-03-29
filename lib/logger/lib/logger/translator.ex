@@ -54,6 +54,9 @@ defmodule Logger.Translator do
       {:gen_event, :terminate} ->
         report_gen_event_terminate(min_level, report)
 
+      {:gen_statem, :terminate} ->
+        report_gen_statem_terminate(min_level, report)
+
       _ ->
         :skip
     end
@@ -283,6 +286,42 @@ defmodule Logger.Translator do
 
     if min_level == :debug do
       {:ok, [msg, "\nState: ", inspect(state, inspect_opts)], metadata}
+    else
+      {:ok, msg, metadata}
+    end
+  end
+
+  defp report_gen_statem_terminate(min_level, report) do
+    inspect_opts = Application.get_env(:logger, :translator_inspect_opts)
+
+    %{
+      client_info: client,
+      name: name,
+      reason: {:error, maybe_exception, maybe_stacktrace},
+      state: {state, data},
+      queue: queue,
+      postponed: postponed,
+      callback_mode: callback_mode,
+      state_enter: state_enter?,
+    } = report
+
+    {formatted, reason} = format_reason({maybe_exception, maybe_stacktrace})
+    metadata = [crash_reason: reason] ++ registered_name(name)
+
+    msg =
+      [":gen_statem ", inspect(name), " terminating", formatted] ++
+        ["\nQueue: #{inspect(queue, inspect_opts)}"] ++
+        ["\nPostponed: #{inspect(postponed, inspect_opts)}"]
+
+    if min_level == :debug do
+      msg = [
+        msg,
+        "\nState: ", inspect(state, inspect_opts),
+        "\nData: ", inspect(data, inspect_opts),
+        "\nCallback mode: ", "#{inspect(callback_mode, inspect_opts)}, state_enter: #{state_enter?}"
+        | format_client_info(client)
+      ]
+      {:ok, msg, metadata}
     else
       {:ok, msg, metadata}
     end
