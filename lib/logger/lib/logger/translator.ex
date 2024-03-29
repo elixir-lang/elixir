@@ -302,7 +302,7 @@ defmodule Logger.Translator do
       queue: queue,
       postponed: postponed,
       callback_mode: callback_mode,
-      state_enter: state_enter?,
+      state_enter: state_enter?
     } = report
 
     {reason, stack} = exit_reason(kind, reason, stack)
@@ -317,11 +317,15 @@ defmodule Logger.Translator do
     if min_level == :debug do
       msg = [
         msg,
-        "\nState: ", inspect(state, inspect_opts),
-        "\nData: ", inspect(data, inspect_opts),
-        "\nCallback mode: ", "#{inspect(callback_mode, inspect_opts)}, state_enter: #{state_enter?}"
+        "\nState: ",
+        inspect(state, inspect_opts),
+        "\nData: ",
+        inspect(data, inspect_opts),
+        "\nCallback mode: ",
+        "#{inspect(callback_mode, inspect_opts)}, state_enter: #{state_enter?}"
         | format_client_info(client)
       ]
+
       {:ok, msg, metadata}
     else
       {:ok, msg, metadata}
