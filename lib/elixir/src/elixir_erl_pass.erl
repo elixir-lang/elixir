@@ -409,7 +409,8 @@ translate_with_else(Meta, [], S) ->
   Ann = ?ann(Meta),
   {VarName, SC} = elixir_erl_var:build('_', S),
   Var = {var, Ann, VarName},
-  {{clause, Ann, [Var], [], [Var]}, nil, SC};
+  Generated = erl_anno:set_generated(true, Ann),
+  {{clause, Generated, [Var], [], [Var]}, nil, SC};
 translate_with_else(Meta, [{'else', [{'->', _, [[{Var, VarMeta, Kind}], Clause]}]}], S) when is_atom(Var), is_atom(Kind) ->
   Ann = ?ann(Meta),
   {ElseVarErl, SV} = elixir_erl_var:translate(VarMeta, Var, Kind, S#elixir_erl{context=match}),
@@ -433,7 +434,8 @@ with_else_closure(Meta, TranslatedClauses, S) ->
   {_, ArgErlVar, SA} = elixir_erl_var:assign(Meta, SC),
   FunAssign = {match, Ann, FunErlVar, {'fun', Ann, {clauses, TranslatedClauses}}},
   FunCall = {call, Ann, FunErlVar, [ArgErlVar]},
-  {{clause, Ann, [ArgErlVar], [], [FunCall]}, FunAssign, SA}.
+  Generated = erl_anno:set_generated(true, Ann),
+  {{clause, Generated, [ArgErlVar], [], [FunCall]}, FunAssign, SA}.
 
 translate_with_do([{'<-', Meta, [{Var, _, Ctx} = Left, Expr]} | Rest], Ann, Do, Else, S) when is_atom(Var), is_atom(Ctx) ->
   translate_with_do([{'=', Meta, [Left, Expr]} | Rest], Ann, Do, Else, S);
