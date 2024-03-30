@@ -45,11 +45,11 @@ compile(Quoted, ArgsList, CompilerOpts, #{line := Line} = E) ->
   {Expanded, SE, EE} = elixir_expand:expand(Block, elixir_env:env_to_ex(E), E),
   elixir_env:check_unused_vars(SE, EE),
 
-  {Module, Fun} =
+  {Module, Fun, LabelledLocals} =
     elixir_erl_compiler:spawn(fun() -> spawned_compile(Expanded, CompilerOpts, E) end),
 
   Args = list_to_tuple(ArgsList),
-  {dispatch(Module, Fun, Args), SE, EE}.
+  {dispatch(Module, Fun, Args, LabelledLocals), SE, EE}.
 
 spawned_compile(ExExprs, CompilerOpts, #{line := Line, file := File} = E) ->
   {Vars, S} = elixir_erl_var:from_env(E),
@@ -61,12 +61,22 @@ spawned_compile(ExExprs, CompilerOpts, #{line := Line, file := File} = E) ->
 
   {Module, Binary} = elixir_erl_compiler:noenv_forms(Forms, File, [nowarn_nomatch | CompilerOpts]),
   code:load_binary(Module, "", Binary),
-  {Module, Fun}.
+  {Module, Fun, is_purgeable(Binary)}.
 
-dispatch(Module, Fun, Args) ->
+is_purgeable(<<"FOR1", _Size:32, "BEAM", Rest/binary>>) ->
+  do_is_purgeable(Rest).
+
+do_is_purgeable(<<>>) -> true;
+do_is_purgeable(<<"LocT", 4:32, 0:32, _/binary>>) -> true;
+do_is_purgeable(<<"LocT", _:32, _/binary>>) -> false;
+do_is_purgeable(<<_:4/binary, Size:32, Beam/binary>>) ->
+  <<_:(4 * trunc((Size+3) / 4))/binary, Rest/binary>> = Beam,
+  do_is_purgeable(Rest).
+
+dispatch(Module, Fun, Args, Purgeable) ->
   Res = Module:Fun(Args),
   code:delete(Module),
-  return_compiler_module(Module),
+  Purgeable andalso return_compiler_module(Module),
   Res.
 
 code_fun(nil) -> '__FILE__';
