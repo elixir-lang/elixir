@@ -663,8 +663,7 @@ defmodule IEx.Pry do
   def dbg(ast, options, env)
 
   def dbg({:|>, _meta, _args} = ast, options, %Macro.Env{} = env) when is_list(options) do
-    unpiped_ast = Macro.unpipe(ast)
-    [first_ast_chunk | asts_chunks] = chunk_pipeline_asts_by_line(unpiped_ast, env)
+    [first_ast_chunk | asts_chunks] = ast |> Macro.unpipe() |> chunk_pipeline_asts_by_line(env)
 
     {first_line, _max_line} = line_range(ast, env.line)
 
