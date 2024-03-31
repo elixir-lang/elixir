@@ -664,19 +664,12 @@ defmodule IEx.Pry do
 
   def dbg({:|>, _meta, _args} = ast, options, %Macro.Env{} = env) when is_list(options) do
     unpiped_ast = Macro.unpipe(ast)
-
     [first_ast_chunk | asts_chunks] = chunk_pipeline_asts_by_line(unpiped_ast, env)
 
-    first_line =
-      Enum.find_value(unpiped_ast, env.line, fn
-        {{_fun_or_var, meta, _args}, _pipe_index} -> meta[:line]
-        {_ast, _pipe_index} -> nil
-      end)
+    {first_line, _max_line} = line_range(ast, env.line)
 
-    prelude = [
+    prelude =
       quote do
-        env = unquote(Macro.escape(env))
-        next? = true
         options = unquote(options)
 
         options =
@@ -695,7 +688,6 @@ defmodule IEx.Pry do
           options
         )
       end
-    ]
 
     main_block =
       for asts_chunk <- asts_chunks do
@@ -713,24 +705,7 @@ defmodule IEx.Pry do
         end
       end
 
-    next_binding = fn _expr, _binding = :ok -> :ok end
-
-    next_pry =
-      fn line, _version, _binding ->
-        quote do
-          next? = IEx.Pry.__next__(next?, binding(), %{env | line: unquote(line)})
-        end
-      end
-
-    annotate_quoted(
-      {:__block__, [], main_block},
-      prelude,
-      first_line,
-      _version = 0,
-      _binding = :ok,
-      next_binding,
-      next_pry
-    )
+    annotate_quoted({:__block__, [], [prelude | main_block]}, true, %{env | line: first_line})
   end
 
   def dbg(ast, options, %Macro.Env{} = env) when is_list(options) do
