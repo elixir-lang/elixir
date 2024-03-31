@@ -111,7 +111,7 @@ defmodule IEx.Pry do
   @doc """
   Annotate quoted expression with line-by-line `IEx.Pry` debugging steps.
 
-  It expected the `quoted` expression to annotate, a `condition` that controls
+  It expects the `quoted` expression to annotate, a boolean `condition` that controls
   if pry should run or not (usually is simply the boolean `true`), and the
   caller macro environment.
   """
@@ -665,9 +665,10 @@ defmodule IEx.Pry do
   def dbg({:|>, _meta, _args} = ast, options, %Macro.Env{} = env) when is_list(options) do
     [first_ast_chunk | asts_chunks] = ast |> Macro.unpipe() |> chunk_pipeline_asts_by_line(env)
 
-    initial_acc = [
+    {first_line, _max_line} = line_range(ast, env.line)
+
+    prelude =
       quote do
-        env = __ENV__
         options = unquote(options)
 
         options =
@@ -677,9 +678,6 @@ defmodule IEx.Pry do
             options
           end
 
-        env = unquote(env_with_line_from_asts(first_ast_chunk))
-
-        next? = IEx.Pry.__next__(true, binding(), env)
         value = unquote(pipe_chunk_of_asts(first_ast_chunk))
 
         IEx.Pry.__dbg_pipe_step__(
@@ -689,16 +687,12 @@ defmodule IEx.Pry do
           options
         )
       end
-    ]
 
-    for asts_chunk <- asts_chunks, reduce: initial_acc do
-      ast_acc ->
+    main_block =
+      for asts_chunk <- asts_chunks do
         piped_asts = pipe_chunk_of_asts([{quote(do: value), _index = 0}] ++ asts_chunk)
 
         quote do
-          unquote(ast_acc)
-          env = unquote(env_with_line_from_asts(asts_chunk))
-          next? = IEx.Pry.__next__(next?, binding(), env)
           value = unquote(piped_asts)
 
           IEx.Pry.__dbg_pipe_step__(
@@ -708,7 +702,9 @@ defmodule IEx.Pry do
             options
           )
         end
-    end
+      end
+
+    annotate_quoted({:__block__, [], [prelude | main_block]}, true, %{env | line: first_line})
   end
 
   def dbg(ast, options, %Macro.Env{} = env) when is_list(options) do
@@ -752,21 +748,5 @@ defmodule IEx.Pry do
 
   defp asts_chunk_to_strings(asts) do
     Enum.map(asts, fn {ast, _pipe_index} -> Macro.to_string(ast) end)
-  end
-
-  defp env_with_line_from_asts(asts) do
-    line =
-      Enum.find_value(asts, fn
-        {{_fun_or_var, meta, _args}, _pipe_index} -> meta[:line]
-        {_ast, _pipe_index} -> nil
-      end)
-
-    if line do
-      quote do
-        %{env | line: unquote(line)}
-      end
-    else
-      quote do: env
-    end
   end
 end
