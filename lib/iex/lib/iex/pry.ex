@@ -111,7 +111,7 @@ defmodule IEx.Pry do
   @doc """
   Annotate quoted expression with line-by-line `IEx.Pry` debugging steps.
 
-  It expected the `quoted` expression to annotate, a `condition` that controls
+  It expects the `quoted` expression to annotate, a boolean `condition` that controls
   if pry should run or not (usually is simply the boolean `true`), and the
   caller macro environment.
   """
@@ -663,11 +663,20 @@ defmodule IEx.Pry do
   def dbg(ast, options, env)
 
   def dbg({:|>, _meta, _args} = ast, options, %Macro.Env{} = env) when is_list(options) do
-    [first_ast_chunk | asts_chunks] = ast |> Macro.unpipe() |> chunk_pipeline_asts_by_line(env)
+    unpiped_ast = Macro.unpipe(ast)
 
-    initial_acc = [
+    [first_ast_chunk | asts_chunks] = chunk_pipeline_asts_by_line(unpiped_ast, env)
+
+    first_line =
+      Enum.find_value(unpiped_ast, env.line, fn
+        {{_fun_or_var, meta, _args}, _pipe_index} -> meta[:line]
+        {_ast, _pipe_index} -> nil
+      end)
+
+    prelude = [
       quote do
-        env = __ENV__
+        env = unquote(Macro.escape(env))
+        next? = true
         options = unquote(options)
 
         options =
@@ -677,9 +686,6 @@ defmodule IEx.Pry do
             options
           end
 
-        env = unquote(env_with_line_from_asts(first_ast_chunk))
-
-        next? = IEx.Pry.__next__(true, binding(), env)
         value = unquote(pipe_chunk_of_asts(first_ast_chunk))
 
         IEx.Pry.__dbg_pipe_step__(
@@ -691,14 +697,11 @@ defmodule IEx.Pry do
       end
     ]
 
-    for asts_chunk <- asts_chunks, reduce: initial_acc do
-      ast_acc ->
+    main_block =
+      for asts_chunk <- asts_chunks do
         piped_asts = pipe_chunk_of_asts([{quote(do: value), _index = 0}] ++ asts_chunk)
 
         quote do
-          unquote(ast_acc)
-          env = unquote(env_with_line_from_asts(asts_chunk))
-          next? = IEx.Pry.__next__(next?, binding(), env)
           value = unquote(piped_asts)
 
           IEx.Pry.__dbg_pipe_step__(
@@ -708,7 +711,26 @@ defmodule IEx.Pry do
             options
           )
         end
-    end
+      end
+
+    next_binding = fn _expr, _binding = :ok -> :ok end
+
+    next_pry =
+      fn line, _version, _binding ->
+        quote do
+          next? = IEx.Pry.__next__(next?, binding(), %{env | line: unquote(line)})
+        end
+      end
+
+    annotate_quoted(
+      {:__block__, [], main_block},
+      prelude,
+      first_line,
+      _version = 0,
+      _binding = :ok,
+      next_binding,
+      next_pry
+    )
   end
 
   def dbg(ast, options, %Macro.Env{} = env) when is_list(options) do
@@ -752,21 +774,5 @@ defmodule IEx.Pry do
 
   defp asts_chunk_to_strings(asts) do
     Enum.map(asts, fn {ast, _pipe_index} -> Macro.to_string(ast) end)
-  end
-
-  defp env_with_line_from_asts(asts) do
-    line =
-      Enum.find_value(asts, fn
-        {{_fun_or_var, meta, _args}, _pipe_index} -> meta[:line]
-        {_ast, _pipe_index} -> nil
-      end)
-
-    if line do
-      quote do
-        %{env | line: unquote(line)}
-      end
-    else
-      quote do: env
-    end
   end
 end
