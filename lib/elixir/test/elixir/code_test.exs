@@ -647,11 +647,17 @@ defmodule Code.SyncTest do
   end
 
   test "purges compiler modules" do
-    quoted = quote(do: Agent.start_link(fn -> :ok end))
+    quoted = quote(do: :ok)
     Code.compile_quoted(quoted)
 
     {:ok, claimed} = Code.purge_compiler_modules()
     assert claimed > 0
+
+    {:ok, claimed} = Code.purge_compiler_modules()
+    assert claimed == 0
+
+    quoted = quote(do: Agent.start_link(fn -> :ok end))
+    Code.compile_quoted(quoted)
 
     {:ok, claimed} = Code.purge_compiler_modules()
     assert claimed == 0

@@ -102,6 +102,11 @@ handle_cast(purge_compiler_modules, Config) ->
   case Used of
     [] -> ok;
     _ ->
+      %% Purging modules became more expensive in Erlang/OTP 27+,
+      %% so we accumulate them all during compilation and then
+      %% purge them asynchronously, especially because they can
+      %% block the code server. Ideally we would purge them in
+      %% batches, but that's not supported at the moment.
       Opts = [{monitor, [{tag, {purged, Used}}]}],
       erlang:spawn_opt(fun() ->
         [code:purge(Module) || Module <- Used],
