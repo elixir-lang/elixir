@@ -19,6 +19,14 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
+
+      File.write!("lib/a.ex", """
+      defmodule A, do: :ok
+
+      # Also make sure that we access the ebin directory during compilation
+      true = to_charlist(Mix.Project.compile_path()) in :code.get_path()
+      """)
+
       Mix.Tasks.Compile.Elixir.run(["--verbose"])
 
       assert File.regular?("_build/shared/lib/sample/ebin/Elixir.A.beam")
@@ -32,6 +40,14 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   test "compiles a project with per environment build" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
+
+      File.write!("lib/a.ex", """
+      defmodule A, do: :ok
+
+      # Also make sure that we access the ebin directory during compilation
+      true = to_charlist(Mix.Project.compile_path()) in :code.get_path()
+      """)
+
       Mix.Tasks.Compile.Elixir.run(["--verbose"])
 
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
@@ -772,7 +788,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
-  test "compiles mtime changed files if content changed but not length" do
+  test "recompiles mtime changed files if content changed but not length" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
@@ -872,7 +888,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
-  test "compiles size changed files" do
+  test "recompiles size changed files" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
       past = @old_time
@@ -894,7 +910,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
-  test "compiles dependent changed modules" do
+  test "recompiles dependent changed modules" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
       File.write!("lib/a.ex", "defmodule A, do: B.module_info()")
@@ -914,7 +930,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
-  test "compiles dependent changed modules without beam files" do
+  test "recompiles dependent changed modules without beam files" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
 
@@ -943,7 +959,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     Code.put_compiler_option(:ignore_module_conflict, false)
   end
 
-  test "compiles dependent changed modules even on removal" do
+  test "recompiles dependent changed modules even on removal" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
       File.write!("lib/a.ex", "defmodule A, do: B.module_info()")
@@ -964,7 +980,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
-  test "compiles dependent changed on conflict" do
+  test "recompiles dependent changed on conflict" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
 
@@ -991,7 +1007,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
-  test "compiles dependent changed external resources" do
+  test "recompiles dependent changed external resources" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
       tmp = tmp_path("c.eex")
