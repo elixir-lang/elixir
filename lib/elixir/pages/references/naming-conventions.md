@@ -124,3 +124,22 @@ When you see `length`, the operation runs in linear time ("O(n) time") because t
 Examples: `length/1`, `String.length/1`
 
 In other words, functions using the word "size" in its name will take the same amount of time whether the data structure is tiny or huge. Conversely, functions having "length" in its name will take more time as the data structure grows in size.
+
+### get, fetch, fetch!
+
+When you see the functions `get`, `fetch`, and `fetch!` for collections, you can expect the following behaviours:
+
+- `get` returns `nil` if the item is not present in the collection, or the requested item.
+- `fetch` returns `:error` if the item is not present in the collection, `{:ok, item}` if it is.
+- `fetch!` *raises* if the item is not present in the collection, or the requested item.
+
+Examples: `Map.get/2`, `Map.fetch/2`, `Map.fetch!/2`, `Keyword.get/2`, `Keyword.fetch/2`, `Keyword.fetch!/2`
+
+### compare
+
+The function `compare/2` should return `:lt` if the first term is less than the second, `:eq` if the two
+terms compare as equivalent, or `:gt` if the first term is greater than the second.
+
+Examples: `DateTime.compare/2`
+
+Note that this specific behaviour is important due to the expectations of `Enum.sort/2`
