@@ -666,6 +666,9 @@ defmodule URI do
             end
         end
 
+      %{port: :undefined} ->
+        %{uri | port: nil}
+
       %{} ->
         uri
     end

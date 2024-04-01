@@ -97,6 +97,20 @@ defmodule URITest do
       assert URI.new("") == {:ok, %URI{}}
     end
 
+    test "missing port part after host never resolves to :undefined" do
+      assert URI.new("//https://www.example.com") ==
+               {:ok,
+                %URI{
+                  scheme: nil,
+                  userinfo: nil,
+                  host: "https",
+                  port: nil,
+                  path: "//www.example.com",
+                  query: nil,
+                  fragment: nil
+                }}
+    end
+
     test "errors on bad URIs" do
       assert URI.new("/>") == {:error, ">"}
       assert URI.new(":https") == {:error, ":"}
