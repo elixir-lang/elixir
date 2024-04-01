@@ -42,6 +42,7 @@ defmodule Logger.Formatter do
     * `$date`     - the date the log message was sent
     * `$message`  - the log message
     * `$level`    - the log level
+    * `$sev`      - the abbreviated severity (capitalized first letter of the log level, e.g. "I" for :info)
     * `$node`     - the node that prints the message
     * `$metadata` - user controlled data presented in `"key=val key2=val2 "` format
 
@@ -80,8 +81,8 @@ defmodule Logger.Formatter do
   @type time_ms :: {0..23, 0..59, 0..59, 0..999}
   @type date_time_ms :: {date, time_ms}
 
-  @type pattern :: :date | :level | :levelpad | :message | :metadata | :node | :time
-  @valid_patterns [:time, :date, :message, :level, :node, :metadata, :levelpad]
+  @type pattern :: :date | :sev | :level | :levelpad | :message | :metadata | :node | :time
+  @valid_patterns [:time, :date, :message, :sev, :level, :node, :metadata, :levelpad]
   @default_pattern "\n$time $metadata[$level] $message\n"
   @replacement "�"
 
@@ -455,6 +456,7 @@ defmodule Logger.Formatter do
   defp output(:date, _, _, {date, _time}, _), do: format_date(date)
   defp output(:time, _, _, {_date, time}, _), do: format_time(time)
   defp output(:level, level, _, _, _), do: Atom.to_string(level)
+  defp output(:sev, level, _, _, _), do: severity(level)
   defp output(:node, _, _, _, _), do: Atom.to_string(node())
   defp output(:metadata, _, _, _, []), do: ""
   defp output(:metadata, _, _, _, meta), do: metadata(meta)
@@ -464,6 +466,17 @@ defmodule Logger.Formatter do
   defp levelpad(:info), do: " "
   defp levelpad(:warn), do: " "
   defp levelpad(_), do: ""
+
+  defp severity(:info), do: "I"
+  defp severity(:notice), do: "N"
+  defp severity(:warning), do: "W"
+  defp severity(:warn), do: "W"
+  defp severity(:error), do: "E"
+  defp severity(:debug), do: "D"
+  defp severity(:critical), do: "C"
+  defp severity(:alert), do: "A"
+  defp severity(:emergency), do: "X"
+  defp severity(level), do: Atom.to_string(level)
 
   defp metadata([{key, value} | metadata]) do
     if formatted = metadata(key, value) do

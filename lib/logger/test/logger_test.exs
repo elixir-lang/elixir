@@ -571,6 +571,27 @@ defmodule LoggerTest do
     Application.start(:logger)
   end
 
+  test "starts the application with custom formatter containing :lev" do
+    Application.put_env(:logger, :default_formatter, format: "$sev: $message")
+    Application.put_env(:logger, :default_handler, colors: [enabled: false])
+    Logger.App.stop()
+    Application.start(:logger)
+
+    for lev <- [:debug, :info, :notice, :warning, :error, :critical, :alert, :emergency] do
+      prefix =
+        if lev == :emergency,
+          do: "X",
+          else: Atom.to_string(lev) |> String.first() |> String.upcase()
+
+      assert capture_log(fn -> Logger.log(lev, "hello") end) =~ prefix <> ": hello"
+    end
+  after
+    Application.delete_env(:logger, :default_formatter)
+    Application.delete_env(:logger, :default_handler)
+    Logger.App.stop()
+    Application.start(:logger)
+  end
+
   test "starts the application with custom handler" do
     Application.put_env(:logger, :default_handler,
       level: :error,
