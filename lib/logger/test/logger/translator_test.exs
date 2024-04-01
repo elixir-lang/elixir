@@ -65,6 +65,41 @@ defmodule Logger.TranslatorTest do
     end
   end
 
+  defmodule MyGenStatem do
+    @behaviour :gen_statem
+
+    @impl true
+    def callback_mode, do: :state_functions
+
+    @impl true
+    def init(args) do
+      {:ok, :started, args}
+    end
+
+    def started(:cast, :error, _) do
+      raise "oops"
+    end
+
+    def started({:call, _}, :exit, _) do
+      exit(:oops)
+    end
+
+    def started({:call, _}, :error, _) do
+      raise "oops"
+    end
+
+    def started({:call, from}, {:execute, fun}, data) do
+      fun.()
+      {:keep_state_and_data, {:reply, from, {:started, data}}}
+    end
+
+    def started({:call, {pid, _}}, :error_on_down, _) do
+      mon = Process.monitor(pid)
+      assert_receive {:DOWN, ^mon, _, _, _}
+      raise "oops"
+    end
+  end
+
   defmodule MyBridge do
     @behaviour :supervisor_bridge
 
@@ -339,6 +374,180 @@ defmodule Logger.TranslatorTest do
 
     assert_receive {:event, {:string, [[":gen_event handler " <> _ | _] | _]}, metadata}
     assert {%RuntimeError{message: "oops"}, [_ | _]} = metadata[:crash_reason]
+  end
+
+  test "translates :gen_statem crashes" do
+    {:ok, pid} = :gen_statem.start(MyGenStatem, :ok, [])
+
+    assert capture_log(:info, fn ->
+             catch_exit(:gen_statem.call(pid, :error))
+           end) =~ """
+           [error] :gen_statem #{inspect(pid)} terminating
+           ** (RuntimeError) oops
+           """
+
+    assert_receive {:event, {:string, [":gen_statem " <> _ | _]}, gen_statem_metadata}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
+
+    assert {%RuntimeError{message: "oops"}, [_ | _]} = gen_statem_metadata[:crash_reason]
+    assert {%RuntimeError{message: "oops"}, [_ | _]} = process_metadata[:crash_reason]
+
+    refute Map.has_key?(gen_statem_metadata, :initial_call)
+    assert process_metadata[:initial_call] == {Logger.TranslatorTest.MyGenStatem, :init, 1}
+
+    refute Map.has_key?(gen_statem_metadata, :registered_name)
+    refute Map.has_key?(process_metadata, :registered_name)
+  end
+
+  test "translates :gen_statem crashes with local name", config do
+    {:ok, pid} = :gen_statem.start({:local, config.test}, MyGenStatem, :ok, [])
+    capture_log(:info, fn -> catch_exit(:gen_statem.call(pid, :error)) end)
+
+    assert_receive {:event, {:string, [":gen_statem " <> _ | _]}, gen_statem_metadata}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
+
+    assert gen_statem_metadata[:registered_name] == config.test
+    assert process_metadata[:registered_name] == config.test
+  end
+
+  test "translates :gen_statem crashes with global name", config do
+    {:ok, pid} = :gen_statem.start({:global, config.test}, MyGenStatem, :ok, [])
+    capture_log(:info, fn -> catch_exit(:gen_statem.call(pid, :error)) end)
+
+    assert_receive {:event, {:string, [":gen_statem " <> _ | _]}, gen_statem_metadata}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
+
+    assert gen_statem_metadata[:registered_name] == config.test
+    refute Map.has_key?(process_metadata, :registered_name)
+  end
+
+  @tag skip: System.otp_release() < "27"
+  test "translates :gen_statem crashes with process label" do
+    {:ok, pid} = :gen_statem.start(MyGenStatem, :ok)
+    :ok = :gen_statem.call(pid, {:execute, fn -> Process.set_label({:any, "term"}) end})
+
+    assert capture_log(:info, fn -> catch_exit(:gen_statem.call(pid, :error)) end) =~ ~r"""
+           \[error\] :gen_statem #PID<\d+\.\d+\.\d+> terminating
+           \*\* \(RuntimeError\) oops
+           .*
+           Process Label: {:any, \"term\"}
+           Queue: .*
+           Postponed: \[\]
+           """s
+  end
+
+  test "translates :gen_statem crashes with custom inspect options" do
+    {:ok, pid} = :gen_statem.start(MyGenStatem, List.duplicate(:ok, 1000), [])
+    Application.put_env(:logger, :translator_inspect_opts, limit: 3)
+
+    assert capture_log(:debug, fn ->
+             catch_exit(:gen_statem.call(pid, :error))
+           end) =~ """
+           [:ok, :ok, :ok, ...]
+           """
+  after
+    Application.put_env(:logger, :translator_inspect_opts, [])
+  end
+
+  test "translates :gen_statem crashes on debug" do
+    {:ok, pid} = :gen_statem.start(MyGenStatem, :ok, [])
+
+    assert capture_log(:debug, fn ->
+             catch_exit(GenServer.call(pid, :error))
+           end) =~ ~r"""
+           \[error\] :gen_statem #PID<\d+\.\d+\.\d+> terminating
+           \*\* \(RuntimeError\) oops
+           .*
+           Queue: .*
+           Postponed: \[\]
+           State: :started
+           Data: :ok
+           Callback mode: :state_functions, state_enter: false
+           Client #PID<\d+\.\d+\.\d+> is alive
+           .*
+           """s
+
+    assert_receive {:event, {:string, [[":gen_statem " <> _ | _] | _]}, gen_statem_metadata}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
+
+    assert {%RuntimeError{message: "oops"}, [_ | _]} = gen_statem_metadata[:crash_reason]
+    assert {%RuntimeError{message: "oops"}, [_ | _]} = process_metadata[:crash_reason]
+  end
+
+  test "translates :gen_statem crashed with named client on debug" do
+    {:ok, pid} = :gen_statem.start(MyGenStatem, :ok, [])
+
+    assert capture_log(:debug, fn ->
+             Process.register(self(), :named_client)
+             catch_exit(:gen_statem.call(pid, :error))
+           end) =~ ~r"""
+           \[error\] :gen_statem #PID<\d+\.\d+\.\d+> terminating
+           \*\* \(RuntimeError\) oops
+           .*
+           Queue: .*
+           Postponed: \[\]
+           State: :started
+           Data: :ok
+           Callback mode: :state_functions, state_enter: false
+           Client :named_client is alive
+           .*
+           """s
+  end
+
+  test "translates :gen_statem crashes with dead client on debug" do
+    {:ok, pid} = :gen_statem.start(MyGenStatem, :ok, [])
+
+    assert capture_log(:debug, fn ->
+             mon = Process.monitor(pid)
+
+             spawn_link(fn ->
+               catch_exit(:gen_statem.call(pid, :error_on_down, 0))
+             end)
+
+             assert_receive {:DOWN, ^mon, _, _, _}
+           end) =~ ~r"""
+           \[error\] :gen_statem #PID<\d+\.\d+\.\d+> terminating
+           \*\* \(RuntimeError\) oops
+           .*
+           Queue: .*
+           Postponed: \[\]
+           State: :started
+           Data: :ok
+           Callback mode: :state_functions, state_enter: false
+           Client #PID<\d+\.\d+\.\d+> is dead
+           """s
+  end
+
+  test "translates :gen_statem crashes with no client" do
+    {:ok, pid} = :gen_statem.start(MyGenStatem, :ok, [])
+
+    assert capture_log(:debug, fn ->
+             mon = Process.monitor(pid)
+             :gen_statem.cast(pid, :error)
+             assert_receive {:DOWN, ^mon, _, _, _}
+           end) =~ ~r"""
+           \[error\] :gen_statem #PID<\d+\.\d+\.\d+> terminating
+           \*\* \(RuntimeError\) oops
+           .*
+           Queue: .*
+           Postponed: \[\]
+           State: :started
+           Data: :ok
+           Callback mode: :state_functions, state_enter: false
+           """s
+  end
+
+  test "translates :gen_statem crashes with no client on debug" do
+    {:ok, pid} = :gen_statem.start(MyGenStatem, :ok, [])
+
+    refute capture_log(:debug, fn ->
+             mon = Process.monitor(pid)
+             :gen_statem.cast(pid, :error)
+             assert_receive {:DOWN, ^mon, _, _, _}
+           end) =~ "Client"
+
+    assert_receive {:event, {:string, [[":gen_statem " <> _ | _] | _]}, _gen_statem_metadata}
+    assert_receive {:event, {:string, ["Process " | _]}, _process_metadata}
   end
 
   test "translates Task crashes" do
