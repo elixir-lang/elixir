@@ -309,8 +309,17 @@ defmodule Logger.Translator do
     {formatted, reason} = format_reason({reason, stack})
     metadata = [crash_reason: reason] ++ registered_name(name)
 
+    label_msg =
+      case report do
+        %{process_label: process_label} when process_label != :undefined ->
+          ["\nProcess Label: ", inspect(process_label, inspect_opts)]
+
+        _ ->
+          []
+      end
+
     msg =
-      [":gen_statem ", inspect(name), " terminating", formatted] ++
+      [":gen_statem ", inspect(name), " terminating", formatted, label_msg] ++
         ["\nQueue: #{inspect(queue, inspect_opts)}"] ++
         ["\nPostponed: #{inspect(postponed, inspect_opts)}"]
 

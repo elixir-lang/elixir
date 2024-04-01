@@ -423,8 +423,10 @@ defmodule Logger.TranslatorTest do
 
   @tag skip: System.otp_release() < "27"
   test "translates :gen_statem crashes with process label" do
-    {:ok, pid} = :gen_statem.start(MyGenStatem, :ok)
-    :ok = :gen_statem.call(pid, {:execute, fn -> Process.set_label({:any, "term"}) end})
+    {:ok, pid} = :gen_statem.start(MyGenStatem, :ok, [])
+
+    {:started, :ok} =
+      :gen_statem.call(pid, {:execute, fn -> Process.set_label({:any, "term"}) end})
 
     assert capture_log(:info, fn -> catch_exit(:gen_statem.call(pid, :error)) end) =~ ~r"""
            \[error\] :gen_statem #PID<\d+\.\d+\.\d+> terminating
