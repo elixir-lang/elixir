@@ -50,7 +50,6 @@ defmodule Time do
           calendar: Calendar.calendar()
         }
 
-  @parts_per_day 86_400_000_000
   @seconds_per_day 24 * 60 * 60
 
   @doc """
@@ -524,17 +523,19 @@ defmodule Time do
 
     unless valid? do
       raise ArgumentError,
-            "unsupported time unit. Expected :hour, :minute, :second, :millisecond, " <>
-              ":microsecond, :nanosecond, or a positive integer, got #{inspect(unit)}"
+            "unsupported time unit. Expected :hour, :minute, :second, :millisecond, :microsecond, :nanosecond, or a positive integer, got #{inspect(unit)}"
     end
 
-    amount_to_add = System.convert_time_unit(amount_to_add, unit, :microsecond)
-    total = time_to_microseconds(time) + amount_to_add
-    parts = Integer.mod(total, @parts_per_day)
+    %{hour: hour, minute: minute, second: second, microsecond: microsecond} = time
+
     precision = max(Calendar.ISO.time_unit_to_precision(unit), precision)
 
-    {hour, minute, second, {microsecond, _}} =
-      calendar.time_from_day_fraction({parts, @parts_per_day})
+    {hour, minute, second, {microsecond, _precision}} =
+      Calendar.ISO.shift_time_unit(
+        {hour, minute, second, microsecond},
+        amount_to_add,
+        unit
+      )
 
     %Time{
       hour: hour,
@@ -543,21 +544,6 @@ defmodule Time do
       microsecond: {microsecond, precision},
       calendar: calendar
     }
-  end
-
-  defp time_to_microseconds(%{
-         calendar: Calendar.ISO,
-         hour: 0,
-         minute: 0,
-         second: 0,
-         microsecond: {0, _}
-       }) do
-    0
-  end
-
-  defp time_to_microseconds(time) do
-    iso_days = {0, to_day_fraction(time)}
-    Calendar.ISO.iso_days_to_unit(iso_days, :microsecond)
   end
 
   @doc """

@@ -1550,7 +1550,8 @@ defmodule Calendar.ISO do
     end)
   end
 
-  defp shift_days({year, month, day}, days) do
+  @doc false
+  def shift_days({year, month, day}, days) do
     {year, month, day} =
       date_to_iso_days(year, month, day)
       |> Kernel.+(days)
@@ -1576,32 +1577,35 @@ defmodule Calendar.ISO do
     {new_year, new_month, new_day}
   end
 
-  defp shift_time_unit({year, month, day, hour, minute, second, microsecond}, value, unit)
-       when unit in [:second, :microsecond] do
+  @doc false
+  def shift_time_unit({year, month, day, hour, minute, second, microsecond}, value, unit)
+      when unit in [:second, :millisecond, :microsecond, :nanosecond] or is_integer(unit) do
     {value, precision} = shift_time_unit_values(value, microsecond)
-
-    ppd = System.convert_time_unit(86400, :second, unit)
 
     {year, month, day, hour, minute, second, {ms_value, _}} =
       naive_datetime_to_iso_days(year, month, day, hour, minute, second, microsecond)
-      |> add_day_fraction_to_iso_days(value, ppd)
+      |> shift_time_unit(value, unit)
       |> naive_datetime_from_iso_days()
 
     {year, month, day, hour, minute, second, {ms_value, precision}}
   end
 
-  defp shift_time_unit({hour, minute, second, microsecond}, value, unit)
-       when unit in [:second, :microsecond] do
+  def shift_time_unit({hour, minute, second, microsecond}, value, unit)
+      when unit in [:second, :millisecond, :microsecond, :nanosecond] or is_integer(unit) do
     {value, precision} = shift_time_unit_values(value, microsecond)
 
-    time = {0, time_to_day_fraction(hour, minute, second, microsecond)}
-    amount_to_add = System.convert_time_unit(value, unit, :microsecond)
-    total = iso_days_to_unit(time, :microsecond) + amount_to_add
-    parts = Integer.mod(total, @parts_per_day)
+    {_days, day_fraction} =
+      shift_time_unit({0, time_to_day_fraction(hour, minute, second, microsecond)}, value, unit)
 
-    {hour, minute, second, {microsecond, _}} = time_from_day_fraction({parts, @parts_per_day})
+    {hour, minute, second, {microsecond, _}} = time_from_day_fraction(day_fraction)
 
     {hour, minute, second, {microsecond, precision}}
+  end
+
+  def shift_time_unit({_days, _day_fraction} = iso_days, value, unit)
+      when unit in [:second, :millisecond, :microsecond, :nanosecond] or is_integer(unit) do
+    ppd = System.convert_time_unit(86400, :second, unit)
+    add_day_fraction_to_iso_days(iso_days, value, ppd)
   end
 
   defp shift_time_unit_values({0, _}, {_, original_precision}) do
