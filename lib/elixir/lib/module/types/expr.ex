@@ -189,7 +189,7 @@ defmodule Module.Types.Expr do
   end
 
   @try_blocks [:do, :after]
-  @try_clause_blocks [:catch, :else, :after]
+  @try_clause_blocks [:catch, :else]
 
   # TODO: try do expr end
   def of_expr({:try, _meta, [blocks]}, stack, context) do

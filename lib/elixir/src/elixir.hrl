@@ -8,7 +8,7 @@
 -record(elixir_ex, {
   caller=false,            %% stores if __CALLER__ is allowed
   %% TODO: Remove warn and everywhere it is set in v2.0
-  prematch=warn,           %% {Read, Counter, {bitsize, Original} | none} | warn | raise | pin
+  prematch=raise,          %% {Read, Counter, {bitsize, Original} | none} | warn | raise | pin
   stacktrace=false,        %% stores if __STACKTRACE__ is allowed
   unused={#{}, 0},         %% a map of unused vars and a version counter for vars
   runtime_modules=[],      %% a list of modules defined in functions (runtime)
