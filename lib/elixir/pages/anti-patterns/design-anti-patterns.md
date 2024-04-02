@@ -187,6 +187,14 @@ A common practice followed by the community is to make the non-raising version r
 
 #### Additional remarks
 
+This anti-pattern is of special importance to library authors and whenever writing functions that will be invoked by other developers and third-party code. Nevertheless, there are still scenarios where developers can afford to raise exceptions directly, for example:
+
+  * invalid arguments: it is expected that functions will raise for invalid arguments, as those are structural error and not semantic errors. For example, `File.read(123)` will always raise, because `123` is never a valid filename
+
+  * during tests, scripts, etc: those are common scenarios where you want your code to fail as soon as possible in case of errors. Using `!` functions, such as `File.read!/1`, allows you to do so quickly and with clear error messages
+
+  * some frameworks, such as [Phoenix](https://phoenixframework.org), allow developers to raise exceptions in their code and uses a protocol to convert these exceptions into semantic HTTP responses
+
 This anti-pattern was formerly known as [Using exceptions for control-flow](https://github.com/lucasvegi/Elixir-Code-Smells#using-exceptions-for-control-flow).
 
 ## Primitive obsession
