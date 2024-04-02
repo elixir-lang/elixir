@@ -205,6 +205,17 @@ iex> time_zone
 "Etc/UTC"
 ```
 
+### Duration
+
+A [%Duration{}](`Duration`) struct represents a collection of time scale units, The `~P` sigil allows developers to create Durations from an ISO 8601-2 formatted duration string:
+
+```elixir
+iex> ~P[P1Y2M3DT4H5M6S]
+%Duration{year: 1, month: 2, day: 3, hour: 4, minute: 5, second: 6}
+iex> ~P[-P1Y-3WT4H-1.5S]
+%Duration{year: -1, week: 3, hour: -4, second: 1, microsecond: {500000, 6}}
+```
+
 ## Custom sigils
 
 As hinted at the beginning of this chapter, sigils in Elixir are extensible. In fact, using the sigil `~r/foo/i` is equivalent to calling `sigil_r` with a binary and a char list as the argument:
