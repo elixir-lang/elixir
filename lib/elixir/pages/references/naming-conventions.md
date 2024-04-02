@@ -127,11 +127,11 @@ In other words, functions using the word "size" in its name will take the same a
 
 ### get, fetch, fetch!
 
-When you see the functions `get`, `fetch`, and `fetch!` for collections, you can expect the following behaviours:
+When you see the functions `get`, `fetch`, and `fetch!` for key-value data structures, you can expect the following behaviours:
 
-- `get` returns `nil` if the item is not present in the collection, or the requested item.
-- `fetch` returns `:error` if the item is not present in the collection, `{:ok, item}` if it is.
-- `fetch!` *raises* if the item is not present in the collection, or the requested item.
+- `get` returns `nil` if the key is not present, or the requested value.
+- `fetch` returns `:error` if the key is not present, `{:ok, value}` if it is.
+- `fetch!` *raises* if the key is not present, or the requested value.
 
 Examples: `Map.get/2`, `Map.fetch/2`, `Map.fetch!/2`, `Keyword.get/2`, `Keyword.fetch/2`, `Keyword.fetch!/2`
 
