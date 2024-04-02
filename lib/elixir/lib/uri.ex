@@ -656,8 +656,11 @@ defmodule URI do
         scheme = String.downcase(scheme, :ascii)
 
         case map do
-          %{port: port} when port != :undefined ->
+          %{port: port} when is_integer(port) ->
             %{uri | scheme: scheme}
+
+          %{port: :undefined} ->
+            %{uri | scheme: scheme, port: default_port(scheme)}
 
           %{} ->
             case default_port(scheme) do
