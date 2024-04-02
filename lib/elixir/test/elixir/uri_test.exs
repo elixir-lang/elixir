@@ -277,6 +277,32 @@ defmodule URITest do
     test "preserves an empty query" do
       assert URI.new!("http://foo.com/?").query == ""
     end
+
+    test "without scheme, undefined port after host translates to nil" do
+      assert URI.new!("//https://www.example.com") ==
+               %URI{
+                 scheme: nil,
+                 userinfo: nil,
+                 host: "https",
+                 port: nil,
+                 path: "//www.example.com",
+                 query: nil,
+                 fragment: nil
+               }
+    end
+
+    test "with scheme, undefined port after host translates to nil" do
+      assert URI.new!("myscheme://myhost:/path/info") ==
+               %URI{
+                 scheme: "myscheme",
+                 userinfo: nil,
+                 host: "myhost",
+                 port: nil,
+                 path: "/path/info",
+                 query: nil,
+                 fragment: nil
+               }
+    end
   end
 
   test "http://http://http://@http://http://?http://#http://" do
