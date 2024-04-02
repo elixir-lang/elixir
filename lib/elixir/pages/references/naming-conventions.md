@@ -129,9 +129,9 @@ In other words, functions using the word "size" in its name will take the same a
 
 When you see the functions `get`, `fetch`, and `fetch!` for key-value data structures, you can expect the following behaviours:
 
-- `get` returns `nil` if the key is not present, or the requested value.
-- `fetch` returns `:error` if the key is not present, `{:ok, value}` if it is.
-- `fetch!` *raises* if the key is not present, or the requested value.
+- `get` returns a default value (which itself defaults to `nil`) if the key is not present, or returns the requested value.
+- `fetch` returns `:error` if the key is not present, or returns `{:ok, value}` if it is.
+- `fetch!` *raises* if the key is not present, or returns the requested value.
 
 Examples: `Map.get/2`, `Map.fetch/2`, `Map.fetch!/2`, `Keyword.get/2`, `Keyword.fetch/2`, `Keyword.fetch!/2`
 
@@ -142,4 +142,4 @@ terms compare as equivalent, or `:gt` if the first term is greater than the seco
 
 Examples: `DateTime.compare/2`
 
-Note that this specific behaviour is important due to the expectations of `Enum.sort/2`
+Note that this specific convention is important due to the expectations of `Enum.sort/2`
