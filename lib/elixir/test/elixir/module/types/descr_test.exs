@@ -24,7 +24,9 @@ defmodule Module.Types.DescrTest do
       assert union(atom(), atom([:a])) == atom()
       assert union(atom([:a]), atom([:b])) == atom([:a, :b])
       assert union(atom([:a]), negation(atom([:b]))) == negation(atom([:b]))
-      assert union(negation(atom([:a, :b])), negation(atom([:b, :c]))) == negation(atom([:b]))
+
+      assert union(negation(atom([:a, :b])), negation(atom([:b, :c])))
+             |> equal?(negation(atom([:b])))
     end
 
     test "all primitive types" do
@@ -51,6 +53,18 @@ defmodule Module.Types.DescrTest do
       assert equal?(union(dynamic(), term()), term())
       assert equal?(union(term(), dynamic()), term())
       assert equal?(union(intersection(dynamic(), atom()), atom()), atom())
+    end
+
+    test "map" do
+      assert equal?(union(map(), map()), map())
+      assert equal?(union(map(a: integer()), map()), map())
+      assert equal?(union(map(a: integer()), negation(map(a: integer()))), term())
+
+      a_integer_open = map([a: integer()], :open)
+      assert equal?(union(map(a: integer()), a_integer_open), a_integer_open)
+
+      assert difference(map([a: integer()], :open), map(b: boolean()))
+             |> equal?(map([a: integer()], :open))
     end
   end
 
@@ -85,6 +99,19 @@ defmodule Module.Types.DescrTest do
       assert empty?(intersection(dynamic(), none()))
       assert empty?(intersection(intersection(dynamic(), atom()), integer()))
     end
+
+    test "map" do
+      assert intersection(map(), map()) == map()
+      assert equal?(intersection(map(a: integer()), map()), map(a: integer()))
+
+      a_integer_open = map([a: integer()], :open)
+      assert equal?(intersection(map(a: integer()), a_integer_open), map(a: integer()))
+
+      optional_a_integer_closed = map([a: if_set(integer())], :closed)
+      assert equal?(intersection(map(a: integer()), optional_a_integer_closed), map(a: integer()))
+
+      assert empty?(intersection(map(a: integer()), map(a: atom())))
+    end
   end
 
   describe "difference" do
@@ -118,6 +145,22 @@ defmodule Module.Types.DescrTest do
       assert empty?(difference(dynamic(), term()))
       assert empty?(difference(none(), dynamic()))
     end
+
+    test "map" do
+      assert empty?(difference(map(), map()))
+      assert empty?(difference(map(), term()))
+      assert equal?(difference(map(), none()), map())
+      assert empty?(difference(map(a: integer()), map()))
+      assert empty?(difference(map(a: integer()), map(a: integer())))
+      assert empty?(difference(map(a: integer()), map([a: integer()], :open)))
+
+      assert difference(map(a: integer(), b: if_set(atom())), map(a: integer()))
+             |> difference(map(a: integer(), b: atom()))
+             |> empty?()
+
+      assert difference(map([a: atom()], :open), map(b: integer()))
+             |> equal?(map([a: atom()], :open))
+    end
   end
 
   describe "subtype" do
@@ -145,6 +188,19 @@ defmodule Module.Types.DescrTest do
       assert subtype?(intersection(dynamic(), integer()), integer())
       assert subtype?(integer(), union(dynamic(), integer()))
     end
+
+    test "map" do
+      assert subtype?(map(), term())
+      assert subtype?(map([a: integer()], :closed), map())
+      assert subtype?(map([a: integer()], :closed), map([a: integer()], :closed))
+      assert subtype?(map([a: integer()], :closed), map([a: integer()], :open))
+      assert subtype?(map([a: integer(), b: atom()], :closed), map([a: integer()], :open))
+      assert subtype?(map(a: integer()), map(a: union(integer(), atom())))
+
+      # optional
+      refute subtype?(map(a: if_set(integer())), map(a: integer()))
+      assert subtype?(map(a: integer()), map(a: if_set(integer())))
+    end
   end
 
   describe "compatible" do
@@ -169,6 +225,64 @@ defmodule Module.Types.DescrTest do
       assert compatible?(term(), dynamic())
       assert compatible?(dynamic(), integer())
       assert compatible?(integer(), dynamic())
+    end
+
+    test "map" do
+      assert compatible?(map(a: integer()), map())
+      assert compatible?(intersection(dynamic(), map()), map(a: integer()))
+    end
+  end
+
+  describe "map operations" do
+    test "get field" do
+      assert map_get!(map(a: integer()), :a) == integer()
+      assert map_get!(dynamic(), :a) == dynamic()
+
+      assert map_get!(intersection(dynamic(), map([a: integer()], :open)), :a) ==
+               intersection(integer(), dynamic())
+
+      assert intersection(
+               map([my_map: map([foo: integer()], :open)], :open),
+               map([my_map: map([bar: boolean()], :open)], :open)
+             )
+             |> map_get!(:my_map)
+             |> equal?(map([foo: integer(), bar: boolean()], :open))
+
+      assert map_get!(union(map(a: integer()), map(a: atom())), :a) == union(integer(), atom())
+      assert map_get!(union(map(a: integer()), map(b: atom())), :a) == integer()
+      assert map_get!(term(), :a) == term()
+    end
+
+    test "key presence" do
+      assert map_has_key?(map(a: integer()), :a)
+      refute map_has_key?(map(a: integer()), :b)
+      refute map_has_key?(map(), :a)
+      refute map_has_key?(map(a: union(integer(), not_set())), :a)
+      refute map_has_key?(union(map(a: integer()), map(b: atom())), :a)
+      assert map_has_key?(union(map(a: integer()), map(a: atom())), :a)
+      assert map_has_key?(intersection(dynamic(), map(a: integer())), :a)
+      refute map_has_key?(intersection(dynamic(), map(a: integer())), :b)
+
+      refute map_may_have_key?(map(foo: integer()), :bar)
+      assert map_may_have_key?(map(foo: integer()), :foo)
+      assert map_may_have_key?(dynamic(), :foo)
+      refute map_may_have_key?(intersection(dynamic(), map([foo: not_set()], :open)), :foo)
+    end
+
+    test "type-checking map access" do
+      # dynamic() and %{..., :a => integer(), b: not_set()}
+      t = intersection(dynamic(), map([a: integer(), c: not_set()], :open))
+
+      assert subtype?(map_get!(t, :a), integer())
+      assert map_get!(t, :b) == dynamic()
+
+      assert map_has_key?(t, :a)
+      refute map_has_key?(t, :b)
+      refute map_has_key?(t, :c)
+
+      assert map_may_have_key?(t, :a)
+      assert map_may_have_key?(t, :b)
+      refute map_may_have_key?(t, :c)
     end
   end
 
@@ -212,6 +326,39 @@ defmodule Module.Types.DescrTest do
 
       assert union(atom([:foo, :bar]), dynamic()) |> to_quoted_string() ==
                "dynamic() or (:bar or :foo)"
+
+      assert intersection(dynamic(), map(a: integer())) |> to_quoted_string() ==
+               "dynamic() and %{:a => integer()}"
+    end
+
+    test "map" do
+      assert map() |> to_quoted_string() == "%{...}"
+      assert map(a: integer()) |> to_quoted_string() == "%{:a => integer()}"
+      assert map([a: float()], :open) |> to_quoted_string() == "%{..., :a => float()}"
+
+      # TODO: support this simplification
+      # assert difference(map(), map([a: term()], :open)) |> to_quoted_string() ==
+      #          "%{..., :a => not_set()}"
+
+      assert map(a: integer(), b: atom()) |> to_quoted_string() ==
+               "%{:a => integer(), :b => atom()}"
+
+      assert map([a: float()], :open)
+             |> difference(map([a: float()], :closed))
+             |> to_quoted_string() == "%{..., :a => float()} and not %{:a => float()}"
+
+      assert difference(map(), empty_map()) |> to_quoted_string() == "%{...} and not %{}"
+
+      assert map(foo: union(integer(), not_set())) |> to_quoted_string() ==
+               "%{:foo => if_set(integer())}"
+
+      assert difference(map([a: integer()], :open), map(b: boolean())) |> to_quoted_string() ==
+               "%{..., :a => integer()}"
+
+      assert map([a: integer(), b: atom()], :open)
+             |> difference(map([b: atom()], :open))
+             |> union(map([a: integer()], :open))
+             |> to_quoted_string() == "%{..., :a => integer()}"
     end
   end
 end
