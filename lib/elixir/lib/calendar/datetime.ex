@@ -894,7 +894,7 @@ defmodule DateTime do
       -17412508655
 
   """
-  @spec to_unix(Calendar.datetime(), System.time_unit()) :: integer
+  @spec to_unix(Calendar.datetime(), :native | System.time_unit()) :: integer
   def to_unix(datetime, unit \\ :second)
 
   def to_unix(%{utc_offset: utc_offset, std_offset: std_offset} = datetime, unit) do
