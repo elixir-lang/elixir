@@ -59,12 +59,13 @@ defmodule Duration do
   end
 
   defp validate_duration_unit!({:microsecond, {ms, precision}})
-       when is_integer(ms) and is_integer(precision) do
+       when is_integer(ms) and precision in 0..6 do
     :ok
   end
 
   defp validate_duration_unit!({:microsecond, microsecond}) do
-    raise ArgumentError, "expected a tuple {ms, precision} for microsecond, got #{microsecond}"
+    raise ArgumentError,
+          "expected a tuple {ms, precision} for microsecond where precision is an integer from 0 to 6, got #{inspect(microsecond)}"
   end
 
   defp validate_duration_unit!({_unit, value}) when is_integer(value) do
@@ -72,7 +73,7 @@ defmodule Duration do
   end
 
   defp validate_duration_unit!({unit, value}) do
-    raise ArgumentError, "expected an integer for #{unit}, got #{value}"
+    raise ArgumentError, "expected an integer for #{inspect(unit)}, got #{inspect(value)}"
   end
 
   @doc """
