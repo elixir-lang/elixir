@@ -13,6 +13,7 @@ defmodule Duration do
 
   @moduledoc since: "1.17.0"
 
+  @derive {Inspect, optional: [:year, :month, :week, :day, :hour, :minute, :second, :microsecond]}
   defstruct year: 0,
             month: 0,
             week: 0,
