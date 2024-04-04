@@ -651,6 +651,50 @@ defmodule NaiveDateTime do
   end
 
   @doc """
+  Returns the current naive datetime in UTC subtracting the given `duration`.
+
+  ## Examples
+
+      iex> ndt = NaiveDateTime.utc_ago(day: 1)
+      iex> ndt == NaiveDateTime.add(NaiveDateTime.utc_now(), -1, :day)
+
+      iex> ndt = NaiveDateTime.utc_ago(month: 1)
+      iex> ndt == NaiveDateTime.shift(NaiveDateTime.utc_now(), month: -1)
+
+  """
+  @doc since: "1.17.0"
+  @spec utc_ago(Duration.t() | [Duration.unit_pair()]) :: t
+  def utc_ago(%Duration{} = duration) do
+    shift(utc_now(), Duration.negate(duration))
+  end
+
+  def utc_ago(duration) do
+    utc_ago(Duration.new!(duration))
+  end
+
+  @doc """
+  Returns the current naive datetime in UTC adding the given `duration`.
+
+  ## Examples
+
+      iex> ndt = NaiveDateTime.utc_ago(day: 1)
+      iex> ndt == NaiveDateTime.add(NaiveDateTime.utc_now(), 1, :day)
+
+      iex> ndt = NaiveDateTime.utc_ago(month: 1)
+      iex> ndt == NaiveDateTime.shift(NaiveDateTime.utc_now(), month: 1)
+
+  """
+  @doc since: "1.17.0"
+  @spec utc_from_now(Duration.t() | [Duration.unit_pair()]) :: t
+  def utc_from_now(%Duration{} = duration) do
+    shift(utc_now(), duration)
+  end
+
+  def utc_from_now(duration) do
+    utc_from_now(Duration.new!(duration))
+  end
+
+  @doc """
   Returns the given naive datetime with the microsecond field truncated to the
   given precision (`:microsecond`, `:millisecond` or `:second`).
 

@@ -810,6 +810,50 @@ defmodule Date do
     shift(date, Duration.new!(duration))
   end
 
+  @doc """
+  Returns the current date in UTC subtracting the given `duration`.
+
+  ## Examples
+
+      iex> date = Date.utc_ago(day: 1)
+      iex> date == Date.add(Date.utc_today(), -1)
+
+      iex> date = Date.utc_ago(month: 1)
+      iex> date == Date.shift(Date.utc_today(), month: -1)
+
+  """
+  @doc since: "1.17.0"
+  @spec utc_ago(Duration.t() | [Duration.unit_pair()]) :: t
+  def utc_ago(%Duration{} = duration) do
+    shift(utc_today(), Duration.negate(duration))
+  end
+
+  def utc_ago(duration) do
+    utc_ago(Duration.new!(duration))
+  end
+
+  @doc """
+  Returns the current date in UTC adding the given `duration`.
+
+  ## Examples
+
+      iex> date = Date.utc_from_today(day: 1)
+      iex> date == Date.add(Date.utc_today(), 1)
+
+      iex> date = Date.utc_from_today(month: 1)
+      iex> date == Date.shift(Date.utc_today(), month: 1)
+
+  """
+  @doc since: "1.17.0"
+  @spec utc_from_today(Duration.t() | [Duration.unit_pair()]) :: t
+  def utc_from_today(%Duration{} = duration) do
+    shift(utc_today(), duration)
+  end
+
+  def utc_from_today(duration) do
+    utc_from_today(Duration.new!(duration))
+  end
+
   @doc false
   def to_iso_days(%{calendar: Calendar.ISO, year: year, month: month, day: day}) do
     {Calendar.ISO.date_to_iso_days(year, month, day), {0, 86_400_000_000}}

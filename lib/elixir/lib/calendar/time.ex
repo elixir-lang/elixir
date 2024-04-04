@@ -606,6 +606,50 @@ defmodule Time do
   end
 
   @doc """
+  Returns the current time in UTC subtracting the given `duration`.
+
+  ## Examples
+
+      iex> time = Time.utc_ago(hour: 1)
+      iex> time == Time.add(Time.utc_now(), -1, :hour)
+
+      iex> time = Time.utc_ago(minute: 30)
+      iex> time == Time.add(Time.utc_now(), -30, :minute)
+
+  """
+  @doc since: "1.17.0"
+  @spec utc_ago(Duration.t() | [Duration.unit_pair()]) :: t
+  def utc_ago(%Duration{} = duration) do
+    shift(utc_now(), Duration.negate(duration))
+  end
+
+  def utc_ago(duration) do
+    utc_ago(Duration.new!(duration))
+  end
+
+  @doc """
+  Returns the current Time in UTC adding the given `duration`.
+
+  ## Examples
+
+      iex> time = Time.utc_ago(hour: 1)
+      iex> time == Time.add(Time.utc_now(), 1, :hour)
+
+      iex> time = Time.utc_ago(minute: 30)
+      iex> time == Time.add(Time.utc_now(), 30, :minute)
+
+  """
+  @doc since: "1.17.0"
+  @spec utc_from_now(Duration.t() | [Duration.unit_pair()]) :: t
+  def utc_from_now(%Duration{} = duration) do
+    shift(utc_now(), duration)
+  end
+
+  def utc_from_now(duration) do
+    utc_from_now(Duration.new!(duration))
+  end
+
+  @doc """
   Compares two time structs.
 
   Returns `:gt` if first time is later than the second
