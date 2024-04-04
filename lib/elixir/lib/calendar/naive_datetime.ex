@@ -647,7 +647,7 @@ defmodule NaiveDateTime do
   end
 
   def shift(naive_datetime, duration) do
-    shift(naive_datetime, Duration.new(duration))
+    shift(naive_datetime, Duration.new!(duration))
   end
 
   @doc """

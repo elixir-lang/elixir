@@ -784,7 +784,7 @@ defmodule Date do
       ~D[2015-12-30]
       iex> Date.shift(~D[2016-01-31], year: 4, day: 1)
       ~D[2020-02-01]
-      iex> Date.shift(~D[2016-01-03], Duration.new(month: 2))
+      iex> Date.shift(~D[2016-01-03], Duration.new!(month: 2))
       ~D[2016-03-03]
 
       # leap years
@@ -807,7 +807,7 @@ defmodule Date do
   end
 
   def shift(date, duration) do
-    shift(date, Duration.new(duration))
+    shift(date, Duration.new!(duration))
   end
 
   @doc false

@@ -1460,13 +1460,13 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.shift_date(2016, 1, 3, Duration.new(month: 2))
+      iex> Calendar.ISO.shift_date(2016, 1, 3, Duration.new!(month: 2))
       {2016, 3, 3}
-      iex> Calendar.ISO.shift_date(2016, 2, 29, Duration.new(month: 1))
+      iex> Calendar.ISO.shift_date(2016, 2, 29, Duration.new!(month: 1))
       {2016, 3, 29}
-      iex> Calendar.ISO.shift_date(2016, 1, 31, Duration.new(month: 1))
+      iex> Calendar.ISO.shift_date(2016, 1, 31, Duration.new!(month: 1))
       {2016, 2, 29}
-      iex> Calendar.ISO.shift_date(2016, 1, 31, Duration.new(year: 4, day: 1))
+      iex> Calendar.ISO.shift_date(2016, 1, 31, Duration.new!(year: 4, day: 1))
       {2020, 2, 1}
   """
   @impl true
@@ -1491,11 +1491,11 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, Duration.new(hour: 1))
+      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, Duration.new!(hour: 1))
       {2016, 1, 3, 1, 0, 0, {0, 0}}
-      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, Duration.new(hour: 30))
+      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, Duration.new!(hour: 30))
       {2016, 1, 4, 6, 0, 0, {0, 0}}
-      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, Duration.new(microsecond: {100, 6}))
+      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, Duration.new!(microsecond: {100, 6}))
       {2016, 1, 3, 0, 0, 0, {100, 6}}
   """
   @impl true
@@ -1530,9 +1530,9 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.shift_time(13, 0, 0, {0, 0}, Duration.new(hour: 2))
+      iex> Calendar.ISO.shift_time(13, 0, 0, {0, 0}, Duration.new!(hour: 2))
       {15, 0, 0, {0, 0}}
-      iex> Calendar.ISO.shift_time(13, 0, 0, {0, 0}, Duration.new(microsecond: {100, 6}))
+      iex> Calendar.ISO.shift_time(13, 0, 0, {0, 0}, Duration.new!(microsecond: {100, 6}))
       {13, 0, 0, {100, 6}}
   """
   @impl true

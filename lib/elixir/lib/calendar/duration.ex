@@ -7,8 +7,8 @@ defmodule Duration do
 
   Date and time scale units are represented as integers, allowing for both positive and negative values.
 
-  Microseconds are represented using a tuple `{microsecond, precision}`.
-  This ensures compatibility with other calendar types implementing time, such as `Time`, `DateTime`, and `NaiveDateTime`.
+  Microseconds are represented using a tuple `{microsecond, precision}`. This ensures compatibility with
+  other calendar types implementing time, such as `Time`, `DateTime`, and `NaiveDateTime`.
   """
 
   @moduledoc since: "1.17.0"
@@ -44,24 +44,26 @@ defmodule Duration do
           | {:microsecond, {integer, 0..6}}
 
   @doc """
-  Creates a new `Duration` struct from given `units`.
+  Creates a new `Duration` struct from given `unit_pairs`.
 
-  Raises a `KeyError` when called with invalid units.
+  Raises a `KeyError` when called with invalid unit keys.
+
+  Raises an `ArgumentError` when called with invalid unit values.
 
   ## Examples
 
-      iex> Duration.new(year: 1, week: 3, hour: 4, second: 1)
+      iex> Duration.new!(year: 1, week: 3, hour: 4, second: 1)
       %Duration{year: 1, week: 3, hour: 4, second: 1}
-      iex> Duration.new(second: 1, microsecond: {1000, 6})
+      iex> Duration.new!(second: 1, microsecond: {1000, 6})
       %Duration{second: 1, microsecond: {1000, 6}}
-      iex> Duration.new(month: 2)
+      iex> Duration.new!(month: 2)
       %Duration{month: 2}
 
   """
-  @spec new([unit_pair]) :: t
-  def new(units) do
-    Enum.each(units, &validate_duration_unit!/1)
-    struct!(Duration, units)
+  @spec new!([unit_pair]) :: t
+  def new!(unit_pairs) do
+    Enum.each(unit_pairs, &validate_duration_unit!/1)
+    struct!(Duration, unit_pairs)
   end
 
   defp validate_duration_unit!({:microsecond, {ms, precision}})

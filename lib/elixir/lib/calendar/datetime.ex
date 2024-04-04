@@ -1826,7 +1826,7 @@ defmodule DateTime do
   end
 
   def shift(datetime, duration, time_zone_database) do
-    shift(datetime, Duration.new(duration), time_zone_database)
+    shift(datetime, Duration.new!(duration), time_zone_database)
   end
 
   @doc """

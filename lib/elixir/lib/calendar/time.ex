@@ -580,7 +580,7 @@ defmodule Time do
       ~T[01:17:05]
       iex> Time.shift(~T[01:00:15], microsecond: {100, 6})
       ~T[01:00:15.000100]
-      iex> Time.shift(~T[01:15:00], Duration.new(second: 65))
+      iex> Time.shift(~T[01:15:00], Duration.new!(second: 65))
       ~T[01:16:05]
 
   """
@@ -602,7 +602,7 @@ defmodule Time do
   end
 
   def shift(time, duration) do
-    shift(time, Duration.new(duration))
+    shift(time, Duration.new!(duration))
   end
 
   @doc """
