@@ -1856,10 +1856,10 @@ defmodule DateTime do
 
   ## Examples
 
-      iex> ndt = DateTime.utc_ago(day: 1)
+      iex> ndt = DateTime.utc_from_now(day: 1)
       iex> ndt == DateTime.add(DateTime.utc_now(), 1, :day)
 
-      iex> ndt = DateTime.utc_ago(month: 1)
+      iex> ndt = DateTime.utc_from_now(month: 1)
       iex> ndt == DateTime.shift(DateTime.utc_now(), month: 1)
 
   """

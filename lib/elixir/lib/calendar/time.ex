@@ -632,10 +632,10 @@ defmodule Time do
 
   ## Examples
 
-      iex> time = Time.utc_ago(hour: 1)
+      iex> time = Time.utc_from_now(hour: 1)
       iex> time == Time.add(Time.utc_now(), 1, :hour)
 
-      iex> time = Time.utc_ago(minute: 30)
+      iex> time = Time.utc_from_now(minute: 30)
       iex> time == Time.add(Time.utc_now(), 30, :minute)
 
   """

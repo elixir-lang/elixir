@@ -677,10 +677,10 @@ defmodule NaiveDateTime do
 
   ## Examples
 
-      iex> ndt = NaiveDateTime.utc_ago(day: 1)
+      iex> ndt = NaiveDateTime.utc_from_now(day: 1)
       iex> ndt == NaiveDateTime.add(NaiveDateTime.utc_now(), 1, :day)
 
-      iex> ndt = NaiveDateTime.utc_ago(month: 1)
+      iex> ndt = NaiveDateTime.utc_from_now(month: 1)
       iex> ndt == NaiveDateTime.shift(NaiveDateTime.utc_now(), month: 1)
 
   """
