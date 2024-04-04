@@ -208,4 +208,12 @@ defmodule DateTest do
       Date.shift(date, month: 1)
     end
   end
+
+  test "utc_ago/1" do
+    assert Date.utc_ago(day: 1) == Date.add(Date.utc_today(), -1)
+  end
+
+  test "utc_from_today/1" do
+    assert Date.utc_from_today(day: 1) == Date.add(Date.utc_today(), 1)
+  end
 end

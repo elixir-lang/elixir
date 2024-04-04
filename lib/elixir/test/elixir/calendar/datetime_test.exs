@@ -1155,4 +1155,18 @@ defmodule DateTimeTest do
       DateTime.shift(~U[2012-01-01 00:00:00Z], months: 12)
     end
   end
+
+  test "utc_ago/1" do
+    datetime = DateTime.utc_ago(day: 1)
+    expected = DateTime.add(DateTime.utc_now(), -1, :day)
+
+    assert datetime.day == expected.day
+  end
+
+  test "utc_from_now/1" do
+    datetime = DateTime.utc_from_now(day: 1)
+    expected = DateTime.add(DateTime.utc_now(), 1, :day)
+
+    assert datetime.day == expected.day
+  end
 end

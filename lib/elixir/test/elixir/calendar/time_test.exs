@@ -121,4 +121,18 @@ defmodule TimeTest do
       Time.shift(time, hours: 12)
     end
   end
+
+  test "utc_ago/1" do
+    time = Time.utc_ago(hour: 1)
+    expected = Time.add(Time.utc_now(), -1, :hour)
+
+    assert time.hour == expected.hour
+  end
+
+  test "utc_from_now/1" do
+    time = Time.utc_ago(minute: 30)
+    expected = Time.add(Time.utc_now(), 30, :minute)
+
+    assert time.minute == expected.minute
+  end
 end
