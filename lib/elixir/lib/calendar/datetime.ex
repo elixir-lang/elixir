@@ -1681,9 +1681,14 @@ defmodule DateTime do
 
   Allowed units are: `:year`, `:month`, `:week`, `:day`, `:hour`, `:minute`, `:second`, `:microsecond`.
 
-  Shifting datetimes in time zones that observe "Daylight Saving Time" across
-  summer/winter time will add/remove one hour from the resulting datetime.
-  This ensures `shift/3` always returns a valid datetime.
+  This operation is equivalent to shifting the datetime wall clock (in other words,
+  the values as we see them printed), then applying the time zone offset before
+  computing the new time zone. This ensures `shift/3` always returns a valid
+  datetime.
+
+  On other other hand, time zones that observe "Daylight Saving Time"
+  or other changes, across summer/winter time will add/remove hours
+  from the resulting datetime:
 
       dt = DateTime.new!(~D[2019-03-31], ~T[01:00:00], "Europe/Copenhagen")
       DateTime.shift(dt, hour: 1)
@@ -1692,6 +1697,12 @@ defmodule DateTime do
       dt = DateTime.new!(~D[2018-11-04], ~T[00:00:00], "America/Los_Angeles")
       DateTime.shift(dt, hour: 2)
       #=> #DateTime<2018-11-04 01:00:00-08:00 PST America/Los_Angeles>
+
+  In case you don't want these changes to happen automatically or you
+  want to surface timezone conflicts to the user, you can shift
+  the datetime as a naive datetime and then use `from_naive/2`:
+
+      dt |> NaiveDateTime.shift(duration) |> DateTime.from_naive(dt.time_zone)
 
   When using the default ISO calendar, durations are collapsed and
   applied in the order of months, then seconds and microseconds:
