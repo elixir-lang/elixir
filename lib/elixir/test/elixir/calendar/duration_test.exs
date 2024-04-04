@@ -219,24 +219,24 @@ defmodule DurationTest do
   end
 
   test "parse/1" do
-    assert Duration.parse("P1Y2M3DT4H5M6S") ==
+    assert Duration.from_iso8601("P1Y2M3DT4H5M6S") ==
              {:ok, %Duration{year: 1, month: 2, day: 3, hour: 4, minute: 5, second: 6}}
 
-    assert Duration.parse("P3WT5H3M") == {:ok, %Duration{week: 3, hour: 5, minute: 3}}
-    assert Duration.parse("PT5H3M") == {:ok, %Duration{hour: 5, minute: 3}}
-    assert Duration.parse("P1Y2M3D") == {:ok, %Duration{year: 1, month: 2, day: 3}}
-    assert Duration.parse("PT4H5M6S") == {:ok, %Duration{hour: 4, minute: 5, second: 6}}
-    assert Duration.parse("P1Y2M") == {:ok, %Duration{year: 1, month: 2}}
-    assert Duration.parse("P3D") == {:ok, %Duration{day: 3}}
-    assert Duration.parse("PT4H5M") == {:ok, %Duration{hour: 4, minute: 5}}
-    assert Duration.parse("PT6S") == {:ok, %Duration{second: 6}}
-    assert Duration.parse("P5H3HT4M") == {:error, "unexpected character: H"}
-    assert Duration.parse("P4Y2W3Y") == {:error, "year was already provided"}
-    assert Duration.parse("invalid") == {:error, "invalid duration string"}
+    assert Duration.from_iso8601("P3WT5H3M") == {:ok, %Duration{week: 3, hour: 5, minute: 3}}
+    assert Duration.from_iso8601("PT5H3M") == {:ok, %Duration{hour: 5, minute: 3}}
+    assert Duration.from_iso8601("P1Y2M3D") == {:ok, %Duration{year: 1, month: 2, day: 3}}
+    assert Duration.from_iso8601("PT4H5M6S") == {:ok, %Duration{hour: 4, minute: 5, second: 6}}
+    assert Duration.from_iso8601("P1Y2M") == {:ok, %Duration{year: 1, month: 2}}
+    assert Duration.from_iso8601("P3D") == {:ok, %Duration{day: 3}}
+    assert Duration.from_iso8601("PT4H5M") == {:ok, %Duration{hour: 4, minute: 5}}
+    assert Duration.from_iso8601("PT6S") == {:ok, %Duration{second: 6}}
+    assert Duration.from_iso8601("P5H3HT4M") == {:error, "unexpected character: H"}
+    assert Duration.from_iso8601("P4Y2W3Y") == {:error, "year was already provided"}
+    assert Duration.from_iso8601("invalid") == {:error, "invalid duration string"}
   end
 
   test "parse!/1" do
-    assert Duration.parse!("P1Y2M3DT4H5M6S") == %Duration{
+    assert Duration.from_iso8601!("P1Y2M3DT4H5M6S") == %Duration{
              year: 1,
              month: 2,
              day: 3,
@@ -245,43 +245,54 @@ defmodule DurationTest do
              second: 6
            }
 
-    assert Duration.parse!("P3WT5H3M") == %Duration{week: 3, hour: 5, minute: 3}
-    assert Duration.parse!("PT5H3M") == %Duration{hour: 5, minute: 3}
-    assert Duration.parse!("P1Y2M3D") == %Duration{year: 1, month: 2, day: 3}
-    assert Duration.parse!("PT4H5M6S") == %Duration{hour: 4, minute: 5, second: 6}
-    assert Duration.parse!("P1Y2M") == %Duration{year: 1, month: 2}
-    assert Duration.parse!("P3D") == %Duration{day: 3}
-    assert Duration.parse!("PT4H5M") == %Duration{hour: 4, minute: 5}
-    assert Duration.parse!("PT6S") == %Duration{second: 6}
-    assert Duration.parse!("PT1.6S") == %Duration{second: 1, microsecond: {600_000, 6}}
-    assert Duration.parse!("PT1.12345678S") == %Duration{second: 1, microsecond: {123_456, 6}}
-    assert Duration.parse!("P3Y4W-3DT-6S") == %Duration{year: 3, week: 4, day: -3, second: -6}
-    assert Duration.parse!("PT-4.23S") == %Duration{second: -4, microsecond: {-230_000, 6}}
-    assert Duration.parse!("-P3WT5H3M") == %Duration{week: -3, hour: -5, minute: -3}
-    assert Duration.parse!("-P-3WT5H3M") == %Duration{week: 3, hour: -5, minute: -3}
+    assert Duration.from_iso8601!("P3WT5H3M") == %Duration{week: 3, hour: 5, minute: 3}
+    assert Duration.from_iso8601!("PT5H3M") == %Duration{hour: 5, minute: 3}
+    assert Duration.from_iso8601!("P1Y2M3D") == %Duration{year: 1, month: 2, day: 3}
+    assert Duration.from_iso8601!("PT4H5M6S") == %Duration{hour: 4, minute: 5, second: 6}
+    assert Duration.from_iso8601!("P1Y2M") == %Duration{year: 1, month: 2}
+    assert Duration.from_iso8601!("P3D") == %Duration{day: 3}
+    assert Duration.from_iso8601!("PT4H5M") == %Duration{hour: 4, minute: 5}
+    assert Duration.from_iso8601!("PT6S") == %Duration{second: 6}
+    assert Duration.from_iso8601!("PT1.6S") == %Duration{second: 1, microsecond: {600_000, 6}}
+
+    assert Duration.from_iso8601!("PT1.12345678S") == %Duration{
+             second: 1,
+             microsecond: {123_456, 6}
+           }
+
+    assert Duration.from_iso8601!("P3Y4W-3DT-6S") == %Duration{
+             year: 3,
+             week: 4,
+             day: -3,
+             second: -6
+           }
+
+    assert Duration.from_iso8601!("PT-4.23S") == %Duration{second: -4, microsecond: {-230_000, 6}}
+    assert Duration.from_iso8601!("-P3WT5H3M") == %Duration{week: -3, hour: -5, minute: -3}
+    assert Duration.from_iso8601!("-P-3WT5H3M") == %Duration{week: 3, hour: -5, minute: -3}
 
     assert_raise ArgumentError,
                  ~s/failed to parse duration. reason: "unexpected character: H"/,
                  fn ->
-                   Duration.parse!("P5H3HT4M")
+                   Duration.from_iso8601!("P5H3HT4M")
                  end
 
     assert_raise ArgumentError,
                  ~s/failed to parse duration. reason: "year was already provided"/,
                  fn ->
-                   Duration.parse!("P4Y2W3Y")
+                   Duration.from_iso8601!("P4Y2W3Y")
                  end
 
     assert_raise ArgumentError,
                  ~s/failed to parse duration. reason: "invalid duration string"/,
                  fn ->
-                   Duration.parse!("invalid")
+                   Duration.from_iso8601!("invalid")
                  end
 
     assert_raise ArgumentError,
                  ~s/failed to parse duration. reason: "invalid value for year: 4.5"/,
                  fn ->
-                   Duration.parse!("P4.5YT6S")
+                   Duration.from_iso8601!("P4.5YT6S")
                  end
   end
 

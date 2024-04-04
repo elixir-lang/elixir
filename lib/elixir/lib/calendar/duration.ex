@@ -203,24 +203,24 @@ defmodule Duration do
 
   ## Examples
 
-      iex> Duration.parse("P1Y2M3DT4H5M6S")
+      iex> Duration.from_iso8601("P1Y2M3DT4H5M6S")
       {:ok, %Duration{year: 1, month: 2, day: 3, hour: 4, minute: 5, second: 6}}
-      iex> Duration.parse("PT10H30M")
+      iex> Duration.from_iso8601("PT10H30M")
       {:ok, %Duration{hour: 10, minute: 30, second: 0}}
-      iex> Duration.parse("P3Y-2MT3H")
+      iex> Duration.from_iso8601("P3Y-2MT3H")
       {:ok, %Duration{year: 3, month: -2, hour: 3}}
-      iex> Duration.parse("-P3Y2MT3H")
+      iex> Duration.from_iso8601("-P3Y2MT3H")
       {:ok, %Duration{year: -3, month: -2, hour: -3}}
-      iex> Duration.parse("-P3Y-2MT3H")
+      iex> Duration.from_iso8601("-P3Y-2MT3H")
       {:ok, %Duration{year: -3, month: 2, hour: -3}}
 
   """
-  @spec parse(String.t()) :: {:ok, t} | {:error, String.t()}
-  def parse("P" <> duration_string) do
+  @spec from_iso8601(String.t()) :: {:ok, t} | {:error, String.t()}
+  def from_iso8601("P" <> duration_string) do
     parse(duration_string, %{}, "", false)
   end
 
-  def parse("-P" <> duration_string) do
+  def from_iso8601("-P" <> duration_string) do
     case parse(duration_string, %{}, "", false) do
       {:ok, duration} ->
         {:ok, negate(duration)}
@@ -230,7 +230,7 @@ defmodule Duration do
     end
   end
 
-  def parse(_) do
+  def from_iso8601(_) do
     {:error, "invalid duration string"}
   end
 
@@ -239,13 +239,13 @@ defmodule Duration do
 
   ## Examples
 
-      iex> Duration.parse!("P1Y2M3DT4H5M6S")
+      iex> Duration.from_iso8601!("P1Y2M3DT4H5M6S")
       %Duration{year: 1, month: 2, day: 3, hour: 4, minute: 5, second: 6}
 
   """
-  @spec parse!(String.t()) :: t
-  def parse!(duration_string) do
-    case parse(duration_string) do
+  @spec from_iso8601!(String.t()) :: t
+  def from_iso8601!(duration_string) do
+    case from_iso8601(duration_string) do
       {:ok, duration} ->
         duration
 

@@ -6676,7 +6676,7 @@ defmodule Kernel do
 
   defmacro sigil_P({:<<>>, _, [duration_string]}, []) do
     quote do
-      Duration.parse!(unquote(duration_string))
+      Duration.from_iso8601!(unquote(duration_string))
     end
   end
 
