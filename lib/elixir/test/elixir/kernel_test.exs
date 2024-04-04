@@ -1502,7 +1502,7 @@ defmodule KernelTest do
   end
 
   describe "to_timeout/1" do
-    test "converts a timeout to milliseconds" do
+    test "works with keyword lists" do
       assert to_timeout(hour: 2) == 1000 * 60 * 60 * 2
       assert to_timeout(minute: 74) == 1000 * 60 * 74
       assert to_timeout(second: 1293) == 1_293_000
@@ -1513,7 +1513,7 @@ defmodule KernelTest do
       assert to_timeout(minute: 74, second: 30) == 1000 * 60 * 74 + 1000 * 30
     end
 
-    test "raises on invalid values" do
+    test "raises on invalid values with keyword lists" do
       for unit <- [:hour, :minute, :second, :millisecond],
           value <- [-1, 1.0, :not_an_int] do
         message =
@@ -1524,18 +1524,49 @@ defmodule KernelTest do
       end
     end
 
-    test "raises on invalid keys" do
+    test "raises on invalid keys with keyword lists" do
       message =
         "timeout component :not_a_unit is not a valid timeout component, valid values are: " <>
-          ":hour, :minute, :second, :millisecond"
+          ":week, :day, :hour, :minute, :second, :millisecond"
 
       assert_raise ArgumentError, message, fn -> to_timeout(minute: 3, not_a_unit: 1) end
     end
 
-    test "raises on duplicated components" do
+    test "raises on duplicated components with keyword lists" do
       assert_raise ArgumentError, "timeout component :minute is duplicated", fn ->
         to_timeout(minute: 3, hour: 2, minute: 1)
       end
+    end
+
+    test "works with durations" do
+      assert to_timeout(Duration.new!(hour: 2)) == 1000 * 60 * 60 * 2
+      assert to_timeout(Duration.new!(minute: 74)) == 1000 * 60 * 74
+      assert to_timeout(Duration.new!(second: 1293)) == 1_293_000
+      assert to_timeout(Duration.new!(microsecond: {1_234_123, 4})) == 1_234
+
+      assert to_timeout(Duration.new!(hour: 2, minute: 30)) == 1000 * 60 * 60 * 2 + 1000 * 60 * 30
+      assert to_timeout(Duration.new!(minute: 30, hour: 2)) == 1000 * 60 * 60 * 2 + 1000 * 60 * 30
+      assert to_timeout(Duration.new!(minute: 74, second: 30)) == 1000 * 60 * 74 + 1000 * 30
+    end
+
+    test "raises on durations with non-zero months or days" do
+      message = "duration with a non-zero month cannot be reliably converted to timeouts"
+
+      assert_raise ArgumentError, message, fn ->
+        to_timeout(Duration.new!(month: 3))
+      end
+
+      message = "duration with a non-zero year cannot be reliably converted to timeouts"
+
+      assert_raise ArgumentError, message, fn ->
+        to_timeout(Duration.new!(year: 1))
+      end
+    end
+
+    test "works with timeouts" do
+      assert to_timeout(1_000) == 1_000
+      assert to_timeout(0) == 0
+      assert to_timeout(:infinity) == :infinity
     end
   end
 end
