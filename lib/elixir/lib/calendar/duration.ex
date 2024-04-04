@@ -11,6 +11,8 @@ defmodule Duration do
   This ensures compatibility with other calendar types implementing time, such as `Time`, `DateTime`, and `NaiveDateTime`.
   """
 
+  @moduledoc since: "1.17.0"
+
   defstruct year: 0,
             month: 0,
             week: 0,
@@ -28,7 +30,7 @@ defmodule Duration do
           hour: integer,
           minute: integer,
           second: integer,
-          microsecond: {integer, integer}
+          microsecond: {integer, 0..6}
         }
 
   @type unit ::
@@ -39,7 +41,7 @@ defmodule Duration do
           | {:hour, integer}
           | {:minute, integer}
           | {:second, integer}
-          | {:microsecond, {integer, integer}}
+          | {:microsecond, {integer, 0..6}}
 
   @doc """
   Creates a new `Duration` struct from given `units`.
@@ -48,6 +50,10 @@ defmodule Duration do
 
   ## Examples
 
+      iex> Duration.new(year: 1, week: 3, hour: 4, second: 1)
+      %Duration{year: 1, week: 3, hour: 4, second: 1}
+      iex> Duration.new(second: 1, microsecond: {1000, 6})
+      %Duration{second: 1, microsecond: {1000, 6}}
       iex> Duration.new(month: 2)
       %Duration{month: 2}
 
@@ -85,6 +91,8 @@ defmodule Duration do
 
       iex> Duration.add(%Duration{week: 2, day: 1}, %Duration{day: 2})
       %Duration{week: 2, day: 3}
+      iex> Duration.add(%Duration{microsecond: {400, 3}}, %Duration{microsecond: {600, 6}})
+      %Duration{microsecond: {1000, 6}}
 
   """
   @spec add(t, t) :: t
@@ -113,6 +121,8 @@ defmodule Duration do
 
       iex> Duration.subtract(%Duration{week: 2, day: 1}, %Duration{day: 2})
       %Duration{week: 2, day: -1}
+      iex> Duration.subtract(%Duration{microsecond: {400, 6}}, %Duration{microsecond: {600, 3}})
+      %Duration{microsecond: {-200, 6}}
 
   """
   @spec subtract(t, t) :: t
@@ -139,6 +149,8 @@ defmodule Duration do
 
       iex> Duration.multiply(%Duration{day: 1, minute: 15, second: -10}, 3)
       %Duration{day: 3, minute: 45, second: -30}
+      iex> Duration.multiply(%Duration{microsecond: {200, 4}}, 3)
+      %Duration{microsecond: {600, 4}}
 
   """
   @spec multiply(t, integer) :: t
@@ -158,11 +170,12 @@ defmodule Duration do
   @doc """
   Negates `duration` units.
 
-
   ## Examples
 
       iex> Duration.negate(%Duration{day: 1, minute: 15, second: -10})
       %Duration{day: -1, minute: -15, second: 10}
+      iex> Duration.negate(%Duration{microsecond: {500000, 4}})
+      %Duration{microsecond: {-500000, 4}}
 
   """
   @spec negate(t) :: t
