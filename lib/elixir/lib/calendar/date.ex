@@ -793,7 +793,7 @@ defmodule Date do
 
   """
   @doc since: "1.17.0"
-  @spec shift(Calendar.date(), Duration.t() | [Duration.unit()]) :: t
+  @spec shift(Calendar.date(), Duration.t() | [Duration.unit_pair()]) :: t
   def shift(%{calendar: calendar} = date, %Duration{} = duration) do
     %{year: year, month: month, day: day} = date
     {year, month, day} = calendar.shift_date(year, month, day, duration)

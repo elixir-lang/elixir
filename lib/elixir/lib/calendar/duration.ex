@@ -33,7 +33,7 @@ defmodule Duration do
           microsecond: {integer, 0..6}
         }
 
-  @type unit ::
+  @type unit_pair ::
           {:year, integer}
           | {:month, integer}
           | {:week, integer}
@@ -58,7 +58,7 @@ defmodule Duration do
       %Duration{month: 2}
 
   """
-  @spec new([unit]) :: t
+  @spec new([unit_pair]) :: t
   def new(units) do
     Enum.each(units, &validate_duration_unit!/1)
     struct!(Duration, units)

@@ -1730,7 +1730,7 @@ defmodule DateTime do
   @doc since: "1.17.0"
   @spec shift(
           Calendar.datetime(),
-          Duration.t() | [Duration.unit()],
+          Duration.t() | [Duration.unit_pair()],
           Calendar.time_zone_database()
         ) :: t
   def shift(datetime, duration, time_zone_database \\ Calendar.get_time_zone_database())

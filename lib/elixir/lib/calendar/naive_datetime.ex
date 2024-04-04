@@ -604,7 +604,7 @@ defmodule NaiveDateTime do
 
   """
   @doc since: "1.17.0"
-  @spec shift(Calendar.naive_datetime(), Duration.t() | [Duration.unit()]) :: t
+  @spec shift(Calendar.naive_datetime(), Duration.t() | [Duration.unit_pair()]) :: t
   def shift(%{calendar: calendar} = naive_datetime, %Duration{} = duration) do
     %{
       year: year,
