@@ -8,21 +8,21 @@ defmodule DurationTest do
     assert Duration.new!(year: 2, month: 1, week: 3) == %Duration{year: 2, month: 1, week: 3}
     assert Duration.new!(microsecond: {20000, 2}) == %Duration{microsecond: {20000, 2}}
 
-    assert_raise KeyError, ~s/key :months not found/, fn ->
-      Duration.new!(months: 1)
-    end
+    assert_raise ArgumentError,
+                 "expected an integer for :month, got nil",
+                 fn -> Duration.new!(month: nil) end
+
+    assert_raise ArgumentError,
+                 "unexpected unit :years",
+                 fn -> Duration.new!(years: 1) end
 
     assert_raise ArgumentError,
                  ~s/expected a tuple {ms, precision} for microsecond where precision is an integer from 0 to 6, got {1, 2, 3}/,
-                 fn ->
-                   Duration.new!(microsecond: {1, 2, 3})
-                 end
+                 fn -> Duration.new!(microsecond: {1, 2, 3}) end
 
     assert_raise ArgumentError,
                  ~s/expected a tuple {ms, precision} for microsecond where precision is an integer from 0 to 6, got {100, 7}/,
-                 fn ->
-                   Duration.new!(microsecond: {100, 7})
-                 end
+                 fn -> Duration.new!(microsecond: {100, 7}) end
   end
 
   test "add/2" do

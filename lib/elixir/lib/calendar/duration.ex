@@ -47,9 +47,7 @@ defmodule Duration do
   @doc """
   Creates a new `Duration` struct from given `unit_pairs`.
 
-  Raises a `KeyError` when called with invalid unit keys.
-
-  Raises an `ArgumentError` when called with invalid unit values.
+  Raises an `ArgumentError` when called with invalid unit pairs.
 
   ## Examples
 
@@ -75,6 +73,11 @@ defmodule Duration do
   defp validate_duration_unit!({:microsecond, microsecond}) do
     raise ArgumentError,
           "expected a tuple {ms, precision} for microsecond where precision is an integer from 0 to 6, got #{inspect(microsecond)}"
+  end
+
+  defp validate_duration_unit!({unit, _value})
+       when unit not in [:year, :month, :week, :day, :hour, :minute, :second] do
+    raise ArgumentError, "unexpected unit #{inspect(unit)}"
   end
 
   defp validate_duration_unit!({_unit, value}) when is_integer(value) do
