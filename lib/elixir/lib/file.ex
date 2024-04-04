@@ -1363,6 +1363,11 @@ defmodule File do
       {:ok, _} ->
         {:ok, :regular}
 
+      {:error, :eio} when major == :win32 ->
+        # unix domain socket returns `{:error, :eio}`
+        # on other platforms the result is `{:ok, :regular}`
+        {:ok, :regular}
+
       {:error, reason} ->
         {:error, reason}
     end
