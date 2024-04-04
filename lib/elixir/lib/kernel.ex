@@ -6165,31 +6165,38 @@ defmodule Kernel do
   def to_timeout(:infinity), do: :infinity
   def to_timeout(timeout) when is_integer(timeout) and timeout >= 0, do: timeout
 
-  def to_timeout(%Duration{year: year}) when year != 0 do
-    raise ArgumentError, "duration with a non-zero year cannot be reliably converted to timeouts"
-  end
+  def to_timeout(%{__struct__: Duration} = duration) do
+    case duration do
+      %{year: year} when year != 0 ->
+        raise ArgumentError,
+              "duration with a non-zero year cannot be reliably converted to timeouts"
 
-  def to_timeout(%Duration{month: month}) when month != 0 do
-    raise ArgumentError, "duration with a non-zero month cannot be reliably converted to timeouts"
-  end
+      %{month: month} when month != 0 ->
+        raise ArgumentError,
+              "duration with a non-zero month cannot be reliably converted to timeouts"
 
-  def to_timeout(%Duration{} = duration) do
-    {microsecond, _precision} = duration.microsecond
-    millisecond = :erlang.convert_time_unit(microsecond, :microsecond, :millisecond)
+      _other ->
+        {microsecond, _precision} = duration.microsecond
+        millisecond = :erlang.convert_time_unit(microsecond, :microsecond, :millisecond)
 
-    duration.week * unquote(week_in_ms) +
-      duration.day * unquote(day_in_ms) +
-      duration.hour * unquote(hour_in_ms) +
-      duration.minute * 60_000 +
-      duration.second * 1000 +
-      millisecond
+        duration.week * unquote(week_in_ms) +
+          duration.day * unquote(day_in_ms) +
+          duration.hour * unquote(hour_in_ms) +
+          duration.minute * 60_000 +
+          duration.second * 1000 +
+          millisecond
+    end
   end
 
   def to_timeout(components) when is_list(components) do
     reducer = fn
       {key, value}, {acc, seen_keys} when is_integer(value) and value >= 0 ->
-        if :lists.member(key, seen_keys) do
-          raise ArgumentError, "timeout component #{inspect(key)} is duplicated"
+        case :lists.member(key, seen_keys) do
+          true ->
+            raise ArgumentError, "timeout component #{inspect(key)} is duplicated"
+
+          false ->
+            :ok
         end
 
         factor =
