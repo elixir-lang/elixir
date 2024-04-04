@@ -46,7 +46,7 @@ defmodule Duration do
   @doc """
   Creates a new `Duration` struct from given `units`.
 
-  Raises a KeyError when called with invalid units.
+  Raises a `KeyError` when called with invalid units.
 
   ## Examples
 
