@@ -60,7 +60,7 @@ defmodule DateTime do
   a date and time at a given time zone". To understand precisely
   what we mean, let's see an example.
 
-  Imagine someone in Poland wants to schedule a meeting with someone
+  Imagine someone in Poland who wants to schedule a meeting with someone
   in Brazil in the next year. The meeting will happen at 2:30 AM
   in the Polish time zone. At what time will the meeting happen in
   Brazil?
@@ -83,7 +83,7 @@ defmodule DateTime do
   not a problem, because time zone rules do not change for past
   events.
 
-  To make matters worse, it may be that the 2:30 AM in Polish time
+  To make matters worse, it may be that 2:30 AM in Polish time
   does not actually even exist or it is ambiguous. If a certain
   time zone observes "Daylight Saving Time", they will move their
   clock forward once a year. When this happens, there is a whole
@@ -1686,7 +1686,7 @@ defmodule DateTime do
   computing the new time zone. This ensures `shift/3` always returns a valid
   datetime.
 
-  On other other hand, time zones that observe "Daylight Saving Time"
+  On the other hand, time zones that observe "Daylight Saving Time"
   or other changes, across summer/winter time will add/remove hours
   from the resulting datetime:
 
