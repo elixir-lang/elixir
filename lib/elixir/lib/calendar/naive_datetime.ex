@@ -468,23 +468,21 @@ defmodule NaiveDateTime do
   end
 
   def add(
-        %{microsecond: {_, precision}, calendar: calendar} = naive_datetime,
+        %{calendar: calendar, microsecond: {_, precision}} = naive_datetime,
         amount_to_add,
         unit
       )
       when is_integer(amount_to_add) do
-    if not is_integer(unit) and
-         unit not in ~w(second millisecond microsecond nanosecond)a do
+    if not is_integer(unit) and unit not in ~w(second millisecond microsecond nanosecond)a do
       raise ArgumentError,
             "unsupported time unit. Expected :day, :hour, :minute, :second, :millisecond, :microsecond, :nanosecond, or a positive integer, got #{inspect(unit)}"
     end
 
-    ppd = System.convert_time_unit(86400, :second, unit)
     precision = max(Calendar.ISO.time_unit_to_precision(unit), precision)
 
     naive_datetime
     |> to_iso_days()
-    |> Calendar.ISO.add_day_fraction_to_iso_days(amount_to_add, ppd)
+    |> Calendar.ISO.shift_time_unit(amount_to_add, unit)
     |> from_iso_days(calendar, precision)
   end
 

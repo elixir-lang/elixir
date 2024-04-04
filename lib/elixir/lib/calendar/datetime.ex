@@ -1640,30 +1640,28 @@ defmodule DateTime do
     add(datetime, amount_to_add * 60, :second, time_zone_database)
   end
 
-  def add(datetime, amount_to_add, unit, time_zone_database) when is_integer(amount_to_add) do
+  def add(%{calendar: calendar} = datetime, amount_to_add, unit, time_zone_database)
+      when is_integer(amount_to_add) do
     %{
+      microsecond: {_, precision},
+      time_zone: time_zone,
       utc_offset: utc_offset,
-      std_offset: std_offset,
-      calendar: calendar,
-      microsecond: {_, precision}
+      std_offset: std_offset
     } = datetime
 
-    if not is_integer(unit) and
-         unit not in ~w(second millisecond microsecond nanosecond)a do
+    if not is_integer(unit) and unit not in ~w(second millisecond microsecond nanosecond)a do
       raise ArgumentError,
             "unsupported time unit. Expected :day, :hour, :minute, :second, :millisecond, :microsecond, :nanosecond, or a positive integer, got #{inspect(unit)}"
     end
 
-    ppd = System.convert_time_unit(86400, :second, unit)
-    total_offset = System.convert_time_unit(utc_offset + std_offset, :second, unit)
     precision = max(Calendar.ISO.time_unit_to_precision(unit), precision)
 
     result =
       datetime
       |> to_iso_days()
-      # Subtract total offset in order to get UTC and add the integer for the addition
-      |> Calendar.ISO.add_day_fraction_to_iso_days(amount_to_add - total_offset, ppd)
-      |> shift_zone_for_iso_days_utc(calendar, precision, datetime.time_zone, time_zone_database)
+      |> Calendar.ISO.shift_time_unit(amount_to_add, unit)
+      |> apply_tz_offset(utc_offset + std_offset)
+      |> shift_zone_for_iso_days_utc(calendar, precision, time_zone, time_zone_database)
 
     case result do
       {:ok, result_datetime} ->
