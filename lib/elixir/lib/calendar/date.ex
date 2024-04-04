@@ -786,6 +786,12 @@ defmodule Date do
       iex> Date.shift(~D[2016-01-03], Duration.new(month: 2))
       ~D[2016-03-03]
 
+      # leap years
+      iex> Date.shift(~D[2024-02-29], year: 1)
+      ~D[2025-02-28]
+      iex> Date.shift(~D[2024-02-29], year: 4)
+      ~D[2028-02-29]
+
   """
   @doc since: "1.17.0"
   @spec shift(Calendar.date(), Duration.t() | [Duration.unit()]) :: t

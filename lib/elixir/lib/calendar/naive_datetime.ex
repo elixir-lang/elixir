@@ -594,6 +594,12 @@ defmodule NaiveDateTime do
       iex> NaiveDateTime.shift(~N[2016-01-31 00:00:00], microsecond: {100, 6})
       ~N[2016-01-31 00:00:00.000100]
 
+      # leap years
+      iex> NaiveDateTime.shift(~N[2024-02-29 00:00:00], year: 1)
+      ~N[2025-02-28 00:00:00]
+      iex> NaiveDateTime.shift(~N[2024-02-29 00:00:00], year: 4)
+      ~N[2028-02-29 00:00:00]
+
   """
   @doc since: "1.17.0"
   @spec shift(Calendar.naive_datetime(), Duration.t() | [Duration.unit()]) :: t
