@@ -448,6 +448,8 @@ defmodule NaiveDateTime do
       iex> NaiveDateTime.add(dt, 21, :second)
       ~N[2000-02-29 23:00:28]
 
+  To shift a naive datetime by a `Duration` and according to its underlying calendar, use `NaiveDateTime.shift/2`.
+
   """
   @doc since: "1.4.0"
   @spec add(Calendar.naive_datetime(), integer, :day | :hour | :minute | System.time_unit()) :: t
@@ -569,6 +571,83 @@ defmodule NaiveDateTime do
     units1 = naive_datetime1 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(unit)
     units2 = naive_datetime2 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(unit)
     units1 - units2
+  end
+
+  @doc """
+  Shifts given `naive_datetime` by `duration` according to its calendar.
+
+  Allowed units are: `:year`, `:month`, `:week`, `:day`, `:hour`, `:minute`, `:second`, `:microsecond`.
+
+  When using the default ISO calendar, durations are collapsed and
+  applied in the order of months, then seconds and microseconds:
+  - when shifting by 1 year and 2 months the date is actually shifted by 14 months
+  - weeks, days and smaller units are collapsed into seconds and microseconds
+
+  When shifting by month, days are rounded down to the nearest valid date.
+
+  ## Examples
+
+      iex> NaiveDateTime.shift(~N[2016-01-31 00:00:00], month: 1)
+      ~N[2016-02-29 00:00:00]
+      iex> NaiveDateTime.shift(~N[2016-01-31 00:00:00], year: 4, day: 1)
+      ~N[2020-02-01 00:00:00]
+      iex> NaiveDateTime.shift(~N[2016-01-31 00:00:00], year: -2, day: 1)
+      ~N[2014-02-01 00:00:00]
+      iex> NaiveDateTime.shift(~N[2016-01-31 00:00:00], second: 45)
+      ~N[2016-01-31 00:00:45]
+      iex> NaiveDateTime.shift(~N[2016-01-31 00:00:00], microsecond: {100, 6})
+      ~N[2016-01-31 00:00:00.000100]
+
+      # leap years
+      iex> NaiveDateTime.shift(~N[2024-02-29 00:00:00], year: 1)
+      ~N[2025-02-28 00:00:00]
+      iex> NaiveDateTime.shift(~N[2024-02-29 00:00:00], year: 4)
+      ~N[2028-02-29 00:00:00]
+
+      # rounding down
+      iex> NaiveDateTime.shift(~N[2015-01-31 00:00:00], month: 1)
+      ~N[2015-02-28 00:00:00]
+
+  """
+  @doc since: "1.17.0"
+  @spec shift(Calendar.naive_datetime(), Duration.t() | [Duration.unit_pair()]) :: t
+  def shift(%{calendar: calendar} = naive_datetime, %Duration{} = duration) do
+    %{
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond
+    } = naive_datetime
+
+    {year, month, day, hour, minute, second, microsecond} =
+      calendar.shift_naive_datetime(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        microsecond,
+        duration
+      )
+
+    %NaiveDateTime{
+      calendar: calendar,
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond
+    }
+  end
+
+  def shift(naive_datetime, duration) do
+    shift(naive_datetime, Duration.new!(duration))
   end
 
   @doc """

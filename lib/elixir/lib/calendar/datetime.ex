@@ -1610,6 +1610,8 @@ defmodule DateTime do
       iex> result.microsecond
       {21000, 3}
 
+  To shift a datetime by a `Duration` and according to its underlying calendar, use `DateTime.shift/3`.
+
   """
   @doc since: "1.8.0"
   @spec add(
@@ -1672,6 +1674,159 @@ defmodule DateTime do
               "cannot add #{amount_to_add} #{unit} to #{inspect(datetime)} (with time zone " <>
                 "database #{inspect(time_zone_database)}), reason: #{inspect(error)}"
     end
+  end
+
+  @doc """
+  Shifts given `datetime` by `duration` according to its calendar.
+
+  Allowed units are: `:year`, `:month`, `:week`, `:day`, `:hour`, `:minute`, `:second`, `:microsecond`.
+
+  This operation is equivalent to shifting the datetime wall clock (in other words,
+  the values as we see them printed), then applying the time zone offset before
+  computing the new time zone. This ensures `shift/3` always returns a valid
+  datetime.
+
+  On other other hand, time zones that observe "Daylight Saving Time"
+  or other changes, across summer/winter time will add/remove hours
+  from the resulting datetime:
+
+      dt = DateTime.new!(~D[2019-03-31], ~T[01:00:00], "Europe/Copenhagen")
+      DateTime.shift(dt, hour: 1)
+      #=> #DateTime<2019-03-31 03:00:00+02:00 CEST Europe/Copenhagen>
+
+      dt = DateTime.new!(~D[2018-11-04], ~T[00:00:00], "America/Los_Angeles")
+      DateTime.shift(dt, hour: 2)
+      #=> #DateTime<2018-11-04 01:00:00-08:00 PST America/Los_Angeles>
+
+  In case you don't want these changes to happen automatically or you
+  want to surface timezone conflicts to the user, you can shift
+  the datetime as a naive datetime and then use `from_naive/2`:
+
+      dt |> NaiveDateTime.shift(duration) |> DateTime.from_naive(dt.time_zone)
+
+  When using the default ISO calendar, durations are collapsed and
+  applied in the order of months, then seconds and microseconds:
+  - when shifting by 1 year and 2 months the date is actually shifted by 14 months
+  - weeks, days and smaller units are collapsed into seconds and microseconds
+
+  When shifting by month, days are rounded down to the nearest valid date.
+
+  ## Examples
+
+      iex> DateTime.shift(~U[2016-01-01 00:00:00Z], month: 2)
+      ~U[2016-03-01 00:00:00Z]
+      iex> DateTime.shift(~U[2016-01-01 00:00:00Z], year: 1, week: 4)
+      ~U[2017-01-29 00:00:00Z]
+      iex> DateTime.shift(~U[2016-01-01 00:00:00Z], minute: -25)
+      ~U[2015-12-31 23:35:00Z]
+      iex> DateTime.shift(~U[2016-01-01 00:00:00Z], minute: 5, microsecond: {500, 4})
+      ~U[2016-01-01 00:05:00.0005Z]
+
+      # leap years
+      iex> DateTime.shift(~U[2024-02-29 00:00:00Z], year: 1)
+      ~U[2025-02-28 00:00:00Z]
+      iex> DateTime.shift(~U[2024-02-29 00:00:00Z], year: 4)
+      ~U[2028-02-29 00:00:00Z]
+
+      # rounding down
+      iex> DateTime.shift(~U[2015-01-31 00:00:00Z], month: 1)
+      ~U[2015-02-28 00:00:00Z]
+
+  """
+  @doc since: "1.17.0"
+  @spec shift(
+          Calendar.datetime(),
+          Duration.t() | [Duration.unit_pair()],
+          Calendar.time_zone_database()
+        ) :: t
+  def shift(datetime, duration, time_zone_database \\ Calendar.get_time_zone_database())
+
+  def shift(
+        %{calendar: calendar, time_zone: "Etc/UTC"} = datetime,
+        %Duration{} = duration,
+        _time_zone_database
+      ) do
+    %{
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond
+    } = datetime
+
+    {year, month, day, hour, minute, second, microsecond} =
+      calendar.shift_naive_datetime(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        microsecond,
+        duration
+      )
+
+    %DateTime{
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond,
+      time_zone: "Etc/UTC",
+      zone_abbr: "UTC",
+      std_offset: 0,
+      utc_offset: 0
+    }
+  end
+
+  def shift(%{calendar: calendar} = datetime, %Duration{} = duration, time_zone_database) do
+    %{
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond,
+      std_offset: std_offset,
+      utc_offset: utc_offset,
+      time_zone: time_zone
+    } = datetime
+
+    {year, month, day, hour, minute, second, {_, precision} = microsecond} =
+      calendar.shift_naive_datetime(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        microsecond,
+        duration
+      )
+
+    result =
+      calendar.naive_datetime_to_iso_days(year, month, day, hour, minute, second, microsecond)
+      |> apply_tz_offset(utc_offset + std_offset)
+      |> shift_zone_for_iso_days_utc(calendar, precision, time_zone, time_zone_database)
+
+    case result do
+      {:ok, result_datetime} ->
+        result_datetime
+
+      {:error, error} ->
+        raise ArgumentError,
+              "cannot shift #{inspect(datetime)} to #{inspect(duration)} (with time zone " <>
+                "database #{inspect(time_zone_database)}), reason: #{inspect(error)}"
+    end
+  end
+
+  def shift(datetime, duration, time_zone_database) do
+    shift(datetime, Duration.new!(duration), time_zone_database)
   end
 
   @doc """

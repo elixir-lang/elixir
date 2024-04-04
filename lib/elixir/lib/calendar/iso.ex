@@ -1455,6 +1455,224 @@ defmodule Calendar.ISO do
     {days, {@parts_per_day - 1, @parts_per_day}}
   end
 
+  @doc """
+  Shifts Date by Duration according to its calendar.
+
+  ## Examples
+
+      iex> Calendar.ISO.shift_date(2016, 1, 3, Duration.new!(month: 2))
+      {2016, 3, 3}
+      iex> Calendar.ISO.shift_date(2016, 2, 29, Duration.new!(month: 1))
+      {2016, 3, 29}
+      iex> Calendar.ISO.shift_date(2016, 1, 31, Duration.new!(month: 1))
+      {2016, 2, 29}
+      iex> Calendar.ISO.shift_date(2016, 1, 31, Duration.new!(year: 4, day: 1))
+      {2020, 2, 1}
+  """
+  @impl true
+  @spec shift_date(year, month, day, Duration.t()) :: {year, month, day}
+  def shift_date(year, month, day, duration) do
+    shift_options = shift_date_options(duration)
+
+    Enum.reduce(shift_options, {year, month, day}, fn
+      {_, 0}, date ->
+        date
+
+      {:month, value}, date ->
+        shift_months(date, value)
+
+      {:day, value}, date ->
+        shift_days(date, value)
+    end)
+  end
+
+  @doc """
+  Shifts NaiveDateTime by Duration according to its calendar.
+
+  ## Examples
+
+      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, Duration.new!(hour: 1))
+      {2016, 1, 3, 1, 0, 0, {0, 0}}
+      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, Duration.new!(hour: 30))
+      {2016, 1, 4, 6, 0, 0, {0, 0}}
+      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, Duration.new!(microsecond: {100, 6}))
+      {2016, 1, 3, 0, 0, 0, {100, 6}}
+  """
+  @impl true
+  @spec shift_naive_datetime(
+          year,
+          month,
+          day,
+          hour,
+          minute,
+          second,
+          microsecond,
+          Duration.t()
+        ) :: {year, month, day, hour, minute, second, microsecond}
+  def shift_naive_datetime(year, month, day, hour, minute, second, microsecond, duration) do
+    shift_options = shift_datetime_options(duration)
+
+    Enum.reduce(shift_options, {year, month, day, hour, minute, second, microsecond}, fn
+      {_, 0}, naive_datetime ->
+        naive_datetime
+
+      {:month, value}, {year, month, day, hour, minute, second, microsecond} ->
+        {new_year, new_month, new_day} = shift_months({year, month, day}, value)
+        {new_year, new_month, new_day, hour, minute, second, microsecond}
+
+      {time_unit, value}, naive_datetime ->
+        shift_time_unit(naive_datetime, value, time_unit)
+    end)
+  end
+
+  @doc """
+  Shifts Time by Duration units according to its calendar.
+
+  ## Examples
+
+      iex> Calendar.ISO.shift_time(13, 0, 0, {0, 0}, Duration.new!(hour: 2))
+      {15, 0, 0, {0, 0}}
+      iex> Calendar.ISO.shift_time(13, 0, 0, {0, 0}, Duration.new!(microsecond: {100, 6}))
+      {13, 0, 0, {100, 6}}
+  """
+  @impl true
+  @spec shift_time(hour, minute, second, microsecond, Duration.t()) ::
+          {hour, minute, second, microsecond}
+  def shift_time(hour, minute, second, microsecond, duration) do
+    shift_options = shift_time_options(duration)
+
+    Enum.reduce(shift_options, {hour, minute, second, microsecond}, fn
+      {_, 0}, time ->
+        time
+
+      {time_unit, value}, time ->
+        shift_time_unit(time, value, time_unit)
+    end)
+  end
+
+  defp shift_days({year, month, day}, days) do
+    {year, month, day} =
+      date_to_iso_days(year, month, day)
+      |> Kernel.+(days)
+      |> date_from_iso_days()
+
+    {year, month, day}
+  end
+
+  defp shift_months({year, month, day}, months) do
+    months_in_year = 12
+    total_months = year * months_in_year + month + months - 1
+
+    new_year = Integer.floor_div(total_months, months_in_year)
+
+    new_month =
+      case rem(total_months, months_in_year) + 1 do
+        new_month when new_month < 1 -> new_month + months_in_year
+        new_month -> new_month
+      end
+
+    new_day = min(day, days_in_month(new_year, new_month))
+
+    {new_year, new_month, new_day}
+  end
+
+  defp shift_time_unit({year, month, day, hour, minute, second, microsecond}, value, unit)
+       when unit in [:second, :microsecond] do
+    {value, precision} = shift_time_unit_values(value, microsecond)
+
+    ppd = System.convert_time_unit(86400, :second, unit)
+
+    {year, month, day, hour, minute, second, {ms_value, _}} =
+      naive_datetime_to_iso_days(year, month, day, hour, minute, second, microsecond)
+      |> add_day_fraction_to_iso_days(value, ppd)
+      |> naive_datetime_from_iso_days()
+
+    {year, month, day, hour, minute, second, {ms_value, precision}}
+  end
+
+  defp shift_time_unit({hour, minute, second, microsecond}, value, unit)
+       when unit in [:second, :microsecond] do
+    {value, precision} = shift_time_unit_values(value, microsecond)
+
+    time = {0, time_to_day_fraction(hour, minute, second, microsecond)}
+    amount_to_add = System.convert_time_unit(value, unit, :microsecond)
+    total = iso_days_to_unit(time, :microsecond) + amount_to_add
+    parts = Integer.mod(total, @parts_per_day)
+
+    {hour, minute, second, {microsecond, _}} = time_from_day_fraction({parts, @parts_per_day})
+
+    {hour, minute, second, {microsecond, precision}}
+  end
+
+  defp shift_time_unit_values({0, _}, {_, original_precision}) do
+    {0, original_precision}
+  end
+
+  defp shift_time_unit_values({ms_value, ms_precision}, {_, _}) do
+    {ms_value, ms_precision}
+  end
+
+  defp shift_time_unit_values(value, {_, original_precision}) do
+    {value, original_precision}
+  end
+
+  defp shift_date_options(%Duration{
+         year: year,
+         month: month,
+         week: week,
+         day: day,
+         hour: 0,
+         minute: 0,
+         second: 0,
+         microsecond: {0, 0}
+       }) do
+    [
+      month: year * 12 + month,
+      day: week * 7 + day
+    ]
+  end
+
+  defp shift_date_options(_duration) do
+    raise ArgumentError, "cannot shift date by time units"
+  end
+
+  defp shift_datetime_options(%Duration{
+         year: year,
+         month: month,
+         week: week,
+         day: day,
+         hour: hour,
+         minute: minute,
+         second: second,
+         microsecond: microsecond
+       }) do
+    [
+      month: year * 12 + month,
+      second: week * 7 * 86400 + day * 86400 + hour * 3600 + minute * 60 + second,
+      microsecond: microsecond
+    ]
+  end
+
+  defp shift_time_options(%Duration{
+         year: 0,
+         month: 0,
+         week: 0,
+         day: 0,
+         hour: hour,
+         minute: minute,
+         second: second,
+         microsecond: microsecond
+       }) do
+    [
+      second: hour * 3600 + minute * 60 + second,
+      microsecond: microsecond
+    ]
+  end
+
+  defp shift_time_options(_duration) do
+    raise ArgumentError, "cannot shift time by date units"
+  end
+
   ## Helpers
 
   @doc false

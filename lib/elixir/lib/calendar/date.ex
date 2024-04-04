@@ -40,7 +40,7 @@ defmodule Date do
 
   ## Using epochs
 
-  The `add/2` and `diff/2` functions can be used for computing dates
+  The `add/2`, `diff/2` and `shift/2` functions can be used for computing dates
   or retrieving the number of days between instants. For example, if there
   is an interest in computing the number of days from the Unix epoch
   (1970-01-01):
@@ -49,6 +49,9 @@ defmodule Date do
       14716
 
       iex> Date.add(~D[1970-01-01], 14716)
+      ~D[2010-04-17]
+
+      iex> Date.shift(~D[1970-01-01], year: 40, month: 3, week: 2, day: 2)
       ~D[2010-04-17]
 
   Those functions are optimized to deal with common epochs, such
@@ -687,6 +690,8 @@ defmodule Date do
   The days are counted as Gregorian days. The date is returned in the same
   calendar as it was given in.
 
+  To shift a date by a `Duration` and according to its underlying calendar, use `Date.shift/2`.
+
   ## Examples
 
       iex> Date.add(~D[2000-01-03], -2)
@@ -755,6 +760,54 @@ defmodule Date do
       raise ArgumentError,
             "cannot calculate the difference between #{inspect(date1)} and #{inspect(date2)} because their calendars are not compatible and thus the result would be ambiguous"
     end
+  end
+
+  @doc """
+  Shifts given `date` by `duration` according to its calendar.
+
+  Allowed units are: `:year`, `:month`, `:week`, `:day`.
+
+  When using the default ISO calendar, durations are collapsed and
+  applied in the order of months and then days:
+  - when shifting by 1 year and 2 months the date is actually shifted by 14 months
+  - when shifting by 2 weeks and 3 days the date is shifted by 17 days
+
+  When shifting by month, days are rounded down to the nearest valid date.
+
+  Raises an `ArgumentError` when called with time scale units.
+
+  ## Examples
+
+      iex> Date.shift(~D[2016-01-03], month: 2)
+      ~D[2016-03-03]
+      iex> Date.shift(~D[2016-01-30], month: -1)
+      ~D[2015-12-30]
+      iex> Date.shift(~D[2016-01-31], year: 4, day: 1)
+      ~D[2020-02-01]
+      iex> Date.shift(~D[2016-01-03], Duration.new!(month: 2))
+      ~D[2016-03-03]
+
+      # leap years
+      iex> Date.shift(~D[2024-02-29], year: 1)
+      ~D[2025-02-28]
+      iex> Date.shift(~D[2024-02-29], year: 4)
+      ~D[2028-02-29]
+
+      # rounding down
+      iex> Date.shift(~D[2015-01-31], month: 1)
+      ~D[2015-02-28]
+
+  """
+  @doc since: "1.17.0"
+  @spec shift(Calendar.date(), Duration.t() | [Duration.unit_pair()]) :: t
+  def shift(%{calendar: calendar} = date, %Duration{} = duration) do
+    %{year: year, month: month, day: day} = date
+    {year, month, day} = calendar.shift_date(year, month, day, duration)
+    %Date{calendar: calendar, year: year, month: month, day: day}
+  end
+
+  def shift(date, duration) do
+    shift(date, Duration.new!(duration))
   end
 
   @doc false

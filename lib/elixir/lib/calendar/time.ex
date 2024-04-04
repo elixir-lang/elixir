@@ -500,6 +500,8 @@ defmodule Time do
       iex> result.microsecond
       {21000, 3}
 
+  To shift a time by a `Duration` and according to its underlying calendar, use `Time.shift/2`.
+
   """
   @doc since: "1.6.0"
   @spec add(Calendar.time(), integer, :hour | :minute | System.time_unit()) :: t
@@ -556,6 +558,51 @@ defmodule Time do
   defp time_to_microseconds(time) do
     iso_days = {0, to_day_fraction(time)}
     Calendar.ISO.iso_days_to_unit(iso_days, :microsecond)
+  end
+
+  @doc """
+  Shifts given `time` by `duration` according to its calendar.
+
+  Available duration units are: `:hour`, `:minute`, `:second`, `:microsecond`.
+
+  When using the default ISO calendar, durations are collapsed to seconds and
+  microseconds before they are applied.
+
+  Raises an `ArgumentError` when called with date scale units.
+
+  ## Examples
+
+      iex> Time.shift(~T[01:00:15], hour: 12)
+      ~T[13:00:15]
+      iex> Time.shift(~T[01:35:00], hour: 6, minute: -15)
+      ~T[07:20:00]
+      iex> Time.shift(~T[01:15:00], second: 125)
+      ~T[01:17:05]
+      iex> Time.shift(~T[01:00:15], microsecond: {100, 6})
+      ~T[01:00:15.000100]
+      iex> Time.shift(~T[01:15:00], Duration.new!(second: 65))
+      ~T[01:16:05]
+
+  """
+  @doc since: "1.17.0"
+  @spec shift(Calendar.time(), Duration.t() | [Duration.unit_pair()]) :: t
+  def shift(%{calendar: calendar} = time, %Duration{} = duration) do
+    %{hour: hour, minute: minute, second: second, microsecond: microsecond} = time
+
+    {hour, minute, second, microsecond} =
+      calendar.shift_time(hour, minute, second, microsecond, duration)
+
+    %Time{
+      calendar: calendar,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond
+    }
+  end
+
+  def shift(time, duration) do
+    shift(time, Duration.new!(duration))
   end
 
   @doc """

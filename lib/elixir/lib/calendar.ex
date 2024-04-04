@@ -338,6 +338,34 @@ defmodule Calendar do
   @doc since: "1.15.0"
   @callback iso_days_to_end_of_day(iso_days) :: iso_days
 
+  @doc """
+  Shifts date by given duration according to its calendar.
+  """
+  @doc since: "1.17.0"
+  @callback shift_date(year, month, day, Duration.t()) :: {year, month, day}
+
+  @doc """
+  Shifts naive datetime by given duration according to its calendar.
+  """
+  @doc since: "1.17.0"
+  @callback shift_naive_datetime(
+              year,
+              month,
+              day,
+              hour,
+              minute,
+              second,
+              microsecond,
+              Duration.t()
+            ) :: {year, month, day, hour, minute, second, microsecond}
+
+  @doc """
+  Shifts time by given duration according to its calendar.
+  """
+  @doc since: "1.17.0"
+  @callback shift_time(hour, minute, second, microsecond, Duration.t()) ::
+              {hour, minute, second, microsecond}
+
   # General Helpers
 
   @doc """
