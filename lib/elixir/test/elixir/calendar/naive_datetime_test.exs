@@ -450,7 +450,7 @@ defmodule NaiveDateTimeTest do
     end
 
     test "fails with invalid unit" do
-      assert_raise KeyError, ~s/key :months not found/, fn ->
+      assert_raise ArgumentError, "unexpected unit :months", fn ->
         NaiveDateTime.shift(~N[2000-01-01 00:00:00], months: 12)
       end
     end

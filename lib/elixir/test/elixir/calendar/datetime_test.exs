@@ -1151,7 +1151,7 @@ defmodule DateTimeTest do
                zone_abbr: "CEST"
              }
 
-    assert_raise KeyError, ~s/key :months not found/, fn ->
+    assert_raise ArgumentError, "unexpected unit :months", fn ->
       DateTime.shift(~U[2012-01-01 00:00:00Z], months: 12)
     end
   end
