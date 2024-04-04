@@ -1,13 +1,26 @@
 # Changelog for Elixir v1.17
 
+## Adding `Duration` and `shift/2` functions
+
+TODO.
+
 ## v1.17.0-dev
 
 ### 1. Enhancements
 
 #### Elixir
 
+  * [Access] Add `Access.find/1` that mirrors `Enum.find/2`
+  * [Date] Add `Date.shift/2` to shift dates with duration and calendar-specific semantics
+  * [DateTime] Add `DateTime.shift/2` to shift datetimes with duration and calendar-specific semantics
+  * [Duration] Add a new `Duration` data type
   * [Kernel] Add `Kernel.get_in/1` with safe nil-handling for access and structs
+  * [Kernel] Emit warnings for undefined functions from modules defined within the same context as the caller code
+  * [Macro] Add `Macro.Env.define_alias/4`, `Macro.Env.define_import/4`, `Macro.Env.define_require/4`, `Macro.Env.expand_alias/4`, `Macro.Env.expand_import/5`, and `Macro.Env.expand_require/6` to aid the implementation of language servers and embeddeed languages
+  * [NaiveDateTime] Add `NaiveDateTime.shift/2` to shift naive datetimes with duration and calendar-specific semantics
+  * [Process] Add `Process.set_label/1`
   * [String] Add `String.byte_slice/3` to slice a string to a maximum number of bytes while keeping it UTF-8 encoded
+  * [Time] Add `Time.shift/2` to shift times with duration and calendar-specific semantics
 
 #### ExUnit
 
@@ -19,16 +32,27 @@
   * [IEx.Helpers] Add `c/0` as an alias to `continue/0`
   * [IEx.Pry] Add `IEx.Pry.annotated_quoted/3` to annotate a quoted expression with pry breakpoints
 
+#### Logger
+
+  * [Logger] Format `:gen_statem` reports using Elixir data structures
+  * [Logger] Include process label in logger events
+
 #### Mix
 
+  * [mix deps] Warn if `:optional` is used in combination with `:in_umbrella`
+  * [mix deps.get] Do not add optional dependency requirements if its parent dep was skipped
+  * [mix deps.tree] Add `--umbrella-only` to `mix deps.tree`
   * [mix test] Add `mix test --breakpoints` that sets up a breakpoint before each test that will run
+  * [mix test] Add `mix test --repeat-until-failure` to rerun tests until a failure occurs
+  * [mix test] Add `mix test --slowest-modules` to print slowest modules based on all of the tests they hold
 
 ### 2. Bug fixes
 
 #### Elixir
 
-  * [Code] Address a bug where AST nodes for `(a -> b)` were not wrapper as part of the literal encoder
+  * [Code] Address a bug where AST nodes for `(a -> b)` were not wrapped as part of the literal encoder
   * [Kernel] Resolve inconsistencies of how `..` and `...` are handled at the AST level
+  * [Kernel] Fix parsing of ambiguous operators followed by containers
 
 #### IEx
 
