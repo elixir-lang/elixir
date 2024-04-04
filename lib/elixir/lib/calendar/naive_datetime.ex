@@ -585,8 +585,6 @@ defmodule NaiveDateTime do
 
   ## Examples
 
-      iex> NaiveDateTime.shift(~N[2016-01-31 00:00:00], ~P[P4Y1D])
-      ~N[2020-02-01 00:00:00]
       iex> NaiveDateTime.shift(~N[2016-01-31 00:00:00], month: 1)
       ~N[2016-02-29 00:00:00]
       iex> NaiveDateTime.shift(~N[2016-01-31 00:00:00], year: 4, day: 1)

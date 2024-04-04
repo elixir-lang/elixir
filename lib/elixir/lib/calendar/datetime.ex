@@ -1711,8 +1711,6 @@ defmodule DateTime do
 
   ## Examples
 
-      iex> DateTime.shift(~U[2016-01-01 00:00:00Z], ~P[P1Y4W])
-      ~U[2017-01-29 00:00:00Z]
       iex> DateTime.shift(~U[2016-01-01 00:00:00Z], month: 2)
       ~U[2016-03-01 00:00:00Z]
       iex> DateTime.shift(~U[2016-01-01 00:00:00Z], year: 1, week: 4)

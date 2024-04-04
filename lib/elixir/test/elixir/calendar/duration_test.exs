@@ -295,35 +295,4 @@ defmodule DurationTest do
                    Duration.from_iso8601!("P4.5YT6S")
                  end
   end
-
-  test "sigil_P" do
-    assert ~P[P1Y2M3DT4H5M6S] == %Duration{
-             year: 1,
-             month: 2,
-             day: 3,
-             hour: 4,
-             minute: 5,
-             second: 6
-           }
-
-    assert ~P[PT5H3M] == %Duration{hour: 5, minute: 3}
-    assert ~P[P1Y2M3D] == %Duration{year: 1, month: 2, day: 3}
-    assert ~P[PT4H5M6S] == %Duration{hour: 4, minute: 5, second: 6}
-    assert ~P[P1Y2M] == %Duration{year: 1, month: 2}
-    assert ~P[P3D] == %Duration{day: 3}
-    assert ~P[PT4H5M] == %Duration{hour: 4, minute: 5}
-    assert ~P[PT6S] == %Duration{second: 6}
-
-    assert_raise ArgumentError,
-                 ~s/failed to parse duration. reason: "unexpected character: H"/,
-                 fn ->
-                   Code.eval_string("~P[P5H3HT4M]")
-                 end
-
-    assert_raise ArgumentError,
-                 ~s/failed to parse duration. reason: "invalid duration string"/,
-                 fn ->
-                   Code.eval_string("~P[invalid]")
-                 end
-  end
 end

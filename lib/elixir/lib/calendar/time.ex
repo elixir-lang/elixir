@@ -558,8 +558,6 @@ defmodule Time do
 
   ## Examples
 
-      iex> Time.shift(~T[01:15:00], ~P[PT6H15M])
-      ~T[07:30:00]
       iex> Time.shift(~T[01:00:15], hour: 12)
       ~T[13:00:15]
       iex> Time.shift(~T[01:35:00], hour: 6, minute: -15)
