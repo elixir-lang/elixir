@@ -1684,6 +1684,14 @@ defmodule DateTime do
   summer/winter time will add/remove one hour from the resulting datetime.
   This ensures `shift/3` always returns a valid datetime.
 
+      dt = DateTime.new!(~D[2019-03-31], ~T[01:00:00], "Europe/Copenhagen")
+      DateTime.shift(dt, hour: 1)
+      #=> #DateTime<2019-03-31 03:00:00+02:00 CEST Europe/Copenhagen>
+
+      dt = DateTime.new!(~D[2018-11-04], ~T[00:00:00], "America/Los_Angeles")
+      DateTime.shift(dt, hour: 2)
+      #=> #DateTime<2018-11-04 01:00:00-08:00 PST America/Los_Angeles>
+
   Durations are collapsed before they are applied:
   - when shifting by 1 year and 2 months the date is actually shifted by 14 months
   - weeks, days and smaller units are collapsed into seconds and microseconds
@@ -1700,6 +1708,13 @@ defmodule DateTime do
       ~U[2016-01-01 00:25:00Z]
       iex> DateTime.shift(~U[2016-01-01 00:00:00Z], minute: 5, microsecond: {500, 4})
       ~U[2016-01-01 00:05:00.0005Z]
+
+      # leap years
+      iex> DateTime.shift(~U[2024-02-29 00:00:00Z], year: 1)
+      ~U[2025-02-28 00:00:00Z]
+      iex> DateTime.shift(~U[2024-02-29 00:00:00Z], year: 4)
+      ~U[2028-02-29 00:00:00Z]
+
   """
   @doc since: "1.17.0"
   @spec shift(
