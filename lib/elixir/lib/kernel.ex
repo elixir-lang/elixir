@@ -6093,6 +6093,150 @@ defmodule Kernel do
     Macro.compile_apply(mod, fun, [code, options, __CALLER__ | args], __CALLER__)
   end
 
+  hour_in_ms = 1000 * 60 * 60
+  day_in_ms = 24 * hour_in_ms
+  week_in_ms = 7 * day_in_ms
+
+  @doc """
+  Constructs a millisecond timeout from the given components, duration, or timeout.
+
+  This function is useful for constructing timeouts to use in functions that
+  expect `t:timeout/0` values (such as `Process.send_after/4` and many others).
+
+  ## Argument
+
+  The `duration` argument can be one of a `Duration`, a `t:timeout/0`, or a list
+  of components. Each of these is described below.
+
+  ### Passing `Duration`s
+
+  `t:Duration.t/0` structs can be converted to timeouts. The given duration must have
+  `year` and `month` fields set to `0`, since those cannot be reliably converted to
+  milliseconds (due to the varying number of days in a month and year).
+
+  Microseconds in durations are converted to milliseconds (through `System.convert_time_unit/3`).
+
+  ### Passing components
+
+  The `duration` argument can also be keyword list which can contain the following
+  keys, each appearing at most once with a non-negative integer value:
+
+    * `:week` - the number of weeks (a week is always 7 days)
+    * `:day` - the number of days (a day is always 24 hours)
+    * `:hour` - the number of hours
+    * `:minute` - the number of minutes
+    * `:second` - the number of seconds
+    * `:millisecond` - the number of milliseconds
+
+  The timeout is calculated as the sum of the components, each multiplied by
+  the corresponding factor.
+
+  ### Passing timeouts
+
+  You can also pass timeouts directly to this functions, that is, milliseconds or
+  the atom `:infinity`. In this case, this function just returns the given argument.
+
+  ## Examples
+
+  With a keyword list:
+
+      iex> to_timeout(hour: 1, minute: 30)
+      5400000
+
+  With a duration:
+
+      iex> to_timeout(%Duration{hour: 1, minute: 30})
+      5400000
+
+  With a timeout:
+
+      iex> to_timeout(5400000)
+      5400000
+      iex> to_timeout(:infinity)
+      :infinity
+
+  """
+  @doc since: "1.17.0"
+  @spec to_timeout([component, ...] | timeout() | Duration.t()) :: non_neg_integer()
+        when component: [{unit, non_neg_integer()}, ...],
+             unit: :week | :day | :hour | :minute | :second | :millisecond
+  def to_timeout(duration)
+
+  def to_timeout(:infinity), do: :infinity
+  def to_timeout(timeout) when is_integer(timeout) and timeout >= 0, do: timeout
+
+  def to_timeout(%{__struct__: Duration} = duration) do
+    case duration do
+      %{year: year} when year != 0 ->
+        raise ArgumentError,
+              "duration with a non-zero year cannot be reliably converted to timeouts"
+
+      %{month: month} when month != 0 ->
+        raise ArgumentError,
+              "duration with a non-zero month cannot be reliably converted to timeouts"
+
+      _other ->
+        {microsecond, _precision} = duration.microsecond
+        millisecond = :erlang.convert_time_unit(microsecond, :microsecond, :millisecond)
+
+        duration.week * unquote(week_in_ms) +
+          duration.day * unquote(day_in_ms) +
+          duration.hour * unquote(hour_in_ms) +
+          duration.minute * 60_000 +
+          duration.second * 1000 +
+          millisecond
+    end
+  end
+
+  def to_timeout(components) when is_list(components) do
+    reducer = fn
+      {key, value}, {acc, seen_keys} when is_integer(value) and value >= 0 ->
+        case :lists.member(key, seen_keys) do
+          true ->
+            raise ArgumentError, "timeout component #{inspect(key)} is duplicated"
+
+          false ->
+            :ok
+        end
+
+        factor =
+          case key do
+            :week ->
+              unquote(week_in_ms)
+
+            :day ->
+              unquote(day_in_ms)
+
+            :hour ->
+              unquote(hour_in_ms)
+
+            :minute ->
+              60_000
+
+            :second ->
+              1000
+
+            :millisecond ->
+              1
+
+            other ->
+              raise ArgumentError, """
+              timeout component #{inspect(other)} is not a valid timeout component, valid \
+              values are: :week, :day, :hour, :minute, :second, :millisecond\
+              """
+          end
+
+        {acc + value * factor, [key | seen_keys]}
+
+      {key, value}, {_acc, _seen_keys} ->
+        raise ArgumentError,
+              "timeout component #{inspect(key)} must be a non-negative " <>
+                "integer, got: #{inspect(value)}"
+    end
+
+    elem(:lists.foldl(reducer, {0, _seen_keys = []}, components), 0)
+  end
+
   ## Sigils
 
   @doc ~S"""
