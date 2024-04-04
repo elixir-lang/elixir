@@ -6093,6 +6093,70 @@ defmodule Kernel do
     Macro.compile_apply(mod, fun, [code, options, __CALLER__ | args], __CALLER__)
   end
 
+  @doc """
+  Constructs a millisecond timeout from the given `components`.
+
+  This function is useful for constructing timeouts from human-readable
+  components, to use in functions that expect `t:timeout/0` values
+  (such as `Process.send_after/4` and many others).
+
+  The `components` argument is keyword list which can contain the following
+  keys, each appearing at most once with a non-negative integer value:
+
+    * `:hour` - the number of hours
+    * `:minute` - the number of minutes
+    * `:second` - the number of seconds
+    * `:millisecond` - the number of milliseconds
+
+  The timeout is calculated as the sum of the components, each multiplied by
+  the corresponding factor.
+
+  ## Examples
+
+      iex> to_timeout(hour: 1, minute: 30)
+      5400000
+
+  """
+  @doc since: "1.17.0"
+  @spec to_timeout([{unit, non_neg_integer()}, ...]) :: non_neg_integer()
+        when unit: :hour | :minute | :second | :millisecond
+  def to_timeout(components) when is_list(components) do
+    reducer = fn
+      {key, value}, {acc, seen_keys} when is_integer(value) and value >= 0 ->
+        if :lists.member(key, seen_keys) do
+          raise ArgumentError, "timeout component #{inspect(key)} is duplicated"
+        end
+
+        factor =
+          case key do
+            :hour ->
+              3_600_000
+
+            :minute ->
+              60_000
+
+            :second ->
+              1000
+
+            :millisecond ->
+              1
+
+            other ->
+              raise ArgumentError,
+                    "timeout component #{inspect(other)} is not a valid timeout component, valid values are: :hour, :minute, :second, :millisecond"
+          end
+
+        {acc + value * factor, [key | seen_keys]}
+
+      {key, value}, {_acc, _seen_keys} ->
+        raise ArgumentError,
+              "timeout component #{inspect(key)} must be a non-negative " <>
+                "integer, got: #{inspect(value)}"
+    end
+
+    elem(:lists.foldl(reducer, {0, _seen_keys = []}, components), 0)
+  end
+
   ## Sigils
 
   @doc ~S"""
