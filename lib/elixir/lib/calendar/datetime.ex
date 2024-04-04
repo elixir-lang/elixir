@@ -1715,8 +1715,8 @@ defmodule DateTime do
       ~U[2016-03-01 00:00:00Z]
       iex> DateTime.shift(~U[2016-01-01 00:00:00Z], year: 1, week: 4)
       ~U[2017-01-29 00:00:00Z]
-      iex> DateTime.shift(~U[2016-01-01 00:00:00Z], minute: 25)
-      ~U[2016-01-01 00:25:00Z]
+      iex> DateTime.shift(~U[2016-01-01 00:00:00Z], minute: -25)
+      ~U[2015-12-31 23:35:00Z]
       iex> DateTime.shift(~U[2016-01-01 00:00:00Z], minute: 5, microsecond: {500, 4})
       ~U[2016-01-01 00:05:00.0005Z]
 

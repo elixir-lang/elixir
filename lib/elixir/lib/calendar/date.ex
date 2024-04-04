@@ -778,8 +778,8 @@ defmodule Date do
 
       iex> Date.shift(~D[2016-01-03], month: 2)
       ~D[2016-03-03]
-      iex> Date.shift(~D[2016-01-30], month: 1)
-      ~D[2016-02-29]
+      iex> Date.shift(~D[2016-01-30], month: -1)
+      ~D[2015-12-30]
       iex> Date.shift(~D[2016-01-31], year: 4, day: 1)
       ~D[2020-02-01]
       iex> Date.shift(~D[2016-01-03], Duration.new(month: 2))

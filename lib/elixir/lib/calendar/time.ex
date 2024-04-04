@@ -574,8 +574,8 @@ defmodule Time do
 
       iex> Time.shift(~T[01:00:15], hour: 12)
       ~T[13:00:15]
-      iex> Time.shift(~T[01:15:00], hour: 6, minute: 15)
-      ~T[07:30:00]
+      iex> Time.shift(~T[01:35:00], hour: 6, minute: -15)
+      ~T[07:20:00]
       iex> Time.shift(~T[01:15:00], second: 125)
       ~T[01:17:05]
       iex> Time.shift(~T[01:00:15], microsecond: {100, 6})

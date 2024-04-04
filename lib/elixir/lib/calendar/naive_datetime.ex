@@ -589,6 +589,8 @@ defmodule NaiveDateTime do
       ~N[2016-02-29 00:00:00]
       iex> NaiveDateTime.shift(~N[2016-01-31 00:00:00], year: 4, day: 1)
       ~N[2020-02-01 00:00:00]
+      iex> NaiveDateTime.shift(~N[2016-01-31 00:00:00], year: -2, day: 1)
+      ~N[2014-02-01 00:00:00]
       iex> NaiveDateTime.shift(~N[2016-01-31 00:00:00], second: 45)
       ~N[2016-01-31 00:00:45]
       iex> NaiveDateTime.shift(~N[2016-01-31 00:00:00], microsecond: {100, 6})
