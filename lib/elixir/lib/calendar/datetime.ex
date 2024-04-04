@@ -1693,11 +1693,10 @@ defmodule DateTime do
       DateTime.shift(dt, hour: 2)
       #=> #DateTime<2018-11-04 01:00:00-08:00 PST America/Los_Angeles>
 
-  Durations are collapsed before they are applied:
+  When using the default ISO calendar, durations are collapsed and
+  applied in the order of months, then seconds and microseconds:
   - when shifting by 1 year and 2 months the date is actually shifted by 14 months
   - weeks, days and smaller units are collapsed into seconds and microseconds
-
-  Durations are applied in order of the size of the unit: `month > second > microsecond`.
 
   ## Examples
 

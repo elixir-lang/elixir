@@ -578,11 +578,10 @@ defmodule NaiveDateTime do
 
   Allowed units are: `:year`, `:month`, `:week`, `:day`, `:hour`, `:minute`, `:second`, `:microsecond`.
 
-  Durations are collapsed before they are applied:
+  When using the default ISO calendar, durations are collapsed and
+  applied in the order of months, then seconds and microseconds:
   - when shifting by 1 year and 2 months the date is actually shifted by 14 months
   - weeks, days and smaller units are collapsed into seconds and microseconds
-
-  Durations are applied in order of the size of the unit: `month > second > microsecond`.
 
   ## Examples
 

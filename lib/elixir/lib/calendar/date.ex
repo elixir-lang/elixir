@@ -767,11 +767,10 @@ defmodule Date do
 
   Allowed units are: `:year`, `:month`, `:week`, `:day`.
 
-  Durations are collapsed before they are applied:
+  When using the default ISO calendar, durations are collapsed and
+  applied in the order of months and then days:
   - when shifting by 1 year and 2 months the date is actually shifted by 14 months
   - when shifting by 2 weeks and 3 days the date is shifted by 17 days
-
-  Durations are applied in order of the size of the unit: `month > day`.
 
   Raises an `ArgumentError` when called with time scale units.
 

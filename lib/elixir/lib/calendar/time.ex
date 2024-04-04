@@ -565,7 +565,8 @@ defmodule Time do
 
   Available duration units are: `:hour`, `:minute`, `:second`, `:microsecond`.
 
-  Duration units are collapsed to seconds and microseconds before they are applied.
+  When using the default ISO calendar, durations are collapsed to seconds and
+  microseconds before they are applied.
 
   Raises an `ArgumentError` when called with date scale units.
 
