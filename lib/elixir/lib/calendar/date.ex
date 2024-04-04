@@ -690,7 +690,7 @@ defmodule Date do
   The days are counted as Gregorian days. The date is returned in the same
   calendar as it was given in.
 
-  To shift a date by a `Duration`, use `Date.shift/2`.
+  To shift a date by a `Duration` and according to its underlying calendar, use `Date.shift/2`.
 
   ## Examples
 

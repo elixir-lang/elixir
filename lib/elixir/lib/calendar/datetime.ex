@@ -1610,7 +1610,8 @@ defmodule DateTime do
       iex> result.microsecond
       {21000, 3}
 
-  To shift a datetime by a `Duration`, use `DateTime.shift/3`.
+  To shift a datetime by a `Duration` and according to its underlying calendar, use `DateTime.shift/3`.
+
   """
   @doc since: "1.8.0"
   @spec add(

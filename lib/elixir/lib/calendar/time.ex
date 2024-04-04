@@ -500,7 +500,8 @@ defmodule Time do
       iex> result.microsecond
       {21000, 3}
 
-  To shift a time by a `Duration`, use `Time.shift/2`.
+  To shift a time by a `Duration` and according to its underlying calendar, use `Time.shift/2`.
+
   """
   @doc since: "1.6.0"
   @spec add(Calendar.time(), integer, :hour | :minute | System.time_unit()) :: t
