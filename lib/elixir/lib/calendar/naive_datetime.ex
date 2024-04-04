@@ -583,6 +583,8 @@ defmodule NaiveDateTime do
   - when shifting by 1 year and 2 months the date is actually shifted by 14 months
   - weeks, days and smaller units are collapsed into seconds and microseconds
 
+  When shifting by month, days are rounded down to the nearest valid date.
+
   ## Examples
 
       iex> NaiveDateTime.shift(~N[2016-01-31 00:00:00], month: 1)
@@ -601,6 +603,10 @@ defmodule NaiveDateTime do
       ~N[2025-02-28 00:00:00]
       iex> NaiveDateTime.shift(~N[2024-02-29 00:00:00], year: 4)
       ~N[2028-02-29 00:00:00]
+
+      # rounding down
+      iex> NaiveDateTime.shift(~N[2015-01-31 00:00:00], month: 1)
+      ~N[2015-02-28 00:00:00]
 
   """
   @doc since: "1.17.0"

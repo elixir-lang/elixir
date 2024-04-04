@@ -1709,6 +1709,8 @@ defmodule DateTime do
   - when shifting by 1 year and 2 months the date is actually shifted by 14 months
   - weeks, days and smaller units are collapsed into seconds and microseconds
 
+  When shifting by month, days are rounded down to the nearest valid date.
+
   ## Examples
 
       iex> DateTime.shift(~U[2016-01-01 00:00:00Z], month: 2)
@@ -1725,6 +1727,10 @@ defmodule DateTime do
       ~U[2025-02-28 00:00:00Z]
       iex> DateTime.shift(~U[2024-02-29 00:00:00Z], year: 4)
       ~U[2028-02-29 00:00:00Z]
+
+      # rounding down
+      iex> DateTime.shift(~U[2015-01-31 00:00:00Z], month: 1)
+      ~U[2015-02-28 00:00:00Z]
 
   """
   @doc since: "1.17.0"

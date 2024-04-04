@@ -772,6 +772,8 @@ defmodule Date do
   - when shifting by 1 year and 2 months the date is actually shifted by 14 months
   - when shifting by 2 weeks and 3 days the date is shifted by 17 days
 
+  When shifting by month, days are rounded down to the nearest valid date.
+
   Raises an `ArgumentError` when called with time scale units.
 
   ## Examples
@@ -790,6 +792,10 @@ defmodule Date do
       ~D[2025-02-28]
       iex> Date.shift(~D[2024-02-29], year: 4)
       ~D[2028-02-29]
+
+      # rounding down
+      iex> Date.shift(~D[2015-01-31], month: 1)
+      ~D[2015-02-28]
 
   """
   @doc since: "1.17.0"
