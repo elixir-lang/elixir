@@ -23,6 +23,9 @@ defmodule Duration do
             second: 0,
             microsecond: {0, 0}
 
+  @typedoc """
+  The duration struct type.
+  """
   @type t :: %Duration{
           year: integer,
           month: integer,
@@ -34,6 +37,9 @@ defmodule Duration do
           microsecond: {integer, 0..6}
         }
 
+  @typedoc """
+  The unit pair type specifies a pair of a valid duration unit key and value.
+  """
   @type unit_pair ::
           {:year, integer}
           | {:month, integer}
@@ -44,6 +50,9 @@ defmodule Duration do
           | {:second, integer}
           | {:microsecond, {integer, 0..6}}
 
+  @typedoc """
+  The duration type specifies a `%Duration{}` struct or a keyword list of valid duration unit pairs.
+  """
   @type duration :: t | [unit_pair]
 
   @doc """
