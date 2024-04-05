@@ -39,6 +39,7 @@ TODO.
 
 #### Mix
 
+  * [mix deps] Add `:depth` option to `Mix.SCM.Git`, thus supporting shallow clones of Git dependencies
   * [mix deps] Warn if `:optional` is used in combination with `:in_umbrella`
   * [mix deps.get] Do not add optional dependency requirements if its parent dep was skipped
   * [mix deps.tree] Add `--umbrella-only` to `mix deps.tree`
