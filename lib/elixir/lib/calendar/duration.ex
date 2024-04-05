@@ -44,6 +44,8 @@ defmodule Duration do
           | {:second, integer}
           | {:microsecond, {integer, 0..6}}
 
+  @type duration :: t | [unit_pair]
+
   @doc """
   Creates a new `Duration` struct from given `unit_pairs`.
 
@@ -59,7 +61,11 @@ defmodule Duration do
       %Duration{month: 2}
 
   """
-  @spec new!([unit_pair]) :: t
+  @spec new!(duration()) :: t
+  def new!(%Duration{} = duration) do
+    duration
+  end
+
   def new!(unit_pairs) do
     Enum.each(unit_pairs, &validate_duration_unit!/1)
     struct!(Duration, unit_pairs)

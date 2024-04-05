@@ -1732,18 +1732,10 @@ defmodule DateTime do
 
   """
   @doc since: "1.17.0"
-  @spec shift(
-          Calendar.datetime(),
-          Duration.t() | [Duration.unit_pair()],
-          Calendar.time_zone_database()
-        ) :: t
+  @spec shift(Calendar.datetime(), Duration.duration(), Calendar.time_zone_database()) :: t
   def shift(datetime, duration, time_zone_database \\ Calendar.get_time_zone_database())
 
-  def shift(
-        %{calendar: calendar, time_zone: "Etc/UTC"} = datetime,
-        %Duration{} = duration,
-        _time_zone_database
-      ) do
+  def shift(%{calendar: calendar, time_zone: "Etc/UTC"} = datetime, duration, _time_zone_database) do
     %{
       year: year,
       month: month,
@@ -1763,7 +1755,7 @@ defmodule DateTime do
         minute,
         second,
         microsecond,
-        duration
+        Duration.new!(duration)
       )
 
     %DateTime{
@@ -1781,7 +1773,7 @@ defmodule DateTime do
     }
   end
 
-  def shift(%{calendar: calendar} = datetime, %Duration{} = duration, time_zone_database) do
+  def shift(%{calendar: calendar} = datetime, duration, time_zone_database) do
     %{
       year: year,
       month: month,
@@ -1804,7 +1796,7 @@ defmodule DateTime do
         minute,
         second,
         microsecond,
-        duration
+        Duration.new!(duration)
       )
 
     result =
@@ -1821,10 +1813,6 @@ defmodule DateTime do
               "cannot shift #{inspect(datetime)} to #{inspect(duration)} (with time zone " <>
                 "database #{inspect(time_zone_database)}), reason: #{inspect(error)}"
     end
-  end
-
-  def shift(datetime, duration, time_zone_database) do
-    shift(datetime, Duration.new!(duration), time_zone_database)
   end
 
   @doc """
