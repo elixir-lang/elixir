@@ -8,6 +8,9 @@ defmodule DurationTest do
     assert Duration.new!(year: 2, month: 1, week: 3) == %Duration{year: 2, month: 1, week: 3}
     assert Duration.new!(microsecond: {20000, 2}) == %Duration{microsecond: {20000, 2}}
 
+    duration = %Duration{year: 1}
+    assert ^duration = Duration.new!(duration)
+
     assert_raise ArgumentError,
                  "expected an integer for :month, got nil",
                  fn -> Duration.new!(month: nil) end
