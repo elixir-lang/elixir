@@ -12,19 +12,19 @@ defmodule DurationTest do
     assert ^duration = Duration.new!(duration)
 
     assert_raise ArgumentError,
-                 "expected an integer for :month, got nil",
+                 "unsupported value nil for :month. Expected an integer",
                  fn -> Duration.new!(month: nil) end
 
     assert_raise ArgumentError,
-                 "unexpected unit :years",
+                 "unsupported unit :years. Expected :year, :month, :week, :day, :hour, :minute, :second, :microsecond",
                  fn -> Duration.new!(years: 1) end
 
     assert_raise ArgumentError,
-                 ~s/expected a tuple {ms, precision} for microsecond where precision is an integer from 0 to 6, got {1, 2, 3}/,
+                 "unsupported value {1, 2, 3} for :microsecond. Expected a tuple {ms, precision} where precision is an integer from 0 to 6",
                  fn -> Duration.new!(microsecond: {1, 2, 3}) end
 
     assert_raise ArgumentError,
-                 ~s/expected a tuple {ms, precision} for microsecond where precision is an integer from 0 to 6, got {100, 7}/,
+                 "unsupported value {100, 7} for :microsecond. Expected a tuple {ms, precision} where precision is an integer from 0 to 6",
                  fn -> Duration.new!(microsecond: {100, 7}) end
   end
 

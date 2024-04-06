@@ -38,17 +38,27 @@ defmodule Duration do
         }
 
   @typedoc """
-  The unit pair type specifies a pair of a valid duration unit key and value.
+  The time unit pair type specifies a pair of a valid time duration unit key and value.
   """
-  @type unit_pair ::
+  @type time_unit_pair ::
+          {:hour, integer}
+          | {:minute, integer}
+          | {:second, integer}
+          | {:microsecond, {integer, 0..6}}
+
+  @typedoc """
+  The date unit pair type specifies a pair of a valid date duration unit key and value.
+  """
+  @type date_unit_pair ::
           {:year, integer}
           | {:month, integer}
           | {:week, integer}
           | {:day, integer}
-          | {:hour, integer}
-          | {:minute, integer}
-          | {:second, integer}
-          | {:microsecond, {integer, 0..6}}
+
+  @typedoc """
+  The unit pair type specifies a pair of a valid duration unit key and value.
+  """
+  @type unit_pair :: date_unit_pair | time_unit_pair
 
   @typedoc """
   The duration type specifies a `%Duration{}` struct or a keyword list of valid duration unit pairs.
@@ -76,31 +86,88 @@ defmodule Duration do
   end
 
   def new!(unit_pairs) do
-    Enum.each(unit_pairs, &validate_duration_unit!/1)
+    Enum.each(unit_pairs, &validate_unit!/1)
     struct!(Duration, unit_pairs)
   end
 
-  defp validate_duration_unit!({:microsecond, {ms, precision}})
+  @doc false
+  @spec new_date_units!(t | [date_unit_pair]) :: t
+  def new_date_units!(%Duration{hour: 0, minute: 0, second: 0, microsecond: {0, 0}} = duration) do
+    duration
+  end
+
+  def new_date_units!(%Duration{}) do
+    raise ArgumentError, "duration may not contain time scale units in `new_date_units!/1`"
+  end
+
+  def new_date_units!(unit_pairs) do
+    Enum.each(unit_pairs, &validate_date_unit!/1)
+    struct!(Duration, unit_pairs)
+  end
+
+  @doc false
+  @spec new_time_units!(t | [time_unit_pair]) :: t
+  def new_time_units!(%Duration{year: 0, month: 0, week: 0, day: 0} = duration) do
+    duration
+  end
+
+  def new_time_units!(%Duration{}) do
+    raise ArgumentError, "duration may not contain date scale units in `new_time_units!/1`"
+  end
+
+  def new_time_units!(unit_pairs) do
+    Enum.each(unit_pairs, &validate_time_unit!/1)
+    struct!(Duration, unit_pairs)
+  end
+
+  defp validate_unit!({unit, value}) when unit in [:year, :month, :week, :day] do
+    validate_date_unit!({unit, value})
+  end
+
+  defp validate_unit!({unit, value}) when unit in [:hour, :minute, :second, :microsecond] do
+    validate_time_unit!({unit, value})
+  end
+
+  defp validate_unit!({unit, _value}) do
+    raise ArgumentError,
+          "unsupported unit #{inspect(unit)}. Expected :year, :month, :week, :day, :hour, :minute, :second, :microsecond"
+  end
+
+  defp validate_date_unit!({unit, _value}) when unit not in [:year, :month, :week, :day] do
+    raise ArgumentError, "unsupported unit #{inspect(unit)}. Expected :year, :month, :week, :day"
+  end
+
+  defp validate_date_unit!({_unit, value}) when is_integer(value) do
+    :ok
+  end
+
+  defp validate_date_unit!({unit, value}) do
+    raise ArgumentError,
+          "unsupported value #{inspect(value)} for #{inspect(unit)}. Expected an integer"
+  end
+
+  defp validate_time_unit!({:microsecond, {ms, precision}})
        when is_integer(ms) and precision in 0..6 do
     :ok
   end
 
-  defp validate_duration_unit!({:microsecond, microsecond}) do
+  defp validate_time_unit!({:microsecond, microsecond}) do
     raise ArgumentError,
-          "expected a tuple {ms, precision} for microsecond where precision is an integer from 0 to 6, got #{inspect(microsecond)}"
+          "unsupported value #{inspect(microsecond)} for :microsecond. Expected a tuple {ms, precision} where precision is an integer from 0 to 6"
   end
 
-  defp validate_duration_unit!({unit, _value})
-       when unit not in [:year, :month, :week, :day, :hour, :minute, :second] do
-    raise ArgumentError, "unexpected unit #{inspect(unit)}"
+  defp validate_time_unit!({unit, _value}) when unit not in [:hour, :minute, :second] do
+    raise ArgumentError,
+          "unsupported unit #{inspect(unit)}. Expected :hour, :minute, :second, :microsecond"
   end
 
-  defp validate_duration_unit!({_unit, value}) when is_integer(value) do
+  defp validate_time_unit!({_unit, value}) when is_integer(value) do
     :ok
   end
 
-  defp validate_duration_unit!({unit, value}) do
-    raise ArgumentError, "expected an integer for #{inspect(unit)}, got #{inspect(value)}"
+  defp validate_time_unit!({unit, value}) do
+    raise ArgumentError,
+          "unsupported value #{inspect(value)} for #{inspect(unit)}. Expected an integer"
   end
 
   @doc """

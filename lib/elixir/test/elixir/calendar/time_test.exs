@@ -113,12 +113,16 @@ defmodule TimeTest do
     assert Time.shift(time, microsecond: {1000, 4}) == ~T[00:00:00.0010]
     assert Time.shift(time, hour: 2, minute: 65, second: 5) == ~T[03:05:05.0]
 
-    assert_raise ArgumentError, "cannot shift time by date units", fn ->
-      Time.shift(time, day: 1)
-    end
+    assert_raise ArgumentError,
+                 "unsupported unit :day. Expected :hour, :minute, :second, :microsecond",
+                 fn -> Time.shift(time, day: 1) end
 
-    assert_raise ArgumentError, "unexpected unit :hours", fn ->
-      Time.shift(time, hours: 12)
-    end
+    assert_raise ArgumentError,
+                 "duration may not contain date scale units in `new_time_units!/1`",
+                 fn -> Time.shift(time, %Duration{day: 1}) end
+
+    assert_raise ArgumentError,
+                 "unsupported unit :hours. Expected :hour, :minute, :second, :microsecond",
+                 fn -> Time.shift(time, hours: 12) end
   end
 end

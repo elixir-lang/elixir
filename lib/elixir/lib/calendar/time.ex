@@ -571,12 +571,12 @@ defmodule Time do
 
   """
   @doc since: "1.17.0"
-  @spec shift(Calendar.time(), Duration.duration()) :: t
+  @spec shift(Calendar.time(), Duration.t() | [Duration.time_unit_pair()]) :: t
   def shift(%{calendar: calendar} = time, duration) do
     %{hour: hour, minute: minute, second: second, microsecond: microsecond} = time
 
     {hour, minute, second, microsecond} =
-      calendar.shift_time(hour, minute, second, microsecond, Duration.new!(duration))
+      calendar.shift_time(hour, minute, second, microsecond, Duration.new_time_units!(duration))
 
     %Time{
       calendar: calendar,
