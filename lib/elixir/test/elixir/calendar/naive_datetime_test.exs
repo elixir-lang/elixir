@@ -392,7 +392,7 @@ defmodule NaiveDateTimeTest do
     end
   end
 
-  describe "shift/2" do
+  test "shift/2" do
     naive_datetime = ~N[2000-01-01 00:00:00]
     assert NaiveDateTime.shift(naive_datetime, year: 1) == ~N[2001-01-01 00:00:00]
     assert NaiveDateTime.shift(naive_datetime, month: 1) == ~N[2000-02-01 00:00:00]
