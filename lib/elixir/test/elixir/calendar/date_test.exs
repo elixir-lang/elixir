@@ -199,7 +199,7 @@ defmodule DateTest do
                  fn -> Date.shift(~D[2012-02-29], second: 86400) end
 
     assert_raise ArgumentError,
-                 "unexpected unit :months\n\nDid you mean :month?\n",
+                 "unsupported unit :months. Expected :year, :month, :week, :day, :hour, :minute, :second, :microsecond",
                  fn -> Date.shift(~D[2012-01-01], months: 12) end
 
     # Implements calendar callback

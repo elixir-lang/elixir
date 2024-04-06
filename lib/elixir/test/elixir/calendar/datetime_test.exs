@@ -1152,7 +1152,7 @@ defmodule DateTimeTest do
              }
 
     assert_raise ArgumentError,
-                 "unexpected unit :months\n\nDid you mean :month?\n",
+                 "unsupported unit :months. Expected :year, :month, :week, :day, :hour, :minute, :second, :microsecond",
                  fn -> DateTime.shift(~U[2012-01-01 00:00:00Z], months: 12) end
   end
 end

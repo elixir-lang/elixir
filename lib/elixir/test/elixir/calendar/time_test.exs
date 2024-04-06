@@ -118,7 +118,7 @@ defmodule TimeTest do
                  fn -> Time.shift(time, day: 1) end
 
     assert_raise ArgumentError,
-                 "unexpected unit :hours\n\nDid you mean :hour?\n",
+                 "unsupported unit :hours. Expected :year, :month, :week, :day, :hour, :minute, :second, :microsecond",
                  fn -> Time.shift(time, hours: 12) end
   end
 end
