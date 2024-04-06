@@ -92,7 +92,9 @@ defmodule Duration do
 
   defp validate_duration_unit!({unit, _value})
        when unit not in [:year, :month, :week, :day, :hour, :minute, :second] do
-    raise ArgumentError, "unexpected unit #{inspect(unit)}"
+    raise ArgumentError,
+          "unexpected unit #{inspect(unit)}" <>
+            did_you_mean(unit, [:year, :month, :week, :day, :hour, :minute, :second, :microsecond])
   end
 
   defp validate_duration_unit!({_unit, value}) when is_integer(value) do
@@ -211,5 +213,24 @@ defmodule Duration do
       second: -duration.second,
       microsecond: {-ms, p}
     }
+  end
+
+  defp did_you_mean(key, valid) when is_atom(key) and is_list(valid) do
+    case did_you_mean(Atom.to_string(key), Enum.map(valid, &Atom.to_string/1)) do
+      {similar, score} when score > 0.8 ->
+        "\n\nDid you mean :#{similar}?\n"
+
+      _ ->
+        ""
+    end
+  end
+
+  defp did_you_mean(option, valid) do
+    Enum.reduce(valid, {nil, 0}, &max_similar(&1, option, &2))
+  end
+
+  defp max_similar(option, valid, {_, current} = best) do
+    score = String.jaro_distance(option, valid)
+    if score < current, do: best, else: {option, score}
   end
 end

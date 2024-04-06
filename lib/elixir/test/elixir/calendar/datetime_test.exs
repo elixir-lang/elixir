@@ -1151,8 +1151,8 @@ defmodule DateTimeTest do
                zone_abbr: "CEST"
              }
 
-    assert_raise ArgumentError, "unexpected unit :months", fn ->
-      DateTime.shift(~U[2012-01-01 00:00:00Z], months: 12)
-    end
+    assert_raise ArgumentError,
+                 "unexpected unit :months\n\nDid you mean :month?\n",
+                 fn -> DateTime.shift(~U[2012-01-01 00:00:00Z], months: 12) end
   end
 end

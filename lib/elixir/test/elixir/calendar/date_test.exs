@@ -194,13 +194,13 @@ defmodule DateTest do
     assert Date.shift(~D[2000-01-01], month: 12) == ~D[2001-01-01]
     assert Date.shift(~D[0000-01-01], day: 2, year: 1, month: 37) == ~D[0004-02-03]
 
-    assert_raise ArgumentError, "cannot shift date by time units", fn ->
-      Date.shift(~D[2012-02-29], second: 86400)
-    end
+    assert_raise ArgumentError,
+                 "cannot shift date by time units",
+                 fn -> Date.shift(~D[2012-02-29], second: 86400) end
 
-    assert_raise ArgumentError, "unexpected unit :months", fn ->
-      Date.shift(~D[2012-01-01], months: 12)
-    end
+    assert_raise ArgumentError,
+                 "unexpected unit :months\n\nDid you mean :month?\n",
+                 fn -> Date.shift(~D[2012-01-01], months: 12) end
 
     # Implements calendar callback
     assert_raise RuntimeError, "shift_date/4 not implemented", fn ->

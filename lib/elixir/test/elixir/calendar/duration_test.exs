@@ -16,8 +16,12 @@ defmodule DurationTest do
                  fn -> Duration.new!(month: nil) end
 
     assert_raise ArgumentError,
-                 "unexpected unit :years",
+                 "unexpected unit :years\n\nDid you mean :year?\n",
                  fn -> Duration.new!(years: 1) end
+
+    assert_raise ArgumentError,
+                 "unexpected unit :foo",
+                 fn -> Duration.new!(foo: 1) end
 
     assert_raise ArgumentError,
                  ~s/expected a tuple {ms, precision} for microsecond where precision is an integer from 0 to 6, got {1, 2, 3}/,
