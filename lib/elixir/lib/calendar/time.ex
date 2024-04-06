@@ -576,7 +576,7 @@ defmodule Time do
     %{hour: hour, minute: minute, second: second, microsecond: microsecond} = time
 
     {hour, minute, second, microsecond} =
-      calendar.shift_time(hour, minute, second, microsecond, Duration.new!(duration))
+      calendar.shift_time(hour, minute, second, microsecond, new_duration!(duration))
 
     %Time{
       calendar: calendar,
@@ -585,6 +585,49 @@ defmodule Time do
       second: second,
       microsecond: microsecond
     }
+  end
+
+  defp new_duration!(%Duration{year: 0, month: 0, week: 0, day: 0} = duration) do
+    duration
+  end
+
+  defp new_duration!(%Duration{}) do
+    raise ArgumentError, "duration may not contain date scale units"
+  end
+
+  defp new_duration!(unit_pairs) do
+    Enum.each(unit_pairs, &validate_duration_unit!/1)
+    struct!(Duration, unit_pairs)
+  end
+
+  defp validate_duration_unit!({:microsecond, {ms, precision}})
+       when is_integer(ms) and precision in 0..6 do
+    :ok
+  end
+
+  defp validate_duration_unit!({:microsecond, microsecond}) do
+    raise ArgumentError,
+          "unsupported value #{inspect(microsecond)} for :microsecond. Expected a tuple {ms, precision} where precision is an integer from 0 to 6"
+  end
+
+  defp validate_duration_unit!({unit, _value}) when unit in [:year, :month, :week, :day] do
+    raise ArgumentError,
+          "unsupported unit #{inspect(unit)}. Expected :hour, :minute, :second, :microsecond"
+  end
+
+  defp validate_duration_unit!({unit, _value})
+       when unit not in [:hour, :minute, :second, :microsecond] do
+    raise ArgumentError,
+          "unknown unit #{inspect(unit)}. Expected :hour, :minute, :second, :microsecond"
+  end
+
+  defp validate_duration_unit!({_unit, value}) when is_integer(value) do
+    :ok
+  end
+
+  defp validate_duration_unit!({unit, value}) do
+    raise ArgumentError,
+          "unsupported value #{inspect(value)} for #{inspect(unit)}. Expected an integer"
   end
 
   @doc """
