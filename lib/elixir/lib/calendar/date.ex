@@ -797,7 +797,7 @@ defmodule Date do
   @spec shift(Calendar.date(), Duration.t() | [Duration.date_unit_pair()]) :: t
   def shift(%{calendar: calendar} = date, duration) do
     %{year: year, month: month, day: day} = date
-    {year, month, day} = calendar.shift_date(year, month, day, Duration.new_date_units!(duration))
+    {year, month, day} = calendar.shift_date(year, month, day, Duration.new!(duration))
     %Date{calendar: calendar, year: year, month: month, day: day}
   end
 

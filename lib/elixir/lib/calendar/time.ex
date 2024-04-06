@@ -576,7 +576,7 @@ defmodule Time do
     %{hour: hour, minute: minute, second: second, microsecond: microsecond} = time
 
     {hour, minute, second, microsecond} =
-      calendar.shift_time(hour, minute, second, microsecond, Duration.new_time_units!(duration))
+      calendar.shift_time(hour, minute, second, microsecond, Duration.new!(duration))
 
     %Time{
       calendar: calendar,

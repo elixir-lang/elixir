@@ -448,7 +448,7 @@ defmodule NaiveDateTimeTest do
            ) == ~N[1998-10-06 18:53:52.999992]
 
     assert_raise ArgumentError,
-                 "unsupported unit :months. Expected :year, :month, :week, :day, :hour, :minute, :second, :microsecond",
+                 "unknown unit :months. Expected :year, :month, :week, :day, :hour, :minute, :second, :microsecond",
                  fn -> NaiveDateTime.shift(~N[2000-01-01 00:00:00], months: 12) end
   end
 end

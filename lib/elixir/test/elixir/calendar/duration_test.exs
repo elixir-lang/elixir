@@ -16,7 +16,7 @@ defmodule DurationTest do
                  fn -> Duration.new!(month: nil) end
 
     assert_raise ArgumentError,
-                 "unsupported unit :years. Expected :year, :month, :week, :day, :hour, :minute, :second, :microsecond",
+                 "unknown unit :years. Expected :year, :month, :week, :day, :hour, :minute, :second, :microsecond",
                  fn -> Duration.new!(years: 1) end
 
     assert_raise ArgumentError,
