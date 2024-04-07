@@ -38,27 +38,17 @@ defmodule Duration do
         }
 
   @typedoc """
-  The time unit pair type specifies a pair of a valid time duration unit key and value.
+  The unit pair type specifies a pair of a valid duration unit key and value.
   """
-  @type time_unit_pair ::
-          {:hour, integer}
-          | {:minute, integer}
-          | {:second, integer}
-          | {:microsecond, {integer, 0..6}}
-
-  @typedoc """
-  The date unit pair type specifies a pair of a valid date duration unit key and value.
-  """
-  @type date_unit_pair ::
+  @type unit_pair ::
           {:year, integer}
           | {:month, integer}
           | {:week, integer}
           | {:day, integer}
-
-  @typedoc """
-  The unit pair type specifies a pair of a valid duration unit key and value.
-  """
-  @type unit_pair :: date_unit_pair | time_unit_pair
+          | {:hour, integer}
+          | {:minute, integer}
+          | {:second, integer}
+          | {:microsecond, {integer, 0..6}}
 
   @typedoc """
   The duration type specifies a `%Duration{}` struct or a keyword list of valid duration unit pairs.
