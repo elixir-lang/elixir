@@ -203,7 +203,7 @@ defmodule DateTest do
                  fn -> Date.shift(~D[2012-01-01], months: 12) end
 
     assert_raise ArgumentError,
-                 "duration may not contain time scale units",
+                 "cannot shift date by time scale unit. Expected :year, :month, :week, :day",
                  fn -> Date.shift(~D[2012-02-29], %Duration{second: 86400}) end
 
     # Implements calendar callback

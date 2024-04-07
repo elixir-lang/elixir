@@ -592,12 +592,8 @@ defmodule Time do
     }
   end
 
-  defp new_duration!(%Duration{year: 0, month: 0, week: 0, day: 0} = duration) do
+  defp new_duration!(%Duration{} = duration) do
     duration
-  end
-
-  defp new_duration!(%Duration{}) do
-    raise ArgumentError, "duration may not contain date scale units"
   end
 
   defp new_duration!(unit_pairs) do

@@ -802,31 +802,8 @@ defmodule Date do
     %Date{calendar: calendar, year: year, month: month, day: day}
   end
 
-  @doc false
-  def to_iso_days(%{calendar: Calendar.ISO, year: year, month: month, day: day}) do
-    {Calendar.ISO.date_to_iso_days(year, month, day), {0, 86_400_000_000}}
-  end
-
-  def to_iso_days(%{calendar: calendar, year: year, month: month, day: day}) do
-    calendar.naive_datetime_to_iso_days(year, month, day, 0, 0, 0, {0, 0})
-  end
-
-  defp from_iso_days({days, _}, Calendar.ISO) do
-    {year, month, day} = Calendar.ISO.date_from_iso_days(days)
-    %Date{year: year, month: month, day: day, calendar: Calendar.ISO}
-  end
-
-  defp from_iso_days(iso_days, target_calendar) do
-    {year, month, day, _, _, _, _} = target_calendar.naive_datetime_from_iso_days(iso_days)
-    %Date{year: year, month: month, day: day, calendar: target_calendar}
-  end
-
-  defp new_duration!(%Duration{hour: 0, minute: 0, second: 0, microsecond: {0, 0}} = duration) do
+  defp new_duration!(%Duration{} = duration) do
     duration
-  end
-
-  defp new_duration!(%Duration{}) do
-    raise ArgumentError, "duration may not contain time scale units"
   end
 
   defp new_duration!(unit_pairs) do
@@ -850,6 +827,25 @@ defmodule Date do
   defp validate_duration_unit!({unit, value}) do
     raise ArgumentError,
           "unsupported value #{inspect(value)} for #{inspect(unit)}. Expected an integer"
+  end
+
+  @doc false
+  def to_iso_days(%{calendar: Calendar.ISO, year: year, month: month, day: day}) do
+    {Calendar.ISO.date_to_iso_days(year, month, day), {0, 86_400_000_000}}
+  end
+
+  def to_iso_days(%{calendar: calendar, year: year, month: month, day: day}) do
+    calendar.naive_datetime_to_iso_days(year, month, day, 0, 0, 0, {0, 0})
+  end
+
+  defp from_iso_days({days, _}, Calendar.ISO) do
+    {year, month, day} = Calendar.ISO.date_from_iso_days(days)
+    %Date{year: year, month: month, day: day, calendar: Calendar.ISO}
+  end
+
+  defp from_iso_days(iso_days, target_calendar) do
+    {year, month, day, _, _, _, _} = target_calendar.naive_datetime_from_iso_days(iso_days)
+    %Date{year: year, month: month, day: day, calendar: target_calendar}
   end
 
   @doc """

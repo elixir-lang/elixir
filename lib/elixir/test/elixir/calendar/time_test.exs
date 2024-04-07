@@ -122,7 +122,7 @@ defmodule TimeTest do
                  fn -> Time.shift(time, hours: 12) end
 
     assert_raise ArgumentError,
-                 "duration may not contain date scale units",
+                 "cannot shift time by date scale unit. Expected :hour, :minute, :second, :microsecond",
                  fn -> Time.shift(time, %Duration{day: 1}) end
   end
 end
