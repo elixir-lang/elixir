@@ -1637,7 +1637,8 @@ defmodule Calendar.ISO do
   end
 
   defp shift_date_options(_duration) do
-    raise ArgumentError, "cannot shift date by time units"
+    raise ArgumentError,
+          "cannot shift date by time scale unit. Expected :year, :month, :week, :day"
   end
 
   defp shift_datetime_options(%Duration{
@@ -1674,7 +1675,8 @@ defmodule Calendar.ISO do
   end
 
   defp shift_time_options(_duration) do
-    raise ArgumentError, "cannot shift time by date units"
+    raise ArgumentError,
+          "cannot shift time by date scale unit. Expected :hour, :minute, :second, :microsecond"
   end
 
   ## Helpers

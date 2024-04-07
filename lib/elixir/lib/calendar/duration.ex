@@ -76,31 +76,33 @@ defmodule Duration do
   end
 
   def new!(unit_pairs) do
-    Enum.each(unit_pairs, &validate_duration_unit!/1)
+    Enum.each(unit_pairs, &validate_unit!/1)
     struct!(Duration, unit_pairs)
   end
 
-  defp validate_duration_unit!({:microsecond, {ms, precision}})
+  defp validate_unit!({:microsecond, {ms, precision}})
        when is_integer(ms) and precision in 0..6 do
     :ok
   end
 
-  defp validate_duration_unit!({:microsecond, microsecond}) do
+  defp validate_unit!({:microsecond, microsecond}) do
     raise ArgumentError,
-          "expected a tuple {ms, precision} for microsecond where precision is an integer from 0 to 6, got #{inspect(microsecond)}"
+          "unsupported value #{inspect(microsecond)} for :microsecond. Expected a tuple {ms, precision} where precision is an integer from 0 to 6"
   end
 
-  defp validate_duration_unit!({unit, _value})
+  defp validate_unit!({unit, _value})
        when unit not in [:year, :month, :week, :day, :hour, :minute, :second] do
-    raise ArgumentError, "unexpected unit #{inspect(unit)}"
+    raise ArgumentError,
+          "unknown unit #{inspect(unit)}. Expected :year, :month, :week, :day, :hour, :minute, :second, :microsecond"
   end
 
-  defp validate_duration_unit!({_unit, value}) when is_integer(value) do
+  defp validate_unit!({_unit, value}) when is_integer(value) do
     :ok
   end
 
-  defp validate_duration_unit!({unit, value}) do
-    raise ArgumentError, "expected an integer for #{inspect(unit)}, got #{inspect(value)}"
+  defp validate_unit!({unit, value}) do
+    raise ArgumentError,
+          "unsupported value #{inspect(value)} for #{inspect(unit)}. Expected an integer"
   end
 
   @doc """

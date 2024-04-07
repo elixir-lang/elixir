@@ -794,11 +794,39 @@ defmodule Date do
 
   """
   @doc since: "1.17.0"
-  @spec shift(Calendar.date(), Duration.duration()) :: t
+  @spec shift(Calendar.date(), Duration.t() | [unit_pair]) :: t
+        when unit_pair: {:year, integer} | {:month, integer} | {:week, integer} | {:day, integer}
   def shift(%{calendar: calendar} = date, duration) do
     %{year: year, month: month, day: day} = date
-    {year, month, day} = calendar.shift_date(year, month, day, Duration.new!(duration))
+    {year, month, day} = calendar.shift_date(year, month, day, new_duration!(duration))
     %Date{calendar: calendar, year: year, month: month, day: day}
+  end
+
+  defp new_duration!(%Duration{} = duration) do
+    duration
+  end
+
+  defp new_duration!(unit_pairs) do
+    Enum.each(unit_pairs, &validate_duration_unit!/1)
+    struct!(Duration, unit_pairs)
+  end
+
+  defp validate_duration_unit!({unit, _value})
+       when unit in [:hour, :minute, :second, :microsecond] do
+    raise ArgumentError, "unsupported unit #{inspect(unit)}. Expected :year, :month, :week, :day"
+  end
+
+  defp validate_duration_unit!({unit, _value}) when unit not in [:year, :month, :week, :day] do
+    raise ArgumentError, "unknown unit #{inspect(unit)}. Expected :year, :month, :week, :day"
+  end
+
+  defp validate_duration_unit!({_unit, value}) when is_integer(value) do
+    :ok
+  end
+
+  defp validate_duration_unit!({unit, value}) do
+    raise ArgumentError,
+          "unsupported value #{inspect(value)} for #{inspect(unit)}. Expected an integer"
   end
 
   @doc false
