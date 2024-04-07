@@ -227,7 +227,7 @@ Elixir also supports string interpolation:
 ```elixir
 iex> string = "world"
 iex> "hello #{string}!"
-"hello world"
+"hello world!"
 ```
 
 String concatenation requires both sides to be strings but interpolation supports any data type that may be converted to a string:
