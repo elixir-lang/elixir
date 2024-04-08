@@ -644,12 +644,13 @@ rewrite_strategy(Left, Right, Args) ->
       none
   end.
 
+inline_pure_function('Elixir.Duration', 'new!') -> true;
+inline_pure_function('Elixir.MapSet', new) -> true;
 inline_pure_function('Elixir.String', length) -> true;
 inline_pure_function('Elixir.String', graphemes) -> true;
 inline_pure_function('Elixir.String', codepoints) -> true;
 inline_pure_function('Elixir.String', split) -> true;
-inline_pure_function('Elixir.MapSet', new) -> true;
-inline_pure_function('Elixir.Duration', 'new!') -> true;
+inline_pure_function('Elixir.Kernel', to_timeout) -> true;
 inline_pure_function('Elixir.URI', new) -> true;
 inline_pure_function('Elixir.URI', 'new!') -> true;
 inline_pure_function('Elixir.URI', parse) -> true;
