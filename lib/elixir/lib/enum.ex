@@ -3843,7 +3843,7 @@ defmodule Enum do
 
   @doc """
   Returns the `enumerable` with each element wrapped in a tuple
-  alongside its index.
+  alongside its index or according to a given function.
 
   May receive a function or an integer offset.
 

@@ -238,10 +238,18 @@ defmodule Stream.Reducers do
     end
   end
 
-  defmacro with_index(fun \\ nil) do
+  defmacro with_index(fun) do
     quote do
       fn entry, acc(head, counter, tail) ->
         next_with_acc(unquote(fun), {entry, counter}, head, counter + 1, tail)
+      end
+    end
+  end
+
+  defmacro with_index(callback, fun) do
+    quote do
+      fn entry, acc(head, counter, tail) ->
+        next_with_acc(unquote(fun), unquote(callback).(entry, counter), head, counter + 1, tail)
       end
     end
   end
