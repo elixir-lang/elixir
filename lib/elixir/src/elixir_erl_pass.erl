@@ -604,6 +604,47 @@ translate_remote(maps, merge, Meta, [Map1, Map2], S) ->
     {[TMap1, TMap2], TS} ->
       {{call, Ann, {remote, Ann, {atom, Ann, maps}, {atom, Ann, merge}}, [TMap1, TMap2]}, TS}
   end;
+translate_remote(Left, Right, Meta, Args, S) when
+    % try to inline some pure functions
+    Left == 'Elixir.String', Right == length;
+    Left == 'Elixir.String', Right == graphemes;
+    Left == 'Elixir.String', Right == codepoints;
+    Left == 'Elixir.String', Right == split;
+    Left == 'Elixir.MapSet', Right == new;
+    Left == 'Elixir.Duration', Right == 'new!';
+    Left == 'Elixir.URI', Right == new;
+    Left == 'Elixir.URI', Right == 'new!';
+    Left == 'Elixir.URI', Right == parse;
+    Left == 'Elixir.URI', Right == encode_query;
+    Left == 'Elixir.URI', Right == encode_www_form;
+    Left == 'Elixir.URI', Right == decode;
+    Left == 'Elixir.URI', Right == decode_www_form
+   ->
+  Ann = ?ann(Meta),
+
+  MaybeInlinedResult =
+    case basic_type_arg(Args) of
+      true ->
+        try
+          {ok, erlang:apply(Left, Right, Args)}
+        catch _:_ ->
+          % fail silently, will fail at runtime
+          error
+        end;
+      false ->
+        skipped
+    end,
+
+  case MaybeInlinedResult of
+    {ok, Result} ->
+      translate(Result, Ann, S);
+    _ ->
+      {TLeft, SL} = translate(Left, Ann, S),
+      {TArgs, SA} = translate_args(Args, Ann, SL),
+      TRight = {atom, Ann, Right},
+      {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, SA}
+    end;
+
 translate_remote(Left, Right, Meta, Args, S) ->
   Ann = ?ann(Meta),
   {TLeft, SL} = translate(Left, Ann, S),
@@ -623,6 +664,12 @@ translate_remote(Left, Right, Meta, Args, S) ->
     false ->
       {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, SA}
   end.
+
+% we do not want to try and inline calls which might depend on protocols that might be overridden later
+basic_type_arg(Term) when is_number(Term); is_atom(Term); is_binary(Term) -> true;
+basic_type_arg(List) when is_list(List) -> lists:all(fun basic_type_arg/1, List);
+basic_type_arg({Left, Right}) -> basic_type_arg(Left) and basic_type_arg(Right);
+basic_type_arg(_) -> false.
 
 generate_struct_name_guard([{map_field_exact, Ann, {atom, _, '__struct__'} = Key, Var} | Rest], Acc, S0) ->
   {ModuleVarName, S1} = elixir_erl_var:build('_', S0),
