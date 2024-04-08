@@ -129,3 +129,37 @@ optimized_nested_map_merge_variable_test() ->
         {map_field_assoc, _, {atom, _, b}, {integer, _, 2}}]
      }]
   } = to_erl("x = %{}; Map.merge(Map.merge(x, %{a: 1}), %{b: 2})").
+
+optimized_map_set_new_test() ->
+  {map, _,
+    [
+      {map_field_assoc, _, {atom, _, '__struct__'}, {atom, _, 'Elixir.MapSet'}},
+      {map_field_assoc, _,
+        {atom, _, map},
+        {map, _, [
+          {map_field_assoc, _, {integer, _, 1}, {nil, _}},
+          {map_field_assoc, _, {integer, _, 2}, {nil, _}},
+          {map_field_assoc, _, {integer, _, 3}, {nil, _}}
+        ]}
+      }
+    ]
+  } = to_erl("MapSet.new([1, 2, 3])").
+
+not_optimized_map_set_new_with_range_test() ->
+  {call, _,
+    {remote, _, {atom, _, 'Elixir.MapSet'}, {atom, _, new}}, [
+      {map, _, [
+        {map_field_assoc, _, {atom, _, '__struct__'}, {atom, _, 'Elixir.Range'}},
+        {map_field_assoc, _, {atom, _, first}, {integer, _, 1}},
+        {map_field_assoc, _, {atom, _, last}, {integer, _, 3}},
+        {map_field_assoc, _, {atom, _, step}, {integer, _, 1}}
+      ]}
+    ]
+  } = to_erl("MapSet.new(1..3)").
+
+map_set_new_with_failing_args_test() ->
+  {call, _,
+    {remote, _, {atom, _, 'Elixir.MapSet'}, {atom, _, new}}, [
+      {atom, _, not_an_enumerable}
+    ]
+  } = to_erl("MapSet.new(:not_an_enumerable)").

@@ -606,23 +606,64 @@ translate_remote(maps, merge, Meta, [Map1, Map2], S) ->
   end;
 translate_remote(Left, Right, Meta, Args, S) ->
   Ann = ?ann(Meta),
-  {TLeft, SL} = translate(Left, Ann, S),
-  {TArgs, SA} = translate_args(Args, Ann, SL),
 
-  Arity  = length(Args),
-  TRight = {atom, Ann, Right},
-
-  %% Rewrite Erlang function calls as operators so they
-  %% work in guards, matches and so on.
-  case (Left == erlang) andalso elixir_utils:guard_op(Right, Arity) of
-    true ->
+  case rewrite_strategy(Left, Right, Args) of
+    guard_op ->
+      {TArgs, SA} = translate_args(Args, Ann, S),
+      %% Rewrite Erlang function calls as operators so they
+      %% work in guards, matches and so on.
       case TArgs of
         [TOne]       -> {{op, Ann, Right, TOne}, SA};
         [TOne, TTwo] -> {{op, Ann, Right, TOne, TTwo}, SA}
       end;
-    false ->
+    {inline_pure, Result} ->
+      translate(Result, Ann, S);
+    none ->
+      {TLeft, SL} = translate(Left, Ann, S),
+      {TArgs, SA} = translate_args(Args, Ann, SL),
+      TRight = {atom, Ann, Right},
       {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, SA}
   end.
+
+rewrite_strategy(erlang, Right, Args) ->
+  Arity  = length(Args),
+  case elixir_utils:guard_op(Right, Arity) of
+    true -> guard_op;
+    false -> none
+  end;
+rewrite_strategy(Left, Right, Args) ->
+  case inline_pure_function(Left, Right) andalso basic_type_arg(Args) of
+    true ->
+      try
+        {inline_pure, apply(Left, Right, Args)}
+      catch _:_ ->
+        % fail silently, will fail at runtime
+        none
+      end;
+    false ->
+      none
+  end.
+
+inline_pure_function('Elixir.String', length) -> true;
+inline_pure_function('Elixir.String', graphemes) -> true;
+inline_pure_function('Elixir.String', codepoints) -> true;
+inline_pure_function('Elixir.String', split) -> true;
+inline_pure_function('Elixir.MapSet', new) -> true;
+inline_pure_function('Elixir.Duration', 'new!') -> true;
+inline_pure_function('Elixir.URI', new) -> true;
+inline_pure_function('Elixir.URI', 'new!') -> true;
+inline_pure_function('Elixir.URI', parse) -> true;
+inline_pure_function('Elixir.URI', encode_query) -> true;
+inline_pure_function('Elixir.URI', encode_www_form) -> true;
+inline_pure_function('Elixir.URI', decode) -> true;
+inline_pure_function('Elixir.URI', decode_www_for) -> true;
+inline_pure_function(_Left, _Right) -> false.
+
+% we do not want to try and inline calls which might depend on protocols that might be overridden later
+basic_type_arg(Term) when is_number(Term); is_atom(Term); is_binary(Term) -> true;
+basic_type_arg(List) when is_list(List) -> lists:all(fun basic_type_arg/1, List);
+basic_type_arg({Left, Right}) -> basic_type_arg(Left) and basic_type_arg(Right);
+basic_type_arg(_) -> false.
 
 generate_struct_name_guard([{map_field_exact, Ann, {atom, _, '__struct__'} = Key, Var} | Rest], Acc, S0) ->
   {ModuleVarName, S1} = elixir_erl_var:build('_', S0),

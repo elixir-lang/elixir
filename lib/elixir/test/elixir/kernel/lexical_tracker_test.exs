@@ -501,12 +501,12 @@ defmodule Kernel.LexicalTrackerTest do
       {{compile, exports, runtime, _}, _binding} =
         Code.eval_string("""
         defmodule Kernel.LexicalTrackerTest.Defmacro do
-          defmacro uri() do
-            Macro.escape(URI.parse("/hello"))
+          defmacro uri(path) do
+            Macro.escape(URI.parse(path))
           end
 
           def fun() do
-            uri()
+            uri("/hello")
           end
 
           Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
