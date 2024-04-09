@@ -644,15 +644,8 @@ rewrite_strategy(Left, shift, [Struct, Opts | RestArgs]) when
 ->
   case basic_type_arg(Opts) of
     true ->
-      {Module, Fun} =
-        case (Left == 'Elixir.Date' orelse Left == 'Elixir.Time') of
-          % Time and Date have more restrictive validations than Elixir.Duration
-          true -> {Left, 'new_duration!'};
-          false -> {'Elixir.Duration', 'new!'}
-        end,
-
       try
-        {inline_args, [Struct, Module:Fun(Opts) | RestArgs]}
+        {inline_args, [Struct, Left:'__duration__!'(Opts) | RestArgs]}
       catch _:_ ->
         % fail silently, will fail at runtime
         none

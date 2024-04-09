@@ -798,17 +798,17 @@ defmodule Date do
         when unit_pair: {:year, integer} | {:month, integer} | {:week, integer} | {:day, integer}
   def shift(%{calendar: calendar} = date, duration) do
     %{year: year, month: month, day: day} = date
-    {year, month, day} = calendar.shift_date(year, month, day, new_duration!(duration))
+    {year, month, day} = calendar.shift_date(year, month, day, __duration__!(duration))
     %Date{calendar: calendar, year: year, month: month, day: day}
   end
 
   @doc false
-  def new_duration!(%Duration{} = duration) do
+  def __duration__!(%Duration{} = duration) do
     duration
   end
 
   # This part is inlined by the compiler on constant values
-  def new_duration!(unit_pairs) do
+  def __duration__!(unit_pairs) do
     Enum.each(unit_pairs, &validate_duration_unit!/1)
     struct!(Duration, unit_pairs)
   end

@@ -629,7 +629,7 @@ defmodule NaiveDateTime do
         minute,
         second,
         microsecond,
-        Duration.new!(duration)
+        __duration__!(duration)
       )
 
     %NaiveDateTime{
@@ -643,6 +643,9 @@ defmodule NaiveDateTime do
       microsecond: microsecond
     }
   end
+
+  @doc false
+  defdelegate __duration__!(params), to: Duration, as: :new!
 
   @doc """
   Returns the given naive datetime with the microsecond field truncated to the
