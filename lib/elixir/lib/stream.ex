@@ -1200,7 +1200,9 @@ defmodule Stream do
       [1, 3, 5]
 
   """
-  @spec with_index(Enumerable.t(), integer) :: Enumerable.t()
+  @spec with_index(Enumerable.t(), integer) :: Enumerable.t({element, integer})
+  @spec with_index(Enumerable.t(), (element, index -> return_value)) :: Enumerable.t(return_value)
+        when return_value: term
   def with_index(enum, fun_or_offset \\ 0)
 
   def with_index(enum, offset) when is_integer(offset) do
