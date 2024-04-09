@@ -37,7 +37,9 @@ defmodule Duration do
       ~D[2016-03-31]
 
   As you can see above, the results differ, which explains why operations
-  with durations are called "shift" rather than "add".
+  with durations are called "shift" rather than "add". This happens because,
+  once we add one month to `2016-01-31`, we get `2016-02-29`. Then adding
+  one extra month gives us `2016-03-29` instead of `2016-03-31`.
 
   In particular, when applying durations to Calendar.ISO types:
 
@@ -66,7 +68,7 @@ defmodule Duration do
       iex> Enum.take(stream, 3)
       [~D[2016-01-31], ~D[2016-02-29], ~D[2016-03-29]]
 
-      # Multiplying durations one after the other
+      # Multiplying durations by an index
       iex> date = ~D[2016-01-31]
       iex> duration = Duration.new!(month: 1)
       iex> stream = Stream.from_index(fn i -> Date.shift(date, Duration.multiply(duration, i)) end)
