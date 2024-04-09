@@ -163,3 +163,99 @@ map_set_new_with_failing_args_test() ->
       {atom, _, not_an_enumerable}
     ]
   } = to_erl("MapSet.new(:not_an_enumerable)").
+
+optimized_date_shift_duration_test() ->
+  {call, _,
+    {remote, _, {atom, _, 'Elixir.Date'}, {atom, _, shift}}, [
+      {atom, _, non_important},
+      {map, _, [
+        {map_field_assoc, _, {atom, _, '__struct__'}, {atom, _, 'Elixir.Duration'}},
+        {map_field_assoc, _, {atom, _, day}, {integer, _, 0}},
+        {map_field_assoc, _, {atom, _, hour}, {integer, _, 0}},
+        {map_field_assoc, _, {atom, _, microsecond}, {tuple, _, [{integer, _, 0}, {integer, _, 0}]}},
+        {map_field_assoc, _, {atom, _, minute}, {integer, _, 0}},
+        {map_field_assoc, _, {atom, _, month}, {integer, _, 0}},
+        {map_field_assoc, _, {atom, _, second}, {integer, _, 0}},
+        {map_field_assoc, _, {atom, _, week}, {integer, _, 1}},
+        {map_field_assoc, _, {atom, _, year}, {integer, _, 0}}
+      ]}
+    ]
+  } = to_erl("Date.shift(:non_important, week: 1)").
+
+not_optimized_date_shift_duration_unsupported_unit_test() ->
+  {call, _,
+    {remote, _, {atom, _, 'Elixir.Date'}, {atom, _, shift}}, [
+      {atom, _, non_important},
+      {cons, _, {tuple, _, [{atom, _, hour}, {integer, _, 1}]}, {nil, _}}
+    ]
+  } = to_erl("Date.shift(:non_important, hour: 1)").
+
+optimized_time_shift_duration_test() ->
+  {call, _,
+    {remote, _, {atom, _, 'Elixir.Time'}, {atom, _, shift}}, [
+      {atom, _, non_important},
+      {map, _, [
+        {map_field_assoc, _, {atom, _, '__struct__'}, {atom, _, 'Elixir.Duration'}},
+        {map_field_assoc, _, {atom, _, day}, {integer, _, 0}},
+        {map_field_assoc, _, {atom, _, hour}, {integer, _, 0}},
+        {map_field_assoc, _, {atom, _, microsecond}, {tuple, _, [{integer, _, 0}, {integer, _, 0}]}},
+        {map_field_assoc, _, {atom, _, minute}, {integer, _, 0}},
+        {map_field_assoc, _, {atom, _, month}, {integer, _, 0}},
+        {map_field_assoc, _, {atom, _, second}, {integer, _, 2}},
+        {map_field_assoc, _, {atom, _, week}, {integer, _, 0}},
+        {map_field_assoc, _, {atom, _, year}, {integer, _, 0}}
+      ]}
+    ]
+  } = to_erl("Time.shift(:non_important, second: 2)").
+
+not_optimized_time_shift_duration_unsupported_unit_test() ->
+  {call, _,
+    {remote, _, {atom, _, 'Elixir.Time'}, {atom, _, shift}}, [
+      {atom, _, non_important},
+      {cons, _, {tuple, _, [{atom, _, day}, {integer, _, 2}]}, {nil, _}}
+    ]
+  } = to_erl("Time.shift(:non_important, day: 2)").
+
+optimized_date_time_shift_duration_test() ->
+  {call, _,
+    {remote, _, {atom, _, 'Elixir.DateTime'}, {atom, _, shift}}, [
+      {atom, _, non_important},
+      {map, _, [
+        {map_field_assoc, _, {atom, _, '__struct__'}, {atom, _, 'Elixir.Duration'}},
+        {map_field_assoc, _, {atom, _, day}, {integer, _, 0}},
+        {map_field_assoc, _, {atom, _, hour}, {integer, _, 0}},
+        {map_field_assoc, _, {atom, _, microsecond}, {tuple, _, [{integer, _, 0}, {integer, _, 0}]}},
+        {map_field_assoc, _, {atom, _, minute}, {integer, _, 3}},
+        {map_field_assoc, _, {atom, _, month}, {integer, _, 0}},
+        {map_field_assoc, _, {atom, _, second}, {integer, _, 0}},
+        {map_field_assoc, _, {atom, _, week}, {integer, _, 0}},
+        {map_field_assoc, _, {atom, _, year}, {integer, _, 0}}
+      ]}
+    ]
+  } = to_erl("DateTime.shift(:non_important, minute: 3)").
+
+non_optimized_date_time_shift_duration_unknown_unit_test() ->
+  {call, _,
+    {remote, _, {atom, _, 'Elixir.DateTime'}, {atom, _, shift}}, [
+      {atom, _, non_important},
+      {cons, _, {tuple, _, [{atom, _, unknown}, {integer, _, 3}]}, {nil, _}}
+    ]
+  } = to_erl("DateTime.shift(:non_important, unknown: 3)").
+
+optimized_naive_date_time_shift_duration_test() ->
+  {call, _,
+    {remote, _, {atom, _, 'Elixir.NaiveDateTime'}, {atom, _, shift}}, [
+      {atom, _, non_important},
+      {map, _, [
+        {map_field_assoc, _, {atom, _, '__struct__'}, {atom, _, 'Elixir.Duration'}},
+        {map_field_assoc, _, {atom, _, day}, {integer, _, 0}},
+        {map_field_assoc, _, {atom, _, hour}, {integer, _, 0}},
+        {map_field_assoc, _, {atom, _, microsecond}, {tuple, _, [{integer, _, 0}, {integer, _, 0}]}},
+        {map_field_assoc, _, {atom, _, minute}, {integer, _, 0}},
+        {map_field_assoc, _, {atom, _, month}, {integer, _, 0}},
+        {map_field_assoc, _, {atom, _, second}, {integer, _, 0}},
+        {map_field_assoc, _, {atom, _, week}, {integer, _, 0}},
+        {map_field_assoc, _, {atom, _, year}, {integer, _, 4}}
+      ]}
+    ]
+  } = to_erl("NaiveDateTime.shift(:non_important, year: 4)").

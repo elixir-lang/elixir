@@ -618,6 +618,11 @@ translate_remote(Left, Right, Meta, Args, S) ->
       end;
     {inline_pure, Result} ->
       translate(Result, Ann, S);
+    {inline_args, NewArgs} ->
+      {TLeft, SL} = translate(Left, Ann, S),
+      {TArgs, SA} = translate_args(NewArgs, Ann, SL),
+      TRight = {atom, Ann, Right},
+      {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, SA};
     none ->
       {TLeft, SL} = translate(Left, Ann, S),
       {TArgs, SA} = translate_args(Args, Ann, SL),
@@ -630,6 +635,30 @@ rewrite_strategy(erlang, Right, Args) ->
   case elixir_utils:guard_op(Right, Arity) of
     true -> guard_op;
     false -> none
+  end;
+rewrite_strategy(Left, shift, [Struct, Opts | RestArgs]) when
+  Left == 'Elixir.Date';
+  Left == 'Elixir.DateTime';
+  Left == 'Elixir.NaiveDateTime';
+  Left == 'Elixir.Time'
+->
+  case basic_type_arg(Opts) of
+    true ->
+      {Module, Fun} =
+        case (Left == 'Elixir.Date' orelse Left == 'Elixir.Time') of
+          % Time and Date have more restrictive validations than Elixir.Duration
+          true -> {Left, 'new_duration!'};
+          false -> {'Elixir.Duration', 'new!'}
+        end,
+
+      try
+        {inline_args, [Struct, Module:Fun(Opts) | RestArgs]}
+      catch _:_ ->
+        % fail silently, will fail at runtime
+        none
+      end;
+    false ->
+      none
   end;
 rewrite_strategy(Left, Right, Args) ->
   case inline_pure_function(Left, Right) andalso basic_type_arg(Args) of

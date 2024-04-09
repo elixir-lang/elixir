@@ -802,11 +802,13 @@ defmodule Date do
     %Date{calendar: calendar, year: year, month: month, day: day}
   end
 
-  defp new_duration!(%Duration{} = duration) do
+  @doc false
+  def new_duration!(%Duration{} = duration) do
     duration
   end
 
-  defp new_duration!(unit_pairs) do
+  # This part is inlined by the compiler on constant values
+  def new_duration!(unit_pairs) do
     Enum.each(unit_pairs, &validate_duration_unit!/1)
     struct!(Duration, unit_pairs)
   end
