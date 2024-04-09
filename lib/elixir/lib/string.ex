@@ -393,7 +393,7 @@ defmodule String do
   When the pattern used is a regular expression, the string is
   split using `Regex.split/3`.
 
-  If the pattern cannot be found, a list containing the original  
+  If the pattern cannot be found, a list containing the original
   string will be returned.
 
   ## Options
