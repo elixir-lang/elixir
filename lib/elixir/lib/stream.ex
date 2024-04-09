@@ -1157,6 +1157,7 @@ defmodule Stream do
 
       iex> Stream.from_index(fn x -> x * 10 end) |> Enum.take(3)
       [0, 10, 20]
+
   """
   @doc since: "1.17.0"
   def from_index(fun_or_offset \\ 0)
