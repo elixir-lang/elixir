@@ -5,10 +5,79 @@ defmodule Duration do
   A `Duration` struct represents a collection of time scale units,
   allowing for manipulation and calculation of durations.
 
-  Date and time scale units are represented as integers, allowing for both positive and negative values.
+  Date and time scale units are represented as integers, allowing for
+  both positive and negative values.
 
-  Microseconds are represented using a tuple `{microsecond, precision}`. This ensures compatibility with
-  other calendar types implementing time, such as `Time`, `DateTime`, and `NaiveDateTime`.
+  Microseconds are represented using a tuple `{microsecond, precision}`.
+  This ensures compatibility with other calendar types implementing time,
+  such as `Time`, `DateTime`, and `NaiveDateTime`.
+
+  ## Shifting
+
+  The most common use of durations in Elixir's standard library is to
+  "shift" the calendar types.
+
+      iex> Date.shift(~D[2016-01-03], month: 2)
+      ~D[2016-03-03]
+
+  In the example above, `Date.shift/2` automatically converts the units
+  into a `Duration` struct, although one can also be given directly:
+
+      iex> Date.shift(~D[2016-01-03], Duration.new!(month: 2))
+      ~D[2016-03-03]
+
+  It is important to notice that shifting is not an arithmetic operation.
+  For example, adding `date + 1 month + 1 month` does not yield the same
+  result as `date + 2 months`. Let's see an example:
+
+      iex> ~D[2016-01-31] |> Date.shift(month: 1) |> Date.shift(month: 1)
+      ~D[2016-03-29]
+
+      iex> ~D[2016-01-31] |> Date.shift(month: 2)
+      ~D[2016-03-31]
+
+  As you can see above, the results differ, which explains why operations
+  with durations are called "shift" rather than "add". This happens because,
+  once we add one month to `2016-01-31`, we get `2016-02-29`. Then adding
+  one extra month gives us `2016-03-29` instead of `2016-03-31`.
+
+  In particular, when applying durations to `Calendar.ISO` types:
+
+    * larger units (such as years and months) are applied before
+      smaller ones (such as weeks, hours, days, and so on)
+
+    * in case of non-existing dates, the results are rounded down to the
+      nearest valid date
+
+  ## Intervals
+
+  Durations in Elixir can be combined with stream operations to build intervals.
+  For example, to retrieve the next three Wednesdays starting from 17th April, 2024:
+
+      iex> ~D[2024-04-17] |> Stream.iterate(&Date.shift(&1, week: 1)) |> Enum.take(3)
+      [~D[2024-04-17], ~D[2024-04-24], ~D[2024-05-01]]
+
+  However, once again, it is important to remember that shifting a duration is not
+  arithmetic, so you may want to use the functions in this module depending on what
+  you to achieve. Compare the results of both examples below:
+
+      # Adding one month after the other
+      iex> date = ~D[2016-01-31]
+      iex> duration = Duration.new!(month: 1)
+      iex> stream = Stream.iterate(date, fn prev_date -> Date.shift(prev_date, duration) end)
+      iex> Enum.take(stream, 3)
+      [~D[2016-01-31], ~D[2016-02-29], ~D[2016-03-29]]
+
+      # Multiplying durations by an index
+      iex> date = ~D[2016-01-31]
+      iex> duration = Duration.new!(month: 1)
+      iex> stream = Stream.from_index(fn i -> Date.shift(date, Duration.multiply(duration, i)) end)
+      iex> Enum.take(stream, 3)
+      [~D[2016-01-31], ~D[2016-02-29], ~D[2016-03-31]]
+
+  The second example consistently points to the last day of the month,
+  as it performs operations on the duration, rather than shifting date
+  after date.
   """
 
   @moduledoc since: "1.17.0"
