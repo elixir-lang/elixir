@@ -21,7 +21,7 @@ defmodule Duration do
       ~D[2016-03-03]
 
   In the example above, `Date.shift/2` automatically converts the units
-  into a Duration struct, although one can also be given directly:
+  into a `Duration` struct, although one can also be given directly:
 
       iex> Date.shift(~D[2016-01-03], Duration.new!(month: 2))
       ~D[2016-03-03]
@@ -41,10 +41,10 @@ defmodule Duration do
   once we add one month to `2016-01-31`, we get `2016-02-29`. Then adding
   one extra month gives us `2016-03-29` instead of `2016-03-31`.
 
-  In particular, when applying durations to Calendar.ISO types:
+  In particular, when applying durations to `Calendar.ISO` types:
 
     * larger units (such as years and months) are applied before
-      smaller ones (such as weeks, hours, days, etc.)
+      smaller ones (such as weeks, hours, days, and so on)
 
     * in case of non-existing dates, the results are rounded down to the
       nearest valid date
@@ -52,7 +52,7 @@ defmodule Duration do
   ## Intervals
 
   Durations in Elixir can be combined with stream operations to build intervals.
-  For example, to retrieve the next three wednesdays starting from 17th April, 2024:
+  For example, to retrieve the next three Wednesdays starting from 17th April, 2024:
 
       iex> ~D[2024-04-17] |> Stream.iterate(&Date.shift(&1, week: 1)) |> Enum.take(3)
       [~D[2024-04-17], ~D[2024-04-24], ~D[2024-05-01]]

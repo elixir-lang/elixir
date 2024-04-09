@@ -1160,6 +1160,8 @@ defmodule Stream do
 
   """
   @doc since: "1.17.0"
+  @spec from_index(integer) :: Enumerable.t(integer)
+  @spec from_index((integer -> return_value) :: Enumerable.t(return_value) when return_value: term
   def from_index(fun_or_offset \\ 0)
 
   def from_index(offset) when is_integer(offset) do
