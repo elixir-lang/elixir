@@ -26,7 +26,7 @@ defmodule Duration do
       iex> Date.shift(~D[2016-01-03], Duration.new!(month: 2))
       ~D[2016-03-03]
 
-  It is important to notice that shifting is not an arithmetic operation
+  It is important to notice that shifting is not an arithmetic operation.
   For example, adding `date + 1 month + 1 month` does not yield the same
   result as `date + 2 months`. Let's see an example:
 
@@ -44,7 +44,7 @@ defmodule Duration do
   In particular, when applying durations to Calendar.ISO types:
 
     * larger units (such as years and months) are applied before
-      smaller ones (such as weeks, hours, days, etc)
+      smaller ones (such as weeks, hours, days, etc.)
 
     * in case of non-existing dates, the results are rounded down to the
       nearest valid date
