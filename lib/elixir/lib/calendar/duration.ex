@@ -69,7 +69,7 @@ defmodule Duration do
       # Multiplying durations one after the other
       iex> date = ~D[2016-01-31]
       iex> duration = Duration.new!(month: 1)
-      iex> stream = Stream.counter(fn i -> Date.shift(date, Duration.multiply(duration, i)) end)
+      iex> stream = Stream.from_index(fn i -> Date.shift(date, Duration.multiply(duration, i)) end)
       iex> Enum.take(stream, 3)
       [~D[2016-01-31], ~D[2016-02-29], ~D[2016-03-31]]
 
