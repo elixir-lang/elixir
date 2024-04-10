@@ -198,9 +198,10 @@ defmodule Mix.Tasks.Test do
     * `--trace` - runs tests with detailed reporting. Automatically sets `--max-cases` to `1`.
       Note that in trace mode test timeouts will be ignored as timeout is set to `:infinity`
 
-    * `--warnings-as-errors` *(since v1.12.0)* - treats warnings as errors and returns a non-zero
-      exit status if the test suite would otherwise pass. Note that failures reported by
-      `--warnings-as-errors` cannot be retried with the `--failed` flag.
+    * `--warnings-as-errors` *(since v1.12.0)* - treats compilation warnings (from loading the
+      test suite) as errors and returns a non-zero exit status if the test suite would otherwise
+      pass. Note that failures reported by `--warnings-as-errors` cannot be retried with the
+      `--failed` flag.
 
       This option only applies to test files. To treat warnings as errors during compilation and
       during tests, run:

@@ -67,8 +67,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     * `--profile` - if set to `time`, outputs timing information of compilation steps
     * `--tracer` - adds a compiler tracer in addition to any specified in the `mix.exs` file
     * `--verbose` - prints each file being compiled
-    * `--warnings-as-errors` - treats warnings in the current project as errors and
-      return a non-zero exit status
+    * `--warnings-as-errors` - exit with non-zero status if compilation has one or more warnings
 
   ## Configuration
 
