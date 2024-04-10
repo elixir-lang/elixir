@@ -101,6 +101,7 @@ defmodule File do
 
   @type posix :: :file.posix()
   @type io_device :: :file.io_device()
+  @type file_descriptor :: :file.fd()
   @type stat_options :: [time: :local | :universal | :posix]
   @type mode ::
           :append
@@ -1394,13 +1395,6 @@ defmodule File do
   @doc ~S"""
   Opens the given `path`.
 
-  In order to write and read files, one must use the functions
-  in the `IO` module. By default, a file is opened in `:binary` mode,
-  which requires the functions `IO.binread/2` and `IO.binwrite/2`
-  to interact with the file. A developer may pass `:utf8` as an
-  option when opening the file and then all other functions from
-  `IO` are available, since they work directly with Unicode data.
-
   `modes_or_function` can either be a list of modes or a function. If it's a
   list, it's considered to be a list of modes (that are documented below). If
   it's a function, then it's equivalent to calling `open(path, [],
@@ -1409,8 +1403,8 @@ defmodule File do
 
   The allowed modes:
 
-    * `:binary` - opens the file in binary mode, disabling special handling of Unicode sequences
-      (default mode).
+    * `:binary` - opens the file in binary mode, disabling special handling of
+      Unicode sequences (default mode).
 
     * `:read` - the file, which must exist, is opened for reading.
 
@@ -1451,19 +1445,33 @@ defmodule File do
 
   This function returns:
 
-    * `{:ok, io_device}` - the file has been opened in the requested mode.
+    * `{:ok, io_device | file_descriptor}` - the file has been opened in
+      the requested mode. We explore the differences between these two results
+      in the following section
 
-      `io_device` is actually the PID of the process which handles the file.
-      This process monitors the process that originally opened the file (the
-      owner process). If the owner process terminates, the file is closed and
-      the process itself terminates too. If any process to which the `io_device`
-      is linked terminates, the file will be closed and the process itself will
-      be terminated.
+    * `{:error, reason}` - the file could not be opened due to `reason`.
 
-      An `io_device` returned from this call can be used as an argument to the
-      `IO` module functions.
+  ## IO devices
 
-    * `{:error, reason}` - the file could not be opened.
+  By default, this function returns an IO device. An `io_device` is
+  a process which handles the file and you can interact with it using
+  the functions in the `IO` module. By default, a file is opened in
+  `:binary` mode, which requires the functions `IO.binread/2` and
+  `IO.binwrite/2` to interact with the file. A developer may pass `:utf8`
+  as a mode when opening the file and then all other functions from
+  `IO` are available, since they work directly with Unicode data.
+
+  Given the IO device is a file, if the owner process terminates,
+  the file is closed and the process itself terminates too. If any
+  process to which the `io_device` is linked terminates, the file
+  will be closed and the process itself will be terminated.
+
+  ## File descriptors
+
+  When the `:raw` or `:ram` modes are given, this function returns
+  a low-level file descriptors. This avoids creating a process but
+  requires using the functions in the [`:file`](`:file`) module to
+  interact with it.
 
   ## Examples
 
@@ -1472,8 +1480,9 @@ defmodule File do
       File.close(file)
 
   """
-  @spec open(Path.t(), [mode | :ram]) :: {:ok, io_device} | {:error, posix}
-  @spec open(Path.t(), (io_device -> res)) :: {:ok, res} | {:error, posix} when res: var
+  @spec open(Path.t(), [mode | :ram]) :: {:ok, io_device | file_descriptor} | {:error, posix}
+  @spec open(Path.t(), (io_device | file_descriptor -> res)) :: {:ok, res} | {:error, posix}
+        when res: var
   def open(path, modes_or_function \\ [])
 
   def open(path, modes) when is_list(modes) do
@@ -1507,7 +1516,8 @@ defmodule File do
 
   See `open/2` for the list of available `modes`.
   """
-  @spec open(Path.t(), [mode | :ram], (io_device -> res)) :: {:ok, res} | {:error, posix}
+  @spec open(Path.t(), [mode | :ram], (io_device | file_descriptor -> res)) ::
+          {:ok, res} | {:error, posix}
         when res: var
   def open(path, modes, function) when is_list(modes) and is_function(function, 1) do
     case open(path, modes) do
@@ -1529,8 +1539,8 @@ defmodule File do
 
   See `open/2` for the list of available modes.
   """
-  @spec open!(Path.t(), [mode | :ram]) :: io_device
-  @spec open!(Path.t(), (io_device -> res)) :: res when res: var
+  @spec open!(Path.t(), [mode | :ram]) :: io_device | file_descriptor
+  @spec open!(Path.t(), (io_device | file_descriptor -> res)) :: res when res: var
   def open!(path, modes_or_function \\ []) do
     case open(path, modes_or_function) do
       {:ok, io_device_or_function_result} ->
@@ -1549,7 +1559,7 @@ defmodule File do
 
   See `open/2` for the list of available `modes`.
   """
-  @spec open!(Path.t(), [mode | :ram], (io_device -> res)) :: res when res: var
+  @spec open!(Path.t(), [mode | :ram], (io_device | file_descriptor -> res)) :: res when res: var
   def open!(path, modes, function) do
     case open(path, modes, function) do
       {:ok, function_result} ->
