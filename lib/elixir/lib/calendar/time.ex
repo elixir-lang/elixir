@@ -581,7 +581,7 @@ defmodule Time do
     %{hour: hour, minute: minute, second: second, microsecond: microsecond} = time
 
     {hour, minute, second, microsecond} =
-      calendar.shift_time(hour, minute, second, microsecond, new_duration!(duration))
+      calendar.shift_time(hour, minute, second, microsecond, __duration__!(duration))
 
     %Time{
       calendar: calendar,
@@ -592,11 +592,13 @@ defmodule Time do
     }
   end
 
-  defp new_duration!(%Duration{} = duration) do
+  @doc false
+  def __duration__!(%Duration{} = duration) do
     duration
   end
 
-  defp new_duration!(unit_pairs) do
+  # This part is inlined by the compiler on constant values
+  def __duration__!(unit_pairs) do
     Enum.each(unit_pairs, &validate_duration_unit!/1)
     struct!(Duration, unit_pairs)
   end

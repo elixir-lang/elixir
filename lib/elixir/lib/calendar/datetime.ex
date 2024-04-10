@@ -1755,7 +1755,7 @@ defmodule DateTime do
         minute,
         second,
         microsecond,
-        Duration.new!(duration)
+        __duration__!(duration)
       )
 
     %DateTime{
@@ -1796,7 +1796,7 @@ defmodule DateTime do
         minute,
         second,
         microsecond,
-        Duration.new!(duration)
+        __duration__!(duration)
       )
 
     result =
@@ -1814,6 +1814,9 @@ defmodule DateTime do
                 "database #{inspect(time_zone_database)}), reason: #{inspect(error)}"
     end
   end
+
+  @doc false
+  defdelegate __duration__!(params), to: Duration, as: :new!
 
   @doc """
   Returns the given datetime with the microsecond field truncated to the given
