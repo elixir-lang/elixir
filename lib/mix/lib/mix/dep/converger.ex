@@ -132,22 +132,30 @@ defmodule Mix.Dep.Converger do
       # on, there is no lock, so we won't hit this branch.
       lock = if lock_given?, do: remote.converge(deps, lock), else: lock
 
-      # Build a cache using both dep_name and dep_scm to ensure we only
-      # return :loaded for deps which have been loaded from the same source.
       cache =
         deps
         |> Enum.reject(&remote.remote?(&1))
-        |> Enum.into(%{}, &{{&1.app, &1.scm}, &1})
+        |> Enum.into(%{}, &{&1.app, &1})
 
       # In case no lock was given, we will use the local lock
       # which is potentially stale. So remote.deps/2 needs to always
       # check if the data it finds in the lock is actually valid.
       {deps, acc, lock} =
         init_all(main, apps, acc, lock, callback, lock_given?, env_target, fn dep ->
-          if cached = cache[{dep.app, dep.scm}] do
-            {:loaded, cached}
-          else
-            {:unloaded, dep, remote.deps(dep, lock)}
+          %{app: app, scm: scm} = dep
+
+          case cache do
+            # If the SCM matches, use the already cached dependency from first converger pass
+            %{^app => %{scm: ^scm} = cached} ->
+              {:loaded, cached}
+
+            # If SCM doesn't match, the remote converger resolved a new dependency but because
+            # there is conflict we return the new dependency as is for the converger to fail
+            %{^app => _cached} ->
+              {:loaded, dep}
+
+            %{} ->
+              {:unloaded, dep, remote.deps(dep, lock)}
           end
         end)
 
