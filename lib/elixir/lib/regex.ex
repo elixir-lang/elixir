@@ -223,38 +223,29 @@ defmodule Regex do
 
   """
   @spec compile(binary, binary | [term]) :: {:ok, t} | {:error, any}
-  def compile(source, options \\ "") when is_binary(source) do
-    compile(source, options, version())
+  def compile(source, opts \\ "") when is_binary(source) do
+    compile(source, opts, version())
   end
 
-  defp compile(source, options, version) when is_binary(options) do
-    case translate_options(options, []) do
+  defp compile(source, opts, version) when is_binary(opts) do
+    case translate_options(opts, []) do
       {:error, rest} ->
         {:error, {:invalid_option, rest}}
 
-      translated_options ->
-        compile(source, translated_options, options, version)
+      translated_opts ->
+        compile(source, translated_opts, version)
     end
   end
 
-  defp compile(source, options, version) when is_list(options) do
-    compile(source, options, "", version)
-  end
-
-  defp compile(source, opts, doc_opts, version) do
+  defp compile(source, opts, version) when is_list(opts) do
     case :re.compile(source, opts) do
       {:ok, re_pattern} ->
-        doc_opts = format_doc_opts(doc_opts, opts)
-        {:ok, %Regex{re_pattern: re_pattern, re_version: version, source: source, opts: doc_opts}}
+        {:ok, %Regex{re_pattern: re_pattern, re_version: version, source: source, opts: opts}}
 
       error ->
         error
     end
   end
-
-  defp format_doc_opts(_doc_opts = "", _opts = []), do: ""
-  defp format_doc_opts(_doc_opts = "", opts), do: opts
-  defp format_doc_opts(doc_opts, _opts), do: doc_opts
 
   @doc """
   Compiles the regular expression and raises `Regex.CompileError` in case of errors.
@@ -426,21 +417,20 @@ defmodule Regex do
   end
 
   @doc """
-  Returns the regex options, as a string or list depending on how
-  it was compiled.
+  Returns the regex options.
 
   See the documentation of `Regex.compile/2` for more information.
 
   ## Examples
 
       iex> Regex.opts(~r/foo/m)
-      "m"
+      [:multiline]
 
       iex> Regex.opts(Regex.compile!("foo", [:caseless]))
       [:caseless]
 
   """
-  @spec opts(t) :: String.t() | [term]
+  @spec opts(t) :: [term]
   def opts(%Regex{opts: opts}) do
     opts
   end
@@ -531,8 +521,15 @@ defmodule Regex do
          options
        ) do
     case version() do
-      ^version -> :re.run(string, compiled, options)
-      _ -> :re.run(string, source, translate_options(compile_opts, options))
+      ^version ->
+        :re.run(string, compiled, options)
+
+      _ when is_list(compile_opts) ->
+        :re.run(string, source, compile_opts ++ options)
+
+      # TODO: This clause is kept for compatibility with previous Elixir versions. Remove on v2.0+.
+      _ when is_binary(compile_opts) ->
+        :re.run(string, source, translate_options(compile_opts, options))
     end
   end
 
@@ -888,15 +885,14 @@ defmodule Regex do
 
   # Helpers
 
+  defp translate_options(<<?s, t::binary>>, acc),
+    do: translate_options(t, [:dotall, {:newline, :anycrlf} | acc])
+
   defp translate_options(<<?u, t::binary>>, acc), do: translate_options(t, [:unicode, :ucp | acc])
   defp translate_options(<<?i, t::binary>>, acc), do: translate_options(t, [:caseless | acc])
   defp translate_options(<<?x, t::binary>>, acc), do: translate_options(t, [:extended | acc])
   defp translate_options(<<?f, t::binary>>, acc), do: translate_options(t, [:firstline | acc])
   defp translate_options(<<?U, t::binary>>, acc), do: translate_options(t, [:ungreedy | acc])
-
-  defp translate_options(<<?s, t::binary>>, acc),
-    do: translate_options(t, [:dotall, {:newline, :anycrlf} | acc])
-
   defp translate_options(<<?m, t::binary>>, acc), do: translate_options(t, [:multiline | acc])
 
   defp translate_options(<<?r, t::binary>>, acc) do
@@ -905,5 +901,5 @@ defmodule Regex do
   end
 
   defp translate_options(<<>>, acc), do: acc
-  defp translate_options(rest, _acc), do: {:error, rest}
+  defp translate_options(t, _acc), do: {:error, t}
 end

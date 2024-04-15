@@ -852,7 +852,7 @@ defmodule Inspect.OthersTest do
     assert inspect(~r/hi/, syntax_colors: [regex: :red]) == "\e[31m~r/hi/\e[0m"
 
     assert inspect(Regex.compile!("foo", "i")) == "~r/foo/i"
-    assert inspect(Regex.compile!("foo", [:caseless])) == ~S'Regex.compile!("foo", [:caseless])'
+    assert inspect(Regex.compile!("foo", [:ucp])) == ~S'Regex.compile!("foo", [:ucp])'
   end
 
   test "inspect_fun" do

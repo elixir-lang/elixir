@@ -127,8 +127,8 @@ defmodule RegexTest do
   end
 
   test "opts/1" do
-    assert Regex.opts(Regex.compile!("foo", "i")) == "i"
-    assert Regex.opts(Regex.compile!("foo", [:caseless])) == [:caseless]
+    assert Regex.opts(Regex.compile!("foo", "i")) == [:caseless]
+    assert Regex.opts(Regex.compile!("foo", [:ucp])) == [:ucp]
   end
 
   test "names/1" do
