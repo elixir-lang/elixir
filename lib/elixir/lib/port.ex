@@ -79,6 +79,27 @@ defmodule Port do
   are for advanced usage within the VM. Also consider using `System.cmd/3`
   if all you want is to execute a program and retrieve its return value.
 
+  > #### Windows argument splitting and untrusted arguments {: .warning}
+  >
+  > On Unix systems, arguments are passed to a new operating system
+  > process as an array of strings but on Windows it is up to the child
+  > process to parse them and some Windows programs may apply their own
+  > rules, which are inconsistent with the standard C runtime `argv` parsing
+  >
+  > This is particularly troublesome when invoking `.bat` or `.com` files
+  > as these run implicitly through `cmd.exe`, whose argument parsing is
+  > vulnerable to malicious input and can be used to run arbitrary shell
+  > commands.
+  >
+  > Therefore, if you are running on Windows and you execute batch
+  > files or `.com` applications, you must not pass untrusted input as
+  > arguments to the program. You may avoid accidentally executing them
+  > by explicitly passing the extension of the program you want to run,
+  > such as `.exe`, and double check the program is indeed not a batch
+  > file or `.com` application.
+  >
+  > This affects both `spawn` and `spawn_executable`.
+
   ### spawn
 
   The `:spawn` tuple receives a binary that is going to be executed as a
