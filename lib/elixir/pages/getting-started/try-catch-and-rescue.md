@@ -171,7 +171,28 @@ iex> try do
 "not really"
 ```
 
-Using `try/catch` is already uncommon and using it to catch exits is even rarer.
+`catch` can also be used within a function body without a matching `try`.
+
+```elixir
+defmodule Example do
+  def matched_catch do
+    exit(:timeout)
+  catch
+    :exit, :timeout ->
+      {:error, :timeout}
+  end
+
+  def mismatched_catch do
+    exit(:timeout)
+  catch
+    # Since no clause matches, this catch will have no effect
+    :exit, :explosion ->
+      {:error, :explosion}
+  end
+end
+```
+
+However, using `try/catch` is already uncommon and using it to catch exits is even rarer.
 
 `exit` signals are an important part of the fault tolerant system provided by the Erlang VM. Processes usually run under supervision trees which are themselves processes that listen to `exit` signals from the supervised processes. Once an `exit` signal is received, the supervision strategy kicks in and the supervised process is restarted.
 
