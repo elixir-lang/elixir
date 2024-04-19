@@ -135,10 +135,10 @@ defmodule Task do
 
   With `Task.Supervisor`, it is easy to dynamically start tasks across nodes:
 
-      # On the remote node named :remote@local
+      # On the client
       Task.Supervisor.start_link(name: MyApp.DistSupervisor)
 
-      # On the client
+      # On the remote node named :remote@local
       supervisor = {MyApp.DistSupervisor, :remote@local}
       Task.Supervisor.async(supervisor, MyMod, :my_fun, [arg1, arg2, arg3])
 
