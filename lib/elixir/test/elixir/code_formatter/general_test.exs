@@ -296,6 +296,14 @@ defmodule Code.Formatter.GeneralTest do
       assert_same code, @short_length
     end
 
+    test "keeps parens if argument includes keyword list" do
+      assert_same """
+      fn (input: x) when is_integer(x) ->
+        x + 42
+      end
+      """
+    end
+
     test "with a single clause, followed by a newline, and can fit in one line" do
       assert_same """
       fn
