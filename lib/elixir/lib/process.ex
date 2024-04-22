@@ -839,13 +839,17 @@ defmodule Process do
     nilify(:erlang.process_info(pid))
   end
 
+  @type process_info_item :: atom | {:dictionary, term}
+  @type process_info_result_item :: {process_info_item, term}
+
   @doc """
   Returns information about the process identified by `pid`,
   or returns `nil` if the process is not alive.
 
   See `:erlang.process_info/2` for more information.
   """
-  @spec info(pid, atom | [atom]) :: {atom, term} | [{atom, term}] | nil
+  @spec info(pid, process_info_item) :: process_info_result_item | nil
+  @spec info(pid, [process_info_item]) :: [process_info_result_item] | nil
   def info(pid, spec)
 
   def info(pid, :registered_name) do
@@ -856,7 +860,7 @@ defmodule Process do
     end
   end
 
-  def info(pid, spec) when is_atom(spec) or is_list(spec) do
+  def info(pid, spec) do
     nilify(:erlang.process_info(pid, spec))
   end
 
