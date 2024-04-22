@@ -860,11 +860,7 @@ defmodule Process do
     end
   end
 
-  def info(pid, {:dictionary, key}) do
-    nilify(:erlang.process_info(pid, {:dictionary, key}))
-  end
-
-  def info(pid, spec) when is_atom(spec) or is_list(spec) do
+  def info(pid, spec) do
     nilify(:erlang.process_info(pid, spec))
   end
 
