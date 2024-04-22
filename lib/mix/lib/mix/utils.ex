@@ -655,11 +655,19 @@ defmodule Mix.Utils do
     headers = [{~c"user-agent", ~c"Mix/#{System.version()}"}]
     request = {:binary.bin_to_list(path), headers}
 
+    # allow override of system CA certs to support running on managed networks
+    # using an SSL proxy etc
+    cacert_opt =
+      case System.get_env("MIX_CACERTFILE") do
+        nil -> {:cacerts, :public_key.cacerts_get()}
+        file -> {:cacertfile, file}
+      end
+
     # Use the system certificates
     # TODO: use `ssl_options = :httpc.ssl_verify_host_options(true)` on Erlang/OTP 26+
     ssl_options = [
+      cacert_opt,
       verify: :verify_peer,
-      cacerts: :public_key.cacerts_get(),
       customize_hostname_check: [match_fun: :public_key.pkix_verify_hostname_match_fun(:https)]
     ]
 

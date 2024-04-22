@@ -337,6 +337,9 @@ defmodule Mix do
       written to. For example, "_build". If `MIX_BUILD_PATH` is set, this option
       is ignored.
 
+    * `MIX_CACERTFILE` - use specified CA certificate file instead of default
+      system CA certificates. See [Erlang `ssl` module documentation](https://www.erlang.org/doc/man/ssl#type-client_cafile)
+
     * `MIX_DEBUG` - outputs debug information about each task before running it
 
     * `MIX_DEPS_PATH` - sets the project `Mix.Project.deps_path/0` config for the
