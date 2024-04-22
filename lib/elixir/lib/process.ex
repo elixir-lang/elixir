@@ -848,8 +848,8 @@ defmodule Process do
 
   See `:erlang.process_info/2` for more information.
   """
-  @spec info(pid, process_info_item | [process_info_item]) ::
-          process_info_result_item | [process_info_result_item] | nil
+  @spec info(pid, process_info_item) :: process_info_result_item | nil
+  @spec info(pid, [process_info_item]) :: [process_info_result_item] | nil
   def info(pid, spec)
 
   def info(pid, :registered_name) do
