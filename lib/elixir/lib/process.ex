@@ -826,6 +826,9 @@ defmodule Process do
   @spec flag(pid, :save_calls, 0..10000) :: 0..10000
   defdelegate flag(pid, flag, value), to: :erlang, as: :process_flag
 
+  @type process_info_item :: atom | {:dictionary, term}
+  @type process_info_result_item :: {process_info_item, term}
+
   @doc """
   Returns information about the process identified by `pid`, or returns `nil` if the process
   is not alive.
@@ -834,7 +837,7 @@ defmodule Process do
 
   See `:erlang.process_info/1` for more information.
   """
-  @spec info(pid) :: keyword | nil
+  @spec info(pid) :: [process_info_result_item] | nil
   def info(pid) do
     nilify(:erlang.process_info(pid))
   end
@@ -845,7 +848,8 @@ defmodule Process do
 
   See `:erlang.process_info/2` for more information.
   """
-  @spec info(pid, atom | [atom]) :: {atom, term} | [{atom, term}] | nil
+  @spec info(pid, process_info_item | [process_info_item]) ::
+          process_info_result_item | [process_info_result_item] | nil
   def info(pid, spec)
 
   def info(pid, :registered_name) do
@@ -854,6 +858,10 @@ defmodule Process do
       [] -> {:registered_name, []}
       other -> other
     end
+  end
+
+  def info(pid, {:dictionary, key}) do
+    nilify(:erlang.process_info(pid, {:dictionary, key}))
   end
 
   def info(pid, spec) when is_atom(spec) or is_list(spec) do
