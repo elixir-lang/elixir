@@ -778,6 +778,7 @@ defmodule Logger do
   This will take priority over the primary level set, so it can be
   used to increase or decrease verbosity of some parts of the running system.
   """
+  @doc since: "1.15.0"
   @spec put_process_level(pid(), level() | :all | :none) :: :ok
   def put_process_level(pid, level) when pid == self() do
     Process.put(@metadata, elixir_level_to_erlang_level(level))
@@ -792,6 +793,7 @@ defmodule Logger do
   The returned value will be the effective value used. If no value
   was set for a given process, then `nil` is returned.
   """
+  @doc since: "1.15.0"
   @spec get_process_level(pid) :: level() | :all | :none | nil
   def get_process_level(pid) when pid == self() do
     Process.get(@metadata, nil)
@@ -802,6 +804,7 @@ defmodule Logger do
 
   Currently the only accepted PID is `self()`.
   """
+  @doc since: "1.15.0"
   @spec delete_process_level(pid()) :: :ok
   def delete_process_level(pid) when pid == self() do
     Process.delete(@metadata)
