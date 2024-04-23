@@ -595,10 +595,13 @@ defmodule Mix.Tasks.Release do
   When a distributed Erlang/Elixir node starts, it runs a separate daemon called EPMD
   (Erlang Port Mapper Daemon) and registers the node name within EPMD. It is possible
   to skip this additional Operating System process by setting the following flags in
-  your `vm.args.eex`:
+  your vm.args files:
 
-      -start_epmd false
-      -erl_epmd_port 6789
+      # In vm.args.eex
+      -start_epmd false -erl_epmd_port 6789
+
+      # In remote.vm.args.eex
+      # -start_epmd false -erl_epmd_port 6789 -dist_listen false
 
   You can pick any port of your choice. If you have a `remote.vm.args.eex` file,
   you must add the same configuration.
@@ -1513,7 +1516,7 @@ defmodule Mix.Tasks.Release do
     end
   end
 
-  embed_template(:vm_args, Mix.Tasks.Release.Init.vm_args_text())
+  embed_template(:vm_args, Mix.Tasks.Release.Init.vm_args_text(false))
   embed_template(:env, Mix.Tasks.Release.Init.env_text())
   embed_template(:cli, Mix.Tasks.Release.Init.cli_text())
   embed_template(:env_bat, Mix.Tasks.Release.Init.env_bat_text())

@@ -32,16 +32,16 @@ defmodule Mix.Tasks.Release.Init do
       Mix.raise("Expected \"mix release.init\" without arguments, got: #{inspect(args)}")
     end
 
-    create_file("rel/vm.args.eex", vm_args_text(), opts)
-    create_file("rel/remote.vm.args.eex", vm_args_text(), opts)
+    create_file("rel/vm.args.eex", vm_args_text(false), opts)
+    create_file("rel/remote.vm.args.eex", vm_args_text(true), opts)
     create_file("rel/env.sh.eex", env_text(), opts)
     create_file("rel/env.bat.eex", env_bat_text(), opts)
     :ok
   end
 
   @doc false
-  def vm_args_text,
-    do: ~S"""
+  def vm_args_text(remote?),
+    do: """
     ## Customize flags given to the VM: https://www.erlang.org/doc/man/erl.html
     ## -mode/-name/-sname/-setcookie are configured via env vars, do not set them here
 
@@ -53,7 +53,7 @@ defmodule Mix.Tasks.Release.Init do
 
     ## Enable deployment without epmd
     ## (requires changing both vm.args and remote.vm.args)
-    ##-start_epmd false -erl_epmd_port 6789
+    ##-start_epmd false -erl_epmd_port 6789#{remote? && " -dist_listen false"}
     """
 
   @doc false
@@ -145,7 +145,7 @@ defmodule Mix.Tasks.Release.Init do
     rpc () {
       exec "$REL_VSN_DIR/elixir" \
            --hidden --cookie "$RELEASE_COOKIE" \
-           $(release_distribution "undefined") \
+           $(release_distribution "rpc-$(rand)-$RELEASE_NODE") \
            --boot "$REL_VSN_DIR/$RELEASE_BOOT_SCRIPT_CLEAN" \
            --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
            --vm-args "$RELEASE_REMOTE_VM_ARGS" \
@@ -219,7 +219,7 @@ defmodule Mix.Tasks.Release.Init do
       remote)
         exec "$REL_VSN_DIR/iex" \
              --werl --hidden --cookie "$RELEASE_COOKIE" \
-             $(release_distribution "undefined") \
+             $(release_distribution "rem-$(rand)-$RELEASE_NODE") \
              --boot "$REL_VSN_DIR/$RELEASE_BOOT_SCRIPT_CLEAN" \
              --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
              --vm-args "$RELEASE_REMOTE_VM_ARGS" \
@@ -411,7 +411,7 @@ defmodule Mix.Tasks.Release.Init do
     if "!RELEASE_DISTRIBUTION!" == "none" (
       set RELEASE_DISTRIBUTION_FLAG=
     ) else (
-      set RELEASE_DISTRIBUTION_FLAG=--!RELEASE_DISTRIBUTION! undefined
+      set RELEASE_DISTRIBUTION_FLAG=--!RELEASE_DISTRIBUTION! "rem-!RANDOM!-!RELEASE_NODE!"
     )
 
     "!REL_VSN_DIR!\iex.bat" ^
@@ -427,7 +427,7 @@ defmodule Mix.Tasks.Release.Init do
     if "!RELEASE_DISTRIBUTION!" == "none" (
       set RELEASE_DISTRIBUTION_FLAG=
     ) else (
-      set RELEASE_DISTRIBUTION_FLAG=--!RELEASE_DISTRIBUTION! undefined
+      set RELEASE_DISTRIBUTION_FLAG=--!RELEASE_DISTRIBUTION! "rem-!RANDOM!-!RELEASE_NODE!"
     )
 
     "!REL_VSN_DIR!\elixir.bat" ^
