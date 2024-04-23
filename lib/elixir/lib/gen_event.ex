@@ -507,6 +507,8 @@ defmodule GenEvent do
     {:ok, states, [name, handlers, hib]}
   end
 
+  # Keeping deprecated format_status/2 since the current implementation is not
+  # compatible with format_status/1 and GenEvent is deprecated anyway
   @doc false
   def format_status(opt, status_data) do
     [pdict, sys_state, parent, _debug, [name, handlers, _hib]] = status_data

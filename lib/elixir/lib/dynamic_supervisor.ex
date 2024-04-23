@@ -1136,15 +1136,6 @@ defmodule DynamicSupervisor do
     ]
   end
 
-  @impl true
-  def format_status(:terminate, [_pdict, state]) do
-    state
-  end
-
-  def format_status(_, [_pdict, %{mod: mod} = state]) do
-    [data: [{~c"State", state}], supervisor: [{~c"Callback", mod}]]
-  end
-
   ## Helpers
 
   @compile {:inline, call: 2}
