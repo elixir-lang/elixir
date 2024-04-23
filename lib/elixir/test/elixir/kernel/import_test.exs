@@ -243,7 +243,7 @@ defmodule Kernel.ImportTest do
   end
 
   test "import lexical on with" do
-    with true <- false do
+    with [_ | _] <- List.flatten([]) do
       import List
       flatten([1, [2], 3])
       flunk()
