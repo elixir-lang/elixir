@@ -1959,6 +1959,14 @@ defmodule Code.Formatter do
   # fn a, b, c when d -> e end
   defp clause_args_to_algebra([{:when, meta, args}], state) do
     {args, right} = split_last(args)
+
+    # If there are any keywords, wrap them in lists
+    args =
+      Enum.map(args, fn
+        [_ | _] = keyword -> {:__block__, [], [keyword]}
+        other -> other
+      end)
+
     left = {{:special, :clause_args}, meta, [args]}
     binary_op_to_algebra(:when, "when", meta, left, right, :no_parens_arg, state)
   end
