@@ -371,7 +371,7 @@ Optional callbacks can be defined through the `@optional_callbacks` module attri
       @optional_callbacks non_vital_fun: 0, non_vital_macro: 1
     end
 
-One example of optional callback in Elixir's standard library is `c:GenServer.format_status/2`.
+One example of optional callback in Elixir's standard library is `c:GenServer.format_status/1`.
 
 ### Inspecting behaviours
 

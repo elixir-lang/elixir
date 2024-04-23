@@ -759,6 +759,38 @@ defmodule GenServer do
             when old_vsn: term | {:down, term}
 
   @doc """
+  This function is called by a `GenServer` process in the following situations:
+
+    * `sys:get_status/1,2` is invoked to get the `GenServer` status.
+    * The `GenServer` process terminates abnormally and logs an error.
+
+  This callback is used to limit the status of the process returned by
+  `sys:get_status/1,2` or sent to logger.
+
+  The callback gets a map `status` describing the current status and shall return
+  a map `new_status` with the same keys, but it may transform some values.
+
+  Two possible use cases for this callback is to remove sensitive information
+  from the state to prevent it from being printed in log files, or to compact
+  large irrelevant status items that would only clutter the logs.
+
+  ## Example
+
+      @impl GenServer
+      def format_status(status) do
+        Map.new(status, fn
+          {:state, state} -> {:state, Map.delete(state, :private_key)}
+          {:message, {:password, _} -> {:message, {:password, "redacted"}}
+          key_value -> key_value
+        end)
+      end
+
+  """
+  @doc since: "1.17.0"
+  @callback format_status(status :: :gen_server.format_status()) ::
+              new_status :: :gen_server.format_status()
+
+  @doc """
   Invoked in some cases to retrieve a formatted version of the `GenServer` status:
 
     * one of `:sys.get_status/1` or `:sys.get_status/2` is invoked to get the
@@ -775,6 +807,7 @@ defmodule GenServer do
   list of `{key, value}` tuples representing the current process dictionary of
   the `GenServer` and `state` is the current state of the `GenServer`.
   """
+  @doc deprecated: "Use format_status/1 callback instead"
   @callback format_status(reason, pdict_and_state :: list) :: term
             when reason: :normal | :terminate
 
@@ -783,6 +816,7 @@ defmodule GenServer do
                       handle_info: 2,
                       handle_cast: 2,
                       handle_call: 3,
+                      format_status: 1,
                       format_status: 2,
                       handle_continue: 2
 
