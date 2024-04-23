@@ -590,6 +590,19 @@ defmodule Mix.Tasks.Release do
 
   starting the release with `bin/myapp start --foo bar baz` will print `start --foo bar baz`.
 
+  ### `epmd`-less deployment
+
+  When a distributed Erlang/Elixir node starts, it runs a separate daemon called EPMD
+  (Erlang Port Mapper Daemon) and registers the node name within EPMD. It is possible
+  to skip this additional Operating System process by setting the following flags in
+  your `vm.args.eex`:
+
+      -start_epmd false
+      -erl_epmd_port 6789
+
+  You can pick any port of your choice. If you have a `remote.vm.args.eex` file,
+  you must add the same configuration.
+
   ## Application configuration
 
   Mix provides two mechanisms for configuring the application environment

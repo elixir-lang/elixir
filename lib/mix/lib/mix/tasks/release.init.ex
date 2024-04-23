@@ -50,6 +50,10 @@ defmodule Mix.Tasks.Release.Init do
 
     ## Tweak GC to run more often
     ##-env ERL_FULLSWEEP_AFTER 10
+
+    ## Enable deployment without epmd
+    ## (requires changing both vm.args and remote.vm.args)
+    ##-start_epmd false -erl_epmd_port 6789
     """
 
   @doc false
