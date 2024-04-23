@@ -175,8 +175,8 @@ defmodule Mix.Tasks.Test do
     * `--raise` - immediately raises if the test suite fails, instead of continuing
       the execution of other Mix tasks
 
-    * `--repeat-until-failure` - sets the number of repetitions for running the test suite
-      until it fails. This is useful for debugging flaky tests within the same instance
+    * `--repeat-until-failure` *(since v1.17.0)* - sets the number of repetitions for running
+      the suite until it fails. This is useful for debugging flaky tests within the same instance
       of the Erlang VM. For example, `--repeat-until-failure 10000` repeats the test suite
       up to 10000 times until the first failure. This can be combined with `--max-failures 1`
       to immediately stop if one test fails. However, if there is any leftover global state
@@ -188,6 +188,9 @@ defmodule Mix.Tasks.Test do
 
     * `--slowest` - prints timing information for the N slowest tests.
       Automatically sets `--trace` and `--preload-modules`
+
+    * `--slowest-modules` *(since v1.17.0)* - prints timing information for the N slowest
+      modules. Automatically sets `--trace` and `--preload-modules`
 
     * `--stale` - runs only tests which reference modules that changed since the
       last time tests were ran with `--stale`. You can read more about this option
