@@ -337,8 +337,6 @@ defmodule Mix do
       written to. For example, "_build". If `MIX_BUILD_PATH` is set, this option
       is ignored.
 
-    * `MIX_CACERTFILE` - use specified CA certificate file instead of default
-      system CA certificates. See [Erlang `ssl` module documentation](https://www.erlang.org/doc/man/ssl#type-client_cafile)
 
     * `MIX_DEBUG` - outputs debug information about each task before running it
 
@@ -373,6 +371,12 @@ defmodule Mix do
       than `MIX_XDG`. If none of the variables are set, the default directory
       `~/.mix` will be used
 
+  In addition, Mix also uses the following environment variables defined by other libraries
+
+    * `HEX_CACERTS_PATH` - use specified CA certificate file instead of default
+      system CA certificates. This configures how HTTPS calls are made via [Erlang `ssl` module](https://www.erlang.org/doc/man/ssl#type-client_cafile)
+      to fetch remote archives and packages. See [`mix hex.config`](https://hexdocs.pm/hex/Mix.Tasks.Hex.Config.html#module-config-keys)
+      for more details. 
   Environment variables that are not meant to hold a value (and act basically as
   flags) should be set to either `1` or `true`, for example:
 

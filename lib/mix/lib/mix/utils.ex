@@ -656,9 +656,11 @@ defmodule Mix.Utils do
     request = {:binary.bin_to_list(path), headers}
 
     # allow override of system CA certs to support running on managed networks
-    # using an SSL proxy etc
+    # using an SSL proxy etc. Piggy back on Hex defined environment variable
+    # rather than creating a new one, as these are almost always going to be
+    # set and used together.
     cacert_opt =
-      case System.get_env("MIX_CACERTFILE") do
+      case System.get_env("HEX_CACERTS_PATH") do
         nil -> {:cacerts, :public_key.cacerts_get()}
         file -> {:cacertfile, file}
       end
