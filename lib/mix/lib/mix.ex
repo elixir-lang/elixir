@@ -375,7 +375,8 @@ defmodule Mix do
     * `HEX_CACERTS_PATH` - use specified CA certificate file instead of default
       system CA certificates. This configures how HTTPS calls are made via [Erlang `ssl` module](https://www.erlang.org/doc/man/ssl#type-client_cafile)
       to fetch remote archives and packages. See [`mix hex.config`](https://hexdocs.pm/hex/Mix.Tasks.Hex.Config.html#module-config-keys)
-      for more details. 
+      for more details.
+
   Environment variables that are not meant to hold a value (and act basically as
   flags) should be set to either `1` or `true`, for example:
 
