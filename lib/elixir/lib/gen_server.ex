@@ -790,23 +790,6 @@ defmodule GenServer do
   @callback format_status(status :: :gen_server.format_status()) ::
               new_status :: :gen_server.format_status()
 
-  @doc """
-  Invoked in some cases to retrieve a formatted version of the `GenServer` status:
-
-    * one of `:sys.get_status/1` or `:sys.get_status/2` is invoked to get the
-      status of the `GenServer`; in such cases, `reason` is `:normal`
-
-    * the `GenServer` terminates abnormally and logs an error; in such cases,
-      `reason` is `:terminate`
-
-  This callback can be useful to control the *appearance* of the status of the
-  `GenServer`. For example, it can be used to return a compact representation of
-  the `GenServer`'s state to avoid having large state terms printed.
-
-  `pdict_and_state` is a two-elements list `[pdict, state]` where `pdict` is a
-  list of `{key, value}` tuples representing the current process dictionary of
-  the `GenServer` and `state` is the current state of the `GenServer`.
-  """
   @doc deprecated: "Use format_status/1 callback instead"
   @callback format_status(reason, pdict_and_state :: list) :: term
             when reason: :normal | :terminate
