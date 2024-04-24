@@ -628,7 +628,7 @@ defmodule Module.Types.Descr do
       none()
     else
       map_split_on_key(descr_map.map, key)
-      |> Enum.reduce(none(), fn {typeof_key, _}, union -> union(typeof_key, union) end)
+      |> Enum.reduce(none(), fn typeof_key, union -> union(typeof_key, union) end)
       |> remove_not_set()
     end
   end
@@ -837,9 +837,23 @@ defmodule Module.Types.Descr do
   # the type of the key in the map can be found in the first element of the pair.
   # See `split_line_on_key/5`.
   defp map_split_on_key(dnf, key) do
-    dnf
-    |> Enum.flat_map(fn {pos_lit, negs} -> split_line_on_key([pos_lit], negs, key, [], []) end)
-    |> pair_simplify_dnf(@term_or_unset)
+    Enum.flat_map(dnf, fn {pos_lit, negs} ->
+      {fst, snd} =
+        case single_split(pos_lit, key) do
+          # { .. } the open map in a positive intersection can be ignored
+          :no_split ->
+            {@term_or_unset, @term_or_unset}
+
+          # {typeof l, rest} is added to the positive accumulator
+          {value_type, rest_of_map} ->
+            {value_type, rest_of_map}
+        end
+
+      case split_negative(negs, key, []) do
+        :no_split -> []
+        negative -> make_pairs_disjoint(negative) |> eliminate_negations(fst, snd)
+      end
+    end)
   end
 
   # Splits a map literal on a key. This means that given a map literal, compute
@@ -867,29 +881,17 @@ defmodule Module.Types.Descr do
   # Given a line, that is, a list `positive` of map literals and `negative` of
   # negated map literals, and a `key`, splits every map literal on the key and
   # outputs a DNF of pairs, that is, a list (union) of (intersections) of pairs.
-  defp split_line_on_key([], [], _, pos_acc, neg_acc), do: [{pos_acc, neg_acc}]
+  defp split_negative([], _key, neg_acc), do: neg_acc
 
-  defp split_line_on_key([map_literal | positive], negative, key, pos_acc, neg_acc) do
-    case single_split(map_literal, key) do
-      # { .. } the open map in a positive intersection can be ignored
-      :no_split ->
-        split_line_on_key(positive, negative, key, pos_acc, neg_acc)
-
-      # {typeof l, rest} is added to the positive accumulator
-      {value_type, rest_of_map} ->
-        split_line_on_key(positive, negative, key, [{value_type, rest_of_map} | pos_acc], neg_acc)
-    end
-  end
-
-  defp split_line_on_key([], [map_literal | negative], key, pos_acc, neg_acc) do
+  defp split_negative([map_literal | negative], key, neg_acc) do
     case single_split(map_literal, key) do
       # an intersection that contains %{...} is empty, so we discard it entirely
       :no_split ->
-        []
+        :no_split
 
       # {typeof l, rest_of_map} is added to the negative accumulator
       {value_type, rest_of_map} ->
-        split_line_on_key([], negative, key, pos_acc, [{value_type, rest_of_map} | neg_acc])
+        split_negative(negative, key, [{value_type, rest_of_map} | neg_acc])
     end
   end
 
@@ -974,21 +976,10 @@ defmodule Module.Types.Descr do
   # map value types) or `@term` in general.
   # Remark: all lines of a pair dnf are naturally disjoint, because choosing a
   # different edge means intersection with a literal or its negation.
-  defp pair_simplify_dnf(dnf, term) do
-    Enum.flat_map(dnf, &pair_simplify_line(&1, term))
-  end
 
   # A line is a list of pairs `{positive, negative}` where `positive` is a list of
   # literals and `negative` is a list of negated literals. Positive pairs can
   # all be intersected component-wise. Negative ones are eliminated iteratively.
-  defp pair_simplify_line({positive, negative}, term) do
-    {fst, snd} = pair_intersection(positive, term)
-
-    # don't check emptiness if no real intersection was computed
-    if (length(positive) > 1 and empty?(fst)) or empty?(snd),
-      do: [],
-      else: make_pairs_disjoint(negative) |> eliminate_negations(fst, snd)
-  end
 
   # Eliminates negations from `{t, s} and not negative` where `negative` is a
   # union of pairs disjoint on their first component.
@@ -1005,14 +996,13 @@ defmodule Module.Types.Descr do
         {[], none()},
         fn {t_i, s_i}, {accu, union_of_t_i} ->
           i = intersection(t, t_i)
-          j = intersection(s, s_i)
 
-          if not_empty?(i) and not_empty?(j) do
+          if not_empty?(i) do
             union_of_t_i = union(union_of_t_i, t_i)
             s_diff = difference(s, s_i)
 
             if not_empty?(s_diff),
-              do: {[{i, s_diff} | accu], union_of_t_i},
+              do: {[i | accu], union_of_t_i},
               else: {accu, union_of_t_i}
           else
             {accu, union_of_t_i}
@@ -1020,20 +1010,7 @@ defmodule Module.Types.Descr do
         end
       )
 
-    t_diff = difference(t, union_of_t_i)
-
-    if not_empty?(t_diff),
-      do: [{t_diff, s} | pair_union],
-      else: pair_union
-  end
-
-  # Component-wise intersection of a list of pairs.
-  defp pair_intersection([], term), do: {term, term}
-
-  defp pair_intersection(pair_list, _term) do
-    Enum.reduce(pair_list, fn {x1, x2}, {acc1, acc2} ->
-      {intersection(acc1, x1), intersection(acc2, x2)}
-    end)
+    [difference(t, union_of_t_i) | pair_union]
   end
 
   # Inserts a pair of types {fst, snd} into a list of pairs that are disjoint
