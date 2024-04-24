@@ -666,7 +666,6 @@ defmodule Mix.Utils do
       end
 
     # Use the system certificates
-    # TODO: use `ssl_options = :httpc.ssl_verify_host_options(true)` on Erlang/OTP 26+
     ssl_options = [
       cacert_opt,
       verify: :verify_peer,
