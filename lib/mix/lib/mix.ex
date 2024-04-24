@@ -374,6 +374,14 @@ defmodule Mix do
   flags) should be set to either `1` or `true`, for example:
 
       $ MIX_DEBUG=1 mix compile
+
+  In addition, Mix also uses the following environment variables defined by other libraries
+
+    * `HEX_CACERTS_PATH` - use specified CA certificate file instead of default
+      system CA certificates. This configures how HTTPS calls are made via
+      [Erlang `ssl` module](https://www.erlang.org/doc/man/ssl#type-client_cafile)
+      to fetch remote archives and packages. For more details, see
+      [`mix hex.config`](https://hexdocs.pm/hex/Mix.Tasks.Hex.Config.html#module-config-keys).
   """
 
   @mix_install_project __MODULE__.InstallProject
