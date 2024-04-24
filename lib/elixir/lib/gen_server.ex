@@ -761,11 +761,11 @@ defmodule GenServer do
   @doc """
   This function is called by a `GenServer` process in the following situations:
 
-    * `sys:get_status/1,2` is invoked to get the `GenServer` status.
+    * [`:sys.get_status/1,2`](`:sys.get_status/1`) is invoked to get the `GenServer` status.
     * The `GenServer` process terminates abnormally and logs an error.
 
   This callback is used to limit the status of the process returned by
-  `sys:get_status/1,2` or sent to logger.
+  [`:sys.get_status/1,2`](`:sys.get_status/1`) or sent to logger.
 
   The callback gets a map `status` describing the current status and shall return
   a map `new_status` with the same keys, but it may transform some values.
@@ -780,7 +780,7 @@ defmodule GenServer do
       def format_status(status) do
         Map.new(status, fn
           {:state, state} -> {:state, Map.delete(state, :private_key)}
-          {:message, {:password, _} -> {:message, {:password, "redacted"}}
+          {:message, {:password, _}} -> {:message, {:password, "redacted"}}
           key_value -> key_value
         end)
       end
