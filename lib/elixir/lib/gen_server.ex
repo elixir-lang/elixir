@@ -790,6 +790,7 @@ defmodule GenServer do
   @callback format_status(status :: :gen_server.format_status()) ::
               new_status :: :gen_server.format_status()
 
+  # TODO: Remove this on v2.0
   @doc deprecated: "Use format_status/1 callback instead"
   @callback format_status(reason, pdict_and_state :: list) :: term
             when reason: :normal | :terminate
