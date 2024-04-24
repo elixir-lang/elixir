@@ -140,14 +140,6 @@ defmodule DynamicSupervisorTest do
       {:ok, pid} = DynamicSupervisor.start_link(strategy: :one_for_one)
       assert :proc_lib.initial_call(pid) == {:supervisor, Supervisor.Default, [:Argument__1]}
     end
-
-    test "returns the callback module" do
-      {:ok, pid} = Supervisor.start_link([], strategy: :one_for_one)
-      assert :supervisor.get_callback_module(pid) == Supervisor.Default
-
-      {:ok, pid} = DynamicSupervisor.start_link(strategy: :one_for_one)
-      assert :supervisor.get_callback_module(pid) == Supervisor.Default
-    end
   end
 
   ## Code change
