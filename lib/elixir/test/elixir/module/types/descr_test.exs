@@ -238,19 +238,32 @@ defmodule Module.Types.DescrTest do
       assert map_get!(map(a: integer()), :a) == integer()
       assert map_get!(dynamic(), :a) == dynamic()
 
-      assert map_get!(intersection(dynamic(), map([a: integer()], :open)), :a) ==
-               intersection(integer(), dynamic())
+      assert intersection(dynamic(), map([a: integer()], :open))
+             |> map_get!(:a) == intersection(integer(), dynamic())
 
-      assert intersection(
-               map([my_map: map([foo: integer()], :open)], :open),
-               map([my_map: map([bar: boolean()], :open)], :open)
-             )
+      assert map([my_map: map([foo: integer()], :open)], :open)
+             |> intersection(map([my_map: map([bar: boolean()], :open)], :open))
              |> map_get!(:my_map)
              |> equal?(map([foo: integer(), bar: boolean()], :open))
 
       assert map_get!(union(map(a: integer()), map(a: atom())), :a) == union(integer(), atom())
       assert map_get!(union(map(a: integer()), map(b: atom())), :a) == integer()
       assert map_get!(term(), :a) == term()
+
+      assert map(a: union(integer(), atom()))
+             |> difference(map([a: integer()], :open))
+             |> map_get!(:a)
+             |> equal?(atom())
+
+      assert map(a: integer(), b: atom())
+             |> difference(map(a: integer(), b: atom([:foo])))
+             |> map_get!(:a)
+             |> equal?(integer())
+
+      assert map(a: integer())
+             |> difference(map(a: atom()))
+             |> map_get!(:a)
+             |> equal?(integer())
     end
 
     test "key presence" do

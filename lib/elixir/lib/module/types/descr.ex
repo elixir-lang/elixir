@@ -541,7 +541,7 @@ defmodule Module.Types.Descr do
   def not_set(), do: @unset
   def if_set(type), do: Map.update(type, :bitmap, @bit_unset, &(&1 ||| @bit_unset))
 
-  defp has_unset?(type), do: (Map.get(type, :bitmap, 0) &&& @bit_unset) != 0
+  defp is_optional?(type), do: (Map.get(type, :bitmap, 0) &&& @bit_unset) != 0
 
   defp remove_not_set(type) do
     case type do
@@ -578,20 +578,7 @@ defmodule Module.Types.Descr do
   # Simplifications can be done to prune the latter.
 
   # Create a DNF from a specification of a map type.
-  defp map_new(open_or_closed, pairs) do
-    fields =
-      Map.new(pairs, fn
-        {{:optional, [], [key]}, type} ->
-          {key, {true, type}}
-
-        {key, type} ->
-          if has_unset?(type),
-            do: {key, {true, remove_not_set(type)}},
-            else: {key, {false, type}}
-      end)
-
-    [{{open_or_closed, fields}, []}]
-  end
+  defp map_new(open_or_closed, pairs), do: [{{open_or_closed, Map.new(pairs)}, []}]
 
   defp map_descr(tag, fields), do: %{map: [{{tag, fields}, []}]}
 
@@ -652,93 +639,36 @@ defmodule Module.Types.Descr do
 
   defp map_intersection_aux(_, [], acc), do: acc
 
-  defp map_intersection_aux({pos1, negs1}, [{pos2, negs2} | rest_dnf2], acc) do
+  defp map_intersection_aux({{tag1, pos1}, negs1}, [{{tag2, pos2}, negs2} | rest_dnf2], acc) do
     try do
-      x = map_literal_intersection(pos1, pos2)
-      map_intersection_aux({pos1, negs1}, rest_dnf2, [{x, negs1 ++ negs2} | acc])
+      x = map_literal_intersection(tag1, pos1, tag2, pos2)
+      map_intersection_aux({{tag1, pos1}, negs1}, rest_dnf2, [{x, negs1 ++ negs2} | acc])
     catch
-      :empty_intersection -> map_intersection_aux({pos1, negs1}, rest_dnf2, acc)
+      :empty_intersection -> map_intersection_aux({{tag1, pos1}, negs1}, rest_dnf2, acc)
     end
   end
 
-  # Creates the intersection, if not empty, of two map literals.
-  defp map_literal_intersection(map1, map2) do
-    case {map1, map2} do
-      {{:closed, fs1}, {:closed, fs2}} -> {:closed, merge_closed(fs1, fs2)}
-      {{:open, fs1}, {:closed, fs2}} -> {:closed, merge_open_with_closed(fs1, fs2)}
-      {{:closed, fs1}, {:open, fs2}} -> {:closed, merge_open_with_closed(fs2, fs1)}
-      {{:open, fs1}, {:open, fs2}} -> {:open, merge_open(fs1, fs2)}
+  defp map_literal_intersection(tag1, map1, tag2, map2) do
+    default1 = if tag1 == :open, do: @term_or_unset, else: @unset
+    default2 = if tag2 == :open, do: @term_or_unset, else: @unset
+
+    # if any intersection of values is empty, the whole intersection is empty
+    new_fields =
+      (for {key, value_type} <- map1 do
+         value_type2 = Map.get(map2, key, default2)
+         t = intersection(value_type, value_type2)
+         if empty?(t), do: throw(:empty_intersection), else: {key, t}
+       end ++
+         for {key, value_type} <- map2, not is_map_key(map1, key) do
+           t = intersection(default1, value_type)
+           if empty?(t), do: throw(:empty_intersection), else: {key, t}
+         end)
+      |> Map.new()
+
+    case {tag1, tag2} do
+      {:open, :open} -> {:open, new_fields}
+      _ -> {:closed, new_fields}
     end
-  end
-
-  defp go_through_keys([], []), do: []
-  defp go_through_keys([], rest), do: Enum.map(rest, &{:right, &1})
-  defp go_through_keys(rest, []), do: Enum.map(rest, &{:left, &1})
-
-  defp go_through_keys([key1 | rest1], [key2 | rest2]) do
-    cond do
-      key1 < key2 -> [{:left, key1} | go_through_keys(rest1, [key2 | rest2])]
-      key1 > key2 -> [{:right, key2} | go_through_keys([key1 | rest1], rest2)]
-      true -> [{:both, key1} | go_through_keys(rest1, rest2)]
-    end
-  end
-
-  defp merge_closed(fields1, fields2) do
-    # if they don't have the same keys, intersection is empty
-    if Map.keys(fields1) != Map.keys(fields2) do
-      throw(:empty_intersection)
-    else
-      Map.merge(fields1, fields2, fn _k, {is_opt1, val1}, {is_opt2, val2} ->
-        t = intersection(val1, val2)
-
-        if empty?(t),
-          do: throw(:empty_intersection),
-          else: {is_opt1 and is_opt2, intersection(val1, val2)}
-      end)
-    end
-  end
-
-  defp merge_open_with_closed(open_fs1, closed_fs2) do
-    for {tag, key} <- go_through_keys(Map.keys(open_fs1), Map.keys(closed_fs2)), into: %{} do
-      case tag do
-        :both ->
-          {is_opt1, val1} = open_fs1[key]
-          {is_opt2, val2} = closed_fs2[key]
-          t = intersection(val1, val2)
-
-          # if the intersection is empty, the whole intersection is empty
-          # iff one of the fields was not optional
-          if empty?(t) and (not is_opt1 or not is_opt2),
-            do: throw(:empty_intersection),
-            else: {key, {is_opt1 and is_opt2, t}}
-
-        :left ->
-          # if the key is not present in the closed map, then the intersection is
-          # empty unless the field is absent in the open map
-          {is_opt1, val1} = Map.fetch!(open_fs1, key)
-
-          cond do
-            is_opt1 and empty?(val1) -> {key, {true, %{}}}
-            true -> throw(:empty_intersection)
-          end
-
-        :right ->
-          # if it's only in the closed map, then the field stays the same
-          {key, Map.fetch!(closed_fs2, key)}
-      end
-    end
-  end
-
-  # Intersection of two open maps means that for every common key, we compute
-  # their intersection (which, if empty and the keys are not both optional, should throw)
-  defp merge_open(fields1, fields2) do
-    Map.merge(fields1, fields2, fn _k, {is_opt1, val1}, {is_opt2, val2} ->
-      t = intersection(val1, val2)
-
-      if not (is_opt1 and is_opt2) and empty?(t),
-        do: throw(:empty_intersection),
-        else: {is_opt1 and is_opt2, t}
-    end)
   end
 
   defp map_difference(dnf1, []), do: dnf1
@@ -761,12 +691,12 @@ defmodule Module.Types.Descr do
   # Intersects a literal with a list of literals, removing empty intersections.
   defp pruning_intersection(_pos, [], _, acc), do: acc
 
-  defp pruning_intersection(pos, [lit | literals], negs, acc) do
+  defp pruning_intersection({tag, pos} = lit, [{tag2, pos2} | literals], negs, acc) do
     try do
-      x = map_literal_intersection(pos, lit)
-      pruning_intersection(pos, literals, negs, [{x, negs} | acc])
+      x = map_literal_intersection(tag, pos, tag2, pos2)
+      pruning_intersection(lit, literals, negs, [{x, negs} | acc])
     catch
-      :empty_intersection -> pruning_intersection(pos, literals, negs, acc)
+      :empty_intersection -> pruning_intersection(lit, literals, negs, acc)
     end
   end
 
@@ -791,40 +721,33 @@ defmodule Module.Types.Descr do
   defp map_empty?({tag, fields}, [{neg_tag, neg_fields} | negs]) do
     try do
       # keys that are present in the negative map, but not in the positive one
-      for {neg_key, {neg_opt, neg_type}} when not is_map_key(fields, neg_key) <- neg_fields do
+      for {neg_key, neg_type} <- neg_fields, not is_map_key(fields, neg_key) do
         cond do
           # key is required, and the positive map is closed: empty intersection
-          # if the key is optional, subtyping works by default
-          tag == :closed and not neg_opt ->
+          tag == :closed and not is_optional?(neg_type) ->
             throw(:no_intersection)
 
-          # if the map is open
+          # if the positive map is open
           tag == :open ->
-            {tag, Map.put(fields, neg_key, {not neg_opt, negation(neg_type)})}
-            |> map_empty?(negs)
+            diff = difference(@term_or_unset, neg_type)
+            empty?(diff) or map_empty?({tag, Map.put(fields, neg_key, diff)}, negs)
         end
       end
 
-      for {key, {is_opt, type}} <- fields do
-        # if the key is not present, the loop continues
+      for {key, type} <- fields do
         case neg_fields do
-          %{^key => {neg_opt, neg_type}} ->
+          %{^key => neg_type} ->
             diff = difference(type, neg_type)
-
-            if is_opt and not neg_opt,
-              do: map_empty?({tag, Map.put(fields, key, {true, diff})}, negs),
-              else: empty?(diff) or map_empty?({tag, Map.put(fields, key, {false, diff})}, negs)
+            empty?(diff) or map_empty?({tag, Map.put(fields, key, diff)}, negs)
 
           %{} ->
-            cond do
+            if neg_tag == :closed and not is_optional?(type) do
+              throw(:no_intersection)
+            else
               # an absent key in a open negative map can be ignored
-              neg_tag == :open -> nil
-              # key is required, and the negative is closed; discard the whole difference
-              not is_opt and tag == :closed -> throw(:no_intersection)
-              # open negative or absent key; subtyping holds for this field
-              tag == :open or (is_opt and empty?(type)) -> nil
-              # tag is closed, value type is either required or non empty
-              true -> map_empty?({tag, Map.put(fields, key, {false, type})}, negs)
+              default2 = if neg_tag == :open, do: @term_or_unset, else: @unset
+              diff = difference(type, default2)
+              empty?(diff) or map_empty?({tag, Map.put(fields, key, diff)}, negs)
             end
         end
       end
@@ -860,21 +783,14 @@ defmodule Module.Types.Descr do
   # the pair of types `{value_type, rest_of_map}` where `value_type` is the type
   # associated with `key`, and `rest_of_map` is obtained by removing `key`.
   defp single_split({tag, fields}, key) do
-    {value_type_with_option, rest_of_map} = Map.pop(fields, key)
+    {value_type, rest_of_map} = Map.pop(fields, key)
 
-    if value_type_with_option != nil do
-      {optional_field?, value_type} = value_type_with_option
-
-      if optional_field?,
-        do: {if_set(value_type), map_descr(tag, rest_of_map)},
-        else: {value_type, map_descr(tag, rest_of_map)}
-    else
-      cond do
-        tag == :closed -> {@unset, map_descr(tag, rest_of_map)}
-        # case where there is an open map with no keys { .. }
-        map_size(fields) == 0 -> :no_split
-        true -> {@term_or_unset, map_descr(tag, rest_of_map)}
-      end
+    cond do
+      value_type != nil -> {value_type, map_descr(tag, rest_of_map)}
+      tag == :closed -> {@unset, map_descr(tag, rest_of_map)}
+      # case where there is an open map with no keys { .. }
+      map_size(fields) == 0 -> :no_split
+      true -> {@term_or_unset, map_descr(tag, rest_of_map)}
     end
   end
 
@@ -916,14 +832,14 @@ defmodule Module.Types.Descr do
 
   defp filter_empty_negations({tag, fields}, [{neg_tag, neg_fields} | negs]) do
     try do
-      for {neg_key, {neg_opt, _neg_type}} when not is_map_key(fields, neg_key) <- neg_fields do
+      for {neg_key, neg_type} when not is_map_key(fields, neg_key) <- neg_fields do
         # key is required, and the positive map is closed: empty intersection
-        if tag == :closed and not neg_opt, do: throw(:no_intersection)
+        if tag == :closed and not is_optional?(neg_type), do: throw(:no_intersection)
       end
 
-      for {key, {is_opt, _type}} when not is_map_key(neg_fields, key) <- fields,
+      for {key, type} when not is_map_key(neg_fields, key) <- fields,
           # key is required, and the negative map is closed: empty intersection
-          not is_opt and neg_tag == :closed do
+          not is_optional?(type) and neg_tag == :closed do
         throw(:no_intersection)
       end
 
@@ -955,11 +871,11 @@ defmodule Module.Types.Descr do
   end
 
   defp fields_to_quoted(tag, map) do
-    for {key, {optional_field?, type}} <- map,
-        not (tag == :open and optional_field? and term?(type)) do
+    for {key, type} <- map,
+        not (tag == :open and is_optional?(type) and term?(type)) do
       cond do
-        optional_field? and empty?(type) -> {literal(key), {:not_set, [], []}}
-        optional_field? -> {literal(key), {:if_set, [], [to_quoted(type)]}}
+        is_optional?(type) and empty?(type) -> {literal(key), {:not_set, [], []}}
+        is_optional?(type) -> {literal(key), {:if_set, [], [to_quoted(type)]}}
         true -> {literal(key), to_quoted(type)}
       end
     end
@@ -1037,12 +953,12 @@ defmodule Module.Types.Descr do
       cond do
         # case fst = s1
         empty_fst_diff and empty_s1_diff ->
-          [{x, union(snd, s2)} | Enum.reverse(pairs, acc)]
+          [{x, union(snd, s2)} | pairs ++ acc]
 
         # special case: if fst is a subtype of s1, the disjointness invariant
         # ensures we can safely add those two pairs and end the recursion
         empty_fst_diff ->
-          [{s1_diff, s2}, {x, union(snd, s2)} | Enum.reverse(pairs, acc)]
+          [{s1_diff, s2}, {x, union(snd, s2)} | pairs ++ acc]
 
         empty_s1_diff ->
           add_pair_to_disjoint_list(pairs, fst_diff, snd, [{x, union(snd, s2)} | acc])
