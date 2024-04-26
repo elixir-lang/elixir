@@ -281,6 +281,21 @@ defmodule Module.Types.DescrTest do
              |> difference(map(a: atom([:bar])))
              |> map_get!(:a)
              |> equal?(intersection(atom(), negation(atom([:foo, :bar]))))
+
+      assert map(a: union(atom(), pid()), b: integer(), c: tuple())
+             |> difference(map([a: atom(), b: integer()], :open))
+             |> difference(map([a: atom(), c: tuple()], :open))
+             |> map_get!(:a) == pid()
+
+      assert map(a: union(atom([:foo]), pid()), b: integer(), c: tuple())
+             |> difference(map([a: atom([:foo]), b: integer()], :open))
+             |> difference(map([a: atom(), c: tuple()], :open))
+             |> map_get!(:a) == pid()
+
+      assert map(a: union(atom([:foo, :bar, :baz]), integer()))
+             |> difference(map([a: atom([:foo, :bar])], :open))
+             |> difference(map([a: atom([:foo, :baz])], :open))
+             |> map_get!(:a) == integer()
     end
 
     test "key presence" do

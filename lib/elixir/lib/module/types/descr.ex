@@ -947,8 +947,8 @@ defmodule Module.Types.Descr do
       empty_s1_diff = empty?(s1_diff)
 
       cond do
-        # if fst is a subtype of s1, the disjointness invariant
-        # ensures we can safely add those two pairs and end the recursion
+        # if fst is a subtype of s1, the disjointness invariant ensures we can
+        # add those two pairs and end the recursion
         empty_fst_diff and empty_s1_diff ->
           [{x, union(snd, s2)} | pairs ++ acc]
 
@@ -959,6 +959,9 @@ defmodule Module.Types.Descr do
           add_pair_to_disjoint_list(pairs, fst_diff, snd, [{x, union(snd, s2)} | acc])
 
         true ->
+          # case where, when comparing {fst, snd} and {s1, s2}, both (fst and not s1)
+          # and (s1 and not fst) are non empty. that is, there is something in fst
+          # that is not in s1, and something in s1 that is not in fst
           add_pair_to_disjoint_list(pairs, fst_diff, snd, [
             {s1_diff, s2},
             {x, union(snd, s2)} | acc
