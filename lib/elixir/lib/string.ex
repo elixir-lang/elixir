@@ -201,6 +201,9 @@ defmodule String do
       iex> eacute
       233
 
+  See the documentation for [`<<>>`](`<<>>/1`) or the Patterns and Guards
+  guide for more information on binary pattern matching
+
   You can also fully convert a string into a list of integer code points,
   known as "charlists" in Elixir, by calling `String.to_charlist/1`:
 
