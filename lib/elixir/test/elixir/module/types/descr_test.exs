@@ -233,6 +233,12 @@ defmodule Module.Types.DescrTest do
     end
   end
 
+  describe "empty" do
+    test "map" do
+      assert intersection(map(b: atom()), map([a: integer()], :open)) |> empty?
+    end
+  end
+
   describe "map operations" do
     test "get field" do
       assert map_get!(map(a: integer()), :a) == integer()
@@ -264,6 +270,17 @@ defmodule Module.Types.DescrTest do
              |> difference(map(a: atom()))
              |> map_get!(:a)
              |> equal?(integer())
+
+      assert map([a: integer(), b: atom()], :open)
+             |> union(map(a: tuple()))
+             |> map_get!(:a)
+             |> equal?(union(integer(), tuple()))
+
+      assert map(a: atom())
+             |> difference(map(a: atom([:foo, :bar])))
+             |> difference(map(a: atom([:bar])))
+             |> map_get!(:a)
+             |> equal?(intersection(atom(), negation(atom([:foo, :bar]))))
     end
 
     test "key presence" do
