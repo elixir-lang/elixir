@@ -604,7 +604,7 @@ defmodule Logger do
 
   The `Logger` level can be changed via `configure/1`.
   """
-  @spec level() :: level()
+  @spec level() :: level() | :all | :none
   def level() do
     %{level: level} = :logger.get_primary_config()
 
