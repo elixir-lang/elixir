@@ -3547,37 +3547,6 @@ defmodule Kernel do
       def example1, do: files()[:example1]
       def example2, do: files()[:example2]
 
-  ## Attention! Compile-time dependencies
-
-  Keep in mind references to other modules, even in module attributes,
-  generate compile-time dependencies to said modules.
-
-  For example, take this common pattern:
-
-      @values [:foo, :bar, :baz]
-
-      def handle_arg(arg) when arg in @values do
-        ...
-      end
-
-  While the above is fine, imagine if instead you have actual
-  module names in the module attribute, like this:
-
-      @values [Foo, Bar, Baz]
-
-      def handle_arg(arg) when arg in @values do
-        ...
-      end
-
-  The code above will define a compile-time dependency on the modules
-  `Foo`, `Bar`, and `Baz`, in a way that, if any of them change, the
-  current module will have to recompile. In such cases, it may be
-  preferred to avoid the module attribute altogether:
-
-      def handle_arg(arg) when arg in [Foo, Bar, Baz] do
-        ...
-      end
-
   """
   defmacro @expr
 
