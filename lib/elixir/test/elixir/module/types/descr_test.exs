@@ -153,6 +153,7 @@ defmodule Module.Types.DescrTest do
       assert empty?(difference(map(a: integer()), map()))
       assert empty?(difference(map(a: integer()), map(a: integer())))
       assert empty?(difference(map(a: integer()), map([a: integer()], :open)))
+      assert empty?(difference(map(a: integer()), map([b: if_set(integer())], :open)))
 
       assert difference(map(a: integer(), b: if_set(atom())), map(a: integer()))
              |> difference(map(a: integer(), b: atom()))

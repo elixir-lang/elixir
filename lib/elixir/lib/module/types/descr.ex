@@ -651,8 +651,8 @@ defmodule Module.Types.Descr do
 
   # Intersects two map literals; throws if their intersection is empty.
   defp map_literal_intersection(tag1, map1, tag2, map2) do
-    default1 = if tag1 == :open, do: term_or_not_set(), else: not_set()
-    default2 = if tag2 == :open, do: term_or_not_set(), else: not_set()
+    default1 = map_tag_to_type(tag1)
+    default2 = map_tag_to_type(tag2)
 
     # if any intersection of values is empty, the whole intersection is empty
     new_fields =
@@ -690,7 +690,11 @@ defmodule Module.Types.Descr do
     end)
   end
 
-  # Emptiness checking for maps. Short-circuits if it finds a non-empty map literal in the union.
+  # Emptiness checking for maps.
+  #
+  # Short-circuits if it finds a non-empty map literal in the union.
+  # Since the algorithm is recursive, we implement the short-circuiting
+  # as throw/catch.
   defp map_empty?(dnf) do
     try do
       for {tag, pos, negs} <- dnf do
@@ -709,20 +713,27 @@ defmodule Module.Types.Descr do
 
   defp map_empty?(tag, fields, [{neg_tag, neg_fields} | negs]) do
     try do
-      # keys that are present in the negative map, but not in the positive one
+      # Keys that are present in the negative map, but not in the positive one
       for {neg_key, neg_type} <- neg_fields, not is_map_key(fields, neg_key) do
         cond do
-          # key is required, and the positive map is closed: empty intersection
+          # The key is not shared between positive and negative maps,
+          # and because the negative type is required, there is no value in common
           tag == :closed and not optional?(neg_type) ->
-            throw(:no_intersection)
+            throw(:discard_negative)
 
-          # if the positive map is open
+          # The key is not shared between positive and negative maps,
+          # but because the negative type is not required, there may be a value in common
+          tag == :closed ->
+            true
+
+          # There may be value in common
           tag == :open ->
             diff = difference(term_or_not_set(), neg_type)
             empty?(diff) or map_empty?(tag, Map.put(fields, neg_key, diff), negs)
         end
       end
 
+      # Keys from the positive map that may be present in the negative one
       for {key, type} <- fields do
         case neg_fields do
           %{^key => neg_type} ->
@@ -731,19 +742,23 @@ defmodule Module.Types.Descr do
 
           %{} ->
             if neg_tag == :closed and not optional?(type) do
-              throw(:no_intersection)
+              throw(:discard_negative)
             else
               # an absent key in a open negative map can be ignored
-              default2 = if neg_tag == :open, do: @term_or_not_set, else: @not_set
-              diff = difference(type, default2)
+              diff = difference(type, map_tag_to_type(neg_tag))
               empty?(diff) or map_empty?(tag, Map.put(fields, key, diff), negs)
             end
         end
       end
+
+      true
     catch
-      :no_intersection -> map_empty?(tag, fields, negs)
+      :discard_negative -> map_empty?(tag, fields, negs)
     end
   end
+
+  defp map_tag_to_type(:open), do: term_or_not_set()
+  defp map_tag_to_type(:closed), do: not_set()
 
   # Takes a map bdd and a key, and returns an equivalent dnf of pairs, in which
   # the type of the key in the map can be found in the first element of the pair.
