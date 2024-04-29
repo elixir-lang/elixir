@@ -97,7 +97,7 @@ defmodule Module.Types.Pattern do
       )
       when is_atom(var_context) do
     with {:ok, _, context} <- Of.open_map(args, stack, context, &of_pattern/3) do
-      {:ok, map(), context}
+      {:ok, open_map(), context}
     end
   end
 
@@ -107,7 +107,7 @@ defmodule Module.Types.Pattern do
     # TODO: validate var is an atom
     with {:ok, _, context} = of_pattern(var, stack, context),
          {:ok, _, context} <- Of.open_map(args, stack, context, &of_pattern/3) do
-      {:ok, map(), context}
+      {:ok, open_map(), context}
     end
   end
 
@@ -116,7 +116,7 @@ defmodule Module.Types.Pattern do
       when is_atom(module) do
     with {:ok, _, context} <- Of.struct(module, meta1, stack, context),
          {:ok, _, context} <- Of.open_map(args, stack, context, &of_pattern/3) do
-      {:ok, map(), context}
+      {:ok, open_map(), context}
     end
   end
 

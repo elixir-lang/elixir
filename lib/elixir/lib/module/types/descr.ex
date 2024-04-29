@@ -31,6 +31,7 @@ defmodule Module.Types.Descr do
 
   @atom_top {:negation, :sets.new(version: 2)}
   @map_top [{:open, %{}, []}]
+  @map_empty [{:closed, %{}, []}]
 
   # Guard helpers
 
@@ -51,10 +52,10 @@ defmodule Module.Types.Descr do
   def integer(), do: %{bitmap: @bit_integer}
   def float(), do: %{bitmap: @bit_float}
   def fun(), do: %{bitmap: @bit_fun}
-  def map(pairs, open_or_closed), do: %{map: map_new(open_or_closed, pairs)}
-  def map(pairs), do: %{map: map_new(:closed, pairs)}
-  def map(), do: %{map: @map_top}
-  def empty_map(), do: map([])
+  def open_map(pairs), do: %{map: [{:open, Map.new(pairs), []}]}
+  def closed_map(pairs), do: %{map: [{:closed, Map.new(pairs), []}]}
+  def open_map(), do: %{map: @map_top}
+  def empty_map(), do: %{map: @map_empty}
   def non_empty_list(), do: %{bitmap: @bit_non_empty_list}
   def pid(), do: %{bitmap: @bit_pid}
   def port(), do: %{bitmap: @bit_port}
@@ -65,6 +66,16 @@ defmodule Module.Types.Descr do
   def boolean(), do: %{atom: {:union, @boolset}}
 
   # Map helpers
+  #
+  # `not_set()` is a special base type that represents an not_set field in a map.
+  # E.g., `%{a: integer(), b: not_set(), ...}` represents a map with an integer
+  # field `a` and an not_set field `b`, and possibly other fields.
+  #
+  # The `if_set()` modifier is syntactic sugar for specifying the key as a union
+  # of the key type and `not_set()`. For example, `%{:foo => if_set(integer())}`
+  # is equivalent to `%{:foo => integer() or not_set()}`.
+  #
+  # `not_set()` has no meaning outside of map types.
 
   @not_set %{bitmap: @bit_optional}
   @term_or_not_set %{bitmap: @bit_top ||| @bit_optional, atom: @atom_top, map: @map_top}
@@ -540,11 +551,10 @@ defmodule Module.Types.Descr do
   # and `negated_literals` is a list of map type literals that are negated from it.
   # Each pair is augmented with the :open or :closed tag.
   #
-  # A map literal is a pair `{:open | :closed, %{keys => value_types}}`.
-  #
   # For instance, the type `%{..., a: integer()} and not %{b: atom()}` can be represented
-  # by the DNF containing one pair, where the positive literal is `{:open, %{a => integer()}}`
-  # and the negated literal is `{:closed, %{b => atom()}}`.
+  # by the DNF containing one pair of shape:
+  #
+  #     {:open, %{a => integer()}, [{:closed, %{b => atom()}}]}
   #
   # The goal of keeping symbolic negations is to avoid distributing difference on
   # every member of a union which creates a lot of map literals in the union and
@@ -552,23 +562,8 @@ defmodule Module.Types.Descr do
   #
   # For instance, the difference between `%{...}` and `%{a: atom(), b: integer()}`
   # is the union of `%{..., a: atom(), b: if_set(not integer())}` and
-  # `%{..., a: if_set(not atom()), b: integer()}`; for maps with more keys,
+  # `%{..., a: if_set(not atom()), b: integer()}`. For maps with more keys,
   # each key in a negated literal may create a new union when eliminated.
-  #
-  # Set-theoretic operations take two DNFs (lists) and return a DNF (list).
-  # Simplifications can be done to prune the latter.
-
-  ## Not_set
-
-  # `not_set()` is a special base type that represents an not_set field in a map.
-  # E.g., `%{a: integer(), b: not_set(), ...}` represents a map with an integer
-  # field `a` and an not_set field `b`, and possibly other fields.
-
-  # The `if_set()` modifier is syntactic sugar for specifying the key as a union
-  # of the key type and `not_set()`. For example, `%{:foo => if_set(integer())}`
-  # is equivalent to `%{:foo => integer() or not_set()}`.
-
-  # `not_set()` has no meaning outside of map types.
 
   defp optional?(%{bitmap: bitmap}) when (bitmap &&& @bit_optional) != 0, do: true
   defp optional?(_), do: false
@@ -581,9 +576,8 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # Create a DNF from a specification of a map type.
-  defp map_new(open_or_closed, pairs), do: [{open_or_closed, Map.new(pairs), []}]
-
+  defp map_tag_to_type(:open), do: term_or_not_set()
+  defp map_tag_to_type(:closed), do: not_set()
   defp map_descr(tag, fields), do: %{map: [{tag, fields, []}]}
 
   @doc """
@@ -605,7 +599,7 @@ defmodule Module.Types.Descr do
   Check that a key is present.
   """
   def map_has_key?(descr, key) do
-    subtype?(descr, map([{key, term()}], :open))
+    subtype?(descr, open_map([{key, term()}]))
   end
 
   # Assuming `descr` is a static type. Accessing `key` will, if it succeeds,
@@ -613,7 +607,7 @@ defmodule Module.Types.Descr do
   # present, use `map_has_key?`. To guarantee that the key may be present
   # use `map_may_have_key?`. If key is never present, result will be `none()`.
   defp map_get_static(descr, key) when is_atom(key) do
-    descr_map = intersection(descr, map())
+    descr_map = intersection(descr, open_map())
 
     if empty?(descr_map) do
       none()
@@ -628,7 +622,7 @@ defmodule Module.Types.Descr do
   Check that a key may be present.
   """
   def map_may_have_key?(descr, key) do
-    compatible?(descr, map([{key, term()}], :open))
+    compatible?(descr, open_map([{key, term()}]))
   end
 
   # Union is list concatenation
@@ -757,66 +751,40 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp map_tag_to_type(:open), do: term_or_not_set()
-  defp map_tag_to_type(:closed), do: not_set()
-
-  # Takes a map bdd and a key, and returns an equivalent dnf of pairs, in which
-  # the type of the key in the map can be found in the first element of the pair.
-  # See `split_line_on_key/5`.
+  # Takes a map dnf and a key and returns a list of unions of types
+  # for that key. It has to traverse both fields and negative entries.
   defp map_split_on_key(dnf, key) do
     Enum.flat_map(dnf, fn {tag, fields, negs} ->
+      # %{...} the open map in a positive intersection can be ignored
       {fst, snd} =
-        case single_split({tag, fields}, key) do
-          # { .. } the open map in a positive intersection can be ignored
-          :no_split -> {term_or_not_set(), term_or_not_set()}
-          # {typeof l, rest} is added to the positive accumulator
-          {value_type, rest_of_map} -> {value_type, rest_of_map}
+        if tag == :open and fields == %{} do
+          {term_or_not_set(), term_or_not_set()}
+        else
+          map_pop_key(tag, fields, key)
         end
 
-      case split_negative(negs, key, []) do
-        :no_split -> []
-        negative -> make_pairs_disjoint(negative) |> eliminate_negations(fst, snd)
+      case map_split_negative(negs, key, []) do
+        :empty -> []
+        negative -> negative |> pair_make_disjoint() |> pair_eliminate_negations(fst, snd)
       end
     end)
   end
 
-  # Splits a map literal on a key. This means that given a map literal, compute
-  # the pair of types `{value_type, rest_of_map}` where `value_type` is the type
-  # associated with `key`, and `rest_of_map` is obtained by removing `key`.
-  defp single_split({tag, fields}, key) do
-    {value_type, rest_of_map} = Map.pop(fields, key)
-
-    cond do
-      value_type != nil -> {value_type, map_descr(tag, rest_of_map)}
-      tag == :closed -> {not_set(), map_descr(tag, rest_of_map)}
-      # case where there is an open map with no keys { .. }
-      map_size(fields) == 0 -> :no_split
-      true -> {term_or_not_set(), map_descr(tag, rest_of_map)}
+  defp map_pop_key(tag, fields, key) do
+    case :maps.take(key, fields) do
+      {value, fields} -> {value, map_descr(tag, fields)}
+      :error -> {map_tag_to_type(tag), map_descr(tag, fields)}
     end
   end
 
-  # Given a line, that is, a list `positive` of map literals and `negative` of
-  # negated map literals, and a `key`, splits every map literal on the key and
-  # outputs a DNF of pairs, that is, a list (union) of (intersections) of pairs.
-  defp split_negative([], _key, neg_acc), do: neg_acc
+  defp map_split_negative([], _key, neg_acc), do: neg_acc
 
-  defp split_negative([map_literal | negative], key, neg_acc) do
-    case single_split(map_literal, key) do
-      # an intersection that contains %{...} is empty, so we discard it entirely
-      :no_split ->
-        :no_split
-
-      # {typeof l, rest_of_map} is added to the negative accumulator
-      {value_type, rest_of_map} ->
-        split_negative(negative, key, [{value_type, rest_of_map} | neg_acc])
-    end
-  end
-
-  defp map_to_quoted(dnf) do
-    map_normalize(dnf)
-    |> case do
-      [] -> []
-      x -> Enum.map(x, &map_line_to_quoted/1) |> Enum.reduce(&{:or, [], [&2, &1]}) |> List.wrap()
+  defp map_split_negative([{tag, fields} | negative], key, neg_acc) do
+    # A negation with an open map means the whole thing is empty.
+    if tag == :open and fields == %{} do
+      :empty
+    else
+      map_split_negative(negative, key, [map_pop_key(tag, fields, key) | neg_acc])
     end
   end
 
@@ -824,35 +792,35 @@ defmodule Module.Types.Descr do
   # TODO: eliminate some simple negations, those which have only zero or one key in common.
   defp map_normalize(dnf) do
     dnf
-    |> Enum.filter(&(not map_empty?([&1])))
+    |> Enum.reject(&map_empty?([&1]))
     |> Enum.map(fn {tag, fields, negs} ->
-      {tag, fields, filter_empty_negations(tag, fields, negs)}
+      {tag, fields, Enum.reject(negs, &map_empty_negation?(tag, fields, &1))}
     end)
   end
 
   # Adapted from `map_empty?` to remove useless negations.
-  defp filter_empty_negations(_tag, _fields, []), do: []
+  defp map_empty_negation?(tag, fields, {neg_tag, neg_fields}) do
+    (tag == :closed and
+       Enum.any?(neg_fields, fn {neg_key, neg_type} ->
+         not is_map_key(fields, neg_key) and not optional?(neg_type)
+       end)) or
+      (neg_tag == :closed and
+         Enum.any?(fields, fn {key, type} ->
+           not is_map_key(neg_fields, key) and not optional?(type)
+         end))
+  end
 
-  defp filter_empty_negations(tag, fields, [{neg_tag, neg_fields} | negs]) do
-    try do
-      for {neg_key, neg_type} when not is_map_key(fields, neg_key) <- neg_fields do
-        # key is required, and the positive map is closed: empty intersection
-        if tag == :closed and not optional?(neg_type), do: throw(:no_intersection)
-      end
-
-      for {key, type} when not is_map_key(neg_fields, key) <- fields,
-          # key is required, and the negative map is closed: empty intersection
-          not optional?(type) and neg_tag == :closed do
-        throw(:no_intersection)
-      end
-
-      [{neg_tag, neg_fields} | filter_empty_negations(tag, fields, negs)]
-    catch
-      :no_intersection -> filter_empty_negations(tag, fields, negs)
+  defp map_to_quoted(dnf) do
+    dnf
+    |> map_normalize()
+    |> Enum.map(&map_each_to_quoted/1)
+    |> case do
+      [] -> []
+      dnf -> Enum.reduce(dnf, &{:or, [], [&2, &1]}) |> List.wrap()
     end
   end
 
-  defp map_line_to_quoted({tag, positive_map, negative_maps}) do
+  defp map_each_to_quoted({tag, positive_map, negative_maps}) do
     case negative_maps do
       [] ->
         map_literal_to_quoted({tag, positive_map})
@@ -869,18 +837,18 @@ defmodule Module.Types.Descr do
 
   def map_literal_to_quoted({tag, fields}) do
     case tag do
-      :closed -> {:%{}, [], fields_to_quoted(tag, fields)}
-      :open -> {:%{}, [], [{:..., [], nil} | fields_to_quoted(tag, fields)]}
+      :closed -> {:%{}, [], map_fields_to_quoted(tag, fields)}
+      :open -> {:%{}, [], [{:..., [], nil} | map_fields_to_quoted(tag, fields)]}
     end
   end
 
-  defp fields_to_quoted(tag, map) do
+  defp map_fields_to_quoted(tag, map) do
     for {key, type} <- Enum.sort(map),
         not (tag == :open and optional?(type) and term?(type)) do
       cond do
-        optional?(type) and empty?(type) -> {literal(key), {:not_set, [], []}}
-        optional?(type) -> {literal(key), {:if_set, [], [to_quoted(type)]}}
-        true -> {literal(key), to_quoted(type)}
+        not optional?(type) -> {literal(key), to_quoted(type)}
+        empty?(type) -> {literal(key), {:not_set, [], []}}
+        true -> {literal(key), {:if_set, [], [to_quoted(type)]}}
       end
     end
   end
@@ -890,26 +858,23 @@ defmodule Module.Types.Descr do
   # To simplify disjunctive normal forms of e.g., map types, it is useful to
   # convert them into disjunctive normal forms of pairs of types, and define
   # normalization algorithms on pairs.
-
-  # Takes a DNF of pairs and simplifies it into a equivalent single list (union)
-  # of type pairs. The `term` argument should be either `@term_or_not_set` (for
-  # map value types) or `@term` in general.
-  # Remark: all lines of a pair dnf are naturally disjoint, because choosing a
-  # different edge means intersection with a literal or its negation.
-
-  # A line is a list of pairs `{positive, negative}` where `positive` is a list of
-  # literals and `negative` is a list of negated literals. Positive pairs can
-  # all be intersected component-wise. Negative ones are eliminated iteratively.
+  #
+  # The algorithms take a line, a list of pairs `{positive, negative}` where
+  # `positive` is a list of literals and `negative` is a list of negated literals.
+  # Positive pairs can all be intersected component-wise. Negative ones are
+  # eliminated iteratively.
 
   # Eliminates negations from `{t, s} and not negative` where `negative` is a
   # union of pairs disjoint on their first component.
+  #
   # Formula:
   #   {t, s} and not (union<i=1..n> {t_i, s_i})
   #       = union<i=1..n> {t and t_i, s and not s_i}
   #            or {t and not (union{i=1..n} t_i), s}
+  #
   # This eliminates all top-level negations and produces a union of pairs that
   # are disjoint on their first component.
-  defp eliminate_negations(negative, t, s) do
+  defp pair_eliminate_negations(negative, t, s) do
     {pair_union, diff_of_t_i} =
       Enum.reduce(
         negative,
@@ -933,6 +898,8 @@ defmodule Module.Types.Descr do
     [diff_of_t_i | pair_union]
   end
 
+  # Makes a union of pairs into an equivalent union of disjoint pairs.
+  #
   # Inserts a pair of types {fst, snd} into a list of pairs that are disjoint
   # on their first component. The invariant on `acc` is that its elements are
   # two-to-two disjoint with the first argument's `pairs`.
@@ -941,6 +908,10 @@ defmodule Module.Types.Descr do
   # each pair whose first element has a non-empty intersection with `fst`. Then
   # we decompose {fst, snd} over each such pair to produce disjoint ones, and add
   # the decompositions into the accumulator.
+  defp pair_make_disjoint(pairs) do
+    Enum.reduce(pairs, [], fn {t1, t2}, acc -> add_pair_to_disjoint_list(acc, t1, t2, []) end)
+  end
+
   defp add_pair_to_disjoint_list([], fst, snd, acc), do: [{fst, snd} | acc]
 
   defp add_pair_to_disjoint_list([{s1, s2} | pairs], fst, snd, acc) do
@@ -976,10 +947,5 @@ defmodule Module.Types.Descr do
           ])
       end
     end
-  end
-
-  # Makes a union of pairs into an equivalent union of disjoint pairs.
-  defp make_pairs_disjoint(pairs) do
-    Enum.reduce(pairs, [], fn {t1, t2}, acc -> add_pair_to_disjoint_list(acc, t1, t2, []) end)
   end
 end

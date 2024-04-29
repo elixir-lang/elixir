@@ -16,7 +16,7 @@ defmodule Module.Types.ExprTest do
     assert typecheck!([]) == empty_list()
     assert typecheck!([1, 2]) == non_empty_list()
     assert typecheck!({1, 2}) == tuple()
-    assert typecheck!(%{}) == map()
+    assert typecheck!(%{}) == open_map()
   end
 
   describe "undefined functions" do

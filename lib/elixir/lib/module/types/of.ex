@@ -35,7 +35,7 @@ defmodule Module.Types.Of do
   """
   def open_map(args, stack, context, of_fun) do
     with {:ok, _pairs, context} <- map_pairs(args, stack, context, of_fun) do
-      {:ok, map(), context}
+      {:ok, open_map(), context}
     end
   end
 
@@ -44,7 +44,7 @@ defmodule Module.Types.Of do
   """
   def closed_map(args, stack, context, of_fun) do
     with {:ok, _pairs, context} <- map_pairs(args, stack, context, of_fun) do
-      {:ok, map(), context}
+      {:ok, open_map(), context}
     end
   end
 
@@ -61,7 +61,7 @@ defmodule Module.Types.Of do
   """
   def struct(struct, meta, stack, context) do
     context = remote(struct, :__struct__, 0, meta, stack, context)
-    {:ok, map(), context}
+    {:ok, open_map(), context}
   end
 
   ## Binary

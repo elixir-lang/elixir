@@ -109,7 +109,7 @@ defmodule Module.Types.Expr do
   def of_expr({:%{}, _, [{:|, _, [map, args]}]}, stack, context) do
     with {:ok, _, context} <- of_expr(map, stack, context),
          {:ok, _, context} <- Of.closed_map(args, stack, context, &of_expr/3) do
-      {:ok, map(), context}
+      {:ok, open_map(), context}
     end
   end
 
@@ -121,7 +121,7 @@ defmodule Module.Types.Expr do
       ) do
     with {:ok, _, context} <- Of.struct(module, meta, stack, context),
          {:ok, _, context} <- of_expr(update, stack, context) do
-      {:ok, map(), context}
+      {:ok, open_map(), context}
     end
   end
 
@@ -134,7 +134,7 @@ defmodule Module.Types.Expr do
   def of_expr({:%, meta1, [module, {:%{}, _meta2, args}]}, stack, context) do
     with {:ok, _, context} <- Of.struct(module, meta1, stack, context),
          {:ok, _, context} <- Of.open_map(args, stack, context, &of_expr/3) do
-      {:ok, map(), context}
+      {:ok, open_map(), context}
     end
   end
 
