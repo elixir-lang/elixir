@@ -860,7 +860,7 @@ defmodule Module.Types.Descr do
   end
 
   defp fields_to_quoted(tag, map) do
-    for {key, type} <- map,
+    for {key, type} <- Enum.sort(map),
         not (tag == :open and optional?(type) and term?(type)) do
       cond do
         optional?(type) and empty?(type) -> {literal(key), {:not_set, [], []}}
