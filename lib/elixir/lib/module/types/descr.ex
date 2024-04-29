@@ -568,61 +568,56 @@ defmodule Module.Types.Descr do
   defp optional?(%{bitmap: bitmap}) when (bitmap &&& @bit_optional) != 0, do: true
   defp optional?(_), do: false
 
-  defp remove_not_set(type) do
+  defp pop_not_set(type) do
     case type do
-      %{bitmap: @bit_optional} -> Map.delete(type, :bitmap)
-      %{bitmap: bitmap} -> %{type | bitmap: bitmap &&& ~~~@bit_optional}
-      _ -> type
+      %{bitmap: @bit_optional} ->
+        {true, Map.delete(type, :bitmap)}
+
+      %{bitmap: bitmap} when (bitmap &&& @bit_optional) != 0 ->
+        {true, %{type | bitmap: bitmap - @bit_optional}}
+
+      _ ->
+        {false, type}
     end
   end
 
   defp map_tag_to_type(:open), do: term_or_not_set()
   defp map_tag_to_type(:closed), do: not_set()
+
   defp map_descr(tag, fields), do: %{map: [{tag, fields, []}]}
 
   @doc """
   Gets the type of the value returned by accessing `key` on `map`.
-  Does not guarantee the key exists. To do that, use `map_has_key?`.
+
+  It returns a two element tuple. The first element says if the type
+  is optional or not, the second element is the type. In static mode,
+  we likely want to raise if `map.field` (or pattern matching?) is
+  called on an optional key.
   """
-  def map_get!(%{} = descr, key) do
-    if not gradual?(descr) do
-      map_get_static(descr, key)
-    else
-      {dynamic, static} = Map.pop(descr, :dynamic)
-      dynamic_value_type = map_get_static(dynamic, key)
-      static_value_type = map_get_static(static, key)
-      union(intersection(dynamic(), dynamic_value_type), static_value_type)
+  def map_get(%{} = descr, key) do
+    case :maps.take(:dynamic, descr) do
+      :error ->
+        map_get_static(descr, key)
+
+      {dynamic, static} ->
+        {dynamic_optional?, dynamic_type} = map_get_static(dynamic, key)
+        {static_optional?, static_type} = map_get_static(static, key)
+
+        {dynamic_optional? or static_optional?,
+         union(intersection(dynamic(), dynamic_type), static_type)}
     end
   end
 
-  @doc """
-  Check that a key is present.
-  """
-  def map_has_key?(descr, key) do
-    subtype?(descr, open_map([{key, term()}]))
-  end
-
-  # Assuming `descr` is a static type. Accessing `key` will, if it succeeds,
-  # return a value of the type returned. To guarantee that the key is always
-  # present, use `map_has_key?`. To guarantee that the key may be present
-  # use `map_may_have_key?`. If key is never present, result will be `none()`.
   defp map_get_static(descr, key) when is_atom(key) do
-    descr_map = intersection(descr, open_map())
+    case descr do
+      %{map: map} ->
+        map_split_on_key(map, key)
+        |> Enum.reduce(none(), &union/2)
+        |> pop_not_set()
 
-    if empty?(descr_map) do
-      none()
-    else
-      map_split_on_key(descr_map.map, key)
-      |> Enum.reduce(none(), fn typeof_key, union -> union(typeof_key, union) end)
-      |> remove_not_set()
+      %{} ->
+        {false, none()}
     end
-  end
-
-  @doc """
-  Check that a key may be present.
-  """
-  def map_may_have_key?(descr, key) do
-    compatible?(descr, open_map([{key, term()}]))
   end
 
   # Union is list concatenation

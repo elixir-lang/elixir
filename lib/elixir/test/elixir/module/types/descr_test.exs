@@ -246,95 +246,77 @@ defmodule Module.Types.DescrTest do
 
   describe "map operations" do
     test "get field" do
-      assert map_get!(closed_map(a: integer()), :a) == integer()
-      assert map_get!(dynamic(), :a) == dynamic()
+      assert map_get(closed_map(a: integer()), :a) == {false, integer()}
+      assert map_get(dynamic(), :a) == {true, dynamic()}
 
       assert intersection(dynamic(), open_map(a: integer()))
-             |> map_get!(:a) == intersection(integer(), dynamic())
+             |> map_get(:a) == {false, intersection(integer(), dynamic())}
 
-      assert open_map(my_map: open_map(foo: integer()))
-             |> intersection(open_map(my_map: open_map(bar: boolean())))
-             |> map_get!(:my_map)
-             |> equal?(open_map(foo: integer(), bar: boolean()))
+      {false, value_type} =
+        open_map(my_map: open_map(foo: integer()))
+        |> intersection(open_map(my_map: open_map(bar: boolean())))
+        |> map_get(:my_map)
 
-      assert map_get!(union(closed_map(a: integer()), closed_map(a: atom())), :a) ==
-               union(integer(), atom())
+      assert equal?(value_type, open_map(foo: integer(), bar: boolean()))
 
-      assert map_get!(union(closed_map(a: integer()), closed_map(b: atom())), :a) == integer()
-      assert map_get!(term(), :a) == term()
+      assert map_get(union(closed_map(a: integer()), closed_map(a: atom())), :a) ==
+               {false, union(integer(), atom())}
 
-      assert closed_map(a: union(integer(), atom()))
-             |> difference(open_map(a: integer()))
-             |> map_get!(:a)
-             |> equal?(atom())
+      assert map_get(union(closed_map(a: integer()), closed_map(b: atom())), :a) ==
+               {true, integer()}
 
-      assert closed_map(a: integer(), b: atom())
-             |> difference(closed_map(a: integer(), b: atom([:foo])))
-             |> map_get!(:a)
-             |> equal?(integer())
+      assert map_get(term(), :a) == {true, term()}
 
-      assert closed_map(a: integer())
-             |> difference(closed_map(a: atom()))
-             |> map_get!(:a)
-             |> equal?(integer())
+      {false, value_type} =
+        closed_map(a: union(integer(), atom()))
+        |> difference(open_map(a: integer()))
+        |> map_get(:a)
 
-      assert open_map(a: integer(), b: atom())
-             |> union(closed_map(a: tuple()))
-             |> map_get!(:a)
-             |> equal?(union(integer(), tuple()))
+      assert equal?(value_type, atom())
 
-      assert closed_map(a: atom())
-             |> difference(closed_map(a: atom([:foo, :bar])))
-             |> difference(closed_map(a: atom([:bar])))
-             |> map_get!(:a)
-             |> equal?(intersection(atom(), negation(atom([:foo, :bar]))))
+      {false, value_type} =
+        closed_map(a: integer(), b: atom())
+        |> difference(closed_map(a: integer(), b: atom([:foo])))
+        |> map_get(:a)
+
+      assert equal?(value_type, integer())
+
+      {false, value_type} =
+        closed_map(a: integer())
+        |> difference(closed_map(a: atom()))
+        |> map_get(:a)
+
+      assert equal?(value_type, integer())
+
+      {false, value_type} =
+        open_map(a: integer(), b: atom())
+        |> union(closed_map(a: tuple()))
+        |> map_get(:a)
+
+      assert equal?(value_type, union(integer(), tuple()))
+
+      {false, value_type} =
+        closed_map(a: atom())
+        |> difference(closed_map(a: atom([:foo, :bar])))
+        |> difference(closed_map(a: atom([:bar])))
+        |> map_get(:a)
+
+      assert equal?(value_type, intersection(atom(), negation(atom([:foo, :bar]))))
 
       assert closed_map(a: union(atom(), pid()), b: integer(), c: tuple())
              |> difference(open_map(a: atom(), b: integer()))
              |> difference(open_map(a: atom(), c: tuple()))
-             |> map_get!(:a) == pid()
+             |> map_get(:a) == {false, pid()}
 
       assert closed_map(a: union(atom([:foo]), pid()), b: integer(), c: tuple())
              |> difference(open_map(a: atom([:foo]), b: integer()))
              |> difference(open_map(a: atom(), c: tuple()))
-             |> map_get!(:a) == pid()
+             |> map_get(:a) == {false, pid()}
 
       assert closed_map(a: union(atom([:foo, :bar, :baz]), integer()))
              |> difference(open_map(a: atom([:foo, :bar])))
              |> difference(open_map(a: atom([:foo, :baz])))
-             |> map_get!(:a) == integer()
-    end
-
-    test "key presence" do
-      assert map_has_key?(closed_map(a: integer()), :a)
-      refute map_has_key?(closed_map(a: integer()), :b)
-      refute map_has_key?(open_map(), :a)
-      refute map_has_key?(closed_map(a: union(integer(), not_set())), :a)
-      refute map_has_key?(union(closed_map(a: integer()), closed_map(b: atom())), :a)
-      assert map_has_key?(union(closed_map(a: integer()), closed_map(a: atom())), :a)
-      assert map_has_key?(intersection(dynamic(), closed_map(a: integer())), :a)
-      refute map_has_key?(intersection(dynamic(), closed_map(a: integer())), :b)
-
-      refute map_may_have_key?(closed_map(foo: integer()), :bar)
-      assert map_may_have_key?(closed_map(foo: integer()), :foo)
-      assert map_may_have_key?(dynamic(), :foo)
-      refute map_may_have_key?(intersection(dynamic(), open_map(foo: not_set())), :foo)
-    end
-
-    test "type-checking map access" do
-      # dynamic() and %{..., :a => integer(), b: not_set()}
-      t = intersection(dynamic(), open_map(a: integer(), c: not_set()))
-
-      assert subtype?(map_get!(t, :a), integer())
-      assert map_get!(t, :b) == dynamic()
-
-      assert map_has_key?(t, :a)
-      refute map_has_key?(t, :b)
-      refute map_has_key?(t, :c)
-
-      assert map_may_have_key?(t, :a)
-      assert map_may_have_key?(t, :b)
-      refute map_may_have_key?(t, :c)
+             |> map_get(:a) == {false, integer()}
     end
   end
 
