@@ -24,7 +24,7 @@ defmodule Module.Types.Of do
         {:ok, dynamic(),
          warn({:badmap, expr, type, field, context}, elem(expr, 1), stack, context)}
 
-      # TODO: on static type checking, we want check if it is not optional.
+      # TODO: on static type checking, we want check it is not optional.
       {_optional?, value_type} ->
         if empty?(value_type) do
           {:ok, dynamic(),

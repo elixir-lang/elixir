@@ -588,17 +588,25 @@ defmodule Kernel.ExpansionTest do
       assert expand(quote(do: %x{} = 1)) == quote(do: %x{} = 1)
     end
 
-    test "unknown ^keys in structs" do
-      message = ~r"unknown key \^my_key for struct Kernel\.ExpansionTest\.User"
+    test "invalid keys in structs" do
+      assert_compile_error(~r"invalid key :erlang\.\+\(1, 2\) for struct", fn ->
+        expand(
+          quote do
+            %User{(1 + 2) => :my_value}
+          end
+        )
+      end)
+    end
+
+    test "unknown key in structs" do
+      message = ~r"unknown key :foo for struct Kernel\.ExpansionTest\.User"
 
       assert_compile_error(message, fn ->
-        code =
+        expand(
           quote do
-            my_key = :my_key
-            %User{^my_key => :my_value} = %{}
+            %User{foo: :my_value} = %{}
           end
-
-        expand(code)
+        )
       end)
     end
   end
