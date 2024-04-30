@@ -525,7 +525,13 @@ expand_fn_capture(Meta, Arg, S, E) ->
       is_atom(Remote) andalso
         elixir_env:trace({remote_function, RequireMeta, Remote, Fun, Arity}, E),
       AttachedMeta = attach_runtime_module(Remote, RequireMeta, S, E),
-      {{'&', Meta, [{'/', [], [{{'.', DotMeta, [Remote, Fun]}, AttachedMeta, []}, Arity]}]}, SE, EE};
+      CaptureArgs = [{'&',[],[I]} || I <- lists:seq(1,Arity)],
+      case elixir_rewrite:rewrite(Remote, DotMeta, Fun, AttachedMeta, CaptureArgs) of
+        {{'.', DotMeta, [EReceiver, ERight]}, DotMetaE, EArgs} when Remote /= EReceiver; Fun /= ERight; CaptureArgs /= EArgs ->
+          expand_fn_capture(Meta, {{'.', DotMeta, [EReceiver, ERight]}, DotMetaE, EArgs}, SE, EE);
+        _ ->
+          {{'&', Meta, [{'/', [], [{{'.', DotMeta, [Remote, Fun]}, AttachedMeta, []}, Arity]}]}, SE, EE}
+      end;
     {{local, Fun, Arity}, _, _, _SE, #{function := nil}} ->
       file_error(Meta, E, ?MODULE, {undefined_local_capture, Fun, Arity});
     {{local, Fun, Arity}, LocalMeta, _, SE, EE} ->
