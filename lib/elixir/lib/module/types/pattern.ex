@@ -102,10 +102,9 @@ defmodule Module.Types.Pattern do
   end
 
   # %var{...} and %^var{...}
-  def of_pattern({:%, _meta1, [var, {:%{}, _meta2, args}]}, _expected_expr, stack, context)
+  def of_pattern({:%, _meta1, [var, {:%{}, _meta2, args}]} = expr, _expected_expr, stack, context)
       when not is_atom(var) do
-    # TODO: validate var is an atom
-    with {:ok, _, context} <- of_pattern(var, stack, context),
+    with {:ok, _, context} <- of_pattern(var, {atom(), expr}, stack, context),
          {:ok, _, context} <- Of.open_map(args, stack, context, &of_pattern/3) do
       {:ok, open_map(), context}
     end

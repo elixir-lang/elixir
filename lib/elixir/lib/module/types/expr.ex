@@ -275,45 +275,39 @@ defmodule Module.Types.Expr do
     end
   end
 
-  # TODO: expr.fun()
-  def of_expr({{:., meta1, [left, key_or_fun]}, meta2, []} = expr, stack, context)
-      when not is_atom(left) and is_atom(key_or_fun) do
-    with {:ok, type, context} <- of_expr(left, stack, context) do
-      cond do
-        Keyword.get(meta2, :no_parens, false) ->
-          Of.map_fetch(expr, type, key_or_fun, stack, context)
-
-        # TODO: Check if we have _some_ atom keys and validate them against the remote.
-        compatible?(type, atom()) ->
-          {:ok, dynamic(), context}
-
-        true ->
-          warning = {:badmodule, expr, type, key_or_fun, context}
-          {:ok, dynamic(), warn(__MODULE__, warning, meta1, stack, context)}
+  def of_expr({{:., _, [callee, key_or_fun]}, meta, []} = expr, stack, context)
+      when not is_atom(callee) and is_atom(key_or_fun) do
+    with {:ok, type, context} <- of_expr(callee, stack, context) do
+      if Keyword.get(meta, :no_parens, false) do
+        Of.map_fetch(expr, type, key_or_fun, stack, context)
+      else
+        {_mods, context} = Of.remote(expr, type, key_or_fun, 0, [:dot], meta, stack, context)
+        # TODO: Return the proper type
+        {:ok, dynamic(), context}
       end
     end
   end
 
   # TODO: expr.fun(arg)
-  def of_expr({{:., _meta1, [expr1, fun]}, meta2, args}, stack, context) do
-    context = Of.remote(expr1, fun, length(args), meta2, stack, context)
-
-    with {:ok, _expr_type, context} <- of_expr(expr1, stack, context),
-         {:ok, _arg_types, context} <-
-           map_reduce_ok(args, context, &of_expr(&1, stack, &2)) do
+  def of_expr({{:., _, [remote, fun]}, meta, args} = expr, stack, context) do
+    with {:ok, remote_type, context} <- of_expr(remote, stack, context),
+         {:ok, _arg_types, context} <- map_reduce_ok(args, context, &of_expr(&1, stack, &2)) do
+      {_mods, context} = Of.remote(expr, remote_type, fun, length(args), [], meta, stack, context)
       {:ok, dynamic(), context}
     end
   end
 
   # TODO: &Foo.bar/1
   def of_expr(
-        {:&, _, [{:/, _, [{{:., _, [module, fun]}, meta, []}, arity]}]},
+        {:&, _, [{:/, _, [{{:., _, [remote, fun]}, meta, []}, arity]}]} = expr,
         stack,
         context
       )
-      when is_atom(module) and is_atom(fun) do
-    context = Of.remote(module, fun, arity, meta, stack, context)
-    {:ok, dynamic(), context}
+      when is_atom(fun) and is_integer(arity) do
+    with {:ok, remote_type, context} <- of_expr(remote, stack, context) do
+      {_mods, context} = Of.remote(expr, remote_type, fun, arity, [], meta, stack, context)
+      {:ok, dynamic(), context}
+    end
   end
 
   # &foo/1
@@ -430,26 +424,5 @@ defmodule Module.Types.Expr do
       {:ok, _type, context} -> {:ok, context}
       {:error, context} -> {:error, context}
     end
-  end
-
-  ## Warning formatting
-
-  def format_warning({:badmodule, expr, type, key, context}) do
-    {traces, trace_hints} = Module.Types.Pattern.format_traces(expr, context)
-
-    [
-      """
-      expected a module (an atom) when invoking .#{key}() in expression:
-
-          #{Macro.to_string(expr)}
-
-      but got type:
-
-          #{to_quoted_string(type)}
-      """,
-      traces,
-      format_hints([:dot | trace_hints]),
-      "\ntyping violation found at:"
-    ]
   end
 end

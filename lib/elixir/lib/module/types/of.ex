@@ -66,7 +66,7 @@ defmodule Module.Types.Of do
   """
   def struct({:%, meta, _}, struct, args, defaults?, stack, context, of_fun)
       when is_atom(struct) do
-    context = remote(struct, :__struct__, 0, meta, stack, context)
+    context = preload_and_maybe_check_export(struct, :__struct__, 0, meta, stack, context)
 
     # The compiler has already checked the keys are atoms and which ones are required.
     # TODO: Type check and do not assume dynamic for non-specified keys.
@@ -167,10 +167,28 @@ defmodule Module.Types.Of do
 
   ## Remote
 
-  @doc """
-  Handles remote calls.
-  """
-  def remote(module, fun, arity, meta, stack, context) when is_atom(module) do
+  def remote(expr, type, fun, arity, hints, meta, stack, context) do
+    case atom_fetch(type) do
+      {:ok, mods} ->
+        context =
+          Enum.reduce(mods, context, fn mod, context ->
+            preload_and_maybe_check_export(mod, fun, arity, meta, stack, context)
+          end)
+
+        {mods, context}
+
+      :error ->
+        warning = {:badmodule, expr, type, fun, arity, hints, context}
+        {[], warn(warning, meta, stack, context)}
+    end
+  end
+
+  def remote(module, fun, arity, meta, stack, context) do
+    preload_and_maybe_check_export(module, fun, arity, meta, stack, context)
+  end
+
+  defp preload_and_maybe_check_export(module, fun, arity, meta, stack, context)
+       when is_atom(module) do
     if Keyword.get(meta, :runtime_module, false) do
       context
     else
@@ -178,8 +196,6 @@ defmodule Module.Types.Of do
       check_export(module, fun, arity, meta, stack, context)
     end
   end
-
-  def remote(_module, _fun, _arity, _meta, _stack, context), do: context
 
   defp check_export(module, fun, arity, meta, stack, context) do
     case ParallelChecker.fetch_export(stack.cache, module, fun, arity) do
@@ -328,6 +344,25 @@ defmodule Module.Types.Of do
       """,
       traces,
       format_hints([:dot | trace_hints]),
+      "\ntyping violation found at:"
+    ]
+  end
+
+  def format_warning({:badmodule, expr, type, fun, arity, hints, context}) do
+    {traces, trace_hints} = Module.Types.Pattern.format_traces(expr, context)
+
+    [
+      """
+      expected a module (an atom) when invoking #{fun}/#{arity} in expression:
+
+          #{Macro.to_string(expr)}
+
+      but got type:
+
+          #{to_quoted_string(type)}
+      """,
+      traces,
+      format_hints(hints ++ trace_hints),
       "\ntyping violation found at:"
     ]
   end

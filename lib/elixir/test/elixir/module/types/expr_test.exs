@@ -23,8 +23,12 @@ defmodule Module.Types.ExprTest do
     assert typecheck!(%{}) == open_map()
   end
 
-  describe "undefined functions" do
-    test "warnings" do
+  describe "remotes" do
+    test "dynamic calls" do
+      assert typecheck!([%x{}], x.foo_bar()) == dynamic()
+    end
+
+    test "undefined function warnings" do
       assert typewarn!(URI.unknown("foo")) ==
                {dynamic(), "URI.unknown/1 is undefined or private"}
 
@@ -33,6 +37,74 @@ defmodule Module.Types.ExprTest do
 
       assert typewarn!(try(do: :ok, after: URI.unknown("foo"))) ==
                {dynamic(), "URI.unknown/1 is undefined or private"}
+    end
+
+    test "calling a nullary function on non atoms" do
+      assert typewarn!([<<x::integer>>], x.foo_bar()) ==
+               {dynamic(),
+                ~l"""
+                expected a module (an atom) when invoking foo_bar/0 in expression:
+
+                    x.foo_bar()
+
+                but got type:
+
+                    integer()
+
+                where "x" was given the type:
+
+                    # type: integer()
+                    # from: types_test.ex:LINE-2
+                    <<x::integer>>
+
+                #{hints(:dot)}
+
+                typing violation found at:\
+                """}
+    end
+
+    test "calling a function on non atoms with arguments" do
+      assert typewarn!([<<x::integer>>], x.foo_bar(1, 2)) ==
+               {dynamic(),
+                ~l"""
+                expected a module (an atom) when invoking foo_bar/2 in expression:
+
+                    x.foo_bar(1, 2)
+
+                but got type:
+
+                    integer()
+
+                where "x" was given the type:
+
+                    # type: integer()
+                    # from: types_test.ex:LINE-2
+                    <<x::integer>>
+
+                typing violation found at:\
+                """}
+    end
+
+    test "capture a function with non atoms" do
+      assert typewarn!([<<x::integer>>], &x.foo_bar/2) ==
+               {dynamic(),
+                ~l"""
+                expected a module (an atom) when invoking foo_bar/2 in expression:
+
+                    &x.foo_bar/2
+
+                but got type:
+
+                    integer()
+
+                where "x" was given the type:
+
+                    # type: integer()
+                    # from: types_test.ex:LINE-2
+                    <<x::integer>>
+
+                typing violation found at:\
+                """}
     end
   end
 
@@ -116,33 +188,11 @@ defmodule Module.Types.ExprTest do
     end
   end
 
-  describe "modules" do
-    test "calling a function on not a map" do
-      assert typewarn!([<<x::integer>>], x.foo_bar()) ==
-               {dynamic(),
-                ~l"""
-                expected a module (an atom) when invoking .foo_bar() in expression:
-
-                    x.foo_bar()
-
-                but got type:
-
-                    integer()
-
-                where "x" was given the type:
-
-                    # type: integer()
-                    # from: types_test.ex:LINE-2
-                    <<x::integer>>
-
-                #{hints(:dot)}
-
-                typing violation found at:\
-                """}
-    end
-  end
-
   describe "maps/structs" do
+    test "matching struct name" do
+      assert typecheck!([%x{}], x) == atom()
+    end
+
     test "creating structs" do
       assert typecheck!(%Point{}) ==
                closed_map(__struct__: atom([Point]), x: atom([nil]), y: atom([nil]), z: integer())
