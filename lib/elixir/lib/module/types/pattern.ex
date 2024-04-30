@@ -105,19 +105,16 @@ defmodule Module.Types.Pattern do
   def of_pattern({:%, _meta1, [var, {:%{}, _meta2, args}]}, _expected_expr, stack, context)
       when not is_atom(var) do
     # TODO: validate var is an atom
-    with {:ok, _, context} = of_pattern(var, stack, context),
+    with {:ok, _, context} <- of_pattern(var, stack, context),
          {:ok, _, context} <- Of.open_map(args, stack, context, &of_pattern/3) do
       {:ok, open_map(), context}
     end
   end
 
   # %Struct{...}
-  def of_pattern({:%, meta1, [module, {:%{}, _meta2, args}]}, _expected_expr, stack, context)
+  def of_pattern({:%, _, [module, {:%{}, _, args}]} = expr, _expected_expr, stack, context)
       when is_atom(module) do
-    with {:ok, _, context} <- Of.struct(module, meta1, stack, context),
-         {:ok, _, context} <- Of.open_map(args, stack, context, &of_pattern/3) do
-      {:ok, open_map(), context}
-    end
+    Of.struct(expr, module, args, true, stack, context, &of_pattern/3)
   end
 
   # %{...}

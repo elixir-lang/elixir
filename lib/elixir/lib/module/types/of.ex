@@ -18,16 +18,20 @@ defmodule Module.Types.Of do
   @doc """
   Handles fetching a map key.
   """
-  def map_get(expr, type, field, stack, context) when is_atom(field) do
-    case map_get(type, field) do
+  def map_fetch(expr, type, field, stack, context) when is_atom(field) do
+    case map_fetch(type, field) do
       :error ->
         {:ok, dynamic(),
          warn({:badmap, expr, type, field, context}, elem(expr, 1), stack, context)}
 
       # TODO: on static type checking, we want check if it is not optional.
-      # TODO: check if type is not none()
-      {_optional?, type} ->
-        {:ok, type, context}
+      {_optional?, value_type} ->
+        if empty?(value_type) do
+          {:ok, dynamic(),
+           warn({:badkey, expr, type, field, context}, elem(expr, 1), stack, context)}
+        else
+          {:ok, value_type, context}
+        end
     end
   end
 
@@ -60,9 +64,31 @@ defmodule Module.Types.Of do
   @doc """
   Handles structs.
   """
-  def struct(struct, meta, stack, context) do
+  def struct({:%, meta, _}, struct, args, defaults?, stack, context, of_fun)
+      when is_atom(struct) do
     context = remote(struct, :__struct__, 0, meta, stack, context)
-    {:ok, open_map(), context}
+
+    # The compiler has already checked the keys are atoms and which ones are required.
+    # TODO: Type check and do not assume dynamic for non-specified keys.
+    with {:ok, pairs, context} <-
+           map_reduce_ok(args, context, fn {key, value}, context when is_atom(key) ->
+             with {:ok, type, context} <- of_fun.(value, stack, context) do
+               {:ok, {key, type}, context}
+             end
+           end) do
+      defaults =
+        if defaults? do
+          dynamic = dynamic()
+
+          for key <- Map.keys(struct.__struct__()), key != :__struct__ do
+            {key, dynamic}
+          end
+        else
+          []
+        end
+
+      {:ok, closed_map([{:__struct__, atom([struct])} | defaults] ++ pairs), context}
+    end
   end
 
   ## Binary
@@ -268,12 +294,12 @@ defmodule Module.Types.Of do
     ]
   end
 
-  def format_warning({:badmap, expr, type, field, context}) do
+  def format_warning({:badmap, expr, type, key, context}) do
     {traces, trace_hints} = Module.Types.Pattern.format_traces(expr, context)
 
     [
       """
-      expected map type when accessing .#{field} in expression:
+      expected a map or struct when accessing .#{key} in expression:
 
           #{Macro.to_string(expr)}
 
@@ -282,7 +308,26 @@ defmodule Module.Types.Of do
           #{to_quoted_string(type)}
       """,
       traces,
-      format_hints(trace_hints),
+      format_hints([:dot | trace_hints]),
+      "\ntyping violation found at:"
+    ]
+  end
+
+  def format_warning({:badkey, expr, type, key, context}) do
+    {traces, trace_hints} = Module.Types.Pattern.format_traces(expr, context)
+
+    [
+      """
+      missing key .#{key} in expression:
+
+          #{Macro.to_string(expr)}
+
+      the given type does not have the given key:
+
+          #{to_quoted_string(type)}
+      """,
+      traces,
+      format_hints([:dot | trace_hints]),
       "\ntyping violation found at:"
     ]
   end

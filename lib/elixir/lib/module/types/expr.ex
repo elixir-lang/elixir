@@ -113,15 +113,16 @@ defmodule Module.Types.Expr do
     end
   end
 
-  # TODO: %Struct{map | ...}
   def of_expr(
-        {:%, meta, [module, {:%{}, _, [{:|, _, [_, _]}]} = update]},
+        {:%, _, [module, {:%{}, _, [{:|, _, [map, args]}]}]} = expr,
         stack,
         context
       ) do
-    with {:ok, _, context} <- Of.struct(module, meta, stack, context),
-         {:ok, _, context} <- of_expr(update, stack, context) do
-      {:ok, open_map(), context}
+    with {:ok, type, context} <- Of.struct(expr, module, args, true, stack, context, &of_expr/3),
+         {:ok, _, context} <- of_expr(map, stack, context) do
+      # TODO: We need to validate that map is actually compatible with struct.
+      # Perhaps a simple validation over the struct name?
+      {:ok, type, context}
     end
   end
 
@@ -130,12 +131,8 @@ defmodule Module.Types.Expr do
     Of.closed_map(args, stack, context, &of_expr/3)
   end
 
-  # TODO: %Struct{...}
-  def of_expr({:%, meta1, [module, {:%{}, _meta2, args}]}, stack, context) do
-    with {:ok, _, context} <- Of.struct(module, meta1, stack, context),
-         {:ok, _, context} <- Of.open_map(args, stack, context, &of_expr/3) do
-      {:ok, open_map(), context}
-    end
+  def of_expr({:%, _, [module, {:%{}, _, args}]} = expr, stack, context) do
+    Of.struct(expr, module, args, false, stack, context, &of_expr/3)
   end
 
   # ()
@@ -279,15 +276,20 @@ defmodule Module.Types.Expr do
   end
 
   # TODO: expr.fun()
-  def of_expr({{:., _meta1, [expr1, key_or_fun]}, meta2, []} = expr, stack, context)
-      when not is_atom(expr1) and is_atom(key_or_fun) do
-    if Keyword.get(meta2, :no_parens, false) do
-      with {:ok, type1, context} <- of_expr(expr1, stack, context) do
-        Of.map_get(expr, type1, key_or_fun, stack, context)
-      end
-    else
-      with {:ok, _, context} <- of_expr(expr1, stack, context) do
-        {:ok, dynamic(), context}
+  def of_expr({{:., meta1, [left, key_or_fun]}, meta2, []} = expr, stack, context)
+      when not is_atom(left) and is_atom(key_or_fun) do
+    with {:ok, type, context} <- of_expr(left, stack, context) do
+      cond do
+        Keyword.get(meta2, :no_parens, false) ->
+          Of.map_fetch(expr, type, key_or_fun, stack, context)
+
+        # TODO: Check if we have _some_ atom keys and validate them against the remote.
+        compatible?(type, atom()) ->
+          {:ok, dynamic(), context}
+
+        true ->
+          warning = {:badmodule, expr, type, key_or_fun, context}
+          {:ok, dynamic(), warn(__MODULE__, warning, meta1, stack, context)}
       end
     end
   end
@@ -428,5 +430,26 @@ defmodule Module.Types.Expr do
       {:ok, _type, context} -> {:ok, context}
       {:error, context} -> {:error, context}
     end
+  end
+
+  ## Warning formatting
+
+  def format_warning({:badmodule, expr, type, key, context}) do
+    {traces, trace_hints} = Module.Types.Pattern.format_traces(expr, context)
+
+    [
+      """
+      expected a module (an atom) when invoking .#{key}() in expression:
+
+          #{Macro.to_string(expr)}
+
+      but got type:
+
+          #{to_quoted_string(type)}
+      """,
+      traces,
+      format_hints([:dot | trace_hints]),
+      "\ntyping violation found at:"
+    ]
   end
 end

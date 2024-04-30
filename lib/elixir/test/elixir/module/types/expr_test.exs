@@ -1,5 +1,9 @@
 Code.require_file("type_helper.exs", __DIR__)
 
+defmodule Point do
+  defstruct [:x, :y, z: 0]
+end
+
 defmodule Module.Types.ExprTest do
   use ExUnit.Case, async: true
 
@@ -112,12 +116,56 @@ defmodule Module.Types.ExprTest do
     end
   end
 
-  describe "maps" do
+  describe "modules" do
+    test "calling a function on not a map" do
+      assert typewarn!([<<x::integer>>], x.foo_bar()) ==
+               {dynamic(),
+                ~l"""
+                expected a module (an atom) when invoking .foo_bar() in expression:
+
+                    x.foo_bar()
+
+                but got type:
+
+                    integer()
+
+                where "x" was given the type:
+
+                    # type: integer()
+                    # from: types_test.ex:LINE-2
+                    <<x::integer>>
+
+                #{hints(:dot)}
+
+                typing violation found at:\
+                """}
+    end
+  end
+
+  describe "maps/structs" do
+    test "creating structs" do
+      assert typecheck!(%Point{}) ==
+               closed_map(__struct__: atom([Point]), x: atom([nil]), y: atom([nil]), z: integer())
+
+      assert typecheck!(%Point{x: :zero}) ==
+               closed_map(
+                 __struct__: atom([Point]),
+                 x: atom([:zero]),
+                 y: atom([nil]),
+                 z: integer()
+               )
+    end
+
+    test "updating structs" do
+      assert typecheck!([x], %Point{x | x: :zero}) ==
+               closed_map(__struct__: atom([Point]), x: atom([:zero]), y: dynamic(), z: dynamic())
+    end
+
     test "accessing a field on not a map" do
       assert typewarn!([<<x::integer>>], x.foo_bar) ==
                {dynamic(),
                 ~l"""
-                expected map type when accessing .foo_bar in expression:
+                expected a map or struct when accessing .foo_bar in expression:
 
                     x.foo_bar
 
@@ -128,8 +176,28 @@ defmodule Module.Types.ExprTest do
                 where "x" was given the type:
 
                     # type: integer()
-                    # from: types_test.ex:117
+                    # from: types_test.ex:LINE-2
                     <<x::integer>>
+
+                #{hints(:dot)}
+
+                typing violation found at:\
+                """}
+    end
+
+    test "accessing an unknown field on struct" do
+      assert typewarn!(%Point{}.foo_bar) ==
+               {dynamic(),
+                ~l"""
+                missing key .foo_bar in expression:
+
+                    %Point{x: nil, y: nil, z: 0}.foo_bar
+
+                the given type does not have the given key:
+
+                    %Point{x: nil, y: nil, z: integer()}
+
+                #{hints(:dot)}
 
                 typing violation found at:\
                 """}

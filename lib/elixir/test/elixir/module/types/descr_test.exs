@@ -246,53 +246,53 @@ defmodule Module.Types.DescrTest do
 
   describe "map operations" do
     test "get field" do
-      assert map_get(closed_map(a: integer()), :a) == {false, integer()}
+      assert map_fetch(closed_map(a: integer()), :a) == {false, integer()}
 
-      assert map_get(term(), :a) == :error
-      assert map_get(union(open_map(), integer()), :a) == :error
-      assert map_get(dynamic(), :a) == {true, dynamic()}
+      assert map_fetch(term(), :a) == :error
+      assert map_fetch(union(open_map(), integer()), :a) == :error
+      assert map_fetch(dynamic(), :a) == {true, dynamic()}
 
       assert intersection(dynamic(), open_map(a: integer()))
-             |> map_get(:a) == {false, intersection(integer(), dynamic())}
+             |> map_fetch(:a) == {false, intersection(integer(), dynamic())}
 
       {false, value_type} =
         open_map(my_map: open_map(foo: integer()))
         |> intersection(open_map(my_map: open_map(bar: boolean())))
-        |> map_get(:my_map)
+        |> map_fetch(:my_map)
 
       assert equal?(value_type, open_map(foo: integer(), bar: boolean()))
 
-      assert map_get(union(closed_map(a: integer()), closed_map(a: atom())), :a) ==
+      assert map_fetch(union(closed_map(a: integer()), closed_map(a: atom())), :a) ==
                {false, union(integer(), atom())}
 
-      assert map_get(union(closed_map(a: integer()), closed_map(b: atom())), :a) ==
+      assert map_fetch(union(closed_map(a: integer()), closed_map(b: atom())), :a) ==
                {true, integer()}
 
       {false, value_type} =
         closed_map(a: union(integer(), atom()))
         |> difference(open_map(a: integer()))
-        |> map_get(:a)
+        |> map_fetch(:a)
 
       assert equal?(value_type, atom())
 
       {false, value_type} =
         closed_map(a: integer(), b: atom())
         |> difference(closed_map(a: integer(), b: atom([:foo])))
-        |> map_get(:a)
+        |> map_fetch(:a)
 
       assert equal?(value_type, integer())
 
       {false, value_type} =
         closed_map(a: integer())
         |> difference(closed_map(a: atom()))
-        |> map_get(:a)
+        |> map_fetch(:a)
 
       assert equal?(value_type, integer())
 
       {false, value_type} =
         open_map(a: integer(), b: atom())
         |> union(closed_map(a: tuple()))
-        |> map_get(:a)
+        |> map_fetch(:a)
 
       assert equal?(value_type, union(integer(), tuple()))
 
@@ -300,24 +300,24 @@ defmodule Module.Types.DescrTest do
         closed_map(a: atom())
         |> difference(closed_map(a: atom([:foo, :bar])))
         |> difference(closed_map(a: atom([:bar])))
-        |> map_get(:a)
+        |> map_fetch(:a)
 
       assert equal?(value_type, intersection(atom(), negation(atom([:foo, :bar]))))
 
       assert closed_map(a: union(atom(), pid()), b: integer(), c: tuple())
              |> difference(open_map(a: atom(), b: integer()))
              |> difference(open_map(a: atom(), c: tuple()))
-             |> map_get(:a) == {false, pid()}
+             |> map_fetch(:a) == {false, pid()}
 
       assert closed_map(a: union(atom([:foo]), pid()), b: integer(), c: tuple())
              |> difference(open_map(a: atom([:foo]), b: integer()))
              |> difference(open_map(a: atom(), c: tuple()))
-             |> map_get(:a) == {false, pid()}
+             |> map_fetch(:a) == {false, pid()}
 
       assert closed_map(a: union(atom([:foo, :bar, :baz]), integer()))
              |> difference(open_map(a: atom([:foo, :bar])))
              |> difference(open_map(a: atom([:foo, :baz])))
-             |> map_get(:a) == {false, integer()}
+             |> map_fetch(:a) == {false, integer()}
     end
   end
 
@@ -341,6 +341,9 @@ defmodule Module.Types.DescrTest do
       assert atom([:a]) |> to_quoted_string() == ":a"
       assert atom([:a, :b]) |> to_quoted_string() == ":a or :b"
       assert difference(atom(), atom([:a])) |> to_quoted_string() == "atom() and not :a"
+
+      assert atom([Elixir]) |> to_quoted_string() == "Elixir"
+      assert atom([Foo.Bar]) |> to_quoted_string() == "Foo.Bar"
     end
 
     test "boolean" do
@@ -363,38 +366,58 @@ defmodule Module.Types.DescrTest do
                "dynamic() or (:bar or :foo)"
 
       assert intersection(dynamic(), closed_map(a: integer())) |> to_quoted_string() ==
-               "dynamic() and %{:a => integer()}"
+               "dynamic() and %{a: integer()}"
     end
 
     test "map" do
       assert open_map() |> to_quoted_string() == "%{...}"
-      assert closed_map(a: integer()) |> to_quoted_string() == "%{:a => integer()}"
-      assert open_map(a: float()) |> to_quoted_string() == "%{..., :a => float()}"
+
+      assert closed_map(a: integer()) |> to_quoted_string() == "%{a: integer()}"
+      assert open_map(a: float()) |> to_quoted_string() == "%{..., a: float()}"
+
+      assert closed_map("Elixir.Foo.Bar": integer()) |> to_quoted_string() ==
+               "%{Foo.Bar => integer()}"
+
+      assert open_map("Elixir.Foo.Bar": float()) |> to_quoted_string() ==
+               "%{..., Foo.Bar => float()}"
 
       # TODO: support this simplification
       # assert difference(open_map(), open_map(a: term())) |> to_quoted_string() ==
-      #          "%{..., :a => not_set()}"
+      #          "%{..., a: not_set()}"
 
       assert closed_map(a: integer(), b: atom()) |> to_quoted_string() ==
-               "%{:a => integer(), :b => atom()}"
+               "%{a: integer(), b: atom()}"
 
       assert open_map(a: float())
              |> difference(closed_map(a: float()))
-             |> to_quoted_string() == "%{..., :a => float()} and not %{:a => float()}"
+             |> to_quoted_string() == "%{..., a: float()} and not %{a: float()}"
 
       assert difference(open_map(), empty_map()) |> to_quoted_string() ==
                "%{...} and not %{}"
 
       assert closed_map(foo: union(integer(), not_set())) |> to_quoted_string() ==
-               "%{:foo => if_set(integer())}"
+               "%{foo: if_set(integer())}"
 
       assert difference(open_map(a: integer()), closed_map(b: boolean())) |> to_quoted_string() ==
-               "%{..., :a => integer()}"
+               "%{..., a: integer()}"
 
       assert open_map(a: integer(), b: atom())
              |> difference(open_map(b: atom()))
              |> union(open_map(a: integer()))
-             |> to_quoted_string() == "%{..., :a => integer()}"
+             |> to_quoted_string() == "%{..., a: integer()}"
+    end
+
+    test "structs" do
+      assert open_map(__struct__: atom([URI])) |> to_quoted_string() == "%{..., __struct__: URI}"
+
+      assert closed_map(__struct__: atom([URI])) |> to_quoted_string() ==
+               "%URI{}"
+
+      assert closed_map(__struct__: atom([URI]), path: atom([nil])) |> to_quoted_string() ==
+               "%URI{path: nil}"
+
+      assert closed_map(__struct__: atom([URI, Another])) |> to_quoted_string() ==
+               "%{__struct__: Another or URI}"
     end
   end
 end
