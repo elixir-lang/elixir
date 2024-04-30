@@ -518,7 +518,7 @@ defmodule Module.Types.Of do
           #{to_quoted_string(type)}
       """,
       traces,
-      format_hints([:dot | trace_hints]),
+      format_hints(trace_hints),
       "\ntyping violation found at:"
     ]
   end

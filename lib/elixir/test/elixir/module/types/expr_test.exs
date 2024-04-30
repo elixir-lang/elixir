@@ -260,8 +260,6 @@ defmodule Module.Types.ExprTest do
 
                     %Point{x: nil, y: nil, z: integer()}
 
-                #{hints(:dot)}
-
                 typing violation found at:\
                 """}
     end
