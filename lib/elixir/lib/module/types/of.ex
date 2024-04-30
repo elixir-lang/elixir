@@ -85,29 +85,65 @@ defmodule Module.Types.Of do
   end
 
   @doc """
-  Handles open maps.
+  Builds a map.
+
+  A tag may be given but it is not guaranteed.
   """
-  def open_map(args, stack, context, of_fun) do
-    with {:ok, _pairs, context} <- map_pairs(args, stack, context, of_fun) do
-      {:ok, open_map(), context}
+  def map(tag, pairs, stack, context, of_fun) do
+    result =
+      reduce_ok(pairs, {tag == :closed, [], [], context}, fn
+        {key, value}, {closed?, single, multiple, context} ->
+          with {:ok, key_type, context} <- of_fun.(key, stack, context),
+               {:ok, value_type, context} <- of_fun.(value, stack, context) do
+            case finite_keys(key, key_type) do
+              :none ->
+                {:ok, {false, single, multiple, context}}
+
+              [key] when multiple == [] ->
+                {:ok, {closed?, [{key, value_type} | single], multiple, context}}
+
+              keys ->
+                {:ok, {closed?, single, [{keys, value_type} | multiple], context}}
+            end
+          end
+      end)
+
+    with {:ok, {closed?, single, multiple, context}} <- result do
+      map =
+        case Enum.reverse(multiple) do
+          [] ->
+            pairs = Enum.reverse(single)
+            if closed?, do: closed_map(pairs), else: open_map(pairs)
+
+          [{keys, type} | tail] ->
+            for key <- keys, t <- cartesian_map(tail) do
+              pairs = Enum.reverse(single, [{key, type} | t])
+              if closed?, do: closed_map(pairs), else: open_map(pairs)
+            end
+            |> Enum.reduce(&union/2)
+        end
+
+      {:ok, map, context}
     end
   end
 
-  @doc """
-  Handles closed maps (without dynamic => dynamic).
-  """
-  def closed_map(args, stack, context, of_fun) do
-    with {:ok, _pairs, context} <- map_pairs(args, stack, context, of_fun) do
-      {:ok, open_map(), context}
+  defp cartesian_map(lists) do
+    case lists do
+      [] ->
+        [[]]
+
+      [{keys, type} | tail] ->
+        for key <- keys, t <- cartesian_map(tail), do: [{key, type} | t]
     end
   end
 
-  defp map_pairs(pairs, stack, context, of_fun) do
-    map_reduce_ok(pairs, context, fn {key, value}, context ->
-      with {:ok, key_type, context} <- of_fun.(key, stack, context),
-           {:ok, value_type, context} <- of_fun.(value, stack, context),
-           do: {:ok, {key_type, value_type}, context}
-    end)
+  defp finite_keys(key, _key_type) when is_atom(key), do: [key]
+
+  defp finite_keys(_key, key_type) do
+    case atom_fetch(key_type) do
+      {:finite, list} -> list
+      _ -> :none
+    end
   end
 
   @doc """
@@ -218,7 +254,7 @@ defmodule Module.Types.Of do
 
   def remote(expr, type, fun, arity, hints, meta, stack, context) do
     case atom_fetch(type) do
-      {:ok, mods} ->
+      {_, mods} ->
         context =
           Enum.reduce(mods, context, fn mod, context ->
             preload_and_maybe_check_export(mod, fun, arity, meta, stack, context)

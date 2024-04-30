@@ -23,12 +23,14 @@ defmodule Module.Types.PatternTest do
   end
 
   describe "maps" do
-    test "matching struct name" do
+    test "struct name" do
       assert typecheck!([%x{}], x) == dynamic(atom())
     end
 
-    test "matching map" do
-      assert typecheck!([x = %{}], x.foo.bar) == dynamic()
+    test "map fields" do
+      assert typecheck!([x = %{foo: :bar}], x) == dynamic(open_map(foo: atom([:bar])))
+      assert typecheck!([x = %{123 => 456}], x) == dynamic(open_map())
+      assert typecheck!([x = %{123 => 456, foo: :bar}], x) == dynamic(open_map(foo: atom([:bar])))
     end
   end
 

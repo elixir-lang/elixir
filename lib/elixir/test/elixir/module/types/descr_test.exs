@@ -249,13 +249,13 @@ defmodule Module.Types.DescrTest do
       assert atom_fetch(term()) == :error
       assert atom_fetch(union(term(), dynamic(atom([:foo, :bar])))) == :error
 
-      assert atom_fetch(atom()) == {:ok, []}
+      assert atom_fetch(atom()) == {:infinite, []}
 
       assert atom_fetch(atom([:foo, :bar])) ==
-               {:ok, [:foo, :bar] |> :sets.from_list(version: 2) |> :sets.to_list()}
+               {:finite, [:foo, :bar] |> :sets.from_list(version: 2) |> :sets.to_list()}
 
-      assert atom_fetch(union(atom([:foo, :bar]), dynamic(atom()))) == {:ok, []}
-      assert atom_fetch(union(atom([:foo, :bar]), dynamic(term()))) == {:ok, []}
+      assert atom_fetch(union(atom([:foo, :bar]), dynamic(atom()))) == {:infinite, []}
+      assert atom_fetch(union(atom([:foo, :bar]), dynamic(term()))) == {:infinite, []}
     end
 
     test "map_fetch" do
@@ -383,6 +383,7 @@ defmodule Module.Types.DescrTest do
     end
 
     test "map" do
+      assert empty_map() |> to_quoted_string() == "empty_map()"
       assert open_map() |> to_quoted_string() == "%{...}"
 
       assert closed_map(a: integer()) |> to_quoted_string() == "%{a: integer()}"
@@ -406,7 +407,7 @@ defmodule Module.Types.DescrTest do
              |> to_quoted_string() == "%{..., a: float()} and not %{a: float()}"
 
       assert difference(open_map(), empty_map()) |> to_quoted_string() ==
-               "%{...} and not %{}"
+               "%{...} and not empty_map()"
 
       assert closed_map(foo: union(integer(), not_set())) |> to_quoted_string() ==
                "%{foo: if_set(integer())}"

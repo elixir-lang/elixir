@@ -59,25 +59,11 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  # %_{...}
-  def of_pattern(
-        {:%, _meta1, [{:_, _meta2, var_context}, {:%{}, _meta3, args}]},
-        _expected_expr,
-        stack,
-        context
-      )
-      when is_atom(var_context) do
-    with {:ok, _, context} <- Of.open_map(args, stack, context, &of_pattern/3) do
-      {:ok, open_map(), context}
-    end
-  end
-
   # %var{...} and %^var{...}
   def of_pattern({:%, _meta1, [var, {:%{}, _meta2, args}]} = expr, _expected_expr, stack, context)
       when not is_atom(var) do
-    with {:ok, _, context} <- of_pattern(var, {atom(), expr}, stack, context),
-         {:ok, _, context} <- Of.open_map(args, stack, context, &of_pattern/3) do
-      {:ok, open_map(), context}
+    with {:ok, _, context} <- of_pattern(var, {atom(), expr}, stack, context) do
+      Of.map(:open, args, stack, context, &of_pattern/3)
     end
   end
 
@@ -89,7 +75,7 @@ defmodule Module.Types.Pattern do
 
   # %{...}
   def of_pattern({:%{}, _meta, args}, _expected_expr, stack, context) do
-    Of.open_map(args, stack, context, &of_pattern/3)
+    Of.map(:open, args, stack, context, &of_pattern/3)
   end
 
   # <<...>>>

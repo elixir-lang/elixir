@@ -20,7 +20,7 @@ defmodule Module.Types.ExprTest do
     assert typecheck!([]) == empty_list()
     assert typecheck!([1, 2]) == non_empty_list()
     assert typecheck!({1, 2}) == tuple()
-    assert typecheck!(%{}) == open_map()
+    assert typecheck!(%{}) == closed_map([])
   end
 
   describe "remotes" do
@@ -189,6 +189,19 @@ defmodule Module.Types.ExprTest do
   end
 
   describe "maps/structs" do
+    test "creating maps" do
+      assert typecheck!(%{foo: :bar}) == closed_map(foo: atom([:bar]))
+      assert typecheck!(%{123 => 456}) == open_map()
+      assert typecheck!(%{123 => 456, foo: :bar}) == open_map(foo: atom([:bar]))
+
+      assert typecheck!(
+               (
+                 foo = :foo
+                 %{foo => :first, foo => :second}
+               )
+             ) == closed_map(foo: atom([:second]))
+    end
+
     test "creating structs" do
       assert typecheck!(%Point{}) ==
                closed_map(__struct__: atom([Point]), x: atom([nil]), y: atom([nil]), z: integer())
@@ -205,6 +218,10 @@ defmodule Module.Types.ExprTest do
     test "updating structs" do
       assert typecheck!([x], %Point{x | x: :zero}) ==
                closed_map(__struct__: atom([Point]), x: atom([:zero]), y: dynamic(), z: dynamic())
+    end
+
+    test "nested map" do
+      assert typecheck!([x = %{}], x.foo.bar) == dynamic()
     end
 
     test "accessing a field on not a map" do

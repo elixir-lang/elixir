@@ -432,17 +432,17 @@ defmodule Module.Types.Descr do
   @doc """
   Returns a set of all known atoms.
 
-  Returns `{:ok, known_set}` if it is an atom, `:error` otherwise.
-  Notice `known_set` may be empty and still return positive, due to
-  negations.
+  Returns `{:finite or :infinite, known_set}` if it is an atom,
+  `:error` otherwise. Notice `known_set` may be empty in infinite
+  cases, due to negations.
   """
   def atom_fetch(%{} = descr) do
     case :maps.take(:dynamic, descr) do
       :error ->
         if atom_only?(descr) do
           case descr do
-            %{atom: {:union, set}} -> {:ok, :sets.to_list(set)}
-            %{atom: {:negation, _}} -> {:ok, []}
+            %{atom: {:union, set}} -> {:finite, :sets.to_list(set)}
+            %{atom: {:negation, _}} -> {:infinite, []}
             %{} -> :error
           end
         else
@@ -453,19 +453,19 @@ defmodule Module.Types.Descr do
         if atom_only?(static) do
           case {dynamic, static} do
             {%{atom: {:union, d}}, %{atom: {:union, s}}} ->
-              {:ok, :sets.to_list(:sets.union(d, s))}
+              {:finite, :sets.to_list(:sets.union(d, s))}
 
             {_, %{atom: {:negation, _}}} ->
-              {:ok, []}
+              {:infinite, []}
 
             {%{atom: {:negation, _}}, _} ->
-              {:ok, []}
+              {:infinite, []}
 
             {%{atom: {:union, d}}, %{}} ->
-              {:ok, :sets.to_list(d)}
+              {:finite, :sets.to_list(d)}
 
             {%{}, %{atom: {:union, s}}} ->
-              {:ok, :sets.to_list(s)}
+              {:finite, :sets.to_list(s)}
 
             {%{}, %{}} ->
               :error
@@ -919,11 +919,15 @@ defmodule Module.Types.Descr do
     end
   end
 
+  def map_literal_to_quoted({:closed, fields}) when map_size(fields) == 0 do
+    {:empty_map, [], []}
+  end
+
   def map_literal_to_quoted({tag, fields}) do
     case tag do
       :closed ->
         with %{__struct__: struct_descr} <- fields,
-             {:ok, [struct]} <- atom_fetch(struct_descr) do
+             {_, [struct]} <- atom_fetch(struct_descr) do
           {:%, [],
            [
              literal_to_quoted(struct),

@@ -107,7 +107,7 @@ defmodule Module.Types.Expr do
   # TODO: %{map | ...}
   def of_expr({:%{}, _, [{:|, _, [map, args]}]}, stack, context) do
     with {:ok, _, context} <- of_expr(map, stack, context),
-         {:ok, _, context} <- Of.closed_map(args, stack, context, &of_expr/3) do
+         {:ok, _, context} <- Of.map(:closed, args, stack, context, &of_expr/3) do
       {:ok, open_map(), context}
     end
   end
@@ -127,7 +127,7 @@ defmodule Module.Types.Expr do
 
   # TODO: %{...}
   def of_expr({:%{}, _meta, args}, stack, context) do
-    Of.closed_map(args, stack, context, &of_expr/3)
+    Of.map(:closed, args, stack, context, &of_expr/3)
   end
 
   def of_expr({:%, _, [module, {:%{}, _, args}]} = expr, stack, context) do
