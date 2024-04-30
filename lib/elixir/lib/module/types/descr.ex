@@ -52,8 +52,8 @@ defmodule Module.Types.Descr do
   def integer(), do: %{bitmap: @bit_integer}
   def float(), do: %{bitmap: @bit_float}
   def fun(), do: %{bitmap: @bit_fun}
-  def open_map(pairs), do: %{map: [{:open, Map.new(pairs), []}]}
-  def closed_map(pairs), do: %{map: [{:closed, Map.new(pairs), []}]}
+  def open_map(pairs), do: %{map: map_new(:open, Map.new(pairs))}
+  def closed_map(pairs), do: %{map: map_new(:closed, Map.new(pairs))}
   def open_map(), do: %{map: @map_top}
   def empty_map(), do: %{map: @map_empty}
   def non_empty_list(), do: %{bitmap: @bit_non_empty_list}
@@ -416,6 +416,54 @@ defmodule Module.Types.Descr do
   # an empty list of atoms. It is simplified to `0` in set operations, and the key
   # is removed from the map.
 
+  @doc """
+  Returns a set of all known atoms.
+
+  Returns `{:ok, known_set}` if it is an atom, `:error` otherwise.
+  Notice `known_set` may be empty and still return positive, due to
+  negations.
+  """
+  def atom_fetch(%{} = descr) do
+    case :maps.take(:dynamic, descr) do
+      :error ->
+        if atom_only?(descr) do
+          case descr do
+            %{atom: {:union, set}} -> {:ok, :sets.to_list(set)}
+            %{atom: {:negation, _}} -> {:ok, []}
+            %{} -> :error
+          end
+        else
+          :error
+        end
+
+      {dynamic, static} ->
+        if atom_only?(static) do
+          case {dynamic, static} do
+            {%{atom: {:union, d}}, %{atom: {:union, s}}} ->
+              {:ok, :sets.to_list(:sets.union(d, s))}
+
+            {_, %{atom: {:negation, _}}} ->
+              {:ok, []}
+
+            {%{atom: {:negation, _}}, _} ->
+              {:ok, []}
+
+            {%{atom: {:union, d}}, %{}} ->
+              {:ok, :sets.to_list(d)}
+
+            {%{}, %{atom: {:union, s}}} ->
+              {:ok, :sets.to_list(s)}
+
+            {%{}, %{}} ->
+              :error
+          end
+        else
+          :error
+        end
+    end
+  end
+
+  defp atom_only?(descr), do: empty?(Map.delete(descr, :atom))
   defp atom_new(as) when is_list(as), do: {:union, :sets.from_list(as, version: 2)}
 
   defp atom_intersection({tag1, s1}, {tag2, s2}) do
@@ -447,18 +495,35 @@ defmodule Module.Types.Descr do
     if tag == :union and :sets.size(s) == 0, do: 0, else: {tag, s}
   end
 
-  defp literal(lit), do: {:__block__, [], [lit]}
+  defp literal_to_quoted(lit) do
+    if is_atom(lit) and Macro.classify_atom(lit) == :alias do
+      segments =
+        case Atom.to_string(lit) do
+          "Elixir" ->
+            [:"Elixir"]
+
+          "Elixir." <> segments ->
+            segments
+            |> String.split(".")
+            |> Enum.map(&String.to_atom/1)
+        end
+
+      {:__aliases__, [], segments}
+    else
+      {:__block__, [], [lit]}
+    end
+  end
 
   defp atom_to_quoted({:union, a}) do
     if :sets.is_subset(@boolset, a) do
       :sets.subtract(a, @boolset)
       |> :sets.to_list()
       |> Enum.sort()
-      |> Enum.reduce({:boolean, [], []}, &{:or, [], [&2, literal(&1)]})
+      |> Enum.reduce({:boolean, [], []}, &{:or, [], [&2, literal_to_quoted(&1)]})
     else
       :sets.to_list(a)
       |> Enum.sort()
-      |> Enum.map(&literal/1)
+      |> Enum.map(&literal_to_quoted/1)
       |> Enum.reduce(&{:or, [], [&2, &1]})
     end
     |> List.wrap()
@@ -584,31 +649,43 @@ defmodule Module.Types.Descr do
   defp map_tag_to_type(:open), do: term_or_not_set()
   defp map_tag_to_type(:closed), do: not_set()
 
-  defp map_descr(tag, fields), do: %{map: [{tag, fields, []}]}
+  defp map_new(tag, fields), do: [{tag, fields, []}]
+  defp map_descr(tag, fields), do: %{map: map_new(tag, fields)}
 
   @doc """
-  Gets the type of the value returned by accessing `key` on `map`.
+  Gets the type of the value returned by accessing `key` on `map`
+  with the assumption that the descr is exclusively a map.
 
-  It returns a two element tuple. The first element says if the type
-  is optional or not, the second element is the type. In static mode,
-  we likely want to raise if `map.field` (or pattern matching?) is
-  called on an optional key.
+  It returns a two element tuple or `:error`. The first element says
+  if the type is optional or not, the second element is the type.
+  In static mode, we likely want to raise if `map.field`
+  (or pattern matching?) is called on an optional key.
   """
-  def map_get(%{} = descr, key) do
+  def map_fetch(%{} = descr, key) do
     case :maps.take(:dynamic, descr) do
       :error ->
-        map_get_static(descr, key)
+        if is_map_key(descr, :map) and map_only?(descr) do
+          map_fetch_static(descr, key)
+        else
+          :error
+        end
 
       {dynamic, static} ->
-        {dynamic_optional?, dynamic_type} = map_get_static(dynamic, key)
-        {static_optional?, static_type} = map_get_static(static, key)
+        if (is_map_key(dynamic, :map) or is_map_key(static, :map)) and map_only?(static) do
+          {dynamic_optional?, dynamic_type} = map_fetch_static(dynamic, key)
+          {static_optional?, static_type} = map_fetch_static(static, key)
 
-        {dynamic_optional? or static_optional?,
-         union(intersection(dynamic(), dynamic_type), static_type)}
+          {dynamic_optional? or static_optional?,
+           union(intersection(dynamic(), dynamic_type), static_type)}
+        else
+          :error
+        end
     end
   end
 
-  defp map_get_static(descr, key) when is_atom(key) do
+  defp map_only?(descr), do: empty?(Map.delete(descr, :map))
+
+  defp map_fetch_static(descr, key) when is_atom(key) do
     case descr do
       %{map: map} ->
         map_split_on_key(map, key)
@@ -832,18 +909,40 @@ defmodule Module.Types.Descr do
 
   def map_literal_to_quoted({tag, fields}) do
     case tag do
-      :closed -> {:%{}, [], map_fields_to_quoted(tag, fields)}
-      :open -> {:%{}, [], [{:..., [], nil} | map_fields_to_quoted(tag, fields)]}
+      :closed ->
+        with %{__struct__: struct_descr} <- fields,
+             {:ok, [struct]} <- atom_fetch(struct_descr) do
+          {:%, [],
+           [
+             literal_to_quoted(struct),
+             {:%{}, [], map_fields_to_quoted(tag, Map.delete(fields, :__struct__))}
+           ]}
+        else
+          _ -> {:%{}, [], map_fields_to_quoted(tag, fields)}
+        end
+
+      :open ->
+        {:%{}, [], [{:..., [], nil} | map_fields_to_quoted(tag, fields)]}
     end
   end
 
   defp map_fields_to_quoted(tag, map) do
-    for {key, type} <- Enum.sort(map),
+    sorted = Enum.sort(map)
+    keyword? = Inspect.List.keyword?(sorted)
+
+    for {key, type} <- sorted,
         not (tag == :open and optional?(type) and term?(type)) do
+      key =
+        if keyword? do
+          {:__block__, [format: :keyword], [key]}
+        else
+          literal_to_quoted(key)
+        end
+
       cond do
-        not optional?(type) -> {literal(key), to_quoted(type)}
-        empty?(type) -> {literal(key), {:not_set, [], []}}
-        true -> {literal(key), {:if_set, [], [to_quoted(type)]}}
+        not optional?(type) -> {key, to_quoted(type)}
+        empty?(type) -> {key, {:not_set, [], []}}
+        true -> {key, {:if_set, [], [to_quoted(type)]}}
       end
     end
   end

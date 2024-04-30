@@ -15,20 +15,25 @@ defmodule Module.Types.Of do
   @float float()
   @binary binary()
 
-  # There are important assumptions on how we work with maps.
-  #
-  # First, the keys in the map must be ordered by subtyping.
-  #
-  # Second, optional keys must be a superset of the required
-  # keys, i.e. %{required(atom) => integer, optional(:foo) => :bar}
-  # is forbidden.
-  #
-  # Third, in order to preserve co/contra-variance, a supertype
-  # must satisfy its subtypes. I.e. %{foo: :bar, atom() => :baz}
-  # is forbidden, it must be %{foo: :bar, atom() => :baz | :bar}.
-  #
-  # Once we support user declared maps, we need to validate these
-  # assumptions.
+  @doc """
+  Handles fetching a map key.
+  """
+  def map_fetch(expr, type, field, stack, context) when is_atom(field) do
+    case map_fetch(type, field) do
+      :error ->
+        {:ok, dynamic(),
+         warn({:badmap, expr, type, field, context}, elem(expr, 1), stack, context)}
+
+      # TODO: on static type checking, we want check it is not optional.
+      {_optional?, value_type} ->
+        if empty?(value_type) do
+          {:ok, dynamic(),
+           warn({:badkey, expr, type, field, context}, elem(expr, 1), stack, context)}
+        else
+          {:ok, value_type, context}
+        end
+    end
+  end
 
   @doc """
   Handles open maps.
@@ -59,9 +64,31 @@ defmodule Module.Types.Of do
   @doc """
   Handles structs.
   """
-  def struct(struct, meta, stack, context) do
-    context = remote(struct, :__struct__, 0, meta, stack, context)
-    {:ok, open_map(), context}
+  def struct({:%, meta, _}, struct, args, defaults?, stack, context, of_fun)
+      when is_atom(struct) do
+    context = preload_and_maybe_check_export(struct, :__struct__, 0, meta, stack, context)
+
+    # The compiler has already checked the keys are atoms and which ones are required.
+    # TODO: Type check and do not assume dynamic for non-specified keys.
+    with {:ok, pairs, context} <-
+           map_reduce_ok(args, context, fn {key, value}, context when is_atom(key) ->
+             with {:ok, type, context} <- of_fun.(value, stack, context) do
+               {:ok, {key, type}, context}
+             end
+           end) do
+      defaults =
+        if defaults? do
+          dynamic = dynamic()
+
+          for key <- Map.keys(struct.__struct__()), key != :__struct__ do
+            {key, dynamic}
+          end
+        else
+          []
+        end
+
+      {:ok, closed_map([{:__struct__, atom([struct])} | defaults] ++ pairs), context}
+    end
   end
 
   ## Binary
@@ -140,10 +167,28 @@ defmodule Module.Types.Of do
 
   ## Remote
 
-  @doc """
-  Handles remote calls.
-  """
-  def remote(module, fun, arity, meta, stack, context) when is_atom(module) do
+  def remote(expr, type, fun, arity, hints, meta, stack, context) do
+    case atom_fetch(type) do
+      {:ok, mods} ->
+        context =
+          Enum.reduce(mods, context, fn mod, context ->
+            preload_and_maybe_check_export(mod, fun, arity, meta, stack, context)
+          end)
+
+        {mods, context}
+
+      :error ->
+        warning = {:badmodule, expr, type, fun, arity, hints, context}
+        {[], warn(warning, meta, stack, context)}
+    end
+  end
+
+  def remote(module, fun, arity, meta, stack, context) do
+    preload_and_maybe_check_export(module, fun, arity, meta, stack, context)
+  end
+
+  defp preload_and_maybe_check_export(module, fun, arity, meta, stack, context)
+       when is_atom(module) do
     if Keyword.get(meta, :runtime_module, false) do
       context
     else
@@ -151,8 +196,6 @@ defmodule Module.Types.Of do
       check_export(module, fun, arity, meta, stack, context)
     end
   end
-
-  def remote(_module, _fun, _arity, _meta, _stack, context), do: context
 
   defp check_export(module, fun, arity, meta, stack, context) do
     case ParallelChecker.fetch_export(stack.cache, module, fun, arity) do
@@ -260,6 +303,63 @@ defmodule Module.Types.Of do
       but got type:
 
           #{to_quoted_string(actual_type)}
+      """,
+      traces,
+      format_hints(hints ++ trace_hints),
+      "\ntyping violation found at:"
+    ]
+  end
+
+  def format_warning({:badmap, expr, type, key, context}) do
+    {traces, trace_hints} = Module.Types.Pattern.format_traces(expr, context)
+
+    [
+      """
+      expected a map or struct when accessing .#{key} in expression:
+
+          #{Macro.to_string(expr)}
+
+      but got type:
+
+          #{to_quoted_string(type)}
+      """,
+      traces,
+      format_hints([:dot | trace_hints]),
+      "\ntyping violation found at:"
+    ]
+  end
+
+  def format_warning({:badkey, expr, type, key, context}) do
+    {traces, trace_hints} = Module.Types.Pattern.format_traces(expr, context)
+
+    [
+      """
+      missing key .#{key} in expression:
+
+          #{Macro.to_string(expr)}
+
+      the given type does not have the given key:
+
+          #{to_quoted_string(type)}
+      """,
+      traces,
+      format_hints([:dot | trace_hints]),
+      "\ntyping violation found at:"
+    ]
+  end
+
+  def format_warning({:badmodule, expr, type, fun, arity, hints, context}) do
+    {traces, trace_hints} = Module.Types.Pattern.format_traces(expr, context)
+
+    [
+      """
+      expected a module (an atom) when invoking #{fun}/#{arity} in expression:
+
+          #{Macro.to_string(expr)}
+
+      but got type:
+
+          #{to_quoted_string(type)}
       """,
       traces,
       format_hints(hints ++ trace_hints),

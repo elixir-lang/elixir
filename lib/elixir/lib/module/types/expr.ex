@@ -113,15 +113,16 @@ defmodule Module.Types.Expr do
     end
   end
 
-  # TODO: %Struct{map | ...}
   def of_expr(
-        {:%, meta, [module, {:%{}, _, [{:|, _, [_, _]}]} = update]},
+        {:%, _, [module, {:%{}, _, [{:|, _, [map, args]}]}]} = expr,
         stack,
         context
       ) do
-    with {:ok, _, context} <- Of.struct(module, meta, stack, context),
-         {:ok, _, context} <- of_expr(update, stack, context) do
-      {:ok, open_map(), context}
+    with {:ok, type, context} <- Of.struct(expr, module, args, true, stack, context, &of_expr/3),
+         {:ok, _, context} <- of_expr(map, stack, context) do
+      # TODO: We need to validate that map is actually compatible with struct.
+      # Perhaps a simple validation over the struct name?
+      {:ok, type, context}
     end
   end
 
@@ -130,12 +131,8 @@ defmodule Module.Types.Expr do
     Of.closed_map(args, stack, context, &of_expr/3)
   end
 
-  # TODO: %Struct{...}
-  def of_expr({:%, meta1, [module, {:%{}, _meta2, args}]}, stack, context) do
-    with {:ok, _, context} <- Of.struct(module, meta1, stack, context),
-         {:ok, _, context} <- Of.open_map(args, stack, context, &of_expr/3) do
-      {:ok, open_map(), context}
-    end
+  def of_expr({:%, _, [module, {:%{}, _, args}]} = expr, stack, context) do
+    Of.struct(expr, module, args, false, stack, context, &of_expr/3)
   end
 
   # ()
@@ -278,40 +275,39 @@ defmodule Module.Types.Expr do
     end
   end
 
-  # TODO: expr.key_or_fun
-  def of_expr({{:., _meta1, [expr1, _key_or_fun]}, meta2, []}, stack, context)
-      when not is_atom(expr1) do
-    if Keyword.get(meta2, :no_parens, false) do
-      with {:ok, _, context} <- of_expr(expr1, stack, context) do
-        {:ok, dynamic(), context}
-      end
-    else
-      with {:ok, _, context} <- of_expr(expr1, stack, context) do
+  def of_expr({{:., _, [callee, key_or_fun]}, meta, []} = expr, stack, context)
+      when not is_atom(callee) and is_atom(key_or_fun) do
+    with {:ok, type, context} <- of_expr(callee, stack, context) do
+      if Keyword.get(meta, :no_parens, false) do
+        Of.map_fetch(expr, type, key_or_fun, stack, context)
+      else
+        {_mods, context} = Of.remote(expr, type, key_or_fun, 0, [:dot], meta, stack, context)
+        # TODO: Return the proper type
         {:ok, dynamic(), context}
       end
     end
   end
 
   # TODO: expr.fun(arg)
-  def of_expr({{:., _meta1, [expr1, fun]}, meta2, args}, stack, context) do
-    context = Of.remote(expr1, fun, length(args), meta2, stack, context)
-
-    with {:ok, _expr_type, context} <- of_expr(expr1, stack, context),
-         {:ok, _arg_types, context} <-
-           map_reduce_ok(args, context, &of_expr(&1, stack, &2)) do
+  def of_expr({{:., _, [remote, fun]}, meta, args} = expr, stack, context) do
+    with {:ok, remote_type, context} <- of_expr(remote, stack, context),
+         {:ok, _arg_types, context} <- map_reduce_ok(args, context, &of_expr(&1, stack, &2)) do
+      {_mods, context} = Of.remote(expr, remote_type, fun, length(args), [], meta, stack, context)
       {:ok, dynamic(), context}
     end
   end
 
   # TODO: &Foo.bar/1
   def of_expr(
-        {:&, _, [{:/, _, [{{:., _, [module, fun]}, meta, []}, arity]}]},
+        {:&, _, [{:/, _, [{{:., _, [remote, fun]}, meta, []}, arity]}]} = expr,
         stack,
         context
       )
-      when is_atom(module) and is_atom(fun) do
-    context = Of.remote(module, fun, arity, meta, stack, context)
-    {:ok, dynamic(), context}
+      when is_atom(fun) and is_integer(arity) do
+    with {:ok, remote_type, context} <- of_expr(remote, stack, context) do
+      {_mods, context} = Of.remote(expr, remote_type, fun, arity, [], meta, stack, context)
+      {:ok, dynamic(), context}
+    end
   end
 
   # &foo/1

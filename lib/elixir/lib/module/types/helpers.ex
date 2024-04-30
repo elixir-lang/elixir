@@ -29,6 +29,13 @@ defmodule Module.Types.Helpers do
         is an integer. Pass a modifier, such as <<expr::float>> or <<expr::binary>>, \
         to change the default behavior.
         """
+
+      :dot ->
+        """
+
+        #{hint()} "var.field" (without parentheses) means "var" is a map() while \
+        "var.fun()" (with parentheses) means "var" is an atom()
+        """
     end)
   end
 

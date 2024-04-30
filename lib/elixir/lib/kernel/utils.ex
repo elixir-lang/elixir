@@ -208,10 +208,11 @@ defmodule Kernel.Utils do
 
     case enforce_keys -- :maps.keys(struct) do
       [] ->
-        # The __struct__ field is used for expansion and for loading remote structs
+        # The __struct__ attribute is public and it is used for expansion
+        # and for loading remote structs.
         :ets.insert(set, {:__struct__, struct, nil, []})
 
-        # Store all field metadata to go into __info__(:struct)
+        # The complete metadata goes into __info__(:struct)
         mapper = fn {key, val} ->
           %{field: key, default: val, required: :lists.member(key, enforce_keys)}
         end

@@ -23,14 +23,14 @@ expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, S, #{context := Context} = 
       case extract_struct_assocs(Meta, ERight, E) of
         {expand, MapMeta, Assocs} when Context /= match -> %% Expand
           AssocKeys = [K || {K, _} <- Assocs],
-          Struct = load_struct(Meta, ELeft, [Assocs], AssocKeys, EE),
+          Struct = load_struct(Meta, ELeft, [Assocs], Assocs, EE),
           Keys = ['__struct__'] ++ AssocKeys,
           WithoutKeys = lists:sort(maps:to_list(maps:without(Keys, Struct))),
           StructAssocs = elixir_quote:escape(WithoutKeys, none, false),
           {{'%', Meta, [ELeft, {'%{}', MapMeta, StructAssocs ++ Assocs}]}, SE, EE};
 
         {_, _, Assocs} -> %% Update or match
-          _ = load_struct(Meta, ELeft, [], [K || {K, _} <- Assocs], EE),
+          _ = load_struct(Meta, ELeft, [], Assocs, EE),
           {{'%', Meta, [ELeft, ERight]}, SE, EE}
       end;
 
@@ -125,7 +125,12 @@ validate_struct({Var, _Meta, Ctx}, match) when is_atom(Var), is_atom(Ctx) -> tru
 validate_struct(Atom, _) when is_atom(Atom) -> true;
 validate_struct(_, _) -> false.
 
-load_struct(Meta, Name, Args, Keys, E) ->
+load_struct(Meta, Name, Args, Assocs, E) ->
+  Keys = [begin
+    is_atom(K) orelse function_error(Meta, E, ?MODULE, {invalid_key_for_struct, K}),
+    K
+  end || {K, _} <- Assocs],
+
   case maybe_load_struct(Meta, Name, Args, Keys, E) of
     {ok, Struct} -> Struct;
     {error, Desc} -> file_error(Meta, E, ?MODULE, Desc)
@@ -258,5 +263,8 @@ format_error({undefined_struct, Module, Arity}) ->
 format_error({unknown_key_for_struct, Module, Key}) ->
   io_lib:format("unknown key ~ts for struct ~ts",
                 ['Elixir.Macro':to_string(Key), elixir_aliases:inspect(Module)]);
+format_error({invalid_key_for_struct, Key}) ->
+  io_lib:format("invalid key ~ts for struct, struct keys must be atoms, got: ",
+                ['Elixir.Macro':to_string(Key)]);
 format_error(ignored_struct_key_in_struct) ->
   "key :__struct__ is ignored when using structs".
