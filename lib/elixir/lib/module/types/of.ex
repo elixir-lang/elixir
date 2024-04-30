@@ -15,6 +15,54 @@ defmodule Module.Types.Of do
   @float float()
   @binary binary()
 
+  ## Variables
+
+  @doc """
+  Fetches the type of a defined variable.
+  """
+  def var({_name, meta, _context}, context) do
+    version = Keyword.fetch!(meta, :version)
+    %{vars: %{^version => %{type: type}}} = context
+    type
+  end
+
+  @doc """
+  Refines the type of a variable.
+  """
+  def refine_var({var_name, meta, var_context} = var, type, expr, stack, context) do
+    version = Keyword.fetch!(meta, :version)
+
+    case context.vars do
+      %{^version => %{type: old_type, off_traces: off_traces} = data} ->
+        new_type = intersection(type, old_type)
+        data = %{data | type: new_type, off_traces: new_trace(expr, type, stack, off_traces)}
+        context = put_in(context.vars[version], data)
+
+        if empty?(new_type) do
+          {:error,
+           warn(__MODULE__, {:refine_var, old_type, type, var, context}, meta, stack, context)}
+        else
+          {:ok, new_type, context}
+        end
+
+      %{} ->
+        data = %{
+          type: type,
+          name: var_name,
+          context: var_context,
+          off_traces: new_trace(expr, type, stack, [])
+        }
+
+        context = put_in(context.vars[version], data)
+        {:ok, type, context}
+    end
+  end
+
+  defp new_trace(nil, _type, _stack, traces), do: traces
+  defp new_trace(expr, type, stack, traces), do: [{expr, stack.file, type} | traces]
+
+  ## Map/structs
+
   @doc """
   Handles fetching a map key.
   """
@@ -274,7 +322,7 @@ defmodule Module.Types.Of do
   ## Warning helpers
 
   @doc """
-  Emits incompatible types warning for the given expression
+  Emits incompatible types warning for the given expression.
   """
   def incompatible_warn(expr, expected_type, actual_type, hints \\ [], meta, stack, context) do
     warning = {:incompatible, expr, expected_type, actual_type, hints, context}
@@ -285,16 +333,106 @@ defmodule Module.Types.Of do
     warn(__MODULE__, warning, meta, stack, context)
   end
 
+  ## Traces
+
+  def format_traces(expr, %{vars: vars}) do
+    {_, versions} =
+      Macro.prewalk(expr, %{}, fn
+        {var_name, meta, var_context}, versions when is_atom(var_name) and is_atom(var_context) ->
+          version = meta[:version]
+
+          case vars do
+            %{^version => data} -> {:ok, Map.put(versions, version, data)}
+            %{} -> {:ok, versions}
+          end
+
+        node, versions ->
+          {node, versions}
+      end)
+
+    vars = Map.values(versions)
+
+    formatted_traces =
+      vars
+      |> Enum.sort_by(& &1.name)
+      |> Enum.map(&format_trace/1)
+
+    {formatted_traces, trace_hints(vars)}
+  end
+
+  defp format_trace(%{off_traces: []}) do
+    []
+  end
+
+  defp format_trace(%{name: name, context: context, off_traces: traces}) do
+    traces =
+      traces
+      |> Enum.reverse()
+      |> Enum.map(fn {expr, file, type} ->
+        meta = get_meta(expr)
+
+        location =
+          file
+          |> Path.relative_to_cwd()
+          |> Exception.format_file_line(meta[:line])
+          |> String.replace_suffix(":", "")
+
+        """
+
+            # type: #{to_quoted_string(type)}
+            # from: #{location}
+            #{expr_to_string(expr)}
+        """
+      end)
+
+    type_or_types = pluralize(traces, "type", "types")
+    ["\nwhere #{format_var(name, context)} was given the #{type_or_types}:\n" | traces]
+  end
+
+  defp format_var({var, _, context}), do: format_var(var, context)
+  defp format_var(var, nil), do: "\"#{var}\""
+  defp format_var(var, context), do: "\"#{var}\" (context #{inspect(context)})"
+
+  defp pluralize([_], singular, _plural), do: singular
+  defp pluralize(_, _singular, plural), do: plural
+
+  defp inferred_bitstring_spec?(trace) do
+    match?({{:<<>>, [inferred_bitstring_spec: true] ++ _meta, _}, _file, _type}, trace)
+  end
+
+  defp trace_hints(vars) do
+    if Enum.any?(vars, fn data -> Enum.any?(data.off_traces, &inferred_bitstring_spec?/1) end) do
+      [:inferred_bitstring_spec]
+    else
+      []
+    end
+  end
+
   ## Warning formatting
 
+  def format_warning({:refine_var, old_type, new_type, var, context}) do
+    {traces, hints} = format_traces(var, context)
+
+    [
+      """
+      incompatible types assigned to #{format_var(var)}:
+
+          #{to_quoted_string(old_type)} !~ #{to_quoted_string(new_type)}
+      """,
+      traces,
+      format_hints(hints),
+      "\ntyping violation found at:"
+    ]
+  end
+
   def format_warning({:incompatible, expr, expected_type, actual_type, hints, context}) do
-    {traces, trace_hints} = Module.Types.Pattern.format_traces(expr, context)
+    {traces, trace_hints} = format_traces(expr, context)
 
     [
       """
       incompatible types in expression:
 
-          #{Macro.to_string(expr)}
+          #{expr_to_string(expr)}
 
       expected type:
 
@@ -311,13 +449,13 @@ defmodule Module.Types.Of do
   end
 
   def format_warning({:badmap, expr, type, key, context}) do
-    {traces, trace_hints} = Module.Types.Pattern.format_traces(expr, context)
+    {traces, trace_hints} = format_traces(expr, context)
 
     [
       """
       expected a map or struct when accessing .#{key} in expression:
 
-          #{Macro.to_string(expr)}
+          #{expr_to_string(expr)}
 
       but got type:
 
@@ -330,13 +468,13 @@ defmodule Module.Types.Of do
   end
 
   def format_warning({:badkey, expr, type, key, context}) do
-    {traces, trace_hints} = Module.Types.Pattern.format_traces(expr, context)
+    {traces, trace_hints} = format_traces(expr, context)
 
     [
       """
       missing key .#{key} in expression:
 
-          #{Macro.to_string(expr)}
+          #{expr_to_string(expr)}
 
       the given type does not have the given key:
 
@@ -349,13 +487,13 @@ defmodule Module.Types.Of do
   end
 
   def format_warning({:badmodule, expr, type, fun, arity, hints, context}) do
-    {traces, trace_hints} = Module.Types.Pattern.format_traces(expr, context)
+    {traces, trace_hints} = format_traces(expr, context)
 
     [
       """
       expected a module (an atom) when invoking #{fun}/#{arity} in expression:
 
-          #{Macro.to_string(expr)}
+          #{expr_to_string(expr)}
 
       but got type:
 

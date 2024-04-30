@@ -327,7 +327,7 @@ defmodule Module.Types.Expr do
 
   # var
   def of_expr(var, _stack, context) when is_var(var) do
-    {:ok, Pattern.of_var(var, context), context}
+    {:ok, Of.var(var, context), context}
   end
 
   defp for_clause({:<-, _, [left, expr]}, stack, context) do
