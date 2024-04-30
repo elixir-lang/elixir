@@ -101,42 +101,6 @@ defmodule Module.Types.Helpers do
   defp do_reduce_ok([], acc, _fun), do: {:ok, acc}
 
   @doc """
-  Like `Enum.unzip/1` but only continues while `fun` returns `{:ok, elem1, elem2}`
-  and stops on `{:error, reason}`.
-  """
-  def unzip_ok(list) do
-    do_unzip_ok(list, [], [])
-  end
-
-  defp do_unzip_ok([{:ok, head1, head2} | tail], acc1, acc2) do
-    do_unzip_ok(tail, [head1 | acc1], [head2 | acc2])
-  end
-
-  defp do_unzip_ok([{:error, reason} | _tail], _acc1, _acc2), do: {:error, reason}
-
-  defp do_unzip_ok([], acc1, acc2), do: {:ok, Enum.reverse(acc1), Enum.reverse(acc2)}
-
-  @doc """
-  Like `Enum.map/2` but only continues while `fun` returns `{:ok, elem}`
-  and stops on `{:error, reason}`.
-  """
-  def map_ok(list, fun) do
-    do_map_ok(list, [], fun)
-  end
-
-  defp do_map_ok([head | tail], acc, fun) do
-    case fun.(head) do
-      {:ok, elem} ->
-        do_map_ok(tail, [elem | acc], fun)
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
-  defp do_map_ok([], acc, _fun), do: {:ok, Enum.reverse(acc)}
-
-  @doc """
   Like `Enum.map_reduce/3` but only continues while `fun` returns `{:ok, elem, acc}`
   and stops on `{:error, reason}`.
   """
@@ -155,71 +119,4 @@ defmodule Module.Types.Helpers do
   end
 
   defp do_map_reduce_ok([], {list, acc}, _fun), do: {:ok, Enum.reverse(list), acc}
-
-  @doc """
-  Like `Enum.flat_map/2` but only continues while `fun` returns `{:ok, list}`
-  and stops on `{:error, reason}`.
-  """
-  def flat_map_ok(list, fun) do
-    do_flat_map_ok(list, [], fun)
-  end
-
-  defp do_flat_map_ok([head | tail], acc, fun) do
-    case fun.(head) do
-      {:ok, elem} ->
-        do_flat_map_ok(tail, [elem | acc], fun)
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
-  defp do_flat_map_ok([], acc, _fun), do: {:ok, Enum.reverse(Enum.concat(acc))}
-
-  @doc """
-  Like `Enum.flat_map_reduce/3` but only continues while `fun` returns `{:ok, list, acc}`
-  and stops on `{:error, reason}`.
-  """
-  def flat_map_reduce_ok(list, acc, fun) do
-    do_flat_map_reduce_ok(list, {[], acc}, fun)
-  end
-
-  defp do_flat_map_reduce_ok([head | tail], {list, acc}, fun) do
-    case fun.(head, acc) do
-      {:ok, elems, acc} ->
-        do_flat_map_reduce_ok(tail, {[elems | list], acc}, fun)
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
-  defp do_flat_map_reduce_ok([], {list, acc}, _fun),
-    do: {:ok, Enum.reverse(Enum.concat(list)), acc}
-
-  @doc """
-  Like `Enum.zip/1` but will zip multiple lists together instead of only two.
-  """
-  def zip_many(lists) do
-    zip_many(lists, [], [[]])
-  end
-
-  defp zip_many([], [], [[] | acc]) do
-    map_reverse(acc, [], &Enum.reverse/1)
-  end
-
-  defp zip_many([], remain, [last | acc]) do
-    zip_many(Enum.reverse(remain), [], [[] | [last | acc]])
-  end
-
-  defp zip_many([[] | _], remain, [last | acc]) do
-    zip_many(Enum.reverse(remain), [], [last | acc])
-  end
-
-  defp zip_many([[elem | list1] | list2], remain, [last | acc]) do
-    zip_many(list2, [list1 | remain], [[elem | last] | acc])
-  end
-
-  defp map_reverse([], acc, _fun), do: acc
-  defp map_reverse([head | tail], acc, fun), do: map_reverse(tail, [fun.(head) | acc], fun)
 end

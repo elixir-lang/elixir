@@ -30,7 +30,7 @@ defmodule Module.Types.Pattern do
 
   @doc """
   Return the type and typing context of a pattern expression with
-  the given {expected, expr} pair  or an error in case of a typing conflict.
+  the given {expected, expr} pair or an error in case of a typing conflict.
   """
 
   # ^var
@@ -40,9 +40,23 @@ defmodule Module.Types.Pattern do
 
   # left = right
   def of_pattern({:=, _meta, [left_expr, right_expr]}, expected_expr, stack, context) do
-    with {:ok, _, context} <- of_pattern(left_expr, expected_expr, stack, context),
-         {:ok, _, context} <- of_pattern(right_expr, expected_expr, stack, context),
-         do: {:ok, dynamic(), context}
+    # TODO: We need to properly track and annotate variables across (potentially nested) sides.
+    case {is_var(left_expr), is_var(right_expr)} do
+      {true, false} ->
+        with {:ok, type, context} <- of_pattern(right_expr, expected_expr, stack, context) do
+          of_pattern(left_expr, {type, right_expr}, stack, context)
+        end
+
+      {false, true} ->
+        with {:ok, type, context} <- of_pattern(left_expr, expected_expr, stack, context) do
+          of_pattern(right_expr, {type, left_expr}, stack, context)
+        end
+
+      {_, _} ->
+        with {:ok, _, context} <- of_pattern(left_expr, expected_expr, stack, context),
+             {:ok, _, context} <- of_pattern(right_expr, expected_expr, stack, context),
+             do: {:ok, dynamic(), context}
+    end
   end
 
   # %_{...}

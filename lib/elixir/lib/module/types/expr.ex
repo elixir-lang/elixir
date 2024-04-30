@@ -97,11 +97,10 @@ defmodule Module.Types.Expr do
   end
 
   # TODO: left = right
+  # TODO: make sure the types are compatible
   def of_expr({:=, _meta, [left_expr, right_expr]}, stack, context) do
-    with {:ok, _left_type, context} <-
-           Pattern.of_pattern(left_expr, stack, context),
-         {:ok, right_type, context} <- of_expr(right_expr, stack, context) do
-      {:ok, right_type, context}
+    with {:ok, right_type, context} <- of_expr(right_expr, stack, context) do
+      Pattern.of_pattern(left_expr, {right_type, right_expr}, stack, context)
     end
   end
 

@@ -94,12 +94,12 @@ defmodule EnumTest do
   end
 
   test "chunk/3" do
-    enum = Enum
+    enum = String.to_atom("Elixir.Enum")
     assert enum.chunk(1..5, 2, 1) == Enum.chunk_every(1..5, 2, 1, :discard)
   end
 
   test "chunk/4" do
-    enum = Enum
+    enum = String.to_atom("Elixir.Enum")
     assert enum.chunk(1..5, 2, 1, nil) == Enum.chunk_every(1..5, 2, 1, :discard)
   end
 

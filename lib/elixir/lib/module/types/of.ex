@@ -47,7 +47,8 @@ defmodule Module.Types.Of do
 
       %{} ->
         data = %{
-          type: type,
+          # TODO: We should not default to dynamic on static mode
+          type: dynamic(type),
           name: var_name,
           context: var_context,
           off_traces: new_trace(expr, type, stack, [])

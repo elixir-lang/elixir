@@ -189,10 +189,6 @@ defmodule Module.Types.ExprTest do
   end
 
   describe "maps/structs" do
-    test "matching struct name" do
-      assert typecheck!([%x{}], x) == atom()
-    end
-
     test "creating structs" do
       assert typecheck!(%Point{}) ==
                closed_map(__struct__: atom([Point]), x: atom([nil]), y: atom([nil]), z: integer())

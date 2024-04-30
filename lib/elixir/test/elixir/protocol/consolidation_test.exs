@@ -186,7 +186,7 @@ defmodule Protocol.ConsolidationTest do
         "This protocol is implemented for the following type(s): Protocol.ConsolidationTest.ImplStruct"
 
     assert_raise Protocol.UndefinedError, message, fn ->
-      sample = Sample
+      sample = String.to_atom("Elixir.Protocol.ConsolidationTest.Sample")
       sample.ok(:foo)
     end
   end

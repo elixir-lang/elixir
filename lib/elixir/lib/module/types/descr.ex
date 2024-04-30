@@ -52,6 +52,7 @@ defmodule Module.Types.Descr do
   def integer(), do: %{bitmap: @bit_integer}
   def float(), do: %{bitmap: @bit_float}
   def fun(), do: %{bitmap: @bit_fun}
+  # TODO: We need to propagate any dynamic up
   def open_map(pairs), do: %{map: map_new(:open, Map.new(pairs))}
   def closed_map(pairs), do: %{map: map_new(:closed, Map.new(pairs))}
   def open_map(), do: %{map: @map_top}
@@ -88,6 +89,18 @@ defmodule Module.Types.Descr do
 
   def term?(descr), do: subtype_static(@term, Map.delete(descr, :dynamic))
   def gradual?(descr), do: is_map_key(descr, :dynamic)
+
+  @doc """
+  Make a whole type dynamic.
+
+  It is an optimized version of `intersection(dynamic(), type)`.
+  """
+  def dynamic(descr) do
+    case descr do
+      %{dynamic: dynamic} -> %{dynamic: dynamic}
+      %{} -> %{dynamic: descr}
+    end
+  end
 
   @doc """
   Computes the union of two descrs.
@@ -675,8 +688,7 @@ defmodule Module.Types.Descr do
           {dynamic_optional?, dynamic_type} = map_fetch_static(dynamic, key)
           {static_optional?, static_type} = map_fetch_static(static, key)
 
-          {dynamic_optional? or static_optional?,
-           union(intersection(dynamic(), dynamic_type), static_type)}
+          {dynamic_optional? or static_optional?, union(dynamic(dynamic_type), static_type)}
         else
           :error
         end

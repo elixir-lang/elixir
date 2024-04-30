@@ -244,8 +244,21 @@ defmodule Module.Types.DescrTest do
     end
   end
 
-  describe "map operations" do
-    test "get field" do
+  describe "projections" do
+    test "atom_fetch" do
+      assert atom_fetch(term()) == :error
+      assert atom_fetch(union(term(), dynamic(atom([:foo, :bar])))) == :error
+
+      assert atom_fetch(atom()) == {:ok, []}
+
+      assert atom_fetch(atom([:foo, :bar])) ==
+               {:ok, [:foo, :bar] |> :sets.from_list(version: 2) |> :sets.to_list()}
+
+      assert atom_fetch(union(atom([:foo, :bar]), dynamic(atom()))) == {:ok, []}
+      assert atom_fetch(union(atom([:foo, :bar]), dynamic(term()))) == {:ok, []}
+    end
+
+    test "map_fetch" do
       assert map_fetch(closed_map(a: integer()), :a) == {false, integer()}
 
       assert map_fetch(term(), :a) == :error

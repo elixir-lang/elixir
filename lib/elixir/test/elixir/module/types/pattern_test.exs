@@ -6,12 +6,38 @@ defmodule Module.Types.PatternTest do
   import TypeHelper
   import Module.Types.Descr
 
+  describe "variables" do
+    test "captures variables from simple assignment in head" do
+      assert typecheck!([x = :foo], x) == dynamic(atom([:foo]))
+      assert typecheck!([:foo = x], x) == dynamic(atom([:foo]))
+    end
+
+    test "captures variables from simple assignment in =" do
+      assert typecheck!(
+               (
+                 x = :foo
+                 x
+               )
+             ) == dynamic(atom([:foo]))
+    end
+  end
+
+  describe "maps" do
+    test "matching struct name" do
+      assert typecheck!([%x{}], x) == dynamic(atom())
+    end
+
+    test "matching map" do
+      assert typecheck!([x = %{}], x.foo.bar) == dynamic()
+    end
+  end
+
   describe "binaries" do
     test "ok" do
-      assert typecheck!([<<x>>], x) == integer()
-      assert typecheck!([<<x::float>>], x) == float()
-      assert typecheck!([<<x::binary>>], x) == binary()
-      assert typecheck!([<<x::utf8>>], x) == integer()
+      assert typecheck!([<<x>>], x) == dynamic(integer())
+      assert typecheck!([<<x::float>>], x) == dynamic(float())
+      assert typecheck!([<<x::binary>>], x) == dynamic(binary())
+      assert typecheck!([<<x::utf8>>], x) == dynamic(integer())
     end
 
     test "error" do

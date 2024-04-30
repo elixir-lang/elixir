@@ -235,7 +235,7 @@ defmodule URI do
 
       {{key, value}, rest} ->
         # Avoid warnings about Dict being deprecated
-        dict_module = Dict
+        dict_module = String.to_atom("Dict")
         decode_query_into_dict(rest, dict_module.put(dict, key, value), encoding)
     end
   end
