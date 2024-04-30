@@ -247,6 +247,9 @@ defmodule Module.Types.DescrTest do
   describe "map operations" do
     test "get field" do
       assert map_get(closed_map(a: integer()), :a) == {false, integer()}
+
+      assert map_get(term(), :a) == :error
+      assert map_get(union(open_map(), integer()), :a) == :error
       assert map_get(dynamic(), :a) == {true, dynamic()}
 
       assert intersection(dynamic(), open_map(a: integer()))
@@ -264,8 +267,6 @@ defmodule Module.Types.DescrTest do
 
       assert map_get(union(closed_map(a: integer()), closed_map(b: atom())), :a) ==
                {true, integer()}
-
-      assert map_get(term(), :a) == {true, term()}
 
       {false, value_type} =
         closed_map(a: union(integer(), atom()))

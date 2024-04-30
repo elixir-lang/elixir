@@ -587,26 +587,40 @@ defmodule Module.Types.Descr do
   defp map_descr(tag, fields), do: %{map: [{tag, fields, []}]}
 
   @doc """
-  Gets the type of the value returned by accessing `key` on `map`.
+  Gets the type of the value returned by accessing `key` on `map`
+  with the assumption that the descr is exclusively a map.
 
-  It returns a two element tuple. The first element says if the type
-  is optional or not, the second element is the type. In static mode,
-  we likely want to raise if `map.field` (or pattern matching?) is
-  called on an optional key.
+  It returns a two element tuple or `:error`. The first element says
+  if the type is optional or not, the second element is the type.
+  In static mode, we likely want to raise if `map.field`
+  (or pattern matching?) is called on an optional key.
   """
   def map_get(%{} = descr, key) do
     case :maps.take(:dynamic, descr) do
       :error ->
-        map_get_static(descr, key)
+        if map_only?(descr) do
+          map_get_static(descr, key)
+        else
+          :error
+        end
 
       {dynamic, static} ->
-        {dynamic_optional?, dynamic_type} = map_get_static(dynamic, key)
-        {static_optional?, static_type} = map_get_static(static, key)
+        if map_only?(static) do
+          {dynamic_optional?, dynamic_type} = map_get_static(dynamic, key)
+          {static_optional?, static_type} = map_get_static(static, key)
 
-        {dynamic_optional? or static_optional?,
-         union(intersection(dynamic(), dynamic_type), static_type)}
+          {dynamic_optional? or static_optional?,
+           union(intersection(dynamic(), dynamic_type), static_type)}
+        else
+          :error
+        end
     end
   end
+
+  # We do this quick check, instead of checking for compatibility,
+  # because if it resolves to an empty map, the type for key will be `none()` anyway.
+  defp map_only?(descr),
+    do: map_size(descr) == 0 or (map_size(descr) == 1 and is_map_key(descr, :map))
 
   defp map_get_static(descr, key) when is_atom(key) do
     case descr do

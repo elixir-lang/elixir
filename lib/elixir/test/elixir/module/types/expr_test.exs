@@ -111,4 +111,28 @@ defmodule Module.Types.ExprTest do
                 """}
     end
   end
+
+  describe "maps" do
+    test "accessing a field on not a map" do
+      assert typewarn!([<<x::integer>>], x.foo_bar) ==
+               {dynamic(),
+                ~l"""
+                expected map type when accessing .foo_bar in expression:
+
+                    x.foo_bar
+
+                but got type:
+
+                    integer()
+
+                where "x" was given the type:
+
+                    # type: integer()
+                    # from: types_test.ex:117
+                    <<x::integer>>
+
+                typing violation found at:\
+                """}
+    end
+  end
 end

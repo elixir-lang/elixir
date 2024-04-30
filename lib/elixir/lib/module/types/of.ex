@@ -15,20 +15,21 @@ defmodule Module.Types.Of do
   @float float()
   @binary binary()
 
-  # There are important assumptions on how we work with maps.
-  #
-  # First, the keys in the map must be ordered by subtyping.
-  #
-  # Second, optional keys must be a superset of the required
-  # keys, i.e. %{required(atom) => integer, optional(:foo) => :bar}
-  # is forbidden.
-  #
-  # Third, in order to preserve co/contra-variance, a supertype
-  # must satisfy its subtypes. I.e. %{foo: :bar, atom() => :baz}
-  # is forbidden, it must be %{foo: :bar, atom() => :baz | :bar}.
-  #
-  # Once we support user declared maps, we need to validate these
-  # assumptions.
+  @doc """
+  Handles fetching a map key.
+  """
+  def map_get(expr, type, field, stack, context) when is_atom(field) do
+    case map_get(type, field) do
+      :error ->
+        {:ok, dynamic(),
+         warn({:badmap, expr, type, field, context}, elem(expr, 1), stack, context)}
+
+      # TODO: on static type checking, we want check if it is not optional.
+      # TODO: check if type is not none()
+      {_optional?, type} ->
+        {:ok, type, context}
+    end
+  end
 
   @doc """
   Handles open maps.
@@ -263,6 +264,25 @@ defmodule Module.Types.Of do
       """,
       traces,
       format_hints(hints ++ trace_hints),
+      "\ntyping violation found at:"
+    ]
+  end
+
+  def format_warning({:badmap, expr, type, field, context}) do
+    {traces, trace_hints} = Module.Types.Pattern.format_traces(expr, context)
+
+    [
+      """
+      expected map type when accessing .#{field} in expression:
+
+          #{Macro.to_string(expr)}
+
+      but got type:
+
+          #{to_quoted_string(type)}
+      """,
+      traces,
+      format_hints(trace_hints),
       "\ntyping violation found at:"
     ]
   end

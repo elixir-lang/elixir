@@ -278,12 +278,12 @@ defmodule Module.Types.Expr do
     end
   end
 
-  # TODO: expr.key_or_fun
-  def of_expr({{:., _meta1, [expr1, _key_or_fun]}, meta2, []}, stack, context)
-      when not is_atom(expr1) do
+  # TODO: expr.fun()
+  def of_expr({{:., _meta1, [expr1, key_or_fun]}, meta2, []} = expr, stack, context)
+      when not is_atom(expr1) and is_atom(key_or_fun) do
     if Keyword.get(meta2, :no_parens, false) do
-      with {:ok, _, context} <- of_expr(expr1, stack, context) do
-        {:ok, dynamic(), context}
+      with {:ok, type1, context} <- of_expr(expr1, stack, context) do
+        Of.map_get(expr, type1, key_or_fun, stack, context)
       end
     else
       with {:ok, _, context} <- of_expr(expr1, stack, context) do
