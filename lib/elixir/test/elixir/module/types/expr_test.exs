@@ -275,8 +275,6 @@ defmodule Module.Types.ExprTest do
                     # from: types_test.ex:LINE-2
                     x = %URI{}
 
-                #{hints(:dot)}
-
                 typing violation found at:\
                 """}
     end
