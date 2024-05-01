@@ -1021,6 +1021,113 @@ defmodule URI do
   def append_path(%URI{}, path) when is_binary(path) do
     raise ArgumentError, ~s|path must start with "/", got: #{inspect(path)}|
   end
+
+  @doc """
+  Normalizes the given `uri` following the rules defined by RFC 3986.
+
+  ## Examples
+
+      iex> URI.normalize(URI.parse("HtTp://example.com/")) |> URI.to_string()
+      "http://example.com/"
+
+      iex> URI.normalize(URI.parse("http://ExAmPlE.CoM/")) |> URI.to_string()
+      "http://example.com/"
+
+      iex> URI.normalize(URI.parse("http://example.com/%61")) |> URI.to_string()
+      "http://example.com/a"
+
+      iex> URI.normalize(URI.parse("http://example.com/%7Ejane")) |> URI.to_string()
+      "http://example.com/~jane"
+
+      iex> URI.normalize(URI.parse("http://example.com/?q=1%2f2")) |> URI.to_string()
+      "http://example.com/?q=1%2F2"
+
+      iex> URI.normalize(URI.parse("http://example.com/a/./b")) |> URI.to_string()
+      "http://example.com/a/b"
+
+      iex> URI.normalize(URI.parse("http://example.com/./a/b/../c/./")) |> URI.to_string()
+      "http://example.com/a/c/"
+
+      iex> URI.normalize(URI.parse("http://example.com")) |> URI.to_string()
+      "http://example.com/"
+
+      iex> URI.normalize(URI.parse("http://example.com:/")) |> URI.to_string()
+      "http://example.com/"
+
+      iex> URI.normalize(URI.parse("http://example.com:80/")) |> URI.to_string()
+      "http://example.com/"
+
+      iex> URI.normalize(URI.parse("https://example.com:443/")) |> URI.to_string()
+      "https://example.com/"
+
+  """
+  @doc since: "1.17.0"
+  @spec normalize(t()) :: t()
+  def normalize(%URI{} = uri) do
+    scheme = normalize_scheme(uri.scheme)
+
+    %URI{
+      scheme: scheme,
+      userinfo: normalize_userinfo(uri.userinfo),
+      host: normalize_host(uri.host),
+      port: normalize_port(uri.port, scheme),
+      path: normalize_path(uri.path),
+      query: normalize_query(uri.query),
+      fragment: normalize_fragment(uri.fragment)
+    }
+  end
+
+  defp normalize_scheme(nil), do: nil
+  defp normalize_scheme(scheme), do: String.downcase(scheme)
+
+  defp normalize_userinfo(nil), do: nil
+
+  defp normalize_userinfo(userinfo) do
+    case String.split(userinfo, ":", parts: 2) do
+      [user | []] ->
+        reencode(user)
+
+      [user | [password]] ->
+        encoded_user = reencode(user)
+        encoded_password = reencode(password)
+        encoded_user <> ":" <> encoded_password
+    end
+  end
+
+  defp normalize_host(nil), do: nil
+  defp normalize_host(host), do: String.downcase(host)
+
+  defp normalize_port(port, scheme) do
+    case scheme && default_port(scheme) do
+      ^port -> nil
+      _ -> port
+    end
+  end
+
+  defp normalize_path(nil), do: "/"
+
+  defp normalize_path(path) do
+    path
+    |> remove_dot_segments_from_path()
+    |> reencode()
+  end
+
+  defp normalize_query(nil), do: nil
+
+  defp normalize_query(query) do
+    query
+    |> query_decoder(:rfc3986)
+    |> encode_query(:rfc3986)
+  end
+
+  defp normalize_fragment(nil), do: nil
+  defp normalize_fragment(fragment), do: reencode(fragment)
+
+  defp reencode(string) do
+    string
+    |> decode()
+    |> encode()
+  end
 end
 
 defimpl String.Chars, for: URI do
