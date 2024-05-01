@@ -728,27 +728,51 @@ defmodule Module.Types.Descr do
   end
 
   # Intersects two map literals; throws if their intersection is empty.
-  defp map_literal_intersection(tag1, map1, tag2, map2) do
-    default1 = map_tag_to_type(tag1)
-    default2 = map_tag_to_type(tag2)
-
-    # if any intersection of values is empty, the whole intersection is empty
+  # Both open: the result is open.
+  defp map_literal_intersection(:open, map1, :open, map2) do
     new_fields =
-      (for {key, value_type} <- map1 do
-         value_type2 = Map.get(map2, key, default2)
-         t = intersection(value_type, value_type2)
-         if empty?(t), do: throw(:empty), else: {key, t}
-       end ++
-         for {key, value_type} <- map2, not is_map_key(map1, key) do
-           t = intersection(default1, value_type)
-           if empty?(t), do: throw(:empty), else: {key, t}
-         end)
-      |> Map.new()
+      Map.merge(map1, map2, fn _, type1, type2 -> non_empty_intersection!(type1, type2) end)
 
-    case {tag1, tag2} do
-      {:open, :open} -> {:open, new_fields}
-      _ -> {:closed, new_fields}
+    {:open, new_fields}
+  end
+
+  # Both closed: the result is closed.
+  defp map_literal_intersection(:closed, map1, :closed, map2) do
+    new_fields =
+      Map.intersect(map1, map2, fn _, type1, type2 -> non_empty_intersection!(type1, type2) end)
+
+    if map_size(new_fields) < map_size(map1) or map_size(new_fields) < map_size(map2) do
+      throw(:empty)
     end
+
+    {:closed, new_fields}
+  end
+
+  # Open and closed: result is closed, all fields from open should be in closed
+  defp map_literal_intersection(:open, open, :closed, closed) do
+    :maps.iterator(open) |> :maps.next() |> map_literal_intersection_loop(closed)
+  end
+
+  defp map_literal_intersection(:closed, closed, :open, open) do
+    :maps.iterator(open) |> :maps.next() |> map_literal_intersection_loop(closed)
+  end
+
+  defp map_literal_intersection_loop(:none, acc), do: {:closed, acc}
+
+  defp map_literal_intersection_loop({key, type1, iterator}, acc) do
+    case acc do
+      %{^key => type2} ->
+        acc = %{acc | key => non_empty_intersection!(type1, type2)}
+        :maps.next(iterator) |> map_literal_intersection_loop(acc)
+
+      _ ->
+        throw(:empty)
+    end
+  end
+
+  defp non_empty_intersection!(type1, type2) do
+    type = intersection(type1, type2)
+    if empty?(type), do: throw(:empty), else: type
   end
 
   defp map_difference(dnf1, dnf2) do
