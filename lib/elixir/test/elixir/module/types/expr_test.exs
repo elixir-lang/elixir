@@ -47,10 +47,6 @@ defmodule Module.Types.ExprTest do
 
                     x.foo_bar()
 
-                but got type:
-
-                    integer()
-
                 where "x" was given the type:
 
                     # type: integer()
@@ -70,10 +66,6 @@ defmodule Module.Types.ExprTest do
                 expected a module (an atom) when invoking foo_bar/2 in expression:
 
                     x.foo_bar(1, 2)
-
-                but got type:
-
-                    integer()
 
                 where "x" was given the type:
 
@@ -232,10 +224,6 @@ defmodule Module.Types.ExprTest do
 
                     x.foo_bar
 
-                but got type:
-
-                    integer()
-
                 where "x" was given the type:
 
                     # type: integer()
@@ -259,6 +247,35 @@ defmodule Module.Types.ExprTest do
                 the given type does not have the given key:
 
                     %Point{x: nil, y: nil, z: integer()}
+
+                typing violation found at:\
+                """}
+    end
+
+    test "accessing an unknown field on struct in a var" do
+      assert typewarn!([x = %URI{}], x.foo_bar) ==
+               {dynamic(),
+                ~l"""
+                missing key .foo_bar in expression:
+
+                    x.foo_bar
+
+                where "x" was given the type:
+
+                    # type: %URI{
+                      authority: dynamic(),
+                      fragment: dynamic(),
+                      host: dynamic(),
+                      path: dynamic(),
+                      port: dynamic(),
+                      query: dynamic(),
+                      scheme: dynamic(),
+                      userinfo: dynamic()
+                    }
+                    # from: types_test.ex:LINE-2
+                    x = %URI{}
+
+                #{hints(:dot)}
 
                 typing violation found at:\
                 """}

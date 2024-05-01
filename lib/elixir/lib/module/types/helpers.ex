@@ -72,6 +72,13 @@ defmodule Module.Types.Helpers do
   def get_meta(_other), do: []
 
   @doc """
+  Indents new lines.
+  """
+  def indent(content, count) do
+    String.replace(content, "\n", "\n" <> String.duplicate(" ", count))
+  end
+
+  @doc """
   Emits a warnings.
   """
   def warn(module, warning, meta, stack, context) do

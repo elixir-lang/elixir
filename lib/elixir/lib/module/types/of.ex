@@ -416,7 +416,7 @@ defmodule Module.Types.Of do
 
         """
 
-            # type: #{to_quoted_string(type)}
+            # type: #{to_quoted_string(type) |> indent(4)}
             # from: #{location}
             #{expr_to_string(expr)}
         """
@@ -469,15 +469,15 @@ defmodule Module.Types.Of do
       """
       incompatible types in expression:
 
-          #{expr_to_string(expr)}
+          #{expr_to_string(expr) |> indent(4)}
 
       expected type:
 
-          #{to_quoted_string(expected_type)}
+          #{to_quoted_string(expected_type) |> indent(4)}
 
       but got type:
 
-          #{to_quoted_string(actual_type)}
+          #{to_quoted_string(actual_type) |> indent(4)}
       """,
       traces,
       format_hints(hints ++ trace_hints),
@@ -492,12 +492,14 @@ defmodule Module.Types.Of do
       """
       expected a map or struct when accessing .#{key} in expression:
 
-          #{expr_to_string(expr)}
+          #{expr_to_string(expr) |> indent(4)}
+      """,
+      empty_if(dot_var?(expr), """
 
       but got type:
 
-          #{to_quoted_string(type)}
-      """,
+          #{to_quoted_string(type) |> indent(4)}
+      """),
       traces,
       format_hints([:dot | trace_hints]),
       "\ntyping violation found at:"
@@ -511,12 +513,14 @@ defmodule Module.Types.Of do
       """
       missing key .#{key} in expression:
 
-          #{expr_to_string(expr)}
+          #{expr_to_string(expr) |> indent(4)}
+      """,
+      empty_if(dot_var?(expr), """
 
       the given type does not have the given key:
 
-          #{to_quoted_string(type)}
-      """,
+          #{to_quoted_string(type) |> indent(4)}
+      """),
       traces,
       format_hints(trace_hints),
       "\ntyping violation found at:"
@@ -530,12 +534,14 @@ defmodule Module.Types.Of do
       """
       expected a module (an atom) when invoking #{fun}/#{arity} in expression:
 
-          #{expr_to_string(expr)}
+          #{expr_to_string(expr) |> indent(4)}
+      """,
+      empty_if(dot_var?(expr), """
 
       but got type:
 
-          #{to_quoted_string(type)}
-      """,
+          #{to_quoted_string(type) |> indent(4)}
+      """),
       traces,
       format_hints(hints ++ trace_hints),
       "\ntyping violation found at:"
@@ -574,5 +580,13 @@ defmodule Module.Types.Of do
       " before invoking the macro ",
       Exception.format_mfa(module, fun, arity)
     ]
+  end
+
+  defp dot_var?(expr) do
+    match?({{:., _, [var, _fun]}, _, _args} when is_var(var), expr)
+  end
+
+  defp empty_if(condition, content) do
+    if condition, do: "", else: content
   end
 end
