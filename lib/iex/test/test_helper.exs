@@ -8,7 +8,7 @@ IEx.configure(colors: [enabled: false])
   if line = System.get_env("LINE"), do: {[:test], [line: line]}, else: {[], []}
 
 erlang_doc_exclude =
-  if match?({:docs_v1, _, _, _, _, _, _}, Code.fetch_docs(:array)) do
+  if match?({:docs_v1, _, _, _, %{}, _, _}, Code.fetch_docs(:array)) do
     []
   else
     IO.puts("Erlang/OTP compiled without docs, some tests are excluded...")
