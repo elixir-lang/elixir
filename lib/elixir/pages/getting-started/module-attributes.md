@@ -146,27 +146,29 @@ defp example, do: @example
 
 > #### Attributes as constants {: .warning}
 >
-> Sometimes developers want to use module attributes as constants, however, functions themselves play a better role. For example, instead of defining:
+> You may want to use module attributes as constants. However, most times, functions themselves are better suited for this role. For example, instead of defining:
 >
 > ```elixir
 > @hours_in_a_day 24
 > ```
 >
-> Instead, you should prefer:
+> You should prefer:
 >
 > ```elixir
 > defp hours_in_a_day(), do: 24
 > ```
 >
-> Or a public function if it needs to be shared between modules.
+> You may even define a public function if it needs to be shared across modules.
 >
-> This also holds true even for complex data structures. For example, if you need to define some configuration, you can define it as:
+> This also holds true for complex data structures. For example, you may specify a system configuration constant as follows:
 >
 > ```elixir
 > defp system_config(), do: %{timezone: "Etc/UTC", locale: "pt-BR"}
 > ```
 >
-> Given data structures in Elixir are immutable, only a single instance of the data structure above is allocated, and shared across all functions calls, since it doesn't depend on any expression.
+> Given data structures in Elixir are immutable, only a single instance of the data structure above is allocated and shared across all functions calls, behaving precisely as a constant, as long as it doesn't have any executable expression.
+>
+> Module attributes must only be used as constants when they must be accessed in patterns and guards, as an alternative to `defguard/1`.
 
 ## Going further
 
