@@ -36,6 +36,7 @@ defmodule Mix.Tasks.Test do
   a summary at the end, as seen below:
 
       $ mix test
+      Running ExUnit with seed: 646219, max_cases: 16
       ...
 
         1) test greets the world (FooTest)
@@ -51,8 +52,6 @@ defmodule Mix.Tasks.Test do
 
       Finished in 0.05 seconds (0.00s async, 0.05s sync)
       1 doctest, 11 tests, 1 failure
-
-      Randomized with seed 646219
 
   For each test, the test suite will print a dot. Failed tests
   are printed immediately in the format described in the next

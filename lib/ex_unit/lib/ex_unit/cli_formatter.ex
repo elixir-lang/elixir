@@ -9,8 +9,8 @@ defmodule ExUnit.CLIFormatter do
 
   def init(opts) do
     IO.puts("Running ExUnit with seed: #{opts[:seed]}, max_cases: #{opts[:max_cases]}")
-    print_filters(opts, :include)
     print_filters(opts, :exclude)
+    print_filters(opts, :include)
     IO.puts("")
 
     config = %{
