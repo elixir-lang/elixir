@@ -138,8 +138,6 @@ defmodule ExUnitTest do
            Showing results so far...
 
            0 failures
-
-           Randomized with seed 0
            """
   end
 
@@ -926,7 +924,7 @@ defmodule ExUnitTest do
   end
 
   describe ":repeat_until_failure" do
-    test "default value 0" do
+    test "defaults to 0" do
       configure_and_reload_on_exit([])
       ExUnit.start(autorun: false)
       config = ExUnit.configuration()
@@ -940,7 +938,7 @@ defmodule ExUnitTest do
       assert config[:repeat_until_failure] == 5
     end
 
-    test ":repeat_until_failure repeats tests up to the configured number of times" do
+    test "repeats tests up to the configured number of times" do
       defmodule TestRepeatUntilFailureReached do
         use ExUnit.Case
 
@@ -962,12 +960,12 @@ defmodule ExUnitTest do
           assert ExUnit.run() == %{total: 5, failures: 0, skipped: 1, excluded: 1}
         end)
 
-      runs = String.split(output, "Excluding", trim: true)
+      runs = String.split(output, "Running ExUnit", trim: true)
       # 6 runs in total, 5 repeats
       assert length(runs) == 6
     end
 
-    test ":repeat_until_failure stops on failure" do
+    test "stops on failure" do
       {:ok, pid} = Agent.start_link(fn -> 0 end)
       Process.register(pid, :ex_unit_repeat_until_failure_count)
 
@@ -1002,7 +1000,7 @@ defmodule ExUnitTest do
           assert ExUnit.run() == %{total: 4, excluded: 2, failures: 1, skipped: 1}
         end)
 
-      runs = String.split(output, "Excluding", trim: true)
+      runs = String.split(output, "Running ExUnit", trim: true)
       # four runs in total, the first two repeats work fine, the third repeat (4th run)
       # fails, therefore we stop
       assert length(runs) == 4
