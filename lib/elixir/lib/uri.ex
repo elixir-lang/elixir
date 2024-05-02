@@ -5,6 +5,9 @@ defmodule URI do
   This module provides functions for working with URIs (for example, parsing
   URIs or encoding query strings). The functions in this module are implemented
   according to [RFC 3986](https://tools.ietf.org/html/rfc3986).
+
+  Additionally, the Erlang [`:uri_string` module](`:uri_string`) provides certain functionalities,
+  such as RFC 3986 compliant URI normalization.
   """
 
   @doc """
