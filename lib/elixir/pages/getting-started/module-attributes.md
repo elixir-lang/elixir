@@ -71,10 +71,12 @@ So far, we have seen how to define attributes, but how can read them? Let's see 
 
 ```elixir
 defmodule MyServer do
-  @initial_state %{host: "127.0.0.1", port: 3456}
-  IO.inspect @initial_state
+  @service URI.parse("https://example.com")
+  IO.inspect @service
 end
 ```
+
+> Do not add a newline between the attribute and its value, otherwise Elixir will assume you are reading the value, rather than setting it.
 
 Trying to access an attribute that was not defined will print a warning:
 
@@ -88,22 +90,6 @@ warning: undefined module attribute @unknown, please remove access to @unknown o
 Attributes can also be read inside functions:
 
 ```elixir
-defmodule MyServer do
-  @my_data 14
-  def first_data, do: @my_data
-  @my_data 13
-  def second_data, do: @my_data
-end
-
-MyServer.first_data() #=> 14
-MyServer.second_data() #=> 13
-```
-
-> Do not add a newline between the attribute and its value, otherwise Elixir will assume you are reading the value, rather than setting it.
-
-Functions may be called when defining a module attribute:
-
-```elixir
 defmodule MyApp.Status do
   @service URI.parse("https://example.com")
   def status(email) do
@@ -112,7 +98,7 @@ defmodule MyApp.Status do
 end
 ```
 
-The function above will be called at compilation time and its *return value*, not the function call itself, is what will be substituted in for the attribute. So the above will effectively compile to this:
+The module attribute is defined at compilation time and its *return value*, not the function call itself, is what will be substituted in for the attribute. So the above will effectively compile to this:
 
 ```elixir
 defmodule MyApp.Status do
@@ -129,7 +115,7 @@ end
 
 This can be useful for pre-computing values and then injecting its results into the module. This is what we mean by temporary storage: after the module is compiled, the module attribute is discarded, except for the functions that have read the attribute. Note you cannot invoke functions defined in the same module as part of the attribute itself, as those functions have not yet been defined.
 
-Every time an attribute is read inside a function, Elixir takes a snapshot of its current value. Therefore if you read the same attribute multiple times inside multiple functions, you may end-up making multiple copies of it. Generally speaking, you want to avoid reading the same attribute multiple times and instead move it to shared function. For example, instead of this:
+Every time an attribute is read inside a function, Elixir takes a snapshot of its current value. Therefore if you read the same attribute multiple times inside multiple functions, you end-up increasing compilation times as Elixir now has to compile every snapshot. Generally speaking, you want to avoid reading the same attribute multiple times and instead move it to function. For example, instead of this:
 
 ```elixir
 def some_function, do: do_something_with(@example)
@@ -146,7 +132,7 @@ defp example, do: @example
 
 > #### Attributes as constants {: .warning}
 >
-> You may want to use module attributes as constants. However, most times, functions themselves are better suited for this role. For example, instead of defining:
+> You may want to use module attributes as constants for plain data types. However, functions themselves are sufficient for this role. For example, instead of defining:
 >
 > ```elixir
 > @hours_in_a_day 24
@@ -158,9 +144,9 @@ defp example, do: @example
 > defp hours_in_a_day(), do: 24
 > ```
 >
-> You may even define a public function if it needs to be shared across modules.
+> You may even define a public function if it needs to be shared across modules. It is common in many projects to have a module called `MyApp.Constants` that defines all constants used throughout the codebase.
 >
-> This also holds true for complex data structures. For example, you may specify a system configuration constant as follows:
+> This holds true for any data structure, as long as they don't have any expression in them. For example, you may specify a system configuration constant as follows:
 >
 > ```elixir
 > defp system_config(), do: %{timezone: "Etc/UTC", locale: "pt-BR"}
@@ -168,7 +154,7 @@ defp example, do: @example
 >
 > Given data structures in Elixir are immutable, only a single instance of the data structure above is allocated and shared across all functions calls, behaving precisely as a constant, as long as it doesn't have any executable expression.
 >
-> Module attributes must only be used as constants when they must be accessed in patterns and guards, as an alternative to `defguard/1`.
+> The use case for module attributes arise when you need to do some work at compile-time and then inject its results inside a function. They may also be useful for defining constants to be used in patterns or guards, as an alternative to `defguard/1`.
 
 ## Going further
 
