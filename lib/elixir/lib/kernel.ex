@@ -202,9 +202,12 @@ defmodule Kernel do
       ~D[2017-03-31] > ~D[2017-04-01]
 
   will return `true` because structural comparison compares the `:day`
-  field before `:month` or `:year`. In order to perform semantic comparisons,
-  the relevant data-types provide a `compare/2` function, such as
-  `Date.compare/2`:
+  field before `:month` or `:year`. Luckily, the Elixir compiler will
+  detect whenever comparing structs or whenever comparing code that is
+  either always true or false, and emit a warning accordingly.
+
+  In order to perform semantic comparisons, the relevant data-types
+  provide a `compare/2` function, such as `Date.compare/2`:
 
       iex> Date.compare(~D[2017-03-31], ~D[2017-04-01])
       :lt

@@ -290,9 +290,6 @@ defmodule Module.Types.ExprTest do
 
                     min(x, y)
 
-                while Elixir can compare across all types, you are comparing across types \
-                which are always distinct, and the result is either always true or always false
-
                 where "x" was given the type:
 
                     # type: :foo
@@ -305,6 +302,9 @@ defmodule Module.Types.ExprTest do
                     # from: types_test.ex:LINE-2
                     y = 321
 
+                While Elixir can compare across all types, you are comparing across types \
+                which are always distinct, and the result is either always true or always false
+
                 typing violation found at:\
                 """}
     end
@@ -316,8 +316,6 @@ defmodule Module.Types.ExprTest do
                 comparison with structs found:
 
                     mod.<=(x, y)
-
-                comparison operators (>, <, >=, <=, min, and max) perform structural and not semantic comparison. Comparing with a struct won't give meaningful results. Struct that can be compared typically define a compare/2 function within their modules that can be used for semantic comparison
 
                 where "mod" was given the type:
 
@@ -336,6 +334,8 @@ defmodule Module.Types.ExprTest do
                     # type: %Point{x: dynamic(), y: dynamic(), z: dynamic()}
                     # from: types_test.ex:LINE-2
                     y = %Point{}
+
+                Comparison operators (>, <, >=, <=, min, and max) perform structural and not semantic comparison. Comparing with a struct won't give meaningful results. Struct that can be compared typically define a compare/2 function within their modules that can be used for semantic comparison
 
                 typing violation found at:\
                 """}

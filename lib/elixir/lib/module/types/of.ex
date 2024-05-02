@@ -626,12 +626,14 @@ defmodule Module.Types.Of do
       comparison between incompatible types found:
 
           #{expr_to_string(expr) |> indent(4)}
+      """,
+      traces,
+      """
 
-      while Elixir can compare across all types, you are comparing \
+      While Elixir can compare across all types, you are comparing \
       across types which are always distinct, and the result is either \
       always true or always false
       """,
-      traces,
       format_hints(trace_hints),
       "\ntyping violation found at:"
     ]
@@ -645,13 +647,15 @@ defmodule Module.Types.Of do
       comparison with structs found:
 
           #{expr_to_string(expr) |> indent(4)}
+      """,
+      traces,
+      """
 
-      comparison operators (>, <, >=, <=, min, and max) perform structural \
+      Comparison operators (>, <, >=, <=, min, and max) perform structural \
       and not semantic comparison. Comparing with a struct won't give meaningful \
       results. Struct that can be compared typically define a compare/2 function \
       within their modules that can be used for semantic comparison
       """,
-      traces,
       format_hints(trace_hints),
       "\ntyping violation found at:"
     ]
