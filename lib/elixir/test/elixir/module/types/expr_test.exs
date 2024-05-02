@@ -17,6 +17,8 @@ defmodule Module.Types.ExprTest do
     assert typecheck!([1, 2]) == non_empty_list()
     assert typecheck!({1, 2}) == tuple()
     assert typecheck!(%{}) == closed_map([])
+    assert typecheck!(& &1) == fun()
+    assert typecheck!(fn -> :ok end) == fun()
   end
 
   describe "remotes" do
@@ -75,7 +77,7 @@ defmodule Module.Types.ExprTest do
 
     test "capture a function with non atoms" do
       assert typewarn!([<<x::integer>>], &x.foo_bar/2) ==
-               {dynamic(),
+               {fun(),
                 ~l"""
                 expected a module (an atom) when invoking foo_bar/2 in expression:
 
@@ -270,6 +272,72 @@ defmodule Module.Types.ExprTest do
                     }
                     # from: types_test.ex:LINE-2
                     x = %URI{}
+
+                typing violation found at:\
+                """}
+    end
+  end
+
+  describe "comparison" do
+    test "works across numbers" do
+      assert typecheck!([x = 123, y = 456.0], min(x, y)) == dynamic(union(integer(), float()))
+      assert typecheck!([x = 123, y = 456.0], x < y) == boolean()
+    end
+
+    test "warns when comparison is constant" do
+      assert typewarn!([x = :foo, y = 321], min(x, y)) ==
+               {dynamic(union(integer(), atom([:foo]))),
+                ~l"""
+                comparison between incompatible types found:
+
+                    min(x, y)
+
+                where "x" was given the type:
+
+                    # type: :foo
+                    # from: types_test.ex:LINE-2
+                    x = :foo
+
+                where "y" was given the type:
+
+                    # type: integer()
+                    # from: types_test.ex:LINE-2
+                    y = 321
+
+                While Elixir can compare across all types, you are comparing across types \
+                which are always distinct, and the result is either always true or always false
+
+                typing violation found at:\
+                """}
+    end
+
+    test "warns on comparison with struct across dynamic call" do
+      assert typewarn!([x = :foo, y = %Point{}, mod = Kernel], mod.<=(x, y)) ==
+               {boolean(),
+                ~l"""
+                comparison with structs found:
+
+                    mod.<=(x, y)
+
+                where "mod" was given the type:
+
+                    # type: Kernel
+                    # from: types_test.ex:LINE-2
+                    mod = Kernel
+
+                where "x" was given the type:
+
+                    # type: :foo
+                    # from: types_test.ex:LINE-2
+                    x = :foo
+
+                where "y" was given the type:
+
+                    # type: %Point{x: dynamic(), y: dynamic(), z: dynamic()}
+                    # from: types_test.ex:LINE-2
+                    y = %Point{}
+
+                Comparison operators (>, <, >=, <=, min, and max) perform structural and not semantic comparison. Comparing with a struct won't give meaningful results. Struct that can be compared typically define a compare/2 function within their modules that can be used for semantic comparison
 
                 typing violation found at:\
                 """}
