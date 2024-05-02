@@ -1,9 +1,5 @@
 Code.require_file("type_helper.exs", __DIR__)
 
-defmodule Point do
-  defstruct [:x, :y, z: 0]
-end
-
 defmodule Module.Types.ExprTest do
   use ExUnit.Case, async: true
 
@@ -240,7 +236,7 @@ defmodule Module.Types.ExprTest do
       assert typewarn!(%Point{}.foo_bar) ==
                {dynamic(),
                 ~l"""
-                missing key .foo_bar in expression:
+                unknown key .foo_bar in expression:
 
                     %Point{x: nil, y: nil, z: 0}.foo_bar
 
@@ -256,7 +252,7 @@ defmodule Module.Types.ExprTest do
       assert typewarn!([x = %URI{}], x.foo_bar) ==
                {dynamic(),
                 ~l"""
-                missing key .foo_bar in expression:
+                unknown key .foo_bar in expression:
 
                     x.foo_bar
 

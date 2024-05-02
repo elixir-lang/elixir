@@ -1,5 +1,9 @@
 Code.require_file("../../test_helper.exs", __DIR__)
 
+defmodule Point do
+  defstruct [:x, :y, z: 0]
+end
+
 defmodule TypeHelper do
   alias Module.Types
   alias Module.Types.{Pattern, Expr, Descr}

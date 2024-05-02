@@ -22,15 +22,62 @@ defmodule Module.Types.PatternTest do
     end
   end
 
-  describe "maps" do
-    test "struct name" do
+  describe "structs" do
+    test "variable name" do
       assert typecheck!([%x{}], x) == dynamic(atom())
     end
 
-    test "map fields" do
+    test "variable name fields" do
+      assert typecheck!([x = %_{}], x.__struct__) == dynamic(atom())
+      assert typecheck!([x = %_{}], x) == dynamic(open_map(__struct__: atom()))
+
+      assert typecheck!([m = Point, x = %m{}], x) ==
+               dynamic(open_map(__struct__: dynamic(atom([Point]))))
+
+      assert typeerror!([m = 123], %^m{} = %Point{}) ==
+               ~l"""
+               struct must be an atom() in expression:
+
+                   %^m{}
+
+               where "m" was given the type:
+
+                   # type: integer()
+                   # from: types_test.ex:LINE-1
+                   m = 123
+
+               typing violation found at:\
+               """
+    end
+
+    test "fields in guards" do
+      assert typewarn!([x = %Point{}], [x.foo_bar], :ok) ==
+               {atom([:ok]),
+                ~l"""
+                unknown key .foo_bar in expression:
+
+                    x.foo_bar
+
+                where "x" was given the type:
+
+                    # type: %Point{x: dynamic(), y: dynamic(), z: dynamic()}
+                    # from: types_test.ex:LINE-2
+                    x = %Point{}
+
+                typing violation found at:\
+                """}
+    end
+  end
+
+  describe "maps" do
+    test "fields in patterns" do
       assert typecheck!([x = %{foo: :bar}], x) == dynamic(open_map(foo: atom([:bar])))
       assert typecheck!([x = %{123 => 456}], x) == dynamic(open_map())
       assert typecheck!([x = %{123 => 456, foo: :bar}], x) == dynamic(open_map(foo: atom([:bar])))
+    end
+
+    test "fields in guards" do
+      assert typecheck!([x = %{foo: :bar}], [x.bar], x) == dynamic(open_map(foo: atom([:bar])))
     end
   end
 

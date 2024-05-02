@@ -38,6 +38,7 @@ defmodule Module.Types.Of do
         data = %{data | type: new_type, off_traces: new_trace(expr, type, stack, off_traces)}
         context = put_in(context.vars[version], data)
 
+        # We need to return error otherwise it leads to cascading errors.
         if empty?(new_type) do
           {:error,
            warn(__MODULE__, {:refine_var, old_type, type, var, context}, meta, stack, context)}
@@ -46,16 +47,18 @@ defmodule Module.Types.Of do
         end
 
       %{} ->
+        new_type = dynamic(type)
+
         data = %{
           # TODO: We should not default to dynamic on static mode
-          type: dynamic(type),
+          type: new_type,
           name: var_name,
           context: var_context,
           off_traces: new_trace(expr, type, stack, [])
         }
 
         context = put_in(context.vars[version], data)
-        {:ok, type, context}
+        {:ok, new_type, context}
     end
   end
 
@@ -89,13 +92,13 @@ defmodule Module.Types.Of do
 
   A tag may be given but it is not guaranteed.
   """
-  def map(tag, pairs, stack, context, of_fun) do
+  def map(tag, pairs, extra \\ [], stack, context, of_fun) do
     result =
-      reduce_ok(pairs, {tag == :closed, [], [], context}, fn
+      reduce_ok(pairs, {tag == :closed, extra, [], context}, fn
         {key, value}, {closed?, single, multiple, context} ->
-          with {:ok, key_type, context} <- of_fun.(key, stack, context),
+          with {:ok, keys, context} <- of_finite_key_type(key, stack, context, of_fun),
                {:ok, value_type, context} <- of_fun.(value, stack, context) do
-            case finite_keys(key, key_type) do
+            case keys do
               :none ->
                 {:ok, {false, single, multiple, context}}
 
@@ -127,6 +130,19 @@ defmodule Module.Types.Of do
     end
   end
 
+  defp of_finite_key_type(key, _stack, context, _of_fun) when is_atom(key) do
+    {:ok, [key], context}
+  end
+
+  defp of_finite_key_type(key, stack, context, of_fun) do
+    with {:ok, key_type, context} <- of_fun.(key, stack, context) do
+      case atom_fetch(key_type) do
+        {:finite, list} -> {:ok, list, context}
+        _ -> {:ok, :none, context}
+      end
+    end
+  end
+
   defp cartesian_map(lists) do
     case lists do
       [] ->
@@ -134,15 +150,6 @@ defmodule Module.Types.Of do
 
       [{keys, type} | tail] ->
         for key <- keys, t <- cartesian_map(tail), do: [{key, type} | t]
-    end
-  end
-
-  defp finite_keys(key, _key_type) when is_atom(key), do: [key]
-
-  defp finite_keys(_key, key_type) do
-    case atom_fetch(key_type) do
-      {:finite, list} -> list
-      _ -> :none
     end
   end
 
@@ -360,6 +367,9 @@ defmodule Module.Types.Of do
 
   @doc """
   Emits incompatible types warning for the given expression.
+
+  This is a generic warning for when the expected/actual types
+  themselves may come from several different circumstances.
   """
   def incompatible_warn(expr, expected_type, actual_type, hints \\ [], meta, stack, context) do
     warning = {:incompatible, expr, expected_type, actual_type, hints, context}
@@ -511,7 +521,7 @@ defmodule Module.Types.Of do
 
     [
       """
-      missing key .#{key} in expression:
+      unknown key .#{key} in expression:
 
           #{expr_to_string(expr) |> indent(4)}
       """,
