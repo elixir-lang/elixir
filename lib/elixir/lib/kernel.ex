@@ -174,10 +174,7 @@ defmodule Kernel do
   The functions in this module perform structural comparison. This allows
   different data types to be compared using comparison operators:
 
-  ```elixir
-  iex> 1 < :an_atom
-  true
-  ```
+      1 < :an_atom
 
   This is possible so Elixir developers can create collections, such as
   dictionaries and ordered sets, that store a mixture of data types in them.
@@ -960,8 +957,8 @@ defmodule Kernel do
 
       iex> max(1, 2)
       2
-      iex> max(:a, :b)
-      :b
+      iex> max("a", "b")
+      "b"
 
   """
   @spec max(first, second) :: first | second when first: term, second: term

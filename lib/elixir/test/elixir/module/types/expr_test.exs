@@ -275,4 +275,70 @@ defmodule Module.Types.ExprTest do
                 """}
     end
   end
+
+  describe "comparison" do
+    test "works across numbers" do
+      assert typecheck!([x = 123, y = 456.0], min(x, y)) == dynamic(union(integer(), float()))
+      assert typecheck!([x = 123, y = 456.0], x < y) == boolean()
+    end
+
+    test "warns when comparison is constant" do
+      assert typewarn!([x = :foo, y = 321], min(x, y)) ==
+               {dynamic(union(integer(), atom([:foo]))),
+                ~l"""
+                comparison between incompatible types found:
+
+                    min(x, y)
+
+                while Elixir can compare across all types, you are comparing across types \
+                which are always distinct, and the result is either always true or always false
+
+                where "x" was given the type:
+
+                    # type: :foo
+                    # from: types_test.ex:LINE-2
+                    x = :foo
+
+                where "y" was given the type:
+
+                    # type: integer()
+                    # from: types_test.ex:LINE-2
+                    y = 321
+
+                typing violation found at:\
+                """}
+    end
+
+    test "warns on comparison with struct across dynamic call" do
+      assert typewarn!([x = :foo, y = %Point{}, mod = Kernel], mod.<=(x, y)) ==
+               {boolean(),
+                ~l"""
+                comparison with structs found:
+
+                    mod.<=(x, y)
+
+                comparison operators (>, <, >=, <=, min, and max) perform structural and not semantic comparison. Comparing with a struct won't give meaningful results. Struct that can be compared typically define a compare/2 function within their modules that can be used for semantic comparison
+
+                where "mod" was given the type:
+
+                    # type: Kernel
+                    # from: types_test.ex:LINE-2
+                    mod = Kernel
+
+                where "x" was given the type:
+
+                    # type: :foo
+                    # from: types_test.ex:LINE-2
+                    x = :foo
+
+                where "y" was given the type:
+
+                    # type: %Point{x: dynamic(), y: dynamic(), z: dynamic()}
+                    # from: types_test.ex:LINE-2
+                    y = %Point{}
+
+                typing violation found at:\
+                """}
+    end
+  end
 end

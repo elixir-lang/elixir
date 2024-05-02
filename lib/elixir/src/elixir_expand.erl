@@ -910,37 +910,14 @@ rewrite(_, Receiver, DotMeta, Right, Meta, EArgs, _S) ->
 
 maybe_warn_comparison({{'.', _, [erlang, Op]}, Meta, [ELeft, ERight]}, [Left, Right], E)
     when Op =:= '>'; Op =:= '<'; Op =:= '=<'; Op =:= '>='; Op =:= min; Op =:= max ->
-  case is_struct_comparison(ELeft, ERight, Left, Right) of
-    false ->
-      case is_nested_comparison(Op, ELeft, ERight, Left, Right) of
-        false -> ok;
-        CompExpr ->
-          elixir_errors:file_warn(Meta, E, ?MODULE, {nested_comparison, CompExpr})
-      end;
-    StructExpr ->
-      elixir_errors:file_warn(Meta, E, ?MODULE, {struct_comparison, StructExpr})
-  end;
+
+    case is_nested_comparison(Op, ELeft, ERight, Left, Right) of
+      false -> ok;
+      CompExpr ->
+        elixir_errors:file_warn(Meta, E, ?MODULE, {nested_comparison, CompExpr})
+    end;
 maybe_warn_comparison(_, _, _) ->
   ok.
-
-is_struct_comparison(ELeft, ERight, Left, Right) ->
-  case is_struct_expression(ELeft) of
-    true -> Left;
-    false ->
-      case is_struct_expression(ERight) of
-        true -> Right;
-        false -> false
-      end
-  end.
-
-is_struct_expression({'%', _, [Struct, _]}) when is_atom(Struct) ->
-  true;
-is_struct_expression({'%{}', _, KVs}) ->
-  case lists:keyfind('__struct__', 1, KVs) of
-    {'__struct__', Struct} when is_atom(Struct) -> true;
-    false -> false
-  end;
-is_struct_expression(_Other) -> false.
 
 is_nested_comparison(Op, ELeft, ERight, Left, Right) ->
   NestedExpr = {elixir_utils:erlang_comparison_op_to_elixir(Op), [], [Left, Right]},
@@ -953,7 +930,7 @@ is_nested_comparison(Op, ELeft, ERight, Left, Right) ->
         false -> false
       end
   end.
-is_comparison_expression({{'.',_,[erlang,Op]},_,_})
+is_comparison_expression({{'.',_,[erlang, Op]},_,_})
   when Op =:= '>'; Op =:= '<'; Op =:= '=<'; Op =:= '>=' -> true;
 is_comparison_expression(_Other) -> false.
 
@@ -1300,13 +1277,6 @@ format_error({underscored_var_access, Name}) ->
                 "A leading underscore indicates that the value of the variable "
                 "should be ignored. If this is intended please rename the "
                 "variable to remove the underscore", [Name]);
-format_error({struct_comparison, StructExpr}) ->
-  String = 'Elixir.Macro':to_string(StructExpr),
-  io_lib:format("invalid comparison with struct literal ~ts. Comparison operators "
-                "(>, <, >=, <=, min, and max) perform structural and not semantic comparison. "
-                "Comparing with a struct literal is unlikely to give a meaningful result. "
-                "Struct modules typically define a compare/2 function that can be used for "
-                "semantic comparison", [String]);
 format_error({nested_comparison, CompExpr}) ->
   String = 'Elixir.Macro':to_string(CompExpr),
   io_lib:format("Elixir does not support nested comparisons. Something like\n\n"

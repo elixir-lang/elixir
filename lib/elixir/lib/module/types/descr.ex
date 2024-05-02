@@ -27,6 +27,8 @@ defmodule Module.Types.Descr do
   @bit_tuple 1 <<< 8
   @bit_fun 1 <<< 9
   @bit_top (1 <<< 10) - 1
+
+  @bit_number @bit_integer ||| @bit_float
   @bit_optional 1 <<< 10
 
   @atom_top {:negation, :sets.new(version: 2)}
@@ -85,10 +87,19 @@ defmodule Module.Types.Descr do
   def if_set(type), do: Map.update(type, :bitmap, @bit_optional, &(&1 ||| @bit_optional))
   defp term_or_not_set(), do: @term_or_not_set
 
-  ## Set operations
+  ## Query operations
 
-  def term?(descr), do: subtype_static(@term, Map.delete(descr, :dynamic))
+  def term_type?(descr), do: subtype_static(@term, Map.delete(descr, :dynamic))
   def gradual?(descr), do: is_map_key(descr, :dynamic)
+
+  @doc """
+  Optimized check if the type represents any number.
+  """
+  def number_type?(%{dynamic: %{bitmap: bitmap}}) when (bitmap &&& @bit_number) != 0, do: true
+  def number_type?(%{bitmap: bitmap}) when (bitmap &&& @bit_number) != 0, do: true
+  def number_type?(%{}), do: false
+
+  ## Set operations
 
   @doc """
   Make a whole type dynamic.
@@ -607,7 +618,7 @@ defmodule Module.Types.Descr do
 
   defp dynamic_to_quoted(%{} = descr) do
     cond do
-      term?(descr) -> [{:dynamic, [], []}]
+      term_type?(descr) -> [{:dynamic, [], []}]
       single = indivisible_bitmap(descr) -> [single]
       true -> [{:and, [], [{:dynamic, [], []}, to_quoted(descr)]}]
     end
@@ -947,7 +958,7 @@ defmodule Module.Types.Descr do
     keyword? = Inspect.List.keyword?(sorted)
 
     for {key, type} <- sorted,
-        not (tag == :open and optional?(type) and term?(type)) do
+        not (tag == :open and optional?(type) and term_type?(type)) do
       key =
         if keyword? do
           {:__block__, [format: :keyword], [key]}

@@ -280,31 +280,32 @@ defmodule Module.Types.Expr do
       if Keyword.get(meta, :no_parens, false) do
         Of.map_fetch(expr, type, key_or_fun, stack, context)
       else
-        {_mods, context} = Of.remote(expr, type, key_or_fun, 0, [:dot], meta, stack, context)
-        # TODO: Return the proper type
-        {:ok, dynamic(), context}
+        {mods, context} = Of.remote(type, key_or_fun, 0, [:dot], expr, meta, stack, context)
+        apply_many(mods, key_or_fun, [], expr, stack, context)
       end
     end
   end
 
   # TODO: expr.fun(arg)
-  def of_expr({{:., _, [remote, fun]}, meta, args} = expr, stack, context) do
+  def of_expr({{:., _, [remote, name]}, meta, args} = expr, stack, context) do
     with {:ok, remote_type, context} <- of_expr(remote, stack, context),
-         {:ok, _arg_types, context} <- map_reduce_ok(args, context, &of_expr(&1, stack, &2)) do
-      {_mods, context} = Of.remote(expr, remote_type, fun, length(args), [], meta, stack, context)
-      {:ok, dynamic(), context}
+         {:ok, args_types, context} <- map_reduce_ok(args, context, &of_expr(&1, stack, &2)) do
+      {mods, context} = Of.remote(remote_type, name, length(args), expr, meta, stack, context)
+      apply_many(mods, name, args_types, expr, stack, context)
     end
   end
 
   # TODO: &Foo.bar/1
   def of_expr(
-        {:&, _, [{:/, _, [{{:., _, [remote, fun]}, meta, []}, arity]}]} = expr,
+        {:&, _, [{:/, _, [{{:., _, [remote, name]}, meta, []}, arity]}]} = expr,
         stack,
         context
       )
-      when is_atom(fun) and is_integer(arity) do
+      when is_atom(name) and is_integer(arity) do
     with {:ok, remote_type, context} <- of_expr(remote, stack, context) do
-      {_mods, context} = Of.remote(expr, remote_type, fun, arity, [], meta, stack, context)
+      # TODO: We cannot return the unions of functions. Do we forbid this?
+      # Do we check it is always the same return type? Do we simply say it is a function?
+      {_mods, context} = Of.remote(remote_type, name, arity, expr, meta, stack, context)
       {:ok, dynamic(), context}
     end
   end
@@ -328,6 +329,8 @@ defmodule Module.Types.Expr do
   def of_expr(var, _stack, context) when is_var(var) do
     {:ok, Of.var(var, context), context}
   end
+
+  ## Comprehensions
 
   defp for_clause({:<-, _, [left, expr]}, stack, context) do
     {pattern, guards} = extract_head([left])
@@ -365,6 +368,8 @@ defmodule Module.Types.Expr do
     {:ok, context}
   end
 
+  ## With
+
   defp with_clause({:<-, _, [left, expr]}, stack, context) do
     {pattern, guards} = extract_head([left])
 
@@ -387,6 +392,25 @@ defmodule Module.Types.Expr do
 
   defp with_option({:else, clauses}, stack, context) do
     of_clauses(clauses, stack, context)
+  end
+
+  ## General helpers
+
+  defp apply_many([], _function, _args_types, _expr, _stack, context) do
+    {:ok, dynamic(), context}
+  end
+
+  defp apply_many([mod], function, args_types, expr, stack, context) do
+    Of.apply(mod, function, args_types, expr, stack, context)
+  end
+
+  defp apply_many(mods, function, args_types, expr, stack, context) do
+    with {:ok, returns, context} <-
+           map_reduce_ok(mods, context, fn mod, context ->
+             Of.apply(mod, function, args_types, expr, stack, context)
+           end) do
+      {:ok, Enum.reduce(returns, &union/2), context}
+    end
   end
 
   defp of_clauses(clauses, stack, context) do

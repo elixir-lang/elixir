@@ -160,11 +160,11 @@ defmodule Module.Types.Pattern do
   end
 
   # Remote
-  def of_guard({{:., _, [:erlang, function]}, _, args}, _expected_term, stack, context)
+  def of_guard({{:., _, [:erlang, function]}, _, args} = expr, _expected_term, stack, context)
       when is_atom(function) do
-    with {:ok, _, context} <-
+    with {:ok, args_type, context} <-
            map_reduce_ok(args, context, &of_guard(&1, expected_term(), stack, &2)) do
-      {:ok, dynamic(), context}
+      Of.apply(:erlang, function, args_type, expr, stack, context)
     end
   end
 

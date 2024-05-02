@@ -158,7 +158,7 @@ defmodule Module.Types.Of do
   """
   def struct({:%, meta, _}, struct, args, defaults?, stack, context, of_fun)
       when is_atom(struct) do
-    context = preload_and_maybe_check_export(struct, :__struct__, 0, meta, stack, context)
+    context = remote(struct, :__struct__, 0, meta, stack, context)
 
     # The compiler has already checked the keys are atoms and which ones are required.
     # TODO: Type check and do not assume dynamic for non-specified keys.
@@ -257,14 +257,45 @@ defmodule Module.Types.Of do
   defp specifier_info(_kind, {:binary, _, _}), do: @binary
   defp specifier_info(_kind, _specifier), do: @integer
 
+  ## Apply
+
+  def apply(:erlang, name, [left, right], expr, stack, context)
+      when name in [:>=, :"=<", :>, :<, :min, :max] do
+    result = if name in [:min, :max], do: union(left, right), else: boolean()
+
+    cond do
+      match?({false, _}, map_fetch(left, :__struct__)) or
+          match?({false, _}, map_fetch(right, :__struct__)) ->
+        warning = {:struct_comparison, expr, context}
+        {:ok, result, warn(warning, elem(expr, 1), stack, context)}
+
+      number_type?(left) and number_type?(right) ->
+        {:ok, result, context}
+
+      empty?(intersection(left, right)) ->
+        warning = {:mismatched_comparison, expr, context}
+        {:ok, result, warn(warning, elem(expr, 1), stack, context)}
+
+      true ->
+        {:ok, result, context}
+    end
+  end
+
+  def apply(mod, name, args, expr, stack, context) do
+    case :elixir_rewrite.inline(mod, name, length(args)) do
+      {mod, name} -> apply(mod, name, args, expr, stack, context)
+      false -> {:ok, dynamic(), context}
+    end
+  end
+
   ## Remote
 
-  def remote(expr, type, fun, arity, hints, meta, stack, context) do
+  def remote(type, fun, arity, hints \\ [], expr, meta, stack, context) do
     case atom_fetch(type) do
       {_, mods} ->
         context =
           Enum.reduce(mods, context, fn mod, context ->
-            preload_and_maybe_check_export(mod, fun, arity, meta, stack, context)
+            remote(mod, fun, arity, meta, stack, context)
           end)
 
         {mods, context}
@@ -275,12 +306,7 @@ defmodule Module.Types.Of do
     end
   end
 
-  def remote(module, fun, arity, meta, stack, context) do
-    preload_and_maybe_check_export(module, fun, arity, meta, stack, context)
-  end
-
-  defp preload_and_maybe_check_export(module, fun, arity, meta, stack, context)
-       when is_atom(module) do
+  def remote(module, fun, arity, meta, stack, context) when is_atom(module) do
     if Keyword.get(meta, :runtime_module, false) do
       context
     else
@@ -589,6 +615,45 @@ defmodule Module.Types.Of do
       inspect(module),
       " before invoking the macro ",
       Exception.format_mfa(module, fun, arity)
+    ]
+  end
+
+  def format_warning({:mismatched_comparison, expr, context}) do
+    {traces, trace_hints} = format_traces(expr, context)
+
+    [
+      """
+      comparison between incompatible types found:
+
+          #{expr_to_string(expr) |> indent(4)}
+
+      while Elixir can compare across all types, you are comparing \
+      across types which are always distinct, and the result is either \
+      always true or always false
+      """,
+      traces,
+      format_hints(trace_hints),
+      "\ntyping violation found at:"
+    ]
+  end
+
+  def format_warning({:struct_comparison, expr, context}) do
+    {traces, trace_hints} = format_traces(expr, context)
+
+    [
+      """
+      comparison with structs found:
+
+          #{expr_to_string(expr) |> indent(4)}
+
+      comparison operators (>, <, >=, <=, min, and max) perform structural \
+      and not semantic comparison. Comparing with a struct won't give meaningful \
+      results. Struct that can be compared typically define a compare/2 function \
+      within their modules that can be used for semantic comparison
+      """,
+      traces,
+      format_hints(trace_hints),
+      "\ntyping violation found at:"
     ]
   end
 
