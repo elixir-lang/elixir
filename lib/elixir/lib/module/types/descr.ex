@@ -99,6 +99,13 @@ defmodule Module.Types.Descr do
   def number_type?(%{bitmap: bitmap}) when (bitmap &&& @bit_number) != 0, do: true
   def number_type?(%{}), do: false
 
+  @doc """
+  Optimized check if the type represents any atom.
+  """
+  def atom_type?(%{dynamic: %{atom: _}}), do: true
+  def atom_type?(%{atom: _}), do: true
+  def atom_type?(%{}), do: false
+
   ## Set operations
 
   @doc """

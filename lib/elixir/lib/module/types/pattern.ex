@@ -69,13 +69,11 @@ defmodule Module.Types.Pattern do
   # %var{...} and %^var{...}
   def of_pattern({:%, meta, [inner, {:%{}, _meta2, args}]} = expr, _expected_term, stack, context)
       when not is_atom(inner) do
-    atom = atom()
-
-    with {:ok, type, context} <- of_pattern(inner, {atom, expr}, stack, context),
+    with {:ok, type, context} <- of_pattern(inner, {atom(), expr}, stack, context),
          {:ok, map, context} <-
            Of.map(:open, args, [__struct__: type], stack, context, &of_pattern/3) do
       # Skip the check if a variable, as it has already been checked
-      if is_var(inner) or compatible?(type, atom) do
+      if is_var(inner) or atom_type?(type) do
         {:ok, map, context}
       else
         warning = {:badstruct, expr, context}
