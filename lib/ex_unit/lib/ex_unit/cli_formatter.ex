@@ -8,10 +8,12 @@ defmodule ExUnit.CLIFormatter do
   ## Callbacks
 
   def init(opts) do
-    print_filters(Keyword.take(opts, [:include, :exclude]))
+    IO.puts("Running ExUnit with seed: #{opts[:seed]}, max_cases: #{opts[:max_cases]}")
+    print_filters(opts, :exclude)
+    print_filters(opts, :include)
+    IO.puts("")
 
     config = %{
-      seed: opts[:seed],
       trace: opts[:trace],
       colors: colors(opts),
       width: get_terminal_width(),
@@ -356,22 +358,16 @@ defmodule ExUnit.CLIFormatter do
       true ->
         IO.puts(success(message, config))
     end
-
-    IO.puts("\nRandomized with seed #{config.seed}")
   end
 
   defp if_true(value, false, _fun), do: value
   defp if_true(value, true, fun), do: fun.(value)
 
-  defp print_filters(include: [], exclude: []) do
-    :ok
-  end
-
-  defp print_filters(include: include, exclude: exclude) do
-    if exclude != [], do: IO.puts(format_filters(exclude, :exclude))
-    if include != [], do: IO.puts(format_filters(include, :include))
-    IO.puts("")
-    :ok
+  defp print_filters(opts, key) do
+    case opts[key] do
+      [] -> :ok
+      filters -> IO.puts(format_filters(filters, key))
+    end
   end
 
   defp print_failure(formatted, config) do

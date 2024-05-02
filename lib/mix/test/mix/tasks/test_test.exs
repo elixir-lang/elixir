@@ -265,7 +265,7 @@ defmodule Mix.Tasks.TestTest do
       in_fixture("test_stale", fn ->
         port = mix_port(~w[test --stale --listen-on-stdin])
 
-        assert receive_until_match(port, "seed", "") =~ "2 tests"
+        assert receive_until_match(port, "0 failures", "") =~ "2 tests"
 
         Port.command(port, "\n")
 
@@ -294,7 +294,7 @@ defmodule Mix.Tasks.TestTest do
 
         Port.command(port, "\n")
 
-        assert receive_until_match(port, "seed", "") =~ "2 tests"
+        assert receive_until_match(port, "0 failures", "") =~ "2 tests"
 
         File.write!("test/b_test_stale.exs", """
         defmodule BTest do
@@ -323,7 +323,7 @@ defmodule Mix.Tasks.TestTest do
 
         Port.command(port, "\n")
 
-        assert receive_until_match(port, "seed", "") =~ "2 tests"
+        assert receive_until_match(port, "0 failures", "") =~ "2 tests"
       end)
     end
   end
@@ -477,38 +477,33 @@ defmodule Mix.Tasks.TestTest do
 
         output = mix(["test", "apps/bar/test/bar_tests.exs"])
 
-        assert output =~ """
-               ==> bar
-               ....
-               """
+        assert output =~ "==> bar"
+        assert output =~ "...."
 
         refute output =~ "==> foo"
         refute output =~ "Paths given to \"mix test\" did not match any directory/file"
 
         output = mix(["test", "./apps/bar/test/bar_tests.exs"])
 
-        assert output =~ """
-               ==> bar
-               ....
-               """
+        assert output =~ "==> bar"
+        assert output =~ "...."
 
         refute output =~ "==> foo"
         refute output =~ "Paths given to \"mix test\" did not match any directory/file"
 
         output = mix(["test", Path.expand("apps/bar/test/bar_tests.exs")])
 
-        assert output =~ """
-               ==> bar
-               ....
-               """
+        assert output =~ "==> bar"
+        assert output =~ "...."
 
         refute output =~ "==> foo"
         refute output =~ "Paths given to \"mix test\" did not match any directory/file"
 
         output = mix(["test", "apps/bar/test/bar_tests.exs:10"])
 
+        assert output =~ "==> bar"
+
         assert output =~ """
-               ==> bar
                Excluding tags: [:test]
                Including tags: [location: {"test/bar_tests.exs", 10}]
 

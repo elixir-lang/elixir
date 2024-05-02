@@ -213,12 +213,11 @@ This file will be required by Mix every time before we run our tests. We can run
 $ mix test
 Compiled lib/kv.ex
 Generated kv app
+Running ExUnit with seed: 540224, max_cases: 16
 ..
 
 Finished in 0.04 seconds
 1 doctest, 1 test, 0 failures
-
-Randomized with seed 540224
 ```
 
 Notice that by running `mix test`, Mix has compiled the source files and generated the application manifest once again. This happens because Mix supports multiple environments, which we will discuss later in this chapter.
