@@ -75,7 +75,7 @@ defmodule Module.Types.ExprTest do
 
     test "capture a function with non atoms" do
       assert typewarn!([<<x::integer>>], &x.foo_bar/2) ==
-               {dynamic(),
+               {fun(),
                 ~l"""
                 expected a module (an atom) when invoking foo_bar/2 in expression:
 

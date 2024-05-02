@@ -179,7 +179,7 @@ defmodule Module.Types.Expr do
   # TODO: fn pat -> expr end
   def of_expr({:fn, _meta, clauses}, stack, context) do
     case of_clauses(clauses, stack, context) do
-      {:ok, context} -> {:ok, dynamic(), context}
+      {:ok, context} -> {:ok, fun(), context}
       {:error, context} -> {:error, context}
     end
   end
@@ -195,7 +195,7 @@ defmodule Module.Types.Expr do
           reduce_ok(clauses, context, fn
             {:->, _, [[{:in, _, [var, _exceptions]} = expr], body]}, context ->
               # TODO: Vars are a union of the structs above
-              {:ok, _type, context} = Pattern.of_pattern(var, {dynamic(), expr}, stack, context)
+              {:ok, _type, context} = Pattern.of_pattern(var, {term(), expr}, stack, context)
               of_expr_context(body, stack, context)
 
             {:->, _, [[var], body]}, context ->
@@ -306,17 +306,17 @@ defmodule Module.Types.Expr do
       # TODO: We cannot return the unions of functions. Do we forbid this?
       # Do we check it is always the same return type? Do we simply say it is a function?
       {_mods, context} = Of.remote(remote_type, name, arity, expr, meta, stack, context)
-      {:ok, dynamic(), context}
+      {:ok, fun(), context}
     end
   end
 
   # &foo/1
   # TODO: & &1
   def of_expr({:&, _meta, _arg}, _stack, context) do
-    {:ok, dynamic(), context}
+    {:ok, fun(), context}
   end
 
-  # TODO: fun(arg)
+  # TODO: call(arg)
   def of_expr({fun, _meta, args}, stack, context)
       when is_atom(fun) and is_list(args) do
     with {:ok, _arg_types, context} <-
