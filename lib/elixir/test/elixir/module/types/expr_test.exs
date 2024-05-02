@@ -17,6 +17,8 @@ defmodule Module.Types.ExprTest do
     assert typecheck!([1, 2]) == non_empty_list()
     assert typecheck!({1, 2}) == tuple()
     assert typecheck!(%{}) == closed_map([])
+    assert typecheck!(& &1) == fun()
+    assert typecheck!(fn -> :ok end) == fun()
   end
 
   describe "remotes" do
