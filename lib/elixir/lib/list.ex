@@ -7,13 +7,15 @@ defmodule List do
       iex> [1, "two", 3, :four]
       [1, "two", 3, :four]
 
-  Two lists can be concatenated and subtracted using the
-  `++/2` and `--/2` operators:
+  Two or more lists can be concatenated using the `++/2` operator:
 
       iex> [1, 2, 3] ++ [4, 5, 6]
       [1, 2, 3, 4, 5, 6]
-      iex> [1, true, 2, false, 3, true] -- [true, false]
-      [1, 2, 3, true]
+
+  To subtract two lists use `List.subtract/2`:
+
+      iex> List.subtract([1, 4, 2, 3], [1, 2])
+      [4, 3]
 
   An element can be prepended to a list using `|`:
 
@@ -1157,6 +1159,25 @@ defmodule List do
       {:incomplete, encoded, rest} ->
         raise UnicodeConversionError, encoded: encoded, rest: rest, kind: :incomplete
     end
+  end
+
+  @doc """
+  Returns a new list subtracting `list2` from `list1`.
+  For each element in `list2` the first occurence in `list1` is deleted.
+
+  ## Examples
+
+      iex> List.subtract([1, 2, 3], [1, 2])
+      [3]
+
+      iex> List.subtract([1, 2, 3, 2, 1], [1, 2, 2])
+      [3, 1]
+
+  """
+  @doc since: "1.17.0"
+  @spec subtract(list, list) :: list
+  def subtract(list1, list2) do
+    :lists.subtract(list1, list2)
   end
 
   @doc """
