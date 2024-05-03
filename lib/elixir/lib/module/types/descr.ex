@@ -130,24 +130,14 @@ defmodule Module.Types.Descr do
     cond do
       is_gradual_left and not is_gradual_right ->
         right_with_dynamic = Map.put(right, :dynamic, right)
-        union_static(left, right_with_dynamic)
+        symmetrical_merge(left, right_with_dynamic, &union/3)
 
       is_gradual_right and not is_gradual_left ->
         left_with_dynamic = Map.put(left, :dynamic, left)
-        union_static(left_with_dynamic, right)
+        symmetrical_merge(left_with_dynamic, right, &union/3)
 
       true ->
-        union_static(left, right)
-    end
-  end
-
-  defp union_static(left, right) do
-    # Erlang maps:merge_with/3 has to preserve the order in combiner.
-    # We don't care about the order, so we have a faster implementation.
-    if map_size(left) > map_size(right) do
-      iterator_union(:maps.next(:maps.iterator(right)), left)
-    else
-      iterator_union(:maps.next(:maps.iterator(left)), right)
+        symmetrical_merge(left, right, &union/3)
     end
   end
 
@@ -167,24 +157,14 @@ defmodule Module.Types.Descr do
     cond do
       is_gradual_left and not is_gradual_right ->
         right_with_dynamic = Map.put(right, :dynamic, right)
-        intersection_static(left, right_with_dynamic)
+        symmetrical_intersection(left, right_with_dynamic, &intersection/3)
 
       is_gradual_right and not is_gradual_left ->
         left_with_dynamic = Map.put(left, :dynamic, left)
-        intersection_static(left_with_dynamic, right)
+        symmetrical_intersection(left_with_dynamic, right, &intersection/3)
 
       true ->
-        intersection_static(left, right)
-    end
-  end
-
-  defp intersection_static(left, right) do
-    # Erlang maps:intersect_with/3 has to preserve the order in combiner.
-    # We don't care about the order, so we have a faster implementation.
-    if map_size(left) > map_size(right) do
-      iterator_intersection(:maps.next(:maps.iterator(right)), left, [])
-    else
-      iterator_intersection(:maps.next(:maps.iterator(left)), right, [])
+        symmetrical_intersection(left, right, &intersection/3)
     end
   end
 
@@ -271,58 +251,6 @@ defmodule Module.Types.Descr do
     |> Inspect.Algebra.format(98)
     |> IO.iodata_to_binary()
   end
-
-  ## Iterator helpers
-
-  defp iterator_union({key, v1, iterator}, map) do
-    acc =
-      case map do
-        %{^key => v2} -> %{map | key => union(key, v1, v2)}
-        %{} -> Map.put(map, key, v1)
-      end
-
-    iterator_union(:maps.next(iterator), acc)
-  end
-
-  defp iterator_union(:none, map), do: map
-
-  defp iterator_intersection({key, v1, iterator}, map, acc) do
-    acc =
-      case map do
-        %{^key => v2} ->
-          case intersection(key, v1, v2) do
-            0 -> acc
-            [] -> acc
-            value -> [{key, value} | acc]
-          end
-
-        %{} ->
-          acc
-      end
-
-    iterator_intersection(:maps.next(iterator), map, acc)
-  end
-
-  defp iterator_intersection(:none, _map, acc), do: :maps.from_list(acc)
-
-  defp iterator_difference({key, v2, iterator}, map) do
-    acc =
-      case map do
-        %{^key => v1} ->
-          case difference(key, v1, v2) do
-            0 -> Map.delete(map, key)
-            [] -> Map.delete(map, key)
-            value -> %{map | key => value}
-          end
-
-        %{} ->
-          map
-      end
-
-    iterator_difference(:maps.next(iterator), acc)
-  end
-
-  defp iterator_difference(:none, map), do: map
 
   ## Type relations
 
@@ -612,7 +540,7 @@ defmodule Module.Types.Descr do
   # (that is, there are no extra dynamic values).
 
   defp dynamic_intersection(left, right) do
-    inter = intersection_static(left, right)
+    inter = symmetrical_intersection(left, right, &intersection/3)
     if empty?(inter), do: 0, else: inter
   end
 
@@ -621,7 +549,7 @@ defmodule Module.Types.Descr do
     if empty?(diff), do: 0, else: diff
   end
 
-  defp dynamic_union(left, right), do: union_static(left, right)
+  defp dynamic_union(left, right), do: symmetrical_merge(left, right, &union/3)
 
   defp dynamic_to_quoted(%{} = descr) do
     cond do
@@ -746,27 +674,55 @@ defmodule Module.Types.Descr do
   end
 
   # Intersects two map literals; throws if their intersection is empty.
-  defp map_literal_intersection(tag1, map1, tag2, map2) do
-    default1 = map_tag_to_type(tag1)
-    default2 = map_tag_to_type(tag2)
-
-    # if any intersection of values is empty, the whole intersection is empty
+  # Both open: the result is open.
+  defp map_literal_intersection(:open, map1, :open, map2) do
     new_fields =
-      (for {key, value_type} <- map1 do
-         value_type2 = Map.get(map2, key, default2)
-         t = intersection(value_type, value_type2)
-         if empty?(t), do: throw(:empty), else: {key, t}
-       end ++
-         for {key, value_type} <- map2, not is_map_key(map1, key) do
-           t = intersection(default1, value_type)
-           if empty?(t), do: throw(:empty), else: {key, t}
-         end)
-      |> Map.new()
+      symmetrical_merge(map1, map2, fn _, type1, type2 ->
+        non_empty_intersection!(type1, type2)
+      end)
 
-    case {tag1, tag2} do
-      {:open, :open} -> {:open, new_fields}
-      _ -> {:closed, new_fields}
+    {:open, new_fields}
+  end
+
+  # Both closed: the result is closed.
+  defp map_literal_intersection(:closed, map1, :closed, map2) do
+    new_fields =
+      symmetrical_intersection(map1, map2, fn _, type1, type2 ->
+        non_empty_intersection!(type1, type2)
+      end)
+
+    if map_size(new_fields) < map_size(map1) or map_size(new_fields) < map_size(map2) do
+      throw(:empty)
     end
+
+    {:closed, new_fields}
+  end
+
+  # Open and closed: result is closed, all fields from open should be in closed
+  defp map_literal_intersection(:open, open, :closed, closed) do
+    :maps.iterator(open) |> :maps.next() |> map_literal_intersection_loop(closed)
+  end
+
+  defp map_literal_intersection(:closed, closed, :open, open) do
+    :maps.iterator(open) |> :maps.next() |> map_literal_intersection_loop(closed)
+  end
+
+  defp map_literal_intersection_loop(:none, acc), do: {:closed, acc}
+
+  defp map_literal_intersection_loop({key, type1, iterator}, acc) do
+    case acc do
+      %{^key => type2} ->
+        acc = %{acc | key => non_empty_intersection!(type1, type2)}
+        :maps.next(iterator) |> map_literal_intersection_loop(acc)
+
+      _ ->
+        throw(:empty)
+    end
+  end
+
+  defp non_empty_intersection!(type1, type2) do
+    type = intersection(type1, type2)
+    if empty?(type), do: throw(:empty), else: type
   end
 
   defp map_difference(dnf1, dnf2) do
@@ -1076,4 +1032,76 @@ defmodule Module.Types.Descr do
       end
     end
   end
+
+  ## Map helpers
+
+  defp symmetrical_merge(left, right, fun) do
+    # Erlang maps:merge_with/3 has to preserve the order in combiner.
+    # We don't care about the order, so we have a faster implementation.
+    if map_size(left) > map_size(right) do
+      iterator_merge(:maps.next(:maps.iterator(right)), left, fun)
+    else
+      iterator_merge(:maps.next(:maps.iterator(left)), right, fun)
+    end
+  end
+
+  defp iterator_merge({key, v1, iterator}, map, fun) do
+    acc =
+      case map do
+        %{^key => v2} -> %{map | key => fun.(key, v1, v2)}
+        %{} -> Map.put(map, key, v1)
+      end
+
+    iterator_merge(:maps.next(iterator), acc, fun)
+  end
+
+  defp iterator_merge(:none, map, _fun), do: map
+
+  defp symmetrical_intersection(left, right, fun) do
+    # Erlang maps:intersect_with/3 has to preserve the order in combiner.
+    # We don't care about the order, so we have a faster implementation.
+    if map_size(left) > map_size(right) do
+      iterator_intersection(:maps.next(:maps.iterator(right)), left, [], fun)
+    else
+      iterator_intersection(:maps.next(:maps.iterator(left)), right, [], fun)
+    end
+  end
+
+  defp iterator_intersection({key, v1, iterator}, map, acc, fun) do
+    acc =
+      case map do
+        %{^key => v2} ->
+          case fun.(key, v1, v2) do
+            0 -> acc
+            [] -> acc
+            value -> [{key, value} | acc]
+          end
+
+        %{} ->
+          acc
+      end
+
+    iterator_intersection(:maps.next(iterator), map, acc, fun)
+  end
+
+  defp iterator_intersection(:none, _map, acc, _fun), do: :maps.from_list(acc)
+
+  defp iterator_difference({key, v2, iterator}, map) do
+    acc =
+      case map do
+        %{^key => v1} ->
+          case difference(key, v1, v2) do
+            0 -> Map.delete(map, key)
+            [] -> Map.delete(map, key)
+            value -> %{map | key => value}
+          end
+
+        %{} ->
+          map
+      end
+
+    iterator_difference(:maps.next(iterator), acc)
+  end
+
+  defp iterator_difference(:none, map), do: map
 end
