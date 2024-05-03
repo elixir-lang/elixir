@@ -10,6 +10,10 @@ defmodule Exception do
   in order to better suit Elixir's tool chain. In other words,
   by using the functions in this module it is guaranteed you will
   format exceptions as in the current Elixir version being used.
+
+  See `defexception/1` for more information on how to implement
+  custom exceptions. These are structs that implement the
+  `Exception` behaviour.
   """
 
   @typedoc "The exception type"
