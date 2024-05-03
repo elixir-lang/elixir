@@ -1176,7 +1176,7 @@ defmodule List do
   """
   @doc since: "1.17.0"
   @spec subtract(list, list) :: list
-  def subtract(list1, list2) do
+  def subtract(list1, list2) when is_list(list1) and is_list(list2) do
     :lists.subtract(list1, list2)
   end
 
