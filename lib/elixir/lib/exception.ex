@@ -1,19 +1,22 @@
 defmodule Exception do
   @moduledoc """
-  Functions to format throw/catch/exit and exceptions.
+  Functions for dealing with throw/catch/exit and exceptions.
 
-  Note that stacktraces in Elixir are only available inside
-  catch and rescue by using the `__STACKTRACE__/0` variable.
+  This module also defines the behaviour required by custom
+  exceptions. To define your own, see `defexception/1`.
 
-  Do not rely on the particular format returned by the `format*`
+  ## Formatting functions
+
+  Several functions in this module help format exceptions.
+  Some of these functions expect the stacktrace as argument.
+  The stacktrace is typically available inside catch and
+  rescue by using the `__STACKTRACE__/0` variable.
+
+  Do not rely on the particular format returned by the
   functions in this module. They may be changed in future releases
   in order to better suit Elixir's tool chain. In other words,
   by using the functions in this module it is guaranteed you will
   format exceptions as in the current Elixir version being used.
-
-  See `defexception/1` for more information on how to implement
-  custom exceptions. These are structs that implement the
-  `Exception` behaviour.
   """
 
   @typedoc "The exception type"
