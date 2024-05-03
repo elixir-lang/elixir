@@ -234,78 +234,6 @@ defmodule Module.Types.Descr do
     |> IO.iodata_to_binary()
   end
 
-  ## Map helpers
-
-  defp symmetrical_merge(left, right, fun) do
-    # Erlang maps:merge_with/3 has to preserve the order in combiner.
-    # We don't care about the order, so we have a faster implementation.
-    if map_size(left) > map_size(right) do
-      iterator_merge(:maps.next(:maps.iterator(right)), left, fun)
-    else
-      iterator_merge(:maps.next(:maps.iterator(left)), right, fun)
-    end
-  end
-
-  defp iterator_merge({key, v1, iterator}, map, fun) do
-    acc =
-      case map do
-        %{^key => v2} -> %{map | key => fun.(key, v1, v2)}
-        %{} -> Map.put(map, key, v1)
-      end
-
-    iterator_merge(:maps.next(iterator), acc, fun)
-  end
-
-  defp iterator_merge(:none, map, _fun), do: map
-
-  defp symmetrical_intersection(left, right, fun) do
-    # Erlang maps:intersect_with/3 has to preserve the order in combiner.
-    # We don't care about the order, so we have a faster implementation.
-    if map_size(left) > map_size(right) do
-      iterator_intersection(:maps.next(:maps.iterator(right)), left, [], fun)
-    else
-      iterator_intersection(:maps.next(:maps.iterator(left)), right, [], fun)
-    end
-  end
-
-  defp iterator_intersection({key, v1, iterator}, map, acc, fun) do
-    acc =
-      case map do
-        %{^key => v2} ->
-          case fun.(key, v1, v2) do
-            0 -> acc
-            [] -> acc
-            value -> [{key, value} | acc]
-          end
-
-        %{} ->
-          acc
-      end
-
-    iterator_intersection(:maps.next(iterator), map, acc, fun)
-  end
-
-  defp iterator_intersection(:none, _map, acc, _fun), do: :maps.from_list(acc)
-
-  defp iterator_difference({key, v2, iterator}, map) do
-    acc =
-      case map do
-        %{^key => v1} ->
-          case difference(key, v1, v2) do
-            0 -> Map.delete(map, key)
-            [] -> Map.delete(map, key)
-            value -> %{map | key => value}
-          end
-
-        %{} ->
-          map
-      end
-
-    iterator_difference(:maps.next(iterator), acc)
-  end
-
-  defp iterator_difference(:none, map), do: map
-
   ## Type relations
 
   @doc """
@@ -1086,4 +1014,76 @@ defmodule Module.Types.Descr do
       end
     end
   end
+
+  ## Map helpers
+
+  defp symmetrical_merge(left, right, fun) do
+    # Erlang maps:merge_with/3 has to preserve the order in combiner.
+    # We don't care about the order, so we have a faster implementation.
+    if map_size(left) > map_size(right) do
+      iterator_merge(:maps.next(:maps.iterator(right)), left, fun)
+    else
+      iterator_merge(:maps.next(:maps.iterator(left)), right, fun)
+    end
+  end
+
+  defp iterator_merge({key, v1, iterator}, map, fun) do
+    acc =
+      case map do
+        %{^key => v2} -> %{map | key => fun.(key, v1, v2)}
+        %{} -> Map.put(map, key, v1)
+      end
+
+    iterator_merge(:maps.next(iterator), acc, fun)
+  end
+
+  defp iterator_merge(:none, map, _fun), do: map
+
+  defp symmetrical_intersection(left, right, fun) do
+    # Erlang maps:intersect_with/3 has to preserve the order in combiner.
+    # We don't care about the order, so we have a faster implementation.
+    if map_size(left) > map_size(right) do
+      iterator_intersection(:maps.next(:maps.iterator(right)), left, [], fun)
+    else
+      iterator_intersection(:maps.next(:maps.iterator(left)), right, [], fun)
+    end
+  end
+
+  defp iterator_intersection({key, v1, iterator}, map, acc, fun) do
+    acc =
+      case map do
+        %{^key => v2} ->
+          case fun.(key, v1, v2) do
+            0 -> acc
+            [] -> acc
+            value -> [{key, value} | acc]
+          end
+
+        %{} ->
+          acc
+      end
+
+    iterator_intersection(:maps.next(iterator), map, acc, fun)
+  end
+
+  defp iterator_intersection(:none, _map, acc, _fun), do: :maps.from_list(acc)
+
+  defp iterator_difference({key, v2, iterator}, map) do
+    acc =
+      case map do
+        %{^key => v1} ->
+          case difference(key, v1, v2) do
+            0 -> Map.delete(map, key)
+            [] -> Map.delete(map, key)
+            value -> %{map | key => value}
+          end
+
+        %{} ->
+          map
+      end
+
+    iterator_difference(:maps.next(iterator), acc)
+  end
+
+  defp iterator_difference(:none, map), do: map
 end
