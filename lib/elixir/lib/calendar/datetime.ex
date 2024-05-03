@@ -170,7 +170,8 @@ defmodule DateTime do
   truncate the resulting datetime. This is available
   since v1.15.0.
 
-  The default unit if none gets passed is `:native`.
+  The default unit if none gets passed is `:native`,
+  which results on a default resolution of microseconds.
 
   ## Examples
 
