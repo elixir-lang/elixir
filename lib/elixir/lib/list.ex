@@ -1165,6 +1165,8 @@ defmodule List do
   Returns a new list subtracting `list2` from `list1`.
   For each element in `list2` the first occurence in `list1` is deleted.
 
+  Inlined by the compiler.
+
   ## Examples
 
       iex> List.subtract([1, 2, 3], [1, 2])
@@ -1176,8 +1178,8 @@ defmodule List do
   """
   @doc since: "1.17.0"
   @spec subtract(list, list) :: list
-  def subtract(list1, list2) when is_list(list1) and is_list(list2) do
-    :lists.subtract(list1, list2)
+  def subtract(list1, list2) do
+    :erlang.--(list1, list2)
   end
 
   @doc """
