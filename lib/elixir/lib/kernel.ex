@@ -861,7 +861,7 @@ defmodule Kernel do
 
   > #### Structs are maps {: .info}
   >
-  > Structs are also maps, and many of elixir types are implemented
+  > Structs are also maps, and many of Elixir data structures are implemented
   > using structs: `Range`s, `Regex`es, `Date`s...
   >
   >     iex> is_map(1..10)
