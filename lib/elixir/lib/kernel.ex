@@ -855,9 +855,25 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is a map; otherwise returns `false`.
+  Returns `true` if `term` is a map, otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
+
+  > #### Structs are maps {: .info}
+  >
+  > Structs are also maps, and many of Elixir data structures are implemented
+  > using structs: `Range`s, `Regex`es, `Date`s...
+  >
+  >     iex> is_map(1..10)
+  >     true
+  >     iex> is_map(~D[2024-04-18])
+  >     true
+  >
+  > If you mean to specifically check for non-struct maps, use
+  > `is_non_struct_map/1` instead.
+  >
+  >     iex> is_non_struct_map(1..10)
+  >     false
   """
   @doc guard: true
   @spec is_map(term) :: boolean
@@ -2566,6 +2582,48 @@ defmodule Kernel do
             (is_atom(unquote(name)) or :fail) and
             :erlang.is_map_key(:__struct__, unquote(term)) and
             :erlang.map_get(:__struct__, unquote(term)) == unquote(name)
+        end
+    end
+  end
+
+  @doc """
+  Returns `true` if `term` is a map that is not a struct, otherwise
+  returns `false`.
+
+  Allowed in guard tests.
+
+  ## Examples
+
+      iex> is_non_struct_map(%{})
+      true
+
+      iex> is_non_struct_map(URI.parse("/"))
+      false
+
+      iex> is_non_struct_map(nil)
+      false
+
+  """
+  @doc since: "1.17.0", guard: true
+  defmacro is_non_struct_map(term) do
+    case __CALLER__.context do
+      nil ->
+        quote do
+          case unquote(term) do
+            %_{} -> false
+            %{} -> true
+            _ -> false
+          end
+        end
+
+      :match ->
+        invalid_match!(:is_non_struct_map)
+
+      :guard ->
+        quote do
+          is_map(unquote(term)) and
+            not (:erlang.is_map_key(:__struct__, unquote(term)) and
+                   is_atom(:erlang.map_get(:__struct__, unquote(term))))
         end
     end
   end
