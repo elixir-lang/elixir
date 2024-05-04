@@ -2571,6 +2571,47 @@ defmodule Kernel do
   end
 
   @doc """
+  Returns `true` if `term` is a non-struct map; otherwise returns `false`.
+
+  Allowed in guard tests.
+
+  ## Examples
+
+      iex> is_non_struct_map(%{})
+      true
+
+      iex> is_non_struct_map(URI.parse("/"))
+      false
+
+      iex> is_non_struct_map(nil)
+      false
+
+  """
+  @doc since: "1.17.0", guard: true
+  defmacro is_non_struct_map(term) do
+    case __CALLER__.context do
+      nil ->
+        quote do
+          case unquote(term) do
+            %_{} -> false
+            %{} -> true
+            _ -> false
+          end
+        end
+
+      :match ->
+        invalid_match!(:is_non_struct_map)
+
+      :guard ->
+        quote do
+          is_map(unquote(term)) and
+            not (:erlang.is_map_key(:__struct__, unquote(term)) and
+                   is_atom(:erlang.map_get(:__struct__, unquote(term))))
+        end
+    end
+  end
+
+  @doc """
   Returns `true` if `term` is an exception; otherwise returns `false`.
 
   Allowed in guard tests.
