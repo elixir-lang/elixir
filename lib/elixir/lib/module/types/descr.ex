@@ -50,7 +50,7 @@ defmodule Module.Types.Descr do
   def atom(as), do: %{atom: atom_new(as)}
   def atom(), do: %{atom: @atom_top}
   def binary(), do: %{bitmap: @bit_binary}
-  def closed_map(pairs), do: %{map: map_new(:closed, Map.new(pairs))}
+  def closed_map(pairs), do: %{map: map_new(:closed, :maps.from_list(pairs))}
   def empty_list(), do: %{bitmap: @bit_empty_list}
   def empty_map(), do: %{map: @map_empty}
   def integer(), do: %{bitmap: @bit_integer}
@@ -59,7 +59,7 @@ defmodule Module.Types.Descr do
   def list(), do: %{bitmap: @bit_list}
   def non_empty_list(), do: %{bitmap: @bit_non_empty_list}
   def open_map(), do: %{map: @map_top}
-  def open_map(pairs), do: %{map: map_new(:open, Map.new(pairs))}
+  def open_map(pairs), do: %{map: map_new(:open, :maps.from_list(pairs))}
   def pid(), do: %{bitmap: @bit_pid}
   def port(), do: %{bitmap: @bit_port}
   def reference(), do: %{bitmap: @bit_reference}

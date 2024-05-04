@@ -4,6 +4,9 @@ defmodule Module.Types.Expr do
   alias Module.Types.{Of, Pattern}
   import Module.Types.{Helpers, Descr}
 
+  @atom_true atom([true])
+  @exception closed_map(__struct__: atom(), __exception__: @atom_true)
+
   defp of_expr(expr, expected_expr, stack, context) do
     with {:ok, actual, context} <- of_expr(expr, stack, context) do
       Of.intersect(actual, expected_expr, stack, context)
@@ -99,7 +102,6 @@ defmodule Module.Types.Expr do
   end
 
   # TODO: left = right
-  # TODO: make sure the types are compatible
   def of_expr({:=, _meta, [left_expr, right_expr]}, stack, context) do
     with {:ok, right_type, context} <- of_expr(right_expr, stack, context) do
       Pattern.of_pattern(left_expr, {right_type, right_expr}, stack, context)
@@ -118,7 +120,7 @@ defmodule Module.Types.Expr do
 
   # %Struct{map | ...}
   def of_expr(
-        {:%, _, [module, {:%{}, _, [{:|, meta, [map, args]}]}]} = expr,
+        {:%, struct_meta, [module, {:%{}, _, [{:|, update_meta, [map, args]}]}]} = expr,
         stack,
         context
       ) do
@@ -129,14 +131,14 @@ defmodule Module.Types.Expr do
              end
            end),
          {:ok, struct_type, context} <-
-           Of.struct(expr, module, args_types, :only_defaults, stack, context),
+           Of.struct(module, args_types, :only_defaults, struct_meta, stack, context),
          {:ok, map_type, context} <- of_expr(map, stack, context) do
       if empty?(intersection(struct_type, map_type)) do
         warning = {:badupdate, :struct, expr, struct_type, map_type, context}
-        {:ok, dynamic(), warn(__MODULE__, warning, meta, stack, context)}
+        {:ok, dynamic(), warn(__MODULE__, warning, update_meta, stack, context)}
       else
         # TODO: Merge args_type into map_type with dynamic/static key requirement
-        Of.struct(expr, module, args_types, :merge_defaults, stack, context)
+        Of.struct(module, args_types, :merge_defaults, struct_meta, stack, context)
       end
     end
   end
@@ -210,14 +212,20 @@ defmodule Module.Types.Expr do
       reduce_ok(blocks, context, fn
         {:rescue, clauses}, context ->
           reduce_ok(clauses, context, fn
-            {:->, _, [[{:in, _, [var, _exceptions]}], body]}, context ->
-              # TODO: Vars are a union of the structs above
-              {:ok, _type, context} = Pattern.of_pattern(var, stack, context)
-              of_expr_context(body, stack, context)
+            {:->, _, [[{:in, meta, [var, exceptions]} = expr], body]}, context ->
+              with {:ok, structs, context} <-
+                     map_reduce_ok(exceptions, context, fn exception, context ->
+                       args = [__exception__: @atom_true]
+                       Of.struct(exception, args, :merge_defaults, meta, stack, context)
+                     end) do
+                {:ok, _type, context} =
+                  Pattern.of_pattern(var, {Enum.reduce(structs, &union/2), expr}, stack, context)
+
+                of_expr_context(body, stack, context)
+              end
 
             {:->, _, [[var], body]}, context ->
-              # TODO: Vars are structs with the exception field and that's it
-              {:ok, _type, context} = Pattern.of_pattern(var, stack, context)
+              {:ok, _type, context} = Pattern.of_pattern(var, {@exception, var}, stack, context)
               of_expr_context(body, stack, context)
           end)
 

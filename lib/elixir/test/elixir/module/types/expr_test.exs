@@ -379,4 +379,66 @@ defmodule Module.Types.ExprTest do
                 """}
     end
   end
+
+  describe "try" do
+    test "defines unions of exceptions in rescue" do
+      # TODO: check via the actual return type instead
+      assert typewarn!(
+               try do
+                 :ok
+               rescue
+                 e in [SyntaxError, RuntimeError] ->
+                   e.unknown
+               end
+             ) ==
+               {dynamic(),
+                ~l"""
+                unknown key .unknown in expression:
+
+                    e.unknown
+
+                where "e" was given the type:
+
+                    # type: dynamic() and
+                      (%RuntimeError{__exception__: true, message: term()} or
+                         %SyntaxError{
+                           __exception__: true,
+                           column: term(),
+                           description: term(),
+                           file: term(),
+                           line: term(),
+                           snippet: term()
+                         })
+                    # from: types_test.ex:LINE-5
+                    e in [SyntaxError, RuntimeError]
+
+                typing violation found at:\
+                """}
+    end
+
+    test "defines a closed map of two fields in anonymous rescue" do
+      # TODO: check via the actual return type instead
+      assert typewarn!(
+               try do
+                 :ok
+               rescue
+                 e -> e.message
+               end
+             ) ==
+               {dynamic(),
+                ~l"""
+                unknown key .message in expression:
+
+                    e.message
+
+                where "e" was given the type:
+
+                    # type: %{__exception__: true, __struct__: atom()}
+                    # from: types_test.ex:LINE-4
+                    e
+
+                typing violation found at:\
+                """}
+    end
+  end
 end

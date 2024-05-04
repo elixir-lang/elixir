@@ -145,7 +145,7 @@ defmodule Module.Types.Of do
   @doc """
   Handles structs creation.
   """
-  def struct(expr, struct, args, default_handling, stack, context, of_fun)
+  def struct({:%, meta, _}, struct, args, default_handling, stack, context, of_fun)
       when is_atom(struct) do
     # The compiler has already checked the keys are atoms and which ones are required.
     with {:ok, args_types, context} <-
@@ -154,7 +154,7 @@ defmodule Module.Types.Of do
                {:ok, {key, type}, context}
              end
            end) do
-      struct(expr, struct, args_types, default_handling, stack, context)
+      struct(struct, args_types, default_handling, meta, stack, context)
     end
   end
 
@@ -165,7 +165,7 @@ defmodule Module.Types.Of do
   # then the struct is no longer dynamic. And we need to validate args
   # against the struct types.
   # TODO: Use the struct default values to define the default types.
-  def struct({:%, meta, _}, struct, args_types, default_handling, stack, context) do
+  def struct(struct, args_types, default_handling, meta, stack, context) do
     context = remote(struct, :__struct__, 0, meta, stack, context)
     term = term()
 

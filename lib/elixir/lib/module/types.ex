@@ -53,7 +53,7 @@ defmodule Module.Types do
 
   defp warnings_from_clause(meta, args, guards, body, stack, context) do
     with {:ok, _types, context} <- Pattern.of_head(args, guards, meta, stack, context),
-         {:ok, _type, context} <- Expr.of_expr(body, %{stack | meta: []}, context) do
+         {:ok, _type, context} <- Expr.of_expr(body, stack, context) do
       context.warnings
     else
       {:error, context} -> context.warnings
