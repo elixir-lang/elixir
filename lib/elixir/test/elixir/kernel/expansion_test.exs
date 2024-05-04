@@ -927,6 +927,14 @@ defmodule Kernel.ExpansionTest do
       end)
     end
 
+    test "sort option is :asc or :desc" do
+      message = ~r":sort option for comprehensions only accepts :asc or :desc, got: x"
+
+      assert_compile_error(message, fn ->
+        expand(quote(do: for(x <- 1..2, sort: x, do: x)))
+      end)
+    end
+
     test "raise error on invalid reduce" do
       assert_compile_error(
         ~r"cannot use :reduce alongside :into/:uniq in comprehension",
