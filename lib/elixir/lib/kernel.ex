@@ -858,6 +858,22 @@ defmodule Kernel do
   Returns `true` if `term` is a map; otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
+
+  > #### Structs are maps {: .info}
+  >
+  > Structs are also maps, and many of elixir types are implemented
+  > using structs: `Range`s, `Regex`es, `Date`s...
+  >
+  >     iex> is_map(1..10)
+  >     true
+  >     iex> is_map(~D[2024-04-18])
+  >     true
+  >
+  > If you mean to specifically check for non-struct maps, use
+  > `is_non_struct_map/1` instead.
+  >
+  >     iex> is_non_struct_map(1..10)
+  >     false
   """
   @doc guard: true
   @spec is_map(term) :: boolean
