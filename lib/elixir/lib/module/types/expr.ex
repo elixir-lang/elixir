@@ -4,6 +4,26 @@ defmodule Module.Types.Expr do
   alias Module.Types.{Of, Pattern}
   import Module.Types.{Helpers, Descr}
 
+  14 = length(Macro.Env.__info__(:struct))
+
+  @caller closed_map(
+            __struct__: atom([Macro.Env]),
+            aliases: list(),
+            context: atom([:match, :guard, nil]),
+            context_modules: list(),
+            file: binary(),
+            function: union(tuple(), atom([nil])),
+            functions: list(),
+            lexical_tracker: union(pid(), atom([nil])),
+            line: integer(),
+            macro_aliases: list(),
+            macros: list(),
+            module: atom(),
+            requires: list(),
+            tracers: list(),
+            versioned_vars: open_map()
+          )
+
   @atom_true atom([true])
   @exception closed_map(__struct__: atom(), __exception__: @atom_true)
 
@@ -81,10 +101,9 @@ defmodule Module.Types.Expr do
     end
   end
 
-  # TODO: __CALLER__
   def of_expr({:__CALLER__, _meta, var_context}, _stack, context)
       when is_atom(var_context) do
-    {:ok, dynamic(), context}
+    {:ok, @caller, context}
   end
 
   # TODO: __STACKTRACE__
