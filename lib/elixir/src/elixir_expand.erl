@@ -738,7 +738,7 @@ generated_case_clauses([{do, Clauses}]) ->
 expand_for({for, Meta, [_ | _] = Args}, S, E, Return) ->
   assert_no_match_or_guard_scope(Meta, "for", S, E),
   {Cases, Block} = elixir_utils:split_opts(Args),
-  validate_opts(Meta, for, [do, into, uniq, reduce], Block, E),
+  validate_opts(Meta, for, [do, into, uniq, reduce, sort], Block, E),
 
   {Expr, Opts} =
     case lists:keytake(do, 1, Block) of
@@ -764,6 +764,8 @@ expand_for({for, Meta, [_ | _] = Args}, S, E, Return) ->
 
 validate_for_options([{into, _} = Pair | Opts], _Into, Uniq, Reduce, Return, Meta, E, Acc) ->
   validate_for_options(Opts, Pair, Uniq, Reduce, Return, Meta, E, [Pair | Acc]);
+validate_for_options([{sort, _} = Pair | Opts], Into, Uniq, Reduce, Return, Meta, E, Acc) ->
+  validate_for_options(Opts, Into, Uniq, Reduce, Return, Meta, E, [Pair | Acc]);
 validate_for_options([{uniq, Boolean} = Pair | Opts], Into, _Uniq, Reduce, Return, Meta, E, Acc) when is_boolean(Boolean) ->
   validate_for_options(Opts, Into, Pair, Reduce, Return, Meta, E, [Pair | Acc]);
 validate_for_options([{uniq, Value} | _], _, _, _, _, _, _, _) ->
