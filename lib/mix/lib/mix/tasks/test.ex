@@ -221,7 +221,7 @@ defmodule Mix.Tasks.Test do
       and docs chunk
 
     * `:test_paths` - list of paths containing test files. Defaults to
-      `["test"]` if the `test` directory exists; otherwise, it defaults to `[]`.
+      `["test"]` if the `test` directory exists, otherwise, it defaults to `[]`.
       It is expected that all test paths contain a `test_helper.exs` file
 
     * `:test_pattern` - a pattern to load test files. Defaults to `*_test.exs`
