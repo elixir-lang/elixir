@@ -438,6 +438,10 @@ defmodule Module.Types.Expr do
     {:ok, context}
   end
 
+  defp for_option({:sort, expr}, stack, context) do
+    of_expr_context(expr, stack, context)
+  end
+
   ## With
 
   defp with_clause({:<-, meta, [left, expr]}, stack, context) do
