@@ -299,7 +299,10 @@ defmodule Module.Types.Of do
     end
   end
 
-  defp remote(module, fun, arity, meta, stack, context) when is_atom(module) do
+  @doc """
+  Checks a module is a valid remote.
+  """
+  def remote(module, fun, arity, meta, stack, context) when is_atom(module) do
     if Keyword.get(meta, :runtime_module, false) do
       context
     else
@@ -593,12 +596,23 @@ defmodule Module.Types.Of do
   end
 
   def format_warning({:undefined_module, module, fun, arity}) do
+    top =
+      if fun == :__struct__ and arity == 0 do
+        "struct #{inspect(module)}"
+      else
+        Exception.format_mfa(module, fun, arity)
+      end
+
     [
-      Exception.format_mfa(module, fun, arity),
+      top,
       " is undefined (module ",
       inspect(module),
       " is not available or is yet to be defined)"
     ]
+  end
+
+  def format_warning({:undefined_function, module, :__struct__, 0, _exports}) do
+    "struct #{inspect(module)} is undefined (there is such module but it does not define a struct)"
   end
 
   def format_warning({:undefined_function, module, fun, arity, exports}) do

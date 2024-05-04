@@ -232,20 +232,10 @@ defmodule Module.Types.Expr do
         {:rescue, clauses}, context ->
           reduce_ok(clauses, context, fn
             {:->, _, [[{:in, meta, [var, exceptions]} = expr], body]}, context ->
-              with {:ok, structs, context} <-
-                     map_reduce_ok(exceptions, context, fn exception, context ->
-                       args = [__exception__: @atom_true]
-                       Of.struct(exception, args, :merge_defaults, meta, stack, context)
-                     end) do
-                {:ok, _type, context} =
-                  Pattern.of_pattern(var, {Enum.reduce(structs, &union/2), expr}, stack, context)
+              of_rescue(var, exceptions, body, expr, meta, stack, context)
 
-                of_expr_context(body, stack, context)
-              end
-
-            {:->, _, [[var], body]}, context ->
-              {:ok, _type, context} = Pattern.of_pattern(var, {@exception, var}, stack, context)
-              of_expr_context(body, stack, context)
+            {:->, meta, [[var], body]}, context ->
+              of_rescue(var, [], body, var, meta, stack, context)
           end)
 
         {block, body}, context when block in @try_blocks ->
@@ -372,6 +362,41 @@ defmodule Module.Types.Expr do
   # var
   def of_expr(var, _stack, context) when is_var(var) do
     {:ok, Of.var(var, context), context}
+  end
+
+  ## Try
+
+  defp of_rescue(var, exceptions, body, expr, meta, stack, context) do
+    args = [__exception__: @atom_true]
+
+    with {:ok, structs, context} <-
+           map_reduce_ok(exceptions, context, fn exception, context ->
+             # Exceptions are not validated in the compiler,
+             # to avoid export dependencies. So we do it here.
+             if Code.ensure_loaded?(exception) and function_exported?(exception, :__struct__, 0) do
+               Of.struct(exception, args, :merge_defaults, meta, stack, context)
+             else
+               # Whenever there is a failure (such as undefined function),
+               # we return dynamic to avoid cascading errors. In this case,
+               # we can return something a bit more precise than dynamic,
+               # but we still want an open map to avoid cascading.
+               context = Of.remote(exception, :__struct__, 0, meta, stack, context)
+               {:ok, dynamic(open_map([__struct__: atom([exception])] ++ args)), context}
+             end
+           end) do
+      context =
+        case var do
+          {:_, _, _} ->
+            context
+
+          _ ->
+            expected = if structs == [], do: @exception, else: Enum.reduce(structs, &union/2)
+            {:ok, _type, context} = Of.refine_var(var, expected, expr, stack, context)
+            context
+        end
+
+      of_expr_context(body, stack, context)
+    end
   end
 
   ## Comprehensions

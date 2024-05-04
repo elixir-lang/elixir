@@ -381,6 +381,28 @@ defmodule Module.Types.ExprTest do
   end
 
   describe "try" do
+    test "warns on undefined exceptions" do
+      assert typewarn!(
+               try do
+                 :ok
+               rescue
+                 e in UnknownError -> e
+               end
+             ) ==
+               {dynamic(),
+                "struct UnknownError is undefined (module UnknownError is not available or is yet to be defined)"}
+
+      assert typewarn!(
+               try do
+                 :ok
+               rescue
+                 e in Enumerable -> e
+               end
+             ) ==
+               {dynamic(),
+                "struct Enumerable is undefined (there is such module but it does not define a struct)"}
+    end
+
     test "defines unions of exceptions in rescue" do
       # TODO: check via the actual return type instead
       assert typewarn!(

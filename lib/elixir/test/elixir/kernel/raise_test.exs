@@ -190,7 +190,7 @@ defmodule Kernel.RaiseTest do
         try do
           raise "an exception"
         rescue
-          AnotherError -> true
+          ArgumentError -> true
         catch
           :error, _ -> false
         end
