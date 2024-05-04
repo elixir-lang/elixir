@@ -855,7 +855,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is a map; otherwise returns `false`.
+  Returns `true` if `term` is a map, otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -2587,7 +2587,8 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is a non-struct map; otherwise returns `false`.
+  Returns `true` if `term` is a map that is not a struct, otherwise
+  returns `false`.
 
   Allowed in guard tests.
 
