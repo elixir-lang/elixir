@@ -71,6 +71,18 @@ defmodule Kernel.ComprehensionTest do
     assert for(x <- 1..3, x > 1, x < 3, do: x * 2) == [4]
   end
 
+  test "for comprehensions with sorting" do
+    ascending = Enum.into(1..4, [])
+    descending = Enum.reverse(ascending)
+
+    different_types = [[], :a, {:ok, :boomer}, 1]
+    different_types_descending = Enum.sort(different_types, :desc)
+
+    assert for(x <- ascending, sort: :desc, do: x) == descending
+    assert for(x <- descending, sort: :asc, do: x) == ascending
+    assert for(x <- different_types, sort: :desc, do: x) == different_types_descending
+  end
+
   test "for comprehensions with unique values" do
     list = [1, 1, 2, 3]
     assert for(x <- list, uniq: true, do: x * 2) == [2, 4, 6]
