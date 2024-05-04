@@ -540,7 +540,7 @@ defmodule ExUnit.DocTest do
               """
               \nIf you are planning to assert on the result of an iex> expression \
               which contains a value inspected as #Name<...>, please make sure \
-              the inspected value is placed at the beginning of the expression; \
+              the inspected value is placed at the beginning of the expression, \
               otherwise Elixir will treat it as a comment due to the leading sign #.\
               """
           else

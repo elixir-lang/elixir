@@ -636,7 +636,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is an atom; otherwise returns `false`.
+  Returns `true` if `term` is an atom, otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -662,7 +662,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is a binary; otherwise returns `false`.
+  Returns `true` if `term` is a binary, otherwise returns `false`.
 
   A binary always contains a complete number of bytes.
 
@@ -683,7 +683,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is a bitstring (including a binary); otherwise returns `false`.
+  Returns `true` if `term` is a bitstring (including a binary), otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -703,7 +703,7 @@ defmodule Kernel do
 
   @doc """
   Returns `true` if `term` is either the atom `true` or the atom `false` (i.e.,
-  a boolean); otherwise returns `false`.
+  a boolean), otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -726,7 +726,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is a floating-point number; otherwise returns `false`.
+  Returns `true` if `term` is a floating-point number, otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
   """
@@ -737,7 +737,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is a function; otherwise returns `false`.
+  Returns `true` if `term` is a function, otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -777,7 +777,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is an integer; otherwise returns `false`.
+  Returns `true` if `term` is an integer, otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
   """
@@ -788,7 +788,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is a list with zero or more elements; otherwise returns `false`.
+  Returns `true` if `term` is a list with zero or more elements, otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
   """
@@ -811,7 +811,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is a PID (process identifier); otherwise returns `false`.
+  Returns `true` if `term` is a PID (process identifier), otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
   """
@@ -822,7 +822,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is a port identifier; otherwise returns `false`.
+  Returns `true` if `term` is a port identifier, otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
   """
@@ -833,7 +833,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is a reference; otherwise returns `false`.
+  Returns `true` if `term` is a reference, otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
   """
@@ -844,7 +844,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is a tuple; otherwise returns `false`.
+  Returns `true` if `term` is a tuple, otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
   """
@@ -882,7 +882,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `key` is a key in `map`; otherwise returns `false`.
+  Returns `true` if `key` is a key in `map`, otherwise returns `false`.
 
   It raises `BadMapError` if the first element is not a map.
 
@@ -1905,7 +1905,7 @@ defmodule Kernel do
   @doc """
   Strictly boolean "or" operator.
 
-  If `left` is `true`, returns `true`; otherwise returns `right`.
+  If `left` is `true`, returns `true`, otherwise returns `right`.
 
   Requires only the `left` operand to be a boolean since it short-circuits.
   If the `left` operand is not a boolean, a `BadBooleanError` exception is
@@ -1937,7 +1937,7 @@ defmodule Kernel do
   @doc """
   Strictly boolean "and" operator.
 
-  If `left` is `false`, returns `false`; otherwise returns `right`.
+  If `left` is `false`, returns `false`, otherwise returns `right`.
 
   Requires only the `left` operand to be a boolean since it short-circuits. If
   the `left` operand is not a boolean, a `BadBooleanError` exception is raised.
@@ -2503,7 +2503,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is a struct; otherwise returns `false`.
+  Returns `true` if `term` is a struct, otherwise returns `false`.
 
   Allowed in guard tests.
 
@@ -2539,7 +2539,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is a struct of `name`; otherwise returns `false`.
+  Returns `true` if `term` is a struct of `name`, otherwise returns `false`.
 
   `is_struct/2` does not check that `name` exists and is a valid struct.
   If you want such validations, you must pattern match on the struct
@@ -2629,7 +2629,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is an exception; otherwise returns `false`.
+  Returns `true` if `term` is an exception, otherwise returns `false`.
 
   Allowed in guard tests.
 
@@ -2667,7 +2667,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is an exception of `name`; otherwise returns `false`.
+  Returns `true` if `term` is an exception of `name`, otherwise returns `false`.
 
   Allowed in guard tests.
 
@@ -5529,7 +5529,7 @@ defmodule Kernel do
       end
 
       # Calls to Kernel functions must be fully-qualified to ensure
-      # reproducible builds; otherwise, this macro will generate ASTs
+      # reproducible builds, otherwise, this macro will generate ASTs
       # with different metadata (:import, :context) depending on if
       # it is the bootstrapped version or not.
       Elixir.Kernel.@(impl(true))

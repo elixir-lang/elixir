@@ -895,7 +895,7 @@ defmodule List do
   end
 
   @doc """
-  Returns `true` if `list` starts with the given `prefix` list; otherwise returns `false`.
+  Returns `true` if `list` starts with the given `prefix` list, otherwise returns `false`.
 
   If `prefix` is an empty list, it returns `true`.
 
