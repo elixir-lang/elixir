@@ -91,7 +91,7 @@ defmodule TypeHelper do
   def __typecheck__(patterns, guards, body) do
     stack = new_stack()
 
-    with {:ok, _types, context} <- Pattern.of_head(patterns, guards, stack, new_context()),
+    with {:ok, _types, context} <- Pattern.of_head(patterns, guards, [], stack, new_context()),
          {:ok, type, context} <- Expr.of_expr(body, stack, context) do
       {:ok, type, context}
     end

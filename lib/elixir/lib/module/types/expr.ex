@@ -4,8 +4,10 @@ defmodule Module.Types.Expr do
   alias Module.Types.{Of, Pattern}
   import Module.Types.{Helpers, Descr}
 
-  defp of_expr(ast, _expected_expr, stack, context) do
-    of_expr(ast, stack, context)
+  defp of_expr(expr, expected_expr, stack, context) do
+    with {:ok, actual, context} <- of_expr(expr, stack, context) do
+      Of.intersect(actual, expected_expr, stack, context)
+    end
   end
 
   # :atom
@@ -85,7 +87,7 @@ defmodule Module.Types.Expr do
   # TODO: __STACKTRACE__
   def of_expr({:__STACKTRACE__, _meta, var_context}, _stack, context)
       when is_atom(var_context) do
-    {:ok, dynamic(), context}
+    {:ok, list(), context}
   end
 
   # TODO: {...}
@@ -104,34 +106,49 @@ defmodule Module.Types.Expr do
     end
   end
 
-  # TODO: %{map | ...}
+  # %{map | ...}
   def of_expr({:%{}, _, [{:|, _, [map, args]}]}, stack, context) do
-    with {:ok, _, context} <- of_expr(map, stack, context),
-         {:ok, _, context} <- Of.map(:closed, args, stack, context, &of_expr/3) do
-      {:ok, open_map(), context}
+    with {:ok, _args_type, context} <- Of.closed_map(args, stack, context, &of_expr/3),
+         {:ok, _map_type, context} <- of_expr(map, stack, context) do
+      # TODO: intersect map with keys of terms for args
+      # TODO: Merge args_type into map_type with dynamic/static key requirement
+      {:ok, dynamic(open_map()), context}
     end
   end
 
+  # %Struct{map | ...}
   def of_expr(
-        {:%, _, [module, {:%{}, _, [{:|, _, [map, args]}]}]} = expr,
+        {:%, _, [module, {:%{}, _, [{:|, meta, [map, args]}]}]} = expr,
         stack,
         context
       ) do
-    with {:ok, type, context} <- Of.struct(expr, module, args, true, stack, context, &of_expr/3),
-         {:ok, _, context} <- of_expr(map, stack, context) do
-      # TODO: We need to validate that map is actually compatible with struct.
-      # Perhaps a simple validation over the struct name?
-      {:ok, type, context}
+    with {:ok, args_types, context} <-
+           map_reduce_ok(args, context, fn {key, value}, context when is_atom(key) ->
+             with {:ok, type, context} <- of_expr(value, stack, context) do
+               {:ok, {key, type}, context}
+             end
+           end),
+         {:ok, struct_type, context} <-
+           Of.struct(expr, module, args_types, :only_defaults, stack, context),
+         {:ok, map_type, context} <- of_expr(map, stack, context) do
+      if empty?(intersection(struct_type, map_type)) do
+        warning = {:badupdate, :struct, expr, struct_type, map_type, context}
+        {:ok, dynamic(), warn(__MODULE__, warning, meta, stack, context)}
+      else
+        # TODO: Merge args_type into map_type with dynamic/static key requirement
+        Of.struct(expr, module, args_types, :merge_defaults, stack, context)
+      end
     end
   end
 
-  # TODO: %{...}
+  # %{...}
   def of_expr({:%{}, _meta, args}, stack, context) do
-    Of.map(:closed, args, stack, context, &of_expr/3)
+    Of.closed_map(args, stack, context, &of_expr/3)
   end
 
+  # %Struct{}
   def of_expr({:%, _, [module, {:%{}, _, args}]} = expr, stack, context) do
-    Of.struct(expr, module, args, false, stack, context, &of_expr/3)
+    Of.struct(expr, module, args, :skip_defaults, stack, context, &of_expr/3)
   end
 
   # ()
@@ -193,9 +210,9 @@ defmodule Module.Types.Expr do
       reduce_ok(blocks, context, fn
         {:rescue, clauses}, context ->
           reduce_ok(clauses, context, fn
-            {:->, _, [[{:in, _, [var, _exceptions]} = expr], body]}, context ->
+            {:->, _, [[{:in, _, [var, _exceptions]}], body]}, context ->
               # TODO: Vars are a union of the structs above
-              {:ok, _type, context} = Pattern.of_pattern(var, {term(), expr}, stack, context)
+              {:ok, _type, context} = Pattern.of_pattern(var, stack, context)
               of_expr_context(body, stack, context)
 
             {:->, _, [[var], body]}, context ->
@@ -332,10 +349,11 @@ defmodule Module.Types.Expr do
 
   ## Comprehensions
 
-  defp for_clause({:<-, _, [left, expr]}, stack, context) do
+  defp for_clause({:<-, meta, [left, expr]}, stack, context) do
     {pattern, guards} = extract_head([left])
 
-    with {:ok, _pattern_type, context} <- Pattern.of_head([pattern], guards, stack, context),
+    with {:ok, _pattern_type, context} <-
+           Pattern.of_head([pattern], guards, meta, stack, context),
          {:ok, _expr_type, context} <- of_expr(expr, stack, context),
          do: {:ok, context}
   end
@@ -370,10 +388,11 @@ defmodule Module.Types.Expr do
 
   ## With
 
-  defp with_clause({:<-, _, [left, expr]}, stack, context) do
+  defp with_clause({:<-, meta, [left, expr]}, stack, context) do
     {pattern, guards} = extract_head([left])
 
-    with {:ok, _pattern_type, context} <- Pattern.of_head([pattern], guards, stack, context),
+    with {:ok, _pattern_type, context} <-
+           Pattern.of_head([pattern], guards, meta, stack, context),
          {:ok, _expr_type, context} <- of_expr(expr, stack, context),
          do: {:ok, context}
   end
@@ -414,10 +433,10 @@ defmodule Module.Types.Expr do
   end
 
   defp of_clauses(clauses, stack, context) do
-    reduce_ok(clauses, context, fn {:->, _meta, [head, body]}, context ->
+    reduce_ok(clauses, context, fn {:->, meta, [head, body]}, context ->
       {patterns, guards} = extract_head(head)
 
-      with {:ok, _, context} <- Pattern.of_head(patterns, guards, stack, context),
+      with {:ok, _, context} <- Pattern.of_head(patterns, guards, meta, stack, context),
            {:ok, _, context} <- of_expr(body, stack, context),
            do: {:ok, context}
     end)
@@ -447,5 +466,30 @@ defmodule Module.Types.Expr do
       {:ok, _type, context} -> {:ok, context}
       {:error, context} -> {:error, context}
     end
+  end
+
+  ## Warning formatting
+
+  def format_warning({:badupdate, type, expr, expected_type, actual_type, context}) do
+    {traces, trace_hints} = Of.format_traces(expr, context)
+
+    [
+      """
+      incompatible types in #{type} update:
+
+          #{expr_to_string(expr) |> indent(4)}
+
+      expected type:
+
+          #{to_quoted_string(expected_type) |> indent(4)}
+
+      but got type:
+
+          #{to_quoted_string(actual_type) |> indent(4)}
+      """,
+      traces,
+      format_hints(trace_hints),
+      "\ntyping violation found at:"
+    ]
   end
 end

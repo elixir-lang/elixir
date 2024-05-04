@@ -261,8 +261,8 @@ defmodule Module.Types.DescrTest do
     test "map_fetch" do
       assert map_fetch(closed_map(a: integer()), :a) == {false, integer()}
 
-      assert map_fetch(term(), :a) == :error
-      assert map_fetch(union(open_map(), integer()), :a) == :error
+      assert map_fetch(term(), :a) == :badmap
+      assert map_fetch(union(open_map(), integer()), :a) == :badmap
       assert map_fetch(dynamic(), :a) == {true, dynamic()}
 
       assert intersection(dynamic(), open_map(a: integer()))
@@ -279,7 +279,10 @@ defmodule Module.Types.DescrTest do
                {false, union(integer(), atom())}
 
       assert map_fetch(union(closed_map(a: integer()), closed_map(b: atom())), :a) ==
-               {true, integer()}
+               :badkey
+
+      assert map_fetch(difference(closed_map(a: integer()), closed_map(a: term())), :a) ==
+               :badkey
 
       {false, value_type} =
         closed_map(a: union(integer(), atom()))

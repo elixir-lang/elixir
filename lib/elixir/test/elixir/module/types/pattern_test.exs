@@ -8,8 +8,8 @@ defmodule Module.Types.PatternTest do
 
   describe "variables" do
     test "captures variables from simple assignment in head" do
-      assert typecheck!([x = :foo], x) == dynamic(atom([:foo]))
-      assert typecheck!([:foo = x], x) == dynamic(atom([:foo]))
+      assert typecheck!([x = :foo], x) == atom([:foo])
+      assert typecheck!([:foo = x], x) == atom([:foo])
     end
 
     test "captures variables from simple assignment in =" do
@@ -18,7 +18,7 @@ defmodule Module.Types.PatternTest do
                  x = :foo
                  x
                )
-             ) == dynamic(atom([:foo]))
+             ) == atom([:foo])
     end
   end
 
@@ -31,14 +31,25 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([x = %_{}], x.__struct__) == dynamic(atom())
       assert typecheck!([x = %_{}], x) == dynamic(open_map(__struct__: atom()))
 
+      assert typecheck!([x = %m{}, m = Point], x) ==
+               dynamic(open_map(__struct__: atom()))
+
       assert typecheck!([m = Point, x = %m{}], x) ==
-               dynamic(open_map(__struct__: dynamic(atom([Point]))))
+               dynamic(open_map(__struct__: atom([Point])))
 
       assert typeerror!([m = 123], %^m{} = %Point{}) ==
                ~l"""
-               struct must be an atom() in expression:
+               incompatible types in expression:
 
                    %^m{}
+
+               expected type:
+
+                   atom()
+
+               but got type:
+
+                   integer()
 
                where "m" was given the type:
 
@@ -60,7 +71,7 @@ defmodule Module.Types.PatternTest do
 
                 where "x" was given the type:
 
-                    # type: %Point{x: dynamic(), y: dynamic(), z: dynamic()}
+                    # type: dynamic() and %Point{x: term(), y: term(), z: term()}
                     # from: types_test.ex:LINE-2
                     x = %Point{}
 
@@ -83,10 +94,10 @@ defmodule Module.Types.PatternTest do
 
   describe "binaries" do
     test "ok" do
-      assert typecheck!([<<x>>], x) == dynamic(integer())
-      assert typecheck!([<<x::float>>], x) == dynamic(float())
-      assert typecheck!([<<x::binary>>], x) == dynamic(binary())
-      assert typecheck!([<<x::utf8>>], x) == dynamic(integer())
+      assert typecheck!([<<x>>], x) == integer()
+      assert typecheck!([<<x::float>>], x) == float()
+      assert typecheck!([<<x::binary>>], x) == binary()
+      assert typecheck!([<<x::utf8>>], x) == integer()
     end
 
     test "error" do

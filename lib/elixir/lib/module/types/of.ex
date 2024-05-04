@@ -38,7 +38,7 @@ defmodule Module.Types.Of do
         data = %{data | type: new_type, off_traces: new_trace(expr, type, stack, off_traces)}
         context = put_in(context.vars[version], data)
 
-        # We need to return error otherwise it leads to cascading errors.
+        # We need to return error otherwise it leads to cascading errors
         if empty?(new_type) do
           {:error,
            warn(__MODULE__, {:refine_var, old_type, type, var, context}, meta, stack, context)}
@@ -47,18 +47,15 @@ defmodule Module.Types.Of do
         end
 
       %{} ->
-        new_type = dynamic(type)
-
         data = %{
-          # TODO: We should not default to dynamic on static mode
-          type: new_type,
+          type: type,
           name: var_name,
           context: var_context,
           off_traces: new_trace(expr, type, stack, [])
         }
 
         context = put_in(context.vars[version], data)
-        {:ok, new_type, context}
+        {:ok, type, context}
     end
   end
 
@@ -72,29 +69,21 @@ defmodule Module.Types.Of do
   """
   def map_fetch(expr, type, field, stack, context) when is_atom(field) do
     case map_fetch(type, field) do
-      :error ->
-        {:ok, dynamic(),
-         warn({:badmap, expr, type, field, context}, elem(expr, 1), stack, context)}
-
-      # TODO: on static type checking, we want check it is not optional.
       {_optional?, value_type} ->
-        if empty?(value_type) do
-          {:ok, dynamic(),
-           warn({:badkey, expr, type, field, context}, elem(expr, 1), stack, context)}
-        else
-          {:ok, value_type, context}
-        end
+        {:ok, value_type, context}
+
+      reason ->
+        {:ok, dynamic(),
+         warn({reason, expr, type, field, context}, elem(expr, 1), stack, context)}
     end
   end
 
   @doc """
-  Builds a map.
-
-  A tag may be given but it is not guaranteed.
+  Builds a closed map.
   """
-  def map(tag, pairs, extra \\ [], stack, context, of_fun) do
+  def closed_map(pairs, extra \\ [], stack, context, of_fun) do
     result =
-      reduce_ok(pairs, {tag == :closed, extra, [], context}, fn
+      reduce_ok(pairs, {true, extra, [], context}, fn
         {key, value}, {closed?, single, multiple, context} ->
           with {:ok, keys, context} <- of_finite_key_type(key, stack, context, of_fun),
                {:ok, value_type, context} <- of_fun.(value, stack, context) do
@@ -154,33 +143,45 @@ defmodule Module.Types.Of do
   end
 
   @doc """
-  Handles structs.
+  Handles structs creation.
   """
-  def struct({:%, meta, _}, struct, args, defaults?, stack, context, of_fun)
+  def struct(expr, struct, args, default_handling, stack, context, of_fun)
       when is_atom(struct) do
-    context = remote(struct, :__struct__, 0, meta, stack, context)
-
     # The compiler has already checked the keys are atoms and which ones are required.
-    # TODO: Type check and do not assume dynamic for non-specified keys.
-    with {:ok, pairs, context} <-
+    with {:ok, args_types, context} <-
            map_reduce_ok(args, context, fn {key, value}, context when is_atom(key) ->
              with {:ok, type, context} <- of_fun.(value, stack, context) do
                {:ok, {key, type}, context}
              end
            end) do
-      defaults =
-        if defaults? do
-          dynamic = dynamic()
-
-          for key <- Map.keys(struct.__struct__()), key != :__struct__ do
-            {key, dynamic}
-          end
-        else
-          []
-        end
-
-      {:ok, closed_map([{:__struct__, atom([struct])} | defaults] ++ pairs), context}
+      struct(expr, struct, args_types, default_handling, stack, context)
     end
+  end
+
+  @doc """
+  Struct handling assuming the args have already been converted.
+  """
+  # TODO: Allow structs fields to be defined. If the fields are defined,
+  # then the struct is no longer dynamic. And we need to validate args
+  # against the struct types.
+  # TODO: Use the struct default values to define the default types.
+  def struct({:%, meta, _}, struct, args_types, default_handling, stack, context) do
+    context = remote(struct, :__struct__, 0, meta, stack, context)
+    term = term()
+
+    defaults =
+      for %{field: field} <- struct.__info__(:struct), field != :__struct__ do
+        {field, term}
+      end
+
+    pairs =
+      case default_handling do
+        :merge_defaults -> [{:__struct__, atom([struct])} | defaults] ++ args_types
+        :skip_defaults -> [{:__struct__, atom([struct])} | args_types]
+        :only_defaults -> [{:__struct__, atom([struct])} | defaults]
+      end
+
+    {:ok, dynamic(closed_map(pairs)), context}
   end
 
   ## Binary
@@ -228,16 +229,8 @@ defmodule Module.Types.Of do
     expected_type = specifier_info(kind, right)
     expr = {:<<>>, meta, args}
 
-    with {:ok, actual_type, context} <- of_fun.(left, {expected_type, expr}, stack, context) do
-      # If we are in a pattern and we have a variable, the refinement
-      # will already have checked the type, so we skip the check here
-      # as an optimization.
-      if (kind == :pattern and is_var(left)) or compatible?(actual_type, expected_type) do
-        {:ok, context}
-      else
-        hints = if meta[:inferred_bitstring_spec], do: [:inferred_bitstring_spec], else: []
-        {:error, incompatible_warn(expr, expected_type, actual_type, hints, meta, stack, context)}
-      end
+    with {:ok, _type, context} <- of_fun.(left, {expected_type, expr}, stack, context) do
+      {:ok, context}
     end
   end
 
@@ -306,7 +299,7 @@ defmodule Module.Types.Of do
     end
   end
 
-  def remote(module, fun, arity, meta, stack, context) when is_atom(module) do
+  defp remote(module, fun, arity, meta, stack, context) when is_atom(module) do
     if Keyword.get(meta, :runtime_module, false) do
       context
     else
@@ -392,12 +385,27 @@ defmodule Module.Types.Of do
   ## Warning helpers
 
   @doc """
+  Intersects two types and emit an incompatible warning if empty.
+  """
+  def intersect(actual, {expected, expr}, stack, context) do
+    type = intersection(actual, expected)
+
+    if empty?(type) do
+      {:error, incompatible_warn(expr, expected, actual, stack, context)}
+    else
+      {:ok, type, context}
+    end
+  end
+
+  @doc """
   Emits incompatible types warning for the given expression.
 
   This is a generic warning for when the expected/actual types
   themselves may come from several different circumstances.
   """
-  def incompatible_warn(expr, expected_type, actual_type, hints \\ [], meta, stack, context) do
+  def incompatible_warn(expr, expected_type, actual_type, stack, context) do
+    meta = get_meta(expr) || stack.meta
+    hints = if meta[:inferred_bitstring_spec], do: [:inferred_bitstring_spec], else: []
     warning = {:incompatible, expr, expected_type, actual_type, hints, context}
     warn(__MODULE__, warning, meta, stack, context)
   end

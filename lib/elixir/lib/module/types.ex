@@ -10,9 +10,9 @@ defmodule Module.Types do
     Enum.flat_map(defs, fn {{fun, arity} = function, kind, meta, clauses} ->
       stack = stack(with_file_meta(meta, file), module, function, no_warn_undefined, cache)
 
-      Enum.flat_map(clauses, fn {_meta, args, guards, body} ->
+      Enum.flat_map(clauses, fn {meta, args, guards, body} ->
         try do
-          warnings_from_clause(args, guards, body, stack, context)
+          warnings_from_clause(meta, args, guards, body, stack, context)
         rescue
           e ->
             def_expr = {kind, meta, [guards_to_expr(guards, {fun, [], args}), [do: body]]}
@@ -51,9 +51,9 @@ defmodule Module.Types do
     guards_to_expr(guards, {:when, [], [left, guard]})
   end
 
-  defp warnings_from_clause(args, guards, body, stack, context) do
-    with {:ok, _types, context} <- Pattern.of_head(args, guards, stack, context),
-         {:ok, _type, context} <- Expr.of_expr(body, stack, context) do
+  defp warnings_from_clause(meta, args, guards, body, stack, context) do
+    with {:ok, _types, context} <- Pattern.of_head(args, guards, meta, stack, context),
+         {:ok, _type, context} <- Expr.of_expr(body, %{stack | meta: []}, context) do
       context.warnings
     else
       {:error, context} -> context.warnings
@@ -63,6 +63,8 @@ defmodule Module.Types do
   @doc false
   def stack(file, module, function, no_warn_undefined, cache) do
     %{
+      # The fallback meta used for literals in patterns and guards
+      meta: [],
       # File of module
       file: file,
       # Module of definitions
@@ -72,7 +74,9 @@ defmodule Module.Types do
       # List of calls to not warn on as undefined
       no_warn_undefined: no_warn_undefined,
       # A list of cached modules received from the parallel compiler
-      cache: cache
+      cache: cache,
+      # If variable refinements is enabled or not
+      refine: true
     }
   end
 

@@ -194,20 +194,55 @@ defmodule Module.Types.ExprTest do
 
     test "creating structs" do
       assert typecheck!(%Point{}) ==
-               closed_map(__struct__: atom([Point]), x: atom([nil]), y: atom([nil]), z: integer())
+               dynamic(
+                 closed_map(
+                   __struct__: atom([Point]),
+                   x: atom([nil]),
+                   y: atom([nil]),
+                   z: integer()
+                 )
+               )
 
       assert typecheck!(%Point{x: :zero}) ==
-               closed_map(
-                 __struct__: atom([Point]),
-                 x: atom([:zero]),
-                 y: atom([nil]),
-                 z: integer()
+               dynamic(
+                 closed_map(
+                   __struct__: atom([Point]),
+                   x: atom([:zero]),
+                   y: atom([nil]),
+                   z: integer()
+                 )
                )
     end
 
     test "updating structs" do
       assert typecheck!([x], %Point{x | x: :zero}) ==
-               closed_map(__struct__: atom([Point]), x: atom([:zero]), y: dynamic(), z: dynamic())
+               dynamic(
+                 closed_map(__struct__: atom([Point]), x: atom([:zero]), y: term(), z: term())
+               )
+
+      assert typewarn!([x = :foo], %Point{x | x: :zero}) ==
+               {dynamic(),
+                ~l"""
+                incompatible types in struct update:
+
+                    %Point{x | x: :zero}
+
+                expected type:
+
+                    dynamic() and %Point{x: term(), y: term(), z: term()}
+
+                but got type:
+
+                    :foo
+
+                where "x" was given the type:
+
+                    # type: :foo
+                    # from: types_test.ex:LINE-2
+                    x = :foo
+
+                typing violation found at:\
+                """}
     end
 
     test "nested map" do
@@ -244,7 +279,7 @@ defmodule Module.Types.ExprTest do
 
                 the given type does not have the given key:
 
-                    %Point{x: nil, y: nil, z: integer()}
+                    dynamic() and %Point{x: nil, y: nil, z: integer()}
 
                 typing violation found at:\
                 """}
@@ -260,16 +295,17 @@ defmodule Module.Types.ExprTest do
 
                 where "x" was given the type:
 
-                    # type: %URI{
-                      authority: dynamic(),
-                      fragment: dynamic(),
-                      host: dynamic(),
-                      path: dynamic(),
-                      port: dynamic(),
-                      query: dynamic(),
-                      scheme: dynamic(),
-                      userinfo: dynamic()
-                    }
+                    # type: dynamic() and
+                      %URI{
+                        authority: term(),
+                        fragment: term(),
+                        host: term(),
+                        path: term(),
+                        port: term(),
+                        query: term(),
+                        scheme: term(),
+                        userinfo: term()
+                      }
                     # from: types_test.ex:LINE-2
                     x = %URI{}
 
@@ -280,13 +316,13 @@ defmodule Module.Types.ExprTest do
 
   describe "comparison" do
     test "works across numbers" do
-      assert typecheck!([x = 123, y = 456.0], min(x, y)) == dynamic(union(integer(), float()))
+      assert typecheck!([x = 123, y = 456.0], min(x, y)) == union(integer(), float())
       assert typecheck!([x = 123, y = 456.0], x < y) == boolean()
     end
 
     test "warns when comparison is constant" do
       assert typewarn!([x = :foo, y = 321], min(x, y)) ==
-               {dynamic(union(integer(), atom([:foo]))),
+               {union(integer(), atom([:foo])),
                 ~l"""
                 comparison between incompatible types found:
 
@@ -333,7 +369,7 @@ defmodule Module.Types.ExprTest do
 
                 where "y" was given the type:
 
-                    # type: %Point{x: dynamic(), y: dynamic(), z: dynamic()}
+                    # type: dynamic() and %Point{x: term(), y: term(), z: term()}
                     # from: types_test.ex:LINE-2
                     y = %Point{}
 
