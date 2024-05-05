@@ -638,20 +638,24 @@ defmodule Kernel do
   @doc """
   Returns `true` if `term` is an atom, otherwise returns `false`.
 
+  Note `true`, `false`, and `nil` are atoms in Elixir, as well as
+  module names. Therefore this function will return `true` to all
+  of those values.
+
   Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 
-      iex> is_atom(false)
+      iex> is_atom(:name)
       true
 
-      iex> is_atom(:name)
+      iex> is_atom(false)
       true
 
       iex> is_atom(AnAtom)
       true
 
-      iex> is_atom("true")
+      iex> is_atom("string")
       false
 
   """
