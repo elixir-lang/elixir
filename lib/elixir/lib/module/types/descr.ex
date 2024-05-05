@@ -89,7 +89,9 @@ defmodule Module.Types.Descr do
 
   ## Set operations
 
+  def term_type?(@term), do: true
   def term_type?(descr), do: subtype_static(@term, Map.delete(descr, :dynamic))
+
   def gradual?(descr), do: is_map_key(descr, :dynamic)
 
   @doc """
@@ -212,14 +214,14 @@ defmodule Module.Types.Descr do
   @doc """
   Converts a descr to its quoted representation.
   """
-  def to_quoted(@term) do
-    {:term, [], []}
-  end
-
   def to_quoted(%{} = descr) do
-    case Enum.flat_map(descr, fn {key, value} -> to_quoted(key, value) end) do
-      [] -> {:none, [], []}
-      unions -> unions |> Enum.sort() |> Enum.reduce(&{:or, [], [&2, &1]})
+    if term_type?(descr) do
+      {:term, [], []}
+    else
+      case Enum.flat_map(descr, fn {key, value} -> to_quoted(key, value) end) do
+        [] -> {:none, [], []}
+        unions -> unions |> Enum.sort() |> Enum.reduce(&{:or, [], [&2, &1]})
+      end
     end
   end
 
@@ -591,7 +593,7 @@ defmodule Module.Types.Descr do
     cond do
       term_type?(descr) -> [{:dynamic, [], []}]
       single = indivisible_bitmap(descr) -> [single]
-      true -> [{:and, [], [{:dynamic, [], []}, to_quoted(descr)]}]
+      true -> [{:dynamic, [], [to_quoted(descr)]}]
     end
   end
 

@@ -229,7 +229,7 @@ defmodule Module.Types.ExprTest do
 
                 expected type:
 
-                    dynamic() and %Point{x: term(), y: term(), z: term()}
+                    dynamic(%Point{x: term(), y: term(), z: term()})
 
                 but got type:
 
@@ -279,7 +279,7 @@ defmodule Module.Types.ExprTest do
 
                 the given type does not have the given key:
 
-                    dynamic() and %Point{x: nil, y: nil, z: integer()}
+                    dynamic(%Point{x: nil, y: nil, z: integer()})
 
                 typing violation found at:\
                 """}
@@ -295,17 +295,16 @@ defmodule Module.Types.ExprTest do
 
                 where "x" was given the type:
 
-                    # type: dynamic() and
-                      %URI{
-                        authority: term(),
-                        fragment: term(),
-                        host: term(),
-                        path: term(),
-                        port: term(),
-                        query: term(),
-                        scheme: term(),
-                        userinfo: term()
-                      }
+                    # type: dynamic(%URI{
+                      authority: term(),
+                      fragment: term(),
+                      host: term(),
+                      path: term(),
+                      port: term(),
+                      query: term(),
+                      scheme: term(),
+                      userinfo: term()
+                    })
                     # from: types_test.ex:LINE-2
                     x = %URI{}
 
@@ -369,7 +368,7 @@ defmodule Module.Types.ExprTest do
 
                 where "y" was given the type:
 
-                    # type: dynamic() and %Point{x: term(), y: term(), z: term()}
+                    # type: dynamic(%Point{x: term(), y: term(), z: term()})
                     # from: types_test.ex:LINE-2
                     y = %Point{}
 
@@ -421,16 +420,17 @@ defmodule Module.Types.ExprTest do
 
                 where "e" was given the type:
 
-                    # type: dynamic() and
-                      (%RuntimeError{__exception__: true, message: term()} or
-                         %SyntaxError{
-                           __exception__: true,
-                           column: term(),
-                           description: term(),
-                           file: term(),
-                           line: term(),
-                           snippet: term()
-                         })
+                    # type: dynamic(
+                      %RuntimeError{__exception__: true, message: term()} or
+                        %SyntaxError{
+                          __exception__: true,
+                          column: term(),
+                          description: term(),
+                          file: term(),
+                          line: term(),
+                          snippet: term()
+                        }
+                    )
                     # from: types_test.ex:LINE-5
                     e in [SyntaxError, RuntimeError]
 

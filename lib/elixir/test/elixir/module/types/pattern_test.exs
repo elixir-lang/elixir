@@ -71,7 +71,7 @@ defmodule Module.Types.PatternTest do
 
                 where "x" was given the type:
 
-                    # type: dynamic() and %Point{x: term(), y: term(), z: term()}
+                    # type: dynamic(%Point{x: term(), y: term(), z: term()})
                     # from: types_test.ex:LINE-2
                     x = %Point{}
 

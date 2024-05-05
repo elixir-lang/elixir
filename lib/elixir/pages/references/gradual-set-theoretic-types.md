@@ -37,7 +37,7 @@ This function also has the type `(boolean() -> boolean())`, because it receives 
 
 At this point, some may ask, why not a union? As a real-world example, take a t-shirt with green and yellow stripes. We can say the t-shirt belongs to the set of "t-shirts with green color". We can also say the t-shirt belongs to the set of "t-shirts with yellow color". Let's see the difference between unions and intersections:
 
-  * `(t_shirts_with_green() or t_shirts_with_yellow())` - contains t-shirts with either green or yellow, such as green, green and red, green and blue, yellow, yellow and red, etc.
+  * `(t_shirts_with_green() or t_shirts_with_yellow())` - contains t-shirts with either green or yellow, such as green, green and red, green and yellow, yellow, yellow and red, etc.
 
   * `(t_shirts_with_green() and t_shirts_with_yellow())` - contains t-shirts with both green and yellow (and also other colors)
 
@@ -62,7 +62,7 @@ The simplest way to reason about `dynamic()` in Elixir is that it is a range of 
 
 However, by intersecting any type with `dynamic()`, we make the type gradual and therefore only a subset of the type needs to be valid. For instance, if you call `Integer.to_string(var)`, and `var` has type `dynamic() and (atom() or integer())`, the type system will not emit a warning, because `Integer.to_string/1` works with at least one of the types. This flexibility makes `dynamic()` excellent for typing existing code, because it will only emit warnings once it is certain the code will fail. For convenience, most programs will write `dynamic(atom() or integer())` instead of the intersection. They have the same behaviour.
 
-Once Elixir introduces a type language into its API, Elixir programs will behave as a statically typed language, unless the `dynamic` type is used. This brings us to one last remark about dynamic types in Elixir: dyamic types are always at the root. For example, when you write a tuple of type `{:ok, dynamic()}`, Elixir will rewrite it to `dynamic({:ok, term()})`. While this has the downside that you cannot make part of a tuple/map/list gradual, only the whole tuple/map/list, it comes with the upside that dynamic is always explicitly at the root, making it harder to accidentally sneak `dynamic()` in a statically typed program.
+Once Elixir introduces typed function signatures, typed Elixir programs will behave as a statically typed code, unless the `dynamic()` type is used. This brings us to one last remark about dynamic types in Elixir: dyamic types are always at the root. For example, when you write a tuple of type `{:ok, dynamic()}`, Elixir will rewrite it to `dynamic({:ok, term()})`. While this has the downside that you cannot make part of a tuple/map/list gradual, only the whole tuple/map/list, it comes with the upside that dynamic is always explicitly at the root, making it harder to accidentally sneak `dynamic()` in a statically typed program.
 
 ## Roadmap
 
@@ -70,7 +70,7 @@ The current milestone is to implement type inference and type checking of Elixir
 
 If the results are satisfactory, the next milestone will include a mechanism for defining typed structs. Elixir programs frequently pattern match on structs, which reveals information about the struct fields, but it knows nothing about their respective types. By propagating types from structs and their fields throughout the program, we will increase the type system’s ability to find errors while further straining our type system implementation. Proposals including the required changes to the language surface will be sent to the community once we reach this stage.
 
-The third milestone is to introduce the type annotations for functions. Once we conclude this stage, the existing typespecs system will be phased out of the language and moved into a separate library.
+The third milestone is to introduce set-theoretic type signatures for functions. Unfortunately, the existing typespecs are not precise enough for set-theoretic types and they will be phased out of the language and moved into a separate library once this stage concludes.
 
 ## Acknowledgements
 

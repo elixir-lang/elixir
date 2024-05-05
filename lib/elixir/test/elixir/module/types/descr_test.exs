@@ -374,15 +374,15 @@ defmodule Module.Types.DescrTest do
       assert intersection(binary(), dynamic()) |> to_quoted_string() == "binary()"
 
       assert intersection(union(binary(), pid()), dynamic()) |> to_quoted_string() ==
-               "dynamic() and (binary() or pid())"
+               "dynamic(binary() or pid())"
 
-      assert intersection(atom(), dynamic()) |> to_quoted_string() == "dynamic() and atom()"
+      assert intersection(atom(), dynamic()) |> to_quoted_string() == "dynamic(atom())"
 
       assert union(atom([:foo, :bar]), dynamic()) |> to_quoted_string() ==
                "dynamic() or (:bar or :foo)"
 
       assert intersection(dynamic(), closed_map(a: integer())) |> to_quoted_string() ==
-               "dynamic() and %{a: integer()}"
+               "dynamic(%{a: integer()})"
     end
 
     test "map" do
