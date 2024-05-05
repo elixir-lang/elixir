@@ -927,11 +927,25 @@ defmodule Kernel.ExpansionTest do
       end)
     end
 
-    test "sort option is :asc or :desc" do
-      message = ~r":sort option for comprehensions only accepts :asc or :desc, got: x"
+    test "sort option is valid" do
+      message =
+        ~r":sort option for comprehensions accepts values described in Enum.sort/2, got: x"
 
       assert_compile_error(message, fn ->
-        expand(quote(do: for(x <- 1..2, sort: x, do: x)))
+        expand(quote(do: for(x <- [1, [], fn -> :ok end, {:ascc, Mod}], sort: x, do: x)))
+      end)
+    end
+
+    test "sort option only works for lists" do
+      message =
+        ~r"cannot use :sort with non-list comprehensions"
+
+      assert_compile_error(message, fn ->
+        expand(quote(do: for(<<x <- "abc">>, sort: :asc, do: x)))
+      end)
+
+      assert_compile_error(message, fn ->
+        expand(quote(do: for(x <- ?A..?B, sort: :asc, into: <<>>, do: x)))
       end)
     end
 
