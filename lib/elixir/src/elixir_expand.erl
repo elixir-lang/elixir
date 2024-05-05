@@ -753,7 +753,7 @@ expand_for({for, Meta, [_ | _] = Args}, S, E, Return) ->
   assert_generator_start(Meta, ECases, E),
 
   {{EExpr, SE, EE}, NormalizedOpts} =
-    case validate_for_options(EOpts, false, false, false, Return, Meta, E, []) of
+    case validate_for_options(EOpts, false, false, false, false, Return, Meta, E, []) of
       {ok, MaybeReduce, NOpts} -> {expand_for_do_block(Meta, Expr, SC, EC, MaybeReduce), NOpts};
       {error, Error} -> {file_error(Meta, E, ?MODULE, Error), EOpts}
     end,
@@ -762,27 +762,51 @@ expand_for({for, Meta, [_ | _] = Args}, S, E, Return) ->
    elixir_env:merge_and_check_unused_vars(SE, S, EE),
    E}.
 
-validate_for_options([{into, _} = Pair | Opts], _Into, Uniq, Reduce, Return, Meta, E, Acc) ->
-  validate_for_options(Opts, Pair, Uniq, Reduce, Return, Meta, E, [Pair | Acc]);
-validate_for_options([{sort, _} = Pair | Opts], Into, Uniq, Reduce, Return, Meta, E, Acc) ->
-  validate_for_options(Opts, Into, Uniq, Reduce, Return, Meta, E, [Pair | Acc]);
-validate_for_options([{uniq, Boolean} = Pair | Opts], Into, _Uniq, Reduce, Return, Meta, E, Acc) when is_boolean(Boolean) ->
-  validate_for_options(Opts, Into, Pair, Reduce, Return, Meta, E, [Pair | Acc]);
-validate_for_options([{uniq, Value} | _], _, _, _, _, _, _, _) ->
+validate_for_options([{into, _} = Pair | Opts], _Into, Uniq, Reduce, Sort, Return, Meta, E, Acc) ->
+  validate_for_options(Opts, Pair, Uniq, Reduce, Sort, Return, Meta, E, [Pair | Acc]);
+validate_for_options([{sort, Sort} = Pair | Opts], Into, Uniq, Reduce, _Sort, Return, Meta, E, Acc) ->
+  case validate_sort(Sort) of
+    ok -> validate_for_options(Opts, Into, Uniq, Reduce, Pair, Return, Meta, E, [Pair | Acc]);
+    error -> {error, {for_invalid_sort, Sort}}
+  end;
+validate_for_options([{uniq, Boolean} = Pair | Opts], Into, _Uniq, Reduce, Sort, Return, Meta, E, Acc) when is_boolean(Boolean) ->
+  validate_for_options(Opts, Into, Pair, Reduce, Sort, Return, Meta, E, [Pair | Acc]);
+validate_for_options([{uniq, Value} | _], _, _, _, _, _, _, _, _) ->
   {error, {for_invalid_uniq, Value}};
-validate_for_options([{reduce, _} = Pair | Opts], Into, Uniq, _Reduce, Return, Meta, E, Acc) ->
-  validate_for_options(Opts, Into, Uniq, Pair, Return, Meta, E, [Pair | Acc]);
-validate_for_options([], Into, Uniq, {reduce, _}, _Return, _Meta, _E, _Acc) when Into /= false; Uniq /= false ->
+validate_for_options([{reduce, _} = Pair | Opts], Into, Uniq, _Reduce, Sort, Return, Meta, E, Acc) ->
+  validate_for_options(Opts, Into, Uniq, Pair, Sort, Return, Meta, E, [Pair | Acc]);
+validate_for_options([], Into, Uniq, {reduce, _}, Sort, _Return, _Meta, _E, _Acc) when Into /= false; Uniq /= false; Sort /= false ->
   {error, for_conflicting_reduce_into_uniq};
-validate_for_options([], _Into = false, Uniq, Reduce = false, Return = true, Meta, E, Acc) ->
+validate_for_options([], _Into = false, Uniq, Reduce = false, Sort, Return = true, Meta, E, Acc) ->
   Pair = {into, []},
-  validate_for_options([Pair], Pair, Uniq, Reduce, Return, Meta, E, Acc);
-validate_for_options([], Into = false, {uniq, true}, Reduce = false, Return = false, Meta, E, Acc) ->
+  validate_for_options([Pair], Pair, Uniq, Reduce, Sort, Return, Meta, E, Acc);
+validate_for_options([], Into = false, {uniq, true}, Reduce = false, Sort, Return = false, Meta, E, Acc) ->
   elixir_errors:file_warn(Meta, E, ?MODULE, for_with_unused_uniq),
   AccWithoutUniq = lists:keydelete(uniq, 1, Acc),
-  validate_for_options([], Into, false, Reduce, Return, Meta, E, AccWithoutUniq);
-validate_for_options([], _Into, _Uniq, Reduce, _Return, _Meta, _E, Acc) ->
+  validate_for_options([], Into, false, Reduce, Sort, Return, Meta, E, AccWithoutUniq);
+validate_for_options([], Into, _Uniq, _Reduce, Sort, _Return, _Meta, _E, _Acc) when Into /= false, Sort /= false ->
+  {error, for_conflicting_sort_into};
+validate_for_options([], _Into, _Uniq, Reduce, _Sort, _Return, _Meta, _E, Acc) ->
   {ok, Reduce, lists:reverse(Acc)}.
+
+validate_sort(Sort) when is_atom(Sort) ->
+  ok;
+validate_sort({asc, Mod}) when is_atom(Mod) ->
+  ok;
+validate_sort({desc, Mod}) when is_atom(Mod) ->
+  ok;
+validate_sort({fn, _, [{'->', _, [[_,_] = _Args | _]} ] }) ->
+  % Matching on a function with an arity of 2
+  ok;
+validate_sort({'&', _, [{'/',_,[_,2 = _Arity]}]}) ->
+  % Matching on a function with an arity of 2
+  ok;
+validate_sort({_, _, nil}) ->
+  % Matching on a variable
+  % Technically makes it possible to bypass any limitations, should this even be allowed?
+  ok;
+validate_sort(_Otherwise) ->
+  error.
 
 expand_for_do_block(Meta, [{'->', _, _} | _], _S, E, false) ->
   file_error(Meta, E, ?MODULE, for_without_reduce_bad_block);
@@ -1137,8 +1161,12 @@ format_error({invalid_args, Construct}) ->
   io_lib:format("invalid arguments for \"~ts\"", [Construct]);
 format_error({for_invalid_uniq, Value}) ->
   io_lib:format(":uniq option for comprehensions only accepts a boolean, got: ~ts", ['Elixir.Macro':to_string(Value)]);
+format_error({for_invalid_sort, Value}) ->
+  io_lib:format(":sort option for comprehensions accepts values described in Enum.sort/2, got: ~ts", ['Elixir.Macro':to_string(Value)]);
 format_error(for_conflicting_reduce_into_uniq) ->
   "cannot use :reduce alongside :into/:uniq in comprehension";
+format_error(for_conflicting_sort_into) ->
+  "cannot use :sort with non-list comprehensions";
 format_error(for_with_reduce_bad_block) ->
   "when using :reduce with comprehensions, the do block must be written using acc -> expr clauses, where each clause expects the accumulator as a single argument";
 format_error(for_without_reduce_bad_block) ->
