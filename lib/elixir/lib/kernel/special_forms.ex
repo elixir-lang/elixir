@@ -1535,6 +1535,21 @@ defmodule Kernel.SpecialForms do
   expression on the right side must return the new accumulator value. Once there are no more
   elements, the final accumulated value is returned. If there are no elements
   at all, then the initial accumulator value is returned.
+
+  ## The `:sort` option
+
+  The `:sort` option can be given to a list comprehension to sort the final result,
+  refer to `Enum.sort/2` for details on valid sorting options.
+  Incompatible with `:reduce` and `:into`.
+
+      iex> for x <- 1..3, sort: :desc, do: x
+      [3, 2, 1]
+
+      iex> for x <- 3..1, sort: fun x, y -> x < y end, do: x
+      [1, 2, 3]
+
+      iex> for x <- [[], :a, {:ok, :boomer}, 1], sort: &Kernel.</2, do: x
+      [1, :a, {:ok, :boomer}, []]
   """
   defmacro for(args), do: error!([args])
 
