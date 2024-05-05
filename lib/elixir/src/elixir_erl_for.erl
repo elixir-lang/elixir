@@ -36,7 +36,7 @@ translate_into(Meta, Cases, Expr, Opts, S) ->
 
   {TSort, SIS} =
     case lists:keyfind(sort, 1, Opts) of
-      {sort, Sort} -> A = elixir_erl_pass:translate(Sort, Ann, SI), erlang:display(A), A;
+      {sort, Sort} -> elixir_erl_pass:translate(Sort, Ann, SI);
       false -> {false, SI}
     end,
 
