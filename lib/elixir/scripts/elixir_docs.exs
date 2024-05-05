@@ -35,6 +35,7 @@ canonical = System.fetch_env!("CANONICAL")
     "lib/elixir/pages/anti-patterns/process-anti-patterns.md",
     "lib/elixir/pages/anti-patterns/macro-anti-patterns.md",
     "lib/elixir/pages/references/compatibility-and-deprecations.md",
+    "lib/elixir/pages/references/gradual-set-theoretic-types.md",
     "lib/elixir/pages/references/library-guidelines.md",
     "lib/elixir/pages/references/naming-conventions.md",
     "lib/elixir/pages/references/operators.md",

@@ -121,9 +121,9 @@ defmodule Module.Types.Expr do
   end
 
   # TODO: left = right
-  def of_expr({:=, _meta, [left_expr, right_expr]}, stack, context) do
+  def of_expr({:=, _meta, [left_expr, right_expr]} = expr, stack, context) do
     with {:ok, right_type, context} <- of_expr(right_expr, stack, context) do
-      Pattern.of_pattern(left_expr, {right_type, right_expr}, stack, context)
+      Pattern.of_pattern(left_expr, {right_type, expr}, stack, context)
     end
   end
 

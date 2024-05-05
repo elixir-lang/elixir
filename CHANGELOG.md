@@ -1,5 +1,45 @@
 # Changelog for Elixir v1.17
 
+## Warnings from gradual set-theoretic types
+
+This release introduces gradual set-theoretic types to infer types from patterns and guards and use them to type check programs, enabling the Elixir compiler to find faults and bugs in codebases without requiring changes to existing software. The underlying principles, theory, and roadmap of our work have been outlined in ["The Design Principles of the Elixir Type System" by Giuseppe Castagna, Guillaume Duboc, José Valim](https://arxiv.org/abs/2306.06391).
+
+At the moment, Elixir developers will interact with set-theoretic types only through warnings found by the type system. The current implementation models all data types in the language:
+
+  * `binary()`, `integer()`, `float()`, `pid()`, `port()`, `reference()` - these types are indivisible. This means both `1` and `13` get the same `integer()` type.
+
+  * `atom()` - it represents all atoms and it is divisible. For instance, the atom `:foo` and `:hello_world` are also valid (distinct) types.
+
+  * `map()` and structs - maps can be "closed" or "open". Closed maps only allow the specified allows keys, such as `%{key: atom(), value: integer()}`. Open maps support any other keys in addition to the ones listed and their definition starts with `...`, such as `%{..., key: atom(), value: integer()}`. Structs are closed maps with the `__struct__` key.
+
+  * `tuple()`, `list()`, and `function()` - currently they are modelled as indivisible types. The next Elixir versions will also introduce fine-grained types here.
+
+We focused on atoms and maps on this initial release as they are respectively the simplest and the most complex types representations, so we can stress the performance of the type system and quality of error messages. Modelling these types will also provide the most immediate benefits to Elixir developers. Assuming there is a variable named `user`, holding a `%User{}` struct with an `address` field, Elixir v1.17 will emit the following warnings at compile-time:
+
+  * Pattern matching against a map or a struct that does not have the given key, such as `%{adress: ...} = user` (notice `address` vs `adress`)
+
+  * Accessing a key on a map or a struct that does not have the given key, such as `user.adress`
+
+  * Updating a struct or a map that does not define the given key, such as `%{user | adress: ...}`
+
+  * Invoking a function on non-modules, such as `user.address()`
+
+  * Performing structural comparisons with structs, such as `my_date < ~D[2010-04-17]`
+
+  * Performing structural comparisons between non-overlapping types, such as `integer >= string`
+
+  * Building and pattern matching on binaries without the relevant specifiers, such as `<<string>>` (this warns because by default it expects an integer)
+
+  * Attempting to rescue an undefined exception or an exception that is not a struct
+
+  * Accessing a field that is not defined in a rescued exception
+
+These new warnings help Elixir developers find bugs earlier and give more confidence when refactoring code, especially around maps and structs. While some of these warnings were emitted in the past, they were discovered ysing syntax analysis. The new warnings are more reliable, precise, and with better error messages.
+
+Future Elixir versions will continue inferring more types and type checking more constructs, bringing Elixir developers more warnings and quality of life improvements without changes to code. For more details, see our new [reference document on gradual set-theoretic types](https://hexdocs.pm/elixir/main/gradual-set-theoretic-types.html).
+
+The type system was made possible thanks to a partnership between  [CNRS](https://www.cnrs.fr/) and [Remote](https://remote.com/). The development work is currently sponsored by [Fresha](https://www.fresha.com/), [Starfish*](https://starfish.team/), and [Dashbit](https://dashbit.co/).
+
 ## Adding `Duration` and `shift/2` functions
 
 TODO.
@@ -30,7 +70,7 @@ TODO.
 
   * [IEx.Helpers] Warns if `recompile` was called and the current working directory changed
   * [IEx.Helpers] Add `c/0` as an alias to `continue/0`
-  * [IEx.Pry] Add `IEx.Pry.annotated_quoted/3` to annotate a quoted expression with pry breakpoints
+  * [IEx.Pry] Add `IEx.Pry.annotate_quoted/3` to annotate a quoted expression with pry breakpoints
 
 #### Logger
 
