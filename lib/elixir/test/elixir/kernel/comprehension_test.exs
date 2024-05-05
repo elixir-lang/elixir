@@ -75,13 +75,49 @@ defmodule Kernel.ComprehensionTest do
     ascending = Enum.into(1..4, [])
     descending = Enum.reverse(ascending)
 
+    defmodule Sort do
+      def compare(x, y) when x > y, do: :gt
+      def compare(x, y) when x <= y, do: :lt
+    end
+
+    desc = fn x, y -> x > y end
+    assert for(x <- ascending, sort: :desc, do: x) == descending
+    assert for(x <- ascending, sort: &Kernel.>/2, do: x) == descending
+    assert for(x <- ascending, sort: &sort_desc/2, do: x) == descending
+    assert for(x <- ascending, sort: fn x, y -> x > y end, do: x) == descending
+    assert for(x <- ascending, sort: desc, do: x) == descending
+    assert for(x <- ascending, sort: {:desc, Sort}, do: x) == descending
+
+    asc = fn x, y -> x < y end
+    assert for(x <- descending, sort: :asc, do: x) == ascending
+    assert for(x <- descending, sort: &Kernel.</2, do: x) == ascending
+    assert for(x <- descending, sort: &sort_asc/2, do: x) == ascending
+    assert for(x <- descending, sort: fn x, y -> x < y end, do: x) == ascending
+    assert for(x <- descending, sort: asc, do: x) == ascending
+    assert for(x <- descending, sort: Sort, do: x) == ascending
+    assert for(x <- descending, sort: {:asc, Sort}, do: x) == ascending
+
     different_types = [[], :a, {:ok, :boomer}, 1]
     different_types_descending = Enum.sort(different_types, :desc)
+    different_types_ascending = Enum.sort(different_types, :asc)
 
-    assert for(x <- ascending, sort: :desc, do: x) == descending
-    assert for(x <- descending, sort: :asc, do: x) == ascending
+    custom_sort =
+      fn
+        x, y when is_atom(x) -> x > y
+        x, y when is_tuple(x) -> x > y
+        x, y when is_list(x) -> x < y
+        x, y when is_number(x) -> x < y
+      end
+
+    different_types_custom = Enum.sort(different_types, custom_sort)
+
     assert for(x <- different_types, sort: :desc, do: x) == different_types_descending
+    assert for(x <- different_types, sort: :asc, do: x) == different_types_ascending
+    assert for(x <- different_types, sort: custom_sort, do: x) == different_types_custom
   end
+
+  defp sort_desc(x, y), do: x > y
+  defp sort_asc(x, y), do: x < y
 
   test "for comprehensions with unique values" do
     list = [1, 1, 2, 3]
@@ -108,6 +144,15 @@ defmodule Kernel.ComprehensionTest do
     end
 
     assert Process.get(:into_halt)
+  end
+
+  test "for comprehensions with sorting and unique values" do
+    list = [1, 1, 3, 2]
+    uniq_asc = [1, 2, 3]
+    uniq_desc = [3, 2, 1]
+
+    assert for(x <- list, sort: :desc, uniq: true, do: x) == uniq_desc
+    assert for(x <- list, sort: :asc, uniq: true, do: x) == uniq_asc
   end
 
   test "nested for comprehensions with unique values" do
