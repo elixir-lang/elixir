@@ -34,12 +34,18 @@ translate_into(Meta, Cases, Expr, Opts, S) ->
 
   TUniq = lists:keyfind(uniq, 1, Opts) == {uniq, true},
 
-  {TCases, SC} = translate_gen(Meta, Cases, [], SI),
+  {TSort, SIS} =
+    case lists:keyfind(sort, 1, Opts) of
+      {sort, Sort} -> A = elixir_erl_pass:translate(Sort, Ann, SI), erlang:display(A), A;
+      false -> {false, SI}
+    end,
+
+  {TCases, SC} = translate_gen(Meta, Cases, [], SIS),
   {TExpr, SE}  = elixir_erl_pass:translate(wrap_expr_if_unused(Expr, TInto), Ann, SC),
 
   case inline_or_into(TInto) of
-    inline -> build_inline(Ann, TCases, TExpr, TInto, TUniq, SE);
-    into -> build_into(Ann, TCases, TExpr, TInto, TUniq, SE)
+    inline -> build_inline(Ann, TCases, TExpr, TInto, TUniq, TSort, SE);
+    into -> build_into(Ann, TCases, TExpr, TInto, TUniq, TSort, SE)
   end.
 
 %% In case we have no return, we wrap the expression
@@ -106,29 +112,38 @@ collect_filters([H | T], Acc) ->
 collect_filters([], Acc) ->
   {Acc, []}.
 
-build_inline(Ann, Clauses, Expr, Into, Uniq, S) ->
+build_inline(Ann, Clauses, Expr, Into, Uniq, Sort, S) ->
   case not Uniq and lists:all(fun(Clause) -> element(1, Clause) == bin end, Clauses) of
     true  -> {build_comprehension(Ann, Clauses, Expr, Into), S};
-    false -> build_inline_each(Ann, Clauses, Expr, Into, Uniq, S)
+    false -> build_inline_each(Ann, Clauses, Expr, Into, Uniq, Sort, S)
   end.
 
-build_inline_each(Ann, Clauses, Expr, false, Uniq, S) ->
+build_inline_each(Ann, Clauses, Expr, false = _Into, Uniq, _Sort, S) ->
   InnerFun = fun(InnerExpr, _InnerAcc) -> InnerExpr end,
   build_reduce(Ann, Clauses, InnerFun, Expr, {nil, Ann}, Uniq, S);
-build_inline_each(Ann, [{enum, _, Left = {var, _, _}, Right, [] = _Filters}], Expr, {nil, _} = _Into, false, S) ->
+build_inline_each(Ann, [{enum, _, Left = {var, _, _}, Right, [] = _Filters}] = _Clauses, Expr, {nil, _} = _Into, false = _Uniq, false = _Sort, S) ->
   Clauses = [{clause, Ann, [Left], [], [Expr]}],
   Args = [Right, {'fun', Ann, {clauses, Clauses}}],
   {?remote(Ann, 'Elixir.Enum', map, Args), S};
-build_inline_each(Ann, [{enum, _, Left = {var, _, _}, Right, [] = _Filters}], Expr, {map, _, []} = _Into, false, S) ->
+build_inline_each(Ann, [{enum, _, Left = {var, _, _}, Right, [] = _Filters}] = _Clauses, Expr, {nil, _} = _Into, false = _Uniq, Sort, S) ->
+  Clauses = [{clause, Ann, [Left], [], [Expr]}],
+  Args = [Right, {'fun', Ann, {clauses, Clauses}}],
+  List = ?remote(Ann, 'Elixir.Enum', map, Args),
+  {?remote(Ann, 'Elixir.Enum', sort, [List, Sort]), S};
+build_inline_each(Ann, [{enum, _, Left = {var, _, _}, Right, [] = _Filters}] = _Clauses, Expr, {map, _, []} = _Into, false = _Uniq, _Sort, S) ->
   Clauses = [{clause, Ann, [Left], [], [Expr]}],
   Args = [Right, {'fun', Ann, {clauses, Clauses}}],
   List = ?remote(Ann, 'Elixir.Enum', map, Args),
   {?remote(Ann, maps, from_list, [List]), S};
-build_inline_each(Ann, Clauses, Expr, {nil, _} = Into, Uniq, S) ->
+build_inline_each(Ann, Clauses, Expr, {nil, _} = Into, Uniq, false = _Sort, S) ->
   InnerFun = fun(InnerExpr, InnerAcc) -> {cons, Ann, InnerExpr, InnerAcc} end,
   {ReduceExpr, SR} = build_reduce(Ann, Clauses, InnerFun, Expr, Into, Uniq, S),
   {?remote(Ann, lists, reverse, [ReduceExpr]), SR};
-build_inline_each(Ann, Clauses, Expr, {bin, _, []}, Uniq, S) ->
+build_inline_each(Ann, Clauses, Expr, {nil, _} = Into, Uniq, Sort, S) ->
+  InnerFun = fun(InnerExpr, InnerAcc) -> {cons, Ann, InnerExpr, InnerAcc} end,
+  {ReduceExpr, SR} = build_reduce(Ann, Clauses, InnerFun, Expr, Into, Uniq, S),
+  {?remote(Ann, 'Elixir.Enum', sort, [ReduceExpr, Sort]), SR};
+build_inline_each(Ann, Clauses, Expr, {bin, _, []} = _Into, Uniq, _Sort, S) ->
   {InnerValue, SV} = build_var(Ann, S),
   Generated = erl_anno:set_generated(true, Ann),
 
@@ -149,10 +164,10 @@ build_inline_each(Ann, Clauses, Expr, {bin, _, []}, Uniq, S) ->
   {ReduceExpr, SR} = build_reduce(Ann, Clauses, InnerFun, Expr, {nil, Ann}, Uniq, SV),
   {?remote(Ann, erlang, list_to_bitstring, [ReduceExpr]), SR}.
 
-build_into(Ann, Clauses, Expr, {map, _, []}, Uniq, S) ->
-  {ReduceExpr, SR} = build_inline_each(Ann, Clauses, Expr, {nil, Ann}, Uniq, S),
+build_into(Ann, Clauses, Expr, {map, _, []}, Uniq, Sort, S) ->
+  {ReduceExpr, SR} = build_inline_each(Ann, Clauses, Expr, {nil, Ann}, Uniq, Sort, S),
   {?remote(Ann, maps, from_list, [ReduceExpr]), SR};
-build_into(Ann, Clauses, Expr, Into, Uniq, S) ->
+build_into(Ann, Clauses, Expr, Into, Uniq, _Sort, S) ->
   {Fun, SF}    = build_var(Ann, S),
   {Acc, SA}    = build_var(Ann, SF),
   {Kind, SK}   = build_var(Ann, SA),
