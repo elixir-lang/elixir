@@ -951,9 +951,16 @@ defmodule Kernel.ExpansionTest do
 
     test "raise error on invalid reduce" do
       assert_compile_error(
-        ~r"cannot use :reduce alongside :into/:uniq in comprehension",
+        ~r"cannot use :reduce alongside :into/:uniq/:sort in comprehension",
         fn ->
           expand(quote(do: for(x <- 1..3, reduce: %{}, into: %{}, do: (acc -> acc))))
+        end
+      )
+
+      assert_compile_error(
+        ~r"cannot use :reduce alongside :into/:uniq/:sort in comprehension",
+        fn ->
+          expand(quote(do: for(x <- 1..3, reduce: %{}, sort: :desc, do: (acc -> acc))))
         end
       )
 

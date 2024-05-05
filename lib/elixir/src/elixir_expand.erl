@@ -1164,7 +1164,7 @@ format_error({for_invalid_uniq, Value}) ->
 format_error({for_invalid_sort, Value}) ->
   io_lib:format(":sort option for comprehensions accepts values described in Enum.sort/2, got: ~ts", ['Elixir.Macro':to_string(Value)]);
 format_error(for_conflicting_reduce_into_uniq) ->
-  "cannot use :reduce alongside :into/:uniq in comprehension";
+  "cannot use :reduce alongside :into/:uniq/:sort in comprehension";
 format_error(for_conflicting_sort_into) ->
   "cannot use :sort with non-list comprehensions";
 format_error(for_with_reduce_bad_block) ->
