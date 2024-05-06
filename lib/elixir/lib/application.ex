@@ -13,7 +13,7 @@ defmodule Application do
 
   Developers typically interact with the application environment and its
   callback module. Therefore those will be the topics we will cover first
-  before jumping into details about the application resource file and life-cycle.
+  before jumping into details about the application resource file and life cycle.
 
   ## The application environment
 

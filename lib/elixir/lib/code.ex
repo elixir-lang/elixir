@@ -159,7 +159,7 @@ defmodule Code do
       `{:ok, value}` or `:error`.
 
     * `:defmodule` - (since v1.16.2) traced as soon as the definition of a module
-      starts. This is invoked early on in the module life-cycle, `Module.open?/1`
+      starts. This is invoked early on in the module life cycle, `Module.open?/1`
       still returns `false` for such traces
 
     * `{:on_module, bytecode, _ignore}` - (since v1.13.0) traced whenever a module
