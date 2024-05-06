@@ -24,6 +24,8 @@ We focused on atoms and maps on this initial release as they are respectively th
 
   * Invoking a function on non-modules, such as `user.address()`
 
+  * Capturing a function on non-modules, such as `&user.address/0`
+
   * Performing structural comparisons with structs, such as `my_date < ~D[2010-04-17]`
 
   * Performing structural comparisons between non-overlapping types, such as `integer >= string`
@@ -54,7 +56,10 @@ TODO.
   * [Date] Add `Date.shift/2` to shift dates with duration and calendar-specific semantics
   * [DateTime] Add `DateTime.shift/2` to shift datetimes with duration and calendar-specific semantics
   * [Duration] Add a new `Duration` data type
+  * [GenServer] Add `c:GenServer.format_status/1` callback
   * [Kernel] Add `Kernel.get_in/1` with safe nil-handling for access and structs
+  * [Kernel] Add `Kernel.is_non_struct_map/1` guard
+  * [Kernel] Add `Kernel.to_timeout/1`
   * [Kernel] Emit warnings for undefined functions from modules defined within the same context as the caller code
   * [Macro] Add `Macro.Env.define_alias/4`, `Macro.Env.define_import/4`, `Macro.Env.define_require/4`, `Macro.Env.expand_alias/4`, `Macro.Env.expand_import/5`, and `Macro.Env.expand_require/6` to aid the implementation of language servers and embedded languages
   * [NaiveDateTime] Add `NaiveDateTime.shift/2` to shift naive datetimes with duration and calendar-specific semantics
@@ -65,6 +70,7 @@ TODO.
 #### ExUnit
 
   * [ExUnit] Propagate the test process itself as a caller in `start_supervised`
+  * [ExUnit] Include max cases in ExUnit reports
 
 #### IEx
 
@@ -93,13 +99,21 @@ TODO.
 
   * [Code] Address a bug where AST nodes for `(a -> b)` were not wrapped as part of the literal encoder
   * [Kernel] Resolve inconsistencies of how `..` and `...` are handled at the AST level
-  * [Kernel] Fix parsing of ambiguous operators followed by containers
+  * [Kernel] Fix parsing precedence of ambiguous operators followed by containers
 
 #### IEx
 
-  * [IEx.Helpers] Also update the history size whenever it is pruned
+  * [IEx.Helpers] Update the history size whenever history is pruned
+
+#### Mix
+
+  * [mix deps] Fix error message for diverged SCM definition in sibling
 
 ### 3. Soft deprecations (no warnings emitted)
+
+#### Elixir
+
+  * [GenServer] Deprecate `c:GenServer.format_status/2` callback to align with Erlang/OTP 25+
 
 ### 4. Hard deprecations
 

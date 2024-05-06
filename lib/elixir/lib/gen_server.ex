@@ -400,7 +400,7 @@ defmodule GenServer do
       or is suspended, the parent PID, the debugger state, and the state of
       the behaviour module, which includes the callback module state
       (as returned by `:sys.get_state/2`). It's possible to change how this
-      status is represented by defining the optional `c:GenServer.format_status/2`
+      status is represented by defining the optional `c:GenServer.format_status/1`
       callback.
     * `:sys.trace/3` - prints all the system events to `:stdio`.
     * `:sys.statistics/3` - manages collection of process statistics.
