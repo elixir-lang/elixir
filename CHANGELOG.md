@@ -78,6 +78,27 @@ Another [ExDoc](https://github.com/elixir-lang/ex_doc) feature we have incorpora
 
 Finally, we have started enriching our documentation with [Mermaid.js](https://mermaid.js.org/) diagrams. You can find examples in the [GenServer](https://hexdocs.pm/elixir/main/GenServer.html) and [Supervisor](https://hexdocs.pm/elixir/main/Supervisor.html) docs.
 
+## v1.16.3-dev
+
+### 1. Bug fixes
+
+#### Elixir
+
+  * [bin/elixir] Properly handle the `--dbg` flag in Elixir's CLI
+  * [Code.Formatter] Add brackets around keyword lists when formatting the left-hand side of `when`
+  * [Kernel] Only infer size in pinned variable in binary strings when needed
+  * [System] Add a note that arguments are unsafe when invoking .bat/.com scripts on Windows via `System.cmd/3`
+  * [Port] Add a note that arguments are unsafe when invoking .bat/.com scripts on Windows
+  * [URI] Ensure `:undefined` fields are properly converted to `nil` when invoking Erlang's API
+
+#### Logger
+
+  * [Logger] Ensure translators are persisted across logger restarts
+
+#### Mix
+
+  * [mix compile] Ensure compile paths are accessible during compilation
+
 ## v1.16.2 (2024-03-10)
 
 ### 1. Enhancements
