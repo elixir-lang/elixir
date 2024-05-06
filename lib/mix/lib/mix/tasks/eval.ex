@@ -35,7 +35,7 @@ defmodule Mix.Tasks.Eval do
   As you can see, the current application has to be either explicitly
   loaded or started in your tasks, either by calling `Application.load/1`
   or `Application.ensure_all_started/1`. This gives you full control over
-  the application booting life-cycle. For more information, see the
+  the application booting life cycle. For more information, see the
   `Application` module.
 
   This task is automatically re-enabled, so it can be called multiple

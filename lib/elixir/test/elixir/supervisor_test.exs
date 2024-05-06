@@ -250,7 +250,7 @@ defmodule SupervisorTest do
     end
   end
 
-  test "child life-cycle" do
+  test "child life cycle" do
     {:ok, pid} = Supervisor.start_link([], strategy: :one_for_one)
 
     assert Supervisor.which_children(pid) == []

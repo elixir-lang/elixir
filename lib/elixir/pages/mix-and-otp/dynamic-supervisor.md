@@ -1,6 +1,6 @@
 # Supervising dynamic children
 
-We have now successfully defined our supervisor which is automatically started (and stopped) as part of our application lifecycle.
+We have now successfully defined our supervisor which is automatically started (and stopped) as part of our application life cycle.
 
 Remember, however, that our `KV.Registry` is both linking (via `start_link`) and monitoring (via `monitor`) bucket processes in the `handle_cast/2` callback:
 
