@@ -47,7 +47,7 @@ Finally, we can also negate types by using `not`. For example, to express all at
 
 ## The `dynamic()` type
 
-Elixir is a functional dynamic programming language. Existing Elixir programs do not have type declarations, but we still want to be able to type check them. This is done with the introduction of the `dynamic()` type.
+Existing Elixir programs do not have type declarations, but we still want to be able to type check them. This is done with the introduction of the `dynamic()` type.
 
 When Elixir sees the following function:
 
@@ -60,7 +60,9 @@ Elixir type checks it as if the function had the type `(dynamic() -> dynamic())`
 
 The simplest way to reason about `dynamic()` in Elixir is that it is a range of types. If you have a type `atom() or integer()`, the underlying code needs to work with both `atom() or integer()`. For example, if you call `Integer.to_string(var)`, and `var` has type `atom() or integer()`, the type system will emit a warning, because `Integer.to_string/1` does not accept atoms.
 
-However, by intersecting any type with `dynamic()`, we make the type gradual and therefore only a subset of the type needs to be valid. For instance, if you call `Integer.to_string(var)`, and `var` has type `dynamic() and (atom() or integer())`, the type system will not emit a warning, because `Integer.to_string/1` works with at least one of the types. This flexibility makes `dynamic()` excellent for typing existing code, because it will only emit warnings once it is certain the code will fail. For convenience, most programs will write `dynamic(atom() or integer())` instead of the intersection. They have the same behaviour.
+However, by intersecting a type with `dynamic()`, we make the type gradual and therefore only a subset of the type needs to be valid. For instance, if you call `Integer.to_string(var)`, and `var` has type `dynamic() and (atom() or integer())`, the type system will not emit a warning, because `Integer.to_string/1` works with at least one of the types. For convenience, most programs will write `dynamic(atom() or integer())` instead of the intersection. They are equivalent.
+
+Compared to other gradually typed languages, the `dynamic()` type in Elixir is quite powerful: it restricts our program to certain types, via intersections, while still emitting warnings once it is certain the code will fail. This makes `dynamic()` an excellent tool for typing existing Elixir code with meaningful warnings.
 
 Once Elixir introduces typed function signatures, typed Elixir programs will behave as a statically typed code, unless the `dynamic()` type is used. This brings us to one last remark about dynamic types in Elixir: dynamic types are always at the root. For example, when you write a tuple of type `{:ok, dynamic()}`, Elixir will rewrite it to `dynamic({:ok, term()})`. While this has the downside that you cannot make part of a tuple/map/list gradual, only the whole tuple/map/list, it comes with the upside that dynamic is always explicitly at the root, making it harder to accidentally sneak `dynamic()` in a statically typed program.
 
