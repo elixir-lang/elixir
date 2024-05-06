@@ -56,7 +56,7 @@ TODO.
   * [Duration] Add a new `Duration` data type
   * [Kernel] Add `Kernel.get_in/1` with safe nil-handling for access and structs
   * [Kernel] Emit warnings for undefined functions from modules defined within the same context as the caller code
-  * [Macro] Add `Macro.Env.define_alias/4`, `Macro.Env.define_import/4`, `Macro.Env.define_require/4`, `Macro.Env.expand_alias/4`, `Macro.Env.expand_import/5`, and `Macro.Env.expand_require/6` to aid the implementation of language servers and embeddeed languages
+  * [Macro] Add `Macro.Env.define_alias/4`, `Macro.Env.define_import/4`, `Macro.Env.define_require/4`, `Macro.Env.expand_alias/4`, `Macro.Env.expand_import/5`, and `Macro.Env.expand_require/6` to aid the implementation of language servers and embedded languages
   * [NaiveDateTime] Add `NaiveDateTime.shift/2` to shift naive datetimes with duration and calendar-specific semantics
   * [Process] Add `Process.set_label/1`
   * [String] Add `String.byte_slice/3` to slice a string to a maximum number of bytes while keeping it UTF-8 encoded

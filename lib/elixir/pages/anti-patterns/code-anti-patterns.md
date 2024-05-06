@@ -321,7 +321,7 @@ When you use `map[:key]` to access a key that always exists in the map, you are 
 
 #### Example
 
-The function `plot/1` tries to draw a graphic to represent the position of a point in a cartesian plane. This function receives a parameter of `Map` type with the point attributes, which can be a point of a 2D or 3D cartesian coordinate system. This function uses dynamic access to retrieve values for the map keys:
+The function `plot/1` tries to draw a graphic to represent the position of a point in a Cartesian plane. This function receives a parameter of `Map` type with the point attributes, which can be a point of a 2D or 3D Cartesian coordinate system. This function uses dynamic access to retrieve values for the map keys:
 
 ```elixir
 defmodule Graphics do

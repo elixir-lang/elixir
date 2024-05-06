@@ -50,7 +50,7 @@ for dir <- dirs,
 end
 ```
 
-Multiple generators can also be used to calculate the cartesian product of two lists:
+Multiple generators can also be used to calculate the Cartesian product of two lists:
 
 ```elixir
 iex> for i <- [:a, :b, :c], j <- [1, 2], do:  {i, j}
