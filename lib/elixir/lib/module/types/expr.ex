@@ -25,7 +25,7 @@ defmodule Module.Types.Expr do
           )
 
   @atom_true atom([true])
-  @exception closed_map(__struct__: atom(), __exception__: @atom_true)
+  @exception open_map(__struct__: atom(), __exception__: @atom_true)
 
   defp of_expr(expr, expected_expr, stack, context) do
     with {:ok, actual, context} <- of_expr(expr, stack, context) do
@@ -232,10 +232,10 @@ defmodule Module.Types.Expr do
         {:rescue, clauses}, context ->
           reduce_ok(clauses, context, fn
             {:->, _, [[{:in, meta, [var, exceptions]} = expr], body]}, context ->
-              of_rescue(var, exceptions, body, expr, meta, stack, context)
+              of_rescue(var, exceptions, body, expr, [], meta, stack, context)
 
             {:->, meta, [[var], body]}, context ->
-              of_rescue(var, [], body, var, meta, stack, context)
+              of_rescue(var, [], body, var, [:anonymous_rescue], meta, stack, context)
           end)
 
         {block, body}, context when block in @try_blocks ->
@@ -366,7 +366,7 @@ defmodule Module.Types.Expr do
 
   ## Try
 
-  defp of_rescue(var, exceptions, body, expr, meta, stack, context) do
+  defp of_rescue(var, exceptions, body, expr, hints, meta, stack, context) do
     args = [__exception__: @atom_true]
 
     with {:ok, structs, context} <-
@@ -391,7 +391,16 @@ defmodule Module.Types.Expr do
 
           _ ->
             expected = if structs == [], do: @exception, else: Enum.reduce(structs, &union/2)
-            {:ok, _type, context} = Of.refine_var(var, expected, expr, stack, context)
+
+            formatter = fn expr ->
+              [
+                "rescue #{expr_to_string(expr)} ->" |> indent(4),
+                ?\n,
+                format_hints(hints)
+              ]
+            end
+
+            {:ok, _type, context} = Of.refine_var(var, expected, expr, formatter, stack, context)
             context
         end
 
@@ -523,8 +532,6 @@ defmodule Module.Types.Expr do
   ## Warning formatting
 
   def format_warning({:badupdate, type, expr, expected_type, actual_type, context}) do
-    {traces, trace_hints} = Of.format_traces(expr, context)
-
     [
       """
       incompatible types in #{type} update:
@@ -539,8 +546,7 @@ defmodule Module.Types.Expr do
 
           #{to_quoted_string(actual_type) |> indent(4)}
       """,
-      traces,
-      format_hints(trace_hints),
+      Of.format_traces(expr, context),
       "\ntyping violation found at:"
     ]
   end

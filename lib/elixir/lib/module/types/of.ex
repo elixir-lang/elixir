@@ -29,13 +29,20 @@ defmodule Module.Types.Of do
   @doc """
   Refines the type of a variable.
   """
-  def refine_var({var_name, meta, var_context} = var, type, expr, stack, context) do
+  def refine_var(var, type, expr, formatter \\ :default, stack, context) do
+    {var_name, meta, var_context} = var
     version = Keyword.fetch!(meta, :version)
 
     case context.vars do
       %{^version => %{type: old_type, off_traces: off_traces} = data} ->
         new_type = intersection(type, old_type)
-        data = %{data | type: new_type, off_traces: new_trace(expr, type, stack, off_traces)}
+
+        data = %{
+          data
+          | type: new_type,
+            off_traces: new_trace(expr, type, formatter, stack, off_traces)
+        }
+
         context = put_in(context.vars[version], data)
 
         # We need to return error otherwise it leads to cascading errors
@@ -51,7 +58,7 @@ defmodule Module.Types.Of do
           type: type,
           name: var_name,
           context: var_context,
-          off_traces: new_trace(expr, type, stack, [])
+          off_traces: new_trace(expr, type, formatter, stack, [])
         }
 
         context = put_in(context.vars[version], data)
@@ -59,8 +66,11 @@ defmodule Module.Types.Of do
     end
   end
 
-  defp new_trace(nil, _type, _stack, traces), do: traces
-  defp new_trace(expr, type, stack, traces), do: [{expr, stack.file, type} | traces]
+  defp new_trace(nil, _type, _formatter, _stack, traces),
+    do: traces
+
+  defp new_trace(expr, type, formatter, stack, traces),
+    do: [{expr, stack.file, type, formatter} | traces]
 
   ## Map/structs
 
@@ -434,14 +444,10 @@ defmodule Module.Types.Of do
           {node, versions}
       end)
 
-    vars = Map.values(versions)
-
-    formatted_traces =
-      vars
-      |> Enum.sort_by(& &1.name)
-      |> Enum.map(&format_trace/1)
-
-    {formatted_traces, trace_hints(vars)}
+    versions
+    |> Map.values()
+    |> Enum.sort_by(& &1.name)
+    |> Enum.map(&format_trace/1)
   end
 
   defp format_trace(%{off_traces: []}) do
@@ -452,7 +458,7 @@ defmodule Module.Types.Of do
     traces =
       traces
       |> Enum.reverse()
-      |> Enum.map(fn {expr, file, type} ->
+      |> Enum.map(fn {expr, file, type, formatter} ->
         meta = get_meta(expr)
 
         location =
@@ -461,12 +467,19 @@ defmodule Module.Types.Of do
           |> Exception.format_file_line(meta[:line])
           |> String.replace_suffix(":", "")
 
-        """
+        [
+          """
 
-            # type: #{to_quoted_string(type) |> indent(4)}
-            # from: #{location}
-            #{expr_to_string(expr)}
-        """
+              # type: #{to_quoted_string(type) |> indent(4)}
+              # from: #{location}
+              \
+          """,
+          case formatter do
+            :default -> [expr |> expr_to_string() |> indent(4), ?\n]
+            formatter -> formatter.(expr)
+          end,
+          format_hints(expr_hints(expr))
+        ]
       end)
 
     type_or_types = pluralize(traces, "type", "types")
@@ -480,38 +493,26 @@ defmodule Module.Types.Of do
   defp pluralize([_], singular, _plural), do: singular
   defp pluralize(_, _singular, plural), do: plural
 
-  defp inferred_bitstring_spec?(trace) do
-    match?({{:<<>>, [inferred_bitstring_spec: true] ++ _meta, _}, _file, _type}, trace)
-  end
+  defp expr_hints({:<<>>, [inferred_bitstring_spec: true] ++ _meta, _}),
+    do: [:inferred_bitstring_spec]
 
-  defp trace_hints(vars) do
-    if Enum.any?(vars, fn data -> Enum.any?(data.off_traces, &inferred_bitstring_spec?/1) end) do
-      [:inferred_bitstring_spec]
-    else
-      []
-    end
-  end
+  defp expr_hints(_), do: []
 
   ## Warning formatting
 
   def format_warning({:refine_var, old_type, new_type, var, context}) do
-    {traces, hints} = format_traces(var, context)
-
     [
       """
       incompatible types assigned to #{format_var(var)}:
 
           #{to_quoted_string(old_type)} !~ #{to_quoted_string(new_type)}
       """,
-      traces,
-      format_hints(hints),
+      format_traces(var, context),
       "\ntyping violation found at:"
     ]
   end
 
   def format_warning({:incompatible, expr, expected_type, actual_type, hints, context}) do
-    {traces, trace_hints} = format_traces(expr, context)
-
     [
       """
       incompatible types in expression:
@@ -526,15 +527,13 @@ defmodule Module.Types.Of do
 
           #{to_quoted_string(actual_type) |> indent(4)}
       """,
-      traces,
-      format_hints(hints ++ trace_hints),
+      format_traces(expr, context),
+      format_hints(hints),
       "\ntyping violation found at:"
     ]
   end
 
   def format_warning({:badmap, expr, type, key, context}) do
-    {traces, trace_hints} = format_traces(expr, context)
-
     [
       """
       expected a map or struct when accessing .#{key} in expression:
@@ -547,15 +546,13 @@ defmodule Module.Types.Of do
 
           #{to_quoted_string(type) |> indent(4)}
       """),
-      traces,
-      format_hints([:dot | trace_hints]),
+      format_traces(expr, context),
+      format_hints([:dot]),
       "\ntyping violation found at:"
     ]
   end
 
   def format_warning({:badkey, expr, type, key, context}) do
-    {traces, trace_hints} = format_traces(expr, context)
-
     [
       """
       unknown key .#{key} in expression:
@@ -568,15 +565,12 @@ defmodule Module.Types.Of do
 
           #{to_quoted_string(type) |> indent(4)}
       """),
-      traces,
-      format_hints(trace_hints),
+      format_traces(expr, context),
       "\ntyping violation found at:"
     ]
   end
 
   def format_warning({:badmodule, expr, type, fun, arity, hints, context}) do
-    {traces, trace_hints} = format_traces(expr, context)
-
     [
       """
       expected a module (an atom) when invoking #{fun}/#{arity} in expression:
@@ -589,8 +583,8 @@ defmodule Module.Types.Of do
 
           #{to_quoted_string(type) |> indent(4)}
       """),
-      traces,
-      format_hints(hints ++ trace_hints),
+      format_traces(expr, context),
+      format_hints(hints),
       "\ntyping violation found at:"
     ]
   end
@@ -641,36 +635,31 @@ defmodule Module.Types.Of do
   end
 
   def format_warning({:mismatched_comparison, expr, context}) do
-    {traces, trace_hints} = format_traces(expr, context)
-
     [
       """
       comparison between incompatible types found:
 
           #{expr_to_string(expr) |> indent(4)}
       """,
-      traces,
+      format_traces(expr, context),
       """
 
       While Elixir can compare across all types, you are comparing \
       across types which are always distinct, and the result is either \
       always true or always false
       """,
-      format_hints(trace_hints),
       "\ntyping violation found at:"
     ]
   end
 
   def format_warning({:struct_comparison, expr, context}) do
-    {traces, trace_hints} = format_traces(expr, context)
-
     [
       """
       comparison with structs found:
 
           #{expr_to_string(expr) |> indent(4)}
       """,
-      traces,
+      format_traces(expr, context),
       """
 
       Comparison operators (>, <, >=, <=, min, and max) perform structural \
@@ -678,7 +667,6 @@ defmodule Module.Types.Of do
       results. Struct that can be compared typically define a compare/2 function \
       within their modules that can be used for semantic comparison
       """,
-      format_hints(trace_hints),
       "\ntyping violation found at:"
     ]
   end

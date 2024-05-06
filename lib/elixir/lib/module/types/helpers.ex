@@ -36,6 +36,13 @@ defmodule Module.Types.Helpers do
         #{hint()} "var.field" (without parentheses) means "var" is a map() while \
         "var.fun()" (with parentheses) means "var" is an atom()
         """
+
+      :anonymous_rescue ->
+        """
+
+        #{hint()} when you rescue without specifying exception names, \
+        the variable is assigned a type of a struct but all of its fields are unknown
+        """
     end)
   end
 

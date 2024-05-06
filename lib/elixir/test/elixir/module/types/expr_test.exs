@@ -432,13 +432,13 @@ defmodule Module.Types.ExprTest do
                         }
                     )
                     # from: types_test.ex:LINE-5
-                    e in [SyntaxError, RuntimeError]
+                    rescue e in [SyntaxError, RuntimeError] ->
 
                 typing violation found at:\
                 """}
     end
 
-    test "defines a closed map of two fields in anonymous rescue" do
+    test "defines an open map of two fields in anonymous rescue" do
       # TODO: check via the actual return type instead
       assert typewarn!(
                try do
@@ -455,9 +455,11 @@ defmodule Module.Types.ExprTest do
 
                 where "e" was given the type:
 
-                    # type: %{__exception__: true, __struct__: atom()}
+                    # type: %{..., __exception__: true, __struct__: atom()}
                     # from: types_test.ex:LINE-4
-                    e
+                    rescue e ->
+
+                #{hints(:anonymous_rescue)}
 
                 typing violation found at:\
                 """}
