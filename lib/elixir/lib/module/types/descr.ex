@@ -399,19 +399,15 @@ defmodule Module.Types.Descr do
   Optimized version of `not empty?(intersection(atom([atom]), type))`.
   """
   def atom_type?(%{} = descr, atom) do
-    case :maps.take(:dynamic, descr) do
-      :error ->
-        atom_only?(descr) and atom_type_static?(descr, atom)
+    {static_or_dynamic, static} = Map.pop(descr, :dynamic, descr)
 
-      {dynamic, static} ->
-        atom_only?(static) and
-          (atom_type_static?(dynamic, atom) or atom_type_static?(static, atom))
-    end
+    atom_only?(static) and
+      case static_or_dynamic do
+        %{atom: {:union, set}} -> :sets.is_element(atom, set)
+        %{atom: {:negation, set}} -> not :sets.is_element(atom, set)
+        %{} -> false
+      end
   end
-
-  defp atom_type_static?(%{atom: {:union, set}}, atom), do: :sets.is_element(atom, set)
-  defp atom_type_static?(%{atom: {:negation, set}}, atom), do: not :sets.is_element(atom, set)
-  defp atom_type_static?(%{}, _atom), do: false
 
   @doc """
   Returns a set of all known atoms.
@@ -421,42 +417,16 @@ defmodule Module.Types.Descr do
   cases, due to negations.
   """
   def atom_fetch(%{} = descr) do
-    case :maps.take(:dynamic, descr) do
-      :error ->
-        if atom_only?(descr) do
-          case descr do
-            %{atom: {:union, set}} -> {:finite, :sets.to_list(set)}
-            %{atom: {:negation, _}} -> {:infinite, []}
-            %{} -> :error
-          end
-        else
-          :error
-        end
+    {static_or_dynamic, static} = Map.pop(descr, :dynamic, descr)
 
-      {dynamic, static} ->
-        if atom_only?(static) do
-          case {dynamic, static} do
-            {%{atom: {:union, d}}, %{atom: {:union, s}}} ->
-              {:finite, :sets.to_list(:sets.union(d, s))}
-
-            {_, %{atom: {:negation, _}}} ->
-              {:infinite, []}
-
-            {%{atom: {:negation, _}}, _} ->
-              {:infinite, []}
-
-            {%{atom: {:union, d}}, %{}} ->
-              {:finite, :sets.to_list(d)}
-
-            {%{}, %{atom: {:union, s}}} ->
-              {:finite, :sets.to_list(s)}
-
-            {%{}, %{}} ->
-              :error
-          end
-        else
-          :error
-        end
+    if atom_only?(static) do
+      case static_or_dynamic do
+        %{atom: {:union, set}} -> {:finite, :sets.to_list(set)}
+        %{atom: {:negation, _}} -> {:infinite, []}
+        %{} -> :error
+      end
+    else
+      :error
     end
   end
 
@@ -663,9 +633,8 @@ defmodule Module.Types.Descr do
       {dynamic, static} ->
         if (is_map_key(dynamic, :map) or is_map_key(static, :map)) and map_only?(static) do
           {optional?, dynamic_type} = map_fetch_static(dynamic, key) |> pop_not_set()
-          static_type = map_fetch_static(static, key) |> none_if_not_set()
 
-          union(dynamic(dynamic_type), static_type)
+          dynamic(dynamic_type)
           |> badkey_if_empty_or_tag(optional?)
         else
           :badmap
