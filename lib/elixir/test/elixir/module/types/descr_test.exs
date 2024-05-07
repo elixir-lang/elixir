@@ -259,14 +259,19 @@ defmodule Module.Types.DescrTest do
     end
 
     test "map_fetch" do
-      assert map_fetch(closed_map(a: integer()), :a) == {false, integer()}
-
       assert map_fetch(term(), :a) == :badmap
       assert map_fetch(union(open_map(), integer()), :a) == :badmap
-      assert map_fetch(dynamic(), :a) == {true, dynamic()}
 
-      assert intersection(dynamic(), open_map(a: integer()))
-             |> map_fetch(:a) == {false, intersection(integer(), dynamic())}
+      assert map_fetch(closed_map(a: integer()), :a) == {false, integer()}
+
+      assert map_fetch(union(closed_map(a: integer()), closed_map(b: atom())), :a) ==
+               :badkey
+
+      assert map_fetch(difference(closed_map(a: integer()), closed_map(a: term())), :a) ==
+               :badkey
+
+      assert map_fetch(union(closed_map(a: integer()), closed_map(a: atom())), :a) ==
+               {false, union(integer(), atom())}
 
       {false, value_type} =
         open_map(my_map: open_map(foo: integer()))
@@ -274,15 +279,6 @@ defmodule Module.Types.DescrTest do
         |> map_fetch(:my_map)
 
       assert equal?(value_type, open_map(foo: integer(), bar: boolean()))
-
-      assert map_fetch(union(closed_map(a: integer()), closed_map(a: atom())), :a) ==
-               {false, union(integer(), atom())}
-
-      assert map_fetch(union(closed_map(a: integer()), closed_map(b: atom())), :a) ==
-               :badkey
-
-      assert map_fetch(difference(closed_map(a: integer()), closed_map(a: term())), :a) ==
-               :badkey
 
       {false, value_type} =
         closed_map(a: union(integer(), atom()))
@@ -334,6 +330,21 @@ defmodule Module.Types.DescrTest do
              |> difference(open_map(a: atom([:foo, :bar])))
              |> difference(open_map(a: atom([:foo, :baz])))
              |> map_fetch(:a) == {false, integer()}
+    end
+
+    test "map_fetch with dynamic" do
+      assert map_fetch(dynamic(), :a) == {true, dynamic()}
+
+      assert intersection(dynamic(), open_map(a: integer()))
+             |> map_fetch(:a) == {false, intersection(integer(), dynamic())}
+
+      {false, type} = union(dynamic(integer()), open_map(a: integer())) |> map_fetch(:a)
+      assert equal?(type, integer())
+
+      assert union(dynamic(integer()), open_map(a: if_set(integer()))) |> map_fetch(:a) == :badkey
+
+      assert union(dynamic(open_map(a: atom())), open_map(a: integer()))
+             |> map_fetch(:a) == {false, union(dynamic(atom()), integer())}
     end
   end
 

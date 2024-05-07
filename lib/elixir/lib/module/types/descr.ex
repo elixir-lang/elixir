@@ -620,9 +620,13 @@ defmodule Module.Types.Descr do
     case :maps.take(:dynamic, descr) do
       :error ->
         if is_map_key(descr, :map) and map_only?(descr) do
-          map_fetch_static(descr, key)
-          |> none_if_not_set()
-          |> badkey_if_empty_or_tag(false)
+          {static_optional?, static_type} = map_fetch_static(descr, key) |> pop_optional()
+
+          if static_optional? or empty?(static_type) do
+            :badkey
+          else
+            {false, static_type}
+          end
         else
           :badmap
         end
@@ -631,11 +635,15 @@ defmodule Module.Types.Descr do
         {true, dynamic()}
 
       {dynamic, static} ->
-        if (is_map_key(dynamic, :map) or is_map_key(static, :map)) and map_only?(static) do
-          {optional?, dynamic_type} = map_fetch_static(dynamic, key) |> pop_not_set()
+        if is_map_key(dynamic, :map) and map_only?(static) do
+          {dynamic_optional?, dynamic_type} = map_fetch_static(dynamic, key) |> pop_optional()
+          {static_optional?, static_type} = map_fetch_static(static, key) |> pop_optional()
 
-          dynamic(dynamic_type)
-          |> badkey_if_empty_or_tag(optional?)
+          if static_optional? or empty?(dynamic_type) do
+            :badkey
+          else
+            {dynamic_optional?, union(dynamic(dynamic_type), static_type)}
+          end
         else
           :badmap
         end
@@ -651,11 +659,7 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp badkey_if_empty_or_tag(type, tag) do
-    if empty?(type), do: :badkey, else: {tag, type}
-  end
-
-  defp pop_not_set(type) do
+  defp pop_optional(type) do
     case type do
       %{bitmap: @bit_optional} ->
         {true, Map.delete(type, :bitmap)}
@@ -665,13 +669,6 @@ defmodule Module.Types.Descr do
 
       _ ->
         {false, type}
-    end
-  end
-
-  defp none_if_not_set(type) do
-    case type do
-      %{bitmap: bitmap} when (bitmap &&& @bit_optional) != 0 -> @none
-      _ -> type
     end
   end
 
