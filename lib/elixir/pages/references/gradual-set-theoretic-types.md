@@ -41,7 +41,7 @@ At this point, some may ask, why not a union? As a real-world example, take a t-
 
   * `(t_shirts_with_green() and t_shirts_with_yellow())` - contains t-shirts with both green and yellow (and also other colors)
 
-Since the t-shirt has both colors, we say it belongs to the intersection of both sets. The same way that a function that goes from `(integer() and integer())` and `(boolean() -> boolean())` is also an intersection. In practice, it does not make sense to define the union of two functions in Elixir, so the compiler will always point to the right direction.
+Since the t-shirt has both colors, we say it belongs to the intersection of both sets. The same way that a function that goes from `(integer() -> integer())` and `(boolean() -> boolean())` is also an intersection. In practice, it does not make sense to define the union of two functions in Elixir, so the compiler will always point to the right direction.
 
 Finally, we can also negate types by using `not`. For example, to express all atoms, except the atoms `:foo` and `:bar`, one can write: `atom() and not (:foo or :bar)`.
 
