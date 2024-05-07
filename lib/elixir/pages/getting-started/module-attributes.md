@@ -172,7 +172,7 @@ defmodule MyTest do
 end
 ```
 
-In the example above, `ExUnit` stores the value of `async: true` in a module attribute to change how the module is compiled. Tags also work as annotations and they can be supplied multiple times, thanks to Elixir's ability to [accumulate attribute](`Module.register_attribute/3`). Then yuou can use tags to setup and filter tests, such as avoiding executing Unix specific tests while running your test suite on Windows.
+In the example above, `ExUnit` stores the value of `async: true` in a module attribute to change how the module is compiled. Tags also work as annotations and they can be supplied multiple times, thanks to Elixir's ability to [accumulate attribute](`Module.register_attribute/3`). Then you can use tags to setup and filter tests, such as avoiding executing Unix specific tests while running your test suite on Windows.
 
 To fully understand how ExUnit works, we'd need macros, so we will revisit this pattern in the Meta-programming guide and learn how to use module attributes as storage for custom annotations.
 

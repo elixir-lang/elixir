@@ -148,7 +148,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_error(
       ["nofile:2:7: ", "implementation not provided for predefined def foo/0"],
       ~c"""
-      defmodule Kernel.ErrorsTest.FunctionWithoutDefition do
+      defmodule Kernel.ErrorsTest.FunctionWithoutDefinition do
         def foo
       end
       """
@@ -176,7 +176,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_error(
       ["nofile:2:12: ", "implementation not provided for predefined defmacro foo/1"],
       ~c"""
-      defmodule Kernel.ErrorsTest.GuardWithoutDefition do
+      defmodule Kernel.ErrorsTest.GuardWithoutDefinition do
         defguard foo(bar)
       end
       """
