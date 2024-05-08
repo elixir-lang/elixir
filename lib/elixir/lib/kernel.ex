@@ -1106,6 +1106,9 @@ defmodule Kernel do
   registered name, or a tuple in the form of `{registered_name, node}` for a
   registered name at another node.
 
+  For additional documentation, see the [`!` operator Erlang
+  documentation](https://www.erlang.org/doc/reference_manual/expressions#send).
+
   Inlined by the compiler.
 
   ## Examples
