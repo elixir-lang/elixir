@@ -195,9 +195,9 @@ defmodule Logger do
       should be logged. Defaults to `false`. This option only has an effect
       if `:handle_otp_reports` is true.
 
-     * `:metadata` - global primary metadata to be included in all log messages.
-      Defaults to `[]`. This can be overridden at the process level with `metadata/1`
-      or each on log call as desired.
+    * `:metadata` - key-value pairs of global primary metadata to be included
+      in all log messages. Defaults to `[]`. This can be overridden at the process
+      level with `metadata/1` or each on log call as desired.
 
   For example, to configure `Logger` to redirect all Erlang messages using a
   `config/config.exs` file:

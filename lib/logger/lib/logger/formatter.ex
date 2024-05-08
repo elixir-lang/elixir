@@ -103,8 +103,8 @@ defmodule Logger.Formatter do
       the metadata and must return `t:IO.chardata/0`.
       See the module docs for more information on `:format`.
 
-    * `:metadata` - the metadata to be printed by `$metadata`.
-      Defaults to an empty list (no metadata).
+    * `:metadata` - a list of metadata keys to be printed by
+      `$metadata`. Defaults to an empty list (no metadata).
       Setting `:metadata` to `:all` prints all metadata. See
       the "Metadata" section in the `Logger` documentation for
       more information.
