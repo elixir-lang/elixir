@@ -91,38 +91,47 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
   switch ($Arg) {
     { $_ -in @("-e", "-r", "-pr", "-pa", "-pz", "--eval", "--remsh", "--dot-iex", "--dbg") } {
       $ElixirParams.Add("$Arg $($Args[++$i])")
+      break
     }
 
     { $_ -in @("-v", "--version", "--no-halt") } {
       $ElixirParams.Add($Arg)
+      break
     }
 
     "--cookie" {
       $ErlangParams.Add("-setcookie $($Args[++$i])")
+      break
     }
 
     "--hidden" {
       $ErlangParams.Add("-hidden")
+      break
     }
 
     "--name" {
       $ErlangParams.Add("-name $($Args[++$i])")
+      break
     }
 
     "--sname" {
       $ErlangParams.Add("-sname $($Args[++$i])")
+      break
     }
 
     "--boot" {
       $ErlangParams.Add("-boot $($Args[++$i])")
+      break
     }
 
     "--erl-config" {
       $ErlangParams.Add("-config $($Args[++$i])")
+      break
     }
 
     "--vm-args" {
       $ErlangParams.Add("-args_file $($Args[++$i])")
+      break
     }
 
     "--logger-otp-reports" {
@@ -131,6 +140,7 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
 
         $ErlangParams.Add("-logger handle_otp_reports $($Args[++$i])")
       }
+      break
     }
 
     "--logger-sasl-reports" {
@@ -139,24 +149,29 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
 
         $ErlangParams.Add("-logger handle_sasl $($Args[++$i])")
       }
+      break
     }
 
     "--erl" {
       $BeforeExtras.Add($Args[++$i])
+      break
     }
 
     "--werl" {
       if ($IsWindows) {
         $ErlExec = "werl"
       }
+      break
     }
 
     "+iex" {
       $ElixirParams.Add("+iex")
       $UseIex = $true
+
+      break
     }
 
-    "+elixirc" { $ElixirParams.Add("+elixirc") }
+    "+elixirc" { $ElixirParams.Add("+elixirc"); break }
 
     "--rpc-eval" {
       $private:Key = $Args[++$i]
@@ -173,6 +188,7 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
       }
 
       $ElixirParams.Add("--rpc-eval $Key $Value")
+      break
     }
 
     "--boot-var" {
@@ -190,6 +206,7 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
       }
 
       $ErlangParams.Add("-boot_var $Key $Value")
+      break
     }
 
     "--pipe-to" {
@@ -197,10 +214,16 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
       $private:Value = $Args[++$i]
 
       Write-Warning "--pipe-to: Option is not yet supported. Ignoring $Key $Value"
+      break
     }
 
     Default {
-      $AllOtherParams.Add($Args[$i])
+      if ($Arg -is [string]) {
+        $AllOtherParams.Add($Arg)
+      } else {
+        $AllOtherParams.Add([string]::Join(",", $Arg))
+      }
+      break
     }
   }
 }
@@ -215,8 +238,8 @@ if ($null -eq $UseIEx) {
   $BeforeExtras.Insert(0, "-s elixir start_cli")
 }
 
-$BeforeExtras.Insert(0, "-noshell -elixir_root $(Join-Path $ScriptPath -ChildPath "../lib")")
 $BeforeExtras.Insert(0, "-pa $(Join-Path $ScriptPath -ChildPath "../lib/elixir/ebin")")
+$BeforeExtras.Insert(0, "-noshell -elixir_root $(Join-Path $ScriptPath -ChildPath "../lib")")
 
 # One MAY change ERTS_BIN= but you MUST NOT change
 # ERTS_BIN=$ERTS_BIN as it is handled by Elixir releases.
