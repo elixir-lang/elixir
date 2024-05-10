@@ -14,7 +14,7 @@ The following options are exclusive to IEx:
 
 It accepts all other options listed by "elixir --help".
 "@
-exit
+  exit
 }
 
 $ScriptPath = Split-Path -Parent $PSCommandPath
@@ -27,7 +27,8 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
 
   if ($Arg -is [string]) {
     $NewArgs += $Arg
-  } else {
+  }
+  else {
     $NewArgs += [string]::Join(",", $Arg)
   }
 }

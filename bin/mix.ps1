@@ -9,7 +9,8 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
 
   if ($Arg -is [string]) {
     $NewArgs += $Arg
-  } else {
+  }
+  else {
     $NewArgs += [string]::Join(",", $Arg)
   }
 }

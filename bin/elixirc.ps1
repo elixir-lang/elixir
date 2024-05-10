@@ -19,7 +19,7 @@ Usage: $ScriptName [elixir switches] [compiler switches] [.ex files]
 ** Options can be passed to the Erlang runtime using ELIXIR_ERL_OPTIONS
 ** Options can be passed to the Erlang compiler using ERL_COMPILER_OPTIONS
 "@
-exit
+  exit
 }
 
 $ScriptPath = Split-Path -Parent $PSCommandPath
@@ -33,7 +33,8 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
 
   if ($Arg -is [string]) {
     $NewArgs += $Arg
-  } else {
+  }
+  else {
     $NewArgs += [string]::Join(",", $Arg)
   }
 }

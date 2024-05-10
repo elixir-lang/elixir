@@ -220,7 +220,8 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
     Default {
       if ($Arg -is [string]) {
         $AllOtherParams.Add($Arg)
-      } else {
+      }
+      else {
         $AllOtherParams.Add([string]::Join(",", $Arg))
       }
       break
