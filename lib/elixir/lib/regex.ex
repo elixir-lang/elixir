@@ -184,7 +184,7 @@ defmodule Regex do
   check and recompile the regex if necessary.
   """
 
-  defstruct re_pattern: nil, source: "", opts: "", re_version: ""
+  defstruct re_pattern: nil, source: "", opts: [], re_version: ""
 
   @type t :: %__MODULE__{re_pattern: term, source: binary, opts: binary | [term]}
 
