@@ -691,7 +691,7 @@ defmodule Mix.Tasks.Test do
     :colors,
     :slowest,
     :slowest_modules,
-    :failures_manifest_file,
+    :failures_manifest_path,
     :only_test_ids,
     :test_location_relative_path,
     :exit_status,
@@ -776,11 +776,11 @@ defmodule Mix.Tasks.Test do
     opts =
       Keyword.put_new(
         opts,
-        :failures_manifest_file,
+        :failures_manifest_path,
         Path.join(Mix.Project.manifest_path(), @manifest_file_name)
       )
 
-    manifest_file = Keyword.get(opts, :failures_manifest_file)
+    manifest_file = Keyword.get(opts, :failures_manifest_path)
 
     if opts[:failed] do
       if opts[:stale] do

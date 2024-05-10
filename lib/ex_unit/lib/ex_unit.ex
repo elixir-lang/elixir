@@ -275,7 +275,7 @@ defmodule ExUnit do
     * `:exit_status` - specifies an alternate exit status to use when the test
       suite fails. Defaults to 2;
 
-    * `:failures_manifest_file` - specifies a path to the file used to store failures
+    * `:failures_manifest_path` - specifies a path to the file used to store failures
       between runs;
 
     * `:formatters` - the formatters that will print results,

@@ -40,18 +40,18 @@ defmodule Mix.Tasks.TestTest do
       assert ex_unit_opts([]) == [
                autorun: false,
                exit_status: 2,
-               failures_manifest_file:
+               failures_manifest_path:
                  Path.join(Mix.Project.manifest_path(), ".mix_test_failures")
              ]
     end
 
-    test "respect failures_manifest_file option" do
+    test "respect failures_manifest_path option" do
       custom_manifest_file = Path.join(Mix.Project.manifest_path(), ".mix_test_failures_custom")
 
-      assert ex_unit_opts(failures_manifest_file: custom_manifest_file) == [
+      assert ex_unit_opts(failures_manifest_path: custom_manifest_file) == [
                autorun: false,
                exit_status: 2,
-               failures_manifest_file: custom_manifest_file
+               failures_manifest_path: custom_manifest_file
              ]
     end
 
@@ -63,7 +63,7 @@ defmodule Mix.Tasks.TestTest do
     defp ex_unit_opts_from_given(passed) do
       passed
       |> ex_unit_opts()
-      |> Keyword.drop([:failures_manifest_file, :autorun, :exit_status])
+      |> Keyword.drop([:failures_manifest_path, :autorun, :exit_status])
     end
   end
 
