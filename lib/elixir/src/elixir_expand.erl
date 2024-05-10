@@ -152,6 +152,8 @@ expand({{'.', DotMeta, [{'__ENV__', Meta, Atom}, Field]}, CallMeta, []}, S, E)
     true  -> {maps:get(Field, Env), S, E};
     false -> {{{'.', DotMeta, [escape_map(Env), Field]}, CallMeta, []}, S, E}
   end;
+expand({'__cursor__', Meta, Args}, _S, E) when is_list(Args) ->
+  file_error(Meta, E, ?MODULE, '__cursor__');
 
 %% Quote
 
@@ -1302,6 +1304,8 @@ format_error({parens_map_lookup, Map, Field, Context}) ->
                 [Context, 'Elixir.Macro':to_string(Map), Field]);
 format_error({super_in_genserver, {Name, Arity}}) ->
   io_lib:format("calling super for GenServer callback ~ts/~B is deprecated", [Name, Arity]);
+format_error('__cursor__') ->
+  "reserved special form __cursor__ cannot be expanded, it is used exclusively to annotate ASTs";
 format_error({parallel_bitstring_match, Expr}) ->
   Message =
     "binary patterns cannot be matched in parallel using \"=\", excess pattern: ~ts",

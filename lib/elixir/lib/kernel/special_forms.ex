@@ -1757,6 +1757,15 @@ defmodule Kernel.SpecialForms do
   defmacro unquote(:__block__)(args), do: error!([args])
 
   @doc """
+  Internal special form for cursor position.
+
+  This is the special form used whenever we need to represent
+  the cursor position in Elixir's AST. See `Code.Fragment` for
+  more information.
+  """
+  defmacro unquote(:__cursor__)(args), do: error!([args])
+
+  @doc """
   Capture operator. Captures or creates an anonymous function.
 
   ## Capture
