@@ -123,7 +123,14 @@ defmodule Kernel.LexicalTracker do
 
   @doc false
   def handle_call(:unused_aliases, _from, state) do
-    {:reply, Enum.sort(state.aliases), state}
+    unused_aliases =
+      Enum.map(state.aliases, fn
+        {{:shadowed, module}, meta} -> {module, meta}
+        {module, meta} when is_atom(module) -> {module, meta}
+      end)
+      |> Enum.sort()
+
+    {:reply, unused_aliases, state}
   end
 
   def handle_call(:unused_imports, _from, state) do
@@ -220,6 +227,12 @@ defmodule Kernel.LexicalTracker do
 
   def handle_cast({:add_alias, module, meta, warn}, state) do
     if warn do
+      state =
+        case state do
+          %{aliases: %{^module => meta}} -> put_in(state.aliases[{:shadowed, module}], meta)
+          _ -> state
+        end
+
       {:noreply, put_in(state.aliases[module], meta)}
     else
       {:noreply, state}
