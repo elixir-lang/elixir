@@ -34,6 +34,12 @@ defmodule Kernel.AliasTest do
     assert Billing == :"Elixir.MyApp.Billing"
   end
 
+  test "overriding parent alias with child alias" do
+    alias MyApp.Billing
+    alias Billing.Billing
+    assert Billing == :"Elixir.MyApp.Billing.Billing"
+  end
+
   test "lexical" do
     if true_fun() do
       alias OMG, as: List, warn: false
