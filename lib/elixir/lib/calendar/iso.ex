@@ -230,9 +230,9 @@ defmodule Calendar.ISO do
       ]
     end
 
-  defguardp is_year(year) when year in -9999..9999
-  defguardp is_year_BCE(year) when year in -9999..0
-  defguardp is_year_CE(year) when year in 1..9999
+  defguardp is_year(year) when is_integer(year)
+  defguardp is_year_BCE(year) when year <= 0
+  defguardp is_year_CE(year) when year >= 1
   defguardp is_month(month) when month in 1..12
   defguardp is_day(day) when day in 1..31
   defguardp is_hour(hour) when hour in 0..23
