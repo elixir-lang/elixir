@@ -809,7 +809,7 @@ defmodule Calendar.ISO do
 
   # Converts count of days since 0000-01-01 to {year, month, day} tuple.
   @doc false
-  def date_from_iso_days(days) when days in -3_652_059..3_652_424 do
+  def date_from_iso_days(days) do
     {year, day_of_year} = days_to_year(days)
     extra_day = if leap_year?(year), do: 1, else: 0
     {month, day_in_month} = year_day_to_year_date(extra_day, day_of_year)
