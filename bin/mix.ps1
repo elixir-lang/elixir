@@ -1,23 +1,17 @@
-# Store path to mix.bat as a FileInfo object
-$mixBatPath = (Get-ChildItem (((Get-ChildItem $MyInvocation.MyCommand.Path).Directory.FullName) + '\mix.bat'))
-$newArgs = @()
+$ScriptPath = Split-Path -Parent $PSCommandPath
+$Command = Join-Path -Path $ScriptPath -ChildPath "elixir.ps1"
+$MixCommand = Join-Path -Path $ScriptPath -ChildPath "mix"
 
-for ($i = 0; $i -lt $args.length; $i++)
-{
-  if ($args[$i] -is [array])
-  {
-    # Commas created the array so we need to reintroduce those commas
-    for ($j = 0; $j -lt $args[$i].length - 1; $j++)
-    {
-      $newArgs += ($args[$i][$j] + ',')
-    }
-    $newArgs += $args[$i][-1]
-  }
-  else
-  {
-    $newArgs += $args[$i]
+$NewArgs = @($MixCommand)
+
+for ($i = 0; $i -lt $Args.Count; $i++) {
+  $Arg = $Args[$i]
+
+  if ($Arg -is [string]) {
+    $NewArgs += $Arg
+  } else {
+    $NewArgs += [string]::Join(",", $Arg)
   }
 }
 
-# Corrected arguments are ready to pass to batch file
-& $mixBatPath $newArgs
+Invoke-Expression "$Command $([string]::Join(" ", $NewArgs))"
