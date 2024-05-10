@@ -773,8 +773,14 @@ defmodule Mix.Tasks.Test do
   @manifest_file_name ".mix_test_failures"
 
   defp manifest_opts(opts) do
-    manifest_file = Path.join(Mix.Project.manifest_path(), @manifest_file_name)
-    opts = Keyword.put(opts, :failures_manifest_file, manifest_file)
+    opts =
+      Keyword.put_new(
+        opts,
+        :failures_manifest_file,
+        Path.join(Mix.Project.manifest_path(), @manifest_file_name)
+      )
+
+    manifest_file = Keyword.get(opts, :failures_manifest_file)
 
     if opts[:failed] do
       if opts[:stale] do

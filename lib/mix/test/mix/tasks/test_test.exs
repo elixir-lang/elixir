@@ -45,6 +45,16 @@ defmodule Mix.Tasks.TestTest do
              ]
     end
 
+    test "respect failures_manifest_file option" do
+      custom_manifest_file = Path.join(Mix.Project.manifest_path(), ".mix_test_failures_custom")
+
+      assert ex_unit_opts(failures_manifest_file: custom_manifest_file) == [
+               autorun: false,
+               exit_status: 2,
+               failures_manifest_file: custom_manifest_file
+             ]
+    end
+
     defp ex_unit_opts(opts) do
       {ex_unit_opts, _allowed_files} = Mix.Tasks.Test.process_ex_unit_opts(opts)
       ex_unit_opts
