@@ -1168,7 +1168,7 @@ defmodule Date do
     end
 
     def inspect(%{calendar: calendar, year: year, month: month, day: day}, _) do
-      "Date.new!(#{year}, #{month}, #{day},#{suffix(calendar)})"
+      "Date.new!(#{year}, #{month}, #{day}, #{inspect(calendar)})"
     end
 
     defp suffix(Calendar.ISO), do: ""
