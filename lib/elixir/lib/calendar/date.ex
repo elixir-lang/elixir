@@ -1164,11 +1164,11 @@ defmodule Date do
 
     def inspect(%{calendar: calendar, year: year, month: month, day: day}, _)
         when calendar == Calendar.ISO do
-      "Date.new!(#{year}, #{month}, #{day})"
+      "Date.new!(#{Integer.to_string(year)}, #{Integer.to_string(month)}, #{Integer.to_string(day)})"
     end
 
     def inspect(%{calendar: calendar, year: year, month: month, day: day}, _) do
-      "Date.new!(#{year}, #{month}, #{day}, #{inspect(calendar)})"
+      "Date.new!(#{Integer.to_string(year)}, #{Integer.to_string(month)}, #{Integer.to_string(day)}, #{inspect(calendar)})"
     end
 
     defp suffix(Calendar.ISO), do: ""
