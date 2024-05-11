@@ -230,9 +230,9 @@ defmodule Calendar.ISO do
       ]
     end
 
-  defguardp is_year(year) when year in -9999..9999
-  defguardp is_year_BCE(year) when year in -9999..0
-  defguardp is_year_CE(year) when year in 1..9999
+  defguardp is_year(year) when is_integer(year)
+  defguardp is_year_BCE(year) when year <= 0
+  defguardp is_year_CE(year) when year >= 1
   defguardp is_month(month) when month in 1..12
   defguardp is_day(day) when day in 1..31
   defguardp is_hour(hour) when hour in 0..23
@@ -809,7 +809,7 @@ defmodule Calendar.ISO do
 
   # Converts count of days since 0000-01-01 to {year, month, day} tuple.
   @doc false
-  def date_from_iso_days(days) when days in -3_652_059..3_652_424 do
+  def date_from_iso_days(days) do
     {year, day_of_year} = days_to_year(days)
     extra_day = if leap_year?(year), do: 1, else: 0
     {month, day_in_month} = year_day_to_year_date(extra_day, day_of_year)

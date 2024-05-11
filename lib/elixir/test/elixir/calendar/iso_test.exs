@@ -114,14 +114,6 @@ defmodule Calendar.ISOTest do
 
     random_positive_year = Enum.random(1..9999)
     assert Calendar.ISO.year_of_era(random_positive_year, 1, 1) == {random_positive_year, 1}
-
-    assert_raise FunctionClauseError, fn ->
-      Calendar.ISO.year_of_era(10000, 1, 1)
-    end
-
-    assert_raise FunctionClauseError, fn ->
-      Calendar.ISO.year_of_era(-10000, 12, 1)
-    end
   end
 
   defp iso_day_roundtrip(year, month, day) do

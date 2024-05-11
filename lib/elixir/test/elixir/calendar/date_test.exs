@@ -42,6 +42,14 @@ defmodule DateTest do
 
     assert to_string(%{date | calendar: FakeCalendar}) == "1/1/2000"
     assert Date.to_string(%{date | calendar: FakeCalendar}) == "1/1/2000"
+
+    date2 = Date.new!(5_874_897, 12, 31)
+    assert to_string(date2) == "5874897-12-31"
+    assert Date.to_string(date2) == "5874897-12-31"
+    assert Date.to_string(Map.from_struct(date2)) == "5874897-12-31"
+
+    assert to_string(%{date2 | calendar: FakeCalendar}) == "31/12/5874897"
+    assert Date.to_string(%{date2 | calendar: FakeCalendar}) == "31/12/5874897"
   end
 
   test "inspect/1" do
@@ -50,29 +58,56 @@ defmodule DateTest do
 
     date = %{~D[2000-01-01] | calendar: FakeCalendar}
     assert inspect(date) == "~D[1/1/2000 FakeCalendar]"
+
+    assert inspect(Date.new!(5_874_897, 12, 31)) == "Date.new!(5874897, 12, 31)"
+    assert inspect(Date.new!(-5_874_897, 1, 1)) == "Date.new!(-5874897, 1, 1)"
+
+    date2 = %{Date.new!(5_874_897, 12, 31) | calendar: FakeCalendar}
+
+    assert inspect(%{date2 | calendar: FakeCalendar}) ==
+             "Date.new!(5874897, 12, 31, FakeCalendar)"
   end
 
   test "compare/2" do
     date1 = ~D[-0001-12-30]
     date2 = ~D[-0001-12-31]
     date3 = ~D[0001-01-01]
+    date4 = Date.new!(5_874_897, 12, 31)
+    date5 = Date.new!(-4713, 1, 1)
+
     assert Date.compare(date1, date1) == :eq
     assert Date.compare(date1, date2) == :lt
     assert Date.compare(date2, date1) == :gt
     assert Date.compare(date3, date3) == :eq
     assert Date.compare(date2, date3) == :lt
     assert Date.compare(date3, date2) == :gt
+    assert Date.compare(date4, date1) == :gt
+    assert Date.compare(date1, date4) == :lt
+    assert Date.compare(date4, date4) == :eq
+    assert Date.compare(date4, date5) == :gt
+    assert Date.compare(date5, date4) == :lt
+    assert Date.compare(date5, date5) == :eq
   end
 
   test "before?/2 and after?/2" do
     date1 = ~D[2022-11-01]
     date2 = ~D[2022-11-02]
+    date3 = Date.new!(5_874_897, 12, 31)
+    date4 = Date.new!(-4713, 1, 1)
 
     assert Date.before?(date1, date2)
+    assert Date.before?(date1, date3)
+    assert Date.before?(date4, date1)
     assert not Date.before?(date2, date1)
+    assert not Date.before?(date3, date1)
+    assert not Date.before?(date1, date4)
 
     assert Date.after?(date2, date1)
+    assert Date.after?(date3, date2)
+    assert Date.after?(date2, date4)
     assert not Date.after?(date1, date2)
+    assert not Date.after?(date2, date3)
+    assert not Date.after?(date4, date2)
   end
 
   test "compare/2 across calendars" do
@@ -149,11 +184,7 @@ defmodule DateTest do
 
   test "add/2" do
     assert Date.add(~D[0000-01-01], 3_652_424) == ~D[9999-12-31]
-
-    assert_raise FunctionClauseError, fn ->
-      Date.add(~D[0000-01-01], 3_652_425)
-    end
-
+    assert Date.add(~D[0000-01-01], 3_652_425) == Date.new!(10000, 1, 1)
     assert Date.add(~D[0000-01-01], -1) == ~D[-0001-12-31]
     assert Date.add(~D[0000-01-01], -365) == ~D[-0001-01-01]
     assert Date.add(~D[0000-01-01], -366) == ~D[-0002-12-31]
@@ -161,10 +192,8 @@ defmodule DateTest do
     assert Date.add(~D[0000-01-01], -(365 * 5)) == ~D[-0005-01-02]
     assert Date.add(~D[0000-01-01], -(365 * 100)) == ~D[-0100-01-25]
     assert Date.add(~D[0000-01-01], -3_652_059) == ~D[-9999-01-01]
-
-    assert_raise FunctionClauseError, fn ->
-      Date.add(~D[0000-01-01], -3_652_060)
-    end
+    assert Date.add(~D[0000-01-01], -3_652_060) == Date.new!(-10000, 12, 31)
+    assert Date.add(Date.new!(5_874_897, 12, 31), 1) == Date.new!(5_874_898, 1, 1)
   end
 
   test "diff/2" do
@@ -173,6 +202,9 @@ defmodule DateTest do
 
     assert Date.diff(~D[0000-01-01], ~D[-0001-01-01]) == 365
     assert Date.diff(~D[-0003-01-01], ~D[-0004-01-01]) == 366
+
+    assert Date.diff(Date.new!(5_874_898, 1, 1), Date.new!(5_874_897, 1, 1)) == 365
+    assert Date.diff(Date.new!(5_874_905, 1, 1), Date.new!(5_874_904, 1, 1)) == 366
 
     date1 = ~D[2000-01-01]
     date2 = Calendar.Holocene.date(12000, 01, 14)
@@ -193,6 +225,17 @@ defmodule DateTest do
     assert Date.shift(~D[0000-01-01], year: -1) == ~D[-0001-01-01]
     assert Date.shift(~D[2000-01-01], month: 12) == ~D[2001-01-01]
     assert Date.shift(~D[0000-01-01], day: 2, year: 1, month: 37) == ~D[0004-02-03]
+
+    assert Date.shift(Date.new!(5_874_904, 2, 29), day: -1) == Date.new!(5_874_904, 2, 28)
+    assert Date.shift(Date.new!(5_874_904, 2, 29), month: -2) == Date.new!(5_874_903, 12, 29)
+    assert Date.shift(Date.new!(5_874_904, 2, 29), week: -9) == Date.new!(5_874_903, 12, 28)
+    assert Date.shift(Date.new!(5_874_904, 2, 29), month: 1) == Date.new!(5_874_904, 3, 29)
+    assert Date.shift(Date.new!(5_874_904, 2, 29), year: -1) == Date.new!(5_874_903, 2, 28)
+    assert Date.shift(Date.new!(5_874_904, 2, 29), year: -4) == Date.new!(5_874_900, 2, 28)
+    assert Date.shift(Date.new!(5_874_904, 2, 29), year: 4) == Date.new!(5_874_908, 2, 29)
+
+    assert Date.shift(Date.new!(5_874_904, 2, 29), day: 1, year: 4, month: 2) ==
+             Date.new!(5_874_908, 4, 30)
 
     assert_raise ArgumentError,
                  "unsupported unit :second. Expected :year, :month, :week, :day",
