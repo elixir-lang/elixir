@@ -122,7 +122,7 @@ defmodule Regex do
     * `:all_names` - captures all named subpattern matches in the Regex as a list
       ordered **alphabetically** by the names of the subpatterns
 
-    * `list(binary)` - a list of named captures to capture
+    * `list(binary | atom)` - a list of named captures to capture
 
   ## Character classes
 
@@ -186,7 +186,27 @@ defmodule Regex do
 
   defstruct re_pattern: nil, source: "", opts: [], re_version: ""
 
-  @type t :: %__MODULE__{re_pattern: term, source: binary, opts: binary | [term]}
+  @type re_option ::
+          :unicode
+          | :caseless
+          | :dotall
+          | :multiline
+          | :extended
+          | :firstline
+          | :ungreedy
+          | :anchored
+          | :dollar_endonly
+          | :no_auto_capture
+          | :newline
+
+  @type t :: %__MODULE__{re_pattern: term, source: binary, opts: binary | [re_option()]}
+
+  @type capture_option ::
+          :all | :first | :all_but_first | :none | :all_names | [binary() | atom()]
+  @type run_option ::
+          {:return, :binary | :index}
+          | {:capture, capture_option()}
+          | {:offset, non_neg_integer()}
 
   defmodule CompileError do
     @moduledoc """
@@ -222,7 +242,7 @@ defmodule Regex do
       {:ok, Regex.compile!("foo", [:caseless])}
 
   """
-  @spec compile(binary, binary | [term]) :: {:ok, t} | {:error, any}
+  @spec compile(binary, binary | [re_option()]) :: {:ok, t} | {:error, any}
   def compile(source, opts \\ "") when is_binary(source) do
     compile(source, opts, version())
   end
@@ -250,7 +270,7 @@ defmodule Regex do
   @doc """
   Compiles the regular expression and raises `Regex.CompileError` in case of errors.
   """
-  @spec compile!(binary, binary | [term]) :: t
+  @spec compile!(binary, binary | [re_option()]) :: t
   def compile!(source, options \\ "") when is_binary(source) do
     case compile(source, options) do
       {:ok, regex} -> regex
@@ -334,7 +354,7 @@ defmodule Regex do
 
     * `:return` - when set to `:index`, returns byte index and match length.
       Defaults to `:binary`.
-    * `:capture` - what to capture in the result. Check the moduledoc for `Regex`
+    * `:capture` - what to capture in the result. See the ["Captures" section](#module-captures)
       to see the possible capture values.
     * `:offset` - (since v1.12.0) specifies the starting offset to match in the given string.
       Defaults to zero.
@@ -350,8 +370,14 @@ defmodule Regex do
       iex> Regex.run(~r/c(d)/, "abcd", return: :index)
       [{2, 2}, {3, 1}]
 
+      iex> Regex.run(~r/c(d)/, "abcd", capture: :first)
+      ["cd"]
+
+      iex> Regex.run(~r/c(?<foo>d)/, "abcd", capture: ["foo", "bar"])
+      ["d", ""]
+
   """
-  @spec run(t, binary, [term]) :: nil | [binary] | [{integer, integer}]
+  @spec run(t, binary, [run_option()]) :: nil | [binary] | [{integer, integer}]
   def run(regex, string, options \\ [])
 
   def run(%Regex{} = regex, string, options) when is_binary(string) do
@@ -386,7 +412,7 @@ defmodule Regex do
       nil
 
   """
-  @spec named_captures(t, String.t(), [term]) :: map | nil
+  @spec named_captures(t, String.t(), [{:return, :binary | :index}]) :: map | nil
   def named_captures(regex, string, options \\ []) when is_binary(string) do
     names = names(regex)
     options = Keyword.put(options, :capture, names)
@@ -430,7 +456,7 @@ defmodule Regex do
       [:caseless]
 
   """
-  @spec opts(t) :: [term]
+  @spec opts(t) :: [re_option()]
   def opts(%Regex{opts: opts}) do
     opts
   end
@@ -470,7 +496,7 @@ defmodule Regex do
 
     * `:return` - when set to `:index`, returns byte index and match length.
       Defaults to `:binary`.
-    * `:capture` - what to capture in the result. Check the moduledoc for `Regex`
+    * `:capture` - what to capture in the result. See the ["Captures" section](#module-captures)
       to see the possible capture values.
     * `:offset` - (since v1.12.0) specifies the starting offset to match in the given string.
       Defaults to zero.
@@ -498,8 +524,11 @@ defmodule Regex do
       iex> Regex.scan(~r/=+/, "=ü†ƒ8===", return: :index)
       [[{0, 1}], [{9, 3}]]
 
+      iex> Regex.scan(~r/c(d|e)/, "abcd abce", capture: :first)
+      [["cd"], ["ce"]]
+
   """
-  @spec scan(t(), String.t(), [term()]) :: [[String.t()]] | [[{integer(), integer()}]]
+  @spec scan(t(), String.t(), [run_option()]) :: [[String.t()]] | [[{integer(), integer()}]]
   def scan(regex, string, options \\ [])
 
   def scan(%Regex{} = regex, string, options) when is_binary(string) do
@@ -549,7 +578,7 @@ defmodule Regex do
 
     * `:on` - specifies which captures to split the string on, and in what
       order. Defaults to `:first` which means captures inside the regex do not
-      affect the splitting process. Check the moduledoc for `Regex`
+      affect the splitting process. See the ["Captures" section](#module-captures)
       to see the possible capture values.
 
     * `:include_captures` - when `true`, includes in the result the matches of
@@ -582,8 +611,16 @@ defmodule Regex do
       iex> Regex.split(~r{a(?<second>b)c}, "abc", on: [:second], include_captures: true)
       ["a", "b", "c"]
 
+      iex> Regex.split(~r{-}, "-a-b--c", trim: true)
+      ["a", "b", "c"]
+
   """
-  @spec split(t, String.t(), [term]) :: [String.t()]
+  @spec split(t, String.t(), [
+          {:parts, pos_integer() | :infinity}
+          | {:trim, boolean()}
+          | {:on, capture_option()}
+          | {:include_captures, boolean()}
+        ]) :: [String.t()]
   def split(regex, string, options \\ [])
 
   def split(%Regex{}, "", opts) do
@@ -711,7 +748,8 @@ defmodule Regex do
       "Abcadc"
 
   """
-  @spec replace(t, String.t(), String.t() | (... -> String.t()), [term]) :: String.t()
+  @spec replace(t, String.t(), String.t() | (... -> String.t()), [{:global, boolean()}]) ::
+          String.t()
   def replace(%Regex{} = regex, string, replacement, options \\ [])
       when is_binary(string) and is_list(options) do
     opts = if Keyword.get(options, :global) != false, do: [:global], else: []
