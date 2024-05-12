@@ -615,12 +615,12 @@ defmodule Regex do
       ["a", "b", "c"]
 
   """
-  @spec split(t, String.t(), [
-          {:parts, pos_integer() | :infinity}
-          | {:trim, boolean()}
-          | {:on, capture_option()}
-          | {:include_captures, boolean()}
-        ]) :: [String.t()]
+  @spec split(t, String.t(),
+          parts: pos_integer() | :infinity,
+          trim: boolean(),
+          on: capture_option(),
+          include_captures: boolean()
+        ) :: [String.t()]
   def split(regex, string, options \\ [])
 
   def split(%Regex{}, "", opts) do
