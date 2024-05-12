@@ -748,7 +748,7 @@ defmodule Regex do
       "Abcadc"
 
   """
-  @spec replace(t, String.t(), String.t() | (... -> String.t()), [{:global, boolean()}]) ::
+  @spec replace(t, String.t(), String.t() | (... -> String.t()), global: boolean()) ::
           String.t()
   def replace(%Regex{} = regex, string, replacement, options \\ [])
       when is_binary(string) and is_list(options) do
