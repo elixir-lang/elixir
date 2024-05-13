@@ -281,4 +281,9 @@ if ($ErlExec -eq "werl") {
   $Command = "start `"`" $Command"
 }
 
-Write-Host $Command
+if ($Env:ELIXIR_CLI_DRY_RUN) {
+  Write-Host $Command
+}
+else {
+  Invoke-Expression $Command
+}
