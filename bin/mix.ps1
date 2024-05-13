@@ -1,3 +1,5 @@
+#!/usr/bin/env pwsh
+
 $ScriptPath = Split-Path -Parent $PSCommandPath
 $Command = Join-Path -Path $ScriptPath -ChildPath "elixir.ps1"
 $MixCommand = Join-Path -Path $ScriptPath -ChildPath "mix"

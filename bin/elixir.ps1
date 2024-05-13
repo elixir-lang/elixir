@@ -1,3 +1,5 @@
+#!/usr/bin/env pwsh
+
 $MinPowerShellVersion = [semver]::new(7, 2, 0)
 
 if ($MinPowerShellVersion.CompareTo($PSVersionTable.PSVersion) -eq 1) {

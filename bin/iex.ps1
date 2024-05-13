@@ -1,3 +1,5 @@
+#!/usr/bin/env pwsh
+
 $ScriptName = Split-Path -Leaf $PSCommandPath
 
 if ($Args[0] -in @("-h", "--help")) {
