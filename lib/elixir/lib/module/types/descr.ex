@@ -765,65 +765,52 @@ defmodule Module.Types.Descr do
   # Since the algorithm is recursive, we implement the short-circuiting
   # as throw/catch.
   defp map_empty?(dnf) do
-    try do
-      for {tag, pos, negs} <- dnf do
-        map_empty?(tag, pos, negs)
-      end
-
-      true
-    catch
-      :not_empty -> false
-    end
+    Enum.all?(dnf, fn {tag, pos, negs} -> map_empty?(tag, pos, negs) end)
   end
 
-  defp map_empty?(_, _, []), do: throw(:not_empty)
+  defp map_empty?(_, _, []), do: false
   defp map_empty?(_, _, [{:open, neg_fields} | _]) when neg_fields == %{}, do: true
   defp map_empty?(:open, fs, [{:closed, _} | negs]), do: map_empty?(:open, fs, negs)
 
   defp map_empty?(tag, fields, [{neg_tag, neg_fields} | negs]) do
-    try do
-      # Keys that are present in the negative map, but not in the positive one
-      for {neg_key, neg_type} <- neg_fields, not is_map_key(fields, neg_key) do
-        cond do
-          # The key is not shared between positive and negative maps,
-          # and because the negative type is required, there is no value in common
-          tag == :closed and not optional?(neg_type) ->
-            throw(:discard_negative)
+    (Enum.all?(neg_fields, fn {neg_key, neg_type} ->
+       cond do
+         # Keys that are present in the negative map, but not in the positive one
+         is_map_key(fields, neg_key) ->
+           true
 
-          # The key is not shared between positive and negative maps,
-          # but because the negative type is not required, there may be a value in common
-          tag == :closed ->
-            true
+         # The key is not shared between positive and negative maps,
+         # and because the negative type is required, there is no value in common
+         tag == :closed and not optional?(neg_type) ->
+           false
 
-          # There may be value in common
-          tag == :open ->
-            diff = difference(term_or_optional(), neg_type)
-            empty?(diff) or map_empty?(tag, Map.put(fields, neg_key, diff), negs)
-        end
-      end
+         # The key is not shared between positive and negative maps,
+         # but because the negative type is not required, there may be a value in common
+         tag == :closed ->
+           true
 
-      # Keys from the positive map that may be present in the negative one
-      for {key, type} <- fields do
-        case neg_fields do
-          %{^key => neg_type} ->
-            diff = difference(type, neg_type)
-            empty?(diff) or map_empty?(tag, Map.put(fields, key, diff), negs)
+         # There may be value in common
+         tag == :open ->
+           diff = difference(term_or_optional(), neg_type)
+           empty?(diff) or map_empty?(tag, Map.put(fields, neg_key, diff), negs)
+       end
+     end) and
+       Enum.all?(fields, fn {key, type} ->
+         case neg_fields do
+           %{^key => neg_type} ->
+             diff = difference(type, neg_type)
+             empty?(diff) or map_empty?(tag, Map.put(fields, key, diff), negs)
 
-          %{} ->
-            if neg_tag == :closed and not optional?(type) do
-              throw(:discard_negative)
-            else
-              # an absent key in a open negative map can be ignored
-              diff = difference(type, map_tag_to_type(neg_tag))
-              empty?(diff) or map_empty?(tag, Map.put(fields, key, diff), negs)
-            end
-        end
-      end
-
-      true
-    catch
-      :discard_negative -> map_empty?(tag, fields, negs)
-    end
+           %{} ->
+             if neg_tag == :closed and not optional?(type) do
+               false
+             else
+               # an absent key in a open negative map can be ignored
+               diff = difference(type, map_tag_to_type(neg_tag))
+               empty?(diff) or map_empty?(tag, Map.put(fields, key, diff), negs)
+             end
+         end
+       end)) or map_empty?(tag, fields, negs)
   end
 
   # Takes a map dnf and a key and returns a list of unions of types
