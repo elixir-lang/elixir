@@ -138,12 +138,12 @@ tokenize(String, Line, Opts) ->
 tokenize([], Line, Column, #elixir_tokenizer{cursor_completion=Cursor} = Scope, Tokens) when Cursor /= false ->
   #elixir_tokenizer{ascii_identifiers_only=Ascii, terminators=Terminators, warnings=Warnings} = Scope,
 
-  {CursorColumn, CursorTerminators, CursorTokens} =
+  {CursorColumn, CursorTerminators, AccTokens} =
     add_cursor(Line, Column, Cursor, Terminators, Tokens),
 
   AllWarnings = maybe_unicode_lint_warnings(Ascii, Tokens, Warnings),
-  AccTokens = cursor_complete(Line, CursorColumn, CursorTerminators, CursorTokens),
-  {ok, Line, Column, AllWarnings, AccTokens};
+  {AccTerminators, _AccColumn} = cursor_complete(Line, CursorColumn, CursorTerminators),
+  {ok, Line, CursorColumn, AllWarnings, AccTokens, AccTerminators};
 
 tokenize([], EndLine, EndColumn, #elixir_tokenizer{terminators=[{Start, {StartLine, StartColumn, _}, _} | _]} = Scope, Tokens) ->
   End = terminator(Start),
@@ -163,7 +163,7 @@ tokenize([], EndLine, EndColumn, #elixir_tokenizer{terminators=[{Start, {StartLi
 tokenize([], Line, Column, #elixir_tokenizer{} = Scope, Tokens) ->
   #elixir_tokenizer{ascii_identifiers_only=Ascii, warnings=Warnings} = Scope,
   AllWarnings = maybe_unicode_lint_warnings(Ascii, Tokens, Warnings),
-  {ok, Line, Column, AllWarnings, lists:reverse(Tokens)};
+  {ok, Line, Column, AllWarnings, Tokens, []};
 
 % VC merge conflict
 
@@ -1728,19 +1728,15 @@ error(Reason, Rest, #elixir_tokenizer{warnings=Warnings}, Tokens) ->
 
 %% Cursor handling
 
-cursor_complete(Line, Column, Terminators, Tokens) ->
-  {AccTokens, _} =
-    lists:foldl(
-      fun({Start, _, _}, {NewTokens, NewColumn}) ->
-        End = terminator(Start),
-        AccTokens = [{End, {Line, NewColumn, nil}} | NewTokens],
-        AccColumn = NewColumn + length(erlang:atom_to_list(End)),
-        {AccTokens, AccColumn}
-      end,
-      {Tokens, Column},
-      Terminators
-    ),
-  lists:reverse(AccTokens).
+cursor_complete(Line, Column, Terminators) ->
+  lists:mapfoldl(
+    fun({Start, _, _}, AccColumn) ->
+      End = terminator(Start),
+      {{End, {Line, AccColumn, nil}}, AccColumn + length(erlang:atom_to_list(End))}
+    end,
+    Column,
+    Terminators
+  ).
 
 add_cursor(_Line, Column, noprune, Terminators, Tokens) ->
   {Column, Terminators, Tokens};
@@ -1783,8 +1779,6 @@ prune_tokens([{'{', _} | Tokens], ['}' | Opener], Terminators) ->
 prune_tokens([{'<<', _} | Tokens], ['>>' | Opener], Terminators) ->
   prune_tokens(Tokens, Opener, Terminators);
 %%% Handle anonymous functions
-prune_tokens(Tokens, [], [{'fn', _, _} | Terminators]) ->
-  prune_tokens(drop_including(Tokens, 'fn'), [], Terminators);
 prune_tokens([{'(', _}, {capture_op, _, _} | Tokens], [], [{'(', _, _} | Terminators]) ->
   prune_tokens(Tokens, [], Terminators);
 %%% or it is time to stop...
@@ -1793,6 +1787,8 @@ prune_tokens([{';', _} | _] = Tokens, [], Terminators) ->
 prune_tokens([{'eol', _} | _] = Tokens, [], Terminators) ->
   {Tokens, Terminators};
 prune_tokens([{',', _} | _] = Tokens, [], Terminators) ->
+  {Tokens, Terminators};
+prune_tokens([{'fn', _} | _] = Tokens, [], Terminators) ->
   {Tokens, Terminators};
 prune_tokens([{'do', _} | _] = Tokens, [], Terminators) ->
   {Tokens, Terminators};
@@ -1827,7 +1823,3 @@ prune_tokens([_ | Tokens], Opener, Terminators) ->
   prune_tokens(Tokens, Opener, Terminators);
 prune_tokens([], [], Terminators) ->
   {[], Terminators}.
-
-drop_including([{Token, _} | Tokens], Token) -> Tokens;
-drop_including([_ | Tokens], Token) -> drop_including(Tokens, Token);
-drop_including([], _Token) -> [].

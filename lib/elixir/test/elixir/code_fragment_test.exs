@@ -1158,9 +1158,7 @@ defmodule CodeFragmentTest do
       assert cc2q!("foo(bar do baz ") == s2q!("foo(bar do baz(__cursor__()) end)")
       assert cc2q!("foo(bar do baz(") == s2q!("foo(bar do baz(__cursor__()) end)")
       assert cc2q!("foo(bar do baz bat,") == s2q!("foo(bar do baz(bat, __cursor__()) end)")
-
-      assert {:error, {_, "syntax error before: ", "'end'"}} =
-               CF.container_cursor_to_quoted("foo(bar do baz, bat")
+      assert cc2q!("foo(bar do baz, bat") == s2q!("foo(bar do baz, __cursor__() -> nil end)")
     end
 
     test "keyword lists" do
@@ -1232,11 +1230,11 @@ defmodule CodeFragmentTest do
     end
 
     test "removes anonymous functions" do
-      assert cc2q!("(fn") == s2q!("(__cursor__())")
-      assert cc2q!("(fn x") == s2q!("(__cursor__())")
-      assert cc2q!("(fn x ->") == s2q!("(__cursor__())")
-      assert cc2q!("(fn x -> x") == s2q!("(__cursor__())")
-      assert cc2q!("(fn x, y -> x + y") == s2q!("(__cursor__())")
+      assert cc2q!("(fn") == s2q!("(fn __cursor__() -> nil end)")
+      assert cc2q!("(fn x") == s2q!("(fn __cursor__() -> nil end)")
+      assert cc2q!("(fn x ->") == s2q!("(fn x -> __cursor__() end)")
+      assert cc2q!("(fn x -> x") == s2q!("(fn x -> __cursor__() end)")
+      assert cc2q!("(fn x, y -> x + y") == s2q!("(fn x, y -> x + __cursor__() end)")
       assert cc2q!("(fn x, y -> x + y end") == s2q!("(__cursor__())")
     end
 

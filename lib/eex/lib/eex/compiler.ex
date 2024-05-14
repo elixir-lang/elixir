@@ -71,10 +71,10 @@ defmodule EEx.Compiler do
       {:ok, expr, new_line, new_column, rest} ->
         {key, expr} =
           case :elixir_tokenizer.tokenize(expr, 1, file: "eex", check_terminators: false) do
-            {:ok, _line, _column, _warnings, tokens} ->
+            {:ok, _line, _column, _warnings, rev_tokens, []} ->
               # We ignore warnings because the code will be tokenized
               # again later with the right line+column info
-              token_key(tokens, expr)
+              token_key(rev_tokens, expr)
 
             {:error, _, _, _, _} ->
               {:expr, expr}
@@ -164,8 +164,8 @@ defmodule EEx.Compiler do
   end
 
   # Receives tokens and check if it is a start, middle or an end token.
-  defp token_key(tokens, expr) do
-    case {tokens, tokens |> Enum.reverse() |> drop_eol()} do
+  defp token_key(rev_tokens, expr) do
+    case {Enum.reverse(rev_tokens), drop_eol(rev_tokens)} do
       {[{:end, _} | _], [{:do, _} | _]} ->
         {:middle_expr, expr}
 
