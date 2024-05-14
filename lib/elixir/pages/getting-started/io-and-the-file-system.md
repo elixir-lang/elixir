@@ -27,6 +27,10 @@ hello world
 
 The `File` module contains functions that allow us to open files as IO devices. By default, files are opened in binary mode, which requires developers to use the specific `IO.binread/2` and `IO.binwrite/2` functions from the `IO` module:
 
+> #### Potential Data Loss Warning {: .warning}
+> 
+> The following code opens a file for writing. Be mindful that providing an incorrect file path will lead to the unintended deletion of the file's contents. Always verify the accuracy of the file path to avoid data loss.
+
 ```elixir
 iex> {:ok, file} = File.open("path/to/file/hello", [:write])
 {:ok, #PID<0.47.0>}
@@ -94,6 +98,10 @@ With this, we have covered the main modules that Elixir provides for dealing wit
 ## Processes
 
 You may have noticed that `File.open/2` returns a tuple like `{:ok, pid}`:
+
+> #### Potential Data Loss Warning {: .warning}
+> 
+> The following code opens a file for writing. Be mindful that providing an incorrect file path will lead to the unintended deletion of the file's contents. Always verify the accuracy of the file path to avoid data loss.
 
 ```elixir
 iex> {:ok, file} = File.open("hello", [:write])
