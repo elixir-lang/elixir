@@ -570,6 +570,7 @@ defmodule ModuleTest do
     test "returns a list when the attribute is marked as `accumulate: true`" do
       in_module do
         Module.register_attribute(__MODULE__, :value, accumulate: true)
+        assert Module.get_attribute(__MODULE__, :value) == []
         Module.put_attribute(__MODULE__, :value, 1)
         assert Module.get_attribute(__MODULE__, :value) == [1]
         Module.put_attribute(__MODULE__, :value, 2)
@@ -584,6 +585,19 @@ defmodule ModuleTest do
         assert Module.get_attribute(__MODULE__, :attribute, :default) == 1
         Module.put_attribute(__MODULE__, :attribute, nil)
         assert Module.get_attribute(__MODULE__, :attribute, :default) == nil
+      end
+    end
+
+    test "returns the value of the attribute if persisted" do
+      in_module do
+        Module.register_attribute(__MODULE__, :value, persist: true)
+        assert Module.get_attribute(__MODULE__, :value, 123) == 123
+        Module.put_attribute(__MODULE__, :value, 1)
+        assert Module.get_attribute(__MODULE__, :value) == 1
+        Module.put_attribute(__MODULE__, :value, 2)
+        assert Module.get_attribute(__MODULE__, :value) == 2
+        Module.delete_attribute(__MODULE__, :value)
+        assert Module.get_attribute(__MODULE__, :value, 123) == 123
       end
     end
 

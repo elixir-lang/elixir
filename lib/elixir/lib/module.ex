@@ -1960,6 +1960,9 @@ defmodule Module do
     {set, bag} = data_tables_for(module)
 
     case :ets.lookup(set, key) do
+      [{_, _, :unset, _}] ->
+        default
+
       [{_, _, :accumulate, traces}] ->
         trace_attribute(trace?, module, traces, set, key, [])
         lookup_accumulate_attribute(bag, key, default, last_accumulated?)
