@@ -27,6 +27,10 @@ hello world
 
 The `File` module contains functions that allow us to open files as IO devices. By default, files are opened in binary mode, which requires developers to use the specific `IO.binread/2` and `IO.binwrite/2` functions from the `IO` module:
 
+> #### Potential data loss warning {: .warning}
+>
+> The following code opens a file for writing. If an existing file is available at the given path, its contents will be deleted.
+
 ```elixir
 iex> {:ok, file} = File.open("path/to/file/hello", [:write])
 {:ok, #PID<0.47.0>}
@@ -38,7 +42,7 @@ iex> File.read("path/to/file/hello")
 {:ok, "world"}
 ```
 
-A file can also be opened with `:utf8` encoding, which tells the `File` module to interpret the bytes read from the file as UTF-8-encoded bytes.
+The file could be opened with the `:append` option, instead of `:write`, to preserve its contents. You may also pass the `:utf8` option, which tells the `File` module to interpret the bytes read from the file as UTF-8-encoded bytes.
 
 Besides functions for opening, reading and writing files, the `File` module has many functions to work with the file system. Those functions are named after their UNIX equivalents. For example, `File.rm/1` can be used to remove files, `File.mkdir/1` to create directories, `File.mkdir_p/1` to create directories and all their parent chain. There are even `File.cp_r/2` and `File.rm_rf/1` to respectively copy and remove files and directories recursively (i.e., copying and removing the contents of the directories too).
 
@@ -96,7 +100,7 @@ With this, we have covered the main modules that Elixir provides for dealing wit
 You may have noticed that `File.open/2` returns a tuple like `{:ok, pid}`:
 
 ```elixir
-iex> {:ok, file} = File.open("hello", [:write])
+iex> {:ok, file} = File.open("hello")
 {:ok, #PID<0.47.0>}
 ```
 
