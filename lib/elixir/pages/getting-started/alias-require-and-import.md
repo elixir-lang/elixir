@@ -1,4 +1,4 @@
-# alias, require, and import
+# alias, require, import and use
 
 In order to facilitate software reuse, Elixir provides three directives (`alias`, `require` and `import`) plus a macro called `use` summarized below:
 
