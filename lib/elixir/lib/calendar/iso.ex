@@ -1875,11 +1875,22 @@ defmodule Calendar.ISO do
 
   defp days_in_previous_years(0), do: 0
 
-  defp days_in_previous_years(year) do
+  # A concise version of the algorithm would use floor_div instead of div.
+  # However, floor_div would check the operands on every operation.
+  # We optimize this by providing a positive and negative version of each algorithm.
+  defp days_in_previous_years(year) when year > 0 do
     previous_year = year - 1
 
-    Integer.floor_div(previous_year, 4) - Integer.floor_div(previous_year, 100) +
-      Integer.floor_div(previous_year, 400) + previous_year * @days_per_nonleap_year +
+    div(previous_year, 4) - div(previous_year, 100) +
+      div(previous_year, 400) + previous_year * @days_per_nonleap_year +
+      @days_per_leap_year
+  end
+
+  defp days_in_previous_years(year) when year < 0 do
+    previous_year = year - 1
+
+    div(year, 4) - div(year, 100) +
+      div(year, 400) - 1 + previous_year * @days_per_nonleap_year +
       @days_per_leap_year
   end
 

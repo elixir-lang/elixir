@@ -161,7 +161,7 @@ defmodule Integer do
   @doc since: "1.4.0"
   @spec floor_div(integer, neg_integer | pos_integer) :: integer
   def floor_div(dividend, divisor) do
-    if dividend * divisor < 0 and rem(dividend, divisor) != 0 do
+    if :erlang.xor(dividend < 0, divisor < 0) and rem(dividend, divisor) != 0 do
       div(dividend, divisor) - 1
     else
       div(dividend, divisor)
