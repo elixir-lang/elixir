@@ -36,7 +36,7 @@ We focused on atoms and maps on this initial release as they are respectively th
 
   * Accessing a field that is not defined in a rescued exception
 
-These new warnings help Elixir developers find bugs earlier and give more confidence when refactoring code, especially around maps and structs. While some of these warnings were emitted in the past, they were discovered using syntax analysis. The new warnings are more reliable, precise, and with better error messages.
+These new warnings help Elixir developers find bugs earlier and give more confidence when refactoring code, especially around maps and structs. While some of these warnings were emitted in the past, they were discovered using syntax analysis. The new warnings are more reliable, precise, and with better error messages. Keep in mind that not all maps have statically known keys, and the Elixir typechecker does not track types across all variables and function calls yet.
 
 Future Elixir versions will continue inferring more types and type checking more constructs, bringing Elixir developers more warnings and quality of life improvements without changes to code. For more details, see our new [reference document on gradual set-theoretic types](https://hexdocs.pm/elixir/main/gradual-set-theoretic-types.html).
 
