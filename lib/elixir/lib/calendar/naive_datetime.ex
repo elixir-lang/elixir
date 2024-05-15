@@ -1058,10 +1058,16 @@ defmodule NaiveDateTime do
         calendar \\ Calendar.ISO
       )
       when is_integer(seconds) do
-    iso_days = Calendar.ISO.gregorian_seconds_to_iso_days(seconds, microsecond)
-
     {year, month, day, hour, minute, second, {microsecond, _}} =
-      calendar.naive_datetime_from_iso_days(iso_days)
+      case calendar do
+        Calendar.ISO ->
+          # Optimized version that skips unnecessary iso days conversion
+          Calendar.ISO.gregorian_seconds_to_naive_datetime(seconds, microsecond)
+
+        _ ->
+          iso_days = Calendar.ISO.gregorian_seconds_to_iso_days(seconds, microsecond)
+          calendar.naive_datetime_from_iso_days(iso_days)
+      end
 
     %NaiveDateTime{
       calendar: calendar,

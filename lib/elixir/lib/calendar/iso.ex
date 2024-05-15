@@ -1773,6 +1773,15 @@ defmodule Calendar.ISO do
   end
 
   @doc false
+  def gregorian_seconds_to_naive_datetime(seconds, microsecond) do
+    {days, seconds} = div_rem(seconds, @seconds_per_day)
+    {hours, seconds} = div_rem(seconds, @seconds_per_hour)
+    {minutes, seconds} = div_rem(seconds, @seconds_per_minute)
+    {year, month, day} = date_from_iso_days(days)
+    {year, month, day, hours, minutes, seconds, {microsecond, 6}}
+  end
+
+  @doc false
   def iso_days_to_unit({days, {parts, ppd}}, unit) do
     day_microseconds = days * @parts_per_day
     microseconds = divide_by_parts_per_day(parts, ppd)
