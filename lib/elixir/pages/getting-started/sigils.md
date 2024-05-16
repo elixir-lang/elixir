@@ -235,6 +235,6 @@ iex> ~i(42)n
 -42
 ```
 
-Custom sigils may be either a single lowercase character or a uppercase letter followed by more uppercase letter and digits.
+Custom sigils may be either a single lowercase character or a uppercase character followed by more uppercase characters and digits.
 
 Sigils can also be used to do compile-time work with the help of macros. For example, regular expressions in Elixir are compiled into an efficient representation during compilation of the source code, therefore skipping this step at runtime. If you're interested in the subject, you can learn more about macros and check out how sigils are implemented in the `Kernel` module (where the `sigil_*` functions are defined).
