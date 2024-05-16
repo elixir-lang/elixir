@@ -178,7 +178,7 @@ defmodule Kernel.ParserTest do
 
     test "invalid multi-letter sigils" do
       msg =
-        ~r/invalid sigil name, it should be either a one-letter lowercase letter or a uppercase letter optionally followed by uppercase letters and digits/
+        ~r/invalid sigil name, it should be either a one-letter lowercase letter or an uppercase letter optionally followed by uppercase letters and digits/
 
       assert_syntax_error(["nofile:1:1:", msg], "~Regex/foo/")
 
