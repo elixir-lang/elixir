@@ -40,8 +40,8 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
-  def add_alias(pid, module, meta, warn, function) when is_atom(module) do
-    :gen_server.cast(pid, {:add_alias, module, meta, warn, function})
+  def add_alias(pid, module, meta, warn_mode) when is_atom(module) do
+    :gen_server.cast(pid, {:add_alias, module, meta, warn_mode})
   end
 
   @doc false
@@ -225,12 +225,12 @@ defmodule Kernel.LexicalTracker do
     end
   end
 
-  def handle_cast({:add_alias, module, meta, warn, function}, state) do
-    if warn do
+  def handle_cast({:add_alias, module, meta, warn_mode}, state) do
+    if warn_mode != :never do
       state =
         case state do
           # we only track shadowed unused aliases at the top-level
-          %{aliases: %{^module => meta}} when function == nil ->
+          %{aliases: %{^module => meta}} when warn_mode == :always ->
             put_in(state.aliases[{:shadowed, module}], meta)
 
           _ ->
