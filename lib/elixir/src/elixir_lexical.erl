@@ -41,12 +41,7 @@ trace({import, Meta, Module, Opts}, #{lexical_tracker := Pid}) ->
   ?tracker:add_import(Pid, Module, Only, Meta, Imported and should_warn(Meta, Opts)),
   ok;
 trace({alias, Meta, _Old, New, Opts}, #{lexical_tracker := Pid, function := Function}) ->
-  WarnMode = case should_warn(Meta, Opts) of
-    true when Function == nil -> always;
-    true -> except_unused_shadowed;
-    false -> never
-  end,
-  ?tracker:add_alias(Pid, New, Meta, WarnMode),
+  ?tracker:add_alias(Pid, New, Meta, should_warn(Meta, Opts), Function),
   ok;
 trace({alias_expansion, _Meta, Lookup, _Result}, #{lexical_tracker := Pid}) ->
   ?tracker:alias_dispatch(Pid, Lookup),
