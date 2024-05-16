@@ -52,7 +52,7 @@ defmodule Kernel.LexicalTrackerTest do
   end
 
   test "can add aliases", config do
-    D.add_alias(config[:pid], String, 1, true, nil)
+    D.add_alias(config[:pid], String, 1, true, false)
     D.alias_dispatch(config[:pid], String)
     assert D.references(config[:pid]) == {[], [], [], []}
   end
@@ -93,18 +93,18 @@ defmodule Kernel.LexicalTrackerTest do
   end
 
   test "unused aliases", config do
-    D.add_alias(config[:pid], String, 1, true, nil)
+    D.add_alias(config[:pid], String, 1, true, false)
     assert D.collect_unused_aliases(config[:pid]) == [{String, 1}]
   end
 
   test "used aliases are not unused", config do
-    D.add_alias(config[:pid], String, 1, true, nil)
+    D.add_alias(config[:pid], String, 1, true, false)
     D.alias_dispatch(config[:pid], String)
     assert D.collect_unused_aliases(config[:pid]) == []
   end
 
   test "aliases with no warn are not unused", config do
-    D.add_alias(config[:pid], String, 1, false, nil)
+    D.add_alias(config[:pid], String, 1, false, false)
     assert D.collect_unused_aliases(config[:pid]) == []
   end
 

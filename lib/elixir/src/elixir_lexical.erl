@@ -41,7 +41,7 @@ trace({import, Meta, Module, Opts}, #{lexical_tracker := Pid}) ->
   ?tracker:add_import(Pid, Module, Only, Meta, Imported and should_warn(Meta, Opts)),
   ok;
 trace({alias, Meta, _Old, New, Opts}, #{lexical_tracker := Pid, function := Function}) ->
-  ?tracker:add_alias(Pid, New, Meta, should_warn(Meta, Opts), Function),
+  ?tracker:add_alias(Pid, New, Meta, should_warn(Meta, Opts), Function /= nil),
   ok;
 trace({alias_expansion, _Meta, Lookup, _Result}, #{lexical_tracker := Pid}) ->
   ?tracker:alias_dispatch(Pid, Lookup),
