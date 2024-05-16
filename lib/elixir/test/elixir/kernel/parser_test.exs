@@ -169,17 +169,22 @@ defmodule Kernel.ParserTest do
       args = {:sigil_FOO1, meta, [{:<<>>, [indentation: 0, line: 1], ["1,2,3\n"]}, []]}
       assert string_to_quoted.("~FOO1\"\"\"\n1,2,3\n\"\"\"") == args
 
+      args = {:sigil_BAR321, meta, [{:<<>>, [indentation: 0, line: 1], ["1,2,3\n"]}, []]}
+      assert string_to_quoted.("~BAR321\"\"\"\n1,2,3\n\"\"\"") == args
+
       args = {:sigil_I18N, meta, [{:<<>>, [indentation: 0, line: 1], ["1,2,3\n"]}, []]}
       assert string_to_quoted.("~I18N\"\"\"\n1,2,3\n\"\"\"") == args
     end
 
     test "invalid multi-letter sigils" do
       msg =
-        ~r/invalid sigil name, it should be either a one-letter lowercase letter or a sequence of uppercase letters only/
+        ~r/invalid sigil name, it should be either a one-letter lowercase letter or a uppercase letter optionally followed by uppercase letters and digits/
 
       assert_syntax_error(["nofile:1:1:", msg], "~Regex/foo/")
 
-      assert_syntax_error(["nofile:1:1:", msg], "~FOo1/bar/")
+      assert_syntax_error(["nofile:1:1:", msg], "~FOo1{bar]")
+
+      assert_syntax_error(["nofile:1:1:", msg], "~foo1{bar]")
     end
 
     test "sigil newlines" do
