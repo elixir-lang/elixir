@@ -910,23 +910,6 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "does not warn when shadowing alias in nested block" do
-    assert capture_compile("""
-           defmodule Sample do
-             alias Foo.Baz
-
-             def foo do
-               alias Bar.Baz
-               Baz
-             end
-
-             def baz, do: Baz
-           end
-           """) == ""
-  after
-    purge(Sample)
-  end
-
   test "unused inside dynamic module" do
     import List, only: [flatten: 1], warn: false
 
