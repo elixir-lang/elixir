@@ -1572,7 +1572,7 @@ tokenize_lower_sigil_name(T, NameAcc, Line, Column, Scope, Tokens) ->
 
 % If we have an uppercase letter, we keep tokenizing the name.
 % A digit is allowed but an uppercase letter or digit must proceed it.
-tokenize_upper_sigil_name([S | T], NameAcc, Line, Column, Scope, Tokens) when ?is_upcase(S) orelse ?is_digit(S) ->
+tokenize_upper_sigil_name([S | T], NameAcc, Line, Column, Scope, Tokens) when ?is_upcase(S); ?is_digit(S) ->
   tokenize_upper_sigil_name(T, [S | NameAcc], Line, Column + 1, Scope, Tokens);
 % With a lowercase letter and a non-empty NameAcc we return an error.
 tokenize_upper_sigil_name([S | _T] = Original, [_ | _] = NameAcc, _Line, _Column, _Scope, _Tokens) when ?is_downcase(S) ->
