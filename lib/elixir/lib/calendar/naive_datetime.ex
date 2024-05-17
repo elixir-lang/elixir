@@ -1073,17 +1073,6 @@ defmodule NaiveDateTime do
     }
   end
 
-  defp div_rem(int1, int2) do
-    div = div(int1, int2)
-    rem = int1 - div * int2
-
-    if rem >= 0 do
-      {div, rem}
-    else
-      {div - 1, rem + int2}
-    end
-  end
-
   def from_gregorian_seconds(seconds, {microsecond, precision}, calendar)
       when is_integer(seconds) do
     iso_days = Calendar.ISO.gregorian_seconds_to_iso_days(seconds, microsecond)
@@ -1101,6 +1090,17 @@ defmodule NaiveDateTime do
       second: second,
       microsecond: {microsecond, precision}
     }
+  end
+
+  defp div_rem(int1, int2) do
+    div = div(int1, int2)
+    rem = int1 - div * int2
+
+    if rem >= 0 do
+      {div, rem}
+    else
+      {div - 1, rem + int2}
+    end
   end
 
   @doc """
