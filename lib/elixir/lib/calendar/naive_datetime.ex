@@ -1052,22 +1052,44 @@ defmodule NaiveDateTime do
   """
   @doc since: "1.11.0"
   @spec from_gregorian_seconds(integer(), Calendar.microsecond(), Calendar.calendar()) :: t
-  def from_gregorian_seconds(
-        seconds,
-        {microsecond, precision} \\ {0, 0},
-        calendar \\ Calendar.ISO
-      )
-      when is_integer(seconds) do
-    {year, month, day, hour, minute, second, {microsecond, _}} =
-      case calendar do
-        Calendar.ISO ->
-          # Optimized version that skips unnecessary iso days conversion
-          Calendar.ISO.gregorian_seconds_to_naive_datetime(seconds, microsecond)
+  def from_gregorian_seconds(seconds, microsecond_precision \\ {0, 0}, calendar \\ Calendar.ISO)
 
-        _ ->
-          iso_days = Calendar.ISO.gregorian_seconds_to_iso_days(seconds, microsecond)
-          calendar.naive_datetime_from_iso_days(iso_days)
-      end
+  def from_gregorian_seconds(seconds, {microsecond, precision}, Calendar.ISO)
+      when is_integer(seconds) do
+    {days, seconds} = div_rem(seconds, 24 * 60 * 60)
+    {hours, seconds} = div_rem(seconds, 60 * 60)
+    {minutes, seconds} = div_rem(seconds, 60)
+    {year, month, day} = Calendar.ISO.date_from_iso_days(days)
+
+    %NaiveDateTime{
+      calendar: Calendar.ISO,
+      year: year,
+      month: month,
+      day: day,
+      hour: hours,
+      minute: minutes,
+      second: seconds,
+      microsecond: {microsecond, precision}
+    }
+  end
+
+  defp div_rem(int1, int2) do
+    div = div(int1, int2)
+    rem = int1 - div * int2
+
+    if rem >= 0 do
+      {div, rem}
+    else
+      {div - 1, rem + int2}
+    end
+  end
+
+  def from_gregorian_seconds(seconds, {microsecond, precision}, calendar)
+      when is_integer(seconds) do
+    iso_days = Calendar.ISO.gregorian_seconds_to_iso_days(seconds, microsecond)
+
+    {year, month, day, hour, minute, second, {microsecond, _}} =
+      calendar.naive_datetime_from_iso_days(iso_days)
 
     %NaiveDateTime{
       calendar: calendar,
