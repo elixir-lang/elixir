@@ -1583,8 +1583,8 @@ tokenize_upper_sigil_name(T, NameAcc, Line, Column, Scope, Tokens) ->
   {ok, lists:reverse(NameAcc), T, Line, Column, Scope, Tokens}.
 
 sigil_name_error() ->
-  "invalid sigil name, it should be either a one-letter lowercase letter or a" ++
-  " uppercase letter optionally followed by uppercase letters and digits, got: ".
+  "invalid sigil name, it should be either a one-letter lowercase letter or an " ++
+  "uppercase letter optionally followed by uppercase letters and digits, got: ".
 
 tokenize_sigil_contents([H, H, H | T] = Original, [S | _] = SigilName, Line, Column, Scope, Tokens)
     when ?is_quote(H) ->
