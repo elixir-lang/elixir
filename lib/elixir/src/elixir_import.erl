@@ -157,7 +157,10 @@ is_sigil({Name, 2}) ->
       case Letters of
         [L] when L >= $a, L =< $z -> true;
         [] -> false;
-        Letters -> lists:all(fun(L) -> L >= $A andalso L =< $Z end, Letters)
+        [H|T] when H >= $A, H =< $Z ->
+              lists:all(fun(L) -> (L >= $0 andalso L =< $9)
+                                  orelse (L>= $A andalso L =< $Z)
+                        end, T)
       end;
     _ ->
       false
