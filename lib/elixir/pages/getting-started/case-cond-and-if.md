@@ -67,51 +67,10 @@ iex> case :ok do
 
 The documentation for the `Kernel` module lists all available guards in its sidebar. You can also consult the complete [Patterns and Guards](../references/patterns-and-guards.md#guards) reference for in-depth documentation.
 
-## cond
-
-`case` is useful when you need to match against different values. However, in many circumstances, we want to check different conditions and find the first one that does not evaluate to `nil` or `false`. In such cases, one may use `cond`:
-
-```elixir
-iex> cond do
-...>   2 + 2 == 5 ->
-...>     "This will not be true"
-...>   2 * 2 == 3 ->
-...>     "Nor this"
-...>   1 + 1 == 2 ->
-...>     "But this will"
-...> end
-"But this will"
-```
-
-This is equivalent to `else if` clauses in many imperative languages - although used less frequently in Elixir.
-
-If all of the conditions return `nil` or `false`, an error (`CondClauseError`) is raised. For this reason, it may be necessary to add a final condition, equal to `true`, which will always match:
-
-```elixir
-iex> cond do
-...>   2 + 2 == 5 ->
-...>     "This is never true"
-...>   2 * 2 == 3 ->
-...>     "Nor this"
-...>   true ->
-...>     "This is always true (equivalent to else)"
-...> end
-"This is always true (equivalent to else)"
-```
-
-Finally, note `cond` considers any value besides `nil` and `false` to be true:
-
-```elixir
-iex> cond do
-...>   hd([1, 2, 3]) ->
-...>     "1 is considered as true"
-...> end
-"1 is considered as true"
-```
-
 ## if/unless
 
-Besides `case` and `cond`, Elixir also provides `if/2` and `unless/2`, which are useful when you need to check for only one condition:
+
+`case` builds on pattern matching and guards to destructure and match on certain conditions. However, patterns and guards are limited only to certain expressions which are optimized by the compiler. In many situations, you need to write conditions that go beyond what can be expressed with `case`. For those, `if/2` (and `unless/2`) are useful alternatives:
 
 ```elixir
 iex> if true do
@@ -126,7 +85,7 @@ nil
 
 If the condition given to `if/2` returns `false` or `nil`, the body given between `do`-`end` is not executed and instead it returns `nil`. The opposite happens with `unless/2`.
 
-They also support `else` blocks:
+They also support `else` blocks (although using `else` with `unless` is generally discouraged):
 
 ```elixir
 iex> if nil do
@@ -167,5 +126,50 @@ iex> x = if true do
 >
 > An interesting note regarding `if/2` and `unless/2` is that they are implemented as macros in the language: they aren't special language constructs as they would be in many languages. You can check the documentation and their source for more information.
 
-We have concluded the introduction to the most fundamental control-flow constructs in Elixir. Now
-let's learn where code and data meet with anonymous functions.
+If you find yourself nesting several `if/2` blocks, you may want to consider using `cond/1` instead. Let's check it out.
+
+## cond
+
+If you need to check across several conditions and find the first one that does not evaluate to `nil` or `false`, `cond/1` is a useful construct:
+
+```elixir
+iex> cond do
+...>   2 + 2 == 5 ->
+...>     "This will not be true"
+...>   2 * 2 == 3 ->
+...>     "Nor this"
+...>   1 + 1 == 2 ->
+...>     "But this will"
+...> end
+"But this will"
+```
+
+This is equivalent to `else if` clauses in many imperative languages - although used less frequently in Elixir.
+
+If all of the conditions return `nil` or `false`, an error (`CondClauseError`) is raised. For this reason, it may be necessary to add a final condition, equal to `true`, which will always match:
+
+```elixir
+iex> cond do
+...>   2 + 2 == 5 ->
+...>     "This is never true"
+...>   2 * 2 == 3 ->
+...>     "Nor this"
+...>   true ->
+...>     "This is always true (equivalent to else)"
+...> end
+"This is always true (equivalent to else)"
+```
+
+Similar to `if/2` and `unless/2`, `cond` considers any value besides `nil` and `false` to be true:
+
+```elixir
+iex> cond do
+...>   hd([1, 2, 3]) ->
+...>     "1 is considered as true"
+...> end
+"1 is considered as true"
+```
+
+## Summing up
+
+We have concluded the introduction to the most fundamental control-flow constructs in Elixir. Generally speaking, Elixir developers prefer pattern matching and guards, using `case` and function definitions (which we will explore in future chapters). When your logic cannot be expressed within patterns and guards, you may consider `if/2`, falling back to `cond/1` when there are several conditions to check.

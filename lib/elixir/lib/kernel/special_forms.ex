@@ -1887,6 +1887,11 @@ defmodule Kernel.SpecialForms do
   @doc ~S"""
   Matches the given expression against the given clauses.
 
+  `case/2` relies on pattern matching and guards to choose
+  which clause to execute. If your logic cannot be expressed
+  within patterns and guards, consider using `if/2` or `cond/1`
+  instead.
+
   ## Examples
 
       case File.read(file) do
@@ -1916,6 +1921,9 @@ defmodule Kernel.SpecialForms do
           "This clause would match any value (x = #{x})"
       end
       #=> "This clause would match any value (x = 10)"
+
+  If you find yourself nesting `case` expressions inside
+  `case` expressions, consider using `with/1`.
 
   ## Variable handling
 
@@ -1976,17 +1984,20 @@ defmodule Kernel.SpecialForms do
   Evaluates the expression corresponding to the first clause that
   evaluates to a truthy value.
 
+  ## Examples
+
+  The following example has a single clause that always evaluates
+  to true:
+
       cond do
         hd([1, 2, 3]) ->
           "1 is considered as true"
       end
       #=> "1 is considered as true"
 
-  Raises an error if all conditions evaluate to `nil` or `false`.
+  If all clauses evaluate to `nil` or `false`, `cond` raises an error.
   For this reason, it may be necessary to add a final always-truthy condition
-  (anything non-`false` and non-`nil`), which will always match.
-
-  ## Examples
+  (anything non-`false` and non-`nil`), which will always match:
 
       cond do
         1 + 1 == 1 ->
@@ -1998,6 +2009,9 @@ defmodule Kernel.SpecialForms do
       end
       #=> "This will"
 
+
+  If your `cond` has two clauses, and the last one falls back to
+  `true`, you may consider using `if/2` instead.
   """
   defmacro cond(clauses), do: error!([clauses])
 
