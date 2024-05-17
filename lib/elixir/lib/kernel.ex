@@ -3867,8 +3867,9 @@ defmodule Kernel do
   This macro expects the first argument to be a condition and the second
   argument to be a keyword list. Generally speaking, Elixir developers
   prefer to use pattern matching and guards in function definitions and
-  `case/2`. However, `if/2` is valuable for logical expressions that
-  cannot be written within the mechanisms found in patterns and guards.
+  `case/2`, as they are succinct and precise. However, not all conditions
+  can be expressed through patterns and guards, which makes `if/2` a viable
+  alternative.
 
   Similar to `case/2`, any assignment in the condition will be available
   on both clauses, as well as after the `if` expression.

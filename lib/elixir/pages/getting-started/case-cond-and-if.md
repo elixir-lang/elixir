@@ -69,7 +69,6 @@ The documentation for the `Kernel` module lists all available guards in its side
 
 ## if/unless
 
-
 `case` builds on pattern matching and guards to destructure and match on certain conditions. However, patterns and guards are limited only to certain expressions which are optimized by the compiler. In many situations, you need to write conditions that go beyond what can be expressed with `case`. For those, `if/2` (and `unless/2`) are useful alternatives:
 
 ```elixir
@@ -172,4 +171,4 @@ iex> cond do
 
 ## Summing up
 
-We have concluded the introduction to the most fundamental control-flow constructs in Elixir. Generally speaking, Elixir developers prefer pattern matching and guards, using `case` and function definitions (which we will explore in future chapters). When your logic cannot be expressed within patterns and guards, you may consider `if/2`, falling back to `cond/1` when there are several conditions to check.
+We have concluded the introduction to the most fundamental control-flow constructs in Elixir. Generally speaking, Elixir developers prefer pattern matching and guards, using `case` and function definitions (which we will explore in future chapters), as they are succinct and precise. When your logic cannot be outlined within patterns and guards, you may consider `if/2`, falling back to `cond/1` when there are several conditions to check.
