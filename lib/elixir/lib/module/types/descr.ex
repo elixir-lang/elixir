@@ -23,15 +23,15 @@ defmodule Module.Types.Descr do
   @bit_reference 1 <<< 6
 
   @bit_non_empty_list 1 <<< 7
-  @bit_tuple 1 <<< 8
-  @bit_fun 1 <<< 9
-  @bit_top (1 <<< 10) - 1
+  @bit_fun 1 <<< 8
+  @bit_top (1 <<< 9) - 1
 
   @bit_list @bit_empty_list ||| @bit_non_empty_list
   @bit_number @bit_integer ||| @bit_float
-  @bit_optional 1 <<< 10
+  @bit_optional 1 <<< 9
 
   @atom_top {:negation, :sets.new(version: 2)}
+  @tuple_top [{:open, [], []}]
   @map_top [{:open, %{}, []}]
   @map_empty [{:closed, %{}, []}]
   @none %{}
@@ -44,7 +44,7 @@ defmodule Module.Types.Descr do
 
   defp unfold(:term), do: unfolded_term()
   defp unfold(other), do: other
-  defp unfolded_term, do: %{bitmap: @bit_top, atom: @atom_top, map: @map_top}
+  defp unfolded_term, do: %{bitmap: @bit_top, atom: @atom_top, tuple: @tuple_top, map: @map_top}
 
   def atom(as), do: %{atom: atom_new(as)}
   def atom(), do: %{atom: @atom_top}
@@ -62,7 +62,10 @@ defmodule Module.Types.Descr do
   def pid(), do: %{bitmap: @bit_pid}
   def port(), do: %{bitmap: @bit_port}
   def reference(), do: %{bitmap: @bit_reference}
-  def tuple(), do: %{bitmap: @bit_tuple}
+  def open_tuple(elements), do: %{tuple: tuple_new(:open, elements)}
+  def tuple(elements), do: %{tuple: tuple_new(:closed, elements)}
+  def empty_tuple(), do: tuple([])
+  def tuple(), do: %{tuple: @tuple_top}
 
   @boolset :sets.from_list([true, false], version: 2)
   def boolean(), do: %{atom: {:union, @boolset}}
@@ -80,7 +83,12 @@ defmodule Module.Types.Descr do
   # `not_set()` has no meaning outside of map types.
 
   @not_set %{bitmap: @bit_optional}
-  @term_or_optional %{bitmap: @bit_top ||| @bit_optional, atom: @atom_top, map: @map_top}
+  @term_or_optional %{
+    bitmap: @bit_top ||| @bit_optional,
+    atom: @atom_top,
+    tuple: @tuple_top,
+    map: @map_top
+  }
 
   def not_set(), do: @not_set
   defp term_or_optional(), do: @term_or_optional
@@ -149,6 +157,7 @@ defmodule Module.Types.Descr do
   defp union(:atom, v1, v2), do: atom_union(v1, v2)
   defp union(:dynamic, v1, v2), do: dynamic_union(v1, v2)
   defp union(:map, v1, v2), do: map_union(v1, v2)
+  defp union(:tuple, v1, v2), do: tuple_union(v1, v2)
 
   @doc """
   Computes the intersection of two descrs.
@@ -182,6 +191,7 @@ defmodule Module.Types.Descr do
   defp intersection(:atom, v1, v2), do: atom_intersection(v1, v2)
   defp intersection(:dynamic, v1, v2), do: dynamic_intersection(v1, v2)
   defp intersection(:map, v1, v2), do: map_intersection(v1, v2)
+  defp intersection(:tuple, v1, v2), do: tuple_intersection(v1, v2)
 
   @doc """
   Computes the difference between two types.
@@ -218,6 +228,7 @@ defmodule Module.Types.Descr do
   defp difference(:atom, v1, v2), do: atom_difference(v1, v2)
   defp difference(:dynamic, v1, v2), do: dynamic_difference(v1, v2)
   defp difference(:map, v1, v2), do: map_difference(v1, v2)
+  defp difference(:tuple, v1, v2), do: tuple_difference(v1, v2)
 
   @doc """
   Compute the negation of a type.
@@ -245,6 +256,7 @@ defmodule Module.Types.Descr do
 
       descr ->
         not Map.has_key?(descr, :bitmap) and not Map.has_key?(descr, :atom) and
+          (not Map.has_key?(descr, :tuple) or tuple_empty?(descr.tuple)) and
           (not Map.has_key?(descr, :map) or map_empty?(descr.map))
     end
   end
@@ -268,6 +280,7 @@ defmodule Module.Types.Descr do
   defp to_quoted(:atom, val), do: atom_to_quoted(val)
   defp to_quoted(:dynamic, descr), do: dynamic_to_quoted(descr)
   defp to_quoted(:map, dnf), do: map_to_quoted(dnf)
+  defp to_quoted(:tuple, dnf), do: tuple_to_quoted(dnf)
 
   @doc """
   Converts a descr to its quoted string representation.
@@ -416,7 +429,6 @@ defmodule Module.Types.Descr do
         port: @bit_port,
         reference: @bit_reference,
         non_empty_list: @bit_non_empty_list,
-        tuple: @bit_tuple,
         fun: @bit_fun
       ]
 
@@ -698,8 +710,8 @@ defmodule Module.Types.Descr do
     {acc, dynamic?}
   end
 
-  defp map_tag_to_type(:open), do: term_or_optional()
-  defp map_tag_to_type(:closed), do: not_set()
+  defp tag_to_type(:open), do: term_or_optional()
+  defp tag_to_type(:closed), do: not_set()
 
   defp map_new(tag, fields = %{}), do: [{tag, fields, []}]
 
@@ -926,7 +938,7 @@ defmodule Module.Types.Descr do
                false
              else
                # an absent key in a open negative map can be ignored
-               diff = difference(type, map_tag_to_type(neg_tag))
+               diff = difference(type, tag_to_type(neg_tag))
                empty?(diff) or map_empty?(tag, Map.put(fields, key, diff), negs)
              end
          end
@@ -945,7 +957,7 @@ defmodule Module.Types.Descr do
       # Optimization: if there are no negatives
       # and the key does not exist, return the default one.
       {tag, %{}, []} ->
-        [map_tag_to_type(tag)]
+        [tag_to_type(tag)]
 
       {tag, fields, negs} ->
         {fst, snd} = map_pop_key(tag, fields, key)
@@ -960,7 +972,7 @@ defmodule Module.Types.Descr do
   defp map_pop_key(tag, fields, key) do
     case :maps.take(key, fields) do
       {value, fields} -> {value, %{map: map_new(tag, fields)}}
-      :error -> {map_tag_to_type(tag), %{map: map_new(tag, fields)}}
+      :error -> {tag_to_type(tag), %{map: map_new(tag, fields)}}
     end
   end
 
@@ -1064,6 +1076,308 @@ defmodule Module.Types.Descr do
         true -> {key, {:if_set, [], [to_quoted(type)]}}
       end
     end
+  end
+
+  ## Tuple
+
+  # Represents tuple types in two forms:
+  # 1. Closed tuples: Fixed-length tuples with specific element types
+  #    Example: {integer(), atom()}
+  # 2. Open tuples: Variable-length tuples with a minimum set of element types
+  #    Example: {atom(), boolean(), ...}
+  #
+  # Internal representation:
+  # - Closed tuple: {:closed, [element_type, ...]}
+  # - Open tuple:   {:open, [element_type, ...]}
+  #
+  # Examples:
+  # - {integer(), atom()} is encoded as {:closed, [integer(), atom()]}
+  # - {atom(), boolean(), ...} is encoded as {:open, [atom(), boolean()]}
+
+  defp tuple_new(tag, elements), do: [{tag, elements, []}]
+
+  defp tuple_intersection(dnf1, dnf2) do
+    for {tag1, elements1, negs1} <- dnf1,
+        {tag2, elements2, negs2} <- dnf2,
+        reduce: [] do
+      acc ->
+        try do
+          {tag, fields} = tuple_literal_intersection(tag1, elements1, tag2, elements2)
+          [{tag, fields, negs1 ++ negs2} | acc]
+        catch
+          :empty -> acc
+        end
+    end
+    |> case do
+      [] -> 0
+      acc -> acc
+    end
+  end
+
+  defp tuple_literal_intersection(tag1, elements1, tag2, elements2) do
+    n = length(elements1)
+    m = length(elements2)
+
+    cond do
+      (tag1 == :closed and n < m) or (tag2 == :closed and n > m) -> throw(:empty)
+      tag1 == :open and tag2 == :open -> {:open, zip_intersection(elements1, elements2, [])}
+      true -> {:closed, zip_intersection(elements1, elements2, [])}
+    end
+  end
+
+  # Intersects two lists of types, and _appends_ the extra elements to the result.
+  defp zip_intersection([], types2, acc), do: Enum.reverse(acc, types2)
+  defp zip_intersection(types1, [], acc), do: Enum.reverse(acc, types1)
+
+  defp zip_intersection([type1 | rest1], [type2 | rest2], acc) do
+    zip_intersection(rest1, rest2, [non_empty_intersection!(type1, type2) | acc])
+  end
+
+  defp tuple_difference(dnf1, dnf2) do
+    Enum.reduce(dnf2, dnf1, fn {tag2, elements2, negs2}, dnf1 ->
+      Enum.reduce(dnf1, [], fn {tag1, elements1, negs1}, acc ->
+        acc = [{tag1, elements1, [{tag2, elements2} | negs1]}] ++ acc
+
+        Enum.reduce(negs2, acc, fn {neg_tag2, neg_elements2}, acc ->
+          try do
+            {tag, fields} = tuple_literal_intersection(tag1, elements1, neg_tag2, neg_elements2)
+            [{tag, fields, negs1}] ++ acc
+          catch
+            :empty -> acc
+          end
+        end)
+      end)
+    end)
+    |> case do
+      [] -> 0
+      acc -> acc
+    end
+  end
+
+  defp tuple_union(left, right), do: left ++ right
+
+  defp tuple_to_quoted(dnf) do
+    dnf
+    |> tuple_normalize()
+    |> Enum.map(&tuple_each_to_quoted/1)
+    |> case do
+      [] -> []
+      dnf -> Enum.reduce(dnf, &{:or, [], [&2, &1]}) |> List.wrap()
+    end
+  end
+
+  defp tuple_each_to_quoted({tag, positive_map, negative_maps}) do
+    case negative_maps do
+      [] ->
+        tuple_literal_to_quoted({tag, positive_map})
+
+      _ ->
+        negative_maps
+        |> Enum.map(&tuple_literal_to_quoted/1)
+        |> Enum.reduce(&{:or, [], [&2, &1]})
+        |> Kernel.then(
+          &{:and, [], [tuple_literal_to_quoted({tag, positive_map}), {:not, [], [&1]}]}
+        )
+    end
+  end
+
+  defp tuple_literal_to_quoted({:closed, []}), do: {:{}, [], []}
+
+  defp tuple_literal_to_quoted({tag, elements}) do
+    case tag do
+      :closed -> {:{}, [], Enum.map(elements, &to_quoted/1)}
+      :open -> {:{}, [], Enum.map(elements, &to_quoted/1) ++ [{:..., [], nil}]}
+    end
+  end
+
+  # Pads a list of elements with term().
+  defp tuple_fill(elements, length) when length(elements) > length do
+    raise ArgumentError, "tuple_fill: elements are longer than the desired length"
+  end
+
+  defp tuple_fill(elements, desired_length) do
+    elements ++ List.duplicate(term(), desired_length - length(elements))
+  end
+
+  # Check if a tuple represented in DNF is empty
+  defp tuple_empty?(dnf) do
+    Enum.all?(dnf, fn {tag, pos, negs} -> tuple_empty?(tag, pos, negs) end)
+  end
+
+  # No negations, so not empty
+  defp tuple_empty?(_, _, []), do: false
+  # Open empty negation makes it empty
+  defp tuple_empty?(_, _, [{:open, []} | _]), do: true
+  # Open positive can't be emptied by a single closed negative
+  defp tuple_empty?(:open, _, [{:closed, _}]), do: false
+
+  defp tuple_empty?(tag, elements, [{neg_tag, neg_elements} | negs]) do
+    n = length(elements)
+    m = length(neg_elements)
+
+    # Scenarios where the difference is guaranteed to be empty:
+    # 1. When removing larger tuples from a fixed-size positive tuple
+    # 2. When removing smaller tuples from larger tuples
+    if (tag == :closed and n < m) or (neg_tag == :closed and n > m) do
+      tuple_empty?(tag, elements, negs)
+    else
+      check_elements([], tag, elements, neg_elements, negs) and
+        check_compatibility(n, m, tag, elements, neg_tag, negs)
+    end
+  end
+
+  # Recursively check elements for emptiness
+  defp check_elements(_, _, _, [], _), do: true
+
+  defp check_elements(acc, tag, elements, [neg_type | neg_elements], negs) do
+    {ty, elements} = List.pop_at(elements, 0, term())
+    diff = difference(ty, neg_type)
+
+    (empty?(diff) or tuple_empty?(tag, Enum.reverse(acc, [diff | elements]), negs)) and
+      check_elements([ty | acc], tag, elements, neg_elements, negs)
+  end
+
+  # Determines if the set difference is empty when:
+  # - Positive tuple: {tag, elements} of size n
+  # - Negative tuple: open or closed tuples of size m
+  defp check_compatibility(n, m, tag, elements, neg_tag, negs) do
+    # The tuples to consider are all those of size n to m - 1, and if the negative tuple is
+    # closed, we also need to consider tuples of size greater than m + 1.
+    tag == :closed or
+      (Enum.all?(n..(m - 1)//1, &tuple_empty?(:closed, tuple_fill(elements, &1), negs)) and
+         (neg_tag == :open or tuple_empty?(:open, tuple_fill(elements, m + 1), negs)))
+  end
+
+  @doc """
+  Fetches the type of the value returned by accessing `index` on `tuple`
+  with the assumption that the descr is exclusively a tuple (or dynamic).
+
+  Returns one of:
+  - `{false, type}` if the element is always accessible and has the given `type`.
+  - `{true, type}` if the element may exist and has the given `type`.
+  - `:badindex` if the index is never accessible in the tuple type.
+  - `:badtuple` if the descr is not a tuple type.
+
+  ## Examples
+
+      iex> tuple_fetch(tuple([integer(), atom()]), 0)
+      {false, integer()}
+
+      iex> tuple_fetch(tuple([integer(), atom()]), 2)
+            :badindex
+
+      iex> tuple_fetch(union(tuple([integer()]), tuple([integer(), atom()])), 1)
+      {true, atom()}
+
+      iex> tuple_fetch(dynamic(), 0)
+      {true, dynamic()}
+
+      iex> tuple_fetch(integer(), 0)
+          :badtuple
+
+  """
+  def tuple_fetch(_, index) when index < 0, do: :badindex
+  def tuple_fetch(:term, _key), do: :badtuple
+
+  def tuple_fetch(%{} = descr, key) do
+    case :maps.take(:dynamic, descr) do
+      :error ->
+        if is_map_key(descr, :tuple) and tuple_only?(descr) do
+          {static_optional?, static_type} =
+            tuple_fetch_static(descr, key) |> pop_optional_static()
+
+          cond do
+            empty?(static_type) -> :badindex
+            static_optional? -> {true, static_type}
+            true -> {false, static_type}
+          end
+        else
+          :badtuple
+        end
+
+      {:term, static} ->
+        if tuple_only?(static) do
+          static_type = tuple_fetch_static(static, key)
+          {true, union(dynamic(), static_type)}
+        else
+          :badtuple
+        end
+
+      {%{map: {:open, [], []}}, static} when static == @none ->
+        {true, dynamic()}
+
+      {dynamic, static} ->
+        if is_map_key(dynamic, :tuple) and tuple_only?(static) do
+          {dynamic_optional?, dynamic_type} =
+            tuple_fetch_static(dynamic, key) |> pop_optional_static()
+
+          {static_optional?, static_type} =
+            tuple_fetch_static(static, key) |> pop_optional_static()
+
+          if empty?(dynamic_type) do
+            :badindex
+          else
+            {static_optional? or dynamic_optional?, union(dynamic(dynamic_type), static_type)}
+          end
+        else
+          :badtuple
+        end
+    end
+  end
+
+  defp tuple_only?(descr), do: empty?(Map.delete(descr, :tuple))
+
+  defp tuple_fetch_static(descr, index) when is_integer(index) do
+    case descr do
+      %{tuple: tuple} -> Enum.reduce(tuple_split_on_index(tuple, index), none(), &union/2)
+      %{} -> none()
+    end
+  end
+
+  defp tuple_split_on_index(dnf, index) do
+    Enum.flat_map(dnf, fn
+      {tag, elements, []} ->
+        [Enum.at(elements, index) || tag_to_type(tag)]
+
+      {tag, elements, negs} ->
+        {fst, snd} = tuple_pop_index(tag, elements, index)
+
+        case tuple_split_negative(negs, index) do
+          :empty -> []
+          negative -> negative |> pair_make_disjoint() |> pair_eliminate_negations(fst, snd)
+        end
+    end)
+  end
+
+  defp tuple_pop_index(tag, elements, index) do
+    case List.pop_at(elements, index) do
+      {nil, _} -> {tag_to_type(tag), %{tuple: [{tag, elements, []}]}}
+      {type, rest} -> {type, %{tuple: [{tag, rest, []}]}}
+    end
+  end
+
+  defp tuple_split_negative(negs, index) do
+    Enum.reduce_while(negs, [], fn
+      {:open, []}, _acc -> {:halt, :empty}
+      {tag, elements}, acc -> {:cont, [tuple_pop_index(tag, elements, index) | acc]}
+    end)
+  end
+
+  # Use heuristics to normalize a tuple dnf for pretty printing.
+  defp tuple_normalize(dnf) do
+    dnf
+    |> Enum.reject(&tuple_empty?([&1]))
+    |> Enum.map(fn {tag, fields, negs} ->
+      {tag, fields, Enum.reject(negs, &tuple_empty_negation?(tag, fields, &1))}
+    end)
+  end
+
+  # Remove useless negations, which denote tuples of incompatible sizes.
+  defp tuple_empty_negation?(tag, elements, {neg_tag, neg_elements}) do
+    n = length(elements)
+    m = length(neg_elements)
+
+    (tag == :closed and n < m) or (neg_tag == :closed and n > m)
   end
 
   ## Pairs
