@@ -279,6 +279,43 @@ defmodule Mix.Tasks.Xref do
 
     * `--no-elixir-version-check` - does not check the Elixir version from mix.exs
 
+  ## False positives
+
+  The Elixir compiler tracks dependencies at the *module* level, not at the
+  *function* level.
+  Consider this case:
+
+      # lib/a.ex
+      defmodule A do
+        @hello B.hello()
+        def hello, do: @hello
+      end
+
+      # lib/b.ex
+      defmodule B do
+        @hello "hello"
+        def hello, do: @hello
+
+        def world, do: C.world()
+      end
+
+      # lib/c.ex
+      defmodule C do
+        def world, do: "world"
+      end
+
+  If `C.world/0` changes, `B` needs to be recompiled so that `B.world/0` will
+  return the new value.
+  That change will not actually make `A` compile differently; `A.hello/0`` is
+  not dependent on `B.world/0`.
+  But because `A` depends on `B` for *something*, `A` will be recompiled, and
+  `mix xref graph --label compile-connected` will show that `A` has a
+  transitive dependency through `B`.
+
+  Tracking at a more granular level might be possible, but might be more
+  expensive than the unnecessary recompilation of modules like `A` in this
+  case.
+  In any case, it is not currently implemented.
   """
 
   @switches [
