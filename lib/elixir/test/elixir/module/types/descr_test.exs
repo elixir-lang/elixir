@@ -55,6 +55,22 @@ defmodule Module.Types.DescrTest do
       assert equal?(union(intersection(dynamic(), atom()), atom()), atom())
     end
 
+    test "tuple" do
+      assert equal?(union(tuple(), tuple()), tuple())
+
+      t = tuple([integer(), atom()])
+      assert equal?(union(t, t), t)
+
+      assert union(tuple([integer(), atom()]), tuple([float(), atom()]))
+             |> equal?(tuple([union(integer(), float()), atom()]))
+
+      assert union(tuple([integer(), atom()]), tuple([integer(), binary()]))
+             |> equal?(tuple([integer(), union(atom(), binary())]))
+
+      assert union(open_tuple([atom()]), tuple([atom(), integer()]))
+             |> equal?(open_tuple([atom()]))
+    end
+
     test "map" do
       assert equal?(union(open_map(), open_map()), open_map())
       assert equal?(union(closed_map(a: integer()), open_map()), open_map())
@@ -98,6 +114,16 @@ defmodule Module.Types.DescrTest do
       assert equal?(intersection(term(), dynamic()), dynamic())
       assert empty?(intersection(dynamic(), none()))
       assert empty?(intersection(intersection(dynamic(), atom()), integer()))
+    end
+
+    test "tuple" do
+      assert empty?(intersection(open_tuple([atom()]), open_tuple([integer()])))
+
+      assert intersection(open_tuple([atom()]), tuple([term(), integer()]))
+             |> equal?(tuple([atom(), integer()]))
+
+      assert intersection(tuple([term(), integer()]), tuple([atom(), term()]))
+             |> equal?(tuple([atom(), integer()]))
     end
 
     test "map" do
@@ -150,6 +176,39 @@ defmodule Module.Types.DescrTest do
       assert empty?(difference(none(), dynamic()))
     end
 
+    test "tuple" do
+      assert empty?(difference(open_tuple([atom()]), open_tuple([term()])))
+
+      assert difference(open_tuple([atom()]), tuple([integer(), integer()]))
+             |> equal?(open_tuple([atom()]))
+
+      assert tuple([union(atom(), integer()), term()])
+             |> difference(open_tuple([atom(), term()]))
+             |> equal?(tuple([integer(), term()]))
+
+      assert tuple([union(atom(), integer()), term()])
+             |> difference(open_tuple([atom(), term()]))
+             |> difference(open_tuple([integer(), term()]))
+             |> empty?()
+
+      assert tuple([term(), union(atom(), integer()), term()])
+             |> difference(open_tuple([term(), integer()]))
+             |> equal?(tuple([term(), atom(), term()]))
+
+      assert tuple([term(), union(atom(), integer()), term()])
+             |> difference(open_tuple([term(), atom()]))
+             |> equal?(tuple([term(), integer(), term()]))
+
+      assert open_tuple()
+             |> difference(open_tuple([term()]))
+             |> difference(empty_tuple())
+             |> empty?()
+
+      assert open_tuple()
+             |> difference(open_tuple([term(), term()]))
+             |> equal?(union(tuple([term()]), tuple([])))
+    end
+
     test "map" do
       assert empty?(difference(open_map(), open_map()))
       assert empty?(difference(open_map(), term()))
@@ -194,6 +253,17 @@ defmodule Module.Types.DescrTest do
       assert subtype?(integer(), union(dynamic(), integer()))
     end
 
+    test "tuple" do
+      assert subtype?(tuple([integer(), atom()]), tuple([term(), term()]))
+      refute subtype?(tuple([integer(), atom()]), tuple([integer(), integer()]))
+      refute subtype?(tuple([integer(), atom()]), tuple([atom(), atom()]))
+
+      assert subtype?(tuple([integer(), atom()]), open_tuple([integer(), atom()]))
+      refute subtype?(tuple([term()]), open_tuple([term(), term()]))
+      refute subtype?(tuple([integer(), atom()]), open_tuple([integer(), integer()]))
+      refute subtype?(open_tuple([integer(), atom()]), tuple([integer(), integer()]))
+    end
+
     test "map" do
       assert subtype?(open_map(), term())
       assert subtype?(closed_map(a: integer()), open_map())
@@ -232,6 +302,10 @@ defmodule Module.Types.DescrTest do
       assert compatible?(integer(), dynamic())
     end
 
+    test "tuple" do
+      assert compatible?(dynamic(tuple()), tuple([integer(), atom()]))
+    end
+
     test "map" do
       assert compatible?(closed_map(a: integer()), open_map())
       assert compatible?(intersection(dynamic(), open_map()), closed_map(a: integer()))
@@ -239,6 +313,10 @@ defmodule Module.Types.DescrTest do
   end
 
   describe "empty" do
+    test "tuple" do
+      assert intersection(tuple([integer(), atom()]), open_tuple([atom()])) |> empty?
+    end
+
     test "map" do
       assert intersection(closed_map(b: atom()), open_map(a: integer())) |> empty?
     end
@@ -256,6 +334,19 @@ defmodule Module.Types.DescrTest do
 
       assert atom_fetch(union(atom([:foo, :bar]), dynamic(atom()))) == {:infinite, []}
       assert atom_fetch(union(atom([:foo, :bar]), dynamic(term()))) == {:infinite, []}
+    end
+
+    test "tuple_fetch" do
+      assert tuple_fetch(term(), 0) == :badtuple
+      assert tuple_fetch(tuple([integer(), atom()]), 0) == {false, integer()}
+      assert tuple_fetch(tuple([integer(), atom()]), 1) == {false, atom()}
+      assert tuple_fetch(tuple([integer(), atom()]), 2) == :badindex
+      assert tuple_fetch(tuple([integer(), atom()]), -1) == :badindex
+
+      {true, type} =
+        tuple_fetch(union(tuple([integer(), atom()]), dynamic(open_tuple([atom()]))), 1)
+
+      assert equal?(type, union(atom(), dynamic()))
     end
 
     test "map_fetch" do
@@ -394,6 +485,20 @@ defmodule Module.Types.DescrTest do
 
       assert intersection(dynamic(), closed_map(a: integer())) |> to_quoted_string() ==
                "dynamic(%{a: integer()})"
+    end
+
+    test "tuples" do
+      assert tuple([integer(), atom()]) |> to_quoted_string() == "{integer(), atom()}"
+      assert open_tuple([integer(), atom()]) |> to_quoted_string() == "{integer(), atom(), ...}"
+
+      assert union(tuple([integer(), atom()]), open_tuple([atom()])) |> to_quoted_string() ==
+               "{integer(), atom()} or {atom(), ...}"
+
+      assert difference(tuple([integer(), atom()]), open_tuple([atom()])) |> to_quoted_string() ==
+               "{integer(), atom()} and not {atom(), ...}"
+
+      assert tuple([closed_map(a: integer()), open_map()]) |> to_quoted_string() ==
+               "{%{a: integer()}, %{...}}"
     end
 
     test "map" do

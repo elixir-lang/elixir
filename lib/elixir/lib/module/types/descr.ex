@@ -23,21 +23,22 @@ defmodule Module.Types.Descr do
   @bit_reference 1 <<< 6
 
   @bit_non_empty_list 1 <<< 7
-  @bit_tuple 1 <<< 8
-  @bit_fun 1 <<< 9
-  @bit_top (1 <<< 10) - 1
+  @bit_fun 1 <<< 8
+  @bit_top (1 <<< 9) - 1
 
   @bit_list @bit_empty_list ||| @bit_non_empty_list
   @bit_number @bit_integer ||| @bit_float
-  @bit_optional 1 <<< 10
+  @bit_optional 1 <<< 9
 
   @atom_top {:negation, :sets.new(version: 2)}
+  @tuple_top [{:open, %{}, []}]
+  @tuple_empty [{:closed, %{}, []}]
   @map_top [{:open, %{}, []}]
   @map_empty [{:closed, %{}, []}]
 
   # Guard helpers
 
-  @term %{bitmap: @bit_top, atom: @atom_top, map: @map_top}
+  @term %{bitmap: @bit_top, atom: @atom_top, tuple: @tuple_top, map: @map_top}
   @none %{}
   @dynamic %{dynamic: @term}
 
@@ -63,7 +64,11 @@ defmodule Module.Types.Descr do
   def pid(), do: %{bitmap: @bit_pid}
   def port(), do: %{bitmap: @bit_port}
   def reference(), do: %{bitmap: @bit_reference}
-  def tuple(), do: %{bitmap: @bit_tuple}
+  def empty_tuple(), do: %{tuple: @tuple_empty}
+  def tuple(), do: %{tuple: @tuple_top}
+  def open_tuple(), do: %{tuple: @tuple_top}
+  def open_tuple(elements), do: %{tuple: tuple_new(:open, elements)}
+  def tuple(elements), do: %{tuple: tuple_new(:closed, elements)}
 
   @boolset :sets.from_list([true, false], version: 2)
   def boolean(), do: %{atom: {:union, @boolset}}
@@ -81,7 +86,12 @@ defmodule Module.Types.Descr do
   # `not_set()` has no meaning outside of map types.
 
   @not_set %{bitmap: @bit_optional}
-  @term_or_optional %{bitmap: @bit_top ||| @bit_optional, atom: @atom_top, map: @map_top}
+  @term_or_optional %{
+    bitmap: @bit_top ||| @bit_optional,
+    atom: @atom_top,
+    tuple: @tuple_top,
+    map: @map_top
+  }
 
   def not_set(), do: @not_set
   def if_set(type), do: Map.update(type, :bitmap, @bit_optional, &(&1 ||| @bit_optional))
@@ -132,6 +142,7 @@ defmodule Module.Types.Descr do
   defp union(:atom, v1, v2), do: atom_union(v1, v2)
   defp union(:dynamic, v1, v2), do: dynamic_union(v1, v2)
   defp union(:map, v1, v2), do: map_union(v1, v2)
+  defp union(:tuple, v1, v2), do: tuple_union(v1, v2)
 
   @doc """
   Computes the intersection of two descrs.
@@ -160,6 +171,7 @@ defmodule Module.Types.Descr do
   defp intersection(:atom, v1, v2), do: atom_intersection(v1, v2)
   defp intersection(:dynamic, v1, v2), do: dynamic_intersection(v1, v2)
   defp intersection(:map, v1, v2), do: map_intersection(v1, v2)
+  defp intersection(:tuple, v1, v2), do: tuple_intersection(v1, v2)
 
   @doc """
   Computes the difference between two types.
@@ -189,6 +201,7 @@ defmodule Module.Types.Descr do
   defp difference(:atom, v1, v2), do: atom_difference(v1, v2)
   defp difference(:dynamic, v1, v2), do: dynamic_difference(v1, v2)
   defp difference(:map, v1, v2), do: map_difference(v1, v2)
+  defp difference(:tuple, v1, v2), do: tuple_difference(v1, v2)
 
   @doc """
   Compute the negation of a type.
@@ -208,6 +221,7 @@ defmodule Module.Types.Descr do
 
     descr == @none or
       (not Map.has_key?(descr, :bitmap) and not Map.has_key?(descr, :atom) and
+         (not Map.has_key?(descr, :tuple) or tuple_empty?(descr.tuple)) and
          (not Map.has_key?(descr, :map) or map_empty?(descr.map)))
   end
 
@@ -230,6 +244,7 @@ defmodule Module.Types.Descr do
   defp to_quoted(:atom, val), do: atom_to_quoted(val)
   defp to_quoted(:dynamic, descr), do: dynamic_to_quoted(descr)
   defp to_quoted(:map, dnf), do: map_to_quoted(dnf)
+  defp to_quoted(:tuple, dnf), do: tuple_to_quoted(dnf)
 
   @doc """
   Converts a descr to its quoted string representation.
@@ -361,7 +376,6 @@ defmodule Module.Types.Descr do
         port: @bit_port,
         reference: @bit_reference,
         non_empty_list: @bit_non_empty_list,
-        tuple: @bit_tuple,
         fun: @bit_fun
       ]
 
@@ -576,6 +590,113 @@ defmodule Module.Types.Descr do
     end
   end
 
+  ## Tuple
+
+  defp tuple_new(tag, elements) do
+    pairs =
+      elements
+      |> Enum.map_reduce(0, fn type, acc -> {{acc, type}, acc + 1} end)
+      |> elem(0)
+
+    map_new(tag, :maps.from_list(pairs))
+  end
+
+  defp tuple_intersection(left, right), do: map_intersection(left, right)
+  defp tuple_difference(left, right), do: map_difference(left, right)
+  defp tuple_union(left, right), do: map_union(left, right)
+
+  def tuple_fetch(%{} = descr, key) do
+    case :maps.take(:dynamic, descr) do
+      :error ->
+        if is_map_key(descr, :tuple) and tuple_only?(descr) do
+          {static_optional?, static_type} = tuple_fetch_static(descr, key) |> pop_optional()
+
+          if static_optional? or empty?(static_type) do
+            :badindex
+          else
+            {false, static_type}
+          end
+        else
+          :badtuple
+        end
+
+      {%{map: {:open, fields, []}}, static} when fields == %{} and static == @none ->
+        {true, dynamic()}
+
+      {dynamic, static} ->
+        if is_map_key(dynamic, :tuple) and tuple_only?(static) do
+          {dynamic_optional?, dynamic_type} = tuple_fetch_static(dynamic, key) |> pop_optional()
+          {static_optional?, static_type} = tuple_fetch_static(static, key) |> pop_optional()
+
+          if static_optional? or empty?(dynamic_type) do
+            :badindex
+          else
+            {dynamic_optional?, union(dynamic(dynamic_type), static_type)}
+          end
+        else
+          :badtuple
+        end
+    end
+  end
+
+  defp tuple_only?(descr), do: empty?(Map.delete(descr, :tuple))
+
+  defp tuple_fetch_static(descr, index) when is_integer(index) do
+    case descr do
+      %{tuple: tuple} -> Enum.reduce(map_split_on_key(tuple, index), none(), &union/2)
+      %{} -> none()
+    end
+  end
+
+  defp tuple_to_quoted(dnf) do
+    dnf
+    |> map_normalize()
+    |> Enum.map(&tuple_each_to_quoted/1)
+    |> case do
+      [] -> []
+      dnf -> Enum.reduce(dnf, &{:or, [], [&2, &1]}) |> List.wrap()
+    end
+  end
+
+  defp tuple_each_to_quoted({tag, positive_map, negative_maps}) do
+    case negative_maps do
+      [] ->
+        tuple_literal_to_quoted({tag, positive_map})
+
+      _ ->
+        negative_maps
+        |> Enum.map(&tuple_literal_to_quoted/1)
+        |> Enum.reduce(&{:or, [], [&2, &1]})
+        |> Kernel.then(
+          &{:and, [], [tuple_literal_to_quoted({tag, positive_map}), {:not, [], [&1]}]}
+        )
+    end
+  end
+
+  def tuple_literal_to_quoted({:closed, fields}) when map_size(fields) == 0 do
+    {:empty_map, [], []}
+  end
+
+  def tuple_literal_to_quoted({tag, fields}) do
+    case tag do
+      :closed -> {:{}, [], tuple_fields_to_quoted(tag, fields)}
+      :open -> {:{}, [], tuple_fields_to_quoted(tag, fields) ++ [{:..., [], nil}]}
+    end
+  end
+
+  defp tuple_fields_to_quoted(tag, map) do
+    sorted = Enum.sort(map)
+
+    for {_, type} <- sorted,
+        not (tag == :open and optional?(type) and term_type?(type)) do
+      cond do
+        not optional?(type) -> to_quoted(type)
+        empty?(type) -> {:not_set, [], []}
+        true -> {:if_set, [], [to_quoted(type)]}
+      end
+    end
+  end
+
   ## Map
   #
   # Maps are in disjunctive normal form (DNF), that is, a list (union) of pairs
@@ -669,6 +790,19 @@ defmodule Module.Types.Descr do
 
       _ ->
         {false, type}
+    end
+  end
+
+  defp remove_optional(type) do
+    case type do
+      %{bitmap: @bit_optional} ->
+        Map.delete(type, :bitmap)
+
+      %{bitmap: bitmap} when (bitmap &&& @bit_optional) != 0 ->
+        %{type | bitmap: bitmap - @bit_optional}
+
+      _ ->
+        type
     end
   end
 
@@ -823,6 +957,86 @@ defmodule Module.Types.Descr do
       true
     catch
       :discard_negative -> map_empty?(tag, fields, negs)
+    end
+  end
+
+  # Emptiness checking for tuples.
+  #
+  # Short-circuits if it finds a non-empty map literal in the union.
+  # Since the algorithm is recursive, we implement the short-circuiting
+  # as throw/catch.
+  defp tuple_empty?(dnf) do
+    try do
+      for {tag, pos, negs} <- dnf do
+        tuple_empty?(tag, pos, negs)
+      end
+
+      true
+    catch
+      :not_empty -> false
+    end
+  end
+
+  defp tuple_empty?(_, _, []), do: throw(:not_empty)
+  defp tuple_empty?(_, _, [{:open, fs} | _]) when fs == %{}, do: true
+
+  defp tuple_empty?(tag, fields, [{neg_tag, neg_fields} | negs]) do
+    try do
+      # Keys that are present in the negative map, but not in the positive one
+      for {neg_key, neg_type} <- neg_fields, not is_map_key(fields, neg_key) do
+        cond do
+          # The key is not shared between positive and negative maps,
+          # and because the negative type is required, there is no value in common
+          tag == :closed and not optional?(neg_type) ->
+            throw(:discard_negative)
+
+          # The key is not shared between positive and negative maps,
+          # but because the negative type is not required, there may be a value in common
+          tag == :closed ->
+            true
+
+          # There may be value in common
+          tag == :open ->
+            diff = difference(term_or_optional(), neg_type)
+            # if the diff type contains optional, then we call tuple_empty on two arguments
+            if optional?(diff) do
+              # remove all the elements with an index larger of equal to neg_key
+              keys_to_drop = for key <- Map.keys(fields), key >= neg_key, do: key
+              closed_pos = Map.drop(fields, keys_to_drop)
+
+              # for neg_key index, remove the absent part
+              open_pos = Map.put(fields, neg_key, remove_optional(diff))
+
+              tuple_empty?(:closed, closed_pos, negs) and tuple_empty?(tag, open_pos, negs)
+            else
+              empty?(diff) or tuple_empty?(tag, Map.put(fields, neg_key, diff), negs)
+            end
+        end
+      end
+
+      # Keys from the positive map that may be present in the negative one
+      # Invariant on tuples : the types do not contain absent, so this does not
+      # induce special cases.
+      for {key, type} <- fields do
+        case neg_fields do
+          %{^key => neg_type} ->
+            diff = difference(type, neg_type)
+            empty?(diff) or tuple_empty?(tag, Map.put(fields, key, diff), negs)
+
+          %{} ->
+            if neg_tag == :closed and not optional?(type) do
+              throw(:discard_negative)
+            else
+              # an absent key in a open negative map can be ignored
+              diff = difference(type, map_tag_to_type(neg_tag))
+              empty?(diff) or tuple_empty?(tag, Map.put(fields, key, diff), negs)
+            end
+        end
+      end
+
+      true
+    catch
+      :discard_negative -> tuple_empty?(tag, fields, negs)
     end
   end
 
@@ -1122,3 +1336,5 @@ defmodule Module.Types.Descr do
 
   defp iterator_difference(:none, map), do: map
 end
+
+# execute function test from module above
