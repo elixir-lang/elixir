@@ -397,7 +397,7 @@ do_quote(Other, _, _) ->
   Other.
 
 import_meta(Meta, Name, Arity, Q, E) ->
-  case (keyfind(import, Meta) == false) andalso
+  case (keyfind(imports, Meta) == false) andalso
       elixir_dispatch:find_imports(Meta, Name, E) of
     [] ->
       case (Arity == 1) andalso keyfind(ambiguous_op, Meta) of
