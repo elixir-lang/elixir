@@ -453,6 +453,31 @@ defmodule Time do
   end
 
   @doc """
+  Returns the number of seconds, or other specified time units, that have passed since midnight for a given time.
+
+  ## Examples
+
+      iex> Time.after_midnight(~T[23:30:15])
+      84615
+      iex> Time.after_midnight(~N[2010-04-17 23:30:15.999])
+      84615
+      iex> Time.after_midnight(~N[2010-04-17 23:30:15.999], :hour)
+      23
+      iex> Time.after_midnight(~N[2010-04-17 23:30:15.999], :minute)
+      1410
+      iex> Time.after_midnight(~N[2010-04-17 23:30:15.999], :millisecond)
+      84615999
+      iex> Time.after_midnight(~N[2010-04-17 23:30:15.999], :microsecond)
+      84615999000
+      iex> Time.after_midnight(~N[2010-04-17 23:30:15.999], :nanosecond)
+      84615999000000
+
+  """
+  @doc since: "1.17.0"
+  @spec after_midnight(Calendar.time(), :hour | :minute | System.time_unit()) :: integer()
+  def after_midnight(time, unit \\ :second), do: diff(time, ~T[00:00:00], unit)
+
+  @doc """
   Adds the `amount_to_add` of `unit`s to the given `time`.
 
   Accepts an `amount_to_add` in any `unit`. `unit` can be
