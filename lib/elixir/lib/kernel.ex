@@ -5543,7 +5543,7 @@ defmodule Kernel do
 
       # Calls to Kernel functions must be fully-qualified to ensure
       # reproducible builds, otherwise, this macro will generate ASTs
-      # with different metadata (:import, :context) depending on if
+      # with different metadata (:imports, :context) depending on if
       # it is the bootstrapped version or not.
       Elixir.Kernel.@(impl(true))
 

@@ -1150,7 +1150,7 @@ defmodule Kernel.ExpansionTest do
           fn -> 17 end
         end
 
-      assert clean_meta(expand(before_expansion), [:import, :context, :no_parens]) ==
+      assert clean_meta(expand(before_expansion), [:imports, :context, :no_parens]) ==
                after_expansion
     end
 
