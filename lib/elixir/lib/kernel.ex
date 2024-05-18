@@ -971,7 +971,7 @@ defmodule Kernel do
 
   This performs a structural comparison where all Elixir
   terms can be compared with each other. See the ["Structural
-  comparison" section](#module-structural-comparison) section
+  comparison"](#module-structural-comparison) section
   for more information.
 
   Inlined by the compiler.
@@ -997,7 +997,7 @@ defmodule Kernel do
 
   This performs a structural comparison where all Elixir
   terms can be compared with each other. See the ["Structural
-  comparison" section](#module-structural-comparison) section
+  comparison"](#module-structural-comparison) section
   for more information.
 
   Inlined by the compiler.
@@ -1653,7 +1653,7 @@ defmodule Kernel do
 
   This performs a structural comparison where all Elixir
   terms can be compared with each other. See the ["Structural
-  comparison" section](#module-structural-comparison) section
+  comparison"](#module-structural-comparison) section
   for more information.
 
   Allowed in guard tests. Inlined by the compiler.
@@ -1677,7 +1677,7 @@ defmodule Kernel do
 
   This performs a structural comparison where all Elixir
   terms can be compared with each other. See the ["Structural
-  comparison" section](#module-structural-comparison) section
+  comparison"](#module-structural-comparison) section
   for more information.
 
   Allowed in guard tests. Inlined by the compiler.
@@ -1701,7 +1701,7 @@ defmodule Kernel do
 
   This performs a structural comparison where all Elixir
   terms can be compared with each other. See the ["Structural
-  comparison" section](#module-structural-comparison) section
+  comparison"](#module-structural-comparison) section
   for more information.
 
   Allowed in guard tests. Inlined by the compiler.
@@ -1725,7 +1725,7 @@ defmodule Kernel do
 
   This performs a structural comparison where all Elixir
   terms can be compared with each other. See the ["Structural
-  comparison" section](#module-structural-comparison) section
+  comparison"](#module-structural-comparison) section
   for more information.
 
   Allowed in guard tests. Inlined by the compiler.
@@ -1750,7 +1750,7 @@ defmodule Kernel do
 
   This performs a structural comparison where all Elixir
   terms can be compared with each other. See the ["Structural
-  comparison" section](#module-structural-comparison) section
+  comparison"](#module-structural-comparison) section
   for more information.
 
   Allowed in guard tests. Inlined by the compiler.
@@ -1780,7 +1780,7 @@ defmodule Kernel do
 
   This performs a structural comparison where all Elixir
   terms can be compared with each other. See the ["Structural
-  comparison" section](#module-structural-comparison) section
+  comparison"](#module-structural-comparison) section
   for more information.
 
   Allowed in guard tests. Inlined by the compiler.
@@ -1812,7 +1812,7 @@ defmodule Kernel do
 
   This performs a structural comparison where all Elixir
   terms can be compared with each other. See the ["Structural
-  comparison" section](#module-structural-comparison) section
+  comparison"](#module-structural-comparison) section
   for more information.
 
   Allowed in guard tests. Inlined by the compiler.
@@ -1840,7 +1840,7 @@ defmodule Kernel do
 
   This performs a structural comparison where all Elixir
   terms can be compared with each other. See the ["Structural
-  comparison" section](#module-structural-comparison) section
+  comparison"](#module-structural-comparison) section
   for more information.
 
   Allowed in guard tests. Inlined by the compiler.
