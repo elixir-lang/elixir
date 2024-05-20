@@ -347,6 +347,18 @@ defmodule Module.Types.DescrTest do
         tuple_fetch(union(tuple([integer(), atom()]), dynamic(open_tuple([atom()]))), 1)
 
       assert equal?(type, union(atom(), dynamic()))
+
+      assert tuple_fetch(union(tuple([integer()]), tuple([atom()])), 0) ==
+               {false, union(integer(), atom())}
+
+      assert tuple_fetch(tuple(), 0) == :badindex
+    end
+
+    test "tuple_fetch with dynamic" do
+      assert tuple_fetch(dynamic(), 0) == {true, dynamic()}
+
+      assert tuple_fetch(union(dynamic(), open_tuple([atom()])), 0) ==
+               {true, union(atom(), dynamic())}
     end
 
     test "map_fetch" do
