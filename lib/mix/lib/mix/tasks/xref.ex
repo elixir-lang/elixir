@@ -240,10 +240,37 @@ defmodule Mix.Tasks.Xref do
   Elixir tracks three types of dependencies between modules: compile,
   exports, and runtime. If a module has a compile time dependency on
   another module, the caller module has to be recompiled whenever the
-  callee changes. Compile-time dependencies are typically added when
-  using macros or when invoking functions in the module body (outside
-  of functions). You can list all dependencies in a file by running
-  `mix xref trace path/to/file.ex`.
+  callee changes (or any runtime dependency of the callee changes).
+  Let's see an example:
+
+      # lib/a.ex
+      defmodule A do
+        @hello B.hello()
+        def hello, do: @hello
+      end
+
+      # lib/b.ex
+      defmodule B do
+        def hello, do: "hello"
+        def world, do: C.world()
+      end
+
+      # lib/c.ex
+      defmodule C do
+        def world, do: "world"
+      end
+
+  If `C.world/0` changes, `B` is marked as stale. `B` does not need to
+  be recompiled, because it depends on `C` at runtime, but anything that
+  depends on `B` at compile-time has to recompile, and that includes `A`.
+
+  Compile-time dependencies are typically added when using macros or
+  when invoking functions in the module body (outside of functions).
+  You can list all dependencies in a file by running
+  `mix xref trace path/to/file.ex`. This type of transitive compile-time
+  dependencies, such as `A` depending on `C` at compile-time through `B`,
+  can be found with the "compile-connected" label, as in
+  `mix xref graph --label compile-connected`.
 
   Export dependencies are compile time dependencies on the module API,
   namely structs and its public definitions. For example, if you import
