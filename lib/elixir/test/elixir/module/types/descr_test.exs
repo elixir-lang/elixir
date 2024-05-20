@@ -171,6 +171,9 @@ defmodule Module.Types.DescrTest do
   describe "creation" do
     test "map hoists dynamic" do
       assert dynamic(open_map(a: integer())) == open_map(a: dynamic(integer()))
+
+      assert dynamic(open_map(a: union(integer(), binary()))) ==
+               open_map(a: dynamic(integer()) |> union(binary()))
     end
   end
 
