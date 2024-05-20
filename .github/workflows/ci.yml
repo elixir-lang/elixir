@@ -19,7 +19,6 @@ permissions:
 
 concurrency:
   group: ci-${{ github.head_ref || github.run_id }}
-  cancel-in-progress: true
 
 jobs:
   test_linux:
