@@ -207,9 +207,14 @@ expand({quote, Meta, [Opts, Do]}, S, E) when is_list(Do) ->
   Unquote = proplists:get_value(unquote, EOpts, DefaultUnquote),
   Generated = proplists:get_value(generated, EOpts, false),
 
-  {Q, Prelude} = elixir_quote:build(Meta, Line, File, Context, Unquote, Generated, ET),
-  Quoted = elixir_quote:quote(Meta, Exprs, Binding, Q, Prelude),
-  expand(Quoted, ST, ET);
+  {Q, EBinding, Prelude} = elixir_quote:build(Meta, Line, File, Context, Unquote, Generated, Binding, ET),
+  Quoted = elixir_quote:quote(Exprs, Q, Prelude),
+  {EQuoted, ES, EQ} = expand(Quoted, ST, ET),
+
+  case EBinding of
+    [] -> {EQuoted, ES, EQ};
+     _ -> {{'{}', [], ['__block__', [], EBinding ++ [EQuoted]]}, ES, EQ}
+  end;
 
 expand({quote, Meta, [_, _]}, _S, E) ->
   file_error(Meta, E, ?MODULE, {invalid_args, 'quote'});

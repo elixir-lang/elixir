@@ -621,6 +621,23 @@ defmodule Kernel.ExpansionTest do
       assert expand(quote(do: quote(do: hello)), []) == {:{}, [], [:hello, [], __MODULE__]}
     end
 
+    test "expand bind_quoted once" do
+      expand_env(
+        quote do
+          var = 123
+          quote(bind_quoted: [var: var], do: var)
+        end,
+        __ENV__,
+        []
+      )
+      |> elem(0)
+      |> Macro.prewalk(fn
+        {:var, [version: 0], Kernel.ExpansionTest} -> :ok
+        {:var, _, Kernel.ExpansionTest} = invalid -> flunk("unexpected node #{inspect(invalid)}")
+        node -> node
+      end)
+    end
+
     test "raises if the :bind_quoted option is invalid" do
       assert_compile_error(~r"invalid :bind_quoted for quote", fn ->
         expand(quote(do: quote(bind_quoted: self(), do: :ok)))
