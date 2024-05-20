@@ -572,9 +572,6 @@ defmodule Macro.Env do
       {:macro, receiver, expander} ->
         {:macro, receiver, wrap_expansion(receiver, expander, meta, name, arity, env, opts)}
 
-      {:function, receiver, name} ->
-        {:function, receiver, name}
-
       :error ->
         :error
     end
