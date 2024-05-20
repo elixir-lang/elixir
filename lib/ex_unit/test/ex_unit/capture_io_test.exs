@@ -216,7 +216,14 @@ defmodule ExUnit.CaptureIOTest do
       end)
 
       capture_io("\"a", fn ->
-        assert :io.scan_erl_form(~c">") == {:error, {1, :erl_scan, {:string, 34, ~c"a"}}, 1}
+        error =
+          if System.otp_release() >= "27" do
+            {1, :erl_scan, {:unterminated, :string, ~c"a"}}
+          else
+            {1, :erl_scan, {:string, 34, ~c"a"}}
+          end
+
+        assert :io.scan_erl_form(~c">") == {:error, error, 1}
         assert :io.scan_erl_form(~c">") == {:eof, 1}
       end)
 
