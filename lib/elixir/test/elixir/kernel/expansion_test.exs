@@ -446,6 +446,11 @@ defmodule Kernel.ExpansionTest do
 
       assert expand(before_expansion) == after_expansion
     end
+
+    test "invalid metadata" do
+      assert expand({:foo, [imports: 2, context: :unknown], [1, 2]}) ==
+               {:foo, [imports: 2, context: :unknown], [1, 2]}
+    end
   end
 
   describe "floats" do

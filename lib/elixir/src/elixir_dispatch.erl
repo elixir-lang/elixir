@@ -329,7 +329,7 @@ find_import_by_name_arity(Tuple, List) ->
 
 is_import(Meta, Arity) ->
   case lists:keyfind(imports, 1, Meta) of
-    {imports, Imports} ->
+    {imports, [_ | _] = Imports} ->
       case lists:keyfind(context, 1, Meta) of
         {context, _} ->
           case lists:keyfind(Arity, 1, Imports) of
@@ -338,7 +338,7 @@ is_import(Meta, Arity) ->
           end;
         false -> false
       end;
-    false -> false
+    _ -> false
   end.
 
 % %% We've reached the macro wrapper fun, skip it with the rest
