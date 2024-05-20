@@ -32,6 +32,8 @@ find_import(Meta, Name, Arity, E) ->
     {macro, Receiver} ->
       elixir_env:trace({imported_macro, Meta, Receiver, Name, Arity}, E),
       Receiver;
+    {ambiguous, _} = Ambiguous ->
+      elixir_errors:file_error(Meta, E, ?MODULE, {import, Ambiguous, Name, Arity});
     _ ->
       false
   end.
@@ -75,6 +77,8 @@ import_function(Meta, Name, Arity, E) ->
       false;
     {import, Receiver} ->
       require_function(Meta, Receiver, Name, Arity, E);
+    {ambiguous, Ambiguous} ->
+      elixir_errors:file_error(Meta, E, ?MODULE, {import, Ambiguous, Name, Arity});
     false ->
       case elixir_import:special_form(Name, Arity) of
         true ->
@@ -130,8 +134,10 @@ dispatch_import(Meta, Name, Args, S, E, Callback) ->
       expand_quoted(Meta, Receiver, Name, Arity, Expander(Args, S), S, E);
     {function, Receiver, NewName} ->
       elixir_expand:expand({{'.', Meta, [Receiver, NewName]}, Meta, Args}, S, E);
-    error ->
-      Callback()
+    not_found ->
+      Callback();
+    Error ->
+      elixir_errors:file_error(Meta, E, ?MODULE, {import, Error, Name, Arity})
   end.
 
 dispatch_require(Meta, Receiver, Name, Args, S, E, Callback) when is_atom(Receiver) ->
@@ -164,8 +170,12 @@ expand_import(Meta, Name, Arity, E, Extra, AllowLocals, Trace) ->
   Dispatch = find_import_by_name_arity(Meta, Tuple, Extra, E),
 
   case Dispatch of
+    {ambiguous, Ambiguous} ->
+      {ambiguous, Ambiguous};
+
     {import, _} ->
       do_expand_import(Dispatch, Meta, Name, Arity, Module, E, Trace);
+
     _ ->
       Local = AllowLocals andalso elixir_def:local_for(Meta, Name, Arity, [defmacro, defmacrop], E),
 
@@ -173,8 +183,7 @@ expand_import(Meta, Name, Arity, E, Extra, AllowLocals, Trace) ->
         %% There is a local and an import. This is a conflict unless
         %% the receiver is the same as module (happens on bootstrap).
         {_, Receiver} when Local /= false, Receiver /= Module ->
-          Error = {macro_conflict, {Receiver, Name, Arity}},
-          elixir_errors:file_error(Meta, E, ?MODULE, Error);
+          {conflict, Receiver};
 
         %% There is no local. Dispatch the import.
         _ when Local == false ->
@@ -212,10 +221,10 @@ do_expand_import(Result, Meta, Name, Arity, Module, E, Trace) ->
     false when Module == ?kernel ->
       case elixir_rewrite:inline(Module, Name, Arity) of
         {AR, AN} -> {function, AR, AN};
-        false -> error
+        false -> not_found
       end;
     false ->
-      error
+      not_found
   end.
 
 expand_require(Meta, Receiver, Name, Arity, E, Trace) ->
@@ -286,7 +295,7 @@ find_imports_by_name([], Acc, _Name, _Meta, _E) ->
 find_imports_by_name(Name, [{Name, Arity} | Imports], Acc, Mod, Meta, E) ->
   case Acc of
     #{Arity := OtherMod} ->
-      Error = {ambiguous_call, {Mod, OtherMod, Name, Arity}},
+      Error = {import, {ambiguous, [Mod, OtherMod]}, Name, Arity},
       elixir_errors:file_error(Meta, E, ?MODULE, Error);
 
     #{} ->
@@ -311,11 +320,7 @@ find_import_by_name_arity(Meta, {_Name, Arity} = Tuple, Extra, E) ->
         {[], [Receiver]} -> {macro, Receiver};
         {[Receiver], []} -> {function, Receiver};
         {[], []} -> false;
-        _ ->
-          {Name, Arity} = Tuple,
-          [First, Second | _] = FunMatch ++ MacMatch,
-          Error = {ambiguous_call, {First, Second, Name, Arity}},
-          elixir_errors:file_error(Meta, E, ?MODULE, Error)
+        _ -> {ambiguous, FunMatch ++ MacMatch}
       end
   end.
 
@@ -352,11 +357,11 @@ prune_stacktrace([], _MFA, Info, _E) ->
 
 %% ERROR HANDLING
 
-format_error({macro_conflict, {Receiver, Name, Arity}}) ->
+format_error({import, {conflict, Receiver}, Name, Arity}) ->
   io_lib:format("call to local macro ~ts/~B conflicts with imported ~ts.~ts/~B, "
     "please rename the local macro or remove the conflicting import",
     [Name, Arity, elixir_aliases:inspect(Receiver), Name, Arity]);
-format_error({ambiguous_call, {Mod1, Mod2, Name, Arity}}) ->
+format_error({import, {ambiguous, [Mod1, Mod2 | _]}, Name, Arity}) ->
   io_lib:format("function ~ts/~B imported from both ~ts and ~ts, call is ambiguous",
     [Name, Arity, elixir_aliases:inspect(Mod1), elixir_aliases:inspect(Mod2)]);
 format_error({compile_env, Name, Arity}) ->

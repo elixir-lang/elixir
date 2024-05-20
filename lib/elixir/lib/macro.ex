@@ -1871,8 +1871,11 @@ defmodule Macro do
       {:function, _receiver, _name} ->
         {original, false}
 
-      :error ->
+      {:error, :not_found} ->
         {original, false}
+
+      {:error, other} ->
+        :elixir_errors.file_error(meta, env, :elixir_dispatch, {:import, other, name, arity})
     end
   end
 
