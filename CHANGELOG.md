@@ -117,6 +117,25 @@ in the long term.
 See the new `Logger` documentation for more information on the
 new features and on compatibility.
 
+## v1.15.8 (2024-05-21)
+
+### 1. Bug fixes
+
+#### Elixir
+
+  * [bin/elixir] Properly handle the `--dbg` flag in Elixir's CLI
+  * [System] Add a note that arguments are unsafe when invoking .bat/.com scripts on Windows via `System.cmd/3`
+  * [Port] Add a note that arguments are unsafe when invoking .bat/.com scripts on Windows
+  * [URI] Ensure `:undefined` fields are properly converted to `nil` when invoking Erlang's API
+
+#### Logger
+
+  * [Logger] Ensure translators are persisted across logger restarts
+
+#### Mix
+
+  * [mix compile] Ensure compile paths are accessible during compilation
+
 ## v1.15.7 (2023-10-14)
 
 ### 1. Enhancements
