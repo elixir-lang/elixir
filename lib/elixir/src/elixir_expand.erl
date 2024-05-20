@@ -207,8 +207,8 @@ expand({quote, Meta, [Opts, Do]}, S, E) when is_list(Do) ->
   Unquote = proplists:get_value(unquote, EOpts, DefaultUnquote),
   Generated = proplists:get_value(generated, EOpts, false),
 
-  {Q, Prelude} = elixir_quote:build(Meta, Line, File, Context, Unquote, Generated),
-  Quoted = elixir_quote:quote(Meta, Exprs, Binding, Q, Prelude, ET),
+  {Q, Prelude} = elixir_quote:build(Meta, Line, File, Context, Unquote, Generated, ET),
+  Quoted = elixir_quote:quote(Meta, Exprs, Binding, Q, Prelude),
   expand(Quoted, ST, ET);
 
 expand({quote, Meta, [_, _]}, _S, E) ->

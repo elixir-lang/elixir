@@ -120,7 +120,7 @@ defmodule Kernel.Utils do
     mapper = fn
       {key, val} when is_atom(key) ->
         try do
-          :elixir_quote.escape(val, false, :none)
+          :elixir_quote.escape(val, :none, false)
         rescue
           e in [ArgumentError] ->
             raise ArgumentError, "invalid value for struct field #{key}, " <> Exception.message(e)
