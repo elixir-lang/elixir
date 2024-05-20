@@ -529,13 +529,17 @@ generated(Meta, #elixir_quote{generated=false}) -> Meta.
 
 keep(Meta, #elixir_quote{file=nil, line=Line}) ->
   line(Meta, Line);
-keep(Meta, #elixir_quote{file=File}) ->
+keep(Meta, #elixir_quote{file=File, line=true}) ->
   case lists:keytake(line, 1, Meta) of
     {value, {line, Line}, MetaNoLine} ->
       [{keep, {File, Line}} | MetaNoLine];
     false ->
       [{keep, {File, 0}} | Meta]
-  end.
+  end;
+keep(Meta, #elixir_quote{file=File, line=false}) ->
+  [{keep, {File, 0}} | keydelete(line, Meta)];
+keep(Meta, #elixir_quote{file=File, line=Line}) ->
+  [{keep, {File, Line}} | keydelete(line, Meta)].
 
 line(Meta, true) ->
   Meta;

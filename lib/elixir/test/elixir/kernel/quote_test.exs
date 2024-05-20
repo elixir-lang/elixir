@@ -30,6 +30,17 @@ defmodule Kernel.QuoteTest do
     assert quote(line: true, do: bar(1, 2, 3)) == {:bar, [line: __ENV__.line], [1, 2, 3]}
   end
 
+  test "file line" do
+    assert quote(file: "foo", line: 3, do: bar(1, 2, 3)) ==
+             {:bar, [keep: {"foo", 3}], [1, 2, 3]}
+
+    assert quote(file: "foo", line: false, do: bar(1, 2, 3)) ==
+             {:bar, [keep: {"foo", 0}], [1, 2, 3]}
+
+    assert quote(file: "foo", line: true, do: bar(1, 2, 3)) ==
+             {:bar, [keep: {"foo", __ENV__.line - 1}], [1, 2, 3]}
+  end
+
   test "quote line var" do
     line = __ENV__.line
     assert quote(line: line, do: bar(1, 2, 3)) == {:bar, [line: line], [1, 2, 3]}

@@ -188,7 +188,7 @@ expand({quote, Meta, [Opts, Do]}, S, E) when is_list(Do) ->
 
   {File, Line} = case lists:keyfind(location, 1, EOpts) of
     {location, keep} ->
-      {?key(E, file), false};
+      {?key(E, file), true};
     false ->
       {proplists:get_value(file, EOpts, nil), proplists:get_value(line, EOpts, false)}
   end,

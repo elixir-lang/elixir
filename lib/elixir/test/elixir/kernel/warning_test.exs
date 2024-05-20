@@ -62,7 +62,7 @@ defmodule Kernel.WarningTest do
   end
 
   defmacro will_warn do
-    quote file: "demo" do
+    quote file: "demo", line: true do
       %{dup: 1, dup: 2}
     end
   end
