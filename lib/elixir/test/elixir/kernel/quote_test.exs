@@ -120,6 +120,12 @@ defmodule Kernel.QuoteTest do
     assert {:quote, _, [[do: {:unquote, _, _}]]} = quote(do: quote(do: unquote(x)))
   end
 
+  test "import inside nested quote" do
+    # Check that we can evaluate imports from quote inside quote
+    assert {{:to_string, meta, [123]}, _} = Code.eval_quoted(quote(do: quote(do: to_string(123))))
+    assert meta[:imports] == [{1, Kernel}]
+  end
+
   defmacrop nested_quote_in_macro do
     x = 1
 

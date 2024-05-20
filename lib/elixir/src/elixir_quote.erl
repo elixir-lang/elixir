@@ -399,14 +399,14 @@ do_quote(Other, _, _) ->
 import_meta(Meta, Name, Arity, Q, E) ->
   case (keyfind(imports, Meta) == false) andalso
       elixir_dispatch:find_imports(Meta, Name, E) of
-    [] ->
+    [_ | _] = Imports ->
+      keystore(imports, keystore(context, Meta, Q#elixir_quote.context), Imports);
+
+    _ ->
       case (Arity == 1) andalso keyfind(ambiguous_op, Meta) of
         {ambiguous_op, nil} -> keystore(ambiguous_op, Meta, Q#elixir_quote.context);
         _ -> Meta
-      end;
-
-    Imports ->
-      keystore(imports, keystore(context, Meta, Q#elixir_quote.context), Imports)
+      end
   end.
 
 %% do_quote_*
