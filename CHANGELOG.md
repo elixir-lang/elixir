@@ -78,7 +78,7 @@ Another [ExDoc](https://github.com/elixir-lang/ex_doc) feature we have incorpora
 
 Finally, we have started enriching our documentation with [Mermaid.js](https://mermaid.js.org/) diagrams. You can find examples in the [GenServer](https://hexdocs.pm/elixir/main/GenServer.html) and [Supervisor](https://hexdocs.pm/elixir/main/Supervisor.html) docs.
 
-## v1.16.3-dev
+## v1.16.3 (2024-05-21)
 
 ### 1. Bug fixes
 
