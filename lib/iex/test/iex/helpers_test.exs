@@ -341,20 +341,27 @@ defmodule IEx.HelpersTest do
     @tag :erlang_doc
     test "prints Erlang module function specs" do
       captured = capture_io(fn -> h(:timer.sleep() / 1) end)
-      assert captured =~ ":timer.sleep/1"
 
-      # TODO Fix for OTP 27 once specs are available
+      # TODO remove once we require Erlang/OTP 27+
       if System.otp_release() < "27" do
+        assert captured =~ ":timer.sleep/1"
         assert captured =~ "-spec sleep(Time) -> ok when Time :: timeout()."
       else
         assert captured =~ "sleep(Time)"
+        assert captured =~ "@spec sleep(time) :: :ok when time: timeout()"
       end
     end
 
     @tag :erlang_doc
     test "handles non-existing Erlang module function" do
       captured = capture_io(fn -> h(:timer.baz() / 1) end)
-      assert captured =~ "No documentation for :timer.baz was found"
+
+      # TODO remove once we require Erlang/OTP 27+
+      if System.otp_release() < "27" do
+        assert captured =~ "No documentation for :timer.baz was found"
+      else
+        assert captured =~ "No documentation for :timer.baz/1 was found"
+      end
     end
 
     test "prints module documentation" do
@@ -1021,13 +1028,13 @@ defmodule IEx.HelpersTest do
     test "prints all types in Erlang module" do
       captured = capture_io(fn -> t(:queue) end)
 
-      # TODO Fix for OTP 27 once specs are available
+      # TODO remove once we require Erlang/OTP 27+
       if System.otp_release() < "27" do
         assert captured =~ "-type queue() :: queue(_)"
         assert captured =~ "-opaque queue(Item)"
       else
-        assert captured =~ "queue()"
-        assert captured =~ "queue(Item)"
+        assert captured =~ "@type queue() :: queue(_)"
+        assert captured =~ "@opaque queue(item)"
       end
     end
 
@@ -1035,22 +1042,22 @@ defmodule IEx.HelpersTest do
     test "prints single type from Erlang module" do
       captured = capture_io(fn -> t(:erlang.iovec()) end)
 
-      # TODO Fix for OTP 27 once specs are available
+      # TODO remove once we require Erlang/OTP 27+
       if System.otp_release() < "27" do
         assert captured =~ "-type iovec() :: [binary()]"
       else
-        assert captured =~ "iovec()"
+        assert captured =~ "@type iovec() :: [binary()]"
       end
 
       assert captured =~ "A list of binaries."
 
       captured = capture_io(fn -> t(:erlang.iovec() / 0) end)
 
-      # TODO Fix for OTP 27 once specs are available
+      # TODO remove once we require Erlang/OTP 27+
       if System.otp_release() < "27" do
         assert captured =~ "-type iovec() :: [binary()]"
       else
-        assert captured =~ "iovec()"
+        assert captured =~ "@type iovec() :: [binary()]"
       end
 
       assert captured =~ "A list of binaries."
