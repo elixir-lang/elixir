@@ -265,7 +265,7 @@ There is more to learn about `get_in/1`, `pop_in/1` and others, including the `g
 
 There are two different data structures for working with key-value stores in Elixir. Alongside the `Access` module and pattern matching, they provide a rich set of tools for manipulating complex, potentially nested, data structures.
 
-As we conclude this chapter, the important to keep in mind is that you should:
+As we conclude this chapter, remember that you should:
 
   * Use keyword lists for passing optional values to functions
 
