@@ -1183,10 +1183,12 @@ defmodule System do
   defp cmd_opts([{:stderr_to_stdout, false} | t], opts, into, line),
     do: cmd_opts(t, opts, into, line)
 
-  defp cmd_opts([{:use_stdio, false} | t], opts, into, line) do
-    opts = opts -- [:use_stdio, :stderr_to_stdout]
-    cmd_opts(t, [:nouse_stdio | opts], into, line)
-  end
+  defp cmd_opts([{:use_stdio, false} | t], opts, into, line),
+    do: cmd_opts(t, [:nouse_stdio | List.delete(opts, :use_stdio)], into, line)
+
+  # use_stdio is true by default, do nothing but match it
+  defp cmd_opts([{:use_stdio, true} | t], opts, into, line),
+    do: cmd_opts(t, opts, into, line)
 
   defp cmd_opts([{:parallelism, bool} | t], opts, into, line) when is_boolean(bool),
     do: cmd_opts(t, [{:parallelism, bool} | opts], into, line)
@@ -1201,8 +1203,12 @@ defmodule System do
   defp cmd_opts([{key, val} | _], _opts, _into, _line),
     do: raise(ArgumentError, "invalid option #{inspect(key)} with value #{inspect(val)}")
 
-  defp cmd_opts([], opts, into, line),
-    do: {into, line, opts}
+  defp cmd_opts([], opts, into, line) do
+    if :stderr_to_stdout in opts and :nouse_stdio in opts,
+      do: raise(ArgumentError, "cannot use `stderr_to_stdout: true` and `use_stdio: false`")
+
+    {into, line, opts}
+  end
 
   defp validate_env(enum) do
     Enum.map(enum, fn
