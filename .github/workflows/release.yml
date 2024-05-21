@@ -37,6 +37,8 @@ jobs:
             otp_version: "25.3"
           - otp: 26
             otp_version: "26.0"
+          - otp: 27
+            otp_version: "27.0"
             build_docs: build_docs
     runs-on: ubuntu-22.04
     steps:
