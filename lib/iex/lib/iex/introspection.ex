@@ -259,6 +259,7 @@ defmodule IEx.Introspection do
     case Code.ensure_loaded(module) do
       {:module, _} ->
         case Code.fetch_docs(module) do
+          # TODO remove once we require Erlang/OTP 27+
           {:docs_v1, _, :erlang, "application/erlang+html", _, _, _} = erl_docs ->
             :shell_docs.render(module, erl_docs) |> IO.puts()
 
@@ -378,6 +379,7 @@ defmodule IEx.Introspection do
     spec = get_spec(mod, fun, arity)
 
     cond do
+      # TODO remove once we require Erlang/OTP 27+
       language == :erlang and format == "application/erlang+html" ->
         print_erlang_doc(mod, fun, arity, docs_v1)
         :ok
@@ -667,6 +669,7 @@ defmodule IEx.Introspection do
   """
   def t(module) when is_atom(module) do
     case :code.get_doc(module) do
+      # TODO remove once we require Erlang/OTP 27+
       {:ok, {:docs_v1, _, :erlang, "application/erlang+html", _, _, _} = erl_docs} ->
         :shell_docs.render_type(module, erl_docs) |> IO.puts()
 
@@ -690,6 +693,7 @@ defmodule IEx.Introspection do
 
   def t({module, type}) when is_atom(module) and is_atom(type) do
     case get_docs(module, [:type]) do
+      # TODO remove once we require Erlang/OTP 27+
       {:erlang, "application/erlang+html", _, erl_docs} ->
         case :shell_docs.render_type(module, type, erl_docs) do
           {:error, :type_missing} -> types_not_found_or_private("#{inspect(module)}.#{type}")
@@ -724,6 +728,7 @@ defmodule IEx.Introspection do
 
   def t({module, type, arity}) when is_atom(module) and is_atom(type) and is_integer(arity) do
     case get_docs(module, [:type]) do
+      # TODO remove once we require Erlang/OTP 27+
       {:erlang, "application/erlang+html", _, erl_docs} ->
         case :shell_docs.render_type(module, type, arity, erl_docs) do
           {:error, :type_missing} -> types_not_found_or_private("#{inspect(module)}.#{type}")
