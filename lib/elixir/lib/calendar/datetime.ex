@@ -1682,10 +1682,11 @@ defmodule DateTime do
 
   Allowed units are: `:year`, `:month`, `:week`, `:day`, `:hour`, `:minute`, `:second`, `:microsecond`.
 
-  This operation is equivalent to shifting the datetime wall clock (in other words,
-  the values as we see them printed), then applying the time zone offset before
-  computing the new time zone. This ensures `shift/3` always returns a valid
-  datetime.
+  This operation is equivalent to shifting the datetime wall clock
+  (in other words, the value as someone in that timezone would see
+  on their watch), then applying the time zone offset to convert it
+  to UTC, and finally computing the new timezone in case of shifts.
+  This ensures `shift/3` always returns a valid datetime.
 
   On the other hand, time zones that observe "Daylight Saving Time"
   or other changes, across summer/winter time will add/remove hours
@@ -1700,7 +1701,7 @@ defmodule DateTime do
       #=> #DateTime<2018-11-04 01:00:00-08:00 PST America/Los_Angeles>
 
   In case you don't want these changes to happen automatically or you
-  want to surface timezone conflicts to the user, you can shift
+  want to surface time zone conflicts to the user, you can shift
   the datetime as a naive datetime and then use `from_naive/2`:
 
       dt |> NaiveDateTime.shift(duration) |> DateTime.from_naive(dt.time_zone)

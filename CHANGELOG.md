@@ -12,7 +12,7 @@ At the moment, Elixir developers will interact with set-theoretic types only thr
 
   * `map()` and structs - maps can be "closed" or "open". Closed maps only allow the specified allows keys, such as `%{key: atom(), value: integer()}`. Open maps support any other keys in addition to the ones listed and their definition starts with `...`, such as `%{..., key: atom(), value: integer()}`. Structs are closed maps with the `__struct__` key.
 
-  * `tuple()`, `list()`, and `function()` - currently they are modelled as indivisible types. The next Elixir versions will also introduce fine-grained types here.
+  * `tuple()`, `list()`, and `function()` - currently they are modelled as indivisible types. The next Elixir versions will also introduce fine-grained support to them.
 
 We focused on atoms and maps on this initial release as they are respectively the simplest and the most complex types representations, so we can stress the performance of the type system and quality of error messages. Modelling these types will also provide the most immediate benefits to Elixir developers. Assuming there is a variable named `user`, holding a `%User{}` struct with an `address` field, Elixir v1.17 will emit the following warnings at compile-time:
 
@@ -36,15 +36,39 @@ We focused on atoms and maps on this initial release as they are respectively th
 
   * Accessing a field that is not defined in a rescued exception
 
-These new warnings help Elixir developers find bugs earlier and give more confidence when refactoring code, especially around maps and structs. While some of these warnings were emitted in the past, they were discovered using syntax analysis. The new warnings are more reliable, precise, and with better error messages. Keep in mind that not all maps have statically known keys, and the Elixir typechecker does not track types across all variables and function calls yet.
+These new warnings help Elixir developers find bugs earlier and give more confidence when refactoring code, especially around maps and structs. While some of these warnings were emitted in the past, they were discovered using syntax analysis. The new warnings are more reliable, precise, and with better error messages. Keep in mind that not all maps have statically known keys, and the Elixir typechecker only infers types from patterns at the moment.
 
-Future Elixir versions will continue inferring more types and type checking more constructs, bringing Elixir developers more warnings and quality of life improvements without changes to code. For more details, see our new [reference document on gradual set-theoretic types](https://hexdocs.pm/elixir/main/gradual-set-theoretic-types.html).
+Future Elixir versions will infer and type check more constructs, bringing Elixir developers more warnings and quality of life improvements without changes to code. For more details, see our new [reference document on gradual set-theoretic types](https://hexdocs.pm/elixir/main/gradual-set-theoretic-types.html).
 
-The type system was made possible thanks to a partnership between  [CNRS](https://www.cnrs.fr/) and [Remote](https://remote.com/). The development work is currently sponsored by [Fresha](https://www.fresha.com/), [Starfish*](https://starfish.team/), and [Dashbit](https://dashbit.co/).
+The type system was made possible thanks to a partnership between [CNRS](https://www.cnrs.fr/) and [Remote](https://remote.com/). The development work is currently sponsored by [Fresha](https://www.fresha.com/), [Starfish*](https://starfish.team/), and [Dashbit](https://dashbit.co/).
+
+## Erlang/OTP support
+
+This release adds support for Erlang/OTP 27 and drops support for Erlang/OTP 24. We recommend Elixir developers to migrate to Erlang/OTP 26+ or later, especially on Windows. Support for WERL (a graphical user interface for the Erlang terminal on Windows) will be removed in Elixir v1.18.
 
 ## Adding `Duration` and `shift/2` functions
 
-TODO.
+Elixir introduces the `Duration` data type and APIs to shift dates, times, and date times by a given duration, considering different calendars and time zones.
+
+```elixir
+iex> Date.shift(~D[2016-01-31], month: 2)
+~D[2016-03-31]
+```
+
+Note the operation is called `shift` (instead of `add`) since working with durations does not obey properties such as associativity. For instance, adding one month and then one month does not give the same result as adding two months:
+
+```elixir
+iex> ~D[2016-01-31] |> Date.shift(month: 1) |> Date.shift(month: 1)
+~D[2016-03-29]
+```
+
+Still, durations are essential for building intervals, recurring events, and modelling scheduling complexities found in the world around us. For `DateTime`s, Elixir will correctly deal with time zone changes (such as Daylight Saving Time), but provisions are also available in case you want to surface conflicts (for example, you shifted to a wall clock that does not exist, because the clock has been moved forward by one hour). See `DateTime.shift/2` for examples.
+
+Finally, a new `Kernel.to_timeout/1` function has been added, which helps developers normalize durations and integers to a timeout used by Process APIs. For example, to send a message after one hour, one can now write:
+
+```elixir
+Process.send_after(pid, :wake_up, to_timeout(hour: 1))
+```
 
 ## v1.17.0-dev
 
@@ -53,7 +77,9 @@ TODO.
 #### Elixir
 
   * [Access] Add `Access.find/1` that mirrors `Enum.find/2`
+  * [Code] Support cursor inside fn/rescue/catch/else/after inside `Code.Fragment.container_cursor_to_quoted/2`
   * [Date] Add `Date.shift/2` to shift dates with duration and calendar-specific semantics
+  * [Date] Allow `Date` to accept years outside of `-9999..9999` range
   * [DateTime] Add `DateTime.shift/2` to shift datetimes with duration and calendar-specific semantics
   * [Duration] Add a new `Duration` data type
   * [GenServer] Add `c:GenServer.format_status/1` callback
@@ -100,6 +126,9 @@ TODO.
   * [Code] Address a bug where AST nodes for `(a -> b)` were not wrapped as part of the literal encoder
   * [Kernel] Resolve inconsistencies of how `..` and `...` are handled at the AST level
   * [Kernel] Fix parsing precedence of ambiguous operators followed by containers
+  * [Kernel] Do not expand code in `quote bind_quoted: ...` twice
+  * [Kernel] Respect `:line` property when `:file` is given as option to `quote`
+  * [Module] Return default value in `Module.get_attribute/3` for persisted attributes which have not yet been written to
 
 #### IEx
 
