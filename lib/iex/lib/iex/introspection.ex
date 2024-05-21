@@ -258,19 +258,7 @@ defmodule IEx.Introspection do
   def h(module) when is_atom(module) do
     case Code.ensure_loaded(module) do
       {:module, _} ->
-        case Code.fetch_docs(module) do
-          {:docs_v1, _, :erlang, _, _, _, _} = erl_docs ->
-            :shell_docs.render(module, erl_docs) |> IO.puts()
-
-          {:docs_v1, _, _, format, %{} = doc, metadata, _} ->
-            print_doc([inspect(module)], [], format, doc, metadata)
-
-          {:docs_v1, _, _, _, _, _, _} ->
-            docs_not_found(inspect(module))
-
-          _ ->
-            no_docs(module)
-        end
+        :shell_docs.get_doc(module) |> IO.ANSI.Docs.print_erlang_html(IEx.Config.ansi_docs())
 
       {:error, reason} ->
         puts_error("Could not load module #{inspect(module)}, got: #{reason}")
