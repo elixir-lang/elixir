@@ -1053,7 +1053,11 @@ defmodule System do
 
     * `:arg0` - sets the command arg0
 
-    * `:stderr_to_stdout` - redirects stderr to stdout when `true`
+    * `:stderr_to_stdout` - redirects stderr to stdout when `true`, no effect
+      if `use_stdio` is `false``.
+
+    * `:use_stdio` - `true` by default, setting it to false allows direct
+      interaction with the terminal from the callee
 
     * `:parallelism` - when `true`, the VM will schedule port tasks to improve
       parallelism in the system. If set to `false`, the VM will try to perform
@@ -1178,6 +1182,11 @@ defmodule System do
 
   defp cmd_opts([{:stderr_to_stdout, false} | t], opts, into, line),
     do: cmd_opts(t, opts, into, line)
+
+  defp cmd_opts([{:use_stdio, false} | t], opts, into, line) do
+    opts = opts -- [:use_stdio, :stderr_to_stdout]
+    cmd_opts(t, [:nouse_stdio | opts], into, line)
+  end
 
   defp cmd_opts([{:parallelism, bool} | t], opts, into, line) when is_boolean(bool),
     do: cmd_opts(t, [{:parallelism, bool} | opts], into, line)
