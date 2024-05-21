@@ -50,7 +50,7 @@ defmodule Module.Types.Descr do
   def atom(as), do: %{atom: atom_new(as)}
   def atom(), do: %{atom: @atom_top}
   def binary(), do: %{bitmap: @bit_binary}
-  def closed_map(pairs), do: %{map: map_new(:closed, :maps.from_list(pairs))}
+  def closed_map(pairs), do: map_descr(:closed, pairs)
   def empty_list(), do: %{bitmap: @bit_empty_list}
   def empty_map(), do: %{map: @map_empty}
   def integer(), do: %{bitmap: @bit_integer}
@@ -59,7 +59,7 @@ defmodule Module.Types.Descr do
   def list(), do: %{bitmap: @bit_list}
   def non_empty_list(), do: %{bitmap: @bit_non_empty_list}
   def open_map(), do: %{map: @map_top}
-  def open_map(pairs), do: %{map: map_new(:open, :maps.from_list(pairs))}
+  def open_map(pairs), do: map_descr(:open, pairs)
   def pid(), do: %{bitmap: @bit_pid}
   def port(), do: %{bitmap: @bit_port}
   def reference(), do: %{bitmap: @bit_reference}
@@ -597,15 +597,34 @@ defmodule Module.Types.Descr do
   # `%{..., a: if_set(not atom()), b: integer()}`. For maps with more keys,
   # each key in a negated literal may create a new union when eliminated.
 
+  defp map_descr(tag, fields) do
+    case map_descr_pairs(fields, [], false) do
+      {fields, true} ->
+        %{dynamic: %{map: map_new(tag, fields |> Enum.reverse() |> :maps.from_list())}}
+
+      {_, false} ->
+        %{map: map_new(tag, :maps.from_list(fields))}
+    end
+  end
+
+  defp map_descr_pairs([{key, value} | rest], acc, dynamic?) do
+    case :maps.take(:dynamic, value) do
+      :error -> map_descr_pairs(rest, [{key, value} | acc], dynamic?)
+      {dynamic, _static} -> map_descr_pairs(rest, [{key, dynamic} | acc], true)
+    end
+  end
+
+  defp map_descr_pairs([], acc, dynamic?) do
+    {acc, dynamic?}
+  end
+
   defp optional?(%{bitmap: bitmap}) when (bitmap &&& @bit_optional) != 0, do: true
   defp optional?(_), do: false
 
   defp map_tag_to_type(:open), do: term_or_optional()
   defp map_tag_to_type(:closed), do: not_set()
 
-  # TODO: We need to propagate any dynamic up
-  defp map_new(tag, fields), do: [{tag, fields, []}]
-  defp map_descr(tag, fields), do: %{map: map_new(tag, fields)}
+  defp map_new(tag, fields = %{}), do: [{tag, fields, []}]
 
   @doc """
   Fetches the type of the value returned by accessing `key` on `map`
@@ -834,8 +853,8 @@ defmodule Module.Types.Descr do
 
   defp map_pop_key(tag, fields, key) do
     case :maps.take(key, fields) do
-      {value, fields} -> {value, map_descr(tag, fields)}
-      :error -> {map_tag_to_type(tag), map_descr(tag, fields)}
+      {value, fields} -> {value, %{map: map_new(tag, fields)}}
+      :error -> {map_tag_to_type(tag), %{map: map_new(tag, fields)}}
     end
   end
 

@@ -168,6 +168,15 @@ defmodule Module.Types.DescrTest do
     end
   end
 
+  describe "creation" do
+    test "map hoists dynamic" do
+      assert dynamic(open_map(a: integer())) == open_map(a: dynamic(integer()))
+
+      assert dynamic(open_map(a: union(integer(), binary()))) ==
+               open_map(a: dynamic(integer()) |> union(binary()))
+    end
+  end
+
   describe "subtype" do
     test "bitmap" do
       assert subtype?(integer(), union(integer(), float()))
@@ -240,7 +249,7 @@ defmodule Module.Types.DescrTest do
 
   describe "empty" do
     test "map" do
-      assert intersection(closed_map(b: atom()), open_map(a: integer())) |> empty?
+      assert intersection(closed_map(b: atom()), open_map(a: integer())) |> empty?()
     end
   end
 
