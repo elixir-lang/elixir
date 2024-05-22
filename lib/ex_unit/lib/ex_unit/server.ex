@@ -42,6 +42,10 @@ defmodule ExUnit.Server do
     GenServer.call(@name, {:restore_modules, async_modules, sync_modules}, @timeout)
   end
 
+  def append_async() do
+    GenServer.call(@name, :append_async, @timeout)
+  end
+
   ## Callbacks
 
   def init(:ok) do
@@ -52,7 +56,10 @@ defmodule ExUnit.Server do
       loaded: System.monotonic_time(),
       waiting: nil,
       async_modules: [],
-      sync_modules: []
+      sync_modules: [],
+      # we set this to true when sort_last is used to ensure that specific
+      # async modules are appended instead of prepended
+      append_async: false
     }
 
     {:ok, state}
@@ -66,7 +73,11 @@ defmodule ExUnit.Server do
   # Called once after all async modules have been sent and reverts the state.
   def handle_call(:take_sync_modules, _from, state) do
     %{waiting: nil, loaded: :done, async_modules: []} = state
-    {:reply, state.sync_modules, %{state | sync_modules: [], loaded: System.monotonic_time()}}
+
+    # reverse the modules as we prepend them on load
+    # to ensure the sort_first and sort_last order is respected
+    {:reply, Enum.reverse(state.sync_modules),
+     %{state | sync_modules: [], loaded: System.monotonic_time()}}
   end
 
   # Called by the runner when --repeat-until-failure is used.
@@ -115,6 +126,8 @@ defmodule ExUnit.Server do
 
   def handle_call({:add, _async?, _names}, _from, state),
     do: {:reply, :already_running, state}
+
+  def handle_call(:append_async, _from, state), do: {:reply, :ok, %{state | append_async: true}}
 
   defp take_modules(%{waiting: nil} = state) do
     state

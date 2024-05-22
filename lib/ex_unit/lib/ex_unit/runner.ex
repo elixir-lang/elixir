@@ -290,21 +290,24 @@ defmodule ExUnit.Runner do
   end
 
   defp sort_first_last(%{sort_first: nil, sort_last: nil}, tests), do: tests
+
   defp sort_first_last(config, tests) do
     tests = maybe_sort(:first, config.sort_first, tests)
     maybe_sort(:last, config.sort_last, tests)
   end
 
   defp maybe_sort(_where, nil, tests), do: tests
-  defp maybe_sort(where, filter, tests) do
-    {to_sort, rest} = Enum.split_with(tests, fn test ->
-      tags = Map.merge(test.tags, %{test: test.name, module: test.module})
 
-      case ExUnit.Filters.eval(filter, [:test], tags, tests) do
-        :ok -> true
-        _excluded_or_skipped -> false
-      end
-    end)
+  defp maybe_sort(where, filter, tests) do
+    {to_sort, rest} =
+      Enum.split_with(tests, fn test ->
+        tags = Map.merge(test.tags, %{test: test.name, module: test.module})
+
+        case ExUnit.Filters.eval(filter, [:test], tags, tests) do
+          :ok -> true
+          _excluded_or_skipped -> false
+        end
+      end)
 
     # the test list is reversed afterwards, therefore this is reversed as well
     case where do

@@ -67,7 +67,9 @@ defmodule Mix.Compilers.Test do
         seed = Application.fetch_env!(:ex_unit, :seed)
         rand_algorithm = Application.fetch_env!(:ex_unit, :rand_algorithm)
         test_files = shuffle(seed, rand_algorithm, test_files)
-        {first, test_files, last} = maybe_sort_first_last(test_files, ex_unit_opts[:sort_first], ex_unit_opts[:sort_last])
+
+        {first, test_files, last} =
+          maybe_sort_first_last(test_files, ex_unit_opts[:sort_first], ex_unit_opts[:sort_last])
 
         try do
           # TODO: what about parallel_require_callbacks?
@@ -79,6 +81,12 @@ defmodule Mix.Compilers.Test do
               {:ok, _, _} -> false
               {:error, _, _} -> exit({:shutdown, 1})
             end
+
+          if last != [] do
+            # this ensures that modules loaded afterwards are appended to the end of async modules
+            # instead of the front to ensure that --sort-last works as expected
+            ExUnit.Server.append_async()
+          end
 
           # TODO: what about parallel_require_callbacks?
           for file <- last, do: Code.require_file(file)
@@ -330,6 +338,7 @@ defmodule Mix.Compilers.Test do
   end
 
   defp maybe_sort_first_last(test_files, nil, nil), do: test_files
+
   defp maybe_sort_first_last(test_files, first, last) do
     {first, test_files} = maybe_sort(test_files, first)
     {last, test_files} = maybe_sort(test_files, last)
