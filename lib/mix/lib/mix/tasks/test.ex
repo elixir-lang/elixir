@@ -461,7 +461,9 @@ defmodule Mix.Tasks.Test do
     warnings_as_errors: :boolean,
     profile_require: :string,
     exit_status: :integer,
-    repeat_until_failure: :integer
+    repeat_until_failure: :integer,
+    sort_first: :keep,
+    sort_last: :keep
   ]
 
   @cover [output: "cover", tool: Mix.Tasks.Test.Coverage]
@@ -610,7 +612,7 @@ defmodule Mix.Tasks.Test do
       warn_test_pattern
     )
 
-    case CT.require_and_run(matched_test_files, test_paths, test_elixirc_options, opts) do
+    case CT.require_and_run(matched_test_files, test_paths, test_elixirc_options, opts, ex_unit_opts) do
       {:ok, %{excluded: excluded, failures: failures, total: total}} ->
         Mix.shell(shell)
         cover && cover.()
@@ -695,7 +697,9 @@ defmodule Mix.Tasks.Test do
     :only_test_ids,
     :test_location_relative_path,
     :exit_status,
-    :repeat_until_failure
+    :repeat_until_failure,
+    :sort_first,
+    :sort_last
   ]
 
   @doc false
@@ -707,6 +711,8 @@ defmodule Mix.Tasks.Test do
       |> filter_opts(:include)
       |> filter_opts(:exclude)
       |> filter_opts(:only)
+      |> filter_opts(:sort_first)
+      |> filter_opts(:sort_last)
       |> formatter_opts()
       |> color_opts()
       |> exit_status_opts()

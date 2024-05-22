@@ -75,6 +75,8 @@ defmodule ExUnit.Runner do
       capture_log: opts[:capture_log],
       exclude: opts[:exclude],
       include: opts[:include],
+      sort_first: opts[:sort_first],
+      sort_last: opts[:sort_last],
       manager: manager,
       max_cases: opts[:max_cases],
       max_failures: opts[:max_failures],
@@ -278,11 +280,37 @@ defmodule ExUnit.Runner do
           end
       end
 
+    to_run = sort_first_last(config, to_run)
+
     {Enum.reverse(to_run), Enum.reverse(to_skip)}
   end
 
   defp include_test?(test_ids, test) do
     test_ids == nil or MapSet.member?(test_ids, {test.module, test.name})
+  end
+
+  defp sort_first_last(%{sort_first: nil, sort_last: nil}, tests), do: tests
+  defp sort_first_last(config, tests) do
+    tests = maybe_sort(:first, config.sort_first, tests)
+    maybe_sort(:last, config.sort_last, tests)
+  end
+
+  defp maybe_sort(_where, nil, tests), do: tests
+  defp maybe_sort(where, filter, tests) do
+    {to_sort, rest} = Enum.split_with(tests, fn test ->
+      tags = Map.merge(test.tags, %{test: test.name, module: test.module})
+
+      case ExUnit.Filters.eval(filter, [:test], tags, tests) do
+        :ok -> true
+        _excluded_or_skipped -> false
+      end
+    end)
+
+    # the test list is reversed afterwards, therefore this is reversed as well
+    case where do
+      :first -> rest ++ to_sort
+      :last -> to_sort ++ rest
+    end
   end
 
   defp run_module_tests(_config, test_module, []) do

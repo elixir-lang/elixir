@@ -21,18 +21,18 @@ defmodule Mix.Compilers.Test do
   It expects all of the test patterns, the test files that were matched for the
   test patterns, the test paths, and the opts from the test task.
   """
-  def require_and_run(matched_test_files, test_paths, elixirc_opts, opts) do
+  def require_and_run(matched_test_files, test_paths, elixirc_opts, opts, ex_unit_opts) do
     elixirc_opts = Keyword.merge([docs: false, debug_info: false], elixirc_opts)
     previous_opts = Code.compiler_options(elixirc_opts)
 
     try do
-      require_and_run(matched_test_files, test_paths, opts)
+      require_and_run(matched_test_files, test_paths, opts, ex_unit_opts)
     after
       Code.compiler_options(previous_opts)
     end
   end
 
-  defp require_and_run(matched_test_files, test_paths, opts) do
+  defp require_and_run(matched_test_files, test_paths, opts, ex_unit_opts) do
     stale = opts[:stale]
 
     {test_files, stale_manifest_pid, parallel_require_callbacks} =
@@ -67,6 +67,7 @@ defmodule Mix.Compilers.Test do
         seed = Application.fetch_env!(:ex_unit, :seed)
         rand_algorithm = Application.fetch_env!(:ex_unit, :rand_algorithm)
         test_files = shuffle(seed, rand_algorithm, test_files)
+        test_files = maybe_sort_first_last(test_files, ex_unit_opts[:sort_first], ex_unit_opts[:sort_last])
 
         try do
           failed? =
@@ -320,5 +321,25 @@ defmodule Mix.Compilers.Test do
   defp shuffle(seed, rand_algorithm, list) do
     _ = :rand.seed(rand_algorithm, {seed, seed, seed})
     Enum.shuffle(list)
+  end
+
+  defp maybe_sort_first_last(test_files, nil, nil), do: test_files
+  defp maybe_sort_first_last(test_files, first, last) do
+    test_files = maybe_sort(:first, test_files, first)
+    maybe_sort(:last, test_files, last)
+  end
+
+  defp maybe_sort(_where, files, nil), do: files
+
+  defp maybe_sort(where, test_files, filter) do
+    {to_sort, rest} = case for {:file, file} <- filter, do: file do
+      [] -> {[], test_files}
+      files -> Enum.split_with(test_files, &Enum.member?(files, &1))
+    end
+
+    case where do
+      :first -> to_sort ++ rest
+      :last -> rest ++ to_sort
+    end
   end
 end
