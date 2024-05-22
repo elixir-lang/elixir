@@ -286,7 +286,7 @@ get_module_info(Module) ->
 exports_md5_info(Struct, Def, Defmacro) ->
   %% Deprecations do not need to be part of exports_md5 because it is always
   %% checked by the runtime pass, so it is not really part of compilation.
-  Md5 = erlang:md5(erlang:term_to_binary({Def, Defmacro, Struct})),
+  Md5 = erlang:md5(term_to_binary({Def, Defmacro, Struct}, [deterministic])),
   {clause, 0, [{atom, 0, exports_md5}], [], [elixir_to_erl(Md5)]}.
 
 functions_info(Def) ->
@@ -481,7 +481,7 @@ docs_chunk(Set, Module, Line, Def, Defmacro, Types, Callbacks) ->
         ModuleDoc,
         ModuleDocMeta,
         FunctionDocs ++ MacroDocs ++ CallbackDocs ++ TypeDocs
-      }, [compressed]),
+      }, [deterministic, compressed]),
 
       [{<<"Docs">>, DocsChunkData}];
 
@@ -585,7 +585,7 @@ checker_chunk(#{definitions := Definitions, deprecated := Deprecated, defines_be
     exports => lists:sort(behaviour_info_exports(DefinesBehaviour) ++ Exports)
   },
 
-  [{<<"ExCk">>, erlang:term_to_binary({elixir_checker_v1, Contents})}].
+  [{<<"ExCk">>, term_to_binary({elixir_checker_v1, Contents}, [deterministic])}].
 
 behaviour_info_exports(true) -> [{{behaviour_info, 1}, #{kind => def, deprecated_reason => nil}}];
 behaviour_info_exports(false) -> [].
