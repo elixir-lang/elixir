@@ -1,8 +1,8 @@
 #!/usr/bin/env pwsh
 
-$MinPowerShellVersion = [semver]::new(7, 2, 0)
+$MinPowerShellVersion = [version]"7.2.0"
 
-if ($MinPowerShellVersion.CompareTo($PSVersionTable.PSVersion) -eq 1) {
+if ($MinPowerShellVersion.CompareTo([version]$PSVersionTable.PSVersion) -eq 1) {
   Write-Error "This script requires PowerShell version 7.2 or above. Running on $($PSVersionTable.PSVersion)"
 }
 
@@ -79,7 +79,30 @@ if (($Args.Count -eq 1) -and ($Args[0] -eq "--short-version")) {
 
 if (($Args.Count -eq 0) -or (($Args.Count -eq 1) -and ($Args[0] -in @("-h", "--help")))) {
   PrintElixirHelp
-  exit
+  exit 1
+}
+
+function NormalizeArg {
+  param(
+    [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
+    [string[]] $Items
+  )
+  [string]::Join(",", $Items)
+}
+
+function QuotedString {
+  param(
+    [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
+    [string] $Item
+  )
+
+  # We surround the string with double quotes, in order to preserve its contents.
+  if (-not $Item.StartsWith("`"") -and $Item.Contains(" ")) {
+    "`"$Item`""
+  }
+  else {
+    $Item
+  }
 }
 
 $ElixirParams = New-Object Collections.Generic.List[String]
@@ -92,11 +115,25 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
 
   switch ($Arg) {
     { $_ -in @("-e", "-r", "-pr", "-pa", "-pz", "--eval", "--remsh", "--dot-iex", "--dbg") } {
-      $ElixirParams.Add("$Arg $($Args[++$i])")
+      $private:NextArg = $Args[++$i] | NormalizeArg | QuotedString
+
+      $ElixirParams.Add("$Arg $NextArg")
+
       break
     }
 
-    { $_ -in @("-v", "--version", "--no-halt") } {
+    { $_ -in @("-v", "--version", "--help", "-h") } {
+      # Standalone options goes only once in the Elixir params, when they are empty.
+      if ($ElixirParams.Count -eq 0) {
+        $ElixirParams.Add($Arg)
+      }
+      else {
+        $AllOtherParams.Add($Arg)
+      }
+      break
+    }
+
+    "--no-halt" {
       $ElixirParams.Add($Arg)
       break
     }
@@ -189,7 +226,7 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
         exit
       }
 
-      $ElixirParams.Add("--rpc-eval $Key $Value")
+      $ElixirParams.Add("--rpc-eval $Key $(QuotedString $Value)")
       break
     }
 
@@ -207,7 +244,7 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
         exit
       }
 
-      $ErlangParams.Add("-boot_var $Key $Value")
+      $ErlangParams.Add("-boot_var $Key $(QuotedString $Value)")
       break
     }
 
@@ -220,11 +257,13 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
     }
 
     Default {
-      if ($Arg -is [string]) {
-        $AllOtherParams.Add($Arg)
+      $private:Normalized = NormalizeArg $Arg
+      if ($Normalized.StartsWith("-")) {
+        $AllOtherParams.Add($Normalized)
       }
       else {
-        $AllOtherParams.Add([string]::Join(",", $Arg))
+        # We add quotes to preserve contents, since the quotes are removed by Powershell.
+        $AllOtherParams.Add("$(QuotedString $Normalized)")
       }
       break
     }
@@ -234,7 +273,10 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
 # Support for ANSI is only disable if TERM or NO_COLOR env vars are set.
 # This will change the $PSStyle.OutputRendering property.
 if ($PSStyle.OutputRendering -ne "PlainText") {
-  $BeforeExtras.Insert(0, "-elixir ansi_enabled true")
+  # TODO: find a way to detect if the term is interactive on Windows.
+  if ($IsWindows -or (test -t 1 -a -t 2)) {
+    $BeforeExtras.Insert(0, "-elixir ansi_enabled true")
+  }
 }
 
 if ($null -eq $UseIEx) {
@@ -261,7 +303,7 @@ $AllParams.Add("-extra")
 $AllParams.AddRange($ElixirParams)
 $AllParams.AddRange($AllOtherParams)
 
-$ParamsPart = [string]::Join(" ", ($AllParams | Where-Object { $_ -ne "" }))
+$ParamsPart = [string]::Join(" ", $AllParams)
 
 $BinSuffix = ""
 
@@ -275,15 +317,10 @@ if ($ERTS_BIN) {
   $BinPath = Join-Path -Path $ERTS_BIN -ChildPath $BinPath
 }
 
-$Command = "$BinPath $ParamsPart"
-
-if ($ErlExec -eq "werl") {
-  $Command = "start `"`" $Command"
-}
-
 if ($Env:ELIXIR_CLI_DRY_RUN) {
-  Write-Host $Command
+  Write-Host "$BinPath $ParamsPart"
 }
 else {
-  Invoke-Expression $Command
+  $Output = Start-Process -FilePath $BinPath -ArgumentList $ParamsPart -NoNewWindow -Wait -PassThru
+  exit $Output.ExitCode
 }

@@ -35,4 +35,4 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
   }
 }
 
-Invoke-Expression "$Command $([string]::Join(" ", $NewArgs))"
+& $Command $NewArgs
