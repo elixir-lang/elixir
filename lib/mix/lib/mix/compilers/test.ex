@@ -337,7 +337,7 @@ defmodule Mix.Compilers.Test do
     Enum.shuffle(list)
   end
 
-  defp maybe_sort_first_last(test_files, nil, nil), do: test_files
+  defp maybe_sort_first_last(test_files, nil, nil), do: {[], test_files, []}
 
   defp maybe_sort_first_last(test_files, first, last) do
     {first, test_files} = maybe_sort(test_files, first)
