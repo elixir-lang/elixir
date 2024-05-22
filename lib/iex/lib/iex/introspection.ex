@@ -263,7 +263,7 @@ defmodule IEx.Introspection do
           {:docs_v1, _, :erlang, "application/erlang+html", _, _, _} = erl_docs ->
             :shell_docs.render(module, erl_docs) |> IO.puts()
 
-          {:docs_v1, _, _, format, %{} = doc, metadata, _} ->
+          {:docs_v1, _, _, format, doc, metadata, _} when is_map(doc) or doc == :none ->
             print_doc([inspect(module)], [], format, doc, metadata)
 
           {:docs_v1, _, _, _, _, _, _} ->

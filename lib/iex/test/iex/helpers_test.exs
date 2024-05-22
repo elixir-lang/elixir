@@ -364,6 +364,51 @@ defmodule IEx.HelpersTest do
       end
     end
 
+    @tag :erlang_doc
+    # TODO remove once we require Erlang/OTP 27+
+    @tag skip: System.otp_release() < "27"
+    test "erlang -moduledoc" do
+      filename = "sample.erl"
+
+      code = ~s'''
+      -module(sample).
+      -moduledoc "Module documentation.".
+      '''
+
+      with_file(filename, code, fn ->
+        assert c(filename, ".") == [:sample]
+
+        help = capture_iex("h(:sample)")
+        assert help =~ "Module documentation."
+      end)
+    after
+      cleanup_modules([:sample])
+    end
+
+    @tag :erlang_doc
+    # TODO remove once we require Erlang/OTP 27+
+    @tag skip: System.otp_release() < "27"
+    test "erlang -doc" do
+      filename = "sample.erl"
+
+      code = ~s'''
+      -module(sample).
+      -export([hello/0]).
+
+      -doc "Function documentation.".
+      hello() -> world.
+      '''
+
+      with_file(filename, code, fn ->
+        assert c(filename, ".") == [:sample]
+
+        help = capture_iex("h(:sample.hello)")
+        assert help =~ "Function documentation."
+      end)
+    after
+      cleanup_modules([:sample])
+    end
+
     test "prints module documentation" do
       assert "\n                                  IEx.Helpers\n\nWelcome to Interactive Elixir" <>
                _ = capture_io(fn -> h(IEx.Helpers) end)
