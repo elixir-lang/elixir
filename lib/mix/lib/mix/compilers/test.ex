@@ -67,15 +67,21 @@ defmodule Mix.Compilers.Test do
         seed = Application.fetch_env!(:ex_unit, :seed)
         rand_algorithm = Application.fetch_env!(:ex_unit, :rand_algorithm)
         test_files = shuffle(seed, rand_algorithm, test_files)
-        test_files = maybe_sort_first_last(test_files, ex_unit_opts[:sort_first], ex_unit_opts[:sort_last])
+        {first, test_files, last} = maybe_sort_first_last(test_files, ex_unit_opts[:sort_first], ex_unit_opts[:sort_last])
 
         try do
+          # TODO: what about parallel_require_callbacks?
+          for file <- first, do: Code.require_file(file)
+
           failed? =
             case Kernel.ParallelCompiler.require(test_files, parallel_require_callbacks) do
               {:ok, _, [_ | _]} when warnings_as_errors? -> true
               {:ok, _, _} -> false
               {:error, _, _} -> exit({:shutdown, 1})
             end
+
+          # TODO: what about parallel_require_callbacks?
+          for file <- last, do: Code.require_file(file)
 
           %{failures: failures} = results = ExUnit.await_run(task)
 
@@ -325,21 +331,18 @@ defmodule Mix.Compilers.Test do
 
   defp maybe_sort_first_last(test_files, nil, nil), do: test_files
   defp maybe_sort_first_last(test_files, first, last) do
-    test_files = maybe_sort(:first, test_files, first)
-    maybe_sort(:last, test_files, last)
+    {first, test_files} = maybe_sort(test_files, first)
+    {last, test_files} = maybe_sort(test_files, last)
+
+    {first, test_files, last}
   end
 
-  defp maybe_sort(_where, files, nil), do: files
+  defp maybe_sort(files, nil), do: {[], files}
 
-  defp maybe_sort(where, test_files, filter) do
-    {to_sort, rest} = case for {:file, file} <- filter, do: file do
+  defp maybe_sort(test_files, filter) do
+    case for {:file, file} <- filter, do: file do
       [] -> {[], test_files}
       files -> Enum.split_with(test_files, &Enum.member?(files, &1))
-    end
-
-    case where do
-      :first -> to_sort ++ rest
-      :last -> rest ++ to_sort
     end
   end
 end
