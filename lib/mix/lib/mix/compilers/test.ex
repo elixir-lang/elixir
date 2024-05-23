@@ -82,12 +82,6 @@ defmodule Mix.Compilers.Test do
               {:error, _, _} -> exit({:shutdown, 1})
             end
 
-          if last != [] do
-            # this ensures that modules loaded afterwards are appended to the end of async modules
-            # instead of the front to ensure that --sort-last works as expected
-            ExUnit.Server.append_async()
-          end
-
           # TODO: what about parallel_require_callbacks?
           for file <- last, do: Code.require_file(file)
 
