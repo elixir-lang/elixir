@@ -96,7 +96,10 @@ function QuotedString {
     [string] $Item
   )
 
-  # We surround the string with double quotes, in order to preserve its contents.
+  # We surround the string with double quotes, in order to preserve its contents as
+  # only one command arg.
+  # This is needed because PowerShell will consider a new argument when it sees a
+  # space char.
   if (-not $Item.StartsWith("`"") -and $Item.Contains(" ")) {
     "`"$Item`""
   }
@@ -110,6 +113,9 @@ $ErlangParams = New-Object Collections.Generic.List[String]
 $BeforeExtras = New-Object Collections.Generic.List[String]
 $AllOtherParams = New-Object Collections.Generic.List[String]
 
+$RunErlPipe = $null
+$RunErlLog = $null
+
 for ($i = 0; $i -lt $Args.Count; $i++) {
   $private:Arg = $Args[$i]
 
@@ -117,7 +123,8 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
     { $_ -in @("-e", "-r", "-pr", "-pa", "-pz", "--eval", "--remsh", "--dot-iex", "--dbg") } {
       $private:NextArg = $Args[++$i] | NormalizeArg | QuotedString
 
-      $ElixirParams.Add("$Arg $NextArg")
+      $ElixirParams.Add($Arg)
+      $ElixirParams.Add($NextArg)
 
       break
     }
@@ -139,7 +146,8 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
     }
 
     "--cookie" {
-      $ErlangParams.Add("-setcookie $($Args[++$i])")
+      $ErlangParams.Add("-setcookie")
+      $ErlangParams.Add($Args[++$i])
       break
     }
 
@@ -149,35 +157,39 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
     }
 
     "--name" {
-      $ErlangParams.Add("-name $($Args[++$i])")
+      $ErlangParams.Add("-name")
+      $ErlangParams.Add($Args[++$i])
       break
     }
 
     "--sname" {
-      $ErlangParams.Add("-sname $($Args[++$i])")
+      $ErlangParams.Add("-sname")
+      $ErlangParams.Add($Args[++$i])
       break
     }
 
     "--boot" {
-      $ErlangParams.Add("-boot $($Args[++$i])")
+      $ErlangParams.Add("-boot")
+      $ErlangParams.Add($Args[++$i])
       break
     }
 
     "--erl-config" {
-      $ErlangParams.Add("-config $($Args[++$i])")
+      $ErlangParams.Add("-config")
+      $ErlangParams.Add($Args[++$i])
       break
     }
 
     "--vm-args" {
-      $ErlangParams.Add("-args_file $($Args[++$i])")
+      $ErlangParams.Add("-args_file")
+      $ErlangParams.Add($Args[++$i])
       break
     }
 
     "--logger-otp-reports" {
       $private:TempVal = $Args[$i + 1]
       if ($TempVal -in @("true", "false")) {
-
-        $ErlangParams.Add("-logger handle_otp_reports $($Args[++$i])")
+        $ErlangParams.AddRange([string[]]@("-logger", "handle_otp_reports", $Args[++$i]))
       }
       break
     }
@@ -185,8 +197,7 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
     "--logger-sasl-reports" {
       $private:TempVal = $Args[$i + 1]
       if ($TempVal -in @("true", "false")) {
-
-        $ErlangParams.Add("-logger handle_sasl $($Args[++$i])")
+        $ErlangParams.AddRange([string[]]@("-logger", "handle_sasl", $Args[++$i]))
       }
       break
     }
@@ -210,7 +221,10 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
       break
     }
 
-    "+elixirc" { $ElixirParams.Add("+elixirc"); break }
+    "+elixirc" {
+      $ElixirParams.Add("+elixirc")
+      break
+    }
 
     "--rpc-eval" {
       $private:Key = $Args[++$i]
@@ -218,15 +232,17 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
 
       if ($null -eq $Key) {
         Write-Error "--rpc-eval: NODE must be present"
-        exit
+        exit 1
       }
 
       if ($null -eq $Value) {
         Write-Error "--rpc-eval: COMMAND for the '$Key' node must be present"
-        exit
+        exit 1
       }
 
-      $ElixirParams.Add("--rpc-eval $Key $(QuotedString $Value)")
+      $ElixirParams.Add("--rpc-eval")
+      $ElixirParams.Add($Key)
+      $ElixirParams.Add("$(QuotedString $Value)")
       break
     }
 
@@ -236,23 +252,39 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
 
       if ($null -eq $Key) {
         Write-Error "--boot-var: VAR must be present"
-        exit
+        exit 1
       }
 
       if ($null -eq $Value) {
         Write-Error "--boot-var: Value for the '$Key' var must be present"
-        exit
+        exit 1
       }
 
-      $ErlangParams.Add("-boot_var $Key $(QuotedString $Value)")
+      $ElixirParams.Add("-boot_var")
+      $ElixirParams.Add($Key)
+      $ElixirParams.Add("$(QuotedString $Value)")
       break
     }
 
     "--pipe-to" {
-      $private:Key = $Args[++$i]
-      $private:Value = $Args[++$i]
+      $RunErlPipe = $Args[++$i]
+      $RunErlLog = $Args[++$i]
 
-      Write-Warning "--pipe-to: Option is not yet supported. Ignoring $Key $Value"
+      if ($null -eq $RunErlPipe) {
+        Write-Error "--pipe-to: PIPEDIR must be present"
+        exit 1
+      }
+
+      if ($null -eq $RunErlLog) {
+        Write-Error "--pipe-to: PIPELOG must be present"
+        exit 1
+      }
+
+      if ($RunErlPipe.EndsWith("/") -or $RunErlLog.EndsWith("/")) {
+        Write-Error "--pipe-to: PIPEDIR and PIPELOG must not end with a slash"
+        exit 1
+      }
+
       break
     }
 
@@ -262,7 +294,6 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
         $AllOtherParams.Add($Normalized)
       }
       else {
-        # We add quotes to preserve contents, since the quotes are removed by Powershell.
         $AllOtherParams.Add("$(QuotedString $Normalized)")
       }
       break
@@ -275,16 +306,16 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
 if ($PSStyle.OutputRendering -ne "PlainText") {
   # TODO: find a way to detect if the term is interactive on Windows.
   if ($IsWindows -or (test -t 1 -a -t 2)) {
-    $BeforeExtras.Insert(0, "-elixir ansi_enabled true")
+    $BeforeExtras.InsertRange(0, [string[]]@("-elixir", "ansi_enabled", "true"))
   }
 }
 
 if ($null -eq $UseIEx) {
-  $BeforeExtras.Insert(0, "-s elixir start_cli")
+  $BeforeExtras.InsertRange(0, [string[]]@("-s", "elixir", "start_cli"))
 }
 
-$BeforeExtras.Insert(0, "-pa $(Join-Path $ScriptPath -ChildPath "../lib/elixir/ebin")")
-$BeforeExtras.Insert(0, "-noshell -elixir_root $(Join-Path $ScriptPath -ChildPath "../lib")")
+$BeforeExtras.InsertRange(0, [string[]]@("-pa", "$(Join-Path $ScriptPath -ChildPath "../lib/elixir/ebin")"))
+$BeforeExtras.InsertRange(0, [string[]]@("-noshell", "-elixir_root", "$(Join-Path $ScriptPath -ChildPath "../lib")"))
 
 # One MAY change ERTS_BIN= but you MUST NOT change
 # ERTS_BIN=$ERTS_BIN as it is handled by Elixir releases.
@@ -303,8 +334,6 @@ $AllParams.Add("-extra")
 $AllParams.AddRange($ElixirParams)
 $AllParams.AddRange($AllOtherParams)
 
-$ParamsPart = [string]::Join(" ", $AllParams)
-
 $BinSuffix = ""
 
 if ($IsWindows) {
@@ -317,10 +346,34 @@ if ($ERTS_BIN) {
   $BinPath = Join-Path -Path $ERTS_BIN -ChildPath $BinPath
 }
 
+if ($null -eq $RunErlPipe) {
+  $ParamsPart = [string]::Join(" ", $AllParams)
+}
+else {
+  $private:OrigBinPath = $BinPath
+  $ErlExec = "run_erl"
+  $BinPath = "$ErlExec$BinSuffix"
+
+  if ($ERTS_BIN) {
+    $BinPath = Join-Path -Path $ERTS_BIN -ChildPath $BinPath
+  }
+
+  $AllParams.Insert(0, $OrigBinPath)
+
+  # We only scape double-quotes because the command will be surrounded by double-quotes.
+  $private:Escaped = $AllParams | ForEach-Object -Process { $_ -replace "`"", "\$&" }
+
+  $ParamsPart = "-daemon `"$RunErlPipe/`" `"$RunErlLog/`" `"$([string]::Join(" ", $Escaped))`""
+}
+
 if ($Env:ELIXIR_CLI_DRY_RUN) {
   Write-Host "$BinPath $ParamsPart"
 }
 else {
-  $Output = Start-Process -FilePath $BinPath -ArgumentList $ParamsPart -NoNewWindow -Wait -PassThru
+  if ($RunErlPipe) {
+    $null = New-Item -Path "." -ItemType "directory" -Name "$RunErlPipe" -Force
+    $null = New-Item -Path "." -ItemType "directory" -Name "$RunErlLog" -Force
+  }
+  $Output = Start-Process -FilePath $BinPath -ArgumentList "$ParamsPart" -NoNewWindow -Wait -PassThru
   exit $Output.ExitCode
 }
