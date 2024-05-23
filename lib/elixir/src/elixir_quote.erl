@@ -1,5 +1,5 @@
 -module(elixir_quote).
--export([escape/3, linify/3, linify_with_context_counter/3, build/7, quote/5, has_unquotes/1, fun_to_quoted/1]).
+-export([escape/3, linify/3, linify_with_context_counter/3, build/7, quote/2, has_unquotes/1, fun_to_quoted/1]).
 -export([dot/5, tail_list/3, list/2, validate_runtime/2]). %% Quote callbacks
 
 -include("elixir.hrl").
@@ -202,9 +202,9 @@ bad_escape(Arg) ->
 
 build(Meta, Line, File, Context, Unquote, Generated, E) ->
   Acc0 = [],
-  {ELine, Acc1} = validate_compile(Meta, line, Line, Acc0),
-  {EFile, Acc2} = validate_compile(Meta, file, File, Acc1),
-  {EContext, Acc3} = validate_compile(Meta, context, Context, Acc2),
+  {VLine, Acc1} = validate_compile(Meta, line, Line, Acc0),
+  {VFile, Acc2} = validate_compile(Meta, file, File, Acc1),
+  {VContext, Acc3} = validate_compile(Meta, context, Context, Acc2),
   validate_runtime(unquote, Unquote),
   validate_runtime(generated, Generated),
 
@@ -212,14 +212,14 @@ build(Meta, Line, File, Context, Unquote, Generated, E) ->
     op=add_context,
     aliases_hygiene=E,
     imports_hygiene=E,
-    line=ELine,
-    file=EFile,
+    line=VLine,
+    file=VFile,
     unquote=Unquote,
-    context=EContext,
+    context=VContext,
     generated=Generated
   },
 
-  {Q, Acc3}.
+  {Q, VContext, Acc3}.
 
 validate_compile(_Meta, line, Value, Acc) when is_boolean(Value) ->
   {Value, Acc};
@@ -255,31 +255,11 @@ is_valid(context, Context) -> is_atom(Context) andalso (Context /= nil);
 is_valid(generated, Generated) -> is_boolean(Generated);
 is_valid(unquote, Unquote) -> is_boolean(Unquote).
 
-quote(_Meta, {unquote_splicing, _, [_]}, _Binding, #elixir_quote{unquote=true}, _) ->
+quote({unquote_splicing, _, [_]}, #elixir_quote{unquote=true}) ->
   argument_error(<<"unquote_splicing only works inside arguments and block contexts, "
     "wrap it in parens if you want it to work with one-liners">>);
-
-quote(Meta, Expr, Binding, Q, Prelude) ->
-  Context = Q#elixir_quote.context,
-
-  Vars = [{'{}', [],
-    ['=', [], [
-      {'{}', [], [K, Meta, Context]},
-      V
-    ]]
-  } || {K, V} <- Binding],
-
-  Quoted = do_quote(Expr, Q),
-
-  WithVars = case Vars of
-    [] -> Quoted;
-    _ -> {'{}', [], ['__block__', [], Vars ++ [Quoted]]}
-  end,
-
-  case Prelude of
-    [] -> WithVars;
-    _ -> {'__block__', [], Prelude ++ [WithVars]}
-  end.
+quote(Expr, Q) ->
+  do_quote(Expr, Q).
 
 %% quote/unquote
 

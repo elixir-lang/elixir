@@ -178,20 +178,8 @@ expand({quote, Meta, [Opts, Do]}, S, E) when is_list(Do) ->
       false -> file_error(Meta, E, ?MODULE, {missing_option, 'quote', [do]})
     end,
 
-  {Binding, DefaultUnquote, ToExpandOpts} =
-    case is_list(Opts) andalso lists:keytake(bind_quoted, 1, Opts) of
-      {value, {bind_quoted, BQ}, BQOpts} ->
-        case is_list(BQ) andalso
-              lists:all(fun({Key, _}) when is_atom(Key) -> true; (_) -> false end, BQ) of
-          true -> {BQ, false, BQOpts};
-          false -> file_error(Meta, E, ?MODULE, {invalid_bind_quoted_for_quote, BQ})
-        end;
-      false ->
-        {[], true, Opts}
-    end,
-
-  ValidKeys = [context, location, line, file, unquote, bind_quoted, generated],
-  {EOpts, ST, ET} = expand_opts(Meta, quote, ValidKeys, ToExpandOpts, S, E),
+  ValidOpts = [context, location, line, file, unquote, bind_quoted, generated],
+  {EOpts, ST, ET} = expand_opts(Meta, quote, ValidOpts, Opts, S, E),
 
   Context = proplists:get_value(context, EOpts, case ?key(E, module) of
     nil -> 'Elixir';
@@ -205,12 +193,44 @@ expand({quote, Meta, [Opts, Do]}, S, E) when is_list(Do) ->
       {proplists:get_value(file, EOpts, nil), proplists:get_value(line, EOpts, false)}
   end,
 
+  {Binding, DefaultUnquote} = case lists:keyfind(bind_quoted, 1, EOpts) of
+    {bind_quoted, BQ} ->
+      case is_list(BQ) andalso
+            lists:all(fun({Key, _}) when is_atom(Key) -> true; (_) -> false end, BQ) of
+        true -> {BQ, false};
+        false -> file_error(Meta, E, ?MODULE, {invalid_bind_quoted_for_quote, BQ})
+      end;
+    false ->
+      {[], true}
+  end,
+
   Unquote = proplists:get_value(unquote, EOpts, DefaultUnquote),
   Generated = proplists:get_value(generated, EOpts, false),
 
-  {Q, Prelude} = elixir_quote:build(Meta, Line, File, Context, Unquote, Generated, ET),
-  Quoted = elixir_quote:quote(Meta, Exprs, Binding, Q, Prelude),
-  expand(Quoted, ST, ET);
+  {Q, QContext, QPrelude} = elixir_quote:build(Meta, Line, File, Context, Unquote, Generated, ET),
+  {EPrelude, SP, EP} = expand(QPrelude, ST, ET),
+  {EContext, SC, EC} = expand(QContext, SP, EP),
+  Quoted = elixir_quote:quote(Exprs, Q),
+  {EQuoted, ES, EQ} = expand(Quoted, SC, EC),
+
+  EBinding =
+      [{'{}', [],
+        ['=', [], [
+          {'{}', [], [K, Meta, EContext]},
+          V
+        ]
+       ]} || {K, V} <- Binding],
+
+  EBindingQuoted =
+    case EBinding of
+      [] -> EQuoted;
+      _ -> {'{}', [], ['__block__', [], EBinding ++ [EQuoted]]}
+    end,
+
+  case EPrelude of
+    [] -> {EBindingQuoted, ES, EQ};
+    _ -> {{'__block__', [], EPrelude ++ [EBindingQuoted]}, ES, EQ}
+  end;
 
 expand({quote, Meta, [_, _]}, _S, E) ->
   file_error(Meta, E, ?MODULE, {invalid_args, 'quote'});
