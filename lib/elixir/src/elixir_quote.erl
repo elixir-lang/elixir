@@ -1,5 +1,5 @@
 -module(elixir_quote).
--export([escape/3, linify/3, linify_with_context_counter/3, build/8, quote/3, has_unquotes/1, fun_to_quoted/1]).
+-export([escape/3, linify/3, linify_with_context_counter/3, build/7, quote/5, has_unquotes/1, fun_to_quoted/1]).
 -export([dot/5, tail_list/3, list/2, validate_runtime/2]). %% Quote callbacks
 
 -include("elixir.hrl").
@@ -200,7 +200,7 @@ bad_escape(Arg) ->
 
 %% Quote entry points
 
-build(Meta, Line, File, Context, Unquote, Generated, Binding, E) ->
+build(Meta, Line, File, Context, Unquote, Generated, E) ->
   Acc0 = [],
   {ELine, Acc1} = validate_compile(Meta, line, Line, Acc0),
   {EFile, Acc2} = validate_compile(Meta, file, File, Acc1),
@@ -219,15 +219,7 @@ build(Meta, Line, File, Context, Unquote, Generated, Binding, E) ->
     generated=Generated
   },
 
-  Vars =
-    [{'{}', [],
-      ['=', [], [
-        {'{}', [], [K, Meta, EContext]},
-        V
-      ]
-     ]} || {K, V} <- Binding],
-
-  {Q, Vars, Acc3}.
+  {Q, Acc3}.
 
 validate_compile(_Meta, line, Value, Acc) when is_boolean(Value) ->
   {Value, Acc};
@@ -263,16 +255,30 @@ is_valid(context, Context) -> is_atom(Context) andalso (Context /= nil);
 is_valid(generated, Generated) -> is_boolean(Generated);
 is_valid(unquote, Unquote) -> is_boolean(Unquote).
 
-quote({unquote_splicing, _, [_]}, #elixir_quote{unquote=true}, _) ->
+quote(_Meta, {unquote_splicing, _, [_]}, _Binding, #elixir_quote{unquote=true}, _) ->
   argument_error(<<"unquote_splicing only works inside arguments and block contexts, "
     "wrap it in parens if you want it to work with one-liners">>);
 
-quote(Expr, Q, Prelude) ->
+quote(Meta, Expr, Binding, Q, Prelude) ->
+  Context = Q#elixir_quote.context,
+
+  Vars = [{'{}', [],
+    ['=', [], [
+      {'{}', [], [K, Meta, Context]},
+      V
+    ]]
+  } || {K, V} <- Binding],
+
   Quoted = do_quote(Expr, Q),
 
-  case Prelude of
+  WithVars = case Vars of
     [] -> Quoted;
-    _ -> {'__block__', [], Prelude ++ [Quoted]}
+    _ -> {'{}', [], ['__block__', [], Vars ++ [Quoted]]}
+  end,
+
+  case Prelude of
+    [] -> WithVars;
+    _ -> {'__block__', [], Prelude ++ [WithVars]}
   end.
 
 %% quote/unquote

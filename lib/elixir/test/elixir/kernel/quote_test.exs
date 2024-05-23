@@ -71,6 +71,14 @@ defmodule Kernel.QuoteTest do
     end
   end
 
+  test "quote context bind_quoted" do
+    assert {:__block__, _,
+            [{:=, [], [{:some_var, _, :fallback}, 321]}, {:some_var, _, :fallback}]} =
+             (quote bind_quoted: [some_var: 321], context: __ENV__.context || :fallback do
+                some_var
+              end)
+  end
+
   test "operator precedence" do
     assert {:+, _, [{:+, _, [1, _]}, 1]} = quote(do: 1 + Foo.l() + 1)
     assert {:+, _, [1, {_, _, [{:+, _, [1]}]}]} = quote(do: 1 + Foo.l(+1))
