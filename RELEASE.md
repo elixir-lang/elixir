@@ -8,7 +8,7 @@
 
 3. Update "Compatibility and Deprecations" if a new OTP version is supported
 
-4. Commit changes above with title "Release vVERSION", generate a new tag, and push it
+4. Commit changes above with title "Release vVERSION", generate a new tag, and push it (if doing multiple releases in a series, make sure all GitHub Actions for the previous release have finished)
 
 5. Wait until GitHub Actions publish artifacts to the draft release and the CI is green
 
@@ -16,7 +16,7 @@
 
 7. Update `_data/elixir-versions.yml` (except for RCs) in `elixir-lang/elixir-lang.github.com`
 
-## Creating a new vMAJOR.MINOR branch (after first rc)
+## Creating a new vMAJOR.MINOR branch (before first rc)
 
 ### In the new branch
 
