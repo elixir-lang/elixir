@@ -327,6 +327,8 @@ defmodule Kernel.CLI do
     parse_argv(t, %{config | profile: :time})
   end
 
+  ## IEx
+
   defp parse_argv([~c"--dbg", backend | t], %{mode: :iex} = config) do
     case backend do
       ~c"pry" ->
@@ -343,6 +345,21 @@ defmodule Kernel.CLI do
 
   defp parse_argv([~c"--dot-iex", _ | t], %{mode: :iex} = config), do: parse_argv(t, config)
   defp parse_argv([~c"--remsh", _ | t], %{mode: :iex} = config), do: parse_argv(t, config)
+
+  ## Erlang flags
+
+  defp parse_argv([~c"--boot", _ | t], config), do: parse_argv(t, config)
+  defp parse_argv([~c"--boot-var", _, _ | t], config), do: parse_argv(t, config)
+  defp parse_argv([~c"--cookie", _ | t], config), do: parse_argv(t, config)
+  defp parse_argv([~c"--hidden" | t], config), do: parse_argv(t, config)
+  defp parse_argv([~c"--erl-config", _ | t], config), do: parse_argv(t, config)
+  defp parse_argv([~c"--logger-otp-reports", _ | t], config), do: parse_argv(t, config)
+  defp parse_argv([~c"--logger-sasl-reports", _ | t], config), do: parse_argv(t, config)
+  defp parse_argv([~c"--name", _ | t], config), do: parse_argv(t, config)
+  defp parse_argv([~c"--sname", _ | t], config), do: parse_argv(t, config)
+  defp parse_argv([~c"--vm-args", _ | t], config), do: parse_argv(t, config)
+  defp parse_argv([~c"--erl", _ | t], config), do: parse_argv(t, config)
+  defp parse_argv([~c"--pipe-to", _, _ | t], config), do: parse_argv(t, config)
 
   ## Fallback
 

@@ -61,12 +61,20 @@ defmodule Kernel.CLITest do
            end)
   end
 
+  @tag :tmp_dir
+  test "file smoke test", context do
+    file = Path.join(context.tmp_dir, "hello_world!.exs")
+    File.write!(file, "IO.puts :hello_world123")
+    {output, 0} = System.cmd(elixir_executable(), [file])
+    assert output =~ "hello_world123"
+  end
+
   test "--eval smoke test" do
     {output, 0} = System.cmd(elixir_executable(), ["--eval", "IO.puts :hello_world123"])
     assert output =~ "hello_world123"
 
-    {output, 0} = System.cmd(elixir_executable(), ["-e", "IO.puts :hello_world123"])
-    assert output =~ "hello_world123"
+    # Check for -e and exclamation mark handling on Windows
+    assert {_output, 0} = System.cmd(elixir_executable(), ["-e", "Time.new!(0, 0, 0)"])
 
     # TODO: remove this once we bump CI to 26.3
     unless windows?() and System.otp_release() == "26" do

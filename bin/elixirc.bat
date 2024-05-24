@@ -1,4 +1,4 @@
-@if defined ELIXIR_CLI_ECHO (@echo on) else (@echo off)
+@echo off
 setlocal
 set argc=0
 for %%A in (%*) do (
