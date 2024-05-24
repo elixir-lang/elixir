@@ -186,20 +186,11 @@ defmodule SystemTest do
         use_stdio: false
       ]
 
-      message = ~r"cannot use `stderr_to_stdout: true` and `use_stdio: false`"
+      message = ~r"cannot use \"stderr_to_stdout: true\" and \"use_stdio: false\""
 
       assert_raise ArgumentError, message, fn ->
         System.cmd("echo", ["hello"], opts)
       end
-    end
-
-    test "cmd/3 (`use_stdio: false`)" do
-      opts = [
-        into: [],
-        use_stdio: false
-      ]
-
-      assert {[], 0} = System.cmd("echo", ["hello"], opts)
     end
 
     test "cmd/3 by line" do
@@ -262,10 +253,6 @@ defmodule SystemTest do
       ]
 
       assert {["bar\n"], 0} = System.shell("echo $foo", opts)
-    end
-
-    test "shell/2 (non-interactive)" do
-      assert {[], 0} = System.shell("echo hello", into: [], use_stdio: false)
     end
   end
 

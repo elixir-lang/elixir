@@ -1118,8 +1118,10 @@ defmodule System do
   end
 
   defp do_cmd(port_init, base_opts, opts) do
+    {use_stdio?, opts} = Keyword.pop(opts, :use_stdio, true)
+
     {into, line, opts} =
-      cmd_opts(opts, [:use_stdio, :exit_status, :binary, :hide] ++ base_opts, "", false)
+      cmd_opts(opts, [:exit_status, :binary, :hide] ++ base_opts, "", false, use_stdio?)
 
     {initial, fun} = Collectable.into(into)
 
@@ -1168,46 +1170,40 @@ defmodule System do
     end
   end
 
-  defp cmd_opts([{:into, any} | t], opts, _into, line),
-    do: cmd_opts(t, opts, any, line)
+  defp cmd_opts([{:into, any} | t], opts, _into, line, stdio?),
+    do: cmd_opts(t, opts, any, line, stdio?)
 
-  defp cmd_opts([{:cd, bin} | t], opts, into, line) when is_binary(bin),
-    do: cmd_opts(t, [{:cd, bin} | opts], into, line)
+  defp cmd_opts([{:cd, bin} | t], opts, into, line, stdio?) when is_binary(bin),
+    do: cmd_opts(t, [{:cd, bin} | opts], into, line, stdio?)
 
-  defp cmd_opts([{:arg0, bin} | t], opts, into, line) when is_binary(bin),
-    do: cmd_opts(t, [{:arg0, bin} | opts], into, line)
+  defp cmd_opts([{:arg0, bin} | t], opts, into, line, stdio?) when is_binary(bin),
+    do: cmd_opts(t, [{:arg0, bin} | opts], into, line, stdio?)
 
-  defp cmd_opts([{:stderr_to_stdout, true} | t], opts, into, line),
-    do: cmd_opts(t, [:stderr_to_stdout | opts], into, line)
+  defp cmd_opts([{:stderr_to_stdout, true} | t], opts, into, line, true),
+    do: cmd_opts(t, [:stderr_to_stdout | opts], into, line, true)
 
-  defp cmd_opts([{:stderr_to_stdout, false} | t], opts, into, line),
-    do: cmd_opts(t, opts, into, line)
+  defp cmd_opts([{:stderr_to_stdout, true} | _], _opts, _into, _line, false),
+    do: raise(ArgumentError, "cannot use \"stderr_to_stdout: true\" and \"use_stdio: false\"")
 
-  defp cmd_opts([{:use_stdio, false} | t], opts, into, line),
-    do: cmd_opts(t, [:nouse_stdio | List.delete(opts, :use_stdio)], into, line)
+  defp cmd_opts([{:stderr_to_stdout, false} | t], opts, into, line, stdio?),
+    do: cmd_opts(t, opts, into, line, stdio?)
 
-  # use_stdio is true by default, do nothing but match it
-  defp cmd_opts([{:use_stdio, true} | t], opts, into, line),
-    do: cmd_opts(t, opts, into, line)
+  defp cmd_opts([{:parallelism, bool} | t], opts, into, line, stdio?) when is_boolean(bool),
+    do: cmd_opts(t, [{:parallelism, bool} | opts], into, line, stdio?)
 
-  defp cmd_opts([{:parallelism, bool} | t], opts, into, line) when is_boolean(bool),
-    do: cmd_opts(t, [{:parallelism, bool} | opts], into, line)
+  defp cmd_opts([{:env, enum} | t], opts, into, line, stdio?),
+    do: cmd_opts(t, [{:env, validate_env(enum)} | opts], into, line, stdio?)
 
-  defp cmd_opts([{:env, enum} | t], opts, into, line),
-    do: cmd_opts(t, [{:env, validate_env(enum)} | opts], into, line)
-
-  defp cmd_opts([{:lines, max_line_length} | t], opts, into, _line)
+  defp cmd_opts([{:lines, max_line_length} | t], opts, into, _line, stdio?)
        when is_integer(max_line_length) and max_line_length > 0,
-       do: cmd_opts(t, [{:line, max_line_length} | opts], into, true)
+       do: cmd_opts(t, [{:line, max_line_length} | opts], into, true, stdio?)
 
-  defp cmd_opts([{key, val} | _], _opts, _into, _line),
+  defp cmd_opts([{key, val} | _], _opts, _into, _line, _stdio?),
     do: raise(ArgumentError, "invalid option #{inspect(key)} with value #{inspect(val)}")
 
-  defp cmd_opts([], opts, into, line) do
-    if :stderr_to_stdout in opts and :nouse_stdio in opts,
-      do: raise(ArgumentError, "cannot use `stderr_to_stdout: true` and `use_stdio: false`")
-
-    {into, line, opts}
+  defp cmd_opts([], opts, into, line, stdio?) do
+    opt = if stdio?, do: :use_stdio, else: :nouse_stdio
+    {into, line, [opt | opts]}
   end
 
   defp validate_env(enum) do
