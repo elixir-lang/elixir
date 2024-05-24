@@ -129,9 +129,9 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
       break
     }
 
-    { $_ -in @("-v", "--version", "--help", "-h") } {
+    { $_ -in @("-v", "--version") } {
       # Standalone options goes only once in the Elixir params, when they are empty.
-      if ($ElixirParams.Count -eq 0) {
+      if (($ElixirParams.Count -eq 0) -and ($AllOtherParams.Count -eq 0)) {
         $ElixirParams.Add($Arg)
       }
       else {
