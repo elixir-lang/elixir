@@ -139,7 +139,7 @@ escape(Expr, Op, Unquote) ->
     unquote=Unquote
   }).
 
-do_escape({Left, Meta, Right}, #elixir_quote{op=prune_metadata} = Q) ->
+do_escape({Left, Meta, Right}, #elixir_quote{op=prune_metadata} = Q) when is_list(Meta) ->
   TM = [{K, V} || {K, V} <- Meta, (K == no_parens) orelse (K == line)],
   TL = do_quote(Left, Q),
   TR = do_quote(Right, Q),
@@ -284,13 +284,13 @@ do_quote({quote, Meta, [Opts, Arg]}, Q) when is_list(Meta) ->
 
   {'{}', [], [quote, meta(NewMeta, Q), [TOpts, TArg]]};
 
-do_quote({unquote, _Meta, [Expr]}, #elixir_quote{unquote=true}) ->
+do_quote({unquote, Meta, [Expr]}, #elixir_quote{unquote=true}) when is_list(Meta) ->
   Expr;
 
 %% Aliases
 
 do_quote({'__aliases__', Meta, [H | T]}, #elixir_quote{aliases_hygiene=(#{}=E)} = Q)
-    when is_atom(H), H /= 'Elixir' ->
+     when is_list(Meta), is_atom(H), H /= 'Elixir' ->
   Annotation =
     case elixir_aliases:expand(Meta, [H | T], E, true) of
       Atom when is_atom(Atom) -> Atom;
@@ -312,16 +312,16 @@ do_quote({Name, Meta, nil}, #elixir_quote{op=add_context} = Q)
 
 %% Unquote
 
-do_quote({{{'.', Meta, [Left, unquote]}, _, [Expr]}, _, Args}, #elixir_quote{unquote=true} = Q) ->
+do_quote({{{'.', Meta, [Left, unquote]}, _, [Expr]}, _, Args}, #elixir_quote{unquote=true} = Q) when is_list(Meta) ->
   do_quote_call(Left, Meta, Expr, Args, Q);
 
-do_quote({{'.', Meta, [Left, unquote]}, _, [Expr]}, #elixir_quote{unquote=true} = Q) ->
+do_quote({{'.', Meta, [Left, unquote]}, _, [Expr]}, #elixir_quote{unquote=true} = Q) when is_list(Meta) ->
   do_quote_call(Left, Meta, Expr, nil, Q);
 
 %% Imports
 
 do_quote({'&', Meta, [{'/', _, [{F, _, C}, A]}] = Args},
-  #elixir_quote{imports_hygiene=(#{}=E)} = Q) when is_atom(F), is_integer(A), is_atom(C) ->
+  #elixir_quote{imports_hygiene=(#{}=E)} = Q) when is_atom(F), is_integer(A), is_atom(C), is_list(Meta) ->
   NewMeta =
     case elixir_dispatch:find_import(Meta, F, A, E) of
       false ->
@@ -538,7 +538,7 @@ update_last([H | T], F) -> [H | update_last(T, F)].
 
 keyfind(Key, Meta) ->
   lists:keyfind(Key, 1, Meta).
-keydelete(Key, Meta) when is_list(Meta) ->
+keydelete(Key, Meta) ->
   lists:keydelete(Key, 1, Meta).
 keystore(_Key, Meta, nil) ->
   Meta;
