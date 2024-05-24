@@ -288,9 +288,17 @@ defmodule Mix.Tasks.Test.Coverage do
     output = Keyword.get(opts, :output, "cover")
     File.mkdir_p!(output)
 
-    for mod <- modules do
-      {:ok, _} = :cover.analyse_to_file(mod, ~c"#{output}/#{mod}.html", [:html])
-    end
+    modules
+    |> Enum.map(fn mod ->
+      :cover.async_analyse_to_file(mod, ~c"#{output}/#{mod}.html", [:html])
+    end)
+    |> Enum.map(&Process.monitor/1)
+    |> Enum.each(fn ref ->
+      receive do
+        {:DOWN, ^ref, :process, _pid, _reason} ->
+          :ok
+      end
+    end)
 
     Mix.shell().info("Generated HTML coverage results in #{inspect(output)} directory")
   end
