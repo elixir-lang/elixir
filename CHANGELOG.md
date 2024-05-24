@@ -70,7 +70,7 @@ Finally, a new `Kernel.to_timeout/1` function has been added, which helps develo
 Process.send_after(pid, :wake_up, to_timeout(hour: 1))
 ```
 
-## v1.17.0-dev
+## v1.17.0-rc.0 (2024-05-24)
 
 ### 1. Enhancements
 
