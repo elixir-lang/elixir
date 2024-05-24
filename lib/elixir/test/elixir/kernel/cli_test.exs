@@ -74,7 +74,7 @@ defmodule Kernel.CLITest do
     assert output =~ "hello_world123"
 
     # Check for -e and exclamation mark handling on Windows
-    assert {_output, 0} = System.cmd(elixir_executable(), ["-e", "URI.new!(~s||)"])
+    assert {_output, 0} = System.cmd(elixir_executable(), ["-e", "URI.new!(~s())"])
 
     # TODO: remove this once we bump CI to 26.3
     unless windows?() and System.otp_release() == "26" do
