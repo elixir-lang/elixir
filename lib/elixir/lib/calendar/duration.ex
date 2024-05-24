@@ -283,4 +283,77 @@ defmodule Duration do
       microsecond: {-ms, p}
     }
   end
+
+  @doc """
+  Converts the given duration to ISO 8601:TODO format.
+
+  ## Examples
+
+  iex> Duration.new!([]) |> Duration.to_iso8601()
+  "PT0S"
+  iex> Duration.new!(year: 3) |> Duration.to_iso8601()
+  "P3Y"
+  iex> Duration.new!(year: 3, day: 6, minute: 9) |> Duration.to_iso8601()
+  "P3Y6DT9M"
+  iex> Duration.new!(second: 30) |> Duration.to_iso8601()
+  "PT30S"
+  iex> Duration.new!(hour: 2, microsecond: {1000, 6}) |> Duration.to_iso8601()
+  "PT2H0.001S"
+  """
+
+  @spec to_iso8601(t) :: String.t()
+  def to_iso8601(%Duration{
+        year: 0,
+        month: 0,
+        week: 0,
+        day: 0,
+        hour: 0,
+        minute: 0,
+        second: 0,
+        microsecond: {0, 0}
+      }) do
+    "PT0S"
+  end
+
+  def to_iso8601(%Duration{} = d) do
+    "P#{to_iso8601_left_part(d)}#{to_iso8601_right_part(d)}"
+  end
+
+  defp to_iso8601_left_part(d) do
+    year = unless d.year == 0, do: "#{d.year}Y"
+    month = unless d.month == 0, do: "#{d.month}M"
+    week = unless d.week == 0, do: "#{d.week}W"
+    day = unless d.day == 0, do: "#{d.day}D"
+
+    "#{year}#{month}#{week}#{day}"
+  end
+
+  defp to_iso8601_right_part(%Duration{hour: 0, minute: 0, second: 0, microsecond: {0, 0}}) do
+    ""
+  end
+
+  defp to_iso8601_right_part(d) do
+    hour = unless d.hour == 0, do: "#{d.hour}H"
+    minute = unless d.minute == 0, do: "#{d.minute}M"
+
+    second =
+      case d do
+        %Duration{second: 0, microsecond: {0, 0}} ->
+          ""
+
+        %Duration{microsecond: {0, _}} ->
+          "#{d.second}S"
+
+        %Duration{microsecond: {microsecond, _}} ->
+          microsecond =
+            microsecond
+            |> to_string()
+            |> String.pad_leading(6, "0")
+            |> String.trim_trailing("0")
+
+          "#{d.second}.#{microsecond}S"
+      end
+
+    "T#{hour}#{minute}#{second}"
+  end
 end
