@@ -290,9 +290,9 @@ defmodule Mix.Tasks.Test.Coverage do
 
     modules
     |> Enum.map(fn mod ->
-      :cover.async_analyse_to_file(mod, ~c"#{output}/#{mod}.html", [:html])
+      pid = :cover.async_analyse_to_file(mod, ~c"#{output}/#{mod}.html", [:html])
+      Process.monitor(pid)
     end)
-    |> Enum.map(&Process.monitor/1)
     |> Enum.each(fn ref ->
       receive do
         {:DOWN, ^ref, :process, _pid, _reason} ->
