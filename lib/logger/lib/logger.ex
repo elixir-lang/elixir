@@ -564,7 +564,7 @@ defmodule Logger do
 
       delete_process_level(pid)
   """
-  # TODO: Deprecate me on v1.18
+  # TODO: Deprecate me on v1.19
   @doc deprecated: "Use Logger.delete_process_level(pid) instead"
   @spec enable(pid) :: :ok
   def enable(pid) when pid == self() do
@@ -580,7 +580,7 @@ defmodule Logger do
 
       put_process_level(pid, :none)
   """
-  # TODO: Deprecate me on v1.18
+  # TODO: Deprecate me on v1.20
   @doc deprecated: "Use Logger.put_process_level(pid, :none) instead"
   @spec disable(pid) :: :ok
   def disable(pid) when pid == self() do
@@ -592,7 +592,7 @@ defmodule Logger do
 
   Currently the only accepted PID is `self()`.
   """
-  # TODO: Deprecate me on v1.18
+  # TODO: Deprecate me on v1.20
   @doc deprecated: "Use Logger.get_process_level(pid) instead"
   @spec enabled?(pid) :: boolean
   def enabled?(pid) when pid == self() do
@@ -828,7 +828,7 @@ defmodule Logger do
   @doc """
   Adds a new backend.
   """
-  # TODO: Deprecate this on Elixir v1.19
+  # TODO: Deprecate this on Elixir v1.20
   @doc deprecated: "Use LoggerBackends.add/2 from :logger_backends dependency"
   def add_backend(backend, opts \\ []) do
     Logger.Backends.Internal.add(backend, opts)
@@ -837,7 +837,7 @@ defmodule Logger do
   @doc """
   Removes a backend.
   """
-  # TODO: Deprecate this on Elixir v1.19
+  # TODO: Deprecate this on Elixir v1.20
   @doc deprecated: "Use LoggerBackends.remove/2 from :logger_backends dependency"
   def remove_backend(backend, opts \\ []) do
     Logger.Backends.Internal.remove(backend, opts)
@@ -846,7 +846,7 @@ defmodule Logger do
   @doc """
   Configures the given backend.
   """
-  # TODO: Deprecate this on Elixir v1.19
+  # TODO: Deprecate this on Elixir v1.20
   @doc deprecated: "Use LoggerBackends.configure/2 from :logger_backends dependency"
   def configure_backend(:console, options) when is_list(options) do
     options = Keyword.merge(Application.get_env(:logger, :console, []), options)

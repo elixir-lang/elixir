@@ -198,15 +198,6 @@ defmodule EExTest do
       assert_eval("foo baz", "foo <%= if false do %>bar<% else %>baz<% end %>")
     end
 
-    test "embedded code with comments in do end" do
-      assert_eval("foo bar", "foo <%= case true do %><%# comment %><% true -> %>bar<% end %>")
-
-      assert_eval(
-        "foo\n\nbar\n",
-        "foo\n<%= case true do %>\n<%# comment %>\n<% true -> %>\nbar\n<% end %>"
-      )
-    end
-
     test "embedded code with multi-line comments in do end" do
       assert_eval("foo bar", "foo <%= case true do %><%!-- comment --%><% true -> %>bar<% end %>")
 

@@ -33,9 +33,6 @@ defmodule Mix.Tasks.Cmd do
 
   ## Command line options
 
-    * `--app` - limit running the command to the given app.
-      This option is currently deprecated in favor of `mix do --app`
-
     * `--cd` *(since v1.10.4)* - the directory to run the command in
 
   ## Zombie operating system processes
@@ -60,11 +57,14 @@ defmodule Mix.Tasks.Cmd do
   def run(args) do
     {opts, args} = OptionParser.parse_head!(args, strict: @switches)
 
-    # TODO: Deprecate `--app` flag in Elixir v1.18
     apps =
       opts
       |> Keyword.get_values(:app)
       |> Enum.map(&String.to_atom/1)
+
+    if apps != [] do
+      IO.warn("the --app in mix cmd is deprecated")
+    end
 
     if apps == [] or Mix.Project.config()[:app] in apps do
       cmd_opts = Keyword.take(opts, [:cd])

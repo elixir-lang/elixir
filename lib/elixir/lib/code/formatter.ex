@@ -16,7 +16,7 @@ defmodule Code.Formatter do
   @ampersand_prec Code.Identifier.unary_op(:&) |> elem(1)
 
   # Operators that are composed of multiple binary operators
-  @multi_binary_operators [:"..//"]
+  @multi_binary_operators [:..//]
 
   # Operators that do not have space between operands
   @no_space_binary_operators [:.., :"//"]
@@ -492,7 +492,7 @@ defmodule Code.Formatter do
   end
 
   # 1..2//3
-  defp quoted_to_algebra({:"..//", meta, [left, middle, right]}, context, state) do
+  defp quoted_to_algebra({:..//, meta, [left, middle, right]}, context, state) do
     quoted_to_algebra({:"//", meta, [{:.., meta, [left, middle]}, right]}, context, state)
   end
 
@@ -524,10 +524,6 @@ defmodule Code.Formatter do
       if keyword_key?(left_arg) do
         {left, state} =
           case left_arg do
-            # TODO: Remove this clause in v1.18 when we no longer quote operator :..//
-            {:__block__, _, [:"..//"]} ->
-              {string(~S{"..//":}), state}
-
             {:__block__, _, [atom]} when is_atom(atom) ->
               iodata =
                 if Macro.classify_atom(atom) in [:identifier, :unquoted] do
@@ -1569,11 +1565,6 @@ defmodule Code.Formatter do
 
   defp atom_to_algebra(nil, _, inspect_opts) do
     Atom.to_string(nil) |> color(nil, inspect_opts)
-  end
-
-  # TODO: Remove this clause in v1.18 when we no longer quote operator :..//
-  defp atom_to_algebra(:"..//", _, inspect_opts) do
-    string(":\"..//\"") |> color(:atom, inspect_opts)
   end
 
   defp atom_to_algebra(:\\, meta, inspect_opts) do

@@ -12,6 +12,15 @@ This release no longer supports WERL (a graphical user interface for the Erlang 
 
 ### 4. Hard deprecations
 
+#### EEx
+
+  * [EEx] `<%#` is deprecated in favor of `<%!--` or `<% #`
+  * [EEx] `c:EEx.handle_text/2` is deprecated in favor of `c:EEx.handle_text/3`
+
+#### Mix
+
+  * [mix cmd] Deprecate `mix cmd --app APP` in favor of `mix do --app APP`
+
 ## v1.17
 
 The CHANGELOG for v1.17 releases can be found [in the v1.17 branch](https://github.com/elixir-lang/elixir/blob/v1.17/CHANGELOG.md).

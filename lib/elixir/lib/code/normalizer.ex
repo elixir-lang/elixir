@@ -58,7 +58,7 @@ defmodule Code.Normalizer do
       {:.., meta, [left, right]}
     else
       step = do_normalize(step, state)
-      {:"..//", meta, [left, right, step]}
+      {:..//, meta, [left, right, step]}
     end
   end
 

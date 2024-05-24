@@ -49,7 +49,7 @@ defmodule Mix.Tasks.Do do
 
   """
 
-  # TODO: Deprecate using comma on Elixir v1.18
+  # TODO: Deprecate using comma on Elixir v1.19
 
   @impl true
   def run(args) do

@@ -48,8 +48,14 @@ defmodule EEx.Compiler do
     end
   end
 
-  # TODO: Deprecate this on Elixir v1.18
+  # TODO: Remove me on Elixir v2.0
   defp tokenize(~c"<%#" ++ t, line, column, state, buffer, acc) do
+    IO.warn("<%# is deprecated, use <%!-- or add a space between <% and # instead",
+      line: line,
+      column: column,
+      file: state.file
+    )
+
     case expr(t, line, column + 3, state, []) do
       {:error, message} ->
         {:error, message, %{line: line, column: column}}
@@ -299,6 +305,13 @@ defmodule EEx.Compiler do
     }
 
     init = state.engine.init(opts)
+
+    if function_exported?(state.engine, :handle_text, 2) do
+      IO.warn(
+        "#{inspect(state.engine)}.handle_text/2 is deprecated, implement handle_text/3 instead"
+      )
+    end
+
     generate_buffer(tokens, init, [], state)
   end
 
@@ -316,8 +329,7 @@ defmodule EEx.Compiler do
         meta = [line: meta.line, column: meta.column]
         state.engine.handle_text(buffer, meta, IO.chardata_to_string(chars))
       else
-        # TODO: Deprecate this branch on Elixir v1.18.
-        # We should most likely move this check to init to emit the deprecation once.
+        # TODO: Remove this on Elixir v2.0. The deprecation is on init.
         state.engine.handle_text(buffer, IO.chardata_to_string(chars))
       end
 
