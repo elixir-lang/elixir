@@ -642,7 +642,7 @@ map_args -> open_curly assoc_update ',' close_curly : build_map_update('$1', '$2
 map_args -> open_curly assoc_update ',' map_close : build_map_update('$1', '$2', element(2, '$4'), element(1, '$4')).
 map_args -> open_curly assoc_update_kw close_curly : build_map_update('$1', '$2', '$3', []).
 
-map -> map_op map_args : adjust_map_column('$2').
+map -> map_op map_args : '$2'.
 map -> '%' map_base_expr map_args : {'%', meta_from_token('$1'), ['$2', '$3']}.
 map -> '%' map_base_expr eol map_args : {'%', meta_from_token('$1'), ['$2', '$4']}.
 
@@ -775,17 +775,6 @@ build_map(Left, Args, Right) ->
 build_map_update(Left, {Pipe, Struct, Map}, Right, Extra) ->
   Op = build_op(Struct, Pipe, append_non_empty(Map, Extra)),
   {'%{}', newlines_pair(Left, Right) ++ meta_from_token(Left), [Op]}.
-
-adjust_map_column(Map) ->
-  case ?columns() of
-    true ->
-      {'%{}', Meta, Pairs} = Map,
-      UpdatedMeta = [{Key, if Key =:= column -> Value - 1; true -> Value end} ||
-                     {Key, Value} <- Meta],
-      {'%{}', UpdatedMeta, Pairs};
-    false ->
-      Map
-  end.
 
 %% Blocks
 
