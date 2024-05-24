@@ -63,7 +63,7 @@ echo ** Standalone options can't be combined with other options.
 goto end
 
 :shortversion
-echo !ELIXIR_VERSION!
+echo %ELIXIR_VERSION%
 goto end
 
 :parseopts
