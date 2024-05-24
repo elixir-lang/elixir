@@ -1,5 +1,7 @@
 # Changelog for Elixir v1.17
 
+This release includes type inference of patterns  to provide warnings for an initial set of constructs (binaries, maps, and atoms). It also includes a new Duration data type to interact with Calendar types, support for Erlang/OTP 27, and many other improvements.
+
 ## Warnings from gradual set-theoretic types
 
 This release introduces gradual set-theoretic types to infer types from patterns and guards and use them to type check programs, enabling the Elixir compiler to find faults and bugs in codebases without requiring changes to existing software. The underlying principles, theory, and roadmap of our work have been outlined in ["The Design Principles of the Elixir Type System" by Giuseppe Castagna, Guillaume Duboc, José Valim](https://arxiv.org/abs/2306.06391).
