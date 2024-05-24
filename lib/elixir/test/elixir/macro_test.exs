@@ -37,7 +37,7 @@ defmodule MacroTest do
       assert Macro.escape({:a, :b, :c}) == {:{}, [], [:a, :b, :c]}
       assert Macro.escape({:a, {1, 2, 3}, :c}) == {:{}, [], [:a, {:{}, [], [1, 2, 3]}, :c]}
 
-    # False positives
+      # False positives
       assert Macro.escape({:quote, :foo, [:bar]}) == {:{}, [], [:quote, :foo, [:bar]]}
       assert Macro.escape({:quote, :foo, [:bar, :baz]}) == {:{}, [], [:quote, :foo, [:bar, :baz]]}
     end
