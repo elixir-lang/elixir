@@ -38,6 +38,11 @@ defmodule MacroTest do
       assert Macro.escape({:a, {1, 2, 3}, :c}) == {:{}, [], [:a, {:{}, [], [1, 2, 3]}, :c]}
     end
 
+    test "correctly escapes tuples where the first element is :quote" do
+      assert Macro.escape({:quote, :foo, [:bar]}) == {:{}, [], [:quote, :foo, [:bar]]}
+      assert Macro.escape({:quote, :foo, [:bar, :baz]}) == {:{}, [], [:quote, :foo, [:bar, :baz]]}
+    end
+
     test "escapes maps" do
       assert Macro.escape(%{a: 1}) == {:%{}, [], [a: 1]}
     end

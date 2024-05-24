@@ -538,8 +538,10 @@ update_last([H | T], F) -> [H | update_last(T, F)].
 
 keyfind(Key, Meta) ->
   lists:keyfind(Key, 1, Meta).
-keydelete(Key, Meta) ->
-  lists:keydelete(Key, 1, Meta).
+keydelete(Key, Meta) when is_list(Meta) ->
+  lists:keydelete(Key, 1, Meta);
+keydelete(_Key, Meta) ->
+  Meta.
 keystore(_Key, Meta, nil) ->
   Meta;
 keystore(Key, Meta, Value) ->
