@@ -26,10 +26,6 @@ defmodule IEx do
   of `__foo__`.
 
   Autocomplete is available by default on Windows shells from Erlang/OTP 26.
-  In earlier versions, you may need to pass the `--werl` option when starting
-  IEx, such as `iex --werl` (or `iex.bat --werl` if using PowerShell).
-  `--werl` may be permanently enabled by setting the `IEX_WITH_WERL`
-  environment variable to `1`.
 
   ## Encoding and coloring
 

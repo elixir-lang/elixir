@@ -30,7 +30,6 @@ echo   --logger-otp-reports BOOL    Enables or disables OTP reporting
 echo   --logger-sasl-reports BOOL   Enables or disables SASL reporting
 echo   --no-halt                    Does not halt the Erlang VM after execution
 echo   --short-version              Prints Elixir version (standalone)
-echo   --werl                       Uses Erlang's Windows shell GUI (Windows only)
 echo.
 echo Options given after the .exs file or -- are passed down to the executed code.
 echo Options can be passed to the Erlang runtime using $ELIXIR_ERL_OPTIONS or --erl.
@@ -95,7 +94,6 @@ if "!par!"=="" (
 shift
 set par="!par:"=\"!"
 rem ******* EXECUTION OPTIONS **********************
-if !par!=="--werl"   (set useWerl=1 && goto startloop)
 if !par!=="+iex"     (set useIEx=1 && goto startloop)
 if !par!=="+elixirc" (goto startloop)
 rem ******* ELIXIR PARAMETERS **********************
@@ -128,10 +126,6 @@ if ""==!par:--pipe-to=!             (echo --pipe-to : Option is not supported on
 
 :run
 setlocal disabledelayedexpansion
-reg query HKCU\Console /v VirtualTerminalLevel 2>nul | findstr /e "0x1" >nul 2>nul
-if %errorlevel% == 0 (
-  set beforeExtra=-elixir ansi_enabled true %beforeExtra%
-)
 if not defined useIEx (
   set beforeExtra=-s elixir start_cli %beforeExtra%
 )
@@ -139,17 +133,9 @@ if not defined useIEx (
 set beforeExtra=-noshell -elixir_root "%SCRIPT_PATH%..\lib" -pa "%SCRIPT_PATH%..\lib\elixir\ebin" %beforeExtra%
 
 if defined ELIXIR_CLI_DRY_RUN (
-   if defined useWerl (
-     echo start "" "%ERTS_BIN%werl.exe" %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %*
-   ) else (
-     echo "%ERTS_BIN%erl.exe" %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %*
-   )
+  echo "%ERTS_BIN%erl.exe" %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %*
 ) else (
-  if defined useWerl (
-    start "" "%ERTS_BIN%werl.exe" %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %*
-  ) else (
-    "%ERTS_BIN%erl.exe" %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %*
-  )
+  "%ERTS_BIN%erl.exe" %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %*
 )
 exit /B %ERRORLEVEL%
 :end

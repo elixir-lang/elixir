@@ -63,15 +63,7 @@ defmodule IEx.Pry do
         IEx.Evaluator.init(:no_ack, server, group_leader, start, opts)
 
       {:error, :no_iex} ->
-        # TODO: Remove this conditional on Erlang/OTP 26+
-        extra =
-          if match?({:win32, _}, :os.type()) and :erlang.system_info(:otp_release) < ~c"26" do
-            " If you are using Windows, you may need to start IEx with the --werl option."
-          else
-            ""
-          end
-
-        message = "Cannot pry #{inspect(self)} at #{location}. Is an IEx shell running?" <> extra
+        message = "Cannot pry #{inspect(self)} at #{location}. Is an IEx shell running?"
         IO.puts(:stdio, message)
         {:error, :no_iex}
 
