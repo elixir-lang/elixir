@@ -44,7 +44,7 @@ The type system was made possible thanks to a partnership between [CNRS](https:/
 
 ## Erlang/OTP support
 
-This release adds support for Erlang/OTP 27 and drops support for Erlang/OTP 24. We recommend Elixir developers to migrate to Erlang/OTP 26+ or later, especially on Windows. Support for WERL (a graphical user interface for the Erlang terminal on Windows) will be removed in Elixir v1.18.
+This release adds support for Erlang/OTP 27 and drops support for Erlang/OTP 24. We recommend Elixir developers to migrate to Erlang/OTP 26 or later, especially on Windows. Support for WERL (a graphical user interface for the Erlang terminal on Windows) will be removed in Elixir v1.18.
 
 ## Adding `Duration` and `shift/2` functions
 
@@ -87,10 +87,12 @@ Process.send_after(pid, :wake_up, to_timeout(hour: 1))
   * [Kernel] Add `Kernel.is_non_struct_map/1` guard
   * [Kernel] Add `Kernel.to_timeout/1`
   * [Kernel] Emit warnings for undefined functions from modules defined within the same context as the caller code
+  * [Kernel] Support integers in uppercase sigils
   * [Macro] Add `Macro.Env.define_alias/4`, `Macro.Env.define_import/4`, `Macro.Env.define_require/4`, `Macro.Env.expand_alias/4`, `Macro.Env.expand_import/5`, and `Macro.Env.expand_require/6` to aid the implementation of language servers and embedded languages
   * [NaiveDateTime] Add `NaiveDateTime.shift/2` to shift naive datetimes with duration and calendar-specific semantics
   * [Process] Add `Process.set_label/1`
   * [String] Add `String.byte_slice/3` to slice a string to a maximum number of bytes while keeping it UTF-8 encoded
+  * [System] Support `use_stdio: false` in `System.cmd/3` and `System.shell/2`
   * [Time] Add `Time.shift/2` to shift times with duration and calendar-specific semantics
 
 #### ExUnit
@@ -123,11 +125,13 @@ Process.send_after(pid, :wake_up, to_timeout(hour: 1))
 
 #### Elixir
 
+  * [bin/elixir.bat] Improve handling of quotes and exclamation marks in flags
   * [Code] Address a bug where AST nodes for `(a -> b)` were not wrapped as part of the literal encoder
   * [Kernel] Resolve inconsistencies of how `..` and `...` are handled at the AST level
   * [Kernel] Fix parsing precedence of ambiguous operators followed by containers
   * [Kernel] Do not expand code in `quote bind_quoted: ...` twice
   * [Kernel] Respect `:line` property when `:file` is given as option to `quote`
+  * [Kernel] Do not crash on `Macro.escape/2` when passing a quote triplet without valid meta
   * [Module] Return default value in `Module.get_attribute/3` for persisted attributes which have not yet been written to
 
 #### IEx
