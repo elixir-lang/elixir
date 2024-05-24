@@ -1,12 +1,13 @@
 #!/usr/bin/env pwsh
 
+$ELIXIR_VERSION = "1.17.0-dev"
+
 $MinPowerShellVersion = [version]"7.2.0"
 
 if ($MinPowerShellVersion.CompareTo([version]$PSVersionTable.PSVersion) -eq 1) {
   Write-Error "This script requires PowerShell version 7.2 or above. Running on $($PSVersionTable.PSVersion)"
 }
 
-$ELIXIR_VERSION = "1.17.0-dev"
 $ScriptPath = Split-Path -Parent $PSCommandPath
 $ErlExec = "erl"
 
@@ -20,7 +21,7 @@ Usage: $ScriptName [options] [.exs file] [data]
   -e "COMMAND"                 Evaluates the given command (*)
   -h, --help                   Prints this message (standalone)
   -r "FILE"                    Requires the given files/patterns (*)
-  -S SCRIPT                    Finds and executes the given script in \$PATH
+  -S SCRIPT                    Finds and executes the given script in `$PATH
   -pr "FILE"                   Requires the given files/patterns in parallel (*)
   -pa "PATH"                   Prepends the given path to Erlang code path (*)
   -pz "PATH"                   Appends the given path to Erlang code path (*)
@@ -32,10 +33,9 @@ Usage: $ScriptName [options] [.exs file] [data]
   --logger-sasl-reports BOOL   Enables or disables SASL reporting
   --no-halt                    Does not halt the Erlang VM after execution
   --short-version              Prints Elixir version (standalone)
-  --werl                       Uses Erlang's Windows shell GUI (Windows only)
 
 Options given after the .exs file or -- are passed down to the executed code.
-Options can be passed to the Erlang runtime using \$ELIXIR_ERL_OPTIONS or --erl.
+Options can be passed to the Erlang runtime using `$ELIXIR_ERL_OPTIONS or --erl.
 
 ## Distribution options
 
@@ -54,7 +54,7 @@ The following options are related to node distribution.
 The following options are generally used under releases.
 
   --boot "FILE"                Uses the given FILE.boot to start the system
-  --boot-var VAR "VALUE"       Makes \$VAR available as VALUE to FILE.boot (*)
+  --boot-var VAR "VALUE"       Makes `$VAR available as VALUE to FILE.boot (*)
   --erl-config "FILE"          Loads configuration in FILE.config written in Erlang (*)
   --pipe-to "PIPEDIR" "LOGDIR" Starts the Erlang VM as a named PIPEDIR and LOGDIR
   --vm-args "FILE"             Passes the contents in file as arguments to the VM
@@ -87,7 +87,7 @@ function NormalizeArg {
     [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
     [string[]] $Items
   )
-  [string]::Join(",", $Items)
+  $Items -join ","
 }
 
 function QuotedString {
@@ -197,20 +197,13 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
     "--logger-sasl-reports" {
       $private:TempVal = $Args[$i + 1]
       if ($TempVal -in @("true", "false")) {
-        $ErlangParams.AddRange([string[]]@("-logger", "handle_sasl", $Args[++$i]))
+        $ErlangParams.AddRange([string[]]@("-logger", "handle_sasl_reports", $Args[++$i]))
       }
       break
     }
 
     "--erl" {
       $BeforeExtras.Add($Args[++$i])
-      break
-    }
-
-    "--werl" {
-      if ($IsWindows) {
-        $ErlExec = "werl"
-      }
       break
     }
 
@@ -301,15 +294,6 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
   }
 }
 
-# Support for ANSI is only disable if TERM or NO_COLOR env vars are set.
-# This will change the $PSStyle.OutputRendering property.
-if ($PSStyle.OutputRendering -ne "PlainText") {
-  # TODO: find a way to detect if the term is interactive on Windows.
-  if ($IsWindows -or (test -t 1 -a -t 2)) {
-    $BeforeExtras.InsertRange(0, [string[]]@("-elixir", "ansi_enabled", "true"))
-  }
-}
-
 if ($null -eq $UseIEx) {
   $BeforeExtras.InsertRange(0, [string[]]@("-s", "elixir", "start_cli"))
 }
@@ -347,7 +331,7 @@ if ($ERTS_BIN) {
 }
 
 if ($null -eq $RunErlPipe) {
-  $ParamsPart = [string]::Join(" ", $AllParams)
+  $ParamsPart = $AllParams -join " "
 }
 else {
   $private:OrigBinPath = $BinPath

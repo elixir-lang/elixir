@@ -27,18 +27,4 @@ Usage: $ScriptName [elixir switches] [compiler switches] [.ex files]
 $ScriptPath = Split-Path -Parent $PSCommandPath
 $Command = Join-Path -Path $ScriptPath -ChildPath "elixir.ps1"
 
-$NewArgs = @()
-$NewArgs += "+elixirc"
-
-for ($i = 0; $i -lt $Args.Count; $i++) {
-  $Arg = $Args[$i]
-
-  if ($Arg -is [string]) {
-    $NewArgs += $Arg
-  }
-  else {
-    $NewArgs += [string]::Join(",", $Arg)
-  }
-}
-
-& $Command $NewArgs
+Invoke-Expression "$Command +elixirc $($Args -join " ")"

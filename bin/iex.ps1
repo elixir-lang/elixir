@@ -22,17 +22,4 @@ It accepts all other options listed by "elixir --help".
 $ScriptPath = Split-Path -Parent $PSCommandPath
 $Command = Join-Path -Path $ScriptPath -ChildPath "elixir.ps1"
 
-$NewArgs = @("--no-halt", "--erl `"-user elixir`"", "+iex")
-
-for ($i = 0; $i -lt $Args.Count; $i++) {
-  $Arg = $Args[$i]
-
-  if ($Arg -is [string]) {
-    $NewArgs += $Arg
-  }
-  else {
-    $NewArgs += [string]::Join(",", $Arg)
-  }
-}
-
-& $Command $NewArgs
+Invoke-Expression "$Command --no-halt --erl `"-user elixir`" +iex $($Args -join " ")"
