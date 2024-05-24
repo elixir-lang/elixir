@@ -1054,7 +1054,7 @@ defmodule System do
     * `:arg0` - sets the command arg0
 
     * `:stderr_to_stdout` - redirects stderr to stdout when `true`, no effect
-      if `use_stdio` is `false``.
+      if `use_stdio` is `false`.
 
     * `:use_stdio` - `true` by default, setting it to false allows direct
       interaction with the terminal from the callee
