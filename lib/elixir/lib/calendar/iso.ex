@@ -746,24 +746,12 @@ defmodule Calendar.ISO do
     {:error, :duplicate_unit}
   end
 
+  defp parse_buffer_duration(:second, duration, "-" <> buffer) do
+    parse_second_duration(duration, buffer, -1)
+  end
+
   defp parse_buffer_duration(:second, duration, buffer) do
-    case Float.parse(buffer) do
-      {float_second, ""} ->
-        second = trunc(float_second)
-
-        {microsecond, precision} =
-          case trunc((float_second - second) * 1_000_000) do
-            0 -> {0, 0}
-            microsecond -> {microsecond, 6}
-          end
-
-        duration
-        |> Map.put(:second, second)
-        |> Map.put(:microsecond, {microsecond, precision})
-
-      _ ->
-        {:error, :invalid_unit_value}
-    end
+    parse_second_duration(duration, buffer, 1)
   end
 
   defp parse_buffer_duration(unit, duration, buffer) do
@@ -774,6 +762,49 @@ defmodule Calendar.ISO do
       _ ->
         {:error, :invalid_unit_value}
     end
+  end
+
+  defp parse_second_duration(duration, buffer, multiplier) do
+    case parse_seconds(buffer, "") do
+      {second, ".0"} ->
+        Map.put(duration, :second, multiplier * second)
+
+      {second, microsecond} ->
+        case parse_microsecond(microsecond) do
+          {{ms, precision}, ""} ->
+            duration
+            |> Map.put(:second, multiplier * second)
+            |> Map.put(:microsecond, {multiplier * ms, precision})
+
+          _ ->
+            {:error, :invalid_unit_value}
+        end
+
+      error ->
+        error
+    end
+  end
+
+  defp parse_seconds(<<>>, second), do: {parse_second(second), ".0"}
+
+  defp parse_seconds(<<c, rest::binary>>, second) when c in ?0..?9 do
+    parse_seconds(rest, <<second::binary, c>>)
+  end
+
+  defp parse_seconds(<<c, rest::binary>>, second) when c in [?., ?,] do
+    {parse_second(second), <<c, rest::binary>>}
+  end
+
+  defp parse_seconds(_, _) do
+    {:error, :invalid_unit_value}
+  end
+
+  defp parse_second("") do
+    0
+  end
+
+  defp parse_second(second) do
+    String.to_integer(second)
   end
 
   @doc """

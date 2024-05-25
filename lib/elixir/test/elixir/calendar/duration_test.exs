@@ -254,7 +254,7 @@ defmodule DurationTest do
     assert Duration.from_iso8601!("P3D") == %Duration{day: 3}
     assert Duration.from_iso8601!("PT4H5M") == %Duration{hour: 4, minute: 5}
     assert Duration.from_iso8601!("PT6S") == %Duration{second: 6}
-    assert Duration.from_iso8601!("PT1.6S") == %Duration{second: 1, microsecond: {600_000, 6}}
+    assert Duration.from_iso8601!("PT1.6S") == %Duration{second: 1, microsecond: {600_000, 1}}
 
     assert Duration.from_iso8601!("PT1.12345678S") == %Duration{
              second: 1,
@@ -268,7 +268,7 @@ defmodule DurationTest do
              second: -6
            }
 
-    assert Duration.from_iso8601!("PT-4.23S") == %Duration{second: -4, microsecond: {-230_000, 6}}
+    assert Duration.from_iso8601!("PT-4.23S") == %Duration{second: -4, microsecond: {-230_000, 2}}
     assert Duration.from_iso8601!("-P3WT5H3M") == %Duration{week: -3, hour: -5, minute: -3}
     assert Duration.from_iso8601!("-P-3WT5H3M") == %Duration{week: 3, hour: -5, minute: -3}
 
