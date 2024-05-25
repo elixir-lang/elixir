@@ -388,12 +388,10 @@ defmodule Duration do
 
   defp to_iso8601_duration_time(%Duration{microsecond: {microsecond, precision}} = d)
        when microsecond > @microseconds_per_second do
-    %Duration{
-      d
-      | second: d.second + div(microsecond, @microseconds_per_second),
-        microsecond: {rem(microsecond, @microseconds_per_second), precision}
-    }
-    |> to_iso8601_duration_time()
+    second = d.second + div(microsecond, @microseconds_per_second)
+    microsecond = {rem(microsecond, @microseconds_per_second), precision}
+
+    to_iso8601_duration_time(%Duration{d | second: second, microsecond: microsecond})
   end
 
   defp to_iso8601_duration_time(d) do
