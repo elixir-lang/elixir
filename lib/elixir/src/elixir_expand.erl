@@ -844,25 +844,8 @@ assert_no_ambiguous_op(Name, Meta, [Arg], S, E) ->
 assert_no_ambiguous_op(_Atom, _Meta, _Args, _S, _E) ->
   ok.
 
-assert_no_clauses(_Name, _Meta, [], _E) ->
-  ok;
-assert_no_clauses(Name, Meta, Args, E) ->
-  assert_arg_with_no_clauses(Name, Meta, lists:last(Args), E).
-
-assert_arg_with_no_clauses(Name, Meta, [{Key, Value} | Rest], E) when is_atom(Key) ->
-  case Value of
-    [{'->', _, _} | _] ->
-      file_error(Meta, E, ?MODULE, {invalid_clauses, Name});
-    _ ->
-      assert_arg_with_no_clauses(Name, Meta, Rest, E)
-  end;
-assert_arg_with_no_clauses(_Name, _Meta, _Arg, _E) ->
-  ok.
-
 expand_local(Meta, Name, Args, S, #{module := Module, function := Function, context := Context} = E)
     when Function /= nil ->
-  assert_no_clauses(Name, Meta, Args, E),
-
   %% In case we have the wrong context, we log a module error
   %% so we can print multiple entries at the same time.
   case Context of
@@ -887,8 +870,6 @@ expand_local(Meta, Name, Args, _S, #{function := nil} = E) ->
 
 expand_remote(Receiver, DotMeta, Right, Meta, Args, S, SL, #{context := Context} = E)
     when is_atom(Receiver) or is_tuple(Receiver) ->
-  assert_no_clauses(Right, Meta, Args, E),
-
   if
     Context =:= guard, is_tuple(Receiver) ->
       (lists:keyfind(no_parens, 1, Meta) /= {no_parens, true}) andalso
