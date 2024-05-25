@@ -18,7 +18,8 @@ defmodule Calendar.ISO do
 
   The standard library supports a minimal set of possible ISO 8601 features.
   Specifically, the parser only supports calendar dates and does not support
-  ordinal and week formats.
+  ordinal and week formats. Additionally, it supports parsing ISO 8601
+  formatted durations, including negative time units and fractional seconds.
 
   By default Elixir only parses extended-formatted date/times. You can opt-in
   to parse basic-formatted date/times.
@@ -29,7 +30,7 @@ defmodule Calendar.ISO do
 
   Elixir does not support reduced accuracy formats (for example, a date without
   the day component) nor decimal precisions in the lowest component (such as
-  `10:01:25,5`). No functions exist to parse ISO 8601 durations or time intervals.
+  `10:01:25,5`).
 
   #### Examples
 
@@ -664,7 +665,7 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Parses an ISO 8601-2 formatted duration string to `Duration` compabitble fields.
+  Parses an ISO 8601 formatted duration string to a list of `Duration` compabitble unit pairs.
 
   """
   @doc since: "1.17.0"
