@@ -231,7 +231,7 @@ defmodule Duration do
   end
 
   def from_iso8601(_) do
-    {:error, "invalid duration string"}
+    {:error, :invalid_duration}
   end
 
   @doc """
@@ -250,7 +250,8 @@ defmodule Duration do
         duration
 
       {:error, reason} ->
-        raise ArgumentError, "failed to parse duration. reason: #{inspect(reason)}"
+        raise ArgumentError,
+              ~s/failed to parse duration "#{duration_string}". reason: #{inspect(reason)}/
     end
   end
 
@@ -286,8 +287,8 @@ defmodule Duration do
     time_parse(rest, duration, "")
   end
 
-  defp date_parse(<<c, _::binary>>, _, _) do
-    {:error, "unexpected character: #{<<c>>}"}
+  defp date_parse(_, _, _) do
+    {:error, :invalid_character}
   end
 
   defp time_parse(_, {:error, error}, _), do: {:error, error}
@@ -313,12 +314,12 @@ defmodule Duration do
     time_parse(rest, duration, "")
   end
 
-  defp time_parse(<<c, _::binary>>, _, _) do
-    {:error, "unexpected character: #{<<c>>}"}
+  defp time_parse(_, _, _) do
+    {:error, :invalid_character}
   end
 
   defp buffer_parse(unit, duration, _buffer) when is_map_key(duration, unit) do
-    {:error, "#{unit} was already provided"}
+    {:error, :duplicate_unit}
   end
 
   defp buffer_parse(:second, duration, buffer) do
@@ -337,7 +338,7 @@ defmodule Duration do
         |> Map.put(:microsecond, {microsecond, precision})
 
       _ ->
-        {:error, "invalid value for second: #{buffer}"}
+        {:error, :invalid_unit_value}
     end
   end
 
@@ -347,7 +348,7 @@ defmodule Duration do
         Map.put(duration, unit, duration_value)
 
       _ ->
-        {:error, "invalid value for #{unit}: #{buffer}"}
+        {:error, :invalid_unit_value}
     end
   end
 end

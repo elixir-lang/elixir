@@ -230,9 +230,10 @@ defmodule DurationTest do
     assert Duration.from_iso8601("P3D") == {:ok, %Duration{day: 3}}
     assert Duration.from_iso8601("PT4H5M") == {:ok, %Duration{hour: 4, minute: 5}}
     assert Duration.from_iso8601("PT6S") == {:ok, %Duration{second: 6}}
-    assert Duration.from_iso8601("P5H3HT4M") == {:error, "unexpected character: H"}
-    assert Duration.from_iso8601("P4Y2W3Y") == {:error, "year was already provided"}
-    assert Duration.from_iso8601("invalid") == {:error, "invalid duration string"}
+    assert Duration.from_iso8601("P4Y2W3Y") == {:error, :duplicate_unit}
+    assert Duration.from_iso8601("P5HT4MT3S") == {:error, :invalid_character}
+    assert Duration.from_iso8601("P5H3HT4M") == {:error, :invalid_character}
+    assert Duration.from_iso8601("invalid") == {:error, :invalid_duration}
   end
 
   test "from_iso8601!/1" do
@@ -272,25 +273,25 @@ defmodule DurationTest do
     assert Duration.from_iso8601!("-P-3WT5H3M") == %Duration{week: 3, hour: -5, minute: -3}
 
     assert_raise ArgumentError,
-                 ~s/failed to parse duration. reason: "unexpected character: H"/,
+                 ~s/failed to parse duration "P5H3HT4M". reason: :invalid_character/,
                  fn ->
                    Duration.from_iso8601!("P5H3HT4M")
                  end
 
     assert_raise ArgumentError,
-                 ~s/failed to parse duration. reason: "year was already provided"/,
+                 ~s/failed to parse duration "P4Y2W3Y". reason: :duplicate_unit/,
                  fn ->
                    Duration.from_iso8601!("P4Y2W3Y")
                  end
 
     assert_raise ArgumentError,
-                 ~s/failed to parse duration. reason: "invalid duration string"/,
+                 ~s/failed to parse duration "invalid". reason: :invalid_duration/,
                  fn ->
                    Duration.from_iso8601!("invalid")
                  end
 
     assert_raise ArgumentError,
-                 ~s/failed to parse duration. reason: "invalid value for year: 4.5"/,
+                 ~s/failed to parse duration "P4.5YT6S". reason: :invalid_unit_value/,
                  fn ->
                    Duration.from_iso8601!("P4.5YT6S")
                  end
