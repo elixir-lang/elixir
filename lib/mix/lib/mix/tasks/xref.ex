@@ -61,10 +61,9 @@ defmodule Mix.Tasks.Xref do
 
       lib/b.ex:2: require A (export)
       lib/b.ex:3: call A.macro/0 (compile)
-      lib/b.ex:4: import A.macro/0 (compile)
+      lib/b.ex:4: import call A.macro/0 (compile)
       lib/b.ex:5: call A.fun/0 (compile)
-      lib/b.ex:6: call A.fun/0 (compile)
-      lib/b.ex:6: import A.fun/0 (compile)
+      lib/b.ex:6: import call A.fun/0 (compile)
       lib/b.ex:7: call A.macro/0 (compile)
       lib/b.ex:8: call A.fun/0 (runtime)
       lib/b.ex:9: struct A (export)
@@ -637,7 +636,7 @@ defmodule Mix.Tasks.Xref do
       shell.info([
         Exception.format_file_line(Path.relative_to_cwd(file), line),
         ?\s,
-        Atom.to_string(type),
+        trace_type(type),
         ?\s,
         format_module_or_mfa(module_or_mfa),
         " (#{mode})"
@@ -646,6 +645,9 @@ defmodule Mix.Tasks.Xref do
       :ok
     end
   end
+
+  defp trace_type(:import), do: "import call"
+  defp trace_type(other), do: Atom.to_string(other)
 
   defp trace_label(nil), do: nil
   defp trace_label("compile"), do: :compile

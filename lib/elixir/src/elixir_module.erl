@@ -457,8 +457,8 @@ expand_callback(Line, M, F, Args, Acc, Fun) ->
   Meta = [{line, Line}, {required, true}],
 
   {EE, _S, ET} =
-    elixir_dispatch:dispatch_require(Meta, M, F, Args, S, E, fun(AM, AF, AA) ->
-      Fun(AM, AF, AA),
+    elixir_dispatch:dispatch_require(Meta, M, F, Args, S, E, fun(AM, AF) ->
+      Fun(AM, AF, Args),
       {ok, S, E}
     end),
 

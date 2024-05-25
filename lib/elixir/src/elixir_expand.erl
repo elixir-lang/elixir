@@ -429,8 +429,12 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
 expand({Atom, Meta, Args}, S, E) when is_atom(Atom), is_list(Meta), is_list(Args) ->
   assert_no_ambiguous_op(Atom, Meta, Args, S, E),
 
-  elixir_dispatch:dispatch_import(Meta, Atom, Args, S, E, fun() ->
-    expand_local(Meta, Atom, Args, S, E)
+  elixir_dispatch:dispatch_import(Meta, Atom, Args, S, E, fun
+    ({AR, AF}) ->
+      expand_remote(AR, Meta, AF, Meta, Args, S, elixir_env:prepare_write(S), E);
+
+    (local) ->
+      expand_local(Meta, Atom, Args, S, E)
   end);
 
 %% Remote calls
@@ -439,8 +443,8 @@ expand({{'.', DotMeta, [Left, Right]}, Meta, Args}, S, E)
     when (is_tuple(Left) orelse is_atom(Left)), is_atom(Right), is_list(Meta), is_list(Args) ->
   {ELeft, SL, EL} = expand(Left, elixir_env:prepare_write(S), E),
 
-  elixir_dispatch:dispatch_require(Meta, ELeft, Right, Args, S, EL, fun(AR, AF, AA) ->
-    expand_remote(AR, DotMeta, AF, Meta, AA, S, SL, EL)
+  elixir_dispatch:dispatch_require(Meta, ELeft, Right, Args, S, EL, fun(AR, AF) ->
+    expand_remote(AR, DotMeta, AF, Meta, Args, S, SL, EL)
   end);
 
 %% Anonymous calls

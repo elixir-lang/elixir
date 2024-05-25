@@ -84,9 +84,7 @@ defmodule Kernel.TracersTest do
     assert meta[:line] == 3
     assert meta[:column] == 11
 
-    assert_received {{:remote_function, meta, Integer, :parse, 1}, _}
-    assert meta[:line] == 3
-    assert meta[:column] == 11
+    refute_received {{:remote_function, _, Integer, :parse, 1}, _}
   end
 
   test "traces imports via capture" do
@@ -107,6 +105,8 @@ defmodule Kernel.TracersTest do
     assert_received {{:imported_function, meta, Integer, :parse, 1}, _}
     assert meta[:line] == 3
     assert meta[:column] == 2
+
+    refute_received {{:remote_function, _meta, Integer, :parse, 1}, _}
   end
 
   test "traces structs" do

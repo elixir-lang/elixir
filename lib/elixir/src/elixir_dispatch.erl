@@ -133,9 +133,15 @@ dispatch_import(Meta, Name, Args, S, E, Callback) ->
       check_deprecated(macro, Meta, Receiver, Name, Arity, E),
       expand_quoted(Meta, Receiver, Name, Arity, Expander(Args, S), S, E);
     {function, Receiver, NewName} ->
-      elixir_expand:expand({{'.', Meta, [Receiver, NewName]}, Meta, Args}, S, E);
+      case elixir_rewrite:inline(Receiver, NewName, Arity) of
+        {AR, AN} ->
+          Callback({AR, AN});
+        false ->
+          check_deprecated(function, Meta, Receiver, Name, Arity, E),
+          Callback({Receiver, NewName})
+      end;
     not_found ->
-      Callback();
+      Callback(local);
     Error ->
       elixir_errors:file_error(Meta, E, ?MODULE, {import, Error, Name, Arity})
   end.
@@ -146,7 +152,7 @@ dispatch_require(Meta, Receiver, Name, Args, S, E, Callback) when is_atom(Receiv
   case elixir_rewrite:inline(Receiver, Name, Arity) of
     {AR, AN} ->
       elixir_env:trace({remote_function, Meta, Receiver, Name, Arity}, E),
-      Callback(AR, AN, Args);
+      Callback(AR, AN);
     false ->
       case expand_require(Meta, Receiver, Name, Arity, E, true) of
         {macro, Receiver, Expander} ->
@@ -155,12 +161,12 @@ dispatch_require(Meta, Receiver, Name, Args, S, E, Callback) when is_atom(Receiv
         error ->
           check_deprecated(function, Meta, Receiver, Name, Arity, E),
           elixir_env:trace({remote_function, Meta, Receiver, Name, Arity}, E),
-          Callback(Receiver, Name, Args)
+          Callback(Receiver, Name)
       end
   end;
 
-dispatch_require(_Meta, Receiver, Name, Args, _S, _E, Callback) ->
-  Callback(Receiver, Name, Args).
+dispatch_require(_Meta, Receiver, Name, _Args, _S, _E, Callback) ->
+  Callback(Receiver, Name).
 
 %% Macros expansion
 
