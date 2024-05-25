@@ -358,7 +358,7 @@ defmodule Duration do
         hour: 0,
         minute: 0,
         second: 0,
-        microsecond: {0, 0}
+        microsecond: {0, _}
       }) do
     "PT0S"
   end
@@ -376,7 +376,7 @@ defmodule Duration do
     "#{year}#{month}#{week}#{day}"
   end
 
-  defp to_iso8601_right_part(%Duration{hour: 0, minute: 0, second: 0, microsecond: {0, 0}}) do
+  defp to_iso8601_right_part(%Duration{hour: 0, minute: 0, second: 0, microsecond: {0, _}}) do
     ""
   end
 
@@ -386,7 +386,7 @@ defmodule Duration do
 
     second =
       case d do
-        %Duration{second: 0, microsecond: {0, 0}} ->
+        %Duration{second: 0, microsecond: {0, _}} ->
           ""
 
         %Duration{microsecond: {0, _}} ->
