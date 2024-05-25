@@ -124,6 +124,8 @@ defmodule Duration do
   """
   @type duration :: t | [unit_pair]
 
+  @microseconds_per_second 1_000_000
+
   @doc """
   Creates a new `Duration` struct from given `unit_pairs`.
 
@@ -349,6 +351,8 @@ defmodule Duration do
   "PT2H0.001S"
   iex> Duration.new!(day: 28, hour: 6, minute: 42, second: 12) |> Duration.multiply(-1) |> Duration.to_iso8601()
   "P-28DT-6H-42M-12S"
+  iex> Duration.new!(microsecond: {2_500_000, 6}) |> Duration.to_iso8601()
+  "PT2.5S"
   """
 
   @spec to_iso8601(t) :: String.t()
@@ -380,6 +384,16 @@ defmodule Duration do
 
   defp to_iso8601_duration_time(%Duration{hour: 0, minute: 0, second: 0, microsecond: {0, _}}) do
     ""
+  end
+
+  defp to_iso8601_duration_time(%Duration{microsecond: {microsecond, precision}} = d)
+       when microsecond > @microseconds_per_second do
+    %Duration{
+      d
+      | second: d.second + div(microsecond, @microseconds_per_second),
+        microsecond: {rem(microsecond, @microseconds_per_second), precision}
+    }
+    |> to_iso8601_duration_time()
   end
 
   defp to_iso8601_duration_time(d) do
