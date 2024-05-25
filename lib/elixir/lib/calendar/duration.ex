@@ -364,10 +364,10 @@ defmodule Duration do
   end
 
   def to_iso8601(%Duration{} = d) do
-    "P#{to_iso8601_left_part(d)}#{to_iso8601_right_part(d)}"
+    "P#{to_iso8601_duration_date(d)}#{to_iso8601_duration_time(d)}"
   end
 
-  defp to_iso8601_left_part(d) do
+  defp to_iso8601_duration_date(d) do
     year = unless d.year == 0, do: "#{d.year}Y"
     month = unless d.month == 0, do: "#{d.month}M"
     week = unless d.week == 0, do: "#{d.week}W"
@@ -376,11 +376,11 @@ defmodule Duration do
     "#{year}#{month}#{week}#{day}"
   end
 
-  defp to_iso8601_right_part(%Duration{hour: 0, minute: 0, second: 0, microsecond: {0, _}}) do
+  defp to_iso8601_duration_time(%Duration{hour: 0, minute: 0, second: 0, microsecond: {0, _}}) do
     ""
   end
 
-  defp to_iso8601_right_part(d) do
+  defp to_iso8601_duration_time(d) do
     hour = unless d.hour == 0, do: "#{d.hour}H"
     minute = unless d.minute == 0, do: "#{d.minute}M"
 
