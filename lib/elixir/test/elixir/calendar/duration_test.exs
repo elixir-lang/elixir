@@ -269,8 +269,6 @@ defmodule DurationTest do
            }
 
     assert Duration.from_iso8601!("PT-4.23S") == %Duration{second: -4, microsecond: {-230_000, 2}}
-    assert Duration.from_iso8601!("-P3WT5H3M") == %Duration{week: -3, hour: -5, minute: -3}
-    assert Duration.from_iso8601!("-P-3WT5H3M") == %Duration{week: 3, hour: -5, minute: -3}
 
     assert_raise ArgumentError,
                  ~s/failed to parse duration "P5H3HT4M". reason: :invalid_character/,

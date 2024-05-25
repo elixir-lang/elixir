@@ -209,14 +209,10 @@ defmodule Duration do
       {:ok, %Duration{hour: 10, minute: 30, second: 0}}
       iex> Duration.from_iso8601("P3Y-2MT3H")
       {:ok, %Duration{year: 3, month: -2, hour: 3}}
-      iex> Duration.from_iso8601("-P3Y2MT3H")
-      {:ok, %Duration{year: -3, month: -2, hour: -3}}
-      iex> Duration.from_iso8601("-P3Y-2MT3H")
-      {:ok, %Duration{year: -3, month: 2, hour: -3}}
 
   """
   @spec from_iso8601(String.t()) :: {:ok, t} | {:error, atom}
-  def from_iso8601("P" <> _ = duration_string) do
+  def from_iso8601(duration_string) do
     case Calendar.ISO.parse_duration(duration_string) do
       {:ok, duration} ->
         {:ok, new!(duration)}
@@ -224,20 +220,6 @@ defmodule Duration do
       error ->
         error
     end
-  end
-
-  def from_iso8601("-P" <> duration_string) do
-    case from_iso8601("P" <> duration_string) do
-      {:ok, duration} ->
-        {:ok, negate(duration)}
-
-      error ->
-        error
-    end
-  end
-
-  def from_iso8601(_) do
-    {:error, :invalid_duration}
   end
 
   @doc """
