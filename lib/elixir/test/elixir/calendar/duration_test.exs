@@ -218,7 +218,7 @@ defmodule DurationTest do
              }
   end
 
-  test "parse/1" do
+  test "from_iso8601/1" do
     assert Duration.from_iso8601("P1Y2M3DT4H5M6S") ==
              {:ok, %Duration{year: 1, month: 2, day: 3, hour: 4, minute: 5, second: 6}}
 
@@ -235,7 +235,7 @@ defmodule DurationTest do
     assert Duration.from_iso8601("invalid") == {:error, "invalid duration string"}
   end
 
-  test "parse!/1" do
+  test "from_iso8601!/1" do
     assert Duration.from_iso8601!("P1Y2M3DT4H5M6S") == %Duration{
              year: 1,
              month: 2,

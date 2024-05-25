@@ -217,11 +217,11 @@ defmodule Duration do
   """
   @spec from_iso8601(String.t()) :: {:ok, t} | {:error, String.t()}
   def from_iso8601("P" <> duration_string) do
-    parse(duration_string, %{}, "", false)
+    date_parse(duration_string, %{}, "")
   end
 
   def from_iso8601("-P" <> duration_string) do
-    case parse(duration_string, %{}, "", false) do
+    case date_parse(duration_string, %{}, "") do
       {:ok, duration} ->
         {:ok, negate(duration)}
 
@@ -254,58 +254,74 @@ defmodule Duration do
     end
   end
 
-  defp parse(<<>>, duration, "", _), do: {:ok, new!(Enum.into(duration, []))}
+  defp date_parse(_, {:error, error}, _), do: {:error, error}
 
-  defp parse(<<c::utf8, rest::binary>>, duration, buffer, is_time)
-       when c in ?0..?9 or c in [?., ?-] do
-    parse(rest, duration, <<buffer::binary, c::utf8>>, is_time)
+  defp date_parse(<<>>, duration, ""), do: {:ok, new!(Keyword.new(duration))}
+
+  defp date_parse(<<c, rest::binary>>, duration, buffer) when c in ?0..?9 or c in [?., ?-] do
+    date_parse(rest, duration, <<buffer::binary, c>>)
   end
 
-  defp parse(<<"Y", rest::binary>>, duration, buffer, false) do
-    parse(:year, rest, duration, buffer, false)
+  defp date_parse(<<"Y", rest::binary>>, duration, buffer) do
+    duration = buffer_parse(:year, duration, buffer)
+    date_parse(rest, duration, "")
   end
 
-  defp parse(<<"M", rest::binary>>, duration, buffer, false) do
-    parse(:month, rest, duration, buffer, false)
+  defp date_parse(<<"M", rest::binary>>, duration, buffer) do
+    duration = buffer_parse(:month, duration, buffer)
+    date_parse(rest, duration, "")
   end
 
-  defp parse(<<"W", rest::binary>>, duration, buffer, false) do
-    parse(:week, rest, duration, buffer, false)
+  defp date_parse(<<"W", rest::binary>>, duration, buffer) do
+    duration = buffer_parse(:week, duration, buffer)
+    date_parse(rest, duration, "")
   end
 
-  defp parse(<<"D", rest::binary>>, duration, buffer, false) do
-    parse(:day, rest, duration, buffer, false)
+  defp date_parse(<<"D", rest::binary>>, duration, buffer) do
+    duration = buffer_parse(:day, duration, buffer)
+    date_parse(rest, duration, "")
   end
 
-  defp parse(<<"T", _::binary>>, _duration, _, true) do
-    {:error, "time delimiter was already provided"}
+  defp date_parse(<<"T", rest::binary>>, duration, _buffer) do
+    time_parse(rest, duration, "")
   end
 
-  defp parse(<<"T", rest::binary>>, duration, _buffer, false) do
-    parse(rest, duration, "", true)
-  end
-
-  defp parse(<<"H", rest::binary>>, duration, buffer, true) do
-    parse(:hour, rest, duration, buffer, true)
-  end
-
-  defp parse(<<"M", rest::binary>>, duration, buffer, true) do
-    parse(:minute, rest, duration, buffer, true)
-  end
-
-  defp parse(<<"S", rest::binary>>, duration, buffer, true) do
-    parse(:second, rest, duration, buffer, true)
-  end
-
-  defp parse(<<c::utf8, _::binary>>, _, _, _) do
+  defp date_parse(<<c, _::binary>>, _, _) do
     {:error, "unexpected character: #{<<c>>}"}
   end
 
-  defp parse(unit, _string, duration, _buffer, _is_time) when is_map_key(duration, unit) do
+  defp time_parse(_, {:error, error}, _), do: {:error, error}
+
+  defp time_parse(<<>>, duration, ""), do: {:ok, new!(Keyword.new(duration))}
+
+  defp time_parse(<<c, rest::binary>>, duration, buffer) when c in ?0..?9 or c in [?., ?-] do
+    time_parse(rest, duration, <<buffer::binary, c>>)
+  end
+
+  defp time_parse(<<"H", rest::binary>>, duration, buffer) do
+    duration = buffer_parse(:hour, duration, buffer)
+    time_parse(rest, duration, "")
+  end
+
+  defp time_parse(<<"M", rest::binary>>, duration, buffer) do
+    duration = buffer_parse(:minute, duration, buffer)
+    time_parse(rest, duration, "")
+  end
+
+  defp time_parse(<<"S", rest::binary>>, duration, buffer) do
+    duration = buffer_parse(:second, duration, buffer)
+    time_parse(rest, duration, "")
+  end
+
+  defp time_parse(<<c, _::binary>>, _, _) do
+    {:error, "unexpected character: #{<<c>>}"}
+  end
+
+  defp buffer_parse(unit, duration, _buffer) when is_map_key(duration, unit) do
     {:error, "#{unit} was already provided"}
   end
 
-  defp parse(:second, string, duration, buffer, is_time) do
+  defp buffer_parse(:second, duration, buffer) do
     case Float.parse(buffer) do
       {float_second, ""} ->
         second = trunc(float_second)
@@ -316,22 +332,19 @@ defmodule Duration do
             microsecond -> {microsecond, 6}
           end
 
-        duration =
-          duration
-          |> Map.put(:second, second)
-          |> Map.put(:microsecond, {microsecond, precision})
-
-        parse(string, duration, "", is_time)
+        duration
+        |> Map.put(:second, second)
+        |> Map.put(:microsecond, {microsecond, precision})
 
       _ ->
         {:error, "invalid value for second: #{buffer}"}
     end
   end
 
-  defp parse(unit, string, duration, buffer, is_time) do
+  defp buffer_parse(unit, duration, buffer) do
     case Integer.parse(buffer) do
       {duration_value, ""} ->
-        parse(string, Map.put(duration, unit, duration_value), "", is_time)
+        Map.put(duration, unit, duration_value)
 
       _ ->
         {:error, "invalid value for #{unit}: #{buffer}"}
