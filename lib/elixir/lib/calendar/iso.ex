@@ -664,6 +664,119 @@ defmodule Calendar.ISO do
   end
 
   @doc """
+  Parses an ISO 8601-2 formatted duration string to `Duration` compabitble fields.
+
+  """
+  @doc since: "1.17.0"
+  @spec parse_duration(String.t()) :: {:ok, [Duration.unit_pair()]} | {:error, atom()}
+  def parse_duration("P" <> duration_string) do
+    parse_date_duration(duration_string, %{}, "")
+  end
+
+  def parse_duration(_) do
+    {:error, :invalid_duration}
+  end
+
+  defp parse_date_duration(_, {:error, error}, _), do: {:error, error}
+
+  defp parse_date_duration(<<>>, duration, ""), do: {:ok, Keyword.new(duration)}
+
+  defp parse_date_duration(<<c, rest::binary>>, duration, buffer)
+       when c in ?0..?9 or c in [?., ?-] do
+    parse_date_duration(rest, duration, <<buffer::binary, c>>)
+  end
+
+  defp parse_date_duration(<<"Y", rest::binary>>, duration, buffer) do
+    duration = parse_buffer_duration(:year, duration, buffer)
+    parse_date_duration(rest, duration, "")
+  end
+
+  defp parse_date_duration(<<"M", rest::binary>>, duration, buffer) do
+    duration = parse_buffer_duration(:month, duration, buffer)
+    parse_date_duration(rest, duration, "")
+  end
+
+  defp parse_date_duration(<<"W", rest::binary>>, duration, buffer) do
+    duration = parse_buffer_duration(:week, duration, buffer)
+    parse_date_duration(rest, duration, "")
+  end
+
+  defp parse_date_duration(<<"D", rest::binary>>, duration, buffer) do
+    duration = parse_buffer_duration(:day, duration, buffer)
+    parse_date_duration(rest, duration, "")
+  end
+
+  defp parse_date_duration(<<"T", rest::binary>>, duration, _buffer) do
+    parse_time_duration(rest, duration, "")
+  end
+
+  defp parse_date_duration(_, _, _) do
+    {:error, :invalid_character}
+  end
+
+  defp parse_time_duration(_, {:error, error}, _), do: {:error, error}
+
+  defp parse_time_duration(<<>>, duration, ""), do: {:ok, Keyword.new(duration)}
+
+  defp parse_time_duration(<<c, rest::binary>>, duration, buffer)
+       when c in ?0..?9 or c in [?., ?-] do
+    parse_time_duration(rest, duration, <<buffer::binary, c>>)
+  end
+
+  defp parse_time_duration(<<"H", rest::binary>>, duration, buffer) do
+    duration = parse_buffer_duration(:hour, duration, buffer)
+    parse_time_duration(rest, duration, "")
+  end
+
+  defp parse_time_duration(<<"M", rest::binary>>, duration, buffer) do
+    duration = parse_buffer_duration(:minute, duration, buffer)
+    parse_time_duration(rest, duration, "")
+  end
+
+  defp parse_time_duration(<<"S", rest::binary>>, duration, buffer) do
+    duration = parse_buffer_duration(:second, duration, buffer)
+    parse_time_duration(rest, duration, "")
+  end
+
+  defp parse_time_duration(_, _, _) do
+    {:error, :invalid_character}
+  end
+
+  defp parse_buffer_duration(unit, duration, _buffer) when is_map_key(duration, unit) do
+    {:error, :duplicate_unit}
+  end
+
+  defp parse_buffer_duration(:second, duration, buffer) do
+    case Float.parse(buffer) do
+      {float_second, ""} ->
+        second = trunc(float_second)
+
+        {microsecond, precision} =
+          case trunc((float_second - second) * 1_000_000) do
+            0 -> {0, 0}
+            microsecond -> {microsecond, 6}
+          end
+
+        duration
+        |> Map.put(:second, second)
+        |> Map.put(:microsecond, {microsecond, precision})
+
+      _ ->
+        {:error, :invalid_unit_value}
+    end
+  end
+
+  defp parse_buffer_duration(unit, duration, buffer) do
+    case Integer.parse(buffer) do
+      {duration_value, ""} ->
+        Map.put(duration, unit, duration_value)
+
+      _ ->
+        {:error, :invalid_unit_value}
+    end
+  end
+
+  @doc """
   Returns the `t:Calendar.iso_days/0` format of the specified date.
 
   ## Examples
