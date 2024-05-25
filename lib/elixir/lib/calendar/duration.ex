@@ -347,12 +347,20 @@ defmodule Duration do
   "P3Y6DT9M"
   iex> Duration.new!(second: 30) |> Duration.to_iso8601()
   "PT30S"
-  iex> Duration.new!(hour: 2, microsecond: {1000, 6}) |> Duration.to_iso8601()
-  "PT2H0.001S"
+
   iex> Duration.new!(day: 28, hour: 6, minute: 42, second: 12) |> Duration.multiply(-1) |> Duration.to_iso8601()
   "P-28DT-6H-42M-12S"
-  iex> Duration.new!(microsecond: {2_500_000, 6}) |> Duration.to_iso8601()
-  "PT2.5S"
+
+  iex> Duration.new!(hour: 2, microsecond: {2, 6}) |> Duration.to_iso8601()
+  "PT2H0.000002S"
+  iex> Duration.new!(hour: 2, microsecond: {2, 3}) |> Duration.to_iso8601()
+  "PT2H0.000S"
+  iex> Duration.new!(hour: 2, microsecond: {2, 0}) |> Duration.to_iso8601()
+  "PT2H"
+  iex> Duration.new!(microsecond: {2, 0}) |> Duration.to_iso8601()
+  "PT0S"
+  iex> Duration.new!(microsecond: {1_000_000, 6}) |> Duration.to_iso8601()
+  "PT1S"
   """
 
   @spec to_iso8601(t) :: String.t()
@@ -367,6 +375,10 @@ defmodule Duration do
         microsecond: {0, _}
       }) do
     "PT0S"
+  end
+
+  def to_iso8601(%Duration{microsecond: {microsecond, 0}} = d) when microsecond != 0 do
+    to_iso8601(%Duration{d | microsecond: {0, 0}})
   end
 
   def to_iso8601(%Duration{} = d) do
@@ -387,7 +399,7 @@ defmodule Duration do
   end
 
   defp to_iso8601_duration_time(%Duration{microsecond: {microsecond, precision}} = d)
-       when microsecond > @microseconds_per_second do
+       when microsecond >= @microseconds_per_second do
     second = d.second + div(microsecond, @microseconds_per_second)
     microsecond = {rem(microsecond, @microseconds_per_second), precision}
 
@@ -406,12 +418,12 @@ defmodule Duration do
         %Duration{microsecond: {0, _}} ->
           "#{d.second}S"
 
-        %Duration{microsecond: {microsecond, _}} ->
+        %Duration{microsecond: {microsecond, precision}} ->
           microsecond =
             microsecond
-            |> to_string()
+            |> Integer.to_string()
             |> String.pad_leading(6, "0")
-            |> String.trim_trailing("0")
+            |> binary_part(0, precision)
 
           "#{d.second}.#{microsecond}S"
       end
