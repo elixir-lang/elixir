@@ -256,7 +256,11 @@ defmodule DurationTest do
     assert Duration.from_iso8601!("PT6S") == %Duration{second: 6}
     assert Duration.from_iso8601!("PT1.6S") == %Duration{second: 1, microsecond: {600_000, 1}}
     assert Duration.from_iso8601!("PT-.6S") == %Duration{second: 0, microsecond: {-600_000, 1}}
-    assert Duration.from_iso8601!("PT-1.234567S") == %Duration{second: -1, microsecond: {-234_567, 6}}
+
+    assert Duration.from_iso8601!("PT-1.234567S") == %Duration{
+             second: -1,
+             microsecond: {-234_567, 6}
+           }
 
     assert Duration.from_iso8601!("PT1.12345678S") == %Duration{
              second: 1,
