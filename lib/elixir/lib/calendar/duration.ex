@@ -347,6 +347,8 @@ defmodule Duration do
   "PT30S"
   iex> Duration.new!(hour: 2, microsecond: {1000, 6}) |> Duration.to_iso8601()
   "PT2H0.001S"
+  iex> Duration.new!(day: 28, hour: 6, minute: 42, second: 12) |> Duration.multiply(-1) |> Duration.to_iso8601()
+  "P-28DT-6H-42M-12S"
   """
 
   @spec to_iso8601(t) :: String.t()
