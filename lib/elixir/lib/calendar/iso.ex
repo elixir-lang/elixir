@@ -670,8 +670,8 @@ defmodule Calendar.ISO do
   """
   @doc since: "1.17.0"
   @spec parse_duration(String.t()) :: {:ok, [Duration.unit_pair()]} | {:error, atom()}
-  def parse_duration("P" <> duration_string) do
-    parse_date_duration(duration_string, %{}, "")
+  def parse_duration("P" <> string) do
+    parse_date_duration(string, %{}, "")
   end
 
   def parse_duration(_) do
@@ -766,7 +766,7 @@ defmodule Calendar.ISO do
   end
 
   defp parse_second_duration(duration, buffer, multiplier) do
-    case parse_seconds(buffer, "") do
+    case parse_fraction_duration(buffer, "") do
       {second, ".0"} ->
         Map.put(duration, :second, multiplier * second)
 
@@ -786,26 +786,23 @@ defmodule Calendar.ISO do
     end
   end
 
-  defp parse_seconds(<<>>, second), do: {parse_second(second), ".0"}
+  defp parse_fraction_duration(<<>>, ""), do: {0, ".0"}
+  defp parse_fraction_duration(<<>>, second), do: {String.to_integer(second), ".0"}
 
-  defp parse_seconds(<<c, rest::binary>>, second) when c in ?0..?9 do
-    parse_seconds(rest, <<second::binary, c>>)
+  defp parse_fraction_duration(<<c, rest::binary>>, second) when c in ?0..?9 do
+    parse_fraction_duration(rest, <<second::binary, c>>)
   end
 
-  defp parse_seconds(<<c, rest::binary>>, second) when c in [?., ?,] do
-    {parse_second(second), <<c, rest::binary>>}
+  defp parse_fraction_duration(<<c, rest::binary>>, "") when c in [?., ?,] do
+    {0, <<c, rest::binary>>}
   end
 
-  defp parse_seconds(_, _) do
+  defp parse_fraction_duration(<<c, rest::binary>>, second) when c in [?., ?,] do
+    {String.to_integer(second), <<c, rest::binary>>}
+  end
+
+  defp parse_fraction_duration(_, _) do
     {:error, :invalid_unit_value}
-  end
-
-  defp parse_second("") do
-    0
-  end
-
-  defp parse_second(second) do
-    String.to_integer(second)
   end
 
   @doc """

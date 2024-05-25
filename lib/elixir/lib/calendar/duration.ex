@@ -212,8 +212,8 @@ defmodule Duration do
 
   """
   @spec from_iso8601(String.t()) :: {:ok, t} | {:error, atom}
-  def from_iso8601(duration_string) do
-    case Calendar.ISO.parse_duration(duration_string) do
+  def from_iso8601(string) when is_binary(string) do
+    case Calendar.ISO.parse_duration(string) do
       {:ok, duration} ->
         {:ok, new!(duration)}
 
@@ -232,14 +232,13 @@ defmodule Duration do
 
   """
   @spec from_iso8601!(String.t()) :: t
-  def from_iso8601!(duration_string) do
-    case from_iso8601(duration_string) do
+  def from_iso8601!(string) when is_binary(string) do
+    case from_iso8601(string) do
       {:ok, duration} ->
         duration
 
       {:error, reason} ->
-        raise ArgumentError,
-              ~s/failed to parse duration "#{duration_string}". reason: #{inspect(reason)}/
+        raise ArgumentError, ~s/failed to parse duration "#{string}". reason: #{inspect(reason)}/
     end
   end
 end
