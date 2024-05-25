@@ -545,8 +545,6 @@ resolve_super(Meta, Arity, E) ->
 expand_fn_capture(Meta, Arg, S, E) ->
   case elixir_fn:capture(Meta, Arg, S, E) of
     {{remote, Remote, Fun, Arity}, RequireMeta, DotMeta, SE, EE} ->
-      is_atom(Remote) andalso
-        elixir_env:trace({remote_function, RequireMeta, Remote, Fun, Arity}, E),
       AttachedMeta = attach_runtime_module(Remote, RequireMeta, S, E),
       {{'&', Meta, [{'/', [], [{{'.', DotMeta, [Remote, Fun]}, AttachedMeta, []}, Arity]}]}, SE, EE};
     {{local, Fun, Arity}, _, _, _SE, #{function := nil}} ->
