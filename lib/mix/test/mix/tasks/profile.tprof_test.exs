@@ -6,6 +6,8 @@ defmodule Mix.Tasks.Profile.TprofTest do
   import ExUnit.CaptureIO
   alias Mix.Tasks.Profile.Tprof
 
+  @moduletag skip: System.otp_release() < "27"
+
   @expr "Enum.each(1..5, &String.Chars.Integer.to_string/1)"
 
   test "profiles evaluated expression", context do
