@@ -144,7 +144,7 @@ defmodule Module.Behaviour do
   end
 
   defp impl_behaviours({function, arity}, defaults, kind, value, behaviours, callbacks) do
-    impls = for n <- arity..(arity - defaults), do: {function, n}
+    impls = for n <- (arity - defaults)..arity, do: {function, n}
     impl_behaviours(impls, kind, value, behaviours, callbacks)
   end
 

@@ -17,6 +17,11 @@ This release no longer supports WERL (a graphical user interface for the Erlang 
   * [EEx] `<%#` is deprecated in favor of `<%!--` or `<% #`
   * [EEx] `c:EEx.handle_text/2` is deprecated in favor of `c:EEx.handle_text/3`
 
+#### Elixir
+
+  * [Enumerable] Deprecate returning a two-arity function in `Enumerable.slice/1`
+  * [Range] Deprecate inferring negative ranges on `Range.new/2`
+
 #### Mix
 
   * [mix cmd] Deprecate `mix cmd --app APP` in favor of `mix do --app APP`

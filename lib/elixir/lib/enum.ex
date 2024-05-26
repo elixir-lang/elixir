@@ -2416,12 +2416,16 @@ defmodule Enum do
         {:ok, count, fun} when is_function(fun, 1) ->
           slice_list(fun.(enumerable), random_count(count), 1, 1)
 
-        # TODO: Deprecate me in Elixir v1.18.
-        {:ok, count, fun} when is_function(fun, 2) ->
-          fun.(random_count(count), 1)
-
         {:ok, count, fun} when is_function(fun, 3) ->
           fun.(random_count(count), 1, 1)
+
+        # TODO: Remove deprecation on Elixir v1.20.
+        {:ok, count, fun} when is_function(fun, 2) ->
+          IO.warn(
+            "#{inspect(Enumerable.impl_for(enumerable))} must return a three arity function on slice/1"
+          )
+
+          fun.(random_count(count), 1)
 
         {:error, _} ->
           take_random(enumerable, 1)
@@ -4492,8 +4496,16 @@ defmodule Enum do
         amount = Kernel.min(amount, count - start) |> amount_with_step(step)
         enumerable |> fun.() |> slice_exact(start, amount, step, count)
 
-      # TODO: Deprecate me in Elixir v1.18.
+      {:ok, count, fun} when is_function(fun, 3) ->
+        amount = Kernel.min(amount, count - start) |> amount_with_step(step)
+        fun.(start, amount, step)
+
+      # TODO: Remove me on v2.0.
       {:ok, count, fun} when is_function(fun, 2) ->
+        IO.warn(
+          "#{inspect(Enumerable.impl_for(enumerable))} must return a three arity function on slice/1"
+        )
+
         amount = Kernel.min(amount, count - start)
 
         if step == 1 do
@@ -4502,10 +4514,6 @@ defmodule Enum do
           fun.(start, Kernel.min(amount * step, count - start))
           |> take_every_list(amount, step - 1)
         end
-
-      {:ok, count, fun} when is_function(fun, 3) ->
-        amount = Kernel.min(amount, count - start) |> amount_with_step(step)
-        fun.(start, amount, step)
 
       {:error, module} ->
         slice_enum(enumerable, module, start, amount, step)
@@ -4565,11 +4573,18 @@ defmodule Enum do
 
   defp slice_count_and_fun(enumerable, step) do
     case Enumerable.slice(enumerable) do
+      {:ok, count, fun} when is_function(fun, 1) ->
+        {count, &slice_exact(fun.(enumerable), &1, &2, &3, count)}
+
       {:ok, count, fun} when is_function(fun, 3) ->
         {count, fun}
 
-      # TODO: Deprecate me in Elixir v1.18.
+      # TODO: Remove me on v2.0
       {:ok, count, fun} when is_function(fun, 2) ->
+        IO.warn(
+          "#{inspect(Enumerable.impl_for(enumerable))} must return a three arity function on slice/1"
+        )
+
         if step == 1 do
           {count, fn start, amount, 1 -> fun.(start, amount) end}
         else
@@ -4579,9 +4594,6 @@ defmodule Enum do
              |> take_every_list(amount, step - 1)
            end}
         end
-
-      {:ok, count, fun} when is_function(fun, 1) ->
-        {count, &slice_exact(fun.(enumerable), &1, &2, &3, count)}
 
       {:error, module} ->
         {list, count} =
