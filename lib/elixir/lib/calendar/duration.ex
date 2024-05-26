@@ -286,6 +286,8 @@ defmodule Duration do
     }
   end
 
+  @doc since: "1.7.1"
+
   @doc """
   Parses an ISO 8601 formatted duration string to a `Duration` struct.
 
@@ -335,35 +337,40 @@ defmodule Duration do
   end
 
   @doc """
-  Converts the given duration to ISO 8601:TODO format.
+  Converts the given duration to [ISO 8601-2:2019](https://en.wikipedia.org/wiki/ISO_8601) format.
+
+  Note this function implements the *extension* of ISO 8601:2019. This extensions allows weeks to
+  appear in any case, which is not the case in the base standard. `"P3M3W"` is not allowed in
+  ISO 8601-1, but it is in ISO 8601-2. Thus, any duration can be output by this function.
 
   ## Examples
 
-  iex> Duration.new!([]) |> Duration.to_iso8601()
-  "PT0S"
-  iex> Duration.new!(year: 3) |> Duration.to_iso8601()
-  "P3Y"
-  iex> Duration.new!(year: 3, day: 6, minute: 9) |> Duration.to_iso8601()
-  "P3Y6DT9M"
-  iex> Duration.new!(second: 30) |> Duration.to_iso8601()
-  "PT30S"
+      iex> Duration.new!(year: 3) |> Duration.to_iso8601()
+      "P3Y"
+      iex> Duration.new!(day: 28, hour: 6, minute: 42, second: 12) |> Duration.to_iso8601()
+      "P28DT6H42M12S"
+      iex> Duration.new!(second: 30) |> Duration.to_iso8601()
+      "PT30S"
+      iex> Duration.new!(second: 30) |> Duration.multiply(-1) |> Duration.to_iso8601()
+      "PT-30S"
+      iex> Duration.new!([]) |> Duration.to_iso8601()
+      "PT0S"
 
-  iex> Duration.new!(day: 28, hour: 6, minute: 42, second: 12) |> Duration.multiply(-1) |> Duration.to_iso8601()
-  "P-28DT-6H-42M-12S"
-
-  iex> Duration.new!(hour: 2, microsecond: {2, 6}) |> Duration.to_iso8601()
-  "PT2H0.000002S"
-  iex> Duration.new!(hour: 2, microsecond: {2, 3}) |> Duration.to_iso8601()
-  "PT2H0.000S"
-  iex> Duration.new!(hour: 2, microsecond: {2, 0}) |> Duration.to_iso8601()
-  "PT2H"
-  iex> Duration.new!(microsecond: {2, 0}) |> Duration.to_iso8601()
-  "PT0S"
-  iex> Duration.new!(microsecond: {1_000_000, 6}) |> Duration.to_iso8601()
-  "PT1S"
+      iex> Duration.new!(hour: 2, microsecond: {2, 6}) |> Duration.to_iso8601()
+      "PT2H0.000002S"
+      iex> Duration.new!(hour: 2, microsecond: {2, 3}) |> Duration.to_iso8601()
+      "PT2H0.000S"
+      iex> Duration.new!(hour: 2, microsecond: {2, 0}) |> Duration.to_iso8601()
+      "PT2H"
+      iex> Duration.new!(microsecond: {2, 0}) |> Duration.to_iso8601()
+      "PT0S"
+      iex> Duration.new!(microsecond: {2_000_000, 6}) |> Duration.to_iso8601()
+      "PT2S"
   """
 
   @spec to_iso8601(t) :: String.t()
+  def to_iso8601(duration)
+
   def to_iso8601(%Duration{
         year: 0,
         month: 0,
