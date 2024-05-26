@@ -1,6 +1,6 @@
 # Changelog for Elixir v1.17
 
-This release includes type inference of patterns  to provide warnings for an initial set of constructs (binaries, maps, and atoms). It also includes a new Duration data type to interact with Calendar types, support for Erlang/OTP 27, and many other improvements.
+This release includes type inference of patterns to provide warnings for an initial set of constructs (binaries, maps, and atoms) within the same function. It also includes a new Duration data type to interact with Calendar types, support for Erlang/OTP 27, and many other improvements.
 
 ## Warnings from gradual set-theoretic types
 
@@ -38,7 +38,7 @@ We focused on atoms and maps on this initial release as they are respectively th
 
   * Accessing a field that is not defined in a rescued exception
 
-These new warnings help Elixir developers find bugs earlier and give more confidence when refactoring code, especially around maps and structs. While some of these warnings were emitted in the past, they were discovered using syntax analysis. The new warnings are more reliable, precise, and with better error messages. Keep in mind that not all maps have statically known keys, and the Elixir typechecker only infers types from patterns at the moment.
+These new warnings help Elixir developers find bugs earlier and give more confidence when refactoring code, especially around maps and structs. While some of these warnings were emitted in the past, they were discovered using syntax analysis. The new warnings are more reliable, precise, and with better error messages. Keep in mind that not all maps have statically known keys, and the Elixir typechecker at the moment only infers types from patterns within the same function.
 
 Future Elixir versions will infer and type check more constructs, bringing Elixir developers more warnings and quality of life improvements without changes to code. For more details, see our new [reference document on gradual set-theoretic types](https://hexdocs.pm/elixir/main/gradual-set-theoretic-types.html).
 
