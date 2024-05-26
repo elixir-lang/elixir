@@ -671,17 +671,17 @@ defmodule Calendar.ISO do
   @doc since: "1.17.0"
   @spec parse_duration(String.t()) :: {:ok, [Duration.unit_pair()]} | {:error, atom()}
   def parse_duration(string) do
-    with {:ok, duration, rest, buffer} <- parse_duration_period(string, %{time: false}),
-         {:ok, duration, rest, buffer} <- parse_duration_year(rest, duration, buffer),
-         {:ok, duration, rest, buffer} <- parse_duration_month(rest, duration, buffer),
-         {:ok, duration, rest, buffer} <- parse_duration_week(rest, duration, buffer),
-         {:ok, duration, rest, buffer} <- parse_duration_day(rest, duration, buffer),
-         {:ok, duration, rest, buffer} <- parse_duration_time(rest, duration, buffer),
-         {:ok, duration, rest, buffer} <- parse_duration_hour(rest, duration, buffer),
-         {:ok, duration, rest, buffer} <- parse_duration_minute(rest, duration, buffer),
-         {:ok, duration, "", ""} <- parse_duration_second(rest, duration, buffer) do
+    with {:ok, acc, rest, buffer} <- parse_duration(:period, string, %{time: false}),
+         {:ok, acc, rest, buffer} <- parse_duration(:year, rest, acc, buffer),
+         {:ok, acc, rest, buffer} <- parse_duration(:month, rest, acc, buffer),
+         {:ok, acc, rest, buffer} <- parse_duration(:week, rest, acc, buffer),
+         {:ok, acc, rest, buffer} <- parse_duration(:day, rest, acc, buffer),
+         {:ok, acc, rest, buffer} <- parse_duration(:time, rest, acc, buffer),
+         {:ok, acc, rest, buffer} <- parse_duration(:hour, rest, acc, buffer),
+         {:ok, acc, rest, buffer} <- parse_duration(:minute, rest, acc, buffer),
+         {:ok, acc, "", ""} <- parse_duration(:second, rest, acc, buffer) do
       {:ok,
-       duration
+       acc
        |> Map.take([:year, :month, :week, :day, :hour, :minute, :second, :microsecond])
        |> Keyword.new()}
     else
@@ -693,165 +693,113 @@ defmodule Calendar.ISO do
     end
   end
 
-  defp parse_duration_period(<<"P", rest::binary>>, duration) do
-    {:ok, duration, rest, ""}
+  defp parse_duration(:period, <<"P", rest::binary>>, acc) do
+    {:ok, acc, rest, ""}
   end
 
-  defp parse_duration_year(<<c, rest::binary>>, duration, buffer)
-       when c in ?0..?9 or c in [?., ?-] do
-    parse_duration_year(rest, duration, <<buffer::binary, c>>)
+  defp parse_duration(:period, _rest, _acc) do
+    {:error, :invalid_duration}
   end
 
-  defp parse_duration_year(<<"Y", rest::binary>>, duration, year) do
-    duration = Map.put(duration, :year, year)
-    {:ok, duration, rest, ""}
-  end
+  for {part, designator} <- [year: "Y", month: "M", day: "D", week: "W"] do
+    defp parse_duration(unquote(part), <<c, rest::binary>>, acc, buffer)
+         when c in ?0..?9 or c in [?., ?-] do
+      parse_duration(unquote(part), rest, acc, <<buffer::binary, c>>)
+    end
 
-  defp parse_duration_year(rest, duration, buffer) do
-    {:ok, duration, rest, buffer}
-  end
+    defp parse_duration(unquote(part), <<unquote(designator), rest::binary>>, acc, "-" <> buffer) do
+      with {:ok, acc} <- parse_duration_buffer(unquote(part), acc, buffer, -1) do
+        {:ok, acc, rest, ""}
+      end
+    end
 
-  defp parse_duration_month(<<c, rest::binary>>, duration, buffer)
-       when c in ?0..?9 or c in [?., ?-] do
-    parse_duration_month(rest, duration, <<buffer::binary, c>>)
-  end
+    defp parse_duration(unquote(part), <<unquote(designator), rest::binary>>, acc, buffer) do
+      with {:ok, acc} <- parse_duration_buffer(unquote(part), acc, buffer) do
+        {:ok, acc, rest, ""}
+      end
+    end
 
-  defp parse_duration_month(<<"M", rest::binary>>, duration, month) do
-    duration = Map.put(duration, :month, month)
-    {:ok, duration, rest, ""}
-  end
-
-  defp parse_duration_month(rest, duration, buffer) do
-    {:ok, duration, rest, buffer}
-  end
-
-  defp parse_duration_week(<<c, rest::binary>>, duration, buffer)
-       when c in ?0..?9 or c in [?., ?-] do
-    parse_duration_week(rest, duration, <<buffer::binary, c>>)
-  end
-
-  defp parse_duration_week(<<"W", rest::binary>>, duration, week) do
-    duration = Map.put(duration, :week, week)
-    {:ok, duration, rest, ""}
-  end
-
-  defp parse_duration_week(rest, duration, buffer) do
-    {:ok, duration, rest, buffer}
-  end
-
-  defp parse_duration_day(<<c, rest::binary>>, duration, buffer)
-       when c in ?0..?9 or c in [?., ?-] do
-    parse_duration_day(rest, duration, <<buffer::binary, c>>)
-  end
-
-  defp parse_duration_day(<<"D", rest::binary>>, duration, day) do
-    duration = Map.put(duration, :day, day)
-    {:ok, duration, rest, ""}
-  end
-
-  defp parse_duration_day(rest, duration, buffer) do
-    {:ok, duration, rest, buffer}
-  end
-
-  defp parse_duration_time(<<"T", rest::binary>>, duration, "") do
-    duration = Map.put(duration, :time, true)
-    {:ok, duration, rest, ""}
-  end
-
-  defp parse_duration_time(rest, duration, buffer) do
-    {:ok, duration, rest, buffer}
-  end
-
-  defp parse_duration_hour(<<c, rest::binary>>, duration, buffer)
-       when c in ?0..?9 or c in [?., ?-] do
-    parse_duration_hour(rest, duration, <<buffer::binary, c>>)
-  end
-
-  defp parse_duration_hour(<<"H", rest::binary>>, %{time: true} = duration, hour) do
-    duration = Map.put(duration, :hour, hour)
-    {:ok, duration, rest, ""}
-  end
-
-  defp parse_duration_hour(<<"H", rest::binary>>, duration, hour) do
-    {:error, :missing_time_part}
-  end
-
-  defp parse_duration_hour(rest, duration, buffer) do
-    {:ok, duration, rest, buffer}
-  end
-
-  defp parse_duration_minute(<<c, rest::binary>>, duration, buffer)
-       when c in ?0..?9 or c in [?., ?-] do
-    parse_duration_minute(rest, duration, <<buffer::binary, c>>)
-  end
-
-  defp parse_duration_minute(<<"M", rest::binary>>, %{time: true} = duration, minute) do
-    duration = Map.put(duration, :minute, minute)
-    {:ok, duration, rest, ""}
-  end
-
-  defp parse_duration_minute(<<"M", rest::binary>>, duration, minute) do
-    {:error, :missing_time_part}
-  end
-
-  defp parse_duration_minute(rest, duration, buffer) do
-    {:ok, duration, rest, buffer}
-  end
-
-  defp parse_duration_second(<<c, rest::binary>>, duration, buffer)
-       when c in ?0..?9 or c in [?., ?-] do
-    parse_duration_second(rest, duration, <<buffer::binary, c>>)
-  end
-
-  defp parse_duration_second(<<"S", rest::binary>>, %{time: true} = duration, second) do
-    duration = Map.put(duration, :second, second)
-    {:ok, duration, rest, ""}
-  end
-
-  defp parse_duration_second(<<"S", rest::binary>>, duration, second) do
-    {:error, :missing_time_part}
-  end
-
-  defp parse_duration_second(rest, duration, buffer) do
-    {:ok, duration, rest, buffer}
-  end
-
-  defp parse_buffer_duration(:second, duration, "-" <> buffer) do
-    parse_second_duration(duration, buffer, -1)
-  end
-
-  defp parse_buffer_duration(:second, duration, buffer) do
-    parse_second_duration(duration, buffer, 1)
-  end
-
-  defp parse_buffer_duration(unit, duration, buffer) do
-    case Integer.parse(buffer) do
-      {duration_value, ""} ->
-        Map.put(duration, unit, duration_value)
-
-      _ ->
-        {:error, :invalid_unit_value}
+    defp parse_duration(unquote(part), rest, acc, buffer) do
+      {:ok, acc, rest, buffer}
     end
   end
 
-  defp parse_second_duration(duration, buffer, multiplier) do
+  defp parse_duration(:time, <<"T", rest::binary>>, acc, "") do
+    {:ok, Map.put(acc, :time, true), rest, ""}
+  end
+
+  defp parse_duration(:time, rest, acc, buffer) do
+    {:ok, acc, rest, buffer}
+  end
+
+  for {part, designator} <- [hour: "H", minute: "M", second: "S"] do
+    defp parse_duration(unquote(part), <<c, rest::binary>>, acc, buffer)
+         when c in ?0..?9 or c in [?., ?-] do
+      parse_duration(unquote(part), rest, acc, <<buffer::binary, c>>)
+    end
+
+    defp parse_duration(
+           unquote(part),
+           <<unquote(designator), rest::binary>>,
+           %{time: true} = acc,
+           "-" <> buffer
+         ) do
+      with {:ok, acc} <- parse_duration_buffer(unquote(part), acc, buffer, -1) do
+        {:ok, acc, rest, ""}
+      end
+    end
+
+    defp parse_duration(
+           unquote(part),
+           <<unquote(designator), rest::binary>>,
+           %{time: true} = acc,
+           buffer
+         ) do
+      with {:ok, acc} <- parse_duration_buffer(unquote(part), acc, buffer) do
+        {:ok, acc, rest, ""}
+      end
+    end
+
+    defp parse_duration(unquote(part), <<unquote(designator), _::binary>>, _acc, _buffer) do
+      {:error, :invalid_duration}
+    end
+
+    defp parse_duration(unquote(part), rest, acc, buffer) do
+      {:ok, acc, rest, buffer}
+    end
+  end
+
+  defp parse_duration_buffer(unit, acc, buffer, multiplier \\ 1)
+
+  defp parse_duration_buffer(:second, acc, buffer, multiplier) do
     case parse_fraction_duration(buffer, "") do
       {second, ".0"} ->
-        Map.put(duration, :second, multiplier * second)
+        {:ok, Map.put(acc, :second, multiplier * second)}
 
       {second, microsecond} ->
         case parse_microsecond(microsecond) do
           {{ms, precision}, ""} ->
-            duration
-            |> Map.put(:second, multiplier * second)
-            |> Map.put(:microsecond, {multiplier * ms, precision})
+            {:ok,
+             acc
+             |> Map.put(:second, multiplier * second)
+             |> Map.put(:microsecond, {multiplier * ms, precision})}
 
           _ ->
-            {:error, :invalid_unit_value}
+            {:error, :invalid_duration}
         end
 
       error ->
         error
+    end
+  end
+
+  defp parse_duration_buffer(unit, acc, buffer, multiplier) do
+    case Integer.parse(buffer) do
+      {value, ""} ->
+        {:ok, Map.put(acc, unit, multiplier * value)}
+
+      _ ->
+        {:error, :invalid_unit_value}
     end
   end
 
