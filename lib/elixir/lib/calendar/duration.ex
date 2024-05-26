@@ -384,7 +384,7 @@ defmodule Duration do
     "PT0S"
   end
 
-  def to_iso8601(%Duration{microsecond: {microsecond, 0}} = d) when microsecond != 0 do
+  def to_iso8601(%Duration{microsecond: {ms, 0}} = d) when ms != 0 do
     to_iso8601(%Duration{d | microsecond: {0, 0}})
   end
 
@@ -405,10 +405,10 @@ defmodule Duration do
     ""
   end
 
-  defp to_iso8601_duration_time(%Duration{microsecond: {microsecond, precision}} = d)
-       when microsecond >= @microseconds_per_second do
-    second = d.second + div(microsecond, @microseconds_per_second)
-    microsecond = {rem(microsecond, @microseconds_per_second), precision}
+  defp to_iso8601_duration_time(%Duration{microsecond: {ms, p}} = d)
+       when ms >= @microseconds_per_second do
+    second = d.second + div(ms, @microseconds_per_second)
+    microsecond = {rem(ms, @microseconds_per_second), p}
 
     to_iso8601_duration_time(%Duration{d | second: second, microsecond: microsecond})
   end
@@ -425,12 +425,12 @@ defmodule Duration do
         %Duration{microsecond: {0, _}} ->
           "#{d.second}S"
 
-        %Duration{microsecond: {microsecond, precision}} ->
+        %Duration{microsecond: {ms, p}} ->
           microsecond =
-            microsecond
+            ms
             |> Integer.to_string()
             |> String.pad_leading(6, "0")
-            |> binary_part(0, precision)
+            |> binary_part(0, p)
 
           "#{d.second}.#{microsecond}S"
       end
