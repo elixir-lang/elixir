@@ -667,6 +667,8 @@ defmodule Calendar.ISO do
   @doc """
   Parses an ISO 8601 formatted duration string to a list of `Duration` compabitble unit pairs.
 
+  See `Duration.from_iso8601/1`.
+
   """
   @doc since: "1.17.0"
   @spec parse_duration(String.t()) :: {:ok, [Duration.unit_pair()]} | {:error, atom()}
@@ -703,7 +705,7 @@ defmodule Calendar.ISO do
 
   for {part, designator} <- [year: "Y", month: "M", day: "D", week: "W"] do
     defp parse_duration(unquote(part), <<c, rest::binary>>, acc, buffer)
-         when c in ?0..?9 or c in [?., ?-] do
+         when c in ?0..?9 or c in [?,, ?., ?-] do
       parse_duration(unquote(part), rest, acc, <<buffer::binary, c>>)
     end
 
@@ -734,7 +736,7 @@ defmodule Calendar.ISO do
 
   for {part, designator} <- [hour: "H", minute: "M", second: "S"] do
     defp parse_duration(unquote(part), <<c, rest::binary>>, acc, buffer)
-         when c in ?0..?9 or c in [?., ?-] do
+         when c in ?0..?9 or c in [?,, ?., ?-] do
       parse_duration(unquote(part), rest, acc, <<buffer::binary, c>>)
     end
 
@@ -773,7 +775,7 @@ defmodule Calendar.ISO do
 
   defp parse_duration_buffer(:second, acc, buffer, multiplier) do
     case parse_fraction_duration(buffer, "") do
-      {second, ".0"} ->
+      {second, ""} ->
         {:ok, Map.put(acc, :second, multiplier * second)}
 
       {second, microsecond} ->
@@ -803,8 +805,8 @@ defmodule Calendar.ISO do
     end
   end
 
-  defp parse_fraction_duration(<<>>, ""), do: {0, ".0"}
-  defp parse_fraction_duration(<<>>, second), do: {String.to_integer(second), ".0"}
+  defp parse_fraction_duration(<<>>, ""), do: {0, ""}
+  defp parse_fraction_duration(<<>>, second), do: {String.to_integer(second), ""}
 
   defp parse_fraction_duration(<<c, rest::binary>>, second) when c in ?0..?9 do
     parse_fraction_duration(rest, <<second::binary, c>>)

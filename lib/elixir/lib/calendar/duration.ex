@@ -199,7 +199,9 @@ defmodule Duration do
   end
 
   @doc """
-  Parses an ISO 8601-2 formatted duration string to a `Duration` struct.
+  Parses an ISO 8601 formatted duration string to a `Duration` struct.
+
+  A decimal fraction may be specified for seconds only, using either a comma or a full stop.
 
   ## Examples
 
@@ -209,6 +211,8 @@ defmodule Duration do
       {:ok, %Duration{hour: 10, minute: 30, second: 0}}
       iex> Duration.from_iso8601("P3Y-2MT3H")
       {:ok, %Duration{year: 3, month: -2, hour: 3}}
+      iex> Duration.from_iso8601("P1YT4.650S")
+      {:ok, %Duration{year: 1, second: 4, microsecond: {650000, 3}}}
 
   """
   @spec from_iso8601(String.t()) :: {:ok, t} | {:error, atom}
