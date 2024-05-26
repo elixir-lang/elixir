@@ -2642,6 +2642,15 @@ defmodule Macro do
     end
   end
 
+  defp dbg_ast_to_debuggable({:if, _meta, [condition_ast, _clauses]} = ast) do
+    quote do
+      condition_result = unquote(condition_ast)
+      result = unquote(ast)
+
+      {:if, unquote(escape(ast)), unquote(escape(condition_ast)), condition_result, result}
+    end
+  end
+
   # Any other AST.
   defp dbg_ast_to_debuggable(ast) do
     quote do: {:value, unquote(escape(ast)), unquote(ast)}
@@ -2753,6 +2762,23 @@ defmodule Macro do
     ]
 
     {formatted, value}
+  end
+
+  defp dbg_format_ast_to_debug(
+         {:if, ast, condition_ast, condition_result, result},
+         options
+       ) do
+    formatted = [
+      dbg_maybe_underline("If condition", options),
+      ":\n",
+      dbg_format_ast_with_value(condition_ast, condition_result, options),
+      ?\n,
+      dbg_maybe_underline("If expression", options),
+      " (#{if result, do: "do", else: "else"} clause executed):\n",
+      dbg_format_ast_with_value(ast, result, options)
+    ]
+
+    {formatted, result}
   end
 
   defp dbg_format_ast_to_debug({:value, code_ast, value}, options) do

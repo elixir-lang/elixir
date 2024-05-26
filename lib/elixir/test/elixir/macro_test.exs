@@ -536,6 +536,62 @@ defmodule MacroTest do
              """
     end
 
+    test "if statement" do
+      x = true
+      map = %{a: 5, b: 1}
+
+      {result, formatted} =
+        dbg_format(
+          if true and x do
+            map[:a] * 2
+          else
+            map[:b]
+          end
+        )
+
+      assert result == 10
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             If condition:
+             true and x #=> true
+
+             If expression (do clause executed):
+             if true and x do
+               map[:a] * 2
+             else
+               map[:b]
+             end #=> 10
+             """
+    end
+
+    test "if statement without else" do
+      x = true
+      map = %{a: 5, b: 1}
+
+      {result, formatted} =
+        dbg_format(
+          if false and x do
+            map[:a] * 2
+          end
+        )
+
+      assert result == nil
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             If condition:
+             false and x #=> false
+
+             If expression (else clause executed):
+             if false and x do
+               map[:a] * 2
+             end #=> nil
+             """
+    end
+
     test "with \"syntax_colors: []\" it doesn't print any color sequences" do
       {_result, formatted} = dbg_format("hello")
       refute formatted =~ "\e["
