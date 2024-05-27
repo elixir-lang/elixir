@@ -2552,13 +2552,13 @@ defmodule Macro do
     header = dbg_format_header(env)
 
     quote do
-      to_debug = unquote(dbg_ast_to_debuggable(code))
+      to_debug = unquote(dbg_ast_to_debuggable(code, env))
       unquote(__MODULE__).__dbg__(unquote(header), to_debug, unquote(options))
     end
   end
 
   # Pipelines.
-  defp dbg_ast_to_debuggable({:|>, _meta, _args} = pipe_ast) do
+  defp dbg_ast_to_debuggable({:|>, _meta, _args} = pipe_ast, _env) do
     value_var = unique_var(:value, __MODULE__)
     values_acc_var = unique_var(:values, __MODULE__)
 
@@ -2591,7 +2591,7 @@ defmodule Macro do
   dbg_decomposed_binary_operators = [:&&, :||, :and, :or]
 
   # Logic operators.
-  defp dbg_ast_to_debuggable({op, _meta, [_left, _right]} = ast)
+  defp dbg_ast_to_debuggable({op, _meta, [_left, _right]} = ast, _env)
        when op in unquote(dbg_decomposed_binary_operators) do
     acc_var = unique_var(:acc, __MODULE__)
     result_var = unique_var(:result, __MODULE__)
@@ -2603,7 +2603,7 @@ defmodule Macro do
     end
   end
 
-  defp dbg_ast_to_debuggable({:case, _meta, [expr, [do: clauses]]} = ast) do
+  defp dbg_ast_to_debuggable({:case, _meta, [expr, [do: clauses]]} = ast, _env) do
     clauses_returning_index =
       Enum.with_index(clauses, fn {:->, meta, [left, right]}, index ->
         {:->, meta, [left, {right, index}]}
@@ -2621,7 +2621,7 @@ defmodule Macro do
     end
   end
 
-  defp dbg_ast_to_debuggable({:cond, _meta, [[do: clauses]]} = ast) do
+  defp dbg_ast_to_debuggable({:cond, _meta, [[do: clauses]]} = ast, _env) do
     modified_clauses =
       Enum.with_index(clauses, fn {:->, _meta, [[left], right]}, index ->
         hd(
@@ -2642,17 +2642,25 @@ defmodule Macro do
     end
   end
 
-  defp dbg_ast_to_debuggable({:if, _meta, [condition_ast, _clauses]} = ast) do
-    quote do
-      condition_result = unquote(condition_ast)
-      result = unquote(ast)
+  defp dbg_ast_to_debuggable({:if, _meta, [condition_ast, _clauses]} = ast, env) do
+    if get_in(env.macros, [
+         Access.find(&(elem(&1, 0) == Kernel)),
+         Access.elem(1),
+         :if
+       ]) == 2 do
+      quote do
+        condition_result = unquote(condition_ast)
+        result = unquote(ast)
 
-      {:if, unquote(escape(ast)), unquote(escape(condition_ast)), condition_result, result}
+        {:if, unquote(escape(ast)), unquote(escape(condition_ast)), condition_result, result}
+      end
+    else
+      quote do: {:value, unquote(escape(ast)), unquote(ast)}
     end
   end
 
   # Any other AST.
-  defp dbg_ast_to_debuggable(ast) do
+  defp dbg_ast_to_debuggable(ast, _env) do
     quote do: {:value, unquote(escape(ast)), unquote(ast)}
   end
 

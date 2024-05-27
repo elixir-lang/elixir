@@ -15,6 +15,12 @@ defmodule Macro.ExternalTest do
   end
 end
 
+defmodule CustomIf do
+  def if(_cond, _expr) do
+    "custom if result"
+  end
+end
+
 defmodule MacroTest do
   use ExUnit.Case, async: true
   doctest Macro
@@ -589,6 +595,26 @@ defmodule MacroTest do
              if false and x do
                map[:a] * 2
              end #=> nil
+             """
+    end
+
+    test "custom if definition" do
+      import Kernel, except: [if: 2]
+      import CustomIf, only: [if: 2]
+
+      {result, formatted} =
+        dbg_format(
+          if true do
+            "something"
+          end
+        )
+
+      assert result == "custom if result"
+
+      assert formatted =~ """
+             if true do
+               "something"
+             end #=> "custom if result"
              """
     end
 
