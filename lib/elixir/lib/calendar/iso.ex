@@ -668,161 +668,60 @@ defmodule Calendar.ISO do
   Parses an ISO 8601 formatted duration string to a list of `Duration` compabitble unit pairs.
 
   See `Duration.from_iso8601/1`.
-
   """
   @doc since: "1.17.0"
   @spec parse_duration(String.t()) :: {:ok, [Duration.unit_pair()]} | {:error, atom()}
-  def parse_duration(string) do
-    with {:ok, acc, rest, buffer} <- parse_duration(:period, string, %{time: false}),
-         {:ok, acc, rest, buffer} <- parse_duration(:year, rest, acc, buffer),
-         {:ok, acc, rest, buffer} <- parse_duration(:month, rest, acc, buffer),
-         {:ok, acc, rest, buffer} <- parse_duration(:week, rest, acc, buffer),
-         {:ok, acc, rest, buffer} <- parse_duration(:day, rest, acc, buffer),
-         {:ok, acc, rest, buffer} <- parse_duration(:time, rest, acc, buffer),
-         {:ok, acc, rest, buffer} <- parse_duration(:hour, rest, acc, buffer),
-         {:ok, acc, rest, buffer} <- parse_duration(:minute, rest, acc, buffer),
-         {:ok, acc, "", ""} <- parse_duration(:second, rest, acc, buffer) do
-      {:ok,
-       acc
-       |> Map.take([:year, :month, :week, :day, :hour, :minute, :second, :microsecond])
-       |> Keyword.new()}
-    else
-      {:error, error} ->
-        {:error, error}
-
-      _ ->
-        {:error, :invalid_duration}
-    end
+  def parse_duration("P" <> string) when byte_size(string) > 0 do
+    parse_duration_date(string, [], year: ?Y, month: ?M, week: ?W, day: ?D)
   end
 
-  defp parse_duration(:period, <<"P", rest::binary>>, acc) do
-    {:ok, acc, rest, ""}
-  end
-
-  defp parse_duration(:period, _rest, _acc) do
+  def parse_duration(_) do
     {:error, :invalid_duration}
   end
 
-  for {part, designator} <- [year: "Y", month: "M", day: "D", week: "W"] do
-    defp parse_duration(unquote(part), <<c, rest::binary>>, acc, buffer)
-         when c in ?0..?9 or c in [?,, ?., ?-] do
-      parse_duration(unquote(part), rest, acc, <<buffer::binary, c>>)
-    end
+  defp parse_duration_date("", acc, _allowed), do: {:ok, acc}
 
-    defp parse_duration(unquote(part), <<unquote(designator), rest::binary>>, acc, "-" <> buffer) do
-      with {:ok, acc} <- parse_duration_buffer(unquote(part), acc, buffer, -1) do
-        {:ok, acc, rest, ""}
-      end
-    end
+  defp parse_duration_date("T" <> string, acc, _allowed) when byte_size(string) > 0 do
+    parse_duration_time(string, acc, hour: ?H, minute: ?M, second: ?S)
+  end
 
-    defp parse_duration(unquote(part), <<unquote(designator), rest::binary>>, acc, buffer) do
-      with {:ok, acc} <- parse_duration_buffer(unquote(part), acc, buffer) do
-        {:ok, acc, rest, ""}
-      end
-    end
-
-    defp parse_duration(unquote(part), rest, acc, buffer) do
-      {:ok, acc, rest, buffer}
+  defp parse_duration_date(string, acc, allowed) do
+    with {integer, <<next, rest::binary>>} <- Integer.parse(string),
+         {key, allowed} <- find_unit(allowed, next) do
+      parse_duration_date(rest, [{key, integer} | acc], allowed)
+    else
+      _ -> {:error, :invalid_date_component}
     end
   end
 
-  defp parse_duration(:time, <<"T", rest::binary>>, acc, "") do
-    {:ok, Map.put(acc, :time, true), rest, ""}
-  end
+  defp parse_duration_time("", acc, _allowed), do: {:ok, acc}
 
-  defp parse_duration(:time, rest, acc, buffer) do
-    {:ok, acc, rest, buffer}
-  end
-
-  for {part, designator} <- [hour: "H", minute: "M", second: "S"] do
-    defp parse_duration(unquote(part), <<c, rest::binary>>, acc, buffer)
-         when c in ?0..?9 or c in [?,, ?., ?-] do
-      parse_duration(unquote(part), rest, acc, <<buffer::binary, c>>)
-    end
-
-    defp parse_duration(
-           unquote(part),
-           <<unquote(designator), rest::binary>>,
-           %{time: true} = acc,
-           "-" <> buffer
-         ) do
-      with {:ok, acc} <- parse_duration_buffer(unquote(part), acc, buffer, -1) do
-        {:ok, acc, rest, ""}
-      end
-    end
-
-    defp parse_duration(
-           unquote(part),
-           <<unquote(designator), rest::binary>>,
-           %{time: true} = acc,
-           buffer
-         ) do
-      with {:ok, acc} <- parse_duration_buffer(unquote(part), acc, buffer) do
-        {:ok, acc, rest, ""}
-      end
-    end
-
-    defp parse_duration(unquote(part), <<unquote(designator), _::binary>>, _acc, _buffer) do
-      {:error, :invalid_duration}
-    end
-
-    defp parse_duration(unquote(part), rest, acc, buffer) do
-      {:ok, acc, rest, buffer}
-    end
-  end
-
-  defp parse_duration_buffer(unit, acc, buffer, multiplier \\ 1)
-
-  defp parse_duration_buffer(:second, acc, buffer, multiplier) do
-    case parse_fraction_duration(buffer, "") do
-      {second, ""} ->
-        {:ok, Map.put(acc, :second, multiplier * second)}
-
-      {second, microsecond} ->
-        case parse_microsecond(microsecond) do
-          {{ms, precision}, ""} ->
-            {:ok,
-             acc
-             |> Map.put(:second, multiplier * second)
-             |> Map.put(:microsecond, {multiplier * ms, precision})}
+  defp parse_duration_time(string, acc, allowed) do
+    case Integer.parse(string) do
+      {second, <<delimiter, _::binary>> = rest} when delimiter in [?., ?,] ->
+        case parse_microsecond(rest) do
+          {{ms, precision}, "S"} ->
+            ms = if second > 0, do: ms, else: -ms
+            {:ok, [second: second, microsecond: {ms, precision}] ++ acc}
 
           _ ->
-            {:error, :invalid_duration}
+            {:error, :invalid_time_component}
         end
 
-      error ->
-        error
-    end
-  end
-
-  defp parse_duration_buffer(unit, acc, buffer, multiplier) do
-    case Integer.parse(buffer) do
-      {value, ""} ->
-        {:ok, Map.put(acc, unit, multiplier * value)}
+      {integer, <<next, rest::binary>>} ->
+        case find_unit(allowed, next) do
+          {key, allowed} -> parse_duration_time(rest, [{key, integer} | acc], allowed)
+          false -> {:error, :invalid_time_component}
+        end
 
       _ ->
-        {:error, :invalid_unit_value}
+        {:error, :invalid_time_component}
     end
   end
 
-  defp parse_fraction_duration(<<>>, ""), do: {0, ""}
-  defp parse_fraction_duration(<<>>, second), do: {String.to_integer(second), ""}
-
-  defp parse_fraction_duration(<<c, rest::binary>>, second) when c in ?0..?9 do
-    parse_fraction_duration(rest, <<second::binary, c>>)
-  end
-
-  defp parse_fraction_duration(<<c, rest::binary>>, "") when c in [?., ?,] do
-    {0, <<c, rest::binary>>}
-  end
-
-  defp parse_fraction_duration(<<c, rest::binary>>, second) when c in [?., ?,] do
-    {String.to_integer(second), <<c, rest::binary>>}
-  end
-
-  defp parse_fraction_duration(_, _) do
-    {:error, :invalid_unit_value}
-  end
+  defp find_unit([{key, unit} | rest], unit), do: {key, rest}
+  defp find_unit([_ | rest], unit), do: find_unit(rest, unit)
+  defp find_unit([], _unit), do: false
 
   @doc """
   Returns the `t:Calendar.iso_days/0` format of the specified date.

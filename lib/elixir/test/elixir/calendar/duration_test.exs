@@ -230,10 +230,12 @@ defmodule DurationTest do
     assert Duration.from_iso8601("P3D") == {:ok, %Duration{day: 3}}
     assert Duration.from_iso8601("PT4H5M") == {:ok, %Duration{hour: 4, minute: 5}}
     assert Duration.from_iso8601("PT6S") == {:ok, %Duration{second: 6}}
-    assert Duration.from_iso8601("P2M4Y") == {:error, :invalid_duration}
-    assert Duration.from_iso8601("P4Y2W3Y") == {:error, :invalid_duration}
-    assert Duration.from_iso8601("P5HT4MT3S") == {:error, :invalid_duration}
-    assert Duration.from_iso8601("P5H3HT4M") == {:error, :invalid_duration}
+    assert Duration.from_iso8601("P2M4Y") == {:error, :invalid_date_component}
+    assert Duration.from_iso8601("P4Y2W3Y") == {:error, :invalid_date_component}
+    assert Duration.from_iso8601("P5HT4MT3S") == {:error, :invalid_date_component}
+    assert Duration.from_iso8601("P5H3HT4M") == {:error, :invalid_date_component}
+    assert Duration.from_iso8601("PT1D") == {:error, :invalid_time_component}
+    assert Duration.from_iso8601("PT.6S") == {:error, :invalid_time_component}
     assert Duration.from_iso8601("invalid") == {:error, :invalid_duration}
   end
 
@@ -257,8 +259,6 @@ defmodule DurationTest do
     assert Duration.from_iso8601!("PT6S") == %Duration{second: 6}
     assert Duration.from_iso8601!("PT1,6S") == %Duration{second: 1, microsecond: {600_000, 1}}
     assert Duration.from_iso8601!("PT-1.6S") == %Duration{second: -1, microsecond: {-600_000, 1}}
-    assert Duration.from_iso8601!("PT.6S") == %Duration{second: 0, microsecond: {600_000, 1}}
-    assert Duration.from_iso8601!("PT-.6S") == %Duration{second: 0, microsecond: {-600_000, 1}}
 
     assert Duration.from_iso8601!("PT-1.234567S") == %Duration{
              second: -1,
@@ -280,13 +280,13 @@ defmodule DurationTest do
     assert Duration.from_iso8601!("PT-4.23S") == %Duration{second: -4, microsecond: {-230_000, 2}}
 
     assert_raise ArgumentError,
-                 ~s/failed to parse duration "P5H3HT4M". reason: :invalid_duration/,
+                 ~s/failed to parse duration "P5H3HT4M". reason: :invalid_date_component/,
                  fn ->
                    Duration.from_iso8601!("P5H3HT4M")
                  end
 
     assert_raise ArgumentError,
-                 ~s/failed to parse duration "P4Y2W3Y". reason: :invalid_duration/,
+                 ~s/failed to parse duration "P4Y2W3Y". reason: :invalid_date_component/,
                  fn ->
                    Duration.from_iso8601!("P4Y2W3Y")
                  end
@@ -298,7 +298,7 @@ defmodule DurationTest do
                  end
 
     assert_raise ArgumentError,
-                 ~s/failed to parse duration "P4.5YT6S". reason: :invalid_unit_value/,
+                 ~s/failed to parse duration "P4.5YT6S". reason: :invalid_date_component/,
                  fn ->
                    Duration.from_iso8601!("P4.5YT6S")
                  end
