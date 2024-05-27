@@ -389,20 +389,20 @@ defmodule Duration do
   end
 
   def to_iso8601(%Duration{} = d) do
-    "P#{to_iso8601_duration_date(d)}#{to_iso8601_duration_time(d)}"
+    IO.iodata_to_binary([?P, to_iso8601_duration_date(d), to_iso8601_duration_time(d)])
   end
 
   defp to_iso8601_duration_date(d) do
-    year = unless d.year == 0, do: "#{d.year}Y"
-    month = unless d.month == 0, do: "#{d.month}M"
-    week = unless d.week == 0, do: "#{d.week}W"
-    day = unless d.day == 0, do: "#{d.day}D"
-
-    "#{year}#{month}#{week}#{day}"
+    [
+      if(d.year == 0, do: [], else: [Integer.to_string(d.year), ?Y]),
+      if(d.month == 0, do: [], else: [Integer.to_string(d.month), ?M]),
+      if(d.week == 0, do: [], else: [Integer.to_string(d.week), ?W]),
+      if(d.day == 0, do: [], else: [Integer.to_string(d.day), ?D])
+    ]
   end
 
   defp to_iso8601_duration_time(%Duration{hour: 0, minute: 0, second: 0, microsecond: {0, _}}) do
-    ""
+    []
   end
 
   defp to_iso8601_duration_time(%Duration{microsecond: {ms, p}} = d)
@@ -414,16 +414,16 @@ defmodule Duration do
   end
 
   defp to_iso8601_duration_time(d) do
-    hour = unless d.hour == 0, do: "#{d.hour}H"
-    minute = unless d.minute == 0, do: "#{d.minute}M"
-
-    second =
+    [
+      ?T,
+      if(d.hour == 0, do: [], else: [Integer.to_string(d.hour), ?H]),
+      if(d.minute == 0, do: [], else: [Integer.to_string(d.minute), ?M]),
       case d do
         %Duration{second: 0, microsecond: {0, _}} ->
-          ""
+          []
 
         %Duration{microsecond: {0, _}} ->
-          "#{d.second}S"
+          [Integer.to_string(d.second), ?S]
 
         %Duration{microsecond: {ms, p}} ->
           microsecond =
@@ -432,9 +432,8 @@ defmodule Duration do
             |> String.pad_leading(6, "0")
             |> binary_part(0, p)
 
-          "#{d.second}.#{microsecond}S"
+          [Integer.to_string(d.second), ?., microsecond, ?S]
       end
-
-    "T#{hour}#{minute}#{second}"
+    ]
   end
 end
