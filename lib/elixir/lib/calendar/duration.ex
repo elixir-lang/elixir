@@ -286,8 +286,6 @@ defmodule Duration do
     }
   end
 
-  @doc since: "1.7.1"
-
   @doc """
   Parses an ISO 8601 formatted duration string to a `Duration` struct.
 
