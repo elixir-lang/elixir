@@ -1133,6 +1133,12 @@ defmodule Kernel.ExpansionTest do
       assert expand(quote(do: &unknown(&1, &2))) == {:&, [], [{:/, [], [{:unknown, [], nil}, 2]}]}
     end
 
+    test "keeps position meta on & variables" do
+      assert expand(Code.string_to_quoted!("& &1")) ==
+               {:fn, [{:line, 1}],
+                [{:->, [{:line, 1}], [[{:"&1", [], nil}], {:"&1", [line: 1], nil}]}]}
+    end
+
     test "expands remotes" do
       assert expand(quote(do: &List.flatten/2)) ==
                quote(do: &:"Elixir.List".flatten/2)
