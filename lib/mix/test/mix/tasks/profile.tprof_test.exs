@@ -37,19 +37,54 @@ defmodule Mix.Tasks.Profile.TprofTest do
     end)
   end
 
-  test "filters based on count", context do
+  test "filters based on calls count", context do
     in_tmp(context.test, fn ->
-      refute capture_io(fn ->
-               Tprof.run(["--calls", "5", "-e", @expr])
-             end) =~ ":erlang.apply/2"
+      result =
+        capture_io(fn ->
+          Tprof.run(["--calls", "5", "-e", @expr])
+        end)
+
+      assert result =~ "\nString.Chars.Integer.to_string/1"
+      refute result =~ "\nEnum.each/2"
     end)
   end
 
-  test "sorts based on the calls count", context do
+  test "filters based on time", context do
+    in_tmp(context.test, fn ->
+      result =
+        capture_io(fn ->
+          Tprof.run(["--time", "50", "-e", @expr])
+        end)
+
+      refute result =~ "\nEnum.each/2"
+    end)
+  end
+
+  test "filters based on memory", context do
+    in_tmp(context.test, fn ->
+      result =
+        capture_io(fn ->
+          Tprof.run(["--type", "memory", "--memory", "10", "-e", @expr])
+        end)
+
+      assert result =~ "\n:erlang.integer_to_binary/1"
+      refute result =~ "\nEnum.each/2"
+    end)
+  end
+
+  test "sorts based on calls count", context do
     in_tmp(context.test, fn ->
       assert capture_io(fn ->
                Tprof.run(["--sort", "calls", "-e", @expr])
-             end) =~ ~r/erlang\.apply\/2.*String\.Chars\.Integer\.to_string\/1/s
+             end) =~ ~r/Enum\.each\/2.*String\.Chars\.Integer\.to_string\/1/s
+    end)
+  end
+
+  test "sorts based on memory usage", context do
+    in_tmp(context.test, fn ->
+      assert capture_io(fn ->
+               Tprof.run(["--type", "memory", "--sort", "calls", "-e", @expr])
+             end) =~ ~r/Enum\.each\/2.*:erlang\.integer_to_binary\/1/s
     end)
   end
 
@@ -112,6 +147,34 @@ defmodule Mix.Tasks.Profile.TprofTest do
       refute capture_io(fn ->
                Tprof.run(["-e", @expr, "--no-warmup"])
              end) =~ "Warmup..."
+    end)
+  end
+
+  test "errors on incompatible options", context do
+    in_tmp(context.test, fn ->
+      message = "Incompatible sort option `memory` with type `time`"
+
+      assert_raise Mix.Error, message, fn ->
+        capture_io(fn -> Tprof.run(["-e", @expr, "--sort", "memory"]) end)
+      end
+
+      message = "Incompatible sort option `time` with type `calls`"
+
+      assert_raise Mix.Error, message, fn ->
+        capture_io(fn -> Tprof.run(["-e", @expr, "--type", "calls", "--sort", "time"]) end)
+      end
+
+      message = "Incompatible use of memory option with type `time`"
+
+      assert_raise Mix.Error, message, fn ->
+        capture_io(fn -> Tprof.run(["-e", @expr, "--time", "1", "--memory", "2"]) end)
+      end
+
+      message = "Incompatible use of time option with type `calls`"
+
+      assert_raise Mix.Error, message, fn ->
+        capture_io(fn -> Tprof.run(["-e", @expr, "--type", "calls", "--time", "1"]) end)
+      end
     end)
   end
 

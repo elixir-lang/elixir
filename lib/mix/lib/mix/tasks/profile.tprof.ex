@@ -6,8 +6,10 @@ defmodule Mix.Tasks.Profile.Tprof do
   @moduledoc """
   Profiles the given file or expression using Erlang's `tprof` tool.
 
-  [`:tprof`](`:tprof`) provides time information of each function call and can be useful
-  when you want to discover the bottlenecks related to this.
+  Requires Erlang/OTP27 or above.
+
+  [`:tprof`](`:tprof`) can provide time or memory information of each function call
+  and can be useful when you want to discover the bottlenecks related to these.
 
   Before running the code, it invokes the `app.start` task which compiles
   and loads your project. After that, the target expression is profiled together
@@ -21,15 +23,26 @@ defmodule Mix.Tasks.Profile.Tprof do
       $ mix profile.tprof -e "[1, 2, 3] |> Enum.reverse |> Enum.map(&Integer.to_string/1)"
       $ mix profile.tprof my_script.exs arg1 arg2 arg3
 
+  By default, tprof uses the `time` type, but you can profile memory too:
+
+      $ mix profile.tprof -e "Enum.map([1, 2, 3], &Integer.to_string/1)" --type memory
+
+  Call count is present with both type `time` and `memory`, but if you only need
+  the call count information, you can use the type `calls`:
+
+      $ mix profile.tprof -e "Enum.map([1, 2, 3], &Integer.to_string/1)" --type calls
+
   This task is automatically re-enabled, so you can profile multiple times
   in the same Mix invocation.
 
   ## Command line options
 
     * `--matching` - only profile calls matching the given `Module.function/arity` pattern
+    * `--type` - the type of profiling, `calls`, `time` or `memory` (default: `time`)
     * `--calls` - filters out any results with a call count lower than this
-    * `--time` - filters out any results that took lower than specified (in µs)
-    * `--sort` - sorts the results by `time` or `calls` (default: `time`)
+    * `--time` - filters out any results that took lower than specified (in µs), the `type` needs to be `time`
+    * `--memory` - filters out any results that used less memory than specified (in words), the `type` needs to be `memory`
+    * `--sort` - sorts the results by `calls` or by the value of `type` (default: the value of `type`)
     * `--eval`, `-e` - evaluates the given code
     * `--require`, `-r` - requires pattern before running the command
     * `--parallel`, `-p` - makes all requires parallel
@@ -106,8 +119,10 @@ defmodule Mix.Tasks.Profile.Tprof do
     halt: :boolean,
     compile: :boolean,
     deps_check: :boolean,
+    type: :string,
     calls: :integer,
     time: :integer,
+    memory: :integer,
     sort: :string,
     start: :boolean,
     archives_check: :boolean,
@@ -163,8 +178,14 @@ defmodule Mix.Tasks.Profile.Tprof do
     end
   end
 
+  defp parse_opt({:type, "time"}), do: {:type, :time}
+  defp parse_opt({:type, "calls"}), do: {:type, :calls}
+  defp parse_opt({:type, "memory"}), do: {:type, :memory}
+  defp parse_opt({:type, other}), do: Mix.raise("Invalid type option: #{other}")
+
   defp parse_opt({:sort, "time"}), do: {:sort, :time}
   defp parse_opt({:sort, "calls"}), do: {:sort, :calls}
+  defp parse_opt({:sort, "memory"}), do: {:sort, :memory}
   defp parse_opt({:sort, other}), do: Mix.raise("Invalid sort option: #{other}")
   defp parse_opt(other), do: other
 
@@ -178,9 +199,16 @@ defmodule Mix.Tasks.Profile.Tprof do
     * `:matching` - only profile calls matching the given pattern in form of
       `{module, function, arity}`, where each element may be replaced by `:_`
       to allow any value
+    * `:type` - the type of profiling, possible values are `:time`, `:memory` or `:calls`,
+      (default: `:time`), see [moduledoc](`Mix.Tasks.Profile.Tprof`) for more information
+
     * `:calls` - filters out any results with a call count lower than this
-    * `:time` - filters out any results that took lower than specified (in µs)
-    * `:sort` - sort the results by `:time` or `:calls` (default: `:time`)
+    * `:time` - filters out any results that took lower than specified (in µs),
+      `type` needs to be `:time`
+    * `:memory` - filters out any results that used less memory than specified (in words),
+      `type` needs to be `:memory`
+    * `:sort` - sort the results by `:calls` or by the value of `type`
+      (default: the value of `type`)
     * `:warmup` - if the code should be warmed up before profiling (default: `true`)
     * `:set_on_spawn` - if newly spawned processes should be measured (default: `true`)
 
@@ -188,8 +216,8 @@ defmodule Mix.Tasks.Profile.Tprof do
   @spec profile((-> result), keyword()) :: result when result: any()
   def profile(fun, opts \\ []) when is_function(fun, 0) do
     Mix.ensure_application!(:tools)
-    {return_value, results} = profile_and_analyse(fun, opts)
-    print_output(results)
+    {type, return_value, results} = profile_and_analyse(fun, opts)
+    print_output(type, results)
     return_value
   end
 
@@ -202,101 +230,141 @@ defmodule Mix.Tasks.Profile.Tprof do
     :tprof.start()
     matching = Keyword.get(opts, :matching, {:_, :_, :_})
     set_on_spawn = Keyword.get(opts, :set_on_spawn, true)
-    {:ok, return_value} = :tprof.profile([], fun, matching, set_on_spawn: set_on_spawn)
+    type = Keyword.get(opts, :type, :time)
+
+    sort_by =
+      case Keyword.get(opts, :sort) do
+        nil -> :measurement
+        :calls -> :calls
+        ^type -> :measurement
+        other -> Mix.raise("Incompatible sort option `#{other}` with type `#{type}`")
+      end
+
+    tprof_type = to_tprof_type(type)
+
+    {return_value, {^tprof_type, traces}} =
+      :tprof.profile(fun, %{
+        set_on_spawn: set_on_spawn,
+        pattern: matching,
+        type: tprof_type,
+        report: :return
+      })
+
+    inspected = :tprof.inspect({tprof_type, traces}, :process, sort_by)
+
+    :tprof.stop()
 
     results =
-      Enum.map(:tprof.dump(), fn {pid, call_results} ->
+      inspected
+      |> Enum.map(fn {pid, {^tprof_type, measurement_total, call_results}} ->
         parsed_calls =
           call_results
-          |> filter_results(opts)
-          |> sort_results(opts)
-          |> add_totals()
+          |> filter_results(type, opts)
+          |> add_totals(measurement_total)
 
         {pid, parsed_calls}
       end)
 
-    :tprof.stop()
-
-    {return_value, results}
+    {type, return_value, results}
   end
 
-  defp filter_results(call_results, opts) do
+  defp to_tprof_type(:calls), do: :call_count
+  defp to_tprof_type(:time), do: :call_time
+  defp to_tprof_type(:memory), do: :call_memory
+
+  defp filter_results(call_results, type, opts) do
     calls_opt = Keyword.get(opts, :calls, 0)
-    time_opt = Keyword.get(opts, :time, 0)
 
-    call_results
-    |> Stream.filter(fn {_mfa, {count, _time}} -> count >= calls_opt end)
-    |> Stream.filter(fn {_mfa, {_count, time}} -> time >= time_opt end)
+    measurement_opt =
+      get_filter_value!(type, Keyword.get(opts, :time), Keyword.get(opts, :memory))
+
+    Enum.filter(call_results, fn {_module, _fa, count, measurement, _, _} ->
+      count >= calls_opt and measurement >= measurement_opt
+    end)
   end
 
-  defp sort_results(call_results, opts) do
-    Enum.sort_by(call_results, sort_function(Keyword.get(opts, :sort, :time)))
+  defp get_filter_value!(type, time, _memory) when is_integer(time) and type != :time do
+    Mix.raise("Incompatible use of time option with type `#{type}`")
   end
 
-  defp sort_function(:time), do: fn {_mfa, {_count, time}} -> time end
-  defp sort_function(:calls), do: fn {_mfa, {count, _time}} -> count end
+  defp get_filter_value!(type, _time, memory) when is_integer(memory) and type != :memory do
+    Mix.raise("Incompatible use of memory option with type `#{type}`")
+  end
 
-  defp add_totals(call_results) do
-    {function_count, call_count, total_time} =
-      Enum.reduce(call_results, {0, 0, 0}, fn {_, {count, time}}, acc ->
-        {function_count, call_count, total_time} = acc
-        {function_count + 1, call_count + count, total_time + time}
+  defp get_filter_value!(:time, time, nil) when is_integer(time), do: time
+  defp get_filter_value!(:memory, nil, memory) when is_integer(memory), do: memory
+
+  defp get_filter_value!(_, nil, nil), do: 0
+
+  defp add_totals(call_results, measurement_total) do
+    {function_count, calls} =
+      Enum.reduce(call_results, {0, 0}, fn {_mod, _fa, count, _, _, _}, acc ->
+        {function_count, calls} = acc
+        {function_count + 1, calls + count}
       end)
 
-    {function_count, call_results, call_count, total_time}
+    {function_count, call_results, calls, measurement_total}
   end
 
-  @header ["#", "CALLS", "%", "TIME", "µS/CALL"]
-
-  defp print_output([]) do
+  defp print_output(_type, []) do
     print_function_count(0)
   end
 
-  defp print_output(results) do
-    Enum.each(results, &print_result/1)
+  defp print_output(type, results) do
+    Enum.each(results, &print_result(type, &1))
   end
 
-  defp print_result({pid, {function_count, call_results, call_count, total_time}}) do
-    formatted_rows = Enum.map(call_results, &format_row(&1, total_time))
-    formatted_total = format_total(total_time, call_count)
+  defp print_result(type, {pid, {function_count, call_results, calls, total_measurement}}) do
+    header = header(type)
 
-    column_lengths = column_lengths(@header, formatted_rows)
+    formatted_rows = Enum.map(call_results, &format_row/1)
+    formatted_total = format_total(total_measurement, calls)
+
+    column_lengths = column_lengths(header, [formatted_total | formatted_rows])
 
     IO.puts("")
 
     print_pid_row(pid)
-    print_row(@header, column_lengths)
-    print_row(formatted_total, column_lengths)
-    Enum.each(formatted_rows, &print_row(&1, column_lengths))
+    print_row(header, column_lengths, type)
+    print_row(formatted_total, column_lengths, type)
+    Enum.each(formatted_rows, &print_row(&1, column_lengths, type))
 
     IO.puts("")
 
     print_function_count(function_count)
   end
 
-  defp print_pid_row(pid) do
+  defp header(:calls), do: ["#", "CALLS", "%"]
+  defp header(:time), do: ["#", "CALLS", "%", "TIME", "µS/CALL"]
+  defp header(:memory), do: ["#", "CALLS", "%", "WORDS", "PER CALL"]
+
+  defp print_pid_row(:all) do
+    IO.puts("Profile results over all processes")
+  end
+
+  defp print_pid_row(pid) when is_pid(pid) do
     IO.puts("Profile results of #{inspect(pid)}")
   end
 
-  defp format_row({{module, function, arity}, {count, time}}, total_time) do
+  defp format_row({module, {function, arity}, count, measurement, per_call, percentage}) do
     mfa = Exception.format_mfa(module, function, arity)
-    time_percentage = :erlang.float_to_binary(100 * divide(time, total_time), [{:decimals, 2}])
-    time_per_call = :erlang.float_to_binary(divide(time, count), [{:decimals, 2}])
+    percentage = :erlang.float_to_binary(percentage, [{:decimals, 2}])
+    per_call = :erlang.float_to_binary(per_call, [{:decimals, 2}])
     count = Integer.to_string(count)
-    time = Integer.to_string(time)
+    measurement = Integer.to_string(measurement)
 
-    [mfa, count, time_percentage, time, time_per_call]
+    [mfa, count, percentage, measurement, per_call]
   end
 
-  defp format_total(total_time, total_count) do
-    time_per_call = :erlang.float_to_binary(divide(total_time, total_count), [{:decimals, 2}])
+  defp format_total(total_measurement, total_count) do
+    per_call = :erlang.float_to_binary(divide(total_measurement, total_count), [{:decimals, 2}])
 
     [
       "Total",
       Integer.to_string(total_count),
       "100.00",
-      Integer.to_string(total_time),
-      time_per_call
+      Integer.to_string(total_measurement),
+      per_call
     ]
   end
 
@@ -307,24 +375,23 @@ defmodule Mix.Tasks.Profile.Tprof do
     max_lengths = Enum.map(header, &String.length/1)
 
     Enum.reduce(rows, max_lengths, fn row, max_lengths ->
-      Stream.map(row, &String.length/1)
-      |> Stream.zip(max_lengths)
-      |> Enum.map(&max/1)
+      Enum.zip_with(row, max_lengths, fn cell, length -> String.length(cell) |> max(length) end)
     end)
   end
 
-  defp max({a, b}) when a >= b, do: a
-  defp max({_, b}), do: b
+  @call_format "~-*s ~*s ~*s~n"
+  @measurement_format "~-*s ~*s ~*s ~*s ~*s~n"
 
-  @format "~-*s ~*s ~*s ~*s ~*s~n"
-
-  defp print_row(row, column_lengths) do
+  defp print_row(row, column_lengths, type) do
     to_print =
       column_lengths
       |> Stream.zip(Stream.map(row, &String.to_charlist/1))
       |> Enum.flat_map(&Tuple.to_list/1)
 
-    :io.format(@format, to_print)
+    case type do
+      :calls -> :io.format(@call_format, to_print)
+      _ -> :io.format(@measurement_format, to_print)
+    end
   end
 
   defp print_function_count(count) do
