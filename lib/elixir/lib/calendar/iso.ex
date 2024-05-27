@@ -676,16 +676,12 @@ defmodule Calendar.ISO do
   end
 
   def parse_duration("-P" <> string) when byte_size(string) > 0 do
-    case parse_duration_date(string, [], year: ?Y, month: ?M, week: ?W, day: ?D) do
-      {:ok, fields} ->
-        {:ok,
-         Enum.map(fields, fn
-           {:microsecond, {value, precision}} -> {:microsecond, {-value, precision}}
-           {unit, value} -> {unit, -value}
-         end)}
-
-      error ->
-        error
+    with {:ok, fields} <- parse_duration_date(string, [], year: ?Y, month: ?M, week: ?W, day: ?D) do
+      {:ok,
+       Enum.map(fields, fn
+         {:microsecond, {value, precision}} -> {:microsecond, {-value, precision}}
+         {unit, value} -> {unit, -value}
+       end)}
     end
   end
 
