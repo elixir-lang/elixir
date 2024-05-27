@@ -8,8 +8,11 @@ defmodule Mix.Tasks.Profile.Tprof do
 
   Requires Erlang/OTP27 or above.
 
-  [`:tprof`](`:tprof`) can provide time or memory information of each function call
-  and can be useful when you want to discover the bottlenecks related to these.
+  [`:tprof`](`:tprof`) is an experimental module introduced in Erlang/OTP 27 which
+  provides a unified API for measuring call count, time, and allocation, and aims to
+  replace [`:eprof`](`:eprof`) and [`:cprof`](`:cprof`).
+  It can be useful when you want to discover the bottlenecks related to any of these
+  measurements.
 
   Before running the code, it invokes the `app.start` task which compiles
   and loads your project. After that, the target expression is profiled together
@@ -28,7 +31,7 @@ defmodule Mix.Tasks.Profile.Tprof do
       $ mix profile.tprof -e "Enum.map([1, 2, 3], &Integer.to_string/1)" --type memory
 
   Call count is present with both type `time` and `memory`, but if you only need
-  the call count information, you can use the type `calls`:
+  the call count information, you can use the type `calls` which has the lowest footprint:
 
       $ mix profile.tprof -e "Enum.map([1, 2, 3], &Integer.to_string/1)" --type calls
 
@@ -56,34 +59,59 @@ defmodule Mix.Tasks.Profile.Tprof do
 
   ## Profile output
 
-  Example output:
+  Example output (`time` type):
 
-      #                                               CALLS     % TIME µS/CALL
-      Total                                              24 100.0   26    1.08
-      Enum.reduce_range_inc/4                             5  3.85    1    0.20
-      :erlang.make_fun/3                                  1  7.69    2    2.00
-      Enum.each/2                                         1  7.69    2    2.00
-      anonymous fn/0 in :elixir_compiler_0.__FILE__/1     1  7.69    2    2.00
-      :erlang.integer_to_binary/1                         5 15.39    4    0.80
-      :erlang.apply/2                                     1 15.39    4    4.00
-      anonymous fn/3 in Enum.each/2                       5 19.23    5    1.00
-      String.Chars.Integer.to_string/1                    5 23.08    6    1.20
+      Profile results of #PID<0.107.0>
+      #                                               CALLS      % TIME µS/CALL
+      Total                                              20 100.00    2    0.10
+      String.Chars.Integer.to_string/1                    5   0.00    0    0.00
+      anonymous fn/0 in :elixir_compiler_1.__FILE__/1     1   0.00    0    0.00
+      Enum.each/2                                         1   0.00    0    0.00
+      Enum.reduce_range/5                                 3   0.00    0    0.00
+      :erlang.integer_to_binary/1                         5  50.00    1    0.20
+      anonymous fn/3 in Enum.each/2                       5  50.00    1    0.20
 
-      Profile done over 8 matching functions
+      Profile done over 6 matching functions
+
+  Example output (`memory` type):
+
+      Profile results of #PID<0.107.0>
+      #                           CALLS      % WORDS PER CALL
+      Total                           6 100.00    19     3.17
+      Enum.each/2                     1  21.05     4     4.00
+      :erlang.integer_to_binary/1     5  78.95    15     3.00
+
+      Profile done over 2 matching functions
+
+  Example output (`calls` type)
+
+      Profile results over all processes
+      #                                               CALLS      %
+      Total                                              20 100.00
+      anonymous fn/0 in :elixir_compiler_1.__FILE__/1     1   5.00
+      Enum.each/2                                         1   5.00
+      Enum.reduce_range/5                                 3  15.00
+      :erlang.integer_to_binary/1                         5  25.00
+      String.Chars.Integer.to_string/1                    5  25.00
+      anonymous fn/3 in Enum.each/2                       5  25.00
+
+      Profile done over 6 matching functions
 
   The default output contains data gathered from all matching functions. The first
   row after the header contains the sums of the partial results and the average time
-  for all the function calls listed. The following rows contain the function call,
-  followed by the number of times that the function was called, then by the percentage
-  of time that the call uses, then the total time for that function in microseconds,
-  and, finally, the average time per call in microseconds.
+  or memory usage for all the function calls listed.
+  The following rows contain the function call, followed by the number of times that
+  the function was called, then by the percentage of time/memory that the call uses,
+  then the total time/memory for that function in microseconds/words, and, finally,
+  the average time/memory per call in microseconds/words.
 
   When `--matching` option is specified, call count tracing will be started only for
   the functions matching the given pattern:
 
-      #                                               CALLS     % TIME µS/CALL
-      Total                                               5 100.0    6    1.20
-      String.Chars.Integer.to_string/1                    5 100.0    6    1.20
+      Profile results of #PID<0.106.0>
+      #                                CALLS      % TIME µS/CALL
+      Total                                5 100.00    1    0.20
+      String.Chars.Integer.to_string/1     5 100.00    1    0.20
 
       Profile done over 1 matching functions
 
@@ -106,8 +134,8 @@ defmodule Mix.Tasks.Profile.Tprof do
   You should expect a slowdown in your code execution using this tool since `:tprof` has
   some performance impact on the execution, but the impact is considerably lower than
   `Mix.Tasks.Profile.Fprof`. If you have a large system try to profile a limited
-  scenario or focus on the main modules or processes. Another alternative is to use
-  `Mix.Tasks.Profile.Cprof` that uses [`:cprof`](`:cprof`) and has a low performance degradation effect.
+  scenario or focus on the main modules or processes. The `calls` type can also be used,
+  which is more limited but has a lower footprint.
   """
 
   @switches [
