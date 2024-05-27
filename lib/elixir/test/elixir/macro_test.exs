@@ -563,7 +563,7 @@ defmodule MacroTest do
              If condition:
              true and x #=> true
 
-             If expression (do clause executed):
+             If expression:
              if true and x do
                map[:a] * 2
              else
@@ -591,7 +591,7 @@ defmodule MacroTest do
              If condition:
              false and x #=> false
 
-             If expression (else clause executed):
+             If expression:
              if false and x do
                map[:a] * 2
              end #=> nil

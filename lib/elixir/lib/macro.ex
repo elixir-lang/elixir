@@ -2643,20 +2643,17 @@ defmodule Macro do
   end
 
   defp dbg_ast_to_debuggable({:if, _meta, [condition_ast, _clauses]} = ast, env) do
-    if_from_kernel? =
-      for {Kernel, macros} <- env.macros, {:if, 2} <- macros do
-        true
-      end == [true]
+    case Macro.Env.lookup_import(env, {:if, 2}) do
+      [macro: Kernel] ->
+        quote do
+          condition_result = unquote(condition_ast)
+          result = unquote(ast)
 
-    if if_from_kernel? do
-      quote do
-        condition_result = unquote(condition_ast)
-        result = unquote(ast)
+          {:if, unquote(escape(ast)), unquote(escape(condition_ast)), condition_result, result}
+        end
 
-        {:if, unquote(escape(ast)), unquote(escape(condition_ast)), condition_result, result}
-      end
-    else
-      quote do: {:value, unquote(escape(ast)), unquote(ast)}
+      _ ->
+        quote do: {:value, unquote(escape(ast)), unquote(ast)}
     end
   end
 
@@ -2783,7 +2780,7 @@ defmodule Macro do
       dbg_format_ast_with_value(condition_ast, condition_result, options),
       ?\n,
       dbg_maybe_underline("If expression", options),
-      " (#{if result, do: "do", else: "else"} clause executed):\n",
+      ":\n",
       dbg_format_ast_with_value(ast, result, options)
     ]
 
