@@ -220,4 +220,90 @@ defmodule DurationTest do
                microsecond: {0, 0}
              }
   end
+
+  test "from_iso8601/1" do
+    assert Duration.from_iso8601("P1Y2M3DT4H5M6S") ==
+             {:ok, %Duration{year: 1, month: 2, day: 3, hour: 4, minute: 5, second: 6}}
+
+    assert Duration.from_iso8601("P3WT5H3M") == {:ok, %Duration{week: 3, hour: 5, minute: 3}}
+    assert Duration.from_iso8601("PT5H3M") == {:ok, %Duration{hour: 5, minute: 3}}
+    assert Duration.from_iso8601("P1Y2M3D") == {:ok, %Duration{year: 1, month: 2, day: 3}}
+    assert Duration.from_iso8601("PT4H5M6S") == {:ok, %Duration{hour: 4, minute: 5, second: 6}}
+    assert Duration.from_iso8601("P1Y2M") == {:ok, %Duration{year: 1, month: 2}}
+    assert Duration.from_iso8601("P3D") == {:ok, %Duration{day: 3}}
+    assert Duration.from_iso8601("PT4H5M") == {:ok, %Duration{hour: 4, minute: 5}}
+    assert Duration.from_iso8601("PT6S") == {:ok, %Duration{second: 6}}
+    assert Duration.from_iso8601("P2M4Y") == {:error, :invalid_date_component}
+    assert Duration.from_iso8601("P4Y2W3Y") == {:error, :invalid_date_component}
+    assert Duration.from_iso8601("P5HT4MT3S") == {:error, :invalid_date_component}
+    assert Duration.from_iso8601("P5H3HT4M") == {:error, :invalid_date_component}
+    assert Duration.from_iso8601("PT1D") == {:error, :invalid_time_component}
+    assert Duration.from_iso8601("PT.6S") == {:error, :invalid_time_component}
+    assert Duration.from_iso8601("invalid") == {:error, :invalid_duration}
+  end
+
+  test "from_iso8601!/1" do
+    assert Duration.from_iso8601!("P1Y2M3DT4H5M6S") == %Duration{
+             year: 1,
+             month: 2,
+             day: 3,
+             hour: 4,
+             minute: 5,
+             second: 6
+           }
+
+    assert Duration.from_iso8601!("P3WT5H3M") == %Duration{week: 3, hour: 5, minute: 3}
+    assert Duration.from_iso8601!("PT5H3M") == %Duration{hour: 5, minute: 3}
+    assert Duration.from_iso8601!("P1Y2M3D") == %Duration{year: 1, month: 2, day: 3}
+    assert Duration.from_iso8601!("PT4H5M6S") == %Duration{hour: 4, minute: 5, second: 6}
+    assert Duration.from_iso8601!("P1Y2M") == %Duration{year: 1, month: 2}
+    assert Duration.from_iso8601!("P3D") == %Duration{day: 3}
+    assert Duration.from_iso8601!("PT4H5M") == %Duration{hour: 4, minute: 5}
+    assert Duration.from_iso8601!("PT6S") == %Duration{second: 6}
+    assert Duration.from_iso8601!("PT1,6S") == %Duration{second: 1, microsecond: {600_000, 1}}
+    assert Duration.from_iso8601!("PT-1.6S") == %Duration{second: -1, microsecond: {-600_000, 1}}
+
+    assert Duration.from_iso8601!("PT-1.234567S") == %Duration{
+             second: -1,
+             microsecond: {-234_567, 6}
+           }
+
+    assert Duration.from_iso8601!("PT1.12345678S") == %Duration{
+             second: 1,
+             microsecond: {123_456, 6}
+           }
+
+    assert Duration.from_iso8601!("P3Y4W-3DT-6S") == %Duration{
+             year: 3,
+             week: 4,
+             day: -3,
+             second: -6
+           }
+
+    assert Duration.from_iso8601!("PT-4.23S") == %Duration{second: -4, microsecond: {-230_000, 2}}
+
+    assert_raise ArgumentError,
+                 ~s/failed to parse duration "P5H3HT4M". reason: :invalid_date_component/,
+                 fn ->
+                   Duration.from_iso8601!("P5H3HT4M")
+                 end
+
+    assert_raise ArgumentError,
+                 ~s/failed to parse duration "P4Y2W3Y". reason: :invalid_date_component/,
+                 fn ->
+                   Duration.from_iso8601!("P4Y2W3Y")
+                 end
+
+    assert_raise ArgumentError,
+                 ~s/failed to parse duration "invalid". reason: :invalid_duration/,
+                 fn ->
+                   Duration.from_iso8601!("invalid")
+                 end
+
+    assert_raise ArgumentError,
+                 ~s/failed to parse duration "P4.5YT6S". reason: :invalid_date_component/,
+                 fn ->
+                   Duration.from_iso8601!("P4.5YT6S")
+                 end
+  end
 end

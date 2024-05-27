@@ -283,4 +283,52 @@ defmodule Duration do
       microsecond: {-ms, p}
     }
   end
+
+  @doc """
+  Parses an ISO 8601 formatted duration string to a `Duration` struct.
+
+  A decimal fraction may be specified for seconds only, using either a comma or a full stop.
+
+  ## Examples
+
+      iex> Duration.from_iso8601("P1Y2M3DT4H5M6S")
+      {:ok, %Duration{year: 1, month: 2, day: 3, hour: 4, minute: 5, second: 6}}
+      iex> Duration.from_iso8601("PT10H30M")
+      {:ok, %Duration{hour: 10, minute: 30, second: 0}}
+      iex> Duration.from_iso8601("P3Y-2MT3H")
+      {:ok, %Duration{year: 3, month: -2, hour: 3}}
+      iex> Duration.from_iso8601("P1YT4.650S")
+      {:ok, %Duration{year: 1, second: 4, microsecond: {650000, 3}}}
+
+  """
+  @spec from_iso8601(String.t()) :: {:ok, t} | {:error, atom}
+  def from_iso8601(string) when is_binary(string) do
+    case Calendar.ISO.parse_duration(string) do
+      {:ok, duration} ->
+        {:ok, new!(duration)}
+
+      error ->
+        error
+    end
+  end
+
+  @doc """
+  Same as `from_iso8601/1` but raises an ArgumentError.
+
+  ## Examples
+
+      iex> Duration.from_iso8601!("P1Y2M3DT4H5M6S")
+      %Duration{year: 1, month: 2, day: 3, hour: 4, minute: 5, second: 6}
+
+  """
+  @spec from_iso8601!(String.t()) :: t
+  def from_iso8601!(string) when is_binary(string) do
+    case from_iso8601(string) do
+      {:ok, duration} ->
+        duration
+
+      {:error, reason} ->
+        raise ArgumentError, ~s/failed to parse duration "#{string}". reason: #{inspect(reason)}/
+    end
+  end
 end

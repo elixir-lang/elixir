@@ -18,7 +18,8 @@ defmodule Calendar.ISO do
 
   The standard library supports a minimal set of possible ISO 8601 features.
   Specifically, the parser only supports calendar dates and does not support
-  ordinal and week formats.
+  ordinal and week formats. Additionally, it supports parsing ISO 8601
+  formatted durations, including negative time units and fractional seconds.
 
   By default Elixir only parses extended-formatted date/times. You can opt-in
   to parse basic-formatted date/times.
@@ -29,7 +30,7 @@ defmodule Calendar.ISO do
 
   Elixir does not support reduced accuracy formats (for example, a date without
   the day component) nor decimal precisions in the lowest component (such as
-  `10:01:25,5`). No functions exist to parse ISO 8601 durations or time intervals.
+  `10:01:25,5`).
 
   #### Examples
 
@@ -662,6 +663,65 @@ defmodule Calendar.ISO do
       _ -> {:error, :invalid_format}
     end
   end
+
+  @doc """
+  Parses an ISO 8601 formatted duration string to a list of `Duration` compabitble unit pairs.
+
+  See `Duration.from_iso8601/1`.
+  """
+  @doc since: "1.17.0"
+  @spec parse_duration(String.t()) :: {:ok, [Duration.unit_pair()]} | {:error, atom()}
+  def parse_duration("P" <> string) when byte_size(string) > 0 do
+    parse_duration_date(string, [], year: ?Y, month: ?M, week: ?W, day: ?D)
+  end
+
+  def parse_duration(_) do
+    {:error, :invalid_duration}
+  end
+
+  defp parse_duration_date("", acc, _allowed), do: {:ok, acc}
+
+  defp parse_duration_date("T" <> string, acc, _allowed) when byte_size(string) > 0 do
+    parse_duration_time(string, acc, hour: ?H, minute: ?M, second: ?S)
+  end
+
+  defp parse_duration_date(string, acc, allowed) do
+    with {integer, <<next, rest::binary>>} <- Integer.parse(string),
+         {key, allowed} <- find_unit(allowed, next) do
+      parse_duration_date(rest, [{key, integer} | acc], allowed)
+    else
+      _ -> {:error, :invalid_date_component}
+    end
+  end
+
+  defp parse_duration_time("", acc, _allowed), do: {:ok, acc}
+
+  defp parse_duration_time(string, acc, allowed) do
+    case Integer.parse(string) do
+      {second, <<delimiter, _::binary>> = rest} when delimiter in [?., ?,] ->
+        case parse_microsecond(rest) do
+          {{ms, precision}, "S"} ->
+            ms = if second > 0, do: ms, else: -ms
+            {:ok, [second: second, microsecond: {ms, precision}] ++ acc}
+
+          _ ->
+            {:error, :invalid_time_component}
+        end
+
+      {integer, <<next, rest::binary>>} ->
+        case find_unit(allowed, next) do
+          {key, allowed} -> parse_duration_time(rest, [{key, integer} | acc], allowed)
+          false -> {:error, :invalid_time_component}
+        end
+
+      _ ->
+        {:error, :invalid_time_component}
+    end
+  end
+
+  defp find_unit([{key, unit} | rest], unit), do: {key, rest}
+  defp find_unit([_ | rest], unit), do: find_unit(rest, unit)
+  defp find_unit([], _unit), do: false
 
   @doc """
   Returns the `t:Calendar.iso_days/0` format of the specified date.
