@@ -227,7 +227,7 @@ defmodule Duration do
   end
 
   @doc """
-  Same as from_iso8601/1 but raises an ArgumentError.
+  Same as `from_iso8601/1` but raises an ArgumentError.
 
   ## Examples
 
