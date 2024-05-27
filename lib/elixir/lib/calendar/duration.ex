@@ -361,11 +361,13 @@ defmodule Duration do
       iex> Duration.new!(hour: 2, microsecond: {2, 3}) |> Duration.to_iso8601()
       "PT2H0.000S"
       iex> Duration.new!(hour: 2, microsecond: {2, 0}) |> Duration.to_iso8601()
-      "PT2H"
+      "PT2H0S"
       iex> Duration.new!(microsecond: {2, 0}) |> Duration.to_iso8601()
       "PT0S"
       iex> Duration.new!(microsecond: {2_000_000, 6}) |> Duration.to_iso8601()
-      "PT2S"
+      "PT2.000000S"
+      iex> %Duration{second: 1, microsecond: {-1_200_000, 4}} |> Duration.to_iso8601()
+      "PT-0.2000S"
   """
 
   @spec to_iso8601(t) :: String.t()
@@ -382,10 +384,6 @@ defmodule Duration do
         microsecond: {0, _}
       }) do
     "PT0S"
-  end
-
-  def to_iso8601(%Duration{microsecond: {ms, 0}} = d) when ms != 0 do
-    to_iso8601(%Duration{d | microsecond: {0, 0}})
   end
 
   def to_iso8601(%Duration{} = d) do
@@ -405,35 +403,39 @@ defmodule Duration do
     []
   end
 
-  defp to_iso8601_duration_time(%Duration{microsecond: {ms, p}} = d)
-       when ms >= @microseconds_per_second do
-    second = d.second + div(ms, @microseconds_per_second)
-    microsecond = {rem(ms, @microseconds_per_second), p}
-
-    to_iso8601_duration_time(%Duration{d | second: second, microsecond: microsecond})
-  end
-
   defp to_iso8601_duration_time(d) do
     [
       ?T,
       if(d.hour == 0, do: [], else: [Integer.to_string(d.hour), ?H]),
       if(d.minute == 0, do: [], else: [Integer.to_string(d.minute), ?M]),
-      case d do
-        %Duration{second: 0, microsecond: {0, _}} ->
-          []
+      second_component(d)
+    ]
+  end
 
-        %Duration{microsecond: {0, _}} ->
-          [Integer.to_string(d.second), ?S]
+  defp second_component(%Duration{second: 0, microsecond: {0, _}}) do
+    []
+  end
 
-        %Duration{microsecond: {ms, p}} ->
-          microsecond =
-            ms
-            |> Integer.to_string()
-            |> String.pad_leading(6, "0")
-            |> binary_part(0, p)
+  defp second_component(%Duration{second: 0, microsecond: {_, 0}}) do
+    ~c"0S"
+  end
 
-          [Integer.to_string(d.second), ?., microsecond, ?S]
-      end
+  defp second_component(%Duration{microsecond: {_, 0}} = d) do
+    [Integer.to_string(d.second), ?S]
+  end
+
+  defp second_component(%Duration{microsecond: {ms, p}} = d) do
+    total_ms = d.second * @microseconds_per_second + ms
+    second = total_ms |> div(@microseconds_per_second) |> abs()
+    ms = total_ms |> rem(@microseconds_per_second) |> abs()
+    sign = if total_ms < 0, do: ?-, else: []
+
+    [
+      sign,
+      Integer.to_string(second),
+      ?.,
+      ms |> Integer.to_string() |> String.pad_leading(6, "0") |> binary_part(0, p),
+      ?S
     ]
   end
 end
