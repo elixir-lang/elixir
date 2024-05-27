@@ -227,7 +227,7 @@ defmodule Mix.Tasks.Profile.Tprof do
       fun.()
     end
 
-    :tprof.start()
+    tprof_module().start()
     matching = Keyword.get(opts, :matching, {:_, :_, :_})
     set_on_spawn = Keyword.get(opts, :set_on_spawn, true)
     type = Keyword.get(opts, :type, :time)
@@ -243,16 +243,16 @@ defmodule Mix.Tasks.Profile.Tprof do
     tprof_type = to_tprof_type(type)
 
     {return_value, {^tprof_type, traces}} =
-      :tprof.profile(fun, %{
+      tprof_module().profile(fun, %{
         set_on_spawn: set_on_spawn,
         pattern: matching,
         type: tprof_type,
         report: :return
       })
 
-    inspected = :tprof.inspect({tprof_type, traces}, :process, sort_by)
+    inspected = tprof_module().inspect({tprof_type, traces}, :process, sort_by)
 
-    :tprof.stop()
+    tprof_module().stop()
 
     results =
       inspected
@@ -396,5 +396,14 @@ defmodule Mix.Tasks.Profile.Tprof do
 
   defp print_function_count(count) do
     IO.puts("Profile done over #{count} matching functions")
+  end
+
+  # TODO remove once we require Erlang/OTP 27+
+  defp tprof_module do
+    if Code.ensure_loaded?(:tprof) do
+      :tprof
+    else
+      Mix.raise("mix profile.tprof requires Erlang/OTP 27 or above")
+    end
   end
 end
