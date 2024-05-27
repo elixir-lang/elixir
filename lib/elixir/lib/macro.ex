@@ -2643,11 +2643,12 @@ defmodule Macro do
   end
 
   defp dbg_ast_to_debuggable({:if, _meta, [condition_ast, _clauses]} = ast, env) do
-    if get_in(env.macros, [
-         Access.find(&(elem(&1, 0) == Kernel)),
-         Access.elem(1),
-         :if
-       ]) == 2 do
+    if_from_kernel? =
+      for {Kernel, macros} <- env.macros, {:if, 2} <- macros do
+        true
+      end == [true]
+
+    if if_from_kernel? do
       quote do
         condition_result = unquote(condition_ast)
         result = unquote(ast)
