@@ -153,25 +153,25 @@ defmodule Mix.Tasks.Profile.TprofTest do
 
   test "errors on incompatible options", context do
     in_tmp(context.test, fn ->
-      message = "Incompatible sort option `memory` with type `time`"
+      message = "Incompatible sort option :memory with type :time"
 
       assert_raise Mix.Error, message, fn ->
         capture_io(fn -> Tprof.run(["-e", @expr, "--sort", "memory"]) end)
       end
 
-      message = "Incompatible sort option `time` with type `calls`"
+      message = "Incompatible sort option :time with type :calls"
 
       assert_raise Mix.Error, message, fn ->
         capture_io(fn -> Tprof.run(["-e", @expr, "--type", "calls", "--sort", "time"]) end)
       end
 
-      message = "Incompatible use of memory option with type `time`"
+      message = "Incompatible use of memory option with type :time"
 
       assert_raise Mix.Error, message, fn ->
         capture_io(fn -> Tprof.run(["-e", @expr, "--time", "1", "--memory", "2"]) end)
       end
 
-      message = "Incompatible use of time option with type `calls`"
+      message = "Incompatible use of time option with type :calls"
 
       assert_raise Mix.Error, message, fn ->
         capture_io(fn -> Tprof.run(["-e", @expr, "--type", "calls", "--time", "1"]) end)

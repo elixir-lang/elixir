@@ -227,17 +227,23 @@ defmodule Mix.Tasks.Profile.Tprof do
       fun.()
     end
 
-    tprof_module().start()
     matching = Keyword.get(opts, :matching, {:_, :_, :_})
     set_on_spawn = Keyword.get(opts, :set_on_spawn, true)
     type = Keyword.get(opts, :type, :time)
 
     sort_by =
       case Keyword.get(opts, :sort) do
-        nil -> :measurement
-        :calls -> :calls
-        ^type -> :measurement
-        other -> Mix.raise("Incompatible sort option `#{other}` with type `#{type}`")
+        nil ->
+          :measurement
+
+        :calls ->
+          :calls
+
+        ^type ->
+          :measurement
+
+        other ->
+          Mix.raise("Incompatible sort option #{inspect(other)} with type #{inspect(type)}")
       end
 
     tprof_type = to_tprof_type(type)
@@ -251,8 +257,6 @@ defmodule Mix.Tasks.Profile.Tprof do
       })
 
     inspected = tprof_module().inspect({tprof_type, traces}, :process, sort_by)
-
-    tprof_module().stop()
 
     results =
       inspected
@@ -284,11 +288,11 @@ defmodule Mix.Tasks.Profile.Tprof do
   end
 
   defp get_filter_value!(type, time, _memory) when is_integer(time) and type != :time do
-    Mix.raise("Incompatible use of time option with type `#{type}`")
+    Mix.raise("Incompatible use of time option with type #{inspect(type)}")
   end
 
   defp get_filter_value!(type, _time, memory) when is_integer(memory) and type != :memory do
-    Mix.raise("Incompatible use of memory option with type `#{type}`")
+    Mix.raise("Incompatible use of memory option with type #{inspect(type)}")
   end
 
   defp get_filter_value!(:time, time, nil) when is_integer(time), do: time
