@@ -670,9 +670,23 @@ defmodule Calendar.ISO do
   See `Duration.from_iso8601/1`.
   """
   @doc since: "1.17.0"
-  @spec parse_duration(String.t()) :: {:ok, [Duration.unit_pair()]} | {:error, atom()}
+  @spec parse_duration(String.t()) :: {:ok, [Duration.unit_pair()]} | {:error, atom}
   def parse_duration("P" <> string) when byte_size(string) > 0 do
     parse_duration_date(string, [], year: ?Y, month: ?M, week: ?W, day: ?D)
+  end
+
+  def parse_duration("-P" <> string) when byte_size(string) > 0 do
+    case parse_duration_date(string, [], year: ?Y, month: ?M, week: ?W, day: ?D) do
+      {:ok, fields} ->
+        {:ok,
+         Enum.map(fields, fn
+           {:microsecond, {value, precision}} -> {:microsecond, {-value, precision}}
+           {unit, value} -> {unit, -value}
+         end)}
+
+      error ->
+        error
+    end
   end
 
   def parse_duration(_) do

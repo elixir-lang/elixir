@@ -285,20 +285,23 @@ defmodule Duration do
   end
 
   @doc """
-  Parses an ISO 8601 formatted duration string to a `Duration` struct.
+  Parses an [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) formatted duration string to a `Duration` struct.
 
-  A decimal fraction may be specified for seconds only, using either a comma or a full stop.
+  - A duration string must be designated in order of magnitude: `P[n]Y[n]M[n]W[n]DT[n]H[n]M[n]S`.
+  - A duration string may be prefixed with a minus sign to negate it: `-P10DT4H`.
+  - Individual units may be prefixed with a minus sign: `P-10DT4H`.
+  - Only seconds may be specified with a decimal fraction, using either a comma or a full stop: `P1DT4,5S`.
 
   ## Examples
 
       iex> Duration.from_iso8601("P1Y2M3DT4H5M6S")
       {:ok, %Duration{year: 1, month: 2, day: 3, hour: 4, minute: 5, second: 6}}
-      iex> Duration.from_iso8601("PT10H30M")
-      {:ok, %Duration{hour: 10, minute: 30, second: 0}}
       iex> Duration.from_iso8601("P3Y-2MT3H")
       {:ok, %Duration{year: 3, month: -2, hour: 3}}
-      iex> Duration.from_iso8601("P1YT4.650S")
-      {:ok, %Duration{year: 1, second: 4, microsecond: {650000, 3}}}
+      iex> Duration.from_iso8601("-PT10H-30M")
+      {:ok, %Duration{hour: -10, minute: 30}}
+      iex> Duration.from_iso8601("PT4.650S")
+      {:ok, %Duration{second: 4, microsecond: {650000, 3}}}
 
   """
   @spec from_iso8601(String.t()) :: {:ok, t} | {:error, atom}
@@ -313,12 +316,14 @@ defmodule Duration do
   end
 
   @doc """
-  Same as `from_iso8601/1` but raises an ArgumentError.
+  Same as `from_iso8601/1` but raises an `ArgumentError`.
 
   ## Examples
 
       iex> Duration.from_iso8601!("P1Y2M3DT4H5M6S")
       %Duration{year: 1, month: 2, day: 3, hour: 4, minute: 5, second: 6}
+      iex> Duration.from_iso8601!("P10D")
+      %Duration{day: 10}
 
   """
   @spec from_iso8601!(String.t()) :: t
