@@ -1,10 +1,10 @@
 #!/usr/bin/env pwsh
 
-$ScriptName = Split-Path -Leaf $PSCommandPath
+$scriptName = Split-Path -Leaf $PSCommandPath
 
-if ($Args[0] -in @("-h", "--help")) {
+if ($args[0] -in @("-h", "--help")) {
   Write-Host @"
-Usage: $ScriptName [options] [.exs file] [data]
+Usage: $scriptName [options] [.exs file] [data]
 
 The following options are exclusive to IEx:
 
@@ -19,7 +19,7 @@ It accepts all other options listed by "elixir --help".
   exit
 }
 
-$ScriptPath = Split-Path -Parent $PSCommandPath
-$Command = Join-Path -Path $ScriptPath -ChildPath "elixir.ps1"
+$scriptPath = Split-Path -Parent $PSCommandPath
+$command = Join-Path -Path $scriptPath -ChildPath "elixir.ps1"
 
-Invoke-Expression "$Command --no-halt --erl `"-user elixir`" +iex $($Args -join " ")"
+Invoke-Expression "$command --no-halt --erl `"-user elixir`" +iex $($args -join " ")"

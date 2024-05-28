@@ -1,10 +1,10 @@
 #!/usr/bin/env pwsh
 
-$ScriptName = Split-Path -Leaf $PSCommandPath
+$scriptName = Split-Path -Leaf $PSCommandPath
 
-if (($Args.Count -eq 0) -or ($Args[0] -in @("-h", "--help"))) {
+if (($args.Count -eq 0) -or ($args[0] -in @("-h", "--help"))) {
   Write-Host @"
-Usage: $ScriptName [elixir switches] [compiler switches] [.ex files]
+Usage: $scriptName [elixir switches] [compiler switches] [.ex files]
 
   -h, --help                Prints this message and exits
   -o                        The directory to output compiled files
@@ -24,7 +24,7 @@ Usage: $ScriptName [elixir switches] [compiler switches] [.ex files]
   exit
 }
 
-$ScriptPath = Split-Path -Parent $PSCommandPath
-$Command = Join-Path -Path $ScriptPath -ChildPath "elixir.ps1"
+$scriptPath = Split-Path -Parent $PSCommandPath
+$command = Join-Path -Path $scriptPath -ChildPath "elixir.ps1"
 
-Invoke-Expression "$Command +elixirc $($Args -join " ")"
+Invoke-Expression "$command +elixirc $($args -join " ")"

@@ -2,19 +2,19 @@
 
 $ELIXIR_VERSION = "1.17.0-dev"
 
-$MinPowerShellVersion = [version]"7.2.0"
+$minPowerShellVersion = [version]"7.2.0"
 
-if ($MinPowerShellVersion.CompareTo([version]$PSVersionTable.PSVersion) -eq 1) {
+if ($minPowerShellVersion.CompareTo([version]$PSVersionTable.PSVersion) -eq 1) {
   Write-Error "This script requires PowerShell version 7.2 or above. Running on $($PSVersionTable.PSVersion)"
 }
 
-$ScriptPath = Split-Path -Parent $PSCommandPath
-$ErlExec = "erl"
+$scriptPath = Split-Path -Parent $PSCommandPath
+$erlExec = "erl"
 
 function PrintElixirHelp {
-  $ScriptName = Split-Path -Leaf $PSCommandPath
-  $Help = @"
-Usage: $ScriptName [options] [.exs file] [data]
+  $scriptName = Split-Path -Leaf $PSCommandPath
+  $help = @"
+Usage: $scriptName [options] [.exs file] [data]
 
 ## General options
 
@@ -69,15 +69,15 @@ See run_erl to learn more. To reattach, run: to_erl PIPEDIR.
 ** Standalone options can't be combined with other options.
 "@
 
-  Write-Host $Help
+  Write-Host $help
 }
 
-if (($Args.Count -eq 1) -and ($Args[0] -eq "--short-version")) {
+if (($args.Count -eq 1) -and ($args[0] -eq "--short-version")) {
   Write-Host "$ELIXIR_VERSION"
   exit
 }
 
-if (($Args.Count -eq 0) -or (($Args.Count -eq 1) -and ($Args[0] -in @("-h", "--help")))) {
+if (($args.Count -eq 0) -or (($args.Count -eq 1) -and ($args[0] -in @("-h", "--help")))) {
   PrintElixirHelp
   exit 1
 }
@@ -109,172 +109,172 @@ function QuoteString {
   }
 }
 
-$ElixirParams = New-Object Collections.Generic.List[String]
-$ErlangParams = New-Object Collections.Generic.List[String]
-$BeforeExtras = New-Object Collections.Generic.List[String]
-$AllOtherParams = New-Object Collections.Generic.List[String]
+$elixirParams = New-Object Collections.Generic.List[String]
+$erlangParams = New-Object Collections.Generic.List[String]
+$beforeExtras = New-Object Collections.Generic.List[String]
+$allOtherParams = New-Object Collections.Generic.List[String]
 
-$RunErlPipe = $null
-$RunErlLog = $null
+$runErlPipe = $null
+$runErlLog = $null
 
-for ($i = 0; $i -lt $Args.Count; $i++) {
-  $private:Arg = $Args[$i]
+for ($i = 0; $i -lt $args.Count; $i++) {
+  $private:arg = $args[$i]
 
-  switch ($Arg) {
+  switch ($arg) {
     { $_ -in @("-e", "-r", "-pr", "-pa", "-pz", "--eval", "--remsh", "--dot-iex", "--dbg") } {
-      $private:NextArg = NormalizeArg($Args[++$i])
+      $private:nextArg = NormalizeArg($args[++$i])
 
-      $ElixirParams.Add($Arg)
-      $ElixirParams.Add($NextArg)
+      $elixirParams.Add($arg)
+      $elixirParams.Add($nextArg)
 
       break
     }
 
     { $_ -in @("-v", "--version") } {
       # Standalone options goes only once in the Elixir params, when they are empty.
-      if (($ElixirParams.Count -eq 0) -and ($AllOtherParams.Count -eq 0)) {
-        $ElixirParams.Add($Arg)
+      if (($elixirParams.Count -eq 0) -and ($allOtherParams.Count -eq 0)) {
+        $elixirParams.Add($arg)
       }
       else {
-        $AllOtherParams.Add($Arg)
+        $allOtherParams.Add($arg)
       }
       break
     }
 
     "--no-halt" {
-      $ElixirParams.Add($Arg)
+      $elixirParams.Add($arg)
       break
     }
 
     "--cookie" {
-      $ErlangParams.Add("-setcookie")
-      $ErlangParams.Add($Args[++$i])
+      $erlangParams.Add("-setcookie")
+      $erlangParams.Add($args[++$i])
       break
     }
 
     "--hidden" {
-      $ErlangParams.Add("-hidden")
+      $erlangParams.Add("-hidden")
       break
     }
 
     "--name" {
-      $ErlangParams.Add("-name")
-      $ErlangParams.Add($Args[++$i])
+      $erlangParams.Add("-name")
+      $erlangParams.Add($args[++$i])
       break
     }
 
     "--sname" {
-      $ErlangParams.Add("-sname")
-      $ErlangParams.Add($Args[++$i])
+      $erlangParams.Add("-sname")
+      $erlangParams.Add($args[++$i])
       break
     }
 
     "--boot" {
-      $ErlangParams.Add("-boot")
-      $ErlangParams.Add($Args[++$i])
+      $erlangParams.Add("-boot")
+      $erlangParams.Add($args[++$i])
       break
     }
 
     "--erl-config" {
-      $ErlangParams.Add("-config")
-      $ErlangParams.Add($Args[++$i])
+      $erlangParams.Add("-config")
+      $erlangParams.Add($args[++$i])
       break
     }
 
     "--vm-args" {
-      $ErlangParams.Add("-args_file")
-      $ErlangParams.Add($Args[++$i])
+      $erlangParams.Add("-args_file")
+      $erlangParams.Add($args[++$i])
       break
     }
 
     "--logger-otp-reports" {
-      $private:TempVal = $Args[$i + 1]
-      if ($TempVal -in @("true", "false")) {
-        $ErlangParams.AddRange([string[]]@("-logger", "handle_otp_reports", $Args[++$i]))
+      $private:tempVal = $args[$i + 1]
+      if ($tempVal -in @("true", "false")) {
+        $erlangParams.AddRange([string[]]@("-logger", "handle_otp_reports", $args[++$i]))
       }
       break
     }
 
     "--logger-sasl-reports" {
-      $private:TempVal = $Args[$i + 1]
-      if ($TempVal -in @("true", "false")) {
-        $ErlangParams.AddRange([string[]]@("-logger", "handle_sasl_reports", $Args[++$i]))
+      $private:tempVal = $args[$i + 1]
+      if ($tempVal -in @("true", "false")) {
+        $erlangParams.AddRange([string[]]@("-logger", "handle_sasl_reports", $args[++$i]))
       }
       break
     }
 
     "--erl" {
-      $BeforeExtras.Add($Args[++$i])
+      $beforeExtras.Add($args[++$i])
       break
     }
 
     "+iex" {
-      $ElixirParams.Add("+iex")
-      $UseIex = $true
+      $elixirParams.Add("+iex")
+      $useIex = $true
 
       break
     }
 
     "+elixirc" {
-      $ElixirParams.Add("+elixirc")
+      $elixirParams.Add("+elixirc")
       break
     }
 
     "--rpc-eval" {
-      $private:Key = $Args[++$i]
-      $private:Value = $Args[++$i]
+      $private:key = $args[++$i]
+      $private:value = $args[++$i]
 
-      if ($null -eq $Key) {
+      if ($null -eq $key) {
         Write-Error "--rpc-eval: NODE must be present"
         exit 1
       }
 
-      if ($null -eq $Value) {
-        Write-Error "--rpc-eval: COMMAND for the '$Key' node must be present"
+      if ($null -eq $value) {
+        Write-Error "--rpc-eval: COMMAND for the '$key' node must be present"
         exit 1
       }
 
-      $ElixirParams.Add("--rpc-eval")
-      $ElixirParams.Add($Key)
-      $ElixirParams.Add($Value)
+      $elixirParams.Add("--rpc-eval")
+      $elixirParams.Add($key)
+      $elixirParams.Add($value)
       break
     }
 
     "--boot-var" {
-      $private:Key = $Args[++$i]
-      $private:Value = $Args[++$i]
+      $private:key = $args[++$i]
+      $private:value = $args[++$i]
 
-      if ($null -eq $Key) {
+      if ($null -eq $key) {
         Write-Error "--boot-var: VAR must be present"
         exit 1
       }
 
-      if ($null -eq $Value) {
-        Write-Error "--boot-var: Value for the '$Key' var must be present"
+      if ($null -eq $value) {
+        Write-Error "--boot-var: Value for the '$key' var must be present"
         exit 1
       }
 
-      $ElixirParams.Add("-boot_var")
-      $ElixirParams.Add($Key)
-      $ElixirParams.Add($Value)
+      $elixirParams.Add("-boot_var")
+      $elixirParams.Add($key)
+      $elixirParams.Add($value)
       break
     }
 
     "--pipe-to" {
-      $RunErlPipe = $Args[++$i]
-      $RunErlLog = $Args[++$i]
+      $runErlPipe = $args[++$i]
+      $runErlLog = $args[++$i]
 
-      if ($null -eq $RunErlPipe) {
+      if ($null -eq $runErlPipe) {
         Write-Error "--pipe-to: PIPEDIR must be present"
         exit 1
       }
 
-      if ($null -eq $RunErlLog) {
+      if ($null -eq $runErlLog) {
         Write-Error "--pipe-to: PIPELOG must be present"
         exit 1
       }
 
-      if ($RunErlPipe.EndsWith("/") -or $RunErlLog.EndsWith("/")) {
+      if ($runErlPipe.EndsWith("/") -or $runErlLog.EndsWith("/")) {
         Write-Error "--pipe-to: PIPEDIR and PIPELOG must not end with a slash"
         exit 1
       }
@@ -283,80 +283,79 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
     }
 
     Default {
-      $private:Normalized = NormalizeArg $Arg
-      $AllOtherParams.Add($Normalized)
+      $private:normalized = NormalizeArg $arg
+      $allOtherParams.Add($normalized)
       break
     }
   }
 }
 
-if ($null -eq $UseIEx) {
-  $BeforeExtras.InsertRange(0, [string[]]@("-s", "elixir", "start_cli"))
+if ($null -eq $useIEx) {
+  $beforeExtras.InsertRange(0, [string[]]@("-s", "elixir", "start_cli"))
 }
 
-$BeforeExtras.InsertRange(0, [string[]]@("-pa", "$(Join-Path $ScriptPath -ChildPath "../lib/elixir/ebin")"))
-$BeforeExtras.InsertRange(0, [string[]]@("-noshell", "-elixir_root", "$(Join-Path $ScriptPath -ChildPath "../lib")"))
+$beforeExtras.InsertRange(0, [string[]]@("-pa", "$(Join-Path $scriptPath -ChildPath "../lib/elixir/ebin")"))
+$beforeExtras.InsertRange(0, [string[]]@("-noshell", "-elixir_root", "$(Join-Path $scriptPath -ChildPath "../lib")"))
 
 # One MAY change ERTS_BIN= but you MUST NOT change
 # ERTS_BIN=$ERTS_BIN as it is handled by Elixir releases.
 # TODO: change when we port the releases scripts.
 # $ERTS_BIN=
-$ERTS_BIN = "$Env:ERTS_BIN"
+$ERTS_BIN = "$env:ERTS_BIN"
 
-$ELIXIR_ERL_OPTIONS = "$Env:ELIXIR_ERL_OPTIONS"
+$ELIXIR_ERL_OPTIONS = "$env:ELIXIR_ERL_OPTIONS"
 
-$AllParams = New-Object Collections.Generic.List[String]
+$allParams = New-Object Collections.Generic.List[String]
 
-$AllParams.Add($ELIXIR_ERL_OPTIONS)
-$AllParams.AddRange($ErlangParams)
-$AllParams.AddRange($BeforeExtras)
-$AllParams.Add("-extra")
-$AllParams.AddRange($ElixirParams)
-$AllParams.AddRange($AllOtherParams)
+$allParams.Add($ELIXIR_ERL_OPTIONS)
+$allParams.AddRange($erlangParams)
+$allParams.AddRange($beforeExtras)
+$allParams.Add("-extra")
+$allParams.AddRange($elixirParams)
+$allParams.AddRange($allOtherParams)
 
-$BinSuffix = ""
+$binSuffix = ""
 
-if ($IsWindows) {
-  $BinSuffix = ".exe"
+if ($isWindows) {
+  $binSuffix = ".exe"
 }
 
-$BinPath = "$ErlExec$BinSuffix"
+$binPath = "$erlExec$binSuffix"
 
 if ($ERTS_BIN) {
-  $BinPath = Join-Path -Path $ERTS_BIN -ChildPath $BinPath
+  $binPath = Join-Path -Path $ERTS_BIN -ChildPath $binPath
 }
 
-if ($null -eq $RunErlPipe) {
+if ($null -eq $runErlPipe) {
   # We double the double-quotes because they are going to be escaped by arguments parsing.
-  $ParamsPart = $AllParams | ForEach-Object -Process { QuoteString($_ -replace "`"", "`"`"") }
+  $paramsPart = $allParams | ForEach-Object -Process { QuoteString($_ -replace "`"", "`"`"") }
 }
 else {
-  $private:OrigBinPath = $BinPath
-  $ErlExec = "run_erl"
-  $BinPath = "$ErlExec$BinSuffix"
+  $allParams.Insert(0, $binPath)
+
+  $erlExec = "run_erl"
+  $binPath = "$erlExec$binSuffix"
 
   if ($ERTS_BIN) {
-    $BinPath = Join-Path -Path $ERTS_BIN -ChildPath $BinPath
+    $binPath = Join-Path -Path $ERTS_BIN -ChildPath $binPath
   }
-
-  $AllParams.Insert(0, $OrigBinPath)
 
   # We scape special chars using the Unix style of scaping, with "\".
   # But first we escape the double-quotes.
-  $private:Escaped = $AllParams | ForEach-Object -Process { ($_ -replace "`"", "\`"") -replace "[^a-zA-Z0-9_/-]", "\$&" }
+  $private:escaped = $allParams | ForEach-Object -Process { ($_ -replace "`"", "\`"") -replace "[^a-zA-Z0-9_/-]", "\$&" }
 
   # The args are surrounded here for the same reasons
-  $ParamsPart = @("-daemon","`"$RunErlPipe/`"", "`"$RunErlLog/`"", "`"$($Escaped -join " ")`"")
+  $paramsPart = @("-daemon","`"$runErlPipe/`"", "`"$runErlLog/`"", "`"$($escaped -join " ")`"")
 }
 
-if ($Env:ELIXIR_CLI_DRY_RUN) {
-  Write-Host "$BinPath $ParamsPart"
+if ($env:ELIXIR_CLI_DRY_RUN) {
+  Write-Host "$binPath $paramsPart"
 }
 else {
-  if ($RunErlPipe) {
-    $null = New-Item -Path "." -ItemType "directory" -Name "$RunErlPipe" -Force
-    $null = New-Item -Path "." -ItemType "directory" -Name "$RunErlLog" -Force
+  if ($runErlPipe) {
+    $null = New-Item -Path "." -ItemType "directory" -Name "$runErlPipe" -Force
+    $null = New-Item -Path "." -ItemType "directory" -Name "$runErlLog" -Force
   }
-  $Output = Start-Process -FilePath $BinPath -ArgumentList $ParamsPart -NoNewWindow -Wait -PassThru
-  exit $Output.ExitCode
+  $output = Start-Process -FilePath $binPath -ArgumentList $paramsPart -NoNewWindow -Wait -PassThru
+  exit $output.ExitCode
 }

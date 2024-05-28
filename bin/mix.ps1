@@ -1,7 +1,7 @@
 #!/usr/bin/env pwsh
 
-$ScriptPath = Split-Path -Parent $PSCommandPath
-$Command = Join-Path -Path $ScriptPath -ChildPath "elixir.ps1"
-$MixFile = Join-Path -Path $ScriptPath -ChildPath "mix"
+$scriptPath = Split-Path -Parent $PSCommandPath
+$command = Join-Path -Path $scriptPath -ChildPath "elixir.ps1"
+$mixFile = Join-Path -Path $scriptPath -ChildPath "mix"
 
-Invoke-Expression "$Command $MixFile $($Args -join " ")"
+Invoke-Expression "$command $mixFile $($args -join " ")"
