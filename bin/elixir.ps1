@@ -1,6 +1,6 @@
 #!/usr/bin/env pwsh
 
-$ELIXIR_VERSION = "1.17.0-dev"
+$ELIXIR_VERSION = "1.18.0-dev"
 
 $minPowerShellVersion = [version]"7.2.0"
 
