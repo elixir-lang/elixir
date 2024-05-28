@@ -90,18 +90,19 @@ function NormalizeArg {
   $Items -join ","
 }
 
-function QuotedString {
+function QuoteString {
   param(
-    [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
+    [Parameter(ValueFromPipeline = $true)]
     [string] $Item
   )
 
   # We surround the string with double quotes, in order to preserve its contents as
   # only one command arg.
-  # This is needed because PowerShell will consider a new argument when it sees a
-  # space char.
-  if (-not $Item.StartsWith("`"") -and $Item.Contains(" ")) {
-    "`"$Item`""
+  # This is needed because PowerShell consider spaces as separator of arguments.
+  # The double quotes around will be removed when PowerShell process the argument.
+  # See: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_quoting_rules?view=powershell-7.4#passing-quoted-strings-to-external-commands
+  if ($Item.Contains(" ")) {
+    '"' + $Item + '"'
   }
   else {
     $Item
@@ -121,7 +122,7 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
 
   switch ($Arg) {
     { $_ -in @("-e", "-r", "-pr", "-pa", "-pz", "--eval", "--remsh", "--dot-iex", "--dbg") } {
-      $private:NextArg = $Args[++$i] | NormalizeArg | QuotedString
+      $private:NextArg = NormalizeArg($Args[++$i])
 
       $ElixirParams.Add($Arg)
       $ElixirParams.Add($NextArg)
@@ -235,7 +236,7 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
 
       $ElixirParams.Add("--rpc-eval")
       $ElixirParams.Add($Key)
-      $ElixirParams.Add("$(QuotedString $Value)")
+      $ElixirParams.Add($Value)
       break
     }
 
@@ -255,7 +256,7 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
 
       $ElixirParams.Add("-boot_var")
       $ElixirParams.Add($Key)
-      $ElixirParams.Add("$(QuotedString $Value)")
+      $ElixirParams.Add($Value)
       break
     }
 
@@ -283,12 +284,7 @@ for ($i = 0; $i -lt $Args.Count; $i++) {
 
     Default {
       $private:Normalized = NormalizeArg $Arg
-      if ($Normalized.StartsWith("-")) {
-        $AllOtherParams.Add($Normalized)
-      }
-      else {
-        $AllOtherParams.Add("$(QuotedString $Normalized)")
-      }
+      $AllOtherParams.Add($Normalized)
       break
     }
   }
@@ -331,7 +327,8 @@ if ($ERTS_BIN) {
 }
 
 if ($null -eq $RunErlPipe) {
-  $ParamsPart = $AllParams -join " "
+  # We double the double-quotes because they are going to be escaped by arguments parsing.
+  $ParamsPart = $AllParams | ForEach-Object -Process { QuoteString($_ -replace "`"", "`"`"") }
 }
 else {
   $private:OrigBinPath = $BinPath
@@ -344,10 +341,12 @@ else {
 
   $AllParams.Insert(0, $OrigBinPath)
 
-  # We only scape double-quotes because the command will be surrounded by double-quotes.
-  $private:Escaped = $AllParams | ForEach-Object -Process { $_ -replace "`"", "\$&" }
+  # We scape special chars using the Unix style of scaping, with "\".
+  # But first we escape the double-quotes.
+  $private:Escaped = $AllParams | ForEach-Object -Process { ($_ -replace "`"", "\`"") -replace "[^a-zA-Z0-9_/-]", "\$&" }
 
-  $ParamsPart = "-daemon `"$RunErlPipe/`" `"$RunErlLog/`" `"$([string]::Join(" ", $Escaped))`""
+  # The args are surrounded here for the same reasons
+  $ParamsPart = @("-daemon","`"$RunErlPipe/`"", "`"$RunErlLog/`"", "`"$($Escaped -join " ")`"")
 }
 
 if ($Env:ELIXIR_CLI_DRY_RUN) {
@@ -358,6 +357,6 @@ else {
     $null = New-Item -Path "." -ItemType "directory" -Name "$RunErlPipe" -Force
     $null = New-Item -Path "." -ItemType "directory" -Name "$RunErlLog" -Force
   }
-  $Output = Start-Process -FilePath $BinPath -ArgumentList "$ParamsPart" -NoNewWindow -Wait -PassThru
+  $Output = Start-Process -FilePath $BinPath -ArgumentList $ParamsPart -NoNewWindow -Wait -PassThru
   exit $Output.ExitCode
 }
