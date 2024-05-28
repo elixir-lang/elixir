@@ -77,7 +77,7 @@ defmodule Mix.Tasks.Profile.TprofTest do
     in_tmp(context.test, fn ->
       assert capture_io(fn ->
                Tprof.run(["--sort", "calls", "-e", @expr])
-             end) =~ ~r/Enum\.each\/2.*String\.Chars\.Integer\.to_string\/1/s
+             end) =~ ~r/\nEnum\.each\/2.*\nString\.Chars\.Integer\.to_string\/1/s
     end)
   end
 
@@ -85,7 +85,15 @@ defmodule Mix.Tasks.Profile.TprofTest do
     in_tmp(context.test, fn ->
       assert capture_io(fn ->
                Tprof.run(["--type", "memory", "--sort", "calls", "-e", @expr])
-             end) =~ ~r/Enum\.each\/2.*:erlang\.integer_to_binary\/1/s
+             end) =~ ~r/\nEnum\.each\/2.*\n:erlang\.integer_to_binary\/1/s
+    end)
+  end
+
+  test "sorts based on memory per call", context do
+    in_tmp(context.test, fn ->
+      assert capture_io(fn ->
+               Tprof.run(["--type", "memory", "--sort", "per_call", "-e", @expr])
+             end) =~ ~r/\n:erlang\.integer_to_binary\/1.*\nEnum\.each\/2/s
     end)
   end
 
