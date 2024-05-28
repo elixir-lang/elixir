@@ -338,8 +338,7 @@ defmodule Duration do
   Converts the given `duration` to an [ISO 8601-2:2019](https://en.wikipedia.org/wiki/ISO_8601) formatted string.
 
   Note this function implements the *extension* of ISO 8601:2019. This extensions allows weeks to
-  appear in any case, which is not the case in the base standard. `"P3M3W"` is not allowed in
-  ISO 8601-1, but it is in ISO 8601-2. Thus, any duration can be output by this function.
+  appear between months and days: `P3M3W3D`, making it fully compatible with any `Duration` struct.
 
   ## Examples
 
