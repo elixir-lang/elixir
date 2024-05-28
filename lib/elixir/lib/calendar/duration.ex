@@ -345,25 +345,18 @@ defmodule Duration do
 
       iex> Duration.new!(year: 3) |> Duration.to_iso8601()
       "P3Y"
-      iex> Duration.new!(day: 28, hour: 6, minute: 42, second: 12) |> Duration.to_iso8601()
-      "P28DT6H42M12S"
+      iex> Duration.new!(day: 40, hour: 12, minute: 42, second: 12) |> Duration.to_iso8601()
+      "P40DT12H42M12S"
       iex> Duration.new!(second: 30) |> Duration.to_iso8601()
       "PT30S"
       iex> Duration.new!(second: 30) |> Duration.multiply(-1) |> Duration.to_iso8601()
       "PT-30S"
+
       iex> Duration.new!([]) |> Duration.to_iso8601()
       "PT0S"
 
-      iex> Duration.new!(hour: 2, microsecond: {2, 6}) |> Duration.to_iso8601()
-      "PT2H0.000002S"
-      iex> Duration.new!(hour: 2, microsecond: {2, 3}) |> Duration.to_iso8601()
-      "PT2H0.000S"
-      iex> Duration.new!(hour: 2, microsecond: {2, 0}) |> Duration.to_iso8601()
-      "PT2H0S"
-      iex> Duration.new!(microsecond: {2, 0}) |> Duration.to_iso8601()
-      "PT0S"
-      iex> Duration.new!(microsecond: {2_000_000, 6}) |> Duration.to_iso8601()
-      "PT2.000000S"
+      iex> Duration.new!(second: 1, microsecond: {2_200, 3}) |> Duration.to_iso8601()
+      "PT1.002S"
       iex> %Duration{second: 1, microsecond: {-1_200_000, 4}} |> Duration.to_iso8601()
       "PT-0.2000S"
   """
