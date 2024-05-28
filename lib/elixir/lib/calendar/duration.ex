@@ -183,9 +183,9 @@ defmodule Duration do
 
   ## Examples
 
-      iex> Duration.add(%Duration{week: 2, day: 1}, %Duration{day: 2})
+      iex> Duration.add(Duration.new!(week: 2, day: 1), Duration.new!(day: 2))
       %Duration{week: 2, day: 3}
-      iex> Duration.add(%Duration{microsecond: {400, 3}}, %Duration{microsecond: {600, 6}})
+      iex> Duration.add(Duration.new!(microsecond: {400, 3}), Duration.new!(microsecond: {600, 6}))
       %Duration{microsecond: {1000, 6}}
 
   """
@@ -213,9 +213,9 @@ defmodule Duration do
 
   ## Examples
 
-      iex> Duration.subtract(%Duration{week: 2, day: 1}, %Duration{day: 2})
+      iex> Duration.subtract(Duration.new!(week: 2, day: 1), Duration.new!(day: 2))
       %Duration{week: 2, day: -1}
-      iex> Duration.subtract(%Duration{microsecond: {400, 6}}, %Duration{microsecond: {600, 3}})
+      iex> Duration.subtract(Duration.new!(microsecond: {400, 6}), Duration.new!(microsecond: {600, 3}))
       %Duration{microsecond: {-200, 6}}
 
   """
@@ -241,9 +241,9 @@ defmodule Duration do
 
   ## Examples
 
-      iex> Duration.multiply(%Duration{day: 1, minute: 15, second: -10}, 3)
+      iex> Duration.multiply(Duration.new!(day: 1, minute: 15, second: -10), 3)
       %Duration{day: 3, minute: 45, second: -30}
-      iex> Duration.multiply(%Duration{microsecond: {200, 4}}, 3)
+      iex> Duration.multiply(Duration.new!(microsecond: {200, 4}), 3)
       %Duration{microsecond: {600, 4}}
 
   """
@@ -266,9 +266,9 @@ defmodule Duration do
 
   ## Examples
 
-      iex> Duration.negate(%Duration{day: 1, minute: 15, second: -10})
+      iex> Duration.negate(Duration.new!(day: 1, minute: 15, second: -10))
       %Duration{day: -1, minute: -15, second: 10}
-      iex> Duration.negate(%Duration{microsecond: {500000, 4}})
+      iex> Duration.negate(Duration.new!(microsecond: {500000, 4}))
       %Duration{microsecond: {-500000, 4}}
 
   """
@@ -353,78 +353,60 @@ defmodule Duration do
 
   ## Examples
 
-      iex> Duration.to_iso8601(%Duration{year: 3})
+      iex> Duration.to_iso8601(Duration.new!(year: 3))
       "P3Y"
-      iex> Duration.to_iso8601(%Duration{day: 40, hour: 12, minute: 42, second: 12})
+      iex> Duration.to_iso8601(Duration.new!(day: 40, hour: 12, minute: 42, second: 12))
       "P40DT12H42M12S"
-      iex> Duration.to_iso8601(%Duration{second: 30})
+      iex> Duration.to_iso8601(Duration.new!(second: 30))
       "PT30S"
 
-      iex> Duration.to_iso8601(%Duration{})
+      iex> Duration.to_iso8601(Duration.new!([]))
       "PT0S"
 
-      iex> Duration.to_iso8601(%Duration{second: 1, microsecond: {2_200, 3}})
+      iex> Duration.to_iso8601(Duration.new!(second: 1, microsecond: {2_200, 3}))
       "PT1.002S"
-      iex> Duration.to_iso8601(%Duration{second: 1, microsecond: {-1_200_000, 4}})
+      iex> Duration.to_iso8601(Duration.new!(second: 1, microsecond: {-1_200_000, 4}))
       "PT-0.2000S"
   """
 
   @spec to_iso8601(t) :: String.t()
-  def to_iso8601(duration)
-
-  def to_iso8601(%Duration{
-        year: 0,
-        month: 0,
-        week: 0,
-        day: 0,
-        hour: 0,
-        minute: 0,
-        second: 0,
-        microsecond: {0, _}
-      }) do
-    "PT0S"
+  def to_iso8601(%Duration{} = duration) do
+    case {to_iso8601_duration_date(duration), to_iso8601_duration_time(duration)} do
+      {[], []} -> "PT0S"
+      {date, time} -> IO.iodata_to_binary([?P, date, time])
+    end
   end
 
-  def to_iso8601(%Duration{} = d) do
-    IO.iodata_to_binary([?P, to_iso8601_duration_date(d), to_iso8601_duration_time(d)])
-  end
-
-  defp to_iso8601_duration_date(d) do
-    [
-      if(d.year == 0, do: [], else: [Integer.to_string(d.year), ?Y]),
-      if(d.month == 0, do: [], else: [Integer.to_string(d.month), ?M]),
-      if(d.week == 0, do: [], else: [Integer.to_string(d.week), ?W]),
-      if(d.day == 0, do: [], else: [Integer.to_string(d.day), ?D])
-    ]
-  end
-
-  defp to_iso8601_duration_time(%Duration{hour: 0, minute: 0, second: 0, microsecond: {0, _}}) do
+  defp to_iso8601_duration_date(%{year: 0, month: 0, week: 0, day: 0}) do
     []
   end
 
-  defp to_iso8601_duration_time(d) do
-    [
-      ?T,
-      if(d.hour == 0, do: [], else: [Integer.to_string(d.hour), ?H]),
-      if(d.minute == 0, do: [], else: [Integer.to_string(d.minute), ?M]),
-      second_component(d)
-    ]
+  defp to_iso8601_duration_date(%{year: year, month: month, week: week, day: day}) do
+    [pair(year, ?Y), pair(month, ?M), pair(week, ?W), pair(day, ?D)]
   end
 
-  defp second_component(%Duration{second: 0, microsecond: {0, _}}) do
+  defp to_iso8601_duration_time(%{hour: 0, minute: 0, second: 0, microsecond: {0, _}}) do
     []
   end
 
-  defp second_component(%Duration{second: 0, microsecond: {_, 0}}) do
+  defp to_iso8601_duration_time(%{hour: hour, minute: minute} = d) do
+    [?T, pair(hour, ?H), pair(minute, ?M), second_component(d)]
+  end
+
+  defp second_component(%{second: 0, microsecond: {0, _}}) do
+    []
+  end
+
+  defp second_component(%{second: 0, microsecond: {_, 0}}) do
     ~c"0S"
   end
 
-  defp second_component(%Duration{microsecond: {_, 0}} = d) do
-    [Integer.to_string(d.second), ?S]
+  defp second_component(%{second: second, microsecond: {_, 0}}) do
+    [Integer.to_string(second), ?S]
   end
 
-  defp second_component(%Duration{microsecond: {ms, p}} = d) do
-    total_ms = d.second * @microseconds_per_second + ms
+  defp second_component(%{second: second, microsecond: {ms, p}}) do
+    total_ms = second * @microseconds_per_second + ms
     second = total_ms |> div(@microseconds_per_second) |> abs()
     ms = total_ms |> rem(@microseconds_per_second) |> abs()
     sign = if total_ms < 0, do: ?-, else: []
@@ -437,4 +419,8 @@ defmodule Duration do
       ?S
     ]
   end
+
+  @compile {:inline, pair: 2}
+  defp pair(0, _key), do: []
+  defp pair(num, key), do: [Integer.to_string(num), key]
 end
