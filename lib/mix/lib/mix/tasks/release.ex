@@ -601,7 +601,7 @@ defmodule Mix.Tasks.Release do
       -start_epmd false -erl_epmd_port 6789
 
       # In remote.vm.args.eex
-      # -start_epmd false -erl_epmd_port 6789 -dist_listen false
+      -start_epmd false -erl_epmd_port 6789 -dist_listen false
 
   You can pick any port of your choice.
 
