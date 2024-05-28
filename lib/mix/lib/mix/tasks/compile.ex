@@ -74,7 +74,8 @@ defmodule Mix.Tasks.Compile do
     * `--no-protocol-consolidation` - skips protocol consolidation
     * `--no-validate-compile-env` - does not validate the application compile environment
     * `--return-errors` - returns error status and diagnostics instead of exiting on error
-    * `--warnings-as-errors` - exit with non-zero status if compilation has one or more warnings
+    * `--warnings-as-errors` - exit with non-zero status if compilation has one or more
+      warnings. Only concerns compilation warnings from the project, not its dependencies.
 
   """
 
