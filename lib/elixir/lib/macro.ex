@@ -2647,7 +2647,7 @@ defmodule Macro do
       [macro: Kernel] ->
         quote do
           condition_result = unquote(condition_ast)
-          result = unquote(ast)
+          result = if condition_result, unquote(clauses)
 
           {:if, unquote(escape(ast)), unquote(escape(condition_ast)), condition_result, result}
         end
