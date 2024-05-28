@@ -124,6 +124,8 @@ defmodule Duration do
   """
   @type duration :: t | [unit_pair]
 
+  @microseconds_per_second 1_000_000
+
   @doc """
   Creates a new `Duration` struct from given `unit_pairs`.
 
@@ -341,5 +343,98 @@ defmodule Duration do
       {:error, reason} ->
         raise ArgumentError, ~s/failed to parse duration "#{string}". reason: #{inspect(reason)}/
     end
+  end
+
+  @doc """
+  Converts the given `duration` to an [ISO 8601-2:2019](https://en.wikipedia.org/wiki/ISO_8601) formatted string.
+
+  Note this function implements the *extension* of ISO 8601:2019. This extensions allows weeks to
+  appear between months and days: `P3M3W3D`, making it fully compatible with any `Duration` struct.
+
+  ## Examples
+
+      iex> Duration.to_iso8601(%Duration{year: 3})
+      "P3Y"
+      iex> Duration.to_iso8601(%Duration{day: 40, hour: 12, minute: 42, second: 12})
+      "P40DT12H42M12S"
+      iex> Duration.to_iso8601(%Duration{second: 30})
+      "PT30S"
+
+      iex> Duration.to_iso8601(%Duration{})
+      "PT0S"
+
+      iex> Duration.to_iso8601(%Duration{second: 1, microsecond: {2_200, 3}})
+      "PT1.002S"
+      iex> Duration.to_iso8601(%Duration{second: 1, microsecond: {-1_200_000, 4}})
+      "PT-0.2000S"
+  """
+
+  @spec to_iso8601(t) :: String.t()
+  def to_iso8601(duration)
+
+  def to_iso8601(%Duration{
+        year: 0,
+        month: 0,
+        week: 0,
+        day: 0,
+        hour: 0,
+        minute: 0,
+        second: 0,
+        microsecond: {0, _}
+      }) do
+    "PT0S"
+  end
+
+  def to_iso8601(%Duration{} = d) do
+    IO.iodata_to_binary([?P, to_iso8601_duration_date(d), to_iso8601_duration_time(d)])
+  end
+
+  defp to_iso8601_duration_date(d) do
+    [
+      if(d.year == 0, do: [], else: [Integer.to_string(d.year), ?Y]),
+      if(d.month == 0, do: [], else: [Integer.to_string(d.month), ?M]),
+      if(d.week == 0, do: [], else: [Integer.to_string(d.week), ?W]),
+      if(d.day == 0, do: [], else: [Integer.to_string(d.day), ?D])
+    ]
+  end
+
+  defp to_iso8601_duration_time(%Duration{hour: 0, minute: 0, second: 0, microsecond: {0, _}}) do
+    []
+  end
+
+  defp to_iso8601_duration_time(d) do
+    [
+      ?T,
+      if(d.hour == 0, do: [], else: [Integer.to_string(d.hour), ?H]),
+      if(d.minute == 0, do: [], else: [Integer.to_string(d.minute), ?M]),
+      second_component(d)
+    ]
+  end
+
+  defp second_component(%Duration{second: 0, microsecond: {0, _}}) do
+    []
+  end
+
+  defp second_component(%Duration{second: 0, microsecond: {_, 0}}) do
+    ~c"0S"
+  end
+
+  defp second_component(%Duration{microsecond: {_, 0}} = d) do
+    [Integer.to_string(d.second), ?S]
+  end
+
+  defp second_component(%Duration{microsecond: {ms, p}} = d) do
+    total_ms = d.second * @microseconds_per_second + ms
+    second = total_ms |> div(@microseconds_per_second) |> abs()
+    ms = total_ms |> rem(@microseconds_per_second) |> abs()
+    sign = if total_ms < 0, do: ?-, else: []
+
+    [
+      sign,
+      Integer.to_string(second),
+      ?.,
+      ms |> Integer.to_string() |> String.pad_leading(6, "0") |> binary_part(0, p),
+      ?S
+    ]
   end
 end
