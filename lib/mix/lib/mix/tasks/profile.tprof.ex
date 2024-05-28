@@ -45,7 +45,7 @@ defmodule Mix.Tasks.Profile.Tprof do
     * `--calls` - filters out any results with a call count lower than this
     * `--time` - filters out any results that took lower than specified (in µs), the `type` needs to be `time`
     * `--memory` - filters out any results that used less memory than specified (in words), the `type` needs to be `memory`
-    * `--sort` - sorts the results by `calls` or by the value of `type` (default: the value of `type`)
+    * `--sort` - sorts the results by `calls`, `per_call` or by the value of `type` (default: the value of `type`)
     * `--eval`, `-e` - evaluates the given code
     * `--require`, `-r` - requires pattern before running the command
     * `--parallel`, `-p` - makes all requires parallel
@@ -214,6 +214,7 @@ defmodule Mix.Tasks.Profile.Tprof do
   defp parse_opt({:sort, "time"}), do: {:sort, :time}
   defp parse_opt({:sort, "calls"}), do: {:sort, :calls}
   defp parse_opt({:sort, "memory"}), do: {:sort, :memory}
+  defp parse_opt({:sort, "per_call"}), do: {:sort, :per_call}
   defp parse_opt({:sort, other}), do: Mix.raise("Invalid sort option: #{other}")
   defp parse_opt(other), do: other
 
@@ -235,7 +236,7 @@ defmodule Mix.Tasks.Profile.Tprof do
       `type` needs to be `:time`
     * `:memory` - filters out any results that used less memory than specified (in words),
       `type` needs to be `:memory`
-    * `:sort` - sort the results by `:calls` or by the value of `type`
+    * `:sort` - sort the results by `:calls`, `:per_call` or by the value of `type`
       (default: the value of `type`)
     * `:warmup` - if the code should be warmed up before profiling (default: `true`)
     * `:set_on_spawn` - if newly spawned processes should be measured (default: `true`)
@@ -266,6 +267,9 @@ defmodule Mix.Tasks.Profile.Tprof do
 
         :calls ->
           :calls
+
+        :per_call ->
+          :measurement_per_call
 
         ^type ->
           :measurement
