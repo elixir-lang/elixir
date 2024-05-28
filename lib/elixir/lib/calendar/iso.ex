@@ -675,6 +675,10 @@ defmodule Calendar.ISO do
     parse_duration_date(string, [], year: ?Y, month: ?M, week: ?W, day: ?D)
   end
 
+  def parse_duration("+P" <> string) when byte_size(string) > 0 do
+    parse_duration_date(string, [], year: ?Y, month: ?M, week: ?W, day: ?D)
+  end
+
   def parse_duration("-P" <> string) when byte_size(string) > 0 do
     with {:ok, fields} <- parse_duration_date(string, [], year: ?Y, month: ?M, week: ?W, day: ?D) do
       {:ok,

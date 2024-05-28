@@ -287,10 +287,16 @@ defmodule Duration do
   @doc """
   Parses an [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) formatted duration string to a `Duration` struct.
 
-  - A duration string must be designated in order of magnitude: `P[n]Y[n]M[n]W[n]DT[n]H[n]M[n]S`.
-  - A duration string may be prefixed with a minus sign to negate it: `-P10DT4H`.
-  - Individual units may be prefixed with a minus sign: `P-10DT4H`.
-  - Only seconds may be specified with a decimal fraction, using either a comma or a full stop: `P1DT4,5S`.
+  Duration strings, as well as individual units, may be prefixed with plus/minus signs so that:
+
+  - `-PT6H3M` parses as `%Duration{hour: -6, minute: -3}`
+  - `-PT6H-3M` parses as `%Duration{hour: -6, minute: 3}`
+  - `+PT6H3M` parses as `%Duration{hour: 6, minute: 3}`
+  - `+PT6H-3M` parses as `%Duration{hour: 6, minute: -3}`
+
+  Duration designators must be provided in order of magnitude: `P[n]Y[n]M[n]W[n]DT[n]H[n]M[n]S`.
+
+  Only seconds may be specified with a decimal fraction, using either a comma or a full stop: `P1DT4,5S`.
 
   ## Examples
 
