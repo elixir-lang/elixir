@@ -306,7 +306,8 @@ defmodule EEx.Compiler do
 
     init = state.engine.init(opts)
 
-    if function_exported?(state.engine, :handle_text, 2) do
+    if function_exported?(state.engine, :handle_text, 2) and
+         not function_exported?(state.engine, :handle_text, 3) do
       IO.warn(
         "#{inspect(state.engine)}.handle_text/2 is deprecated, implement handle_text/3 instead"
       )
