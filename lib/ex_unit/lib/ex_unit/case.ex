@@ -239,7 +239,7 @@ defmodule ExUnit.Case do
   For example, Elixir has a module called `Registry`, which can have type
   `:unique` or `:duplicate`, and can control its concurrency factor using
   the `:partitions` option. If you have a number of tests that *behave the
-  same* across all of those values, I can parameterize those tests with:
+  same* across all of those values, you can parameterize those tests with:
 
       setup_all do
         parameters =
@@ -252,12 +252,12 @@ defmodule ExUnit.Case do
 
   Use parameterized tests with care:
 
-  * Abuse of parameterized tests may make your test suite considerably slower
+    * Abuse of parameterized tests may make your test suite considerably slower
 
-  * If you use parameterized tests and then find yourself adding conditionals
-    in your tests to deal with different parameters, then parameterized tests
-    may be the wrong solution to your problem. Consider creating separated
-    tests and sharing logic between them using regular functions
+    * If you use parameterized tests and then find yourself adding conditionals
+      in your tests to deal with different parameters, then parameterized tests
+      may be the wrong solution to your problem. Consider creating separated
+      tests and sharing logic between them using regular functions
 
   ## Log Capture
 
