@@ -683,6 +683,30 @@ defmodule ExUnitTest do
     assert output =~ "\n6 tests, 0 failures, 1 excluded, 4 invalid, 1 skipped\n"
   end
 
+  test "parameterized tests" do
+    defmodule ParameterizedTests do
+      use ExUnit.Case, async: true, parameterize: [%{value: true}, %{value: false}]
+
+      test "hello world", %{value: value} do
+        assert value
+      end
+    end
+
+    configure_and_reload_on_exit(trace: true)
+
+    output = capture_io(fn -> ExUnit.run() end)
+
+    assert output =~ """
+           ExUnitTest.ParameterizedTests [test/ex_unit_test.exs]
+           Parameters: %{value: false}
+           """
+
+    assert output =~ """
+             1) test hello world (ExUnitTest.ParameterizedTests)
+                Parameters: %{value: false}
+           """
+  end
+
   describe "after_suite/1" do
     test "executes all callbacks set in reverse order" do
       Process.register(self(), :after_suite_test_process)
@@ -1033,7 +1057,7 @@ defmodule ExUnitTest do
   ##  Helpers
 
   defp run_with_filter(filters, cases) do
-    Enum.each(cases, &ExUnit.Server.add_sync_module/1)
+    Enum.each(cases, &ExUnit.Server.add_module(&1, {false, nil}))
     ExUnit.Server.modules_loaded(false)
 
     opts =

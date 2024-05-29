@@ -230,6 +230,31 @@ defmodule ExUnit.FormatterTest do
            """
   end
 
+  test "formats test errors with parameters" do
+    failure = [{:error, catch_error(raise "oops"), []}]
+
+    assert format_test_failure(%{test() | parameters: %{foo: :bar}}, failure, 1, 80, &formatter/2) =~
+             """
+               1) world (Hello)
+                  Parameters: %{foo: :bar}
+                  test/ex_unit/formatter_test.exs:1
+                  ** (RuntimeError) oops
+             """
+
+    formatter = fn
+      :parameters_info, map -> Map.put(map, :more, :keys)
+      key, val -> formatter(key, val)
+    end
+
+    assert format_test_failure(%{test() | parameters: %{foo: :bar}}, failure, 1, 80, formatter) =~
+             """
+               1) world (Hello)
+                  Parameters: #{inspect(%{foo: :bar, more: :keys})}
+                  test/ex_unit/formatter_test.exs:1
+                  ** (RuntimeError) oops
+             """
+  end
+
   test "formats stacktraces" do
     stacktrace = [{Oops, :wrong, 1, [file: "formatter_test.exs", line: 1]}]
     failure = [{:error, catch_error(raise "oops"), stacktrace}]

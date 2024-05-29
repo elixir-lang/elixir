@@ -137,9 +137,14 @@ defmodule ExUnit.CLIFormatter do
     {:noreply, update_test_timings(config, test)}
   end
 
-  def handle_cast({:module_started, %ExUnit.TestModule{name: name, file: file}}, config) do
+  def handle_cast({:module_started, %ExUnit.TestModule{} = module}, config) do
     if config.trace do
+      %{name: name, file: file, parameters: parameters} = module
       IO.puts("\n#{inspect(name)} [#{Path.relative_to_cwd(file)}]")
+
+      if parameters != %{} do
+        IO.puts("Parameters: #{inspect(parameters)}")
+      end
     end
 
     {:noreply, config}
