@@ -394,7 +394,7 @@ defmodule ExUnit.CallbacksTest do
 
     assert output =~
              "** (RuntimeError) expected ExUnit setup callback in " <>
-               "ExUnit.CallbacksTest.SetupErrorTest to return :ok | keyword | map, " <>
+               "ExUnit.CallbacksTest.SetupErrorTest to return the atom :ok, a keyword, or a map, " <>
                "got {:ok, \"foo\"} instead"
 
     # Make sure that at least the right file where the setup/setup_all call is defined is included
@@ -414,7 +414,7 @@ defmodule ExUnit.CallbacksTest do
 
     assert output =~
              "** (RuntimeError) expected ExUnit setup_all callback in " <>
-               "ExUnit.CallbacksTest.SetupAllErrorTest to return :ok | keyword | map, " <>
+               "ExUnit.CallbacksTest.SetupAllErrorTest to return the atom :ok, a keyword, or a map, " <>
                "got {:ok, \"foo\"} instead"
 
     # Make sure that at least the right file where the setup/setup_all call is defined is included

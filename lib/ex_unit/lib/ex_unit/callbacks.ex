@@ -3,8 +3,9 @@ defmodule ExUnit.Callbacks do
   Defines ExUnit callbacks.
 
   This module defines the `setup/1`, `setup/2`, `setup_all/1`, and
-  `setup_all/2` callbacks, as well as the `on_exit/2`, `start_supervised/2`,
-  `stop_supervised/1` and `start_link_supervised!/2` functions.
+  `setup_all/2` macros, as well as process lifecycle and management
+  functions, such as `on_exit/2`, `start_supervised/2`, `stop_supervised/1`
+  and `start_link_supervised!/2`.
 
   The setup callbacks may be used to define [test fixtures](https://en.wikipedia.org/wiki/Test_fixture#Software)
   and run any initialization code which help bring the system into a known
@@ -56,13 +57,15 @@ defmodule ExUnit.Callbacks do
 
   ## Context
 
-  If `setup_all` or `setup` return a keyword list, a map, or a tuple in the shape
-  of `{:ok, keyword() | map()}`, the keyword list or map will be merged into the
-  current context and will be available in all subsequent `setup_all`,
-  `setup`, and the `test` itself.
+  `setup_all` or `setup` may return one of:
 
-  Returning `:ok` leaves the context unchanged (in `setup` and `setup_all`
-  callbacks).
+    * the atom `:ok`
+    * a keyword list or map
+    * a tuple in the shape of `{:ok, keyword() | map()}`
+
+  If a keyword list or map is returned, it be merged into the current context
+  and will be available in all subsequent `setup_all`, `setup`, and the `test`
+  itself.
 
   Returning anything else from `setup_all` will force all tests to fail,
   while a bad response from `setup` causes the current test to fail.
@@ -728,7 +731,7 @@ defmodule ExUnit.Callbacks do
 
   defp raise_merge_failed!(mod, kind, return_value) do
     raise "expected ExUnit #{kind} callback in #{inspect(mod)} to " <>
-            "return :ok | keyword | map, got #{inspect(return_value)} instead"
+            "return the atom :ok, a keyword, or a map, got #{inspect(return_value)} instead"
   end
 
   defp raise_merge_reserved!(mod, kind, key, value) do
