@@ -2599,7 +2599,7 @@ defmodule Macro do
     quote do
       unquote(acc_var) = []
       unquote(dbg_boolean_tree(ast, acc_var, result_var))
-      {:logic_op, Enum.reverse(unquote(acc_var))}
+      {:logic_op, Enum.reverse(unquote(acc_var)), unquote(result_var)}
     end
   end
 
@@ -2610,7 +2610,7 @@ defmodule Macro do
     quote do
       unquote(acc_var) = []
       unquote(dbg_block(ast, acc_var, result_var))
-      {:block, Enum.reverse(unquote(acc_var))}
+      {:block, Enum.reverse(unquote(acc_var)), unquote(result_var)}
     end
   end
 
@@ -2712,7 +2712,7 @@ defmodule Macro do
         end
       end)
 
-    {:__block__, meta, modified_clauses ++ [result_var]}
+    {:__block__, meta, modified_clauses}
   end
 
   # Made public to be called from Macro.dbg/3, so that we generate as little code
@@ -2752,28 +2752,28 @@ defmodule Macro do
     {[first_formatted | rest_formatted], result}
   end
 
-  defp dbg_format_ast_to_debug({:logic_op, components}, options) do
-    {_ast, final_value} = List.last(components)
-
+  defp dbg_format_ast_to_debug({:logic_op, components, value}, options) do
     formatted =
       Enum.map(components, fn {ast, value} ->
         [dbg_format_ast(to_string_with_colors(ast, options)), " ", inspect(value, options), ?\n]
       end)
 
-    {formatted, final_value}
+    {formatted, value}
   end
 
-  defp dbg_format_ast_to_debug({:block, components}, options) do
-    {_ast, final_value} = List.last(components)
-
+  defp dbg_format_ast_to_debug({:block, components, value}, options) do
     formatted =
-      [dbg_maybe_underline("Code block", options), ":\n(\n"] ++
+      [
+        dbg_maybe_underline("Code block", options),
+        ":\n(\n",
         Enum.map(components, fn {ast, value} ->
           ["  ", dbg_format_ast_with_value(ast, value, options)]
-        end) ++
-        [?), ?\n]
+        end),
+        ?),
+        ?\n
+      ]
 
-    {formatted, final_value}
+    {formatted, value}
   end
 
   defp dbg_format_ast_to_debug({:case, ast, expr_value, clause_index, value}, options) do
