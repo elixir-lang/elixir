@@ -465,6 +465,8 @@ defmodule MacroTest do
 
       assert result == 4
 
+      assert formatted =~ "macro_test.exs"
+
       assert formatted =~ """
              Code block:
              (
