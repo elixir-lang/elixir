@@ -250,6 +250,12 @@ defmodule ExUnit.Case do
         [parameterize: parameters]
       end
 
+  Then, in your tests, you can access the parameters as part of the context:
+
+      test "starts a registry", %{kind: kind, partitions: partitions} do
+        ...
+      end
+
   Use parameterized tests with care:
 
     * Abuse of parameterized tests may make your test suite considerably slower
