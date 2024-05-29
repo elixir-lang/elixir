@@ -161,34 +161,16 @@ defmodule ExUnit.CaseTest do
   end
 end
 
-defmodule ExUnit.DoubleCaseTest1 do
+defmodule ExUnit.DoubleCaseTestAsyncFirst do
   use ExUnit.Case, async: true
   use ExUnit.Case
 
   test "async must be true", context do
-    assert context.async
-  end
-end
-
-defmodule ExUnit.DoubleCaseTest2 do
-  use ExUnit.Case, async: false
-  use ExUnit.Case
-
-  test "async must be false", context do
     refute context.async
   end
 end
 
-defmodule ExUnit.DoubleCaseTest3 do
-  use ExUnit.Case, async: true
-  use ExUnit.Case, async: false
-
-  test "async must be false", context do
-    refute context.async
-  end
-end
-
-defmodule ExUnit.DoubleCaseTest4 do
+defmodule ExUnit.DoubleCaseTestAsyncLast do
   use ExUnit.Case
   use ExUnit.Case, async: true
 

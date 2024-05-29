@@ -1033,7 +1033,7 @@ defmodule ExUnitTest do
   ##  Helpers
 
   defp run_with_filter(filters, cases) do
-    Enum.each(cases, &ExUnit.Server.add_sync_module/1)
+    Enum.each(cases, &ExUnit.Server.add_module(&1, {false, nil}))
     ExUnit.Server.modules_loaded(false)
 
     opts =

@@ -6,24 +6,21 @@ defmodule Registry.CommonTest do
 end
 
 defmodule Registry.Test do
-  use ExUnit.Case, async: true
-
-  setup_all do
-    [
-      parameterize: [
-        %{partitions: 1},
-        %{partitions: 8}
-      ]
+  use ExUnit.Case,
+    async: true,
+    parameterize: [
+      %{partitions: 1},
+      %{partitions: 8}
     ]
-  end
 
   setup config do
     keys = config.keys || :unique
     partitions = config.partitions
-    listeners = List.wrap(config[:listener])
-    opts = [keys: keys, name: config.test, partitions: partitions, listeners: listeners]
+    listeners = List.wrap(config[:base_listener]) |> Enum.map(&:"#{&1}_#{partitions}")
+    name = :"#{config.test}_#{partitions}"
+    opts = [keys: keys, name: name, partitions: partitions, listeners: listeners]
     {:ok, _} = start_supervised({Registry, opts})
-    %{registry: config.test}
+    %{registry: name, listeners: listeners}
   end
 
   describe "unique" do
@@ -225,8 +222,8 @@ defmodule Registry.Test do
       assert Registry.keys(registry, self()) |> Enum.sort() == ["hello"]
     end
 
-    @tag listener: :duplicate_listener
-    test "allows listeners", %{registry: registry, listener: listener} do
+    @tag base_listener: :unique_listener
+    test "allows listeners", %{registry: registry, listeners: [listener]} do
       Process.register(self(), listener)
       {_, task} = register_task(registry, "hello", :world)
       assert_received {:register, ^registry, "hello", ^task, :world}
@@ -745,8 +742,8 @@ defmodule Registry.Test do
       assert Registry.keys(registry, self()) |> Enum.sort() == [:_, "hello", "hello"]
     end
 
-    @tag listener: :duplicate_listener
-    test "allows listeners", %{registry: registry, listener: listener} do
+    @tag base_listener: :unique_listener
+    test "allows listeners", %{registry: registry, listeners: [listener]} do
       Process.register(self(), listener)
       {_, task} = register_task(registry, "hello", :world)
       assert_received {:register, ^registry, "hello", ^task, :world}

@@ -9,16 +9,20 @@ defmodule ExUnit.Server do
     GenServer.start_link(__MODULE__, :ok, name: @name)
   end
 
-  def add_async_module(name), do: add(name, :async)
-  def add_sync_module(name), do: add(name, :sync)
+  def add_module(name, {async?, parameterize}) do
+    modules =
+      if parameterize do
+        Enum.map(parameterize, &{name, &1})
+      else
+        [{name, %{}}]
+      end
 
-  defp add(name, type) do
-    case GenServer.call(@name, {:add, name, type}, @timeout) do
+    case GenServer.call(@name, {:add, async?, modules}, @timeout) do
       :ok ->
         :ok
 
       :already_running ->
-        raise "cannot add #{type} case named #{inspect(name)} to test suite after the suite starts running"
+        raise "cannot add module named #{inspect(name)} to test suite after the suite starts running"
     end
   end
 
@@ -97,19 +101,19 @@ defmodule ExUnit.Server do
     {:reply, diff, take_modules(%{state | loaded: :done})}
   end
 
-  def handle_call({:add, name, :async}, _from, %{loaded: loaded} = state)
+  def handle_call({:add, true, names}, _from, %{loaded: loaded} = state)
       when is_integer(loaded) do
-    state = update_in(state.async_modules, &[name | &1])
+    state = update_in(state.async_modules, &(names ++ &1))
     {:reply, :ok, take_modules(state)}
   end
 
-  def handle_call({:add, name, :sync}, _from, %{loaded: loaded} = state)
+  def handle_call({:add, false, names}, _from, %{loaded: loaded} = state)
       when is_integer(loaded) do
-    state = update_in(state.sync_modules, &[name | &1])
+    state = update_in(state.sync_modules, &(names ++ &1))
     {:reply, :ok, state}
   end
 
-  def handle_call({:add, _name, _type}, _from, state),
+  def handle_call({:add, _async?, _names}, _from, state),
     do: {:reply, :already_running, state}
 
   defp take_modules(%{waiting: nil} = state) do

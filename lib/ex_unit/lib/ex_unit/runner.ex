@@ -106,9 +106,9 @@ defmodule ExUnit.Runner do
         async_loop(config, running, async_once?, modules_to_restore)
 
       # Slots are available, start with async modules
-      modules = ExUnit.Server.take_async_modules(available) ->
-        running = spawn_modules(config, modules, running)
-        modules_to_restore = maybe_store_modules(modules_to_restore, :async, modules)
+      async_modules = ExUnit.Server.take_async_modules(available) ->
+        running = spawn_modules(config, async_modules, running)
+        modules_to_restore = maybe_store_modules(modules_to_restore, :async, async_modules)
         async_loop(config, running, true, modules_to_restore)
 
       true ->
@@ -124,8 +124,8 @@ defmodule ExUnit.Runner do
         async_stop_time = if async_once?, do: System.monotonic_time(), else: nil
 
         # Run all sync modules directly
-        for module <- sync_modules do
-          running = spawn_modules(config, [module], %{})
+        for pair <- sync_modules do
+          running = spawn_modules(config, [pair], %{})
           running != %{} and wait_until_available(config, running)
         end
 
@@ -161,11 +161,11 @@ defmodule ExUnit.Runner do
     running
   end
 
-  defp spawn_modules(config, [module | modules], running) do
+  defp spawn_modules(config, [{module, params} | modules], running) do
     if max_failures_reached?(config) do
       running
     else
-      {pid, ref} = spawn_monitor(fn -> run_module(config, module) end)
+      {pid, ref} = spawn_monitor(fn -> run_module(config, module, params) end)
       spawn_modules(config, modules, Map.put(running, ref, pid))
     end
   end
@@ -221,7 +221,7 @@ defmodule ExUnit.Runner do
 
   ## Running modules
 
-  defp run_module(config, module) do
+  defp run_module(config, module, context) do
     test_module = module.__ex_unit__()
     EM.module_started(config.manager, test_module)
 
@@ -233,7 +233,8 @@ defmodule ExUnit.Runner do
       EM.test_finished(config.manager, excluded_or_skipped_test)
     end
 
-    {test_module, invalid_tests, finished_tests} = run_module(config, test_module, to_run_tests)
+    {test_module, invalid_tests, finished_tests} =
+      run_module(config, test_module, context, to_run_tests)
 
     pending_tests =
       case process_max_failures(config, test_module) do
@@ -284,18 +285,20 @@ defmodule ExUnit.Runner do
     test_ids == nil or MapSet.member?(test_ids, {test.module, test.name})
   end
 
-  defp run_module(_config, test_module, []) do
+  defp run_module(_config, test_module, _params, []) do
     {test_module, [], []}
   end
 
-  defp run_module(config, test_module, tests) do
-    {module_pid, module_ref} = run_setup_all(test_module, self())
+  defp run_module(config, test_module, params, tests) do
+    {module_pid, module_ref} = run_setup_all(test_module, params, self())
 
     {test_module, invalid_tests, finished_tests} =
       receive do
         {^module_pid, :setup_all, {:ok, context}} ->
           finished_tests =
-            if max_failures_reached?(config), do: [], else: run_tests(config, tests, context)
+            if max_failures_reached?(config),
+              do: [],
+              else: run_tests(config, tests, params, context)
 
           :ok = exit_setup_all(module_pid, module_ref)
           {test_module, [], finished_tests}
@@ -319,7 +322,7 @@ defmodule ExUnit.Runner do
     Enum.map(tests, &%{&1 | state: {:invalid, test_module}})
   end
 
-  defp run_setup_all(%ExUnit.TestModule{name: module} = test_module, parent_pid) do
+  defp run_setup_all(%ExUnit.TestModule{name: module} = test_module, context, parent_pid) do
     Process.put(@current_key, test_module)
 
     spawn_monitor(fn ->
@@ -327,7 +330,7 @@ defmodule ExUnit.Runner do
 
       result =
         try do
-          validate_setup_all(module.__ex_unit__(:setup_all, test_module.tags))
+          {:ok, module.__ex_unit__(:setup_all, Map.merge(test_module.tags, context))}
         catch
           kind, error ->
             failed = failed(kind, error, prune_stacktrace(__STACKTRACE__))
@@ -355,27 +358,9 @@ defmodule ExUnit.Runner do
     end
   end
 
-  defp validate_setup_all(%{parameterize: parameterize} = context) do
-    if is_list(parameterize) and Enum.all?(parameterize, &is_map/1) do
-      {:ok, context}
-    else
-      raise ":parameterize key must return a list of maps to be merged into the context"
-    end
-  end
-
-  defp validate_setup_all(context), do: {:ok, context}
-
-  defp run_tests(config, tests, context) do
-    {parametrize, context} = Map.pop(context, :parameterize)
-
-    tests =
-      if parametrize do
-        for parameters <- parametrize, test <- tests, do: %{test | parameters: parameters}
-      else
-        tests
-      end
-
+  defp run_tests(config, tests, params, context) do
     Enum.reduce_while(tests, [], fn test, acc ->
+      test = %{test | parameters: params}
       Process.put(@current_key, test)
 
       case run_test(config, test, context) do
