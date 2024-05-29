@@ -2709,11 +2709,10 @@ defmodule Macro do
         quote do
           unquote(result_var) = unquote(clause)
           unquote(acc_var) = [{unquote(escape(clause)), unquote(result_var)} | unquote(acc_var)]
-          unquote(result_var)
         end
       end)
 
-    {:__block__, meta, modified_clauses}
+    {:__block__, meta, modified_clauses ++ [result_var]}
   end
 
   # Made public to be called from Macro.dbg/3, so that we generate as little code
