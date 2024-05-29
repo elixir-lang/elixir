@@ -2552,13 +2552,13 @@ defmodule Macro do
     header = dbg_format_header(env)
 
     quote do
-      to_debug = unquote(dbg_ast_to_debuggable(code))
+      to_debug = unquote(dbg_ast_to_debuggable(code, env))
       unquote(__MODULE__).__dbg__(unquote(header), to_debug, unquote(options))
     end
   end
 
   # Pipelines.
-  defp dbg_ast_to_debuggable({:|>, _meta, _args} = pipe_ast) do
+  defp dbg_ast_to_debuggable({:|>, _meta, _args} = pipe_ast, _env) do
     value_var = unique_var(:value, __MODULE__)
     values_acc_var = unique_var(:values, __MODULE__)
 
@@ -2591,7 +2591,7 @@ defmodule Macro do
   dbg_decomposed_binary_operators = [:&&, :||, :and, :or]
 
   # Logic operators.
-  defp dbg_ast_to_debuggable({op, _meta, [_left, _right]} = ast)
+  defp dbg_ast_to_debuggable({op, _meta, [_left, _right]} = ast, _env)
        when op in unquote(dbg_decomposed_binary_operators) do
     acc_var = unique_var(:acc, __MODULE__)
     result_var = unique_var(:result, __MODULE__)
@@ -2603,7 +2603,7 @@ defmodule Macro do
     end
   end
 
-  defp dbg_ast_to_debuggable({:case, _meta, [expr, [do: clauses]]} = ast) do
+  defp dbg_ast_to_debuggable({:case, _meta, [expr, [do: clauses]]} = ast, _env) do
     clauses_returning_index =
       Enum.with_index(clauses, fn {:->, meta, [left, right]}, index ->
         {:->, meta, [left, {right, index}]}
@@ -2621,7 +2621,7 @@ defmodule Macro do
     end
   end
 
-  defp dbg_ast_to_debuggable({:cond, _meta, [[do: clauses]]} = ast) do
+  defp dbg_ast_to_debuggable({:cond, _meta, [[do: clauses]]} = ast, _env) do
     modified_clauses =
       Enum.with_index(clauses, fn {:->, _meta, [[left], right]}, index ->
         hd(
@@ -2642,8 +2642,26 @@ defmodule Macro do
     end
   end
 
+  defp dbg_ast_to_debuggable({:if, meta, [condition_ast, clauses]} = ast, env) do
+    case Macro.Env.lookup_import(env, {:if, 2}) do
+      [macro: Kernel] ->
+        condition_result_var = unique_var(:condition_result, __MODULE__)
+
+        quote do
+          unquote(condition_result_var) = unquote(condition_ast)
+          result = unquote({:if, meta, [condition_result_var, clauses]})
+
+          {:if, unquote(escape(ast)), unquote(escape(condition_ast)),
+           unquote(condition_result_var), result}
+        end
+
+      _ ->
+        quote do: {:value, unquote(escape(ast)), unquote(ast)}
+    end
+  end
+
   # Any other AST.
-  defp dbg_ast_to_debuggable(ast) do
+  defp dbg_ast_to_debuggable(ast, _env) do
     quote do: {:value, unquote(escape(ast)), unquote(ast)}
   end
 
@@ -2753,6 +2771,23 @@ defmodule Macro do
     ]
 
     {formatted, value}
+  end
+
+  defp dbg_format_ast_to_debug(
+         {:if, ast, condition_ast, condition_result, result},
+         options
+       ) do
+    formatted = [
+      dbg_maybe_underline("If condition", options),
+      ":\n",
+      dbg_format_ast_with_value(condition_ast, condition_result, options),
+      ?\n,
+      dbg_maybe_underline("If expression", options),
+      ":\n",
+      dbg_format_ast_with_value(ast, result, options)
+    ]
+
+    {formatted, result}
   end
 
   defp dbg_format_ast_to_debug({:value, code_ast, value}, options) do
