@@ -757,7 +757,7 @@ defmodule ExUnit.Callbacks do
         raise ArgumentError, "describe name must be a string, got: #{inspect(message)}"
 
       is_map_key(used_describes, message) ->
-        raise ExUnit.DuplicateDescribeError,
+        raise ArgumentError,
               "describe #{inspect(message)} is already defined in #{inspect(module)}"
 
       true ->

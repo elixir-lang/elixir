@@ -1,26 +1,3 @@
-defmodule ExUnit.DuplicateTestError do
-  @moduledoc """
-  Exception raised to indicate two or more tests with the same name.
-  """
-
-  @typedoc since: "1.16.0"
-  @type t :: %__MODULE__{message: String.t()}
-
-  defexception [:message]
-end
-
-defmodule ExUnit.DuplicateDescribeError do
-  @moduledoc """
-  Exception raised to indicate two or more `describe` blocks with
-  the same name.
-  """
-
-  @typedoc since: "1.16.0"
-  @type t :: %__MODULE__{message: String.t()}
-
-  defexception [:message]
-end
-
 defmodule ExUnit.Case do
   @moduledoc """
   Helpers for defining test cases.
@@ -614,7 +591,7 @@ defmodule ExUnit.Case do
       end
 
     if Module.defines?(mod, {name, 1}) do
-      raise ExUnit.DuplicateTestError, ~s("#{name}" is already defined in #{inspect(mod)})
+      raise ArgumentError, ~s("#{name}" is already defined in #{inspect(mod)})
     end
 
     tags =

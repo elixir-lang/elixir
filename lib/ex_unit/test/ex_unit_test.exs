@@ -431,7 +431,7 @@ defmodule ExUnitTest do
   test "raises friendly error for duplicate test names" do
     message = ~S("test duplicate" is already defined in ExUnitTest.TestWithSameNames)
 
-    assert_raise ExUnit.DuplicateTestError, message, fn ->
+    assert_raise ArgumentError, message, fn ->
       defmodule TestWithSameNames do
         use ExUnit.Case
 
