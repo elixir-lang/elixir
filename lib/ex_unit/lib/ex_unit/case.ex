@@ -345,6 +345,10 @@ defmodule ExUnit.Case do
     {async?, opts} = Keyword.pop(opts, :async, false)
     {parameterize, opts} = Keyword.pop(opts, :parameterize, nil)
 
+    unless parameterize == nil or (is_list(parameterize) and Enum.all?(parameterize, &is_map/1)) do
+      raise ArgumentError, ":parameterize must be a list of maps, got: #{inspect(parameterize)}"
+    end
+
     if opts != [] do
       IO.warn("unknown options given to ExUnit.Case: #{inspect(opts)}")
     end

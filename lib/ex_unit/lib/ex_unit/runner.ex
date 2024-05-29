@@ -323,7 +323,7 @@ defmodule ExUnit.Runner do
   end
 
   defp run_setup_all(
-         %ExUnit.TestModule{name: module, tags: tags, parameters: parameters} = test_module,
+         %ExUnit.TestModule{name: module, tags: tags, parameters: params} = test_module,
          parent_pid
        ) do
     Process.put(@current_key, test_module)
@@ -333,7 +333,7 @@ defmodule ExUnit.Runner do
 
       result =
         try do
-          {:ok, module.__ex_unit__(:setup_all, Map.merge(tags, parameters))}
+          {:ok, module.__ex_unit__(:setup_all, Map.merge(tags, params))}
         catch
           kind, error ->
             failed = failed(kind, error, prune_stacktrace(__STACKTRACE__))
@@ -408,7 +408,7 @@ defmodule ExUnit.Runner do
     spawn_monitor(fn ->
       ExUnit.OnExitHandler.register(self())
       generate_test_seed(seed, test, rand_algorithm)
-      context = Map.merge(context, Map.merge(test.tags, test.parameters))
+      context = Map.merge(context, test.tags)
       capture_log = Map.get(context, :capture_log, capture_log)
 
       {time, test} =
