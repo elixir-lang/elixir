@@ -213,7 +213,7 @@ defmodule ExUnit.CLIFormatter do
   end
 
   defp trace_test_started(test) do
-    String.replace("  * #{test.name}", "\n", " ")
+    String.replace("  * #{trace_test_name(test)}", "\n", " ")
   end
 
   defp trace_test_result(test) do
@@ -229,11 +229,19 @@ defmodule ExUnit.CLIFormatter do
   end
 
   defp trace_aborted(%ExUnit.Test{} = test) do
-    "* #{test.name} [#{trace_test_file_line(test)}]"
+    "* #{trace_test_name(test)} [#{trace_test_file_line(test)}]"
   end
 
   defp trace_aborted(%ExUnit.TestModule{name: name, file: file}) do
     "* #{inspect(name)} [#{Path.relative_to_cwd(file)}]"
+  end
+
+  defp trace_test_name(%{name: name, parameters: parameters}) do
+    if parameters == %{} do
+      Atom.to_string(name)
+    else
+      "#{name} (parameters: #{inspect(parameters)})"
+    end
   end
 
   defp normalize_us(us) do

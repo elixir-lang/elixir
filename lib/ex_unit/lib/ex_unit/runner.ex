@@ -327,7 +327,7 @@ defmodule ExUnit.Runner do
 
       result =
         try do
-          {:ok, module.__ex_unit__(:setup_all, test_module.tags)}
+          validate_setup_all(module.__ex_unit__(:setup_all, test_module.tags))
         catch
           kind, error ->
             failed = failed(kind, error, prune_stacktrace(__STACKTRACE__))
@@ -355,7 +355,26 @@ defmodule ExUnit.Runner do
     end
   end
 
+  defp validate_setup_all(%{parameterize: parameterize} = context) do
+    if is_list(parameterize) and Enum.all?(parameterize, &is_map/1) do
+      {:ok, context}
+    else
+      raise ":parameterize key must return a list of maps to be merged into the context"
+    end
+  end
+
+  defp validate_setup_all(context), do: {:ok, context}
+
   defp run_tests(config, tests, context) do
+    {parametrize, context} = Map.pop(context, :parameterize)
+
+    tests =
+      if parametrize do
+        for parameters <- parametrize, test <- tests, do: %{test | parameters: parameters}
+      else
+        tests
+      end
+
     Enum.reduce_while(tests, [], fn test, acc ->
       Process.put(@current_key, test)
 
@@ -401,14 +420,15 @@ defmodule ExUnit.Runner do
     spawn_monitor(fn ->
       ExUnit.OnExitHandler.register(self())
       generate_test_seed(seed, test, rand_algorithm)
-      capture_log = Map.get(test.tags, :capture_log, capture_log)
+      context = Map.merge(context, Map.merge(test.tags, test.parameters))
+      capture_log = Map.get(context, :capture_log, capture_log)
 
       {time, test} =
         :timer.tc(
           maybe_capture_log(capture_log, test, fn ->
-            tags = maybe_create_tmp_dir(test.tags, test)
+            context = maybe_create_tmp_dir(context, test)
 
-            case exec_test_setup(test, Map.merge(context, tags)) do
+            case exec_test_setup(test, context) do
               {:ok, context} -> exec_test(test, context)
               {:error, test} -> test
             end

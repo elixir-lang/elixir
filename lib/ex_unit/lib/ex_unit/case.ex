@@ -189,6 +189,8 @@ defmodule ExUnit.Case do
 
     * `:capture_log` - see the "Log Capture" section below
 
+    * `:parameterize` - see the "Parameterize tests" section below
+
     * `:skip` - skips the test with the given reason
 
     * `:timeout` - customizes the test timeout in milliseconds (defaults to 60000).
@@ -226,6 +228,36 @@ defmodule ExUnit.Case do
 
   Keep in mind that all tests are included by default, so unless they are
   excluded first, the `include` option has no effect.
+
+  ## Parameterized tests
+
+  Sometimes you want to run the same tests but with different parameters.
+  In ExUnit, it is possible to do by returning a `:parameterize` key in
+  your `setup_all` context. The value must be a list of maps which will be
+  the parameters merged into the test context.
+
+  For example, Elixir has a module called `Registry`, which can have type
+  `:unique` or `:duplicate`, and can control its concurrency factor using
+  the `:partitions` option. If you have a number of tests that *behave the
+  same* across all of those values, I can parameterize those tests with:
+
+      setup_all do
+        parameters =
+          for kind <- [:unique, :duplicate],
+              partitions <- [1, 8],
+              do: %{kind: kind, partitions: partitions}
+
+        [parameterize: parameters]
+      end
+
+  Use parameterized tests with care:
+
+  * Abuse of parameterized tests may make your test suite considerably slower
+
+  * If you use parameterized tests and then find yourself adding conditionals
+    in your tests to deal with different parameters, then parameterized tests
+    may be the wrong solution to your problem. Consider creating separated
+    tests and sharing logic between them using regular functions
 
   ## Log Capture
 
