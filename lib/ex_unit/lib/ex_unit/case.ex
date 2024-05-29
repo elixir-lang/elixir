@@ -267,7 +267,6 @@ defmodule ExUnit.Case do
   Keep in mind that all tests are included by default, so unless they are
   excluded first, the `include` option has no effect.
 
-
   ## Log Capture
 
   ExUnit can optionally suppress printing of log messages that are generated

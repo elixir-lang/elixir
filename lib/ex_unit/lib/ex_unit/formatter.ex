@@ -309,9 +309,10 @@ defmodule ExUnit.Formatter do
         ) :: String.t()
         when failure: {atom, term, Exception.stacktrace()}
   def format_test_all_failure(test_module, failures, counter, width, formatter) do
-    name = test_module.name
+    %{name: name, parameters: parameters} = test_module
 
     test_module_info(with_counter(counter, "#{inspect(name)}: "), formatter) <>
+      test_parameters(parameters, formatter) <>
       Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->
         {text, stack} = format_kind_reason(test_module, kind, reason, stack, width, formatter)
         failure_header(failures, index) <> text <> format_stacktrace(stack, name, nil, formatter)

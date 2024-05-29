@@ -137,9 +137,14 @@ defmodule ExUnit.CLIFormatter do
     {:noreply, update_test_timings(config, test)}
   end
 
-  def handle_cast({:module_started, %ExUnit.TestModule{name: name, file: file}}, config) do
+  def handle_cast({:module_started, %ExUnit.TestModule{} = module}, config) do
     if config.trace do
+      %{name: name, file: file, parameters: parameters} = module
       IO.puts("\n#{inspect(name)} [#{Path.relative_to_cwd(file)}]")
+
+      if parameters != %{} do
+        IO.puts("Parameters: #{inspect(parameters)}")
+      end
     end
 
     {:noreply, config}
@@ -213,7 +218,7 @@ defmodule ExUnit.CLIFormatter do
   end
 
   defp trace_test_started(test) do
-    String.replace("  * #{trace_test_name(test)}", "\n", " ")
+    String.replace("  * #{test.name}", "\n", " ")
   end
 
   defp trace_test_result(test) do
@@ -229,19 +234,11 @@ defmodule ExUnit.CLIFormatter do
   end
 
   defp trace_aborted(%ExUnit.Test{} = test) do
-    "* #{trace_test_name(test)} [#{trace_test_file_line(test)}]"
+    "* #{test.name} [#{trace_test_file_line(test)}]"
   end
 
   defp trace_aborted(%ExUnit.TestModule{name: name, file: file}) do
     "* #{inspect(name)} [#{Path.relative_to_cwd(file)}]"
-  end
-
-  defp trace_test_name(%{name: name, parameters: parameters}) do
-    if parameters == %{} do
-      Atom.to_string(name)
-    else
-      "#{name} (parameters: #{inspect(parameters)})"
-    end
   end
 
   defp normalize_us(us) do

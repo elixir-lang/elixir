@@ -221,8 +221,8 @@ defmodule ExUnit.Runner do
 
   ## Running modules
 
-  defp run_module(config, module, context) do
-    test_module = module.__ex_unit__()
+  defp run_module(config, module, params) do
+    test_module = %{module.__ex_unit__() | parameters: params}
     EM.module_started(config.manager, test_module)
 
     # Prepare tests, selecting which ones should be run or skipped
@@ -234,7 +234,7 @@ defmodule ExUnit.Runner do
     end
 
     {test_module, invalid_tests, finished_tests} =
-      run_module(config, test_module, context, to_run_tests)
+      run_module_tests(config, test_module, to_run_tests)
 
     pending_tests =
       case process_max_failures(config, test_module) do
@@ -285,12 +285,12 @@ defmodule ExUnit.Runner do
     test_ids == nil or MapSet.member?(test_ids, {test.module, test.name})
   end
 
-  defp run_module(_config, test_module, _params, []) do
+  defp run_module_tests(_config, test_module, []) do
     {test_module, [], []}
   end
 
-  defp run_module(config, test_module, params, tests) do
-    {module_pid, module_ref} = run_setup_all(test_module, params, self())
+  defp run_module_tests(config, test_module, tests) do
+    {module_pid, module_ref} = run_setup_all(test_module, self())
 
     {test_module, invalid_tests, finished_tests} =
       receive do
@@ -298,7 +298,7 @@ defmodule ExUnit.Runner do
           finished_tests =
             if max_failures_reached?(config),
               do: [],
-              else: run_tests(config, tests, params, context)
+              else: run_tests(config, tests, test_module.parameters, context)
 
           :ok = exit_setup_all(module_pid, module_ref)
           {test_module, [], finished_tests}
@@ -322,7 +322,10 @@ defmodule ExUnit.Runner do
     Enum.map(tests, &%{&1 | state: {:invalid, test_module}})
   end
 
-  defp run_setup_all(%ExUnit.TestModule{name: module} = test_module, context, parent_pid) do
+  defp run_setup_all(
+         %ExUnit.TestModule{name: module, tags: tags, parameters: parameters} = test_module,
+         parent_pid
+       ) do
     Process.put(@current_key, test_module)
 
     spawn_monitor(fn ->
@@ -330,7 +333,7 @@ defmodule ExUnit.Runner do
 
       result =
         try do
-          {:ok, module.__ex_unit__(:setup_all, Map.merge(test_module.tags, context))}
+          {:ok, module.__ex_unit__(:setup_all, Map.merge(tags, parameters))}
         catch
           kind, error ->
             failed = failed(kind, error, prune_stacktrace(__STACKTRACE__))

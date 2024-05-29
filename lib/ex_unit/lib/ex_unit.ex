@@ -132,8 +132,10 @@ defmodule ExUnit do
 
       * `:tests` - all tests in this module
 
+      * `:parameters` - the test module parameters
+
     """
-    defstruct [:file, :name, :state, tags: %{}, tests: []]
+    defstruct [:file, :name, :state, tags: %{}, tests: [], parameters: %{}]
 
     @type t :: %__MODULE__{
             file: binary(),
