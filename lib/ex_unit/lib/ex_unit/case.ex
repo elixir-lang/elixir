@@ -341,6 +341,14 @@ defmodule ExUnit.Case do
               ~s(got: #{inspect(opts)})
     end
 
+    {register?, opts} = Keyword.pop(opts, :register, true)
+    {async?, opts} = Keyword.pop(opts, :async, false)
+    {parameterize, opts} = Keyword.pop(opts, :parameterize, nil)
+
+    if opts != [] do
+      IO.warn("unknown options given to ExUnit.Case: #{inspect(opts)}")
+    end
+
     registered? = Module.has_attribute?(module, :ex_unit_tests)
 
     unless registered? do
@@ -366,17 +374,14 @@ defmodule ExUnit.Case do
 
       Enum.each(persisted_attributes, &Module.register_attribute(module, &1, persist: true))
 
-      if Keyword.get(opts, :register, true) do
+      if register? do
         Module.put_attribute(module, :after_compile, ExUnit.Case)
       end
 
       Module.put_attribute(module, :before_compile, ExUnit.Case)
     end
 
-    async? = Keyword.get(opts, :async, false)
-    parameterize = Keyword.get(opts, :parameterize)
     Module.put_attribute(module, :ex_unit_module, {async?, parameterize})
-
     registered?
   end
 
