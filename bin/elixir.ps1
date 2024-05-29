@@ -2,12 +2,6 @@
 
 $ELIXIR_VERSION = "1.18.0-dev"
 
-$minPowerShellVersion = [version]"7.2.0"
-
-if ($minPowerShellVersion.CompareTo([version]$PSVersionTable.PSVersion) -eq 1) {
-  Write-Error "This script requires PowerShell version 7.2 or above. Running on $($PSVersionTable.PSVersion)"
-}
-
 $scriptPath = Split-Path -Parent $PSCommandPath
 $erlExec = "erl"
 
