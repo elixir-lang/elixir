@@ -36,7 +36,6 @@ defmodule Kernel.CLITest do
   use ExUnit.Case, async: true
 
   import ExUnit.CaptureIO
-  import Retry
 
   defp run(argv) do
     {config, argv} = Kernel.CLI.parse_argv(Enum.map(argv, &String.to_charlist/1))
@@ -60,6 +59,12 @@ defmodule Kernel.CLITest do
                       ["sample.exs", "-o", "1", "2"]
            end)
   end
+end
+
+defmodule Kernel.CLI.ExecutableTest do
+  use ExUnit.Case, async: true
+
+  import Retry
 
   @tag :tmp_dir
   test "file smoke test", context do
@@ -130,7 +135,7 @@ defmodule Kernel.CLITest do
     assert output =~ "--short-version : Standalone options can't be combined with other options"
   end
 
-  test "properly parses paths" do
+  test "parses paths" do
     root = fixture_path("../../..") |> to_charlist
 
     args =
@@ -148,7 +153,7 @@ defmodule Kernel.CLITest do
     assert to_charlist(Path.expand(~c"lib/list", root)) in path
   end
 
-  stderr_test "properly formats errors" do
+  stderr_test "formats errors" do
     assert String.starts_with?(elixir(~c"-e \":erlang.throw 1\""), "** (throw) 1")
 
     assert String.starts_with?(
@@ -172,6 +177,11 @@ defmodule Kernel.CLITest do
     assert error =~ ":foo"
     assert error =~ "def fetch(-%module{} = container-, +key+)"
     assert error =~ ~r"\(elixir #{System.version()}\) lib/access\.ex:\d+: Access\.fetch/2"
+  end
+
+  test "invokes at_exit callbacks" do
+    assert elixir(fixture_path("at_exit.exs") |> to_charlist()) ==
+             "goodbye cruel world with status 1\n"
   end
 end
 
@@ -224,15 +234,6 @@ defmodule Kernel.CLI.RPCTest do
 
     assert rpc_eval("IO.puts(Process.flag(:trap_exit, false)); exit({:shutdown, 1})") ==
              "false\n"
-  end
-end
-
-defmodule Kernel.CLI.AtExitTest do
-  use ExUnit.Case, async: true
-
-  test "invokes at_exit callbacks" do
-    assert elixir(fixture_path("at_exit.exs") |> to_charlist) ==
-             "goodbye cruel world with status 1\n"
   end
 end
 
