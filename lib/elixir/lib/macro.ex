@@ -2603,6 +2603,17 @@ defmodule Macro do
     end
   end
 
+  defp dbg_ast_to_debuggable({:__block__, _meta, _clauses} = ast, _env) do
+    acc_var = unique_var(:acc, __MODULE__)
+    result_var = unique_var(:result, __MODULE__)
+
+    quote do
+      unquote(acc_var) = []
+      unquote(dbg_block(ast, acc_var, result_var))
+      {:block, Enum.reverse(unquote(acc_var))}
+    end
+  end
+
   defp dbg_ast_to_debuggable({:case, _meta, [expr, [do: clauses]]} = ast, _env) do
     clauses_returning_index =
       Enum.with_index(clauses, fn {:->, meta, [left, right]}, index ->
@@ -2692,6 +2703,19 @@ defmodule Macro do
     end
   end
 
+  defp dbg_block({:__block__, meta, clauses}, acc_var, result_var) do
+    modified_clauses =
+      Enum.map(clauses, fn clause ->
+        quote do
+          unquote(result_var) = unquote(clause)
+          unquote(acc_var) = [{unquote(escape(clause)), unquote(result_var)} | unquote(acc_var)]
+          unquote(result_var)
+        end
+      end)
+
+    {:__block__, meta, modified_clauses}
+  end
+
   # Made public to be called from Macro.dbg/3, so that we generate as little code
   # as possible and call out into a function as soon as we can.
   @doc false
@@ -2736,6 +2760,19 @@ defmodule Macro do
       Enum.map(components, fn {ast, value} ->
         [dbg_format_ast(to_string_with_colors(ast, options)), " ", inspect(value, options), ?\n]
       end)
+
+    {formatted, final_value}
+  end
+
+  defp dbg_format_ast_to_debug({:block, components}, options) do
+    {_ast, final_value} = List.last(components)
+
+    formatted =
+      [dbg_maybe_underline("Code block", options), ":\n(\n"] ++
+        Enum.map(components, fn {ast, value} ->
+          ["  ", dbg_format_ast_with_value(ast, value, options)]
+        end) ++
+        [?), ?\n]
 
     {formatted, final_value}
   end

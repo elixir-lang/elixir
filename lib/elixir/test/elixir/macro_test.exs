@@ -453,6 +453,28 @@ defmodule MacroTest do
              """
     end
 
+    test "with block of code" do
+      {result, formatted} =
+        dbg_format(
+          (
+            a = 1
+            b = a + 2
+            a + b
+          )
+        )
+
+      assert result == 4
+
+      assert formatted =~ """
+             Code block:
+             (
+               a = 1 #=> 1
+               b = a + 2 #=> 3
+               a + b #=> 4
+             )
+             """
+    end
+
     test "with case" do
       list = [1, 2, 3]
 
