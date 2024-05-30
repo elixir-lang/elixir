@@ -301,9 +301,16 @@ defmodule Module.Types.Expr do
 
   # TODO: fun.(args)
   def of_expr({{:., _meta1, [fun]}, _meta2, args}, stack, context) do
-    with {:ok, _fun_type, context} <- of_expr(fun, stack, context),
-         {:ok, _arg_types, context} <-
+    with {:ok, fun_type, context} <- of_expr(fun, stack, context),
+         {:ok, _args_types, context} <-
            map_reduce_ok(args, context, &of_expr(&1, stack, &2)) do
+      context =
+        if fun_type?(fun_type) do
+          context
+        else
+          Of.incompatible_warn(fun, fun(), fun_type, stack, context)
+        end
+
       {:ok, dynamic(), context}
     end
   end

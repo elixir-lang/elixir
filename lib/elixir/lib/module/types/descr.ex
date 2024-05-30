@@ -319,6 +319,13 @@ defmodule Module.Types.Descr do
   ## Bitmaps
 
   @doc """
+  Optimized version of `not empty?(intersection(fun(), type))`.
+  """
+  def fun_type?(%{dynamic: %{bitmap: bitmap}}) when (bitmap &&& @bit_fun) != 0, do: true
+  def fun_type?(%{bitmap: bitmap}) when (bitmap &&& @bit_fun) != 0, do: true
+  def fun_type?(%{}), do: false
+
+  @doc """
   Optimized version of `not empty?(intersection(binary(), type))`.
   """
   def binary_type?(%{dynamic: %{bitmap: bitmap}}) when (bitmap &&& @bit_binary) != 0, do: true
