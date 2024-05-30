@@ -21,6 +21,34 @@ defmodule Module.Types.ExprTest do
     assert typecheck!(fn -> :ok end) == fun()
   end
 
+  describe "funs" do
+    test "incompatible" do
+      assert typewarn!([%x{}], x.(1, 2)) ==
+               {dynamic(),
+                ~l"""
+                incompatible types in expression:
+
+                    x
+
+                expected type:
+
+                    fun()
+
+                but got type:
+
+                    dynamic(atom())
+
+                where "x" was given the type:
+
+                    # type: dynamic(atom())
+                    # from: types_test.ex:LINE-2
+                    %x{}
+
+                typing violation found at:\
+                """}
+    end
+  end
+
   describe "remotes" do
     test "dynamic calls" do
       assert typecheck!([%x{}], x.foo_bar()) == dynamic()
