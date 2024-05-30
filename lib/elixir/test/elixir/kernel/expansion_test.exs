@@ -654,12 +654,6 @@ defmodule Kernel.ExpansionTest do
     test "expands base and args" do
       assert expand(quote(do: a.(b))) == quote(do: a().(b()))
     end
-
-    test "raises on atom base" do
-      assert_compile_error(~r"invalid function call :foo.()", fn ->
-        expand(quote(do: :foo.(a)))
-      end)
-    end
   end
 
   describe "remotes" do

@@ -2147,29 +2147,6 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "nested comparison operators" do
-    message =
-      capture_compile("""
-       1 < 3 < 5
-      """)
-
-    assert message =~ "nofile:1:8\n"
-    assert message =~ "Elixir does not support nested comparisons"
-    assert message =~ "1 < 3 < 5"
-
-    message =
-      capture_compile("""
-        x = 5
-        y = 7
-        1 < x < y < 10
-      """)
-
-    assert message =~ "Elixir does not support nested comparisons"
-    assert message =~ "1 < x < y < 10"
-    assert message =~ "nofile:3:9\n"
-    assert message =~ "nofile:3:13\n"
-  end
-
   test "def warns if only clause is else" do
     assert_warn_compile(
       ["nofile:2:7\n", "\"else\" shouldn't be used as the only clause in \"def\""],

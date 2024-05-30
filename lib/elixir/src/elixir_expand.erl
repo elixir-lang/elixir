@@ -452,7 +452,6 @@ expand({{'.', DotMeta, [Left, Right]}, Meta, Args}, S, E)
 expand({{'.', DotMeta, [Expr]}, Meta, Args}, S, E) when is_list(Args) ->
   assert_no_match_or_guard_scope(Meta, "anonymous call", S, E),
   {[EExpr | EArgs], SA, EA} = expand_args([Expr | Args], S, E),
-  is_atom(EExpr) andalso function_error(Meta, E, ?MODULE, {invalid_function_call, EExpr}),
   {{{'.', DotMeta, [EExpr]}, Meta, EArgs}, SA, EA};
 
 %% Invalid calls
@@ -887,7 +886,6 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, S, SL, #{context := Context}
 
       case rewrite(Context, Receiver, DotMeta, Right, AttachedMeta, EArgs, S) of
         {ok, Rewritten} ->
-          maybe_warn_comparison(Rewritten, Args, E),
           {Rewritten, elixir_env:close_write(SA, S), EA};
 
         {error, Error} ->
@@ -913,32 +911,6 @@ rewrite(guard, Receiver, DotMeta, Right, Meta, EArgs, S) ->
   elixir_rewrite:guard_rewrite(Receiver, DotMeta, Right, Meta, EArgs, guard_context(S));
 rewrite(_, Receiver, DotMeta, Right, Meta, EArgs, _S) ->
   {ok, elixir_rewrite:rewrite(Receiver, DotMeta, Right, Meta, EArgs)}.
-
-maybe_warn_comparison({{'.', _, [erlang, Op]}, Meta, [ELeft, ERight]}, [Left, Right], E)
-    when Op =:= '>'; Op =:= '<'; Op =:= '=<'; Op =:= '>='; Op =:= min; Op =:= max ->
-
-    case is_nested_comparison(Op, ELeft, ERight, Left, Right) of
-      false -> ok;
-      CompExpr ->
-        elixir_errors:file_warn(Meta, E, ?MODULE, {nested_comparison, CompExpr})
-    end;
-maybe_warn_comparison(_, _, _) ->
-  ok.
-
-is_nested_comparison(Op, ELeft, ERight, Left, Right) ->
-  NestedExpr = {elixir_utils:erlang_comparison_op_to_elixir(Op), [], [Left, Right]},
-  case is_comparison_expression(ELeft) of
-    true ->
-      NestedExpr;
-    false ->
-      case is_comparison_expression(ERight) of
-        true -> NestedExpr;
-        false -> false
-      end
-  end.
-is_comparison_expression({{'.',_,[erlang, Op]},_,_})
-  when Op =:= '>'; Op =:= '<'; Op =:= '=<'; Op =:= '>=' -> true;
-is_comparison_expression(_Other) -> false.
 
 %% Lexical helpers
 
@@ -1241,8 +1213,6 @@ format_error({invalid_clauses, Name}) ->
     "the function \"~ts\" cannot handle clauses with the -> operator because it is not a macro. "
     "Please make sure you are invoking the proper name and that it is a macro",
   io_lib:format(Message, [Name]);
-format_error({invalid_function_call, Expr}) ->
-  io_lib:format("invalid function call :~ts.()", [Expr]);
 format_error({invalid_call, Call}) ->
   io_lib:format("invalid call ~ts", ['Elixir.Macro':to_string(Call)]);
 format_error({invalid_quoted_expr, Expr}) ->
