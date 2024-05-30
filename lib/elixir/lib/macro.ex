@@ -2603,7 +2603,7 @@ defmodule Macro do
     end
   end
 
-  defp dbg_ast_to_debuggable({:__block__, _meta, _clauses} = ast, _env) do
+  defp dbg_ast_to_debuggable({:__block__, _meta, exprs} = ast, _env) when exprs != [] do
     acc_var = unique_var(:acc, __MODULE__)
     result_var = unique_var(:result, __MODULE__)
 
@@ -2703,16 +2703,16 @@ defmodule Macro do
     end
   end
 
-  defp dbg_block({:__block__, meta, clauses}, acc_var, result_var) do
-    modified_clauses =
-      Enum.map(clauses, fn clause ->
+  defp dbg_block({:__block__, meta, exprs}, acc_var, result_var) do
+    modified_exprs =
+      Enum.map(exprs, fn expr ->
         quote do
-          unquote(result_var) = unquote(clause)
-          unquote(acc_var) = [{unquote(escape(clause)), unquote(result_var)} | unquote(acc_var)]
+          unquote(result_var) = unquote(expr)
+          unquote(acc_var) = [{unquote(escape(expr)), unquote(result_var)} | unquote(acc_var)]
         end
       end)
 
-    {:__block__, meta, modified_clauses}
+    {:__block__, meta, modified_exprs}
   end
 
   # Made public to be called from Macro.dbg/3, so that we generate as little code
@@ -2769,8 +2769,7 @@ defmodule Macro do
         Enum.map(components, fn {ast, value} ->
           ["  ", dbg_format_ast_with_value(ast, value, options)]
         end),
-        ?),
-        ?\n
+        ")\n"
       ]
 
     {formatted, value}
