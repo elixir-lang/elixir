@@ -542,7 +542,7 @@ defmodule MacroTest do
              """
     end
 
-    test "if statement" do
+    test "if expression" do
       x = true
       map = %{a: 5, b: 1}
 
@@ -572,7 +572,7 @@ defmodule MacroTest do
              """
     end
 
-    test "if statement without else" do
+    test "if expression without else" do
       x = true
       map = %{a: 5, b: 1}
 
@@ -615,6 +615,36 @@ defmodule MacroTest do
              if true do
                "something"
              end #=> "custom if result"
+             """
+    end
+
+    test "unless expression" do
+      x = false
+      map = %{a: 5, b: 1}
+
+      {result, formatted} =
+        dbg_format(
+          unless true and x do
+            map[:a] * 2
+          else
+            map[:b]
+          end
+        )
+
+      assert result == 10
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             Unless condition:
+             true and x #=> false
+
+             Unless expression:
+             unless true and x do
+               map[:a] * 2
+             else
+               map[:b]
+             end #=> 10
              """
     end
 
