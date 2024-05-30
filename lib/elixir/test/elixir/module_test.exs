@@ -54,13 +54,6 @@ defmodule ModuleTest do
   @register_example :it_works
   @register_example :still_works
 
-  contents =
-    quote do
-      def eval_quoted_info, do: {__MODULE__, __ENV__.file, __ENV__.line}
-    end
-
-  Module.eval_quoted(__MODULE__, contents, [], file: "sample.ex", line: 13)
-
   defp purge(module) do
     :code.purge(module)
     :code.delete(module)
@@ -126,33 +119,11 @@ defmodule ModuleTest do
     assert :code.which(__MODULE__) == ~c""
   end
 
-  ## Eval
-
-  test "executes eval_quoted definitions" do
-    assert eval_quoted_info() == {ModuleTest, "sample.ex", 13}
-  end
-
-  test "resets last definition information on eval" do
-    # This should not emit any warning
-    defmodule LastDefinition do
-      def foo(0), do: 0
-
-      Module.eval_quoted(
-        __ENV__,
-        quote do
-          def bar, do: :ok
-        end
-      )
-
-      def foo(1), do: 1
-    end
-  end
+  ## Callbacks
 
   test "retrieves line from use callsite" do
     assert ModuleTest.ToUse.line() == 43
   end
-
-  ## Callbacks
 
   test "executes custom before_compile callback" do
     assert ModuleTest.ToUse.callback_value(true) == true

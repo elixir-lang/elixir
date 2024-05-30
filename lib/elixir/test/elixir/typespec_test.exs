@@ -818,7 +818,7 @@ defmodule TypespecTest do
 
       bytecode =
         test_module do
-          Module.eval_quoted(__MODULE__, quoted)
+          Code.eval_quoted(quoted, [], module: __MODULE__)
         end
 
       assert [type: {:my_type, {:atom, _, :foo}, []}] = types(bytecode)
@@ -1223,7 +1223,7 @@ defmodule TypespecTest do
 
       bytecode =
         test_module do
-          Module.eval_quoted(__MODULE__, quoted)
+          Code.eval_quoted(quoted, [], module: __MODULE__)
         end
 
       types = types(bytecode)
@@ -1265,7 +1265,7 @@ defmodule TypespecTest do
 
           def foo(), do: 1
           def foo(arg), do: arg
-          Module.eval_quoted(__MODULE__, quote(do: (unquote_splicing(quoted))))
+          Code.eval_quoted(quote(do: (unquote_splicing(quoted))), [], module: __MODULE__)
         end
 
       specs =
@@ -1486,7 +1486,7 @@ defmodule TypespecTest do
 
       bytecode =
         test_module do
-          Module.eval_quoted(__MODULE__, quoted)
+          Code.eval_quoted(quoted, [], module: __MODULE__)
         end
 
       types = types(bytecode)

@@ -1606,16 +1606,11 @@ defmodule Kernel.WarningTest do
         @doc "Something"
         @doc "Another"
         def foo, do: :ok
-
-        Module.eval_quoted(__MODULE__, quote(do: @doc false))
-        @doc "Doc"
-        def bar, do: :ok
       end
       """)
 
     assert output =~ "redefining @doc attribute previously set at line 2"
     assert output =~ "nofile:3: Sample (module)"
-    refute output =~ "nofile:7: "
   after
     purge(Sample)
   end

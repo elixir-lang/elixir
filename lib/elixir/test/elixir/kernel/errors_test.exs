@@ -754,14 +754,6 @@ defmodule Kernel.ErrorsTest do
     )
   end
 
-  test "already compiled module" do
-    assert_eval_raise ArgumentError,
-                      [
-                        "could not call Module.eval_quoted/4 because the module Record is already compiled"
-                      ],
-                      ~c"Module.eval_quoted Record, quote(do: 1), [], file: __ENV__.file"
-  end
-
   test "invalid @compile inline" do
     assert_compile_error(
       ["nofile:1: ", "undefined function foo/1 given to @compile :inline"],
