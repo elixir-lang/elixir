@@ -779,7 +779,7 @@ defmodule Macro do
   ## Options
 
     * `:unquote` - when true, this function leaves `unquote/1` and
-      `unquote_splicing/1` statements unescaped, effectively unquoting
+      `unquote_splicing/1` expressions unescaped, effectively unquoting
       the contents on escape. This option is useful only when escaping
       ASTs which may have quoted fragments in them. Defaults to false.
 
