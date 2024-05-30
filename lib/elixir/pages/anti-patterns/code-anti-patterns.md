@@ -50,11 +50,11 @@ Elixir makes a clear distinction between **documentation** and code comments. Th
 
 #### Problem
 
-This anti-pattern refers to `with` statements that flatten all its error clauses into a single complex `else` block. This situation is harmful to the code readability and maintainability because it's difficult to know from which clause the error value came.
+This anti-pattern refers to `with` expressions that flatten all its error clauses into a single complex `else` block. This situation is harmful to the code readability and maintainability because it's difficult to know from which clause the error value came.
 
 #### Example
 
-An example of this anti-pattern, as shown below, is a function `open_decoded_file/1` that reads a Base64-encoded string content from a file and returns a decoded binary string. This function uses a `with` statement that needs to handle two possible errors, all of which are concentrated in a single complex `else` block.
+An example of this anti-pattern, as shown below, is a function `open_decoded_file/1` that reads a Base64-encoded string content from a file and returns a decoded binary string. This function uses a `with` expression that needs to handle two possible errors, all of which are concentrated in a single complex `else` block.
 
 ```elixir
 def open_decoded_file(path) do
