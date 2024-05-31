@@ -34,6 +34,27 @@ defmodule Mix.Compilers.Test do
 
   defp require_and_run(matched_test_files, test_paths, opts, ex_unit_opts) do
     stale = opts[:stale]
+    trace_require = opts[:trace_require]
+
+    # trace_require does not use ParallelCompiler.require so we cannot invoke
+    # the parallel_require_callbacks used for the --stale manifest
+    if stale && trace_require do
+      message =
+        "\nERROR! You cannot combine --stale and --trace-require options."
+
+      IO.puts(:stderr, IO.ANSI.format([:red, message]))
+      exit({:shutdown, 1})
+    end
+
+    # --sort-first/--sort-last manually require some files to be compiled first/last
+    # using Code.require_file instead of ParallelCompiler.require
+    if stale && (ex_unit_opts[:sort_first] != [] or ex_unit_opts[:sort_last] != []) do
+      message =
+        "\nERROR! You cannot combine --stale and --sort-first or --sort-last options."
+
+      IO.puts(:stderr, IO.ANSI.format([:red, message]))
+      exit({:shutdown, 1})
+    end
 
     {test_files, stale_manifest_pid, parallel_require_callbacks} =
       if stale do
@@ -72,17 +93,16 @@ defmodule Mix.Compilers.Test do
           maybe_sort_first_last(test_files, ex_unit_opts[:sort_first], ex_unit_opts[:sort_last])
 
         try do
-          # TODO: what about parallel_require_callbacks?
           for file <- first, do: Code.require_file(file)
 
           failed? =
-            case Kernel.ParallelCompiler.require(test_files, parallel_require_callbacks) do
-              {:ok, _, [_ | _]} when warnings_as_errors? -> true
-              {:ok, _, _} -> false
-              {:error, _, _} -> exit({:shutdown, 1})
-            end
+            require_test_files(
+              trace_require,
+              test_files,
+              parallel_require_callbacks,
+              warnings_as_errors?
+            )
 
-          # TODO: what about parallel_require_callbacks?
           for file <- last, do: Code.require_file(file)
 
           %{failures: failures} = results = ExUnit.await_run(task)
@@ -109,6 +129,31 @@ defmodule Mix.Compilers.Test do
         after
           agent_stop(stale_manifest_pid)
         end
+    end
+  end
+
+  defp require_test_files(
+         true = _trace_require,
+         test_files,
+         _parallel_require_callbacks,
+         _warnings_as_errors?
+       ) do
+    Enum.each(test_files, &Code.require_file/1)
+
+    # we don't know if there were any warnings, so we return false
+    false
+  end
+
+  defp require_test_files(
+         _trace_require,
+         test_files,
+         parallel_require_callbacks,
+         warnings_as_errors?
+       ) do
+    case Kernel.ParallelCompiler.require(test_files, parallel_require_callbacks) do
+      {:ok, _, [_ | _]} when warnings_as_errors? -> true
+      {:ok, _, _} -> false
+      {:error, _, _} -> exit({:shutdown, 1})
     end
   end
 

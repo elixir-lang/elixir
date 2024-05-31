@@ -200,10 +200,20 @@ defmodule Mix.Tasks.Test do
     * `--trace` - runs tests with detailed reporting. Automatically sets `--max-cases` to `1`.
       Note that in trace mode test timeouts will be ignored as timeout is set to `:infinity`
 
+    * `--trace-require` - compiles files sequentially. Useful for debugging race conditions when
+      compiling test files
+
     * `--warnings-as-errors` *(since v1.12.0)* - treats compilation warnings (from loading the
       test suite) as errors and returns a non-zero exit status if the test suite would otherwise
       pass. Note that failures reported by `--warnings-as-errors` cannot be retried with the
       `--failed` flag.
+
+    * `--sort-first` and `--sort-last` - sorts the tests that match the given pattern to be compiled
+      and run first or last, respectively. This is useful for debugging tests that might accidentally
+      rely on global state and fail when run in a specific order.
+      The argument is a filter in the same format as `--include`, `--exclude` and `--only`.
+      Note that compilation order is only affected when using the `file:path/to/test.exs` filter,
+      but for ordering tests inside individual test runs, any other tag can be used as well.
 
       This option only applies to test files. To treat warnings as errors during compilation and
       during tests, run:
@@ -437,6 +447,7 @@ defmodule Mix.Tasks.Test do
     cover: :boolean,
     export_coverage: :string,
     trace: :boolean,
+    trace_require: :boolean,
     max_cases: :integer,
     max_failures: :integer,
     include: :keep,
