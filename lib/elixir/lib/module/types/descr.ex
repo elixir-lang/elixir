@@ -35,17 +35,12 @@ defmodule Module.Types.Descr do
   @map_top [{:open, %{}, []}]
   @map_empty [{:closed, %{}, []}]
 
-  # Guard helpers
-
-  @term %{bitmap: @bit_top, atom: @atom_top, map: @map_top}
-  @none %{}
-  @dynamic %{dynamic: @term}
-
   # Type definitions
 
-  def dynamic(), do: @dynamic
-  def term(), do: @term
-  def none(), do: @none
+  def dynamic(), do: %{dynamic: :term}
+  def none(), do: %{}
+  def term(), do: :term
+  defp unfolded_term, do: %{bitmap: @bit_top, atom: @atom_top, map: @map_top}
 
   def atom(as), do: %{atom: atom_new(as)}
   def atom(), do: %{atom: @atom_top}
@@ -84,14 +79,17 @@ defmodule Module.Types.Descr do
   @term_or_optional %{bitmap: @bit_top ||| @bit_optional, atom: @atom_top, map: @map_top}
 
   def not_set(), do: @not_set
-  def if_set(type), do: Map.update(type, :bitmap, @bit_optional, &(&1 ||| @bit_optional))
   defp term_or_optional(), do: @term_or_optional
+
+  def if_set(:term), do: @term_or_optional
+  def if_set(type), do: Map.update(type, :bitmap, @bit_optional, &(&1 ||| @bit_optional))
 
   ## Set operations
 
-  def term_type?(@term), do: true
-  def term_type?(descr), do: subtype_static(@term, Map.delete(descr, :dynamic))
+  def term_type?(:term), do: true
+  def term_type?(descr), do: subtype_static(unfolded_term(), Map.delete(descr, :dynamic))
 
+  def gradual?(:term), do: false
   def gradual?(descr), do: is_map_key(descr, :dynamic)
 
   @doc """
@@ -102,13 +100,14 @@ defmodule Module.Types.Descr do
   def dynamic(descr) do
     case descr do
       %{dynamic: dynamic} -> %{dynamic: dynamic}
-      %{} -> %{dynamic: descr}
+      _ -> %{dynamic: descr}
     end
   end
 
   @doc """
   Computes the union of two descrs.
   """
+  # TODO!!!
   def union(%{} = left, %{} = right) do
     is_gradual_left = gradual?(left)
     is_gradual_right = gradual?(right)
@@ -136,6 +135,7 @@ defmodule Module.Types.Descr do
   @doc """
   Computes the intersection of two descrs.
   """
+  # TODO!!!
   def intersection(%{} = left, %{} = right) do
     is_gradual_left = gradual?(left)
     is_gradual_right = gradual?(right)
@@ -164,6 +164,7 @@ defmodule Module.Types.Descr do
   @doc """
   Computes the difference between two types.
   """
+  # TODO!!!
   def difference(left = %{}, right = %{}) do
     if gradual?(left) or gradual?(right) do
       {left_dynamic, left_static} = Map.pop(left, :dynamic, left)
@@ -171,7 +172,7 @@ defmodule Module.Types.Descr do
       dynamic_part = difference_static(left_dynamic, right_static)
 
       if empty?(dynamic_part),
-        do: @none,
+        do: none(),
         else: Map.put(difference_static(left_static, right_dynamic), :dynamic, dynamic_part)
     else
       difference_static(left, right)
@@ -179,6 +180,7 @@ defmodule Module.Types.Descr do
   end
 
   # For static types, the difference is component-wise.
+  # TODO!!!
   defp difference_static(left, right) do
     iterator_difference(:maps.next(:maps.iterator(right)), left)
   end
@@ -193,7 +195,8 @@ defmodule Module.Types.Descr do
   @doc """
   Compute the negation of a type.
   """
-  def negation(%{} = descr), do: difference(term(), descr)
+  def negation(:term), do: none()
+  def negation(%{} = descr), do: difference(unfolded_term(), descr)
 
   @doc """
   Check if a type is empty.
@@ -203,10 +206,12 @@ defmodule Module.Types.Descr do
   (bitmap, atom) are checked first for speed since, if they are present,
   the type is non-empty as we normalize then during construction.
   """
+  def empty?(:term), do: false
+
   def empty?(%{} = descr) do
     descr = Map.get(descr, :dynamic, descr)
 
-    descr == @none or
+    descr == none() or
       (not Map.has_key?(descr, :bitmap) and not Map.has_key?(descr, :atom) and
          (not Map.has_key?(descr, :map) or map_empty?(descr.map)))
   end
@@ -214,7 +219,7 @@ defmodule Module.Types.Descr do
   @doc """
   Converts a descr to its quoted representation.
   """
-  def to_quoted(%{} = descr) do
+  def to_quoted(descr) do
     if term_type?(descr) do
       {:term, [], []}
     else
@@ -260,6 +265,7 @@ defmodule Module.Types.Descr do
   Because of the dynamic/static invariant in the `descr`, subtyping can be
   simplified in several cases according to which type is gradual or not.
   """
+  # TODO!!!
   def subtype?(%{} = left, %{} = right) do
     is_grad_left = gradual?(left)
     is_grad_right = gradual?(right)
@@ -278,6 +284,7 @@ defmodule Module.Types.Descr do
     end
   end
 
+  defp subtype_static(same, same), do: true
   defp subtype_static(left, right), do: empty?(difference_static(left, right))
 
   @doc """
@@ -305,6 +312,7 @@ defmodule Module.Types.Descr do
   include `dynamic()`, `integer()`, but also `dynamic() and (integer() or atom())`.
   Incompatible subtypes include `integer() or list()`, `dynamic() and atom()`.
   """
+  # TODO!!!
   def compatible?(input_type, expected_type) do
     {input_dynamic, input_static} = Map.pop(input_type, :dynamic, input_type)
     expected_dynamic = Map.get(expected_type, :dynamic, expected_type)
@@ -323,35 +331,35 @@ defmodule Module.Types.Descr do
   """
   def fun_type?(%{dynamic: %{bitmap: bitmap}}) when (bitmap &&& @bit_fun) != 0, do: true
   def fun_type?(%{bitmap: bitmap}) when (bitmap &&& @bit_fun) != 0, do: true
-  def fun_type?(%{}), do: false
+  def fun_type?(_), do: false
 
   @doc """
   Optimized version of `not empty?(intersection(binary(), type))`.
   """
   def binary_type?(%{dynamic: %{bitmap: bitmap}}) when (bitmap &&& @bit_binary) != 0, do: true
   def binary_type?(%{bitmap: bitmap}) when (bitmap &&& @bit_binary) != 0, do: true
-  def binary_type?(%{}), do: false
+  def binary_type?(_), do: false
 
   @doc """
   Optimized version of `not empty?(intersection(integer(), type))`.
   """
   def integer_type?(%{dynamic: %{bitmap: bitmap}}) when (bitmap &&& @bit_integer) != 0, do: true
   def integer_type?(%{bitmap: bitmap}) when (bitmap &&& @bit_integer) != 0, do: true
-  def integer_type?(%{}), do: false
+  def integer_type?(_), do: false
 
   @doc """
   Optimized version of `not empty?(intersection(float(), type))`.
   """
   def float_type?(%{dynamic: %{bitmap: bitmap}}) when (bitmap &&& @bit_float) != 0, do: true
   def float_type?(%{bitmap: bitmap}) when (bitmap &&& @bit_float) != 0, do: true
-  def float_type?(%{}), do: false
+  def float_type?(_), do: false
 
   @doc """
   Optimized version of `not empty?(intersection(integer() or float(), type))`.
   """
   def number_type?(%{dynamic: %{bitmap: bitmap}}) when (bitmap &&& @bit_number) != 0, do: true
   def number_type?(%{bitmap: bitmap}) when (bitmap &&& @bit_number) != 0, do: true
-  def number_type?(%{}), do: false
+  def number_type?(_), do: false
 
   defp bitmap_union(v1, v2), do: v1 ||| v2
   defp bitmap_intersection(v1, v2), do: v1 &&& v2
@@ -400,16 +408,19 @@ defmodule Module.Types.Descr do
   """
   def atom_type?(%{dynamic: %{atom: _}}), do: true
   def atom_type?(%{atom: _}), do: true
-  def atom_type?(%{}), do: false
+  def atom_type?(_), do: false
 
   @doc """
   Optimized version of `not empty?(intersection(atom([atom]), type))`.
   """
+  def atom_type?(:term, _atom), do: false
+
   def atom_type?(%{} = descr, atom) do
     {static_or_dynamic, static} = Map.pop(descr, :dynamic, descr)
 
     atom_only?(static) and
       case static_or_dynamic do
+        :term -> true
         %{atom: {:union, set}} -> :sets.is_element(atom, set)
         %{atom: {:negation, set}} -> not :sets.is_element(atom, set)
         %{} -> false
@@ -423,11 +434,14 @@ defmodule Module.Types.Descr do
   `:error` otherwise. Notice `known_set` may be empty in infinite
   cases, due to negations.
   """
+  def atom_fetch(:term), do: :error
+
   def atom_fetch(%{} = descr) do
     {static_or_dynamic, static} = Map.pop(descr, :dynamic, descr)
 
     if atom_only?(static) do
       case static_or_dynamic do
+        :term -> {:infinite, []}
         %{atom: {:union, set}} -> {:finite, :sets.to_list(set)}
         %{atom: {:negation, _}} -> {:infinite, []}
         %{} -> :error
@@ -554,19 +568,22 @@ defmodule Module.Types.Descr do
   # `:dynamic` field is not_set, or it contains a type equal to the static component
   # (that is, there are no extra dynamic values).
 
+  # TODO!!!
   defp dynamic_intersection(left, right) do
     inter = symmetrical_intersection(left, right, &intersection/3)
     if empty?(inter), do: 0, else: inter
   end
 
+  # TODO!!!
   defp dynamic_difference(left, right) do
     diff = difference_static(left, right)
     if empty?(diff), do: 0, else: diff
   end
 
+  # TODO!!!
   defp dynamic_union(left, right), do: symmetrical_merge(left, right, &union/3)
 
-  defp dynamic_to_quoted(%{} = descr) do
+  defp dynamic_to_quoted(descr) do
     cond do
       term_type?(descr) -> [{:dynamic, [], []}]
       single = indivisible_bitmap(descr) -> [single]
@@ -642,6 +659,8 @@ defmodule Module.Types.Descr do
   In static mode, we likely want to raise if `map.field`
   (or pattern matching?) is called on an optional key.
   """
+  def map_fetch(:term, _key), do: :badmap
+
   def map_fetch(%{} = descr, key) do
     case :maps.take(:dynamic, descr) do
       :error ->
@@ -657,7 +676,7 @@ defmodule Module.Types.Descr do
           :badmap
         end
 
-      {%{map: {:open, fields, []}}, static} when fields == %{} and static == @none ->
+      {:term, _static} ->
         {true, dynamic()}
 
       {dynamic, static} ->
