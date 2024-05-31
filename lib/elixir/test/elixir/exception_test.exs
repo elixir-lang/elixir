@@ -493,7 +493,7 @@ defmodule ExceptionTest do
              The following arguments were given to ExceptionTest.Req.get!/2:
 
                  # 1
-                 %URI{scheme: \"https\", authority: \"elixir-lang.org\", userinfo: nil, host: \"elixir-lang.org\", port: 443, path: nil, query: nil, fragment: nil}
+                 URI.parse("https://elixir-lang.org")
 
                  # 2
                  URI
@@ -509,7 +509,7 @@ defmodule ExceptionTest do
              The following arguments were given to ExceptionTest.Req.get!/1:
 
                  # 1
-                 %URI{scheme: \"https\", authority: \"elixir-lang.org\", userinfo: nil, host: \"elixir-lang.org\", port: 443, path: nil, query: nil, fragment: nil}
+                 URI.parse("https://elixir-lang.org")
 
              Attempted function clauses (showing 1 out of 1):
 
@@ -722,7 +722,7 @@ defmodule ExceptionTest do
 
     test "annotates key error with suggestions for structs" do
       message = blame_message(%URI{}, fn map -> map.schema end)
-      assert message =~ "key :schema not found in: %URI{"
+      assert message =~ "key :schema not found in: URI.new!("
       assert message =~ "Did you mean:"
       assert message =~ "* :scheme"
     end
