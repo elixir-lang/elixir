@@ -30,9 +30,12 @@ defmodule RangeTest do
 
   test "new" do
     assert Range.new(1, 3) == 1..3//1
-    assert Range.new(3, 1) == 3..1//-1
     assert Range.new(1, 3, 2) == 1..3//2
     assert Range.new(3, 1, -2) == 3..1//-2
+
+    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+             assert Range.new(3, 1) == 3..1//-1
+           end) =~ "has a default step of -1"
   end
 
   test "fields" do
