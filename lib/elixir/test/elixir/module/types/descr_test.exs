@@ -263,7 +263,7 @@ defmodule Module.Types.DescrTest do
 
       assert atom_type?(atom([:foo, :bar]), :foo)
       refute atom_type?(atom([:foo, :bar]), :baz)
-      assert atom_type?(negate(atom([:foo, :bar])), :baz)
+      assert atom_type?(negation(atom([:foo, :bar])), :baz)
 
       refute atom_type?(union(atom([:foo, :bar]), integer()), :baz)
       assert atom_type?(dynamic(union(atom([:foo, :bar]), integer())), :baz)
