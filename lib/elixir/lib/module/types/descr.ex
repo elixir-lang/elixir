@@ -428,7 +428,7 @@ defmodule Module.Types.Descr do
   ## Funs
 
   @doc """
-  Checks there is precisely one function with said arity.
+  Checks there is a function type (and only functions) with said arity.
   """
   def fun_fetch(:term, _arity), do: :error
 
@@ -752,8 +752,14 @@ defmodule Module.Types.Descr do
 
   defp map_fetch_static(descr, key) when is_atom(key) do
     case descr do
-      %{map: [{:open, fields, []}]} when fields == %{} ->
-        {true, term()}
+      # Optimization: if the key does not exist in the map,
+      # avoid building if_set/not_set pairs and return the
+      # popped value directly.
+      %{map: [{tag, fields, []}]} when not is_map_key(fields, key) ->
+        case tag do
+          :open -> {true, term()}
+          :closed -> {true, none()}
+        end
 
       %{map: map} ->
         map_split_on_key(map, key)
@@ -930,19 +936,24 @@ defmodule Module.Types.Descr do
   # Takes a map dnf and a key and returns a list of unions of types
   # for that key. It has to traverse both fields and negative entries.
   defp map_split_on_key(dnf, key) do
-    Enum.flat_map(dnf, fn {tag, fields, negs} ->
-      # %{...} the open map in a positive intersection can be ignored
-      {fst, snd} =
-        if tag == :open and fields == %{} do
-          {term_or_optional(), term_or_optional()}
-        else
-          map_pop_key(tag, fields, key)
-        end
+    Enum.flat_map(dnf, fn
+      # Optimization: if there are no negatives,
+      # we can return the value directly.
+      {_tag, %{^key => value}, []} ->
+        [value]
 
-      case map_split_negative(negs, key, []) do
-        :empty -> []
-        negative -> negative |> pair_make_disjoint() |> pair_eliminate_negations(fst, snd)
-      end
+      # Optimization: if there are no negatives
+      # and the key does not exist, return the default one.
+      {tag, %{}, []} ->
+        [map_tag_to_type(tag)]
+
+      {tag, fields, negs} ->
+        {fst, snd} = map_pop_key(tag, fields, key)
+
+        case map_split_negative(negs, key, []) do
+          :empty -> []
+          negative -> negative |> pair_make_disjoint() |> pair_eliminate_negations(fst, snd)
+        end
     end)
   end
 
