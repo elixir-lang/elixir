@@ -757,28 +757,28 @@ defmodule Registry do
   In the example below we register the current process and look it up
   both from itself and other processes:
 
-      iex> Registry.start_link(keys: :unique, name: Registry.UniqueLookupTest)
-      iex> Registry.values(Registry.UniqueLookupTest, "hello", self())
+      iex> Registry.start_link(keys: :unique, name: Registry.UniqueValuesTest)
+      iex> Registry.values(Registry.UniqueValuesTest, "hello", self())
       []
-      iex> {:ok, _} = Registry.register(Registry.UniqueLookupTest, "hello", :world)
-      iex> Registry.values(Registry.UniqueLookupTest, "hello", self())
+      iex> {:ok, _} = Registry.register(Registry.UniqueValuesTest, "hello", :world)
+      iex> Registry.values(Registry.UniqueValuesTest, "hello", self())
       [:world]
-      iex> Task.async(fn -> Registry.values(Registry.UniqueLookupTest, "hello", self()) end) |> Task.await()
+      iex> Task.async(fn -> Registry.values(Registry.UniqueValuesTest, "hello", self()) end) |> Task.await()
       []
       iex> parent = self()
-      iex> Task.async(fn -> Registry.values(Registry.UniqueLookupTest, "hello", parent) end) |> Task.await()
+      iex> Task.async(fn -> Registry.values(Registry.UniqueValuesTest, "hello", parent) end) |> Task.await()
       [:world]
 
   The same applies to duplicate registries:
 
-      iex> Registry.start_link(keys: :duplicate, name: Registry.DuplicateLookupTest)
-      iex> Registry.values(Registry.DuplicateLookupTest, "hello", self())
+      iex> Registry.start_link(keys: :duplicate, name: Registry.DuplicateValuesTest)
+      iex> Registry.values(Registry.DuplicateValuesTest, "hello", self())
       []
-      iex> {:ok, _} = Registry.register(Registry.DuplicateLookupTest, "hello", :world)
-      iex> Registry.values(Registry.DuplicateLookupTest, "hello", self())
+      iex> {:ok, _} = Registry.register(Registry.DuplicateValuesTest, "hello", :world)
+      iex> Registry.values(Registry.DuplicateValuesTest, "hello", self())
       [:world]
-      iex> {:ok, _} = Registry.register(Registry.DuplicateLookupTest, "hello", :another)
-      iex> Enum.sort(Registry.values(Registry.DuplicateLookupTest, "hello", self()))
+      iex> {:ok, _} = Registry.register(Registry.DuplicateValuesTest, "hello", :another)
+      iex> Enum.sort(Registry.values(Registry.DuplicateValuesTest, "hello", self()))
       [:another, :world]
 
   """
