@@ -305,10 +305,9 @@ defmodule Module.Types.Expr do
          {:ok, _args_types, context} <-
            map_reduce_ok(args, context, &of_expr(&1, stack, &2)) do
       context =
-        if fun_type?(fun_type) do
-          context
-        else
-          Of.incompatible_warn(fun, fun(), fun_type, stack, context)
+        case fun_fetch(fun_type, length(args)) do
+          :ok -> context
+          :error -> Of.incompatible_warn(fun, fun(), fun_type, stack, context)
         end
 
       {:ok, dynamic(), context}

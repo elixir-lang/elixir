@@ -366,15 +366,6 @@ defmodule Module.Types.Descr do
   ## Bitmaps
 
   @doc """
-  Optimized version of `not empty?(intersection(fun(), type))`.
-  """
-  def fun_type?(:term), do: true
-  def fun_type?(%{dynamic: :term}), do: true
-  def fun_type?(%{dynamic: %{bitmap: bitmap}}) when (bitmap &&& @bit_fun) != 0, do: true
-  def fun_type?(%{bitmap: bitmap}) when (bitmap &&& @bit_fun) != 0, do: true
-  def fun_type?(_), do: false
-
-  @doc """
   Optimized version of `not empty?(intersection(binary(), type))`.
   """
   def binary_type?(:term), do: true
@@ -433,6 +424,29 @@ defmodule Module.Types.Descr do
         (mask &&& val) !== 0,
         do: {type, [], []}
   end
+
+  ## Funs
+
+  @doc """
+  Checks there is precisely one function with said arity.
+  """
+  def fun_fetch(:term, _arity), do: :error
+
+  def fun_fetch(%{} = descr, _arity) do
+    {static_or_dynamic, static} = Map.pop(descr, :dynamic, descr)
+
+    if fun_only?(static) do
+      case static_or_dynamic do
+        :term -> :ok
+        %{bitmap: bitmap} when (bitmap &&& @bit_fun) != 0 -> :ok
+        %{} -> :error
+      end
+    else
+      :error
+    end
+  end
+
+  defp fun_only?(descr), do: empty?(difference(descr, fun()))
 
   ## Atoms
 

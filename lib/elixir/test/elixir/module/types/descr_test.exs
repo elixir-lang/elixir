@@ -271,6 +271,13 @@ defmodule Module.Types.DescrTest do
   end
 
   describe "projections" do
+    test "fun_fetch" do
+      assert fun_fetch(term(), 1) == :error
+      assert fun_fetch(union(term(), dynamic(fun())), 1) == :error
+      assert fun_fetch(fun(), 1) == :ok
+      assert fun_fetch(dynamic(), 1) == :ok
+    end
+
     test "atom_fetch" do
       assert atom_fetch(term()) == :error
       assert atom_fetch(union(term(), dynamic(atom([:foo, :bar])))) == :error
