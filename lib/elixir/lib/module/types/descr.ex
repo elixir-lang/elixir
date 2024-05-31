@@ -368,6 +368,8 @@ defmodule Module.Types.Descr do
   @doc """
   Optimized version of `not empty?(intersection(fun(), type))`.
   """
+  def fun_type?(:term), do: true
+  def fun_type?(%{dynamic: :term}), do: true
   def fun_type?(%{dynamic: %{bitmap: bitmap}}) when (bitmap &&& @bit_fun) != 0, do: true
   def fun_type?(%{bitmap: bitmap}) when (bitmap &&& @bit_fun) != 0, do: true
   def fun_type?(_), do: false
@@ -375,6 +377,8 @@ defmodule Module.Types.Descr do
   @doc """
   Optimized version of `not empty?(intersection(binary(), type))`.
   """
+  def binary_type?(:term), do: true
+  def binary_type?(%{dynamic: :term}), do: true
   def binary_type?(%{dynamic: %{bitmap: bitmap}}) when (bitmap &&& @bit_binary) != 0, do: true
   def binary_type?(%{bitmap: bitmap}) when (bitmap &&& @bit_binary) != 0, do: true
   def binary_type?(_), do: false
@@ -382,6 +386,8 @@ defmodule Module.Types.Descr do
   @doc """
   Optimized version of `not empty?(intersection(integer(), type))`.
   """
+  def integer_type?(:term), do: true
+  def integer_type?(%{dynamic: :term}), do: true
   def integer_type?(%{dynamic: %{bitmap: bitmap}}) when (bitmap &&& @bit_integer) != 0, do: true
   def integer_type?(%{bitmap: bitmap}) when (bitmap &&& @bit_integer) != 0, do: true
   def integer_type?(_), do: false
@@ -389,6 +395,8 @@ defmodule Module.Types.Descr do
   @doc """
   Optimized version of `not empty?(intersection(float(), type))`.
   """
+  def float_type?(:term), do: true
+  def float_type?(%{dynamic: :term}), do: true
   def float_type?(%{dynamic: %{bitmap: bitmap}}) when (bitmap &&& @bit_float) != 0, do: true
   def float_type?(%{bitmap: bitmap}) when (bitmap &&& @bit_float) != 0, do: true
   def float_type?(_), do: false
@@ -396,6 +404,8 @@ defmodule Module.Types.Descr do
   @doc """
   Optimized version of `not empty?(intersection(integer() or float(), type))`.
   """
+  def number_type?(:term), do: true
+  def number_type?(%{dynamic: :term}), do: true
   def number_type?(%{dynamic: %{bitmap: bitmap}}) when (bitmap &&& @bit_number) != 0, do: true
   def number_type?(%{bitmap: bitmap}) when (bitmap &&& @bit_number) != 0, do: true
   def number_type?(_), do: false
@@ -443,27 +453,17 @@ defmodule Module.Types.Descr do
   # is removed from the map.
 
   @doc """
-  Optimized version of `not empty?(intersection(atom(), type))`.
-  """
-  def atom_type?(%{dynamic: %{atom: _}}), do: true
-  def atom_type?(%{atom: _}), do: true
-  def atom_type?(_), do: false
-
-  @doc """
   Optimized version of `not empty?(intersection(atom([atom]), type))`.
   """
-  def atom_type?(:term, _atom), do: false
+  def atom_type?(:term, _atom), do: true
 
   def atom_type?(%{} = descr, atom) do
-    {static_or_dynamic, static} = Map.pop(descr, :dynamic, descr)
-
-    atom_only?(static) and
-      case static_or_dynamic do
-        :term -> true
-        %{atom: {:union, set}} -> :sets.is_element(atom, set)
-        %{atom: {:negation, set}} -> not :sets.is_element(atom, set)
-        %{} -> false
-      end
+    case Map.get(descr, :dynamic, descr) do
+      :term -> true
+      %{atom: {:union, set}} -> :sets.is_element(atom, set)
+      %{atom: {:negation, set}} -> not :sets.is_element(atom, set)
+      %{} -> false
+    end
   end
 
   @doc """
@@ -704,7 +704,7 @@ defmodule Module.Types.Descr do
     case :maps.take(:dynamic, descr) do
       :error ->
         if is_map_key(descr, :map) and map_only?(descr) do
-          {static_optional?, static_type} = map_fetch_static(descr, key) |> pop_optional_static()
+          {static_optional?, static_type} = map_fetch_static(descr, key)
 
           if static_optional? or empty?(static_type) do
             :badkey
@@ -720,10 +720,8 @@ defmodule Module.Types.Descr do
 
       {dynamic, static} ->
         if is_map_key(dynamic, :map) and map_only?(static) do
-          {dynamic_optional?, dynamic_type} =
-            map_fetch_static(dynamic, key) |> pop_optional_static()
-
-          {static_optional?, static_type} = map_fetch_static(static, key) |> pop_optional_static()
+          {dynamic_optional?, dynamic_type} = map_fetch_static(dynamic, key)
+          {static_optional?, static_type} = map_fetch_static(static, key)
 
           if static_optional? or empty?(dynamic_type) do
             :badkey
@@ -740,8 +738,16 @@ defmodule Module.Types.Descr do
 
   defp map_fetch_static(descr, key) when is_atom(key) do
     case descr do
-      %{map: map} -> Enum.reduce(map_split_on_key(map, key), none(), &union/2)
-      %{} -> none()
+      %{map: [{:open, fields, []}]} when fields == %{} ->
+        {true, term()}
+
+      %{map: map} ->
+        map_split_on_key(map, key)
+        |> Enum.reduce(none(), &union/2)
+        |> pop_optional_static()
+
+      %{} ->
+        {false, none()}
     end
   end
 

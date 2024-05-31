@@ -46,7 +46,7 @@ defmodule Module.Types.DescrTest do
         reference()
       ]
 
-      assert Enum.reduce(all, &union/2) == term()
+      assert Enum.reduce(all, &union/2) |> equal?(term())
     end
 
     test "dynamic" do
@@ -258,7 +258,7 @@ defmodule Module.Types.DescrTest do
 
   describe "queries" do
     test "atom_type?" do
-      refute atom_type?(term(), :foo)
+      assert atom_type?(term(), :foo)
       assert atom_type?(dynamic(), :foo)
 
       assert atom_type?(atom([:foo, :bar]), :foo)
@@ -266,7 +266,7 @@ defmodule Module.Types.DescrTest do
       assert atom_type?(negation(atom([:foo, :bar])), :baz)
 
       refute atom_type?(union(atom([:foo, :bar]), integer()), :baz)
-      assert atom_type?(dynamic(union(atom([:foo, :bar]), integer())), :baz)
+      refute atom_type?(dynamic(union(atom([:foo, :bar]), integer())), :baz)
     end
   end
 
