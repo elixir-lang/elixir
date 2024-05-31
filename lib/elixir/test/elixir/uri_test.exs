@@ -565,6 +565,45 @@ defmodule URITest do
     end
   end
 
+  describe "inspect" do
+    test "URI.new!" do
+      strings = [
+        "",
+        "http://example.com",
+        "http://example.com/foo",
+        "http://example.com/foo#bar",
+        "http://example.com/foo#",
+        "foo/bar/baz",
+        "http://[::1]"
+      ]
+
+      for string <- strings do
+        assert inspect(URI.new!(string)) == ~s|URI.new!(#{inspect(string)})|
+      end
+    end
+
+    test "URI.parse" do
+      assert inspect(URI.parse("http://example.com/foo")) ==
+               ~s|URI.parse("http://example.com/foo")|
+    end
+
+    test "%URI{}" do
+      assert inspect(URI.parse("http://example.com/?\""), pretty: true) ==
+               """
+               %URI{
+                 scheme: "http",
+                 authority: "example.com",
+                 userinfo: nil,
+                 host: "example.com",
+                 port: 80,
+                 path: "/",
+                 query: "\\\"",
+                 fragment: nil
+               }\
+               """
+    end
+  end
+
   ## Deprecate API
 
   describe "authority" do

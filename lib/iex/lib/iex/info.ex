@@ -469,6 +469,28 @@ defimpl IEx.Info, for: Range do
   end
 end
 
+defimpl IEx.Info, for: URI do
+  def info(value) do
+    description = """
+    This is a struct representing a URI.
+    """
+
+    [
+      {"Data type", inspect(@for)},
+      {"Description", description},
+      {"Raw representation", raw_inspect(value)},
+      {"Reference modules", inspect(@for)}
+    ]
+  end
+
+  defp raw_inspect(value) do
+    value
+    |> Inspect.Any.inspect(%Inspect.Opts{})
+    |> Inspect.Algebra.format(:infinity)
+    |> IO.iodata_to_binary()
+  end
+end
+
 defimpl IEx.Info, for: Any do
   def info(%module{}) do
     [

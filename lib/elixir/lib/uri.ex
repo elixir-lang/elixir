@@ -1031,7 +1031,7 @@ defimpl String.Chars, for: URI do
       when host != nil and is_binary(path) and
              path != "" and binary_part(path, 0, 1) != "/" do
     raise ArgumentError,
-          ":path in URI must be empty or an absolute path if URL has a :host, got: #{inspect(uri)}"
+          ":path in URI must be empty or an absolute path if URL has a :host, got: #{inspect(uri, structs: false)}"
   end
 
   def to_string(%{scheme: scheme, port: port, path: path, query: query, fragment: fragment} = uri) do
@@ -1067,5 +1067,22 @@ defimpl String.Chars, for: URI do
       if(String.contains?(host, ":"), do: ["[", host | "]"], else: host),
       if(port, do: [":" | Integer.to_string(port)], else: [])
     ]
+  end
+end
+
+defimpl Inspect, for: URI do
+  def inspect(uri, opts) do
+    string = String.Chars.URI.to_string(uri)
+
+    case URI.new(string) do
+      {:ok, ^uri} ->
+        "URI.new!(\"" <> string <> "\")"
+
+      {:ok, _} ->
+        "URI.parse(\"" <> string <> "\")"
+
+      _ ->
+        Inspect.Any.inspect(uri, opts)
+    end
   end
 end

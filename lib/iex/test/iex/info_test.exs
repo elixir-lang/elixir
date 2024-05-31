@@ -238,6 +238,17 @@ defmodule IEx.InfoTest do
     assert get_key(info, "Reference modules") == "Range"
   end
 
+  test "URI" do
+    info = Info.info(URI.new!("https://elixir-lang.org"))
+    assert get_key(info, "Data type") == "URI"
+    assert get_key(info, "Description")
+
+    assert get_key(info, "Raw representation") ==
+             ~s|%URI{scheme: "https", authority: nil, userinfo: nil, host: "elixir-lang.org", port: 443, path: nil, query: nil, fragment: nil}|
+
+    assert get_key(info, "Reference modules") == "URI"
+  end
+
   test "structs" do
     info = Info.info(%Foo{})
     assert get_key(info, "Data type") == "IEx.InfoTest.Foo"
