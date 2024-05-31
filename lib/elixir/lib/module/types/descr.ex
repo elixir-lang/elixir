@@ -206,8 +206,10 @@ defmodule Module.Types.Descr do
   end
 
   # For static types, the difference is component-wise.
+  defp difference_static(left, :term) when not is_optional_static(left), do: none()
+
   defp difference_static(left, right) do
-    iterator_difference(:maps.next(:maps.iterator(right)), left)
+    iterator_difference(:maps.next(:maps.iterator(unfold(right))), unfold(left))
   end
 
   # Returning 0 from the callback is taken as none() for that subtype.
@@ -607,7 +609,9 @@ defmodule Module.Types.Descr do
 
   defp dynamic_union(:term, other) when not is_optional_static(other), do: :term
   defp dynamic_union(other, :term) when not is_optional_static(other), do: :term
-  defp dynamic_union(left, right), do: symmetrical_merge(unfold(left), unfold(right), &union/3)
+
+  defp dynamic_union(left, right),
+    do: symmetrical_merge(unfold(left), unfold(right), &union/3)
 
   defp dynamic_intersection(:term, other) when not is_optional_static(other), do: other
   defp dynamic_intersection(other, :term) when not is_optional_static(other), do: other
@@ -615,8 +619,7 @@ defmodule Module.Types.Descr do
   defp dynamic_intersection(left, right),
     do: symmetrical_intersection(unfold(left), unfold(right), &intersection/3)
 
-  defp dynamic_difference(left, :term) when not is_optional_static(left), do: %{}
-  defp dynamic_difference(left, right), do: difference_static(unfold(left), unfold(right))
+  defp dynamic_difference(left, right), do: difference_static(left, right)
 
   defp dynamic_to_quoted(descr) do
     cond do
