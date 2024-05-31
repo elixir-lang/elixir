@@ -423,4 +423,10 @@ defmodule Duration do
   @compile {:inline, pair: 2}
   defp pair(0, _key), do: []
   defp pair(num, key), do: [Integer.to_string(num), key]
+
+  defimpl String.Chars do
+    def to_string(%Duration{} = duration) do
+      Duration.to_iso8601(duration)
+    end
+  end
 end

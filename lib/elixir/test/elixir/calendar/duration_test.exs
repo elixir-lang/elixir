@@ -353,4 +353,13 @@ defmodule DurationTest do
     assert %Duration{microsecond: {-800_000, 0}} |> Duration.to_iso8601() == "PT0S"
     assert %Duration{microsecond: {-1_200_000, 2}} |> Duration.to_iso8601() == "PT-1.20S"
   end
+
+  test "to_string/1" do
+    assert to_string(%Duration{year: 1, second: 1}) == "P1YT1S"
+    assert to_string(%Duration{week: 3, hour: 5, minute: 3}) == "P3WT5H3M"
+    assert to_string(%Duration{hour: 5, minute: 3}) == "PT5H3M"
+    assert to_string(%Duration{year: 1, month: 2, day: 3}) == "P1Y2M3D"
+    assert to_string(%Duration{microsecond: {-800_000, 2}}) == "PT-0.80S"
+    assert to_string(%Duration{microsecond: {-1_200_000, 2}}) == "PT-1.20S"
+  end
 end
