@@ -376,9 +376,9 @@ defmodule Macro.Env do
       iex> env = __ENV__
       iex> Macro.Env.lookup_import(env, {:flatten, 1})
       []
-      iex> {:ok, env} = Macro.Env.define_import(env, [line: 10], SomeModule, resolver: fn :functions, SomeModule -> [{:flatten, 1}] end)
+      iex> {:ok, env} = Macro.Env.define_import(env, [line: 10], SomeModule, [resolver: fn :functions, SomeModule -> [{:flatten, 1}]; :macros, _ -> []; end])
       iex> Macro.Env.lookup_import(env, {:flatten, 1})
-      [{:function, List}]
+      [{:function, SomeModule}]
 
   """
   @doc since: "1.17.0"
