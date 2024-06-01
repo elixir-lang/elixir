@@ -1128,9 +1128,9 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "keeps position meta on & variables" do
-      assert expand(Code.string_to_quoted!("& &1")) ==
+      assert expand(Code.string_to_quoted!("& &1")) |> clean_meta([:counter]) ==
                {:fn, [{:line, 1}],
-                [{:->, [{:line, 1}], [[{:"&1", [line: 1], nil}], {:"&1", [line: 1], nil}]}]}
+                [{:->, [{:line, 1}], [[{:capture, [line: 1], nil}], {:capture, [line: 1], nil}]}]}
     end
 
     test "expands remotes" do

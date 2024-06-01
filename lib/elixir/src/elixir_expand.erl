@@ -340,7 +340,7 @@ expand({Name, Meta, Kind}, S, #{context := match} = E) when is_atom(Name), is_at
     %% Variable was already overridden
     #{Pair := VarVersion} when VarVersion >= PrematchVersion ->
       maybe_warn_underscored_var_repeat(Meta, Name, Kind, E),
-      NewUnused = var_used(Meta, Pair, VarVersion, Unused),
+      NewUnused = var_used(Pair, Meta, VarVersion, Unused),
       Var = {Name, [{version, VarVersion} | Meta], Kind},
       {Var, S#elixir_ex{unused={NewUnused, Version}}, E};
 
@@ -396,7 +396,7 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
     {ok, PairVersion} ->
       maybe_warn_underscored_var_access(Meta, Name, Kind, E),
       Var = {Name, [{version, PairVersion} | Meta], Kind},
-      {Var, S#elixir_ex{unused={var_used(Meta, Pair, PairVersion, Unused), Version}}, E};
+      {Var, S#elixir_ex{unused={var_used(Pair, Meta, PairVersion, Unused), Version}}, E};
 
     Error ->
       case lists:keyfind(if_undefined, 1, Meta) of
@@ -659,7 +659,7 @@ var_unused({_, Kind} = Pair, Meta, Version, Unused, Override) ->
     false -> Unused
   end.
 
-var_used(Meta, {_, Kind} = Pair, Version, Unused) ->
+var_used({_, Kind} = Pair, Meta, Version, Unused) ->
   KeepUnused = lists:keymember(keep_unused, 1, Meta),
 
   if
