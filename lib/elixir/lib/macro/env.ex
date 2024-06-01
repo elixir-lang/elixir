@@ -349,6 +349,10 @@ defmodule Macro.Env do
 
     * #{trace_option}
 
+    * `:resolver` - a two argument function to use instead of the default resolver. The function will be invoked
+    with first argument being `:functions` or `:macros` and the second being the module. It has to return
+    a list of function arity key value pairs
+
   ## Examples
 
       iex> env = __ENV__
@@ -367,15 +371,25 @@ defmodule Macro.Env do
       iex> Macro.Env.lookup_import(env, {:is_odd, 1})
       [{:macro, Integer}]
 
+  ## Resolver override
+
+      iex> env = __ENV__
+      iex> Macro.Env.lookup_import(env, {:flatten, 1})
+      []
+      iex> {:ok, env} = Macro.Env.define_import(env, [line: 10], SomeModule, resolver: fn :functions, SomeModule -> [{:flatten, 1}] end)
+      iex> Macro.Env.lookup_import(env, {:flatten, 1})
+      [{:function, List}]
+
   """
   @doc since: "1.17.0"
-  @spec define_import(t, Macro.metadata(), module) :: {:ok, t} | {:error, String.t()}
+  @spec define_import(t, Macro.metadata(), module, keyword) :: {:ok, t} | {:error, String.t()}
   def define_import(env, meta, module, opts \\ [])
       when is_list(meta) and is_atom(module) and is_list(opts) do
     {trace, opts} = Keyword.pop(opts, :trace, true)
     {warnings, opts} = Keyword.pop(opts, :emit_warnings, true)
+    {resolver, opts} = Keyword.pop(opts, :resolver, nil)
 
-    result = :elixir_import.import(meta, module, opts, env, warnings, trace)
+    result = :elixir_import.import(meta, module, opts, env, warnings, trace, resolver)
     maybe_define_error(result, :elixir_import)
   end
 

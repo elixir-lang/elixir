@@ -2,12 +2,22 @@
 %% between local functions and imports.
 %% For imports dispatch, please check elixir_dispatch.
 -module(elixir_import).
--export([import/6, special_form/2, format_error/1]).
+-export([import/6, import/7, special_form/2, format_error/1]).
 -compile(inline_list_funcs).
 -include("elixir.hrl").
 
 import(Meta, Ref, Opts, E, Warn, Trace) ->
-  case import_only_except(Meta, Ref, Opts, E, Warn) of
+  import(Meta, Ref, Opts, E, Warn, Trace, fun default_resolver/2).
+
+import(Meta, Ref, Opts, E, Warn, Trace, MaybeResolver) ->
+  Resolver = case MaybeResolver of
+    CandidateResolver when is_function(CandidateResolver, 2) ->
+      CandidateResolver;
+    _ ->
+      fun default_resolver/2
+  end,
+
+  case import_only_except(Meta, Ref, Opts, E, Warn, Resolver) of
     {Functions, Macros, Added} ->
       Trace andalso elixir_env:trace({import, [{imported, Added} | Meta], Ref, Opts}, E),
       EI = E#{functions := Functions, macros := Macros},
@@ -17,18 +27,18 @@ import(Meta, Ref, Opts, E, Warn, Trace) ->
       {error, Reason}
   end.
 
-import_only_except(Meta, Ref, Opts, E, Warn) ->
+import_only_except(Meta, Ref, Opts, E, Warn, Resolver) ->
   MaybeOnly = lists:keyfind(only, 1, Opts),
 
   case lists:keyfind(except, 1, Opts) of
     false ->
-      import_only_except(Meta, Ref, MaybeOnly, false, E, Warn);
+      import_only_except(Meta, Ref, MaybeOnly, false, E, Warn, Resolver);
 
     {except, DupExcept} when is_list(DupExcept) ->
       case ensure_keyword_list(DupExcept) of
         ok ->
           Except = ensure_no_duplicates(DupExcept, except, Meta, E, Warn),
-          import_only_except(Meta, Ref, MaybeOnly, Except, E, Warn);
+          import_only_except(Meta, Ref, MaybeOnly, Except, E, Warn, Resolver);
 
         error ->
           {error, {invalid_option, except, DupExcept}}
@@ -38,27 +48,27 @@ import_only_except(Meta, Ref, Opts, E, Warn) ->
       {error, {invalid_option, except, Other}}
   end.
 
-import_only_except(Meta, Ref, MaybeOnly, Except, E, Warn) ->
+import_only_except(Meta, Ref, MaybeOnly, Except, E, Warn, Resolver) ->
   case MaybeOnly of
     {only, functions} ->
-      {Added1, _Used1, Funs} = import_functions(Meta, Ref, Except, E, Warn),
+      {Added1, _Used1, Funs} = import_functions(Meta, Ref, Except, E, Warn, Resolver),
       {Funs, keydelete(Ref, ?key(E, macros)), Added1};
 
     {only, macros} ->
-      {Added2, _Used2, Macs} = import_macros(Meta, Ref, Except, E, Warn),
+      {Added2, _Used2, Macs} = import_macros(Meta, Ref, Except, E, Warn, Resolver),
       {keydelete(Ref, ?key(E, functions)), Macs, Added2};
 
     {only, sigils} ->
-      {Added1, _Used1, Funs} = import_sigil_functions(Meta, Ref, Except, E, Warn),
-      {Added2, _Used2, Macs} = import_sigil_macros(Meta, Ref, Except, E, Warn),
+      {Added1, _Used1, Funs} = import_sigil_functions(Meta, Ref, Except, E, Warn, Resolver),
+      {Added2, _Used2, Macs} = import_sigil_macros(Meta, Ref, Except, E, Warn, Resolver),
       {Funs, Macs, Added1 or Added2};
 
     {only, DupOnly} when is_list(DupOnly) ->
       case ensure_keyword_list(DupOnly) of
         ok when Except =:= false ->
           Only = ensure_no_duplicates(DupOnly, only, Meta, E, Warn),
-          {Added1, Used1, Funs} = import_listed_functions(Meta, Ref, Only, E, Warn),
-          {Added2, Used2, Macs} = import_listed_macros(Meta, Ref, Only, E, Warn),
+          {Added1, Used1, Funs} = import_listed_functions(Meta, Ref, Only, E, Warn, Resolver),
+          {Added2, Used2, Macs} = import_listed_macros(Meta, Ref, Only, E, Warn, Resolver),
           [Warn andalso elixir_errors:file_warn(Meta, E, ?MODULE, {invalid_import, {Ref, Name, Arity}}) ||
             {Name, Arity} <- (Only -- Used1) -- Used2],
           {Funs, Macs, Added1 or Added2};
@@ -74,37 +84,37 @@ import_only_except(Meta, Ref, MaybeOnly, Except, E, Warn) ->
       {error, {invalid_option, only, Other}};
 
     false ->
-      {Added1, _Used1, Funs} = import_functions(Meta, Ref, Except, E, Warn),
-      {Added2, _Used2, Macs} = import_macros(Meta, Ref, Except, E, Warn),
+      {Added1, _Used1, Funs} = import_functions(Meta, Ref, Except, E, Warn, Resolver),
+      {Added2, _Used2, Macs} = import_macros(Meta, Ref, Except, E, Warn, Resolver),
       {Funs, Macs, Added1 or Added2}
   end.
 
-import_listed_functions(Meta, Ref, Only, E, Warn) ->
-  New = intersection(Only, get_functions(Ref)),
+import_listed_functions(Meta, Ref, Only, E, Warn, Resolver) ->
+  New = intersection(Only, Resolver(functions, Ref)),
   calculate_key(Meta, Ref, ?key(E, functions), New, E, Warn).
 
-import_listed_macros(Meta, Ref, Only, E, Warn) ->
-  New = intersection(Only, get_macros(Ref)),
+import_listed_macros(Meta, Ref, Only, E, Warn, Resolver) ->
+  New = intersection(Only, Resolver(macros, Ref)),
   calculate_key(Meta, Ref, ?key(E, macros), New, E, Warn).
 
-import_functions(Meta, Ref, Except, E, Warn) ->
+import_functions(Meta, Ref, Except, E, Warn, Resolver) ->
   calculate_except(Meta, Ref, Except, ?key(E, functions), E, Warn, fun() ->
-    get_functions(Ref)
+    Resolver(functions, Ref)
   end).
 
-import_macros(Meta, Ref, Except, E, Warn) ->
+import_macros(Meta, Ref, Except, E, Warn, Resolver) ->
   calculate_except(Meta, Ref, Except, ?key(E, macros), E, Warn, fun() ->
-    get_macros(Ref)
+    Resolver(macros, Ref)
   end).
 
-import_sigil_functions(Meta, Ref, Except, E, Warn) ->
+import_sigil_functions(Meta, Ref, Except, E, Warn, Resolver) ->
   calculate_except(Meta, Ref, Except, ?key(E, functions), E, Warn, fun() ->
-    filter_sigils(get_functions(Ref))
+    filter_sigils(Resolver(functions, Ref))
   end).
 
-import_sigil_macros(Meta, Ref, Except, E, Warn) ->
+import_sigil_macros(Meta, Ref, Except, E, Warn, Resolver) ->
   calculate_except(Meta, Ref, Except, ?key(E, macros), E, Warn, fun() ->
-    filter_sigils(get_macros(Ref))
+    filter_sigils(Resolver(macros, Ref))
   end).
 
 calculate_except(Meta, Key, false, Old, E, Warn, Existing) ->
@@ -134,14 +144,14 @@ calculate_key(Meta, Key, Old, New, E, Warn) ->
 
 %% Retrieve functions and macros from modules
 
-get_functions(Module) ->
+default_resolver(functions, Module) ->
   try
     Module:'__info__'(functions)
   catch
     error:undef -> remove_internals(Module:module_info(exports))
-  end.
+  end;
 
-get_macros(Module) ->
+default_resolver(macros, Module) ->
   try
     Module:'__info__'(macros)
   catch
