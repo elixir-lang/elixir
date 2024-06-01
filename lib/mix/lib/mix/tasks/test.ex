@@ -214,6 +214,7 @@ defmodule Mix.Tasks.Test do
       The argument is a filter in the same format as `--include`, `--exclude` and `--only`.
       Note that compilation order is only affected when using the `file:path/to/test.exs` filter,
       but for ordering tests inside individual test runs, any other tag can be used as well.
+      Automatically sets `--trace-require` if a file filter is used.
 
       This option only applies to test files. To treat warnings as errors during compilation and
       during tests, run:

@@ -36,26 +36,6 @@ defmodule Mix.Compilers.Test do
     stale = opts[:stale]
     trace_require = opts[:trace_require]
 
-    # trace_require does not use ParallelCompiler.require so we cannot invoke
-    # the parallel_require_callbacks used for the --stale manifest
-    if stale && trace_require do
-      message =
-        "\nERROR! You cannot combine --stale and --trace-require options."
-
-      IO.puts(:stderr, IO.ANSI.format([:red, message]))
-      exit({:shutdown, 1})
-    end
-
-    # --sort-first/--sort-last manually require some files to be compiled first/last
-    # using Code.require_file instead of ParallelCompiler.require
-    if stale && (ex_unit_opts[:sort_first] != [] or ex_unit_opts[:sort_last] != []) do
-      message =
-        "\nERROR! You cannot combine --stale and --sort-first or --sort-last options."
-
-      IO.puts(:stderr, IO.ANSI.format([:red, message]))
-      exit({:shutdown, 1})
-    end
-
     {test_files, stale_manifest_pid, parallel_require_callbacks} =
       if stale do
         set_up_stale(matched_test_files, test_paths, opts)
@@ -92,18 +72,17 @@ defmodule Mix.Compilers.Test do
         {first, test_files, last} =
           maybe_sort_first_last(test_files, ex_unit_opts[:sort_first], ex_unit_opts[:sort_last])
 
-        try do
-          for file <- first, do: Code.require_file(file)
+        # if any files should be compiled first or last, we enable trace_require
+        trace_require = trace_require || first != [] || last != []
 
+        try do
           failed? =
-            require_test_files(
+            do_require(
               trace_require,
-              test_files,
+              first ++ test_files ++ last,
               parallel_require_callbacks,
               warnings_as_errors?
             )
-
-          for file <- last, do: Code.require_file(file)
 
           %{failures: failures} = results = ExUnit.await_run(task)
 
@@ -132,24 +111,19 @@ defmodule Mix.Compilers.Test do
     end
   end
 
-  defp require_test_files(
-         true = _trace_require,
-         test_files,
-         _parallel_require_callbacks,
-         _warnings_as_errors?
-       ) do
-    Enum.each(test_files, &Code.require_file/1)
+  defp do_require(true, test_files, parallel_require_callbacks, warnings_as_errors?) do
+    # we are running with --trace-require, so while we still use the parallel compiler
+    # for the parallel_require_callbacks and warnings_as_errors?, but actually only
+    # require one file at a time
+    failed =
+      for file <- test_files do
+        do_require(false, [file], parallel_require_callbacks, warnings_as_errors?)
+      end
 
-    # we don't know if there were any warnings, so we return false
-    false
+    Enum.any?(failed)
   end
 
-  defp require_test_files(
-         _trace_require,
-         test_files,
-         parallel_require_callbacks,
-         warnings_as_errors?
-       ) do
+  defp do_require(_trace_require, test_files, parallel_require_callbacks, warnings_as_errors?) do
     case Kernel.ParallelCompiler.require(test_files, parallel_require_callbacks) do
       {:ok, _, [_ | _]} when warnings_as_errors? -> true
       {:ok, _, _} -> false
