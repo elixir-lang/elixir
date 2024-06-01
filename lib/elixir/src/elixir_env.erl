@@ -32,7 +32,7 @@ trace(Event, #{tracers := Tracers} = E) ->
 
 to_caller({Line, #elixir_ex{vars={Read, _}}, Env}) ->
   Env#{line := Line, versioned_vars := Read};
-to_caller(#{} = Env) ->
+to_caller(#{'__struct__' := 'Elixir.Macro.Env'} = Env) ->
   Env.
 
 with_vars(Env, Vars) when is_list(Vars) ->

@@ -131,7 +131,8 @@ dispatch_import(Meta, Name, Args, S, E, Callback) ->
   case expand_import(Meta, Name, Arity, E, [], AllowLocals, true) of
     {macro, Receiver, Expander} ->
       check_deprecated(macro, Meta, Receiver, Name, Arity, E),
-      expand_quoted(Meta, Receiver, Name, Arity, Expander(Args, S), S, E);
+      Caller = {?line(Meta), S, E},
+      expand_quoted(Meta, Receiver, Name, Arity, Expander(Args, Caller), S, E);
     {function, Receiver, NewName} ->
       elixir_expand:expand({{'.', Meta, [Receiver, NewName]}, Meta, Args}, S, E);
     not_found ->
@@ -151,7 +152,8 @@ dispatch_require(Meta, Receiver, Name, Args, S, E, Callback) when is_atom(Receiv
       case expand_require(Meta, Receiver, Name, Arity, E, true) of
         {macro, Receiver, Expander} ->
           check_deprecated(macro, Meta, Receiver, Name, Arity, E),
-          expand_quoted(Meta, Receiver, Name, Arity, Expander(Args, S), S, E);
+          Caller = {?line(Meta), S, E},
+          expand_quoted(Meta, Receiver, Name, Arity, Expander(Args, Caller), S, E);
         error ->
           check_deprecated(function, Meta, Receiver, Name, Arity, E),
           elixir_env:trace({remote_function, Meta, Receiver, Name, Arity}, E),
@@ -246,26 +248,23 @@ expand_require(Required, Meta, Receiver, Name, Arity, E, Trace) ->
 %% Expansion helpers
 
 expander_macro_fun(Meta, Fun, Receiver, Name, E) ->
-  fun(Args, S) -> expand_macro_fun(Meta, Fun, Receiver, Name, Args, S, E) end.
+  fun(Args, Caller) -> expand_macro_fun(Meta, Fun, Receiver, Name, Args, Caller, E) end.
 
 expander_macro_named(Meta, Receiver, Name, Arity, E) ->
   ProperName  = elixir_utils:macro_name(Name),
   ProperArity = Arity + 1,
   Fun         = fun Receiver:ProperName/ProperArity,
-  fun(Args, S) -> expand_macro_fun(Meta, Fun, Receiver, Name, Args, S, E) end.
+  fun(Args, Caller) -> expand_macro_fun(Meta, Fun, Receiver, Name, Args, Caller, E) end.
 
-expand_macro_fun(Meta, Fun, Receiver, Name, Args, S, E) ->
-  Line = ?line(Meta),
-  EArg = {Line, S, E},
-
+expand_macro_fun(Meta, Fun, Receiver, Name, Args, Caller, E) ->
   try
-    apply(Fun, [EArg | Args])
+    apply(Fun, [Caller | Args])
   catch
     Kind:Reason:Stacktrace ->
       Arity = length(Args),
       MFA  = {Receiver, elixir_utils:macro_name(Name), Arity+1},
-      Info = [{Receiver, Name, Arity, [{file, "expanding macro"}]}, caller(Line, E)],
-      erlang:raise(Kind, Reason, prune_stacktrace(Stacktrace, MFA, Info, {ok, EArg}))
+      Info = [{Receiver, Name, Arity, [{file, "expanding macro"}]}, caller(?line(Meta), E)],
+      erlang:raise(Kind, Reason, prune_stacktrace(Stacktrace, MFA, Info, {ok, Caller}))
   end.
 
 expand_quoted(Meta, Receiver, Name, Arity, Quoted, S, E) ->
@@ -342,7 +341,7 @@ is_import(Meta, Arity) ->
   end.
 
 % %% We've reached the macro wrapper fun, skip it with the rest
-prune_stacktrace([{_, _, [E | _], _} | _], _MFA, Info, {ok, E}) ->
+prune_stacktrace([{_, _, [Caller | _], _} | _], _MFA, Info, {ok, Caller}) ->
   Info;
 %% We've reached the invoked macro, skip it
 prune_stacktrace([{M, F, A, _} | _], {M, F, A}, Info, _E) ->

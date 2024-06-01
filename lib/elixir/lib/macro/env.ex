@@ -583,7 +583,7 @@ defmodule Macro.Env do
         :elixir_dispatch.check_deprecated(:macro, meta, receiver, name, arity, env)
       end
 
-      quoted = expander.(args, :elixir_env.env_to_ex(env))
+      quoted = expander.(args, env)
       next = :elixir_module.next_counter(env.module)
       :elixir_quote.linify_with_context_counter(expansion_meta, {receiver, next}, quoted)
     end
