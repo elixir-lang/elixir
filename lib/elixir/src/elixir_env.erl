@@ -91,7 +91,7 @@ reset_unused_vars(#elixir_ex{unused={_Unused, Version}} = S) ->
 
 check_unused_vars(#elixir_ex{unused={Unused, _Version}}, E) ->
   [elixir_errors:file_warn(calculate_span(Meta, Name), E, ?MODULE, {unused_var, Name, Overridden}) ||
-    {{{Name, nil}, _}, {Meta, Overridden}} <- maps:to_list(Unused), is_unused_var(Name)],
+    {{{Name, _Kind}, _Count}, {Meta, Overridden}} <- maps:to_list(Unused), is_unused_var(Name)],
   E.
 
 calculate_span(Meta, Name) ->
@@ -120,8 +120,8 @@ merge_and_check_unused_vars(Current, Unused, ClauseUnused, E) ->
           Acc
       end;
 
-    ({{Name, Kind}, _Count}, {Meta, Overridden}, Acc) ->
-      case (Kind == nil) andalso is_unused_var(Name) of
+    ({{Name, _Kind}, _Count}, {Meta, Overridden}, Acc) ->
+      case is_unused_var(Name) of
         true ->
           Warn = {unused_var, Name, Overridden},
           elixir_errors:file_warn(Meta, E, ?MODULE, Warn);

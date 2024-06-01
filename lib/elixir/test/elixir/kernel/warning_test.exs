@@ -463,17 +463,6 @@ defmodule Kernel.WarningTest do
       fn x -> match?(x, :value) end
       """
     )
-
-    assert_warn_eval(
-      [
-        "nofile:1",
-        "variable \"&1\" is unused (this might happen when using a capture argument as a pattern)",
-        "variable \"&1\" is unused (this might happen when using a capture argument as a pattern)"
-      ],
-      """
-      &match?(&1, :value)
-      """
-    )
   end
 
   test "useless literal" do

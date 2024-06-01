@@ -495,10 +495,8 @@ defmodule Macro do
   """
   @doc since: "1.11.3"
   @spec generate_unique_arguments(0, context :: atom) :: []
-  @spec generate_unique_arguments(pos_integer, context) :: [
-          {atom, [counter: integer], context},
-          ...
-        ]
+  @spec generate_unique_arguments(pos_integer, context) ::
+          [{atom, [counter: integer], context}, ...]
         when context: atom
   def generate_unique_arguments(amount, context),
     do: generate_arguments(amount, context, &unique_var/2)
