@@ -7,9 +7,9 @@
 -include("elixir.hrl").
 
 import(Meta, Ref, Opts, E, Warn, Trace) ->
-  import(Meta, Ref, Opts, E, Warn, Trace, nil).
+  import(Meta, Ref, Opts, E, Warn, Trace, fun Ref:'__info__'/1).
 
-import(Meta, Ref, Opts, E, Warn, Trace, InfoCallback) when is_function(InfoCallback, 1) ->
+import(Meta, Ref, Opts, E, Warn, Trace, InfoCallback) ->
   case import_only_except(Meta, Ref, Opts, E, Warn, InfoCallback) of
     {Functions, Macros, Added} ->
       Trace andalso elixir_env:trace({import, [{imported, Added} | Meta], Ref, Opts}, E),
@@ -18,9 +18,7 @@ import(Meta, Ref, Opts, E, Warn, Trace, InfoCallback) when is_function(InfoCallb
 
     {error, Reason} ->
       {error, Reason}
-  end;
-import(Meta, Ref, Opts, E, Warn, Trace, _) ->
-  import(Meta, Ref, Opts, E, Warn, Trace, info_callback(Ref)).
+  end.
 
 import_only_except(Meta, Ref, Opts, E, Warn, InfoCallback) ->
   MaybeOnly = lists:keyfind(only, 1, Opts),
@@ -85,21 +83,21 @@ import_only_except(Meta, Ref, MaybeOnly, Except, E, Warn, InfoCallback) ->
   end.
 
 import_listed_functions(Meta, Ref, Only, E, Warn, InfoCallback) ->
-  New = intersection(Only, InfoCallback(functions)),
+  New = intersection(Only, get_functions(Ref, InfoCallback)),
   calculate_key(Meta, Ref, ?key(E, functions), New, E, Warn).
 
 import_listed_macros(Meta, Ref, Only, E, Warn, InfoCallback) ->
-  New = intersection(Only, InfoCallback(macros)),
+  New = intersection(Only, get_macros(InfoCallback)),
   calculate_key(Meta, Ref, ?key(E, macros), New, E, Warn).
 
 import_functions(Meta, Ref, Except, E, Warn, InfoCallback) ->
   calculate_except(Meta, Ref, Except, ?key(E, functions), E, Warn, fun() ->
-    InfoCallback(functions)
+    get_functions(Ref, InfoCallback)
   end).
 
 import_macros(Meta, Ref, Except, E, Warn, InfoCallback) ->
   calculate_except(Meta, Ref, Except, ?key(E, macros), E, Warn, fun() ->
-    InfoCallback(macros)
+    get_macros(InfoCallback)
   end).
 
 import_sigil_functions(Meta, Ref, Except, E, Warn, InfoCallback) ->
@@ -139,19 +137,16 @@ calculate_key(Meta, Key, Old, New, E, Warn) ->
 
 %% Retrieve functions and macros from modules
 
-info_callback(Module) ->
-  fun(Kind) -> info_callback(Module, Kind) end.
-
-info_callback(Module, functions) ->
+get_functions(Module, InfoCallback) ->
   try
-    Module:'__info__'(functions)
+    InfoCallback(functions)
   catch
     error:undef -> remove_internals(Module:module_info(exports))
-  end;
+  end.
 
-info_callback(Module, macros) ->
+get_macros(InfoCallback) ->
   try
-    Module:'__info__'(macros)
+    InfoCallback(macros)
   catch
     error:undef -> []
   end.

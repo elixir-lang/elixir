@@ -351,7 +351,9 @@ defmodule Macro.Env do
 
     * `:info_callback` - a function to use instead of `c:Module.__info__/1`.
       The function will be invoked with `:functions` or `:macros` argument.
-      It has to return a list of `{function, arity}` key value pairs
+      It has to return a list of `{function, arity}` key value pairs.
+      If it fails, it defaults to using module metadata based on `module_info`
+      and `behaviour_info`.
 
   ## Examples
 
@@ -371,7 +373,7 @@ defmodule Macro.Env do
       iex> Macro.Env.lookup_import(env, {:is_odd, 1})
       [{:macro, Integer}]
 
-  ## Resolver override
+  ## Info callback override
 
       iex> env = __ENV__
       iex> Macro.Env.lookup_import(env, {:flatten, 1})
@@ -389,7 +391,7 @@ defmodule Macro.Env do
       when is_list(meta) and is_atom(module) and is_list(opts) do
     {trace, opts} = Keyword.pop(opts, :trace, true)
     {warnings, opts} = Keyword.pop(opts, :emit_warnings, true)
-    {info_callback, opts} = Keyword.pop(opts, :info_callback, nil)
+    {info_callback, opts} = Keyword.pop(opts, :info_callback, &module.__info__/1)
 
     result = :elixir_import.import(meta, module, opts, env, warnings, trace, info_callback)
     maybe_define_error(result, :elixir_import)
