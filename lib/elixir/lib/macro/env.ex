@@ -352,8 +352,7 @@ defmodule Macro.Env do
     * `:info_callback` - a function to use instead of `c:Module.__info__/1`.
       The function will be invoked with `:functions` or `:macros` argument.
       It has to return a list of `{function, arity}` key value pairs.
-      If it fails, it defaults to using module metadata based on `module_info`
-      and `behaviour_info`.
+      If it fails, it defaults to using module metadata based on `module_info/1`.
 
   ## Examples
 
