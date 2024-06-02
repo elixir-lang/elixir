@@ -469,6 +469,31 @@ defmodule ExUnit.FormatterTest do
            """
   end
 
+  test "formats nested maps with column limit" do
+    long_string = String.duplicate("a", 10)
+    map = %{a: long_string}
+    failure = [{:error, catch_assertion(assert [map] == [map, map]), []}]
+
+    assert format_test_all_failure(test_module(), failure, 1, 20, &formatter/2) == """
+             1) Hello: failure on setup_all callback, all tests have been invalidated
+                Assertion with == failed
+                code:  assert [map] == [map, map]
+                left:  [
+                         %{
+                           a: "aaaaaaaaaa"
+                         }
+                       ]
+                right: [
+                         %{
+                           a: "aaaaaaaaaa"
+                         },
+                         %{
+                           a: "aaaaaaaaaa"
+                         }
+                       ]
+           """
+  end
+
   test "formats assertions with complex function call arguments" do
     failure = [{:error, catch_assertion(assert is_list(List.to_tuple([1, 2, 3]))), []}]
 

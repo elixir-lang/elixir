@@ -1007,8 +1007,12 @@ defmodule ExUnit.Diff do
     literal.(diff_wrapper)
   end
 
+  defp safe_to_algebra(map, diff_wrapper) when is_map(map) and not is_struct(map) do
+    safe_to_algebra(Macro.escape(map), diff_wrapper)
+  end
+
   defp safe_to_algebra(literal, _diff_wrapper) do
-    inspect(literal)
+    inspect(literal, pretty: true, width: 98)
   end
 
   defp keyword_to_algebra(quoted, diff_wrapper) do

@@ -1141,7 +1141,16 @@ defmodule ExUnit.DiffTest do
     refute_diff(identity == :a, "-#{inspect}-", "+:a+")
     refute_diff({identity, identity} == :a, "-{#{inspect}, #{inspect}}", "+:a+")
     refute_diff({identity, :a} == {:a, identity}, "{-#{inspect}-, -:a-}", "{+:a+, +#{inspect}+}")
-    refute_diff(%{identity => identity} == :a, "-%{#{inspect} => #{inspect}}", "+:a+")
+
+    refute_diff(
+      %{identity => identity} == :a,
+      """
+      -%{
+        #{inspect} => #{inspect}
+      }-\
+      """,
+      "+:a+"
+    )
 
     refute_diff(
       (&String.to_charlist/1) == (&String.unknown/1),
