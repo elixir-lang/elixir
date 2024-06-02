@@ -350,8 +350,8 @@ defmodule Macro.Env do
     * #{trace_option}
 
     * `:info_callback` - a function to use instead of `c:Module.__info__/1`.
-    The function will be invoked with `:functions` or `:macros` argument.
-    It has to return a list of `{function, arity}` key value pairs
+      The function will be invoked with `:functions` or `:macros` argument.
+      It has to return a list of `{function, arity}` key value pairs
 
   ## Examples
 
