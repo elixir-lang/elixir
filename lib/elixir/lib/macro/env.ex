@@ -349,9 +349,9 @@ defmodule Macro.Env do
 
     * #{trace_option}
 
-    * `:resolver` - a two argument function to use instead of the default resolver. The function will be invoked
-    with first argument being `:functions` or `:macros` and the second being the module. It has to return
-    a list of function arity key value pairs
+    * `:info_callback` - a function to use instead of `c:Module.__info__/1`.
+    The function will be invoked with `:functions` or `:macros` argument.
+    It has to return a list of `{function, arity}` key value pairs
 
   ## Examples
 
@@ -376,9 +376,11 @@ defmodule Macro.Env do
       iex> env = __ENV__
       iex> Macro.Env.lookup_import(env, {:flatten, 1})
       []
-      iex> {:ok, env} = Macro.Env.define_import(env, [line: 10], SomeModule, [resolver: fn :functions, SomeModule -> [{:flatten, 1}]; :macros, _ -> []; end])
+      iex> {:ok, env} = Macro.Env.define_import(env, [line: 10], SomeModule, [info_callback: fn :functions -> [{:flatten, 1}]; :macros -> [{:some, 2}]; end])
       iex> Macro.Env.lookup_import(env, {:flatten, 1})
       [{:function, SomeModule}]
+      iex> Macro.Env.lookup_import(env, {:some, 2})
+      [{:macro, SomeModule}]
 
   """
   @doc since: "1.17.0"
@@ -387,9 +389,9 @@ defmodule Macro.Env do
       when is_list(meta) and is_atom(module) and is_list(opts) do
     {trace, opts} = Keyword.pop(opts, :trace, true)
     {warnings, opts} = Keyword.pop(opts, :emit_warnings, true)
-    {resolver, opts} = Keyword.pop(opts, :resolver, nil)
+    {info_callback, opts} = Keyword.pop(opts, :info_callback, nil)
 
-    result = :elixir_import.import(meta, module, opts, env, warnings, trace, resolver)
+    result = :elixir_import.import(meta, module, opts, env, warnings, trace, info_callback)
     maybe_define_error(result, :elixir_import)
   end
 
