@@ -971,6 +971,9 @@ defmodule StringTest do
 
     three = fn -> "3" end
     assert_raise ArgumentError, fn -> String.to_float(three.()) end
+
+    dot_three = fn -> ".3" end
+    assert_raise ArgumentError, fn -> String.to_float(dot_three.()) end
   end
 
   test "jaro_distance/2" do
