@@ -13,6 +13,7 @@ defmodule Module.Types.DescrTest do
     test "term" do
       assert union(term(), float()) == term()
       assert union(term(), binary()) == term()
+      assert union(term(), if_set(binary())) == if_set(term())
     end
 
     test "none" do
@@ -45,7 +46,7 @@ defmodule Module.Types.DescrTest do
         reference()
       ]
 
-      assert Enum.reduce(all, &union/2) == term()
+      assert Enum.reduce(all, &union/2) |> equal?(term())
     end
 
     test "dynamic" do
@@ -214,6 +215,8 @@ defmodule Module.Types.DescrTest do
       # optional
       refute subtype?(closed_map(a: if_set(integer())), closed_map(a: integer()))
       assert subtype?(closed_map(a: integer()), closed_map(a: if_set(integer())))
+      refute subtype?(closed_map(a: if_set(term())), closed_map(a: term()))
+      assert subtype?(closed_map(a: term()), closed_map(a: if_set(term())))
     end
   end
 
@@ -253,12 +256,34 @@ defmodule Module.Types.DescrTest do
     end
   end
 
+  describe "queries" do
+    test "atom_type?" do
+      assert atom_type?(term(), :foo)
+      assert atom_type?(dynamic(), :foo)
+
+      assert atom_type?(atom([:foo, :bar]), :foo)
+      refute atom_type?(atom([:foo, :bar]), :baz)
+      assert atom_type?(negation(atom([:foo, :bar])), :baz)
+
+      refute atom_type?(union(atom([:foo, :bar]), integer()), :baz)
+      refute atom_type?(dynamic(union(atom([:foo, :bar]), integer())), :baz)
+    end
+  end
+
   describe "projections" do
+    test "fun_fetch" do
+      assert fun_fetch(term(), 1) == :error
+      assert fun_fetch(union(term(), dynamic(fun())), 1) == :error
+      assert fun_fetch(fun(), 1) == :ok
+      assert fun_fetch(dynamic(), 1) == :ok
+    end
+
     test "atom_fetch" do
       assert atom_fetch(term()) == :error
       assert atom_fetch(union(term(), dynamic(atom([:foo, :bar])))) == :error
 
       assert atom_fetch(atom()) == {:infinite, []}
+      assert atom_fetch(dynamic()) == {:infinite, []}
 
       assert atom_fetch(atom([:foo, :bar])) ==
                {:finite, [:foo, :bar] |> :sets.from_list(version: 2) |> :sets.to_list()}
