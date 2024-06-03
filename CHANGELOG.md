@@ -6,6 +6,14 @@ This release no longer supports WERL (a graphical user interface for the Erlang 
 
 ### 1. Enhancements
 
+#### Elixir
+
+  * [Macro] Improve `dbg` handling of `if/2`, `unless/2`, and code blocks
+
+#### ExUnit
+
+  * [ExUnit] Support parameterized tests on `ExUnit.Case`
+
 ### 2. Bug fixes
 
 ### 3. Soft deprecations (no warnings emitted)
@@ -20,6 +28,7 @@ This release no longer supports WERL (a graphical user interface for the Erlang 
 #### Elixir
 
   * [Enumerable] Deprecate returning a two-arity function in `Enumerable.slice/1`
+  * [Module] Deprecate `Module.eval_quoted/3` in favor of `Code.eval_quoted/3`
   * [Range] Deprecate inferring negative ranges on `Range.new/2`
 
 #### Mix
