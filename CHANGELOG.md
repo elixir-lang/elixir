@@ -12,7 +12,7 @@ At the moment, Elixir developers will interact with set-theoretic types only thr
 
   * `atom()` - it represents all atoms and it is divisible. For instance, the atom `:foo` and `:hello_world` are also valid (distinct) types.
 
-  * `map()` and structs - maps can be "closed" or "open". Closed maps only allow the specified allows keys, such as `%{key: atom(), value: integer()}`. Open maps support any other keys in addition to the ones listed and their definition starts with `...`, such as `%{..., key: atom(), value: integer()}`. Structs are closed maps with the `__struct__` key.
+  * `map()` and structs - maps can be "closed" or "open". Closed maps only allow the specified keys, such as `%{key: atom(), value: integer()}`. Open maps support any other keys in addition to the ones listed and their definition starts with `...`, such as `%{..., key: atom(), value: integer()}`. Structs are closed maps with the `__struct__` key.
 
   * `tuple()`, `list()`, and `function()` - currently they are modelled as indivisible types. The next Elixir versions will also introduce fine-grained support to them.
 
@@ -28,19 +28,19 @@ We focused on atoms and maps on this initial release as they are respectively th
 
   * Capturing a function on non-modules, such as `&user.address/0`
 
+  * Attempting to invoke to call an anonymous function without an actual function, such as `user.()`
+
   * Performing structural comparisons with structs, such as `my_date < ~D[2010-04-17]`
 
   * Performing structural comparisons between non-overlapping types, such as `integer >= string`
 
-  * Building and pattern matching on binaries without the relevant specifiers, such as `<<string>>` (this warns because by default it expects an integer)
+  * Building and pattern matching on binaries without the relevant specifiers, such as `<<name>>` (this warns because by default it expects an integer, it should have been `<<name::binary>>` instead)
 
-  * Attempting to rescue an undefined exception or an exception that is not a struct
+  * Attempting to rescue an undefined exception or a struct that is not an exception
 
   * Accessing a field that is not defined in a rescued exception
 
-These new warnings help Elixir developers find bugs earlier and give more confidence when refactoring code, especially around maps and structs. While some of these warnings were emitted in the past, they were discovered using syntax analysis. The new warnings are more reliable, precise, and with better error messages. Keep in mind that not all maps have statically known keys, and the Elixir typechecker at the moment only infers types from patterns within the same function.
-
-Future Elixir versions will infer and type check more constructs, bringing Elixir developers more warnings and quality of life improvements without changes to code. For more details, see our new [reference document on gradual set-theoretic types](https://hexdocs.pm/elixir/main/gradual-set-theoretic-types.html).
+These new warnings help Elixir developers find bugs earlier and give more confidence when refactoring code, especially around maps and structs. While some of these warnings were emitted in the past, they were discovered using syntax analysis. The new warnings are more reliable, precise, and with better error messages. Keep in mind, however, that the Elixir typechecker only infers types from patterns within the same function at the moment. Analysis from guards and across function boundaries will be added in future relases. For more details, see our new [reference document on gradual set-theoretic types](https://hexdocs.pm/elixir/main/gradual-set-theoretic-types.html).
 
 The type system was made possible thanks to a partnership between [CNRS](https://www.cnrs.fr/) and [Remote](https://remote.com/). The development work is currently sponsored by [Fresha](https://www.fresha.com/), [Starfish*](https://starfish.team/), and [Dashbit](https://dashbit.co/).
 
@@ -71,6 +71,34 @@ Finally, a new `Kernel.to_timeout/1` function has been added, which helps develo
 ```elixir
 Process.send_after(pid, :wake_up, to_timeout(hour: 1))
 ```
+
+## v1.17.0-rc.1 (2024-06-03)
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [Duration] Add `Duration.to_iso8601/1` and `Duration.from_iso8601/1`
+  * [Keyword] Add `Keyword.intersect/2-3` to mirror the `Map` API
+
+#### Mix
+
+  * [mix profile.tprof] Add a new profiler, available on Erlang/OTP 27+, which can measure count, time, and heap usage
+  * [mix test] Generate cover HTML files in parallel
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Kernel] Avoid double tracing events when capturing a function
+  * [Kernel] Fix a bug where captured arguments would conflict when a capture included a macro that also used captures
+
+### 3. Soft deprecations
+
+#### Mix
+
+  * [mix profile.cprof] Deprecated in favor of the new `mix profile.tprof`
+  * [mix profile.eprof] Deprecated in favor of the new `mix profile.tprof`
 
 ## v1.17.0-rc.0 (2024-05-24)
 
