@@ -207,9 +207,9 @@ defimpl IEx.Info, for: List do
   defp info_improper_list(_improper_list) do
     description = """
     This is what is referred to as an "improper list". An improper list is a
-    list which its last tail is not to an empty list. For example: [1, 2, 3]
-    is a proper list, as it is equivalent to [1, 2, 3 | []], as opposed to
-    [1, 2 | 3] which is an improper list since its last tail returns 3.
+    list whose last tail is not an empty list. For example: [1, 2, 3] is a
+    proper list, as it is equivalent to [1, 2, 3 | []], as opposed to
+    [1, 2 | 3] which is an improper list since its last tail is 3.
     """
 
     [
