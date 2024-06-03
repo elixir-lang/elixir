@@ -97,6 +97,14 @@ defmodule Mix.Tasks.Profile.TprofTest do
     end)
   end
 
+  test "aggregates totals over all processes", context do
+    in_tmp(context.test, fn ->
+      assert capture_io(fn ->
+               Tprof.run(["--report", "total", "-e", @expr])
+             end) =~ "Profile results over all processes"
+    end)
+  end
+
   test "Module matching", context do
     in_tmp(context.test, fn ->
       refute capture_io(fn ->
