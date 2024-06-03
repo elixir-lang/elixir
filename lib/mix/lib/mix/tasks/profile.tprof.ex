@@ -46,6 +46,8 @@ defmodule Mix.Tasks.Profile.Tprof do
     * `--time` - filters out any results that took lower than specified (in µs), the `type` needs to be `time`
     * `--memory` - filters out any results that used less memory than specified (in words), the `type` needs to be `memory`
     * `--sort` - sorts the results by `calls`, `per_call` or by the value of `type` (default: the value of `type`)
+    * `--report` - returns the per-process breakdown when `process`, or the total for all processes when `total` (default: `process`).
+      Always `total` when `type` is `calls`.
     * `--eval`, `-e` - evaluates the given code
     * `--require`, `-r` - requires pattern before running the command
     * `--parallel`, `-p` - makes all requires parallel
@@ -152,6 +154,7 @@ defmodule Mix.Tasks.Profile.Tprof do
     time: :integer,
     memory: :integer,
     sort: :string,
+    report: :string,
     start: :boolean,
     archives_check: :boolean,
     warmup: :boolean,
@@ -211,6 +214,10 @@ defmodule Mix.Tasks.Profile.Tprof do
   defp parse_opt({:type, "memory"}), do: {:type, :memory}
   defp parse_opt({:type, other}), do: Mix.raise("Invalid type option: #{other}")
 
+  defp parse_opt({:report, "process"}), do: {:report, :process}
+  defp parse_opt({:report, "total"}), do: {:report, :total}
+  defp parse_opt({:report, other}), do: Mix.raise("Invalid report option: #{other}")
+
   defp parse_opt({:sort, "time"}), do: {:sort, :time}
   defp parse_opt({:sort, "calls"}), do: {:sort, :calls}
   defp parse_opt({:sort, "memory"}), do: {:sort, :memory}
@@ -238,6 +245,8 @@ defmodule Mix.Tasks.Profile.Tprof do
       `type` needs to be `:memory`
     * `:sort` - sort the results by `:calls`, `:per_call` or by the value of `type`
       (default: the value of `type`)
+    * `:report` - returns the per-process breakdown when `:process`, or the total for all
+      processes when `:total` (default: `:process`). Always `:total` when `type` is `:calls`.
     * `:warmup` - if the code should be warmed up before profiling (default: `true`)
     * `:set_on_spawn` - if newly spawned processes should be measured (default: `true`)
 
@@ -259,6 +268,7 @@ defmodule Mix.Tasks.Profile.Tprof do
     matching = Keyword.get(opts, :matching, {:_, :_, :_})
     set_on_spawn = Keyword.get(opts, :set_on_spawn, true)
     type = Keyword.get(opts, :type, :time)
+    report = Keyword.get(opts, :report, :process)
 
     sort_by =
       case Keyword.get(opts, :sort) do
@@ -288,7 +298,7 @@ defmodule Mix.Tasks.Profile.Tprof do
         report: :return
       })
 
-    inspected = tprof_module().inspect({tprof_type, traces}, :process, sort_by)
+    inspected = tprof_module().inspect({tprof_type, traces}, report, sort_by)
 
     results =
       inspected
