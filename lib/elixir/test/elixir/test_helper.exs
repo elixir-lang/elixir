@@ -23,28 +23,28 @@ defmodule PathHelpers do
     Path.join(tmp_path(), extra)
   end
 
-  def elixir(args) do
-    run_cmd(elixir_executable(), args)
+  def elixir(args, executable_extension \\ "") do
+    run_cmd(elixir_executable(executable_extension), args)
   end
 
-  def elixir_executable do
-    executable_path("elixir")
+  def elixir_executable(extension \\ "") do
+    executable_path("elixir", extension)
   end
 
-  def elixirc(args) do
-    run_cmd(elixirc_executable(), args)
+  def elixirc(args, executable_extension \\ "") do
+    run_cmd(elixirc_executable(executable_extension), args)
   end
 
-  def elixirc_executable do
-    executable_path("elixirc")
+  def elixirc_executable(extension \\ "") do
+    executable_path("elixirc", extension)
   end
 
-  def iex(args) do
-    run_cmd(iex_executable(), args)
+  def iex(args, executable_extension \\ "") do
+    run_cmd(iex_executable(executable_extension), args)
   end
 
-  def iex_executable do
-    executable_path("iex")
+  def iex_executable(extension \\ "") do
+    executable_path("iex", extension)
   end
 
   def write_beam({:module, name, bin, _} = res) do
@@ -60,8 +60,8 @@ defmodule PathHelpers do
     |> :unicode.characters_to_binary()
   end
 
-  defp executable_path(name) do
-    Path.expand("../../../../bin/#{name}#{executable_extension()}", __DIR__)
+  defp executable_path(name, extension) do
+    Path.expand("../../../../bin/#{name}#{extension}", __DIR__)
   end
 
   if match?({:win32, _}, :os.type()) do

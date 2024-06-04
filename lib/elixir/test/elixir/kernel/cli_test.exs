@@ -33,7 +33,13 @@ defmodule Retry do
 end
 
 defmodule Kernel.CLITest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case,
+    async: true,
+    parameterize:
+      if(PathHelpers.windows?(),
+        do: [%{cli_extension: ".bat"}, %{cli_extension: ".ps1"}],
+        else: [%{cli_extension: ""}, %{cli_extension: ".ps1"}]
+      )
 
   import ExUnit.CaptureIO
 
@@ -62,7 +68,15 @@ defmodule Kernel.CLITest do
 end
 
 defmodule Kernel.CLI.ExecutableTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case,
+    async: true,
+    parameterize:
+      if(PathHelpers.windows?(),
+        do: [%{cli_extension: ".bat"}, %{cli_extension: ".ps1"}],
+        else:
+          [%{cli_extension: ""}] ++
+            if(System.find_executable("pwsh"), do: [%{cli_extension: ".ps1"}], else: [])
+      )
 
   import Retry
 
@@ -70,78 +84,89 @@ defmodule Kernel.CLI.ExecutableTest do
   test "file smoke test", context do
     file = Path.join(context.tmp_dir, "hello_world!.exs")
     File.write!(file, "IO.puts :hello_world123")
-    {output, 0} = System.cmd(elixir_executable(), [file])
+    {output, 0} = System.cmd(elixir_executable(context.cli_extension), [file])
     assert output =~ "hello_world123"
   end
 
-  test "--eval smoke test" do
-    {output, 0} = System.cmd(elixir_executable(), ["--eval", "IO.puts :hello_world123"])
+  test "--eval smoke test", context do
+    {output, 0} =
+      System.cmd(elixir_executable(context.cli_extension), ["--eval", "IO.puts :hello_world123"])
+
     assert output =~ "hello_world123"
 
     # Check for -e and exclamation mark handling on Windows
-    assert {_output, 0} = System.cmd(elixir_executable(), ["-e", "Time.new!(0, 0, 0)"])
+    assert {_output, 0} =
+             System.cmd(elixir_executable(context.cli_extension), ["-e", "Time.new!(0, 0, 0)"])
 
     # TODO: remove this once we bump CI to 26.3
     unless windows?() and System.otp_release() == "26" do
       {output, 0} =
-        System.cmd(iex_executable(), ["--eval", "IO.puts :hello_world123; System.halt()"])
+        System.cmd(iex_executable(context.cli_extension), [
+          "--eval",
+          "IO.puts :hello_world123; System.halt()"
+        ])
 
       assert output =~ "hello_world123"
 
-      {output, 0} = System.cmd(iex_executable(), ["-e", "IO.puts :hello_world123; System.halt()"])
+      {output, 0} =
+        System.cmd(iex_executable(context.cli_extension), [
+          "-e",
+          "IO.puts :hello_world123; System.halt()"
+        ])
+
       assert output =~ "hello_world123"
     end
   end
 
-  test "--version smoke test" do
-    output = elixir(~c"--version")
+  test "--version smoke test", %{cli_extension: cli_extension} do
+    output = elixir(~c"--version", cli_extension)
     assert output =~ "Erlang/OTP #{System.otp_release()}"
     assert output =~ "Elixir #{System.version()}"
 
-    output = iex(~c"--version")
+    output = iex(~c"--version", cli_extension)
     assert output =~ "Erlang/OTP #{System.otp_release()}"
     assert output =~ "IEx #{System.version()}"
 
-    output = elixir(~c"--version -e \"IO.puts(:test_output)\"")
+    output = elixir(~c"--version -e \"IO.puts(:test_output)\"", cli_extension)
     assert output =~ "Erlang/OTP #{System.otp_release()}"
     assert output =~ "Elixir #{System.version()}"
     assert output =~ "Standalone options can't be combined with other options"
   end
 
-  test "--short-version smoke test" do
-    output = elixir(~c"--short-version")
+  test "--short-version smoke test", %{cli_extension: cli_extension} do
+    output = elixir(~c"--short-version", cli_extension)
     assert output =~ System.version()
     refute output =~ "Erlang"
   end
 
-  stderr_test "--help smoke test" do
-    output = elixir(~c"--help")
+  stderr_test "--help smoke test", %{cli_extension: cli_extension} do
+    output = elixir(~c"--help", cli_extension)
     assert output =~ "Usage: elixir"
   end
 
-  stderr_test "combining --help results in error" do
-    output = elixir(~c"-e 1 --help")
+  stderr_test "combining --help results in error", %{cli_extension: cli_extension} do
+    output = elixir(~c"-e 1 --help", cli_extension)
     assert output =~ "--help : Standalone options can't be combined with other options"
 
-    output = elixir(~c"--help -e 1")
+    output = elixir(~c"--help -e 1", cli_extension)
     assert output =~ "--help : Standalone options can't be combined with other options"
   end
 
-  stderr_test "combining --short-version results in error" do
-    output = elixir(~c"--short-version -e 1")
+  stderr_test "combining --short-version results in error", %{cli_extension: cli_extension} do
+    output = elixir(~c"--short-version -e 1", cli_extension)
     assert output =~ "--short-version : Standalone options can't be combined with other options"
 
-    output = elixir(~c"-e 1 --short-version")
+    output = elixir(~c"-e 1 --short-version", cli_extension)
     assert output =~ "--short-version : Standalone options can't be combined with other options"
   end
 
-  test "parses paths" do
+  test "parses paths", %{cli_extension: cli_extension} do
     root = fixture_path("../../..") |> to_charlist
 
     args =
       ~c"-pa \"#{root}/*\" -pz \"#{root}/lib/*\" -e \"IO.inspect(:code.get_path(), limit: :infinity)\""
 
-    list = elixir(args)
+    list = elixir(args, cli_extension)
     {path, _} = Code.eval_string(list, [])
 
     # pa
@@ -153,25 +178,31 @@ defmodule Kernel.CLI.ExecutableTest do
     assert to_charlist(Path.expand(~c"lib/list", root)) in path
   end
 
-  stderr_test "formats errors" do
-    assert String.starts_with?(elixir(~c"-e \":erlang.throw 1\""), "** (throw) 1")
+  stderr_test "formats errors", %{cli_extension: cli_extension} do
+    assert String.starts_with?(elixir(~c"-e \":erlang.throw 1\"", cli_extension), "** (throw) 1")
 
     assert String.starts_with?(
-             elixir(~c"-e \":erlang.error 1\""),
+             elixir(~c"-e \":erlang.error 1\"", cli_extension),
              "** (ErlangError) Erlang error: 1"
            )
 
-    assert String.starts_with?(elixir(~c"-e \"1 +\""), "** (TokenMissingError)")
+    assert String.starts_with?(elixir(~c"-e \"1 +\"", cli_extension), "** (TokenMissingError)")
 
-    assert elixir(~c"-e \"Task.async(fn -> raise ArgumentError end) |> Task.await\"") =~
+    assert elixir(
+             ~c"-e \"Task.async(fn -> raise ArgumentError end) |> Task.await\"",
+             cli_extension
+           ) =~
              "an exception was raised:\n    ** (ArgumentError) argument error"
 
-    assert elixir(~c"-e \"IO.puts(Process.flag(:trap_exit, false)); exit({:shutdown, 1})\"") ==
+    assert elixir(
+             ~c"-e \"IO.puts(Process.flag(:trap_exit, false)); exit({:shutdown, 1})\"",
+             cli_extension
+           ) ==
              "false\n"
   end
 
-  stderr_test "blames exceptions" do
-    error = elixir(~c"-e \"Access.fetch :foo, :bar\"")
+  stderr_test "blames exceptions", %{cli_extension: cli_extension} do
+    error = elixir(~c"-e \"Access.fetch :foo, :bar\"", cli_extension)
     assert error =~ "** (FunctionClauseError) no function clause matching in Access.fetch/2"
     assert error =~ "The following arguments were given to Access.fetch/2"
     assert error =~ ":foo"
@@ -238,7 +269,15 @@ defmodule Kernel.CLI.RPCTest do
 end
 
 defmodule Kernel.CLI.CompileTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case,
+    async: true,
+    parameterize:
+      if(PathHelpers.windows?(),
+        do: [%{cli_extension: ".bat"}, %{cli_extension: ".ps1"}],
+        else:
+          [%{cli_extension: ""}] ++
+            if(System.find_executable("pwsh"), do: [%{cli_extension: ".ps1"}], else: [])
+      )
 
   import Retry
   @moduletag :tmp_dir
@@ -250,7 +289,7 @@ defmodule Kernel.CLI.CompileTest do
   end
 
   test "compiles code", context do
-    assert elixirc(~c"#{context.fixture} -o #{context.tmp_dir}") == ""
+    assert elixirc(~c"#{context.fixture} -o #{context.tmp_dir}", context.cli_extension) == ""
     assert File.regular?(context.beam_file_path)
 
     # Assert that the module is loaded into memory with the proper destination for the BEAM file.
@@ -267,7 +306,7 @@ defmodule Kernel.CLI.CompileTest do
     try do
       fixture = String.replace(context.fixture, "/", "\\")
       tmp_dir_path = String.replace(context.tmp_dir, "/", "\\")
-      assert elixirc(~c"#{fixture} -o #{tmp_dir_path}") == ""
+      assert elixirc(~c"#{fixture} -o #{tmp_dir_path}", context.cli_extension) == ""
       assert File.regular?(context[:beam_file_path])
 
       # Assert that the module is loaded into memory with the proper destination for the BEAM file.
@@ -283,7 +322,9 @@ defmodule Kernel.CLI.CompileTest do
   end
 
   stderr_test "fails on missing patterns", context do
-    output = elixirc(~c"#{context.fixture} non_existing.ex -o #{context.tmp_dir}")
+    output =
+      elixirc(~c"#{context.fixture} non_existing.ex -o #{context.tmp_dir}", context.cli_extension)
+
     assert output =~ "non_existing.ex"
     refute output =~ "compile_sample.ex"
     refute File.exists?(context.beam_file_path)
@@ -292,7 +333,7 @@ defmodule Kernel.CLI.CompileTest do
   stderr_test "fails on missing write access to .beam file", context do
     compilation_args = ~c"#{context.fixture} -o #{context.tmp_dir}"
 
-    assert elixirc(compilation_args) == ""
+    assert elixirc(compilation_args, context.cli_extension) == ""
     assert File.regular?(context.beam_file_path)
 
     # Set the .beam file to read-only
@@ -301,7 +342,7 @@ defmodule Kernel.CLI.CompileTest do
 
     # Can only assert when read-only applies to the user
     if access != :read_write do
-      output = elixirc(compilation_args)
+      output = elixirc(compilation_args, context.cli_extension)
 
       expected =
         "(File.Error) could not write to file #{inspect(context.beam_file_path)}: permission denied"
