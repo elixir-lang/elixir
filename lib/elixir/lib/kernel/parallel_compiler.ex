@@ -158,6 +158,10 @@ defmodule Kernel.ParallelCompiler do
     * `:return_diagnostics` (since v1.15.0) - returns maps with information instead of
       a list of warnings and returns diagnostics as maps instead of tuples
 
+    * `:max_concurrency` - the maximum number of files to compile in parallel.
+      Setting this option to 1 will compile files sequentially.
+      Defaults to the number of schedulers online, or at least 2.
+
   """
   @doc since: "1.6.0"
   @spec compile([Path.t()], keyword()) ::
@@ -204,6 +208,10 @@ defmodule Kernel.ParallelCompiler do
     * `:each_module` - for each module compiled, invokes the callback passing
       the file, module and the module bytecode
 
+    * `:max_concurrency` - the maximum number of files to compile in parallel.
+      Setting this option to 1 will compile files sequentially.
+      Defaults to the number of schedulers online, or at least 2.
+
   """
   @doc since: "1.6.0"
   @spec require([Path.t()], keyword()) ::
@@ -239,7 +247,12 @@ defmodule Kernel.ParallelCompiler do
 
   defp spawn_workers(files, output, options) do
     {:module, _} = :code.ensure_loaded(Kernel.ErrorHandler)
-    schedulers = max(:erlang.system_info(:schedulers_online), 2)
+
+    schedulers =
+      Keyword.get_lazy(options, :max_concurrency, fn ->
+        max(:erlang.system_info(:schedulers_online), 2)
+      end)
+
     {:ok, checker} = Module.ParallelChecker.start_link(schedulers)
 
     {status, modules_or_errors, info} =
