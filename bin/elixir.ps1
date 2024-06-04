@@ -198,7 +198,8 @@ for ($i = 0; $i -lt $args.Count; $i++) {
     }
 
     "--erl" {
-      $beforeExtras.Add($args[++$i])
+      $private:erlFlags = $args[++$i] -split " "
+      $beforeExtras.AddRange($erlFlags)
       break
     }
 
@@ -297,11 +298,13 @@ $beforeExtras.InsertRange(0, [string[]]@("-noshell", "-elixir_root", "$(Join-Pat
 # $ERTS_BIN=
 $ERTS_BIN = "$env:ERTS_BIN"
 
-$ELIXIR_ERL_OPTIONS = "$env:ELIXIR_ERL_OPTIONS"
-
 $allParams = New-Object Collections.Generic.List[String]
 
-$allParams.Add($ELIXIR_ERL_OPTIONS)
+if ($null -ne $env:ELIXIR_ERL_OPTIONS) {
+  $private:erlFlags = $env:ELIXIR_ERL_OPTIONS -split " "
+  $allParams.AddRange($erlFlags)
+}
+
 $allParams.AddRange($erlangParams)
 $allParams.AddRange($beforeExtras)
 $allParams.Add("-extra")
@@ -335,10 +338,10 @@ else {
   }
 
   # We scape special chars using the Unix style of scaping, with "\".
-  # But first we escape the double-quotes.
+  # But first we escape the double-quotes, because for some reason they are not escaped in the same regex.
   $private:escaped = $allParams | ForEach-Object -Process { ($_ -replace "`"", "\`"") -replace "[^a-zA-Z0-9_/-]", "\$&" }
 
-  # The args are surrounded here for the same reasons
+  # The args are surrounded here because we want to have only one argument for the entire command.
   $paramsPart = @("-daemon","`"$runErlPipe/`"", "`"$runErlLog/`"", "`"$($escaped -join " ")`"")
 }
 
