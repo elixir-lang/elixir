@@ -145,11 +145,23 @@ defmodule ExUnit.Server do
         state
 
       true ->
-        n = :queue.len(state.async_modules)
-        count = min(count, n)
-        {modules, async_modules} = :queue.split(count, state.async_modules)
-        GenServer.reply(from, :queue.to_list(modules))
+        {modules, async_modules} = take_until(count, state.async_modules)
+        GenServer.reply(from, modules)
         %{state | async_modules: async_modules, waiting: nil}
+    end
+  end
+
+  # :queue.split fails if the provided count is larger than the queue size;
+  # as we also want to return the values as a list later, we directly
+  # return {list, queue} instead of {queue, queue}
+  defp take_until(n, queue), do: take_until(n, queue, [])
+
+  defp take_until(0, queue, acc), do: {Enum.reverse(acc), queue}
+
+  defp take_until(n, queue, acc) do
+    case :queue.out(queue) do
+      {{:value, item}, queue} -> take_until(n - 1, queue, [item | acc])
+      {:empty, queue} -> {Enum.reverse(acc), queue}
     end
   end
 end
