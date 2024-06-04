@@ -1054,6 +1054,45 @@ defmodule ExUnitTest do
     assert output =~ "2 tests, 0 failures, 2 excluded\n"
   end
 
+  test "tests are run in compile order (FIFO)" do
+    defmodule FirstTestFIFO do
+      use ExUnit.Case
+
+      test "first test" do
+        assert true
+      end
+    end
+
+    defmodule SecondTestFIFO do
+      use ExUnit.Case
+
+      test "second test" do
+        assert true
+      end
+    end
+
+    defmodule ThirdTestFIFO do
+      use ExUnit.Case
+
+      test "third test" do
+        assert true
+      end
+    end
+
+    configure_and_reload_on_exit(trace: true)
+
+    output =
+      capture_io(fn ->
+        assert ExUnit.run() == %{total: 3, failures: 0, excluded: 0, skipped: 0}
+      end)
+
+    [_, first, second, third | _] = String.split(output, "\n\n")
+
+    assert first =~ "FirstTestFIFO"
+    assert second =~ "SecondTestFIFO"
+    assert third =~ "ThirdTestFIFO"
+  end
+
   ##  Helpers
 
   defp run_with_filter(filters, cases) do
