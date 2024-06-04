@@ -146,6 +146,9 @@ defmodule Mix.Tasks.Test do
     * `--max-failures` - the suite stops evaluating tests when this number of test
       failures is reached. It runs all tests if omitted
 
+    * `--max-requires` - sets the maximum number of test files to compile in parallel.
+      Setting this to 1 will compile test files sequentially.
+
     * `--no-archives-check` - does not check archives
 
     * `--no-color` - disables color in the output
@@ -439,6 +442,7 @@ defmodule Mix.Tasks.Test do
     trace: :boolean,
     max_cases: :integer,
     max_failures: :integer,
+    max_requires: :integer,
     include: :keep,
     exclude: :keep,
     seed: :integer,

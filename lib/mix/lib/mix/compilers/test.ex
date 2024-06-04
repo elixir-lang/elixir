@@ -34,12 +34,20 @@ defmodule Mix.Compilers.Test do
 
   defp require_and_run(matched_test_files, test_paths, opts) do
     stale = opts[:stale]
+    max_requires = opts[:max_requires]
 
     {test_files, stale_manifest_pid, parallel_require_callbacks} =
       if stale do
         set_up_stale(matched_test_files, test_paths, opts)
       else
         {matched_test_files, nil, []}
+      end
+
+    parallel_require_options =
+      if max_requires do
+        [{:max_concurrency, max_requires} | parallel_require_callbacks]
+      else
+        parallel_require_callbacks
       end
 
     Application.ensure_all_started(:ex_unit)
@@ -70,7 +78,7 @@ defmodule Mix.Compilers.Test do
 
         try do
           failed? =
-            case Kernel.ParallelCompiler.require(test_files, parallel_require_callbacks) do
+            case Kernel.ParallelCompiler.require(test_files, parallel_require_options) do
               {:ok, _, [_ | _]} when warnings_as_errors? -> true
               {:ok, _, _} -> false
               {:error, _, _} -> exit({:shutdown, 1})
