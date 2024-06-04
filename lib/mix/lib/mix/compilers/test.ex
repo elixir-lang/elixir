@@ -43,11 +43,11 @@ defmodule Mix.Compilers.Test do
         {matched_test_files, nil, []}
       end
 
-    parallel_require_options =
+    shared_require_options =
       if max_requires do
-        [{:max_concurrency, max_requires} | parallel_require_callbacks]
+        [max_concurrency: max_requires]
       else
-        parallel_require_callbacks
+        []
       end
 
     Application.ensure_all_started(:ex_unit)
@@ -66,7 +66,7 @@ defmodule Mix.Compilers.Test do
         end
 
       Keyword.get(opts, :profile_require) == "time" ->
-        Kernel.ParallelCompiler.require(test_files, profile: :time)
+        Kernel.ParallelCompiler.require(test_files, [profile: :time] ++ shared_require_options)
         :noop
 
       true ->
@@ -77,6 +77,8 @@ defmodule Mix.Compilers.Test do
         test_files = shuffle(seed, rand_algorithm, test_files)
 
         try do
+          parallel_require_options = shared_require_options ++ parallel_require_callbacks
+
           failed? =
             case Kernel.ParallelCompiler.require(test_files, parallel_require_options) do
               {:ok, _, [_ | _]} when warnings_as_errors? -> true

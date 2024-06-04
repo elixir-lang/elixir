@@ -609,6 +609,17 @@ defmodule Mix.Tasks.TestTest do
     end
   end
 
+  describe "--max-requires" do
+    test "runs tests with --max-requires 1" do
+      # this is only a smoke test to ensure that tests run with --max-requires 1
+      # it does not test the concurrency behavior
+      in_fixture("test_stale", fn ->
+        output = mix(["test", "--max-requires", "1"])
+        assert output =~ "0 failures"
+      end)
+    end
+  end
+
   defp receive_until_match(port, expected, acc) do
     receive do
       {^port, {:data, output}} ->
