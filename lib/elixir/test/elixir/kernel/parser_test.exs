@@ -126,6 +126,10 @@ defmodule Kernel.ParserTest do
       # that are Common-script and non-ASCII
       # assert Code.eval_string("_ℕ𝕩 = 1") == {1, [{:"_ℕ𝕩", 1}]}
     end
+
+    test "handles graphemes inside quoted identifiers" do
+      assert {{:., _, [{:foo, _, nil}, :"➡️"]}, _, []} = Code.string_to_quoted!(~s|foo."➡️"|)
+    end
   end
 
   describe "strings/sigils" do

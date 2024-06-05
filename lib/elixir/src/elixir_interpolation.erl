@@ -90,7 +90,10 @@ extract_char(Rest, Buffer, Output, Line, Column, Scope, Interpol, Last) ->
       Pos = io_lib:format(". If you want to use such character, use it in its escaped ~ts form instead", [Token]),
       {error, {?LOC(Line, Column), {Pre, Pos}, Token}};
 
-    [Char | NewRest] ->
+    [Char | NewRest] when is_list(Char) ->
+      extract(NewRest, lists:reverse(Char, Buffer), Output, Line, Column + 1, Scope, Interpol, Last);
+
+    [Char | NewRest] when is_integer(Char) ->
       extract(NewRest, [Char | Buffer], Output, Line, Column + 1, Scope, Interpol, Last);
 
     [] ->
