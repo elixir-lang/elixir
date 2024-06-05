@@ -624,6 +624,7 @@ defmodule ExUnit.Case do
 
     moduletag = Module.get_attribute(mod, :moduletag)
     tag = Module.delete_attribute(mod, :tag)
+    {async, _parameterize} = Module.get_attribute(mod, :ex_unit_module)
 
     {name, describe, describe_line, describetag} =
       case Module.get_attribute(mod, :ex_unit_describe) do
@@ -648,6 +649,7 @@ defmodule ExUnit.Case do
         line: line,
         file: file,
         registered: registered,
+        async: async,
         describe: describe,
         describe_line: describe_line,
         test_type: test_type
