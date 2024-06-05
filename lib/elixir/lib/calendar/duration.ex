@@ -26,7 +26,7 @@ defmodule Duration do
       iex> Date.shift(~D[2016-01-03], Duration.new!(month: 2))
       ~D[2016-03-03]
 
-  It is important to notice that shifting is not an arithmetic operation.
+  It is important to note that shifting is not an arithmetic operation.
   For example, adding `date + 1 month + 1 month` does not yield the same
   result as `date + 2 months`. Let's see an example:
 
@@ -46,8 +46,18 @@ defmodule Duration do
     * larger units (such as years and months) are applied before
       smaller ones (such as weeks, hours, days, and so on)
 
+    * units are collapsed into months (`:year` and `:month`),
+      seconds (`:week`, `:day`, `:hour`, `:minute`, `:second`)
+      and microseconds (`:microsecond`) before they are applied
+
+    * 1 year is equivalent to 12 months, 1 week is equivalent to 7 days.
+      Therefore, 4 weeks _are not_ equivalent to 1 month
+
     * in case of non-existing dates, the results are rounded down to the
       nearest valid date
+
+  As the `shift/2` functions are calendar aware, they are guaranteed to return
+  valid date/times, considering leap years as well as DST in applicable time zones.
 
   ## Intervals
 

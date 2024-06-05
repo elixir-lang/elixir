@@ -764,8 +764,9 @@ defmodule Date do
 
   When using the default ISO calendar, durations are collapsed and
   applied in the order of months and then days:
-  - when shifting by 1 year and 2 months the date is actually shifted by 14 months
-  - when shifting by 2 weeks and 3 days the date is shifted by 17 days
+
+  * when shifting by 1 year and 2 months the date is actually shifted by 14 months
+  * when shifting by 2 weeks and 3 days the date is shifted by 17 days
 
   When shifting by month, days are rounded down to the nearest valid date.
 
