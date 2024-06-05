@@ -430,8 +430,8 @@ defmodule ExceptionTest do
         end
       )
 
-      :code.delete(OperatorPrecedence)
       :code.purge(OperatorPrecedence)
+      :code.delete(OperatorPrecedence)
 
       assert blame_message(OperatorPrecedence, & &1.test!(1, 2)) =~ """
              no function clause matching in ExceptionTest.OperatorPrecedence.test!/2
@@ -469,8 +469,8 @@ defmodule ExceptionTest do
         end
       )
 
-      :code.delete(Req)
       :code.purge(Req)
+      :code.delete(Req)
 
       assert blame_message(Req, & &1.get!(url: "https://elixir-lang.org")) =~ """
              no function clause matching in ExceptionTest.Req.get!/1
@@ -623,8 +623,8 @@ defmodule ExceptionTest do
              """
 
       for module <- modules do
-        :code.delete(module)
         :code.purge(module)
+        :code.delete(module)
       end
     end
 
@@ -839,8 +839,8 @@ defmodule ExceptionTest do
         end
       )
 
-      :code.delete(Blaming)
       :code.purge(Blaming)
+      :code.delete(Blaming)
 
       {:ok, :def, clauses} = Exception.blame_mfa(Blaming, :with_elem, [1, 2])
 

@@ -434,8 +434,8 @@ defmodule Kernel.RaiseTest do
 
       fun = BadFunction.Missing.fun()
 
-      :code.delete(BadFunction.Missing)
       :code.purge(BadFunction.Missing)
+      :code.delete(BadFunction.Missing)
 
       defmodule BadFunction.Missing do
         def fun, do: fn -> :another end

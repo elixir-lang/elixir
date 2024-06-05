@@ -2233,7 +2233,7 @@ defmodule Kernel.WarningTest do
   end
 
   defp purge(module) when is_atom(module) do
-    :code.delete(module)
     :code.purge(module)
+    :code.delete(module)
   end
 end
