@@ -795,8 +795,8 @@ defmodule Inspect.OthersTest do
     Application.put_env(:elixir, :anony, V.fun())
     Application.put_env(:elixir, :named, &V.fun/0)
 
-    :code.delete(V)
     :code.purge(V)
+    :code.delete(V)
 
     anony = Application.get_env(:elixir, :anony)
     named = Application.get_env(:elixir, :named)

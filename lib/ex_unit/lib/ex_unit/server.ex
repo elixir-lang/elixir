@@ -51,8 +51,8 @@ defmodule ExUnit.Server do
     state = %{
       loaded: System.monotonic_time(),
       waiting: nil,
-      async_modules: [],
-      sync_modules: []
+      async_modules: :queue.new(),
+      sync_modules: :queue.new()
     }
 
     {:ok, state}
@@ -65,8 +65,11 @@ defmodule ExUnit.Server do
 
   # Called once after all async modules have been sent and reverts the state.
   def handle_call(:take_sync_modules, _from, state) do
-    %{waiting: nil, loaded: :done, async_modules: []} = state
-    {:reply, state.sync_modules, %{state | sync_modules: [], loaded: System.monotonic_time()}}
+    %{waiting: nil, loaded: :done, async_modules: async_modules} = state
+    0 = :queue.len(async_modules)
+
+    {:reply, :queue.to_list(state.sync_modules),
+     %{state | sync_modules: :queue.new(), loaded: System.monotonic_time()}}
   end
 
   # Called by the runner when --repeat-until-failure is used.
@@ -75,8 +78,8 @@ defmodule ExUnit.Server do
      %{
        state
        | loaded: :done,
-         async_modules: async_modules,
-         sync_modules: sync_modules
+         async_modules: :queue.from_list(async_modules),
+         sync_modules: :queue.from_list(sync_modules)
      }}
   end
 
@@ -88,10 +91,13 @@ defmodule ExUnit.Server do
       when is_integer(loaded) do
     state =
       if uniq? do
+        async_modules = :queue.to_list(state.async_modules) |> Enum.uniq() |> :queue.from_list()
+        sync_modules = :queue.to_list(state.sync_modules) |> Enum.uniq() |> :queue.from_list()
+
         %{
           state
-          | async_modules: Enum.uniq(state.async_modules),
-            sync_modules: Enum.uniq(state.sync_modules)
+          | async_modules: async_modules,
+            sync_modules: sync_modules
         }
       else
         state
@@ -103,13 +109,20 @@ defmodule ExUnit.Server do
 
   def handle_call({:add, true, names}, _from, %{loaded: loaded} = state)
       when is_integer(loaded) do
-    state = update_in(state.async_modules, &(names ++ &1))
+    state =
+      update_in(
+        state.async_modules,
+        &Enum.reduce(names, &1, fn name, q -> :queue.in(name, q) end)
+      )
+
     {:reply, :ok, take_modules(state)}
   end
 
   def handle_call({:add, false, names}, _from, %{loaded: loaded} = state)
       when is_integer(loaded) do
-    state = update_in(state.sync_modules, &(names ++ &1))
+    state =
+      update_in(state.sync_modules, &Enum.reduce(names, &1, fn name, q -> :queue.in(name, q) end))
+
     {:reply, :ok, state}
   end
 
@@ -120,18 +133,35 @@ defmodule ExUnit.Server do
     state
   end
 
-  defp take_modules(%{waiting: {from, _count}, async_modules: [], loaded: :done} = state) do
-    GenServer.reply(from, nil)
-    %{state | waiting: nil}
+  defp take_modules(%{waiting: {from, count}} = state) do
+    has_async_modules? = not :queue.is_empty(state.async_modules)
+
+    cond do
+      not has_async_modules? and state.loaded == :done ->
+        GenServer.reply(from, nil)
+        %{state | waiting: nil}
+
+      not has_async_modules? ->
+        state
+
+      true ->
+        {modules, async_modules} = take_until(count, state.async_modules)
+        GenServer.reply(from, modules)
+        %{state | async_modules: async_modules, waiting: nil}
+    end
   end
 
-  defp take_modules(%{async_modules: []} = state) do
-    state
-  end
+  # :queue.split fails if the provided count is larger than the queue size;
+  # as we also want to return the values as a list later, we directly
+  # return {list, queue} instead of {queue, queue}
+  defp take_until(n, queue), do: take_until(n, queue, [])
 
-  defp take_modules(%{waiting: {from, count}, async_modules: modules} = state) do
-    {reply, modules} = Enum.split(modules, count)
-    GenServer.reply(from, reply)
-    %{state | async_modules: modules, waiting: nil}
+  defp take_until(0, queue, acc), do: {Enum.reverse(acc), queue}
+
+  defp take_until(n, queue, acc) do
+    case :queue.out(queue) do
+      {{:value, item}, queue} -> take_until(n - 1, queue, [item | acc])
+      {:empty, queue} -> {Enum.reverse(acc), queue}
+    end
   end
 end

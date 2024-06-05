@@ -199,8 +199,8 @@ defmodule ExUnit.AssertionsTest do
              """)
            end) =~ "variable \"var\" is unused"
   after
-    :code.delete(ExSample)
     :code.purge(ExSample)
+    :code.delete(ExSample)
   end
 
   test "assert match with quote on left-side" do

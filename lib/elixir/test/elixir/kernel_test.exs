@@ -11,8 +11,8 @@ defmodule KernelTest do
   def empty_map, do: %{}
 
   defp purge(module) do
-    :code.delete(module)
     :code.purge(module)
+    :code.delete(module)
   end
 
   defp assert_eval_raise(error, msg, string) do

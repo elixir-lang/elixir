@@ -14,8 +14,8 @@ defmodule TypespecTest do
           unquote(block)
         end
 
-      :code.delete(TypespecSample)
       :code.purge(TypespecSample)
+      :code.delete(TypespecSample)
       bytecode
     end
   end
@@ -1070,8 +1070,8 @@ defmodule TypespecTest do
                 {TypeModuleAttributes, _}}
              ] = TypeModuleAttributes.typep2()
     after
-      :code.delete(TypeModuleAttributes)
       :code.purge(TypeModuleAttributes)
+      :code.delete(TypeModuleAttributes)
     end
 
     test "@spec, @callback, and @macrocallback as module attributes" do
@@ -1129,8 +1129,8 @@ defmodule TypespecTest do
                 {SpecModuleAttributes, _}}
              ] = SpecModuleAttributes.macrocallback()
     after
-      :code.delete(SpecModuleAttributes)
       :code.purge(SpecModuleAttributes)
+      :code.delete(SpecModuleAttributes)
     end
 
     test "@callback" do
