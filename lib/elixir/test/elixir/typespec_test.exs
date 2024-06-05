@@ -406,7 +406,7 @@ defmodule TypespecTest do
 
       assert_raise Kernel.TypespecError, ~r"invalid binary specification", fn ->
         test_module do
-          @type my_type :: <<_::atom>>
+          @type my_type :: <<_::atom()>>
         end
       end
 
@@ -1343,6 +1343,11 @@ defmodule TypespecTest do
       assert Code.Typespec.spec_to_quoted(:union_struct_key_type, ast_union_struct_key_type)
              |> Macro.to_string() ==
                "union_struct_key_type(%{__struct__: atom() | TypespecTest.A | binary()}) :: :ok"
+    after
+      for mod <- [A, B] do
+        :code.purge(mod)
+        :code.delete(mod)
+      end
     end
 
     test "non-variables are given as arguments" do
