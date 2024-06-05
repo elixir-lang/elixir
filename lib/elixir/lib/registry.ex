@@ -1304,12 +1304,12 @@ defmodule Registry do
       iex> Registry.select(Registry.SelectAllTest, [{{:"$1", :"$2", :"$3"}, [], [{{:"$1", :"$2", :"$3"}}]}]) |> Enum.sort()
       [{"hello", self(), :value}, {"world", self(), :value}]
 
-  Get all keys in the registry:
+  If you want to get keys, you can pass a separate selector:
 
-      iex> Registry.start_link(keys: :unique, name: Registry.SelectAllTest)
-      iex> {:ok, _} = Registry.register(Registry.SelectAllTest, "hello", :value)
-      iex> {:ok, _} = Registry.register(Registry.SelectAllTest, "world", :value)
-      iex> Registry.select(Registry.SelectAllTest, [{{:"$1", :_, :_}, [], [:"$1"]}]) |> Enum.sort()
+      iex> Registry.start_link(keys: :unique, name: Registry.SelectKeysTest)
+      iex> {:ok, _} = Registry.register(Registry.SelectKeysTest, "hello", :value)
+      iex> {:ok, _} = Registry.register(Registry.SelectKeysTest, "world", :value)
+      iex> Registry.select(Registry.SelectKeysTest, [{{:"$1", :_, :_}, [], [:"$1"]}]) |> Enum.sort()
       ["hello", "world"]
 
   """
