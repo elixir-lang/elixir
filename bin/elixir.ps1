@@ -103,10 +103,10 @@ function QuoteString {
   }
 }
 
-$elixirParams = New-Object Collections.Generic.List[String]
-$erlangParams = New-Object Collections.Generic.List[String]
-$beforeExtras = New-Object Collections.Generic.List[String]
-$allOtherParams = New-Object Collections.Generic.List[String]
+$elixirParams = @()
+$erlangParams = @()
+$beforeExtras = @()
+$allOtherParams = @()
 
 $runErlPipe = $null
 $runErlLog = $null
@@ -118,8 +118,8 @@ for ($i = 0; $i -lt $args.Count; $i++) {
     { $_ -in @("-e", "-r", "-pr", "-pa", "-pz", "--eval", "--remsh", "--dot-iex", "--dbg") } {
       $private:nextArg = NormalizeArg($args[++$i])
 
-      $elixirParams.Add($arg)
-      $elixirParams.Add($nextArg)
+      $elixirParams += $arg
+      $elixirParams += $nextArg
 
       break
     }
@@ -127,57 +127,57 @@ for ($i = 0; $i -lt $args.Count; $i++) {
     { $_ -in @("-v", "--version") } {
       # Standalone options goes only once in the Elixir params, when they are empty.
       if (($elixirParams.Count -eq 0) -and ($allOtherParams.Count -eq 0)) {
-        $elixirParams.Add($arg)
+        $elixirParams += $arg
       }
       else {
-        $allOtherParams.Add($arg)
+        $allOtherParams += $arg
       }
       break
     }
 
     "--no-halt" {
-      $elixirParams.Add($arg)
+      $elixirParams += $arg
       break
     }
 
     "--cookie" {
-      $erlangParams.Add("-setcookie")
-      $erlangParams.Add($args[++$i])
+      $erlangParams += "-setcookie"
+      $erlangParams += $args[++$i]
       break
     }
 
     "--hidden" {
-      $erlangParams.Add("-hidden")
+      $erlangParams += "-hidden"
       break
     }
 
     "--name" {
-      $erlangParams.Add("-name")
-      $erlangParams.Add($args[++$i])
+      $erlangParams += "-name"
+      $erlangParams += $args[++$i]
       break
     }
 
     "--sname" {
-      $erlangParams.Add("-sname")
-      $erlangParams.Add($args[++$i])
+      $erlangParams += "-sname"
+      $erlangParams += $args[++$i]
       break
     }
 
     "--boot" {
-      $erlangParams.Add("-boot")
-      $erlangParams.Add($args[++$i])
+      $erlangParams += "-boot"
+      $erlangParams += $args[++$i]
       break
     }
 
     "--erl-config" {
-      $erlangParams.Add("-config")
-      $erlangParams.Add($args[++$i])
+      $erlangParams += "-config"
+      $erlangParams += $args[++$i]
       break
     }
 
     "--vm-args" {
-      $erlangParams.Add("-args_file")
-      $erlangParams.Add($args[++$i])
+      $erlangParams += "-args_file"
+      $erlangParams += $args[++$i]
       break
     }
 
@@ -199,19 +199,19 @@ for ($i = 0; $i -lt $args.Count; $i++) {
 
     "--erl" {
       $private:erlFlags = $args[++$i] -split " "
-      $beforeExtras.AddRange($erlFlags)
+      $beforeExtras += $erlFlags
       break
     }
 
     "+iex" {
-      $elixirParams.Add("+iex")
+      $elixirParams += "+iex"
       $useIex = $true
 
       break
     }
 
     "+elixirc" {
-      $elixirParams.Add("+elixirc")
+      $elixirParams += "+elixirc"
       break
     }
 
@@ -229,9 +229,9 @@ for ($i = 0; $i -lt $args.Count; $i++) {
         exit 1
       }
 
-      $elixirParams.Add("--rpc-eval")
-      $elixirParams.Add($key)
-      $elixirParams.Add($value)
+      $elixirParams += "--rpc-eval"
+      $elixirParams += $key
+      $elixirParams += $value
       break
     }
 
@@ -249,9 +249,9 @@ for ($i = 0; $i -lt $args.Count; $i++) {
         exit 1
       }
 
-      $elixirParams.Add("-boot_var")
-      $elixirParams.Add($key)
-      $elixirParams.Add($value)
+      $elixirParams += "-boot_var"
+      $elixirParams += $key
+      $elixirParams += $value
       break
     }
 
@@ -279,18 +279,18 @@ for ($i = 0; $i -lt $args.Count; $i++) {
 
     Default {
       $private:normalized = NormalizeArg $arg
-      $allOtherParams.Add($normalized)
+      $allOtherParams += $normalized
       break
     }
   }
 }
 
 if ($null -eq $useIEx) {
-  $beforeExtras.InsertRange(0, [string[]]@("-s", "elixir", "start_cli"))
+  $beforeExtras = @("-s", "elixir", "start_cli") + $beforeExtras
 }
 
-$beforeExtras.InsertRange(0, [string[]]@("-pa", "$(Join-Path $scriptPath -ChildPath "../lib/elixir/ebin")"))
-$beforeExtras.InsertRange(0, [string[]]@("-noshell", "-elixir_root", "$(Join-Path $scriptPath -ChildPath "../lib")"))
+$beforeExtras = @("-pa", "$(Join-Path $scriptPath -ChildPath "../lib/elixir/ebin")") + $beforeExtras
+$beforeExtras = @("-noshell", "-elixir_root", "$(Join-Path $scriptPath -ChildPath "../lib")") + $beforeExtras
 
 # One MAY change ERTS_BIN= but you MUST NOT change
 # ERTS_BIN=$ERTS_BIN as it is handled by Elixir releases.
@@ -298,18 +298,18 @@ $beforeExtras.InsertRange(0, [string[]]@("-noshell", "-elixir_root", "$(Join-Pat
 # $ERTS_BIN=
 $ERTS_BIN = "$env:ERTS_BIN"
 
-$allParams = New-Object Collections.Generic.List[String]
+$allParams = @()
 
 if ($null -ne $env:ELIXIR_ERL_OPTIONS) {
   $private:erlFlags = $env:ELIXIR_ERL_OPTIONS -split " "
-  $allParams.AddRange($erlFlags)
+  $allParams += $erlFlags
 }
 
-$allParams.AddRange($erlangParams)
-$allParams.AddRange($beforeExtras)
-$allParams.Add("-extra")
-$allParams.AddRange($elixirParams)
-$allParams.AddRange($allOtherParams)
+$allParams += $erlangParams
+$allParams += $beforeExtras
+$allParams += "-extra"
+$allParams += $elixirParams
+$allParams += $allOtherParams
 
 $binSuffix = ""
 
