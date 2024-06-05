@@ -313,7 +313,8 @@ $allParams.AddRange($allOtherParams)
 
 $binSuffix = ""
 
-if ($isWindows) {
+# The variable is available after PowerShell 7.2. Previous to that, PS only worked on Windows.
+if ($isWindows -or ($null -eq $isWindows)) {
   $binSuffix = ".exe"
 }
 
