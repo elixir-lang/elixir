@@ -357,7 +357,7 @@ parse_error(Location, File, <<"syntax error before: ">>, Keyword, Input)
 
 %% Produce a human-readable message for errors before a sigil
 parse_error(Location, File, <<"syntax error before: ">>, <<"{sigil,", _Rest/binary>> = Full, Input) ->
-  {sigil, _, Atom, [Content | _], _, _, _} = parse_erl_term(Full),
+  {ok, {sigil, _, Atom, [Content | _], _, _, _}} = parse_erl_term(Full),
   Content2 = case is_binary(Content) of
     true -> Content;
     false -> <<>>
@@ -378,7 +378,7 @@ parse_error(Location, File, <<"syntax error before: ">>, <<"{sigil,", _Rest/bina
 %% Binaries (and interpolation) are wrapped in [<<...>>]
 parse_error(Location, File, Error, <<"[", _/binary>> = Full, Input) when is_binary(Error) ->
   Term = case parse_erl_term(Full) of
-    [H | _] when is_binary(H) -> <<$", H/binary, $">>;
+    {ok, [H | _]} when is_binary(H) -> <<$", H/binary, $">>;
     _ -> <<$">>
   end,
   raise_snippet(Location, File, Input, 'Elixir.SyntaxError', <<Error/binary, Term/binary>>);
@@ -408,9 +408,14 @@ parse_error(Location, File, Error, Token, Input) when is_binary(Error), is_binar
   end.
 
 parse_erl_term(Term) ->
-  {ok, Tokens, _} = erl_scan:string(binary_to_list(Term)),
-  {ok, Parsed} = erl_parse:parse_term(Tokens ++ [{dot, 1}]),
-  Parsed.
+  case erl_scan:string(binary_to_list(Term)) of
+    {ok, Tokens, _} ->
+      case erl_parse:parse_term(Tokens ++ [{dot, 1}]) of
+        {ok, Parsed} -> {ok, Parsed};
+        _ -> error
+      end;
+    _ -> error
+  end.
 
 raise_reserved(Location, File, Input, Keyword) ->
   raise_snippet(Location, File, Input, 'Elixir.SyntaxError',
