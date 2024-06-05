@@ -620,6 +620,26 @@ defmodule Mix.Tasks.TestTest do
     end
   end
 
+  describe "--only" do
+    test "runs only async tests with --only async:true" do
+      in_fixture("test_async", fn ->
+        output = mix(["test", "--only", "async:true", "--trace"])
+        assert output =~ "2 tests, 0 failures, 1 excluded"
+        assert output =~ ~r/test f async \(.*ms\)/
+        assert output =~ "test f sync (excluded)"
+      end)
+    end
+
+    test "runs only sync tests with --only async:false" do
+      in_fixture("test_async", fn ->
+        output = mix(["test", "--only", "async:false", "--trace"])
+        assert output =~ "2 tests, 0 failures, 1 excluded"
+        assert output =~ ~r/test f sync \(.*ms\)/
+        assert output =~ "test f async (excluded)"
+      end)
+    end
+  end
+
   defp receive_until_match(port, expected, acc) do
     receive do
       {^port, {:data, output}} ->
