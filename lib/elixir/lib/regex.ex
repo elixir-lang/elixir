@@ -186,27 +186,7 @@ defmodule Regex do
 
   defstruct re_pattern: nil, source: "", opts: [], re_version: ""
 
-  @type re_option ::
-          :unicode
-          | :caseless
-          | :dotall
-          | :multiline
-          | :extended
-          | :firstline
-          | :ungreedy
-          | :anchored
-          | :dollar_endonly
-          | :no_auto_capture
-          | :newline
-
-  @type t :: %__MODULE__{re_pattern: term, source: binary, opts: binary | [re_option()]}
-
-  @type capture_option ::
-          :all | :first | :all_but_first | :none | :all_names | [binary() | atom()]
-  @type run_option ::
-          {:return, :binary | :index}
-          | {:capture, capture_option()}
-          | {:offset, non_neg_integer()}
+  @type t :: %__MODULE__{re_pattern: term, source: binary, opts: binary | [term]}
 
   defmodule CompileError do
     @moduledoc """
@@ -242,7 +222,7 @@ defmodule Regex do
       {:ok, Regex.compile!("foo", [:caseless])}
 
   """
-  @spec compile(binary, binary | [re_option()]) :: {:ok, t} | {:error, any}
+  @spec compile(binary, binary | [term]) :: {:ok, t} | {:error, any}
   def compile(source, opts \\ "") when is_binary(source) do
     compile(source, opts, version())
   end
@@ -270,7 +250,7 @@ defmodule Regex do
   @doc """
   Compiles the regular expression and raises `Regex.CompileError` in case of errors.
   """
-  @spec compile!(binary, binary | [re_option()]) :: t
+  @spec compile!(binary, binary | [term]) :: t
   def compile!(source, options \\ "") when is_binary(source) do
     case compile(source, options) do
       {:ok, regex} -> regex
@@ -377,7 +357,7 @@ defmodule Regex do
       ["d", ""]
 
   """
-  @spec run(t, binary, [run_option()]) :: nil | [binary] | [{integer, integer}]
+  @spec run(t, binary, [term]) :: nil | [binary] | [{integer, integer}]
   def run(regex, string, options \\ [])
 
   def run(%Regex{} = regex, string, options) when is_binary(string) do
@@ -412,7 +392,7 @@ defmodule Regex do
       nil
 
   """
-  @spec named_captures(t, String.t(), [{:return, :binary | :index}]) :: map | nil
+  @spec named_captures(t, String.t(), [term]) :: map | nil
   def named_captures(regex, string, options \\ []) when is_binary(string) do
     names = names(regex)
     options = Keyword.put(options, :capture, names)
@@ -456,7 +436,7 @@ defmodule Regex do
       [:caseless]
 
   """
-  @spec opts(t) :: [re_option()]
+  @spec opts(t) :: [term]
   def opts(%Regex{opts: opts}) do
     opts
   end
@@ -528,7 +508,7 @@ defmodule Regex do
       [["cd"], ["ce"]]
 
   """
-  @spec scan(t(), String.t(), [run_option()]) :: [[String.t()]] | [[{integer(), integer()}]]
+  @spec scan(t(), String.t(), [term()]) :: [[String.t()]] | [[{integer(), integer()}]]
   def scan(regex, string, options \\ [])
 
   def scan(%Regex{} = regex, string, options) when is_binary(string) do
@@ -615,12 +595,7 @@ defmodule Regex do
       ["a", "b", "c"]
 
   """
-  @spec split(t, String.t(),
-          parts: pos_integer() | :infinity,
-          trim: boolean(),
-          on: capture_option(),
-          include_captures: boolean()
-        ) :: [String.t()]
+  @spec split(t, String.t(), [term]) :: [String.t()]
   def split(regex, string, options \\ [])
 
   def split(%Regex{}, "", opts) do
