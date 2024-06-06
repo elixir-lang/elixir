@@ -41,7 +41,9 @@ defmodule Module.Types.Helpers do
         """
 
         #{hint()} when you rescue without specifying exception names, \
-        the variable is assigned a type of a struct but all of its fields are unknown
+        the variable is assigned a type of a struct but all of its fields are unknown. \
+        If you are trying to access an exception's :message key, either specify the \
+        exception names or use `Exception.message/1`.
         """
     end)
   end
