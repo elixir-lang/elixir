@@ -348,7 +348,7 @@ else {
   $private:escaped = $allParams | ForEach-Object -Process { ($_ -replace "`"", "\`"") -replace "[^a-zA-Z0-9_/-]", "\$&" }
 
   # The args are surrounded here because we want to have only one argument for the entire command.
-  $paramsPart = @("-daemon","`"$runErlPipe/`"", "`"$runErlLog/`"", "`"$($escaped -join " ")`"")
+  $paramsPart = @("-daemon", "`"$runErlPipe/`"", "`"$runErlLog/`"", "`"$($escaped -join " ")`"")
 }
 
 if ($env:ELIXIR_CLI_DRY_RUN) {
