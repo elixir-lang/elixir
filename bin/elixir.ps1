@@ -5,6 +5,11 @@ $ELIXIR_VERSION = "1.18.0-dev"
 $scriptPath = Split-Path -Parent $PSCommandPath
 $erlExec = "erl"
 
+# The iex.ps1, elixirc.ps1 and mix.ps1 scripts may populate this var.
+if ($null -eq $allArgs) {
+  $allArgs = $args
+}
+
 function PrintElixirHelp {
   $scriptName = Split-Path -Leaf $PSCommandPath
   $help = @"
@@ -66,12 +71,12 @@ See run_erl to learn more. To reattach, run: to_erl PIPEDIR.
   Write-Host $help
 }
 
-if (($args.Count -eq 1) -and ($args[0] -eq "--short-version")) {
+if (($allArgs.Count -eq 1) -and ($allArgs[0] -eq "--short-version")) {
   Write-Host "$ELIXIR_VERSION"
   exit
 }
 
-if (($args.Count -eq 0) -or (($args.Count -eq 1) -and ($args[0] -in @("-h", "--help")))) {
+if (($allArgs.Count -eq 0) -or (($allArgs.Count -eq 1) -and ($allArgs[0] -in @("-h", "--help")))) {
   PrintElixirHelp
   exit 1
 }
@@ -111,12 +116,12 @@ $allOtherParams = @()
 $runErlPipe = $null
 $runErlLog = $null
 
-for ($i = 0; $i -lt $args.Count; $i++) {
-  $private:arg = $args[$i]
+for ($i = 0; $i -lt $allArgs.Count; $i++) {
+  $private:arg = $allArgs[$i]
 
   switch ($arg) {
     { $_ -in @("-e", "-r", "-pr", "-pa", "-pz", "--eval", "--remsh", "--dot-iex", "--dbg") } {
-      $private:nextArg = NormalizeArg($args[++$i])
+      $private:nextArg = NormalizeArg($allArgs[++$i])
 
       $elixirParams += $arg
       $elixirParams += $nextArg
@@ -142,7 +147,7 @@ for ($i = 0; $i -lt $args.Count; $i++) {
 
     "--cookie" {
       $erlangParams += "-setcookie"
-      $erlangParams += $args[++$i]
+      $erlangParams += $allArgs[++$i]
       break
     }
 
@@ -153,52 +158,52 @@ for ($i = 0; $i -lt $args.Count; $i++) {
 
     "--name" {
       $erlangParams += "-name"
-      $erlangParams += $args[++$i]
+      $erlangParams += $allArgs[++$i]
       break
     }
 
     "--sname" {
       $erlangParams += "-sname"
-      $erlangParams += $args[++$i]
+      $erlangParams += $allArgs[++$i]
       break
     }
 
     "--boot" {
       $erlangParams += "-boot"
-      $erlangParams += $args[++$i]
+      $erlangParams += $allArgs[++$i]
       break
     }
 
     "--erl-config" {
       $erlangParams += "-config"
-      $erlangParams += $args[++$i]
+      $erlangParams += $allArgs[++$i]
       break
     }
 
     "--vm-args" {
       $erlangParams += "-args_file"
-      $erlangParams += $args[++$i]
+      $erlangParams += $allArgs[++$i]
       break
     }
 
     "--logger-otp-reports" {
-      $private:tempVal = $args[$i + 1]
+      $private:tempVal = $allArgs[$i + 1]
       if ($tempVal -in @("true", "false")) {
-        $erlangParams.AddRange([string[]]@("-logger", "handle_otp_reports", $args[++$i]))
+        $erlangParams += @("-logger", "handle_otp_reports", $allArgs[++$i])
       }
       break
     }
 
     "--logger-sasl-reports" {
-      $private:tempVal = $args[$i + 1]
+      $private:tempVal = $allArgs[$i + 1]
       if ($tempVal -in @("true", "false")) {
-        $erlangParams.AddRange([string[]]@("-logger", "handle_sasl_reports", $args[++$i]))
+        $erlangParams += @("-logger", "handle_sasl_reports", $allArgs[++$i])
       }
       break
     }
 
     "--erl" {
-      $private:erlFlags = $args[++$i] -split " "
+      $private:erlFlags = $allArgs[++$i] -split " "
       $beforeExtras += $erlFlags
       break
     }
@@ -216,8 +221,8 @@ for ($i = 0; $i -lt $args.Count; $i++) {
     }
 
     "--rpc-eval" {
-      $private:key = $args[++$i]
-      $private:value = $args[++$i]
+      $private:key = $allArgs[++$i]
+      $private:value = $allArgs[++$i]
 
       if ($null -eq $key) {
         Write-Error "--rpc-eval: NODE must be present"
@@ -236,8 +241,8 @@ for ($i = 0; $i -lt $args.Count; $i++) {
     }
 
     "--boot-var" {
-      $private:key = $args[++$i]
-      $private:value = $args[++$i]
+      $private:key = $allArgs[++$i]
+      $private:value = $allArgs[++$i]
 
       if ($null -eq $key) {
         Write-Error "--boot-var: VAR must be present"
@@ -256,8 +261,8 @@ for ($i = 0; $i -lt $args.Count; $i++) {
     }
 
     "--pipe-to" {
-      $runErlPipe = $args[++$i]
-      $runErlLog = $args[++$i]
+      $runErlPipe = $allArgs[++$i]
+      $runErlLog = $allArgs[++$i]
 
       if ($null -eq $runErlPipe) {
         Write-Error "--pipe-to: PIPEDIR must be present"
