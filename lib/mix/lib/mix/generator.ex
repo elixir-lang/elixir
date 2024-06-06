@@ -27,6 +27,13 @@ defmodule Mix.Generator do
 
     if opts[:force] || overwrite?(path, contents) do
       File.mkdir_p!(Path.dirname(path))
+
+      contents =
+        case opts[:format_elixir] do
+          true -> [Code.format_string!(contents), ?\n]
+          _ -> contents
+        end
+
       File.write!(path, contents)
       true
     else
@@ -94,6 +101,7 @@ defmodule Mix.Generator do
 
     * `:force` - forces copying without a shell prompt
     * `:quiet` - does not log command output
+    * `:format_elixir` - apply formatter to the generated file
 
   ## Examples
 
