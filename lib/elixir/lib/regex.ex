@@ -186,8 +186,10 @@ defmodule Regex do
 
   defstruct re_pattern: nil, source: "", opts: [], re_version: ""
 
+  @typedoc since: "1.17.0"
   @type nl_spec() :: :cr | :crlf | :lf | :anycrlf | :any
 
+  @typedoc since: "1.17.0"
   @type compile_option ::
           :unicode
           | :anchored
@@ -209,8 +211,11 @@ defmodule Regex do
 
   @type t :: %__MODULE__{re_pattern: term, source: binary, opts: binary | [compile_option()]}
 
+  @typedoc since: "1.17.0"
   @type capture_option ::
           :all | :first | :all_but_first | :none | :all_names | [binary() | atom()]
+
+  @typedoc since: "1.17.0"
   @type run_option ::
           {:return, :binary | :index}
           | {:capture, capture_option()}
