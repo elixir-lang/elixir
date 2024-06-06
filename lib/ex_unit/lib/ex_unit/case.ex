@@ -602,7 +602,7 @@ defmodule ExUnit.Case do
   display. You can use `ExUnit.plural_rule/2` to set a custom
   pluralization.
   """
-  @doc since: "1.10.0"
+  @doc since: "1.11.0"
   def register_test(mod, file, line, test_type, name, tags) do
     unless Module.has_attribute?(mod, :ex_unit_tests) do
       raise "cannot define #{test_type}. Please make sure you have invoked " <>
