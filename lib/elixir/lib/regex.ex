@@ -186,20 +186,28 @@ defmodule Regex do
 
   defstruct re_pattern: nil, source: "", opts: [], re_version: ""
 
-  @type re_option ::
+  @type nl_spec() :: :cr | :crlf | :lf | :anycrlf | :any
+
+  @type compile_option ::
           :unicode
+          | :anchored
           | :caseless
+          | :dollar_endonly
           | :dotall
-          | :multiline
           | :extended
           | :firstline
-          | :ungreedy
-          | :anchored
-          | :dollar_endonly
+          | :multiline
           | :no_auto_capture
-          | :newline
+          | :dupnames
+          | :ungreedy
+          | {:newline, nl_spec()}
+          | :bsr_anycrlf
+          | :bsr_unicode
+          | :no_start_optimize
+          | :ucp
+          | :never_utf
 
-  @type t :: %__MODULE__{re_pattern: term, source: binary, opts: binary | [re_option()]}
+  @type t :: %__MODULE__{re_pattern: term, source: binary, opts: binary | [compile_option()]}
 
   @type capture_option ::
           :all | :first | :all_but_first | :none | :all_names | [binary() | atom()]
@@ -242,7 +250,7 @@ defmodule Regex do
       {:ok, Regex.compile!("foo", [:caseless])}
 
   """
-  @spec compile(binary, binary | [re_option()]) :: {:ok, t} | {:error, any}
+  @spec compile(binary, binary | [compile_option()]) :: {:ok, t} | {:error, any}
   def compile(source, opts \\ "") when is_binary(source) do
     compile(source, opts, version())
   end
@@ -270,7 +278,7 @@ defmodule Regex do
   @doc """
   Compiles the regular expression and raises `Regex.CompileError` in case of errors.
   """
-  @spec compile!(binary, binary | [re_option()]) :: t
+  @spec compile!(binary, binary | [compile_option()]) :: t
   def compile!(source, options \\ "") when is_binary(source) do
     case compile(source, options) do
       {:ok, regex} -> regex
@@ -456,7 +464,7 @@ defmodule Regex do
       [:caseless]
 
   """
-  @spec opts(t) :: [re_option()]
+  @spec opts(t) :: [compile_option()]
   def opts(%Regex{opts: opts}) do
     opts
   end
