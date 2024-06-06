@@ -101,7 +101,7 @@ defmodule Mix.Generator do
 
     * `:force` - forces copying without a shell prompt
     * `:quiet` - does not log command output
-    * `:format_elixir` - apply formatter to the generated file
+    * `:format_elixir` (since v1.18.0) - if `true`, apply formatter to the generated file
 
   ## Examples
 
