@@ -119,7 +119,7 @@ $runErlLog = $null
 for ($i = 0; $i -lt $allArgs.Count; $i++) {
   $private:arg = $allArgs[$i]
 
-  switch ($arg) {
+  switch -exact ($arg) {
     { $_ -in @("-e", "-r", "-pr", "-pa", "-pz", "--eval", "--remsh", "--dot-iex", "--dbg") } {
       $private:nextArg = NormalizeArg($allArgs[++$i])
 
