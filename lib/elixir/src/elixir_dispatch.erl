@@ -77,7 +77,7 @@ import_function(Meta, Name, Arity, E) ->
       false;
     {import, Receiver} ->
       require_function(Meta, Receiver, Name, Arity, E);
-    {ambiguous, Ambiguous} ->
+    {ambiguous, _} = Ambiguous ->
       elixir_errors:file_error(Meta, E, ?MODULE, {import, Ambiguous, Name, Arity});
     false ->
       case elixir_import:special_form(Name, Arity) of
