@@ -634,6 +634,16 @@ defmodule Kernel.ErrorsTest do
       end
       """
     )
+
+    assert_compile_error(
+      ["nofile:3:17", "function exit/1 imported from both :erlang and Kernel, call is ambiguous"],
+      ~c"""
+      defmodule Kernel.ErrorsTest.FunctionImportConflict do
+        import :erlang, only: [exit: 1], warn: false
+        def foo, do: &exit/1
+      end
+      """
+    )
   end
 
   test "ensure valid import :only option" do
