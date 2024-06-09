@@ -591,8 +591,10 @@ defmodule ExUnit.Runner do
     tags
   end
 
-  defp short_hash(module, test_name) do
-    (module <> "/" <> test_name)
+  defp short_hash(module, test_name, parameters) do
+    suffix = if parameters == %{}, do: "", else: :erlang.term_to_binary(parameters)
+
+    (module <> "/" <> test_name <> suffix)
     |> :erlang.md5()
     |> Base.encode16(case: :lower)
     |> binary_slice(0..7)
@@ -604,7 +606,7 @@ defmodule ExUnit.Runner do
 
     module = escape_path(module_string)
     name = escape_path(name_string)
-    short_hash = short_hash(module_string, name_string)
+    short_hash = short_hash(module_string, name_string, test.parameters)
 
     path = ["tmp", module, "#{name}-#{short_hash}", extra_path] |> Path.join() |> Path.expand()
     File.rm_rf!(path)

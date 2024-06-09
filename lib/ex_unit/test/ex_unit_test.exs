@@ -684,10 +684,14 @@ defmodule ExUnitTest do
   end
 
   test "parameterized tests" do
+    Process.register(self(), :parameterized_tests)
+
     defmodule ParameterizedTests do
       use ExUnit.Case, async: true, parameterize: [%{value: true}, %{value: false}]
 
-      test "hello world", %{value: value} do
+      @tag :tmp_dir
+      test "hello world", %{value: value, tmp_dir: tmp_dir} do
+        send(:parameterized_tests, {:tmp_dir, tmp_dir})
         assert value
       end
     end
@@ -696,15 +700,19 @@ defmodule ExUnitTest do
 
     output = capture_io(fn -> ExUnit.run() end)
 
-    assert output =~ """
-           ExUnitTest.ParameterizedTests [test/ex_unit_test.exs]
-           Parameters: %{value: false}
+    assert output =~ ~r"""
+           ExUnitTest.ParameterizedTests \[.*test/ex_unit_test.exs\]
+           Parameters: %\{value: false\}
            """
 
     assert output =~ """
              1) test hello world (ExUnitTest.ParameterizedTests)
                 Parameters: %{value: false}
            """
+
+    # Check that the temporary paths are different
+    assert_receive {:tmp_dir, tmp_dir1}
+    assert_receive {:tmp_dir, tmp_dir2} when tmp_dir1 != tmp_dir2
   end
 
   describe "after_suite/1" do
