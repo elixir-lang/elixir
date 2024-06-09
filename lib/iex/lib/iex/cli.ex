@@ -105,7 +105,7 @@ defmodule IEx.CLI do
   end
 
   defp options do
-    [dot_iex_path: find_dot_iex(:init.get_plain_arguments()), on_eof: :halt]
+    [dot_iex: find_dot_iex(:init.get_plain_arguments()), on_eof: :halt]
   end
 
   defp abort(msg) do

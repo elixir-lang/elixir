@@ -35,7 +35,7 @@ defmodule IEx.Pry do
 
     opts = [
       binding: binding,
-      dot_iex_path: "",
+      dot_iex: "",
       # Remove all tracers because the tracer code is most
       # likely stale by the time we are prying the code.
       env: %{env | tracers: [], lexical_tracker: nil},

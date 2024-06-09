@@ -5,7 +5,7 @@ defmodule IEx.InteractionTest do
 
   test "whole output" do
     assert capture_io("IO.puts \"Hello world\"", fn ->
-             IEx.Server.run(dot_iex_path: "")
+             IEx.Server.run(dot_iex: "")
            end) =~
              "Interactive Elixir (#{System.version()}) - press Ctrl+C to exit (type h() ENTER for help)" <>
                "\niex(1)> Hello world\n:ok\niex(2)>"
@@ -257,7 +257,7 @@ defmodule IEx.InteractionTest do
         my_variable = 42
         """)
 
-      assert capture_iex("{my_fun_single(), my_variable}", [], dot_iex_path: path) ==
+      assert capture_iex("{my_fun_single(), my_variable}", [], dot_iex: path) ==
                "{:single, 42}"
     end
 
@@ -275,7 +275,7 @@ defmodule IEx.InteractionTest do
         write_dot_iex!(tmp_dir, "dot-iex", "import_file \"#{tmp_dir}/dot-iex-1\"\nmy_variable=13")
 
       input = "nested_var\nmy_variable\nmy_fun_nested()"
-      assert capture_iex(input, [], dot_iex_path: path) == "42\n13\n:nested"
+      assert capture_iex(input, [], dot_iex: path) == "42\n13\n:nested"
     end
 
     @tag :tmp_dir
@@ -289,7 +289,7 @@ defmodule IEx.InteractionTest do
         my_variable = 42
         """)
 
-      assert capture_iex("{my_fun_single(), my_variable}", [dot_iex: path], dot_iex_path: nil) ==
+      assert capture_iex("{my_fun_single(), my_variable}", [dot_iex: path], dot_iex: nil) ==
                "{:single, 42}"
     end
   end

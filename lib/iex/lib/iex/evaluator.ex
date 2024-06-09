@@ -244,9 +244,9 @@ defmodule IEx.Evaluator do
       ref: ref
     }
 
-    dot_iex_path = opts[:dot_iex_path] || Config.dot_iex()
+    dot_iex = opts[:dot_iex] || Config.dot_iex()
 
-    case dot_iex_path do
+    case dot_iex do
       "" -> state
       path -> load_dot_iex(state, path)
     end
