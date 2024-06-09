@@ -509,9 +509,8 @@ defmodule IEx do
 
   ## dot_iex
 
-  This is an option to configure the `dot-iex` file loaded into
-  iex when started, more information on the `dot-iex` file can
-  be found in the `.iex.exs` documentation
+  Configure the file loaded into your IEx session when it starts.
+  See more information [in the `.iex.exs` documentation](`m:IEx#module-the-iex-exs-file`).
   """
   @spec configure(keyword()) :: :ok
   def configure(options) do
