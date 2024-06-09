@@ -321,10 +321,10 @@ defmodule IEx do
 
   ## The .iex.exs file
 
-  When starting, IEx looks for a local `.iex.exs` file (located in the current
-  working directory), then for a global `.iex.exs` file located inside the
-  directory pointed by the `IEX_HOME` environment variable (which defaults
-  to `~`) and loads the first one it finds (if any).
+  When starting, IEx looks for a configured path, then for a local `.iex.exs` file
+  (located in the current working directory), then for a global `.iex.exs` file
+  located inside the directory pointed by the `IEX_HOME` environment variable
+  (which defaults to `~`) and loads the first one it finds (if any).
 
   The code in the chosen `.iex.exs` file is evaluated line by line in the shell's
   context, as if each line were being typed in the shell. For instance, any modules
@@ -356,8 +356,9 @@ defmodule IEx do
       iex(1)> value
       13
 
-  It is possible to load another file by supplying the `--dot-iex` option
-  to IEx. See `iex --help`.
+  It is possible to load another file by configuring the `iex` application's `dot_iex`
+  value (`config :iex, dot_iex: "PATH"` or `IEx.Config.configure(dot_iex: "PATH")`)
+  or supplying the `--dot-iex` option to IEx. See `iex --help`.
 
   In case of remote nodes, the location of the `.iex.exs` files are taken
   relative to the user that started the application, not to the user that
@@ -399,6 +400,7 @@ defmodule IEx do
     * `:alive_prompt`
     * `:alive_continuation_prompt`
     * `:parser`
+    * `:dot_iex`
 
   They are discussed individually in the sections below.
 
@@ -504,6 +506,11 @@ defmodule IEx do
   or `{:incomplete, buffer}`.
 
   If the parser raises, the buffer is reset to an empty string.
+
+  ## dot_iex
+
+  Configure the file loaded into your IEx session when it starts.
+  See more information [in the `.iex.exs` documentation](`m:IEx#module-the-iex-exs-file`).
   """
   @spec configure(keyword()) :: :ok
   def configure(options) do

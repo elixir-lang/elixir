@@ -13,7 +13,8 @@ defmodule IEx.Config do
     :alive_prompt,
     :alive_continuation_prompt,
     :width,
-    :parser
+    :parser,
+    :dot_iex
   ]
 
   # Read API
@@ -86,6 +87,10 @@ defmodule IEx.Config do
       :error ->
         IO.ANSI.enabled?()
     end
+  end
+
+  def dot_iex() do
+    Application.get_env(:iex, :dot_iex)
   end
 
   # Used by default on evaluation cycle
@@ -193,6 +198,7 @@ defmodule IEx.Config do
   defp validate_option({:alive_continuation_prompt, new}) when is_binary(new), do: :ok
   defp validate_option({:width, new}) when is_integer(new), do: :ok
   defp validate_option({:parser, tuple}) when tuple_size(tuple) == 3, do: :ok
+  defp validate_option({:dot_iex, path}) when is_binary(path), do: :ok
 
   defp validate_option(option) do
     raise ArgumentError, "invalid configuration #{inspect(option)}"

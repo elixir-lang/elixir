@@ -277,6 +277,21 @@ defmodule IEx.InteractionTest do
       input = "nested_var\nmy_variable\nmy_fun_nested()"
       assert capture_iex(input, [], dot_iex_path: path) == "42\n13\n:nested"
     end
+
+    @tag :tmp_dir
+    test "configured .iex", %{tmp_dir: tmp_dir} do
+      path =
+        write_dot_iex!(tmp_dir, "configured-dot-iex", """
+        defmodule ConfiguredDotIEx do
+          def my_fun_single, do: :single
+        end
+        import ConfiguredDotIEx
+        my_variable = 42
+        """)
+
+      assert capture_iex("{my_fun_single(), my_variable}", [dot_iex: path], dot_iex_path: nil) ==
+               "{:single, 42}"
+    end
   end
 
   defp write_dot_iex!(tmp_dir, name, contents) do
