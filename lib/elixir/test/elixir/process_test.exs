@@ -57,6 +57,12 @@ defmodule ProcessTest do
     assert Process.sleep(0) == :ok
   end
 
+  test "sleep/1 with 2^32" do
+    {pid, monitor_ref} = spawn_monitor(fn -> Process.sleep(2 ** 32) end)
+    refute_receive {:DOWN, ^monitor_ref, :process, ^pid, {:timeout_value, _trace}}
+    Process.exit(pid, :kill)
+  end
+
   test "info/2" do
     pid = spawn(fn -> Process.sleep(1000) end)
     assert Process.info(pid, :priority) == {:priority, :normal}
