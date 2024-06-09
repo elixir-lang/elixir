@@ -107,7 +107,7 @@ defmodule ExUnit.Runner do
 
       # Slots are available, start with async modules
       async_modules = ExUnit.Server.take_async_modules(available) ->
-        running = spawn_modules(config, async_modules, running)
+        running = spawn_modules(config, async_modules, true, running)
         modules_to_restore = maybe_store_modules(modules_to_restore, :async, async_modules)
         async_loop(config, running, true, modules_to_restore)
 
@@ -125,7 +125,7 @@ defmodule ExUnit.Runner do
 
         # Run all sync modules directly
         for pair <- sync_modules do
-          running = spawn_modules(config, [pair], %{})
+          running = spawn_modules(config, [pair], false, %{})
           running != %{} and wait_until_available(config, running)
         end
 
@@ -157,16 +157,16 @@ defmodule ExUnit.Runner do
     end
   end
 
-  defp spawn_modules(_config, [], running) do
+  defp spawn_modules(_config, [], _async, running) do
     running
   end
 
-  defp spawn_modules(config, [{module, params} | modules], running) do
+  defp spawn_modules(config, [{module, params} | modules], async?, running) do
     if max_failures_reached?(config) do
       running
     else
-      {pid, ref} = spawn_monitor(fn -> run_module(config, module, params) end)
-      spawn_modules(config, modules, Map.put(running, ref, pid))
+      {pid, ref} = spawn_monitor(fn -> run_module(config, module, async?, params) end)
+      spawn_modules(config, modules, async?, Map.put(running, ref, pid))
     end
   end
 
@@ -221,12 +221,12 @@ defmodule ExUnit.Runner do
 
   ## Running modules
 
-  defp run_module(config, module, params) do
+  defp run_module(config, module, async?, params) do
     test_module = %{module.__ex_unit__() | parameters: params}
     EM.module_started(config.manager, test_module)
 
     # Prepare tests, selecting which ones should be run or skipped
-    {to_run_tests, excluded_and_skipped_tests} = prepare_tests(config, test_module.tests)
+    {to_run_tests, excluded_and_skipped_tests} = prepare_tests(config, async?, test_module.tests)
 
     for excluded_or_skipped_test <- excluded_and_skipped_tests do
       EM.test_started(config.manager, excluded_or_skipped_test)
@@ -234,7 +234,7 @@ defmodule ExUnit.Runner do
     end
 
     {test_module, invalid_tests, finished_tests} =
-      run_module_tests(config, test_module, to_run_tests)
+      run_module_tests(config, test_module, async?, to_run_tests)
 
     pending_tests =
       case process_max_failures(config, test_module) do
@@ -261,7 +261,7 @@ defmodule ExUnit.Runner do
     end
   end
 
-  defp prepare_tests(config, tests) do
+  defp prepare_tests(config, async?, tests) do
     tests = shuffle(config, tests)
     include = config.include
     exclude = config.exclude
@@ -270,7 +270,7 @@ defmodule ExUnit.Runner do
     {to_run, to_skip} =
       for test <- tests, include_test?(test_ids, test), reduce: {[], []} do
         {to_run, to_skip} ->
-          tags = Map.merge(test.tags, %{test: test.name, module: test.module})
+          tags = Map.merge(test.tags, %{test: test.name, module: test.module, async: async?})
 
           case ExUnit.Filters.eval(include, exclude, tags, tests) do
             :ok -> {[%{test | tags: tags} | to_run], to_skip}
@@ -285,12 +285,12 @@ defmodule ExUnit.Runner do
     test_ids == nil or MapSet.member?(test_ids, {test.module, test.name})
   end
 
-  defp run_module_tests(_config, test_module, []) do
+  defp run_module_tests(_config, test_module, _async?, []) do
     {test_module, [], []}
   end
 
-  defp run_module_tests(config, test_module, tests) do
-    {module_pid, module_ref} = run_setup_all(test_module, self())
+  defp run_module_tests(config, test_module, async?, tests) do
+    {module_pid, module_ref} = run_setup_all(test_module, async?, self())
 
     {test_module, invalid_tests, finished_tests} =
       receive do
@@ -324,12 +324,14 @@ defmodule ExUnit.Runner do
 
   defp run_setup_all(
          %ExUnit.TestModule{name: module, tags: tags, parameters: params} = test_module,
+         async?,
          parent_pid
        ) do
     Process.put(@current_key, test_module)
 
     spawn_monitor(fn ->
       ExUnit.OnExitHandler.register(self())
+      tags = tags |> Map.merge(params) |> Map.merge(%{module: module, async: async?})
 
       result =
         try do

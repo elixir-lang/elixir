@@ -545,7 +545,7 @@ defmodule ExUnit.Case do
   end
 
   @doc false
-  defmacro __before_compile__(%{module: module} = env) do
+  defmacro __before_compile__(%{module: module}) do
     tests =
       module
       |> Module.get_attribute(:ex_unit_tests)
@@ -553,14 +553,12 @@ defmodule ExUnit.Case do
       |> Macro.escape()
 
     moduletag = Module.get_attribute(module, :moduletag)
-    {async?, _parameterize} = Module.get_attribute(module, :ex_unit_module)
 
     tags =
       moduletag
       |> normalize_tags()
       |> validate_tags()
       |> Map.new()
-      |> Map.merge(%{module: module, case: env.module, async: async?})
 
     quote do
       def __ex_unit__ do
