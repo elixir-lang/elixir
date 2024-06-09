@@ -289,7 +289,7 @@ defmodule IEx.InteractionTest do
         my_variable = 42
         """)
 
-      assert capture_iex("{my_fun_single(), my_variable}", dot_iex: path) ==
+      assert capture_iex("{my_fun_single(), my_variable}", [dot_iex: path], dot_iex_path: nil) ==
                "{:single, 42}"
     end
   end
