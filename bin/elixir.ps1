@@ -55,14 +55,9 @@ The following options are generally used under releases.
   --boot "FILE"                Uses the given FILE.boot to start the system
   --boot-var VAR "VALUE"       Makes `$VAR available as VALUE to FILE.boot (*)
   --erl-config "FILE"          Loads configuration in FILE.config written in Erlang (*)
-  --pipe-to "PIPEDIR" "LOGDIR" Starts the Erlang VM as a named PIPEDIR and LOGDIR
   --vm-args "FILE"             Passes the contents in file as arguments to the VM
 
---pipe-to starts Elixir detached from console (Unix-like only).
-It will attempt to create PIPEDIR and LOGDIR if they don't exist.
-See run_erl to learn more. To reattach, run: to_erl PIPEDIR.
-
---pipe-to is not supported on Windows. If set, Elixir won't boot.
+--pipe-to is not supported via PowerShell.
 
 ** Options marked with (*) can be given more than once.
 ** Standalone options can't be combined with other options.
@@ -260,28 +255,6 @@ for ($i = 0; $i -lt $allArgs.Count; $i++) {
       break
     }
 
-    "--pipe-to" {
-      $runErlPipe = $allArgs[++$i]
-      $runErlLog = $allArgs[++$i]
-
-      if ($null -eq $runErlPipe) {
-        Write-Error "--pipe-to: PIPEDIR must be present"
-        exit 1
-      }
-
-      if ($null -eq $runErlLog) {
-        Write-Error "--pipe-to: PIPELOG must be present"
-        exit 1
-      }
-
-      if ($runErlPipe.EndsWith("/") -or $runErlLog.EndsWith("/")) {
-        Write-Error "--pipe-to: PIPEDIR and PIPELOG must not end with a slash"
-        exit 1
-      }
-
-      break
-    }
-
     Default {
       $private:normalized = NormalizeArg $arg
       $allOtherParams += $normalized
@@ -296,12 +269,6 @@ if ($null -eq $useIEx) {
 
 $beforeExtras = @("-pa", "$(Join-Path $scriptPath -ChildPath "../lib/elixir/ebin")") + $beforeExtras
 $beforeExtras = @("-noshell", "-elixir_root", "$(Join-Path $scriptPath -ChildPath "../lib")") + $beforeExtras
-
-# One MAY change ERTS_BIN= but you MUST NOT change
-# ERTS_BIN=$ERTS_BIN as it is handled by Elixir releases.
-# TODO: change when we port the releases scripts.
-# $ERTS_BIN=
-$ERTS_BIN = "$env:ERTS_BIN"
 
 $allParams = @()
 
@@ -325,40 +292,13 @@ if ($isWindows -or ($null -eq $isWindows)) {
 
 $binPath = "$erlExec$binSuffix"
 
-if ($ERTS_BIN) {
-  $binPath = Join-Path -Path $ERTS_BIN -ChildPath $binPath
-}
-
-if ($null -eq $runErlPipe) {
-  # We double the double-quotes because they are going to be escaped by arguments parsing.
-  $paramsPart = $allParams | ForEach-Object -Process { QuoteString($_ -replace "`"", "`"`"") }
-}
-else {
-  $allParams.Insert(0, $binPath)
-
-  $erlExec = "run_erl"
-  $binPath = "$erlExec$binSuffix"
-
-  if ($ERTS_BIN) {
-    $binPath = Join-Path -Path $ERTS_BIN -ChildPath $binPath
-  }
-
-  # We scape special chars using the Unix style of scaping, with "\".
-  # But first we escape the double-quotes, because for some reason they are not escaped in the same regex.
-  $private:escaped = $allParams | ForEach-Object -Process { ($_ -replace "`"", "\`"") -replace "[^a-zA-Z0-9_/-]", "\$&" }
-
-  # The args are surrounded here because we want to have only one argument for the entire command.
-  $paramsPart = @("-daemon", "`"$runErlPipe/`"", "`"$runErlLog/`"", "`"$($escaped -join " ")`"")
-}
+# We double the double-quotes because they are going to be escaped by arguments parsing.
+$paramsPart = $allParams | ForEach-Object -Process { QuoteString($_ -replace "`"", "`"`"") }
 
 if ($env:ELIXIR_CLI_DRY_RUN) {
   Write-Host "$binPath $paramsPart"
 }
 else {
-  if ($runErlPipe) {
-    $null = New-Item -Path "." -ItemType "directory" -Name "$runErlPipe" -Force
-    $null = New-Item -Path "." -ItemType "directory" -Name "$runErlLog" -Force
-  }
   $output = Start-Process -FilePath $binPath -ArgumentList $paramsPart -NoNewWindow -Wait -PassThru
   exit $output.ExitCode
 }
