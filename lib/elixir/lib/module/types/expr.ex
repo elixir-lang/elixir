@@ -399,11 +399,7 @@ defmodule Module.Types.Expr do
             expected = if structs == [], do: @exception, else: Enum.reduce(structs, &union/2)
 
             formatter = fn expr ->
-              [
-                "rescue #{expr_to_string(expr)} ->" |> indent(4),
-                ?\n,
-                format_hints(hints)
-              ]
+              {"rescue #{expr_to_string(expr)} ->", hints}
             end
 
             {:ok, _type, context} = Of.refine_var(var, expected, expr, formatter, stack, context)
@@ -537,23 +533,28 @@ defmodule Module.Types.Expr do
 
   ## Warning formatting
 
-  def format_warning({:badupdate, type, expr, expected_type, actual_type, context}) do
-    [
-      """
-      incompatible types in #{type} update:
+  def format_diagnostic({:badupdate, type, expr, expected_type, actual_type, context}) do
+    traces = Of.collect_traces(expr, context)
 
-          #{expr_to_string(expr) |> indent(4)}
+    %{
+      detail: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          incompatible types in #{type} update:
 
-      expected type:
+              #{expr_to_string(expr) |> indent(4)}
 
-          #{to_quoted_string(expected_type) |> indent(4)}
+          expected type:
 
-      but got type:
+              #{to_quoted_string(expected_type) |> indent(4)}
 
-          #{to_quoted_string(actual_type) |> indent(4)}
-      """,
-      Of.format_traces(expr, context),
-      "\ntyping violation found at:"
-    ]
+          but got type:
+
+              #{to_quoted_string(actual_type) |> indent(4)}
+          """,
+          Of.format_traces(traces)
+        ])
+    }
   end
 end
