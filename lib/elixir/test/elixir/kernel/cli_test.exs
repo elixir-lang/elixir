@@ -33,13 +33,7 @@ defmodule Retry do
 end
 
 defmodule Kernel.CLITest do
-  use ExUnit.Case,
-    async: true,
-    parameterize:
-      if(PathHelpers.windows?(),
-        do: [%{cli_extension: ".bat"}, %{cli_extension: ".ps1"}],
-        else: [%{cli_extension: ""}, %{cli_extension: ".ps1"}]
-      )
+  use ExUnit.Case, async: true
 
   import ExUnit.CaptureIO
 
@@ -67,16 +61,18 @@ defmodule Kernel.CLITest do
   end
 end
 
+test_parameters =
+  if(PathHelpers.windows?(),
+    do: [%{cli_extension: ".bat"}, %{cli_extension: ".ps1"}],
+    else:
+      [%{cli_extension: ""}] ++
+        if(System.find_executable("pwsh"), do: [%{cli_extension: ".ps1"}], else: [])
+  )
+
 defmodule Kernel.CLI.ExecutableTest do
   use ExUnit.Case,
     async: true,
-    parameterize:
-      if(PathHelpers.windows?(),
-        do: [%{cli_extension: ".bat"}, %{cli_extension: ".ps1"}],
-        else:
-          [%{cli_extension: ""}] ++
-            if(System.find_executable("pwsh"), do: [%{cli_extension: ".ps1"}], else: [])
-      )
+    parameterize: test_parameters
 
   import Retry
 
@@ -271,13 +267,7 @@ end
 defmodule Kernel.CLI.CompileTest do
   use ExUnit.Case,
     async: true,
-    parameterize:
-      if(PathHelpers.windows?(),
-        do: [%{cli_extension: ".bat"}, %{cli_extension: ".ps1"}],
-        else:
-          [%{cli_extension: ""}] ++
-            if(System.find_executable("pwsh"), do: [%{cli_extension: ".ps1"}], else: [])
-      )
+    parameterize: test_parameters
 
   import Retry
   @moduletag :tmp_dir
