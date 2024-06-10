@@ -1101,10 +1101,50 @@ defmodule ExUnitTest do
     assert third =~ "ThirdTestFIFO"
   end
 
+  test "can filter async tests" do
+    defmodule FirstTestAsyncTrue do
+      use ExUnit.Case, async: true
+
+      test "first test" do
+        assert true
+      end
+    end
+
+    defmodule SecondTestAsyncTrue do
+      use ExUnit.Case, async: true
+
+      test "second test" do
+        assert true
+      end
+    end
+
+    defmodule FirstTestAsyncFalse do
+      use ExUnit.Case, async: false
+
+      test "first test" do
+        assert true
+      end
+    end
+
+    assert {%{failures: 0, skipped: 0, total: 3, excluded: 1}, _} =
+             run_with_filter([include: [async: true], exclude: [:test]], [])
+
+    assert {%{failures: 0, skipped: 0, total: 3, excluded: 2}, _} =
+             run_with_filter([include: [async: false], exclude: [:test]], [
+               FirstTestAsyncTrue,
+               SecondTestAsyncTrue,
+               FirstTestAsyncFalse
+             ])
+  end
+
   ##  Helpers
 
   defp run_with_filter(filters, cases) do
-    Enum.each(cases, &ExUnit.Server.add_module(&1, {false, nil}))
+    Enum.each(cases, fn mod ->
+      [config] = mod.__info__(:attributes) |> Keyword.fetch!(:ex_unit_module)
+      ExUnit.Server.add_module(mod, config)
+    end)
+
     ExUnit.Server.modules_loaded(false)
 
     opts =
