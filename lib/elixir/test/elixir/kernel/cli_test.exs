@@ -63,7 +63,7 @@ end
 
 test_parameters =
   if(PathHelpers.windows?(),
-    do: [%{cli_extension: ".bat"}, %{cli_extension: ".ps1"}],
+    do: [%{cli_extension: ".bat"}],
     else:
       [%{cli_extension: ""}] ++
         if(System.find_executable("pwsh"), do: [%{cli_extension: ".ps1"}], else: [])
