@@ -236,7 +236,7 @@ defmodule Process do
   > #### Sleeping limit {: .info }
   >
   > Before Elixir v1.18, `sleep/1` did not accept integer timeout values greater
-  > than `16#ffffffff`, that is, `2^32-1`. Since Elixir v1.18, arbitrarily high integer
+  > than `16#ffffffff`, that is, `2^32-1`. Since Elixir v1.18, arbitrarily-high integer
   > values are accepted.
 
   **Use this function with extreme care**. For almost all situations
