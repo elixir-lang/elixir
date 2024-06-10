@@ -320,6 +320,8 @@ defmodule Module.Types.ExprTest do
                  # from: types_test.ex:LINE-4
                  x = %URI{}
              """
+
+      assert [%{type: :variable, name: :x}] = diagnostic.details.typing_traces
     end
   end
 
