@@ -6,12 +6,11 @@
 -module(elixir_errors).
 -export([compile_error/1, compile_error/3, parse_error/5]).
 -export([function_error/4, module_error/4, file_error/4]).
--export([format_snippet/7]).
+-export([format_snippet/6]).
 -export([erl_warn/3, file_warn/4]).
 -export([prefix/1]).
--export([print_diagnostic/2, emit_diagnostic/6]).
--export([print_warning/2, print_warning/3]).
--export([print_warning_group/2]).
+-export([print_diagnostics/1, print_diagnostic/2, emit_diagnostic/6]).
+-export([print_warning/3]).
 -include("elixir.hrl").
 -type location() :: non_neg_integer() | {non_neg_integer(), non_neg_integer()}.
 
@@ -20,34 +19,8 @@
 %% TODO: Remove me on Elixir v2.0.
 %% Called by deprecated Kernel.ParallelCompiler.print_warning.
 print_warning(Position, File, Message) ->
-  Output = format_snippet(Position, File, Message, nil, warning, [], nil),
+  Output = format_snippet(warning, Position, File, Message, nil, #{}),
   io:put_chars(standard_error, [Output, $\n, $\n]).
-
-%% Called by Module.ParallelChecker.
-print_warning(Message, Diagnostic) ->
-  #{file := File, position := Position, stacktrace := S} = Diagnostic,
-  Snippet = read_snippet(File, Position),
-  Span = get_span(Diagnostic),
-  Output = format_snippet(Position, File, Message, Snippet, warning, S, Span),
-  io:put_chars(standard_error, [Output, $\n, $\n]).
-
-%% Called by Module.ParallelChecker.
-print_warning_group(Message, [Diagnostic | Others]) ->
-  #{file := File, position := Position, stacktrace := S} = Diagnostic,
-  Snippet = read_snippet(File, Position),
-  Span = get_span(Diagnostic),
-  Formatted = format_snippet(Position, File, Message, Snippet, warning, S, Span),
-  LineNumber = extract_line(Position),
-  LineDigits = get_line_number_digits(LineNumber, 1),
-  Padding = case Snippet of
-    nil -> 0;
-    _ -> max(4, LineDigits + 2)
-  end,
-  Locations = [["\n", n_spaces(Padding), "└─ ", 'Elixir.Exception':format_stacktrace_entry(ES)] || #{stacktrace := [ES]} <- Others],
-  io:put_chars(standard_error, [Formatted, Locations, $\n, $\n]).
-
-get_span(#{span := nil}) -> nil;
-get_span(#{span := Span}) -> Span.
 
 read_snippet(nil, _Position) ->
   nil;
@@ -77,20 +50,33 @@ traverse_file_line(IoDevice, N) ->
   file:read_line(IoDevice),
   traverse_file_line(IoDevice, N - 1).
 
-print_diagnostic(#{severity := Severity, message := M, stacktrace := Stacktrace, position := P, file := F} = Diagnostic, ReadSnippet) ->
+%% Used by Module.ParallelChecker.
+print_diagnostics([Diagnostic | Others]) ->
+  #{file := File, position := Position, message := Message} = Diagnostic,
+  Snippet = read_snippet(File, Position),
+  Formatted = format_snippet(warning, Position, File, Message, Snippet, Diagnostic),
+  LineNumber = extract_line(Position),
+  LineDigits = get_line_number_digits(LineNumber, 1),
+  Padding = case Snippet of
+    nil -> 0;
+    _ -> max(4, LineDigits + 2)
+  end,
+  Locations = [["\n", n_spaces(Padding), "└─ ", 'Elixir.Exception':format_stacktrace_entry(ES)] || #{stacktrace := [ES]} <- Others],
+  io:put_chars(standard_error, [Formatted, Locations, $\n, $\n]).
+
+print_diagnostic(#{severity := S, message := M, position := P, file := F} = Diagnostic, ReadSnippet) ->
   Snippet =
     case ReadSnippet of
       true -> read_snippet(F, P);
       false -> nil
     end,
 
-  Span = get_span(Diagnostic),
-  Output = format_snippet(P, F, M, Snippet, Severity, Stacktrace, Span),
+  Output = format_snippet(S, P, F, M, Snippet, Diagnostic),
 
   MaybeStack =
     case (F /= nil) orelse elixir_config:is_bootstrap() of
       true -> [];
-      false -> [["\n  ", 'Elixir.Exception':format_stacktrace_entry(E)] || E <- Stacktrace]
+      false -> [["\n  ", 'Elixir.Exception':format_stacktrace_entry(E)] || E <- ?key(Diagnostic, stacktrace)]
     end,
 
   io:put_chars(standard_error, [Output, MaybeStack, $\n, $\n]),
@@ -139,12 +125,12 @@ extract_column(_) -> nil.
 %% Format snippets
 %% "Snippet" here refers to the source code line where the diagnostic/error occurred
 
-format_snippet(_Position, nil, Message, nil, Severity, _Stacktrace, _Span) ->
+format_snippet(Severity, _Position, nil, Message, nil, _Diagnostic) ->
   Formatted = [prefix(Severity), " ", Message],
   unicode:characters_to_binary(Formatted);
 
-format_snippet(Position, File, Message, nil, Severity, Stacktrace, _Span) ->
-  Location = location_format(Position, File, Stacktrace),
+format_snippet(Severity, Position, File, Message, nil, Diagnostic) ->
+  Location = location_format(Position, File, maps:get(stacktrace, Diagnostic, [])),
 
   Formatted = io_lib:format(
     "~ts ~ts\n"
@@ -154,20 +140,22 @@ format_snippet(Position, File, Message, nil, Severity, Stacktrace, _Span) ->
 
   unicode:characters_to_binary(Formatted);
 
-format_snippet(Position, File, Message, Snippet, Severity, Stacktrace, Span) ->
+format_snippet(Severity, Position, File, Message, Snippet, Diagnostic) ->
   Column = extract_column(Position),
   LineNumber = extract_line(Position),
   LineDigits = get_line_number_digits(LineNumber, 1),
   Spacing = n_spaces(max(2, LineDigits) + 1),
   LineNumberSpacing = if LineDigits =:= 1 -> 1; true -> 0 end,
   {FormattedLine, ColumnsTrimmed} = format_line(Snippet),
-  Location = location_format(Position, File, Stacktrace),
+  Location = location_format(Position, File, maps:get(stacktrace, Diagnostic, [])),
+  MessageDetail = format_detail(Diagnostic, Message),
 
   Highlight =
     case Column of
-      nil -> highlight_below_line(FormattedLine, Severity);
+      nil ->
+        highlight_below_line(FormattedLine, Severity);
       _ ->
-        Length = calculate_span_length({LineNumber, Column}, Span),
+        Length = calculate_span_length({LineNumber, Column}, Diagnostic),
         highlight_at_position(Column - ColumnsTrimmed, Severity, Length)
     end,
 
@@ -179,7 +167,7 @@ format_snippet(Position, File, Message, Snippet, Severity, Stacktrace, Span) ->
     " ~ts│\n"
     " ~ts└─ ~ts",
     [
-     Spacing, prefix(Severity), format_message(Message, LineDigits, 2 + LineNumberSpacing),
+     Spacing, prefix(Severity), format_message(MessageDetail, LineDigits, 2 + LineNumberSpacing),
      Spacing,
      n_spaces(LineNumberSpacing), LineNumber, FormattedLine,
      Spacing, Highlight,
@@ -189,9 +177,12 @@ format_snippet(Position, File, Message, Snippet, Severity, Stacktrace, Span) ->
 
   unicode:characters_to_binary(Formatted).
 
-calculate_span_length({StartLine, StartCol}, {StartLine, EndCol}) -> EndCol - StartCol;
-calculate_span_length({StartLine, _}, {EndLine, _}) when EndLine > StartLine -> 1;
-calculate_span_length({_, _}, nil) -> 1.
+format_detail(#{detail := #{typing_traces := _}}, Message) -> [Message | "\ntyping violation found at:"];
+format_detail(_, Message) -> Message.
+
+calculate_span_length({StartLine, StartCol}, #{span := {StartLine, EndCol}}) -> EndCol - StartCol;
+calculate_span_length({StartLine, _}, #{span := {EndLine, _}}) when EndLine > StartLine -> 1;
+calculate_span_length({_, _}, #{}) -> 1.
 
 format_line(Line) ->
   case trim_line(Line, 0) of

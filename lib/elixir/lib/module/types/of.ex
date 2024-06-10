@@ -47,8 +47,7 @@ defmodule Module.Types.Of do
 
         # We need to return error otherwise it leads to cascading errors
         if empty?(new_type) do
-          {:error,
-           warn(__MODULE__, {:refine_var, old_type, type, var, context}, meta, stack, context)}
+          {:error, warn({:refine_var, old_type, type, var, context}, meta, stack, context)}
         else
           {:ok, new_type, context}
         end
@@ -420,7 +419,7 @@ defmodule Module.Types.Of do
     meta = get_meta(expr) || stack.meta
     hints = if meta[:inferred_bitstring_spec], do: [:inferred_bitstring_spec], else: []
     warning = {:incompatible, expr, expected_type, actual_type, hints, context}
-    warn(__MODULE__, warning, meta, stack, context)
+    warn(warning, meta, stack, context)
   end
 
   defp warn(warning, meta, stack, context) do
@@ -429,15 +428,24 @@ defmodule Module.Types.Of do
 
   ## Traces
 
-  def format_traces(expr, %{vars: vars}) do
+  def collect_traces(expr, %{vars: vars}) do
     {_, versions} =
       Macro.prewalk(expr, %{}, fn
         {var_name, meta, var_context}, versions when is_atom(var_name) and is_atom(var_context) ->
           version = meta[:version]
 
           case vars do
-            %{^version => data} -> {:ok, Map.put(versions, version, data)}
-            %{} -> {:ok, versions}
+            %{^version => %{off_traces: [_ | _] = off_traces, name: name, context: context}} ->
+              {:ok,
+               Map.put(versions, version, %{
+                 type: :variable,
+                 name: name,
+                 context: context,
+                 traces: collect_var_traces(off_traces)
+               })}
+
+            _ ->
+              {:ok, versions}
           end
 
         node, versions ->
@@ -447,40 +455,55 @@ defmodule Module.Types.Of do
     versions
     |> Map.values()
     |> Enum.sort_by(& &1.name)
-    |> Enum.map(&format_trace/1)
   end
 
-  defp format_trace(%{off_traces: []}) do
-    []
+  defp collect_var_traces(traces) do
+    traces
+    |> Enum.reverse()
+    |> Enum.map(fn {expr, file, type, formatter} ->
+      meta = get_meta(expr)
+
+      {formatted_expr, formatter_hints} =
+        case formatter do
+          :default -> {expr_to_string(expr), []}
+          formatter -> formatter.(expr)
+        end
+
+      %{
+        file: file,
+        meta: meta,
+        formatted_expr: formatted_expr,
+        formatted_hints: format_hints(formatter_hints ++ expr_hints(expr)),
+        formatted_type: to_quoted_string(type)
+      }
+    end)
   end
 
-  defp format_trace(%{name: name, context: context, off_traces: traces}) do
+  def format_traces(traces) do
+    Enum.map(traces, &format_trace/1)
+  end
+
+  defp format_trace(%{type: :variable, name: name, context: context, traces: traces}) do
     traces =
-      traces
-      |> Enum.reverse()
-      |> Enum.map(fn {expr, file, type, formatter} ->
-        meta = get_meta(expr)
-
+      for trace <- traces do
         location =
-          file
+          trace.file
           |> Path.relative_to_cwd()
-          |> Exception.format_file_line(meta[:line])
+          |> Exception.format_file_line(trace.meta[:line])
           |> String.replace_suffix(":", "")
 
         [
           """
 
-              # type: #{to_quoted_string(type) |> indent(4)}
+              # type: #{indent(trace.formatted_type, 4)}
               # from: #{location}
               \
           """,
-          case formatter do
-            :default -> [expr |> expr_to_string() |> indent(4), ?\n]
-            formatter -> formatter.(expr)
-          end,
-          format_hints(expr_hints(expr))
+          indent(trace.formatted_expr, 4),
+          ?\n,
+          trace.formatted_hints
         ]
-      end)
+      end
 
     type_or_types = pluralize(traces, "type", "types")
     ["\nwhere #{format_var(name, context)} was given the #{type_or_types}:\n" | traces]
@@ -500,96 +523,169 @@ defmodule Module.Types.Of do
 
   ## Warning formatting
 
-  def format_warning({:refine_var, old_type, new_type, var, context}) do
-    [
-      """
-      incompatible types assigned to #{format_var(var)}:
+  def format_diagnostic({:refine_var, old_type, new_type, var, context}) do
+    traces = collect_traces(var, context)
 
-          #{to_quoted_string(old_type)} !~ #{to_quoted_string(new_type)}
-      """,
-      format_traces(var, context),
-      "\ntyping violation found at:"
-    ]
+    %{
+      detail: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          incompatible types assigned to #{format_var(var)}:
+
+              #{to_quoted_string(old_type)} !~ #{to_quoted_string(new_type)}
+          """,
+          format_traces(traces)
+        ])
+    }
   end
 
-  def format_warning({:incompatible, expr, expected_type, actual_type, hints, context}) do
-    [
-      """
-      incompatible types in expression:
+  def format_diagnostic({:incompatible, expr, expected_type, actual_type, hints, context}) do
+    traces = collect_traces(expr, context)
 
-          #{expr_to_string(expr) |> indent(4)}
+    %{
+      detail: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          incompatible types in expression:
 
-      expected type:
+              #{expr_to_string(expr) |> indent(4)}
 
-          #{to_quoted_string(expected_type) |> indent(4)}
+          expected type:
 
-      but got type:
+              #{to_quoted_string(expected_type) |> indent(4)}
 
-          #{to_quoted_string(actual_type) |> indent(4)}
-      """,
-      format_traces(expr, context),
-      format_hints(hints),
-      "\ntyping violation found at:"
-    ]
+          but got type:
+
+              #{to_quoted_string(actual_type) |> indent(4)}
+          """,
+          format_traces(traces),
+          format_hints(hints)
+        ])
+    }
   end
 
-  def format_warning({:badmap, expr, type, key, context}) do
-    [
-      """
-      expected a map or struct when accessing .#{key} in expression:
+  def format_diagnostic({:badmap, expr, type, key, context}) do
+    traces = collect_traces(expr, context)
 
-          #{expr_to_string(expr) |> indent(4)}
-      """,
-      empty_if(dot_var?(expr), """
+    %{
+      detail: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          expected a map or struct when accessing .#{key} in expression:
 
-      but got type:
+              #{expr_to_string(expr) |> indent(4)}
+          """,
+          empty_if(dot_var?(expr), """
 
-          #{to_quoted_string(type) |> indent(4)}
-      """),
-      format_traces(expr, context),
-      format_hints([:dot]),
-      "\ntyping violation found at:"
-    ]
+          but got type:
+
+              #{to_quoted_string(type) |> indent(4)}
+          """),
+          format_traces(traces),
+          format_hints([:dot])
+        ])
+    }
   end
 
-  def format_warning({:badkey, expr, type, key, context}) do
-    [
-      """
-      unknown key .#{key} in expression:
+  def format_diagnostic({:badkey, expr, type, key, context}) do
+    traces = collect_traces(expr, context)
 
-          #{expr_to_string(expr) |> indent(4)}
-      """,
-      empty_if(dot_var?(expr), """
+    %{
+      detail: %{typing_traces: traces},
+      span: expr |> get_meta() |> :elixir_env.calculate_span(key) |> Keyword.get(:span),
+      message:
+        IO.iodata_to_binary([
+          """
+          unknown key .#{key} in expression:
 
-      the given type does not have the given key:
+              #{expr_to_string(expr) |> indent(4)}
+          """,
+          empty_if(dot_var?(expr), """
 
-          #{to_quoted_string(type) |> indent(4)}
-      """),
-      format_traces(expr, context),
-      "\ntyping violation found at:"
-    ]
+          the given type does not have the given key:
+
+              #{to_quoted_string(type) |> indent(4)}
+          """),
+          format_traces(traces)
+        ])
+    }
   end
 
-  def format_warning({:badmodule, expr, type, fun, arity, hints, context}) do
-    [
-      """
-      expected a module (an atom) when invoking #{fun}/#{arity} in expression:
+  def format_diagnostic({:badmodule, expr, type, fun, arity, hints, context}) do
+    traces = collect_traces(expr, context)
 
-          #{expr_to_string(expr) |> indent(4)}
-      """,
-      empty_if(dot_var?(expr), """
+    %{
+      detail: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          expected a module (an atom) when invoking #{fun}/#{arity} in expression:
 
-      but got type:
+              #{expr_to_string(expr) |> indent(4)}
+          """,
+          empty_if(dot_var?(expr), """
 
-          #{to_quoted_string(type) |> indent(4)}
-      """),
-      format_traces(expr, context),
-      format_hints(hints),
-      "\ntyping violation found at:"
-    ]
+          but got type:
+
+              #{to_quoted_string(type) |> indent(4)}
+          """),
+          format_traces(traces),
+          format_hints(hints)
+        ])
+    }
   end
 
-  def format_warning({:undefined_module, module, fun, arity}) do
+  def format_diagnostic({:mismatched_comparison, expr, context}) do
+    traces = collect_traces(expr, context)
+
+    %{
+      detail: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          comparison between incompatible types found:
+
+              #{expr_to_string(expr) |> indent(4)}
+          """,
+          format_traces(traces),
+          """
+
+          While Elixir can compare across all types, you are comparing \
+          across types which are always distinct, and the result is either \
+          always true or always false
+          """
+        ])
+    }
+  end
+
+  def format_diagnostic({:struct_comparison, expr, context}) do
+    traces = collect_traces(expr, context)
+
+    %{
+      detail: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          comparison with structs found:
+
+              #{expr_to_string(expr) |> indent(4)}
+          """,
+          format_traces(traces),
+          """
+
+          Comparison operators (>, <, >=, <=, min, and max) perform structural \
+          and not semantic comparison. Comparing with a struct won't give meaningful \
+          results. Struct that can be compared typically define a compare/2 function \
+          within their modules that can be used for semantic comparison
+          """
+        ])
+    }
+  end
+
+  def format_diagnostic({:undefined_module, module, fun, arity}) do
     top =
       if fun == :__struct__ and arity == 0 do
         "struct #{inspect(module)}"
@@ -597,78 +693,56 @@ defmodule Module.Types.Of do
         Exception.format_mfa(module, fun, arity)
       end
 
-    [
-      top,
-      " is undefined (module ",
-      inspect(module),
-      " is not available or is yet to be defined)"
-    ]
+    %{
+      message:
+        IO.iodata_to_binary([
+          top,
+          " is undefined (module ",
+          inspect(module),
+          " is not available or is yet to be defined)"
+        ])
+    }
   end
 
-  def format_warning({:undefined_function, module, :__struct__, 0, _exports}) do
-    "struct #{inspect(module)} is undefined (there is such module but it does not define a struct)"
+  def format_diagnostic({:undefined_function, module, :__struct__, 0, _exports}) do
+    %{
+      message:
+        "struct #{inspect(module)} is undefined (there is such module but it does not define a struct)"
+    }
   end
 
-  def format_warning({:undefined_function, module, fun, arity, exports}) do
-    [
-      Exception.format_mfa(module, fun, arity),
-      " is undefined or private",
-      UndefinedFunctionError.hint_for_loaded_module(module, fun, arity, exports)
-    ]
+  def format_diagnostic({:undefined_function, module, fun, arity, exports}) do
+    %{
+      message:
+        IO.iodata_to_binary([
+          Exception.format_mfa(module, fun, arity),
+          " is undefined or private",
+          UndefinedFunctionError.hint_for_loaded_module(module, fun, arity, exports)
+        ])
+    }
   end
 
-  def format_warning({:deprecated, module, fun, arity, reason}) do
-    [
-      Exception.format_mfa(module, fun, arity),
-      " is deprecated. ",
-      reason
-    ]
+  def format_diagnostic({:deprecated, module, fun, arity, reason}) do
+    %{
+      message:
+        IO.iodata_to_binary([
+          Exception.format_mfa(module, fun, arity),
+          " is deprecated. ",
+          reason
+        ])
+    }
   end
 
-  def format_warning({:unrequired_module, module, fun, arity}) do
-    [
-      "you must require ",
-      inspect(module),
-      " before invoking the macro ",
-      Exception.format_mfa(module, fun, arity)
-    ]
-  end
-
-  def format_warning({:mismatched_comparison, expr, context}) do
-    [
-      """
-      comparison between incompatible types found:
-
-          #{expr_to_string(expr) |> indent(4)}
-      """,
-      format_traces(expr, context),
-      """
-
-      While Elixir can compare across all types, you are comparing \
-      across types which are always distinct, and the result is either \
-      always true or always false
-      """,
-      "\ntyping violation found at:"
-    ]
-  end
-
-  def format_warning({:struct_comparison, expr, context}) do
-    [
-      """
-      comparison with structs found:
-
-          #{expr_to_string(expr) |> indent(4)}
-      """,
-      format_traces(expr, context),
-      """
-
-      Comparison operators (>, <, >=, <=, min, and max) perform structural \
-      and not semantic comparison. Comparing with a struct won't give meaningful \
-      results. Struct that can be compared typically define a compare/2 function \
-      within their modules that can be used for semantic comparison
-      """,
-      "\ntyping violation found at:"
-    ]
+  def format_diagnostic({:unrequired_module, module, fun, arity}) do
+    %{
+      message:
+        IO.iodata_to_binary([
+          "you must require ",
+          inspect(module),
+          " before invoking the macro ",
+          Exception.format_mfa(module, fun, arity)
+        ])
+    }
   end
 
   defp dot_var?(expr) do

@@ -43,8 +43,6 @@ defmodule Module.Types.ExprTest do
                     # type: dynamic(atom())
                     # from: types_test.ex:LINE-2
                     %x{}
-
-                typing violation found at:\
                 """}
     end
   end
@@ -80,8 +78,6 @@ defmodule Module.Types.ExprTest do
                     <<x::integer>>
 
                 #{hints(:dot)}
-
-                typing violation found at:\
                 """}
     end
 
@@ -98,8 +94,6 @@ defmodule Module.Types.ExprTest do
                     # type: integer()
                     # from: types_test.ex:LINE-2
                     <<x::integer>>
-
-                typing violation found at:\
                 """}
     end
 
@@ -120,8 +114,6 @@ defmodule Module.Types.ExprTest do
                     # type: integer()
                     # from: types_test.ex:LINE-2
                     <<x::integer>>
-
-                typing violation found at:\
                 """}
     end
   end
@@ -148,8 +140,6 @@ defmodule Module.Types.ExprTest do
                     # type: binary()
                     # from: types_test.ex:LINE-2
                     <<x::binary-size(2)>>
-
-                typing violation found at:\
                 """}
 
       assert typewarn!([<<x::binary>>], <<x>>) ==
@@ -174,8 +164,6 @@ defmodule Module.Types.ExprTest do
                     <<x::binary>>
 
                 #{hints(:inferred_bitstring_spec)}
-
-                typing violation found at:\
                 """}
 
       assert typewarn!([<<x>>], <<x::binary>>) ==
@@ -200,8 +188,6 @@ defmodule Module.Types.ExprTest do
                     <<x>>
 
                 #{hints(:inferred_bitstring_spec)}
-
-                typing violation found at:\
                 """}
     end
   end
@@ -268,8 +254,6 @@ defmodule Module.Types.ExprTest do
                     # type: :foo
                     # from: types_test.ex:LINE-2
                     x = :foo
-
-                typing violation found at:\
                 """}
     end
 
@@ -292,52 +276,50 @@ defmodule Module.Types.ExprTest do
                     <<x::integer>>
 
                 #{hints(:dot)}
-
-                typing violation found at:\
                 """}
     end
 
-    test "accessing an unknown field on struct" do
-      assert typewarn!(%Point{}.foo_bar) ==
-               {dynamic(),
-                ~l"""
-                unknown key .foo_bar in expression:
+    test "accessing an unknown field on struct with diagnostic" do
+      {type, diagnostic} = typediag!(%Point{}.foo_bar)
+      assert type == dynamic()
+      assert diagnostic.span == {__ENV__.line - 2, 54}
 
-                    %Point{x: nil, y: nil, z: 0}.foo_bar
+      assert diagnostic.message == ~l"""
+             unknown key .foo_bar in expression:
 
-                the given type does not have the given key:
+                 %Point{x: nil, y: nil, z: 0}.foo_bar
 
-                    dynamic(%Point{x: nil, y: nil, z: integer()})
+             the given type does not have the given key:
 
-                typing violation found at:\
-                """}
+                 dynamic(%Point{x: nil, y: nil, z: integer()})
+             """
     end
 
-    test "accessing an unknown field on struct in a var" do
-      assert typewarn!([x = %URI{}], x.foo_bar) ==
-               {dynamic(),
-                ~l"""
-                unknown key .foo_bar in expression:
+    test "accessing an unknown field on struct in a var with diagnostic" do
+      {type, diagnostic} = typediag!([x = %URI{}], x.foo_bar)
+      assert type == dynamic()
+      assert diagnostic.span == {__ENV__.line - 2, 61}
 
-                    x.foo_bar
+      assert diagnostic.message == ~l"""
+             unknown key .foo_bar in expression:
 
-                where "x" was given the type:
+                 x.foo_bar
 
-                    # type: dynamic(%URI{
-                      authority: term(),
-                      fragment: term(),
-                      host: term(),
-                      path: term(),
-                      port: term(),
-                      query: term(),
-                      scheme: term(),
-                      userinfo: term()
-                    })
-                    # from: types_test.ex:LINE-2
-                    x = %URI{}
+             where "x" was given the type:
 
-                typing violation found at:\
-                """}
+                 # type: dynamic(%URI{
+                   authority: term(),
+                   fragment: term(),
+                   host: term(),
+                   path: term(),
+                   port: term(),
+                   query: term(),
+                   scheme: term(),
+                   userinfo: term()
+                 })
+                 # from: types_test.ex:LINE-4
+                 x = %URI{}
+             """
     end
   end
 
@@ -369,8 +351,6 @@ defmodule Module.Types.ExprTest do
 
                 While Elixir can compare across all types, you are comparing across types \
                 which are always distinct, and the result is either always true or always false
-
-                typing violation found at:\
                 """}
     end
 
@@ -401,8 +381,6 @@ defmodule Module.Types.ExprTest do
                     y = %Point{}
 
                 Comparison operators (>, <, >=, <=, min, and max) perform structural and not semantic comparison. Comparing with a struct won't give meaningful results. Struct that can be compared typically define a compare/2 function within their modules that can be used for semantic comparison
-
-                typing violation found at:\
                 """}
     end
   end
@@ -461,8 +439,6 @@ defmodule Module.Types.ExprTest do
                     )
                     # from: types_test.ex:LINE-5
                     rescue e in [SyntaxError, RuntimeError] ->
-
-                typing violation found at:\
                 """}
     end
 
@@ -488,8 +464,6 @@ defmodule Module.Types.ExprTest do
                     rescue e ->
 
                 #{hints(:anonymous_rescue)}
-
-                typing violation found at:\
                 """}
     end
   end

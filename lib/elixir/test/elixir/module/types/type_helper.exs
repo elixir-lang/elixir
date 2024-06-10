@@ -38,6 +38,16 @@ defmodule TypeHelper do
     end
   end
 
+  @doc """
+  Main helper for checking the diagnostic of a given AST.
+  """
+  defmacro typediag!(patterns \\ [], guards \\ [], body) do
+    quote do
+      unquote(typecheck(patterns, guards, body, __CALLER__))
+      |> TypeHelper.__typediag__!()
+    end
+  end
+
   @doc false
   def __typecheck__!({:ok, type, %{warnings: []}}), do: type
 
@@ -49,23 +59,29 @@ defmodule TypeHelper do
 
   @doc false
   def __typeerror__!({:error, %{warnings: [{module, warning, _locs} | _]}}),
-    do: warning |> module.format_warning() |> IO.iodata_to_binary()
+    do: module.format_diagnostic(warning).message
 
   def __typeerror__!({:ok, type, _context}),
     do: raise("type checking ok but expected error: #{Descr.to_quoted_string(type)}")
 
   @doc false
-  def __typewarn__!({:ok, type, %{warnings: [{module, warning, _locs}]}}),
-    do: {type, warning |> module.format_warning() |> IO.iodata_to_binary()}
+  def __typediag__!({:ok, type, %{warnings: [{module, warning, _locs}]}}),
+    do: {type, module.format_diagnostic(warning)}
 
-  def __typewarn__!({:ok, type, %{warnings: []}}),
+  def __typediag__!({:ok, type, %{warnings: []}}),
     do: raise("type checking ok without warnings: #{Descr.to_quoted_string(type)}")
 
-  def __typewarn__!({:ok, _type, %{warnings: warnings}}),
+  def __typediag__!({:ok, _type, %{warnings: warnings}}),
     do: raise("type checking ok but many warnings: #{inspect(warnings)}")
 
-  def __typewarn__!({:error, %{warnings: warnings}}),
+  def __typediag__!({:error, %{warnings: warnings}}),
     do: raise("type checking errored with warnings: #{inspect(warnings)}")
+
+  @doc false
+  def __typewarn__!(result) do
+    {type, %{message: message}} = __typediag__!(result)
+    {type, message}
+  end
 
   @doc """
   Building block for typechecking a given AST.

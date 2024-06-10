@@ -284,7 +284,11 @@ defmodule Module.Behaviour do
     end
   end
 
-  def format_warning({:undefined_behaviour, module, behaviour}) do
+  def format_diagnostic(warning) do
+    %{message: IO.iodata_to_binary(format_warning(warning))}
+  end
+
+  defp format_warning({:undefined_behaviour, module, behaviour}) do
     [
       "@behaviour ",
       inspect(behaviour),
@@ -294,12 +298,12 @@ defmodule Module.Behaviour do
     ]
   end
 
-  def format_warning({:module_does_not_define_behaviour, module, behaviour}) do
+  defp format_warning({:module_does_not_define_behaviour, module, behaviour}) do
     ["module ", inspect(behaviour), " is not a behaviour (in module ", inspect(module), ")"]
   end
 
-  def format_warning({:duplicate_behaviour, module, behaviour, conflict, kind, callback})
-      when conflict == behaviour do
+  defp format_warning({:duplicate_behaviour, module, behaviour, conflict, kind, callback})
+       when conflict == behaviour do
     [
       "the behaviour ",
       inspect(behaviour),
@@ -311,7 +315,7 @@ defmodule Module.Behaviour do
     ]
   end
 
-  def format_warning({:duplicate_behaviour, module, behaviour, conflict, kind, callback}) do
+  defp format_warning({:duplicate_behaviour, module, behaviour, conflict, kind, callback}) do
     [
       "conflicting behaviours found. Callback ",
       format_definition(kind, callback),
@@ -325,7 +329,7 @@ defmodule Module.Behaviour do
     ]
   end
 
-  def format_warning({:missing_callback, module, callback, kind, behaviour}) do
+  defp format_warning({:missing_callback, module, callback, kind, behaviour}) do
     [
       format_callback(callback, kind, behaviour),
       " is not implemented (in module ",
@@ -334,7 +338,7 @@ defmodule Module.Behaviour do
     ]
   end
 
-  def format_warning({:callback_mismatch, module, callback, kind, wrong_kind, behaviour}) do
+  defp format_warning({:callback_mismatch, module, callback, kind, wrong_kind, behaviour}) do
     [
       format_callback(callback, kind, behaviour),
       " was implemented as \"",
@@ -347,14 +351,14 @@ defmodule Module.Behaviour do
     ]
   end
 
-  def format_warning({:private_function, callback, kind}) do
+  defp format_warning({:private_function, callback, kind}) do
     [
       format_definition(kind, callback),
       " is private, @impl attribute is always discarded for private functions/macros"
     ]
   end
 
-  def format_warning({:no_behaviours, callback, kind, value}) do
+  defp format_warning({:no_behaviours, callback, kind, value}) do
     [
       "got \"@impl ",
       inspect(value),
@@ -364,7 +368,7 @@ defmodule Module.Behaviour do
     ]
   end
 
-  def format_warning({:impl_not_defined, callback, kind, {_fa, behaviour}}) do
+  defp format_warning({:impl_not_defined, callback, kind, {_fa, behaviour}}) do
     [
       "got \"@impl false\" for ",
       format_definition(kind, callback),
@@ -373,7 +377,7 @@ defmodule Module.Behaviour do
     ]
   end
 
-  def format_warning({:impl_defined, callback, kind, callbacks}) do
+  defp format_warning({:impl_defined, callback, kind, callbacks}) do
     [
       "got \"@impl true\" for ",
       format_definition(kind, callback),
@@ -382,7 +386,7 @@ defmodule Module.Behaviour do
     ]
   end
 
-  def format_warning({:behaviour_not_declared, callback, kind, behaviour}) do
+  defp format_warning({:behaviour_not_declared, callback, kind, behaviour}) do
     [
       "got \"@impl ",
       inspect(behaviour),
@@ -392,7 +396,7 @@ defmodule Module.Behaviour do
     ]
   end
 
-  def format_warning({:behaviour_not_defined, callback, kind, behaviour, callbacks}) do
+  defp format_warning({:behaviour_not_defined, callback, kind, behaviour, callbacks}) do
     [
       "got \"@impl ",
       inspect(behaviour),
@@ -403,7 +407,7 @@ defmodule Module.Behaviour do
     ]
   end
 
-  def format_warning({:missing_impl, callback, kind, behaviour}) do
+  defp format_warning({:missing_impl, callback, kind, behaviour}) do
     [
       "module attribute @impl was not set for ",
       format_definition(kind, callback),

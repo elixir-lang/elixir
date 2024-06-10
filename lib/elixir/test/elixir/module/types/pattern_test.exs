@@ -56,8 +56,6 @@ defmodule Module.Types.PatternTest do
                    # type: integer()
                    # from: types_test.ex:LINE-1
                    m = 123
-
-               typing violation found at:\
                """
     end
 
@@ -74,8 +72,6 @@ defmodule Module.Types.PatternTest do
                     # type: dynamic(%Point{x: term(), y: term(), z: term()})
                     # from: types_test.ex:LINE-2
                     x = %Point{}
-
-                typing violation found at:\
                 """}
     end
   end
@@ -115,8 +111,6 @@ defmodule Module.Types.PatternTest do
                  # type: float()
                  # from: types_test.ex:LINE
                  <<..., x::float>>
-
-             typing violation found at:\
              """
 
       assert typeerror!([<<x::float, x>>], x) == ~l"""
@@ -135,8 +129,6 @@ defmodule Module.Types.PatternTest do
                  <<..., x>>
 
              #{hints(:inferred_bitstring_spec)}
-
-             typing violation found at:\
              """
     end
   end
