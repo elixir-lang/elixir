@@ -1101,6 +1101,48 @@ defmodule ExUnitTest do
     assert third =~ "ThirdTestFIFO"
   end
 
+  for async? <- [true, false] do
+    test "can filter async tests - async: #{async?}" do
+      defmodule Module.concat(FirstTestAsyncTrue, unquote(async?)) do
+        use ExUnit.Case, async: true
+
+        test "first test" do
+          assert true
+        end
+      end
+
+      defmodule Module.concat(SecondTestAsyncTrue, unquote(async?)) do
+        use ExUnit.Case, async: true
+
+        test "second test" do
+          assert true
+        end
+      end
+
+      defmodule Module.concat(FirstTestAsyncFalse, unquote(async?)) do
+        use ExUnit.Case, async: false
+
+        test "first test" do
+          assert true
+        end
+      end
+
+      configure_and_reload_on_exit(
+        trace: true,
+        include: [async: unquote(async?)],
+        exclude: [:test]
+      )
+
+      capture_io(fn ->
+        if unquote(async?) do
+          assert ExUnit.run() == %{total: 3, failures: 0, excluded: 1, skipped: 0}
+        else
+          assert ExUnit.run() == %{total: 3, failures: 0, excluded: 2, skipped: 0}
+        end
+      end)
+    end
+  end
+
   ##  Helpers
 
   defp run_with_filter(filters, cases) do
