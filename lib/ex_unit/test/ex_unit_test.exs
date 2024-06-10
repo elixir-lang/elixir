@@ -1101,52 +1101,50 @@ defmodule ExUnitTest do
     assert third =~ "ThirdTestFIFO"
   end
 
-  for async? <- [true, false] do
-    test "can filter async tests - async: #{async?}" do
-      defmodule Module.concat(FirstTestAsyncTrue, unquote(async?)) do
-        use ExUnit.Case, async: true
+  test "can filter async tests" do
+    defmodule FirstTestAsyncTrue do
+      use ExUnit.Case, async: true
 
-        test "first test" do
-          assert true
-        end
+      test "first test" do
+        assert true
       end
-
-      defmodule Module.concat(SecondTestAsyncTrue, unquote(async?)) do
-        use ExUnit.Case, async: true
-
-        test "second test" do
-          assert true
-        end
-      end
-
-      defmodule Module.concat(FirstTestAsyncFalse, unquote(async?)) do
-        use ExUnit.Case, async: false
-
-        test "first test" do
-          assert true
-        end
-      end
-
-      configure_and_reload_on_exit(
-        trace: true,
-        include: [async: unquote(async?)],
-        exclude: [:test]
-      )
-
-      capture_io(fn ->
-        if unquote(async?) do
-          assert ExUnit.run() == %{total: 3, failures: 0, excluded: 1, skipped: 0}
-        else
-          assert ExUnit.run() == %{total: 3, failures: 0, excluded: 2, skipped: 0}
-        end
-      end)
     end
+
+    defmodule SecondTestAsyncTrue do
+      use ExUnit.Case, async: true
+
+      test "second test" do
+        assert true
+      end
+    end
+
+    defmodule FirstTestAsyncFalse do
+      use ExUnit.Case, async: false
+
+      test "first test" do
+        assert true
+      end
+    end
+
+    assert {%{failures: 0, skipped: 0, total: 3, excluded: 1}, _} =
+             run_with_filter([include: [async: true], exclude: [:test]], [])
+
+    assert {%{failures: 0, skipped: 0, total: 3, excluded: 2}, _} =
+             run_with_filter([include: [async: false], exclude: [:test]], [
+               FirstTestAsyncTrue,
+               SecondTestAsyncTrue,
+               FirstTestAsyncFalse
+             ])
   end
 
   ##  Helpers
 
   defp run_with_filter(filters, cases) do
-    Enum.each(cases, &ExUnit.Server.add_module(&1, {false, nil}))
+    Enum.each(cases, fn mod ->
+      [config] = mod.__info__(:attributes) |> Keyword.fetch!(:ex_unit_module)
+      ExUnit.Server.add_module(mod, config)
+    end)
+
     ExUnit.Server.modules_loaded(false)
 
     opts =
