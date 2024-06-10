@@ -537,7 +537,7 @@ defmodule Module.Types.Expr do
     traces = Of.collect_traces(expr, context)
 
     %{
-      detail: %{typing_traces: traces},
+      details: %{typing_traces: traces},
       message:
         IO.iodata_to_binary([
           """

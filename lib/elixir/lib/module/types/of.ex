@@ -527,7 +527,7 @@ defmodule Module.Types.Of do
     traces = collect_traces(var, context)
 
     %{
-      detail: %{typing_traces: traces},
+      details: %{typing_traces: traces},
       message:
         IO.iodata_to_binary([
           """
@@ -544,7 +544,7 @@ defmodule Module.Types.Of do
     traces = collect_traces(expr, context)
 
     %{
-      detail: %{typing_traces: traces},
+      details: %{typing_traces: traces},
       message:
         IO.iodata_to_binary([
           """
@@ -570,7 +570,7 @@ defmodule Module.Types.Of do
     traces = collect_traces(expr, context)
 
     %{
-      detail: %{typing_traces: traces},
+      details: %{typing_traces: traces},
       message:
         IO.iodata_to_binary([
           """
@@ -594,7 +594,7 @@ defmodule Module.Types.Of do
     traces = collect_traces(expr, context)
 
     %{
-      detail: %{typing_traces: traces},
+      details: %{typing_traces: traces},
       span: expr |> get_meta() |> :elixir_env.calculate_span(key) |> Keyword.get(:span),
       message:
         IO.iodata_to_binary([
@@ -618,7 +618,7 @@ defmodule Module.Types.Of do
     traces = collect_traces(expr, context)
 
     %{
-      detail: %{typing_traces: traces},
+      details: %{typing_traces: traces},
       message:
         IO.iodata_to_binary([
           """
@@ -642,7 +642,7 @@ defmodule Module.Types.Of do
     traces = collect_traces(expr, context)
 
     %{
-      detail: %{typing_traces: traces},
+      details: %{typing_traces: traces},
       message:
         IO.iodata_to_binary([
           """
@@ -665,7 +665,7 @@ defmodule Module.Types.Of do
     traces = collect_traces(expr, context)
 
     %{
-      detail: %{typing_traces: traces},
+      details: %{typing_traces: traces},
       message:
         IO.iodata_to_binary([
           """
