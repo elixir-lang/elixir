@@ -72,7 +72,7 @@ The current milestone is to implement type inference and type checking of Elixir
 
 If the results are satisfactory, the next milestone will include a mechanism for defining typed structs. Elixir programs frequently pattern match on structs, which reveals information about the struct fields, but it knows nothing about their respective types. By propagating types from structs and their fields throughout the program, we will increase the type system’s ability to find errors while further straining our type system implementation. Proposals including the required changes to the language surface will be sent to the community once we reach this stage.
 
-The third milestone is to introduce set-theoretic type signatures for functions. Unfortunately, the existing typespecs are not precise enough for set-theoretic types and they will be phased out of the language and moved into a separate library once this stage concludes.
+The third milestone is to introduce set-theoretic type signatures for functions. Unfortunately, the existing Erlang Typespecs are not precise enough for set-theoretic types and they will be phased out of the language and have their postprocessing moved into a separate library once this stage concludes.
 
 ## Acknowledgements
 
