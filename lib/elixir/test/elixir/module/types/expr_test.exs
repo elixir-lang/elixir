@@ -382,7 +382,7 @@ defmodule Module.Types.ExprTest do
                     # from: types_test.ex:LINE-2
                     y = %Point{}
 
-                Comparison operators (>, <, >=, <=, min, and max) perform structural and not semantic comparison. Comparing with a struct won't give meaningful results. Struct that can be compared typically define a compare/2 function within their modules that can be used for semantic comparison
+                Comparison operators (>, <, >=, <=, min, and max) perform structural and not semantic comparison. Comparing with a struct won't give meaningful results. Structs that can be compared typically define a compare/2 function within their modules that can be used for semantic comparison
                 """}
     end
   end
