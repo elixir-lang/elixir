@@ -22,8 +22,6 @@ We focused on atoms and maps on this initial release as they are respectively th
 
   * Accessing a key on a map or a struct that does not have the given key, such as `user.adress`
 
-  * Updating a struct or a map that does not define the given key, such as `%{user | adress: ...}`
-
   * Invoking a function on non-modules, such as `user.address()`
 
   * Capturing a function on non-modules, such as `&user.address/0`
@@ -125,7 +123,6 @@ Process.send_after(pid, :wake_up, to_timeout(hour: 1))
   * [mix test] Add `mix test --repeat-until-failure` to rerun tests until a failure occurs
   * [mix test] Add `mix test --slowest-modules` to print slowest modules based on all of the tests they hold
   * [mix test] Generate cover HTML files in parallel
-
 
 ### 2. Bug fixes
 
