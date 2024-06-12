@@ -4,7 +4,7 @@ This release includes type inference of patterns to provide warnings for an init
 
 ## Warnings from gradual set-theoretic types
 
-This release introduces gradual set-theoretic types to infer types from patterns and guards and use them to type check programs, enabling the Elixir compiler to find faults and bugs in codebases without requiring changes to existing software. The underlying principles, theory, and roadmap of our work have been outlined in ["The Design Principles of the Elixir Type System" by Giuseppe Castagna, Guillaume Duboc, José Valim](https://arxiv.org/abs/2306.06391).
+This release introduces gradual set-theoretic types to infer types from patterns and use them to type check programs, enabling the Elixir compiler to find faults and bugs in codebases without requiring changes to existing software. The underlying principles, theory, and roadmap of our work have been outlined in ["The Design Principles of the Elixir Type System" by Giuseppe Castagna, Guillaume Duboc, José Valim](https://arxiv.org/abs/2306.06391).
 
 At the moment, Elixir developers will interact with set-theoretic types only through warnings found by the type system. The current implementation models all data types in the language:
 
@@ -72,35 +72,7 @@ Finally, a new `Kernel.to_timeout/1` function has been added, which helps develo
 Process.send_after(pid, :wake_up, to_timeout(hour: 1))
 ```
 
-## v1.17.0-rc.1 (2024-06-03)
-
-### 1. Enhancements
-
-#### Elixir
-
-  * [Duration] Add `Duration.to_iso8601/1` and `Duration.from_iso8601/1`
-  * [Keyword] Add `Keyword.intersect/2-3` to mirror the `Map` API
-
-#### Mix
-
-  * [mix profile.tprof] Add a new profiler, available on Erlang/OTP 27+, which can measure count, time, and heap usage
-  * [mix test] Generate cover HTML files in parallel
-
-### 2. Bug fixes
-
-#### Elixir
-
-  * [Kernel] Avoid double tracing events when capturing a function
-  * [Kernel] Fix a bug where captured arguments would conflict when a capture included a macro that also used captures
-
-### 3. Soft deprecations
-
-#### Mix
-
-  * [mix profile.cprof] Deprecated in favor of the new `mix profile.tprof`
-  * [mix profile.eprof] Deprecated in favor of the new `mix profile.tprof`
-
-## v1.17.0-rc.0 (2024-05-24)
+## v1.17.0 (2024-06-12)
 
 ### 1. Enhancements
 
@@ -118,6 +90,7 @@ Process.send_after(pid, :wake_up, to_timeout(hour: 1))
   * [Kernel] Add `Kernel.to_timeout/1`
   * [Kernel] Emit warnings for undefined functions from modules defined within the same context as the caller code
   * [Kernel] Support integers in uppercase sigils
+  * [Keyword] Add `Keyword.intersect/2-3` to mirror the `Map` API
   * [Macro] Add `Macro.Env.define_alias/4`, `Macro.Env.define_import/4`, `Macro.Env.define_require/4`, `Macro.Env.expand_alias/4`, `Macro.Env.expand_import/5`, and `Macro.Env.expand_require/6` to aid the implementation of language servers and embedded languages
   * [NaiveDateTime] Add `NaiveDateTime.shift/2` to shift naive datetimes with duration and calendar-specific semantics
   * [Process] Add `Process.set_label/1`
@@ -147,9 +120,12 @@ Process.send_after(pid, :wake_up, to_timeout(hour: 1))
   * [mix deps] Warn if `:optional` is used in combination with `:in_umbrella`
   * [mix deps.get] Do not add optional dependency requirements if its parent dep was skipped
   * [mix deps.tree] Add `--umbrella-only` to `mix deps.tree`
+  * [mix profile.tprof] Add a new profiler, available on Erlang/OTP 27+, which can measure count, time, and heap usage
   * [mix test] Add `mix test --breakpoints` that sets up a breakpoint before each test that will run
   * [mix test] Add `mix test --repeat-until-failure` to rerun tests until a failure occurs
   * [mix test] Add `mix test --slowest-modules` to print slowest modules based on all of the tests they hold
+  * [mix test] Generate cover HTML files in parallel
+
 
 ### 2. Bug fixes
 
@@ -162,6 +138,8 @@ Process.send_after(pid, :wake_up, to_timeout(hour: 1))
   * [Kernel] Do not expand code in `quote bind_quoted: ...` twice
   * [Kernel] Respect `:line` property when `:file` is given as option to `quote`
   * [Kernel] Do not crash on `Macro.escape/2` when passing a quote triplet without valid meta
+  * [Kernel] Avoid double tracing events when capturing a function
+  * [Kernel] Fix a bug where captured arguments would conflict when a capture included a macro that also used captures
   * [Module] Return default value in `Module.get_attribute/3` for persisted attributes which have not yet been written to
 
 #### IEx
@@ -177,6 +155,11 @@ Process.send_after(pid, :wake_up, to_timeout(hour: 1))
 #### Elixir
 
   * [GenServer] Deprecate `c:GenServer.format_status/2` callback to align with Erlang/OTP 25+
+
+#### Mix
+
+  * [mix profile.cprof] Deprecated in favor of the new `mix profile.tprof`
+  * [mix profile.eprof] Deprecated in favor of the new `mix profile.tprof`
 
 ### 4. Hard deprecations
 
