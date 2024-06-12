@@ -17,6 +17,9 @@ concurrency: builds_txt
 
 jobs:
   release_pre_built:
+    permissions:
+      id-token: write
+      attestations: write
     strategy:
       fail-fast: true
       max-parallel: 1
@@ -42,6 +45,13 @@ jobs:
           otp_version: ${{ matrix.otp_version }}
           otp: ${{ matrix.otp }}
           build_docs: ${{ matrix.build_docs }}
+      - uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: 'elixir-otp-${{ matrix.otp }}.*'
+      - uses: actions/attest-build-provenance@v1
+        if: ${{ matrix.build_docs }}
+        with:
+          subject-path: 'Docs.*'
       - name: Utils.sh
         run: |
           cat << 'EOF' > utils.sh
