@@ -833,9 +833,9 @@ defmodule Mix.Tasks.Release do
 
     * `RELEASE_DISTRIBUTION` - how do we want to run the distribution.
       May be `name` (long names), `sname` (short names) or `none`
-      (distribution is not started automatically). Defaults to
-      `sname` which allows access only within the current system.
-      `name` allows external connections
+      (distribution is not started automatically). Defaults to `sname`.
+      When connecting nodes across hosts, you typically want to set
+      this to `name` (required to use IPs as host names)
 
     * `RELEASE_BOOT_SCRIPT` - the name of the boot script to use when starting
       the release. This script is used when running commands such as `start` and
