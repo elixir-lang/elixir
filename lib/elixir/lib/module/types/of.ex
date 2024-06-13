@@ -678,8 +678,8 @@ defmodule Module.Types.Of do
 
           Comparison operators (>, <, >=, <=, min, and max) perform structural \
           and not semantic comparison. Comparing with a struct won't give meaningful \
-          results. Struct that can be compared typically define a compare/2 function \
-          within their modules that can be used for semantic comparison
+          results. Structs that can be compared typically define a compare/2 function \
+          within their modules that can be used for semantic comparison.
           """
         ])
     }
