@@ -159,6 +159,11 @@ defmodule Kernel.DialyzerTest do
     assert_dialyze_no_warnings!(context)
   end
 
+  test "no warnings on with when else has a no_return type", context do
+    copy_beam!(context, Dialyzer.WithNoReturn)
+    assert_dialyze_no_warnings!(context)
+  end
+
   test "no warnings on defmacrop", context do
     copy_beam!(context, Dialyzer.Defmacrop)
     assert_dialyze_no_warnings!(context)
