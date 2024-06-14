@@ -1597,11 +1597,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
         def foo(), do: B.foo()
         def bar(), do: B.bar()
         def __after_verify__(__MODULE__) do
-          if Code.ensure_loaded?(B) and not function_exported?(B, :foo, 0) do
-            :ok
-          else
-            IO.warn("AFTER_VERIFY", __ENV__)
-          end
+          IO.warn("AFTER_VERIFY", __ENV__)
         end
       end
       """)
@@ -1630,10 +1626,9 @@ defmodule Mix.Tasks.Compile.ElixirTest do
         end)
 
       # Check B due to direct dependency on A
-      # Check C due to transient dependency on A
       assert output =~ "A.foo/0 is undefined or private"
-      assert output =~ "B.bar/0 is undefined or private"
-      assert output =~ "AFTER_VERIFY"
+      refute output =~ "B.bar/0 is undefined or private"
+      refute output =~ "AFTER_VERIFY"
 
       # Ensure only A was recompiled
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
@@ -1650,7 +1645,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert output =~ "B.bar/0 is undefined or private"
       assert output =~ "AFTER_VERIFY"
 
-      # Now we change B and it must no longer emit an AFTER_VERIFY warning
+      # Now we change B and it must emit an AFTER_VERIFY warning
       File.write!("lib/b.ex", """
       defmodule B do
       end
@@ -1663,7 +1658,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       assert output =~ "B.foo/0 is undefined or private"
       assert output =~ "B.bar/0 is undefined or private"
-      refute output =~ "AFTER_VERIFY"
+      assert output =~ "AFTER_VERIFY"
     end)
   end
 
