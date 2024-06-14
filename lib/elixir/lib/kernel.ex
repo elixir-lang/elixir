@@ -5326,13 +5326,10 @@ defmodule Kernel do
 
   A struct is a tagged map that allows developers to provide
   default values for keys, tags to be used in polymorphic
-  dispatches and compile time assertions. For more information
-  about structs, please check `%/2`.
+  dispatches and compile time assertions.
 
   It is only possible to define a struct per module, as the
-  struct is tied to the module itself. Calling `defstruct/1`
-  also defines a `__struct__/0` function that returns the
-  struct itself.
+  struct is tied to the module itself.
 
   ## Examples
 
@@ -5365,6 +5362,13 @@ defmodule Kernel do
         @doc "A post. The content should be valid Markdown."
         defstruct [:title, :content, :author]
       end
+
+  Once a struct is defined, it is possible to create them as follows:
+
+      %Post{title: "Hello world!"}
+
+  For more information on creating, updating, and pattern matching on
+  structs, please check `%/2`.
 
   ## Deriving
 

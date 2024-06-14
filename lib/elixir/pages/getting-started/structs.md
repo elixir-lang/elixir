@@ -69,6 +69,8 @@ iex> %User{} = %{}
 ** (MatchError) no match of right hand side value: %{}
 ```
 
+For more details on creating, updating, and pattern matching structs, see the documentation for `%/2`.
+
 ## Structs are bare maps underneath
 
 Structs are simply maps with a "special" field named `__struct__` that holds the name of the struct:

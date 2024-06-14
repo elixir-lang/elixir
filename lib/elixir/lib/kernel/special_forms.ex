@@ -112,26 +112,24 @@ defmodule Kernel.SpecialForms do
 
       %User{age: age} = user
 
-  An update operation specific for structs is also available:
-
-      %User{user | age: 28}
-
   The advantage of structs is that they validate that the given
   keys are part of the defined struct. The example below will fail
   because there is no key `:full_name` in the `User` struct:
 
       %User{full_name: "john doe"}
 
-  The syntax above will guarantee the given keys are valid at
-  compilation time and it will guarantee at runtime the given
-  argument is a struct, failing with `BadStructError` otherwise.
+  An update operation specific for structs is also available:
 
-  Although structs are maps, by default structs do not implement
-  any of the protocols implemented for maps. Check
-  `Kernel.defprotocol/2` for more information on how structs
-  can be used with protocols for polymorphic dispatch. Also
-  see `Kernel.struct/2` and `Kernel.struct!/2` for examples on
-  how to create and update structs dynamically.
+      %User{user | age: 28}
+
+  Once again, the syntax above will guarantee the given keys
+  are valid at compilation time and it will guarantee at runtime
+  the given argument is a struct, failing with `BadStructError`
+  otherwise. The map update syntax can also be used for updating
+  structs, and it is useful when you want to update any struct,
+  regardless of their name, as long as they have matching fields:
+
+      %{user | age: 28}
 
   ## Pattern matching on struct names
 
