@@ -609,8 +609,8 @@ defmodule Mix.Compilers.Elixir do
         # within the dependency, they will be recompiled. However, export
         # and runtime dependencies won't have recompiled so we need to
         # propagate them to the parent app.
-        {dep_modules, _, _} =
-          fixpoint_runtime_modules(manifest_sources, Map.from_keys(dep_modules, true))
+        dep_modules =
+          fixpoint_non_compile_modules(manifest_sources, Map.from_keys(dep_modules, true))
 
         old_exports = Map.get(deps_exports, app, %{})
 
@@ -654,21 +654,19 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp fixpoint_runtime_modules(sources, modules) when modules != %{} do
-    fixpoint_runtime_modules(Map.to_list(sources), modules, false, [], [], sources)
+  defp fixpoint_non_compile_modules(sources, modules) when modules != %{} do
+    fixpoint_non_compile_modules(Map.to_list(sources), modules, false, [])
   end
 
-  defp fixpoint_runtime_modules(sources, modules) do
-    {modules, [], sources}
+  defp fixpoint_non_compile_modules(_sources, modules) do
+    modules
   end
 
-  defp fixpoint_runtime_modules(
-         [{source_path, source_entry} = pair | sources],
+  defp fixpoint_non_compile_modules(
+         [{_source_path, source_entry} = pair | sources],
          modules,
          new?,
-         pending_sources,
-         acc_modules,
-         acc_sources
+         pending_sources
        ) do
     source(export_references: export_refs, runtime_references: runtime_refs) = source_entry
 
@@ -676,24 +674,19 @@ defmodule Mix.Compilers.Elixir do
       new_modules = Enum.reject(source(source_entry, :modules), &Map.has_key?(modules, &1))
       modules = Enum.reduce(new_modules, modules, &Map.put(&2, &1, true))
       new? = new? or new_modules != []
-      acc_modules = new_modules ++ acc_modules
-
-      acc_sources =
-        Map.replace!(acc_sources, source_path, source(source_entry, runtime_warnings: []))
-
-      fixpoint_runtime_modules(sources, modules, new?, pending_sources, acc_modules, acc_sources)
+      fixpoint_non_compile_modules(sources, modules, new?, pending_sources)
     else
       pending_sources = [pair | pending_sources]
-      fixpoint_runtime_modules(sources, modules, new?, pending_sources, acc_modules, acc_sources)
+      fixpoint_non_compile_modules(sources, modules, new?, pending_sources)
     end
   end
 
-  defp fixpoint_runtime_modules([], modules, new?, pending_sources, acc_modules, acc_sources)
+  defp fixpoint_non_compile_modules([], modules, new?, pending_sources)
        when new? == false or pending_sources == [],
-       do: {modules, acc_modules, acc_sources}
+       do: modules
 
-  defp fixpoint_runtime_modules([], modules, true, pending_sources, acc_modules, acc_sources),
-    do: fixpoint_runtime_modules(pending_sources, modules, false, [], acc_modules, acc_sources)
+  defp fixpoint_non_compile_modules([], modules, true, pending_sources),
+    do: fixpoint_non_compile_modules(pending_sources, modules, false, [])
 
   defp exports_md5(module, use_attributes?) do
     cond do
@@ -1068,7 +1061,7 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp each_cycle(runtime_modules, compile_path, timestamp, state) do
+  defp each_cycle(stale_modules, compile_path, timestamp, state) do
     {modules, _exports, sources, changed, pending_modules, stale_exports} = state
 
     {pending_modules, exports, changed} =
@@ -1081,11 +1074,33 @@ defmodule Mix.Compilers.Elixir do
     end
 
     if changed == [] do
-      # We merge runtime_modules (which is a map of %{module => true}) into
-      # a map of modules (which is a map of %{module => record}). This is fine
-      # since fixpoint_runtime_modules only cares about map keys.
-      {_, runtime_modules, sources} =
-        fixpoint_runtime_modules(sources, Map.merge(modules, runtime_modules))
+      # We merge stale_modules (which is a map of %{module => true} that the user changed)
+      # into a map of modules we compiled (which is a map of %{module => record}). This is
+      # fine because we only care about the keys.
+      runtime_modules = Map.merge(modules, stale_modules)
+
+      # Now we do a simple pass finding anything that directly depends on the modules that
+      # changed. We don't need to compute a fixpoint, because now only the directly affected
+      # matter.
+      {sources, runtime_modules} =
+        Enum.reduce(sources, {sources, Map.keys(runtime_modules)}, fn
+          {source_path, source_entry}, {acc_sources, acc_modules} ->
+            source(export_references: export_refs, runtime_references: runtime_refs) =
+              source_entry
+
+            if has_any_key?(runtime_modules, export_refs) or
+                 has_any_key?(runtime_modules, runtime_refs) do
+              acc_sources =
+                Map.replace!(acc_sources, source_path, source(source_entry, runtime_warnings: []))
+
+              new_modules =
+                Enum.reject(source(source_entry, :modules), &Map.has_key?(runtime_modules, &1))
+
+              {acc_sources, new_modules ++ acc_modules}
+            else
+              {acc_sources, acc_modules}
+            end
+        end)
 
       runtime_paths =
         Enum.map(runtime_modules, &{&1, Path.join(compile_path, Atom.to_string(&1) <> ".beam")})
