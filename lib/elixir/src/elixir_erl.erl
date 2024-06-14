@@ -125,7 +125,7 @@ compile(#{module := Module, line := Line} = Map) ->
   {Types, Callbacks, TypeSpecs} = typespecs_form(Map, TranslatedTypespecs, Macros),
 
   DocsChunk = docs_chunk(Set, Module, Line, Def, Defmacro, Types, Callbacks),
-  CheckerChunk = checker_chunk(Map),
+  CheckerChunk = checker_chunk(Def, Defmacro, Map),
   load_form(Map, Prefix, Forms, TypeSpecs, DocsChunk ++ CheckerChunk).
 
 dynamic_form(#{module := Module, line := Line, relative_file := RelativeFile,
@@ -158,7 +158,7 @@ split_definition([{Tuple, Kind, Meta, Clauses} | T], Unreachable, Line,
       split_definition(T, Unreachable, Line, Def, Defmacro, Macros, Exports, Functions)
   end;
 split_definition([], _Unreachable, _Line, Def, Defmacro, Macros, Exports, {Head, Tail}) ->
-  {Def, Defmacro, Macros, Exports, Head ++ Tail}.
+  {lists:usort(Def), lists:usort(Defmacro), Macros, Exports, Head ++ Tail}.
 
 split_definition(Tuple, def, Meta, Clauses, T, Unreachable, Line,
                  Def, Defmacro, Macros, Exports, Functions) ->
@@ -247,13 +247,11 @@ is_macro(_)         -> false.
 
 functions_form(Line, Module, Def, Defmacro, Exports, Body, Deprecated, Struct) ->
   {Spec, Info} = add_info_function(Line, Module, Def, Defmacro, Deprecated, Struct),
-  [{attribute, Line, export, lists:sort([{'__info__', 1} | Exports])}, Spec, Info | Body].
+  [{attribute, Line, export, lists:usort([{'__info__', 1} | Exports])}, Spec, Info | Body].
 
 add_info_function(Line, Module, Def, Defmacro, Deprecated, Struct) ->
   AllowedAttrs = [attributes, compile, functions, macros, md5, exports_md5, module, deprecated, struct],
   AllowedArgs = lists:map(fun(Atom) -> {atom, Line, Atom} end, AllowedAttrs),
-  SortedDef = lists:sort(Def),
-  SortedDefmacro = lists:sort(Defmacro),
 
   Spec =
     {attribute, Line, spec, {{'__info__', 1},
@@ -268,10 +266,10 @@ add_info_function(Line, Module, Def, Defmacro, Deprecated, Struct) ->
   Info =
     {function, 0, '__info__', 1, [
       get_module_info(Module),
-      functions_info(SortedDef),
-      macros_info(SortedDefmacro),
+      functions_info(Def),
+      macros_info(Defmacro),
       struct_info(Struct),
-      exports_md5_info(Struct, SortedDef, SortedDefmacro),
+      exports_md5_info(Struct, Def, Defmacro),
       get_module_info(Module, attributes),
       get_module_info(Module, compile),
       get_module_info(Module, md5),
@@ -418,7 +416,7 @@ callspecs_form(Kind, Entries, Optional, Macros, Forms, ModuleMap) ->
       false ->
         [{attribute, Line, Kind, {Key, lists:reverse(Value)}} | Acc]
     end
-  end, Forms, lists:sort(Signatures)).
+  end, Forms, lists:usort(Signatures)).
 
 spec_for_macro({type, Line, 'bounded_fun', [H | T]}) ->
   {type, Line, 'bounded_fun', [spec_for_macro(H) | T]};
@@ -567,28 +565,23 @@ signature_to_binary(_, Name, Signature) ->
   Doc = 'Elixir.Inspect.Algebra':format('Elixir.Code':quoted_to_algebra(Quoted), infinity),
   'Elixir.IO':iodata_to_binary(Doc).
 
-checker_chunk(#{definitions := Definitions, deprecated := Deprecated, defines_behaviour := DefinesBehaviour}) ->
+checker_chunk(Def, Defmacro, #{deprecated := Deprecated, defines_behaviour := DefinesBehaviour}) ->
   DeprecatedMap = maps:from_list(Deprecated),
 
   Exports =
-    lists:foldl(fun({Function, Kind, _Meta, _Clauses}, Acc) ->
-      case Kind of
-        _ when Kind == def orelse Kind == defmacro ->
-          Reason = maps:get(Function, DeprecatedMap, nil),
-          [{Function, #{kind => Kind, deprecated_reason => Reason}} | Acc];
-        _ ->
-          Acc
-      end
-    end, [], Definitions),
+    [{FA, #{kind => def, deprecated_reason => maps:get(FA, DeprecatedMap, nil)}}
+     || FA <- prepend_behaviour_info(DefinesBehaviour, Def)] ++
+    [{FA, #{kind => defmacro, deprecated_reason => maps:get(FA, DeprecatedMap, nil)}}
+     || FA <- Defmacro],
 
   Contents = #{
-    exports => lists:sort(behaviour_info_exports(DefinesBehaviour) ++ Exports)
+    exports => Exports
   },
 
   [{<<"ExCk">>, term_to_binary({elixir_checker_v1, Contents}, [deterministic])}].
 
-behaviour_info_exports(true) -> [{{behaviour_info, 1}, #{kind => def, deprecated_reason => nil}}];
-behaviour_info_exports(false) -> [].
+prepend_behaviour_info(true, Def) -> [{behaviour_info, 1} | Def];
+prepend_behaviour_info(false, Def) -> Def.
 
 %% Errors
 
