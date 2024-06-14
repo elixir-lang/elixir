@@ -9,7 +9,9 @@ iex> is_binary(string)
 true
 ```
 
-In this chapter, we will gain clarity on what exactly binaries are, how they relate to strings, and what single-quoted values, `'like this'`, mean in Elixir. Although strings are one of the most common data types in computer languages, they are subtly complex and are often misunderstood. To understand strings in Elixir, we have to educate ourselves about [Unicode](https://en.wikipedia.org/wiki/Unicode) and character encodings, specifically the [UTF-8](https://en.wikipedia.org/wiki/UTF-8) encoding.
+In this chapter, we will gain clarity on what exactly binaries are and how they relate to strings. We will also learn about charlists, `~c"like this"`, which are often used for interoperability with Erlang.
+
+Although strings are one of the most common data types in computer languages, they are subtly complex and are often misunderstood. To understand strings in Elixir, let's first discuss [Unicode](https://en.wikipedia.org/wiki/Unicode) and character encodings, specifically the [UTF-8](https://en.wikipedia.org/wiki/UTF-8) encoding.
 
 ## Unicode and Code Points
 
