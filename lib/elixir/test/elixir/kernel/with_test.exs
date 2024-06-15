@@ -25,6 +25,30 @@ defmodule Kernel.WithTest do
     assert with({^key, res} <- ok(42), do: res) == 42
   end
 
+  test "pin matching with multiple else" do
+    key = :error
+
+    first_else =
+      with nil <- error() do
+        :ok
+      else
+        ^key -> :pinned
+        _other -> :other
+      end
+
+    assert first_else == :pinned
+
+    second_else =
+      with nil <- ok(42) do
+        :ok
+      else
+        ^key -> :pinned
+        _other -> :other
+      end
+
+    assert second_else == :other
+  end
+
   test "two levels with" do
     result =
       with {:ok, n1} <- ok(11),
