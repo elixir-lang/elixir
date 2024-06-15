@@ -1788,7 +1788,7 @@ defmodule Kernel.SpecialForms do
 
   Note that `&local_function/1` creates a local capture, but
   `&__MODULE__.local_function/1` or `&imported_function/1` create a remote
-  capture. This has performance implications: remote captures are faster than
+  capture. This has performance implications: remote captures are slightly faster than
   local captures. For more information, refer to the ["Functions" section in the Erlang Reference Manual](https://www.erlang.org/doc/system/eff_guide_functions.html#function-calls).
 
   Whether a capture is local or remote has implications when using hot code
