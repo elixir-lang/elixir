@@ -353,13 +353,6 @@ defmodule EEx.Compiler do
          scope,
          state
        ) do
-    if mark == ~c"" do
-      message =
-        "the contents of this expression won't be output unless the EEx block starts with \"<%=\""
-
-      :elixir_errors.erl_warn({meta.line, meta.column}, state.file, message)
-    end
-
     {rest, line, contents} = look_ahead_middle(rest, meta.line, chars) || {rest, meta.line, chars}
     start_line = meta.line
     start_column = column(meta.column, mark)
@@ -371,6 +364,13 @@ defmodule EEx.Compiler do
         [{contents, start_line, start_column} | scope],
         %{state | quoted: [], line: line}
       )
+
+    if mark == ~c"" and not match?({:=, _, [_, _]}, contents) do
+      message =
+        "the contents of this expression won't be output unless the EEx block starts with \"<%=\""
+
+      :elixir_errors.erl_warn({meta.line, meta.column}, state.file, message)
+    end
 
     buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), contents)
     generate_buffer(rest, buffer, scope, state)
