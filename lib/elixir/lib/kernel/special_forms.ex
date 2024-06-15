@@ -1786,6 +1786,13 @@ defmodule Kernel.SpecialForms do
 
       &local_function/1
 
+  When the capture operator is given a module name, a remote/external capture
+  is created. Remote captures are faster than local captures. For more
+  information, refer to the ["Functions" section in the Erlang Reference Manual](https://www.erlang.org/doc/system/eff_guide_functions.html#function-calls).
+
+  Note that local captures dispatch to the version of the module which created
+  them, while remote captures dispatch to the current version of the module.
+
   See also `Function.capture/3`.
 
   ## Anonymous functions
