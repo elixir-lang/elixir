@@ -543,6 +543,16 @@ defmodule EExTest do
                ~s[unexpected beginning of EEx tag \"<%=\" on \"<%= end %>\"]
     end
 
+    test "unused \"do\" block without \"<%=\" modifier" do
+      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+               EEx.compile_string("<% if true do %>I'm invisible!<% end %>")
+             end) =~ "the contents of this expression won't be output"
+
+      # These are fine though
+      EEx.compile_string("<% foo = fn -> %>Hello<% end %>")
+      EEx.compile_string("<% foo = if true do %>Hello<% end %>")
+    end
+
     test "from tokenizer" do
       warning =
         ExUnit.CaptureIO.capture_io(:stderr, fn ->
