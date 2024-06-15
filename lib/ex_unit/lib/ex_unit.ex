@@ -500,7 +500,7 @@ defmodule ExUnit do
 
   defp maybe_repeated_run(options, seed, load_us, repeat) do
     case ExUnit.Runner.run(options, load_us) do
-      {%{failures: 0}, {sync_modules, async_modules}}
+      {%{failures: 0}, {async_modules, sync_modules}}
       when repeat > 0 and (sync_modules != [] or async_modules != []) ->
         ExUnit.Server.restore_modules(async_modules, sync_modules)
 
