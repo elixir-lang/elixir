@@ -3847,14 +3847,12 @@ defmodule Enum do
 
   @doc """
   Returns the `enumerable` with each element wrapped in a tuple
-  alongside its index or according to a given function.
+  alongside its index.
 
-  May receive a function or an integer offset.
-
-  If an `offset` is given, it will index from the given offset instead of from
+  If an `offset` integer is given, it will index from the given offset instead of from
   zero.
 
-  If a `function` is given, it will index by invoking the function for each
+  If an `offset` function is given, it will index by invoking the function for each
   element and index (zero-based) of the enumerable.
 
   ## Examples
