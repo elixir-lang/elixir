@@ -413,6 +413,16 @@ defmodule OptionParserTest do
       {opts, [], []} = OptionParser.parse(original, switches: [counter: :count])
       assert original == OptionParser.to_argv(opts, switches: [counter: :count])
     end
+
+    test "uses short flags when available in aliases" do
+      assert OptionParser.to_argv([f: "bar"], aliases: [f: :foo]) == ["-f", "bar"]
+
+      assert OptionParser.to_argv([f: false], switches: [foo: :boolean], aliases: [f: :foo]) == [
+               "--no-f"
+             ]
+
+      assert OptionParser.to_argv([foo: "baz"], aliases: [f: :foo]) == ["--foo", "baz"]
+    end
   end
 end
 

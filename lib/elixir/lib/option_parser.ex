@@ -546,28 +546,35 @@ defmodule OptionParser do
       iex> OptionParser.to_argv([number: 2], switches: [number: :count])
       ["--number", "--number"]
 
+  Short flags will be outputted, when the alias is set in the options:
+
+      iex> OptionParser.to_argv([n: 2], switches: [number: :integer], aliases: [n: :number])
+      ["-n", "2"]
+
   """
   @spec to_argv(Enumerable.t(), options) :: argv
   def to_argv(enum, options \\ []) do
     switches = Keyword.get(options, :switches, [])
+    aliases = Keyword.get(options, :aliases, [])
 
     Enum.flat_map(enum, fn
       {_key, nil} -> []
-      {key, true} -> [to_switch(key)]
-      {key, false} -> [to_switch(key, "--no-")]
-      {key, value} -> to_argv(key, value, switches)
+      {key, true} -> [to_switch(key, aliases)]
+      {key, false} -> [to_switch(key, aliases, "--no-")]
+      {key, value} -> to_argv(key, value, switches, aliases)
     end)
   end
 
-  defp to_argv(key, value, switches) do
+  defp to_argv(key, value, switches, aliases) do
     if switches[key] == :count do
-      List.duplicate(to_switch(key), value)
+      List.duplicate(to_switch(key, aliases), value)
     else
-      [to_switch(key), to_string(value)]
+      [to_switch(key, aliases), to_string(value)]
     end
   end
 
-  defp to_switch(key, prefix \\ "--") when is_atom(key) do
+  defp to_switch(key, aliases, prefix \\ "--") when is_atom(key) do
+    prefix = if key in Keyword.keys(aliases) and prefix != "--no-", do: "-", else: prefix
     prefix <> String.replace(Atom.to_string(key), "_", "-")
   end
 
