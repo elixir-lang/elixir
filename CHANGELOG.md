@@ -70,6 +70,29 @@ Finally, a new `Kernel.to_timeout/1` function has been added, which helps develo
 Process.send_after(pid, :wake_up, to_timeout(hour: 1))
 ```
 
+## v1.17.1 (2024-06-18)
+
+### 1. Enhancements
+
+#### Mix
+
+  * [mix compile.elixir] Do not run fixpoint computation on runtime dependencies. This should considerably improve compilation times for large projects when changing only one or two files
+
+### 2. Bug fixes
+
+#### EEx
+
+  * [EEx] Do not warn for assignment with blocks in EEx
+
+#### Elixir
+
+  * [Kernel] Fix bug when using pinned variables inside `with`'s `else` patterns
+  * [Kernel] Fix Dialyzer error when with else clause is calling a `no_return` function
+
+#### ExUnit
+
+  * [ExUnit] Do not alternative sync/async suites on `--repeat-until-failure`
+
 ## v1.17.0 (2024-06-12)
 
 ### 1. Enhancements
