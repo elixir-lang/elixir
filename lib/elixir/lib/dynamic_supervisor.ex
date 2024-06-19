@@ -381,9 +381,11 @@ defmodule DynamicSupervisor do
   process and exits not only on crashes but also if the parent process exits
   with `:normal` reason.
 
-  ## Opts
+  ## Options
 
-  Any regular [GenServer options](`t:GenServer.option/0`). Attention: _Not to confuse with `t:init_option/0`_
+  This function accepts any regular [`GenServer` options](`t:GenServer.option/0`).
+  Options specific to `DynamicSupervisor` must be returned from the `c:init/1`
+  callback.
   """
   @doc since: "1.6.0"
   @spec start_link(module, term, [GenServer.option]) :: Supervisor.on_start()
