@@ -388,7 +388,7 @@ defmodule DynamicSupervisor do
   callback.
   """
   @doc since: "1.6.0"
-  @spec start_link(module, term, [GenServer.option]) :: Supervisor.on_start()
+  @spec start_link(module, term, [GenServer.option()]) :: Supervisor.on_start()
   def start_link(module, init_arg, opts \\ []) do
     GenServer.start_link(__MODULE__, {module, init_arg, opts[:name]}, opts)
   end
