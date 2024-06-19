@@ -200,6 +200,14 @@ def start_link(opts) do
 end
 ```
 
+The following spec syntaxes are equivalent:
+
+```elixir
+@type options [{:name, String.t} | {:max, pos_integer} | {:min, pos_integer}]
+
+@type options [name: String.t, max: pos_integer, min: pos_integer]
+```
+
 ### User-defined types
 
 The `@type`, `@typep`, and `@opaque` module attributes can be used to define new types:

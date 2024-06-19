@@ -753,50 +753,7 @@ defmodule Module do
     :elixir_module.is_open(module)
   end
 
-  @doc """
-  Evaluates the quoted contents in the given module's context.
-
-  A list of environment options can also be given as argument.
-  See `Code.eval_string/3` for more information.
-
-  Raises an error if the module was already compiled.
-
-  ## Examples
-
-      defmodule Foo do
-        contents =
-          quote do
-            def sum(a, b), do: a + b
-          end
-
-        Module.eval_quoted(__MODULE__, contents)
-      end
-
-      Foo.sum(1, 2)
-      #=> 3
-
-  For convenience, you can pass any `Macro.Env` struct, such
-  as  `__ENV__/0`, as the first argument or as options. Both
-  the module and all options will be automatically extracted
-  from the environment:
-
-      defmodule Foo do
-        contents =
-          quote do
-            def sum(a, b), do: a + b
-          end
-
-        Module.eval_quoted(__ENV__, contents)
-      end
-
-      Foo.sum(1, 2)
-      #=> 3
-
-  Note that if you pass a `Macro.Env` struct as first argument
-  while also passing `opts`, they will be merged with `opts`
-  having precedence.
-  """
-  @spec eval_quoted(module | Macro.Env.t(), Macro.t(), list, keyword | Macro.Env.t()) :: term
+  @deprecated "Use Code.eval_quoted/3 instead"
   def eval_quoted(module_or_env, quoted, binding \\ [], opts \\ [])
 
   def eval_quoted(%Macro.Env{} = env, quoted, binding, opts)
@@ -827,7 +784,8 @@ defmodule Module do
   the given quoted expressions.
 
   The line where the module is defined and its file **must**
-  be passed as options.
+  be passed as options. See `Code.env_for_eval/1` for a complete
+  list of options.
 
   It returns a tuple of shape `{:module, module, binary, term}`
   where `module` is the module name, `binary` is the module
@@ -1960,6 +1918,9 @@ defmodule Module do
     {set, bag} = data_tables_for(module)
 
     case :ets.lookup(set, key) do
+      [{_, _, :unset, _}] ->
+        default
+
       [{_, _, :accumulate, traces}] ->
         trace_attribute(trace?, module, traces, set, key, [])
         lookup_accumulate_attribute(bag, key, default, last_accumulated?)

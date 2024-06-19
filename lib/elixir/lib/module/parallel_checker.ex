@@ -259,7 +259,7 @@ defmodule Module.ParallelChecker do
         definitions
       )
 
-    warnings =
+    diagnostics =
       module
       |> Module.Types.warnings(file, definitions, no_warn_undefined, cache)
       |> Kernel.++(behaviour_warnings)
@@ -270,7 +270,7 @@ defmodule Module.ParallelChecker do
     |> Map.get(:after_verify, [])
     |> Enum.each(fn {verify_mod, verify_fun} -> apply(verify_mod, verify_fun, [module]) end)
 
-    warnings
+    diagnostics
   end
 
   defp extract_no_warn_undefined(compile_opts) do
@@ -302,31 +302,31 @@ defmodule Module.ParallelChecker do
 
   defp emit_warnings(warnings, log?) do
     Enum.flat_map(warnings, fn {module, warning, locations} ->
-      message = module.format_warning(warning)
-      diagnostics = Enum.map(locations, &to_diagnostic(message, &1))
-      log? and print_warning(message, diagnostics)
+      %{message: _} = diagnostic = module.format_diagnostic(warning)
+      diagnostics = Enum.map(locations, &to_diagnostic(diagnostic, &1))
+      log? and print_diagnostics(diagnostics)
       diagnostics
     end)
   end
 
-  defp print_warning(message, [diagnostic]) do
-    :elixir_errors.print_warning(message, diagnostic)
+  defp print_diagnostics([diagnostic]) do
+    :elixir_errors.print_diagnostic(diagnostic, true)
   end
 
-  defp print_warning(message, grouped_warnings) do
-    :elixir_errors.print_warning_group(message, grouped_warnings)
+  defp print_diagnostics(diagnostics) do
+    :elixir_errors.print_diagnostics(diagnostics)
   end
 
-  defp to_diagnostic(message, {file, position, mfa}) when is_list(position) do
+  defp to_diagnostic(diagnostic, {file, position, mfa}) when is_list(position) do
     %{
       severity: :warning,
       source: file,
       file: file,
       position: position_to_tuple(position),
-      message: IO.iodata_to_binary(message),
       stacktrace: [to_stacktrace(file, position, mfa)],
       span: nil
     }
+    |> Map.merge(diagnostic)
   end
 
   defp position_to_tuple(position) do

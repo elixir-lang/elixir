@@ -481,10 +481,10 @@ defmodule Code.Fragment do
 
   defp operator(rest, count, acc, _call_op?) do
     case :elixir_tokenizer.tokenize(acc, 1, 1, []) do
-      {:ok, _, _, _, [{:atom, _, _}]} ->
+      {:ok, _, _, _, [{:atom, _, _}], []} ->
         {{:unquoted_atom, tl(acc)}, count}
 
-      {:ok, _, _, _, [{_, _, op}]} ->
+      {:ok, _, _, _, [{_, _, op}], []} ->
         {rest, dot_count} = strip_spaces(rest, count)
 
         cond do
@@ -1088,9 +1088,41 @@ defmodule Code.Fragment do
   @spec container_cursor_to_quoted(List.Chars.t(), keyword()) ::
           {:ok, Macro.t()} | {:error, {location :: keyword, binary | {binary, binary}, binary}}
   def container_cursor_to_quoted(fragment, opts \\ []) do
-    opts =
-      Keyword.take(opts, [:file, :line, :column, :columns, :token_metadata, :literal_encoder])
+    opts = Keyword.take(opts, [:columns, :token_metadata, :literal_encoder])
+    opts = [cursor_completion: true, emit_warnings: false] ++ opts
 
-    Code.string_to_quoted(fragment, [cursor_completion: true, emit_warnings: false] ++ opts)
+    file = Keyword.get(opts, :file, "nofile")
+    line = Keyword.get(opts, :line, 1)
+    column = Keyword.get(opts, :column, 1)
+
+    case :elixir_tokenizer.tokenize(to_charlist(fragment), line, column, opts) do
+      {:ok, line, column, _warnings, rev_tokens, rev_terminators} ->
+        tokens = :lists.reverse(rev_tokens, rev_terminators)
+
+        case :elixir.tokens_to_quoted(tokens, file, opts) do
+          {:ok, ast} ->
+            {:ok, ast}
+
+          {:error, error} ->
+            # In case parsing fails, we give it another shot but handling fn/do/else/catch/rescue/after.
+            tokens =
+              :lists.reverse(
+                rev_tokens,
+                [{:stab_op, {line, column, nil}, :->}, {nil, {line, column + 2, nil}}] ++
+                  Enum.map(rev_terminators, fn tuple ->
+                    {line, column, info} = elem(tuple, 1)
+                    put_elem(tuple, 1, {line, column + 5, info})
+                  end)
+              )
+
+            case :elixir.tokens_to_quoted(tokens, file, opts) do
+              {:ok, ast} -> {:ok, ast}
+              {:error, _} -> {:error, error}
+            end
+        end
+
+      {:error, info, _rest, _warnings, _so_far} ->
+        {:error, :elixir.format_token_error(info)}
+    end
   end
 end

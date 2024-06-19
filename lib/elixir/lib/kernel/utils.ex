@@ -120,7 +120,7 @@ defmodule Kernel.Utils do
     mapper = fn
       {key, val} when is_atom(key) ->
         try do
-          :elixir_quote.escape(val, false, :none)
+          :elixir_quote.escape(val, :none, false)
         rescue
           e in [ArgumentError] ->
             raise ArgumentError, "invalid value for struct field #{key}, " <> Exception.message(e)
@@ -208,10 +208,10 @@ defmodule Kernel.Utils do
 
     case enforce_keys -- :maps.keys(struct) do
       [] ->
-        # The __struct__ field is used for expansion and for loading remote structs
+        # The __struct__ attribute is during expansion and for loading remote structs
         :ets.insert(set, {:__struct__, struct, nil, []})
 
-        # Store all field metadata to go into __info__(:struct)
+        # The complete metadata goes into __info__(:struct)
         mapper = fn {key, val} ->
           %{field: key, default: val, required: :lists.member(key, enforce_keys)}
         end

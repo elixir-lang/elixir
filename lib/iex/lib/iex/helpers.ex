@@ -174,12 +174,18 @@ defmodule IEx.Helpers do
 
   It expects a list of files to compile and an optional path to write
   the compiled code to. By default files are in-memory compiled.
-  To write compiled files to the current directory, an empty string
-  can be given.
+  To write compiled files to the current directory, `"."` can be given.
 
   It returns the names of the compiled modules.
 
   If you want to recompile an existing module, check `r/1` instead.
+
+  > #### Remote compilation {: .warning}
+  >
+  > When compiling code, warnings and errors may be printed to standard error.
+  > However, when connecting to a remote node, the standard error output is not
+  > redirected to the client. This means that compilation failures will be written
+  > to the logs or the output terminal of the machine you connect to.
 
   ## Examples
 

@@ -103,7 +103,9 @@ defmodule Mix.Shell do
 
     * `:cd` *(since v1.11.0)* - the directory to run the command in
 
-    * `:stderr_to_stdout` - redirects stderr to stdout, defaults to true
+    * `:stderr_to_stdout` - redirects stderr to stdout, defaults to true, unless use_stdio is set to false
+
+    * `:use_stdio` - controls whether the command should use stdin / stdout / stdrr, defaults to true
 
     * `:env` - a list of environment variables, defaults to `[]`
 
@@ -119,11 +121,13 @@ defmodule Mix.Shell do
         callback
       end
 
+    use_stdio = Keyword.get(options, :use_stdio, true)
+
     options =
       options
-      |> Keyword.take([:cd, :stderr_to_stdout, :env])
+      |> Keyword.take([:cd, :stderr_to_stdout, :env, :use_stdio])
       |> Keyword.put(:into, %Mix.Shell{callback: callback})
-      |> Keyword.put_new(:stderr_to_stdout, true)
+      |> Keyword.put_new(:stderr_to_stdout, use_stdio)
 
     {_, status} = System.shell(command, options)
     status

@@ -103,7 +103,7 @@ defmodule Macro.Env do
 
   # Define the __struct__ callbacks by hand for bootstrap reasons.
   {struct, [], kv, body} = Kernel.Utils.defstruct(__MODULE__, fields, false, __ENV__)
-  def __struct__(), do: unquote(:elixir_quote.escape(struct, false, :none))
+  def __struct__(), do: unquote(:elixir_quote.escape(struct, :none, false))
   def __struct__(unquote(kv)), do: unquote(body)
 
   @doc """
@@ -349,6 +349,11 @@ defmodule Macro.Env do
 
     * #{trace_option}
 
+    * `:info_callback` - a function to use instead of `c:Module.__info__/1`.
+      The function will be invoked with `:functions` or `:macros` argument.
+      It has to return a list of `{function, arity}` key value pairs.
+      If it fails, it defaults to using module metadata based on `module_info/1`.
+
   ## Examples
 
       iex> env = __ENV__
@@ -367,15 +372,27 @@ defmodule Macro.Env do
       iex> Macro.Env.lookup_import(env, {:is_odd, 1})
       [{:macro, Integer}]
 
+  ## Info callback override
+
+      iex> env = __ENV__
+      iex> Macro.Env.lookup_import(env, {:flatten, 1})
+      []
+      iex> {:ok, env} = Macro.Env.define_import(env, [line: 10], SomeModule, [info_callback: fn :functions -> [{:flatten, 1}]; :macros -> [{:some, 2}]; end])
+      iex> Macro.Env.lookup_import(env, {:flatten, 1})
+      [{:function, SomeModule}]
+      iex> Macro.Env.lookup_import(env, {:some, 2})
+      [{:macro, SomeModule}]
+
   """
   @doc since: "1.17.0"
-  @spec define_import(t, Macro.metadata(), module) :: {:ok, t} | {:error, String.t()}
+  @spec define_import(t, Macro.metadata(), module, keyword) :: {:ok, t} | {:error, String.t()}
   def define_import(env, meta, module, opts \\ [])
       when is_list(meta) and is_atom(module) and is_list(opts) do
     {trace, opts} = Keyword.pop(opts, :trace, true)
     {warnings, opts} = Keyword.pop(opts, :emit_warnings, true)
+    {info_callback, opts} = Keyword.pop(opts, :info_callback, &module.__info__/1)
 
-    result = :elixir_import.import(meta, module, opts, env, warnings, trace)
+    result = :elixir_import.import(meta, module, opts, env, warnings, trace, info_callback)
     maybe_define_error(result, :elixir_import)
   end
 
@@ -490,7 +507,7 @@ defmodule Macro.Env do
   If any import is found, the appropriate compiler tracing
   event will be emitted.
 
-  Otherwise returns `:error`.
+  Otherwise returns `{:error, reason}`.
 
   ## Options
 
@@ -507,12 +524,12 @@ defmodule Macro.Env do
   @spec expand_import(t, keyword, atom(), arity(), keyword) ::
           {:macro, module(), (Macro.metadata(), args :: [Macro.t()] -> Macro.t())}
           | {:function, module(), atom()}
-          | :error
+          | {:error, :not_found | {:conflict, module()} | {:ambiguous, [module()]}}
   def expand_import(env, meta, name, arity, opts \\ [])
       when is_list(meta) and is_atom(name) and is_integer(arity) and is_list(opts) do
     case :elixir_import.special_form(name, arity) do
       true ->
-        :error
+        {:error, :not_found}
 
       false ->
         allow_locals = Keyword.get(opts, :allow_locals, true)
@@ -525,10 +542,16 @@ defmodule Macro.Env do
             false -> []
           end
 
-        result =
-          :elixir_dispatch.expand_import(meta, name, arity, env, extra, allow_locals, trace)
+        case :elixir_dispatch.expand_import(meta, name, arity, env, extra, allow_locals, trace) do
+          {:macro, receiver, expander} ->
+            {:macro, receiver, wrap_expansion(receiver, expander, meta, name, arity, env, opts)}
 
-        wrap_expansion(result, meta, name, arity, env, opts)
+          {:function, receiver, name} ->
+            {:function, receiver, name}
+
+          error ->
+            {:error, error}
+        end
     end
   end
 
@@ -561,30 +584,25 @@ defmodule Macro.Env do
       when is_list(meta) and is_atom(module) and is_atom(name) and is_integer(arity) and
              is_list(opts) do
     trace = Keyword.get(opts, :trace, true)
-    result = :elixir_dispatch.expand_require(meta, module, name, arity, env, trace)
-    wrap_expansion(result, meta, name, arity, env, opts)
-  end
 
-  defp wrap_expansion(result, meta, name, arity, env, opts) do
-    case result do
+    case :elixir_dispatch.expand_require(meta, module, name, arity, env, trace) do
       {:macro, receiver, expander} ->
-        fun = fn expansion_meta, args ->
-          if Keyword.get(opts, :check_deprecations, true) do
-            :elixir_dispatch.check_deprecated(:macro, meta, receiver, name, arity, env)
-          end
-
-          quoted = expander.(args, :elixir_env.env_to_ex(env))
-          next = :elixir_module.next_counter(env.module)
-          :elixir_quote.linify_with_context_counter(expansion_meta, {receiver, next}, quoted)
-        end
-
-        {:macro, receiver, fun}
-
-      {:function, receiver, name} ->
-        {:function, receiver, name}
+        {:macro, receiver, wrap_expansion(receiver, expander, meta, name, arity, env, opts)}
 
       :error ->
         :error
+    end
+  end
+
+  defp wrap_expansion(receiver, expander, meta, name, arity, env, opts) do
+    fn expansion_meta, args ->
+      if Keyword.get(opts, :check_deprecations, true) do
+        :elixir_dispatch.check_deprecated(:macro, meta, receiver, name, arity, env)
+      end
+
+      quoted = expander.(args, env)
+      next = :elixir_module.next_counter(env.module)
+      :elixir_quote.linify_with_context_counter(expansion_meta, {receiver, next}, quoted)
     end
   end
 

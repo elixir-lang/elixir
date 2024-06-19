@@ -4,8 +4,33 @@ defmodule Module.Types.Expr do
   alias Module.Types.{Of, Pattern}
   import Module.Types.{Helpers, Descr}
 
-  defp of_expr(ast, _expected_expr, stack, context) do
-    of_expr(ast, stack, context)
+  14 = length(Macro.Env.__info__(:struct))
+
+  @caller closed_map(
+            __struct__: atom([Macro.Env]),
+            aliases: list(),
+            context: atom([:match, :guard, nil]),
+            context_modules: list(),
+            file: binary(),
+            function: union(tuple(), atom([nil])),
+            functions: list(),
+            lexical_tracker: union(pid(), atom([nil])),
+            line: integer(),
+            macro_aliases: list(),
+            macros: list(),
+            module: atom(),
+            requires: list(),
+            tracers: list(),
+            versioned_vars: open_map()
+          )
+
+  @atom_true atom([true])
+  @exception open_map(__struct__: atom(), __exception__: @atom_true)
+
+  defp of_expr(expr, expected_expr, stack, context) do
+    with {:ok, actual, context} <- of_expr(expr, stack, context) do
+      Of.intersect(actual, expected_expr, stack, context)
+    end
   end
 
   # :atom
@@ -76,16 +101,15 @@ defmodule Module.Types.Expr do
     end
   end
 
-  # TODO: __CALLER__
   def of_expr({:__CALLER__, _meta, var_context}, _stack, context)
       when is_atom(var_context) do
-    {:ok, dynamic(), context}
+    {:ok, @caller, context}
   end
 
   # TODO: __STACKTRACE__
   def of_expr({:__STACKTRACE__, _meta, var_context}, _stack, context)
       when is_atom(var_context) do
-    {:ok, dynamic(), context}
+    {:ok, list(), context}
   end
 
   # TODO: {...}
@@ -97,45 +121,55 @@ defmodule Module.Types.Expr do
   end
 
   # TODO: left = right
-  def of_expr({:=, _meta, [left_expr, right_expr]}, stack, context) do
-    with {:ok, _left_type, context} <-
-           Pattern.of_pattern(left_expr, stack, context),
-         {:ok, right_type, context} <- of_expr(right_expr, stack, context) do
-      {:ok, right_type, context}
+  def of_expr({:=, _meta, [left_expr, right_expr]} = expr, stack, context) do
+    with {:ok, right_type, context} <- of_expr(right_expr, stack, context) do
+      Pattern.of_pattern(left_expr, {right_type, expr}, stack, context)
     end
   end
 
-  # TODO: %{map | ...}
+  # %{map | ...}
   def of_expr({:%{}, _, [{:|, _, [map, args]}]}, stack, context) do
-    with {:ok, _, context} <- of_expr(map, stack, context),
-         {:ok, _, context} <- Of.closed_map(args, stack, context, &of_expr/3) do
-      {:ok, open_map(), context}
+    with {:ok, _args_type, context} <- Of.closed_map(args, stack, context, &of_expr/3),
+         {:ok, _map_type, context} <- of_expr(map, stack, context) do
+      # TODO: intersect map with keys of terms for args
+      # TODO: Merge args_type into map_type with dynamic/static key requirement
+      {:ok, dynamic(open_map()), context}
     end
   end
 
-  # TODO: %Struct{map | ...}
+  # %Struct{map | ...}
   def of_expr(
-        {:%, meta, [module, {:%{}, _, [{:|, _, [_, _]}]} = update]},
+        {:%, struct_meta, [module, {:%{}, _, [{:|, update_meta, [map, args]}]}]} = expr,
         stack,
         context
       ) do
-    with {:ok, _, context} <- Of.struct(module, meta, stack, context),
-         {:ok, _, context} <- of_expr(update, stack, context) do
-      {:ok, open_map(), context}
+    with {:ok, args_types, context} <-
+           map_reduce_ok(args, context, fn {key, value}, context when is_atom(key) ->
+             with {:ok, type, context} <- of_expr(value, stack, context) do
+               {:ok, {key, type}, context}
+             end
+           end),
+         {:ok, struct_type, context} <-
+           Of.struct(module, args_types, :only_defaults, struct_meta, stack, context),
+         {:ok, map_type, context} <- of_expr(map, stack, context) do
+      if empty?(intersection(struct_type, map_type)) do
+        warning = {:badupdate, :struct, expr, struct_type, map_type, context}
+        {:ok, dynamic(), warn(__MODULE__, warning, update_meta, stack, context)}
+      else
+        # TODO: Merge args_type into map_type with dynamic/static key requirement
+        Of.struct(module, args_types, :merge_defaults, struct_meta, stack, context)
+      end
     end
   end
 
-  # TODO: %{...}
+  # %{...}
   def of_expr({:%{}, _meta, args}, stack, context) do
     Of.closed_map(args, stack, context, &of_expr/3)
   end
 
-  # TODO: %Struct{...}
-  def of_expr({:%, meta1, [module, {:%{}, _meta2, args}]}, stack, context) do
-    with {:ok, _, context} <- Of.struct(module, meta1, stack, context),
-         {:ok, _, context} <- Of.open_map(args, stack, context, &of_expr/3) do
-      {:ok, open_map(), context}
-    end
+  # %Struct{}
+  def of_expr({:%, _, [module, {:%{}, _, args}]} = expr, stack, context) do
+    Of.struct(expr, module, args, :skip_defaults, stack, context, &of_expr/3)
   end
 
   # ()
@@ -183,7 +217,7 @@ defmodule Module.Types.Expr do
   # TODO: fn pat -> expr end
   def of_expr({:fn, _meta, clauses}, stack, context) do
     case of_clauses(clauses, stack, context) do
-      {:ok, context} -> {:ok, dynamic(), context}
+      {:ok, context} -> {:ok, fun(), context}
       {:error, context} -> {:error, context}
     end
   end
@@ -197,15 +231,11 @@ defmodule Module.Types.Expr do
       reduce_ok(blocks, context, fn
         {:rescue, clauses}, context ->
           reduce_ok(clauses, context, fn
-            {:->, _, [[{:in, _, [var, _exceptions]} = expr], body]}, context ->
-              # TODO: Vars are a union of the structs above
-              {:ok, _type, context} = Pattern.of_pattern(var, {dynamic(), expr}, stack, context)
-              of_expr_context(body, stack, context)
+            {:->, _, [[{:in, meta, [var, exceptions]} = expr], body]}, context ->
+              of_rescue(var, exceptions, body, expr, [], meta, stack, context)
 
-            {:->, _, [[var], body]}, context ->
-              # TODO: Vars are structs with the exception field and that's it
-              {:ok, _type, context} = Pattern.of_pattern(var, stack, context)
-              of_expr_context(body, stack, context)
+            {:->, meta, [[var], body]}, context ->
+              of_rescue(var, [], body, var, [:anonymous_rescue], meta, stack, context)
           end)
 
         {block, body}, context when block in @try_blocks ->
@@ -271,56 +301,62 @@ defmodule Module.Types.Expr do
 
   # TODO: fun.(args)
   def of_expr({{:., _meta1, [fun]}, _meta2, args}, stack, context) do
-    with {:ok, _fun_type, context} <- of_expr(fun, stack, context),
-         {:ok, _arg_types, context} <-
+    with {:ok, fun_type, context} <- of_expr(fun, stack, context),
+         {:ok, _args_types, context} <-
            map_reduce_ok(args, context, &of_expr(&1, stack, &2)) do
+      context =
+        case fun_fetch(fun_type, length(args)) do
+          :ok -> context
+          :error -> Of.incompatible_warn(fun, fun(), fun_type, stack, context)
+        end
+
       {:ok, dynamic(), context}
     end
   end
 
-  # TODO: expr.key_or_fun
-  def of_expr({{:., _meta1, [expr1, _key_or_fun]}, meta2, []}, stack, context)
-      when not is_atom(expr1) do
-    if Keyword.get(meta2, :no_parens, false) do
-      with {:ok, _, context} <- of_expr(expr1, stack, context) do
-        {:ok, dynamic(), context}
-      end
-    else
-      with {:ok, _, context} <- of_expr(expr1, stack, context) do
-        {:ok, dynamic(), context}
+  def of_expr({{:., _, [callee, key_or_fun]}, meta, []} = expr, stack, context)
+      when not is_atom(callee) and is_atom(key_or_fun) do
+    with {:ok, type, context} <- of_expr(callee, stack, context) do
+      if Keyword.get(meta, :no_parens, false) do
+        Of.map_fetch(expr, type, key_or_fun, stack, context)
+      else
+        {mods, context} = Of.remote(type, key_or_fun, 0, [:dot], expr, meta, stack, context)
+        apply_many(mods, key_or_fun, [], expr, stack, context)
       end
     end
   end
 
   # TODO: expr.fun(arg)
-  def of_expr({{:., _meta1, [expr1, fun]}, meta2, args}, stack, context) do
-    context = Of.remote(expr1, fun, length(args), meta2, stack, context)
-
-    with {:ok, _expr_type, context} <- of_expr(expr1, stack, context),
-         {:ok, _arg_types, context} <-
-           map_reduce_ok(args, context, &of_expr(&1, stack, &2)) do
-      {:ok, dynamic(), context}
+  def of_expr({{:., _, [remote, name]}, meta, args} = expr, stack, context) do
+    with {:ok, remote_type, context} <- of_expr(remote, stack, context),
+         {:ok, args_types, context} <- map_reduce_ok(args, context, &of_expr(&1, stack, &2)) do
+      {mods, context} = Of.remote(remote_type, name, length(args), expr, meta, stack, context)
+      apply_many(mods, name, args_types, expr, stack, context)
     end
   end
 
   # TODO: &Foo.bar/1
   def of_expr(
-        {:&, _, [{:/, _, [{{:., _, [module, fun]}, meta, []}, arity]}]},
+        {:&, _, [{:/, _, [{{:., _, [remote, name]}, meta, []}, arity]}]} = expr,
         stack,
         context
       )
-      when is_atom(module) and is_atom(fun) do
-    context = Of.remote(module, fun, arity, meta, stack, context)
-    {:ok, dynamic(), context}
+      when is_atom(name) and is_integer(arity) do
+    with {:ok, remote_type, context} <- of_expr(remote, stack, context) do
+      # TODO: We cannot return the unions of functions. Do we forbid this?
+      # Do we check it is always the same return type? Do we simply say it is a function?
+      {_mods, context} = Of.remote(remote_type, name, arity, expr, meta, stack, context)
+      {:ok, fun(), context}
+    end
   end
 
   # &foo/1
   # TODO: & &1
   def of_expr({:&, _meta, _arg}, _stack, context) do
-    {:ok, dynamic(), context}
+    {:ok, fun(), context}
   end
 
-  # TODO: fun(arg)
+  # TODO: call(arg)
   def of_expr({fun, _meta, args}, stack, context)
       when is_atom(fun) and is_list(args) do
     with {:ok, _arg_types, context} <-
@@ -331,13 +367,56 @@ defmodule Module.Types.Expr do
 
   # var
   def of_expr(var, _stack, context) when is_var(var) do
-    {:ok, Pattern.of_var(var, context), context}
+    {:ok, Of.var(var, context), context}
   end
 
-  defp for_clause({:<-, _, [left, expr]}, stack, context) do
+  ## Try
+
+  defp of_rescue(var, exceptions, body, expr, hints, meta, stack, context) do
+    args = [__exception__: @atom_true]
+
+    with {:ok, structs, context} <-
+           map_reduce_ok(exceptions, context, fn exception, context ->
+             # Exceptions are not validated in the compiler,
+             # to avoid export dependencies. So we do it here.
+             if Code.ensure_loaded?(exception) and function_exported?(exception, :__struct__, 0) do
+               Of.struct(exception, args, :merge_defaults, meta, stack, context)
+             else
+               # Whenever there is a failure (such as undefined function),
+               # we return dynamic to avoid cascading errors. In this case,
+               # we can return something a bit more precise than dynamic,
+               # but we still want an open map to avoid cascading.
+               context = Of.remote(exception, :__struct__, 0, meta, stack, context)
+               {:ok, dynamic(open_map([__struct__: atom([exception])] ++ args)), context}
+             end
+           end) do
+      context =
+        case var do
+          {:_, _, _} ->
+            context
+
+          _ ->
+            expected = if structs == [], do: @exception, else: Enum.reduce(structs, &union/2)
+
+            formatter = fn expr ->
+              {"rescue #{expr_to_string(expr)} ->", hints}
+            end
+
+            {:ok, _type, context} = Of.refine_var(var, expected, expr, formatter, stack, context)
+            context
+        end
+
+      of_expr_context(body, stack, context)
+    end
+  end
+
+  ## Comprehensions
+
+  defp for_clause({:<-, meta, [left, expr]}, stack, context) do
     {pattern, guards} = extract_head([left])
 
-    with {:ok, _pattern_type, context} <- Pattern.of_head([pattern], guards, stack, context),
+    with {:ok, _pattern_type, context} <-
+           Pattern.of_head([pattern], guards, meta, stack, context),
          {:ok, _expr_type, context} <- of_expr(expr, stack, context),
          do: {:ok, context}
   end
@@ -370,10 +449,13 @@ defmodule Module.Types.Expr do
     {:ok, context}
   end
 
-  defp with_clause({:<-, _, [left, expr]}, stack, context) do
+  ## With
+
+  defp with_clause({:<-, meta, [left, expr]}, stack, context) do
     {pattern, guards} = extract_head([left])
 
-    with {:ok, _pattern_type, context} <- Pattern.of_head([pattern], guards, stack, context),
+    with {:ok, _pattern_type, context} <-
+           Pattern.of_head([pattern], guards, meta, stack, context),
          {:ok, _expr_type, context} <- of_expr(expr, stack, context),
          do: {:ok, context}
   end
@@ -394,11 +476,30 @@ defmodule Module.Types.Expr do
     of_clauses(clauses, stack, context)
   end
 
+  ## General helpers
+
+  defp apply_many([], _function, _args_types, _expr, _stack, context) do
+    {:ok, dynamic(), context}
+  end
+
+  defp apply_many([mod], function, args_types, expr, stack, context) do
+    Of.apply(mod, function, args_types, expr, stack, context)
+  end
+
+  defp apply_many(mods, function, args_types, expr, stack, context) do
+    with {:ok, returns, context} <-
+           map_reduce_ok(mods, context, fn mod, context ->
+             Of.apply(mod, function, args_types, expr, stack, context)
+           end) do
+      {:ok, Enum.reduce(returns, &union/2), context}
+    end
+  end
+
   defp of_clauses(clauses, stack, context) do
-    reduce_ok(clauses, context, fn {:->, _meta, [head, body]}, context ->
+    reduce_ok(clauses, context, fn {:->, meta, [head, body]}, context ->
       {patterns, guards} = extract_head(head)
 
-      with {:ok, _, context} <- Pattern.of_head(patterns, guards, stack, context),
+      with {:ok, _, context} <- Pattern.of_head(patterns, guards, meta, stack, context),
            {:ok, _, context} <- of_expr(body, stack, context),
            do: {:ok, context}
     end)
@@ -428,5 +529,32 @@ defmodule Module.Types.Expr do
       {:ok, _type, context} -> {:ok, context}
       {:error, context} -> {:error, context}
     end
+  end
+
+  ## Warning formatting
+
+  def format_diagnostic({:badupdate, type, expr, expected_type, actual_type, context}) do
+    traces = Of.collect_traces(expr, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          incompatible types in #{type} update:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          expected type:
+
+              #{to_quoted_string(expected_type) |> indent(4)}
+
+          but got type:
+
+              #{to_quoted_string(actual_type) |> indent(4)}
+          """,
+          Of.format_traces(traces)
+        ])
+    }
   end
 end

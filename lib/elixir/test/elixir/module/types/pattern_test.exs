@@ -6,6 +6,88 @@ defmodule Module.Types.PatternTest do
   import TypeHelper
   import Module.Types.Descr
 
+  describe "variables" do
+    test "captures variables from simple assignment in head" do
+      assert typecheck!([x = :foo], x) == atom([:foo])
+      assert typecheck!([:foo = x], x) == atom([:foo])
+    end
+
+    test "captures variables from simple assignment in =" do
+      assert typecheck!(
+               (
+                 x = :foo
+                 x
+               )
+             ) == atom([:foo])
+    end
+  end
+
+  describe "structs" do
+    test "variable name" do
+      assert typecheck!([%x{}], x) == dynamic(atom())
+    end
+
+    test "variable name fields" do
+      assert typecheck!([x = %_{}], x.__struct__) == dynamic(atom())
+      assert typecheck!([x = %_{}], x) == dynamic(open_map(__struct__: atom()))
+
+      assert typecheck!([x = %m{}, m = Point], x) ==
+               dynamic(open_map(__struct__: atom()))
+
+      assert typecheck!([m = Point, x = %m{}], x) ==
+               dynamic(open_map(__struct__: atom([Point])))
+
+      assert typeerror!([m = 123], %^m{} = %Point{}) ==
+               ~l"""
+               incompatible types in expression:
+
+                   %^m{}
+
+               expected type:
+
+                   atom()
+
+               but got type:
+
+                   integer()
+
+               where "m" was given the type:
+
+                   # type: integer()
+                   # from: types_test.ex:LINE-1
+                   m = 123
+               """
+    end
+
+    test "fields in guards" do
+      assert typewarn!([x = %Point{}], [x.foo_bar], :ok) ==
+               {atom([:ok]),
+                ~l"""
+                unknown key .foo_bar in expression:
+
+                    x.foo_bar
+
+                where "x" was given the type:
+
+                    # type: dynamic(%Point{x: term(), y: term(), z: term()})
+                    # from: types_test.ex:LINE-2
+                    x = %Point{}
+                """}
+    end
+  end
+
+  describe "maps" do
+    test "fields in patterns" do
+      assert typecheck!([x = %{foo: :bar}], x) == dynamic(open_map(foo: atom([:bar])))
+      assert typecheck!([x = %{123 => 456}], x) == dynamic(open_map())
+      assert typecheck!([x = %{123 => 456, foo: :bar}], x) == dynamic(open_map(foo: atom([:bar])))
+    end
+
+    test "fields in guards" do
+      assert typecheck!([x = %{foo: :bar}], [x.bar], x) == dynamic(open_map(foo: atom([:bar])))
+    end
+  end
+
   describe "binaries" do
     test "ok" do
       assert typecheck!([<<x>>], x) == integer()
@@ -29,8 +111,6 @@ defmodule Module.Types.PatternTest do
                  # type: float()
                  # from: types_test.ex:LINE
                  <<..., x::float>>
-
-             typing violation found at:\
              """
 
       assert typeerror!([<<x::float, x>>], x) == ~l"""
@@ -49,8 +129,6 @@ defmodule Module.Types.PatternTest do
                  <<..., x>>
 
              #{hints(:inferred_bitstring_spec)}
-
-             typing violation found at:\
              """
     end
   end

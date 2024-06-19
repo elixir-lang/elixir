@@ -26,7 +26,7 @@ defmodule Duration do
       iex> Date.shift(~D[2016-01-03], Duration.new!(month: 2))
       ~D[2016-03-03]
 
-  It is important to notice that shifting is not an arithmetic operation.
+  It is important to note that shifting is not an arithmetic operation.
   For example, adding `date + 1 month + 1 month` does not yield the same
   result as `date + 2 months`. Let's see an example:
 
@@ -46,8 +46,18 @@ defmodule Duration do
     * larger units (such as years and months) are applied before
       smaller ones (such as weeks, hours, days, and so on)
 
+    * units are collapsed into months (`:year` and `:month`),
+      seconds (`:week`, `:day`, `:hour`, `:minute`, `:second`)
+      and microseconds (`:microsecond`) before they are applied
+
+    * 1 year is equivalent to 12 months, 1 week is equivalent to 7 days.
+      Therefore, 4 weeks _are not_ equivalent to 1 month
+
     * in case of non-existing dates, the results are rounded down to the
       nearest valid date
+
+  As the `shift/2` functions are calendar aware, they are guaranteed to return
+  valid date/times, considering leap years as well as DST in applicable time zones.
 
   ## Intervals
 
@@ -124,6 +134,8 @@ defmodule Duration do
   """
   @type duration :: t | [unit_pair]
 
+  @microseconds_per_second 1_000_000
+
   @doc """
   Creates a new `Duration` struct from given `unit_pairs`.
 
@@ -181,9 +193,9 @@ defmodule Duration do
 
   ## Examples
 
-      iex> Duration.add(%Duration{week: 2, day: 1}, %Duration{day: 2})
+      iex> Duration.add(Duration.new!(week: 2, day: 1), Duration.new!(day: 2))
       %Duration{week: 2, day: 3}
-      iex> Duration.add(%Duration{microsecond: {400, 3}}, %Duration{microsecond: {600, 6}})
+      iex> Duration.add(Duration.new!(microsecond: {400, 3}), Duration.new!(microsecond: {600, 6}))
       %Duration{microsecond: {1000, 6}}
 
   """
@@ -211,9 +223,9 @@ defmodule Duration do
 
   ## Examples
 
-      iex> Duration.subtract(%Duration{week: 2, day: 1}, %Duration{day: 2})
+      iex> Duration.subtract(Duration.new!(week: 2, day: 1), Duration.new!(day: 2))
       %Duration{week: 2, day: -1}
-      iex> Duration.subtract(%Duration{microsecond: {400, 6}}, %Duration{microsecond: {600, 3}})
+      iex> Duration.subtract(Duration.new!(microsecond: {400, 6}), Duration.new!(microsecond: {600, 3}))
       %Duration{microsecond: {-200, 6}}
 
   """
@@ -239,9 +251,9 @@ defmodule Duration do
 
   ## Examples
 
-      iex> Duration.multiply(%Duration{day: 1, minute: 15, second: -10}, 3)
+      iex> Duration.multiply(Duration.new!(day: 1, minute: 15, second: -10), 3)
       %Duration{day: 3, minute: 45, second: -30}
-      iex> Duration.multiply(%Duration{microsecond: {200, 4}}, 3)
+      iex> Duration.multiply(Duration.new!(microsecond: {200, 4}), 3)
       %Duration{microsecond: {600, 4}}
 
   """
@@ -264,9 +276,9 @@ defmodule Duration do
 
   ## Examples
 
-      iex> Duration.negate(%Duration{day: 1, minute: 15, second: -10})
+      iex> Duration.negate(Duration.new!(day: 1, minute: 15, second: -10))
       %Duration{day: -1, minute: -15, second: 10}
-      iex> Duration.negate(%Duration{microsecond: {500000, 4}})
+      iex> Duration.negate(Duration.new!(microsecond: {500000, 4}))
       %Duration{microsecond: {-500000, 4}}
 
   """
@@ -283,4 +295,142 @@ defmodule Duration do
       microsecond: {-ms, p}
     }
   end
+
+  @doc """
+  Parses an [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) formatted duration string to a `Duration` struct.
+
+  Duration strings, as well as individual units, may be prefixed with plus/minus signs so that:
+
+  - `-PT6H3M` parses as `%Duration{hour: -6, minute: -3}`
+  - `-PT6H-3M` parses as `%Duration{hour: -6, minute: 3}`
+  - `+PT6H3M` parses as `%Duration{hour: 6, minute: 3}`
+  - `+PT6H-3M` parses as `%Duration{hour: 6, minute: -3}`
+
+  Duration designators must be provided in order of magnitude: `P[n]Y[n]M[n]W[n]DT[n]H[n]M[n]S`.
+
+  Only seconds may be specified with a decimal fraction, using either a comma or a full stop: `P1DT4,5S`.
+
+  ## Examples
+
+      iex> Duration.from_iso8601("P1Y2M3DT4H5M6S")
+      {:ok, %Duration{year: 1, month: 2, day: 3, hour: 4, minute: 5, second: 6}}
+      iex> Duration.from_iso8601("P3Y-2MT3H")
+      {:ok, %Duration{year: 3, month: -2, hour: 3}}
+      iex> Duration.from_iso8601("-PT10H-30M")
+      {:ok, %Duration{hour: -10, minute: 30}}
+      iex> Duration.from_iso8601("PT4.650S")
+      {:ok, %Duration{second: 4, microsecond: {650000, 3}}}
+
+  """
+  @spec from_iso8601(String.t()) :: {:ok, t} | {:error, atom}
+  def from_iso8601(string) when is_binary(string) do
+    case Calendar.ISO.parse_duration(string) do
+      {:ok, duration} ->
+        {:ok, new!(duration)}
+
+      error ->
+        error
+    end
+  end
+
+  @doc """
+  Same as `from_iso8601/1` but raises an `ArgumentError`.
+
+  ## Examples
+
+      iex> Duration.from_iso8601!("P1Y2M3DT4H5M6S")
+      %Duration{year: 1, month: 2, day: 3, hour: 4, minute: 5, second: 6}
+      iex> Duration.from_iso8601!("P10D")
+      %Duration{day: 10}
+
+  """
+  @spec from_iso8601!(String.t()) :: t
+  def from_iso8601!(string) when is_binary(string) do
+    case from_iso8601(string) do
+      {:ok, duration} ->
+        duration
+
+      {:error, reason} ->
+        raise ArgumentError, ~s/failed to parse duration "#{string}". reason: #{inspect(reason)}/
+    end
+  end
+
+  @doc """
+  Converts the given `duration` to an [ISO 8601-2:2019](https://en.wikipedia.org/wiki/ISO_8601) formatted string.
+
+  Note this function implements the *extension* of ISO 8601:2019. This extensions allows weeks to
+  appear between months and days: `P3M3W3D`, making it fully compatible with any `Duration` struct.
+
+  ## Examples
+
+      iex> Duration.to_iso8601(Duration.new!(year: 3))
+      "P3Y"
+      iex> Duration.to_iso8601(Duration.new!(day: 40, hour: 12, minute: 42, second: 12))
+      "P40DT12H42M12S"
+      iex> Duration.to_iso8601(Duration.new!(second: 30))
+      "PT30S"
+
+      iex> Duration.to_iso8601(Duration.new!([]))
+      "PT0S"
+
+      iex> Duration.to_iso8601(Duration.new!(second: 1, microsecond: {2_200, 3}))
+      "PT1.002S"
+      iex> Duration.to_iso8601(Duration.new!(second: 1, microsecond: {-1_200_000, 4}))
+      "PT-0.2000S"
+  """
+
+  @spec to_iso8601(t) :: String.t()
+  def to_iso8601(%Duration{} = duration) do
+    case {to_iso8601_duration_date(duration), to_iso8601_duration_time(duration)} do
+      {[], []} -> "PT0S"
+      {date, time} -> IO.iodata_to_binary([?P, date, time])
+    end
+  end
+
+  defp to_iso8601_duration_date(%{year: 0, month: 0, week: 0, day: 0}) do
+    []
+  end
+
+  defp to_iso8601_duration_date(%{year: year, month: month, week: week, day: day}) do
+    [pair(year, ?Y), pair(month, ?M), pair(week, ?W), pair(day, ?D)]
+  end
+
+  defp to_iso8601_duration_time(%{hour: 0, minute: 0, second: 0, microsecond: {0, _}}) do
+    []
+  end
+
+  defp to_iso8601_duration_time(%{hour: hour, minute: minute} = d) do
+    [?T, pair(hour, ?H), pair(minute, ?M), second_component(d)]
+  end
+
+  defp second_component(%{second: 0, microsecond: {0, _}}) do
+    []
+  end
+
+  defp second_component(%{second: 0, microsecond: {_, 0}}) do
+    ~c"0S"
+  end
+
+  defp second_component(%{second: second, microsecond: {_, 0}}) do
+    [Integer.to_string(second), ?S]
+  end
+
+  defp second_component(%{second: second, microsecond: {ms, p}}) do
+    total_ms = second * @microseconds_per_second + ms
+    second = total_ms |> div(@microseconds_per_second) |> abs()
+    ms = total_ms |> rem(@microseconds_per_second) |> abs()
+    sign = if total_ms < 0, do: ?-, else: []
+
+    [
+      sign,
+      Integer.to_string(second),
+      ?.,
+      ms |> Integer.to_string() |> String.pad_leading(6, "0") |> binary_part(0, p),
+      ?S
+    ]
+  end
+
+  @compile {:inline, pair: 2}
+  defp pair(0, _key), do: []
+  defp pair(num, key), do: [Integer.to_string(num), key]
 end

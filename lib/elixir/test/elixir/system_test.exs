@@ -110,7 +110,8 @@ defmodule SystemTest do
         env: %{"foo" => "bar", "baz" => nil},
         arg0: "echo",
         stderr_to_stdout: true,
-        parallelism: true
+        parallelism: true,
+        use_stdio: true
       ]
 
       assert {["hello\r\n"], 0} = System.cmd("cmd", ~w[/c echo hello], opts)
@@ -146,7 +147,8 @@ defmodule SystemTest do
         cd: File.cwd!(),
         env: %{"foo" => "bar", "baz" => nil},
         stderr_to_stdout: true,
-        parallelism: true
+        parallelism: true,
+        use_stdio: true
       ]
 
       assert {["bar\r\n"], 0} = System.shell("echo %foo%", opts)
@@ -167,10 +169,28 @@ defmodule SystemTest do
         env: %{"foo" => "bar", "baz" => nil},
         arg0: "echo",
         stderr_to_stdout: true,
-        parallelism: true
+        parallelism: true,
+        use_stdio: true
       ]
 
       assert {["hello\n"], 0} = System.cmd("echo", ["hello"], opts)
+    end
+
+    test "cmd/3 (can't use `use_stdio: false, stderr_to_stdout: true`)" do
+      opts = [
+        into: [],
+        cd: File.cwd!(),
+        env: %{"foo" => "bar", "baz" => nil},
+        arg0: "echo",
+        stderr_to_stdout: true,
+        use_stdio: false
+      ]
+
+      message = ~r"cannot use \"stderr_to_stdout: true\" and \"use_stdio: false\""
+
+      assert_raise ArgumentError, message, fn ->
+        System.cmd("echo", ["hello"], opts)
+      end
     end
 
     test "cmd/3 by line" do
@@ -228,7 +248,8 @@ defmodule SystemTest do
         into: [],
         cd: File.cwd!(),
         env: %{"foo" => "bar", "baz" => nil},
-        stderr_to_stdout: true
+        stderr_to_stdout: true,
+        use_stdio: true
       ]
 
       assert {["bar\n"], 0} = System.shell("echo $foo", opts)

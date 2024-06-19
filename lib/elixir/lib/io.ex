@@ -416,7 +416,7 @@ defmodule IO do
   end
 
   @doc """
-  Inspects and writes the given `item` to the device.
+  Inspects and writes the given `item` to the standard output.
 
   It's important to note that it returns the given `item` unchanged.
   This makes it possible to "spy" on values by inserting an
@@ -432,6 +432,7 @@ defmodule IO do
   The label will be printed before the inspected `item`.
 
   See `Inspect.Opts` for a full list of remaining formatting options.
+  To print to other IO devices, see `IO.inspect/3`
 
   ## Examples
 

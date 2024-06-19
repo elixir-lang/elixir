@@ -66,13 +66,13 @@ defmodule Kernel.ParserTest do
 
   describe "ternary ops" do
     test "root" do
-      assert parse!("1..2//3") == {:"..//", [line: 1], [1, 2, 3]}
-      assert parse!("(1..2)//3") == {:"..//", [line: 1], [1, 2, 3]}
+      assert parse!("1..2//3") == {:..//, [line: 1], [1, 2, 3]}
+      assert parse!("(1..2)//3") == {:..//, [line: 1], [1, 2, 3]}
     end
 
     test "with do-blocks" do
       assert parse!("foo do end..bar do end//baz do end") == {
-               :"..//",
+               :..//,
                [line: 1],
                [
                  {:foo, [line: 1], [[do: {:__block__, [], []}]]},
@@ -84,7 +84,7 @@ defmodule Kernel.ParserTest do
 
     test "with no parens" do
       assert parse!("1..foo do end//bar bat") == {
-               :"..//",
+               :..//,
                [line: 1],
                [
                  1,
@@ -126,6 +126,10 @@ defmodule Kernel.ParserTest do
       # that are Common-script and non-ASCII
       # assert Code.eval_string("_ℕ𝕩 = 1") == {1, [{:"_ℕ𝕩", 1}]}
     end
+
+    test "handles graphemes inside quoted identifiers" do
+      assert {{:., _, [{:foo, _, nil}, :"➡️"]}, _, []} = Code.string_to_quoted!(~s|foo."➡️"|)
+    end
   end
 
   describe "strings/sigils" do
@@ -165,13 +169,26 @@ defmodule Kernel.ParserTest do
       meta = [delimiter: "\"\"\"", line: 1]
       args = {:sigil_MAT, meta, [{:<<>>, [indentation: 0, line: 1], ["1,2,3\n"]}, []]}
       assert string_to_quoted.("~MAT\"\"\"\n1,2,3\n\"\"\"") == args
+
+      args = {:sigil_FOO1, meta, [{:<<>>, [indentation: 0, line: 1], ["1,2,3\n"]}, []]}
+      assert string_to_quoted.("~FOO1\"\"\"\n1,2,3\n\"\"\"") == args
+
+      args = {:sigil_BAR321, meta, [{:<<>>, [indentation: 0, line: 1], ["1,2,3\n"]}, []]}
+      assert string_to_quoted.("~BAR321\"\"\"\n1,2,3\n\"\"\"") == args
+
+      args = {:sigil_I18N, meta, [{:<<>>, [indentation: 0, line: 1], ["1,2,3\n"]}, []]}
+      assert string_to_quoted.("~I18N\"\"\"\n1,2,3\n\"\"\"") == args
     end
 
     test "invalid multi-letter sigils" do
       msg =
-        ~r/invalid sigil name, it should be either a one-letter lowercase letter or a sequence of uppercase letters only/
+        ~r/invalid sigil name, it should be either a one-letter lowercase letter or an uppercase letter optionally followed by uppercase letters and digits/
 
       assert_syntax_error(["nofile:1:1:", msg], "~Regex/foo/")
+
+      assert_syntax_error(["nofile:1:1:", msg], "~FOo1{bar]")
+
+      assert_syntax_error(["nofile:1:1:", msg], "~foo1{bar]")
     end
 
     test "sigil newlines" do

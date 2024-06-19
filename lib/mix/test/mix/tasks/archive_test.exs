@@ -175,7 +175,7 @@ defmodule Mix.Tasks.ArchiveTest do
     purge([GitRepo.Archive, GitRepo.MixProject])
   end
 
-  test "archive install, update, and uninstall life-cycle" do
+  test "archive install, update, and uninstall life cycle" do
     in_fixture("archive", fn ->
       # Install previous version
       Mix.Tasks.Archive.Build.run(["--no-elixir-version-check"])

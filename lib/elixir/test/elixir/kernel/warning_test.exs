@@ -62,7 +62,7 @@ defmodule Kernel.WarningTest do
   end
 
   defmacro will_warn do
-    quote file: "demo" do
+    quote file: "demo", line: true do
       %{dup: 1, dup: 2}
     end
   end
@@ -461,17 +461,6 @@ defmodule Kernel.WarningTest do
       ],
       """
       fn x -> match?(x, :value) end
-      """
-    )
-
-    assert_warn_eval(
-      [
-        "nofile:1",
-        "variable \"&1\" is unused (this might happen when using a capture argument as a pattern)",
-        "variable \"&1\" is unused (this might happen when using a capture argument as a pattern)"
-      ],
-      """
-      &match?(&1, :value)
       """
     )
   end
@@ -1606,16 +1595,11 @@ defmodule Kernel.WarningTest do
         @doc "Something"
         @doc "Another"
         def foo, do: :ok
-
-        Module.eval_quoted(__MODULE__, quote(do: @doc false))
-        @doc "Doc"
-        def bar, do: :ok
       end
       """)
 
     assert output =~ "redefining @doc attribute previously set at line 2"
     assert output =~ "nofile:3: Sample (module)"
-    refute output =~ "nofile:7: "
   after
     purge(Sample)
   end
@@ -2116,26 +2100,6 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "struct comparisons" do
-    expressions = [
-      ~s(~N"2018-01-28 12:00:00"),
-      ~s(~T"12:00:00"),
-      ~s(~D"2018-01-28"),
-      "%File.Stat{}"
-    ]
-
-    for op <- [:<, :>, :<=, :>=],
-        expression <- expressions do
-      assert capture_err(fn ->
-               Code.eval_string("x #{op} #{expression}", x: 1)
-             end) =~ "invalid comparison with struct literal #{expression}"
-
-      assert capture_err(fn ->
-               Code.eval_string("#{expression} #{op} x", x: 1)
-             end) =~ "invalid comparison with struct literal #{expression}"
-    end
-  end
-
   test "deprecated GenServer super on callbacks" do
     assert_warn_eval(
       ["nofile:1: ", "calling super for GenServer callback handle_call/3 is deprecated"],
@@ -2165,29 +2129,6 @@ defmodule Kernel.WarningTest do
            """) =~ "calling super for GenServer callback child_spec/1 is deprecated"
   after
     purge(Sample)
-  end
-
-  test "nested comparison operators" do
-    message =
-      capture_compile("""
-       1 < 3 < 5
-      """)
-
-    assert message =~ "nofile:1:8\n"
-    assert message =~ "Elixir does not support nested comparisons"
-    assert message =~ "1 < 3 < 5"
-
-    message =
-      capture_compile("""
-        x = 5
-        y = 7
-        1 < x < y < 10
-      """)
-
-    assert message =~ "Elixir does not support nested comparisons"
-    assert message =~ "1 < x < y < 10"
-    assert message =~ "nofile:3:9\n"
-    assert message =~ "nofile:3:13\n"
   end
 
   test "def warns if only clause is else" do
@@ -2292,7 +2233,7 @@ defmodule Kernel.WarningTest do
   end
 
   defp purge(module) when is_atom(module) do
-    :code.delete(module)
     :code.purge(module)
+    :code.delete(module)
   end
 end

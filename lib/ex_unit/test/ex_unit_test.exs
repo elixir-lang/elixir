@@ -138,8 +138,6 @@ defmodule ExUnitTest do
            Showing results so far...
 
            0 failures
-
-           Randomized with seed 0
            """
   end
 
@@ -433,7 +431,7 @@ defmodule ExUnitTest do
   test "raises friendly error for duplicate test names" do
     message = ~S("test duplicate" is already defined in ExUnitTest.TestWithSameNames)
 
-    assert_raise ExUnit.DuplicateTestError, message, fn ->
+    assert_raise ArgumentError, message, fn ->
       defmodule TestWithSameNames do
         use ExUnit.Case
 
@@ -685,6 +683,38 @@ defmodule ExUnitTest do
     assert output =~ "\n6 tests, 0 failures, 1 excluded, 4 invalid, 1 skipped\n"
   end
 
+  test "parameterized tests" do
+    Process.register(self(), :parameterized_tests)
+
+    defmodule ParameterizedTests do
+      use ExUnit.Case, async: true, parameterize: [%{value: true}, %{value: false}]
+
+      @tag :tmp_dir
+      test "hello world", %{value: value, tmp_dir: tmp_dir} do
+        send(:parameterized_tests, {:tmp_dir, tmp_dir})
+        assert value
+      end
+    end
+
+    configure_and_reload_on_exit(trace: true)
+
+    output = capture_io(fn -> ExUnit.run() end)
+
+    assert output =~ ~r"""
+           ExUnitTest.ParameterizedTests \[.*test/ex_unit_test.exs\]
+           Parameters: %\{value: false\}
+           """
+
+    assert output =~ """
+             1) test hello world (ExUnitTest.ParameterizedTests)
+                Parameters: %{value: false}
+           """
+
+    # Check that the temporary paths are different
+    assert_receive {:tmp_dir, tmp_dir1}
+    assert_receive {:tmp_dir, tmp_dir2} when tmp_dir1 != tmp_dir2
+  end
+
   describe "after_suite/1" do
     test "executes all callbacks set in reverse order" do
       Process.register(self(), :after_suite_test_process)
@@ -926,7 +956,7 @@ defmodule ExUnitTest do
   end
 
   describe ":repeat_until_failure" do
-    test "default value 0" do
+    test "defaults to 0" do
       configure_and_reload_on_exit([])
       ExUnit.start(autorun: false)
       config = ExUnit.configuration()
@@ -940,7 +970,7 @@ defmodule ExUnitTest do
       assert config[:repeat_until_failure] == 5
     end
 
-    test ":repeat_until_failure repeats tests up to the configured number of times" do
+    test "repeats tests up to the configured number of times" do
       defmodule TestRepeatUntilFailureReached do
         use ExUnit.Case
 
@@ -962,12 +992,12 @@ defmodule ExUnitTest do
           assert ExUnit.run() == %{total: 5, failures: 0, skipped: 1, excluded: 1}
         end)
 
-      runs = String.split(output, "Excluding", trim: true)
+      runs = String.split(output, "Running ExUnit", trim: true)
       # 6 runs in total, 5 repeats
       assert length(runs) == 6
     end
 
-    test ":repeat_until_failure stops on failure" do
+    test "stops on failure" do
       {:ok, pid} = Agent.start_link(fn -> 0 end)
       Process.register(pid, :ex_unit_repeat_until_failure_count)
 
@@ -1002,7 +1032,7 @@ defmodule ExUnitTest do
           assert ExUnit.run() == %{total: 4, excluded: 2, failures: 1, skipped: 1}
         end)
 
-      runs = String.split(output, "Excluding", trim: true)
+      runs = String.split(output, "Running ExUnit", trim: true)
       # four runs in total, the first two repeats work fine, the third repeat (4th run)
       # fails, therefore we stop
       assert length(runs) == 4
@@ -1032,10 +1062,89 @@ defmodule ExUnitTest do
     assert output =~ "2 tests, 0 failures, 2 excluded\n"
   end
 
+  test "tests are run in compile order (FIFO)" do
+    defmodule FirstTestFIFO do
+      use ExUnit.Case
+
+      test "first test" do
+        assert true
+      end
+    end
+
+    defmodule SecondTestFIFO do
+      use ExUnit.Case
+
+      test "second test" do
+        assert true
+      end
+    end
+
+    defmodule ThirdTestFIFO do
+      use ExUnit.Case
+
+      test "third test" do
+        assert true
+      end
+    end
+
+    configure_and_reload_on_exit(trace: true)
+
+    output =
+      capture_io(fn ->
+        assert ExUnit.run() == %{total: 3, failures: 0, excluded: 0, skipped: 0}
+      end)
+
+    [_, first, second, third | _] = String.split(output, "\n\n")
+
+    assert first =~ "FirstTestFIFO"
+    assert second =~ "SecondTestFIFO"
+    assert third =~ "ThirdTestFIFO"
+  end
+
+  test "can filter async tests" do
+    defmodule FirstTestAsyncTrue do
+      use ExUnit.Case, async: true
+
+      test "first test" do
+        assert true
+      end
+    end
+
+    defmodule SecondTestAsyncTrue do
+      use ExUnit.Case, async: true
+
+      test "second test" do
+        assert true
+      end
+    end
+
+    defmodule FirstTestAsyncFalse do
+      use ExUnit.Case, async: false
+
+      test "first test" do
+        assert true
+      end
+    end
+
+    assert {%{failures: 0, skipped: 0, total: 3, excluded: 1}, _} =
+             run_with_filter([include: [async: true], exclude: [:test]], [])
+
+    assert {%{failures: 0, skipped: 0, total: 3, excluded: 2}, _} =
+             run_with_filter([include: [async: false], exclude: [:test]], [
+               FirstTestAsyncTrue,
+               SecondTestAsyncTrue,
+               FirstTestAsyncFalse
+             ])
+  end
+
   ##  Helpers
 
   defp run_with_filter(filters, cases) do
-    Enum.each(cases, &ExUnit.Server.add_sync_module/1)
+    Enum.each(cases, fn mod ->
+      [config] = mod.__info__(:attributes) |> Keyword.fetch!(:ex_unit_module)
+      ExUnit.Server.add_module(mod, config)
+    end)
+
     ExUnit.Server.modules_loaded(false)
 
     opts =

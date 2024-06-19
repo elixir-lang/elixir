@@ -961,6 +961,36 @@ defmodule Keyword do
   end
 
   @doc """
+  Intersects two keyword lists, returning a keyword with the common keys.
+
+  By default, it returns the values of the intersected keys in `keyword2`.
+  The keys are returned in the order found in `keyword1`.
+
+  ## Examples
+
+      iex> Keyword.intersect([a: 1, b: 2], [b: "b", c: "c"])
+      [b: "b"]
+
+      iex> Keyword.intersect([a: 1, b: 2], [b: 2, c: 3], fn _k, v1, v2 ->
+      ...>   v1 + v2
+      ...> end)
+      [b: 4]
+
+  """
+  @doc since: "1.17.0"
+  @spec intersect(keyword, keyword, (key, value, value -> value)) :: keyword
+  def intersect(keyword1, keyword2, fun \\ fn _key, _v1, v2 -> v2 end)
+
+  def intersect([{k, v1} | keyword1], keyword2, fun) do
+    case :lists.keyfind(k, 1, keyword2) do
+      {_, v2} -> [{k, fun.(k, v1, v2)} | intersect(keyword1, keyword2, fun)]
+      false -> intersect(keyword1, keyword2, fun)
+    end
+  end
+
+  def intersect([], _keyword2, _fun), do: []
+
+  @doc """
   Merges two keyword lists into one.
 
   Adds all keys, including duplicate keys, given in `keywords2`

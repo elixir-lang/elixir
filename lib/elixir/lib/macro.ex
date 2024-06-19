@@ -495,10 +495,8 @@ defmodule Macro do
   """
   @doc since: "1.11.3"
   @spec generate_unique_arguments(0, context :: atom) :: []
-  @spec generate_unique_arguments(pos_integer, context) :: [
-          {atom, [counter: integer], context},
-          ...
-        ]
+  @spec generate_unique_arguments(pos_integer, context) ::
+          [{atom, [counter: integer], context}, ...]
         when context: atom
   def generate_unique_arguments(amount, context),
     do: generate_arguments(amount, context, &unique_var/2)
@@ -779,7 +777,7 @@ defmodule Macro do
   ## Options
 
     * `:unquote` - when true, this function leaves `unquote/1` and
-      `unquote_splicing/1` statements unescaped, effectively unquoting
+      `unquote_splicing/1` expressions unescaped, effectively unquoting
       the contents on escape. This option is useful only when escaping
       ASTs which may have quoted fragments in them. Defaults to false.
 
@@ -1484,7 +1482,7 @@ defmodule Macro do
     :error
   end
 
-  defp op_call({:"..//", _, [left, middle, right]} = ast, fun) do
+  defp op_call({:..//, _, [left, middle, right]} = ast, fun) do
     left = op_to_string(left, fun, :.., :left)
     middle = op_to_string(middle, fun, :.., :right)
     right = op_to_string(right, fun, :"//", :right)
@@ -1871,8 +1869,11 @@ defmodule Macro do
       {:function, _receiver, _name} ->
         {original, false}
 
-      :error ->
+      {:error, :not_found} ->
         {original, false}
+
+      {:error, other} ->
+        :elixir_errors.file_error(meta, env, :elixir_dispatch, {:import, other, name, arity})
     end
   end
 
@@ -1932,7 +1933,7 @@ defmodule Macro do
   @spec operator?(name :: atom(), arity()) :: boolean()
   def operator?(name, arity)
 
-  def operator?(:"..//", 3),
+  def operator?(:..//, 3),
     do: true
 
   # Code.Identifier treats :// as a binary operator for precedence
@@ -2451,7 +2452,7 @@ defmodule Macro do
   #
   defp inner_classify(atom) when is_atom(atom) do
     cond do
-      atom in [:%, :%{}, :{}, :<<>>, :..., :.., :., :"..//", :->] ->
+      atom in [:%, :%{}, :{}, :<<>>, :..., :.., :., :..//, :->] ->
         :not_callable
 
       # <|>, ^^^, and ~~~ are deprecated
@@ -2549,13 +2550,13 @@ defmodule Macro do
     header = dbg_format_header(env)
 
     quote do
-      to_debug = unquote(dbg_ast_to_debuggable(code))
+      to_debug = unquote(dbg_ast_to_debuggable(code, env))
       unquote(__MODULE__).__dbg__(unquote(header), to_debug, unquote(options))
     end
   end
 
   # Pipelines.
-  defp dbg_ast_to_debuggable({:|>, _meta, _args} = pipe_ast) do
+  defp dbg_ast_to_debuggable({:|>, _meta, _args} = pipe_ast, _env) do
     value_var = unique_var(:value, __MODULE__)
     values_acc_var = unique_var(:values, __MODULE__)
 
@@ -2588,7 +2589,7 @@ defmodule Macro do
   dbg_decomposed_binary_operators = [:&&, :||, :and, :or]
 
   # Logic operators.
-  defp dbg_ast_to_debuggable({op, _meta, [_left, _right]} = ast)
+  defp dbg_ast_to_debuggable({op, _meta, [_left, _right]} = ast, _env)
        when op in unquote(dbg_decomposed_binary_operators) do
     acc_var = unique_var(:acc, __MODULE__)
     result_var = unique_var(:result, __MODULE__)
@@ -2596,11 +2597,22 @@ defmodule Macro do
     quote do
       unquote(acc_var) = []
       unquote(dbg_boolean_tree(ast, acc_var, result_var))
-      {:logic_op, Enum.reverse(unquote(acc_var))}
+      {:logic_op, Enum.reverse(unquote(acc_var)), unquote(result_var)}
     end
   end
 
-  defp dbg_ast_to_debuggable({:case, _meta, [expr, [do: clauses]]} = ast) do
+  defp dbg_ast_to_debuggable({:__block__, _meta, exprs} = ast, _env) when exprs != [] do
+    acc_var = unique_var(:acc, __MODULE__)
+    result_var = unique_var(:result, __MODULE__)
+
+    quote do
+      unquote(acc_var) = []
+      unquote(dbg_block(ast, acc_var, result_var))
+      {:block, Enum.reverse(unquote(acc_var)), unquote(result_var)}
+    end
+  end
+
+  defp dbg_ast_to_debuggable({:case, _meta, [expr, [do: clauses]]} = ast, _env) do
     clauses_returning_index =
       Enum.with_index(clauses, fn {:->, meta, [left, right]}, index ->
         {:->, meta, [left, {right, index}]}
@@ -2618,7 +2630,7 @@ defmodule Macro do
     end
   end
 
-  defp dbg_ast_to_debuggable({:cond, _meta, [[do: clauses]]} = ast) do
+  defp dbg_ast_to_debuggable({:cond, _meta, [[do: clauses]]} = ast, _env) do
     modified_clauses =
       Enum.with_index(clauses, fn {:->, _meta, [[left], right]}, index ->
         hd(
@@ -2639,8 +2651,27 @@ defmodule Macro do
     end
   end
 
+  defp dbg_ast_to_debuggable({op, meta, [condition_ast, clauses]} = ast, env)
+       when op in [:if, :unless] do
+    case Macro.Env.lookup_import(env, {op, 2}) do
+      [macro: Kernel] ->
+        condition_result_var = unique_var(:condition_result, __MODULE__)
+
+        quote do
+          unquote(condition_result_var) = unquote(condition_ast)
+          result = unquote({op, meta, [condition_result_var, clauses]})
+
+          {unquote(op), unquote(escape(ast)), unquote(escape(condition_ast)),
+           unquote(condition_result_var), result}
+        end
+
+      _ ->
+        quote do: {:value, unquote(escape(ast)), unquote(ast)}
+    end
+  end
+
   # Any other AST.
-  defp dbg_ast_to_debuggable(ast) do
+  defp dbg_ast_to_debuggable(ast, _env) do
     quote do: {:value, unquote(escape(ast)), unquote(ast)}
   end
 
@@ -2669,6 +2700,18 @@ defmodule Macro do
       unquote(acc_var) = [{unquote(escape(ast)), unquote(result_var)} | unquote(acc_var)]
       unquote(result_var)
     end
+  end
+
+  defp dbg_block({:__block__, meta, exprs}, acc_var, result_var) do
+    modified_exprs =
+      Enum.map(exprs, fn expr ->
+        quote do
+          unquote(result_var) = unquote(expr)
+          unquote(acc_var) = [{unquote(escape(expr)), unquote(result_var)} | unquote(acc_var)]
+        end
+      end)
+
+    {:__block__, meta, modified_exprs}
   end
 
   # Made public to be called from Macro.dbg/3, so that we generate as little code
@@ -2708,15 +2751,27 @@ defmodule Macro do
     {[first_formatted | rest_formatted], result}
   end
 
-  defp dbg_format_ast_to_debug({:logic_op, components}, options) do
-    {_ast, final_value} = List.last(components)
-
+  defp dbg_format_ast_to_debug({:logic_op, components, value}, options) do
     formatted =
       Enum.map(components, fn {ast, value} ->
         [dbg_format_ast(to_string_with_colors(ast, options)), " ", inspect(value, options), ?\n]
       end)
 
-    {formatted, final_value}
+    {formatted, value}
+  end
+
+  defp dbg_format_ast_to_debug({:block, components, value}, options) do
+    formatted =
+      [
+        dbg_maybe_underline("Code block", options),
+        ":\n(\n",
+        Enum.map(components, fn {ast, value} ->
+          ["  ", dbg_format_ast_with_value(ast, value, options)]
+        end),
+        ")\n"
+      ]
+
+    {formatted, value}
   end
 
   defp dbg_format_ast_to_debug({:case, ast, expr_value, clause_index, value}, options) do
@@ -2750,6 +2805,26 @@ defmodule Macro do
     ]
 
     {formatted, value}
+  end
+
+  defp dbg_format_ast_to_debug(
+         {op, ast, condition_ast, condition_result, result},
+         options
+       )
+       when op in [:if, :unless] do
+    op_name = String.capitalize(Atom.to_string(op))
+
+    formatted = [
+      dbg_maybe_underline("#{op_name} condition", options),
+      ":\n",
+      dbg_format_ast_with_value(condition_ast, condition_result, options),
+      ?\n,
+      dbg_maybe_underline("#{op_name} expression", options),
+      ":\n",
+      dbg_format_ast_with_value(ast, result, options)
+    ]
+
+    {formatted, result}
   end
 
   defp dbg_format_ast_to_debug({:value, code_ast, value}, options) do

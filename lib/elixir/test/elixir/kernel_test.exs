@@ -11,8 +11,8 @@ defmodule KernelTest do
   def empty_map, do: %{}
 
   defp purge(module) do
-    :code.delete(module)
     :code.purge(module)
+    :code.delete(module)
   end
 
   defp assert_eval_raise(error, msg, string) do
@@ -365,6 +365,29 @@ defmodule KernelTest do
     assert struct_or_map?(%{}, "foo") == false
     assert struct_or_map?(%{}, Macro.Env) == true
     assert struct_or_map?(%Macro.Env{}, Macro.Env) == true
+  end
+
+  defp non_struct_map?(arg) when is_non_struct_map(arg), do: true
+  defp non_struct_map?(_arg), do: false
+
+  defp non_struct_map_or_struct?(arg) when is_non_struct_map(arg) or is_struct(arg), do: true
+  defp non_struct_map_or_struct?(_arg), do: false
+
+  test "is_non_struct_map/1" do
+    assert is_non_struct_map(%{}) == true
+    assert is_non_struct_map([]) == false
+    assert is_non_struct_map(%Macro.Env{}) == false
+    assert is_non_struct_map(%{__struct__: "foo"}) == true
+    assert non_struct_map?(%Macro.Env{}) == false
+    assert non_struct_map?(%{__struct__: "foo"}) == true
+    assert non_struct_map?([]) == false
+    assert non_struct_map?(%{}) == true
+  end
+
+  test "is_non_struct_map/1 and other match works" do
+    assert non_struct_map_or_struct?(%Macro.Env{}) == true
+    assert non_struct_map_or_struct?(%{}) == true
+    assert non_struct_map_or_struct?(10) == false
   end
 
   defp exception?(arg) when is_exception(arg), do: true

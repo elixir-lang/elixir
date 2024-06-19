@@ -36,6 +36,7 @@ defmodule Mix.Tasks.Test do
   a summary at the end, as seen below:
 
       $ mix test
+      Running ExUnit with seed: 646219, max_cases: 16
       ...
 
         1) test greets the world (FooTest)
@@ -51,8 +52,6 @@ defmodule Mix.Tasks.Test do
 
       Finished in 0.05 seconds (0.00s async, 0.05s sync)
       1 doctest, 11 tests, 1 failure
-
-      Randomized with seed 646219
 
   For each test, the test suite will print a dot. Failed tests
   are printed immediately in the format described in the next
@@ -147,6 +146,9 @@ defmodule Mix.Tasks.Test do
     * `--max-failures` - the suite stops evaluating tests when this number of test
       failures is reached. It runs all tests if omitted
 
+    * `--max-requires` - sets the maximum number of test files to compile in parallel.
+      Setting this to 1 will compile test files sequentially.
+
     * `--no-archives-check` - does not check archives
 
     * `--no-color` - disables color in the output
@@ -222,7 +224,7 @@ defmodule Mix.Tasks.Test do
       and docs chunk
 
     * `:test_paths` - list of paths containing test files. Defaults to
-      `["test"]` if the `test` directory exists; otherwise, it defaults to `[]`.
+      `["test"]` if the `test` directory exists, otherwise, it defaults to `[]`.
       It is expected that all test paths contain a `test_helper.exs` file
 
     * `:test_pattern` - a pattern to load test files. Defaults to `*_test.exs`
@@ -440,6 +442,7 @@ defmodule Mix.Tasks.Test do
     trace: :boolean,
     max_cases: :integer,
     max_failures: :integer,
+    max_requires: :integer,
     include: :keep,
     exclude: :keep,
     seed: :integer,
@@ -692,7 +695,7 @@ defmodule Mix.Tasks.Test do
     :colors,
     :slowest,
     :slowest_modules,
-    :failures_manifest_file,
+    :failures_manifest_path,
     :only_test_ids,
     :test_location_relative_path,
     :exit_status,
@@ -774,8 +777,14 @@ defmodule Mix.Tasks.Test do
   @manifest_file_name ".mix_test_failures"
 
   defp manifest_opts(opts) do
-    manifest_file = Path.join(Mix.Project.manifest_path(), @manifest_file_name)
-    opts = Keyword.put(opts, :failures_manifest_file, manifest_file)
+    opts =
+      Keyword.put_new(
+        opts,
+        :failures_manifest_path,
+        Path.join(Mix.Project.manifest_path(), @manifest_file_name)
+      )
+
+    manifest_file = Keyword.get(opts, :failures_manifest_path)
 
     if opts[:failed] do
       if opts[:stale] do

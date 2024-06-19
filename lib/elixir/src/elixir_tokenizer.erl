@@ -138,12 +138,12 @@ tokenize(String, Line, Opts) ->
 tokenize([], Line, Column, #elixir_tokenizer{cursor_completion=Cursor} = Scope, Tokens) when Cursor /= false ->
   #elixir_tokenizer{ascii_identifiers_only=Ascii, terminators=Terminators, warnings=Warnings} = Scope,
 
-  {CursorColumn, CursorTerminators, CursorTokens} =
+  {CursorColumn, CursorTerminators, AccTokens} =
     add_cursor(Line, Column, Cursor, Terminators, Tokens),
 
   AllWarnings = maybe_unicode_lint_warnings(Ascii, Tokens, Warnings),
-  AccTokens = cursor_complete(Line, CursorColumn, CursorTerminators, CursorTokens),
-  {ok, Line, Column, AllWarnings, AccTokens};
+  {AccTerminators, _AccColumn} = cursor_complete(Line, CursorColumn, CursorTerminators),
+  {ok, Line, CursorColumn, AllWarnings, AccTokens, AccTerminators};
 
 tokenize([], EndLine, EndColumn, #elixir_tokenizer{terminators=[{Start, {StartLine, StartColumn, _}, _} | _]} = Scope, Tokens) ->
   End = terminator(Start),
@@ -163,7 +163,7 @@ tokenize([], EndLine, EndColumn, #elixir_tokenizer{terminators=[{Start, {StartLi
 tokenize([], Line, Column, #elixir_tokenizer{} = Scope, Tokens) ->
   #elixir_tokenizer{ascii_identifiers_only=Ascii, warnings=Warnings} = Scope,
   AllWarnings = maybe_unicode_lint_warnings(Ascii, Tokens, Warnings),
-  {ok, Line, Column, AllWarnings, lists:reverse(Tokens)};
+  {ok, Line, Column, AllWarnings, Tokens, []};
 
 % VC merge conflict
 
@@ -629,7 +629,8 @@ tokenize([$%, $[ | Rest], Line, Column, Scope, Tokens) ->
   error(Reason, Rest, Scope, Tokens);
 
 tokenize([$%, ${ | T], Line, Column, Scope, Tokens) ->
-  tokenize([${ | T], Line, Column + 1, Scope, [{'%{}', {Line, Column, nil}} | Tokens]);
+  Token = {'{', {Line, Column, nil}},
+  handle_terminator(T, Line, Column + 2, Scope, Token, [{'%{}', {Line, Column, nil}} | Tokens]);
 
 tokenize([$% | T], Line, Column, Scope, Tokens) ->
   tokenize(T, Line, Column + 1, Scope, [{'%', {Line, Column, nil}} | Tokens]);
@@ -1559,19 +1560,32 @@ tokenize_sigil([$~ | T], Line, Column, Scope, Tokens) ->
   end.
 
 % A one-letter sigil is ok both as upcase as well as downcase.
-tokenize_sigil_name([S | T], [], Line, Column, Scope, Tokens) when ?is_upcase(S) orelse ?is_downcase(S) ->
-  tokenize_sigil_name(T, [S], Line, Column + 1, Scope, Tokens);
-% If we have an uppercase letter, we keep tokenizing the name.
-tokenize_sigil_name([S | T], NameAcc, Line, Column, Scope, Tokens) when ?is_upcase(S) ->
-  tokenize_sigil_name(T, [S | NameAcc], Line, Column + 1, Scope, Tokens);
-% With a lowercase letter and a non-empty NameAcc we return an error.
-tokenize_sigil_name([S | _T] = Original, [_ | _] = NameAcc, _Line, _Column, _Scope, _Tokens) when ?is_downcase(S) ->
-  Message = "invalid sigil name, it should be either a one-letter lowercase letter or a" ++
-            " sequence of uppercase letters only, got: ",
-  {error, Message, [$~] ++ lists:reverse(NameAcc) ++ Original};
-% We finished the letters, so the name is over.
-tokenize_sigil_name(T, NameAcc, Line, Column, Scope, Tokens) ->
+tokenize_sigil_name([S | T], [], Line, Column, Scope, Tokens) when ?is_downcase(S) ->
+  tokenize_lower_sigil_name(T, [S], Line, Column + 1, Scope, Tokens);
+tokenize_sigil_name([S | T], [], Line, Column, Scope, Tokens) when ?is_upcase(S) ->
+    tokenize_upper_sigil_name(T, [S], Line, Column + 1, Scope, Tokens).
+
+tokenize_lower_sigil_name([S | _T] = Original, [_ | _] = NameAcc, _Line, _Column, _Scope, _Tokens) when ?is_downcase(S) ->
+  SigilName = lists:reverse(NameAcc) ++ Original,
+  {error, sigil_name_error(), [$~] ++ SigilName};
+tokenize_lower_sigil_name(T, NameAcc, Line, Column, Scope, Tokens) ->
   {ok, lists:reverse(NameAcc), T, Line, Column, Scope, Tokens}.
+
+% If we have an uppercase letter, we keep tokenizing the name.
+% A digit is allowed but an uppercase letter or digit must proceed it.
+tokenize_upper_sigil_name([S | T], NameAcc, Line, Column, Scope, Tokens) when ?is_upcase(S); ?is_digit(S) ->
+  tokenize_upper_sigil_name(T, [S | NameAcc], Line, Column + 1, Scope, Tokens);
+% With a lowercase letter and a non-empty NameAcc we return an error.
+tokenize_upper_sigil_name([S | _T] = Original, [_ | _] = NameAcc, _Line, _Column, _Scope, _Tokens) when ?is_downcase(S) ->
+  SigilName = lists:reverse(NameAcc) ++ Original,
+  {error,  sigil_name_error(), [$~] ++ SigilName};
+% We finished the letters, so the name is over.
+tokenize_upper_sigil_name(T, NameAcc, Line, Column, Scope, Tokens) ->
+  {ok, lists:reverse(NameAcc), T, Line, Column, Scope, Tokens}.
+
+sigil_name_error() ->
+  "invalid sigil name, it should be either a one-letter lowercase letter or an " ++
+  "uppercase letter optionally followed by uppercase letters and digits, got: ".
 
 tokenize_sigil_contents([H, H, H | T] = Original, [S | _] = SigilName, Line, Column, Scope, Tokens)
     when ?is_quote(H) ->
@@ -1728,19 +1742,15 @@ error(Reason, Rest, #elixir_tokenizer{warnings=Warnings}, Tokens) ->
 
 %% Cursor handling
 
-cursor_complete(Line, Column, Terminators, Tokens) ->
-  {AccTokens, _} =
-    lists:foldl(
-      fun({Start, _, _}, {NewTokens, NewColumn}) ->
-        End = terminator(Start),
-        AccTokens = [{End, {Line, NewColumn, nil}} | NewTokens],
-        AccColumn = NewColumn + length(erlang:atom_to_list(End)),
-        {AccTokens, AccColumn}
-      end,
-      {Tokens, Column},
-      Terminators
-    ),
-  lists:reverse(AccTokens).
+cursor_complete(Line, Column, Terminators) ->
+  lists:mapfoldl(
+    fun({Start, _, _}, AccColumn) ->
+      End = terminator(Start),
+      {{End, {Line, AccColumn, nil}}, AccColumn + length(erlang:atom_to_list(End))}
+    end,
+    Column,
+    Terminators
+  ).
 
 add_cursor(_Line, Column, noprune, Terminators, Tokens) ->
   {Column, Terminators, Tokens};
@@ -1783,8 +1793,6 @@ prune_tokens([{'{', _} | Tokens], ['}' | Opener], Terminators) ->
 prune_tokens([{'<<', _} | Tokens], ['>>' | Opener], Terminators) ->
   prune_tokens(Tokens, Opener, Terminators);
 %%% Handle anonymous functions
-prune_tokens(Tokens, [], [{'fn', _, _} | Terminators]) ->
-  prune_tokens(drop_including(Tokens, 'fn'), [], Terminators);
 prune_tokens([{'(', _}, {capture_op, _, _} | Tokens], [], [{'(', _, _} | Terminators]) ->
   prune_tokens(Tokens, [], Terminators);
 %%% or it is time to stop...
@@ -1793,6 +1801,8 @@ prune_tokens([{';', _} | _] = Tokens, [], Terminators) ->
 prune_tokens([{'eol', _} | _] = Tokens, [], Terminators) ->
   {Tokens, Terminators};
 prune_tokens([{',', _} | _] = Tokens, [], Terminators) ->
+  {Tokens, Terminators};
+prune_tokens([{'fn', _} | _] = Tokens, [], Terminators) ->
   {Tokens, Terminators};
 prune_tokens([{'do', _} | _] = Tokens, [], Terminators) ->
   {Tokens, Terminators};
@@ -1827,7 +1837,3 @@ prune_tokens([_ | Tokens], Opener, Terminators) ->
   prune_tokens(Tokens, Opener, Terminators);
 prune_tokens([], [], Terminators) ->
   {[], Terminators}.
-
-drop_including([{Token, _} | Tokens], Token) -> Tokens;
-drop_including([_ | Tokens], Token) -> drop_including(Tokens, Token);
-drop_including([], _Token) -> [].

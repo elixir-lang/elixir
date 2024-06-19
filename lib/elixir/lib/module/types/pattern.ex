@@ -4,61 +4,22 @@ defmodule Module.Types.Pattern do
   alias Module.Types.Of
   import Module.Types.{Helpers, Descr}
 
-  @expected_expr {dynamic(), nil}
+  @guard atom([true, false, :fail])
 
   @doc """
   Handles patterns and guards at once.
   """
-  def of_head(patterns, guards, stack, context) do
+  # TODO: The expected types for patterns/guards must always given as arguments.
+  # Meanwhile, it is hardcoded to dynamic.
+  def of_head(patterns, guards, meta, stack, context) do
+    pattern_stack = %{stack | meta: meta}
+
     with {:ok, types, context} <-
-           map_reduce_ok(patterns, context, &of_pattern(&1, stack, &2)),
-         # TODO: Check that of_guard/4 returns boolean() | :fail
-         {:ok, _, context} <- of_guards(guards, {term(), nil}, stack, context),
+           map_reduce_ok(patterns, context, &of_pattern(&1, pattern_stack, &2)),
+         {:ok, _, context} <-
+           map_reduce_ok(guards, context, &of_guard(&1, {@guard, &1}, stack, &2)),
          do: {:ok, types, context}
   end
-
-  ## Variable handling
-
-  @doc """
-  Fetches the type of a defined variable.
-  """
-  def of_var({_name, meta, _context}, context) do
-    version = Keyword.fetch!(meta, :version)
-    %{vars: %{^version => %{type: type}}} = context
-    type
-  end
-
-  defp refine_var({var_name, meta, var_context} = var, type, expr, stack, context) do
-    version = Keyword.fetch!(meta, :version)
-
-    case context.vars do
-      %{^version => %{type: old_type, off_traces: off_traces} = data} ->
-        new_type = intersection(type, old_type)
-        data = %{data | type: new_type, off_traces: new_trace(expr, type, stack, off_traces)}
-        context = put_in(context.vars[version], data)
-
-        if empty?(new_type) do
-          {:error,
-           warn(__MODULE__, {:refine_var, old_type, type, var, context}, meta, stack, context)}
-        else
-          {:ok, new_type, context}
-        end
-
-      %{} ->
-        data = %{
-          type: type,
-          name: var_name,
-          context: var_context,
-          off_traces: new_trace(expr, type, stack, [])
-        }
-
-        context = put_in(context.vars[version], data)
-        {:ok, type, context}
-    end
-  end
-
-  defp new_trace(nil, _type, _stack, traces), do: traces
-  defp new_trace(expr, type, stack, traces), do: [{expr, stack.file, type} | traces]
 
   ## Patterns
 
@@ -68,117 +29,220 @@ defmodule Module.Types.Pattern do
   whenever possible as it adds more context to errors.
   """
   def of_pattern(expr, stack, context) do
-    of_pattern(expr, @expected_expr, stack, context)
+    # TODO: Remove the hardcoding of dynamic
+    of_pattern(expr, {dynamic(), expr}, stack, context)
   end
 
   @doc """
   Return the type and typing context of a pattern expression with
-  the given {expected, expr} pair  or an error in case of a typing conflict.
+  the given {expected, expr} pair or an error in case of a typing conflict.
   """
 
   # ^var
-  def of_pattern({:^, _meta, [var]}, _expected_expr, _stack, context) do
-    {:ok, of_var(var, context), context}
+  def of_pattern({:^, _meta, [var]}, expected_expr, stack, context) do
+    Of.intersect(Of.var(var, context), expected_expr, stack, context)
   end
 
   # left = right
-  def of_pattern({:=, _meta, [left_expr, right_expr]}, expected_expr, stack, context) do
-    with {:ok, _, context} <- of_pattern(left_expr, expected_expr, stack, context),
-         {:ok, _, context} <- of_pattern(right_expr, expected_expr, stack, context),
-         do: {:ok, dynamic(), context}
-  end
+  # TODO: Track variables and handle nesting
+  def of_pattern({:=, _meta, [left_expr, right_expr]}, {expected, expr}, stack, context) do
+    case {is_var(left_expr), is_var(right_expr)} do
+      {true, false} ->
+        with {:ok, type, context} <- of_pattern(right_expr, {expected, expr}, stack, context) do
+          of_pattern(left_expr, {type, expr}, stack, context)
+        end
 
-  # %_{...}
-  def of_pattern(
-        {:%, _meta1, [{:_, _meta2, var_context}, {:%{}, _meta3, args}]},
-        _expected_expr,
-        stack,
-        context
-      )
-      when is_atom(var_context) do
-    with {:ok, _, context} <- Of.open_map(args, stack, context, &of_pattern/3) do
-      {:ok, open_map(), context}
+      {false, true} ->
+        with {:ok, type, context} <- of_pattern(left_expr, {expected, expr}, stack, context) do
+          of_pattern(right_expr, {type, expr}, stack, context)
+        end
+
+      {_, _} ->
+        with {:ok, _, context} <- of_pattern(left_expr, {expected, expr}, stack, context),
+             {:ok, _, context} <- of_pattern(right_expr, {expected, expr}, stack, context),
+             do: {:ok, dynamic(), context}
     end
   end
 
   # %var{...} and %^var{...}
-  def of_pattern({:%, _meta1, [var, {:%{}, _meta2, args}]}, _expected_expr, stack, context)
-      when not is_atom(var) do
-    # TODO: validate var is an atom
-    with {:ok, _, context} = of_pattern(var, stack, context),
-         {:ok, _, context} <- Of.open_map(args, stack, context, &of_pattern/3) do
-      {:ok, open_map(), context}
+  def of_pattern(
+        {:%, _meta, [struct_var, {:%{}, _meta2, args}]} = expr,
+        expected_expr,
+        stack,
+        context
+      )
+      when not is_atom(struct_var) do
+    with {:ok, struct_type, context} <-
+           of_pattern(struct_var, {atom(), expr}, %{stack | refine: false}, context),
+         {:ok, map_type, context} <-
+           of_open_map(args, [__struct__: struct_type], expected_expr, stack, context),
+         {_, struct_type} = map_fetch(map_type, :__struct__),
+         {:ok, _struct_type, context} <-
+           of_pattern(struct_var, {struct_type, expr}, stack, context) do
+      {:ok, map_type, context}
     end
   end
 
   # %Struct{...}
-  def of_pattern({:%, meta1, [module, {:%{}, _meta2, args}]}, _expected_expr, stack, context)
+  def of_pattern({:%, _meta, [module, {:%{}, _, args}]} = expr, expected_expr, stack, context)
       when is_atom(module) do
-    with {:ok, _, context} <- Of.struct(module, meta1, stack, context),
-         {:ok, _, context} <- Of.open_map(args, stack, context, &of_pattern/3) do
-      {:ok, open_map(), context}
+    with {:ok, actual, context} <-
+           Of.struct(expr, module, args, :merge_defaults, stack, context, &of_pattern/3) do
+      Of.intersect(actual, expected_expr, stack, context)
     end
   end
 
   # %{...}
-  def of_pattern({:%{}, _meta, args}, _expected_expr, stack, context) do
-    Of.open_map(args, stack, context, &of_pattern/3)
+  def of_pattern({:%{}, _meta, args}, expected_expr, stack, context) do
+    of_open_map(args, [], expected_expr, stack, context)
   end
 
   # <<...>>>
   def of_pattern({:<<>>, _meta, args}, _expected_expr, stack, context) do
     case Of.binary(args, :pattern, stack, context, &of_pattern/4) do
       {:ok, context} -> {:ok, binary(), context}
-      {:error, reason} -> {:error, reason}
+      {:error, context} -> {:error, context}
     end
   end
 
   # _
-  def of_pattern({:_, _meta, _var_context}, {type, _expr}, _stack, context) do
-    {:ok, type, context}
+  def of_pattern({:_, _meta, _var_context}, {expected, _expr}, _stack, context) do
+    {:ok, expected, context}
   end
 
   # var
-  def of_pattern(var, {type, expr}, stack, context) when is_var(var) do
-    refine_var(var, type, expr, stack, context)
+  def of_pattern({name, meta, ctx} = var, {expected, expr}, stack, context)
+      when is_atom(name) and is_atom(ctx) do
+    case stack do
+      %{refine: true} ->
+        Of.refine_var(var, expected, expr, stack, context)
+
+      %{refine: false} ->
+        version = Keyword.fetch!(meta, :version)
+
+        case context do
+          %{vars: %{^version => %{type: type}}} ->
+            Of.intersect(type, {expected, expr}, stack, context)
+
+          %{} ->
+            {:ok, expected, context}
+        end
+    end
   end
 
   def of_pattern(expr, expected_expr, stack, context) do
     of_shared(expr, expected_expr, stack, context, &of_pattern/4)
   end
 
+  # TODO: Track variables inside the map (mirror it with %var{} handling)
+  defp of_open_map(args, extra, expected_expr, stack, context) do
+    result =
+      reduce_ok(args, {[], context}, fn {key, value}, {fields, context} ->
+        with {:ok, value_type, context} <- of_pattern(value, stack, context) do
+          if is_atom(key) do
+            {:ok, {[{key, value_type} | fields], context}}
+          else
+            {:ok, {fields, context}}
+          end
+        end
+      end)
+
+    with {:ok, {fields, context}} <- result do
+      Of.intersect(open_map(extra ++ fields), expected_expr, stack, context)
+    end
+  end
+
   @doc """
   Refines the type variables in the typing context using type check guards
   such as `is_integer/1`.
   """
-  # TODO: All expressions in of_pattern plus functions calls are not handled
-  # by of_guards. There is a question of how much of of_shared can also be
-  # shared with of_expr, but still unclear. In the worst case scenario,
-  # Of.literal() could be added for pattern, guards, and expr.
-  def of_guards(_expr, _expected_expr, _stack, context) do
-    {:ok, dynamic(), context}
+
+  def of_guard(expr, stack, context) do
+    of_guard(expr, {dynamic(), expr}, stack, context)
+  end
+
+  # %Struct{...}
+  def of_guard({:%, _, [module, {:%{}, _, args}]} = expr, _expected_expr, stack, context)
+      when is_atom(module) do
+    Of.struct(expr, module, args, :skip_defaults, stack, context, &of_guard/3)
+  end
+
+  # %{...}
+  def of_guard({:%{}, _meta, args}, _expected_expr, stack, context) do
+    Of.closed_map(args, stack, context, &of_guard/3)
+  end
+
+  # <<>>
+  def of_guard({:<<>>, _meta, args}, _expected_expr, stack, context) do
+    case Of.binary(args, :expr, stack, context, &of_guard/4) do
+      {:ok, context} -> {:ok, binary(), context}
+      # It is safe to discard errors from binary inside expressions
+      {:error, context} -> {:ok, binary(), context}
+    end
+  end
+
+  # var.field
+  def of_guard({{:., _, [callee, key]}, _, []} = expr, _expected_expr, stack, context)
+      when not is_atom(callee) do
+    with {:ok, type, context} <- of_guard(callee, stack, context) do
+      Of.map_fetch(expr, type, key, stack, context)
+    end
+  end
+
+  # Remote
+  def of_guard({{:., _, [:erlang, function]}, _, args} = expr, _expected_expr, stack, context)
+      when is_atom(function) do
+    with {:ok, args_type, context} <-
+           map_reduce_ok(args, context, &of_guard(&1, stack, &2)) do
+      Of.apply(:erlang, function, args_type, expr, stack, context)
+    end
+  end
+
+  # var
+  def of_guard(var, _expected_expr, _stack, context) when is_var(var) do
+    {:ok, Of.var(var, context), context}
+  end
+
+  def of_guard(expr, expected_expr, stack, context) do
+    of_shared(expr, expected_expr, stack, context, &of_guard/4)
   end
 
   ## Shared
 
   # :atom
-  defp of_shared(atom, _expected_expr, _stack, context, _fun) when is_atom(atom) do
-    {:ok, atom([atom]), context}
+  defp of_shared(atom, {expected, expr}, stack, context, _fun) when is_atom(atom) do
+    if atom_type?(expected, atom) do
+      {:ok, atom([atom]), context}
+    else
+      {:error, Of.incompatible_warn(expr, expected, atom([atom]), stack, context)}
+    end
   end
 
   # 12
-  defp of_shared(literal, _expected_expr, _stack, context, _fun) when is_integer(literal) do
-    {:ok, integer(), context}
+  defp of_shared(literal, {expected, expr}, stack, context, _fun) when is_integer(literal) do
+    if integer_type?(expected) do
+      {:ok, integer(), context}
+    else
+      {:error, Of.incompatible_warn(expr, expected, integer(), stack, context)}
+    end
   end
 
   # 1.2
-  defp of_shared(literal, _expected_expr, _stack, context, _fun) when is_float(literal) do
-    {:ok, float(), context}
+  defp of_shared(literal, {expected, expr}, stack, context, _fun) when is_float(literal) do
+    if float_type?(expected) do
+      {:ok, float(), context}
+    else
+      {:error, Of.incompatible_warn(expr, expected, float(), stack, context)}
+    end
   end
 
   # "..."
-  defp of_shared(literal, _expected_expr, _stack, context, _fun) when is_binary(literal) do
-    {:ok, binary(), context}
+  defp of_shared(literal, {expected, expr}, stack, context, _fun) when is_binary(literal) do
+    if binary_type?(expected) do
+      {:ok, binary(), context}
+    else
+      {:error, Of.incompatible_warn(expr, expected, binary(), stack, context)}
+    end
   end
 
   # []
@@ -188,7 +252,7 @@ defmodule Module.Types.Pattern do
 
   # [expr, ...]
   defp of_shared(exprs, _expected_expr, stack, context, fun) when is_list(exprs) do
-    case map_reduce_ok(exprs, context, &fun.(&1, @expected_expr, stack, &2)) do
+    case map_reduce_ok(exprs, context, &fun.(&1, {dynamic(), &1}, stack, &2)) do
       {:ok, _types, context} -> {:ok, non_empty_list(), context}
       {:error, reason} -> {:error, reason}
     end
@@ -201,14 +265,14 @@ defmodule Module.Types.Pattern do
 
   # left | []
   defp of_shared({:|, _meta, [left_expr, []]}, _expected_expr, stack, context, fun) do
-    fun.(left_expr, @expected_expr, stack, context)
+    fun.(left_expr, {dynamic(), left_expr}, stack, context)
   end
 
   # left | right
   defp of_shared({:|, _meta, [left_expr, right_expr]}, _expected_expr, stack, context, fun) do
-    case fun.(left_expr, @expected_expr, stack, context) do
+    case fun.(left_expr, {dynamic(), left_expr}, stack, context) do
       {:ok, _, context} ->
-        fun.(right_expr, @expected_expr, stack, context)
+        fun.(right_expr, {dynamic(), right_expr}, stack, context)
 
       {:error, reason} ->
         {:error, reason}
@@ -224,109 +288,19 @@ defmodule Module.Types.Pattern do
          fun
        ) do
     # The left side is always a list
-    with {:ok, _, context} <- fun.(left_expr, @expected_expr, stack, context),
-         {:ok, _, context} <- fun.(right_expr, @expected_expr, stack, context) do
+    with {:ok, _, context} <- fun.(left_expr, {dynamic(), left_expr}, stack, context),
+         {:ok, _, context} <- fun.(right_expr, {dynamic(), right_expr}, stack, context) do
       # TODO: Both lists can be empty, so this may be an empty list,
-      # so we return dynamic() for now.
+      # so we return dynamic for now.
       {:ok, dynamic(), context}
     end
   end
 
   # {...}
   defp of_shared({:{}, _meta, exprs}, _expected_expr, stack, context, fun) do
-    case map_reduce_ok(exprs, context, &fun.(&1, @expected_expr, stack, &2)) do
+    case map_reduce_ok(exprs, context, &fun.(&1, {dynamic(), &1}, stack, &2)) do
       {:ok, _, context} -> {:ok, tuple(), context}
       {:error, reason} -> {:error, reason}
-    end
-  end
-
-  ## Format warnings
-
-  def format_warning({:refine_var, old_type, new_type, var, context}) do
-    {traces, hints} = format_traces(var, context)
-
-    [
-      """
-      incompatible types assigned to #{format_var(var)}:
-
-          #{to_quoted_string(old_type)} !~ #{to_quoted_string(new_type)}
-      """,
-      traces,
-      format_hints(hints),
-      "\ntyping violation found at:"
-    ]
-  end
-
-  def format_traces(expr, %{vars: vars}) do
-    {_, versions} =
-      Macro.prewalk(expr, %{}, fn
-        {var_name, meta, var_context}, versions when is_atom(var_name) and is_atom(var_context) ->
-          version = meta[:version]
-
-          case vars do
-            %{^version => data} -> {:ok, Map.put(versions, version, data)}
-            %{} -> {:ok, versions}
-          end
-
-        node, versions ->
-          {node, versions}
-      end)
-
-    vars = Map.values(versions)
-
-    formatted_traces =
-      vars
-      |> Enum.sort_by(& &1.name)
-      |> Enum.map(&format_trace/1)
-
-    {formatted_traces, trace_hints(vars)}
-  end
-
-  defp format_trace(%{off_traces: []}) do
-    []
-  end
-
-  defp format_trace(%{name: name, context: context, off_traces: traces}) do
-    traces =
-      traces
-      |> Enum.reverse()
-      |> Enum.map(fn {expr, file, type} ->
-        meta = get_meta(expr)
-
-        location =
-          file
-          |> Path.relative_to_cwd()
-          |> Exception.format_file_line(meta[:line])
-          |> String.replace_suffix(":", "")
-
-        """
-
-            # type: #{to_quoted_string(type)}
-            # from: #{location}
-            #{Macro.to_string(expr)}
-        """
-      end)
-
-    type_or_types = pluralize(traces, "type", "types")
-    ["\nwhere #{format_var(name, context)} was given the #{type_or_types}:\n" | traces]
-  end
-
-  defp format_var({var, _, context}), do: format_var(var, context)
-  defp format_var(var, nil), do: "\"#{var}\""
-  defp format_var(var, context), do: "\"#{var}\" (context #{inspect(context)})"
-
-  defp pluralize([_], singular, _plural), do: singular
-  defp pluralize(_, _singular, plural), do: plural
-
-  defp inferred_bitstring_spec?(trace) do
-    match?({{:<<>>, [inferred_bitstring_spec: true] ++ _meta, _}, _file, _type}, trace)
-  end
-
-  defp trace_hints(vars) do
-    if Enum.any?(vars, fn data -> Enum.any?(data.off_traces, &inferred_bitstring_spec?/1) end) do
-      [:inferred_bitstring_spec]
-    else
-      []
     end
   end
 end

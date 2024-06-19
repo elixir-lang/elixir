@@ -112,26 +112,24 @@ defmodule Kernel.SpecialForms do
 
       %User{age: age} = user
 
-  An update operation specific for structs is also available:
-
-      %User{user | age: 28}
-
   The advantage of structs is that they validate that the given
   keys are part of the defined struct. The example below will fail
   because there is no key `:full_name` in the `User` struct:
 
       %User{full_name: "john doe"}
 
-  The syntax above will guarantee the given keys are valid at
-  compilation time and it will guarantee at runtime the given
-  argument is a struct, failing with `BadStructError` otherwise.
+  An update operation specific for structs is also available:
 
-  Although structs are maps, by default structs do not implement
-  any of the protocols implemented for maps. Check
-  `Kernel.defprotocol/2` for more information on how structs
-  can be used with protocols for polymorphic dispatch. Also
-  see `Kernel.struct/2` and `Kernel.struct!/2` for examples on
-  how to create and update structs dynamically.
+      %User{user | age: 28}
+
+  Once again, the syntax above will guarantee the given keys
+  are valid at compilation time and it will guarantee at runtime
+  the given argument is a struct, failing with `BadStructError`
+  otherwise. The map update syntax can also be used for updating
+  structs, and it is useful when you want to update any struct,
+  regardless of their name, as long as they have matching fields:
+
+      %{user | age: 28}
 
   ## Pattern matching on struct names
 
@@ -1757,6 +1755,15 @@ defmodule Kernel.SpecialForms do
   defmacro unquote(:__block__)(args), do: error!([args])
 
   @doc """
+  Internal special form for cursor position.
+
+  This is the special form used whenever we need to represent
+  the cursor position in Elixir's AST. See `Code.Fragment` for
+  more information.
+  """
+  defmacro unquote(:__cursor__)(args), do: error!([args])
+
+  @doc """
   Capture operator. Captures or creates an anonymous function.
 
   ## Capture
@@ -1878,6 +1885,11 @@ defmodule Kernel.SpecialForms do
   @doc ~S"""
   Matches the given expression against the given clauses.
 
+  `case/2` relies on pattern matching and guards to choose
+  which clause to execute. If your logic cannot be expressed
+  within patterns and guards, consider using `if/2` or `cond/1`
+  instead.
+
   ## Examples
 
       case File.read(file) do
@@ -1907,6 +1919,9 @@ defmodule Kernel.SpecialForms do
           "This clause would match any value (x = #{x})"
       end
       #=> "This clause would match any value (x = 10)"
+
+  If you find yourself nesting `case` expressions inside
+  `case` expressions, consider using `with/1`.
 
   ## Variable handling
 
@@ -1967,17 +1982,20 @@ defmodule Kernel.SpecialForms do
   Evaluates the expression corresponding to the first clause that
   evaluates to a truthy value.
 
+  ## Examples
+
+  The following example has a single clause that always evaluates
+  to true:
+
       cond do
         hd([1, 2, 3]) ->
           "1 is considered as true"
       end
       #=> "1 is considered as true"
 
-  Raises an error if all conditions evaluate to `nil` or `false`.
+  If all clauses evaluate to `nil` or `false`, `cond` raises an error.
   For this reason, it may be necessary to add a final always-truthy condition
-  (anything non-`false` and non-`nil`), which will always match.
-
-  ## Examples
+  (anything non-`false` and non-`nil`), which will always match:
 
       cond do
         1 + 1 == 1 ->
@@ -1989,6 +2007,9 @@ defmodule Kernel.SpecialForms do
       end
       #=> "This will"
 
+
+  If your `cond` has two clauses, and the last one falls back to
+  `true`, you may consider using `if/2` instead.
   """
   defmacro cond(clauses), do: error!([clauses])
 

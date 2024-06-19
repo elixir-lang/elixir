@@ -425,16 +425,16 @@ translate_with_else(Meta, [{'else', Else}], S) ->
   RaiseClause = {'->', Generated, [[RaiseVar], RaiseExpr]},
 
   Clauses = elixir_erl_clauses:get_clauses('else', [{'else', Else ++ [RaiseClause]}], match),
-  {TranslatedClauses, SC} = elixir_erl_clauses:clauses(Clauses, SV),
-  with_else_closure(Meta, TranslatedClauses, SC).
+  {TranslatedClauses, SC} = elixir_erl_clauses:clauses(Clauses, SV#elixir_erl{extra=pin_guard}),
+  with_else_closure(Meta, TranslatedClauses, SC#elixir_erl{extra=SV#elixir_erl.extra}).
 
 with_else_closure(Meta, TranslatedClauses, S) ->
   Ann = ?ann(Meta),
   {_, FunErlVar, SC} = elixir_erl_var:assign(Meta, S),
   {_, ArgErlVar, SA} = elixir_erl_var:assign(Meta, SC),
-  FunAssign = {match, Ann, FunErlVar, {'fun', Ann, {clauses, TranslatedClauses}}},
-  FunCall = {call, Ann, FunErlVar, [ArgErlVar]},
   Generated = erl_anno:set_generated(true, Ann),
+  FunAssign = {match, Ann, FunErlVar, {'fun', Generated, {clauses, TranslatedClauses}}},
+  FunCall = {call, Ann, FunErlVar, [ArgErlVar]},
   {{clause, Generated, [ArgErlVar], [], [FunCall]}, FunAssign, SA}.
 
 translate_with_do([{'<-', Meta, [{Var, _, Ctx} = Left, Expr]} | Rest], Ann, Do, Else, S) when is_atom(Var), is_atom(Ctx) ->

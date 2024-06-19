@@ -764,8 +764,9 @@ defmodule Date do
 
   When using the default ISO calendar, durations are collapsed and
   applied in the order of months and then days:
-  - when shifting by 1 year and 2 months the date is actually shifted by 14 months
-  - when shifting by 2 weeks and 3 days the date is shifted by 17 days
+
+  * when shifting by 1 year and 2 months the date is actually shifted by 14 months
+  * when shifting by 2 weeks and 3 days the date is shifted by 17 days
 
   When shifting by month, days are rounded down to the nearest valid date.
 
@@ -1157,8 +1158,18 @@ defmodule Date do
   end
 
   defimpl Inspect do
-    def inspect(%{calendar: calendar, year: year, month: month, day: day}, _) do
+    def inspect(%{calendar: calendar, year: year, month: month, day: day}, _)
+        when year in -9999..9999 do
       "~D[" <> calendar.date_to_string(year, month, day) <> suffix(calendar) <> "]"
+    end
+
+    def inspect(%{calendar: calendar, year: year, month: month, day: day}, _)
+        when calendar == Calendar.ISO do
+      "Date.new!(#{Integer.to_string(year)}, #{Integer.to_string(month)}, #{Integer.to_string(day)})"
+    end
+
+    def inspect(%{calendar: calendar, year: year, month: month, day: day}, _) do
+      "Date.new!(#{Integer.to_string(year)}, #{Integer.to_string(month)}, #{Integer.to_string(day)}, #{inspect(calendar)})"
     end
 
     defp suffix(Calendar.ISO), do: ""

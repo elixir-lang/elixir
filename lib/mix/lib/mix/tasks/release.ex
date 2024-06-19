@@ -601,10 +601,9 @@ defmodule Mix.Tasks.Release do
       -start_epmd false -erl_epmd_port 6789
 
       # In remote.vm.args.eex
-      # -start_epmd false -erl_epmd_port 6789 -dist_listen false
+      -start_epmd false -erl_epmd_port 6789 -dist_listen false
 
-  You can pick any port of your choice. If you have a `remote.vm.args.eex` file,
-  you must add the same configuration.
+  You can pick any port of your choice.
 
   ## Application configuration
 
@@ -834,9 +833,9 @@ defmodule Mix.Tasks.Release do
 
     * `RELEASE_DISTRIBUTION` - how do we want to run the distribution.
       May be `name` (long names), `sname` (short names) or `none`
-      (distribution is not started automatically). Defaults to
-      `sname` which allows access only within the current system.
-      `name` allows external connections
+      (distribution is not started automatically). Defaults to `sname`.
+      When connecting nodes across hosts, you typically want to set
+      this to `name` (required to use IPs as host names)
 
     * `RELEASE_BOOT_SCRIPT` - the name of the boot script to use when starting
       the release. This script is used when running commands such as `start` and
@@ -1452,16 +1451,7 @@ defmodule Mix.Tasks.Release do
 
   defp cli_for(:windows, release) do
     {"env.bat", &env_bat_template(release: &1),
-     [{"#{release.name}.bat", cli_bat_template(release: release) |> maybe_replace_werl()}]}
-  end
-
-  defp maybe_replace_werl(contents) do
-    # TODO: Remove me when we require Erlang/OTP 26+
-    if :erlang.system_info(:otp_release) >= ~c"26" do
-      String.replace(contents, "--werl", "")
-    else
-      contents
-    end
+     [{"#{release.name}.bat", cli_bat_template(release: release)}]}
   end
 
   defp elixir_cli_for(:unix, release) do

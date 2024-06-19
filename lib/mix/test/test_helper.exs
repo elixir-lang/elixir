@@ -9,6 +9,10 @@ System.put_env("MIX_HOME", mix)
 System.delete_env("XDG_DATA_HOME")
 System.delete_env("XDG_CONFIG_HOME")
 
+# Load protocols to make sure they are not unloaded during tests
+[Collectable, Enumerable, Inspect, String.Chars, List.Chars]
+|> Enum.each(& &1.__protocol__(:module))
+
 ## Setup Mix
 
 Mix.start()

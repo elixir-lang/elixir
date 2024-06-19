@@ -279,13 +279,7 @@ defmodule MapTest do
   end
 
   defmodule ExternalUser do
-    def __struct__ do
-      %{__struct__: __MODULE__, name: "john", age: 27}
-    end
-
-    def __struct__(kv) do
-      Enum.reduce(kv, __struct__(), fn {k, v}, acc -> :maps.update(k, v, acc) end)
-    end
+    defstruct name: "john", age: 27
   end
 
   defp empty_map(), do: %{}

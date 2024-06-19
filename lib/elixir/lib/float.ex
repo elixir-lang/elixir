@@ -139,6 +139,8 @@ defmodule Float do
       iex> Float.parse("56.5xyz")
       {56.5, "xyz"}
 
+      iex> Float.parse(".12")
+      :error
       iex> Float.parse("pi")
       :error
       iex> Float.parse("1.7976931348623159e+308")

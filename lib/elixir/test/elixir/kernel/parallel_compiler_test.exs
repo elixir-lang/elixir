@@ -465,18 +465,18 @@ defmodule Kernel.ParallelCompilerTest do
         write_tmp(
           "error_line",
           a: """
-          defmodule A do
+          defmodule PCA do
             def fun(arg), do: arg / 2
           end
           """,
           b: """
-          defmodule B do
+          defmodule PCB do
             def fun(arg) do
-              A.fun(arg)
+              PCA.fun(arg)
               :ok
             end
           end
-          B.fun(:not_a_number)
+          PCB.fun(:not_a_number)
           """
         )
 

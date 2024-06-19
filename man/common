@@ -112,6 +112,3 @@ and passes them to the Erlang VM.
 .Pp
 The option is equivalent to Erlang's
 .Fl args_file .
-.It Fl -werl
-Uses Erlang's Windows shell GUI
-.Pq only for Windows .

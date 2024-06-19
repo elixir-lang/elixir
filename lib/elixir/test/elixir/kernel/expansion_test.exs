@@ -446,6 +446,11 @@ defmodule Kernel.ExpansionTest do
 
       assert expand(before_expansion) == after_expansion
     end
+
+    test "invalid metadata" do
+      assert expand({:foo, [imports: 2, context: :unknown], [1, 2]}) ==
+               {:foo, [imports: 2, context: :unknown], [1, 2]}
+    end
   end
 
   describe "floats" do
@@ -588,17 +593,25 @@ defmodule Kernel.ExpansionTest do
       assert expand(quote(do: %x{} = 1)) == quote(do: %x{} = 1)
     end
 
-    test "unknown ^keys in structs" do
-      message = ~r"unknown key \^my_key for struct Kernel\.ExpansionTest\.User"
+    test "invalid keys in structs" do
+      assert_compile_error(~r"invalid key :erlang\.\+\(1, 2\) for struct", fn ->
+        expand(
+          quote do
+            %User{(1 + 2) => :my_value}
+          end
+        )
+      end)
+    end
+
+    test "unknown key in structs" do
+      message = ~r"unknown key :foo for struct Kernel\.ExpansionTest\.User"
 
       assert_compile_error(message, fn ->
-        code =
+        expand(
           quote do
-            my_key = :my_key
-            %User{^my_key => :my_value} = %{}
+            %User{foo: :my_value} = %{}
           end
-
-        expand(code)
+        )
       end)
     end
   end
@@ -640,12 +653,6 @@ defmodule Kernel.ExpansionTest do
   describe "anonymous calls" do
     test "expands base and args" do
       assert expand(quote(do: a.(b))) == quote(do: a().(b()))
-    end
-
-    test "raises on atom base" do
-      assert_compile_error(~r"invalid function call :foo.()", fn ->
-        expand(quote(do: :foo.(a)))
-      end)
     end
   end
 
@@ -1120,6 +1127,12 @@ defmodule Kernel.ExpansionTest do
       assert expand(quote(do: &unknown(&1, &2))) == {:&, [], [{:/, [], [{:unknown, [], nil}, 2]}]}
     end
 
+    test "keeps position meta on & variables" do
+      assert expand(Code.string_to_quoted!("& &1")) |> clean_meta([:counter]) ==
+               {:fn, [{:line, 1}],
+                [{:->, [{:line, 1}], [[{:capture, [line: 1], nil}], {:capture, [line: 1], nil}]}]}
+    end
+
     test "expands remotes" do
       assert expand(quote(do: &List.flatten/2)) ==
                quote(do: &:"Elixir.List".flatten/2)
@@ -1142,7 +1155,7 @@ defmodule Kernel.ExpansionTest do
           fn -> 17 end
         end
 
-      assert clean_meta(expand(before_expansion), [:import, :context, :no_parens]) ==
+      assert clean_meta(expand(before_expansion), [:imports, :context, :no_parens]) ==
                after_expansion
     end
 
@@ -2893,43 +2906,6 @@ defmodule Kernel.ExpansionTest do
 
     assert_compile_error(~r"misplaced operator ->", fn ->
       expand(quote(do: (foo -> bar)))
-    end)
-
-    message = ~r/"wrong_fun" cannot handle clauses with the ->/
-
-    assert_compile_error(message, fn ->
-      code =
-        quote do
-          wrong_fun do
-            _ -> :ok
-          end
-        end
-
-      expand(code)
-    end)
-
-    assert_compile_error(message, fn ->
-      code =
-        quote do
-          wrong_fun do
-            foo -> bar
-          after
-            :ok
-          end
-        end
-
-      expand(code)
-    end)
-
-    assert_compile_error(~r/"length" cannot handle clauses with the ->/, fn ->
-      code =
-        quote do
-          length do
-            _ -> :ok
-          end
-        end
-
-      expand(code)
     end)
   end
 

@@ -86,7 +86,7 @@ defmodule ExUnit.DescribeTest do
       message =
         ~s(describe "some tests" is already defined in ExUnit.DescribeTest.DescribeWithSameNames)
 
-      assert_raise ExUnit.DuplicateDescribeError, message, fn ->
+      assert_raise ArgumentError, message, fn ->
         defmodule DescribeWithSameNames do
           use ExUnit.Case
 

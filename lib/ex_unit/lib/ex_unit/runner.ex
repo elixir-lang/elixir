@@ -106,9 +106,9 @@ defmodule ExUnit.Runner do
         async_loop(config, running, async_once?, modules_to_restore)
 
       # Slots are available, start with async modules
-      modules = ExUnit.Server.take_async_modules(available) ->
-        running = spawn_modules(config, modules, running)
-        modules_to_restore = maybe_store_modules(modules_to_restore, :async, modules)
+      async_modules = ExUnit.Server.take_async_modules(available) ->
+        running = spawn_modules(config, async_modules, true, running)
+        modules_to_restore = maybe_store_modules(modules_to_restore, :async, async_modules)
         async_loop(config, running, true, modules_to_restore)
 
       true ->
@@ -124,8 +124,8 @@ defmodule ExUnit.Runner do
         async_stop_time = if async_once?, do: System.monotonic_time(), else: nil
 
         # Run all sync modules directly
-        for module <- sync_modules do
-          running = spawn_modules(config, [module], %{})
+        for pair <- sync_modules do
+          running = spawn_modules(config, [pair], false, %{})
           running != %{} and wait_until_available(config, running)
         end
 
@@ -157,16 +157,16 @@ defmodule ExUnit.Runner do
     end
   end
 
-  defp spawn_modules(_config, [], running) do
+  defp spawn_modules(_config, [], _async, running) do
     running
   end
 
-  defp spawn_modules(config, [module | modules], running) do
+  defp spawn_modules(config, [{module, params} | modules], async?, running) do
     if max_failures_reached?(config) do
       running
     else
-      {pid, ref} = spawn_monitor(fn -> run_module(config, module) end)
-      spawn_modules(config, modules, Map.put(running, ref, pid))
+      {pid, ref} = spawn_monitor(fn -> run_module(config, module, async?, params) end)
+      spawn_modules(config, modules, async?, Map.put(running, ref, pid))
     end
   end
 
@@ -221,19 +221,20 @@ defmodule ExUnit.Runner do
 
   ## Running modules
 
-  defp run_module(config, module) do
-    test_module = module.__ex_unit__()
+  defp run_module(config, module, async?, params) do
+    test_module = %{module.__ex_unit__() | parameters: params}
     EM.module_started(config.manager, test_module)
 
     # Prepare tests, selecting which ones should be run or skipped
-    {to_run_tests, excluded_and_skipped_tests} = prepare_tests(config, test_module.tests)
+    {to_run_tests, excluded_and_skipped_tests} = prepare_tests(config, async?, test_module.tests)
 
     for excluded_or_skipped_test <- excluded_and_skipped_tests do
       EM.test_started(config.manager, excluded_or_skipped_test)
       EM.test_finished(config.manager, excluded_or_skipped_test)
     end
 
-    {test_module, invalid_tests, finished_tests} = run_module(config, test_module, to_run_tests)
+    {test_module, invalid_tests, finished_tests} =
+      run_module_tests(config, test_module, async?, to_run_tests)
 
     pending_tests =
       case process_max_failures(config, test_module) do
@@ -260,7 +261,7 @@ defmodule ExUnit.Runner do
     end
   end
 
-  defp prepare_tests(config, tests) do
+  defp prepare_tests(config, async?, tests) do
     tests = shuffle(config, tests)
     include = config.include
     exclude = config.exclude
@@ -269,7 +270,7 @@ defmodule ExUnit.Runner do
     {to_run, to_skip} =
       for test <- tests, include_test?(test_ids, test), reduce: {[], []} do
         {to_run, to_skip} ->
-          tags = Map.merge(test.tags, %{test: test.name, module: test.module})
+          tags = Map.merge(test.tags, %{test: test.name, module: test.module, async: async?})
 
           case ExUnit.Filters.eval(include, exclude, tags, tests) do
             :ok -> {[%{test | tags: tags} | to_run], to_skip}
@@ -284,18 +285,20 @@ defmodule ExUnit.Runner do
     test_ids == nil or MapSet.member?(test_ids, {test.module, test.name})
   end
 
-  defp run_module(_config, test_module, []) do
+  defp run_module_tests(_config, test_module, _async?, []) do
     {test_module, [], []}
   end
 
-  defp run_module(config, test_module, tests) do
-    {module_pid, module_ref} = run_setup_all(test_module, self())
+  defp run_module_tests(config, test_module, async?, tests) do
+    {module_pid, module_ref} = run_setup_all(test_module, async?, self())
 
     {test_module, invalid_tests, finished_tests} =
       receive do
         {^module_pid, :setup_all, {:ok, context}} ->
           finished_tests =
-            if max_failures_reached?(config), do: [], else: run_tests(config, tests, context)
+            if max_failures_reached?(config),
+              do: [],
+              else: run_tests(config, tests, test_module.parameters, context)
 
           :ok = exit_setup_all(module_pid, module_ref)
           {test_module, [], finished_tests}
@@ -319,15 +322,20 @@ defmodule ExUnit.Runner do
     Enum.map(tests, &%{&1 | state: {:invalid, test_module}})
   end
 
-  defp run_setup_all(%ExUnit.TestModule{name: module} = test_module, parent_pid) do
+  defp run_setup_all(
+         %ExUnit.TestModule{name: module, tags: tags, parameters: params} = test_module,
+         async?,
+         parent_pid
+       ) do
     Process.put(@current_key, test_module)
 
     spawn_monitor(fn ->
       ExUnit.OnExitHandler.register(self())
+      tags = tags |> Map.merge(params) |> Map.merge(%{module: module, async: async?})
 
       result =
         try do
-          {:ok, module.__ex_unit__(:setup_all, test_module.tags)}
+          {:ok, module.__ex_unit__(:setup_all, Map.merge(tags, params))}
         catch
           kind, error ->
             failed = failed(kind, error, prune_stacktrace(__STACKTRACE__))
@@ -355,8 +363,9 @@ defmodule ExUnit.Runner do
     end
   end
 
-  defp run_tests(config, tests, context) do
+  defp run_tests(config, tests, params, context) do
     Enum.reduce_while(tests, [], fn test, acc ->
+      test = %{test | parameters: params}
       Process.put(@current_key, test)
 
       case run_test(config, test, context) do
@@ -401,14 +410,15 @@ defmodule ExUnit.Runner do
     spawn_monitor(fn ->
       ExUnit.OnExitHandler.register(self())
       generate_test_seed(seed, test, rand_algorithm)
-      capture_log = Map.get(test.tags, :capture_log, capture_log)
+      context = Map.merge(context, test.tags)
+      capture_log = Map.get(context, :capture_log, capture_log)
 
       {time, test} =
         :timer.tc(
           maybe_capture_log(capture_log, test, fn ->
-            tags = maybe_create_tmp_dir(test.tags, test)
+            context = maybe_create_tmp_dir(context, test)
 
-            case exec_test_setup(test, Map.merge(context, tags)) do
+            case exec_test_setup(test, context) do
               {:ok, context} -> exec_test(test, context)
               {:error, test} -> test
             end
@@ -583,8 +593,10 @@ defmodule ExUnit.Runner do
     tags
   end
 
-  defp short_hash(module, test_name) do
-    (module <> "/" <> test_name)
+  defp short_hash(module, test_name, parameters) do
+    suffix = if parameters == %{}, do: "", else: :erlang.term_to_binary(parameters)
+
+    (module <> "/" <> test_name <> suffix)
     |> :erlang.md5()
     |> Base.encode16(case: :lower)
     |> binary_slice(0..7)
@@ -596,7 +608,7 @@ defmodule ExUnit.Runner do
 
     module = escape_path(module_string)
     name = escape_path(name_string)
-    short_hash = short_hash(module_string, name_string)
+    short_hash = short_hash(module_string, name_string, test.parameters)
 
     path = ["tmp", module, "#{name}-#{short_hash}", extra_path] |> Path.join() |> Path.expand()
     File.rm_rf!(path)

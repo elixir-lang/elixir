@@ -131,6 +131,8 @@ defmodule Inspect.BitStringTest do
     assert inspect(" ゆんゆん") == "\" ゆんゆん\""
     # BOM
     assert inspect("\uFEFFhello world") == "\"\\uFEFFhello world\""
+    # Invisible characters
+    assert inspect("\u2063") == "\"\\u2063\""
   end
 
   test "infer" do
@@ -795,8 +797,8 @@ defmodule Inspect.OthersTest do
     Application.put_env(:elixir, :anony, V.fun())
     Application.put_env(:elixir, :named, &V.fun/0)
 
-    :code.delete(V)
     :code.purge(V)
+    :code.delete(V)
 
     anony = Application.get_env(:elixir, :anony)
     named = Application.get_env(:elixir, :named)

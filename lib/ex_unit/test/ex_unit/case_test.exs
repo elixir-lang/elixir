@@ -29,7 +29,6 @@ defmodule ExUnit.CaseTest do
   test "tags", context do
     line = __ENV__.line - 1
     assert context[:module] == __MODULE__
-    assert context[:case] == __MODULE__
     assert context[:test] == __ENV__.function |> elem(0)
     assert context[:line] == line
     assert context[:async] == true
@@ -44,6 +43,8 @@ defmodule ExUnit.CaseTest do
 
   # tags are passed to setup_all
   setup_all context do
+    assert context.async
+    assert context.module == __MODULE__
     %{moduletag_from_setup_all: context[:moduletag]}
   end
 
@@ -161,34 +162,16 @@ defmodule ExUnit.CaseTest do
   end
 end
 
-defmodule ExUnit.DoubleCaseTest1 do
+defmodule ExUnit.DoubleCaseTestAsyncFirst do
   use ExUnit.Case, async: true
   use ExUnit.Case
 
   test "async must be true", context do
-    assert context.async
-  end
-end
-
-defmodule ExUnit.DoubleCaseTest2 do
-  use ExUnit.Case, async: false
-  use ExUnit.Case
-
-  test "async must be false", context do
     refute context.async
   end
 end
 
-defmodule ExUnit.DoubleCaseTest3 do
-  use ExUnit.Case, async: true
-  use ExUnit.Case, async: false
-
-  test "async must be false", context do
-    refute context.async
-  end
-end
-
-defmodule ExUnit.DoubleCaseTest4 do
+defmodule ExUnit.DoubleCaseTestAsyncLast do
   use ExUnit.Case
   use ExUnit.Case, async: true
 

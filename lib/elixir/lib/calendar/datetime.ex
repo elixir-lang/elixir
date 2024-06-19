@@ -170,6 +170,9 @@ defmodule DateTime do
   truncate the resulting datetime. This is available
   since v1.15.0.
 
+  The default unit if none gets passed is `:native`,
+  which results on a default resolution of microseconds.
+
   ## Examples
 
       iex> datetime = DateTime.utc_now()
@@ -1679,10 +1682,11 @@ defmodule DateTime do
 
   Allowed units are: `:year`, `:month`, `:week`, `:day`, `:hour`, `:minute`, `:second`, `:microsecond`.
 
-  This operation is equivalent to shifting the datetime wall clock (in other words,
-  the values as we see them printed), then applying the time zone offset before
-  computing the new time zone. This ensures `shift/3` always returns a valid
-  datetime.
+  This operation is equivalent to shifting the datetime wall clock
+  (in other words, the value as someone in that timezone would see
+  on their watch), then applying the time zone offset to convert it
+  to UTC, and finally computing the new timezone in case of shifts.
+  This ensures `shift/3` always returns a valid datetime.
 
   On the other hand, time zones that observe "Daylight Saving Time"
   or other changes, across summer/winter time will add/remove hours
@@ -1697,15 +1701,16 @@ defmodule DateTime do
       #=> #DateTime<2018-11-04 01:00:00-08:00 PST America/Los_Angeles>
 
   In case you don't want these changes to happen automatically or you
-  want to surface timezone conflicts to the user, you can shift
+  want to surface time zone conflicts to the user, you can shift
   the datetime as a naive datetime and then use `from_naive/2`:
 
       dt |> NaiveDateTime.shift(duration) |> DateTime.from_naive(dt.time_zone)
 
   When using the default ISO calendar, durations are collapsed and
   applied in the order of months, then seconds and microseconds:
-  - when shifting by 1 year and 2 months the date is actually shifted by 14 months
-  - weeks, days and smaller units are collapsed into seconds and microseconds
+
+  * when shifting by 1 year and 2 months the date is actually shifted by 14 months
+  * weeks, days and smaller units are collapsed into seconds and microseconds
 
   When shifting by month, days are rounded down to the nearest valid date.
 

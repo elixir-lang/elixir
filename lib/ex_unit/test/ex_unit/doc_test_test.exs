@@ -800,7 +800,7 @@ defmodule ExUnit.DocTestTest do
                      │ └ unclosed delimiter
                      │
                      └─ test/ex_unit/doc_test_test.exs:#{line}:20
-                If you are planning to assert on the result of an iex> expression which contains a value inspected as #Name<...>, please make sure the inspected value is placed at the beginning of the expression; otherwise Elixir will treat it as a comment due to the leading sign #.
+                If you are planning to assert on the result of an iex> expression which contains a value inspected as #Name<...>, please make sure the inspected value is placed at the beginning of the expression, otherwise Elixir will treat it as a comment due to the leading sign #.
                 doctest:
                   iex> {:ok, :oops}
                   {:ok, #Inspect<[]>}

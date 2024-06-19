@@ -101,9 +101,10 @@ defmodule ExUnit do
       * `:time` - the duration in microseconds of the test's runtime
       * `:tags` - the test tags
       * `:logs` - the captured logs
+      * `:parameters` - the test parameters
 
     """
-    defstruct [:name, :case, :module, :state, time: 0, tags: %{}, logs: ""]
+    defstruct [:name, :case, :module, :state, time: 0, tags: %{}, logs: "", parameters: %{}]
 
     # TODO: Remove the `:case` field on v2.0
     @type t :: %__MODULE__{
@@ -131,8 +132,10 @@ defmodule ExUnit do
 
       * `:tests` - all tests in this module
 
+      * `:parameters` - the test module parameters
+
     """
-    defstruct [:file, :name, :state, tags: %{}, tests: []]
+    defstruct [:file, :name, :state, tags: %{}, tests: [], parameters: %{}]
 
     @type t :: %__MODULE__{
             file: binary(),
@@ -275,7 +278,7 @@ defmodule ExUnit do
     * `:exit_status` - specifies an alternate exit status to use when the test
       suite fails. Defaults to 2;
 
-    * `:failures_manifest_file` - specifies a path to the file used to store failures
+    * `:failures_manifest_path` - specifies a path to the file used to store failures
       between runs;
 
     * `:formatters` - the formatters that will print results,
@@ -404,10 +407,12 @@ defmodule ExUnit do
     for module <- additional_modules do
       module_attributes = module.__info__(:attributes)
 
-      if true in Keyword.get(module_attributes, :ex_unit_async, []) do
-        ExUnit.Server.add_async_module(module)
-      else
-        ExUnit.Server.add_sync_module(module)
+      case Keyword.get(module_attributes, :ex_unit_module) do
+        [config] ->
+          ExUnit.Server.add_module(module, config)
+
+        _ ->
+          raise(ArgumentError, "#{inspect(module)} is not a ExUnit.Case module")
       end
     end
 
@@ -500,7 +505,7 @@ defmodule ExUnit do
 
   defp maybe_repeated_run(options, seed, load_us, repeat) do
     case ExUnit.Runner.run(options, load_us) do
-      {%{failures: 0}, {sync_modules, async_modules}}
+      {%{failures: 0}, {async_modules, sync_modules}}
       when repeat > 0 and (sync_modules != [] or async_modules != []) ->
         ExUnit.Server.restore_modules(async_modules, sync_modules)
 

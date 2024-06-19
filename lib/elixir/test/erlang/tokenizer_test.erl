@@ -5,8 +5,8 @@ tokenize(String) ->
   tokenize(String, []).
 
 tokenize(String, Opts) ->
-  {ok, _Line, _Column, _Warnings, Result} = elixir_tokenizer:tokenize(String, 1, Opts),
-  Result.
+  {ok, _Line, _Column, _Warnings, Result, []} = elixir_tokenizer:tokenize(String, 1, Opts),
+  lists:reverse(Result).
 
 tokenize_error(String) ->
   {error, Error, _, _, _} = elixir_tokenizer:tokenize(String, 1, []),

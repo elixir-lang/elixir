@@ -272,19 +272,19 @@ end
 defimpl Enumerable, for: HashSet do
   def reduce(set, acc, fun) do
     # Avoid warnings about HashSet being deprecated.
-    module = HashSet
+    module = String.to_atom("HashSet")
     module.reduce(set, acc, fun)
   end
 
   def member?(set, term) do
     # Avoid warnings about HashSet being deprecated.
-    module = HashSet
+    module = String.to_atom("HashSet")
     {:ok, module.member?(set, term)}
   end
 
   def count(set) do
     # Avoid warnings about HashSet being deprecated.
-    module = HashSet
+    module = String.to_atom("HashSet")
     {:ok, module.size(set)}
   end
 
@@ -296,7 +296,7 @@ end
 defimpl Collectable, for: HashSet do
   def into(original) do
     # Avoid warnings about HashSet being deprecated.
-    module = HashSet
+    module = String.to_atom("HashSet")
 
     collector_fun = fn
       set, {:cont, term} -> module.put(set, term)
@@ -313,7 +313,7 @@ defimpl Inspect, for: HashSet do
 
   def inspect(set, opts) do
     # Avoid warnings about HashSet being deprecated.
-    module = HashSet
+    module = String.to_atom("HashSet")
     concat(["#HashSet<", Inspect.List.inspect(module.to_list(set), opts), ">"])
   end
 end

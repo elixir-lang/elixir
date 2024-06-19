@@ -189,7 +189,7 @@ defmodule Mix.Tasks.Release.Init do
         ;;
 
       start_iex)
-        start "iex" --werl
+        start "iex"
         ;;
 
       daemon)
@@ -218,7 +218,7 @@ defmodule Mix.Tasks.Release.Init do
 
       remote)
         exec "$REL_VSN_DIR/iex" \
-             --werl --hidden --cookie "$RELEASE_COOKIE" \
+             --hidden --cookie "$RELEASE_COOKIE" \
              $(release_distribution "rem-$(rand)-$RELEASE_NODE") \
              --boot "$REL_VSN_DIR/$RELEASE_BOOT_SCRIPT_CLEAN" \
              --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
@@ -315,7 +315,7 @@ defmodule Mix.Tasks.Release.Init do
     if not defined RELEASE_SYS_CONFIG (set RELEASE_SYS_CONFIG=!REL_VSN_DIR!\sys)
 
     if "%~1" == "start" (set "REL_EXEC=elixir" && set "REL_EXTRA=--no-halt" && set "REL_GOTO=start")
-    if "%~1" == "start_iex" (set "REL_EXEC=iex" && set "REL_EXTRA=--werl" && set "REL_GOTO=start")
+    if "%~1" == "start_iex" (set "REL_EXEC=iex" && set "REL_GOTO=start")
     if "%~1" == "install" (set "REL_GOTO=install")
     if "%~1" == "eval" (
       if "%~2" == "" (
@@ -415,7 +415,7 @@ defmodule Mix.Tasks.Release.Init do
     )
 
     "!REL_VSN_DIR!\iex.bat" ^
-      --werl --hidden --cookie "!RELEASE_COOKIE!" ^
+      --hidden --cookie "!RELEASE_COOKIE!" ^
       !RELEASE_DISTRIBUTION_FLAG! ^
       --boot "!REL_VSN_DIR!\!RELEASE_BOOT_SCRIPT_CLEAN!" ^
       --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^

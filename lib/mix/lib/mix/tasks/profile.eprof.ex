@@ -224,9 +224,9 @@ defmodule Mix.Tasks.Profile.Eprof do
     calls_opt = Keyword.get(opts, :calls, 0)
     time_opt = Keyword.get(opts, :time, 0)
 
-    call_results
-    |> Stream.filter(fn {_mfa, {count, _time}} -> count >= calls_opt end)
-    |> Stream.filter(fn {_mfa, {_count, time}} -> time >= time_opt end)
+    Enum.filter(call_results, fn {_mfa, {count, time}} ->
+      count >= calls_opt and time >= time_opt
+    end)
   end
 
   defp sort_results(call_results, opts) do
@@ -307,14 +307,9 @@ defmodule Mix.Tasks.Profile.Eprof do
     max_lengths = Enum.map(header, &String.length/1)
 
     Enum.reduce(rows, max_lengths, fn row, max_lengths ->
-      Stream.map(row, &String.length/1)
-      |> Stream.zip(max_lengths)
-      |> Enum.map(&max/1)
+      Enum.zip_with(row, max_lengths, fn cell, length -> String.length(cell) |> max(length) end)
     end)
   end
-
-  defp max({a, b}) when a >= b, do: a
-  defp max({_, b}), do: b
 
   @format "~-*s ~*s ~*s ~*s ~*s~n"
 

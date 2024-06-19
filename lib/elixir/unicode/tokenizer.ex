@@ -42,7 +42,7 @@ defmodule String.Tokenizer do
         case name do
           "<" <> _ when is_integer(first) ->
             last = String.to_integer(codepoint, 16)
-            {Enum.to_list(last..first), nil}
+            {Enum.to_list(last..first//-1), nil}
 
           "<" <> _ ->
             first = String.to_integer(codepoint, 16)

@@ -46,7 +46,7 @@ runs:
           ref=v$(curl -s https://hex.pm/api/packages/ex_doc | jq --raw-output '.latest_stable_version')
         fi
         echo "EX_DOC_REF=$ref" >> $GITHUB_ENV
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       if: ${{ inputs.build_docs }}
       with:
         repository: elixir-lang/ex_doc

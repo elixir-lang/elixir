@@ -578,8 +578,9 @@ defmodule NaiveDateTime do
 
   When using the default ISO calendar, durations are collapsed and
   applied in the order of months, then seconds and microseconds:
-  - when shifting by 1 year and 2 months the date is actually shifted by 14 months
-  - weeks, days and smaller units are collapsed into seconds and microseconds
+
+  * when shifting by 1 year and 2 months the date is actually shifted by 14 months
+  * weeks, days and smaller units are collapsed into seconds and microseconds
 
   When shifting by month, days are rounded down to the nearest valid date.
 
@@ -1052,11 +1053,28 @@ defmodule NaiveDateTime do
   """
   @doc since: "1.11.0"
   @spec from_gregorian_seconds(integer(), Calendar.microsecond(), Calendar.calendar()) :: t
-  def from_gregorian_seconds(
-        seconds,
-        {microsecond, precision} \\ {0, 0},
-        calendar \\ Calendar.ISO
-      )
+  def from_gregorian_seconds(seconds, microsecond_precision \\ {0, 0}, calendar \\ Calendar.ISO)
+
+  def from_gregorian_seconds(seconds, {microsecond, precision}, Calendar.ISO)
+      when is_integer(seconds) do
+    {days, seconds} = div_rem(seconds, 24 * 60 * 60)
+    {hours, seconds} = div_rem(seconds, 60 * 60)
+    {minutes, seconds} = div_rem(seconds, 60)
+    {year, month, day} = Calendar.ISO.date_from_iso_days(days)
+
+    %NaiveDateTime{
+      calendar: Calendar.ISO,
+      year: year,
+      month: month,
+      day: day,
+      hour: hours,
+      minute: minutes,
+      second: seconds,
+      microsecond: {microsecond, precision}
+    }
+  end
+
+  def from_gregorian_seconds(seconds, {microsecond, precision}, calendar)
       when is_integer(seconds) do
     iso_days = Calendar.ISO.gregorian_seconds_to_iso_days(seconds, microsecond)
 
@@ -1073,6 +1091,17 @@ defmodule NaiveDateTime do
       second: second,
       microsecond: {microsecond, precision}
     }
+  end
+
+  defp div_rem(int1, int2) do
+    div = div(int1, int2)
+    rem = int1 - div * int2
+
+    if rem >= 0 do
+      {div, rem}
+    else
+      {div - 1, rem + int2}
+    end
   end
 
   @doc """

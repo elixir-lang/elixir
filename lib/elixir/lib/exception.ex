@@ -1,11 +1,18 @@
 defmodule Exception do
   @moduledoc """
-  Functions to format throw/catch/exit and exceptions.
+  Functions for dealing with throw/catch/exit and exceptions.
 
-  Note that stacktraces in Elixir are only available inside
-  catch and rescue by using the `__STACKTRACE__/0` variable.
+  This module also defines the behaviour required by custom
+  exceptions. To define your own, see `defexception/1`.
 
-  Do not rely on the particular format returned by the `format*`
+  ## Formatting functions
+
+  Several functions in this module help format exceptions.
+  Some of these functions expect the stacktrace as argument.
+  The stacktrace is typically available inside catch and
+  rescue by using the `__STACKTRACE__/0` variable.
+
+  Do not rely on the particular format returned by the
   functions in this module. They may be changed in future releases
   in order to better suit Elixir's tool chain. In other words,
   by using the functions in this module it is guaranteed you will
@@ -339,7 +346,7 @@ defmodule Exception do
   defp rewrite_arg(arg) do
     Macro.prewalk(arg, fn
       {:%{}, meta, [__struct__: Range, first: first, last: last, step: step]} ->
-        {:"..//", meta, [first, last, step]}
+        {:..//, meta, [first, last, step]}
 
       other ->
         other
@@ -1205,7 +1212,7 @@ defmodule SyntaxError do
       })
       when not is_nil(snippet) and not is_nil(column) do
     snippet =
-      :elixir_errors.format_snippet({line, column}, file, description, snippet, :error, [], nil)
+      :elixir_errors.format_snippet(:error, {line, column}, file, description, snippet, %{})
 
     format_message(file, line, column, snippet)
   end
@@ -1218,7 +1225,7 @@ defmodule SyntaxError do
         description: description
       }) do
     snippet =
-      :elixir_errors.format_snippet({line, column}, file, description, nil, :error, [], nil)
+      :elixir_errors.format_snippet(:error, {line, column}, file, description, nil, %{})
 
     padded = "   " <> String.replace(snippet, "\n", "\n   ")
     format_message(file, line, column, padded)
@@ -1309,7 +1316,7 @@ defmodule TokenMissingError do
         description: description
       }) do
     snippet =
-      :elixir_errors.format_snippet({line, column}, file, description, snippet, :error, [], nil)
+      :elixir_errors.format_snippet(:error, {line, column}, file, description, snippet, %{})
 
     format_message(file, line, column, snippet)
   end

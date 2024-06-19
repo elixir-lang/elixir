@@ -18,7 +18,8 @@ defmodule Calendar.ISO do
 
   The standard library supports a minimal set of possible ISO 8601 features.
   Specifically, the parser only supports calendar dates and does not support
-  ordinal and week formats.
+  ordinal and week formats. Additionally, it supports parsing ISO 8601
+  formatted durations, including negative time units and fractional seconds.
 
   By default Elixir only parses extended-formatted date/times. You can opt-in
   to parse basic-formatted date/times.
@@ -29,7 +30,7 @@ defmodule Calendar.ISO do
 
   Elixir does not support reduced accuracy formats (for example, a date without
   the day component) nor decimal precisions in the lowest component (such as
-  `10:01:25,5`). No functions exist to parse ISO 8601 durations or time intervals.
+  `10:01:25,5`).
 
   #### Examples
 
@@ -230,9 +231,9 @@ defmodule Calendar.ISO do
       ]
     end
 
-  defguardp is_year(year) when year in -9999..9999
-  defguardp is_year_BCE(year) when year in -9999..0
-  defguardp is_year_CE(year) when year in 1..9999
+  defguardp is_year(year) when is_integer(year)
+  defguardp is_year_BCE(year) when year <= 0
+  defguardp is_year_CE(year) when year >= 1
   defguardp is_month(month) when month in 1..12
   defguardp is_day(day) when day in 1..31
   defguardp is_hour(hour) when hour in 0..23
@@ -664,6 +665,79 @@ defmodule Calendar.ISO do
   end
 
   @doc """
+  Parses an ISO 8601 formatted duration string to a list of `Duration` compabitble unit pairs.
+
+  See `Duration.from_iso8601/1`.
+  """
+  @doc since: "1.17.0"
+  @spec parse_duration(String.t()) :: {:ok, [Duration.unit_pair()]} | {:error, atom}
+  def parse_duration("P" <> string) when byte_size(string) > 0 do
+    parse_duration_date(string, [], year: ?Y, month: ?M, week: ?W, day: ?D)
+  end
+
+  def parse_duration("+P" <> string) when byte_size(string) > 0 do
+    parse_duration_date(string, [], year: ?Y, month: ?M, week: ?W, day: ?D)
+  end
+
+  def parse_duration("-P" <> string) when byte_size(string) > 0 do
+    with {:ok, fields} <- parse_duration_date(string, [], year: ?Y, month: ?M, week: ?W, day: ?D) do
+      {:ok,
+       Enum.map(fields, fn
+         {:microsecond, {value, precision}} -> {:microsecond, {-value, precision}}
+         {unit, value} -> {unit, -value}
+       end)}
+    end
+  end
+
+  def parse_duration(_) do
+    {:error, :invalid_duration}
+  end
+
+  defp parse_duration_date("", acc, _allowed), do: {:ok, acc}
+
+  defp parse_duration_date("T" <> string, acc, _allowed) when byte_size(string) > 0 do
+    parse_duration_time(string, acc, hour: ?H, minute: ?M, second: ?S)
+  end
+
+  defp parse_duration_date(string, acc, allowed) do
+    with {integer, <<next, rest::binary>>} <- Integer.parse(string),
+         {key, allowed} <- find_unit(allowed, next) do
+      parse_duration_date(rest, [{key, integer} | acc], allowed)
+    else
+      _ -> {:error, :invalid_date_component}
+    end
+  end
+
+  defp parse_duration_time("", acc, _allowed), do: {:ok, acc}
+
+  defp parse_duration_time(string, acc, allowed) do
+    case Integer.parse(string) do
+      {second, <<delimiter, _::binary>> = rest} when delimiter in [?., ?,] ->
+        case parse_microsecond(rest) do
+          {{ms, precision}, "S"} ->
+            ms = if second > 0, do: ms, else: -ms
+            {:ok, [second: second, microsecond: {ms, precision}] ++ acc}
+
+          _ ->
+            {:error, :invalid_time_component}
+        end
+
+      {integer, <<next, rest::binary>>} ->
+        case find_unit(allowed, next) do
+          {key, allowed} -> parse_duration_time(rest, [{key, integer} | acc], allowed)
+          false -> {:error, :invalid_time_component}
+        end
+
+      _ ->
+        {:error, :invalid_time_component}
+    end
+  end
+
+  defp find_unit([{key, unit} | rest], unit), do: {key, rest}
+  defp find_unit([_ | rest], unit), do: find_unit(rest, unit)
+  defp find_unit([], _unit), do: false
+
+  @doc """
   Returns the `t:Calendar.iso_days/0` format of the specified date.
 
   ## Examples
@@ -809,7 +883,7 @@ defmodule Calendar.ISO do
 
   # Converts count of days since 0000-01-01 to {year, month, day} tuple.
   @doc false
-  def date_from_iso_days(days) when days in -3_652_059..3_652_424 do
+  def date_from_iso_days(days) do
     {year, day_of_year} = days_to_year(days)
     extra_day = if leap_year?(year), do: 1, else: 0
     {month, day_in_month} = year_day_to_year_date(extra_day, day_of_year)
@@ -1364,7 +1438,7 @@ defmodule Calendar.ISO do
   @spec valid_date?(year, month, day) :: boolean
   def valid_date?(year, month, day)
       when is_integer(year) and is_integer(month) and is_integer(day) do
-    is_year(year) and is_month(month) and day in 1..days_in_month(year, month)
+    is_month(month) and day in 1..days_in_month(year, month)
   end
 
   @doc """
@@ -1866,11 +1940,22 @@ defmodule Calendar.ISO do
 
   defp days_in_previous_years(0), do: 0
 
-  defp days_in_previous_years(year) do
+  # A concise version of the algorithm would use floor_div instead of div.
+  # However, floor_div would check the operands on every operation.
+  # We optimize this by providing a positive and negative version of each algorithm.
+  defp days_in_previous_years(year) when year > 0 do
     previous_year = year - 1
 
-    Integer.floor_div(previous_year, 4) - Integer.floor_div(previous_year, 100) +
-      Integer.floor_div(previous_year, 400) + previous_year * @days_per_nonleap_year +
+    div(previous_year, 4) - div(previous_year, 100) +
+      div(previous_year, 400) + previous_year * @days_per_nonleap_year +
+      @days_per_leap_year
+  end
+
+  defp days_in_previous_years(year) when year < 0 do
+    previous_year = year - 1
+
+    div(year, 4) - div(year, 100) +
+      div(year, 400) - 1 + previous_year * @days_per_nonleap_year +
       @days_per_leap_year
   end
 

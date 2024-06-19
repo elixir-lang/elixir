@@ -37,8 +37,6 @@ Please note that some details like version numbers may differ a bit in your sess
 
 It seems we are ready to go! We will use the interactive shell quite a lot in the next chapters to get a bit more familiar with the language constructs and basic types, starting in the next chapter.
 
-> Note: if you are on Windows and running on an Erlang/OTP version earlier than 26, you can also try `iex --werl` (`iex.bat --werl` on PowerShell) which may provide a better experience depending on which console you are using.
-
 ## Running scripts
 
 After getting familiar with the basics of the language you may want to try writing simple programs. This can be accomplished by putting the following Elixir code into a file:

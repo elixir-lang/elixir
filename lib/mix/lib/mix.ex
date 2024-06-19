@@ -143,7 +143,7 @@ defmodule Mix do
 
   ## Configuration
 
-  Mix allows you configure the application environment of your application
+  Mix allows you to configure the application environment of your application
   and of your dependencies. See the `Application` module to learn more about
   the application environment. On this section, we will focus on how to configure
   it at two distinct moments: build-time and runtime.

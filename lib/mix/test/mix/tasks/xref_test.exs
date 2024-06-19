@@ -75,7 +75,7 @@ defmodule Mix.Tasks.XrefTest do
 
         Mix.Task.run("compile")
         after_compile.()
-        xref = Mix.Tasks.Xref
+        xref = String.to_atom("Elixir.Mix.Tasks.Xref")
         assert Enum.sort(xref.calls()) == Enum.sort(expected)
       end)
     end
@@ -239,10 +239,9 @@ defmodule Mix.Tasks.XrefTest do
       Generated sample app
       lib/b.ex:2: require A (export)
       lib/b.ex:3: call A.macro/0 (compile)
-      lib/b.ex:4: import A.macro/0 (compile)
+      lib/b.ex:4: import call A.macro/0 (compile)
       lib/b.ex:5: call A.fun/0 (compile)
-      lib/b.ex:6: call A.fun/0 (compile)
-      lib/b.ex:6: import A.fun/0 (compile)
+      lib/b.ex:6: import call A.fun/0 (compile)
       lib/b.ex:7: call A.macro/0 (compile)
       lib/b.ex:8: call A.fun/0 (runtime)
       lib/b.ex:9: struct A (export)

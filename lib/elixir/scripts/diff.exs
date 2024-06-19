@@ -99,12 +99,27 @@ defmodule Diff do
       end
     else
       _ ->
-        file_diff(file1, file2)
+        tmp_file1 =
+          file1
+          |> xxd_dump()
+          |> write_tmp()
+
+        tmp_file2 =
+          file2
+          |> xxd_dump()
+          |> write_tmp()
+
+        file_diff(tmp_file1, tmp_file2)
     end
   end
 
+  defp xxd_dump(file) do
+    {dump, _} = System.cmd("xxd", [file])
+    dump
+  end
+
   defp file_diff(file1, file2) do
-    {diff, _} = System.cmd("diff", [file1, file2])
+    {diff, _} = System.cmd("diff", ["--suppress-common-lines", file1, file2])
     diff
   end
 

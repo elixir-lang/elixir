@@ -152,6 +152,8 @@ expand({{'.', DotMeta, [{'__ENV__', Meta, Atom}, Field]}, CallMeta, []}, S, E)
     true  -> {maps:get(Field, Env), S, E};
     false -> {{{'.', DotMeta, [escape_map(Env), Field]}, CallMeta, []}, S, E}
   end;
+expand({'__cursor__', Meta, Args}, _S, E) when is_list(Args) ->
+  file_error(Meta, E, ?MODULE, '__cursor__');
 
 %% Quote
 
@@ -159,9 +161,9 @@ expand({Unquote, Meta, [_]}, _S, E) when Unquote == unquote; Unquote == unquote_
   file_error(Meta, E, ?MODULE, {unquote_outside_quote, Unquote});
 
 expand({quote, Meta, [Opts]}, S, E) when is_list(Opts) ->
-  case lists:keyfind(do, 1, Opts) of
-    {do, Do} ->
-      expand({quote, Meta, [lists:keydelete(do, 1, Opts), [{do, Do}]]}, S, E);
+  case lists:keytake(do, 1, Opts) of
+    {value, {do, Do}, DoOpts} ->
+      expand({quote, Meta, [DoOpts, [{do, Do}]]}, S, E);
     false ->
       file_error(Meta, E, ?MODULE, {missing_option, 'quote', [do]})
   end;
@@ -186,7 +188,7 @@ expand({quote, Meta, [Opts, Do]}, S, E) when is_list(Do) ->
 
   {File, Line} = case lists:keyfind(location, 1, EOpts) of
     {location, keep} ->
-      {?key(E, file), false};
+      {?key(E, file), true};
     false ->
       {proplists:get_value(file, EOpts, nil), proplists:get_value(line, EOpts, false)}
   end,
@@ -205,9 +207,30 @@ expand({quote, Meta, [Opts, Do]}, S, E) when is_list(Do) ->
   Unquote = proplists:get_value(unquote, EOpts, DefaultUnquote),
   Generated = proplists:get_value(generated, EOpts, false),
 
-  {Q, Prelude} = elixir_quote:build(Meta, Line, File, Context, Unquote, Generated),
-  Quoted = elixir_quote:quote(Meta, Exprs, Binding, Q, Prelude, ET),
-  expand(Quoted, ST, ET);
+  {Q, QContext, QPrelude} = elixir_quote:build(Meta, Line, File, Context, Unquote, Generated, ET),
+  {EPrelude, SP, EP} = expand(QPrelude, ST, ET),
+  {EContext, SC, EC} = expand(QContext, SP, EP),
+  Quoted = elixir_quote:quote(Exprs, Q),
+  {EQuoted, ES, EQ} = expand(Quoted, SC, EC),
+
+  EBinding =
+      [{'{}', [],
+        ['=', [], [
+          {'{}', [], [K, Meta, EContext]},
+          V
+        ]
+       ]} || {K, V} <- Binding],
+
+  EBindingQuoted =
+    case EBinding of
+      [] -> EQuoted;
+      _ -> {'{}', [], ['__block__', [], EBinding ++ [EQuoted]]}
+    end,
+
+  case EPrelude of
+    [] -> {EBindingQuoted, ES, EQ};
+    _ -> {{'__block__', [], EPrelude ++ [EBindingQuoted]}, ES, EQ}
+  end;
 
 expand({quote, Meta, [_, _]}, _S, E) ->
   file_error(Meta, E, ?MODULE, {invalid_args, 'quote'});
@@ -317,7 +340,7 @@ expand({Name, Meta, Kind}, S, #{context := match} = E) when is_atom(Name), is_at
     %% Variable was already overridden
     #{Pair := VarVersion} when VarVersion >= PrematchVersion ->
       maybe_warn_underscored_var_repeat(Meta, Name, Kind, E),
-      NewUnused = var_used(Meta, Pair, VarVersion, Unused),
+      NewUnused = var_used(Pair, Meta, VarVersion, Unused),
       Var = {Name, [{version, VarVersion} | Meta], Kind},
       {Var, S#elixir_ex{unused={NewUnused, Version}}, E};
 
@@ -373,7 +396,7 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
     {ok, PairVersion} ->
       maybe_warn_underscored_var_access(Meta, Name, Kind, E),
       Var = {Name, [{version, PairVersion} | Meta], Kind},
-      {Var, S#elixir_ex{unused={var_used(Meta, Pair, PairVersion, Unused), Version}}, E};
+      {Var, S#elixir_ex{unused={var_used(Pair, Meta, PairVersion, Unused), Version}}, E};
 
     Error ->
       case lists:keyfind(if_undefined, 1, Meta) of
@@ -406,8 +429,12 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
 expand({Atom, Meta, Args}, S, E) when is_atom(Atom), is_list(Meta), is_list(Args) ->
   assert_no_ambiguous_op(Atom, Meta, Args, S, E),
 
-  elixir_dispatch:dispatch_import(Meta, Atom, Args, S, E, fun() ->
-    expand_local(Meta, Atom, Args, S, E)
+  elixir_dispatch:dispatch_import(Meta, Atom, Args, S, E, fun
+    ({AR, AF}) ->
+      expand_remote(AR, Meta, AF, Meta, Args, S, elixir_env:prepare_write(S), E);
+
+    (local) ->
+      expand_local(Meta, Atom, Args, S, E)
   end);
 
 %% Remote calls
@@ -416,8 +443,8 @@ expand({{'.', DotMeta, [Left, Right]}, Meta, Args}, S, E)
     when (is_tuple(Left) orelse is_atom(Left)), is_atom(Right), is_list(Meta), is_list(Args) ->
   {ELeft, SL, EL} = expand(Left, elixir_env:prepare_write(S), E),
 
-  elixir_dispatch:dispatch_require(Meta, ELeft, Right, Args, S, EL, fun(AR, AF, AA) ->
-    expand_remote(AR, DotMeta, AF, Meta, AA, S, SL, EL)
+  elixir_dispatch:dispatch_require(Meta, ELeft, Right, Args, S, EL, fun(AR, AF) ->
+    expand_remote(AR, DotMeta, AF, Meta, Args, S, SL, EL)
   end);
 
 %% Anonymous calls
@@ -425,7 +452,6 @@ expand({{'.', DotMeta, [Left, Right]}, Meta, Args}, S, E)
 expand({{'.', DotMeta, [Expr]}, Meta, Args}, S, E) when is_list(Args) ->
   assert_no_match_or_guard_scope(Meta, "anonymous call", S, E),
   {[EExpr | EArgs], SA, EA} = expand_args([Expr | Args], S, E),
-  is_atom(EExpr) andalso function_error(Meta, E, ?MODULE, {invalid_function_call, EExpr}),
   {{{'.', DotMeta, [EExpr]}, Meta, EArgs}, SA, EA};
 
 %% Invalid calls
@@ -464,7 +490,7 @@ expand(Pid, S, E) when is_pid(Pid) ->
     Function ->
       %% TODO: Make me an error on v2.0
       elixir_errors:file_warn([], E, ?MODULE, {invalid_pid_in_function, Pid, Function}),
-      {Pid, E}
+      {Pid, S, E}
   end;
 
 expand(Zero, S, #{context := match} = E) when is_float(Zero), Zero == 0.0 ->
@@ -522,8 +548,6 @@ resolve_super(Meta, Arity, E) ->
 expand_fn_capture(Meta, Arg, S, E) ->
   case elixir_fn:capture(Meta, Arg, S, E) of
     {{remote, Remote, Fun, Arity}, RequireMeta, DotMeta, SE, EE} ->
-      is_atom(Remote) andalso
-        elixir_env:trace({remote_function, RequireMeta, Remote, Fun, Arity}, E),
       AttachedMeta = attach_runtime_module(Remote, RequireMeta, S, E),
       CaptureArgs = [{'&',[],[I]} || I <- lists:seq(1,Arity)],
       case elixir_rewrite:rewrite(Remote, DotMeta, Fun, AttachedMeta, CaptureArgs) of
@@ -641,7 +665,7 @@ var_unused({_, Kind} = Pair, Meta, Version, Unused, Override) ->
     false -> Unused
   end.
 
-var_used(Meta, {_, Kind} = Pair, Version, Unused) ->
+var_used({_, Kind} = Pair, Meta, Version, Unused) ->
   KeepUnused = lists:keymember(keep_unused, 1, Meta),
 
   if
@@ -829,25 +853,8 @@ assert_no_ambiguous_op(Name, Meta, [Arg], S, E) ->
 assert_no_ambiguous_op(_Atom, _Meta, _Args, _S, _E) ->
   ok.
 
-assert_no_clauses(_Name, _Meta, [], _E) ->
-  ok;
-assert_no_clauses(Name, Meta, Args, E) ->
-  assert_arg_with_no_clauses(Name, Meta, lists:last(Args), E).
-
-assert_arg_with_no_clauses(Name, Meta, [{Key, Value} | Rest], E) when is_atom(Key) ->
-  case Value of
-    [{'->', _, _} | _] ->
-      file_error(Meta, E, ?MODULE, {invalid_clauses, Name});
-    _ ->
-      assert_arg_with_no_clauses(Name, Meta, Rest, E)
-  end;
-assert_arg_with_no_clauses(_Name, _Meta, _Arg, _E) ->
-  ok.
-
 expand_local(Meta, Name, Args, S, #{module := Module, function := Function, context := Context} = E)
     when Function /= nil ->
-  assert_no_clauses(Name, Meta, Args, E),
-
   %% In case we have the wrong context, we log a module error
   %% so we can print multiple entries at the same time.
   case Context of
@@ -872,8 +879,6 @@ expand_local(Meta, Name, Args, _S, #{function := nil} = E) ->
 
 expand_remote(Receiver, DotMeta, Right, Meta, Args, S, SL, #{context := Context} = E)
     when is_atom(Receiver) or is_tuple(Receiver) ->
-  assert_no_clauses(Right, Meta, Args, E),
-
   if
     Context =:= guard, is_tuple(Receiver) ->
       (lists:keyfind(no_parens, 1, Meta) /= {no_parens, true}) andalso
@@ -887,7 +892,6 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, S, SL, #{context := Context}
 
       case rewrite(Context, Receiver, DotMeta, Right, AttachedMeta, EArgs, S) of
         {ok, Rewritten} ->
-          maybe_warn_comparison(Rewritten, Args, E),
           {Rewritten, elixir_env:close_write(SA, S), EA};
 
         {error, Error} ->
@@ -913,55 +917,6 @@ rewrite(guard, Receiver, DotMeta, Right, Meta, EArgs, S) ->
   elixir_rewrite:guard_rewrite(Receiver, DotMeta, Right, Meta, EArgs, guard_context(S));
 rewrite(_, Receiver, DotMeta, Right, Meta, EArgs, _S) ->
   {ok, elixir_rewrite:rewrite(Receiver, DotMeta, Right, Meta, EArgs)}.
-
-maybe_warn_comparison({{'.', _, [erlang, Op]}, Meta, [ELeft, ERight]}, [Left, Right], E)
-    when Op =:= '>'; Op =:= '<'; Op =:= '=<'; Op =:= '>='; Op =:= min; Op =:= max ->
-  case is_struct_comparison(ELeft, ERight, Left, Right) of
-    false ->
-      case is_nested_comparison(Op, ELeft, ERight, Left, Right) of
-        false -> ok;
-        CompExpr ->
-          elixir_errors:file_warn(Meta, E, ?MODULE, {nested_comparison, CompExpr})
-      end;
-    StructExpr ->
-      elixir_errors:file_warn(Meta, E, ?MODULE, {struct_comparison, StructExpr})
-  end;
-maybe_warn_comparison(_, _, _) ->
-  ok.
-
-is_struct_comparison(ELeft, ERight, Left, Right) ->
-  case is_struct_expression(ELeft) of
-    true -> Left;
-    false ->
-      case is_struct_expression(ERight) of
-        true -> Right;
-        false -> false
-      end
-  end.
-
-is_struct_expression({'%', _, [Struct, _]}) when is_atom(Struct) ->
-  true;
-is_struct_expression({'%{}', _, KVs}) ->
-  case lists:keyfind('__struct__', 1, KVs) of
-    {'__struct__', Struct} when is_atom(Struct) -> true;
-    false -> false
-  end;
-is_struct_expression(_Other) -> false.
-
-is_nested_comparison(Op, ELeft, ERight, Left, Right) ->
-  NestedExpr = {elixir_utils:erlang_comparison_op_to_elixir(Op), [], [Left, Right]},
-  case is_comparison_expression(ELeft) of
-    true ->
-      NestedExpr;
-    false ->
-      case is_comparison_expression(ERight) of
-        true -> NestedExpr;
-        false -> false
-      end
-  end.
-is_comparison_expression({{'.',_,[erlang,Op]},_,_})
-  when Op =:= '>'; Op =:= '<'; Op =:= '=<'; Op =:= '>=' -> true;
-is_comparison_expression(_Other) -> false.
 
 %% Lexical helpers
 
@@ -1264,8 +1219,6 @@ format_error({invalid_clauses, Name}) ->
     "the function \"~ts\" cannot handle clauses with the -> operator because it is not a macro. "
     "Please make sure you are invoking the proper name and that it is a macro",
   io_lib:format(Message, [Name]);
-format_error({invalid_function_call, Expr}) ->
-  io_lib:format("invalid function call :~ts.()", [Expr]);
 format_error({invalid_call, Call}) ->
   io_lib:format("invalid call ~ts", ['Elixir.Macro':to_string(Call)]);
 format_error({invalid_quoted_expr, Expr}) ->
@@ -1306,13 +1259,6 @@ format_error({underscored_var_access, Name}) ->
                 "A leading underscore indicates that the value of the variable "
                 "should be ignored. If this is intended please rename the "
                 "variable to remove the underscore", [Name]);
-format_error({struct_comparison, StructExpr}) ->
-  String = 'Elixir.Macro':to_string(StructExpr),
-  io_lib:format("invalid comparison with struct literal ~ts. Comparison operators "
-                "(>, <, >=, <=, min, and max) perform structural and not semantic comparison. "
-                "Comparing with a struct literal is unlikely to give a meaningful result. "
-                "Struct modules typically define a compare/2 function that can be used for "
-                "semantic comparison", [String]);
 format_error({nested_comparison, CompExpr}) ->
   String = 'Elixir.Macro':to_string(CompExpr),
   io_lib:format("Elixir does not support nested comparisons. Something like\n\n"
@@ -1338,6 +1284,8 @@ format_error({parens_map_lookup, Map, Field, Context}) ->
                 [Context, 'Elixir.Macro':to_string(Map), Field]);
 format_error({super_in_genserver, {Name, Arity}}) ->
   io_lib:format("calling super for GenServer callback ~ts/~B is deprecated", [Name, Arity]);
+format_error('__cursor__') ->
+  "reserved special form __cursor__ cannot be expanded, it is used exclusively to annotate ASTs";
 format_error({parallel_bitstring_match, Expr}) ->
   Message =
     "binary patterns cannot be matched in parallel using \"=\", excess pattern: ~ts",

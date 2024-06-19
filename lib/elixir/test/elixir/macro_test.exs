@@ -15,6 +15,12 @@ defmodule Macro.ExternalTest do
   end
 end
 
+defmodule CustomIf do
+  def if(_cond, _expr) do
+    "custom if result"
+  end
+end
+
 defmodule MacroTest do
   use ExUnit.Case, async: true
   doctest Macro
@@ -36,6 +42,10 @@ defmodule MacroTest do
       assert Macro.escape({:a}) == {:{}, [], [:a]}
       assert Macro.escape({:a, :b, :c}) == {:{}, [], [:a, :b, :c]}
       assert Macro.escape({:a, {1, 2, 3}, :c}) == {:{}, [], [:a, {:{}, [], [1, 2, 3]}, :c]}
+
+      # False positives
+      assert Macro.escape({:quote, :foo, [:bar]}) == {:{}, [], [:quote, :foo, [:bar]]}
+      assert Macro.escape({:quote, :foo, [:bar, :baz]}) == {:{}, [], [:quote, :foo, [:bar, :baz]]}
     end
 
     test "escapes maps" do
@@ -443,6 +453,30 @@ defmodule MacroTest do
              """
     end
 
+    test "with block of code" do
+      {result, formatted} =
+        dbg_format(
+          (
+            a = 1
+            b = a + 2
+            a + b
+          )
+        )
+
+      assert result == 4
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             Code block:
+             (
+               a = 1 #=> 1
+               b = a + 2 #=> 3
+               a + b #=> 4
+             )
+             """
+    end
+
     test "with case" do
       list = [1, 2, 3]
 
@@ -532,6 +566,112 @@ defmodule MacroTest do
              """
     end
 
+    test "if expression" do
+      x = true
+      map = %{a: 5, b: 1}
+
+      {result, formatted} =
+        dbg_format(
+          if true and x do
+            map[:a] * 2
+          else
+            map[:b]
+          end
+        )
+
+      assert result == 10
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             If condition:
+             true and x #=> true
+
+             If expression:
+             if true and x do
+               map[:a] * 2
+             else
+               map[:b]
+             end #=> 10
+             """
+    end
+
+    test "if expression without else" do
+      x = true
+      map = %{a: 5, b: 1}
+
+      {result, formatted} =
+        dbg_format(
+          if false and x do
+            map[:a] * 2
+          end
+        )
+
+      assert result == nil
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             If condition:
+             false and x #=> false
+
+             If expression:
+             if false and x do
+               map[:a] * 2
+             end #=> nil
+             """
+    end
+
+    test "custom if definition" do
+      import Kernel, except: [if: 2]
+      import CustomIf, only: [if: 2]
+
+      {result, formatted} =
+        dbg_format(
+          if true do
+            "something"
+          end
+        )
+
+      assert result == "custom if result"
+
+      assert formatted =~ """
+             if true do
+               "something"
+             end #=> "custom if result"
+             """
+    end
+
+    test "unless expression" do
+      x = false
+      map = %{a: 5, b: 1}
+
+      {result, formatted} =
+        dbg_format(
+          unless true and x do
+            map[:a] * 2
+          else
+            map[:b]
+          end
+        )
+
+      assert result == 10
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             Unless condition:
+             true and x #=> false
+
+             Unless expression:
+             unless true and x do
+               map[:a] * 2
+             else
+               map[:b]
+             end #=> 10
+             """
+    end
+
     test "with \"syntax_colors: []\" it doesn't print any color sequences" do
       {_result, formatted} = dbg_format("hello")
       refute formatted =~ "\e["
@@ -599,7 +739,7 @@ defmodule MacroTest do
 
   describe "to_string/2" do
     defp macro_to_string(var, fun \\ fn _ast, string -> string end) do
-      module = Macro
+      module = String.to_atom("Elixir.Macro")
       module.to_string(var, fun)
     end
 

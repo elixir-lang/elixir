@@ -17,12 +17,12 @@ defmodule AlternativeInteger do
   @spec parse(String.t(), keyword()) :: integer() | {integer(), String.t()} | :error
   def parse(string, options \\ []) when is_list(options) do
     if Keyword.get(options, :discard_rest, false) do
-      Integer.parse(string)
-    else
       case Integer.parse(string) do
         {int, _rest} -> int
         :error -> :error
       end
+    else
+      Integer.parse(string)
     end
   end
 end
@@ -30,11 +30,11 @@ end
 
 ```elixir
 iex> AlternativeInteger.parse("13")
-13
-iex> AlternativeInteger.parse("13", discard_rest: true)
-13
+{13, ""}
 iex> AlternativeInteger.parse("13", discard_rest: false)
 {13, ""}
+iex> AlternativeInteger.parse("13", discard_rest: true)
+13
 ```
 
 #### Refactoring

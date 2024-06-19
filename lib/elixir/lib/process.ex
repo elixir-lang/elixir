@@ -233,6 +233,12 @@ defmodule Process do
   the current process will sleep forever, and not
   consume or reply to messages.
 
+  > #### Sleeping limit {: .info }
+  >
+  > Before Elixir v1.18, `sleep/1` did not accept integer timeout values greater
+  > than `16#ffffffff`, that is, `2^32-1`. Since Elixir v1.18, arbitrarily-high integer
+  > values are accepted.
+
   **Use this function with extreme care**. For almost all situations
   where you would use `sleep/1` in Elixir, there is likely a
   more correct, faster and precise way of achieving the same with
@@ -299,7 +305,15 @@ defmodule Process do
       end
 
   """
+
+  # Max value for a receive's after clause
+  @max_receive_after 0xFFFFFFFF
+
   @spec sleep(timeout) :: :ok
+  def sleep(timeout) when is_integer(timeout) and timeout > @max_receive_after do
+    receive after: (@max_receive_after -> sleep(timeout - @max_receive_after))
+  end
+
   def sleep(timeout)
       when is_integer(timeout) and timeout >= 0
       when timeout == :infinity do

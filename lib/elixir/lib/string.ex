@@ -2961,9 +2961,9 @@ defmodule String do
   @doc """
   Returns a float whose text representation is `string`.
 
-  `string` must be the string representation of a float including a decimal point.
-  In order to parse a string without decimal point as a float then `Float.parse/1`
-  should be used. Otherwise, an `ArgumentError` will be raised.
+  `string` must be the string representation of a float including leading digits and a decimal
+  point. To parse a string without decimal point as a float, refer to `Float.parse/1`. Otherwise,
+  an `ArgumentError` will be raised.
 
   Inlined by the compiler.
 
@@ -2976,6 +2976,9 @@ defmodule String do
       3.0
 
       String.to_float("3")
+      ** (ArgumentError) argument error
+
+      String.to_float(".3")
       ** (ArgumentError) argument error
 
   """

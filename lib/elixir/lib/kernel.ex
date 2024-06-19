@@ -174,10 +174,7 @@ defmodule Kernel do
   The functions in this module perform structural comparison. This allows
   different data types to be compared using comparison operators:
 
-  ```elixir
-  iex> 1 < :an_atom
-  true
-  ```
+      1 < :an_atom
 
   This is possible so Elixir developers can create collections, such as
   dictionaries and ordered sets, that store a mixture of data types in them.
@@ -205,9 +202,12 @@ defmodule Kernel do
       ~D[2017-03-31] > ~D[2017-04-01]
 
   will return `true` because structural comparison compares the `:day`
-  field before `:month` or `:year`. In order to perform semantic comparisons,
-  the relevant data-types provide a `compare/2` function, such as
-  `Date.compare/2`:
+  field before `:month` or `:year`. Luckily, the Elixir compiler will
+  detect whenever comparing structs or whenever comparing code that is
+  either always true or false, and emit a warning accordingly.
+
+  In order to perform semantic comparisons, the relevant data-types
+  provide a `compare/2` function, such as `Date.compare/2`:
 
       iex> Date.compare(~D[2017-03-31], ~D[2017-04-01])
       :lt
@@ -636,22 +636,26 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is an atom; otherwise returns `false`.
+  Returns `true` if `term` is an atom, otherwise returns `false`.
+
+  Note `true`, `false`, and `nil` are atoms in Elixir, as well as
+  module names. Therefore this function will return `true` to all
+  of those values.
 
   Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 
-      iex> is_atom(false)
+      iex> is_atom(:name)
       true
 
-      iex> is_atom(:name)
+      iex> is_atom(false)
       true
 
       iex> is_atom(AnAtom)
       true
 
-      iex> is_atom("true")
+      iex> is_atom("string")
       false
 
   """
@@ -662,7 +666,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is a binary; otherwise returns `false`.
+  Returns `true` if `term` is a binary, otherwise returns `false`.
 
   A binary always contains a complete number of bytes.
 
@@ -683,7 +687,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is a bitstring (including a binary); otherwise returns `false`.
+  Returns `true` if `term` is a bitstring (including a binary), otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -703,7 +707,7 @@ defmodule Kernel do
 
   @doc """
   Returns `true` if `term` is either the atom `true` or the atom `false` (i.e.,
-  a boolean); otherwise returns `false`.
+  a boolean), otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -726,7 +730,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is a floating-point number; otherwise returns `false`.
+  Returns `true` if `term` is a floating-point number, otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
   """
@@ -737,7 +741,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is a function; otherwise returns `false`.
+  Returns `true` if `term` is a function, otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -777,7 +781,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is an integer; otherwise returns `false`.
+  Returns `true` if `term` is an integer, otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
   """
@@ -788,7 +792,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is a list with zero or more elements; otherwise returns `false`.
+  Returns `true` if `term` is a list with zero or more elements, otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
   """
@@ -811,7 +815,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is a PID (process identifier); otherwise returns `false`.
+  Returns `true` if `term` is a PID (process identifier), otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
   """
@@ -822,7 +826,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is a port identifier; otherwise returns `false`.
+  Returns `true` if `term` is a port identifier, otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
   """
@@ -833,7 +837,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is a reference; otherwise returns `false`.
+  Returns `true` if `term` is a reference, otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
   """
@@ -844,7 +848,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is a tuple; otherwise returns `false`.
+  Returns `true` if `term` is a tuple, otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
   """
@@ -855,9 +859,25 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is a map; otherwise returns `false`.
+  Returns `true` if `term` is a map, otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
+
+  > #### Structs are maps {: .info}
+  >
+  > Structs are also maps, and many of Elixir data structures are implemented
+  > using structs: `Range`s, `Regex`es, `Date`s...
+  >
+  >     iex> is_map(1..10)
+  >     true
+  >     iex> is_map(~D[2024-04-18])
+  >     true
+  >
+  > If you mean to specifically check for non-struct maps, use
+  > `is_non_struct_map/1` instead.
+  >
+  >     iex> is_non_struct_map(1..10)
+  >     false
   """
   @doc guard: true
   @spec is_map(term) :: boolean
@@ -866,7 +886,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `key` is a key in `map`; otherwise returns `false`.
+  Returns `true` if `key` is a key in `map`, otherwise returns `false`.
 
   It raises `BadMapError` if the first element is not a map.
 
@@ -951,7 +971,7 @@ defmodule Kernel do
 
   This performs a structural comparison where all Elixir
   terms can be compared with each other. See the ["Structural
-  comparison" section](#module-structural-comparison) section
+  comparison"](#module-structural-comparison) section
   for more information.
 
   Inlined by the compiler.
@@ -960,8 +980,8 @@ defmodule Kernel do
 
       iex> max(1, 2)
       2
-      iex> max(:a, :b)
-      :b
+      iex> max("a", "b")
+      "b"
 
   """
   @spec max(first, second) :: first | second when first: term, second: term
@@ -977,7 +997,7 @@ defmodule Kernel do
 
   This performs a structural comparison where all Elixir
   terms can be compared with each other. See the ["Structural
-  comparison" section](#module-structural-comparison) section
+  comparison"](#module-structural-comparison) section
   for more information.
 
   Inlined by the compiler.
@@ -1085,6 +1105,9 @@ defmodule Kernel do
   `dest` may be a remote or local PID, a local port, a locally
   registered name, or a tuple in the form of `{registered_name, node}` for a
   registered name at another node.
+
+  For additional documentation, see the [`!` operator Erlang
+  documentation](https://www.erlang.org/doc/reference_manual/expressions#send).
 
   Inlined by the compiler.
 
@@ -1630,7 +1653,7 @@ defmodule Kernel do
 
   This performs a structural comparison where all Elixir
   terms can be compared with each other. See the ["Structural
-  comparison" section](#module-structural-comparison) section
+  comparison"](#module-structural-comparison) section
   for more information.
 
   Allowed in guard tests. Inlined by the compiler.
@@ -1654,7 +1677,7 @@ defmodule Kernel do
 
   This performs a structural comparison where all Elixir
   terms can be compared with each other. See the ["Structural
-  comparison" section](#module-structural-comparison) section
+  comparison"](#module-structural-comparison) section
   for more information.
 
   Allowed in guard tests. Inlined by the compiler.
@@ -1678,7 +1701,7 @@ defmodule Kernel do
 
   This performs a structural comparison where all Elixir
   terms can be compared with each other. See the ["Structural
-  comparison" section](#module-structural-comparison) section
+  comparison"](#module-structural-comparison) section
   for more information.
 
   Allowed in guard tests. Inlined by the compiler.
@@ -1702,7 +1725,7 @@ defmodule Kernel do
 
   This performs a structural comparison where all Elixir
   terms can be compared with each other. See the ["Structural
-  comparison" section](#module-structural-comparison) section
+  comparison"](#module-structural-comparison) section
   for more information.
 
   Allowed in guard tests. Inlined by the compiler.
@@ -1727,7 +1750,7 @@ defmodule Kernel do
 
   This performs a structural comparison where all Elixir
   terms can be compared with each other. See the ["Structural
-  comparison" section](#module-structural-comparison) section
+  comparison"](#module-structural-comparison) section
   for more information.
 
   Allowed in guard tests. Inlined by the compiler.
@@ -1757,7 +1780,7 @@ defmodule Kernel do
 
   This performs a structural comparison where all Elixir
   terms can be compared with each other. See the ["Structural
-  comparison" section](#module-structural-comparison) section
+  comparison"](#module-structural-comparison) section
   for more information.
 
   Allowed in guard tests. Inlined by the compiler.
@@ -1789,7 +1812,7 @@ defmodule Kernel do
 
   This performs a structural comparison where all Elixir
   terms can be compared with each other. See the ["Structural
-  comparison" section](#module-structural-comparison) section
+  comparison"](#module-structural-comparison) section
   for more information.
 
   Allowed in guard tests. Inlined by the compiler.
@@ -1817,7 +1840,7 @@ defmodule Kernel do
 
   This performs a structural comparison where all Elixir
   terms can be compared with each other. See the ["Structural
-  comparison" section](#module-structural-comparison) section
+  comparison"](#module-structural-comparison) section
   for more information.
 
   Allowed in guard tests. Inlined by the compiler.
@@ -1889,7 +1912,7 @@ defmodule Kernel do
   @doc """
   Strictly boolean "or" operator.
 
-  If `left` is `true`, returns `true`; otherwise returns `right`.
+  If `left` is `true`, returns `true`, otherwise returns `right`.
 
   Requires only the `left` operand to be a boolean since it short-circuits.
   If the `left` operand is not a boolean, a `BadBooleanError` exception is
@@ -1921,7 +1944,7 @@ defmodule Kernel do
   @doc """
   Strictly boolean "and" operator.
 
-  If `left` is `false`, returns `false`; otherwise returns `right`.
+  If `left` is `false`, returns `false`, otherwise returns `right`.
 
   Requires only the `left` operand to be a boolean since it short-circuits. If
   the `left` operand is not a boolean, a `BadBooleanError` exception is raised.
@@ -2487,7 +2510,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is a struct; otherwise returns `false`.
+  Returns `true` if `term` is a struct, otherwise returns `false`.
 
   Allowed in guard tests.
 
@@ -2523,7 +2546,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is a struct of `name`; otherwise returns `false`.
+  Returns `true` if `term` is a struct of `name`, otherwise returns `false`.
 
   `is_struct/2` does not check that `name` exists and is a valid struct.
   If you want such validations, you must pattern match on the struct
@@ -2571,7 +2594,49 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is an exception; otherwise returns `false`.
+  Returns `true` if `term` is a map that is not a struct, otherwise
+  returns `false`.
+
+  Allowed in guard tests.
+
+  ## Examples
+
+      iex> is_non_struct_map(%{})
+      true
+
+      iex> is_non_struct_map(URI.parse("/"))
+      false
+
+      iex> is_non_struct_map(nil)
+      false
+
+  """
+  @doc since: "1.17.0", guard: true
+  defmacro is_non_struct_map(term) do
+    case __CALLER__.context do
+      nil ->
+        quote do
+          case unquote(term) do
+            %_{} -> false
+            %{} -> true
+            _ -> false
+          end
+        end
+
+      :match ->
+        invalid_match!(:is_non_struct_map)
+
+      :guard ->
+        quote do
+          is_map(unquote(term)) and
+            not (:erlang.is_map_key(:__struct__, unquote(term)) and
+                   is_atom(:erlang.map_get(:__struct__, unquote(term))))
+        end
+    end
+  end
+
+  @doc """
+  Returns `true` if `term` is an exception, otherwise returns `false`.
 
   Allowed in guard tests.
 
@@ -2609,7 +2674,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns `true` if `term` is an exception of `name`; otherwise returns `false`.
+  Returns `true` if `term` is an exception of `name`, otherwise returns `false`.
 
   Allowed in guard tests.
 
@@ -3800,9 +3865,14 @@ defmodule Kernel do
   Provides an `if/2` macro.
 
   This macro expects the first argument to be a condition and the second
-  argument to be a keyword list. Similar to `case/2`, any assignment in
-  the condition will be available on both clauses, as well as after the
-  `if` expression.
+  argument to be a keyword list. Generally speaking, Elixir developers
+  prefer to use pattern matching and guards in function definitions and
+  `case/2`, as they are succinct and precise. However, not all conditions
+  can be expressed through patterns and guards, which makes `if/2` a viable
+  alternative.
+
+  Similar to `case/2`, any assignment in the condition will be available
+  on both clauses, as well as after the `if` expression.
 
   ## One-liner examples
 
@@ -3834,7 +3904,8 @@ defmodule Kernel do
         baz
       end
 
-  In order to compare more than two clauses, the `cond/1` macro has to be used.
+  If you find yourself nesting conditionals inside conditionals,
+  consider using `cond/1`.
   """
   defmacro if(condition, clauses) do
     build_if(condition, clauses)
@@ -5255,13 +5326,10 @@ defmodule Kernel do
 
   A struct is a tagged map that allows developers to provide
   default values for keys, tags to be used in polymorphic
-  dispatches and compile time assertions. For more information
-  about structs, please check `%/2`.
+  dispatches and compile time assertions.
 
   It is only possible to define a struct per module, as the
-  struct is tied to the module itself. Calling `defstruct/1`
-  also defines a `__struct__/0` function that returns the
-  struct itself.
+  struct is tied to the module itself.
 
   ## Examples
 
@@ -5294,6 +5362,13 @@ defmodule Kernel do
         @doc "A post. The content should be valid Markdown."
         defstruct [:title, :content, :author]
       end
+
+  Once a struct is defined, it is possible to create them as follows:
+
+      %Post{title: "Hello world!"}
+
+  For more information on creating, updating, and pattern matching on
+  structs, please check `%/2`.
 
   ## Deriving
 
@@ -5471,8 +5546,8 @@ defmodule Kernel do
       end
 
       # Calls to Kernel functions must be fully-qualified to ensure
-      # reproducible builds; otherwise, this macro will generate ASTs
-      # with different metadata (:import, :context) depending on if
+      # reproducible builds, otherwise, this macro will generate ASTs
+      # with different metadata (:imports, :context) depending on if
       # it is the bootstrapped version or not.
       Elixir.Kernel.@(impl(true))
 

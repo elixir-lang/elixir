@@ -7,7 +7,8 @@
 -export([
   string_to_tokens/5, tokens_to_quoted/3, 'string_to_quoted!'/5,
   env_for_eval/1, quoted_to_erl/2, eval_forms/3, eval_quoted/3,
-  eval_quoted/4, eval_local_handler/2, eval_external_handler/3
+  eval_quoted/4, eval_local_handler/2, eval_external_handler/3,
+  format_token_error/1
 ]).
 -include("elixir.hrl").
 -define(system, 'Elixir.System').
@@ -459,17 +460,20 @@ quoted_to_erl(Quoted, ErlS, ExS, Env) ->
 
 string_to_tokens(String, StartLine, StartColumn, File, Opts) when is_integer(StartLine), is_binary(File) ->
   case elixir_tokenizer:tokenize(String, StartLine, StartColumn, Opts) of
-    {ok, _Line, _Column, [], Tokens} ->
-      {ok, Tokens};
-    {ok, _Line, _Column, Warnings, Tokens} ->
+    {ok, _Line, _Column, [], Tokens, Terminators} ->
+      {ok, lists:reverse(Tokens, Terminators)};
+    {ok, _Line, _Column, Warnings, Tokens, Terminators} ->
       (lists:keyfind(emit_warnings, 1, Opts) /= {emit_warnings, false}) andalso
         [elixir_errors:erl_warn(L, File, M) || {L, M} <- lists:reverse(Warnings)],
-      {ok, Tokens};
-    {error, {Location, {ErrorPrefix, ErrorSuffix}, Token}, _Rest, _Warnings, _SoFar} ->
-      {error, {Location, {to_binary(ErrorPrefix), to_binary(ErrorSuffix)}, to_binary(Token)}};
-    {error, {Location, Error, Token}, _Rest, _Warnings, _SoFar} ->
-      {error, {Location, to_binary(Error), to_binary(Token)}}
+      {ok, lists:reverse(Tokens, Terminators)};
+    {error, Info, _Rest, _Warnings, _SoFar} ->
+      {error, format_token_error(Info)}
   end.
+
+format_token_error({Location, {ErrorPrefix, ErrorSuffix}, Token}) ->
+  {Location, {to_binary(ErrorPrefix), to_binary(ErrorSuffix)}, to_binary(Token)};
+format_token_error({Location, Error, Token}) ->
+  {Location, to_binary(Error), to_binary(Token)}.
 
 tokens_to_quoted(Tokens, WarningFile, Opts) ->
   handle_parsing_opts(WarningFile, Opts),

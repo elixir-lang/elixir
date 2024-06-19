@@ -14,8 +14,8 @@ defmodule TypespecTest do
           unquote(block)
         end
 
-      :code.delete(TypespecSample)
       :code.purge(TypespecSample)
+      :code.delete(TypespecSample)
       bytecode
     end
   end
@@ -406,7 +406,7 @@ defmodule TypespecTest do
 
       assert_raise Kernel.TypespecError, ~r"invalid binary specification", fn ->
         test_module do
-          @type my_type :: <<_::atom>>
+          @type my_type :: <<_::atom()>>
         end
       end
 
@@ -818,7 +818,7 @@ defmodule TypespecTest do
 
       bytecode =
         test_module do
-          Module.eval_quoted(__MODULE__, quoted)
+          Code.eval_quoted(quoted, [], module: __MODULE__)
         end
 
       assert [type: {:my_type, {:atom, _, :foo}, []}] = types(bytecode)
@@ -1070,8 +1070,8 @@ defmodule TypespecTest do
                 {TypeModuleAttributes, _}}
              ] = TypeModuleAttributes.typep2()
     after
-      :code.delete(TypeModuleAttributes)
       :code.purge(TypeModuleAttributes)
+      :code.delete(TypeModuleAttributes)
     end
 
     test "@spec, @callback, and @macrocallback as module attributes" do
@@ -1129,8 +1129,8 @@ defmodule TypespecTest do
                 {SpecModuleAttributes, _}}
              ] = SpecModuleAttributes.macrocallback()
     after
-      :code.delete(SpecModuleAttributes)
       :code.purge(SpecModuleAttributes)
+      :code.delete(SpecModuleAttributes)
     end
 
     test "@callback" do
@@ -1223,7 +1223,7 @@ defmodule TypespecTest do
 
       bytecode =
         test_module do
-          Module.eval_quoted(__MODULE__, quoted)
+          Code.eval_quoted(quoted, [], module: __MODULE__)
         end
 
       types = types(bytecode)
@@ -1265,7 +1265,7 @@ defmodule TypespecTest do
 
           def foo(), do: 1
           def foo(arg), do: arg
-          Module.eval_quoted(__MODULE__, quote(do: (unquote_splicing(quoted))))
+          Code.eval_quoted(quote(do: (unquote_splicing(quoted))), [], module: __MODULE__)
         end
 
       specs =
@@ -1343,6 +1343,11 @@ defmodule TypespecTest do
       assert Code.Typespec.spec_to_quoted(:union_struct_key_type, ast_union_struct_key_type)
              |> Macro.to_string() ==
                "union_struct_key_type(%{__struct__: atom() | TypespecTest.A | binary()}) :: :ok"
+    after
+      for mod <- [A, B] do
+        :code.purge(mod)
+        :code.delete(mod)
+      end
     end
 
     test "non-variables are given as arguments" do
@@ -1486,7 +1491,7 @@ defmodule TypespecTest do
 
       bytecode =
         test_module do
-          Module.eval_quoted(__MODULE__, quoted)
+          Code.eval_quoted(quoted, [], module: __MODULE__)
         end
 
       types = types(bytecode)

@@ -148,7 +148,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_error(
       ["nofile:2:7: ", "implementation not provided for predefined def foo/0"],
       ~c"""
-      defmodule Kernel.ErrorsTest.FunctionWithoutDefition do
+      defmodule Kernel.ErrorsTest.FunctionWithoutDefinition do
         def foo
       end
       """
@@ -176,7 +176,7 @@ defmodule Kernel.ErrorsTest do
     assert_compile_error(
       ["nofile:2:12: ", "implementation not provided for predefined defmacro foo/1"],
       ~c"""
-      defmodule Kernel.ErrorsTest.GuardWithoutDefition do
+      defmodule Kernel.ErrorsTest.GuardWithoutDefinition do
         defguard foo(bar)
       end
       """
@@ -634,6 +634,16 @@ defmodule Kernel.ErrorsTest do
       end
       """
     )
+
+    assert_compile_error(
+      ["nofile:3:17", "function exit/1 imported from both :erlang and Kernel, call is ambiguous"],
+      ~c"""
+      defmodule Kernel.ErrorsTest.FunctionImportConflict do
+        import :erlang, only: [exit: 1], warn: false
+        def foo, do: &exit/1
+      end
+      """
+    )
   end
 
   test "ensure valid import :only option" do
@@ -752,14 +762,6 @@ defmodule Kernel.ErrorsTest do
       end
       """
     )
-  end
-
-  test "already compiled module" do
-    assert_eval_raise ArgumentError,
-                      [
-                        "could not call Module.eval_quoted/4 because the module Record is already compiled"
-                      ],
-                      ~c"Module.eval_quoted Record, quote(do: 1), [], file: __ENV__.file"
   end
 
   test "invalid @compile inline" do

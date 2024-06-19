@@ -24,7 +24,7 @@ defmodule Mix.Tasks.Escript.Build do
   developers and not as a deployment mechanism. For running live
   systems, consider using `mix run` or building releases. See
   the `Application` module for more information on systems
-  life-cycles.
+  life cycles.
 
   All of the configuration defined in `config/config.exs` will
   be included as part of the escript. `config/runtime.exs` is also

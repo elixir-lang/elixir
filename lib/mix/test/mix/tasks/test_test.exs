@@ -40,8 +40,18 @@ defmodule Mix.Tasks.TestTest do
       assert ex_unit_opts([]) == [
                autorun: false,
                exit_status: 2,
-               failures_manifest_file:
+               failures_manifest_path:
                  Path.join(Mix.Project.manifest_path(), ".mix_test_failures")
+             ]
+    end
+
+    test "respect failures_manifest_path option" do
+      custom_manifest_file = Path.join(Mix.Project.manifest_path(), ".mix_test_failures_custom")
+
+      assert ex_unit_opts(failures_manifest_path: custom_manifest_file) == [
+               autorun: false,
+               exit_status: 2,
+               failures_manifest_path: custom_manifest_file
              ]
     end
 
@@ -53,7 +63,7 @@ defmodule Mix.Tasks.TestTest do
     defp ex_unit_opts_from_given(passed) do
       passed
       |> ex_unit_opts()
-      |> Keyword.drop([:failures_manifest_file, :autorun, :exit_status])
+      |> Keyword.drop([:failures_manifest_path, :autorun, :exit_status])
     end
   end
 
@@ -265,7 +275,7 @@ defmodule Mix.Tasks.TestTest do
       in_fixture("test_stale", fn ->
         port = mix_port(~w[test --stale --listen-on-stdin])
 
-        assert receive_until_match(port, "seed", "") =~ "2 tests"
+        assert receive_until_match(port, "0 failures", "") =~ "2 tests"
 
         Port.command(port, "\n")
 
@@ -294,7 +304,7 @@ defmodule Mix.Tasks.TestTest do
 
         Port.command(port, "\n")
 
-        assert receive_until_match(port, "seed", "") =~ "2 tests"
+        assert receive_until_match(port, "0 failures", "") =~ "2 tests"
 
         File.write!("test/b_test_stale.exs", """
         defmodule BTest do
@@ -323,7 +333,7 @@ defmodule Mix.Tasks.TestTest do
 
         Port.command(port, "\n")
 
-        assert receive_until_match(port, "seed", "") =~ "2 tests"
+        assert receive_until_match(port, "0 failures", "") =~ "2 tests"
       end)
     end
   end
@@ -477,38 +487,33 @@ defmodule Mix.Tasks.TestTest do
 
         output = mix(["test", "apps/bar/test/bar_tests.exs"])
 
-        assert output =~ """
-               ==> bar
-               ....
-               """
+        assert output =~ "==> bar"
+        assert output =~ "...."
 
         refute output =~ "==> foo"
         refute output =~ "Paths given to \"mix test\" did not match any directory/file"
 
         output = mix(["test", "./apps/bar/test/bar_tests.exs"])
 
-        assert output =~ """
-               ==> bar
-               ....
-               """
+        assert output =~ "==> bar"
+        assert output =~ "...."
 
         refute output =~ "==> foo"
         refute output =~ "Paths given to \"mix test\" did not match any directory/file"
 
         output = mix(["test", Path.expand("apps/bar/test/bar_tests.exs")])
 
-        assert output =~ """
-               ==> bar
-               ....
-               """
+        assert output =~ "==> bar"
+        assert output =~ "...."
 
         refute output =~ "==> foo"
         refute output =~ "Paths given to \"mix test\" did not match any directory/file"
 
         output = mix(["test", "apps/bar/test/bar_tests.exs:10"])
 
+        assert output =~ "==> bar"
+
         assert output =~ """
-               ==> bar
                Excluding tags: [:test]
                Including tags: [location: {"test/bar_tests.exs", 10}]
 
@@ -604,6 +609,17 @@ defmodule Mix.Tasks.TestTest do
     end
   end
 
+  describe "--max-requires" do
+    test "runs tests with --max-requires 1" do
+      # this is only a smoke test to ensure that tests run with --max-requires 1
+      # it does not test the concurrency behavior
+      in_fixture("test_stale", fn ->
+        output = mix(["test", "--max-requires", "1"])
+        assert output =~ "0 failures"
+      end)
+    end
+  end
+
   defp receive_until_match(port, expected, acc) do
     receive do
       {^port, {:data, output}} ->
@@ -614,6 +630,13 @@ defmodule Mix.Tasks.TestTest do
         else
           receive_until_match(port, expected, acc)
         end
+    after
+      15_000 ->
+        raise """
+        nothing received from port after 15s.
+        Expected: #{inspect(expected)}
+        Got: #{inspect(acc)}
+        """
     end
   end
 

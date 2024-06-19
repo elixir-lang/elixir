@@ -3,8 +3,9 @@ defmodule ExUnit.Callbacks do
   Defines ExUnit callbacks.
 
   This module defines the `setup/1`, `setup/2`, `setup_all/1`, and
-  `setup_all/2` callbacks, as well as the `on_exit/2`, `start_supervised/2`,
-  `stop_supervised/1` and `start_link_supervised!/2` functions.
+  `setup_all/2` macros, as well as process lifecycle and management
+  functions, such as `on_exit/2`, `start_supervised/2`, `stop_supervised/1`
+  and `start_link_supervised!/2`.
 
   The setup callbacks may be used to define [test fixtures](https://en.wikipedia.org/wiki/Test_fixture#Software)
   and run any initialization code which help bring the system into a known
@@ -45,7 +46,7 @@ defmodule ExUnit.Callbacks do
   linked to the test process will also exit, although asynchronously. Therefore
   it is preferred to use `start_supervised/2` to guarantee synchronous termination.
 
-  Here is a rundown of the life-cycle of the test process:
+  Here is a rundown of the life cycle of the test process:
 
     1. the test process is spawned
     2. it runs `setup/2` callbacks
@@ -56,13 +57,15 @@ defmodule ExUnit.Callbacks do
 
   ## Context
 
-  If `setup_all` or `setup` return a keyword list, a map, or a tuple in the shape
-  of `{:ok, keyword() | map()}`, the keyword list or map will be merged into the
-  current context and will be available in all subsequent `setup_all`,
-  `setup`, and the `test` itself.
+  `setup_all` or `setup` may return one of:
 
-  Returning `:ok` leaves the context unchanged (in `setup` and `setup_all`
-  callbacks).
+    * the atom `:ok`
+    * a keyword list or map
+    * a tuple in the shape of `{:ok, keyword() | map()}`
+
+  If a keyword list or map is returned, it be merged into the current context
+  and will be available in all subsequent `setup_all`, `setup`, and the `test`
+  itself.
 
   Returning anything else from `setup_all` will force all tests to fail,
   while a bad response from `setup` causes the current test to fail.
@@ -535,15 +538,13 @@ defmodule ExUnit.Callbacks do
   test, as simply shutting down the process would cause it to be restarted
   according to its `:restart` value.
 
-  Another advantage is that the test process will act as both an ancestor
-  as well as a caller to the supervised processes. When a process is started
-  under a supervision tree, it typically populates the `$ancestors` key in
-  its process dictionary with all of its ancestors, which will include the test
-  process. Additionally, `start_supervised/2` will also store the test process
-  in the `$callers` key of the started process, allowing tools that perform
-  either ancestor or caller tracking to reach the test process. You can learn
-  more about these keys in
-  [the `Task` module](`Task#module-ancestor-and-caller-tracking`).
+  Finally, since Elixir v1.17.0, the test supervisor has both `$ancestors`
+  and `$callers` key in its process dictionary pointing to the test process.
+  This means developers can invoke `Process.get(:"$callers", [])` in their
+  `start_link` function and forward it to the spawned process, which may set
+  `Process.put(:"$callers", callers)` during its initialization. This may be
+  useful in projects who track process ownership during tests. You can learn
+  more about these keys in [the `Task` module](`Task#module-ancestor-and-caller-tracking`).
   """
   @doc since: "1.5.0"
   @spec start_supervised(Supervisor.child_spec() | module | {module, term}, keyword) ::
@@ -728,7 +729,7 @@ defmodule ExUnit.Callbacks do
 
   defp raise_merge_failed!(mod, kind, return_value) do
     raise "expected ExUnit #{kind} callback in #{inspect(mod)} to " <>
-            "return :ok | keyword | map, got #{inspect(return_value)} instead"
+            "return the atom :ok, a keyword, or a map, got #{inspect(return_value)} instead"
   end
 
   defp raise_merge_reserved!(mod, kind, key, value) do
@@ -754,7 +755,7 @@ defmodule ExUnit.Callbacks do
         raise ArgumentError, "describe name must be a string, got: #{inspect(message)}"
 
       is_map_key(used_describes, message) ->
-        raise ExUnit.DuplicateDescribeError,
+        raise ArgumentError,
               "describe #{inspect(message)} is already defined in #{inspect(module)}"
 
       true ->

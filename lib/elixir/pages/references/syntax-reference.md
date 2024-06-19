@@ -391,11 +391,9 @@ end
 #=> {{:., [], [{:__aliases__, [], [:Foo]}, :{}]}, [], [{:__aliases__, [], [:Bar]}, {:__aliases__, [], [:Baz]}]}
 ```
 
-## Optional syntax
+## Additional representations
 
-All of the constructs above are part of Elixir's syntax and have their own representation as part of the Elixir AST. This section will discuss the remaining constructs that are alternative representations of the constructs above. In other words, the constructs below can be represented in more than one way in your Elixir code and retain AST equivalence. We call this "Optional Syntax".
-
-For a lightweight introduction to Elixir's Optional Syntax, [see this document](../getting-started/optional-syntax.md). Below we continue with a more complete reference.
+All of the constructs above are part of Elixir's syntax and have their own representation as part of the Elixir AST. This section will discuss the remaining constructs that are ultimately representated as one of the constructs above.
 
 ### Integers in other bases and Unicode code points
 
@@ -486,7 +484,7 @@ is the same as
 if(condition, [do: this, else: that])
 ```
 
-which in turn is the same as
+which, as per the previous section, is the same as
 
 ```elixir
 if(condition, [{:do, this}, {:else, that}])
@@ -510,7 +508,7 @@ is the same as:
 if(true, do: (this), else: (that))
 ```
 
-which we have explored in the previous section.
+which we have explored in the previous section. This sequence of transformations is also [described in Elixir's Getting Started docs](../getting-started/optional-syntax.md).
 
 Parentheses are important to support multiple expressions. This:
 

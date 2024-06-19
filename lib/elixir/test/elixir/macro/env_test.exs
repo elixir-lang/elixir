@@ -177,8 +177,19 @@ defmodule Macro.EnvTest do
   end
 
   describe "expand_import/5" do
-    test "returns :error for unknown imports" do
-      assert :error = expand_import(env(), meta(), :flatten, 1)
+    test "returns tagged :error for unknown imports" do
+      assert {:error, :not_found} = expand_import(env(), meta(), :flatten, 1)
+    end
+
+    test "returns tagged :error for special forms" do
+      assert {:error, :not_found} = expand_import(env(), meta(), :case, 1)
+    end
+
+    test "returns tagged :error for ambiguous" do
+      import Date, warn: false
+      import Time, warn: false
+      assert {:error, {:ambiguous, mods}} = expand_import(__ENV__, meta(), :new, 3)
+      assert Enum.sort(mods) == [Date, Time]
     end
 
     test "returns :function tuple" do

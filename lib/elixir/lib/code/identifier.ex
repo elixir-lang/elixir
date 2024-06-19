@@ -105,8 +105,34 @@ defmodule Code.Identifier do
 
   defp escape_char(0), do: [?\\, ?0]
 
-  @escaped_bom :binary.bin_to_list("\\uFEFF")
-  defp escape_char(65279), do: @escaped_bom
+  defp escape_char(char)
+       # Some characters that are confusing (zero-width / alternative spaces) are displayed
+       # using their unicode representation:
+       # https://en.wikipedia.org/wiki/Universal_Character_Set_characters#Special-purpose_characters
+
+       # BOM
+       when char == 0xFEFF
+       # Mathematical invisibles
+       when char in 0x2061..0x2064
+       # Bidirectional neutral
+       when char in [0x061C, 0x200E, 0x200F]
+       # Bidirectional general (source of vulnerabilities)
+       when char in 0x202A..0x202E
+       when char in 0x2066..0x2069
+       # Interlinear annotations
+       when char in 0xFFF9..0xFFFC
+       # Zero-width joiners and non-joiners
+       when char in [0x200C, 0x200D, 0x034F]
+       # Non-break space / zero-width space
+       when char in [0x00A0, 0x200B, 0x2060]
+       # Line/paragraph separators
+       when char in [0x2028, 0x2029]
+       # Spaces
+       when char in 0x2000..0x200A
+       when char == 0x205F do
+    <<a::4, b::4, c::4, d::4>> = <<char::16>>
+    [?\\, ?u, to_hex(a), to_hex(b), to_hex(c), to_hex(d)]
+  end
 
   defp escape_char(char)
        when char in 0x20..0x7E

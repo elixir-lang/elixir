@@ -72,7 +72,7 @@ sync_remote(Parent, Ref) ->
   receive {done, Ref} -> ok end.
 
 start_mfa(Args, MFA) ->
-  Opts = [{dot_iex_path, get_dot_iex(Args)}, {on_eof, halt}],
+  Opts = [{dot_iex, get_dot_iex(Args)}, {on_eof, halt}],
   {?MODULE, start, [Opts, MFA]}.
 
 get_dot_iex(["--dot-iex", H | _]) -> elixir_utils:characters_to_binary(H);

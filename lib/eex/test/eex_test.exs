@@ -198,15 +198,6 @@ defmodule EExTest do
       assert_eval("foo baz", "foo <%= if false do %>bar<% else %>baz<% end %>")
     end
 
-    test "embedded code with comments in do end" do
-      assert_eval("foo bar", "foo <%= case true do %><%# comment %><% true -> %>bar<% end %>")
-
-      assert_eval(
-        "foo\n\nbar\n",
-        "foo\n<%= case true do %>\n<%# comment %>\n<% true -> %>\nbar\n<% end %>"
-      )
-    end
-
     test "embedded code with multi-line comments in do end" do
       assert_eval("foo bar", "foo <%= case true do %><%!-- comment --%><% true -> %>bar<% end %>")
 
@@ -541,6 +532,16 @@ defmodule EExTest do
                EEx.compile_string("foo <%= if true do %>true<% else %>false<%= end %>")
              end) =~
                ~s[unexpected beginning of EEx tag \"<%=\" on \"<%= end %>\"]
+    end
+
+    test "unused \"do\" block without \"<%=\" modifier" do
+      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+               EEx.compile_string("<% if true do %>I'm invisible!<% end %>")
+             end) =~ "the contents of this expression won't be output"
+
+      # These are fine though
+      EEx.compile_string("<% foo = fn -> %>Hello<% end %>")
+      EEx.compile_string("<% foo = if true do %>Hello<% end %>")
     end
 
     test "from tokenizer" do

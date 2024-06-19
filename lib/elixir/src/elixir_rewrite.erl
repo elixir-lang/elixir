@@ -228,7 +228,7 @@ inner_inline(_, _, _, _) -> false.
 %%
 %% Rewrite rules are more complex than regular inlining code
 %% as they may change the number of arguments. However, they
-%% don't add new code (such as case statements), at best they
+%% don't add new code (such as case expressions), at best they
 %% perform dead code removal.
 rewrite(?string_chars, DotMeta, to_string, Meta, [Arg]) ->
   case is_always_string(Arg) of

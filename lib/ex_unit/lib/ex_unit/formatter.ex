@@ -94,6 +94,7 @@ defmodule ExUnit.Formatter do
           | :error_info
           | :test_module_info
           | :test_info
+          | :parameters_info
           | :location_info
           | :stacktrace_info
           | :blame_diff
@@ -119,7 +120,7 @@ defmodule ExUnit.Formatter do
     * `:diff_insert` and `:diff_insert_whitespace` - Should format a diff insertion,
       with or without whitespace respectively.
 
-    * `:extra_info` - Should format extra information, such as the `"code: "` label
+    * `:extra_info` - Should format optional extra labels, such as the `"code: "` label
       that precedes code to show.
 
     * `:error_info` - Should format error information.
@@ -128,6 +129,8 @@ defmodule ExUnit.Formatter do
     when this key is passed precedes messages such as `"failure on setup_all callback [...]"`.
 
     * `:test_info` - Should format test information.
+
+    * `:parameters_info` - Should format test parameters.
 
     * `:location_info` - Should format test location information.
 
@@ -266,9 +269,10 @@ defmodule ExUnit.Formatter do
         ) :: String.t()
         when failure: {atom, term, Exception.stacktrace()}
   def format_test_failure(test, failures, counter, width, formatter) do
-    %ExUnit.Test{name: name, module: module, tags: tags} = test
+    %ExUnit.Test{name: name, module: module, tags: tags, parameters: parameters} = test
 
     test_info(with_counter(counter, "#{name} (#{inspect(module)})"), formatter) <>
+      test_parameters(parameters, formatter) <>
       test_location(with_location(tags), formatter) <>
       Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->
         {text, stack} = format_kind_reason(test, kind, reason, stack, width, formatter)
@@ -305,9 +309,10 @@ defmodule ExUnit.Formatter do
         ) :: String.t()
         when failure: {atom, term, Exception.stacktrace()}
   def format_test_all_failure(test_module, failures, counter, width, formatter) do
-    name = test_module.name
+    %{name: name, parameters: parameters} = test_module
 
     test_module_info(with_counter(counter, "#{inspect(name)}: "), formatter) <>
+      test_parameters(parameters, formatter) <>
       Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->
         {text, stack} = format_kind_reason(test_module, kind, reason, stack, width, formatter)
         failure_header(failures, index) <> text <> format_stacktrace(stack, name, nil, formatter)
@@ -710,6 +715,15 @@ defmodule ExUnit.Formatter do
 
   defp test_info(msg, nil), do: msg <> "\n"
   defp test_info(msg, formatter), do: test_info(formatter.(:test_info, msg), nil)
+
+  defp test_parameters(params, _formatter) when params == %{}, do: ""
+  defp test_parameters(params, nil) when is_binary(params), do: "     " <> params <> "\n"
+
+  defp test_parameters(params, nil) when is_map(params),
+    do: test_parameters("Parameters: #{inspect(params)}", nil)
+
+  defp test_parameters(params, formatter),
+    do: test_parameters(formatter.(:parameters_info, params), nil)
 
   defp test_location(msg, nil), do: "     " <> msg <> "\n"
   defp test_location(msg, formatter), do: test_location(formatter.(:location_info, msg), nil)

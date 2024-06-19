@@ -22,7 +22,7 @@ defmodule GenEvent do
   This approach has some shortcomings (it provides no back-pressure for example)
   but can still replace GenEvent for low-profile usages of it. [This blog post
   by José
-  Valim](http://blog.plataformatec.com.br/2016/11/replacing-genevent-by-a-supervisor-genserver/)
+  Valim](https://dashbit.co/blog/replacing-genevent-by-a-supervisor-plus-genserver)
   has more detailed information on this approach.
 
   ### GenStage

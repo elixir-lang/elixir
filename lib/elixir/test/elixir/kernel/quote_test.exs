@@ -30,6 +30,17 @@ defmodule Kernel.QuoteTest do
     assert quote(line: true, do: bar(1, 2, 3)) == {:bar, [line: __ENV__.line], [1, 2, 3]}
   end
 
+  test "file line" do
+    assert quote(file: "foo", line: 3, do: bar(1, 2, 3)) ==
+             {:bar, [keep: {"foo", 3}], [1, 2, 3]}
+
+    assert quote(file: "foo", line: false, do: bar(1, 2, 3)) ==
+             {:bar, [keep: {"foo", 0}], [1, 2, 3]}
+
+    assert quote(file: "foo", line: true, do: bar(1, 2, 3)) ==
+             {:bar, [keep: {"foo", __ENV__.line - 1}], [1, 2, 3]}
+  end
+
   test "quote line var" do
     line = __ENV__.line
     assert quote(line: line, do: bar(1, 2, 3)) == {:bar, [line: line], [1, 2, 3]}
@@ -58,6 +69,14 @@ defmodule Kernel.QuoteTest do
       context = nil
       quote(context: context, do: bar)
     end
+  end
+
+  test "quote context bind_quoted" do
+    assert {:__block__, _,
+            [{:=, [], [{:some_var, _, :fallback}, 321]}, {:some_var, _, :fallback}]} =
+             (quote bind_quoted: [some_var: 321], context: __ENV__.context || :fallback do
+                some_var
+              end)
   end
 
   test "operator precedence" do
@@ -118,6 +137,12 @@ defmodule Kernel.QuoteTest do
 
   test "nested quote" do
     assert {:quote, _, [[do: {:unquote, _, _}]]} = quote(do: quote(do: unquote(x)))
+  end
+
+  test "import inside nested quote" do
+    # Check that we can evaluate imports from quote inside quote
+    assert {{:to_string, meta, [123]}, _} = Code.eval_quoted(quote(do: quote(do: to_string(123))))
+    assert meta[:imports] == [{1, Kernel}]
   end
 
   defmacrop nested_quote_in_macro do

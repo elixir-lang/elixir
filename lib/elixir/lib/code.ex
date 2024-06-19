@@ -159,7 +159,7 @@ defmodule Code do
       `{:ok, value}` or `:error`.
 
     * `:defmodule` - (since v1.16.2) traced as soon as the definition of a module
-      starts. This is invoked early on in the module life-cycle, `Module.open?/1`
+      starts. This is invoked early on in the module life cycle, `Module.open?/1`
       still returns `false` for such traces
 
     * `{:on_module, bytecode, _ignore}` - (since v1.13.0) traced whenever a module
@@ -507,14 +507,9 @@ defmodule Code do
 
   ## Options
 
-  Options can be:
-
-    * `:file` - the file to be considered in the evaluation
-
-    * `:line` - the line on which the script starts
-
-  Additionally, you may also pass an environment as second argument,
-  so the evaluation happens within that environment.
+  It accepts the same options as `env_for_eval/1`. Additionally, you may
+  also pass an environment as second argument, so the evaluation happens
+  within that environment.
 
   Returns a tuple of the form `{value, binding}`, where `value` is the value
   returned from evaluating `string`. If an error occurs while evaluating
@@ -1075,6 +1070,8 @@ defmodule Code do
     * `:file` - the file to be considered in the evaluation
 
     * `:line` - the line on which the script starts
+
+    * `:module` - the module to run the environment on
   """
   @doc since: "1.14.0"
   def env_for_eval(env_or_opts), do: :elixir.env_for_eval(env_or_opts)

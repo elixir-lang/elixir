@@ -338,13 +338,13 @@ defmodule IEx.Server do
       prefix: prefix,
       on_eof: on_eof,
       expand_fun: expand_fun,
-      evaluator_options: Keyword.take(opts, [:dot_iex_path])
+      evaluator_options: Keyword.take(opts, [:dot_iex])
     }
   end
 
   # For the state, reset only reset the parser state.
   # The counter will continue going up as the input process is shared.
-  # The opts can also set "dot_iex_path" and the "evaluator" itself,
+  # The opts can also set "dot_iex" and the "evaluator" itself,
   # but those are not stored: they are temporary to whatever is rerunning.
   # Once the rerunning session restarts, we keep the same evaluator_options
   # and rollback to a new evaluator.

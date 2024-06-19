@@ -88,10 +88,6 @@ defmodule Kernel.FnTest do
     assert is_function(&and/2)
   end
 
-  test "capture precedence in cons" do
-    assert [(&IO.puts/1) | &IO.puts/2] == [(&IO.puts/1) | &IO.puts/2]
-  end
-
   test "capture with variable module" do
     mod = List
     assert (&mod.flatten(&1)).([1, [2], 3]) == [1, 2, 3]
@@ -140,11 +136,21 @@ defmodule Kernel.FnTest do
     assert (&(!is_atom(&1))).(:foo) == false
   end
 
-  test "capture other" do
+  test "capture with function call" do
     assert (& &1).(:ok) == :ok
 
     fun = fn a, b -> a + b end
     assert (&fun.(&1, 2)).(1) == 3
+  end
+
+  defmacro c(x) do
+    quote do
+      &(unquote(x) <> &1)
+    end
+  end
+
+  test "capture within capture through macro" do
+    assert (&c(&1).("b")).("a") == "ab"
   end
 
   defp atom?(atom) when is_atom(atom), do: true

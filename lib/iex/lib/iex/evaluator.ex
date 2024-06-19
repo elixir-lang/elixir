@@ -1,6 +1,8 @@
 defmodule IEx.Evaluator do
   @moduledoc false
 
+  alias IEx.Config
+
   @doc """
   Eval loop for an IEx session. Its responsibilities include:
 
@@ -242,7 +244,9 @@ defmodule IEx.Evaluator do
       ref: ref
     }
 
-    case opts[:dot_iex_path] do
+    dot_iex = opts[:dot_iex] || Config.dot_iex()
+
+    case dot_iex do
       "" -> state
       path -> load_dot_iex(state, path)
     end
