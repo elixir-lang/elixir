@@ -131,6 +131,8 @@ defmodule Inspect.BitStringTest do
     assert inspect(" ゆんゆん") == "\" ゆんゆん\""
     # BOM
     assert inspect("\uFEFFhello world") == "\"\\uFEFFhello world\""
+    # Invisible characters
+    assert inspect("\u2063") == "\"\\u2063\""
   end
 
   test "infer" do
