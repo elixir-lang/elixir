@@ -1140,6 +1140,10 @@ defmodule Kernel.ExpansionTest do
 
       assert expand(quote(do: &Kernel.is_atom/1)) ==
                quote(do: &:erlang.is_atom/1) |> clean_meta([:imports, :context])
+
+      before_expansion = quote do: &String.to_atom/1
+      after_expansion  = quote do: &:erlang.binary_to_atom(&1, :utf8)
+      assert clean_meta(expand(before_expansion), [:no_parens, :counter]) == clean_meta(expand(after_expansion), [:no_parens, :counter])
     end
 
     test "expands macros" do
