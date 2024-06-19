@@ -346,7 +346,7 @@ defmodule DynamicSupervisor do
 
   """
   @doc since: "1.6.0"
-  @spec start_link([init_option | GenServer.option]) :: Supervisor.on_start()
+  @spec start_link([init_option | GenServer.option()]) :: Supervisor.on_start()
   def start_link(options) when is_list(options) do
     keys = [:extra_arguments, :max_children, :max_seconds, :max_restarts, :strategy]
     {sup_opts, start_opts} = Keyword.split(options, keys)
@@ -388,7 +388,7 @@ defmodule DynamicSupervisor do
   callback.
   """
   @doc since: "1.6.0"
-  @spec start_link(module, term, [GenServer.option]) :: Supervisor.on_start()
+  @spec start_link(module, term, [GenServer.option()]) :: Supervisor.on_start()
   def start_link(module, init_arg, opts \\ []) do
     GenServer.start_link(__MODULE__, {module, init_arg, opts[:name]}, opts)
   end
