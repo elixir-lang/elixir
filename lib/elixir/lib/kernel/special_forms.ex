@@ -1661,7 +1661,7 @@ defmodule Kernel.SpecialForms do
       ...> end
       {:error, :wrong_data}
 
-  The `else` block works like a `case` clause: it can have multiple clauses,
+  The `else` block works like a `case`: it can have multiple clauses,
   and the first match will be used. Variables bound inside `with` (such as
   `width` in this example) are not available in the `else` block.
 
