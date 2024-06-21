@@ -3447,6 +3447,8 @@ defmodule Enum do
 
   Raises `ArithmeticError` if `enumerable` contains a non-numeric value.
 
+  If you need to apply a transformation first, consider using `Enum.sum_by/2` instead.
+
   ## Examples
 
       iex> Enum.sum([1, 2, 3])
@@ -3471,6 +3473,40 @@ defmodule Enum do
 
   def sum(enumerable) do
     reduce(enumerable, 0, &+/2)
+  end
+
+  @doc """
+  Maps and sums the given enumerable in one pass.
+
+  Raises `ArithmeticError` if `fun` returns a non-numeric value.
+
+  ## Examples
+
+      iex> Enum.sum_by([%{count: 1}, %{count: 2}, %{count: 3}], fn x -> x.count end)
+      6
+
+      iex> Enum.sum_by(1..3, fn x -> x ** 2 end)
+      14
+
+      iex> Enum.sum_by([], fn x -> x.count end)
+      0
+
+  Filtering can be achieved by returning `0` to ignore elements:
+
+      iex> Enum.sum_by([1, -2, 3], fn x -> if x > 0, do: x, else: 0 end)
+      4
+
+  """
+  @doc since: "1.18.0"
+  @spec sum_by(t, (element -> number)) :: number
+  def sum_by(enumerable, mapper)
+
+  def sum_by(list, mapper) when is_list(list) and is_function(mapper, 1) do
+    sum_by_list(list, mapper, 0)
+  end
+
+  def sum_by(enumerable, mapper) when is_function(mapper, 1) do
+    reduce(enumerable, 0, fn x, acc -> acc + mapper.(x) end)
   end
 
   @doc """
@@ -4769,6 +4805,11 @@ defmodule Enum do
   defp split_while_list([], _, acc) do
     {:lists.reverse(acc), []}
   end
+
+  ## sum_by
+
+  defp sum_by_list([], _, acc), do: acc
+  defp sum_by_list([h | t], mapper, acc), do: sum_by_list(t, mapper, acc + mapper.(h))
 
   ## take
 

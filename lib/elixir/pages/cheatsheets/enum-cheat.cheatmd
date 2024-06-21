@@ -297,6 +297,15 @@ iex> cart |> Enum.map(& &1.count) |> Enum.sum()
 10
 ```
 
+Note: this should typically be done in one pass using `Enum.sum_by/2`.
+
+### [`sum_by(enum, mapper)`](`Enum.sum_by/2`)
+
+```elixir
+iex> Enum.sum_by(cart, & &1.count)
+10
+```
+
 ### [`product(enum)`](`Enum.product/1`)
 
 ```elixir
