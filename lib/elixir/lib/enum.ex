@@ -3476,9 +3476,9 @@ defmodule Enum do
   end
 
   @doc """
-  Maps and sums the given enumerable in one pass.
+  Maps and sums the given `enumerable` in one pass.
 
-  Raises `ArithmeticError` if `fun` returns a non-numeric value.
+  Raises `ArithmeticError` if `mapper` returns a non-numeric value.
 
   ## Examples
 
@@ -3514,6 +3514,8 @@ defmodule Enum do
 
   Raises `ArithmeticError` if `enumerable` contains a non-numeric value.
 
+  If you need to apply a transformation first, consider using `Enum.product_by/2` instead.
+
   ## Examples
 
       iex> Enum.product([])
@@ -3528,6 +3530,40 @@ defmodule Enum do
   @spec product(t) :: number
   def product(enumerable) do
     reduce(enumerable, 1, &*/2)
+  end
+
+  @doc """
+  Maps and computes the product of the given `enumerable` in one pass.
+
+  Raises `ArithmeticError` if `mapper` returns a non-numeric value.
+
+  ## Examples
+
+      iex> Enum.product_by([%{count: 2}, %{count: 4}, %{count: 3}], fn x -> x.count end)
+      24
+
+      iex> Enum.product_by(1..3, fn x -> x ** 2 end)
+      36
+
+      iex> Enum.product_by([], fn x -> x.count end)
+      1
+
+  Filtering can be achieved by returning `1` to ignore elements:
+
+      iex> Enum.product_by([2, -1, 3], fn x -> if x > 0, do: x, else: 1 end)
+      6
+
+  """
+  @doc since: "1.18.0"
+  @spec product_by(t, (element -> number)) :: number
+  def product_by(enumerable, mapper)
+
+  def product_by(list, mapper) when is_list(list) and is_function(mapper, 1) do
+    product_by_list(list, mapper, 1)
+  end
+
+  def product_by(enumerable, mapper) when is_function(mapper, 1) do
+    reduce(enumerable, 1, fn x, acc -> acc * mapper.(x) end)
   end
 
   @doc """
@@ -4810,6 +4846,11 @@ defmodule Enum do
 
   defp sum_by_list([], _, acc), do: acc
   defp sum_by_list([h | t], mapper, acc), do: sum_by_list(t, mapper, acc + mapper.(h))
+
+  ## product_by
+
+  defp product_by_list([], _, acc), do: acc
+  defp product_by_list([h | t], mapper, acc), do: product_by_list(t, mapper, acc * mapper.(h))
 
   ## take
 
