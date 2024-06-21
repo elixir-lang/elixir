@@ -1539,7 +1539,7 @@ defmodule Kernel.SpecialForms do
   @doc """
   Combine matching clauses.
 
-  One of the ways to understand with is to show which code
+  One of the ways to understand `with` is to show which code
   patterns it improves. Imagine you have a map where the fields
   `width` and `height` are optional and you want to compute its
   area, as `{:ok, area}` or return `:error`. We could implement
@@ -1661,7 +1661,7 @@ defmodule Kernel.SpecialForms do
       ...> end
       {:error, :wrong_data}
 
-  The `else` block works like a `case` clause: it can have multiple clauses,
+  The `else` block works like a `case`: it can have multiple clauses,
   and the first match will be used. Variables bound inside `with` (such as
   `width` in this example) are not available in the `else` block.
 
