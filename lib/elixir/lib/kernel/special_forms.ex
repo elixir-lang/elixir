@@ -1539,7 +1539,7 @@ defmodule Kernel.SpecialForms do
   @doc """
   Combine matching clauses.
 
-  One of the ways to understand with is to show which code
+  One of the ways to understand `with` is to show which code
   patterns it improves. Imagine you have a map where the fields
   `width` and `height` are optional and you want to compute its
   area, as `{:ok, area}` or return `:error`. We could implement
