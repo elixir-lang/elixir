@@ -3447,6 +3447,8 @@ defmodule Enum do
 
   Raises `ArithmeticError` if `enumerable` contains a non-numeric value.
 
+  If you need to apply a transformation first, consider using `Enum.sum_by/2` instead.
+
   ## Examples
 
       iex> Enum.sum([1, 2, 3])
