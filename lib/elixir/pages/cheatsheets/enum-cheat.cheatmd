@@ -313,6 +313,15 @@ iex> cart |> Enum.map(& &1.count) |> Enum.product()
 18
 ```
 
+Note: this should typically be done in one pass using `Enum.product_by/2`.
+
+### [`product_by(enum, mapper)`](`Enum.product_by/2`)
+
+```elixir
+iex> Enum.product_by(cart, & &1.count)
+18
+```
+
 ## Sorting
 {: .col-2}
 

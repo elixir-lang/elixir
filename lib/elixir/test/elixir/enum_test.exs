@@ -1360,6 +1360,27 @@ defmodule EnumTest do
     end
   end
 
+  test "product_by/2" do
+    assert Enum.product_by([], &hd/1) == 1
+    assert Enum.product_by([[1]], &hd/1) == 1
+    assert Enum.product_by([[1], [2], [3], [4], [5]], &hd/1) == 120
+    assert Enum.product_by([[1], [-2], [3], [4], [5]], &hd/1) == -120
+    assert Enum.product_by(1..5, & &1) == 120
+    assert Enum.product_by(11..-17//-1, & &1) == 0
+
+    assert_raise ArithmeticError, fn ->
+      Enum.product_by([[{}]], &hd/1)
+    end
+
+    assert_raise ArithmeticError, fn ->
+      Enum.product_by([[1], [{}]], &hd/1)
+    end
+
+    assert_raise ArithmeticError, fn ->
+      Enum.product_by(%{a: 1, b: 2}, & &1)
+    end
+  end
+
   test "take/2" do
     assert Enum.take([1, 2, 3], 0) == []
     assert Enum.take([1, 2, 3], 1) == [1]
