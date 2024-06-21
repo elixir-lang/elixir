@@ -3497,7 +3497,7 @@ defmodule Enum do
       4
 
   """
-  @doc since: "1.16.0"
+  @doc since: "1.18.0"
   @spec sum_by(t, (element -> number)) :: number
   def sum_by(enumerable, mapper)
 
