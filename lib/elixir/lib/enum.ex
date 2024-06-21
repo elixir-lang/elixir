@@ -3480,30 +3480,30 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.sum([%{count: 1}, %{count: 2}, %{count: 3}], fn x -> x.count end)
+      iex> Enum.sum_by([%{count: 1}, %{count: 2}, %{count: 3}], fn x -> x.count end)
       6
 
-      iex> Enum.sum(1..3, fn x -> x ** 2 end)
+      iex> Enum.sum_by(1..3, fn x -> x ** 2 end)
       14
 
-      iex> Enum.sum([], fn x -> x.count end)
+      iex> Enum.sum_by([], fn x -> x.count end)
       0
 
   Filtering can be achieved by returning `0` to remove elements:
 
-      iex> Enum.sum([1, -2, 3], fn x -> if x > 0, do: x, else: 0 end)
+      iex> Enum.sum_by([1, -2, 3], fn x -> if x > 0, do: x, else: 0 end)
       4
 
   """
   @doc since: "1.16.0"
-  @spec sum(t, (element -> number)) :: number
-  def sum(enumerable, fun)
+  @spec sum_by(t, (element -> number)) :: number
+  def sum_by(enumerable, fun)
 
-  def sum(list, fun) when is_list(list) and is_function(fun, 1) do
-    sum_list(list, fun, 0)
+  def sum_by(list, fun) when is_list(list) and is_function(fun, 1) do
+    sum_by_list(list, fun, 0)
   end
 
-  def sum(enumerable, fun) when is_function(fun, 1) do
+  def sum_by(enumerable, fun) when is_function(fun, 1) do
     reduce(enumerable, 0, fn x, acc -> acc + fun.(x) end)
   end
 
@@ -4804,10 +4804,10 @@ defmodule Enum do
     {:lists.reverse(acc), []}
   end
 
-  ## sum
+  ## sum_by
 
-  defp sum_list([], _, acc), do: acc
-  defp sum_list([h | t], fun, acc), do: sum_list(t, fun, acc + fun.(h))
+  defp sum_by_list([], _, acc), do: acc
+  defp sum_by_list([h | t], fun, acc), do: sum_by_list(t, fun, acc + fun.(h))
 
   ## take
 

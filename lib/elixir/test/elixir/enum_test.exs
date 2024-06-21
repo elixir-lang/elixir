@@ -1321,21 +1321,21 @@ defmodule EnumTest do
     end
   end
 
-  test "sum/2" do
-    assert Enum.sum([], &hd/1) == 0
-    assert Enum.sum([[1]], &hd/1) == 1
-    assert Enum.sum([[1], [2], [3]], &hd/1) == 6
-    assert Enum.sum([[1.1], [2.2], [3.3]], &hd/1) == 6.6
-    assert Enum.sum([[-3], [-2], [-1], [0], [1], [2], [3]], &hd/1) == 0
+  test "sum_by/2" do
+    assert Enum.sum_by([], &hd/1) == 0
+    assert Enum.sum_by([[1]], &hd/1) == 1
+    assert Enum.sum_by([[1], [2], [3]], &hd/1) == 6
+    assert Enum.sum_by([[1.1], [2.2], [3.3]], &hd/1) == 6.6
+    assert Enum.sum_by([[-3], [-2], [-1], [0], [1], [2], [3]], &hd/1) == 0
 
-    assert Enum.sum(1..3, &(&1 ** 2)) == 14
+    assert Enum.sum_by(1..3, &(&1 ** 2)) == 14
 
     assert_raise ArithmeticError, fn ->
-      Enum.sum([[{}]], &hd/1)
+      Enum.sum_by([[{}]], &hd/1)
     end
 
     assert_raise ArithmeticError, fn ->
-      Enum.sum([[1], [{}]], &hd/1)
+      Enum.sum_by([[1], [{}]], &hd/1)
     end
   end
 
