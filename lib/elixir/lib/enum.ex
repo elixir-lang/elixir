@@ -3491,7 +3491,7 @@ defmodule Enum do
       iex> Enum.sum_by([], fn x -> x.count end)
       0
 
-  Filtering can be achieved by returning `0` to remove elements:
+  Filtering can be achieved by returning `0` to ignore elements:
 
       iex> Enum.sum_by([1, -2, 3], fn x -> if x > 0, do: x, else: 0 end)
       4
