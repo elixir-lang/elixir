@@ -136,7 +136,7 @@ defmodule Mix.Tasks.Release.Init do
           ;;
 
         *)
-          echo "ERROR: Expected sname, name, or none in RELEASE_DISTRIBUTION, got: $RELEASE_DISTRIBUTION" >&2
+          echo "ERROR: Expected RELEASE_DISTRIBUTION to be sname, name, or none, got: $RELEASE_DISTRIBUTION" >&2
           exit 1
           ;;
       esac
@@ -280,7 +280,7 @@ defmodule Mix.Tasks.Release.Init do
     rem set RELEASE_MODE=interactive
 
     rem Set the release to work across nodes.
-    rem RELEASE_DISTRIBUTION must be "sname" (local), "name" (distributed) or "none".
+    rem RELEASE_DISTRIBUTION must be sname (local), name (distributed) or none.
     rem set RELEASE_DISTRIBUTION=name
     rem set RELEASE_NODE=<%= @release.name %>
     """
@@ -314,13 +314,33 @@ defmodule Mix.Tasks.Release.Init do
     if not defined RELEASE_BOOT_SCRIPT_CLEAN (set RELEASE_BOOT_SCRIPT_CLEAN=start_clean)
     if not defined RELEASE_SYS_CONFIG (set RELEASE_SYS_CONFIG=!REL_VSN_DIR!\sys)
 
+    if "!RELEASE_DISTRIBUTION!" == "none" (
+      rem
+    ) else if "!RELEASE_DISTRIBUTION!" == "name" (
+      rem
+    ) else if "!RELEASE_DISTRIBUTION!" == "sname" (
+      rem
+    ) else (
+      echo ERROR: Expected RELEASE_DISTRIBUTION to be sname, name, or none, got: !RELEASE_DISTRIBUTION!
+      exit /B 1
+    )
+
+    if "!RELEASE_MODE!" == "embedded" (
+      rem
+    ) else if "!RELEASE_MODE!" == "interactive" (
+      rem
+    ) else (
+      echo ERROR: Expected RELEASE_MODE to be embedded or interactive, got: !RELEASE_MODE!
+      exit /B 1
+    )
+
     if "%~1" == "start" (set "REL_EXEC=elixir" && set "REL_EXTRA=--no-halt" && set "REL_GOTO=start")
     if "%~1" == "start_iex" (set "REL_EXEC=iex" && set "REL_GOTO=start")
     if "%~1" == "install" (set "REL_GOTO=install")
     if "%~1" == "eval" (
       if "%~2" == "" (
         echo ERROR: EVAL expects an expression as argument
-        goto end
+        exit /B 1
       )
       set "REL_GOTO=eval"
     )
@@ -348,7 +368,7 @@ defmodule Mix.Tasks.Release.Init do
     if "%~1" == "rpc" (
       if "%~2" == "" (
         echo ERROR: RPC expects an expression as argument
-        goto end
+        exit /B 1
       )
       set "REL_RPC=%~2"
       goto rpc
@@ -369,7 +389,10 @@ defmodule Mix.Tasks.Release.Init do
     echo    pid          Prints the operating system PID of the running system via a remote command
     echo    version      Prints the release name and version to be booted
     echo.
-    if not "%~1" == "" (echo ERROR: Unknown command %~1)
+    if not "%~1" == "" (
+      echo ERROR: Unknown command %~1
+      exit /B 1
+    )
     goto end
 
     :start
@@ -427,7 +450,7 @@ defmodule Mix.Tasks.Release.Init do
     if "!RELEASE_DISTRIBUTION!" == "none" (
       set RELEASE_DISTRIBUTION_FLAG=
     ) else (
-      set RELEASE_DISTRIBUTION_FLAG=--!RELEASE_DISTRIBUTION! "rem-!RANDOM!-!RELEASE_NODE!"
+      set RELEASE_DISTRIBUTION_FLAG=--!RELEASE_DISTRIBUTION! "rpc-!RANDOM!-!RELEASE_NODE!"
     )
 
     "!REL_VSN_DIR!\elixir.bat" ^
@@ -452,7 +475,7 @@ defmodule Mix.Tasks.Release.Init do
 
     if "!RELEASE_DISTRIBUTION!" == "none" (
       echo ERROR: RELEASE_DISTRIBUTION is required in install command
-      goto end
+      exit /B 1
     )
 
     "!ERLSRV!" add "!RELEASE_NAME!_!RELEASE_NAME!" ^
