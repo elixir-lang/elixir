@@ -3499,14 +3499,14 @@ defmodule Enum do
   """
   @doc since: "1.16.0"
   @spec sum_by(t, (element -> number)) :: number
-  def sum_by(enumerable, fun)
+  def sum_by(enumerable, mapper)
 
-  def sum_by(list, fun) when is_list(list) and is_function(fun, 1) do
-    sum_by_list(list, fun, 0)
+  def sum_by(list, mapper) when is_list(list) and is_function(mapper, 1) do
+    sum_by_list(list, mapper, 0)
   end
 
-  def sum_by(enumerable, fun) when is_function(fun, 1) do
-    reduce(enumerable, 0, fn x, acc -> acc + fun.(x) end)
+  def sum_by(enumerable, mapper) when is_function(mapper, 1) do
+    reduce(enumerable, 0, fn x, acc -> acc + mapper.(x) end)
   end
 
   @doc """
@@ -4809,7 +4809,7 @@ defmodule Enum do
   ## sum_by
 
   defp sum_by_list([], _, acc), do: acc
-  defp sum_by_list([h | t], fun, acc), do: sum_by_list(t, fun, acc + fun.(h))
+  defp sum_by_list([h | t], mapper, acc), do: sum_by_list(t, mapper, acc + mapper.(h))
 
   ## take
 
