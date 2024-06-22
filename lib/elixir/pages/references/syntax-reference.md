@@ -76,7 +76,7 @@ Data structures such as lists, tuples, and binaries are marked respectively by t
 
 Maps use the `%{...}` notation and each key-value is given by pairs marked with `=>`, such as `%{"hello" => 1, 2 => "world"}`.
 
-Both keyword lists (list of two-element tuples where the first element is atom) and maps with atom keys support a keyword notation where the colon character `:` is moved to the end of the atom. `%{hello: "world"}` is equivalent to `%{:hello => "world"}` and `[foo: :bar]` is equivalent to `[{:foo, :bar}]`. We discuss keywords in later sections.
+Both keyword lists (list of two-element tuples where the first element is an atom) and maps with atom keys support a keyword notation where the colon character `:` is moved to the end of the atom. `%{hello: "world"}` is equivalent to `%{:hello => "world"}` and `[foo: :bar]` is equivalent to `[{:foo, :bar}]`. We discuss keywords in later sections.
 
 ### Structs
 
@@ -497,8 +497,8 @@ if(condition, [{:do, this}, {:else, that}])
 This same notation is available inside containers (such as `{...}`, `%{...}`, etc) as well:
 
 ```elixir
-{:foo, :bar, baz: :bat} == {:foo, :bar, {:baz, :bat}}
-%{:foo => :bar, baz: :bat} == %{:foo => :bar, :baz => :bat}}
+{:foo, :bar, baz: :bat} == {:foo, :bar, [{:baz, :bat}]}
+%{:foo => :bar, baz: :bat} == %{:foo => :bar, :baz => :bat}
 ```
 
 ### `do`-`end` blocks
