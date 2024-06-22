@@ -3046,10 +3046,10 @@ defmodule String do
   end
 
   defp bag_difference(bag1, bag2) do
-    Enum.reduce(bag1, 0, fn {char, count1}, sum ->
+    Enum.sum_by(bag1, fn {char, count1} ->
       case bag2 do
-        %{^char => count2} -> sum + max(count1 - count2, 0)
-        %{} -> sum + count1
+        %{^char => count2} -> max(count1 - count2, 0)
+        %{} -> count1
       end
     end)
   end
