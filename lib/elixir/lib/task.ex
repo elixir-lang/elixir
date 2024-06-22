@@ -716,7 +716,7 @@ defmodule Task do
 
       iex> strings = ["long string", "longer string", "there are many of these"]
       iex> stream = Task.async_stream(strings, fn text -> text |> String.codepoints() |> Enum.count() end)
-      iex> Enum.reduce(stream, 0, fn {:ok, num}, acc -> num + acc end)
+      iex> Enum.sum_by(stream, fn {:ok, num} -> num end)
       47
 
   See `async_stream/5` for discussion, options, and more examples.

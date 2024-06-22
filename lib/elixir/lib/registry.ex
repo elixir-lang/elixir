@@ -1182,8 +1182,8 @@ defmodule Registry do
   def count(registry) when is_atom(registry) do
     case key_info!(registry) do
       {_kind, partitions, nil} ->
-        Enum.reduce(0..(partitions - 1), 0, fn partition_index, acc ->
-          acc + safe_size(key_ets!(registry, partition_index))
+        Enum.sum_by(0..(partitions - 1), fn partition_index ->
+          safe_size(key_ets!(registry, partition_index))
         end)
 
       {_kind, 1, key_ets} ->
@@ -1258,9 +1258,8 @@ defmodule Registry do
         :ets.select_count(key_ets, spec)
 
       {:duplicate, partitions, _key_ets} ->
-        Enum.reduce(0..(partitions - 1), 0, fn partition_index, acc ->
-          count = :ets.select_count(key_ets!(registry, partition_index), spec)
-          acc + count
+        Enum.sum_by(0..(partitions - 1), fn partition_index ->
+          :ets.select_count(key_ets!(registry, partition_index), spec)
         end)
     end
   end
@@ -1352,9 +1351,8 @@ defmodule Registry do
 
     case key_info!(registry) do
       {_kind, partitions, nil} ->
-        Enum.reduce(0..(partitions - 1), 0, fn partition_index, acc ->
-          count = :ets.select_count(key_ets!(registry, partition_index), spec)
-          acc + count
+        Enum.sum_by(0..(partitions - 1), fn partition_index ->
+          :ets.select_count(key_ets!(registry, partition_index), spec)
         end)
 
       {_kind, 1, key_ets} ->
