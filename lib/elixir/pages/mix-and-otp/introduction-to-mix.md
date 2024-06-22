@@ -33,7 +33,7 @@ In order to build our key-value application, we are going to use three main tool
 
   * ***[Mix](`Mix`)*** is a build tool that ships with Elixir that provides tasks for creating, compiling, testing your application, managing its dependencies and much more;
 
-  * ***[ExUnit](`ExUnit`)*** is a test-unit based framework that ships with Elixir.
+  * ***[ExUnit](`ExUnit`)*** is a unit-test based framework that ships with Elixir.
 
 In this chapter, we will create our first project using Mix and explore different features in OTP, Mix, and ExUnit as we go.
 
