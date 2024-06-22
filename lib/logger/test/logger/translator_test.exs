@@ -100,6 +100,28 @@ defmodule Logger.TranslatorTest do
     end
   end
 
+  defmodule MyGenStatemHandleEvent do
+    @behaviour :gen_statem
+
+    @impl true
+    def callback_mode, do: :handle_event_function
+
+    @impl true
+    def init(state) do
+      {:ok, :no_state, state}
+    end
+
+    @impl true
+    def handle_event({:call, _}, :error, :no_state, _data) do
+      raise "oops"
+    end
+
+    @impl :gen_statem
+    def format_status(_opts, [_pdict, _, state]) do
+      state
+    end
+  end
+
   defmodule MyBridge do
     @behaviour :supervisor_bridge
 
@@ -393,7 +415,7 @@ defmodule Logger.TranslatorTest do
     assert {%RuntimeError{message: "oops"}, [_ | _]} = process_metadata[:crash_reason]
 
     refute Map.has_key?(gen_statem_metadata, :initial_call)
-    assert process_metadata[:initial_call] == {Logger.TranslatorTest.MyGenStatem, :init, 1}
+    assert process_metadata[:initial_call] == {MyGenStatem, :init, 1}
 
     refute Map.has_key?(gen_statem_metadata, :registered_name)
     refute Map.has_key?(process_metadata, :registered_name)
@@ -445,7 +467,7 @@ defmodule Logger.TranslatorTest do
     assert capture_log(:debug, fn ->
              catch_exit(:gen_statem.call(pid, :error))
            end) =~ """
-           [:ok, :ok, :ok, ...]
+           State: {:started, [:ok, ...]}
            """
   after
     Application.put_env(:logger, :translator_inspect_opts, [])
@@ -462,8 +484,7 @@ defmodule Logger.TranslatorTest do
            .*
            Queue: .*
            Postponed: \[\]
-           State: :started
-           Data: :ok
+           State: {:started, :ok}
            Callback mode: :state_functions, state_enter: false
            Client #PID<\d+\.\d+\.\d+> is alive
            .*
@@ -488,8 +509,7 @@ defmodule Logger.TranslatorTest do
            .*
            Queue: .*
            Postponed: \[\]
-           State: :started
-           Data: :ok
+           State: {:started, :ok}
            Callback mode: :state_functions, state_enter: false
            Client :named_client is alive
            .*
@@ -513,8 +533,7 @@ defmodule Logger.TranslatorTest do
            .*
            Queue: .*
            Postponed: \[\]
-           State: :started
-           Data: :ok
+           State: {:started, :ok}
            Callback mode: :state_functions, state_enter: false
            Client #PID<\d+\.\d+\.\d+> is dead
            """s
@@ -533,8 +552,7 @@ defmodule Logger.TranslatorTest do
            .*
            Queue: .*
            Postponed: \[\]
-           State: :started
-           Data: :ok
+           State: {:started, :ok}
            Callback mode: :state_functions, state_enter: false
            """s
   end
@@ -550,6 +568,34 @@ defmodule Logger.TranslatorTest do
 
     assert_receive {:event, {:string, [[":gen_statem " <> _ | _] | _]}, _gen_statem_metadata}
     assert_receive {:event, {:string, ["Process " | _]}, _process_metadata}
+  end
+
+  test "translates :gen_statem crashes when callback_mode is :handle_event_function" do
+    {:ok, pid} = :gen_statem.start(MyGenStatemHandleEvent, :ok, [])
+
+    assert capture_log(:debug, fn ->
+             catch_exit(:gen_statem.call(pid, :error))
+           end) =~ ~r"""
+           \[error\] :gen_statem #PID<\d+\.\d+\.\d+> terminating
+           \*\* \(RuntimeError\) oops
+           .*
+           Queue: .*
+           Postponed: \[\]
+           State: :ok
+           Callback mode: .*, state_enter: false
+           """s
+
+    assert_receive {:event, {:string, [[":gen_statem " <> _ | _] | _]}, gen_statem_metadata}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
+
+    assert {%RuntimeError{message: "oops"}, [_ | _]} = gen_statem_metadata[:crash_reason]
+    assert {%RuntimeError{message: "oops"}, [_ | _]} = process_metadata[:crash_reason]
+
+    refute Map.has_key?(gen_statem_metadata, :initial_call)
+    assert process_metadata[:initial_call] == {MyGenStatemHandleEvent, :init, 1}
+
+    refute Map.has_key?(gen_statem_metadata, :registered_name)
+    refute Map.has_key?(process_metadata, :registered_name)
   end
 
   test "translates Task crashes" do
