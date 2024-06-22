@@ -298,7 +298,7 @@ defmodule Logger.Translator do
       client_info: client,
       name: name,
       reason: {kind, reason, stack},
-      state: {state, data},
+      state: state,
       queue: queue,
       postponed: postponed,
       callback_mode: callback_mode,
@@ -324,12 +324,19 @@ defmodule Logger.Translator do
         ["\nPostponed: #{inspect(postponed, inspect_opts)}"]
 
     if min_level == :debug do
+      state_info =
+        case state do
+          {state, data} ->
+            ["\nState: ", inspect(state, inspect_opts), "\nData: ", inspect(data, inspect_opts)]
+
+          # Might be formatted by c:format_status/2 and not be a pair
+          state ->
+            ["\nState: ", inspect(state, inspect_opts)]
+        end
+
       msg = [
         msg,
-        "\nState: ",
-        inspect(state, inspect_opts),
-        "\nData: ",
-        inspect(data, inspect_opts),
+        state_info,
         "\nCallback mode: ",
         "#{inspect(callback_mode, inspect_opts)}, state_enter: #{state_enter?}"
         | format_client_info(client)
