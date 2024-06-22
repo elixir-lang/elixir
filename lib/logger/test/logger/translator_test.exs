@@ -100,7 +100,7 @@ defmodule Logger.TranslatorTest do
     end
   end
 
-  defmodule MyGenStatemFormatStatus do
+  defmodule MyGenStatemHandleEvent do
     @behaviour :gen_statem
 
     @impl true
@@ -570,8 +570,8 @@ defmodule Logger.TranslatorTest do
     assert_receive {:event, {:string, ["Process " | _]}, _process_metadata}
   end
 
-  test "translates :gen_statem crashes when format_status/2 does not return a tuple" do
-    {:ok, pid} = :gen_statem.start(MyGenStatemFormatStatus, :ok, [])
+  test "translates :gen_statem crashes when callback_mode is :handle_event_function" do
+    {:ok, pid} = :gen_statem.start(MyGenStatemHandleEvent, :ok, [])
 
     assert capture_log(:debug, fn ->
              catch_exit(:gen_statem.call(pid, :error))
@@ -592,7 +592,7 @@ defmodule Logger.TranslatorTest do
     assert {%RuntimeError{message: "oops"}, [_ | _]} = process_metadata[:crash_reason]
 
     refute Map.has_key?(gen_statem_metadata, :initial_call)
-    assert process_metadata[:initial_call] == {MyGenStatemFormatStatus, :init, 1}
+    assert process_metadata[:initial_call] == {MyGenStatemHandleEvent, :init, 1}
 
     refute Map.has_key?(gen_statem_metadata, :registered_name)
     refute Map.has_key?(process_metadata, :registered_name)
