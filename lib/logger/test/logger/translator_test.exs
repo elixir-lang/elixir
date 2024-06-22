@@ -467,7 +467,7 @@ defmodule Logger.TranslatorTest do
     assert capture_log(:debug, fn ->
              catch_exit(:gen_statem.call(pid, :error))
            end) =~ """
-           [:ok, :ok, :ok, ...]
+           State: {:started, [:ok, ...]}
            """
   after
     Application.put_env(:logger, :translator_inspect_opts, [])
@@ -484,8 +484,7 @@ defmodule Logger.TranslatorTest do
            .*
            Queue: .*
            Postponed: \[\]
-           State: :started
-           Data: :ok
+           State: {:started, :ok}
            Callback mode: :state_functions, state_enter: false
            Client #PID<\d+\.\d+\.\d+> is alive
            .*
@@ -510,8 +509,7 @@ defmodule Logger.TranslatorTest do
            .*
            Queue: .*
            Postponed: \[\]
-           State: :started
-           Data: :ok
+           State: {:started, :ok}
            Callback mode: :state_functions, state_enter: false
            Client :named_client is alive
            .*
@@ -535,8 +533,7 @@ defmodule Logger.TranslatorTest do
            .*
            Queue: .*
            Postponed: \[\]
-           State: :started
-           Data: :ok
+           State: {:started, :ok}
            Callback mode: :state_functions, state_enter: false
            Client #PID<\d+\.\d+\.\d+> is dead
            """s
@@ -555,8 +552,7 @@ defmodule Logger.TranslatorTest do
            .*
            Queue: .*
            Postponed: \[\]
-           State: :started
-           Data: :ok
+           State: {:started, :ok}
            Callback mode: :state_functions, state_enter: false
            """s
   end
