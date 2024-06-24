@@ -2131,6 +2131,36 @@ defmodule UnicodeConversionError do
   end
 end
 
+defmodule MissingDependenciesError do
+  @moduledoc """
+  An exception that is raised when there are one or more missing applications that some
+  application depends on.
+
+  This exception is not strictly tied to Mix depedencies, but Mix uses it.
+
+  *Available since v1.18.0.*
+  """
+
+  @moduledoc since: "1.18.0"
+
+  @typedoc since: "1.18.0"
+  @type t() :: %__MODULE__{
+          apps: [{String.t(), Version.requirement()}, ...]
+        }
+
+  defexception [:apps]
+
+  @impl true
+  def message(%__MODULE__{apps: apps}) do
+    formatted =
+      Enum.map(apps, fn {app, requirement} ->
+        "\n  * #{inspect(app)} (#{requirement})"
+      end)
+
+    "missing dependencies:\n#{formatted}\n"
+  end
+end
+
 defmodule Enum.OutOfBoundsError do
   @moduledoc """
   An exception that is raised when a function expects an enumerable to have
