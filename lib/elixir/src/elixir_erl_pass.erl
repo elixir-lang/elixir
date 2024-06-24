@@ -680,6 +680,10 @@ inline_pure_function('Elixir.URI', encode_query) -> true;
 inline_pure_function('Elixir.URI', encode_www_form) -> true;
 inline_pure_function('Elixir.URI', decode) -> true;
 inline_pure_function('Elixir.URI', decode_www_for) -> true;
+inline_pure_function('Elixir.Version', parse) -> true;
+inline_pure_function('Elixir.Version', 'parse!') -> true;
+inline_pure_function('Elixir.Version', parse_requirement) -> true;
+inline_pure_function('Elixir.Version', 'parse_requirement!') -> true;
 inline_pure_function(_Left, _Right) -> false.
 
 % we do not want to try and inline calls which might depend on protocols that might be overridden later
