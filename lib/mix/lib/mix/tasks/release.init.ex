@@ -53,7 +53,7 @@ defmodule Mix.Tasks.Release.Init do
 
     ## Enable deployment without epmd
     ## (requires changing both vm.args and remote.vm.args)
-    ##-start_epmd false -erl_epmd_port 6789#{remote? && " -dist_listen false"}
+    ##-start_epmd false -erl_epmd_port 6789#{if(remote?, do: " -dist_listen false")}
     """
 
   @doc false
