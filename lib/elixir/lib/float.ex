@@ -589,6 +589,8 @@ defmodule Float do
 
   For a configurable representation, use `:erlang.float_to_list/2`.
 
+  Inlined by the compiler.
+
   ## Examples
 
       iex> Float.to_charlist(7.0)
@@ -596,7 +598,7 @@ defmodule Float do
 
   """
   @spec to_charlist(float) :: charlist
-  def to_charlist(float) when is_float(float) do
+  def to_charlist(float) do
     :erlang.float_to_list(float, [:short])
   end
 
@@ -616,6 +618,8 @@ defmodule Float do
 
   For a configurable representation, use `:erlang.float_to_binary/2`.
 
+  Inlined by the compiler.
+
   ## Examples
 
       iex> Float.to_string(7.0)
@@ -623,7 +627,7 @@ defmodule Float do
 
   """
   @spec to_string(float) :: String.t()
-  def to_string(float) when is_float(float) do
+  def to_string(float) do
     :erlang.float_to_binary(float, [:short])
   end
 
