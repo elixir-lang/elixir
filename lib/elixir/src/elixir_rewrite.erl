@@ -8,6 +8,7 @@
 -define(atom, 'Elixir.Atom').
 -define(bitwise, 'Elixir.Bitwise').
 -define(enum, 'Elixir.Enum').
+-define(float, 'Elixir.Float').
 -define(function, 'Elixir.Function').
 -define(integer, 'Elixir.Integer').
 -define(io, 'Elixir.IO').
@@ -239,6 +240,8 @@ rewrite(Receiver, DotMeta, Right, Meta, Args) ->
   {EReceiver, ERight, EArgs} = inner_rewrite(ex_to_erl, DotMeta, Receiver, Right, Args),
   {{'.', DotMeta, [EReceiver, ERight]}, Meta, EArgs}.
 
+?rewrite(?float, to_charlist, [Arg], erlang, float_to_list, [Arg, [short]]);
+?rewrite(?float, to_string, [Arg], erlang, float_to_binary, [Arg, [short]]);
 ?rewrite(?kernel, is_map_key, [Map, Key], erlang, is_map_key, [Key, Map]);
 ?rewrite(?map, delete, [Map, Key], maps, remove, [Key, Map]);
 ?rewrite(?map, fetch, [Map, Key], maps, find, [Key, Map]);
