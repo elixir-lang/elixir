@@ -448,7 +448,7 @@ defmodule String.Tokenizer do
         [:nfkc | List.delete(special, :nfkc)]
       end
 
-    if scriptset != @bottom or highly_restrictive?(acc) do
+    if scriptset != @bottom or chunks_single_or_highly_restrictive?(acc) do
       {kind, acc, rest, length, false, special}
     else
       breakdown =
@@ -477,24 +477,36 @@ defmodule String.Tokenizer do
       Mixed-script identifiers are not supported for security reasons. \
       '#{acc}' is made of the following scripts:\n
       #{breakdown}
-      All characters in the identifier should resolve to a single script, \
-      or use a highly restrictive set of scripts.
+      All characters in identifier chunks should resolve to a single script, \
+      or a highly restrictive set of scripts.
       """
 
       {:error, {:not_highly_restrictive, acc, {prefix, suffix}}}
     end
   end
 
-  defp highly_restrictive?(acc) do
+  defp chunks_single_or_highly_restrictive?(acc) do
+    # support script mixing via chunked identifiers (UTS 55-5, strong
+    # recco) to be kinder to users of other scripts,
+    # chunked around the _ character; each chunk
+    # in an ident like foo_bar_baz should pass checks
+    acc
+    |> :string.tokens([?_])
+    |> Enum.all?(&single_or_highly_restrictive?/1)
+  end
+
+  defp single_or_highly_restrictive?(acc) do
     scriptsets = Enum.map(acc, &codepoint_to_scriptset/1)
+    is_single_script = @bottom != Enum.reduce(scriptsets, @top, &ss_intersect/2)
 
     # 'A set of scripts is defined to cover a string if the intersection of
     #  that set with the augmented script sets of all characters in the string
     #  is nonempty; in other words, if every character in the string shares at
     #  least one script with the cover set.'
-    Enum.any?(@highly_restrictive, fn restrictive ->
-      Enum.all?(scriptsets, &(ss_intersect(&1, restrictive) != @bottom))
-    end)
+    is_single_script or
+      Enum.any?(@highly_restrictive, fn restrictive ->
+        Enum.all?(scriptsets, &(ss_intersect(&1, restrictive) != @bottom))
+      end)
   end
 
   defp codepoint_to_scriptset(head) do
@@ -510,6 +522,18 @@ defmodule String.Tokenizer do
              @bottom <- unicode_upper(head),
              @bottom <- unicode_continue(head),
              do: @top
+    end
+  end
+
+  # security.ex uses, to filter non-ident codepoints
+  def id_codepoint?(p) when is_integer(p) do
+    if p < 127 and (p == ?_ or ascii_continue?(p) or ascii_lower?(p) or ascii_continue?(p)) do
+      true
+    else
+      @bottom !=
+        unicode_start(p)
+        |> ScriptSet.union(unicode_continue(p))
+        |> ScriptSet.union(unicode_upper(p))
     end
   end
 end

@@ -126,6 +126,18 @@ defmodule Kernel.WarningTest do
         "力=1; カ=1"
       )
 
+      # bidirectional confusability, [97,95,49,1488] vs [97,95,1488,49];
+      # warning outputs in byte order (vs bidi algo display order, uax9), & mentions presence of rtl
+      assert_warn_quoted(
+        ["nofile:1:9", "'a_1א' looks like 'a_א1'", "right-to-left characters"],
+        "a_א1 or a_1א"
+      )
+
+      assert_warn_quoted(
+        ["nofile:1:9", "'_1א' looks like '_א1'", "right-to-left characters"],
+        "_א1 and _1א"
+      )
+
       # by convention, doesn't warn on ascii-only confusables
       assert capture_eval("x0 = xO = 1") == ""
       assert capture_eval("l1 = ll = 1") == ""
@@ -172,7 +184,9 @@ defmodule Kernel.WarningTest do
       assert_raise SyntaxError, ~r/mixed/, fn -> Code.string_to_quoted!("[аdmin: 1]") end
       assert_raise SyntaxError, ~r/mixed/, fn -> Code.string_to_quoted!("[{:аdmin, 1}]") end
       assert_raise SyntaxError, ~r/mixed/, fn -> Code.string_to_quoted!("quote do: аdmin(1)") end
-      assert_raise SyntaxError, ~r/mixed/, fn -> Code.string_to_quoted!("рос_api = 1") end
+
+      # c is Latin
+      assert_raise SyntaxError, ~r/mixed/, fn -> Code.string_to_quoted!("http_cервер = 1") end
 
       # T is in cyrillic
       assert_raise SyntaxError, ~r/mixed/, fn -> Code.string_to_quoted!("[Тシャツ: 1]") end
@@ -190,6 +204,10 @@ defmodule Kernel.WarningTest do
       # elixir's normalizations combine scriptsets of the 'from' and 'to' characters,
       # ex: {Common} MICRO => {Greek} MU == {Common, Greek}; Common intersects w/all
       assert capture_quoted("μs") == ""
+
+      # allows mixed scripts if the chunks are all single-script or highly restrictive
+      assert capture_eval("http_сервер = 1") == ""
+      assert capture_eval("сервер_http = 1") == ""
     end
   end
 
