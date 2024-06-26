@@ -955,12 +955,12 @@ defmodule ExceptionTest do
       assert %ErlangError{original: :sample} |> message == "Erlang error: :sample"
     end
 
-    test "MissingDependenciesError" do
-      assert %MissingDependenciesError{
+    test "MissingApplicationsError" do
+      assert %MissingApplicationsError{
                apps: [{:logger, "~> 1.18"}, {:ex_unit, Version.parse_requirement!(">= 0.0.0")}]
              }
              |> message == """
-             missing dependencies:
+             missing applications:
 
                * :logger (~> 1.18)
                * :ex_unit (>= 0.0.0)

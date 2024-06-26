@@ -2131,12 +2131,14 @@ defmodule UnicodeConversionError do
   end
 end
 
-defmodule MissingDependenciesError do
+defmodule MissingApplicationsError do
   @moduledoc """
   An exception that is raised when there are one or more missing applications that some
   application depends on.
 
-  This exception is not strictly tied to Mix depedencies, but Mix uses it.
+  This exception is used by Mix and other tools. It can also be used by library authors
+  when their library only requires an external application (like a dependency) for a subset
+  of features.
 
   *Available since v1.18.0.*
   """
@@ -2145,7 +2147,7 @@ defmodule MissingDependenciesError do
 
   @typedoc since: "1.18.0"
   @type t() :: %__MODULE__{
-          apps: [{String.t(), Version.requirement()}, ...]
+          apps: [{Application.app(), Version.requirement()}, ...]
         }
 
   defexception [:apps]
@@ -2157,7 +2159,7 @@ defmodule MissingDependenciesError do
         "\n  * #{inspect(app)} (#{requirement})"
       end)
 
-    "missing dependencies:\n#{formatted}\n"
+    "missing applications:\n#{formatted}\n"
   end
 end
 
