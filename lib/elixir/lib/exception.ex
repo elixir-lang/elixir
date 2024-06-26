@@ -2133,8 +2133,8 @@ end
 
 defmodule MissingApplicationsError do
   @moduledoc """
-  An exception that is raised when there are one or more missing applications that some
-  application depends on.
+  An exception that is raised when an application depends on one or more
+  missing applications.
 
   This exception is used by Mix and other tools. It can also be used by library authors
   when their library only requires an external application (like a dependency) for a subset
