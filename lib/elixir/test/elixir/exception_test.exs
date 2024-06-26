@@ -957,13 +957,16 @@ defmodule ExceptionTest do
 
     test "MissingApplicationsError" do
       assert %MissingApplicationsError{
-               apps: [{:logger, "~> 1.18"}, {:ex_unit, Version.parse_requirement!(">= 0.0.0")}]
+               apps: [{:logger, "~> 1.18"}, {:ex_unit, Version.parse_requirement!(">= 0.0.0")}],
+               description: "applications are required"
              }
              |> message == """
-             missing applications:
+             applications are required
 
-               * :logger (~> 1.18)
-               * :ex_unit (>= 0.0.0)
+             To address this, include these applications as your dependencies:
+
+               {:logger, "~> 1.18"}
+               {:ex_unit, ">= 0.0.0"}\
              """
     end
   end
