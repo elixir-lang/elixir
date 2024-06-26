@@ -402,8 +402,8 @@ defmodule Mix.Tasks.Release do
 
       If you are setting this option manually, we recommend the cookie option
       to be a long and randomly generated string, such as:
-      `Base.url_encode64(:crypto.strong_rand_bytes(40))`. We also recommend to restrict
-      the characters in the cookie to the subset returned by `Base.url_encode64/1`.
+      `Base.encode32(:crypto.strong_rand_bytes(40))`. We also recommend restricting
+      the characters in the cookie to only alphanumeric characters and underscore.
 
     * `:validate_compile_env` - by default a release will match all runtime
       configuration against any configuration that was marked at compile time
