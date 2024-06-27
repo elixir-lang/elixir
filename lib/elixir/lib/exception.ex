@@ -2156,7 +2156,6 @@ defmodule MissingApplicationsError do
 
   @moduledoc since: "1.18.0"
 
-  @typedoc since: "1.18.0"
   @type t() :: %__MODULE__{
           apps: [{Application.app(), Version.requirement()}, ...],
           description: String.t()
