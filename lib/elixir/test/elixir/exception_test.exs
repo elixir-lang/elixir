@@ -954,6 +954,21 @@ defmodule ExceptionTest do
     test "ErlangError" do
       assert %ErlangError{original: :sample} |> message == "Erlang error: :sample"
     end
+
+    test "MissingApplicationsError" do
+      assert %MissingApplicationsError{
+               apps: [{:logger, "~> 1.18"}, {:ex_unit, Version.parse_requirement!(">= 0.0.0")}],
+               description: "applications are required"
+             }
+             |> message == """
+             applications are required
+
+             To address this, include these applications as your dependencies:
+
+               {:logger, "~> 1.18"}
+               {:ex_unit, ">= 0.0.0"}\
+             """
+    end
   end
 
   describe "error_info" do

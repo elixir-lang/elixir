@@ -2131,6 +2131,56 @@ defmodule UnicodeConversionError do
   end
 end
 
+defmodule MissingApplicationsError do
+  @moduledoc """
+  An exception that is raised when an application depends on one or more
+  missing applications.
+
+  This exception is used by Mix and other tools. It can also be used by library authors
+  when their library only requires an external application (like a dependency) for a subset
+  of features.
+
+  The fields of this exception are public. See `t:t/0`.
+
+  *Available since v1.18.0.*
+
+  ## Examples
+
+      unless Application.spec(:plug, :vsn) do
+        raise MissingApplicationsError,
+          description: "application :plug is required for testing Plug-related functionality",
+          apps: [{:plug, "~> 1.0"}]
+      end
+
+  """
+
+  @moduledoc since: "1.18.0"
+
+  @type t() :: %__MODULE__{
+          apps: [{Application.app(), Version.requirement()}, ...],
+          description: String.t()
+        }
+
+  defexception apps: [], description: "missing applications found"
+
+  @impl true
+  def message(%__MODULE__{apps: apps, description: description}) do
+    # We explicitly format these as tuples so that they're easier to copy-paste
+    # into dependencies.
+    formatted_apps =
+      Enum.map(apps, fn {app_name, requirement} ->
+        ~s(\n  {#{inspect(app_name)}, "#{requirement}"})
+      end)
+
+    """
+    #{description}
+
+    To address this, include these applications as your dependencies:
+    #{formatted_apps}\
+    """
+  end
+end
+
 defmodule Enum.OutOfBoundsError do
   @moduledoc """
   An exception that is raised when a function expects an enumerable to have
