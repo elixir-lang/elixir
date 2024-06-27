@@ -2162,7 +2162,7 @@ defmodule MissingApplicationsError do
           description: String.t()
         }
 
-  defexception [:apps, :description]
+  defexception apps: [], description: "missing applications found"
 
   @impl true
   def message(%__MODULE__{apps: apps, description: description}) do
