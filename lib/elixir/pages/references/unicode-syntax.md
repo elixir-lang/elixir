@@ -144,8 +144,6 @@ Elixir does allow an identifier like `http_сервер`, where the identifier c
 
 However, Elixir would prevent tokenization in code like `if аdmin, do: :ok, else: :err`, where the scriptset for the 'a' character is {Cyrillic} but all other characters have scriptsets of {Latin}. The scriptsets fail to resolve, and the scriptsets from the definition of 'Highly Restrictive' in UTS 39 5.2 do not cover the string either, so a descriptive error is shown.
 
-
-
 ### C4, C5 (inapplicable)
 
 'C4 - Restriction Level detection' conformance is not claimed and does not apply to identifiers in code; rather, it applies to classifying the level of safety of a given arbitrary string into one of 5 restriction levels.
