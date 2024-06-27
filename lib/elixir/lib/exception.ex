@@ -2173,7 +2173,7 @@ defmodule MissingApplicationsError do
       end)
 
     """
-    #{description || "missing applications"}
+    #{description}
 
     To address this, include these applications as your dependencies:
     #{formatted_apps}\
