@@ -161,6 +161,7 @@ Process.send_after(pid, :wake_up, to_timeout(hour: 1))
   * [Kernel] Avoid double tracing events when capturing a function
   * [Kernel] Fix a bug where captured arguments would conflict when a capture included a macro that also used captures
   * [Module] Return default value in `Module.get_attribute/3` for persisted attributes which have not yet been written to
+  * [String] Properly handle transpositions in `jaro_distance`. This will correct the distance result in certain cases
 
 #### IEx
 
