@@ -54,12 +54,12 @@ defmodule Application do
   You can also change the application environment dynamically by using functions
   such as `put_env/3` and `delete_env/2`.
 
-  > #### Environment in libraries {: .tip}
+  > #### Application environment in libraries {: .info}
   >
-  > The config files `config/config.exs` and `config/runtime.exs`
-  > are rarely used by libraries. Libraries typically define their environment
-  > in the `application/0` function of their `mix.exs`. Configuration files
-  > are rather used by applications to configure their libraries.
+  > If you are writing a library to be used by other developers,
+  > it is generally recommended to avoid the application environment, as the
+  > application environment is effectively a global storage. For more information,
+  > read our [library guidelines](library-guidelines.md).
 
   > #### Reading the environment of other applications {: .warning}
   >
@@ -673,13 +673,6 @@ defmodule Application do
   > You must use this function to read only your own application
   > environment. Do not read the environment of other applications.
 
-  > #### Application environment in libraries {: .info}
-  >
-  > If you are writing a library to be used by other developers,
-  > it is generally recommended to avoid the application environment, as the
-  > application environment is effectively a global storage. For more information,
-  > read our [library guidelines](library-guidelines.md).
-
   ## Examples
 
   `get_env/3` is commonly used to read the configuration of your OTP applications.
@@ -795,6 +788,12 @@ defmodule Application do
 
   @doc """
   Puts the `value` in `key` for the given `app`.
+
+  > #### Compile environment {: .warning}
+  >
+  > Do not use this function to change environment variables read
+  > via `Application.compile_env/2`. The compile environment must
+  > be exclusively set before compilation, in your config files.
 
   ## Options
 
