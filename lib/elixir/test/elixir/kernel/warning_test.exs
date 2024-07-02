@@ -126,18 +126,6 @@ defmodule Kernel.WarningTest do
         "力=1; カ=1"
       )
 
-      # bidirectional confusability, [97,95,49,1488] vs [97,95,1488,49];
-      # warning outputs in byte order (vs bidi algo display order, uax9), & mentions presence of rtl
-      assert_warn_quoted(
-        ["nofile:1:9", "'a_1א' looks like 'a_א1'", "right-to-left characters"],
-        "a_א1 or a_1א"
-      )
-
-      assert_warn_quoted(
-        ["nofile:1:9", "'_1א' looks like '_א1'", "right-to-left characters"],
-        "_א1 and _1א"
-      )
-
       # by convention, doesn't warn on ascii-only confusables
       assert capture_eval("x0 = xO = 1") == ""
       assert capture_eval("l1 = ll = 1") == ""
@@ -149,6 +137,70 @@ defmodule Kernel.WarningTest do
                )
              end) =~
                "confusable identifier: 'a' looks like 'а' on line 1"
+    end
+
+    test "warns on LTR-confusables" do
+      # warning outputs in byte order (vs bidi algo display order, uax9), mentions presence of rtl
+      assert_warn_quoted(
+        ["nofile:1:9", "'_1א' looks like '_א1'", "right-to-left characters"],
+        "_א1 and _1א"
+      )
+
+      assert_warn_quoted(
+        [
+          "'a_1א' includes right-to-left characters",
+          "\\u0061 a ltr",
+          "\\u005F _ neutral",
+          "\\u0031 1 weak_number",
+          "\\u05D0 א rtl",
+          "'a_א1' includes right-to-left characters:",
+          "\\u0061 a ltr",
+          "\\u005F _ neutral",
+          "\\u05D0 א rtl",
+          "\\u0031 1 weak_number"
+        ],
+        "a_א1 or a_1א"
+      )
+
+      # test that the implementation of String.Tokenizer.Security.unbidify/1 agrees
+      # w/Unicode Bidi Algo (UAX9) for these (identifier-specific, no-bracket) examples
+      #
+      # you can create new examples with: https://util.unicode.org/UnicodeJsps/bidic.jsp?s=foo_%D9%84%D8%A7%D9%85%D8%AF%D8%A7_baz&b=0&u=140&d=2
+      # inspired by (none of these are directly usable for our idents): https://www.unicode.org/Public/UCD/latest/ucd/BidiCharacterTest.txt
+      #
+      # there's a spurious ;A; after the identifier, because the semicolon is dir-neutral, and
+      # deleting it makes these examples hard to read in many/most editors!
+      """
+      foo;0066 006F 006F;0 1 2
+      _foo_ ;A;005F 0066 006F 006F 005F;0 1 2 3 4
+      __foo__ ;A;005F 005F 0066 006F 006F 005F 005F;0 1 2 3 4 5 6
+      لامدا_foo ;A;0644 0627 0645 062F 0627 005F 0066 006F 006F;4 3 2 1 0 5 6 7 8
+      foo_لامدا_baz ;A;0066 006F 006F 005F 0644 0627 0645 062F 0627 005F 0062 0061 007A;0 1 2 3 8 7 6 5 4 9 10 11 12
+      foo_لامدا ;A;0066 006F 006F 005F 0644 0627 0645 062F 0627
+      foo_لامدا1 ;A;0066 006F 006F 005F 0644 0627 0645 062F 0627 0031;0 1 2 3 9 8 7 6 5 4
+      foo_لامدا_حدد ;A;0066 006F 006F 005F 0644 0627 0645 062F 0627 005F 062D 062F 062F;0 1 2 3 12 11 10 9 8 7 6 5 4
+      foo_لامدا_حدد1 ;A;0066 006F 006F 005F 0644 0627 0645 062F 0627 005F 062D 062F 062F 0031;0 1 2 3 13 12 11 10 9 8 7 6 5 4
+      foo_لامدا_حدد1_bar ;A; 0066 006F 006F 005F 0644 0627 0645 062F 0627 005F 062D 062F 062F 0031 005F 0062 0061 0072;0 1 2 3 13 12 11 10 9 8 7 6 5 4 14 15 16 17
+      foo_لامدا_حدد1_bar1 ;A;0066 006F 006F 005F 0644 0627 0645 062F 0627 005F 062D 062F 062F 0031 005F 0062 0061 0072 0031;0 1 2 3 13 12 11 10 9 8 7 6 5 4 14 15 16 17 18
+      """
+      |> String.split("\n")
+      |> Enum.map(&String.split(&1, ";", trim: true))
+      |> Enum.each(fn
+        [ident, _, bytes, indices | _rest] ->
+          bytes = String.split(bytes, " ", trim: true) |> Enum.map(&String.to_integer(&1, 16))
+          indices = String.split(indices, " ", trim: true) |> Enum.map(&String.to_integer/1)
+          display_ordered = for i <- indices, do: Enum.at(bytes, i)
+          unbidified = String.Tokenizer.Security.unbidify(bytes)
+
+          assert(display_ordered == unbidified, """
+           Failing String.Tokenizer.Security.unbidify/1 case for: '#{ident}'
+            bytes        : #{bytes |> Enum.map(&Integer.to_string(&1, 16)) |> Enum.join(" ")}
+            byte order   : #{bytes |> Enum.intersperse(32)}
+            uax9 order   : #{display_ordered |> Enum.intersperse(32)}
+            uax9 indices : #{indices |> Enum.join(" ")}
+            unbidify/1   : #{unbidified |> Enum.intersperse(32)}
+          """)
+      end)
     end
 
     test "prevents unsafe script mixing in identifiers" do

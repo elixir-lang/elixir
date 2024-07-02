@@ -127,65 +127,14 @@ defmodule String.Tokenizer.Security do
     #   [...] a fast path can be used: [...] if X has no characters
     #   w/bidi classes R or AL, bidiSkeleton(X) = skeleton(X)
     #
-    if length(s) > 1 and any_rtl?(s) do
+    if match?([_, _ | _], s) and any_rtl?(s) do
       unbidify(s) |> Enum.map(&confusable_prototype/1)
     else
       Enum.map(s, &confusable_prototype/1)
     end
   end
 
-  # load direction-changing and neutral codepoints valid in idents
-  {rtls, neutrals} =
-    Path.join(__DIR__, "UnicodeData.txt")
-    |> File.read!()
-    |> String.split(["\r\n", "\n"], trim: true)
-    |> Enum.reduce({[], []}, fn line, {rtls, neutrals} = acc ->
-      with [point, _, _, _, bidi | _] <- String.split(line, ";"),
-           codepoint = String.to_integer(point, 16),
-           true <- String.Tokenizer.id_codepoint?(codepoint) do
-        # https://www.unicode.org/reports/tr44/tr44-32.html#Bidi_Class_Values
-        cond do
-          bidi in ~w(R AL)s -> {[codepoint | rtls], neutrals}
-          bidi in ~w(WS ON CS EN ES ET NSM)s -> {rtls, [codepoint | neutrals]}
-          true -> acc
-        end
-      else
-        _ -> acc
-      end
-    end)
-
-  rangify = fn [head | tail] ->
-    {first, last, acc} =
-      Enum.reduce(tail, {head, head, []}, fn
-        number, {first, last, acc} when number == first - 1 ->
-          {number, last, acc}
-
-        number, {first, last, acc} ->
-          {number, number, [{first, last} | acc]}
-      end)
-
-    [{first, last} | acc]
-  end
-
-  # direction of a codepoint. (rtl, neutral, ltr fallback)
-  for {first, last} <- rangify.(rtls) do
-    if first == last do
-      defp dir(unquote(first)), do: :rtl
-    else
-      defp dir(i) when i in unquote(first)..unquote(last), do: :rtl
-    end
-  end
-
-  for {first, last} <- rangify.(neutrals) do
-    if first == last do
-      defp dir(unquote(first)), do: :neutral
-    else
-      defp dir(i) when i in unquote(first)..unquote(last), do: :neutral
-    end
-  end
-
-  defp dir(i) when is_integer(i), do: :ltr
-  defp dir(_), do: {:error, :codepoint_must_be_integer}
+  import String.Tokenizer, only: [dir: 1]
 
   defp any_rtl?(s), do: Enum.any?(s, &(:rtl == dir(&1)))
 
@@ -206,33 +155,37 @@ defmodule String.Tokenizer.Security do
   end
 
   # make charlist match visual order by reversing spans of {rtl, neutral}
+  # and attaching neutral characters and weak number types according to uax9
+  #
   #  UTS39-28 4: '[...] if the strings are known not to contain explicit
   #   directional formatting characters[...], the algorithm can
   #   be drastically simplified, [...], obviating the need for
   #   the [...] stack of the [unicode bidi algo]'
-  def unbidify([head | tail]), do: unbidify({tail, dir(head), [head], []})
+  def unbidify(chars) when is_list(chars) do
+    {neutrals, direction, last_part, acc} =
+      chars
+      |> Enum.map(&{&1, dir(&1)})
+      |> Enum.reduce({[], :ltr, [], []}, fn
+        # https://www.unicode.org/reports/tr9/#W2
+        {head, :weak_number}, {neutrals, part_dir, part, acc} ->
+          {[], part_dir, [head] ++ neutrals ++ part, acc}
 
-  def unbidify({[head | tail], part_dir, part, acc}) do
-    {dir, part, acc} = unbidify_part({head, dir(head), part, part_dir, acc})
-    unbidify({tail, dir, part, acc})
+        {head, :neutral}, {neutrals, part_dir, part, acc} ->
+          {[head | neutrals], part_dir, part, acc}
+
+        {head, part_dir}, {neutrals, part_dir, part, acc} ->
+          {[], part_dir, [head | neutrals] ++ part, acc}
+
+        {head, :ltr = head_dir}, {neutrals, :rtl, part, acc} ->
+          {[], head_dir, [head | neutrals], maybe_reverse(:rtl, part) ++ acc}
+
+        {head, :rtl = head_dir}, {neutrals, :ltr, part, acc} ->
+          {[], head_dir, [head], maybe_reverse(:ltr, neutrals ++ part) ++ acc}
+      end)
+
+    Enum.reverse(maybe_reverse(direction, neutrals ++ last_part) ++ acc)
   end
 
-  def unbidify({[], dir, part, acc}) do
-    acc = [maybe_reverse_part(dir, part) | acc]
-    acc |> Enum.reverse() |> List.flatten()
-  end
-
-  defp unbidify_part({head, head_dir, part, part_dir, acc})
-       when head_dir == :neutral or head_dir == part_dir do
-    {part_dir, [head | part], acc}
-  end
-
-  defp unbidify_part({head, head_dir, part, part_dir, acc})
-       when head_dir != :neutral and head_dir != part_dir do
-    part = maybe_reverse_part(part_dir, part)
-    {head_dir, [head], [part | acc]}
-  end
-
-  defp maybe_reverse_part(dir, part) when dir in [:ltr, :neutral], do: Enum.reverse(part)
-  defp maybe_reverse_part(:rtl, part), do: part
+  defp maybe_reverse(:rtl, part), do: Enum.reverse(part)
+  defp maybe_reverse(:ltr, part), do: part
 end

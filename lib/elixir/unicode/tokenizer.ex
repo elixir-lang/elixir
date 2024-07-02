@@ -28,15 +28,19 @@ defmodule String.Tokenizer do
     end
   end
 
-  {letter_uptitlecase, start, continue, _} =
+  {letter_uptitlecase, start, continue, dir_rtls, dir_neutrals, _} =
     Path.join(__DIR__, "UnicodeData.txt")
     |> File.read!()
     |> String.split(["\r\n", "\n"], trim: true)
-    |> Enum.reduce({[], [], [], nil}, fn line, acc ->
-      {letter_uptitlecase, start, continue, first} = acc
+    |> Enum.reduce({[], [], [], [], [], nil}, fn line, acc ->
+      {letter_uptitlecase, start, continue, rtls, neutrals, first} = acc
+
+      # https://www.unicode.org/reports/tr44/tr44-32.html#UnicodeData.txt
       [codepoint, line] = :binary.split(line, ";")
       [name, line] = :binary.split(line, ";")
-      [category, _] = :binary.split(line, ";")
+      [category, line] = :binary.split(line, ";")
+      [_canonical_combining, line] = :binary.split(line, ";")
+      [bidi, _] = :binary.split(line, ";")
 
       {codepoints, first} =
         case name do
@@ -52,18 +56,25 @@ defmodule String.Tokenizer do
             {[String.to_integer(codepoint, 16)], nil}
         end
 
+      {rtls, neutrals} =
+        cond do
+          bidi in ~w(R AL)s -> {codepoints ++ rtls, neutrals}
+          bidi in ~w(WS ON CS EN ES ET NSM)s -> {rtls, codepoints ++ neutrals}
+          true -> {rtls, neutrals}
+        end
+
       cond do
         category in ~w(Lu Lt) ->
-          {codepoints ++ letter_uptitlecase, start, continue, first}
+          {codepoints ++ letter_uptitlecase, start, continue, rtls, neutrals, first}
 
         category in ~w(Ll Lm Lo Nl) ->
-          {letter_uptitlecase, codepoints ++ start, continue, first}
+          {letter_uptitlecase, codepoints ++ start, continue, rtls, neutrals, first}
 
         category in ~w(Mn Mc Nd Pc) ->
-          {letter_uptitlecase, start, codepoints ++ continue, first}
+          {letter_uptitlecase, start, codepoints ++ continue, rtls, neutrals, first}
 
         true ->
-          {letter_uptitlecase, start, continue, first}
+          {letter_uptitlecase, start, continue, rtls, neutrals, first}
       end
     end)
 
@@ -327,6 +338,28 @@ defmodule String.Tokenizer do
 
   defp unicode_continue(_), do: @bottom
 
+  # subset of direction-changing/neutral characters valid in idents
+  id_all = id_upper ++ id_start ++ id_continue
+  dir_rtls = for c <- dir_rtls, c in id_all, do: {c, :rtl}
+  dir_neutrals = for c <- dir_neutrals, c not in 48..57, c in id_all, do: {c, :neutral}
+  dir_ranges = rangify.(dir_rtls) ++ rangify.(dir_neutrals)
+
+  # direction of a codepoint. (rtl, neutral, weak, ltr fallback)
+  # weaks are pulled towards previous directional spans,
+  # but the only weaks allowed in idents are numbers 0..9
+  def dir(i) when i in 48..57, do: :weak_number
+
+  for {first, last, direction} <- dir_ranges do
+    if first == last do
+      def dir(unquote(first)), do: unquote(direction)
+    else
+      def dir(i) when i in unquote(first)..unquote(last), do: unquote(direction)
+    end
+  end
+
+  def dir(i) when is_integer(i), do: :ltr
+  def dir(_), do: {:error, :codepoint_must_be_integer}
+
   # Hard-coded normalizations. Also split by upper, start, continue.
 
   for {from, to} <- start_normalizations do
@@ -486,10 +519,8 @@ defmodule String.Tokenizer do
   end
 
   defp chunks_single_or_highly_restrictive?(acc) do
-    # support script mixing via chunked identifiers (UTS 55-5, strong
-    # recco) to be kinder to users of other scripts,
-    # chunked around the _ character; each chunk
-    # in an ident like foo_bar_baz should pass checks
+    # support script mixing via chunked identifiers (UTS 55-5's strong recco)
+    # each chunk in an ident like foo_bar_baz should pass checks
     acc
     |> :string.tokens([?_])
     |> Enum.all?(&single_or_highly_restrictive?/1)
@@ -522,18 +553,6 @@ defmodule String.Tokenizer do
              @bottom <- unicode_upper(head),
              @bottom <- unicode_continue(head),
              do: @top
-    end
-  end
-
-  # security.ex uses, to filter non-ident codepoints
-  def id_codepoint?(p) when is_integer(p) do
-    if p < 127 and (p == ?_ or ascii_continue?(p) or ascii_lower?(p) or ascii_continue?(p)) do
-      true
-    else
-      @bottom !=
-        unicode_start(p)
-        |> ScriptSet.union(unicode_continue(p))
-        |> ScriptSet.union(unicode_upper(p))
     end
   end
 end
