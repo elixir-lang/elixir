@@ -509,6 +509,8 @@ defmodule String.Tokenizer do
     end
   end
 
+  # Support script mixing via chunked identifiers (UTS 55-5's strong recommends).
+  # Each chunk in an ident like foo_bar_baz should pass checks.
   defp chunks_single?(acc),
     do: chunks_single?(acc, @top)
 

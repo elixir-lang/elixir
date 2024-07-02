@@ -17,7 +17,7 @@ The characters allowed in identifiers are the ones specified by Unicode. General
 
 Elixir imposes many restrictions on identifiers for security purposes. For example, the word "josé" can be written in two ways in Unicode: as the combination of the characters `j o s é` and as a combination of the characters `j o s e ́ `, where the accent is its own character. The former is called NFC form and the latter is the NFD form. Elixir normalizes all characters to be the in the NFC form.
 
-Elixir also disallows mixed-scripts in most scenarios. For example, it is not possible to name a variable `аdmin`, where `а` is in Cyrillic and the remaining characters are in Latin. Doing so will raise the following error:
+Elixir also disallows mixed-scripts which are not explicitly separated by `_`. For example, it is not possible to name a variable `аdmin`, where `а` is in Cyrillic and the remaining characters are in Latin. Doing so will raise the following error:
 
 ```text
 ** (SyntaxError) invalid mixed-script identifier found: аdmin
@@ -33,12 +33,6 @@ Mixed-script identifiers are not supported for security reasons. 'аdmin' is mad
 Make sure all characters in the identifier resolve to a single script or a highly
 restrictive script. See https://hexdocs.pm/elixir/unicode-syntax.html for more information.
 ```
-
-The character must either be all in Cyrillic or all in Latin. The only mixed-scripts that Elixir allows, according to the Highly Restrictive Unicode recommendations, are:
-
-  * Latin and Han with Bopomofo
-  * Latin and Japanese
-  * Latin and Korean
 
 Finally, Elixir will also warn on confusable identifiers in the same file. For example, Elixir will emit a warning if you use both variables `а` (Cyrillic) and `а` (Latin) in your code.
 

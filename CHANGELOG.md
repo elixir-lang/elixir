@@ -8,11 +8,22 @@ This release no longer supports WERL (a graphical user interface for the Erlang 
 
 #### Elixir
 
+  * [CLI] Add experimental PowerShell scripts for `elixir`, `elixirc`, and `mix` on Windows. Those provide a safer entry point for running Elixir from other platforms
+  * [Enumerable] Add `Enum.product_by/2` and `Enum.sum_by/2`
+  * [Exception] Add `MissingApplicationsError` exception to denote missing applications
+  * [Kernel] Update source code parsing to match [UTS #55](https://www.unicode.org/reports/tr55/) latest recommendations. In particular, mixed script is allowed in identifiers as long as they are separate by underscores (`_`), such as `http_сервер`. Previously allowed highly restrictive identifiers, which mixed Latin and other scripts, such as the japanese word for t-shirt, `Tシャツ`, now require the underscore as well
+  * [Kernel] Warn on bidirectional confusability in identifiers
   * [Macro] Improve `dbg` handling of `if/2`, `unless/2`, and code blocks
+  * [Process] Handle arbitrarily high integer values in `Process.sleep/1`
+  * [String] Inspect special whitespace and zero-width characters using their Unicode representation
 
 #### ExUnit
 
   * [ExUnit] Support parameterized tests on `ExUnit.Case`
+
+#### IEx
+
+  * [IEx] Add `:dot_iex` support to `IEx.configure/1`
 
 ### 2. Bug fixes
 
