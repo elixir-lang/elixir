@@ -3847,7 +3847,7 @@ defmodule Enum do
 
   @doc """
   Returns the `enumerable` with each element wrapped in a tuple
-  alongside its index.
+  alongside its index or according to a given function.
 
   If an `offset` integer is given, it will index from the given offset instead of from
   zero.
