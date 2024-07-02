@@ -134,8 +134,6 @@ defmodule String.Tokenizer.Security do
     end
   end
 
-  import String.Tokenizer, only: [dir: 1]
-
   defp any_rtl?(s), do: Enum.any?(s, &(:rtl == String.Tokenizer.dir(&1)))
 
   defp dir_compare(a, b) do
