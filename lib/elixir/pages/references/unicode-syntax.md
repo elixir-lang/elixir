@@ -136,13 +136,11 @@ Elixir will not warn on confusability for identifiers made up exclusively of cha
 
 ### C3. Mixed Script Detection
 
-Elixir will not allow tokenization of mixed-script identifiers unless it is via chunks separated by an underscore, like `http_сервер`, or unless the mixing within each of those chunks is one of the exceptions defined in UTS 39 5.2, 'Highly Restrictive'. We use the means described in Section 5.1, Mixed-Script Detection, to determine if script mixing is occurring, with the modification documented in the section 'Additional Normalizations', below.
+Elixir will not allow tokenization of mixed-script identifiers unless it is via chunks separated by an underscore, like `http_сервер`. We use the means described in Section 5.1, Mixed-Script Detection, to determine if script mixing is occurring, with the modification documented in the section 'Additional Normalizations', below.
 
-Examples: Elixir allows an identifiers like `幻ㄒㄧㄤ`, even though it includes characters from multiple 'scripts', because those scripts all 'resolve' to Japanese when applying the resolution rules from UTS 39 5.1. It also allows an atom like `:Tシャツ`, the Japanese word for 't-shirt', which incorporates a Latin capital T, because {Latn, Jpan} is one of the allowed script mixing in the definition of 'Highly Restrictive' in UTS 39 5.2, and it 'covers' the string.
+Examples: Elixir allows an identifiers like `幻ㄒㄧㄤ`, even though it includes characters from multiple 'scripts', because those scripts all 'resolve' to Japanese when applying the resolution rules from UTS 39 5.1. When mixing Latin and Japanese scripts, underscores are necessary, as in `:T_シャツ` (the Japanese word for 't-shirt' with an additional underscore separating the letter T).
 
-Elixir does allow an identifier like `http_сервер`, where the identifier chunks on each side of the `_` are individually single-script.
-
-However, Elixir would prevent tokenization in code like `if аdmin, do: :ok, else: :err`, where the scriptset for the 'a' character is {Cyrillic} but all other characters have scriptsets of {Latin}. The scriptsets fail to resolve, and the scriptsets from the definition of 'Highly Restrictive' in UTS 39 5.2 do not cover the string either, so a descriptive error is shown.
+Elixir does not allow code like `if аdmin, do: :ok, else: :err`, where the scriptset for the 'a' character is {Cyrillic} but all other characters have scriptsets of {Latin}. The scriptsets fail to resolve and a descriptive error is shown.
 
 ### C4, C5 (inapplicable)
 

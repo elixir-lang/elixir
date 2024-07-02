@@ -63,7 +63,7 @@ defmodule Kernel.WarningTest do
 
   test "warnings from macro" do
     assert_warn_eval(
-      ["demo:66\n", "key :dup will be overridden in map\n"],
+      ["demo:60\n", "key :dup will be overridden in map\n"],
       """
       import Kernel.WarningTest
       will_warn()

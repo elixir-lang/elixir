@@ -120,21 +120,21 @@ defmodule Kernel.StringTokenizerTest do
     end
 
     test "allows legitimate script mixing" do
-      # writing systems that legitimately mix multiple scripts, and Common chars like _
+      # Mixed script with supersets, numbers, and underscores
       assert Code.eval_string("幻ㄒㄧㄤ = 1") == {1, [幻ㄒㄧㄤ: 1]}
       assert Code.eval_string("幻ㄒㄧㄤ1 = 1") == {1, [幻ㄒㄧㄤ1: 1]}
       assert Code.eval_string("__सवव_1? = 1") == {1, [__सवव_1?: 1]}
 
-      # works with atoms too
-      assert Code.eval_string(":Tシャツ") == {:Tシャツ, []}
-
-      # elixir's normalizations combine scriptsets of the 'from' and 'to' characters,
+      # Elixir's normalizations combine scriptsets of the 'from' and 'to' characters,
       # ex: {Common} MICRO => {Greek} MU == {Common, Greek}; Common intersects w/all
       assert Code.eval_string("μs = 1") == {1, [μs: 1]}
 
-      # allows mixed scripts if the chunks are all single-script or highly restrictive
+      # Mixed scripts in variables
       assert Code.eval_string("http_сервер = 1") == {1, [http_сервер: 1]}
       assert Code.eval_string("сервер_http = 1") == {1, [сервер_http: 1]}
+
+      # Mixed scripts in atoms
+      assert Code.eval_string(":T_シャツ") == {:T_シャツ, []}
     end
 
     test "bidi" do

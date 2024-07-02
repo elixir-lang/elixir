@@ -264,14 +264,6 @@ defmodule String.Tokenizer do
   @top top
   @indexed_scriptsets sorted_scriptsets |> Enum.with_index(&{&2, &1}) |> Map.new()
 
-  latin = Map.fetch!(scriptset_masks, "Latin")
-
-  @highly_restrictive [
-    ScriptSet.union(latin, Map.fetch!(scriptset_masks, "Japanese")),
-    ScriptSet.union(latin, Map.fetch!(scriptset_masks, "Han with Bopomofo")),
-    ScriptSet.union(latin, Map.fetch!(scriptset_masks, "Korean"))
-  ]
-
   # ScriptSet helpers. Inline instead of dispatching to ScriptSet for performance
 
   @compile {:inline, ss_latin: 1, ss_intersect: 2}
@@ -481,7 +473,7 @@ defmodule String.Tokenizer do
         [:nfkc | List.delete(special, :nfkc)]
       end
 
-    if scriptset != @bottom or chunks_single_or_highly_restrictive?(acc) do
+    if scriptset != @bottom or chunks_single?(acc) do
       {kind, acc, rest, length, false, special}
     else
       breakdown =
@@ -510,35 +502,25 @@ defmodule String.Tokenizer do
       Mixed-script identifiers are not supported for security reasons. \
       '#{acc}' is made of the following scripts:\n
       #{breakdown}
-      All characters in identifier chunks should resolve to a single script, \
-      or a highly restrictive set of scripts.
+      Characters in identifiers from different scripts must be separated \
+      by underscore (_).
       """
 
-      {:error, {:not_highly_restrictive, acc, {prefix, suffix}}}
+      {:error, {:mixed_script, acc, {prefix, suffix}}}
     end
   end
 
-  defp chunks_single_or_highly_restrictive?(acc) do
-    # support script mixing via chunked identifiers (UTS 55-5's strong recco)
-    # each chunk in an ident like foo_bar_baz should pass checks
-    acc
-    |> :string.tokens([?_])
-    |> Enum.all?(&single_or_highly_restrictive?/1)
-  end
+  defp chunks_single?(acc),
+    do: chunks_single?(acc, @top)
 
-  defp single_or_highly_restrictive?(acc) do
-    scriptsets = Enum.map(acc, &codepoint_to_scriptset/1)
-    is_single_script = @bottom != Enum.reduce(scriptsets, @top, &ss_intersect/2)
+  defp chunks_single?([?_ | rest], acc),
+    do: acc != @bottom and chunks_single?(rest, @top)
 
-    # 'A set of scripts is defined to cover a string if the intersection of
-    #  that set with the augmented script sets of all characters in the string
-    #  is nonempty; in other words, if every character in the string shares at
-    #  least one script with the cover set.'
-    is_single_script or
-      Enum.any?(@highly_restrictive, fn restrictive ->
-        Enum.all?(scriptsets, &(ss_intersect(&1, restrictive) != @bottom))
-      end)
-  end
+  defp chunks_single?([head | rest], acc),
+    do: chunks_single?(rest, ss_intersect(codepoint_to_scriptset(head), acc))
+
+  defp chunks_single?([], acc),
+    do: acc != @bottom
 
   defp codepoint_to_scriptset(head) do
     cond do
