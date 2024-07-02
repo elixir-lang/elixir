@@ -171,19 +171,19 @@ defmodule Kernel.WarningTest do
       # there's a spurious ;A; after the identifier, because the semicolon is dir-neutral, and
       # deleting it makes these examples hard to read in many/most editors!
       """
-      foo;0066 006F 006F;0 1 2
+      foo;A;0066 006F 006F;0 1 2
       _foo_ ;A;005F 0066 006F 006F 005F;0 1 2 3 4
       __foo__ ;A;005F 005F 0066 006F 006F 005F 005F;0 1 2 3 4 5 6
       لامدا_foo ;A;0644 0627 0645 062F 0627 005F 0066 006F 006F;4 3 2 1 0 5 6 7 8
       foo_لامدا_baz ;A;0066 006F 006F 005F 0644 0627 0645 062F 0627 005F 0062 0061 007A;0 1 2 3 8 7 6 5 4 9 10 11 12
-      foo_لامدا ;A;0066 006F 006F 005F 0644 0627 0645 062F 0627
+      foo_لامدا ;A;0066 006F 006F 005F 0644 0627 0645 062F 0627;0 1 2 3 8 7 6 5 4
       foo_لامدا1 ;A;0066 006F 006F 005F 0644 0627 0645 062F 0627 0031;0 1 2 3 9 8 7 6 5 4
       foo_لامدا_حدد ;A;0066 006F 006F 005F 0644 0627 0645 062F 0627 005F 062D 062F 062F;0 1 2 3 12 11 10 9 8 7 6 5 4
       foo_لامدا_حدد1 ;A;0066 006F 006F 005F 0644 0627 0645 062F 0627 005F 062D 062F 062F 0031;0 1 2 3 13 12 11 10 9 8 7 6 5 4
       foo_لامدا_حدد1_bar ;A; 0066 006F 006F 005F 0644 0627 0645 062F 0627 005F 062D 062F 062F 0031 005F 0062 0061 0072;0 1 2 3 13 12 11 10 9 8 7 6 5 4 14 15 16 17
       foo_لامدا_حدد1_bar1 ;A;0066 006F 006F 005F 0644 0627 0645 062F 0627 005F 062D 062F 062F 0031 005F 0062 0061 0072 0031;0 1 2 3 13 12 11 10 9 8 7 6 5 4 14 15 16 17 18
       """
-      |> String.split("\n")
+      |> String.split("\n", trim: true)
       |> Enum.map(&String.split(&1, ";", trim: true))
       |> Enum.each(fn
         [ident, _, bytes, indices | _rest] ->
