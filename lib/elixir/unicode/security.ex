@@ -110,7 +110,7 @@ defmodule String.Tokenizer.Security do
     |> :unicode.characters_to_nfd_list()
   end
 
-  # unicode 15 adds bidiSkeleton because, w/RTL codepoints, idents that
+  # Unicode 15 adds bidiSkeleton because, w/RTL codepoints, idents that
   # aren't confusable LTR *are* confusable in most places human review
   # occurs (editors/browsers, thanks to bidi algo, UAX9).
   #
@@ -122,11 +122,11 @@ defmodule String.Tokenizer.Security do
   # chars like _ or 0..9 can mix w/RTL chars).
   def bidi_skeleton(s) do
     # UTS39-28 4:
-    #  'Bidirectional confusability is costlier to check than
-    #   confusability, as [unicode bidi algo] must be applied.
-    #   [...] a fast path can be used: [...] if X has no characters
-    #   w/bidi classes R or AL, bidiSkeleton(X) = skeleton(X)
     #
+    # Bidirectional confusability is costlier to check than
+    # confusability, as [unicode bidi algo] must be applied.
+    # [...] a fast path can be used: [...] if X has no characters
+    # w/bidi classes R or AL, bidiSkeleton(X) = skeleton(X)
     if match?([_, _ | _], s) and any_rtl?(s) do
       unbidify(s) |> Enum.map(&confusable_prototype/1)
     else
@@ -136,7 +136,7 @@ defmodule String.Tokenizer.Security do
 
   import String.Tokenizer, only: [dir: 1]
 
-  defp any_rtl?(s), do: Enum.any?(s, &(:rtl == dir(&1)))
+  defp any_rtl?(s), do: Enum.any?(s, &(:rtl == String.Tokenizer.dir(&1)))
 
   defp dir_compare(a, b) do
     """
@@ -150,7 +150,7 @@ defmodule String.Tokenizer.Security do
 
     for codepoint <- s, into: init do
       hex = :io_lib.format(~c"~4.16.0B", [codepoint])
-      "  \\u#{hex} #{[codepoint]} #{dir(codepoint)}\n"
+      "  \\u#{hex} #{[codepoint]} #{String.Tokenizer.dir(codepoint)}\n"
     end
   end
 
@@ -163,29 +163,29 @@ defmodule String.Tokenizer.Security do
   #   the [...] stack of the [unicode bidi algo]'
   def unbidify(chars) when is_list(chars) do
     {neutrals, direction, last_part, acc} =
-      chars
-      |> Enum.map(&{&1, dir(&1)})
-      |> Enum.reduce({[], :ltr, [], []}, fn
+      Enum.reduce(chars, {[], :ltr, [], []}, fn head, {neutrals, part_dir, part, acc} ->
         # https://www.unicode.org/reports/tr9/#W2
-        {head, :weak_number}, {neutrals, part_dir, part, acc} ->
-          {[], part_dir, [head] ++ neutrals ++ part, acc}
+        case String.Tokenizer.dir(head) do
+          :weak_number ->
+            {[], part_dir, [head] ++ neutrals ++ part, acc}
 
-        {head, :neutral}, {neutrals, part_dir, part, acc} ->
-          {[head | neutrals], part_dir, part, acc}
+          :neutral ->
+            {[head | neutrals], part_dir, part, acc}
 
-        {head, part_dir}, {neutrals, part_dir, part, acc} ->
-          {[], part_dir, [head | neutrals] ++ part, acc}
+          ^part_dir ->
+            {[], part_dir, [head | neutrals] ++ part, acc}
 
-        {head, :ltr = head_dir}, {neutrals, :rtl, part, acc} ->
-          {[], head_dir, [head | neutrals], maybe_reverse(:rtl, part) ++ acc}
+          :ltr when part_dir == :rtl ->
+            {[], :ltr, [head | neutrals], Enum.reverse(part, acc)}
 
-        {head, :rtl = head_dir}, {neutrals, :ltr, part, acc} ->
-          {[], head_dir, [head], maybe_reverse(:ltr, neutrals ++ part) ++ acc}
+          :rtl when part_dir == :ltr ->
+            {[], :rtl, [head], neutrals ++ part ++ acc}
+        end
       end)
 
-    Enum.reverse(maybe_reverse(direction, neutrals ++ last_part) ++ acc)
+    case direction do
+      :ltr -> Enum.reverse(acc, Enum.reverse(neutrals ++ last_part))
+      :rtl -> Enum.reverse(acc, neutrals ++ last_part)
+    end
   end
-
-  defp maybe_reverse(:rtl, part), do: Enum.reverse(part)
-  defp maybe_reverse(:ltr, part), do: part
 end

@@ -350,7 +350,6 @@ defmodule String.Tokenizer do
   end
 
   def dir(i) when is_integer(i), do: :ltr
-  def dir(_), do: {:error, :codepoint_must_be_integer}
 
   # Hard-coded normalizations. Also split by upper, start, continue.
 
