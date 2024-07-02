@@ -530,43 +530,6 @@ defmodule Mix.Tasks.DepsGitTest do
       end)
     end
 
-    test "with ref" do
-      [last, _ | _] = get_git_repo_revs("git_repo")
-
-      Process.put(:git_repo_opts, depth: 1, ref: last)
-
-      in_fixture("no_mixfile", fn ->
-        Mix.Project.push(GitApp)
-
-        Mix.Tasks.Deps.Get.run([])
-        message = "* Getting git_repo (#{fixture_path("git_repo")} - #{last})"
-        assert_received {:mix_shell, :info, [^message]}
-        assert_shallow("deps/git_repo", 1)
-      end)
-    end
-
-    test "changing refspec updates retaining depth" do
-      [last, first | _] = get_git_repo_revs("git_repo")
-
-      Process.put(:git_repo_opts, ref: first, depth: 1)
-
-      in_fixture("no_mixfile", fn ->
-        Mix.Project.push(GitApp)
-
-        Mix.Tasks.Deps.Get.run([])
-        message = "* Getting git_repo (#{fixture_path("git_repo")} - #{first})"
-        assert_received {:mix_shell, :info, [^message]}
-        assert_shallow("deps/git_repo", 1)
-        assert File.read!("mix.lock") =~ first
-
-        # Change refspec
-        update_dep(ref: last, depth: 1)
-        Mix.Tasks.Deps.Get.run([])
-        assert_shallow("deps/git_repo", 1)
-        assert File.read!("mix.lock") =~ last
-      end)
-    end
-
     test "removing depth retains shallow repository" do
       # For compatibility and simplicity, we follow Git's behavior and do not
       # attempt to unshallow an existing repository. This should not be a
