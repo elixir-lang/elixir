@@ -3921,11 +3921,11 @@ defmodule Enum do
   Returns the `enumerable` with each element wrapped in a tuple
   alongside its index or according to a given function.
 
-  If an `offset` integer is given, it will index from the given offset instead of from
-  zero.
+  If an integer offset is given as `fun_or_offset`, it will index from the given
+  offset instead of from zero.
 
-  If an `offset` function is given, it will index by invoking the function for each
-  element and index (zero-based) of the enumerable.
+  If a function is given as `fun_or_offset`, it will index by invoking the function
+  for each element and index (zero-based) of the enumerable.
 
   ## Examples
 
