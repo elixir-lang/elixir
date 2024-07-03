@@ -74,7 +74,7 @@ defmodule Task.Supervisor do
 
   @typedoc "Option values used by `start_link`"
   @type option ::
-          DynamicSupervisor.option()
+          GenServer.option()
           | DynamicSupervisor.init_option()
 
   @typedoc """
