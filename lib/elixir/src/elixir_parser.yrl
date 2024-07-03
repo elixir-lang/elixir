@@ -591,13 +591,13 @@ list -> open_bracket list_args close_bracket : build_list('$1', '$2', '$3').
 % Tuple
 
 tuple -> open_curly '}' : build_tuple('$1', [], '$2').
-tuple -> open_curly kw_data '}' : bad_keyword('$1', tuple).
+tuple -> open_curly kw_data '}' : bad_keyword('$1', tuple, "'{'").
 tuple -> open_curly container_args close_curly :  build_tuple('$1', '$2', '$3').
 
 % Bitstrings
 
 bitstring -> open_bit '>>' : build_bit('$1', [], '$2').
-bitstring -> open_bit kw_data '>>' : bad_keyword('$1', bitstring).
+bitstring -> open_bit kw_data '>>' : bad_keyword('$1', bitstring, "'<<'").
 bitstring -> open_bit container_args close_bit : build_bit('$1', '$2', '$3').
 
 % Map and structs
@@ -1118,11 +1118,11 @@ error_bad_atom(Token) ->
     "If the '.' was meant to be part of the atom's name, "
     "the atom name must be quoted. Syntax error before: ", "'.'").
 
-bad_keyword(Token, Context) ->
+bad_keyword(Token, Context, StartString) ->
   return_error(?location(Token),
     "unexpected keyword list inside " ++ atom_to_list(Context) ++ ". "
     "Did you mean to write a map (using %{...}) or a list (using [...]) instead? "
-    "Syntax error after: ", "'{'").
+    "Syntax error after: ", StartString).
 
 maybe_bad_keyword_call_follow_up(_Token, KW, {'__cursor__', _, []} = Expr) ->
   reverse([Expr | KW]);

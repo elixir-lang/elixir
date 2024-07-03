@@ -9,7 +9,7 @@ defmodule Mix.SCM.Git do
 
   @impl true
   def format(opts) do
-    if rev = get_opts_rev(opts) do
+    if rev = opts[:ref] || opts[:branch] || opts[:tag] do
       "#{redact_uri(opts[:git])} - #{rev}"
     else
       redact_uri(opts[:git])
@@ -22,7 +22,7 @@ defmodule Mix.SCM.Git do
       {:git, _, lock_rev, lock_opts} ->
         lock = String.slice(lock_rev, 0, 7)
 
-        case Enum.find_value([:branch, :ref, :tag], &List.keyfind(lock_opts, &1, 0)) do
+        case Enum.find_value([:ref, :branch, :tag], &List.keyfind(lock_opts, &1, 0)) do
           {:ref, _} -> lock <> " (ref)"
           {key, val} -> lock <> " (#{key}: #{val})"
           nil -> lock
@@ -125,18 +125,18 @@ defmodule Mix.SCM.Git do
     sparse_toggle(opts)
     update_origin(opts[:git])
 
-    rev = get_lock_rev(opts[:lock], opts) || get_opts_rev(opts)
-
     # Fetch external data
+    branch_or_tag = opts[:branch] || opts[:tag]
+
     ["--git-dir=.git", "fetch", "--force", "--quiet"]
     |> Kernel.++(progress_switch(git_version()))
     |> Kernel.++(tags_switch(opts[:tag]))
     |> Kernel.++(depth_switch(opts[:depth]))
-    |> Kernel.++(if rev, do: ["origin", rev], else: [])
+    |> Kernel.++(if branch_or_tag, do: ["origin", branch_or_tag], else: [])
     |> git!()
 
     # Migrate the Git repo
-    rev = rev || default_branch()
+    rev = get_lock_rev(opts[:lock], opts) || opts[:ref] || branch_or_tag || default_branch()
     git!(["--git-dir=.git", "checkout", "--quiet", rev])
 
     if opts[:submodules] do
@@ -250,18 +250,24 @@ defmodule Mix.SCM.Git do
   end
 
   defp validate_depth(opts) do
-    case Keyword.take(opts, [:depth]) do
-      [] ->
+    case Keyword.take(opts, [:depth, :ref]) do
+      [_, _] ->
+        Mix.raise(
+          "Cannot specify :depth and :ref at the same time. " <>
+            "Error on Git dependency: #{redact_uri(opts[:git])}"
+        )
+
+      [depth: depth] when is_integer(depth) and depth > 0 ->
         opts
 
-      [{:depth, depth}] when is_integer(depth) and depth > 0 ->
-        opts
-
-      invalid_depth ->
+      [depth: invalid_depth] ->
         Mix.raise(
           "The depth must be a positive integer, and be specified only once, got: #{inspect(invalid_depth)}. " <>
             "Error on Git dependency: #{redact_uri(opts[:git])}"
         )
+
+      _ ->
+        opts
     end
   end
 
@@ -288,10 +294,6 @@ defmodule Mix.SCM.Git do
     else
       lock_opts
     end
-  end
-
-  defp get_opts_rev(opts) do
-    opts[:branch] || opts[:ref] || opts[:tag]
   end
 
   defp redact_uri(git) do

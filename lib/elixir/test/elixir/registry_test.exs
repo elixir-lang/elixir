@@ -982,14 +982,11 @@ defmodule Registry.Test do
   end
 
   defp sum_pid_entries(registry, partitions) do
-    Enum.map(0..(partitions - 1), &Module.concat(registry, "PIDPartition#{&1}"))
-    |> sum_ets_entries()
-  end
-
-  defp sum_ets_entries(table_names) do
-    table_names
-    |> Enum.map(&ets_entries/1)
-    |> Enum.sum()
+    Enum.sum_by(0..(partitions - 1), fn partition ->
+      registry
+      |> Module.concat("PIDPartition#{partition}")
+      |> ets_entries()
+    end)
   end
 
   defp ets_entries(table_name) do

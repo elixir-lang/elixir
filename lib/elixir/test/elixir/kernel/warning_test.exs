@@ -48,12 +48,6 @@ defmodule Kernel.WarningTest do
     end)
   end
 
-  defp capture_quoted(source) do
-    capture_err(fn ->
-      Code.string_to_quoted!(source, columns: true)
-    end)
-  end
-
   defp capture_compile(source) do
     capture_err(fn ->
       quoted = Code.string_to_quoted!(source, columns: true)
@@ -69,7 +63,7 @@ defmodule Kernel.WarningTest do
 
   test "warnings from macro" do
     assert_warn_eval(
-      ["demo:66\n", "key :dup will be overridden in map\n"],
+      ["demo:60\n", "key :dup will be overridden in map\n"],
       """
       import Kernel.WarningTest
       will_warn()
@@ -93,13 +87,6 @@ defmodule Kernel.WarningTest do
   end
 
   describe "unicode identifier security" do
-    test "prevents Restricted codepoints in identifiers" do
-      exception = assert_raise SyntaxError, fn -> Code.string_to_quoted!("_shibㅤ = 1") end
-
-      assert Exception.message(exception) =~
-               "unexpected token: \"ㅤ\" (column 6, code point U+3164)"
-    end
-
     test "warns on confusables" do
       assert_warn_quoted(
         ["nofile:1:6", "confusable identifier: 'a' looks like 'а' on line 1"],
@@ -139,57 +126,28 @@ defmodule Kernel.WarningTest do
                "confusable identifier: 'a' looks like 'а' on line 1"
     end
 
-    test "prevents unsafe script mixing in identifiers" do
-      exception =
-        assert_raise SyntaxError, fn ->
-          Code.string_to_quoted!("if аdmin_, do: :ok, else: :err")
-        end
+    test "warns on LTR-confusables" do
+      # warning outputs in byte order (vs bidi algo display order, uax9), mentions presence of rtl
+      assert_warn_quoted(
+        ["nofile:1:9", "'_1א' looks like '_א1'", "right-to-left characters"],
+        "_א1 and _1א"
+      )
 
-      assert Exception.message(exception) =~ "nofile:1:9:"
-      assert Exception.message(exception) =~ "invalid mixed-script identifier found: аdmin"
-
-      for s <- [
-            "\\u0430 а {Cyrillic}",
-            "\\u0064 d {Latin}",
-            "\\u006D m {Latin}",
-            "\\u0069 i {Latin}",
-            "\\u006E n {Latin}",
-            "\\u005F _"
-          ] do
-        assert Exception.message(exception) =~ s
-      end
-
-      # includes suggestion about what to change
-      assert Exception.message(exception) =~ """
-             Hint: You could write the above in a similar way that is accepted by Elixir:
-             """
-
-      assert Exception.message(exception) =~ """
-             "admin_" (code points 0x00061 0x00064 0x0006D 0x00069 0x0006E 0x0005F)
-             """
-
-      # a is in cyrillic
-      assert_raise SyntaxError, ~r/mixed/, fn -> Code.string_to_quoted!("[аdmin: 1]") end
-      assert_raise SyntaxError, ~r/mixed/, fn -> Code.string_to_quoted!("[{:аdmin, 1}]") end
-      assert_raise SyntaxError, ~r/mixed/, fn -> Code.string_to_quoted!("quote do: аdmin(1)") end
-      assert_raise SyntaxError, ~r/mixed/, fn -> Code.string_to_quoted!("рос_api = 1") end
-
-      # T is in cyrillic
-      assert_raise SyntaxError, ~r/mixed/, fn -> Code.string_to_quoted!("[Тシャツ: 1]") end
-    end
-
-    test "allows legitimate script mixing" do
-      # writing systems that legitimately mix multiple scripts, and Common chars like _
-      assert capture_eval("幻ㄒㄧㄤ = 1") == ""
-      assert capture_eval("幻ㄒㄧㄤ1 = 1") == ""
-      assert capture_eval("__सवव_1? = 1") == ""
-
-      # uts39 5.2 allowed 'highly restrictive' script mixing, like 't-shirt' in Jpan:
-      assert capture_quoted(":Tシャツ") == ""
-
-      # elixir's normalizations combine scriptsets of the 'from' and 'to' characters,
-      # ex: {Common} MICRO => {Greek} MU == {Common, Greek}; Common intersects w/all
-      assert capture_quoted("μs") == ""
+      assert_warn_quoted(
+        [
+          "'a_1א' includes right-to-left characters",
+          "\\u0061 a ltr",
+          "\\u005F _ neutral",
+          "\\u0031 1 weak_number",
+          "\\u05D0 א rtl",
+          "'a_א1' includes right-to-left characters:",
+          "\\u0061 a ltr",
+          "\\u005F _ neutral",
+          "\\u05D0 א rtl",
+          "\\u0031 1 weak_number"
+        ],
+        "a_א1 or a_1א"
+      )
     end
   end
 

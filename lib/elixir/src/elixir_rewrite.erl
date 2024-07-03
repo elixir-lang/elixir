@@ -8,6 +8,7 @@
 -define(atom, 'Elixir.Atom').
 -define(bitwise, 'Elixir.Bitwise').
 -define(enum, 'Elixir.Enum').
+-define(float, 'Elixir.Float').
 -define(function, 'Elixir.Function').
 -define(integer, 'Elixir.Integer').
 -define(io, 'Elixir.IO').
@@ -145,6 +146,7 @@ inline(Mod, Fun, Arity) -> inner_inline(ex_to_erl, Mod, Fun, Arity).
 ?inline(?list, to_integer, 2, erlang, list_to_integer);
 ?inline(?list, to_tuple, 1, erlang, list_to_tuple);
 
+?inline(?map, from_keys, 2, maps, from_keys);
 ?inline(?map, intersect, 2, maps, intersect);
 ?inline(?map, keys, 1, maps, keys);
 ?inline(?map, merge, 2, maps, merge);
@@ -239,6 +241,8 @@ rewrite(Receiver, DotMeta, Right, Meta, Args) ->
   {EReceiver, ERight, EArgs} = inner_rewrite(ex_to_erl, DotMeta, Receiver, Right, Args),
   {{'.', DotMeta, [EReceiver, ERight]}, Meta, EArgs}.
 
+?rewrite(?float, to_charlist, [Arg], erlang, float_to_list, [Arg, [short]]);
+?rewrite(?float, to_string, [Arg], erlang, float_to_binary, [Arg, [short]]);
 ?rewrite(?kernel, is_map_key, [Map, Key], erlang, is_map_key, [Key, Map]);
 ?rewrite(?map, delete, [Map, Key], maps, remove, [Key, Map]);
 ?rewrite(?map, fetch, [Map, Key], maps, find, [Key, Map]);

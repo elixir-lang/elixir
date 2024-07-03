@@ -1539,7 +1539,7 @@ defmodule Kernel.SpecialForms do
   @doc """
   Combine matching clauses.
 
-  One of the ways to understand with is to show which code
+  One of the ways to understand `with` is to show which code
   patterns it improves. Imagine you have a map where the fields
   `width` and `height` are optional and you want to compute its
   area, as `{:ok, area}` or return `:error`. We could implement
@@ -1661,7 +1661,7 @@ defmodule Kernel.SpecialForms do
       ...> end
       {:error, :wrong_data}
 
-  The `else` block works like a `case` clause: it can have multiple clauses,
+  The `else` block works like a `case`: it can have multiple clauses,
   and the first match will be used. Variables bound inside `with` (such as
   `width` in this example) are not available in the `else` block.
 
@@ -1785,6 +1785,15 @@ defmodule Kernel.SpecialForms do
   module name:
 
       &local_function/1
+
+  Note that `&local_function/1` creates a local capture, but
+  `&__MODULE__.local_function/1` or `&imported_function/1` create a remote
+  capture. For more information, refer to the ["Functions" section in the Erlang Reference Manual](https://www.erlang.org/doc/system/eff_guide_functions.html#function-calls).
+
+  Whether a capture is local or remote has implications when using hot code
+  reloading: local captures dispatch to the version of the module that existed
+  at the time they were created, while remote captures dispatch to the current
+  version of the module.
 
   See also `Function.capture/3`.
 

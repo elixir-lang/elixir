@@ -693,8 +693,7 @@ defmodule URI do
 
   > #### `:authority` field {: .info}
   >
-  > This function sets the field `:authority` for backwards-compatibility reasons
-  > but it is deprecated.
+  > This function sets the deprecated field `:authority` for backwards-compatibility reasons.
 
   ## Examples
 

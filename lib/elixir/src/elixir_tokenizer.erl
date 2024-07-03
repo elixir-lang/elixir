@@ -1240,7 +1240,7 @@ tokenize_identifier(String, Line, Column, Scope, MaybeKeyword) ->
           Error
       end;
 
-    {error, {not_highly_restrictive, Wrong, {Prefix, Suffix}}} ->
+    {error, {mixed_script, Wrong, {Prefix, Suffix}}} ->
       WrongColumn = Column + length(Wrong) - 1,
       case suggest_simpler_unexpected_token_in_error(Wrong, Line, WrongColumn, Scope) of
         no_suggestion ->

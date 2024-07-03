@@ -215,10 +215,7 @@ defmodule DynamicSupervisor do
           extra_arguments: [term()]
         }
 
-  @typedoc "Options given to `start_link` functions"
-  @type option :: GenServer.option()
-
-  @typedoc "Options given to `start_link` and `init/1` functions"
+  @typedoc "Options given to `start_link/1` and `init/1` functions"
   @type init_option ::
           {:strategy, strategy()}
           | {:max_restarts, non_neg_integer()}
@@ -345,9 +342,11 @@ defmodule DynamicSupervisor do
       specified in the child spec given to `start_child/2`. Defaults to
       an empty list.
 
+    * Any of the standard [GenServer options](`t:GenServer.option/0`)
+
   """
   @doc since: "1.6.0"
-  @spec start_link([option | init_option]) :: Supervisor.on_start()
+  @spec start_link([init_option | GenServer.option()]) :: Supervisor.on_start()
   def start_link(options) when is_list(options) do
     keys = [:extra_arguments, :max_children, :max_seconds, :max_restarts, :strategy]
     {sup_opts, start_opts} = Keyword.split(options, keys)
@@ -381,9 +380,15 @@ defmodule DynamicSupervisor do
   Note that a supervisor started with this function is linked to the parent
   process and exits not only on crashes but also if the parent process exits
   with `:normal` reason.
+
+  ## Options
+
+  This function accepts any regular [`GenServer` options](`t:GenServer.option/0`).
+  Options specific to `DynamicSupervisor` must be returned from the `c:init/1`
+  callback.
   """
   @doc since: "1.6.0"
-  @spec start_link(module, term, [option]) :: Supervisor.on_start()
+  @spec start_link(module, term, [GenServer.option()]) :: Supervisor.on_start()
   def start_link(module, init_arg, opts \\ []) do
     GenServer.start_link(__MODULE__, {module, init_arg, opts[:name]}, opts)
   end

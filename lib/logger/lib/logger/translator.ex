@@ -298,7 +298,7 @@ defmodule Logger.Translator do
       client_info: client,
       name: name,
       reason: {kind, reason, stack},
-      state: {state, data},
+      state: state,
       queue: queue,
       postponed: postponed,
       callback_mode: callback_mode,
@@ -328,8 +328,6 @@ defmodule Logger.Translator do
         msg,
         "\nState: ",
         inspect(state, inspect_opts),
-        "\nData: ",
-        inspect(data, inspect_opts),
         "\nCallback mode: ",
         "#{inspect(callback_mode, inspect_opts)}, state_enter: #{state_enter?}"
         | format_client_info(client)

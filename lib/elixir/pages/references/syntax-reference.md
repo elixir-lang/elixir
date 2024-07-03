@@ -76,7 +76,7 @@ Data structures such as lists, tuples, and binaries are marked respectively by t
 
 Maps use the `%{...}` notation and each key-value is given by pairs marked with `=>`, such as `%{"hello" => 1, 2 => "world"}`.
 
-Both keyword lists (list of two-element tuples where the first element is atom) and maps with atom keys support a keyword notation where the colon character `:` is moved to the end of the atom. `%{hello: "world"}` is equivalent to `%{:hello => "world"}` and `[foo: :bar]` is equivalent to `[{:foo, :bar}]`. This notation is a syntax sugar that emits the same AST representation. It will be explained in later sections.
+Both keyword lists (list of two-element tuples where the first element is an atom) and maps with atom keys support a keyword notation where the colon character `:` is moved to the end of the atom. `%{hello: "world"}` is equivalent to `%{:hello => "world"}` and `[foo: :bar]` is equivalent to `[{:foo, :bar}]`. We discuss keywords in later sections.
 
 ### Structs
 
@@ -460,15 +460,19 @@ However, Elixir introduces a syntax sugar where the keywords above may be writte
 [foo: 1, bar: 2]
 ```
 
-Atoms with foreign characters, such as whitespace, must be wrapped in quotes. This rule applies to keywords as well:
+In order to be valid keyword syntax, `:` cannot be preceded by any whitespace (`foo : 1` is invalid) and has to be followed by whitespace (`foo:1` is invalid). Atoms with foreign characters, such as whitespace, must be wrapped in quotes. This rule applies to keywords as well:
 
 ```elixir
-[{:"foo bar", 1}, {:"bar baz", 2}] == ["foo bar": 1, "bar baz": 2]
+["foo bar": 1, "bar baz": 2] == [{:"foo bar", 1}, {:"bar baz", 2}]
 ```
 
-Remember that, because lists and two-element tuples are quoted literals, by definition keywords are also literals (in fact, the only reason tuples with two elements are quoted literals is to support keywords as literals).
+You can also mix regular list elements with keywords, but keywords must come last:
 
-In order to be valid keyword syntax, `:` cannot be preceded by any whitespace (`foo : 1` is invalid) and has to be followed by whitespace (`foo:1` is invalid).
+```elixir
+[:foo, :bar, baz: :bat] == [:foo, :bar, {:baz, :bat}]
+```
+
+Finally, because lists and two-element tuples are quoted literals, by definition keywords are also literals.
 
 ### Keywords as last arguments
 
@@ -488,6 +492,13 @@ which, as per the previous section, is the same as
 
 ```elixir
 if(condition, [{:do, this}, {:else, that}])
+```
+
+This same notation is available inside containers (such as `{...}`, `%{...}`, etc) as well:
+
+```elixir
+{:foo, :bar, baz: :bat} == {:foo, :bar, [{:baz, :bat}]}
+%{:foo => :bar, baz: :bat} == %{:foo => :bar, :baz => :bat}
 ```
 
 ### `do`-`end` blocks

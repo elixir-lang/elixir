@@ -128,6 +128,8 @@ defmodule Map do
   @doc """
   Builds a map from the given `keys` and the fixed `value`.
 
+  Inlined by the compiler.
+
   ## Examples
 
       iex> Map.from_keys([1, 2, 3], :number)
@@ -136,9 +138,7 @@ defmodule Map do
   """
   @doc since: "1.14.0"
   @spec from_keys([key], value) :: map
-  def from_keys(keys, value) do
-    :maps.from_keys(keys, value)
-  end
+  defdelegate from_keys(keys, value), to: :maps
 
   @doc """
   Returns all keys from `map`.
