@@ -393,7 +393,7 @@ end
 
 ## Additional representations
 
-All of the constructs above are part of Elixir's syntax and have their own representation as part of the Elixir AST. This section will discuss the remaining constructs that are ultimately representated as one of the constructs above.
+All of the constructs above are part of Elixir's syntax and have their own representation as part of the Elixir AST. This section will discuss the remaining constructs that are ultimately represented as one of the constructs above.
 
 ### Integers in other bases and Unicode code points
 
