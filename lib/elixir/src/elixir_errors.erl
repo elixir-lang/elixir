@@ -90,6 +90,18 @@ emit_diagnostic(Severity, Position, File, Message, Stacktrace, Options) ->
     _ -> nil
   end,
 
+  case Severity of
+    warning ->
+      case persistent_term:get({?MODULE, warning_emitted}, false) of
+        true ->
+          ok;
+        false ->
+          persistent_term:put({?MODULE, warning_emitted}, true)
+      end;
+    _ ->
+      ok
+  end,
+
   Diagnostic = #{
     severity => Severity,
     source => File,

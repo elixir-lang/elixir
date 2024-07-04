@@ -76,6 +76,18 @@ defmodule Mix.Compilers.Test do
         rand_algorithm = Application.fetch_env!(:ex_unit, :rand_algorithm)
         test_files = shuffle(seed, rand_algorithm, test_files)
 
+        if warnings_as_errors? do
+          System.at_exit(fn status ->
+            if status == 0 and IO.warning_emitted?() do
+              message =
+                "\nERROR! Test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
+
+              IO.puts(:stderr, IO.ANSI.format([:red, message]))
+              exit({:shutdown, 1})
+            end
+          end)
+        end
+
         try do
           parallel_require_options = shared_require_options ++ parallel_require_callbacks
 
@@ -88,15 +100,7 @@ defmodule Mix.Compilers.Test do
 
           %{failures: failures} = results = ExUnit.await_run(task)
 
-          if failures == 0 do
-            if failed? do
-              message =
-                "\nERROR! Test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
-
-              IO.puts(:stderr, IO.ANSI.format([:red, message]))
-              exit({:shutdown, 1})
-            end
-
+          if failures == 0 and not failed? do
             agent_write_manifest(stale_manifest_pid)
           end
 

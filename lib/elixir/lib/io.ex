@@ -392,6 +392,12 @@ defmodule IO do
     end
   end
 
+  @doc "TODO"
+  @doc since: "1.18.0"
+  def warning_emitted? do
+    :persistent_term.get({:elixir_errors, :warning_emitted}, false)
+  end
+
   @doc """
   Writes a `message` to stderr, along with the current stacktrace.
 
