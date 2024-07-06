@@ -70,6 +70,20 @@ Finally, a new `Kernel.to_timeout/1` function has been added, which helps develo
 Process.send_after(pid, :wake_up, to_timeout(hour: 1))
 ```
 
+## v1.17.2 (2024-07-06)
+
+### 1. Bug fixes
+
+#### Logger
+
+  * [Logger.Translator] Fix logger crash when `:gen_statem`'s `format_status/2` returns non-tuple
+
+#### Mix
+
+  * [mix deps.get] Fix regression when fetching a git repository with a `:ref`
+  * [mix release] Validate `RELEASE_MODE` and set ERRORLEVEL on `.bat` scripts
+  * [mix release] Fix invalid example in code comment inside the generated vm.args.eex
+
 ## v1.17.1 (2024-06-18)
 
 ### 1. Enhancements
