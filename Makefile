@@ -85,8 +85,7 @@ $(PARSER): lib/elixir/src/elixir_parser.yrl
 # then Mix, and then compile EEx fully
 elixir: stdlib lib/eex/ebin/Elixir.EEx.beam mix ex_unit logger eex iex
 
-stdlib: $(KERNEL) VERSION
-$(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex lib/elixir/lib/*/*/*.ex
+stdlib: lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex lib/elixir/lib/*/*/*.ex VERSION
 	$(Q) if [ ! -f $(KERNEL) ]; then \
 		echo "==> bootstrap (compile)"; \
 		$(ERL) -s elixir_compiler bootstrap -s erlang halt; \
