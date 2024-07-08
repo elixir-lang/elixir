@@ -31,30 +31,39 @@ defmodule Code.Formatter do
   @right_new_line_before_binary_operators [:|, :when]
 
   # Operators that are logical cannot be mixed without parens
-  @required_parens_logical_binary_operands [:||, :|||, :or, :&&, :&&&, :and]
+  @required_parens_logical_binary_operands [:||, :or, :&&, :and]
 
   # Operators with next break fits
   @next_break_fits_operators [:<-, :==, :!=, :=~, :===, :!==, :<, :>, :<=, :>=, :=, :"::"]
 
-  # Operators that always require parens on operands when they are the parent
+  # Operators that always require parens even
+  # when they are their own parents as they are not semantically associative
+  @required_parens_even_when_parent [:--, :---]
+
+  # Operators that always require parens on operands
+  # when they are the parent of another operator with a difference precedence
+  # Most operators are listed, except comparison, arithmetic, and low precedence
   @required_parens_on_binary_operands [
-    :|>,
+    :|||,
+    :&&&,
     :<<<,
     :>>>,
+    :|>,
     :<~,
     :~>,
     :<<~,
     :~>>,
     :<~>,
     :"<|>",
-    :"^^^",
-    :+++,
-    :---,
     :in,
+    :"^^^",
+    :"//",
     :++,
     :--,
-    :..,
-    :<>
+    :+++,
+    :---,
+    :<>,
+    :..
   ]
 
   @locals_without_parens [
@@ -785,14 +794,13 @@ defmodule Code.Formatter do
       op_string = Atom.to_string(op)
 
       cond do
-        # If the operator has the same precedence as the parent and is on
-        # the correct side, we respect the nesting rule to avoid multiple
-        # nestings. This only applies for left associativity or same operator.
-        parent_prec == prec and parent_assoc == side and (side == :left or op == parent_op) ->
+        # If we have the same operator and it is in the correct side,
+        # we don't add parens unless it is explicitly required.
+        parent_assoc == side and op == parent_op and op not in @required_parens_even_when_parent ->
           binary_op_to_algebra(op, op_string, meta, left, right, context, state, nesting)
 
-        # If the parent requires parens or the precedence is inverted or
-        # it is in the wrong side, then we *need* parenthesis.
+        # If the operator requires parens (most of them do) or we are mixing logical operators
+        # or the precedence is inverted or it is in the wrong side, then we *need* parenthesis.
         (parent_op in @required_parens_on_binary_operands and op not in @no_space_binary_operators) or
           (op in @required_parens_logical_binary_operands and
              parent_op in @required_parens_logical_binary_operands) or parent_prec > prec or

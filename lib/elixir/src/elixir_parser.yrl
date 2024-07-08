@@ -71,7 +71,7 @@ Left     120 or_op_eol.       %% ||, |||, or
 Left     130 and_op_eol.      %% &&, &&&, and
 Left     140 comp_op_eol.     %% ==, !=, =~, ===, !==
 Left     150 rel_op_eol.      %% <, >, <=, >=
-Left     160 arrow_op_eol.    %% |>, <<<, >>>, <<~, ~>>, <~, ~>, <~>, <|>
+Left     160 arrow_op_eol.    %% <<<, >>>, |>, <<~, ~>>, <~, ~>, <~>, <|>
 Left     170 in_op_eol.       %% in, not in
 Left     180 xor_op_eol.      %% ^^^
 Right    190 ternary_op_eol.  %% //
