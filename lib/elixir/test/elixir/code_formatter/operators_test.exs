@@ -170,7 +170,7 @@ defmodule Code.Formatter.OperatorsTest do
     end
 
     test "bitwise precedence" do
-      assert_format "(crc >>> 8) ||| byte", "crc >>> 8 ||| byte"
+      assert_same "(crc >>> 8) ||| byte"
       assert_same "crc >>> (8 ||| byte)"
     end
   end
@@ -423,6 +423,9 @@ defmodule Code.Formatter.OperatorsTest do
 
     test "with multiple of the same entry and right associative" do
       assert_same "foo ++ bar ++ baz"
+      assert_format "foo -- bar -- baz", "foo -- (bar -- baz)"
+      assert_same "foo +++ bar +++ baz"
+      assert_format "foo --- bar --- baz", "foo --- (bar --- baz)"
 
       bad = "a ++ b ++ c"
 
