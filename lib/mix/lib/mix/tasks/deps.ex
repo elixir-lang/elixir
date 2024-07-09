@@ -135,7 +135,7 @@ defmodule Mix.Tasks.Deps do
       $ git config --global url."https://YOUR_USER:YOUR_PASS@example.com/".insteadOf "https://example.com/"
 
   For more information, see the `git config` documentation:
-  https://git-scm.com/docs/git-config#git-config-urlltbasegtinsteadOf
+  https://git-scm.com/docs/git-config#Documentation/git-config.txt-urlltbasegtinsteadOf
 
   ### Path options (`:path`)
 
