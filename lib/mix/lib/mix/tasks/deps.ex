@@ -125,8 +125,8 @@ defmodule Mix.Tasks.Deps do
     * `:depth` *(since v1.17.0)* - creates a shallow clone of the Git repository,
       limiting the history to the specified number of commits. This can significantly
       improve clone speed for large repositories when full history is not needed.
-      The value must be a positive integer, typically `1`. Cannot be used with the
-      `:ref` option.
+      The value must be a positive integer, typically `1`. When using `:depth` with
+      `:ref`, a fully spelled hex object name (a 40-character SHA-1 hash) is required.
 
   If your Git repository requires authentication, such as basic username:password
   HTTP authentication via URLs, it can be achieved via Git configuration, keeping
