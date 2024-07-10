@@ -5765,8 +5765,11 @@ defmodule Kernel do
                 "only a single when clause is allowed"
 
       {call, impls} ->
-        case Macro.decompose_call(call) do
-          {_name, args} ->
+        case decompose_args(call) do
+          :error ->
+            raise ArgumentError, "invalid syntax in defguard #{Macro.to_string(call)}"
+
+          args ->
             validate_variable_only_args!(call, args)
 
             macro_definition =
@@ -5788,12 +5791,19 @@ defmodule Kernel do
               Elixir.Kernel.@(doc(guard: true))
               unquote(macro_definition)
             end
-
-          _invalid_definition ->
-            raise ArgumentError, "invalid syntax in defguard #{Macro.to_string(call)}"
         end
     end
   end
+
+  defp decompose_args({name, _, args}) when is_atom(name) and is_atom(args), do: []
+
+  defp decompose_args({name, _, args}) when is_atom(name) and is_list(args), do: args
+
+  defp decompose_args({{:unquote, _, _}, _, args}) when is_atom(args), do: []
+
+  defp decompose_args({{:unquote, _, _}, _, args}) when is_list(args), do: args
+
+  defp decompose_args(_), do: :error
 
   defp validate_variable_only_args!(call, args) do
     Enum.each(args, fn
