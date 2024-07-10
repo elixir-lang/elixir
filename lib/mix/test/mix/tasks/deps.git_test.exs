@@ -79,6 +79,21 @@ defmodule Mix.Tasks.DepsGitTest do
     end)
   end
 
+  test "gets with short ref" do
+    [<<short_sha1::binary-size(8), _::binary>>, _ | _] = get_git_repo_revs("git_repo")
+    Process.put(:git_repo_opts, ref: short_sha1)
+
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(GitApp)
+
+      Mix.Tasks.Deps.Get.run([])
+      message = "* Getting git_repo (#{fixture_path("git_repo")} - #{short_sha1})"
+      assert_received {:mix_shell, :info, [^message]}
+
+      refute_received {:mix_shell, :error, _}
+    end)
+  end
+
   @tag :git_sparse
   test "gets and updates Git repos with sparse checkout" do
     Process.put(:git_repo_opts, sparse: "sparse_dir")
@@ -478,22 +493,6 @@ defmodule Mix.Tasks.DepsGitTest do
     purge([GitRepo, GitRepo.MixProject])
   end
 
-  test "fetches with short ref" do
-    [<<short_sha1::binary-size(8), _::binary>>, _ | _] = get_git_repo_revs("git_repo")
-
-    Process.put(:git_repo_opts, ref: short_sha1)
-
-    in_fixture("no_mixfile", fn ->
-      Mix.Project.push(GitApp)
-
-      Mix.Tasks.Deps.Get.run([])
-      message = "* Getting git_repo (#{fixture_path("git_repo")} - #{short_sha1})"
-      assert_received {:mix_shell, :info, [^message]}
-
-      refute_received {:mix_shell, :error, _}
-    end)
-  end
-
   describe "Git depth option" do
     @describetag :git_depth
 
@@ -570,16 +569,13 @@ defmodule Mix.Tasks.DepsGitTest do
       #
       # https://git-scm.com/docs/git-fetch#Documentation/git-fetch.txt-ltrefspecgt
       # https://stackoverflow.com/a/43136160
-
       [<<short_sha1::binary-size(8), _::binary>>, _ | _] = get_git_repo_revs("git_repo")
 
       Process.put(:git_repo_opts, depth: 1, ref: short_sha1)
 
       in_fixture("no_mixfile", fn ->
         Mix.Project.push(GitApp)
-
         exception = assert_raise Mix.Error, fn -> Mix.Tasks.Deps.Get.run([]) end
-
         assert Exception.message(exception) =~ "a full commit hash is required"
       end)
     end
