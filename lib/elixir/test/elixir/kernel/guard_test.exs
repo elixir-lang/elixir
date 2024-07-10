@@ -60,6 +60,18 @@ defmodule Kernel.GuardTest do
       refute MacrosInGuards.is_foobar(:baz)
     end
 
+    defmodule UnquotedInGuardCall do
+      @value :foo
+
+      defguard unquote(String.to_atom("is_#{@value}"))(x) when x == unquote(@value)
+    end
+
+    test "guards names can be defined dynamically using unquote" do
+      require UnquotedInGuardCall
+      assert UnquotedInGuardCall.is_foo(:foo)
+      refute UnquotedInGuardCall.is_foo(:bar)
+    end
+
     defmodule GuardsInGuards do
       defguard is_foo(atom) when atom == :foo
       defguard is_foobar(atom) when is_foo(atom) or atom == :bar
