@@ -131,9 +131,11 @@ defmodule IO do
   The `device` is iterated as specified by the `line_or_chars` argument:
 
     * if `line_or_chars` is an integer, it represents a number of bytes. The device is
-      iterated by that number of bytes.
+      iterated by that number of bytes. This should be the preferred mode for reading
+      non-textual inputs.
 
     * if `line_or_chars` is `:line`, the device is iterated line by line.
+      CRFL newlines  ("\r\n") are automatically normalized to "\n".
 
     * if `line_or_chars` is `:eof` (since v1.13), the device is iterated until `:eof`.
       If the device is already at the end, it returns `:eof` itself.
@@ -184,9 +186,11 @@ defmodule IO do
   The `device` is iterated as specified by the `line_or_chars` argument:
 
     * if `line_or_chars` is an integer, it represents a number of bytes. The device is
-      iterated by that number of bytes.
+      iterated by that number of bytes. This should be the preferred mode for reading
+      non-textual inputs.
 
     * if `line_or_chars` is `:line`, the device is iterated line by line.
+      CRFL newlines  ("\r\n") are automatically normalized to "\n".
 
     * if `line_or_chars` is `:eof` (since v1.13), the device is iterated until `:eof`.
       If the device is already at the end, it returns `:eof` itself.
@@ -596,8 +600,9 @@ defmodule IO do
   `Collectable`, allowing it to be used for both read
   and write.
 
-  The `device` is iterated by the given number of characters or line by line if
-  `:line` is given.
+  The `device` is iterated by the given number of characters
+  or line by line if `:line` is given. In case `:line` is given,
+  "\r\n" is automatically normalized to "\n".
 
   This reads from the IO as UTF-8. Check out
   `IO.binstream/2` to handle the IO as a raw binary.
@@ -650,14 +655,17 @@ defmodule IO do
   `Collectable`, allowing it to be used for both read
   and write.
 
-  The `device` is iterated by the given number of bytes or line by line if
-  `:line` is given. This reads from the IO device as a raw binary.
+  The `device` is iterated by the given number of bytes or line
+  by line if `:line` is given. In case `:line` is given, "\r\n"
+  is automatically normalized to "\n". Passing the number of bytes
+  should be the preferred mode for reading non-textual inputs.
 
   Note that an IO stream has side effects and every time
   you go over the stream you may get different results.
 
-  Finally, do not use this function on IO devices in Unicode
-  mode as it will return the wrong result.
+  This reads from the IO device as a raw binary. Therefore,
+  do not use this function on IO devices in Unicode mode as
+  it will return the wrong result.
 
   `binstream/0` has been introduced in Elixir v1.12.0,
   while `binstream/2` has been available since v1.0.0.
