@@ -15,6 +15,7 @@ defmodule Calendar.ISOTest do
       assert {9999, 1, 1} == iso_day_roundtrip(9999, 1, 1)
       assert {9996, 12, 31} == iso_day_roundtrip(9996, 12, 31)
       assert {9996, 1, 1} == iso_day_roundtrip(9996, 1, 1)
+      assert {55_555, 5, 5} == iso_day_roundtrip(55_555, 5, 5)
     end
 
     test "with negative dates" do
@@ -32,6 +33,8 @@ defmodule Calendar.ISOTest do
 
       assert {-9996, 12, 31} == iso_day_roundtrip(-9996, 12, 31)
       assert {-9996, 1, 1} == iso_day_roundtrip(-9996, 1, 1)
+
+      assert {-55_555, 5, 5} == iso_day_roundtrip(-55_555, 5, 5)
     end
   end
 
@@ -125,6 +128,16 @@ defmodule Calendar.ISOTest do
     test "supports both only extended format by default" do
       assert Calendar.ISO.parse_date("20150123") == {:error, :invalid_format}
       assert Calendar.ISO.parse_date("2015-01-23") == {:ok, {2015, 1, 23}}
+    end
+
+    test "parses big years" do
+      assert Calendar.ISO.parse_date("+201500-01-23") == {:ok, {201_500, 1, 23}}
+      assert Calendar.ISO.parse_date("201500-01-23") == {:ok, {201_500, 1, 23}}
+      assert Calendar.ISO.parse_date("-201500-01-23") == {:ok, {-201_500, 1, 23}}
+    end
+
+    test "fails with bad data" do
+      assert Calendar.ISO.parse_date("+201500-01-23 ") == {:error, :invalid_format}
     end
   end
 
@@ -238,6 +251,9 @@ defmodule Calendar.ISOTest do
       assert Calendar.ISO.parse_naive_datetime("2015:01:23 23-50-07") == {:error, :invalid_format}
       assert Calendar.ISO.parse_naive_datetime("2015-01-23P23:50:07") == {:error, :invalid_format}
 
+      assert Calendar.ISO.parse_naive_datetime("303030-01-12X23:11:40") ==
+               {:error, :invalid_format}
+
       assert Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07A") ==
                {:error, :invalid_format}
     end
@@ -290,6 +306,17 @@ defmodule Calendar.ISOTest do
       assert Calendar.ISO.parse_naive_datetime("2015-01-23 235007.123") ==
                {:error, :invalid_format}
     end
+
+    test "supports big years" do
+      assert Calendar.ISO.parse_naive_datetime("123456-12-01 13:27:34") ==
+               {:ok, {123_456, 12, 1, 13, 27, 34, {0, 0}}}
+
+      assert Calendar.ISO.parse_naive_datetime("+123456-12-01 13:27:34") ==
+               {:ok, {123_456, 12, 1, 13, 27, 34, {0, 0}}}
+
+      assert Calendar.ISO.parse_naive_datetime("-123456-12-01 13:27:34") ==
+               {:ok, {-123_456, 12, 1, 13, 27, 34, {0, 0}}}
+    end
   end
 
   describe "parse_naive_datetime/2" do
@@ -298,6 +325,9 @@ defmodule Calendar.ISOTest do
                {:ok, {2015, 1, 23, 23, 50, 7, {123_000, 3}}}
 
       assert Calendar.ISO.parse_naive_datetime("2015-01-23 23:50:07.123", :basic) ==
+               {:error, :invalid_format}
+
+      assert Calendar.ISO.parse_naive_datetime("55555-01-23 23:50:07.123", :basic) ==
                {:error, :invalid_format}
     end
 
@@ -343,6 +373,9 @@ defmodule Calendar.ISOTest do
 
       assert Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07.123-02:30") ==
                {:ok, {2015, 1, 24, 2, 20, 7, {123_000, 3}}, -9000}
+
+      assert Calendar.ISO.parse_utc_datetime("200015-01-23T23:50:07.123-02:30") ==
+               {:ok, {200_015, 1, 24, 2, 20, 7, {123_000, 3}}, -9000}
 
       assert Calendar.ISO.parse_utc_datetime("2015-01-23T23:50:07.123-00:00") ==
                {:error, :invalid_format}

@@ -10,6 +10,10 @@ defmodule DateTest do
     assert ~D[2000-01-01] ==
              %Date{calendar: Calendar.ISO, year: 2000, month: 1, day: 1}
 
+    assert ~D[99999-01-01] == %Date{calendar: Calendar.ISO, year: 99_999, month: 1, day: 1}
+    assert ~D[+99999-01-01] == %Date{calendar: Calendar.ISO, year: 99_999, month: 1, day: 1}
+    assert ~D[-99999-01-01] == %Date{calendar: Calendar.ISO, year: -99_999, month: 1, day: 1}
+
     assert ~D[20001-01-01 Calendar.Holocene] ==
              %Date{calendar: Calendar.Holocene, year: 20001, month: 1, day: 1}
 

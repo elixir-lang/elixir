@@ -52,6 +52,54 @@ defmodule DateTimeTest do
                zone_abbr: "UTC"
              }
 
+    assert ~U[10000-07-08 18:35:22.193042Z] ==
+             %DateTime{
+               calendar: Calendar.ISO,
+               year: 10_000,
+               month: 7,
+               day: 8,
+               hour: 18,
+               minute: 35,
+               second: 22,
+               microsecond: {193_042, 6},
+               std_offset: 0,
+               utc_offset: 0,
+               time_zone: "Etc/UTC",
+               zone_abbr: "UTC"
+             }
+
+    assert ~U[-10000-07-08 18:35:22.193042Z] ==
+             %DateTime{
+               calendar: Calendar.ISO,
+               year: -10_000,
+               month: 7,
+               day: 8,
+               hour: 18,
+               minute: 35,
+               second: 22,
+               microsecond: {193_042, 6},
+               std_offset: 0,
+               utc_offset: 0,
+               time_zone: "Etc/UTC",
+               zone_abbr: "UTC"
+             }
+
+    assert ~U[-12345-07-08T18:35:22.2288Z] ==
+             %DateTime{
+               calendar: Calendar.ISO,
+               year: -12_345,
+               month: 7,
+               day: 8,
+               hour: 18,
+               minute: 35,
+               second: 22,
+               microsecond: {228_800, 4},
+               std_offset: 0,
+               utc_offset: 0,
+               time_zone: "Etc/UTC",
+               zone_abbr: "UTC"
+             }
+
     assert ~U[2000-01-01 12:34:56Z Calendar.Holocene] ==
              %DateTime{
                calendar: Calendar.Holocene,

@@ -216,6 +216,27 @@ defmodule Calendar.ISO do
       ]
     end
 
+  [match_big_year, guard_big_year, match_rest_of_date, guard_rest_of_date, read_rest_of_date] =
+    quote do
+      [
+        <<y1, y2, y3, y4, y5>>,
+        y1 >= ?0 and y1 <= ?9 and
+          (y2 >= ?0 and y2 <= ?9) and
+          (y3 >= ?0 and y3 <= ?9) and
+          (y4 >= ?0 and y4 <= ?9) and
+          (y5 >= ?0 and y5 <= ?9),
+        <<?-, m1, m2, ?-, d1, d2>>,
+        m1 >= ?0 and m1 <= ?9 and
+          (m2 >= ?0 and m1 <= ?9) and
+          (d1 >= ?0 and d1 <= ?9) and
+          (d2 >= ?0 and d2 <= ?9),
+        {
+          (m1 - ?0) * 10 + (m2 - ?0),
+          (d1 - ?0) * 10 + (d2 - ?0)
+        }
+      ]
+    end
+
   [match_basic_time, match_ext_time, guard_time, read_time] =
     quote do
       [
@@ -421,6 +442,18 @@ defmodule Calendar.ISO do
     parse_formatted_date(year, month, day, multiplier)
   end
 
+  defp do_parse_date(unquote(match_big_year) <> rest, multiplier, :extended)
+       when unquote(guard_big_year) do
+    <<y1, y2, y3, y4, y5>> = unquote(match_big_year)
+    {year, rest} = reduce_big_year(rest, [y5, y4, y3, y2, y1])
+
+    case big_year_rest(rest) do
+      :error -> {:error, :invalid_format}
+      {{month, day}, ""} -> parse_formatted_date(year, month, day, multiplier)
+      {{_month, _day}, _rest} -> {:error, :invalid_format}
+    end
+  end
+
   defp do_parse_date(_, _, _) do
     {:error, :invalid_format}
   end
@@ -433,6 +466,37 @@ defmodule Calendar.ISO do
     else
       {:error, :invalid_date}
     end
+  end
+
+  defp reduce_big_year(<<y, rest::binary>>, digits) when y >= ?0 and y <= ?9 do
+    reduce_big_year(rest, [y | digits])
+  end
+
+  defp reduce_big_year("", _digits) do
+    {:error, :invalid_format}
+  end
+
+  defp reduce_big_year(rest, digits) do
+    {year, _} =
+      List.foldl(digits, {0, 1}, fn digit, {year, n} ->
+        {(digit - ?0) * n + year, 10 * n}
+      end)
+
+    {year, rest}
+  end
+
+  defp big_year_rest(unquote(match_rest_of_date)) when unquote(guard_rest_of_date) do
+    {month, day} = unquote(read_rest_of_date)
+    {{month, day}, ""}
+  end
+
+  defp big_year_rest(unquote(match_rest_of_date) <> rest) when unquote(guard_rest_of_date) do
+    {month, day} = unquote(read_rest_of_date)
+    {{month, day}, rest}
+  end
+
+  defp big_year_rest(_rest) do
+    :error
   end
 
   @doc """
@@ -516,6 +580,25 @@ defmodule Calendar.ISO do
     {year, month, day} = unquote(read_date)
     {hour, minute, second} = unquote(read_time)
     parse_formatted_naive_datetime(year, month, day, hour, minute, second, rest, multiplier)
+  end
+
+  defp do_parse_naive_datetime(unquote(match_big_year) <> rest, multiplier, :extended)
+       when unquote(guard_big_year) do
+    <<y1, y2, y3, y4, y5>> = unquote(match_big_year)
+    {year, rest} = reduce_big_year(rest, [y5, y4, y3, y2, y1])
+
+    case big_year_rest(rest) do
+      :error ->
+        {:error, :invalid_format}
+
+      {{month, day}, <<datetime_sep, unquote(match_ext_time), rest::binary>>}
+      when datetime_sep in @datetime_seps and unquote(guard_time) ->
+        {hour, minute, second} = unquote(read_time)
+        parse_formatted_naive_datetime(year, month, day, hour, minute, second, rest, multiplier)
+
+      {{_month, _day}, _} ->
+        {:error, :invalid_format}
+    end
   end
 
   defp do_parse_naive_datetime(_, _, _) do
@@ -620,6 +703,25 @@ defmodule Calendar.ISO do
     {year, month, day} = unquote(read_date)
     {hour, minute, second} = unquote(read_time)
     parse_formatted_utc_datetime(year, month, day, hour, minute, second, rest, multiplier)
+  end
+
+  defp do_parse_utc_datetime(unquote(match_big_year) <> rest, multiplier, :extended)
+       when unquote(guard_big_year) do
+    <<y1, y2, y3, y4, y5>> = unquote(match_big_year)
+    {year, rest} = reduce_big_year(rest, [y5, y4, y3, y2, y1])
+
+    case big_year_rest(rest) do
+      :error ->
+        {:error, :invalid_format}
+
+      {{_month, _day}, ""} ->
+        {:error, :invalid_format}
+
+      {{month, day}, <<datetime_sep, unquote(match_ext_time), rest::binary>>}
+      when datetime_sep in @datetime_seps and unquote(guard_time) ->
+        {hour, minute, second} = unquote(read_time)
+        parse_formatted_utc_datetime(year, month, day, hour, minute, second, rest, multiplier)
+    end
   end
 
   defp do_parse_utc_datetime(_, _, _) do
