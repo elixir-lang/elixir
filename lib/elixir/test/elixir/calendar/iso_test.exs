@@ -51,6 +51,11 @@ defmodule Calendar.ISOTest do
       assert Calendar.ISO.date_to_string(10000, 1, 1, :basic) == "100000101"
       assert Calendar.ISO.date_to_string(10000, 1, 1, :extended) == "10000-01-01"
     end
+
+    test "handles years < -9999" do
+      assert Calendar.ISO.date_to_string(-99_999, 1, 1, :basic) == "-999990101"
+      assert Calendar.ISO.date_to_string(-99_999, 1, 1, :extended) == "-99999-01-01"
+    end
   end
 
   describe "naive_datetime_to_iso_days/7" do
@@ -74,6 +79,10 @@ defmodule Calendar.ISOTest do
       assert_raise ArgumentError, "invalid date: 2017-11-00", fn ->
         Calendar.ISO.day_of_week(2017, 11, 0, :default)
       end
+    end
+
+    test "returns the correct day of week for big years" do
+      assert Calendar.ISO.day_of_week(27579, 7, 13, :default) == {5, 1, 7}
     end
   end
 
@@ -138,12 +147,15 @@ defmodule Calendar.ISOTest do
 
     test "fails with bad data" do
       assert Calendar.ISO.parse_date("+201500-01-23 ") == {:error, :invalid_format}
+      assert Calendar.ISO.parse_date("2015y00-01-23") == {:error, :invalid_format}
+      assert Calendar.ISO.parse_date("201500T01-23") == {:error, :invalid_format}
     end
   end
 
   describe "parse_date/2" do
     test "allows enforcing basic formats" do
       assert Calendar.ISO.parse_date("20150123", :basic) == {:ok, {2015, 1, 23}}
+      assert Calendar.ISO.parse_date("20000150123", :basic) == {:error, :invalid_format}
       assert Calendar.ISO.parse_date("2015-01-23", :basic) == {:error, :invalid_format}
     end
 
@@ -272,6 +284,9 @@ defmodule Calendar.ISOTest do
 
       assert Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.123-02:30") ==
                {:ok, {2015, 1, 23, 23, 50, 7, {123_000, 3}}}
+
+      assert Calendar.ISO.parse_naive_datetime("20152015-01-23T23:50:07.123+02:30") ==
+               {:ok, {20_152_015, 1, 23, 23, 50, 7, {123_000, 3}}}
 
       assert Calendar.ISO.parse_naive_datetime("2015-01-23T23:50:07.123-00:00") ==
                {:error, :invalid_format}
@@ -485,6 +500,7 @@ defmodule Calendar.ISOTest do
     assert Calendar.ISO.shift_date(2024, 1, 31, Duration.new!(month: 7)) == {2024, 8, 31}
     assert Calendar.ISO.shift_date(2024, 1, 31, Duration.new!(month: 8)) == {2024, 9, 30}
     assert Calendar.ISO.shift_date(2024, 1, 31, Duration.new!(month: 9)) == {2024, 10, 31}
+    assert Calendar.ISO.shift_date(2024, 1, 31, Duration.new!(year: 200_000)) == {202_024, 1, 31}
   end
 
   test "shift_naive_datetime/2" do

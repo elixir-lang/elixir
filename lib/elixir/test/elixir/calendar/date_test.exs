@@ -33,6 +33,10 @@ defmodule DateTest do
                  ~s/cannot parse "20001-50-50" as Date for Calendar.Holocene, reason: :invalid_date/,
                  fn -> Code.eval_string("~D[20001-50-50 Calendar.Holocene]") end
 
+    assert_raise ArgumentError,
+                 ~s/cannot parse "555555-55-55" as Date for Calendar.ISO, reason: :invalid_date/,
+                 fn -> Code.eval_string("~D[555555-55-55]") end
+
     assert_raise UndefinedFunctionError, fn ->
       Code.eval_string("~D[2000-01-01 UnknownCalendar]")
     end
@@ -54,6 +58,14 @@ defmodule DateTest do
 
     assert to_string(%{date2 | calendar: FakeCalendar}) == "31/12/5874897"
     assert Date.to_string(%{date2 | calendar: FakeCalendar}) == "31/12/5874897"
+
+    date3 = Date.new!(-5_874_897, 12, 31)
+    assert to_string(date3) == "-5874897-12-31"
+    assert Date.to_string(date3) == "-5874897-12-31"
+    assert Date.to_string(Map.from_struct(date3))
+
+    assert to_string(%{date3 | calendar: FakeCalendar}) == "31/12/-5874897"
+    assert Date.to_string(%{date3 | calendar: FakeCalendar}) == "31/12/-5874897"
   end
 
   test "inspect/1" do
@@ -63,8 +75,11 @@ defmodule DateTest do
     date = %{~D[2000-01-01] | calendar: FakeCalendar}
     assert inspect(date) == "~D[1/1/2000 FakeCalendar]"
 
-    assert inspect(Date.new!(5_874_897, 12, 31)) == "Date.new!(5874897, 12, 31)"
-    assert inspect(Date.new!(-5_874_897, 1, 1)) == "Date.new!(-5874897, 1, 1)"
+    refute inspect(Date.new!(5_874_897, 12, 31)) == "Date.new!(5874897, 12, 31)"
+    refute inspect(Date.new!(-5_874_897, 1, 1)) == "Date.new!(-5874897, 1, 1)"
+
+    assert inspect(Date.new!(5_874_897, 12, 31)) == "~D[5874897-12-31]"
+    assert inspect(Date.new!(-5_874_897, 1, 1)) == "~D[-5874897-01-01]"
 
     date2 = %{Date.new!(5_874_897, 12, 31) | calendar: FakeCalendar}
 
