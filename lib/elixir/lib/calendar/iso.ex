@@ -216,19 +216,14 @@ defmodule Calendar.ISO do
       ]
     end
 
-  [match_big_year, guard_big_year, match_rest_of_date, guard_rest_of_date, read_rest_of_date] =
+  [match_big_year, guard_big_year, match_big_year_rest, guard_big_year_rest, read_big_year_rest] =
     quote do
       [
         <<y1, y2, y3, y4, y5>>,
-        y1 >= ?0 and y1 <= ?9 and
-          (y2 >= ?0 and y2 <= ?9) and
-          (y3 >= ?0 and y3 <= ?9) and
-          (y4 >= ?0 and y4 <= ?9) and
-          (y5 >= ?0 and y5 <= ?9),
-        <<?-, m1, m2, ?-, d1, d2>>,
-        m1 >= ?0 and m1 <= ?9 and
-          (m2 >= ?0 and m1 <= ?9) and
-          (d1 >= ?0 and d1 <= ?9) and
+        y1 >= ?0 and y1 <= ?9 and (y2 >= ?0 and y2 <= ?9) and
+          (y3 >= ?0 and y3 <= ?9) and (y4 >= ?0 and y4 <= ?9) and (y5 >= ?0 and y5 <= ?9),
+        <<@ext_date_sep, m1, m2, @ext_date_sep, d1, d2>>,
+        m1 >= ?0 and m1 <= ?9 and (m2 >= ?0 and m1 <= ?9) and (d1 >= ?0 and d1 <= ?9) and
           (d2 >= ?0 and d2 <= ?9),
         {
           (m1 - ?0) * 10 + (m2 - ?0),
@@ -445,9 +440,9 @@ defmodule Calendar.ISO do
   defp do_parse_date(unquote(match_big_year) <> rest, multiplier, :extended)
        when unquote(guard_big_year) do
     <<y1, y2, y3, y4, y5>> = unquote(match_big_year)
-    {year, rest} = reduce_big_year(rest, [y5, y4, y3, y2, y1])
+    {year, rest} = parse_big_year(rest, [y5, y4, y3, y2, y1])
 
-    case big_year_rest(rest) do
+    case parse_big_year_rest(rest) do
       :error -> {:error, :invalid_format}
       {{month, day}, ""} -> parse_formatted_date(year, month, day, multiplier)
       {{_month, _day}, _rest} -> {:error, :invalid_format}
@@ -468,34 +463,35 @@ defmodule Calendar.ISO do
     end
   end
 
-  defp reduce_big_year(<<y, rest::binary>>, digits) when y >= ?0 and y <= ?9 do
-    reduce_big_year(rest, [y | digits])
+  defp parse_big_year(<<y, rest::binary>>, digits) when y >= ?0 and y <= ?9 do
+    parse_big_year(rest, [y | digits])
   end
 
-  defp reduce_big_year("", _digits) do
+  defp parse_big_year("", _digits) do
     {:error, :invalid_format}
   end
 
-  defp reduce_big_year(rest, digits) do
+  defp parse_big_year(rest, digits) do
     {year, _} =
-      List.foldl(digits, {0, 1}, fn digit, {year, n} ->
+      Enum.reduce(digits, {0, 1}, fn digit, {year, n} ->
         {(digit - ?0) * n + year, 10 * n}
       end)
 
     {year, rest}
   end
 
-  defp big_year_rest(unquote(match_rest_of_date)) when unquote(guard_rest_of_date) do
-    {month, day} = unquote(read_rest_of_date)
+  defp parse_big_year_rest(unquote(match_big_year_rest)) when unquote(guard_big_year_rest) do
+    {month, day} = unquote(read_big_year_rest)
     {{month, day}, ""}
   end
 
-  defp big_year_rest(unquote(match_rest_of_date) <> rest) when unquote(guard_rest_of_date) do
-    {month, day} = unquote(read_rest_of_date)
+  defp parse_big_year_rest(unquote(match_big_year_rest) <> rest)
+       when unquote(guard_big_year_rest) do
+    {month, day} = unquote(read_big_year_rest)
     {{month, day}, rest}
   end
 
-  defp big_year_rest(_rest) do
+  defp parse_big_year_rest(_rest) do
     :error
   end
 
@@ -585,9 +581,9 @@ defmodule Calendar.ISO do
   defp do_parse_naive_datetime(unquote(match_big_year) <> rest, multiplier, :extended)
        when unquote(guard_big_year) do
     <<y1, y2, y3, y4, y5>> = unquote(match_big_year)
-    {year, rest} = reduce_big_year(rest, [y5, y4, y3, y2, y1])
+    {year, rest} = parse_big_year(rest, [y5, y4, y3, y2, y1])
 
-    case big_year_rest(rest) do
+    case parse_big_year_rest(rest) do
       :error ->
         {:error, :invalid_format}
 
@@ -708,9 +704,9 @@ defmodule Calendar.ISO do
   defp do_parse_utc_datetime(unquote(match_big_year) <> rest, multiplier, :extended)
        when unquote(guard_big_year) do
     <<y1, y2, y3, y4, y5>> = unquote(match_big_year)
-    {year, rest} = reduce_big_year(rest, [y5, y4, y3, y2, y1])
+    {year, rest} = parse_big_year(rest, [y5, y4, y3, y2, y1])
 
-    case big_year_rest(rest) do
+    case parse_big_year_rest(rest) do
       :error ->
         {:error, :invalid_format}
 
