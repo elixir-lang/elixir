@@ -219,11 +219,10 @@ defmodule Calendar.ISO do
   [match_big_year, guard_big_year, match_big_year_rest, guard_big_year_rest, read_big_year_rest] =
     quote do
       [
-        <<y1, y2, y3, y4, y5>>,
-        y1 >= ?0 and y1 <= ?9 and (y2 >= ?0 and y2 <= ?9) and
+        <<y1, y2, y3, y4, y5>>, y1 >= ?0 and y1 <= ?9 and (y2 >= ?0 and y2 <= ?9) and
           (y3 >= ?0 and y3 <= ?9) and (y4 >= ?0 and y4 <= ?9) and (y5 >= ?0 and y5 <= ?9),
         <<@ext_date_sep, m1, m2, @ext_date_sep, d1, d2>>,
-        m1 >= ?0 and m1 <= ?9 and (m2 >= ?0 and m1 <= ?9) and (d1 >= ?0 and d1 <= ?9) and
+        m1 >= ?0 and m1 <= ?9 and (m2 >= ?0 and m1 <= ?9) and(d1 >= ?0 and d1 <= ?9) and
           (d2 >= ?0 and d2 <= ?9),
         {
           (m1 - ?0) * 10 + (m2 - ?0),
@@ -443,9 +442,14 @@ defmodule Calendar.ISO do
     {year, rest} = parse_big_year(rest, [y5, y4, y3, y2, y1])
 
     case parse_big_year_rest(rest) do
-      :error -> {:error, :invalid_format}
-      {{month, day}, ""} -> parse_formatted_date(year, month, day, multiplier)
-      {{_month, _day}, _rest} -> {:error, :invalid_format}
+      :error -> 
+        {:error, :invalid_format}
+      
+      {{month, day}, ""} -> 
+        parse_formatted_date(year, month, day, multiplier)
+      
+      {{_month, _day}, _rest} -> 
+        {:error, :invalid_format}
     end
   end
 
@@ -592,7 +596,7 @@ defmodule Calendar.ISO do
         {hour, minute, second} = unquote(read_time)
         parse_formatted_naive_datetime(year, month, day, hour, minute, second, rest, multiplier)
 
-      {{_month, _day}, _} ->
+      {{_month, _day}, _rest} ->
         {:error, :invalid_format}
     end
   end
@@ -710,13 +714,13 @@ defmodule Calendar.ISO do
       :error ->
         {:error, :invalid_format}
 
-      {{_month, _day}, ""} ->
-        {:error, :invalid_format}
-
       {{month, day}, <<datetime_sep, unquote(match_ext_time), rest::binary>>}
       when datetime_sep in @datetime_seps and unquote(guard_time) ->
         {hour, minute, second} = unquote(read_time)
         parse_formatted_utc_datetime(year, month, day, hour, minute, second, rest, multiplier)
+
+      {{_month, _day}, _rest} ->
+        {:error, :invalid_format}
     end
   end
 
