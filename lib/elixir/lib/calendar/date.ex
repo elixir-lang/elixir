@@ -1159,12 +1159,11 @@ defmodule Date do
 
   defimpl Inspect do
     def inspect(%{calendar: calendar, year: year, month: month, day: day}, _)
-        when year in -9999..9999 do
+        when calendar != Calendar.ISO or year in -9999..9999 do
       "~D[" <> calendar.date_to_string(year, month, day) <> suffix(calendar) <> "]"
     end
 
-    def inspect(%{calendar: calendar, year: year, month: month, day: day}, _)
-        when calendar == Calendar.ISO do
+    def inspect(%{calendar: Calendar.ISO, year: year, month: month, day: day}, _) do
       "Date.new!(#{Integer.to_string(year)}, #{Integer.to_string(month)}, #{Integer.to_string(day)})"
     end
 

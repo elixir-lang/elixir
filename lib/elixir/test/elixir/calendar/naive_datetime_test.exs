@@ -100,6 +100,9 @@ defmodule NaiveDateTimeTest do
     assert inspect(~N[2000-01-01 23:00:07.005]) == "~N[2000-01-01 23:00:07.005]"
     assert inspect(~N[-0100-12-31 23:00:07.005]) == "~N[-0100-12-31 23:00:07.005]"
 
+    assert inspect(%{~N[2000-01-01 23:00:07.005] | year: 99999}) ==
+             "NaiveDateTime.new!(99999, 1, 1, 23, 0, 7, {5000, 3})"
+
     ndt = %{~N[2000-01-01 23:00:07.005] | calendar: FakeCalendar}
     assert inspect(ndt) == "~N[1/1/2000F23::0::7 FakeCalendar]"
   end

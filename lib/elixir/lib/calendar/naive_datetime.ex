@@ -1451,10 +1451,15 @@ defmodule NaiveDateTime do
         calendar: calendar
       } = naive_datetime
 
-      formatted =
-        calendar.naive_datetime_to_string(year, month, day, hour, minute, second, microsecond)
+      if calendar != Calendar.ISO or year in -9999..9999 do
+        formatted =
+          calendar.naive_datetime_to_string(year, month, day, hour, minute, second, microsecond)
 
-      "~N[" <> formatted <> suffix(calendar) <> "]"
+        "~N[" <> formatted <> suffix(calendar) <> "]"
+      else
+        "NaiveDateTime.new!(#{Integer.to_string(year)}, #{Integer.to_string(month)}, #{Integer.to_string(day)}, " <>
+          "#{Integer.to_string(hour)}, #{Integer.to_string(minute)}, #{Integer.to_string(second)}, #{inspect(microsecond)})"
+      end
     end
 
     defp suffix(Calendar.ISO), do: ""

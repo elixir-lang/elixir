@@ -140,6 +140,8 @@ defmodule DateTimeTest do
     utc_datetime = ~U[2000-01-01 23:00:07.005Z]
     assert inspect(utc_datetime) == "~U[2000-01-01 23:00:07.005Z]"
 
+    assert inspect(%{utc_datetime | year: 99999}) == "#DateTime<99999-01-01 23:00:07.005Z>"
+
     assert inspect(%{utc_datetime | calendar: FakeCalendar}) ==
              "~U[1/1/2000F23::0::7 Etc/UTC UTC 0 0 FakeCalendar]"
 

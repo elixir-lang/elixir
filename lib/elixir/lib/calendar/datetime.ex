@@ -2079,7 +2079,8 @@ defmodule DateTime do
         )
 
       case datetime do
-        %{utc_offset: 0, std_offset: 0, time_zone: "Etc/UTC"} ->
+        %{utc_offset: 0, std_offset: 0, time_zone: "Etc/UTC", year: year}
+        when calendar != Calendar.ISO or year in -9999..9999 ->
           "~U[" <> formatted <> suffix(calendar) <> "]"
 
         _ ->

@@ -59,13 +59,13 @@ defmodule DateTest do
     date = %{~D[2000-01-01] | calendar: FakeCalendar}
     assert inspect(date) == "~D[1/1/2000 FakeCalendar]"
 
-    assert inspect(Date.new!(5_874_897, 12, 31)) == "Date.new!(5874897, 12, 31)"
-    assert inspect(Date.new!(-5_874_897, 1, 1)) == "Date.new!(-5874897, 1, 1)"
+    assert inspect(Date.new!(99999, 12, 31)) == "Date.new!(99999, 12, 31)"
+    assert inspect(Date.new!(-99999, 1, 1)) == "Date.new!(-99999, 1, 1)"
 
-    date2 = %{Date.new!(5_874_897, 12, 31) | calendar: FakeCalendar}
+    date2 = %{Date.new!(99999, 12, 31) | calendar: FakeCalendar}
 
     assert inspect(%{date2 | calendar: FakeCalendar}) ==
-             "Date.new!(5874897, 12, 31, FakeCalendar)"
+             "~D[31/12/99999 FakeCalendar]"
   end
 
   test "compare/2" do
