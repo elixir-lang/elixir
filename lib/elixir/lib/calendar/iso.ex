@@ -133,6 +133,7 @@ defmodule Calendar.ISO do
   @unix_range_microseconds unix_start..unix_end
 
   defguardp is_format(term) when term in [:basic, :extended]
+  defguardp is_digit_char(char) when char >= ?0 and char <= ?9
 
   @typedoc """
   "Before the Current Era" or "Before the Common Era" (BCE), for those years less than `1`.
@@ -216,6 +217,19 @@ defmodule Calendar.ISO do
       ]
     end
 
+  [match_month_day, guard_month_day, read_month_day] =
+    quote do
+      [
+        <<m1, m2, @ext_date_sep, d1, d2>>,
+        m1 >= ?0 and m1 <= ?9 and (m2 >= ?0 and m2 <= ?9) and (d1 >= ?0 and d1 <= ?9) and
+          (d2 >= ?0 and d2 <= ?9),
+        {
+          (m1 - ?0) * 10 + (m2 - ?0),
+          (d1 - ?0) * 10 + (d2 - ?0)
+        }
+      ]
+    end
+
   [match_basic_time, match_ext_time, guard_time, read_time] =
     quote do
       [
@@ -231,6 +245,7 @@ defmodule Calendar.ISO do
       ]
     end
 
+  defguardp is_big_year(year) when year > 9999 or year < -9999
   defguardp is_year(year) when is_integer(year)
   defguardp is_year_BCE(year) when year <= 0
   defguardp is_year_CE(year) when year >= 1
@@ -421,6 +436,21 @@ defmodule Calendar.ISO do
     parse_formatted_date(year, month, day, multiplier)
   end
 
+  defp do_parse_date(<<y, _rest::binary>> = bin, multiplier, :extended) when is_digit_char(y) do
+    case Integer.parse(bin) do
+      {year, <<@ext_date_sep, unquote(match_month_day)>>}
+      when is_big_year(year) and unquote(guard_month_day) ->
+        {month, day} = unquote(read_month_day)
+        parse_formatted_date(year, month, day, multiplier)
+
+      :error ->
+        {:error, :invalid_format}
+
+      {_integer, _rest} ->
+        {:error, :invalid_format}
+    end
+  end
+
   defp do_parse_date(_, _, _) do
     {:error, :invalid_format}
   end
@@ -516,6 +546,26 @@ defmodule Calendar.ISO do
     {year, month, day} = unquote(read_date)
     {hour, minute, second} = unquote(read_time)
     parse_formatted_naive_datetime(year, month, day, hour, minute, second, rest, multiplier)
+  end
+
+  defp do_parse_naive_datetime(<<y, _rest::binary>> = bin, multiplier, :extended)
+       when is_digit_char(y) do
+    case Integer.parse(bin) do
+      {year,
+       <<@ext_date_sep, unquote(match_month_day), datetime_sep, unquote(match_ext_time),
+         rest::binary>>}
+      when is_big_year(year) and unquote(guard_month_day) and datetime_sep in @datetime_seps and
+             unquote(guard_time) ->
+        {month, day} = unquote(read_month_day)
+        {hour, minute, second} = unquote(read_time)
+        parse_formatted_naive_datetime(year, month, day, hour, minute, second, rest, multiplier)
+
+      :error ->
+        {:error, :invalid_format}
+
+      {_integer, _rest} ->
+        {:error, :invalid_format}
+    end
   end
 
   defp do_parse_naive_datetime(_, _, _) do
@@ -620,6 +670,26 @@ defmodule Calendar.ISO do
     {year, month, day} = unquote(read_date)
     {hour, minute, second} = unquote(read_time)
     parse_formatted_utc_datetime(year, month, day, hour, minute, second, rest, multiplier)
+  end
+
+  defp do_parse_utc_datetime(<<y, _rest::binary>> = bin, multiplier, :extended)
+       when is_digit_char(y) do
+    case Integer.parse(bin) do
+      {year,
+       <<@ext_date_sep, unquote(match_month_day), datetime_sep, unquote(match_ext_time),
+         rest::binary>>}
+      when is_big_year(year) and unquote(guard_month_day) and datetime_sep in @datetime_seps and
+             unquote(guard_time) ->
+        {month, day} = unquote(read_month_day)
+        {hour, minute, second} = unquote(read_time)
+        parse_formatted_utc_datetime(year, month, day, hour, minute, second, rest, multiplier)
+
+      :error ->
+        {:error, :invalid_format}
+
+      {_integer, _rest} ->
+        {:error, :invalid_format}
+    end
   end
 
   defp do_parse_utc_datetime(_, _, _) do
