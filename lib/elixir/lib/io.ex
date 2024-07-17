@@ -296,7 +296,7 @@ defmodule IO do
   By default, the `device` is the standard output. It returns `:ok`
   if it succeeds.
 
-  Trivia: puts is shorthand for "put string"
+  Trivia: `puts` is shorthand for `put string`.
 
   ## Examples
 
@@ -573,7 +573,7 @@ defmodule IO do
       for instance, `{:error, :estale}` if reading from an
       NFS volume
 
-  Trivia: gets is shorthand for "get string"
+  Trivia: `gets` is shorthand for `get string`.
 
   ## Examples
 
