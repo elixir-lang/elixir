@@ -12,6 +12,8 @@ defmodule IO do
   (as shown in typespecs). For more information on chardata, see the
   "IO data" section below.
 
+  The functions of this module use UNIX-style naming where possible.
+
   ## IO devices
 
   An IO device may be an atom or a PID. In case it is an atom,
@@ -294,6 +296,8 @@ defmodule IO do
   By default, the `device` is the standard output. It returns `:ok`
   if it succeeds.
 
+  Trivia: `puts` is shorthand for `put string`.
+
   ## Examples
 
       IO.puts("Hello World!")
@@ -568,6 +572,8 @@ defmodule IO do
     * `{:error, reason}` - other (rare) error condition;
       for instance, `{:error, :estale}` if reading from an
       NFS volume
+
+  Trivia: `gets` is shorthand for `get string`.
 
   ## Examples
 
