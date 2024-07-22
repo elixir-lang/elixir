@@ -188,8 +188,7 @@ defmodule Mix.Tasks.Escript.Build do
     beam_paths =
       [project_files(), deps_files(), core_files(escript_opts, language)]
       |> Stream.concat()
-      |> prepare_beam_paths()
-      |> Map.merge(consolidated_paths(project))
+      |> replace_consolidated_paths(project)
 
     tuples = gen_main(project, escript_mod, main, app, language) ++ read_beams(beam_paths)
     tuples = if strip_options, do: strip_beams(tuples, strip_options), else: tuples
@@ -218,8 +217,15 @@ defmodule Mix.Tasks.Escript.Build do
   end
 
   defp get_files(app) do
-    Path.wildcard("#{app}/ebin/*.{app,beam}") ++
-      (Path.wildcard("#{app}/priv/**/*") |> Enum.filter(&File.regular?/1))
+    paths =
+      Path.wildcard("#{app}/ebin/*.{app,beam}") ++
+        (Path.wildcard("#{app}/priv/**/*") |> Enum.filter(&File.regular?/1))
+
+    apps_dir = Path.dirname(app)
+
+    for path <- paths do
+      {Path.relative_to(path, apps_dir), path}
+    end
   end
 
   defp set_perms(filename) do
@@ -276,10 +282,6 @@ defmodule Mix.Tasks.Escript.Build do
     end
   end
 
-  defp prepare_beam_paths(paths) do
-    for path <- paths, into: %{}, do: {Path.basename(path), path}
-  end
-
   defp read_beams(items) do
     Enum.map(items, fn {basename, beam_path} ->
       {String.to_charlist(basename), File.read!(beam_path)}
@@ -305,14 +307,31 @@ defmodule Mix.Tasks.Escript.Build do
     end
   end
 
-  defp consolidated_paths(config) do
+  defp replace_consolidated_paths(files, config) do
+    # We could write modules to a consolidated/ directory and prepend
+    # it to code path using VM args. However, when Erlang Escript
+    # boots, it prepends all second-level ebin/ directories to the
+    # path, so the unconsolidated modules would take precedence.
+    #
+    # Instead of writing consolidated/ into the archive, we replace
+    # the protocol modules with their consolidated version in their
+    # usual location. As a side benefit, this reduces the Escript
+    # file size, since we do not include the unconsolidated modules.
+
     if config[:consolidate_protocols] do
-      Mix.Project.consolidation_path(config)
-      |> Path.join("*")
-      |> Path.wildcard()
-      |> prepare_beam_paths()
+      consolidation_path = Mix.Project.consolidation_path(config)
+
+      consolidated =
+        consolidation_path
+        |> Path.join("*")
+        |> Path.wildcard()
+        |> Map.new(fn path -> {Path.basename(path), path} end)
+
+      for {zip_path, path} <- files do
+        {zip_path, consolidated[Path.basename(path)] || path}
+      end
     else
-      %{}
+      []
     end
   end
 

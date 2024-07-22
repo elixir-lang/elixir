@@ -280,6 +280,16 @@ defmodule Mix.Tasks.EscriptTest do
     end)
   end
 
+  test "generate escript with distinct path for each application" do
+    in_fixture("escript_test", fn ->
+      Mix.Project.push(Escript)
+
+      Mix.Tasks.Escript.Build.run([])
+      assert_received {:mix_shell, :info, ["Generated escript escript_test with MIX_ENV=dev"]}
+      assert System.cmd("escript", ["escript_test", "--app-paths"]) == {"{true, true, true}\n", 0}
+    end)
+  end
+
   test "escript install and uninstall" do
     File.rm_rf!(tmp_path(".mix/escripts"))
 
