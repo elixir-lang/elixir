@@ -36,11 +36,6 @@ defmodule Mix.Tasks.Escript.Build do
   the compiled `.beam` files to reduce the size of the escript.
   If this is not desired, check the `:strip_beams` option.
 
-  > #### `priv` directory support {: .warning}
-  >
-  > escripts do not support projects and dependencies
-  > that need to store or read artifacts from the priv directory.
-
   ## Command line options
 
   Expects the same command line options as `mix compile`.
@@ -93,6 +88,11 @@ defmodule Mix.Tasks.Escript.Build do
 
     * `:emu_args` - emulator arguments to embed in the escript file.
       Defaults to `""`.
+
+    * `:include_priv_for` - a list of application names (atoms) specifying
+      applications which priv directory should be included in the resulting
+      escript archive. Currently the expected way of accessing priv files
+      in an escript is via `:escript.extract/2`. Defaults to `[]`.
 
   There is one project-level option that affects how the escript is generated:
 
@@ -185,8 +185,14 @@ defmodule Mix.Tasks.Escript.Build do
 
     escript_mod = String.to_atom(Atom.to_string(app) <> "_escript")
 
+    include_priv_for = MapSet.new(escript_opts[:include_priv_for] || [])
+
     beam_paths =
-      [project_files(), deps_files(), core_files(escript_opts, language)]
+      [
+        project_files(project, include_priv_for),
+        deps_files(include_priv_for),
+        core_files(escript_opts, language, include_priv_for)
+      ]
       |> Stream.concat()
       |> replace_consolidated_paths(project)
 
@@ -212,16 +218,21 @@ defmodule Mix.Tasks.Escript.Build do
     :ok
   end
 
-  defp project_files() do
-    get_files(Mix.Project.app_path())
+  defp project_files(project, include_priv_for) do
+    get_files(Mix.Project.app_path(), project[:app] in include_priv_for)
   end
 
-  defp get_files(app) do
-    paths =
-      Path.wildcard("#{app}/ebin/*.{app,beam}") ++
-        (Path.wildcard("#{app}/priv/**/*") |> Enum.filter(&File.regular?/1))
+  defp get_files(app_path, include_priv?) do
+    paths = Path.wildcard("#{app_path}/ebin/*.{app,beam}")
 
-    apps_dir = Path.dirname(app)
+    paths =
+      if include_priv? do
+        paths ++ (Path.wildcard("#{app_path}/priv/**/*") |> Enum.filter(&File.regular?/1))
+      else
+        paths
+      end
+
+    apps_dir = Path.dirname(app_path)
 
     for path <- paths do
       {Path.relative_to(path, apps_dir), path}
@@ -233,14 +244,14 @@ defmodule Mix.Tasks.Escript.Build do
     :ok = File.chmod(filename, stat.mode ||| 0o111)
   end
 
-  defp deps_files() do
+  defp deps_files(include_priv_for) do
     deps = Mix.Dep.cached()
-    Enum.flat_map(deps, fn dep -> get_files(dep.opts[:build]) end)
+    Enum.flat_map(deps, fn dep -> get_files(dep.opts[:build], dep.app in include_priv_for) end)
   end
 
-  defp core_files(escript_opts, language) do
+  defp core_files(escript_opts, language, include_priv_for) do
     if Keyword.get(escript_opts, :embed_elixir, language == :elixir) do
-      Enum.flat_map([:elixir | extra_apps()], &app_files/1)
+      Enum.flat_map([:elixir | extra_apps()], &app_files(&1, include_priv_for))
     else
       []
     end
@@ -275,10 +286,10 @@ defmodule Mix.Tasks.Escript.Build do
     end
   end
 
-  defp app_files(app) do
+  defp app_files(app, include_priv_for) do
     case :code.where_is_file(~c"#{app}.app") do
       :non_existing -> Mix.raise("Could not find application #{app}")
-      file -> get_files(Path.dirname(Path.dirname(file)))
+      file -> get_files(Path.dirname(Path.dirname(file)), app in include_priv_for)
     end
   end
 

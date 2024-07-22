@@ -22,6 +22,14 @@ defmodule EscriptTest do
     })
   end
 
+  def main(["--list-priv", app_name]) do
+    # Note: :erl_prim_loader usage with Escript is currently deprecated,
+    # but we use it only in tests for convenience
+
+    app = String.to_atom(app_name)
+    :erl_prim_loader.list_dir(~c"#{:code.lib_dir(app)}/priv") |> IO.inspect()
+  end
+
   def main(_argv) do
     IO.puts(Application.get_env(:foobar, :value, "TEST"))
   end
