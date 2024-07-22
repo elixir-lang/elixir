@@ -183,7 +183,7 @@ defmodule Mix.Tasks.Escript.Build do
       end)
       |> parse_strip_beams_options()
 
-    escript_mod = String.to_atom(Atom.to_string(app) <> "_escript")
+    escript_mod = String.to_atom(Atom.to_string(app || project[:app]) <> "_escript")
 
     include_priv_for = MapSet.new(escript_opts[:include_priv_for] || [])
 
