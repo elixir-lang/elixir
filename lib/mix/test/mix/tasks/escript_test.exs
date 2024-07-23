@@ -107,17 +107,6 @@ defmodule Mix.Tasks.EscriptTest do
     end
   end
 
-  defmodule EscriptWithoutPrivs do
-    def project do
-      [
-        app: :escript_test_without_priv,
-        version: "0.0.1",
-        escript: [main_module: EscriptTest],
-        deps: [{:ok, path: fixture_path("deps_status/deps/ok")}]
-      ]
-    end
-  end
-
   test "generate escript" do
     in_fixture("escript_test", fn ->
       Mix.Project.push(Escript)
@@ -126,6 +115,10 @@ defmodule Mix.Tasks.EscriptTest do
       assert_received {:mix_shell, :info, ["Generated escript escript_test with MIX_ENV=dev"]}
       assert System.cmd("escript", ["escript_test"]) == {"TEST\n", 0}
       assert count_abstract_code("escript_test") == 0
+
+      # Does not include priv by default
+      assert System.cmd("escript", ["escript_test", "--list-priv", "escript_test"]) ==
+               {":error\n", 0}
     end)
   end
 
@@ -251,6 +244,9 @@ defmodule Mix.Tasks.EscriptTest do
       assert_received {:mix_shell, :info, [^message]}
 
       assert System.cmd("escript", ["escript_test_with_deps"]) == {"TEST\n", 0}
+
+      # Does not include priv for deps by default
+      assert System.cmd("escript", ["escript_test_with_deps", "--list-priv", "ok"]) == {":error\n", 0}
     end)
   after
     purge([Ok.MixProject])
@@ -309,27 +305,6 @@ defmodule Mix.Tasks.EscriptTest do
       Mix.Tasks.Escript.Build.run([])
       assert_received {:mix_shell, :info, ["Generated escript escript_test with MIX_ENV=dev"]}
       assert System.cmd("escript", ["escript_test", "--app-paths"]) == {"{true, true, true}\n", 0}
-    end)
-  end
-
-  test "generate escript without priv" do
-    in_fixture("escript_test", fn ->
-      Mix.Project.push(EscriptWithoutPrivs)
-
-      Mix.Tasks.Escript.Build.run([])
-
-      message = "Generated escript escript_test_without_priv with MIX_ENV=dev"
-      assert_received {:mix_shell, :info, [^message]}
-
-      assert System.cmd("escript", [
-               "escript_test_without_priv",
-               "--list-priv",
-               "escript_test_without_priv"
-             ]) ==
-               {":error\n", 0}
-
-      assert System.cmd("escript", ["escript_test_without_priv", "--list-priv", "ok"]) ==
-               {":error\n", 0}
     end)
   end
 
