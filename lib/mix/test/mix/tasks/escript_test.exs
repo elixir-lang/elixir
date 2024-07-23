@@ -249,7 +249,8 @@ defmodule Mix.Tasks.EscriptTest do
       assert System.cmd("escript", ["escript_test_with_deps"]) == {"TEST\n", 0}
 
       # Does not include priv for deps by default
-      assert System.cmd("escript", ["escript_test_with_deps", "--list-priv", "ok"]) == {":error\n", 0}
+      assert System.cmd("escript", ["escript_test_with_deps", "--list-priv", "ok"]) ==
+               {":error\n", 0}
     end)
   after
     purge([Ok.MixProject])
