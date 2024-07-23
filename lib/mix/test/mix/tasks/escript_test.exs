@@ -116,6 +116,9 @@ defmodule Mix.Tasks.EscriptTest do
       assert System.cmd("escript", ["escript_test"]) == {"TEST\n", 0}
       assert count_abstract_code("escript_test") == 0
 
+      # Each app has a distinct, valid path
+      assert System.cmd("escript", ["escript_test", "--app-paths"]) == {"{true, true, true}\n", 0}
+
       # Does not include priv by default
       assert System.cmd("escript", ["escript_test", "--list-priv", "escript_test"]) ==
                {":error\n", 0}
@@ -295,16 +298,6 @@ defmodule Mix.Tasks.EscriptTest do
 
       assert System.cmd("escript", ["escript_test_consolidated", "--protocol", "Enumerable"]) ==
                {"true\n", 0}
-    end)
-  end
-
-  test "generate escript with distinct path for each application" do
-    in_fixture("escript_test", fn ->
-      Mix.Project.push(Escript)
-
-      Mix.Tasks.Escript.Build.run([])
-      assert_received {:mix_shell, :info, ["Generated escript escript_test with MIX_ENV=dev"]}
-      assert System.cmd("escript", ["escript_test", "--app-paths"]) == {"{true, true, true}\n", 0}
     end)
   end
 
