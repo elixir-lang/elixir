@@ -90,11 +90,21 @@ defmodule Stream do
   This module also provides many convenience functions for creating streams,
   like `Stream.cycle/1`, `Stream.unfold/2`, `Stream.resource/3` and more.
 
-  Note the functions in this module are guaranteed to return enumerables.
-  Since enumerables can have different shapes (structs, anonymous functions,
-  and so on), the functions in this module may return any of those shapes
-  and this may change at any time. For example, a function that today
-  returns an anonymous function may return a struct in future releases.
+  > #### Do not check for `Stream` structs
+  >
+  > While some functions in this module may return the `Stream` struct,
+  > you must never explicitly check for the `Stream` struct, as streams
+  > may come in several shapes, such as `IO.Stream`, `File.Stream`, or
+  > even `Range`s.
+  >
+  > The functions in this module only guarantee to return enumerables
+  > and their implementation (structs, anonymous functions, etc) may
+  > change at any time. For example, a function that returns an anonymous
+  > function today may return a struct in future releases.
+  >
+  > Instead of checking for a particular type, you must instead write
+  > assertive code that assumes you have an enumerable, using the functions
+  > in the `Enume` or `Stream` module accordingly.
   """
 
   @doc false
