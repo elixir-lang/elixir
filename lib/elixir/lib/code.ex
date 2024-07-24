@@ -932,9 +932,8 @@ defmodule Code do
 
   ## Code comments
 
-  The formatter also handles code comments in a way to guarantee a space
-  is always added between the beginning of the comment (#) and the next
-  character.
+  The formatter handles code comments and guarantees a space is always added
+  between the beginning of the comment (#) and the next character.
 
   The formatter also extracts all trailing comments to their previous line.
   For example, the code below
@@ -946,9 +945,19 @@ defmodule Code do
       # world
       hello
 
-  Because code comments are handled apart from the code representation (AST),
-  there are some situations where code comments are seen as ambiguous by the
-  code formatter. For example, the comment in the anonymous function below
+  While the formatter attempts to preserve comments in most situations,
+  that's not always possible, because code comments are handled apart from
+  the code representation (AST). While the formatter can preserve code
+  comments between expressions and function arguments, the formatter
+  cannot currently preserve them around operators. For example, the following
+  code will move the code comments to before the operator usage:
+
+      foo() ||
+        # also check for bar
+        bar()
+
+  In some situations, code comments can be seen as ambiguous by the formatter.
+  For example, the comment in the anonymous function below
 
       fn
         arg1 ->
