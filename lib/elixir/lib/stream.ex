@@ -104,7 +104,7 @@ defmodule Stream do
   >
   > Instead of checking for a particular type, you must instead write
   > assertive code that assumes you have an enumerable, using the functions
-  > in the `Enume` or `Stream` module accordingly.
+  > in the `Enum` or `Stream` module accordingly.
   """
 
   @doc false
