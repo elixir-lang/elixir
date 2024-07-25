@@ -441,7 +441,8 @@ defmodule Module do
     * `@typep` - defines a private type to be used in `@spec`
     * `@opaque` - defines an opaque type to be used in `@spec`
     * `@spec` - provides a specification for a function
-    * `@callback` - provides a specification for a behaviour callback
+    * `@callback` - provides a specification for a behaviour callback (and generates
+      a `behaviour_info/1` function in the module, see below)
     * `@macrocallback` - provides a specification for a macro behaviour callback
     * `@optional_callbacks` - specifies which behaviour callbacks and macro
       behaviour callbacks are optional
@@ -589,6 +590,40 @@ defmodule Module do
     * `@compile {:no_warn_undefined, Mod}` or
       `@compile {:no_warn_undefined, {Mod, fun, arity}}` - does not warn if
       the given module or the given `Mod.fun/arity` are not defined
+
+  ## Generated Functions
+
+  Sometimes the compiler will generated public functions within modules. These
+  are documented below.
+
+  ### `behaviour_info/1`
+
+  This function is generated for modules that define a behaviour, that is,
+  that have one or more `@callback` definitions. The signature for this function,
+  expressed as a spec, is:
+
+      @spec behaviour_info(:callbacks) :: [function_info]
+        when function_info: {function_name :: atom(), arity :: non_neg_integer()}
+
+      @spec behaviour_info(:optional_callbacks) :: [function_info]
+        when function_info: {function_name :: atom(), arity :: non_neg_integer()}
+
+  `behaviour_info(:callbacks)` includes optional callbacks.
+
+  For example:
+
+      iex> Enum.sort(GenServer.behaviour_info(:callbacks))
+      [
+        code_change: 3,
+        format_status: 1,
+        format_status: 2,
+        handle_call: 3,
+        handle_cast: 2,
+        handle_continue: 2,
+        handle_info: 2,
+        init: 1,
+        terminate: 2
+      ]
 
   '''
 
