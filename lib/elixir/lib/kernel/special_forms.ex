@@ -1046,7 +1046,7 @@ defmodule Kernel.SpecialForms do
         end
       end
 
-      require Hygiene
+      require ContextHygiene
       ContextHygiene.write()
       ContextHygiene.read()
       #=> 1
