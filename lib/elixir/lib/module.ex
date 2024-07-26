@@ -630,7 +630,7 @@ defmodule Module do
 
   ### `__info__/1`
 
-  This function is generated for all modules. It's similar to `module_info/1` but
+  This function is generated for all modules defined by Elixir. It's similar to `module_info/1` but
   includes some additional Elixir-specific information, such as struct and macro
   information. For documentation, see `c:Module.__info__/1`.
 
