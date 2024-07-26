@@ -2136,9 +2136,8 @@ defmodule Macro do
   @doc """
   Converts the given argument to a string with the underscore-slash format.
 
-  The argument must either be an atom or a string.
-  If an atom is given, it is assumed to be an Elixir module,
-  so it is converted to a string and then processed.
+  The argument must either be an atom, representing an Elixir module,
+  or a string representing a module without the `Elixir.` prefix.
 
   This function was designed to format language identifiers/tokens with the underscore-slash format,
   that's why it belongs to the `Macro` module. Do not use it as a general
@@ -2172,7 +2171,7 @@ defmodule Macro do
       "Foo.Bar"
 
   """
-  @spec underscore(module() | atom() | String.t()) :: String.t()
+  @spec underscore(atom() | String.t()) :: String.t()
   def underscore(atom_or_string)
 
   def underscore(atom) when is_atom(atom) do
