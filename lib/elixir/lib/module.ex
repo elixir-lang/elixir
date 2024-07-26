@@ -441,7 +441,8 @@ defmodule Module do
     * `@typep` - defines a private type to be used in `@spec`
     * `@opaque` - defines an opaque type to be used in `@spec`
     * `@spec` - provides a specification for a function
-    * `@callback` - provides a specification for a behaviour callback
+    * `@callback` - provides a specification for a behaviour callback (and generates
+      a `behaviour_info/1` function in the module, see below)
     * `@macrocallback` - provides a specification for a macro behaviour callback
     * `@optional_callbacks` - specifies which behaviour callbacks and macro
       behaviour callbacks are optional
@@ -589,6 +590,78 @@ defmodule Module do
     * `@compile {:no_warn_undefined, Mod}` or
       `@compile {:no_warn_undefined, {Mod, fun, arity}}` - does not warn if
       the given module or the given `Mod.fun/arity` are not defined
+
+  ## Generated functions
+
+  Sometimes the compiler will generate public functions within modules. These
+  are documented below.
+
+  ### `behaviour_info/1`
+
+  This function is generated for modules that define a behaviour, that is,
+  that have one or more `@callback` definitions. The signature for this function,
+  expressed as a spec, is:
+
+      @spec behaviour_info(:callbacks) :: [function_info]
+        when function_info: {function_name :: atom(), arity :: non_neg_integer()}
+
+      @spec behaviour_info(:optional_callbacks) :: [function_info]
+        when function_info: {function_name :: atom(), arity :: non_neg_integer()}
+
+  `behaviour_info(:callbacks)` includes optional callbacks.
+
+  For example:
+
+      iex> Enum.sort(GenServer.behaviour_info(:callbacks))
+      [
+        code_change: 3,
+        format_status: 1,
+        format_status: 2,
+        handle_call: 3,
+        handle_cast: 2,
+        handle_continue: 2,
+        handle_info: 2,
+        init: 1,
+        terminate: 2
+      ]
+
+  ### `module_info/0`
+
+  This function is generated for all modules. It returns all the attributes
+  returned by `module_info/1` (see below), but as a single keyword list. See also the
+  [Erlang documentation](https://www.erlang.org/doc/system/modules.html#module_info-0).
+
+  ### `module_info/1`
+
+  This function is generated for all modules and returns
+  information about the module. The signature for this function,
+  expressed as a spec, is:
+
+      @spec module_info(:module) :: module() # Returns the module itself
+      @spec module_info(:attributes) :: keyword()
+      @spec module_info(:compile) :: keyword()
+      @spec module_info(:md5) :: binary()
+      @spec module_info(:nifs) :: module()
+      @spec module_info(:exports) :: [function_info]
+        when function_info: {function_name :: atom(), arity :: non_neg_integer()}
+      @spec module_info(:functions) :: [function_info]
+        when function_info: {function_name :: atom(), arity :: non_neg_integer()}
+
+  For example:
+
+      iex> URI.module_info(:module)
+      URI
+      iex> {:decode_www_form, 1} in URI.module_info(:exports)
+      true
+
+  For more information about `module_info/1`, also check out the [Erlang
+  documentation](https://www.erlang.org/doc/system/modules.html#module_info-1).
+
+  ### `__info__/1`
+
+  This function is generated for all modules. It's similar to `module_info/1` but
+  includes some additional Elixir-specific information, such as struct and macro
+  information. For documentation, see `c:Module.__info__/1`.
 
   '''
 

@@ -9,7 +9,8 @@ defmodule Behaviour do
   attributes.
 
   Instead of `MyModule.__behaviour__(:callbacks)`,
-  `MyModule.behaviour_info(:callbacks)` can be used.
+  `MyModule.behaviour_info(:callbacks)` can be used. `behaviour_info/1`
+  is documented in `Module`.
   """
 
   @moduledoc deprecated: "Use @callback and @macrocallback attributes instead"
