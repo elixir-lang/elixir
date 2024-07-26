@@ -881,10 +881,16 @@ defmodule Logger do
       translators = updater.(Application.fetch_env!(:logger, :translators))
       Application.put_env(:logger, :translators, translators)
 
-      with %{filters: filters} <- :logger.get_primary_config(),
+      with {:ok, %{filters: filters}} <- :logger.get_handler_config(:default),
            {{_, {fun, config}}, filters} <- List.keytake(filters, :logger_translator, 0) do
         config = %{config | translators: translators}
-        :ok = :logger.set_primary_config(:filters, filters ++ [logger_translator: {fun, config}])
+
+        :ok =
+          :logger.set_handler_config(
+            :default,
+            :filters,
+            [logger_translator: {fun, config}] ++ filters
+          )
       end
     end)
 
