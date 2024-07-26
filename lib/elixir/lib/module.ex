@@ -591,48 +591,10 @@ defmodule Module do
       `@compile {:no_warn_undefined, {Mod, fun, arity}}` - does not warn if
       the given module or the given `Mod.fun/arity` are not defined
 
-  ## Generated Functions
+  ## Generated functions
 
   Sometimes the compiler will generate public functions within modules. These
   are documented below.
-
-  ### `module_info/1`
-
-  This function is generated for all modules and returns a keyword list with
-  information about the module. The signature for this function, expressed as
-  a spec, is:
-
-      @spec module_info(:module) :: module() # Returns the module itself
-      @spec module_info(:attributes) :: keyword()
-      @spec module_info(:compile) :: keyword()
-      @spec module_info(:md5) :: binary()
-      @spec module_info(:nifs) :: module()
-      @spec module_info(:exports) :: [function_info]
-        when function_info: {function_name :: atom(), arity :: non_neg_integer()}
-      @spec module_info(:functions) :: [function_info]
-        when function_info: {function_name :: atom(), arity :: non_neg_integer()}
-
-  For example:
-
-      iex> URI.module_info(:module)
-      URI
-      iex> {:decode_www_form, 1} in URI.module_info(:exports)
-      true
-
-  For more information about `module_info/1`, also check out the [Erlang
-  documentation](https://www.erlang.org/doc/system/modules.html#module_info-1).
-
-  ### `module_info/0`
-
-  This function is generated for all modules. It returns all the attributes
-  returned by `module_info/1`, but as a single keyword list. See also the
-  [Erlang documentation](https://www.erlang.org/doc/system/modules.html#module_info-0).
-
-  ### `__info__/1`
-
-  This function is generated for all modules defined by Elixir. It's similar to `module_info/1` but
-  includes some additional Elixir-specific information, such as struct and macro
-  information. For documentation, see `c:Module.__info__/1`.
 
   ### `behaviour_info/1`
 
@@ -662,6 +624,44 @@ defmodule Module do
         init: 1,
         terminate: 2
       ]
+
+  ### `module_info/0`
+
+  This function is generated for all modules. It returns all the attributes
+  returned by `module_info/1` (see below), but as a single keyword list. See also the
+  [Erlang documentation](https://www.erlang.org/doc/system/modules.html#module_info-0).
+
+  ### `module_info/1`
+
+  This function is generated for all modules and returns
+  information about the module. The signature for this function,
+  expressed as a spec, is:
+
+      @spec module_info(:module) :: module() # Returns the module itself
+      @spec module_info(:attributes) :: keyword()
+      @spec module_info(:compile) :: keyword()
+      @spec module_info(:md5) :: binary()
+      @spec module_info(:nifs) :: module()
+      @spec module_info(:exports) :: [function_info]
+        when function_info: {function_name :: atom(), arity :: non_neg_integer()}
+      @spec module_info(:functions) :: [function_info]
+        when function_info: {function_name :: atom(), arity :: non_neg_integer()}
+
+  For example:
+
+      iex> URI.module_info(:module)
+      URI
+      iex> {:decode_www_form, 1} in URI.module_info(:exports)
+      true
+
+  For more information about `module_info/1`, also check out the [Erlang
+  documentation](https://www.erlang.org/doc/system/modules.html#module_info-1).
+
+  ### `__info__/1`
+
+  This function is generated for all modules. It's similar to `module_info/1` but
+  includes some additional Elixir-specific information, such as struct and macro
+  information. For documentation, see `c:Module.__info__/1`.
 
   '''
 
