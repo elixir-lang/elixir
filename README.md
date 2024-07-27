@@ -137,13 +137,20 @@ bin/elixirc lib/elixir/lib/string.ex -o lib/elixir/ebin
 bin/elixir lib/elixir/test/elixir/string_test.exs
 ```
 
+Some test files need their `test_helper.exs` to be explicitly required
+before, such as:
+
+```sh
+bin/elixir -r lib/logger/test/test_helper.exs lib/logger/test/logger_test.exs
+```
+
 You can also use the `LINE` env var to run a single test:
 
 ```sh
 LINE=123 bin/elixir lib/elixir/test/elixir/string_test.exs
 ````
 
-To recompile (including Erlang modules):
+To recompile all (including Erlang modules):
 
 ```sh
 make compile
