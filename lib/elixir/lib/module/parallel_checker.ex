@@ -291,18 +291,34 @@ defmodule Module.ParallelChecker do
   ## Warning helpers
 
   defp group_warnings(warnings) do
-    warnings
-    |> Enum.reduce(%{}, fn {module, warning, location}, acc ->
-      locations = MapSet.new([location])
-      Map.update(acc, {module, warning}, locations, &MapSet.put(&1, location))
-    end)
-    |> Enum.map(fn {{module, warning}, locations} -> {module, warning, Enum.sort(locations)} end)
-    |> Enum.sort()
+    {ungrouped, grouped} =
+      Enum.reduce(warnings, {[], %{}}, fn {module, warning, location}, {ungrouped, grouped} ->
+        %{message: _} = diagnostic = module.format_diagnostic(warning)
+
+        if Map.get(diagnostic, :group, false) do
+          locations = MapSet.new([location])
+
+          grouped =
+            Map.update(grouped, warning, {locations, diagnostic}, fn
+              {locations, diagnostic} -> {MapSet.put(locations, location), diagnostic}
+            end)
+
+          {ungrouped, grouped}
+        else
+          {[{[location], diagnostic} | ungrouped], grouped}
+        end
+      end)
+
+    grouped =
+      Enum.map(grouped, fn {_warning, {locations, diagnostic}} ->
+        {Enum.sort(locations), diagnostic}
+      end)
+
+    Enum.sort(ungrouped ++ grouped)
   end
 
   defp emit_warnings(warnings, log?) do
-    Enum.flat_map(warnings, fn {module, warning, locations} ->
-      %{message: _} = diagnostic = module.format_diagnostic(warning)
+    Enum.flat_map(warnings, fn {locations, diagnostic} ->
       diagnostics = Enum.map(locations, &to_diagnostic(diagnostic, &1))
       log? and print_diagnostics(diagnostics)
       diagnostics

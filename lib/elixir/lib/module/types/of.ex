@@ -700,14 +700,16 @@ defmodule Module.Types.Of do
           " is undefined (module ",
           inspect(module),
           " is not available or is yet to be defined)"
-        ])
+        ]),
+      group: true
     }
   end
 
   def format_diagnostic({:undefined_function, module, :__struct__, 0, _exports}) do
     %{
       message:
-        "struct #{inspect(module)} is undefined (there is such module but it does not define a struct)"
+        "struct #{inspect(module)} is undefined (there is such module but it does not define a struct)",
+      group: true
     }
   end
 
@@ -718,7 +720,8 @@ defmodule Module.Types.Of do
           Exception.format_mfa(module, fun, arity),
           " is undefined or private",
           UndefinedFunctionError.hint_for_loaded_module(module, fun, arity, exports)
-        ])
+        ]),
+      group: true
     }
   end
 
@@ -729,7 +732,8 @@ defmodule Module.Types.Of do
           Exception.format_mfa(module, fun, arity),
           " is deprecated. ",
           reason
-        ])
+        ]),
+      group: true
     }
   end
 
@@ -741,7 +745,8 @@ defmodule Module.Types.Of do
           inspect(module),
           " before invoking the macro ",
           Exception.format_mfa(module, fun, arity)
-        ])
+        ]),
+      group: true
     }
   end
 
