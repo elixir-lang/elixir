@@ -6,6 +6,12 @@ defmodule Module.Types.ExprTest do
   import TypeHelper
   import Module.Types.Descr
 
+  defmacro generated(x) do
+    quote generated: true do
+      unquote(x).foo()
+    end
+  end
+
   test "literal" do
     assert typecheck!(true) == atom([true])
     assert typecheck!(false) == atom([false])
@@ -19,6 +25,10 @@ defmodule Module.Types.ExprTest do
     assert typecheck!(%{}) == closed_map([])
     assert typecheck!(& &1) == fun()
     assert typecheck!(fn -> :ok end) == fun()
+  end
+
+  test "generated" do
+    assert typecheck!([x = 1], generated(x)) == dynamic()
   end
 
   describe "funs" do

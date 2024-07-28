@@ -91,9 +91,13 @@ defmodule Module.Types.Helpers do
   Emits a warnings.
   """
   def warn(module, warning, meta, stack, context) do
-    {fun, arity} = stack.function
-    location = {stack.file, meta, {stack.module, fun, arity}}
-    %{context | warnings: [{module, warning, location} | context.warnings]}
+    if Keyword.get(meta, :generated, false) do
+      context
+    else
+      {fun, arity} = stack.function
+      location = {stack.file, meta, {stack.module, fun, arity}}
+      %{context | warnings: [{module, warning, location} | context.warnings]}
+    end
   end
 
   @doc """
