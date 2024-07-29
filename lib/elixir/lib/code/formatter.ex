@@ -31,7 +31,7 @@ defmodule Code.Formatter do
   @right_new_line_before_binary_operators [:|, :when]
 
   # Operators that are logical cannot be mixed without parens
-  @required_parens_logical_binary_operands [:||, :or, :&&, :and]
+  @required_parens_logical_binary_operands [:|||, :||, :or, :&&&, :&&, :and]
 
   # Operators with next break fits
   @next_break_fits_operators [:<-, :==, :!=, :=~, :===, :!==, :<, :>, :<=, :>=, :=, :"::"]
@@ -44,8 +44,6 @@ defmodule Code.Formatter do
   # when they are the parent of another operator with a difference precedence
   # Most operators are listed, except comparison, arithmetic, and low precedence
   @required_parens_on_binary_operands [
-    :|||,
-    :&&&,
     :<<<,
     :>>>,
     :|>,

@@ -170,7 +170,7 @@ defmodule Code.Formatter.OperatorsTest do
     end
 
     test "bitwise precedence" do
-      assert_same "(crc >>> 8) ||| byte"
+      assert_format "(crc >>> 8) ||| byte", "crc >>> 8 ||| byte"
       assert_same "crc >>> (8 ||| byte)"
     end
   end
