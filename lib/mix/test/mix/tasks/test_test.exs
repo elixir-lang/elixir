@@ -33,25 +33,14 @@ defmodule Mix.Tasks.TestTest do
     end
 
     test "accepts custom :exit_status" do
-      assert {:exit_status, 5} in ex_unit_opts(exit_status: 5)
+      assert {:exit_status, 5} in ex_unit_opts(exit_status: 5, failures_manifest_path: "foo.bar")
     end
 
     test "includes some default options" do
-      assert ex_unit_opts([]) == [
+      assert ex_unit_opts(failures_manifest_path: "foo.bar") == [
                autorun: false,
                exit_status: 2,
-               failures_manifest_path:
-                 Path.join(Mix.Project.manifest_path(), ".mix_test_failures")
-             ]
-    end
-
-    test "respect failures_manifest_path option" do
-      custom_manifest_file = Path.join(Mix.Project.manifest_path(), ".mix_test_failures_custom")
-
-      assert ex_unit_opts(failures_manifest_path: custom_manifest_file) == [
-               autorun: false,
-               exit_status: 2,
-               failures_manifest_path: custom_manifest_file
+               failures_manifest_path: "foo.bar"
              ]
     end
 
@@ -62,6 +51,7 @@ defmodule Mix.Tasks.TestTest do
 
     defp ex_unit_opts_from_given(passed) do
       passed
+      |> Keyword.put(:failures_manifest_path, "foo.bar")
       |> ex_unit_opts()
       |> Keyword.drop([:failures_manifest_path, :autorun, :exit_status])
     end
@@ -267,6 +257,18 @@ defmodule Mix.Tasks.TestTest do
       end)
     after
       System.delete_env("PASS_FAILING_TESTS")
+    end
+
+    test "marks the whole suite as failed on compilation error" do
+      in_fixture("test_failed", fn ->
+        File.write!("test/passing_and_failing_test_failed.exs", "raise ~s(oops)")
+
+        output = mix(["test"])
+        assert output =~ "** (RuntimeError) oops"
+
+        output = mix(["test", "--failed"])
+        assert output =~ "** (RuntimeError) oops"
+      end)
     end
   end
 

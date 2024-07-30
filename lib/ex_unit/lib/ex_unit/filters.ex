@@ -146,18 +146,31 @@ defmodule ExUnit.Filters do
   defp parse_kv(key, value), do: {key, value}
 
   @doc """
-  Returns a tuple containing useful information about test failures from the
-  manifest. The tuple contains:
+  Returns failure information from the manifest file.
+
+  It returns either `:all`, meaning all tests should be considered as stale,
+  or a tuple containing:
 
     * A set of files that contain tests that failed the last time they ran.
       The paths are absolute paths.
+
     * A set of test IDs that failed the last time they ran
 
   """
-  @spec failure_info(Path.t()) :: {MapSet.t(Path.t()), MapSet.t(ExUnit.test_id())}
+  @spec failure_info(Path.t()) :: {MapSet.t(Path.t()), MapSet.t(ExUnit.test_id())} | :all
   def failure_info(manifest_file) do
-    manifest = FailuresManifest.read(manifest_file)
-    {FailuresManifest.files_with_failures(manifest), FailuresManifest.failed_test_ids(manifest)}
+    FailuresManifest.info(manifest_file)
+  end
+
+  @doc """
+  Marks the whole suite as failed in the manifest.
+
+  This is useful when the test suite cannot be loaded
+  and there is a desire to make all tests fail.
+  """
+  @spec fail_all!(Path.t()) :: :ok
+  def fail_all!(manifest_file) do
+    FailuresManifest.fail_all!(manifest_file)
   end
 
   @doc """

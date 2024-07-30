@@ -473,6 +473,7 @@ defmodule Mix.Tasks.Test do
   @impl true
   def run(args) do
     {opts, files} = OptionParser.parse!(args, strict: @switches, aliases: [b: :breakpoints])
+    opts = put_manifest_file(opts)
 
     if not Mix.Task.recursing?() do
       do_run(opts, args, files)
@@ -591,30 +592,31 @@ defmodule Mix.Tasks.Test do
     {ex_unit_opts, allowed_files} = process_ex_unit_opts(opts)
     ExUnit.configure(ex_unit_opts)
 
+    # Prepare and extract all files to require and run
     test_paths = project[:test_paths] || default_test_paths()
-    Enum.each(test_paths, &require_test_helper(shell, &1))
-    ExUnit.configure(merge_helper_opts(ex_unit_opts))
-
-    # Finally parse, require and load the files
     test_files = if files != [], do: parse_file_paths(files), else: test_paths
     test_pattern = project[:test_pattern] || "*_test.exs"
     warn_test_pattern = project[:warn_test_pattern] || "*_test.ex"
-
-    files_with_matched_path = Mix.Utils.extract_files(test_files, test_pattern)
+    unfiltered_test_files = Mix.Utils.extract_files(test_files, test_pattern)
 
     matched_test_files =
-      files_with_matched_path
+      unfiltered_test_files
       |> filter_to_allowed_files(allowed_files)
       |> filter_by_partition(shell, partitions)
 
-    display_warn_test_pattern(
-      test_files,
-      test_pattern,
-      files_with_matched_path,
-      warn_test_pattern
-    )
+    display_warn_test_pattern(test_files, test_pattern, unfiltered_test_files, warn_test_pattern)
 
-    case CT.require_and_run(matched_test_files, test_paths, test_elixirc_options, opts) do
+    try do
+      Enum.each(test_paths, &require_test_helper(shell, &1))
+      ExUnit.configure(merge_helper_opts(ex_unit_opts))
+      CT.require_and_run(matched_test_files, test_paths, test_elixirc_options, opts)
+    catch
+      kind, reason ->
+        # Also mark the whole suite as failed
+        file = Keyword.fetch!(opts, :failures_manifest_path)
+        ExUnit.Filters.fail_all!(file)
+        :erlang.raise(kind, reason, __STACKTRACE__)
+    else
       {:ok, %{excluded: excluded, failures: failures, total: total}} ->
         Mix.shell(shell)
         cover && cover.()
@@ -776,23 +778,29 @@ defmodule Mix.Tasks.Test do
 
   @manifest_file_name ".mix_test_failures"
 
-  defp manifest_opts(opts) do
-    opts =
-      Keyword.put_new(
-        opts,
-        :failures_manifest_path,
-        Path.join(Mix.Project.manifest_path(), @manifest_file_name)
-      )
+  defp put_manifest_file(opts) do
+    Keyword.put_new_lazy(
+      opts,
+      :failures_manifest_path,
+      fn -> Path.join(Mix.Project.manifest_path(), @manifest_file_name) end
+    )
+  end
 
-    manifest_file = Keyword.get(opts, :failures_manifest_path)
+  defp manifest_opts(opts) do
+    manifest_file = Keyword.fetch!(opts, :failures_manifest_path)
 
     if opts[:failed] do
       if opts[:stale] do
         Mix.raise("Combining --failed and --stale is not supported.")
       end
 
-      {allowed_files, failed_ids} = ExUnit.Filters.failure_info(manifest_file)
-      {Keyword.put(opts, :only_test_ids, failed_ids), allowed_files}
+      case ExUnit.Filters.failure_info(manifest_file) do
+        {allowed_files, failed_ids} ->
+          {Keyword.put(opts, :only_test_ids, failed_ids), allowed_files}
+
+        :all ->
+          {opts, nil}
+      end
     else
       {opts, nil}
     end
