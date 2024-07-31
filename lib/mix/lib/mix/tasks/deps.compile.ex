@@ -207,8 +207,15 @@ defmodule Mix.Tasks.Deps.Compile do
       {"TERM", "dumb"}
     ]
 
-    cmd = "#{rebar_cmd(dep)} bare compile --paths #{escape_path(lib_path)}"
-    do_command(dep, config, cmd, false, env)
+    rebar = Mix.Rebar.local_rebar_path(:rebar3) || handle_rebar_not_found(dep)
+    {exec, args} = Mix.Rebar.rebar_args(rebar, ["bare", "compile", "--paths", lib_path])
+
+    if Mix.shell().cmd({exec, args}, opts_for_cmd(dep, config, env)) != 0 do
+      Mix.raise(
+        "Could not compile dependency #{inspect(dep.app)}, \"#{Enum.join([exec | args], " ")}\" command failed. " <>
+          deps_compile_feedback(dep.app)
+      )
+    end
 
     # Check if we have any new symlinks after compilation
     for dir <- ~w(include priv src),
@@ -220,19 +227,10 @@ defmodule Mix.Tasks.Deps.Compile do
     true
   end
 
-  defp escape_path(path) do
-    escape = if match?({:win32, _}, :os.type()), do: "^ ", else: "\\ "
-    String.replace(path, " ", escape)
-  end
-
   defp rebar_config(dep) do
     dep.extra
     |> Mix.Rebar.dependency_config()
     |> Mix.Rebar.serialize_config()
-  end
-
-  defp rebar_cmd(%Mix.Dep{manager: manager} = dep) do
-    Mix.Rebar.rebar_cmd(manager) || handle_rebar_not_found(dep)
   end
 
   defp handle_rebar_not_found(%Mix.Dep{app: app, manager: manager}) do
@@ -255,12 +253,12 @@ defmodule Mix.Tasks.Deps.Compile do
     end
 
     Mix.Tasks.Local.Rebar.run(["--force"])
-    Mix.Rebar.local_rebar_cmd(manager) || Mix.raise("\"#{manager}\" installation failed")
+    Mix.Rebar.local_rebar_path(manager) || Mix.raise("\"#{manager}\" installation failed")
   end
 
   defp do_make(dep, config) do
     command = make_command(dep)
-    do_command(dep, config, command, true, [{"IS_DEP", "1"}])
+    shell_cmd!(dep, config, command, [{"IS_DEP", "1"}])
     build_structure(dep, config)
     true
   end
@@ -289,7 +287,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp do_compile(%Mix.Dep{opts: opts} = dep, config) do
     if command = opts[:compile] do
-      do_command(dep, config, command, true)
+      shell_cmd!(dep, config, command)
       build_structure(dep, config)
       true
     else
@@ -297,19 +295,21 @@ defmodule Mix.Tasks.Deps.Compile do
     end
   end
 
-  defp do_command(dep, config, command, print_app?, env \\ []) do
-    %Mix.Dep{app: app, system_env: system_env, opts: opts} = dep
-
-    env = [{"ERL_LIBS", Path.join(config[:deps_build_path], "lib")} | system_env] ++ env
-
-    if Mix.shell().cmd(command, env: env, print_app: print_app?, cd: opts[:dest]) != 0 do
+  defp shell_cmd!(%Mix.Dep{app: app} = dep, config, command, env \\ []) do
+    if Mix.shell().cmd(command, [print_app: true] ++ opts_for_cmd(dep, config, env)) != 0 do
       Mix.raise(
         "Could not compile dependency #{inspect(app)}, \"#{command}\" command failed. " <>
           deps_compile_feedback(app)
       )
     end
 
-    true
+    :ok
+  end
+
+  defp opts_for_cmd(dep, config, env) do
+    %Mix.Dep{system_env: system_env, opts: opts} = dep
+    env = [{"ERL_LIBS", Path.join(config[:deps_build_path], "lib")} | system_env] ++ env
+    [env: env, cd: opts[:dest]]
   end
 
   defp build_structure(%Mix.Dep{opts: opts}, config) do
