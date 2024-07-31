@@ -240,7 +240,7 @@ defmodule Mix.RebarTest do
       in_tmp("rebar3 env with spaces", fn ->
         File.cp!(Mix.Rebar.local_rebar_path(:rebar3), "rebar3")
         System.put_env("MIX_REBAR3", Path.absname("rebar3"))
-        assert Mix.Rebar.rebar_cmd(:rebar3) =~ " "
+        assert Mix.Rebar.rebar_path(:rebar3) =~ " "
 
         Mix.Project.push(RebarAsDep)
         Mix.Tasks.Deps.Get.run([])
