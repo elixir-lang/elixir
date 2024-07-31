@@ -559,12 +559,6 @@ defmodule Module.Types.DescrTest do
 
       assert union(dynamic(open_map(a: atom())), open_map(a: integer()))
              |> map_fetch(:a) == {false, union(dynamic(atom()), integer())}
-
-      # this is bad
-      assert dynamic() |> map_fetch(:a) == {true, dynamic()}
-      assert union(dynamic(), integer()) |> map_fetch(:a) == {true, dynamic()}
-      assert union(dynamic(open_map(a: integer())), integer()) |> map_fetch(:a) == :badmap
-      assert union(dynamic(integer()), integer()) |> map_fetch(:a) == :badmap
     end
   end
 
