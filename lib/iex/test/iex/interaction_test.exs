@@ -198,6 +198,16 @@ defmodule IEx.InteractionTest do
              ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) shell process exited with reason: {:bye, \[:world\]}"
   end
 
+  test "receive normal exits" do
+    assert capture_iex("spawn_link(fn -> exit(:normal) end); Process.sleep(1000)") =~ ":ok"
+
+    assert capture_iex("spawn_link(fn -> exit(:shutdown) end); Process.sleep(1000)") =~
+             ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) shell process exited with reason: shutdown"
+
+    assert capture_iex("spawn_link(fn -> exit({:shutdown, :bye}) end); Process.sleep(1000)") =~
+             ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) shell process exited with reason: shutdown: :bye"
+  end
+
   test "receive exit from exception" do
     # use exit/1 to fake an error so that an error message
     # is not sent to the error logger.
