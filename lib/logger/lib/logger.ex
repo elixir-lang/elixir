@@ -226,13 +226,30 @@ defmodule Logger do
           compress_on_rotate: true
         ]
 
-  See [`:logger_std_h`](`:logger_std_h`) for all relevant configuration,
-  including overload protection. Or set `:default_handler` to false to
-  disable the default logging altogether:
+  You can find a complete reference on all handler options
+  [on Erlang/OTP docs](`t::logger_handler.config/0`). Here is Elixir's
+  default configuration for the default handler:
+
+      [
+        # Do not log messages from other nodes
+        filters: [{&:logger_filters.remote_gl/2, :stop}],
+        filter_default: :log,
+        formatter: &Logger.default_formatter/0,
+        level: :all,
+        module: :logger_std_h
+      ]
+
+  The `:config` customizes a specific handler module. The default handler
+  is [`:logger_std_h`](`:logger_std_h`), which logs to standard IO, and you
+  call find all relevant configuration in its module documentation, including
+  information overload protection.
+
+  You may also set `:default_handler` to false to disable the default logging
+  altogether:
 
       config :logger, :default_handler, false
 
-  How to add new handlers is covered in later sections.
+  How to add more handlers besides the default one is covered in later sections.
 
   > #### Keywords or maps {: .tip}
   >
@@ -395,8 +412,12 @@ defmodule Logger do
         end
       end
 
-  Then, when you start your application, such as in the
-  `c:Application.start/2` callback:
+  It may return `:log` (to log the message), `:stop` (to not log the
+  message), or `:ignore` (to ignore the filter).
+
+  Then you can attach the filter, either as a primary filter (which
+  applies to all handlers), or to a specific handler, when you start
+  your application, such as in the `c:Application.start/2` callback:
 
       :logger.add_primary_filter(:word_filter, {&LogFilter.filter/2, []})
 
@@ -405,7 +426,7 @@ defmodule Logger do
   Prior to Elixir v1.15, custom logging could be achieved with Logger
   backends. The main API for writing Logger backends have been moved to
   the [`:logger_backends`](https://github.com/elixir-lang/logger_backends)
-  project. However, the backends API are still part of Elixir for backwards
+  project. However, the backends API is still part of Elixir for backwards
   compatibility.
 
   Important remarks:
