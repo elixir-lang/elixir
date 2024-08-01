@@ -915,14 +915,9 @@ defmodule Module.Types.Descr do
            true
 
          # The key is not shared between positive and negative maps,
-         # and because the negative type is required, there is no value in common
-         tag == :closed and not is_optional_static(neg_type) ->
-           false
-
-         # The key is not shared between positive and negative maps,
-         # but because the negative type is not required, there may be a value in common
+         # if the negative type is optional, then there may be a value in common
          tag == :closed ->
-           true
+           is_optional_static(neg_type)
 
          # There may be value in common
          tag == :open ->
@@ -937,12 +932,17 @@ defmodule Module.Types.Descr do
              empty?(diff) or map_empty?(tag, Map.put(fields, key, diff), negs)
 
            %{} ->
-             if neg_tag == :closed and not is_optional_static(type) do
-               false
-             else
-               # an absent key in a open negative map can be ignored
-               diff = difference(type, tag_to_type(neg_tag))
-               empty?(diff) or map_empty?(tag, Map.put(fields, key, diff), negs)
+             cond do
+               neg_tag == :open ->
+                 true
+
+               neg_tag == :closed and not is_optional_static(type) ->
+                 false
+
+               true ->
+                 # an absent key in a open negative map can be ignored
+                 diff = difference(type, tag_to_type(neg_tag))
+                 empty?(diff) or map_empty?(tag, Map.put(fields, key, diff), negs)
              end
          end
        end)) or map_empty?(tag, fields, negs)
@@ -1412,24 +1412,20 @@ defmodule Module.Types.Descr do
   # are disjoint on their first component.
   defp pair_eliminate_negations(negative, t, s) do
     {pair_union, diff_of_t_i} =
-      Enum.reduce(
-        negative,
-        {[], t},
-        fn {t_i, s_i}, {accu, diff_of_t_i} ->
-          i = intersection(t, t_i)
+      Enum.reduce(negative, {[], t}, fn {t_i, s_i}, {accu, diff_of_t_i} ->
+        i = intersection(t, t_i)
 
-          if empty?(i) do
-            {accu, diff_of_t_i}
-          else
-            diff_of_t_i = difference(diff_of_t_i, t_i)
-            s_diff = difference(s, s_i)
+        if empty?(i) do
+          {accu, diff_of_t_i}
+        else
+          diff_of_t_i = difference(diff_of_t_i, t_i)
+          s_diff = difference(s, s_i)
 
-            if empty?(s_diff),
-              do: {accu, diff_of_t_i},
-              else: {[i | accu], diff_of_t_i}
-          end
+          if empty?(s_diff),
+            do: {accu, diff_of_t_i},
+            else: {[i | accu], diff_of_t_i}
         end
-      )
+      end)
 
     [diff_of_t_i | pair_union]
   end
