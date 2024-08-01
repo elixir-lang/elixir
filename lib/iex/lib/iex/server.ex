@@ -266,16 +266,14 @@ defmodule IEx.Server do
          input,
          _callback
        ) do
-    if abnormal_reason?(reason) do
-      try do
-        io_error(
-          "** (EXIT from #{inspect(evaluator)}) shell process exited with reason: " <>
-            Exception.format_exit(reason)
-        )
-      catch
-        type, detail ->
-          io_error("** (IEx.Error) #{type} when printing EXIT message: #{inspect(detail)}")
-      end
+    try do
+      io_error(
+        "** (EXIT from #{inspect(evaluator)}) shell process exited with reason: " <>
+          Exception.format_exit(reason)
+      )
+    catch
+      type, detail ->
+        io_error("** (IEx.Error) #{type} when printing EXIT message: #{inspect(detail)}")
     end
 
     rerun(state, [], evaluator, evaluator_ref, input)
@@ -284,11 +282,6 @@ defmodule IEx.Server do
   defp handle_common(_, state, _evaluator, _evaluator_ref, _input, callback) do
     callback.(state)
   end
-
-  defp abnormal_reason?(:normal), do: false
-  defp abnormal_reason?(:shutdown), do: false
-  defp abnormal_reason?({:shutdown, _}), do: false
-  defp abnormal_reason?(_), do: true
 
   defp take_over?(take_pid, take_ref, take_location, take_whereami, take_opts, counter) do
     evaluator = take_opts[:evaluator] || self()
