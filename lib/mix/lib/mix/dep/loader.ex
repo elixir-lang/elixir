@@ -332,7 +332,7 @@ defmodule Mix.Dep.Loader do
   defp rebar_dep(dep, children, manager, locked?) do
     %Mix.Dep{app: app, opts: opts, extra: overrides} = dep
 
-    if locked? and is_nil(Mix.Rebar.rebar_path(manager)) do
+    if locked? and not Mix.Rebar.available?(manager) do
       Mix.Tasks.Local.Rebar.run(["--force"])
     end
 

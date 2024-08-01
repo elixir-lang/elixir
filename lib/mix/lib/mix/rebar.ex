@@ -2,9 +2,9 @@ defmodule Mix.Rebar do
   @moduledoc false
 
   # TODO: Remove on Elixir v1.20 because phx_new and other installers rely on it.
-  @deprecated "Use global_rebar_path/1 instead"
+  @deprecated "Use env_rebar_path/1 instead"
   def global_rebar_cmd(manager) do
-    global_rebar_path(manager)
+    env_rebar_path(manager)
   end
 
   @deprecated "Use local_rebar_path/1 instead"
@@ -12,15 +12,26 @@ defmodule Mix.Rebar do
     local_rebar_path(manager)
   end
 
-  @deprecated "Use rebar_path/1 instead"
+  @deprecated "Use rebar_args/2 or available?/1 instead"
   def rebar_cmd(manager) do
     global_rebar_cmd(manager) || local_rebar_cmd(manager)
   end
 
   @doc """
-  Receives a Rebar executable and returns how it must be invoked.
+  Returns if Rebar is available or not.
   """
-  def rebar_args(rebar, args) do
+  def available?(manager) do
+    env_rebar_path(manager) != nil or File.regular?(local_rebar_path(manager))
+  end
+
+  @doc """
+  Receives a Rebar executable and returns how it must be invoked.
+
+  It returns a result even if Rebar is not available.
+  """
+  def rebar_args(:rebar3, args) do
+    rebar = env_rebar_path(:rebar3) || local_rebar_path(:rebar3)
+
     if match?({:win32, _}, :os.type()) and not String.ends_with?(rebar, ".cmd") do
       {"escript.exe", [rebar | args]}
     else
@@ -29,16 +40,9 @@ defmodule Mix.Rebar do
   end
 
   @doc """
-  Returns either the global or local rebar path.
+  Returns the global rebar path.
   """
-  def rebar_path(:rebar3) do
-    global_rebar_path(:rebar3) || local_rebar_path(:rebar3)
-  end
-
-  @doc """
-  Finds the global rebar path.
-  """
-  def global_rebar_path(:rebar3) do
+  def env_rebar_path(:rebar3) do
     System.get_env("MIX_REBAR3")
   end
 

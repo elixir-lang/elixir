@@ -180,6 +180,10 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp do_rebar3(%Mix.Dep{opts: opts} = dep, config) do
+    unless Mix.Rebar.available?(:rebar3) do
+      handle_rebar_not_found(dep)
+    end
+
     dep_path = opts[:dest]
     build_path = opts[:build]
     File.mkdir_p!(build_path)
@@ -207,8 +211,7 @@ defmodule Mix.Tasks.Deps.Compile do
       {"TERM", "dumb"}
     ]
 
-    rebar = Mix.Rebar.local_rebar_path(:rebar3) || handle_rebar_not_found(dep)
-    {exec, args} = Mix.Rebar.rebar_args(rebar, ["bare", "compile", "--paths", lib_path])
+    {exec, args} = Mix.Rebar.rebar_args(:rebar3, ["bare", "compile", "--paths", lib_path])
 
     if Mix.shell().cmd({exec, args}, opts_for_cmd(dep, config, env)) != 0 do
       Mix.raise(
@@ -253,7 +256,10 @@ defmodule Mix.Tasks.Deps.Compile do
     end
 
     Mix.Tasks.Local.Rebar.run(["--force"])
-    Mix.Rebar.local_rebar_path(manager) || Mix.raise("\"#{manager}\" installation failed")
+
+    unless Mix.Rebar.available?(manager) do
+      Mix.raise("\"#{manager}\" installation failed")
+    end
   end
 
   defp do_make(dep, config) do
