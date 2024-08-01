@@ -549,6 +549,10 @@ defmodule Module.Types.DescrTest do
     test "map_fetch with dynamic" do
       assert map_fetch(dynamic(), :a) == {true, dynamic()}
 
+      assert map_fetch(union(dynamic(), integer()), :a) == :badmap
+      assert map_fetch(union(dynamic(open_map(a: integer())), integer()), :a) == :badmap
+      assert map_fetch(union(dynamic(integer()), integer()), :a) == :badmap
+
       assert intersection(dynamic(), open_map(a: integer()))
              |> map_fetch(:a) == {false, intersection(integer(), dynamic())}
 

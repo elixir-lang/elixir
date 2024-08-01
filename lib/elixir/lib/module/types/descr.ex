@@ -729,7 +729,7 @@ defmodule Module.Types.Descr do
   def map_fetch(%{} = descr, key) do
     case :maps.take(:dynamic, descr) do
       :error ->
-        if is_map_key(descr, :map) and map_only?(descr) do
+        if map_key?(descr) and map_only?(descr) do
           {static_optional?, static_type} = map_fetch_static(descr, key)
 
           if static_optional? or empty?(static_type) do
@@ -741,11 +741,8 @@ defmodule Module.Types.Descr do
           :badmap
         end
 
-      {:term, _static} ->
-        {true, dynamic()}
-
       {dynamic, static} ->
-        if is_map_key(dynamic, :map) and map_only?(static) do
+        if map_key?(dynamic) and map_only?(static) do
           {dynamic_optional?, dynamic_type} = map_fetch_static(dynamic, key)
           {static_optional?, static_type} = map_fetch_static(static, key)
 
@@ -760,7 +757,15 @@ defmodule Module.Types.Descr do
     end
   end
 
+  # TODO: Refactor this into descr_key?/1 and  and descr_only?/1
+  defp map_key?(:term), do: true
+  defp map_key?(descr), do: is_map_key(descr, :map)
+
   defp map_only?(descr), do: empty?(Map.delete(descr, :map))
+
+  defp map_fetch_static(:term, _key) do
+    {true, term()}
+  end
 
   defp map_fetch_static(descr, key) when is_atom(key) do
     case descr do
