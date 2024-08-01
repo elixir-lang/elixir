@@ -1196,6 +1196,7 @@ defmodule Module.Types.Descr do
   # Pads a list of elements with term().
   defp tuple_fill(elements, desired_length) do
     pad_length = desired_length - length(elements)
+
     if pad_length < 0 do
       raise ArgumentError, "tuple_fill: elements are longer than the desired length"
     else
@@ -1375,18 +1376,16 @@ defmodule Module.Types.Descr do
 
   # Use heuristics to normalize a tuple dnf for pretty printing.
   defp tuple_normalize(dnf) do
-    dnf
-    |> Enum.reject(&tuple_empty?([&1]))
-    |> Enum.map(fn {tag, fields, negs} ->
-      {tag, fields, Enum.reject(negs, &tuple_empty_negation?(tag, fields, &1))}
-    end)
+    for {tag, elements, negs} <- dnf,
+        not tuple_empty?([{tag, elements, negs}]) do
+      n = length(elements)
+      {tag, elements, Enum.reject(negs, &tuple_empty_negation?(tag, n, &1))}
+    end
   end
 
   # Remove useless negations, which denote tuples of incompatible sizes.
-  defp tuple_empty_negation?(tag, elements, {neg_tag, neg_elements}) do
-    n = length(elements)
+  defp tuple_empty_negation?(tag, n, {neg_tag, neg_elements}) do
     m = length(neg_elements)
-
     (tag == :closed and n < m) or (neg_tag == :closed and n > m)
   end
 
