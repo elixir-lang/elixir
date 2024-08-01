@@ -1289,10 +1289,24 @@ defmodule Module.Types.Descr do
         if descr_key?(descr, :tuple) and tuple_only?(descr) do
           {static_optional?, static_type} = tuple_fetch_static(descr, key)
 
-          cond do
-            empty?(static_type) -> :badindex
-            static_optional? -> {true, static_type}
-            true -> {false, static_type}
+          # If I access a static tuple at a "open position", we have two options:
+          #
+          # 1. Do not allow the access and return :badindex,
+          #    you must use dynamic for these cases (this is what we chose for maps)
+          #
+          # 2. Allow the access and return the static type
+          #
+          # The trouble with allowing the access is that it is a potential runtime
+          # error not being caught by the type system.
+          #
+          # Furthermore, our choice here, needs to be consistent with elem/put_elem
+          # when the index is the `integer()` type. If we choose to return `:badindex`,
+          # then all elem/put_elem with an `integer()` and the tuple is not dynamic
+          # should also be a static typing error. We chose to go with 1.
+          if static_optional? or empty?(static_type) do
+            :badindex
+          else
+            {false, static_type}
           end
         else
           :badtuple

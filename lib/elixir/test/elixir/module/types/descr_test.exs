@@ -454,9 +454,7 @@ defmodule Module.Types.DescrTest do
              |> difference(tuple([integer(), term(), atom()]))
              |> tuple_fetch(2) == {false, integer()}
 
-      # difference with map_fetch: querying the index 0 of tuple() is not an error
-      assert tuple_fetch(tuple(), 0)
-             |> Kernel.then(fn {opt, type} -> opt and equal?(type, term()) end)
+      assert tuple_fetch(tuple(), 0) == :badindex
     end
 
     test "tuple_fetch with dynamic" do
