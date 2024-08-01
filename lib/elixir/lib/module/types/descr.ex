@@ -106,6 +106,9 @@ defmodule Module.Types.Descr do
   defguardp is_optional_static(map)
             when is_map(map) and is_map_key(map, :bitmap) and (map.bitmap &&& @bit_optional) != 0
 
+  defp descr_key?(:term, _key), do: true
+  defp descr_key?(descr, key), do: is_map_key(descr, key)
+
   ## Set operations
 
   def term_type?(:term), do: true
@@ -729,7 +732,7 @@ defmodule Module.Types.Descr do
   def map_fetch(%{} = descr, key) do
     case :maps.take(:dynamic, descr) do
       :error ->
-        if map_key?(descr) and map_only?(descr) do
+        if descr_key?(descr, :map) and map_only?(descr) do
           {static_optional?, static_type} = map_fetch_static(descr, key)
 
           if static_optional? or empty?(static_type) do
@@ -742,7 +745,7 @@ defmodule Module.Types.Descr do
         end
 
       {dynamic, static} ->
-        if map_key?(dynamic) and map_only?(static) do
+        if descr_key?(dynamic, :map) and map_only?(static) do
           {dynamic_optional?, dynamic_type} = map_fetch_static(dynamic, key)
           {static_optional?, static_type} = map_fetch_static(static, key)
 
@@ -756,10 +759,6 @@ defmodule Module.Types.Descr do
         end
     end
   end
-
-  # TODO: Refactor this into descr_key?/1 and  and descr_only?/1
-  defp map_key?(:term), do: true
-  defp map_key?(descr), do: is_map_key(descr, :map)
 
   defp map_only?(descr), do: empty?(Map.delete(descr, :map))
 
@@ -1287,9 +1286,8 @@ defmodule Module.Types.Descr do
   def tuple_fetch(%{} = descr, key) do
     case :maps.take(:dynamic, descr) do
       :error ->
-        if is_map_key(descr, :tuple) and tuple_only?(descr) do
-          {static_optional?, static_type} =
-            tuple_fetch_static(descr, key) |> pop_optional_static()
+        if descr_key?(descr, :tuple) and tuple_only?(descr) do
+          {static_optional?, static_type} = tuple_fetch_static(descr, key)
 
           cond do
             empty?(static_type) -> :badindex
@@ -1300,24 +1298,10 @@ defmodule Module.Types.Descr do
           :badtuple
         end
 
-      {:term, static} ->
-        if tuple_only?(static) do
-          static_type = tuple_fetch_static(static, key)
-          {true, union(dynamic(), static_type)}
-        else
-          :badtuple
-        end
-
-      {%{map: {:open, [], []}}, static} when static == @none ->
-        {true, dynamic()}
-
       {dynamic, static} ->
-        if is_map_key(dynamic, :tuple) and tuple_only?(static) do
-          {dynamic_optional?, dynamic_type} =
-            tuple_fetch_static(dynamic, key) |> pop_optional_static()
-
-          {static_optional?, static_type} =
-            tuple_fetch_static(static, key) |> pop_optional_static()
+        if descr_key?(dynamic, :tuple) and tuple_only?(static) do
+          {dynamic_optional?, dynamic_type} = tuple_fetch_static(dynamic, key)
+          {static_optional?, static_type} = tuple_fetch_static(static, key)
 
           if empty?(dynamic_type) do
             :badindex
@@ -1334,8 +1318,16 @@ defmodule Module.Types.Descr do
 
   defp tuple_fetch_static(descr, index) when is_integer(index) do
     case descr do
-      %{tuple: tuple} -> Enum.reduce(tuple_split_on_index(tuple, index), none(), &union/2)
-      %{} -> none()
+      :term ->
+        {true, term()}
+
+      %{tuple: tuple} ->
+        tuple_split_on_index(tuple, index)
+        |> Enum.reduce(none(), &union/2)
+        |> pop_optional_static()
+
+      %{} ->
+        {false, none()}
     end
   end
 
