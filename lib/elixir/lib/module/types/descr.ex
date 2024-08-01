@@ -64,7 +64,6 @@ defmodule Module.Types.Descr do
   def reference(), do: %{bitmap: @bit_reference}
   def open_tuple(elements), do: %{tuple: tuple_new(:open, elements)}
   def tuple(elements), do: %{tuple: tuple_new(:closed, elements)}
-  def empty_tuple(), do: tuple([])
   def tuple(), do: %{tuple: @tuple_top}
 
   @boolset :sets.from_list([true, false], version: 2)
@@ -1195,12 +1194,13 @@ defmodule Module.Types.Descr do
   end
 
   # Pads a list of elements with term().
-  defp tuple_fill(elements, length) when length(elements) > length do
-    raise ArgumentError, "tuple_fill: elements are longer than the desired length"
-  end
-
   defp tuple_fill(elements, desired_length) do
-    elements ++ List.duplicate(term(), desired_length - length(elements))
+    pad_length = desired_length - length(elements)
+    if pad_length < 0 do
+      raise ArgumentError, "tuple_fill: elements are longer than the desired length"
+    else
+      elements ++ List.duplicate(term(), pad_length)
+    end
   end
 
   # Check if a tuple represented in DNF is empty
@@ -1225,26 +1225,26 @@ defmodule Module.Types.Descr do
     if (tag == :closed and n < m) or (neg_tag == :closed and n > m) do
       tuple_empty?(tag, elements, negs)
     else
-      check_elements([], tag, elements, neg_elements, negs) and
-        check_compatibility(n, m, tag, elements, neg_tag, negs)
+      tuple_elements([], tag, elements, neg_elements, negs) and
+        tuple_compatibility(n, m, tag, elements, neg_tag, negs)
     end
   end
 
   # Recursively check elements for emptiness
-  defp check_elements(_, _, _, [], _), do: true
+  defp tuple_elements(_, _, _, [], _), do: true
 
-  defp check_elements(acc, tag, elements, [neg_type | neg_elements], negs) do
+  defp tuple_elements(acc, tag, elements, [neg_type | neg_elements], negs) do
     {ty, elements} = List.pop_at(elements, 0, term())
     diff = difference(ty, neg_type)
 
     (empty?(diff) or tuple_empty?(tag, Enum.reverse(acc, [diff | elements]), negs)) and
-      check_elements([ty | acc], tag, elements, neg_elements, negs)
+      tuple_elements([ty | acc], tag, elements, neg_elements, negs)
   end
 
   # Determines if the set difference is empty when:
   # - Positive tuple: {tag, elements} of size n
   # - Negative tuple: open or closed tuples of size m
-  defp check_compatibility(n, m, tag, elements, neg_tag, negs) do
+  defp tuple_compatibility(n, m, tag, elements, neg_tag, negs) do
     # The tuples to consider are all those of size n to m - 1, and if the negative tuple is
     # closed, we also need to consider tuples of size greater than m + 1.
     tag == :closed or
@@ -1267,8 +1267,7 @@ defmodule Module.Types.Descr do
       iex> tuple_fetch(tuple([integer(), atom()]), 0)
       {false, integer()}
 
-      iex> tuple_fetch(tuple([integer(), atom()]), 2)
-            :badindex
+      :badindex
 
       iex> tuple_fetch(union(tuple([integer()]), tuple([integer(), atom()])), 1)
       {true, atom()}
@@ -1277,7 +1276,7 @@ defmodule Module.Types.Descr do
       {true, dynamic()}
 
       iex> tuple_fetch(integer(), 0)
-          :badtuple
+      :badtuple
 
   """
   def tuple_fetch(_, index) when index < 0, do: :badindex
@@ -1348,7 +1347,7 @@ defmodule Module.Types.Descr do
   defp tuple_split_on_index(dnf, index) do
     Enum.flat_map(dnf, fn
       {tag, elements, []} ->
-        [Enum.at(elements, index) || tag_to_type(tag)]
+        [Enum.at(elements, index, tag_to_type(tag))]
 
       {tag, elements, negs} ->
         {fst, snd} = tuple_pop_index(tag, elements, index)

@@ -182,6 +182,7 @@ defmodule Module.Types.DescrTest do
       assert empty?(difference(none(), dynamic()))
     end
 
+    defp empty_tuple(), do: tuple([])
     defp tuple_of_size_at_least(n) when is_integer(n), do: open_tuple(List.duplicate(term(), n))
     defp tuple_of_size(n) when is_integer(n), do: tuple(List.duplicate(term(), n))
 
