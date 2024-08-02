@@ -198,7 +198,7 @@ defmodule Config do
   Reads the configuration for the given root key.
 
   This function only reads the configuration from a previous
-  `config/2` pr `config/3` call. If `root_key` points to an
+  `config/2` or `config/3` call. If `root_key` points to an
   application, it does not read its actual application environment.
   Its main use case is to make it easier to access and share
   configuration values across files.
