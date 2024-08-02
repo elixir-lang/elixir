@@ -6212,7 +6212,7 @@ defmodule Kernel do
   """
   @doc since: "1.17.0"
   @spec to_timeout([component, ...] | timeout() | Duration.t()) :: timeout()
-        when component: [{unit, non_neg_integer()}, ...],
+        when component: {unit, non_neg_integer()},
              unit: :week | :day | :hour | :minute | :second | :millisecond
   def to_timeout(duration)
 
