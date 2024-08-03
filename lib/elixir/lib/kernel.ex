@@ -5696,16 +5696,15 @@ defmodule Kernel do
   end
 
   @doc """
-  Generates a macro suitable for use in guard expressions.
+  Defines a macro suitable for use in guard expressions.
 
-  It raises at compile time if the definition uses expressions that aren't
-  allowed in guards, and otherwise creates a macro that can be used both inside
-  or outside guards.
+  It raises at compile time if the `guard` uses expressions that aren't
+  allowed in [guard clauses](patterns-and-guards.html#guards),
+  and otherwise creates a macro that can be used both inside or outside guards.
 
-  Note the convention in Elixir is to prefix all guards that return a boolean
-  with the `is_` prefix, such as `is_list/1`. If, however, the function/macro
-  returns a boolean and is not allowed in guards, it should have no prefix and
-  end with a question mark, such as `Keyword.keyword?/1`.
+  When defining your own guards, consider the
+  [naming conventions](naming-conventions.html#is_-prefix-is_foo)
+  around boolean-returning guards.
 
   ## Example
 
@@ -5742,11 +5741,16 @@ defmodule Kernel do
   end
 
   @doc """
-  Generates a private macro suitable for use in guard expressions.
+  Defines a private macro suitable for use in guard expressions.
 
-  It raises at compile time if the definition uses expressions that aren't
-  allowed in guards, and otherwise creates a private macro that can be used
+  It raises at compile time if the `guard` uses expressions that aren't
+  allowed in [guard clauses](patterns-and-guards.html#guards),
+  and otherwise creates a private macro that can be used
   both inside or outside guards in the current module.
+
+  When defining your own guards, consider the
+  [naming conventions](naming-conventions.html#is_-prefix-is_foo)
+  around boolean-returning guards.
 
   Similar to `defmacrop/2`, `defguardp/1` must be defined before its use
   in the current module.
