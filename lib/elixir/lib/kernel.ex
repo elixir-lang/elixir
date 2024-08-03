@@ -2745,6 +2745,33 @@ defmodule Kernel do
   end
 
   @doc """
+  Same as then/2 but accepts a predicate `pred`, a function that takes one argument
+  and returns truthy or falsy.
+
+  `pred` will be called with `value` as argument. If it returns truthy, then the
+  result is the same as calling `then/2`. If `pred(value)` returns falsey, `fun` is
+  not applied and `value` is returned unmodified.
+
+  ### Examples
+
+      iex> 1 |> then(fn x -> x * 2 end, if: & &1 > 0)
+      2
+
+      iex> 1 |> then(fn x -> x * 2 end, if: & &1 < 0)
+      1
+  """
+  @doc since: "1.18.0"
+  defmacro then(value, fun, if: pred) do
+    quote do
+      if unquote(pred).(unquote(value)) do
+        unquote(fun).(unquote(value))
+      else
+        unquote(value)
+      end
+    end
+  end
+
+  @doc """
   Gets a value from a nested structure with nil-safe handling.
 
   Uses the `Access` module to traverse the structures
