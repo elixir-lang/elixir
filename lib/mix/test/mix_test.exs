@@ -326,7 +326,68 @@ defmodule MixTest do
       end
     end
 
-    test "using restore dir", %{tmp_dir: tmp_dir} do
+    test "incremental compilation by latest version", %{tmp_dir: tmp_dir} do
+      with_cleanup(fn ->
+        Mix.install([
+          {:git_repo, git: fixture_path("git_repo")}
+        ])
+
+        assert_received {:mix_shell, :info, ["* Getting git_repo " <> _]}
+        assert_received {:mix_shell, :info, ["==> git_repo"]}
+        assert_received {:mix_shell, :info, ["Compiling 1 file (.ex)"]}
+        assert_received {:mix_shell, :info, ["Generated git_repo app"]}
+        refute_received _
+
+        install_project_dir = Mix.install_project_dir()
+        build_lib_path = Path.join([install_project_dir, "_build", "dev", "lib"])
+        deps_path = Path.join([install_project_dir, "deps"])
+
+        assert File.ls!(build_lib_path) |> Enum.sort() == ["git_repo", "mix_install"]
+        assert File.ls!(deps_path) == ["git_repo"]
+      end)
+
+      # Adding a dependency
+
+      with_cleanup(fn ->
+        Mix.install([
+          {:git_repo, git: fixture_path("git_repo")},
+          {:install_test, path: Path.join(tmp_dir, "install_test")}
+        ])
+
+        assert_received {:mix_shell, :info, ["==> install_test"]}
+        assert_received {:mix_shell, :info, ["Compiling 2 files (.ex)"]}
+        assert_received {:mix_shell, :info, ["Generated install_test app"]}
+        refute_received _
+
+        install_project_dir = Mix.install_project_dir()
+        build_lib_path = Path.join([install_project_dir, "_build", "dev", "lib"])
+        deps_path = Path.join([install_project_dir, "deps"])
+
+        assert File.ls!(build_lib_path) |> Enum.sort() ==
+                 ["git_repo", "install_test", "mix_install"]
+
+        assert File.ls!(deps_path) == ["git_repo"]
+      end)
+
+      # Removing a dependency
+
+      with_cleanup(fn ->
+        Mix.install([
+          {:install_test, path: Path.join(tmp_dir, "install_test")}
+        ])
+
+        refute_received _
+
+        install_project_dir = Mix.install_project_dir()
+        build_lib_path = Path.join([install_project_dir, "_build", "dev", "lib"])
+        deps_path = Path.join([install_project_dir, "deps"])
+
+        assert File.ls!(build_lib_path) |> Enum.sort() == ["install_test", "mix_install"]
+        assert File.ls!(deps_path) == []
+      end)
+    end
+
+    test "using restore dir by export environment variable", %{tmp_dir: tmp_dir} do
       with_cleanup(fn ->
         Mix.install([
           {:git_repo, git: fixture_path("git_repo")}
