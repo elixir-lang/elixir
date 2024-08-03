@@ -860,11 +860,9 @@ defmodule Mix do
     consolidate_protocols? = Keyword.fetch!(opts, :consolidate_protocols)
     start_applications? = Keyword.fetch!(opts, :start_applications)
 
-    id =
-      {deps, config, system_env, consolidate_protocols?}
-      |> :erlang.term_to_binary()
-      |> :erlang.md5()
-      |> Base.encode16(case: :lower)
+    id_without_deps = generate_id({config, system_env, consolidate_protocols?})
+    deps_id = generate_id({deps})
+    id = id_without_deps <> deps_id
 
     force? = System.get_env("MIX_INSTALL_FORCE") in ["1", "true"] or Keyword.fetch!(opts, :force)
 
@@ -874,6 +872,7 @@ defmodule Mix do
         System.put_env(system_env)
 
         install_project_dir = install_project_dir(id)
+        latest_cache_dir = latest_cache_dir(id_without_deps)
 
         if Keyword.fetch!(opts, :verbose) do
           Mix.shell().info("Mix.install/2 using #{install_project_dir}")
@@ -899,7 +898,7 @@ defmodule Mix do
         try do
           first_build? = not File.dir?(build_dir)
 
-          restore_dir = System.get_env("MIX_INSTALL_RESTORE_PROJECT_DIR")
+          restore_dir = System.get_env("MIX_INSTALL_RESTORE_PROJECT_DIR") || latest_cache_dir
 
           if first_build? and restore_dir != nil and not force? do
             File.cp_r(restore_dir, install_project_dir)
@@ -1005,6 +1004,13 @@ defmodule Mix do
     Path.join(app_dir, relative_path)
   end
 
+  defp generate_id(info) do
+    info
+    |> :erlang.term_to_binary()
+    |> :erlang.md5()
+    |> Base.encode16(case: :lower)
+  end
+
   defp remove_leftover_deps(install_project_dir) do
     build_lib_dir = Path.join([install_project_dir, "_build", "dev", "lib"])
 
@@ -1033,13 +1039,34 @@ defmodule Mix do
     File.rm_rf(dep_path)
   end
 
-  defp install_project_dir(cache_id) do
+  defp install_project_dir(cache_id), do: Path.join([version_dir(), cache_id])
+
+  defp latest_cache_dir(id_without_deps) do
+    version_dir = version_dir()
+
+    with {:ok, entries} <- File.ls(version_dir) do
+      entries
+      |> Enum.filter(&String.starts_with?(&1, id_without_deps))
+      |> Enum.map(&Path.join(version_dir, &1))
+      |> Enum.map(&{&1, File.stat!(&1).mtime})
+      |> Enum.max_by(&elem(&1, 1), fn -> nil end)
+      |> case do
+        {latest_dir, _mtime} -> latest_dir
+        nil -> nil
+      end
+    else
+      _ -> nil
+    end
+  end
+
+  defp version_dir() do
     install_root =
       System.get_env("MIX_INSTALL_DIR") ||
         Path.join(Mix.Utils.mix_cache(), "installs")
 
     version = "elixir-#{System.version()}-erts-#{:erlang.system_info(:version)}"
-    Path.join([install_root, version, cache_id])
+
+    Path.join([install_root, version])
   end
 
   defp install_project_config(dynamic_config) do
