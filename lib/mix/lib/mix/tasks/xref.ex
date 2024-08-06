@@ -32,7 +32,7 @@ defmodule Mix.Tasks.Xref do
 
   Therefore, if your goal is to reduce recompilations, the first step is to run:
 
-      mix xref graph --format stats --label compile-connected
+      $ mix xref graph --format stats --label compile-connected
 
   This command will show general information about the project, but
   focus on compile-connected dependencies. In the stats, you will see
@@ -50,11 +50,11 @@ defmodule Mix.Tasks.Xref do
   that "lib/livebook_web.ex" itself has its own dependencies. We can find
   which files depend on "lib/livebook_web.ex" at compile time like this:
 
-      mix xref graph --sink lib/livebook_web.ex --label compile --only-nodes
+      $ mix xref graph --sink lib/livebook_web.ex --label compile --only-nodes
 
   And you can find the files lib/livebook_web.ex depends on like this:
 
-      mix xref graph --source lib/livebook_web.ex --only-nodes
+      $ mix xref graph --source lib/livebook_web.ex --only-nodes
 
   The trouble here is precisely that, if any of the files in the latter
   command changes, all of the files in the first command will be recompiled,
@@ -65,7 +65,7 @@ defmodule Mix.Tasks.Xref do
   dependencies within the same project. You can understand all of the
   dependencies of a given file by running:
 
-      mix xref trace lib/livebook_web.ex
+      $ mix xref trace lib/livebook_web.ex
 
   The command above will output three types of dependencies, which we
   detail next.
@@ -329,6 +329,36 @@ defmodule Mix.Tasks.Xref do
   applications. When invoked at the umbrella root, the `graph`
   command will list all files from all umbrella children, without
   any namespacing.
+
+  ### Understanding the printed cycle
+
+  If you run `mix xref graph --format cycle`, Elixir will print cycles
+  of shape:
+
+      Cycle of length 3:
+
+          lib/c.ex
+          lib/b.ex
+          lib/a.ex
+
+  The cycles are given in order: `c.ex` depends on `b.ex` which depends
+  on `a.ex` which depends on `c.ex`. In particular, you want to avoid
+  cycles with compile dependencies in there. You can find those cycles
+  with:
+
+      $ mix xref graph --format cycles --label compile-connected
+
+  Which may look like this:
+
+      Cycle of length 3:
+
+          lib/c.ex
+          lib/b.ex (compile)
+          lib/a.ex
+
+  This means `c.ex` depends on `b.ex` at compile time. Any compile dependency
+  in a cycle is by definition a compile-connected dependency, which must be
+  generally avoided, as explained earlier in the module documentation.
 
   ## Shared options
 
