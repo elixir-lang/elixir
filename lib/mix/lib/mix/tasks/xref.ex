@@ -14,16 +14,111 @@ defmodule Mix.Tasks.Xref do
 
       $ mix xref MODE
 
-  All available modes are discussed below.
+  All available modes are discussed below, after a brief
+  introduction to xref.
 
   This task is automatically re-enabled, so you can print
   information multiple times in the same Mix invocation.
 
-  ## mix xref callers MODULE
+  ## A brief introduction to xref
 
-  Prints all callers of the given module. Example:
+  The goal of `xref` is to analyze the dependencies between modules
+  and files. It is most commonly used to find problematic areas where
+  touching one file in a project causes a large subset of the project
+  to recompile. The most common cause of these problems are the so-called
+  "compile-connected" files. Those are files you depend on at compile-time
+  (for example, by invoking its macro or using it in the body of amodule)
+  which also have their own dependencies.
 
-      $ mix xref callers MyMod
+  Therefore, if your goal is to reduce recompilations, the first step is to run:
+
+      mix xref graph --format stats --label compile-connected
+
+  This command will show general information about the project, but
+  focus on compile-connected dependencies. In the stats, you will see
+  the following report:
+
+      Top 10 files with most incoming dependencies:
+        * lib/livebook_web.ex (97)
+        * lib/livebook/config.ex (3)
+        * proto/lib/livebook_proto/deployment_group.pb.ex (2)
+        * lib/livebook_web/plugs/memory_provider.ex (2)
+        * proto/lib/livebook_proto/user_connected.pb.ex (1)
+
+  You can see the first file, "lib/livebook_web.ex", is depended on by 97
+  other files and, because we are using compile-connected, it also means
+  that "lib/livebook_web.ex" itself has its own dependencies. We can find
+  which files depend on "lib/livebook_web.ex" at compile time like this:
+
+      mix xref graph --sink lib/livebook_web.ex --label compile --only-nodes
+
+  And you can find the files lib/livebook_web.ex depends on like this:
+
+      mix xref graph --source lib/livebook_web.ex --only-nodes
+
+  The trouble here is precisely that, if any of the files in the latter
+  command changes, all of the files in the first command will be recompiled,
+  because compile time dependencies are transitive.
+
+  Having compile time dependencies is a common feature in Elixir projects.
+  However, the modules you depend on at compile-time must avoid runtime
+  dependencies within the same project. You can understand all of the
+  dependencies of a given file by running:
+
+      mix xref trace lib/livebook_web.ex
+
+  The command above will output three types of dependencies, which we
+  detail next.
+
+  ### Dependency types
+
+  Elixir tracks three types of dependencies between modules: compile,
+  exports, and runtime. If a module has a compile time dependency on
+  another module, the caller module has to be recompiled whenever the
+  callee changes (or any runtime dependency of the callee changes).
+  Let's see an example:
+
+      # lib/a.ex
+      defmodule A do
+        @hello B.hello()
+        def hello, do: @hello
+      end
+
+      # lib/b.ex
+      defmodule B do
+        def hello, do: "hello"
+        def world, do: C.world()
+      end
+
+      # lib/c.ex
+      defmodule C do
+        def world, do: "world"
+      end
+
+  If `C.world/0` changes, `B` is marked as stale. `B` does not need to
+  be recompiled, because it depends on `C` at runtime, but anything that
+  depends on `B` at compile-time has to recompile, and that includes `A`.
+
+  Compile-time dependencies are typically added when using macros or
+  when invoking functions in the module body (outside of functions).
+  This type of transitive compile-time dependencies, such as `A`
+  depending on `C` at compile-time through `B`, are called compile-connected.
+
+  Export dependencies are compile time dependencies on the module API,
+  namely structs and its public definitions. For example, if you import
+  a module but only use its functions, it is an export dependency. If
+  you use a struct, it is an export dependency too. Export dependencies
+  are only recompiled if the module API changes. Note, however, that compile
+  time dependencies have higher precedence than exports. Therefore if
+  you import a module and use its macros, it is a compile time dependency.
+
+  Runtime dependencies are added whenever you invoke another module
+  inside a function. Modules with runtime dependencies do not have
+  to be compiled when the callee changes, unless there is a transitive
+  compile or an outdated export time dependency between them.
+
+  Over the next sections, we will explain what which `mix xref` command
+  does in detail.
 
   ## mix xref trace FILE
 
@@ -86,14 +181,13 @@ defmodule Mix.Tasks.Xref do
     * `--exclude` - path to exclude. Can be repeated to exclude multiple paths.
 
     * `--label` - only shows relationships with the given label.
-      The labels are "compile", "export" and "runtime". By default,
-      the `--label` option simply filters the printed graph to show
-      only relationships with the given label. You can pass `--only-direct`
-      to trim the graph to only the nodes that have the direct
-      relationship given by label. There is also a special label
-      called "compile-connected" that keeps only compile-time files
-      with at least one transitive dependency. See "Dependency types"
-      section below.
+      The labels are "compile", "export" and "runtime". By default, the `--label`
+      option does not change how the graph is computed, it simply filters the
+      printed graph to show only relationships with the given label. However,
+      you can pass `--only-direct` to trim the graph to only the nodes that
+      have the direct relationship given by label. There is also a special
+      label called "compile-connected" that keeps only compile-time files with
+      at least one transitive dependency. See "Dependency types" section below.
 
     * `--group` - provide comma-separated paths to consider as a group. Dependencies
       from and into multiple files of the group are considered a single dependency.
@@ -147,8 +241,8 @@ defmodule Mix.Tasks.Xref do
   those options with `--label` and `--only-nodes` to get all files that exhibit a certain
   property, for example:
 
-      # To show all compile-time relationships
-      $ mix xref graph --label compile
+      # To show all compile-connected relationships
+      $ mix xref graph --label compile-connected
 
       # To get the tree that depend on lib/foo.ex at compile time
       $ mix xref graph --label compile --sink lib/foo.ex
@@ -161,6 +255,9 @@ defmodule Mix.Tasks.Xref do
 
       # To show general statistics about the graph
       $ mix xref graph --format stats
+
+      # To show all cycles with at least one compile-time dependency
+      $ mix xref graph --format cycles --label compile-connected
 
   ### Understanding the printed graph
 
@@ -203,10 +300,9 @@ defmodule Mix.Tasks.Xref do
 
   The `--label compile` flag removes all non-compile dependencies. However,
   this can be misleading because having direct compile time dependencies is
-  not necessarily an issue. The biggest concern, as mentioned above, are the
-  transitive compile time dependencies. You can get all compile time
-  dependencies that cause transitive compile time dependencies by using
-  `--label compile-connected`:
+  not necessarily an issue. The biggest concern are the transitive compile
+  time dependencies. You can get all compile time dependencies that cause
+  transitive compile time dependencies by using `--label compile-connected`:
 
       $ mix xref graph --label compile-connected
       lib/a.ex
@@ -233,57 +329,6 @@ defmodule Mix.Tasks.Xref do
   applications. When invoked at the umbrella root, the `graph`
   command will list all files from all umbrella children, without
   any namespacing.
-
-  ### Dependency types
-
-  Elixir tracks three types of dependencies between modules: compile,
-  exports, and runtime. If a module has a compile time dependency on
-  another module, the caller module has to be recompiled whenever the
-  callee changes (or any runtime dependency of the callee changes).
-  Let's see an example:
-
-      # lib/a.ex
-      defmodule A do
-        @hello B.hello()
-        def hello, do: @hello
-      end
-
-      # lib/b.ex
-      defmodule B do
-        def hello, do: "hello"
-        def world, do: C.world()
-      end
-
-      # lib/c.ex
-      defmodule C do
-        def world, do: "world"
-      end
-
-  If `C.world/0` changes, `B` is marked as stale. `B` does not need to
-  be recompiled, because it depends on `C` at runtime, but anything that
-  depends on `B` at compile-time has to recompile, and that includes `A`.
-
-  Compile-time dependencies are typically added when using macros or
-  when invoking functions in the module body (outside of functions).
-  You can list all dependencies in a file by running
-  `mix xref trace path/to/file.ex`. This type of transitive compile-time
-  dependencies, such as `A` depending on `C` at compile-time through `B`,
-  can be found with the "compile-connected" label, as in
-  `mix xref graph --label compile-connected`.
-
-  Export dependencies are compile time dependencies on the module API,
-  namely structs and its public definitions. For example, if you import
-  a module but only use its functions, it is an export dependency. If
-  you use a struct, it is an export dependency too. Export dependencies
-  are only recompiled if the module API changes. Note, however, that compile
-  time dependencies have higher precedence than exports. Therefore if
-  you import a module and use its macros, it is a compile time dependency.
-
-  Runtime dependencies are added whenever you invoke another module
-  inside a function. Modules with runtime dependencies do not have
-  to be compiled when the callee changes, unless there is a transitive
-  compile or an outdated export time dependency between them. The option
-  `--label compile-connected` can be used to find the first case.
 
   ## Shared options
 
@@ -848,44 +893,15 @@ defmodule Mix.Tasks.Xref do
         true -> file_references
       end
 
-    # Filter according to non direct label
-    file_references = filter(file_references, filter)
-
-    # If a label is given, remove empty root nodes
-    file_references =
-      if opts[:label] do
-        for {_, [_ | _]} = pair <- file_references, into: %{}, do: pair
-      else
-        file_references
-      end
-
-    roots =
-      if sources do
-        Enum.map(sources, &{&1, nil})
-      else
-        file_references
-        |> Map.drop(sinks || [])
-        |> Enum.map(&{elem(&1, 0), nil})
-      end
-
-    callback = fn {file, type} ->
-      children = if opts[:only_nodes], do: [], else: Map.get(file_references, file, [])
-      type = type && "(#{type})"
-      {{file, type}, Enum.sort(children)}
-    end
-
     {found, count} =
       case opts[:format] do
         "dot" ->
+          {roots, callback, count} =
+            roots_and_callback(file_references, filter, sources, sinks, opts)
+
           path = Keyword.get(opts, :output, "xref_graph.dot")
 
-          Mix.Utils.write_dot_graph!(
-            path,
-            "xref graph",
-            Enum.sort(roots),
-            callback,
-            opts
-          )
+          Mix.Utils.write_dot_graph!(path, "xref graph", Enum.sort(roots), callback, opts)
 
           if path != "-" do
             png_path = (path |> Path.rootname() |> Path.basename()) <> ".png"
@@ -901,47 +917,28 @@ defmodule Mix.Tasks.Xref do
             |> Mix.shell().info()
           end
 
-          {:references, count_references(file_references)}
+          {:references, count}
 
         "stats" ->
-          print_stats(file_references, opts)
+          print_stats(file_references, filter, opts)
           {:stats, 0}
 
         "cycles" ->
-          {:cycles, print_cycles(file_references, opts)}
+          {:cycles, print_cycles(file_references, filter, opts)}
 
         other when other in [nil, "plain", "pretty"] ->
+          {roots, callback, count} =
+            roots_and_callback(file_references, filter, sources, sinks, opts)
+
           Mix.Utils.print_tree(Enum.sort(roots), callback, opts)
 
-          {:references, count_references(file_references)}
+          {:references, count}
 
         other ->
           Mix.raise("Unknown --format #{other} in mix xref graph")
       end
 
     check_failure(found, count, opts[:fail_above])
-  end
-
-  defp count_references(file_references) do
-    Enum.reduce(file_references, 0, fn {_, refs}, total -> total + length(refs) end)
-  end
-
-  defp filter_fn(file_references, :compile_connected),
-    do: fn {key, type} ->
-      type == :compile and match?([_ | _], file_references[key] || [])
-    end
-
-  defp filter_fn(_file_references, filter),
-    do: fn {_key, type} -> type == filter end
-
-  defp filter(file_references, :all), do: file_references
-
-  defp filter(file_references, filter) do
-    filter_fn = filter_fn(file_references, filter)
-
-    for {key, children} <- file_references,
-        into: %{},
-        do: {key, Enum.filter(children, filter_fn)}
   end
 
   defp source_tree(file_references, keys) do
@@ -982,7 +979,59 @@ defmodule Mix.Tasks.Xref do
     end)
   end
 
-  defp print_stats(references, opts) do
+  defp roots_and_callback(file_references, filter, sources, sinks, opts) do
+    # Filter according to non direct label
+    file_references = transitive_filter(file_references, filter)
+
+    # If a label is given, remove empty root nodes
+    file_references =
+      if opts[:label] do
+        for {_, [_ | _]} = pair <- file_references, into: %{}, do: pair
+      else
+        file_references
+      end
+
+    roots =
+      if sources do
+        Enum.map(sources, &{&1, nil})
+      else
+        file_references
+        |> Map.drop(sinks || [])
+        |> Enum.map(&{elem(&1, 0), nil})
+      end
+
+    callback = fn {file, type} ->
+      children = if opts[:only_nodes], do: [], else: Map.get(file_references, file, [])
+      type = type && "(#{type})"
+      {{file, type}, Enum.sort(children)}
+    end
+
+    {roots, callback, count_references(file_references)}
+  end
+
+  defp count_references(file_references) do
+    Enum.reduce(file_references, 0, fn {_, refs}, total -> total + length(refs) end)
+  end
+
+  defp transitive_filter_fn(file_references, :compile_connected),
+    do: fn {key, type} ->
+      type == :compile and match?([_ | _], file_references[key] || [])
+    end
+
+  defp transitive_filter_fn(_file_references, filter),
+    do: fn {_key, type} -> type == filter end
+
+  defp transitive_filter(file_references, :all), do: file_references
+
+  defp transitive_filter(file_references, filter) do
+    filter_fn = transitive_filter_fn(file_references, filter)
+
+    for {key, children} <- file_references,
+        into: %{},
+        do: {key, Enum.filter(children, filter_fn)}
+  end
+
+  defp print_stats(references, filter, opts) do
     with_digraph(references, fn graph ->
       shell = Mix.shell()
 
@@ -997,11 +1046,11 @@ defmodule Mix.Tasks.Xref do
       shell.info("Compile dependencies: #{counters.compile} (edges)")
       shell.info("Exports dependencies: #{counters.export} (edges)")
       shell.info("Runtime dependencies: #{counters.nil} (edges)")
-      shell.info("Cycles: #{length(cycles(graph, opts))}")
+      shell.info("Cycles: #{length(cycles(graph, filter, opts))}")
 
       outgoing =
         references
-        |> Enum.map(fn {file, _} -> {:digraph.out_degree(graph, file), file} end)
+        |> Enum.map(fn {file, _} -> {out_stats_filter(references, graph, file, filter), file} end)
         |> Enum.sort(:desc)
         |> Enum.take(10)
 
@@ -1010,12 +1059,38 @@ defmodule Mix.Tasks.Xref do
 
       incoming =
         references
-        |> Enum.map(fn {file, _} -> {:digraph.in_degree(graph, file), file} end)
+        |> Enum.map(fn {file, _} -> {in_stats_filter(references, graph, file, filter), file} end)
         |> Enum.sort(:desc)
         |> Enum.take(10)
 
       shell.info("\nTop #{length(incoming)} files with most incoming dependencies:")
       for {count, file} <- incoming, do: shell.info("  * #{file} (#{count})")
+    end)
+  end
+
+  defp out_stats_filter(_references, graph, file, :all), do: :digraph.out_degree(graph, file)
+
+  defp out_stats_filter(references, graph, file, filter) do
+    filter_fn = transitive_filter_fn(references, filter)
+
+    graph
+    |> :digraph.out_neighbours(file)
+    |> Enum.count(fn v ->
+      {_edge, _v1, _v2, label} = :digraph.edge(graph, {file, v})
+      filter_fn.({file, label})
+    end)
+  end
+
+  defp in_stats_filter(_references, graph, file, :all), do: :digraph.in_degree(graph, file)
+
+  defp in_stats_filter(references, graph, file, filter) do
+    filter_fn = transitive_filter_fn(references, filter)
+
+    graph
+    |> :digraph.in_neighbours(file)
+    |> Enum.count(fn v ->
+      {_edge, _v1, _v2, label} = :digraph.edge(graph, {v, file})
+      filter_fn.({file, label})
     end)
   end
 
@@ -1028,7 +1103,7 @@ defmodule Mix.Tasks.Xref do
       end
 
       for {file, deps} <- references, {dep, label} <- deps do
-        :digraph.add_edge(graph, file, dep, label)
+        :digraph.add_edge(graph, {file, dep}, file, dep, label)
       end
 
       callback.(graph)
@@ -1037,7 +1112,7 @@ defmodule Mix.Tasks.Xref do
     end
   end
 
-  defp cycles(graph, opts) do
+  defp cycles(graph, filter, opts) do
     # Vertices order in cyclic_strong_components/1 return is arbitrary and changes between
     # OTP versions, sorting is necessary to make the output stable across versions.
     cycles =
@@ -1046,21 +1121,47 @@ defmodule Mix.Tasks.Xref do
       |> Enum.reduce([], &inner_cycles(graph, Enum.sort(&1), &2))
       |> Enum.map(&{length(&1), &1})
 
-    if min = opts[:min_cycle_size], do: Enum.filter(cycles, &(elem(&1, 0) > min)), else: cycles
+    cycles =
+      if min = opts[:min_cycle_size] do
+        Enum.filter(cycles, &(elem(&1, 0) > min))
+      else
+        cycles
+      end
+
+    # :compile_connected is the same
+    if cycle_fn = cycle_filter_fn(filter) do
+      Enum.filter(cycles, fn {_length, cycle} -> Enum.any?(cycle, cycle_fn) end)
+    else
+      cycles
+    end
   end
+
+  # In cycles, a compile connected is compile
+  defp cycle_filter_fn(:all), do: nil
+  defp cycle_filter_fn(:compile_connected), do: cycle_filter_fn(:compile)
+  defp cycle_filter_fn(filter), do: fn {_node, type} -> type == filter end
 
   defp inner_cycles(_graph, [], acc), do: acc
 
   defp inner_cycles(graph, [v | vertices], acc) do
     cycle = :digraph.get_cycle(graph, v)
-    inner_cycles(graph, vertices -- cycle, [cycle | acc])
+    inner_cycles(graph, vertices -- cycle, [label_cycle(cycle, graph) | acc])
   end
 
-  defp print_cycles(references, opts) do
+  defp label_cycle([from, to | cycle], graph) do
+    {_edge, _v1, _v2, label} = :digraph.edge(graph, {from, to})
+    [{to, label} | label_cycle([to | cycle], graph)]
+  end
+
+  defp label_cycle([_from], _graph) do
+    []
+  end
+
+  defp print_cycles(references, filter, opts) do
     with_digraph(references, fn graph ->
       shell = Mix.shell()
 
-      case graph |> cycles(opts) |> Enum.sort(:desc) do
+      case graph |> cycles(filter, opts) |> Enum.sort(:desc) do
         [] ->
           shell.info("No cycles found")
           0
@@ -1071,8 +1172,9 @@ defmodule Mix.Tasks.Xref do
           for {length, cycle} <- cycles do
             shell.info("Cycle of length #{length}:\n")
 
-            for node <- cycle do
-              shell.info("    " <> node)
+            for {node, type} <- cycle do
+              type = if type, do: " (#{type})", else: ""
+              shell.info("    " <> node <> type)
             end
 
             shell.info("")

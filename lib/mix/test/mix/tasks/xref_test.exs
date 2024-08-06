@@ -438,14 +438,85 @@ defmodule Mix.Tasks.XrefTest do
       """)
     end
 
+    test "stats with compile label" do
+      assert_graph(["--format", "stats", "--label", "compile"], """
+      Tracked files: 5 (nodes)
+      Compile dependencies: 3 (edges)
+      Exports dependencies: 0 (edges)
+      Runtime dependencies: 3 (edges)
+      Cycles: 1
+
+      Top 5 files with most outgoing dependencies:
+        * lib/c.ex (1)
+        * lib/b.ex (1)
+        * lib/a.ex (1)
+        * lib/e.ex (0)
+        * lib/d.ex (0)
+
+      Top 5 files with most incoming dependencies:
+        * lib/e.ex (1)
+        * lib/d.ex (1)
+        * lib/b.ex (1)
+        * lib/c.ex (0)
+        * lib/a.ex (0)
+      """)
+    end
+
+    test "stats with compile-connected label" do
+      assert_graph(["--format", "stats", "--label", "compile-connected"], """
+      Tracked files: 5 (nodes)
+      Compile dependencies: 3 (edges)
+      Exports dependencies: 0 (edges)
+      Runtime dependencies: 3 (edges)
+      Cycles: 1
+
+      Top 5 files with most outgoing dependencies:
+        * lib/c.ex (1)
+        * lib/b.ex (1)
+        * lib/a.ex (1)
+        * lib/e.ex (0)
+        * lib/d.ex (0)
+
+      Top 5 files with most incoming dependencies:
+        * lib/d.ex (1)
+        * lib/b.ex (1)
+        * lib/e.ex (0)
+        * lib/c.ex (0)
+        * lib/a.ex (0)
+      """)
+    end
+
     test "cycles" do
       assert_graph(["--format", "cycles"], """
       1 cycles found. Showing them in decreasing size:
 
-      Cycle of length 3:
+      Cycle of length 2:
 
+          lib/b.ex (compile)
           lib/a.ex
-          lib/b.ex
+
+      """)
+    end
+
+    test "cycles with compile label require at least one of such type" do
+      assert_graph(["--format", "cycles", "--label", "compile"], """
+      1 cycles found. Showing them in decreasing size:
+
+      Cycle of length 2:
+
+          lib/b.ex (compile)
+          lib/a.ex
+
+      """)
+    end
+
+    test "cycles with compile-connected label is the same as compile" do
+      assert_graph(["--format", "cycles", "--label", "compile-connected"], """
+      1 cycles found. Showing them in decreasing size:
+
+      Cycle of length 2:
+
+          lib/b.ex (compile)
           lib/a.ex
 
       """)
