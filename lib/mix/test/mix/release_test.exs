@@ -686,18 +686,12 @@ defmodule Mix.ReleaseTest do
     test "copies and strips beams" do
       assert copy_ebin(release([]), @eex_ebin, tmp_path("eex_ebin"))
 
-      assert size!(Path.join(@eex_ebin, "eex.app")) ==
-               size!(tmp_path("eex_ebin/eex.app"))
-
       assert size!(Path.join(@eex_ebin, "Elixir.EEx.beam")) >
                size!(tmp_path("eex_ebin/Elixir.EEx.beam"))
     end
 
     test "copies without stripping beams" do
       assert copy_ebin(release(strip_beams: false), @eex_ebin, tmp_path("eex_ebin"))
-
-      assert size!(Path.join(@eex_ebin, "eex.app")) ==
-               size!(tmp_path("eex_ebin/eex.app"))
 
       assert size!(Path.join(@eex_ebin, "Elixir.EEx.beam")) ==
                size!(tmp_path("eex_ebin/Elixir.EEx.beam"))
@@ -722,6 +716,13 @@ defmodule Mix.ReleaseTest do
 
       assert mode!(source_so_path) == mode!(tmp_path("mix_release/libtest_nif.so"))
     end
+
+    test "removes config_mtime from app files" do
+      assert copy_ebin(release([]), @eex_ebin, tmp_path("eex_ebin"))
+
+      {:ok, [{:application, :eex, info}]} = :file.consult(tmp_path("eex_ebin/eex.app"))
+      refute Keyword.get(info, :config_mtime)
+    end
   end
 
   describe "copy_app/2" do
@@ -730,18 +731,12 @@ defmodule Mix.ReleaseTest do
     test "copies and strips beams" do
       assert copy_app(release(applications: [eex: :permanent]), :eex)
 
-      assert size!(Path.join(@eex_ebin, "eex.app")) ==
-               size!(Path.join(@release_lib, "eex-#{@elixir_version}/ebin/eex.app"))
-
       assert size!(Path.join(@eex_ebin, "Elixir.EEx.beam")) >
                size!(Path.join(@release_lib, "eex-#{@elixir_version}/ebin/Elixir.EEx.beam"))
     end
 
     test "copies without stripping beams" do
       assert copy_app(release(strip_beams: false, applications: [eex: :permanent]), :eex)
-
-      assert size!(Path.join(@eex_ebin, "eex.app")) ==
-               size!(Path.join(@release_lib, "eex-#{@elixir_version}/ebin/eex.app"))
 
       assert size!(Path.join(@eex_ebin, "Elixir.EEx.beam")) ==
                size!(Path.join(@release_lib, "eex-#{@elixir_version}/ebin/Elixir.EEx.beam"))
@@ -759,6 +754,14 @@ defmodule Mix.ReleaseTest do
       refute copy_app(release, :runtime_tools)
       refute File.exists?(Path.join(@release_lib, "runtime_tools-#{@runtime_tools_version}/ebin"))
       refute File.exists?(Path.join(@release_lib, "runtime_tools-#{@runtime_tools_version}/priv"))
+    end
+
+    test "removes config_mtime from app files" do
+      assert copy_app(release(strip_beams: false, applications: [eex: :permanent]), :eex)
+
+      eex_app_path = Path.join(@release_lib, "eex-#{@elixir_version}/ebin/eex.app")
+      {:ok, [{:application, :eex, info}]} = :file.consult(eex_app_path)
+      refute Keyword.get(info, :config_mtime)
     end
   end
 

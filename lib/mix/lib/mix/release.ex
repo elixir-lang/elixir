@@ -851,10 +851,13 @@ defmodule Mix.Release do
         source_file = Path.join(source, file)
         target_file = Path.join(target, file)
 
-        with true <- is_list(strip_options) and String.ends_with?(file, ".beam"),
-             {:ok, binary} <- strip_beam(File.read!(source_file), strip_options) do
-          File.write!(target_file, binary)
-        else
+        case Path.extname(file) do
+          ".beam" ->
+            process_beam_file(source_file, target_file, strip_options)
+
+          ".app" ->
+            process_app_file(source_file, target_file)
+
           _ ->
             # Use File.cp!/3 to preserve file mode for any executables stored
             # in the ebin directory.
@@ -865,6 +868,25 @@ defmodule Mix.Release do
       true
     else
       _ -> false
+    end
+  end
+
+  defp process_beam_file(source_file, target_file, strip_options) do
+    with true <- is_list(strip_options),
+         {:ok, binary} <- strip_beam(File.read!(source_file), strip_options) do
+      File.write!(target_file, binary)
+    else
+      _ -> File.cp!(source_file, target_file)
+    end
+  end
+
+  defp process_app_file(source_file, target_file) do
+    with {:ok, [{:application, app, info}]} <- :file.consult(source_file) do
+      # Remove :config_mtime so that .app files are deterministic between builds
+      new_info = Keyword.delete(info, :config_mtime)
+      File.write!(target_file, :io_lib.format("~tp.~n", [{:application, app, new_info}]))
+    else
+      _ -> File.cp!(source_file, target_file)
     end
   end
 
