@@ -610,7 +610,7 @@ defmodule Task do
     * `:zip_input_on_exit` - (since v1.14.0) adds the original
       input to `:exit` tuples. The value emitted for that task is
       `{:exit, {input, reason}}`, where `input` is the collection element
-      that caused an exited during processing. Defaults to `false`.
+      that caused an exit during processing. Defaults to `false`.
 
   ## Example
 
