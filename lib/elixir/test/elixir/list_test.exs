@@ -84,13 +84,6 @@ defmodule ListTest do
     assert List.last([1, 2, 3]) == 3
   end
 
-  test "zip/1" do
-    assert List.zip([[1, 4], [2, 5], [3, 6]]) == [{1, 2, 3}, {4, 5, 6}]
-    assert List.zip([[1, 4], [2, 5, 0], [3, 6]]) == [{1, 2, 3}, {4, 5, 6}]
-    assert List.zip([[1], [2, 5], [3, 6]]) == [{1, 2, 3}]
-    assert List.zip([[1, 4], [2, 5], []]) == []
-  end
-
   test "keyfind/4" do
     assert List.keyfind([a: 1, b: 2], :a, 0) == {:a, 1}
     assert List.keyfind([a: 1, b: 2], 2, 1) == {:b, 2}

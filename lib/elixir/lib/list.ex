@@ -633,21 +633,7 @@ defmodule List do
     [other]
   end
 
-  @doc """
-  Zips corresponding elements from each list in `list_of_lists`.
-
-  The zipping finishes as soon as any list terminates.
-
-  ## Examples
-
-      iex> List.zip([[1, 2], [3, 4], [5, 6]])
-      [{1, 3, 5}, {2, 4, 6}]
-
-      iex> List.zip([[1, 2], [3], [5, 6]])
-      [{1, 3, 5}]
-
-  """
-  @spec zip([list]) :: [tuple]
+  @doc deprecated: "Use Enum.zip/1 instead"
   def zip([]), do: []
 
   def zip(list_of_lists) when is_list(list_of_lists) do
