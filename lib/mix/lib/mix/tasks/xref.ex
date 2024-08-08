@@ -27,7 +27,7 @@ defmodule Mix.Tasks.Xref do
   touching one file in a project causes a large subset of the project
   to recompile. The most common cause of these problems are the so-called
   "compile-connected" files. Those are files you depend on at compile-time
-  (for example, by invoking its macro or using it in the body of amodule)
+  (for example, by invoking its macro or using it in the body of a module)
   which also have their own dependencies.
 
   Therefore, if your goal is to reduce recompilations, the first step is to run:
