@@ -51,7 +51,7 @@ defmodule Mix.Tasks.Compile.Leex do
 
     leex_options = project[:leex_options] || []
 
-    if !is_list(leex_options) do
+    if not is_list(leex_options) do
       Mix.raise(":leex_options should be a list of options, got: #{inspect(leex_options)}")
     end
 

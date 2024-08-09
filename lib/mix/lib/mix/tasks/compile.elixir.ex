@@ -108,7 +108,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     dest = Mix.Project.compile_path(project)
     srcs = project[:elixirc_paths]
 
-    if !is_list(srcs) do
+    if not is_list(srcs) do
       Mix.raise(":elixirc_paths should be a list of paths, got: #{inspect(srcs)}")
     end
 
