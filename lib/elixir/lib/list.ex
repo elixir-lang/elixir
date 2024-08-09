@@ -909,6 +909,34 @@ defmodule List do
   def starts_with?(list, [_ | _]) when is_list(list), do: false
 
   @doc """
+  Returns `true` if `list` ends with the given `suffix` list, otherwise returns `false`.
+
+  If `suffix` is an empty list, it returns `true`.
+
+  ### Examples
+
+      iex> List.ends_with?([1, 2, 3], [2, 3])
+      true
+
+      iex> List.ends_with?([1, 2], [1, 2, 3])
+      false
+
+      iex> List.ends_with?([:alpha], [])
+      true
+
+      iex> List.ends_with?([], [:alpha])
+      false
+
+  """
+  @doc since: "1.18.0"
+  @spec ends_with?(nonempty_list, nonempty_list) :: boolean
+  @spec ends_with?(list, []) :: true
+  @spec ends_with?([], nonempty_list) :: false
+  def ends_with?(list, suffix) do
+    :lists.suffix(suffix, list)
+  end
+
+  @doc """
   Converts a charlist to an atom.
 
   Elixir supports conversions from charlists which contain any Unicode
