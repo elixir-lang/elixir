@@ -2484,14 +2484,18 @@ defmodule Code.Formatter do
   ]
   @guards [
     :is_atom,
+    :is_boolean,
+    :is_nil,
     :is_number,
     :is_integer,
     :is_float,
     :is_binary,
+    :is_list,
     :is_map,
-    :is_struct
-    # ...
-    # TODO add more guards
+    :is_struct,
+    :is_function,
+    :is_reference,
+    :is_pid
   ]
 
   defp negate_condition(condition) do
