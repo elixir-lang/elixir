@@ -64,6 +64,16 @@ defmodule ConfigTest do
     assert config() == [app: [{Repo, other: :value, key: :other}]]
   end
 
+  test "read_config/1" do
+    assert read_config(:lager) == nil
+
+    config :lager, key: :value
+    assert read_config(:lager) == [key: :value]
+
+    config :lager, other: :value
+    assert read_config(:lager) == [key: :value, other: :value]
+  end
+
   @tag env: :dev
   test "config_env/0" do
     assert config_env() == :dev
