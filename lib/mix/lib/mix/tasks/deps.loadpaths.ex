@@ -59,7 +59,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
     if req = config[:elixir] do
       case Version.parse_requirement(req) do
         {:ok, req} ->
-          if !Version.match?(System.version(), req) do
+          if not Version.match?(System.version(), req) do
             raise Mix.ElixirVersionError,
               target: config[:app] || Mix.Project.get(),
               expected: req,
