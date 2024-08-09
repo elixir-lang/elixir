@@ -933,17 +933,7 @@ defmodule List do
   @spec ends_with?(list, []) :: true
   @spec ends_with?([], nonempty_list) :: false
   def ends_with?(list, suffix) do
-    case ends_with_offset(list, suffix) do
-      nil -> false
-      n -> :lists.nthtail(n, list) === suffix
-    end
-  end
-
-  defp ends_with_offset([], [_ | _]), do: nil
-  defp ends_with_offset(rest, []), do: length(rest)
-
-  defp ends_with_offset([_ | tail], [_ | suffix_tail]) do
-    ends_with_offset(tail, suffix_tail)
+    :lists.suffix(suffix, list)
   end
 
   @doc """

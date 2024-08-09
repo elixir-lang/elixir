@@ -310,15 +310,11 @@ defmodule ListTest do
     end
 
     test "only accepts proper lists" do
-      message = "no function clause matching in List.ends_with_offset/2"
-
-      assert_raise FunctionClauseError, message, fn ->
+      assert_raise ArgumentError, ~r/not a list/, fn ->
         List.ends_with?([1 | 2], [1 | 2])
       end
 
-      message = "no function clause matching in List.ends_with_offset/2"
-
-      assert_raise FunctionClauseError, message, fn ->
+      assert_raise ArgumentError, ~r/not a list/, fn ->
         List.ends_with?([1, 2], 1)
       end
     end
