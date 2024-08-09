@@ -350,7 +350,7 @@ defmodule Registry do
 
     meta = Keyword.get(options, :meta, [])
 
-    if !Keyword.keyword?(meta) do
+    if not Keyword.keyword?(meta) do
       raise ArgumentError, "expected :meta to be a keyword list, got: #{inspect(meta)}"
     end
 
@@ -370,7 +370,7 @@ defmodule Registry do
 
     compressed = Keyword.get(options, :compressed, false)
 
-    if !is_boolean(compressed) do
+    if not is_boolean(compressed) do
       raise ArgumentError,
             "expected :compressed to be a boolean, got: #{inspect(compressed)}"
     end
@@ -1433,7 +1433,7 @@ defmodule Registry do
   end
 
   defp unlink_if_unregistered(pid_server, pid_ets, self) do
-    if !:ets.member(pid_ets, self) do
+    if not :ets.member(pid_ets, self) do
       Process.unlink(pid_server)
     end
   end

@@ -52,7 +52,7 @@ defmodule Mix.Tasks.Compile.Yecc do
 
     yecc_options = project[:yecc_options] || []
 
-    if !is_list(yecc_options) do
+    if not is_list(yecc_options) do
       Mix.raise(":yecc_options should be a list of options, got: #{inspect(yecc_options)}")
     end
 

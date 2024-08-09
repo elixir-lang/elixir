@@ -845,7 +845,7 @@ defmodule GenServer do
     quote location: :keep, bind_quoted: [opts: opts] do
       @behaviour GenServer
 
-      if !Module.has_attribute?(__MODULE__, :doc) do
+      if not Module.has_attribute?(__MODULE__, :doc) do
         @doc """
         Returns a specification to start this module under a supervisor.
 

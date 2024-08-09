@@ -247,7 +247,7 @@ defmodule PartitionSupervisor do
 
     {with_arguments, opts} = Keyword.pop(opts, :with_arguments, fn args, _partition -> args end)
 
-    if !is_function(with_arguments, 2) do
+    if not is_function(with_arguments, 2) do
       raise ArgumentError,
             "the :with_arguments option must be a function that receives two arguments, " <>
               "the current call arguments and the partition, got: #{inspect(with_arguments)}"
@@ -260,7 +260,7 @@ defmodule PartitionSupervisor do
       for partition <- 0..(partitions - 1) do
         args = with_arguments.(args, partition)
 
-        if !is_list(args) do
+        if not is_list(args) do
           raise "the call to the function in :with_arguments must return a list, got: #{inspect(args)}"
         end
 

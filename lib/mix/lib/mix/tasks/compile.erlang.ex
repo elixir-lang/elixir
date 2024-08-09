@@ -60,7 +60,7 @@ defmodule Mix.Tasks.Compile.Erlang do
     compile_path = Erlang.to_erl_file(Mix.Project.compile_path(project))
     erlc_options = project[:erlc_options] || []
 
-    if !is_list(erlc_options) do
+    if not is_list(erlc_options) do
       Mix.raise(":erlc_options should be a list of options, got: #{inspect(erlc_options)}")
     end
 

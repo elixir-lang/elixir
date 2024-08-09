@@ -240,7 +240,7 @@ defmodule Mix.Tasks.Compile.App do
     if function_exported?(project, :application, 0) do
       project_application = project.application()
 
-      if !Keyword.keyword?(project_application) do
+      if not Keyword.keyword?(project_application) do
         Mix.raise(
           "Application configuration returned from application/0 should be a keyword list"
         )
@@ -255,7 +255,7 @@ defmodule Mix.Tasks.Compile.App do
   defp validate_properties!(properties) do
     Enum.each(properties, fn
       {:description, value} ->
-        if !is_list(value) do
+        if not is_list(value) do
           Mix.raise(
             "Application description (:description) is not a character list, got: " <>
               inspect(value)
@@ -263,12 +263,12 @@ defmodule Mix.Tasks.Compile.App do
         end
 
       {:id, value} ->
-        if !is_list(value) do
+        if not is_list(value) do
           Mix.raise("Application ID (:id) is not a character list, got: " <> inspect(value))
         end
 
       {:vsn, value} ->
-        if !is_list(value) do
+        if not is_list(value) do
           Mix.raise("Application vsn (:vsn) is not a character list, got: " <> inspect(value))
         end
 
@@ -320,14 +320,14 @@ defmodule Mix.Tasks.Compile.App do
         end
 
       {:env, value} ->
-        if !Keyword.keyword?(value) do
+        if not Keyword.keyword?(value) do
           Mix.raise(
             "Application environment (:env) should be a keyword list, got: " <> inspect(value)
           )
         end
 
       {:start_phases, value} ->
-        if !Keyword.keyword?(value) do
+        if not Keyword.keyword?(value) do
           Mix.raise(
             "Application start phases (:start_phases) should be a keyword list, got: " <>
               inspect(value)

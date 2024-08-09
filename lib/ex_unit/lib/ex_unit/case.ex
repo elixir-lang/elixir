@@ -312,7 +312,7 @@ defmodule ExUnit.Case do
 
   @doc false
   def __register__(module, opts) do
-    if !Keyword.keyword?(opts) do
+    if not Keyword.keyword?(opts) do
       raise ArgumentError,
             ~s(the argument passed to "use ExUnit.Case" must be a list of options, ) <>
               ~s(got: #{inspect(opts)})
@@ -381,7 +381,7 @@ defmodule ExUnit.Case do
 
   """
   defmacro test(message, var \\ quote(do: _), contents) do
-    if !is_tuple(var) do
+    if not is_tuple(var) do
       IO.warn(
         "test context is always a map. The pattern " <>
           "#{inspect(Macro.to_string(var))} will never match",
@@ -602,7 +602,7 @@ defmodule ExUnit.Case do
   """
   @doc since: "1.11.0"
   def register_test(mod, file, line, test_type, name, tags) do
-    if !Module.has_attribute?(mod, :ex_unit_tests) do
+    if not Module.has_attribute?(mod, :ex_unit_tests) do
       raise "cannot define #{test_type}. Please make sure you have invoked " <>
               "\"use ExUnit.Case\" in the current module"
     end
