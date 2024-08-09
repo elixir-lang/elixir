@@ -754,7 +754,7 @@ defmodule Kernel.Typespec do
        ) do
     remote = Module.get_attribute(caller.module, attr)
 
-    if !(is_atom(remote) and remote != nil) do
+    if not (is_atom(remote) and remote != nil) do
       message =
         "invalid remote in typespec: #{Macro.to_string(orig)} (@#{attr} is #{inspect(remote)})"
 
