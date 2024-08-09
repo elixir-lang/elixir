@@ -149,7 +149,7 @@ nil
 Compared to keyword lists, we can already see two differences:
 
   * Maps allow any value as a key.
-  * Maps' keys do not follow any ordering.
+  * Maps have their own internal ordering, which is not guaranteed to be the same across different maps, even if they have the same keys
 
 In contrast to keyword lists, maps are very useful with pattern matching. When a map is used in a pattern, it will always match on a subset of the given value:
 
