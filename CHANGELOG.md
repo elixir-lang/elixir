@@ -13,6 +13,7 @@ This release no longer supports WERL (a graphical user interface for the Erlang 
   * [Exception] Add `MissingApplicationsError` exception to denote missing applications
   * [Kernel] Update source code parsing to match [UTS #55](https://www.unicode.org/reports/tr55/) latest recommendations. In particular, mixed script is allowed in identifiers as long as they are separate by underscores (`_`), such as `http_сервер`. Previously allowed highly restrictive identifiers, which mixed Latin and other scripts, such as the japanese word for t-shirt, `Tシャツ`, now require the underscore as well
   * [Kernel] Warn on bidirectional confusability in identifiers
+  * [List] Add `List.ends_with?/2`
   * [Macro] Improve `dbg` handling of `if/2`, `unless/2`, and code blocks
   * [Process] Handle arbitrarily high integer values in `Process.sleep/1`
   * [String] Inspect special whitespace and zero-width characters using their Unicode representation

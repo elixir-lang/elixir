@@ -285,6 +285,45 @@ defmodule ListTest do
     end
   end
 
+  describe "ends_with?/2" do
+    test "list and prefix are equal" do
+      assert List.ends_with?([], [])
+      assert List.ends_with?([1], [1])
+      assert List.ends_with?([1, 2, 3], [1, 2, 3])
+    end
+
+    test "proper lists" do
+      refute List.ends_with?([2], [1, 2])
+      assert List.ends_with?([1, 2, 3], [2, 3])
+      refute List.ends_with?([2, 3, 4], [1, 2, 3, 4])
+    end
+
+    test "list is empty" do
+      refute List.ends_with?([], [1])
+      refute List.ends_with?([], [1, 2])
+    end
+
+    test "prefix is empty" do
+      assert List.ends_with?([1], [])
+      assert List.ends_with?([1, 2], [])
+      assert List.ends_with?([1, 2, 3], [])
+    end
+
+    test "only accepts proper lists" do
+      message = "no function clause matching in List.ends_with_offset/2"
+
+      assert_raise FunctionClauseError, message, fn ->
+        List.ends_with?([1 | 2], [1 | 2])
+      end
+
+      message = "no function clause matching in List.ends_with_offset/2"
+
+      assert_raise FunctionClauseError, message, fn ->
+        List.ends_with?([1, 2], 1)
+      end
+    end
+  end
+
   test "to_string/1" do
     assert List.to_string([?æ, ?ß]) == "æß"
     assert List.to_string([?a, ?b, ?c]) == "abc"
