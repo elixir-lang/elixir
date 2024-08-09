@@ -29,6 +29,10 @@ This release no longer supports WERL (a graphical user interface for the Erlang 
 
 ### 3. Soft deprecations (no warnings emitted)
 
+#### Elixir
+
+  * [List] `List.zip/1` is deprecated in favor of `Enum.zip/1`
+
 ### 4. Hard deprecations
 
 #### EEx
