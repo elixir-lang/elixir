@@ -174,6 +174,11 @@ defmodule Mix.Tasks.Compile do
     {res, diagnostics}
   end
 
+  @impl true
+  def depends_on do
+    ["loadpaths", "compile.all"]
+  end
+
   defp format(expression, args) do
     :io_lib.format(expression, args) |> IO.iodata_to_binary()
   end

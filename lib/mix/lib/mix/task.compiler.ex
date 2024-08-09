@@ -175,7 +175,18 @@ defmodule Mix.Task.Compiler do
   """
   @callback clean() :: any
 
-  @optional_callbacks clean: 0, manifests: 0, diagnostics: 0
+  @doc """
+  A compiler task (as well as a regular task) may return a list of
+  dependent tasks if they are to be re-enabled when this task gets
+  re-enabled.
+
+  For instance, if task `"foo"` executes `"bar"` with
+  `Mix.Task.run("bar")` from `run/1`, this method should be
+  implemented to return `["bar"]`.
+  """
+  @callback depends_on :: [binary]
+
+  @optional_callbacks clean: 0, manifests: 0, depends_on: 0
 
   @doc """
   Adds a callback that runs after a given compiler.
