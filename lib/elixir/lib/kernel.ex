@@ -3956,7 +3956,7 @@ defmodule Kernel do
       "Math still works"
 
   """
-  defmacro if(!condition, clauses) do
+  defmacro unless(condition, clauses) do
     build_unless(condition, clauses)
   end
 
