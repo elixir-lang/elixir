@@ -512,7 +512,7 @@ defmodule Mix.Utils do
           do_symlink_or_copy(source, target, link)
 
         {:error, _} ->
-          if !File.dir?(target) do
+          if not File.dir?(target) do
             File.rm_rf!(target)
           end
 

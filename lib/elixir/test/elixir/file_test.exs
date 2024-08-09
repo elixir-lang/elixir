@@ -1794,7 +1794,7 @@ defmodule FileTest do
         stat = File.stat!(fixture)
         assert stat.mode == 0o100666
 
-        if !windows?() do
+        if not windows?() do
           assert File.chmod(fixture, 0o100777) == :ok
           stat = File.stat!(fixture)
           assert stat.mode == 0o100777
@@ -1814,7 +1814,7 @@ defmodule FileTest do
         stat = File.stat!(fixture)
         assert stat.mode == 0o100666
 
-        if !windows?() do
+        if not windows?() do
           assert File.chmod!(fixture, 0o100777) == :ok
           stat = File.stat!(fixture)
           assert stat.mode == 0o100777
