@@ -176,10 +176,15 @@ defmodule Module.Types.Of do
   # TODO: Use the struct default values to define the default types.
   def struct(struct, args_types, default_handling, meta, stack, context) do
     context = remote(struct, :__struct__, 0, meta, stack, context)
+
+    info =
+      struct.__info__(:struct) ||
+        raise "expected #{inspect(struct)} to return struct metadata, but got none"
+
     term = term()
 
     defaults =
-      for %{field: field} <- struct.__info__(:struct), field != :__struct__ do
+      for %{field: field} <- info, field != :__struct__ do
         {field, term}
       end
 
