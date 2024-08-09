@@ -356,14 +356,14 @@ defmodule Registry do
 
     partitions = Keyword.get(options, :partitions, 1)
 
-    if !(is_integer(partitions) and partitions >= 1) do
+    if not (is_integer(partitions) and partitions >= 1) do
       raise ArgumentError,
             "expected :partitions to be a positive integer, got: #{inspect(partitions)}"
     end
 
     listeners = Keyword.get(options, :listeners, [])
 
-    if !(is_list(listeners) and Enum.all?(listeners, &is_atom/1)) do
+    if not (is_list(listeners) and Enum.all?(listeners, &is_atom/1)) do
       raise ArgumentError,
             "expected :listeners to be a list of named processes, got: #{inspect(listeners)}"
     end

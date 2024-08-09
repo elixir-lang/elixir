@@ -240,7 +240,7 @@ defmodule PartitionSupervisor do
 
     {partitions, opts} = Keyword.pop(opts, :partitions, System.schedulers_online())
 
-    if !(is_integer(partitions) and partitions >= 1) do
+    if not (is_integer(partitions) and partitions >= 1) do
       raise ArgumentError,
             "the :partitions option must be a positive integer, got: #{inspect(partitions)}"
     end

@@ -209,7 +209,7 @@ defmodule Task.Supervised do
     ordered = Keyword.get(options, :ordered, true)
     zip_input_on_exit = Keyword.get(options, :zip_input_on_exit, false)
 
-    if !(is_integer(max_concurrency) and max_concurrency > 0) do
+    if not (is_integer(max_concurrency) and max_concurrency > 0) do
       raise ArgumentError, ":max_concurrency must be an integer greater than zero"
     end
 
@@ -217,7 +217,7 @@ defmodule Task.Supervised do
       raise ArgumentError, ":on_timeout must be either :exit or :kill_task"
     end
 
-    if !((is_integer(timeout) and timeout >= 0) or timeout == :infinity) do
+    if not ((is_integer(timeout) and timeout >= 0) or timeout == :infinity) do
       raise ArgumentError, ":timeout must be either a positive integer or :infinity"
     end
 

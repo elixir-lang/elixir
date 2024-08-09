@@ -243,7 +243,7 @@ defmodule ExUnit.Callbacks do
 
   """
   defmacro setup(context, block) do
-    if !(Keyword.keyword?(block) and Keyword.has_key?(block, :do)) do
+    if not (Keyword.keyword?(block) and Keyword.has_key?(block, :do)) do
       raise ArgumentError,
             "setup/2 requires a block as the second argument after the context, got: #{Macro.to_string(block)}"
     end
@@ -378,7 +378,7 @@ defmodule ExUnit.Callbacks do
 
   """
   defmacro setup_all(context, block) do
-    if !(Keyword.keyword?(block) and Keyword.has_key?(block, :do)) do
+    if not (Keyword.keyword?(block) and Keyword.has_key?(block, :do)) do
       raise ArgumentError,
             "setup_all/2 requires a block as the second argument after the context, got: #{Macro.to_string(block)}"
     end
