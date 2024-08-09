@@ -525,7 +525,7 @@ defmodule Supervisor do
       import Supervisor.Spec
       @behaviour Supervisor
 
-      unless Module.has_attribute?(__MODULE__, :doc) do
+      if not Module.has_attribute?(__MODULE__, :doc) do
         @doc """
         Returns a specification to start this module under a supervisor.
 

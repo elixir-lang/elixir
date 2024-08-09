@@ -188,13 +188,13 @@ defmodule Mix.Project do
 
       task = String.to_atom(task || config[:default_task] || "run")
 
-      unless System.get_env("MIX_ENV") do
+      if !System.get_env("MIX_ENV") do
         if env = config[:preferred_envs][task] || @preferred_envs[task] || config[:default_env] do
           Mix.env(env)
         end
       end
 
-      unless System.get_env("MIX_TARGET") do
+      if !System.get_env("MIX_TARGET") do
         if target = config[:preferred_targets][task] || config[:default_target] do
           Mix.target(target)
         end

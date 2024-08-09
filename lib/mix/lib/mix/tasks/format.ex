@@ -505,7 +505,7 @@ defmodule Mix.Tasks.Format do
   defp eval_file_with_keyword_list(path) do
     {opts, _} = Code.eval_file(path)
 
-    unless Keyword.keyword?(opts) do
+    if not Keyword.keyword?(opts) do
       Mix.raise("Expected #{inspect(path)} to return a keyword list, got: #{inspect(opts)}")
     end
 

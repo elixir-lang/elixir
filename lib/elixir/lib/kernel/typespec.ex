@@ -118,7 +118,7 @@ defmodule Kernel.Typespec do
     case spec_to_signature(expr) do
       {name, arity} ->
         # store doc only once in case callback has multiple clauses
-        unless :ets.member(set, {kind, name, arity}) do
+        if not :ets.member(set, {kind, name, arity}) do
           {line, doc} = get_doc_info(set, :doc, line)
           store_doc(set, kind, name, arity, line, :doc, doc, %{})
         end
@@ -320,7 +320,7 @@ defmodule Kernel.Typespec do
 
     invalid_args = :lists.filter(&(not valid_variable_ast?(&1)), args)
 
-    unless invalid_args == [] do
+    if invalid_args != [] do
       invalid_args = :lists.join(", ", :lists.map(&Macro.to_string/1, invalid_args))
 
       message =
@@ -380,7 +380,7 @@ defmodule Kernel.Typespec do
     ensure_no_defaults!(args)
     state = clean_local_state(state)
 
-    unless Keyword.keyword?(guard) do
+    if not Keyword.keyword?(guard) do
       error = "expected keywords as guard in type specification, got: #{Macro.to_string(guard)}"
       compile_error(caller, error)
     end
@@ -573,7 +573,7 @@ defmodule Kernel.Typespec do
           |> Map.delete(:__struct__)
           |> Map.to_list()
 
-        unless Keyword.keyword?(fields) do
+        if not Keyword.keyword?(fields) do
           compile_error(caller, "expected key-value pairs in struct #{Macro.to_string(name)}")
         end
 
@@ -587,7 +587,7 @@ defmodule Kernel.Typespec do
           )
 
         fun = fn {field, _} ->
-          unless Keyword.has_key?(struct, field) do
+          if not Keyword.has_key?(struct, field) do
             compile_error(
               caller,
               "undefined field #{inspect(field)} on struct #{inspect(module)}"
@@ -630,7 +630,7 @@ defmodule Kernel.Typespec do
           )
 
         fun = fn {field, _} ->
-          unless Keyword.has_key?(fields, field) do
+          if not Keyword.has_key?(fields, field) do
             compile_error(caller, "undefined field #{field} on record #{inspect(tag)}")
           end
         end
@@ -754,7 +754,7 @@ defmodule Kernel.Typespec do
        ) do
     remote = Module.get_attribute(caller.module, attr)
 
-    unless is_atom(remote) and remote != nil do
+    if not (is_atom(remote) and remote != nil) do
       message =
         "invalid remote in typespec: #{Macro.to_string(orig)} (@#{attr} is #{inspect(remote)})"
 

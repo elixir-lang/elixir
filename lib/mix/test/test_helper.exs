@@ -263,7 +263,7 @@ System.cmd("git", ~w[config --global init.defaultBranch not-main])
 ### Git repo
 target = Path.expand("fixtures/git_repo", __DIR__)
 
-unless File.dir?(target) do
+if not File.dir?(target) do
   File.mkdir_p!(Path.join(target, "lib"))
 
   File.write!(Path.join(target, "mix.exs"), """
@@ -345,7 +345,7 @@ end
 ### Deps on Git repo
 target = Path.expand("fixtures/deps_on_git_repo", __DIR__)
 
-unless File.dir?(target) do
+if not File.dir?(target) do
   File.mkdir_p!(Path.join(target, "lib"))
 
   File.write!(Path.join(target, "mix.exs"), """
@@ -401,7 +401,7 @@ end
 # Git Rebar
 target = Path.expand("fixtures/git_rebar", __DIR__)
 
-unless File.dir?(target) do
+if not File.dir?(target) do
   File.mkdir_p!(Path.join(target, "ebin"))
   File.mkdir_p!(Path.join(target, "src"))
 
@@ -439,7 +439,7 @@ end)
 ### Archive ebin
 target = Path.expand("fixtures/archive", __DIR__)
 
-unless File.dir?(Path.join(target, "ebin")) do
+if not File.dir?(Path.join(target, "ebin")) do
   File.mkdir_p!(Path.join(target, "ebin"))
 
   File.write!(Path.join([target, "ebin", "local_sample.app"]), """

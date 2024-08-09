@@ -131,7 +131,7 @@ defmodule Diff do
   end
 
   defp assert_dir!(dir) do
-    unless File.dir?(dir) do
+    if !File.dir?(dir) do
       raise ArgumentError, "#{inspect(dir)} is not a directory"
     end
   end

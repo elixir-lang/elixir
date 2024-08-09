@@ -83,7 +83,7 @@ defmodule Mix.Tasks.Run do
       )
 
     run(args, opts, head, &Code.eval_string/1, &Code.require_file/1)
-    unless Keyword.get(opts, :halt, true), do: System.no_halt(true)
+    if not Keyword.get(opts, :halt, true), do: System.no_halt(true)
     Mix.Task.reenable("run")
     :ok
   end

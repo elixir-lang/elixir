@@ -25,7 +25,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
 
   @impl true
   def run(args) do
-    unless "--no-archives-check" in args do
+    if "--no-archives-check" not in args do
       Mix.Task.run("archive.check", args)
     end
 
@@ -40,15 +40,15 @@ defmodule Mix.Tasks.Deps.Loadpaths do
 
     config = Mix.Project.config()
 
-    unless "--no-elixir-version-check" in args do
+    if "--no-elixir-version-check" not in args do
       check_elixir_version(config)
     end
 
-    unless "--no-deps-check" in args do
+    if "--no-deps-check" not in args do
       deps_check(all, "--no-compile" in args)
     end
 
-    unless "--no-path-loading" in args do
+    if "--no-path-loading" not in args do
       Code.prepend_paths(Enum.flat_map(all, &Mix.Dep.load_paths/1), cache: true)
     end
 
@@ -59,7 +59,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
     if req = config[:elixir] do
       case Version.parse_requirement(req) do
         {:ok, req} ->
-          unless Version.match?(System.version(), req) do
+          if not Version.match?(System.version(), req) do
             raise Mix.ElixirVersionError,
               target: config[:app] || Mix.Project.get(),
               expected: req,

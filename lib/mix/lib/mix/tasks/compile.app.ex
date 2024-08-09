@@ -211,7 +211,7 @@ defmodule Mix.Tasks.Compile.App do
   defp validate_version(version) do
     ensure_present(:version, version)
 
-    unless is_binary(version) and match?({:ok, _}, Version.parse(version)) do
+    if not (is_binary(version) and match?({:ok, _}, Version.parse(version))) do
       Mix.raise(
         "Expected :version to be a valid Version, got: #{inspect(version)} (see the Version module for more information)"
       )
@@ -240,7 +240,7 @@ defmodule Mix.Tasks.Compile.App do
     if function_exported?(project, :application, 0) do
       project_application = project.application()
 
-      unless Keyword.keyword?(project_application) do
+      if not Keyword.keyword?(project_application) do
         Mix.raise(
           "Application configuration returned from application/0 should be a keyword list"
         )
@@ -255,7 +255,7 @@ defmodule Mix.Tasks.Compile.App do
   defp validate_properties!(properties) do
     Enum.each(properties, fn
       {:description, value} ->
-        unless is_list(value) do
+        if not is_list(value) do
           Mix.raise(
             "Application description (:description) is not a character list, got: " <>
               inspect(value)
@@ -263,17 +263,17 @@ defmodule Mix.Tasks.Compile.App do
         end
 
       {:id, value} ->
-        unless is_list(value) do
+        if not is_list(value) do
           Mix.raise("Application ID (:id) is not a character list, got: " <> inspect(value))
         end
 
       {:vsn, value} ->
-        unless is_list(value) do
+        if not is_list(value) do
           Mix.raise("Application vsn (:vsn) is not a character list, got: " <> inspect(value))
         end
 
       {:maxT, value} ->
-        unless value == :infinity or is_integer(value) do
+        if not (value == :infinity or is_integer(value)) do
           Mix.raise(
             "Application maximum time (:maxT) is not an integer or :infinity, got: " <>
               inspect(value)
@@ -281,14 +281,14 @@ defmodule Mix.Tasks.Compile.App do
         end
 
       {:modules, value} ->
-        unless is_list(value) and Enum.all?(value, &is_atom(&1)) do
+        if not (is_list(value) and Enum.all?(value, &is_atom(&1))) do
           Mix.raise(
             "Application modules (:modules) should be a list of atoms, got: " <> inspect(value)
           )
         end
 
       {:registered, value} ->
-        unless is_list(value) and Enum.all?(value, &is_atom(&1)) do
+        if not (is_list(value) and Enum.all?(value, &is_atom(&1))) do
           Mix.raise(
             "Application registered processes (:registered) should be a list of atoms, got: " <>
               inspect(value)
@@ -296,7 +296,7 @@ defmodule Mix.Tasks.Compile.App do
         end
 
       {:included_applications, value} ->
-        unless is_list(value) and Enum.all?(value, &is_atom(&1)) do
+        if not (is_list(value) and Enum.all?(value, &is_atom(&1))) do
           Mix.raise(
             "Application included applications (:included_applications) should be a list of atoms, got: " <>
               inspect(value)
@@ -304,7 +304,7 @@ defmodule Mix.Tasks.Compile.App do
         end
 
       {:extra_applications, value} ->
-        unless is_list(value) and Enum.all?(value, &typed_app?(&1)) do
+        if not (is_list(value) and Enum.all?(value, &typed_app?(&1))) do
           Mix.raise(
             "Application extra applications (:extra_applications) should be a list of atoms or " <>
               "{app, :required | :optional} pairs, got: " <> inspect(value)
@@ -312,7 +312,7 @@ defmodule Mix.Tasks.Compile.App do
         end
 
       {:applications, value} ->
-        unless is_list(value) and Enum.all?(value, &typed_app?(&1)) do
+        if not (is_list(value) and Enum.all?(value, &typed_app?(&1))) do
           Mix.raise(
             "Application applications (:applications) should be a list of atoms or " <>
               "{app, :required | :optional} pairs, got: " <> inspect(value)
@@ -320,14 +320,14 @@ defmodule Mix.Tasks.Compile.App do
         end
 
       {:env, value} ->
-        unless Keyword.keyword?(value) do
+        if not Keyword.keyword?(value) do
           Mix.raise(
             "Application environment (:env) should be a keyword list, got: " <> inspect(value)
           )
         end
 
       {:start_phases, value} ->
-        unless Keyword.keyword?(value) do
+        if not Keyword.keyword?(value) do
           Mix.raise(
             "Application start phases (:start_phases) should be a keyword list, got: " <>
               inspect(value)
