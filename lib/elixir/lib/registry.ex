@@ -331,7 +331,7 @@ defmodule Registry do
   def start_link(options) do
     keys = Keyword.get(options, :keys)
 
-    unless keys in @keys do
+    if keys not in @keys do
       raise ArgumentError,
             "expected :keys to be given and be one of :unique or :duplicate, got: #{inspect(keys)}"
     end
@@ -350,27 +350,27 @@ defmodule Registry do
 
     meta = Keyword.get(options, :meta, [])
 
-    unless Keyword.keyword?(meta) do
+    if !Keyword.keyword?(meta) do
       raise ArgumentError, "expected :meta to be a keyword list, got: #{inspect(meta)}"
     end
 
     partitions = Keyword.get(options, :partitions, 1)
 
-    unless is_integer(partitions) and partitions >= 1 do
+    if !(is_integer(partitions) and partitions >= 1) do
       raise ArgumentError,
             "expected :partitions to be a positive integer, got: #{inspect(partitions)}"
     end
 
     listeners = Keyword.get(options, :listeners, [])
 
-    unless is_list(listeners) and Enum.all?(listeners, &is_atom/1) do
+    if !(is_list(listeners) and Enum.all?(listeners, &is_atom/1)) do
       raise ArgumentError,
             "expected :listeners to be a list of named processes, got: #{inspect(listeners)}"
     end
 
     compressed = Keyword.get(options, :compressed, false)
 
-    unless is_boolean(compressed) do
+    if !is_boolean(compressed) do
       raise ArgumentError,
             "expected :compressed to be a boolean, got: #{inspect(compressed)}"
     end
@@ -1433,7 +1433,7 @@ defmodule Registry do
   end
 
   defp unlink_if_unregistered(pid_server, pid_ets, self) do
-    unless :ets.member(pid_ets, self) do
+    if !:ets.member(pid_ets, self) do
       Process.unlink(pid_server)
     end
   end

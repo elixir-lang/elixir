@@ -335,7 +335,7 @@ defmodule IEx.Evaluator do
     forms = add_if_undefined_apply_to_vars(forms, env)
     {result, binding, env} = eval_expr_by_expr(forms, binding, env)
 
-    unless result == IEx.dont_display_result() do
+    if result != IEx.dont_display_result() do
       io_inspect(result)
     end
 

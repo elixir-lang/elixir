@@ -397,7 +397,7 @@ defmodule Mix.Task do
   @doc since: "1.14.0"
   @spec run_in_apps(task_name, [atom], [any]) :: any
   def run_in_apps(task, apps, args \\ []) do
-    unless Mix.Project.umbrella?() do
+    if !Mix.Project.umbrella?() do
       Mix.raise(
         "Could not run #{inspect(task)} with the --app option because this is not an umbrella project"
       )

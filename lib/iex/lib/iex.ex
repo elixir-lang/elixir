@@ -716,7 +716,7 @@ defmodule IEx do
   defp __break__!(ast, module, fun, args, guards, stops, env) do
     module = Macro.expand(module, env)
 
-    unless is_atom(module) do
+    if not is_atom(module) do
       raise_unknown_break_ast!(ast)
     end
 

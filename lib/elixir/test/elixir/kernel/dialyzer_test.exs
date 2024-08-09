@@ -17,7 +17,7 @@ defmodule Kernel.DialyzerTest do
       |> String.to_charlist()
 
     # Some OSs (like Windows) do not provide the HOME environment variable.
-    unless System.get_env("HOME") do
+    if !System.get_env("HOME") do
       System.put_env("HOME", System.user_home())
     end
 

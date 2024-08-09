@@ -521,7 +521,7 @@ defmodule Time do
         do: unit > 0,
         else: unit in ~w(second millisecond microsecond nanosecond)a
 
-    unless valid? do
+    if !valid? do
       raise ArgumentError,
             "unsupported time unit. Expected :hour, :minute, :second, :millisecond, :microsecond, :nanosecond, or a positive integer, got #{inspect(unit)}"
     end

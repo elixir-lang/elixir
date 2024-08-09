@@ -350,7 +350,7 @@ defmodule IO.ANSI.Docs do
     |> String.split(@spaces)
     |> write_with_wrap(options[:width] - byte_size(indent), indent, no_wrap, prefix)
 
-    unless no_wrap, do: newline_after_block(options)
+    if !no_wrap, do: newline_after_block(options)
   end
 
   defp format_text(text, options) do
