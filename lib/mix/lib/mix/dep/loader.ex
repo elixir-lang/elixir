@@ -167,7 +167,7 @@ defmodule Mix.Dep.Loader do
   end
 
   defp with_scm_and_app(app, req, opts, original, locked?) do
-    unless Keyword.keyword?(opts) do
+    if !Keyword.keyword?(opts) do
       invalid_dep_format(original)
     end
 
@@ -192,7 +192,7 @@ defmodule Mix.Dep.Loader do
         {scm, opts}
       end
 
-    unless scm do
+    if !scm do
       Mix.raise(
         "Could not find an SCM for dependency #{inspect(app)} from #{inspect(Mix.Project.get())}"
       )

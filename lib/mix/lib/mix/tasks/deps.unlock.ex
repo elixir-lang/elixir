@@ -35,7 +35,7 @@ defmodule Mix.Tasks.Deps.Unlock do
         lock = Mix.Dep.Lock.read()
         unused_apps = unused_apps(lock)
 
-        unless unused_apps == [] do
+        if unused_apps != [] do
           Mix.raise("""
           Unused dependencies in mix.lock file:
 
@@ -47,7 +47,7 @@ defmodule Mix.Tasks.Deps.Unlock do
         lock = Mix.Dep.Lock.read()
         unused_apps = unused_apps(lock)
 
-        unless unused_apps == [] do
+        if unused_apps != [] do
           unlock(lock, unused_apps)
         end
 
@@ -92,7 +92,7 @@ defmodule Mix.Tasks.Deps.Unlock do
   end
 
   defp unlock(lock, apps) do
-    unless apps == [] do
+    if apps != [] do
       lock |> Map.drop(apps) |> Mix.Dep.Lock.write()
 
       Mix.shell().info("""

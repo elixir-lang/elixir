@@ -205,13 +205,13 @@ defmodule IEx.Helpers do
   def c(files, path \\ :in_memory) when is_binary(path) or path == :in_memory do
     files = List.wrap(files)
 
-    unless Enum.all?(files, &is_binary/1) do
+    if !Enum.all?(files, &is_binary/1) do
       raise ArgumentError, "expected a binary or a list of binaries as argument"
     end
 
     {found, not_found} = Enum.split_with(files, &File.exists?/1)
 
-    unless Enum.empty?(not_found) do
+    if !Enum.empty?(not_found) do
       raise ArgumentError, "could not find files #{Enum.join(not_found, ", ")}"
     end
 
@@ -462,7 +462,7 @@ defmodule IEx.Helpers do
 
     sources =
       Enum.map(modules, fn module ->
-        unless Code.ensure_loaded?(module) do
+        if !Code.ensure_loaded?(module) do
           raise ArgumentError, "could not load nor find module: #{inspect(module)}"
         end
 

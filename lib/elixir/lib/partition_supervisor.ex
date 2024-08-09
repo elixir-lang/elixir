@@ -228,26 +228,26 @@ defmodule PartitionSupervisor do
   def start_link(opts) when is_list(opts) do
     name = opts[:name]
 
-    unless name do
+    if !name do
       raise ArgumentError, "the :name option must be given to PartitionSupervisor"
     end
 
     {child_spec, opts} = Keyword.pop(opts, :child_spec)
 
-    unless child_spec do
+    if !child_spec do
       raise ArgumentError, "the :child_spec option must be given to PartitionSupervisor"
     end
 
     {partitions, opts} = Keyword.pop(opts, :partitions, System.schedulers_online())
 
-    unless is_integer(partitions) and partitions >= 1 do
+    if !(is_integer(partitions) and partitions >= 1) do
       raise ArgumentError,
             "the :partitions option must be a positive integer, got: #{inspect(partitions)}"
     end
 
     {with_arguments, opts} = Keyword.pop(opts, :with_arguments, fn args, _partition -> args end)
 
-    unless is_function(with_arguments, 2) do
+    if !is_function(with_arguments, 2) do
       raise ArgumentError,
             "the :with_arguments option must be a function that receives two arguments, " <>
               "the current call arguments and the partition, got: #{inspect(with_arguments)}"
@@ -260,7 +260,7 @@ defmodule PartitionSupervisor do
       for partition <- 0..(partitions - 1) do
         args = with_arguments.(args, partition)
 
-        unless is_list(args) do
+        if !is_list(args) do
           raise "the call to the function in :with_arguments must return a list, got: #{inspect(args)}"
         end
 
@@ -270,7 +270,7 @@ defmodule PartitionSupervisor do
 
     auto_shutdown = Keyword.get(opts, :auto_shutdown, :never)
 
-    unless auto_shutdown == :never do
+    if auto_shutdown != :never do
       raise ArgumentError,
             "the :auto_shutdown option must be :never, got: #{inspect(auto_shutdown)}"
     end
@@ -319,7 +319,7 @@ defmodule PartitionSupervisor do
   defp init_partitions({:via, _, _}, partitions) do
     child_spec = {Registry, keys: :unique, name: @registry}
 
-    unless Process.whereis(@registry) do
+    if !Process.whereis(@registry) do
       Supervisor.start_child(:elixir_sup, child_spec)
     end
 

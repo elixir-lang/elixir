@@ -648,7 +648,7 @@ defmodule MacroTest do
 
       {result, formatted} =
         dbg_format(
-          unless true and x do
+          if !(true and x) do
             map[:a] * 2
           else
             map[:b]

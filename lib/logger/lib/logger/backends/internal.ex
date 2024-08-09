@@ -98,7 +98,7 @@ defmodule Logger.Backends.Internal do
   ## Supervisor callbacks
 
   defp ensure_started() do
-    unless Process.whereis(@name) do
+    if !Process.whereis(@name) do
       Supervisor.start_child(Logger.Supervisor, __MODULE__)
     end
 

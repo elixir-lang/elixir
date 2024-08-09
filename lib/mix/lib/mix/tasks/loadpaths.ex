@@ -33,7 +33,7 @@ defmodule Mix.Tasks.Loadpaths do
     # recursively checking and loading dependencies that have
     # already been loaded. It has no purpose from Mix.CLI
     # because running a task may load deps.
-    unless "--from-mix-deps-compile" in args do
+    if "--from-mix-deps-compile" not in args do
       Mix.Task.run("deps.loadpaths", args)
     end
 
@@ -61,7 +61,7 @@ defmodule Mix.Tasks.Loadpaths do
         :ok
     end
 
-    unless "--no-path-loading" in args do
+    if "--no-path-loading" not in args do
       # We don't cache the current application as we may still write to it
       Code.prepend_path(Mix.Project.compile_path(config))
     end

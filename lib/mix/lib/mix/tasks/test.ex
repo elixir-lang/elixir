@@ -512,7 +512,7 @@ defmodule Mix.Tasks.Test do
   defp do_run(opts, args, files) do
     _ = Mix.Project.get!()
 
-    unless System.get_env("MIX_ENV") || Mix.env() == :test do
+    if !(System.get_env("MIX_ENV") || Mix.env() == :test) do
       Mix.raise("""
       "mix test" is running in the \"#{Mix.env()}\" environment. If you are \
       running tests from within another command, you can either:

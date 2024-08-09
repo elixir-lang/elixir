@@ -168,7 +168,7 @@ defmodule Supervisor.Spec do
         ) :: {:ok, tuple}
   @deprecated "Use the new child specifications outlined in the Supervisor module instead"
   def supervise(children, options) do
-    unless strategy = options[:strategy] do
+    if !(strategy = options[:strategy]) do
       raise ArgumentError, "expected :strategy option to be given"
     end
 

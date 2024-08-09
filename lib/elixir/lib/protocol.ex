@@ -896,7 +896,7 @@ defmodule Protocol do
       # Inline struct implementation for performance
       @compile {:inline, struct_impl_for: 1}
 
-      unless Module.defines_type?(__MODULE__, {:t, 0}) do
+      if !Module.defines_type?(__MODULE__, {:t, 0}) do
         @typedoc """
         All the types that implement this protocol.
         """

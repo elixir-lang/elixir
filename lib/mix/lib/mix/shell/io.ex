@@ -71,7 +71,7 @@ defmodule Mix.Shell.IO do
   def yes?(message, options \\ []) do
     default = Keyword.get(options, :default, :yes)
 
-    unless default in [:yes, :no] do
+    if default not in [:yes, :no] do
       raise ArgumentError,
             "expected :default to be either :yes or :no, got: #{inspect(default)}"
     end
