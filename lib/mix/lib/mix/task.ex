@@ -131,18 +131,6 @@ defmodule Mix.Task do
   """
   @callback run(command_line_args :: [binary]) :: any
 
-  @doc """
-  A task may return a list of dependent tasks
-  if they are to be re-enabled when this task gets re-enabled.
-
-  For instance, if task `"foo"` executes `"bar"` with
-  `Mix.Task.run("bar")` from `run/1`, this method should be implemented
-  to return `["bar"]`.
-  """
-  @callback depends_on :: [binary]
-
-  @optional_callbacks depends_on: 0
-
   @doc false
   defmacro __using__(_opts) do
     quote do
@@ -630,20 +618,8 @@ defmodule Mix.Task do
   end
 
   def reenable(task) when is_binary(task) do
-    module = get(task)
-
-    # it’s safe against `no_return` because otherwise `run/1`
-    #   would be `no_return` as well
-    if module && function_exported?(module, :depends_on, 0) do
-      Enum.each(module.depends_on(), &reenable/1)
-    end
-
-    do_reenable(task, module)
-  end
-
-  defp do_reenable(task, module) do
     proj = Mix.Project.get()
-    recursive = module && recursive(module)
+    recursive = (module = get(task)) && recursive(module)
 
     Mix.TasksServer.delete_many([{:task, task, proj}, {:alias, task, proj}])
 
