@@ -89,14 +89,6 @@ defmodule Mix.Tasks.Compile.All do
     result
   end
 
-  @impl true
-  @doc false
-  def depends_on do
-    Mix.Project.config()
-    |> Mix.Tasks.Compile.compilers()
-    |> Enum.map(&"compile.#{&1}")
-  end
-
   defp compile([], _, status, diagnostics) do
     {status, diagnostics}
   end
