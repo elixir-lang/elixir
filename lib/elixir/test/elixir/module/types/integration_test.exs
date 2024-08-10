@@ -824,8 +824,8 @@ defmodule Module.Types.IntegrationTest do
 
     Map.new(modules, fn module ->
       {^module, binary, _filename} = :code.get_object_code(module)
-      :code.purge(module)
       :code.delete(module)
+      :code.purge(module)
       {module, binary}
     end)
   end
