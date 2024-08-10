@@ -6,7 +6,7 @@ defmodule Keyword do
   The second element, known as the *value*, can be any term.
 
   Keywords are mostly used to work with optional values. For a general introduction
-  to keywords and how the compare with maps, see our [Keyword and Maps](keywords-and-maps.md)
+  to keywords and how they compare with maps, see our [Keyword and Maps](keywords-and-maps.md)
   guide.
 
   ## Examples
