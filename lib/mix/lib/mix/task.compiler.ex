@@ -162,33 +162,4 @@ defmodule Mix.Task.Compiler do
         {:noop, []}
     end
   end
-
-  @doc """
-  Reenables given compilers so they can be executed again down the stack.
-
-  If an umbrella project reenables compilers, they are re-enabled for all
-  child projects.
-
-  Default is `[]`, for none compilers to be reenabled.
-  This task always re-enables `"compiler.all"`.
-  """
-  @spec reenable([{:compilers, compilers}]) :: :ok when compilers: :all | [Mix.Task.task_name()]
-  def reenable(opts \\ []) do
-    if not Keyword.keyword?(opts) do
-      IO.warn(
-        "Mix.Task.Compiler.reenable/1 expects a keyword list " <>
-          "as an argument with compilers: [compiler()], " <>
-          "reenabling no compiler"
-      )
-    else
-      compilers =
-        case Keyword.get(opts, :compilers, []) do
-          :all -> Mix.Tasks.Compile.compilers()
-          list when is_list(list) -> list
-        end
-
-      Enum.each(["loadpaths", "compile", "compile.all"], &Mix.Task.reenable(&1))
-      Enum.each(compilers, &Mix.Task.reenable("compile.#{&1}"))
-    end
-  end
 end

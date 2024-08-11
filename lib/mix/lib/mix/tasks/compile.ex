@@ -98,6 +98,27 @@ defmodule Mix.Tasks.Compile do
     |> maybe_prepend(:yecc)
   end
 
+  @doc """
+  Reenables given compilers so they can be executed again down the stack.
+
+  If an umbrella project reenables compilers, they are re-enabled for all
+  child projects.
+
+  Default is `[]`, for none compilers to be reenabled.
+  This task always re-enables `"compiler.all"`.
+  """
+  @spec reenable([{:compilers, compilers}]) :: :ok when compilers: :all | [Mix.Task.task_name()]
+  def reenable(opts \\ []) do
+    compilers =
+      case Keyword.get(opts, :compilers, :all) do
+        :all -> compilers()
+        list when is_list(list) -> list
+      end
+
+    Enum.each(["compile", "compile.all"], &Mix.Task.reenable(&1))
+    Enum.each(compilers, &Mix.Task.reenable("compile.#{&1}"))
+  end
+
   defp maybe_prepend(compilers, compiler) do
     if compiler in compilers do
       compilers
