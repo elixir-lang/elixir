@@ -90,7 +90,7 @@ defmodule Mix.Tasks.Compile do
 
   By default reenables all compilers.
   """
-  @spec reenable([compilers: compilers]) :: :ok when compilers: :all | [Mix.Task.task_name()]
+  @spec reenable([compilers: compilers]) :: :ok when compilers: :all | [atom()]
   def reenable(opts \\ []) do
     compilers =
       case Keyword.get(opts, :compilers, :all) do
