@@ -613,11 +613,8 @@ defmodule Mix.Task do
   child projects.
   """
   @spec reenable(task_name) :: :ok
-  def reenable(task) when is_atom(task) do
-    task |> to_string() |> reenable()
-  end
-
-  def reenable(task) when is_binary(task) do
+  def reenable(task) when is_binary(task) or is_atom(task) do
+    task = to_string(task)
     proj = Mix.Project.get()
     recursive = (module = get(task)) && recursive(module)
 
