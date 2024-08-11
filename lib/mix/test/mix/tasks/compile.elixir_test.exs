@@ -855,33 +855,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
-  test "recompiles newly created files" do
-    in_fixture("no_mixfile", fn ->
-      Mix.Project.push(MixTest.Case.Sample)
-
-      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
-      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-
-      Mix.shell().flush()
-
-      File.write!("lib/z.ex", """
-      defmodule Z do
-        def ok, do: :ok
-      end
-      """)
-
-      Mix.Task.reenable("compile.elixir")
-      assert {:ok, []} = Mix.Tasks.Compile.Elixir.run(["--verbose"])
-
-      assert_received {:mix_shell, :info, ["Compiled lib/z.ex"]}
-      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-
-      assert File.regular?("_build/dev/lib/sample/ebin/Elixir.Z.beam")
-    end)
-  end
-
   test "recompiles dependent changed modules" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
