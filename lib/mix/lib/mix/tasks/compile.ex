@@ -88,10 +88,9 @@ defmodule Mix.Tasks.Compile do
   If an umbrella project reenables compilers, they are re-enabled for all
   child projects.
 
-  Default is `[]`, for none compilers to be reenabled.
-  This task always re-enables `"compiler.all"`.
+  By default reenables all compilers.
   """
-  @spec reenable([{:compilers, compilers}]) :: :ok when compilers: :all | [Mix.Task.task_name()]
+  @spec reenable([compilers: compilers]) :: :ok when compilers: :all | [Mix.Task.task_name()]
   def reenable(opts \\ []) do
     compilers =
       case Keyword.get(opts, :compilers, :all) do
