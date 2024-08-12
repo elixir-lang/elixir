@@ -102,8 +102,8 @@ defmodule Logger do
 
   Furthermore, metadata can be set per process with `Logger.metadata/1`.
 
-  Some metadata, however, is always added automatically by Logger
-  whenever possible. Those are:
+  Some metadata, however, may be added automatically by Logger whenever
+  possible. Those are:
 
     * `:application` - the current application
 
@@ -137,13 +137,13 @@ defmodule Logger do
   There are two special metadata keys, `:module` and `:function`, which
   extract the relevant bits from `:mfa`.
 
-  Note that all metadata is optional and may not always be available.
-  The `:mfa`, `:file`, `:line`, and similar metadata are automatically
-  included when using `Logger` macros. `Logger.bare_log/3` does not include
-  any metadata beyond the `:pid` by default. Other metadata, such as
+  The metadata keys above may not always be available. The `:mfa`, `:file`,
+  `:line`, and similar metadata are automatically included when using `Logger`
+  macros, but not when using `Logger.bare_log/3`. Other metadata, such as
   `:crash_reason`, `:initial_call`, and `:registered_name` are available
   only inside behaviours such as GenServer, Supervisor, and others.
 
+  It is also possible to pass metadata on a particular Logger invocation.
   For example, you might wish to include a custom `:error_code` metadata in
   your logs:
 
@@ -196,8 +196,10 @@ defmodule Logger do
       if `:handle_otp_reports` is true.
 
     * `:metadata` - key-value pairs of global primary metadata to be included
-      in all log messages. Defaults to `[]`. This can be overridden at the process
-      level with `metadata/1` or each on log call as desired.
+      in all log messages. Defaults to `[]`. The default formatter writes to
+      standard out and therefore cannot print all metadata. See
+      [`Logger.Formatter`'s documentation](Logger.Formatter.html#module-metadata`)
+      for more information.
 
   For example, to configure `Logger` to redirect all Erlang messages using a
   `config/config.exs` file:
@@ -529,9 +531,8 @@ defmodule Logger do
   with the exception of setting a key to `nil`, which will remove that key
   from the metadata.
 
-  Note not all keys can be set as metadata. The metadata automatically added
-  by Logger, as declared in the module documentation, will always override
-  custom one.
+  Note some metadata keys are reserved and cannot be overridden. See
+  [the module documentation](#module-metadata) for more information.
   """
   @spec metadata(metadata) :: :ok
   def metadata(keyword) do
