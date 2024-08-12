@@ -2,6 +2,77 @@
 
 This document outlines potential anti-patterns related to meta-programming.
 
+## Compile-time dependencies
+
+#### Problem
+
+This anti-pattern is related to dependencies between files in Elixir. Because macros are used at compile-time, the use of any macro in Elixir adds a compile-time dependency to the module that defines the macro.
+
+However, when macros are used in the body of a module, the arguments to the macro themselves may become compile-time dependencies. These dependencies may lead to dependency graphs where changing a single file causes several files to be recompiled.
+
+#### Example
+
+Let's take the [`Plug`](https://github.com/elixir-plug/plug) library as an example. The `Plug` project allows you specify several modules, also known as plugs, which will be invoked whenever there is a request. As a user of `Plug`, you would use it as follows:
+
+```elixir
+defmodule MyApp do
+  use Plug.Builder
+
+  plug MyApp.Authentication
+end
+```
+
+And imagine `Plug` has the following definitions of the macros above (simplified):
+
+```elixir
+defmodule Plug.Builder do
+  defmacro __using__(_opts) do
+    quote do
+      Module.register_attribute(__MODULE__, :plugs, accumulate: true)
+      @before_compile Plug.Builder
+    end
+  end
+
+  defmacro plug(mod) do
+    quote do
+      @plugs unquote(mod)
+    end
+  end
+
+  ...
+end
+```
+
+The implementation accumulates all modules inside the `@plugs` module attribute. Right before the module is compiled, `Plug.Builder` will reads all modules stored in `@plugs` and compile them into a function, like this:
+
+```elixir
+def call(conn, _opts) do
+  MyApp.Authentication.call(conn)
+end
+```
+
+The trouble with the code above is that, because the `plug MyApp.Authentication` was invoked at compile-time, the module `MyApp.Authentication` is now a compile-time dependency of `MyApp`, even though `MyApp.Authentication` is never used at compile-time. If `MyApp.Authentication` depends on other modules, even at runtime, this can now lead to a large recompilation graph in case of changes.
+
+#### Refactoring
+
+To address this anti-pattern, a macro can expand literals within the context they are meant to be used, as follows:
+
+```elixir
+  defmacro plug(mod) do
+    mod = Macro.expand_literals(mod, %{__CALLER__ | function: {:call, 2}})
+
+    quote do
+      @plugs unquote(mod)
+    end
+  end
+```
+
+In the example above, since `mod` is used only within the `call/2` function, we prematuraly expand module reference as if it was inside the `call/2` function. Now `MyApp.Authentication` is only a runtime dependency of `MyApp`, no longer a compile-time one.
+
+Note, however, the above must only be done if your macros do not attempt to invoke any function, access any struct, or any other metadata of the module at compile-time. If you interact with the module given to a macro anywhere outside of definition of a function, then you effectively have a compile-time dependency. And, even though you generally want to avoid them, it is not always possible.
+
+In actual projects, developers may use `mix xref trace path/to/file.ex` to execute a file and have it print information about which modules it depends on, and if those modules are compile-time, runtime, or export dependencies. See `mix xref` for more information.
+
 ## Large code generation
 
 #### Problem
