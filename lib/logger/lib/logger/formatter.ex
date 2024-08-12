@@ -78,6 +78,7 @@ defmodule Logger.Formatter do
   > #### When is user metadata printed? {: .warning}
   >
   > User's metadata must meet one of the following conditions to be printed:
+  >
   >   * Be a string (`is_binary/1`)
   >   * Be a number (either `is_integer/1` or `is_float/1`)
   >   * Be a PID
