@@ -74,6 +74,18 @@ defmodule Logger.Formatter do
   to the current process. The user can configure the backend to choose
   which metadata it wants to print and it will replace the `$metadata`
   value.
+
+  > #### Disclaimer {: .warning}
+  >
+  > User's metadata must meet one of the following conditions to be printed:
+  >   * Be a string (match with the `is_binary/1` guard)
+  >   * Be a number (either match with the `is_integer/1` or `is_float/1` guard)
+  >   * Be a pid
+  >   * Be an atom
+  >   * Be a reference
+  >   * Be a port
+  >   * Implement the `String.Chars` protocol
+  > otherwise the given metadata will be discarded.
   """
 
   @type date :: {1970..10000, 1..12, 1..31}
