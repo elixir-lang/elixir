@@ -75,17 +75,19 @@ defmodule Logger.Formatter do
   which metadata it wants to print and it will replace the `$metadata`
   value.
 
-  > #### Disclaimer {: .warning}
+  > #### When is user metadata printed? {: .warning}
   >
   > User's metadata must meet one of the following conditions to be printed:
-  >   * Be a string (match with the `is_binary/1` guard)
-  >   * Be a number (either match with the `is_integer/1` or `is_float/1` guard)
-  >   * Be a pid
+  >   * Be a string (`is_binary/1`)
+  >   * Be a number (either `is_integer/1` or `is_float/1`)
+  >   * Be a PID
   >   * Be an atom
   >   * Be a reference
   >   * Be a port
   >   * Implement the `String.Chars` protocol
-  > otherwise the given metadata will be discarded.
+  >
+  > If none of the conditions above are `true`, the given metadata get
+  > discarded.
   """
 
   @type date :: {1970..10000, 1..12, 1..31}
