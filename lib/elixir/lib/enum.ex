@@ -2706,11 +2706,11 @@ defmodule Enum do
       iex> Enum.slide([:a, :b, :c, :d, :e, :f, :g], 5, 1)
       [:a, :f, :b, :c, :d, :e, :g]
 
-      # Slide a range of elements backward
+      # Slide a range of elements towards the head of the list
       iex> Enum.slide([:a, :b, :c, :d, :e, :f, :g], 3..5, 1)
       [:a, :d, :e, :f, :b, :c, :g]
 
-      # Slide a range of elements forward
+      # Slide a range of elements towards the tail of the list
       iex> Enum.slide([:a, :b, :c, :d, :e, :f, :g], 1..3, 5)
       [:a, :e, :f, :b, :c, :d, :g]
 
