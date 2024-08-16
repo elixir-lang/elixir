@@ -1239,7 +1239,7 @@ defmodule System do
   This time is monotonically increasing and starts in an unspecified
   point in time.
   """
-  @spec monotonic_time(time_unit) :: integer
+  @spec monotonic_time(time_unit | :native) :: integer
   def monotonic_time(unit) do
     :erlang.monotonic_time(normalize_time_unit(unit))
   end
@@ -1265,7 +1265,7 @@ defmodule System do
   case of time warps although the VM works towards aligning
   them. This time is not monotonic.
   """
-  @spec system_time(time_unit) :: integer
+  @spec system_time(time_unit | :native) :: integer
   def system_time(unit) do
     :erlang.system_time(normalize_time_unit(unit))
   end
@@ -1316,7 +1316,7 @@ defmodule System do
   `monotonic_time/1`), gives the Erlang system time that corresponds
   to that monotonic time.
   """
-  @spec time_offset(time_unit) :: integer
+  @spec time_offset(time_unit | :native) :: integer
   def time_offset(unit) do
     :erlang.time_offset(normalize_time_unit(unit))
   end
