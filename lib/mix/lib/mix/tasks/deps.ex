@@ -62,9 +62,10 @@ defmodule Mix.Tasks.Deps do
     * `:app` - when set to `false`, does not read the app file for this
       dependency. By default, the app file is read
 
-    * `:env` - the environment (as an atom) to run the dependency on; defaults to `:prod`.
-      This is not necessary for dependencies on other apps within the same umbrella project,
-      see the `:in_umbrella` option below.
+    * `:env` - the environment (as an atom) to run the dependency on.
+      While your current project runs in `:dev` by default, dependencies
+      defaults to `:prod` (except for `:in_umbrella` dependencies, see
+      below)
 
     * `:compile` - a command (string) to compile the dependency; defaults to a `mix`,
       `rebar` or `make` command
@@ -75,13 +76,18 @@ defmodule Mix.Tasks.Deps do
       use the optional dependency. However, if the other project includes
       the optional dependency on its own, the requirements and options
       specified here will also be applied. Optional dependencies will _not_
-      be started by the application.
+      be started by the application. You should consider compiling your
+      projects with the `mix compile --no-optional-deps --warnings-as-errors`
+      during test, to ensure your project compiles without warnings even
+      if optional dependencies are missing
 
     * `:only` - the dependency is made available only in the given environments,
       useful when declaring dev- or test-only dependencies; by default the
       dependency will be available in all environments. The value of this option
       can either be a single environment (like `:dev`) or a list of environments
-      (like `[:dev, :test]`)
+      (like `[:dev, :test]`). Keep in mind that your project runs in the `:dev`
+      environment by default, however, all of your dependencies run in the `:prod`
+      environment (unless the `:env` option above is given)
 
     * `:targets` - the dependency is made available only for the given targets.
       By default the dependency will be available in all targets. The value
@@ -108,6 +114,14 @@ defmodule Mix.Tasks.Deps do
 
     * `:system_env` - an enumerable of key-value tuples of binaries to be set
       as environment variables when loading or compiling the dependency
+
+  When a project is used as a dependency, it runs by default in the `:prod`
+  environment. Therefore, if your project has dependencies that are only
+  useful in development or testing, you want to specify those dependencies with
+  the `:only` option above. You can also specify `:optional` dependencies
+  in your project, which are not enforced upon users of your library, as outlined
+  above. Finally, the [lockfile](`Mix.Project#module-configuration`) (usually
+  named `mix.lock`) is ignored when a project is used as a dependency.
 
   ### Git options (`:git`)
 
