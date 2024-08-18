@@ -232,7 +232,7 @@ cleaning up!
 ** (RuntimeError) oops
 ```
 
-Elixir will automatically wrap the function body in a `try` whenever one of `after`, `rescue` or `catch` is specified.
+Elixir will automatically wrap the function body in a `try` whenever one of `after`, `rescue` or `catch` is specified. The `after` block handles side effects and does not supersede the return value from the clauses above it.
 
 ## Else
 
