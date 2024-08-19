@@ -812,6 +812,9 @@ expand_for_do_block(_Meta, Expr, S, E, false) ->
   expand(Expr, S, E);
 expand_for_do_block(Meta, [{'->', _, _} | _] = Clauses, S, E, {reduce, _}) ->
   Transformer = fun
+    ({_, _, [[{'when', _, [_, _, _ | _]}], _]}, _) ->
+      file_error(Meta, E, ?MODULE, for_with_reduce_bad_block);
+
     ({_, _, [[_], _]} = Clause, SA) ->
       SReset = elixir_env:reset_unused_vars(SA),
 
