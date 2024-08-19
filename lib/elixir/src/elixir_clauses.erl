@@ -257,6 +257,9 @@ expand_clauses_with_stacktrace(Meta, Fun, Clauses, S, E) ->
   {Ret, SE} = expand_clauses(Meta, 'try', Fun, Clauses, SS, E),
   {Ret, SE#elixir_ex{stacktrace=OldStacktrace}}.
 
+expand_catch(Meta, [{'when', _, [_, _, _, _ | _]}], _, E) ->
+  Error = {wrong_number_of_args_for_clause, "one or two args", origin(Meta, 'try'), 'catch'},
+  file_error(Meta, E, ?MODULE, Error);
 expand_catch(_Meta, [_] = Args, S, E) ->
   head(Args, S, E);
 expand_catch(_Meta, [_, _] = Args, S, E) ->

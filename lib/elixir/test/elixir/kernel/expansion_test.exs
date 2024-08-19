@@ -948,6 +948,11 @@ defmodule Kernel.ExpansionTest do
         ~r"when using :reduce with comprehensions, the do block must be written using acc -> expr clauses",
         fn -> expand(quote(do: for(x <- 1..3, reduce: %{}, do: (acc, x -> x)))) end
       )
+
+      assert_compile_error(
+        ~r"when using :reduce with comprehensions, the do block must be written using acc -> expr clauses",
+        fn -> expand(quote(do: for(x <- 1..3, reduce: %{}, do: (acc, x when 1 == 1 -> x)))) end
+      )
     end
 
     test "raise error for unknown options" do
@@ -2125,6 +2130,19 @@ defmodule Kernel.ExpansionTest do
               x
             catch
               _, _, _ -> :ok
+            end
+          end
+
+        expand(code)
+      end)
+
+      assert_compile_error(message, fn ->
+        code =
+          quote do
+            try do
+              x
+            catch
+              _, _, _ when 1 == 1 -> :ok
             end
           end
 
