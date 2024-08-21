@@ -28,7 +28,12 @@ defmodule DateTime do
   ## Time zone database
 
   Many functions in this module require a time zone database.
-  By default, it uses the default time zone database returned by
+  A time zone database is a record of the UTC offsets that its locales have
+  used at various times in the past, are using, and are expected to use in the
+  future.
+  Because those plans can change, it needs to be periodically updated.
+
+  By default, `DateTime` uses the default time zone database returned by
   `Calendar.get_time_zone_database/0`, which defaults to
   `Calendar.UTCOnlyTimeZoneDatabase` which only handles "Etc/UTC"
   datetimes and returns `{:error, :utc_only_time_zone_database}`
@@ -43,7 +48,7 @@ defmodule DateTime do
     * [`zoneinfo`](https://github.com/smartrent/zoneinfo) -
       recommended for embedded devices
 
-  To use them, first make sure it is added as a dependency in `mix.exs`.
+  To use one of them, first make sure it is added as a dependency in `mix.exs`.
   It can then be configured either via configuration:
 
       config :elixir, :time_zone_database, Tz.TimeZoneDatabase
