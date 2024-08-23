@@ -761,9 +761,7 @@ defmodule Module.Types.Descr do
 
   defp map_only?(descr), do: empty?(Map.delete(descr, :map))
 
-  defp map_fetch_static(:term, _key) do
-    {true, term()}
-  end
+  defp map_fetch_static(:term, _key), do: {true, term()}
 
   defp map_fetch_static(descr, key) when is_atom(key) do
     case descr do
@@ -777,9 +775,7 @@ defmodule Module.Types.Descr do
         end
 
       %{map: map} ->
-        map_split_on_key(map, key)
-        |> Enum.reduce(none(), &union/2)
-        |> pop_optional_static()
+        map_get(map, key) |> pop_optional_static()
 
       %{} ->
         {false, none()}
@@ -846,7 +842,7 @@ defmodule Module.Types.Descr do
     {:closed, new_fields}
   end
 
-  # Open and closed: result is closed, all fields from open should be in closed
+  # Open and closed: result is closed, all fields from open should be in closed, except not_set ones.
   defp map_literal_intersection(:open, open, :closed, closed) do
     :maps.iterator(open) |> :maps.next() |> map_literal_intersection_loop(closed)
   end
@@ -864,7 +860,12 @@ defmodule Module.Types.Descr do
         :maps.next(iterator) |> map_literal_intersection_loop(acc)
 
       _ ->
-        throw(:empty)
+        # If the key is marked as not_set in the open map, we can ignore it.
+        if type1 == @not_set do
+          :maps.next(iterator) |> map_literal_intersection_loop(acc)
+        else
+          throw(:empty)
+        end
     end
   end
 
@@ -891,6 +892,42 @@ defmodule Module.Types.Descr do
     |> case do
       [] -> 0
       acc -> acc
+    end
+  end
+
+  @doc """
+  Removes a key from a map type.
+
+  ## Algorithm
+
+  1. Split the map type based on the presence of the key.
+  2. Take the second part of the split, which represents the union of all
+     record types where the key has been explicitly removed.
+  3. Intersect this with an open record type where the key is explicitly absent.
+     This step eliminates the key from open record types where it was implicitly present.
+  """
+  def map_delete(:term, _key), do: :badmap
+
+  def map_delete(descr, key) do
+    case :maps.take(:dynamic, descr) do
+      :error ->
+        if descr_key?(descr, :map) and map_only?(descr) do
+          map_delete_static(descr, key)
+          |> intersection(open_map([{key, not_set()}]))
+        else
+          :badmap
+        end
+
+      {dynamic, static} ->
+        if descr_key?(dynamic, :map) and map_only?(static) do
+          dynamic_result = map_delete_static(dynamic, key)
+          static_result = map_delete_static(static, key)
+
+          union(dynamic(dynamic_result), static_result)
+          |> intersection(open_map([{key, not_set()}]))
+        else
+          :badmap
+        end
     end
   end
 
@@ -948,29 +985,51 @@ defmodule Module.Types.Descr do
        end)) or map_empty?(tag, fields, negs)
   end
 
-  # Takes a map dnf and a key and returns a list of unions of types
-  # for that key. It has to traverse both fields and negative entries.
-  defp map_split_on_key(dnf, key) do
-    Enum.flat_map(dnf, fn
+  # Takes a map dnf and returns the union of types it can take for a given key.
+  # If the key may be undefined, it will contain the `not_set()` type.
+  defp map_get(dnf, key) do
+    Enum.reduce(dnf, none(), fn
       # Optimization: if there are no negatives,
       # we can return the value directly.
-      {_tag, %{^key => value}, []} ->
-        [value]
+      {_tag, %{^key => value}, []}, acc ->
+        value |> union(acc)
 
       # Optimization: if there are no negatives
       # and the key does not exist, return the default one.
-      {tag, %{}, []} ->
-        [tag_to_type(tag)]
+      {tag, %{}, []}, acc ->
+        tag_to_type(tag) |> union(acc)
 
-      {tag, fields, negs} ->
+      {tag, fields, negs}, acc ->
         {fst, snd} = map_pop_key(tag, fields, key)
 
-        case map_split_negative(negs, key, []) do
-          :empty -> []
-          negative -> negative |> pair_make_disjoint() |> pair_eliminate_negations(fst, snd)
+        case map_split_negative(negs, key) do
+          :empty -> none()
+          negative -> negative |> pair_make_disjoint() |> pair_eliminate_negations_fst(fst, snd)
         end
+        |> union(acc)
     end)
   end
+
+  # Takes a static map type and removes a key from it.
+  defp map_delete_static(%{map: dnf}, key) do
+    Enum.reduce(dnf, none(), fn
+      # Optimization: if there are no negatives, we can directly remove the key.
+      {tag, fields, []}, acc ->
+        %{map: map_new(tag, :maps.remove(key, fields))} |> union(acc)
+
+      {tag, fields, negs}, acc ->
+        {fst, snd} = map_pop_key(tag, fields, key)
+
+        case map_split_negative(negs, key) do
+          :empty -> none()
+          negative -> negative |> pair_make_disjoint() |> pair_eliminate_negations_snd(fst, snd)
+        end
+        |> union(acc)
+    end)
+  end
+
+  # If there is no map part to this static type, there is nothing to delete.
+  defp map_delete_static(type, _key), do: type
 
   defp map_pop_key(tag, fields, key) do
     case :maps.take(key, fields) do
@@ -979,15 +1038,12 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp map_split_negative([], _key, neg_acc), do: neg_acc
-
-  defp map_split_negative([{tag, fields} | negative], key, neg_acc) do
-    # A negation with an open map means the whole thing is empty.
-    if tag == :open and fields == %{} do
-      :empty
-    else
-      map_split_negative(negative, key, [map_pop_key(tag, fields, key) | neg_acc])
-    end
+  defp map_split_negative(negs, key) do
+    Enum.reduce_while(negs, [], fn
+      # A negation with an open map means the whole thing is empty.
+      {:open, fields}, _acc when map_size(fields) == 0 -> {:halt, :empty}
+      {tag, fields}, neg_acc -> {:cont, [map_pop_key(tag, fields, key) | neg_acc]}
+    end)
   end
 
   # Use heuristics to normalize a map dnf for pretty printing.
@@ -1336,8 +1392,7 @@ defmodule Module.Types.Descr do
         {true, term()}
 
       %{tuple: tuple} ->
-        tuple_split_on_index(tuple, index)
-        |> Enum.reduce(none(), &union/2)
+        tuple_get(tuple, index)
         |> pop_optional_static()
 
       %{} ->
@@ -1345,18 +1400,20 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp tuple_split_on_index(dnf, index) do
-    Enum.flat_map(dnf, fn
-      {tag, elements, []} ->
-        [Enum.at(elements, index, tag_to_type(tag))]
+  defp tuple_get(dnf, index) do
+    Enum.reduce(dnf, none(), fn
+      # Optimization: if there are no negatives, just return the type at that index.
+      {tag, elements, []}, acc ->
+        Enum.at(elements, index, tag_to_type(tag)) |> union(acc)
 
-      {tag, elements, negs} ->
+      {tag, elements, negs}, acc ->
         {fst, snd} = tuple_pop_index(tag, elements, index)
 
         case tuple_split_negative(negs, index) do
-          :empty -> []
-          negative -> negative |> pair_make_disjoint() |> pair_eliminate_negations(fst, snd)
+          :empty -> none()
+          negative -> negative |> pair_make_disjoint() |> pair_eliminate_negations_fst(fst, snd)
         end
+        |> union(acc)
     end)
   end
 
@@ -1409,10 +1466,11 @@ defmodule Module.Types.Descr do
   #            or {t and not (union{i=1..n} t_i), s}
   #
   # This eliminates all top-level negations and produces a union of pairs that
-  # are disjoint on their first component.
-  defp pair_eliminate_negations(negative, t, s) do
+  # are disjoint on their first component. The function `pair_eliminate_negations_fst`
+  # is optimized to only keep the first component out of those pairs.
+  defp pair_eliminate_negations_fst(negative, t, s) do
     {pair_union, diff_of_t_i} =
-      Enum.reduce(negative, {[], t}, fn {t_i, s_i}, {accu, diff_of_t_i} ->
+      Enum.reduce(negative, {none(), t}, fn {t_i, s_i}, {accu, diff_of_t_i} ->
         i = intersection(t, t_i)
 
         if empty?(i) do
@@ -1423,11 +1481,39 @@ defmodule Module.Types.Descr do
 
           if empty?(s_diff),
             do: {accu, diff_of_t_i},
-            else: {[i | accu], diff_of_t_i}
+            else: {union(i, accu), diff_of_t_i}
         end
       end)
 
-    [diff_of_t_i | pair_union]
+    union(pair_union, diff_of_t_i)
+  end
+
+  # The formula above is symmetric with respect to the first and second components.
+  # Hence the following also holds true:
+  #
+  #    {t, s} and not (union<i=1..n> {t_i, s_i})
+  #           = union<i=1..n> {t and not t_i, s and s_i}
+  #            or {t, s and not (union{i=1..n} s_i)}
+  #
+  # which is used to in the following function, optimized to keep the second component.
+  defp pair_eliminate_negations_snd(negative, t, s) do
+    {pair_union, diff_of_s_i} =
+      Enum.reduce(negative, {none(), s}, fn {t_i, s_i}, {accu, diff_of_s_i} ->
+        i = intersection(s, s_i)
+
+        if empty?(i) do
+          {accu, diff_of_s_i}
+        else
+          diff_of_s_i = difference(diff_of_s_i, s_i)
+          t_diff = difference(t, t_i)
+
+          if empty?(t_diff),
+            do: {accu, diff_of_s_i},
+            else: {union(t_diff, accu), diff_of_s_i}
+        end
+      end)
+
+    union(diff_of_s_i, pair_union)
   end
 
   # Makes a union of pairs into an equivalent union of disjoint pairs.

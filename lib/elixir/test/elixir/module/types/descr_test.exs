@@ -141,6 +141,9 @@ defmodule Module.Types.DescrTest do
                closed_map(a: integer())
              )
 
+      assert intersection(closed_map(a: integer()), open_map(b: not_set())) ==
+               closed_map(a: integer())
+
       assert equal?(
                intersection(closed_map(a: integer()), closed_map(a: if_set(integer()))),
                closed_map(a: integer())
@@ -562,6 +565,47 @@ defmodule Module.Types.DescrTest do
 
       assert union(dynamic(open_map(a: atom())), open_map(a: integer()))
              |> map_fetch(:a) == {false, union(dynamic(atom()), integer())}
+    end
+
+    test "map_delete" do
+      assert map_delete(term(), :a) == :badmap
+      assert map_delete(union(open_map(), integer()), :a) == :badmap
+      assert map_delete(closed_map(a: integer(), b: atom()), :a) == closed_map(b: atom())
+      assert map_delete(empty_map(), :a) == empty_map()
+
+      # Deleting a non-existent key
+      assert map_delete(closed_map(a: integer(), b: atom()), :c) ==
+               closed_map(a: integer(), b: atom())
+
+      # Deleting from an open map
+      assert map_delete(open_map(a: integer(), b: atom()), :a)
+             |> equal?(open_map(a: not_set(), b: atom()))
+
+      # Deleting from a union of maps
+      assert map_delete(union(closed_map(a: integer()), closed_map(b: atom())), :a) ==
+               union(empty_map(), closed_map(b: atom()))
+
+      # Deleting from a dynamic map
+      assert map_delete(dynamic(), :a) == dynamic(open_map(a: not_set()))
+
+      # Deleting from a gradual map
+      assert map_delete(union(dynamic(), closed_map(a: integer())), :a)
+             |> equal?(union(dynamic(open_map(a: not_set())), empty_map()))
+
+      assert map_delete(dynamic(open_map(a: not_set())), :b)
+             |> equal?(dynamic(open_map(a: not_set(), b: not_set())))
+
+      # Deleting from an intersection of maps
+      assert map_delete(intersection(open_map(a: integer()), open_map(b: atom())), :a) ==
+               open_map(a: not_set(), b: atom())
+
+      # Deleting from a difference of maps
+      assert difference(closed_map(a: integer(), b: atom()), closed_map(a: integer()))
+             |> map_delete(:b) ==
+               difference(closed_map(a: integer()), closed_map(a: integer()))
+
+      # Deleting from a map with if_set values
+      assert map_delete(closed_map(a: if_set(integer()), b: atom()), :a) == closed_map(b: atom())
     end
   end
 
