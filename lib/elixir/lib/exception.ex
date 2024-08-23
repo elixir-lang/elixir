@@ -49,7 +49,7 @@ defmodule Exception do
   @doc """
   Receives the exception struct and must return its message.
 
-  Most commonly exceptions have a message field which by default is accessed
+  Many exceptions have a message field which by default is accessed
   by this function. However, if an exception does not have a message field,
   this function must be explicitly implemented.
   """
