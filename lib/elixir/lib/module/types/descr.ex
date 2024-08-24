@@ -782,6 +782,115 @@ defmodule Module.Types.Descr do
     end
   end
 
+  @doc """
+  Updates the `key` with a given type, assuming that the key is present
+  in the descr, and that it is exclusively a map (or dynamic).
+  """
+  def map_update(descr, key, type) do
+    case :maps.take(:dynamic, type) do
+      :error -> do_map_update(descr, key, type)
+      {dynamic, _static} -> dynamic(do_map_update(descr, key, dynamic))
+    end
+  end
+
+  def do_map_update(descr, key, type) do
+    case :maps.take(:dynamic, descr) do
+      :error ->
+        cond do
+          subtype?(descr, open_map([{key, type}])) -> map_put_static(descr, key, type)
+          map_only?(descr) -> :badkey
+          true -> :badmap
+        end
+
+      {dynamic, static} when static == @none ->
+        if disjoint?(dynamic, open_map([{key, type}])) do
+          :badkey
+        else
+          dynamic(map_put_static(dynamic, key, type))
+        end
+
+      {dynamic, static} ->
+        if not disjoint?(dynamic, open_map([{key, type}])) and
+             subtype?(static, open_map([{key, type}])) do
+          dynamic = map_put_static(dynamic, key, type)
+          static = map_put_static(static, key, type)
+          Map.put(static, :dynamic, dynamic)
+        else
+          if map_only?(static) do
+            :badkey
+          else
+            :badmap
+          end
+        end
+    end
+
+    if not subtype?(descr, open_map([{key, term()}])) do
+      :badkey
+    else
+      map_put(descr, key, type)
+    end
+  end
+
+  def disjoint?(left, right), do: intersection(left, right) |> empty?()
+
+  @doc """
+  Adds a `key` of a given type, assuming that the descr is exclusively
+  a map (or dynamic).
+  """
+  def map_put(descr, key, type) do
+    case :maps.take(:dynamic, type) do
+      :error -> map_put_static_value(descr, key, type)
+      {dynamic, _static} -> dynamic(map_put_static_value(descr, key, dynamic))
+    end
+  end
+
+  def map_put_static_value(descr, key, type) do
+    case :maps.take(:dynamic, descr) do
+      :error ->
+        if map_only?(descr) do
+          map_put_static(descr, key, type)
+        else
+          :badmap
+        end
+
+      {dynamic, static} when static == @none ->
+        if descr_key?(dynamic, :map) do
+          dynamic(map_put_static(dynamic, key, type))
+        else
+          :badkey
+        end
+
+      {dynamic, static} ->
+        if descr_key?(dynamic, :map) and map_only?(static) do
+          dynamic = map_put_static(dynamic, key, type)
+          static = map_put_static(static, key, type)
+          Map.put(static, :dynamic, dynamic)
+        else
+          :badmap
+        end
+    end
+  end
+
+  defp map_put_static(descr, key, type) do
+    map_delete(descr, key) |> do_map_put(key, type)
+  end
+
+  # To every positive and negative field, add key => type.
+  defp do_map_put(descr, key, type) do
+    case descr do
+      %{map: dnf} ->
+        %{
+          map:
+            for {tag, fields, negs} <- dnf do
+              {tag, Map.put(fields, key, type),
+               for {neg_tag, neg_fields} <- negs do
+                 {neg_tag, Map.put(neg_fields, key, type)}
+               end}
+            end
+        }
+    end
+  end
+
   defp pop_optional_static(type) do
     case type do
       %{bitmap: @bit_optional} ->
@@ -911,6 +1020,7 @@ defmodule Module.Types.Descr do
   def map_delete(descr, key) do
     case :maps.take(:dynamic, descr) do
       :error ->
+        # Note: the empty typ is not a valid input
         if descr_key?(descr, :map) and map_only?(descr) do
           map_delete_static(descr, key)
           |> intersection(open_map([{key, not_set()}]))

@@ -609,6 +609,61 @@ defmodule Module.Types.DescrTest do
     end
   end
 
+  test "map_delete" do
+    # Put a new key-value pair in an empty map
+    assert map_put(empty_map(), :a, integer()) == closed_map(a: integer())
+
+    # Replace an existing key in a closed map
+    assert map_put(closed_map(a: integer()), :a, atom()) == closed_map(a: atom())
+
+    # Add a new key to a closed map
+    assert map_put(closed_map(a: integer()), :b, atom()) == closed_map(a: integer(), b: atom())
+
+    # Replace an existing key in an open map
+    assert map_put(open_map(a: integer()), :a, atom()) |> equal?(open_map(a: atom()))
+
+    # Add a new key to an open map
+    assert map_put(open_map(a: integer()), :b, atom())
+           |> equal?(open_map(a: integer(), b: atom()))
+
+    # Put a key-value pair in a union of maps
+    assert union(closed_map(a: integer()), closed_map(b: atom()))
+           |> map_put(:c, boolean())
+           |> equal?(
+             union(closed_map(a: integer(), c: boolean()), closed_map(b: atom(), c: boolean()))
+           )
+
+    # Put a key-value pair in a dynamic map
+    assert map_put(dynamic(open_map()), :a, integer()) |> equal?(dynamic(open_map(a: integer())))
+
+    # Put a key-value pair in an intersection of maps
+    assert intersection(open_map(a: integer()), open_map(b: atom()))
+           |> map_put(:c, boolean())
+           |> equal?(open_map(a: integer(), b: atom(), c: boolean()))
+
+    # Put a key-value pair in a difference of maps
+    assert map_put(difference(open_map(), closed_map(a: integer())), :b, atom())
+           |> equal?(difference(open_map(b: atom()), closed_map(a: integer())))
+
+    # Replace an existing key with a union type
+    assert map_put(closed_map(a: integer()), :a, union(integer(), atom()))
+           |> equal?(closed_map(a: union(integer(), atom())))
+
+    # Put a key-value pair with dynamic type
+    # Note: setting a field to a dynamic type makes the whole map become dynamic.
+    assert map_put(open_map(), :a, dynamic()) |> equal?(dynamic(open_map(a: term())))
+
+    # Put a key-value pair in a map with optional fields
+    assert map_put(closed_map(a: if_set(integer())), :b, atom())
+           |> equal?(closed_map(a: if_set(integer()), b: atom()))
+  end
+
+  describe "disjoint" do
+    test "map" do
+      refute disjoint?(open_map(), open_map(a: integer()))
+    end
+  end
+
   describe "to_quoted" do
     test "bitmap" do
       assert union(integer(), union(float(), binary())) |> to_quoted_string() ==
