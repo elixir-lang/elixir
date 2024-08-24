@@ -348,6 +348,11 @@ defmodule Module.Types.Descr do
   end
 
   @doc """
+  Check if two types are disjoint.
+  """
+  def disjoint?(left, right), do: empty?(intersection(left, right))
+
+  @doc """
   Checks if a type is a compatible subtype of another.
 
   If `input_type` has a static part (i.e., values that are known to appear and
@@ -786,31 +791,34 @@ defmodule Module.Types.Descr do
   Updates the `key` with a given type, assuming that the key is present
   in the descr, and that it is exclusively a map (or dynamic).
   """
+  def map_update(:term, _key, _type), do: :badmap
+  def map_update(descr, key, :term), do: map_update_static_value(descr, key, :term)
+
   def map_update(descr, key, type) do
     case :maps.take(:dynamic, type) do
-      :error -> do_map_update(descr, key, type)
-      {dynamic, _static} -> dynamic(do_map_update(descr, key, dynamic))
+      :error -> map_update_static_value(descr, key, type)
+      {dynamic, _static} -> dynamic(map_update_static_value(descr, key, dynamic))
     end
   end
 
-  def do_map_update(descr, key, type) do
+  def map_update_static_value(descr, key, type) do
     case :maps.take(:dynamic, descr) do
       :error ->
         cond do
-          subtype?(descr, open_map([{key, type}])) -> map_put_static(descr, key, type)
+          subtype?(descr, open_map([{key, term()}])) -> map_put_static(descr, key, type)
           map_only?(descr) -> :badkey
           true -> :badmap
         end
 
       {dynamic, static} when static == @none ->
-        if disjoint?(dynamic, open_map([{key, type}])) do
-          :badkey
-        else
+        if not disjoint?(dynamic, open_map([{key, term()}])) do
           dynamic(map_put_static(dynamic, key, type))
+        else
+          :badkey
         end
 
       {dynamic, static} ->
-        if not disjoint?(dynamic, open_map([{key, type}])) and
+        if not disjoint?(dynamic, open_map([{key, term()}])) and
              subtype?(static, open_map([{key, type}])) do
           dynamic = map_put_static(dynamic, key, type)
           static = map_put_static(static, key, type)
@@ -823,20 +831,15 @@ defmodule Module.Types.Descr do
           end
         end
     end
-
-    if not subtype?(descr, open_map([{key, term()}])) do
-      :badkey
-    else
-      map_put(descr, key, type)
-    end
   end
-
-  def disjoint?(left, right), do: intersection(left, right) |> empty?()
 
   @doc """
   Adds a `key` of a given type, assuming that the descr is exclusively
   a map (or dynamic).
   """
+  def map_put(:term, _key, _type), do: :badmap
+  def map_put(descr, key, :term), do: map_put_static_value(descr, key, :term)
+
   def map_put(descr, key, type) do
     case :maps.take(:dynamic, type) do
       :error -> map_put_static_value(descr, key, type)
@@ -857,38 +860,31 @@ defmodule Module.Types.Descr do
         if descr_key?(dynamic, :map) do
           dynamic(map_put_static(dynamic, key, type))
         else
-          :badkey
+          :badmap
         end
 
       {dynamic, static} ->
         if descr_key?(dynamic, :map) and map_only?(static) do
           dynamic = map_put_static(dynamic, key, type)
           static = map_put_static(static, key, type)
-          Map.put(static, :dynamic, dynamic)
+          union(dynamic(dynamic), static)
         else
           :badmap
         end
     end
   end
 
-  defp map_put_static(descr, key, type) do
-    map_delete(descr, key) |> do_map_put(key, type)
-  end
-
-  # To every positive and negative field, add key => type.
-  defp do_map_put(descr, key, type) do
-    case descr do
-      %{map: dnf} ->
-        %{
-          map:
-            for {tag, fields, negs} <- dnf do
-              {tag, Map.put(fields, key, type),
-               for {neg_tag, neg_fields} <- negs do
-                 {neg_tag, Map.put(neg_fields, key, type)}
-               end}
-            end
-        }
-    end
+  # Directly inserts a key of a given type into every positive and negative map
+  def map_put_static(descr, key, type) do
+    map_delete_static(descr, key)
+    |> Map.update!(:map, fn dnf ->
+      Enum.map(dnf, fn {tag, fields, negs} ->
+        {tag, Map.put(fields, key, type),
+         Enum.map(negs, fn {neg_tag, neg_fields} ->
+           {neg_tag, Map.put(neg_fields, key, type)}
+         end)}
+      end)
+    end)
   end
 
   defp pop_optional_static(type) do
@@ -984,19 +980,33 @@ defmodule Module.Types.Descr do
   end
 
   defp map_difference(dnf1, dnf2) do
-    Enum.reduce(dnf2, dnf1, fn {tag2, fields2, negs2}, dnf1 ->
-      Enum.reduce(dnf1, [], fn {tag1, fields1, negs1}, acc ->
-        acc = [{tag1, fields1, [{tag2, fields2} | negs1]} | acc]
+    Enum.reduce(dnf2, dnf1, fn
+      # Optimization: we are removing an open map with one field.
+      {:open, fields2, []}, dnf1 when map_size(fields2) == 1 ->
+        Enum.reduce(dnf1, [], fn {tag1, fields1, negs1}, acc ->
+          {key, value} = Enum.at(fields2, 0)
+          t_diff = difference(Map.get(fields1, key, tag_to_type(tag1)), value)
 
-        Enum.reduce(negs2, acc, fn {neg_tag2, neg_fields2}, acc ->
-          try do
-            {tag, fields} = map_literal_intersection(tag1, fields1, neg_tag2, neg_fields2)
-            [{tag, fields, negs1} | acc]
-          catch
-            :empty -> acc
+          if empty?(t_diff) do
+            acc
+          else
+            [{tag1, Map.put(fields1, key, t_diff), negs1} | acc]
           end
         end)
-      end)
+
+      {tag2, fields2, negs2}, dnf1 ->
+        Enum.reduce(dnf1, [], fn {tag1, fields1, negs1}, acc ->
+          acc = [{tag1, fields1, [{tag2, fields2} | negs1]} | acc]
+
+          Enum.reduce(negs2, acc, fn {neg_tag2, neg_fields2}, acc ->
+            try do
+              {tag, fields} = map_literal_intersection(tag1, fields1, neg_tag2, neg_fields2)
+              [{tag, fields, negs1} | acc]
+            catch
+              :empty -> acc
+            end
+          end)
+        end)
     end)
     |> case do
       [] -> 0
@@ -1040,6 +1050,34 @@ defmodule Module.Types.Descr do
         end
     end
   end
+
+  # Takes a static map type and removes a key from it.
+  defp map_delete_static(%{map: dnf}, key) do
+    Enum.reduce(dnf, none(), fn
+      # Optimization: if there are no negatives, we can directly remove the key.
+      {tag, fields, []}, acc ->
+        union(acc, %{map: map_new(tag, :maps.remove(key, fields))})
+
+      {tag, fields, negs}, acc ->
+        {fst, snd} = map_pop_key(tag, fields, key)
+
+        union(
+          acc,
+          case map_split_negative(negs, key) do
+            :empty ->
+              none()
+
+            negative ->
+              negative |> pair_make_disjoint() |> pair_eliminate_negations_snd(fst, snd)
+          end
+        )
+    end)
+  end
+
+  defp map_delete_static(:term, key), do: open_map([{key, not_set()}])
+
+  # If there is no map part to this static type, there is nothing to delete.
+  defp map_delete_static(_type, _key), do: none()
 
   # Emptiness checking for maps.
   #
@@ -1119,27 +1157,6 @@ defmodule Module.Types.Descr do
         |> union(acc)
     end)
   end
-
-  # Takes a static map type and removes a key from it.
-  defp map_delete_static(%{map: dnf}, key) do
-    Enum.reduce(dnf, none(), fn
-      # Optimization: if there are no negatives, we can directly remove the key.
-      {tag, fields, []}, acc ->
-        %{map: map_new(tag, :maps.remove(key, fields))} |> union(acc)
-
-      {tag, fields, negs}, acc ->
-        {fst, snd} = map_pop_key(tag, fields, key)
-
-        case map_split_negative(negs, key) do
-          :empty -> none()
-          negative -> negative |> pair_make_disjoint() |> pair_eliminate_negations_snd(fst, snd)
-        end
-        |> union(acc)
-    end)
-  end
-
-  # If there is no map part to this static type, there is nothing to delete.
-  defp map_delete_static(type, _key), do: type
 
   defp map_pop_key(tag, fields, key) do
     case :maps.take(key, fields) do
@@ -1619,7 +1636,7 @@ defmodule Module.Types.Descr do
 
           if empty?(t_diff),
             do: {accu, diff_of_s_i},
-            else: {union(t_diff, accu), diff_of_s_i}
+            else: {union(i, accu), diff_of_s_i}
         end
       end)
 
