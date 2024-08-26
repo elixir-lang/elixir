@@ -791,14 +791,23 @@ defmodule Mix.Tasks.ReleaseTest do
       Mix.Project.in_project(:release_test, ".", fn _ ->
         Mix.Task.run("release")
 
+        script_name = "release_test"
+
+        script_name =
+          if match?({:win32, _}, :os.type()), do: "#{script_name}.bat", else: script_name
+
         File.ln_s!(
-          "_build/dev/rel/release_test/bin/release_test",
-          "release_test"
+          Path.join("_build/dev/rel/release_test/bin", script_name),
+          script_name
         )
 
-        script = Path.absname("release_test")
-        {hello_world, 0} = System.cmd(script, ["eval", "IO.puts :hello_world"])
-        assert String.trim_trailing(hello_world) == "hello_world"
+        try do
+          script = Path.absname(script_name)
+          {hello_world, 0} = System.cmd(script, ["eval", "IO.puts :hello_world"])
+          assert String.trim_trailing(hello_world) == "hello_world"
+        after
+          File.rm!(script_name)
+        end
       end)
     end)
   end
@@ -808,16 +817,25 @@ defmodule Mix.Tasks.ReleaseTest do
       Mix.Project.in_project(:release_test, ".", fn _ ->
         Mix.Task.run("release")
 
+        script_name = "release_test"
+
+        script_name =
+          if match?({:win32, _}, :os.type()), do: "#{script_name}.bat", else: script_name
+
         File.mkdir!("bin")
 
         File.ln_s!(
-          "../_build/dev/rel/release_test/bin/release_test",
-          "bin/release_test"
+          Path.join("../_build/dev/rel/release_test/bin", script_name),
+          Path.join("bin", script_name)
         )
 
-        script = Path.absname("bin/release_test")
-        {hello_world, 0} = System.cmd(script, ["eval", "IO.puts :hello_world"])
-        assert String.trim_trailing(hello_world) == "hello_world"
+        try do
+          script = Path.absname(Path.join("bin", script_name))
+          {hello_world, 0} = System.cmd(script, ["eval", "IO.puts :hello_world"])
+          assert String.trim_trailing(hello_world) == "hello_world"
+        after
+          File.rm_rf!("bin")
+        end
       end)
     end)
   end
