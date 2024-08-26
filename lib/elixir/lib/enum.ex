@@ -1266,6 +1266,7 @@ defmodule Enum do
   def flat_map(enumerable, fun) do
     reduce(enumerable, [], fn entry, acc ->
       case fun.(entry) do
+        [] -> acc
         list when is_list(list) -> [list | acc]
         other -> [to_list(other) | acc]
       end
@@ -1273,6 +1274,8 @@ defmodule Enum do
     |> flat_reverse([])
   end
 
+  # the first clause is an optimization
+  defp flat_reverse([[elem] | t], acc), do: flat_reverse(t, [elem | acc])
   defp flat_reverse([h | t], acc), do: flat_reverse(t, h ++ acc)
   defp flat_reverse([], acc), do: acc
 
@@ -4425,6 +4428,9 @@ defmodule Enum do
 
   defp flat_map_list([head | tail], fun) do
     case fun.(head) do
+      # the two first clauses are an optimization
+      [] -> flat_map_list(tail, fun)
+      [elem] -> [elem | flat_map_list(tail, fun)]
       list when is_list(list) -> list ++ flat_map_list(tail, fun)
       other -> to_list(other) ++ flat_map_list(tail, fun)
     end
