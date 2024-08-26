@@ -973,9 +973,6 @@ defmodule Inspect.Algebra do
   #
   #   * flat - represents a document with breaks as flats (a break may fit, as it may break)
   #   * break - represents a document with breaks as breaks (a break always fits, since it breaks)
-  #
-  # The following modes are exclusive to fitting:
-  #
   #   * flat_no_break - represents a document with breaks as flat not allowed to enter in break mode
   #   * break_no_flat - represents a document with breaks as breaks not allowed to enter in flat mode
   #
@@ -986,7 +983,7 @@ defmodule Inspect.Algebra do
           column :: non_neg_integer(),
           break? :: boolean(),
           entries
-        ) :: :fit | :no_fit
+        ) :: :fit | :no_fit | :break_next
         when entries:
                maybe_improper_list({integer(), mode(), t()}, {:tail, boolean(), entries} | [])
 
@@ -1015,8 +1012,13 @@ defmodule Inspect.Algebra do
   defp fits(w, k, b?, [{i, :break_no_flat, doc_force(x)} | t]),
     do: fits(w, k, b?, [{i, :break_no_flat, x} | t])
 
-  defp fits(_, _, _, [{_, :break_no_flat, doc_break(_, _)} | _]), do: :fit
-  defp fits(_, _, _, [{_, :break_no_flat, :doc_line} | _]), do: :fit
+  defp fits(w, k, b?, [{i, :break_no_flat, x} | t])
+       when x == :doc_line or (is_tuple(x) and elem(x, 0) == :doc_break) do
+    case fits(w, k, b?, [{i, :flat, x} | t]) do
+      :no_fit -> :break_next
+      fits -> fits
+    end
+  end
 
   ## Breaks
 
@@ -1066,6 +1068,10 @@ defmodule Inspect.Algebra do
   defp format(w, k, [{_, _, doc_string(s, l)} | t]), do: [s | format(w, k + l, t)]
   defp format(w, k, [{_, _, s} | t]) when is_binary(s), do: [s | format(w, k + byte_size(s), t)]
   defp format(w, k, [{i, m, doc_force(x)} | t]), do: format(w, k, [{i, m, x} | t])
+
+  defp format(w, k, [{i, :flat_no_break, doc_fits(x, :enabled)} | t]),
+    do: format(w, k, [{i, :break_no_flat, x} | t])
+
   defp format(w, k, [{i, m, doc_fits(x, _)} | t]), do: format(w, k, [{i, m, x} | t])
   defp format(w, _, [{i, _, doc_collapse(max)} | t]), do: collapse(format(w, i, t), max, 0, i)
 
@@ -1103,12 +1109,17 @@ defmodule Inspect.Algebra do
     format(w, k, [{i, :break, x} | t])
   end
 
+  defp format(w, k, [{i, :break_no_flat, doc_group(x, _)} | t]) do
+    format(w, k, [{i, :break, x} | t])
+  end
+
   defp format(w, k, [{i, _, doc_group(x, _)} | t]) do
     fits = if w == :infinity, do: :fit, else: fits(w, k, false, [{i, :flat, x}])
 
     case fits do
       :fit -> format(w, k, [{i, :flat, x} | t])
       :no_fit -> format(w, k, [{i, :break, x} | t])
+      :break_next -> format(w, k, [{i, :flat_no_break, x} | t])
     end
   end
 
