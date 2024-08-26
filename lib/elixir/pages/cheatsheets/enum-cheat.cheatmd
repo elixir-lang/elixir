@@ -99,6 +99,19 @@ iex> Enum.reject(cart, &(&1.fruit =~ "o"))
 ]
 ```
 
+### [`flat_map(enum, fun)`](`Enum.flat_map/2`)
+
+This function (also listed [below](#concatenating-flattening)) can
+be used to transform and filter in one pass, returning empty lists
+to exclude results:
+
+```elixir
+iex> Enum.flat_map(cart, fn item ->
+...>   if item.count > 1, do: [item.fruit], else: []
+...> end)
+["apple", "orange"]
+```
+
 ### [`Comprehension`](`for/1`)
 
 Filtering can also be done with comprehensions:

@@ -1257,6 +1257,14 @@ defmodule Enum do
       iex> Enum.flat_map([:a, :b, :c], fn x -> [[x]] end)
       [[:a], [:b], [:c]]
 
+  This is frequently used to to transform and filter in one pass, returning empty
+  lists to exclude results:
+
+      iex> Enum.flat_map([4, 0, 2, 0], fn x ->
+      ...>   if x != 0, do: [1 / x], else: []
+      ...> end)
+      [0.25, 0.5]
+
   """
   @spec flat_map(t, (element -> t)) :: list
   def flat_map(enumerable, fun) when is_list(enumerable) do
