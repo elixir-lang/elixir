@@ -195,6 +195,31 @@ defmodule Config do
   end
 
   @doc """
+  Reads the configuration for the given root key.
+
+  This function only reads the configuration from a previous
+  `config/2` or `config/3` call. If `root_key` points to an
+  application, it does not read its actual application environment.
+  Its main use case is to make it easier to access and share
+  configuration values across files.
+
+  If the `root_key` was not configured, it returns `nil`.
+
+  ## Examples
+
+      # In config/config.exs
+      config :my_app, foo: :bar
+
+      # In config/dev.exs
+      config :another_app, foo: read_config(:my_app)[:foo] || raise "missing parent configuration"
+
+  """
+  @doc since: "1.18.0"
+  def read_config(root_key) when is_atom(root_key) do
+    get_config!()[root_key]
+  end
+
+  @doc """
   Returns the environment this configuration file is executed on.
 
   In Mix projects this function returns the environment this configuration
