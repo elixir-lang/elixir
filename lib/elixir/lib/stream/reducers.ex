@@ -151,10 +151,10 @@ defmodule Stream.Reducers do
   defmacro reject(callback, fun \\ nil) do
     quote do
       fn entry, acc ->
-        if !unquote(callback).(entry) do
-          next(unquote(fun), entry, acc)
-        else
+        if unquote(callback).(entry) do
           skip(acc)
+        else
+          next(unquote(fun), entry, acc)
         end
       end
     end
