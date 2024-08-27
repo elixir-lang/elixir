@@ -786,6 +786,40 @@ defmodule Mix.Tasks.ReleaseTest do
     end)
   end
 
+  @tag :unix
+  test "works properly with an absolute symlink to release" do
+    in_fixture("release_test", fn ->
+      Mix.Project.in_project(:release_test, ".", fn _ ->
+        Mix.Task.run("release")
+
+        File.ln_s!(
+          Path.absname("_build/#{Mix.env()}/rel/release_test/bin/release_test"),
+          Path.absname("release_test")
+        )
+
+        script = Path.absname("release_test")
+        {hello_world, 0} = System.cmd(script, ["eval", "IO.puts :hello_world"])
+        assert String.trim_trailing(hello_world) == "hello_world"
+      end)
+    end)
+  end
+
+  @tag :unix
+  test "works properly with a relative symlink to release" do
+    in_fixture("release_test", fn ->
+      Mix.Project.in_project(:release_test, ".", fn _ ->
+        Mix.Task.run("release")
+
+        File.mkdir!("bin")
+        File.ln_s!("../_build/#{Mix.env()}/rel/release_test/bin/release_test", "bin/release_test")
+
+        script = Path.absname("bin/release_test")
+        {hello_world, 0} = System.cmd(script, ["eval", "IO.puts :hello_world"])
+        assert String.trim_trailing(hello_world) == "hello_world"
+      end)
+    end)
+  end
+
   defp open_port(command, args, env \\ []) do
     env = for {k, v} <- env, do: {to_charlist(k), to_charlist(v)}
     Port.open({:spawn_executable, to_charlist(command)}, [:hide, args: args, env: env])

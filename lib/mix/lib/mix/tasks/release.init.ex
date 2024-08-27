@@ -87,8 +87,17 @@ defmodule Mix.Tasks.Release.Init do
     #!/bin/sh
     set -e
 
-    SELF=$(readlink "$0" || true)
-    if [ -z "$SELF" ]; then SELF="$0"; fi
+    readlink_f () {
+      cd "$(dirname "$1")" > /dev/null
+      filename="$(basename "$1")"
+      if [ -h "$filename" ]; then
+        readlink_f "$(readlink "$filename")"
+      else
+        echo "$(pwd -P)/$filename"
+      fi
+    }
+
+    SELF=$(readlink_f "$0")
     RELEASE_ROOT="$(CDPATH='' cd "$(dirname "$SELF")/.." && pwd -P)"
     export RELEASE_ROOT
     RELEASE_NAME="${RELEASE_NAME:-"<%= @release.name %>"}"
