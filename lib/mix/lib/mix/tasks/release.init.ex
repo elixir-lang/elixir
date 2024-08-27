@@ -88,16 +88,13 @@ defmodule Mix.Tasks.Release.Init do
     set -e
 
     readlink_f () {
-      original_dir=$(pwd)
       cd "$(dirname "$1")" > /dev/null
       filename="$(basename "$1")"
       if [ -h "$filename" ]; then
-        result=$(readlink_f "$(readlink "$filename")")
+        readlink_f "$(readlink "$filename")"
       else
-        result="$(pwd -P)/$filename"
+        echo "$(pwd -P)/$filename"
       fi
-      cd "$original_dir" > /dev/null
-      echo "$result"
     }
 
     SELF=$(readlink_f "$0")
