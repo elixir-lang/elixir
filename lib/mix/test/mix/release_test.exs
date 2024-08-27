@@ -176,7 +176,7 @@ defmodule Mix.ReleaseTest do
 
         app_config =
           config(
-            deps: [{:cowboy, "~> 1.0", path: "deps/cowvoy"}],
+            deps: [{:cowboy, "~> 1.0", path: "deps/cowboy"}],
             releases: [demo: [include_erts: custom_erts_path, applications: [cowboy: :permanent]]]
           )
 
