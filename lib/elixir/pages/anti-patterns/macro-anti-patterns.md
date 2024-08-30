@@ -67,7 +67,7 @@ To address this anti-pattern, a macro can expand literals within the context the
   end
 ```
 
-In the example above, since `mod` is used only within the `call/2` function, we prematuraly expand module reference as if it was inside the `call/2` function. Now `MyApp.Authentication` is only a runtime dependency of `MyApp`, no longer a compile-time one.
+In the example above, since `mod` is used only within the `call/2` function, we prematurely expand module reference as if it was inside the `call/2` function. Now `MyApp.Authentication` is only a runtime dependency of `MyApp`, no longer a compile-time one.
 
 Note, however, the above must only be done if your macros do not attempt to invoke any function, access any struct, or any other metadata of the module at compile-time. If you interact with the module given to a macro anywhere outside of definition of a function, then you effectively have a compile-time dependency. And, even though you generally want to avoid them, it is not always possible.
 
