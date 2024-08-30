@@ -12,6 +12,20 @@ defmodule List.Chars.AtomTest do
     assert to_charlist(true) == ~c"true"
     assert to_charlist(nil) == ~c""
   end
+
+  test "atoms with special characters" do
+    assert to_charlist(:'foo@bar') == ~c"foo@bar"
+    assert to_charlist(:'foo-bar') == ~c"foo-bar"
+  end
+
+  test "uppercase atoms" do
+    assert to_charlist(:FOO) == ~c"FOO"
+  end
+
+  test "long atoms" do
+    long_atom = :erlang.list_to_atom(String.duplicate("a", 1000))
+    assert to_charlist(long_atom) == String.duplicate("a", 1000) |> to_charlist()
+  end
 end
 
 defmodule List.Chars.BitStringTest do
