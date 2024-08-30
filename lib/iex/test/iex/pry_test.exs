@@ -195,7 +195,7 @@ defmodule IEx.PryTest do
       Macro.to_string({:__block__, meta, tail})
     end
 
-    test "one expresion, one line" do
+    test "one expression, one line" do
       assert annotate_quoted("""
              x = 123
              y = 456
