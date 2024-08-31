@@ -253,4 +253,4 @@ iex> inspect &(&1+2)
 "#Function<6.71889879/1 in :erl_eval.expr/5>"
 ```
 
-There are other protocols in Elixir but this covers the most common ones. You can learn more about protocols and implementations in the `Protocol` module.
+There are other protocols in Elixir, but this covers the most common ones. You can learn more about protocols and implementations in the `Protocol` module.
