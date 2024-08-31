@@ -42,7 +42,7 @@ iex> Utility.type(123)
 
 With protocols, however, we are no longer stuck having to continuously modify the same module to support more and more data types. For example, we could spread the `defimpl` calls above over multiple files and Elixir will dispatch the execution to the appropriate implementation based on the data type. Functions defined in a protocol may have more than one input, but the **dispatching will always be based on the data type of the first input**.
 
-One of the most common protocols you may encounter is the `String.Chars` protocol: implementing its `to_string/1` function for your custom structs will tell the Elixir kernel how to represent them as strings. We will explore all built-in protocols later. For now, let's implement our own.
+One of the most common protocols you may encounter is the `String.Chars` protocol: implementing its `to_string/1` function for your custom structs will tell the Elixir kernel how to represent them as strings. We will explore all the built-in protocols later. For now, let's implement our own.
 
 ## Example
 
@@ -253,4 +253,4 @@ iex> inspect &(&1+2)
 "#Function<6.71889879/1 in :erl_eval.expr/5>"
 ```
 
-There are other protocols in Elixir but this covers the most common ones. You can learn more about protocols and implementations in the `Protocol` module.
+There are other protocols in Elixir, but this covers the most common ones. You can learn more about protocols and implementations in the `Protocol` module.

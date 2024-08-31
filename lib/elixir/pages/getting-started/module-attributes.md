@@ -173,7 +173,7 @@ Module attributes as constants and as temporary storage are most often used toge
 
 ## Going further
 
-Libraries and frameworks can leverage module attributes to provide custom annotations. To see an example, look no further than Elixir's unit test framework called `ExUnit`. ExUnit uses module attributes for multiple different purposes:
+Libraries and frameworks can leverage module attributes to provide custom annotations. To see an example, look no further than Elixir's unit test framework called `ExUnit`. `ExUnit` uses module attributes for multiple different purposes:
 
 ```elixir
 defmodule MyTest do
@@ -187,8 +187,8 @@ defmodule MyTest do
 end
 ```
 
-In the example above, `ExUnit` stores the value of `async: true` in a module attribute to change how the module is compiled. Tags also work as annotations and they can be supplied multiple times, thanks to Elixir's ability to [accumulate attribute](`Module.register_attribute/3`). Then you can use tags to setup and filter tests, such as avoiding executing Unix specific tests while running your test suite on Windows.
+In the example above, `ExUnit` stores the value of `async: true` in a module attribute to change how the module is compiled. Tags also work as annotations and they can be supplied multiple times, thanks to Elixir's ability to [accumulate attributes](`Module.register_attribute/3`). Then you can use tags to setup and filter tests, such as avoiding executing Unix specific tests while running your test suite on Windows.
 
-To fully understand how ExUnit works, we'd need macros, so we will revisit this pattern in the Meta-programming guide and learn how to use module attributes as storage for custom annotations.
+To fully understand how `ExUnit` works, we'd need macros, so we will revisit this pattern in the Meta-programming guide and learn how to use module attributes as storage for custom annotations.
 
 In the next chapters, we'll explore structs and protocols before moving to exception handling and other constructs like sigils and comprehensions.
