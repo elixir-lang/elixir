@@ -983,7 +983,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
         # is not valid but let's ensure we don't crash
         @external_resource "lib"
         @external_resource "lib/a.eex"
-
         @external_resource #{inspect(tmp)}
         def a, do: :ok
       end
@@ -1030,6 +1029,33 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   after
     File.rm(tmp_path("c.eex"))
+  end
+
+  test "tracks warnings from external resources" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+      File.touch!("lib/a.eex")
+
+      File.write!("lib/a.ex", """
+      defmodule A do
+        @external_resource "lib/a.eex"
+        IO.warn("oops", file: Path.absname("lib/a.eex"), line: 13)
+      end
+      """)
+
+      # Compiles with missing external resources
+      file = Path.absname("lib/a.eex")
+
+      assert capture_io(:stderr, fn ->
+               assert {:ok, [%Mix.Task.Compiler.Diagnostic{file: ^file, position: 13}]} =
+                        Mix.Tasks.Compile.Elixir.run([])
+
+               assert {:noop, [%Mix.Task.Compiler.Diagnostic{file: ^file, position: 13}]} =
+                        Mix.Tasks.Compile.Elixir.run(["--all-warnings"])
+             end) =~ "oops"
+
+      purge([A])
+    end)
   end
 
   test "recompiles modules with exports tracking" do

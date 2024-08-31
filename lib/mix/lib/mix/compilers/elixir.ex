@@ -744,21 +744,38 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp apply_warnings(sources, runtime_warnings, compile_warnings) do
+    cwd = File.cwd!()
     runtime_group = Enum.group_by(runtime_warnings, & &1.source)
     compile_group = Enum.group_by(compile_warnings, & &1.source)
 
     for {source_path, source_entry} <- sources, into: %{} do
-      key = Path.absname(source_path)
-
       source(
         runtime_warnings: runtime_warnings,
-        compile_warnings: compile_warnings
+        compile_warnings: compile_warnings,
+        external: external
       ) = source_entry
+
+      keys = [
+        Path.absname(source_path, cwd)
+        | Enum.map(external, &(&1 |> elem(0) |> Path.absname(cwd)))
+      ]
+
+      runtime_warnings =
+        case Enum.flat_map(keys, &Map.get(runtime_group, &1, [])) do
+          [] -> runtime_warnings
+          runtime_warnings -> runtime_warnings
+        end
+
+      compile_warnings =
+        case Enum.flat_map(keys, &Map.get(compile_group, &1, [])) do
+          [] -> compile_warnings
+          compile_warnings -> compile_warnings
+        end
 
       {source_path,
        source(source_entry,
-         runtime_warnings: Map.get(runtime_group, key, runtime_warnings),
-         compile_warnings: Map.get(compile_group, key, compile_warnings)
+         runtime_warnings: runtime_warnings,
+         compile_warnings: compile_warnings
        )}
     end
   end
