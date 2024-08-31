@@ -68,7 +68,7 @@ You can take a look at the docs for `Module` for a complete list of supported at
 
 ## As temporary storage
 
-So far, we have seen how to define attributes, but how can read them? Let's see an example:
+So far, we have seen how to define attributes, but how can we read them? Let's see an example:
 
 ```elixir
 defmodule MyServer do
