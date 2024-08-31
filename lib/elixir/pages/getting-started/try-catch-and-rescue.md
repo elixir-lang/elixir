@@ -200,7 +200,7 @@ It is exactly this supervision system that makes constructs like `try/catch` and
 
 ## After
 
-Sometimes it's necessary to ensure that a resource is cleaned up after some action that could potentially raise an error. The `try/after` construct allows you to do that. For example, we can open a file and use an `after` clause to close it -- even if something goes wrong:
+Sometimes it's necessary to ensure that a resource is cleaned up after some action that could potentially raise an error. The `try/after` construct allows you to do that. For example, we can open a file and use an `after` clause to close it—even if something goes wrong:
 
 ```elixir
 iex> {:ok, file} = File.open("sample", [:utf8, :write])
