@@ -375,6 +375,11 @@ defmodule String do
       iex> String.split("no\u00a0break")
       ["no\u00a0break"]
 
+  Removes empty strings, like when using `trim: true` in `String.split/3`.
+
+      iex> String.split(" ")
+      []
+
   """
   @spec split(t) :: [t]
   defdelegate split(binary), to: String.Break
