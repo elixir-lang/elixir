@@ -357,9 +357,10 @@ defmodule String do
 
   @doc ~S"""
   Divides a string into substrings at each Unicode whitespace
-  occurrence with leading and trailing whitespace ignored. Groups
-  of whitespace are treated as a single occurrence. Divisions do
-  not occur on non-breaking whitespace.
+  occurrence with leading and trailing whitespace ignored.
+
+  Groups of whitespace are treated as a single occurrence.
+  Divisions do not occur on non-breaking whitespace.
 
   ## Examples
 
@@ -374,6 +375,11 @@ defmodule String do
 
       iex> String.split("no\u00a0break")
       ["no\u00a0break"]
+
+  Removes empty strings, like when using `trim: true` in `String.split/3`.
+
+      iex> String.split(" ")
+      []
 
   """
   @spec split(t) :: [t]
