@@ -15,10 +15,10 @@ defmodule ExUnit.Case do
     * `:register` - when `false`, does not register this module within
       ExUnit server. This means the module won't run when ExUnit suite runs.
 
-    * `:parameterize` - a list of maps to parameterize tests. If both
-      `:async` and `:parameterize` are given, the different parameters
-      run concurrently. See the "Parameterized tests" section below for
-      more information.
+    * `:parameterize` (since v1.18.0) - a list of maps to parameterize tests.
+      If both `:async` and `:parameterize` are given, the different parameters
+      run concurrently. See the "Parameterized tests" section below for more
+      information.
 
   > #### `use ExUnit.Case` {: .info}
   >
