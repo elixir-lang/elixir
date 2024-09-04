@@ -60,7 +60,14 @@ Strings are always represented as themselves in the AST.
 
 ### Charlists
 
-Charlists in Elixir are written in single-quotes, such as `'foo'`. Any single-quote inside the string must be escaped with `\ `. Charlists are made of non-negative integers, where each integer represents a Unicode code point.
+Charlists are lists of non-negative integers where each integer represents a Unicode code point.
+
+```elixir
+iex(6)> ~c"abc" === [97, 98, 99]
+true
+```
+
+Charlists are written using the `~c` sigil, such as `~c"foo"`, or with single quotes, such as `'foo'`. Any occurrence within the string of the sigil delimiter or the single quote must be escaped with `\`.
 
 Multi-line charlists are written with three single-quotes (`'''`), the same way multi-line strings are.
 
