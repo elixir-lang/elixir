@@ -148,7 +148,8 @@ defmodule Module.Types.Pattern do
                     {:ok, type} ->
                       case Of.refine_var(var, type, expr, stack, context) do
                         {:ok, type, context} ->
-                          {var_changed? or current_type != type, context}
+                          {var_changed? or current_type == nil or not equal?(current_type, type),
+                           context}
 
                         {:error, _type, context} ->
                           throw({types, context})
@@ -229,14 +230,19 @@ defmodule Module.Types.Pattern do
     of_pattern_var(rest, dynamic())
   end
 
-  # TODO: This should intersect with the head of the list.
-  defp of_pattern_var([:head | rest], _type) do
-    of_pattern_var(rest, dynamic())
+  defp of_pattern_var([:head | rest], type) do
+    case list_hd(type) do
+      {_, head} -> of_pattern_var(rest, head)
+      _ -> :error
+    end
   end
 
   # TODO: This should intersect with the list itself and its tail.
-  defp of_pattern_var([:tail | rest], _type) do
-    of_pattern_var(rest, dynamic())
+  defp of_pattern_var([:tail | rest], type) do
+    case list_tl(type) do
+      {_, tail} -> of_pattern_var(rest, tail)
+      _ -> :error
+    end
   end
 
   defp of_pattern_tree(descr, _context) when is_descr(descr),

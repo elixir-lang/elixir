@@ -11,7 +11,6 @@ defmodule Module.Types.Descr do
   # * DNF - disjunctive normal form which is a pair of unions and negations.
   #   In the case of maps, we augment each pair with the open/closed tag.
 
-  # TODO: When we convert from AST to descr, we need to normalize the dynamic type.
   import Bitwise
 
   @bit_binary 1 <<< 0
@@ -22,19 +21,21 @@ defmodule Module.Types.Descr do
   @bit_port 1 <<< 5
   @bit_reference 1 <<< 6
 
-  @bit_non_empty_list 1 <<< 7
-  @bit_fun 1 <<< 8
-  @bit_top (1 <<< 9) - 1
+  @bit_fun 1 <<< 7
+  @bit_top (1 <<< 8) - 1
 
-  @bit_list @bit_empty_list ||| @bit_non_empty_list
   @bit_number @bit_integer ||| @bit_float
-  @bit_optional 1 <<< 9
+  @bit_optional 1 <<< 8
 
   @atom_top {:negation, :sets.new(version: 2)}
   @tuple_top [{:open, [], []}]
   @map_top [{:open, %{}, []}]
   @map_empty [{:closed, %{}, []}]
   @none %{}
+  @empty_list %{bitmap: @bit_empty_list}
+  # A definition of non empty list that does not use negation. Includes empty list.
+  @not_non_empty_list %{bitmap: @bit_top, atom: @atom_top, tuple: @tuple_top, map: @map_top}
+  @non_empty_list_top [{:term, @not_non_empty_list, []}]
 
   # Type definitions
 
@@ -46,7 +47,15 @@ defmodule Module.Types.Descr do
 
   defp unfold(:term), do: unfolded_term()
   defp unfold(other), do: other
-  defp unfolded_term, do: %{bitmap: @bit_top, atom: @atom_top, tuple: @tuple_top, map: @map_top}
+
+  defp unfolded_term,
+    do: %{
+      bitmap: @bit_top,
+      atom: @atom_top,
+      tuple: @tuple_top,
+      map: @map_top,
+      list: @non_empty_list_top
+    }
 
   def atom(as), do: %{atom: atom_new(as)}
   def atom(), do: %{atom: @atom_top}
@@ -57,8 +66,8 @@ defmodule Module.Types.Descr do
   def integer(), do: %{bitmap: @bit_integer}
   def float(), do: %{bitmap: @bit_float}
   def fun(), do: %{bitmap: @bit_fun}
-  def list(_arg), do: %{bitmap: @bit_list}
-  def non_empty_list(_arg, _tail \\ empty_list()), do: %{bitmap: @bit_non_empty_list}
+  def list(type, tail \\ @empty_list), do: list_descr(type, tail, true)
+  def non_empty_list(type, tail \\ @empty_list), do: list_descr(type, tail, false)
   def open_map(), do: %{map: @map_top}
   def open_map(pairs), do: map_descr(:open, pairs)
   def open_tuple(elements), do: tuple_descr(:open, elements)
@@ -88,7 +97,8 @@ defmodule Module.Types.Descr do
     bitmap: @bit_top ||| @bit_optional,
     atom: @atom_top,
     tuple: @tuple_top,
-    map: @map_top
+    map: @map_top,
+    list: @non_empty_list_top
   }
 
   def not_set(), do: @not_set
@@ -166,6 +176,7 @@ defmodule Module.Types.Descr do
   defp union(:dynamic, v1, v2), do: dynamic_union(v1, v2)
   defp union(:map, v1, v2), do: map_union(v1, v2)
   defp union(:tuple, v1, v2), do: tuple_union(v1, v2)
+  defp union(:list, v1, v2), do: list_union(v1, v2)
 
   @doc """
   Computes the intersection of two descrs.
@@ -202,6 +213,7 @@ defmodule Module.Types.Descr do
   defp intersection(:dynamic, v1, v2), do: dynamic_intersection(v1, v2)
   defp intersection(:map, v1, v2), do: map_intersection(v1, v2)
   defp intersection(:tuple, v1, v2), do: tuple_intersection(v1, v2)
+  defp intersection(:list, v1, v2), do: list_intersection(v1, v2)
 
   @doc """
   Computes the difference between two types.
@@ -239,6 +251,7 @@ defmodule Module.Types.Descr do
   defp difference(:dynamic, v1, v2), do: dynamic_difference(v1, v2)
   defp difference(:map, v1, v2), do: map_difference(v1, v2)
   defp difference(:tuple, v1, v2), do: tuple_difference(v1, v2)
+  defp difference(:list, v1, v2), do: list_difference(v1, v2)
 
   @doc """
   Compute the negation of a type.
@@ -267,7 +280,8 @@ defmodule Module.Types.Descr do
       descr ->
         not Map.has_key?(descr, :bitmap) and not Map.has_key?(descr, :atom) and
           (not Map.has_key?(descr, :tuple) or tuple_empty?(descr.tuple)) and
-          (not Map.has_key?(descr, :map) or map_empty?(descr.map))
+          (not Map.has_key?(descr, :map) or map_empty?(descr.map)) and
+          (not Map.has_key?(descr, :list) or list_empty?(descr.list))
     end
   end
 
@@ -291,6 +305,7 @@ defmodule Module.Types.Descr do
   defp to_quoted(:dynamic, descr), do: dynamic_to_quoted(descr)
   defp to_quoted(:map, dnf), do: map_to_quoted(dnf)
   defp to_quoted(:tuple, dnf), do: tuple_to_quoted(dnf)
+  defp to_quoted(:list, dnf), do: list_to_quoted(dnf)
 
   @doc """
   Converts a descr to its quoted string representation.
@@ -441,6 +456,15 @@ defmodule Module.Types.Descr do
   def number_type?(%{bitmap: bitmap}) when (bitmap &&& @bit_number) != 0, do: true
   def number_type?(_), do: false
 
+  @doc """
+  Optimized version of `not empty?(intersection(list(), type))`.
+  """
+  def list_type?(:term), do: true
+  def list_type?(%{dynamic: :term}), do: true
+  def list_type?(%{dynamic: %{list: _}}), do: true
+  def list_type?(%{list: _}), do: true
+  def list_type?(_), do: false
+
   defp bitmap_union(v1, v2), do: v1 ||| v2
   defp bitmap_intersection(v1, v2), do: v1 &&& v2
   defp bitmap_difference(v1, v2), do: v1 - (v1 &&& v2)
@@ -455,7 +479,6 @@ defmodule Module.Types.Descr do
         pid: @bit_pid,
         port: @bit_port,
         reference: @bit_reference,
-        non_empty_list: @bit_non_empty_list,
         fun: @bit_fun
       ]
 
@@ -618,6 +641,297 @@ defmodule Module.Types.Descr do
     end
     |> List.wrap()
   end
+
+  ## List
+
+  # Represents both list and improper list simultaneously using a pair {list_type, last_type}.
+  #
+  # For proper lists, the last_type is empty_list().
+  # In general, list(term(), term()) is interpreted as {term(), term()}
+  # and not non_empty_list(term(), term()).
+  #
+  # Note: A type being none() is handled separately.
+  defp list_descr(list_type, last_type, empty?) do
+    {list_dynamic?, list_type} = list_pop_dynamic(list_type)
+    {last_dynamic?, last_type} = list_pop_dynamic(last_type)
+
+    list_part =
+      if last_type == :term do
+        list_new(term(), term())
+      else
+        case :maps.take(:list, last_type) do
+          :error ->
+            list_new(list_type, last_type)
+
+          {dnf, last_type} ->
+            {list_type, last_type} =
+              Enum.reduce(dnf, {list_type, last_type}, fn {head, tail, _}, {acc_head, acc_tail} ->
+                {union(head, acc_head), union(tail, acc_tail)}
+              end)
+
+            list_new(list_type, last_type)
+        end
+      end
+
+    list_descr =
+      if empty?, do: %{list: list_part, bitmap: @bit_empty_list}, else: %{list: list_part}
+
+    case list_dynamic? or last_dynamic? do
+      true -> %{dynamic: list_descr}
+      false -> list_descr
+    end
+  end
+
+  defp list_new(list_type, last_type) do
+    [{list_type, last_type, []}]
+  end
+
+  defp list_pop_dynamic(:term), do: {false, :term}
+
+  defp list_pop_dynamic(descr) do
+    case :maps.take(:dynamic, descr) do
+      :error -> {false, descr}
+      {dynamic, _} -> {true, dynamic}
+    end
+  end
+
+  defp list_tail_unfold(:term), do: @not_non_empty_list
+  defp list_tail_unfold(other), do: Map.delete(other, :list)
+
+  defp list_union(dnf1, dnf2), do: dnf1 ++ dnf2
+
+  defp list_intersection(dnf1, dnf2) do
+    for {list_type1, last_type1, negs1} <- dnf1,
+        {list_type2, last_type2, negs2} <- dnf2,
+        reduce: [] do
+      acc ->
+        inter = intersection(list_type1, list_type2)
+        last = intersection(last_type1, last_type2)
+
+        if empty?(inter) or empty?(last) do
+          acc
+        else
+          [{inter, last, negs1 ++ negs2} | acc]
+        end
+    end
+    |> case do
+      [] -> 0
+      dnf -> dnf
+    end
+  end
+
+  # Computes the difference between two DNF (Disjunctive Normal Form) list types.
+  # It progressively subtracts each type in dnf2 from all types in dnf1.
+  # The algorithm handles three cases:
+  # 1. Disjoint types: keeps the original type from dnf1
+  # 2. Subtype relationship:
+  #    a) If dnf2 type is a supertype, keeps only the negations
+  #    b) If only the last type differs, subtracts it
+  # 3. Base case: adds dnf2 type to negations of dnf1 type
+  # The result may be larger than the initial dnf1, which is maintained in the accumulator.
+  defp list_difference(dnf1, dnf2) do
+    Enum.reduce(dnf2, dnf1, fn {t2, last2, negs2}, acc_dnf1 ->
+      last2 = list_tail_unfold(last2)
+
+      Enum.flat_map(acc_dnf1, fn {t1, last1, negs1} ->
+        last1 = list_tail_unfold(last1)
+
+        i = intersection(t1, t2)
+        l = intersection(last1, last2)
+
+        new_negs =
+          Enum.reduce(negs2, [], fn {nt, nlast}, nacc ->
+            t = intersection(t1, nt)
+            last = intersection(last1, nlast)
+            if empty?(t) or empty?(last), do: nacc, else: [{t, last, negs1} | nacc]
+          end)
+
+        cond do
+          empty?(i) or empty?(l) -> [{t1, last1, negs1}]
+          subtype?(t1, t2) and subtype?(last1, last2) -> new_negs
+          subtype?(t1, t2) -> [{t1, difference(last1, last2), negs1} | new_negs]
+          true -> [{t1, last1, [{t2, last2} | negs1]} | new_negs]
+        end
+      end)
+    end)
+  end
+
+  defp list_empty?(dnf) do
+    Enum.all?(dnf, fn {list_type, last_type, negs} ->
+      last_type = list_tail_unfold(last_type)
+
+      empty?(list_type) or empty?(last_type) or
+        Enum.reduce_while(negs, last_type, fn {neg_type, neg_last}, acc_last_type ->
+          if subtype?(list_type, neg_type) and subtype?(acc_last_type, neg_last) do
+            {:halt, nil}
+          else
+            {:cont, difference(acc_last_type, neg_last)}
+          end
+        end)
+        |> is_nil()
+    end)
+  end
+
+  defp list_only?(descr), do: subtype?(Map.delete(descr, :list), empty_list())
+
+  @doc """
+  Returns the head of a list.
+
+  Errors on an empty list.
+  On a non empty list of integers, it returns the first integer.
+  On a non empty list of integers, with an atom head element, it returns the atom.
+  """
+  def list_hd(:term), do: :badlist
+
+  def list_hd(%{} = descr) do
+    case :maps.take(:dynamic, descr) do
+      :error ->
+        has_empty = empty_list_type?(descr)
+        is_list_type = list_only?(descr)
+
+        cond do
+          is_list_type and not has_empty -> {false, list_hd_static(descr)}
+          is_list_type -> :empty_list
+          true -> :badlist
+        end
+
+      {dynamic, static} ->
+        has_empty = empty_list_type?(static)
+        only_list = list_only?(static)
+        is_dynamic_list = list_type?(dynamic)
+
+        cond do
+          is_dynamic_list and only_list and not has_empty ->
+            {is_dynamic_list, union(dynamic(list_hd_static(dynamic)), list_hd_static(static))}
+
+          is_dynamic_list and only_list ->
+            :empty_list
+
+          true ->
+            :badlist
+        end
+    end
+  end
+
+  defp list_hd_static(:term), do: :term
+
+  defp list_hd_static(descr) do
+    case descr do
+      %{list: [{type, _last, _negs}]} ->
+        type
+
+      %{list: dnf} ->
+        Enum.reduce(dnf, none(), fn {type, _, _}, acc -> union(type, acc) end)
+
+      %{} ->
+        none()
+    end
+  end
+
+  @doc """
+  Returns the tail of a list.
+
+  Errors on a possibly empty list.
+  On a non empty list of integers, it returns a (possibly empty) list of integers.
+  On a non empty list of integers, with an atom tail element, it returns either an atom,
+  or a (possibly empty) list of integers with an atom tail element.
+  """
+  def list_tl(:term), do: :badlist
+
+  def list_tl(descr) do
+    case :maps.take(:dynamic, descr) do
+      :error ->
+        has_empty = empty_list_type?(descr)
+        is_list_type = list_only?(descr)
+
+        cond do
+          is_list_type and not has_empty -> {false, list_tl_static(descr)}
+          is_list_type -> :empty_list
+          true -> :badlist
+        end
+
+      {dynamic, static} ->
+        has_empty = empty_list_type?(static)
+        only_list = list_only?(static)
+        is_dynamic_list = list_type?(dynamic)
+
+        cond do
+          is_dynamic_list and only_list and not has_empty ->
+            {is_dynamic_list, union(dynamic(list_tl_static(dynamic)), list_tl_static(static))}
+
+          is_dynamic_list and only_list ->
+            :empty_list
+
+          true ->
+            :badlist
+        end
+    end
+  end
+
+  defp list_tl_static(:term), do: :term
+
+  defp list_tl_static(descr) do
+    case descr do
+      %{list: dnf} ->
+        Enum.reduce(dnf, %{list: dnf, bitmap: @bit_empty_list}, fn {_, last, _}, acc ->
+          union(last, acc)
+        end)
+
+      %{bitmap: bitmap} when (bitmap &&& @bit_empty_list) != 0 ->
+        empty_list()
+
+      %{} ->
+        none()
+    end
+  end
+
+  defp list_to_quoted(dnf) do
+    dnf = list_normalize(dnf)
+
+    for {list_type, last_type, negs} <- dnf, reduce: [] do
+      acc ->
+        arguments =
+          if subtype?(last_type, @empty_list) do
+            [to_quoted(list_type)]
+          else
+            [to_quoted(list_type), to_quoted(last_type)]
+          end
+
+        if negs == [] do
+          [{:non_empty_list, [], arguments} | acc]
+        else
+          negs
+          |> Enum.map(fn {ty, lst} ->
+            args =
+              if subtype?(lst, @empty_list) do
+                [to_quoted(ty)]
+              else
+                [to_quoted(ty), to_quoted(lst)]
+              end
+
+            {:non_empty_list, [], args}
+          end)
+          |> Enum.reduce(&{:or, [], [&2, &1]})
+          |> Kernel.then(
+            &[
+              {:and, [],
+               [
+                 {:non_empty_list, [], arguments},
+                 {:not, [], [&1]}
+               ]}
+              | acc
+            ]
+          )
+        end
+    end
+  end
+
+  # TODO: Eliminate empty lists from the union
+  defp list_normalize(dnf), do: dnf
+  #   Enum.filter(dnf, fn {list_type, last_type, negs} ->
+  #     not Enum.any?(negs, fn neg -> subtype?(list_type, neg) end)
+  #   end)
+  # end
 
   ## Dynamic
   #
