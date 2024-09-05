@@ -22,14 +22,13 @@ defmodule Module.Types.Descr do
   @bit_port 1 <<< 5
   @bit_reference 1 <<< 6
 
-  @bit_non_empty_list 1 <<< 7
-  @bit_fun 1 <<< 8
-  @bit_top (1 <<< 9) - 1
+  @bit_fun 1 <<< 7
+  @bit_top (1 <<< 8) - 1
 
-  @bit_list @bit_empty_list ||| @bit_non_empty_list
   @bit_number @bit_integer ||| @bit_float
-  @bit_optional 1 <<< 9
+  @bit_optional 1 <<< 8
 
+  @non_empty_list_top [{:term, []}]
   @atom_top {:negation, :sets.new(version: 2)}
   @tuple_top [{:open, [], []}]
   @map_top [{:open, %{}, []}]
@@ -46,7 +45,15 @@ defmodule Module.Types.Descr do
 
   defp unfold(:term), do: unfolded_term()
   defp unfold(other), do: other
-  defp unfolded_term, do: %{bitmap: @bit_top, atom: @atom_top, tuple: @tuple_top, map: @map_top}
+
+  defp unfolded_term,
+    do: %{
+      bitmap: @bit_top,
+      atom: @atom_top,
+      tuple: @tuple_top,
+      map: @map_top,
+      list: @non_empty_list_top
+    }
 
   def atom(as), do: %{atom: atom_new(as)}
   def atom(), do: %{atom: @atom_top}
@@ -57,8 +64,25 @@ defmodule Module.Types.Descr do
   def integer(), do: %{bitmap: @bit_integer}
   def float(), do: %{bitmap: @bit_float}
   def fun(), do: %{bitmap: @bit_fun}
-  def list(_arg), do: %{bitmap: @bit_list}
-  def non_empty_list(_arg, _tail \\ empty_list()), do: %{bitmap: @bit_non_empty_list}
+  def list(), do: %{bitmap: @bit_empty_list, list: @non_empty_list_top}
+  def non_empty_list(), do: %{list: @non_empty_list_top}
+
+  def list(descr) do
+    if empty?(descr) do
+      none()
+    else
+      %{bitmap: @bit_empty_list, list: list_new(descr)}
+    end
+  end
+
+  def non_empty_list(descr) do
+    if empty?(descr) do
+      none()
+      elsez
+      %{list: list_new(descr)}
+    end
+  end
+
   def open_map(), do: %{map: @map_top}
   def open_map(pairs), do: map_descr(:open, pairs)
   def open_tuple(elements), do: tuple_descr(:open, elements)
@@ -88,7 +112,8 @@ defmodule Module.Types.Descr do
     bitmap: @bit_top ||| @bit_optional,
     atom: @atom_top,
     tuple: @tuple_top,
-    map: @map_top
+    map: @map_top,
+    list: @non_empty_list_top
   }
 
   def not_set(), do: @not_set
@@ -166,6 +191,7 @@ defmodule Module.Types.Descr do
   defp union(:dynamic, v1, v2), do: dynamic_union(v1, v2)
   defp union(:map, v1, v2), do: map_union(v1, v2)
   defp union(:tuple, v1, v2), do: tuple_union(v1, v2)
+  defp union(:list, v1, v2), do: list_union(v1, v2)
 
   @doc """
   Computes the intersection of two descrs.
@@ -202,6 +228,7 @@ defmodule Module.Types.Descr do
   defp intersection(:dynamic, v1, v2), do: dynamic_intersection(v1, v2)
   defp intersection(:map, v1, v2), do: map_intersection(v1, v2)
   defp intersection(:tuple, v1, v2), do: tuple_intersection(v1, v2)
+  defp intersection(:list, v1, v2), do: list_intersection(v1, v2)
 
   @doc """
   Computes the difference between two types.
@@ -239,6 +266,7 @@ defmodule Module.Types.Descr do
   defp difference(:dynamic, v1, v2), do: dynamic_difference(v1, v2)
   defp difference(:map, v1, v2), do: map_difference(v1, v2)
   defp difference(:tuple, v1, v2), do: tuple_difference(v1, v2)
+  defp difference(:list, v1, v2), do: list_difference(v1, v2)
 
   @doc """
   Compute the negation of a type.
@@ -267,7 +295,8 @@ defmodule Module.Types.Descr do
       descr ->
         not Map.has_key?(descr, :bitmap) and not Map.has_key?(descr, :atom) and
           (not Map.has_key?(descr, :tuple) or tuple_empty?(descr.tuple)) and
-          (not Map.has_key?(descr, :map) or map_empty?(descr.map))
+          (not Map.has_key?(descr, :map) or map_empty?(descr.map)) and
+          (not Map.has_key?(descr, :list) or list_empty?(descr.list))
     end
   end
 
@@ -291,6 +320,7 @@ defmodule Module.Types.Descr do
   defp to_quoted(:dynamic, descr), do: dynamic_to_quoted(descr)
   defp to_quoted(:map, dnf), do: map_to_quoted(dnf)
   defp to_quoted(:tuple, dnf), do: tuple_to_quoted(dnf)
+  defp to_quoted(:list, dnf), do: list_to_quoted(dnf)
 
   @doc """
   Converts a descr to its quoted string representation.
@@ -455,7 +485,6 @@ defmodule Module.Types.Descr do
         pid: @bit_pid,
         port: @bit_port,
         reference: @bit_reference,
-        non_empty_list: @bit_non_empty_list,
         fun: @bit_fun
       ]
 
@@ -617,6 +646,125 @@ defmodule Module.Types.Descr do
       |> Kernel.then(&{:and, [], [{:atom, [], []}, {:not, [], &1}]})
     end
     |> List.wrap()
+  end
+
+  ## List
+
+  # what we set out on /w josé:
+  # use pair {list_type, last_type} to represent both list and improper list at
+  # the same time
+  # for proper list it's []
+  # list(term(), term()) is interpreted as {term(), term() and not non_empty_list(term(), term())}
+  # this will make the approach work for polymorphism
+  # note: now a type being none() is
+
+  #
+  defp list_new(descr), do: [{descr, []}]
+
+  def list_union(dnf1, dnf2), do: dnf1 ++ dnf2
+
+  def list_intersection(dnf1, dnf2) do
+    for {list_type1, negs1} <- dnf1, {list_type2, negs2} <- dnf2, reduce: [] do
+      acc ->
+        inter = intersection(list_type1, list_type2)
+
+        if empty?(inter) do
+          acc
+        else
+          [{inter, negs1 ++ negs2} | acc]
+        end
+    end
+    |> case do
+      [] -> 0
+      dnf -> dnf
+    end
+  end
+
+  # [integer] and not [atom]
+  # the intersection is empty, so this is just the first list
+  # if the intersection is not empty?
+  # [integer] and not [number]   <- this is empty because integer is a subtype of number
+  # [number] and not [integer] <- those are lists of number, but not lists of integers
+  # ...
+  def list_difference(dnf1, dnf2) do
+    for {list_type1, negs1} <- dnf1, {list_type2, negs2} <- dnf2, reduce: [] do
+      acc ->
+        cond do
+          # Optimization: if the types are disjoint, just keep the left one
+          empty?(intersection(list_type1, list_type2)) ->
+            [{list_type1, negs1} | acc]
+
+          # Optimization: if the second list type is big enough, we only keep what was in the negation
+          subtype?(list_type1, list_type2) ->
+            for neg2 <- negs2, reduce: [] do
+              acc ->
+                if Enum.any?(negs1, &subtype?(neg2, &1)) do
+                  acc
+                else
+                  inter = intersection(list_type1, neg2)
+
+                  if empty?(inter) do
+                    acc
+                  else
+                    [{inter, negs1} | acc]
+                  end
+                end
+            end
+
+          true ->
+            if Enum.empty?(negs2) do
+              [{list_type1, [list_type2 | negs1]} | acc]
+            else
+              for neg2 <- negs2, reduce: [] do
+                acc ->
+                  inter = intersection(list_type1, neg2)
+
+                  if empty?(inter) or Enum.any?([list_type2 | negs1], &subtype?(list_type2, &1)) do
+                    acc
+                  else
+                    [{inter, [list_type2 | negs1]} | acc]
+                  end
+              end
+              |> Kernel.then(fn list -> [{list_type1, [list_type2 | negs1]} | list] ++ acc end)
+            end
+        end
+    end
+  end
+
+  def list_empty?(dnf) do
+    Enum.all?(dnf, fn {list_type, negs} ->
+      # a list literal {list_type, negs} is empty iff there is a type in negs
+      # which is a supertype of list_type
+      Enum.any?(negs, fn neg -> subtype?(list_type, neg) end)
+    end)
+  end
+
+  def list_to_quoted(dnf) do
+    dnf = list_normalize(dnf)
+
+    for {list_type, negs} <- dnf, reduce: [] do
+      acc ->
+        if Enum.empty?(negs) do
+          [{:non_empty_list, [], [to_quoted(list_type)]} | acc]
+        else
+          negs
+          |> Enum.map(&{:non_empty_list, [], [to_quoted(&1)]})
+          |> Enum.reduce(&{:or, [], [&2, &1]})
+          |> Kernel.then(
+            &[
+              {:and, [], [{:non_empty_list, [], [to_quoted(list_type)]}, {:not, [], [&1]}]}
+              | acc
+            ]
+          )
+        end
+    end
+  end
+
+  # Eliminate empty lists from the union
+  defp list_normalize(dnf) do
+    Enum.filter(dnf, fn {list_type, negs} ->
+      not Enum.any?(negs, fn neg -> subtype?(list_type, neg) end)
+    end)
   end
 
   ## Dynamic

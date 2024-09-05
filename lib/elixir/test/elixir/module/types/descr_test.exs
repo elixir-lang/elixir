@@ -88,6 +88,11 @@ defmodule Module.Types.DescrTest do
       assert difference(open_map(a: integer()), closed_map(b: boolean()))
              |> equal?(open_map(a: integer()))
     end
+
+    test "list" do
+      assert union(list(), list()) |> equal?(list())
+      assert union(list(integer()), list()) |> equal?(list())
+    end
   end
 
   describe "intersection" do
@@ -150,6 +155,41 @@ defmodule Module.Types.DescrTest do
              )
 
       assert empty?(intersection(closed_map(a: integer()), closed_map(a: atom())))
+    end
+
+    defp number(), do: union(integer(), float())
+
+    test "list" do
+      assert intersection(list(), list()) == list()
+      assert intersection(list(integer()), list(integer())) == list(integer())
+      assert intersection(list(integer()), list(number())) == list(integer())
+      assert intersection(list(integer()), list(atom())) == empty_list()
+
+      # Empty list intersections
+      assert intersection(empty_list(), list()) == empty_list()
+      assert intersection(empty_list(), list(integer())) == empty_list()
+      assert intersection(empty_list(), empty_list()) == empty_list()
+
+      # List with any type
+      assert intersection(list(), list(integer())) == list(integer())
+      assert intersection(list(term()), list(integer())) == list(integer())
+
+      # Intersection with more specific types
+      assert intersection(list(integer()), list(atom([:a, :b]))) == empty_list()
+
+      # Intersection with union types
+      assert intersection(list(union(integer(), atom())), list(number())) == list(integer())
+
+      # Intersection with dynamic
+      assert equal?(intersection(dynamic(list()), list(integer())), dynamic(list(integer())))
+      assert equal?(intersection(dynamic(list()), list()), dynamic(list()))
+
+      # Nested list intersections
+      assert intersection(list(list(integer())), list(list(number()))) == list(list(integer()))
+      assert intersection(list(list(integer())), list(list(atom()))) == list(empty_list())
+
+      # Intersection with non-list types
+      assert intersection(list(integer()), integer()) == none()
     end
   end
 
@@ -259,6 +299,38 @@ defmodule Module.Types.DescrTest do
 
       refute empty?(difference(open_map(), empty_map()))
     end
+
+    test "list" do
+      # Basic list type differences
+      assert difference(list(), empty_list()) == non_empty_list()
+      assert difference(list(integer()), list()) == none()
+
+      assert difference(list(integer()), list(float()))
+             |> equal?(non_empty_list(integer()))
+
+      # All list of integers and floats, minus all lists of integers, is NOT all lists of floats
+      refute difference(list(union(integer(), float())), list(integer()))
+             |> equal?(non_empty_list(float()))
+
+      # Interactions with empty_list()
+      assert difference(empty_list(), list()) == none()
+      assert difference(list(integer()), empty_list()) == non_empty_list(integer())
+
+      # Nested list structures
+      assert difference(list(list(integer())), list(list(float())))
+             |> equal?(difference(list(list(integer())), list(empty_list())))
+
+      # Lists with union types
+      refute difference(list(union(integer(), float())), list(integer())) == list(float())
+      refute difference(list(union(atom(), binary())), list(atom())) == list(binary())
+
+      # Lists with dynamic types
+      assert empty?(difference(dynamic(list()), list()))
+
+      # Lists with none type
+      assert difference(list(none()), list()) == none()
+      assert difference(list(), list(none())) == list()
+    end
   end
 
   describe "creation" do
@@ -323,6 +395,10 @@ defmodule Module.Types.DescrTest do
       assert subtype?(closed_map(a: integer()), closed_map(a: if_set(integer())))
       refute subtype?(closed_map(a: if_set(term())), closed_map(a: term()))
       assert subtype?(closed_map(a: term()), closed_map(a: if_set(term())))
+    end
+
+    test "list" do
+      refute subtype?(non_empty_list(integer()), difference(list(number()), list(integer())))
     end
   end
 
@@ -682,6 +758,9 @@ defmodule Module.Types.DescrTest do
     test "negation" do
       assert negation(negation(integer())) |> to_quoted_string() == "integer()"
       assert negation(negation(atom([:foo, :bar]))) |> to_quoted_string() == ":bar or :foo"
+
+      assert negation(negation(list())) |> to_quoted_string() ==
+               "empty_list() or non_empty_list(term())"
     end
 
     test "atom" do
@@ -715,6 +794,21 @@ defmodule Module.Types.DescrTest do
 
       assert intersection(dynamic(), closed_map(a: integer())) |> to_quoted_string() ==
                "dynamic(%{a: integer()})"
+    end
+
+    test "lists" do
+      assert list() |> to_quoted_string() == "empty_list() or non_empty_list(term())"
+      assert list(integer()) |> to_quoted_string() == "empty_list() or non_empty_list(integer())"
+      assert list() |> difference(empty_list()) |> to_quoted_string() == "non_empty_list(term())"
+
+      assert list() |> difference(list(integer())) |> to_quoted_string() ==
+               "non_empty_list(term()) and not non_empty_list(integer())"
+
+      assert list()
+             |> difference(list(integer()))
+             |> difference(list(atom()))
+             |> to_quoted_string() ==
+               "non_empty_list(term()) and not (non_empty_list(atom()) or non_empty_list(integer()))"
     end
 
     test "tuples" do
