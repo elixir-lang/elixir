@@ -270,6 +270,9 @@ defmodule Module do
   a dependency on it, causing the module to be recompiled as soon
   as the file is added.
 
+  For more control over when a module is recompiled, see
+  [`__mix_recompile__?/0`](`m:Mix.Tasks.Compile.Elixir#module-__mix_recompile__-0`).
+
   ### `@file`
 
   Changes the filename used in stacktraces for the function or macro that
