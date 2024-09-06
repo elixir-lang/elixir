@@ -51,7 +51,7 @@ defmodule Mix.Tasks.Compile.Leex do
 
     leex_options = project[:leex_options] || []
 
-    unless is_list(leex_options) do
+    if not is_list(leex_options) do
       Mix.raise(":leex_options should be a list of options, got: #{inspect(leex_options)}")
     end
 
@@ -65,7 +65,7 @@ defmodule Mix.Tasks.Compile.Leex do
 
   defp preload(project) do
     # TODO: Remove me in Elixir v2.0
-    unless :leex in List.wrap(project[:compilers]) do
+    if :leex not in List.wrap(project[:compilers]) do
       Mix.shell().error(
         "warning: in order to compile .xrl files, you must add \"compilers: [:leex] ++ Mix.compilers()\" to the \"def project\" section of #{project[:app]}'s mix.exs"
       )

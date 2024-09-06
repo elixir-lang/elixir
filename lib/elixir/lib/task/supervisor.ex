@@ -614,7 +614,7 @@ defmodule Task.Supervisor do
   defp build_stream(supervisor, link_type, enumerable, fun, options) do
     shutdown = Keyword.get(options, :shutdown, 5000)
 
-    unless (is_integer(shutdown) and shutdown >= 0) or shutdown == :brutal_kill do
+    if not ((is_integer(shutdown) and shutdown >= 0) or shutdown == :brutal_kill) do
       raise ArgumentError, ":shutdown must be either a positive integer or :brutal_kill"
     end
 

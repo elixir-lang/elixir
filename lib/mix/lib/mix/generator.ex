@@ -160,7 +160,7 @@ defmodule Mix.Generator do
   end
 
   defp log(color, command, message, opts) do
-    unless opts[:quiet] do
+    if !opts[:quiet] do
       Mix.shell().info([color, "* #{command} ", :reset, message])
     end
   end

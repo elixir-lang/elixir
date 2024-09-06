@@ -845,7 +845,7 @@ defmodule GenServer do
     quote location: :keep, bind_quoted: [opts: opts] do
       @behaviour GenServer
 
-      unless Module.has_attribute?(__MODULE__, :doc) do
+      if not Module.has_attribute?(__MODULE__, :doc) do
         @doc """
         Returns a specification to start this module under a supervisor.
 
@@ -945,7 +945,7 @@ defmodule GenServer do
   end
 
   defmacro __before_compile__(env) do
-    unless Module.defines?(env.module, {:init, 1}) do
+    if not Module.defines?(env.module, {:init, 1}) do
       message = """
       function init/1 required by behaviour GenServer is not implemented \
       (in module #{inspect(env.module)}).

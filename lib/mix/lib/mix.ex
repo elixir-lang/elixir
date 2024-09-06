@@ -640,7 +640,7 @@ defmodule Mix do
             )
 
           %{} ->
-            unless app in optional do
+            if app not in optional do
               Mix.raise(
                 "The application \"#{app}\" could not be found. This may happen if your " <>
                   "Operating System broke Erlang into multiple packages and may be fixed " <>
@@ -998,7 +998,7 @@ defmodule Mix do
         _ -> Mix.raise("unknown dependency #{inspect(app_name)} given to #{inspect(key)}")
       end
 
-    unless app_dir do
+    if !app_dir do
       Mix.raise("#{inspect(app_name)} given to #{inspect(key)} must be a path dependency")
     end
 

@@ -410,7 +410,7 @@ defmodule ExUnit.Assertions do
   end
 
   def assert(value, opts) when is_list(opts) do
-    unless value, do: raise(ExUnit.AssertionError, opts)
+    if !value, do: raise(ExUnit.AssertionError, opts)
     true
   end
 
@@ -780,7 +780,7 @@ defmodule ExUnit.Assertions do
         "expected:\n  #{inspect(message)}\n" <>
         "actual:\n" <> "  #{inspect(Exception.message(error))}"
 
-    unless match?, do: flunk(message)
+    if not match?, do: flunk(message)
 
     error
   end

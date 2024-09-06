@@ -206,7 +206,7 @@ defmodule Mix.Dep do
       end
 
     Enum.each(apps, fn app ->
-      unless Enum.any?(all_deps, &(&1.app == app)) do
+      if not Enum.any?(all_deps, &(&1.app == app)) do
         Mix.raise("Unknown dependency #{app} for environment #{Mix.env()}")
       end
     end)

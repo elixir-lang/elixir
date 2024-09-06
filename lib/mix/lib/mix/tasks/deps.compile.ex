@@ -48,7 +48,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
   @impl true
   def run(args) do
-    unless "--no-archives-check" in args do
+    if "--no-archives-check" not in args do
       Mix.Task.run("archive.check", args)
     end
 
@@ -180,7 +180,7 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp do_rebar3(%Mix.Dep{opts: opts} = dep, config) do
-    unless Mix.Rebar.available?(:rebar3) do
+    if not Mix.Rebar.available?(:rebar3) do
       handle_rebar_not_found(dep)
     end
 
@@ -247,7 +247,7 @@ defmodule Mix.Tasks.Deps.Compile do
       "Shall I install #{manager}? (if running non-interactively, " <>
         "use \"mix local.rebar --force\")"
 
-    unless shell.yes?(install_question) do
+    if not shell.yes?(install_question) do
       error_message =
         "Could not find \"#{manager}\" to compile " <>
           "dependency #{inspect(app)}, please ensure \"#{manager}\" is available"
@@ -257,7 +257,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
     Mix.Tasks.Local.Rebar.run(["--force"])
 
-    unless Mix.Rebar.available?(manager) do
+    if not Mix.Rebar.available?(manager) do
       Mix.raise("\"#{manager}\" installation failed")
     end
   end

@@ -100,7 +100,7 @@ defmodule Mix.Tasks.Archive.Build do
           Mix.raise("Cannot create archive without output file, please pass -o as an option")
       end
 
-    unless File.dir?(source) do
+    if not File.dir?(source) do
       Mix.raise("Expected archive source #{inspect(source)} to be a directory")
     end
 

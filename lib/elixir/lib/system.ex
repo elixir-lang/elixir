@@ -1101,7 +1101,7 @@ defmodule System do
   def cmd(command, args, opts \\ []) when is_binary(command) and is_list(args) do
     assert_no_null_byte!(command, "System.cmd/3")
 
-    unless Enum.all?(args, &is_binary/1) do
+    if not Enum.all?(args, &is_binary/1) do
       raise ArgumentError, "all arguments for System.cmd/3 must be binaries"
     end
 
