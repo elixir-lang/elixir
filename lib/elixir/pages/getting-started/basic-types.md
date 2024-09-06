@@ -169,6 +169,8 @@ true
 
 Similarly, values like `0` and `""`, which some other programming languages consider to be "falsy", are also "truthy" in Elixir.
 
+As a rule of thumb, use `and`, `or` and `not` when you are expecting booleans. If any of the arguments are non-boolean, use `&&`, `||` and `!`.
+
 ## Atoms
 
 An atom is a constant whose value is its own name. Some other languages call these symbols. They are often useful to enumerate over distinct values, such as:
