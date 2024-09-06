@@ -256,6 +256,28 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
+  test "assert match with __ENV__ in the pattern" do
+    message =
+      ExUnit.CaptureIO.capture_io(:stderr, fn ->
+        assert_raise CompileError, fn ->
+          Code.eval_string("""
+          defmodule EnvMatch do
+            import ExUnit.Assertions
+
+            def run do
+              assert __ENV__ = %{}
+            end
+          end
+          """)
+        end
+      end)
+
+    assert message =~ "invalid pattern in match, __ENV__ is not allowed in matches"
+  after
+    :code.purge(EnvMatch)
+    :code.delete(EnvMatch)
+  end
+
   test "assert match?" do
     true = assert match?({2, 1}, Value.tuple())
 

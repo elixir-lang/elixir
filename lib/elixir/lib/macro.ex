@@ -1832,13 +1832,13 @@ defmodule Macro do
   defp do_expand_once({:__DIR__, _, atom}, env) when is_atom(atom),
     do: {:filename.dirname(env.file), true}
 
-  defp do_expand_once({:__ENV__, _, atom}, env) when is_atom(atom) do
+  defp do_expand_once({:__ENV__, _, atom}, env) when is_atom(atom) and env.context != :match do
     env = update_in(env.versioned_vars, &maybe_escape_map/1)
     {maybe_escape_map(env), true}
   end
 
   defp do_expand_once({{:., _, [{:__ENV__, _, atom}, field]}, _, []} = original, env)
-       when is_atom(atom) and is_atom(field) do
+       when is_atom(atom) and is_atom(field) and env.context != :match do
     if Map.has_key?(env, field) do
       {maybe_escape_map(Map.get(env, field)), true}
     else
