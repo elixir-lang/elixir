@@ -271,7 +271,7 @@ defmodule Module do
   as the file is added.
 
   For more control over when a module is recompiled, see
-  [`__mix_recompile__?/0`](https://hexdocs.pm/mix/Mix.Tasks.Compile.Elixir.html#module-__mix_recompile__-0).
+  [`__mix_recompile__?/0`](`m:Mix.Tasks.Compile.Elixir#module-__mix_recompile__-0`).
 
   ### `@file`
 
