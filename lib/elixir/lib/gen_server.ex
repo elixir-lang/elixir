@@ -415,7 +415,7 @@ defmodule GenServer do
   Let's see how we could use those functions for debugging the stack server
   we defined earlier.
 
-      iex> {:ok, pid} = Stack.start_link([])
+      iex> {:ok, pid} = Stack.start_link("")
       iex> :sys.statistics(pid, true) # turn on collecting process statistics
       iex> :sys.trace(pid, true) # turn on event printing
       iex> Stack.push(pid, 1)
