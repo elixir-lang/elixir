@@ -222,7 +222,7 @@ defmodule Protocol do
   are known up-front, typically after all Elixir code in a project is compiled,
   Elixir provides a feature called *protocol consolidation*. Consolidation directly
   links protocols to their implementations in a way that invoking a function from a
-  consolidated protocol is equivalent to invoking two remote functions.
+  consolidated protocol is equivalent to invoking two remote functions - one to identify the correct implementation, and another to call the implementation.
 
   Protocol consolidation is applied by default to all Mix projects during compilation.
   This may be an issue during test. For instance, if you want to implement a protocol
