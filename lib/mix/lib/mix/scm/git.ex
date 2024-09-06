@@ -197,7 +197,7 @@ defmodule Mix.SCM.Git do
   end
 
   defp ensure_feature_compatibility(version, required_version, feature) do
-    unless required_version <= version do
+    if not (required_version <= version) do
       Mix.raise(
         "Git >= #{format_version(required_version)} is required to use #{feature}. " <>
           "You are running version #{format_version(version)}"

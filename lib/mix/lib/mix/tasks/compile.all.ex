@@ -17,7 +17,7 @@ defmodule Mix.Tasks.Compile.All do
     # Compute the app cache if it is stale and we are
     # not compiling from a dependency.
     app_cache =
-      unless "--from-mix-deps-compile" in args do
+      if "--from-mix-deps-compile" not in args do
         Mix.AppLoader.stale_cache(config)
       end
 
@@ -66,7 +66,7 @@ defmodule Mix.Tasks.Compile.All do
       Mix.AppLoader.write_cache(app_cache, Map.new(loaded_modules))
     end
 
-    unless "--no-app-loading" in args do
+    if "--no-app-loading" not in args do
       app = config[:app]
 
       with {:ok, properties} <- Mix.AppLoader.load_app(app, "#{compile_path}/#{app}.app"),

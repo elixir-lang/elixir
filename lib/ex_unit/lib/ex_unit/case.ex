@@ -299,7 +299,7 @@ defmodule ExUnit.Case do
   @doc false
   defmacro __using__(opts) do
     quote do
-      unless ExUnit.Case.__register__(__MODULE__, unquote(opts)) do
+      if !ExUnit.Case.__register__(__MODULE__, unquote(opts)) do
         use ExUnit.Callbacks
       end
 
@@ -312,7 +312,7 @@ defmodule ExUnit.Case do
 
   @doc false
   def __register__(module, opts) do
-    unless Keyword.keyword?(opts) do
+    if not Keyword.keyword?(opts) do
       raise ArgumentError,
             ~s(the argument passed to "use ExUnit.Case" must be a list of options, ) <>
               ~s(got: #{inspect(opts)})
@@ -322,7 +322,7 @@ defmodule ExUnit.Case do
     {async?, opts} = Keyword.pop(opts, :async, false)
     {parameterize, opts} = Keyword.pop(opts, :parameterize, nil)
 
-    unless parameterize == nil or (is_list(parameterize) and Enum.all?(parameterize, &is_map/1)) do
+    if not (parameterize == nil or (is_list(parameterize) and Enum.all?(parameterize, &is_map/1))) do
       raise ArgumentError, ":parameterize must be a list of maps, got: #{inspect(parameterize)}"
     end
 
@@ -332,7 +332,7 @@ defmodule ExUnit.Case do
 
     registered? = Module.has_attribute?(module, :ex_unit_tests)
 
-    unless registered? do
+    if not registered? do
       tag_check = Enum.any?([:moduletag, :describetag, :tag], &Module.has_attribute?(module, &1))
 
       if tag_check do
@@ -381,7 +381,7 @@ defmodule ExUnit.Case do
 
   """
   defmacro test(message, var \\ quote(do: _), contents) do
-    unless is_tuple(var) do
+    if not is_tuple(var) do
       IO.warn(
         "test context is always a map. The pattern " <>
           "#{inspect(Macro.to_string(var))} will never match",
@@ -602,7 +602,7 @@ defmodule ExUnit.Case do
   """
   @doc since: "1.11.0"
   def register_test(mod, file, line, test_type, name, tags) do
-    unless Module.has_attribute?(mod, :ex_unit_tests) do
+    if not Module.has_attribute?(mod, :ex_unit_tests) do
       raise "cannot define #{test_type}. Please make sure you have invoked " <>
               "\"use ExUnit.Case\" in the current module"
     end
@@ -846,7 +846,7 @@ defmodule ExUnit.Case do
       raise "cannot set tag #{inspect(tag)} because it is reserved by ExUnit"
     end
 
-    unless is_atom(tags[:test_type]) do
+    if not is_atom(tags[:test_type]) do
       raise("value for tag \":test_type\" must be an atom")
     end
 

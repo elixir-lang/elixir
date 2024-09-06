@@ -902,7 +902,7 @@ defmodule Module do
   end
 
   def create(module, quoted, opts) when is_atom(module) and is_list(opts) do
-    unless Keyword.has_key?(opts, :file) do
+    if not Keyword.has_key?(opts, :file) do
       raise ArgumentError, "expected :file to be given as option"
     end
 
@@ -2260,7 +2260,7 @@ defmodule Module do
   end
 
   defp preprocess_attribute(:nifs, value) do
-    unless function_arity_list?(value) do
+    if not function_arity_list?(value) do
       raise ArgumentError,
             "@nifs is a built-in module attribute for specifying a list " <>
               "of functions and their arities that are NIFs, got: #{inspect(value)}"
