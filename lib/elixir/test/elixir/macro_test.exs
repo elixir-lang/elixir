@@ -196,6 +196,16 @@ defmodule MacroTest do
       assert Code.eval_quoted(expanded) == {env.versioned_vars, []}
     end
 
+    test "env in :match context does not expand" do
+      env = %{__ENV__ | line: 0, lexical_tracker: self(), context: :match}
+
+      expanded = Macro.expand_once(quote(do: __ENV__), env)
+      assert expanded == quote(do: __ENV__)
+
+      expanded = Macro.expand_once(quote(do: __ENV__.file), env)
+      assert expanded == quote(do: __ENV__.file)
+    end
+
     defmacro local_macro(), do: raise("ignored")
 
     test "vars" do
