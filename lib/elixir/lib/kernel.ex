@@ -1889,10 +1889,10 @@ defmodule Kernel do
   end
 
   defp validate_tuple!(tuple) when is_tuple(tuple), do: :ok
-  defp validate_tuple!(_tuple) when is_tuple(tuple), do: raise(ArgumentError, "1st argument: not a tuple")
+  defp validate_tuple!(_tuple), do: Kernel.raise(ArgumentError, "1st argument: not a tuple")
 
-  defp validate_index(index) when is_integer(index) and index >= 0, do: :ok
-  defp validate_index(_index), do: raise(ArgumentError, "2nd argument: not a non_neg_integer")
+  defp validate_index!(index) when is_integer(index), do: :ok
+  defp validate_index!(_index), do: Kernel.raise(ArgumentError, "2nd argument: not an integer")
 
   @doc """
   Puts `value` at the given zero-based `index` in `tuple`.
