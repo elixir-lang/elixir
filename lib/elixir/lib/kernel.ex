@@ -1883,8 +1883,16 @@ defmodule Kernel do
   @doc guard: true
   @spec elem(tuple, non_neg_integer) :: term
   def elem(tuple, index) do
+    validate_tuple!(tuple)
+    validate_index!(index)
     :erlang.element(index + 1, tuple)
   end
+
+  defp validate_tuple!(tuple) when is_tuple(tuple), do: :ok
+  defp validate_tuple!(_tuple) when is_tuple(tuple), do: raise(ArgumentError, "1st argument: not a tuple")
+
+  defp validate_index(index) when is_integer(index) and index >= 0, do: :ok
+  defp validate_index(_index), do: raise(ArgumentError, "2nd argument: not a non_neg_integer")
 
   @doc """
   Puts `value` at the given zero-based `index` in `tuple`.
