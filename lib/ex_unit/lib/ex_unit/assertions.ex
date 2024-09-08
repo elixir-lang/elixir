@@ -126,6 +126,7 @@ defmodule ExUnit.Assertions do
   need to use `match?/2`:
 
       assert match?([%{id: id} | _] when is_integer(id), records)
+
   """
   defmacro assert({:=, meta, [left, right]} = assertion) do
     code = escape_quoted(:assert, meta, assertion)
