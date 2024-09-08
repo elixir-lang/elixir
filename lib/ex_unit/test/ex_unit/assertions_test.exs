@@ -256,6 +256,23 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
+  test "assert match with `when` in the pattern fails" do
+    assert_raise ArgumentError, ~r/invalid pattern in assert\/1: x when is_map\(x\)/, fn ->
+      Code.eval_string("""
+      defmodule AssertGuard do
+        import ExUnit.Assertions
+
+        def run do
+          assert (x when is_map(x)) = %{}
+        end
+      end
+      """)
+    end
+  after
+    :code.purge(AssertGuard)
+    :code.delete(AssertGuard)
+  end
+
   test "assert match with __ENV__ in the pattern" do
     message =
       ExUnit.CaptureIO.capture_io(:stderr, fn ->

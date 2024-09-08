@@ -357,6 +357,14 @@ defmodule ExUnit.Assertions do
   end
 
   @doc false
+  def __match__({:when, _, _} = left, _, _, _, _) do
+    raise ArgumentError, """
+    invalid pattern in assert/1: #{Macro.to_string(left)}
+
+    Use assert match?(... when ...) if you need to assert with a guard.
+    """
+  end
+
   def __match__(left, right, code, check, caller) do
     left = __expand_pattern__(left, caller)
     vars = collect_vars_from_pattern(left)
