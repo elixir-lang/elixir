@@ -121,6 +121,11 @@ defmodule ExUnit.Assertions do
 
   Even though the match works, `assert` still expects a truth
   value. In such cases, simply use `==/2` or `match?/2`.
+
+  If you need more complex pattern matching using guards, you
+  need to use `match?/2`:
+
+      assert match?([%{id: id} | _] when is_integer(id), records)
   """
   defmacro assert({:=, meta, [left, right]} = assertion) do
     code = escape_quoted(:assert, meta, assertion)
