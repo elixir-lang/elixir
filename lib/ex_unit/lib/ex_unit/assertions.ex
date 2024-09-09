@@ -121,6 +121,12 @@ defmodule ExUnit.Assertions do
 
   Even though the match works, `assert` still expects a truth
   value. In such cases, simply use `==/2` or `match?/2`.
+
+  If you need more complex pattern matching using guards, you
+  need to use `match?/2`:
+
+      assert match?([%{id: id} | _] when is_integer(id), records)
+
   """
   defmacro assert({:=, meta, [left, right]} = assertion) do
     code = escape_quoted(:assert, meta, assertion)
@@ -357,6 +363,23 @@ defmodule ExUnit.Assertions do
   end
 
   @doc false
+  def __match__({:when, _, _} = left, right, _, _, _) do
+    suggestion =
+      quote do
+        assert match?(unquote(left), unquote(right))
+      end
+
+    raise ArgumentError, """
+    invalid pattern in assert/1:
+
+    #{Macro.to_string(left) |> Inspect.Error.pad(2)}
+
+    To assert with guards, use match?/2:
+
+    #{Macro.to_string(suggestion) |> Inspect.Error.pad(2)}
+    """
+  end
+
   def __match__(left, right, code, check, caller) do
     left = __expand_pattern__(left, caller)
     vars = collect_vars_from_pattern(left)
