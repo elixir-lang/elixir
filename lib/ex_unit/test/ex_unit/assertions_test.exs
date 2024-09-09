@@ -257,7 +257,17 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert match with `when` in the pattern fails" do
-    assert_raise ArgumentError, ~r/invalid pattern in assert\/1: x when is_map\(x\)/, fn ->
+    message = """
+    invalid pattern in assert\/1:
+
+      x when is_map(x)
+
+    To assert with guards, use match?/2:
+
+      assert match?(x when is_map(x), %{})
+    """
+
+    assert_raise ArgumentError, message, fn ->
       Code.eval_string("""
       defmodule AssertGuard do
         import ExUnit.Assertions

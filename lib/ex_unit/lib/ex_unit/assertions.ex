@@ -363,11 +363,20 @@ defmodule ExUnit.Assertions do
   end
 
   @doc false
-  def __match__({:when, _, _} = left, _, _, _, _) do
-    raise ArgumentError, """
-    invalid pattern in assert/1: #{Macro.to_string(left)}
+  def __match__({:when, _, _} = left, right, _, _, _) do
+    suggestion =
+      quote do
+        assert match?(unquote(left), unquote(right))
+      end
 
-    Use assert match?(... when ...) if you need to assert with a guard.
+    raise ArgumentError, """
+    invalid pattern in assert/1:
+
+    #{Macro.to_string(left) |> Inspect.Error.pad(2)}
+
+    To assert with guards, use match?/2:
+
+    #{Macro.to_string(suggestion) |> Inspect.Error.pad(2)}
     """
   end
 
