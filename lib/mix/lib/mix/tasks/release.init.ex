@@ -301,6 +301,7 @@ defmodule Mix.Tasks.Release.Init do
     setlocal enabledelayedexpansion
 
     pushd .
+    %~d0
     cd "%~dp0\.."
     set RELEASE_ROOT=%cd%
     popd
