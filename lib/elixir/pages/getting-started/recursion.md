@@ -128,7 +128,7 @@ iex> Enum.map([1, 2, 3], fn x -> x * 2 end)
 [2, 4, 6]
 ```
 
-Or, using the capture syntax:
+Or, using the [capture syntax](`Kernel.SpecialForms.&/1`):
 
 ```elixir
 iex> Enum.reduce([1, 2, 3], 0, &+/2)
