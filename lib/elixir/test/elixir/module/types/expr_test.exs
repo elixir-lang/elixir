@@ -204,6 +204,48 @@ defmodule Module.Types.ExprTest do
   describe "tuples" do
     test "creating tuples" do
       assert typecheck!({:ok, 123}) == tuple([atom([:ok]), integer()])
+      assert typecheck!([x], {:ok, x}) == dynamic(tuple([atom([:ok]), term()]))
+    end
+
+    test "accessing tuples" do
+      assert typecheck!(elem({:ok, 123}, 0)) == atom([:ok])
+      assert typecheck!(elem({:ok, 123}, 1)) == integer()
+      assert typecheck!([x], elem({:ok, x}, 0)) == dynamic(atom([:ok]))
+      assert typecheck!([x], elem({:ok, x}, 1)) == dynamic(term())
+    end
+
+    test "accessing an index on not a map" do
+      assert typewarn!([<<x::integer>>], elem(x, 0)) ==
+               {dynamic(),
+                ~l"""
+                expected a tuple when accessing element at index 0 in expression:
+
+                    elem(x, 0)
+
+                but got type:
+
+                    integer()
+
+                where "x" was given the type:
+
+                    # type: integer()
+                    # from: types_test.ex:LINE-2
+                    <<x::integer>>
+                """}
+    end
+
+    test "accessing an out of range index" do
+      assert typewarn!(elem({:ok, 123}, 2)) ==
+               {dynamic(),
+                ~l"""
+                out of range index 2 in expression:
+
+                    elem({:ok, 123}, 2)
+
+                the given type does not have the given index:
+
+                    {:ok, integer()}
+                """}
     end
   end
 
@@ -212,6 +254,7 @@ defmodule Module.Types.ExprTest do
       assert typecheck!(%{foo: :bar}) == closed_map(foo: atom([:bar]))
       assert typecheck!(%{123 => 456}) == open_map()
       assert typecheck!(%{123 => 456, foo: :bar}) == open_map(foo: atom([:bar]))
+      assert typecheck!([x], %{key: x}) == dynamic(closed_map(key: term()))
 
       assert typecheck!(
                (

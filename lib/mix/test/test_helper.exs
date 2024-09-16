@@ -132,7 +132,13 @@ defmodule MixTest.Case do
 
   defmacro in_fixture(which, block) do
     module = inspect(__CALLER__.module)
-    function = Atom.to_string(elem(__CALLER__.function, 0))
+
+    function =
+      case __CALLER__.function do
+        {name, _arity} -> Atom.to_string(name)
+        nil -> raise "expected in_fixture/2 to be called from a function"
+      end
+
     tmp = Path.join(module, function)
 
     quote do

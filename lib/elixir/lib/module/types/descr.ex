@@ -59,12 +59,12 @@ defmodule Module.Types.Descr do
   def non_empty_list(), do: %{bitmap: @bit_non_empty_list}
   def open_map(), do: %{map: @map_top}
   def open_map(pairs), do: map_descr(:open, pairs)
+  def open_tuple(elements), do: tuple_descr(:open, elements)
   def pid(), do: %{bitmap: @bit_pid}
   def port(), do: %{bitmap: @bit_port}
   def reference(), do: %{bitmap: @bit_reference}
-  def open_tuple(elements), do: %{tuple: tuple_new(:open, elements)}
-  def tuple(elements), do: %{tuple: tuple_new(:closed, elements)}
   def tuple(), do: %{tuple: @tuple_top}
+  def tuple(elements), do: tuple_descr(:closed, elements)
 
   @boolset :sets.from_list([true, false], version: 2)
   def boolean(), do: %{atom: {:union, @boolset}}
@@ -727,9 +727,8 @@ defmodule Module.Types.Descr do
   with the assumption that the descr is exclusively a map (or dynamic).
 
   It returns a two element tuple or `:error`. The first element says
-  if the type is optional or not, the second element is the type.
-  In static mode, we likely want to raise if `map.field`
-  (or pattern matching?) is called on an optional key.
+  if the type is dynamically optional or not, the second element is
+  the type. In static mode, optional keys are not allowed.
   """
   def map_fetch(:term, _key), do: :badmap
 
@@ -1234,6 +1233,28 @@ defmodule Module.Types.Descr do
   # - {integer(), atom()} is encoded as {:closed, [integer(), atom()]}
   # - {atom(), boolean(), ...} is encoded as {:open, [atom(), boolean()]}
 
+  defp tuple_descr(tag, fields) do
+    case tuple_descr(fields, [], false) do
+      {fields, true} -> %{dynamic: %{tuple: tuple_new(tag, Enum.reverse(fields))}}
+      {_, false} -> %{tuple: tuple_new(tag, fields)}
+    end
+  end
+
+  defp tuple_descr([:term | rest], acc, dynamic?) do
+    tuple_descr(rest, [:term | acc], dynamic?)
+  end
+
+  defp tuple_descr([value | rest], acc, dynamic?) do
+    case :maps.take(:dynamic, value) do
+      :error -> tuple_descr(rest, [value | acc], dynamic?)
+      {dynamic, _static} -> tuple_descr(rest, [dynamic | acc], true)
+    end
+  end
+
+  defp tuple_descr([], acc, dynamic?) do
+    {acc, dynamic?}
+  end
+
   defp tuple_new(tag, elements), do: [{tag, elements, []}]
 
   defp tuple_intersection(dnf1, dnf2) do
@@ -1395,8 +1416,9 @@ defmodule Module.Types.Descr do
   with the assumption that the descr is exclusively a tuple (or dynamic).
 
   Returns one of:
+
   - `{false, type}` if the element is always accessible and has the given `type`.
-  - `{true, type}` if the element may exist and has the given `type`.
+  - `{true, type}` if the element is dynamically optional and has the given `type`.
   - `:badindex` if the index is never accessible in the tuple type.
   - `:badtuple` if the descr is not a tuple type.
 
@@ -1404,8 +1426,6 @@ defmodule Module.Types.Descr do
 
       iex> tuple_fetch(tuple([integer(), atom()]), 0)
       {false, integer()}
-
-      :badindex
 
       iex> tuple_fetch(union(tuple([integer()]), tuple([integer(), atom()])), 1)
       {true, atom()}
@@ -1420,7 +1440,7 @@ defmodule Module.Types.Descr do
   def tuple_fetch(_, index) when index < 0, do: :badindex
   def tuple_fetch(:term, _key), do: :badtuple
 
-  def tuple_fetch(%{} = descr, key) do
+  def tuple_fetch(%{} = descr, key) when is_integer(key) do
     case :maps.take(:dynamic, descr) do
       :error ->
         if descr_key?(descr, :tuple) and tuple_only?(descr) do

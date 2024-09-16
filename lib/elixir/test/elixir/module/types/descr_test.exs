@@ -719,6 +719,10 @@ defmodule Module.Types.DescrTest do
 
     test "tuples" do
       assert tuple([integer(), atom()]) |> to_quoted_string() == "{integer(), atom()}"
+
+      assert tuple([integer(), dynamic(atom())]) |> to_quoted_string() ==
+               "dynamic({integer(), atom()})"
+
       assert open_tuple([integer(), atom()]) |> to_quoted_string() == "{integer(), atom(), ...}"
 
       assert union(tuple([integer(), atom()]), open_tuple([atom()])) |> to_quoted_string() ==

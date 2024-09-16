@@ -266,6 +266,21 @@ defmodule Module.Types.Of do
 
   ## Apply
 
+  # TODO: Implement element without a literal index
+  # TODO: Add a test for an open tuple (inferred from a guard)
+  # TODO: Implement set_element
+
+  def apply(:erlang, :element, [_, type], {_, meta, [index, _]} = expr, stack, context)
+      when is_integer(index) do
+    case tuple_fetch(type, index - 1) do
+      {_optional?, value_type} ->
+        {:ok, value_type, context}
+
+      reason ->
+        {:ok, dynamic(), warn({reason, expr, type, index - 1, context}, meta, stack, context)}
+    end
+  end
+
   def apply(:erlang, name, [left, right], expr, stack, context)
       when name in [:>=, :"=<", :>, :<, :min, :max] do
     result = if name in [:min, :max], do: union(left, right), else: boolean()
@@ -614,6 +629,48 @@ defmodule Module.Types.Of do
 
               #{to_quoted_string(type) |> indent(4)}
           """),
+          format_traces(traces)
+        ])
+    }
+  end
+
+  def format_diagnostic({:badtuple, expr, type, index, context}) do
+    traces = collect_traces(expr, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          expected a tuple when accessing element at index #{index} in expression:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          but got type:
+
+              #{to_quoted_string(type) |> indent(4)}
+          """,
+          format_traces(traces)
+        ])
+    }
+  end
+
+  def format_diagnostic({:badindex, expr, type, index, context}) do
+    traces = collect_traces(expr, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          out of range index #{index} in expression:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          the given type does not have the given index:
+
+              #{to_quoted_string(type) |> indent(4)}
+          """,
           format_traces(traces)
         ])
     }

@@ -299,7 +299,7 @@ defmodule Module.Types.Pattern do
   # {...}
   defp of_shared({:{}, _meta, exprs}, _expected_expr, stack, context, fun) do
     case map_reduce_ok(exprs, context, &fun.(&1, {dynamic(), &1}, stack, &2)) do
-      {:ok, _, context} -> {:ok, tuple(), context}
+      {:ok, types, context} -> {:ok, tuple(types), context}
       {:error, reason} -> {:error, reason}
     end
   end
