@@ -47,6 +47,7 @@ jobs:
           git push origin $ref_name --force
           gh release create \
             $ref_name \
+            —-latest=false \
             --title $ref_name \
             --notes "Automated release for latest ${{ github.ref_name }}." \
             || true
