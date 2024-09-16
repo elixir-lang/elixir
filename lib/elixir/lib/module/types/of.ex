@@ -279,7 +279,7 @@ defmodule Module.Types.Of do
       number_type?(left) and number_type?(right) ->
         {:ok, result, context}
 
-      empty?(intersection(left, right)) ->
+      disjoint?(left, right) ->
         warning = {:mismatched_comparison, expr, context}
         {:ok, result, warn(warning, elem(expr, 1), stack, context)}
 

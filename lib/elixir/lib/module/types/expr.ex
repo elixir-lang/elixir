@@ -152,7 +152,7 @@ defmodule Module.Types.Expr do
          {:ok, struct_type, context} <-
            Of.struct(module, args_types, :only_defaults, struct_meta, stack, context),
          {:ok, map_type, context} <- of_expr(map, stack, context) do
-      if empty?(intersection(struct_type, map_type)) do
+      if disjoint?(struct_type, map_type) do
         warning = {:badupdate, :struct, expr, struct_type, map_type, context}
         {:ok, dynamic(), warn(__MODULE__, warning, update_meta, stack, context)}
       else

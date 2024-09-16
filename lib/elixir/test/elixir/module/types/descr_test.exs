@@ -663,37 +663,6 @@ defmodule Module.Types.DescrTest do
     assert equal?(type, atom())
   end
 
-  test "map_update" do
-    assert map_update(empty_map(), :a, term()) == :badkey
-    assert map_update(open_map(), :a, term()) == :badkey
-    assert map_update(term(), :a, term()) == :badmap
-    assert map_update(closed_map(a: integer()), :b, atom()) == :badkey
-    assert map_update(open_map(a: integer()), :b, float()) == :badkey
-    assert map_update(closed_map(a: if_set(integer())), :b, atom()) == :badkey
-    assert map_update(union(dynamic(), empty_map()), :a, atom()) == :badkey
-    assert map_update(closed_map(a: integer()), :a, atom()) == closed_map(a: atom())
-    assert map_update(open_map(a: integer()), :a, atom()) |> equal?(open_map(a: atom()))
-    assert map_update(dynamic(open_map()), :a, integer()) == dynamic(open_map(a: integer()))
-
-    assert closed_map(a: if_set(atom()), b: float())
-           |> union(open_map(a: atom()))
-           |> map_update(:a, integer()) ==
-             :badkey
-
-    assert closed_map(a: if_set(atom()), b: float())
-           |> union(open_map(a: atom()))
-           |> difference(open_map(a: if_set(float())))
-           |> map_update(:a, integer())
-           |> map_fetch(:a) == {false, integer()}
-
-    assert map_update(difference(open_map(), open_map(a: not_set())), :a, fun()) ==
-             open_map(a: fun())
-
-    # Update a key-value pair with dynamic type
-    # Note: setting a field to a dynamic type makes the whole map become dynamic.
-    assert map_update(open_map(a: atom()), :a, dynamic()) |> equal?(dynamic(open_map(a: term())))
-  end
-
   describe "disjoint" do
     test "map" do
       refute disjoint?(open_map(), open_map(a: integer()))

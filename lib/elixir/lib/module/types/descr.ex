@@ -377,7 +377,7 @@ defmodule Module.Types.Descr do
     right_dynamic = Map.get(right, :dynamic, right)
 
     if empty?(left_static) do
-      not empty?(intersection(left_dynamic, right_dynamic))
+      not disjoint?(left_dynamic, right_dynamic)
     else
       subtype_static(left_static, right_dynamic)
     end
@@ -788,52 +788,6 @@ defmodule Module.Types.Descr do
   end
 
   @doc """
-  Updates the `key` with a given type, assuming that the key is present
-  in the descr, and that it is exclusively a map (or dynamic).
-  """
-  def map_update(:term, _key, _type), do: :badmap
-  def map_update(descr, key, :term), do: map_update_static_value(descr, key, :term)
-
-  def map_update(descr, key, type) do
-    case :maps.take(:dynamic, type) do
-      :error -> map_update_static_value(descr, key, type)
-      {dynamic, _static} -> dynamic(map_update_static_value(descr, key, dynamic))
-    end
-  end
-
-  def map_update_static_value(descr, key, type) do
-    case :maps.take(:dynamic, descr) do
-      :error ->
-        cond do
-          subtype?(descr, open_map([{key, term()}])) -> map_put_static(descr, key, type)
-          map_only?(descr) -> :badkey
-          true -> :badmap
-        end
-
-      {dynamic, static} when static == @none ->
-        if not disjoint?(dynamic, open_map([{key, term()}])) do
-          dynamic(map_put_static(dynamic, key, type))
-        else
-          :badkey
-        end
-
-      {dynamic, static} ->
-        if not disjoint?(dynamic, open_map([{key, term()}])) and
-             subtype?(static, open_map([{key, type}])) do
-          dynamic = map_put_static(dynamic, key, type)
-          static = map_put_static(static, key, type)
-          Map.put(static, :dynamic, dynamic)
-        else
-          if map_only?(static) do
-            :badkey
-          else
-            :badmap
-          end
-        end
-    end
-  end
-
-  @doc """
   Adds a `key` of a given type, assuming that the descr is exclusively
   a map (or dynamic).
   """
@@ -847,26 +801,26 @@ defmodule Module.Types.Descr do
     end
   end
 
-  def map_put_static_value(descr, key, type) do
+  defp map_put_static_value(descr, key, type) do
     case :maps.take(:dynamic, descr) do
       :error ->
         if map_only?(descr) do
-          map_put_static(descr, key, type)
+          map_put_static_descr(descr, key, type)
         else
           :badmap
         end
 
       {dynamic, static} when static == @none ->
         if descr_key?(dynamic, :map) do
-          dynamic(map_put_static(dynamic, key, type))
+          dynamic(map_put_static_descr(dynamic, key, type))
         else
           :badmap
         end
 
       {dynamic, static} ->
         if descr_key?(dynamic, :map) and map_only?(static) do
-          dynamic = map_put_static(dynamic, key, type)
-          static = map_put_static(static, key, type)
+          dynamic = map_put_static_descr(dynamic, key, type)
+          static = map_put_static_descr(static, key, type)
           union(dynamic(dynamic), static)
         else
           :badmap
@@ -875,7 +829,7 @@ defmodule Module.Types.Descr do
   end
 
   # Directly inserts a key of a given type into every positive and negative map
-  def map_put_static(descr, key, type) do
+  defp map_put_static_descr(descr, key, type) do
     map_delete_static(descr, key)
     |> Map.update!(:map, fn dnf ->
       Enum.map(dnf, fn {tag, fields, negs} ->
