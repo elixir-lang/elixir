@@ -733,7 +733,7 @@ defmodule Module.Types.Descr do
   """
   def map_fetch(:term, _key), do: :badmap
 
-  def map_fetch(%{} = descr, key) do
+  def map_fetch(%{} = descr, key) when is_atom(key) do
     case :maps.take(:dynamic, descr) do
       :error ->
         if descr_key?(descr, :map) and map_only?(descr) do
@@ -792,9 +792,9 @@ defmodule Module.Types.Descr do
   a map (or dynamic).
   """
   def map_put(:term, _key, _type), do: :badmap
-  def map_put(descr, key, :term), do: map_put_static_value(descr, key, :term)
+  def map_put(descr, key, :term) when is_atom(key), do: map_put_static_value(descr, key, :term)
 
-  def map_put(descr, key, type) do
+  def map_put(descr, key, type) when is_atom(key) do
     case :maps.take(:dynamic, type) do
       :error -> map_put_static_value(descr, key, type)
       {dynamic, _static} -> dynamic(map_put_static_value(descr, key, dynamic))
@@ -981,7 +981,7 @@ defmodule Module.Types.Descr do
   """
   def map_delete(:term, _key), do: :badmap
 
-  def map_delete(descr, key) do
+  def map_delete(descr, key) when is_atom(key) do
     case :maps.take(:dynamic, descr) do
       :error ->
         # Note: the empty typ is not a valid input

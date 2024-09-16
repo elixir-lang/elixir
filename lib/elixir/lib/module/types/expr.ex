@@ -156,7 +156,7 @@ defmodule Module.Types.Expr do
          {:ok, map_type, context} <- of_expr(map, stack, context) do
       if disjoint?(struct_type, map_type) do
         warning = {:badupdate, :struct, expr, struct_type, map_type, context}
-        {:ok, dynamic(), warn(__MODULE__, warning, update_meta, stack, context)}
+        {:ok, error_type(), warn(__MODULE__, warning, update_meta, stack, context)}
       else
         # TODO: Merge args_type into map_type with dynamic/static key requirement
         Of.struct(module, args_types, :merge_defaults, struct_meta, stack, context)
@@ -384,12 +384,10 @@ defmodule Module.Types.Expr do
              if Code.ensure_loaded?(exception) and function_exported?(exception, :__struct__, 0) do
                Of.struct(exception, args, :merge_defaults, meta, stack, context)
              else
-               # Whenever there is a failure (such as undefined function),
-               # we return dynamic to avoid cascading errors. In this case,
-               # we can return something a bit more precise than dynamic,
-               # but we still want an open map to avoid cascading.
+               # If the exception cannot be found or is invalid,
+               # we call Of.remote/5 to emit a warning.
                context = Of.remote(exception, :__struct__, 0, meta, stack, context)
-               {:ok, dynamic(open_map([__struct__: atom([exception])] ++ args)), context}
+               {:ok, error_type(), context}
              end
            end) do
       context =
@@ -479,6 +477,8 @@ defmodule Module.Types.Expr do
   end
 
   ## General helpers
+
+  defp error_type(), do: dynamic()
 
   defp apply_many([], _function, _args_types, _expr, _stack, context) do
     {:ok, dynamic(), context}
