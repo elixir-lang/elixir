@@ -2,6 +2,9 @@ name: Release
 
 on:
   push:
+    branches:
+      - main
+      - v*.*
     tags:
       - v*
 
@@ -22,6 +25,7 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Create draft release
+        if: github.ref_type != 'branch'
         run: |
           gh release create \
             --repo ${{ github.repository }} \
@@ -29,6 +33,24 @@ jobs:
             --notes '' \
             --draft \
             ${{ github.ref_name }}
+
+      - uses: actions/checkout@v4
+        if: github.ref_type == 'branch'
+        with:
+          fetch-depth: 50
+
+      - name: Update ${{ github.ref_name }}-latest
+        if: github.ref_type == 'branch'
+        run: |
+          ref_name=${{ github.ref_name }}-latest
+          git tag $ref_name --force
+          git push origin $ref_name --force
+          gh release create \
+            $ref_name \
+            --title $ref_name \
+            --notes "Automated release for latest ${{ github.ref_name }}." \
+            || true
+
   release_pre_built:
     needs: create_draft_release
     strategy:
@@ -65,6 +87,7 @@ jobs:
           subject-path: 'Docs.*'
 
       - name: "Sign files with Trusted Signing"
+        if: github.repository == 'elixir-lang/elixir'
         uses: azure/trusted-signing-action@v0.4.0
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -83,16 +106,20 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload --clobber "${{ github.ref_name }}" \
+          if [ "${{ github.ref_type }}" == "branch" ]; then
+            tag=${{ github.ref_name }}-latest
+          else
+            tag="${{ github.ref_name }}"
+          fi
+
+          gh release upload --clobber "$tag" \
             elixir-otp-${{ matrix.otp }}.zip \
             elixir-otp-${{ matrix.otp }}.zip.sha{1,256}sum \
             elixir-otp-${{ matrix.otp }}.exe \
             elixir-otp-${{ matrix.otp }}.exe.sha{1,256}sum
-      - name: Upload Docs to GitHub
-        if: ${{ matrix.build_docs }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release upload --clobber "${{ github.ref_name }}" \
-            Docs.zip \
-            Docs.zip.sha{1,256}sum
+
+          if [ "${{ matrix.build_docs }}" == "build_docs" ]; then
+            gh release upload --clobber "$tag" \
+              Docs.zip \
+              Docs.zip.sha{1,256}sum
+          fi
