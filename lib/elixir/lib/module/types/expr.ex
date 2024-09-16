@@ -73,7 +73,10 @@ defmodule Module.Types.Expr do
 
   # {left, right}
   def of_expr({left, right}, stack, context) do
-    of_expr({:{}, [], [left, right]}, stack, context)
+    with {:ok, left, context} <- of_expr(left, stack, context),
+         {:ok, right, context} <- of_expr(right, stack, context) do
+      {:ok, tuple([left, right]), context}
+    end
   end
 
   # <<...>>>
@@ -112,11 +115,10 @@ defmodule Module.Types.Expr do
     {:ok, list(), context}
   end
 
-  # TODO: {...}
+  # {...}
   def of_expr({:{}, _meta, exprs}, stack, context) do
-    case map_reduce_ok(exprs, context, &of_expr(&1, stack, &2)) do
-      {:ok, _types, context} -> {:ok, tuple(), context}
-      {:error, context} -> {:error, context}
+    with {:ok, types, context} <- map_reduce_ok(exprs, context, &of_expr(&1, stack, &2)) do
+      {:ok, tuple(types), context}
     end
   end
 
