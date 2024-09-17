@@ -710,9 +710,9 @@ defmodule Map do
 
   @doc """
   Removes the value associated with `key` in `map` and returns the value
-  and the updated map, or it raises if `key` is not present.
+  and the updated map, or it raises a `KeyError` exception if `key` is not present.
 
-  Behaves the same as `pop/3` but raises if `key` is not present in `map`.
+  Behaves the same as `pop/3` but raises a `KeyError` exception if `key` is not present in `map`.
 
   ## Examples
 
