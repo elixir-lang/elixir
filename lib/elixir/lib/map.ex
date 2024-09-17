@@ -709,8 +709,8 @@ defmodule Map do
   end
 
   @doc """
-  Removes the value associated with `key` in `map` and returns the value
-  and the updated map, or it raises a `KeyError` exception if `key` is not present.
+  Removes and returns the value associated with `key` in `map` alongside
+  the updated map, or raises if `key` is not present.
 
   Behaves the same as `pop/3` but raises a `KeyError` exception if `key` is not present in `map`.
 
