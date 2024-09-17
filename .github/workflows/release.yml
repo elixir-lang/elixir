@@ -81,15 +81,11 @@ jobs:
           build_docs: ${{ matrix.build_docs }}
 
       - uses: actions/attest-build-provenance@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           subject-path: 'elixir-otp-${{ matrix.otp }}.*'
 
       - uses: actions/attest-build-provenance@v1
         if: ${{ matrix.build_docs }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           subject-path: 'Docs.*'
 
