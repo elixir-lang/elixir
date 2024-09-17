@@ -5,10 +5,12 @@
 skipped = Version.parse!("1.0.3")
 
 list_contents =
-  text_tags
-  |> String.split()
-  |> Enum.map(fn "v" <> rest -> Version.parse!(rest) end)
-  |> Enum.filter(&(Version.compare(&1, skipped) == :gt))
+  for(
+    "v" <> rest <- String.split(text_tags),
+    version = Version.parse!(rest),
+    Version.compare(version, skipped) == :gt,
+    do: version
+  )
   |> Enum.sort({:desc, Version})
   |> Enum.map_intersperse(", ", fn version ->
     version_string = Version.to_string(version)
