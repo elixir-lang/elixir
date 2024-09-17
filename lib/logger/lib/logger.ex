@@ -463,7 +463,7 @@ defmodule Logger do
       in future releases
 
     * `Logger.Backends` only receive `:debug`, `:info`, `:warning`, and `:error`
-      messages. `:notice` maps to `:info`. `:warn` amps to `:warnings`.
+      messages. `:notice` maps to `:info`. `:warn` maps to `:warnings`.
       All others map to `:error`
   """
 
