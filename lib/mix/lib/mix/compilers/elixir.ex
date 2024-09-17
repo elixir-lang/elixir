@@ -1077,24 +1077,24 @@ defmodule Mix.Compilers.Elixir do
       # We merge stale_modules (which is a map of %{module => true} that the user changed)
       # into a map of modules we compiled (which is a map of %{module => record}). This is
       # fine because we only care about the keys.
-      runtime_modules = Map.merge(modules, stale_modules)
+      changed_modules = Map.merge(modules, stale_modules)
 
       # Now we do a simple pass finding anything that directly depends on the modules that
       # changed. We don't need to compute a fixpoint, because now only the directly affected
       # matter.
       {sources, runtime_modules} =
-        Enum.reduce(sources, {sources, Map.keys(runtime_modules)}, fn
+        Enum.reduce(sources, {sources, []}, fn
           {source_path, source_entry}, {acc_sources, acc_modules} ->
             source(export_references: export_refs, runtime_references: runtime_refs) =
               source_entry
 
-            if has_any_key?(runtime_modules, export_refs) or
-                 has_any_key?(runtime_modules, runtime_refs) do
+            if has_any_key?(changed_modules, export_refs) or
+                 has_any_key?(changed_modules, runtime_refs) do
               acc_sources =
                 Map.replace!(acc_sources, source_path, source(source_entry, runtime_warnings: []))
 
               new_modules =
-                Enum.reject(source(source_entry, :modules), &Map.has_key?(runtime_modules, &1))
+                Enum.reject(source(source_entry, :modules), &Map.has_key?(changed_modules, &1))
 
               {acc_sources, new_modules ++ acc_modules}
             else
