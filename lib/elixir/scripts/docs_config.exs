@@ -7,6 +7,7 @@ skipped = Version.parse!("1.0.3")
 list_contents =
   for(
     "v" <> rest <- String.split(text_tags),
+    not String.ends_with?(rest, "-latest"),
     version = Version.parse!(rest),
     Version.compare(version, skipped) == :gt,
     do: version
