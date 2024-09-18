@@ -237,8 +237,10 @@ defmodule DurationTest do
     assert Duration.from_iso8601("P4Y2W3Y") == {:error, :invalid_date_component}
     assert Duration.from_iso8601("P5HT4MT3S") == {:error, :invalid_date_component}
     assert Duration.from_iso8601("P5H3HT4M") == {:error, :invalid_date_component}
+    assert Duration.from_iso8601("P0.5Y") == {:error, :invalid_date_component}
     assert Duration.from_iso8601("PT1D") == {:error, :invalid_time_component}
     assert Duration.from_iso8601("PT.6S") == {:error, :invalid_time_component}
+    assert Duration.from_iso8601("PT0.5H") == {:error, :invalid_time_component}
     assert Duration.from_iso8601("invalid") == {:error, :invalid_duration}
   end
 
@@ -262,6 +264,9 @@ defmodule DurationTest do
     assert Duration.from_iso8601!("PT6S") == %Duration{second: 6}
     assert Duration.from_iso8601!("PT1,6S") == %Duration{second: 1, microsecond: {600_000, 1}}
     assert Duration.from_iso8601!("PT-1.6S") == %Duration{second: -1, microsecond: {-600_000, 1}}
+    assert Duration.from_iso8601!("PT0,6S") == %Duration{second: 0, microsecond: {600_000, 1}}
+    assert Duration.from_iso8601!("PT-0,6S") == %Duration{second: 0, microsecond: {-600_000, 1}}
+    assert Duration.from_iso8601!("-PT-0,6S") == %Duration{second: 0, microsecond: {600_000, 1}}
     assert Duration.from_iso8601!("-P10DT4H") == %Duration{day: -10, hour: -4}
     assert Duration.from_iso8601!("-P10DT-4H") == %Duration{day: -10, hour: 4}
     assert Duration.from_iso8601!("P-10D") == %Duration{day: -10}

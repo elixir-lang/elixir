@@ -715,7 +715,15 @@ defmodule Calendar.ISO do
       {second, <<delimiter, _::binary>> = rest} when delimiter in [?., ?,] ->
         case parse_microsecond(rest) do
           {{ms, precision}, "S"} ->
-            ms = if second > 0, do: ms, else: -ms
+            ms =
+              case string do
+                "-" <> _ ->
+                  -ms
+
+                _ ->
+                  ms
+              end
+
             {:ok, [second: second, microsecond: {ms, precision}] ++ acc}
 
           _ ->
