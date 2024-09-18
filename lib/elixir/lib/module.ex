@@ -1677,11 +1677,11 @@ defmodule Module do
 
     case :ets.lookup(set, key) do
       [{_, _, :accumulate, traces}] ->
-        trace_attribute(true, module, traces, set, key, [])
+        trace_attribute(true, module, traces, set, key, nil, [])
         reverse_values(:ets.take(bag, {:accumulate, key}), [])
 
       [{_, value, _, traces}] ->
-        trace_attribute(module, traces)
+        trace_attribute(module, key, nil, traces)
         :ets.delete(set, key)
         value
 
@@ -1998,15 +1998,15 @@ defmodule Module do
         default
 
       [{_, _, :accumulate, traces}] ->
-        trace_attribute(trace?, module, traces, set, key, [])
+        trace_attribute(trace?, module, traces, set, key, caller_line, [])
         lookup_accumulate_attribute(bag, key, default, last_accumulated?)
 
       [{_, value, warn_line, traces}] when is_integer(warn_line) ->
-        trace_attribute(trace?, module, traces, set, key, [{3, :used}])
+        trace_attribute(trace?, module, traces, set, key, caller_line, [{3, :used}])
         value
 
       [{_, value, _, traces}] ->
-        trace_attribute(trace?, module, traces, set, key, [])
+        trace_attribute(trace?, module, traces, set, key, caller_line, [])
         value
 
       [] when is_integer(caller_line) ->
@@ -2034,12 +2034,15 @@ defmodule Module do
     end
   end
 
-  defp trace_attribute(module, traces) do
+  defp trace_attribute(module, key, caller_line, traces) do
     :lists.foreach(
       fn {line, lexical_tracker, tracers, aliases} ->
+        line = caller_line || line
+
         env = %{
           Macro.Env.__struct__()
           | line: line,
+            file: "@#{key}",
             lexical_tracker: lexical_tracker,
             module: module,
             tracers: tracers
@@ -2056,10 +2059,10 @@ defmodule Module do
     )
   end
 
-  defp trace_attribute(trace?, module, traces, set, key, updates) do
+  defp trace_attribute(trace?, module, traces, set, key, caller_line, updates) do
     updates =
       if trace? and traces != [] do
-        trace_attribute(module, traces)
+        trace_attribute(module, key, caller_line, traces)
         updates ++ [{4, []}]
       else
         updates

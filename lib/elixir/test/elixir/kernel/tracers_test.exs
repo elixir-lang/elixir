@@ -224,6 +224,17 @@ defmodule Kernel.TracersTest do
     :code.delete(Sample)
   end
 
+  test "traces module attribute expansion" do
+    compile_string("""
+    defmodule TracersModuleAttribute do
+      @module URI
+      @module
+    end
+    """)
+
+    assert_received {{:alias_reference, [line: 3], URI}, %{file: "@module"}}
+  end
+
   test "traces string interpolation" do
     compile_string("""
     arg = 1 + 2
