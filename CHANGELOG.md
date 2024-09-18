@@ -70,6 +70,24 @@ Finally, a new `Kernel.to_timeout/1` function has been added, which helps develo
 Process.send_after(pid, :wake_up, to_timeout(hour: 1))
 ```
 
+## v1.17.3 (2024-09-18)
+
+### 1. Bug fixes
+
+#### Elixir
+
+  * [Duration] Fix parsing of fractional durations with non-positive seconds
+  * [Kernel] Do not attempt to group module warnings when they have a large context
+
+#### IEx
+
+  * [IEx.Helpers] Properly reconsolidate protocols on `recompile`
+
+#### Mix
+
+  * [mix compile.elixir] Do not verify modules twice
+  * [mix xref] Respect the `--label` option on stats and cycles
+
 ## v1.17.2 (2024-07-06)
 
 ### 1. Bug fixes

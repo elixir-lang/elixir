@@ -1,6 +1,6 @@
 @echo off
 
-set ELIXIR_VERSION=1.17.2
+set ELIXIR_VERSION=1.17.3
 
 if    ""%1""==""""                if ""%2""=="""" goto documentation
 if /I ""%1""==""--help""          if ""%2""=="""" goto documentation

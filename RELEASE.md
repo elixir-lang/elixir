@@ -10,13 +10,13 @@
 
 4. Commit changes above with title "Release vVERSION" and push it
 
-6. Once GitHub actions completes, generate a new tag, and push it
+5. Once GitHub actions completes, generate a new tag, and push it
 
-7. Wait until GitHub Actions publish artifacts to the draft release
+6. Wait until GitHub Actions publish artifacts to the draft release
 
-8. Copy the relevant bits from /CHANGELOG.md to the GitHub release and publish it (link to the announcement if there is one)
+7. Copy the relevant bits from /CHANGELOG.md to the GitHub release and publish it (link to the announcement if there is one)
 
-9. Update `_data/elixir-versions.yml` (except for RCs) in `elixir-lang/elixir-lang.github.com`
+8. Update `_data/elixir-versions.yml` (except for RCs) in `elixir-lang/elixir-lang.github.com`
 
 ## Creating a new vMAJOR.MINOR branch (before first rc)
 
