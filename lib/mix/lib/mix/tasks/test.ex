@@ -594,9 +594,12 @@ defmodule Mix.Tasks.Test do
 
     # Prepare and extract all files to require and run
     test_paths = project[:test_paths] || default_test_paths()
-    test_files = if files != [], do: parse_file_paths(files), else: test_paths
     test_pattern = project[:test_pattern] || "*_test.exs"
     warn_test_pattern = project[:warn_test_pattern] || "*_test.ex"
+
+    {test_files, test_opts} =
+      if files != [], do: ExUnit.Filters.parse_paths(files), else: {test_paths, []}
+
     unfiltered_test_files = Mix.Utils.extract_files(test_files, test_pattern)
 
     matched_test_files =
@@ -608,7 +611,8 @@ defmodule Mix.Tasks.Test do
 
     try do
       Enum.each(test_paths, &require_test_helper(shell, &1))
-      ExUnit.configure(merge_helper_opts(ex_unit_opts))
+      # test_opts always wins because those are given via args
+      ExUnit.configure(ex_unit_opts |> merge_helper_opts() |> Keyword.merge(test_opts))
       CT.require_and_run(matched_test_files, test_paths, test_elixirc_options, opts)
     catch
       kind, reason ->
@@ -731,12 +735,6 @@ defmodule Mix.Tasks.Test do
   defp default_opts(opts) do
     # Set autorun to false because Mix automatically runs the test suite for us.
     [autorun: false] ++ opts
-  end
-
-  defp parse_file_paths(file_paths) do
-    {parsed_file_paths, ex_unit_opts} = ExUnit.Filters.parse_paths(file_paths)
-    ExUnit.configure(ex_unit_opts)
-    parsed_file_paths
   end
 
   defp parse_filters(opts, key) do
