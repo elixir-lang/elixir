@@ -222,7 +222,7 @@ jobs:
           source utils.sh
           zips=$(find . -type f -name 'elixir-otp-*.zip' | sed 's/^\.\///')
 
-          for zip in "${zips}"
+          for zip in zips
           do
             echo $zip
             dest=$(echo $zip | sed 's/^elixir/${{ github.ref_name }}')
