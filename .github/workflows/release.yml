@@ -220,15 +220,14 @@ jobs:
       - name: Upload Precompiled to S3
         run: |
           source utils.sh
-          zips=$(find . -type f -name 'elixir-otp-*.zip' | sed 's/^\.\///')
 
-          for zip in zips
+          for zip in $(find . -type f -name 'elixir-otp-*.zip' | sed 's/^\.\///')
           do
             echo $zip
             dest=$(echo $zip | sed 's/^elixir/${{ github.ref_name }}')
             surrogate_key=$(echo $dest | sed 's/\.zip$//')
 
-            aws s3 cp "${zip}" "s3://${{ env.AWS_S3_BUCKET }}/builds/elixir/${dest}" \
+            aws s3 cp "${zip}" "s3://${AWS_S3_BUCKET}/builds/elixir/${dest}" \
               --cache-control "public,max-age=3600" \
               --metadata "{\"surrogate-key\":\"builds builds/elixir builds/elixir/${surrogate_key}\",\"surrogate-control\":\"public,max-age=604800\"}"  
 
