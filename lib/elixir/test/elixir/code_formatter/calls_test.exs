@@ -165,6 +165,11 @@ defmodule Code.Formatter.CallsTest do
 
       assert_format bad, good, @short_length
     end
+
+    test "for maps" do
+      assert_same "a(%{x: 1})", @short_length
+      assert_format "ab(%{x: 1})", "ab(%{\n  x: 1\n})", @short_length
+    end
   end
 
   describe "local calls" do

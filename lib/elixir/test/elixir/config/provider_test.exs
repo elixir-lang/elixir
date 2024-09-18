@@ -41,8 +41,9 @@ defmodule Config.ProviderTest do
              {:elixir, [:unknown, :nested, :key], {:ok, :value}}
            ]) == :ok
 
-    assert Config.Provider.validate_compile_env([{:elixir, [:unknown, :nested, :unknown], :error}]) ==
-             :ok
+    assert Config.Provider.validate_compile_env([
+             {:elixir, [:unknown, :nested, :unknown], :error}
+           ]) == :ok
 
     assert {:error, msg} =
              Config.Provider.validate_compile_env([{:elixir, [:unknown, :nested], :error}])
