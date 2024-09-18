@@ -371,7 +371,7 @@ defmodule KVServerTest do
 
   setup do
     opts = [:binary, packet: :line, active: false]
-    {:ok, socket} = :gen_tcp.connect('localhost', 4040, opts)
+    {:ok, socket} = :gen_tcp.connect(~c"localhost", 4040, opts)
     %{socket: socket}
   end
 
