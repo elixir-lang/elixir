@@ -171,15 +171,13 @@ jobs:
       FASTLY_KEY: ${{ secrets.HEX_FASTLY_KEY }}
       OTP_GENERIC_VERSION: '25'
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
+      - uses: actions/download-artifact@v4
 
       - run: |
           mv elixir-otp-*/* .
           mv Docs/* .
         shell: bash
-     
+
       - name: Utils.sh
         run: |
           cat << 'EOF' > utils.sh
