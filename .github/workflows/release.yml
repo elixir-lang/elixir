@@ -224,7 +224,7 @@ jobs:
           for zip in $(find . -type f -name 'elixir-otp-*.zip' | sed 's/^\.\///')
           do
             echo $zip
-            dest=$(echo $zip | sed 's/^elixir/${{ github.ref_name }}')
+            dest=$(echo $zip | sed 's/^elixir/${{ github.ref_name }}/')
             surrogate_key=$(echo $dest | sed 's/\.zip$//')
 
             aws s3 cp "${zip}" "s3://${AWS_S3_BUCKET}/builds/elixir/${dest}" \
