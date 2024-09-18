@@ -188,6 +188,7 @@ jobs:
             #    -H "Accept: application/json" \
             #    -H "Content-Length: 0" \
             #    "https://api.fastly.com/service/$1/purge/$2"
+            echo 'Temporary close'
           }
           function purge() {
             purge_key ${FASTLY_REPO_SERVICE_ID} $1
