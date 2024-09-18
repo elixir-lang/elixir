@@ -221,7 +221,7 @@ jobs:
           source utils.sh
           zips=$(find . -type f -name 'elixir-otp-*.zip' | sed 's/^\.\///')
 
-          for zip in zips 
+          for zip in "${zips}"
           do
             dest=$(echo $zip | sed 's/^elixir/${{ github.ref_name }}')
             surrogate_key=$(echo $dest | sed 's/\.zip$//')
