@@ -646,10 +646,12 @@ defmodule String do
   The offset is capped to the length of the string. Returns a tuple with
   two elements.
 
-  Note: keep in mind this function splits on graphemes and for such it
-  has to linearly traverse the string. If you want to split a string or
-  a binary based on the number of bytes, use `Kernel.binary_part/3`
-  instead.
+  > #### Linear Access {: .warning}
+  >
+  > This function splits on graphemes and for such it has to linearly traverse
+  > the string.
+  > If you want to split a string or a binary based on the number of bytes,
+  > use `Kernel.binary_part/3` instead.
 
   ## Examples
 
@@ -2230,6 +2232,12 @@ defmodule String do
   @doc """
   Returns the grapheme at the `position` of the given UTF-8 `string`.
   If `position` is greater than `string` length, then it returns `nil`.
+
+  > #### Linear Access {: .warning}
+  >
+  > This function has to linearly traverse the string.
+  > If you want to access a string or a binary in constant time based on the
+  > number of bytes, use `Kernel.binary_slice/3` or `:binary.at/2` instead.
 
   ## Examples
 
