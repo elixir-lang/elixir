@@ -198,7 +198,7 @@ defmodule Logger do
     * `:metadata` - key-value pairs of global primary metadata to be included
       in all log messages. Defaults to `[]`. The default formatter writes to
       standard out and therefore cannot print all metadata. See
-      [`Logger.Formatter`'s documentation](Logger.Formatter.html#module-metadata`)
+      [`Logger.Formatter`'s documentation](`m:Logger.Formatter#module-metadata`)
       for more information.
 
   For example, to configure `Logger` to redirect all Erlang messages using a
