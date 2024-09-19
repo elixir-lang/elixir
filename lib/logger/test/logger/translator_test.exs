@@ -948,13 +948,13 @@ defmodule Logger.TranslatorTest do
   test "translates Supervisor progress" do
     {:ok, pid} = Supervisor.start_link([], strategy: :one_for_one)
 
-    assert capture_log(:info, fn ->
+    assert capture_log(:debug, fn ->
              ref = Process.monitor(pid)
              Supervisor.start_child(pid, worker(Task, [__MODULE__, :sleep, [self()]]))
              Process.exit(pid, :normal)
              receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
            end) =~ ~r"""
-           \[info\] Child Task of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) started
+           \[(debug|info)\] Child Task of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) started
            Pid: #PID<\d+\.\d+\.\d+>
            Start Call: Task.start_link\(Logger.TranslatorTest, :sleep, \[#PID<\d+\.\d+\.\d+>\]\)
            """
@@ -963,36 +963,36 @@ defmodule Logger.TranslatorTest do
   test "translates Supervisor progress with name" do
     {:ok, pid} = Supervisor.start_link([], strategy: :one_for_one, name: __MODULE__)
 
-    assert capture_log(:info, fn ->
+    assert capture_log(:debug, fn ->
              ref = Process.monitor(pid)
              Supervisor.start_child(pid, worker(Task, [__MODULE__, :sleep, [self()]]))
              Process.exit(pid, :normal)
              receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
            end) =~ ~r"""
-           \[info\] Child Task of Supervisor Logger.TranslatorTest started
+           \[(debug|info)\] Child Task of Supervisor Logger.TranslatorTest started
            """
 
     {:ok, pid} = Supervisor.start_link([], strategy: :one_for_one, name: {:global, __MODULE__})
 
-    assert capture_log(:info, fn ->
+    assert capture_log(:debug, fn ->
              ref = Process.monitor(pid)
              Supervisor.start_child(pid, worker(Task, [__MODULE__, :sleep, [self()]]))
              Process.exit(pid, :normal)
              receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
            end) =~ ~r"""
-           \[info\] Child Task of Supervisor Logger.TranslatorTest started
+           \[(debug|info)\] Child Task of Supervisor Logger.TranslatorTest started
            """
 
     {:ok, pid} =
       Supervisor.start_link([], strategy: :one_for_one, name: {:via, :global, __MODULE__})
 
-    assert capture_log(:info, fn ->
+    assert capture_log(:debug, fn ->
              ref = Process.monitor(pid)
              Supervisor.start_child(pid, worker(Task, [__MODULE__, :sleep, [self()]]))
              Process.exit(pid, :normal)
              receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
            end) =~ ~r"""
-           \[info\] Child Task of Supervisor Logger.TranslatorTest started
+           \[(debug|info)\] Child Task of Supervisor Logger.TranslatorTest started
            """
   end
 
