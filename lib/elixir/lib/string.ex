@@ -2231,9 +2231,11 @@ defmodule String do
   Returns the grapheme at the `position` of the given UTF-8 `string`.
   If `position` is greater than `string` length, then it returns `nil`.
 
-  Note: keep in mind this function has to linearly traverse the string.
-  If you want to access a string or a binary in constant time based on the
-  number of bytes, use `Kernel.binary_slice/3` or `:binary.at/2` instead.
+  > #### Linear Access {: .warning}
+  >
+  > This function has to linearly traverse the string.
+  > If you want to access a string or a binary in constant time based on the
+  > number of bytes, use `Kernel.binary_slice/3` or `:binary.at/2` instead.
 
   ## Examples
 
