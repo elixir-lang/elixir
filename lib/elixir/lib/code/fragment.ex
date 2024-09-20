@@ -562,13 +562,13 @@ defmodule Code.Fragment do
       `local_call`/`local_arity` and `local_or_var`, since the latter can
       be a local or variable
 
-    * `@` when not followed by any identifier is returned as `{:operator, '@'}`
-      (in contrast to `{:module_attribute, ''}` in `cursor_context/2`
+    * `@` when not followed by any identifier is returned as `{:operator, ~c"@"}`
+      (in contrast to `{:module_attribute, ~c""}` in `cursor_context/2`
 
-    * This function never returns empty sigils `{:sigil, ''}` or empty structs
-      `{:struct, ''}` as context
+    * This function never returns empty sigils `{:sigil, ~c""}` or empty structs
+      `{:struct, ~c""}` as context
 
-    * This function returns keywords as `{:keyword, 'do'}`
+    * This function returns keywords as `{:keyword, ~c"do"}`
 
     * This function never returns `:expr`
 
