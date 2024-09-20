@@ -1133,7 +1133,9 @@ defmodule Macro do
   """
   @spec to_string(t()) :: String.t()
   def to_string(tree) do
-    doc = Inspect.Algebra.format(Code.quoted_to_algebra(tree), 98)
+    doc =
+      Inspect.Algebra.format(Code.quoted_to_algebra(tree, migrate_charlists_as_sigils: true), 98)
+
     IO.iodata_to_binary(doc)
   end
 

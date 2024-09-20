@@ -720,6 +720,10 @@ defmodule MacroTest do
       assert Macro.to_string(-576_460_752_303_423_455) == "-576_460_752_303_423_455"
     end
 
+    test "charlists" do
+      assert Macro.to_string(~c"foo") == ~s(~c"foo")
+    end
+
     defmodule HTML do
       defstruct [:string]
 

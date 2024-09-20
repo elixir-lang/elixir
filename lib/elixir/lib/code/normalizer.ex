@@ -288,21 +288,18 @@ defmodule Code.Normalizer do
   # Lists
   defp normalize_literal(list, meta, state) when is_list(list) do
     if list != [] and List.ascii_printable?(list) do
-      # It's a charlist
-      list =
+      # It's a charlist, we normalize it as a ~C sigil
+      string =
         if state.escape do
-          {string, _} = Code.Identifier.escape(IO.chardata_to_string(list), nil)
-          IO.iodata_to_binary(string) |> to_charlist()
+          {iolist, _} = Code.Identifier.escape(IO.chardata_to_string(list), nil)
+          IO.iodata_to_binary(iolist)
         else
-          list
+          List.to_string(list)
         end
 
-      meta =
-        meta
-        |> Keyword.put_new(:delimiter, "'")
-        |> patch_meta_line(state.parent_meta)
+      meta = patch_meta_line([delimiter: "\""], state.parent_meta)
 
-      {:__block__, meta, [list]}
+      {:sigil_c, meta, [{:<<>>, [], [string]}, []]}
     else
       meta =
         if line = state.parent_meta[:line] do
