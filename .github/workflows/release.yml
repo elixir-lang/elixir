@@ -173,11 +173,6 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
 
-      - run: |
-          mv elixir-otp-*/* .
-          mv Docs/* .
-        shell: bash
-
       - name: Utils.sh
         run: |
           cat << 'EOF' > utils.sh
@@ -201,28 +196,12 @@ jobs:
             purge_key ${FASTLY_BUILDS_SERVICE_ID} $1
           }
           EOF
-      # - name: Upload Docs to S3
-      #   run: |
-      #     source utils.sh
-      #     version=$(echo ${{ github.ref_name }} | sed -e 's/^v//g')
-      #     for f in doc/*; do
-      #         if [ -d "$f" ]; then
-      #             app=`echo $f | sed s/"doc\/"//`
-      #             tarball="${app}-${version}.tar.gz"
-      #             surrogate_key="docs/${app}-${version}"
-      #             tar -czf "${tarball}" -C "doc/${app}" .
-      #             aws s3 cp "${tarball}" "s3://${{ env.AWS_S3_BUCKET }}/docs/${tarball}" \
-      #                 --cache-control "public,max-age=3600" \
-      #                 --metadata "{\"surrogate-key\":\"${surrogate_key}\",\"surrogate-control\":\"public,max-age=604800\"}"
-      #             purge "${surrogate_key}"
-      #         fi
-      #     done
       - name: Upload Precompiled to S3
         run: |
           source utils.sh
 
-          for zip in $(find . -type f -name 'elixir-otp-*.zip' | sed 's/^\.\///')
-          do
+          mv elixir-otp-*/* .
+          for zip in $(find . -type f -name 'elixir-otp-*.zip' | sed 's/^\.\///'); do
             echo $zip
             dest=$(echo $zip | sed 's/^elixir/${{ github.ref_name }}/')
             surrogate_key=$(echo $dest | sed 's/\.zip$//')
@@ -236,6 +215,26 @@ jobs:
                 --cache-control "public,max-age=3600" \
                 --metadata "{\"surrogate-key\":\"builds builds/elixir builds/elixir/${{ github.ref_name }}\",\"surrogate-control\":\"public,max-age=604800\"}"
               purge builds/elixir/${{ github.ref_name }}
+            fi
+          done
+      - name: Upload Docs to S3
+        working-directory: Docs
+        run: |
+          source ../utils.sh
+          version=$(echo ${{ github.ref_name }} | sed -e 's/^v//g')
+
+          unzip Docs.zip
+
+          for f in doc/*; do
+            if [ -d "$f" ]; then
+              app=$(echo $f | sed s/"doc\/"//)
+              tarball="${app}-${version}.tar.gz"
+              surrogate_key="docs/${app}-${version}"
+              tar -czf "${tarball}" -C "doc/${app}" .
+              aws s3 cp "${tarball}" "s3://${AWS_S3_BUCKET}/docs/${tarball}" \
+                --cache-control "public,max-age=3600" \
+                --metadata "{\"surrogate-key\":\"${surrogate_key}\",\"surrogate-control\":\"public,max-age=604800\"}"
+              purge "${surrogate_key}"
             fi
           done
           
