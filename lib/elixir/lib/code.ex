@@ -696,6 +696,11 @@ defmodule Code do
       `'foo'` becomes `~c"foo"`.
       Defaults to the value of the `:migrate` option. This option changes the AST.
 
+    * `:migrate_unless` (since v1.18.0) - when `true`,
+      rewrites `unless` expressions using `if` with a negated condition, for example
+      `unless foo, do:` becomes `if !foo, do:`.
+      Defaults to the value of the `:migrate` option. This option changes the AST.
+
   ## Design principles
 
   The formatter was designed under three principles.
