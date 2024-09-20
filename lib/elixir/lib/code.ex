@@ -654,6 +654,8 @@ defmodule Code do
 
   ## Options
 
+  Regular options (do not change the AST):
+
     * `:file` - the file which contains the string, used for error
       reporting
 
@@ -677,28 +679,29 @@ defmodule Code do
       If you set it to `false` later on, `do`-`end` blocks won't be
       converted back to keywords.
 
-    * `:normalize_bitstring_modifiers` (since v1.14.0) - when `true`,
+  Migration options (change the AST), see the "Migration formatting" section below:
+
+    * `:migrate` (since v1.18.0) - when `true`, sets all other migration options
+      to `true` by default. Defaults to `false`.
+
+    * `:migrate_bitstring_modifiers` (since v1.18.0) - when `true`,
       removes unnecessary parentheses in known bitstring
       [modifiers](`<<>>/1`), for example `<<foo::binary()>>`
       becomes `<<foo::binary>>`, or adds parentheses for custom
       modifiers, where `<<foo::custom_type>>` becomes `<<foo::custom_type()>>`.
-      Defaults to `true`. This option changes the AST.
+      Defaults to the value of the `:migrate` option. This option changes the AST.
 
-    * `:normalize_charlists_as_sigils` (since v1.15.0) - when `true`,
+    * `:migrate_charlists_as_sigils` (since v1.18.0) - when `true`,
       formats charlists as [`~c`](`Kernel.sigil_c/2`) sigils, for example
       `'foo'` becomes `~c"foo"`.
-      Defaults to `true`. This option changes the AST.
+      Defaults to the value of the `:migrate` option. This option changes the AST.
 
   ## Design principles
 
   The formatter was designed under three principles.
 
-  First, the formatter never changes the semantics of the code.
+  First, the formatter never changes the semantics of the code by default.
   This means the input AST and the output AST are almost always equivalent.
-  The only cases where the formatter will change the AST is when the input AST
-  would cause *compiler warnings* and the output AST won't. The cases where
-  the formatter changes the AST can be disabled through formatting options
-  if desired.
 
   The second principle is to provide as little configuration as possible.
   This eases the formatter adoption by removing contention points while
@@ -986,6 +989,21 @@ defmodule Code do
   ## Newlines
 
   The formatter converts all newlines in code from `\r\n` to `\n`.
+
+  ## Migration formatting
+
+  As part of the Elixir release cycle, deprecations are being introduced,
+  emitting warnings which might require existing code to be changed.
+  In order to reduce the burden on developers when upgrading Elixir to the
+  next version, the formatter exposes some options, disabled by default,
+  in order to automate this process.
+
+  These options should address most of the typical use cases, but given they
+  introduce changes to the AST, there is a non-zero risk for meta-programming
+  heavy projects that relied on a specific AST, or projects that are
+  re-defining functions from the `Kernel`. In such cases, migrations cannot
+  be applied blindly and some extra changes might be needed in order to
+  address the deprecation warnings.
   """
   @doc since: "1.6.0"
   @spec format_string!(binary, keyword) :: iodata

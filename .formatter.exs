@@ -17,6 +17,5 @@
 
     # Float tests
     float_assert: 1
-  ],
-  normalize_bitstring_modifiers: false
+  ]
 ]

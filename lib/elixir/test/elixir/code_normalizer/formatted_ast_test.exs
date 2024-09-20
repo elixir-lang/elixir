@@ -173,29 +173,30 @@ defmodule Code.Normalizer.FormatterASTTest do
 
   describe "charlists" do
     test "without escapes" do
-      assert_same ~S['']
-      assert_same ~S[' ']
-      assert_same ~S['foo']
+      assert_same ~S[~c""]
+      assert_same ~S[~c" "]
+      assert_same ~S[~c"foo"]
     end
 
     test "with escapes" do
-      assert_same ~S['f\a\b\ro']
-      assert_same ~S['single \' quote']
+      assert_same ~S[~c"f\a\b\ro"]
+      assert_same ~S[~c'single \' quote']
+      assert_same ~S[~c"double \" quote"]
     end
 
     test "keeps literal new lines" do
       assert_same """
-      'fo
-      o'
+      ~c"fo
+      o"
       """
     end
 
     test "with interpolation" do
-      assert_same ~S['one #{2} three']
+      assert_same ~S[~c"one #{2} three"]
     end
 
     test "with escape and interpolation" do
-      assert_same ~S['one\n\'#{2}\'\nthree']
+      assert_same ~S[~c'one\n\'#{2}\'\nthree']
     end
   end
 
@@ -297,7 +298,7 @@ defmodule Code.Normalizer.FormatterASTTest do
   describe "charlist heredocs" do
     test "without escapes" do
       assert_same ~S"""
-      '''
+      ~c'''
       hello
       '''
       """
@@ -305,13 +306,13 @@ defmodule Code.Normalizer.FormatterASTTest do
 
     test "with escapes" do
       assert_same ~S"""
-      '''
+      ~c'''
       f\a\b\ro
       '''
       """
 
       assert_same ~S"""
-      '''
+      ~c'''
       multiple "\"" quotes
       '''
       """
@@ -319,7 +320,7 @@ defmodule Code.Normalizer.FormatterASTTest do
 
     test "with interpolation" do
       assert_same ~S"""
-      '''
+      ~c'''
       one
       #{2}
       three
@@ -327,7 +328,7 @@ defmodule Code.Normalizer.FormatterASTTest do
       """
 
       assert_same ~S"""
-      '''
+      ~c'''
       one
       "
       #{2}

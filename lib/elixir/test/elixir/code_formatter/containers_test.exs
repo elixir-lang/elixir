@@ -293,33 +293,15 @@ defmodule Code.Formatter.ContainersTest do
       assert_same "<<(<<y>> <- x)>>"
     end
 
-    test "normalizes bitstring modifiers by default" do
-      assert_format "<<foo::binary()>>", "<<foo::binary>>"
+    test "keeps parentheses by default" do
+      assert_same "<<foo::binary()>>"
       assert_same "<<foo::binary>>"
 
-      assert_format "<<foo::custom_type>>", "<<foo::custom_type()>>"
+      assert_same "<<foo::custom_type>>"
       assert_same "<<foo::custom_type()>>"
 
-      assert_format "<<x::binary()-(13 * 6)-custom>>", "<<x::binary-(13 * 6)-custom()>>"
-      assert_same "<<x::binary-(13 * 6)-custom()>>"
-      assert_same "<<0::size*unit, bytes::binary>>"
-      assert_format "<<0::size*unit, bytes::custom>>", "<<0::size*unit, bytes::custom()>>"
-
-      assert_format "<<0, 1::2-integer() <- x>>", "<<0, 1::2-integer <- x>>"
-      assert_same "<<0, 1::2-integer <- x>>"
-    end
-
-    test "keeps parentheses when normalize_bitstring_modifiers is false" do
-      opts = [normalize_bitstring_modifiers: false]
-
-      assert_same "<<foo::binary()>>", opts
-      assert_same "<<foo::binary>>", opts
-
-      assert_same "<<foo::custom_type>>", opts
-      assert_same "<<foo::custom_type()>>", opts
-
-      assert_same "<<x::binary()-(13 * 6)-custom>>", opts
-      assert_same "<<0, 1::2-integer() <- x>>", opts
+      assert_same "<<x::binary()-(13 * 6)-custom>>"
+      assert_same "<<0, 1::2-integer() <- x>>"
     end
 
     test "is flex on line limits" do

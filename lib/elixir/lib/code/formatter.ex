@@ -189,8 +189,9 @@ defmodule Code.Formatter do
     locals_without_parens = Keyword.get(opts, :locals_without_parens, [])
     file = Keyword.get(opts, :file, nil)
     sigils = Keyword.get(opts, :sigils, [])
-    normalize_bitstring_modifiers = Keyword.get(opts, :normalize_bitstring_modifiers, true)
-    normalize_charlists_as_sigils = Keyword.get(opts, :normalize_charlists_as_sigils, true)
+    migrate = Keyword.get(opts, :migrate, false)
+    migrate_bitstring_modifiers = Keyword.get(opts, :migrate_bitstring_modifiers, migrate)
+    migrate_charlists_as_sigils = Keyword.get(opts, :migrate_charlists_as_sigils, migrate)
     syntax_colors = Keyword.get(opts, :syntax_colors, [])
 
     sigils =
@@ -215,8 +216,8 @@ defmodule Code.Formatter do
       comments: comments,
       sigils: sigils,
       file: file,
-      normalize_bitstring_modifiers: normalize_bitstring_modifiers,
-      normalize_charlists_as_sigils: normalize_charlists_as_sigils,
+      migrate_bitstring_modifiers: migrate_bitstring_modifiers,
+      migrate_charlists_as_sigils: migrate_charlists_as_sigils,
       inspect_opts: %Inspect.Opts{syntax_colors: syntax_colors}
     }
   end
@@ -1433,7 +1434,7 @@ defmodule Code.Formatter do
     {doc, state} = quoted_to_algebra(segment, :parens_arg, state)
 
     {spec, state} =
-      bitstring_spec_to_algebra(spec, state, state.normalize_bitstring_modifiers, :"::")
+      bitstring_spec_to_algebra(spec, state, state.migrate_bitstring_modifiers, :"::")
 
     spec = wrap_in_parens_if_inspected_atom(spec)
     spec = if i == last, do: bitstring_wrap_parens(spec, i, last), else: spec
@@ -2431,7 +2432,7 @@ defmodule Code.Formatter do
   end
 
   defp get_charlist_quotes(:heredoc, state) do
-    if state.normalize_charlists_as_sigils do
+    if state.migrate_charlists_as_sigils do
       {@sigil_c_heredoc, @double_heredoc}
     else
       {@single_heredoc, @single_heredoc}
@@ -2440,7 +2441,7 @@ defmodule Code.Formatter do
 
   defp get_charlist_quotes({:regular, chunks}, state) do
     cond do
-      !state.normalize_charlists_as_sigils -> {@single_quote, @single_quote}
+      !state.migrate_charlists_as_sigils -> {@single_quote, @single_quote}
       Enum.any?(chunks, &has_double_quote?/1) -> {@sigil_c_single, @single_quote}
       true -> {@sigil_c_double, @double_quote}
     end
