@@ -201,6 +201,76 @@ defmodule Code.Formatter.MigrationTest do
     end
   end
 
+  describe "migrate_unless: true" do
+    @opts [migrate_unless: true]
+
+    test "rewrites unless as an if with negated condition" do
+      bad = "unless x, do: y"
+
+      good = "if !x, do: y"
+
+      assert_format bad, good, @opts
+
+      bad = """
+      unless x do
+        y
+      else
+        z
+      end
+      """
+
+      good = """
+      if !x do
+        y
+      else
+        z
+      end
+      """
+
+      assert_format bad, good, @opts
+    end
+
+    test "rewrites pipelines with negated condition" do
+      bad = "x |> unless(do: y)"
+
+      good = "!x |> if(do: y)"
+
+      assert_format bad, good, @opts
+
+      bad = "x |> foo() |> unless(do: y)"
+
+      good = "x |> foo() |> Kernel.!() |> if(do: y)"
+
+      assert_format bad, good, @opts
+    end
+
+    test "rewrites in as not in" do
+      assert_format "unless x in y, do: 1", "if x not in y, do: 1", @opts
+    end
+
+    test "rewrites equality operators" do
+      assert_format "unless x == y, do: 1", "if x != y, do: 1", @opts
+      assert_format "unless x === y, do: 1", "if x !== y, do: 1", @opts
+      assert_format "unless x != y, do: 1", "if x == y, do: 1", @opts
+      assert_format "unless x !== y, do: 1", "if x === y, do: 1", @opts
+    end
+
+    test "rewrites boolean or is_* conditions with not" do
+      assert_format "unless x > 0, do: 1", "if not (x > 0), do: 1", @opts
+      assert_format "unless is_atom(x), do: 1", "if not is_atom(x), do: 1", @opts
+    end
+
+    test "removes ! or not in condition" do
+      assert_format "unless not x, do: 1", "if x, do: 1", @opts
+      assert_format "unless !x, do: 1", "if x, do: 1", @opts
+    end
+
+    test "does nothing without the migrate_unless option" do
+      assert_same "unless x, do: y"
+      assert_same "unless x, do: y, else: z"
+    end
+  end
+
   describe "migrate: true" do
     test "enables :migrate_bitstring_modifiers" do
       assert_format "<<foo::binary()>>", "<<foo::binary>>", migrate: true
@@ -208,6 +278,14 @@ defmodule Code.Formatter.MigrationTest do
 
     test "enables :migrate_charlists_as_sigils" do
       assert_format ~S['abc'], ~S[~c"abc"], migrate: true
+    end
+
+    test "enables :migrate_unless" do
+      bad = "unless x, do: y"
+
+      good = "if !x, do: y"
+
+      assert_format bad, good, migrate: true
     end
   end
 end

@@ -192,6 +192,7 @@ defmodule Code.Formatter do
     migrate = Keyword.get(opts, :migrate, false)
     migrate_bitstring_modifiers = Keyword.get(opts, :migrate_bitstring_modifiers, migrate)
     migrate_charlists_as_sigils = Keyword.get(opts, :migrate_charlists_as_sigils, migrate)
+    migrate_unless = Keyword.get(opts, :migrate_unless, migrate)
     syntax_colors = Keyword.get(opts, :syntax_colors, [])
 
     sigils =
@@ -218,6 +219,7 @@ defmodule Code.Formatter do
       file: file,
       migrate_bitstring_modifiers: migrate_bitstring_modifiers,
       migrate_charlists_as_sigils: migrate_charlists_as_sigils,
+      migrate_unless: migrate_unless,
       inspect_opts: %Inspect.Opts{syntax_colors: syntax_colors}
     }
   end
@@ -483,6 +485,27 @@ defmodule Code.Formatter do
   # left not in right
   defp quoted_to_algebra({:not, meta, [{:in, _, [left, right]}]}, context, state) do
     binary_op_to_algebra(:in, "not in", meta, left, right, context, state)
+  end
+
+  # rewrite unless as if!
+  defp quoted_to_algebra(
+         {:unless, meta, [condition, block]},
+         context,
+         %{migrate_unless: true} = state
+       ) do
+    quoted_to_algebra({:if, meta, [negate_condition(condition), block]}, context, state)
+  end
+
+  defp quoted_to_algebra(
+         {:|>, meta1, [condition, {:unless, meta2, [block]}]},
+         context,
+         %{migrate_unless: true} = state
+       ) do
+    quoted_to_algebra(
+      {:|>, meta1, [negate_condition(condition), {:if, meta2, [block]}]},
+      context,
+      state
+    )
   end
 
   # ..
@@ -2449,5 +2472,48 @@ defmodule Code.Formatter do
 
   defp has_double_quote?(chunk) do
     is_binary(chunk) and chunk =~ @double_quote
+  end
+
+  # Migration rewrites
+
+  @bool_operators [
+    :>,
+    :>=,
+    :<,
+    :<=,
+    :in
+  ]
+  @guards [
+    :is_atom,
+    :is_boolean,
+    :is_nil,
+    :is_number,
+    :is_integer,
+    :is_float,
+    :is_binary,
+    :is_map,
+    :is_struct,
+    :is_non_struct_map,
+    :is_exception,
+    :is_list,
+    :is_tuple,
+    :is_function,
+    :is_reference,
+    :is_pid,
+    :is_port
+  ]
+
+  defp negate_condition(condition) do
+    case condition do
+      {neg, _, [condition]} when neg in [:!, :not] -> condition
+      {:|>, _, _} -> {:|>, [], [condition, {{:., [], [Kernel, :!]}, [closing: []], []}]}
+      {op, _, [_, _]} when op in @bool_operators -> {:not, [], [condition]}
+      {guard, _, [_ | _]} when guard in @guards -> {:not, [], [condition]}
+      {:==, meta, [left, right]} -> {:!=, meta, [left, right]}
+      {:===, meta, [left, right]} -> {:!==, meta, [left, right]}
+      {:!=, meta, [left, right]} -> {:==, meta, [left, right]}
+      {:!==, meta, [left, right]} -> {:===, meta, [left, right]}
+      _ -> {:!, [], [condition]}
+    end
   end
 end
