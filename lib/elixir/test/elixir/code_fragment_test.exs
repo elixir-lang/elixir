@@ -1114,7 +1114,7 @@ defmodule CodeFragmentTest do
     test "keyword keys" do
       for i <- 2..4 do
         assert CF.surround_context("[foo:", {1, i}) == %{
-                 context: {:keyword, ~c"foo"},
+                 context: {:key, ~c"foo"},
                  begin: {1, 2},
                  end: {1, 5}
                }
@@ -1122,11 +1122,17 @@ defmodule CodeFragmentTest do
 
       for i <- 10..12 do
         assert CF.surround_context("[foo: 1, bar: 2]", {1, i}) == %{
-                 context: {:keyword, ~c"bar"},
+                 context: {:key, ~c"bar"},
                  begin: {1, 10},
                  end: {1, 13}
                }
       end
+
+      assert CF.surround_context("if foo?, do: bar()", {1, 10}) == %{
+               context: {:key, ~c"do"},
+               begin: {1, 10},
+               end: {1, 12}
+             }
     end
 
     test "keyword false positives" do
