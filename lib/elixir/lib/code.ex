@@ -698,7 +698,7 @@ defmodule Code do
 
     * `:migrate_unless` (since v1.18.0) - when `true`,
       rewrites `unless` expressions using `if` with a negated condition, for example
-      `if foo, do:` becomes `unless !foo, do:`.
+      `unless foo, do:` becomes `if !foo, do:`.
       Defaults to the value of the `:migrate` option. This option changes the AST.
 
   ## Design principles
