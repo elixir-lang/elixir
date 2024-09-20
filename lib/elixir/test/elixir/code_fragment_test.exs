@@ -1110,6 +1110,44 @@ defmodule CodeFragmentTest do
 
       assert CF.surround_context(":", {1, 1}) == :none
     end
+
+    test "keyword keys" do
+      for i <- 2..4 do
+        assert CF.surround_context("[foo:", {1, i}) == %{
+                 context: {:key, ~c"foo"},
+                 begin: {1, 2},
+                 end: {1, 5}
+               }
+      end
+
+      for i <- 10..12 do
+        assert CF.surround_context("[foo: 1, bar: 2]", {1, i}) == %{
+                 context: {:key, ~c"bar"},
+                 begin: {1, 10},
+                 end: {1, 13}
+               }
+      end
+
+      assert CF.surround_context("if foo?, do: bar()", {1, 10}) == %{
+               context: {:key, ~c"do"},
+               begin: {1, 10},
+               end: {1, 12}
+             }
+    end
+
+    test "keyword false positives" do
+      assert CF.surround_context("<<foo::", {1, 3}) == %{
+               context: {:local_or_var, ~c"foo"},
+               begin: {1, 3},
+               end: {1, 6}
+             }
+
+      assert CF.surround_context("[foo  :atom", {1, 2}) == %{
+               context: {:local_or_var, ~c"foo"},
+               begin: {1, 2},
+               end: {1, 5}
+             }
+    end
   end
 
   describe "container_cursor_to_quoted/2" do

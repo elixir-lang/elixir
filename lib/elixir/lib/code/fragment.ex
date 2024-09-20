@@ -590,7 +590,8 @@ defmodule Code.Fragment do
                | {:sigil, charlist}
                | {:struct, inside_struct}
                | {:unquoted_atom, charlist}
-               | {:keyword, charlist},
+               | {:keyword, charlist}
+               | {:key, charlist},
              inside_dot:
                {:alias, charlist}
                | {:alias, inside_alias, charlist}
@@ -640,7 +641,16 @@ defmodule Code.Fragment do
         maybe_operator(reversed_pre, post, line, opts)
 
       {:identifier, reversed_post, rest} ->
-        {rest, _} = strip_spaces(rest, 0)
+        {keyword_key?, rest} =
+          case rest do
+            [?: | tail] when tail == [] or hd(tail) in @space ->
+              {true, rest}
+
+            _ ->
+              {rest, _} = strip_spaces(rest, 0)
+              {false, rest}
+          end
+
         reversed = reversed_post ++ reversed_pre
 
         case codepoint_cursor_context(reversed, opts) do
@@ -655,6 +665,9 @@ defmodule Code.Fragment do
 
           {{:dot, _, [_ | _]} = dot, offset} ->
             build_surround(dot, reversed, line, offset)
+
+          {{:local_or_var, acc}, offset} when keyword_key? ->
+            build_surround({:key, acc}, reversed, line, offset)
 
           {{:local_or_var, acc}, offset} when hd(rest) == ?( ->
             build_surround({:local_call, acc}, reversed, line, offset)
