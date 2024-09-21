@@ -267,7 +267,10 @@ tokenize([$" | T], Line, Column, Scope, Tokens) ->
 
 %% TODO: Remove me in Elixir v2.0
 tokenize([$' | T], Line, Column, Scope, Tokens) ->
-  NewScope = prepend_warning(Line, Column, "single-quoted strings represent charlists. Use ~c\"\" if you indeed want a charlist or use \"\" instead", Scope),
+  Message = "single-quoted strings represent charlists. "
+    "Use ~c\"\" if you indeed want a charlist or use \"\" instead.\n"
+    "You may run mix format --migrate to fix this warning automatically.",
+  NewScope = prepend_warning(Line, Column, Message, Scope),
   handle_strings(T, Line, Column + 1, $', NewScope, Tokens);
 
 % Operator atoms

@@ -403,10 +403,13 @@ format_error({undefined_bittype, Expr}) ->
   io_lib:format("unknown bitstring specifier: ~ts", ['Elixir.Macro':to_string(Expr)]);
 format_error({unknown_bittype, Name}) ->
   io_lib:format("bitstring specifier \"~ts\" does not exist and is being expanded to \"~ts()\","
-                " please use parentheses to remove the ambiguity", [Name, Name]);
+                " please use parentheses to remove the ambiguity.\n"
+                "You may run mix format --migrate to fix this warning automatically.", [Name, Name]);
 format_error({parens_bittype, Name}) ->
     io_lib:format("extra parentheses on a bitstring specifier \"~ts()\" have been deprecated. "
-    "Please remove the parentheses: \"~ts\"",
+    "Please remove the parentheses: \"~ts\".\n"
+    "You may run mix format --migrate to fix this warning automatically."
+    ,
     [Name, Name]);
 format_error({bittype_mismatch, Val1, Val2, Where}) ->
   io_lib:format("conflicting ~ts specification for bit field: \"~p\" and \"~p\"", [Where, Val1, Val2]);
