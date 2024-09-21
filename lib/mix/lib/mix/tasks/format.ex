@@ -78,6 +78,14 @@ defmodule Mix.Tasks.Format do
       as `.heex`. Without passing this flag, it is assumed that the code being
       passed via stdin is valid Elixir code. Defaults to "stdin.exs".
 
+    * `--migrate` - enables the `:migrate` option, which should be able to
+      automatically fix some deprecation warnings but is changing the AST.
+      This should be safe in typical projects, but there is a non-zero risk
+      of breaking code for meta-programming heavy projects that relied on a
+      specific AST, or projects that are re-defining functions from the `Kernel`.
+      See the "Migration formatting" section in `Code.format_string!/2` for
+      more information.
+
   ## When to format code
 
   We recommend developers to format code directly in their editors, either
@@ -184,7 +192,8 @@ defmodule Mix.Tasks.Format do
     dot_formatter: :string,
     dry_run: :boolean,
     stdin_filename: :string,
-    force: :boolean
+    force: :boolean,
+    migrate: :boolean
   ]
 
   @manifest_timestamp "format_timestamp"
@@ -362,17 +371,21 @@ defmodule Mix.Tasks.Format do
   end
 
   defp eval_dot_formatter(cwd, opts) do
-    cond do
-      dot_formatter = opts[:dot_formatter] ->
-        {dot_formatter, eval_file_with_keyword_list(dot_formatter)}
+    {dot_formatter, format_opts} =
+      cond do
+        dot_formatter = opts[:dot_formatter] ->
+          {dot_formatter, eval_file_with_keyword_list(dot_formatter)}
 
-      File.regular?(Path.join(cwd, ".formatter.exs")) ->
-        dot_formatter = Path.join(cwd, ".formatter.exs")
-        {".formatter.exs", eval_file_with_keyword_list(dot_formatter)}
+        File.regular?(Path.join(cwd, ".formatter.exs")) ->
+          dot_formatter = Path.join(cwd, ".formatter.exs")
+          {".formatter.exs", eval_file_with_keyword_list(dot_formatter)}
 
-      true ->
-        {".formatter.exs", []}
-    end
+        true ->
+          {".formatter.exs", []}
+      end
+
+    # the --migrate flag overrides settings from the dot formatter
+    {dot_formatter, Keyword.take(opts, [:migrate]) ++ format_opts}
   end
 
   # This function reads exported configuration from the imported
