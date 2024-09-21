@@ -269,7 +269,7 @@ tokenize([$" | T], Line, Column, Scope, Tokens) ->
 tokenize([$' | T], Line, Column, Scope, Tokens) ->
   Message = "single-quoted strings represent charlists. "
     "Use ~c\"\" if you indeed want a charlist or use \"\" instead.\n"
-    "You may run mix format --migrate to fix this warning automatically.",
+    "You may run \"mix format --migrate\" to fix this warning automatically.",
   NewScope = prepend_warning(Line, Column, Message, Scope),
   handle_strings(T, Line, Column + 1, $', NewScope, Tokens);
 
