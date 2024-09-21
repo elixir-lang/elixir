@@ -534,6 +534,18 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
+  test "respects the --migrate flag", context do
+    in_tmp(context.test, fn ->
+      File.write!("a.ex", "unless foo, do: 'bar'\n")
+
+      Mix.Tasks.Format.run(["a.ex"])
+      assert File.read!("a.ex") == "unless foo, do: 'bar'\n"
+
+      Mix.Tasks.Format.run(["a.ex", "--migrate"])
+      assert File.read!("a.ex") == "if !foo, do: ~c\"bar\"\n"
+    end)
+  end
+
   test "uses inputs and configuration from --dot-formatter", context do
     in_tmp(context.test, fn ->
       File.write!("custom_formatter.exs", """
