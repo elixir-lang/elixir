@@ -487,6 +487,16 @@ defmodule Code.Formatter do
     binary_op_to_algebra(:in, "not in", meta, left, right, context, state)
   end
 
+  # disable migrate_unless within defmacro
+  defp quoted_to_algebra(
+         {atom, _, [{:unless, _, _}, _]} = ast,
+         context,
+         %{migrate_unless: true} = state
+       )
+       when atom in [:defmacro, :defmacrop] do
+    quoted_to_algebra(ast, context, %{state | migrate_unless: false})
+  end
+
   # rewrite unless as if!
   defp quoted_to_algebra(
          {:unless, meta, [condition, block]},
