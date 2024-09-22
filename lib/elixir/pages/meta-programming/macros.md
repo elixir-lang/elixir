@@ -84,17 +84,20 @@ end
 
 `Macro.expand_once/2` receives a quoted expression and expands it according to the current environment. In this case, it expanded/invoked the `Unless.macro_unless/2` macro and returned its result. We then proceeded to convert the returned quoted expression to a string and print it (we will talk about `__ENV__` later in this chapter).
 
-That's what macros are all about. They are about receiving quoted expressions and transforming them into something else. In fact, `unless/2` in Elixir is implemented as a macro:
+That's what macros are all about. They are about receiving quoted expressions and transforming them into something else.
+In fact, `if/2` in Elixir is implemented as a macro:
 
 ```elixir
-defmacro unless(clause, do: expression) do
+defmacro if(clause, do: expression) do
   quote do
-    if(!unquote(clause), do: unquote(expression))
+    case clause do
+      x when x in [false, nil] -> nil
+      _ -> unquote(expression)
   end
 end
 ```
 
-Constructs such as `unless/2`, `defmacro/2`, `def/2`, `defprotocol/2`, and many others used throughout the Elixir standard library are written in pure Elixir, often as a macro. This means that the constructs being used to build the language can be used by developers to extend the language to the domains they are working on.
+Constructs such as `if/2`, `defmacro/2`, `def/2`, `defprotocol/2`, and many others used throughout the Elixir standard library are written in pure Elixir, often as a macro. This means that the constructs being used to build the language can be used by developers to extend the language to the domains they are working on.
 
 We can define any function and macro we want, including ones that override the built-in definitions provided by Elixir. The only exceptions are Elixir special forms which are not implemented in Elixir and therefore cannot be overridden. The full list of special forms is available in `Kernel.SpecialForms`.
 
