@@ -3931,7 +3931,7 @@ defmodule Kernel do
           "invalid or duplicate keys for if, only \"do\" and an optional \"else\" are permitted"
   end
 
-  @doc deprecated: "Use Kernel.if/2 instead"
+  @doc deprecated: "Use if/2 instead"
   defmacro unless(condition, clauses) do
     build_unless(condition, clauses)
   end
