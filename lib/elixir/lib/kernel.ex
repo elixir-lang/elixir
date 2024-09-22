@@ -3956,6 +3956,8 @@ defmodule Kernel do
       "Math still works"
 
   """
+  # TODO: Deprecate this on Elixir v1.22.
+  @doc deprecated: "Use if/2 instead"
   defmacro unless(condition, clauses) do
     build_unless(condition, clauses)
   end
