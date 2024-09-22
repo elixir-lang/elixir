@@ -2652,17 +2652,16 @@ defmodule Macro do
     end
   end
 
-  defp dbg_ast_to_debuggable({op, meta, [condition_ast, clauses]} = ast, env)
-       when op in [:if, :unless] do
-    case Macro.Env.lookup_import(env, {op, 2}) do
+  defp dbg_ast_to_debuggable({:if, meta, [condition_ast, clauses]} = ast, env) do
+    case Macro.Env.lookup_import(env, {:if, 2}) do
       [macro: Kernel] ->
         condition_result_var = unique_var(:condition_result, __MODULE__)
 
         quote do
           unquote(condition_result_var) = unquote(condition_ast)
-          result = unquote({op, meta, [condition_result_var, clauses]})
+          result = unquote({:if, meta, [condition_result_var, clauses]})
 
-          {unquote(op), unquote(escape(ast)), unquote(escape(condition_ast)),
+          {:if, unquote(escape(ast)), unquote(escape(condition_ast)),
            unquote(condition_result_var), result}
         end
 
@@ -2809,18 +2808,15 @@ defmodule Macro do
   end
 
   defp dbg_format_ast_to_debug(
-         {op, ast, condition_ast, condition_result, result},
+         {:if, ast, condition_ast, condition_result, result},
          options
-       )
-       when op in [:if, :unless] do
-    op_name = String.capitalize(Atom.to_string(op))
-
+       ) do
     formatted = [
-      dbg_maybe_underline("#{op_name} condition", options),
+      dbg_maybe_underline("If condition", options),
       ":\n",
       dbg_format_ast_with_value(condition_ast, condition_result, options),
       ?\n,
-      dbg_maybe_underline("#{op_name} expression", options),
+      dbg_maybe_underline("If expression", options),
       ":\n",
       dbg_format_ast_with_value(ast, result, options)
     ]
