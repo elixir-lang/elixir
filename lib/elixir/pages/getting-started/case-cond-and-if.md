@@ -67,24 +67,24 @@ iex> case :ok do
 
 The documentation for the `Kernel` module lists all available guards in its sidebar. You can also consult the complete [Patterns and Guards](../references/patterns-and-guards.md#guards) reference for in-depth documentation.
 
-## if/unless
+## if
 
-`case` builds on pattern matching and guards to destructure and match on certain conditions. However, patterns and guards are limited only to certain expressions which are optimized by the compiler. In many situations, you need to write conditions that go beyond what can be expressed with `case`. For those, `if/2` (and `unless/2`) are useful alternatives:
+`case` builds on pattern matching and guards to destructure and match on certain conditions. However, patterns and guards are limited only to certain expressions which are optimized by the compiler. In many situations, you need to write conditions that go beyond what can be expressed with `case`. For those, `if/2` is a useful alternative:
 
 ```elixir
 iex> if true do
 ...>   "This works!"
 ...> end
 "This works!"
-iex> unless true do
+iex> if false do
 ...>   "This will never be seen"
 ...> end
 nil
 ```
 
-If the condition given to `if/2` returns `false` or `nil`, the body given between `do`-`end` is not executed and instead it returns `nil`. The opposite happens with `unless/2`.
+If the condition given to `if/2` returns `false` or `nil`, the body given between `do`-`end` is not executed and instead it returns `nil`.
 
-They also support `else` blocks (although using `else` with `unless` is generally discouraged):
+`if/2` also supports `else` blocks:
 
 ```elixir
 iex> if nil do
@@ -121,9 +121,9 @@ iex> x = if true do
 2
 ```
 
-> #### `if` and `unless` are macros {: .info}
+> #### `if` is a macro {: .info}
 >
-> An interesting note regarding `if/2` and `unless/2` is that they are implemented as macros in the language: they aren't special language constructs as they would be in many languages. You can check the documentation and their source for more information.
+> An interesting note regarding `if/2` is that it is implemented as a macro in the language: it isn't a special language construct as it would be in many languages. You can check the documentation and its source for more information.
 
 If you find yourself nesting several `if/2` blocks, you may want to consider using `cond/1` instead. Let's check it out.
 
@@ -159,7 +159,7 @@ iex> cond do
 "This is always true (equivalent to else)"
 ```
 
-Similar to `if/2` and `unless/2`, `cond` considers any value besides `nil` and `false` to be true:
+Similar to `if/2`, `cond` considers any value besides `nil` and `false` to be true:
 
 ```elixir
 iex> cond do
