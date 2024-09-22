@@ -3931,31 +3931,7 @@ defmodule Kernel do
           "invalid or duplicate keys for if, only \"do\" and an optional \"else\" are permitted"
   end
 
-  @doc """
-  Provides an `unless` macro.
-
-  This macro evaluates and returns the `do` block passed in as the second
-  argument if `condition` evaluates to a falsy value (`false` or `nil`).
-  Otherwise, it returns the value of the `else` block if present or `nil` if not.
-
-  See also `if/2`.
-
-  ## Examples
-
-      iex> unless(Enum.empty?([]), do: "Hello")
-      nil
-
-      iex> unless(Enum.empty?([1, 2, 3]), do: "Hello")
-      "Hello"
-
-      iex> unless Enum.sum([2, 2]) == 5 do
-      ...>   "Math still works"
-      ...> else
-      ...>   "Math is broken"
-      ...> end
-      "Math still works"
-
-  """
+  @doc deprecated: "Use Kernel.if/2 instead"
   defmacro unless(condition, clauses) do
     build_unless(condition, clauses)
   end
