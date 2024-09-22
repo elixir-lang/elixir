@@ -304,17 +304,15 @@ dialyze: compile $(PLT)
 
 build_man: man/iex.1 man/elixir.1
 
-man/iex.1:
-	$(Q) cp man/iex.1.in man/iex.1
-	$(Q) sed -i.bak "/{COMMON}/r man/common" man/iex.1
-	$(Q) sed -i.bak "/{COMMON}/d" man/iex.1
-	$(Q) rm -f man/iex.1.bak
+define BUILD_MANPAGES
+man/$(APP).1:
+	$(Q) cp man/$(APP).1.in man/$(APP).1
+	$(Q) sed -i.bak "/{COMMON}/r man/common" man/$(APP).1
+	$(Q) sed -i.bak "/{COMMON}/d" man/$(APP).1
+	$(Q) rm -f man/$(APP).1.bak
+endef
 
-man/elixir.1:
-	$(Q) cp man/elixir.1.in man/elixir.1
-	$(Q) sed -i.bak "/{COMMON}/r man/common" man/elixir.1
-	$(Q) sed -i.bak "/{COMMON}/d" man/elixir.1
-	$(Q) rm -f man/elixir.1.bak
+$(foreach APP, elixir iex, $(eval $(BUILD_MANPAGES)))
 
 clean_man:
 	rm -f man/elixir.1
