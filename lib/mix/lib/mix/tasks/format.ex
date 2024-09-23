@@ -79,12 +79,12 @@ defmodule Mix.Tasks.Format do
       passed via stdin is valid Elixir code. Defaults to "stdin.exs".
 
     * `--migrate` - enables the `:migrate` option, which should be able to
-      automatically fix some deprecation warnings but is changing the AST.
+      automatically fix some deprecation warnings but changes the AST.
       This should be safe in typical projects, but there is a non-zero risk
       of breaking code for meta-programming heavy projects that relied on a
-      specific AST, or projects that are re-defining functions from the `Kernel`.
-      See the "Migration formatting" section in `Code.format_string!/2` for
-      more information.
+      specific AST. We recommend running this task in its separate commit and
+      reviewing its output before committing. See the "Migration formatting"
+      section in `Code.format_string!/2` for more information.
 
   ## When to format code
 

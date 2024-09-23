@@ -633,7 +633,7 @@ defmodule List do
     [other]
   end
 
-  @doc deprecated: "Use Enum.zip/1 instead"
+  @deprecated "Use Enum.zip/1 instead"
   def zip(list_of_lists) when is_list(list_of_lists) do
     Enum.zip(list_of_lists)
   end
