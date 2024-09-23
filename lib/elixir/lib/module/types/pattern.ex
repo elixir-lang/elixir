@@ -21,31 +21,30 @@ defmodule Module.Types.Pattern do
          do: {:ok, types, context}
   end
 
-  ## Patterns
-
-  @doc """
-  Return the type and typing context of a pattern expression
-  with no {expected, expr} pair. of_pattern/4 must be preferred
-  whenever possible as it adds more context to errors.
-  """
-  def of_pattern(expr, stack, context) do
-    # TODO: Remove the hardcoding of dynamic
-    of_pattern(expr, {dynamic(), expr}, stack, context)
-  end
-
   @doc """
   Return the type and typing context of a pattern expression with
   the given {expected, expr} pair or an error in case of a typing conflict.
   """
+  def of_match(expr, expected_expr, stack, context) do
+    of_pattern(expr, expected_expr, stack, context)
+  end
+
+  ## Patterns
+
+  defp of_pattern(expr, stack, context) do
+    # TODO: Remove the hardcoding of dynamic
+    # TODO: Possibly remove this function
+    of_pattern(expr, {dynamic(), expr}, stack, context)
+  end
 
   # ^var
-  def of_pattern({:^, _meta, [var]}, expected_expr, stack, context) do
+  defp of_pattern({:^, _meta, [var]}, expected_expr, stack, context) do
     Of.intersect(Of.var(var, context), expected_expr, stack, context)
   end
 
   # left = right
   # TODO: Track variables and handle nesting
-  def of_pattern({:=, _meta, [left_expr, right_expr]}, {expected, expr}, stack, context) do
+  defp of_pattern({:=, _meta, [left_expr, right_expr]}, {expected, expr}, stack, context) do
     case {is_var(left_expr), is_var(right_expr)} do
       {true, false} ->
         with {:ok, type, context} <- of_pattern(right_expr, {expected, expr}, stack, context) do
@@ -65,13 +64,13 @@ defmodule Module.Types.Pattern do
   end
 
   # %var{...} and %^var{...}
-  def of_pattern(
-        {:%, _meta, [struct_var, {:%{}, _meta2, args}]} = expr,
-        expected_expr,
-        stack,
-        context
-      )
-      when not is_atom(struct_var) do
+  defp of_pattern(
+         {:%, _meta, [struct_var, {:%{}, _meta2, args}]} = expr,
+         expected_expr,
+         stack,
+         context
+       )
+       when not is_atom(struct_var) do
     with {:ok, struct_type, context} <-
            of_pattern(struct_var, {atom(), expr}, %{stack | refine: false}, context),
          {:ok, map_type, context} <-
@@ -84,8 +83,8 @@ defmodule Module.Types.Pattern do
   end
 
   # %Struct{...}
-  def of_pattern({:%, _meta, [module, {:%{}, _, args}]} = expr, expected_expr, stack, context)
-      when is_atom(module) do
+  defp of_pattern({:%, _meta, [module, {:%{}, _, args}]} = expr, expected_expr, stack, context)
+       when is_atom(module) do
     with {:ok, actual, context} <-
            Of.struct(expr, module, args, :merge_defaults, stack, context, &of_pattern/3) do
       Of.intersect(actual, expected_expr, stack, context)
@@ -93,12 +92,12 @@ defmodule Module.Types.Pattern do
   end
 
   # %{...}
-  def of_pattern({:%{}, _meta, args}, expected_expr, stack, context) do
+  defp of_pattern({:%{}, _meta, args}, expected_expr, stack, context) do
     of_open_map(args, [], expected_expr, stack, context)
   end
 
   # <<...>>>
-  def of_pattern({:<<>>, _meta, args}, _expected_expr, stack, context) do
+  defp of_pattern({:<<>>, _meta, args}, _expected_expr, stack, context) do
     case Of.binary(args, :pattern, stack, context, &of_pattern/4) do
       {:ok, context} -> {:ok, binary(), context}
       {:error, context} -> {:error, context}
@@ -106,13 +105,13 @@ defmodule Module.Types.Pattern do
   end
 
   # _
-  def of_pattern({:_, _meta, _var_context}, {expected, _expr}, _stack, context) do
+  defp of_pattern({:_, _meta, _var_context}, {expected, _expr}, _stack, context) do
     {:ok, expected, context}
   end
 
   # var
-  def of_pattern({name, meta, ctx} = var, {expected, expr}, stack, context)
-      when is_atom(name) and is_atom(ctx) do
+  defp of_pattern({name, meta, ctx} = var, {expected, expr}, stack, context)
+       when is_atom(name) and is_atom(ctx) do
     case stack do
       %{refine: true} ->
         Of.refine_var(var, expected, expr, stack, context)
@@ -130,7 +129,7 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  def of_pattern(expr, expected_expr, stack, context) do
+  defp of_pattern(expr, expected_expr, stack, context) do
     of_shared(expr, expected_expr, stack, context, &of_pattern/4)
   end
 

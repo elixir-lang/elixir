@@ -527,4 +527,28 @@ defmodule Module.Types.ExprTest do
                 """}
     end
   end
+
+  describe "comprehensions" do
+    test "binary generators" do
+      assert typewarn!([<<x>>], for(<<y <- x>>, do: y)) ==
+               {dynamic(),
+                ~l"""
+                expected the right side of <- in a binary generator to be a binary:
+
+                    x
+
+                but got type:
+
+                    integer()
+
+                where "x" was given the type:
+
+                    # type: integer()
+                    # from: types_test.ex:533
+                    <<x>>
+
+                #{hints(:inferred_bitstring_spec)}
+                """}
+    end
+  end
 end

@@ -125,7 +125,7 @@ defmodule Module.Types.Expr do
   # TODO: left = right
   def of_expr({:=, _meta, [left_expr, right_expr]} = expr, stack, context) do
     with {:ok, right_type, context} <- of_expr(right_expr, stack, context) do
-      Pattern.of_pattern(left_expr, {right_type, expr}, stack, context)
+      Pattern.of_match(left_expr, {right_type, expr}, stack, context)
     end
   end
 
@@ -415,22 +415,22 @@ defmodule Module.Types.Expr do
   defp for_clause({:<-, meta, [left, expr]}, stack, context) do
     {pattern, guards} = extract_head([left])
 
-    with {:ok, _pattern_type, context} <-
+    with {:ok, _expr_type, context} <- of_expr(expr, stack, context),
+         {:ok, _pattern_type, context} <-
            Pattern.of_head([pattern], guards, meta, stack, context),
-         {:ok, _expr_type, context} <- of_expr(expr, stack, context),
          do: {:ok, context}
   end
 
-  defp for_clause({:<<>>, _, [{:<-, _, [pattern, expr]}]}, stack, context) do
-    # TODO: the compiler guarantees pattern is a binary but we need to check expr is a binary
-    with {:ok, _pattern_type, context} <-
-           Pattern.of_pattern(pattern, stack, context),
-         {:ok, _expr_type, context} <- of_expr(expr, stack, context),
-         do: {:ok, context}
-  end
-
-  defp for_clause(list, stack, context) when is_list(list) do
-    reduce_ok(list, context, &for_option(&1, stack, &2))
+  defp for_clause({:<<>>, _, [{:<-, meta, [left, right]}]}, stack, context) do
+    with {:ok, right_type, context} <- of_expr(right, stack, context),
+         {:ok, _pattern_type, context} <- Pattern.of_match(left, {binary(), left}, stack, context) do
+      if binary_type?(right_type) do
+        {:ok, context}
+      else
+        warning = {:badbinary, right_type, right, context}
+        {:ok, warn(__MODULE__, warning, meta, stack, context)}
+      end
+    end
   end
 
   defp for_clause(expr, stack, context) do
@@ -554,6 +554,27 @@ defmodule Module.Types.Expr do
           but got type:
 
               #{to_quoted_string(actual_type) |> indent(4)}
+          """,
+          Of.format_traces(traces)
+        ])
+    }
+  end
+
+  def format_diagnostic({:badbinary, type, expr, context}) do
+    traces = Of.collect_traces(expr, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          expected the right side of <- in a binary generator to be a binary:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          but got type:
+
+              #{to_quoted_string(type) |> indent(4)}
           """,
           Of.format_traces(traces)
         ])
