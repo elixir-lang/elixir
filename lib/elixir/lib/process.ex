@@ -88,12 +88,11 @@ defmodule Process do
   `false`.
 
   `pid` must refer to a process running on the local node or `ArgumentError` is raised.
-
-  Inlined by the compiler.
-
   To check whether a process on any node is alive you can use the :rpc module.
 
-      :rpc.call(node(pid), Process, :alive?, [pid])
+      :erpc.call(node(pid), Process, :alive?, [pid])
+
+  Inlined by the compiler.
   """
   @spec alive?(pid) :: boolean
   defdelegate alive?(pid), to: :erlang, as: :is_process_alive
