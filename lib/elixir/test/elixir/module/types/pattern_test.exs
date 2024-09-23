@@ -131,5 +131,33 @@ defmodule Module.Types.PatternTest do
              #{hints(:inferred_bitstring_spec)}
              """
     end
+
+    test "size ok" do
+      assert typecheck!([<<x, y, _::size(x - y)>>], :ok) == atom([:ok])
+    end
+
+    test "size error" do
+      assert typewarn!([<<x::float, _::size(x)>>], :ok) ==
+               {atom([:ok]),
+                ~l"""
+                incompatible types in expression:
+
+                    size(x)
+
+                expected type:
+
+                    integer()
+
+                but got type:
+
+                    float()
+
+                where "x" was given the type:
+
+                    # type: float()
+                    # from: types_test.ex:LINE-2
+                    <<x::float, ...>>
+                """}
+    end
   end
 end

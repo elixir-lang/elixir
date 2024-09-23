@@ -199,6 +199,34 @@ defmodule Module.Types.ExprTest do
                 #{hints(:inferred_bitstring_spec)}
                 """}
     end
+
+    test "size ok" do
+      assert typecheck!([<<x, y>>, z], <<z::size(x - y)>>) == binary()
+    end
+
+    test "size error" do
+      assert typewarn!([<<x::binary>>, y], <<y::size(x)>>) ==
+               {binary(),
+                ~l"""
+                incompatible types in expression:
+
+                    size(x)
+
+                expected type:
+
+                    integer()
+
+                but got type:
+
+                    binary()
+
+                where "x" was given the type:
+
+                    # type: binary()
+                    # from: types_test.ex:LINE-2
+                    <<x::binary>>
+                """}
+    end
   end
 
   describe "tuples" do
@@ -544,7 +572,7 @@ defmodule Module.Types.ExprTest do
                 where "x" was given the type:
 
                     # type: integer()
-                    # from: types_test.ex:533
+                    # from: types_test.ex:LINE-2
                     <<x>>
 
                 #{hints(:inferred_bitstring_spec)}

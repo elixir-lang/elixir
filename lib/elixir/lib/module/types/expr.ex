@@ -27,7 +27,8 @@ defmodule Module.Types.Expr do
   @atom_true atom([true])
   @exception open_map(__struct__: atom(), __exception__: @atom_true)
 
-  defp of_expr(expr, expected_expr, stack, context) do
+  # of_expr/4 is public as it is called recursively from Of.binary
+  def of_expr(expr, expected_expr, stack, context) do
     with {:ok, actual, context} <- of_expr(expr, stack, context) do
       Of.intersect(actual, expected_expr, stack, context)
     end
@@ -81,7 +82,7 @@ defmodule Module.Types.Expr do
 
   # <<...>>>
   def of_expr({:<<>>, _meta, args}, stack, context) do
-    case Of.binary(args, :expr, stack, context, &of_expr/4) do
+    case Of.binary(args, :expr, stack, context) do
       {:ok, context} -> {:ok, binary(), context}
       # It is safe to discard errors from binary inside expressions
       {:error, context} -> {:ok, binary(), context}

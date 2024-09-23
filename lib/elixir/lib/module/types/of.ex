@@ -206,63 +206,94 @@ defmodule Module.Types.Of do
   In the stack, we add nodes such as <<expr>>, <<..., expr>>, etc,
   based on the position of the expression within the binary.
   """
-  def binary([], _kind, _stack, context, _of_fun) do
+  def binary([], _kind, _stack, context) do
     {:ok, context}
   end
 
-  def binary([head], kind, stack, context, of_fun) do
-    binary_segment(head, kind, [head], stack, context, of_fun)
+  def binary([head], kind, stack, context) do
+    binary_segment(head, kind, [head], stack, context)
   end
 
-  def binary([head | tail], kind, stack, context, of_fun) do
-    case binary_segment(head, kind, [head, @suffix], stack, context, of_fun) do
-      {:ok, context} -> binary_many(tail, kind, stack, context, of_fun)
-      {:error, reason} -> {:error, reason}
+  def binary([head | tail], kind, stack, context) do
+    case binary_segment(head, kind, [head, @suffix], stack, context) do
+      {:ok, context} -> binary_many(tail, kind, stack, context)
+      {:error, context} -> {:error, context}
     end
   end
 
-  defp binary_many([last], kind, stack, context, of_fun) do
-    binary_segment(last, kind, [@prefix, last], stack, context, of_fun)
+  defp binary_many([last], kind, stack, context) do
+    binary_segment(last, kind, [@prefix, last], stack, context)
   end
 
-  defp binary_many([head | tail], kind, stack, context, of_fun) do
-    case binary_segment(head, kind, [@prefix, head, @suffix], stack, context, of_fun) do
-      {:ok, context} -> binary_many(tail, kind, stack, context, of_fun)
-      {:error, reason} -> {:error, reason}
+  defp binary_many([head | tail], kind, stack, context) do
+    case binary_segment(head, kind, [@prefix, head, @suffix], stack, context) do
+      {:ok, context} -> binary_many(tail, kind, stack, context)
+      {:error, context} -> {:error, context}
     end
   end
 
   # If the segment is a literal, the compiler has already checked its validity,
   # so we just skip it.
-  defp binary_segment({:"::", _meta, [left, _right]}, _kind, _args, _stack, context, _of_fun)
+  defp binary_segment({:"::", _meta, [left, _right]}, _kind, _args, _stack, context)
        when is_binary(left) or is_number(left) do
     {:ok, context}
   end
 
-  defp binary_segment({:"::", meta, [left, right]}, kind, args, stack, context, of_fun) do
-    expected_type = specifier_info(kind, right)
+  defp binary_segment({:"::", meta, [left, right]}, kind, args, stack, context) do
+    expected_type = specifier_type(kind, right)
     expr = {:<<>>, meta, args}
 
-    with {:ok, _type, context} <- of_fun.(left, {expected_type, expr}, stack, context) do
-      {:ok, context}
+    result =
+      case kind do
+        :pattern -> Module.Types.Pattern.of_pattern(left, {expected_type, expr}, stack, context)
+        :guard -> Module.Types.Pattern.of_guard(left, {expected_type, expr}, stack, context)
+        :expr -> Module.Types.Expr.of_expr(left, {expected_type, expr}, stack, context)
+      end
+
+    with {:ok, _type, context} <- result do
+      {:ok, specifier_size(kind, right, stack, context)}
     end
   end
 
-  defp specifier_info(kind, {:-, _, [left, _right]}), do: specifier_info(kind, left)
-  defp specifier_info(:expr, {:float, _, _}), do: @integer_or_float
-  defp specifier_info(:expr, {:utf8, _, _}), do: @integer_or_binary
-  defp specifier_info(:expr, {:utf16, _, _}), do: @integer_or_binary
-  defp specifier_info(:expr, {:utf32, _, _}), do: @integer_or_binary
-  defp specifier_info(:pattern, {:utf8, _, _}), do: @integer
-  defp specifier_info(:pattern, {:utf16, _, _}), do: @integer
-  defp specifier_info(:pattern, {:utf32, _, _}), do: @integer
-  defp specifier_info(:pattern, {:float, _, _}), do: @float
-  defp specifier_info(_kind, {:integer, _, _}), do: @integer
-  defp specifier_info(_kind, {:bits, _, _}), do: @binary
-  defp specifier_info(_kind, {:bitstring, _, _}), do: @binary
-  defp specifier_info(_kind, {:bytes, _, _}), do: @binary
-  defp specifier_info(_kind, {:binary, _, _}), do: @binary
-  defp specifier_info(_kind, _specifier), do: @integer
+  defp specifier_type(kind, {:-, _, [left, _right]}), do: specifier_type(kind, left)
+  defp specifier_type(:pattern, {:utf8, _, _}), do: @integer
+  defp specifier_type(:pattern, {:utf16, _, _}), do: @integer
+  defp specifier_type(:pattern, {:utf32, _, _}), do: @integer
+  defp specifier_type(:pattern, {:float, _, _}), do: @float
+  defp specifier_type(_kind, {:float, _, _}), do: @integer_or_float
+  defp specifier_type(_kind, {:utf8, _, _}), do: @integer_or_binary
+  defp specifier_type(_kind, {:utf16, _, _}), do: @integer_or_binary
+  defp specifier_type(_kind, {:utf32, _, _}), do: @integer_or_binary
+  defp specifier_type(_kind, {:integer, _, _}), do: @integer
+  defp specifier_type(_kind, {:bits, _, _}), do: @binary
+  defp specifier_type(_kind, {:bitstring, _, _}), do: @binary
+  defp specifier_type(_kind, {:bytes, _, _}), do: @binary
+  defp specifier_type(_kind, {:binary, _, _}), do: @binary
+  defp specifier_type(_kind, _specifier), do: @integer
+
+  defp specifier_size(kind, {:-, _, [left, right]}, stack, context) do
+    specifier_size(kind, right, stack, specifier_size(kind, left, stack, context))
+  end
+
+  defp specifier_size(:expr, {:size, _, [arg]} = expr, stack, context)
+       when not is_integer(arg) do
+    case Module.Types.Expr.of_expr(arg, {integer(), expr}, stack, context) do
+      {:ok, _, context} -> context
+      {:error, context} -> context
+    end
+  end
+
+  defp specifier_size(_pattern_or_guard, {:size, _, [arg]} = expr, stack, context)
+       when not is_integer(arg) do
+    case Module.Types.Pattern.of_guard(arg, {integer(), expr}, stack, context) do
+      {:ok, _, context} -> context
+      {:error, context} -> context
+    end
+  end
+
+  defp specifier_size(_kind, _expr, _stack, context) do
+    context
+  end
 
   ## Apply
 

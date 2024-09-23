@@ -30,21 +30,22 @@ defmodule Module.Types.Pattern do
   end
 
   ## Patterns
+  # of_pattern is public as it is called recursively from Of.binary
 
-  defp of_pattern(expr, stack, context) do
-    # TODO: Remove the hardcoding of dynamic
-    # TODO: Possibly remove this function
+  # TODO: Remove the hardcoding of dynamic
+  # TODO: Remove this function
+  def of_pattern(expr, stack, context) do
     of_pattern(expr, {dynamic(), expr}, stack, context)
   end
 
   # ^var
-  defp of_pattern({:^, _meta, [var]}, expected_expr, stack, context) do
+  def of_pattern({:^, _meta, [var]}, expected_expr, stack, context) do
     Of.intersect(Of.var(var, context), expected_expr, stack, context)
   end
 
   # left = right
   # TODO: Track variables and handle nesting
-  defp of_pattern({:=, _meta, [left_expr, right_expr]}, {expected, expr}, stack, context) do
+  def of_pattern({:=, _meta, [left_expr, right_expr]}, {expected, expr}, stack, context) do
     case {is_var(left_expr), is_var(right_expr)} do
       {true, false} ->
         with {:ok, type, context} <- of_pattern(right_expr, {expected, expr}, stack, context) do
@@ -64,13 +65,13 @@ defmodule Module.Types.Pattern do
   end
 
   # %var{...} and %^var{...}
-  defp of_pattern(
-         {:%, _meta, [struct_var, {:%{}, _meta2, args}]} = expr,
-         expected_expr,
-         stack,
-         context
-       )
-       when not is_atom(struct_var) do
+  def of_pattern(
+        {:%, _meta, [struct_var, {:%{}, _meta2, args}]} = expr,
+        expected_expr,
+        stack,
+        context
+      )
+      when not is_atom(struct_var) do
     with {:ok, struct_type, context} <-
            of_pattern(struct_var, {atom(), expr}, %{stack | refine: false}, context),
          {:ok, map_type, context} <-
@@ -83,8 +84,8 @@ defmodule Module.Types.Pattern do
   end
 
   # %Struct{...}
-  defp of_pattern({:%, _meta, [module, {:%{}, _, args}]} = expr, expected_expr, stack, context)
-       when is_atom(module) do
+  def of_pattern({:%, _meta, [module, {:%{}, _, args}]} = expr, expected_expr, stack, context)
+      when is_atom(module) do
     with {:ok, actual, context} <-
            Of.struct(expr, module, args, :merge_defaults, stack, context, &of_pattern/3) do
       Of.intersect(actual, expected_expr, stack, context)
@@ -92,26 +93,26 @@ defmodule Module.Types.Pattern do
   end
 
   # %{...}
-  defp of_pattern({:%{}, _meta, args}, expected_expr, stack, context) do
+  def of_pattern({:%{}, _meta, args}, expected_expr, stack, context) do
     of_open_map(args, [], expected_expr, stack, context)
   end
 
   # <<...>>>
-  defp of_pattern({:<<>>, _meta, args}, _expected_expr, stack, context) do
-    case Of.binary(args, :pattern, stack, context, &of_pattern/4) do
+  def of_pattern({:<<>>, _meta, args}, _expected_expr, stack, context) do
+    case Of.binary(args, :pattern, stack, context) do
       {:ok, context} -> {:ok, binary(), context}
       {:error, context} -> {:error, context}
     end
   end
 
   # _
-  defp of_pattern({:_, _meta, _var_context}, {expected, _expr}, _stack, context) do
+  def of_pattern({:_, _meta, _var_context}, {expected, _expr}, _stack, context) do
     {:ok, expected, context}
   end
 
   # var
-  defp of_pattern({name, meta, ctx} = var, {expected, expr}, stack, context)
-       when is_atom(name) and is_atom(ctx) do
+  def of_pattern({name, meta, ctx} = var, {expected, expr}, stack, context)
+      when is_atom(name) and is_atom(ctx) do
     case stack do
       %{refine: true} ->
         Of.refine_var(var, expected, expr, stack, context)
@@ -129,7 +130,7 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  defp of_pattern(expr, expected_expr, stack, context) do
+  def of_pattern(expr, expected_expr, stack, context) do
     of_shared(expr, expected_expr, stack, context, &of_pattern/4)
   end
 
@@ -151,11 +152,11 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  @doc """
-  Refines the type variables in the typing context using type check guards
-  such as `is_integer/1`.
-  """
+  ## Guards
+  # of_guard is public as it is called recursively from Of.binary
 
+  # TODO: Remove the hardcoding of dynamic
+  # TODO: Remove this function
   def of_guard(expr, stack, context) do
     of_guard(expr, {dynamic(), expr}, stack, context)
   end
@@ -173,7 +174,7 @@ defmodule Module.Types.Pattern do
 
   # <<>>
   def of_guard({:<<>>, _meta, args}, _expected_expr, stack, context) do
-    case Of.binary(args, :expr, stack, context, &of_guard/4) do
+    case Of.binary(args, :guard, stack, context) do
       {:ok, context} -> {:ok, binary(), context}
       # It is safe to discard errors from binary inside expressions
       {:error, context} -> {:ok, binary(), context}
@@ -197,9 +198,15 @@ defmodule Module.Types.Pattern do
     end
   end
 
+  # ^var
+  # Happens from inside size(^...) and map keys
+  def of_guard({:^, _meta, [var]}, expected_expr, stack, context) do
+    Of.intersect(Of.var(var, context), expected_expr, stack, context)
+  end
+
   # var
-  def of_guard(var, _expected_expr, _stack, context) when is_var(var) do
-    {:ok, Of.var(var, context), context}
+  def of_guard(var, expected_expr, stack, context) when is_var(var) do
+    Of.intersect(Of.var(var, context), expected_expr, stack, context)
   end
 
   def of_guard(expr, expected_expr, stack, context) do
