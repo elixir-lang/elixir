@@ -41,7 +41,7 @@ Please read the `GenServer` module documentation for an overview if you haven't 
 
 ## GenServer callbacks
 
-A GenServer is a process that invokes a limited set of functions under specific conditions. When we used a `Agent`, we would keep both the client code and the server code side by side, like this:
+A GenServer is a process that invokes a limited set of functions under specific conditions. When we used an `Agent`, we would keep both the client code and the server code side by side, like this:
 
 ```elixir
 def put(bucket, key, value) do
