@@ -242,6 +242,11 @@ defmodule Code.Formatter.MigrationTest do
       good = "x |> foo() |> Kernel.!() |> if(do: y)"
 
       assert_format bad, good, @opts
+
+      bad = "unless x |> foo(), do: y"
+      good = "if !(x |> foo()), do: y"
+
+      assert_format bad, good, @opts
     end
 
     test "rewrites in as not in" do
