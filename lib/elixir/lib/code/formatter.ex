@@ -506,6 +506,22 @@ defmodule Code.Formatter do
     quoted_to_algebra({:if, meta, [negate_condition(condition), block]}, context, state)
   end
 
+  # a |> b() |> unless(...) => a |> b() |> Kernel.!() |> unless(...)
+  defp quoted_to_algebra(
+         {:|>, meta1, [{:|>, _, _} = condition, {:unless, meta2, [block]}]},
+         context,
+         %{migrate_unless: true} = state
+       ) do
+    negated_condition = {:|>, [], [condition, {{:., [], [Kernel, :!]}, [closing: []], []}]}
+
+    quoted_to_algebra(
+      {:|>, meta1, [negated_condition, {:if, meta2, [block]}]},
+      context,
+      state
+    )
+  end
+
+  # condition |> unless(...) => negated(condition) |> unless(...)
   defp quoted_to_algebra(
          {:|>, meta1, [condition, {:unless, meta2, [block]}]},
          context,
@@ -2516,7 +2532,6 @@ defmodule Code.Formatter do
   defp negate_condition(condition) do
     case condition do
       {neg, _, [condition]} when neg in [:!, :not] -> condition
-      {:|>, _, _} -> {:|>, [], [condition, {{:., [], [Kernel, :!]}, [closing: []], []}]}
       {op, _, [_, _]} when op in @bool_operators -> {:not, [], [condition]}
       {guard, _, [_ | _]} when guard in @guards -> {:not, [], [condition]}
       {:==, meta, [left, right]} -> {:!=, meta, [left, right]}
