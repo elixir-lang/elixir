@@ -19,9 +19,12 @@ defmodule Logger do
     * Formats and truncates messages on the client
       to avoid clogging `Logger` handlers.
 
-    * Alternates between sync and async modes to remain
-      performant when required but also apply back-pressure
-      when under stress.
+    * Provides multiple forms of [overload protection](https://www.erlang.org/doc/apps/kernel/logger_chapter.html#protecting-the-handler-from-overload):
+      * keeps track of its message queue and switches to sync mode to apply
+        back pressure or even drop messages
+      * limits the number of logs emitted defaulting to 500 per second
+      * optionally allows to terminate & restart it if message queue length
+        or memory thresholds are exceeded
 
     * Allows overriding the logging level for a specific module,
       application or process.
