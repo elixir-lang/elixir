@@ -23,7 +23,7 @@ defmodule Logger do
       * keeps track of its message queue and switches to sync mode to apply
         back pressure or even drop messages
       * limits the number of logs emitted defaulting to 500 per second
-      * optionally allows to terminate & restart it if message queue length
+      * optionally allows to terminate and restart it if the message queue length
         or memory thresholds are exceeded
 
     * Allows overriding the logging level for a specific module,
