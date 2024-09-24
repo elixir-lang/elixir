@@ -498,7 +498,7 @@ defmodule Protocol do
 
   defp extract_matching_by_attribute(paths, prefix, callback) do
     for path <- paths,
-        path = if(is_binary(path), do: String.to_charlist(path), else: path),
+        path = if(is_list(path), do: path, else: String.to_charlist(path)),
         file <- list_dir(path),
         mod = extract_from_file(path, file, prefix, callback),
         do: mod
