@@ -41,7 +41,7 @@ Please read the `GenServer` module documentation for an overview if you haven't 
 
 ## GenServer callbacks
 
-A GenServer is a process that invokes a limited set of functions under specific conditions. When we used a `Agent`, we would keep both the client code and the server code side by side, like this:
+A GenServer is a process that invokes a limited set of functions under specific conditions. When we used an `Agent`, we would keep both the client code and the server code side by side, like this:
 
 ```elixir
 def put(bucket, key, value) do
@@ -258,7 +258,7 @@ iex> flush()
 
 Note `Process.monitor(pid)` returns a unique reference that allows us to match upcoming messages to that monitoring reference. After we stop the agent, we can `flush/0` all messages and notice a `:DOWN` message arrived, with the exact reference returned by `monitor`, notifying that the bucket process exited with reason `:normal`.
 
-Let's reimplement the server callbacks to fix the bug and make the test pass. First, we will modify the GenServer state to two dictionaries: one that contains `name -> pid` and another that holds `ref -> name`. Then we need to monitor the buckets on `handle_cast/2` as well as implement a `handle_info/2` callback to handle the monitoring messages. The full server callbacks implementation is shown below:
+Let's reimplement the server callbacks to fix the bug and make the test pass. First, we will modify the GenServer state to two maps: one that contains `name -> pid` and another that holds `ref -> name`. Then we need to monitor the buckets on `handle_cast/2` as well as implement a `handle_info/2` callback to handle the monitoring messages. The full server callbacks implementation is shown below:
 
 ```elixir
 ## Server callbacks
