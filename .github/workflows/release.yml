@@ -234,14 +234,13 @@ jobs:
       - name: Update builds txt
         run: |
           source utils.sh
-          sha256_files=$(find . -name 'elixir-otp-*.zip.sha256sum')
           date=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
           ref_name=${{ github.ref_name }}
 
           aws s3 cp s3://${AWS_S3_BUCKET}/builds/elixir/builds.txt builds.txt || true
           touch builds.txt
 
-          for sha256_file in sha256_files; do
+          for sha256_file in $(find . -name 'elixir-otp-*.zip.sha256sum'); do
             otp_version=$(echo ${sha256_file} | sed -r 's/elixir-otp-([[:digit:]]+)\.zip\.sha256sum/otp-\1/')
             build_sha256=$(cat ${sha256_file} | cut -d ' ' -f 1)
 
