@@ -237,7 +237,7 @@ jobs:
           date="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
           ref_name=${{ github.ref_name }}
 
-          aws s3 cp "s3://${AWS_S3_BUCKET}/builds/elixir/builds.txt builds.txt" || true
+          aws s3 cp "s3://${AWS_S3_BUCKET}/builds/elixir/builds.txt" builds.txt || true
           touch builds.txt
 
           for sha256_file in $(find . -name 'elixir-otp-*.zip.sha256sum' | sed 's/^\.\///'); do
