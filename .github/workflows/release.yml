@@ -192,22 +192,22 @@ jobs:
       - name: Upload Precompiled to S3
         run: |
           source utils.sh
+          ref_name=${{ github.ref_name }}
 
           mv elixir-otp-*/* .
           for zip in $(find . -type f -name 'elixir-otp-*.zip' | sed 's/^\.\///'); do
-            echo $zip
-            dest=$(echo $zip | sed 's/^elixir/${{ github.ref_name }}/')
-            surrogate_key=$(echo $dest | sed 's/\.zip$//')
+            dest=${zip/elixir/${ref_name}}
+            surrogate_key=${dest/.zip$/}
 
             aws s3 cp "${zip}" "s3://${AWS_S3_BUCKET}/builds/elixir/${dest}" \
               --cache-control "public,max-age=3600" \
               --metadata "{\"surrogate-key\":\"builds builds/elixir builds/elixir/${surrogate_key}\",\"surrogate-control\":\"public,max-age=604800\"}"
 
-            if [ $zip == "elixir-otp-${OTP_GENERIC_VERSION}.zip" ]; then
-              aws s3 cp "${zip}" "s3://${AWS_S3_BUCKET}/builds/elixir/${{ github.ref_name }}.zip" \
+            if [ "$zip" == "elixir-otp-${OTP_GENERIC_VERSION}.zip" ]; then
+              aws s3 cp "${zip}" "s3://${AWS_S3_BUCKET}/builds/elixir/${ref_name}.zip" \
                 --cache-control "public,max-age=3600" \
-                --metadata "{\"surrogate-key\":\"builds builds/elixir builds/elixir/${{ github.ref_name }}\",\"surrogate-control\":\"public,max-age=604800\"}"
-              purge builds/elixir/${{ github.ref_name }}
+                --metadata "{\"surrogate-key\":\"builds builds/elixir builds/elixir/${ref_name}\",\"surrogate-control\":\"public,max-age=604800\"}"
+              purge builds/elixir/${ref_name}
             fi
           done
       - name: Upload Docs to S3
@@ -220,7 +220,7 @@ jobs:
 
           for f in doc/*; do
             if [ -d "$f" ]; then
-              app=$(echo $f | sed s/"doc\/"//)
+              app=$(echo "$f" | sed s/"doc\/"//)
               tarball="${app}-${version}.tar.gz"
               surrogate_key="docs/${app}-${version}"
               tar -czf "${tarball}" -C "doc/${app}" .
@@ -234,16 +234,15 @@ jobs:
       - name: Update builds txt
         run: |
           source utils.sh
-          date=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+          date="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
           ref_name=${{ github.ref_name }}
 
-          aws s3 cp s3://${AWS_S3_BUCKET}/builds/elixir/builds.txt builds.txt || true
+          aws s3 cp "s3://${AWS_S3_BUCKET}/builds/elixir/builds.txt builds.txt" || true
           touch builds.txt
 
           for sha256_file in $(find . -name 'elixir-otp-*.zip.sha256sum' | sed 's/^\.\///'); do
-            echo ${sha256_file}
-            otp_version=$(echo ${sha256_file} | sed -r 's/^elixir-otp-([[:digit:]]+)\.zip\.sha256sum/otp-\1/')
-            build_sha256=$(cat ${sha256_file} | cut -d ' ' -f 1)
+            otp_version=$(echo "${sha256_file}" | sed -r 's/^elixir-otp-([[:digit:]]+)\.zip\.sha256sum/otp-\1/')
+            build_sha256=$(cut -d ' ' -f 1 "${sha256_file}")
 
             sed -i "/^${ref_name}-${otp_version} /d" builds.txt
             echo -e "${ref_name}-${otp_version} ${{ github.sha }} ${date} ${build_sha256} \n$(cat builds.txt)" > builds.txt
@@ -255,7 +254,7 @@ jobs:
           done
 
           sort -u -k1,1 -o builds.txt builds.txt
-          aws s3 cp builds.txt s3://${AWS_S3_BUCKET}/builds/elixir/builds.txt \
+          aws s3 cp builds.txt "s3://${AWS_S3_BUCKET}/builds/elixir/builds.txt" \
             --cache-control "public,max-age=3600" \
             --metadata '{"surrogate-key":"builds builds/elixir builds/elixir/txt","surrogate-control":"public,max-age=604800"}'
           purge builds/elixir/txt
