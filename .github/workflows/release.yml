@@ -248,7 +248,7 @@ jobs:
             sed -i "/^${ref_name}-${otp_version} /d" builds.txt
             echo -e "${ref_name}-${otp_version} ${{ github.sha }} ${date} ${build_sha256} \n$(cat builds.txt)" > builds.txt
 
-            if [ "${otp_version}" == "${OTP_GENERIC_VERSION}" ]; then
+            if [ "${otp_version}" == "otp-${OTP_GENERIC_VERSION}" ]; then
               sed -i "/^${ref_name} /d" builds.txt
               echo -e "${ref_name} ${{ github.sha }} ${date} ${build_sha256} \n$(cat builds.txt)" > builds.txt
             fi
