@@ -242,7 +242,7 @@ jobs:
 
           for sha256_file in $(find . -name 'elixir-otp-*.zip.sha256sum'); do
             echo ${sha256_file}
-            otp_version=$(echo ${sha256_file} | sed -r 's/elixir-otp-([[:digit:]]+)\.zip\.sha256sum/otp-\1/')
+            otp_version=$(echo ${sha256_file} | sed -r 's/^\.\/elixir-otp-([[:digit:]]+)\.zip\.sha256sum/otp-\1/')
             build_sha256=$(cat ${sha256_file} | cut -d ' ' -f 1)
 
             sed -i "/^${ref_name}-${otp_version} /d" builds.txt
