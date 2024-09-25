@@ -170,12 +170,12 @@ jobs:
         run: |
           cat << 'EOF' > utils.sh
           function purge_key() {
-            #curl \
-            #    -X POST \
-            #    -H "Fastly-Key: ${FASTLY_KEY}" \
-            #    -H "Accept: application/json" \
-            #    -H "Content-Length: 0" \
-            #    "https://api.fastly.com/service/$1/purge/$2"
+            curl \
+               -X POST \
+               -H "Fastly-Key: ${FASTLY_KEY}" \
+               -H "Accept: application/json" \
+               -H "Content-Length: 0" \
+               "https://api.fastly.com/service/$1/purge/$2"
             echo 'Temporary close'
           }
           function purge() {
