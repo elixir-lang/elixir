@@ -41,7 +41,8 @@ defmodule Config do
   > application environment is effectively a global storage. Also note that
   > the `config/config.exs` of a library is not evaluated when the library is
   > used as a dependency, as configuration is always meant to configure the
-  > current project. For more information, read our [library guidelines](library-guidelines.md).
+  > current project. For more information, see ["Using application configuration for
+  > libraries"](design-anti-patterns.md#using-application-configuration-for-libraries).
 
   ## Migrating from `use Mix.Config`
 
