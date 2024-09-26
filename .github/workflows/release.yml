@@ -289,6 +289,8 @@ jobs:
             purge_key ${FASTLY_BUILDS_SERVICE_ID} $1
           }
 
+          cat purge_keys.txt
+
           for key in $(cat purge_keys.txt); do
             purge "${key}"
           done
