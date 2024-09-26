@@ -131,6 +131,7 @@ The following is a table of all the operators that Elixir is capable of parsing,
   * `<~>`
   * `+++`
   * `---`
+  * `...`
 
 The following operators are used by the `Bitwise` module when imported: [`&&&`](`Bitwise.&&&/2`), [`<<<`](`Bitwise.<<</2`), [`>>>`](`Bitwise.>>>/2`), and [`|||`](`Bitwise.|||/2`). See the `Bitwise` documentation for more information.
 
