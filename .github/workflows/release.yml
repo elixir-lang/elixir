@@ -234,6 +234,7 @@ jobs:
                 --cache-control "public,max-age=3600" \
                 --metadata "{\"surrogate-key\":\"${surrogate_key}\",\"surrogate-control\":\"public,max-age=604800\"}"
               echo "${surrogate_key}" >> purge_keys.txt
+              echo "Purge key ${surrogate_key}"
             fi
           done
 
