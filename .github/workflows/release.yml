@@ -170,32 +170,8 @@ jobs:
         run: |
           touch purge_keys.txt
 
-      - name: Utils.sh
-        run: |
-          cat << 'EOF' > utils.sh
-          function purge_key() {
-            curl \
-               -X POST \
-               -H "Fastly-Key: ${FASTLY_KEY}" \
-               -H "Accept: application/json" \
-               -H "Content-Length: 0" \
-               "https://api.fastly.com/service/$1/purge/$2"
-          }
-          function purge() {
-            purge_key ${FASTLY_REPO_SERVICE_ID} $1
-            purge_key ${FASTLY_BUILDS_SERVICE_ID} $1
-            sleep 2
-            purge_key ${FASTLY_REPO_SERVICE_ID} $1
-            purge_key ${FASTLY_BUILDS_SERVICE_ID} $1
-            sleep 2
-            purge_key ${FASTLY_REPO_SERVICE_ID} $1
-            purge_key ${FASTLY_BUILDS_SERVICE_ID} $1
-          }
-          EOF
-
       - name: Upload Precompiled to S3
         run: |
-          source utils.sh
           ref_name=${{ github.ref_name }}
 
           mv elixir-otp-*/* .
