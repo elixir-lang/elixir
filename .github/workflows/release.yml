@@ -166,6 +166,10 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
 
+      - name: Init purge keys file
+        run: |
+          touch purge_keys.txt
+
       - name: Utils.sh
         run: |
           cat << 'EOF' > utils.sh
@@ -188,6 +192,7 @@ jobs:
             purge_key ${FASTLY_BUILDS_SERVICE_ID} $1
           }
           EOF
+
       - name: Upload Precompiled to S3
         run: |
           source utils.sh
@@ -201,18 +206,19 @@ jobs:
             aws s3 cp "${zip}" "s3://${AWS_S3_BUCKET}/builds/elixir/${dest}" \
               --cache-control "public,max-age=3600" \
               --metadata "{\"surrogate-key\":\"builds builds/elixir builds/elixir/${surrogate_key}\",\"surrogate-control\":\"public,max-age=604800\"}"
+            echo "builds/elixir/${surrogate_key}" >> purge_keys.txt
 
             if [ "$zip" == "elixir-otp-${OTP_GENERIC_VERSION}.zip" ]; then
               aws s3 cp "${zip}" "s3://${AWS_S3_BUCKET}/builds/elixir/${ref_name}.zip" \
                 --cache-control "public,max-age=3600" \
                 --metadata "{\"surrogate-key\":\"builds builds/elixir builds/elixir/${ref_name}\",\"surrogate-control\":\"public,max-age=604800\"}"
-              purge builds/elixir/${ref_name}
+              echo builds/elixir/${ref_name} >> purge_keys.txt
             fi
           done
+
       - name: Upload Docs to S3
         working-directory: Docs
         run: |
-          source ../utils.sh
           version=$(echo ${{ github.ref_name }} | sed -e 's/^v//g')
 
           unzip Docs.zip
@@ -222,17 +228,17 @@ jobs:
               app=$(echo "$f" | sed s/"doc\/"//)
               tarball="${app}-${version}.tar.gz"
               surrogate_key="docs/${app}-${version}"
+
               tar -czf "${tarball}" -C "doc/${app}" .
               aws s3 cp "${tarball}" "s3://${AWS_S3_BUCKET}/docs/${tarball}" \
                 --cache-control "public,max-age=3600" \
                 --metadata "{\"surrogate-key\":\"${surrogate_key}\",\"surrogate-control\":\"public,max-age=604800\"}"
-              purge "${surrogate_key}"
+              echo "${surrogate_key}" >> purge_keys.txt
             fi
           done
 
       - name: Update builds txt
         run: |
-          source utils.sh
           date="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
           ref_name=${{ github.ref_name }}
 
@@ -256,4 +262,32 @@ jobs:
           aws s3 cp builds.txt "s3://${AWS_S3_BUCKET}/builds/elixir/builds.txt" \
             --cache-control "public,max-age=3600" \
             --metadata '{"surrogate-key":"builds builds/elixir builds/elixir/txt","surrogate-control":"public,max-age=604800"}'
-          purge builds/elixir/txt
+
+          echo 'buils/elixir/txt' >> purge_keys.txt
+
+      - name: Flush cache
+        run: |
+          function purge_key() {
+            echo "Purge key $2"
+            # curl \
+            #    -X POST \
+            #    -H "Fastly-Key: ${FASTLY_KEY}" \
+            #    -H "Accept: application/json" \
+            #    -H "Content-Length: 0" \
+            #    "https://api.fastly.com/service/$1/purge/$2"
+          }
+
+          function purge() {
+            purge_key ${FASTLY_REPO_SERVICE_ID} $1
+            purge_key ${FASTLY_BUILDS_SERVICE_ID} $1
+            sleep 2
+            purge_key ${FASTLY_REPO_SERVICE_ID} $1
+            purge_key ${FASTLY_BUILDS_SERVICE_ID} $1
+            sleep 2
+            purge_key ${FASTLY_REPO_SERVICE_ID} $1
+            purge_key ${FASTLY_BUILDS_SERVICE_ID} $1
+          }
+
+          for key in $(cat purge_keys.txt); do
+            purge "${key}"
+          done
