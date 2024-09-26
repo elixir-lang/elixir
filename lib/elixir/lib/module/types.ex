@@ -74,9 +74,7 @@ defmodule Module.Types do
       # List of calls to not warn on as undefined
       no_warn_undefined: no_warn_undefined,
       # A list of cached modules received from the parallel compiler
-      cache: cache,
-      # If variable refinements is enabled or not
-      refine: true
+      cache: cache
     }
   end
 

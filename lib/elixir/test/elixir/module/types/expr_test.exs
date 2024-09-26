@@ -210,7 +210,7 @@ defmodule Module.Types.ExprTest do
                 ~l"""
                 incompatible types in expression:
 
-                    size(x)
+                    <<y::integer-size(x)>>
 
                 expected type:
 
@@ -225,6 +225,12 @@ defmodule Module.Types.ExprTest do
                     # type: binary()
                     # from: types_test.ex:LINE-2
                     <<x::binary>>
+
+                where "y" was given the type:
+
+                    # type: dynamic()
+                    # from: types_test.ex:208
+                    y
                 """}
     end
   end

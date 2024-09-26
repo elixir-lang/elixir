@@ -29,7 +29,7 @@ defmodule Module.Types.Of do
   @doc """
   Refines the type of a variable.
   """
-  def refine_var(var, type, expr, formatter \\ :default, stack, context) do
+  def refine_var(var, {type, expr}, formatter \\ :default, stack, context) do
     {var_name, meta, var_context} = var
     version = Keyword.fetch!(meta, :version)
 
@@ -251,7 +251,7 @@ defmodule Module.Types.Of do
       end
 
     with {:ok, _type, context} <- result do
-      {:ok, specifier_size(kind, right, stack, context)}
+      {:ok, specifier_size(kind, right, expr, stack, context)}
     end
   end
 
@@ -271,11 +271,11 @@ defmodule Module.Types.Of do
   defp specifier_type(_kind, {:binary, _, _}), do: @binary
   defp specifier_type(_kind, _specifier), do: @integer
 
-  defp specifier_size(kind, {:-, _, [left, right]}, stack, context) do
-    specifier_size(kind, right, stack, specifier_size(kind, left, stack, context))
+  defp specifier_size(kind, {:-, _, [left, right]}, expr, stack, context) do
+    specifier_size(kind, right, expr, stack, specifier_size(kind, left, expr, stack, context))
   end
 
-  defp specifier_size(:expr, {:size, _, [arg]} = expr, stack, context)
+  defp specifier_size(:expr, {:size, _, [arg]}, expr, stack, context)
        when not is_integer(arg) do
     case Module.Types.Expr.of_expr(arg, {integer(), expr}, stack, context) do
       {:ok, _, context} -> context
@@ -283,7 +283,7 @@ defmodule Module.Types.Of do
     end
   end
 
-  defp specifier_size(_pattern_or_guard, {:size, _, [arg]} = expr, stack, context)
+  defp specifier_size(_pattern_or_guard, {:size, _, [arg]}, expr, stack, context)
        when not is_integer(arg) do
     case Module.Types.Pattern.of_guard(arg, {integer(), expr}, stack, context) do
       {:ok, _, context} -> context
@@ -291,7 +291,7 @@ defmodule Module.Types.Of do
     end
   end
 
-  defp specifier_size(_kind, _expr, _stack, context) do
+  defp specifier_size(_kind, _specifier, _expr, _stack, context) do
     context
   end
 

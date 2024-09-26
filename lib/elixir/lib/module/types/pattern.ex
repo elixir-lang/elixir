@@ -38,11 +38,6 @@ defmodule Module.Types.Pattern do
     of_pattern(expr, {dynamic(), expr}, stack, context)
   end
 
-  # ^var
-  def of_pattern({:^, _meta, [var]}, expected_expr, stack, context) do
-    Of.intersect(Of.var(var, context), expected_expr, stack, context)
-  end
-
   # left = right
   # TODO: Track variables and handle nesting
   def of_pattern({:=, _meta, [left_expr, right_expr]}, {expected, expr}, stack, context) do
@@ -73,7 +68,7 @@ defmodule Module.Types.Pattern do
       )
       when not is_atom(struct_var) do
     with {:ok, struct_type, context} <-
-           of_pattern(struct_var, {atom(), expr}, %{stack | refine: false}, context),
+           of_struct_var(struct_var, {atom(), expr}, stack, context),
          {:ok, map_type, context} <-
            of_open_map(args, [__struct__: struct_type], expected_expr, stack, context),
          {_, struct_type} = map_fetch(map_type, :__struct__),
@@ -111,23 +106,8 @@ defmodule Module.Types.Pattern do
   end
 
   # var
-  def of_pattern({name, meta, ctx} = var, {expected, expr}, stack, context)
-      when is_atom(name) and is_atom(ctx) do
-    case stack do
-      %{refine: true} ->
-        Of.refine_var(var, expected, expr, stack, context)
-
-      %{refine: false} ->
-        version = Keyword.fetch!(meta, :version)
-
-        case context do
-          %{vars: %{^version => %{type: type}}} ->
-            Of.intersect(type, {expected, expr}, stack, context)
-
-          %{} ->
-            {:ok, expected, context}
-        end
-    end
+  def of_pattern(var, expected_expr, stack, context) when is_var(var) do
+    Of.refine_var(var, expected_expr, stack, context)
   end
 
   def of_pattern(expr, expected_expr, stack, context) do
@@ -198,19 +178,37 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  # ^var
-  # Happens from inside size(^...) and map keys
-  def of_guard({:^, _meta, [var]}, expected_expr, stack, context) do
-    Of.intersect(Of.var(var, context), expected_expr, stack, context)
-  end
-
   # var
   def of_guard(var, expected_expr, stack, context) when is_var(var) do
+    # TODO: This should be ver refinement once we have inference in guards
+    # Of.refine_var(var, expected_expr, stack, context)
     Of.intersect(Of.var(var, context), expected_expr, stack, context)
   end
 
   def of_guard(expr, expected_expr, stack, context) do
     of_shared(expr, expected_expr, stack, context, &of_guard/4)
+  end
+
+  ## Helpers
+
+  defp of_struct_var({:_, _, _}, {expected, _expr}, _stack, context) do
+    {:ok, expected, context}
+  end
+
+  defp of_struct_var({:^, _, [var]}, expected_expr, stack, context) do
+    Of.intersect(Of.var(var, context), expected_expr, stack, context)
+  end
+
+  defp of_struct_var({_name, meta, _ctx}, expected_expr, stack, context) do
+    version = Keyword.fetch!(meta, :version)
+
+    case context do
+      %{vars: %{^version => %{type: type}}} ->
+        Of.intersect(type, expected_expr, stack, context)
+
+      %{} ->
+        {:ok, elem(expected_expr, 0), context}
+    end
   end
 
   ## Shared
@@ -269,6 +267,12 @@ defmodule Module.Types.Pattern do
     of_shared({:{}, [], [left, right]}, expected_expr, stack, context, fun)
   end
 
+  # ^var
+  defp of_shared({:^, _meta, [var]}, expected_expr, stack, context, _fun) do
+    # This is by definition a variable defined outside of this pattern, so we don't track it.
+    Of.intersect(Of.var(var, context), expected_expr, stack, context)
+  end
+
   # left | []
   defp of_shared({:|, _meta, [left_expr, []]}, _expected_expr, stack, context, fun) do
     fun.(left_expr, {dynamic(), left_expr}, stack, context)
@@ -303,6 +307,7 @@ defmodule Module.Types.Pattern do
   end
 
   # {...}
+  # TODO: Implement this
   defp of_shared({:{}, _meta, exprs}, _expected_expr, stack, context, fun) do
     case map_reduce_ok(exprs, context, &fun.(&1, {dynamic(), &1}, stack, &2)) do
       {:ok, types, context} -> {:ok, tuple(types), context}

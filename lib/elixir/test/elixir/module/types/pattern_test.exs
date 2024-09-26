@@ -142,7 +142,7 @@ defmodule Module.Types.PatternTest do
                 ~l"""
                 incompatible types in expression:
 
-                    size(x)
+                    <<..., _::integer-size(x)>>
 
                 expected type:
 

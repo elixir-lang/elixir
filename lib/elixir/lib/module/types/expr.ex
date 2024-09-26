@@ -403,7 +403,9 @@ defmodule Module.Types.Expr do
               {"rescue #{expr_to_string(expr)} ->", hints}
             end
 
-            {:ok, _type, context} = Of.refine_var(var, expected, expr, formatter, stack, context)
+            {:ok, _type, context} =
+              Of.refine_var(var, {expected, expr}, formatter, stack, context)
+
             context
         end
 
