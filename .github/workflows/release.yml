@@ -266,15 +266,15 @@ jobs:
           echo 'builds/elixir/txt' >> purge_keys.txt
 
       - name: Flush cache
+        if: github.repository == 'elixir-lang/elixir'
         run: |
           function purge_key() {
-            echo "Purge key $2"
-            # curl \
-            #    -X POST \
-            #    -H "Fastly-Key: ${FASTLY_KEY}" \
-            #    -H "Accept: application/json" \
-            #    -H "Content-Length: 0" \
-            #    "https://api.fastly.com/service/$1/purge/$2"
+            curl \
+               -X POST \
+               -H "Fastly-Key: ${FASTLY_KEY}" \
+               -H "Accept: application/json" \
+               -H "Content-Length: 0" \
+               "https://api.fastly.com/service/$1/purge/$2"
           }
 
           function purge() {
@@ -287,8 +287,6 @@ jobs:
             purge_key ${FASTLY_REPO_SERVICE_ID} $1
             purge_key ${FASTLY_BUILDS_SERVICE_ID} $1
           }
-
-          cat purge_keys.txt
 
           for key in $(cat purge_keys.txt); do
             purge "${key}"
