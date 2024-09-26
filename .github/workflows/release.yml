@@ -233,8 +233,7 @@ jobs:
               aws s3 cp "${tarball}" "s3://${AWS_S3_BUCKET}/docs/${tarball}" \
                 --cache-control "public,max-age=3600" \
                 --metadata "{\"surrogate-key\":\"${surrogate_key}\",\"surrogate-control\":\"public,max-age=604800\"}"
-              echo "${surrogate_key}" >> purge_keys.txt
-              echo "Purge key ${surrogate_key}"
+              echo "${surrogate_key}" >> ../purge_keys.txt
             fi
           done
 
@@ -264,7 +263,7 @@ jobs:
             --cache-control "public,max-age=3600" \
             --metadata '{"surrogate-key":"builds builds/elixir builds/elixir/txt","surrogate-control":"public,max-age=604800"}'
 
-          echo 'buils/elixir/txt' >> purge_keys.txt
+          echo 'builds/elixir/txt' >> purge_keys.txt
 
       - name: Flush cache
         run: |
