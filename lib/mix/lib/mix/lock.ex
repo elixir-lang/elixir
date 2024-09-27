@@ -13,7 +13,7 @@ defmodule Mix.Lock do
   # An inherent problem with lock files is that the lock owner may
   # terminate abruptly, leaving a "stale" file. Other processes can
   # detect a stale file by reading the port written in that file,
-  # trying to connect to thart port and failing. In order for another
+  # trying to connect to that port and failing. In order for another
   # process to link to the same path, the file needs to be replaced.
   # However, we need to guarantee that only a single process can
   # remove or replace the file, otherwise a concurrent process may
@@ -66,13 +66,14 @@ defmodule Mix.Lock do
   @loopback {127, 0, 0, 1}
   @listen_opts [:binary, ip: @loopback, packet: :raw, nodelay: true, backlog: 128, active: false]
   @connect_opts [:binary, packet: :raw, nodelay: true, active: false]
-  @probe_data <<"elixirlock">>
+  @probe_data "elixirlock"
   @probe_timeout_ms 5_000
 
   @doc """
   Acquires a lock identified by the given key.
 
-  This function blocks until the lock is acquired by this process.
+  This function blocks until the lock is acquired by this process,
+  and then executes `fun`, returning its return value.
 
   This function can also be called if this process already has the
   lock. In such case the function is executed immediately.
@@ -85,19 +86,18 @@ defmodule Mix.Lock do
     pdict_key = {__MODULE__, path}
     acquire_lock? = Process.get(pdict_key) == nil
 
-    try do
-      if acquire_lock? do
+    if acquire_lock? do
+      try do
         lock = lock(path)
         Process.put(pdict_key, lock)
-      end
-
-      fun.()
-    after
-      if acquire_lock? do
+        fun.()
+      after
         lock = Process.get(pdict_key)
         unlock(lock)
         Process.delete(pdict_key)
       end
+    else
+      fun.()
     end
   end
 
