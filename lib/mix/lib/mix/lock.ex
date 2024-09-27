@@ -125,14 +125,14 @@ defmodule Mix.Lock do
     end
   end
 
-  defp listen() do
+  defp listen do
     with {:ok, socket} <- :gen_tcp.listen(0, @listen_opts) do
       case :inet.port(socket) do
         {:ok, port} ->
           {:ok, socket, port}
 
         {:error, reason} ->
-          :socket.close(socket)
+          :gen_tcp.close(socket)
           {:error, reason}
       end
     end
@@ -200,6 +200,7 @@ defmodule Mix.Lock do
         _ = :gen_tcp.send(socket, @probe_data)
         accept_loop(listen_socket)
 
+      # eintr is "Interrupted system call".
       {:error, :eintr} ->
         accept_loop(listen_socket)
 
