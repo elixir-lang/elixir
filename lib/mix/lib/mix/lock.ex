@@ -152,10 +152,7 @@ defmodule Mix.Lock do
         %{socket: socket, path: path}
 
       {:ok, _n} ->
-        # We grabbed lock_1+, so we need to replace lock_0 and clean
-        # up. This must happen in a precise order, so if anything
-        # fails, we keep the files as is and the next process that
-        # grabs the lock will do the cleanup
+        # We grabbed lock_1+, so we need to replace lock_0 and clean up
         take_over(path, port_path)
         %{socket: socket, path: path}
 
@@ -261,6 +258,10 @@ defmodule Mix.Lock do
   end
 
   defp take_over(path, port_path) do
+    # The operations here must happen in precise order, so if anything
+    # fails, we keep the files as is and the next process that grabs
+    # the lock will do the cleanup
+
     lock_path = Path.join(path, "lock_0")
 
     # We linked to lock_N successfully, so port_path should exist
