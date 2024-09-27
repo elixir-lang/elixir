@@ -87,9 +87,10 @@ defmodule Mix.Lock do
     acquire_lock? = Process.get(pdict_key) == nil
 
     if acquire_lock? do
+      lock = lock(path)
+      Process.put(pdict_key, lock)
+
       try do
-        lock = lock(path)
-        Process.put(pdict_key, lock)
         fun.()
       after
         lock = Process.get(pdict_key)
@@ -104,12 +105,15 @@ defmodule Mix.Lock do
   defp lock(path) do
     File.mkdir_p!(path)
 
-    {:ok, socket} = :gen_tcp.listen(0, @listen_opts)
-    {:ok, port} = :inet.port(socket)
-
-    spawn_link(fn -> accept_loop(socket) end)
-
-    try_lock(path, socket, port)
+    with {:ok, socket} <- :gen_tcp.listen(0, @listen_opts),
+         {:ok, port} <- :inet.port(socket) do
+      spawn_link(fn -> accept_loop(socket) end)
+      try_lock(path, socket, port)
+    else
+      {:error, reason} ->
+        raise Mix.Error,
+              "failed to open a TCP socket while acquiring a lock, reason: #{inspect(reason)}"
+    end
   end
 
   defp try_lock(path, socket, port) do
