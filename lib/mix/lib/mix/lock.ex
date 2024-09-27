@@ -95,8 +95,8 @@ defmodule Mix.Lock do
       try do
         fun.()
       after
-        unlock(lock)
         Process.delete(pdict_key)
+        unlock(lock)
       end
     end
   end
