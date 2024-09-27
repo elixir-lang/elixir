@@ -108,7 +108,15 @@ defmodule Mix.Lock do
     with {:ok, socket} <- :gen_tcp.listen(0, @listen_opts),
          {:ok, port} <- :inet.port(socket) do
       spawn_link(fn -> accept_loop(socket) end)
-      try_lock(path, socket, port)
+
+      try do
+        try_lock(path, socket, port)
+      rescue
+        exception ->
+          # Close the socket to make sure we don't block the lock
+          :gen_tcp.close(socket)
+          reraise exception, __STACKTRACE__
+      end
     else
       {:error, reason} ->
         raise Mix.Error,
@@ -231,11 +239,9 @@ defmodule Mix.Lock do
 
     File.write!(port_path, <<0::unsigned-integer-32>>, [:raw])
     File.rename!(port_path, lock_path)
-
+  after
     # Closing the socket will cause the accepting process to finish
     # and all accepted sockets (tied to that process) will get closed
     :gen_tcp.close(lock.socket)
-
-    :ok
   end
 end
