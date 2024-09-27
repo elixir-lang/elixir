@@ -178,7 +178,7 @@ defmodule Mix.Lock do
           {:ok, probe_socket} ->
             {:taken, probe_socket}
 
-          :error ->
+          {:error, _reason} ->
             grab_lock(path, port_path, n + 1)
         end
 
@@ -206,18 +206,17 @@ defmodule Mix.Lock do
   end
 
   defp probe(port_path) do
-    with {:ok, <<port::unsigned-integer-32>>} when port > 0 <- File.read(port_path),
+    with {:ok, port} <- fetch_probe_port(port_path),
          {:ok, socket} <- connect(port) do
-      case :gen_tcp.recv(socket, 0, @probe_timeout_ms) do
-        {:ok, @probe_data} ->
-          {:ok, socket}
+      await_probe_data(socket)
+    end
+  end
 
-        {:error, _reason} ->
-          :gen_tcp.close(socket)
-          :error
-      end
-    else
-      _other -> :error
+  defp fetch_probe_port(port_path) do
+    case File.read(port_path) do
+      {:ok, <<0::unsigned-integer-32>>} -> {:error, :ignore}
+      {:ok, <<port::unsigned-integer-32>>} -> {:ok, port}
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -233,6 +232,21 @@ defmodule Mix.Lock do
 
       {:error, _reason} ->
         :gen_tcp.connect(@loopback, port, @connect_opts)
+    end
+  end
+
+  defp await_probe_data(socket) do
+    case :gen_tcp.recv(socket, 0, @probe_timeout_ms) do
+      {:ok, @probe_data} ->
+        {:ok, socket}
+
+      {:ok, _data} ->
+        :gen_tcp.close(socket)
+        {:error, :unexpected_port_owner}
+
+      {:error, reason} ->
+        :gen_tcp.close(socket)
+        {:error, reason}
     end
   end
 
