@@ -120,8 +120,9 @@ defmodule Mix.Lock do
         end
 
       {:error, reason} ->
-        raise Mix.Error,
-              "failed to open a TCP socket while acquiring a lock, reason: #{inspect(reason)}"
+        Mix.raise(
+          "failed to open a TCP socket while acquiring a lock, reason: #{inspect(reason)}"
+        )
     end
   end
 
