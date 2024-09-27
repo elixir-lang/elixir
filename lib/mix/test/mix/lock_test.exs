@@ -6,26 +6,26 @@ defmodule Mix.LockTest do
   @lock_key Atom.to_string(__MODULE__)
 
   test "executes functions" do
-    assert Mix.Lock.lock(@lock_key, fn -> :it_works! end) == :it_works!
-    assert Mix.Lock.lock(@lock_key, fn -> :still_works! end) == :still_works!
+    assert Mix.Lock.with_lock(@lock_key, fn -> :it_works! end) == :it_works!
+    assert Mix.Lock.with_lock(@lock_key, fn -> :still_works! end) == :still_works!
   end
 
   test "releases lock on error" do
     assert_raise RuntimeError, fn ->
-      Mix.Lock.lock(@lock_key, fn -> raise "oops" end)
+      Mix.Lock.with_lock(@lock_key, fn -> raise "oops" end)
     end
 
-    assert Mix.Lock.lock(@lock_key, fn -> :still_works! end) == :still_works!
+    assert Mix.Lock.with_lock(@lock_key, fn -> :still_works! end) == :still_works!
   end
 
   test "releases lock on exit" do
     {_pid, ref} =
       spawn_monitor(fn ->
-        Mix.Lock.lock(@lock_key, fn -> Process.exit(self(), :kill) end)
+        Mix.Lock.with_lock(@lock_key, fn -> Process.exit(self(), :kill) end)
       end)
 
     assert_receive {:DOWN, ^ref, _, _, _}
-    assert Mix.Lock.lock(@lock_key, fn -> :still_works! end) == :still_works!
+    assert Mix.Lock.with_lock(@lock_key, fn -> :still_works! end) == :still_works!
   end
 
   test "blocks until released" do
@@ -33,7 +33,7 @@ defmodule Mix.LockTest do
 
     task =
       Task.async(fn ->
-        Mix.Lock.lock(@lock_key, fn ->
+        Mix.Lock.with_lock(@lock_key, fn ->
           send(parent, :locked)
           assert_receive :will_lock
           :it_works!
@@ -42,7 +42,7 @@ defmodule Mix.LockTest do
 
     assert_receive :locked
     send(task.pid, :will_lock)
-    assert Mix.Lock.lock(@lock_key, fn -> :still_works! end) == :still_works!
+    assert Mix.Lock.with_lock(@lock_key, fn -> :still_works! end) == :still_works!
     assert Task.await(task) == :it_works!
   end
 
@@ -52,7 +52,7 @@ defmodule Mix.LockTest do
 
     {pid, ref} =
       spawn_monitor(fn ->
-        Mix.Lock.lock(@lock_key, fn ->
+        Mix.Lock.with_lock(@lock_key, fn ->
           send(parent, :locked)
           assert_receive :will_lock
           raise "oops"
@@ -61,7 +61,7 @@ defmodule Mix.LockTest do
 
     assert_receive :locked
     send(pid, :will_lock)
-    assert Mix.Lock.lock(@lock_key, fn -> :still_works! end) == :still_works!
+    assert Mix.Lock.with_lock(@lock_key, fn -> :still_works! end) == :still_works!
     assert_receive {:DOWN, ^ref, _, _, _}
   end
 
@@ -70,7 +70,7 @@ defmodule Mix.LockTest do
 
     {pid, ref} =
       spawn_monitor(fn ->
-        Mix.Lock.lock(@lock_key, fn ->
+        Mix.Lock.with_lock(@lock_key, fn ->
           send(parent, :locked)
           assert_receive :will_not_lock
         end)
@@ -78,15 +78,15 @@ defmodule Mix.LockTest do
 
     assert_receive :locked
     Process.exit(pid, :kill)
-    assert Mix.Lock.lock(@lock_key, fn -> :still_works! end) == :still_works!
+    assert Mix.Lock.with_lock(@lock_key, fn -> :still_works! end) == :still_works!
     assert_receive {:DOWN, ^ref, _, _, _}
   end
 
   test "scheduls and releases on exit" do
-    assert Mix.Lock.lock(@lock_key, fn ->
+    assert Mix.Lock.with_lock(@lock_key, fn ->
              {pid, ref} =
                spawn_monitor(fn ->
-                 Mix.Lock.lock(@lock_key, fn ->
+                 Mix.Lock.with_lock(@lock_key, fn ->
                    raise "this will never be invoked"
                  end)
                end)
@@ -96,7 +96,7 @@ defmodule Mix.LockTest do
              :it_works!
            end) == :it_works!
 
-    assert Mix.Lock.lock(@lock_key, fn -> :still_works! end) == :still_works!
+    assert Mix.Lock.with_lock(@lock_key, fn -> :still_works! end) == :still_works!
   end
 
   @tag :tmp_dir
@@ -110,7 +110,7 @@ defmodule Mix.LockTest do
     refs =
       for _ <- 1..n do
         spawn_monitor(fn ->
-          Mix.Lock.lock(@lock_key, fn ->
+          Mix.Lock.with_lock(@lock_key, fn ->
             number = number_path |> File.read!() |> String.to_integer()
             new_number = number + 1
             File.write!(number_path, Integer.to_string(new_number))
@@ -135,8 +135,8 @@ defmodule Mix.LockTest do
   test "lock can be acquired multiple times by the same process" do
     {_pid, ref} =
       spawn_monitor(fn ->
-        Mix.Lock.lock(@lock_key, fn ->
-          Mix.Lock.lock(@lock_key, fn ->
+        Mix.Lock.with_lock(@lock_key, fn ->
+          Mix.Lock.with_lock(@lock_key, fn ->
             Process.exit(self(), :kill)
           end)
         end)
@@ -144,8 +144,8 @@ defmodule Mix.LockTest do
 
     assert_receive {:DOWN, ^ref, _, _, _}
 
-    assert Mix.Lock.lock(@lock_key, fn ->
-             Mix.Lock.lock(@lock_key, fn ->
+    assert Mix.Lock.with_lock(@lock_key, fn ->
+             Mix.Lock.with_lock(@lock_key, fn ->
                :still_works!
              end)
            end) == :still_works!

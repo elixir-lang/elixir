@@ -78,8 +78,8 @@ defmodule Mix.Lock do
   This function can also be called if this process already has the
   lock. In such case the function is executed immediately.
   """
-  @spec lock(iodata(), (-> term())) :: :ok
-  def lock(key, fun) do
+  @spec with_lock(iodata(), (-> term())) :: :ok
+  def with_lock(key, fun) do
     key = key |> :erlang.md5() |> Base.url_encode64(padding: false)
     path = Path.join([System.tmp_dir!(), "mix_lock", key])
 
@@ -95,6 +95,8 @@ defmodule Mix.Lock do
       try do
         fun.()
       after
+        # Unlocking will always close the socket, but it may raise,
+        # so we remove key from the dictionary first
         Process.delete(pdict_key)
         unlock(lock)
       end
@@ -104,22 +106,35 @@ defmodule Mix.Lock do
   defp lock(path) do
     File.mkdir_p!(path)
 
-    with {:ok, socket} <- :gen_tcp.listen(0, @listen_opts),
-         {:ok, port} <- :inet.port(socket) do
-      spawn_link(fn -> accept_loop(socket) end)
+    case listen() do
+      {:ok, socket, port} ->
+        spawn_link(fn -> accept_loop(socket) end)
 
-      try do
-        try_lock(path, socket, port)
-      rescue
-        exception ->
-          # Close the socket to make sure we don't block the lock
-          :gen_tcp.close(socket)
-          reraise exception, __STACKTRACE__
-      end
-    else
+        try do
+          try_lock(path, socket, port)
+        rescue
+          exception ->
+            # Close the socket to make sure we don't block the lock
+            :gen_tcp.close(socket)
+            reraise exception, __STACKTRACE__
+        end
+
       {:error, reason} ->
         raise Mix.Error,
               "failed to open a TCP socket while acquiring a lock, reason: #{inspect(reason)}"
+    end
+  end
+
+  defp listen() do
+    with {:ok, socket} <- :gen_tcp.listen(0, @listen_opts) do
+      case :inet.port(socket) do
+        {:ok, port} ->
+          {:ok, socket, port}
+
+        {:error, reason} ->
+          :socket.close(socket)
+          {:error, reason}
+      end
     end
   end
 
@@ -134,7 +149,10 @@ defmodule Mix.Lock do
         %{socket: socket, path: path}
 
       {:ok, _n} ->
-        # We grabbed lock_1+, so we need to replace lock_0 and clean up
+        # We grabbed lock_1+, so we need to replace lock_0 and clean
+        # up. This must happen in a precise order, so if anything
+        # fails, we keep the files as is and the next process that
+        # grabs the lock will do the cleanup
         take_over(path, port_path)
         %{socket: socket, path: path}
 
@@ -166,6 +184,13 @@ defmodule Mix.Lock do
 
       {:error, :enoent} ->
         :invalidated
+
+      {:error, reason} ->
+        raise File.LinkError,
+          reason: reason,
+          action: "create hard link",
+          existing: port_path,
+          new: lock_path
     end
   end
 
@@ -229,7 +254,15 @@ defmodule Mix.Lock do
   end
 
   defp await_close(socket) do
-    {:error, _reason} = :gen_tcp.recv(socket, 0)
+    case :gen_tcp.recv(socket, 0) do
+      {:error, :closed} ->
+        :ok
+
+      {:error, _other} ->
+        # In case of an unexpected error, we close the socket ourselves
+        # to retry
+        :gen_tcp.close(socket)
+    end
   end
 
   defp unlock(lock) do

@@ -47,7 +47,7 @@ defmodule Mix.Tasks.Compile.Erlang do
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, switches: @switches)
 
-    Mix.Lock.lock(Mix.Tasks.Compile.compile_lock_key(), fn ->
+    Mix.Lock.with_lock(Mix.Tasks.Compile.compile_lock_key(), fn ->
       project = Mix.Project.config()
       source_paths = project[:erlc_paths]
       Mix.Compilers.Erlang.assert_valid_erlc_paths(source_paths)

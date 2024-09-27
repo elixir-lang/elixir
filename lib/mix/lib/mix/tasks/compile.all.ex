@@ -13,7 +13,7 @@ defmodule Mix.Tasks.Compile.All do
   def run(args) do
     Mix.Project.get!()
 
-    Mix.Lock.lock(Mix.Tasks.Compile.compile_lock_key(), fn ->
+    Mix.Lock.with_lock(Mix.Tasks.Compile.compile_lock_key(), fn ->
       do_run(args)
     end)
   end
