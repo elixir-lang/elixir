@@ -200,6 +200,9 @@ defmodule Mix.Lock do
         _ = :gen_tcp.send(socket, @probe_data)
         accept_loop(listen_socket)
 
+      {:error, :eintr} ->
+        accept_loop(listen_socket)
+
       {:error, reason} when reason in [:closed, :einval] ->
         :ok
     end
@@ -244,6 +247,9 @@ defmodule Mix.Lock do
         :gen_tcp.close(socket)
         {:error, :unexpected_port_owner}
 
+      {:error, :eintr} ->
+        await_probe_data(socket)
+
       {:error, reason} ->
         :gen_tcp.close(socket)
         {:error, reason}
@@ -271,6 +277,9 @@ defmodule Mix.Lock do
     case :gen_tcp.recv(socket, 0) do
       {:error, :closed} ->
         :ok
+
+      {:error, :eintr} ->
+        await_close(socket)
 
       {:error, _other} ->
         # In case of an unexpected error, we close the socket ourselves
