@@ -102,7 +102,7 @@ defmodule Mix.Lock do
   end
 
   defp lock(path) do
-    :ok = File.mkdir_p(path)
+    File.mkdir_p!(path)
 
     {:ok, socket} = :gen_tcp.listen(0, @listen_opts)
     {:ok, port} = :inet.port(socket)
@@ -115,7 +115,7 @@ defmodule Mix.Lock do
   defp try_lock(path, socket, port) do
     port_path = Path.join(path, "port_#{port}")
 
-    :ok = File.write(port_path, <<port::unsigned-integer-32>>, [:raw])
+    File.write!(port_path, <<port::unsigned-integer-32>>, [:raw])
 
     case grab_lock(path, port_path, 0) do
       {:ok, 0} ->
@@ -204,16 +204,16 @@ defmodule Mix.Lock do
     lock_path = Path.join(path, "lock_0")
 
     # We linked to lock_N successfully, so port_path should exist
-    :ok = File.rename(port_path, lock_path)
+    File.rename!(port_path, lock_path)
 
-    {:ok, names} = File.ls(path)
+    names = File.ls!(path)
 
     for "port_" <> _ = name <- names do
-      _ = File.rm(Path.join(path, name))
+      File.rm!(Path.join(path, name))
     end
 
     for "lock_" <> _ = name <- names, name != "lock_0" do
-      _ = File.rm(Path.join(path, name))
+      File.rm!(Path.join(path, name))
     end
   end
 
@@ -225,9 +225,8 @@ defmodule Mix.Lock do
     port_path = Path.join(lock.path, "port_0")
     lock_path = Path.join(lock.path, "lock_0")
 
-    with :ok <- File.write(port_path, <<0::unsigned-integer-32>>, [:raw]) do
-      _ = File.rename(port_path, lock_path)
-    end
+    File.write!(port_path, <<0::unsigned-integer-32>>, [:raw])
+    File.rename!(port_path, lock_path)
 
     # Closing the socket will cause the accepting process to finish
     # and all accepted sockets (tied to that process) will get closed
