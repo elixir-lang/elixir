@@ -84,21 +84,20 @@ defmodule Mix.Lock do
     path = Path.join([System.tmp_dir!(), "mix_lock", key])
 
     pdict_key = {__MODULE__, path}
-    acquire_lock? = Process.get(pdict_key) == nil
+    has_lock? = Process.get(pdict_key)
 
-    if acquire_lock? do
+    if has_lock? do
+      fun.()
+    else
       lock = lock(path)
-      Process.put(pdict_key, lock)
+      Process.put(pdict_key, true)
 
       try do
         fun.()
       after
-        lock = Process.get(pdict_key)
         unlock(lock)
         Process.delete(pdict_key)
       end
-    else
-      fun.()
     end
   end
 
