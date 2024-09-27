@@ -66,6 +66,8 @@ defmodule Mix.Lock do
   @loopback {127, 0, 0, 1}
   @listen_opts [:binary, ip: @loopback, packet: :raw, nodelay: true, backlog: 128, active: false]
   @connect_opts [:binary, packet: :raw, nodelay: true, active: false]
+  # The probe data needs to be small enough that it will for sure be
+  # sent in a single packet by the socket.
   @probe_data "elixirlock"
   @probe_timeout_ms 5_000
 
