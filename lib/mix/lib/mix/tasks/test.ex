@@ -188,11 +188,12 @@ defmodule Mix.Tasks.Test do
       `--seed 0` disables randomization so the tests in a single file will always be ran
       in the same order they were defined in
 
-    * `--slowest` - prints timing information for the N slowest tests.
-      Automatically sets `--trace` and `--preload-modules`
+    * `--slowest` - prints timing information for the N slowest tests. Includes time spent in
+     `ExUnit.Callbacks.setup/1`. Automatically sets `--trace` and `--preload-modules`
 
     * `--slowest-modules` *(since v1.17.0)* - prints timing information for the N slowest
-      modules. Automatically sets `--trace` and `--preload-modules`
+      modules. Includes time spent in `ExUnit.Callbacks.setup/1`. Automatically sets
+      `--trace` and `--preload-modules`
 
     * `--stale` - runs only tests which reference modules that changed since the
       last time tests were ran with `--stale`. You can read more about this option
