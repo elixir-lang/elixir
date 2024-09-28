@@ -314,11 +314,14 @@ endef
 
 $(foreach APP, elixir iex, $(eval $(BUILD_MANPAGES)))
 
+define RM_MANPAGES
+rm -f man/$1
+rm -f man/$1.bak
+endef
+
 clean_man:
-	rm -f man/elixir.1
-	rm -f man/elixir.1.bak
-	rm -f man/iex.1
-	rm -f man/iex.1.bak
+	$(call RM_MANPAGES,elixir.1)
+	$(call RM_MANPAGES,iex.1)
 
 install_man: build_man
 	$(Q) mkdir -p $(DESTDIR)$(MAN_PREFIX)/man1
