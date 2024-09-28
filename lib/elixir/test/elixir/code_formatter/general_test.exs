@@ -869,6 +869,56 @@ defmodule Code.Formatter.GeneralTest do
       assert_format bad, good
     end
 
+    test "with def followed by module attribute" do
+      bad = """
+      defmodule Example do
+        @impl FooA
+        def a(), do: :something
+        @impl FooB
+        def b() do
+          :something_else
+        end
+      end
+      """
+
+      good = """
+      defmodule Example do
+        @impl FooA
+        def a(), do: :something
+
+        @impl FooB
+        def b() do
+          :something_else
+        end
+      end
+      """
+
+      assert_format bad, good
+    end
+
+    test "with def followed by def" do
+      bad = """
+      defmodule Example do
+        def a(), do: :something
+        def b() do
+          :something_else
+        end
+      end
+      """
+
+      good = """
+      defmodule Example do
+        def a(), do: :something
+
+        def b() do
+          :something_else
+        end
+      end
+      """
+
+      assert_format bad, good
+    end
+
     test "with multiple defs" do
       assert_same """
       def foo(:one), do: 1
