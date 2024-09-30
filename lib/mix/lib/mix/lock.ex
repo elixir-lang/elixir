@@ -80,7 +80,7 @@ defmodule Mix.Lock do
   This function can also be called if this process already has the
   lock. In such case the function is executed immediately.
   """
-  @spec with_lock(iodata(), (-> term())) :: :ok
+  @spec with_lock(iodata(), (-> term())) :: term()
   def with_lock(key, fun) do
     key = key |> :erlang.md5() |> Base.url_encode64(padding: false)
     path = Path.join([System.tmp_dir!(), "mix_lock", key])
