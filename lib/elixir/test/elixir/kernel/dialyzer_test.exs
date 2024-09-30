@@ -26,6 +26,7 @@ defmodule Kernel.DialyzerTest do
       :elixir,
       :elixir_env,
       :elixir_erl_pass,
+      :maps,
       ArgumentError,
       Atom,
       Code,
@@ -161,6 +162,11 @@ defmodule Kernel.DialyzerTest do
 
   test "no warnings on with when else has a no_return type", context do
     copy_beam!(context, Dialyzer.WithNoReturn)
+    assert_dialyze_no_warnings!(context)
+  end
+
+  test "no warnings on with when multiple else clauses and one is a no_return", context do
+    copy_beam!(context, Dialyzer.WithThrowingElse)
     assert_dialyze_no_warnings!(context)
   end
 
