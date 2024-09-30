@@ -638,7 +638,7 @@ defmodule Code.Formatter do
 
   defp block_args_to_algebra(args, min_line, max_line, state) do
     quoted_to_algebra = fn {kind, meta, _} = arg, args, state ->
-      newlines = maybe_add_newlines({kind, args}, meta)
+      newlines = handle_newlines(arg, args, meta[:end_of_expression][:newlines] || 1)
       {doc, state} = quoted_to_algebra(arg, :block, state)
       {{doc, block_next_line(kind), newlines}, state}
     end
@@ -656,12 +656,12 @@ defmodule Code.Formatter do
   defp block_next_line(:@), do: @empty
   defp block_next_line(_), do: break("")
 
-  defp maybe_add_newlines({:def, [{:@, _, _} = _next | _]}, _meta) do
-    @newlines
+  defp handle_newlines({current, _, _}, [{:@, _, _} = _next | _], newlines) when current != :@ do
+    max(newlines, 2)
   end
 
-  defp maybe_add_newlines(_, meta) do
-    meta[:end_of_expression][:newlines] || 1
+  defp handle_newlines(_, _, newlines) do
+    newlines
   end
 
   ## Operators
