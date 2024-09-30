@@ -426,7 +426,7 @@ translate_with_else(Meta, [{'else', Else}], S) ->
 
   Clauses = elixir_erl_clauses:get_clauses('else', [{'else', Else ++ [RaiseClause]}], match),
   {TranslatedClauses, SC} = elixir_erl_clauses:clauses(Clauses, SV#elixir_erl{extra=pin_guard}),
-  with_else_closure(Meta, TranslatedClauses, SC#elixir_erl{extra=SV#elixir_erl.extra}).
+  with_else_closure(Generated, TranslatedClauses, SC#elixir_erl{extra=SV#elixir_erl.extra}).
 
 with_else_closure(Meta, TranslatedClauses, S) ->
   Ann = ?ann(Meta),
