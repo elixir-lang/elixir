@@ -311,9 +311,6 @@ defmodule Mix.Tasks.New do
   # Where third-party dependencies like ExDoc output generated docs.
   /doc/
 
-  # Ignore .fetch files in case you like to edit your project deps locally.
-  /.fetch
-
   # If the VM crashes, it generates a dump, let's ignore it too.
   erl_crash.dump
 
