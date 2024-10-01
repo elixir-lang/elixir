@@ -878,7 +878,7 @@ defmodule Stream do
   """
   @spec transform(Enumerable.t(), acc, fun) :: Enumerable.t()
         when fun: (element, acc -> {Enumerable.t(), acc} | {:halt, acc}),
-             acc: any
+             acc: term
   def transform(enum, acc, reducer) when is_function(reducer, 2) do
     &do_transform(enum, fn -> acc end, reducer, &1, &2, nil, fn acc -> acc end)
   end
@@ -893,7 +893,7 @@ defmodule Stream do
         when start_fun: (-> acc),
              reducer: (element, acc -> {Enumerable.t(), acc} | {:halt, acc}),
              after_fun: (acc -> term),
-             acc: any
+             acc: term
   def transform(enum, start_fun, reducer, after_fun)
       when is_function(start_fun, 0) and is_function(reducer, 2) and is_function(after_fun, 1) do
     &do_transform(enum, start_fun, reducer, &1, &2, nil, after_fun)
@@ -920,7 +920,7 @@ defmodule Stream do
              reducer: (element, acc -> {Enumerable.t(), acc} | {:halt, acc}),
              last_fun: (acc -> {Enumerable.t(), acc} | {:halt, acc}),
              after_fun: (acc -> term),
-             acc: any
+             acc: term
   def transform(enum, start_fun, reducer, last_fun, after_fun)
       when is_function(start_fun, 0) and is_function(reducer, 2) and is_function(last_fun, 1) and
              is_function(after_fun, 1) do

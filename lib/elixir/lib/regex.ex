@@ -222,7 +222,7 @@ defmodule Regex do
       {:ok, Regex.compile!("foo", [:caseless])}
 
   """
-  @spec compile(binary, binary | [term]) :: {:ok, t} | {:error, any}
+  @spec compile(binary, binary | [term]) :: {:ok, t} | {:error, term}
   def compile(source, opts \\ "") when is_binary(source) do
     compile(source, opts, version())
   end

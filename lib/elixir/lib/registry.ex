@@ -471,7 +471,7 @@ defmodule Registry do
   """
   @doc since: "1.4.0"
   @spec dispatch(registry, key, dispatcher, keyword) :: :ok
-        when dispatcher: (entries :: [{pid, value}] -> term) | {module(), atom(), [any()]}
+        when dispatcher: (entries :: [{pid, value}] -> term) | {module(), atom(), [term()]}
   def dispatch(registry, key, mfa_or_fun, opts \\ [])
       when is_atom(registry) and is_function(mfa_or_fun, 1)
       when is_atom(registry) and tuple_size(mfa_or_fun) == 3 do

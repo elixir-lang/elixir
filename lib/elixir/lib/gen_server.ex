@@ -523,8 +523,8 @@ defmodule GenServer do
               {:ok, state}
               | {:ok, state, timeout | :hibernate | {:continue, continue_arg :: term}}
               | :ignore
-              | {:stop, reason :: any}
-            when state: any
+              | {:stop, reason :: term}
+            when state: term
 
   @doc """
   Invoked to handle synchronous `call/3` messages. `call/3` will block until a
@@ -1018,7 +1018,7 @@ defmodule GenServer do
   or `:ignore`, the process is terminated and this function returns
   `{:error, reason}` or `:ignore`, respectively.
   """
-  @spec start_link(module, any, options) :: on_start
+  @spec start_link(module, term, options) :: on_start
   def start_link(module, init_arg, options \\ []) when is_atom(module) and is_list(options) do
     do_start(:link, module, init_arg, options)
   end
@@ -1028,7 +1028,7 @@ defmodule GenServer do
 
   See `start_link/3` for more information.
   """
-  @spec start(module, any, options) :: on_start
+  @spec start(module, term, options) :: on_start
   def start(module, init_arg, options \\ []) when is_atom(module) and is_list(options) do
     do_start(:nolink, module, init_arg, options)
   end

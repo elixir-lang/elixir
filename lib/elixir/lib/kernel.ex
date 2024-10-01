@@ -630,7 +630,7 @@ defmodule Kernel do
 
   """
   @doc guard: true
-  @spec hd(nonempty_maybe_improper_list(elem, any)) :: elem when elem: term
+  @spec hd(nonempty_maybe_improper_list(elem, term)) :: elem when elem: term
   def hd(list) do
     :erlang.hd(list)
   end
@@ -2973,7 +2973,7 @@ defmodule Kernel do
           (term | nil -> {current_value, new_value} | :pop)
         ) :: {current_value, new_structure :: structure}
         when structure: Access.t(),
-             keys: nonempty_list(any),
+             keys: nonempty_list(term),
              current_value: Access.value(),
              new_value: Access.value()
   def get_and_update_in(data, keys, fun)

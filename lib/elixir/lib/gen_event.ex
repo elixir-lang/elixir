@@ -46,8 +46,8 @@ defmodule GenEvent do
   @callback init(args :: term) ::
               {:ok, state}
               | {:ok, state, :hibernate}
-              | {:error, reason :: any}
-            when state: any
+              | {:error, reason :: term}
+            when state: term
 
   @callback handle_event(event :: term, state :: term) ::
               {:ok, new_state}
