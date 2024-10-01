@@ -1,4 +1,4 @@
-# Enumerables and Streams
+# Enumerables and Innumerables
 
 While Elixir allows us to write recursive code, most operations we perform on collections is done with the help of the `Enum` and `Stream` modules. Let's learn how.
 
