@@ -401,7 +401,7 @@ defmodule MapSet do
 
   """
   @doc since: "1.15.0"
-  @spec split_with(MapSet.t(), (any() -> as_boolean(term))) :: {MapSet.t(), MapSet.t()}
+  @spec split_with(MapSet.t(), (term() -> as_boolean(term))) :: {MapSet.t(), MapSet.t()}
   def split_with(%MapSet{map: map}, fun) when is_function(fun, 1) do
     {while_true, while_false} = Map.split_with(map, fn {key, _} -> fun.(key) end)
     {%MapSet{map: while_true}, %MapSet{map: while_false}}

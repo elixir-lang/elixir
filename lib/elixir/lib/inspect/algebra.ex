@@ -438,7 +438,7 @@ defmodule Inspect.Algebra do
 
   """
   @doc since: "1.6.0"
-  @spec container_doc(t, [any], t, Inspect.Opts.t(), (term, Inspect.Opts.t() -> t), keyword()) ::
+  @spec container_doc(t, [term], t, Inspect.Opts.t(), (term, Inspect.Opts.t() -> t), keyword()) ::
           t
   def container_doc(left, collection, right, inspect_opts, fun, opts \\ [])
       when is_doc(left) and is_list(collection) and is_doc(right) and is_function(fun, 2) and
