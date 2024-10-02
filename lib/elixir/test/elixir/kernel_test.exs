@@ -450,6 +450,15 @@ defmodule KernelTest do
     end
   end
 
+  test "maybe_then/3" do
+    assert 1 |> maybe_then(true, fn x -> x * 2 end) == 2
+    assert 1 |> maybe_then(false, fn x -> x * 2 end) == 1
+
+    assert_raise BadArityError, fn ->
+      1 |> maybe_then(true, fn x, y -> x * y end)
+    end
+  end
+
   test "if/2 boolean optimization does not leak variables during expansion" do
     if false do
       :ok

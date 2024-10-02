@@ -2745,6 +2745,37 @@ defmodule Kernel do
   end
 
   @doc """
+  If the third argument, `condition` evaluates to `true`, it pipes the first
+  argument, `value`, into the third argument, a function `fun`, and returns
+  the result of calling `fun`. Otherwise, if `condition` evaluates to `false`,
+  it returns `value` unchanged.
+
+  In other words, if `condition` is `true`, it is the same as calling
+  `then(value, fun)` (see `then/2`); if `conidition` is `false`, it is the same
+  as calling `Function.identity(value)`.
+
+  It can be used in pipelines, using the `|>/2` operator, to execute some step
+  only in case a certain condition is met.
+
+  ### Examples
+
+      iex> 1 |> maybe_then(_some_condition = true, fn x -> x * 2 end)
+      2
+
+      iex> 1 |> maybe_then(_some_condition = false, fn x -> x * 2 end)
+      1
+
+      iex> ["abc", "beam"]
+      ...> |> maybe_then(upcase? = true, Enum.map(&String.upcase/1))
+      ["ABC", "BEAM"]
+  """
+  defmacro maybe_then(value, condition, fun) do
+    quote do
+      if unquote(condition), do: unquote(fun).(unquote(value)), else: unquote(value)
+    end
+  end
+
+  @doc """
   Gets a value from a nested structure with nil-safe handling.
 
   Uses the `Access` module to traverse the structures
