@@ -187,8 +187,8 @@ Before we move on to the next chapter, let's discuss the client/server dichotomy
 
 ```elixir
 def delete(bucket, key) do
-  Agent.get_and_update(bucket, fn dict ->
-    Map.pop(dict, key)
+  Agent.get_and_update(bucket, fn map ->
+    Map.pop(map, key)
   end)
 end
 ```
@@ -200,9 +200,9 @@ This distinction is important. If there are expensive actions to be done, you mu
 ```elixir
 def delete(bucket, key) do
   Process.sleep(1000) # puts client to sleep
-  Agent.get_and_update(bucket, fn dict ->
+  Agent.get_and_update(bucket, fn map ->
     Process.sleep(1000) # puts server to sleep
-    Map.pop(dict, key)
+    Map.pop(map, key)
   end)
 end
 ```
