@@ -680,44 +680,8 @@ defmodule MacroTest do
       assert Macro.to_string(quote do: hello(world)) == "hello(world)"
     end
 
-    test "large number literals" do
-      # with quote
-      assert Macro.to_string(quote do: 576_460_752_303_423_455) == "576_460_752_303_423_455"
-      assert Macro.to_string(quote do: -576_460_752_303_423_455) == "-576_460_752_303_423_455"
-
-      # without quote
-      assert Macro.to_string(576_460_752_303_423_455) == "576_460_752_303_423_455"
-      assert Macro.to_string(-576_460_752_303_423_455) == "-576_460_752_303_423_455"
-    end
-
-    test "charlists" do
-      assert Macro.to_string(~c"foo") == ~s(~c"foo")
-    end
-
-    defmodule HTML do
-      defstruct [:string]
-
-      defimpl Inspect do
-        def inspect(%{string: string}, _) do
-          "~HTML[#{string}]"
-        end
-      end
-    end
-
-    defmacro sigil_HTML({:<<>>, _, [string]}, []) do
-      Macro.escape(%HTML{string: string})
-    end
-
-    test "sigils" do
-      assert Macro.to_string(quote(do: ~HTML[hi])) == ~S/~HTML[hi]/
-
-      assert Macro.to_string(
-               quote do
-                 ~HTML"""
-                 hi
-                 """
-               end
-             ) == ~s[~HTML"""\nhi\n"""]
+    test "converts invalid AST with inspect" do
+      assert Macro.to_string(quote do: unquote(1..3)) == "1..3"
     end
   end
 

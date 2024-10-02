@@ -614,8 +614,11 @@ defmodule Code.Formatter do
   end
 
   # #PID's and #Ref's may appear on regular AST
+  # Other foreign structures, such as maps and structs,
+  # may appear from Macro.to_string, so we stick a limit,
+  # although they won't be formatted accordingly.
   defp quoted_to_algebra(unknown, _context, state) do
-    {inspect(unknown), state}
+    {inspect(unknown, printable_limit: :infinity), state}
   end
 
   ## Blocks

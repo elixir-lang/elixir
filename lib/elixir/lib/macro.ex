@@ -1125,6 +1125,10 @@ defmodule Macro do
   `Code.quoted_to_algebra/2` as a lower level function
   with more control around formatting.
 
+  If the AST contains invalid nodes, this function will
+  attempt to inspect them, to aid debugging, although
+  the elements won't be formatted accordingly.
+
   ## Examples
 
       iex> Macro.to_string(quote(do: foo.bar(1, 2, 3)))

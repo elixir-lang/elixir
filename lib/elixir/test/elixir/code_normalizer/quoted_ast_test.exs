@@ -226,17 +226,6 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(quoted) <> "\n" == expected
     end
 
-    test "invalid block" do
-      assert quoted_to_string({:__block__, [], {:bar, [], []}}) ==
-               "{:__block__, [], {:bar, [], []}}"
-
-      assert quoted_to_string({:foo, [], [{:do, :ok}, :not_keyword]}) ==
-               "foo({:do, :ok}, :not_keyword)"
-
-      assert quoted_to_string({:foo, [], [[{:do, :ok}, :not_keyword]]}) ==
-               "foo([{:do, :ok}, :not_keyword])"
-    end
-
     test "not in" do
       assert quoted_to_string(quote(do: false not in [])) == "false not in []"
     end
@@ -735,6 +724,23 @@ defmodule Code.Normalizer.QuotedASTTest do
 
       assert quoted_to_string(quote(do: :erlang.binary_to_atom(<<1>>, :utf8))) ==
                ~S":erlang.binary_to_atom(<<1>>, :utf8)"
+    end
+  end
+
+  describe "quoted_to_algebra/2 with invalid" do
+    test "block" do
+      assert quoted_to_string({:__block__, [], {:bar, [], []}}) ==
+               "{:__block__, [], {:bar, [], []}}"
+
+      assert quoted_to_string({:foo, [], [{:do, :ok}, :not_keyword]}) ==
+               "foo({:do, :ok}, :not_keyword)"
+
+      assert quoted_to_string({:foo, [], [[{:do, :ok}, :not_keyword]]}) ==
+               "foo([{:do, :ok}, :not_keyword])"
+    end
+
+    test "ode" do
+      assert quoted_to_string(1..3) == "1..3"
     end
   end
 
