@@ -226,7 +226,9 @@ defmodule Mix.Lock do
   defp connect(port) do
     # On Windows connecting to an unbound port takes a few seconds to
     # fail, so instead we shortcut the check by attempting a listen,
-    # which succeeds or fails immediately
+    # which succeeds or fails immediately. Note that `reuseaddr` here
+    # ensures that if the listening socket closed recently, we can
+    # immediately reclaim the same port.
     case :gen_tcp.listen(port, [reuseaddr: true] ++ @listen_opts) do
       {:ok, socket} ->
         :gen_tcp.close(socket)
