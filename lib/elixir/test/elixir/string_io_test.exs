@@ -392,4 +392,9 @@ defmodule StringIOTest do
     assert result == {:ok, [{:integer, 1, 1}, {:dot, 1}], 1}
     assert StringIO.contents(pid) == {"", "p>p>"}
   end
+
+  test "returns enotsup for files" do
+    {:ok, pid} = StringIO.open("123")
+    assert :file.position(pid, :cur) == {:error, :enotsup}
+  end
 end

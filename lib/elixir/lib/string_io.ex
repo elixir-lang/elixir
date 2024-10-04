@@ -188,6 +188,12 @@ defmodule StringIO do
     {:noreply, state}
   end
 
+  # Fail fast if someone tries to use it with a File API
+  def handle_info({:file_request, from, reply_as, _req}, state) do
+    send(from, {:file_reply, reply_as, {:error, :enotsup}})
+    {:noreply, state}
+  end
+
   def handle_info({:DOWN, _, _, _, _}, state) do
     {:stop, :shutdown, state}
   end
