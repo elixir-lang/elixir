@@ -103,6 +103,8 @@ defmodule ExUnit do
       * `:logs` - the captured logs
       * `:parameters` - the test parameters
 
+    When a test has finished, the following fields are added for consumption by `ExUnit.Formatter` callbacks:
+      * `:test_pid` - the pid that the test was running on
     """
     defstruct [:name, :case, :module, :state, time: 0, tags: %{}, logs: "", parameters: %{}]
 

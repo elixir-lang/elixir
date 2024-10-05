@@ -456,6 +456,7 @@ defmodule ExUnit.Runner do
   end
 
   defp receive_test_reply(test, test_pid, test_ref, timeout) do
+    test = Map.put(test, :test_pid, test_pid)
     receive do
       {^test_pid, :test_finished, test} ->
         Process.demonitor(test_ref, [:flush])
