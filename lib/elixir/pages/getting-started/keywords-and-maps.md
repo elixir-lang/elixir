@@ -259,7 +259,7 @@ iex> users = update_in users[:mary].languages, fn languages -> List.delete(langu
 ]
 ```
 
-There is more to learn about `get_in/1`, `pop_in/1` and others, including the `get_and_update_in/2` that allows us to extract a value and update the data structure at once. There are also `get_in/3`, `put_in/3`, `update_in/3`, `get_and_update_in/3`, `pop_in/2` which allow dynamic access into the data structure.
+There is more to learn about `get_in/1`, `pop_in/1` and others, including the `get_and_update_in/2` that allows us to extract a value and update the data structure at once. There are also `get_in/2`, `put_in/3`, `update_in/3`, `get_and_update_in/3`, `pop_in/2` which allow dynamic access into the data structure.
 
 ## Summary
 
