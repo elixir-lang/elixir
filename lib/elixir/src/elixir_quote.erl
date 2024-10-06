@@ -380,6 +380,7 @@ import_meta(Meta, Name, Arity, Q, E) ->
   case (keyfind(imports, Meta) == false) andalso
       elixir_dispatch:find_imports(Meta, Name, E) of
     [_ | _] = Imports ->
+      trace_import_quoted(Imports, Meta, Name, E),
       keystore(imports, keystore(context, Meta, Q#elixir_quote.context), Imports);
 
     _ ->
@@ -388,6 +389,20 @@ import_meta(Meta, Name, Arity, Q, E) ->
         _ -> Meta
       end
   end.
+
+trace_import_quoted([{Arity, Mod} | Imports], Meta, Name, E) ->
+  {Rest, Arities} = collect_trace_import_quoted(Imports, Mod, [], [Arity]),
+  elixir_env:trace({imported_quoted, Meta, Mod, Name, Arities}, E),
+  trace_import_quoted(Rest, Meta, Name, E);
+trace_import_quoted([], _Meta, _Name, _E) ->
+  ok.
+
+collect_trace_import_quoted([{Arity, Mod} | Imports], Mod, Acc, Arities) ->
+  collect_trace_import_quoted(Imports, Mod, Acc, [Arity | Arities]);
+collect_trace_import_quoted([Import | Imports], Mod, Acc, Arities) ->
+  collect_trace_import_quoted(Imports, Mod, [Import | Acc], Arities);
+collect_trace_import_quoted([], _Mod, Acc, Arities) ->
+  {lists:reverse(Acc), lists:reverse(Arities)}.
 
 %% do_quote_*
 

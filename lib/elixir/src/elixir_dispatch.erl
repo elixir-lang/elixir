@@ -46,23 +46,7 @@ find_imports(Meta, Name, E) ->
   Acc1 = find_imports_by_name(Funs, Acc0, Name, Meta, E),
   Acc2 = find_imports_by_name(Macs, Acc1, Name, Meta, E),
 
-  Imports = lists:sort(maps:to_list(Acc2)),
-  trace_import_quoted(Imports, Meta, Name, E),
-  Imports.
-
-trace_import_quoted([{Arity, Mod} | Imports], Meta, Name, E) ->
-  {Rest, Arities} = collect_trace_import_quoted(Imports, Mod, [], [Arity]),
-  elixir_env:trace({imported_quoted, Meta, Mod, Name, Arities}, E),
-  trace_import_quoted(Rest, Meta, Name, E);
-trace_import_quoted([], _Meta, _Name, _E) ->
-  ok.
-
-collect_trace_import_quoted([{Arity, Mod} | Imports], Mod, Acc, Arities) ->
-  collect_trace_import_quoted(Imports, Mod, Acc, [Arity | Arities]);
-collect_trace_import_quoted([Import | Imports], Mod, Acc, Arities) ->
-  collect_trace_import_quoted(Imports, Mod, [Import | Acc], Arities);
-collect_trace_import_quoted([], _Mod, Acc, Arities) ->
-  {lists:reverse(Acc), lists:reverse(Arities)}.
+  lists:sort(maps:to_list(Acc2)).
 
 %% Function retrieval
 
