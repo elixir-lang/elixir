@@ -151,7 +151,7 @@ defmodule PartitionSupervisor do
   @doc false
   def child_spec(opts) when is_list(opts) do
     id =
-      case Keyword.get(opts, :name, DynamicSupervisor) do
+      case Keyword.get(opts, :name, PartitionSupervisor) do
         name when is_atom(name) -> name
         {:via, _module, name} -> name
       end
