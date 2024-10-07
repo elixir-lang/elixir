@@ -243,19 +243,6 @@ defmodule Mix.Tasks.Compile do
     end)
   end
 
-  @doc false
-  def compile_lock_key() do
-    # To avoid duplicated compilation, we wrap compilation tasks, such
-    # as compile.all, deps.compile, compile.elixir, compile.erlang in
-    # a lock. Note that compile.all covers compile.elixir, but the
-    # latter can still be invoked directly, hence we put the lock over
-    # the individual tasks.
-
-    config = Mix.Project.config()
-    build_path = Mix.Project.build_path(config)
-    ["compile", build_path]
-  end
-
   ## Consolidation handling
 
   defp reconsolidate_protocols?(:ok), do: true

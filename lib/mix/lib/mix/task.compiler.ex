@@ -162,4 +162,18 @@ defmodule Mix.Task.Compiler do
         {:noop, []}
     end
   end
+
+  @doc false
+  def with_lock(config, fun) do
+    # To avoid duplicated compilation, we wrap compilation tasks, such
+    # as compile.all, deps.compile, compile.elixir, compile.erlang in
+    # a lock. Note that compile.all covers compile.elixir, but the
+    # latter can still be invoked directly, hence we put the lock over
+    # the individual tasks.
+
+    build_path = Mix.Project.build_path(config)
+    lock_key = ["compile", build_path]
+
+    Mix.Lock.with_lock(lock_key, fun)
+  end
 end
