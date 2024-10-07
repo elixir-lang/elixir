@@ -106,9 +106,9 @@ defmodule ExUnit.Runner do
         async_loop(config, running, async_once?, modules_to_restore)
 
       # Slots are available, start with async modules
-      async_modules = ExUnit.Server.take_async_modules(available) ->
-        running = spawn_modules(config, async_modules, true, running)
-        modules_to_restore = maybe_store_modules(modules_to_restore, :async, async_modules)
+      async_partitions = ExUnit.Server.take_async_partitions(available) ->
+        running = spawn_modules(config, async_partitions, true, running)
+        modules_to_restore = maybe_store_modules(modules_to_restore, :async, async_partitions)
         async_loop(config, running, true, modules_to_restore)
 
       true ->
@@ -159,6 +159,27 @@ defmodule ExUnit.Runner do
 
   defp spawn_modules(_config, [], _async, running) do
     running
+  end
+
+  defp spawn_modules(
+         config,
+         [{_partition_key, partition_modules} | modules],
+         true = async?,
+         running
+       )
+       when is_list(partition_modules) do
+    if max_failures_reached?(config) do
+      running
+    else
+      {pid, ref} =
+        spawn_monitor(fn ->
+          Enum.each(partition_modules, fn {module, params} ->
+            run_module(config, module, async?, params)
+          end)
+        end)
+
+      spawn_modules(config, modules, async?, Map.put(running, ref, pid))
+    end
   end
 
   defp spawn_modules(config, [{module, params} | modules], async?, running) do

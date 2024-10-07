@@ -294,7 +294,7 @@ defmodule ExUnit.Case do
 
   @type env :: module() | Macro.Env.t()
   @compile {:no_warn_undefined, [IEx.Pry]}
-  @reserved [:module, :file, :line, :test, :async, :registered, :describe]
+  @reserved [:module, :file, :line, :test, :async, :async_partition_key, :registered, :describe]
 
   @doc false
   defmacro __using__(opts) do
@@ -317,7 +317,7 @@ defmodule ExUnit.Case do
     end
 
     {register?, opts} = Keyword.pop(opts, :register, true)
-    {next_opts, opts} = Keyword.split(opts, [:async, :parameterize])
+    {next_opts, opts} = Keyword.split(opts, [:async, :async_partition_key, :parameterize])
 
     if opts != [] do
       IO.warn("unknown options given to ExUnit.Case: #{inspect(opts)}")
@@ -552,7 +552,12 @@ defmodule ExUnit.Case do
 
     opts = Module.get_attribute(module, :ex_unit_module, [])
     async? = Keyword.get(opts, :async, false)
+    async_partition_key = Keyword.get(opts, :async_partition_key, nil)
     parameterize = Keyword.get(opts, :parameterize, nil)
+
+    if async_partition_key != nil and async? == false do
+      raise ArgumentError, ":async_partition_key is only a valid option when async: true"
+    end
 
     if not (parameterize == nil or (is_list(parameterize) and Enum.all?(parameterize, &is_map/1))) do
       raise ArgumentError, ":parameterize must be a list of maps, got: #{inspect(parameterize)}"
@@ -569,7 +574,11 @@ defmodule ExUnit.Case do
       end
 
       def __ex_unit__(:config) do
-        {unquote(async?), unquote(Macro.escape(parameterize))}
+        %{
+          async?: unquote(async?),
+          async_partition_key: unquote(async_partition_key),
+          parameterize: unquote(Macro.escape(parameterize))
+        }
       end
     end
   end

@@ -9,7 +9,13 @@ defmodule ExUnit.Server do
     GenServer.start_link(__MODULE__, :ok, name: @name)
   end
 
-  def add_module(name, {async?, parameterize}) do
+  def add_module(name, config) do
+    %{
+      async?: async?,
+      async_partition_key: async_partition_key,
+      parameterize: parameterize
+    } = config
+
     modules =
       if parameterize do
         Enum.map(parameterize, &{name, &1})
@@ -17,7 +23,7 @@ defmodule ExUnit.Server do
         [{name, %{}}]
       end
 
-    case GenServer.call(@name, {:add, async?, modules}, @timeout) do
+    case GenServer.call(@name, {:add, {async?, async_partition_key}, modules}, @timeout) do
       :ok ->
         :ok
 
@@ -30,16 +36,16 @@ defmodule ExUnit.Server do
     GenServer.call(@name, {:modules_loaded, uniq?}, @timeout)
   end
 
-  def take_async_modules(count) do
-    GenServer.call(@name, {:take_async_modules, count}, @timeout)
+  def take_async_partitions(count) do
+    GenServer.call(@name, {:take_async_partitions, count}, @timeout)
   end
 
   def take_sync_modules() do
     GenServer.call(@name, :take_sync_modules, @timeout)
   end
 
-  def restore_modules(async_modules, sync_modules) do
-    GenServer.call(@name, {:restore_modules, async_modules, sync_modules}, @timeout)
+  def restore_modules(async_partitions, sync_modules) do
+    GenServer.call(@name, {:restore_modules, async_partitions, sync_modules}, @timeout)
   end
 
   ## Callbacks
@@ -51,7 +57,8 @@ defmodule ExUnit.Server do
     state = %{
       loaded: System.monotonic_time(),
       waiting: nil,
-      async_modules: :queue.new(),
+      async_partitions: %{},
+      async_partition_keys: :queue.new(),
       sync_modules: :queue.new()
     }
 
@@ -59,26 +66,30 @@ defmodule ExUnit.Server do
   end
 
   # Called on demand until we are signaled all modules are loaded.
-  def handle_call({:take_async_modules, count}, from, %{waiting: nil} = state) do
-    {:noreply, take_modules(%{state | waiting: {from, count}})}
+  def handle_call({:take_async_partitions, count}, from, %{waiting: nil} = state) do
+    {:noreply, take_module_partitions(%{state | waiting: {from, count}})}
   end
 
   # Called once after all async modules have been sent and reverts the state.
   def handle_call(:take_sync_modules, _from, state) do
-    %{waiting: nil, loaded: :done, async_modules: async_modules} = state
-    0 = :queue.len(async_modules)
+    %{waiting: nil, loaded: :done, async_partition_keys: async_partition_keys} = state
+    0 = :queue.len(async_partition_keys)
 
     {:reply, :queue.to_list(state.sync_modules),
      %{state | sync_modules: :queue.new(), loaded: System.monotonic_time()}}
   end
 
   # Called by the runner when --repeat-until-failure is used.
-  def handle_call({:restore_modules, async_modules, sync_modules}, _from, state) do
+  def handle_call({:restore_modules, async_partitions, sync_modules}, _from, state) do
+    async_partition_keys =
+      Enum.map(async_partitions, fn {partition_key, _modules} -> partition_key end)
+
     {:reply, :ok,
      %{
        state
        | loaded: :done,
-         async_modules: :queue.from_list(async_modules),
+         async_partitions: Map.new(async_partitions),
+         async_partition_keys: :queue.from_list(async_partition_keys),
          sync_modules: :queue.from_list(sync_modules)
      }}
   end
@@ -91,12 +102,19 @@ defmodule ExUnit.Server do
       when is_integer(loaded) do
     state =
       if uniq? do
-        async_modules = :queue.to_list(state.async_modules) |> Enum.uniq() |> :queue.from_list()
+        async_partitions =
+          state.async_partitions
+          |> Enum.map(fn {partition_key, modules} ->
+            partition_modules = Enum.uniq(modules)
+            {partition_key, partition_modules}
+          end)
+          |> Map.new()
+
         sync_modules = :queue.to_list(state.sync_modules) |> Enum.uniq() |> :queue.from_list()
 
         %{
           state
-          | async_modules: async_modules,
+          | async_partitions: async_partitions,
             sync_modules: sync_modules
         }
       else
@@ -104,21 +122,42 @@ defmodule ExUnit.Server do
       end
 
     diff = System.convert_time_unit(System.monotonic_time() - loaded, :native, :microsecond)
-    {:reply, diff, take_modules(%{state | loaded: :done})}
+    {:reply, diff, take_module_partitions(%{state | loaded: :done})}
   end
 
-  def handle_call({:add, true, names}, _from, %{loaded: loaded} = state)
+  def handle_call({:add, {true, async_partition_key}, names}, _from, %{loaded: loaded} = state)
       when is_integer(loaded) do
     state =
-      update_in(
-        state.async_modules,
-        &Enum.reduce(names, &1, fn name, q -> :queue.in(name, q) end)
-      )
+      Enum.reduce(names, state, fn name, updated_state ->
+        async_partition_key = async_partition_key || default_async_partition_key(name)
+        partition_key_exists? = Map.has_key?(state.async_partitions, async_partition_key)
 
-    {:reply, :ok, take_modules(state)}
+        updated_state
+        |> update_in([:async_partitions], fn async_partitions ->
+          {_, async_partitions} =
+            Map.get_and_update(async_partitions, async_partition_key, fn
+              nil ->
+                {nil, [name]}
+
+              modules ->
+                {modules, [name | modules]}
+            end)
+
+          async_partitions
+        end)
+        |> update_in([:async_partition_keys], fn q ->
+          if partition_key_exists? do
+            q
+          else
+            :queue.in(async_partition_key, q)
+          end
+        end)
+      end)
+
+    {:reply, :ok, take_module_partitions(state)}
   end
 
-  def handle_call({:add, false, names}, _from, %{loaded: loaded} = state)
+  def handle_call({:add, {false, _async_partition_key}, names}, _from, %{loaded: loaded} = state)
       when is_integer(loaded) do
     state =
       update_in(state.sync_modules, &Enum.reduce(names, &1, fn name, q -> :queue.in(name, q) end))
@@ -126,28 +165,57 @@ defmodule ExUnit.Server do
     {:reply, :ok, state}
   end
 
-  def handle_call({:add, _async?, _names}, _from, state),
+  def handle_call({:add, {_async?, _async_partition_key}, _names}, _from, state),
     do: {:reply, :already_running, state}
 
-  defp take_modules(%{waiting: nil} = state) do
+  defp default_async_partition_key({module, params}) do
+    if params == %{} do
+      module
+    else
+      # if no async partition is specified, parameters run concurrently
+      "#{module}_#{:erlang.phash2(params)}"
+    end
+  end
+
+  defp take_module_partitions(%{waiting: nil} = state) do
     state
   end
 
-  defp take_modules(%{waiting: {from, count}} = state) do
-    has_async_modules? = not :queue.is_empty(state.async_modules)
+  defp take_module_partitions(%{waiting: {from, count}} = state) do
+    has_async_partitions? = not :queue.is_empty(state.async_partition_keys)
 
     cond do
-      not has_async_modules? and state.loaded == :done ->
+      not has_async_partitions? and state.loaded == :done ->
         GenServer.reply(from, nil)
         %{state | waiting: nil}
 
-      not has_async_modules? ->
+      not has_async_partitions? ->
         state
 
       true ->
-        {modules, async_modules} = take_until(count, state.async_modules)
-        GenServer.reply(from, modules)
-        %{state | async_modules: async_modules, waiting: nil}
+        {partition_keys, remaining_partition_keys} =
+          take_until(count, state.async_partition_keys)
+
+        {async_partitions, remaining_partitions} =
+          Enum.map_reduce(partition_keys, state.async_partitions, fn partition_key,
+                                                                     remaining_partitions ->
+            {partition_modules, remaining_partitions} =
+              Map.pop!(remaining_partitions, partition_key)
+
+            {
+              {partition_key, Enum.reverse(partition_modules)},
+              remaining_partitions
+            }
+          end)
+
+        GenServer.reply(from, async_partitions)
+
+        %{
+          state
+          | async_partition_keys: remaining_partition_keys,
+            async_partitions: remaining_partitions,
+            waiting: nil
+        }
     end
   end
 
