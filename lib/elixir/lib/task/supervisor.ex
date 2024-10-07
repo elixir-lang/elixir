@@ -498,7 +498,7 @@ defmodule Task.Supervisor do
   Starts a task as a child of the given `supervisor`.
 
       Task.Supervisor.start_child(MyTaskSupervisor, fn ->
-        IO.puts "I am running in a task"
+        IO.puts("I am running in a task")
       end)
 
   Note that the spawned process is not linked to the caller, but
