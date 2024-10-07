@@ -2674,6 +2674,69 @@ defmodule Macro do
     end
   end
 
+  defp dbg_ast_to_debuggable({:with, meta, args} = ast, _env) do
+    {opts, clauses} =
+      List.pop_at(args, -1)
+
+    modified_clauses =
+      Enum.flat_map(clauses, fn
+        {:<-, _meta, [left, right]} = clause ->
+          quote do
+            [
+              line = Keyword.get(unquote(meta), :line),
+              code = unquote(Macro.escape(clause)),
+              value = unquote(right),
+              unquote(:<-)({{line, code, value}, unquote(left)}, {{line, code, value}, value})
+            ]
+          end
+
+        # Other expressions are omitted.
+        expr ->
+          [expr]
+      end)
+
+    modified_opts =
+      case opts do
+        [do: do_code] ->
+          else_code =
+            quote do
+              [
+                unquote(:->)(
+                  [{unquote({:unmatched_ast, [], Elixir}), unquote({:result, [], Elixir})}],
+                  {:__else__, unquote({:unmatched_ast, [], Elixir}),
+                   unquote({:result, [], Elixir})}
+                )
+              ]
+            end
+
+          [do: {:__matched__, do_code}, else: else_code]
+
+        [do: do_code, else: else_code] ->
+          else_code =
+            Enum.map(else_code, fn
+              {:->, meta, [[left], right]} = else_clause ->
+                quote do
+                  unquote(:->)(
+                    [{unquote({:unmatched_ast, [], Elixir}), unquote(left)}],
+                    {:__else__, unquote({:unmatched_ast, [], Elixir}),
+                     {Keyword.get(unquote(meta), :line), unquote(Macro.escape(else_clause))},
+                     unquote(right)}
+                  )
+                end
+            end)
+
+          [do: {:__matched__, do_code}, else: else_code]
+      end
+
+    modified = modified_clauses ++ [modified_opts]
+    modified_with_ast = {:with, meta, modified}
+
+    quote do
+      value = unquote(modified_with_ast)
+      {:with, unquote(Macro.escape(ast)), [], value}
+    end
+  end
+
   # Any other AST.
   defp dbg_ast_to_debuggable(ast, _env) do
     quote do: {:value, unquote(escape(ast)), unquote(ast)}
@@ -2826,6 +2889,47 @@ defmodule Macro do
     ]
 
     {formatted, result}
+  end
+
+  defp dbg_format_ast_to_debug({:with, _ast, [], {:__matched__, value}}, options) do
+    formatted = [
+      dbg_maybe_underline("All with clauses matched, result:", options),
+      ?\n,
+      inspect(value, options),
+      ?\n
+    ]
+
+    {formatted, value}
+  end
+
+  defp dbg_format_ast_to_debug(
+         {:with, _ast, [], {:__else__, {line, clause_ast, _}, value}},
+         options
+       ) do
+    formatted = [
+      dbg_maybe_underline("With clause unmatched on line #{line}", options),
+      ?\n,
+      dbg_format_ast_with_value(clause_ast, value, options)
+    ]
+
+    {formatted, value}
+  end
+
+  defp dbg_format_ast_to_debug(
+         {:with, _ast, [],
+          {:__else__, {line, clause_ast, clause_result}, {else_line, else_ast}, value}},
+         options
+       ) do
+    formatted = [
+      dbg_maybe_underline("With clause unmatched on line #{line}", options),
+      ?\n,
+      dbg_format_ast_with_value(clause_ast, clause_result, options),
+      dbg_maybe_underline("Then else clause matched on line #{else_line}", options),
+      ?\n,
+      dbg_format_ast_with_value(else_ast, value, options)
+    ]
+
+    {formatted, value}
   end
 
   defp dbg_format_ast_to_debug({:value, code_ast, value}, options) do

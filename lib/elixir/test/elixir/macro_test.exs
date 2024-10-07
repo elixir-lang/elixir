@@ -652,6 +652,69 @@ defmodule MacroTest do
              """
     end
 
+    test "with with/1 (all clauses match)" do
+      opts = %{width: 10, height: 15}
+
+      {result, formatted} =
+        dbg_format(
+          with {:ok, width} <- Map.fetch(opts, :width),
+               double_width = width * 2,
+               IO.puts("just a side effect"),
+               {:ok, height} <- Map.fetch(opts, :height) do
+            {:ok, double_width * height}
+          end
+        )
+
+      assert result == {:ok, 300}
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             All with clauses matched, result:
+             {:ok, 300}
+             """
+    end
+
+    test "with with/1 (no else)" do
+      opts = %{width: 10}
+
+      {result, formatted} =
+        dbg_format(
+          with {:ok, width} <- Map.fetch(opts, :width),
+               {:ok, height} <- Map.fetch(opts, :height) do
+            {:ok, width * height}
+          end
+        )
+
+      assert result == :error
+
+      assert formatted =~ "macro_test.exs"
+      assert formatted =~ "With clause unmatched on line"
+      assert formatted =~ "{:ok, height} <- Map.fetch(opts, :height) #=> :error"
+    end
+
+    test "with with/1 (else clause)" do
+      opts = %{width: 10}
+
+      {result, formatted} =
+        dbg_format(
+          with {:ok, width} <- Map.fetch(opts, :width),
+               {:ok, height} <- Map.fetch(opts, :height) do
+            width * height
+          else
+            :error -> 0
+          end
+        )
+
+      assert result == 0
+
+      assert formatted =~ "macro_test.exs"
+      assert formatted =~ "With clause unmatched on line"
+      assert formatted =~ "{:ok, height} <- Map.fetch(opts, :height) #=> :error"
+      assert formatted =~ "Then else clause matched on line"
+      assert formatted =~ "->(:error, 0) #=> 0"
+    end
+
     test "with \"syntax_colors: []\" it doesn't print any color sequences" do
       {_result, formatted} = dbg_format("hello")
       refute formatted =~ "\e["
