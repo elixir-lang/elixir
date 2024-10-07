@@ -91,7 +91,7 @@ We can also use this syntax to access documentation. The Elixir shell defines th
 
 ```elixir
 iex> h trunc/1
-                             def trunc()
+                             def trunc(number)
 
 Returns the integer part of number.
 ```
@@ -100,7 +100,7 @@ Returns the integer part of number.
 
 ```elixir
 iex> h Kernel.trunc/1
-                             def trunc()
+                             def trunc(number)
 
 Returns the integer part of number.
 ```
