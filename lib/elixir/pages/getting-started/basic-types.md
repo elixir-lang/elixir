@@ -322,11 +322,20 @@ iex> 1 == 2.0
 false
 ```
 
-However, you can use the strict comparison operator [`===`](`===/2`) and [`!==`](`!==/2`) if you want to distinguish between integers and floats (that's the only difference between these operators):
+However, you can use the strict comparison operator [`===`](`===/2`) and [`!==`](`!==/2`) if you want to distinguish between integers and floats:
 
 ```elixir
 iex> 1 === 1.0
 false
+```
+
+Besides this distinction, since Erlang 27, strict comparison operators are also considering `+0.0` and `-0.0` as non-equal:
+
+```elixir
+iex> +0.0 === -0.0
+false
+iex> +0.0 == -0.0
+true
 ```
 
 The comparison operators in Elixir can compare across any data type. We say these operators perform _structural comparison_. For more information, you can read our documentation on [Structural vs Semantic comparisons](`Kernel#module-structural-comparison`).
