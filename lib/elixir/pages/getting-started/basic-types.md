@@ -70,7 +70,7 @@ iex> trunc(3.58)
 3
 ```
 
-Finally, we work with different data types, we will learn Elixir provides several predicate functions to check for the type of a value. For example, the [`is_integer`](`is_integer/1`) can be used to check if a value is an integer or not:
+Finally, we work with different data types, we will learn Elixir provides several predicate functions to check for the type of a value. For example, [`is_integer`](`is_integer/1`) can be used to check if a value is an integer or not:
 
 ```elixir
 iex> is_integer(1)
