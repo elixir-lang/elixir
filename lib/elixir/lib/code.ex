@@ -123,7 +123,7 @@ defmodule Code do
       of the imported function/macro. A :remote_function/:remote_macro event
       may still be emitted for the imported module/name/arity.
 
-    * `{:imported_quoted, meta, module, name, [arity]} - traced whenever an
+    * `{:imported_quoted, meta, module, name, [arity]}` - traced whenever an
       imported function or macro is processed inside a `quote/2`. `meta` is the
       call AST metadata, `module` is the module the import is from, followed by
       the `name` and a list of `arities` of the imported function/macro.
