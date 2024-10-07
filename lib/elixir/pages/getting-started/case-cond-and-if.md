@@ -1,10 +1,10 @@
 # case, cond, and if
 
-In this chapter, we will learn about the `case`, `cond`, and `if` control flow structures.
+In this chapter, we will learn about the [`case`](`case/2`), [`cond`](`cond/1`), and [`if`](`if/2`) control flow structures.
 
 ## case
 
-`case` allows us to compare a value against many patterns until we find a matching one:
+[`case`](`case/2`) allows us to compare a value against many patterns until we find a matching one:
 
 ```elixir
 iex> case {1, 2, 3} do
@@ -18,7 +18,7 @@ iex> case {1, 2, 3} do
 "This clause will match and bind x to 2 in this clause"
 ```
 
-If you want to pattern match against an existing variable, you need to use the `^` operator:
+If you want to pattern match against an existing variable, you need to use the [`^`](`^/1`) operator:
 
 ```elixir
 iex> x = 1
@@ -69,7 +69,7 @@ The documentation for the `Kernel` module lists all available guards in its side
 
 ## if
 
-`case` builds on pattern matching and guards to destructure and match on certain conditions. However, patterns and guards are limited only to certain expressions which are optimized by the compiler. In many situations, you need to write conditions that go beyond what can be expressed with `case`. For those, `if/2` is a useful alternative:
+[`case`](`case/2`) builds on pattern matching and guards to destructure and match on certain conditions. However, patterns and guards are limited only to certain expressions which are optimized by the compiler. In many situations, you need to write conditions that go beyond what can be expressed with [`case`](`case/2`). For those, [`if`](`if/2`) is a useful alternative:
 
 ```elixir
 iex> if true do
@@ -82,9 +82,9 @@ iex> if false do
 nil
 ```
 
-If the condition given to `if/2` returns `false` or `nil`, the body given between `do`-`end` is not executed and instead it returns `nil`.
+If the condition given to [`if`](`if/2`) returns `false` or `nil`, the body given between `do`-`end` is not executed and instead it returns `nil`.
 
-`if/2` also supports `else` blocks:
+[`if`](`if/2`) also supports `else` blocks:
 
 ```elixir
 iex> if nil do
@@ -95,7 +95,7 @@ iex> if nil do
 "This will"
 ```
 
-This is also a good opportunity to talk about variable scoping in Elixir. If any variable is declared or changed inside `if`, `case`, and similar constructs, the declaration and change will only be visible inside the construct. For example:
+This is also a good opportunity to talk about variable scoping in Elixir. If any variable is declared or changed inside [`if`](`if/2`), [`case`](`case/2`), and similar constructs, the declaration and change will only be visible inside the construct. For example:
 
 ```elixir
 iex> x = 1
@@ -108,7 +108,7 @@ iex> x
 1
 ```
 
-In said cases, if you want to change a value, you must return the value from the `if`:
+In said cases, if you want to change a value, you must return the value from the [`if`](`if/2`):
 
 ```elixir
 iex> x = 1
@@ -123,13 +123,13 @@ iex> x = if true do
 
 > #### `if` is a macro {: .info}
 >
-> An interesting note regarding `if/2` is that it is implemented as a macro in the language: it isn't a special language construct as it would be in many languages. You can check the documentation and its source for more information.
+> An interesting note regarding [`if`](`if/2`) is that it is implemented as a macro in the language: it isn't a special language construct as it would be in many languages. You can check the documentation and its source for more information.
 
-If you find yourself nesting several `if/2` blocks, you may want to consider using `cond/1` instead. Let's check it out.
+If you find yourself nesting several [`if`](`if/2`) blocks, you may want to consider using [`cond`](`cond/1`) instead. Let's check it out.
 
 ## cond
 
-If you need to check across several conditions and find the first one that does not evaluate to `nil` or `false`, `cond/1` is a useful construct:
+If you need to check across several conditions and find the first one that does not evaluate to `nil` or `false`, [`cond`](`cond/1`) is a useful construct:
 
 ```elixir
 iex> cond do
@@ -159,7 +159,7 @@ iex> cond do
 "This is always true (equivalent to else)"
 ```
 
-Similar to `if/2`, `cond` considers any value besides `nil` and `false` to be true:
+Similar to [`if`](`if/2`), [`cond`](`cond/1`) considers any value besides `nil` and `false` to be true:
 
 ```elixir
 iex> cond do
@@ -171,4 +171,4 @@ iex> cond do
 
 ## Summing up
 
-We have concluded the introduction to the most fundamental control-flow constructs in Elixir. Generally speaking, Elixir developers prefer pattern matching and guards, using `case` and function definitions (which we will explore in future chapters), as they are succinct and precise. When your logic cannot be outlined within patterns and guards, you may consider `if/2`, falling back to `cond/1` when there are several conditions to check.
+We have concluded the introduction to the most fundamental control-flow constructs in Elixir. Generally speaking, Elixir developers prefer pattern matching and guards, using [`case`](`case/2`) and function definitions (which we will explore in future chapters), as they are succinct and precise. When your logic cannot be outlined within patterns and guards, you may consider [`if`](`if/2`), falling back to [`cond`](`cond/1`) when there are several conditions to check.

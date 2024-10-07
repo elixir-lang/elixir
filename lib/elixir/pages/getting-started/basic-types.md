@@ -26,7 +26,7 @@ iex> 10 / 2
 5.0
 ```
 
-Notice that `10 / 2` returned a float `5.0` instead of an integer `5`. This is expected. In Elixir, the operator `/` always returns a float. If you want to do integer division or get the division remainder, you can invoke the `div` and `rem` functions:
+Notice that `10 / 2` returned a float `5.0` instead of an integer `5`. This is expected. In Elixir, the operator [`/`](`//2`) always returns a float. If you want to do integer division or get the division remainder, you can invoke the [`div`](`div/2`) and [`rem`](`rem/2`) functions:
 
 ```elixir
 iex> div(10, 2)
@@ -61,7 +61,7 @@ iex> 1.0e-10
 
 Floats in Elixir are 64-bit precision.
 
-You can invoke the `round` function to get the closest integer to a given float, or the `trunc` function to get the integer part of a float.
+You can invoke the [`round`](`round/1`) function to get the closest integer to a given float, or the [`trunc`](`trunc/1`) function to get the integer part of a float.
 
 ```elixir
 iex> round(3.58)
@@ -70,7 +70,7 @@ iex> trunc(3.58)
 3
 ```
 
-Finally, we work with different data types, we will learn Elixir provides several predicate functions to check for the type of a value. For example, the `is_integer` can be used to check if a value is an integer or not:
+Finally, we work with different data types, we will learn Elixir provides several predicate functions to check for the type of a value. For example, [`is_integer`](`is_integer/1`) can be used to check if a value is an integer or not:
 
 ```elixir
 iex> is_integer(1)
@@ -79,7 +79,7 @@ iex> is_integer(2.0)
 false
 ```
 
-You can also use `is_float` or `is_number` to check, respectively, if an argument is a float, or either an integer or float.
+You can also use [`is_float`](`is_float/1`) or [`is_number`](`is_number/1`) to check, respectively, if an argument is a float, or either an integer or float.
 
 ## Identifying functions and documentation
 
@@ -118,7 +118,7 @@ iex> true == false
 false
 ```
 
-Elixir also provides three boolean operators: `or/2`, `and/2`, and `not/1`. These operators are strict in the sense that they expect something that evaluates to a boolean (`true` or `false`) as their first argument:
+Elixir also provides three boolean operators: [`or`](`or/2`), [`and`](`and/2`), and [`not`](`not/1`). These operators are strict in the sense that they expect something that evaluates to a boolean (`true` or `false`) as their first argument:
 
 ```elixir
 iex> true and true
@@ -219,7 +219,7 @@ iex> "hellö"
 
 > Note: if you are running on Windows, there is a chance your terminal does not use UTF-8 by default. You can change the encoding of your current session by running `chcp 65001` before entering IEx.
 
-You can concatenate two strings with the `<>/2` operator:
+You can concatenate two strings with the [`<>`](`<>/2`) operator:
 
 ```elixir
 iex> "hello " <> "world!"
@@ -252,7 +252,7 @@ iex> "hello\nworld"
 "hello\nworld"
 ```
 
-You can print a string using the `IO.puts/1` function from the `IO` module:
+You can print a string using the [`IO.puts`](`IO.puts/1`) function from the `IO` module:
 
 ```elixir
 iex> IO.puts("hello\nworld")
@@ -261,7 +261,7 @@ world
 :ok
 ```
 
-Notice that the `IO.puts/1` function returns the atom `:ok` after printing.
+Notice that the [`IO.puts`](`IO.puts/1`) function returns the atom `:ok` after printing.
 
 Strings in Elixir are represented internally by contiguous sequences of bytes known as binaries:
 
@@ -277,7 +277,7 @@ iex> byte_size("hellö")
 6
 ```
 
-Notice that the number of bytes in that string is 6, even though it has 5 graphemes. That's because the grapheme "ö" takes 2 bytes to be represented in UTF-8. We can get the actual length of the string, based on the number of graphemes, by using the `String.length/1` function:
+Notice that the number of bytes in that string is 6, even though it has 5 graphemes. That's because the grapheme "ö" takes 2 bytes to be represented in UTF-8. We can get the actual length of the string, based on the number of graphemes, by using the [`String.length`](`String.length/1`) function:
 
 ```elixir
 iex> String.length("hellö")
@@ -293,7 +293,7 @@ iex> String.upcase("hellö")
 
 ## Structural comparison
 
-Elixir also provides `==`, `!=`, `<=`, `>=`, `<` and `>` as comparison operators. We can compare numbers:
+Elixir also provides [`==`](`==/2`), [`!=`](`!=/2`), [`<=`](`<=/2`), [`>=`](`>=/2`), [`<`](`</2`) and [`>`](`>/2`) as comparison operators. We can compare numbers:
 
 ```elixir
 iex> 1 == 1
@@ -322,7 +322,7 @@ iex> 1 == 2.0
 false
 ```
 
-However, you can use the strict comparison operator `===` and `!==` if you want to distinguish between integers and floats (that's the only difference between these operators):
+However, you can use the strict comparison operator [`===`](`===/2`) and [`!==`](`!==/2`) if you want to distinguish between integers and floats (that's the only difference between these operators):
 
 ```elixir
 iex> 1 === 1.0
