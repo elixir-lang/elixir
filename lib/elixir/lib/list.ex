@@ -634,9 +634,37 @@ defmodule List do
   end
 
   @deprecated "Use Enum.zip/1 instead"
-  def zip(list_of_lists) when is_list(list_of_lists) do
-    Enum.zip(list_of_lists)
+  # We keep the old implementation because it also supported lists
+  # of tuples, even though this was not included in its @spec.
+  def zip([]), do: []
+  def zip(list_of_lists) when is_list(list_of_lists), do: do_zip(list_of_lists, [])
+
+  defp do_zip(list, acc) do
+    converter = fn x, acc -> do_zip_each(to_list(x), acc) end
+
+    case :lists.mapfoldl(converter, [], list) do
+      {_, nil} ->
+        :lists.reverse(acc)
+
+      {mlist, heads} ->
+        do_zip(mlist, [to_tuple(:lists.reverse(heads)) | acc])
+    end
   end
+
+  defp do_zip_each(_, nil) do
+    {nil, nil}
+  end
+
+  defp do_zip_each([head | tail], acc) do
+    {tail, [head | acc]}
+  end
+
+  defp do_zip_each([], _) do
+    {nil, nil}
+  end
+
+  defp to_list(tuple) when is_tuple(tuple), do: Tuple.to_list(tuple)
+  defp to_list(list) when is_list(list), do: list
 
   @doc ~S"""
   Checks if `list` is a charlist made only of printable ASCII characters.
