@@ -46,7 +46,7 @@ It is also very common to use `IO.inspect/2` with `binding/0`, which returns all
 
 ```elixir
 def some_fun(a, b, c) do
-  IO.inspect binding()
+  IO.inspect(binding())
   ...
 end
 ```

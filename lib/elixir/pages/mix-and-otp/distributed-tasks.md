@@ -38,7 +38,7 @@ Let's define a module named `Hello` in this shell:
 
 ```elixir
 iex> defmodule Hello do
-...>   def world, do: IO.puts "hello world"
+...>   def world, do: IO.puts("hello world")
 ...> end
 ```
 
@@ -102,7 +102,7 @@ So far we have explored tasks that are started and run in isolation, without reg
 
 ```elixir
 task = Task.async(fn -> compute_something_expensive() end)
-res  = compute_something_else()
+res = compute_something_else()
 res + Task.await(task)
 ```
 

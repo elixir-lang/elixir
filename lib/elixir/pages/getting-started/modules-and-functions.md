@@ -143,8 +143,8 @@ defmodule Concat do
   end
 end
 
-IO.puts Concat.join("Hello", "world")      #=> Hello world
-IO.puts Concat.join("Hello", "world", "_") #=> Hello_world
+IO.puts(Concat.join("Hello", "world"))      #=> Hello world
+IO.puts(Concat.join("Hello", "world", "_")) #=> Hello_world
 ```
 
 Any expression is allowed to serve as a default value, but it won't be evaluated during the function definition. Every time the function is invoked and any of its default values have to be used, the expression for that default value will be evaluated:
@@ -182,9 +182,9 @@ defmodule Concat do
   end
 end
 
-IO.puts Concat.join("Hello", "world")      #=> Hello world
-IO.puts Concat.join("Hello", "world", "_") #=> Hello_world
-IO.puts Concat.join("Hello")               #=> Hello
+IO.puts(Concat.join("Hello", "world"))      #=> Hello world
+IO.puts(Concat.join("Hello", "world", "_")) #=> Hello_world
+IO.puts(Concat.join("Hello"))               #=> Hello
 ```
 
 When a variable is not used by a function or a clause, we add a leading underscore (`_`) to its name to signal this intent. This rule is also covered in our [Naming Conventions](../references/naming-conventions.md#underscore-_foo) document.
@@ -194,12 +194,12 @@ When using default values, one must be careful to avoid overlapping function def
 ```elixir
 defmodule Concat do
   def join(a, b) do
-    IO.puts "***First join"
+    IO.puts("***First join")
     a <> b
   end
 
   def join(a, b, sep \\ " ") do
-    IO.puts "***Second join"
+    IO.puts("***Second join")
     a <> sep <> b
   end
 end
@@ -219,13 +219,13 @@ $ iex concat.ex
 ```
 
 ```elixir
-iex> Concat.join "Hello", "world"
+iex> Concat.join("Hello", "world")
 ***First join
 "Helloworld"
 ```
 
 ```elixir
-iex> Concat.join "Hello", "world", "_"
+iex> Concat.join("Hello", "world", "_")
 ***Second join
 "Hello_world"
 ```
