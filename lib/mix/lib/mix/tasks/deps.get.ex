@@ -26,6 +26,14 @@ defmodule Mix.Tasks.Deps.Get do
     {opts, _, _} =
       OptionParser.parse(args, switches: [only: :string, target: :string, check_locked: :boolean])
 
+    config = Mix.Project.config()
+
+    Mix.Project.with_deps_lock(config, fn ->
+      do_run(opts)
+    end)
+  end
+
+  defp do_run(opts) do
     fetch_opts =
       for {switch, key} <- [only: :env, target: :target, check_locked: :check_locked],
           value = opts[switch],
