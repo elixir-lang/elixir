@@ -2676,7 +2676,8 @@ defmodule Macro do
 
   defp dbg_ast_to_debuggable({:with, meta, args} = ast, _env) do
     {opts, clauses} = List.pop_at(args, -1)
-    unmatched_ast_var = unique_var(:unmatched_ast_var, __MODULE__)
+    unmatched_ast_var = unique_var(:unmatched_ast, __MODULE__)
+    result_var = unique_var(:result, __MODULE__)
 
     modified_clauses =
       Enum.flat_map(clauses, fn
@@ -2702,8 +2703,8 @@ defmodule Macro do
             quote do
               [
                 unquote(:->)(
-                  [{unquote(unmatched_ast_var), unquote({:result, [], Elixir})}],
-                  {:__else__, unquote(unmatched_ast_var), unquote({:result, [], Elixir})}
+                  [{unquote(unmatched_ast_var), unquote(result_var)}],
+                  {:__else__, unquote(unmatched_ast_var), unquote(result_var)}
                 )
               ]
             end
