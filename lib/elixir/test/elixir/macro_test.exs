@@ -744,6 +744,21 @@ defmodule MacroTest do
              """
     end
 
+    test "with with/1 respects the WithClauseError" do
+      error =
+        assert_raise WithClauseError, fn ->
+          dbg(
+            with :ok <- :unexpected do
+              true
+            else
+              :error -> false
+            end
+          )
+        end
+
+      assert error.term == :unexpected
+    end
+
     test "with \"syntax_colors: []\" it doesn't print any color sequences" do
       {_result, formatted} = dbg_format("hello")
       refute formatted =~ "\e["
