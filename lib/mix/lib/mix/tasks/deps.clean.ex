@@ -130,8 +130,6 @@ defmodule Mix.Tasks.Deps.Clean do
   end
 
   defp clean_source(apps, deps, deps_path, build_only?) do
-    shell = Mix.shell()
-
     local = for %{scm: scm, app: app} <- deps, not scm.fetchable?(), do: Atom.to_string(app)
 
     Enum.each(apps, fn app ->
