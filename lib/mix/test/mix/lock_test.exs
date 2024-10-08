@@ -151,6 +151,32 @@ defmodule Mix.LockTest do
            end) == :still_works!
   end
 
+  test "calls :on_taken when the lock is held by a different process" do
+    parent = self()
+
+    {pid, ref} =
+      spawn_monitor(fn ->
+        Mix.Lock.with_lock(@lock_key, fn ->
+          send(parent, :locked)
+          assert_receive :will_lock
+        end)
+      end)
+
+    assert_receive :locked
+
+    on_taken = fn os_pid ->
+      send(pid, :will_lock)
+      send(self(), {:on_taken_called, os_pid})
+    end
+
+    assert Mix.Lock.with_lock(@lock_key, fn -> :it_works! end, on_taken: on_taken) == :it_works!
+
+    os_pid = System.pid()
+    assert_receive {:on_taken_called, ^os_pid}
+
+    assert_receive {:DOWN, ^ref, _, _, _}
+  end
+
   defp await_monitors([]), do: :ok
 
   defp await_monitors(refs) do

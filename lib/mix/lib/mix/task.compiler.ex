@@ -172,8 +172,11 @@ defmodule Mix.Task.Compiler do
     # the individual tasks.
 
     build_path = Mix.Project.build_path(config)
-    lock_key = ["compile", build_path]
 
-    Mix.Lock.with_lock(lock_key, fun)
+    on_taken = fn os_pid ->
+      Mix.shell().info("Waiting for lock on the build directory (held by process #{os_pid})")
+    end
+
+    Mix.Lock.with_lock(build_path, fun, on_taken: on_taken)
   end
 end

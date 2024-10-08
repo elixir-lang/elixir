@@ -78,9 +78,20 @@ defmodule Mix.Lock do
 
   This function can also be called if this process already has the
   lock. In such case the function is executed immediately.
+
+  ## Options
+
+    * `:on_taken` - a one-arity function called if the lock is held
+      by a different process. The operating system PID of that process
+      is given as the first argument (as a string). This function may
+      be called multiple times, if the lock owner changes, until it
+      is successfully acquired by this process.
+
   """
-  @spec with_lock(iodata(), (-> term())) :: term()
-  def with_lock(key, fun) do
+  @spec with_lock(iodata(), (-> term()), keyword()) :: term()
+  def with_lock(key, fun, opts \\ []) do
+    opts = Keyword.validate!(opts, [:on_taken])
+
     key = key |> :erlang.md5() |> Base.url_encode64(padding: false)
     path = Path.join([System.tmp_dir!(), "mix_lock", key])
 
@@ -90,7 +101,7 @@ defmodule Mix.Lock do
     if has_lock? do
       fun.()
     else
-      lock = lock(path)
+      lock = lock(path, opts[:on_taken])
       Process.put(pdict_key, true)
 
       try do
@@ -104,7 +115,7 @@ defmodule Mix.Lock do
     end
   end
 
-  defp lock(path) do
+  defp lock(path, on_taken) do
     File.mkdir_p!(path)
 
     case listen() do
@@ -112,7 +123,7 @@ defmodule Mix.Lock do
         spawn_link(fn -> accept_loop(socket) end)
 
         try do
-          try_lock(path, socket, port)
+          try_lock(path, socket, port, on_taken)
         rescue
           exception ->
             # Close the socket to make sure we don't block the lock
@@ -140,10 +151,11 @@ defmodule Mix.Lock do
     end
   end
 
-  defp try_lock(path, socket, port) do
+  defp try_lock(path, socket, port, on_taken) do
     port_path = Path.join(path, "port_#{port}")
+    os_pid = System.pid()
 
-    File.write!(port_path, <<port::unsigned-integer-32>>, [:raw])
+    File.write!(port_path, <<port::unsigned-integer-32, os_pid::binary>>, [:raw])
 
     case grab_lock(path, port_path, 0) do
       {:ok, 0} ->
@@ -155,13 +167,14 @@ defmodule Mix.Lock do
         take_over(path, port_path)
         %{socket: socket, path: path}
 
-      {:taken, probe_socket} ->
+      {:taken, probe_socket, os_pid} ->
         # Another process has the lock, wait for close and start over
+        if on_taken, do: on_taken.(os_pid)
         await_close(probe_socket)
-        try_lock(path, socket, port)
+        try_lock(path, socket, port, on_taken)
 
       :invalidated ->
-        try_lock(path, socket, port)
+        try_lock(path, socket, port, on_taken)
     end
   end
 
@@ -174,8 +187,8 @@ defmodule Mix.Lock do
 
       {:error, :eexist} ->
         case probe(lock_path) do
-          {:ok, probe_socket} ->
-            {:taken, probe_socket}
+          {:ok, probe_socket, os_pid} ->
+            {:taken, probe_socket, os_pid}
 
           {:error, _reason} ->
             grab_lock(path, port_path, n + 1)
@@ -209,16 +222,17 @@ defmodule Mix.Lock do
   end
 
   defp probe(port_path) do
-    with {:ok, port} <- fetch_probe_port(port_path),
-         {:ok, socket} <- connect(port) do
-      await_probe_data(socket)
+    with {:ok, port, os_pid} <- fetch_probe_port(port_path),
+         {:ok, socket} <- connect(port),
+         {:ok, socket} <- await_probe_data(socket) do
+      {:ok, socket, os_pid}
     end
   end
 
   defp fetch_probe_port(port_path) do
     case File.read(port_path) do
       {:ok, <<0::unsigned-integer-32>>} -> {:error, :ignore}
-      {:ok, <<port::unsigned-integer-32>>} -> {:ok, port}
+      {:ok, <<port::unsigned-integer-32, os_pid::binary>>} -> {:ok, port, os_pid}
       {:error, reason} -> {:error, reason}
     end
   end
