@@ -49,7 +49,7 @@ defmodule Mix.Tasks.Compile.Erlang do
 
     project = Mix.Project.config()
 
-    Mix.Task.Compiler.with_lock(project, fn ->
+    Mix.Project.with_build_lock(project, fn ->
       source_paths = project[:erlc_paths]
       Mix.Compilers.Erlang.assert_valid_erlc_paths(source_paths)
       files = Mix.Utils.extract_files(source_paths, [:erl])

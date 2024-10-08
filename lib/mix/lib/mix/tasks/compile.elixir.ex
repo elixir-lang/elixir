@@ -126,7 +126,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     # so we wrap the compiler in a lock.
 
     with_logger_app(project, fn ->
-      Mix.Task.Compiler.with_lock(project, fn ->
+      Mix.Project.with_build_lock(project, fn ->
         Mix.Compilers.Elixir.compile(
           manifest,
           srcs,

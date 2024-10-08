@@ -56,7 +56,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
     config = Mix.Project.config()
 
-    Mix.Task.Compiler.with_lock(config, fn ->
+    Mix.Project.with_build_lock(config, fn ->
       deps = Mix.Dep.load_and_cache()
 
       case OptionParser.parse(args, switches: @switches) do

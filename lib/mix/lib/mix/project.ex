@@ -882,6 +882,23 @@ defmodule Mix.Project do
     end
   end
 
+  @doc false
+  def with_build_lock(config \\ config(), fun) do
+    # To avoid duplicated compilation, we wrap compilation tasks, such
+    # as compile.all, deps.compile, compile.elixir, compile.erlang in
+    # a lock. Note that compile.all covers compile.elixir, but the
+    # latter can still be invoked directly, so we put the lock over
+    # each individual task.
+
+    build_path = build_path(config)
+
+    on_taken = fn os_pid ->
+      Mix.shell().info("Waiting for lock on the build directory (held by process #{os_pid})")
+    end
+
+    Mix.Lock.with_lock(build_path, fun, on_taken: on_taken)
+  end
+
   # Loads mix.exs in the current directory or loads the project from the
   # mixfile cache and pushes the project onto the project stack.
   defp load_project(app, post_config) do
