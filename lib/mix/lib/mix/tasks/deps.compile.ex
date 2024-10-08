@@ -53,15 +53,20 @@ defmodule Mix.Tasks.Deps.Compile do
     end
 
     Mix.Project.get!()
-    deps = Mix.Dep.load_and_cache()
 
-    case OptionParser.parse(args, switches: @switches) do
-      {opts, [], _} ->
-        compile(filter_available_and_local_deps(deps), opts)
+    config = Mix.Project.config()
 
-      {opts, tail, _} ->
-        compile(Mix.Dep.filter_by_name(tail, deps, opts), opts)
-    end
+    Mix.Project.with_build_lock(config, fn ->
+      deps = Mix.Dep.load_and_cache()
+
+      case OptionParser.parse(args, switches: @switches) do
+        {opts, [], _} ->
+          compile(filter_available_and_local_deps(deps), opts)
+
+        {opts, tail, _} ->
+          compile(Mix.Dep.filter_by_name(tail, deps, opts), opts)
+      end
+    end)
   end
 
   @doc false

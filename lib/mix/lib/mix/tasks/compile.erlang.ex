@@ -46,11 +46,15 @@ defmodule Mix.Tasks.Compile.Erlang do
   @impl true
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, switches: @switches)
+
     project = Mix.Project.config()
-    source_paths = project[:erlc_paths]
-    Mix.Compilers.Erlang.assert_valid_erlc_paths(source_paths)
-    files = Mix.Utils.extract_files(source_paths, [:erl])
-    do_run(files, opts, project, source_paths)
+
+    Mix.Project.with_build_lock(project, fn ->
+      source_paths = project[:erlc_paths]
+      Mix.Compilers.Erlang.assert_valid_erlc_paths(source_paths)
+      files = Mix.Utils.extract_files(source_paths, [:erl])
+      do_run(files, opts, project, source_paths)
+    end)
   end
 
   defp do_run([], _, _, _), do: {:noop, []}

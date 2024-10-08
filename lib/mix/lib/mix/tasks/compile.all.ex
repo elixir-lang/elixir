@@ -12,8 +12,15 @@ defmodule Mix.Tasks.Compile.All do
   @impl true
   def run(args) do
     Mix.Project.get!()
+
     config = Mix.Project.config()
 
+    Mix.Project.with_build_lock(config, fn ->
+      do_run(config, args)
+    end)
+  end
+
+  defp do_run(config, args) do
     # Compute the app cache if it is stale and we are
     # not compiling from a dependency.
     app_cache =

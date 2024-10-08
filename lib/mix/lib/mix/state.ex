@@ -9,15 +9,6 @@ defmodule Mix.State do
     GenServer.start_link(__MODULE__, :ok, name: @name)
   end
 
-  def lock(key, fun) do
-    try do
-      GenServer.call(@name, {:lock, key}, @timeout)
-      fun.()
-    after
-      GenServer.call(@name, {:unlock, key}, @timeout)
-    end
-  end
-
   def builtin_apps do
     GenServer.call(@name, :builtin_apps, @timeout)
   end
@@ -83,8 +74,6 @@ defmodule Mix.State do
     )
 
     state = %{
-      key_to_waiting: %{},
-      pid_to_key: %{},
       builtin_apps: :code.get_path()
     }
 
@@ -113,69 +102,6 @@ defmodule Mix.State do
       {:reply, builtin_apps, %{state | builtin_apps: builtin_apps}}
     end
   end
-
-  @impl true
-  def handle_call({:lock, key}, {pid, _} = from, state) do
-    %{key_to_waiting: key_to_waiting, pid_to_key: pid_to_key} = state
-
-    key_to_waiting =
-      case key_to_waiting do
-        %{^key => {locked, waiting}} ->
-          Map.put(key_to_waiting, key, {locked, :queue.in(from, waiting)})
-
-        %{} ->
-          go!(from)
-          Map.put(key_to_waiting, key, {pid, :queue.new()})
-      end
-
-    ref = Process.monitor(pid)
-    pid_to_key = Map.put(pid_to_key, pid, {key, ref})
-    {:noreply, %{state | key_to_waiting: key_to_waiting, pid_to_key: pid_to_key}}
-  end
-
-  @impl true
-  def handle_call({:unlock, key}, {pid, _}, state) do
-    %{key_to_waiting: key_to_waiting, pid_to_key: pid_to_key} = state
-    {{^key, ref}, pid_to_key} = Map.pop(pid_to_key, pid)
-    Process.demonitor(ref, [:flush])
-    key_to_waiting = unlock(key_to_waiting, pid_to_key, key)
-    {:reply, :ok, %{state | key_to_waiting: key_to_waiting, pid_to_key: pid_to_key}}
-  end
-
-  @impl true
-  def handle_info({:DOWN, ref, _type, pid, _reason}, state) do
-    %{key_to_waiting: key_to_waiting, pid_to_key: pid_to_key} = state
-    {{key, ^ref}, pid_to_key} = Map.pop(pid_to_key, pid)
-
-    key_to_waiting =
-      case key_to_waiting do
-        %{^key => {^pid, _}} ->
-          unlock(key_to_waiting, pid_to_key, key)
-
-        %{^key => {locked, waiting}} ->
-          waiting = :queue.delete_with(fn {qpid, _qref} -> qpid == pid end, waiting)
-          Map.put(key_to_waiting, key, {locked, waiting})
-      end
-
-    {:noreply, %{state | key_to_waiting: key_to_waiting, pid_to_key: pid_to_key}}
-  end
-
-  defp unlock(key_to_waiting, pid_to_key, key) do
-    %{^key => {_locked, waiting}} = key_to_waiting
-
-    case :queue.out(waiting) do
-      {{:value, {pid, _} = from}, waiting} ->
-        # Assert that we still know this PID
-        _ = Map.fetch!(pid_to_key, pid)
-        go!(from)
-        Map.put(key_to_waiting, key, {pid, waiting})
-
-      {:empty, _waiting} ->
-        Map.delete(key_to_waiting, key)
-    end
-  end
-
-  defp go!(from), do: GenServer.reply(from, :ok)
 
   # ../elixir/ebin -> elixir
   # ../ssl-9.6/ebin -> ssl

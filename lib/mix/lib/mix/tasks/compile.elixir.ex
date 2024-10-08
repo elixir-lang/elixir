@@ -123,11 +123,10 @@ defmodule Mix.Tasks.Compile.Elixir do
       |> profile_opts()
 
     # Having compilations racing with other is most undesired,
-    # so we wrap the compiler in a lock. Ideally we would use
-    # flock in the future.
+    # so we wrap the compiler in a lock.
 
     with_logger_app(project, fn ->
-      Mix.State.lock(__MODULE__, fn ->
+      Mix.Project.with_build_lock(project, fn ->
         Mix.Compilers.Elixir.compile(
           manifest,
           srcs,
