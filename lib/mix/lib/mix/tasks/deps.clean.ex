@@ -29,14 +29,6 @@ defmodule Mix.Tasks.Deps.Clean do
     Mix.Project.get!()
     {opts, apps} = OptionParser.parse!(args, strict: @switches)
 
-    Mix.Project.with_build_lock(fn ->
-      Mix.Project.with_deps_lock(fn ->
-        do_run(args, opts, apps)
-      end)
-    end)
-  end
-
-  defp do_run(args, opts, apps) do
     build_path =
       Mix.Project.build_path()
       |> Path.dirname()
@@ -71,13 +63,19 @@ defmodule Mix.Tasks.Deps.Clean do
           )
       end
 
-    do_clean(apps_to_clean, loaded_deps, build_path, deps_path, opts[:build])
+    Mix.Project.with_build_lock(fn ->
+      clean_build(apps_to_clean, build_path)
+    end)
 
-    if opts[:unlock] do
-      Mix.Task.run("deps.unlock", args)
-    else
-      :ok
-    end
+    Mix.Project.with_deps_lock(fn ->
+      clean_source(apps_to_clean, loaded_deps, deps_path, opts[:build])
+
+      if opts[:unlock] do
+        Mix.Task.run("deps.unlock", args)
+      else
+        :ok
+      end
+    end)
   end
 
   defp checked_deps(build_path, deps_path) do
@@ -116,10 +114,8 @@ defmodule Mix.Tasks.Deps.Clean do
     end
   end
 
-  defp do_clean(apps, deps, build_path, deps_path, build_only?) do
+  defp clean_build(apps, build_path) do
     shell = Mix.shell()
-
-    local = for %{scm: scm, app: app} <- deps, not scm.fetchable?(), do: Atom.to_string(app)
 
     Enum.each(apps, fn app ->
       shell.info("* Cleaning #{app}")
@@ -130,7 +126,15 @@ defmodule Mix.Tasks.Deps.Clean do
       |> Path.wildcard()
       |> maybe_warn_for_invalid_path(app)
       |> Enum.map(&(&1 |> File.rm_rf() |> maybe_warn_failed_file_deletion()))
+    end)
+  end
 
+  defp clean_source(apps, deps, deps_path, build_only?) do
+    shell = Mix.shell()
+
+    local = for %{scm: scm, app: app} <- deps, not scm.fetchable?(), do: Atom.to_string(app)
+
+    Enum.each(apps, fn app ->
       # Remove everything from the source directory of dependencies.
       # Skip this step if --build option is specified or if
       # the dependency is local, i.e., referenced using :path.
