@@ -899,6 +899,20 @@ defmodule Mix.Project do
     Mix.Lock.with_lock(build_path, fun, on_taken: on_taken)
   end
 
+  @doc false
+  def with_deps_lock(config \\ config(), fun) do
+    # We wrap operations on the deps directory and on mix.lock to
+    # avoid write conflicts.
+
+    deps_path = deps_path(config)
+
+    on_taken = fn os_pid ->
+      Mix.shell().info("Waiting for lock on the deps directory (held by process #{os_pid})")
+    end
+
+    Mix.Lock.with_lock(deps_path, fun, on_taken: on_taken)
+  end
+
   # Loads mix.exs in the current directory or loads the project from the
   # mixfile cache and pushes the project onto the project stack.
   defp load_project(app, post_config) do

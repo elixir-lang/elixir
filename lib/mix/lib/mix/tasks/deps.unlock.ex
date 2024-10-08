@@ -27,6 +27,12 @@ defmodule Mix.Tasks.Deps.Unlock do
     Mix.Project.get!()
     {opts, apps, _} = OptionParser.parse(args, switches: @switches)
 
+    Mix.Project.with_deps_lock(fn ->
+      do_run(opts, apps)
+    end)
+  end
+
+  defp do_run(opts, apps) do
     cond do
       opts[:all] ->
         Mix.Dep.Lock.write(%{})

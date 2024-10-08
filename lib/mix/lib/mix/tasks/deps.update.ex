@@ -45,6 +45,12 @@ defmodule Mix.Tasks.Deps.Update do
     {opts, rest, _} =
       OptionParser.parse(args, switches: [all: :boolean, only: :string, target: :string])
 
+    Mix.Project.with_deps_lock(fn ->
+      do_run(opts, rest)
+    end)
+  end
+
+  defp do_run(opts, rest) do
     fetch_opts =
       for {switch, key} <- [only: :env, target: :target],
           value = opts[switch],
