@@ -1616,7 +1616,7 @@ defmodule Module.Types.Descr do
 
         cond do
           is_proper_tuple? and is_proper_size? -> tuple_delete_static(descr, index)
-          is_proper_tuple? -> :outofrange
+          is_proper_tuple? -> :badrange
           true -> :badtuple
         end
 
@@ -1632,7 +1632,7 @@ defmodule Module.Types.Descr do
             union(dynamic(dynamic_result), static_result)
 
           is_proper_tuple? ->
-            :outofrange
+            :badrange
 
           true ->
             :badtuple
@@ -1653,6 +1653,11 @@ defmodule Module.Types.Descr do
 
   def tuple_insert_at(_, _, _), do: :badindex
 
+  # insert_at({...}, 1, integer())
+  # {...} not a subtype of {term(), ...}
+  # insert_at(dynamic({...}), 1, integer())
+  # dynamic({term(), integer(), ...})
+
   defp tuple_insert_static_value(descr, index, type) do
     case :maps.take(:dynamic, descr) do
       :error ->
@@ -1664,7 +1669,7 @@ defmodule Module.Types.Descr do
 
         cond do
           is_proper_tuple? and is_proper_size? -> insert_element(descr, index, type)
-          is_proper_tuple? -> :outofrange
+          is_proper_tuple? -> :badrange
           true -> :badtuple
         end
 
@@ -1689,7 +1694,7 @@ defmodule Module.Types.Descr do
             union(dynamic(dynamic_result), static_result)
 
           is_proper_tuple? ->
-            :outofrange
+            :badrange
 
           true ->
             :badtuple
@@ -1732,54 +1737,6 @@ defmodule Module.Types.Descr do
 
   # If there is no map part to this static type, there is nothing to delete.
   defp tuple_delete_static(_type, _key), do: none()
-
-  def tuple_values(:term), do: :badtuple
-
-  # Get the union of all the possible values in a tuple
-  # There are several cases possible:
-  # 1. The tuple is open, then tuple_value returns term()
-  # 2. The tuple is closed and has a fixed number of elements, of which we compute the union
-  # The difficulty is that it may be possible to have a positive open
-  # tuple which is negated by another open tuple e.g. {integer(), ...} and not {term(), term(), ...}
-  # which makes this type of fixed size two.
-  # The other is that even with a closed tuple, negations can remove some possible types, e.g.
-  # {number()} and not {integer()} means those tuples can only contain floats.
-
-  def tuple_open?(%{tuple: dnf}) do
-    Enum.any?(dnf, fn {tag, _, _} -> tag == :open end)
-  end
-
-  def tuple_values(descr) do
-    case :maps.take(:dynamic, descr) do
-      :error ->
-        if descr_key?(descr, :tuple) and tuple_only?(descr) do
-          tuple_values_static(descr)
-        else
-          :badtuple
-        end
-
-      {dynamic, static} ->
-        if descr_key?(dynamic, :tuple) and tuple_only?(static) do
-          dynamic_result = tuple_values_static(dynamic)
-          static_result = tuple_values_static(static)
-          union(dynamic(dynamic_result), static_result)
-        else
-          :badtuple
-        end
-    end
-  end
-
-  defp tuple_values_static(%{tuple: dnf}) do
-    Enum.reduce_while(dnf, none(), fn
-      {:open, _elements, _negs}, _acc ->
-        {:halt, term()}
-
-      {:closed, elements, _negs}, acc ->
-        {:cont, union(acc, Enum.reduce(elements, none(), &union(&2, &1)))}
-    end)
-  end
-
-  defp tuple_values_static(empty) when empty == @none, do: none()
 
   # Remove useless negations, which denote tuples of incompatible sizes.
   defp tuple_empty_negation?(tag, n, {neg_tag, neg_elements}) do

@@ -496,13 +496,13 @@ defmodule Module.Types.DescrTest do
                union(tuple([integer()]), tuple([float()]))
 
       # Test deleting with an out-of-bounds index
-      assert tuple_delete_at(tuple([integer(), atom()]), 3) == :outofrange
+      assert tuple_delete_at(tuple([integer(), atom()]), 3) == :badrange
 
       # Test deleting with a negative index
       assert tuple_delete_at(tuple([integer(), atom()]), -1) == :badindex
 
       # Test deleting from an empty tuple
-      assert tuple_delete_at(empty_tuple(), 0) == :outofrange
+      assert tuple_delete_at(empty_tuple(), 0) == :badrange
 
       # Test deleting from a non-tuple type
       assert tuple_delete_at(integer(), 0) == :badtuple
@@ -558,11 +558,11 @@ defmodule Module.Types.DescrTest do
                union(tuple([boolean(), integer()]), tuple([boolean(), atom()]))
 
       # Test inserting with an out-of-bounds index
-      assert tuple_insert_at(tuple([integer(), atom()]), 3, boolean()) == :outofrange
+      assert tuple_insert_at(tuple([integer(), atom()]), 3, boolean()) == :badrange
 
       # Out-of-bounds in a union
       assert union(tuple([integer(), atom()]), tuple([float()]))
-             |> tuple_insert_at(2, boolean()) == :outofrange
+             |> tuple_insert_at(2, boolean()) == :badrange
 
       # Inserting with a negative index
       assert tuple_insert_at(tuple([integer(), atom()]), -1, boolean()) == :badindex
@@ -592,45 +592,6 @@ defmodule Module.Types.DescrTest do
                  dynamic(tuple([float(), boolean(), binary()]))
                )
              )
-    end
-
-    test "tuple_values" do
-      # Test with a closed tuple
-      assert tuple_values(tuple([integer(), atom(), boolean()])) ==
-               union(integer(), union(atom(), boolean()))
-
-      # Test with an empty tuple
-      assert tuple_values(empty_tuple()) == none()
-
-      # Test with a dynamic tuple
-      assert tuple_values(dynamic(tuple([integer(), atom()]))) ==
-               dynamic(union(integer(), atom()))
-
-      # Test with an open tuple
-      assert tuple_values(open_tuple([integer(), atom()])) == term()
-
-      # Test with a union of tuples
-      assert tuple_values(union(tuple([integer(), atom()]), tuple([float(), binary()]))) ==
-               union(integer(), union(float(), union(atom(), binary())))
-
-      # Test with an intersection of tuples
-      assert tuple_values(intersection(tuple([term(), atom()]), tuple([integer(), term()]))) ==
-               union(integer(), atom())
-
-      # Test with a difference of tuples
-      assert tuple_values(
-               difference(tuple([integer(), atom(), boolean()]), tuple([term(), term()]))
-             ) == union(integer(), union(atom(), boolean()))
-
-      # Test with a complex union involving dynamic
-      assert tuple_values(union(tuple([integer(), atom()]), dynamic(tuple([float(), binary()]))))
-             |> equal?(union(union(integer(), atom()), dynamic(union(float(), binary()))))
-
-      # Test with a non-tuple type
-      assert tuple_values(integer()) == :badtuple
-
-      # Test with term()
-      assert tuple_values(term()) == :badtuple
     end
 
     test "map_fetch" do
