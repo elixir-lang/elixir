@@ -27,9 +27,7 @@ defmodule Mix.Tasks.Deps.Unlock do
     Mix.Project.get!()
     {opts, apps, _} = OptionParser.parse(args, switches: @switches)
 
-    config = Mix.Project.config()
-
-    Mix.Project.with_deps_lock(config, fn ->
+    Mix.Project.with_deps_lock(fn ->
       do_run(opts, apps)
     end)
   end

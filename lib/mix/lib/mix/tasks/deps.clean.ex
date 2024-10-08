@@ -29,10 +29,10 @@ defmodule Mix.Tasks.Deps.Clean do
     Mix.Project.get!()
     {opts, apps} = OptionParser.parse!(args, strict: @switches)
 
-    config = Mix.Project.config()
-
-    Mix.Project.with_deps_lock(config, fn ->
-      do_run(args, opts, apps)
+    Mix.Project.with_build_lock(fn ->
+      Mix.Project.with_deps_lock(fn ->
+        do_run(args, opts, apps)
+      end)
     end)
   end
 

@@ -45,9 +45,7 @@ defmodule Mix.Tasks.Deps.Update do
     {opts, rest, _} =
       OptionParser.parse(args, switches: [all: :boolean, only: :string, target: :string])
 
-    config = Mix.Project.config()
-
-    Mix.Project.with_deps_lock(config, fn ->
+    Mix.Project.with_deps_lock(fn ->
       do_run(opts, rest)
     end)
   end
