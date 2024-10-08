@@ -73,7 +73,7 @@ So far, we have seen how to define attributes, but how can we read them? Let's s
 ```elixir
 defmodule MyServer do
   @service URI.parse("https://example.com")
-  IO.inspect @service
+  IO.inspect(@service)
 end
 ```
 

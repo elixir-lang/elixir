@@ -842,14 +842,14 @@ defmodule Task do
           Process.demonitor(ref, [:flush])
 
           {url, state} = pop_in(state.tasks[ref])
-          IO.puts "Got #{inspect(result)} for URL #{inspect url}"
+          IO.puts("Got #{inspect(result)} for URL #{inspect url}")
           {:noreply, state}
         end
 
         # If the task fails...
         def handle_info({:DOWN, ref, _, _, reason}, state) do
           {url, state} = pop_in(state.tasks[ref])
-          IO.puts "URL #{inspect url} failed with reason #{inspect(reason)}"
+          IO.puts("URL #{inspect url} failed with reason #{inspect(reason)}")
           {:noreply, state}
         end
       end

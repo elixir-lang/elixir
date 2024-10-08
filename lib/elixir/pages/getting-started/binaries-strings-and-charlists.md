@@ -184,7 +184,7 @@ iex> String.valid?(<<239, 191, 19>>)
 false
 ```
 
-The string concatenation operator `<>` is actually a binary concatenation operator:
+The string concatenation operator [`<>`](`<>/2`) is actually a binary concatenation operator:
 
 ```elixir
 iex> "a" <> "ha"
@@ -243,7 +243,7 @@ iex> [?h, ?e, ?l, ?l, ?o]
 ~c"hello"
 ```
 
-The `~c` sigil (we'll cover sigils later in the ["Sigils"](sigils.md) chapter) indicates the fact that we are dealing with a charlist and not a regular string.
+The [`~c`](`Kernel.sigil_c/2`) sigil (we'll cover sigils later in the ["Sigils"](sigils.md) chapter) indicates the fact that we are dealing with a charlist and not a regular string.
 
 Instead of containing bytes, a charlist contains integer code points. However, the list is only printed as a sigil if all code points are within the ASCII range:
 
@@ -283,7 +283,7 @@ iex> to_string(1)
 
 The functions above are polymorphic, in other words, they accept many shapes: not only do they convert charlists to strings (and vice-versa), they can also convert integers, atoms, and so on.
 
-String (binary) concatenation uses the `<>` operator but charlists, being lists, use the list concatenation operator `++`:
+String (binary) concatenation uses the [`<>`](`<>/2`) operator but charlists, being lists, use the list concatenation operator [`++`](`++/2`):
 
 ```elixir
 iex> ~c"this " <> ~c"fails"

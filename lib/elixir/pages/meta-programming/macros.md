@@ -38,9 +38,9 @@ and play with those definitions:
 
 ```elixir
 iex> require Unless
-iex> Unless.macro_unless(true, do: IO.puts "this should never be printed")
+iex> Unless.macro_unless(true, do: IO.puts("this should never be printed"))
 nil
-iex> Unless.fun_unless(true, do: IO.puts "this should never be printed")
+iex> Unless.fun_unless(true, do: IO.puts("this should never be printed"))
 "this should never be printed"
 nil
 ```
@@ -50,7 +50,7 @@ In our *macro* implementation, the sentence was not printed, although it was pri
 In other words, when invoked as:
 
 ```elixir
-Unless.macro_unless(true, do: IO.puts "this should never be printed")
+Unless.macro_unless(true, do: IO.puts("this should never be printed"))
 ```
 
 Our `macro_unless` macro received the following:

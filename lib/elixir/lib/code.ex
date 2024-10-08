@@ -185,7 +185,7 @@ defmodule Code do
 
       defmodule MyTracer do
         def trace({:remote_function, _meta, module, name, arity}, env) do
-          IO.puts "#{env.file}:#{env.line} #{inspect(module)}.#{name}/#{arity}"
+          IO.puts("#{env.file}:#{env.line} #{inspect(module)}.#{name}/#{arity}")
           :ok
         end
 

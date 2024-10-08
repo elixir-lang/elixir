@@ -322,7 +322,7 @@ iex> 1 == 2.0
 false
 ```
 
-However, you can use the strict comparison operator [`===`](`===/2`) and [`!==`](`!==/2`) if you want to distinguish between integers and floats (that's the only difference between these operators):
+However, you can use the strict comparison operator [`===`](`===/2`) and [`!==`](`!==/2`) if you want to distinguish between integers and floats:
 
 ```elixir
 iex> 1 === 1.0
