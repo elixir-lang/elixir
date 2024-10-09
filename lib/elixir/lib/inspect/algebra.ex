@@ -588,6 +588,7 @@ defmodule Inspect.Algebra do
     doc_cons(doc1, doc2)
   end
 
+  @doc false
   def no_limit(doc) do
     doc_limit(doc, :infinity)
   end
