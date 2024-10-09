@@ -670,8 +670,14 @@ defmodule MacroTest do
       assert formatted =~ "macro_test.exs"
 
       assert formatted =~ """
-             All with clauses matched, result:
-             {:ok, 300}
+             With clause (all clauses matched, do block evaluated):
+             With expression:
+             with {:ok, width} <- Map.fetch(opts, :width),
+                  double_width = width * 2,
+                  IO.puts(\"just a side effect\"),
+                  {:ok, height} <- Map.fetch(opts, :height) do
+               {:ok, double_width * height}
+             end #=> {:ok, 300}
              """
     end
 
@@ -689,8 +695,16 @@ defmodule MacroTest do
       assert result == :error
 
       assert formatted =~ "macro_test.exs"
-      assert formatted =~ "With clause unmatched on line"
-      assert formatted =~ "{:ok, height} <- Map.fetch(opts, :height) #=> :error"
+
+      assert formatted =~ """
+             With clause unmatched on:
+             {:ok, height} <- Map.fetch(opts, :height) #=> :error
+             With expression:
+             with {:ok, width} <- Map.fetch(opts, :width),
+                  {:ok, height} <- Map.fetch(opts, :height) do
+               {:ok, width * height}
+             end #=> :error
+             """
     end
 
     test "with with/1 (else clause)" do
@@ -709,10 +723,34 @@ defmodule MacroTest do
       assert result == 0
 
       assert formatted =~ "macro_test.exs"
-      assert formatted =~ "With clause unmatched on line"
-      assert formatted =~ "{:ok, height} <- Map.fetch(opts, :height) #=> :error"
-      assert formatted =~ "Then else clause matched on line"
-      assert formatted =~ "->(:error, 0) #=> 0"
+
+      assert formatted =~ """
+             With clause unmatched on:
+             {:ok, height} <- Map.fetch(opts, :height) #=> :error
+             With expression:
+             with {:ok, width} <- Map.fetch(opts, :width),
+                  {:ok, height} <- Map.fetch(opts, :height) do
+               width * height
+             else
+               :error -> 0
+             end #=> 0
+             """
+    end
+
+    test "with with/1 (else clause unmatched)" do
+      assert_raise(
+        WithClauseError,
+        "no with clause matching: :not_found",
+        fn ->
+          dbg(
+            with :ok <- :not_found do
+              :ok
+            else
+              :error -> :error
+            end
+          )
+        end
+      )
     end
 
     test "with \"syntax_colors: []\" it doesn't print any color sequences" do

@@ -2677,6 +2677,7 @@ defmodule Macro do
   defp dbg_ast_to_debuggable({:with, meta, args} = ast, _env) do
     {opts, clauses} = List.pop_at(args, -1)
     unmatched_ast_var = unique_var(:unmatched_ast, __MODULE__)
+    unmatched_else_var = unique_var(:unmatched_else, __MODULE__)
     result_var = unique_var(:result, __MODULE__)
 
     modified_clauses =
@@ -2684,14 +2685,12 @@ defmodule Macro do
         {:<-, _meta, [left, right]} = clause ->
           quote do
             [
-              line = Keyword.get(unquote(meta), :line),
               code = unquote(Macro.escape(clause)),
               value = unquote(right),
-              unquote(:<-)({{line, code, value}, unquote(left)}, {{line, code, value}, value})
+              unquote(:<-)({{code, value}, unquote(left)}, {{code, value}, value})
             ]
           end
 
-        # Other expressions are omitted.
         expr ->
           [expr]
       end)
@@ -2714,18 +2713,25 @@ defmodule Macro do
         [do: do_code, else: else_code] ->
           else_code =
             Enum.map(else_code, fn
-              {:->, meta, [[left], right]} = else_clause ->
+              {:->, _meta, [[left], right]} ->
                 quote do
                   unquote(:->)(
                     [{unquote(unmatched_ast_var), unquote(left)}],
-                    {:__else__, unquote(unmatched_ast_var),
-                     {Keyword.get(unquote(meta), :line), unquote(Macro.escape(else_clause))},
-                     unquote(right)}
+                    {:__else__, unquote(unmatched_ast_var), unquote(right)}
                   )
                 end
             end)
 
-          [do: {:__matched__, do_code}, else: else_code]
+          final_else_catch_all =
+            quote do
+              unquote(:->)(
+                [{unquote(unmatched_ast_var), unquote(unmatched_else_var)}],
+                {:__else__, unquote(unmatched_ast_var),
+                 raise(WithClauseError, term: unquote(unmatched_else_var))}
+              )
+            end
+
+          [do: {:__matched__, do_code}, else: else_code ++ [final_else_catch_all]]
       end
 
     modified = modified_clauses ++ [modified_opts]
@@ -2891,42 +2897,29 @@ defmodule Macro do
     {formatted, result}
   end
 
-  defp dbg_format_ast_to_debug({:with, _ast, [], {:__matched__, value}}, options) do
+  defp dbg_format_ast_to_debug({:with, ast, [], {:__matched__, value}}, options) do
     formatted = [
-      dbg_maybe_underline("All with clauses matched, result:", options),
-      ?\n,
-      inspect(value, options),
-      ?\n
+      dbg_maybe_underline("With clause", options),
+      " (all clauses matched, do block evaluated):\n",
+      dbg_maybe_underline("With expression", options),
+      ":\n",
+      dbg_format_ast_with_value(ast, value, options)
     ]
 
     {formatted, value}
   end
 
   defp dbg_format_ast_to_debug(
-         {:with, _ast, [], {:__else__, {line, clause_ast, _}, value}},
+         {:with, ast, [], {:__else__, {clause_ast, clause_value}, value}},
          options
        ) do
     formatted = [
-      dbg_maybe_underline("With clause unmatched on line #{line}", options),
-      ?\n,
-      dbg_format_ast_with_value(clause_ast, value, options)
-    ]
-
-    {formatted, value}
-  end
-
-  defp dbg_format_ast_to_debug(
-         {:with, _ast, [],
-          {:__else__, {line, clause_ast, clause_result}, {else_line, else_ast}, value}},
-         options
-       ) do
-    formatted = [
-      dbg_maybe_underline("With clause unmatched on line #{line}", options),
-      ?\n,
-      dbg_format_ast_with_value(clause_ast, clause_result, options),
-      dbg_maybe_underline("Then else clause matched on line #{else_line}", options),
-      ?\n,
-      dbg_format_ast_with_value(else_ast, value, options)
+      dbg_maybe_underline("With clause unmatched on", options),
+      ":\n",
+      dbg_format_ast_with_value(clause_ast, clause_value, options),
+      dbg_maybe_underline("With expression", options),
+      ":\n",
+      dbg_format_ast_with_value(ast, value, options)
     ]
 
     {formatted, value}
