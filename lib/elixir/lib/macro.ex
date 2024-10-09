@@ -2677,23 +2677,33 @@ defmodule Macro do
   defp dbg_ast_to_debuggable({:with, meta, args} = ast, _env) do
     {opts, clauses} = List.pop_at(args, -1)
 
-    # Ref variable used as a key to store the acc in the process dict.
-    # We use the process dict because we want to keep the acc even if
-    # a clause does not match.
-    acc_ref_var = unique_var(:acc_ref, __MODULE__)
+    acc_var = unique_var(:acc, __MODULE__)
 
     modified_clauses =
       Enum.flat_map(clauses, fn
         # We only detail assignments and pattern-matching clauses that
         # can be helpful to understand how the result is constructed.
-        {symbol, _meta, [left, right]} when symbol in [:<-, :=] ->
+        {:<-, _meta, [left, right]} ->
+          modified_left =
+            case left do
+              {:when, meta, [pattern, guard]} -> {:when, meta, [{pattern, quote(do: _)}, guard]}
+              pattern -> {pattern, quote(do: _)}
+            end
+
           quote do
             [
               value = unquote(right),
-              Process.put(unquote(acc_ref_var), [
-                {unquote(escape(right)), value} | Process.get(unquote(acc_ref_var))
-              ]),
-              unquote(symbol)(unquote(left), value)
+              unquote(acc_var) = [{unquote(escape(right)), value} | unquote(acc_var)],
+              unquote(modified_left) <- {value, unquote(acc_var)}
+            ]
+          end
+
+        {:=, _meta, [left, right]} ->
+          quote do
+            [
+              value = unquote(right),
+              unquote(acc_var) = [{unquote(escape(right)), value} | unquote(acc_var)],
+              unquote(left) = value
             ]
           end
 
@@ -2702,16 +2712,42 @@ defmodule Macro do
           [expr]
       end)
 
-    modified_with_ast = {:with, meta, modified_clauses ++ [opts]}
+    modified_opts =
+      Enum.map(opts, fn
+        {:do, do_block} ->
+          {:do, {do_block, acc_var}}
+
+        {:else, else_block} ->
+          clauses =
+            Enum.map(else_block, fn
+              {:->, meta, [[{:when, meta2, [pattern, guard]}], right]} ->
+                {:->, meta, [[{:when, meta2, [{pattern, acc_var}, guard]}], {right, acc_var}]}
+
+              {:->, meta, [[left], right]} ->
+                {:->, meta, [[{left, acc_var}], {right, acc_var}]}
+
+              invalid ->
+                invalid
+            end)
+
+          error_clause =
+            quote do
+              {other, _acc} -> raise WithClauseError, term: other
+            end
+
+          {:else, clauses ++ error_clause}
+
+        invalid ->
+          invalid
+      end)
+
+    modified_with_ast = {:with, meta, modified_clauses ++ [modified_opts]}
 
     quote do
-      unquote(acc_ref_var) = make_ref()
-      Process.put(unquote(acc_ref_var), [])
+      unquote(acc_var) = []
 
-      value = unquote(modified_with_ast)
+      {value, acc} = unquote(modified_with_ast)
 
-      acc = Process.get(unquote(acc_ref_var))
-      Process.delete(unquote(acc_ref_var))
       {:with, unquote(escape(ast)), Enum.reverse(acc), value}
     end
   end
