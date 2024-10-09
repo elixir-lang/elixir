@@ -133,6 +133,8 @@ defmodule Module.Types.Descr do
   """
   def union(:term, other) when not is_optional(other), do: :term
   def union(other, :term) when not is_optional(other), do: :term
+  def union(none, other) when none == %{}, do: other
+  def union(other, none) when none == %{}, do: other
 
   def union(left, right) do
     left = unfold(left)
@@ -166,6 +168,8 @@ defmodule Module.Types.Descr do
   """
   def intersection(:term, other) when not is_optional(other), do: other
   def intersection(other, :term) when not is_optional(other), do: other
+  def intersection(%{dynamic: :term}, other) when not is_optional(other), do: dynamic(other)
+  def intersection(other, %{dynamic: :term}) when not is_optional(other), do: dynamic(other)
 
   def intersection(left, right) do
     left = unfold(left)
