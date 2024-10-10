@@ -588,6 +588,21 @@ defmodule Inspect.Algebra do
     doc_cons(doc1, doc2)
   end
 
+  @doc ~S"""
+  Disable any rendering limit while rendering the given document.
+
+  ## Examples
+
+      iex> doc = Inspect.Algebra.glue("hello", "world") |> Inspect.Algebra.group()
+      iex> Inspect.Algebra.format(doc, 10)
+      ["hello", "\n", "world"]
+      iex> doc = Inspect.Algebra.no_limit(doc)
+      iex> Inspect.Algebra.format(doc, 10)
+      ["hello", " ", "world"]
+
+  """
+  @doc since: "1.14.0"
+  @spec no_limit(t) :: t
   def no_limit(doc) do
     doc_limit(doc, :infinity)
   end
