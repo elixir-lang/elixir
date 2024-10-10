@@ -1141,8 +1141,7 @@ defmodule ExUnitTest do
 
   defp run_with_filter(filters, cases) do
     Enum.each(cases, fn mod ->
-      [config] = mod.__info__(:attributes) |> Keyword.fetch!(:ex_unit_module)
-      ExUnit.Server.add_module(mod, config)
+      ExUnit.Server.add_module(mod, mod.__ex_unit__(:config))
     end)
 
     ExUnit.Server.modules_loaded(false)

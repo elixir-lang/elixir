@@ -167,7 +167,7 @@ defmodule ExUnit.DoubleCaseTestAsyncFirst do
   use ExUnit.Case
 
   test "async must be true", context do
-    refute context.async
+    assert context.async
   end
 end
 

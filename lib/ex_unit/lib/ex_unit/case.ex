@@ -299,9 +299,7 @@ defmodule ExUnit.Case do
   @doc false
   defmacro __using__(opts) do
     quote do
-      if !ExUnit.Case.__register__(__MODULE__, unquote(opts)) do
-        use ExUnit.Callbacks
-      end
+      ExUnit.Case.__register__(__MODULE__, unquote(opts))
 
       import ExUnit.Callbacks
       import ExUnit.Assertions
@@ -319,20 +317,13 @@ defmodule ExUnit.Case do
     end
 
     {register?, opts} = Keyword.pop(opts, :register, true)
-    {async?, opts} = Keyword.pop(opts, :async, false)
-    {parameterize, opts} = Keyword.pop(opts, :parameterize, nil)
-
-    if not (parameterize == nil or (is_list(parameterize) and Enum.all?(parameterize, &is_map/1))) do
-      raise ArgumentError, ":parameterize must be a list of maps, got: #{inspect(parameterize)}"
-    end
+    {next_opts, opts} = Keyword.split(opts, [:async, :parameterize])
 
     if opts != [] do
       IO.warn("unknown options given to ExUnit.Case: #{inspect(opts)}")
     end
 
-    registered? = Module.has_attribute?(module, :ex_unit_tests)
-
-    if not registered? do
+    if not Module.has_attribute?(module, :ex_unit_tests) do
       tag_check = Enum.any?([:moduletag, :describetag, :tag], &Module.has_attribute?(module, &1))
 
       if tag_check do
@@ -351,19 +342,18 @@ defmodule ExUnit.Case do
 
       Enum.each(accumulate_attributes, &Module.register_attribute(module, &1, accumulate: true))
 
-      persisted_attributes = [:ex_unit_module]
-
-      Enum.each(persisted_attributes, &Module.register_attribute(module, &1, persist: true))
-
       if register? do
         Module.put_attribute(module, :after_compile, ExUnit.Case)
       end
 
+      ExUnit.Callbacks.__register__(module)
       Module.put_attribute(module, :before_compile, ExUnit.Case)
+      Module.put_attribute(module, :before_compile, ExUnit.Callbacks)
     end
 
-    Module.put_attribute(module, :ex_unit_module, {async?, parameterize})
-    registered?
+    past_opts = Module.get_attribute(module, :ex_unit_module, [])
+    Module.put_attribute(module, :ex_unit_module, Keyword.merge(past_opts, next_opts))
+    :ok
   end
 
   @doc """
@@ -560,6 +550,14 @@ defmodule ExUnit.Case do
       |> validate_tags()
       |> Map.new()
 
+    opts = Module.get_attribute(module, :ex_unit_module, [])
+    async? = Keyword.get(opts, :async, false)
+    parameterize = Keyword.get(opts, :parameterize, nil)
+
+    if not (parameterize == nil or (is_list(parameterize) and Enum.all?(parameterize, &is_map/1))) do
+      raise ArgumentError, ":parameterize must be a list of maps, got: #{inspect(parameterize)}"
+    end
+
     quote do
       def __ex_unit__ do
         %ExUnit.TestModule{
@@ -569,6 +567,10 @@ defmodule ExUnit.Case do
           tests: unquote(tests)
         }
       end
+
+      def __ex_unit__(:config) do
+        {unquote(async?), unquote(Macro.escape(parameterize))}
+      end
     end
   end
 
@@ -576,8 +578,7 @@ defmodule ExUnit.Case do
   def __after_compile__(%{module: module}, _) do
     cond do
       Process.whereis(ExUnit.Server) ->
-        config = Module.get_attribute(module, :ex_unit_module)
-        ExUnit.Server.add_module(module, config)
+        ExUnit.Server.add_module(module, module.__ex_unit__(:config))
 
       Code.can_await_module_compilation?() ->
         :ok

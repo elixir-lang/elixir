@@ -166,22 +166,21 @@ defmodule ExUnit.Callbacks do
   """
 
   @doc false
-  defmacro __using__(_) do
-    quote do
-      @ex_unit_describe nil
-      @ex_unit_setup []
-      @ex_unit_setup_all []
-      @ex_unit_used_describes %{}
-
-      @before_compile unquote(__MODULE__)
-      import unquote(__MODULE__)
-    end
+  def __register__(module) do
+    Module.put_attribute(module, :ex_unit_describe, nil)
+    Module.put_attribute(module, :ex_unit_setup, [])
+    Module.put_attribute(module, :ex_unit_setup_all, [])
+    Module.put_attribute(module, :ex_unit_used_describes, %{})
   end
 
   @doc false
   defmacro __before_compile__(env) do
     used_describes = Module.get_attribute(env.module, :ex_unit_used_describes)
-    [compile_setup(env, :setup, used_describes), compile_setup(env, :setup_all, %{})]
+
+    quote do
+      unquote(compile_setup(env, :setup, used_describes))
+      unquote(compile_setup(env, :setup_all, %{}))
+    end
   end
 
   @doc """

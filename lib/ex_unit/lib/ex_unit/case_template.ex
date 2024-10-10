@@ -64,7 +64,9 @@ defmodule ExUnit.CaseTemplate do
   @doc false
   defmacro __using__(_) do
     quote do
-      use ExUnit.Callbacks
+      ExUnit.Callbacks.__register__(__MODULE__)
+      @before_compile ExUnit.Callbacks
+      import ExUnit.Callbacks
 
       import ExUnit.Assertions
       import unquote(__MODULE__)

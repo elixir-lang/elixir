@@ -405,14 +405,10 @@ defmodule ExUnit do
   @spec run([module()]) :: suite_result()
   def run(additional_modules \\ []) do
     for module <- additional_modules do
-      module_attributes = module.__info__(:attributes)
-
-      case Keyword.get(module_attributes, :ex_unit_module) do
-        [config] ->
-          ExUnit.Server.add_module(module, config)
-
-        _ ->
-          raise(ArgumentError, "#{inspect(module)} is not a ExUnit.Case module")
+      if Code.ensure_loaded?(module) and function_exported?(module, :__ex_unit__, 1) do
+        ExUnit.Server.add_module(module, module.__ex_unit__(:config))
+      else
+        raise(ArgumentError, "#{inspect(module)} is not a ExUnit.Case module")
       end
     end
 
