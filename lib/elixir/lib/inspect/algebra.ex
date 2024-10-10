@@ -589,7 +589,7 @@ defmodule Inspect.Algebra do
   end
 
   @doc ~S"""
-  Prevents breaks inside the document.
+  Disable any rendering limit while rendering the given document.
 
   ## Examples
 
