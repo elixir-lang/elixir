@@ -64,6 +64,7 @@ runs:
       if: ${{ inputs.build_docs }}
       shell: bash
       run: |
+        git fetch --tags
         make Docs.zip
         shasum -a 1 Docs.zip > Docs.zip.sha1sum
         shasum -a 256 Docs.zip > Docs.zip.sha256sum
