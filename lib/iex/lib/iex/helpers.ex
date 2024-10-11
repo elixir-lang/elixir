@@ -136,7 +136,14 @@ defmodule IEx.Helpers do
 
         if is_nil(project) or
              project.__info__(:compile)[:source] == String.to_charlist(Path.absname("mix.exs")) do
-          do_recompile(options)
+          Mix.Project.with_build_lock(fn ->
+            purge_result = IEx.MixListener.purge()
+
+            case do_recompile(options) do
+              :noop -> purge_result
+              compile_result -> compile_result
+            end
+          end)
         else
           message = "Cannot recompile because the current working directory changed"
           IO.puts(IEx.color(:eval_error, message))

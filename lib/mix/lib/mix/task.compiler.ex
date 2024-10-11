@@ -26,6 +26,38 @@ defmodule Mix.Task.Compiler do
 
   A compiler supports the same attributes for configuration and
   documentation as a regular Mix task. See `Mix.Task` for more information.
+
+  ## Listening to compilation
+
+  When a running a long-lived Mix task you may want to detect compilations
+  triggered in a separate OS process, for example, to reload the modules.
+  In order to do that, the Mix project may configure listeners:
+
+      config :mix, :listeners, [SomeDep.MixListener]
+
+  Each entry in the list must be either `t:Supervisor.module_spec/0` or
+  `t:Supervisor.child_spec/0`. Additionally, the listener module must
+  be defined in a dependency of the project, not the project itself.
+
+  The listener process receives the following messages:
+
+    * `{:modules_compiled, info}` - delivered after a set of modules is
+      compiled. `info` is a map with the following keys:
+
+        * `:app` - app which modules have been compiled.
+
+        * `:build_scm` - the SCM module of the compiled project.
+
+        * `:modules_diff` - information about the compiled modules. The
+          value is a map with keys: `:added`, `:changed`, `:removed`,
+          where each holds a list of modules. There is also a `:timestamp`
+          key, which matches the modification time of all the compiled
+          module files.
+
+        * `:self` - a boolean indicating if the compilation happened in the
+          same OS process as the listener.
+
+  Note that the listener starts before any of the project apps are started.
   """
 
   defmodule Diagnostic do
@@ -161,5 +193,24 @@ defmodule Mix.Task.Compiler do
 
         {:noop, []}
     end
+  end
+
+  @doc false
+  # Broadcast an event about a finished compilation of a set of modules.
+  @spec notify_modules_compiled(modules_diff) :: :ok
+        when modules_diff: %{
+               added: [module],
+               changed: [module],
+               removed: [module],
+               timestamp: integer
+             }
+  def notify_modules_compiled(%{} = modules_diff) do
+    config = Mix.Project.config()
+    build_path = Mix.Project.build_path(config)
+
+    Mix.Sync.PubSub.broadcast(
+      build_path,
+      {:modules_compiled, config[:app], config[:build_scm], modules_diff, System.pid()}
+    )
   end
 end

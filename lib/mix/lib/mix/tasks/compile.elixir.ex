@@ -127,15 +127,22 @@ defmodule Mix.Tasks.Compile.Elixir do
 
     with_logger_app(project, fn ->
       Mix.Project.with_build_lock(project, fn ->
-        Mix.Compilers.Elixir.compile(
-          manifest,
-          srcs,
-          dest,
-          cache_key,
-          Mix.Tasks.Compile.Erlang.manifests(),
-          Mix.Tasks.Compile.Erlang.modules(),
-          opts
-        )
+        {status, warnings, modules_diff} =
+          Mix.Compilers.Elixir.compile(
+            manifest,
+            srcs,
+            dest,
+            cache_key,
+            Mix.Tasks.Compile.Erlang.manifests(),
+            Mix.Tasks.Compile.Erlang.modules(),
+            opts
+          )
+
+        if modules_diff do
+          Mix.Task.Compiler.notify_modules_compiled(modules_diff)
+        end
+
+        {status, warnings}
       end)
     end)
   end

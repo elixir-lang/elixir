@@ -15,9 +15,13 @@ defmodule Mix.Tasks.Compile.All do
 
     config = Mix.Project.config()
 
-    Mix.Project.with_build_lock(config, fn ->
+    if "--no-compile" in args do
       do_run(config, args)
-    end)
+    else
+      Mix.Project.with_build_lock(config, fn ->
+        do_run(config, args)
+      end)
+    end
   end
 
   defp do_run(config, args) do

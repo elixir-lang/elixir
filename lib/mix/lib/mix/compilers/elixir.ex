@@ -202,7 +202,14 @@ defmodule Mix.Compilers.Elixir do
 
           put_compile_env(sources)
           all_warnings = previous_warnings ++ runtime_warnings ++ compile_warnings
-          unless_previous_warnings_as_errors(previous_warnings, opts, {:ok, all_warnings})
+
+          modules_diff = modules_diff(modules, pending_modules, all_modules, timestamp)
+
+          unless_previous_warnings_as_errors(
+            previous_warnings,
+            opts,
+            {:ok, all_warnings, modules_diff}
+          )
 
         {:error, errors, %{runtime_warnings: r_warnings, compile_warnings: c_warnings}, state} ->
           # In case of errors, we show all previous warnings and all new ones.
@@ -210,7 +217,7 @@ defmodule Mix.Compilers.Elixir do
           errors = Enum.map(errors, &diagnostic/1)
           warnings = Enum.map(r_warnings ++ c_warnings, &diagnostic/1)
           all_warnings = Keyword.get(opts, :all_warnings, errors == [])
-          {:error, previous_warnings(sources, all_warnings) ++ warnings ++ errors}
+          {:error, previous_warnings(sources, all_warnings) ++ warnings ++ errors, nil}
       after
         Code.compiler_options(previous_opts)
       end
@@ -247,7 +254,12 @@ defmodule Mix.Compilers.Elixir do
 
       all_warnings = Keyword.get(opts, :all_warnings, true)
       previous_warnings = previous_warnings(sources, all_warnings)
-      unless_previous_warnings_as_errors(previous_warnings, opts, {status, previous_warnings})
+
+      unless_previous_warnings_as_errors(
+        previous_warnings,
+        opts,
+        {status, previous_warnings, nil}
+      )
     end
   end
 
@@ -989,14 +1001,31 @@ defmodule Mix.Compilers.Elixir do
     File.rm(manifest <> ".checkpoint")
   end
 
-  defp unless_previous_warnings_as_errors(previous_warnings, opts, {status, all_warnings}) do
+  defp unless_previous_warnings_as_errors(
+         previous_warnings,
+         opts,
+         {status, all_warnings, modules_diff}
+       ) do
     if previous_warnings != [] and opts[:warnings_as_errors] do
       message = "Compilation failed due to warnings while using the --warnings-as-errors option"
       IO.puts(:stderr, message)
-      {:error, all_warnings}
+      {:error, all_warnings, modules_diff}
     else
-      {status, all_warnings}
+      {status, all_warnings, modules_diff}
     end
+  end
+
+  defp modules_diff(compiled_modules, pending_modules, all_modules, timestamp) do
+    compiled_modules_keys = Map.keys(compiled_modules)
+    pending_modules_keys = Map.keys(pending_modules)
+    all_modules_keys = Map.keys(all_modules)
+
+    %{
+      added: compiled_modules_keys -- all_modules_keys,
+      changed: Map.keys(Map.intersect(compiled_modules, all_modules)),
+      removed: (all_modules_keys -- compiled_modules_keys) -- pending_modules_keys,
+      timestamp: timestamp
+    }
   end
 
   ## Compiler loop
