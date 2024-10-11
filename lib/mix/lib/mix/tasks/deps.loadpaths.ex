@@ -19,7 +19,6 @@ defmodule Mix.Tasks.Deps.Loadpaths do
     * `--no-deps-check` - does not check or compile deps, only load available ones
     * `--no-elixir-version-check` - does not check Elixir version
     * `--no-optional-deps` - does not compile or load optional deps
-    * `--no-path-loading` - does not add entries to the code path
 
   """
 
@@ -50,13 +49,11 @@ defmodule Mix.Tasks.Deps.Loadpaths do
       deps_check(all, "--no-compile" in args)
     end
 
-    if "--no-path-loading" not in args do
-      Code.prepend_paths(Enum.flat_map(all, &Mix.Dep.load_paths/1), cache: true)
+    Code.prepend_paths(Enum.flat_map(all, &Mix.Dep.load_paths/1), cache: true)
 
-      # For now we only allow listeners defined in dependencies, so
-      # we start them right after adding adding deps to the path
-      Mix.PubSub.start_listeners()
-    end
+    # For now we only allow listeners defined in dependencies, so
+    # we start them right after adding adding deps to the path
+    Mix.PubSub.start_listeners()
 
     :ok
   end

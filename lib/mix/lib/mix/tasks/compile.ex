@@ -149,9 +149,7 @@ defmodule Mix.Tasks.Compile do
   def run(args) do
     Mix.Project.get!()
 
-    # We run loadpaths to perform checks but we don't bother setting
-    # up the load paths because compile.all will manage them anyway.
-    Mix.Task.run("loadpaths", ["--no-path-loading" | args])
+    Mix.Task.run("loadpaths", args)
 
     {opts, _, _} = OptionParser.parse(args, switches: [erl_config: :string])
     load_erl_config(opts)

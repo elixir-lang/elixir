@@ -22,7 +22,6 @@ defmodule Mix.Tasks.Loadpaths do
     * `--no-deps-check` - does not check dependencies, only load available ones
     * `--no-elixir-version-check` - does not check Elixir version
     * `--no-optional-deps` - does not compile or load optional deps
-    * `--no-path-loading` - does not add entries to the code path
 
   """
   @impl true
@@ -38,13 +37,13 @@ defmodule Mix.Tasks.Loadpaths do
     end
 
     if config[:app] do
-      load_project(config, args)
+      load_project(config)
     end
 
     :ok
   end
 
-  defp load_project(config, args) do
+  defp load_project(config) do
     vsn = {System.version(), :erlang.system_info(:otp_release)}
     scm = config[:build_scm]
 
@@ -61,9 +60,7 @@ defmodule Mix.Tasks.Loadpaths do
         :ok
     end
 
-    if "--no-path-loading" not in args do
-      # We don't cache the current application as we may still write to it
-      Code.prepend_path(Mix.Project.compile_path(config))
-    end
+    # We don't cache the current application as we may still write to it
+    Code.prepend_path(Mix.Project.compile_path(config))
   end
 end
