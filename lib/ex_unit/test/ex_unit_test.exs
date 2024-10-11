@@ -1218,6 +1218,54 @@ defmodule ExUnitTest do
     assert third =~ "ThirdTestFIFO"
   end
 
+  test "async test partitions are run in compile order (FIFO)" do
+    defmodule RedOneFIFO do
+      use ExUnit.Case, async: true, async_partition_key: :red
+
+      test "red one test" do
+        assert true
+      end
+    end
+
+    defmodule BlueOneFIFO do
+      use ExUnit.Case, async: true, async_partition_key: :blue
+
+      test "blue one test" do
+        assert true
+      end
+    end
+
+    defmodule RedTwoFIFO do
+      use ExUnit.Case, async: true, async_partition_key: :red
+
+      test "red two test" do
+        assert true
+      end
+    end
+
+    defmodule BlueTwoFIFO do
+      use ExUnit.Case, async: true, async_partition_key: :blue
+
+      test "blue two test" do
+        assert true
+      end
+    end
+
+    configure_and_reload_on_exit(trace: true)
+
+    output =
+      capture_io(fn ->
+        assert ExUnit.run() == %{total: 4, failures: 0, excluded: 0, skipped: 0}
+      end)
+
+    [_, first, second, third, fourth | _] = String.split(output, "\n\n")
+
+    assert first =~ "RedOneFIFO"
+    assert second =~ "RedTwoFIFO"
+    assert third =~ "BlueOneFIFO"
+    assert fourth =~ "BlueTwoFIFO"
+  end
+
   test "can filter async tests" do
     defmodule FirstTestAsyncTrue do
       use ExUnit.Case, async: true
