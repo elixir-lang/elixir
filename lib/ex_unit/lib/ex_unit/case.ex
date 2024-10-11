@@ -12,6 +12,13 @@ defmodule ExUnit.Case do
       It should be enabled only if tests do not change any global state.
       Defaults to `false`.
 
+    * `:async_partition_key` - configures async tests in this module to run
+      within an async partition denoted by the provided key. Tests in the same
+      async partition never run concurrently. Tests from different partitions
+      can run concurrently. This option is only valid when the :async option
+      is set to true.
+      Defaults to `nil`.
+
     * `:register` - when `false`, does not register this module within
       ExUnit server. This means the module won't run when ExUnit suite runs.
 
