@@ -282,36 +282,6 @@ defmodule Mix.Tasks.DepsTest do
     end)
   end
 
-  test "does not load deps with --no-deps-loading" do
-    in_fixture("deps_status", fn ->
-      Mix.Project.push(SuccessfulDepsApp)
-
-      # Start from scratch!
-      File.rm_rf("_build")
-
-      Mix.Tasks.Deps.Compile.run([])
-      Mix.Tasks.Deps.Loadpaths.run([])
-      assert File.exists?("_build/dev/lib/ok/ebin/ok.app")
-      assert File.exists?("_build/dev/lib/ok/priv/sample")
-
-      Mix.Tasks.Compile.run([])
-      assert to_charlist(Path.expand("_build/dev/lib/ok/ebin/")) in :code.get_path()
-      assert File.exists?("_build/dev/lib/sample/ebin/sample.app")
-
-      # Remove the deps without build_path
-      Mix.ProjectStack.post_config(deps: [])
-      Mix.State.clear_cache()
-      Mix.Project.pop()
-      Mix.Project.push(SuccessfulDepsApp)
-      Code.delete_path("_build/dev/lib/ok/ebin")
-
-      Mix.Tasks.Deps.Loadpaths.run(["--no-deps-loading"])
-      refute to_charlist(Path.expand("_build/dev/lib/ok/ebin/")) in :code.get_path()
-      assert File.exists?("_build/dev/lib/ok/ebin/ok.app")
-      assert File.exists?("_build/dev/lib/sample/ebin/sample.app")
-    end)
-  end
-
   ## deps.unlock
 
   test "unlocks all deps", context do
