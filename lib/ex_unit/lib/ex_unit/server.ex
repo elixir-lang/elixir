@@ -12,7 +12,7 @@ defmodule ExUnit.Server do
   def add_module(name, config) do
     %{
       async?: async?,
-      async_partition_key: async_partition_key,
+      group: group,
       parameterize: parameterize
     } = config
 
@@ -23,7 +23,7 @@ defmodule ExUnit.Server do
         [{name, %{}}]
       end
 
-    case GenServer.call(@name, {:add, {async?, async_partition_key}, modules}, @timeout) do
+    case GenServer.call(@name, {:add, {async?, group}, modules}, @timeout) do
       :ok ->
         :ok
 

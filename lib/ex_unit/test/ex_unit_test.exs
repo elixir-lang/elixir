@@ -760,50 +760,50 @@ defmodule ExUnitTest do
     Task.await(test_task)
   end
 
-  test "async tests run concurrently respecting partition keys" do
-    Process.register(self(), :async_partitioned_tests)
+  test "async tests run concurrently respecting groups" do
+    Process.register(self(), :async_grouped_tests)
 
     defmodule RedOneTest do
-      use ExUnit.Case, async: true, async_partition_key: :red
+      use ExUnit.Case, async: true, group: :red
 
       test "red one test" do
-        send(:async_partitioned_tests, {:red_one, :started})
+        send(:async_grouped_tests, {:red_one, :started})
         Process.sleep(30)
         assert true
-        send(:async_partitioned_tests, {:red_one, :finished})
+        send(:async_grouped_tests, {:red_one, :finished})
       end
     end
 
     defmodule RedTwoTest do
-      use ExUnit.Case, async: true, async_partition_key: :red
+      use ExUnit.Case, async: true, group: :red
 
       test "red two test" do
-        send(:async_partitioned_tests, {:red_two, :started})
+        send(:async_grouped_tests, {:red_two, :started})
         Process.sleep(10)
         assert true
-        send(:async_partitioned_tests, {:red_two, :finished})
+        send(:async_grouped_tests, {:red_two, :finished})
       end
     end
 
     defmodule BlueOneTest do
-      use ExUnit.Case, async: true, async_partition_key: :blue
+      use ExUnit.Case, async: true, group: :blue
 
       test "blue one test" do
-        send(:async_partitioned_tests, {:blue_one, :started})
+        send(:async_grouped_tests, {:blue_one, :started})
         Process.sleep(10)
         assert true
-        send(:async_partitioned_tests, {:blue_one, :finished})
+        send(:async_grouped_tests, {:blue_one, :finished})
       end
     end
 
     defmodule BlueTwoTest do
-      use ExUnit.Case, async: true, async_partition_key: :blue
+      use ExUnit.Case, async: true, group: :blue
 
       test "blue two test" do
-        send(:async_partitioned_tests, {:blue_two, :started})
+        send(:async_grouped_tests, {:blue_two, :started})
         Process.sleep(10)
         assert true
-        send(:async_partitioned_tests, {:blue_two, :finished})
+        send(:async_grouped_tests, {:blue_two, :finished})
       end
     end
 
@@ -1218,9 +1218,9 @@ defmodule ExUnitTest do
     assert third =~ "ThirdTestFIFO"
   end
 
-  test "async test partitions are run in compile order (FIFO)" do
+  test "async test groups are run in compile order (FIFO)" do
     defmodule RedOneFIFO do
-      use ExUnit.Case, async: true, async_partition_key: :red
+      use ExUnit.Case, async: true, group: :red
 
       test "red one test" do
         assert true
@@ -1228,7 +1228,7 @@ defmodule ExUnitTest do
     end
 
     defmodule BlueOneFIFO do
-      use ExUnit.Case, async: true, async_partition_key: :blue
+      use ExUnit.Case, async: true, group: :blue
 
       test "blue one test" do
         assert true
@@ -1236,7 +1236,7 @@ defmodule ExUnitTest do
     end
 
     defmodule RedTwoFIFO do
-      use ExUnit.Case, async: true, async_partition_key: :red
+      use ExUnit.Case, async: true, group: :red
 
       test "red two test" do
         assert true
@@ -1244,7 +1244,7 @@ defmodule ExUnitTest do
     end
 
     defmodule BlueTwoFIFO do
-      use ExUnit.Case, async: true, async_partition_key: :blue
+      use ExUnit.Case, async: true, group: :blue
 
       test "blue two test" do
         assert true

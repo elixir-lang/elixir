@@ -12,11 +12,9 @@ defmodule ExUnit.Case do
       It should be enabled only if tests do not change any global state.
       Defaults to `false`.
 
-    * `:async_partition_key` - configures async tests in this module to run
-      within an async partition denoted by the provided key. Tests in the same
-      async partition never run concurrently. Tests from different partitions
-      can run concurrently. This option is only valid when the :async option
-      is set to true.
+    * `:group` - configures async tests in this module to run within a group.
+      Tests in the same group never run concurrently. Tests from different
+      groups can run concurrently with `async: true`.
       Defaults to `nil`.
 
     * `:register` - when `false`, does not register this module within
@@ -301,7 +299,7 @@ defmodule ExUnit.Case do
 
   @type env :: module() | Macro.Env.t()
   @compile {:no_warn_undefined, [IEx.Pry]}
-  @reserved [:module, :file, :line, :test, :async, :async_partition_key, :registered, :describe]
+  @reserved [:module, :file, :line, :test, :async, :group, :registered, :describe]
 
   @doc false
   defmacro __using__(opts) do
@@ -324,7 +322,7 @@ defmodule ExUnit.Case do
     end
 
     {register?, opts} = Keyword.pop(opts, :register, true)
-    {next_opts, opts} = Keyword.split(opts, [:async, :async_partition_key, :parameterize])
+    {next_opts, opts} = Keyword.split(opts, [:async, :group, :parameterize])
 
     if opts != [] do
       IO.warn("unknown options given to ExUnit.Case: #{inspect(opts)}")
@@ -559,7 +557,7 @@ defmodule ExUnit.Case do
 
     opts = Module.get_attribute(module, :ex_unit_module, [])
     async? = Keyword.get(opts, :async, false)
-    async_partition_key = Keyword.get(opts, :async_partition_key, nil)
+    group = Keyword.get(opts, :group, nil)
     parameterize = Keyword.get(opts, :parameterize, nil)
 
     if not (parameterize == nil or (is_list(parameterize) and Enum.all?(parameterize, &is_map/1))) do
@@ -579,7 +577,7 @@ defmodule ExUnit.Case do
       def __ex_unit__(:config) do
         %{
           async?: unquote(async?),
-          async_partition_key: unquote(Macro.escape(async_partition_key)),
+          group: unquote(Macro.escape(group)),
           parameterize: unquote(Macro.escape(parameterize))
         }
       end
