@@ -583,7 +583,7 @@ defmodule ExUnit.Case do
       def __ex_unit__(:config) do
         %{
           async?: unquote(async?),
-          async_partition_key: unquote(async_partition_key),
+          async_partition_key: unquote(Macro.escape(async_partition_key)),
           parameterize: unquote(Macro.escape(parameterize))
         }
       end
