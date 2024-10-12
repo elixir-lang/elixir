@@ -562,10 +562,6 @@ defmodule ExUnit.Case do
     async_partition_key = Keyword.get(opts, :async_partition_key, nil)
     parameterize = Keyword.get(opts, :parameterize, nil)
 
-    if async_partition_key != nil and async? == false do
-      raise ArgumentError, ":async_partition_key is only a valid option when async: true"
-    end
-
     if not (parameterize == nil or (is_list(parameterize) and Enum.all?(parameterize, &is_map/1))) do
       raise ArgumentError, ":parameterize must be a list of maps, got: #{inspect(parameterize)}"
     end
