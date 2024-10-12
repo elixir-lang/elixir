@@ -164,7 +164,7 @@ defmodule ExUnit.Runner do
   defp spawn_modules(
          config,
          [{_group, group_modules} | modules],
-         true = async?,
+         async?,
          running
        ) do
     if max_failures_reached?(config) do
@@ -177,15 +177,6 @@ defmodule ExUnit.Runner do
           end)
         end)
 
-      spawn_modules(config, modules, async?, Map.put(running, ref, pid))
-    end
-  end
-
-  defp spawn_modules(config, [{_group, [{module, params}]} | modules], async?, running) do
-    if max_failures_reached?(config) do
-      running
-    else
-      {pid, ref} = spawn_monitor(fn -> run_module(config, module, async?, params) end)
       spawn_modules(config, modules, async?, Map.put(running, ref, pid))
     end
   end
