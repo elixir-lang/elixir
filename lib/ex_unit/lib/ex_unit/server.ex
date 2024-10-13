@@ -152,13 +152,13 @@ defmodule ExUnit.Server do
   def handle_call({:add, {true = _async, group}, names}, _from, %{loaded: loaded} = state)
       when is_integer(loaded) do
     state =
-    case state.async_groups do
-      %{^group => entries} ->
-        {%{async_groups | group => names ++ entries}, state.async_modules}
-      %{} ->
-        {Map.put(async_groups, group, names),
-         :queue.in({:group, group}, state.async_modules)}
-    end
+      case state.async_groups do
+        %{^group => entries} = async_groups ->
+          {%{async_groups | group => names ++ entries}, state.async_modules}
+
+        %{} = async_groups ->
+          {Map.put(async_groups, group, names), :queue.in({:group, group}, state.async_modules)}
+      end
 
     {:reply, :ok, state}
   end
