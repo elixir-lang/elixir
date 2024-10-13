@@ -2674,6 +2674,84 @@ defmodule Macro do
     end
   end
 
+  defp dbg_ast_to_debuggable({:with, meta, args} = ast, _env) do
+    {opts, clauses} = List.pop_at(args, -1)
+
+    acc_var = unique_var(:acc, __MODULE__)
+
+    modified_clauses =
+      Enum.flat_map(clauses, fn
+        # We only detail assignments and pattern-matching clauses that
+        # can be helpful to understand how the result is constructed.
+        {:<-, _meta, [left, right]} ->
+          modified_left =
+            case left do
+              {:when, meta, [pattern, guard]} -> {:when, meta, [{pattern, quote(do: _)}, guard]}
+              pattern -> {pattern, quote(do: _)}
+            end
+
+          quote do
+            [
+              value = unquote(right),
+              unquote(acc_var) = [{unquote(escape(right)), value} | unquote(acc_var)],
+              unquote(modified_left) <- {value, unquote(acc_var)}
+            ]
+          end
+
+        {:=, _meta, [left, right]} ->
+          quote do
+            [
+              value = unquote(right),
+              unquote(acc_var) = [{unquote(escape(right)), value} | unquote(acc_var)],
+              unquote(left) = value
+            ]
+          end
+
+        # Other expressions like side effects are omitted.
+        expr ->
+          [expr]
+      end)
+
+    modified_opts =
+      Enum.map(opts, fn
+        {:do, do_block} ->
+          {:do, {do_block, acc_var}}
+
+        {:else, else_block} ->
+          clauses =
+            Enum.map(else_block, fn
+              {:->, meta, [[{:when, meta2, [pattern, guard]}], right]} ->
+                {:->, meta, [[{:when, meta2, [{pattern, acc_var}, guard]}], {right, acc_var}]}
+
+              {:->, meta, [[left], right]} ->
+                {:->, meta, [[{left, acc_var}], {right, acc_var}]}
+
+              invalid ->
+                invalid
+            end)
+
+          error_clause =
+            quote do
+              {other, _acc} -> raise WithClauseError, term: other
+            end
+
+          {:else, clauses ++ error_clause}
+
+        invalid ->
+          invalid
+      end)
+
+    modified_with_ast = {:with, meta, modified_clauses ++ [modified_opts]}
+
+    quote do
+      unquote(acc_var) = []
+
+      {value, acc} = unquote(modified_with_ast)
+
+      {:with, unquote(escape(ast)), Enum.reverse(acc), value}
+    end
+  end
+
   # Any other AST.
   defp dbg_ast_to_debuggable(ast, _env) do
     quote do: {:value, unquote(escape(ast)), unquote(ast)}
@@ -2821,6 +2899,25 @@ defmodule Macro do
       dbg_format_ast_with_value(condition_ast, condition_result, options),
       ?\n,
       dbg_maybe_underline("If expression", options),
+      ":\n",
+      dbg_format_ast_with_value(ast, result, options)
+    ]
+
+    {formatted, result}
+  end
+
+  defp dbg_format_ast_to_debug({:with, ast, clauses, result}, options) do
+    formatted_clauses =
+      Enum.map(clauses, fn {clause_ast, clause_result} ->
+        dbg_format_ast_with_value(clause_ast, clause_result, options)
+      end)
+
+    formatted = [
+      dbg_maybe_underline("With clauses", options),
+      ":\n",
+      formatted_clauses,
+      ?\n,
+      dbg_maybe_underline("With expression", options),
       ":\n",
       dbg_format_ast_with_value(ast, result, options)
     ]
