@@ -130,7 +130,7 @@ defmodule ExUnit do
 
       * `:parameters` - (since v1.18.0) the test module parameters
 
-      * `:setup_all?` - (since v1.18.0) if the test module requies a setup all
+      * `:setup_all?` - (since v1.18.0) if the test module requires a setup all
 
       * `:state` - the test error state (see `t:ExUnit.state/0`)
 
