@@ -23,7 +23,7 @@ defmodule ExUnit.Server do
         [{name, %{}}]
       end
 
-    case GenServer.call(@name, {:add, {async?, group}, modules}, @timeout) do
+    case GenServer.call(@name, {:add, async?, group, modules}, @timeout) do
       :ok ->
         :ok
 
@@ -82,7 +82,7 @@ defmodule ExUnit.Server do
   # Called by the runner when --repeat-until-failure is used.
   def handle_call({:restore_modules, async_modules, sync_modules}, _from, state) do
     {async_modules, async_groups} =
-      Enum.reduce(async_modules, {[], []}, fn
+      Enum.map_reduce(async_modules, %{}, fn
         {nil, [module]}, {modules, groups} ->
           {[{:module, module} | modules], groups}
 
@@ -130,7 +130,7 @@ defmodule ExUnit.Server do
     {:reply, diff, take_modules(%{state | loaded: :done})}
   end
 
-  def handle_call({:add, {false = _async, _group}, names}, _from, %{loaded: loaded} = state)
+  def handle_call({:add, false = _async, _group, names}, _from, %{loaded: loaded} = state)
       when is_integer(loaded) do
     state =
       update_in(state.sync_modules, &Enum.reduce(names, &1, fn name, q -> :queue.in(name, q) end))
@@ -138,7 +138,7 @@ defmodule ExUnit.Server do
     {:reply, :ok, state}
   end
 
-  def handle_call({:add, {true = _async, nil = _group}, names}, _from, %{loaded: loaded} = state)
+  def handle_call({:add, true = _async, nil = _group, names}, _from, %{loaded: loaded} = state)
       when is_integer(loaded) do
     state =
       update_in(
@@ -146,12 +146,12 @@ defmodule ExUnit.Server do
         &Enum.reduce(names, &1, fn name, q -> :queue.in({:module, name}, q) end)
       )
 
-    {:reply, :ok, state}
+    {:reply, :ok, take_modules(state)}
   end
 
-  def handle_call({:add, {true = _async, group}, names}, _from, %{loaded: loaded} = state)
+  def handle_call({:add, true = _async, group, names}, _from, %{loaded: loaded} = state)
       when is_integer(loaded) do
-    state =
+    {async_groups, async_modules} =
       case state.async_groups do
         %{^group => entries} = async_groups ->
           {%{async_groups | group => names ++ entries}, state.async_modules}
@@ -160,11 +160,13 @@ defmodule ExUnit.Server do
           {Map.put(async_groups, group, names), :queue.in({:group, group}, state.async_modules)}
       end
 
-    {:reply, :ok, state}
+    {:reply, :ok,
+     take_modules(%{state | async_groups: async_groups, async_modules: async_modules})}
   end
 
-  def handle_call({:add, {_async?, _group}, _names}, _from, state),
-    do: {:reply, :already_running, state}
+  def handle_call({:add, _async?, _group, _names}, _from, state) do
+    {:reply, :already_running, state}
+  end
 
   defp take_modules(%{waiting: nil} = state) do
     state
@@ -185,16 +187,16 @@ defmodule ExUnit.Server do
         {async_modules, remaining_modules} = take_until(count, state.async_modules)
 
         {async_modules, remaining_groups} =
-          Enum.reduce(async_modules, {[], state.async_groups}, fn
-            {:module, module}, {collected_modules, async_groups} ->
-              {[{nil, [module]} | collected_modules], async_groups}
+          Enum.map_reduce(async_modules, state.async_groups, fn
+            {:module, module}, async_groups ->
+              {[module], async_groups}
 
-            {:group, group}, {collected_modules, async_groups} ->
+            {:group, group}, async_groups ->
               {group_modules, async_groups} = Map.pop!(async_groups, group)
-              {[{group, Enum.reverse(group_modules)} | collected_modules], async_groups}
+              {Enum.reverse(group_modules), async_groups}
           end)
 
-        GenServer.reply(from, Enum.reverse(async_modules))
+        GenServer.reply(from, async_modules)
 
         %{
           state

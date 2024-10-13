@@ -1218,7 +1218,7 @@ defmodule ExUnitTest do
     assert third =~ "ThirdTestFIFO"
   end
 
-  test "async test groups are run in compile order (FIFO)" do
+  test "groups are run in compile order (FIFO)" do
     defmodule RedOneFIFO do
       use ExUnit.Case, async: true, group: :red
 
@@ -1266,7 +1266,7 @@ defmodule ExUnitTest do
     assert fourth =~ "BlueTwoFIFO"
   end
 
-  test "can filter async tests" do
+  test "filters async tests" do
     defmodule FirstTestAsyncTrue do
       use ExUnit.Case, async: true
 
@@ -1295,11 +1295,10 @@ defmodule ExUnitTest do
              run_with_filter([include: [async: true], exclude: [:test]], [])
 
     assert {%{failures: 0, skipped: 0, total: 3, excluded: 2}, _} =
-             run_with_filter([include: [async: false], exclude: [:test]], [
-               FirstTestAsyncTrue,
-               SecondTestAsyncTrue,
-               FirstTestAsyncFalse
-             ])
+             run_with_filter(
+               [include: [async: false], exclude: [:test]],
+               [FirstTestAsyncTrue, SecondTestAsyncTrue, FirstTestAsyncFalse]
+             )
   end
 
   ##  Helpers
@@ -1316,8 +1315,7 @@ defmodule ExUnitTest do
       |> Keyword.merge(filters)
       |> Keyword.merge(colors: [enabled: false])
 
-    output = capture_io(fn -> Process.put(:capture_result, ExUnit.Runner.run(opts, nil)) end)
-    {Process.get(:capture_result) |> elem(0), output}
+    with_io(fn -> ExUnit.Runner.run(opts, nil) |> elem(0) end)
   end
 
   defp next_message_in_mailbox() do

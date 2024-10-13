@@ -125,7 +125,7 @@ defmodule ExUnit.Runner do
 
         # Run all sync modules directly
         for pair <- sync_modules do
-          running = spawn_modules(config, [pair], false, %{})
+          running = spawn_modules(config, [[pair]], false, %{})
           running != %{} and wait_until_available(config, running)
         end
 
@@ -161,23 +161,18 @@ defmodule ExUnit.Runner do
     running
   end
 
-  defp spawn_modules(
-         config,
-         [{_group, group_modules} | modules],
-         async?,
-         running
-       ) do
+  defp spawn_modules(config, [[_ | _] = modules | groups], async?, running) do
     if max_failures_reached?(config) do
       running
     else
       {pid, ref} =
         spawn_monitor(fn ->
-          Enum.each(group_modules, fn {module, params} ->
+          Enum.each(modules, fn {module, params} ->
             run_module(config, module, async?, params)
           end)
         end)
 
-      spawn_modules(config, modules, async?, Map.put(running, ref, pid))
+      spawn_modules(config, groups, async?, Map.put(running, ref, pid))
     end
   end
 
