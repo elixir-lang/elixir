@@ -152,13 +152,13 @@ defmodule ExUnit.Server do
   def handle_call({:add, {true = _async, group}, names}, _from, %{loaded: loaded} = state)
       when is_integer(loaded) do
     state =
-      if Map.has_key?(state.async_groups, group) do
-        update_in(state.async_groups[group], &(names ++ &1))
-      else
-        state
-        |> put_in([:async_groups, group], names)
-        |> update_in([:async_modules], &:queue.in({:group, group}, &1))
-      end
+    case state.async_groups do
+      %{^group => entries} ->
+        {%{async_groups | group => names ++ entries}, state.async_modules}
+      %{} ->
+        {Map.put(async_groups, group, names),
+         :queue.in({:group, group}, state.async_modules)}
+    end
 
     {:reply, :ok, state}
   end
@@ -191,7 +191,7 @@ defmodule ExUnit.Server do
 
             {:group, group}, {collected_modules, async_groups} ->
               {group_modules, async_groups} = Map.pop!(async_groups, group)
-              {[{group, group_modules} | collected_modules], async_groups}
+              {[{group, Enum.reverse(group_modules)} | collected_modules], async_groups}
           end)
 
         GenServer.reply(from, Enum.reverse(async_modules))
