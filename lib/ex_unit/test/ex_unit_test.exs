@@ -715,123 +715,6 @@ defmodule ExUnitTest do
     assert_receive {:tmp_dir, tmp_dir2} when tmp_dir1 != tmp_dir2
   end
 
-  test "async tests run concurrently" do
-    Process.register(self(), :async_tests)
-
-    defmodule FirstAsyncTest do
-      use ExUnit.Case, async: true
-
-      test "first test" do
-        send(:async_tests, {:first_test, :started})
-        Process.sleep(10)
-        assert true
-        send(:async_tests, {:first_test, :finished})
-      end
-    end
-
-    defmodule SecondAsyncTest do
-      use ExUnit.Case, async: true
-
-      test "second test" do
-        send(:async_tests, {:second_test, :started})
-        Process.sleep(15)
-        assert true
-        send(:async_tests, {:second_test, :finished})
-      end
-    end
-
-    configure_and_reload_on_exit(max_cases: 2)
-
-    test_task =
-      Task.async(fn ->
-        capture_io(fn -> ExUnit.run() end)
-      end)
-
-    # Expected test distribution through time
-    #
-    # Time (ms): 0    10    20
-    #            |-----|-----|
-    # CPU0:      (  1  )
-    # CPU1:      (   2    )
-    assert_receive({:first_test, :started}, 5)
-    assert_receive({:second_test, :started}, 5)
-
-    # make sure we don't leave the task running after the outer test finishes
-    Task.await(test_task)
-  end
-
-  test "async tests run concurrently respecting groups" do
-    Process.register(self(), :async_grouped_tests)
-
-    defmodule RedOneTest do
-      use ExUnit.Case, async: true, group: :red
-
-      test "red one test" do
-        send(:async_grouped_tests, {:red_one, :started})
-        Process.sleep(30)
-        assert true
-        send(:async_grouped_tests, {:red_one, :finished})
-      end
-    end
-
-    defmodule RedTwoTest do
-      use ExUnit.Case, async: true, group: :red
-
-      test "red two test" do
-        send(:async_grouped_tests, {:red_two, :started})
-        Process.sleep(10)
-        assert true
-        send(:async_grouped_tests, {:red_two, :finished})
-      end
-    end
-
-    defmodule BlueOneTest do
-      use ExUnit.Case, async: true, group: :blue
-
-      test "blue one test" do
-        send(:async_grouped_tests, {:blue_one, :started})
-        Process.sleep(10)
-        assert true
-        send(:async_grouped_tests, {:blue_one, :finished})
-      end
-    end
-
-    defmodule BlueTwoTest do
-      use ExUnit.Case, async: true, group: :blue
-
-      test "blue two test" do
-        send(:async_grouped_tests, {:blue_two, :started})
-        Process.sleep(10)
-        assert true
-        send(:async_grouped_tests, {:blue_two, :finished})
-      end
-    end
-
-    configure_and_reload_on_exit(max_cases: 4)
-
-    test_task =
-      Task.async(fn ->
-        capture_io(fn -> ExUnit.run() end)
-      end)
-
-    # Expected test distribution through time
-    #
-    # Time (ms): 0    10    20    30    40
-    #            |-----|-----|-----|-----|
-    # CPU0:      (      R1         )( R2 )
-    # CPU1:      ( B1 )( B2 )
-    assert_receive({:red_one, :started}, 5)
-    assert_receive({:blue_one, :started}, 5)
-    refute_receive({:red_two, :started}, 25)
-    assert_received({:blue_one, :finished})
-    assert_received({:blue_two, :started})
-    assert_receive({:blue_two, :finished}, 15)
-    assert_receive({:red_two, :started}, 15)
-
-    # make sure we don't leave the task running after the outer test finishes
-    Task.await(test_task)
-  end
-
   describe "after_suite/1" do
     test "executes all callbacks set in reverse order" do
       Process.register(self(), :after_suite_test_process)
@@ -1223,6 +1106,7 @@ defmodule ExUnitTest do
       use ExUnit.Case, async: true, group: :red
 
       test "red one test" do
+        Process.sleep(5)
         assert true
       end
     end
@@ -1231,6 +1115,7 @@ defmodule ExUnitTest do
       use ExUnit.Case, async: true, group: :blue
 
       test "blue one test" do
+        Process.sleep(5)
         assert true
       end
     end
@@ -1251,7 +1136,7 @@ defmodule ExUnitTest do
       end
     end
 
-    configure_and_reload_on_exit(trace: true)
+    configure_and_reload_on_exit(trace: true, max_cases: 2)
 
     output =
       capture_io(fn ->
