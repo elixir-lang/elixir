@@ -189,13 +189,14 @@ defmodule Integer do
   @spec digits(integer, pos_integer) :: [integer, ...]
   def digits(integer, base \\ 10)
       when is_integer(integer) and is_integer(base) and base >= 2 do
-    do_digits(integer, base, [])
+    digits(integer, base, [])
   end
 
-  defp do_digits(integer, base, acc) when abs(integer) < base, do: [integer | acc]
+  defp digits(0, _base, []), do: [0]
+  defp digits(0, _base, acc), do: acc
 
-  defp do_digits(integer, base, acc),
-    do: do_digits(div(integer, base), base, [rem(integer, base) | acc])
+  defp digits(integer, base, acc),
+    do: digits(div(integer, base), base, [rem(integer, base) | acc])
 
   @doc """
   Returns the integer represented by the ordered `digits`.
