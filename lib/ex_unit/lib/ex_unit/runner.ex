@@ -161,11 +161,22 @@ defmodule ExUnit.Runner do
     running
   end
 
-  defp spawn_modules(config, [{module, params} | modules], async?, running) do
+  defp spawn_modules(
+         config,
+         [{_group, group_modules} | modules],
+         async?,
+         running
+       ) do
     if max_failures_reached?(config) do
       running
     else
-      {pid, ref} = spawn_monitor(fn -> run_module(config, module, async?, params) end)
+      {pid, ref} =
+        spawn_monitor(fn ->
+          Enum.each(group_modules, fn {module, params} ->
+            run_module(config, module, async?, params)
+          end)
+        end)
+
       spawn_modules(config, modules, async?, Map.put(running, ref, pid))
     end
   end

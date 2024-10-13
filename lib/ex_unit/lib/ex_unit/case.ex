@@ -12,6 +12,11 @@ defmodule ExUnit.Case do
       It should be enabled only if tests do not change any global state.
       Defaults to `false`.
 
+    * `:group` - configures the group this module belongs to.
+      Tests in the same group never run concurrently. Tests from different
+      groups (or with no groups) can run concurrently when `async: true`
+      is given. By default, belongs to no group (defaults to `nil`).
+
     * `:register` - when `false`, does not register this module within
       ExUnit server. This means the module won't run when ExUnit suite runs.
 
@@ -317,7 +322,7 @@ defmodule ExUnit.Case do
     end
 
     {register?, opts} = Keyword.pop(opts, :register, true)
-    {next_opts, opts} = Keyword.split(opts, [:async, :parameterize])
+    {next_opts, opts} = Keyword.split(opts, [:async, :group, :parameterize])
 
     if opts != [] do
       IO.warn("unknown options given to ExUnit.Case: #{inspect(opts)}")
@@ -552,6 +557,7 @@ defmodule ExUnit.Case do
 
     opts = Module.get_attribute(module, :ex_unit_module, [])
     async? = Keyword.get(opts, :async, false)
+    group = Keyword.get(opts, :group, nil)
     parameterize = Keyword.get(opts, :parameterize, nil)
 
     if not (parameterize == nil or (is_list(parameterize) and Enum.all?(parameterize, &is_map/1))) do
@@ -569,7 +575,11 @@ defmodule ExUnit.Case do
       end
 
       def __ex_unit__(:config) do
-        {unquote(async?), unquote(Macro.escape(parameterize))}
+        %{
+          async?: unquote(async?),
+          group: unquote(Macro.escape(group)),
+          parameterize: unquote(Macro.escape(parameterize))
+        }
       end
     end
   end
