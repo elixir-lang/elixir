@@ -108,20 +108,18 @@ defmodule ExUnit.Server do
       when is_integer(loaded) do
     state =
       if uniq? do
-        async_modules =
-          state.async_modules
-          |> :queue.to_list()
-          |> Enum.uniq()
-          |> Enum.map(fn {group, modules} ->
+        async_groups =
+          Map.new(state.async_groups, fn {group, modules} ->
             {group, Enum.uniq(modules)}
           end)
-          |> :queue.from_list()
 
+        async_modules = :queue.to_list(state.async_modules) |> Enum.uniq() |> :queue.from_list()
         sync_modules = :queue.to_list(state.sync_modules) |> Enum.uniq() |> :queue.from_list()
 
         %{
           state
-          | async_modules: async_modules,
+          | async_groups: async_groups,
+            async_modules: async_modules,
             sync_modules: sync_modules
         }
       else
