@@ -189,10 +189,12 @@ defmodule Integer do
   @spec digits(integer, pos_integer) :: [integer, ...]
   def digits(integer, base \\ 10)
       when is_integer(integer) and is_integer(base) and base >= 2 do
-    digits(integer, base, [])
+    case integer do
+      0 -> [0]
+      _integer -> digits(integer, base, [])
+    end
   end
 
-  defp digits(0, _base, []), do: [0]
   defp digits(0, _base, acc), do: acc
 
   defp digits(integer, base, acc),
