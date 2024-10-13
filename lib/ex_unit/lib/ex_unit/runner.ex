@@ -301,69 +301,79 @@ defmodule ExUnit.Runner do
   end
 
   defp run_module_tests(config, test_module, async?, tests) do
-    {module_pid, module_ref} = run_setup_all(test_module, async?, self())
+    Process.put(@current_key, test_module)
+    %ExUnit.TestModule{name: module, tags: tags, parameters: params} = test_module
+    context = tags |> Map.merge(params) |> Map.merge(%{module: module, async: async?})
 
-    {test_module, invalid_tests, finished_tests} =
-      receive do
-        {^module_pid, :setup_all, {:ok, context}} ->
-          finished_tests =
-            if max_failures_reached?(config),
-              do: [],
-              else: run_tests(config, tests, test_module.parameters, context)
+    config
+    |> run_setup_all(test_module, context, fn context ->
+      if max_failures_reached?(config),
+        do: [],
+        else: run_tests(config, tests, test_module.parameters, context)
+    end)
+    |> case do
+      {{:ok, finished_tests}, test_module} ->
+        {test_module, [], finished_tests}
 
-          :ok = exit_setup_all(module_pid, module_ref)
-          {test_module, [], finished_tests}
-
-        {^module_pid, :setup_all, {:error, test_module}} ->
-          invalid_tests = mark_tests_invalid(tests, test_module)
-          :ok = exit_setup_all(module_pid, module_ref)
-          {test_module, invalid_tests, []}
-
-        {:DOWN, ^module_ref, :process, ^module_pid, error} ->
-          test_module = %{test_module | state: failed({:EXIT, module_pid}, error, [])}
-          invalid_tests = mark_tests_invalid(tests, test_module)
-          {test_module, invalid_tests, []}
-      end
-
-    timeout = get_timeout(config, %{})
-    {exec_on_exit(test_module, module_pid, timeout), invalid_tests, finished_tests}
-  end
-
-  defp mark_tests_invalid(tests, test_module) do
-    Enum.map(tests, &%{&1 | state: {:invalid, test_module}})
+      {:error, test_module} ->
+        {test_module, Enum.map(tests, &%{&1 | state: {:invalid, test_module}}), []}
+    end
   end
 
   defp run_setup_all(
-         %ExUnit.TestModule{name: module, tags: tags, parameters: params} = test_module,
-         async?,
-         parent_pid
+         _config,
+         %ExUnit.TestModule{setup_all?: false} = test_module,
+         context,
+         callback
        ) do
-    Process.put(@current_key, test_module)
+    {{:ok, callback.(context)}, test_module}
+  end
 
-    spawn_monitor(fn ->
-      ExUnit.OnExitHandler.register(self())
-      tags = tags |> Map.merge(params) |> Map.merge(%{module: module, async: async?})
+  defp run_setup_all(config, %ExUnit.TestModule{name: module} = test_module, context, callback) do
+    parent_pid = self()
 
-      result =
-        try do
-          {:ok, module.__ex_unit__(:setup_all, Map.merge(tags, params))}
-        catch
-          kind, error ->
-            failed = failed(kind, error, prune_stacktrace(__STACKTRACE__))
-            {:error, %{test_module | state: failed}}
+    {module_pid, module_ref} =
+      spawn_monitor(fn ->
+        ExUnit.OnExitHandler.register(self())
+
+        result =
+          try do
+            {:ok, module.__ex_unit__(:setup_all, context)}
+          catch
+            kind, error ->
+              failed = failed(kind, error, prune_stacktrace(__STACKTRACE__))
+              {:error, %{test_module | state: failed}}
+          end
+
+        send(parent_pid, {self(), :setup_all, result})
+
+        # We keep the process alive so all of its resources
+        # stay alive until we run all tests in this case.
+        ref = Process.monitor(parent_pid)
+
+        receive do
+          {^parent_pid, :exit} -> :ok
+          {:DOWN, ^ref, _, _, _} -> :ok
         end
+      end)
 
-      send(parent_pid, {self(), :setup_all, result})
-
-      # We keep the process alive so all of its resources
-      # stay alive until we run all tests in this case.
-      ref = Process.monitor(parent_pid)
-
+    {ok_or_error, test_module} =
       receive do
-        {^parent_pid, :exit} -> :ok
-        {:DOWN, ^ref, _, _, _} -> :ok
+        {^module_pid, :setup_all, {:ok, context}} ->
+          finished_tests = callback.(context)
+          :ok = exit_setup_all(module_pid, module_ref)
+          {{:ok, finished_tests}, test_module}
+
+        {^module_pid, :setup_all, {:error, test_module}} ->
+          :ok = exit_setup_all(module_pid, module_ref)
+          {:error, test_module}
+
+        {:DOWN, ^module_ref, :process, ^module_pid, error} ->
+          {:error, %{test_module | state: failed({:EXIT, module_pid}, error, [])}}
       end
-    end)
+
+    timeout = get_timeout(config, %{})
+    {ok_or_error, exec_on_exit(test_module, module_pid, timeout)}
   end
 
   defp exit_setup_all(pid, ref) do

@@ -353,7 +353,6 @@ defmodule ExUnit.Case do
 
       ExUnit.Callbacks.__register__(module)
       Module.put_attribute(module, :before_compile, ExUnit.Case)
-      Module.put_attribute(module, :before_compile, ExUnit.Callbacks)
     end
 
     past_opts = Module.get_attribute(module, :ex_unit_module, [])
@@ -564,11 +563,16 @@ defmodule ExUnit.Case do
       raise ArgumentError, ":parameterize must be a list of maps, got: #{inspect(parameterize)}"
     end
 
+    {setup_all?, callbacks} = ExUnit.Callbacks.__callbacks__(module)
+
     quote do
+      unquote(callbacks)
+
       def __ex_unit__ do
         %ExUnit.TestModule{
           file: __ENV__.file,
           name: __MODULE__,
+          setup_all?: unquote(setup_all?),
           tags: unquote(Macro.escape(tags)),
           tests: unquote(tests)
         }

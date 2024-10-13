@@ -174,13 +174,23 @@ defmodule ExUnit.Callbacks do
   end
 
   @doc false
-  defmacro __before_compile__(env) do
-    used_describes = Module.get_attribute(env.module, :ex_unit_used_describes)
+  def __callbacks__(module) do
+    setup = Module.get_attribute(module, :ex_unit_setup)
+    setup_all = Module.get_attribute(module, :ex_unit_setup_all)
+    used_describes = Module.get_attribute(module, :ex_unit_used_describes)
 
-    quote do
-      unquote(compile_setup(env, :setup, used_describes))
-      unquote(compile_setup(env, :setup_all, %{}))
-    end
+    code =
+      quote do
+        unquote(compile_setup(:setup, setup, used_describes))
+        unquote(compile_setup(:setup_all, setup_all, %{}))
+      end
+
+    {setup_all != [], code}
+  end
+
+  @doc false
+  defmacro __before_compile__(%{module: module}) do
+    __callbacks__(module)
   end
 
   @doc """
@@ -802,11 +812,8 @@ defmodule ExUnit.Callbacks do
     {name, body}
   end
 
-  defp compile_setup(env, kind, describes) do
-    calls =
-      env.module
-      |> Module.get_attribute(:"ex_unit_#{kind}")
-      |> compile_setup(kind)
+  defp compile_setup(kind, value, describes) do
+    calls = compile_setup(value, kind)
 
     describe_clauses =
       for {describe, callback} <- describes,
