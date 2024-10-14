@@ -1101,7 +1101,57 @@ defmodule ExUnitTest do
     assert third =~ "ThirdTestFIFO"
   end
 
-  test "can filter async tests" do
+  test "groups are run in compile order (FIFO)" do
+    defmodule RedOneFIFO do
+      use ExUnit.Case, async: true, group: :red
+
+      test "red one test" do
+        Process.sleep(5)
+        assert true
+      end
+    end
+
+    defmodule BlueOneFIFO do
+      use ExUnit.Case, async: true, group: :blue
+
+      test "blue one test" do
+        Process.sleep(5)
+        assert true
+      end
+    end
+
+    defmodule RedTwoFIFO do
+      use ExUnit.Case, async: true, group: :red
+
+      test "red two test" do
+        assert true
+      end
+    end
+
+    defmodule BlueTwoFIFO do
+      use ExUnit.Case, async: true, group: :blue
+
+      test "blue two test" do
+        assert true
+      end
+    end
+
+    configure_and_reload_on_exit(trace: true, max_cases: 2)
+
+    output =
+      capture_io(fn ->
+        assert ExUnit.run() == %{total: 4, failures: 0, excluded: 0, skipped: 0}
+      end)
+
+    [_, first, second, third, fourth | _] = String.split(output, "\n\n")
+
+    assert first =~ "RedOneFIFO"
+    assert second =~ "RedTwoFIFO"
+    assert third =~ "BlueOneFIFO"
+    assert fourth =~ "BlueTwoFIFO"
+  end
+
+  test "filters async tests" do
     defmodule FirstTestAsyncTrue do
       use ExUnit.Case, async: true
 
@@ -1130,11 +1180,10 @@ defmodule ExUnitTest do
              run_with_filter([include: [async: true], exclude: [:test]], [])
 
     assert {%{failures: 0, skipped: 0, total: 3, excluded: 2}, _} =
-             run_with_filter([include: [async: false], exclude: [:test]], [
-               FirstTestAsyncTrue,
-               SecondTestAsyncTrue,
-               FirstTestAsyncFalse
-             ])
+             run_with_filter(
+               [include: [async: false], exclude: [:test]],
+               [FirstTestAsyncTrue, SecondTestAsyncTrue, FirstTestAsyncFalse]
+             )
   end
 
   ##  Helpers
@@ -1151,8 +1200,7 @@ defmodule ExUnitTest do
       |> Keyword.merge(filters)
       |> Keyword.merge(colors: [enabled: false])
 
-    output = capture_io(fn -> Process.put(:capture_result, ExUnit.Runner.run(opts, nil)) end)
-    {Process.get(:capture_result) |> elem(0), output}
+    with_io(fn -> ExUnit.Runner.run(opts, nil) |> elem(0) end)
   end
 
   defp next_message_in_mailbox() do

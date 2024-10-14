@@ -652,6 +652,162 @@ defmodule MacroTest do
              """
     end
 
+    test "with with/1 (all clauses match)" do
+      opts = %{width: 10, height: 15}
+
+      {result, formatted} =
+        dbg_format(
+          with {:ok, width} <- Map.fetch(opts, :width),
+               double_width = width * 2,
+               IO.puts("just a side effect"),
+               {:ok, height} <- Map.fetch(opts, :height) do
+            {:ok, double_width * height}
+          end
+        )
+
+      assert result == {:ok, 300}
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             With clauses:
+             Map.fetch(opts, :width) #=> {:ok, 10}
+             width * 2 #=> 20
+             Map.fetch(opts, :height) #=> {:ok, 15}
+
+             With expression:
+             with {:ok, width} <- Map.fetch(opts, :width),
+                  double_width = width * 2,
+                  IO.puts("just a side effect"),
+                  {:ok, height} <- Map.fetch(opts, :height) do
+               {:ok, double_width * height}
+             end #=> {:ok, 300}
+             """
+    end
+
+    test "with with/1 (no else)" do
+      opts = %{width: 10}
+
+      {result, formatted} =
+        dbg_format(
+          with {:ok, width} <- Map.fetch(opts, :width),
+               {:ok, height} <- Map.fetch(opts, :height) do
+            {:ok, width * height}
+          end
+        )
+
+      assert result == :error
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             With clauses:
+             Map.fetch(opts, :width) #=> {:ok, 10}
+             Map.fetch(opts, :height) #=> :error
+
+             With expression:
+             with {:ok, width} <- Map.fetch(opts, :width),
+                  {:ok, height} <- Map.fetch(opts, :height) do
+               {:ok, width * height}
+             end #=> :error
+             """
+    end
+
+    test "with with/1 (else clause)" do
+      opts = %{width: 10}
+
+      {result, formatted} =
+        dbg_format(
+          with {:ok, width} <- Map.fetch(opts, :width),
+               {:ok, height} <- Map.fetch(opts, :height) do
+            width * height
+          else
+            :error -> 0
+          end
+        )
+
+      assert result == 0
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             With clauses:
+             Map.fetch(opts, :width) #=> {:ok, 10}
+             Map.fetch(opts, :height) #=> :error
+
+             With expression:
+             with {:ok, width} <- Map.fetch(opts, :width),
+                  {:ok, height} <- Map.fetch(opts, :height) do
+               width * height
+             else
+               :error -> 0
+             end #=> 0
+             """
+    end
+
+    test "with with/1 (guard)" do
+      opts = %{width: 10, height: 0.0}
+
+      {result, formatted} =
+        dbg_format(
+          with {:ok, width} when is_integer(width) <- Map.fetch(opts, :width),
+               {:ok, height} when is_integer(height) <- Map.fetch(opts, :height) do
+            width * height
+          else
+            _ -> nil
+          end
+        )
+
+      assert result == nil
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             With clauses:
+             Map.fetch(opts, :width) #=> {:ok, 10}
+             Map.fetch(opts, :height) #=> {:ok, 0.0}
+
+             With expression:
+             with {:ok, width} when is_integer(width) <- Map.fetch(opts, :width),
+                  {:ok, height} when is_integer(height) <- Map.fetch(opts, :height) do
+               width * height
+             else
+               _ -> nil
+             end #=> nil
+             """
+    end
+
+    test "with with/1 (guard in else)" do
+      opts = %{}
+
+      {result, _formatted} =
+        dbg_format(
+          with {:ok, width} <- Map.fetch(opts, :width) do
+            width
+          else
+            other when is_integer(other) -> :int
+            other when is_atom(other) -> :atom
+          end
+        )
+
+      assert result == :atom
+    end
+
+    test "with with/1 respects the WithClauseError" do
+      value = Enum.random([:unexpected])
+
+      error =
+        assert_raise WithClauseError, fn ->
+          dbg(
+            with :ok <- value do
+              true
+            else
+              :error -> false
+            end
+          )
+        end
+
+      assert error.term == :unexpected
+    end
+
     test "with \"syntax_colors: []\" it doesn't print any color sequences" do
       {_result, formatted} = dbg_format("hello")
       refute formatted =~ "\e["

@@ -57,6 +57,6 @@ end
 
 defimpl String.Chars, for: Float do
   def to_string(term) do
-    :erlang.float_to_binary(term, [:short])
+    Float.to_string(term)
   end
 end

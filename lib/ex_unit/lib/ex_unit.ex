@@ -124,22 +124,28 @@ defmodule ExUnit do
 
     It is received by formatters and contains the following fields:
 
-      * `:file`  - (since v1.11.0) the file of the test module
+      * `:file` - (since v1.11.0) the file of the test module
 
-      * `:name`  - the test module name
+      * `:name` - the test module name
+
+      * `:parameters` - (since v1.18.0) the test module parameters
+
+      * `:setup_all?` - (since v1.18.0) if the test module requires a setup all
 
       * `:state` - the test error state (see `t:ExUnit.state/0`)
 
+      * `:tags` - all tags in this module
+
       * `:tests` - all tests in this module
 
-      * `:parameters` - the test module parameters
-
     """
-    defstruct [:file, :name, :state, tags: %{}, tests: [], parameters: %{}]
+    defstruct [:file, :name, :setup_all?, :state, parameters: %{}, tags: %{}, tests: []]
 
     @type t :: %__MODULE__{
             file: binary(),
             name: module,
+            parameters: map(),
+            setup_all?: boolean(),
             state: ExUnit.state(),
             tags: map,
             tests: [ExUnit.Test.t()]

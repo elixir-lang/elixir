@@ -84,7 +84,7 @@ defmodule Mix.Sync.LockTest do
     assert_receive {:DOWN, ^ref, _, _, _}
   end
 
-  test "scheduls and releases on exit" do
+  test "schedules and releases on exit" do
     assert Lock.with_lock(@lock_key, fn ->
              {pid, ref} =
                spawn_monitor(fn ->

@@ -189,13 +189,16 @@ defmodule Integer do
   @spec digits(integer, pos_integer) :: [integer, ...]
   def digits(integer, base \\ 10)
       when is_integer(integer) and is_integer(base) and base >= 2 do
-    do_digits(integer, base, [])
+    case integer do
+      0 -> [0]
+      _integer -> digits(integer, base, [])
+    end
   end
 
-  defp do_digits(integer, base, acc) when abs(integer) < base, do: [integer | acc]
+  defp digits(0, _base, acc), do: acc
 
-  defp do_digits(integer, base, acc),
-    do: do_digits(div(integer, base), base, [rem(integer, base) | acc])
+  defp digits(integer, base, acc),
+    do: digits(div(integer, base), base, [rem(integer, base) | acc])
 
   @doc """
   Returns the integer represented by the ordered `digits`.
@@ -217,16 +220,16 @@ defmodule Integer do
   """
   @spec undigits([integer], pos_integer) :: integer
   def undigits(digits, base \\ 10) when is_list(digits) and is_integer(base) and base >= 2 do
-    do_undigits(digits, base, 0)
+    undigits(digits, base, 0)
   end
 
-  defp do_undigits([], _base, acc), do: acc
+  defp undigits([], _base, acc), do: acc
 
-  defp do_undigits([digit | _], base, _) when is_integer(digit) and digit >= base,
+  defp undigits([digit | _], base, _) when is_integer(digit) and digit >= base,
     do: raise(ArgumentError, "invalid digit #{digit} in base #{base}")
 
-  defp do_undigits([digit | tail], base, acc) when is_integer(digit),
-    do: do_undigits(tail, base, acc * base + digit)
+  defp undigits([digit | tail], base, acc) when is_integer(digit),
+    do: undigits(tail, base, acc * base + digit)
 
   @doc """
   Parses a text representation of an integer.

@@ -387,7 +387,7 @@ defimpl Inspect, for: Float do
       if abs >= 1.0 and abs < 1.0e16 and trunc(float) == float do
         [Integer.to_string(trunc(float)), ?., ?0]
       else
-        :erlang.float_to_list(float, [:short])
+        Float.to_charlist(float)
       end
 
     color(IO.iodata_to_binary(formatted), :number, opts)

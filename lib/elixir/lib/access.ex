@@ -350,7 +350,7 @@ defmodule Access do
     Accessing a list by index is typically discouraged in Elixir, \
     instead we prefer to use the Enum module to manipulate lists \
     as a whole. If you really must access a list element by index, \
-    you can Enum.at/1 or the functions in the List module\
+    you can use Enum.at/2 or the functions in the List module\
     """
   end
 
