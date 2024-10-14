@@ -203,7 +203,7 @@ defmodule Mix.Compilers.Elixir do
           put_compile_env(sources)
           all_warnings = previous_warnings ++ runtime_warnings ++ compile_warnings
 
-          modules_diff = modules_diff(modules, pending_modules, all_modules, timestamp)
+          modules_diff = modules_diff(modules, removed_modules, all_modules, timestamp)
 
           unless_previous_warnings_as_errors(
             previous_warnings,
@@ -1015,15 +1015,20 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp modules_diff(compiled_modules, pending_modules, all_modules, timestamp) do
-    compiled_modules_keys = Map.keys(compiled_modules)
-    pending_modules_keys = Map.keys(pending_modules)
-    all_modules_keys = Map.keys(all_modules)
+  defp modules_diff(compiled_modules, removed_modules, all_modules, timestamp) do
+    {changed, added} =
+      compiled_modules
+      |> Map.keys()
+      |> Enum.split_with(&Map.has_key?(all_modules, &1))
+
+    # Note that removed_modules may also include changed modules
+    removed =
+      for {module, _} <- removed_modules, not Map.has_key?(compiled_modules, module), do: module
 
     %{
-      added: compiled_modules_keys -- all_modules_keys,
-      changed: Map.keys(Map.intersect(compiled_modules, all_modules)),
-      removed: (all_modules_keys -- compiled_modules_keys) -- pending_modules_keys,
+      added: added,
+      changed: changed,
+      removed: removed,
       timestamp: timestamp
     }
   end
