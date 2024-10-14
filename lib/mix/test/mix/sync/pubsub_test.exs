@@ -68,4 +68,25 @@ defmodule Mix.Sync.PubSubTest do
     assert_receive :done1
     assert_receive :done2
   end
+
+  test "evaluates lazy message only if there are subscribers" do
+    lazy_message = fn ->
+      send(self(), :lazy1)
+      %{event: "event1"}
+    end
+
+    PubSub.broadcast(@pubsub_key, lazy_message)
+
+    PubSub.subscribe(@pubsub_key)
+
+    lazy_message = fn ->
+      send(self(), :lazy2)
+      %{event: "event2"}
+    end
+
+    PubSub.broadcast(@pubsub_key, lazy_message)
+
+    refute_received :lazy1
+    assert_received :lazy2
+  end
 end

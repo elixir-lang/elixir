@@ -208,24 +208,28 @@ defmodule Mix.Task.Compiler do
 
   @doc false
   # Broadcast an event about a finished compilation of a set of modules.
-  @spec notify_modules_compiled(modules_diff) :: :ok
+  @spec notify_modules_compiled((-> modules_diff)) :: :ok
         when modules_diff: %{
                added: [module],
                changed: [module],
                removed: [module],
                timestamp: integer
              }
-  def notify_modules_compiled(%{} = modules_diff) do
+  def notify_modules_compiled(lazy_modules_diff) when is_function(lazy_modules_diff, 0) do
     config = Mix.Project.config()
     build_path = Mix.Project.build_path(config)
 
-    info = %{
-      app: config[:app],
-      build_scm: config[:build_scm],
-      modules_diff: modules_diff,
-      os_pid: System.pid()
-    }
+    lazy_message = fn ->
+      info = %{
+        app: config[:app],
+        build_scm: config[:build_scm],
+        modules_diff: lazy_modules_diff.(),
+        os_pid: System.pid()
+      }
 
-    Mix.Sync.PubSub.broadcast(build_path, {:modules_compiled, info})
+      {:modules_compiled, info}
+    end
+
+    Mix.Sync.PubSub.broadcast(build_path, lazy_message)
   end
 end

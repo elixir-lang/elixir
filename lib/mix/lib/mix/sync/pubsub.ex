@@ -50,13 +50,22 @@ defmodule Mix.Sync.PubSub do
   @doc """
   Sends `message` to all processes subscribed to `key`.
   """
-  @spec broadcast(String.t(), term()) :: :ok
+  @spec broadcast(String.t(), term() | (-> term())) :: :ok
   def broadcast(key, message) do
     hash = hash(key)
     path = path(hash)
 
     case File.ls(path) do
+      {:ok, []} ->
+        :ok
+
       {:ok, names} ->
+        message =
+          case message do
+            lazy_message when is_function(lazy_message, 0) -> lazy_message.()
+            message -> message
+          end
+
         binary = :erlang.term_to_binary(message)
 
         for "port_" <> port = name <- names do
@@ -162,12 +171,23 @@ defmodule Mix.Sync.PubSub do
   def handle_info({:DOWN, _, :process, pid, _}, state) do
     hash_to_pids =
       for {hash, pids} <- state.hash_to_pids,
-          pids = MapSet.delete(pids, pid),
-          not Enum.empty?(pids),
+          pids = remove_pid(pids, pid, hash, state.port),
           into: %{},
           do: {hash, pids}
 
     {:noreply, %{state | hash_to_pids: hash_to_pids}}
+  end
+
+  defp remove_pid(pids, pid, hash, port) do
+    pids = MapSet.delete(pids, pid)
+
+    if Enum.empty?(pids) do
+      path = path(hash)
+      remove_subscription_file(path, port)
+      nil
+    else
+      pids
+    end
   end
 
   defp ensure_socket(%{port: nil} = state) do
@@ -202,6 +222,11 @@ defmodule Mix.Sync.PubSub do
     File.mkdir_p!(path)
     port_path = Path.join(path, "port_#{port}")
     File.touch!(port_path)
+  end
+
+  defp remove_subscription_file(path, port) do
+    port_path = Path.join(path, "port_#{port}")
+    _ = File.rm(port_path)
   end
 
   defp receive_message_loop(socket, parent) do

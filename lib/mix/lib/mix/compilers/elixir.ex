@@ -203,12 +203,14 @@ defmodule Mix.Compilers.Elixir do
           put_compile_env(sources)
           all_warnings = previous_warnings ++ runtime_warnings ++ compile_warnings
 
-          modules_diff = modules_diff(modules, removed_modules, all_modules, timestamp)
+          lazy_modules_diff = fn ->
+            modules_diff(modules, removed_modules, all_modules, timestamp)
+          end
 
           unless_previous_warnings_as_errors(
             previous_warnings,
             opts,
-            {:ok, all_warnings, modules_diff}
+            {:ok, all_warnings, lazy_modules_diff}
           )
 
         {:error, errors, %{runtime_warnings: r_warnings, compile_warnings: c_warnings}, state} ->
