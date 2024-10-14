@@ -16,7 +16,7 @@ defmodule Reloader do
       modules_diff: %{added: added, changed: changed, removed: removed, timestamp: _timestamp},
       app: app,
       build_scm: build_scm,
-      self: self
+      os_pid: os_pid
     } = info
 
     IO.write("""
@@ -24,7 +24,7 @@ defmodule Reloader do
       added: #{inspect(added)}, changed: #{inspect(changed)}, removed: #{inspect(removed)}
       app: #{inspect(app)}
       build_scm: #{inspect(build_scm)}
-      self: #{inspect(self)}
+      os_pid: #{inspect(os_pid)}
     """)
 
     {:noreply, state}

@@ -415,7 +415,7 @@ defmodule Mix.Tasks.CompileTest do
       File.write!("lib/b.ex", "defmodule B do end")
       File.write!("lib/c.ex", "defmodule C do end")
 
-      assert mix(["deps.compile"])
+      mix(["deps.compile"])
 
       parent = self()
 
@@ -439,7 +439,8 @@ defmodule Mix.Tasks.CompileTest do
 
       assert_receive :mix_started, timeout
 
-      assert mix(["compile"])
+      output = mix(["do", "compile", "+", "eval", "IO.write(System.pid())"])
+      os_pid = output |> String.split("\n") |> List.last()
 
       assert_receive {:output, output}, timeout
 
@@ -448,7 +449,7 @@ defmodule Mix.Tasks.CompileTest do
                added: [A, B, C], changed: [], removed: []
                app: :with_reloader
                build_scm: Mix.SCM.Path
-               self: false
+               os_pid: "#{os_pid}"
              """
 
       # Changed
@@ -478,7 +479,8 @@ defmodule Mix.Tasks.CompileTest do
 
       assert_receive :mix_started, timeout
 
-      assert mix(["compile"])
+      output = mix(["do", "compile", "+", "eval", "IO.write(System.pid())"])
+      os_pid = output |> String.split("\n") |> List.last()
 
       assert_receive {:output, output}, timeout
 
@@ -487,7 +489,7 @@ defmodule Mix.Tasks.CompileTest do
                added: [D], changed: [A], removed: [B]
                app: :with_reloader
                build_scm: Mix.SCM.Path
-               self: false
+               os_pid: "#{os_pid}"
              """
     end)
   end

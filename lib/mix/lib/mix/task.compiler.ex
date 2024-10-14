@@ -208,9 +208,13 @@ defmodule Mix.Task.Compiler do
     config = Mix.Project.config()
     build_path = Mix.Project.build_path(config)
 
-    Mix.Sync.PubSub.broadcast(
-      build_path,
-      {:modules_compiled, config[:app], config[:build_scm], modules_diff, System.pid()}
-    )
+    info = %{
+      app: config[:app],
+      build_scm: config[:build_scm],
+      modules_diff: modules_diff,
+      os_pid: System.pid()
+    }
+
+    Mix.Sync.PubSub.broadcast(build_path, {:modules_compiled, info})
   end
 end

@@ -43,22 +43,9 @@ defmodule Mix.PubSub.Subscriber do
     children = Supervisor.which_children(Mix.PubSub.ListenerSupervisor)
 
     for message <- messages do
-      event = message_to_event(message)
-
       for {_, pid, _, _} <- children, is_pid(pid) do
-        send(pid, event)
+        send(pid, message)
       end
     end
-  end
-
-  defp message_to_event({:modules_compiled, app, build_scm, modules_diff, os_pid}) do
-    info = %{
-      app: app,
-      build_scm: build_scm,
-      modules_diff: modules_diff,
-      self: os_pid == System.pid()
-    }
-
-    {:modules_compiled, info}
   end
 end

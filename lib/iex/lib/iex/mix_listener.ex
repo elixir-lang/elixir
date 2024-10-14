@@ -37,10 +37,16 @@ defmodule IEx.MixListener do
 
   @impl true
   def handle_info({:modules_compiled, info}, state) do
-    %{changed: changed, removed: removed} = info.modules_diff
-    state = update_in(state.to_purge, &Enum.into(changed, &1))
-    state = update_in(state.to_purge, &Enum.into(removed, &1))
-    {:noreply, state}
+    if info.os_pid == System.pid() do
+      # Ignore compilations from ourselves, because the modules are
+      # already updated in memory
+      {:noreply, state}
+    else
+      %{changed: changed, removed: removed} = info.modules_diff
+      state = update_in(state.to_purge, &Enum.into(changed, &1))
+      state = update_in(state.to_purge, &Enum.into(removed, &1))
+      {:noreply, state}
+    end
   end
 
   def handle_info(_message, state) do
