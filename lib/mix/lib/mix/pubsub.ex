@@ -72,7 +72,7 @@ defmodule Mix.PubSub do
   end
 
   defp listener_supervisor do
-    children = Application.get_env(:mix, :listeners, []) ++ built_in_listeners()
+    children = configured_listeners() ++ built_in_listeners()
 
     children = Enum.map(children, &Supervisor.child_spec(&1, []))
 
@@ -83,6 +83,16 @@ defmodule Mix.PubSub do
       start: {Supervisor, :start_link, [children, opts]},
       type: :supervisor
     }
+  end
+
+  defp configured_listeners do
+    config = Mix.Project.config()
+
+    listeners =
+      Application.get_env(:mix, :listeners, []) ++
+        Keyword.get(config, :listeners, [])
+
+    Enum.uniq(listeners)
   end
 
   defp built_in_listeners do

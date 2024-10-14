@@ -12,6 +12,11 @@ defmodule Mix.Tasks.Deps.Loadpaths do
   Although this task does not show up in `mix help`, it is
   part of Mix public API and can be depended on.
 
+  ## Configuration
+
+    * `:listeners` - the list of listener modules. For more details
+      see `Mix.Task.Compiler`
+
   ## Command line options
 
     * `--no-archives-check` - does not check archives

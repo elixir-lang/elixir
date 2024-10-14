@@ -396,18 +396,18 @@ defmodule Mix.Tasks.CompileTest do
           use Mix.Project
 
           def project do
-            [app: :with_reloader, version: "0.1.0", deps: [{:reloader, "0.1.0", path: "deps/reloader"}]]
+            [
+              app: :with_reloader,
+              version: "0.1.0",
+              deps: [{:reloader, "0.1.0", path: "deps/reloader"}],
+              # Register a listener from a dependency
+              listeners: [Reloader]
+            ]
           end
         end
       """)
 
       File.mkdir_p!("config")
-
-      # Register a listener from a dependency
-      File.write!("config/config.exs", """
-      import Config
-      config :mix, :listeners, [Reloader]
-      """)
 
       File.mkdir_p!("lib")
 

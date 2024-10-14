@@ -33,6 +33,15 @@ defmodule Mix.Task.Compiler do
   triggered in a separate OS process, for example, to reload the modules.
   In order to do that, the Mix project may configure listeners:
 
+      def project do
+        [
+          ...,
+          listeners: [SomeDep.MixListener]
+        ]
+      end
+
+  or
+
       config :mix, :listeners, [SomeDep.MixListener]
 
   Each entry in the list must be either `t:Supervisor.module_spec/0` or
