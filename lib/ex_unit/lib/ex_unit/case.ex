@@ -12,10 +12,10 @@ defmodule ExUnit.Case do
       It should be enabled only if tests do not change any global state.
       Defaults to `false`.
 
-    * `:group` - configures the group this module belongs to.
+    * `:group` (since v1.18.0) - configures the **group** this module belongs to.
       Tests in the same group never run concurrently. Tests from different
       groups (or with no groups) can run concurrently when `async: true`
-      is given. By default, belongs to no group (defaults to `nil`).
+      is given. By default, this module belongs to no group (defaults to `nil`).
 
     * `:register` - when `false`, does not register this module within
       ExUnit server. This means the module won't run when ExUnit suite runs.
