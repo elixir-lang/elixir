@@ -93,13 +93,11 @@ defmodule Mix.Compilers.Erlang do
 
     # Get the previous entries from the manifest
     timestamp = System.os_time(:second)
-    entries = read_manifest(manifest)
+    old_entries = entries = read_manifest(manifest)
 
     # Files to remove are the ones in the manifest but they no longer have a source
     removed =
-      entries
-      |> Enum.filter(fn {dest, _} -> not List.keymember?(mappings, dest, 2) end)
-      |> Enum.map(&elem(&1, 0))
+      for {dest, _} <- entries, not List.keymember?(mappings, dest, 2), do: dest
 
     # Remove manifest entries with no source
     Enum.each(removed, &File.rm/1)
@@ -150,6 +148,17 @@ defmodule Mix.Compilers.Erlang do
 
       # Return status and diagnostics
       warnings = manifest_warnings(entries) ++ to_diagnostics(warnings, :warning)
+
+      lazy_modules_diff = fn ->
+        {changed, added} =
+          stale
+          |> Enum.map(&elem(&1, 1))
+          |> Enum.split_with(fn dest -> List.keymember?(old_entries, dest, 0) end)
+
+        modules_diff(added, changed, removed, timestamp)
+      end
+
+      Mix.Task.Compiler.notify_modules_compiled(lazy_modules_diff)
 
       case status do
         :ok ->
@@ -320,4 +329,17 @@ defmodule Mix.Compilers.Erlang do
   defp location_to_string({line, column}), do: "#{line}:#{column}:"
   defp location_to_string(0), do: ""
   defp location_to_string(line), do: "#{line}:"
+
+  defp modules_diff(added, changed, removed, timestamp) do
+    %{
+      added: Enum.map(added, &module_from_path/1),
+      changed: Enum.map(changed, &module_from_path/1),
+      removed: Enum.map(removed, &module_from_path/1),
+      timestamp: timestamp
+    }
+  end
+
+  defp module_from_path(path) do
+    path |> Path.basename() |> Path.rootname() |> String.to_atom()
+  end
 end

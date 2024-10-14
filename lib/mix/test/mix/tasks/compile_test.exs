@@ -415,6 +415,12 @@ defmodule Mix.Tasks.CompileTest do
       File.write!("lib/b.ex", "defmodule B do end")
       File.write!("lib/c.ex", "defmodule C do end")
 
+      File.mkdir_p!("src")
+
+      File.write!("src/a.erl", "-module(a).")
+      File.write!("src/b.erl", "-module(b).")
+      File.write!("src/c.erl", "-module(c).")
+
       mix(["deps.compile"])
 
       parent = self()
@@ -433,8 +439,9 @@ defmodule Mix.Tasks.CompileTest do
         assert_receive {^port, {:data, "ok\n"}}, timeout
         send(parent, :mix_started)
 
-        assert_receive {^port, {:data, output}}, timeout
-        send(parent, {:output, output})
+        assert_receive {^port, {:data, output_erl}}, timeout
+        assert_receive {^port, {:data, output_ex}}, timeout
+        send(parent, {:output, output_erl <> output_ex})
       end)
 
       assert_receive :mix_started, timeout
@@ -446,6 +453,11 @@ defmodule Mix.Tasks.CompileTest do
 
       assert output == """
              Received :modules_compiled with
+               added: [:a, :b, :c], changed: [], removed: []
+               app: :with_reloader
+               build_scm: Mix.SCM.Path
+               os_pid: "#{os_pid}"
+             Received :modules_compiled with
                added: [A, B, C], changed: [], removed: []
                app: :with_reloader
                build_scm: Mix.SCM.Path
@@ -454,10 +466,14 @@ defmodule Mix.Tasks.CompileTest do
 
       # Changed
       File.write!("lib/a.ex", "defmodule A do @moduledoc false end")
+      File.write!("src/a.erl", "-module(a). -export([a/0]). a() -> ok.")
+      File.touch!("src/a.erl", System.os_time(:second) + 10)
       # Removed
       File.rm!("lib/b.ex")
+      File.rm!("src/b.erl")
       # New
       File.write!("lib/d.ex", "defmodule D do end")
+      File.write!("src/d.erl", "-module(d).")
 
       spawn_link(fn ->
         port =
@@ -473,8 +489,9 @@ defmodule Mix.Tasks.CompileTest do
         assert_receive {^port, {:data, "ok\n"}}, timeout
         send(parent, :mix_started)
 
-        assert_receive {^port, {:data, output}}, timeout
-        send(parent, {:output, output})
+        assert_receive {^port, {:data, output_erl}}, timeout
+        assert_receive {^port, {:data, output_ex}}, timeout
+        send(parent, {:output, output_erl <> output_ex})
       end)
 
       assert_receive :mix_started, timeout
@@ -485,6 +502,11 @@ defmodule Mix.Tasks.CompileTest do
       assert_receive {:output, output}, timeout
 
       assert output == """
+             Received :modules_compiled with
+               added: [:d], changed: [:a], removed: [:b]
+               app: :with_reloader
+               build_scm: Mix.SCM.Path
+               os_pid: "#{os_pid}"
              Received :modules_compiled with
                added: [D], changed: [A], removed: [B]
                app: :with_reloader
