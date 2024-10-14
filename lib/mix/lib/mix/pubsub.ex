@@ -18,15 +18,20 @@ defmodule Mix.PubSub do
 
   @spec start :: :ok
   def start do
-    case Supervisor.start_child(Mix.Supervisor, Mix.PubSub) do
-      {:ok, _pid} ->
-        :ok
+    # Avoid calling the supervisor, if already started
+    if Process.whereis(Mix.PubSub) do
+      :ok
+    else
+      case Supervisor.start_child(Mix.Supervisor, Mix.PubSub) do
+        {:ok, _pid} ->
+          :ok
 
-      {:error, {:already_started, _pid}} ->
-        :ok
+        {:error, {:already_started, _pid}} ->
+          :ok
 
-      {:error, reason} ->
-        raise RuntimeError, "failed to start Mix.PubSub, reason: #{inspect(reason)}"
+        {:error, reason} ->
+          raise RuntimeError, "failed to start Mix.PubSub, reason: #{inspect(reason)}"
+      end
     end
   end
 
@@ -47,17 +52,22 @@ defmodule Mix.PubSub do
 
   @spec start_listeners :: :ok
   def start_listeners do
-    case Supervisor.start_child(Mix.PubSub, listener_supervisor()) do
-      {:ok, _pid} ->
-        Mix.PubSub.Subscriber.flush()
-        :ok
+    # Avoid calling the supervisor, if already started
+    if Process.whereis(Mix.PubSub.ListenerSupervisor) do
+      :ok
+    else
+      case Supervisor.start_child(Mix.PubSub, listener_supervisor()) do
+        {:ok, _pid} ->
+          Mix.PubSub.Subscriber.flush()
+          :ok
 
-      {:error, {:already_started, _pid}} ->
-        :ok
+        {:error, {:already_started, _pid}} ->
+          :ok
 
-      {:error, reason} ->
-        raise RuntimeError,
-              "failed to start Mix.PubSub.ListenerSupervisor, reason: #{inspect(reason)}"
+        {:error, reason} ->
+          raise RuntimeError,
+                "failed to start Mix.PubSub.ListenerSupervisor, reason: #{inspect(reason)}"
+      end
     end
   end
 
