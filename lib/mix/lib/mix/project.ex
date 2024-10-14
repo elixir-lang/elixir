@@ -896,7 +896,7 @@ defmodule Mix.Project do
       Mix.shell().info("Waiting for lock on the build directory (held by process #{os_pid})")
     end
 
-    Mix.Lock.with_lock(build_path, fun, on_taken: on_taken)
+    Mix.Sync.Lock.with_lock(build_path, fun, on_taken: on_taken)
   end
 
   @doc false
@@ -910,7 +910,7 @@ defmodule Mix.Project do
       Mix.shell().info("Waiting for lock on the deps directory (held by process #{os_pid})")
     end
 
-    Mix.Lock.with_lock(deps_path, fun, on_taken: on_taken)
+    Mix.Sync.Lock.with_lock(deps_path, fun, on_taken: on_taken)
   end
 
   # Loads mix.exs in the current directory or loads the project from the

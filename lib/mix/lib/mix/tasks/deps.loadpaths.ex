@@ -12,6 +12,11 @@ defmodule Mix.Tasks.Deps.Loadpaths do
   Although this task does not show up in `mix help`, it is
   part of Mix public API and can be depended on.
 
+  ## Configuration
+
+    * `:listeners` - the list of listener modules. For more details
+      see `Mix.Task.Compiler`
+
   ## Command line options
 
     * `--no-archives-check` - does not check archives
@@ -19,12 +24,13 @@ defmodule Mix.Tasks.Deps.Loadpaths do
     * `--no-deps-check` - does not check or compile deps, only load available ones
     * `--no-elixir-version-check` - does not check Elixir version
     * `--no-optional-deps` - does not compile or load optional deps
-    * `--no-path-loading` - does not add entries to the code path
 
   """
 
   @impl true
   def run(args) do
+    Mix.PubSub.start()
+
     if "--no-archives-check" not in args do
       Mix.Task.run("archive.check", args)
     end
@@ -48,9 +54,11 @@ defmodule Mix.Tasks.Deps.Loadpaths do
       deps_check(all, "--no-compile" in args)
     end
 
-    if "--no-path-loading" not in args do
-      Code.prepend_paths(Enum.flat_map(all, &Mix.Dep.load_paths/1), cache: true)
-    end
+    Code.prepend_paths(Enum.flat_map(all, &Mix.Dep.load_paths/1), cache: true)
+
+    # For now we only allow listeners defined in dependencies, so
+    # we start them right after adding adding deps to the path
+    Mix.PubSub.start_listeners()
 
     :ok
   end

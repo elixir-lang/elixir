@@ -1,4 +1,4 @@
-defmodule Mix.Lock do
+defmodule Mix.Sync.Lock do
   @moduledoc false
 
   # Lock implementation working across multiple OS processes.
@@ -66,7 +66,7 @@ defmodule Mix.Lock do
   @loopback {127, 0, 0, 1}
   @listen_opts [:binary, ip: @loopback, packet: :raw, nodelay: true, backlog: 128, active: false]
   @connect_opts [:binary, packet: :raw, nodelay: true, active: false]
-  @probe_data "elixirlock"
+  @probe_data "mixlock"
   @probe_data_size byte_size(@probe_data)
   @probe_timeout_ms 5_000
 
@@ -92,8 +92,8 @@ defmodule Mix.Lock do
   def with_lock(key, fun, opts \\ []) do
     opts = Keyword.validate!(opts, [:on_taken])
 
-    key = key |> :erlang.md5() |> Base.url_encode64(padding: false)
-    path = Path.join([System.tmp_dir!(), "mix_lock", key])
+    hash = key |> :erlang.md5() |> Base.url_encode64(padding: false)
+    path = Path.join([System.tmp_dir!(), "mix_lock", hash])
 
     pdict_key = {__MODULE__, path}
     has_lock? = Process.get(pdict_key)
@@ -207,17 +207,17 @@ defmodule Mix.Lock do
   end
 
   defp accept_loop(listen_socket) do
-    case :gen_tcp.accept(listen_socket) do
+    case accept(listen_socket) do
       {:ok, socket} ->
         _ = :gen_tcp.send(socket, @probe_data)
         accept_loop(listen_socket)
 
-      # eintr is "Interrupted system call".
-      {:error, :eintr} ->
-        accept_loop(listen_socket)
-
       {:error, reason} when reason in [:closed, :einval] ->
         :ok
+
+      {:error, reason} ->
+        raise RuntimeError,
+              "failed to accept connection in #{inspect(__MODULE__)}.receive_event/1, reason: #{inspect(reason)}"
     end
   end
 
@@ -255,7 +255,7 @@ defmodule Mix.Lock do
   end
 
   defp await_probe_data(socket) do
-    case :gen_tcp.recv(socket, @probe_data_size, @probe_timeout_ms) do
+    case recv(socket, @probe_data_size, @probe_timeout_ms) do
       {:ok, @probe_data} ->
         {:ok, socket}
 
@@ -263,12 +263,22 @@ defmodule Mix.Lock do
         :gen_tcp.close(socket)
         {:error, :unexpected_port_owner}
 
-      {:error, :eintr} ->
-        await_probe_data(socket)
-
       {:error, reason} ->
         :gen_tcp.close(socket)
         {:error, reason}
+    end
+  end
+
+  defp recv(socket, size, timeout \\ :infinity) do
+    # eintr is "Interrupted system call".
+    with {:error, :eintr} <- :gen_tcp.recv(socket, size, timeout) do
+      recv(socket, size, timeout)
+    end
+  end
+
+  defp accept(socket) do
+    with {:error, :eintr} <- :gen_tcp.accept(socket) do
+      accept(socket)
     end
   end
 
@@ -284,22 +294,22 @@ defmodule Mix.Lock do
 
     names = File.ls!(path)
 
+    # On Windows, removing a file may fail if the file is open, so we
+    # ignore failures just to be safe
+
     for "port_" <> _ = name <- names do
-      File.rm!(Path.join(path, name))
+      _ = File.rm(Path.join(path, name))
     end
 
     for "lock_" <> _ = name <- names, name != "lock_0" do
-      File.rm!(Path.join(path, name))
+      _ = File.rm(Path.join(path, name))
     end
   end
 
   defp await_close(socket) do
-    case :gen_tcp.recv(socket, 0) do
+    case recv(socket, 0) do
       {:error, :closed} ->
         :ok
-
-      {:error, :eintr} ->
-        await_close(socket)
 
       {:error, _other} ->
         # In case of an unexpected error, we close the socket ourselves

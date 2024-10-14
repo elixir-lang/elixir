@@ -402,7 +402,7 @@ defmodule Mix do
   def start(_type, []) do
     Mix.Local.append_archives()
     Mix.Local.append_paths()
-    children = [Mix.State, Mix.TasksServer, Mix.ProjectStack]
+    children = [Mix.Sync.PubSub, Mix.State, Mix.TasksServer, Mix.ProjectStack]
     opts = [strategy: :one_for_one, name: Mix.Supervisor, max_restarts: 0]
     Supervisor.start_link(children, opts)
   end

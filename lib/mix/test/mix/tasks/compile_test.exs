@@ -384,4 +384,113 @@ defmodule Mix.Tasks.CompileTest do
       assert is_list(:code.where_is_file(~c"parsetools.app"))
     end)
   end
+
+  test "listening to concurrent compilations" do
+    timeout = 2_000
+
+    Mix.Project.pop()
+
+    in_fixture("compile_listeners", fn ->
+      File.write!("mix.exs", """
+        defmodule WithReloader do
+          use Mix.Project
+
+          def project do
+            [
+              app: :with_reloader,
+              version: "0.1.0",
+              deps: [{:reloader, "0.1.0", path: "deps/reloader"}],
+              # Register a listener from a dependency
+              listeners: [Reloader]
+            ]
+          end
+        end
+      """)
+
+      File.mkdir_p!("config")
+
+      File.mkdir_p!("lib")
+
+      File.write!("lib/a.ex", "defmodule A do end")
+      File.write!("lib/b.ex", "defmodule B do end")
+      File.write!("lib/c.ex", "defmodule C do end")
+
+      mix(["deps.compile"])
+
+      parent = self()
+
+      spawn_link(fn ->
+        port =
+          mix_port([
+            "run",
+            "--no-halt",
+            "--no-compile",
+            "--no-start",
+            "--eval",
+            ~s/IO.puts("ok"); IO.gets(""); System.halt()/
+          ])
+
+        assert_receive {^port, {:data, "ok\n"}}, timeout
+        send(parent, :mix_started)
+
+        assert_receive {^port, {:data, output}}, timeout
+        send(parent, {:output, output})
+      end)
+
+      assert_receive :mix_started, timeout
+
+      output = mix(["do", "compile", "+", "eval", "IO.write System.pid"])
+      os_pid = output |> String.split("\n") |> List.last()
+
+      assert_receive {:output, output}, timeout
+
+      assert output == """
+             Received :modules_compiled with
+               added: [A, B, C], changed: [], removed: []
+               app: :with_reloader
+               build_scm: Mix.SCM.Path
+               os_pid: "#{os_pid}"
+             """
+
+      # Changed
+      File.write!("lib/a.ex", "defmodule A do @moduledoc false end")
+      # Removed
+      File.rm!("lib/b.ex")
+      # New
+      File.write!("lib/d.ex", "defmodule D do end")
+
+      spawn_link(fn ->
+        port =
+          mix_port([
+            "run",
+            "--no-halt",
+            "--no-compile",
+            "--no-start",
+            "--eval",
+            ~s/IO.puts("ok"); IO.gets(""); System.halt()/
+          ])
+
+        assert_receive {^port, {:data, "ok\n"}}, timeout
+        send(parent, :mix_started)
+
+        assert_receive {^port, {:data, output}}, timeout
+        send(parent, {:output, output})
+      end)
+
+      assert_receive :mix_started, timeout
+
+      output = mix(["do", "compile", "+", "eval", "IO.write System.pid"])
+      os_pid = output |> String.split("\n") |> List.last()
+
+      assert_receive {:output, output}, timeout
+
+      assert output == """
+             Received :modules_compiled with
+               added: [D], changed: [A], removed: [B]
+               app: :with_reloader
+               build_scm: Mix.SCM.Path
+               os_pid: "#{os_pid}"
+             """
+    end)
+  end
 end
