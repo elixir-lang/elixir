@@ -27,7 +27,7 @@ TODO.
   * [Kernel] Now verify the type of the binary generators
   * [Kernel] Track the type of tuples in patterns and inside `elem/2`
   * [List] Add `List.ends_with?/2`
-  * [Macro] Improve `dbg` handling of `if/2` and of code blocks
+  * [Macro] Improve `dbg` handling of `if/2`, `with/1` and of code blocks
   * [Process] Handle arbitrarily high integer values in `Process.sleep/1`
   * [String] Inspect special whitespace and zero-width characters using their Unicode representation
 

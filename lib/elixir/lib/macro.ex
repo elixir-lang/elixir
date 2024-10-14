@@ -2731,7 +2731,7 @@ defmodule Macro do
             end)
 
           error_clause =
-            quote do
+            quote generated: true do
               {other, _acc} -> raise WithClauseError, term: other
             end
 
