@@ -21,7 +21,7 @@ defmodule Reloader do
 
     IO.write("""
     Received :modules_compiled with
-      added: #{inspect(added)}, changed: #{inspect(changed)}, removed: #{inspect(removed)}
+      added: #{inspect(Enum.sort(added))}, changed: #{inspect(Enum.sort(changed))}, removed: #{inspect(Enum.sort(removed))}
       app: #{inspect(app)}
       build_scm: #{inspect(build_scm)}
       os_pid: #{inspect(os_pid)}
