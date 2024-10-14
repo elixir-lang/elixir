@@ -76,7 +76,7 @@ defmodule Mix.PubSub do
   end
 
   defp built_in_listeners do
-    iex_started? = List.keyfind(Application.started_applications(), :iex, 0) != nil
+    iex_started? = Process.whereis(IEx.Supervisor) != nil
 
     if iex_started? do
       [IEx.MixListener]
