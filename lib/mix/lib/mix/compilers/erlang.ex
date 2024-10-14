@@ -332,11 +332,17 @@ defmodule Mix.Compilers.Erlang do
 
   defp modules_diff(added, changed, removed, timestamp) do
     %{
-      added: Enum.map(added, &module_from_path/1),
-      changed: Enum.map(changed, &module_from_path/1),
-      removed: Enum.map(removed, &module_from_path/1),
+      added: modules_from_paths(added),
+      changed: modules_from_paths(changed),
+      removed: modules_from_paths(removed),
       timestamp: timestamp
     }
+  end
+
+  defp modules_from_paths(paths) do
+    for path <- paths, String.ends_with?(path, ".beam") do
+      module_from_path(path)
+    end
   end
 
   defp module_from_path(path) do
