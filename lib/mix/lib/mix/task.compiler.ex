@@ -63,8 +63,10 @@ defmodule Mix.Task.Compiler do
           key, which matches the modification time of all the compiled
           module files.
 
-        * `:self` - a boolean indicating if the compilation happened in the
-          same OS process as the listener.
+        * `:os_pid` - the operating system PID of the process that run
+          the compilation. The value is a string and it can be compared
+          with `System.pid/0` to determine if compilation happened in
+          the same OS process as the listener.
 
   Note that the listener starts before any of the project apps are started.
   """
