@@ -386,7 +386,7 @@ defmodule Mix.Tasks.CompileTest do
   end
 
   test "listening to concurrent compilations" do
-    timeout = 3_000
+    timeout = 2_000
 
     Mix.Project.pop()
 
@@ -439,7 +439,7 @@ defmodule Mix.Tasks.CompileTest do
 
       assert_receive :mix_started, timeout
 
-      output = mix(["do", "compile", "+", "eval", "IO.write(System.pid())"])
+      output = mix(["do", "compile", "+", "eval", "IO.write System.pid"])
       os_pid = output |> String.split("\n") |> List.last()
 
       assert_receive {:output, output}, timeout
@@ -479,7 +479,7 @@ defmodule Mix.Tasks.CompileTest do
 
       assert_receive :mix_started, timeout
 
-      output = mix(["do", "compile", "+", "eval", "IO.write(System.pid())"])
+      output = mix(["do", "compile", "+", "eval", "IO.write System.pid"])
       os_pid = output |> String.split("\n") |> List.last()
 
       assert_receive {:output, output}, timeout
