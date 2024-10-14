@@ -54,7 +54,8 @@ defmodule Mix.Compilers.Erlang do
   `{:error, errors, warnings}` in case of error. This function returns
   `{status, diagnostics}` as specified in `Mix.Task.Compiler`.
   """
-  def compile(manifest, mappings, src_ext, dest_ext, opts, callback) when is_list(opts) do
+  def compile(manifest, mappings, src_ext, dest_ext, opts, callback)
+      when is_atom(src_ext) and is_atom(dest_ext) and is_list(opts) do
     force = opts[:force]
 
     entries =
@@ -66,29 +67,17 @@ defmodule Mix.Compilers.Erlang do
       preload.()
     end
 
-    compile(manifest, entries, src_ext, opts, callback)
+    compile_entries(manifest, entries, src_ext, dest_ext, opts, callback)
   end
 
-  @doc """
-  Compiles the given `entries`.
-
-  `entries` are a list of `{:ok | :stale, src, dest}` tuples.
-
-  A `manifest` file and a `callback` to be invoked for each stale
-  src/dest pair must also be given.
-
-  ## Options
-
-    * `:force` - forces compilation regardless of modification times
-
-    * `:parallel` - a mapset of files to compile in parallel
-
-  """
+  # TODO: remove me on v1.22
+  @deprecated "Use compile/6 or open an up an issue"
   def compile(manifest, entries, opts \\ [], callback) do
-    compile(manifest, entries, :erl, opts, callback)
+    compile_entries(manifest, entries, :erl, :beam, opts, callback)
   end
 
-  defp compile(manifest, mappings, ext, opts, callback) do
+  @doc false
+  def compile_entries(manifest, mappings, src_ext, dest_ext, opts, callback) do
     stale = for {:stale, src, dest} <- mappings, do: {src, dest}
 
     # Get the previous entries from the manifest
@@ -114,7 +103,7 @@ defmodule Mix.Compilers.Erlang do
     if stale == [] and removed == [] do
       {:noop, manifest_warnings(entries)}
     else
-      Mix.Utils.compiling_n(length(stale), ext)
+      Mix.Utils.compiling_n(length(stale), src_ext)
       Mix.Project.ensure_structure()
 
       # Let's prepend the newly created path so compiled files
@@ -149,16 +138,18 @@ defmodule Mix.Compilers.Erlang do
       # Return status and diagnostics
       warnings = manifest_warnings(entries) ++ to_diagnostics(warnings, :warning)
 
-      lazy_modules_diff = fn ->
-        {changed, added} =
-          stale
-          |> Enum.map(&elem(&1, 1))
-          |> Enum.split_with(fn dest -> List.keymember?(old_entries, dest, 0) end)
+      if dest_ext == :beam do
+        lazy_modules_diff = fn ->
+          {changed, added} =
+            stale
+            |> Enum.map(&elem(&1, 1))
+            |> Enum.split_with(fn dest -> List.keymember?(old_entries, dest, 0) end)
 
-        modules_diff(added, changed, removed, timestamp)
+          modules_diff(added, changed, removed, timestamp)
+        end
+
+        Mix.Task.Compiler.notify_modules_compiled(lazy_modules_diff)
       end
-
-      Mix.Task.Compiler.notify_modules_compiled(lazy_modules_diff)
 
       case status do
         :ok ->
@@ -340,9 +331,7 @@ defmodule Mix.Compilers.Erlang do
   end
 
   defp modules_from_paths(paths) do
-    for path <- paths, String.ends_with?(path, ".beam") do
-      module_from_path(path)
-    end
+    Enum.map(paths, &module_from_path/1)
   end
 
   defp module_from_path(path) do

@@ -84,7 +84,7 @@ defmodule Mix.Tasks.Compile.Erlang do
 
     opts = [parallel: MapSet.new(find_parallel(erls))] ++ opts
 
-    Erlang.compile(manifest(), tuples, opts, fn input, _output ->
+    Erlang.compile_entries(manifest(), tuples, :erl, :beam, opts, fn input, _output ->
       # We're purging the module because a previous compiler (for example, Phoenix)
       # might have already loaded the previous version of it.
       module = input |> Path.basename(".erl") |> String.to_atom()
