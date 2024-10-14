@@ -294,12 +294,15 @@ defmodule Mix.Sync.Lock do
 
     names = File.ls!(path)
 
+    # On Windows, removing a file may fail if the file is open, so we
+    # ignore failures just to be safe
+
     for "port_" <> _ = name <- names do
-      File.rm!(Path.join(path, name))
+      _ = File.rm(Path.join(path, name))
     end
 
     for "lock_" <> _ = name <- names, name != "lock_0" do
-      File.rm!(Path.join(path, name))
+      _ = File.rm(Path.join(path, name))
     end
   end
 

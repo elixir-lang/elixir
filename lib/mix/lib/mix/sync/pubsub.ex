@@ -93,7 +93,7 @@ defmodule Mix.Sync.PubSub do
 
     case :gen_tcp.listen(port, [reuseaddr: true] ++ @listen_opts) do
       {:ok, socket} ->
-        File.rm!(port_path)
+        _ = File.rm(port_path)
         :gen_tcp.close(socket)
         {:error, :econnrefused}
 
