@@ -143,12 +143,7 @@ expand_expr(_Meta, {{'.', _, [Mod, to_string]}, _, [Arg]} = AST, Fun, S, #{conte
     _ -> Fun(AST, S, E) % Let it raise
   end;
 expand_expr(Meta, Component, Fun, S, E) ->
-  case Fun(Component, S, E) of
-    {EComponent, _, ErrorE} when is_list(EComponent); is_atom(EComponent) ->
-      file_error(Meta, ErrorE, ?MODULE, {invalid_literal, EComponent});
-    {_, _, _} = Expanded ->
-      Expanded
-  end.
+  Fun(Component, S, E).
 
 %% Expands and normalizes types of a bitstring.
 
@@ -397,8 +392,6 @@ format_error(bittype_unit) ->
   "integer and float types require a size specifier if the unit specifier is given";
 format_error({bittype_float_size, Other}) ->
   io_lib:format("float requires size*unit to be 16, 32, or 64 (default), got: ~p", [Other]);
-format_error({invalid_literal, Literal}) ->
-  io_lib:format("invalid literal ~ts in <<>>", ['Elixir.Macro':to_string(Literal)]);
 format_error({undefined_bittype, Expr}) ->
   io_lib:format("unknown bitstring specifier: ~ts", ['Elixir.Macro':to_string(Expr)]);
 format_error({unknown_bittype, Name}) ->

@@ -27,42 +27,29 @@ defmodule Module.Types.Expr do
   @atom_true atom([true])
   @exception open_map(__struct__: atom(), __exception__: @atom_true)
 
-  # of_expr/4 is public as it is called recursively from Of.binary
-  def of_expr(expr, expected_expr, stack, context) do
-    with {:ok, actual, context} <- of_expr(expr, stack, context) do
-      Of.intersect(actual, expected_expr, stack, context)
-    end
-  end
-
   # :atom
-  def of_expr(atom, _stack, context) when is_atom(atom) do
-    {:ok, atom([atom]), context}
-  end
+  def of_expr(atom, _stack, context) when is_atom(atom),
+    do: {:ok, atom([atom]), context}
 
   # 12
-  def of_expr(literal, _stack, context) when is_integer(literal) do
-    {:ok, integer(), context}
-  end
+  def of_expr(literal, _stack, context) when is_integer(literal),
+    do: {:ok, integer(), context}
 
   # 1.2
-  def of_expr(literal, _stack, context) when is_float(literal) do
-    {:ok, float(), context}
-  end
+  def of_expr(literal, _stack, context) when is_float(literal),
+    do: {:ok, float(), context}
 
   # "..."
-  def of_expr(literal, _stack, context) when is_binary(literal) do
-    {:ok, binary(), context}
-  end
+  def of_expr(literal, _stack, context) when is_binary(literal),
+    do: {:ok, binary(), context}
 
   # #PID<...>
-  def of_expr(literal, _stack, context) when is_pid(literal) do
-    {:ok, pid(), context}
-  end
+  def of_expr(literal, _stack, context) when is_pid(literal),
+    do: {:ok, pid(), context}
 
   # []
-  def of_expr([], _stack, context) do
-    {:ok, empty_list(), context}
-  end
+  def of_expr([], _stack, context),
+    do: {:ok, empty_list(), context}
 
   # TODO: [expr, ...]
   def of_expr(exprs, stack, context) when is_list(exprs) do

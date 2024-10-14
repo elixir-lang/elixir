@@ -240,17 +240,19 @@ defmodule Module.Types.Of do
   end
 
   defp binary_segment({:"::", meta, [left, right]}, kind, args, stack, context) do
-    expected_type = specifier_type(kind, right)
+    type = specifier_type(kind, right)
     expr = {:<<>>, meta, args}
+    expected_expr = {type, expr}
 
     result =
       case kind do
-        :pattern -> Module.Types.Pattern.of_pattern(left, {expected_type, expr}, stack, context)
-        :guard -> Module.Types.Pattern.of_guard(left, {expected_type, expr}, stack, context)
-        :expr -> Module.Types.Expr.of_expr(left, {expected_type, expr}, stack, context)
+        :pattern -> Module.Types.Pattern.of_pattern(left, expected_expr, stack, context)
+        :guard -> Module.Types.Pattern.of_guard(left, expected_expr, stack, context)
+        :expr -> Module.Types.Expr.of_expr(left, stack, context)
       end
 
-    with {:ok, _type, context} <- result do
+    with {:ok, actual, context} <- result,
+         {:ok, _result, context} <- intersect(actual, expected_expr, stack, context) do
       {:ok, specifier_size(kind, right, expr, stack, context)}
     end
   end
@@ -277,8 +279,10 @@ defmodule Module.Types.Of do
 
   defp specifier_size(:expr, {:size, _, [arg]}, expr, stack, context)
        when not is_integer(arg) do
-    case Module.Types.Expr.of_expr(arg, {integer(), expr}, stack, context) do
-      {:ok, _, context} -> context
+    with {:ok, actual, context} <- Module.Types.Expr.of_expr(arg, stack, context),
+         {:ok, _, context} <- intersect(actual, {integer(), expr}, stack, context) do
+      context
+    else
       {:error, context} -> context
     end
   end

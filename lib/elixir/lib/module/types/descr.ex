@@ -38,6 +38,8 @@ defmodule Module.Types.Descr do
 
   # Type definitions
 
+  defguard is_descr(descr) when is_map(descr) or descr == :term
+
   def dynamic(), do: %{dynamic: :term}
   def none(), do: @none
   def term(), do: :term
@@ -388,6 +390,18 @@ defmodule Module.Types.Descr do
   end
 
   ## Bitmaps
+
+  @doc """
+  Optimized version of `not empty?(intersection(binary(), type))`.
+  """
+  def empty_list_type?(:term), do: true
+  def empty_list_type?(%{dynamic: :term}), do: true
+
+  def empty_list_type?(%{dynamic: %{bitmap: bitmap}}) when (bitmap &&& @bit_empty_list) != 0,
+    do: true
+
+  def empty_list_type?(%{bitmap: bitmap}) when (bitmap &&& @bit_empty_list) != 0, do: true
+  def empty_list_type?(_), do: false
 
   @doc """
   Optimized version of `not empty?(intersection(binary(), type))`.

@@ -30,7 +30,11 @@ defmodule Module.Types.Pattern do
   end
 
   ## Patterns
-  # of_pattern is public as it is called recursively from Of.binary
+
+  # The second argument of patterns is, opposite to guards,
+  # either {descr, expr} or a {path, expr}. However, the descr
+  # is only used for refining variables, outside of that, it is
+  # not asserted on.
 
   # TODO: Remove the hardcoding of dynamic
   # TODO: Remove this function
@@ -38,45 +42,25 @@ defmodule Module.Types.Pattern do
     of_pattern(expr, {dynamic(), expr}, stack, context)
   end
 
-  def of_pattern(atom, {expected, expr}, stack, context) when is_atom(atom) do
-    if atom_type?(expected, atom) do
-      {:ok, atom([atom]), context}
-    else
-      {:error, Of.incompatible_warn(expr, expected, atom([atom]), stack, context)}
-    end
-  end
+  # :atom
+  def of_pattern(atom, _expected_expr, _stack, context) when is_atom(atom),
+    do: {:ok, atom([atom]), context}
 
   # 12
-  def of_pattern(literal, {expected, expr}, stack, context) when is_integer(literal) do
-    if integer_type?(expected) do
-      {:ok, integer(), context}
-    else
-      {:error, Of.incompatible_warn(expr, expected, integer(), stack, context)}
-    end
-  end
+  def of_pattern(literal, _expected_expr, _stack, context) when is_integer(literal),
+    do: {:ok, integer(), context}
 
   # 1.2
-  def of_pattern(literal, {expected, expr}, stack, context) when is_float(literal) do
-    if float_type?(expected) do
-      {:ok, float(), context}
-    else
-      {:error, Of.incompatible_warn(expr, expected, float(), stack, context)}
-    end
-  end
+  def of_pattern(literal, _expected_expr, _stack, context) when is_float(literal),
+    do: {:ok, float(), context}
 
   # "..."
-  def of_pattern(literal, {expected, expr}, stack, context) when is_binary(literal) do
-    if binary_type?(expected) do
-      {:ok, binary(), context}
-    else
-      {:error, Of.incompatible_warn(expr, expected, binary(), stack, context)}
-    end
-  end
+  def of_pattern(literal, _expected_expr, _stack, context) when is_binary(literal),
+    do: {:ok, binary(), context}
 
   # []
-  def of_pattern([], _expected_expr, _stack, context) do
-    {:ok, empty_list(), context}
-  end
+  def of_pattern([], _expected_expr, _stack, context),
+    do: {:ok, empty_list(), context}
 
   # [expr, ...]
   def of_pattern(exprs, _expected_expr, stack, context) when is_list(exprs) do
@@ -195,19 +179,26 @@ defmodule Module.Types.Pattern do
   end
 
   # ^var
-  def of_pattern({:^, _meta, [var]}, expected_expr, stack, context) do
-    # This is by definition a variable defined outside of this pattern, so we don't track it.
-    Of.intersect(Of.var(var, context), expected_expr, stack, context)
+  def of_pattern({:^, _meta, [var]}, _expected_expr, _stack, context) do
+    {:ok, Of.var(var, context), context}
   end
 
   # _
   def of_pattern({:_, _meta, _var_context}, {expected, _expr}, _stack, context) do
-    {:ok, expected, context}
+    if is_descr(expected) do
+      {:ok, expected, context}
+    else
+      {:ok, term(), context}
+    end
   end
 
   # var
-  def of_pattern(var, expected_expr, stack, context) when is_var(var) do
-    Of.refine_var(var, expected_expr, stack, context)
+  def of_pattern(var, {expected, _expr} = expected_expr, stack, context) when is_var(var) do
+    if is_descr(expected) do
+      Of.refine_var(var, expected_expr, stack, context)
+    else
+      {:ok, term(), context}
+    end
   end
 
   # TODO: Track variables inside the map (mirror it with %var{} handling)
@@ -228,28 +219,22 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  defp of_struct_var({:_, _, _}, {expected, _expr}, _stack, context) do
-    {:ok, expected, context}
-  end
-
   defp of_struct_var({:^, _, [var]}, expected_expr, stack, context) do
     Of.intersect(Of.var(var, context), expected_expr, stack, context)
   end
 
-  defp of_struct_var({_name, meta, _ctx}, expected_expr, stack, context) do
-    version = Keyword.fetch!(meta, :version)
+  defp of_struct_var({:_, _, _}, {expected, _expr}, _stack, context) do
+    {:ok, expected, context}
+  end
 
-    case context do
-      %{vars: %{^version => %{type: type}}} ->
-        Of.intersect(type, expected_expr, stack, context)
-
-      %{} ->
-        {:ok, elem(expected_expr, 0), context}
-    end
+  defp of_struct_var(var, expected_expr, stack, context) do
+    Of.refine_var(var, expected_expr, stack, context)
   end
 
   ## Guards
-  # of_guard is public as it is called recursively from Of.binary
+
+  # The second argument of guards is, opposite to patterns,
+  # only {descr, expr}, and the descr is always asserted on.
 
   # :atom
   def of_guard(atom, {expected, expr}, stack, context) when is_atom(atom) do
@@ -288,8 +273,12 @@ defmodule Module.Types.Pattern do
   end
 
   # []
-  def of_guard([], _expected_expr, _stack, context) do
-    {:ok, empty_list(), context}
+  def of_guard([], {expected, expr}, stack, context) do
+    if empty_list_type?(expected) do
+      {:ok, empty_list(), context}
+    else
+      {:error, Of.incompatible_warn(expr, expected, empty_list(), stack, context)}
+    end
   end
 
   # [expr, ...]
