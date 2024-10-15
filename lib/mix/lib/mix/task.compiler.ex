@@ -148,11 +148,16 @@ defmodule Mix.Task.Compiler do
   @callback manifests() :: [Path.t()]
 
   @doc """
+  Lists persisted diagnostics from the compiler.
+  """
+  @callback diagnostics() :: [Diagnostic.t()]
+
+  @doc """
   Removes build artifacts and manifests.
   """
   @callback clean() :: any
 
-  @optional_callbacks clean: 0, manifests: 0
+  @optional_callbacks clean: 0, manifests: 0, diagnostics: 0
 
   @doc """
   Adds a callback that runs after a given compiler.
@@ -220,6 +225,21 @@ defmodule Mix.Task.Compiler do
 
       if module && function_exported?(module, :manifests, 0) do
         module.manifests()
+      else
+        []
+      end
+    end)
+  end
+
+  @doc """
+  Lists persisted diagnostics from all compilers in the current project.
+  """
+  def diagnostics(config \\ Mix.Project.config()) do
+    Enum.flat_map(compilers(config), fn compiler ->
+      module = Mix.Task.get("compile.#{compiler}")
+
+      if module && function_exported?(module, :diagnostics, 0) do
+        module.diagnostics()
       else
         []
       end

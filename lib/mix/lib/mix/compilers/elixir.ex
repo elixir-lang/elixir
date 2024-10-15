@@ -324,6 +324,14 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
+  @doc """
+  Retrieves all diagnostics from the given manifest.
+  """
+  def diagnostics(manifest, dest) do
+    {_, all_sources, _, _, _, _, _, _} = parse_manifest(manifest, dest)
+    previous_warnings(all_sources, false)
+  end
+
   defp compiler_info_from_force(manifest, all_paths, all_modules, dest) do
     # A config, path dependency or manifest has changed, let's just compile everything
     for {module, _} <- all_modules,

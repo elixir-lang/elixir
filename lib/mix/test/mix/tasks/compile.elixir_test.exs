@@ -1470,6 +1470,17 @@ defmodule Mix.Tasks.Compile.ElixirTest do
                  message: ^message
                } = diagnostic
       end)
+
+      assert [diagnostic] = Mix.Tasks.Compile.Elixir.diagnostics()
+
+      assert %Diagnostic{
+               file: ^file,
+               source: ^file,
+               severity: :warning,
+               position: {2, 13},
+               compiler_name: "Elixir",
+               message: ^message
+             } = diagnostic
     end)
   end
 

@@ -145,6 +145,12 @@ defmodule Mix.Tasks.Compile.Elixir do
   defp manifest, do: Path.join(Mix.Project.manifest_path(), @manifest)
 
   @impl true
+  def diagnostics do
+    dest = Mix.Project.compile_path()
+    Mix.Compilers.Elixir.diagnostics(manifest(), dest)
+  end
+
+  @impl true
   def clean do
     dest = Mix.Project.compile_path()
     Mix.Compilers.Elixir.clean(manifest(), dest)

@@ -112,6 +112,11 @@ defmodule Mix.Tasks.Compile.Erlang do
   defp manifest, do: Path.join(Mix.Project.manifest_path(), @manifest)
 
   @impl true
+  def diagnostics do
+    Mix.Compilers.Erlang.diagnostics(manifest())
+  end
+
+  @impl true
   def clean do
     Mix.Compilers.Erlang.clean(manifest())
   end

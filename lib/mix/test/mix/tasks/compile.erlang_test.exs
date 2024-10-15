@@ -128,6 +128,17 @@ defmodule Mix.Tasks.Compile.ErlangTest do
                  severity: :warning
                } = diagnostic
 
+        assert [diagnostic] = Mix.Tasks.Compile.Erlang.diagnostics()
+
+        assert %Mix.Task.Compiler.Diagnostic{
+                 file: ^file,
+                 source: ^file,
+                 compiler_name: "erl_lint",
+                 message: "function my_fn/0 is unused",
+                 position: position(2, 1),
+                 severity: :warning
+               } = diagnostic
+
         # Should return warning without recompiling file
         assert {:noop, [^diagnostic]} = Mix.Tasks.Compile.Erlang.run(["--verbose"])
         refute_received {:mix_shell, :info, ["Compiled src/has_warning.erl"]}
