@@ -184,6 +184,48 @@ defmodule Mix.Task.Compiler do
     end
   end
 
+  @doc """
+  Returns all compilers for the current project.
+  """
+  def compilers(config \\ Mix.Project.config()) do
+    compilers = config[:compilers] || Mix.compilers()
+
+    if :xref in compilers do
+      IO.warn(
+        "the :xref compiler is deprecated, please remove it from your mix.exs :compilers options"
+      )
+
+      List.delete(compilers, :xref)
+    else
+      compilers
+    end
+    |> maybe_prepend(:leex)
+    |> maybe_prepend(:yecc)
+  end
+
+  defp maybe_prepend(compilers, compiler) do
+    if compiler in compilers do
+      compilers
+    else
+      [compiler | compilers]
+    end
+  end
+
+  @doc """
+  Lists manifest files for all compilers in the current project.
+  """
+  def manifests(config \\ Mix.Project.config()) do
+    Enum.flat_map(compilers(config), fn compiler ->
+      module = Mix.Task.get("compile.#{compiler}")
+
+      if module && function_exported?(module, :manifests, 0) do
+        module.manifests()
+      else
+        []
+      end
+    end)
+  end
+
   # Normalize the compiler result to a diagnostic tuple.
   @doc false
   def normalize(result, name) do

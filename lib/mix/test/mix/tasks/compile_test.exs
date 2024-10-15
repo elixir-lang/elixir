@@ -42,7 +42,7 @@ defmodule Mix.Tasks.CompileTest do
 
   @tag project: [compilers: [:elixir, :app, :custom]]
   test "compiles does not require all compilers available on manifest" do
-    assert Mix.Tasks.Compile.manifests() |> Enum.map(&Path.basename/1) ==
+    assert Mix.Task.Compiler.manifests() |> Enum.map(&Path.basename/1) ==
              ["compile.yecc", "compile.leex", "compile.elixir"]
   end
 

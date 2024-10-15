@@ -67,7 +67,7 @@ defmodule Mix.Tasks.Compile.All do
         Mix.Project.build_structure(config)
 
         config
-        |> Mix.Tasks.Compile.compilers()
+        |> Mix.Task.Compiler.compilers()
         |> compile(args, :noop, [])
       end
 
