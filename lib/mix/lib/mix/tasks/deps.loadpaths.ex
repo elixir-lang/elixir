@@ -29,6 +29,19 @@ defmodule Mix.Tasks.Deps.Loadpaths do
 
   @impl true
   def run(args) do
+    # Note that we need to ensure the dependencies are compiled first,
+    # before we can start the pub/sub listeners, since those come from
+    # the dependencies. Theoretically, between compiling dependencies
+    # and starting the listeners, there may be a concurrent compilation
+    # of the dependencies, which we would miss, and we would already
+    # have modules from our compilation loaded. To avoid this race
+    # condition we start the pub/sub beforehand and we accumulate all
+    # events until the listeners are started. Alternatively we could
+    # use a lock around compilation and sterning the listeners, however
+    # the added benefit of the current approach is that we consistently
+    # receive events for all dependency compilations. Also, if we ever
+    # decide to start the listeners later (e.g. after loadspaths), the
+    # accumulation approach still works.
     Mix.PubSub.start()
 
     if "--no-archives-check" not in args do

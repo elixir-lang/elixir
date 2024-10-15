@@ -106,6 +106,23 @@ defmodule Mix.Tasks.Deps.Compile do
               false
           end
 
+        if compiled? do
+          build_path = Mix.Project.build_path(config)
+
+          lazy_message = fn ->
+            info = %{
+              app: dep.app,
+              scm: dep.scm,
+              manager: dep.manager,
+              os_pid: System.pid()
+            }
+
+            {:dep_compiled, info}
+          end
+
+          Mix.Sync.PubSub.broadcast(build_path, lazy_message)
+        end
+
         # We should touch fetchable dependencies even if they
         # did not compile otherwise they will always be marked
         # as stale, even when there is nothing to do.

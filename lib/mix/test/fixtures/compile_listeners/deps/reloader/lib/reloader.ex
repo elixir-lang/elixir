@@ -15,7 +15,7 @@ defmodule Reloader do
     %{
       modules_diff: %{added: added, changed: changed, removed: removed, timestamp: _timestamp},
       app: app,
-      build_scm: build_scm,
+      scm: scm,
       os_pid: os_pid
     } = info
 
@@ -23,7 +23,26 @@ defmodule Reloader do
     Received :modules_compiled with
       added: #{inspect(Enum.sort(added))}, changed: #{inspect(Enum.sort(changed))}, removed: #{inspect(Enum.sort(removed))}
       app: #{inspect(app)}
-      build_scm: #{inspect(build_scm)}
+      scm: #{inspect(scm)}
+      os_pid: #{inspect(os_pid)}
+    """)
+
+    {:noreply, state}
+  end
+
+  def handle_info({:dep_compiled, info}, state) do
+    %{
+      app: app,
+      scm: scm,
+      manager: manager,
+      os_pid: os_pid
+    } = info
+
+    IO.write("""
+    Received :dep_compiled with
+      app: #{inspect(app)}
+      scm: #{inspect(scm)}
+      manager: #{inspect(manager)}
       os_pid: #{inspect(os_pid)}
     """)
 
