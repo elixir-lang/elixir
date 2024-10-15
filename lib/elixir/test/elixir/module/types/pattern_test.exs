@@ -32,7 +32,7 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([x = %_{}], x) == dynamic(open_map(__struct__: atom()))
 
       assert typecheck!([x = %m{}, m = Point], x) ==
-               dynamic(open_map(__struct__: atom()))
+               dynamic(open_map(__struct__: atom([Point])))
 
       assert typecheck!([m = Point, x = %m{}], x) ==
                dynamic(open_map(__struct__: atom([Point])))

@@ -132,6 +132,13 @@ defmodule Module.Types.Pattern do
     {:ok, type}
   end
 
+  defp of_pattern_var([:__struct__ | rest], type) do
+    case map_fetch(type, :__struct__) do
+      {_optional?, type} -> of_pattern_var(rest, intersection(type, atom()))
+      _reason -> :error
+    end
+  end
+
   defp of_pattern_var([{:key, field} | rest], type) when is_atom(field) do
     case map_fetch(type, field) do
       {_optional?, type} -> of_pattern_var(rest, type)
@@ -153,7 +160,7 @@ defmodule Module.Types.Pattern do
 
   defp of_pattern_tree({:closed_map, static, dynamic}, context) do
     dynamic = Enum.map(dynamic, fn {key, value} -> {key, of_pattern_tree(value, context)} end)
-    open_map(static ++ dynamic)
+    closed_map(static ++ dynamic)
   end
 
   defp of_pattern_tree({:intersection, entries}, context) do
@@ -199,6 +206,7 @@ defmodule Module.Types.Pattern do
   # TODO: Simplify signature of Of.refine_var
   # TODO: Simplify signature of Of.intersect
   # TODO: Remove expr from of_pattern
+  # TODO: Remove prepend_path
 
   # :atom
   defp of_pattern(atom, _expected_expr, _stack, context) when is_atom(atom),
@@ -234,7 +242,6 @@ defmodule Module.Types.Pattern do
   end
 
   # left = right
-  # TODO: Track variables and handle nesting
   defp of_pattern({:=, _meta, [_, _]} = match, {path, expr}, stack, context) do
     match
     |> unpack_match([])
@@ -259,19 +266,6 @@ defmodule Module.Types.Pattern do
 
       {:error, context} ->
         {:error, context}
-    end
-  end
-
-  # %var{...} and %^var{...}
-  defp of_pattern(
-         {:%, _meta, [struct_var, {:%{}, _meta2, args}]} = expr,
-         expected_expr,
-         stack,
-         context
-       )
-       when not is_atom(struct_var) do
-    with {:ok, _, context} <- of_match_var(struct_var, {atom(), expr}, stack, context) do
-      of_open_map([__struct__: struct_var] ++ args, expected_expr, stack, context)
     end
   end
 
@@ -318,9 +312,36 @@ defmodule Module.Types.Pattern do
     end
   end
 
+  # %var{...}
+  defp of_pattern(
+         {:%, _meta, [{name, _, ctx} = var, {:%{}, _meta2, args}]} = expr,
+         {path, _expr},
+         stack,
+         context
+       )
+       when is_atom(name) and is_atom(ctx) and name != :_ do
+    var_path = prepend_path(:__struct__, path)
+
+    with {:ok, var, context} <- of_pattern(var, {var_path, expr}, stack, context) do
+      of_open_map(args, [], [__struct__: var], {path, expr}, stack, context)
+    end
+  end
+
+  # %^var{...} and %_{...}
+  defp of_pattern(
+         {:%, _meta, [var, {:%{}, _meta2, args}]} = expr,
+         expected_expr,
+         stack,
+         context
+       ) do
+    with {:ok, refined, context} <- of_match_var(var, {atom(), expr}, stack, context) do
+      of_open_map(args, [__struct__: refined], [], expected_expr, stack, context)
+    end
+  end
+
   # %{...}
   defp of_pattern({:%{}, _meta, args}, expected_expr, stack, context) do
-    of_open_map(args, expected_expr, stack, context)
+    of_open_map(args, [], [], expected_expr, stack, context)
   end
 
   # <<...>>>
@@ -403,9 +424,9 @@ defmodule Module.Types.Pattern do
 
   # TODO: Properly traverse domain keys
   # TODO: Properly handle pin operator in keys
-  defp of_open_map(args, {expected, expr}, stack, context) do
+  defp of_open_map(args, static, dynamic, {expected, expr}, stack, context) do
     result =
-      reduce_ok(args, {[], [], context}, fn {key, value}, {static, dynamic, context} ->
+      reduce_ok(args, {static, dynamic, context}, fn {key, value}, {static, dynamic, context} ->
         expected = prepend_path({:key, key}, expected)
 
         with {:ok, value_type, context} <- of_pattern(value, {expected, expr}, stack, context) do
