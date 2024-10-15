@@ -55,13 +55,28 @@ defmodule Mix.Task.Compiler do
 
         * `:app` - app which modules have been compiled.
 
-        * `:build_scm` - the SCM module of the compiled project.
+        * `:scm` - the SCM module of the compiled project.
 
         * `:modules_diff` - information about the compiled modules. The
           value is a map with keys: `:added`, `:changed`, `:removed`,
           where each holds a list of modules. There is also a `:timestamp`
           key, which matches the modification time of all the compiled
           module files.
+
+        * `:os_pid` - the operating system PID of the process that run
+          the compilation. The value is a string and it can be compared
+          with `System.pid/0` to determine if compilation happened in
+          the same OS process as the listener.
+
+    * `{:dep_compiled, info}` - delivered after a dependency is compiled.
+      `info` is a map with the following keys:
+
+        * `:app` - the dependency app.
+
+        * `:scm` - the SCM module of the dependency.
+
+        * `:manager` - the dependency project management, possible values:
+          `:rebar3`, `:mix`, `:make`, `nil`.
 
         * `:os_pid` - the operating system PID of the process that run
           the compilation. The value is a string and it can be compared
@@ -222,7 +237,7 @@ defmodule Mix.Task.Compiler do
     lazy_message = fn ->
       info = %{
         app: config[:app],
-        build_scm: config[:build_scm],
+        scm: config[:build_scm],
         modules_diff: lazy_modules_diff.(),
         os_pid: System.pid()
       }

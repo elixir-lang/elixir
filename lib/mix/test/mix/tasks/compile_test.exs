@@ -439,12 +439,12 @@ defmodule Mix.Tasks.CompileTest do
         assert_receive {^port, {:data, "ok\n"}}, timeout
         send(parent, :mix_started)
 
-        assert_receive {^port, {:data, output_erl}}, timeout
-        assert_receive {^port, {:data, output_ex}}, timeout
-        send(parent, {:output, output_erl <> output_ex})
+        send_port_outputs_to(port, parent)
       end)
 
       assert_receive :mix_started, timeout
+
+      # Project compilation
 
       output = mix(["do", "compile", "+", "eval", "IO.write System.pid"])
       os_pid = output |> String.split("\n") |> List.last()
@@ -455,12 +455,17 @@ defmodule Mix.Tasks.CompileTest do
              Received :modules_compiled with
                added: [:a, :b, :c], changed: [], removed: []
                app: :with_reloader
-               build_scm: Mix.SCM.Path
+               scm: Mix.SCM.Path
                os_pid: "#{os_pid}"
+             """
+
+      assert_receive {:output, output}, timeout
+
+      assert output == """
              Received :modules_compiled with
                added: [A, B, C], changed: [], removed: []
                app: :with_reloader
-               build_scm: Mix.SCM.Path
+               scm: Mix.SCM.Path
                os_pid: "#{os_pid}"
              """
 
@@ -475,26 +480,7 @@ defmodule Mix.Tasks.CompileTest do
       File.write!("lib/d.ex", "defmodule D do end")
       File.write!("src/d.erl", "-module(d).")
 
-      spawn_link(fn ->
-        port =
-          mix_port([
-            "run",
-            "--no-halt",
-            "--no-compile",
-            "--no-start",
-            "--eval",
-            ~s/IO.puts("ok"); IO.gets(""); System.halt()/
-          ])
-
-        assert_receive {^port, {:data, "ok\n"}}, timeout
-        send(parent, :mix_started)
-
-        assert_receive {^port, {:data, output_erl}}, timeout
-        assert_receive {^port, {:data, output_ex}}, timeout
-        send(parent, {:output, output_erl <> output_ex})
-      end)
-
-      assert_receive :mix_started, timeout
+      # Project recompilation
 
       output = mix(["do", "compile", "+", "eval", "IO.write System.pid"])
       os_pid = output |> String.split("\n") |> List.last()
@@ -505,14 +491,52 @@ defmodule Mix.Tasks.CompileTest do
              Received :modules_compiled with
                added: [:d], changed: [:a], removed: [:b]
                app: :with_reloader
-               build_scm: Mix.SCM.Path
+               scm: Mix.SCM.Path
                os_pid: "#{os_pid}"
+             """
+
+      assert_receive {:output, output}, timeout
+
+      assert output == """
              Received :modules_compiled with
                added: [D], changed: [A], removed: [B]
                app: :with_reloader
-               build_scm: Mix.SCM.Path
+               scm: Mix.SCM.Path
+               os_pid: "#{os_pid}"
+             """
+
+      # Dependency recompilation
+
+      output = mix(["do", "deps.compile", "--force", "+", "eval", "IO.write System.pid"])
+      os_pid = output |> String.split("\n") |> List.last()
+
+      assert_receive {:output, output}, timeout
+
+      assert output == """
+             Received :modules_compiled with
+               added: [Reloader], changed: [], removed: []
+               app: :reloader
+               scm: Mix.SCM.Path
+               os_pid: "#{os_pid}"
+             """
+
+      assert_receive {:output, output}, timeout
+
+      assert output == """
+             Received :dep_compiled with
+               app: :reloader
+               scm: Mix.SCM.Path
+               manager: :mix
                os_pid: "#{os_pid}"
              """
     end)
+  end
+
+  defp send_port_outputs_to(port, pid) do
+    receive do
+      {^port, {:data, output}} ->
+        send(pid, {:output, output})
+        send_port_outputs_to(port, pid)
+    end
   end
 end
