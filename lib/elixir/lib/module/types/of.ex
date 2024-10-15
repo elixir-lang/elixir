@@ -246,22 +246,28 @@ defmodule Module.Types.Of do
 
     result =
       case kind do
-        :pattern -> Module.Types.Pattern.of_pattern(left, expected_expr, stack, context)
-        :guard -> Module.Types.Pattern.of_guard(left, expected_expr, stack, context)
-        :expr -> Module.Types.Expr.of_expr(left, stack, context)
+        :match ->
+          Module.Types.Pattern.of_match_var(left, expected_expr, stack, context)
+
+        :guard ->
+          Module.Types.Pattern.of_guard(left, expected_expr, stack, context)
+
+        :expr ->
+          with {:ok, actual, context} <- Module.Types.Expr.of_expr(left, stack, context) do
+            intersect(actual, expected_expr, stack, context)
+          end
       end
 
-    with {:ok, actual, context} <- result,
-         {:ok, _result, context} <- intersect(actual, expected_expr, stack, context) do
+    with {:ok, _type, context} <- result do
       {:ok, specifier_size(kind, right, expr, stack, context)}
     end
   end
 
   defp specifier_type(kind, {:-, _, [left, _right]}), do: specifier_type(kind, left)
-  defp specifier_type(:pattern, {:utf8, _, _}), do: @integer
-  defp specifier_type(:pattern, {:utf16, _, _}), do: @integer
-  defp specifier_type(:pattern, {:utf32, _, _}), do: @integer
-  defp specifier_type(:pattern, {:float, _, _}), do: @float
+  defp specifier_type(:match, {:utf8, _, _}), do: @integer
+  defp specifier_type(:match, {:utf16, _, _}), do: @integer
+  defp specifier_type(:match, {:utf32, _, _}), do: @integer
+  defp specifier_type(:match, {:float, _, _}), do: @float
   defp specifier_type(_kind, {:float, _, _}), do: @integer_or_float
   defp specifier_type(_kind, {:utf8, _, _}), do: @integer_or_binary
   defp specifier_type(_kind, {:utf16, _, _}), do: @integer_or_binary

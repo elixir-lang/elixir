@@ -125,18 +125,18 @@ defmodule Module.Types.Helpers do
   and stops on `{:error, reason}`.
   """
   def map_reduce_ok(list, acc, fun) do
-    do_map_reduce_ok(list, {[], acc}, fun)
+    do_map_reduce_ok(list, [], acc, fun)
   end
 
-  defp do_map_reduce_ok([head | tail], {list, acc}, fun) do
+  defp do_map_reduce_ok([head | tail], list, acc, fun) do
     case fun.(head, acc) do
       {:ok, elem, acc} ->
-        do_map_reduce_ok(tail, {[elem | list], acc}, fun)
+        do_map_reduce_ok(tail, [elem | list], acc, fun)
 
       {:error, reason} ->
         {:error, reason}
     end
   end
 
-  defp do_map_reduce_ok([], {list, acc}, _fun), do: {:ok, Enum.reverse(list), acc}
+  defp do_map_reduce_ok([], list, acc, _fun), do: {:ok, Enum.reverse(list), acc}
 end
