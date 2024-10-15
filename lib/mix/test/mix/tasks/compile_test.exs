@@ -125,6 +125,37 @@ defmodule Mix.Tasks.CompileTest do
     end)
   end
 
+  test "recompiles newly created files" do
+    in_fixture("no_mixfile", fn ->
+      assert Mix.Tasks.Compile.run(["--verbose"]) == {:ok, []}
+      Mix.shell().flush()
+
+      File.mkdir_p!("lib/foo")
+
+      File.write!("lib/foo/z.ex", """
+      defmodule Z do
+        def ok, do: :ok
+      end
+      """)
+
+      assert :ok = Mix.Task.reenable("compile")
+      assert {:noop, []} = Mix.Task.run("compile")
+      refute File.regular?("_build/dev/lib/sample/ebin/Elixir.Z.beam")
+
+      assert :ok = Mix.Tasks.Compile.reenable(compilers: [])
+      assert {:noop, []} = Mix.Task.run("compile")
+      refute File.regular?("_build/dev/lib/sample/ebin/Elixir.Z.beam")
+
+      assert :ok = Mix.Tasks.Compile.reenable(compilers: ["erlang"])
+      assert {:noop, []} = Mix.Task.run("compile")
+      refute File.regular?("_build/dev/lib/sample/ebin/Elixir.Z.beam")
+
+      assert :ok = Mix.Tasks.Compile.reenable()
+      assert {:ok, []} = Mix.Task.run("compile")
+      assert File.regular?("_build/dev/lib/sample/ebin/Elixir.Z.beam")
+    end)
+  end
+
   test "recompiles app cache if manifest changes" do
     in_fixture("no_mixfile", fn ->
       Mix.Tasks.Compile.run(["--force"])
