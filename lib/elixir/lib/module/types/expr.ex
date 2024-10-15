@@ -139,6 +139,7 @@ defmodule Module.Types.Expr do
                {:ok, {key, type}, context}
              end
            end),
+         # TODO: args_types could be an empty list
          {:ok, struct_type, context} <-
            Of.struct(module, args_types, :only_defaults, struct_meta, stack, context),
          {:ok, map_type, context} <- of_expr(map, stack, context) do
@@ -159,6 +160,7 @@ defmodule Module.Types.Expr do
 
   # %Struct{}
   def of_expr({:%, _, [module, {:%{}, _, args}]} = expr, stack, context) do
+    # TODO: We should not skip defaults
     Of.struct(expr, module, args, :skip_defaults, stack, context, &of_expr/3)
   end
 

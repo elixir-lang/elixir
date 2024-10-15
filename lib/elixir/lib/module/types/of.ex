@@ -175,18 +175,9 @@ defmodule Module.Types.Of do
   # against the struct types.
   # TODO: Use the struct default values to define the default types.
   def struct(struct, args_types, default_handling, meta, stack, context) do
-    context = remote(struct, :__struct__, 0, meta, stack, context)
-
-    info =
-      struct.__info__(:struct) ||
-        raise "expected #{inspect(struct)} to return struct metadata, but got none"
-
+    {info, context} = struct_info(struct, meta, stack, context)
     term = term()
-
-    defaults =
-      for %{field: field} <- info, field != :__struct__ do
-        {field, term}
-      end
+    defaults = for %{field: field} <- info, do: {field, term}
 
     pairs =
       case default_handling do
@@ -196,6 +187,19 @@ defmodule Module.Types.Of do
       end
 
     {:ok, dynamic(closed_map(pairs)), context}
+  end
+
+  @doc """
+  Returns `__info__(:struct)` information about a struct.
+  """
+  def struct_info(struct, meta, stack, context) do
+    context = remote(struct, :__struct__, 0, meta, stack, context)
+
+    info =
+      struct.__info__(:struct) ||
+        raise "expected #{inspect(struct)} to return struct metadata, but got none"
+
+    {info, context}
   end
 
   ## Binary

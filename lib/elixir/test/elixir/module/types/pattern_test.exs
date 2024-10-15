@@ -8,8 +8,8 @@ defmodule Module.Types.PatternTest do
 
   describe "variables" do
     test "captures variables from simple assignment in head" do
-      assert typecheck!([x = :foo], x) == atom([:foo])
-      assert typecheck!([:foo = x], x) == atom([:foo])
+      assert typecheck!([x = :foo], x) == dynamic(atom([:foo]))
+      assert typecheck!([:foo = x], x) == dynamic(atom([:foo]))
     end
 
     test "captures variables from simple assignment in =" do

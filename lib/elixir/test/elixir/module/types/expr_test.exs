@@ -339,11 +339,11 @@ defmodule Module.Types.ExprTest do
 
                 but got type:
 
-                    :foo
+                    dynamic(:foo)
 
                 where "x" was given the type:
 
-                    # type: :foo
+                    # type: dynamic(:foo)
                     # from: types_test.ex:LINE-2
                     x = :foo
                 """}
@@ -419,13 +419,13 @@ defmodule Module.Types.ExprTest do
 
   describe "comparison" do
     test "works across numbers" do
-      assert typecheck!([x = 123, y = 456.0], min(x, y)) == union(integer(), float())
+      assert typecheck!([x = 123, y = 456.0], min(x, y)) == dynamic(union(integer(), float()))
       assert typecheck!([x = 123, y = 456.0], x < y) == boolean()
     end
 
     test "warns when comparison is constant" do
       assert typewarn!([x = :foo, y = 321], min(x, y)) ==
-               {union(integer(), atom([:foo])),
+               {dynamic(union(integer(), atom([:foo]))),
                 ~l"""
                 comparison between incompatible types found:
 
@@ -433,7 +433,7 @@ defmodule Module.Types.ExprTest do
 
                 where "x" was given the type:
 
-                    # type: :foo
+                    # type: dynamic(:foo)
                     # from: types_test.ex:LINE-2
                     x = :foo
 
@@ -458,13 +458,13 @@ defmodule Module.Types.ExprTest do
 
                 where "mod" was given the type:
 
-                    # type: Kernel
+                    # type: dynamic(Kernel)
                     # from: types_test.ex:LINE-2
                     mod = Kernel
 
                 where "x" was given the type:
 
-                    # type: :foo
+                    # type: dynamic(:foo)
                     # from: types_test.ex:LINE-2
                     x = :foo
 

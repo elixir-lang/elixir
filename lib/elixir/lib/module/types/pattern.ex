@@ -146,12 +146,17 @@ defmodule Module.Types.Pattern do
   defp of_pattern_tree(descr, _context) when is_descr(descr),
     do: descr
 
-  defp of_pattern_tree({:map, static, dynamic}, context) do
+  defp of_pattern_tree({:open_map, static, dynamic}, context) do
     dynamic = Enum.map(dynamic, fn {key, value} -> {key, of_pattern_tree(value, context)} end)
     open_map(static ++ dynamic)
   end
 
-  defp of_pattern_tree({:match, entries}, context) do
+  defp of_pattern_tree({:closed_map, static, dynamic}, context) do
+    dynamic = Enum.map(dynamic, fn {key, value} -> {key, of_pattern_tree(value, context)} end)
+    open_map(static ++ dynamic)
+  end
+
+  defp of_pattern_tree({:intersection, entries}, context) do
     entries
     |> Enum.map(&of_pattern_tree(&1, context))
     |> Enum.reduce(&intersection/2)
@@ -191,11 +196,9 @@ defmodule Module.Types.Pattern do
   # is only used for refining variables, outside of that, it is
   # not asserted on.
 
-  # TODO: Remove the hardcoding of dynamic
-  # TODO: Remove this function
-  defp of_pattern(expr, stack, context) do
-    of_pattern(expr, {dynamic(), expr}, stack, context)
-  end
+  # TODO: Simplify signature of Of.refine_var
+  # TODO: Simplify signature of Of.intersect
+  # TODO: Remove expr from of_pattern
 
   # :atom
   defp of_pattern(atom, _expected_expr, _stack, context) when is_atom(atom),
@@ -246,13 +249,13 @@ defmodule Module.Types.Pattern do
     end)
     |> case do
       {:ok, {[], dynamic, context}} ->
-        {:ok, {:match, dynamic}, context}
+        {:ok, {:intersection, dynamic}, context}
 
       {:ok, {static, [], context}} ->
         {:ok, Enum.reduce(static, &intersection/2), context}
 
       {:ok, {static, dynamic, context}} ->
-        {:ok, {:match, [Enum.reduce(static, &intersection/2) | dynamic]}, context}
+        {:ok, {:intersection, [Enum.reduce(static, &intersection/2) | dynamic]}, context}
 
       {:error, context} ->
         {:error, context}
@@ -273,9 +276,46 @@ defmodule Module.Types.Pattern do
   end
 
   # %Struct{...}
-  defp of_pattern({:%, _meta, [module, {:%{}, _, args}]} = expr, _expected_expr, stack, context)
-       when is_atom(module) do
-    Of.struct(expr, module, args, :merge_defaults, stack, context, &of_pattern/3)
+  # TODO: Once we support typed structs, we need to type check them here.
+  defp of_pattern({:%, meta, [struct, {:%{}, _, args}]}, {path, expr}, stack, context)
+       when is_atom(struct) do
+    {info, context} = Of.struct_info(struct, meta, stack, context)
+
+    result =
+      map_reduce_ok(args, context, fn {key, value}, context ->
+        path = prepend_path({:key, key}, path)
+
+        with {:ok, value_type, context} <- of_pattern(value, {path, expr}, stack, context) do
+          {:ok, {key, value_type}, context}
+        end
+      end)
+
+    with {:ok, pairs, context} <- result do
+      pairs = Map.new(pairs)
+      term = term()
+      static = [__struct__: atom([struct])]
+      dynamic = []
+
+      {static, dynamic} =
+        Enum.reduce(info, {static, dynamic}, fn %{field: field}, {static, dynamic} ->
+          case pairs do
+            %{^field => value_type} when is_descr(value_type) ->
+              {[{field, value_type} | static], dynamic}
+
+            %{^field => value_type} ->
+              {static, [{field, value_type} | dynamic]}
+
+            _ ->
+              {[{field, term} | static], dynamic}
+          end
+        end)
+
+      if dynamic == [] do
+        {:ok, closed_map(static), context}
+      else
+        {:ok, {:closed_map, static, dynamic}, context}
+      end
+    end
   end
 
   # %{...}
@@ -385,7 +425,7 @@ defmodule Module.Types.Pattern do
 
     case result do
       {:ok, {static, [], context}} -> {:ok, open_map(static), context}
-      {:ok, {static, dynamic, context}} -> {:ok, {:map, static, dynamic}, context}
+      {:ok, {static, dynamic, context}} -> {:ok, {:open_map, static, dynamic}, context}
       {:error, context} -> {:error, context}
     end
   end
