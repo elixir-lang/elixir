@@ -207,11 +207,9 @@ defmodule Mix.Compilers.Elixir do
             modules_diff(modules, removed_modules, all_modules, timestamp)
           end
 
-          unless_previous_warnings_as_errors(
-            previous_warnings,
-            opts,
-            {:ok, all_warnings, lazy_modules_diff}
-          )
+          Mix.Task.Compiler.notify_modules_compiled(lazy_modules_diff)
+
+          unless_previous_warnings_as_errors(previous_warnings, opts, {:ok, all_warnings})
 
         {:error, errors, %{runtime_warnings: r_warnings, compile_warnings: c_warnings}, state} ->
           # In case of errors, we show all previous warnings and all new ones.
@@ -219,7 +217,7 @@ defmodule Mix.Compilers.Elixir do
           errors = Enum.map(errors, &diagnostic/1)
           warnings = Enum.map(r_warnings ++ c_warnings, &diagnostic/1)
           all_warnings = Keyword.get(opts, :all_warnings, errors == [])
-          {:error, previous_warnings(sources, all_warnings) ++ warnings ++ errors, nil}
+          {:error, previous_warnings(sources, all_warnings) ++ warnings ++ errors}
       after
         Code.compiler_options(previous_opts)
       end
@@ -257,11 +255,7 @@ defmodule Mix.Compilers.Elixir do
       all_warnings = Keyword.get(opts, :all_warnings, true)
       previous_warnings = previous_warnings(sources, all_warnings)
 
-      unless_previous_warnings_as_errors(
-        previous_warnings,
-        opts,
-        {status, previous_warnings, nil}
-      )
+      unless_previous_warnings_as_errors(previous_warnings, opts, {status, previous_warnings})
     end
   end
 
@@ -1003,17 +997,13 @@ defmodule Mix.Compilers.Elixir do
     File.rm(manifest <> ".checkpoint")
   end
 
-  defp unless_previous_warnings_as_errors(
-         previous_warnings,
-         opts,
-         {status, all_warnings, modules_diff}
-       ) do
+  defp unless_previous_warnings_as_errors(previous_warnings, opts, {status, all_warnings}) do
     if previous_warnings != [] and opts[:warnings_as_errors] do
       message = "Compilation failed due to warnings while using the --warnings-as-errors option"
       IO.puts(:stderr, message)
-      {:error, all_warnings, modules_diff}
+      {:error, all_warnings}
     else
-      {status, all_warnings, modules_diff}
+      {status, all_warnings}
     end
   end
 
