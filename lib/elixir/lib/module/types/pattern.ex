@@ -40,15 +40,20 @@ defmodule Module.Types.Pattern do
     end
   end
 
+  defp of_pattern_args([], [], _stack, context) do
+    {:ok, [], context}
+  end
+
   defp of_pattern_args(patterns, expected_types, stack, context) do
     context = %{context | pattern_vars: %{}}
+    changed = :lists.seq(0, length(patterns) - 1)
 
     with {:ok, trees, context} <-
            of_pattern_args_index(patterns, expected_types, 0, [], stack, context),
          {:ok, types, context} <-
-           of_pattern_args_tree(trees, expected_types, [], stack, context),
-         {:ok, context} <-
-           of_pattern_vars(types, stack, context) do
+           of_pattern_vars(expected_types, changed, stack, context, fn types, changed, context ->
+             of_pattern_args_tree(trees, types, changed, 0, [], stack, context)
+           end) do
       {:ok, trees, types, context}
     end
   end
@@ -74,6 +79,8 @@ defmodule Module.Types.Pattern do
   defp of_pattern_args_tree(
          [{pattern, tree} | tail],
          [type | expected_types],
+         [index | changed],
+         index,
          acc,
          stack,
          context
@@ -81,11 +88,23 @@ defmodule Module.Types.Pattern do
     # TODO: In case the pattern itself is empty, we should say the pattern cannot match any type
     with {:ok, type, context} <-
            Of.intersect(of_pattern_tree(tree, context), {type, pattern}, stack, context) do
-      of_pattern_args_tree(tail, expected_types, [type | acc], stack, context)
+      of_pattern_args_tree(tail, expected_types, changed, index + 1, [type | acc], stack, context)
     end
   end
 
-  defp of_pattern_args_tree([], [], acc, _stack, context) do
+  defp of_pattern_args_tree(
+         [_ | tail],
+         [type | expected_types],
+         changed,
+         index,
+         acc,
+         stack,
+         context
+       ) do
+    of_pattern_args_tree(tail, expected_types, changed, index + 1, [type | acc], stack, context)
+  end
+
+  defp of_pattern_args_tree([], [], [], _index, acc, _stack, context) do
     {:ok, Enum.reverse(acc), context}
   end
 
@@ -98,34 +117,68 @@ defmodule Module.Types.Pattern do
 
     with {:ok, tree, context} <-
            of_pattern(pattern, {[{:arg, 0, expected, expr}], pattern}, stack, context),
-         # TODO: In case the pattern itself is empty, we should say the pattern cannot match any type
-         {:ok, type, context} <-
-           Of.intersect(of_pattern_tree(tree, context), {expected, expr}, stack, context),
-         {:ok, context} <-
-           of_pattern_vars([type], stack, context) do
+         {:ok, [type], context} <-
+           of_pattern_vars([expected], [0], stack, context, fn [type], [0], context ->
+             # TODO: In case the pattern itself is empty, we should say the pattern cannot match any type
+             with {:ok, type, context} <-
+                    Of.intersect(of_pattern_tree(tree, context), {type, expr}, stack, context) do
+               {:ok, [type], context}
+             end
+           end) do
       {:ok, type, context}
     end
   end
 
-  defp of_pattern_vars(types, stack, %{pattern_vars: pattern_vars} = context) do
-    # TODO: we may need to recompute the pattern tree depending on what changes
-    pattern_vars
-    |> Map.to_list()
-    |> reduce_ok(%{context | pattern_vars: nil}, fn {_version, paths}, context ->
-      reduce_ok(paths, context, fn [var, {:arg, index, expected, expr} | paths], context ->
-        actual = Enum.fetch!(types, index)
+  defp of_pattern_vars(types, changed, stack, context, callback) do
+    %{pattern_vars: pattern_vars} = context
+    context = %{context | pattern_vars: nil}
+    of_pattern_vars(types, changed, Map.to_list(pattern_vars), stack, context, callback)
+  end
 
-        case of_pattern_var(paths, actual) do
-          {:ok, type} ->
-            with {:ok, _var_type, context} <- Of.refine_var(var, {type, expr}, stack, context) do
-              {:ok, context}
+  defp of_pattern_vars(types, changed, pattern_vars, stack, context, callback) do
+    with {:ok, types, %{vars: vars} = context} <- callback.(types, changed, context) do
+      # TODO: test recursive vars
+      pattern_vars
+      |> reduce_ok({%{}, context}, fn {version, paths}, acc ->
+        current_type = vars[version][:type]
+
+        reduce_ok(paths, acc, fn
+          [var, {:arg, index, expected, expr} | paths], {changed, context} ->
+            actual = Enum.fetch!(types, index)
+
+            case of_pattern_var(paths, actual) do
+              {:ok, type} ->
+                with {:ok, _, context} <- Of.refine_var(var, {type, expr}, stack, context) do
+                  if current_type == type do
+                    {:ok, {changed, context}}
+                  else
+                    changed =
+                      case changed do
+                        %{^index => true} -> changed
+                        %{^index => false} -> %{changed | index => true}
+                        %{} -> Map.put(changed, index, false)
+                      end
+
+                    {:ok, {changed, context}}
+                  end
+                end
+
+              :error ->
+                {:error, Of.incompatible_warn(expr, expected, actual, stack, context)}
             end
-
-          :error ->
-            {:error, Of.incompatible_warn(expr, expected, actual, stack, context)}
-        end
+        end)
       end)
-    end)
+      |> case do
+        {:ok, {changed, context}} ->
+          case :lists.usort(for {index, true} <- changed, do: index) do
+            [] -> {:ok, types, context}
+            changed -> of_pattern_vars(types, changed, pattern_vars, stack, context, callback)
+          end
+
+        {:error, context} ->
+          {:error, context}
+      end
+    end
   end
 
   defp of_pattern_var([], type) do
@@ -207,6 +260,7 @@ defmodule Module.Types.Pattern do
   # TODO: Simplify signature of Of.intersect
   # TODO: Remove expr from of_pattern
   # TODO: Remove prepend_path
+  # TODO: Of.struct_keys
 
   # :atom
   defp of_pattern(atom, _expected_expr, _stack, context) when is_atom(atom),

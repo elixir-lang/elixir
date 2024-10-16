@@ -20,6 +20,10 @@ defmodule Module.Types.PatternTest do
                )
              ) == atom([:foo])
     end
+
+    test "refines as information across patterns" do
+      assert typecheck!([%y{}, %x{}, x = y, x = Point], y) == dynamic(atom([Point]))
+    end
   end
 
   describe "structs" do
