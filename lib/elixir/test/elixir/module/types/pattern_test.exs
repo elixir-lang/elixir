@@ -120,6 +120,32 @@ defmodule Module.Types.PatternTest do
     end
   end
 
+  describe "lists" do
+    test "in patterns" do
+      assert typecheck!([x = [1, 2, 3]], x) ==
+               dynamic(non_empty_list(integer()))
+
+      assert typecheck!([x = [1, 2, 3 | y], y = :foo], x) ==
+               dynamic(non_empty_list(integer(), atom([:foo])))
+
+      assert typecheck!([x = [1, 2, 3 | y], y = [1.0, 2.0, 3.0]], x) ==
+               dynamic(non_empty_list(union(integer(), float())))
+    end
+
+    test "in patterns through ++" do
+      assert typecheck!([x = [] ++ []], x) == dynamic(empty_list())
+
+      assert typecheck!([x = [] ++ y, y = :foo], x) ==
+               dynamic(atom([:foo]))
+
+      assert typecheck!([x = [1, 2, 3] ++ y, y = :foo], x) ==
+               dynamic(non_empty_list(integer(), atom([:foo])))
+
+      assert typecheck!([x = [1, 2, 3] ++ y, y = [1.0, 2.0, 3.0]], x) ==
+               dynamic(non_empty_list(union(integer(), float())))
+    end
+  end
+
   describe "binaries" do
     test "ok" do
       assert typecheck!([<<x>>], x) == integer()

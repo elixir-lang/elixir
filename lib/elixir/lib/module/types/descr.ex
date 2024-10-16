@@ -57,8 +57,8 @@ defmodule Module.Types.Descr do
   def integer(), do: %{bitmap: @bit_integer}
   def float(), do: %{bitmap: @bit_float}
   def fun(), do: %{bitmap: @bit_fun}
-  def list(), do: %{bitmap: @bit_list}
-  def non_empty_list(), do: %{bitmap: @bit_non_empty_list}
+  def list(_arg), do: %{bitmap: @bit_list}
+  def non_empty_list(_arg, _tail \\ empty_list()), do: %{bitmap: @bit_non_empty_list}
   def open_map(), do: %{map: @map_top}
   def open_map(pairs), do: map_descr(:open, pairs)
   def open_tuple(elements), do: tuple_descr(:open, elements)

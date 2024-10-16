@@ -6,21 +6,25 @@ defmodule Module.Types.Expr do
 
   14 = length(Macro.Env.__info__(:struct))
 
+  aliases = list(tuple([atom(), atom()]))
+  functions_and_macros = list(tuple([atom(), list(tuple([atom(), integer()]))]))
+  list_of_modules = list(atom())
+
   @caller closed_map(
             __struct__: atom([Macro.Env]),
-            aliases: list(),
+            aliases: aliases,
             context: atom([:match, :guard, nil]),
-            context_modules: list(),
+            context_modules: list_of_modules,
             file: binary(),
             function: union(tuple(), atom([nil])),
-            functions: list(),
+            functions: functions_and_macros,
             lexical_tracker: union(pid(), atom([nil])),
             line: integer(),
-            macro_aliases: list(),
-            macros: list(),
+            macro_aliases: aliases,
+            macros: functions_and_macros,
             module: atom(),
-            requires: list(),
-            tracers: list(),
+            requires: list_of_modules,
+            tracers: list_of_modules,
             versioned_vars: open_map()
           )
 
@@ -54,7 +58,7 @@ defmodule Module.Types.Expr do
   # TODO: [expr, ...]
   def of_expr(exprs, stack, context) when is_list(exprs) do
     case map_reduce_ok(exprs, context, &of_expr(&1, stack, &2)) do
-      {:ok, _types, context} -> {:ok, non_empty_list(), context}
+      {:ok, _types, context} -> {:ok, non_empty_list(term()), context}
       {:error, context} -> {:error, context}
     end
   end
@@ -100,7 +104,7 @@ defmodule Module.Types.Expr do
   # TODO: __STACKTRACE__
   def of_expr({:__STACKTRACE__, _meta, var_context}, _stack, context)
       when is_atom(var_context) do
-    {:ok, list(), context}
+    {:ok, list(term()), context}
   end
 
   # {...}

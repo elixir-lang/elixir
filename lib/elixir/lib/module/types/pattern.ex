@@ -149,7 +149,7 @@ defmodule Module.Types.Pattern do
 
             case of_pattern_var(path, actual) do
               {:ok, type} ->
-                with {:ok, _, context} <- Of.refine_var(var, {type, expr}, stack, context) do
+                with {:ok, type, context} <- Of.refine_var(var, {type, expr}, stack, context) do
                   {:ok, {var_changed? or current_type != type, context}}
                 end
 
@@ -225,7 +225,18 @@ defmodule Module.Types.Pattern do
     end
   end
 
+  # TODO: Implement domain key types
   defp of_pattern_var([{:key, _key} | rest], _type) do
+    of_pattern_var(rest, dynamic())
+  end
+
+  # TODO: This should intersect with the head of the list.
+  defp of_pattern_var([:head | rest], _type) do
+    of_pattern_var(rest, dynamic())
+  end
+
+  # TODO: This should intersect with the list itself and its tail.
+  defp of_pattern_var([:tail | rest], _type) do
     of_pattern_var(rest, dynamic())
   end
 
@@ -244,6 +255,12 @@ defmodule Module.Types.Pattern do
   defp of_pattern_tree({:closed_map, static, dynamic}, context) do
     dynamic = Enum.map(dynamic, fn {key, value} -> {key, of_pattern_tree(value, context)} end)
     closed_map(static ++ dynamic)
+  end
+
+  defp of_pattern_tree({:non_empty_list, [head | tail], suffix}, context) do
+    tail
+    |> Enum.reduce(of_pattern_tree(head, context), &union(of_pattern_tree(&1, context), &2))
+    |> non_empty_list(of_pattern_tree(suffix, context))
   end
 
   defp of_pattern_tree({:intersection, entries}, context) do
@@ -314,11 +331,9 @@ defmodule Module.Types.Pattern do
     do: {:ok, empty_list(), context}
 
   # [expr, ...]
-  defp of_pattern(exprs, _expected_expr, stack, context) when is_list(exprs) do
-    case map_reduce_ok(exprs, context, &of_pattern(&1, {dynamic(), &1}, stack, &2)) do
-      {:ok, _types, context} -> {:ok, non_empty_list(), context}
-      {:error, reason} -> {:error, reason}
-    end
+  defp of_pattern(exprs, path, stack, context) when is_list(exprs) do
+    {prefix, suffix} = unpack_list(exprs, [])
+    of_list(prefix, suffix, path, stack, context)
   end
 
   # {left, right}
@@ -438,36 +453,14 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  # left | []
-  defp of_pattern({:|, _meta, [left_expr, []]}, _expected_expr, stack, context) do
-    of_pattern(left_expr, {dynamic(), left_expr}, stack, context)
-  end
-
-  # left | right
-  defp of_pattern({:|, _meta, [left_expr, right_expr]}, _expected_expr, stack, context) do
-    case of_pattern(left_expr, {dynamic(), left_expr}, stack, context) do
-      {:ok, _, context} ->
-        of_pattern(right_expr, {dynamic(), right_expr}, stack, context)
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
   # left ++ right
   defp of_pattern(
-         {{:., _meta1, [:erlang, :++]}, _meta2, [left_expr, right_expr]},
-         _expected_expr,
+         {{:., _meta1, [:erlang, :++]}, _meta2, [left, right]},
+         expected_expr,
          stack,
          context
        ) do
-    # The left side is always a list
-    with {:ok, _, context} <- of_pattern(left_expr, {dynamic(), left_expr}, stack, context),
-         {:ok, _, context} <- of_pattern(right_expr, {dynamic(), right_expr}, stack, context) do
-      # TODO: Both lists can be empty, so this may be an empty list,
-      # so we return dynamic for now.
-      {:ok, dynamic(), context}
-    end
+    of_list(left, right, expected_expr, stack, context)
   end
 
   # {...}
@@ -482,38 +475,28 @@ defmodule Module.Types.Pattern do
 
   # _
   defp of_pattern({:_, _meta, _var_context}, {expected, _expr}, _stack, context) do
-    # TODO: Remove descr check
-    if is_descr(expected) do
-      {:ok, expected, context}
-    else
-      {:ok, term(), context}
-    end
+    {:ok, term(), context}
   end
 
   # var
-  defp of_pattern({name, meta, ctx} = var, {path, _expr} = path_expr, stack, context)
+  defp of_pattern({name, meta, ctx} = var, {path, _expr} = path_expr, _stack, context)
        when is_atom(name) and is_atom(ctx) do
-    # TODO: Remove descr check
-    if is_descr(path) do
-      Of.refine_var(var, path_expr, stack, context)
-    else
-      version = Keyword.fetch!(meta, :version)
-      [{:arg, arg, _type, _pattern} | _] = path = Enum.reverse(path)
-      {vars, args} = context.pattern_info
+    version = Keyword.fetch!(meta, :version)
+    [{:arg, arg, _type, _pattern} | _] = path = Enum.reverse(path)
+    {vars, args} = context.pattern_info
 
-      paths = [[var | path] | Map.get(vars, version, [])]
-      vars = Map.put(vars, version, paths)
+    paths = [[var | path] | Map.get(vars, version, [])]
+    vars = Map.put(vars, version, paths)
 
-      # Our goal here is to compute if an argument has more than one variable.
-      args =
-        case args do
-          %{^arg => false} -> %{args | arg => true}
-          %{^arg => true} -> args
-          %{} -> Map.put(args, arg, false)
-        end
+    # Our goal here is to compute if an argument has more than one variable.
+    args =
+      case args do
+        %{^arg => false} -> %{args | arg => true}
+        %{^arg => true} -> args
+        %{} -> Map.put(args, arg, false)
+      end
 
-      {:ok, {:var, version}, %{context | pattern_info: {vars, args}}}
-    end
+    {:ok, {:var, version}, %{context | pattern_info: {vars, args}}}
   end
 
   # TODO: Properly traverse domain keys
@@ -561,6 +544,54 @@ defmodule Module.Types.Pattern do
       {:error, context} -> {:error, context}
     end
   end
+
+  # [] ++ []
+  defp of_list([], [], _path_expr, _stack, context) do
+    {:ok, empty_list(), context}
+  end
+
+  # [] ++ suffix
+  defp of_list([], suffix, path_expr, stack, context) do
+    of_pattern(suffix, path_expr, stack, context)
+  end
+
+  # [prefix1, prefix2, prefix3], [prefix1, prefix2 | suffix]
+  defp of_list(prefix, suffix, {path, expr}, stack, context) do
+    suffix_path = prepend_path(:tail, path)
+
+    with {:ok, suffix, context} <- of_pattern(suffix, {suffix_path, expr}, stack, context) do
+      result =
+        reduce_ok(prefix, {[], [], context}, fn arg, {static, dynamic, context} ->
+          path = prepend_path(:head, path)
+
+          with {:ok, type, context} <- of_pattern(arg, {path, expr}, stack, context) do
+            if is_descr(type) do
+              {:ok, {[type | static], dynamic, context}}
+            else
+              {:ok, {static, [type | dynamic], context}}
+            end
+          end
+        end)
+
+      case result do
+        {:ok, {static, [], context}} when is_descr(suffix) ->
+          {:ok, non_empty_list(Enum.reduce(static, &union/2), suffix), context}
+
+        {:ok, {[], dynamic, context}} ->
+          {:ok, {:non_empty_list, dynamic, suffix}, context}
+
+        {:ok, {static, dynamic, context}} ->
+          {:ok, {:non_empty_list, [Enum.reduce(static, &union/2) | dynamic], suffix}, context}
+
+        {:error, context} ->
+          {:error, context}
+      end
+    end
+  end
+
+  defp unpack_list([{:|, _, [head, tail]}], acc), do: {Enum.reverse([head | acc]), tail}
+  defp unpack_list([head], acc), do: {Enum.reverse([head | acc]), []}
+  defp unpack_list([head | tail], acc), do: unpack_list(tail, [head | acc])
 
   defp unpack_match({:=, _, [left, right]}, acc),
     do: unpack_match(left, unpack_match(right, acc))
@@ -627,7 +658,7 @@ defmodule Module.Types.Pattern do
   # [expr, ...]
   def of_guard(exprs, _expected_expr, stack, context) when is_list(exprs) do
     case map_reduce_ok(exprs, context, &of_guard(&1, {dynamic(), &1}, stack, &2)) do
-      {:ok, _types, context} -> {:ok, non_empty_list(), context}
+      {:ok, types, context} -> {:ok, non_empty_list(Enum.reduce(types, &union/2)), context}
       {:error, reason} -> {:error, reason}
     end
   end
@@ -681,7 +712,6 @@ defmodule Module.Types.Pattern do
   end
 
   # {...}
-  # TODO: Implement this
   def of_guard({:{}, _meta, exprs}, _expected_expr, stack, context) do
     case map_reduce_ok(exprs, context, &of_guard(&1, {dynamic(), &1}, stack, &2)) do
       {:ok, types, context} -> {:ok, tuple(types), context}
@@ -708,8 +738,6 @@ defmodule Module.Types.Pattern do
 
   # var
   def of_guard(var, expected_expr, stack, context) when is_var(var) do
-    # TODO: This should be ver refinement once we have inference in guards
-    # Of.refine_var(var, expected_expr, stack, context)
     Of.intersect(Of.var(var, context), expected_expr, stack, context)
   end
 
