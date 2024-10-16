@@ -172,6 +172,20 @@ defmodule Code.Normalizer.QuotedASTTest do
              ) == ~s[~S"""\n"123"\n"""]
     end
 
+    test "regression: invalid sigil calls" do
+      assert quoted_to_string(quote do: sigil_r(<<"foo", 123>>, [])) ==
+               "sigil_r(<<\"foo\", 123>>, [])"
+
+      assert quoted_to_string(quote do: sigil_r(<<"foo">>, :invalid_modifiers)) ==
+               "sigil_r(\"foo\", :invalid_modifiers)"
+
+      assert quoted_to_string(quote do: sigil_r(<<"foo">>, [:invalid_modifier])) ==
+               "sigil_r(\"foo\", [:invalid_modifier])"
+
+      assert quoted_to_string(quote do: sigil_r(<<"foo">>, [])) == "~r\"foo\""
+      assert quoted_to_string(quote do: sigil_r(<<"foo">>, [?a, ?b, ?c])) == "~r\"foo\"abc"
+    end
+
     test "tuple" do
       assert quoted_to_string(quote do: {1, 2}) == "{1, 2}"
       assert quoted_to_string(quote do: {1}) == "{1}"
