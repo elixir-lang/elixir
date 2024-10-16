@@ -113,6 +113,13 @@ defmodule Module.Types.PatternTest do
     end
   end
 
+  describe "tuples" do
+    test "in patterns" do
+      assert typecheck!([x = {:ok, 123}], x) == dynamic(tuple([atom([:ok]), integer()]))
+      assert typecheck!([{:x, y} = {x, :y}], {x, y}) == dynamic(tuple([atom([:x]), atom([:y])]))
+    end
+  end
+
   describe "binaries" do
     test "ok" do
       assert typecheck!([<<x>>], x) == integer()

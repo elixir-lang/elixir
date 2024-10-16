@@ -211,6 +211,13 @@ defmodule Module.Types.Pattern do
     {:ok, type}
   end
 
+  defp of_pattern_var([{:elem, index} | rest], type) when is_integer(index) do
+    case tuple_fetch(type, index) do
+      {_optional?, type} -> of_pattern_var(rest, type)
+      _reason -> :error
+    end
+  end
+
   defp of_pattern_var([{:key, field} | rest], type) when is_atom(field) do
     case map_fetch(type, field) do
       {_optional?, type} -> of_pattern_var(rest, type)
@@ -224,6 +231,10 @@ defmodule Module.Types.Pattern do
 
   defp of_pattern_tree(descr, _context) when is_descr(descr),
     do: descr
+
+  defp of_pattern_tree({:tuple, entries}, context) do
+    tuple(Enum.map(entries, &of_pattern_tree(&1, context)))
+  end
 
   defp of_pattern_tree({:open_map, static, dynamic}, context) do
     dynamic = Enum.map(dynamic, fn {key, value} -> {key, of_pattern_tree(value, context)} end)
@@ -311,8 +322,8 @@ defmodule Module.Types.Pattern do
   end
 
   # {left, right}
-  defp of_pattern({left, right}, expected_expr, stack, context) do
-    of_pattern({:{}, [], [left, right]}, expected_expr, stack, context)
+  defp of_pattern({left, right}, path_expr, stack, context) do
+    of_tuple([left, right], path_expr, stack, context)
   end
 
   # left = right
@@ -460,12 +471,8 @@ defmodule Module.Types.Pattern do
   end
 
   # {...}
-  # TODO: Implement this
-  defp of_pattern({:{}, _meta, exprs}, _expected_expr, stack, context) do
-    case map_reduce_ok(exprs, context, &of_pattern(&1, {dynamic(), &1}, stack, &2)) do
-      {:ok, types, context} -> {:ok, tuple(types), context}
-      {:error, reason} -> {:error, reason}
-    end
+  defp of_pattern({:{}, _meta, exprs}, path_expr, stack, context) do
+    of_tuple(exprs, path_expr, stack, context)
   end
 
   # ^var
@@ -511,12 +518,12 @@ defmodule Module.Types.Pattern do
 
   # TODO: Properly traverse domain keys
   # TODO: Properly handle pin operator in keys
-  defp of_open_map(args, static, dynamic, {expected, expr}, stack, context) do
+  defp of_open_map(args, static, dynamic, {path, expr}, stack, context) do
     result =
       reduce_ok(args, {static, dynamic, context}, fn {key, value}, {static, dynamic, context} ->
-        expected = prepend_path({:key, key}, expected)
+        path = prepend_path({:key, key}, path)
 
-        with {:ok, value_type, context} <- of_pattern(value, {expected, expr}, stack, context) do
+        with {:ok, value_type, context} <- of_pattern(value, {path, expr}, stack, context) do
           cond do
             # Only atom keys become part of the type because the other keys are divisible
             not is_atom(key) ->
@@ -534,6 +541,23 @@ defmodule Module.Types.Pattern do
     case result do
       {:ok, {static, [], context}} -> {:ok, open_map(static), context}
       {:ok, {static, dynamic, context}} -> {:ok, {:open_map, static, dynamic}, context}
+      {:error, context} -> {:error, context}
+    end
+  end
+
+  defp of_tuple(args, {path, expr}, stack, context) do
+    result =
+      reduce_ok(args, {0, true, [], context}, fn arg, {index, static?, acc, context} ->
+        path = prepend_path({:elem, index}, path)
+
+        with {:ok, type, context} <- of_pattern(arg, {path, expr}, stack, context) do
+          {:ok, {index + 1, static? and is_descr(type), [type | acc], context}}
+        end
+      end)
+
+    case result do
+      {:ok, {_index, true, entries, context}} -> {:ok, tuple(Enum.reverse(entries)), context}
+      {:ok, {_index, false, entries, context}} -> {:ok, {:tuple, Enum.reverse(entries)}, context}
       {:error, context} -> {:error, context}
     end
   end
