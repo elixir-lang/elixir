@@ -983,7 +983,7 @@ defmodule ExUnit.DocTestTest do
              8) doctest module ExUnit.DocTestTest.PatternMatching (8) (ExUnit.DocTestTest.PatternMatchingRunner)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 match (=) failed
-                code:  %{year: 2001, day: 1} = ~D"2000-01-01"
+                code:  %{year: 2001, day: 1} = ~D[2000-01-01]
                 left:  %{year: 2001, day: 1}
                 right: ~D[2000-01-01]
                 stacktrace:
