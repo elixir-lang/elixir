@@ -132,6 +132,9 @@ defmodule Mix.Tasks.Compile.ErlangTest do
         assert {:noop, [^diagnostic]} = Mix.Tasks.Compile.Erlang.run(["--verbose"])
         refute_received {:mix_shell, :info, ["Compiled src/has_warning.erl"]}
 
+        assert [^diagnostic] = Mix.Tasks.Compile.Erlang.diagnostics()
+        assert [^diagnostic] = Mix.Task.Compiler.diagnostics()
+
         # Should not return warning after changing file
         File.write!(file, """
         -module(has_warning).

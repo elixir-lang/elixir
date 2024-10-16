@@ -1,5 +1,5 @@
 defmodule Mix.Tasks.Compile do
-  use Mix.Task.Compiler
+  use Mix.Task
 
   @shortdoc "Compiles source files"
 
@@ -42,6 +42,7 @@ defmodule Mix.Tasks.Compile do
       the paths set by the code loader from the `ERL_LIBS` environment as
       well as explicitly listed by providing `-pa` and `-pz` options
       to Erlang.
+
   ## Compilers
 
   To see documentation for each specific compiler, you must
@@ -79,32 +80,8 @@ defmodule Mix.Tasks.Compile do
 
   """
 
-  @doc """
-  Returns all compilers for the current project.
-  """
-  def compilers(config \\ Mix.Project.config()) do
-    compilers = config[:compilers] || Mix.compilers()
-
-    if :xref in compilers do
-      IO.warn(
-        "the :xref compiler is deprecated, please remove it from your mix.exs :compilers options"
-      )
-
-      List.delete(compilers, :xref)
-    else
-      compilers
-    end
-    |> maybe_prepend(:leex)
-    |> maybe_prepend(:yecc)
-  end
-
-  defp maybe_prepend(compilers, compiler) do
-    if compiler in compilers do
-      compilers
-    else
-      [compiler | compilers]
-    end
-  end
+  @deprecated "Use Mix.Task.Compiler.compilers/1 instead"
+  defdelegate compilers(config \\ Mix.Project.config()), to: Mix.Task.Compiler
 
   @impl true
   def run(["--list"]) do
@@ -228,18 +205,8 @@ defmodule Mix.Tasks.Compile do
     end
   end
 
-  @impl true
-  def manifests do
-    Enum.flat_map(compilers(), fn compiler ->
-      module = Mix.Task.get("compile.#{compiler}")
-
-      if module && function_exported?(module, :manifests, 0) do
-        module.manifests()
-      else
-        []
-      end
-    end)
-  end
+  @deprecated "Use Mix.Task.Compiler.manifests/0 instead"
+  defdelegate manifests, to: Mix.Task.Compiler
 
   ## Consolidation handling
 

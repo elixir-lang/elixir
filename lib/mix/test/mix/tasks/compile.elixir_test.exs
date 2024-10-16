@@ -1469,6 +1469,9 @@ defmodule Mix.Tasks.Compile.ElixirTest do
                  compiler_name: "Elixir",
                  message: ^message
                } = diagnostic
+
+        assert [^diagnostic] = Mix.Tasks.Compile.Elixir.diagnostics()
+        assert [^diagnostic] = Mix.Task.Compiler.diagnostics()
       end)
     end)
   end

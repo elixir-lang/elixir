@@ -207,6 +207,14 @@ defmodule Mix.Compilers.Erlang do
     manifest |> read_manifest() |> Enum.map(&elem(&1, 0))
   end
 
+  @doc """
+  Retrieves all diagnostics from the given manifest.
+  """
+  def diagnostics(manifest) do
+    entries = read_manifest(manifest)
+    manifest_warnings(entries)
+  end
+
   defp extract_entries(src_dir, src_ext, dest_dir, dest_ext, force) do
     files = Mix.Utils.extract_files(List.wrap(src_dir), List.wrap(src_ext))
 
