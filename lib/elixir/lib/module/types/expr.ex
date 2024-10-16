@@ -117,7 +117,7 @@ defmodule Module.Types.Expr do
   # TODO: left = right
   def of_expr({:=, _meta, [left_expr, right_expr]} = expr, stack, context) do
     with {:ok, right_type, context} <- of_expr(right_expr, stack, context) do
-      Pattern.of_match(left_expr, {right_type, expr}, stack, context)
+      Pattern.of_match(left_expr, right_type, expr, stack, context)
     end
   end
 
@@ -397,7 +397,7 @@ defmodule Module.Types.Expr do
             end
 
             {:ok, _type, context} =
-              Of.refine_var(var, {expected, expr}, formatter, stack, context)
+              Of.refine_var(var, expected, expr, formatter, stack, context)
 
             context
         end
@@ -419,7 +419,7 @@ defmodule Module.Types.Expr do
 
   defp for_clause({:<<>>, _, [{:<-, meta, [left, right]}]}, stack, context) do
     with {:ok, right_type, context} <- of_expr(right, stack, context),
-         {:ok, _pattern_type, context} <- Pattern.of_match(left, {binary(), left}, stack, context) do
+         {:ok, _pattern_type, context} <- Pattern.of_match(left, binary(), left, stack, context) do
       if binary_type?(right_type) do
         {:ok, context}
       else

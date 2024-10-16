@@ -29,7 +29,7 @@ defmodule Module.Types.Of do
   @doc """
   Refines the type of a variable.
   """
-  def refine_var(var, {type, expr}, formatter \\ :default, stack, context) do
+  def refine_var(var, type, expr, formatter \\ :default, stack, context) do
     {var_name, meta, var_context} = var
     version = Keyword.fetch!(meta, :version)
 
@@ -251,14 +251,14 @@ defmodule Module.Types.Of do
     result =
       case kind do
         :match ->
-          Module.Types.Pattern.of_match_var(left, expected_expr, stack, context)
+          Module.Types.Pattern.of_match_var(left, type, expr, stack, context)
 
         :guard ->
           Module.Types.Pattern.of_guard(left, expected_expr, stack, context)
 
         :expr ->
           with {:ok, actual, context} <- Module.Types.Expr.of_expr(left, stack, context) do
-            intersect(actual, expected_expr, stack, context)
+            intersect(actual, type, expr, stack, context)
           end
       end
 
@@ -290,7 +290,7 @@ defmodule Module.Types.Of do
   defp specifier_size(:expr, {:size, _, [arg]}, expr, stack, context)
        when not is_integer(arg) do
     with {:ok, actual, context} <- Module.Types.Expr.of_expr(arg, stack, context),
-         {:ok, _, context} <- intersect(actual, {integer(), expr}, stack, context) do
+         {:ok, _, context} <- intersect(actual, integer(), expr, stack, context) do
       context
     else
       {:error, context} -> context
@@ -464,7 +464,7 @@ defmodule Module.Types.Of do
   @doc """
   Intersects two types and emit an incompatible warning if empty.
   """
-  def intersect(actual, {expected, expr}, stack, context) do
+  def intersect(actual, expected, expr, stack, context) do
     type = intersection(actual, expected)
 
     if empty?(type) do

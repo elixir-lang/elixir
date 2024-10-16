@@ -110,7 +110,7 @@ defmodule Module.Types.Pattern do
   Return the type and typing context of a pattern expression with
   the given {expected, expr} pair or an error in case of a typing conflict.
   """
-  def of_match(pattern, {expected, expr}, stack, context) do
+  def of_match(pattern, expected, expr, stack, context) do
     context = %{context | pattern_info: {%{}, %{}}}
 
     with {:ok, tree, context} <-
@@ -149,7 +149,7 @@ defmodule Module.Types.Pattern do
 
             case of_pattern_var(path, actual) do
               {:ok, type} ->
-                with {:ok, type, context} <- Of.refine_var(var, {type, expr}, stack, context) do
+                with {:ok, type, context} <- Of.refine_var(var, type, expr, stack, context) do
                   {:ok, {var_changed? or current_type != type, context}}
                 end
 
@@ -193,7 +193,7 @@ defmodule Module.Types.Pattern do
   defp of_pattern_intersect(tree, expected, expr, stack, context) do
     actual = of_pattern_tree(tree, context)
 
-    case Of.intersect(actual, {expected, expr}, stack, context) do
+    case Of.intersect(actual, expected, expr, stack, context) do
       {:ok, type, context} ->
         {:ok, type, context}
 
@@ -280,26 +280,24 @@ defmodule Module.Types.Pattern do
   Function used to assign a type to a variable. Used by %struct{}
   and binary patterns.
   """
-  def of_match_var({:^, _, [var]}, expected_expr, stack, context) do
-    Of.intersect(Of.var(var, context), expected_expr, stack, context)
+  def of_match_var({:^, _, [var]}, expected, expr, stack, context) do
+    Of.intersect(Of.var(var, context), expected, expr, stack, context)
   end
 
-  def of_match_var({:_, _, _}, {expected, _expr}, _stack, context) do
+  def of_match_var({:_, _, _}, expected, _expr, _stack, context) do
     {:ok, expected, context}
   end
 
-  def of_match_var(var, expected_expr, stack, context) when is_var(var) do
-    Of.refine_var(var, expected_expr, stack, context)
+  def of_match_var(var, expected, expr, stack, context) when is_var(var) do
+    Of.refine_var(var, expected, expr, stack, context)
   end
 
-  def of_match_var(ast, expected_expr, stack, context) do
-    of_match(ast, expected_expr, stack, context)
+  def of_match_var(ast, expected, expr, stack, context) do
+    of_match(ast, expected, expr, stack, context)
   end
 
   ## Patterns
 
-  # TODO: Simplify signature of Of.refine_var
-  # TODO: Simplify signature of Of.intersect
   # TODO: Of.struct_keys
   # TODO: Test recursive vars
 
@@ -419,7 +417,7 @@ defmodule Module.Types.Pattern do
          stack,
          context
        ) do
-    with {:ok, refined, context} <- of_match_var(var, {atom(), expr}, stack, context) do
+    with {:ok, refined, context} <- of_match_var(var, atom(), expr, stack, context) do
       of_open_map(args, [__struct__: refined], [], path, stack, context)
     end
   end
@@ -653,9 +651,9 @@ defmodule Module.Types.Pattern do
   end
 
   # ^var
-  def of_guard({:^, _meta, [var]}, expected_expr, stack, context) do
+  def of_guard({:^, _meta, [var]}, {expected, expr}, stack, context) do
     # This is by definition a variable defined outside of this pattern, so we don't track it.
-    Of.intersect(Of.var(var, context), expected_expr, stack, context)
+    Of.intersect(Of.var(var, context), expected, expr, stack, context)
   end
 
   # left | []
@@ -700,8 +698,8 @@ defmodule Module.Types.Pattern do
   end
 
   # var
-  def of_guard(var, expected_expr, stack, context) when is_var(var) do
-    Of.intersect(Of.var(var, context), expected_expr, stack, context)
+  def of_guard(var, {expected, expr}, stack, context) when is_var(var) do
+    Of.intersect(Of.var(var, context), expected, expr, stack, context)
   end
 
   ## Diagnostics
