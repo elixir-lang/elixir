@@ -21,7 +21,7 @@ defmodule Module.Types.PatternTest do
              ) == atom([:foo])
     end
 
-    test "refines as information across patterns" do
+    test "refines information across patterns" do
       assert typecheck!([%y{}, %x{}, x = y, x = Point], y) == dynamic(atom([Point]))
     end
   end
@@ -162,6 +162,13 @@ defmodule Module.Types.PatternTest do
                     # from: types_test.ex:LINE-2
                     <<x::float, ...>>
                 """}
+    end
+  end
+
+  describe "inference" do
+    test "refines information across patterns" do
+      assert typeinfer!([%y{}, %x{}, x = y, x = Point]) ==
+               [1, 2, 3, 4]
     end
   end
 end

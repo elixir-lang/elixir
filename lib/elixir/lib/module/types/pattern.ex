@@ -185,13 +185,6 @@ defmodule Module.Types.Pattern do
     {:ok, type}
   end
 
-  defp of_pattern_var([:__struct__ | rest], type) do
-    case map_fetch(type, :__struct__) do
-      {_optional?, type} -> of_pattern_var(rest, intersection(type, atom()))
-      _reason -> :error
-    end
-  end
-
   defp of_pattern_var([{:key, field} | rest], type) when is_atom(field) do
     case map_fetch(type, field) do
       {_optional?, type} -> of_pattern_var(rest, type)
@@ -374,10 +367,11 @@ defmodule Module.Types.Pattern do
          context
        )
        when is_atom(name) and is_atom(ctx) and name != :_ do
-    var_path = prepend_path(:__struct__, path)
+    var_path = prepend_path({:key, :__struct__}, path)
 
     with {:ok, var, context} <- of_pattern(var, {var_path, expr}, stack, context) do
-      of_open_map(args, [], [__struct__: var], {path, expr}, stack, context)
+      dynamic = [__struct__: {:intersection, [atom(), var]}]
+      of_open_map(args, [], dynamic, {path, expr}, stack, context)
     end
   end
 

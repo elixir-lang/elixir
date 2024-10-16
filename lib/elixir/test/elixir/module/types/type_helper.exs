@@ -9,6 +9,16 @@ defmodule TypeHelper do
   alias Module.Types.{Pattern, Expr, Descr}
 
   @doc """
+  Main helper for inferring the given pattern + guards.
+  """
+  defmacro typeinfer!(patterns \\ [], guards \\ []) do
+    quote do
+      unquote(typeinfer(patterns, guards, __CALLER__))
+      |> TypeHelper.__typecheck__!()
+    end
+  end
+
+  @doc """
   Main helper for checking the given AST type checks without warnings.
   """
   defmacro typecheck!(patterns \\ [], guards \\ [], body) do
@@ -81,6 +91,30 @@ defmodule TypeHelper do
   def __typewarn__!(result) do
     {type, %{message: message}} = __typediag__!(result)
     {type, message}
+  end
+
+  @doc """
+  Building block for typeinferring a given AST.
+  """
+  def typeinfer(patterns, guards, env) do
+    fun =
+      quote do
+        fn unquote(patterns) when unquote(guards) -> :ok end
+      end
+
+    {ast, _, _} = :elixir_expand.expand(fun, :elixir_env.env_to_ex(env), env)
+    {:fn, _, [{:->, _, [[{:when, _, [patterns, guards]}], _body]}]} = ast
+
+    quote do
+      TypeHelper.__typeinfer__(
+        unquote(Macro.escape(patterns)),
+        unquote(Macro.escape(guards))
+      )
+    end
+  end
+
+  def __typeinfer__(patterns, guards) do
+    Pattern.of_head(patterns, guards, [], new_stack(), new_context())
   end
 
   @doc """
