@@ -320,6 +320,9 @@ defmodule Code.Fragment do
           _ ->
             {{:local_or_var, acc}, count}
         end
+
+      {:capture_arg, acc, count} ->
+        {{:capture_arg, acc}, count}
     end
   end
 
@@ -360,6 +363,14 @@ defmodule Code.Fragment do
 
   defp rest_identifier([?? | _], _count, _acc) do
     :none
+  end
+
+  defp rest_identifier([?& | tail] = rest, count, acc) when tail == [] or hd(tail) != ?& do
+    if Enum.all?(acc, &(&1 in ?0..?9)) do
+      {:capture_arg, [?& | acc], count + 1}
+    else
+      tokenize_identifier(rest, count, acc)
+    end
   end
 
   defp rest_identifier(rest, count, acc) do
@@ -591,7 +602,8 @@ defmodule Code.Fragment do
                | {:struct, inside_struct}
                | {:unquoted_atom, charlist}
                | {:keyword, charlist}
-               | {:key, charlist},
+               | {:key, charlist}
+               | {:capture_arg, charlist},
              inside_dot:
                {:alias, charlist}
                | {:alias, inside_alias, charlist}
@@ -696,6 +708,9 @@ defmodule Code.Fragment do
           {{:unquoted_atom, acc}, offset} ->
             build_surround({:unquoted_atom, acc}, reversed, line, offset)
 
+          {{:capture_arg, acc}, offset} ->
+            build_surround({:capture_arg, acc}, reversed, line, offset)
+
           _ ->
             maybe_operator(reversed_pre, post, line, opts)
         end
@@ -728,6 +743,16 @@ defmodule Code.Fragment do
         reversed = reversed_post ++ reversed_pre
 
         case codepoint_cursor_context(reversed, opts) do
+          {{:operator, ~c"&"}, offset} when hd(rest) in ?0..?9 ->
+            arg = Enum.take_while(rest, &(&1 in ?0..?9))
+
+            build_surround(
+              {:capture_arg, ~c"&" ++ arg},
+              :lists.reverse(arg, reversed),
+              line,
+              offset + length(arg)
+            )
+
           {{:operator, acc}, offset} ->
             build_surround({:operator, acc}, reversed, line, offset)
 
