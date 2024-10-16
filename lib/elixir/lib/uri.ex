@@ -367,21 +367,27 @@ defmodule URI do
   @doc """
   Percent-encodes all characters that require escaping in `string`.
 
-  By default, this function is meant to escape the whole URI, and
-  therefore it will only escape characters which are foreign in
-  all parts of a URI. Reserved characters (such as `:` and `/`)
-  or unreserved (such as letters and numbers) are not escaped.
+  The optional `predicate` argument specifies a function used to detect whether
+  a byte in the `string` should be escaped:
 
-  Because different components of a URI require different escaping
-  rules, this function also accepts a `predicate` function as an optional
-  argument. If passed, this function will be called with each byte
-  in `string` as its argument and should return a truthy value (anything other
-  than `false` or `nil`) if the given byte should be left as is, or
-  return a falsy value (`false` or `nil`) if the character should be
-  escaped. Defaults to `URI.char_unescaped?/1`.
+    * if the function returns a truthy value, the byte should be kept as-is.
+    * if the function returns a falsy value, the byte should be escaped.
 
-  See `encode_www_form/1` if you are interested in escaping reserved
-  characters too.
+  The `predicate` argument can use some built-in functions:
+
+    * `URI.char_unescaped?/1` (default) - reserved characters (such as `:`
+      and `/`) or unreserved (such as letters and numbers) are kept as-is.
+      It's typically used to encode the whole URI.
+    * `URI.char_unreserved?/1` - unreserved characters (such as letters and
+      numbers) are kept as-is. It's typically used to encode components in
+      a URI, such as query or fragment.
+    * `URI.char_reserved?/1` - Reserved characters (such as `:` and `/`) are
+      kept as-is.
+
+  And, you can also use custom functions.
+
+  See `encode_www_form/1` if you are interested in encoding `string` as
+  "x-www-form-urlencoded".
 
   ## Examples
 
