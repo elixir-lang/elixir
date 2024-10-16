@@ -167,8 +167,17 @@ defmodule Module.Types.PatternTest do
 
   describe "inference" do
     test "refines information across patterns" do
-      assert typeinfer!([%y{}, %x{}, x = y, x = Point]) ==
-               [1, 2, 3, 4]
+      result = [
+        dynamic(open_map(__struct__: atom([Point]))),
+        dynamic(open_map(__struct__: atom([Point]))),
+        dynamic(atom([Point])),
+        dynamic(atom([Point]))
+      ]
+
+      assert typeinfer!([%y{}, %x{}, x = y, x = Point]) == result
+      assert typeinfer!([%x{}, %y{}, x = y, x = Point]) == result
+      assert typeinfer!([%y{}, %x{}, x = y, y = Point]) == result
+      assert typeinfer!([%x{}, %y{}, x = y, y = Point]) == result
     end
   end
 end

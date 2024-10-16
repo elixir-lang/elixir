@@ -85,8 +85,8 @@ defmodule Module.Types do
       warnings: [],
       # Information about all vars and their types
       vars: %{},
-      # Information about variables from patterns
-      pattern_vars: nil
+      # Information about variables and arguments from patterns
+      pattern_info: nil
     }
   end
 end

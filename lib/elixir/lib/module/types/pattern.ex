@@ -45,13 +45,13 @@ defmodule Module.Types.Pattern do
   end
 
   defp of_pattern_args(patterns, expected_types, stack, context) do
-    context = %{context | pattern_vars: %{}}
+    context = %{context | pattern_info: {%{}, %{}}}
     changed = :lists.seq(0, length(patterns) - 1)
 
     with {:ok, trees, context} <-
            of_pattern_args_index(patterns, expected_types, 0, [], stack, context),
          {:ok, types, context} <-
-           of_pattern_vars(expected_types, changed, stack, context, fn types, changed, context ->
+           of_pattern_recur(expected_types, changed, stack, context, fn types, changed, context ->
              of_pattern_args_tree(trees, types, changed, 0, [], stack, context)
            end) do
       {:ok, trees, types, context}
@@ -113,12 +113,12 @@ defmodule Module.Types.Pattern do
   the given {expected, expr} pair or an error in case of a typing conflict.
   """
   def of_match(pattern, {expected, expr}, stack, context) do
-    context = %{context | pattern_vars: %{}}
+    context = %{context | pattern_info: {%{}, %{}}}
 
     with {:ok, tree, context} <-
            of_pattern(pattern, {[{:arg, 0, expected, expr}], pattern}, stack, context),
          {:ok, [type], context} <-
-           of_pattern_vars([expected], [0], stack, context, fn [type], [0], context ->
+           of_pattern_recur([expected], [0], stack, context, fn [type], [0], context ->
              # TODO: In case the pattern itself is empty, we should say the pattern cannot match any type
              with {:ok, type, context} <-
                     Of.intersect(of_pattern_tree(tree, context), {type, expr}, stack, context) do
@@ -129,51 +129,66 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  defp of_pattern_vars(types, changed, stack, context, callback) do
-    %{pattern_vars: pattern_vars} = context
-    context = %{context | pattern_vars: nil}
-    of_pattern_vars(types, changed, Map.to_list(pattern_vars), stack, context, callback)
+  defp of_pattern_recur(types, changed, stack, context, callback) do
+    %{pattern_info: {pattern_vars, pattern_args}} = context
+    context = %{context | pattern_info: nil}
+    pattern_vars = Map.to_list(pattern_vars)
+    of_pattern_recur(types, changed, pattern_vars, pattern_args, stack, context, callback)
   end
 
-  defp of_pattern_vars(types, changed, pattern_vars, stack, context, callback) do
-    with {:ok, types, %{vars: vars} = context} <- callback.(types, changed, context) do
-      # TODO: test recursive vars
-      pattern_vars
-      |> reduce_ok({%{}, context}, fn {version, paths}, acc ->
-        current_type = vars[version][:type]
+  defp of_pattern_recur(types, [], _vars, _args, _stack, context, _callback) do
+    {:ok, types, context}
+  end
 
-        reduce_ok(paths, acc, fn
-          [var, {:arg, index, expected, expr} | paths], {changed, context} ->
+  defp of_pattern_recur(types, changed, vars, args, stack, context, callback) do
+    with {:ok, types, %{vars: context_vars} = context} <- callback.(types, changed, context) do
+      # TODO: test recursive vars
+      vars
+      |> reduce_ok({[], context}, fn {version, paths}, {changed, context} ->
+        current_type = context_vars[version][:type]
+
+        paths
+        |> reduce_ok({false, context}, fn
+          [var, {:arg, index, expected, expr} | path], {var_changed?, context} ->
             actual = Enum.fetch!(types, index)
 
-            case of_pattern_var(paths, actual) do
+            case of_pattern_var(path, actual) do
               {:ok, type} ->
                 with {:ok, _, context} <- Of.refine_var(var, {type, expr}, stack, context) do
-                  if current_type == type do
-                    {:ok, {changed, context}}
-                  else
-                    changed =
-                      case changed do
-                        %{^index => true} -> changed
-                        %{^index => false} -> %{changed | index => true}
-                        %{} -> Map.put(changed, index, false)
-                      end
-
-                    {:ok, {changed, context}}
-                  end
+                  {:ok, {var_changed? or current_type != type, context}}
                 end
 
               :error ->
                 {:error, Of.incompatible_warn(expr, expected, actual, stack, context)}
             end
         end)
+        |> case do
+          # No changes, nothing to recompute
+          {:ok, {false, context}} ->
+            {:ok, {changed, context}}
+
+          # A single change but we depend on a single arg.
+          # If the arg has other variables, recompute, otherwise, skip.
+          {:ok, {true, context}} ->
+            case paths do
+              [[_var, {:arg, index, _, _} | _]] ->
+                case args do
+                  %{^index => true} -> {:ok, {[index | changed], context}}
+                  %{^index => false} -> {:ok, {changed, context}}
+                end
+
+              _ ->
+                var_changed = Enum.map(paths, fn [_var, {:arg, index, _, _} | _] -> index end)
+                {:ok, {var_changed ++ changed, context}}
+            end
+
+          {:error, context} ->
+            {:error, context}
+        end
       end)
       |> case do
         {:ok, {changed, context}} ->
-          case :lists.usort(for {index, true} <- changed, do: index) do
-            [] -> {:ok, types, context}
-            changed -> of_pattern_vars(types, changed, pattern_vars, stack, context, callback)
-          end
+          of_pattern_recur(types, :lists.usort(changed), vars, args, stack, context, callback)
 
         {:error, context} ->
           {:error, context}
@@ -464,9 +479,21 @@ defmodule Module.Types.Pattern do
       Of.refine_var(var, path_expr, stack, context)
     else
       version = Keyword.fetch!(meta, :version)
-      path = [var | Enum.reverse(path)]
-      paths = [path | Map.get(context.pattern_vars, version, [])]
-      {:ok, {:var, version}, put_in(context.pattern_vars[version], paths)}
+      [{:arg, arg, _type, _pattern} | _] = path = Enum.reverse(path)
+      {vars, args} = context.pattern_info
+
+      paths = [[var | path] | Map.get(vars, version, [])]
+      vars = Map.put(vars, version, paths)
+
+      # Our goal here is to compute if an argument has more than one variable.
+      args =
+        case args do
+          %{^arg => false} -> %{args | arg => true}
+          %{^arg => true} -> args
+          %{} -> Map.put(args, arg, false)
+        end
+
+      {:ok, {:var, version}, %{context | pattern_info: {vars, args}}}
     end
   end
 
