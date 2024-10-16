@@ -67,7 +67,7 @@ defmodule Module.Types.Pattern do
          context
        ) do
     with {:ok, tree, context} <-
-           of_pattern(pattern, {[{:arg, index, type, pattern}], pattern}, stack, context) do
+           of_pattern(pattern, [{:arg, index, type, pattern}], stack, context) do
       acc = [{pattern, tree} | acc]
       of_pattern_args_index(tail, expected_types, index + 1, acc, stack, context)
     end
@@ -114,7 +114,7 @@ defmodule Module.Types.Pattern do
     context = %{context | pattern_info: {%{}, %{}}}
 
     with {:ok, tree, context} <-
-           of_pattern(pattern, {[{:arg, 0, expected, expr}], pattern}, stack, context),
+           of_pattern(pattern, [{:arg, 0, expected, expr}], stack, context),
          {:ok, [type], context} <-
            of_pattern_recur([expected], [0], stack, context, fn [type], [0], context ->
              with {:ok, type, context} <- of_pattern_intersect(tree, type, expr, stack, context) do
@@ -298,36 +298,29 @@ defmodule Module.Types.Pattern do
 
   ## Patterns
 
-  # The second argument of patterns is, opposite to guards,
-  # either {descr, expr} or a {path, expr}. However, the descr
-  # is only used for refining variables, outside of that, it is
-  # not asserted on.
-
   # TODO: Simplify signature of Of.refine_var
   # TODO: Simplify signature of Of.intersect
-  # TODO: Remove expr from of_pattern
-  # TODO: Remove prepend_path
   # TODO: Of.struct_keys
   # TODO: Test recursive vars
 
   # :atom
-  defp of_pattern(atom, _expected_expr, _stack, context) when is_atom(atom),
+  defp of_pattern(atom, _path, _stack, context) when is_atom(atom),
     do: {:ok, atom([atom]), context}
 
   # 12
-  defp of_pattern(literal, _expected_expr, _stack, context) when is_integer(literal),
+  defp of_pattern(literal, _path, _stack, context) when is_integer(literal),
     do: {:ok, integer(), context}
 
   # 1.2
-  defp of_pattern(literal, _expected_expr, _stack, context) when is_float(literal),
+  defp of_pattern(literal, _path, _stack, context) when is_float(literal),
     do: {:ok, float(), context}
 
   # "..."
-  defp of_pattern(literal, _expected_expr, _stack, context) when is_binary(literal),
+  defp of_pattern(literal, _path, _stack, context) when is_binary(literal),
     do: {:ok, binary(), context}
 
   # []
-  defp of_pattern([], _expected_expr, _stack, context),
+  defp of_pattern([], _path, _stack, context),
     do: {:ok, empty_list(), context}
 
   # [expr, ...]
@@ -337,16 +330,16 @@ defmodule Module.Types.Pattern do
   end
 
   # {left, right}
-  defp of_pattern({left, right}, path_expr, stack, context) do
-    of_tuple([left, right], path_expr, stack, context)
+  defp of_pattern({left, right}, path, stack, context) do
+    of_tuple([left, right], path, stack, context)
   end
 
   # left = right
-  defp of_pattern({:=, _meta, [_, _]} = match, {path, expr}, stack, context) do
+  defp of_pattern({:=, _meta, [_, _]} = match, path, stack, context) do
     match
     |> unpack_match([])
     |> reduce_ok({[], [], context}, fn pattern, {static, dynamic, context} ->
-      with {:ok, type, context} <- of_pattern(pattern, {path, expr}, stack, context) do
+      with {:ok, type, context} <- of_pattern(pattern, path, stack, context) do
         if is_descr(type) do
           {:ok, {[type | static], dynamic, context}}
         else
@@ -371,15 +364,13 @@ defmodule Module.Types.Pattern do
 
   # %Struct{...}
   # TODO: Once we support typed structs, we need to type check them here.
-  defp of_pattern({:%, meta, [struct, {:%{}, _, args}]}, {path, expr}, stack, context)
+  defp of_pattern({:%, meta, [struct, {:%{}, _, args}]}, path, stack, context)
        when is_atom(struct) do
     {info, context} = Of.struct_info(struct, meta, stack, context)
 
     result =
       map_reduce_ok(args, context, fn {key, value}, context ->
-        path = prepend_path({:key, key}, path)
-
-        with {:ok, value_type, context} <- of_pattern(value, {path, expr}, stack, context) do
+        with {:ok, value_type, context} <- of_pattern(value, [{:key, key} | path], stack, context) do
           {:ok, {key, value_type}, context}
         end
       end)
@@ -413,40 +404,33 @@ defmodule Module.Types.Pattern do
   end
 
   # %var{...}
-  defp of_pattern(
-         {:%, _meta, [{name, _, ctx} = var, {:%{}, _meta2, args}]} = expr,
-         {path, _expr},
-         stack,
-         context
-       )
+  defp of_pattern({:%, _, [{name, _, ctx} = var, {:%{}, _, args}]}, path, stack, context)
        when is_atom(name) and is_atom(ctx) and name != :_ do
-    var_path = prepend_path({:key, :__struct__}, path)
-
-    with {:ok, var, context} <- of_pattern(var, {var_path, expr}, stack, context) do
+    with {:ok, var, context} <- of_pattern(var, [{:key, :__struct__} | path], stack, context) do
       dynamic = [__struct__: {:intersection, [atom(), var]}]
-      of_open_map(args, [], dynamic, {path, expr}, stack, context)
+      of_open_map(args, [], dynamic, path, stack, context)
     end
   end
 
   # %^var{...} and %_{...}
   defp of_pattern(
          {:%, _meta, [var, {:%{}, _meta2, args}]} = expr,
-         expected_expr,
+         path,
          stack,
          context
        ) do
     with {:ok, refined, context} <- of_match_var(var, {atom(), expr}, stack, context) do
-      of_open_map(args, [__struct__: refined], [], expected_expr, stack, context)
+      of_open_map(args, [__struct__: refined], [], path, stack, context)
     end
   end
 
   # %{...}
-  defp of_pattern({:%{}, _meta, args}, expected_expr, stack, context) do
-    of_open_map(args, [], [], expected_expr, stack, context)
+  defp of_pattern({:%{}, _meta, args}, path, stack, context) do
+    of_open_map(args, [], [], path, stack, context)
   end
 
   # <<...>>>
-  defp of_pattern({:<<>>, _meta, args}, _expected_expr, stack, context) do
+  defp of_pattern({:<<>>, _meta, args}, _path, stack, context) do
     case Of.binary(args, :match, stack, context) do
       {:ok, context} -> {:ok, binary(), context}
       {:error, context} -> {:error, context}
@@ -454,35 +438,30 @@ defmodule Module.Types.Pattern do
   end
 
   # left ++ right
-  defp of_pattern(
-         {{:., _meta1, [:erlang, :++]}, _meta2, [left, right]},
-         expected_expr,
-         stack,
-         context
-       ) do
-    of_list(left, right, expected_expr, stack, context)
+  defp of_pattern({{:., _meta1, [:erlang, :++]}, _meta2, [left, right]}, path, stack, context) do
+    of_list(left, right, path, stack, context)
   end
 
   # {...}
-  defp of_pattern({:{}, _meta, exprs}, path_expr, stack, context) do
-    of_tuple(exprs, path_expr, stack, context)
+  defp of_pattern({:{}, _meta, exprs}, path, stack, context) do
+    of_tuple(exprs, path, stack, context)
   end
 
   # ^var
-  defp of_pattern({:^, _meta, [var]}, _expected_expr, _stack, context) do
+  defp of_pattern({:^, _meta, [var]}, _path, _stack, context) do
     {:ok, Of.var(var, context), context}
   end
 
   # _
-  defp of_pattern({:_, _meta, _var_context}, {expected, _expr}, _stack, context) do
+  defp of_pattern({:_, _meta, _var_context}, _path, _stack, context) do
     {:ok, term(), context}
   end
 
   # var
-  defp of_pattern({name, meta, ctx} = var, {path, _expr} = path_expr, _stack, context)
+  defp of_pattern({name, meta, ctx} = var, reverse_path, _stack, context)
        when is_atom(name) and is_atom(ctx) do
     version = Keyword.fetch!(meta, :version)
-    [{:arg, arg, _type, _pattern} | _] = path = Enum.reverse(path)
+    [{:arg, arg, _type, _pattern} | _] = path = Enum.reverse(reverse_path)
     {vars, args} = context.pattern_info
 
     paths = [[var | path] | Map.get(vars, version, [])]
@@ -501,12 +480,10 @@ defmodule Module.Types.Pattern do
 
   # TODO: Properly traverse domain keys
   # TODO: Properly handle pin operator in keys
-  defp of_open_map(args, static, dynamic, {path, expr}, stack, context) do
+  defp of_open_map(args, static, dynamic, path, stack, context) do
     result =
       reduce_ok(args, {static, dynamic, context}, fn {key, value}, {static, dynamic, context} ->
-        path = prepend_path({:key, key}, path)
-
-        with {:ok, value_type, context} <- of_pattern(value, {path, expr}, stack, context) do
+        with {:ok, value_type, context} <- of_pattern(value, [{:key, key} | path], stack, context) do
           cond do
             # Only atom keys become part of the type because the other keys are divisible
             not is_atom(key) ->
@@ -528,12 +505,10 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  defp of_tuple(args, {path, expr}, stack, context) do
+  defp of_tuple(args, path, stack, context) do
     result =
       reduce_ok(args, {0, true, [], context}, fn arg, {index, static?, acc, context} ->
-        path = prepend_path({:elem, index}, path)
-
-        with {:ok, type, context} <- of_pattern(arg, {path, expr}, stack, context) do
+        with {:ok, type, context} <- of_pattern(arg, [{:elem, index} | path], stack, context) do
           {:ok, {index + 1, static? and is_descr(type), [type | acc], context}}
         end
       end)
@@ -546,25 +521,21 @@ defmodule Module.Types.Pattern do
   end
 
   # [] ++ []
-  defp of_list([], [], _path_expr, _stack, context) do
+  defp of_list([], [], _path, _stack, context) do
     {:ok, empty_list(), context}
   end
 
   # [] ++ suffix
-  defp of_list([], suffix, path_expr, stack, context) do
-    of_pattern(suffix, path_expr, stack, context)
+  defp of_list([], suffix, path, stack, context) do
+    of_pattern(suffix, path, stack, context)
   end
 
   # [prefix1, prefix2, prefix3], [prefix1, prefix2 | suffix]
-  defp of_list(prefix, suffix, {path, expr}, stack, context) do
-    suffix_path = prepend_path(:tail, path)
-
-    with {:ok, suffix, context} <- of_pattern(suffix, {suffix_path, expr}, stack, context) do
+  defp of_list(prefix, suffix, path, stack, context) do
+    with {:ok, suffix, context} <- of_pattern(suffix, [:tail | path], stack, context) do
       result =
         reduce_ok(prefix, {[], [], context}, fn arg, {static, dynamic, context} ->
-          path = prepend_path(:head, path)
-
-          with {:ok, type, context} <- of_pattern(arg, {path, expr}, stack, context) do
+          with {:ok, type, context} <- of_pattern(arg, [:head | path], stack, context) do
             if is_descr(type) do
               {:ok, {[type | static], dynamic, context}}
             else
@@ -599,15 +570,7 @@ defmodule Module.Types.Pattern do
   defp unpack_match(node, acc),
     do: [node | acc]
 
-  # TODO: Remove me
-  @compile {:inline, prepend_path: 2}
-  defp prepend_path(_entry, descr) when is_descr(descr), do: dynamic()
-  defp prepend_path(entry, acc), do: [entry | acc]
-
   ## Guards
-
-  # The second argument of guards is, opposite to patterns,
-  # only {descr, expr}, and the descr is always asserted on.
   # This function is public as it is invoked from Of.binary/4.
 
   # :atom
