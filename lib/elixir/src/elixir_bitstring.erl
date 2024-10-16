@@ -31,7 +31,7 @@ expand(Meta, Args, S, E, RequireSize) ->
 expand(_BitstrMeta, _Fun, [], Acc, S, E, Alignment, _RequireSize) ->
   {lists:reverse(Acc), Alignment, S, E};
 expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, S, E, Alignment, RequireSize) ->
-  {ELeft, {SL, OriginalS}, EL} = expand_expr(Meta, Left, Fun, S, E),
+  {ELeft, {SL, OriginalS}, EL} = expand_expr(Left, Fun, S, E),
 
   MatchOrRequireSize = RequireSize or is_match_size(T, EL),
   EType = expr_type(ELeft),
@@ -46,7 +46,7 @@ expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, S, E, Alignment,
   expand(BitstrMeta, Fun, T, EAcc, {SS, OriginalS}, ES, alignment(Alignment, EAlignment), RequireSize);
 expand(BitstrMeta, Fun, [H | T], Acc, S, E, Alignment, RequireSize) ->
   Meta = extract_meta(H, BitstrMeta),
-  {ELeft, {SS, OriginalS}, ES} = expand_expr(Meta, H, Fun, S, E),
+  {ELeft, {SS, OriginalS}, ES} = expand_expr(H, Fun, S, E),
 
   MatchOrRequireSize = RequireSize or is_match_size(T, ES),
   EType = expr_type(ELeft),
@@ -136,13 +136,13 @@ compute_alignment(_, _, _) -> unknown.
 %% If we are inside a match/guard, we inline interpolations explicitly,
 %% otherwise they are inlined by elixir_rewrite.erl.
 
-expand_expr(_Meta, {{'.', _, [Mod, to_string]}, _, [Arg]} = AST, Fun, S, #{context := Context} = E)
+expand_expr({{'.', _, [Mod, to_string]}, _, [Arg]} = AST, Fun, S, #{context := Context} = E)
     when Context /= nil, (Mod == 'Elixir.Kernel') orelse (Mod == 'Elixir.String.Chars') ->
   case Fun(Arg, S, E) of
     {EBin, SE, EE} when is_binary(EBin) -> {EBin, SE, EE};
     _ -> Fun(AST, S, E) % Let it raise
   end;
-expand_expr(Meta, Component, Fun, S, E) ->
+expand_expr(Component, Fun, S, E) ->
   Fun(Component, S, E).
 
 %% Expands and normalizes types of a bitstring.

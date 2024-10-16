@@ -85,9 +85,7 @@ defmodule Module.Types.Pattern do
          stack,
          context
        ) do
-    # TODO: In case the pattern itself is empty, we should say the pattern cannot match any type
-    with {:ok, type, context} <-
-           Of.intersect(of_pattern_tree(tree, context), {type, pattern}, stack, context) do
+    with {:ok, type, context} <- of_pattern_intersect(tree, type, pattern, stack, context) do
       of_pattern_args_tree(tail, expected_types, changed, index + 1, [type | acc], stack, context)
     end
   end
@@ -119,9 +117,7 @@ defmodule Module.Types.Pattern do
            of_pattern(pattern, {[{:arg, 0, expected, expr}], pattern}, stack, context),
          {:ok, [type], context} <-
            of_pattern_recur([expected], [0], stack, context, fn [type], [0], context ->
-             # TODO: In case the pattern itself is empty, we should say the pattern cannot match any type
-             with {:ok, type, context} <-
-                    Of.intersect(of_pattern_tree(tree, context), {type, expr}, stack, context) do
+             with {:ok, type, context} <- of_pattern_intersect(tree, type, expr, stack, context) do
                {:ok, [type], context}
              end
            end) do
@@ -142,7 +138,6 @@ defmodule Module.Types.Pattern do
 
   defp of_pattern_recur(types, changed, vars, args, stack, context, callback) do
     with {:ok, types, %{vars: context_vars} = context} <- callback.(types, changed, context) do
-      # TODO: test recursive vars
       vars
       |> reduce_ok({[], context}, fn {version, paths}, {changed, context} ->
         current_type = context_vars[version][:type]
@@ -163,20 +158,19 @@ defmodule Module.Types.Pattern do
             end
         end)
         |> case do
-          # No changes, nothing to recompute
           {:ok, {false, context}} ->
             {:ok, {changed, context}}
 
-          # A single change but we depend on a single arg.
-          # If the arg has other variables, recompute, otherwise, skip.
           {:ok, {true, context}} ->
             case paths do
+              # A single change, check if there are other variables in this index.
               [[_var, {:arg, index, _, _} | _]] ->
                 case args do
                   %{^index => true} -> {:ok, {[index | changed], context}}
                   %{^index => false} -> {:ok, {changed, context}}
                 end
 
+              # Several changes, we have to recompute all indexes.
               _ ->
                 var_changed = Enum.map(paths, fn [_var, {:arg, index, _, _} | _] -> index end)
                 {:ok, {var_changed ++ changed, context}}
@@ -193,6 +187,23 @@ defmodule Module.Types.Pattern do
         {:error, context} ->
           {:error, context}
       end
+    end
+  end
+
+  defp of_pattern_intersect(tree, expected, expr, stack, context) do
+    actual = of_pattern_tree(tree, context)
+
+    case Of.intersect(actual, {expected, expr}, stack, context) do
+      {:ok, type, context} ->
+        {:ok, type, context}
+
+      {:error, intersection_context} ->
+        if empty?(actual) do
+          meta = get_meta(expr) || stack.meta
+          {:error, warn(__MODULE__, {:invalid_pattern, expr, context}, meta, stack, context)}
+        else
+          {:error, intersection_context}
+        end
     end
   end
 
@@ -269,6 +280,7 @@ defmodule Module.Types.Pattern do
   # TODO: Remove expr from of_pattern
   # TODO: Remove prepend_path
   # TODO: Of.struct_keys
+  # TODO: Test recursive vars
 
   # :atom
   defp of_pattern(atom, _expected_expr, _stack, context) when is_atom(atom),
@@ -675,5 +687,24 @@ defmodule Module.Types.Pattern do
     # TODO: This should be ver refinement once we have inference in guards
     # Of.refine_var(var, expected_expr, stack, context)
     Of.intersect(Of.var(var, context), expected_expr, stack, context)
+  end
+
+  ## Diagnostics
+
+  def format_diagnostic({:invalid_pattern, expr, context}) do
+    traces = Of.collect_traces(expr, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          the following pattern will never match:
+
+              #{expr_to_string(expr) |> indent(4)}
+          """,
+          Of.format_traces(traces)
+        ])
+    }
   end
 end
