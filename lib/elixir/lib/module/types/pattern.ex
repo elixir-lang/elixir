@@ -35,7 +35,7 @@ defmodule Module.Types.Pattern do
     with {:ok, _trees, types, context} <-
            of_pattern_args(patterns, expected_types, stack, context),
          {:ok, _, context} <-
-           map_reduce_ok(guards, context, &of_guard(&1, {@guard, &1}, stack, &2)) do
+           map_reduce_ok(guards, context, &of_guard(&1, @guard, &1, stack, &2)) do
       {:ok, types, context}
     end
   end
@@ -108,7 +108,7 @@ defmodule Module.Types.Pattern do
 
   @doc """
   Return the type and typing context of a pattern expression with
-  the given {expected, expr} pair or an error in case of a typing conflict.
+  the given expected and expr or an error in case of a typing conflict.
   """
   def of_match(pattern, expected, expr, stack, context) do
     context = %{context | pattern_info: {%{}, %{}}}
@@ -322,8 +322,8 @@ defmodule Module.Types.Pattern do
     do: {:ok, empty_list(), context}
 
   # [expr, ...]
-  defp of_pattern(exprs, path, stack, context) when is_list(exprs) do
-    {prefix, suffix} = unpack_list(exprs, [])
+  defp of_pattern(list, path, stack, context) when is_list(list) do
+    {prefix, suffix} = unpack_list(list, [])
     of_list(prefix, suffix, path, stack, context)
   end
 
@@ -441,8 +441,8 @@ defmodule Module.Types.Pattern do
   end
 
   # {...}
-  defp of_pattern({:{}, _meta, exprs}, path, stack, context) do
-    of_tuple(exprs, path, stack, context)
+  defp of_pattern({:{}, _meta, args}, path, stack, context) do
+    of_tuple(args, path, stack, context)
   end
 
   # ^var
@@ -558,6 +558,132 @@ defmodule Module.Types.Pattern do
     end
   end
 
+  ## Guards
+  # This function is public as it is invoked from Of.binary/4.
+
+  # :atom
+  def of_guard(atom, expected, expr, stack, context) when is_atom(atom) do
+    if atom_type?(expected, atom) do
+      {:ok, atom([atom]), context}
+    else
+      {:error, Of.incompatible_warn(expr, expected, atom([atom]), stack, context)}
+    end
+  end
+
+  # 12
+  def of_guard(literal, expected, expr, stack, context) when is_integer(literal) do
+    if integer_type?(expected) do
+      {:ok, integer(), context}
+    else
+      {:error, Of.incompatible_warn(expr, expected, integer(), stack, context)}
+    end
+  end
+
+  # 1.2
+  def of_guard(literal, expected, expr, stack, context) when is_float(literal) do
+    if float_type?(expected) do
+      {:ok, float(), context}
+    else
+      {:error, Of.incompatible_warn(expr, expected, float(), stack, context)}
+    end
+  end
+
+  # "..."
+  def of_guard(literal, expected, expr, stack, context) when is_binary(literal) do
+    if binary_type?(expected) do
+      {:ok, binary(), context}
+    else
+      {:error, Of.incompatible_warn(expr, expected, binary(), stack, context)}
+    end
+  end
+
+  # []
+  def of_guard([], expected, expr, stack, context) do
+    if empty_list_type?(expected) do
+      {:ok, empty_list(), context}
+    else
+      {:error, Of.incompatible_warn(expr, expected, empty_list(), stack, context)}
+    end
+  end
+
+  # [expr, ...]
+  def of_guard(list, _expected, expr, stack, context) when is_list(list) do
+    {prefix, suffix} = unpack_list(list, [])
+
+    with {:ok, prefix, context} <-
+           map_reduce_ok(prefix, context, &of_guard(&1, dynamic(), expr, stack, &2)),
+         {:ok, suffix, context} <- of_guard(suffix, dynamic(), expr, stack, context) do
+      {:ok, non_empty_list(Enum.reduce(prefix, &union/2), suffix), context}
+    end
+  end
+
+  # {left, right}
+  def of_guard({left, right}, expected, expr, stack, context) do
+    of_guard({:{}, [], [left, right]}, expected, expr, stack, context)
+  end
+
+  # %Struct{...}
+  def of_guard({:%, _, [module, {:%{}, _, args}]} = struct, _expected, _expr, stack, context)
+      when is_atom(module) do
+    fun = &of_guard(&1, dynamic(), struct, &2, &3)
+    Of.struct(struct, module, args, :skip_defaults, stack, context, fun)
+  end
+
+  # %{...}
+  def of_guard({:%{}, _meta, args}, _expected, expr, stack, context) do
+    Of.closed_map(args, stack, context, &of_guard(&1, dynamic(), expr, &2, &3))
+  end
+
+  # <<>>
+  def of_guard({:<<>>, _meta, args}, expected, expr, stack, context) do
+    if binary_type?(expected) do
+      case Of.binary(args, :guard, stack, context) do
+        {:ok, context} -> {:ok, binary(), context}
+        {:error, context} -> {:ok, binary(), context}
+      end
+    else
+      {:error, Of.incompatible_warn(expr, expected, binary(), stack, context)}
+    end
+  end
+
+  # ^var
+  def of_guard({:^, _meta, [var]}, expected, expr, stack, context) do
+    # This is by definition a variable defined outside of this pattern, so we don't track it.
+    Of.intersect(Of.var(var, context), expected, expr, stack, context)
+  end
+
+  # {...}
+  def of_guard({:{}, _meta, args}, _expected, expr, stack, context) do
+    case map_reduce_ok(args, context, &of_guard(&1, dynamic(), expr, stack, &2)) do
+      {:ok, types, context} -> {:ok, tuple(types), context}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  # var.field
+  def of_guard({{:., _, [callee, key]}, _, []} = map_fetch, _expected, expr, stack, context)
+      when not is_atom(callee) do
+    with {:ok, type, context} <- of_guard(callee, dynamic(), expr, stack, context) do
+      Of.map_fetch(map_fetch, type, key, stack, context)
+    end
+  end
+
+  # Remote
+  def of_guard({{:., _, [:erlang, function]}, _, args}, _expected, expr, stack, context)
+      when is_atom(function) do
+    with {:ok, args_type, context} <-
+           map_reduce_ok(args, context, &of_guard(&1, dynamic(), expr, stack, &2)) do
+      Of.apply(:erlang, function, args_type, expr, stack, context)
+    end
+  end
+
+  # var
+  def of_guard(var, expected, expr, stack, context) when is_var(var) do
+    Of.intersect(Of.var(var, context), expected, expr, stack, context)
+  end
+
+  ## Helpers
+
   defp unpack_list([{:|, _, [head, tail]}], acc), do: {Enum.reverse([head | acc]), tail}
   defp unpack_list([head], acc), do: {Enum.reverse([head | acc]), []}
   defp unpack_list([head | tail], acc), do: unpack_list(tail, [head | acc])
@@ -567,142 +693,6 @@ defmodule Module.Types.Pattern do
 
   defp unpack_match(node, acc),
     do: [node | acc]
-
-  ## Guards
-  # This function is public as it is invoked from Of.binary/4.
-
-  # :atom
-  def of_guard(atom, {expected, expr}, stack, context) when is_atom(atom) do
-    if atom_type?(expected, atom) do
-      {:ok, atom([atom]), context}
-    else
-      {:error, Of.incompatible_warn(expr, expected, atom([atom]), stack, context)}
-    end
-  end
-
-  # 12
-  def of_guard(literal, {expected, expr}, stack, context) when is_integer(literal) do
-    if integer_type?(expected) do
-      {:ok, integer(), context}
-    else
-      {:error, Of.incompatible_warn(expr, expected, integer(), stack, context)}
-    end
-  end
-
-  # 1.2
-  def of_guard(literal, {expected, expr}, stack, context) when is_float(literal) do
-    if float_type?(expected) do
-      {:ok, float(), context}
-    else
-      {:error, Of.incompatible_warn(expr, expected, float(), stack, context)}
-    end
-  end
-
-  # "..."
-  def of_guard(literal, {expected, expr}, stack, context) when is_binary(literal) do
-    if binary_type?(expected) do
-      {:ok, binary(), context}
-    else
-      {:error, Of.incompatible_warn(expr, expected, binary(), stack, context)}
-    end
-  end
-
-  # []
-  def of_guard([], {expected, expr}, stack, context) do
-    if empty_list_type?(expected) do
-      {:ok, empty_list(), context}
-    else
-      {:error, Of.incompatible_warn(expr, expected, empty_list(), stack, context)}
-    end
-  end
-
-  # [expr, ...]
-  def of_guard(exprs, _expected_expr, stack, context) when is_list(exprs) do
-    case map_reduce_ok(exprs, context, &of_guard(&1, {dynamic(), &1}, stack, &2)) do
-      {:ok, types, context} -> {:ok, non_empty_list(Enum.reduce(types, &union/2)), context}
-      {:error, reason} -> {:error, reason}
-    end
-  end
-
-  # {left, right}
-  def of_guard({left, right}, expected_expr, stack, context) do
-    of_guard({:{}, [], [left, right]}, expected_expr, stack, context)
-  end
-
-  # %Struct{...}
-  def of_guard({:%, _, [module, {:%{}, _, args}]} = expr, _expected_expr, stack, context)
-      when is_atom(module) do
-    fun = &of_guard(&1, {dynamic(), &1}, &2, &3)
-    Of.struct(expr, module, args, :skip_defaults, stack, context, fun)
-  end
-
-  # %{...}
-  def of_guard({:%{}, _meta, args}, _expected_expr, stack, context) do
-    Of.closed_map(args, stack, context, &of_guard(&1, {dynamic(), &1}, &2, &3))
-  end
-
-  # <<>>
-  def of_guard({:<<>>, _meta, args}, _expected_expr, stack, context) do
-    case Of.binary(args, :guard, stack, context) do
-      {:ok, context} -> {:ok, binary(), context}
-      # It is safe to discard errors from binary inside expressions
-      {:error, context} -> {:ok, binary(), context}
-    end
-  end
-
-  # ^var
-  def of_guard({:^, _meta, [var]}, {expected, expr}, stack, context) do
-    # This is by definition a variable defined outside of this pattern, so we don't track it.
-    Of.intersect(Of.var(var, context), expected, expr, stack, context)
-  end
-
-  # left | []
-  def of_guard({:|, _meta, [left_expr, []]}, _expected_expr, stack, context) do
-    of_guard(left_expr, {dynamic(), left_expr}, stack, context)
-  end
-
-  # left | right
-  def of_guard({:|, _meta, [left_expr, right_expr]}, _expected_expr, stack, context) do
-    case of_guard(left_expr, {dynamic(), left_expr}, stack, context) do
-      {:ok, _, context} ->
-        of_guard(right_expr, {dynamic(), right_expr}, stack, context)
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
-  # {...}
-  def of_guard({:{}, _meta, exprs}, _expected_expr, stack, context) do
-    case map_reduce_ok(exprs, context, &of_guard(&1, {dynamic(), &1}, stack, &2)) do
-      {:ok, types, context} -> {:ok, tuple(types), context}
-      {:error, reason} -> {:error, reason}
-    end
-  end
-
-  # var.field
-  def of_guard({{:., _, [callee, key]}, _, []} = expr, _expected_expr, stack, context)
-      when not is_atom(callee) do
-    with {:ok, type, context} <- of_guard(callee, {dynamic(), expr}, stack, context) do
-      Of.map_fetch(expr, type, key, stack, context)
-    end
-  end
-
-  # Remote
-  def of_guard({{:., _, [:erlang, function]}, _, args} = expr, _expected_expr, stack, context)
-      when is_atom(function) do
-    with {:ok, args_type, context} <-
-           map_reduce_ok(args, context, &of_guard(&1, {dynamic(), expr}, stack, &2)) do
-      Of.apply(:erlang, function, args_type, expr, stack, context)
-    end
-  end
-
-  # var
-  def of_guard(var, {expected, expr}, stack, context) when is_var(var) do
-    Of.intersect(Of.var(var, context), expected, expr, stack, context)
-  end
-
-  ## Diagnostics
 
   def format_diagnostic({:invalid_pattern, expr, context}) do
     traces = Of.collect_traces(expr, context)

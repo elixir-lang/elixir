@@ -246,7 +246,6 @@ defmodule Module.Types.Of do
   defp binary_segment({:"::", meta, [left, right]}, kind, args, stack, context) do
     type = specifier_type(kind, right)
     expr = {:<<>>, meta, args}
-    expected_expr = {type, expr}
 
     result =
       case kind do
@@ -254,7 +253,7 @@ defmodule Module.Types.Of do
           Module.Types.Pattern.of_match_var(left, type, expr, stack, context)
 
         :guard ->
-          Module.Types.Pattern.of_guard(left, expected_expr, stack, context)
+          Module.Types.Pattern.of_guard(left, type, expr, stack, context)
 
         :expr ->
           with {:ok, actual, context} <- Module.Types.Expr.of_expr(left, stack, context) do
@@ -299,7 +298,7 @@ defmodule Module.Types.Of do
 
   defp specifier_size(_pattern_or_guard, {:size, _, [arg]}, expr, stack, context)
        when not is_integer(arg) do
-    case Module.Types.Pattern.of_guard(arg, {integer(), expr}, stack, context) do
+    case Module.Types.Pattern.of_guard(arg, integer(), expr, stack, context) do
       {:ok, _, context} -> context
       {:error, context} -> context
     end
