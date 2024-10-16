@@ -524,6 +524,11 @@ defmodule Module.Types.Of do
 
   defp collect_var_traces(traces) do
     traces
+    |> Enum.reject(fn {_expr, _file, type, _formatter} -> dynamic_term_type?(type) end)
+    |> case do
+      [] -> traces
+      filtered -> filtered
+    end
     |> Enum.reverse()
     |> Enum.map(fn {expr, file, type, formatter} ->
       meta = get_meta(expr)
@@ -542,6 +547,7 @@ defmodule Module.Types.Of do
         formatted_type: to_quoted_string(type)
       }
     end)
+    |> Enum.sort_by(&{&1.meta[:line], &1.meta[:column]})
   end
 
   def format_traces(traces) do

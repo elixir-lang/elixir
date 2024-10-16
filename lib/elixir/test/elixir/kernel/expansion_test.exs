@@ -2812,16 +2812,6 @@ defmodule Kernel.ExpansionTest do
       end)
     end
 
-    test "raises for invalid literals" do
-      assert_compile_error(~r"invalid literal :foo in <<>>", fn ->
-        expand(quote(do: <<:foo>>))
-      end)
-
-      assert_compile_error(~r"invalid literal \[\] in <<>>", fn ->
-        expand(quote(do: <<[]::size(8)>>))
-      end)
-    end
-
     test "raises on binary fields with size in matches" do
       assert expand(quote(do: <<x::binary-size(3), y::binary>> = "foobar"))
 

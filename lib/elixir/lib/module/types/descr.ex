@@ -115,6 +115,8 @@ defmodule Module.Types.Descr do
   def term_type?(:term), do: true
   def term_type?(descr), do: subtype_static(unfolded_term(), Map.delete(descr, :dynamic))
 
+  def dynamic_term_type?(descr), do: descr == %{dynamic: :term}
+
   def gradual?(:term), do: false
   def gradual?(descr), do: is_map_key(descr, :dynamic)
 

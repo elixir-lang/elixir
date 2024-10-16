@@ -24,6 +24,27 @@ defmodule Module.Types.PatternTest do
     test "refines information across patterns" do
       assert typecheck!([%y{}, %x{}, x = y, x = Point], y) == dynamic(atom([Point]))
     end
+
+    test "errors on conflicting refinements" do
+      assert typeerror!([a = b, a = :foo, b = :bar], {a, b}) ==
+               ~l"""
+               the following pattern will never match:
+
+                   a = b
+
+               where "a" was given the type:
+
+                   # type: dynamic(:foo)
+                   # from: types_test.ex:29
+                   a = :foo
+
+               where "b" was given the type:
+
+                   # type: dynamic(:bar)
+                   # from: types_test.ex:29
+                   b = :bar
+               """
+    end
   end
 
   describe "structs" do
