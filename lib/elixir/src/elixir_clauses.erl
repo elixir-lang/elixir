@@ -83,46 +83,47 @@ store_cycles([], Cycles, Acc) ->
   {Cycles, Acc}.
 
 validate_cycles({Cycles, SkipList}, Meta, Expr, E) ->
-  maps:foreach(fun(Current, DependsOn) ->
-    case DependsOn of
-      #{Current := _} ->
-        file_error(Meta, E, ?MODULE, {recursive, self, Current, Expr});
+  maps:fold(fun(Current, _DependsOn, Seen) ->
+    recur_cycles(Cycles, Current, root, Seen, SkipList, Meta, Expr, E)
+  end, #{}, Cycles).
 
-      #{} ->
-        maps:foreach(fun
-          (Key, error) ->
-            file_error(Meta, E, ?MODULE, {recursive, one, Current, Key, Expr});
-
-          (Key, _) ->
-            recur_cycles(Cycles, Key, Current, Current, #{Key => true}, SkipList, Meta, Expr, E)
-        end, DependsOn)
-    end
-  end, Cycles).
-
-recur_cycles(Cycles, Current, Source, Target, Seen, SkipList, Meta, Expr, E) ->
-  Fun = fun
-    (#{Current := _, Source := _}) -> true;
-    (#{}) -> false
-  end,
-
-  case lists:any(Fun, SkipList) of
+recur_cycles(Cycles, Current, Source, Seen, SkipList, Meta, Expr, E) ->
+  case is_map_key(Current, Seen) of
     true ->
-      ok;
-
-    false when Current == Target ->
-      file_error(Meta, E, ?MODULE, {recursive, many, maps:keys(Seen), Expr});
+      Seen;
 
     false ->
-      maps:foreach(fun
-        %% Never go back to the node that we came from (as we can always one hop)
-        %% and avoid revisting past nodes.
-        (Key, _) when Key =:= Source; is_map_key(Key, Seen) ->
-          ok;
+      case maps:get(Current, Cycles) of
+        #{Current := _} ->
+          file_error(Meta, E, ?MODULE, {recursive, self, Current, Expr});
 
-        (Key, _) ->
-          NewSeen = maps:put(Key, true, Seen),
-          recur_cycles(Cycles, Key, Current, Target, NewSeen, SkipList, Meta, Expr, E)
-      end, maps:get(Current, Cycles))
+        DependsOn ->
+          maps:fold(fun
+            (Key, error, _See) ->
+              file_error(Meta, E, ?MODULE, {recursive, one, Current, Key, Expr});
+
+            %% Never go back to the node that we came from (as we can always one hop).
+            (Key, _, AccSeen) when Key =:= Source ->
+              AccSeen;
+
+            (Key, _, AccSeen) ->
+              Fun = fun
+                (#{Current := _, Key := _}) -> true;
+                (#{}) -> false
+              end,
+
+              case lists:any(Fun, SkipList) of
+                true ->
+                  AccSeen;
+
+                false when is_map_key(Key, Seen) ->
+                  file_error(Meta, E, ?MODULE, {recursive, many, maps:keys(Seen), Expr});
+
+                false ->
+                  recur_cycles(Cycles, Key, Current, AccSeen, SkipList, Meta, Expr, E)
+              end
+          end, maps:put(Current, true, Seen), DependsOn)
+      end
   end.
 
 %% Match
