@@ -870,7 +870,7 @@ expand_local(Meta, Name, Args, S, #{module := Module, function := Function, cont
       module_error(Meta, E, ?MODULE, {invalid_local_invocation, "match", {Name, Meta, Args}});
 
     guard ->
-      module_error(Meta, E, ?MODULE, {invalid_local_invocation, guard_context(S), {Name, Meta, Args}});
+      module_error(Meta, E, ?MODULE, {invalid_local_invocation, elixir_utils:guard_context(S), {Name, Meta, Args}});
 
     nil ->
       Arity = length(Args),
@@ -890,21 +890,27 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, S, SL, #{context := Context}
   if
     Context =:= guard, is_tuple(Receiver) ->
       (lists:keyfind(no_parens, 1, Meta) /= {no_parens, true}) andalso
-        function_error(Meta, E, ?MODULE, {parens_map_lookup, Receiver, Right, guard_context(S)}),
+        function_error(Meta, E, ?MODULE, {parens_map_lookup, Receiver, Right, elixir_utils:guard_context(S)}),
 
       {{{'.', DotMeta, [Receiver, Right]}, Meta, []}, SL, E};
 
-    true ->
+    Context =:= nil ->
       AttachedMeta = attach_runtime_module(Receiver, Meta, S, E),
       {EArgs, {SA, _}, EA} = mapfold(fun expand_arg/3, {SL, S}, E, Args),
+      Rewritten = elixir_rewrite:rewrite(Receiver, DotMeta, Right, AttachedMeta, EArgs),
+      {Rewritten, elixir_env:close_write(SA, S), EA};
 
-      case rewrite(Context, Receiver, DotMeta, Right, AttachedMeta, EArgs, S) of
-        {ok, Rewritten} ->
-          SF = if Context =:= nil -> elixir_env:close_write(SA, S); true -> SA end,
-          {Rewritten, SF, EA};
+    true ->
+      case {Receiver, Right, Args} of
+        {erlang, '+', [Arg]} when is_number(Arg) -> {+Arg, SL, E};
+        {erlang, '-', [Arg]} when is_number(Arg) -> {-Arg, SL, E};
+        _ ->
+          {EArgs, SA, EA} = mapfold(fun expand/3, SL, E, Args),
 
-        {error, Error} ->
-          file_error(Meta, E, elixir_rewrite, Error)
+          case elixir_rewrite:Context(Receiver, DotMeta, Right, Meta, EArgs, S) of
+            {ok, Rewritten} -> {Rewritten, SA, EA};
+            {error, Error} -> file_error(Meta, E, elixir_rewrite, Error)
+          end
       end
   end;
 expand_remote(Receiver, DotMeta, Right, Meta, Args, _, _, E) ->
@@ -916,16 +922,6 @@ attach_runtime_module(Receiver, Meta, S, _E) ->
     true -> [{runtime_module, true} | Meta];
     false -> Meta
   end.
-
-% Signed numbers can be rewritten no matter the context
-rewrite(_, erlang, _, '+', _, [Arg], _S) when is_number(Arg) -> {ok, Arg};
-rewrite(_, erlang, _, '-', _, [Arg], _S) when is_number(Arg) -> {ok, -Arg};
-rewrite(match, Receiver, DotMeta, Right, Meta, EArgs, _S) ->
-  elixir_rewrite:match_rewrite(Receiver, DotMeta, Right, Meta, EArgs);
-rewrite(guard, Receiver, DotMeta, Right, Meta, EArgs, S) ->
-  elixir_rewrite:guard_rewrite(Receiver, DotMeta, Right, Meta, EArgs, guard_context(S));
-rewrite(_, Receiver, DotMeta, Right, Meta, EArgs, _S) ->
-  {ok, elixir_rewrite:rewrite(Receiver, DotMeta, Right, Meta, EArgs)}.
 
 %% Lexical helpers
 
@@ -1064,9 +1060,6 @@ assert_no_underscore_clause_in_cond(_Other, _E) ->
   ok.
 
 %% Errors
-
-guard_context(#elixir_ex{prematch={_, _, {bitsize, _}}}) -> "bitstring size specifier";
-guard_context(_) -> "guard".
 
 format_error(invalid_match_on_zero_float) ->
   "pattern matching on 0.0 is equivalent to matching only on +0.0 from Erlang/OTP 27+. Instead you must match on +0.0 or -0.0";
