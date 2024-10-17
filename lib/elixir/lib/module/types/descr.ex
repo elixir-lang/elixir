@@ -1571,15 +1571,15 @@ defmodule Module.Types.Descr do
 
         cond do
           is_proper_tuple? and is_proper_size? ->
+            static_result = tuple_delete_static(static, index)
             # Prune for dynamic values make the intersection succeed
             dynamic_result =
               intersection(dynamic, tuple_of_size_at_least(index))
               |> tuple_delete_static(index)
 
-            static_result = tuple_delete_static(static, index)
-
             union(dynamic(dynamic_result), static_result)
 
+          # Highlight the case where the issue is an index out of range from the tuple
           is_proper_tuple? ->
             :badrange
 
@@ -1625,15 +1625,15 @@ defmodule Module.Types.Descr do
 
         cond do
           is_proper_tuple? and is_proper_size? ->
+            static_result = insert_element(static, index, type)
             # Prune for dynamic values that make the intersection succeed
             dynamic_result =
               intersection(dynamic, tuple_of_size_at_least(index))
               |> insert_element(index, type)
 
-            static_result = insert_element(static, index, type)
-
             union(dynamic(dynamic_result), static_result)
 
+          # Highlight the case where the issue is an index out of range from the tuple
           is_proper_tuple? ->
             :badrange
 
