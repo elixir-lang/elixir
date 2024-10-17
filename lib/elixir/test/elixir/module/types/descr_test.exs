@@ -475,6 +475,12 @@ defmodule Module.Types.DescrTest do
     end
 
     test "tuple_delete_at" do
+      assert tuple_delete_at(tuple([integer(), atom()]), 3) == :badrange
+      assert tuple_delete_at(tuple([integer(), atom()]), -1) == :badindex
+      assert tuple_delete_at(empty_tuple(), 0) == :badrange
+      assert tuple_delete_at(integer(), 0) == :badtuple
+      assert tuple_delete_at(term(), 0) == :badtuple
+
       # Test deleting an element from a closed tuple
       assert tuple_delete_at(tuple([integer(), atom(), boolean()]), 1) ==
                tuple([integer(), boolean()])
@@ -495,21 +501,6 @@ defmodule Module.Types.DescrTest do
       assert tuple_delete_at(union(tuple([integer(), atom()]), tuple([float(), binary()])), 1) ==
                union(tuple([integer()]), tuple([float()]))
 
-      # Test deleting with an out-of-bounds index
-      assert tuple_delete_at(tuple([integer(), atom()]), 3) == :badrange
-
-      # Test deleting with a negative index
-      assert tuple_delete_at(tuple([integer(), atom()]), -1) == :badindex
-
-      # Test deleting from an empty tuple
-      assert tuple_delete_at(empty_tuple(), 0) == :badrange
-
-      # Test deleting from a non-tuple type
-      assert tuple_delete_at(integer(), 0) == :badtuple
-
-      # Test deleting from a term()
-      assert tuple_delete_at(term(), 0) == :badtuple
-
       # Test deleting from an intersection of tuples
       assert intersection(tuple([integer(), atom()]), tuple([term(), boolean()]))
              |> tuple_delete_at(1) == tuple([integer()])
@@ -524,8 +515,6 @@ defmodule Module.Types.DescrTest do
              |> tuple_delete_at(1)
              |> equal?(union(tuple([integer()]), dynamic(tuple([float()]))))
 
-      assert tuple_delete_at(open_tuple([term()]), 0) == tuple()
-
       # Succesfully deleting at position `index` in a tuple means that the dynamic
       # values that succeed are intersected with tuples of size at least `index`
       assert dynamic(tuple()) |> tuple_delete_at(0) == dynamic(tuple())
@@ -536,6 +525,15 @@ defmodule Module.Types.DescrTest do
     end
 
     test "tuple_insert_at" do
+      assert tuple_insert_at(tuple([integer(), atom()]), 3, boolean()) == :badrange
+      assert tuple_insert_at(tuple([integer(), atom()]), -1, boolean()) == :badindex
+      assert tuple_insert_at(integer(), 0, boolean()) == :badtuple
+      assert tuple_insert_at(term(), 0, boolean()) == :badtuple
+
+      # Out-of-bounds in a union
+      assert union(tuple([integer(), atom()]), tuple([float()]))
+             |> tuple_insert_at(2, boolean()) == :badrange
+
       # Test inserting into a closed tuple
       assert tuple_insert_at(tuple([integer(), atom()]), 1, boolean()) ==
                tuple([integer(), boolean(), atom()])
@@ -566,27 +564,6 @@ defmodule Module.Types.DescrTest do
       # Test inserting into a union of tuples
       assert tuple_insert_at(union(tuple([integer()]), tuple([atom()])), 0, boolean()) ==
                union(tuple([boolean(), integer()]), tuple([boolean(), atom()]))
-
-      # Test inserting with an out-of-bounds index
-      assert tuple_insert_at(tuple([integer(), atom()]), 3, boolean()) == :badrange
-
-      # Out-of-bounds in a union
-      assert union(tuple([integer(), atom()]), tuple([float()]))
-             |> tuple_insert_at(2, boolean()) == :badrange
-
-      # Inserting with a negative index
-      assert tuple_insert_at(tuple([integer(), atom()]), -1, boolean()) == :badindex
-
-      # Inserting into a non-tuple type
-      assert tuple_insert_at(integer(), 0, boolean()) == :badtuple
-
-      # Inserting into a term()
-      assert tuple_insert_at(term(), 0, boolean()) == :badtuple
-
-      # Test inserting into an intersection of tuples
-      assert tuple([integer(), atom()])
-             |> tuple_insert_at(1, float())
-             |> equal?(tuple([integer(), float(), atom()]))
 
       # Test inserting into a difference of tuples
       assert difference(tuple([integer(), atom(), boolean()]), tuple([term(), term()]))
