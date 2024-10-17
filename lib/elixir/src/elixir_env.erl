@@ -1,7 +1,7 @@
 -module(elixir_env).
 -include("elixir.hrl").
 -export([
-  new/0, to_caller/1, with_vars/2, reset_vars/1, env_to_ex/1,
+  new/0, to_caller/1, merge_vars/2, with_vars/2, reset_vars/1, env_to_ex/1,
   reset_unused_vars/1, check_unused_vars/2, merge_and_check_unused_vars/3, calculate_span/2,
   trace/2, format_error/1,
   reset_read/2, prepare_write/1, close_write/2
@@ -50,7 +50,7 @@ reset_vars(Env) ->
 env_to_ex(#{context := match, versioned_vars := Vars}) ->
   Counter = map_size(Vars),
   #elixir_ex{
-    prematch={Vars, #{}, Counter},
+    prematch={Vars, {#{}, []}, Counter},
     vars={Vars, false},
     unused={#{}, Counter}
   };

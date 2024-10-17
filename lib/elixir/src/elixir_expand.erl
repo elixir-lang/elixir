@@ -5,11 +5,13 @@
 
 %% =
 
+expand({'=', Meta, [_, _]} = Expr, S, #{context := match} = E) ->
+  elixir_clauses:parallel_match(Meta, Expr, S, E);
+
 expand({'=', Meta, [Left, Right]}, S, E) ->
   assert_no_guard_scope(Meta, "=", S, E),
   {ERight, SR, ER} = expand(Right, S, E),
-  {ELeft, SL, EL} = elixir_clauses:match(fun expand/3, Left, SR, S, ER),
-  refute_parallel_bitstring_match(ELeft, ERight, E, ?key(E, context) == match),
+  {ELeft, SL, EL} = elixir_clauses:match(fun expand/3, Meta, Left, SR, S, ER),
   {{'=', Meta, [ELeft, ERight]}, SL, EL};
 
 %% Literal operators
@@ -341,8 +343,9 @@ expand({Name, Meta, Kind}, S, #{context := match} = E) when is_atom(Name), is_at
     #{Pair := VarVersion} when VarVersion >= PrematchVersion ->
       maybe_warn_underscored_var_repeat(Meta, Name, Kind, E),
       NewUnused = var_used(Pair, Meta, VarVersion, Unused),
+      NewWrite = (Write /= false) andalso Write#{Pair => Version},
       Var = {Name, [{version, VarVersion} | Meta], Kind},
-      {Var, S#elixir_ex{unused={NewUnused, Version}}, E};
+      {Var, S#elixir_ex{vars={Read, NewWrite}, unused={NewUnused, Version}}, E};
 
     %% Variable is being overridden now
     #{Pair := _} ->
@@ -827,7 +830,7 @@ expand_for_do_block(Meta, [{'->', _, _} | _] = Clauses, S, E, {reduce, _}) ->
       SReset = elixir_env:reset_unused_vars(SA),
 
       {EClause, SAcc, EAcc} =
-        elixir_clauses:clause(Meta, fn, fun elixir_clauses:head/3, Clause, SReset, E),
+        elixir_clauses:clause(Meta, fn, fun elixir_clauses:head/4, Clause, SReset, E),
 
       {EClause, elixir_env:merge_and_check_unused_vars(SAcc, SA, EAcc)};
 
@@ -994,7 +997,7 @@ expand_aliases({'__aliases__', Meta, List} = Alias, S, E, Report) ->
 expand_for_generator({'<-', Meta, [Left, Right]}, S, E) ->
   {ERight, SR, ER} = expand(Right, S, E),
   SM = elixir_env:reset_read(SR, S),
-  {[ELeft], SL, EL} = elixir_clauses:head([Left], SM, ER),
+  {[ELeft], SL, EL} = elixir_clauses:head(Meta, [Left], SM, ER),
   {{'<-', Meta, [ELeft, ERight]}, SL, EL};
 expand_for_generator({'<<>>', Meta, Args} = X, S, E) when is_list(Args) ->
   case elixir_utils:split_last(Args) of
@@ -1003,7 +1006,7 @@ expand_for_generator({'<<>>', Meta, Args} = X, S, E) when is_list(Args) ->
       SM = elixir_env:reset_read(SR, S),
       {ELeft, SL, EL} = elixir_clauses:match(fun(BArg, BS, BE) ->
         elixir_bitstring:expand(Meta, BArg, BS, BE, true)
-      end, LeftStart ++ [LeftEnd], SM, SM, ER),
+      end, Meta, LeftStart ++ [LeftEnd], SM, SM, ER),
       {{'<<>>', Meta, [{'<-', OpMeta, [ELeft, ERight]}]}, SL, EL};
     _ ->
       expand(X, S, E)
@@ -1019,45 +1022,6 @@ assert_generator_start(Meta, _, E) ->
   elixir_errors:file_error(Meta, E, ?MODULE, for_generator_start).
 
 %% Assertions
-
-refute_parallel_bitstring_match({'<<>>', _, _}, {'<<>>', Meta, _} = Arg, E, true) ->
-  file_error(Meta, E, ?MODULE, {parallel_bitstring_match, Arg});
-refute_parallel_bitstring_match(Left, {'=', _Meta, [MatchLeft, MatchRight]}, E, Parallel) ->
-  refute_parallel_bitstring_match(Left, MatchLeft, E, true),
-  refute_parallel_bitstring_match(Left, MatchRight, E, Parallel);
-refute_parallel_bitstring_match([_ | _] = Left, [_ | _] = Right, E, Parallel) ->
-  refute_parallel_bitstring_match_each(Left, Right, E, Parallel);
-refute_parallel_bitstring_match({Left1, Left2}, {Right1, Right2}, E, Parallel) ->
-  refute_parallel_bitstring_match_each([Left1, Left2], [Right1, Right2], E, Parallel);
-refute_parallel_bitstring_match({'{}', _, Args1}, {'{}', _, Args2}, E, Parallel) ->
-  refute_parallel_bitstring_match_each(Args1, Args2, E, Parallel);
-refute_parallel_bitstring_match({'%{}', _, Args1}, {'%{}', _, Args2}, E, Parallel) ->
-  refute_parallel_bitstring_match_map_field(lists:sort(Args1), lists:sort(Args2), E, Parallel);
-refute_parallel_bitstring_match({'%', _, [_, Args]}, Right, E, Parallel) ->
-  refute_parallel_bitstring_match(Args, Right, E, Parallel);
-refute_parallel_bitstring_match(Left, {'%', _, [_, Args]}, E, Parallel) ->
-  refute_parallel_bitstring_match(Left, Args, E, Parallel);
-refute_parallel_bitstring_match(_Left, _Right, _E, _Parallel) ->
-  ok.
-
-refute_parallel_bitstring_match_each([Arg1 | Rest1], [Arg2 | Rest2], E, Parallel) ->
-  refute_parallel_bitstring_match(Arg1, Arg2, E, Parallel),
-    refute_parallel_bitstring_match_each(Rest1, Rest2, E, Parallel);
-refute_parallel_bitstring_match_each(_List1, _List2, _E, _Parallel) ->
-  ok.
-
-refute_parallel_bitstring_match_map_field([{Key, Val1} | Rest1], [{Key, Val2} | Rest2], E, Parallel) ->
-  refute_parallel_bitstring_match(Val1, Val2, E, Parallel),
-  refute_parallel_bitstring_match_map_field(Rest1, Rest2, E, Parallel);
-refute_parallel_bitstring_match_map_field([Field1 | Rest1] = Args1, [Field2 | Rest2] = Args2, E, Parallel) ->
-  case Field1 > Field2 of
-    true ->
-      refute_parallel_bitstring_match_map_field(Args1, Rest2, E, Parallel);
-    false ->
-      refute_parallel_bitstring_match_map_field(Rest1, Args2, E, Parallel)
-  end;
-refute_parallel_bitstring_match_map_field(_Args1, _Args2, _E, _Parallel) ->
-  ok.
 
 assert_module_scope(Meta, Kind, #{module := nil, file := File}) ->
   file_error(Meta, File, ?MODULE, {invalid_expr_in_scope, "module", Kind});
@@ -1290,8 +1254,4 @@ format_error({parens_map_lookup, Map, Field, Context}) ->
 format_error({super_in_genserver, {Name, Arity}}) ->
   io_lib:format("calling super for GenServer callback ~ts/~B is deprecated", [Name, Arity]);
 format_error('__cursor__') ->
-  "reserved special form __cursor__ cannot be expanded, it is used exclusively to annotate ASTs";
-format_error({parallel_bitstring_match, Expr}) ->
-  Message =
-    "binary patterns cannot be matched in parallel using \"=\", excess pattern: ~ts",
-  io_lib:format(Message, ['Elixir.Macro':to_string(Expr)]).
+  "reserved special form __cursor__ cannot be expanded, it is used exclusively to annotate ASTs".

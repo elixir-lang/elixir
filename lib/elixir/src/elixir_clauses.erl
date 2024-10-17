@@ -1,26 +1,152 @@
 %% Handle code related to args, guard and -> matching for case,
 %% fn, receive and friends. try is handled in elixir_try.
 -module(elixir_clauses).
--export([match/5, clause/6, def/3, head/3,
+-export([parallel_match/4, match/6, clause/6, def/3, head/4,
          'case'/4, 'receive'/4, 'try'/4, 'cond'/4, with/4,
          format_error/1]).
 -import(elixir_errors, [file_error/4, file_warn/4]).
 -include("elixir.hrl").
 
-match(Fun, Expr, AfterS, _BeforeS, #{context := match} = E) ->
-  Fun(Expr, AfterS, E);
-match(Fun, Expr, AfterS, BeforeS, E) ->
+%% Deal with parallel matches and loops in variables
+
+parallel_match(Meta, Expr, S, #{context := match} = E) ->
+  #elixir_ex{vars={_Read, Write}} = S,
+  Matches = unpack_match(Expr, Meta, []),
+
+  {[{_, EHead} | ETail], EWrites, SM, EM} =
+    lists:foldl(fun({EMeta, Match}, {AccMatches, AccWrites, SI, EI}) ->
+      #elixir_ex{vars={Read, _Write}} = SI,
+      {EMatch, SM, EM} = elixir_expand:expand(Match, SI#elixir_ex{vars={Read, #{}}}, EI),
+      #elixir_ex{vars={_, EWrite}} = SM,
+      {[{EMeta, EMatch} | AccMatches], [EWrite | AccWrites], SM, EM}
+    end, {[], [], S, E}, Matches),
+
+  EMatch =
+    lists:foldl(fun({EMeta, EMatch}, Acc) ->
+      {'=', EMeta, [EMatch, Acc]}
+    end, EHead, ETail),
+
+  #elixir_ex{vars={VRead, _}, prematch={PRead, Cycles, PInfo}} = SM,
+  {PCycles, PWrites} = store_cycles(EWrites, Cycles, #{}),
+  VWrite = (Write /= false) andalso elixir_env:merge_vars(Write, PWrites),
+  {EMatch, SM#elixir_ex{vars={VRead, VWrite}, prematch={PRead, PCycles, PInfo}}, EM}.
+
+unpack_match({'=', Meta, [Left, Right]}, _Meta, Acc) ->
+  unpack_match(Left, Meta, unpack_match(Right, Meta, Acc));
+unpack_match(Node, Meta, Acc) ->
+  [{Meta, Node} | Acc].
+
+store_cycles([Write | Writes], {Cycles, SkipList}, Acc) ->
+  %% Compute the variables this parallel pattern depends on
+  DependsOn = lists:foldl(fun maps:merge/2, Acc, Writes),
+
+  %% For each variable on a sibling, we store it inside the graph (Cycles).
+  %% The graph will by definition have at least one degree cycles. We need
+  %% to find variables which depend on each other more than once (tagged as
+  %% error below) and also all second-degree (or later) cycles. In other
+  %% words, take this code:
+  %%
+  %%     {x = y, x = {:ok, y}} = expr()
+  %%
+  %% The first parallel match will say we store the following cycle:
+  %%
+  %%     #{{x,nil} => #{{y,nil} => 1}, {y,nil} => #{{x,nil} => 0}}
+  %%
+  %% That's why one degree cycles are allowed. However, once we go
+  %% over the next parallel pattern, we will have:
+  %%
+  %%     #{{x,nil} => #{{y,nil} => error}, {y,nil} => #{{x,nil} => error}}
+  %%
+  AccCycles =
+    maps:fold(fun(Pair, _, AccCycles) ->
+      maps:update_with(Pair, fun(Current) ->
+        maps:merge_with(fun(_, _, _) -> error end, Current, DependsOn)
+      end, DependsOn, AccCycles)
+    end, Cycles, Write),
+
+  %% The SkipList keeps variables that are seen as defined together by other
+  %% nodes. Those must be skipped on the graph traversal, as they will always
+  %% contain cycles between them. For example:
+  %%
+  %%     {{a} = b} = c = expr()
+  %%
+  %% In the example above, c sees "a" and "b" as defined together and therefore
+  %% one should not point to the other when looking for cycles.
+  AccSkipList =
+    case map_size(DependsOn) > 1 of
+      true -> [DependsOn | SkipList];
+      false -> SkipList
+    end,
+
+  store_cycles(Writes, {AccCycles, AccSkipList}, maps:merge(Acc, Write));
+store_cycles([], Cycles, Acc) ->
+  {Cycles, Acc}.
+
+validate_cycles({Cycles, SkipList}, Meta, Expr, E) ->
+  maps:foreach(fun(Current, DependsOn) ->
+    case DependsOn of
+      #{Current := _} ->
+        file_error(Meta, E, ?MODULE, {recursive, self, Current, Expr});
+
+      #{} ->
+        maps:foreach(fun
+          (Key, error) ->
+            file_error(Meta, E, ?MODULE, {recursive, one, Current, Key, Expr});
+
+          (Key, _) ->
+            recur_cycles(Cycles, Key, Current, Current, #{Key => true}, SkipList, Meta, Expr, E)
+        end, DependsOn)
+    end
+  end, Cycles).
+
+recur_cycles(Cycles, Current, Source, Target, Seen, SkipList, Meta, Expr, E) ->
+  Fun = fun
+    (#{Current := _, Source := _}) -> true;
+    (#{}) -> false
+  end,
+
+  case lists:any(Fun, SkipList) of
+    true ->
+      ok;
+
+    false when Current == Target ->
+      file_error(Meta, E, ?MODULE, {recursive, many, maps:keys(Seen), Expr});
+
+    false ->
+      maps:foreach(fun
+        %% Never go back to the node that we came from (as we can always one hop)
+        %% and avoid revisting past nodes.
+        (Key, _) when Key =:= Source; is_map_key(Key, Seen) ->
+          ok;
+
+        (Key, _) ->
+          NewSeen = maps:put(Key, true, Seen),
+          recur_cycles(Cycles, Key, Current, Target, NewSeen, SkipList, Meta, Expr, E)
+      end, maps:get(Current, Cycles))
+  end.
+
+%% Match
+
+match(Fun, Meta, Expr, AfterS, BeforeS, #{context := nil} = E) ->
   #elixir_ex{vars=Current, unused={_, Counter} = Unused} = AfterS,
   #elixir_ex{vars={Read, _}, prematch=Prematch} = BeforeS,
 
   CallS = BeforeS#elixir_ex{
-    prematch={Read, #{}, Counter},
+    prematch={Read, {#{}, []}, Counter},
     unused=Unused,
     vars=Current
   },
 
   CallE = E#{context := match},
-  {EExpr, #elixir_ex{vars=NewCurrent, unused=NewUnused}, EE} = Fun(Expr, CallS, CallE),
+  {EExpr, SE, EE} = Fun(Expr, CallS, CallE),
+
+  #elixir_ex{
+    vars=NewCurrent,
+    unused=NewUnused,
+    prematch={_, Cycles, _}
+  } = SE,
+
+  validate_cycles(Cycles, Meta, Expr, E),
 
   EndS = AfterS#elixir_ex{
     prematch=Prematch,
@@ -32,28 +158,31 @@ match(Fun, Expr, AfterS, BeforeS, E) ->
   {EExpr, EndS, EndE}.
 
 def({Meta, Args, Guards, Body}, S, E) ->
-  {EArgs, SA, EA} = elixir_expand:expand_args(Args, S#elixir_ex{prematch={#{}, #{}, 0}}, E#{context := match}),
+  {EArgs, SA, EA} = elixir_expand:expand_args(Args, S#elixir_ex{prematch={#{}, {#{}, []}, 0}}, E#{context := match}),
+  #elixir_ex{prematch={_, Cycles, _}} = SA,
+  validate_cycles(Cycles, Meta, Args, E),
   {EGuards, SG, EG} = guard(Guards, SA#elixir_ex{prematch=none}, EA#{context := guard}),
   {EBody, SB, EB} = elixir_expand:expand(Body, SG, EG#{context := nil}),
   elixir_env:check_unused_vars(SB, EB),
   {Meta, EArgs, EGuards, EBody}.
 
-clause(Meta, Kind, Fun, {'->', ClauseMeta, [_, _]} = Clause, S, E) when is_function(Fun, 4) ->
-  clause(Meta, Kind, fun(X, SA, EA) -> Fun(ClauseMeta, X, SA, EA) end, Clause, S, E);
 clause(_Meta, _Kind, Fun, {'->', Meta, [Left, Right]}, S, E) ->
-  {ELeft, SL, EL}  = Fun(Left, S, E),
+  {ELeft, SL, EL}  = case is_function(Fun, 4) of
+    true -> Fun(Meta, Left, S, E);
+    false -> Fun(Left, S, E)
+  end,
   {ERight, SR, ER} = elixir_expand:expand(Right, SL, EL),
   {{'->', Meta, [ELeft, ERight]}, SR, ER};
 clause(Meta, Kind, _Fun, _, _, E) ->
   file_error(Meta, E, ?MODULE, {bad_or_missing_clauses, Kind}).
 
-head([{'when', Meta, [_ | _] = All}], S, E) ->
+head(Meta, [{'when', WhenMeta, [_ | _] = All}], S, E) ->
   {Args, Guard} = elixir_utils:split_last(All),
-  {EArgs, SA, EA} = match(fun elixir_expand:expand_args/3, Args, S, S, E),
+  {EArgs, SA, EA} = match(fun elixir_expand:expand_args/3, Meta, Args, S, S, E),
   {EGuard, SG, EG} = guard(Guard, SA, EA#{context := guard}),
-  {[{'when', Meta, EArgs ++ [EGuard]}], SG, EG#{context := nil}};
-head(Args, S, E) ->
-  match(fun elixir_expand:expand_args/3, Args, S, S, E).
+  {[{'when', WhenMeta, EArgs ++ [EGuard]}], SG, EG#{context := nil}};
+head(Meta, Args, S, E) ->
+  match(fun elixir_expand:expand_args/3, Meta, Args, S, S, E).
 
 guard({'when', Meta, [Left, Right]}, S, E) ->
   {ELeft, SL, EL}  = guard(Left, S, E),
@@ -92,7 +221,7 @@ warn_zero_length_guard(_, _) ->
   {Case, SA, E}.
 
 expand_case(Meta, {'do', _} = Do, S, E) ->
-  Fun = expand_head(Meta, 'case', 'do'),
+  Fun = expand_head('case', 'do'),
   expand_clauses(Meta, 'case', Fun, Do, S, E);
 expand_case(Meta, {Key, _}, _S, E) ->
   file_error(Meta, E, ?MODULE, {unexpected_option, 'case', Key}).
@@ -134,7 +263,7 @@ expand_cond(Meta, {Key, _}, _S, E) ->
 expand_receive(_Meta, {'do', {'__block__', _, []}} = Do, S, _E) ->
   {Do, S};
 expand_receive(Meta, {'do', _} = Do, S, E) ->
-  Fun = expand_head(Meta, 'receive', 'do'),
+  Fun = expand_head('receive', 'do'),
   expand_clauses(Meta, 'receive', Fun, Do, S, E);
 expand_receive(Meta, {'after', [_]} = After, S, E) ->
   Fun = expand_one(Meta, 'receive', 'after', fun elixir_expand:expand_args/3),
@@ -165,7 +294,7 @@ with(Meta, Args, S, E) ->
 expand_with({'<-', Meta, [Left, Right]}, {S, E, HasMatch}) ->
   {ERight, SR, ER} = elixir_expand:expand(Right, S, E),
   SM = elixir_env:reset_read(SR, S),
-  {[ELeft], SL, EL} = head([Left], SM, ER),
+  {[ELeft], SL, EL} = head(Meta, [Left], SM, ER),
   NewHasMatch =
     case ELeft of
       {Var, _, Ctx} when is_atom(Var), is_atom(Ctx) -> HasMatch;
@@ -192,7 +321,7 @@ expand_with_else(Meta, Opts, S, E, HasMatch) ->
         HasMatch -> ok;
         true -> file_warn(Meta, ?key(E, file), ?MODULE, unmatchable_else_in_with)
       end,
-      Fun = expand_head(Meta, 'with', 'else'),
+      Fun = expand_head('with', 'else'),
       {EPair, SE} = expand_clauses(Meta, 'with', Fun, Pair, S, E),
       {[EPair], RestOpts, SE};
     false ->
@@ -234,7 +363,7 @@ expand_try(_Meta, {'after', Expr}, S, E) ->
   {EExpr, SE, EE} = elixir_expand:expand(Expr, elixir_env:reset_unused_vars(S), E),
   {{'after', EExpr}, elixir_env:merge_and_check_unused_vars(SE, S, EE)};
 expand_try(Meta, {'else', _} = Else, S, E) ->
-  Fun = expand_head(Meta, 'try', 'else'),
+  Fun = expand_head('try', 'else'),
   expand_clauses(Meta, 'try', Fun, Else, S, E);
 expand_try(Meta, {'catch', _} = Catch, S, E) ->
   expand_clauses_with_stacktrace(Meta, fun expand_catch/4, Catch, S, E);
@@ -252,10 +381,10 @@ expand_clauses_with_stacktrace(Meta, Fun, Clauses, S, E) ->
 expand_catch(Meta, [{'when', _, [_, _, _, _ | _]}], _, E) ->
   Error = {wrong_number_of_args_for_clause, "one or two args", origin(Meta, 'try'), 'catch'},
   file_error(Meta, E, ?MODULE, Error);
-expand_catch(_Meta, [_] = Args, S, E) ->
-  head(Args, S, E);
-expand_catch(_Meta, [_, _] = Args, S, E) ->
-  head(Args, S, E);
+expand_catch(Meta, [_] = Args, S, E) ->
+  head(Meta, Args, S, E);
+expand_catch(Meta, [_, _] = Args, S, E) ->
+  head(Meta, Args, S, E);
 expand_catch(Meta, _, _, E) ->
   Error = {wrong_number_of_args_for_clause, "one or two args", origin(Meta, 'try'), 'catch'},
   file_error(Meta, E, ?MODULE, Error).
@@ -272,21 +401,21 @@ expand_rescue(Meta, _, _, E) ->
   file_error(Meta, E, ?MODULE, Error).
 
 %% rescue var
-expand_rescue({Name, _, Atom} = Var, S, E) when is_atom(Name), is_atom(Atom) ->
-  match(fun elixir_expand:expand/3, Var, S, S, E);
+expand_rescue({Name, Meta, Atom} = Var, S, E) when is_atom(Name), is_atom(Atom) ->
+  match(fun elixir_expand:expand/3, Meta, Var, S, S, E);
 
 %% rescue Alias => _ in [Alias]
 expand_rescue({'__aliases__', _, [_ | _]} = Alias, S, E) ->
   expand_rescue({in, [], [{'_', [], ?key(E, module)}, Alias]}, S, E);
 
 %% rescue var in _
-expand_rescue({in, _, [{Name, _, VarContext} = Var, {'_', _, UnderscoreContext}]}, S, E)
+expand_rescue({in, _, [{Name, Meta, VarContext} = Var, {'_', _, UnderscoreContext}]}, S, E)
     when is_atom(Name), is_atom(VarContext), is_atom(UnderscoreContext) ->
-  match(fun elixir_expand:expand/3, Var, S, S, E);
+  match(fun elixir_expand:expand/3, Meta, Var, S, S, E);
 
 %% rescue var in (list() or atom())
 expand_rescue({in, Meta, [Left, Right]}, S, E) ->
-  {ELeft, SL, EL}  = match(fun elixir_expand:expand/3, Left, S, S, E),
+  {ELeft, SL, EL}  = match(fun elixir_expand:expand/3, Meta, Left, S, S, E),
   {ERight, SR, ER} = elixir_expand:expand(Right, SL, EL),
 
   case ELeft of
@@ -317,13 +446,13 @@ normalize_rescue(Other) ->
 
 %% Expansion helpers
 
-expand_head(Meta, Kind, Key) ->
+expand_head(Kind, Key) ->
   fun
-    ([{'when', _, [_, _, _ | _]}], _, E) ->
+    (Meta, [{'when', _, [_, _, _ | _]}], _, E) ->
       file_error(Meta, E, ?MODULE, {wrong_number_of_args_for_clause, "one argument", Kind, Key});
-    ([_] = Args, S, E) ->
-      head(Args, S, E);
-    (_, _, E) ->
+    (Meta, [_] = Args, S, E) ->
+      head(Meta, Args, S, E);
+    (Meta, _, _, E) ->
       file_error(Meta, E, ?MODULE, {wrong_number_of_args_for_clause, "one argument", Kind, Key})
   end.
 

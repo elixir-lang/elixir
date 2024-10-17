@@ -2286,81 +2286,9 @@ defmodule Kernel.ExpansionTest do
                quote(do: <<foo::integer>> = baz = <<bar()::integer>>)
                |> clean_bit_modifiers()
 
-      assert expand(quote(do: <<foo>> = {<<baz>>} = bar())) |> clean_meta([:alignment]) ==
-               quote(do: <<foo::integer>> = {<<baz::integer>>} = bar())
+      assert expand(quote(do: <<foo>> = <<bar>> = baz)) |> clean_meta([:alignment]) ==
+               quote(do: <<foo::integer>> = <<bar::integer>> = baz())
                |> clean_bit_modifiers()
-
-      message = ~r"binary patterns cannot be matched in parallel using \"=\""
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: <<foo>> = <<baz>> = bar()))
-      end)
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: <<foo>> = qux = <<baz>> = bar()))
-      end)
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: {<<foo>>} = {qux} = {<<baz>>} = bar()))
-      end)
-
-      assert expand(quote(do: {:foo, <<foo>>} = {<<baz>>, :baz} = bar()))
-
-      # two-element tuples are special cased
-      assert_compile_error(message, fn ->
-        expand(quote(do: {:foo, <<foo>>} = {:foo, <<baz>>} = bar()))
-      end)
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: %{foo: <<foo>>} = %{baz: <<qux>>, foo: <<baz>>} = bar()))
-      end)
-
-      assert expand(quote(do: %{foo: <<foo>>} = %{baz: <<baz>>} = bar()))
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: %_{foo: <<foo>>} = %_{foo: <<baz>>} = bar()))
-      end)
-
-      assert expand(quote(do: %_{foo: <<foo>>} = %_{baz: <<baz>>} = bar()))
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: %_{foo: <<foo>>} = %{foo: <<baz>>} = bar()))
-      end)
-
-      assert expand(quote(do: %_{foo: <<foo>>} = %{baz: <<baz>>} = bar()))
-
-      assert_compile_error(message, fn ->
-        code =
-          quote do
-            case bar() do
-              <<foo>> = <<baz>> -> nil
-            end
-          end
-
-        expand(code)
-      end)
-
-      assert_compile_error(message, fn ->
-        code =
-          quote do
-            case bar() do
-              <<foo>> = qux = <<baz>> -> nil
-            end
-          end
-
-        expand(code)
-      end)
-
-      assert_compile_error(message, fn ->
-        code =
-          quote do
-            case bar() do
-              [<<foo>>] = [<<baz>>] -> nil
-            end
-          end
-
-        expand(code)
-      end)
     end
 
     test "nested match" do
