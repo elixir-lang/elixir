@@ -55,11 +55,14 @@ defmodule Module.Types.Expr do
   def of_expr([], _stack, context),
     do: {:ok, empty_list(), context}
 
-  # TODO: [expr, ...]
-  def of_expr(exprs, stack, context) when is_list(exprs) do
-    case map_reduce_ok(exprs, context, &of_expr(&1, stack, &2)) do
-      {:ok, _types, context} -> {:ok, non_empty_list(term()), context}
-      {:error, context} -> {:error, context}
+  # [expr, ...]
+  def of_expr(list, stack, context) when is_list(list) do
+    {prefix, suffix} = unpack_list(list, [])
+
+    with {:ok, prefix, context} <-
+           map_reduce_ok(prefix, context, &of_expr(&1, stack, &2)),
+         {:ok, suffix, context} <- of_expr(suffix, stack, context) do
+      {:ok, non_empty_list(Enum.reduce(prefix, &union/2), suffix), context}
     end
   end
 
@@ -75,24 +78,8 @@ defmodule Module.Types.Expr do
   def of_expr({:<<>>, _meta, args}, stack, context) do
     case Of.binary(args, :expr, stack, context) do
       {:ok, context} -> {:ok, binary(), context}
-      # It is safe to discard errors from binary inside expressions
+      # It is safe to discard errors from binaries, we can continue typechecking
       {:error, context} -> {:ok, binary(), context}
-    end
-  end
-
-  # TODO: left | []
-  def of_expr({:|, _meta, [left_expr, []]}, stack, context) do
-    of_expr(left_expr, stack, context)
-  end
-
-  # TODO: left | right
-  def of_expr({:|, _meta, [left_expr, right_expr]}, stack, context) do
-    case of_expr(left_expr, stack, context) do
-      {:ok, _left, context} ->
-        of_expr(right_expr, stack, context)
-
-      {:error, context} ->
-        {:error, context}
     end
   end
 
@@ -114,7 +101,7 @@ defmodule Module.Types.Expr do
     end
   end
 
-  # TODO: left = right
+  # left = right
   def of_expr({:=, _meta, [left_expr, right_expr]} = expr, stack, context) do
     with {:ok, right_type, context} <- of_expr(right_expr, stack, context) do
       Pattern.of_match(left_expr, right_type, expr, stack, context)
@@ -352,7 +339,7 @@ defmodule Module.Types.Expr do
     {:ok, fun(), context}
   end
 
-  # TODO: call(arg)
+  # TODO: local_call(arg)
   def of_expr({fun, _meta, args}, stack, context)
       when is_atom(fun) and is_list(args) do
     with {:ok, _arg_types, context} <-
@@ -532,7 +519,7 @@ defmodule Module.Types.Expr do
   ## Warning formatting
 
   def format_diagnostic({:badupdate, type, expr, expected_type, actual_type, context}) do
-    traces = Of.collect_traces(expr, context)
+    traces = collect_traces(expr, context)
 
     %{
       details: %{typing_traces: traces},
@@ -551,13 +538,13 @@ defmodule Module.Types.Expr do
 
               #{to_quoted_string(actual_type) |> indent(4)}
           """,
-          Of.format_traces(traces)
+          format_traces(traces)
         ])
     }
   end
 
   def format_diagnostic({:badbinary, type, expr, context}) do
-    traces = Of.collect_traces(expr, context)
+    traces = collect_traces(expr, context)
 
     %{
       details: %{typing_traces: traces},
@@ -572,7 +559,7 @@ defmodule Module.Types.Expr do
 
               #{to_quoted_string(type) |> indent(4)}
           """,
-          Of.format_traces(traces)
+          format_traces(traces)
         ])
     }
   end

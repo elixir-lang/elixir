@@ -138,54 +138,51 @@ defmodule Module.Types.Pattern do
 
   defp of_pattern_recur(types, changed, vars, args, stack, context, callback) do
     with {:ok, types, %{vars: context_vars} = context} <- callback.(types, changed, context) do
-      vars
-      |> reduce_ok({[], context}, fn {version, paths}, {changed, context} ->
-        current_type = context_vars[version][:type]
+      result =
+        reduce_ok(vars, {[], context}, fn {version, paths}, {changed, context} ->
+          current_type = context_vars[version][:type]
 
-        paths
-        |> reduce_ok({false, context}, fn
-          [var, {:arg, index, expected, expr} | path], {var_changed?, context} ->
-            actual = Enum.fetch!(types, index)
+          result =
+            reduce_ok(paths, {false, context}, fn
+              [var, {:arg, index, expected, expr} | path], {var_changed?, context} ->
+                actual = Enum.fetch!(types, index)
 
-            case of_pattern_var(path, actual) do
-              {:ok, type} ->
-                with {:ok, type, context} <- Of.refine_var(var, type, expr, stack, context) do
-                  {:ok, {var_changed? or current_type != type, context}}
+                case of_pattern_var(path, actual) do
+                  {:ok, type} ->
+                    with {:ok, type, context} <- Of.refine_var(var, type, expr, stack, context) do
+                      {:ok, {var_changed? or current_type != type, context}}
+                    end
+
+                  :error ->
+                    {:error, Of.incompatible_warn(expr, expected, actual, stack, context)}
                 end
+            end)
 
-              :error ->
-                {:error, Of.incompatible_warn(expr, expected, actual, stack, context)}
+          with {:ok, {var_changed?, context}} <- result do
+            case var_changed? do
+              false ->
+                {:ok, {changed, context}}
+
+              true ->
+                case paths do
+                  # A single change, check if there are other variables in this index.
+                  [[_var, {:arg, index, _, _} | _]] ->
+                    case args do
+                      %{^index => true} -> {:ok, {[index | changed], context}}
+                      %{^index => false} -> {:ok, {changed, context}}
+                    end
+
+                  # Several changes, we have to recompute all indexes.
+                  _ ->
+                    var_changed = Enum.map(paths, fn [_var, {:arg, index, _, _} | _] -> index end)
+                    {:ok, {var_changed ++ changed, context}}
+                end
             end
+          end
         end)
-        |> case do
-          {:ok, {false, context}} ->
-            {:ok, {changed, context}}
 
-          {:ok, {true, context}} ->
-            case paths do
-              # A single change, check if there are other variables in this index.
-              [[_var, {:arg, index, _, _} | _]] ->
-                case args do
-                  %{^index => true} -> {:ok, {[index | changed], context}}
-                  %{^index => false} -> {:ok, {changed, context}}
-                end
-
-              # Several changes, we have to recompute all indexes.
-              _ ->
-                var_changed = Enum.map(paths, fn [_var, {:arg, index, _, _} | _] -> index end)
-                {:ok, {var_changed ++ changed, context}}
-            end
-
-          {:error, context} ->
-            {:error, context}
-        end
-      end)
-      |> case do
-        {:ok, {changed, context}} ->
-          of_pattern_recur(types, :lists.usort(changed), vars, args, stack, context, callback)
-
-        {:error, context} ->
-          {:error, context}
+      with {:ok, {changed, context}} <- result do
+        of_pattern_recur(types, :lists.usort(changed), vars, args, stack, context, callback)
       end
     end
   end
@@ -334,29 +331,30 @@ defmodule Module.Types.Pattern do
 
   # left = right
   defp of_pattern({:=, _meta, [_, _]} = match, path, stack, context) do
-    match
-    |> unpack_match([])
-    |> reduce_ok({[], [], context}, fn pattern, {static, dynamic, context} ->
-      with {:ok, type, context} <- of_pattern(pattern, path, stack, context) do
-        if is_descr(type) do
-          {:ok, {[type | static], dynamic, context}}
-        else
-          {:ok, {static, [type | dynamic], context}}
+    result =
+      match
+      |> unpack_match([])
+      |> reduce_ok({[], [], context}, fn pattern, {static, dynamic, context} ->
+        with {:ok, type, context} <- of_pattern(pattern, path, stack, context) do
+          if is_descr(type) do
+            {:ok, {[type | static], dynamic, context}}
+          else
+            {:ok, {static, [type | dynamic], context}}
+          end
         end
+      end)
+
+    with {:ok, acc} <- result do
+      case acc do
+        {[], dynamic, context} ->
+          {:ok, {:intersection, dynamic}, context}
+
+        {static, [], context} ->
+          {:ok, Enum.reduce(static, &intersection/2), context}
+
+        {static, dynamic, context} ->
+          {:ok, {:intersection, [Enum.reduce(static, &intersection/2) | dynamic]}, context}
       end
-    end)
-    |> case do
-      {:ok, {[], dynamic, context}} ->
-        {:ok, {:intersection, dynamic}, context}
-
-      {:ok, {static, [], context}} ->
-        {:ok, Enum.reduce(static, &intersection/2), context}
-
-      {:ok, {static, dynamic, context}} ->
-        {:ok, {:intersection, [Enum.reduce(static, &intersection/2) | dynamic]}, context}
-
-      {:error, context} ->
-        {:error, context}
     end
   end
 
@@ -429,9 +427,8 @@ defmodule Module.Types.Pattern do
 
   # <<...>>>
   defp of_pattern({:<<>>, _meta, args}, _path, stack, context) do
-    case Of.binary(args, :match, stack, context) do
-      {:ok, context} -> {:ok, binary(), context}
-      {:error, context} -> {:error, context}
+    with {:ok, context} <- Of.binary(args, :match, stack, context) do
+      {:ok, binary(), context}
     end
   end
 
@@ -496,10 +493,11 @@ defmodule Module.Types.Pattern do
         end
       end)
 
-    case result do
-      {:ok, {static, [], context}} -> {:ok, open_map(static), context}
-      {:ok, {static, dynamic, context}} -> {:ok, {:open_map, static, dynamic}, context}
-      {:error, context} -> {:error, context}
+    with {:ok, {static, dynamic, context}} <- result do
+      case dynamic do
+        [] -> {:ok, open_map(static), context}
+        _ -> {:ok, {:open_map, static, dynamic}, context}
+      end
     end
   end
 
@@ -511,10 +509,11 @@ defmodule Module.Types.Pattern do
         end
       end)
 
-    case result do
-      {:ok, {_index, true, entries, context}} -> {:ok, tuple(Enum.reverse(entries)), context}
-      {:ok, {_index, false, entries, context}} -> {:ok, {:tuple, Enum.reverse(entries)}, context}
-      {:error, context} -> {:error, context}
+    with {:ok, {_index, static?, entries, context}} <- result do
+      case static? do
+        true -> {:ok, tuple(Enum.reverse(entries)), context}
+        false -> {:ok, {:tuple, Enum.reverse(entries)}, context}
+      end
     end
   end
 
@@ -542,18 +541,17 @@ defmodule Module.Types.Pattern do
           end
         end)
 
-      case result do
-        {:ok, {static, [], context}} when is_descr(suffix) ->
-          {:ok, non_empty_list(Enum.reduce(static, &union/2), suffix), context}
+      with {:ok, acc} <- result do
+        case acc do
+          {static, [], context} when is_descr(suffix) ->
+            {:ok, non_empty_list(Enum.reduce(static, &union/2), suffix), context}
 
-        {:ok, {[], dynamic, context}} ->
-          {:ok, {:non_empty_list, dynamic, suffix}, context}
+          {[], dynamic, context} ->
+            {:ok, {:non_empty_list, dynamic, suffix}, context}
 
-        {:ok, {static, dynamic, context}} ->
-          {:ok, {:non_empty_list, [Enum.reduce(static, &union/2) | dynamic], suffix}, context}
-
-        {:error, context} ->
-          {:error, context}
+          {static, dynamic, context} ->
+            {:ok, {:non_empty_list, [Enum.reduce(static, &union/2) | dynamic], suffix}, context}
+        end
       end
     end
   end
@@ -637,9 +635,8 @@ defmodule Module.Types.Pattern do
   # <<>>
   def of_guard({:<<>>, _meta, args}, expected, expr, stack, context) do
     if binary_type?(expected) do
-      case Of.binary(args, :guard, stack, context) do
-        {:ok, context} -> {:ok, binary(), context}
-        {:error, context} -> {:ok, binary(), context}
+      with {:ok, context} <- Of.binary(args, :guard, stack, context) do
+        {:ok, binary(), context}
       end
     else
       {:error, Of.incompatible_warn(expr, expected, binary(), stack, context)}
@@ -654,9 +651,9 @@ defmodule Module.Types.Pattern do
 
   # {...}
   def of_guard({:{}, _meta, args}, _expected, expr, stack, context) do
-    case map_reduce_ok(args, context, &of_guard(&1, dynamic(), expr, stack, &2)) do
-      {:ok, types, context} -> {:ok, tuple(types), context}
-      {:error, reason} -> {:error, reason}
+    with {:ok, types, context} <-
+           map_reduce_ok(args, context, &of_guard(&1, dynamic(), expr, stack, &2)) do
+      {:ok, tuple(types), context}
     end
   end
 
@@ -684,18 +681,8 @@ defmodule Module.Types.Pattern do
 
   ## Helpers
 
-  defp unpack_list([{:|, _, [head, tail]}], acc), do: {Enum.reverse([head | acc]), tail}
-  defp unpack_list([head], acc), do: {Enum.reverse([head | acc]), []}
-  defp unpack_list([head | tail], acc), do: unpack_list(tail, [head | acc])
-
-  defp unpack_match({:=, _, [left, right]}, acc),
-    do: unpack_match(left, unpack_match(right, acc))
-
-  defp unpack_match(node, acc),
-    do: [node | acc]
-
   def format_diagnostic({:invalid_pattern, expr, context}) do
-    traces = Of.collect_traces(expr, context)
+    traces = collect_traces(expr, context)
 
     %{
       details: %{typing_traces: traces},
@@ -706,7 +693,7 @@ defmodule Module.Types.Pattern do
 
               #{expr_to_string(expr) |> indent(4)}
           """,
-          Of.format_traces(traces)
+          format_traces(traces)
         ])
     }
   end

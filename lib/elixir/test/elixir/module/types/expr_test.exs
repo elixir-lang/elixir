@@ -20,7 +20,6 @@ defmodule Module.Types.ExprTest do
     assert typecheck!(0.0) == float()
     assert typecheck!("foo") == binary()
     assert typecheck!([]) == empty_list()
-    assert typecheck!([1, 2]) == non_empty_list(integer())
     assert typecheck!(%{}) == closed_map([])
     assert typecheck!(& &1) == fun()
     assert typecheck!(fn -> :ok end) == fun()
@@ -28,6 +27,14 @@ defmodule Module.Types.ExprTest do
 
   test "generated" do
     assert typecheck!([x = 1], generated(x)) == dynamic()
+  end
+
+  describe "lists" do
+    test "creating lists" do
+      assert typecheck!([1, 2]) == non_empty_list(integer())
+      assert typecheck!([1, 2 | 3]) == non_empty_list(integer(), integer())
+      assert typecheck!([1, 2 | [3, 4]]) == non_empty_list(integer())
+    end
   end
 
   describe "funs" do
@@ -229,7 +236,7 @@ defmodule Module.Types.ExprTest do
                 where "y" was given the type:
 
                     # type: dynamic()
-                    # from: types_test.ex:208
+                    # from: types_test.ex:LINE-2
                     y
                 """}
     end
