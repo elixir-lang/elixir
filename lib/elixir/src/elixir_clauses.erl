@@ -14,7 +14,7 @@ match(Fun, Expr, AfterS, BeforeS, E) ->
   #elixir_ex{vars={Read, _}, prematch=Prematch} = BeforeS,
 
   CallS = BeforeS#elixir_ex{
-    prematch={Read, Counter},
+    prematch={Read, #{}, Counter},
     unused=Unused,
     vars=Current
   },
@@ -32,7 +32,7 @@ match(Fun, Expr, AfterS, BeforeS, E) ->
   {EExpr, EndS, EndE}.
 
 def({Meta, Args, Guards, Body}, S, E) ->
-  {EArgs, SA, EA} = elixir_expand:expand_args(Args, S#elixir_ex{prematch={#{}, 0}}, E#{context := match}),
+  {EArgs, SA, EA} = elixir_expand:expand_args(Args, S#elixir_ex{prematch={#{}, #{}, 0}}, E#{context := match}),
   {EGuards, SG, EG} = guard(Guards, SA#elixir_ex{prematch=none}, EA#{context := guard}),
   {EBody, SB, EB} = elixir_expand:expand(Body, SG, EG#{context := nil}),
   elixir_env:check_unused_vars(SB, EB),
@@ -49,16 +49,9 @@ clause(Meta, Kind, _Fun, _, _, E) ->
 
 head([{'when', Meta, [_ | _] = All}], S, E) ->
   {Args, Guard} = elixir_utils:split_last(All),
-  Prematch = S#elixir_ex.prematch,
-
-  {{EArgs, EGuard}, SG, EG} =
-    match(fun(ok, SM, EM) ->
-      {EArgs, SA, EA} = elixir_expand:expand_args(Args, SM, EM),
-      {EGuard, SG, EG} = guard(Guard, SA#elixir_ex{prematch=Prematch}, EA#{context := guard}),
-      {{EArgs, EGuard}, SG, EG}
-    end, ok, S, S, E),
-
-  {[{'when', Meta, EArgs ++ [EGuard]}], SG, EG};
+  {EArgs, SA, EA} = match(fun elixir_expand:expand_args/3, Args, S, S, E),
+  {EGuard, SG, EG} = guard(Guard, SA, EA#{context := guard}),
+  {[{'when', Meta, EArgs ++ [EGuard]}], SG, EG#{context := nil}};
 head(Args, S, E) ->
   match(fun elixir_expand:expand_args/3, Args, S, S, E).
 

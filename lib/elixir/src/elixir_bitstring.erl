@@ -268,9 +268,9 @@ expand_spec_arg(Expr, S, _OriginalS, E) when is_atom(Expr); is_integer(Expr) ->
   {Expr, S, E};
 expand_spec_arg(Expr, S, OriginalS, #{context := match} = E) ->
   %% We can only access variables that are either on prematch or not in original
-  #elixir_ex{prematch={PreRead, _} = OldPre} = S,
+  #elixir_ex{prematch={PreRead, PreCycle, _} = OldPre} = S,
   #elixir_ex{vars={OriginalRead, _}} = OriginalS,
-  NewPre = {PreRead, {bitsize, OriginalRead}},
+  NewPre = {PreRead, PreCycle, {bitsize, OriginalRead}},
   {EExpr, SE, EE} = elixir_expand:expand(Expr, S#elixir_ex{prematch=NewPre}, E#{context := guard}),
   {EExpr, SE#elixir_ex{prematch=OldPre}, EE#{context := match}};
 expand_spec_arg(Expr, S, OriginalS, E) ->

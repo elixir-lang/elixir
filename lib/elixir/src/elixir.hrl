@@ -9,8 +9,16 @@
   %% Stores if __CALLER__ is allowed
   caller=false,
   %% Stores the variables available before a match.
-  %% May be one of: {Read, Counter | {bitsize, Original}} | pin | none.
-  %% The bitsize ios used when dealing with bitstring modifiers,
+  %% May be one of:
+  %%
+  %%   * {Read, Cycle :: #{}, Meta :: Counter | {bitsize, Original}}
+  %%   * pin
+  %%   * none.
+  %%
+  %% The cycle is used to detect cyclic dependencies between
+  %% variables in a match.
+  %%
+  %% The bitsize is used when dealing with bitstring modifiers,
   %% as they allow guards but also support the pin operator.
   prematch=none,
   %% Stores if __STACKTRACE__ is allowed
@@ -22,9 +30,14 @@
   %% A tuple with maps of read and optional write current vars.
   %% Read variables is all defined variables. Write variables
   %% stores the variables that have been made available (written
-  %% to) but cannot be currently read. For example, if you write
-  %% foo(a = 123), the value of `a` cannot be read in the following
-  %% argument, only after the call.
+  %% to) but cannot be currently read. This is used in two occasions:
+  %%
+  %%   * To store variables graphs inside = in patterns
+  %%
+  %%   * To store variables defined inside calls. For example,
+  %%     if you write foo(a = 123), the value of `a` cannot be
+  %%     read in the following argument, only after the call
+  %%
   vars={#{}, false}
 }).
 
