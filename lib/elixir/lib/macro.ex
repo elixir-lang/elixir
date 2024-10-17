@@ -776,23 +776,23 @@ defmodule Macro do
 
   ## Options
 
-    * `:unquote` - when true, this function leaves `unquote/1` and
+    * `:unquote` - when `true`, this function leaves `unquote/1` and
       `unquote_splicing/1` expressions unescaped, effectively unquoting
       the contents on escape. This option is useful only when escaping
-      ASTs which may have quoted fragments in them. Defaults to false.
+      ASTs which may have quoted fragments in them. Defaults to `false`.
 
-    * `:prune_metadata` - when true, removes metadata from escaped AST
+    * `:prune_metadata` - when `true`, removes most metadata from escaped AST
       nodes. Note this option changes the semantics of escaped code and
-      it should only be used when escaping ASTs. Defaults to false.
+      it should only be used when escaping ASTs. Defaults to `false`.
 
-      As an example, `ExUnit` stores the AST of every assertion, so when
-      an assertion fails we can show code snippets to users. Without this
-      option, each time the test module is compiled, we get a different
-      MD5 of the module bytecode, because the AST contains metadata,
+      As an example for `:prune_metadata`, `ExUnit` stores the AST of every
+      assertion, so when an assertion fails we can show code snippets to users.
+      Without this option, each time the test module is compiled, we would get a
+      different MD5 of the module bytecode, because the AST contains metadata,
       such as counters, specific to the compilation environment. By pruning
       the metadata, we ensure that the module is deterministic and reduce
       the amount of data `ExUnit` needs to keep around. Only the minimal
-      amount of metadata is kept, such as `:line` and `:no_parens`.
+      amount of metadata is kept, such as `:line`, `:no_parens` and `:delimiter`.
 
   ## Comparison to `quote/2`
 
