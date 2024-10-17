@@ -6,24 +6,45 @@
 -define(remote(Ann, Module, Function, Args), {call, Ann, {remote, Ann, {atom, Ann, Module}, {atom, Ann, Function}}, Args}).
 
 -record(elixir_ex, {
-  caller=false,            %% stores if __CALLER__ is allowed
-  %% TODO: Remove warn and everywhere it is set in v2.0
-  prematch=raise,          %% {Read, Counter, {bitsize, Original} | none} | warn | raise | pin
-  stacktrace=false,        %% stores if __STACKTRACE__ is allowed
-  unused={#{}, 0},         %% a map of unused vars and a version counter for vars
-  runtime_modules=[],      %% a list of modules defined in functions (runtime)
-  vars={#{}, false}        %% a tuple with maps of read and optional write current vars
+  %% Stores if __CALLER__ is allowed
+  caller=false,
+  %% Stores the variables available before a match.
+  %% May be one of: {Read, Counter | {bitsize, Original}} | pin | none.
+  %% The bitsize ios used when dealing with bitstring modifiers,
+  %% as they allow guards but also support the pin operator.
+  prematch=none,
+  %% Stores if __STACKTRACE__ is allowed
+  stacktrace=false,
+  %% A map of unused vars and a version counter for vars
+  unused={#{}, 0},
+  %% A list of modules defined in functions (runtime)
+  runtime_modules=[],
+  %% A tuple with maps of read and optional write current vars.
+  %% Read variables is all defined variables. Write variables
+  %% stores the variables that have been made available (written
+  %% to) but cannot be currently read. For example, if you write
+  %% foo(a = 123), the value of `a` cannot be read in the following
+  %% argument, only after the call.
+  vars={#{}, false}
 }).
 
 -record(elixir_erl, {
-  context=nil,             %% can be match, guards or nil
-  extra=nil,               %% extra information about the context, like pin_guard and map_key
-  caller=false,            %% when true, it means caller was invoked
-  var_names=#{},           %% maps of defined variables and their alias
-  extra_guards=[],         %% extra guards from args expansion
-  counter=#{},             %% a map counting the variables defined
-  expand_captures=false,   %% a boolean to control if captures should be expanded
-  stacktrace=nil           %% holds information about the stacktrace variable
+  %% Can be match, guards or nil
+  context=nil,
+  %% Extra information about the context, like pin_guard and map_key
+  extra=nil,
+  %% When true, it means caller was invoked
+  caller=false,
+  %% Maps of defined variables and their alias
+  var_names=#{},
+  %% Extra guards from args expansion
+  extra_guards=[],
+  %% A map counting the variables defined
+  counter=#{},
+  %% A boolean to control if captures should be expanded
+  expand_captures=false,
+  %% Holds information about the stacktrace variable
+  stacktrace=nil
 }).
 
 -record(elixir_tokenizer, {

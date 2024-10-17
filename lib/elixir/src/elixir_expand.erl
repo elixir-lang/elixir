@@ -308,7 +308,7 @@ expand({super, Meta, Args}, S, E) when is_list(Args) ->
 
 %% Vars
 
-expand({'^', Meta, [Arg]}, #elixir_ex{prematch={Prematch, _, _}, vars={_, Write}} = S, E) ->
+expand({'^', Meta, [Arg]}, #elixir_ex{prematch={Prematch, _}, vars={_, Write}} = S, E) ->
   NoMatchS = S#elixir_ex{prematch=pin, vars={Prematch, Write}},
 
   case expand(Arg, NoMatchS, E#{context := nil}) of
@@ -329,7 +329,7 @@ expand({'_', Meta, Kind} = Var, S, #{context := Context} = E) when is_atom(Kind)
 
 expand({Name, Meta, Kind}, S, #{context := match} = E) when is_atom(Name), is_atom(Kind) ->
   #elixir_ex{
-    prematch={_, PrematchVersion, _},
+    prematch={_, PrematchVersion},
     unused={Unused, Version},
     vars={Read, Write}
   } = S,
@@ -369,17 +369,20 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
     case Read of
       #{Pair := CurrentVersion} ->
         case Prematch of
-          {Pre, _Counter, {bitsize, Original}} ->
+          {Pre, {bitsize, Original}} ->
             if
               map_get(Pair, Pre) /= CurrentVersion ->
                 {ok, CurrentVersion};
+
               is_map_key(Pair, Pre) ->
                 %% TODO: Enable this warning on Elixir v1.19
                 %% TODO: Remove me on Elixir 2.0
                 %% elixir_errors:file_warn(Meta, E, ?MODULE, {unpinned_bitsize_var, Name, Kind}),
                 {ok, CurrentVersion};
+
               not is_map_key(Pair, Original) ->
                 {ok, CurrentVersion};
+
               true ->
                 raise
             end;
@@ -389,7 +392,12 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
         end;
 
       _ ->
-        Prematch
+        case E of
+          #{context := guard} -> raise;
+          #{} when S#elixir_ex.prematch =:= pin -> pin;
+          %% TODO: Remove fallback on on_undefined_variable
+          _ -> elixir_config:get(on_undefined_variable)
+        end
     end,
 
   case Result of
@@ -417,7 +425,7 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
           function_error(Meta, E, ?MODULE, {undefined_var_pin, Name, Kind}),
           {{Name, Meta, Kind}, S, E};
 
-        _ ->
+        _ when Error == raise ->
           SpanMeta =  elixir_env:calculate_span(Meta, Name),
           function_error(SpanMeta, E, ?MODULE, {undefined_var, Name, Kind}),
           {{Name, SpanMeta, Kind}, S, E}
@@ -1068,7 +1076,7 @@ assert_no_match_scope(_Meta, _Kind, _E) -> ok.
 assert_no_guard_scope(Meta, Kind, S, #{context := guard, file := File}) ->
   Key =
     case S#elixir_ex.prematch of
-      {_, _, {bitsize, _}}  -> invalid_expr_in_bitsize;
+      {_, {bitsize, _}}  -> invalid_expr_in_bitsize;
       _ -> invalid_expr_in_guard
     end,
   file_error(Meta, File, ?MODULE, {Key, Kind});
@@ -1092,7 +1100,7 @@ assert_no_underscore_clause_in_cond(_Other, _E) ->
 
 %% Errors
 
-guard_context(#elixir_ex{prematch={_, _, {bitsize, _}}}) -> "bitstring size specifier";
+guard_context(#elixir_ex{prematch={_, {bitsize, _}}}) -> "bitstring size specifier";
 guard_context(_) -> "guard".
 
 format_error(invalid_match_on_zero_float) ->

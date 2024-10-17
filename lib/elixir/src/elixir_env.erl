@@ -50,13 +50,12 @@ reset_vars(Env) ->
 env_to_ex(#{context := match, versioned_vars := Vars}) ->
   Counter = map_size(Vars),
   #elixir_ex{
-    prematch={Vars, Counter, none},
+    prematch={Vars, Counter},
     vars={Vars, false},
     unused={#{}, Counter}
   };
 env_to_ex(#{versioned_vars := Vars}) ->
   #elixir_ex{
-    prematch=elixir_config:get(on_undefined_variable),
     vars={Vars, false},
     unused={#{}, map_size(Vars)}
   }.
