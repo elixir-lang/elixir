@@ -1626,7 +1626,11 @@ defmodule Module.Types.Descr do
 
         cond do
           is_proper_tuple? and is_proper_size? ->
-            dynamic_result = tuple_delete_static(dynamic, index)
+            # Prune for dynamic values make the intersection succeed
+            dynamic_result =
+              intersection(dynamic, tuple_of_size_at_least(index))
+              |> tuple_delete_static(index)
+
             static_result = tuple_delete_static(static, index)
 
             union(dynamic(dynamic_result), static_result)
@@ -1653,11 +1657,6 @@ defmodule Module.Types.Descr do
 
   def tuple_insert_at(_, _, _), do: :badindex
 
-  # insert_at({...}, 1, integer())
-  # {...} not a subtype of {term(), ...}
-  # insert_at(dynamic({...}), 1, integer())
-  # dynamic({term(), integer(), ...})
-
   defp tuple_insert_static_value(descr, index, type) do
     case :maps.take(:dynamic, descr) do
       :error ->
@@ -1673,13 +1672,6 @@ defmodule Module.Types.Descr do
           true -> :badtuple
         end
 
-      {dynamic, static} when static == @none ->
-        if descr_key?(dynamic, :tuple) do
-          dynamic(insert_element(dynamic, index, type))
-        else
-          :badtuple
-        end
-
       {dynamic, static} ->
         is_proper_tuple? = descr_key?(dynamic, :tuple) and tuple_only?(static)
 
@@ -1688,7 +1680,11 @@ defmodule Module.Types.Descr do
 
         cond do
           is_proper_tuple? and is_proper_size? ->
-            dynamic_result = insert_element(dynamic, index, type)
+            # Prune for dynamic values that make the intersection succeed
+            dynamic_result =
+              intersection(dynamic, tuple_of_size_at_least(index))
+              |> insert_element(index, type)
+
             static_result = insert_element(static, index, type)
 
             union(dynamic(dynamic_result), static_result)
@@ -1701,6 +1697,8 @@ defmodule Module.Types.Descr do
         end
     end
   end
+
+  defp insert_element(descr, _, _) when descr == @none, do: none()
 
   defp insert_element(descr, index, type) do
     Map.update!(descr, :tuple, fn dnf ->

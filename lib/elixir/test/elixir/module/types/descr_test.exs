@@ -523,6 +523,16 @@ defmodule Module.Types.DescrTest do
       assert union(tuple([integer(), atom()]), dynamic(tuple([float(), binary()])))
              |> tuple_delete_at(1)
              |> equal?(union(tuple([integer()]), dynamic(tuple([float()]))))
+
+      assert tuple_delete_at(open_tuple([term()]), 0) == tuple()
+
+      # Succesfully deleting at position `index` in a tuple means that the dynamic
+      # values that succeed are intersected with tuples of size at least `index`
+      assert dynamic(tuple()) |> tuple_delete_at(0) == dynamic(tuple())
+
+      assert dynamic(union(tuple(), integer()))
+             |> tuple_delete_at(1)
+             |> equal?(dynamic(tuple_of_size_at_least(1)))
     end
 
     test "tuple_insert_at" do
@@ -592,6 +602,12 @@ defmodule Module.Types.DescrTest do
                  dynamic(tuple([float(), boolean(), binary()]))
                )
              )
+
+      # If you succesfully intersect at position index in a type, then the dynamic values
+      # that succeed are intersected with tuples of size at least index
+      assert dynamic(union(tuple(), integer()))
+             |> tuple_insert_at(1, boolean())
+             |> equal?(dynamic(open_tuple([term(), boolean()])))
     end
 
     test "map_fetch" do
