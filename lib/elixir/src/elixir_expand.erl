@@ -442,7 +442,7 @@ expand({Atom, Meta, Args}, S, E) when is_atom(Atom), is_list(Meta), is_list(Args
 
   elixir_dispatch:dispatch_import(Meta, Atom, Args, S, E, fun
     ({AR, AF}) ->
-      expand_remote(AR, Meta, AF, Meta, Args, S, elixir_env:prepare_write(S), E);
+      expand_remote(AR, Meta, AF, Meta, Args, S, elixir_env:prepare_write(S, E), E);
 
     (local) ->
       expand_local(Meta, Atom, Args, S, E)
@@ -452,7 +452,7 @@ expand({Atom, Meta, Args}, S, E) when is_atom(Atom), is_list(Meta), is_list(Args
 
 expand({{'.', DotMeta, [Left, Right]}, Meta, Args}, S, E)
     when (is_tuple(Left) orelse is_atom(Left)), is_atom(Right), is_list(Meta), is_list(Args) ->
-  {ELeft, SL, EL} = expand(Left, elixir_env:prepare_write(S), E),
+  {ELeft, SL, EL} = expand(Left, elixir_env:prepare_write(S, E), E),
 
   elixir_dispatch:dispatch_require(Meta, ELeft, Right, Args, S, EL, fun(AR, AF) ->
     expand_remote(AR, DotMeta, AF, Meta, Args, S, SL, EL)
@@ -900,7 +900,8 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, S, SL, #{context := Context}
 
       case rewrite(Context, Receiver, DotMeta, Right, AttachedMeta, EArgs, S) of
         {ok, Rewritten} ->
-          {Rewritten, elixir_env:close_write(SA, S), EA};
+          SF = if Context =:= nil -> elixir_env:close_write(SA, S); true -> SA end,
+          {Rewritten, SF, EA};
 
         {error, Error} ->
           file_error(Meta, E, elixir_rewrite, Error)

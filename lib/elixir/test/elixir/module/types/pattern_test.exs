@@ -85,7 +85,7 @@ defmodule Module.Types.PatternTest do
     end
 
     test "fields in guards" do
-      assert typewarn!([x = %Point{}], [x.foo_bar], :ok) ==
+      assert typewarn!([x = %Point{}], x.foo_bar, :ok) ==
                {atom([:ok]),
                 ~l"""
                 unknown key .foo_bar in expression:
@@ -109,7 +109,7 @@ defmodule Module.Types.PatternTest do
     end
 
     test "fields in guards" do
-      assert typecheck!([x = %{foo: :bar}], [x.bar], x) == dynamic(open_map(foo: atom([:bar])))
+      assert typecheck!([x = %{foo: :bar}], x.bar, x) == dynamic(open_map(foo: atom([:bar])))
     end
   end
 
