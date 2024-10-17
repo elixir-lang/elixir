@@ -14,7 +14,7 @@ expand(Meta, Clauses, S, E) when is_list(Clauses) ->
         SReset = elixir_env:reset_unused_vars(SA),
 
         {EClause, SAcc, EAcc} =
-          elixir_clauses:clause(Meta, fn, fun elixir_clauses:head/3, Clause, SReset, E),
+          elixir_clauses:clause(Meta, fn, fun elixir_clauses:head/4, Clause, SReset, E),
 
         {EClause, elixir_env:merge_and_check_unused_vars(SAcc, SA, EAcc)}
     end

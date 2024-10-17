@@ -37,7 +37,7 @@ defmodule Module.Types.DescrTest do
         float(),
         binary(),
         open_map(),
-        non_empty_list(),
+        non_empty_list(term()),
         empty_list(),
         tuple(),
         fun(),
@@ -445,9 +445,9 @@ defmodule Module.Types.DescrTest do
              |> difference(tuple([integer(), term(), atom()]))
              |> tuple_fetch(2) == {false, integer()}
 
-      assert tuple([integer(), atom(), union(union(atom(), integer()), list())])
+      assert tuple([integer(), atom(), union(union(atom(), integer()), list(term()))])
              |> difference(tuple([integer(), term(), atom()]))
-             |> difference(open_tuple([term(), atom(), list()]))
+             |> difference(open_tuple([term(), atom(), list(term())]))
              |> tuple_fetch(2) == {false, integer()}
 
       assert tuple([integer(), atom(), integer()])

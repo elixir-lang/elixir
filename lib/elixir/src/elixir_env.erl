@@ -1,10 +1,10 @@
 -module(elixir_env).
 -include("elixir.hrl").
 -export([
-  new/0, to_caller/1, with_vars/2, reset_vars/1, env_to_ex/1,
+  new/0, to_caller/1, merge_vars/2, with_vars/2, reset_vars/1, env_to_ex/1,
   reset_unused_vars/1, check_unused_vars/2, merge_and_check_unused_vars/3, calculate_span/2,
   trace/2, format_error/1,
-  reset_read/2, prepare_write/1, close_write/2
+  reset_read/2, prepare_write/1, prepare_write/2, close_write/2
 ]).
 
 new() ->
@@ -50,13 +50,12 @@ reset_vars(Env) ->
 env_to_ex(#{context := match, versioned_vars := Vars}) ->
   Counter = map_size(Vars),
   #elixir_ex{
-    prematch={Vars, Counter, none},
+    prematch={Vars, {#{}, []}, Counter},
     vars={Vars, false},
     unused={#{}, Counter}
   };
 env_to_ex(#{versioned_vars := Vars}) ->
   #elixir_ex{
-    prematch=elixir_config:get(on_undefined_variable),
     vars={Vars, false},
     unused={#{}, map_size(Vars)}
   }.
@@ -65,6 +64,11 @@ env_to_ex(#{versioned_vars := Vars}) ->
 
 reset_read(#elixir_ex{vars={_, Write}} = S, #elixir_ex{vars={Read, _}}) ->
   S#elixir_ex{vars={Read, Write}}.
+
+prepare_write(S, #{context := nil}) ->
+  prepare_write(S);
+prepare_write(S, _) ->
+  S.
 
 prepare_write(#elixir_ex{vars={Read, _}} = S) ->
   S#elixir_ex{vars={Read, Read}}.

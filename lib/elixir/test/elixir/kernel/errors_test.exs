@@ -463,7 +463,7 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid case clauses" do
     assert_compile_error(
-      ["nofile:1:1", "expected one argument for :do clauses (->) in \"case\""],
+      ["nofile:1:37", "expected one argument for :do clauses (->) in \"case\""],
       ~c"case nil do 0, z when not is_nil(z) -> z end"
     )
   end

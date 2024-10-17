@@ -31,7 +31,7 @@ expand(Meta, Args, S, E, RequireSize) ->
 expand(_BitstrMeta, _Fun, [], Acc, S, E, Alignment, _RequireSize) ->
   {lists:reverse(Acc), Alignment, S, E};
 expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, S, E, Alignment, RequireSize) ->
-  {ELeft, {SL, OriginalS}, EL} = expand_expr(Meta, Left, Fun, S, E),
+  {ELeft, {SL, OriginalS}, EL} = expand_expr(Left, Fun, S, E),
 
   MatchOrRequireSize = RequireSize or is_match_size(T, EL),
   EType = expr_type(ELeft),
@@ -46,7 +46,7 @@ expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, S, E, Alignment,
   expand(BitstrMeta, Fun, T, EAcc, {SS, OriginalS}, ES, alignment(Alignment, EAlignment), RequireSize);
 expand(BitstrMeta, Fun, [H | T], Acc, S, E, Alignment, RequireSize) ->
   Meta = extract_meta(H, BitstrMeta),
-  {ELeft, {SS, OriginalS}, ES} = expand_expr(Meta, H, Fun, S, E),
+  {ELeft, {SS, OriginalS}, ES} = expand_expr(H, Fun, S, E),
 
   MatchOrRequireSize = RequireSize or is_match_size(T, ES),
   EType = expr_type(ELeft),
@@ -136,19 +136,14 @@ compute_alignment(_, _, _) -> unknown.
 %% If we are inside a match/guard, we inline interpolations explicitly,
 %% otherwise they are inlined by elixir_rewrite.erl.
 
-expand_expr(_Meta, {{'.', _, [Mod, to_string]}, _, [Arg]} = AST, Fun, S, #{context := Context} = E)
+expand_expr({{'.', _, [Mod, to_string]}, _, [Arg]} = AST, Fun, S, #{context := Context} = E)
     when Context /= nil, (Mod == 'Elixir.Kernel') orelse (Mod == 'Elixir.String.Chars') ->
   case Fun(Arg, S, E) of
     {EBin, SE, EE} when is_binary(EBin) -> {EBin, SE, EE};
     _ -> Fun(AST, S, E) % Let it raise
   end;
-expand_expr(Meta, Component, Fun, S, E) ->
-  case Fun(Component, S, E) of
-    {EComponent, _, ErrorE} when is_list(EComponent); is_atom(EComponent) ->
-      file_error(Meta, ErrorE, ?MODULE, {invalid_literal, EComponent});
-    {_, _, _} = Expanded ->
-      Expanded
-  end.
+expand_expr(Component, Fun, S, E) ->
+  Fun(Component, S, E).
 
 %% Expands and normalizes types of a bitstring.
 
@@ -273,9 +268,9 @@ expand_spec_arg(Expr, S, _OriginalS, E) when is_atom(Expr); is_integer(Expr) ->
   {Expr, S, E};
 expand_spec_arg(Expr, S, OriginalS, #{context := match} = E) ->
   %% We can only access variables that are either on prematch or not in original
-  #elixir_ex{prematch={PreRead, PreCounter, _} = OldPre} = S,
+  #elixir_ex{prematch={PreRead, PreCycle, _} = OldPre} = S,
   #elixir_ex{vars={OriginalRead, _}} = OriginalS,
-  NewPre = {PreRead, PreCounter, {bitsize, OriginalRead}},
+  NewPre = {PreRead, PreCycle, {bitsize, OriginalRead}},
   {EExpr, SE, EE} = elixir_expand:expand(Expr, S#elixir_ex{prematch=NewPre}, E#{context := guard}),
   {EExpr, SE#elixir_ex{prematch=OldPre}, EE#{context := match}};
 expand_spec_arg(Expr, S, OriginalS, E) ->
@@ -397,8 +392,6 @@ format_error(bittype_unit) ->
   "integer and float types require a size specifier if the unit specifier is given";
 format_error({bittype_float_size, Other}) ->
   io_lib:format("float requires size*unit to be 16, 32, or 64 (default), got: ~p", [Other]);
-format_error({invalid_literal, Literal}) ->
-  io_lib:format("invalid literal ~ts in <<>>", ['Elixir.Macro':to_string(Literal)]);
 format_error({undefined_bittype, Expr}) ->
   io_lib:format("unknown bitstring specifier: ~ts", ['Elixir.Macro':to_string(Expr)]);
 format_error({unknown_bittype, Name}) ->

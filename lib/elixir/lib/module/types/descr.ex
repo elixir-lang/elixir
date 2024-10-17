@@ -38,6 +38,8 @@ defmodule Module.Types.Descr do
 
   # Type definitions
 
+  defguard is_descr(descr) when is_map(descr) or descr == :term
+
   def dynamic(), do: %{dynamic: :term}
   def none(), do: @none
   def term(), do: :term
@@ -55,8 +57,8 @@ defmodule Module.Types.Descr do
   def integer(), do: %{bitmap: @bit_integer}
   def float(), do: %{bitmap: @bit_float}
   def fun(), do: %{bitmap: @bit_fun}
-  def list(), do: %{bitmap: @bit_list}
-  def non_empty_list(), do: %{bitmap: @bit_non_empty_list}
+  def list(_arg), do: %{bitmap: @bit_list}
+  def non_empty_list(_arg, _tail \\ empty_list()), do: %{bitmap: @bit_non_empty_list}
   def open_map(), do: %{map: @map_top}
   def open_map(pairs), do: map_descr(:open, pairs)
   def open_tuple(elements), do: tuple_descr(:open, elements)
@@ -113,6 +115,8 @@ defmodule Module.Types.Descr do
   def term_type?(:term), do: true
   def term_type?(descr), do: subtype_static(unfolded_term(), Map.delete(descr, :dynamic))
 
+  def dynamic_term_type?(descr), do: descr == %{dynamic: :term}
+
   def gradual?(:term), do: false
   def gradual?(descr), do: is_map_key(descr, :dynamic)
 
@@ -133,6 +137,8 @@ defmodule Module.Types.Descr do
   """
   def union(:term, other) when not is_optional(other), do: :term
   def union(other, :term) when not is_optional(other), do: :term
+  def union(none, other) when none == %{}, do: other
+  def union(other, none) when none == %{}, do: other
 
   def union(left, right) do
     left = unfold(left)
@@ -166,6 +172,8 @@ defmodule Module.Types.Descr do
   """
   def intersection(:term, other) when not is_optional(other), do: other
   def intersection(other, :term) when not is_optional(other), do: other
+  def intersection(%{dynamic: :term}, other) when not is_optional(other), do: dynamic(other)
+  def intersection(other, %{dynamic: :term}) when not is_optional(other), do: dynamic(other)
 
   def intersection(left, right) do
     left = unfold(left)
@@ -384,6 +392,18 @@ defmodule Module.Types.Descr do
   end
 
   ## Bitmaps
+
+  @doc """
+  Optimized version of `not empty?(intersection(empty_list(), type))`.
+  """
+  def empty_list_type?(:term), do: true
+  def empty_list_type?(%{dynamic: :term}), do: true
+
+  def empty_list_type?(%{dynamic: %{bitmap: bitmap}}) when (bitmap &&& @bit_empty_list) != 0,
+    do: true
+
+  def empty_list_type?(%{bitmap: bitmap}) when (bitmap &&& @bit_empty_list) != 0, do: true
+  def empty_list_type?(_), do: false
 
   @doc """
   Optimized version of `not empty?(intersection(binary(), type))`.
