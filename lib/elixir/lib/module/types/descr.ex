@@ -1369,61 +1369,6 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # defp tuple_values(dnf) do
-  #   Enum.reduce(dnf, none(), fn {tag, elements, negs}, acc ->
-  #     union(tuple_values(tag, elements, negs, []), acc)
-  #   end)
-  # end
-
-  # defp tuple_values(:open, _, [], _), do: term()
-  # defp tuple_values(:closed, elements, [], acc) do
-  #   Enum.reduce(elements, none(), &union/2)
-  #   |> union(Enum.reduce(acc, none(), fn {
-  # end
-
-  # defp tuple_values(
-
-  # defp tuple_values(tag, elements, negs, acc) do
-  # end
-
-  # # Transforms a tuple dnf into a union of tuple literals.
-  # defp tuple_normalize(dnf) do
-  #   Enum.flat_map(dnf, fn {tag, elements, negs} -> tuple_normalize([{tag, elements}], negs) end)
-  # end
-
-  # defp tuple_normalize(acc, [], acc), do: acc
-
-  # defp tuple_normalize(acc, [{neg_tag, neg_elements} | negs]) do
-  # end
-
-  # defp expand_negation(tag, elements, neg_tag, neg_elements) do
-  #   n = length(elements)
-  #   m = length(neg_elements)
-
-  #   # Scenarios where the difference is guaranteed to be empty:
-  #   # 1. When removing larger tuples from a fixed-size positive tuple
-  #   # 2. When removing smaller tuples from larger tuples
-  #   if (tag == :closed and n < m) or (neg_tag == :closed and n > m) do
-  #     []
-  #   else
-  #     expand_elements(acc, tag, elements, neg_tag, neg_elements) ++
-  #       expand_compatibility(n, m, tag, elements, neg_tag, neg_elements)
-  #   end
-  # end
-
-  # Expand the negation of a tuple, considering the terms where one element
-  # in the positive tuple is not in the negative tuple.
-  # defp expand_elements(acc, tag, elements, neg_tag, [neg_type | neg_elements]) do
-  #   {ty, elements} = List.pop_at(elements, 0, term())
-  #   diff = difference(ty, neg_type)
-
-  #   if empty?(diff) do
-  #     expand_elements([ty acc, tag, elements, neg_tag, neg_elements)
-  #   else
-  #     expand_elements([ty | acc], tag, elements, neg_tag, neg_elements)
-  #   end
-  # end
-
   # Check if a tuple represented in DNF is empty
   defp tuple_empty?(dnf) do
     Enum.all?(dnf, fn {tag, pos, negs} -> tuple_empty?(tag, pos, negs) end)
