@@ -394,7 +394,7 @@ defmodule Module.Types.Descr do
   ## Bitmaps
 
   @doc """
-  Optimized version of `not empty?(intersection(binary(), type))`.
+  Optimized version of `not empty?(intersection(empty_list(), type))`.
   """
   def empty_list_type?(:term), do: true
   def empty_list_type?(%{dynamic: :term}), do: true
