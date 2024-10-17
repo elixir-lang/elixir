@@ -174,16 +174,17 @@ defmodule Code.Normalizer do
 
   # Sigils
   defp do_normalize({sigil, meta, [{:<<>>, _, args} = string, modifiers]} = quoted, state)
-       when is_list(args) and is_atom(sigil) do
-    case Atom.to_string(sigil) do
-      "sigil_" <> _ ->
-        meta =
-          meta
-          |> patch_meta_line(state.parent_meta)
-          |> Keyword.put_new(:delimiter, "\"")
+       when is_atom(sigil) and is_list(args) and is_list(modifiers) do
+    with "sigil_" <> _ <- Atom.to_string(sigil),
+         true <- binary_interpolated?(args),
+         true <- List.ascii_printable?(modifiers) do
+      meta =
+        meta
+        |> patch_meta_line(state.parent_meta)
+        |> Keyword.put_new(:delimiter, "\"")
 
-        {sigil, meta, [do_normalize(string, %{state | parent_meta: meta}), modifiers]}
-
+      {sigil, meta, [do_normalize(string, %{state | parent_meta: meta}), modifiers]}
+    else
       _ ->
         normalize_call(quoted, state)
     end
