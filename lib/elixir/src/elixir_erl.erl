@@ -162,7 +162,7 @@ split_definition([{Tuple, Kind, Meta, Clauses} | T], Unreachable, Line,
   end;
 
 split_definition([], _Unreachable, _Line, Def, Defmacro, Macros, Exports, {Head, Tail}) ->
-  {usort_defs_with_meta(Def), usort_defs_with_meta(Defmacro), Macros, Exports, Head ++ Tail}.
+  {lists:sort(Def), lists:sort(Defmacro), Macros, Exports, Head ++ Tail}.
 
 split_definition(Tuple, def, Meta, Clauses, T, Unreachable, Line,
                  Def, Defmacro, Macros, Exports, Functions) ->
@@ -247,19 +247,6 @@ is_macro(defmacro)  -> true;
 is_macro(defmacrop) -> true;
 is_macro(_)         -> false.
 
-usort_defs_with_meta(Entries) ->
-  % Sort and deduplicate definitions. For duplicated definitions
-  % we take the one with earliest line.
-
-  LineComparator = fun
-    ({Def1, Meta1}, {Def1, Meta2}) -> ?line(Meta1) =< ?line(Meta2);
-    ({Def1, _Meta1}, {Def2, _Meta2}) -> Def1 =< Def2
-  end,
-
-  UniqFun = fun({Def, _Meta}) -> Def end,
-
-  lists:uniq(UniqFun, lists:sort(LineComparator, Entries)).
-
 % Functions
 
 functions_form(Line, Module, Def, Defmacro, Exports, Body, Deprecated, Struct) ->
@@ -341,11 +328,24 @@ typespecs_form(Map, TranslatedTypespecs, MacroNames) ->
   Forms2 = callspecs_form(spec, Specs, [], MacroNames, Forms1, Map),
   Forms3 = callspecs_form(callback, AllCallbacks, OptionalCallbacks, MacroCallbackNames, Forms2, Map),
 
-  AllCallbacksWithoutSpecs = usort_defs_with_meta([
+  AllCallbacksWithoutSpecs = usort_callbacks([
     {{Kind, Name, Arity}, Meta} || {Kind, {Name, Arity}, Meta, _Spec} <- AllCallbacks
   ]),
 
   {Types, AllCallbacksWithoutSpecs, Forms3}.
+
+usort_callbacks(Callbacks) ->
+  % Sort and deduplicate callbacks. For duplicated callbacks we take
+  % the one with earliest line.
+
+  LineComparator = fun
+    ({Callback1, Meta1}, {Callback1, Meta2}) -> ?line(Meta1) =< ?line(Meta2);
+    ({Callback1, _Meta1}, {Callback2, _Meta2}) -> Callback1 =< Callback2
+  end,
+
+  UniqFun = fun({Callback, _Meta}) -> Callback end,
+
+  lists:uniq(UniqFun, lists:sort(LineComparator, Callbacks)).
 
 %% Types
 
