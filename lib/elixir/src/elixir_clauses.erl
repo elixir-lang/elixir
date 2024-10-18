@@ -95,12 +95,12 @@ recur_cycles(Cycles, Current, Source, Seen, SkipList, Meta, Expr, E) ->
     false ->
       case maps:get(Current, Cycles) of
         #{Current := _} ->
-          file_error(Meta, E, ?MODULE, {recursive, self, Current, Expr});
+          file_error(Meta, E, ?MODULE, {recursive, [Current], Expr});
 
         DependsOn ->
           maps:fold(fun
             (Key, error, _See) ->
-              file_error(Meta, E, ?MODULE, {recursive, one, Current, Key, Expr});
+              file_error(Meta, E, ?MODULE, {recursive, [Current, Key], Expr});
 
             %% Never go back to the node that we came from (as we can always one hop).
             (Key, _, AccSeen) when Key =:= Source ->
@@ -117,7 +117,7 @@ recur_cycles(Cycles, Current, Source, Seen, SkipList, Meta, Expr, E) ->
                   AccSeen;
 
                 false when is_map_key(Key, Seen) ->
-                  file_error(Meta, E, ?MODULE, {recursive, many, maps:keys(Seen), Expr});
+                  file_error(Meta, E, ?MODULE, {recursive, [Current | maps:keys(Seen)], Expr});
 
                 false ->
                   recur_cycles(Cycles, Key, Current, AccSeen, SkipList, Meta, Expr, E)
@@ -147,7 +147,7 @@ match(Fun, Meta, Expr, AfterS, BeforeS, #{context := nil} = E) ->
     prematch={_, Cycles, _}
   } = SE,
 
-  validate_cycles(Cycles, Meta, Expr, E),
+  validate_cycles(Cycles, Meta, {match, Expr}, E),
 
   EndS = AfterS#elixir_ex{
     prematch=Prematch,
@@ -161,7 +161,7 @@ match(Fun, Meta, Expr, AfterS, BeforeS, #{context := nil} = E) ->
 def({Meta, Args, Guards, Body}, S, E) ->
   {EArgs, SA, EA} = elixir_expand:expand_args(Args, S#elixir_ex{prematch={#{}, {#{}, []}, 0}}, E#{context := match}),
   #elixir_ex{prematch={_, Cycles, _}} = SA,
-  validate_cycles(Cycles, Meta, Args, E),
+  validate_cycles(Cycles, Meta, {?key(E, function), Args}, E),
   {EGuards, SG, EG} = guard(Guards, SA#elixir_ex{prematch=none}, EA#{context := guard}),
   {EBody, SB, EB} = elixir_expand:expand(Body, SG, EG#{context := nil}),
   elixir_env:check_unused_vars(SB, EB),
@@ -506,6 +506,29 @@ origin(Meta, Default) ->
     {origin, Origin} -> Origin;
     false -> Default
   end.
+
+format_error({recursive, Vars, TypeExpr}) ->
+  Code =
+    case TypeExpr of
+      {match, Expr} -> 'Elixir.Macro':to_string(Expr);
+      {{Name, _Arity}, Args} -> 'Elixir.Macro':to_string({Name, [], Args})
+    end,
+
+  Message =
+    case lists:map(fun({Name, Context}) -> elixir_utils:var_info(Name, Context) end, lists:sort(Vars)) of
+      [Var] ->
+        io_lib:format("the variable ~ts is defined in function of itself", [Var]);
+      [Var1, Var2] ->
+        io_lib:format("the variable ~ts is defined recursively in function of ~ts", [Var1, Var2]);
+      [Head | Tail] ->
+        List = lists:foldl(fun(X, Acc) -> [Acc, $,, $\s, X] end, Head, Tail),
+        io_lib:format("the following variables form a cycle: ~ts", [List])
+    end,
+
+  io_lib:format(
+    "recursive variable definition in patterns:~n~n    ~ts~n~n~ts",
+    [Code, Message]
+  );
 
 format_error({bad_or_missing_clauses, {Kind, Key}}) ->
   io_lib:format("expected -> clauses for :~ts in \"~ts\"", [Key, Kind]);

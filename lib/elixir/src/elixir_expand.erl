@@ -711,9 +711,6 @@ maybe_warn_deprecated_super_in_gen_server_callback(Meta, Function, SuperMeta, E)
       ok
   end.
 
-context_info(Kind) when Kind == nil; is_integer(Kind) -> "";
-context_info(Kind) -> io_lib:format(" (context ~ts)", [elixir_aliases:inspect(Kind)]).
-
 should_warn(Meta) ->
   lists:keyfind(generated, 1, Meta) /= {generated, true}.
 
@@ -870,7 +867,7 @@ expand_local(Meta, Name, Args, S, #{module := Module, function := Function, cont
       module_error(Meta, E, ?MODULE, {invalid_local_invocation, "match", {Name, Meta, Args}});
 
     guard ->
-      module_error(Meta, E, ?MODULE, {invalid_local_invocation, elixir_utils:guard_context(S), {Name, Meta, Args}});
+      module_error(Meta, E, ?MODULE, {invalid_local_invocation, elixir_utils:guard_info(S), {Name, Meta, Args}});
 
     nil ->
       Arity = length(Args),
@@ -890,7 +887,7 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, S, SL, #{context := Context}
   if
     Context =:= guard, is_tuple(Receiver) ->
       (lists:keyfind(no_parens, 1, Meta) /= {no_parens, true}) andalso
-        function_error(Meta, E, ?MODULE, {parens_map_lookup, Receiver, Right, elixir_utils:guard_context(S)}),
+        function_error(Meta, E, ?MODULE, {parens_map_lookup, Receiver, Right, elixir_utils:guard_info(S)}),
 
       {{{'.', DotMeta, [Receiver, Right]}, Meta, []}, SL, E};
 
@@ -1136,10 +1133,10 @@ format_error({pin_outside_of_match, Arg}) ->
 format_error(unbound_underscore) ->
   "invalid use of _. _ can only be used inside patterns to ignore values and cannot be used in expressions. Make sure you are inside a pattern or change it accordingly";
 format_error({undefined_var, Name, Kind}) ->
-  io_lib:format("undefined variable \"~ts\"~ts", [Name, context_info(Kind)]);
+  io_lib:format("undefined variable ~ts", [elixir_utils:var_info(Name, Kind)]);
 format_error({undefined_var_pin, Name, Kind}) ->
-  Message = "undefined variable ^~ts. No variable \"~ts\"~ts has been defined before the current pattern",
-  io_lib:format(Message, [Name, Name, context_info(Kind)]);
+  Message = "undefined variable ^~ts. No variable ~ts has been defined before the current pattern",
+  io_lib:format(Message, [Name, elixir_utils:var_info(Name, Kind)]);
 format_error(underscore_in_cond) ->
   "invalid use of _ inside \"cond\". If you want the last clause to always match, "
     "you probably meant to use: true ->";
@@ -1208,15 +1205,15 @@ format_error({options_are_not_keyword, Kind, Opts}) ->
 format_error({undefined_function, Name, Args}) ->
   io_lib:format("undefined function ~ts/~B (there is no such import)", [Name, length(Args)]);
 format_error({unpinned_bitsize_var, Name, Kind}) ->
-  io_lib:format("the variable \"~ts\"~ts is accessed inside size(...) of a bitstring "
+  io_lib:format("the variable ~ts is accessed inside size(...) of a bitstring "
                 "but it was defined outside of the match. You must precede it with the "
-                "pin operator", [Name, context_info(Kind)]);
+                "pin operator", [elixir_utils:var_info(Name, Kind)]);
 format_error({underscored_var_repeat, Name, Kind}) ->
-  io_lib:format("the underscored variable \"~ts\"~ts appears more than once in a "
+  io_lib:format("the underscored variable ~ts appears more than once in a "
                 "match. This means the pattern will only match if all \"~ts\" bind "
                 "to the same value. If this is the intended behaviour, please "
                 "remove the leading underscore from the variable name, otherwise "
-                "give the variables different names", [Name, context_info(Kind), Name]);
+                "give the variables different names", [elixir_utils:var_info(Name, Kind), Name]);
 format_error({underscored_var_access, Name}) ->
   io_lib:format("the underscored variable \"~ts\" is used after being set. "
                 "A leading underscore indicates that the value of the variable "

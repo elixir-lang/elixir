@@ -295,9 +295,6 @@ defmodule Module.Types.Pattern do
 
   ## Patterns
 
-  # TODO: Of.struct_keys
-  # TODO: Test recursive vars
-
   # :atom
   defp of_pattern(atom, _path, _stack, context) when is_atom(atom),
     do: {:ok, atom([atom]), context}

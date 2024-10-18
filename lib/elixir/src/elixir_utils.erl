@@ -6,14 +6,19 @@
   characters_to_list/1, characters_to_binary/1, relative_to_cwd/1,
   macro_name/1, returns_boolean/1, caller/4, meta_keep/1,
   read_file_type/1, read_file_type/2, read_link_type/1, read_posix_mtime_and_size/1,
-  change_posix_time/2, change_universal_time/2,
-  guard_op/2, guard_context/1, extract_splat_guards/1, extract_guards/1,
+  change_posix_time/2, change_universal_time/2, var_info/2,
+  guard_op/2, guard_info/1, extract_splat_guards/1, extract_guards/1,
   erlang_comparison_op_to_elixir/1, erl_fa_to_elixir_fa/2, jaro_similarity/2]).
 -include("elixir.hrl").
 -include_lib("kernel/include/file.hrl").
 
-guard_context(#elixir_ex{prematch={_, _, {bitsize, _}}}) -> "bitstring size specifier";
-guard_context(_) -> "guard".
+var_info(Name, Kind) when Kind == nil; is_integer(Kind) ->
+  io_lib:format("\"~ts\"", [Name]);
+var_info(Name, Kind) ->
+  io_lib:format("\"~ts\" (context ~ts)", [Name, elixir_aliases:inspect(Kind)]).
+
+guard_info(#elixir_ex{prematch={_, _, {bitsize, _}}}) -> "bitstring size specifier";
+guard_info(_) -> "guard".
 
 macro_name(Macro) ->
   list_to_atom("MACRO-" ++ atom_to_list(Macro)).

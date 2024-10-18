@@ -333,9 +333,9 @@ guard(Receiver, DotMeta, Right, Meta, Args, S) ->
     {erlang, RRight, RArgs} ->
       case allowed_guard(RRight, length(RArgs)) of
         true -> {ok, {{'.', DotMeta, [erlang, RRight]}, Meta, RArgs}};
-        false -> {error, {invalid_guard, Receiver, Right, length(Args), elixir_utils:guard_context(S)}}
+        false -> {error, {invalid_guard, Receiver, Right, length(Args), elixir_utils:guard_info(S)}}
       end;
-    _ -> {error, {invalid_guard, Receiver, Right, length(Args), elixir_utils:guard_context(S)}}
+    _ -> {error, {invalid_guard, Receiver, Right, length(Args), elixir_utils:guard_info(S)}}
   end.
 
 %% erlang:is_record/2-3 are compiler guards in Erlang which we
