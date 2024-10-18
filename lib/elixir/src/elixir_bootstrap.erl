@@ -18,9 +18,9 @@
 'MACRO-defmacro'(Caller, Call, Expr) -> define(Caller, defmacro, Call, Expr).
 'MACRO-defmacrop'(Caller, Call, Expr) -> define(Caller, defmacrop, Call, Expr).
 
-'MACRO-defmodule'(_Caller, Alias, [{do, Block}]) ->
+'MACRO-defmodule'({Line, _S, _E} = _Caller, Alias, [{do, Block}]) ->
   Escaped = elixir_quote:escape(Block, none, false),
-  Args = [Alias, Escaped, [], false, env()],
+  Args = [[{line, Line}], Alias, Escaped, [], false, env()],
   {{'.', [], [elixir_module, compile]}, [], Args}.
 
 '__info__'(functions) ->

@@ -1,6 +1,6 @@
 -module(elixir_module).
 -export([file/1, data_tables/1, is_open/1, mode/1, delete_definition_attributes/6,
-         compile/5, expand_callback/6, format_error/1, compiler_modules/0,
+         compile/6, expand_callback/6, format_error/1, compiler_modules/0,
          write_cache/3, read_cache/2, next_counter/1, taint/1]).
 -include("elixir.hrl").
 -define(counter_attr, {elixir, counter}).
@@ -73,9 +73,9 @@ taint(Module) ->
 
 %% Compilation hook
 
-compile(Module, Block, Vars, Prune, Env) ->
+compile(Meta, Module, Block, Vars, Prune, Env) ->
   ModuleAsCharlist = validate_module_name(Module),
-  #{line := Line, function := Function, versioned_vars := OldVerVars} = Env,
+  #{function := Function, versioned_vars := OldVerVars} = Env,
 
   {VerVars, _} =
     lists:mapfoldl(fun({Var, _}, I) -> {{Var, I}, I + 1} end, 0, maps:to_list(OldVerVars)),
@@ -92,11 +92,11 @@ compile(Module, Block, Vars, Prune, Env) ->
     #{lexical_tracker := nil} ->
       elixir_lexical:run(
         MaybeLexEnv,
-        fun(LexEnv) -> compile(Line, Module, ModuleAsCharlist, Block, Vars, Prune, LexEnv) end,
+        fun(LexEnv) -> compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, LexEnv) end,
         fun(_LexEnv) -> ok end
       );
     _ ->
-      compile(Line, Module, ModuleAsCharlist, Block, Vars, Prune, MaybeLexEnv)
+      compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, MaybeLexEnv)
   end.
 
 validate_module_name(Module) when Module == nil; is_boolean(Module); not is_atom(Module) ->
@@ -115,7 +115,10 @@ invalid_module_name(Module) ->
       ('Elixir.Kernel':inspect(Module))/binary>>
   )).
 
-compile(Line, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
+compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
+  Anno = ?ann(Meta),
+  Line = erl_anno:line(Anno),
+
   File = ?key(E, file),
   check_module_availability(Module, Line, E),
   elixir_env:trace(defmodule, E),
@@ -168,7 +171,7 @@ compile(Line, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
         ModuleMap = #{
           struct => get_struct(DataSet),
           module => Module,
-          line => Line,
+          anno => Anno,
           file => File,
           relative_file => elixir_utils:relative_to_cwd(File),
           attributes => Attributes,

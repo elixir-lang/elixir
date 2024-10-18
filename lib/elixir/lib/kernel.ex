@@ -5010,12 +5010,14 @@ defmodule Kernel do
     assert_no_match_or_guard_scope(env.context, "defmodule/2")
     expanded = expand_module_alias(alias, env)
 
+    module_meta = module_meta(alias)
+
     {expanded, with_alias} =
       case is_atom(expanded) do
         true ->
           {full, old, opts} = alias_defmodule(alias, expanded, env)
           # Expand the module considering the current environment/nesting
-          meta = [defined: full] ++ alias_meta(alias)
+          meta = [defined: full] ++ module_meta
           {full, {:require, meta, [old, opts]}}
 
         false ->
@@ -5047,6 +5049,7 @@ defmodule Kernel do
       unquote(with_alias)
 
       :elixir_module.compile(
+        unquote(module_meta),
         unquote(expanded),
         unquote(escaped),
         unquote(module_vars),
@@ -5056,8 +5059,8 @@ defmodule Kernel do
     end
   end
 
-  defp alias_meta({:__aliases__, meta, _}), do: meta
-  defp alias_meta(_), do: []
+  defp module_meta({_, meta, _}), do: meta
+  defp module_meta(_), do: []
 
   # We don't want to trace :alias_reference since we are defining the alias
   defp expand_module_alias({:__aliases__, meta, list} = alias, env) do

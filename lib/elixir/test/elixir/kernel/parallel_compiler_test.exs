@@ -445,7 +445,7 @@ defmodule Kernel.ParallelCompilerTest do
             assert {:error, [error], []} =
                      Kernel.ParallelCompiler.compile_to_path([fixture], output)
 
-            assert {^fixture, 3, "this clause " <> _} = error
+            assert {^fixture, {3, 7}, "this clause " <> _} = error
           end)
 
         assert msg =~
@@ -612,7 +612,7 @@ defmodule Kernel.ParallelCompilerTest do
           capture_io(:stderr, fn ->
             assert {:error, [error], []} = Kernel.ParallelCompiler.require([fixture])
 
-            assert {^fixture, 3, "this clause " <> _} = error
+            assert {^fixture, {3, 7}, "this clause " <> _} = error
           end)
 
         assert msg =~
