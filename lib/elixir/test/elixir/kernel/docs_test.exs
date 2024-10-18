@@ -257,12 +257,12 @@ defmodule Kernel.DocsTest do
 
       file = __ENV__.file
 
-      source_anno = :erl_anno.new({line + 3, 19})
+      source_annos = [:erl_anno.new({line + 3, 19})]
 
       assert %{
                # Generated meta
                source_path: ^file,
-               source_anno: ^source_anno,
+               source_annos: ^source_annos,
                behaviours: [SampleDocs.SampleBehaviour],
                # User meta
                authors: "Elixir Contributors",
@@ -291,11 +291,11 @@ defmodule Kernel.DocsTest do
       assert {{:callback, :bar, 0}, _, [], :hidden, %{}} = callback_bar
       assert {{:callback, :baz, 2}, _, [], :none, %{}} = callback_baz
 
-      source_anno = :erl_anno.new({line + 20, 21})
+      source_annos = [:erl_anno.new({line + 20, 21})]
 
       assert {{:callback, :foo, 1}, _, [], %{"en" => "Callback doc"},
               %{
-                source_anno: ^source_anno,
+                source_annos: ^source_annos,
                 since: "1.2.3",
                 deprecated: "use baz/2 instead",
                 color: :blue,
@@ -317,11 +317,11 @@ defmodule Kernel.DocsTest do
       assert {{:function, :baz, 1}, _, ["baz(arg)"], %{"en" => "Multiple function head and docs"},
               %{since: "1.2.3"}} = function_baz
 
-      source_anno = :erl_anno.new({line + 42, 15})
+      source_annos = [:erl_anno.new({line + 42, 15})]
 
       assert {{:function, :foo, 1}, _, ["foo(arg \\\\ 0)"], %{"en" => "Function doc"},
               %{
-                source_anno: ^source_anno,
+                source_annos: ^source_annos,
                 since: "1.2.3",
                 deprecated: "use baz/2 instead",
                 color: :blue,
@@ -334,10 +334,10 @@ defmodule Kernel.DocsTest do
 
       assert {{:function, :qux, 1}, _, ["qux(bool)"], :hidden, %{}} = function_qux
 
-      source_anno = :erl_anno.new({line + 60, 20})
+      source_annos = [:erl_anno.new({line + 60, 20})]
 
       assert {{:macro, :is_zero, 1}, _, ["is_zero(v)"], %{"en" => "A guard"},
-              %{source_anno: ^source_anno, guard: true}} = guard_is_zero
+              %{source_annos: ^source_annos, guard: true}} = guard_is_zero
 
       assert {{:macrocallback, :macrocallback_multi, 1}, _, [],
               %{"en" => "Macrocallback with multiple clauses"}, %{}} = macrocallback_multi
@@ -347,11 +347,11 @@ defmodule Kernel.DocsTest do
 
       assert {{:type, :bar, 1}, _, [], %{"en" => "Opaque type doc"}, %{opaque: true}} = type_bar
 
-      source_anno = :erl_anno.new({line + 12, 17})
+      source_annos = [:erl_anno.new({line + 12, 17})]
 
       assert {{:type, :foo, 1}, _, [], %{"en" => "Type doc"},
               %{
-                source_anno: ^source_anno,
+                source_annos: ^source_annos,
                 since: "1.2.3",
                 color: :red
               }} = type_foo

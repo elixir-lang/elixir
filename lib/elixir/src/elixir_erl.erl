@@ -500,7 +500,7 @@ docs_chunk(Map, Set, Module, Anno, Def, Defmacro, Types, Callbacks) ->
 
       ModuleMeta = ModuleDocMeta#{
         source_path => File,
-        source_anno => Anno,
+        source_annos => [Anno],
         behaviours => UsesBehaviours
       },
 
@@ -551,7 +551,7 @@ get_docs(Set, Module, Definitions, Kind) ->
     maybe_generated(erl_anno:new(Line), Ctx),
     [signature_to_binary(Module, Name, Signature)],
     doc_value(Doc, Name),
-    Meta#{source_anno => ?ann(DefinitionMeta)}
+    Meta#{source_annos => [?ann(DefinitionMeta)]}
    } || {{Name, Arity}, DefinitionMeta} <- Definitions,
         {Key, Ctx, Line, Signature, Doc, Meta} <- ets:lookup(Set, {Kind, Name, Arity})].
 
@@ -563,7 +563,7 @@ get_callback_docs(Set, Callbacks) ->
     erl_anno:new(Line),
     [],
     doc_value(Doc, Name),
-    Meta#{source_anno => ?ann(DefinitionMeta)}
+    Meta#{source_annos => [?ann(DefinitionMeta)]}
    } || {{Kind, Name, Arity}, DefinitionMeta} <- Callbacks, {Key, Line, Doc, Meta} <- ets:lookup(Set, {Kind, Name, Arity})].
 
 get_type_docs(Set, Types) ->
@@ -571,7 +571,7 @@ get_type_docs(Set, Types) ->
     erl_anno:new(Line),
     [],
     doc_value(Doc, Name),
-    Meta#{source_anno => ?ann(DefinitionMeta)}
+    Meta#{source_annos => [?ann(DefinitionMeta)]}
    } || {_Kind, {Name, Arity}, DefinitionMeta, _, true} <- Types,
         {Key, Line, Doc, Meta} <- ets:lookup(Set, {type, Name, Arity})].
 
