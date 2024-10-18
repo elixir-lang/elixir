@@ -916,7 +916,7 @@ defmodule Module do
   defp create(meta, module, quoted, env_or_opts) do
     next = :elixir_module.next_counter(nil)
     quoted = :elixir_quote.linify_with_context_counter(meta, {module, next}, quoted)
-    :elixir_module.compile(module, quoted, [], false, :elixir.env_for_eval(env_or_opts))
+    :elixir_module.compile(meta, module, quoted, [], false, :elixir.env_for_eval(env_or_opts))
   end
 
   @doc """

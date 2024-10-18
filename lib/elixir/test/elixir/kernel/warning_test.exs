@@ -883,7 +883,7 @@ defmodule Kernel.WarningTest do
 
   test "unused guard" do
     assert_warn_eval(
-      ["nofile:5\n", "this check/guard will always yield the same result"],
+      ["nofile:5:25\n", "this check/guard will always yield the same result"],
       """
       defmodule Sample do
         def atom_case do
@@ -1017,7 +1017,7 @@ defmodule Kernel.WarningTest do
   test "clause not match" do
     assert_warn_eval(
       [
-        "nofile:3\n",
+        "nofile:3:7\n",
         ~r"this clause( for hello/0)? cannot match because a previous clause at line 2 always matches"
       ],
       """
@@ -1068,7 +1068,7 @@ defmodule Kernel.WarningTest do
     message = "def hello/1 has multiple clauses and also declares default values"
 
     assert_warn_eval(
-      ["nofile:3\n", message],
+      ["nofile:3:7\n", message],
       ~S"""
       defmodule Sample1 do
         def hello(arg), do: arg
@@ -1092,7 +1092,7 @@ defmodule Kernel.WarningTest do
 
   test "clauses with default should use header" do
     assert_warn_eval(
-      ["nofile:3\n", "def hello/1 has multiple clauses and also declares default values"],
+      ["nofile:3:7\n", "def hello/1 has multiple clauses and also declares default values"],
       ~S"""
       defmodule Sample do
         def hello(arg \\ 0), do: arg
@@ -1214,7 +1214,7 @@ defmodule Kernel.WarningTest do
 
   test "in guard empty list" do
     assert_warn_eval(
-      ["nofile:2\n", "this check/guard will always yield the same result"],
+      ["nofile:2:7\n", "this check/guard will always yield the same result"],
       """
       defmodule Sample do
         def a(x) when x in [], do: x
@@ -1227,7 +1227,7 @@ defmodule Kernel.WarningTest do
 
   test "no effect operator" do
     assert_warn_eval(
-      ["nofile:3\n", "use of operator != has no effect"],
+      ["nofile:3:7\n", "use of operator != has no effect"],
       """
       defmodule Sample do
         def a(x) do
@@ -1243,7 +1243,7 @@ defmodule Kernel.WarningTest do
 
   test "eval failure warning" do
     assert_warn_eval(
-      ["nofile:2\n", "the call to Atom.to_string/1 will fail with ArgumentError"],
+      ["nofile:2:21\n", "the call to Atom.to_string/1 will fail with ArgumentError"],
       """
       defmodule Sample1 do
         def foo, do: Atom.to_string "abc"
@@ -1252,7 +1252,7 @@ defmodule Kernel.WarningTest do
     )
 
     assert_warn_eval(
-      ["nofile:2\n", "the call to +/2 will fail with ArithmeticError"],
+      ["nofile:2:18\n", "the call to +/2 will fail with ArithmeticError"],
       """
       defmodule Sample2 do
         def foo, do: 1 + nil
@@ -2027,7 +2027,7 @@ defmodule Kernel.WarningTest do
   test "defguard overriding defmacro" do
     assert_warn_eval(
       [
-        "nofile:3\n",
+        "nofile:3:12\n",
         ~r"this clause( for foo/1)? cannot match because a previous clause at line 2 always matches"
       ],
       """
@@ -2044,7 +2044,7 @@ defmodule Kernel.WarningTest do
   test "defmacro overriding defguard" do
     assert_warn_eval(
       [
-        "nofile:3\n",
+        "nofile:3:12\n",
         ~r"this clause( for foo/1)? cannot match because a previous clause at line 2 always matches"
       ],
       """
