@@ -20,7 +20,6 @@ defmodule Module.Types.ExprTest do
     assert typecheck!(0.0) == float()
     assert typecheck!("foo") == binary()
     assert typecheck!([]) == empty_list()
-    assert typecheck!([1, 2]) == non_empty_list()
     assert typecheck!(%{}) == closed_map([])
     assert typecheck!(& &1) == fun()
     assert typecheck!(fn -> :ok end) == fun()
@@ -28,6 +27,14 @@ defmodule Module.Types.ExprTest do
 
   test "generated" do
     assert typecheck!([x = 1], generated(x)) == dynamic()
+  end
+
+  describe "lists" do
+    test "creating lists" do
+      assert typecheck!([1, 2]) == non_empty_list(integer())
+      assert typecheck!([1, 2 | 3]) == non_empty_list(integer(), integer())
+      assert typecheck!([1, 2 | [3, 4]]) == non_empty_list(integer())
+    end
   end
 
   describe "funs" do
@@ -229,7 +236,7 @@ defmodule Module.Types.ExprTest do
                 where "y" was given the type:
 
                     # type: dynamic()
-                    # from: types_test.ex:208
+                    # from: types_test.ex:LINE-2
                     y
                 """}
     end
@@ -339,11 +346,11 @@ defmodule Module.Types.ExprTest do
 
                 but got type:
 
-                    :foo
+                    dynamic(:foo)
 
                 where "x" was given the type:
 
-                    # type: :foo
+                    # type: dynamic(:foo)
                     # from: types_test.ex:LINE-2
                     x = :foo
                 """}
@@ -419,13 +426,13 @@ defmodule Module.Types.ExprTest do
 
   describe "comparison" do
     test "works across numbers" do
-      assert typecheck!([x = 123, y = 456.0], min(x, y)) == union(integer(), float())
+      assert typecheck!([x = 123, y = 456.0], min(x, y)) == dynamic(union(integer(), float()))
       assert typecheck!([x = 123, y = 456.0], x < y) == boolean()
     end
 
     test "warns when comparison is constant" do
       assert typewarn!([x = :foo, y = 321], min(x, y)) ==
-               {union(integer(), atom([:foo])),
+               {dynamic(union(integer(), atom([:foo]))),
                 ~l"""
                 comparison between incompatible types found:
 
@@ -433,7 +440,7 @@ defmodule Module.Types.ExprTest do
 
                 where "x" was given the type:
 
-                    # type: :foo
+                    # type: dynamic(:foo)
                     # from: types_test.ex:LINE-2
                     x = :foo
 
@@ -458,13 +465,13 @@ defmodule Module.Types.ExprTest do
 
                 where "mod" was given the type:
 
-                    # type: Kernel
+                    # type: dynamic(Kernel)
                     # from: types_test.ex:LINE-2
                     mod = Kernel
 
                 where "x" was given the type:
 
-                    # type: :foo
+                    # type: dynamic(:foo)
                     # from: types_test.ex:LINE-2
                     x = :foo
 

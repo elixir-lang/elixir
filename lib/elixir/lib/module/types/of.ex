@@ -29,7 +29,7 @@ defmodule Module.Types.Of do
   @doc """
   Refines the type of a variable.
   """
-  def refine_var(var, {type, expr}, formatter \\ :default, stack, context) do
+  def refine_var(var, type, expr, formatter \\ :default, stack, context) do
     {var_name, meta, var_context} = var
     version = Keyword.fetch!(meta, :version)
 
@@ -175,18 +175,9 @@ defmodule Module.Types.Of do
   # against the struct types.
   # TODO: Use the struct default values to define the default types.
   def struct(struct, args_types, default_handling, meta, stack, context) do
-    context = remote(struct, :__struct__, 0, meta, stack, context)
-
-    info =
-      struct.__info__(:struct) ||
-        raise "expected #{inspect(struct)} to return struct metadata, but got none"
-
+    {info, context} = struct_info(struct, meta, stack, context)
     term = term()
-
-    defaults =
-      for %{field: field} <- info, field != :__struct__ do
-        {field, term}
-      end
+    defaults = for %{field: field} <- info, do: {field, term}
 
     pairs =
       case default_handling do
@@ -196,6 +187,19 @@ defmodule Module.Types.Of do
       end
 
     {:ok, dynamic(closed_map(pairs)), context}
+  end
+
+  @doc """
+  Returns `__info__(:struct)` information about a struct.
+  """
+  def struct_info(struct, meta, stack, context) do
+    context = remote(struct, :__struct__, 0, meta, stack, context)
+
+    info =
+      struct.__info__(:struct) ||
+        raise "expected #{inspect(struct)} to return struct metadata, but got none"
+
+    {info, context}
   end
 
   ## Binary
@@ -240,14 +244,21 @@ defmodule Module.Types.Of do
   end
 
   defp binary_segment({:"::", meta, [left, right]}, kind, args, stack, context) do
-    expected_type = specifier_type(kind, right)
+    type = specifier_type(kind, right)
     expr = {:<<>>, meta, args}
 
     result =
       case kind do
-        :pattern -> Module.Types.Pattern.of_pattern(left, {expected_type, expr}, stack, context)
-        :guard -> Module.Types.Pattern.of_guard(left, {expected_type, expr}, stack, context)
-        :expr -> Module.Types.Expr.of_expr(left, {expected_type, expr}, stack, context)
+        :match ->
+          Module.Types.Pattern.of_match_var(left, type, expr, stack, context)
+
+        :guard ->
+          Module.Types.Pattern.of_guard(left, type, expr, stack, context)
+
+        :expr ->
+          with {:ok, actual, context} <- Module.Types.Expr.of_expr(left, stack, context) do
+            intersect(actual, type, expr, stack, context)
+          end
       end
 
     with {:ok, _type, context} <- result do
@@ -256,10 +267,10 @@ defmodule Module.Types.Of do
   end
 
   defp specifier_type(kind, {:-, _, [left, _right]}), do: specifier_type(kind, left)
-  defp specifier_type(:pattern, {:utf8, _, _}), do: @integer
-  defp specifier_type(:pattern, {:utf16, _, _}), do: @integer
-  defp specifier_type(:pattern, {:utf32, _, _}), do: @integer
-  defp specifier_type(:pattern, {:float, _, _}), do: @float
+  defp specifier_type(:match, {:utf8, _, _}), do: @integer
+  defp specifier_type(:match, {:utf16, _, _}), do: @integer
+  defp specifier_type(:match, {:utf32, _, _}), do: @integer
+  defp specifier_type(:match, {:float, _, _}), do: @float
   defp specifier_type(_kind, {:float, _, _}), do: @integer_or_float
   defp specifier_type(_kind, {:utf8, _, _}), do: @integer_or_binary
   defp specifier_type(_kind, {:utf16, _, _}), do: @integer_or_binary
@@ -277,15 +288,17 @@ defmodule Module.Types.Of do
 
   defp specifier_size(:expr, {:size, _, [arg]}, expr, stack, context)
        when not is_integer(arg) do
-    case Module.Types.Expr.of_expr(arg, {integer(), expr}, stack, context) do
-      {:ok, _, context} -> context
+    with {:ok, actual, context} <- Module.Types.Expr.of_expr(arg, stack, context),
+         {:ok, _, context} <- intersect(actual, integer(), expr, stack, context) do
+      context
+    else
       {:error, context} -> context
     end
   end
 
   defp specifier_size(_pattern_or_guard, {:size, _, [arg]}, expr, stack, context)
        when not is_integer(arg) do
-    case Module.Types.Pattern.of_guard(arg, {integer(), expr}, stack, context) do
+    case Module.Types.Pattern.of_guard(arg, integer(), expr, stack, context) do
       {:ok, _, context} -> context
       {:error, context} -> context
     end
@@ -450,7 +463,7 @@ defmodule Module.Types.Of do
   @doc """
   Intersects two types and emit an incompatible warning if empty.
   """
-  def intersect(actual, {expected, expr}, stack, context) do
+  def intersect(actual, expected, expr, stack, context) do
     type = intersection(actual, expected)
 
     if empty?(type) do
@@ -476,101 +489,6 @@ defmodule Module.Types.Of do
   defp warn(warning, meta, stack, context) do
     warn(__MODULE__, warning, meta, stack, context)
   end
-
-  ## Traces
-
-  def collect_traces(expr, %{vars: vars}) do
-    {_, versions} =
-      Macro.prewalk(expr, %{}, fn
-        {var_name, meta, var_context}, versions when is_atom(var_name) and is_atom(var_context) ->
-          version = meta[:version]
-
-          case vars do
-            %{^version => %{off_traces: [_ | _] = off_traces, name: name, context: context}} ->
-              {:ok,
-               Map.put(versions, version, %{
-                 type: :variable,
-                 name: name,
-                 context: context,
-                 traces: collect_var_traces(off_traces)
-               })}
-
-            _ ->
-              {:ok, versions}
-          end
-
-        node, versions ->
-          {node, versions}
-      end)
-
-    versions
-    |> Map.values()
-    |> Enum.sort_by(& &1.name)
-  end
-
-  defp collect_var_traces(traces) do
-    traces
-    |> Enum.reverse()
-    |> Enum.map(fn {expr, file, type, formatter} ->
-      meta = get_meta(expr)
-
-      {formatted_expr, formatter_hints} =
-        case formatter do
-          :default -> {expr_to_string(expr), []}
-          formatter -> formatter.(expr)
-        end
-
-      %{
-        file: file,
-        meta: meta,
-        formatted_expr: formatted_expr,
-        formatted_hints: format_hints(formatter_hints ++ expr_hints(expr)),
-        formatted_type: to_quoted_string(type)
-      }
-    end)
-  end
-
-  def format_traces(traces) do
-    Enum.map(traces, &format_trace/1)
-  end
-
-  defp format_trace(%{type: :variable, name: name, context: context, traces: traces}) do
-    traces =
-      for trace <- traces do
-        location =
-          trace.file
-          |> Path.relative_to_cwd()
-          |> Exception.format_file_line(trace.meta[:line])
-          |> String.replace_suffix(":", "")
-
-        [
-          """
-
-              # type: #{indent(trace.formatted_type, 4)}
-              # from: #{location}
-              \
-          """,
-          indent(trace.formatted_expr, 4),
-          ?\n,
-          trace.formatted_hints
-        ]
-      end
-
-    type_or_types = pluralize(traces, "type", "types")
-    ["\nwhere #{format_var(name, context)} was given the #{type_or_types}:\n" | traces]
-  end
-
-  defp format_var({var, _, context}), do: format_var(var, context)
-  defp format_var(var, nil), do: "\"#{var}\""
-  defp format_var(var, context), do: "\"#{var}\" (context #{inspect(context)})"
-
-  defp pluralize([_], singular, _plural), do: singular
-  defp pluralize(_, _singular, plural), do: plural
-
-  defp expr_hints({:<<>>, [inferred_bitstring_spec: true] ++ _meta, _}),
-    do: [:inferred_bitstring_spec]
-
-  defp expr_hints(_), do: []
 
   ## Warning formatting
 

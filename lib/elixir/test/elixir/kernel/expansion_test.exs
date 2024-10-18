@@ -188,6 +188,63 @@ defmodule Kernel.ExpansionTest do
       assert output == quote(do: _ = 1)
       assert Macro.Env.vars(env) == []
     end
+
+    test "errors on directly recursive definitions" do
+      assert_compile_error(
+        ~r"""
+        recursive variable definition in patterns:
+
+            x = x
+
+        the variable "x" \(context Kernel.ExpansionTest\) is defined in function of itself
+        """,
+        fn -> expand(quote(do: (x = x) = :ok)) end
+      )
+
+      assert_compile_error(
+        ~r"""
+        recursive variable definition in patterns:
+
+            \{x = \{:ok, x\}\}
+
+        the variable "x" \(context Kernel.ExpansionTest\) is defined in function of itself
+        """,
+        fn -> expand(quote(do: {x = {:ok, x}} = :ok)) end
+      )
+
+      assert_compile_error(
+        ~r"""
+        recursive variable definition in patterns:
+
+            \{\{x, y\} = \{y, x\}\}
+
+        the variable "x" \(context Kernel.ExpansionTest\) is defined in function of itself
+        """,
+        fn -> expand(quote(do: {{x, y} = {y, x}} = :ok)) end
+      )
+
+      assert_compile_error(
+        ~r"""
+        recursive variable definition in patterns:
+
+            \{\{:x, y\} = \{x, :y\}, x = y\}
+
+        the variable "x" \(context Kernel.ExpansionTest\) is defined recursively in function of "y" \(context Kernel.ExpansionTest\)
+        """,
+        fn -> expand(quote(do: {{:x, y} = {x, :y}, x = y} = :ok)) end
+      )
+
+      assert_compile_error(
+        ~r"""
+        recursive variable definition in patterns:
+
+            \{x = y, y = z, z = x\}
+
+        the following variables form a cycle: "x" \(context Kernel.ExpansionTest\), "y" \(context Kernel.ExpansionTest\), "z" \(context Kernel.ExpansionTest\)
+        """,
+        fn -> expand(quote(do: {x = y, y = z, z = x} = :ok)) end
+      )
+    end
   end
 
   describe "environment macros" do
@@ -2286,81 +2343,9 @@ defmodule Kernel.ExpansionTest do
                quote(do: <<foo::integer>> = baz = <<bar()::integer>>)
                |> clean_bit_modifiers()
 
-      assert expand(quote(do: <<foo>> = {<<baz>>} = bar())) |> clean_meta([:alignment]) ==
-               quote(do: <<foo::integer>> = {<<baz::integer>>} = bar())
+      assert expand(quote(do: <<foo>> = <<bar>> = baz)) |> clean_meta([:alignment]) ==
+               quote(do: <<foo::integer>> = <<bar::integer>> = baz())
                |> clean_bit_modifiers()
-
-      message = ~r"binary patterns cannot be matched in parallel using \"=\""
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: <<foo>> = <<baz>> = bar()))
-      end)
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: <<foo>> = qux = <<baz>> = bar()))
-      end)
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: {<<foo>>} = {qux} = {<<baz>>} = bar()))
-      end)
-
-      assert expand(quote(do: {:foo, <<foo>>} = {<<baz>>, :baz} = bar()))
-
-      # two-element tuples are special cased
-      assert_compile_error(message, fn ->
-        expand(quote(do: {:foo, <<foo>>} = {:foo, <<baz>>} = bar()))
-      end)
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: %{foo: <<foo>>} = %{baz: <<qux>>, foo: <<baz>>} = bar()))
-      end)
-
-      assert expand(quote(do: %{foo: <<foo>>} = %{baz: <<baz>>} = bar()))
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: %_{foo: <<foo>>} = %_{foo: <<baz>>} = bar()))
-      end)
-
-      assert expand(quote(do: %_{foo: <<foo>>} = %_{baz: <<baz>>} = bar()))
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: %_{foo: <<foo>>} = %{foo: <<baz>>} = bar()))
-      end)
-
-      assert expand(quote(do: %_{foo: <<foo>>} = %{baz: <<baz>>} = bar()))
-
-      assert_compile_error(message, fn ->
-        code =
-          quote do
-            case bar() do
-              <<foo>> = <<baz>> -> nil
-            end
-          end
-
-        expand(code)
-      end)
-
-      assert_compile_error(message, fn ->
-        code =
-          quote do
-            case bar() do
-              <<foo>> = qux = <<baz>> -> nil
-            end
-          end
-
-        expand(code)
-      end)
-
-      assert_compile_error(message, fn ->
-        code =
-          quote do
-            case bar() do
-              [<<foo>>] = [<<baz>>] -> nil
-            end
-          end
-
-        expand(code)
-      end)
     end
 
     test "nested match" do
@@ -2809,16 +2794,6 @@ defmodule Kernel.ExpansionTest do
 
       assert_compile_error(~r"conflicting unit specification for bit field", fn ->
         expand(quote(do: <<x::bitstring-unit(2)>>))
-      end)
-    end
-
-    test "raises for invalid literals" do
-      assert_compile_error(~r"invalid literal :foo in <<>>", fn ->
-        expand(quote(do: <<:foo>>))
-      end)
-
-      assert_compile_error(~r"invalid literal \[\] in <<>>", fn ->
-        expand(quote(do: <<[]::size(8)>>))
       end)
     end
 

@@ -9,9 +9,19 @@ defmodule TypeHelper do
   alias Module.Types.{Pattern, Expr, Descr}
 
   @doc """
+  Main helper for inferring the given pattern + guards.
+  """
+  defmacro typeinfer!(patterns \\ [], guards \\ true) do
+    quote do
+      unquote(typeinfer(patterns, guards, __CALLER__))
+      |> TypeHelper.__typecheck__!()
+    end
+  end
+
+  @doc """
   Main helper for checking the given AST type checks without warnings.
   """
-  defmacro typecheck!(patterns \\ [], guards \\ [], body) do
+  defmacro typecheck!(patterns \\ [], guards \\ true, body) do
     quote do
       unquote(typecheck(patterns, guards, body, __CALLER__))
       |> TypeHelper.__typecheck__!()
@@ -21,7 +31,7 @@ defmodule TypeHelper do
   @doc """
   Main helper for checking the given AST type checks errors.
   """
-  defmacro typeerror!(patterns \\ [], guards \\ [], body) do
+  defmacro typeerror!(patterns \\ [], guards \\ true, body) do
     quote do
       unquote(typecheck(patterns, guards, body, __CALLER__))
       |> TypeHelper.__typeerror__!()
@@ -31,7 +41,7 @@ defmodule TypeHelper do
   @doc """
   Main helper for checking the given AST type warns.
   """
-  defmacro typewarn!(patterns \\ [], guards \\ [], body) do
+  defmacro typewarn!(patterns \\ [], guards \\ true, body) do
     quote do
       unquote(typecheck(patterns, guards, body, __CALLER__))
       |> TypeHelper.__typewarn__!()
@@ -41,7 +51,7 @@ defmodule TypeHelper do
   @doc """
   Main helper for checking the diagnostic of a given AST.
   """
-  defmacro typediag!(patterns \\ [], guards \\ [], body) do
+  defmacro typediag!(patterns \\ [], guards \\ true, body) do
     quote do
       unquote(typecheck(patterns, guards, body, __CALLER__))
       |> TypeHelper.__typediag__!()
@@ -84,16 +94,28 @@ defmodule TypeHelper do
   end
 
   @doc """
+  Building block for typeinferring a given AST.
+  """
+  def typeinfer(patterns, guards, env) do
+    {patterns, guards, :ok} = expand_and_unpack(patterns, guards, :ok, env)
+
+    quote do
+      TypeHelper.__typeinfer__(
+        unquote(Macro.escape(patterns)),
+        unquote(Macro.escape(guards))
+      )
+    end
+  end
+
+  def __typeinfer__(patterns, guards) do
+    Pattern.of_head(patterns, guards, [], new_stack(), new_context())
+  end
+
+  @doc """
   Building block for typechecking a given AST.
   """
   def typecheck(patterns, guards, body, env) do
-    fun =
-      quote do
-        fn unquote(patterns) when unquote(guards) -> unquote(body) end
-      end
-
-    {ast, _, _} = :elixir_expand.expand(fun, :elixir_env.env_to_ex(env), env)
-    {:fn, _, [{:->, _, [[{:when, _, [patterns, guards]}], body]}]} = ast
+    {patterns, guards, body} = expand_and_unpack(patterns, guards, body, env)
 
     quote do
       TypeHelper.__typecheck__(
@@ -111,6 +133,18 @@ defmodule TypeHelper do
          {:ok, type, context} <- Expr.of_expr(body, stack, context) do
       {:ok, type, context}
     end
+  end
+
+  defp expand_and_unpack(patterns, guards, body, env) do
+    fun =
+      quote do
+        fn unquote_splicing(patterns) when unquote(guards) -> unquote(body) end
+      end
+
+    {ast, _, _} = :elixir_expand.expand(fun, :elixir_env.env_to_ex(env), env)
+    {:fn, _, [{:->, _, [[{:when, _, args}], body]}]} = ast
+    {patterns, guards} = Enum.split(args, -1)
+    {patterns, guards, body}
   end
 
   defp new_stack() do

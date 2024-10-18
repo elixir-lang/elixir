@@ -1,6 +1,6 @@
 -module(elixir_rewrite).
 -compile({inline, [inner_inline/4, inner_rewrite/5]}).
--export([erl_to_ex/3, inline/3, rewrite/5, match_rewrite/5, guard_rewrite/6, format_error/1]).
+-export([erl_to_ex/3, inline/3, rewrite/5, match/6, guard/6, format_error/1]).
 -include("elixir.hrl").
 
 %% Convenience variables
@@ -237,6 +237,8 @@ rewrite(?string_chars, DotMeta, to_string, Meta, [Arg]) ->
     true -> Arg;
     false -> {{'.', DotMeta, [?string_chars, to_string]}, Meta, [Arg]}
   end;
+rewrite(erlang, _, '+', _, [Arg]) when is_number(Arg) -> +Arg;
+rewrite(erlang, _, '-', _, [Arg]) when is_number(Arg) -> -Arg;
 rewrite(Receiver, DotMeta, Right, Meta, Args) ->
   {EReceiver, ERight, EArgs} = inner_rewrite(ex_to_erl, DotMeta, Receiver, Right, Args),
   {{'.', DotMeta, [EReceiver, ERight]}, Meta, EArgs}.
@@ -306,11 +308,11 @@ increment(Meta, Other) ->
 %% The allowed operations are very limited.
 %% The Kernel operators are already inlined by now, we only need to
 %% care about Erlang ones.
-match_rewrite(erlang, _, '++', Meta, [Left, Right]) ->
+match(erlang, _, '++', Meta, [Left, Right], _S) ->
   try {ok, static_append(Left, Right, Meta)}
   catch impossible -> {error, {invalid_match_append, Left}}
   end;
-match_rewrite(Receiver, _, Right, _, Args) ->
+match(Receiver, _, Right, _, Args, _S) ->
   {error, {invalid_match, Receiver, Right, length(Args)}}.
 
 static_append([], Right, _Meta) -> Right;
@@ -326,14 +328,14 @@ static_append(_, _, _) -> throw(impossible).
 %% Guard rewrite is similar to regular rewrite, except
 %% it also verifies the resulting function is supported in
 %% guard context - only certain BIFs and operators are.
-guard_rewrite(Receiver, DotMeta, Right, Meta, Args, Context) ->
+guard(Receiver, DotMeta, Right, Meta, Args, S) ->
   case inner_rewrite(ex_to_erl, DotMeta, Receiver, Right, Args) of
     {erlang, RRight, RArgs} ->
       case allowed_guard(RRight, length(RArgs)) of
         true -> {ok, {{'.', DotMeta, [erlang, RRight]}, Meta, RArgs}};
-        false -> {error, {invalid_guard, Receiver, Right, length(Args), Context}}
+        false -> {error, {invalid_guard, Receiver, Right, length(Args), elixir_utils:guard_info(S)}}
       end;
-    _ -> {error, {invalid_guard, Receiver, Right, length(Args), Context}}
+    _ -> {error, {invalid_guard, Receiver, Right, length(Args), elixir_utils:guard_info(S)}}
   end.
 
 %% erlang:is_record/2-3 are compiler guards in Erlang which we
