@@ -633,13 +633,12 @@ defmodule Code.Normalizer.QuotedASTTest do
       input = "def foo, do: :bar, __cursor__()"
       expected = "def foo, [{:do, :bar}, __cursor__()]"
 
-      ast = Code.string_to_quoted!(input, token_metadata: true)
+      ast = Code.string_to_quoted!(input)
 
       assert quoted_to_string(ast) == expected
 
       ast =
         Code.string_to_quoted!(input,
-          token_metadata: true,
           literal_encoder: &{:ok, {:__block__, &2, [&1]}}
         )
 
@@ -648,20 +647,19 @@ defmodule Code.Normalizer.QuotedASTTest do
 
     test "keyword arg edge case: literal encoder" do
       input = """
-      foo Bar do
+      foo(Bar) do
         :ok
       end
       """
 
       expected = String.trim(input)
 
-      ast = Code.string_to_quoted!(input, token_metadata: true)
+      ast = Code.string_to_quoted!(input)
 
       assert quoted_to_string(ast) == expected
 
       ast =
         Code.string_to_quoted!(input,
-          token_metadata: true,
           literal_encoder: &{:ok, {:__block__, &2, [&1]}}
         )
 
