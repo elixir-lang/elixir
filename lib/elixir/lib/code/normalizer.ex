@@ -347,7 +347,7 @@ defmodule Code.Normalizer do
         args = normalize_args(args, %{state | parent_meta: meta})
         {form, meta, args}
 
-      Keyword.has_key?(meta, :do) or match?([{{:__block__, _, [:do]}, _} | _], last) ->
+      Keyword.has_key?(meta, :do) ->
         # def foo do :ok end
         # def foo, do: :ok
         normalize_kw_blocks(form, meta, args, state)
