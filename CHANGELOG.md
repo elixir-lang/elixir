@@ -1,14 +1,61 @@
 # Changelog for Elixir v1.18
 
-This release no longer supports WERL (a graphical user interface for the Erlang terminal on Windows). For a better user experience on Windows terminals, use Erlang/OTP 26+.
+TODO.
 
-## Support for new types
+## Type system improvements
 
-[TODO](https://elixir-lang.org/blog/2024/08/28/typing-lists-and-tuples/).
+* Type checking and inference of patterns
+
+* [Support for tuples](https://elixir-lang.org/blog/2024/08/28/typing-lists-and-tuples/).
+
+## ExUnit improvements
+
+ExUnit now supports parameterized tests to run the same test module multiple times under different parameters.
+
+For example, Elixir ships a local, decentralized and scalable key-value process storage called `Registry`. The registry can be partitioned and its implementation differs depending if partitioning is enabled or not. Therefore, during tests, we want to ensure both modes are exercised. With Elixir v1.18, we can achieve this by writing:
+
+```elixir
+defmodule Registry.Test do
+  use ExUnit.Case,
+    async: true,
+    parameterize: [
+      %{partitions: 1},
+      %{partitions: 8}
+    ]
+
+  # ... the actual tests ...
+end
+```
+
+ExUnit parameterizes whole test modules. If your modules are configured to run concurrently, as above, so will the parameterized ones.
+
+ExUnit also comes with the ability of specifying test groups. While ExUnit supports running tests concurrently, those tests must not have shared state between them. However, in large applications, it may be common for some tests to depend on some shared state, and other tests to depend on a completely separate state. For example, part of your tests may depend on Cassandra, while others depend on Redis. Prior to Elixir v1.18, these tests could not run concurrently, but in v1.18 they might as long as they are assigned to different groups. Tests modules within the same group do not run concurrently, but across groups, they might.
+
+With features like async tests, suite partitioning, and now grouping, Elixir developers have plenty of flexibility to make the most use of their machine resources, both in development and in CI.
 
 ## `mix format --migrate`
 
 TODO.
+
+## Potential incompatibilities
+
+This release no longer supports WERL (a graphical user interface on Windows used by Erlang 25 and earlier). For a better user experience on Windows terminals, use Erlang/OTP 26+.
+
+Furthermore, in order to support inference of patterns, Elixir will raise if it finds recursive variable definitions. This means patterns that never match, such as this one, will no longer compile:
+
+    def foo(x = {:ok, y}, x = y)
+
+However, recursion of root variables (where variables directly point to each other), will also fail to compile:
+
+    def foo(x = y, y = z, z = x)
+
+While the definition above could succeed (as long as all three arguments are equal), the cycle is not necessary and could be removed, as below:
+
+    def foo(x = y, y = z, z)
+
+You may also prever to write using guards:
+
+    def foo(x, y, z) when x == y and y == z
 
 ## v1.18.0-dev
 
@@ -19,6 +66,7 @@ TODO.
   * [CLI] Add experimental PowerShell scripts for `elixir`, `elixirc`, and `mix` on Windows. Those provide a safer entry point for running Elixir from other platforms
   * [Code] Support several migration options in `Code.format_string!/2`
   * [Code] Add parenthesis around `--` and `---` in `Code.format_string!/2` to make precedence clearer
+  * [Code.Fragment] Have `:capture_arg` as its own entry in `Code.Fragment.surround_context/2`
   * [Config] Add `Config.read_config/1`
   * [Enumerable] Add `Enum.product_by/2` and `Enum.sum_by/2`
   * [Exception] Add `MissingApplicationsError` exception to denote missing applications
@@ -34,6 +82,7 @@ TODO.
 #### ExUnit
 
   * [ExUnit] Support parameterized tests on `ExUnit.Case`
+  * [ExUnit] Support test groups: tests in the same group never run concurrently
 
 #### IEx
 
@@ -42,8 +91,13 @@ TODO.
 
 #### Mix
 
+  * [mix compile] Ensure only a single operating system process can compile at a given time
+  * [mix deps.get] Ensure only a single operating system process can fetch deps at a given time
   * [mix format] Add `mix format --migrate` to migrate from deprecated functionality
   * [mix test] Taint failure manifest if requiring or compiling tests fail
+  * [Mix.Project] Add a `:listeners` configuration to listen to compilation events from the current and other operating system processes
+  * [Mix.Task.Compiler] Add API for fetching all persisted compiler diagnostics
+  * [Mix.Task.Compiler] Add API for fetching all compiler tasks
 
 ### 2. Bug fixes
 
@@ -56,6 +110,10 @@ TODO.
 #### ExUnit
 
   * [ExUnit.Assertions] Raise if guards are used in `assert/1` with `=`
+
+#### IEx
+
+  * [IEx.Helpers] `IEx.Helpers.recompile/0` will reload modules changed by other operating system processes
 
 #### Mix
 
@@ -87,6 +145,7 @@ TODO.
 #### Mix
 
   * [mix cmd] Deprecate `mix cmd --app APP` in favor of `mix do --app APP`
+  * [Mix.Tasks.Compile] Deprecate `compilers/0` in favor of `Mix.Task.Compiler.compilers/0`
 
 ## v1.17
 
