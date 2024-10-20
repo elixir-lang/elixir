@@ -74,27 +74,53 @@ jobs:
         with:
           fetch-depth: 50
 
-      - uses: ./.github/workflows/release_pre_built
+      - name: "Build Release"
+        uses: ./.github/workflows/release_pre_built
         with:
           otp_version: ${{ matrix.otp_version }}
           otp: ${{ matrix.otp }}
           build_docs: ${{ matrix.build_docs }}
 
-      - uses: actions/attest-build-provenance@v1
+      - name: "Attest release .exe provenance"
+        uses: actions/attest-build-provenance@v1
+        id: attest-exe-provenance
         with:
-          subject-path: 'elixir-otp-${{ matrix.otp }}.*'
+          subject-path: 'elixir-otp-${{ matrix.otp }}.exe'
+      - name: "Copy release .exe provenance"
+        run: cp "$ATTESTATION" elixir-otp-${{ matrix.otp }}.exe.sigstore
+        env:
+          ATTESTATION: "${{ steps.attest-exe-provenance.outputs.bundle-path }}"
 
-      - uses: actions/attest-build-provenance@v1
+      - name: "Attest release .zip provenance"
+        uses: actions/attest-build-provenance@v1
+        id: attest-zip-provenance
+        with:
+          subject-path: 'elixir-otp-${{ matrix.otp }}.zip'
+      - name: "Copy release .zip provenance"
+        run: cp "$ATTESTATION" elixir-otp-${{ matrix.otp }}.zip.sigstore
+        env:
+          ATTESTATION: "${{ steps.attest-zip-provenance.outputs.bundle-path }}"
+
+      - name: "Attest docs provenance"
+        uses: actions/attest-build-provenance@v1
+        id: attest-docs-provenance
         if: ${{ matrix.build_docs }}
         with:
-          subject-path: 'Docs.*'
+          subject-path: 'Docs.zip'
+      - name: "Copy docs provenance"
+        if: ${{ matrix.build_docs }}
+        run: cp "$ATTESTATION" Docs.zip.sigstore
+        env:
+          ATTESTATION: "${{ steps.attest-docs-provenance.outputs.bundle-path }}"
 
-      - uses: actions/upload-artifact@v4
+      - name: "Upload release artifacts"
+        uses: actions/upload-artifact@v4
         with:
           name: elixir-otp-${{ matrix.otp }}
           path: elixir-otp-${{ matrix.otp }}*
 
-      - uses: actions/upload-artifact@v4
+      - name: "Upload doc artifacts"
+        uses: actions/upload-artifact@v4
         if: ${{ matrix.build_docs }}
         with:
           name: Docs
@@ -145,10 +171,13 @@ jobs:
             "$tag" \
             elixir-otp-*.zip \
             elixir-otp-*.zip.sha{1,256}sum \
+            elixir-otp-*.zip.sigstore \
             elixir-otp-*.exe \
             elixir-otp-*.exe.sha{1,256}sum \
+            elixir-otp-*.exe.sigstore \
             Docs.zip \
-            Docs.zip.sha{1,256}sum
+            Docs.zip.sha{1,256}sum \
+            Docs.zip.sigstore
 
   upload-builds-hex-pm:
     needs: build
