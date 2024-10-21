@@ -882,7 +882,18 @@ defmodule Mix.Project do
     end
   end
 
-  @doc false
+  @doc """
+  Acquires a lock on the project build path and runs the given function.
+
+  When another process (across all OS processes) is holding the lock,
+  a message is printed and this call blocks until the lock is acquired.
+  This function can also be called if this process already has the
+  lock. In such case the function is executed immediately.
+
+  This lock is primarily useful by compiler tasks that alter the build
+  artifacts to avoid conflicts with a concurrent compilation.
+  """
+  @spec with_build_lock(keyword, (-> term())) :: term()
   def with_build_lock(config \\ config(), fun) do
     # To avoid duplicated compilation, we wrap compilation tasks, such
     # as compile.all, deps.compile, compile.elixir, compile.erlang in
