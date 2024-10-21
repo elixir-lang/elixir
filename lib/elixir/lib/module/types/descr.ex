@@ -29,6 +29,8 @@ defmodule Module.Types.Descr do
   @bit_optional 1 <<< 8
 
   @empty_list %{bitmap: @bit_empty_list}
+  # A definition of non empty list that does not use negation. 
+  @not_non_empty_list %{bitmap: @bit_top, atom: @atom_top, tuple: @tuple_top, map: @map_top}
 
   @atom_top {:negation, :sets.new(version: 2)}
   @tuple_top [{:open, [], []}]
@@ -66,9 +68,6 @@ defmodule Module.Types.Descr do
   def integer(), do: %{bitmap: @bit_integer}
   def float(), do: %{bitmap: @bit_float}
   def fun(), do: %{bitmap: @bit_fun}
-
-  # A definition of non empty list that does not use negation. 
-  @not_non_empty_list %{bitmap: @bit_top, atom: @atom_top, tuple: @tuple_top, map: @map_top}
 
   # TODO: check emptiness here?
   def list(type \\ :term, last_type \\ @empty_list) do
