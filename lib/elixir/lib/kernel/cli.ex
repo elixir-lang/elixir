@@ -13,7 +13,6 @@ defmodule Kernel.CLI do
     verbose_compile: false,
     profile: nil,
     pry: false,
-    iex_auto_reload: false,
     mode: :elixir
   }
 
@@ -29,10 +28,6 @@ defmodule Kernel.CLI do
 
     if config.pry do
       Application.put_env(:elixir, :dbg_callback, {IEx.Pry, :dbg, []})
-    end
-
-    if config.iex_auto_reload do
-      Application.put_env(:iex, :auto_reload, true)
     end
 
     fun = fn _ ->
@@ -346,10 +341,6 @@ defmodule Kernel.CLI do
         error = "--dbg : Unknown dbg backend #{inspect(backend)}"
         parse_argv(t, %{config | errors: [error | config.errors]})
     end
-  end
-
-  defp parse_argv([~c"--auto-reload" | t], %{mode: :iex} = config) do
-    parse_argv(t, %{config | iex_auto_reload: true})
   end
 
   defp parse_argv([~c"--dot-iex", _ | t], %{mode: :iex} = config), do: parse_argv(t, config)

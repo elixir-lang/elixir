@@ -20,8 +20,7 @@ defmodule IEx.MixListener do
 
   @impl true
   def init({}) do
-    auto_reload = Application.get_env(:iex, :auto_reload, false)
-    {:ok, %{auto_reload: auto_reload, to_purge: MapSet.new()}}
+    {:ok, %{to_purge: MapSet.new()}}
   end
 
   @impl true
@@ -40,7 +39,7 @@ defmodule IEx.MixListener do
     else
       %{changed: changed, removed: removed} = info.modules_diff
 
-      if state.auto_reload do
+      if IEx.Config.auto_reload?() do
         purge_modules(changed)
         purge_modules(removed)
         {:noreply, state}

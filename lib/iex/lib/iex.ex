@@ -357,7 +357,7 @@ defmodule IEx do
       13
 
   It is possible to load another file by configuring the `iex` application's `dot_iex`
-  value (`config :iex, dot_iex: "PATH"` or `IEx.Config.configure(dot_iex: "PATH")`)
+  value (`config :iex, dot_iex: "PATH"` or `IEx.configure(dot_iex: "PATH")`)
   or supplying the `--dot-iex` option to IEx. See `iex --help`.
 
   In case of remote nodes, the location of the `.iex.exs` files are taken
@@ -487,6 +487,9 @@ defmodule IEx do
 
     * `:alive_continuation_prompt` - used when `Node.alive?/0` returns
       `true` and more input is expected
+
+    * `:auto_reload` - when set to `true`, automatically purges in-memory
+      modules when they get invalidated by a concurrent compilation
 
   The following values in the prompt string will be replaced appropriately:
 
