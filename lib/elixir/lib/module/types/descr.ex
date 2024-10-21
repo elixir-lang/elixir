@@ -28,15 +28,14 @@ defmodule Module.Types.Descr do
   @bit_number @bit_integer ||| @bit_float
   @bit_optional 1 <<< 8
 
-  @empty_list %{bitmap: @bit_empty_list}
-  # A definition of non empty list that does not use negation. 
-  @not_non_empty_list %{bitmap: @bit_top, atom: @atom_top, tuple: @tuple_top, map: @map_top}
-
   @atom_top {:negation, :sets.new(version: 2)}
   @tuple_top [{:open, [], []}]
   @map_top [{:open, %{}, []}]
   @map_empty [{:closed, %{}, []}]
   @none %{}
+  @empty_list %{bitmap: @bit_empty_list}
+  # A definition of non empty list that does not use negation. Includes empty list. 
+  @not_non_empty_list %{bitmap: @bit_top, atom: @atom_top, tuple: @tuple_top, map: @map_top}
   @non_empty_list_top [{:term, @not_non_empty_list, []}]
 
   # Type definitions
