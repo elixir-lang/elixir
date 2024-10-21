@@ -124,7 +124,7 @@ iex> {:ok, registry} = GenServer.start_link(KV.Registry, :ok)
 {:ok, #PID<0.136.0>}
 iex> GenServer.cast(registry, {:create, "shopping"})
 :ok
-iex> {:ok, bk} = GenServer.call(registry, {:lookup, "shopping"})
+iex> {:ok, bucket} = GenServer.call(registry, {:lookup, "shopping"})
 {:ok, #PID<0.174.0>}
 ```
 
