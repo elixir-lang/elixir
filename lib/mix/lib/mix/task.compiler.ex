@@ -84,7 +84,7 @@ defmodule Mix.Task.Compiler do
           the same OS process as the listener.
 
   New messages may be added in the future, so the process should have
-  catch and ignore other messages.
+  a catch-all clause and ignore other messages.
 
   Note that the listener starts before any of the project apps are started.
   """
