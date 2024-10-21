@@ -83,6 +83,9 @@ defmodule Mix.Task.Compiler do
           with `System.pid/0` to determine if compilation happened in
           the same OS process as the listener.
 
+  New messages may be added in the future, so the process should have
+  catch and ignore other messages.
+
   Note that the listener starts before any of the project apps are started.
   """
 
