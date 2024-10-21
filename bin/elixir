@@ -111,7 +111,7 @@ while [ $I -le $LENGTH ]; do
         C=1
         MODE="iex"
         ;;
-    -v|--no-halt)
+    -v|--auto-reload|--no-halt)
         C=1
         ;;
     -e|-r|-pr|-pa|-pz|--eval|--remsh|--dot-iex|--dbg)

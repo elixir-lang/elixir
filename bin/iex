@@ -7,6 +7,8 @@ Usage: $(basename "$0") [options] [.exs file] [data]
 
 The following options are exclusive to IEx:
 
+  --auto-reload       Automatically purge in-memory modules that get invalidated
+                      by a concurrent compilation.
   --dbg pry           Sets the backend for Kernel.dbg/2 to IEx.pry/0
   --dot-iex "FILE"    Evaluates FILE, line by line, to set up IEx' environment.
                       Defaults to evaluating .iex.exs or ~/.iex.exs, if any exists.
