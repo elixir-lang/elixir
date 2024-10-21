@@ -37,7 +37,7 @@ defmodule Module.Types.DescrTest do
         float(),
         binary(),
         open_map(),
-        non_empty_list(term()),
+        non_empty_list(term(), term()),
         empty_list(),
         tuple(),
         fun(),
@@ -92,6 +92,7 @@ defmodule Module.Types.DescrTest do
     test "list" do
       assert union(list(), list()) |> equal?(list())
       assert union(list(integer()), list()) |> equal?(list())
+      assert union(difference(list(), list(integer())), list(integer())) |> equal?(list())
     end
   end
 
@@ -190,6 +191,40 @@ defmodule Module.Types.DescrTest do
 
       # Intersection with non-list types
       assert intersection(list(integer()), integer()) == none()
+
+      # Tests for list with last element
+      assert intersection(list(float(), atom()), list(number(), term())) == list(float(), atom())
+
+      assert intersection(list(number(), atom()), list(float(), boolean())) ==
+               list(float(), boolean())
+
+      assert intersection(list(integer(), float()), list(number(), integer())) == empty_list()
+
+      # Empty list with last element
+      assert intersection(empty_list(), list(integer(), atom())) == empty_list()
+      assert intersection(list(integer(), atom()), empty_list()) == empty_list()
+
+      # List with any type and specific last element
+      assert intersection(list(term(), atom()), list(float(), term())) == list(float(), atom())
+      assert intersection(list(term(), term()), list(float(), atom())) == list(float(), atom())
+
+      # Nested lists with last element
+      assert intersection(list(list(integer()), atom()), list(list(number()), boolean())) ==
+               list(list(integer()), boolean())
+
+      assert list(list(integer(), atom()), float())
+             |> intersection(list(list(number(), boolean()), integer())) == empty_list()
+
+      # Union types in last element
+      assert intersection(list(integer(), union(atom(), binary())), list(number(), atom())) ==
+               list(integer(), atom())
+
+      # Dynamic with last element
+      assert intersection(dynamic(list(term(), atom())), list(integer(), term()))
+             |> equal?(dynamic(list(integer(), atom())))
+
+      # Intersection with proper list (should result in empty list)
+      assert intersection(list(integer(), atom()), list(integer())) == empty_list()
     end
   end
 
@@ -300,6 +335,8 @@ defmodule Module.Types.DescrTest do
       refute empty?(difference(open_map(), empty_map()))
     end
 
+    defp improper_list(type), do: difference(list(type, term()), list(type))
+
     test "list" do
       # Basic list type differences
       assert difference(list(), empty_list()) == non_empty_list()
@@ -324,12 +361,50 @@ defmodule Module.Types.DescrTest do
       refute difference(list(union(integer(), float())), list(integer())) == list(float())
       refute difference(list(union(atom(), binary())), list(atom())) == list(binary())
 
-      # Lists with dynamic types
-      assert empty?(difference(dynamic(list()), list()))
+      # Tests for list with last element
+      assert difference(list(integer(), atom()), list(number(), term())) == none()
+      assert difference(list(atom(), term()), improper_list(atom())) |> equal?(list(atom()))
 
-      # Lists with none type
-      assert difference(list(none()), list()) == none()
-      assert difference(list(), list(none())) == list()
+      assert difference(list(integer(), float()), list(number(), integer()))
+             |> equal?(non_empty_list(integer(), difference(float(), integer())))
+
+      # Empty list with last element
+      assert difference(empty_list(), list(integer(), atom())) == none()
+
+      assert difference(list(integer(), atom()), empty_list()) ==
+               non_empty_list(integer(), atom())
+
+      # List with any type and specific last element
+      assert difference(list(term(), term()), list(term(), integer()))
+             |> equal?(non_empty_list(term(), negation(integer())))
+
+      # Nested lists with last element
+      assert difference(list(list(integer()), atom()), list(list(number()), boolean()))
+             |> equal?(
+               union(
+                 non_empty_list(list(integer()), difference(atom(), boolean())),
+                 non_empty_list(difference(list(integer()), list(number())), atom())
+               )
+             )
+
+      # Union types in last element
+      assert difference(list(integer(), union(atom(), binary())), list(number(), atom()))
+             |> equal?(
+               union(
+                 non_empty_list(integer(), binary()),
+                 non_empty_list(difference(integer(), number()), union(atom(), binary()))
+               )
+             )
+
+      # Dynamic with last element
+      assert equal?(
+               difference(dynamic(list(term(), atom())), list(integer(), term())),
+               dynamic(difference(list(term(), atom()), list(integer(), term())))
+             )
+
+      # Difference with proper list
+      assert difference(list(integer(), atom()), list(integer())) ==
+               non_empty_list(integer(), atom())
     end
   end
 
@@ -399,6 +474,9 @@ defmodule Module.Types.DescrTest do
 
     test "list" do
       refute subtype?(non_empty_list(integer()), difference(list(number()), list(integer())))
+      assert subtype?(list(term(), boolean()), list(term(), atom()))
+      assert subtype?(list(integer()), list())
+      assert subtype?(list(), list(term(), term()))
     end
   end
 
@@ -433,6 +511,12 @@ defmodule Module.Types.DescrTest do
     test "map" do
       assert compatible?(closed_map(a: integer()), open_map())
       assert compatible?(intersection(dynamic(), open_map()), closed_map(a: integer()))
+    end
+
+    test "list" do
+      assert compatible?(dynamic(), list())
+      assert compatible?(dynamic(list()), list(integer()))
+      assert compatible?(dynamic(list(term(), term())), list(integer(), integer()))
     end
   end
 
@@ -495,6 +579,45 @@ defmodule Module.Types.DescrTest do
 
       assert atom_fetch(union(atom([:foo, :bar]), dynamic(atom()))) == {:infinite, []}
       assert atom_fetch(union(atom([:foo, :bar]), dynamic(term()))) == {:infinite, []}
+    end
+
+    test "list_hd" do
+      assert list_hd(term()) == :badlist
+      assert list_hd(list()) == :not_non_empty_list
+      assert list_hd(empty_list()) == :not_non_empty_list
+      assert list_hd(non_empty_list(term())) == term()
+      assert list_hd(non_empty_list(integer())) == integer()
+      assert list_hd(non_empty_list(atom(), term())) == atom()
+      assert list_hd(difference(list(number()), list(integer()))) == number()
+
+      assert list_hd(dynamic(list(integer()))) == dynamic(integer())
+      assert list_hd(union(dynamic(), atom())) == :badlist
+      assert list_hd(union(dynamic(), list())) == :not_non_empty_list
+
+      assert list_hd(union(dynamic(list(float())), non_empty_list(atom()))) ==
+               union(dynamic(float()), atom())
+    end
+
+    test "list_tl" do
+      assert list_tl(term()) == :badlist
+      assert list_tl(empty_list()) == :not_non_empty_list
+      assert list_tl(list(integer())) == :not_non_empty_list
+      assert list_tl(dynamic(list(integer()))) == dynamic(list(integer()))
+      assert list_tl(non_empty_list(integer())) == list(integer())
+      assert list_tl(non_empty_list(integer(), atom())) == union(atom(), list(integer(), atom()))
+
+      # The tail of either a (non empty) list of integers with an atom tail or a (non empty) list
+      # of tuples with a float tail is either an atom, or a float, or a (possibly empty) list of
+      # integers with an atom tail, or a (possibly empty) list of tuples with a float tail.
+      assert list_tl(union(non_empty_list(integer(), atom()), non_empty_list(tuple(), float()))) ==
+               atom()
+               |> union(float())
+               |> union(union(list(integer(), atom()), list(tuple(), float())))
+
+      assert list_tl(dynamic(list(integer(), atom()))) ==
+               dynamic(union(atom(), list(integer(), atom())))
+
+      assert list_tl(dynamic(list(integer()))) == dynamic(list(integer()))
     end
 
     test "tuple_fetch" do
@@ -809,6 +932,16 @@ defmodule Module.Types.DescrTest do
              |> difference(list(atom()))
              |> to_quoted_string() ==
                "non_empty_list(term()) and not (non_empty_list(atom()) or non_empty_list(integer()))"
+
+      assert list(term(), integer()) |> to_quoted_string() ==
+               "empty_list() or non_empty_list(term(), integer())"
+
+      assert difference(list(term(), atom()), list(term(), boolean())) |> to_quoted_string() ==
+               "non_empty_list(term(), atom() and not boolean())"
+
+      # TODO support simplified printing of improper lists when the last element is term()
+      # assert list(term(), term()) |> to_quoted_string() ==
+      #         "empty_list() or non_empty_list(term(), term())"
     end
 
     test "tuples" do
