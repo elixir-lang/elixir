@@ -890,7 +890,7 @@ defmodule Mix.Project do
   This function can also be called if this process already has the
   lock. In such case the function is executed immediately.
 
-  This lock is primarily useful by compiler tasks that alter the build
+  This lock is primarily useful for compiler tasks that alter the build
   artifacts to avoid conflicts with a concurrent compilation.
   """
   @spec with_build_lock(keyword, (-> term())) :: term()
