@@ -109,6 +109,15 @@ defmodule OptionParserTest do
     end
   end
 
+  test "parse!/2 raises an exception for an unknown option using strict when it is only off by underscores" do
+    msg = "1 error found!\n--docs_bar : Unknown option. Did you mean --docs-bar?"
+
+    assert_raise OptionParser.ParseError, msg, fn ->
+      argv = ["--source", "from_docs/", "--docs_bar", "show"]
+      OptionParser.parse!(argv, strict: [source: :string, docs_bar: :string])
+    end
+  end
+
   test "parse!/2 raises an exception when an option is of the wrong type" do
     assert_raise OptionParser.ParseError, fn ->
       argv = ["--bad", "opt", "foo", "-o", "bad", "bar"]
