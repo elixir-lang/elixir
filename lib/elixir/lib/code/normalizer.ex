@@ -347,14 +347,14 @@ defmodule Code.Normalizer do
         args = normalize_args(args, %{state | parent_meta: meta})
         {form, meta, args}
 
-      Keyword.has_key?(meta, :do) or match?([{{:__block__, _, [:do]}, _} | _], last) ->
+      Keyword.has_key?(meta, :do) ->
         # def foo do :ok end
         # def foo, do: :ok
         normalize_kw_blocks(form, meta, args, state)
 
       match?([{:do, _} | _], last) and Keyword.keyword?(last) ->
         # Non normalized kw blocks
-        line = state.parent_meta[:line]
+        line = state.parent_meta[:line] || meta[:line]
         meta = meta ++ [do: [line: line], end: [line: line]]
         normalize_kw_blocks(form, meta, args, state)
 
@@ -364,11 +364,20 @@ defmodule Code.Normalizer do
 
         last_args =
           case last_arg do
-            {:__block__, _, [[{{:__block__, key_meta, _}, _} | _]] = last_args} ->
-              if key_meta[:format] == :keyword do
-                last_args
-              else
-                [last_arg]
+            {:__block__, _meta, [[{{:__block__, key_meta, _}, _} | _] = keyword]} ->
+              cond do
+                key_meta[:format] == :keyword ->
+                  [keyword]
+
+                block_keyword?(keyword) ->
+                  [
+                    Enum.map(keyword, fn {{:__block__, meta, args}, value} ->
+                      {{:__block__, [format: :keyword] ++ meta, args}, value}
+                    end)
+                  ]
+
+                true ->
+                  [last_arg]
               end
 
             [] ->
@@ -381,6 +390,12 @@ defmodule Code.Normalizer do
         {form, meta, leading_args ++ last_args}
     end
   end
+
+  defp block_keyword?([{{:__block__, _, [key]}, _val} | tail]) when is_atom(key),
+    do: block_keyword?(tail)
+
+  defp block_keyword?([]), do: true
+  defp block_keyword?(_), do: false
 
   defp allow_keyword?(:when, 2), do: true
   defp allow_keyword?(:{}, _), do: false

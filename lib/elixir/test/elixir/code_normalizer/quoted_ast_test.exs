@@ -629,6 +629,36 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(quote(do: foo |> [bar: :baz])) == "foo |> [bar: :baz]"
     end
 
+    test "keyword arg with cursor" do
+      input = "def foo, do: :bar, __cursor__()"
+      expected = "def foo, [{:do, :bar}, __cursor__()]"
+
+      ast = Code.string_to_quoted!(input)
+      assert quoted_to_string(ast) == expected
+
+      encoder = &{:ok, {:__block__, &2, [&1]}}
+      ast = Code.string_to_quoted!(input, literal_encoder: encoder)
+      assert quoted_to_string(ast) == expected
+
+      ast = Code.string_to_quoted!(input, token_metadata: true)
+      assert quoted_to_string(ast) == expected
+
+      ast = Code.string_to_quoted!(input, literal_encoder: encoder, token_metadata: true)
+      assert quoted_to_string(ast) == expected
+    end
+
+    test "keyword arg with literal encoder and no metadata" do
+      input = """
+      foo(Bar) do
+        :ok
+      end
+      """
+
+      encoder = &{:ok, {:__block__, &2, [&1]}}
+      ast = Code.string_to_quoted!(input, literal_encoder: encoder)
+      assert quoted_to_string(ast) == "foo(Bar, do: :ok)"
+    end
+
     test "list in module attribute" do
       assert quoted_to_string(
                quote do
