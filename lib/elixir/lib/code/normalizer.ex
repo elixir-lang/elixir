@@ -376,7 +376,7 @@ defmodule Code.Normalizer do
                     end)
                   ]
 
-              true ->
+                true ->
                 [last_arg]
               end
 
