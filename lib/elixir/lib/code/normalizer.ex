@@ -365,13 +365,18 @@ defmodule Code.Normalizer do
         last_args =
           case last_arg do
             {:__block__, _meta, [[{{:__block__, key_meta, _}, _} | _] = keyword]} ->
-              if key_meta[:format] == :keyword or block_keyword?(keyword) do
-                [
-                  Enum.map(keyword, fn {{:__block__, meta, args}, value} ->
-                    {{:__block__, [format: :keyword] ++ meta, args}, value}
-                  end)
-                ]
-              else
+              cond do
+                key_meta[:format] == :keyword ->
+                  [keyword]
+
+                block_keyword?(keyword) ->
+                  [
+                    Enum.map(keyword, fn {{:__block__, meta, args}, value} ->
+                      {{:__block__, [format: :keyword] ++ meta, args}, value}
+                    end)
+                  ]
+
+              true ->
                 [last_arg]
               end
 
