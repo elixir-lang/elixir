@@ -352,9 +352,10 @@ defmodule Code.Normalizer do
         # def foo, do: :ok
         normalize_kw_blocks(form, meta, args, state)
 
-      match?([{:do, _} | _], last) and Keyword.keyword?(last) ->
+      (match?([{:do, _} | _], last) and Keyword.keyword?(last)) or
+          (match?([{{:__block__, _, [:do]}, _} | _], last) and block_keyword?(last)) ->
         # Non normalized kw blocks
-        line = state.parent_meta[:line]
+        line = state.parent_meta[:line] || meta[:line]
         meta = meta ++ [do: [line: line], end: [line: line]]
         normalize_kw_blocks(form, meta, args, state)
 
@@ -381,6 +382,12 @@ defmodule Code.Normalizer do
         {form, meta, leading_args ++ last_args}
     end
   end
+
+  defp block_keyword?([{{:__block__, _, [key]}, _val} | tail]) when is_atom(key),
+    do: block_keyword?(tail)
+
+  defp block_keyword?([]), do: true
+  defp block_keyword?(_), do: false
 
   defp allow_keyword?(:when, 2), do: true
   defp allow_keyword?(:{}, _), do: false
