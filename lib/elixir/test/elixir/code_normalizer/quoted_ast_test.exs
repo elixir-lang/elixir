@@ -647,25 +647,16 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(ast) == expected
     end
 
-    test "keyword arg with tokenizer options" do
+    test "keyword arg with literal encoder and no metadata" do
       input = """
       foo(Bar) do
         :ok
-      end\
+      end
       """
-
-      ast = Code.string_to_quoted!(input)
-      assert quoted_to_string(ast) == input
 
       encoder = &{:ok, {:__block__, &2, [&1]}}
       ast = Code.string_to_quoted!(input, literal_encoder: encoder)
-      assert quoted_to_string(ast) == input
-
-      ast = Code.string_to_quoted!(input, token_metadata: true)
-      assert quoted_to_string(ast) == input
-
-      ast = Code.string_to_quoted!(input, literal_encoder: encoder, token_metadata: true)
-      assert quoted_to_string(ast) == input
+      assert quoted_to_string(ast) == "foo(Bar, do: :ok)"
     end
 
     test "list in module attribute" do

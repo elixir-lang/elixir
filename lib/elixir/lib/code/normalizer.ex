@@ -352,8 +352,7 @@ defmodule Code.Normalizer do
         # def foo, do: :ok
         normalize_kw_blocks(form, meta, args, state)
 
-      (match?([{:do, _} | _], last) and Keyword.keyword?(last)) or
-          (match?([{{:__block__, _, [:do]}, _} | _], last) and block_keyword?(last)) ->
+      match?([{:do, _} | _], last) and Keyword.keyword?(last) ->
         # Non normalized kw blocks
         line = state.parent_meta[:line] || meta[:line]
         meta = meta ++ [do: [line: line], end: [line: line]]
@@ -365,9 +364,13 @@ defmodule Code.Normalizer do
 
         last_args =
           case last_arg do
-            {:__block__, _, [[{{:__block__, key_meta, _}, _} | _]] = last_args} ->
-              if key_meta[:format] == :keyword do
-                last_args
+            {:__block__, _meta, [[{{:__block__, key_meta, _}, _} | _] = keyword]} ->
+              if key_meta[:format] == :keyword or block_keyword?(keyword) do
+                [
+                  Enum.map(keyword, fn {{:__block__, meta, args}, value} ->
+                    {{:__block__, [format: :keyword] ++ meta, args}, value}
+                  end)
+                ]
               else
                 [last_arg]
               end
