@@ -305,7 +305,8 @@ defmodule Module.Types.Expr do
       when not is_atom(callee) and is_atom(key_or_fun) do
     with {:ok, type, context} <- of_expr(callee, stack, context) do
       if Keyword.get(meta, :no_parens, false) do
-        Of.map_fetch(expr, type, key_or_fun, stack, context)
+        {type, context} = Of.map_fetch(expr, type, key_or_fun, stack, context)
+        {:ok, type, context}
       else
         {mods, context} = Of.remote(type, key_or_fun, 0, [:dot], expr, meta, stack, context)
         {type, context} = apply_many(mods, key_or_fun, [], expr, stack, context)

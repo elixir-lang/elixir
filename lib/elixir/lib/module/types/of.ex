@@ -79,11 +79,10 @@ defmodule Module.Types.Of do
   def map_fetch(expr, type, field, stack, context) when is_atom(field) do
     case map_fetch(type, field) do
       {_optional?, value_type} ->
-        {:ok, value_type, context}
+        {value_type, context}
 
       reason ->
-        {:ok, dynamic(),
-         error({reason, expr, type, field, context}, elem(expr, 1), stack, context)}
+        {dynamic(), error({reason, expr, type, field, context}, elem(expr, 1), stack, context)}
     end
   end
 

@@ -663,7 +663,8 @@ defmodule Module.Types.Pattern do
   def of_guard({{:., _, [callee, key]}, _, []} = map_fetch, _expected, expr, stack, context)
       when not is_atom(callee) do
     with {:ok, type, context} <- of_guard(callee, dynamic(), expr, stack, context) do
-      Of.map_fetch(map_fetch, type, key, stack, context)
+      {type, context} = Of.map_fetch(map_fetch, type, key, stack, context)
+      {:ok, type, context}
     end
   end
 
