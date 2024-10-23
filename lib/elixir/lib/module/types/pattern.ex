@@ -44,8 +44,8 @@ defmodule Module.Types.Pattern do
     {:ok, [], context}
   end
 
-  defp of_pattern_args(patterns, expected_types, stack, context) do
-    context = %{context | pattern_info: {%{}, %{}}}
+  defp of_pattern_args(patterns, expected_types, stack, init_context) do
+    context = %{init_context | pattern_info: {%{}, %{}}, failed: false}
     changed = :lists.seq(0, length(patterns) - 1)
 
     with {:ok, trees, context} <-
@@ -54,7 +54,7 @@ defmodule Module.Types.Pattern do
            of_pattern_recur(expected_types, changed, stack, context, fn types, changed, context ->
              of_pattern_args_tree(trees, types, changed, 0, [], stack, context)
            end) do
-      {:ok, trees, types, context}
+      {:ok, trees, types, merge_failed(init_context, context)}
     end
   end
 
@@ -110,8 +110,8 @@ defmodule Module.Types.Pattern do
   Return the type and typing context of a pattern expression with
   the given expected and expr or an error in case of a typing conflict.
   """
-  def of_match(pattern, expected, expr, stack, context) do
-    context = %{context | pattern_info: {%{}, %{}}}
+  def of_match(pattern, expected, expr, stack, init_context) do
+    context = %{init_context | pattern_info: {%{}, %{}}, failed: false}
 
     with {:ok, tree, context} <-
            of_pattern(pattern, [{:arg, 0, expected, expr}], stack, context),
@@ -121,7 +121,9 @@ defmodule Module.Types.Pattern do
                {:ok, [type], context}
              end
            end) do
-      {:ok, type, context}
+      {type, merge_failed(init_context, context)}
+    else
+      {:error, context} -> {dynamic(), context}
     end
   end
 
@@ -134,6 +136,10 @@ defmodule Module.Types.Pattern do
 
   defp of_pattern_recur(types, [], _vars, _args, _stack, context, _callback) do
     {:ok, types, context}
+  end
+
+  defp of_pattern_recur(_types, _, _vars, _args, _stack, %{failed: true} = context, _callback) do
+    {:error, context}
   end
 
   defp of_pattern_recur(types, changed, vars, args, stack, context, callback) do
@@ -154,7 +160,7 @@ defmodule Module.Types.Pattern do
                     end
 
                   :error ->
-                    {:error, Of.incompatible_warn(expr, expected, actual, stack, context)}
+                    {:error, Of.incompatible_error(expr, expected, actual, stack, context)}
                 end
             end)
 
@@ -189,18 +195,19 @@ defmodule Module.Types.Pattern do
 
   defp of_pattern_intersect(tree, expected, expr, stack, context) do
     actual = of_pattern_tree(tree, context)
+    type = intersection(actual, expected)
 
-    case Of.intersect(actual, expected, expr, stack, context) do
-      {:ok, type, context} ->
+    cond do
+      not empty?(type) ->
         {:ok, type, context}
 
-      {:error, intersection_context} ->
-        if empty?(actual) do
-          meta = get_meta(expr) || stack.meta
-          {:error, warn(__MODULE__, {:invalid_pattern, expr, context}, meta, stack, context)}
-        else
-          {:error, intersection_context}
-        end
+      empty?(actual) ->
+        # The pattern itself is invalid
+        meta = get_meta(expr) || stack.meta
+        {:error, error(__MODULE__, {:invalid_pattern, expr, context}, meta, stack, context)}
+
+      true ->
+        {:error, Of.incompatible_error(expr, expected, actual, stack, context)}
     end
   end
 
@@ -278,7 +285,8 @@ defmodule Module.Types.Pattern do
   and binary patterns.
   """
   def of_match_var({:^, _, [var]}, expected, expr, stack, context) do
-    Of.intersect(Of.var(var, context), expected, expr, stack, context)
+    {type, dynamic} = Of.intersect(Of.var(var, context), expected, expr, stack, context)
+    {:ok, type, dynamic}
   end
 
   def of_match_var({:_, _, _}, expected, _expr, _stack, context) do
@@ -424,9 +432,8 @@ defmodule Module.Types.Pattern do
 
   # <<...>>>
   defp of_pattern({:<<>>, _meta, args}, _path, stack, context) do
-    with {:ok, context} <- Of.binary(args, :match, stack, context) do
-      {:ok, binary(), context}
-    end
+    context = Of.binary(args, :match, stack, context)
+    {:ok, binary(), context}
   end
 
   # left ++ right
@@ -561,7 +568,7 @@ defmodule Module.Types.Pattern do
     if atom_type?(expected, atom) do
       {:ok, atom([atom]), context}
     else
-      {:error, Of.incompatible_warn(expr, expected, atom([atom]), stack, context)}
+      {:error, Of.incompatible_error(expr, expected, atom([atom]), stack, context)}
     end
   end
 
@@ -570,7 +577,7 @@ defmodule Module.Types.Pattern do
     if integer_type?(expected) do
       {:ok, integer(), context}
     else
-      {:error, Of.incompatible_warn(expr, expected, integer(), stack, context)}
+      {:error, Of.incompatible_error(expr, expected, integer(), stack, context)}
     end
   end
 
@@ -579,7 +586,7 @@ defmodule Module.Types.Pattern do
     if float_type?(expected) do
       {:ok, float(), context}
     else
-      {:error, Of.incompatible_warn(expr, expected, float(), stack, context)}
+      {:error, Of.incompatible_error(expr, expected, float(), stack, context)}
     end
   end
 
@@ -588,7 +595,7 @@ defmodule Module.Types.Pattern do
     if binary_type?(expected) do
       {:ok, binary(), context}
     else
-      {:error, Of.incompatible_warn(expr, expected, binary(), stack, context)}
+      {:error, Of.incompatible_error(expr, expected, binary(), stack, context)}
     end
   end
 
@@ -597,7 +604,7 @@ defmodule Module.Types.Pattern do
     if empty_list_type?(expected) do
       {:ok, empty_list(), context}
     else
-      {:error, Of.incompatible_warn(expr, expected, empty_list(), stack, context)}
+      {:error, Of.incompatible_error(expr, expected, empty_list(), stack, context)}
     end
   end
 
@@ -632,18 +639,18 @@ defmodule Module.Types.Pattern do
   # <<>>
   def of_guard({:<<>>, _meta, args}, expected, expr, stack, context) do
     if binary_type?(expected) do
-      with {:ok, context} <- Of.binary(args, :guard, stack, context) do
-        {:ok, binary(), context}
-      end
+      context = Of.binary(args, :guard, stack, context)
+      {:ok, binary(), context}
     else
-      {:error, Of.incompatible_warn(expr, expected, binary(), stack, context)}
+      {:error, Of.incompatible_error(expr, expected, binary(), stack, context)}
     end
   end
 
   # ^var
   def of_guard({:^, _meta, [var]}, expected, expr, stack, context) do
     # This is by definition a variable defined outside of this pattern, so we don't track it.
-    Of.intersect(Of.var(var, context), expected, expr, stack, context)
+    {type, context} = Of.intersect(Of.var(var, context), expected, expr, stack, context)
+    {:ok, type, context}
   end
 
   # {...}
@@ -673,10 +680,14 @@ defmodule Module.Types.Pattern do
 
   # var
   def of_guard(var, expected, expr, stack, context) when is_var(var) do
-    Of.intersect(Of.var(var, context), expected, expr, stack, context)
+    {type, context} = Of.intersect(Of.var(var, context), expected, expr, stack, context)
+    {:ok, type, context}
   end
 
   ## Helpers
+
+  defp merge_failed(%{failed: false}, %{failed: false} = post), do: post
+  defp merge_failed(_pre, post), do: %{post | failed: true}
 
   def format_diagnostic({:invalid_pattern, expr, context}) do
     traces = collect_traces(expr, context)

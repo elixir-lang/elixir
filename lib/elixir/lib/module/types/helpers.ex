@@ -75,6 +75,10 @@ defmodule Module.Types.Helpers do
 
       {:error, reason} ->
         {:error, reason}
+
+      _ ->
+        IO.inspect({head, fun})
+        raise "oops"
     end
   end
 
@@ -269,6 +273,18 @@ defmodule Module.Types.Helpers do
       {fun, arity} = stack.function
       location = {stack.file, meta, {stack.module, fun, arity}}
       %{context | warnings: [{module, warning, location} | context.warnings]}
+    end
+  end
+
+  @doc """
+  Emits an error.
+
+  In practice an error is a warning that halts other errors from being collected.
+  """
+  def error(module, warning, meta, stack, context) do
+    case context do
+      %{failed: true} -> context
+      %{failed: false} -> warn(module, warning, meta, stack, %{context | failed: true})
     end
   end
 end

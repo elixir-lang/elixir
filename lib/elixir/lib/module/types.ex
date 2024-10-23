@@ -83,10 +83,12 @@ defmodule Module.Types do
     %{
       # A list of all warnings found so far
       warnings: [],
-      # Information about all vars and their types
+      # All vars and their types
       vars: %{},
-      # Information about variables and arguments from patterns
-      pattern_info: nil
+      # Variables and arguments from patterns
+      pattern_info: nil,
+      # If type checking has found an error/failure
+      failed: false
     }
   end
 end

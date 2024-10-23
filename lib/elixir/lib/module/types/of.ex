@@ -47,7 +47,7 @@ defmodule Module.Types.Of do
 
         # We need to return error otherwise it leads to cascading errors
         if empty?(new_type) do
-          {:error, warn({:refine_var, old_type, type, var, context}, meta, stack, context)}
+          {:error, error({:refine_var, old_type, type, var, context}, meta, stack, context)}
         else
           {:ok, new_type, context}
         end
@@ -83,7 +83,7 @@ defmodule Module.Types.Of do
 
       reason ->
         {:ok, dynamic(),
-         warn({reason, expr, type, field, context}, elem(expr, 1), stack, context)}
+         error({reason, expr, type, field, context}, elem(expr, 1), stack, context)}
     end
   end
 
@@ -211,7 +211,7 @@ defmodule Module.Types.Of do
   based on the position of the expression within the binary.
   """
   def binary([], _kind, _stack, context) do
-    {:ok, context}
+    context
   end
 
   def binary([head], kind, stack, context) do
@@ -219,10 +219,8 @@ defmodule Module.Types.Of do
   end
 
   def binary([head | tail], kind, stack, context) do
-    case binary_segment(head, kind, [head, @suffix], stack, context) do
-      {:ok, context} -> binary_many(tail, kind, stack, context)
-      {:error, context} -> {:error, context}
-    end
+    context = binary_segment(head, kind, [head, @suffix], stack, context)
+    binary_many(tail, kind, stack, context)
   end
 
   defp binary_many([last], kind, stack, context) do
@@ -230,40 +228,47 @@ defmodule Module.Types.Of do
   end
 
   defp binary_many([head | tail], kind, stack, context) do
-    case binary_segment(head, kind, [@prefix, head, @suffix], stack, context) do
-      {:ok, context} -> binary_many(tail, kind, stack, context)
-      {:error, context} -> {:error, context}
-    end
+    context = binary_segment(head, kind, [@prefix, head, @suffix], stack, context)
+    binary_many(tail, kind, stack, context)
   end
 
   # If the segment is a literal, the compiler has already checked its validity,
   # so we just skip it.
   defp binary_segment({:"::", _meta, [left, _right]}, _kind, _args, _stack, context)
        when is_binary(left) or is_number(left) do
-    {:ok, context}
+    context
   end
 
   defp binary_segment({:"::", meta, [left, right]}, kind, args, stack, context) do
     type = specifier_type(kind, right)
     expr = {:<<>>, meta, args}
 
-    result =
+    context =
       case kind do
         :match ->
-          Module.Types.Pattern.of_match_var(left, type, expr, stack, context)
+          case Module.Types.Pattern.of_match_var(left, type, expr, stack, context) do
+            {:ok, _type, context} -> context
+            {:error, context} -> context
+          end
 
         :guard ->
-          Module.Types.Pattern.of_guard(left, type, expr, stack, context)
+          case Module.Types.Pattern.of_guard(left, type, expr, stack, context) do
+            {:ok, _type, context} -> context
+            {:error, context} -> context
+          end
 
         :expr ->
-          with {:ok, actual, context} <- Module.Types.Expr.of_expr(left, stack, context) do
-            intersect(actual, type, expr, stack, context)
+          case Module.Types.Expr.of_expr(left, stack, context) do
+            {:ok, actual, context} ->
+              {_type, context} = intersect(actual, type, expr, stack, context)
+              context
+
+            {:error, context} ->
+              context
           end
       end
 
-    with {:ok, _type, context} <- result do
-      {:ok, specifier_size(kind, right, expr, stack, context)}
-    end
+    specifier_size(kind, right, expr, stack, context)
   end
 
   defp specifier_type(kind, {:-, _, [left, _right]}), do: specifier_type(kind, left)
@@ -288,8 +293,8 @@ defmodule Module.Types.Of do
 
   defp specifier_size(:expr, {:size, _, [arg]}, expr, stack, context)
        when not is_integer(arg) do
-    with {:ok, actual, context} <- Module.Types.Expr.of_expr(arg, stack, context),
-         {:ok, _, context} <- intersect(actual, integer(), expr, stack, context) do
+    with {:ok, actual, context} <- Module.Types.Expr.of_expr(arg, stack, context) do
+      {_, context} = intersect(actual, integer(), expr, stack, context)
       context
     else
       {:error, context} -> context
@@ -321,7 +326,7 @@ defmodule Module.Types.Of do
         {:ok, value_type, context}
 
       reason ->
-        {:ok, dynamic(), warn({reason, expr, type, index - 1, context}, meta, stack, context)}
+        {:ok, dynamic(), error({reason, expr, type, index - 1, context}, meta, stack, context)}
     end
   end
 
@@ -333,14 +338,14 @@ defmodule Module.Types.Of do
       match?({false, _}, map_fetch(left, :__struct__)) or
           match?({false, _}, map_fetch(right, :__struct__)) ->
         warning = {:struct_comparison, expr, context}
-        {:ok, result, warn(warning, elem(expr, 1), stack, context)}
+        {:ok, result, error(warning, elem(expr, 1), stack, context)}
 
       number_type?(left) and number_type?(right) ->
         {:ok, result, context}
 
       disjoint?(left, right) ->
         warning = {:mismatched_comparison, expr, context}
-        {:ok, result, warn(warning, elem(expr, 1), stack, context)}
+        {:ok, result, error(warning, elem(expr, 1), stack, context)}
 
       true ->
         {:ok, result, context}
@@ -368,7 +373,7 @@ defmodule Module.Types.Of do
 
       :error ->
         warning = {:badmodule, expr, type, fun, arity, hints, context}
-        {[], warn(warning, meta, stack, context)}
+        {[], error(warning, meta, stack, context)}
     end
   end
 
@@ -390,12 +395,14 @@ defmodule Module.Types.Of do
         check_deprecated(mode, module, fun, arity, reason, meta, stack, context)
 
       {:ok, mode, :defmacro, reason} ->
-        context = warn({:unrequired_module, module, fun, arity}, meta, stack, context)
+        context =
+          error(__MODULE__, {:unrequired_module, module, fun, arity}, meta, stack, context)
+
         check_deprecated(mode, module, fun, arity, reason, meta, stack, context)
 
       {:error, :module} ->
         if warn_undefined?(module, fun, arity, stack) do
-          warn({:undefined_module, module, fun, arity}, meta, stack, context)
+          error(__MODULE__, {:undefined_module, module, fun, arity}, meta, stack, context)
         else
           context
         end
@@ -403,7 +410,8 @@ defmodule Module.Types.Of do
       {:error, :function} ->
         if warn_undefined?(module, fun, arity, stack) do
           exports = ParallelChecker.all_exports(stack.cache, module)
-          warn({:undefined_function, module, fun, arity, exports}, meta, stack, context)
+          payload = {:undefined_function, module, fun, arity, exports}
+          error(__MODULE__, payload, meta, stack, context)
         else
           context
         end
@@ -412,7 +420,7 @@ defmodule Module.Types.Of do
 
   defp check_deprecated(:elixir, module, fun, arity, reason, meta, stack, context) do
     if reason do
-      warn({:deprecated, module, fun, arity, reason}, meta, stack, context)
+      error(__MODULE__, {:deprecated, module, fun, arity, reason}, meta, stack, context)
     else
       context
     end
@@ -422,12 +430,12 @@ defmodule Module.Types.Of do
     case :otp_internal.obsolete(module, fun, arity) do
       {:deprecated, string} when is_list(string) ->
         reason = string |> List.to_string() |> :string.titlecase()
-        warn({:deprecated, module, fun, arity, reason}, meta, stack, context)
+        error(__MODULE__, {:deprecated, module, fun, arity, reason}, meta, stack, context)
 
       {:deprecated, string, removal} when is_list(string) and is_list(removal) ->
         reason = string |> List.to_string() |> :string.titlecase()
         reason = "It will be removed in #{removal}. #{reason}"
-        warn({:deprecated, module, fun, arity, reason}, meta, stack, context)
+        error(__MODULE__, {:deprecated, module, fun, arity, reason}, meta, stack, context)
 
       _ ->
         context
@@ -461,15 +469,15 @@ defmodule Module.Types.Of do
   ## Warning helpers
 
   @doc """
-  Intersects two types and emit an incompatible warning if empty.
+  Intersects two types and emit an incompatible error if empty.
   """
   def intersect(actual, expected, expr, stack, context) do
     type = intersection(actual, expected)
 
     if empty?(type) do
-      {:error, incompatible_warn(expr, expected, actual, stack, context)}
+      {dynamic(), incompatible_error(expr, expected, actual, stack, context)}
     else
-      {:ok, type, context}
+      {type, context}
     end
   end
 
@@ -479,15 +487,15 @@ defmodule Module.Types.Of do
   This is a generic warning for when the expected/actual types
   themselves may come from several different circumstances.
   """
-  def incompatible_warn(expr, expected_type, actual_type, stack, context) do
+  def incompatible_error(expr, expected_type, actual_type, stack, context) do
     meta = get_meta(expr) || stack.meta
     hints = if meta[:inferred_bitstring_spec], do: [:inferred_bitstring_spec], else: []
     warning = {:incompatible, expr, expected_type, actual_type, hints, context}
-    warn(warning, meta, stack, context)
+    error(warning, meta, stack, context)
   end
 
-  defp warn(warning, meta, stack, context) do
-    warn(__MODULE__, warning, meta, stack, context)
+  defp error(warning, meta, stack, context) do
+    error(__MODULE__, warning, meta, stack, context)
   end
 
   ## Warning formatting
@@ -612,7 +620,7 @@ defmodule Module.Types.Of do
       message:
         IO.iodata_to_binary([
           """
-          out of range index #{index} in expression:
+          out of range tuple access at index #{index} in expression:
 
               #{expr_to_string(expr) |> indent(4)}
 

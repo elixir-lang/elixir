@@ -76,11 +76,8 @@ defmodule Module.Types.Expr do
 
   # <<...>>>
   def of_expr({:<<>>, _meta, args}, stack, context) do
-    case Of.binary(args, :expr, stack, context) do
-      {:ok, context} -> {:ok, binary(), context}
-      # It is safe to discard errors from binaries, we can continue typechecking
-      {:error, context} -> {:ok, binary(), context}
-    end
+    context = Of.binary(args, :expr, stack, context)
+    {:ok, binary(), context}
   end
 
   def of_expr({:__CALLER__, _meta, var_context}, _stack, context)
@@ -104,7 +101,8 @@ defmodule Module.Types.Expr do
   # left = right
   def of_expr({:=, _meta, [left_expr, right_expr]} = expr, stack, context) do
     with {:ok, right_type, context} <- of_expr(right_expr, stack, context) do
-      Pattern.of_match(left_expr, right_type, expr, stack, context)
+      {type, context} = Pattern.of_match(left_expr, right_type, expr, stack, context)
+      {:ok, type, context}
     end
   end
 
@@ -136,7 +134,7 @@ defmodule Module.Types.Expr do
          {:ok, map_type, context} <- of_expr(map, stack, context) do
       if disjoint?(struct_type, map_type) do
         warning = {:badupdate, :struct, expr, struct_type, map_type, context}
-        {:ok, error_type(), warn(__MODULE__, warning, update_meta, stack, context)}
+        {:ok, error_type(), error(__MODULE__, warning, update_meta, stack, context)}
       else
         # TODO: Merge args_type into map_type with dynamic/static key requirement
         Of.struct(module, args_types, :merge_defaults, struct_meta, stack, context)
@@ -290,7 +288,7 @@ defmodule Module.Types.Expr do
       context =
         case fun_fetch(fun_type, length(args)) do
           :ok -> context
-          :error -> Of.incompatible_warn(fun, fun(), fun_type, stack, context)
+          :error -> Of.incompatible_error(fun, fun(), fun_type, stack, context)
         end
 
       {:ok, dynamic(), context}
@@ -405,13 +403,14 @@ defmodule Module.Types.Expr do
   end
 
   defp for_clause({:<<>>, _, [{:<-, meta, [left, right]}]}, stack, context) do
-    with {:ok, right_type, context} <- of_expr(right, stack, context),
-         {:ok, _pattern_type, context} <- Pattern.of_match(left, binary(), left, stack, context) do
+    with {:ok, right_type, context} <- of_expr(right, stack, context) do
+      {_pattern_type, context} = Pattern.of_match(left, binary(), left, stack, context)
+
       if binary_type?(right_type) do
         {:ok, context}
       else
         warning = {:badbinary, right_type, right, context}
-        {:ok, warn(__MODULE__, warning, meta, stack, context)}
+        {:ok, error(__MODULE__, warning, meta, stack, context)}
       end
     end
   end
