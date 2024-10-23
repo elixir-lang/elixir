@@ -308,7 +308,8 @@ defmodule Module.Types.Expr do
         Of.map_fetch(expr, type, key_or_fun, stack, context)
       else
         {mods, context} = Of.remote(type, key_or_fun, 0, [:dot], expr, meta, stack, context)
-        apply_many(mods, key_or_fun, [], expr, stack, context)
+        {type, context} = apply_many(mods, key_or_fun, [], expr, stack, context)
+        {:ok, type, context}
       end
     end
   end
@@ -318,7 +319,8 @@ defmodule Module.Types.Expr do
     with {:ok, remote_type, context} <- of_expr(remote, stack, context),
          {:ok, args_types, context} <- map_reduce_ok(args, context, &of_expr(&1, stack, &2)) do
       {mods, context} = Of.remote(remote_type, name, length(args), expr, meta, stack, context)
-      apply_many(mods, name, args_types, expr, stack, context)
+      {type, context} = apply_many(mods, name, args_types, expr, stack, context)
+      {:ok, type, context}
     end
   end
 
@@ -464,7 +466,7 @@ defmodule Module.Types.Expr do
   defp error_type(), do: dynamic()
 
   defp apply_many([], _function, _args_types, _expr, _stack, context) do
-    {:ok, dynamic(), context}
+    {dynamic(), context}
   end
 
   defp apply_many([mod], function, args_types, expr, stack, context) do
@@ -472,12 +474,12 @@ defmodule Module.Types.Expr do
   end
 
   defp apply_many(mods, function, args_types, expr, stack, context) do
-    with {:ok, returns, context} <-
-           map_reduce_ok(mods, context, fn mod, context ->
-             Of.apply(mod, function, args_types, expr, stack, context)
-           end) do
-      {:ok, Enum.reduce(returns, &union/2), context}
-    end
+    {returns, context} =
+      Enum.map_reduce(mods, context, fn mod, context ->
+        Of.apply(mod, function, args_types, expr, stack, context)
+      end)
+
+    {Enum.reduce(returns, &union/2), context}
   end
 
   defp of_clauses(clauses, stack, context) do

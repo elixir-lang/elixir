@@ -336,10 +336,10 @@ defmodule Module.Types.Of do
       when is_integer(index) do
     case tuple_fetch(type, index - 1) do
       {_optional?, value_type} ->
-        {:ok, value_type, context}
+        {value_type, context}
 
       reason ->
-        {:ok, dynamic(), error({reason, expr, type, index - 1, context}, meta, stack, context)}
+        {dynamic(), error({reason, expr, type, index - 1, context}, meta, stack, context)}
     end
   end
 
@@ -351,24 +351,24 @@ defmodule Module.Types.Of do
       match?({false, _}, map_fetch(left, :__struct__)) or
           match?({false, _}, map_fetch(right, :__struct__)) ->
         warning = {:struct_comparison, expr, context}
-        {:ok, result, error(warning, elem(expr, 1), stack, context)}
+        {result, error(warning, elem(expr, 1), stack, context)}
 
       number_type?(left) and number_type?(right) ->
-        {:ok, result, context}
+        {result, context}
 
       disjoint?(left, right) ->
         warning = {:mismatched_comparison, expr, context}
-        {:ok, result, error(warning, elem(expr, 1), stack, context)}
+        {result, error(warning, elem(expr, 1), stack, context)}
 
       true ->
-        {:ok, result, context}
+        {result, context}
     end
   end
 
   def apply(mod, name, args, expr, stack, context) do
     case :elixir_rewrite.inline(mod, name, length(args)) do
       {mod, name} -> apply(mod, name, args, expr, stack, context)
-      false -> {:ok, dynamic(), context}
+      false -> {dynamic(), context}
     end
   end
 

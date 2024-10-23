@@ -672,7 +672,8 @@ defmodule Module.Types.Pattern do
       when is_atom(function) do
     with {:ok, args_type, context} <-
            map_reduce_ok(args, context, &of_guard(&1, dynamic(), expr, stack, &2)) do
-      Of.apply(:erlang, function, args_type, expr, stack, context)
+      {type, context} = Of.apply(:erlang, function, args_type, expr, stack, context)
+      {:ok, type, context}
     end
   end
 
