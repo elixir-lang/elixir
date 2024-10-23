@@ -108,8 +108,9 @@ defmodule Module.Types.Expr do
 
   # %{map | ...}
   def of_expr({:%{}, _, [{:|, _, [map, args]}]}, stack, context) do
-    with {:ok, _args_type, context} <- Of.closed_map(args, stack, context, &of_expr/3),
-         {:ok, _map_type, context} <- of_expr(map, stack, context) do
+    {_args_type, context} = Of.closed_map(args, stack, context, &of_expr/3)
+
+    with {:ok, _map_type, context} <- of_expr(map, stack, context) do
       # TODO: intersect map with keys of terms for args
       # TODO: Merge args_type into map_type with dynamic/static key requirement
       {:ok, dynamic(open_map()), context}
@@ -129,7 +130,7 @@ defmodule Module.Types.Expr do
              end
            end),
          # TODO: args_types could be an empty list
-         {:ok, struct_type, context} <-
+         {struct_type, context} =
            Of.struct(module, args_types, :only_defaults, struct_meta, stack, context),
          {:ok, map_type, context} <- of_expr(map, stack, context) do
       if disjoint?(struct_type, map_type) do
@@ -137,20 +138,25 @@ defmodule Module.Types.Expr do
         {:ok, error_type(), error(__MODULE__, warning, update_meta, stack, context)}
       else
         # TODO: Merge args_type into map_type with dynamic/static key requirement
-        Of.struct(module, args_types, :merge_defaults, struct_meta, stack, context)
+        {type, context} =
+          Of.struct(module, args_types, :merge_defaults, struct_meta, stack, context)
+
+        {:ok, type, context}
       end
     end
   end
 
   # %{...}
   def of_expr({:%{}, _meta, args}, stack, context) do
-    Of.closed_map(args, stack, context, &of_expr/3)
+    {type, context} = Of.closed_map(args, stack, context, &of_expr/3)
+    {:ok, type, context}
   end
 
   # %Struct{}
   def of_expr({:%, _, [module, {:%{}, _, args}]} = expr, stack, context) do
     # TODO: We should not skip defaults
-    Of.struct(expr, module, args, :skip_defaults, stack, context, &of_expr/3)
+    {type, context} = Of.struct(expr, module, args, :skip_defaults, stack, context, &of_expr/3)
+    {:ok, type, context}
   end
 
   # ()
@@ -361,7 +367,8 @@ defmodule Module.Types.Expr do
              # Exceptions are not validated in the compiler,
              # to avoid export dependencies. So we do it here.
              if Code.ensure_loaded?(exception) and function_exported?(exception, :__struct__, 0) do
-               Of.struct(exception, args, :merge_defaults, meta, stack, context)
+               {type, context} = Of.struct(exception, args, :merge_defaults, meta, stack, context)
+               {:ok, type, context}
              else
                # If the exception cannot be found or is invalid,
                # we call Of.remote/5 to emit a warning.

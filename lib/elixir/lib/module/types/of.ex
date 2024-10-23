@@ -91,53 +91,59 @@ defmodule Module.Types.Of do
   Builds a closed map.
   """
   def closed_map(pairs, extra \\ [], stack, context, of_fun) do
-    result =
-      reduce_ok(pairs, {true, extra, [], context}, fn
+    of_fun = fn arg1, arg2, arg3 ->
+      case of_fun.(arg1, arg2, arg3) do
+        {:ok, type, context} -> {type, context}
+        {:error, context} -> {dynamic(), context}
+        {type, context} -> {type, context}
+      end
+    end
+
+    {closed?, single, multiple, context} =
+      Enum.reduce(pairs, {true, extra, [], context}, fn
         {key, value}, {closed?, single, multiple, context} ->
-          with {:ok, keys, context} <- of_finite_key_type(key, stack, context, of_fun),
-               {:ok, value_type, context} <- of_fun.(value, stack, context) do
-            case keys do
-              :none ->
-                {:ok, {false, single, multiple, context}}
+          {keys, context} = of_finite_key_type(key, stack, context, of_fun)
+          {value_type, context} = of_fun.(value, stack, context)
 
-              [key] when multiple == [] ->
-                {:ok, {closed?, [{key, value_type} | single], multiple, context}}
+          case keys do
+            :none ->
+              {false, single, multiple, context}
 
-              keys ->
-                {:ok, {closed?, single, [{keys, value_type} | multiple], context}}
-            end
+            [key] when multiple == [] ->
+              {closed?, [{key, value_type} | single], multiple, context}
+
+            keys ->
+              {closed?, single, [{keys, value_type} | multiple], context}
           end
       end)
 
-    with {:ok, {closed?, single, multiple, context}} <- result do
-      map =
-        case Enum.reverse(multiple) do
-          [] ->
-            pairs = Enum.reverse(single)
+    map =
+      case Enum.reverse(multiple) do
+        [] ->
+          pairs = Enum.reverse(single)
+          if closed?, do: closed_map(pairs), else: open_map(pairs)
+
+        [{keys, type} | tail] ->
+          for key <- keys, t <- cartesian_map(tail) do
+            pairs = Enum.reverse(single, [{key, type} | t])
             if closed?, do: closed_map(pairs), else: open_map(pairs)
+          end
+          |> Enum.reduce(&union/2)
+      end
 
-          [{keys, type} | tail] ->
-            for key <- keys, t <- cartesian_map(tail) do
-              pairs = Enum.reverse(single, [{key, type} | t])
-              if closed?, do: closed_map(pairs), else: open_map(pairs)
-            end
-            |> Enum.reduce(&union/2)
-        end
-
-      {:ok, map, context}
-    end
+    {map, context}
   end
 
   defp of_finite_key_type(key, _stack, context, _of_fun) when is_atom(key) do
-    {:ok, [key], context}
+    {[key], context}
   end
 
   defp of_finite_key_type(key, stack, context, of_fun) do
-    with {:ok, key_type, context} <- of_fun.(key, stack, context) do
-      case atom_fetch(key_type) do
-        {:finite, list} -> {:ok, list, context}
-        _ -> {:ok, :none, context}
-      end
+    {key_type, context} = of_fun.(key, stack, context)
+
+    case atom_fetch(key_type) do
+      {:finite, list} -> {list, context}
+      _ -> {:none, context}
     end
   end
 
@@ -156,15 +162,22 @@ defmodule Module.Types.Of do
   """
   def struct({:%, meta, _}, struct, args, default_handling, stack, context, of_fun)
       when is_atom(struct) do
-    # The compiler has already checked the keys are atoms and which ones are required.
-    with {:ok, args_types, context} <-
-           map_reduce_ok(args, context, fn {key, value}, context when is_atom(key) ->
-             with {:ok, type, context} <- of_fun.(value, stack, context) do
-               {:ok, {key, type}, context}
-             end
-           end) do
-      struct(struct, args_types, default_handling, meta, stack, context)
+    of_fun = fn arg1, arg2, arg3 ->
+      case of_fun.(arg1, arg2, arg3) do
+        {:ok, type, context} -> {type, context}
+        {:error, context} -> {dynamic(), context}
+        {type, context} -> {type, context}
+      end
     end
+
+    # The compiler has already checked the keys are atoms and which ones are required.
+    {args_types, context} =
+      Enum.map_reduce(args, context, fn {key, value}, context when is_atom(key) ->
+        {type, context} = of_fun.(value, stack, context)
+        {{key, type}, context}
+      end)
+
+    struct(struct, args_types, default_handling, meta, stack, context)
   end
 
   @doc """
@@ -186,7 +199,7 @@ defmodule Module.Types.Of do
         :only_defaults -> [{:__struct__, atom([struct])} | defaults]
       end
 
-    {:ok, dynamic(closed_map(pairs)), context}
+    {dynamic(closed_map(pairs)), context}
   end
 
   @doc """
