@@ -33,9 +33,8 @@ defmodule Module.Types.Pattern do
     expected_types = Enum.map(patterns, fn _ -> dynamic end)
 
     with {:ok, _trees, types, context} <-
-           of_pattern_args(patterns, expected_types, stack, context),
-         {:ok, _, context} <-
-           map_reduce_ok(guards, context, &of_guard(&1, @guard, &1, stack, &2)) do
+           of_pattern_args(patterns, expected_types, stack, context) do
+      {_, context} = Enum.map_reduce(guards, context, &of_guard(&1, @guard, &1, stack, &2))
       {:ok, types, context}
     end
   end
@@ -543,45 +542,45 @@ defmodule Module.Types.Pattern do
   # :atom
   def of_guard(atom, expected, expr, stack, context) when is_atom(atom) do
     if atom_type?(expected, atom) do
-      {:ok, atom([atom]), context}
+      {atom([atom]), context}
     else
-      {:error, Of.incompatible_error(expr, expected, atom([atom]), stack, context)}
+      {dynamic(), Of.incompatible_error(expr, expected, atom([atom]), stack, context)}
     end
   end
 
   # 12
   def of_guard(literal, expected, expr, stack, context) when is_integer(literal) do
     if integer_type?(expected) do
-      {:ok, integer(), context}
+      {integer(), context}
     else
-      {:error, Of.incompatible_error(expr, expected, integer(), stack, context)}
+      {dynamic(), Of.incompatible_error(expr, expected, integer(), stack, context)}
     end
   end
 
   # 1.2
   def of_guard(literal, expected, expr, stack, context) when is_float(literal) do
     if float_type?(expected) do
-      {:ok, float(), context}
+      {float(), context}
     else
-      {:error, Of.incompatible_error(expr, expected, float(), stack, context)}
+      {dynamic(), Of.incompatible_error(expr, expected, float(), stack, context)}
     end
   end
 
   # "..."
   def of_guard(literal, expected, expr, stack, context) when is_binary(literal) do
     if binary_type?(expected) do
-      {:ok, binary(), context}
+      {binary(), context}
     else
-      {:error, Of.incompatible_error(expr, expected, binary(), stack, context)}
+      {dynamic(), Of.incompatible_error(expr, expected, binary(), stack, context)}
     end
   end
 
   # []
   def of_guard([], expected, expr, stack, context) do
     if empty_list_type?(expected) do
-      {:ok, empty_list(), context}
+      {empty_list(), context}
     else
-      {:error, Of.incompatible_error(expr, expected, empty_list(), stack, context)}
+      {dynamic(), Of.incompatible_error(expr, expected, empty_list(), stack, context)}
     end
   end
 
@@ -589,11 +588,11 @@ defmodule Module.Types.Pattern do
   def of_guard(list, _expected, expr, stack, context) when is_list(list) do
     {prefix, suffix} = unpack_list(list, [])
 
-    with {:ok, prefix, context} <-
-           map_reduce_ok(prefix, context, &of_guard(&1, dynamic(), expr, stack, &2)),
-         {:ok, suffix, context} <- of_guard(suffix, dynamic(), expr, stack, context) do
-      {:ok, non_empty_list(Enum.reduce(prefix, &union/2), suffix), context}
-    end
+    {prefix, context} =
+      Enum.map_reduce(prefix, context, &of_guard(&1, dynamic(), expr, stack, &2))
+
+    {suffix, context} = of_guard(suffix, dynamic(), expr, stack, context)
+    {non_empty_list(Enum.reduce(prefix, &union/2), suffix), context}
   end
 
   # {left, right}
@@ -605,64 +604,55 @@ defmodule Module.Types.Pattern do
   def of_guard({:%, _, [module, {:%{}, _, args}]} = struct, _expected, _expr, stack, context)
       when is_atom(module) do
     fun = &of_guard(&1, dynamic(), struct, &2, &3)
-    {type, context} = Of.struct(struct, module, args, :skip_defaults, stack, context, fun)
-    {:ok, type, context}
+    Of.struct(struct, module, args, :skip_defaults, stack, context, fun)
   end
 
   # %{...}
   def of_guard({:%{}, _meta, args}, _expected, expr, stack, context) do
-    {type, context} = Of.closed_map(args, stack, context, &of_guard(&1, dynamic(), expr, &2, &3))
-    {:ok, type, context}
+    Of.closed_map(args, stack, context, &of_guard(&1, dynamic(), expr, &2, &3))
   end
 
   # <<>>
   def of_guard({:<<>>, _meta, args}, expected, expr, stack, context) do
     if binary_type?(expected) do
       context = Of.binary(args, :guard, stack, context)
-      {:ok, binary(), context}
+      {binary(), context}
     else
-      {:error, Of.incompatible_error(expr, expected, binary(), stack, context)}
+      {dynamic(), Of.incompatible_error(expr, expected, binary(), stack, context)}
     end
   end
 
   # ^var
   def of_guard({:^, _meta, [var]}, expected, expr, stack, context) do
     # This is by definition a variable defined outside of this pattern, so we don't track it.
-    {type, context} = Of.intersect(Of.var(var, context), expected, expr, stack, context)
-    {:ok, type, context}
+    Of.intersect(Of.var(var, context), expected, expr, stack, context)
   end
 
   # {...}
   def of_guard({:{}, _meta, args}, _expected, expr, stack, context) do
-    with {:ok, types, context} <-
-           map_reduce_ok(args, context, &of_guard(&1, dynamic(), expr, stack, &2)) do
-      {:ok, tuple(types), context}
-    end
+    {types, context} = Enum.map_reduce(args, context, &of_guard(&1, dynamic(), expr, stack, &2))
+    {tuple(types), context}
   end
 
   # var.field
   def of_guard({{:., _, [callee, key]}, _, []} = map_fetch, _expected, expr, stack, context)
       when not is_atom(callee) do
-    with {:ok, type, context} <- of_guard(callee, dynamic(), expr, stack, context) do
-      {type, context} = Of.map_fetch(map_fetch, type, key, stack, context)
-      {:ok, type, context}
-    end
+    {type, context} = of_guard(callee, dynamic(), expr, stack, context)
+    Of.map_fetch(map_fetch, type, key, stack, context)
   end
 
   # Remote
   def of_guard({{:., _, [:erlang, function]}, _, args}, _expected, expr, stack, context)
       when is_atom(function) do
-    with {:ok, args_type, context} <-
-           map_reduce_ok(args, context, &of_guard(&1, dynamic(), expr, stack, &2)) do
-      {type, context} = Of.apply(:erlang, function, args_type, expr, stack, context)
-      {:ok, type, context}
-    end
+    {args_type, context} =
+      Enum.map_reduce(args, context, &of_guard(&1, dynamic(), expr, stack, &2))
+
+    Of.apply(:erlang, function, args_type, expr, stack, context)
   end
 
   # var
   def of_guard(var, expected, expr, stack, context) when is_var(var) do
-    {type, context} = Of.intersect(Of.var(var, context), expected, expr, stack, context)
-    {:ok, type, context}
+    Of.intersect(Of.var(var, context), expected, expr, stack, context)
   end
 
   ## Helpers

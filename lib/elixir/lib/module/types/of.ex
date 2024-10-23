@@ -261,10 +261,7 @@ defmodule Module.Types.Of do
           Module.Types.Pattern.of_match_var(left, type, expr, stack, context)
 
         :guard ->
-          case Module.Types.Pattern.of_guard(left, type, expr, stack, context) do
-            {:ok, type, context} -> {type, context}
-            {:error, context} -> {dynamic(), context}
-          end
+          Module.Types.Pattern.of_guard(left, type, expr, stack, context)
 
         :expr ->
           case Module.Types.Expr.of_expr(left, stack, context) do
@@ -311,10 +308,8 @@ defmodule Module.Types.Of do
 
   defp specifier_size(_pattern_or_guard, {:size, _, [arg]}, expr, stack, context)
        when not is_integer(arg) do
-    case Module.Types.Pattern.of_guard(arg, integer(), expr, stack, context) do
-      {:ok, _, context} -> context
-      {:error, context} -> context
-    end
+    {_type, context} = Module.Types.Pattern.of_guard(arg, integer(), expr, stack, context)
+    context
   end
 
   defp specifier_size(_kind, _specifier, _expr, _stack, context) do
