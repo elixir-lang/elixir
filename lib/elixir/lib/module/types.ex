@@ -52,12 +52,9 @@ defmodule Module.Types do
   end
 
   defp warnings_from_clause(meta, args, guards, body, stack, context) do
-    with {:ok, _types, context} <- Pattern.of_head(args, guards, meta, stack, context),
-         {:ok, _type, context} <- Expr.of_expr(body, stack, context) do
-      context.warnings
-    else
-      {:error, context} -> context.warnings
-    end
+    {_types, context} = Pattern.of_head(args, guards, meta, stack, context)
+    {_type, context} = Expr.of_expr(body, stack, context)
+    context.warnings
   end
 
   @doc false
@@ -83,10 +80,12 @@ defmodule Module.Types do
     %{
       # A list of all warnings found so far
       warnings: [],
-      # Information about all vars and their types
+      # All vars and their types
       vars: %{},
-      # Information about variables and arguments from patterns
-      pattern_info: nil
+      # Variables and arguments from patterns
+      pattern_info: nil,
+      # If type checking has found an error/failure
+      failed: false
     }
   end
 end

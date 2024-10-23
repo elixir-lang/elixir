@@ -279,7 +279,7 @@ defmodule Module.Types.ExprTest do
       assert typewarn!(elem({:ok, 123}, 2)) ==
                {dynamic(),
                 ~l"""
-                out of range index 2 in expression:
+                out of range tuple access at index 2 in expression:
 
                     elem({:ok, 123}, 2)
 

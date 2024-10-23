@@ -38,48 +38,6 @@ defmodule Module.Types.Helpers do
   def get_meta({_, meta, _}), do: meta
   def get_meta(_other), do: []
 
-  ## Traversal helpers
-
-  @doc """
-  Like `Enum.reduce/3` but only continues while `fun` returns `{:ok, acc}`
-  and stops on `{:error, reason}`.
-  """
-  def reduce_ok(list, acc, fun) do
-    do_reduce_ok(list, acc, fun)
-  end
-
-  defp do_reduce_ok([head | tail], acc, fun) do
-    case fun.(head, acc) do
-      {:ok, acc} ->
-        do_reduce_ok(tail, acc, fun)
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
-  defp do_reduce_ok([], acc, _fun), do: {:ok, acc}
-
-  @doc """
-  Like `Enum.map_reduce/3` but only continues while `fun` returns `{:ok, elem, acc}`
-  and stops on `{:error, reason}`.
-  """
-  def map_reduce_ok(list, acc, fun) do
-    do_map_reduce_ok(list, [], acc, fun)
-  end
-
-  defp do_map_reduce_ok([head | tail], list, acc, fun) do
-    case fun.(head, acc) do
-      {:ok, elem, acc} ->
-        do_map_reduce_ok(tail, [elem | list], acc, fun)
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
-  defp do_map_reduce_ok([], list, acc, _fun), do: {:ok, Enum.reverse(list), acc}
-
   ## Warnings
 
   @doc """
@@ -271,4 +229,21 @@ defmodule Module.Types.Helpers do
       %{context | warnings: [{module, warning, location} | context.warnings]}
     end
   end
+
+  @doc """
+  Emits an error.
+
+  In practice an error is a warning that halts other errors from being collected.
+  """
+  def error(module, warning, meta, stack, context) do
+    case context do
+      %{failed: true} -> context
+      %{failed: false} -> warn(module, warning, meta, stack, %{context | failed: true})
+    end
+  end
+
+  @doc """
+  The type to return when there is an error.
+  """
+  def error_type, do: Module.Types.Descr.dynamic()
 end

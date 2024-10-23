@@ -59,32 +59,35 @@ defmodule TypeHelper do
   end
 
   @doc false
-  def __typecheck__!({:ok, type, %{warnings: []}}), do: type
+  def __typecheck__!({type, %{warnings: []}}), do: type
 
-  def __typecheck__!({:ok, _type, %{warnings: warnings}}),
+  def __typecheck__!({_type, %{warnings: warnings, failed: false}}),
     do: raise("type checking ok but with warnings: #{inspect(warnings)}")
 
-  def __typecheck__!({:error, %{warnings: warnings}}),
+  def __typecheck__!({_type, %{warnings: warnings, failed: true}}),
     do: raise("type checking errored with warnings: #{inspect(warnings)}")
 
   @doc false
-  def __typeerror__!({:error, %{warnings: [{module, warning, _locs} | _]}}),
+  def __typeerror__!({_type, %{warnings: [{module, warning, _locs} | _], failed: true}}),
     do: module.format_diagnostic(warning).message
 
-  def __typeerror__!({:ok, type, _context}),
+  def __typeerror__!({_type, %{warnings: warnings, failed: false}}),
+    do: raise("type checking with warnings but expected error: #{inspect(warnings)}")
+
+  def __typeerror__!({type, _}),
     do: raise("type checking ok but expected error: #{Descr.to_quoted_string(type)}")
 
   @doc false
-  def __typediag__!({:ok, type, %{warnings: [{module, warning, _locs}]}}),
+  def __typediag__!({type, %{warnings: [{module, warning, _locs}]}}),
     do: {type, module.format_diagnostic(warning)}
 
-  def __typediag__!({:ok, type, %{warnings: []}}),
+  def __typediag__!({type, %{warnings: []}}),
     do: raise("type checking ok without warnings: #{Descr.to_quoted_string(type)}")
 
-  def __typediag__!({:ok, _type, %{warnings: warnings}}),
+  def __typediag__!({_type, %{warnings: warnings, failed: false}}),
     do: raise("type checking ok but many warnings: #{inspect(warnings)}")
 
-  def __typediag__!({:error, %{warnings: warnings}}),
+  def __typediag__!({:error, %{warnings: warnings, failed: true}}),
     do: raise("type checking errored with warnings: #{inspect(warnings)}")
 
   @doc false
@@ -128,11 +131,8 @@ defmodule TypeHelper do
 
   def __typecheck__(patterns, guards, body) do
     stack = new_stack()
-
-    with {:ok, _types, context} <- Pattern.of_head(patterns, guards, [], stack, new_context()),
-         {:ok, type, context} <- Expr.of_expr(body, stack, context) do
-      {:ok, type, context}
-    end
+    {_types, context} = Pattern.of_head(patterns, guards, [], stack, new_context())
+    Expr.of_expr(body, stack, context)
   end
 
   defp expand_and_unpack(patterns, guards, body, env) do
