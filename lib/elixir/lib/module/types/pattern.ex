@@ -144,52 +144,47 @@ defmodule Module.Types.Pattern do
 
   defp of_pattern_recur(types, changed, vars, args, stack, context, callback) do
     with {:ok, types, %{vars: context_vars} = context} <- callback.(types, changed, context) do
-      result =
-        reduce_ok(vars, {[], context}, fn {version, paths}, {changed, context} ->
+      {changed, context} =
+        Enum.reduce(vars, {[], context}, fn {version, paths}, {changed, context} ->
           current_type = context_vars[version][:type]
 
-          result =
-            reduce_ok(paths, {false, context}, fn
+          {var_changed?, context} =
+            Enum.reduce(paths, {false, context}, fn
               [var, {:arg, index, expected, expr} | path], {var_changed?, context} ->
                 actual = Enum.fetch!(types, index)
 
                 case of_pattern_var(path, actual) do
                   {:ok, type} ->
-                    with {:ok, type, context} <- Of.refine_var(var, type, expr, stack, context) do
-                      {:ok, {var_changed? or current_type != type, context}}
-                    end
+                    {type, context} = Of.refine_var(var, type, expr, stack, context)
+                    {var_changed? or current_type != type, context}
 
                   :error ->
-                    {:error, Of.incompatible_error(expr, expected, actual, stack, context)}
+                    {var_changed?, Of.incompatible_error(expr, expected, actual, stack, context)}
                 end
             end)
 
-          with {:ok, {var_changed?, context}} <- result do
-            case var_changed? do
-              false ->
-                {:ok, {changed, context}}
+          case var_changed? do
+            false ->
+              {changed, context}
 
-              true ->
-                case paths do
-                  # A single change, check if there are other variables in this index.
-                  [[_var, {:arg, index, _, _} | _]] ->
-                    case args do
-                      %{^index => true} -> {:ok, {[index | changed], context}}
-                      %{^index => false} -> {:ok, {changed, context}}
-                    end
+            true ->
+              case paths do
+                # A single change, check if there are other variables in this index.
+                [[_var, {:arg, index, _, _} | _]] ->
+                  case args do
+                    %{^index => true} -> {[index | changed], context}
+                    %{^index => false} -> {changed, context}
+                  end
 
-                  # Several changes, we have to recompute all indexes.
-                  _ ->
-                    var_changed = Enum.map(paths, fn [_var, {:arg, index, _, _} | _] -> index end)
-                    {:ok, {var_changed ++ changed, context}}
-                end
-            end
+                # Several changes, we have to recompute all indexes.
+                _ ->
+                  var_changed = Enum.map(paths, fn [_var, {:arg, index, _, _} | _] -> index end)
+                  {var_changed ++ changed, context}
+              end
           end
         end)
 
-      with {:ok, {changed, context}} <- result do
-        of_pattern_recur(types, :lists.usort(changed), vars, args, stack, context, callback)
-      end
+      of_pattern_recur(types, :lists.usort(changed), vars, args, stack, context, callback)
     end
   end
 
@@ -294,7 +289,8 @@ defmodule Module.Types.Pattern do
   end
 
   def of_match_var(var, expected, expr, stack, context) when is_var(var) do
-    Of.refine_var(var, expected, expr, stack, context)
+    {type, dynamic} = Of.refine_var(var, expected, expr, stack, context)
+    {:ok, type, dynamic}
   end
 
   def of_match_var(ast, expected, expr, stack, context) do

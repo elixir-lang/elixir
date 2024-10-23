@@ -47,9 +47,9 @@ defmodule Module.Types.Of do
 
         # We need to return error otherwise it leads to cascading errors
         if empty?(new_type) do
-          {:error, error({:refine_var, old_type, type, var, context}, meta, stack, context)}
+          {dynamic(), error({:refine_var, old_type, type, var, context}, meta, stack, context)}
         else
-          {:ok, new_type, context}
+          {new_type, context}
         end
 
       %{} ->
@@ -61,7 +61,7 @@ defmodule Module.Types.Of do
         }
 
         context = put_in(context.vars[version], data)
-        {:ok, type, context}
+        {type, context}
     end
   end
 
