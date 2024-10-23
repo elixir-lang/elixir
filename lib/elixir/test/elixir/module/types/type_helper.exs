@@ -131,11 +131,8 @@ defmodule TypeHelper do
 
   def __typecheck__(patterns, guards, body) do
     stack = new_stack()
-
-    case Pattern.of_head(patterns, guards, [], stack, new_context()) do
-      {:ok, _types, context} -> Expr.of_expr(body, stack, context)
-      {:error, context} -> {Module.Types.Descr.dynamic(), context}
-    end
+    {_types, context} = Pattern.of_head(patterns, guards, [], stack, new_context())
+    Expr.of_expr(body, stack, context)
   end
 
   defp expand_and_unpack(patterns, guards, body, env) do

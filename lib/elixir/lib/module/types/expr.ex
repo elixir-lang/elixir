@@ -358,11 +358,8 @@ defmodule Module.Types.Expr do
   defp for_clause({:<-, meta, [left, expr]}, stack, context) do
     {pattern, guards} = extract_head([left])
     {_expr_type, context} = of_expr(expr, stack, context)
-
-    case Pattern.of_head([pattern], guards, meta, stack, context) do
-      {:ok, _, context} -> context
-      {:error, context} -> context
-    end
+    {[_type], context} = Pattern.of_head([pattern], guards, meta, stack, context)
+    context
   end
 
   defp for_clause({:<<>>, _, [{:<-, meta, [left, right]}]}, stack, context) do
@@ -398,14 +395,9 @@ defmodule Module.Types.Expr do
   defp with_clause({:<-, meta, [left, expr]}, stack, context) do
     {pattern, guards} = extract_head([left])
 
-    case Pattern.of_head([pattern], guards, meta, stack, context) do
-      {:ok, _, context} ->
-        {_expr_type, context} = of_expr(expr, stack, context)
-        context
-
-      {:error, context} ->
-        context
-    end
+    {[_type], context} = Pattern.of_head([pattern], guards, meta, stack, context)
+    {_expr_type, context} = of_expr(expr, stack, context)
+    context
   end
 
   defp with_clause(expr, stack, context) do
@@ -443,14 +435,9 @@ defmodule Module.Types.Expr do
     Enum.reduce(clauses, context, fn {:->, meta, [head, body]}, context ->
       {patterns, guards} = extract_head(head)
 
-      case Pattern.of_head(patterns, guards, meta, stack, context) do
-        {:ok, _, context} ->
-          {_, context} = of_expr(body, stack, context)
-          context
-
-        {:error, context} ->
-          context
-      end
+      {_types, context} = Pattern.of_head(patterns, guards, meta, stack, context)
+      {_, context} = of_expr(body, stack, context)
+      context
     end)
   end
 

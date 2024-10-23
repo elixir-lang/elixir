@@ -34,7 +34,7 @@ defmodule Module.Types.Pattern do
 
     {_trees, types, context} = of_pattern_args(patterns, expected_types, stack, context)
     {_, context} = Enum.map_reduce(guards, context, &of_guard(&1, @guard, &1, stack, &2))
-    {:ok, types, context}
+    {types, context}
   end
 
   defp of_pattern_args([], [], _stack, context) do
