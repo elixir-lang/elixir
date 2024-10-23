@@ -47,7 +47,7 @@ defmodule Module.Types.Of do
 
         # We need to return error otherwise it leads to cascading errors
         if empty?(new_type) do
-          {dynamic(), error({:refine_var, old_type, type, var, context}, meta, stack, context)}
+          {error_type(), error({:refine_var, old_type, type, var, context}, meta, stack, context)}
         else
           {new_type, context}
         end
@@ -82,7 +82,7 @@ defmodule Module.Types.Of do
         {value_type, context}
 
       reason ->
-        {dynamic(), error({reason, expr, type, field, context}, elem(expr, 1), stack, context)}
+        {error_type(), error({reason, expr, type, field, context}, elem(expr, 1), stack, context)}
     end
   end
 
@@ -90,14 +90,6 @@ defmodule Module.Types.Of do
   Builds a closed map.
   """
   def closed_map(pairs, extra \\ [], stack, context, of_fun) do
-    of_fun = fn arg1, arg2, arg3 ->
-      case of_fun.(arg1, arg2, arg3) do
-        {:ok, type, context} -> {type, context}
-        {:error, context} -> {dynamic(), context}
-        {type, context} -> {type, context}
-      end
-    end
-
     {closed?, single, multiple, context} =
       Enum.reduce(pairs, {true, extra, [], context}, fn
         {key, value}, {closed?, single, multiple, context} ->
@@ -161,14 +153,6 @@ defmodule Module.Types.Of do
   """
   def struct({:%, meta, _}, struct, args, default_handling, stack, context, of_fun)
       when is_atom(struct) do
-    of_fun = fn arg1, arg2, arg3 ->
-      case of_fun.(arg1, arg2, arg3) do
-        {:ok, type, context} -> {type, context}
-        {:error, context} -> {dynamic(), context}
-        {type, context} -> {type, context}
-      end
-    end
-
     # The compiler has already checked the keys are atoms and which ones are required.
     {args_types, context} =
       Enum.map_reduce(args, context, fn {key, value}, context when is_atom(key) ->
@@ -264,13 +248,8 @@ defmodule Module.Types.Of do
           Module.Types.Pattern.of_guard(left, type, expr, stack, context)
 
         :expr ->
-          case Module.Types.Expr.of_expr(left, stack, context) do
-            {:ok, actual, context} ->
-              intersect(actual, type, expr, stack, context)
-
-            {:error, context} ->
-              {dynamic(), context}
-          end
+          {actual, context} = Module.Types.Expr.of_expr(left, stack, context)
+          intersect(actual, type, expr, stack, context)
       end
 
     specifier_size(kind, right, expr, stack, context)
@@ -298,12 +277,9 @@ defmodule Module.Types.Of do
 
   defp specifier_size(:expr, {:size, _, [arg]}, expr, stack, context)
        when not is_integer(arg) do
-    with {:ok, actual, context} <- Module.Types.Expr.of_expr(arg, stack, context) do
-      {_, context} = intersect(actual, integer(), expr, stack, context)
-      context
-    else
-      {:error, context} -> context
-    end
+    {actual, context} = Module.Types.Expr.of_expr(arg, stack, context)
+    {_, context} = intersect(actual, integer(), expr, stack, context)
+    context
   end
 
   defp specifier_size(_pattern_or_guard, {:size, _, [arg]}, expr, stack, context)
@@ -329,7 +305,7 @@ defmodule Module.Types.Of do
         {value_type, context}
 
       reason ->
-        {dynamic(), error({reason, expr, type, index - 1, context}, meta, stack, context)}
+        {error_type(), error({reason, expr, type, index - 1, context}, meta, stack, context)}
     end
   end
 
@@ -478,7 +454,7 @@ defmodule Module.Types.Of do
     type = intersection(actual, expected)
 
     if empty?(type) do
-      {dynamic(), incompatible_error(expr, expected, actual, stack, context)}
+      {error_type(), incompatible_error(expr, expected, actual, stack, context)}
     else
       {type, context}
     end

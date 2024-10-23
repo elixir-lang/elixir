@@ -119,7 +119,7 @@ defmodule Module.Types.Pattern do
            end) do
       {type, merge_failed(init_context, context)}
     else
-      {:error, context} -> {dynamic(), context}
+      {:error, context} -> {error_type(), context}
     end
   end
 
@@ -544,7 +544,7 @@ defmodule Module.Types.Pattern do
     if atom_type?(expected, atom) do
       {atom([atom]), context}
     else
-      {dynamic(), Of.incompatible_error(expr, expected, atom([atom]), stack, context)}
+      {error_type(), Of.incompatible_error(expr, expected, atom([atom]), stack, context)}
     end
   end
 
@@ -553,7 +553,7 @@ defmodule Module.Types.Pattern do
     if integer_type?(expected) do
       {integer(), context}
     else
-      {dynamic(), Of.incompatible_error(expr, expected, integer(), stack, context)}
+      {error_type(), Of.incompatible_error(expr, expected, integer(), stack, context)}
     end
   end
 
@@ -562,7 +562,7 @@ defmodule Module.Types.Pattern do
     if float_type?(expected) do
       {float(), context}
     else
-      {dynamic(), Of.incompatible_error(expr, expected, float(), stack, context)}
+      {error_type(), Of.incompatible_error(expr, expected, float(), stack, context)}
     end
   end
 
@@ -571,7 +571,7 @@ defmodule Module.Types.Pattern do
     if binary_type?(expected) do
       {binary(), context}
     else
-      {dynamic(), Of.incompatible_error(expr, expected, binary(), stack, context)}
+      {error_type(), Of.incompatible_error(expr, expected, binary(), stack, context)}
     end
   end
 
@@ -580,7 +580,7 @@ defmodule Module.Types.Pattern do
     if empty_list_type?(expected) do
       {empty_list(), context}
     else
-      {dynamic(), Of.incompatible_error(expr, expected, empty_list(), stack, context)}
+      {error_type(), Of.incompatible_error(expr, expected, empty_list(), stack, context)}
     end
   end
 
@@ -618,7 +618,7 @@ defmodule Module.Types.Pattern do
       context = Of.binary(args, :guard, stack, context)
       {binary(), context}
     else
-      {dynamic(), Of.incompatible_error(expr, expected, binary(), stack, context)}
+      {error_type(), Of.incompatible_error(expr, expected, binary(), stack, context)}
     end
   end
 
