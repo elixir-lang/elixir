@@ -346,7 +346,7 @@ defmodule Module.Types.Expr do
         _ ->
           expected = if structs == [], do: @exception, else: Enum.reduce(structs, &union/2)
           formatter = fn expr -> {"rescue #{expr_to_string(expr)} ->", hints} end
-          {_type, context} = Of.refine_var(var, expected, expr, formatter, stack, context)
+          {_ok?, _type, context} = Of.refine_var(var, expected, expr, formatter, stack, context)
           context
       end
 

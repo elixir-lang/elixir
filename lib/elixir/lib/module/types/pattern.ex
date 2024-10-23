@@ -32,29 +32,27 @@ defmodule Module.Types.Pattern do
     dynamic = dynamic()
     expected_types = Enum.map(patterns, fn _ -> dynamic end)
 
-    with {:ok, _trees, types, context} <-
-           of_pattern_args(patterns, expected_types, stack, context) do
-      {_, context} = Enum.map_reduce(guards, context, &of_guard(&1, @guard, &1, stack, &2))
-      {:ok, types, context}
-    end
+    {_trees, types, context} = of_pattern_args(patterns, expected_types, stack, context)
+    {_, context} = Enum.map_reduce(guards, context, &of_guard(&1, @guard, &1, stack, &2))
+    {:ok, types, context}
   end
 
   defp of_pattern_args([], [], _stack, context) do
-    {:ok, [], context}
+    {[], [], context}
   end
 
-  defp of_pattern_args(patterns, expected_types, stack, init_context) do
-    context = %{init_context | pattern_info: {%{}, %{}}, failed: false}
+  defp of_pattern_args(patterns, expected_types, stack, context) do
+    context = %{context | pattern_info: {%{}, %{}}}
     changed = :lists.seq(0, length(patterns) - 1)
 
     {trees, context} = of_pattern_args_index(patterns, expected_types, 0, [], stack, context)
 
-    with {:ok, types, context} <-
-           of_pattern_recur(expected_types, changed, stack, context, fn types, changed, context ->
-             of_pattern_args_tree(trees, types, changed, 0, [], stack, context)
-           end) do
-      {:ok, trees, types, merge_failed(init_context, context)}
-    end
+    {types, context} =
+      of_pattern_recur(expected_types, changed, stack, context, fn types, changed, context ->
+        of_pattern_args_tree(trees, types, changed, 0, [], stack, context)
+      end)
+
+    {trees, types, context}
   end
 
   defp of_pattern_args_index(
@@ -107,20 +105,18 @@ defmodule Module.Types.Pattern do
   Return the type and typing context of a pattern expression with
   the given expected and expr or an error in case of a typing conflict.
   """
-  def of_match(pattern, expected, expr, stack, init_context) do
-    context = %{init_context | pattern_info: {%{}, %{}}, failed: false}
+  def of_match(pattern, expected, expr, stack, context) do
+    context = %{context | pattern_info: {%{}, %{}}}
     {tree, context} = of_pattern(pattern, [{:arg, 0, expected, expr}], stack, context)
 
-    with {:ok, [type], context} <-
-           of_pattern_recur([expected], [0], stack, context, fn [type], [0], context ->
-             with {:ok, type, context} <- of_pattern_intersect(tree, type, expr, stack, context) do
-               {:ok, [type], context}
-             end
-           end) do
-      {type, merge_failed(init_context, context)}
-    else
-      {:error, context} -> {error_type(), context}
-    end
+    {[type], context} =
+      of_pattern_recur([expected], [0], stack, context, fn [type], [0], context ->
+        with {:ok, type, context} <- of_pattern_intersect(tree, type, expr, stack, context) do
+          {:ok, [type], context}
+        end
+      end)
+
+    {type, context}
   end
 
   defp of_pattern_recur(types, changed, stack, context, callback) do
@@ -128,59 +124,67 @@ defmodule Module.Types.Pattern do
     context = %{context | pattern_info: nil}
     pattern_vars = Map.to_list(pattern_vars)
     of_pattern_recur(types, changed, pattern_vars, pattern_args, stack, context, callback)
+  catch
+    {types, context} -> {types, context}
   end
 
   defp of_pattern_recur(types, [], _vars, _args, _stack, context, _callback) do
-    {:ok, types, context}
-  end
-
-  defp of_pattern_recur(_types, _, _vars, _args, _stack, %{failed: true} = context, _callback) do
-    {:error, context}
+    {types, context}
   end
 
   defp of_pattern_recur(types, changed, vars, args, stack, context, callback) do
-    with {:ok, types, %{vars: context_vars} = context} <- callback.(types, changed, context) do
-      {changed, context} =
-        Enum.reduce(vars, {[], context}, fn {version, paths}, {changed, context} ->
-          current_type = context_vars[version][:type]
+    case callback.(types, changed, context) do
+      {:ok, types, %{vars: context_vars} = context} ->
+        {changed, context} =
+          Enum.reduce(vars, {[], context}, fn {version, paths}, {changed, context} ->
+            current_type = context_vars[version][:type]
 
-          {var_changed?, context} =
-            Enum.reduce(paths, {false, context}, fn
-              [var, {:arg, index, expected, expr} | path], {var_changed?, context} ->
-                actual = Enum.fetch!(types, index)
+            {var_changed?, context} =
+              Enum.reduce(paths, {false, context}, fn
+                [var, {:arg, index, expected, expr} | path], {var_changed?, context} ->
+                  actual = Enum.fetch!(types, index)
 
-                case of_pattern_var(path, actual) do
-                  {:ok, type} ->
-                    {type, context} = Of.refine_var(var, type, expr, stack, context)
-                    {var_changed? or current_type != type, context}
+                  case of_pattern_var(path, actual) do
+                    {:ok, type} ->
+                      case Of.refine_var(var, type, expr, stack, context) do
+                        {:ok, type, context} ->
+                          {var_changed? or current_type != type, context}
 
-                  :error ->
-                    {var_changed?, Of.incompatible_error(expr, expected, actual, stack, context)}
-                end
-            end)
+                        {:error, _type, context} ->
+                          throw({types, context})
+                      end
 
-          case var_changed? do
-            false ->
-              {changed, context}
-
-            true ->
-              case paths do
-                # A single change, check if there are other variables in this index.
-                [[_var, {:arg, index, _, _} | _]] ->
-                  case args do
-                    %{^index => true} -> {[index | changed], context}
-                    %{^index => false} -> {changed, context}
+                    :error ->
+                      context = Of.incompatible_error(expr, expected, actual, stack, context)
+                      throw({types, context})
                   end
+              end)
 
-                # Several changes, we have to recompute all indexes.
-                _ ->
-                  var_changed = Enum.map(paths, fn [_var, {:arg, index, _, _} | _] -> index end)
-                  {var_changed ++ changed, context}
-              end
-          end
-        end)
+            case var_changed? do
+              false ->
+                {changed, context}
 
-      of_pattern_recur(types, :lists.usort(changed), vars, args, stack, context, callback)
+              true ->
+                case paths do
+                  # A single change, check if there are other variables in this index.
+                  [[_var, {:arg, index, _, _} | _]] ->
+                    case args do
+                      %{^index => true} -> {[index | changed], context}
+                      %{^index => false} -> {changed, context}
+                    end
+
+                  # Several changes, we have to recompute all indexes.
+                  _ ->
+                    var_changed = Enum.map(paths, fn [_var, {:arg, index, _, _} | _] -> index end)
+                    {var_changed ++ changed, context}
+                end
+            end
+          end)
+
+        of_pattern_recur(types, :lists.usort(changed), vars, args, stack, context, callback)
+
+      {:error, context} ->
+        {types, context}
     end
   end
 
@@ -284,7 +288,8 @@ defmodule Module.Types.Pattern do
   end
 
   def of_match_var(var, expected, expr, stack, context) when is_var(var) do
-    Of.refine_var(var, expected, expr, stack, context)
+    {_ok?, type, context} = Of.refine_var(var, expected, expr, stack, context)
+    {type, context}
   end
 
   def of_match_var(ast, expected, expr, stack, context) do
@@ -656,9 +661,6 @@ defmodule Module.Types.Pattern do
   end
 
   ## Helpers
-
-  defp merge_failed(%{failed: false}, %{failed: false} = post), do: post
-  defp merge_failed(_pre, post), do: %{post | failed: true}
 
   def format_diagnostic({:invalid_pattern, expr, context}) do
     traces = collect_traces(expr, context)
