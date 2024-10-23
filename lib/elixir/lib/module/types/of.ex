@@ -255,28 +255,24 @@ defmodule Module.Types.Of do
     type = specifier_type(kind, right)
     expr = {:<<>>, meta, args}
 
-    context =
+    {_type, context} =
       case kind do
         :match ->
-          case Module.Types.Pattern.of_match_var(left, type, expr, stack, context) do
-            {:ok, _type, context} -> context
-            {:error, context} -> context
-          end
+          Module.Types.Pattern.of_match_var(left, type, expr, stack, context)
 
         :guard ->
           case Module.Types.Pattern.of_guard(left, type, expr, stack, context) do
-            {:ok, _type, context} -> context
-            {:error, context} -> context
+            {:ok, type, context} -> {type, context}
+            {:error, context} -> {dynamic(), context}
           end
 
         :expr ->
           case Module.Types.Expr.of_expr(left, stack, context) do
             {:ok, actual, context} ->
-              {_type, context} = intersect(actual, type, expr, stack, context)
-              context
+              intersect(actual, type, expr, stack, context)
 
             {:error, context} ->
-              context
+              {dynamic(), context}
           end
       end
 

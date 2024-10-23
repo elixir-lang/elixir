@@ -48,9 +48,9 @@ defmodule Module.Types.Pattern do
     context = %{init_context | pattern_info: {%{}, %{}}, failed: false}
     changed = :lists.seq(0, length(patterns) - 1)
 
-    with {:ok, trees, context} <-
-           of_pattern_args_index(patterns, expected_types, 0, [], stack, context),
-         {:ok, types, context} <-
+    {trees, context} = of_pattern_args_index(patterns, expected_types, 0, [], stack, context)
+
+    with {:ok, types, context} <-
            of_pattern_recur(expected_types, changed, stack, context, fn types, changed, context ->
              of_pattern_args_tree(trees, types, changed, 0, [], stack, context)
            end) do
@@ -66,15 +66,13 @@ defmodule Module.Types.Pattern do
          stack,
          context
        ) do
-    with {:ok, tree, context} <-
-           of_pattern(pattern, [{:arg, index, type, pattern}], stack, context) do
-      acc = [{pattern, tree} | acc]
-      of_pattern_args_index(tail, expected_types, index + 1, acc, stack, context)
-    end
+    {tree, context} = of_pattern(pattern, [{:arg, index, type, pattern}], stack, context)
+    acc = [{pattern, tree} | acc]
+    of_pattern_args_index(tail, expected_types, index + 1, acc, stack, context)
   end
 
   defp of_pattern_args_index([], [], _index, acc, _stack, context),
-    do: {:ok, Enum.reverse(acc), context}
+    do: {Enum.reverse(acc), context}
 
   defp of_pattern_args_tree(
          [{pattern, tree} | tail],
@@ -112,10 +110,9 @@ defmodule Module.Types.Pattern do
   """
   def of_match(pattern, expected, expr, stack, init_context) do
     context = %{init_context | pattern_info: {%{}, %{}}, failed: false}
+    {tree, context} = of_pattern(pattern, [{:arg, 0, expected, expr}], stack, context)
 
-    with {:ok, tree, context} <-
-           of_pattern(pattern, [{:arg, 0, expected, expr}], stack, context),
-         {:ok, [type], context} <-
+    with {:ok, [type], context} <-
            of_pattern_recur([expected], [0], stack, context, fn [type], [0], context ->
              with {:ok, type, context} <- of_pattern_intersect(tree, type, expr, stack, context) do
                {:ok, [type], context}
@@ -280,17 +277,15 @@ defmodule Module.Types.Pattern do
   and binary patterns.
   """
   def of_match_var({:^, _, [var]}, expected, expr, stack, context) do
-    {type, dynamic} = Of.intersect(Of.var(var, context), expected, expr, stack, context)
-    {:ok, type, dynamic}
+    Of.intersect(Of.var(var, context), expected, expr, stack, context)
   end
 
   def of_match_var({:_, _, _}, expected, _expr, _stack, context) do
-    {:ok, expected, context}
+    {expected, context}
   end
 
   def of_match_var(var, expected, expr, stack, context) when is_var(var) do
-    {type, dynamic} = Of.refine_var(var, expected, expr, stack, context)
-    {:ok, type, dynamic}
+    Of.refine_var(var, expected, expr, stack, context)
   end
 
   def of_match_var(ast, expected, expr, stack, context) do
@@ -301,23 +296,23 @@ defmodule Module.Types.Pattern do
 
   # :atom
   defp of_pattern(atom, _path, _stack, context) when is_atom(atom),
-    do: {:ok, atom([atom]), context}
+    do: {atom([atom]), context}
 
   # 12
   defp of_pattern(literal, _path, _stack, context) when is_integer(literal),
-    do: {:ok, integer(), context}
+    do: {integer(), context}
 
   # 1.2
   defp of_pattern(literal, _path, _stack, context) when is_float(literal),
-    do: {:ok, float(), context}
+    do: {float(), context}
 
   # "..."
   defp of_pattern(literal, _path, _stack, context) when is_binary(literal),
-    do: {:ok, binary(), context}
+    do: {binary(), context}
 
   # []
   defp of_pattern([], _path, _stack, context),
-    do: {:ok, empty_list(), context}
+    do: {empty_list(), context}
 
   # [expr, ...]
   defp of_pattern(list, path, stack, context) when is_list(list) do
@@ -335,27 +330,25 @@ defmodule Module.Types.Pattern do
     result =
       match
       |> unpack_match([])
-      |> reduce_ok({[], [], context}, fn pattern, {static, dynamic, context} ->
-        with {:ok, type, context} <- of_pattern(pattern, path, stack, context) do
-          if is_descr(type) do
-            {:ok, {[type | static], dynamic, context}}
-          else
-            {:ok, {static, [type | dynamic], context}}
-          end
+      |> Enum.reduce({[], [], context}, fn pattern, {static, dynamic, context} ->
+        {type, context} = of_pattern(pattern, path, stack, context)
+
+        if is_descr(type) do
+          {[type | static], dynamic, context}
+        else
+          {static, [type | dynamic], context}
         end
       end)
 
-    with {:ok, acc} <- result do
-      case acc do
-        {[], dynamic, context} ->
-          {:ok, {:intersection, dynamic}, context}
+    case result do
+      {[], dynamic, context} ->
+        {{:intersection, dynamic}, context}
 
-        {static, [], context} ->
-          {:ok, Enum.reduce(static, &intersection/2), context}
+      {static, [], context} ->
+        {Enum.reduce(static, &intersection/2), context}
 
-        {static, dynamic, context} ->
-          {:ok, {:intersection, [Enum.reduce(static, &intersection/2) | dynamic]}, context}
-      end
+      {static, dynamic, context} ->
+        {{:intersection, [Enum.reduce(static, &intersection/2) | dynamic]}, context}
     end
   end
 
@@ -365,48 +358,44 @@ defmodule Module.Types.Pattern do
        when is_atom(struct) do
     {info, context} = Of.struct_info(struct, meta, stack, context)
 
-    result =
-      map_reduce_ok(args, context, fn {key, value}, context ->
-        with {:ok, value_type, context} <- of_pattern(value, [{:key, key} | path], stack, context) do
-          {:ok, {key, value_type}, context}
+    {pairs, context} =
+      Enum.map_reduce(args, context, fn {key, value}, context ->
+        {value_type, context} = of_pattern(value, [{:key, key} | path], stack, context)
+        {{key, value_type}, context}
+      end)
+
+    pairs = Map.new(pairs)
+    term = term()
+    static = [__struct__: atom([struct])]
+    dynamic = []
+
+    {static, dynamic} =
+      Enum.reduce(info, {static, dynamic}, fn %{field: field}, {static, dynamic} ->
+        case pairs do
+          %{^field => value_type} when is_descr(value_type) ->
+            {[{field, value_type} | static], dynamic}
+
+          %{^field => value_type} ->
+            {static, [{field, value_type} | dynamic]}
+
+          _ ->
+            {[{field, term} | static], dynamic}
         end
       end)
 
-    with {:ok, pairs, context} <- result do
-      pairs = Map.new(pairs)
-      term = term()
-      static = [__struct__: atom([struct])]
-      dynamic = []
-
-      {static, dynamic} =
-        Enum.reduce(info, {static, dynamic}, fn %{field: field}, {static, dynamic} ->
-          case pairs do
-            %{^field => value_type} when is_descr(value_type) ->
-              {[{field, value_type} | static], dynamic}
-
-            %{^field => value_type} ->
-              {static, [{field, value_type} | dynamic]}
-
-            _ ->
-              {[{field, term} | static], dynamic}
-          end
-        end)
-
-      if dynamic == [] do
-        {:ok, closed_map(static), context}
-      else
-        {:ok, {:closed_map, static, dynamic}, context}
-      end
+    if dynamic == [] do
+      {closed_map(static), context}
+    else
+      {{:closed_map, static, dynamic}, context}
     end
   end
 
   # %var{...}
   defp of_pattern({:%, _, [{name, _, ctx} = var, {:%{}, _, args}]}, path, stack, context)
        when is_atom(name) and is_atom(ctx) and name != :_ do
-    with {:ok, var, context} <- of_pattern(var, [{:key, :__struct__} | path], stack, context) do
-      dynamic = [__struct__: {:intersection, [atom(), var]}]
-      of_open_map(args, [], dynamic, path, stack, context)
-    end
+    {var, context} = of_pattern(var, [{:key, :__struct__} | path], stack, context)
+    dynamic = [__struct__: {:intersection, [atom(), var]}]
+    of_open_map(args, [], dynamic, path, stack, context)
   end
 
   # %^var{...} and %_{...}
@@ -416,9 +405,8 @@ defmodule Module.Types.Pattern do
          stack,
          context
        ) do
-    with {:ok, refined, context} <- of_match_var(var, atom(), expr, stack, context) do
-      of_open_map(args, [__struct__: refined], [], path, stack, context)
-    end
+    {refined, context} = of_match_var(var, atom(), expr, stack, context)
+    of_open_map(args, [__struct__: refined], [], path, stack, context)
   end
 
   # %{...}
@@ -429,7 +417,7 @@ defmodule Module.Types.Pattern do
   # <<...>>>
   defp of_pattern({:<<>>, _meta, args}, _path, stack, context) do
     context = Of.binary(args, :match, stack, context)
-    {:ok, binary(), context}
+    {binary(), context}
   end
 
   # left ++ right
@@ -444,12 +432,12 @@ defmodule Module.Types.Pattern do
 
   # ^var
   defp of_pattern({:^, _meta, [var]}, _path, _stack, context) do
-    {:ok, Of.var(var, context), context}
+    {Of.var(var, context), context}
   end
 
   # _
   defp of_pattern({:_, _meta, _var_context}, _path, _stack, context) do
-    {:ok, term(), context}
+    {term(), context}
   end
 
   # var
@@ -470,56 +458,51 @@ defmodule Module.Types.Pattern do
         %{} -> Map.put(args, arg, false)
       end
 
-    {:ok, {:var, version}, %{context | pattern_info: {vars, args}}}
+    {{:var, version}, %{context | pattern_info: {vars, args}}}
   end
 
   # TODO: Properly traverse domain keys
   # TODO: Properly handle pin operator in keys
   defp of_open_map(args, static, dynamic, path, stack, context) do
-    result =
-      reduce_ok(args, {static, dynamic, context}, fn {key, value}, {static, dynamic, context} ->
-        with {:ok, value_type, context} <- of_pattern(value, [{:key, key} | path], stack, context) do
-          cond do
-            # Only atom keys become part of the type because the other keys are divisible
-            not is_atom(key) ->
-              {:ok, {static, dynamic, context}}
+    {static, dynamic, context} =
+      Enum.reduce(args, {static, dynamic, context}, fn {key, value}, {static, dynamic, context} ->
+        {value_type, context} = of_pattern(value, [{:key, key} | path], stack, context)
 
-            is_descr(value_type) ->
-              {:ok, {[{key, value_type} | static], dynamic, context}}
+        cond do
+          # Only atom keys become part of the type because the other keys are divisible
+          not is_atom(key) ->
+            {static, dynamic, context}
 
-            true ->
-              {:ok, {static, [{key, value_type} | dynamic], context}}
-          end
+          is_descr(value_type) ->
+            {[{key, value_type} | static], dynamic, context}
+
+          true ->
+            {static, [{key, value_type} | dynamic], context}
         end
       end)
 
-    with {:ok, {static, dynamic, context}} <- result do
-      case dynamic do
-        [] -> {:ok, open_map(static), context}
-        _ -> {:ok, {:open_map, static, dynamic}, context}
-      end
+    case dynamic do
+      [] -> {open_map(static), context}
+      _ -> {{:open_map, static, dynamic}, context}
     end
   end
 
   defp of_tuple(args, path, stack, context) do
-    result =
-      reduce_ok(args, {0, true, [], context}, fn arg, {index, static?, acc, context} ->
-        with {:ok, type, context} <- of_pattern(arg, [{:elem, index} | path], stack, context) do
-          {:ok, {index + 1, static? and is_descr(type), [type | acc], context}}
-        end
+    {_index, static?, entries, context} =
+      Enum.reduce(args, {0, true, [], context}, fn arg, {index, static?, acc, context} ->
+        {type, context} = of_pattern(arg, [{:elem, index} | path], stack, context)
+        {index + 1, static? and is_descr(type), [type | acc], context}
       end)
 
-    with {:ok, {_index, static?, entries, context}} <- result do
-      case static? do
-        true -> {:ok, tuple(Enum.reverse(entries)), context}
-        false -> {:ok, {:tuple, Enum.reverse(entries)}, context}
-      end
+    case static? do
+      true -> {tuple(Enum.reverse(entries)), context}
+      false -> {{:tuple, Enum.reverse(entries)}, context}
     end
   end
 
   # [] ++ []
   defp of_list([], [], _path, _stack, context) do
-    {:ok, empty_list(), context}
+    {empty_list(), context}
   end
 
   # [] ++ suffix
@@ -529,30 +512,28 @@ defmodule Module.Types.Pattern do
 
   # [prefix1, prefix2, prefix3], [prefix1, prefix2 | suffix]
   defp of_list(prefix, suffix, path, stack, context) do
-    with {:ok, suffix, context} <- of_pattern(suffix, [:tail | path], stack, context) do
-      result =
-        reduce_ok(prefix, {[], [], context}, fn arg, {static, dynamic, context} ->
-          with {:ok, type, context} <- of_pattern(arg, [:head | path], stack, context) do
-            if is_descr(type) do
-              {:ok, {[type | static], dynamic, context}}
-            else
-              {:ok, {static, [type | dynamic], context}}
-            end
-          end
-        end)
+    {suffix, context} = of_pattern(suffix, [:tail | path], stack, context)
 
-      with {:ok, acc} <- result do
-        case acc do
-          {static, [], context} when is_descr(suffix) ->
-            {:ok, non_empty_list(Enum.reduce(static, &union/2), suffix), context}
+    acc =
+      Enum.reduce(prefix, {[], [], context}, fn arg, {static, dynamic, context} ->
+        {type, context} = of_pattern(arg, [:head | path], stack, context)
 
-          {[], dynamic, context} ->
-            {:ok, {:non_empty_list, dynamic, suffix}, context}
-
-          {static, dynamic, context} ->
-            {:ok, {:non_empty_list, [Enum.reduce(static, &union/2) | dynamic], suffix}, context}
+        if is_descr(type) do
+          {[type | static], dynamic, context}
+        else
+          {static, [type | dynamic], context}
         end
-      end
+      end)
+
+    case acc do
+      {static, [], context} when is_descr(suffix) ->
+        {non_empty_list(Enum.reduce(static, &union/2), suffix), context}
+
+      {[], dynamic, context} ->
+        {{:non_empty_list, dynamic, suffix}, context}
+
+      {static, dynamic, context} ->
+        {{:non_empty_list, [Enum.reduce(static, &union/2) | dynamic], suffix}, context}
     end
   end
 
