@@ -317,14 +317,14 @@ defmodule Module.Types.Of do
       match?({false, _}, map_fetch(left, :__struct__)) or
           match?({false, _}, map_fetch(right, :__struct__)) ->
         warning = {:struct_comparison, expr, context}
-        {result, error(warning, elem(expr, 1), stack, context)}
+        {result, warn(__MODULE__, warning, elem(expr, 1), stack, context)}
 
       number_type?(left) and number_type?(right) ->
         {result, context}
 
       disjoint?(left, right) ->
         warning = {:mismatched_comparison, expr, context}
-        {result, error(warning, elem(expr, 1), stack, context)}
+        {result, warn(__MODULE__, warning, elem(expr, 1), stack, context)}
 
       true ->
         {result, context}
@@ -375,13 +375,13 @@ defmodule Module.Types.Of do
 
       {:ok, mode, :defmacro, reason} ->
         context =
-          error(__MODULE__, {:unrequired_module, module, fun, arity}, meta, stack, context)
+          warn(__MODULE__, {:unrequired_module, module, fun, arity}, meta, stack, context)
 
         check_deprecated(mode, module, fun, arity, reason, meta, stack, context)
 
       {:error, :module} ->
         if warn_undefined?(module, fun, arity, stack) do
-          error(__MODULE__, {:undefined_module, module, fun, arity}, meta, stack, context)
+          warn(__MODULE__, {:undefined_module, module, fun, arity}, meta, stack, context)
         else
           context
         end
@@ -390,7 +390,7 @@ defmodule Module.Types.Of do
         if warn_undefined?(module, fun, arity, stack) do
           exports = ParallelChecker.all_exports(stack.cache, module)
           payload = {:undefined_function, module, fun, arity, exports}
-          error(__MODULE__, payload, meta, stack, context)
+          warn(__MODULE__, payload, meta, stack, context)
         else
           context
         end
@@ -399,7 +399,7 @@ defmodule Module.Types.Of do
 
   defp check_deprecated(:elixir, module, fun, arity, reason, meta, stack, context) do
     if reason do
-      error(__MODULE__, {:deprecated, module, fun, arity, reason}, meta, stack, context)
+      warn(__MODULE__, {:deprecated, module, fun, arity, reason}, meta, stack, context)
     else
       context
     end
@@ -409,12 +409,12 @@ defmodule Module.Types.Of do
     case :otp_internal.obsolete(module, fun, arity) do
       {:deprecated, string} when is_list(string) ->
         reason = string |> List.to_string() |> :string.titlecase()
-        error(__MODULE__, {:deprecated, module, fun, arity, reason}, meta, stack, context)
+        warn(__MODULE__, {:deprecated, module, fun, arity, reason}, meta, stack, context)
 
       {:deprecated, string, removal} when is_list(string) and is_list(removal) ->
         reason = string |> List.to_string() |> :string.titlecase()
         reason = "It will be removed in #{removal}. #{reason}"
-        error(__MODULE__, {:deprecated, module, fun, arity, reason}, meta, stack, context)
+        warn(__MODULE__, {:deprecated, module, fun, arity, reason}, meta, stack, context)
 
       _ ->
         context
