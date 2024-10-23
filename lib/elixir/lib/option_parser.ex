@@ -865,7 +865,13 @@ defmodule OptionParser do
 
   defp format_error({option, nil}, opts, types) do
     if type = get_type(option, opts, types) do
-      "#{option} : Missing argument of type #{type}"
+      if String.contains?(option, "_") do
+        msg = "#{option} : Unknown option"
+
+        msg <> ". Did you mean #{String.replace(option, "_", "-")}?"
+      else
+        "#{option} : Missing argument of type #{type}"
+      end
     else
       msg = "#{option} : Unknown option"
 
