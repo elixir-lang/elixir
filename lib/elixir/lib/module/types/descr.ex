@@ -70,12 +70,17 @@ defmodule Module.Types.Descr do
   def non_empty_list(type, tail \\ @empty_list), do: list_descr(type, tail, false)
   def open_map(), do: %{map: @map_top}
   def open_map(pairs), do: map_descr(:open, pairs)
-  def open_tuple(elements), do: tuple_descr(:open, elements)
   def pid(), do: %{bitmap: @bit_pid}
   def port(), do: %{bitmap: @bit_port}
   def reference(), do: %{bitmap: @bit_reference}
   def tuple(), do: %{tuple: @tuple_top}
+  def open_tuple(elements), do: tuple_descr(:open, elements)
   def tuple(elements), do: tuple_descr(:closed, elements)
+
+  # Tuple helper
+  defp tuple_of_size_at_least(n) when is_integer(n) and n >= 0 do
+    open_tuple(List.duplicate(term(), n))
+  end
 
   @boolset :sets.from_list([true, false], version: 2)
   def boolean(), do: %{atom: {:union, @boolset}}
@@ -1161,6 +1166,8 @@ defmodule Module.Types.Descr do
     end
   end
 
+  defp map_put_static_descr(static, _, _) when static == @none, do: @none
+
   # Directly inserts a key of a given type into every positive and negative map
   defp map_put_static_descr(descr, key, type) do
     map_delete_static(descr, key)
@@ -1653,7 +1660,7 @@ defmodule Module.Types.Descr do
 
   defp tuple_to_quoted(dnf) do
     dnf
-    |> tuple_normalize()
+    |> tuple_simplify()
     |> Enum.map(&tuple_each_to_quoted/1)
     |> case do
       [] -> []
@@ -1727,6 +1734,7 @@ defmodule Module.Types.Descr do
   defp tuple_elements(_, _, _, [], _), do: true
 
   defp tuple_elements(acc, tag, elements, [neg_type | neg_elements], negs) do
+    # Handles the case where {tag, elements} is an open tuple, like {:open, []}
     {ty, elements} = List.pop_at(elements, 0, term())
     diff = difference(ty, neg_type)
 
@@ -1866,14 +1874,146 @@ defmodule Module.Types.Descr do
     end)
   end
 
-  # Use heuristics to normalize a tuple dnf for pretty printing.
-  defp tuple_normalize(dnf) do
+  # Use heuristics to simplify a tuple dnf for pretty printing.
+  defp tuple_simplify(dnf) do
     for {tag, elements, negs} <- dnf,
         not tuple_empty?([{tag, elements, negs}]) do
       n = length(elements)
       {tag, elements, Enum.reject(negs, &tuple_empty_negation?(tag, n, &1))}
     end
   end
+
+  # Same as tuple_delete but checks if the index is out of range.
+  def tuple_delete_at(:term, _key), do: :badtuple
+
+  def tuple_delete_at(descr, index) when is_integer(index) and index >= 0 do
+    case :maps.take(:dynamic, descr) do
+      :error ->
+        # Note: the empty type is not a valid input
+        is_proper_tuple? = descr_key?(descr, :tuple) and tuple_only?(descr)
+        is_proper_size? = subtype?(Map.take(descr, [:tuple]), tuple_of_size_at_least(index + 1))
+
+        cond do
+          is_proper_tuple? and is_proper_size? -> tuple_delete_static(descr, index)
+          is_proper_tuple? -> :badrange
+          true -> :badtuple
+        end
+
+      {dynamic, static} ->
+        is_proper_tuple? = descr_key?(dynamic, :tuple) and tuple_only?(static)
+        is_proper_size? = subtype?(Map.take(static, [:tuple]), tuple_of_size_at_least(index + 1))
+
+        cond do
+          is_proper_tuple? and is_proper_size? ->
+            static_result = tuple_delete_static(static, index)
+            # Prune for dynamic values make the intersection succeed
+            dynamic_result =
+              intersection(dynamic, tuple_of_size_at_least(index))
+              |> tuple_delete_static(index)
+
+            union(dynamic(dynamic_result), static_result)
+
+          # Highlight the case where the issue is an index out of range from the tuple
+          is_proper_tuple? ->
+            :badrange
+
+          true ->
+            :badtuple
+        end
+    end
+  end
+
+  def tuple_delete_at(_, _), do: :badindex
+
+  def tuple_insert_at(:term, _key, _type), do: :badtuple
+
+  def tuple_insert_at(descr, index, type) when is_integer(index) and index >= 0 do
+    case :maps.take(:dynamic, unfold(type)) do
+      :error -> tuple_insert_static_value(descr, index, type)
+      {dynamic, _static} -> dynamic(tuple_insert_static_value(descr, index, dynamic))
+    end
+  end
+
+  def tuple_insert_at(_, _, _), do: :badindex
+
+  defp tuple_insert_static_value(descr, index, type) do
+    case :maps.take(:dynamic, descr) do
+      :error ->
+        # Note: the empty type is not a valid input
+        is_proper_tuple? = descr_key?(descr, :tuple) and tuple_only?(descr)
+
+        is_proper_size? =
+          index == 0 or subtype?(Map.take(descr, [:tuple]), tuple_of_size_at_least(index))
+
+        cond do
+          is_proper_tuple? and is_proper_size? -> insert_element(descr, index, type)
+          is_proper_tuple? -> :badrange
+          true -> :badtuple
+        end
+
+      {dynamic, static} ->
+        is_proper_tuple? = descr_key?(dynamic, :tuple) and tuple_only?(static)
+
+        is_proper_size? =
+          index == 0 or subtype?(Map.take(static, [:tuple]), tuple_of_size_at_least(index))
+
+        cond do
+          is_proper_tuple? and is_proper_size? ->
+            static_result = insert_element(static, index, type)
+            # Prune for dynamic values that make the intersection succeed
+            dynamic_result =
+              intersection(dynamic, tuple_of_size_at_least(index))
+              |> insert_element(index, type)
+
+            union(dynamic(dynamic_result), static_result)
+
+          # Highlight the case where the issue is an index out of range from the tuple
+          is_proper_tuple? ->
+            :badrange
+
+          true ->
+            :badtuple
+        end
+    end
+  end
+
+  defp insert_element(descr, _, _) when descr == @none, do: none()
+
+  defp insert_element(descr, index, type) do
+    Map.update!(descr, :tuple, fn dnf ->
+      Enum.map(dnf, fn {tag, elements, negs} ->
+        {tag, List.insert_at(elements, index, type),
+         Enum.map(negs, fn {neg_tag, neg_elements} ->
+           {neg_tag, List.insert_at(neg_elements, index, type)}
+         end)}
+      end)
+    end)
+  end
+
+  # Takes a static map type and removes an index from it.
+  defp tuple_delete_static(%{tuple: dnf}, index) do
+    Enum.reduce(dnf, none(), fn
+      # Optimization: if there are no negatives, we can directly remove the element
+      {tag, elements, []}, acc ->
+        union(acc, %{tuple: tuple_new(tag, List.delete_at(elements, index))})
+
+      {tag, elements, negs}, acc ->
+        {fst, snd} = tuple_pop_index(tag, elements, index)
+
+        union(
+          acc,
+          case tuple_split_negative(negs, index) do
+            :empty -> none()
+            negative -> negative |> pair_make_disjoint() |> pair_eliminate_negations_snd(fst, snd)
+          end
+        )
+    end)
+  end
+
+  defp tuple_delete_static(:term, key), do: open_map([{key, not_set()}])
+
+  # If there is no map part to this static type, there is nothing to delete.
+  defp tuple_delete_static(_type, _key), do: none()
 
   # Remove useless negations, which denote tuples of incompatible sizes.
   defp tuple_empty_negation?(tag, n, {neg_tag, neg_elements}) do
