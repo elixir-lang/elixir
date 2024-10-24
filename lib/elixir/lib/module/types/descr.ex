@@ -70,17 +70,12 @@ defmodule Module.Types.Descr do
   def non_empty_list(type, tail \\ @empty_list), do: list_descr(type, tail, false)
   def open_map(), do: %{map: @map_top}
   def open_map(pairs), do: map_descr(:open, pairs)
+  def open_tuple(elements), do: tuple_descr(:open, elements)
   def pid(), do: %{bitmap: @bit_pid}
   def port(), do: %{bitmap: @bit_port}
   def reference(), do: %{bitmap: @bit_reference}
   def tuple(), do: %{tuple: @tuple_top}
-  def open_tuple(elements), do: tuple_descr(:open, elements)
   def tuple(elements), do: tuple_descr(:closed, elements)
-
-  # Tuple helper
-  defp tuple_of_size_at_least(n) when is_integer(n) and n >= 0 do
-    open_tuple(List.duplicate(term(), n))
-  end
 
   @boolset :sets.from_list([true, false], version: 2)
   def boolean(), do: %{atom: {:union, @boolset}}
@@ -1166,19 +1161,23 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp map_put_static_descr(static, _, _) when static == @none, do: @none
-
   # Directly inserts a key of a given type into every positive and negative map
   defp map_put_static_descr(descr, key, type) do
-    map_delete_static(descr, key)
-    |> Map.update!(:map, fn dnf ->
-      Enum.map(dnf, fn {tag, fields, negs} ->
-        {tag, Map.put(fields, key, type),
-         Enum.map(negs, fn {neg_tag, neg_fields} ->
-           {neg_tag, Map.put(neg_fields, key, type)}
-         end)}
-      end)
-    end)
+    case map_delete_static(descr, key) do
+      %{map: dnf} = descr ->
+        dnf =
+          Enum.map(dnf, fn {tag, fields, negs} ->
+            {tag, Map.put(fields, key, type),
+             Enum.map(negs, fn {neg_tag, neg_fields} ->
+               {neg_tag, Map.put(neg_fields, key, type)}
+             end)}
+          end)
+
+        %{descr | map: dnf}
+
+      %{} ->
+        descr
+    end
   end
 
   defp pop_optional_static(type) do
@@ -1883,6 +1882,11 @@ defmodule Module.Types.Descr do
     end
   end
 
+  @doc """
+  Delete an element from the tuple.
+
+  It returns the same as `tuple_fetch/2`.
+  """
   # Same as tuple_delete but checks if the index is out of range.
   def tuple_delete_at(:term, _key), do: :badtuple
 
@@ -1891,21 +1895,22 @@ defmodule Module.Types.Descr do
       :error ->
         # Note: the empty type is not a valid input
         is_proper_tuple? = descr_key?(descr, :tuple) and tuple_only?(descr)
-        is_proper_size? = subtype?(Map.take(descr, [:tuple]), tuple_of_size_at_least(index + 1))
+        is_proper_size? = tuple_of_size_at_least?(descr, index + 1)
 
         cond do
           is_proper_tuple? and is_proper_size? -> tuple_delete_static(descr, index)
-          is_proper_tuple? -> :badrange
+          is_proper_tuple? -> :badindex
           true -> :badtuple
         end
 
       {dynamic, static} ->
         is_proper_tuple? = descr_key?(dynamic, :tuple) and tuple_only?(static)
-        is_proper_size? = subtype?(Map.take(static, [:tuple]), tuple_of_size_at_least(index + 1))
+        is_proper_size? = tuple_of_size_at_least?(static, index + 1)
 
         cond do
           is_proper_tuple? and is_proper_size? ->
             static_result = tuple_delete_static(static, index)
+
             # Prune for dynamic values make the intersection succeed
             dynamic_result =
               intersection(dynamic, tuple_of_size_at_least(index))
@@ -1915,7 +1920,7 @@ defmodule Module.Types.Descr do
 
           # Highlight the case where the issue is an index out of range from the tuple
           is_proper_tuple? ->
-            :badrange
+            :badindex
 
           true ->
             :badtuple
@@ -1925,45 +1930,47 @@ defmodule Module.Types.Descr do
 
   def tuple_delete_at(_, _), do: :badindex
 
+  @doc """
+  Insert an element at the tuple.
+
+  It returns the same as `tuple_fetch/2` but with `:badrange` instead of `:badindex`.
+  """
   def tuple_insert_at(:term, _key, _type), do: :badtuple
 
   def tuple_insert_at(descr, index, type) when is_integer(index) and index >= 0 do
     case :maps.take(:dynamic, unfold(type)) do
-      :error -> tuple_insert_static_value(descr, index, type)
-      {dynamic, _static} -> dynamic(tuple_insert_static_value(descr, index, dynamic))
+      :error -> tuple_insert_at_checked(descr, index, type)
+      {dynamic, _static} -> dynamic(tuple_insert_at_checked(descr, index, dynamic))
     end
   end
 
-  def tuple_insert_at(_, _, _), do: :badindex
+  def tuple_insert_at(_, _, _), do: :badrange
 
-  defp tuple_insert_static_value(descr, index, type) do
+  defp tuple_insert_at_checked(descr, index, type) do
     case :maps.take(:dynamic, descr) do
       :error ->
         # Note: the empty type is not a valid input
         is_proper_tuple? = descr_key?(descr, :tuple) and tuple_only?(descr)
-
-        is_proper_size? =
-          index == 0 or subtype?(Map.take(descr, [:tuple]), tuple_of_size_at_least(index))
+        is_proper_size? = index == 0 or tuple_of_size_at_least?(descr, index)
 
         cond do
-          is_proper_tuple? and is_proper_size? -> insert_element(descr, index, type)
+          is_proper_tuple? and is_proper_size? -> tuple_insert_static(descr, index, type)
           is_proper_tuple? -> :badrange
           true -> :badtuple
         end
 
       {dynamic, static} ->
         is_proper_tuple? = descr_key?(dynamic, :tuple) and tuple_only?(static)
-
-        is_proper_size? =
-          index == 0 or subtype?(Map.take(static, [:tuple]), tuple_of_size_at_least(index))
+        is_proper_size? = index == 0 or tuple_of_size_at_least?(static, index)
 
         cond do
           is_proper_tuple? and is_proper_size? ->
-            static_result = insert_element(static, index, type)
+            static_result = tuple_insert_static(static, index, type)
+
             # Prune for dynamic values that make the intersection succeed
             dynamic_result =
               intersection(dynamic, tuple_of_size_at_least(index))
-              |> insert_element(index, type)
+              |> tuple_insert_static(index, type)
 
             union(dynamic(dynamic_result), static_result)
 
@@ -1977,9 +1984,9 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp insert_element(descr, _, _) when descr == @none, do: none()
+  defp tuple_insert_static(descr, _, _) when descr == @none, do: none()
 
-  defp insert_element(descr, index, type) do
+  defp tuple_insert_static(descr, index, type) do
     Map.update!(descr, :tuple, fn dnf ->
       Enum.map(dnf, fn {tag, elements, negs} ->
         {tag, List.insert_at(elements, index, type),
@@ -2019,6 +2026,14 @@ defmodule Module.Types.Descr do
   defp tuple_empty_negation?(tag, n, {neg_tag, neg_elements}) do
     m = length(neg_elements)
     (tag == :closed and n < m) or (neg_tag == :closed and n > m)
+  end
+
+  defp tuple_of_size_at_least(n) when is_integer(n) and n >= 0 do
+    open_tuple(List.duplicate(term(), n))
+  end
+
+  defp tuple_of_size_at_least?(descr, index) do
+    subtype?(Map.take(descr, [:tuple]), tuple_of_size_at_least(index))
   end
 
   ## Pairs

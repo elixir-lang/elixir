@@ -692,9 +692,9 @@ defmodule Module.Types.DescrTest do
     end
 
     test "tuple_delete_at" do
-      assert tuple_delete_at(tuple([integer(), atom()]), 3) == :badrange
+      assert tuple_delete_at(tuple([integer(), atom()]), 3) == :badindex
       assert tuple_delete_at(tuple([integer(), atom()]), -1) == :badindex
-      assert tuple_delete_at(empty_tuple(), 0) == :badrange
+      assert tuple_delete_at(empty_tuple(), 0) == :badindex
       assert tuple_delete_at(integer(), 0) == :badtuple
       assert tuple_delete_at(term(), 0) == :badtuple
 
@@ -743,7 +743,7 @@ defmodule Module.Types.DescrTest do
 
     test "tuple_insert_at" do
       assert tuple_insert_at(tuple([integer(), atom()]), 3, boolean()) == :badrange
-      assert tuple_insert_at(tuple([integer(), atom()]), -1, boolean()) == :badindex
+      assert tuple_insert_at(tuple([integer(), atom()]), -1, boolean()) == :badrange
       assert tuple_insert_at(integer(), 0, boolean()) == :badtuple
       assert tuple_insert_at(term(), 0, boolean()) == :badtuple
 
