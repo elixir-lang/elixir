@@ -511,6 +511,7 @@ defmodule Module.Types.ExprTest do
     test "works across numbers" do
       assert typecheck!([x = 123, y = 456.0], min(x, y)) == dynamic(union(integer(), float()))
       assert typecheck!([x = 123, y = 456.0], x < y) == boolean()
+      assert typecheck!([x = 123, y = 456.0], x == y) == boolean()
     end
 
     test "warns when comparison is constant" do
@@ -532,6 +533,29 @@ defmodule Module.Types.ExprTest do
                     # type: integer()
                     # from: types_test.ex:LINE-2
                     y = 321
+
+                While Elixir can compare across all types, you are comparing across types \
+                which are always distinct, and the result is either always true or always false
+                """}
+
+      assert typewarn!([x = 123, y = 456.0], x === y) ==
+               {boolean(),
+                ~l"""
+                comparison between incompatible types found:
+
+                    x === y
+
+                where "x" was given the type:
+
+                    # type: integer()
+                    # from: types_test.ex:LINE-2
+                    x = 123
+
+                where "y" was given the type:
+
+                    # type: float()
+                    # from: types_test.ex:LINE-2
+                    y = 456.0
 
                 While Elixir can compare across all types, you are comparing across types \
                 which are always distinct, and the result is either always true or always false

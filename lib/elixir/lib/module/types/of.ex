@@ -364,6 +364,21 @@ defmodule Module.Types.Of do
     end
   end
 
+  def apply(:erlang, name, [left, right], expr, stack, context)
+      when name in [:==, :"/=", :"=:=", :"=/="] do
+    cond do
+      name in [:==, :"/="] and number_type?(left) and number_type?(right) ->
+        {boolean(), context}
+
+      disjoint?(left, right) ->
+        warning = {:mismatched_comparison, expr, context}
+        {boolean(), warn(__MODULE__, warning, elem(expr, 1), stack, context)}
+
+      true ->
+        {boolean(), context}
+    end
+  end
+
   def apply(mod, name, args, expr, stack, context) do
     case :elixir_rewrite.inline(mod, name, length(args)) do
       {mod, name} -> apply(mod, name, args, expr, stack, context)
