@@ -375,13 +375,38 @@ defmodule Mix do
 
       $ MIX_DEBUG=1 mix compile
 
-  In addition, Mix also uses the following environment variables defined by other libraries
+  ## SSL certificates
 
-    * `HEX_CACERTS_PATH` - use specified CA certificate file instead of default
-      system CA certificates. This configures how HTTPS calls are made via
-      [Erlang `ssl` module](https://www.erlang.org/doc/apps/ssl/ssl.html#t:client_option_cert/0)
-      to fetch remote archives and packages. For more details, see
-      [`mix hex.config`](https://hexdocs.pm/hex/Mix.Tasks.Hex.Config.html#module-config-keys).
+  Mix and the Hex package manager use the default operating system certificates
+  when downloading resources. In certain situations, such as when running behind
+  proxies, you want to replace those certificates.
+
+  If you simply want to change the certificates used by Mix and Hex, you may set
+  the `HEX_CACERTS_PATH` environment variable, pointing to a CA certificate file.
+  See [`mix hex.config`](https://hexdocs.pm/hex/Mix.Tasks.Hex.Config.html#module-config-keys).
+
+  From Erlang/OTP 27.2, it is also possible to change the certificates for your
+  project as a whole. To do so, you might add the following to your `config/config.exs`:
+
+      config :public_key, :cacerts_path, "/path/to/certs.pem"
+
+  You can also do so by setting the `ERL_AFLAGS` and `ERL_ZFLAGS` environment variables:
+
+  ```bash
+  ERL_AFLAGS="-public_key cacerts_path '\"/path/to/certs.pem\"'"
+  ERL_ZFLAGS="-public_key cacerts_path '\"/path/to/certs.pem\"'"
+  ```
+
+  You can verify if the configuration has been properly set by calling the following
+  inside `iex -S mix`:
+
+      Application.load(:public_key)
+      Application.get_env(:public_key, :cacerts_path)
+
+  And by loading the certificates:
+
+      :public_key.cacerts_get()
+
   """
 
   @mix_install_project __MODULE__.InstallProject
