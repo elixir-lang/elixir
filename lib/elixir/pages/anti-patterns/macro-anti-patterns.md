@@ -178,6 +178,115 @@ iex> MyMath.sum(3+1, 5+6)
 15
 ```
 
+## Transitive dependencies
+
+#### Context
+
+This anti-pattern is related to dependencies between files in Elixir. Elixir tracks
+three different types of dependencies between compiled files to know when a file needs
+to be recompiled. The different dependency types are explained in the documentation of
+[`mix xref`](https://hexdocs.pm/mix/Mix.Tasks.Xref.html#module-dependency-types).
+
+#### Problem
+
+Macro-exposing modules are bound to be compile-time dependencies of the modules using
+their macros. If they depend on other modules from within the same project, then they
+become the source of compile-connected dependencies. This means that if the file
+containing the module they depend on is modified, all files depending on this module will
+need to be recompiled.
+
+This becomes especially problematic when projects grow and the number of compile-connected
+dependencies is not kept under control, making modifying any file trigger a recompilation
+of many other files and slowing down the development process.
+
+Note that depending on modules from external libraries is not a problem, as these modules
+are only compiled once when the library is compiled.
+
+#### Example
+
+The code below defines three modules `ModuleA`, `Macros` and `MacroUtils`, each in their
+own file. The dependencies between the three files are as follows:
+
+- `lib/module_a.ex` has a _compile_ dependency on `lib/macros.ex` because `ModuleA`
+  calls a macro defined in `Macros`,
+- `lib/macros.ex` has a _runtime_ dependency on `lib/macro_utils.ex` because `Macros`
+  calls a function defined in `MacroUtils` within the body of its macro.
+
+In this example, `lib/macro_utils.ex` is a compile dependency of `lib/module_a.ex`,
+through a transitive dependency via `lib/macros.ex`. This means that modifying
+`lib/macro_utils.ex` will trigger a recompilation of `lib/module_a.ex`, as if
+`lib/module_a.ex` had a direct compile dependency on `lib/macro_utils.ex`.
+
+Note that if `MacroUtils` itself depended on other modules directly or indirectly,
+modifying the files containing these modules would also trigger a recompilation of
+`lib/module_a.ex`.
+
+```elixir
+# lib/module_a.ex
+defmodule ModuleA do
+  require Macros
+
+  def hello do
+    Macros.greet()
+  end
+end
+```
+
+```elixir
+# lib/macros.ex
+defmodule Macros do
+  defmacro greet do
+    module = MacroUtils.get_module(__CALLER__)
+
+    quote do
+      IO.puts("Hello from #{unquote(module)}")
+    end
+  end
+end
+```
+
+```elixir
+# lib/macro_utils.ex
+defmodule MacroUtils do
+  def get_module(caller) do
+    caller.module
+  end
+end
+```
+
+#### Refactoring
+
+To remove this pattern, the developer must remove any dependency to other modules from
+the same project. In the code shown below, the `MacroUtils` module was deleted and the
+`get_module/1` function was moved to the `Macros` module. This way, the `Macros` module
+no longer depends on any other module.
+
+```elixir
+# lib/macros.ex
+defmodule Macros do
+  defmacro greet do
+    module = get_module(__CALLER__)
+
+    quote do
+      IO.puts("Hello from #{unquote(module)}")
+    end
+  end
+
+  defp get_module(caller) do
+    caller.module
+  end
+end
+```
+
+#### Additional remarks
+
+Whilst this guide only covers macros, modules can be compile dependencies of other modules
+in other ways. For example, calling another module in the module, in a module attribute
+for example, will also create a compile dependency. Some external libraries may also
+create compile dependencies by using macros.
+[`mix xref`](https://hexdocs.pm/mix/main/Mix.Tasks.Xref.html#module-a-brief-introduction-to-xref)
+can be useful to identify these dependencies and refactor the code to remove them.
+
 ## `use` instead of `import`
 
 #### Problem
