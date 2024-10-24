@@ -364,6 +364,13 @@ defmodule Module.Types.ExprTest do
                     {:ok, integer()}
                 """}
     end
+
+    test "duplicate/2" do
+      assert typecheck!(Tuple.duplicate(123, 0)) == tuple([])
+      assert typecheck!(Tuple.duplicate(123, 1)) == tuple([integer()])
+      assert typecheck!(Tuple.duplicate(123, 2)) == tuple([integer(), integer()])
+      assert typecheck!([x], Tuple.duplicate(x, 2)) == dynamic(tuple([term(), term()]))
+    end
   end
 
   describe "maps/structs" do

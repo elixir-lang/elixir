@@ -326,14 +326,7 @@ defmodule Module.Types.Of do
     end
   end
 
-  def apply(
-        :erlang,
-        :delete_element,
-        [_, tuple],
-        {_, meta, [index, _]} = expr,
-        stack,
-        context
-      )
+  def apply(:erlang, :delete_element, [_, tuple], {_, meta, [index, _]} = expr, stack, context)
       when is_integer(index) do
     case tuple_delete_at(tuple, index - 1) do
       value_type when is_descr(value_type) ->
@@ -342,6 +335,11 @@ defmodule Module.Types.Of do
       reason ->
         {error_type(), error({reason, expr, tuple, index - 1, context}, meta, stack, context)}
     end
+  end
+
+  def apply(:erlang, :make_tuple, [_, elem], {_, _meta, [size, _]}, _stack, context)
+      when is_integer(size) and size >= 0 do
+    {tuple(List.duplicate(elem, size)), context}
   end
 
   def apply(:erlang, name, [left, right], expr, stack, context)
