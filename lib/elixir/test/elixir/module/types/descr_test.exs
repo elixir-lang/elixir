@@ -641,13 +641,21 @@ defmodule Module.Types.DescrTest do
     test "tuple_fetch" do
       assert tuple_fetch(term(), 0) == :badtuple
       assert tuple_fetch(integer(), 0) == :badtuple
+
       assert tuple_fetch(tuple([integer(), atom()]), 0) == {false, integer()}
       assert tuple_fetch(tuple([integer(), atom()]), 1) == {false, atom()}
       assert tuple_fetch(tuple([integer(), atom()]), 2) == :badindex
+
+      assert tuple_fetch(open_tuple([integer(), atom()]), 0) == {false, integer()}
+      assert tuple_fetch(open_tuple([integer(), atom()]), 1) == {false, atom()}
+      assert tuple_fetch(open_tuple([integer(), atom()]), 2) == :badindex
+
       assert tuple_fetch(tuple([integer(), atom()]), -1) == :badindex
       assert tuple_fetch(empty_tuple(), 0) == :badindex
       assert difference(tuple(), tuple()) |> tuple_fetch(0) == :badindex
-      assert tuple([atom()]) |> difference(empty_tuple()) |> tuple_fetch(0) == {false, atom()}
+
+      assert tuple([atom()]) |> difference(empty_tuple()) |> tuple_fetch(0) ==
+               {false, atom()}
 
       assert difference(tuple([union(integer(), atom())]), open_tuple([atom()]))
              |> tuple_fetch(0) == {false, integer()}
@@ -742,14 +750,14 @@ defmodule Module.Types.DescrTest do
     end
 
     test "tuple_insert_at" do
-      assert tuple_insert_at(tuple([integer(), atom()]), 3, boolean()) == :badrange
-      assert tuple_insert_at(tuple([integer(), atom()]), -1, boolean()) == :badrange
+      assert tuple_insert_at(tuple([integer(), atom()]), 3, boolean()) == :badindex
+      assert tuple_insert_at(tuple([integer(), atom()]), -1, boolean()) == :badindex
       assert tuple_insert_at(integer(), 0, boolean()) == :badtuple
       assert tuple_insert_at(term(), 0, boolean()) == :badtuple
 
       # Out-of-bounds in a union
       assert union(tuple([integer(), atom()]), tuple([float()]))
-             |> tuple_insert_at(2, boolean()) == :badrange
+             |> tuple_insert_at(2, boolean()) == :badindex
 
       # Test inserting into a closed tuple
       assert tuple_insert_at(tuple([integer(), atom()]), 1, boolean()) ==

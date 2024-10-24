@@ -1933,7 +1933,7 @@ defmodule Module.Types.Descr do
   @doc """
   Insert an element at the tuple.
 
-  It returns the same as `tuple_fetch/2` but with `:badrange` instead of `:badindex`.
+  It returns the same as `tuple_fetch/2`. Notice, however, the range for indexes is inclusive.
   """
   def tuple_insert_at(:term, _key, _type), do: :badtuple
 
@@ -1944,7 +1944,7 @@ defmodule Module.Types.Descr do
     end
   end
 
-  def tuple_insert_at(_, _, _), do: :badrange
+  def tuple_insert_at(_, _, _), do: :badindex
 
   defp tuple_insert_at_checked(descr, index, type) do
     case :maps.take(:dynamic, descr) do
@@ -1955,7 +1955,7 @@ defmodule Module.Types.Descr do
 
         cond do
           is_proper_tuple? and is_proper_size? -> tuple_insert_static(descr, index, type)
-          is_proper_tuple? -> :badrange
+          is_proper_tuple? -> :badindex
           true -> :badtuple
         end
 
@@ -1976,7 +1976,7 @@ defmodule Module.Types.Descr do
 
           # Highlight the case where the issue is an index out of range from the tuple
           is_proper_tuple? ->
-            :badrange
+            :badindex
 
           true ->
             :badtuple

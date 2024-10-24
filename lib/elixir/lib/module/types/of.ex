@@ -296,17 +296,33 @@ defmodule Module.Types.Of do
   ## Apply
 
   # TODO: Implement element without a literal index
-  # TODO: Add a test for an open tuple (inferred from a guard)
-  # TODO: Implement set_element
 
-  def apply(:erlang, :element, [_, type], {_, meta, [index, _]} = expr, stack, context)
+  def apply(:erlang, :element, [_, tuple], {_, meta, [index, _]} = expr, stack, context)
       when is_integer(index) do
-    case tuple_fetch(type, index - 1) do
+    case tuple_fetch(tuple, index - 1) do
       {_optional?, value_type} ->
         {value_type, context}
 
       reason ->
-        {error_type(), error({reason, expr, type, index - 1, context}, meta, stack, context)}
+        {error_type(), error({reason, expr, tuple, index - 1, context}, meta, stack, context)}
+    end
+  end
+
+  def apply(
+        :erlang,
+        :insert_element,
+        [_, tuple, value],
+        {_, meta, [index, _, _]} = expr,
+        stack,
+        context
+      )
+      when is_integer(index) do
+    case tuple_insert_at(tuple, index - 1, value) do
+      value_type when is_descr(value_type) ->
+        {value_type, context}
+
+      reason ->
+        {error_type(), error({reason, expr, tuple, index - 2, context}, meta, stack, context)}
     end
   end
 
@@ -571,7 +587,7 @@ defmodule Module.Types.Of do
     }
   end
 
-  def format_diagnostic({:badtuple, expr, type, index, context}) do
+  def format_diagnostic({:badtuple, expr, type, _index, context}) do
     traces = collect_traces(expr, context)
 
     %{
@@ -579,7 +595,7 @@ defmodule Module.Types.Of do
       message:
         IO.iodata_to_binary([
           """
-          expected a tuple when accessing element at index #{index} in expression:
+          expected a tuple in expression:
 
               #{expr_to_string(expr) |> indent(4)}
 
@@ -600,7 +616,7 @@ defmodule Module.Types.Of do
       message:
         IO.iodata_to_binary([
           """
-          out of range tuple access at index #{index} in expression:
+          expected a tuple with at least #{pluralize(index + 1, "element", "elements")} in expression:
 
               #{expr_to_string(expr) |> indent(4)}
 
@@ -748,6 +764,9 @@ defmodule Module.Types.Of do
       group: true
     }
   end
+
+  defp pluralize(1, singular, _), do: "1 #{singular}"
+  defp pluralize(i, _, plural), do: "#{i} #{plural}"
 
   defp dot_var?(expr) do
     match?({{:., _, [var, _fun]}, _, _args} when is_var(var), expr)

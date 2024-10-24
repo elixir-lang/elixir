@@ -248,18 +248,16 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([x], {:ok, x}) == dynamic(tuple([atom([:ok]), term()]))
     end
 
-    test "accessing tuples" do
+    test "elem/2" do
       assert typecheck!(elem({:ok, 123}, 0)) == atom([:ok])
       assert typecheck!(elem({:ok, 123}, 1)) == integer()
       assert typecheck!([x], elem({:ok, x}, 0)) == dynamic(atom([:ok]))
       assert typecheck!([x], elem({:ok, x}, 1)) == dynamic(term())
-    end
 
-    test "accessing an index on not a map" do
       assert typewarn!([<<x::integer>>], elem(x, 0)) ==
                {dynamic(),
                 ~l"""
-                expected a tuple when accessing element at index 0 in expression:
+                expected a tuple in expression:
 
                     elem(x, 0)
 
@@ -273,15 +271,56 @@ defmodule Module.Types.ExprTest do
                     # from: types_test.ex:LINE-2
                     <<x::integer>>
                 """}
-    end
 
-    test "accessing an out of range index" do
       assert typewarn!(elem({:ok, 123}, 2)) ==
                {dynamic(),
                 ~l"""
-                out of range tuple access at index 2 in expression:
+                expected a tuple with at least 3 elements in expression:
 
                     elem({:ok, 123}, 2)
+
+                the given type does not have the given index:
+
+                    {:ok, integer()}
+                """}
+    end
+
+    test "Tuple.insert_at/3" do
+      assert typecheck!(Tuple.insert_at({}, 0, "foo")) == tuple([binary()])
+
+      assert typecheck!(Tuple.insert_at({:ok, 123}, 0, "foo")) ==
+               tuple([binary(), atom([:ok]), integer()])
+
+      assert typecheck!(Tuple.insert_at({:ok, 123}, 1, "foo")) ==
+               tuple([atom([:ok]), binary(), integer()])
+
+      assert typecheck!(Tuple.insert_at({:ok, 123}, 2, "foo")) ==
+               tuple([atom([:ok]), integer(), binary()])
+
+      assert typewarn!([<<x::integer>>], Tuple.insert_at(x, 0, "foo")) ==
+               {dynamic(),
+                ~l"""
+                expected a tuple in expression:
+
+                    Tuple.insert_at(x, 0, "foo")
+
+                but got type:
+
+                    integer()
+
+                where "x" was given the type:
+
+                    # type: integer()
+                    # from: types_test.ex:LINE-2
+                    <<x::integer>>
+                """}
+
+      assert typewarn!(Tuple.insert_at({:ok, 123}, 3, "foo")) ==
+               {dynamic(),
+                ~l"""
+                expected a tuple with at least 3 elements in expression:
+
+                    Tuple.insert_at({:ok, 123}, 3, "foo")
 
                 the given type does not have the given index:
 
