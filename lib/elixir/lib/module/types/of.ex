@@ -326,6 +326,24 @@ defmodule Module.Types.Of do
     end
   end
 
+  def apply(
+        :erlang,
+        :delete_element,
+        [_, tuple],
+        {_, meta, [index, _]} = expr,
+        stack,
+        context
+      )
+      when is_integer(index) do
+    case tuple_delete_at(tuple, index - 1) do
+      value_type when is_descr(value_type) ->
+        {value_type, context}
+
+      reason ->
+        {error_type(), error({reason, expr, tuple, index - 1, context}, meta, stack, context)}
+    end
+  end
+
   def apply(:erlang, name, [left, right], expr, stack, context)
       when name in [:>=, :"=<", :>, :<, :min, :max] do
     result = if name in [:min, :max], do: union(left, right), else: boolean()

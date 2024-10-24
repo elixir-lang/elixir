@@ -327,6 +327,43 @@ defmodule Module.Types.ExprTest do
                     {:ok, integer()}
                 """}
     end
+
+    test "Tuple.delete_at/2" do
+      assert typecheck!(Tuple.delete_at({:ok, 123}, 0)) == tuple([integer()])
+      assert typecheck!(Tuple.delete_at({:ok, 123}, 1)) == tuple([atom([:ok])])
+      assert typecheck!([x], Tuple.delete_at({:ok, x}, 0)) == dynamic(tuple([term()]))
+      assert typecheck!([x], Tuple.delete_at({:ok, x}, 1)) == dynamic(tuple([atom([:ok])]))
+
+      assert typewarn!([<<x::integer>>], Tuple.delete_at(x, 0)) ==
+               {dynamic(),
+                ~l"""
+                expected a tuple in expression:
+
+                    Tuple.delete_at(x, 0)
+
+                but got type:
+
+                    integer()
+
+                where "x" was given the type:
+
+                    # type: integer()
+                    # from: types_test.ex:LINE-2
+                    <<x::integer>>
+                """}
+
+      assert typewarn!(Tuple.delete_at({:ok, 123}, 2)) ==
+               {dynamic(),
+                ~l"""
+                expected a tuple with at least 3 elements in expression:
+
+                    Tuple.delete_at({:ok, 123}, 2)
+
+                the given type does not have the given index:
+
+                    {:ok, integer()}
+                """}
+    end
   end
 
   describe "maps/structs" do
