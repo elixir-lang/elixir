@@ -290,7 +290,7 @@ defmodule Kernel.Typespec do
     :lists.filter(fun, types)
   end
 
-  defp translate_type({kind, {:"::", _, [{name, _, args}, definition]}, pos}, state) do
+  defp translate_type({kind, {:"::", _, [{name, meta, args}, definition]}, pos}, state) do
     caller = :elixir_locals.get_cached_env(pos)
     state = clean_local_state(state)
 
@@ -335,7 +335,7 @@ defmodule Kernel.Typespec do
       IO.warn(message, caller)
     end
 
-    {{kind, {name, arity}, caller.line, type, export}, state}
+    {{kind, {name, arity}, meta, type, export}, state}
   end
 
   defp valid_variable_ast?({variable_name, _, context})
@@ -357,7 +357,7 @@ defmodule Kernel.Typespec do
     translate_spec(kind, spec, [], caller, state)
   end
 
-  defp translate_spec(kind, {:"::", meta, [{name, _, args}, return]}, guard, caller, state)
+  defp translate_spec(kind, {:"::", _, [{name, meta, args}, return]}, guard, caller, state)
        when is_atom(name) and name != :"::" do
     translate_spec(kind, meta, name, args, return, guard, caller, state)
   end
@@ -401,7 +401,7 @@ defmodule Kernel.Typespec do
     ensure_no_unused_local_vars!(caller, state.local_vars)
 
     arity = length(args)
-    {{kind, {name, arity}, caller.line, spec}, state}
+    {{kind, {name, arity}, meta, spec}, state}
   end
 
   # TODO: Remove char_list type by v2.0

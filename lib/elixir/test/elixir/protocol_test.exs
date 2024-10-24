@@ -172,10 +172,10 @@ defmodule ProtocolTest do
   end
 
   test "protocol defines callbacks" do
-    assert [{:type, {13, 19}, :fun, args}] = get_callbacks(@sample_binary, :ok, 1)
+    assert [{:type, {13, 13}, :fun, args}] = get_callbacks(@sample_binary, :ok, 1)
 
     assert args == [
-             {:type, {13, 19}, :product, [{:user_type, {13, 16}, :t, []}]},
+             {:type, {13, 13}, :product, [{:user_type, {13, 16}, :t, []}]},
              {:type, {13, 22}, :boolean, []}
            ]
 
