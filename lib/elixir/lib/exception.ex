@@ -1614,7 +1614,7 @@ defmodule UndefinedFunctionError do
   defp message(:"module could not be loaded", module, function, arity) do
     formatted_fun = Exception.format_mfa(module, function, arity)
 
-    {"function #{formatted_fun} is undefined (module #{inspect(module)} is not available)",
+    {"function #{formatted_fun} is undefined (module #{inspect(module)} is not available). Did you forget to alias a module?",
      :suggest_module}
   end
 
