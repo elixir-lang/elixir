@@ -10,7 +10,9 @@ defmodule Mix.Tasks.Compile.Elixir do
   Elixir is smart enough to recompile only files that have changed
   and their dependencies. This means if `lib/a.ex` is invoking
   a function defined over `lib/b.ex` at compile time, whenever
-  `lib/b.ex` changes, `lib/a.ex` is also recompiled.
+  `lib/b.ex` changes, `lib/a.ex` is also recompiled. More details
+  about dependencies between files can be found in the documentation
+  of [`mix xref`](`Mix.Tasks.Xref`).
 
   Note Elixir considers a file as changed if its source file has
   changed on disk since the last compilation AND its contents are
