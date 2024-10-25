@@ -431,7 +431,6 @@ defmodule Module.Types.Of do
     if Keyword.get(meta, :runtime_module, false) do
       context
     else
-      ParallelChecker.preload_module(stack.cache, module)
       check_export(module, fun, arity, meta, stack, context)
     end
   end

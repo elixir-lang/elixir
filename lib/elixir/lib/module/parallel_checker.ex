@@ -186,26 +186,18 @@ defmodule Module.ParallelChecker do
   end
 
   @doc """
-  Preloads a module into the cache. Call this function before any other
-  cache lookups for the module.
-  """
-  @spec preload_module(cache(), module()) :: :ok
-  def preload_module({server, ets}, module) do
-    case :ets.lookup(ets, {:cached, module}) do
-      [{_key, _}] -> :ok
-      [] -> cache_module({server, ets}, module)
-    end
-  end
-
-  @doc """
   Returns the export kind and deprecation reason for the given MFA from
   the cache. If the module does not exist return `{:error, :module}`,
   or if the function does not exist return `{:error, :function}`.
   """
   @spec fetch_export(cache(), module(), atom(), arity()) ::
           {:ok, mode(), kind(), binary() | nil} | {:error, :function | :module}
-  def fetch_export({_server, ets}, module, fun, arity) do
+  def fetch_export({server, ets}, module, fun, arity) do
     case :ets.lookup(ets, {:cached, module}) do
+      [] ->
+        cache_module({server, ets}, module)
+        fetch_export({server, ets}, module, fun, arity)
+
       [{_key, false}] ->
         {:error, :module}
 
