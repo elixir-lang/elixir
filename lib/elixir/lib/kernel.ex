@@ -5565,27 +5565,8 @@ defmodule Kernel do
       # it is the bootstrapped version or not.
       Elixir.Kernel.@(impl(true))
 
-      # TODO: Change the implementation on v2.0 to simply call Kernel.struct!/2
       def exception(args) when Kernel.is_list(args) do
-        struct = __struct__()
-        {valid, invalid} = Enum.split_with(args, fn {k, _} -> Map.has_key?(struct, k) end)
-
-        case invalid do
-          [] ->
-            :ok
-
-          _ ->
-            IO.warn(
-              "the following fields are unknown when raising " <>
-                "#{Kernel.inspect(__MODULE__)}: #{Kernel.inspect(invalid)}. " <>
-                "Please make sure to only give known fields when raising " <>
-                "or redefine #{Kernel.inspect(__MODULE__)}.exception/1 to " <>
-                "discard unknown fields. Future Elixir versions will raise on " <>
-                "unknown fields given to raise/2"
-            )
-        end
-
-        Kernel.struct!(struct, valid)
+        struct!(__MODULE__, args)
       end
 
       defoverridable exception: 1

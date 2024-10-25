@@ -702,15 +702,13 @@ defmodule ExUnit.Diff do
   # Structs
 
   defp diff_quoted_struct(kw, right, env) do
-    struct1 = kw[:__struct__]
-    left = load_struct(kw[:__struct__])
-
-    if left && Enum.all?(kw, fn {k, _} -> Map.has_key?(left, k) end) do
+    if struct = struct_module(kw) do
       with true <- Macro.quoted_literal?(kw),
-           {eval_kw, []} <- safe_eval(kw) do
-        diff_quoted_struct(struct!(left, eval_kw), kw, right, struct1, env)
+           {eval_kw, []} <- safe_eval(kw),
+           {:ok, data} <- load_struct(struct, eval_kw) do
+        diff_quoted_struct(data, kw, right, struct, env)
       else
-        _ -> diff_map(kw, right, struct1, maybe_struct(right), env)
+        _ -> diff_map(kw, right, struct, maybe_struct(right), env)
       end
     else
       diff_map(kw, right, nil, maybe_struct(right), env)
@@ -746,11 +744,23 @@ defmodule ExUnit.Diff do
     end
   end
 
-  defp load_struct(struct) do
-    if is_atom(struct) and struct != nil and
-         Code.ensure_loaded?(struct) and function_exported?(struct, :__struct__, 0) do
-      struct.__struct__()
+  defp struct_module(kw) do
+    {struct, struct_kw} = Keyword.pop(kw, :__struct__)
+
+    info =
+      is_atom(struct) and struct != nil and
+        Code.ensure_loaded?(struct) and function_exported?(struct, :__info__, 1) and
+        struct.__info__(:struct)
+
+    if info && Enum.all?(struct_kw, fn {k, _} -> Enum.any?(info, &(&1.field == k)) end) do
+      struct
     end
+  end
+
+  defp load_struct(struct, kw) do
+    {:ok, struct!(struct, kw)}
+  rescue
+    _ -> :error
   end
 
   defp maybe_struct(%name{}), do: name
