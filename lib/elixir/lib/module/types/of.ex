@@ -646,7 +646,7 @@ defmodule Module.Types.Of do
       message:
         IO.iodata_to_binary([
           """
-          expected a non-empty list in expression:
+          expected a non-empty list in #{format_mfa(expr)}:
 
               #{expr_to_string(expr) |> indent(4)}
 
@@ -667,7 +667,7 @@ defmodule Module.Types.Of do
       message:
         IO.iodata_to_binary([
           """
-          expected a tuple in expression:
+          expected a tuple in #{format_mfa(expr)}:
 
               #{expr_to_string(expr) |> indent(4)}
 
@@ -688,7 +688,7 @@ defmodule Module.Types.Of do
       message:
         IO.iodata_to_binary([
           """
-          expected a tuple with at least #{pluralize(index + 1, "element", "elements")} in expression:
+          expected a tuple with at least #{pluralize(index + 1, "element", "elements")} in #{format_mfa(expr)}:
 
               #{expr_to_string(expr) |> indent(4)}
 
@@ -846,5 +846,10 @@ defmodule Module.Types.Of do
 
   defp empty_if(condition, content) do
     if condition, do: "", else: content
+  end
+
+  defp format_mfa({{:., _, [mod, fun]}, _, args}) do
+    {mod, fun, args} = :elixir_rewrite.erl_to_ex(mod, fun, args)
+    Exception.format_mfa(mod, fun, length(args))
   end
 end

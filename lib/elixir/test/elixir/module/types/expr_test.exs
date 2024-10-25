@@ -48,7 +48,7 @@ defmodule Module.Types.ExprTest do
       assert typewarn!(hd([])) ==
                {dynamic(),
                 ~l"""
-                expected a non-empty list in expression:
+                expected a non-empty list in Kernel.hd/1:
 
                     hd([])
 
@@ -60,7 +60,7 @@ defmodule Module.Types.ExprTest do
       assert typewarn!(hd(123)) ==
                {dynamic(),
                 ~l"""
-                expected a non-empty list in expression:
+                expected a non-empty list in Kernel.hd/1:
 
                     hd(123)
 
@@ -79,7 +79,7 @@ defmodule Module.Types.ExprTest do
       assert typewarn!(tl([])) ==
                {dynamic(),
                 ~l"""
-                expected a non-empty list in expression:
+                expected a non-empty list in Kernel.tl/1:
 
                     tl([])
 
@@ -91,7 +91,7 @@ defmodule Module.Types.ExprTest do
       assert typewarn!(tl(123)) ==
                {dynamic(),
                 ~l"""
-                expected a non-empty list in expression:
+                expected a non-empty list in Kernel.tl/1:
 
                     tl(123)
 
@@ -322,7 +322,7 @@ defmodule Module.Types.ExprTest do
       assert typewarn!([<<x::integer>>], elem(x, 0)) ==
                {dynamic(),
                 ~l"""
-                expected a tuple in expression:
+                expected a tuple in Kernel.elem/2:
 
                     elem(x, 0)
 
@@ -340,7 +340,7 @@ defmodule Module.Types.ExprTest do
       assert typewarn!(elem({:ok, 123}, 2)) ==
                {dynamic(),
                 ~l"""
-                expected a tuple with at least 3 elements in expression:
+                expected a tuple with at least 3 elements in Kernel.elem/2:
 
                     elem({:ok, 123}, 2)
 
@@ -365,7 +365,7 @@ defmodule Module.Types.ExprTest do
       assert typewarn!([<<x::integer>>], Tuple.insert_at(x, 0, "foo")) ==
                {dynamic(),
                 ~l"""
-                expected a tuple in expression:
+                expected a tuple in Tuple.insert_at/3:
 
                     Tuple.insert_at(x, 0, "foo")
 
@@ -383,7 +383,7 @@ defmodule Module.Types.ExprTest do
       assert typewarn!(Tuple.insert_at({:ok, 123}, 3, "foo")) ==
                {dynamic(),
                 ~l"""
-                expected a tuple with at least 3 elements in expression:
+                expected a tuple with at least 3 elements in Tuple.insert_at/3:
 
                     Tuple.insert_at({:ok, 123}, 3, "foo")
 
@@ -402,7 +402,7 @@ defmodule Module.Types.ExprTest do
       assert typewarn!([<<x::integer>>], Tuple.delete_at(x, 0)) ==
                {dynamic(),
                 ~l"""
-                expected a tuple in expression:
+                expected a tuple in Tuple.delete_at/2:
 
                     Tuple.delete_at(x, 0)
 
@@ -420,7 +420,7 @@ defmodule Module.Types.ExprTest do
       assert typewarn!(Tuple.delete_at({:ok, 123}, 2)) ==
                {dynamic(),
                 ~l"""
-                expected a tuple with at least 3 elements in expression:
+                expected a tuple with at least 3 elements in Tuple.delete_at/2:
 
                     Tuple.delete_at({:ok, 123}, 2)
 
