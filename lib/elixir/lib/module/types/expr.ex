@@ -274,7 +274,7 @@ defmodule Module.Types.Expr do
     if Keyword.get(meta, :no_parens, false) do
       Of.map_fetch(expr, type, key_or_fun, stack, context)
     else
-      {mods, context} = Of.remote(type, key_or_fun, 0, [:dot], expr, meta, stack, context)
+      {mods, context} = Of.modules(type, key_or_fun, 0, [:dot], expr, meta, stack, context)
       apply_many(mods, key_or_fun, [], expr, stack, context)
     end
   end
@@ -283,7 +283,7 @@ defmodule Module.Types.Expr do
   def of_expr({{:., _, [remote, name]}, meta, args} = expr, stack, context) do
     {remote_type, context} = of_expr(remote, stack, context)
     {args_types, context} = Enum.map_reduce(args, context, &of_expr(&1, stack, &2))
-    {mods, context} = Of.remote(remote_type, name, length(args), expr, meta, stack, context)
+    {mods, context} = Of.modules(remote_type, name, length(args), expr, meta, stack, context)
     apply_many(mods, name, args_types, expr, stack, context)
   end
 
@@ -297,7 +297,8 @@ defmodule Module.Types.Expr do
     {remote_type, context} = of_expr(remote, stack, context)
     # TODO: We cannot return the unions of functions. Do we forbid this?
     # Do we check it is always the same return type? Do we simply say it is a function?
-    {_mods, context} = Of.remote(remote_type, name, arity, expr, meta, stack, context)
+    {mods, context} = Of.modules(remote_type, name, arity, expr, meta, stack, context)
+    context = Enum.reduce(mods, context, &Of.remote(&1, name, arity, meta, stack, &2))
     {fun(), context}
   end
 

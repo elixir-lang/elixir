@@ -293,7 +293,7 @@ defmodule Module.Types.Of do
     context
   end
 
-  ## Apply
+  ## Remotes
 
   # TODO: Implement element without a literal index
 
@@ -399,23 +399,25 @@ defmodule Module.Types.Of do
     end
   end
 
-  def apply(mod, name, args, expr, stack, context) do
-    case :elixir_rewrite.inline(mod, name, length(args)) do
-      {mod, name} -> apply(mod, name, args, expr, stack, context)
-      false -> {dynamic(), context}
+  def apply(mod, name, args_types, expr, stack, context) do
+    arity = length(args_types)
+
+    case :elixir_rewrite.inline(mod, name, arity) do
+      {mod, name} ->
+        apply(mod, name, args_types, expr, stack, context)
+
+      false ->
+        context = remote(mod, name, arity, elem(expr, 1), stack, context)
+        {dynamic(), context}
     end
   end
 
-  ## Remote
-
-  def remote(type, fun, arity, hints \\ [], expr, meta, stack, context) do
+  @doc """
+  Returns the modules for a given call.
+  """
+  def modules(type, fun, arity, hints \\ [], expr, meta, stack, context) do
     case atom_fetch(type) do
       {_, mods} ->
-        context =
-          Enum.reduce(mods, context, fn mod, context ->
-            remote(mod, fun, arity, meta, stack, context)
-          end)
-
         {mods, context}
 
       :error ->
