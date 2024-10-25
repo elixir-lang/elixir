@@ -1920,6 +1920,29 @@ defmodule Module.Types.Descr do
 
   def tuple_delete_at(_, _), do: :badindex
 
+  # Takes a static map type and removes an index from it.
+  defp tuple_delete_static(%{tuple: dnf}, index) do
+    Enum.reduce(dnf, none(), fn
+      # Optimization: if there are no negatives, we can directly remove the element
+      {tag, elements, []}, acc ->
+        union(acc, %{tuple: tuple_new(tag, List.delete_at(elements, index))})
+
+      {tag, elements, negs}, acc ->
+        {fst, snd} = tuple_pop_index(tag, elements, index)
+
+        union(
+          acc,
+          case tuple_split_negative(negs, index) do
+            :empty -> none()
+            negative -> negative |> pair_make_disjoint() |> pair_eliminate_negations_snd(fst, snd)
+          end
+        )
+    end)
+  end
+
+  # If there is no map part to this static type, there is nothing to delete.
+  defp tuple_delete_static(_type, _key), do: none()
+
   @doc """
   Insert an element at the tuple.
 
@@ -1986,31 +2009,6 @@ defmodule Module.Types.Descr do
       end)
     end)
   end
-
-  # Takes a static map type and removes an index from it.
-  defp tuple_delete_static(%{tuple: dnf}, index) do
-    Enum.reduce(dnf, none(), fn
-      # Optimization: if there are no negatives, we can directly remove the element
-      {tag, elements, []}, acc ->
-        union(acc, %{tuple: tuple_new(tag, List.delete_at(elements, index))})
-
-      {tag, elements, negs}, acc ->
-        {fst, snd} = tuple_pop_index(tag, elements, index)
-
-        union(
-          acc,
-          case tuple_split_negative(negs, index) do
-            :empty -> none()
-            negative -> negative |> pair_make_disjoint() |> pair_eliminate_negations_snd(fst, snd)
-          end
-        )
-    end)
-  end
-
-  defp tuple_delete_static(:term, key), do: open_map([{key, not_set()}])
-
-  # If there is no map part to this static type, there is nothing to delete.
-  defp tuple_delete_static(_type, _key), do: none()
 
   # Remove useless negations, which denote tuples of incompatible sizes.
   defp tuple_empty_negation?(tag, n, {neg_tag, neg_elements}) do

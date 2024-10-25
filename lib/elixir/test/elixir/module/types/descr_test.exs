@@ -743,6 +743,7 @@ defmodule Module.Types.DescrTest do
       # Succesfully deleting at position `index` in a tuple means that the dynamic
       # values that succeed are intersected with tuples of size at least `index`
       assert dynamic(tuple()) |> tuple_delete_at(0) == dynamic(tuple())
+      assert dynamic(term()) |> tuple_delete_at(0) == dynamic(tuple())
 
       assert dynamic(union(tuple(), integer()))
              |> tuple_delete_at(1)
