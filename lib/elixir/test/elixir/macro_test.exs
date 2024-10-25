@@ -379,14 +379,16 @@ defmodule MacroTest do
              """
     end
 
+    defp abc, do: [:a, :b, :c]
+
     test "with a pipeline on a single line" do
-      {result, formatted} = dbg_format([:a, :b, :c] |> tl() |> tl |> Kernel.hd())
+      {result, formatted} = dbg_format(abc() |> tl() |> tl |> Kernel.hd())
       assert result == :c
 
       assert formatted =~ "macro_test.exs"
 
       assert formatted =~ """
-             \n[:a, :b, :c] #=> [:a, :b, :c]
+             \nabc() #=> [:a, :b, :c]
              |> tl() #=> [:b, :c]
              |> tl #=> [:c]
              |> Kernel.hd() #=> :c
@@ -400,7 +402,7 @@ defmodule MacroTest do
     test "with a pipeline on multiple lines" do
       {result, formatted} =
         dbg_format(
-          [:a, :b, :c]
+          abc()
           |> tl()
           |> tl
           |> Kernel.hd()
@@ -411,7 +413,7 @@ defmodule MacroTest do
       assert formatted =~ "macro_test.exs"
 
       assert formatted =~ """
-             \n[:a, :b, :c] #=> [:a, :b, :c]
+             \nabc() #=> [:a, :b, :c]
              |> tl() #=> [:b, :c]
              |> tl #=> [:c]
              |> Kernel.hd() #=> :c

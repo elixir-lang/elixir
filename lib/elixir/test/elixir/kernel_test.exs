@@ -3,7 +3,8 @@ Code.require_file("test_helper.exs", __DIR__)
 defmodule KernelTest do
   use ExUnit.Case, async: true
 
-  doctest Kernel
+  # Skip these doctests are they emit warnings
+  doctest Kernel, except: [===: 2, !==: 2, is_nil: 1]
 
   def id(arg), do: arg
   def id(arg1, arg2), do: {arg1, arg2}

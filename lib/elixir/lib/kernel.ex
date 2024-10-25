@@ -3424,7 +3424,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> is_nil(1)
+      iex> is_nil(1 + 2)
       false
 
       iex> is_nil(nil)

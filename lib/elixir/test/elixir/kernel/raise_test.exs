@@ -17,7 +17,7 @@ defmodule Kernel.RaiseTest do
       try do
         raise "a"
       rescue
-        _ -> hd(__STACKTRACE__)
+        _ -> Enum.fetch!(__STACKTRACE__, 0)
       end
 
     file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
