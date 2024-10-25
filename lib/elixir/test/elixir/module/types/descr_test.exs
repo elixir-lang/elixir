@@ -592,17 +592,17 @@ defmodule Module.Types.DescrTest do
     end
 
     test "list_hd" do
-      assert list_hd(term()) == :badlist
-      assert list_hd(list(term())) == :empty_list
-      assert list_hd(empty_list()) == :empty_list
+      assert list_hd(term()) == :badnonemptylist
+      assert list_hd(list(term())) == :badnonemptylist
+      assert list_hd(empty_list()) == :badnonemptylist
       assert list_hd(non_empty_list(term())) == {false, term()}
       assert list_hd(non_empty_list(integer())) == {false, integer()}
       assert list_hd(difference(list(number()), list(integer()))) == {false, number()}
 
       assert list_hd(dynamic()) == {true, dynamic()}
       assert list_hd(dynamic(list(integer()))) == {true, dynamic(integer())}
-      assert list_hd(union(dynamic(), atom())) == :badlist
-      assert list_hd(union(dynamic(), list(term()))) == :empty_list
+      assert list_hd(union(dynamic(), atom())) == :badnonemptylist
+      assert list_hd(union(dynamic(), list(term()))) == :badnonemptylist
 
       assert list_hd(union(dynamic(list(float())), non_empty_list(atom()))) ==
                {true, union(dynamic(float()), atom())}
@@ -614,9 +614,9 @@ defmodule Module.Types.DescrTest do
     end
 
     test "list_tl" do
-      assert list_tl(term()) == :badlist
-      assert list_tl(empty_list()) == :empty_list
-      assert list_tl(list(integer())) == :empty_list
+      assert list_tl(term()) == :badnonemptylist
+      assert list_tl(empty_list()) == :badnonemptylist
+      assert list_tl(list(integer())) == :badnonemptylist
       assert list_tl(non_empty_list(integer())) == {false, list(integer())}
 
       assert list_tl(non_empty_list(integer(), atom())) ==

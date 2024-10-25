@@ -342,6 +342,26 @@ defmodule Module.Types.Of do
     {tuple(List.duplicate(elem, size)), context}
   end
 
+  def apply(:erlang, :hd, [list], expr, stack, context) do
+    case list_hd(list) do
+      {_, value_type} ->
+        {value_type, context}
+
+      reason ->
+        {error_type(), error({reason, expr, list, context}, elem(expr, 1), stack, context)}
+    end
+  end
+
+  def apply(:erlang, :tl, [list], expr, stack, context) do
+    case list_tl(list) do
+      {_, value_type} ->
+        {value_type, context}
+
+      reason ->
+        {error_type(), error({reason, expr, list, context}, elem(expr, 1), stack, context)}
+    end
+  end
+
   def apply(:erlang, name, [left, right], expr, stack, context)
       when name in [:>=, :"=<", :>, :<, :min, :max] do
     result = if name in [:min, :max], do: union(left, right), else: boolean()
@@ -613,6 +633,27 @@ defmodule Module.Types.Of do
 
               #{to_quoted_string(type) |> indent(4)}
           """),
+          format_traces(traces)
+        ])
+    }
+  end
+
+  def format_diagnostic({:badnonemptylist, expr, type, context}) do
+    traces = collect_traces(expr, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          expected a non-empty list in expression:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          but got type:
+
+              #{to_quoted_string(type) |> indent(4)}
+          """,
           format_traces(traces)
         ])
     }

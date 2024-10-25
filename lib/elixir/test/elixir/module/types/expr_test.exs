@@ -34,6 +34,71 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([1, 2]) == non_empty_list(integer())
       assert typecheck!([1, 2 | 3]) == non_empty_list(integer(), integer())
       assert typecheck!([1, 2 | [3, 4]]) == non_empty_list(integer())
+
+      assert typecheck!([:ok, 123]) == non_empty_list(union(atom([:ok]), integer()))
+      assert typecheck!([:ok | 123]) == non_empty_list(atom([:ok]), integer())
+      assert typecheck!([x], [:ok, x]) == dynamic(non_empty_list(term()))
+      assert typecheck!([x], [:ok | x]) == dynamic(non_empty_list(term(), term()))
+    end
+
+    test "hd" do
+      assert typecheck!([x = [123, :foo]], hd(x)) == dynamic(union(atom([:foo]), integer()))
+      assert typecheck!([x = [123 | :foo]], hd(x)) == dynamic(integer())
+
+      assert typewarn!(hd([])) ==
+               {dynamic(),
+                ~l"""
+                expected a non-empty list in expression:
+
+                    hd([])
+
+                but got type:
+
+                    empty_list()
+                """}
+
+      assert typewarn!(hd(123)) ==
+               {dynamic(),
+                ~l"""
+                expected a non-empty list in expression:
+
+                    hd(123)
+
+                but got type:
+
+                    integer()
+                """}
+    end
+
+    test "tl" do
+      assert typecheck!([x = [123, :foo]], tl(x)) == dynamic(list(union(atom([:foo]), integer())))
+
+      assert typecheck!([x = [123 | :foo]], tl(x)) ==
+               dynamic(union(atom([:foo]), list(integer(), atom([:foo]))))
+
+      assert typewarn!(tl([])) ==
+               {dynamic(),
+                ~l"""
+                expected a non-empty list in expression:
+
+                    tl([])
+
+                but got type:
+
+                    empty_list()
+                """}
+
+      assert typewarn!(tl(123)) ==
+               {dynamic(),
+                ~l"""
+                expected a non-empty list in expression:
+
+                    tl(123)
+
+                but got type:
+
+                    integer()
+                """}
     end
   end
 

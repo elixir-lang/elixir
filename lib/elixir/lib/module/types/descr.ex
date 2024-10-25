@@ -781,7 +781,7 @@ defmodule Module.Types.Descr do
   On a non empty list of integers, it returns the first integer.
   On a non empty list of integers, with an atom head element, it returns the atom.
   """
-  def list_hd(:term), do: :badlist
+  def list_hd(:term), do: :badnonemptylist
 
   def list_hd(%{} = descr) do
     case :maps.take(:dynamic, descr) do
@@ -789,10 +789,10 @@ defmodule Module.Types.Descr do
         has_empty = empty_list_type?(descr)
         is_list_type = list_only?(descr)
 
-        cond do
-          is_list_type and not has_empty -> {false, list_hd_static(descr)}
-          is_list_type -> :empty_list
-          true -> :badlist
+        if is_list_type and not has_empty do
+          {false, list_hd_static(descr)}
+        else
+          :badnonemptylist
         end
 
       {dynamic, static} ->
@@ -800,15 +800,10 @@ defmodule Module.Types.Descr do
         only_list = list_only?(static)
         is_dynamic_list = list_type?(dynamic)
 
-        cond do
-          is_dynamic_list and only_list and not has_empty ->
-            {is_dynamic_list, union(dynamic(list_hd_static(dynamic)), list_hd_static(static))}
-
-          is_dynamic_list and only_list ->
-            :empty_list
-
-          true ->
-            :badlist
+        if is_dynamic_list and only_list and not has_empty do
+          {is_dynamic_list, union(dynamic(list_hd_static(dynamic)), list_hd_static(static))}
+        else
+          :badnonemptylist
         end
     end
   end
@@ -836,7 +831,7 @@ defmodule Module.Types.Descr do
   On a non empty list of integers, with an atom tail element, it returns either an atom,
   or a (possibly empty) list of integers with an atom tail element.
   """
-  def list_tl(:term), do: :badlist
+  def list_tl(:term), do: :badnonemptylist
 
   def list_tl(descr) do
     case :maps.take(:dynamic, descr) do
@@ -844,10 +839,10 @@ defmodule Module.Types.Descr do
         has_empty = empty_list_type?(descr)
         is_list_type = list_only?(descr)
 
-        cond do
-          is_list_type and not has_empty -> {false, list_tl_static(descr)}
-          is_list_type -> :empty_list
-          true -> :badlist
+        if is_list_type and not has_empty do
+          {false, list_tl_static(descr)}
+        else
+          :badnonemptylist
         end
 
       {dynamic, static} ->
@@ -855,15 +850,10 @@ defmodule Module.Types.Descr do
         only_list = list_only?(static)
         is_dynamic_list = list_type?(dynamic)
 
-        cond do
-          is_dynamic_list and only_list and not has_empty ->
-            {is_dynamic_list, union(dynamic(list_tl_static(dynamic)), list_tl_static(static))}
-
-          is_dynamic_list and only_list ->
-            :empty_list
-
-          true ->
-            :badlist
+        if is_dynamic_list and only_list and not has_empty do
+          {is_dynamic_list, union(dynamic(list_tl_static(dynamic)), list_tl_static(static))}
+        else
+          :badnonemptylist
         end
     end
   end
