@@ -1885,7 +1885,7 @@ defmodule Module.Types.Descr do
       :error ->
         # Note: the empty type is not a valid input
         is_proper_tuple? = descr_key?(descr, :tuple) and tuple_only?(descr)
-        is_proper_size? = tuple_of_size_at_least?(descr, index + 1)
+        is_proper_size? = tuple_of_size_at_least_static?(descr, index + 1)
 
         cond do
           is_proper_tuple? and is_proper_size? -> tuple_delete_static(descr, index)
@@ -1895,7 +1895,7 @@ defmodule Module.Types.Descr do
 
       {dynamic, static} ->
         is_proper_tuple? = descr_key?(dynamic, :tuple) and tuple_only?(static)
-        is_proper_size? = tuple_of_size_at_least?(static, index + 1)
+        is_proper_size? = tuple_of_size_at_least_static?(static, index + 1)
 
         cond do
           is_proper_tuple? and is_proper_size? ->
@@ -1941,7 +1941,7 @@ defmodule Module.Types.Descr do
       :error ->
         # Note: the empty type is not a valid input
         is_proper_tuple? = descr_key?(descr, :tuple) and tuple_only?(descr)
-        is_proper_size? = index == 0 or tuple_of_size_at_least?(descr, index)
+        is_proper_size? = index == 0 or tuple_of_size_at_least_static?(descr, index)
 
         cond do
           is_proper_tuple? and is_proper_size? -> tuple_insert_static(descr, index, type)
@@ -1951,7 +1951,7 @@ defmodule Module.Types.Descr do
 
       {dynamic, static} ->
         is_proper_tuple? = descr_key?(dynamic, :tuple) and tuple_only?(static)
-        is_proper_size? = index == 0 or tuple_of_size_at_least?(static, index)
+        is_proper_size? = index == 0 or tuple_of_size_at_least_static?(static, index)
 
         cond do
           is_proper_tuple? and is_proper_size? ->
@@ -2022,8 +2022,17 @@ defmodule Module.Types.Descr do
     open_tuple(List.duplicate(term(), n))
   end
 
-  defp tuple_of_size_at_least?(descr, index) do
-    subtype?(Map.take(descr, [:tuple]), tuple_of_size_at_least(index))
+  defp tuple_of_size_at_least_static?(descr, index) do
+    case descr do
+      %{tuple: dnf} ->
+        Enum.all?(dnf, fn
+          {_, elements, []} -> length(elements) >= index
+          entry -> subtype?(%{tuple: [entry]}, tuple_of_size_at_least(index))
+        end)
+
+      %{} ->
+        true
+    end
   end
 
   ## Pairs
