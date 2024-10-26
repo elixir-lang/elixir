@@ -107,19 +107,18 @@ defmodule Module.Types.PatternTest do
     end
 
     test "fields in guards" do
-      assert typewarn!([x = %Point{}], x.foo_bar, :ok) ==
-               {atom([:ok]),
-                ~l"""
-                unknown key .foo_bar in expression:
+      assert typeerror!([x = %Point{}], x.foo_bar, :ok) ==
+               ~l"""
+               unknown key .foo_bar in expression:
 
-                    x.foo_bar
+                   x.foo_bar
 
-                where "x" was given the type:
+               where "x" was given the type:
 
-                    # type: dynamic(%Point{x: term(), y: term(), z: term()})
-                    # from: types_test.ex:LINE-2
-                    x = %Point{}
-                """}
+                   # type: dynamic(%Point{x: term(), y: term(), z: term()})
+                   # from: types_test.ex:LINE-1
+                   x = %Point{}
+               """
     end
   end
 
@@ -223,27 +222,26 @@ defmodule Module.Types.PatternTest do
     end
 
     test "size error" do
-      assert typewarn!([<<x::float, _::size(x)>>], :ok) ==
-               {atom([:ok]),
-                ~l"""
-                incompatible types in expression:
+      assert typeerror!([<<x::float, _::size(x)>>], :ok) ==
+               ~l"""
+               incompatible types in expression:
 
-                    <<..., _::integer-size(x)>>
+                   <<..., _::integer-size(x)>>
 
-                expected type:
+               expected type:
 
-                    integer()
+                   integer()
 
-                but got type:
+               but got type:
 
-                    float()
+                   float()
 
-                where "x" was given the type:
+               where "x" was given the type:
 
-                    # type: float()
-                    # from: types_test.ex:LINE-2
-                    <<x::float, ...>>
-                """}
+                   # type: float()
+                   # from: types_test.ex:LINE-1
+                   <<x::float, ...>>
+               """
     end
   end
 

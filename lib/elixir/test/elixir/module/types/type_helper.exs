@@ -82,19 +82,23 @@ defmodule TypeHelper do
     do: {type, module.format_diagnostic(warning)}
 
   def __typediag__!({type, %{warnings: []}}),
-    do: raise("type checking ok without warnings: #{Descr.to_quoted_string(type)}")
+    do: raise("type checking without warnings/errors: #{Descr.to_quoted_string(type)}")
 
-  def __typediag__!({_type, %{warnings: warnings, failed: false}}),
-    do: raise("type checking ok but many warnings: #{inspect(warnings)}")
-
-  def __typediag__!({:error, %{warnings: warnings, failed: true}}),
-    do: raise("type checking errored with warnings: #{inspect(warnings)}")
+  def __typediag__!({_type, %{warnings: warnings}}),
+    do: raise("type checking with too many warnings/errors: #{inspect(warnings)}")
 
   @doc false
-  def __typewarn__!(result) do
-    {type, %{message: message}} = __typediag__!(result)
-    {type, message}
-  end
+  def __typewarn__!({type, %{warnings: [{module, warning, _locs}], failed: false}}),
+    do: {type, module.format_diagnostic(warning).message}
+
+  def __typewarn__!({type, %{warnings: []}}),
+    do: raise("type checking ok without warnings: #{Descr.to_quoted_string(type)}")
+
+  def __typewarn__!({_type, %{warnings: warnings, failed: false}}),
+    do: raise("type checking ok but many warnings: #{inspect(warnings)}")
+
+  def __typewarn__!({_type, %{warnings: warnings, failed: true}}),
+    do: raise("type checking errored with warnings: #{inspect(warnings)}")
 
   @doc """
   Building block for typeinferring a given AST.

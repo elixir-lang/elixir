@@ -45,37 +45,35 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([x = [123, :foo]], hd(x)) == dynamic(union(atom([:foo]), integer()))
       assert typecheck!([x = [123 | :foo]], hd(x)) == dynamic(integer())
 
-      assert typewarn!(hd([])) ==
-               {dynamic(),
-                ~l"""
-                incompatible types given to Kernel.hd/1:
+      assert typeerror!(hd([])) ==
+               ~l"""
+               incompatible types given to Kernel.hd/1:
 
-                    hd([])
+                   hd([])
 
-                expected types:
+               expected types:
 
-                    non_empty_list(term(), term())
+                   non_empty_list(term(), term())
 
-                but got types:
+               but got types:
 
-                    empty_list()
-                """}
+                   empty_list()
+               """
 
-      assert typewarn!(hd(123)) ==
-               {dynamic(),
-                ~l"""
-                incompatible types given to Kernel.hd/1:
+      assert typeerror!(hd(123)) ==
+               ~l"""
+               incompatible types given to Kernel.hd/1:
 
-                    hd(123)
+                   hd(123)
 
-                expected types:
+               expected types:
 
-                    non_empty_list(term(), term())
+                   non_empty_list(term(), term())
 
-                but got types:
+               but got types:
 
-                    integer()
-                """}
+                   integer()
+               """
     end
 
     test "tl" do
@@ -84,63 +82,60 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([x = [123 | :foo]], tl(x)) ==
                dynamic(union(atom([:foo]), list(integer(), atom([:foo]))))
 
-      assert typewarn!(tl([])) ==
-               {dynamic(),
-                ~l"""
-                incompatible types given to Kernel.tl/1:
+      assert typeerror!(tl([])) ==
+               ~l"""
+               incompatible types given to Kernel.tl/1:
 
-                    tl([])
+                   tl([])
 
-                expected types:
+               expected types:
 
-                    non_empty_list(term(), term())
+                   non_empty_list(term(), term())
 
-                but got types:
+               but got types:
 
-                    empty_list()
-                """}
+                   empty_list()
+               """
 
-      assert typewarn!(tl(123)) ==
-               {dynamic(),
-                ~l"""
-                incompatible types given to Kernel.tl/1:
+      assert typeerror!(tl(123)) ==
+               ~l"""
+               incompatible types given to Kernel.tl/1:
 
-                    tl(123)
+                   tl(123)
 
-                expected types:
+               expected types:
 
-                    non_empty_list(term(), term())
+                   non_empty_list(term(), term())
 
-                but got types:
+               but got types:
 
-                    integer()
-                """}
+                   integer()
+               """
     end
   end
 
   describe "funs" do
     test "incompatible" do
-      assert typewarn!([%x{}], x.(1, 2)) ==
-               {dynamic(),
-                ~l"""
-                incompatible types in expression:
+      assert typeerror!([%x{}], x.(1, 2)) ==
+               ~l"""
+               incompatible types in expression:
 
-                    x
+                   x
 
-                expected type:
+               expected type:
 
-                    fun()
+                   fun()
 
-                but got type:
+               but got type:
 
-                    dynamic(atom())
+                   dynamic(atom())
 
-                where "x" was given the type:
+               where "x" was given the type:
 
-                    # type: dynamic(atom())
-                    # from: types_test.ex:LINE-2
-                    %x{}
-                """}
+                   # type: dynamic(atom())
+                   # from: types_test.ex:LINE-1
+                   %x{}
+               """
     end
   end
 
@@ -161,131 +156,125 @@ defmodule Module.Types.ExprTest do
     end
 
     test "calling a nullary function on non atoms" do
-      assert typewarn!([<<x::integer>>], x.foo_bar()) ==
-               {dynamic(),
-                ~l"""
-                expected a module (an atom) when invoking foo_bar/0 in expression:
+      assert typeerror!([<<x::integer>>], x.foo_bar()) ==
+               ~l"""
+               expected a module (an atom) when invoking foo_bar/0 in expression:
 
-                    x.foo_bar()
+                   x.foo_bar()
 
-                where "x" was given the type:
+               where "x" was given the type:
 
-                    # type: integer()
-                    # from: types_test.ex:LINE-2
-                    <<x::integer>>
+                   # type: integer()
+                   # from: types_test.ex:LINE-1
+                   <<x::integer>>
 
-                #{hints(:dot)}
-                """}
+               #{hints(:dot)}
+               """
     end
 
     test "calling a function on non atoms with arguments" do
-      assert typewarn!([<<x::integer>>], x.foo_bar(1, 2)) ==
-               {dynamic(),
-                ~l"""
-                expected a module (an atom) when invoking foo_bar/2 in expression:
+      assert typeerror!([<<x::integer>>], x.foo_bar(1, 2)) ==
+               ~l"""
+               expected a module (an atom) when invoking foo_bar/2 in expression:
 
-                    x.foo_bar(1, 2)
+                   x.foo_bar(1, 2)
 
-                where "x" was given the type:
+               where "x" was given the type:
 
-                    # type: integer()
-                    # from: types_test.ex:LINE-2
-                    <<x::integer>>
-                """}
+                   # type: integer()
+                   # from: types_test.ex:LINE-1
+                   <<x::integer>>
+               """
     end
 
     test "capture a function with non atoms" do
-      assert typewarn!([<<x::integer>>], &x.foo_bar/2) ==
-               {fun(),
-                ~l"""
-                expected a module (an atom) when invoking foo_bar/2 in expression:
+      assert typeerror!([<<x::integer>>], &x.foo_bar/2) ==
+               ~l"""
+               expected a module (an atom) when invoking foo_bar/2 in expression:
 
-                    &x.foo_bar/2
+                   &x.foo_bar/2
 
-                but got type:
+               but got type:
 
-                    integer()
+                   integer()
 
-                where "x" was given the type:
+               where "x" was given the type:
 
-                    # type: integer()
-                    # from: types_test.ex:LINE-2
-                    <<x::integer>>
-                """}
+                   # type: integer()
+                   # from: types_test.ex:LINE-1
+                   <<x::integer>>
+               """
     end
   end
 
   describe "binaries" do
     test "warnings" do
-      assert typewarn!([<<x::binary-size(2)>>], <<x::float>>) ==
-               {binary(),
-                ~l"""
-                incompatible types in expression:
+      assert typeerror!([<<x::binary-size(2)>>], <<x::float>>) ==
+               ~l"""
+               incompatible types in expression:
 
-                    <<x::float>>
+                   <<x::float>>
 
-                expected type:
+               expected type:
 
-                    float() or integer()
+                   float() or integer()
 
-                but got type:
+               but got type:
 
-                    binary()
+                   binary()
 
-                where "x" was given the type:
+               where "x" was given the type:
 
-                    # type: binary()
-                    # from: types_test.ex:LINE-2
-                    <<x::binary-size(2)>>
-                """}
+                   # type: binary()
+                   # from: types_test.ex:LINE-1
+                   <<x::binary-size(2)>>
+               """
 
-      assert typewarn!([<<x::binary>>], <<x>>) ==
-               {binary(),
-                ~l"""
-                incompatible types in expression:
+      assert typeerror!([<<x::binary>>], <<x>>) ==
+               ~l"""
+               incompatible types in expression:
 
-                    <<x>>
+                   <<x>>
 
-                expected type:
+               expected type:
 
-                    integer()
+                   integer()
 
-                but got type:
+               but got type:
 
-                    binary()
+                   binary()
 
-                where "x" was given the type:
+               where "x" was given the type:
 
-                    # type: binary()
-                    # from: types_test.ex:LINE-2
-                    <<x::binary>>
+                   # type: binary()
+                   # from: types_test.ex:LINE-1
+                   <<x::binary>>
 
-                #{hints(:inferred_bitstring_spec)}
-                """}
+               #{hints(:inferred_bitstring_spec)}
+               """
 
-      assert typewarn!([<<x>>], <<x::binary>>) ==
-               {binary(),
-                ~l"""
-                incompatible types in expression:
+      assert typeerror!([<<x>>], <<x::binary>>) ==
+               ~l"""
+               incompatible types in expression:
 
-                    <<x::binary>>
+                   <<x::binary>>
 
-                expected type:
+               expected type:
 
-                    binary()
+                   binary()
 
-                but got type:
+               but got type:
 
-                    integer()
+                   integer()
 
-                where "x" was given the type:
+               where "x" was given the type:
 
-                    # type: integer()
-                    # from: types_test.ex:LINE-2
-                    <<x>>
+                   # type: integer()
+                   # from: types_test.ex:LINE-1
+                   <<x>>
 
-                #{hints(:inferred_bitstring_spec)}
-                """}
+               #{hints(:inferred_bitstring_spec)}
+               """
     end
 
     test "size ok" do
@@ -293,33 +282,32 @@ defmodule Module.Types.ExprTest do
     end
 
     test "size error" do
-      assert typewarn!([<<x::binary>>, y], <<y::size(x)>>) ==
-               {binary(),
-                ~l"""
-                incompatible types in expression:
+      assert typeerror!([<<x::binary>>, y], <<y::size(x)>>) ==
+               ~l"""
+               incompatible types in expression:
 
-                    <<y::integer-size(x)>>
+                   <<y::integer-size(x)>>
 
-                expected type:
+               expected type:
 
-                    integer()
+                   integer()
 
-                but got type:
+               but got type:
 
-                    binary()
+                   binary()
 
-                where "x" was given the type:
+               where "x" was given the type:
 
-                    # type: binary()
-                    # from: types_test.ex:LINE-2
-                    <<x::binary>>
+                   # type: binary()
+                   # from: types_test.ex:LINE-1
+                   <<x::binary>>
 
-                where "y" was given the type:
+               where "y" was given the type:
 
-                    # type: dynamic()
-                    # from: types_test.ex:LINE-2
-                    y
-                """}
+                   # type: dynamic()
+                   # from: types_test.ex:LINE-1
+                   y
+               """
     end
   end
 
@@ -335,39 +323,37 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([x], elem({:ok, x}, 0)) == dynamic(atom([:ok]))
       assert typecheck!([x], elem({:ok, x}, 1)) == dynamic(term())
 
-      assert typewarn!([<<x::integer>>], elem(x, 0)) ==
-               {dynamic(),
-                ~l"""
-                incompatible types given to Kernel.elem/2:
+      assert typeerror!([<<x::integer>>], elem(x, 0)) ==
+               ~l"""
+               incompatible types given to Kernel.elem/2:
 
-                    elem(x, 0)
+                   elem(x, 0)
 
-                expected types:
+               expected types:
 
-                    integer(), {...}
+                   integer(), {...}
 
-                but got types:
+               but got types:
 
-                    integer(), integer()
+                   integer(), integer()
 
-                where "x" was given the type:
+               where "x" was given the type:
 
-                    # type: integer()
-                    # from: types_test.ex:LINE-2
-                    <<x::integer>>
-                """}
+                   # type: integer()
+                   # from: types_test.ex:LINE-1
+                   <<x::integer>>
+               """
 
-      assert typewarn!(elem({:ok, 123}, 2)) ==
-               {dynamic(),
-                ~l"""
-                expected a tuple with at least 3 elements in Kernel.elem/2:
+      assert typeerror!(elem({:ok, 123}, 2)) ==
+               ~l"""
+               expected a tuple with at least 3 elements in Kernel.elem/2:
 
-                    elem({:ok, 123}, 2)
+                   elem({:ok, 123}, 2)
 
-                the given type does not have the given index:
+               the given type does not have the given index:
 
-                    {:ok, integer()}
-                """}
+                   {:ok, integer()}
+               """
     end
 
     test "Tuple.insert_at/3" do
@@ -382,39 +368,37 @@ defmodule Module.Types.ExprTest do
       assert typecheck!(Tuple.insert_at({:ok, 123}, 2, "foo")) ==
                tuple([atom([:ok]), integer(), binary()])
 
-      assert typewarn!([<<x::integer>>], Tuple.insert_at(x, 0, "foo")) ==
-               {dynamic(),
-                ~l"""
-                incompatible types given to Tuple.insert_at/3:
+      assert typeerror!([<<x::integer>>], Tuple.insert_at(x, 0, "foo")) ==
+               ~l"""
+               incompatible types given to Tuple.insert_at/3:
 
-                    Tuple.insert_at(x, 0, "foo")
+                   Tuple.insert_at(x, 0, "foo")
 
-                expected types:
+               expected types:
 
-                    integer(), {...}, term()
+                   integer(), {...}, term()
 
-                but got types:
+               but got types:
 
-                    integer(), integer(), binary()
+                   integer(), integer(), binary()
 
-                where "x" was given the type:
+               where "x" was given the type:
 
-                    # type: integer()
-                    # from: types_test.ex:LINE-2
-                    <<x::integer>>
-                """}
+                   # type: integer()
+                   # from: types_test.ex:LINE-1
+                   <<x::integer>>
+               """
 
-      assert typewarn!(Tuple.insert_at({:ok, 123}, 3, "foo")) ==
-               {dynamic(),
-                ~l"""
-                expected a tuple with at least 3 elements in Tuple.insert_at/3:
+      assert typeerror!(Tuple.insert_at({:ok, 123}, 3, "foo")) ==
+               ~l"""
+               expected a tuple with at least 3 elements in Tuple.insert_at/3:
 
-                    Tuple.insert_at({:ok, 123}, 3, "foo")
+                   Tuple.insert_at({:ok, 123}, 3, "foo")
 
-                the given type does not have the given index:
+               the given type does not have the given index:
 
-                    {:ok, integer()}
-                """}
+                   {:ok, integer()}
+               """
     end
 
     test "Tuple.delete_at/2" do
@@ -423,39 +407,37 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([x], Tuple.delete_at({:ok, x}, 0)) == dynamic(tuple([term()]))
       assert typecheck!([x], Tuple.delete_at({:ok, x}, 1)) == dynamic(tuple([atom([:ok])]))
 
-      assert typewarn!([<<x::integer>>], Tuple.delete_at(x, 0)) ==
-               {dynamic(),
-                ~l"""
-                incompatible types given to Tuple.delete_at/2:
+      assert typeerror!([<<x::integer>>], Tuple.delete_at(x, 0)) ==
+               ~l"""
+               incompatible types given to Tuple.delete_at/2:
 
-                    Tuple.delete_at(x, 0)
+                   Tuple.delete_at(x, 0)
 
-                expected types:
+               expected types:
 
-                    integer(), {...}
+                   integer(), {...}
 
-                but got types:
+               but got types:
 
-                    integer(), integer()
+                   integer(), integer()
 
-                where "x" was given the type:
+               where "x" was given the type:
 
-                    # type: integer()
-                    # from: types_test.ex:LINE-2
-                    <<x::integer>>
-                """}
+                   # type: integer()
+                   # from: types_test.ex:LINE-1
+                   <<x::integer>>
+               """
 
-      assert typewarn!(Tuple.delete_at({:ok, 123}, 2)) ==
-               {dynamic(),
-                ~l"""
-                expected a tuple with at least 3 elements in Tuple.delete_at/2:
+      assert typeerror!(Tuple.delete_at({:ok, 123}, 2)) ==
+               ~l"""
+               expected a tuple with at least 3 elements in Tuple.delete_at/2:
 
-                    Tuple.delete_at({:ok, 123}, 2)
+                   Tuple.delete_at({:ok, 123}, 2)
 
-                the given type does not have the given index:
+               the given type does not have the given index:
 
-                    {:ok, integer()}
-                """}
+                   {:ok, integer()}
+               """
     end
 
     test "duplicate/2" do
@@ -509,27 +491,26 @@ defmodule Module.Types.ExprTest do
                  closed_map(__struct__: atom([Point]), x: atom([:zero]), y: term(), z: term())
                )
 
-      assert typewarn!([x = :foo], %Point{x | x: :zero}) ==
-               {dynamic(),
-                ~l"""
-                incompatible types in struct update:
+      assert typeerror!([x = :foo], %Point{x | x: :zero}) ==
+               ~l"""
+               incompatible types in struct update:
 
-                    %Point{x | x: :zero}
+                   %Point{x | x: :zero}
 
-                expected type:
+               expected type:
 
-                    dynamic(%Point{x: term(), y: term(), z: term()})
+                   dynamic(%Point{x: term(), y: term(), z: term()})
 
-                but got type:
+               but got type:
 
-                    dynamic(:foo)
+                   dynamic(:foo)
 
-                where "x" was given the type:
+               where "x" was given the type:
 
-                    # type: dynamic(:foo)
-                    # from: types_test.ex:LINE-2
-                    x = :foo
-                """}
+                   # type: dynamic(:foo)
+                   # from: types_test.ex:LINE-1
+                   x = :foo
+               """
     end
 
     test "nested map" do
@@ -537,21 +518,20 @@ defmodule Module.Types.ExprTest do
     end
 
     test "accessing a field on not a map" do
-      assert typewarn!([<<x::integer>>], x.foo_bar) ==
-               {dynamic(),
-                ~l"""
-                expected a map or struct when accessing .foo_bar in expression:
+      assert typeerror!([<<x::integer>>], x.foo_bar) ==
+               ~l"""
+               expected a map or struct when accessing .foo_bar in expression:
 
-                    x.foo_bar
+                   x.foo_bar
 
-                where "x" was given the type:
+               where "x" was given the type:
 
-                    # type: integer()
-                    # from: types_test.ex:LINE-2
-                    <<x::integer>>
+                   # type: integer()
+                   # from: types_test.ex:LINE-1
+                   <<x::integer>>
 
-                #{hints(:dot)}
-                """}
+               #{hints(:dot)}
+               """
     end
 
     test "accessing an unknown field on struct with diagnostic" do
@@ -688,27 +668,26 @@ defmodule Module.Types.ExprTest do
 
   describe "apply" do
     test "Integer.to_string/1" do
-      assert typewarn!([x = :foo], Integer.to_string(x)) ==
-               {dynamic(),
-                ~l"""
-                incompatible types given to Integer.to_string/1:
+      assert typeerror!([x = :foo], Integer.to_string(x)) ==
+               ~l"""
+               incompatible types given to Integer.to_string/1:
 
-                    Integer.to_string(x)
+                   Integer.to_string(x)
 
-                expected types:
+               expected types:
 
-                    integer()
+                   integer()
 
-                but got types:
+               but got types:
 
-                    dynamic(:foo)
+                   dynamic(:foo)
 
-                where "x" was given the type:
+               where "x" was given the type:
 
-                    # type: dynamic(:foo)
-                    # from: types_test.ex:LINE-2
-                    x = :foo
-                """}
+                   # type: dynamic(:foo)
+                   # from: types_test.ex:LINE-1
+                   x = :foo
+               """
     end
   end
 
@@ -736,8 +715,8 @@ defmodule Module.Types.ExprTest do
     end
 
     test "defines unions of exceptions in rescue" do
-      # TODO: we are validating this through the exception but we should actually check the returned type
-      assert typewarn!(
+      # TODO: we are validating the type through the exception but we should actually check the returned type
+      assert typeerror!(
                try do
                  :ok
                rescue
@@ -745,77 +724,74 @@ defmodule Module.Types.ExprTest do
                    e.unknown
                end
              ) ==
-               {dynamic(),
-                ~l"""
-                unknown key .unknown in expression:
+               ~l"""
+               unknown key .unknown in expression:
 
-                    e.unknown
+                   e.unknown
 
-                where "e" was given the type:
+               where "e" was given the type:
 
-                    # type: dynamic(
-                      %RuntimeError{__exception__: true, message: term()} or
-                        %SyntaxError{
-                          __exception__: true,
-                          column: term(),
-                          description: term(),
-                          file: term(),
-                          line: term(),
-                          snippet: term()
-                        }
-                    )
-                    # from: types_test.ex:LINE-5
-                    rescue e in [SyntaxError, RuntimeError] ->
-                """}
+                   # type: dynamic(
+                     %RuntimeError{__exception__: true, message: term()} or
+                       %SyntaxError{
+                         __exception__: true,
+                         column: term(),
+                         description: term(),
+                         file: term(),
+                         line: term(),
+                         snippet: term()
+                       }
+                   )
+                   # from: types_test.ex:LINE-4
+                   rescue e in [SyntaxError, RuntimeError] ->
+               """
     end
 
     test "defines an open map of two fields in anonymous rescue" do
-      # TODO: check via the actual return type instead
-      assert typewarn!(
+      # TODO: we are validating the type through the exception but we should actually check the returned type
+      assert typeerror!(
                try do
                  :ok
                rescue
                  e -> e.message
                end
              ) ==
-               {dynamic(),
-                ~l"""
-                unknown key .message in expression:
+               ~l"""
+               unknown key .message in expression:
 
-                    e.message
+                   e.message
 
-                where "e" was given the type:
+               where "e" was given the type:
 
-                    # type: %{..., __exception__: true, __struct__: atom()}
-                    # from: types_test.ex:LINE-4
-                    rescue e ->
+                   # type: %{..., __exception__: true, __struct__: atom()}
+                   # from: types_test.ex:LINE-3
+                   rescue e ->
 
-                #{hints(:anonymous_rescue)}
-                """}
+               #{hints(:anonymous_rescue)}
+               """
     end
   end
 
   describe "comprehensions" do
     test "binary generators" do
-      assert typewarn!([<<x>>], for(<<y <- x>>, do: y)) ==
-               {dynamic(),
-                ~l"""
-                expected the right side of <- in a binary generator to be a binary:
+      assert typeerror!([<<x>>], for(<<y <- x>>, do: y)) ==
+               ~l"""
+               expected the right side of <- in a binary generator to be a binary:
 
-                    x
+                   x
 
-                but got type:
+               but got type:
 
-                    integer()
+                   integer()
 
-                where "x" was given the type:
+               where "x" was given the type:
 
-                    # type: integer()
-                    # from: types_test.ex:LINE-2
-                    <<x>>
+                   # type: integer()
+                   # from: types_test.ex:LINE-1
+                   <<x>>
 
-                #{hints(:inferred_bitstring_spec)}
-                """}
+               #{hints(:inferred_bitstring_spec)}
+               """
     end
   end
 end
