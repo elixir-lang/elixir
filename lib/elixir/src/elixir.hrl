@@ -1,4 +1,4 @@
--define(key(M, K), maps:get(K, M)).
+-define(key(M, K), map_get(K, M)).
 -define(ann(Meta), elixir_erl:get_ann(Meta)).
 -define(line(Meta), elixir_utils:get_line(Meta)).
 -define(generated(Meta), elixir_utils:generated(Meta)).

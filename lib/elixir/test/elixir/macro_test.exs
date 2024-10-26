@@ -1543,22 +1543,34 @@ defmodule MacroTest do
     Macro.postwalk(ast, [], &{&1, [&1 | &2]}) |> elem(1) |> Enum.reverse()
   end
 
-  test "struct!/2 expands structs multiple levels deep" do
+  test "struct_info!/2 expands structs multiple levels deep" do
     defmodule StructBang do
       defstruct [:a, :b]
 
-      assert Macro.struct!(StructBang, __ENV__) == %{__struct__: StructBang, a: nil, b: nil}
+      assert Macro.struct_info!(StructBang, __ENV__) == [
+               %{field: :a, required: false, default: nil},
+               %{field: :b, required: false, default: nil}
+             ]
 
       def within_function do
-        assert Macro.struct!(StructBang, __ENV__) == %{__struct__: StructBang, a: nil, b: nil}
+        assert Macro.struct_info!(StructBang, __ENV__) == [
+                 %{field: :a, required: false, default: nil},
+                 %{field: :b, required: false, default: nil}
+               ]
       end
 
       defmodule Nested do
-        assert Macro.struct!(StructBang, __ENV__) == %{__struct__: StructBang, a: nil, b: nil}
+        assert Macro.struct_info!(StructBang, __ENV__) == [
+                 %{field: :a, required: false, default: nil},
+                 %{field: :b, required: false, default: nil}
+               ]
       end
     end
 
-    assert Macro.struct!(StructBang, __ENV__) == %{__struct__: StructBang, a: nil, b: nil}
+    assert Macro.struct_info!(StructBang, __ENV__) == [
+             %{field: :a, required: false, default: nil},
+             %{field: :b, required: false, default: nil}
+           ]
   end
 
   test "prewalker/1" do

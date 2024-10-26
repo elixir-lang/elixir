@@ -567,11 +567,7 @@ defmodule Kernel.Typespec do
   defp typespec({:%, _, [name, {:%{}, meta, fields}]} = node, vars, caller, state) do
     case Macro.expand(name, %{caller | function: {:__info__, 1}}) do
       module when is_atom(module) ->
-        struct =
-          module
-          |> Macro.struct!(caller)
-          |> Map.delete(:__struct__)
-          |> Map.to_list()
+        struct_info = Macro.struct_info!(module, caller)
 
         if not Keyword.keyword?(fields) do
           compile_error(caller, "expected key-value pairs in struct #{Macro.to_string(name)}")
@@ -579,15 +575,15 @@ defmodule Kernel.Typespec do
 
         types =
           :lists.map(
-            fn
-              {:__exception__ = field, true} -> {field, Keyword.get(fields, field, true)}
-              {field, _} -> {field, Keyword.get(fields, field, quote(do: term()))}
+            fn %{field: field} ->
+              default_type = if field == :__exception__, do: true, else: quote(do: term())
+              {field, Keyword.get(fields, field, default_type)}
             end,
-            :lists.sort(struct)
+            struct_info
           )
 
         fun = fn {field, _} ->
-          if not Keyword.has_key?(struct, field) do
+          if not Enum.any?(struct_info, &(&1.field == field)) do
             compile_error(
               caller,
               "undefined field #{inspect(field)} on struct #{inspect(module)}"
@@ -596,7 +592,7 @@ defmodule Kernel.Typespec do
         end
 
         :lists.foreach(fun, fields)
-        typespec({:%{}, meta, [__struct__: module] ++ types}, vars, caller, state)
+        typespec({:%{}, meta, [__struct__: module] ++ :lists.usort(types)}, vars, caller, state)
 
       _ ->
         compile_error(

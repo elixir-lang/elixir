@@ -179,8 +179,7 @@ do_escape([H | T], Q) ->
       update_last(TL, fun(X) -> {'|', [], [X, TR]} end)
   end;
 
-do_escape(Other, _)
-    when is_number(Other); is_pid(Other); is_atom(Other) ->
+do_escape(Other, _) when is_number(Other); is_atom(Other); is_pid(Other) ->
   Other;
 
 do_escape(Fun, _) when is_function(Fun) ->

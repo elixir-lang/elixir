@@ -501,7 +501,7 @@ warn_unused_attributes(DataSet, DataBag, PersistedAttrs, E) ->
 get_struct(Set) ->
   case ets:lookup(Set, {elixir, struct}) of
     [] -> nil;
-    [{_, Fields}] -> [maps:remove(default, FieldInfo) || FieldInfo <- Fields]
+    [{_, Fields}] -> Fields
   end.
 
 get_deprecated(Bag) ->

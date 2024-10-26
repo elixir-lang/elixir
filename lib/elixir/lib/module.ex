@@ -1944,7 +1944,7 @@ defmodule Module do
 
       _ ->
         message =
-          case :ets.lookup(set, :__struct__) do
+          case :ets.lookup(set, {:elixir, :struct}) do
             [] ->
               "warning: module attribute @derive was set but never used (it must come before defstruct)"
 

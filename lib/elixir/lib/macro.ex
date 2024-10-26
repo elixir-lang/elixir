@@ -827,30 +827,36 @@ defmodule Macro do
     :elixir_quote.escape(expr, kind, unquote)
   end
 
+  # TODO: Deprecate me on Elixir v1.22
+  @doc false
+  def struct!(module, env) when is_atom(module) do
+    pairs =
+      for %{field: field, default: default} <- struct_info!(module, env), do: {field, default}
+
+    :maps.from_list([__struct__: module] ++ pairs)
+  end
+
   @doc """
-  Expands the struct given by `module` in the given `env`.
+  Extracts the struct information (equivalent to calling
+  `module.__info__(:struct)`).
 
   This is useful when a struct needs to be expanded at
   compilation time and the struct being expanded may or may
   not have been compiled. This function is also capable of
   expanding structs defined under the module being compiled.
+  Calling this function also adds an export dependency on the
+  given struct.
 
-  It will raise `CompileError` if the struct is not available.
-  From Elixir v1.12, calling this function also adds an export
-  dependency on the given struct.
+  It will raise `ArgumentError` if the struct is not available.
   """
-  @doc since: "1.8.0"
-  @spec struct!(module, Macro.Env.t()) ::
-          %{required(:__struct__) => module, optional(atom) => any}
-        when module: module()
-  def struct!(module, env) when is_atom(module) do
-    if module == env.module do
-      Module.get_attribute(module, :__struct__)
-    end ||
-      case :elixir_map.maybe_load_struct([line: env.line], module, [], [], env) do
-        {:ok, struct} -> struct
-        {:error, desc} -> raise ArgumentError, List.to_string(:elixir_map.format_error(desc))
-      end
+  @doc since: "1.18.0"
+  @spec struct_info!(module(), Macro.Env.t()) ::
+          [%{field: atom(), required: boolean(), default: term()}]
+  def struct_info!(module, env) when is_atom(module) do
+    case :elixir_map.maybe_load_struct_info([line: env.line], module, [], env) do
+      {:ok, info} -> info
+      {:error, desc} -> raise ArgumentError, List.to_string(:elixir_map.format_error(desc))
+    end
   end
 
   @doc """

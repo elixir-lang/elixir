@@ -485,9 +485,16 @@ expand(List, S, E) when is_list(List) ->
 
   {EArgs, elixir_env:close_write(SE, S), EE};
 
+expand(Zero, S, #{context := match} = E) when is_float(Zero), Zero == 0.0 ->
+  elixir_errors:file_warn([], E, ?MODULE, invalid_match_on_zero_float),
+  {Zero, S, E};
+
+expand(Other, S, E) when is_number(Other); is_atom(Other); is_binary(Other) ->
+  {Other, S, E};
+
 expand(Function, S, E) when is_function(Function) ->
   case (erlang:fun_info(Function, type) == {type, external}) andalso
-       (erlang:fun_info(Function, env) == {env, []}) of
+        (erlang:fun_info(Function, env) == {env, []}) of
     true ->
       {elixir_quote:fun_to_quoted(Function), S, E};
     false ->
@@ -503,13 +510,6 @@ expand(Pid, S, E) when is_pid(Pid) ->
       elixir_errors:file_warn([], E, ?MODULE, {invalid_pid_in_function, Pid, Function}),
       {Pid, S, E}
   end;
-
-expand(Zero, S, #{context := match} = E) when is_float(Zero), Zero == 0.0 ->
-  elixir_errors:file_warn([], E, ?MODULE, invalid_match_on_zero_float),
-  {Zero, S, E};
-
-expand(Other, S, E) when is_number(Other); is_atom(Other); is_binary(Other) ->
-  {Other, S, E};
 
 expand(Other, _S, E) ->
   file_error([{line, 0}], ?key(E, file), ?MODULE, {invalid_quoted_expr, Other}).

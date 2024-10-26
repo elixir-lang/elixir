@@ -102,8 +102,10 @@ defmodule Macro.Env do
   ]
 
   # Define the __struct__ callbacks by hand for bootstrap reasons.
-  {struct, [], kv, body} = Kernel.Utils.defstruct(__MODULE__, fields, false, __ENV__)
-  def __struct__(), do: unquote(:elixir_quote.escape(struct, :none, false))
+  {_struct, [], escaped_struct, kv, body} =
+    Kernel.Utils.defstruct(__MODULE__, fields, false, __ENV__)
+
+  def __struct__(), do: unquote(escaped_struct)
   def __struct__(unquote(kv)), do: unquote(body)
 
   @doc """

@@ -239,7 +239,7 @@ defmodule Kernel.ErrorsTest do
       )
 
       assert_compile_error(
-        ["nofile:1:1", "BadStruct.__struct__/0 is undefined, cannot expand struct BadStruct"],
+        ["nofile:1:1", "BadStruct.__struct__/1 is undefined, cannot expand struct BadStruct"],
         ~c"%BadStruct{} = %{}"
       )
 
@@ -249,21 +249,9 @@ defmodule Kernel.ErrorsTest do
       defmodule BadStructType do
         def __struct__, do: :invalid
         def __struct__(_), do: :invalid
-
-        assert_raise ArgumentError, bad_struct_type_error, fn ->
-          Macro.struct!(__MODULE__, __ENV__)
-        end
       end
 
-      assert_compile_error(
-        bad_struct_type_error,
-        ~c"%#{BadStructType}{} = %{}"
-      )
-
-      assert_compile_error(
-        bad_struct_type_error,
-        ~c"%#{BadStructType}{}"
-      )
+      assert_compile_error(bad_struct_type_error, ~c"%#{BadStructType}{}")
 
       assert_raise ArgumentError, bad_struct_type_error, fn ->
         struct(BadStructType)
@@ -298,21 +286,9 @@ defmodule Kernel.ErrorsTest do
       defmodule MissingStructKey do
         def __struct__, do: %{}
         def __struct__(_), do: %{}
-
-        assert_raise ArgumentError, missing_struct_key_error, fn ->
-          Macro.struct!(__MODULE__, __ENV__)
-        end
       end
 
-      assert_compile_error(
-        missing_struct_key_error,
-        ~c"%#{MissingStructKey}{} = %{}"
-      )
-
-      assert_compile_error(
-        missing_struct_key_error,
-        ~c"%#{MissingStructKey}{}"
-      )
+      assert_compile_error(missing_struct_key_error, ~c"%#{MissingStructKey}{}")
 
       assert_raise ArgumentError, missing_struct_key_error, fn ->
         struct(MissingStructKey)
@@ -328,21 +304,9 @@ defmodule Kernel.ErrorsTest do
       defmodule InvalidStructKey do
         def __struct__, do: %{__struct__: 1}
         def __struct__(_), do: %{__struct__: 1}
-
-        assert_raise ArgumentError, invalid_struct_key_error, fn ->
-          Macro.struct!(__MODULE__, __ENV__)
-        end
       end
 
-      assert_compile_error(
-        invalid_struct_key_error,
-        ~c"%#{InvalidStructKey}{} = %{}"
-      )
-
-      assert_compile_error(
-        invalid_struct_key_error,
-        ~c"%#{InvalidStructKey}{}"
-      )
+      assert_compile_error(invalid_struct_key_error, ~c"%#{InvalidStructKey}{}")
 
       assert_raise ArgumentError, invalid_struct_key_error, fn ->
         struct(InvalidStructKey)
@@ -360,21 +324,9 @@ defmodule Kernel.ErrorsTest do
       defmodule InvalidStructName do
         def __struct__, do: %{__struct__: InvalidName}
         def __struct__(_), do: %{__struct__: InvalidName}
-
-        assert_raise ArgumentError, invalid_struct_name_error, fn ->
-          Macro.struct!(__MODULE__, __ENV__)
-        end
       end
 
-      assert_compile_error(
-        invalid_struct_name_error,
-        ~c"%#{InvalidStructName}{} = %{}"
-      )
-
-      assert_compile_error(
-        invalid_struct_name_error,
-        ~c"%#{InvalidStructName}{}"
-      )
+      assert_compile_error(invalid_struct_name_error, ~c"%#{InvalidStructName}{}")
 
       assert_raise ArgumentError, invalid_struct_name_error, fn ->
         struct(InvalidStructName)

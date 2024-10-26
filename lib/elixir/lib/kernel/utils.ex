@@ -103,7 +103,7 @@ defmodule Kernel.Utils do
   def defstruct(module, fields, bootstrapped?, env) do
     {set, bag} = :elixir_module.data_tables(module)
 
-    if :ets.member(set, :__struct__) do
+    if :ets.member(set, {:elixir, :struct}) do
       raise ArgumentError,
             "defstruct has already been called for " <>
               "#{Kernel.inspect(module)}, defstruct can only be called once per module"
@@ -119,6 +119,8 @@ defmodule Kernel.Utils do
 
     mapper = fn
       {key, val} when is_atom(key) ->
+        key == :__struct__ and raise(ArgumentError, "cannot set :__struct__ in struct definition")
+
         try do
           :elixir_quote.escape(val, :none, false)
         rescue
@@ -129,6 +131,7 @@ defmodule Kernel.Utils do
         end
 
       key when is_atom(key) ->
+        key == :__struct__ and raise(ArgumentError, "cannot set :__struct__ in struct definition")
         {key, nil}
 
       other ->
@@ -163,7 +166,8 @@ defmodule Kernel.Utils do
     end
 
     :lists.foreach(foreach, enforce_keys)
-    struct = :maps.put(:__struct__, module, :maps.from_list(fields))
+    struct = :maps.from_list([__struct__: module] ++ fields)
+    escaped_struct = :elixir_quote.escape(struct, :none, false)
 
     body =
       case bootstrapped? do
@@ -171,7 +175,7 @@ defmodule Kernel.Utils do
           case enforce_keys do
             [] ->
               quote do
-                Enum.reduce(kv, @__struct__, fn {key, val}, map ->
+                Enum.reduce(kv, unquote(escaped_struct), fn {key, val}, map ->
                   %{map | key => val}
                 end)
               end
@@ -179,7 +183,7 @@ defmodule Kernel.Utils do
             _ ->
               quote do
                 {map, keys} =
-                  Enum.reduce(kv, {@__struct__, unquote(enforce_keys)}, fn
+                  Enum.reduce(kv, {unquote(escaped_struct), unquote(enforce_keys)}, fn
                     {key, val}, {map, keys} ->
                       {%{map | key => val}, List.delete(keys, key)}
                   end)
@@ -200,7 +204,7 @@ defmodule Kernel.Utils do
           quote do
             :lists.foldl(
               fn {key, val}, acc -> %{acc | key => val} end,
-              @__struct__,
+              unquote(escaped_struct),
               kv
             )
           end
@@ -208,17 +212,13 @@ defmodule Kernel.Utils do
 
     case enforce_keys -- :maps.keys(struct) do
       [] ->
-        # The __struct__ attribute is during expansion and for loading remote structs
-        :ets.insert(set, {:__struct__, struct, nil, []})
-
-        # The complete metadata goes into __info__(:struct)
         mapper = fn {key, val} ->
           %{field: key, default: val, required: :lists.member(key, enforce_keys)}
         end
 
         :ets.insert(set, {{:elixir, :struct}, :lists.map(mapper, fields)})
         derive = :lists.map(fn {_, value} -> value end, :ets.take(bag, {:accumulate, :derive}))
-        {struct, :lists.reverse(derive), quote(do: kv), body}
+        {struct, :lists.reverse(derive), escaped_struct, quote(do: kv), body}
 
       error_keys ->
         raise ArgumentError,

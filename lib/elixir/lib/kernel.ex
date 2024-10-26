@@ -5459,7 +5459,7 @@ defmodule Kernel do
   defmacro defstruct(fields) do
     header =
       quote bind_quoted: [fields: fields, bootstrapped?: bootstrapped?(Enum)] do
-        {struct, derive, kv, body} =
+        {struct, derive, escaped_struct, kv, body} =
           Kernel.Utils.defstruct(__MODULE__, fields, bootstrapped?, __ENV__)
 
         case derive do
@@ -5473,7 +5473,7 @@ defmodule Kernel do
     # especially since they are often expanded at compile-time.
     functions =
       quote line: 0, unquote: false do
-        def __struct__(), do: @__struct__
+        def __struct__(), do: unquote(escaped_struct)
         def __struct__(unquote(kv)), do: unquote(body)
       end
 
