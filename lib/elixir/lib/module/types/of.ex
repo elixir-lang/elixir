@@ -320,17 +320,36 @@ defmodule Module.Types.Of do
   # no overlaps.
 
   for {mod, fun, clauses} <- [
+        {:binary, :copy, [{[binary(), integer()], binary()}]},
+        {:erlang, :atom_to_binary, [{[atom()], binary()}]},
+        {:erlang, :atom_to_list, [{[atom()], list(integer())}]},
+        {:erlang, :binary_to_atom, [{[binary()], atom()}]},
+        {:erlang, :binary_to_existing_atom, [{[binary()], atom()}]},
         {:erlang, :binary_to_integer, [{[binary()], integer()}]},
+        {:erlang, :binary_to_integer, [{[binary(), integer()], integer()}]},
+        {:erlang, :binary_to_float, [{[binary()], float()}]},
         {:erlang, :integer_to_binary, [{[integer()], binary()}]},
+        {:erlang, :integer_to_binary, [{[integer(), integer()], binary()}]},
+        {:erlang, :integer_to_list, [{[integer()], non_empty_list(integer())}]},
+        {:erlang, :integer_to_list, [{[integer(), integer()], non_empty_list(integer())}]},
+        {:erlang, :list_to_atom, [{[list(integer())], atom()}]},
+        {:erlang, :list_to_existing_atom, [{[list(integer())], atom()}]},
+        {:erlang, :list_to_float, [{[non_empty_list(integer())], float()}]},
+        {:erlang, :list_to_integer, [{[non_empty_list(integer())], integer()}]},
+        {:erlang, :list_to_integer, [{[non_empty_list(integer()), integer()], integer()}]},
+        {:erlang, :list_to_tuple, [{[list(term())], dynamic(open_tuple([], term()))}]},
 
         # TODO: Replace term()/dynamic() by parametric types
-        {:erlang, :hd, [{[non_empty_list(term(), term())], dynamic()}]},
-        {:erlang, :tl, [{[non_empty_list(term(), term())], dynamic()}]},
         {:erlang, :delete_element,
          [{[integer(), open_tuple([], term())], dynamic(open_tuple([], term()))}]},
+        {:erlang, :hd, [{[non_empty_list(term(), term())], dynamic()}]},
         {:erlang, :element, [{[integer(), open_tuple([], term())], dynamic()}]},
         {:erlang, :insert_element,
-         [{[integer(), open_tuple([], term()), term()], dynamic(open_tuple([], term()))}]}
+         [{[integer(), open_tuple([], term()), term()], dynamic(open_tuple([], term()))}]},
+        {:erlang, :setelement,
+         [{[integer(), open_tuple([], term()), term()], dynamic(open_tuple([], term()))}]},
+        {:erlang, :tl, [{[non_empty_list(term(), term())], dynamic()}]},
+        {:erlang, :tuple_to_list, [{[open_tuple([], term())], dynamic(list(term()))}]}
       ] do
     [{args, _return} | _others] = clauses
 

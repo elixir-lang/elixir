@@ -685,7 +685,7 @@ defmodule IEx.Autocomplete do
 
   defp hidden_fun?({name, arity}, docs) do
     case Enum.find(docs, &match?({{_, ^name, ^arity}, _, _, _, _}, &1)) do
-      nil -> hd(Atom.to_charlist(name)) == ?_
+      nil -> match?([?_ | _], Atom.to_charlist(name))
       {_, _, _, :hidden, _} -> true
       {_, _, _, _, _} -> false
     end

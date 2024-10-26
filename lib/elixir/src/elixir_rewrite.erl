@@ -198,6 +198,8 @@ inline(Mod, Fun, Arity) -> inner_inline(ex_to_erl, Mod, Fun, Arity).
 ?inline(?process, unregister, 1, erlang, unregister);
 
 ?inline(?string, duplicate, 2, binary, copy);
+?inline(?string, to_atom, 1, erlang, binary_to_atom);
+?inline(?string, to_existing_atom, 1, erlang, binary_to_existing_atom);
 ?inline(?string, to_float, 1, erlang, binary_to_float);
 ?inline(?string, to_integer, 1, erlang, binary_to_integer);
 ?inline(?string, to_integer, 2, erlang, binary_to_integer);
@@ -208,8 +210,6 @@ inline(Mod, Fun, Arity) -> inner_inline(ex_to_erl, Mod, Fun, Arity).
 ?inline(?system, time_offset, 0, erlang, time_offset);
 ?inline(?system, unique_integer, 0, erlang, unique_integer);
 ?inline(?system, unique_integer, 1, erlang, unique_integer);
-
-?inline(?tuple, append, 2, erlang, append_element);
 ?inline(?tuple, to_list, 1, erlang, tuple_to_list);
 
 % Defined without macro to avoid conflict with Bitwise named operators
@@ -258,8 +258,6 @@ rewrite(Receiver, DotMeta, Right, Meta, Args) ->
 ?rewrite(?process, monitor, [Arg, Opts], erlang, monitor, [process, Arg, Opts]);
 ?rewrite(?process, send_after, [Dest, Msg, Time], erlang, send_after, [Time, Dest, Msg]);
 ?rewrite(?process, send_after, [Dest, Msg, Time, Opts], erlang, send_after, [Time, Dest, Msg, Opts]);
-?rewrite(?string, to_atom, [Arg], erlang, binary_to_atom, [Arg, utf8]);
-?rewrite(?string, to_existing_atom, [Arg], erlang, binary_to_existing_atom, [Arg, utf8]);
 ?rewrite(?tuple, duplicate, [Data, Size], erlang, make_tuple, [Size, Data]);
 
 inner_rewrite(ex_to_erl, Meta, ?tuple, delete_at, [Tuple, Index]) ->

@@ -6,9 +6,9 @@ TODO.
 
 * Type checking and inference of patterns
 
-* [Support for tuples and lists as composite types](https://elixir-lang.org/blog/2024/08/28/typing-lists-and-tuples/).
+* [Support for tuples and lists as composite types](https://elixir-lang.org/blog/2024/08/28/typing-lists-and-tuples/) as well as type checking of its basic operations from Kernel
 
-* Type checking of `elem/2`, `hd/1`, and `tl/1` in `Kernel`
+* Type checking of all built-in conversion functions, such as `List.to_integer/1` and `Atom.to_string/1`
 
 * Type checking of all functions in the `Tuple` module
 
