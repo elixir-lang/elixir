@@ -666,13 +666,36 @@ defmodule Module.Types.ExprTest do
     end
   end
 
-  describe "apply" do
+  describe ":erlang rewrites" do
     test "Integer.to_string/1" do
       assert typeerror!([x = :foo], Integer.to_string(x)) ==
                ~l"""
                incompatible types given to Integer.to_string/1:
 
                    Integer.to_string(x)
+
+               expected types:
+
+                   integer()
+
+               but got types:
+
+                   dynamic(:foo)
+
+               where "x" was given the type:
+
+                   # type: dynamic(:foo)
+                   # from: types_test.ex:LINE-1
+                   x = :foo
+               """
+    end
+
+    test "Bitwise.bnot/1" do
+      assert typeerror!([x = :foo], Bitwise.bnot(x)) ==
+               ~l"""
+               incompatible types given to Bitwise.bnot/1:
+
+                   Bitwise.bnot(x)
 
                expected types:
 

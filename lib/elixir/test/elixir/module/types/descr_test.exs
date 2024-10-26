@@ -1003,6 +1003,10 @@ defmodule Module.Types.DescrTest do
   end
 
   describe "disjoint" do
+    test "optional" do
+      assert disjoint?(term(), if_set(none()))
+    end
+
     test "map" do
       refute disjoint?(open_map(), open_map(a: integer()))
     end

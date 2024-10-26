@@ -123,7 +123,7 @@ defmodule Module.Types.Descr do
   ## Set operations
 
   def term_type?(:term), do: true
-  def term_type?(descr), do: subtype_static(unfolded_term(), Map.delete(descr, :dynamic))
+  def term_type?(descr), do: subtype_static?(unfolded_term(), Map.delete(descr, :dynamic))
 
   def dynamic_term_type?(descr), do: descr == %{dynamic: :term}
 
@@ -241,8 +241,27 @@ defmodule Module.Types.Descr do
   defp difference_static(left, :term) when not is_optional_static(left), do: none()
 
   defp difference_static(left, right) do
-    iterator_difference(:maps.next(:maps.iterator(unfold(right))), unfold(left))
+    iterator_difference_static(:maps.next(:maps.iterator(unfold(right))), unfold(left))
   end
+
+  defp iterator_difference_static({key, v2, iterator}, map) do
+    acc =
+      case map do
+        %{^key => v1} ->
+          case difference(key, v1, v2) do
+            0 -> Map.delete(map, key)
+            [] -> Map.delete(map, key)
+            value -> %{map | key => value}
+          end
+
+        %{} ->
+          map
+      end
+
+    iterator_difference_static(:maps.next(iterator), acc)
+  end
+
+  defp iterator_difference_static(:none, map), do: map
 
   # Returning 0 from the callback is taken as none() for that subtype.
   @compile {:inline, difference: 3}
@@ -347,19 +366,19 @@ defmodule Module.Types.Descr do
     cond do
       is_grad_left and not is_grad_right ->
         left_dynamic = Map.get(left, :dynamic)
-        subtype_static(left_dynamic, right)
+        subtype_static?(left_dynamic, right)
 
       is_grad_right and not is_grad_left ->
         right_static = Map.delete(right, :dynamic)
-        subtype_static(left, right_static)
+        subtype_static?(left, right_static)
 
       true ->
-        subtype_static(left, right)
+        subtype_static?(left, right)
     end
   end
 
-  defp subtype_static(same, same), do: true
-  defp subtype_static(left, right), do: empty?(difference_static(left, right))
+  defp subtype_static?(same, same), do: true
+  defp subtype_static?(left, right), do: empty?(difference_static(left, right))
 
   @doc """
   Check if a type is equal to another.
@@ -372,8 +391,33 @@ defmodule Module.Types.Descr do
 
   @doc """
   Check if two types are disjoint.
+
+  This reimplements intersection/2 but aborts as it finds a disjoint part.
   """
-  def disjoint?(left, right), do: empty?(intersection(left, right))
+  def disjoint?(:term, other) when not is_optional(other), do: empty?(other)
+  def disjoint?(other, :term) when not is_optional(other), do: empty?(other)
+  def disjoint?(%{dynamic: :term}, other) when not is_optional(other), do: empty?(other)
+  def disjoint?(other, %{dynamic: :term}) when not is_optional(other), do: empty?(other)
+
+  def disjoint?(left, right) do
+    left = unfold(left)
+    right = unfold(right)
+    is_gradual_left = gradual?(left)
+    is_gradual_right = gradual?(right)
+
+    cond do
+      is_gradual_left and not is_gradual_right ->
+        right_with_dynamic = Map.put(right, :dynamic, right)
+        not non_disjoint_intersection?(left, right_with_dynamic)
+
+      is_gradual_right and not is_gradual_left ->
+        left_with_dynamic = Map.put(left, :dynamic, left)
+        not non_disjoint_intersection?(left_with_dynamic, right)
+
+      true ->
+        not non_disjoint_intersection?(left, right)
+    end
+  end
 
   @doc """
   Checks if a type is a compatible subtype of another.
@@ -400,9 +444,13 @@ defmodule Module.Types.Descr do
     right_dynamic = Map.get(right, :dynamic, right)
 
     if empty?(left_static) do
-      not disjoint?(left_dynamic, right_dynamic)
+      cond do
+        left_dynamic == :term -> not empty?(right_dynamic)
+        right_dynamic == :term -> not empty?(left_dynamic)
+        true -> non_disjoint_intersection?(left_dynamic, right_dynamic)
+      end
     else
-      subtype_static(left_static, right_dynamic)
+      subtype_static?(left_static, right_dynamic)
     end
   end
 
@@ -1610,18 +1658,23 @@ defmodule Module.Types.Descr do
     m = length(elements2)
 
     cond do
-      (tag1 == :closed and n < m) or (tag2 == :closed and n > m) -> throw(:empty)
-      tag1 == :open and tag2 == :open -> {:open, zip_intersection(elements1, elements2, [])}
-      true -> {:closed, zip_intersection(elements1, elements2, [])}
+      (tag1 == :closed and n < m) or (tag2 == :closed and n > m) ->
+        throw(:empty)
+
+      tag1 == :open and tag2 == :open ->
+        {:open, zip_non_empty_intersection!(elements1, elements2, [])}
+
+      true ->
+        {:closed, zip_non_empty_intersection!(elements1, elements2, [])}
     end
   end
 
   # Intersects two lists of types, and _appends_ the extra elements to the result.
-  defp zip_intersection([], types2, acc), do: Enum.reverse(acc, types2)
-  defp zip_intersection(types1, [], acc), do: Enum.reverse(acc, types1)
+  defp zip_non_empty_intersection!([], types2, acc), do: Enum.reverse(acc, types2)
+  defp zip_non_empty_intersection!(types1, [], acc), do: Enum.reverse(acc, types1)
 
-  defp zip_intersection([type1 | rest1], [type2 | rest2], acc) do
-    zip_intersection(rest1, rest2, [non_empty_intersection!(type1, type2) | acc])
+  defp zip_non_empty_intersection!([type1 | rest1], [type2 | rest2], acc) do
+    zip_non_empty_intersection!(rest1, rest2, [non_empty_intersection!(type1, type2) | acc])
   end
 
   defp tuple_difference(dnf1, dnf2) do
@@ -2207,22 +2260,24 @@ defmodule Module.Types.Descr do
 
   defp iterator_intersection(:none, _map, acc, _fun), do: :maps.from_list(acc)
 
-  defp iterator_difference({key, v2, iterator}, map) do
-    acc =
-      case map do
-        %{^key => v1} ->
-          case difference(key, v1, v2) do
-            0 -> Map.delete(map, key)
-            [] -> Map.delete(map, key)
-            value -> %{map | key => value}
-          end
-
-        %{} ->
-          map
-      end
-
-    iterator_difference(:maps.next(iterator), acc)
+  defp non_disjoint_intersection?(left, right) do
+    # Erlang maps:intersect_with/3 has to preserve the order in combiner.
+    # We don't care about the order, so we have a faster implementation.
+    if map_size(left) > map_size(right) do
+      iterator_non_disjoint_intersection?(:maps.next(:maps.iterator(right)), left)
+    else
+      iterator_non_disjoint_intersection?(:maps.next(:maps.iterator(left)), right)
+    end
   end
 
-  defp iterator_difference(:none, map), do: map
+  defp iterator_non_disjoint_intersection?({key, v1, iterator}, map) do
+    with %{^key => v2} <- map,
+         value when value != 0 and value != @none <- intersection(key, v1, v2) do
+      true
+    else
+      _ -> iterator_non_disjoint_intersection?(:maps.next(iterator), map)
+    end
+  end
+
+  defp iterator_non_disjoint_intersection?(:none, _map), do: false
 end
