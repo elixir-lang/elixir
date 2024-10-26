@@ -48,11 +48,15 @@ defmodule Module.Types.ExprTest do
       assert typewarn!(hd([])) ==
                {dynamic(),
                 ~l"""
-                expected a non-empty list in Kernel.hd/1:
+                incompatible types given to Kernel.hd/1:
 
                     hd([])
 
-                but got type:
+                expected types:
+
+                    non_empty_list(term(), term())
+
+                but got types:
 
                     empty_list()
                 """}
@@ -60,11 +64,15 @@ defmodule Module.Types.ExprTest do
       assert typewarn!(hd(123)) ==
                {dynamic(),
                 ~l"""
-                expected a non-empty list in Kernel.hd/1:
+                incompatible types given to Kernel.hd/1:
 
                     hd(123)
 
-                but got type:
+                expected types:
+
+                    non_empty_list(term(), term())
+
+                but got types:
 
                     integer()
                 """}
@@ -79,11 +87,15 @@ defmodule Module.Types.ExprTest do
       assert typewarn!(tl([])) ==
                {dynamic(),
                 ~l"""
-                expected a non-empty list in Kernel.tl/1:
+                incompatible types given to Kernel.tl/1:
 
                     tl([])
 
-                but got type:
+                expected types:
+
+                    non_empty_list(term(), term())
+
+                but got types:
 
                     empty_list()
                 """}
@@ -91,11 +103,15 @@ defmodule Module.Types.ExprTest do
       assert typewarn!(tl(123)) ==
                {dynamic(),
                 ~l"""
-                expected a non-empty list in Kernel.tl/1:
+                incompatible types given to Kernel.tl/1:
 
                     tl(123)
 
-                but got type:
+                expected types:
+
+                    non_empty_list(term(), term())
+
+                but got types:
 
                     integer()
                 """}
@@ -322,13 +338,17 @@ defmodule Module.Types.ExprTest do
       assert typewarn!([<<x::integer>>], elem(x, 0)) ==
                {dynamic(),
                 ~l"""
-                expected a tuple in Kernel.elem/2:
+                incompatible types given to Kernel.elem/2:
 
                     elem(x, 0)
 
-                but got type:
+                expected types:
 
-                    integer()
+                    integer(), {...}
+
+                but got types:
+
+                    integer(), integer()
 
                 where "x" was given the type:
 
@@ -365,13 +385,17 @@ defmodule Module.Types.ExprTest do
       assert typewarn!([<<x::integer>>], Tuple.insert_at(x, 0, "foo")) ==
                {dynamic(),
                 ~l"""
-                expected a tuple in Tuple.insert_at/3:
+                incompatible types given to Tuple.insert_at/3:
 
                     Tuple.insert_at(x, 0, "foo")
 
-                but got type:
+                expected types:
 
-                    integer()
+                    integer(), {...}, term()
+
+                but got types:
+
+                    integer(), integer(), binary()
 
                 where "x" was given the type:
 
@@ -402,13 +426,17 @@ defmodule Module.Types.ExprTest do
       assert typewarn!([<<x::integer>>], Tuple.delete_at(x, 0)) ==
                {dynamic(),
                 ~l"""
-                expected a tuple in Tuple.delete_at/2:
+                incompatible types given to Tuple.delete_at/2:
 
                     Tuple.delete_at(x, 0)
 
-                but got type:
+                expected types:
 
-                    integer()
+                    integer(), {...}
+
+                but got types:
+
+                    integer(), integer()
 
                 where "x" was given the type:
 

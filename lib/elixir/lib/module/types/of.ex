@@ -321,15 +321,24 @@ defmodule Module.Types.Of do
 
   for {mod, fun, clauses} <- [
         {:erlang, :binary_to_integer, [{[binary()], integer()}]},
-        {:erlang, :integer_to_binary, [{[integer()], binary()}]}
+        {:erlang, :integer_to_binary, [{[integer()], binary()}]},
+
+        # TODO: Replace term()/dynamic() by parametric types
+        {:erlang, :hd, [{[non_empty_list(term(), term())], dynamic()}]},
+        {:erlang, :tl, [{[non_empty_list(term(), term())], dynamic()}]},
+        {:erlang, :delete_element,
+         [{[integer(), open_tuple([], term())], dynamic(open_tuple([], term()))}]},
+        {:erlang, :element, [{[integer(), open_tuple([], term())], dynamic()}]},
+        {:erlang, :insert_element,
+         [{[integer(), open_tuple([], term()), term()], dynamic(open_tuple([], term()))}]}
       ] do
     [{args, _return} | _others] = clauses
 
-    defp strong_remote(unquote(mod), unquote(fun), unquote(length(args))),
+    defp remote(unquote(mod), unquote(fun), unquote(length(args))),
       do: unquote(Macro.escape(clauses))
   end
 
-  defp strong_remote(_mod, _fun, _arity), do: []
+  defp remote(_mod, _fun, _arity), do: []
 
   @doc """
   Checks a module is a valid remote.
@@ -353,7 +362,7 @@ defmodule Module.Types.Of do
     if Keyword.get(meta, :runtime_module, false) do
       {:none, context}
     else
-      case strong_remote(module, fun, arity) do
+      case remote(module, fun, arity) do
         [] -> {:none, check_export(module, fun, arity, meta, stack, context)}
         clauses -> {{:strong, clauses}, context}
       end
@@ -367,6 +376,9 @@ defmodule Module.Types.Of do
     case tuple_fetch(tuple, index - 1) do
       {_optional?, value_type} ->
         {value_type, context}
+
+      :badtuple ->
+        {error_type(), badapply_error(expr, [integer(), tuple], stack, context)}
 
       reason ->
         {error_type(), error({reason, expr, tuple, index - 1, context}, meta, stack, context)}
@@ -386,6 +398,9 @@ defmodule Module.Types.Of do
       value_type when is_descr(value_type) ->
         {value_type, context}
 
+      :badtuple ->
+        {error_type(), badapply_error(expr, [integer(), tuple, value], stack, context)}
+
       reason ->
         {error_type(), error({reason, expr, tuple, index - 2, context}, meta, stack, context)}
     end
@@ -396,6 +411,9 @@ defmodule Module.Types.Of do
     case tuple_delete_at(tuple, index - 1) do
       value_type when is_descr(value_type) ->
         {value_type, context}
+
+      :badtuple ->
+        {error_type(), badapply_error(expr, [integer(), tuple], stack, context)}
 
       reason ->
         {error_type(), error({reason, expr, tuple, index - 1, context}, meta, stack, context)}
@@ -412,8 +430,8 @@ defmodule Module.Types.Of do
       {_, value_type} ->
         {value_type, context}
 
-      reason ->
-        {error_type(), error({reason, expr, list, context}, elem(expr, 1), stack, context)}
+      :badnonemptylist ->
+        {error_type(), badapply_error(expr, [list], stack, context)}
     end
   end
 
@@ -422,8 +440,8 @@ defmodule Module.Types.Of do
       {_, value_type} ->
         {value_type, context}
 
-      reason ->
-        {error_type(), error({reason, expr, list, context}, elem(expr, 1), stack, context)}
+      :badnonemptylist ->
+        {error_type(), badapply_error(expr, [list], stack, context)}
     end
   end
 
@@ -705,48 +723,6 @@ defmodule Module.Types.Of do
     }
   end
 
-  def format_diagnostic({:badnonemptylist, expr, type, context}) do
-    traces = collect_traces(expr, context)
-
-    %{
-      details: %{typing_traces: traces},
-      message:
-        IO.iodata_to_binary([
-          """
-          expected a non-empty list in #{format_mfa(expr)}:
-
-              #{expr_to_string(expr) |> indent(4)}
-
-          but got type:
-
-              #{to_quoted_string(type) |> indent(4)}
-          """,
-          format_traces(traces)
-        ])
-    }
-  end
-
-  def format_diagnostic({:badtuple, expr, type, _index, context}) do
-    traces = collect_traces(expr, context)
-
-    %{
-      details: %{typing_traces: traces},
-      message:
-        IO.iodata_to_binary([
-          """
-          expected a tuple in #{format_mfa(expr)}:
-
-              #{expr_to_string(expr) |> indent(4)}
-
-          but got type:
-
-              #{to_quoted_string(type) |> indent(4)}
-          """,
-          format_traces(traces)
-        ])
-    }
-  end
-
   def format_diagnostic({:badindex, expr, type, index, context}) do
     traces = collect_traces(expr, context)
 
@@ -794,23 +770,24 @@ defmodule Module.Types.Of do
 
   def format_diagnostic({:badapply, expr, args_types, clauses, context}) do
     traces = collect_traces(expr, context)
+    {{:., _, [mod, fun]}, _, args} = expr
 
     %{
       details: %{typing_traces: traces},
       message:
         IO.iodata_to_binary([
           """
-          incompatible types given to #{format_mfa(expr)}:
+          incompatible types given to #{format_mfa(mod, fun, args)}:
 
               #{expr_to_string(expr) |> indent(4)}
 
           expected types:
 
-              #{clauses_args_to_quoted_string(clauses) |> indent(4)}
+              #{clauses_args_to_quoted_string(mod, fun, clauses) |> indent(4)}
 
           but got types:
 
-              #{args_to_quoted_string(args_types) |> indent(4)}
+              #{args_to_quoted_string(mod, fun, args_types) |> indent(4)}
           """,
           format_traces(traces)
         ])
@@ -936,15 +913,22 @@ defmodule Module.Types.Of do
     match?({{:., _, [var, _fun]}, _, _args} when is_var(var), expr)
   end
 
-  defp clauses_args_to_quoted_string([{args, _return}]) do
-    args_to_quoted_string(args)
+  defp badapply_error({{:., _, [mod, fun]}, meta, _} = expr, args_types, stack, context) do
+    clauses = remote(mod, fun, length(args_types))
+    error({:badapply, expr, args_types, clauses, context}, meta, stack, context)
   end
 
-  defp args_to_quoted_string([arg]) do
+  defp clauses_args_to_quoted_string(mod, fun, [{args, _return}]) do
+    args_to_quoted_string(mod, fun, args)
+  end
+
+  defp args_to_quoted_string(_mod, _fun, [arg]) do
     to_quoted_string(arg)
   end
 
-  defp args_to_quoted_string(args) do
+  defp args_to_quoted_string(mod, fun, args) do
+    {_mod, _fun, args} = :elixir_rewrite.erl_to_ex(mod, fun, args)
+
     {:_, [], Enum.map(args, &to_quoted/1)}
     |> Code.Formatter.to_algebra()
     |> Inspect.Algebra.format(98)
@@ -960,6 +944,10 @@ defmodule Module.Types.Of do
   end
 
   defp format_mfa({{:., _, [mod, fun]}, _, args}) do
+    format_mfa(mod, fun, args)
+  end
+
+  defp format_mfa(mod, fun, args) do
     {mod, fun, args} = :elixir_rewrite.erl_to_ex(mod, fun, args)
     Exception.format_mfa(mod, fun, length(args))
   end
