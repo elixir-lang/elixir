@@ -837,7 +837,7 @@ defmodule Enum do
   end
 
   def dedup(enumerable) do
-    Enum.reduce(enumerable, [], fn x, acc ->
+    reduce(enumerable, [], fn x, acc ->
       case acc do
         [^x | _] -> acc
         _ -> [x | acc]
@@ -1549,7 +1549,7 @@ defmodule Enum do
     do: Map.merge(collectable, :maps.from_list(enumerable))
 
   defp into_map(enumerable, collectable),
-    do: Enum.reduce(enumerable, collectable, fn {key, val}, acc -> Map.put(acc, key, val) end)
+    do: reduce(enumerable, collectable, fn {key, val}, acc -> Map.put(acc, key, val) end)
 
   defp into_protocol(enumerable, collectable) do
     {initial, fun} = Collectable.into(collectable)
@@ -1592,7 +1592,7 @@ defmodule Enum do
   """
   @spec into(Enumerable.t(), Collectable.t(), (term -> term)) :: Collectable.t()
   def into(enumerable, [], transform) do
-    Enum.map(enumerable, transform)
+    map(enumerable, transform)
   end
 
   def into(%_{} = enumerable, collectable, transform) do
@@ -1605,9 +1605,9 @@ defmodule Enum do
 
   def into(enumerable, %{} = collectable, transform) do
     if map_size(collectable) == 0 do
-      enumerable |> Enum.map(transform) |> :maps.from_list()
+      enumerable |> map(transform) |> :maps.from_list()
     else
-      Enum.reduce(enumerable, collectable, fn entry, acc ->
+      reduce(enumerable, collectable, fn entry, acc ->
         {key, val} = transform.(entry)
         Map.put(acc, key, val)
       end)
@@ -2808,7 +2808,7 @@ defmodule Enum do
     # Then at the end, we're going to reassemble and reverse them, and end up with the
     # chunks in the correct order.
     {_size, pre, post} =
-      Enum.reduce(enumerable, {0, [], []}, fn item, {index, pre, post} ->
+      reduce(enumerable, {0, [], []}, fn item, {index, pre, post} ->
         {pre, post} =
           cond do
             index < start -> {[item | pre], post}
@@ -3353,7 +3353,7 @@ defmodule Enum do
 
   def sort_by(enumerable, mapper, :desc) when is_function(mapper, 1) do
     enumerable
-    |> Enum.reduce([], &[{&1, mapper.(&1)} | &2])
+    |> reduce([], &[{&1, mapper.(&1)} | &2])
     |> List.keysort(1, :asc)
     |> List.foldl([], &[elem(&1, 0) | &2])
   end
