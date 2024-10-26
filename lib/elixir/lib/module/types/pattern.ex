@@ -43,12 +43,10 @@ defmodule Module.Types.Pattern do
 
   defp of_pattern_args(patterns, expected_types, stack, context) do
     context = %{context | pattern_info: {%{}, %{}}}
-    changed = :lists.seq(0, length(patterns) - 1)
-
     {trees, context} = of_pattern_args_index(patterns, expected_types, 0, [], stack, context)
 
     {types, context} =
-      of_pattern_recur(expected_types, changed, stack, context, fn types, changed, context ->
+      of_pattern_recur(expected_types, stack, context, fn types, changed, context ->
         of_pattern_args_tree(trees, types, changed, 0, [], stack, context)
       end)
 
@@ -110,7 +108,7 @@ defmodule Module.Types.Pattern do
     {tree, context} = of_pattern(pattern, [{:arg, 0, expected, expr}], stack, context)
 
     {[type], context} =
-      of_pattern_recur([expected], [0], stack, context, fn [type], [0], context ->
+      of_pattern_recur([expected], stack, context, fn [type], [0], context ->
         with {:ok, type, context} <- of_pattern_intersect(tree, type, expr, stack, context) do
           {:ok, [type], context}
         end
@@ -119,73 +117,84 @@ defmodule Module.Types.Pattern do
     {type, context}
   end
 
-  defp of_pattern_recur(types, changed, stack, context, callback) do
+  defp of_pattern_recur(types, stack, context, callback) do
     %{pattern_info: {pattern_vars, pattern_args}} = context
     context = %{context | pattern_info: nil}
     pattern_vars = Map.to_list(pattern_vars)
-    of_pattern_recur(types, changed, pattern_vars, pattern_args, stack, context, callback)
+    changed = :lists.seq(0, length(types) - 1)
+
+    case callback.(types, changed, context) do
+      {:ok, types, context} ->
+        of_pattern_recur(types, pattern_vars, pattern_args, stack, context, callback)
+
+      {:error, context} ->
+        {types, context}
+    end
   catch
     {types, context} -> {types, context}
   end
 
-  defp of_pattern_recur(types, [], _vars, _args, _stack, context, _callback) do
-    {types, context}
-  end
+  defp of_pattern_recur(types, vars, args, stack, context, callback) do
+    %{vars: context_vars} = context
 
-  defp of_pattern_recur(types, changed, vars, args, stack, context, callback) do
-    case callback.(types, changed, context) do
-      {:ok, types, %{vars: context_vars} = context} ->
-        {changed, context} =
-          Enum.reduce(vars, {[], context}, fn {version, paths}, {changed, context} ->
-            current_type = context_vars[version][:type]
+    {changed, context} =
+      Enum.reduce(vars, {[], context}, fn {version, paths}, {changed, context} ->
+        current_type = context_vars[version][:type]
 
-            {var_changed?, context} =
-              Enum.reduce(paths, {false, context}, fn
-                [var, {:arg, index, expected, expr} | path], {var_changed?, context} ->
-                  actual = Enum.fetch!(types, index)
+        {var_changed?, context} =
+          Enum.reduce(paths, {false, context}, fn
+            [var, {:arg, index, expected, expr} | path], {var_changed?, context} ->
+              actual = Enum.fetch!(types, index)
 
-                  case of_pattern_var(path, actual) do
-                    {:ok, type} ->
-                      case Of.refine_var(var, type, expr, stack, context) do
-                        {:ok, type, context} ->
-                          {var_changed? or current_type == nil or not equal?(current_type, type),
-                           context}
+              case of_pattern_var(path, actual) do
+                {:ok, type} ->
+                  case Of.refine_var(var, type, expr, stack, context) do
+                    {:ok, type, context} ->
+                      {var_changed? or current_type == nil or not equal?(current_type, type),
+                       context}
 
-                        {:error, _type, context} ->
-                          throw({types, context})
-                      end
-
-                    :error ->
-                      context = Of.incompatible_error(expr, expected, actual, stack, context)
+                    {:error, _type, context} ->
                       throw({types, context})
                   end
-              end)
 
-            case var_changed? do
-              false ->
-                {changed, context}
-
-              true ->
-                case paths do
-                  # A single change, check if there are other variables in this index.
-                  [[_var, {:arg, index, _, _} | _]] ->
-                    case args do
-                      %{^index => true} -> {[index | changed], context}
-                      %{^index => false} -> {changed, context}
-                    end
-
-                  # Several changes, we have to recompute all indexes.
-                  _ ->
-                    var_changed = Enum.map(paths, fn [_var, {:arg, index, _, _} | _] -> index end)
-                    {var_changed ++ changed, context}
-                end
-            end
+                :error ->
+                  context = Of.incompatible_error(expr, expected, actual, stack, context)
+                  throw({types, context})
+              end
           end)
 
-        of_pattern_recur(types, :lists.usort(changed), vars, args, stack, context, callback)
+        case var_changed? do
+          false ->
+            {changed, context}
 
-      {:error, context} ->
+          true ->
+            case paths do
+              # A single change, check if there are other variables in this index.
+              [[_var, {:arg, index, _, _} | _]] ->
+                case args do
+                  %{^index => true} -> {[index | changed], context}
+                  %{^index => false} -> {changed, context}
+                end
+
+              # Several changes, we have to recompute all indexes.
+              _ ->
+                var_changed = Enum.map(paths, fn [_var, {:arg, index, _, _} | _] -> index end)
+                {var_changed ++ changed, context}
+            end
+        end
+      end)
+
+    case :lists.usort(changed) do
+      [] ->
         {types, context}
+
+      changed ->
+        case callback.(types, changed, context) do
+          # A simple structural comparison for optimization
+          {:ok, ^types, context} -> {types, context}
+          {:ok, types, context} -> of_pattern_recur(types, vars, args, stack, context, callback)
+          {:error, context} -> {types, context}
+        end
     end
   end
 
