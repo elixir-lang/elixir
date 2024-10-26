@@ -147,25 +147,30 @@ defmodule Module.Types.Helpers do
 
   defp format_trace(%{type: :variable, name: name, context: context, traces: traces}) do
     traces =
-      for trace <- traces do
+      traces
+      |> Enum.map(fn trace ->
         location =
           trace.file
           |> Path.relative_to_cwd()
           |> Exception.format_file_line(trace.meta[:line])
           |> String.replace_suffix(":", "")
 
+        {trace.formatted_type, location, trace.formatted_expr, trace.formatted_hints}
+      end)
+      |> Enum.dedup()
+      |> Enum.map(fn {formatted_type, location, formatted_expr, formatted_hints} ->
         [
           """
 
-              # type: #{indent(trace.formatted_type, 4)}
+              # type: #{indent(formatted_type, 4)}
               # from: #{location}
               \
           """,
-          indent(trace.formatted_expr, 4),
+          indent(formatted_expr, 4),
           ?\n,
-          trace.formatted_hints
+          formatted_hints
         ]
-      end
+      end)
 
     type_or_types = pluralize(traces, "type", "types")
     ["\nwhere #{format_var(name, context)} was given the #{type_or_types}:\n" | traces]

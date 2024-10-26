@@ -25,6 +25,28 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([%y{}, %x{}, x = y, x = Point], y) == dynamic(atom([Point]))
     end
 
+    test "repeated refinements are ignored on reporting" do
+      assert typeerror!([{name, arity}, arity = 123], hd(Atom.to_charlist(name))) == ~l"""
+             incompatible types given to Kernel.hd/1:
+
+                 hd(Atom.to_charlist(name))
+
+             expected types:
+
+                 non_empty_list(term(), term())
+
+             but got types:
+
+                 empty_list() or non_empty_list(integer())
+
+             where "name" was given the type:
+
+                 # type: dynamic()
+                 # from: types_test.ex
+                 {name, arity}
+             """
+    end
+
     test "errors on conflicting refinements" do
       assert typeerror!([a = b, a = :foo, b = :bar], {a, b}) ==
                ~l"""
@@ -35,13 +57,13 @@ defmodule Module.Types.PatternTest do
                where "a" was given the type:
 
                    # type: dynamic(:foo)
-                   # from: types_test.ex:29
+                   # from: types_test.ex:LINE-1
                    a = :foo
 
                where "b" was given the type:
 
                    # type: dynamic(:bar)
-                   # from: types_test.ex:29
+                   # from: types_test.ex:LINE-1
                    b = :bar
                """
     end
