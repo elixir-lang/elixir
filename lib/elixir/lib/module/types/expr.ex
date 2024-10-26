@@ -298,7 +298,10 @@ defmodule Module.Types.Expr do
     # TODO: We cannot return the unions of functions. Do we forbid this?
     # Do we check it is always the same return type? Do we simply say it is a function?
     {mods, context} = Of.modules(remote_type, name, arity, expr, meta, stack, context)
-    context = Enum.reduce(mods, context, &Of.remote(&1, name, arity, meta, stack, &2))
+
+    context =
+      Enum.reduce(mods, context, &(Of.remote(&1, name, arity, meta, stack, &2) |> elem(1)))
+
     {fun(), context}
   end
 
@@ -334,7 +337,7 @@ defmodule Module.Types.Expr do
         else
           # If the exception cannot be found or is invalid,
           # we call Of.remote/5 to emit a warning.
-          context = Of.remote(exception, :__struct__, 0, meta, stack, context)
+          {_, context} = Of.remote(exception, :__struct__, 0, meta, stack, context)
           {error_type(), context}
         end
       end)

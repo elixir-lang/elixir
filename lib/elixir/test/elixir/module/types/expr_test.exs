@@ -658,6 +658,32 @@ defmodule Module.Types.ExprTest do
     end
   end
 
+  describe "apply" do
+    test "Integer.to_string/1" do
+      assert typewarn!([x = :foo], Integer.to_string(x)) ==
+               {dynamic(),
+                ~l"""
+                incompatible types given to Integer.to_string/1:
+
+                    Integer.to_string(x)
+
+                expected types:
+
+                    integer()
+
+                but got types:
+
+                    dynamic(:foo)
+
+                where "x" was given the type:
+
+                    # type: dynamic(:foo)
+                    # from: types_test.ex:LINE-2
+                    x = :foo
+                """}
+    end
+  end
+
   describe "try" do
     test "warns on undefined exceptions" do
       assert typewarn!(
@@ -682,7 +708,7 @@ defmodule Module.Types.ExprTest do
     end
 
     test "defines unions of exceptions in rescue" do
-      # TODO: check via the actual return type instead
+      # TODO: we are validating this through the exception but we should actually check the returned type
       assert typewarn!(
                try do
                  :ok

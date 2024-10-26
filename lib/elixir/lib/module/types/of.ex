@@ -190,7 +190,7 @@ defmodule Module.Types.Of do
   Returns `__info__(:struct)` information about a struct.
   """
   def struct_info(struct, meta, stack, context) do
-    context = remote(struct, :__struct__, 0, meta, stack, context)
+    {_, context} = remote(struct, :__struct__, 0, meta, stack, context)
 
     info =
       struct.__info__(:struct) ||
@@ -293,7 +293,72 @@ defmodule Module.Types.Of do
     context
   end
 
+  ## Modules
+
+  @doc """
+  Returns the modules.
+
+  The call information is used on report reporting.
+  """
+  def modules(type, fun, arity, hints \\ [], expr, meta, stack, context) do
+    case atom_fetch(type) do
+      {_, mods} ->
+        {mods, context}
+
+      :error ->
+        warning = {:badmodule, expr, type, fun, arity, hints, context}
+        {[], error(warning, meta, stack, context)}
+    end
+  end
+
   ## Remotes
+
+  # Define strong arrows found in the standard library.
+  # A strong arrow means that, if a type outside of its
+  # domain is given, an error is raised. We are also
+  # ensuring that domains for the same function have
+  # no overlaps.
+
+  for {mod, fun, clauses} <- [
+        {:erlang, :binary_to_integer, [{[binary()], integer()}]},
+        {:erlang, :integer_to_binary, [{[integer()], binary()}]}
+      ] do
+    [{args, _return} | _others] = clauses
+
+    defp strong_remote(unquote(mod), unquote(fun), unquote(length(args))),
+      do: unquote(Macro.escape(clauses))
+  end
+
+  defp strong_remote(_mod, _fun, _arity), do: []
+
+  @doc """
+  Checks a module is a valid remote.
+
+  It returns either a tuple with the remote information and the context.
+  The remote information may be one of:
+
+    * `:none` - no typing information found.
+
+    * `{:infer, clauses}` - clauses from inferences. You must check all
+      all clauses and return the union between them. They are dynamic
+      and they can only be converted into arrows by computing the union
+      of all arguments.
+
+    * `{:strong, clauses}` - clauses from signatures. So far these are
+      strong arrows with non-overlapping domains. If you find one matching
+      clause, you can stop looking for others.
+
+  """
+  def remote(module, fun, arity, meta, stack, context) when is_atom(module) do
+    if Keyword.get(meta, :runtime_module, false) do
+      {:none, context}
+    else
+      case strong_remote(module, fun, arity) do
+        [] -> {:none, check_export(module, fun, arity, meta, stack, context)}
+        clauses -> {{:strong, clauses}, context}
+      end
+    end
+  end
 
   # TODO: Implement element without a literal index
 
@@ -407,35 +472,36 @@ defmodule Module.Types.Of do
         apply(mod, name, args_types, expr, stack, context)
 
       false ->
-        context = remote(mod, name, arity, elem(expr, 1), stack, context)
-        {dynamic(), context}
+        {info, context} = remote(mod, name, arity, elem(expr, 1), stack, context)
+
+        case apply_remote(info, args_types) do
+          {:ok, type} ->
+            {type, context}
+
+          {:error, clauses} ->
+            error = {:badapply, expr, args_types, clauses, context}
+            {error_type(), error(error, elem(expr, 1), stack, context)}
+        end
     end
   end
 
-  @doc """
-  Returns the modules for a given call.
-  """
-  def modules(type, fun, arity, hints \\ [], expr, meta, stack, context) do
-    case atom_fetch(type) do
-      {_, mods} ->
-        {mods, context}
-
-      :error ->
-        warning = {:badmodule, expr, type, fun, arity, hints, context}
-        {[], error(warning, meta, stack, context)}
-    end
+  defp apply_remote(:none, _args_types) do
+    {:ok, dynamic()}
   end
 
-  @doc """
-  Checks a module is a valid remote.
-  """
-  def remote(module, fun, arity, meta, stack, context) when is_atom(module) do
-    if Keyword.get(meta, :runtime_module, false) do
-      context
-    else
-      check_export(module, fun, arity, meta, stack, context)
-    end
+  defp apply_remote({:strong, clauses}, args_types) do
+    Enum.find_value(clauses, {:error, clauses}, fn {expected, return} ->
+      if zip_compatible?(args_types, expected) do
+        {:ok, return}
+      end
+    end)
   end
+
+  defp zip_compatible?([actual | actuals], [expected | expecteds]) do
+    compatible?(actual, expected) and zip_compatible?(actuals, expecteds)
+  end
+
+  defp zip_compatible?([], []), do: true
 
   defp check_export(module, fun, arity, meta, stack, context) do
     case ParallelChecker.fetch_export(stack.cache, module, fun, arity) do
@@ -726,6 +792,31 @@ defmodule Module.Types.Of do
     }
   end
 
+  def format_diagnostic({:badapply, expr, args_types, clauses, context}) do
+    traces = collect_traces(expr, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          incompatible types given to #{format_mfa(expr)}:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          expected types:
+
+              #{clauses_args_to_quoted_string(clauses) |> indent(4)}
+
+          but got types:
+
+              #{args_to_quoted_string(args_types) |> indent(4)}
+          """,
+          format_traces(traces)
+        ])
+    }
+  end
+
   def format_diagnostic({:mismatched_comparison, expr, context}) do
     traces = collect_traces(expr, context)
 
@@ -843,6 +934,25 @@ defmodule Module.Types.Of do
 
   defp dot_var?(expr) do
     match?({{:., _, [var, _fun]}, _, _args} when is_var(var), expr)
+  end
+
+  defp clauses_args_to_quoted_string([{args, _return}]) do
+    args_to_quoted_string(args)
+  end
+
+  defp args_to_quoted_string([arg]) do
+    to_quoted_string(arg)
+  end
+
+  defp args_to_quoted_string(args) do
+    {:_, [], Enum.map(args, &to_quoted/1)}
+    |> Code.Formatter.to_algebra()
+    |> Inspect.Algebra.format(98)
+    |> IO.iodata_to_binary()
+    |> case do
+      "_(\n" <> _ = multiple_lines -> binary_slice(multiple_lines, 1..-1//1)
+      single_line -> binary_slice(single_line, 2..-2//1)
+    end
   end
 
   defp empty_if(condition, content) do
