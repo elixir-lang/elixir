@@ -6,7 +6,11 @@ TODO.
 
 * Type checking and inference of patterns
 
-* [Support for tuples](https://elixir-lang.org/blog/2024/08/28/typing-lists-and-tuples/).
+* [Support for tuples and lists as composite types](https://elixir-lang.org/blog/2024/08/28/typing-lists-and-tuples/).
+
+* Type checking of `elem/2`, `hd/1`, and `tl/1` in `Kernel`
+
+* Type checking of all functions in the `Tuple` module
 
 ## ExUnit improvements
 
@@ -127,6 +131,7 @@ You may also prever to write using guards:
 #### Elixir
 
   * [Kernel] Deprecate `unless` in favor of `if`. Use `mix format --migrate` to automate the migration
+  * [Macro] `Macro.struct!/2` is deprecated in favor of `Macro.struct_info!/2`
 
 ### 4. Hard deprecations
 
@@ -141,6 +146,7 @@ You may also prever to write using guards:
   * [List] `List.zip/1` is deprecated in favor of `Enum.zip/1`
   * [Module] Deprecate `Module.eval_quoted/3` in favor of `Code.eval_quoted/3`
   * [Range] Deprecate inferring negative ranges on `Range.new/2`
+  * [Tuple] `Tuple.append/2` is deprecated, use `Tuple.insert_at/3` instead
 
 #### Mix
 
