@@ -1005,6 +1005,7 @@ defmodule Module.Types.DescrTest do
   describe "disjoint" do
     test "optional" do
       assert disjoint?(term(), if_set(none()))
+      assert disjoint?(term(), if_set(none()) |> union(non_empty_list(none())))
     end
 
     test "map" do

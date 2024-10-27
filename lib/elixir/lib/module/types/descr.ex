@@ -49,6 +49,7 @@ defmodule Module.Types.Descr do
   def none(), do: @none
   def term(), do: :term
 
+  @compile {:inline, unfold: 1}
   defp unfold(:term), do: unfolded_term()
   defp unfold(other), do: other
   defp unfolded_term, do: @term
@@ -97,17 +98,40 @@ defmodule Module.Types.Descr do
   def if_set(:term), do: term_or_optional()
   def if_set(type), do: Map.put(type, :optional, 1)
 
-  defguardp is_optional(map)
-            when is_map(map) and
-                   (is_map_key(map, :optional) or
-                      (is_map_key(map, :dynamic) and is_map(map.dynamic) and
-                         is_map_key(map.dynamic, :optional)))
-
-  defguardp is_optional_static(map)
-            when is_map(map) and is_map_key(map, :optional)
-
   defp descr_key?(:term, _key), do: true
   defp descr_key?(descr, key), do: is_map_key(descr, key)
+
+  @compile {:inline, remove_optional: 1, remove_optional_static: 1, optional_to_term: 1}
+  defp remove_optional(descr) do
+    case descr do
+      %{dynamic: %{optional: _} = dynamic} -> %{descr | dynamic: Map.delete(dynamic, :optional)}
+      _ -> remove_optional_static(descr)
+    end
+  end
+
+  defp remove_optional_static(descr) do
+    case descr do
+      %{optional: _} -> Map.delete(descr, :optional)
+      descr -> descr
+    end
+  end
+
+  defp optional_to_term(descr) do
+    case descr do
+      %{dynamic: %{optional: _}} -> dynamic(term_or_optional())
+      %{optional: _} -> term_or_optional()
+      _ -> :term
+    end
+  end
+
+  defp pop_optional_static(:term), do: {false, :term}
+
+  defp pop_optional_static(type) do
+    case :maps.take(:optional, type) do
+      :error -> {false, type}
+      {1, type} -> {true, type}
+    end
+  end
 
   ## Set operations
 
@@ -122,6 +146,7 @@ defmodule Module.Types.Descr do
 
   It is an optimized version of `intersection(dynamic(), type)`.
   """
+  @compile {:inline, dynamic: 1}
   def dynamic(descr) do
     case descr do
       %{dynamic: dynamic} -> %{dynamic: dynamic}
@@ -132,10 +157,8 @@ defmodule Module.Types.Descr do
   @doc """
   Computes the union of two descrs.
   """
-  def union(:term, other) when not is_optional(other), do: :term
-  def union(other, :term) when not is_optional(other), do: :term
-  def union(none, other) when none == %{}, do: other
-  def union(other, none) when none == %{}, do: other
+  def union(:term, other), do: optional_to_term(other)
+  def union(other, :term), do: optional_to_term(other)
 
   def union(left, right) do
     left = unfold(left)
@@ -169,10 +192,10 @@ defmodule Module.Types.Descr do
   @doc """
   Computes the intersection of two descrs.
   """
-  def intersection(:term, other) when not is_optional(other), do: other
-  def intersection(other, :term) when not is_optional(other), do: other
-  def intersection(%{dynamic: :term}, other) when not is_optional(other), do: dynamic(other)
-  def intersection(other, %{dynamic: :term}) when not is_optional(other), do: dynamic(other)
+  def intersection(:term, other), do: remove_optional(other)
+  def intersection(other, :term), do: remove_optional(other)
+  def intersection(%{dynamic: :term}, other), do: dynamic(remove_optional(other))
+  def intersection(other, %{dynamic: :term}), do: dynamic(remove_optional(other))
 
   def intersection(left, right) do
     left = unfold(left)
@@ -207,7 +230,7 @@ defmodule Module.Types.Descr do
   @doc """
   Computes the difference between two types.
   """
-  def difference(other, :term) when not is_optional(other), do: none()
+  def difference(left, :term), do: Map.take(unfold(left), [:optional])
 
   def difference(left, right) do
     left = unfold(left)
@@ -227,7 +250,7 @@ defmodule Module.Types.Descr do
   end
 
   # For static types, the difference is component-wise.
-  defp difference_static(left, :term) when not is_optional_static(left), do: none()
+  defp difference_static(left, :term), do: Map.take(unfold(left), [:optional])
 
   defp difference_static(left, right) do
     iterator_difference_static(:maps.next(:maps.iterator(unfold(right))), unfold(left))
@@ -347,7 +370,7 @@ defmodule Module.Types.Descr do
   Because of the dynamic/static invariant in the `descr`, subtyping can be
   simplified in several cases according to which type is gradual or not.
   """
-  def subtype?(left, :term) when not is_optional(left), do: true
+  def subtype?(left, :term), do: left != @not_set
 
   def subtype?(left, right) do
     left = unfold(left)
@@ -386,10 +409,10 @@ defmodule Module.Types.Descr do
 
   This reimplements intersection/2 but aborts as it finds a disjoint part.
   """
-  def disjoint?(:term, other) when not is_optional(other), do: empty?(other)
-  def disjoint?(other, :term) when not is_optional(other), do: empty?(other)
-  def disjoint?(%{dynamic: :term}, other) when not is_optional(other), do: empty?(other)
-  def disjoint?(other, %{dynamic: :term}) when not is_optional(other), do: empty?(other)
+  def disjoint?(:term, other), do: empty?(remove_optional(other))
+  def disjoint?(other, :term), do: empty?(remove_optional(other))
+  def disjoint?(%{dynamic: :term}, other), do: empty?(remove_optional(other))
+  def disjoint?(other, %{dynamic: :term}), do: empty?(remove_optional(other))
 
   def disjoint?(left, right) do
     left = unfold(left)
@@ -427,7 +450,7 @@ defmodule Module.Types.Descr do
   include `dynamic()`, `integer()`, but also `dynamic() and (integer() or atom())`.
   Incompatible subtypes include `integer() or list()`, `dynamic() and atom()`.
   """
-  def compatible?(left, :term) when not is_optional(left), do: true
+  def compatible?(left, :term), do: not empty?(remove_optional(left))
 
   def compatible?(left, right) do
     left = unfold(left)
@@ -1000,14 +1023,14 @@ defmodule Module.Types.Descr do
   # `:dynamic` field is not_set, or it contains a type equal to the static component
   # (that is, there are no extra dynamic values).
 
-  defp dynamic_union(:term, other) when not is_optional_static(other), do: :term
-  defp dynamic_union(other, :term) when not is_optional_static(other), do: :term
+  defp dynamic_union(:term, other), do: optional_to_term(other)
+  defp dynamic_union(other, :term), do: optional_to_term(other)
 
   defp dynamic_union(left, right),
     do: symmetrical_merge(unfold(left), unfold(right), &union/3)
 
-  defp dynamic_intersection(:term, other) when not is_optional_static(other), do: other
-  defp dynamic_intersection(other, :term) when not is_optional_static(other), do: other
+  defp dynamic_intersection(:term, other), do: remove_optional_static(other)
+  defp dynamic_intersection(other, :term), do: remove_optional_static(other)
 
   defp dynamic_intersection(left, right),
     do: symmetrical_intersection(unfold(left), unfold(right), &intersection/3)
@@ -1079,6 +1102,9 @@ defmodule Module.Types.Descr do
 
   defp tag_to_type(:open), do: term_or_optional()
   defp tag_to_type(:closed), do: not_set()
+
+  defguardp is_optional_static(map)
+            when is_map(map) and is_map_key(map, :optional)
 
   defp map_new(tag, fields = %{}), do: [{tag, fields, []}]
 
@@ -1203,15 +1229,6 @@ defmodule Module.Types.Descr do
 
       %{} ->
         descr
-    end
-  end
-
-  defp pop_optional_static(:term), do: {false, :term}
-
-  defp pop_optional_static(type) do
-    case :maps.take(:optional, type) do
-      :error -> {false, type}
-      {1, type} -> {true, type}
     end
   end
 
