@@ -20,22 +20,26 @@ defmodule Module.Types.Descr do
   @bit_pid 1 <<< 4
   @bit_port 1 <<< 5
   @bit_reference 1 <<< 6
-
   @bit_fun 1 <<< 7
   @bit_top (1 <<< 8) - 1
-
   @bit_number @bit_integer ||| @bit_float
-  @bit_optional 1 <<< 8
 
   @atom_top {:negation, :sets.new(version: 2)}
-  @tuple_top [{:open, [], []}]
   @map_top [{:open, %{}, []}]
+  @non_empty_list_top [{:term, :term, []}]
+  @tuple_top [{:open, [], []}]
   @map_empty [{:closed, %{}, []}]
+
   @none %{}
   @empty_list %{bitmap: @bit_empty_list}
-  # A definition of non empty list that does not use negation. Includes empty list.
   @not_non_empty_list %{bitmap: @bit_top, atom: @atom_top, tuple: @tuple_top, map: @map_top}
-  @non_empty_list_top [{:term, @not_non_empty_list, []}]
+  @term %{
+    bitmap: @bit_top,
+    atom: @atom_top,
+    tuple: @tuple_top,
+    map: @map_top,
+    list: @non_empty_list_top
+  }
 
   # Type definitions
 
@@ -47,15 +51,7 @@ defmodule Module.Types.Descr do
 
   defp unfold(:term), do: unfolded_term()
   defp unfold(other), do: other
-
-  defp unfolded_term,
-    do: %{
-      bitmap: @bit_top,
-      atom: @atom_top,
-      tuple: @tuple_top,
-      map: @map_top,
-      list: @non_empty_list_top
-    }
+  defp unfolded_term, do: @term
 
   def atom(as), do: %{atom: atom_new(as)}
   def atom(), do: %{atom: @atom_top}
@@ -92,30 +88,23 @@ defmodule Module.Types.Descr do
   #
   # `not_set()` has no meaning outside of map types.
 
-  @not_set %{bitmap: @bit_optional}
-  @term_or_optional %{
-    bitmap: @bit_top ||| @bit_optional,
-    atom: @atom_top,
-    tuple: @tuple_top,
-    map: @map_top,
-    list: @non_empty_list_top
-  }
+  @not_set %{optional: 1}
+  @term_or_optional Map.put(@term, :optional, 1)
 
   def not_set(), do: @not_set
   defp term_or_optional(), do: @term_or_optional
 
   def if_set(:term), do: term_or_optional()
-  def if_set(type), do: Map.update(type, :bitmap, @bit_optional, &(&1 ||| @bit_optional))
+  def if_set(type), do: Map.put(type, :optional, 1)
 
   defguardp is_optional(map)
             when is_map(map) and
-                   ((is_map_key(map, :bitmap) and (map.bitmap &&& @bit_optional) != 0) or
+                   (is_map_key(map, :optional) or
                       (is_map_key(map, :dynamic) and is_map(map.dynamic) and
-                         is_map_key(map.dynamic, :bitmap) and
-                         (map.dynamic.bitmap &&& @bit_optional) != 0))
+                         is_map_key(map.dynamic, :optional)))
 
   defguardp is_optional_static(map)
-            when is_map(map) and is_map_key(map, :bitmap) and (map.bitmap &&& @bit_optional) != 0
+            when is_map(map) and is_map_key(map, :optional)
 
   defp descr_key?(:term, _key), do: true
   defp descr_key?(descr, key), do: is_map_key(descr, key)
@@ -124,8 +113,6 @@ defmodule Module.Types.Descr do
 
   def term_type?(:term), do: true
   def term_type?(descr), do: subtype_static?(unfolded_term(), Map.delete(descr, :dynamic))
-
-  def dynamic_term_type?(descr), do: descr == %{dynamic: :term}
 
   def gradual?(:term), do: false
   def gradual?(descr), do: is_map_key(descr, :dynamic)
@@ -171,12 +158,13 @@ defmodule Module.Types.Descr do
   end
 
   @compile {:inline, union: 3}
-  defp union(:bitmap, v1, v2), do: bitmap_union(v1, v2)
   defp union(:atom, v1, v2), do: atom_union(v1, v2)
+  defp union(:bitmap, v1, v2), do: v1 ||| v2
   defp union(:dynamic, v1, v2), do: dynamic_union(v1, v2)
-  defp union(:map, v1, v2), do: map_union(v1, v2)
-  defp union(:tuple, v1, v2), do: tuple_union(v1, v2)
   defp union(:list, v1, v2), do: list_union(v1, v2)
+  defp union(:map, v1, v2), do: map_union(v1, v2)
+  defp union(:optional, 1, 1), do: 1
+  defp union(:tuple, v1, v2), do: tuple_union(v1, v2)
 
   @doc """
   Computes the intersection of two descrs.
@@ -208,12 +196,13 @@ defmodule Module.Types.Descr do
 
   # Returning 0 from the callback is taken as none() for that subtype.
   @compile {:inline, intersection: 3}
-  defp intersection(:bitmap, v1, v2), do: bitmap_intersection(v1, v2)
   defp intersection(:atom, v1, v2), do: atom_intersection(v1, v2)
+  defp intersection(:bitmap, v1, v2), do: v1 &&& v2
   defp intersection(:dynamic, v1, v2), do: dynamic_intersection(v1, v2)
-  defp intersection(:map, v1, v2), do: map_intersection(v1, v2)
-  defp intersection(:tuple, v1, v2), do: tuple_intersection(v1, v2)
   defp intersection(:list, v1, v2), do: list_intersection(v1, v2)
+  defp intersection(:map, v1, v2), do: map_intersection(v1, v2)
+  defp intersection(:optional, 1, 1), do: 1
+  defp intersection(:tuple, v1, v2), do: tuple_intersection(v1, v2)
 
   @doc """
   Computes the difference between two types.
@@ -265,12 +254,13 @@ defmodule Module.Types.Descr do
 
   # Returning 0 from the callback is taken as none() for that subtype.
   @compile {:inline, difference: 3}
-  defp difference(:bitmap, v1, v2), do: bitmap_difference(v1, v2)
   defp difference(:atom, v1, v2), do: atom_difference(v1, v2)
+  defp difference(:bitmap, v1, v2), do: v1 - (v1 &&& v2)
   defp difference(:dynamic, v1, v2), do: dynamic_difference(v1, v2)
-  defp difference(:map, v1, v2), do: map_difference(v1, v2)
-  defp difference(:tuple, v1, v2), do: tuple_difference(v1, v2)
   defp difference(:list, v1, v2), do: list_difference(v1, v2)
+  defp difference(:map, v1, v2), do: map_difference(v1, v2)
+  defp difference(:optional, 1, 1), do: 0
+  defp difference(:tuple, v1, v2), do: tuple_difference(v1, v2)
 
   @doc """
   Compute the negation of a type.
@@ -297,10 +287,12 @@ defmodule Module.Types.Descr do
         true
 
       descr ->
-        not Map.has_key?(descr, :bitmap) and not Map.has_key?(descr, :atom) and
-          (not Map.has_key?(descr, :tuple) or tuple_empty?(descr.tuple)) and
+        not Map.has_key?(descr, :atom) and
+          not Map.has_key?(descr, :bitmap) and
+          not Map.has_key?(descr, :optional) and
           (not Map.has_key?(descr, :map) or map_empty?(descr.map)) and
-          (not Map.has_key?(descr, :list) or list_empty?(descr.list))
+          (not Map.has_key?(descr, :list) or list_empty?(descr.list)) and
+          (not Map.has_key?(descr, :tuple) or tuple_empty?(descr.tuple))
     end
   end
 
@@ -319,12 +311,12 @@ defmodule Module.Types.Descr do
   end
 
   @compile {:inline, to_quoted: 2}
-  defp to_quoted(:bitmap, val), do: bitmap_to_quoted(val)
   defp to_quoted(:atom, val), do: atom_to_quoted(val)
+  defp to_quoted(:bitmap, val), do: bitmap_to_quoted(val)
   defp to_quoted(:dynamic, descr), do: dynamic_to_quoted(descr)
   defp to_quoted(:map, dnf), do: map_to_quoted(dnf)
-  defp to_quoted(:tuple, dnf), do: tuple_to_quoted(dnf)
   defp to_quoted(:list, dnf), do: list_to_quoted(dnf)
+  defp to_quoted(:tuple, dnf), do: tuple_to_quoted(dnf)
 
   @doc """
   Converts a descr to its quoted string representation.
@@ -454,8 +446,6 @@ defmodule Module.Types.Descr do
     end
   end
 
-  ## Bitmaps
-
   @doc """
   Optimized version of `not empty?(intersection(empty_list(), type))`.
   """
@@ -513,9 +503,7 @@ defmodule Module.Types.Descr do
   def list_type?(%{list: _}), do: true
   def list_type?(_), do: false
 
-  defp bitmap_union(v1, v2), do: v1 ||| v2
-  defp bitmap_intersection(v1, v2), do: v1 &&& v2
-  defp bitmap_difference(v1, v2), do: v1 - (v1 &&& v2)
+  ## Bitmaps
 
   defp bitmap_to_quoted(val) do
     pairs =
@@ -1218,16 +1206,12 @@ defmodule Module.Types.Descr do
     end
   end
 
+  defp pop_optional_static(:term), do: {false, :term}
+
   defp pop_optional_static(type) do
-    case type do
-      %{bitmap: @bit_optional} ->
-        {true, Map.delete(type, :bitmap)}
-
-      %{bitmap: bitmap} when (bitmap &&& @bit_optional) != 0 ->
-        {true, %{type | bitmap: bitmap - @bit_optional}}
-
-      _ ->
-        {false, type}
+    case :maps.take(:optional, type) do
+      :error -> {false, type}
+      {1, type} -> {true, type}
     end
   end
 
@@ -1587,8 +1571,10 @@ defmodule Module.Types.Descr do
           literal_to_quoted(key)
         end
 
+      {optional?, type} = pop_optional_static(type)
+
       cond do
-        not is_optional_static(type) -> {key, to_quoted(type)}
+        not optional? -> {key, to_quoted(type)}
         empty?(type) -> {key, {:not_set, [], []}}
         true -> {key, {:if_set, [], [to_quoted(type)]}}
       end

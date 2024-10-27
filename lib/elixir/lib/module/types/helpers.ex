@@ -111,7 +111,8 @@ defmodule Module.Types.Helpers do
   defp collect_var_traces(traces) do
     traces
     |> Enum.reject(fn {_expr, _file, type, _formatter} ->
-      Module.Types.Descr.dynamic_term_type?(type)
+      # As an otimization do not care about dynamic terms
+      type == %{dynamic: :term}
     end)
     |> case do
       [] -> traces
