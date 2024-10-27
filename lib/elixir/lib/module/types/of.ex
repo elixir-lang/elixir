@@ -319,8 +319,20 @@ defmodule Module.Types.Of do
   # ensuring that domains for the same function have
   # no overlaps.
 
+  mfargs = [atom(), atom(), list(term())]
+
+  send_destination =
+    pid()
+    |> union(reference())
+    |> union(port())
+    |> union(atom())
+    |> union(tuple([atom(), atom()]))
+
   for {mod, fun, clauses} <- [
+        # :binary
         {:binary, :copy, [{[binary(), integer()], binary()}]},
+
+        # :erlang
         {:erlang, :atom_to_binary, [{[atom()], binary()}]},
         {:erlang, :atom_to_list, [{[atom()], list(integer())}]},
         {:erlang, :band, [{[integer(), integer()], integer()}]},
@@ -344,6 +356,13 @@ defmodule Module.Types.Of do
         {:erlang, :list_to_integer, [{[non_empty_list(integer())], integer()}]},
         {:erlang, :list_to_integer, [{[non_empty_list(integer()), integer()], integer()}]},
         {:erlang, :list_to_tuple, [{[list(term())], dynamic(open_tuple([], term()))}]},
+        {:erlang, :self, [{[], pid()}]},
+        {:erlang, :spawn, [{[fun()], pid()}]},
+        {:erlang, :spawn, [{mfargs, pid()}]},
+        {:erlang, :spawn_link, [{[fun()], pid()}]},
+        {:erlang, :spawn_link, [{mfargs, pid()}]},
+        {:erlang, :spawn_monitor, [{[fun()], tuple([reference(), pid()])}]},
+        {:erlang, :spawn_monitor, [{mfargs, tuple([reference(), pid()])}]},
 
         # TODO: Replace term()/dynamic() by parametric types
         {:erlang, :delete_element,
@@ -352,6 +371,7 @@ defmodule Module.Types.Of do
         {:erlang, :element, [{[integer(), open_tuple([], term())], dynamic()}]},
         {:erlang, :insert_element,
          [{[integer(), open_tuple([], term()), term()], dynamic(open_tuple([], term()))}]},
+        {:erlang, :send, [{[send_destination, term()], dynamic()}]},
         {:erlang, :setelement,
          [{[integer(), open_tuple([], term()), term()], dynamic(open_tuple([], term()))}]},
         {:erlang, :tl, [{[non_empty_list(term(), term())], dynamic()}]},
