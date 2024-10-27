@@ -36,7 +36,7 @@ defmodule Module.Types.PatternTest do
 
                    empty_list() or non_empty_list(integer())
 
-               but expected types:
+               but expected one of:
 
                    non_empty_list(term(), term())
 

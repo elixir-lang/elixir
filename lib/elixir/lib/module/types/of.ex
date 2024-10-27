@@ -328,11 +328,21 @@ defmodule Module.Types.Of do
     |> union(atom())
     |> union(tuple([atom(), atom()]))
 
+  basic_arith_2_args_clauses = [
+    {[integer(), integer()], integer()},
+    {[integer(), float()], float()},
+    {[float(), integer()], float()},
+    {[float(), float()], float()}
+  ]
+
   for {mod, fun, clauses} <- [
         # :binary
         {:binary, :copy, [{[binary(), integer()], binary()}]},
 
         # :erlang
+        {:erlang, :+, basic_arith_2_args_clauses},
+        {:erlang, :-, basic_arith_2_args_clauses},
+        {:erlang, :*, basic_arith_2_args_clauses},
         {:erlang, :"/=", [{[term(), term()], boolean()}]},
         {:erlang, :"=/=", [{[term(), term()], boolean()}]},
         {:erlang, :<, [{[term(), term()], boolean()}]},
@@ -869,9 +879,8 @@ defmodule Module.Types.Of do
 
               #{args_to_quoted_string(mod, fun, args_types) |> indent(4)}
 
-          but expected types:
-
-              #{clauses_args_to_quoted_string(mod, fun, clauses, args_types) |> indent(4)}
+          but expected one of:
+          #{clauses_args_to_quoted_string(mod, fun, clauses, args_types)}
           """,
           format_traces(traces)
         ])
@@ -1020,6 +1029,18 @@ defmodule Module.Types.Of do
   alias Inspect.Algebra, as: IA
 
   defp clauses_args_to_quoted_string(mod, fun, [{args, _return}], args_types) do
+    "\n    " <> (clause_args_to_quoted_string(mod, fun, args, args_types) |> indent(4))
+  end
+
+  defp clauses_args_to_quoted_string(mod, fun, clauses, args_types) do
+    clauses
+    |> Enum.with_index(fn {args, _return}, index ->
+      "\n##{index + 1}\n#{clause_args_to_quoted_string(mod, fun, args, args_types)}" |> indent(4)
+    end)
+    |> Enum.join("\n")
+  end
+
+  defp clause_args_to_quoted_string(mod, fun, args, args_types) do
     ansi? = IO.ANSI.enabled?()
 
     docs =

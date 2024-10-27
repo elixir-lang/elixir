@@ -55,7 +55,7 @@ defmodule Module.Types.ExprTest do
 
                    empty_list()
 
-               but expected types:
+               but expected one of:
 
                    non_empty_list(term(), term())
                """
@@ -70,7 +70,7 @@ defmodule Module.Types.ExprTest do
 
                    integer()
 
-               but expected types:
+               but expected one of:
 
                    non_empty_list(term(), term())
                """
@@ -92,7 +92,7 @@ defmodule Module.Types.ExprTest do
 
                    empty_list()
 
-               but expected types:
+               but expected one of:
 
                    non_empty_list(term(), term())
                """
@@ -107,7 +107,7 @@ defmodule Module.Types.ExprTest do
 
                    integer()
 
-               but expected types:
+               but expected one of:
 
                    non_empty_list(term(), term())
                """
@@ -327,7 +327,7 @@ defmodule Module.Types.ExprTest do
 
                    integer(), integer()
 
-               but expected types:
+               but expected one of:
 
                    integer(), {...}
 
@@ -372,7 +372,7 @@ defmodule Module.Types.ExprTest do
 
                    integer(), integer(), binary()
 
-               but expected types:
+               but expected one of:
 
                    integer(), {...}, term()
 
@@ -411,7 +411,7 @@ defmodule Module.Types.ExprTest do
 
                    integer(), integer()
 
-               but expected types:
+               but expected one of:
 
                    integer(), {...}
 
@@ -673,6 +673,45 @@ defmodule Module.Types.ExprTest do
   end
 
   describe ":erlang rewrites" do
+    test "Kernel.+/2" do
+      assert typeerror!([x = :foo, y = 123], x + y) |> strip_ansi() ==
+               ~l"""
+               incompatible types given to Kernel.+/2:
+
+                   x + y
+
+               given types:
+
+                   dynamic(:foo), integer()
+
+               but expected one of:
+
+                   #1
+                   integer(), integer()
+
+                   #2
+                   integer(), float()
+
+                   #3
+                   float(), integer()
+
+                   #4
+                   float(), float()
+
+               where "x" was given the type:
+
+                   # type: dynamic(:foo)
+                   # from: types_test.ex:677
+                   x = :foo
+
+               where "y" was given the type:
+
+                   # type: integer()
+                   # from: types_test.ex:677
+                   y = 123
+               """
+    end
+
     test "Integer.to_string/1" do
       assert typecheck!([x = 123], Integer.to_string(x)) == binary()
       assert typedyn!([x = 123], Integer.to_string(x)) == dynamic(binary())
@@ -687,7 +726,7 @@ defmodule Module.Types.ExprTest do
 
                    dynamic(:foo)
 
-               but expected types:
+               but expected one of:
 
                    integer()
 
@@ -713,7 +752,7 @@ defmodule Module.Types.ExprTest do
 
                    dynamic(:foo)
 
-               but expected types:
+               but expected one of:
 
                    integer()
 

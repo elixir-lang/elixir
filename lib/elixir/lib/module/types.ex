@@ -74,12 +74,9 @@ defmodule Module.Types do
       no_warn_undefined: no_warn_undefined,
       # A list of cached modules received from the parallel compiler
       cache: cache,
-      # The mode control what happens on function application when
+      # The mode controls what happens on function application when
       # there are gradual arguments. Non-gradual arguments always
       # perform subtyping and return its output (OUT).
-      #
-      # The mode may also control exhaustiveness checks in the future
-      # (to be decided).
       #
       #   * :strict - Requires types signatures (not implemented).
       #     * Strong arrows with gradual performs subtyping and returns OUT
@@ -87,7 +84,7 @@ defmodule Module.Types do
       #
       #   * :static - Type signatures have been given.
       #     * Strong arrows with gradual performs compatibility and returns OUT
-      #     * Weak arrows with gradual performs compatibility and returns OUT
+      #     * Weak arrows with gradual performs compatibility and returns dynamic()
       #
       #   * :dynamic - Type signatures have not been given.
       #     * Strong arrows with gradual performs compatibility and returns dynamic(OUT)
@@ -95,6 +92,10 @@ defmodule Module.Types do
       #
       #   * :infer - Same as :dynamic but skips remote calls.
       #
+      # The mode may also control exhaustiveness checks in the future (to be decided).
+      # We may also want for applications with subtyping in dynamic mode to always
+      # intersect with dynamic, but this mode may be too lax (to be decided based on
+      # feedback).
       mode: mode
     }
   end
