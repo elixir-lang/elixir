@@ -4,13 +4,15 @@ TODO.
 
 ## Type system improvements
 
-* Type checking and inference of patterns
+* Type inference of patterns (typing inference of guards will be part of an upcoming release)
 
 * [Support for tuples and lists as composite types](https://elixir-lang.org/blog/2024/08/28/typing-lists-and-tuples/) as well as type checking of its basic operations from Kernel
 
+* Type checking of all guards
+
 * Type checking of all built-in conversion functions, such as `List.to_integer/1` and `Atom.to_string/1`
 
-* Type checking of all functions in `Kernel` which are inlined by the compiler
+* Type checking of all functions in `Kernel` which are inlined by the compiler (except `apply/2` and `apply/3`)
 
 * Type checking of all functions in the `Tuple` module
 
