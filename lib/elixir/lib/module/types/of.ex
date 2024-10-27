@@ -422,8 +422,6 @@ defmodule Module.Types.Of do
     end
   end
 
-  # TODO: Implement element without a literal index
-
   def apply(:erlang, :element, [_, tuple], {_, meta, [index, _]} = expr, stack, context)
       when is_integer(index) do
     case tuple_fetch(tuple, index - 1) do
@@ -498,7 +496,7 @@ defmodule Module.Types.Of do
     end
   end
 
-  def apply(:erlang, name, [left, right], expr, stack, context)
+  def apply(:erlang, name, [left, right] = args_types, expr, stack, context)
       when name in [:>=, :"=<", :>, :<, :min, :max] do
     context =
       cond do
@@ -518,19 +516,14 @@ defmodule Module.Types.Of do
           context
       end
 
-    cond do
-      name in [:min, :max] ->
-        {union(left, right), context}
-
-      gradual?(left) or gradual?(right) ->
-        {dynamic(boolean()), context}
-
-      true ->
-        {boolean(), context}
+    if name in [:min, :max] do
+      {union(left, right), context}
+    else
+      {comparison_return(boolean(), args_types, stack), context}
     end
   end
 
-  def apply(:erlang, name, [left, right], expr, stack, context)
+  def apply(:erlang, name, [left, right] = args_types, expr, stack, context)
       when name in [:==, :"/=", :"=:=", :"=/="] do
     context =
       cond do
@@ -545,11 +538,7 @@ defmodule Module.Types.Of do
           context
       end
 
-    if gradual?(left) or gradual?(right) do
-      {dynamic(boolean()), context}
-    else
-      {boolean(), context}
-    end
+    {comparison_return(boolean(), args_types, stack), context}
   end
 
   def apply(mod, name, args_types, expr, stack, context) do
@@ -562,7 +551,7 @@ defmodule Module.Types.Of do
       false ->
         {info, context} = remote(mod, name, arity, elem(expr, 1), stack, context)
 
-        case apply_remote(info, args_types) do
+        case apply_remote(info, args_types, stack) do
           {:ok, type} ->
             {type, context}
 
@@ -573,17 +562,42 @@ defmodule Module.Types.Of do
     end
   end
 
-  defp apply_remote(:none, _args_types) do
+  defp comparison_return(type, args_types, stack) do
+    cond do
+      stack.mode == :static -> type
+      Enum.any?(args_types, &gradual?/1) -> dynamic(type)
+      true -> type
+    end
+  end
+
+  defp apply_remote(:none, _args_types, _stack) do
     {:ok, dynamic()}
   end
 
-  defp apply_remote({:strong, clauses}, args_types) do
-    Enum.find_value(clauses, {:error, clauses}, fn {expected, return} ->
-      if zip_compatible?(args_types, expected) do
-        {:ok, return}
+  defp apply_remote({:strong, clauses}, args_types, stack) do
+    if Enum.any?(args_types) do
+      returns =
+        for({expected, return} <- clauses, zip_compatible?(args_types, expected), do: return)
+
+      cond do
+        returns == [] -> {:error, clauses}
+        stack.mode == :static -> {:ok, Enum.reduce(returns, &union/2)}
+        true -> {:ok, dynamic(Enum.reduce(returns, &union/2))}
       end
-    end)
+    else
+      Enum.find_value(clauses, {:error, clauses}, fn {expected, return} ->
+        if zip_subtype?(args_types, expected) do
+          {:ok, return}
+        end
+      end)
+    end
   end
+
+  defp zip_subtype?([actual | actuals], [expected | expecteds]) do
+    subtype?(actual, expected) and zip_subtype?(actuals, expecteds)
+  end
+
+  defp zip_subtype?([], []), do: true
 
   defp zip_compatible?([actual | actuals], [expected | expecteds]) do
     compatible?(actual, expected) and zip_compatible?(actuals, expecteds)

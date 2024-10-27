@@ -21,9 +21,19 @@ defmodule TypeHelper do
   @doc """
   Main helper for checking the given AST type checks without warnings.
   """
+  defmacro typedyn!(patterns \\ [], guards \\ true, body) do
+    quote do
+      unquote(typecheck(:dynamic, patterns, guards, body, __CALLER__))
+      |> TypeHelper.__typecheck__!()
+    end
+  end
+
+  @doc """
+  Main helper for checking the given AST type checks without warnings.
+  """
   defmacro typecheck!(patterns \\ [], guards \\ true, body) do
     quote do
-      unquote(typecheck(patterns, guards, body, __CALLER__))
+      unquote(typecheck(:static, patterns, guards, body, __CALLER__))
       |> TypeHelper.__typecheck__!()
     end
   end
@@ -35,7 +45,7 @@ defmodule TypeHelper do
     [patterns, guards, body] = prune_columns([patterns, guards, body])
 
     quote do
-      unquote(typecheck(patterns, guards, body, __CALLER__))
+      unquote(typecheck(:static, patterns, guards, body, __CALLER__))
       |> TypeHelper.__typeerror__!()
     end
   end
@@ -47,7 +57,7 @@ defmodule TypeHelper do
     [patterns, guards, body] = prune_columns([patterns, guards, body])
 
     quote do
-      unquote(typecheck(patterns, guards, body, __CALLER__))
+      unquote(typecheck(:static, patterns, guards, body, __CALLER__))
       |> TypeHelper.__typewarn__!()
     end
   end
@@ -57,7 +67,7 @@ defmodule TypeHelper do
   """
   defmacro typediag!(patterns \\ [], guards \\ true, body) do
     quote do
-      unquote(typecheck(patterns, guards, body, __CALLER__))
+      unquote(typecheck(:static, patterns, guards, body, __CALLER__))
       |> TypeHelper.__typediag__!()
     end
   end
@@ -104,10 +114,7 @@ defmodule TypeHelper do
   def __typewarn__!({_type, %{warnings: warnings, failed: true}}),
     do: raise("type checking errored with warnings: #{inspect(warnings)}")
 
-  @doc """
-  Building block for typeinferring a given AST.
-  """
-  def typeinfer(patterns, guards, env) do
+  defp typeinfer(patterns, guards, env) do
     {patterns, guards, :ok} = expand_and_unpack(patterns, guards, :ok, env)
 
     quote do
@@ -119,17 +126,15 @@ defmodule TypeHelper do
   end
 
   def __typeinfer__(patterns, guards) do
-    Pattern.of_head(patterns, guards, [], new_stack(), new_context())
+    Pattern.of_head(patterns, guards, [], new_stack(:infer), new_context())
   end
 
-  @doc """
-  Building block for typechecking a given AST.
-  """
-  def typecheck(patterns, guards, body, env) do
+  defp typecheck(mode, patterns, guards, body, env) do
     {patterns, guards, body} = expand_and_unpack(patterns, guards, body, env)
 
     quote do
       TypeHelper.__typecheck__(
+        unquote(mode),
         unquote(Macro.escape(patterns)),
         unquote(Macro.escape(guards)),
         unquote(Macro.escape(body))
@@ -137,8 +142,8 @@ defmodule TypeHelper do
     end
   end
 
-  def __typecheck__(patterns, guards, body) do
-    stack = new_stack()
+  def __typecheck__(mode, patterns, guards, body) do
+    stack = new_stack(mode)
     {_types, context} = Pattern.of_head(patterns, guards, [], stack, new_context())
     Expr.of_expr(body, stack, context)
   end
@@ -155,8 +160,9 @@ defmodule TypeHelper do
     {patterns, guards, body}
   end
 
-  defp new_stack() do
-    Types.stack("types_test.ex", TypesTest, {:test, 0}, [], Module.ParallelChecker.test_cache())
+  defp new_stack(mode) do
+    cache = Module.ParallelChecker.test_cache()
+    Types.stack(mode, "types_test.ex", TypesTest, {:test, 0}, [], cache)
   end
 
   defp new_context() do

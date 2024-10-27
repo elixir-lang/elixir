@@ -575,10 +575,22 @@ defmodule Module.Types.ExprTest do
   end
 
   describe "comparison" do
-    test "works across numbers" do
+    test "in static mode" do
+      assert typecheck!([x = 123, y = 456.0], x < y) == boolean()
+      assert typecheck!([x = 123, y = 456.0], x == y) == boolean()
+    end
+
+    test "in dynamic mode" do
+      assert typedyn!([x = 123, y = 456.0], x < y) == dynamic(boolean())
+      assert typedyn!([x = 123, y = 456.0], x == y) == dynamic(boolean())
+      assert typedyn!(123 == 456) == boolean()
+    end
+
+    test "min/max" do
+      assert typecheck!(min(123, 456.0)) == union(integer(), float())
+      # min/max uses parametric types, which will carry dynamic regardless of being a strong arrow
       assert typecheck!([x = 123, y = 456.0], min(x, y)) == dynamic(union(integer(), float()))
-      assert typecheck!([x = 123, y = 456.0], x < y) == dynamic(boolean())
-      assert typecheck!([x = 123, y = 456.0], x == y) == dynamic(boolean())
+      assert typedyn!([x = 123, y = 456.0], min(x, y)) == dynamic(union(integer(), float()))
     end
 
     test "warns when comparison is constant" do
@@ -606,7 +618,7 @@ defmodule Module.Types.ExprTest do
                 """}
 
       assert typewarn!([x = 123, y = 456.0], x === y) ==
-               {dynamic(boolean()),
+               {boolean(),
                 ~l"""
                 comparison between incompatible types found:
 
@@ -631,7 +643,7 @@ defmodule Module.Types.ExprTest do
 
     test "warns on comparison with struct across dynamic call" do
       assert typewarn!([x = :foo, y = %Point{}, mod = Kernel], mod.<=(x, y)) ==
-               {dynamic(boolean()),
+               {boolean(),
                 ~l"""
                 comparison with structs found:
 
@@ -662,6 +674,9 @@ defmodule Module.Types.ExprTest do
 
   describe ":erlang rewrites" do
     test "Integer.to_string/1" do
+      assert typecheck!([x = 123], Integer.to_string(x)) == binary()
+      assert typedyn!([x = 123], Integer.to_string(x)) == dynamic(binary())
+
       assert typeerror!([x = :foo], Integer.to_string(x)) |> strip_ansi() ==
                ~l"""
                incompatible types given to Integer.to_string/1:
@@ -685,6 +700,9 @@ defmodule Module.Types.ExprTest do
     end
 
     test "Bitwise.bnot/1" do
+      assert typecheck!([x = 123], Bitwise.bnot(x)) == integer()
+      assert typedyn!([x = 123], Bitwise.bnot(x)) == dynamic(integer())
+
       assert typeerror!([x = :foo], Bitwise.bnot(x)) |> strip_ansi() ==
                ~l"""
                incompatible types given to Bitwise.bnot/1:
