@@ -45,34 +45,34 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([x = [123, :foo]], hd(x)) == dynamic(union(atom([:foo]), integer()))
       assert typecheck!([x = [123 | :foo]], hd(x)) == dynamic(integer())
 
-      assert typeerror!(hd([])) ==
+      assert typeerror!(hd([])) |> strip_ansi() ==
                ~l"""
                incompatible types given to Kernel.hd/1:
 
                    hd([])
 
-               expected types:
-
-                   non_empty_list(term(), term())
-
-               but got types:
+               given types:
 
                    empty_list()
+
+               but expected types:
+
+                   non_empty_list(term(), term())
                """
 
-      assert typeerror!(hd(123)) ==
+      assert typeerror!(hd(123)) |> strip_ansi() ==
                ~l"""
                incompatible types given to Kernel.hd/1:
 
                    hd(123)
 
-               expected types:
-
-                   non_empty_list(term(), term())
-
-               but got types:
+               given types:
 
                    integer()
+
+               but expected types:
+
+                   non_empty_list(term(), term())
                """
     end
 
@@ -82,34 +82,34 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([x = [123 | :foo]], tl(x)) ==
                dynamic(union(atom([:foo]), list(integer(), atom([:foo]))))
 
-      assert typeerror!(tl([])) ==
+      assert typeerror!(tl([])) |> strip_ansi() ==
                ~l"""
                incompatible types given to Kernel.tl/1:
 
                    tl([])
 
-               expected types:
-
-                   non_empty_list(term(), term())
-
-               but got types:
+               given types:
 
                    empty_list()
+
+               but expected types:
+
+                   non_empty_list(term(), term())
                """
 
-      assert typeerror!(tl(123)) ==
+      assert typeerror!(tl(123)) |> strip_ansi() ==
                ~l"""
                incompatible types given to Kernel.tl/1:
 
                    tl(123)
 
-               expected types:
-
-                   non_empty_list(term(), term())
-
-               but got types:
+               given types:
 
                    integer()
+
+               but expected types:
+
+                   non_empty_list(term(), term())
                """
     end
   end
@@ -122,13 +122,13 @@ defmodule Module.Types.ExprTest do
 
                    x
 
-               expected type:
-
-                   fun()
-
-               but got type:
+               got type:
 
                    dynamic(atom())
+
+               but expected type:
+
+                   fun()
 
                where "x" was given the type:
 
@@ -215,13 +215,13 @@ defmodule Module.Types.ExprTest do
 
                    <<x::float>>
 
-               expected type:
-
-                   float() or integer()
-
-               but got type:
+               got type:
 
                    binary()
+
+               but expected type:
+
+                   float() or integer()
 
                where "x" was given the type:
 
@@ -236,13 +236,13 @@ defmodule Module.Types.ExprTest do
 
                    <<x>>
 
-               expected type:
-
-                   integer()
-
-               but got type:
+               got type:
 
                    binary()
+
+               but expected type:
+
+                   integer()
 
                where "x" was given the type:
 
@@ -259,13 +259,13 @@ defmodule Module.Types.ExprTest do
 
                    <<x::binary>>
 
-               expected type:
-
-                   binary()
-
-               but got type:
+               got type:
 
                    integer()
+
+               but expected type:
+
+                   binary()
 
                where "x" was given the type:
 
@@ -286,27 +286,21 @@ defmodule Module.Types.ExprTest do
                ~l"""
                incompatible types in expression:
 
-                   <<y::integer-size(x)>>
+                   size(x)
 
-               expected type:
-
-                   integer()
-
-               but got type:
+               got type:
 
                    binary()
+
+               but expected type:
+
+                   integer()
 
                where "x" was given the type:
 
                    # type: binary()
                    # from: types_test.ex:LINE-1
                    <<x::binary>>
-
-               where "y" was given the type:
-
-                   # type: dynamic()
-                   # from: types_test.ex:LINE-1
-                   y
                """
     end
   end
@@ -323,19 +317,19 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([x], elem({:ok, x}, 0)) == dynamic(atom([:ok]))
       assert typecheck!([x], elem({:ok, x}, 1)) == dynamic(term())
 
-      assert typeerror!([<<x::integer>>], elem(x, 0)) ==
+      assert typeerror!([<<x::integer>>], elem(x, 0)) |> strip_ansi() ==
                ~l"""
                incompatible types given to Kernel.elem/2:
 
                    elem(x, 0)
 
-               expected types:
-
-                   integer(), {...}
-
-               but got types:
+               given types:
 
                    integer(), integer()
+
+               but expected types:
+
+                   integer(), {...}
 
                where "x" was given the type:
 
@@ -368,19 +362,19 @@ defmodule Module.Types.ExprTest do
       assert typecheck!(Tuple.insert_at({:ok, 123}, 2, "foo")) ==
                tuple([atom([:ok]), integer(), binary()])
 
-      assert typeerror!([<<x::integer>>], Tuple.insert_at(x, 0, "foo")) ==
+      assert typeerror!([<<x::integer>>], Tuple.insert_at(x, 0, "foo")) |> strip_ansi() ==
                ~l"""
                incompatible types given to Tuple.insert_at/3:
 
                    Tuple.insert_at(x, 0, "foo")
 
-               expected types:
-
-                   integer(), {...}, term()
-
-               but got types:
+               given types:
 
                    integer(), integer(), binary()
+
+               but expected types:
+
+                   integer(), {...}, term()
 
                where "x" was given the type:
 
@@ -407,19 +401,19 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([x], Tuple.delete_at({:ok, x}, 0)) == dynamic(tuple([term()]))
       assert typecheck!([x], Tuple.delete_at({:ok, x}, 1)) == dynamic(tuple([atom([:ok])]))
 
-      assert typeerror!([<<x::integer>>], Tuple.delete_at(x, 0)) ==
+      assert typeerror!([<<x::integer>>], Tuple.delete_at(x, 0)) |> strip_ansi() ==
                ~l"""
                incompatible types given to Tuple.delete_at/2:
 
                    Tuple.delete_at(x, 0)
 
-               expected types:
-
-                   integer(), {...}
-
-               but got types:
+               given types:
 
                    integer(), integer()
+
+               but expected types:
+
+                   integer(), {...}
 
                where "x" was given the type:
 
@@ -668,19 +662,19 @@ defmodule Module.Types.ExprTest do
 
   describe ":erlang rewrites" do
     test "Integer.to_string/1" do
-      assert typeerror!([x = :foo], Integer.to_string(x)) ==
+      assert typeerror!([x = :foo], Integer.to_string(x)) |> strip_ansi() ==
                ~l"""
                incompatible types given to Integer.to_string/1:
 
                    Integer.to_string(x)
 
-               expected types:
-
-                   integer()
-
-               but got types:
+               given types:
 
                    dynamic(:foo)
+
+               but expected types:
+
+                   integer()
 
                where "x" was given the type:
 
@@ -691,19 +685,19 @@ defmodule Module.Types.ExprTest do
     end
 
     test "Bitwise.bnot/1" do
-      assert typeerror!([x = :foo], Bitwise.bnot(x)) ==
+      assert typeerror!([x = :foo], Bitwise.bnot(x)) |> strip_ansi() ==
                ~l"""
                incompatible types given to Bitwise.bnot/1:
 
                    Bitwise.bnot(x)
 
-               expected types:
-
-                   integer()
-
-               but got types:
+               given types:
 
                    dynamic(:foo)
+
+               but expected types:
+
+                   integer()
 
                where "x" was given the type:
 

@@ -192,6 +192,15 @@ defmodule TypeHelper do
     {:<<>>, meta, parts}
   end
 
+  @strip_ansi [IO.ANSI.green(), IO.ANSI.red(), IO.ANSI.reset()]
+
+  @doc """
+  Strip ansi escapes from message.
+  """
+  def strip_ansi(doc) do
+    String.replace(doc, @strip_ansi, "")
+  end
+
   defp replace_line(string, line) do
     [head | rest] = String.split(string, "LINE")
 

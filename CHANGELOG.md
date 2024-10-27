@@ -130,6 +130,8 @@ You may also prever to write using guards:
 
 #### Elixir
 
+  * [Inspect.Algebra] `color/3` is deprecated in favor of `color_doc/3`
+  * [Inspect.Algebra] `fold_doc/2` is deprecated in favor of `fold/2`
   * [Kernel] Deprecate `unless` in favor of `if`. Use `mix format --migrate` to automate the migration
   * [Macro] `Macro.struct!/2` is deprecated in favor of `Macro.struct_info!/2`
 

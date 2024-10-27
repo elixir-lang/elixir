@@ -828,7 +828,7 @@ defmodule Macro do
   end
 
   # TODO: Deprecate me on Elixir v1.22
-  @doc false
+  @doc deprecated: "Use Macro.struct_info!/2 instead"
   def struct!(module, env) when is_atom(module) do
     pairs =
       for %{field: field, default: default} <- struct_info!(module, env), do: {field, default}

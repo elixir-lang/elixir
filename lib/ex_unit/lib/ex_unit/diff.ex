@@ -1061,7 +1061,7 @@ defmodule ExUnit.Diff do
     docs =
       list
       |> Enum.map(&item_to_algebra.(&1, diff_wrapper))
-      |> Algebra.fold_doc(&join_docs/2)
+      |> Algebra.fold(&join_docs/2)
 
     open
     |> Algebra.glue("", docs)

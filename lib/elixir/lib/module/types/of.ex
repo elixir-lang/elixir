@@ -253,7 +253,7 @@ defmodule Module.Types.Of do
           intersect(actual, type, expr, stack, context)
       end
 
-    specifier_size(kind, right, expr, stack, context)
+    specifier_size(kind, right, stack, context)
   end
 
   defp specifier_type(kind, {:-, _, [left, _right]}), do: specifier_type(kind, left)
@@ -272,24 +272,24 @@ defmodule Module.Types.Of do
   defp specifier_type(_kind, {:binary, _, _}), do: @binary
   defp specifier_type(_kind, _specifier), do: @integer
 
-  defp specifier_size(kind, {:-, _, [left, right]}, expr, stack, context) do
-    specifier_size(kind, right, expr, stack, specifier_size(kind, left, expr, stack, context))
+  defp specifier_size(kind, {:-, _, [left, right]}, stack, context) do
+    specifier_size(kind, right, stack, specifier_size(kind, left, stack, context))
   end
 
-  defp specifier_size(:expr, {:size, _, [arg]}, expr, stack, context)
+  defp specifier_size(:expr, {:size, _, [arg]} = expr, stack, context)
        when not is_integer(arg) do
     {actual, context} = Module.Types.Expr.of_expr(arg, stack, context)
     {_, context} = intersect(actual, integer(), expr, stack, context)
     context
   end
 
-  defp specifier_size(_pattern_or_guard, {:size, _, [arg]}, expr, stack, context)
+  defp specifier_size(_pattern_or_guard, {:size, _, [arg]} = expr, stack, context)
        when not is_integer(arg) do
     {_type, context} = Module.Types.Pattern.of_guard(arg, integer(), expr, stack, context)
     context
   end
 
-  defp specifier_size(_kind, _specifier, _expr, _stack, context) do
+  defp specifier_size(_kind, _specifier, _stack, context) do
     context
   end
 
@@ -686,13 +686,13 @@ defmodule Module.Types.Of do
 
               #{expr_to_string(expr) |> indent(4)}
 
-          expected type:
-
-              #{to_quoted_string(expected_type) |> indent(4)}
-
-          but got type:
+          got type:
 
               #{to_quoted_string(actual_type) |> indent(4)}
+
+          but expected type:
+
+              #{to_quoted_string(expected_type) |> indent(4)}
           """,
           format_traces(traces),
           format_hints(hints)
@@ -806,13 +806,13 @@ defmodule Module.Types.Of do
 
               #{expr_to_string(expr) |> indent(4)}
 
-          expected types:
-
-              #{clauses_args_to_quoted_string(mod, fun, clauses) |> indent(4)}
-
-          but got types:
+          given types:
 
               #{args_to_quoted_string(mod, fun, args_types) |> indent(4)}
+
+          but expected types:
+
+              #{clauses_args_to_quoted_string(mod, fun, clauses, args_types) |> indent(4)}
           """,
           format_traces(traces)
         ])
@@ -943,27 +943,6 @@ defmodule Module.Types.Of do
     error({:badapply, expr, args_types, clauses, context}, meta, stack, context)
   end
 
-  defp clauses_args_to_quoted_string(mod, fun, [{args, _return}]) do
-    args_to_quoted_string(mod, fun, args)
-  end
-
-  defp args_to_quoted_string(_mod, _fun, [arg]) do
-    to_quoted_string(arg)
-  end
-
-  defp args_to_quoted_string(mod, fun, args) do
-    {_mod, _fun, args} = :elixir_rewrite.erl_to_ex(mod, fun, args)
-
-    {:_, [], Enum.map(args, &to_quoted/1)}
-    |> Code.Formatter.to_algebra()
-    |> Inspect.Algebra.format(98)
-    |> IO.iodata_to_binary()
-    |> case do
-      "_(\n" <> _ = multiple_lines -> binary_slice(multiple_lines, 1..-1//1)
-      single_line -> binary_slice(single_line, 2..-2//1)
-    end
-  end
-
   defp empty_if(condition, content) do
     if condition, do: "", else: content
   end
@@ -975,5 +954,50 @@ defmodule Module.Types.Of do
   defp format_mfa(mod, fun, args) do
     {mod, fun, args} = :elixir_rewrite.erl_to_ex(mod, fun, args)
     Exception.format_mfa(mod, fun, length(args))
+  end
+
+  ## Algebra helpers
+
+  alias Inspect.Algebra, as: IA
+
+  defp clauses_args_to_quoted_string(mod, fun, [{args, _return}], args_types) do
+    ansi? = IO.ANSI.enabled?()
+
+    docs =
+      Enum.zip_with(args_types, args, fn actual, expected ->
+        doc = expected |> to_quoted() |> Code.Formatter.to_algebra()
+
+        cond do
+          compatible?(actual, expected) -> doc
+          ansi? -> IA.concat(IA.color(doc, IO.ANSI.red()), IA.color(IA.empty(), IO.ANSI.reset()))
+          true -> IA.concat(["-", doc, "-"])
+        end
+      end)
+
+    args_docs_to_quoted_string(mod, fun, docs)
+  end
+
+  defp args_to_quoted_string(mod, fun, args) do
+    docs = Enum.map(args, &(&1 |> to_quoted() |> Code.Formatter.to_algebra()))
+    args_docs_to_quoted_string(mod, fun, docs)
+  end
+
+  defp args_docs_to_quoted_string(mod, fun, docs) do
+    {_mod, _fun, docs} = :elixir_rewrite.erl_to_ex(mod, fun, docs)
+    doc = IA.fold(docs, fn doc, acc -> IA.glue(IA.concat(doc, ","), acc) end)
+
+    wrapped_docs =
+      case docs do
+        [_] -> IA.concat("(", IA.concat(doc, ")"))
+        _ -> IA.group(IA.glue(IA.nest(IA.glue("(", "", doc), 2), "", ")"))
+      end
+
+    wrapped_docs
+    |> IA.format(98)
+    |> IO.iodata_to_binary()
+    |> case do
+      "(\n" <> _ = multiple_lines -> multiple_lines
+      single_line -> binary_slice(single_line, 1..-2//1)
+    end
   end
 end

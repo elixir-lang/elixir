@@ -26,25 +26,26 @@ defmodule Module.Types.PatternTest do
     end
 
     test "repeated refinements are ignored on reporting" do
-      assert typeerror!([{name, arity}, arity = 123], hd(Atom.to_charlist(name))) == ~l"""
-             incompatible types given to Kernel.hd/1:
+      assert typeerror!([{name, arity}, arity = 123], hd(Atom.to_charlist(name))) |> strip_ansi() ==
+               ~l"""
+               incompatible types given to Kernel.hd/1:
 
-                 hd(Atom.to_charlist(name))
+                   hd(Atom.to_charlist(name))
 
-             expected types:
+               given types:
 
-                 non_empty_list(term(), term())
+                   empty_list() or non_empty_list(integer())
 
-             but got types:
+               but expected types:
 
-                 empty_list() or non_empty_list(integer())
+                   non_empty_list(term(), term())
 
-             where "name" was given the type:
+               where "name" was given the type:
 
-                 # type: dynamic()
-                 # from: types_test.ex
-                 {name, arity}
-             """
+                   # type: dynamic()
+                   # from: types_test.ex
+                   {name, arity}
+               """
     end
 
     test "errors on conflicting refinements" do
@@ -90,13 +91,13 @@ defmodule Module.Types.PatternTest do
 
                    %^m{}
 
-               expected type:
-
-                   atom()
-
-               but got type:
+               got type:
 
                    integer()
+
+               but expected type:
+
+                   atom()
 
                where "m" was given the type:
 
@@ -226,15 +227,15 @@ defmodule Module.Types.PatternTest do
                ~l"""
                incompatible types in expression:
 
-                   <<..., _::integer-size(x)>>
+                   size(x)
 
-               expected type:
-
-                   integer()
-
-               but got type:
+               got type:
 
                    float()
+
+               but expected type:
+
+                   integer()
 
                where "x" was given the type:
 
