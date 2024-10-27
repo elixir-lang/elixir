@@ -333,6 +333,14 @@ defmodule Module.Types.Of do
         {:binary, :copy, [{[binary(), integer()], binary()}]},
 
         # :erlang
+        {:erlang, :"/=", [{[term(), term()], boolean()}]},
+        {:erlang, :"=/=", [{[term(), term()], boolean()}]},
+        {:erlang, :<, [{[term(), term()], boolean()}]},
+        {:erlang, :"=<", [{[term(), term()], boolean()}]},
+        {:erlang, :==, [{[term(), term()], boolean()}]},
+        {:erlang, :"=:=", [{[term(), term()], boolean()}]},
+        {:erlang, :>, [{[term(), term()], boolean()}]},
+        {:erlang, :>=, [{[term(), term()], boolean()}]},
         {:erlang, :atom_to_binary, [{[atom()], binary()}]},
         {:erlang, :atom_to_list, [{[atom()], list(integer())}]},
         {:erlang, :band, [{[integer(), integer()], integer()}]},
@@ -492,38 +500,55 @@ defmodule Module.Types.Of do
 
   def apply(:erlang, name, [left, right], expr, stack, context)
       when name in [:>=, :"=<", :>, :<, :min, :max] do
-    result = if name in [:min, :max], do: union(left, right), else: boolean()
+    context =
+      cond do
+        match?({false, _}, map_fetch(left, :__struct__)) or
+            match?({false, _}, map_fetch(right, :__struct__)) ->
+          warning = {:struct_comparison, expr, context}
+          warn(__MODULE__, warning, elem(expr, 1), stack, context)
+
+        number_type?(left) and number_type?(right) ->
+          context
+
+        disjoint?(left, right) ->
+          warning = {:mismatched_comparison, expr, context}
+          warn(__MODULE__, warning, elem(expr, 1), stack, context)
+
+        true ->
+          context
+      end
 
     cond do
-      match?({false, _}, map_fetch(left, :__struct__)) or
-          match?({false, _}, map_fetch(right, :__struct__)) ->
-        warning = {:struct_comparison, expr, context}
-        {result, warn(__MODULE__, warning, elem(expr, 1), stack, context)}
+      name in [:min, :max] ->
+        {union(left, right), context}
 
-      number_type?(left) and number_type?(right) ->
-        {result, context}
-
-      disjoint?(left, right) ->
-        warning = {:mismatched_comparison, expr, context}
-        {result, warn(__MODULE__, warning, elem(expr, 1), stack, context)}
+      gradual?(left) or gradual?(right) ->
+        {dynamic(boolean()), context}
 
       true ->
-        {result, context}
+        {boolean(), context}
     end
   end
 
   def apply(:erlang, name, [left, right], expr, stack, context)
       when name in [:==, :"/=", :"=:=", :"=/="] do
-    cond do
-      name in [:==, :"/="] and number_type?(left) and number_type?(right) ->
-        {boolean(), context}
+    context =
+      cond do
+        name in [:==, :"/="] and number_type?(left) and number_type?(right) ->
+          context
 
-      disjoint?(left, right) ->
-        warning = {:mismatched_comparison, expr, context}
-        {boolean(), warn(__MODULE__, warning, elem(expr, 1), stack, context)}
+        disjoint?(left, right) ->
+          warning = {:mismatched_comparison, expr, context}
+          warn(__MODULE__, warning, elem(expr, 1), stack, context)
 
-      true ->
-        {boolean(), context}
+        true ->
+          context
+      end
+
+    if gradual?(left) or gradual?(right) do
+      {dynamic(boolean()), context}
+    else
+      {boolean(), context}
     end
   end
 

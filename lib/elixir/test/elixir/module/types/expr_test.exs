@@ -577,8 +577,8 @@ defmodule Module.Types.ExprTest do
   describe "comparison" do
     test "works across numbers" do
       assert typecheck!([x = 123, y = 456.0], min(x, y)) == dynamic(union(integer(), float()))
-      assert typecheck!([x = 123, y = 456.0], x < y) == boolean()
-      assert typecheck!([x = 123, y = 456.0], x == y) == boolean()
+      assert typecheck!([x = 123, y = 456.0], x < y) == dynamic(boolean())
+      assert typecheck!([x = 123, y = 456.0], x == y) == dynamic(boolean())
     end
 
     test "warns when comparison is constant" do
@@ -606,7 +606,7 @@ defmodule Module.Types.ExprTest do
                 """}
 
       assert typewarn!([x = 123, y = 456.0], x === y) ==
-               {boolean(),
+               {dynamic(boolean()),
                 ~l"""
                 comparison between incompatible types found:
 
@@ -631,7 +631,7 @@ defmodule Module.Types.ExprTest do
 
     test "warns on comparison with struct across dynamic call" do
       assert typewarn!([x = :foo, y = %Point{}, mod = Kernel], mod.<=(x, y)) ==
-               {boolean(),
+               {dynamic(boolean()),
                 ~l"""
                 comparison with structs found:
 

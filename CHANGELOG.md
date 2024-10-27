@@ -10,6 +10,8 @@ TODO.
 
 * Type checking of all built-in conversion functions, such as `List.to_integer/1` and `Atom.to_string/1`
 
+* Type checking of all functions in `Kernel` which are inlined by the compiler
+
 * Type checking of all functions in the `Tuple` module
 
 ## ExUnit improvements
@@ -80,6 +82,7 @@ You may also prever to write using guards:
   * [Kernel] Track the type of tuples in patterns and inside `elem/2`
   * [List] Add `List.ends_with?/2`
   * [Macro] Improve `dbg` handling of `if/2`, `with/1` and of code blocks
+  * [Macro] Add `Macro.struct_info!/2` to return struct information mirroring `mod.__info__(:struct)`
   * [Process] Handle arbitrarily high integer values in `Process.sleep/1`
   * [String] Inspect special whitespace and zero-width characters using their Unicode representation
 
