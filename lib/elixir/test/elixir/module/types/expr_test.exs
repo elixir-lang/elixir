@@ -572,7 +572,7 @@ defmodule Module.Types.ExprTest do
                    scheme: term(),
                    userinfo: term()
                  })
-                 # from: types_test.ex:LINE-4
+                 # from: types_test.ex:LINE-4:41
                  x = %URI{}
              """
 

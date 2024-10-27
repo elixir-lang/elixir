@@ -130,13 +130,15 @@ defmodule Module.Types.Helpers do
 
       %{
         file: file,
-        meta: meta,
+        line: meta[:line],
+        column: meta[:column],
+        hints: formatter_hints ++ expr_hints(expr),
         formatted_expr: formatted_expr,
-        formatted_hints: format_hints(formatter_hints ++ expr_hints(expr)),
         formatted_type: Module.Types.Descr.to_quoted_string(type)
       }
     end)
-    |> Enum.sort_by(&{&1.meta[:line], &1.meta[:column]})
+    |> Enum.sort_by(&{&1.line, &1.column})
+    |> Enum.dedup()
   end
 
   @doc """
@@ -148,30 +150,25 @@ defmodule Module.Types.Helpers do
 
   defp format_trace(%{type: :variable, name: name, context: context, traces: traces}) do
     traces =
-      traces
-      |> Enum.map(fn trace ->
+      for trace <- traces do
         location =
           trace.file
           |> Path.relative_to_cwd()
-          |> Exception.format_file_line(trace.meta[:line])
+          |> Exception.format_file_line(trace.line, trace.column)
           |> String.replace_suffix(":", "")
 
-        {trace.formatted_type, location, trace.formatted_expr, trace.formatted_hints}
-      end)
-      |> Enum.dedup()
-      |> Enum.map(fn {formatted_type, location, formatted_expr, formatted_hints} ->
         [
           """
 
-              # type: #{indent(formatted_type, 4)}
+              # type: #{indent(trace.formatted_type, 4)}
               # from: #{location}
               \
           """,
-          indent(formatted_expr, 4),
+          indent(trace.formatted_expr, 4),
           ?\n,
-          formatted_hints
+          format_hints(trace.hints)
         ]
-      end)
+      end
 
     type_or_types = pluralize(traces, "type", "types")
     ["\nwhere #{format_var(name, context)} was given the #{type_or_types}:\n" | traces]

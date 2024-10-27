@@ -32,6 +32,8 @@ defmodule TypeHelper do
   Main helper for checking the given AST type checks errors.
   """
   defmacro typeerror!(patterns \\ [], guards \\ true, body) do
+    [patterns, guards, body] = prune_columns([patterns, guards, body])
+
     quote do
       unquote(typecheck(patterns, guards, body, __CALLER__))
       |> TypeHelper.__typeerror__!()
@@ -42,6 +44,8 @@ defmodule TypeHelper do
   Main helper for checking the given AST type warns.
   """
   defmacro typewarn!(patterns \\ [], guards \\ true, body) do
+    [patterns, guards, body] = prune_columns([patterns, guards, body])
+
     quote do
       unquote(typecheck(patterns, guards, body, __CALLER__))
       |> TypeHelper.__typewarn__!()
@@ -203,5 +207,11 @@ defmodule TypeHelper do
       end
 
     IO.iodata_to_binary([head | rest])
+  end
+
+  defp prune_columns(ast) do
+    Macro.prewalk(ast, fn node ->
+      Macro.update_meta(node, &Keyword.delete(&1, :column))
+    end)
   end
 end
