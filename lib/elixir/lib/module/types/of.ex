@@ -408,7 +408,6 @@ defmodule Module.Types.Of do
         {:erlang, :map_size, [{[open_map()], integer()}]},
         {:erlang, :node, [{[], atom()}]},
         {:erlang, :node, [{[pid() |> union(reference()) |> union(port())], atom()}]},
-        {:erlang, :not, [{[atom([false])], atom([true])}, {[atom([true])], atom([false])}]},
         {:erlang, :rem, [{[integer(), integer()], integer()}]},
         {:erlang, :round, [{[union(integer(), float())], integer()}]},
         {:erlang, :self, [{[], pid()}]},
@@ -473,6 +472,8 @@ defmodule Module.Types.Of do
       end
     end
   end
+
+  # TODO: {:erlang, :not, [{[atom([false])], atom([true])}, {[atom([true])], atom([false])}]},
 
   def apply(:erlang, :element, [_, tuple], {_, meta, [index, _]} = expr, stack, context)
       when is_integer(index) do
