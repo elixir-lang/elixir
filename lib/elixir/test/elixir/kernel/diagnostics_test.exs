@@ -5,9 +5,10 @@ defmodule Kernel.DiagnosticsTest do
 
   import ExUnit.CaptureIO
 
-  setup do
+  setup_all do
+    previous = Application.get_env(:elixir, :ansi_enabled, false)
     Application.put_env(:elixir, :ansi_enabled, false)
-    on_exit(fn -> Application.put_env(:elixir, :ansi_enabled, true) end)
+    on_exit(fn -> Application.put_env(:elixir, :ansi_enabled, previous) end)
   end
 
   describe "mismatched delimiter" do

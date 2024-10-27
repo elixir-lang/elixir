@@ -49,13 +49,6 @@ defmodule TupleTest do
     assert mod.insert_at({:bar, :baz}, 0, :foo) == {:foo, :bar, :baz}
   end
 
-  test "append/2" do
-    assert Tuple.append({:foo, :bar}, :baz) == {:foo, :bar, :baz}
-
-    mod = Tuple
-    assert mod.append({:foo, :bar}, :baz) == {:foo, :bar, :baz}
-  end
-
   test "delete_at/2" do
     assert Tuple.delete_at({:foo, :bar, :baz}, 0) == {:bar, :baz}
 
