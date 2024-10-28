@@ -193,7 +193,7 @@ iex> map = %{name: "John", age: 23}
 %{name: "John", age: 23}
 ```
 
-When a key is an atoms, we can also access them using the `map.key` syntax:
+When a key is an atom, we can also access them using the `map.key` syntax:
 
 ```elixir
 iex> map.name
