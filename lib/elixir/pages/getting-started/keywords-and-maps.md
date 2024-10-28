@@ -40,7 +40,7 @@ iex> String.split("1  2  3", " ", [trim: true, parts: 2])
 
 ```elixir
 iex> String.split("1  2  3", " ", trim: true, parts: 2)
-["1", "2", "3"]
+["1", "2  3"]
 ```
 
 As shown in the example above, keyword lists are mostly used as optional arguments to functions.
