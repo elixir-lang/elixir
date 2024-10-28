@@ -644,7 +644,7 @@ defmodule ExUnit.DocTestTest do
     assert output =~ """
              5) doctest module ExUnit.DocTestTest.Failure (5) (ExUnit.DocTestTest.FailureCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                ** (UndefinedFunctionError) function Hello.world/0 is undefined (module Hello is not available)
+                ** (UndefinedFunctionError) function Hello.world/0 is undefined (module Hello is not available). Make sure the module name is correct and has been specified in full (or that an alias has been defined)
                 stacktrace:
                   Hello.world()
                   (for doctest at) test/ex_unit/doc_test_test.exs:#{starting_line + 15}: (test)

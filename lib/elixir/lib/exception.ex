@@ -1581,13 +1581,15 @@ defmodule UndefinedFunctionError do
 
   """
 
+  @function_threshold 0.77
+  @max_suggestions 5
   defexception [:module, :function, :arity, :reason, :message]
 
   @impl true
   def message(%{message: nil} = exception) do
     %{reason: reason, module: module, function: function, arity: arity} = exception
-    {message, _hint_type} = message(reason, module, function, arity)
-    message
+    {message, hint_type} = message(reason, module, function, arity)
+    message <> if(hint_type == :suggest_module, do: hint_for_missing_alias(module), else: "")
   end
 
   def message(%{message: message}) do
@@ -1648,12 +1650,25 @@ defmodule UndefinedFunctionError do
   end
 
   defp hint(module, function, arity, :suggest_function) do
-    behaviour_hint(module, function, arity) <>
+    hint_for_behaviour(module, function, arity) <>
       hint_for_loaded_module(module, function, arity, nil)
   end
 
-  @max_suggestions 5
   defp hint(module, function, arity, :suggest_module) do
+    hint_for_missing_module(module, function, arity)
+  end
+
+  defp hint_for_missing_alias(module) do
+    with "Elixir." <> rest <- Atom.to_string(module),
+         false <- rest =~ "." do
+      ". Make sure the module name is correct and has been specified in full (or that an alias has been defined)"
+    else
+      _ -> ""
+    end
+  end
+
+  @doc false
+  def hint_for_missing_module(module, function, arity) do
     downcased_module = downcase_module_name(module)
     stripped_module = module |> Atom.to_string() |> String.replace_leading("Elixir.", "")
 
@@ -1674,9 +1689,9 @@ defmodule UndefinedFunctionError do
           ["\n      * ", Exception.format_mfa(module, function, arity)]
         end)
 
-      IO.iodata_to_binary([". Did you mean:\n", suggestions, "\n"])
+      ". Did you mean:\n#{suggestions}\n"
     else
-      ""
+      hint_for_missing_alias(module)
     end
   end
 
@@ -1714,8 +1729,36 @@ defmodule UndefinedFunctionError do
     end
   end
 
-  @function_threshold 0.77
-  @max_suggestions 5
+  defp hint_for_behaviour(module, function, arity) do
+    case behaviours_for(module) do
+      [] ->
+        ""
+
+      behaviours ->
+        case Enum.find(behaviours, &expects_callback?(&1, function, arity)) do
+          nil -> ""
+          behaviour -> ", but the behaviour #{inspect(behaviour)} expects it to be present"
+        end
+    end
+  rescue
+    # In case the module was removed while we are computing this
+    UndefinedFunctionError -> ""
+  end
+
+  defp behaviours_for(module) do
+    :attributes
+    |> module.module_info()
+    |> Keyword.get(:behaviour, [])
+  end
+
+  defp expects_callback?(behaviour, function, arity) do
+    callbacks =
+      behaviour.behaviour_info(:callbacks) -- behaviour.behaviour_info(:optional_callbacks)
+
+    Enum.member?(callbacks, {function, arity})
+  end
+
+  ## Shared helpers across hints
 
   defp did_you_mean(module, function, exports) do
     exports = exports || exports_for(module)
@@ -1748,35 +1791,6 @@ defmodule UndefinedFunctionError do
     ["      * ", Macro.inspect_atom(:remote_call, fun), ?/, Integer.to_string(arity), ?\n]
   end
 
-  defp behaviour_hint(module, function, arity) do
-    case behaviours_for(module) do
-      [] ->
-        ""
-
-      behaviours ->
-        case Enum.find(behaviours, &expects_callback?(&1, function, arity)) do
-          nil -> ""
-          behaviour -> ", but the behaviour #{inspect(behaviour)} expects it to be present"
-        end
-    end
-  rescue
-    # In case the module was removed while we are computing this
-    UndefinedFunctionError -> ""
-  end
-
-  defp behaviours_for(module) do
-    :attributes
-    |> module.module_info()
-    |> Keyword.get(:behaviour, [])
-  end
-
-  defp expects_callback?(behaviour, function, arity) do
-    callbacks =
-      behaviour.behaviour_info(:callbacks) -- behaviour.behaviour_info(:optional_callbacks)
-
-    Enum.member?(callbacks, {function, arity})
-  end
-
   defp exports_for(module) do
     if function_exported?(module, :__info__, 1) do
       module.__info__(:macros) ++ module.__info__(:functions)
@@ -1785,8 +1799,7 @@ defmodule UndefinedFunctionError do
     end
   rescue
     # In case the module was removed while we are computing this
-    UndefinedFunctionError ->
-      []
+    UndefinedFunctionError -> []
   end
 
   defp deprecated_functions_for(module) do
@@ -1797,8 +1810,7 @@ defmodule UndefinedFunctionError do
     end
   rescue
     # In case the module was removed while we are computing this
-    UndefinedFunctionError ->
-      []
+    UndefinedFunctionError -> []
   end
 end
 
