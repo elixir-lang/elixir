@@ -1661,7 +1661,7 @@ defmodule UndefinedFunctionError do
   defp hint_for_missing_alias(module) do
     with "Elixir." <> rest <- Atom.to_string(module),
          false <- rest =~ "." do
-      ". Make sure the module name is correct and that it has the proper namespace (if any)"
+      ". Make sure the module name is correct and has been specified in full (or that an alias has been defined)"
     else
       _ -> ""
     end
