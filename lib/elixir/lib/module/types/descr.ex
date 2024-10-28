@@ -1451,7 +1451,7 @@ defmodule Module.Types.Descr do
     Enum.all?(dnf, fn {tag, pos, negs} -> map_empty?(tag, pos, negs) end)
   end
 
-  defp map_empty?(_, _, []), do: false
+  defp map_empty?(_, pos, []), do: Enum.any?(Map.to_list(pos), fn {_, v} -> empty?(v) end)
   defp map_empty?(_, _, [{:open, neg_fields} | _]) when neg_fields == %{}, do: true
   defp map_empty?(:open, fs, [{:closed, _} | negs]), do: map_empty?(:open, fs, negs)
 
@@ -1785,11 +1785,11 @@ defmodule Module.Types.Descr do
   end
 
   # No negations, so not empty
-  defp tuple_empty?(_, _, []), do: false
+  defp tuple_empty?(_, pos, []), do: Enum.any?(pos, &empty?/1)
   # Open empty negation makes it empty
   defp tuple_empty?(_, _, [{:open, []} | _]), do: true
   # Open positive can't be emptied by a single closed negative
-  defp tuple_empty?(:open, _, [{:closed, _}]), do: false
+  defp tuple_empty?(:open, pos, [{:closed, _}]), do: Enum.any?(pos, &empty?/1)
 
   defp tuple_empty?(tag, elements, [{neg_tag, neg_elements} | negs]) do
     n = length(elements)
@@ -1801,21 +1801,21 @@ defmodule Module.Types.Descr do
     if (tag == :closed and n < m) or (neg_tag == :closed and n > m) do
       tuple_empty?(tag, elements, negs)
     else
-      tuple_elements([], tag, elements, neg_elements, negs) and
+      tuple_elements_empty?([], tag, elements, neg_elements, negs) and
         tuple_compatibility(n, m, tag, elements, neg_tag, negs)
     end
   end
 
   # Recursively check elements for emptiness
-  defp tuple_elements(_, _, _, [], _), do: true
+  defp tuple_elements_empty?(_, _, _, [], _), do: true
 
-  defp tuple_elements(acc, tag, elements, [neg_type | neg_elements], negs) do
+  defp tuple_elements_empty?(acc, tag, elements, [neg_type | neg_elements], negs) do
     # Handles the case where {tag, elements} is an open tuple, like {:open, []}
     {ty, elements} = List.pop_at(elements, 0, term())
     diff = difference(ty, neg_type)
 
     (empty?(diff) or tuple_empty?(tag, Enum.reverse(acc, [diff | elements]), negs)) and
-      tuple_elements([ty | acc], tag, elements, neg_elements, negs)
+      tuple_elements_empty?([ty | acc], tag, elements, neg_elements, negs)
   end
 
   # Determines if the set difference is empty when:
@@ -2104,7 +2104,7 @@ defmodule Module.Types.Descr do
   end
 
   defp tuple_of_size_at_least(n) when is_integer(n) and n >= 0 do
-    open_tuple(List.duplicate(term(), n))
+    tuple_descr(:open, List.duplicate(term(), n))
   end
 
   defp tuple_of_size_at_least_static?(descr, index) do

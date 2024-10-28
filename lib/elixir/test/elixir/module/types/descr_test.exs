@@ -544,6 +544,9 @@ defmodule Module.Types.DescrTest do
 
   describe "empty?" do
     test "tuple" do
+      assert tuple([none()]) |> empty?()
+      assert open_tuple([integer(), none()]) |> empty?()
+
       assert intersection(tuple([integer(), atom()]), open_tuple([atom()])) |> empty?()
       refute open_tuple([integer(), integer()]) |> difference(empty_tuple()) |> empty?()
       refute open_tuple([integer(), integer()]) |> difference(open_tuple([atom()])) |> empty?()
@@ -563,6 +566,8 @@ defmodule Module.Types.DescrTest do
     end
 
     test "map" do
+      assert open_map(a: none()) |> empty?()
+      assert closed_map(a: integer(), b: none()) |> empty?()
       assert intersection(closed_map(b: atom()), open_map(a: integer())) |> empty?()
     end
   end
