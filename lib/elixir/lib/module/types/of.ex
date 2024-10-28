@@ -991,7 +991,8 @@ defmodule Module.Types.Of do
           top,
           " is undefined (module ",
           inspect(module),
-          " is not available or is yet to be defined)"
+          " is not available or is yet to be defined)",
+          UndefinedFunctionError.hint_for_missing_module(module, fun, arity)
         ]),
       group: true
     }

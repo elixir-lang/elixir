@@ -775,7 +775,8 @@ defmodule Module.Types.ExprTest do
                end
              ) ==
                {dynamic(),
-                "struct UnknownError is undefined (module UnknownError is not available or is yet to be defined)"}
+                "struct UnknownError is undefined (module UnknownError is not available or is yet to be defined). " <>
+                  "Make sure the module name is correct and that it has the proper namespace (if any)"}
 
       assert typewarn!(
                try do

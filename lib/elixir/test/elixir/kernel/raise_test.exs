@@ -352,7 +352,8 @@ defmodule Kernel.RaiseTest do
         end
 
       assert result ==
-               "function DoNotExist.for_sure/0 is undefined (module DoNotExist is not available)"
+               "function DoNotExist.for_sure/0 is undefined (module DoNotExist is not available). " <>
+                 "Make sure the module name is correct and that it has the proper namespace (if any)"
     end
 
     test "function clause error" do
@@ -569,7 +570,8 @@ defmodule Kernel.RaiseTest do
         end
 
       assert result ==
-               "function DoNotExist.for_sure/0 is undefined (module DoNotExist is not available)"
+               "function DoNotExist.for_sure/0 is undefined (module DoNotExist is not available). " <>
+                 "Make sure the module name is correct and that it has the proper namespace (if any)"
     end
   end
 
@@ -586,7 +588,8 @@ defmodule Kernel.RaiseTest do
       end
 
     assert result ==
-             "function DoNotExist.for_sure/0 is undefined (module DoNotExist is not available)"
+             "function DoNotExist.for_sure/0 is undefined (module DoNotExist is not available). " <>
+               "Make sure the module name is correct and that it has the proper namespace (if any)"
   end
 
   defp zero(0), do: 0

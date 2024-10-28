@@ -613,7 +613,8 @@ defmodule ExceptionTest do
              """
 
       assert blame_message(ENUM, & &1.not_a_function(&1, 1)) ==
-               "function ENUM.not_a_function/2 is undefined (module ENUM is not available)"
+               "function ENUM.not_a_function/2 is undefined (module ENUM is not available). " <>
+                 "Make sure the module name is correct and that it has the proper namespace (if any)"
 
       assert blame_message(One, & &1.foo()) == """
              function One.foo/0 is undefined (module One is not available). Did you mean:
@@ -935,7 +936,9 @@ defmodule ExceptionTest do
              |> message == "function Kernel.bar/1 is undefined or private"
 
       assert %UndefinedFunctionError{module: Foo, function: :bar, arity: 1}
-             |> message == "function Foo.bar/1 is undefined (module Foo is not available)"
+             |> message ==
+               "function Foo.bar/1 is undefined (module Foo is not available). " <>
+                 "Make sure the module name is correct and that it has the proper namespace (if any)"
 
       assert %UndefinedFunctionError{module: nil, function: :bar, arity: 3}
              |> message == "function nil.bar/3 is undefined"
