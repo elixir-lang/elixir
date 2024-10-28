@@ -37,9 +37,9 @@ defmodule MyApp.Hello do
 end
 ```
 
-The `@moduledoc` attribute is used to add documentation to the module. `@doc` is used before a function to provide documentation for it. Besides the attributes above, `@typedoc` can also be used to attach documentation to types defined as part of typespecs, which we will explore later on. Elixir also allows metadata to be attached to documentation, by passing a keyword list to `@doc` and friends.
+The `@moduledoc` attribute is used to add documentation to the module. `@doc` is used before a function to provide documentation for it. Besides the attributes above, `@typedoc` can also be used to attach documentation to types defined as part of typespecs.
 
-## Function Arguments
+## Function arguments
 
 When documenting a function, argument names are inferred by the compiler. For example:
 
@@ -53,6 +53,7 @@ The compiler will infer this argument as `map`. Sometimes the inference will be 
 
 ```elixir
 def size(map_with_size)
+
 def size(%{size: size}) do
   size
 end
@@ -82,9 +83,7 @@ When writing documentation:
 
   * Keep the first paragraph of the documentation concise and simple, typically one-line. Tools like [ExDoc](https://github.com/elixir-lang/ex_doc/) use the first line to generate a summary.
 
-  * Reference modules by their full name.
-
-    Markdown uses backticks (`` ` ``) to quote code. Elixir builds on top of that to automatically generate links when module or function names are referenced. For this reason, always use full module names. If you have a module called `MyApp.Hello`, always reference it as `` `MyApp.Hello` `` and never as `` `Hello` ``.
+  * Reference modules by their full name. Markdown uses backticks (`` ` ``) to quote code. Elixir builds on top of that to automatically generate links when module or function names are referenced. For this reason, always use full module names. If you have a module called `MyApp.Hello`, always reference it as `` `MyApp.Hello` `` and never as `` `Hello` ``.
 
   * Reference functions by name and arity if they are local, as in `` `world/1` ``, or by module, name and arity if pointing to an external module: `` `MyApp.Hello.world/1` ``.
 
@@ -100,7 +99,7 @@ When writing documentation:
 
 ## Doctests
 
-We recommend that developers include examples in their documentation, often under their own `## Examples` heading. To ensure examples do not get out of date, Elixir's test framework (ExUnit) provides a feature called doctests that allows developers to test the examples in their documentation. Doctests work by parsing out code samples starting with `iex>` from the documentation. You can read more about them at `ExUnit.DocTest`.
+We advise developers to include examples in their documentation, often under their own `## Examples` heading. To ensure examples do not get out of date, Elixir's test framework (ExUnit) provides a feature called doctests that allows developers to test the examples in their documentation. Doctests work by parsing out code samples starting with `iex>` from the documentation. You can read more about them at `ExUnit.DocTest`.
 
 ## Documentation != Code comments
 
@@ -112,7 +111,7 @@ Because private functions cannot be accessed externally, Elixir will warn if a p
 
 In summary, documentation is a contract with users of your API, who may not necessarily have access to the source code, whereas code comments are for those who interact directly with the source. You can learn and express different guarantees about your software by separating those two concepts.
 
-## Hiding internal Modules and Functions
+## Hiding internal modules and functions
 
 Besides the modules and functions libraries provide as part of their public interface, libraries may also implement important functionality that is not part of their API. While these modules and functions can be accessed, they are meant to be internal to the library and thus should not have documentation for end users.
 
