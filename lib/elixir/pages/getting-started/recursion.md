@@ -46,7 +46,7 @@ When the second argument is zero, the guard `n > 0` evaluates to false, and the 
 Finally, if you pass an argument that does not match any clause, Elixir raises a `FunctionClauseError`:
 
 ```elixir
-iex> Recursion.print_multiple_times "Hello!", -1
+iex> Recursion.print_multiple_times("Hello!", -1)
 ** (FunctionClauseError) no function clause matching in Recursion.print_multiple_times/2
 
     The following arguments were given to Recursion.print_multiple_times/2:
@@ -83,10 +83,10 @@ We invoke `sum_list` with the list `[1, 2, 3]` and the initial value `0` as argu
 Then, we add the head of the list to the accumulator `head + accumulator` and call `sum_list` again, recursively, passing the tail of the list as its first argument. The tail will once again match `[head | tail]` until the list is empty, as seen below:
 
 ```elixir
-sum_list [1, 2, 3], 0
-sum_list [2, 3], 1
-sum_list [3], 3
-sum_list [], 6
+sum_list([1, 2, 3], 0)
+sum_list([2, 3], 1)
+sum_list([3], 3)
+sum_list([], 6)
 ```
 
 When the list is empty, it will match the final clause which returns the final result of `6`.
@@ -105,14 +105,8 @@ defmodule Math do
     []
   end
 end
-```
 
-```console
-$ iex math.exs
-```
-
-```elixir
-iex> Math.double_each([1, 2, 3]) #=> [2, 4, 6]
+Math.double_each([1, 2, 3]) #=> [2, 4, 6]
 ```
 
 Here we have used recursion to traverse a list, doubling each element and returning a new list. The process of taking a list and _mapping_ over it is known as a _map algorithm_.
