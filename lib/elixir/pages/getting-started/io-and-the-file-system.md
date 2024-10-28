@@ -122,7 +122,9 @@ Let's see in more detail what happens when you request `IO.write(pid, binary)`. 
 
 ```elixir
 iex> pid = spawn(fn ->
-...>  receive do: (msg -> IO.inspect(msg))
+...>   receive do
+...>     msg -> IO.inspect(msg)
+...>   end
 ...> end)
 #PID<0.57.0>
 iex> IO.write(pid, "hello")
@@ -190,32 +192,12 @@ The difference between "iodata" and "chardata" is precisely what said integer re
 iex> IO.puts([?O, ?l, ?á, ?\s, "Mary", ?!])
 ```
 
-Overall, integers in a list may represent either a bunch of bytes or a bunch of characters and which one to use depends on the encoding of the IO device. If the file is opened without encoding, the file is expected to be in raw mode, and the functions in the `IO` module starting with `bin*` must be used. Those functions expect an `iodata` as an argument, where integers in the list would represent bytes.
-
-On the other hand, the default IO device (`:stdio`) and files opened with `:utf8` encoding work with the remaining functions in the `IO` module. Those functions expect a `chardata` as an argument, where integers represent codepoints.
-
-Although this is a subtle difference, you only need to worry about these details if you intend to pass lists containing integers to those functions. If you pass binaries, or list of binaries, then there is no ambiguity.
-
-Finally, there is one last construct called charlist, which [we discussed in earlier chapters](binaries-strings-and-charlists.md). Charlists are a special case of chardata where all values are integers representing Unicode codepoints. They can be created with the `~c` sigil:
-
-```elixir
-iex> ~c"hello"
-~c"hello"
-```
-
-Charlists mostly show up when interfacing with Erlang, as some Erlang APIs use charlist as their representation for strings. For this reason, any list containing printable ASCII codepoints will be printed as a charlist:
-
-```elixir
-iex> [?a, ?b, ?c]
-~c"abc"
-```
+Charlists, such as `~c"hello world"`, are lists of integers, and therefore are chardata.
 
 We packed a lot into this small section, so let's break it down:
 
   * iodata and chardata are lists of binaries and integers. Those binaries and integers can be arbitrarily nested inside lists. Their goal is to give flexibility and performance when working with IO devices and files;
 
   * the choice between iodata and chardata depends on the encoding of the IO device. If the file is opened without encoding, the file expects iodata, and the functions in the `IO` module starting with `bin*` must be used. The default IO device (`:stdio`) and files opened with `:utf8` encoding expect chardata and work with the remaining functions in the `IO` module;
-
-  * charlists are a special case of chardata, where it exclusively uses a list of integers Unicode codepoints. They can be created with the `~c` sigil. Lists of integers are automatically printed using the `~c` sigil if all integers in a list represent printable ASCII codepoints.
 
 This finishes our tour of IO devices and IO related functionality. We have learned about three Elixir modules - `IO`, `File`, and `Path` - as well as how the VM uses processes for the underlying IO mechanisms and how to use `chardata` and `iodata` for IO operations.
