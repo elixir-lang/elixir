@@ -6,7 +6,9 @@ In Elixir, we have two main associative data structures: keyword lists and maps.
 
 ## Keyword lists
 
-Keyword lists are a data-structure used to pass options to functions. Let's start without passing optional arguments and we'll introduce them shortly. Imagine you want to split a string of numbers. We can use `String.split/2`:
+Keyword lists are a data-structure used to pass options to functions. Let's see a scenario where they may be useful.
+
+Imagine you want to split a string of numbers. Initially, we can invoke `String.split/2` passing two strings as arguments:
 
 ```elixir
 iex> String.split("1 2 3", " ")
@@ -27,10 +29,17 @@ iex> String.split("1  2  3", " ", [trim: true])
 ["1", "2", "3"]
 ```
 
-`[trim: true]` is a keyword list. Furthermore, when a keyword list is the last argument of a function, we can skip the brackets and write:
+We can also use options to limit the splitting algorithm to a maximum number of parts, as shown next:
 
 ```elixir
-iex> String.split("1  2  3", " ", trim: true)
+iex> String.split("1  2  3", " ", [trim: true, parts: 2])
+["1", "2  3"]
+```
+
+`[trim: true]` and `[trim: true, parts: 2]` are keyword lists. When a keyword list is the last argument of a function, we can skip the brackets and write:
+
+```elixir
+iex> String.split("1  2  3", " ", trim: true, parts: 2)
 ["1", "2", "3"]
 ```
 
@@ -39,23 +48,26 @@ As shown in the example above, keyword lists are mostly used as optional argumen
 As the name implies, keyword lists are simply lists. In particular, they are lists consisting of 2-item tuples where the first element (the key) is an atom and the second element can be any value. Both representations are the same:
 
 ```elixir
-iex> [{:trim, true}] == [trim: true]
+iex> [{:trim, true}, {:parts, 2}] == [trim: true, parts: 2]
 true
 ```
 
-To summarize the different formats we've seen and also show how to handle a longer keyword list, we'll pass an extra option to `String.split/3`.  We'll pass the `parts` option which limits the number of parts returned.
+Keyword lists are important because they have three special characteristics:
+
+  * Keys must be atoms.
+  * Keys are ordered, as specified by the developer.
+  * Keys can be given more than once.
+
+For example, we use the fact keys can be repeated when [importing functions](../getting-started/alias-require-and-import.md) in Elixir:
+
 ```elixir
-iex> String.split("1  2  3", " ", [{:trim, true}, {:parts, 2}])
-["1", " 2  3"]
-
-iex> String.split("1  2  3", " ", [trim: true, parts: 2])
-["1", " 2  3"]
-
-iex> String.split("1  2  3", " ", trim: true, parts: 2)
-["1", " 2  3"]
+iex> import String, only: [split: 1, split: 2]
+String
+iex> split("hello world")
+["hello", "world"]
 ```
 
-As shown above, they are all equivalent.
+In the example above, we imported both `split/1` and `split/2` from the `String` module, allowing us to invoke them without typing the module name. We used a keyword list to list the functions to import.
 
 Since keyword lists are lists, we can use all operations available to lists. For example, we can use `++` to add new values to a keyword list:
 
@@ -68,43 +80,13 @@ iex> [a: 0] ++ list
 [a: 0, a: 1, b: 2]
 ```
 
-You can read the value of a keyword list using the brackets syntax. This is also known as the access syntax, as it is defined by the `Access` module:
+You can read the value of a keyword list using the brackets syntax, which will return the value of the first matching key. This is also known as the access syntax, as it is defined by the `Access` module:
 
 ```elixir
 iex> list[:a]
 1
 iex> list[:b]
 2
-```
-
-In case of duplicate keys, values added to the front are the ones fetched:
-
-```elixir
-iex> new_list = [a: 0] ++ list
-[a: 0, a: 1, b: 2]
-iex> new_list[:a]
-0
-```
-
-Keyword lists are important because they have three special characteristics:
-
-  * Keys must be atoms.
-  * Keys are ordered, as specified by the developer.
-  * Keys can be given more than once.
-
-For example, [the Ecto library](https://github.com/elixir-lang/ecto) makes use of these features to provide an elegant DSL for writing database queries:
-
-```elixir
-query =
-  from w in Weather,
-    where: w.prcp > 0,
-    where: w.temp < 20,
-    select: w
-```
-
-In the above query, the Ecto macro transforms the code into the `Ecto.from/2` function that takes in a keyword list, which will look something like this:
-```elixir
-query = from(w in Weather, where: w.prcp > 0, where: w.temp < 20, select: w)
 ```
 
 Although we can pattern match on keyword lists, it is not done in practice since pattern matching on lists requires the number of items and their order to match:
@@ -137,7 +119,7 @@ iex> if true do
 "This will be seen"
 ```
 
-In the example above, the `do` else `else` blocks make up the keyword list. It happens that `do` blocks are nothing more than a syntax convenience on top of keyword lists. We can rewrite the above to:
+In the example above, the `do` and `else` blocks make up a keyword list. They are nothing more than a syntax convenience on top of keyword lists. We can rewrite the above to:
 
 ```elixir
 iex> if true, do: "This will be seen", else: "This won't"
