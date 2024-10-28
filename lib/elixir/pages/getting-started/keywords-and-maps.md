@@ -179,25 +179,23 @@ iex> Map.to_list(%{:a => 1, 2 => :b})
 
 ## Maps of predefined keys
 
-In the previous section, we have used maps as a key-value data structure where keys can be added or removed at any time. However, it is also common to create maps with a predefined set of keys. Their values may be updated, but new keys are never added nor removed. This is useful when we know the shape of the data we are working with and, if we get a different key, it likely means a mistake was done elsewhere.
-
-We define such maps using the same syntax as in the previous section, except that all keys must be atoms:
+In the previous section, we have used maps as a key-value data structure where keys can be added or removed at any time. However, it is also common to create maps with a predefined set of keys. Their values may be updated, but new keys are never added nor removed. This is useful when we know the shape of the data we are working with and, if we get a different key, it likely means a mistake was done elsewhere. In such cases, the keys are most often atoms:
 
 ```elixir
 iex> map = %{:name => "John", :age => 23}
 %{name: "John", age: 23}
 ```
 
-As you can see from the printed result above, Elixir also allows you to write maps of atom keys using the same `key: value` syntax as keyword lists.
+As you can see from the printed result above, Elixir also allows you to write maps of atom keys using the same `key: value` syntax as keyword lists:
 
 ```elixir
 iex> map = %{name: "John", age: 23}
 %{name: "John", age: 23}
 ```
 
-When the keys are atoms, we can also access them using the `map.key` syntax:
+When a key is an atoms, we can also access them using the `map.key` syntax:
 
-```
+```elixir
 iex> map.name
 "John"
 iex> map.agee
