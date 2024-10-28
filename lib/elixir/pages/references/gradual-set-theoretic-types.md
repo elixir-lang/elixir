@@ -92,7 +92,7 @@ In order to balance these trade-offs, Elixir's type system provides the followin
 
   * Module-local inference of return types - the gradual return types of a function is computed considering all of the functions within the module itself (any call to a separate module is considered to return `dynamic()`)
 
-The last two items offer gradual reconstruction of type signatures, where the inferred types are dynamic. The goal is not to infer precise types. Instead, the goal is to provide an efficient type reconstruction algorithm which can help the type system spot definite bugs, even in the absence of type signatures. Precise type checking of functions will be available once Elixir introduces typed function signatures (see "Roadmap").
+The last two items offer gradual reconstruction of type signatures, where the inferred types are dynamic. The goal is not to infer exact types. Instead, we aim to provide an efficient type reconstruction algorithm which can help the type system spot definite bugs, even in the absence of type signatures. Precise type checking of functions will be available once Elixir introduces typed function signatures (see "Roadmap").
 
 ## Roadmap
 

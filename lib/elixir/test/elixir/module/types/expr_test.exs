@@ -597,7 +597,7 @@ defmodule Module.Types.ExprTest do
       assert typewarn!([x = :foo, y = 321], min(x, y)) ==
                {dynamic(union(integer(), atom([:foo]))),
                 ~l"""
-                comparison between incompatible types found:
+                comparison between distinct types found:
 
                     min(x, y)
 
@@ -614,13 +614,13 @@ defmodule Module.Types.ExprTest do
                     y = 321
 
                 While Elixir can compare across all types, you are comparing across types \
-                which are always distinct, and the result is either always true or always false
+                which are always disjoint, and the result is either always true or always false
                 """}
 
       assert typewarn!([x = 123, y = 456.0], x === y) ==
                {boolean(),
                 ~l"""
-                comparison between incompatible types found:
+                comparison between distinct types found:
 
                     x === y
 
@@ -637,7 +637,7 @@ defmodule Module.Types.ExprTest do
                     y = 456.0
 
                 While Elixir can compare across all types, you are comparing across types \
-                which are always distinct, and the result is either always true or always false
+                which are always disjoint, and the result is either always true or always false
                 """}
     end
 
