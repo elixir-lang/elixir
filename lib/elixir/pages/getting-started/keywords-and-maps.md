@@ -103,7 +103,7 @@ iex> [b: b, a: a] = [a: 1, b: 2]
 
 Furthermore, given keyword lists are often used as optional arguments, they are used in situations where not all keys may be present, which would make it impossible to match on them. In a nutshell, do not pattern match on keyword lists.
 
-In order to manipulate keyword lists, Elixir provides the `Keyword` module. Remember, though, keyword lists are simply lists, and as such they provide the same linear performance characteristics as them: the longer the list, the longer it will take to find a key, to count the number of items, and so on. If you need to store a large amount of keys in a key-value data structure, Elixir offers maps, which we will soon learn.
+In order to manipulate keyword lists, Elixir provides the `Keyword` module. Remember, though, keyword lists are simply lists, and as such they provide the same linear performance characteristics: the longer the list, the longer it will take to find a key, to count the number of items, and so on. If you need to store a large amount of keys in a key-value data structure, Elixir offers maps, which we will soon learn.
 
 ### `do`-blocks and keywords
 
@@ -118,16 +118,16 @@ iex> if true do
 "This will be seen"
 ```
 
-It happens that `do` blocks are nothing more than a syntax convenience on top of keywords. We can rewrite the above to:
+It happens that `do` blocks are nothing more than a syntax convenience on top of keyword lists. We can rewrite the above to:
 
 ```elixir
 iex> if true, do: "This will be seen", else: "This won't"
 "This will be seen"
 ```
 
-Pay close attention to both syntaxes. In the keyword list format, we separate each key-value pair with commas, and each key is followed by `:`. In the `do`-blocks, we get rid of the colons, the commas, and separate each keyword by a newline. They are useful exactly because they remove the verbosity when writing blocks of code. Most of the time, you will use the block syntax, but it is good to know they are equivalent.
+Pay close attention to both syntaxes. The second example uses keyword lists, exactly as in the `String.trim/3` example, so we separate each key-value pair with commas and each key is followed by `:`. In the `do`-blocks, we use bare words, such as `do`, `else`, and `end`, and separate them by a newline. They are useful precisely when writing blocks of code. Most of the time, you will use the block syntax, but it is good to know they are equivalent.
 
-This plays an important role in the language as it allows Elixir syntax to stay small but still expressive. We only need few data structures to represent the language, a topic we will come back to when talking about [optional syntax](optional-syntax.md) and go in-depth when discussing [meta-programming](../meta-programming/quote-and-unquote.md).
+The fact the block syntax is equivalent to keywords means we only need few data structures to represent the language, keeping it simple overall. We will come back to this topic when discussing [optional syntax](optional-syntax.md) and [meta-programming](../meta-programming/quote-and-unquote.md).
 
 With this out of the way, let's talk about maps.
 
@@ -179,7 +179,7 @@ iex> Map.to_list(%{:a => 1, 2 => :b})
 
 ## Maps of predefined keys
 
-In the previous section, we have used maps as a key-value data structure where keys can be added or removed at any time. However, it is also common to create maps with a pre-defined set of keys. Their values may be updated, but new keys are never added nor removed. This is useful when we know the shape of the data we are working with and, if we get a different key, it likely means a mistake was done elsewhere.
+In the previous section, we have used maps as a key-value data structure where keys can be added or removed at any time. However, it is also common to create maps with a predefined set of keys. Their values may be updated, but new keys are never added nor removed. This is useful when we know the shape of the data we are working with and, if we get a different key, it likely means a mistake was done elsewhere.
 
 We define such maps using the same syntax as in the previous section, except that all keys must be atoms:
 
@@ -190,12 +190,14 @@ iex> map = %{:name => "John", :age => 23}
 
 As you can see from the printed result above, Elixir also allows you to write maps of atom keys using the same `key: value` syntax as keyword lists.
 
-When the keys are atoms, in particular when working with maps of predefined keys, we can also access them using the `map.key` syntax:
-
 ```elixir
 iex> map = %{name: "John", age: 23}
 %{name: "John", age: 23}
+```
 
+When the keys are atoms, we can also access them using the `map.key` syntax:
+
+```
 iex> map.name
 "John"
 iex> map.agee
@@ -242,7 +244,7 @@ iex> users[:john].age
 It happens we can also use this same syntax for updating the value:
 
 ```elixir
-iex> users = put_in users[:john].age, 31
+iex> users = put_in(users[:john].age, 31)
 [
   john: %{age: 31, languages: ["Erlang", "Ruby", "Elixir"], name: "John"},
   mary: %{age: 29, languages: ["Elixir", "F#", "Clojure"], name: "Mary"}
@@ -252,14 +254,12 @@ iex> users = put_in users[:john].age, 31
 The `update_in/2` macro is similar but allows us to pass a function that controls how the value changes. For example, let's remove "Clojure" from Mary's list of languages:
 
 ```elixir
-iex> users = update_in users[:mary].languages, fn languages -> List.delete(languages, "Clojure") end
+iex> users = update_in(users[:mary].languages, fn languages -> List.delete(languages, "Clojure") end)
 [
   john: %{age: 31, languages: ["Erlang", "Ruby", "Elixir"], name: "John"},
   mary: %{age: 29, languages: ["Elixir", "F#"], name: "Mary"}
 ]
 ```
-
-There is more to learn about `get_in/1`, `pop_in/1` and others, including the `get_and_update_in/2` that allows us to extract a value and update the data structure at once. There are also `get_in/2`, `put_in/3`, `update_in/3`, `get_and_update_in/3`, `pop_in/2` which allow dynamic access into the data structure.
 
 ## Summary
 
