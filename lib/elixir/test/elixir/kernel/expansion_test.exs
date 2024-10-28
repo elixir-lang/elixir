@@ -194,7 +194,7 @@ defmodule Kernel.ExpansionTest do
         ~r"""
         recursive variable definition in patterns:
 
-            x = x
+        x = x
 
         the variable "x" \(context Kernel.ExpansionTest\) is defined in function of itself
         """,
@@ -205,7 +205,7 @@ defmodule Kernel.ExpansionTest do
         ~r"""
         recursive variable definition in patterns:
 
-            \{x = \{:ok, x\}\}
+        \{x = \{:ok, x\}\}
 
         the variable "x" \(context Kernel.ExpansionTest\) is defined in function of itself
         """,
@@ -216,7 +216,7 @@ defmodule Kernel.ExpansionTest do
         ~r"""
         recursive variable definition in patterns:
 
-            \{\{x, y\} = \{y, x\}\}
+        \{\{x, y\} = \{y, x\}\}
 
         the variable "x" \(context Kernel.ExpansionTest\) is defined in function of itself
         """,
@@ -227,7 +227,7 @@ defmodule Kernel.ExpansionTest do
         ~r"""
         recursive variable definition in patterns:
 
-            \{\{:x, y\} = \{x, :y\}, x = y\}
+        \{\{:x, y\} = \{x, :y\}, x = y\}
 
         the variable "x" \(context Kernel.ExpansionTest\) is defined recursively in function of "y" \(context Kernel.ExpansionTest\)
         """,
@@ -238,11 +238,30 @@ defmodule Kernel.ExpansionTest do
         ~r"""
         recursive variable definition in patterns:
 
-            \{x = y, y = z, z = x\}
+        \{x = y, y = z, z = x\}
 
         the following variables form a cycle: "x" \(context Kernel.ExpansionTest\), "y" \(context Kernel.ExpansionTest\), "z" \(context Kernel.ExpansionTest\)
         """,
         fn -> expand(quote(do: {x = y, y = z, z = x} = :ok)) end
+      )
+    end
+
+    test "complex recursive variable definitions" do
+      assert expand(
+               quote do:
+                       {%{type: type, client_id: client_id} = message,
+                        %{type: type, client_id: client_id} = state} = :ok
+             )
+
+      assert_compile_error(
+        ~r"recursive variable definition in patterns",
+        fn ->
+          expand(
+            quote do:
+                    {%{type: type, client_id: client_id} = message,
+                     %{type: type, client_id: client_id} = state, client_id = type} = :ok
+          )
+        end
       )
     end
   end

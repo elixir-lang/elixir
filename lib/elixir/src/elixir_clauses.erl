@@ -98,6 +98,29 @@ recur_cycles(Cycles, Current, Source, Seen, SkipList, Meta, Expr, E) ->
           file_error(Meta, E, ?MODULE, {recursive, [Current], Expr});
 
         DependsOn ->
+          %% We traverse over the skip list. For each entry that contains ourselves,
+          %% we will split the remaining variables in two groups: one which we have
+          %% direct dependencies and skip once and ones that we always skip.
+          %%
+          %% For example, take `foo = {bar = {baz, bat}}`. `baz` and `bat` never depend
+          %% on each other, so we always skip `baz` and `bat` whenever any of them are
+          %% seen. However, while `bar` is in the same group as `baz` and `bat` (from the
+          %% point of view of `foo`), it depends on them, so it only skips once.
+          {OnceKeys, AlwaysKeys} =
+            lists:foldl(fun
+              (#{Current := _} = Skip, Acc) ->
+                maps:fold(fun(K, _, {AccOnce, AccAlways}) ->
+                  case DependsOn of
+                    #{K := _} -> {[K | AccOnce], AccAlways};
+                    #{} -> {AccOnce, [K | AccAlways]}
+                  end
+                end, Acc, Skip);
+              (_Skip, Acc) ->
+                Acc
+            end, {[], []}, SkipList),
+
+          NewSeen = maps:merge(maps:from_keys(AlwaysKeys, false), maps:put(Current, true, Seen)),
+
           maps:fold(fun
             (Key, error, _See) ->
               file_error(Meta, E, ?MODULE, {recursive, [Current, Key], Expr});
@@ -107,22 +130,18 @@ recur_cycles(Cycles, Current, Source, Seen, SkipList, Meta, Expr, E) ->
               AccSeen;
 
             (Key, _, AccSeen) ->
-              Fun = fun
-                (#{Current := _, Key := _}) -> true;
-                (#{}) -> false
-              end,
-
-              case lists:any(Fun, SkipList) of
+              case lists:member(Key, OnceKeys) of
                 true ->
                   AccSeen;
 
-                false when is_map_key(Key, Seen) ->
-                  file_error(Meta, E, ?MODULE, {recursive, [Current | maps:keys(Seen)], Expr});
+                false when map_get(Key, Seen) ->
+                  Keys = [K || K := true <- Seen],
+                  file_error(Meta, E, ?MODULE, {recursive, [Current | Keys], Expr});
 
                 false ->
                   recur_cycles(Cycles, Key, Current, AccSeen, SkipList, Meta, Expr, E)
               end
-          end, maps:put(Current, true, Seen), DependsOn)
+          end, NewSeen, DependsOn)
       end
   end.
 
@@ -526,7 +545,7 @@ format_error({recursive, Vars, TypeExpr}) ->
     end,
 
   io_lib:format(
-    "recursive variable definition in patterns:~n~n    ~ts~n~n~ts",
+    "recursive variable definition in patterns:~n~n~ts~n~n~ts",
     [Code, Message]
   );
 
