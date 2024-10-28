@@ -41,9 +41,15 @@ defmodule Module.Types.Descr do
     list: @non_empty_list_top
   }
 
+  @empty_intersection [0, @none]
+  @empty_difference [0, []]
+
   # Type definitions
 
   defguard is_descr(descr) when is_map(descr) or descr == :term
+
+  defp descr_key?(:term, _key), do: true
+  defp descr_key?(descr, key), do: is_map_key(descr, key)
 
   def dynamic(), do: %{dynamic: :term}
   def none(), do: @none
@@ -91,21 +97,33 @@ defmodule Module.Types.Descr do
 
   @not_set %{optional: 1}
   @term_or_optional Map.put(@term, :optional, 1)
+  @term_or_dynamic_optional Map.put(@term, :dynamic, %{optional: 1})
 
   def not_set(), do: @not_set
-  defp term_or_optional(), do: @term_or_optional
-
   def if_set(:term), do: term_or_optional()
   def if_set(type), do: Map.put(type, :optional, 1)
+  defp term_or_optional(), do: @term_or_optional
 
-  defp descr_key?(:term, _key), do: true
-  defp descr_key?(descr, key), do: is_map_key(descr, key)
+  @compile {:inline,
+            keep_optional: 1, remove_optional: 1, remove_optional_static: 1, optional_to_term: 1}
+  defp keep_optional(descr) do
+    case descr do
+      %{dynamic: %{optional: 1}} -> %{dynamic: %{optional: 1}}
+      %{optional: 1} -> %{optional: 1}
+      _ -> %{}
+    end
+  end
 
-  @compile {:inline, remove_optional: 1, remove_optional_static: 1, optional_to_term: 1}
   defp remove_optional(descr) do
     case descr do
-      %{dynamic: %{optional: _} = dynamic} -> %{descr | dynamic: Map.delete(dynamic, :optional)}
-      _ -> remove_optional_static(descr)
+      %{dynamic: %{optional: _} = dynamic} when map_size(dynamic) == 1 ->
+        Map.delete(descr, :dynamic)
+
+      %{dynamic: %{optional: _} = dynamic} ->
+        %{descr | dynamic: Map.delete(dynamic, :optional)}
+
+      _ ->
+        remove_optional_static(descr)
     end
   end
 
@@ -118,7 +136,7 @@ defmodule Module.Types.Descr do
 
   defp optional_to_term(descr) do
     case descr do
-      %{dynamic: %{optional: _}} -> dynamic(term_or_optional())
+      %{dynamic: %{optional: _}} -> @term_or_dynamic_optional
       %{optional: _} -> term_or_optional()
       _ -> :term
     end
@@ -230,7 +248,7 @@ defmodule Module.Types.Descr do
   @doc """
   Computes the difference between two types.
   """
-  def difference(left, :term), do: Map.take(unfold(left), [:optional])
+  def difference(left, :term), do: keep_optional(left)
 
   def difference(left, right) do
     left = unfold(left)
@@ -250,7 +268,7 @@ defmodule Module.Types.Descr do
   end
 
   # For static types, the difference is component-wise.
-  defp difference_static(left, :term), do: Map.take(unfold(left), [:optional])
+  defp difference_static(left, :term), do: keep_optional(left)
 
   defp difference_static(left, right) do
     iterator_difference_static(:maps.next(:maps.iterator(unfold(right))), unfold(left))
@@ -260,10 +278,12 @@ defmodule Module.Types.Descr do
     acc =
       case map do
         %{^key => v1} ->
-          case difference(key, v1, v2) do
-            0 -> Map.delete(map, key)
-            [] -> Map.delete(map, key)
-            value -> %{map | key => value}
+          value = difference(key, v1, v2)
+
+          if value in @empty_difference do
+            Map.delete(map, key)
+          else
+            %{map | key => value}
           end
 
         %{} ->
@@ -319,6 +339,13 @@ defmodule Module.Types.Descr do
     end
   end
 
+  # For atom, bitmap, and optional, if the key is present,
+  # then they are not empty,
+  defp empty_key?(:map, value), do: map_empty?(value)
+  defp empty_key?(:list, value), do: list_empty?(value)
+  defp empty_key?(:tuple, value), do: tuple_empty?(value)
+  defp empty_key?(_, _value), do: false
+
   @doc """
   Converts a descr to its quoted representation.
   """
@@ -370,8 +397,6 @@ defmodule Module.Types.Descr do
   Because of the dynamic/static invariant in the `descr`, subtyping can be
   simplified in several cases according to which type is gradual or not.
   """
-  def subtype?(left, :term), do: left != @not_set
-
   def subtype?(left, right) do
     left = unfold(left)
     right = unfold(right)
@@ -450,20 +475,21 @@ defmodule Module.Types.Descr do
   include `dynamic()`, `integer()`, but also `dynamic() and (integer() or atom())`.
   Incompatible subtypes include `integer() or list()`, `dynamic() and atom()`.
   """
-  def compatible?(left, :term), do: not empty?(remove_optional(left))
-
   def compatible?(left, right) do
-    left = unfold(left)
-    right = unfold(right)
-    {left_dynamic, left_static} = Map.pop(left, :dynamic, left)
-    right_dynamic = Map.get(right, :dynamic, right)
+    {left_dynamic, left_static} =
+      case left do
+        :term -> {:term, :term}
+        _ -> Map.pop(left, :dynamic, left)
+      end
+
+    right_dynamic =
+      case right do
+        %{dynamic: dynamic} -> dynamic
+        _ -> right
+      end
 
     if empty?(left_static) do
-      cond do
-        left_dynamic == :term -> not empty?(right_dynamic)
-        right_dynamic == :term -> not empty?(left_dynamic)
-        true -> non_disjoint_intersection?(left_dynamic, right_dynamic)
-      end
+      not disjoint?(left_dynamic, right_dynamic)
     else
       subtype_static?(left_static, right_dynamic)
     end
@@ -1035,7 +1061,12 @@ defmodule Module.Types.Descr do
   defp dynamic_intersection(left, right),
     do: symmetrical_intersection(unfold(left), unfold(right), &intersection/3)
 
-  defp dynamic_difference(left, right), do: difference_static(left, right)
+  defp dynamic_difference(left, right) do
+    case difference_static(left, right) do
+      value when value == @none -> 0
+      value -> value
+    end
+  end
 
   defp dynamic_to_quoted(descr) do
     cond do
@@ -2248,10 +2279,12 @@ defmodule Module.Types.Descr do
     acc =
       case map do
         %{^key => v2} ->
-          case fun.(key, v1, v2) do
-            0 -> acc
-            value when value == @none -> acc
-            value -> [{key, value} | acc]
+          value = fun.(key, v1, v2)
+
+          if value in @empty_intersection do
+            acc
+          else
+            [{key, value} | acc]
           end
 
         %{} ->
@@ -2275,7 +2308,8 @@ defmodule Module.Types.Descr do
 
   defp iterator_non_disjoint_intersection?({key, v1, iterator}, map) do
     with %{^key => v2} <- map,
-         value when value != 0 and value != @none <- intersection(key, v1, v2) do
+         value when value not in @empty_intersection <- intersection(key, v1, v2),
+         false <- empty_key?(key, value) do
       true
     else
       _ -> iterator_non_disjoint_intersection?(:maps.next(iterator), map)

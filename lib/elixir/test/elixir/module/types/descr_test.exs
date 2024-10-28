@@ -53,7 +53,12 @@ defmodule Module.Types.DescrTest do
       assert equal?(union(dynamic(), dynamic()), dynamic())
       assert equal?(union(dynamic(), term()), term())
       assert equal?(union(term(), dynamic()), term())
-      assert equal?(union(intersection(dynamic(), atom()), atom()), atom())
+
+      assert equal?(union(dynamic(atom()), atom()), atom())
+      refute equal?(union(dynamic(atom()), atom()), dynamic(atom()))
+
+      assert equal?(union(term(), dynamic(if_set(integer()))), union(term(), dynamic(not_set())))
+      refute equal?(union(term(), dynamic(if_set(integer()))), dynamic(union(term(), not_set())))
     end
 
     test "tuple" do
@@ -128,6 +133,12 @@ defmodule Module.Types.DescrTest do
       assert equal?(intersection(term(), dynamic()), dynamic())
       assert empty?(intersection(dynamic(), none()))
       assert empty?(intersection(intersection(dynamic(), atom()), integer()))
+
+      assert empty?(intersection(dynamic(not_set()), term()))
+      refute empty?(intersection(dynamic(if_set(integer())), term()))
+
+      # Check for structural equivalence
+      assert intersection(dynamic(not_set()), term()) == none()
     end
 
     test "tuple" do
@@ -266,6 +277,7 @@ defmodule Module.Types.DescrTest do
       assert equal?(dynamic(), difference(term(), dynamic()))
       assert empty?(difference(dynamic(), term()))
       assert empty?(difference(none(), dynamic()))
+      assert empty?(difference(dynamic(integer()), integer()))
     end
 
     defp empty_tuple(), do: tuple([])
@@ -530,24 +542,24 @@ defmodule Module.Types.DescrTest do
     end
   end
 
-  describe "empty" do
+  describe "empty?" do
     test "tuple" do
-      assert intersection(tuple([integer(), atom()]), open_tuple([atom()])) |> empty?
-      refute open_tuple([integer(), integer()]) |> difference(empty_tuple()) |> empty?
-      refute open_tuple([integer(), integer()]) |> difference(open_tuple([atom()])) |> empty?
-      refute open_tuple([term()]) |> difference(tuple([term()])) |> empty?
-      assert difference(tuple(), empty_tuple()) |> difference(open_tuple([term()])) |> empty?
-      assert difference(tuple(), open_tuple([term()])) |> difference(empty_tuple()) |> empty?
+      assert intersection(tuple([integer(), atom()]), open_tuple([atom()])) |> empty?()
+      refute open_tuple([integer(), integer()]) |> difference(empty_tuple()) |> empty?()
+      refute open_tuple([integer(), integer()]) |> difference(open_tuple([atom()])) |> empty?()
+      refute open_tuple([term()]) |> difference(tuple([term()])) |> empty?()
+      assert difference(tuple(), empty_tuple()) |> difference(open_tuple([term()])) |> empty?()
+      assert difference(tuple(), open_tuple([term()])) |> difference(empty_tuple()) |> empty?()
 
       refute open_tuple([term()])
              |> difference(tuple([term()]))
              |> difference(tuple([term()]))
-             |> empty?
+             |> empty?()
 
       assert tuple([integer(), union(integer(), atom())])
              |> difference(tuple([integer(), integer()]))
              |> difference(tuple([integer(), atom()]))
-             |> empty?
+             |> empty?()
     end
 
     test "map" do
