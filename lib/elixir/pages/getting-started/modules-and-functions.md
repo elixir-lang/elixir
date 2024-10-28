@@ -47,14 +47,6 @@ iex> Math.sum(1, 2)
 3
 ```
 
-Elixir projects are usually organized into three directories:
-
-  * `_build` - contains compilation artifacts
-  * `lib` - contains Elixir code (usually `.ex` files)
-  * `test` - contains tests (usually `.exs` files)
-
-When working on actual projects, the build tool called `mix` will be responsible for compiling and setting up the proper paths for you. For learning and convenience purposes, Elixir also supports a scripting mode which is more flexible and does not generate any compiled artifacts.
-
 ## Scripting mode
 
 In addition to the Elixir file extension `.ex`, Elixir also supports `.exs` files for scripting. Elixir treats both files exactly the same way, the only difference is in intention. `.ex` files are meant to be compiled while `.exs` files are used for scripting. This convention is followed by projects like `mix`.
@@ -77,7 +69,15 @@ And execute it as:
 $ elixir math.exs
 ```
 
-Because we used `elixir` instead of `elixirc`, the module was compiled and loaded into memory, but no `.beam` file was written to disk. In the following examples, we recommend you write your code into script files and execute them as shown above.
+Because we used `elixir` instead of `elixirc`, the module was compiled and loaded into memory, but no `.beam` file was written to disk.
+
+Elixir projects are usually organized into three directories:
+
+  * `_build` - contains compilation artifacts
+  * `lib` - contains Elixir code (usually `.ex` files)
+  * `test` - contains tests (usually `.exs` files)
+
+When working on actual projects, the build tool called `mix` will be responsible for compiling and setting up the proper paths for you. For learning and convenience purposes, we recommend you to write the following code into script files and execute them as shown above.
 
 ## Function definition
 
@@ -171,9 +171,9 @@ If a function with default values has multiple clauses, it is required to create
 ```elixir
 defmodule Concat do
   # A function head declaring defaults
-  def join(a, b \\ nil, sep \\ " ")
+  def join(a, b, sep \\ " ")
 
-  def join(a, b, _sep) when is_nil(b) do
+  def join(a, b, _sep) when b == "" do
     a
   end
 
@@ -182,54 +182,11 @@ defmodule Concat do
   end
 end
 
+IO.puts(Concat.join("Hello", ""))           #=> Hello
 IO.puts(Concat.join("Hello", "world"))      #=> Hello world
 IO.puts(Concat.join("Hello", "world", "_")) #=> Hello_world
-IO.puts(Concat.join("Hello"))               #=> Hello
 ```
 
 When a variable is not used by a function or a clause, we add a leading underscore (`_`) to its name to signal this intent. This rule is also covered in our [Naming Conventions](../references/naming-conventions.md#underscore-_foo) document.
-
-When using default values, one must be careful to avoid overlapping function definitions. Consider the following example:
-
-```elixir
-defmodule Concat do
-  def join(a, b) do
-    IO.puts("***First join")
-    a <> b
-  end
-
-  def join(a, b, sep \\ " ") do
-    IO.puts("***Second join")
-    a <> sep <> b
-  end
-end
-```
-
-Elixir will emit the following warning:
-
-```text
-warning: this clause cannot match because a previous clause at line 2 always matches
-    concat.ex:7: Concat
-```
-
-The compiler is telling us that invoking the `join` function with two arguments will always choose the first definition of `join` whereas the second one will only be invoked when three arguments are passed:
-
-```console
-$ iex concat.ex
-```
-
-```elixir
-iex> Concat.join("Hello", "world")
-***First join
-"Helloworld"
-```
-
-```elixir
-iex> Concat.join("Hello", "world", "_")
-***Second join
-"Hello_world"
-```
-
-Removing the default argument in this case will fix the warning.
 
 This finishes our short introduction to modules. In the next chapters, we will learn how to use function definitions for recursion and later on explore more functionality related to modules.
