@@ -135,8 +135,7 @@ recur_cycles(Cycles, Current, Source, Seen, SkipList, Meta, Expr, E) ->
                   AccSeen;
 
                 false when map_get(Key, Seen) ->
-                  Keys = [K || K := true <- Seen],
-                  file_error(Meta, E, ?MODULE, {recursive, [Current | Keys], Expr});
+                  file_error(Meta, E, ?MODULE, {recursive, [Current | maps:keys(Seen)], Expr});
 
                 false ->
                   recur_cycles(Cycles, Key, Current, AccSeen, SkipList, Meta, Expr, E)
