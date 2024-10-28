@@ -6,7 +6,7 @@ In Elixir, we have two main associative data structures: keyword lists and maps.
 
 ## Keyword lists
 
-Keyword lists are a data-structure used to pass options to functions. Imagine you want to split a string of numbers. We can use `String.split/2`:
+Keyword lists are a data-structure used to pass options to functions. Let's start without passing optional arguments and we'll introduce them shortly. Imagine you want to split a string of numbers. We can use `String.split/2`:
 
 ```elixir
 iex> String.split("1 2 3", " ")
@@ -42,6 +42,20 @@ As the name implies, keyword lists are simply lists. In particular, they are lis
 iex> [{:trim, true}] == [trim: true]
 true
 ```
+
+To summarize the different formats we've seen and also show how to handle a longer keyword list, we'll pass an extra option to `String.split/3`.  We'll pass the `parts` option which limits the number of parts returned.
+```elixir
+iex> String.split("1  2  3", " ", [{:trim, true}, {:parts, 2}])
+["1", " 2  3"]
+
+iex> String.split("1  2  3", " ", [trim: true, parts: 2])
+["1", " 2  3"]
+
+iex> String.split("1  2  3", " ", trim: true, parts: 2)
+["1", " 2  3"]
+```
+
+As shown above, they are all equivalent.
 
 Since keyword lists are lists, we can use all operations available to lists. For example, we can use `++` to add new values to a keyword list:
 
@@ -88,6 +102,11 @@ query =
     select: w
 ```
 
+In the above query, the Ecto macro transforms the code into the `Ecto.from/2` function that takes in a keyword list, which will look something like this:
+```elixir
+query = from(w in Weather, where: w.prcp > 0, where: w.temp < 20, select: w)
+```
+
 Although we can pattern match on keyword lists, it is not done in practice since pattern matching on lists requires the number of items and their order to match:
 
 ```elixir
@@ -107,7 +126,7 @@ In order to manipulate keyword lists, Elixir provides the `Keyword` module. Reme
 
 ### `do`-blocks and keywords
 
-As we have seen, keywords are mostly used in the language to pass optional values. In fact, we have used keywords in earlier chapters. For example, we have seen:
+As we have seen, keywords are mostly used in the language to pass optional values. In fact, we have used keywords in earlier chapters. Let's look at the `if/2` macro:
 
 ```elixir
 iex> if true do
@@ -118,14 +137,14 @@ iex> if true do
 "This will be seen"
 ```
 
-It happens that `do` blocks are nothing more than a syntax convenience on top of keyword lists. We can rewrite the above to:
+In the example above, the `do` else `else` blocks make up the keyword list. It happens that `do` blocks are nothing more than a syntax convenience on top of keyword lists. We can rewrite the above to:
 
 ```elixir
 iex> if true, do: "This will be seen", else: "This won't"
 "This will be seen"
 ```
 
-Pay close attention to both syntaxes. The second example uses keyword lists, exactly as in the `String.trim/3` example, so we separate each key-value pair with commas and each key is followed by `:`. In the `do`-blocks, we use bare words, such as `do`, `else`, and `end`, and separate them by a newline. They are useful precisely when writing blocks of code. Most of the time, you will use the block syntax, but it is good to know they are equivalent.
+Pay close attention to both syntaxes. The second example uses keyword lists, exactly as in the `String.split/3` example, so we separate each key-value pair with commas and each key is followed by `:`. In the `do`-blocks, we use bare words, such as `do`, `else`, and `end`, and separate them by a newline. They are useful precisely when writing blocks of code. Most of the time, you will use the block syntax, but it is good to know they are equivalent.
 
 The fact the block syntax is equivalent to keywords means we only need few data structures to represent the language, keeping it simple overall. We will come back to this topic when discussing [optional syntax](optional-syntax.md) and [meta-programming](../meta-programming/quote-and-unquote.md).
 
