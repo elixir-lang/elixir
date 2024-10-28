@@ -129,7 +129,7 @@ If you find yourself nesting several [`if`](`if/2`) blocks, you may want to cons
 
 ## cond
 
-If you need to check across several conditions and find the first one that does not evaluate to `nil` or `false`, [`cond`](`cond/1`) is a useful construct:
+We have used `case` to find a matching clauses from many patterns. We have used `if` to check for a single condition. If you need to check across several conditions and find the first one that does not evaluate to `nil` or `false`, [`cond`](`cond/1`) is a useful construct:
 
 ```elixir
 iex> cond do
