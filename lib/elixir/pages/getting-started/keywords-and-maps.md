@@ -58,7 +58,7 @@ Keyword lists are important because they have three special characteristics:
   * Keys are ordered, as specified by the developer.
   * Keys can be given more than once.
 
-For example, we use the fact keys can be repeated when [importing functions](../getting-started/alias-require-and-import.md) in Elixir:
+For example, we use the fact that keys can be repeated when [importing functions](../getting-started/alias-require-and-import.md) in Elixir:
 
 ```elixir
 iex> import String, only: [split: 1, split: 2]
