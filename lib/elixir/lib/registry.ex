@@ -648,7 +648,8 @@ defmodule Registry do
   This function is useful only when spawning processes is not an option,
   for example, when copying the data to another process could be too
   expensive. Or when the work must be done within the current process
-  for other reasons.
+  for other reasons. In such cases, this function provides a scalable
+  mechanism for managing locks on top of the registry's infrastructure.
 
   ## Examples
 
@@ -663,8 +664,8 @@ defmodule Registry do
   def lock(registry, lock_key, function)
       when is_atom(registry) and is_function(function, 0) do
     {_kind, partitions, _, pid_ets, _} = info!(registry)
-    {pid_server, _pid_ets} = pid_ets || pid_ets!(registry, key, partitions)
-    Registry.Partition.lock(pid_server, key, function)
+    {pid_server, _pid_ets} = pid_ets || pid_ets!(registry, lock_key, partitions)
+    Registry.Partition.lock(pid_server, lock_key, function)
   end
 
   @doc """
@@ -1593,7 +1594,7 @@ defmodule Registry.Partition do
   Runs function with a lock.
   """
   def lock(pid, key, lock) do
-    {:ok, ref} = GenServer.call(pid, {:lock, key})
+    ref = GenServer.call(pid, {:lock, key})
 
     try do
       lock.()
@@ -1732,6 +1733,6 @@ defmodule Registry.Partition do
 
   defp go({pid, _tag} = from, key) do
     ref = Process.monitor(pid, tag: {:unlock, key})
-    GenServer.reply(from, {:ok, ref})
+    GenServer.reply(from, ref)
   end
 end
