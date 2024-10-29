@@ -417,6 +417,18 @@ defmodule Mix.Tasks.DepsTest do
     end)
   end
 
+  test "raises an error on invalid names being given" do
+    in_fixture("deps_status", fn ->
+      Mix.Project.push(CustomDepsEnvApp)
+
+      assert_raise Mix.Error,
+                   ~r/Invalid dependency name given to "mix deps.update": `:foobar`/,
+                   fn ->
+                     Mix.Tasks.Deps.Update.run([":foobar"])
+                   end
+    end)
+  end
+
   test "can customize environment" do
     in_fixture("deps_status", fn ->
       Mix.Project.push(CustomDepsEnvApp)

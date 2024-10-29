@@ -61,6 +61,20 @@ defmodule Mix.Tasks.Deps.Update do
         Mix.Dep.Fetcher.all(Mix.Dep.Lock.read(), %{}, fetch_opts)
 
       rest != [] ->
+        invalid =
+          Enum.find(rest, fn name ->
+            !String.match?(name, ~r/^[a-zA-Z0-9_]+$/)
+          end)
+
+        if invalid do
+          Mix.raise("""
+          Invalid dependency name given to \"mix deps.update\": `#{invalid}`
+
+          Dependency names always start with a lowercase ASCII letter,
+          followed by lowercase ASCII letters, numbers, or underscores
+          """)
+        end
+
         {old, new} = Map.split(Mix.Dep.Lock.read(), to_app_names(rest))
         Mix.Dep.Fetcher.by_name(rest, old, new, fetch_opts)
 
