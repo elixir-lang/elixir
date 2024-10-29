@@ -4136,7 +4136,7 @@ defmodule Enum do
 
   def zip_reduce(left, right, acc, reducer) when is_function(reducer, 3) do
     reduce = fn [l, r], acc -> {:cont, reducer.(l, r, acc)} end
-    Stream.zip_with([left, right], & &1).({:cont, acc}, reduce) |> elem(1)
+    R.zip_with([left, right], & &1).({:cont, acc}, reduce) |> elem(1)
   end
 
   @doc """
@@ -4171,7 +4171,7 @@ defmodule Enum do
   def zip_reduce([], acc, reducer) when is_function(reducer, 2), do: acc
 
   def zip_reduce(enums, acc, reducer) when is_function(reducer, 2) do
-    Stream.zip_with(enums, & &1).({:cont, acc}, &{:cont, reducer.(&1, &2)}) |> elem(1)
+    R.zip_with(enums, & &1).({:cont, acc}, &{:cont, reducer.(&1, &2)}) |> elem(1)
   end
 
   ## Helpers
