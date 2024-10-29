@@ -159,6 +159,9 @@ defmodule Module.Types.Descr do
   def gradual?(:term), do: false
   def gradual?(descr), do: is_map_key(descr, :dynamic)
 
+  def only_gradual?(%{dynamic: _} = descr), do: map_size(descr) == 1
+  def only_gradual?(_), do: false
+
   @doc """
   Make a whole type dynamic.
 

@@ -673,6 +673,11 @@ defmodule Module.Types.ExprTest do
   end
 
   describe ":erlang rewrites" do
+    test "Kernel.not/1" do
+      assert typecheck!([x], not is_list(x)) == boolean()
+      assert typedyn!([x], not is_list(x)) == dynamic(boolean())
+    end
+
     test "Kernel.+/2" do
       assert typeerror!([x = :foo, y = 123], x + y) |> strip_ansi() ==
                ~l"""
@@ -701,13 +706,13 @@ defmodule Module.Types.ExprTest do
                where "x" was given the type:
 
                    # type: dynamic(:foo)
-                   # from: types_test.ex:677
+                   # from: types_test.ex:LINE-1
                    x = :foo
 
                where "y" was given the type:
 
                    # type: integer()
-                   # from: types_test.ex:677
+                   # from: types_test.ex:LINE-1
                    y = 123
                """
     end

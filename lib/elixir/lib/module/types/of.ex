@@ -408,6 +408,7 @@ defmodule Module.Types.Of do
         {:erlang, :map_size, [{[open_map()], integer()}]},
         {:erlang, :node, [{[], atom()}]},
         {:erlang, :node, [{[pid() |> union(reference()) |> union(port())], atom()}]},
+        {:erlang, :not, [{[atom([false])], atom([true])}, {[atom([true])], atom([false])}]},
         {:erlang, :rem, [{[integer(), integer()], integer()}]},
         {:erlang, :round, [{[union(integer(), float())], integer()}]},
         {:erlang, :self, [{[], pid()}]},
@@ -438,11 +439,25 @@ defmodule Module.Types.Of do
     [arity] = Enum.map(clauses, fn {args, _return} -> length(args) end) |> Enum.uniq()
     true = Code.ensure_loaded?(mod) and function_exported?(mod, fun, arity)
 
+    domain_clauses =
+      case clauses do
+        [_] ->
+          {:strong, nil, clauses}
+
+        _ ->
+          domain =
+            clauses
+            |> Enum.map(fn {args, _} -> args end)
+            |> Enum.zip_with(fn types -> Enum.reduce(types, &union/2) end)
+
+          {:strong, domain, clauses}
+      end
+
     defp remote(unquote(mod), unquote(fun), unquote(arity)),
-      do: unquote(Macro.escape(clauses))
+      do: unquote(Macro.escape(domain_clauses))
   end
 
-  defp remote(_mod, _fun, _arity), do: []
+  defp remote(_mod, _fun, _arity), do: :none
 
   @doc """
   Checks a module is a valid remote.
@@ -457,9 +472,8 @@ defmodule Module.Types.Of do
       and they can only be converted into arrows by computing the union
       of all arguments.
 
-    * `{:strong, clauses}` - clauses from signatures. So far these are
-      strong arrows with non-overlapping domains. If you find one matching
-      clause, you can stop looking for others.
+    * `{:strong, domain or nil, clauses}` - clauses from signatures. So far
+      these are strong arrows with non-overlapping domains
 
   """
   def remote(module, fun, arity, meta, stack, context) when is_atom(module) do
@@ -467,13 +481,13 @@ defmodule Module.Types.Of do
       {:none, context}
     else
       case remote(module, fun, arity) do
-        [] -> {:none, check_export(module, fun, arity, meta, stack, context)}
-        clauses -> {{:strong, clauses}, context}
+        :none -> {:none, check_export(module, fun, arity, meta, stack, context)}
+        clauses -> {clauses, context}
       end
     end
   end
 
-  # TODO: {:erlang, :not, [{[atom([false])], atom([true])}, {[atom([true])], atom([false])}]},
+  # TODO: Fix ordering of tuple operations
 
   def apply(:erlang, :element, [_, tuple], {_, meta, [index, _]} = expr, stack, context)
       when is_integer(index) do
@@ -482,7 +496,7 @@ defmodule Module.Types.Of do
         {value_type, context}
 
       :badtuple ->
-        {error_type(), badapply_error(expr, [integer(), tuple], stack, context)}
+        {error_type(), to_badapply_error(expr, [integer(), tuple], stack, context)}
 
       reason ->
         {error_type(), error({reason, expr, tuple, index - 1, context}, meta, stack, context)}
@@ -503,7 +517,7 @@ defmodule Module.Types.Of do
         {value_type, context}
 
       :badtuple ->
-        {error_type(), badapply_error(expr, [integer(), tuple, value], stack, context)}
+        {error_type(), to_badapply_error(expr, [integer(), tuple, value], stack, context)}
 
       reason ->
         {error_type(), error({reason, expr, tuple, index - 2, context}, meta, stack, context)}
@@ -517,7 +531,7 @@ defmodule Module.Types.Of do
         {value_type, context}
 
       :badtuple ->
-        {error_type(), badapply_error(expr, [integer(), tuple], stack, context)}
+        {error_type(), to_badapply_error(expr, [integer(), tuple], stack, context)}
 
       reason ->
         {error_type(), error({reason, expr, tuple, index - 1, context}, meta, stack, context)}
@@ -535,7 +549,7 @@ defmodule Module.Types.Of do
         {value_type, context}
 
       :badnonemptylist ->
-        {error_type(), badapply_error(expr, [list], stack, context)}
+        {error_type(), to_badapply_error(expr, [list], stack, context)}
     end
   end
 
@@ -545,7 +559,7 @@ defmodule Module.Types.Of do
         {value_type, context}
 
       :badnonemptylist ->
-        {error_type(), badapply_error(expr, [list], stack, context)}
+        {error_type(), to_badapply_error(expr, [list], stack, context)}
     end
   end
 
@@ -572,7 +586,7 @@ defmodule Module.Types.Of do
     if name in [:min, :max] do
       {union(left, right), context}
     else
-      {comparison_return(boolean(), args_types, stack), context}
+      {remote_return(boolean(), args_types, stack), context}
     end
   end
 
@@ -591,7 +605,7 @@ defmodule Module.Types.Of do
           context
       end
 
-    {comparison_return(boolean(), args_types, stack), context}
+    {remote_return(boolean(), args_types, stack), context}
   end
 
   def apply(mod, name, args_types, expr, stack, context) do
@@ -608,14 +622,14 @@ defmodule Module.Types.Of do
           {:ok, type} ->
             {type, context}
 
-          {:error, clauses} ->
-            error = {:badapply, expr, args_types, clauses, context}
+          {:error, domain, clauses} ->
+            error = {:badapply, expr, args_types, domain, clauses, context}
             {error_type(), error(error, elem(expr, 1), stack, context)}
         end
     end
   end
 
-  defp comparison_return(type, args_types, stack) do
+  defp remote_return(type, args_types, stack) do
     cond do
       stack.mode == :static -> type
       Enum.any?(args_types, &gradual?/1) -> dynamic(type)
@@ -627,36 +641,44 @@ defmodule Module.Types.Of do
     {:ok, dynamic()}
   end
 
-  defp apply_remote({:strong, clauses}, args_types, stack) do
-    if Enum.any?(args_types) do
-      returns =
-        for({expected, return} <- clauses, zip_compatible?(args_types, expected), do: return)
-
-      cond do
-        returns == [] -> {:error, clauses}
-        stack.mode == :static -> {:ok, Enum.reduce(returns, &union/2)}
-        true -> {:ok, dynamic(Enum.reduce(returns, &union/2))}
-      end
-    else
-      Enum.find_value(clauses, {:error, clauses}, fn {expected, return} ->
-        if zip_subtype?(args_types, expected) do
-          {:ok, return}
-        end
-      end)
+  defp apply_remote({:strong, nil, [{expected, return}] = clauses}, args_types, stack) do
+    # Optimize single clauses as the domain is the single clause args.
+    case zip_compatible?(args_types, expected) do
+      true -> {:ok, remote_return(return, args_types, stack)}
+      false -> {:error, expected, clauses}
     end
   end
 
-  defp zip_subtype?([actual | actuals], [expected | expecteds]) do
-    subtype?(actual, expected) and zip_subtype?(actuals, expecteds)
+  defp apply_remote({:strong, domain, clauses}, args_types, stack) do
+    # If the type is only gradual, the compatibility check is the same
+    # as a non disjoint check. So we skip checking compatibility twice.
+    with true <- zip_compatible_or_only_gradual?(args_types, domain),
+         [_ | _] = returns <-
+           for({expected, return} <- clauses, zip_not_disjoint?(args_types, expected), do: return) do
+      {:ok, returns |> Enum.reduce(&union/2) |> remote_return(args_types, stack)}
+    else
+      _ -> {:error, domain, clauses}
+    end
   end
 
-  defp zip_subtype?([], []), do: true
+  defp zip_compatible_or_only_gradual?([actual | actuals], [expected | expecteds]) do
+    (only_gradual?(actual) or compatible?(actual, expected)) and
+      zip_compatible_or_only_gradual?(actuals, expecteds)
+  end
+
+  defp zip_compatible_or_only_gradual?([], []), do: true
 
   defp zip_compatible?([actual | actuals], [expected | expecteds]) do
     compatible?(actual, expected) and zip_compatible?(actuals, expecteds)
   end
 
   defp zip_compatible?([], []), do: true
+
+  defp zip_not_disjoint?([actual | actuals], [expected | expecteds]) do
+    not disjoint?(actual, expected) and zip_not_disjoint?(actuals, expecteds)
+  end
+
+  defp zip_not_disjoint?([], []), do: true
 
   defp check_export(module, fun, arity, meta, stack, context) do
     case ParallelChecker.fetch_export(stack.cache, module, fun, arity) do
@@ -905,7 +927,7 @@ defmodule Module.Types.Of do
     }
   end
 
-  def format_diagnostic({:badapply, expr, args_types, clauses, context}) do
+  def format_diagnostic({:badapply, expr, args_types, domain, clauses, context}) do
     traces = collect_traces(expr, context)
     {{:., _, [mod, fun]}, _, args} = expr
 
@@ -920,10 +942,10 @@ defmodule Module.Types.Of do
 
           given types:
 
-              #{args_to_quoted_string(mod, fun, args_types) |> indent(4)}
+              #{args_to_quoted_string(mod, fun, args_types, domain) |> indent(4)}
 
           but expected one of:
-          #{clauses_args_to_quoted_string(mod, fun, clauses, args_types)}
+          #{clauses_args_to_quoted_string(mod, fun, clauses)}
           """,
           format_traces(traces)
         ])
@@ -1050,9 +1072,9 @@ defmodule Module.Types.Of do
     match?({{:., _, [var, _fun]}, _, _args} when is_var(var), expr)
   end
 
-  defp badapply_error({{:., _, [mod, fun]}, meta, _} = expr, args_types, stack, context) do
-    clauses = remote(mod, fun, length(args_types))
-    error({:badapply, expr, args_types, clauses, context}, meta, stack, context)
+  defp to_badapply_error({{:., _, [mod, fun]}, meta, _} = expr, args_types, stack, context) do
+    {_type, domain, [{args, _} | _] = clauses} = remote(mod, fun, length(args_types))
+    error({:badapply, expr, args_types, domain || args, clauses, context}, meta, stack, context)
   end
 
   defp empty_if(condition, content) do
@@ -1072,24 +1094,34 @@ defmodule Module.Types.Of do
 
   alias Inspect.Algebra, as: IA
 
-  defp clauses_args_to_quoted_string(mod, fun, [{args, _return}], args_types) do
-    "\n    " <> (clause_args_to_quoted_string(mod, fun, args, args_types) |> indent(4))
+  defp clauses_args_to_quoted_string(mod, fun, [{args, _return}]) do
+    "\n    " <> (clause_args_to_quoted_string(mod, fun, args) |> indent(4))
   end
 
-  defp clauses_args_to_quoted_string(mod, fun, clauses, args_types) do
+  defp clauses_args_to_quoted_string(mod, fun, clauses) do
     clauses
     |> Enum.with_index(fn {args, _return}, index ->
-      "\n##{index + 1}\n#{clause_args_to_quoted_string(mod, fun, args, args_types)}" |> indent(4)
+      """
+
+      ##{index + 1}
+      #{clause_args_to_quoted_string(mod, fun, args)}\
+      """
+      |> indent(4)
     end)
     |> Enum.join("\n")
   end
 
-  defp clause_args_to_quoted_string(mod, fun, args, args_types) do
+  defp clause_args_to_quoted_string(mod, fun, args) do
+    docs = Enum.map(args, &(&1 |> to_quoted() |> Code.Formatter.to_algebra()))
+    args_docs_to_quoted_string(mod, fun, docs)
+  end
+
+  defp args_to_quoted_string(mod, fun, args_types, domain) do
     ansi? = IO.ANSI.enabled?()
 
     docs =
-      Enum.zip_with(args_types, args, fn actual, expected ->
-        doc = expected |> to_quoted() |> Code.Formatter.to_algebra()
+      Enum.zip_with(args_types, domain, fn actual, expected ->
+        doc = actual |> to_quoted() |> Code.Formatter.to_algebra()
 
         cond do
           compatible?(actual, expected) -> doc
@@ -1098,11 +1130,6 @@ defmodule Module.Types.Of do
         end
       end)
 
-    args_docs_to_quoted_string(mod, fun, docs)
-  end
-
-  defp args_to_quoted_string(mod, fun, args) do
-    docs = Enum.map(args, &(&1 |> to_quoted() |> Code.Formatter.to_algebra()))
     args_docs_to_quoted_string(mod, fun, docs)
   end
 
