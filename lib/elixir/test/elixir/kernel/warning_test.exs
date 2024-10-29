@@ -1241,28 +1241,6 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "eval failure warning" do
-    assert_warn_eval(
-      ["nofile:2\n", "the call to Atom.to_string/1 will fail with ArgumentError"],
-      """
-      defmodule Sample1 do
-        def foo, do: Atom.to_string "abc"
-      end
-      """
-    )
-
-    assert_warn_eval(
-      ["nofile:2\n", "the call to +/2 will fail with ArithmeticError"],
-      """
-      defmodule Sample2 do
-        def foo, do: 1 + nil
-      end
-      """
-    )
-  after
-    purge([Sample1, Sample2])
-  end
-
   test "undefined function for behaviour" do
     assert_warn_eval(
       [

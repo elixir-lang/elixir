@@ -136,7 +136,7 @@ handle_file_error(File, {Line, Module, Desc}) ->
 
 %% Mention the capture operator in make_fun
 custom_format(sys_core_fold, {ignored, {no_effect, {erlang, make_fun, 3}}}) ->
-  "the result of the capture operator & (:erlang.make_fun/3) is never used";
+  "the result of the capture operator & (Function.capture/3) is never used";
 
 %% Make no_effect clauses pretty
 custom_format(sys_core_fold, {ignored, {no_effect, {erlang, F, A}}}) ->
@@ -161,17 +161,6 @@ custom_format(sys_core_fold, {nomatch, {shadow, Line, {ErlName, ErlArity}}}) ->
     "this clause for ~ts/~B cannot match because a previous clause at line ~B always matches",
     [Name, Arity, Line]
   );
-
-%% Handle literal eval failures
-custom_format(sys_core_fold, {failed, {eval_failure, {Mod, Name, Arity}, Error}}) ->
-  #{'__struct__' := Struct} = 'Elixir.Exception':normalize(error, Error),
-  {ExMod, ExName, ExArgs} = elixir_rewrite:erl_to_ex(Mod, Name, lists:duplicate(Arity, nil)),
-  Call = 'Elixir.Exception':format_mfa(ExMod, ExName, length(ExArgs)),
-  Trimmed = case Call of
-              <<"Kernel.", Rest/binary>> -> Rest;
-              _ -> Call
-            end,
-  ["the call to ", Trimmed, " will fail with ", elixir_aliases:inspect(Struct)];
 
 custom_format([], Desc) ->
   io_lib:format("~p", [Desc]);
