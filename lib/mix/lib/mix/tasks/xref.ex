@@ -27,7 +27,7 @@ defmodule Mix.Tasks.Xref do
   touching one file in a project causes a large subset of the project
   to recompile. The most common cause of these problems are the so-called
   "compile-connected" files. Those are files you depend on at compile-time
-  (for example, by invoking its macro or using it in the body of amodule)
+  (for example, by invoking its macro or using it in the body of a module)
   which also have their own dependencies.
 
   Therefore, if your goal is to reduce recompilations, the first step is to run:
@@ -61,8 +61,8 @@ defmodule Mix.Tasks.Xref do
   because compile time dependencies are transitive.
 
   Having compile time dependencies is a common feature in Elixir projects.
-  However, the modules you depend on at compile-time must avoid runtime
-  dependencies within the same project. You can understand all of the
+  However, the modules you depend on at compile-time must avoid dependencies
+  to modules within the same project. You can understand all of the
   dependencies of a given file by running:
 
       $ mix xref trace lib/livebook_web.ex
@@ -75,7 +75,7 @@ defmodule Mix.Tasks.Xref do
   Elixir tracks three types of dependencies between modules: compile,
   exports, and runtime. If a module has a compile time dependency on
   another module, the caller module has to be recompiled whenever the
-  callee changes (or any runtime dependency of the callee changes).
+  callee changes (or any dependency of the callee changes).
   Let's see an example:
 
       # lib/a.ex
