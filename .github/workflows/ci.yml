@@ -11,7 +11,6 @@ on:
 env:
   ELIXIR_ASSERT_TIMEOUT: 2000
   ELIXIRC_OPTS: "--warnings-as-errors"
-  ERLC_OPTS: "warnings_as_errors"
   LANG: C.UTF-8
 
 permissions:
@@ -26,6 +25,7 @@ jobs:
         include:
           - otp_version: "27.0"
             otp_latest: true
+            erlc_opts: "warnings_as_errors"
           - otp_version: "26.0"
           - otp_version: "25.3"
           - otp_version: "25.0"
@@ -34,6 +34,11 @@ jobs:
           - otp_version: maint
             development: true
     runs-on: ubuntu-20.04
+    # Earlier Erlang/OTP versions ignored compiler directives
+    # when using warnings_as_errors. So we only set ERLC_OPTS
+    # from Erlang/OTP 27+.
+    env:
+      ERLC_OPTS: ${{ matrix.erlc_opts || '' }}
     steps:
       - uses: actions/checkout@v4
         with:
