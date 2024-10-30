@@ -36,10 +36,9 @@ defmodule Record do
 
   ## Reflection
 
-  A list of all records in a module, if any, can be retrieved by reading the
-  `@__records__` module attribute. It returns a list of maps with the record
-  kind, name, tag, and fields. The attribute is only available inside the
-  module definition.
+  The record tag and its fields are stored as metadata in the "Docs" chunk
+  of the record definition macro. You can retrieve the documentation for
+  a module by calling `Code.fetch_docs/1`.
   """
 
   @doc """
@@ -253,6 +252,7 @@ defmodule Record do
       tag = tag || name
       fields = Record.__record__(__MODULE__, :defrecord, name, tag, kv)
 
+      @doc record: {tag, fields}
       defmacro unquote(name)(args \\ []) do
         Record.__access__(unquote(tag), unquote(fields), args, __CALLER__)
       end
@@ -312,6 +312,8 @@ defmodule Record do
     error_on_duplicate_record(module, name)
 
     fields = fields(kind, kv)
+
+    # TODO: Remove me on Elixir v2.0
     Module.register_attribute(module, :__records__, accumulate: true)
 
     Module.put_attribute(module, :__records__, %{
