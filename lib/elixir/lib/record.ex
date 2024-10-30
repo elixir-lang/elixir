@@ -313,7 +313,6 @@ defmodule Record do
 
     fields = fields(kind, kv)
 
-    # TODO: Deprecate reading me on Elixir v1.22
     # TODO: Remove me on Elixir v2.0
     Module.register_attribute(module, :__records__, accumulate: true)
 
