@@ -345,6 +345,16 @@ defmodule Kernel.ParserTest do
                 {[line: 1, column: 1], "atom length must be less than system limit: ", atom}}
     end
 
+    test "avoids crashes on invalid AST" do
+      encoder = fn atom, _meta -> {:ok, {:atom, [], [atom]}} end
+
+      assert {:error, {_, "missing terminator: )", ""}} =
+               Code.string_to_quoted("Module(", static_atoms_encoder: encoder)
+
+      assert {:error, {_, "syntax error before: ", "'('"}} =
+               Code.string_to_quoted("Module()", static_atoms_encoder: encoder)
+    end
+
     test "may return errors" do
       encoder = fn _atom, _meta ->
         {:error, "Invalid atom name"}
