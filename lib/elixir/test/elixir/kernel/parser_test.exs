@@ -609,6 +609,23 @@ defmodule Kernel.ParserTest do
                 [[do: {:__block__, [], []}]]}
     end
 
+    test "adds opening and closing information for single-expression block" do
+      file = "1 + (2 + 3)"
+
+      assert Code.string_to_quoted!(file, token_metadata: true, columns: true) ==
+               {:+, [line: 1, column: 3],
+                [
+                  1,
+                  {:+,
+                   [
+                     line: 1,
+                     column: 8,
+                     parens_opening: [line: 1, column: 5],
+                     parens_closing: [line: 1, column: 11]
+                   ], [2, 3]}
+                ]}
+    end
+
     test "with :literal_encoder" do
       opts = [literal_encoder: &{:ok, {:__block__, &2, [&1]}}, token_metadata: true]
       string_to_quoted = &Code.string_to_quoted!(&1, opts)
@@ -646,10 +663,22 @@ defmodule Kernel.ParserTest do
                 [
                   {:->, [line: 1],
                    [
-                     [{:__block__, [token: "1", line: 1], [1]}],
+                     [
+                       {:__block__,
+                        [
+                          token: "1",
+                          line: 1,
+                          parens_opening: [line: 1],
+                          parens_closing: [line: 1]
+                        ], [1]}
+                     ],
                      {:__block__, [delimiter: "\"", line: 1], ["hello"]}
                    ]}
                 ]}
+
+      assert string_to_quoted.("(1)") ==
+               {:__block__,
+                [token: "1", line: 1, parens_opening: [line: 1], parens_closing: [line: 1]], [1]}
     end
 
     test "adds identifier_location for qualified identifiers" do

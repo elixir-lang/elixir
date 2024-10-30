@@ -782,10 +782,35 @@ build_block(Exprs) -> build_block(Exprs, []).
 
 build_block([{unquote_splicing, _, [_]}]=Exprs, Meta) ->
   {'__block__', Meta, Exprs};
+build_block([{Op, ExprMeta, Args}], Meta) ->
+  ExprMetaWithExtra =
+    case ?token_metadata() of
+      true -> ExprMeta ++ block_meta(Meta);
+      false -> ExprMeta
+    end,
+  {Op, ExprMetaWithExtra, Args};
 build_block([Expr], _Meta) ->
   Expr;
 build_block(Exprs, Meta) ->
   {'__block__', Meta, Exprs}.
+
+block_meta(Meta) ->
+  block_meta(Meta, [], []).
+
+block_meta([], [], []) ->
+  [];
+block_meta([], [], Closing) ->
+  [{parens_closing, Closing}];
+block_meta([], Opening, Closing) ->
+  [{parens_opening, lists:reverse(Opening)} | block_meta([], [], Closing)];
+block_meta([{line, Line} | Meta], Opening, Closing) ->
+  block_meta(Meta, [{line, Line} | Opening], Closing);
+block_meta([{column, Column} | Meta], Opening, Closing) ->
+  block_meta(Meta, [{column, Column} | Opening], Closing);
+block_meta([{closing, Closing} | Meta], Opening, _Closing) ->
+  block_meta(Meta, Opening, Closing);
+block_meta([_ | Meta], Opening, Closing) ->
+  block_meta(Meta, Opening, Closing).
 
 %% Newlines
 
