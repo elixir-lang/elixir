@@ -54,7 +54,7 @@ defmodule Module.Types.IntegrationTest do
     end
   end
 
-  describe "undefined" do
+  describe "undefined warnings" do
     test "handles Erlang modules" do
       files = %{
         "a.ex" => """
@@ -604,6 +604,23 @@ defmodule Module.Types.IntegrationTest do
   end
 
   describe "regressions" do
+    test "does not emit false positives from defguard" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          defguard is_non_nil_arity_function(fun, arity)
+                   when arity != nil and is_function(fun, arity)
+
+          def check(fun, args) do
+            is_non_nil_arity_function(fun, length(args))
+          end
+        end
+        """
+      }
+
+      assert_no_warnings(files)
+    end
+
     test "do not parse binary segments as variables" do
       files = %{
         "a.ex" => """

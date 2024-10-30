@@ -330,8 +330,11 @@ defmodule Kernel.Utils do
 
     quote do
       case Macro.Env.in_guard?(__CALLER__) do
-        true -> unquote(literal_quote(unquote_every_ref(expr, vars)))
-        false -> unquote(literal_quote(unquote_refs_once(expr, vars, env.module)))
+        true ->
+          unquote(literal_quote(unquote_every_ref(expr, vars), []))
+
+        false ->
+          unquote(literal_quote(unquote_refs_once(expr, vars, env.module), generated: true))
       end
     end
   end
@@ -396,8 +399,8 @@ defmodule Kernel.Utils do
     end
   end
 
-  defp literal_quote(ast) do
-    {:quote, [], [[do: ast]]}
+  defp literal_quote(ast, args) do
+    {:quote, [], [args, [do: ast]]}
   end
 
   defp literal_unquote(ast) do
