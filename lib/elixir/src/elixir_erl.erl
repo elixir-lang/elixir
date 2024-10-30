@@ -141,10 +141,15 @@ compile(#{module := Module, anno := Anno} = Map) ->
   CheckerChunk = checker_chunk(Def, Defmacro, Map),
   load_form(Map, Prefix, Forms, TypeSpecs, DocsChunk ++ CheckerChunk).
 
-dynamic_form(#{module := Module, anno := Anno, relative_file := RelativeFile,
+dynamic_form(#{module := Module, relative_file := RelativeFile,
                attributes := Attributes, definitions := Definitions, unreachable := Unreachable,
                deprecated := Deprecated, compile_opts := Opts} = Map) ->
-  Line = erl_anno:line(Anno),
+  %% TODO: Match on anno directly in Elixir v1.22+
+  Line = case Map of
+    #{anno := AnnoValue} -> erl_anno:line(AnnoValue);
+    #{line := LineValue} -> LineValue
+  end,
+
   {Def, Defmacro, Macros, Exports, Functions} =
     split_definition(Definitions, Unreachable, Line, [], [], [], [], {[], []}),
 

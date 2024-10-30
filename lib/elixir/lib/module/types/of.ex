@@ -930,7 +930,6 @@ defmodule Module.Types.Of do
   def format_diagnostic({:badapply, expr, args_types, domain, clauses, context}) do
     traces = collect_traces(expr, context)
     {{:., _, [mod, fun]}, _, args} = expr
-
     {mod, fun, args, converter} = :elixir_rewrite.erl_to_ex(mod, fun, args)
 
     %{
