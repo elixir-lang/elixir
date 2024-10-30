@@ -366,30 +366,31 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp maybe_check_modules(result, runtime_modules, state) do
-    %{profile: profile, checker: checker} = state
-
     compiled_modules =
       for {{:module, module}, binary} when is_binary(binary) <- result,
           do: module
 
-    profile_checker(profile, compiled_modules, runtime_modules, fn ->
-      Module.ParallelChecker.verify(checker, runtime_modules)
-    end)
+    profile(
+      state,
+      fn ->
+        num_modules = length(compiled_modules) + length(runtime_modules)
+        "group pass check of #{num_modules} modules"
+      end,
+      fn -> Module.ParallelChecker.verify(state.checker, runtime_modules) end
+    )
   end
 
   defp profile_init(:time), do: {:time, System.monotonic_time(), 0}
   defp profile_init(nil), do: :none
 
-  defp profile_checker({:time, _, _}, compiled_modules, runtime_modules, fun) do
+  defp profile(%{profile: :none}, _what, fun), do: fun.()
+
+  defp profile(%{profile: {:time, _, _}}, what, fun) do
     {time, result} = :timer.tc(fun)
     time = div(time, 1000)
-    num_modules = length(compiled_modules) + length(runtime_modules)
-    IO.puts(:stderr, "[profile] Finished group pass check of #{num_modules} modules in #{time}ms")
+    what = if is_binary(what), do: what, else: what.()
+    IO.puts(:stderr, "[profile] Finished #{what} in #{time}ms")
     result
-  end
-
-  defp profile_checker(:none, _compiled_modules, _runtime_modules, fun) do
-    fun.()
   end
 
   ## Compiler worker spawning
@@ -475,7 +476,10 @@ defmodule Kernel.ParallelCompiler do
     end)
 
     [] = files
-    cycle_return = measure_timing(state, "each_cycle callback", fn -> each_cycle_return(state.each_cycle.()) end)
+
+    cycle_return =
+      profile(state, "cycle resolution", fn -> each_cycle_return(state.each_cycle.()) end)
+
     state = cycle_timing(result, state)
 
     case cycle_return do
@@ -519,23 +523,23 @@ defmodule Kernel.ParallelCompiler do
     # Finally, note there is no difference between hard and raise, the
     # difference is where the raise is happening, inside the compiler
     # or in the caller.
-    measure_timing(state, "spawn_workers/8 in potential deadlock situation", fn ->
-      waiting_list = Map.to_list(waiting)
+    deadlocked =
+      profile(state, "deadlock resolution", fn ->
+        waiting_list = Map.to_list(waiting)
 
-      deadlocked =
         deadlocked(waiting_list, :soft, false) ||
           deadlocked(waiting_list, :soft, true) ||
           deadlocked(waiting_list, :hard, false) ||
           without_definition(waiting_list, files)
+      end)
 
-      if deadlocked do
-        spawn_workers(deadlocked, spawned, waiting, files, result, warnings, errors, state)
-      else
-        return_error(warnings, errors, state, fn ->
-          handle_deadlock(waiting, files)
-        end)
-      end
-    end)
+    if deadlocked do
+      spawn_workers(deadlocked, spawned, waiting, files, result, warnings, errors, state)
+    else
+      return_error(warnings, errors, state, fn ->
+        handle_deadlock(waiting, files)
+      end)
+    end
   end
 
   # No more queue, but spawned and map_size(waiting) do not match
@@ -558,15 +562,6 @@ defmodule Kernel.ParallelCompiler do
         :elixir_compiler.file(file, &each_file(&1, &2, parent))
         :elixir_code_server.cast({:required, file})
     end
-  end
-
-  defp measure_timing(%{profile: :none}, _what, fun), do: fun.()
-  defp measure_timing(%{profile: {:time, _, _}}, what, fun) do
-    {time, result} = :timer.tc(fun)
-    time = div(time, 1000)
-
-    IO.puts(:stderr, "[profile] Executed #{what} in #{time}ms")
-    result
   end
 
   defp cycle_timing(_result, %{profile: :none} = state) do
