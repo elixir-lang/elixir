@@ -413,7 +413,7 @@ defmodule ExUnit.CLIFormatter do
 
   defp colorize_doc(escape, doc, %{colors: colors}) do
     if colors[:enabled] do
-      Inspect.Algebra.color(doc, escape, %Inspect.Opts{syntax_colors: colors})
+      Inspect.Algebra.color_doc(doc, escape, %Inspect.Opts{syntax_colors: colors})
     else
       doc
     end

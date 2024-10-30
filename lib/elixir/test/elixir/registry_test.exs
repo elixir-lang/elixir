@@ -994,3 +994,171 @@ defmodule Registry.Test do
     |> Enum.find_value(fn id -> :ets.info(id, :name) == table_name and :ets.info(id, :size) end)
   end
 end
+
+defmodule Registry.LockTest do
+  use ExUnit.Case,
+    async: true,
+    parameterize: [
+      %{keys: :unique, partitions: 1},
+      %{keys: :unique, partitions: 8},
+      %{keys: :duplicate, partitions: 1},
+      %{keys: :duplicate, partitions: 8}
+    ]
+
+  setup config do
+    keys = config.keys
+    partitions = config.partitions
+    name = :"#{config.test}_#{keys}_#{partitions}"
+    opts = [keys: keys, name: name, partitions: partitions]
+    {:ok, _} = start_supervised({Registry, opts})
+    %{registry: name}
+  end
+
+  test "does not lock when using different keys", config do
+    parent = self()
+
+    task1 =
+      Task.async(fn ->
+        Registry.lock(config.registry, 1, fn ->
+          send(parent, :locked1)
+          assert_receive :unlock
+          :done
+        end)
+      end)
+
+    assert_receive :locked1
+
+    task2 =
+      Task.async(fn ->
+        Registry.lock(config.registry, 2, fn ->
+          send(parent, :locked2)
+          assert_receive :unlock
+          :done
+        end)
+      end)
+
+    assert_receive :locked2
+
+    send(task1.pid, :unlock)
+    send(task2.pid, :unlock)
+    assert Task.await(task1) == :done
+    assert Task.await(task2) == :done
+    assert Registry.lock(config.registry, 1, fn -> :done end) == :done
+    assert Registry.lock(config.registry, 2, fn -> :done end) == :done
+  end
+
+  test "locks when using the same key", config do
+    parent = self()
+
+    task1 =
+      Task.async(fn ->
+        Registry.lock(config.registry, :ok, fn ->
+          send(parent, :locked1)
+          assert_receive :unlock
+          :done
+        end)
+      end)
+
+    assert_receive :locked1
+
+    task2 =
+      Task.async(fn ->
+        Registry.lock(config.registry, :ok, fn ->
+          send(parent, :locked2)
+          :done
+        end)
+      end)
+
+    refute_receive :locked2, 100
+
+    send(task1.pid, :unlock)
+    assert Task.await(task1) == :done
+    assert_receive :locked2
+    assert Task.await(task2) == :done
+    assert Registry.lock(config.registry, :ok, fn -> :done end) == :done
+  end
+
+  @tag :capture_log
+  test "locks when the one holding the lock raises", config do
+    parent = self()
+
+    task1 =
+      Task.async(fn ->
+        Registry.lock(config.registry, :ok, fn ->
+          send(parent, :locked)
+          assert_receive :unlock
+          raise "oops"
+        end)
+      end)
+
+    Process.unlink(task1.pid)
+    assert_receive :locked
+
+    task2 =
+      Task.async(fn ->
+        Registry.lock(config.registry, :ok, fn ->
+          :done
+        end)
+      end)
+
+    send(task1.pid, :unlock)
+    assert {:exit, {%RuntimeError{message: "oops"}, [_ | _]}} = Task.yield(task1)
+    assert Task.await(task2) == :done
+    assert Registry.lock(config.registry, :ok, fn -> :done end) == :done
+  end
+
+  test "locks when the one holding the lock terminates", config do
+    parent = self()
+
+    task1 =
+      Task.async(fn ->
+        Registry.lock(config.registry, :ok, fn ->
+          send(parent, :locked)
+          assert_receive :unlock
+          :done
+        end)
+      end)
+
+    assert_receive :locked
+
+    task2 =
+      Task.async(fn ->
+        Registry.lock(config.registry, :ok, fn ->
+          :done
+        end)
+      end)
+
+    assert Task.shutdown(task1, :brutal_kill) == nil
+    assert Task.await(task2) == :done
+    assert Registry.lock(config.registry, :ok, fn -> :done end) == :done
+  end
+
+  test "locks when the one waiting for the lock terminates", config do
+    parent = self()
+
+    task1 =
+      Task.async(fn ->
+        Registry.lock(config.registry, :ok, fn ->
+          send(parent, :locked)
+          assert_receive :unlock
+          :done
+        end)
+      end)
+
+    assert_receive :locked
+
+    task2 =
+      Task.async(fn ->
+        Registry.lock(config.registry, :ok, fn ->
+          :done
+        end)
+      end)
+
+    :erlang.yield()
+    assert Task.shutdown(task2, :brutal_kill) == nil
+
+    send(task1.pid, :unlock)
+    assert Task.await(task1) == :done
+    assert Registry.lock(config.registry, :ok, fn -> :done end) == :done
+  end
+end

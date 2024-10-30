@@ -4,6 +4,7 @@ File.rm_rf!(path)
 File.mkdir_p!(path)
 Code.prepend_path(path)
 
+Application.put_env(:elixir, :ansi_enabled, true)
 Code.compiler_options(debug_info: true)
 
 defmodule PathHelpers do

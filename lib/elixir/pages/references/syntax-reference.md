@@ -398,119 +398,9 @@ end
 #=> {{:., [], [{:__aliases__, [], [:Foo]}, :{}]}, [], [{:__aliases__, [], [:Bar]}, {:__aliases__, [], [:Baz]}]}
 ```
 
-## Additional representations
-
-All of the constructs above are part of Elixir's syntax and have their own representation as part of the Elixir AST. This section will discuss the remaining constructs that are ultimately represented as one of the constructs above.
-
-### Integers in other bases and Unicode code points
-
-Elixir allows integers to contain `_` to separate digits and provides conveniences to represent integers in other bases:
-
-```elixir
-1_000_000
-#=> 1000000
-
-0xABCD
-#=> 43981 (Hexadecimal base)
-
-0o01234567
-#=> 342391 (Octal base)
-
-0b10101010
-#=> 170 (Binary base)
-
-?é
-#=> 233 (Unicode code point)
-```
-
-Those constructs exist only at the syntax level. All of the examples above are represented as their underlying integers in the AST.
-
-### Access syntax
-
-The access syntax is represented as a call to `Access.get/2`:
-
-```elixir
-quote do
-  opts[arg]
-end
-#=> {{:., [], [Access, :get]}, [], [{:opts, [], Elixir}, {:arg, [], Elixir}]}
-```
-
-### Optional parentheses
-
-Elixir provides optional parentheses on local and remote calls with one or more arguments:
-
-```elixir
-quote do
-  sum 1, 2, 3
-end
-#=> {:sum, [], [1, 2, 3]}
-```
-
-The above is treated the same as `sum(1, 2, 3)` by the parser. You can remove the parentheses on all calls with at least one argument.
-
-You can also skip parentheses on qualified calls, such as `Foo.bar 1, 2, 3`. Parentheses are required when invoking anonymous functions, such as `f.(1, 2, 3)`.
-
-In practice, developers prefer to add parentheses to most of their calls. They are skipped mainly in Elixir's control-flow constructs, such as `defmodule`, `if`, `case`, etc, and in certain DSLs.
-
-### Keywords
-
-Keywords in Elixir are a list of tuples of two elements, where the first element is an atom. Using the base constructs, they would be represented as:
-
-```elixir
-[{:foo, 1}, {:bar, 2}]
-```
-
-However, Elixir introduces a syntax sugar where the keywords above may be written as follows:
-
-```elixir
-[foo: 1, bar: 2]
-```
-
-In order to be valid keyword syntax, `:` cannot be preceded by any whitespace (`foo : 1` is invalid) and has to be followed by whitespace (`foo:1` is invalid). Atoms with foreign characters, such as whitespace, must be wrapped in quotes. This rule applies to keywords as well:
-
-```elixir
-["foo bar": 1, "bar baz": 2] == [{:"foo bar", 1}, {:"bar baz", 2}]
-```
-
-You can also mix regular list elements with keywords, but keywords must come last:
-
-```elixir
-[:foo, :bar, baz: :bat] == [:foo, :bar, {:baz, :bat}]
-```
-
-Finally, because lists and two-element tuples are quoted literals, by definition keywords are also literals.
-
-### Keywords as last arguments
-
-Elixir also supports a syntax where if the last argument of a call is a keyword list then the square brackets can be skipped. This means that the following:
-
-```elixir
-if(condition, do: this, else: that)
-```
-
-is the same as
-
-```elixir
-if(condition, [do: this, else: that])
-```
-
-which, as per the previous section, is the same as
-
-```elixir
-if(condition, [{:do, this}, {:else, that}])
-```
-
-This same notation is available inside containers (such as `{...}`, `%{...}`, etc) as well:
-
-```elixir
-{:foo, :bar, baz: :bat} == {:foo, :bar, [{:baz, :bat}]}
-%{:foo => :bar, baz: :bat} == %{:foo => :bar, :baz => :bat}
-```
-
 ### `do`-`end` blocks
 
-The last syntax convenience are `do`-`end` blocks. `do`-`end` blocks are equivalent to keywords as the last argument of a function call, where the block contents are wrapped in parentheses. For example:
+Elixir's `do`-`end` blocks are equivalent to keywords as the last argument of a function call, where the block contents are wrapped in parentheses. For example:
 
 ```elixir
 if true do
@@ -526,31 +416,11 @@ is the same as:
 if(true, do: (this), else: (that))
 ```
 
-which we have explored in the previous section. This sequence of transformations is also [described in Elixir's Getting Started docs](../getting-started/optional-syntax.md).
-
-Parentheses are important to support multiple expressions. This:
-
-```elixir
-if true do
-  this
-  that
-end
-```
-
-is the same as:
-
-```elixir
-if(true, do: (
-  this
-  that
-))
-```
-
-Inside `do`-`end` blocks you may introduce other keywords, such as `else` used in the `if` above. The supported keywords between `do`-`end` are static and are:
+While the construct above does not require custom nodes in Elixir's AST, they are restricted only to certain keywords, listed next:
 
   * `after`
   * `catch`
   * `else`
   * `rescue`
 
-You can see them being used in constructs such as `receive`, `try`, and others.
+You will find them in constructs such as `receive`, `try`, and others. You can also find more examples in [the Optional Syntax chapter](../getting-started/optional-syntax.md).

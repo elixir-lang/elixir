@@ -3,7 +3,8 @@ Code.require_file("test_helper.exs", __DIR__)
 defmodule KernelTest do
   use ExUnit.Case, async: true
 
-  doctest Kernel
+  # Skip these doctests are they emit warnings
+  doctest Kernel, except: [===: 2, !==: 2, is_nil: 1]
 
   def id(arg), do: arg
   def id(arg1, arg2), do: {arg1, arg2}
@@ -783,7 +784,7 @@ defmodule KernelTest do
 
     test ":struct" do
       assert Kernel.__info__(:struct) == nil
-      assert hd(URI.__info__(:struct)) == %{field: :scheme, required: false}
+      assert hd(URI.__info__(:struct)) == %{field: :scheme, required: false, default: nil}
     end
 
     test "others" do

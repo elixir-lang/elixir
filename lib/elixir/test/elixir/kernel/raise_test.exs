@@ -17,7 +17,7 @@ defmodule Kernel.RaiseTest do
       try do
         raise "a"
       rescue
-        _ -> hd(__STACKTRACE__)
+        _ -> Enum.fetch!(__STACKTRACE__, 0)
       end
 
     file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
@@ -352,7 +352,8 @@ defmodule Kernel.RaiseTest do
         end
 
       assert result ==
-               "function DoNotExist.for_sure/0 is undefined (module DoNotExist is not available)"
+               "function DoNotExist.for_sure/0 is undefined (module DoNotExist is not available). " <>
+                 "Make sure the module name is correct and has been specified in full (or that an alias has been defined)"
     end
 
     test "function clause error" do
@@ -569,7 +570,8 @@ defmodule Kernel.RaiseTest do
         end
 
       assert result ==
-               "function DoNotExist.for_sure/0 is undefined (module DoNotExist is not available)"
+               "function DoNotExist.for_sure/0 is undefined (module DoNotExist is not available). " <>
+                 "Make sure the module name is correct and has been specified in full (or that an alias has been defined)"
     end
   end
 
@@ -586,7 +588,8 @@ defmodule Kernel.RaiseTest do
       end
 
     assert result ==
-             "function DoNotExist.for_sure/0 is undefined (module DoNotExist is not available)"
+             "function DoNotExist.for_sure/0 is undefined (module DoNotExist is not available). " <>
+               "Make sure the module name is correct and has been specified in full (or that an alias has been defined)"
   end
 
   defp zero(0), do: 0

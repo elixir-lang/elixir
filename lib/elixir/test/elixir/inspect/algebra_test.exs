@@ -157,29 +157,29 @@ defmodule Inspect.AlgebraTest do
   test "color doc" do
     # Consistent with definitions
     opts = %Inspect.Opts{}
-    assert color(empty(), :atom, opts) == empty()
+    assert color_doc(empty(), :atom, opts) == empty()
 
     opts = %Inspect.Opts{syntax_colors: [regex: :red]}
-    assert color(empty(), :atom, opts) == empty()
+    assert color_doc(empty(), :atom, opts) == empty()
 
     opts = %Inspect.Opts{syntax_colors: [atom: :red]}
-    doc1 = {:doc_color, "Hi", :red}
-    doc2 = {:doc_color, empty(), :reset}
-    assert color("Hi", :atom, opts) == concat(doc1, doc2)
+    doc1 = {:doc_color, "Hi", IO.ANSI.red()}
+    doc2 = {:doc_color, empty(), IO.ANSI.reset()}
+    assert color_doc("Hi", :atom, opts) == concat(doc1, doc2)
 
     opts = %Inspect.Opts{syntax_colors: [reset: :red]}
-    assert color(empty(), :atom, opts) == empty()
+    assert color_doc(empty(), :atom, opts) == empty()
 
     opts = %Inspect.Opts{syntax_colors: [number: :cyan, reset: :red]}
-    doc1 = {:doc_color, "123", :cyan}
-    doc2 = {:doc_color, empty(), :red}
-    assert color("123", :number, opts) == concat(doc1, doc2)
+    doc1 = {:doc_color, "123", IO.ANSI.cyan()}
+    doc2 = {:doc_color, empty(), IO.ANSI.red()}
+    assert color_doc("123", :number, opts) == concat(doc1, doc2)
 
     # Consistent formatting
     opts = %Inspect.Opts{syntax_colors: [atom: :cyan]}
-    assert render(glue(color("AA", :atom, opts), "BB"), 5) == "\e[36mAA\e[0m BB"
-    assert render(glue(color("AA", :atom, opts), "BB"), 3) == "\e[36mAA\e[0m\nBB"
-    assert render(glue("AA", color("BB", :atom, opts)), 6) == "AA \e[36mBB\e[0m"
+    assert render(glue(color_doc("AA", :atom, opts), "BB"), 5) == "\e[36mAA\e[0m BB"
+    assert render(glue(color_doc("AA", :atom, opts), "BB"), 3) == "\e[36mAA\e[0m\nBB"
+    assert render(glue("AA", color_doc("BB", :atom, opts)), 6) == "AA \e[36mBB\e[0m"
   end
 
   test "line doc" do

@@ -29,7 +29,7 @@ defmodule Module.Types.Of do
   @doc """
   Refines the type of a variable.
   """
-  def refine_var(var, {type, expr}, formatter \\ :default, stack, context) do
+  def refine_var(var, type, expr, formatter \\ :default, stack, context) do
     {var_name, meta, var_context} = var
     version = Keyword.fetch!(meta, :version)
 
@@ -47,7 +47,8 @@ defmodule Module.Types.Of do
 
         # We need to return error otherwise it leads to cascading errors
         if empty?(new_type) do
-          {:error, warn({:refine_var, old_type, type, var, context}, meta, stack, context)}
+          {:error, error_type(),
+           error({:refine_var, old_type, type, var, context}, meta, stack, context)}
         else
           {:ok, new_type, context}
         end
@@ -79,11 +80,10 @@ defmodule Module.Types.Of do
   def map_fetch(expr, type, field, stack, context) when is_atom(field) do
     case map_fetch(type, field) do
       {_optional?, value_type} ->
-        {:ok, value_type, context}
+        {value_type, context}
 
       reason ->
-        {:ok, dynamic(),
-         warn({reason, expr, type, field, context}, elem(expr, 1), stack, context)}
+        {error_type(), error({reason, expr, type, field, context}, elem(expr, 1), stack, context)}
     end
   end
 
@@ -91,53 +91,51 @@ defmodule Module.Types.Of do
   Builds a closed map.
   """
   def closed_map(pairs, extra \\ [], stack, context, of_fun) do
-    result =
-      reduce_ok(pairs, {true, extra, [], context}, fn
+    {closed?, single, multiple, context} =
+      Enum.reduce(pairs, {true, extra, [], context}, fn
         {key, value}, {closed?, single, multiple, context} ->
-          with {:ok, keys, context} <- of_finite_key_type(key, stack, context, of_fun),
-               {:ok, value_type, context} <- of_fun.(value, stack, context) do
-            case keys do
-              :none ->
-                {:ok, {false, single, multiple, context}}
+          {keys, context} = of_finite_key_type(key, stack, context, of_fun)
+          {value_type, context} = of_fun.(value, stack, context)
 
-              [key] when multiple == [] ->
-                {:ok, {closed?, [{key, value_type} | single], multiple, context}}
+          case keys do
+            :none ->
+              {false, single, multiple, context}
 
-              keys ->
-                {:ok, {closed?, single, [{keys, value_type} | multiple], context}}
-            end
+            [key] when multiple == [] ->
+              {closed?, [{key, value_type} | single], multiple, context}
+
+            keys ->
+              {closed?, single, [{keys, value_type} | multiple], context}
           end
       end)
 
-    with {:ok, {closed?, single, multiple, context}} <- result do
-      map =
-        case Enum.reverse(multiple) do
-          [] ->
-            pairs = Enum.reverse(single)
+    map =
+      case Enum.reverse(multiple) do
+        [] ->
+          pairs = Enum.reverse(single)
+          if closed?, do: closed_map(pairs), else: open_map(pairs)
+
+        [{keys, type} | tail] ->
+          for key <- keys, t <- cartesian_map(tail) do
+            pairs = Enum.reverse(single, [{key, type} | t])
             if closed?, do: closed_map(pairs), else: open_map(pairs)
+          end
+          |> Enum.reduce(&union/2)
+      end
 
-          [{keys, type} | tail] ->
-            for key <- keys, t <- cartesian_map(tail) do
-              pairs = Enum.reverse(single, [{key, type} | t])
-              if closed?, do: closed_map(pairs), else: open_map(pairs)
-            end
-            |> Enum.reduce(&union/2)
-        end
-
-      {:ok, map, context}
-    end
+    {map, context}
   end
 
   defp of_finite_key_type(key, _stack, context, _of_fun) when is_atom(key) do
-    {:ok, [key], context}
+    {[key], context}
   end
 
   defp of_finite_key_type(key, stack, context, of_fun) do
-    with {:ok, key_type, context} <- of_fun.(key, stack, context) do
-      case atom_fetch(key_type) do
-        {:finite, list} -> {:ok, list, context}
-        _ -> {:ok, :none, context}
-      end
+    {key_type, context} = of_fun.(key, stack, context)
+
+    case atom_fetch(key_type) do
+      {:finite, list} -> {list, context}
+      _ -> {:none, context}
     end
   end
 
@@ -157,14 +155,13 @@ defmodule Module.Types.Of do
   def struct({:%, meta, _}, struct, args, default_handling, stack, context, of_fun)
       when is_atom(struct) do
     # The compiler has already checked the keys are atoms and which ones are required.
-    with {:ok, args_types, context} <-
-           map_reduce_ok(args, context, fn {key, value}, context when is_atom(key) ->
-             with {:ok, type, context} <- of_fun.(value, stack, context) do
-               {:ok, {key, type}, context}
-             end
-           end) do
-      struct(struct, args_types, default_handling, meta, stack, context)
-    end
+    {args_types, context} =
+      Enum.map_reduce(args, context, fn {key, value}, context when is_atom(key) ->
+        {type, context} = of_fun.(value, stack, context)
+        {{key, type}, context}
+      end)
+
+    struct(struct, args_types, default_handling, meta, stack, context)
   end
 
   @doc """
@@ -175,18 +172,9 @@ defmodule Module.Types.Of do
   # against the struct types.
   # TODO: Use the struct default values to define the default types.
   def struct(struct, args_types, default_handling, meta, stack, context) do
-    context = remote(struct, :__struct__, 0, meta, stack, context)
-
-    info =
-      struct.__info__(:struct) ||
-        raise "expected #{inspect(struct)} to return struct metadata, but got none"
-
+    {info, context} = struct_info(struct, meta, stack, context)
     term = term()
-
-    defaults =
-      for %{field: field} <- info, field != :__struct__ do
-        {field, term}
-      end
+    defaults = for %{field: field} <- info, do: {field, term}
 
     pairs =
       case default_handling do
@@ -195,7 +183,20 @@ defmodule Module.Types.Of do
         :only_defaults -> [{:__struct__, atom([struct])} | defaults]
       end
 
-    {:ok, dynamic(closed_map(pairs)), context}
+    {dynamic(closed_map(pairs)), context}
+  end
+
+  @doc """
+  Returns `__info__(:struct)` information about a struct.
+  """
+  def struct_info(struct, meta, stack, context) do
+    {_, context} = remote(struct, :__struct__, 0, meta, stack, context)
+
+    info =
+      struct.__info__(:struct) ||
+        raise "expected #{inspect(struct)} to return struct metadata, but got none"
+
+    {info, context}
   end
 
   ## Binary
@@ -207,7 +208,7 @@ defmodule Module.Types.Of do
   based on the position of the expression within the binary.
   """
   def binary([], _kind, _stack, context) do
-    {:ok, context}
+    context
   end
 
   def binary([head], kind, stack, context) do
@@ -215,10 +216,8 @@ defmodule Module.Types.Of do
   end
 
   def binary([head | tail], kind, stack, context) do
-    case binary_segment(head, kind, [head, @suffix], stack, context) do
-      {:ok, context} -> binary_many(tail, kind, stack, context)
-      {:error, context} -> {:error, context}
-    end
+    context = binary_segment(head, kind, [head, @suffix], stack, context)
+    binary_many(tail, kind, stack, context)
   end
 
   defp binary_many([last], kind, stack, context) do
@@ -226,40 +225,42 @@ defmodule Module.Types.Of do
   end
 
   defp binary_many([head | tail], kind, stack, context) do
-    case binary_segment(head, kind, [@prefix, head, @suffix], stack, context) do
-      {:ok, context} -> binary_many(tail, kind, stack, context)
-      {:error, context} -> {:error, context}
-    end
+    context = binary_segment(head, kind, [@prefix, head, @suffix], stack, context)
+    binary_many(tail, kind, stack, context)
   end
 
   # If the segment is a literal, the compiler has already checked its validity,
   # so we just skip it.
   defp binary_segment({:"::", _meta, [left, _right]}, _kind, _args, _stack, context)
        when is_binary(left) or is_number(left) do
-    {:ok, context}
+    context
   end
 
   defp binary_segment({:"::", meta, [left, right]}, kind, args, stack, context) do
-    expected_type = specifier_type(kind, right)
+    type = specifier_type(kind, right)
     expr = {:<<>>, meta, args}
 
-    result =
+    {_type, context} =
       case kind do
-        :pattern -> Module.Types.Pattern.of_pattern(left, {expected_type, expr}, stack, context)
-        :guard -> Module.Types.Pattern.of_guard(left, {expected_type, expr}, stack, context)
-        :expr -> Module.Types.Expr.of_expr(left, {expected_type, expr}, stack, context)
+        :match ->
+          Module.Types.Pattern.of_match_var(left, type, expr, stack, context)
+
+        :guard ->
+          Module.Types.Pattern.of_guard(left, type, expr, stack, context)
+
+        :expr ->
+          {actual, context} = Module.Types.Expr.of_expr(left, stack, context)
+          intersect(actual, type, expr, stack, context)
       end
 
-    with {:ok, _type, context} <- result do
-      {:ok, specifier_size(kind, right, expr, stack, context)}
-    end
+    specifier_size(kind, right, stack, context)
   end
 
   defp specifier_type(kind, {:-, _, [left, _right]}), do: specifier_type(kind, left)
-  defp specifier_type(:pattern, {:utf8, _, _}), do: @integer
-  defp specifier_type(:pattern, {:utf16, _, _}), do: @integer
-  defp specifier_type(:pattern, {:utf32, _, _}), do: @integer
-  defp specifier_type(:pattern, {:float, _, _}), do: @float
+  defp specifier_type(:match, {:utf8, _, _}), do: @integer
+  defp specifier_type(:match, {:utf16, _, _}), do: @integer
+  defp specifier_type(:match, {:utf32, _, _}), do: @integer
+  defp specifier_type(:match, {:float, _, _}), do: @float
   defp specifier_type(_kind, {:float, _, _}), do: @integer_or_float
   defp specifier_type(_kind, {:utf8, _, _}), do: @integer_or_binary
   defp specifier_type(_kind, {:utf16, _, _}), do: @integer_or_binary
@@ -271,105 +272,413 @@ defmodule Module.Types.Of do
   defp specifier_type(_kind, {:binary, _, _}), do: @binary
   defp specifier_type(_kind, _specifier), do: @integer
 
-  defp specifier_size(kind, {:-, _, [left, right]}, expr, stack, context) do
-    specifier_size(kind, right, expr, stack, specifier_size(kind, left, expr, stack, context))
+  defp specifier_size(kind, {:-, _, [left, right]}, stack, context) do
+    specifier_size(kind, right, stack, specifier_size(kind, left, stack, context))
   end
 
-  defp specifier_size(:expr, {:size, _, [arg]}, expr, stack, context)
+  defp specifier_size(:expr, {:size, _, [arg]} = expr, stack, context)
        when not is_integer(arg) do
-    case Module.Types.Expr.of_expr(arg, {integer(), expr}, stack, context) do
-      {:ok, _, context} -> context
-      {:error, context} -> context
-    end
-  end
-
-  defp specifier_size(_pattern_or_guard, {:size, _, [arg]}, expr, stack, context)
-       when not is_integer(arg) do
-    case Module.Types.Pattern.of_guard(arg, {integer(), expr}, stack, context) do
-      {:ok, _, context} -> context
-      {:error, context} -> context
-    end
-  end
-
-  defp specifier_size(_kind, _specifier, _expr, _stack, context) do
+    {actual, context} = Module.Types.Expr.of_expr(arg, stack, context)
+    {_, context} = intersect(actual, integer(), expr, stack, context)
     context
   end
 
-  ## Apply
-
-  # TODO: Implement element without a literal index
-  # TODO: Add a test for an open tuple (inferred from a guard)
-  # TODO: Implement set_element
-
-  def apply(:erlang, :element, [_, type], {_, meta, [index, _]} = expr, stack, context)
-      when is_integer(index) do
-    case tuple_fetch(type, index - 1) do
-      {_optional?, value_type} ->
-        {:ok, value_type, context}
-
-      reason ->
-        {:ok, dynamic(), warn({reason, expr, type, index - 1, context}, meta, stack, context)}
-    end
+  defp specifier_size(_pattern_or_guard, {:size, _, [arg]} = expr, stack, context)
+       when not is_integer(arg) do
+    {_type, context} = Module.Types.Pattern.of_guard(arg, integer(), expr, stack, context)
+    context
   end
 
-  def apply(:erlang, name, [left, right], expr, stack, context)
-      when name in [:>=, :"=<", :>, :<, :min, :max] do
-    result = if name in [:min, :max], do: union(left, right), else: boolean()
-
-    cond do
-      match?({false, _}, map_fetch(left, :__struct__)) or
-          match?({false, _}, map_fetch(right, :__struct__)) ->
-        warning = {:struct_comparison, expr, context}
-        {:ok, result, warn(warning, elem(expr, 1), stack, context)}
-
-      number_type?(left) and number_type?(right) ->
-        {:ok, result, context}
-
-      disjoint?(left, right) ->
-        warning = {:mismatched_comparison, expr, context}
-        {:ok, result, warn(warning, elem(expr, 1), stack, context)}
-
-      true ->
-        {:ok, result, context}
-    end
+  defp specifier_size(_kind, _specifier, _stack, context) do
+    context
   end
 
-  def apply(mod, name, args, expr, stack, context) do
-    case :elixir_rewrite.inline(mod, name, length(args)) do
-      {mod, name} -> apply(mod, name, args, expr, stack, context)
-      false -> {:ok, dynamic(), context}
-    end
-  end
+  ## Modules
 
-  ## Remote
+  @doc """
+  Returns the modules.
 
-  def remote(type, fun, arity, hints \\ [], expr, meta, stack, context) do
+  The call information is used on report reporting.
+  """
+  def modules(type, fun, arity, hints \\ [], expr, meta, stack, context) do
     case atom_fetch(type) do
       {_, mods} ->
-        context =
-          Enum.reduce(mods, context, fn mod, context ->
-            remote(mod, fun, arity, meta, stack, context)
-          end)
-
         {mods, context}
 
       :error ->
         warning = {:badmodule, expr, type, fun, arity, hints, context}
-        {[], warn(warning, meta, stack, context)}
+        {[], error(warning, meta, stack, context)}
     end
   end
 
+  ## Remotes
+
+  # Define strong arrows found in the standard library.
+  # A strong arrow means that, if a type outside of its
+  # domain is given, an error is raised. We are also
+  # ensuring that domains for the same function have
+  # no overlaps.
+
+  mfargs = [atom(), atom(), list(term())]
+
+  send_destination =
+    pid()
+    |> union(reference())
+    |> union(port())
+    |> union(atom())
+    |> union(tuple([atom(), atom()]))
+
+  basic_arith_2_args_clauses = [
+    {[integer(), integer()], integer()},
+    {[integer(), float()], float()},
+    {[float(), integer()], float()},
+    {[float(), float()], float()}
+  ]
+
+  is_clauses = [{[term()], boolean()}]
+
+  for {mod, fun, clauses} <- [
+        # :binary
+        {:binary, :copy, [{[binary(), integer()], binary()}]},
+
+        # :erlang
+        {:erlang, :+, [{[integer()], integer()}, {[float()], float()}]},
+        {:erlang, :+, basic_arith_2_args_clauses},
+        {:erlang, :-, [{[integer()], integer()}, {[float()], float()}]},
+        {:erlang, :-, basic_arith_2_args_clauses},
+        {:erlang, :*, basic_arith_2_args_clauses},
+        {:erlang, :/, [{[union(integer(), float()), union(integer(), float())], float()}]},
+        {:erlang, :"/=", [{[term(), term()], boolean()}]},
+        {:erlang, :"=/=", [{[term(), term()], boolean()}]},
+        {:erlang, :<, [{[term(), term()], boolean()}]},
+        {:erlang, :"=<", [{[term(), term()], boolean()}]},
+        {:erlang, :==, [{[term(), term()], boolean()}]},
+        {:erlang, :"=:=", [{[term(), term()], boolean()}]},
+        {:erlang, :>, [{[term(), term()], boolean()}]},
+        {:erlang, :>=, [{[term(), term()], boolean()}]},
+        {:erlang, :abs, [{[integer()], integer()}, {[float()], float()}]},
+        {:erlang, :atom_to_binary, [{[atom()], binary()}]},
+        {:erlang, :atom_to_list, [{[atom()], list(integer())}]},
+        {:erlang, :band, [{[integer(), integer()], integer()}]},
+        {:erlang, :binary_part, [{[binary(), integer(), integer()], binary()}]},
+        {:erlang, :binary_to_atom, [{[binary()], atom()}]},
+        {:erlang, :binary_to_existing_atom, [{[binary()], atom()}]},
+        {:erlang, :binary_to_integer, [{[binary()], integer()}]},
+        {:erlang, :binary_to_integer, [{[binary(), integer()], integer()}]},
+        {:erlang, :binary_to_float, [{[binary()], float()}]},
+        {:erlang, :bit_size, [{[binary()], integer()}]},
+        {:erlang, :bnot, [{[integer()], integer()}]},
+        {:erlang, :bor, [{[integer(), integer()], integer()}]},
+        {:erlang, :bsl, [{[integer(), integer()], integer()}]},
+        {:erlang, :bsr, [{[integer(), integer()], integer()}]},
+        {:erlang, :bxor, [{[integer(), integer()], integer()}]},
+        {:erlang, :byte_size, [{[binary()], integer()}]},
+        {:erlang, :ceil, [{[union(integer(), float())], integer()}]},
+        {:erlang, :div, [{[integer(), integer()], integer()}]},
+        {:erlang, :floor, [{[union(integer(), float())], integer()}]},
+        {:erlang, :function_exported, [{[atom(), atom(), integer()], boolean()}]},
+        {:erlang, :integer_to_binary, [{[integer()], binary()}]},
+        {:erlang, :integer_to_binary, [{[integer(), integer()], binary()}]},
+        {:erlang, :integer_to_list, [{[integer()], non_empty_list(integer())}]},
+        {:erlang, :integer_to_list, [{[integer(), integer()], non_empty_list(integer())}]},
+        {:erlang, :is_atom, is_clauses},
+        {:erlang, :is_binary, is_clauses},
+        {:erlang, :is_bitstring, is_clauses},
+        {:erlang, :is_boolean, is_clauses},
+        {:erlang, :is_float, is_clauses},
+        {:erlang, :is_function, is_clauses},
+        {:erlang, :is_function, [{[term(), integer()], boolean()}]},
+        {:erlang, :is_integer, is_clauses},
+        {:erlang, :is_list, is_clauses},
+        {:erlang, :is_map, is_clauses},
+        {:erlang, :is_map_key, [{[term(), open_map()], boolean()}]},
+        {:erlang, :is_number, is_clauses},
+        {:erlang, :is_pid, is_clauses},
+        {:erlang, :is_port, is_clauses},
+        {:erlang, :is_reference, is_clauses},
+        {:erlang, :is_tuple, is_clauses},
+        {:erlang, :length, [{[list(term())], integer()}]},
+        {:erlang, :list_to_atom, [{[list(integer())], atom()}]},
+        {:erlang, :list_to_existing_atom, [{[list(integer())], atom()}]},
+        {:erlang, :list_to_float, [{[non_empty_list(integer())], float()}]},
+        {:erlang, :list_to_integer, [{[non_empty_list(integer())], integer()}]},
+        {:erlang, :list_to_integer, [{[non_empty_list(integer()), integer()], integer()}]},
+        {:erlang, :list_to_tuple, [{[list(term())], dynamic(open_tuple([]))}]},
+        {:erlang, :make_ref, [{[], reference()}]},
+        {:erlang, :map_size, [{[open_map()], integer()}]},
+        {:erlang, :node, [{[], atom()}]},
+        {:erlang, :node, [{[pid() |> union(reference()) |> union(port())], atom()}]},
+        {:erlang, :not, [{[atom([false])], atom([true])}, {[atom([true])], atom([false])}]},
+        {:erlang, :rem, [{[integer(), integer()], integer()}]},
+        {:erlang, :round, [{[union(integer(), float())], integer()}]},
+        {:erlang, :self, [{[], pid()}]},
+        {:erlang, :spawn, [{[fun()], pid()}]},
+        {:erlang, :spawn, [{mfargs, pid()}]},
+        {:erlang, :spawn_link, [{[fun()], pid()}]},
+        {:erlang, :spawn_link, [{mfargs, pid()}]},
+        {:erlang, :spawn_monitor, [{[fun()], tuple([reference(), pid()])}]},
+        {:erlang, :spawn_monitor, [{mfargs, tuple([reference(), pid()])}]},
+        {:erlang, :tuple_size, [{[open_tuple([])], integer()}]},
+        {:erlang, :trunc, [{[union(integer(), float())], integer()}]},
+
+        # TODO: Replace term()/dynamic() by parametric types
+        {:erlang, :++, [{[list(term()), term()], dynamic(list(term(), term()))}]},
+        {:erlang, :--, [{[list(term()), list(term())], dynamic(list(term()))}]},
+        {:erlang, :delete_element, [{[integer(), open_tuple([])], dynamic(open_tuple([]))}]},
+        {:erlang, :hd, [{[non_empty_list(term(), term())], dynamic()}]},
+        {:erlang, :element, [{[integer(), open_tuple([])], dynamic()}]},
+        {:erlang, :insert_element,
+         [{[integer(), open_tuple([]), term()], dynamic(open_tuple([]))}]},
+        {:erlang, :max, [{[term(), term()], dynamic()}]},
+        {:erlang, :min, [{[term(), term()], dynamic()}]},
+        {:erlang, :send, [{[send_destination, term()], dynamic()}]},
+        {:erlang, :setelement, [{[integer(), open_tuple([]), term()], dynamic(open_tuple([]))}]},
+        {:erlang, :tl, [{[non_empty_list(term(), term())], dynamic()}]},
+        {:erlang, :tuple_to_list, [{[open_tuple([])], dynamic(list(term()))}]}
+      ] do
+    [arity] = Enum.map(clauses, fn {args, _return} -> length(args) end) |> Enum.uniq()
+    true = Code.ensure_loaded?(mod) and function_exported?(mod, fun, arity)
+
+    domain_clauses =
+      case clauses do
+        [_] ->
+          {:strong, nil, clauses}
+
+        _ ->
+          domain =
+            clauses
+            |> Enum.map(fn {args, _} -> args end)
+            |> Enum.zip_with(fn types -> Enum.reduce(types, &union/2) end)
+
+          {:strong, domain, clauses}
+      end
+
+    defp remote(unquote(mod), unquote(fun), unquote(arity)),
+      do: unquote(Macro.escape(domain_clauses))
+  end
+
+  defp remote(_mod, _fun, _arity), do: :none
+
   @doc """
   Checks a module is a valid remote.
+
+  It returns either a tuple with the remote information and the context.
+  The remote information may be one of:
+
+    * `:none` - no typing information found.
+
+    * `{:infer, clauses}` - clauses from inferences. You must check all
+      all clauses and return the union between them. They are dynamic
+      and they can only be converted into arrows by computing the union
+      of all arguments.
+
+    * `{:strong, domain or nil, clauses}` - clauses from signatures. So far
+      these are strong arrows with non-overlapping domains
+
   """
   def remote(module, fun, arity, meta, stack, context) when is_atom(module) do
     if Keyword.get(meta, :runtime_module, false) do
-      context
+      {:none, context}
     else
-      ParallelChecker.preload_module(stack.cache, module)
-      check_export(module, fun, arity, meta, stack, context)
+      case remote(module, fun, arity) do
+        :none -> {:none, check_export(module, fun, arity, meta, stack, context)}
+        clauses -> {clauses, context}
+      end
     end
   end
+
+  # TODO: Fix ordering of tuple operations
+
+  def apply(:erlang, :element, [_, tuple], {_, meta, [index, _]} = expr, stack, context)
+      when is_integer(index) do
+    case tuple_fetch(tuple, index - 1) do
+      {_optional?, value_type} ->
+        {value_type, context}
+
+      :badtuple ->
+        {error_type(), to_badapply_error(expr, [integer(), tuple], stack, context)}
+
+      reason ->
+        {error_type(), error({reason, expr, tuple, index - 1, context}, meta, stack, context)}
+    end
+  end
+
+  def apply(
+        :erlang,
+        :insert_element,
+        [_, tuple, value],
+        {_, meta, [index, _, _]} = expr,
+        stack,
+        context
+      )
+      when is_integer(index) do
+    case tuple_insert_at(tuple, index - 1, value) do
+      value_type when is_descr(value_type) ->
+        {value_type, context}
+
+      :badtuple ->
+        {error_type(), to_badapply_error(expr, [integer(), tuple, value], stack, context)}
+
+      reason ->
+        {error_type(), error({reason, expr, tuple, index - 2, context}, meta, stack, context)}
+    end
+  end
+
+  def apply(:erlang, :delete_element, [_, tuple], {_, meta, [index, _]} = expr, stack, context)
+      when is_integer(index) do
+    case tuple_delete_at(tuple, index - 1) do
+      value_type when is_descr(value_type) ->
+        {value_type, context}
+
+      :badtuple ->
+        {error_type(), to_badapply_error(expr, [integer(), tuple], stack, context)}
+
+      reason ->
+        {error_type(), error({reason, expr, tuple, index - 1, context}, meta, stack, context)}
+    end
+  end
+
+  def apply(:erlang, :make_tuple, [_, elem], {_, _meta, [size, _]}, _stack, context)
+      when is_integer(size) and size >= 0 do
+    {tuple(List.duplicate(elem, size)), context}
+  end
+
+  def apply(:erlang, :hd, [list], expr, stack, context) do
+    case list_hd(list) do
+      {_, value_type} ->
+        {value_type, context}
+
+      :badnonemptylist ->
+        {error_type(), to_badapply_error(expr, [list], stack, context)}
+    end
+  end
+
+  def apply(:erlang, :tl, [list], expr, stack, context) do
+    case list_tl(list) do
+      {_, value_type} ->
+        {value_type, context}
+
+      :badnonemptylist ->
+        {error_type(), to_badapply_error(expr, [list], stack, context)}
+    end
+  end
+
+  def apply(:erlang, name, [left, right] = args_types, expr, stack, context)
+      when name in [:>=, :"=<", :>, :<, :min, :max] do
+    context =
+      cond do
+        match?({false, _}, map_fetch(left, :__struct__)) or
+            match?({false, _}, map_fetch(right, :__struct__)) ->
+          warning = {:struct_comparison, expr, context}
+          warn(__MODULE__, warning, elem(expr, 1), stack, context)
+
+        number_type?(left) and number_type?(right) ->
+          context
+
+        disjoint?(left, right) ->
+          warning = {:mismatched_comparison, expr, context}
+          warn(__MODULE__, warning, elem(expr, 1), stack, context)
+
+        true ->
+          context
+      end
+
+    if name in [:min, :max] do
+      {union(left, right), context}
+    else
+      {remote_return(boolean(), args_types, stack), context}
+    end
+  end
+
+  def apply(:erlang, name, [left, right] = args_types, expr, stack, context)
+      when name in [:==, :"/=", :"=:=", :"=/="] do
+    context =
+      cond do
+        name in [:==, :"/="] and number_type?(left) and number_type?(right) ->
+          context
+
+        disjoint?(left, right) ->
+          warning = {:mismatched_comparison, expr, context}
+          warn(__MODULE__, warning, elem(expr, 1), stack, context)
+
+        true ->
+          context
+      end
+
+    {remote_return(boolean(), args_types, stack), context}
+  end
+
+  def apply(mod, name, args_types, expr, stack, context) do
+    arity = length(args_types)
+
+    case :elixir_rewrite.inline(mod, name, arity) do
+      {mod, name} ->
+        apply(mod, name, args_types, expr, stack, context)
+
+      false ->
+        {info, context} = remote(mod, name, arity, elem(expr, 1), stack, context)
+
+        case apply_remote(info, args_types, stack) do
+          {:ok, type} ->
+            {type, context}
+
+          {:error, domain, clauses} ->
+            error = {:badapply, expr, args_types, domain, clauses, context}
+            {error_type(), error(error, elem(expr, 1), stack, context)}
+        end
+    end
+  end
+
+  defp remote_return(type, args_types, stack) do
+    cond do
+      stack.mode == :static -> type
+      Enum.any?(args_types, &gradual?/1) -> dynamic(type)
+      true -> type
+    end
+  end
+
+  defp apply_remote(:none, _args_types, _stack) do
+    {:ok, dynamic()}
+  end
+
+  defp apply_remote({:strong, nil, [{expected, return}] = clauses}, args_types, stack) do
+    # Optimize single clauses as the domain is the single clause args.
+    case zip_compatible?(args_types, expected) do
+      true -> {:ok, remote_return(return, args_types, stack)}
+      false -> {:error, expected, clauses}
+    end
+  end
+
+  defp apply_remote({:strong, domain, clauses}, args_types, stack) do
+    # If the type is only gradual, the compatibility check is the same
+    # as a non disjoint check. So we skip checking compatibility twice.
+    with true <- zip_compatible_or_only_gradual?(args_types, domain),
+         [_ | _] = returns <-
+           for({expected, return} <- clauses, zip_not_disjoint?(args_types, expected), do: return) do
+      {:ok, returns |> Enum.reduce(&union/2) |> remote_return(args_types, stack)}
+    else
+      _ -> {:error, domain, clauses}
+    end
+  end
+
+  defp zip_compatible_or_only_gradual?([actual | actuals], [expected | expecteds]) do
+    (only_gradual?(actual) or compatible?(actual, expected)) and
+      zip_compatible_or_only_gradual?(actuals, expecteds)
+  end
+
+  defp zip_compatible_or_only_gradual?([], []), do: true
+
+  defp zip_compatible?([actual | actuals], [expected | expecteds]) do
+    compatible?(actual, expected) and zip_compatible?(actuals, expecteds)
+  end
+
+  defp zip_compatible?([], []), do: true
+
+  defp zip_not_disjoint?([actual | actuals], [expected | expecteds]) do
+    not disjoint?(actual, expected) and zip_not_disjoint?(actuals, expecteds)
+  end
+
+  defp zip_not_disjoint?([], []), do: true
 
   defp check_export(module, fun, arity, meta, stack, context) do
     case ParallelChecker.fetch_export(stack.cache, module, fun, arity) do
@@ -377,12 +686,14 @@ defmodule Module.Types.Of do
         check_deprecated(mode, module, fun, arity, reason, meta, stack, context)
 
       {:ok, mode, :defmacro, reason} ->
-        context = warn({:unrequired_module, module, fun, arity}, meta, stack, context)
+        context =
+          warn(__MODULE__, {:unrequired_module, module, fun, arity}, meta, stack, context)
+
         check_deprecated(mode, module, fun, arity, reason, meta, stack, context)
 
       {:error, :module} ->
         if warn_undefined?(module, fun, arity, stack) do
-          warn({:undefined_module, module, fun, arity}, meta, stack, context)
+          warn(__MODULE__, {:undefined_module, module, fun, arity}, meta, stack, context)
         else
           context
         end
@@ -390,7 +701,8 @@ defmodule Module.Types.Of do
       {:error, :function} ->
         if warn_undefined?(module, fun, arity, stack) do
           exports = ParallelChecker.all_exports(stack.cache, module)
-          warn({:undefined_function, module, fun, arity, exports}, meta, stack, context)
+          payload = {:undefined_function, module, fun, arity, exports}
+          warn(__MODULE__, payload, meta, stack, context)
         else
           context
         end
@@ -399,7 +711,7 @@ defmodule Module.Types.Of do
 
   defp check_deprecated(:elixir, module, fun, arity, reason, meta, stack, context) do
     if reason do
-      warn({:deprecated, module, fun, arity, reason}, meta, stack, context)
+      warn(__MODULE__, {:deprecated, module, fun, arity, reason}, meta, stack, context)
     else
       context
     end
@@ -409,12 +721,12 @@ defmodule Module.Types.Of do
     case :otp_internal.obsolete(module, fun, arity) do
       {:deprecated, string} when is_list(string) ->
         reason = string |> List.to_string() |> :string.titlecase()
-        warn({:deprecated, module, fun, arity, reason}, meta, stack, context)
+        warn(__MODULE__, {:deprecated, module, fun, arity, reason}, meta, stack, context)
 
       {:deprecated, string, removal} when is_list(string) and is_list(removal) ->
         reason = string |> List.to_string() |> :string.titlecase()
         reason = "It will be removed in #{removal}. #{reason}"
-        warn({:deprecated, module, fun, arity, reason}, meta, stack, context)
+        warn(__MODULE__, {:deprecated, module, fun, arity, reason}, meta, stack, context)
 
       _ ->
         context
@@ -448,15 +760,15 @@ defmodule Module.Types.Of do
   ## Warning helpers
 
   @doc """
-  Intersects two types and emit an incompatible warning if empty.
+  Intersects two types and emit an incompatible error if empty.
   """
-  def intersect(actual, {expected, expr}, stack, context) do
+  def intersect(actual, expected, expr, stack, context) do
     type = intersection(actual, expected)
 
     if empty?(type) do
-      {:error, incompatible_warn(expr, expected, actual, stack, context)}
+      {error_type(), incompatible_error(expr, expected, actual, stack, context)}
     else
-      {:ok, type, context}
+      {type, context}
     end
   end
 
@@ -466,111 +778,16 @@ defmodule Module.Types.Of do
   This is a generic warning for when the expected/actual types
   themselves may come from several different circumstances.
   """
-  def incompatible_warn(expr, expected_type, actual_type, stack, context) do
+  def incompatible_error(expr, expected_type, actual_type, stack, context) do
     meta = get_meta(expr) || stack.meta
     hints = if meta[:inferred_bitstring_spec], do: [:inferred_bitstring_spec], else: []
     warning = {:incompatible, expr, expected_type, actual_type, hints, context}
-    warn(warning, meta, stack, context)
+    error(warning, meta, stack, context)
   end
 
-  defp warn(warning, meta, stack, context) do
-    warn(__MODULE__, warning, meta, stack, context)
+  defp error(warning, meta, stack, context) do
+    error(__MODULE__, warning, meta, stack, context)
   end
-
-  ## Traces
-
-  def collect_traces(expr, %{vars: vars}) do
-    {_, versions} =
-      Macro.prewalk(expr, %{}, fn
-        {var_name, meta, var_context}, versions when is_atom(var_name) and is_atom(var_context) ->
-          version = meta[:version]
-
-          case vars do
-            %{^version => %{off_traces: [_ | _] = off_traces, name: name, context: context}} ->
-              {:ok,
-               Map.put(versions, version, %{
-                 type: :variable,
-                 name: name,
-                 context: context,
-                 traces: collect_var_traces(off_traces)
-               })}
-
-            _ ->
-              {:ok, versions}
-          end
-
-        node, versions ->
-          {node, versions}
-      end)
-
-    versions
-    |> Map.values()
-    |> Enum.sort_by(& &1.name)
-  end
-
-  defp collect_var_traces(traces) do
-    traces
-    |> Enum.reverse()
-    |> Enum.map(fn {expr, file, type, formatter} ->
-      meta = get_meta(expr)
-
-      {formatted_expr, formatter_hints} =
-        case formatter do
-          :default -> {expr_to_string(expr), []}
-          formatter -> formatter.(expr)
-        end
-
-      %{
-        file: file,
-        meta: meta,
-        formatted_expr: formatted_expr,
-        formatted_hints: format_hints(formatter_hints ++ expr_hints(expr)),
-        formatted_type: to_quoted_string(type)
-      }
-    end)
-  end
-
-  def format_traces(traces) do
-    Enum.map(traces, &format_trace/1)
-  end
-
-  defp format_trace(%{type: :variable, name: name, context: context, traces: traces}) do
-    traces =
-      for trace <- traces do
-        location =
-          trace.file
-          |> Path.relative_to_cwd()
-          |> Exception.format_file_line(trace.meta[:line])
-          |> String.replace_suffix(":", "")
-
-        [
-          """
-
-              # type: #{indent(trace.formatted_type, 4)}
-              # from: #{location}
-              \
-          """,
-          indent(trace.formatted_expr, 4),
-          ?\n,
-          trace.formatted_hints
-        ]
-      end
-
-    type_or_types = pluralize(traces, "type", "types")
-    ["\nwhere #{format_var(name, context)} was given the #{type_or_types}:\n" | traces]
-  end
-
-  defp format_var({var, _, context}), do: format_var(var, context)
-  defp format_var(var, nil), do: "\"#{var}\""
-  defp format_var(var, context), do: "\"#{var}\" (context #{inspect(context)})"
-
-  defp pluralize([_], singular, _plural), do: singular
-  defp pluralize(_, _singular, plural), do: plural
-
-  defp expr_hints({:<<>>, [inferred_bitstring_spec: true] ++ _meta, _}),
-    do: [:inferred_bitstring_spec]
-
-  defp expr_hints(_), do: []
 
   ## Warning formatting
 
@@ -603,13 +820,13 @@ defmodule Module.Types.Of do
 
               #{expr_to_string(expr) |> indent(4)}
 
-          expected type:
-
-              #{to_quoted_string(expected_type) |> indent(4)}
-
-          but got type:
+          got type:
 
               #{to_quoted_string(actual_type) |> indent(4)}
+
+          but expected type:
+
+              #{to_quoted_string(expected_type) |> indent(4)}
           """,
           format_traces(traces),
           format_hints(hints)
@@ -665,27 +882,6 @@ defmodule Module.Types.Of do
     }
   end
 
-  def format_diagnostic({:badtuple, expr, type, index, context}) do
-    traces = collect_traces(expr, context)
-
-    %{
-      details: %{typing_traces: traces},
-      message:
-        IO.iodata_to_binary([
-          """
-          expected a tuple when accessing element at index #{index} in expression:
-
-              #{expr_to_string(expr) |> indent(4)}
-
-          but got type:
-
-              #{to_quoted_string(type) |> indent(4)}
-          """,
-          format_traces(traces)
-        ])
-    }
-  end
-
   def format_diagnostic({:badindex, expr, type, index, context}) do
     traces = collect_traces(expr, context)
 
@@ -694,7 +890,7 @@ defmodule Module.Types.Of do
       message:
         IO.iodata_to_binary([
           """
-          out of range index #{index} in expression:
+          expected a tuple with at least #{pluralize(index + 1, "element", "elements")} in #{format_mfa(expr)}:
 
               #{expr_to_string(expr) |> indent(4)}
 
@@ -731,6 +927,33 @@ defmodule Module.Types.Of do
     }
   end
 
+  def format_diagnostic({:badapply, expr, args_types, domain, clauses, context}) do
+    traces = collect_traces(expr, context)
+    {{:., _, [mod, fun]}, _, args} = expr
+
+    {mod, fun, args, converter} = :elixir_rewrite.erl_to_ex(mod, fun, args)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          incompatible types given to #{Exception.format_mfa(mod, fun, length(args))}:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          given types:
+
+              #{args_to_quoted_string(args_types, domain, converter) |> indent(4)}
+
+          but expected one of:
+          #{clauses_args_to_quoted_string(clauses, converter)}
+          """,
+          format_traces(traces)
+        ])
+    }
+  end
+
   def format_diagnostic({:mismatched_comparison, expr, context}) do
     traces = collect_traces(expr, context)
 
@@ -739,7 +962,7 @@ defmodule Module.Types.Of do
       message:
         IO.iodata_to_binary([
           """
-          comparison between incompatible types found:
+          comparison between distinct types found:
 
               #{expr_to_string(expr) |> indent(4)}
           """,
@@ -747,7 +970,7 @@ defmodule Module.Types.Of do
           """
 
           While Elixir can compare across all types, you are comparing \
-          across types which are always distinct, and the result is either \
+          across types which are always disjoint, and the result is either \
           always true or always false
           """
         ])
@@ -792,7 +1015,8 @@ defmodule Module.Types.Of do
           top,
           " is undefined (module ",
           inspect(module),
-          " is not available or is yet to be defined)"
+          " is not available or is yet to be defined)",
+          UndefinedFunctionError.hint_for_missing_module(module, fun, arity)
         ]),
       group: true
     }
@@ -843,11 +1067,85 @@ defmodule Module.Types.Of do
     }
   end
 
+  defp pluralize(1, singular, _), do: "1 #{singular}"
+  defp pluralize(i, _, plural), do: "#{i} #{plural}"
+
   defp dot_var?(expr) do
     match?({{:., _, [var, _fun]}, _, _args} when is_var(var), expr)
   end
 
+  defp to_badapply_error({{:., _, [mod, fun]}, meta, _} = expr, args_types, stack, context) do
+    {_type, domain, [{args, _} | _] = clauses} = remote(mod, fun, length(args_types))
+    error({:badapply, expr, args_types, domain || args, clauses, context}, meta, stack, context)
+  end
+
   defp empty_if(condition, content) do
     if condition, do: "", else: content
+  end
+
+  defp format_mfa({{:., _, [mod, fun]}, _, args}) do
+    {mod, fun, args, _} = :elixir_rewrite.erl_to_ex(mod, fun, args)
+    Exception.format_mfa(mod, fun, length(args))
+  end
+
+  ## Algebra helpers
+
+  alias Inspect.Algebra, as: IA
+
+  defp clauses_args_to_quoted_string([{args, _return}], converter) do
+    "\n    " <> (clause_args_to_quoted_string(args, converter) |> indent(4))
+  end
+
+  defp clauses_args_to_quoted_string(clauses, converter) do
+    clauses
+    |> Enum.with_index(fn {args, _return}, index ->
+      """
+
+      ##{index + 1}
+      #{clause_args_to_quoted_string(args, converter)}\
+      """
+      |> indent(4)
+    end)
+    |> Enum.join("\n")
+  end
+
+  defp clause_args_to_quoted_string(args, converter) do
+    docs = Enum.map(args, &(&1 |> to_quoted() |> Code.Formatter.to_algebra()))
+    args_docs_to_quoted_string(converter.(docs))
+  end
+
+  defp args_to_quoted_string(args_types, domain, converter) do
+    ansi? = IO.ANSI.enabled?()
+
+    docs =
+      Enum.zip_with(args_types, domain, fn actual, expected ->
+        doc = actual |> to_quoted() |> Code.Formatter.to_algebra()
+
+        cond do
+          compatible?(actual, expected) -> doc
+          ansi? -> IA.concat(IA.color(doc, IO.ANSI.red()), IA.color(IA.empty(), IO.ANSI.reset()))
+          true -> IA.concat(["-", doc, "-"])
+        end
+      end)
+
+    args_docs_to_quoted_string(converter.(docs))
+  end
+
+  defp args_docs_to_quoted_string(docs) do
+    doc = IA.fold(docs, fn doc, acc -> IA.glue(IA.concat(doc, ","), acc) end)
+
+    wrapped_docs =
+      case docs do
+        [_] -> IA.concat("(", IA.concat(doc, ")"))
+        _ -> IA.group(IA.glue(IA.nest(IA.glue("(", "", doc), 2), "", ")"))
+      end
+
+    wrapped_docs
+    |> IA.format(98)
+    |> IO.iodata_to_binary()
+    |> case do
+      "(\n" <> _ = multiple_lines -> multiple_lines
+      single_line -> binary_slice(single_line, 1..-2//1)
+    end
   end
 end

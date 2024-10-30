@@ -140,7 +140,7 @@ escape(Expr, Op, Unquote) ->
   }).
 
 do_escape({Left, Meta, Right}, #elixir_quote{op=prune_metadata} = Q) when is_list(Meta) ->
-  TM = [{K, V} || {K, V} <- Meta, (K == no_parens) orelse (K == line)],
+  TM = [{K, V} || {K, V} <- Meta, (K == no_parens) orelse (K == line) orelse (K == delimiter)],
   TL = do_quote(Left, Q),
   TR = do_quote(Right, Q),
   {'{}', [], [TL, TM, TR]};
@@ -179,8 +179,7 @@ do_escape([H | T], Q) ->
       update_last(TL, fun(X) -> {'|', [], [X, TR]} end)
   end;
 
-do_escape(Other, _)
-    when is_number(Other); is_pid(Other); is_atom(Other) ->
+do_escape(Other, _) when is_number(Other); is_atom(Other); is_pid(Other) ->
   Other;
 
 do_escape(Fun, _) when is_function(Fun) ->

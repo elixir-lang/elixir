@@ -276,7 +276,7 @@ defmodule Code.Formatter do
   end
 
   defp quoted_to_algebra({var, _meta, var_context}, _context, state) when is_atom(var_context) do
-    {var |> Atom.to_string() |> string() |> color(:variable, state.inspect_opts), state}
+    {var |> Atom.to_string() |> string() |> color_doc(:variable, state.inspect_opts), state}
   end
 
   defp quoted_to_algebra({:<<>>, meta, entries}, _context, state) do
@@ -407,7 +407,7 @@ defmodule Code.Formatter do
       {@double_heredoc
        |> concat(string)
        |> concat(@double_heredoc)
-       |> color(:string, state.inspect_opts)
+       |> color_doc(:string, state.inspect_opts)
        |> force_unfit(), state}
     else
       string = escape_string(string, @double_quote)
@@ -415,7 +415,7 @@ defmodule Code.Formatter do
       {@double_quote
        |> concat(string)
        |> concat(@double_quote)
-       |> color(:string, state.inspect_opts), state}
+       |> color_doc(:string, state.inspect_opts), state}
     end
   end
 
@@ -447,7 +447,7 @@ defmodule Code.Formatter do
   end
 
   defp quoted_to_algebra({:__block__, _meta, []}, _context, state) do
-    {color("nil", nil, state.inspect_opts), state}
+    {color_doc("nil", nil, state.inspect_opts), state}
   end
 
   defp quoted_to_algebra({:__block__, meta, args} = block, _context, state) when is_list(args) do
@@ -464,7 +464,7 @@ defmodule Code.Formatter do
       end
 
     {Enum.reduce(tail, doc, &concat(&2, "." <> Atom.to_string(&1)))
-     |> color(:atom, state.inspect_opts), state}
+     |> color_doc(:atom, state.inspect_opts), state}
   end
 
   # &1
@@ -589,8 +589,10 @@ defmodule Code.Formatter do
                   [?", atom |> Atom.to_string() |> String.replace("\"", "\\\""), ?", ?:]
                 end
 
-              {iodata |> IO.iodata_to_binary() |> string() |> color(:atom, state.inspect_opts),
-               state}
+              {iodata
+               |> IO.iodata_to_binary()
+               |> string()
+               |> color_doc(:atom, state.inspect_opts), state}
 
             {{:., _, [:erlang, :binary_to_atom]}, _, [{:<<>>, _, entries}, :utf8]} ->
               interpolation_to_algebra(entries, @double_quote, state, "\"", "\":")
@@ -688,7 +690,7 @@ defmodule Code.Formatter do
         Atom.to_string(op)
       end
 
-    {color(op_string, :operator, state.inspect_opts) |> concat(doc), state}
+    {color_doc(op_string, :operator, state.inspect_opts) |> concat(doc), state}
   end
 
   defp maybe_binary_op_to_algebra(fun, meta, args, context, state) do
@@ -794,11 +796,11 @@ defmodule Code.Formatter do
     doc =
       cond do
         op in @no_space_binary_operators ->
-          op_doc = color(op_string, :operator, state.inspect_opts)
+          op_doc = color_doc(op_string, :operator, state.inspect_opts)
           concat(concat(group(left), op_doc), group(right))
 
         op in @no_newline_binary_operators ->
-          op_doc = color(" " <> op_string <> " ", :operator, state.inspect_opts)
+          op_doc = color_doc(" " <> op_string <> " ", :operator, state.inspect_opts)
           concat(concat(group(left), op_doc), group(right))
 
         true ->
@@ -808,7 +810,7 @@ defmodule Code.Formatter do
             op in @next_break_fits_operators and next_break_fits?(right_arg, state) and not eol?
 
           with_next_break_fits(next_break_fits?, right, fn right ->
-            op_doc = color(" " <> op_string, :operator, state.inspect_opts)
+            op_doc = color_doc(" " <> op_string, :operator, state.inspect_opts)
             right = nest(glue(op_doc, group(right)), nesting, :break)
             right = if eol?, do: force_unfit(right), else: right
             concat(group(left), group(right))
@@ -1055,7 +1057,7 @@ defmodule Code.Formatter do
     {target_doc, state} = remote_target_to_algebra(target, state)
 
     fun_doc =
-      Macro.inspect_atom(:remote_call, fun) |> string() |> color(:call, state.inspect_opts)
+      Macro.inspect_atom(:remote_call, fun) |> string() |> color_doc(:call, state.inspect_opts)
 
     remote_doc = target_doc |> concat(".") |> concat(fun_doc)
 
@@ -1123,7 +1125,7 @@ defmodule Code.Formatter do
       fun
       |> Atom.to_string()
       |> string()
-      |> color(:call, state.inspect_opts)
+      |> color_doc(:call, state.inspect_opts)
       |> concat(call_doc)
 
     doc = if wrap_in_parens?, do: wrap_in_parens(doc), else: doc
@@ -1564,8 +1566,8 @@ defmodule Code.Formatter do
     {args_doc, _join, state} =
       args_to_algebra_with_comments(args, meta, false, :none, join, state, fun)
 
-    left_bracket = color("[", :list, state.inspect_opts)
-    right_bracket = color("]", :list, state.inspect_opts)
+    left_bracket = color_doc("[", :list, state.inspect_opts)
+    right_bracket = color_doc("]", :list, state.inspect_opts)
 
     {surround(left_bracket, args_doc, right_bracket), state}
   end
@@ -1597,8 +1599,8 @@ defmodule Code.Formatter do
   end
 
   defp do_map_to_algebra(name_doc, args_doc, state) do
-    name_doc = "%" |> concat(name_doc) |> concat("{") |> color(:map, state.inspect_opts)
-    {surround(name_doc, args_doc, color("}", :map, state.inspect_opts)), state}
+    name_doc = "%" |> concat(name_doc) |> concat("{") |> color_doc(:map, state.inspect_opts)
+    {surround(name_doc, args_doc, color_doc("}", :map, state.inspect_opts)), state}
   end
 
   defp tuple_to_algebra(meta, args, join, state) do
@@ -1608,8 +1610,8 @@ defmodule Code.Formatter do
     {args_doc, join, state} =
       args_to_algebra_with_comments(args, meta, false, :none, join, state, fun)
 
-    left_bracket = color("{", :tuple, state.inspect_opts)
-    right_bracket = color("}", :tuple, state.inspect_opts)
+    left_bracket = color_doc("{", :tuple, state.inspect_opts)
+    right_bracket = color_doc("}", :tuple, state.inspect_opts)
 
     if join == :flex_break do
       {left_bracket |> concat(args_doc) |> nest(1) |> concat(right_bracket) |> group(), state}
@@ -1619,11 +1621,11 @@ defmodule Code.Formatter do
   end
 
   defp atom_to_algebra(atom, _, inspect_opts) when atom in [true, false] do
-    Atom.to_string(atom) |> color(:boolean, inspect_opts)
+    Atom.to_string(atom) |> color_doc(:boolean, inspect_opts)
   end
 
   defp atom_to_algebra(nil, _, inspect_opts) do
-    Atom.to_string(nil) |> color(nil, inspect_opts)
+    Atom.to_string(nil) |> color_doc(nil, inspect_opts)
   end
 
   defp atom_to_algebra(:\\, meta, inspect_opts) do
@@ -1636,7 +1638,7 @@ defmodule Code.Formatter do
         _ -> ":\\\\"
       end
 
-    string(string) |> color(:atom, inspect_opts)
+    string(string) |> color_doc(:atom, inspect_opts)
   end
 
   defp atom_to_algebra(atom, _, inspect_opts) do
@@ -1649,7 +1651,7 @@ defmodule Code.Formatter do
         [?:, ?", String.replace(string, "\"", "\\\""), ?"]
       end
 
-    iodata |> IO.iodata_to_binary() |> string() |> color(:atom, inspect_opts)
+    iodata |> IO.iodata_to_binary() |> string() |> color_doc(:atom, inspect_opts)
   end
 
   defp integer_to_algebra(text, inspect_otps) do
@@ -1666,7 +1668,7 @@ defmodule Code.Formatter do
       decimal ->
         insert_underscores(decimal)
     end
-    |> color(:number, inspect_otps)
+    |> color_doc(:number, inspect_otps)
   end
 
   defp float_to_algebra(text, inspect_otps) do
@@ -1674,7 +1676,7 @@ defmodule Code.Formatter do
     decimal_part = String.downcase(decimal_part)
 
     string = insert_underscores(int_part) <> "." <> decimal_part
-    color(string, :number, inspect_otps)
+    color_doc(string, :number, inspect_otps)
   end
 
   defp insert_underscores("-" <> digits) do

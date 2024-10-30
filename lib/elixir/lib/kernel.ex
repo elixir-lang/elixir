@@ -3424,7 +3424,7 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> is_nil(1)
+      iex> is_nil(1 + 2)
       false
 
       iex> is_nil(nil)
@@ -5462,7 +5462,7 @@ defmodule Kernel do
   defmacro defstruct(fields) do
     header =
       quote bind_quoted: [fields: fields, bootstrapped?: bootstrapped?(Enum)] do
-        {struct, derive, kv, body} =
+        {struct, derive, escaped_struct, kv, body} =
           Kernel.Utils.defstruct(__MODULE__, fields, bootstrapped?, __ENV__)
 
         case derive do
@@ -5476,7 +5476,7 @@ defmodule Kernel do
     # especially since they are often expanded at compile-time.
     functions =
       quote line: 0, unquote: false do
-        def __struct__(), do: @__struct__
+        def __struct__(), do: unquote(escaped_struct)
         def __struct__(unquote(kv)), do: unquote(body)
       end
 
@@ -5568,27 +5568,8 @@ defmodule Kernel do
       # it is the bootstrapped version or not.
       Elixir.Kernel.@(impl(true))
 
-      # TODO: Change the implementation on v2.0 to simply call Kernel.struct!/2
       def exception(args) when Kernel.is_list(args) do
-        struct = __struct__()
-        {valid, invalid} = Enum.split_with(args, fn {k, _} -> Map.has_key?(struct, k) end)
-
-        case invalid do
-          [] ->
-            :ok
-
-          _ ->
-            IO.warn(
-              "the following fields are unknown when raising " <>
-                "#{Kernel.inspect(__MODULE__)}: #{Kernel.inspect(invalid)}. " <>
-                "Please make sure to only give known fields when raising " <>
-                "or redefine #{Kernel.inspect(__MODULE__)}.exception/1 to " <>
-                "discard unknown fields. Future Elixir versions will raise on " <>
-                "unknown fields given to raise/2"
-            )
-        end
-
-        Kernel.struct!(struct, valid)
+        struct!(__MODULE__, args)
       end
 
       defoverridable exception: 1

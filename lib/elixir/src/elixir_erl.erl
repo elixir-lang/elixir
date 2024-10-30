@@ -92,10 +92,21 @@ elixir_to_erl(Tree, Ann) when is_binary(Tree) ->
   %% considers a string in a binary to be encoded in latin1, so the bytes
   %% are not changed in any fashion.
   {bin, Ann, [{bin_element, Ann, {string, Ann, binary_to_list(Tree)}, default, default}]};
-elixir_to_erl(Pid, Ann) when is_pid(Pid) ->
-  ?remote(Ann, erlang, binary_to_term, [elixir_to_erl(term_to_binary(Pid), Ann)]);
-elixir_to_erl(_Other, _Ann) ->
-  error(badarg).
+elixir_to_erl(Tree, Ann) when is_function(Tree) ->
+  case (erlang:fun_info(Tree, type) == {type, external}) andalso
+       (erlang:fun_info(Tree, env) == {env, []}) of
+    true ->
+      {module, Module} = erlang:fun_info(Tree, module),
+      {name, Name} = erlang:fun_info(Tree, name),
+      {arity, Arity} = erlang:fun_info(Tree, arity),
+      {'fun', Ann, {function, {atom, Ann, Module}, {atom, Ann, Name}, {integer, Ann, Arity}}};
+    false ->
+      error(badarg, [Tree, Ann])
+  end;
+elixir_to_erl(Tree, Ann) when is_pid(Tree); is_port(Tree); is_reference(Tree) ->
+  ?remote(Ann, erlang, binary_to_term, [elixir_to_erl(term_to_binary(Tree), Ann)]);
+elixir_to_erl(Tree, Ann) ->
+  error(badarg, [Tree, Ann]).
 
 elixir_to_erl_cons([H | T], Ann) -> {cons, Ann, elixir_to_erl(H, Ann), elixir_to_erl_cons(T, Ann)};
 elixir_to_erl_cons(T, Ann) -> elixir_to_erl(T, Ann).
@@ -303,8 +314,7 @@ macros_info(Defmacro) ->
 struct_info(nil) ->
   {clause, 0, [{atom, 0, struct}], [], [{atom, 0, nil}]};
 struct_info(Fields) ->
-  FieldsWithoutDefault = [maps:remove(default, FieldInfo) || FieldInfo <- Fields],
-  {clause, 0, [{atom, 0, struct}], [], [elixir_to_erl(FieldsWithoutDefault)]}.
+  {clause, 0, [{atom, 0, struct}], [], [elixir_to_erl(Fields)]}.
 
 get_module_info(Module, Key) ->
   Call = ?remote(0, erlang, get_module_info, [{atom, 0, Module}, {var, 0, 'Key'}]),

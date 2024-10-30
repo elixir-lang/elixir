@@ -5,9 +5,10 @@ defmodule Kernel.DiagnosticsTest do
 
   import ExUnit.CaptureIO
 
-  setup do
+  setup_all do
+    previous = Application.get_env(:elixir, :ansi_enabled, false)
     Application.put_env(:elixir, :ansi_enabled, false)
-    on_exit(fn -> Application.put_env(:elixir, :ansi_enabled, true) end)
+    on_exit(fn -> Application.put_env(:elixir, :ansi_enabled, previous) end)
   end
 
   describe "mismatched delimiter" do
@@ -818,7 +819,7 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-          warning: Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined)
+          warning: Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined). Make sure the module name is correct and has been specified in full (or that an alias has been defined)
           │
         3 │   defp a, do: Unknown.b()
           │                       ~
@@ -845,7 +846,7 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-          warning: Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined)
+          warning: Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined). Make sure the module name is correct and has been specified in full (or that an alias has been defined)
           │
         3 │   defp a, do: Unknown.b()
           │   ~~~~~~~~~~~~~~~~~~~~~~~
@@ -866,7 +867,7 @@ defmodule Kernel.DiagnosticsTest do
       """
 
       expected = """
-      warning: Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined)
+      warning: Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined). Make sure the module name is correct and has been specified in full (or that an alias has been defined)
       └─ nofile:2:23: Sample.a/0
       """
 
@@ -954,7 +955,7 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-          warning: Unknown.bar/1 is undefined (module Unknown is not available or is yet to be defined)
+          warning: Unknown.bar/1 is undefined (module Unknown is not available or is yet to be defined). Make sure the module name is correct and has been specified in full (or that an alias has been defined)
           │
         5 │ ...                   Unknown.bar(:test)
           │                               ~
@@ -1005,7 +1006,7 @@ defmodule Kernel.DiagnosticsTest do
       """
 
       expected = """
-      warning: Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined)
+      warning: Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined). Make sure the module name is correct and has been specified in full (or that an alias has been defined)
       └─ nofile:3:13: Sample.a/0
       └─ nofile:4:13: Sample.a/0
       └─ nofile:5:13: Sample.a/0
@@ -1038,7 +1039,7 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-          warning: Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined)
+          warning: Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined). Make sure the module name is correct and has been specified in full (or that an alias has been defined)
           │
         5 │     Unknown.bar()
           │             ~
@@ -1075,7 +1076,7 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-          warning: Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined)
+          warning: Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined). Make sure the module name is correct and has been specified in full (or that an alias has been defined)
           │
         5 │     Unknown.bar()
           │     ~~~~~~~~~~~~~

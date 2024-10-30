@@ -95,26 +95,10 @@ iex> Enum.take(stream, 10)
 [1, 2, 3, 1, 2, 3, 1, 2, 3, 1]
 ```
 
-On the other hand, `Stream.unfold/2` can be used to generate values from a given initial value:
-
-```elixir
-iex> stream = Stream.unfold("hełło", &String.next_codepoint/1)
-#Function<39.75994740/2 in Stream.unfold/2>
-iex> Enum.take(stream, 3)
-["h", "e", "ł"]
-```
-
 Another interesting function is `Stream.resource/3` which can be used to wrap around resources, guaranteeing they are opened right before enumeration and closed afterwards, even in the case of failures. For example, `File.stream!/1` builds on top of `Stream.resource/3` to stream files:
 
 ```elixir
-iex> stream = File.stream!("path/to/file")
-%File.Stream{
-  line_or_bytes: :line,
-  modes: [:raw, :read_ahead, :binary],
-  path: "path/to/file",
-  raw: true
-}
-iex> Enum.take(stream, 10)
+iex> "path/to/file" |> File.stream!() |> Enum.take(10)
 ```
 
 The example above will fetch the first 10 lines of the file you have selected. This means streams can be very useful for handling large files or even slow resources like network resources.

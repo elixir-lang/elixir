@@ -8,7 +8,8 @@ defmodule Module.Types do
     context = context()
 
     Enum.flat_map(defs, fn {{fun, arity} = function, kind, meta, clauses} ->
-      stack = stack(with_file_meta(meta, file), module, function, no_warn_undefined, cache)
+      stack =
+        stack(:dynamic, with_file_meta(meta, file), module, function, no_warn_undefined, cache)
 
       Enum.flat_map(clauses, fn {meta, args, guards, body} ->
         try do
@@ -52,16 +53,14 @@ defmodule Module.Types do
   end
 
   defp warnings_from_clause(meta, args, guards, body, stack, context) do
-    with {:ok, _types, context} <- Pattern.of_head(args, guards, meta, stack, context),
-         {:ok, _type, context} <- Expr.of_expr(body, stack, context) do
-      context.warnings
-    else
-      {:error, context} -> context.warnings
-    end
+    {_types, context} = Pattern.of_head(args, guards, meta, stack, context)
+    {_type, context} = Expr.of_expr(body, stack, context)
+    context.warnings
   end
 
   @doc false
-  def stack(file, module, function, no_warn_undefined, cache) do
+  def stack(mode, file, module, function, no_warn_undefined, cache)
+      when mode in [:static, :dynamic, :infer] do
     %{
       # The fallback meta used for literals in patterns and guards
       meta: [],
@@ -74,7 +73,30 @@ defmodule Module.Types do
       # List of calls to not warn on as undefined
       no_warn_undefined: no_warn_undefined,
       # A list of cached modules received from the parallel compiler
-      cache: cache
+      cache: cache,
+      # The mode controls what happens on function application when
+      # there are gradual arguments. Non-gradual arguments always
+      # perform subtyping and return its output (OUT).
+      #
+      #   * :strict - Requires types signatures (not implemented).
+      #     * Strong arrows with gradual performs subtyping and returns OUT
+      #     * Weak arrows with gradual performs subtyping and returns OUT
+      #
+      #   * :static - Type signatures have been given.
+      #     * Strong arrows with gradual performs compatibility and returns OUT
+      #     * Weak arrows with gradual performs compatibility and returns dynamic()
+      #
+      #   * :dynamic - Type signatures have not been given.
+      #     * Strong arrows with gradual performs compatibility and returns dynamic(OUT)
+      #     * Weak arrows with gradual performs compatibility and returns dynamic()
+      #
+      #   * :infer - Same as :dynamic but skips remote calls.
+      #
+      # The mode may also control exhaustiveness checks in the future (to be decided).
+      # We may also want for applications with subtyping in dynamic mode to always
+      # intersect with dynamic, but this mode may be too lax (to be decided based on
+      # feedback).
+      mode: mode
     }
   end
 
@@ -83,8 +105,12 @@ defmodule Module.Types do
     %{
       # A list of all warnings found so far
       warnings: [],
-      # Information about all vars and their types
-      vars: %{}
+      # All vars and their types
+      vars: %{},
+      # Variables and arguments from patterns
+      pattern_info: nil,
+      # If type checking has found an error/failure
+      failed: false
     }
   end
 end

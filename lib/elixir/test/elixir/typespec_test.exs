@@ -547,7 +547,7 @@ defmodule TypespecTest do
     end
 
     test "@type with undefined struct" do
-      assert_raise ArgumentError, ~r"ThisModuleDoesNotExist.__struct__/0 is undefined", fn ->
+      assert_raise ArgumentError, ~r"ThisModuleDoesNotExist.__struct__/1 is undefined", fn ->
         test_module do
           @type my_type :: %ThisModuleDoesNotExist{}
         end

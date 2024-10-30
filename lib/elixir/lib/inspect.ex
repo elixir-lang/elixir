@@ -155,7 +155,7 @@ defimpl Inspect, for: Atom do
   require Macro
 
   def inspect(atom, opts) do
-    color(Macro.inspect_atom(:literal, atom), color_key(atom), opts)
+    color_doc(Macro.inspect_atom(:literal, atom), color_key(atom), opts)
   end
 
   defp color_key(atom) when is_boolean(atom), do: :boolean
@@ -175,7 +175,7 @@ defimpl Inspect, for: BitString do
           {escaped, _} -> [?", escaped, ?", " <> ..."]
         end
 
-      color(IO.iodata_to_binary(inspected), :string, opts)
+      color_doc(IO.iodata_to_binary(inspected), :string, opts)
     else
       inspect_bitstring(term, opts)
     end
@@ -186,12 +186,12 @@ defimpl Inspect, for: BitString do
   end
 
   defp inspect_bitstring("", opts) do
-    color("<<>>", :binary, opts)
+    color_doc("<<>>", :binary, opts)
   end
 
   defp inspect_bitstring(bitstring, opts) do
-    left = color("<<", :binary, opts)
-    right = color(">>", :binary, opts)
+    left = color_doc("<<", :binary, opts)
+    right = color_doc(">>", :binary, opts)
     inner = each_bit(bitstring, opts.limit, opts)
     group(concat(concat(left, nest(inner, 2)), right))
   end
@@ -228,7 +228,7 @@ end
 
 defimpl Inspect, for: List do
   def inspect([], opts) do
-    color("[]", :list, opts)
+    color_doc("[]", :list, opts)
   end
 
   # TODO: Remove :char_list and :as_char_lists handling on v2.0
@@ -259,9 +259,9 @@ defimpl Inspect, for: List do
         lists
       end
 
-    open = color("[", :list, opts)
-    sep = color(",", :list, opts)
-    close = color("]", :list, opts)
+    open = color_doc("[", :list, opts)
+    sep = color_doc(",", :list, opts)
+    close = color_doc("]", :list, opts)
 
     cond do
       lists == :as_charlists or (lists == :infer and List.ascii_printable?(term, printable_limit)) ->
@@ -271,7 +271,7 @@ defimpl Inspect, for: List do
             {escaped, _} -> [?~, ?c, ?", escaped, ?", " ++ ..."]
           end
 
-        color(IO.iodata_to_binary(inspected), :charlist, opts)
+        color_doc(IO.iodata_to_binary(inspected), :charlist, opts)
 
       keyword?(term) ->
         container_doc(open, term, close, opts, &keyword/2, separator: sep, break: :strict)
@@ -283,7 +283,7 @@ defimpl Inspect, for: List do
 
   @doc false
   def keyword({key, value}, opts) do
-    key = color(Macro.inspect_atom(:key, key), :atom, opts)
+    key = color_doc(Macro.inspect_atom(:key, key), :atom, opts)
     concat(key, concat(" ", to_doc(value, opts)))
   end
 
@@ -301,9 +301,9 @@ end
 
 defimpl Inspect, for: Tuple do
   def inspect(tuple, opts) do
-    open = color("{", :tuple, opts)
-    sep = color(",", :tuple, opts)
-    close = color("}", :tuple, opts)
+    open = color_doc("{", :tuple, opts)
+    sep = color_doc(",", :tuple, opts)
+    close = color_doc("}", :tuple, opts)
     container_opts = [separator: sep, break: :flex]
     container_doc(open, Tuple.to_list(tuple), close, opts, &to_doc/2, container_opts)
   end
@@ -322,7 +322,7 @@ defimpl Inspect, for: Map do
       if Inspect.List.keyword?(list) do
         &Inspect.List.keyword/2
       else
-        sep = color(" => ", :map, opts)
+        sep = color_doc(" => ", :map, opts)
         &to_assoc(&1, &2, sep)
       end
 
@@ -339,9 +339,9 @@ defimpl Inspect, for: Map do
   end
 
   defp map_container_doc(list, name, opts, fun) do
-    open = color("%" <> name <> "{", :map, opts)
-    sep = color(",", :map, opts)
-    close = color("}", :map, opts)
+    open = color_doc("%" <> name <> "{", :map, opts)
+    sep = color_doc(",", :map, opts)
+    close = color_doc("}", :map, opts)
     container_doc(open, list, close, opts, fun, separator: sep, break: :strict)
   end
 end
@@ -349,7 +349,7 @@ end
 defimpl Inspect, for: Integer do
   def inspect(term, %Inspect.Opts{base: base} = opts) do
     inspected = Integer.to_string(term, base_to_value(base)) |> prepend_prefix(base)
-    color(inspected, :number, opts)
+    color_doc(inspected, :number, opts)
   end
 
   defp base_to_value(base) do
@@ -390,7 +390,7 @@ defimpl Inspect, for: Float do
         Float.to_charlist(float)
       end
 
-    color(IO.iodata_to_binary(formatted), :number, opts)
+    color_doc(IO.iodata_to_binary(formatted), :number, opts)
   end
 end
 
@@ -413,7 +413,7 @@ defimpl Inspect, for: Regex do
           |> Identifier.escape(?/, :infinity, &escape_map/1)
 
         source = IO.iodata_to_binary([?~, ?r, ?/, escaped, ?/, translated_opts])
-        color(source, :regex, opts)
+        color_doc(source, :regex, opts)
     end
   end
 
@@ -636,9 +636,9 @@ defimpl Inspect, for: Any do
   end
 
   def inspect(map, name, infos, opts) do
-    open = color("#" <> name <> "<", :map, opts)
-    sep = color(",", :map, opts)
-    close = color(">", :map, opts)
+    open = color_doc("#" <> name <> "<", :map, opts)
+    sep = color_doc(",", :map, opts)
+    close = color_doc(">", :map, opts)
 
     fun = fn
       %{field: field}, opts -> Inspect.List.keyword({field, Map.get(map, field)}, opts)

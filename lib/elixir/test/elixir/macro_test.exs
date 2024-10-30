@@ -379,14 +379,16 @@ defmodule MacroTest do
              """
     end
 
+    defp abc, do: [:a, :b, :c]
+
     test "with a pipeline on a single line" do
-      {result, formatted} = dbg_format([:a, :b, :c] |> tl() |> tl |> Kernel.hd())
+      {result, formatted} = dbg_format(abc() |> tl() |> tl |> Kernel.hd())
       assert result == :c
 
       assert formatted =~ "macro_test.exs"
 
       assert formatted =~ """
-             \n[:a, :b, :c] #=> [:a, :b, :c]
+             \nabc() #=> [:a, :b, :c]
              |> tl() #=> [:b, :c]
              |> tl #=> [:c]
              |> Kernel.hd() #=> :c
@@ -400,7 +402,7 @@ defmodule MacroTest do
     test "with a pipeline on multiple lines" do
       {result, formatted} =
         dbg_format(
-          [:a, :b, :c]
+          abc()
           |> tl()
           |> tl
           |> Kernel.hd()
@@ -411,7 +413,7 @@ defmodule MacroTest do
       assert formatted =~ "macro_test.exs"
 
       assert formatted =~ """
-             \n[:a, :b, :c] #=> [:a, :b, :c]
+             \nabc() #=> [:a, :b, :c]
              |> tl() #=> [:b, :c]
              |> tl #=> [:c]
              |> Kernel.hd() #=> :c
@@ -1541,22 +1543,34 @@ defmodule MacroTest do
     Macro.postwalk(ast, [], &{&1, [&1 | &2]}) |> elem(1) |> Enum.reverse()
   end
 
-  test "struct!/2 expands structs multiple levels deep" do
+  test "struct_info!/2 expands structs multiple levels deep" do
     defmodule StructBang do
       defstruct [:a, :b]
 
-      assert Macro.struct!(StructBang, __ENV__) == %{__struct__: StructBang, a: nil, b: nil}
+      assert Macro.struct_info!(StructBang, __ENV__) == [
+               %{field: :a, required: false, default: nil},
+               %{field: :b, required: false, default: nil}
+             ]
 
       def within_function do
-        assert Macro.struct!(StructBang, __ENV__) == %{__struct__: StructBang, a: nil, b: nil}
+        assert Macro.struct_info!(StructBang, __ENV__) == [
+                 %{field: :a, required: false, default: nil},
+                 %{field: :b, required: false, default: nil}
+               ]
       end
 
       defmodule Nested do
-        assert Macro.struct!(StructBang, __ENV__) == %{__struct__: StructBang, a: nil, b: nil}
+        assert Macro.struct_info!(StructBang, __ENV__) == [
+                 %{field: :a, required: false, default: nil},
+                 %{field: :b, required: false, default: nil}
+               ]
       end
     end
 
-    assert Macro.struct!(StructBang, __ENV__) == %{__struct__: StructBang, a: nil, b: nil}
+    assert Macro.struct_info!(StructBang, __ENV__) == [
+             %{field: :a, required: false, default: nil},
+             %{field: :b, required: false, default: nil}
+           ]
   end
 
   test "prewalker/1" do

@@ -33,9 +33,7 @@ defmodule Module.Behaviour do
       module: module,
       file: file,
       line: line,
-      # Map containing the callbacks to be implemented
       callbacks: %{},
-      # list of warnings {message, env}
       warnings: []
     }
   end

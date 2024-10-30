@@ -192,12 +192,6 @@ defmodule Kernel.BinaryTest do
     assert_compile_error(message, fn ->
       Code.eval_string(~s[<<"foo"::float>>])
     end)
-
-    message = "invalid literal ~c\"foo\""
-
-    assert_compile_error(message, fn ->
-      Code.eval_string(~s[<<'foo'::binary>>])
-    end)
   end
 
   @bitstring <<"foo", 16::4>>

@@ -591,7 +591,7 @@ defmodule Inspect.MapTest do
 
     {my_argument_error, stacktrace} =
       try do
-        Atom.to_string(failing.name)
+        atom_to_string(failing.name)
       rescue
         e ->
           {e, __STACKTRACE__}
@@ -608,6 +608,10 @@ defmodule Inspect.MapTest do
 
     assert inspect(failing, custom_options: [sort_maps: true]) =~ message
     assert inspected =~ message
+  end
+
+  defp atom_to_string(atom) do
+    Atom.to_string(atom)
   end
 
   test "exception" do

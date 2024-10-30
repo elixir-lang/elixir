@@ -333,6 +333,7 @@ defmodule Inspect.Algebra do
   defguardp is_width(limit) when limit == :infinity or (is_integer(limit) and limit >= 0)
 
   # Elixir + Inspect.Opts conveniences
+  # These have the _doc suffix.
 
   @doc """
   Converts an Elixir term to an algebra document
@@ -455,7 +456,7 @@ defmodule Inspect.Algebra do
           container_each(collection, inspect_opts.limit, inspect_opts, fun, [], break == :maybe)
 
         flex? = simple? or break == :flex
-        docs = fold_doc(docs, &join(&1, &2, flex?, separator))
+        docs = fold(docs, &join(&1, &2, flex?, separator))
 
         case flex? do
           true -> group(concat(concat(left, nest(docs, 1)), right))
@@ -523,6 +524,32 @@ defmodule Inspect.Algebra do
       )
       when is_doc(left) and is_list(docs) and is_doc(right) and is_function(fun, 2) do
     container_doc(left, docs, right, inspect, fun, separator: separator)
+  end
+
+  # TODO: Deprecate me on Elixir v1.23
+  @doc deprecated: "Use color_doc/3 instead"
+  def color(doc, key, opts) do
+    color_doc(doc, key, opts)
+  end
+
+  @doc ~S"""
+  Colors a document if the `color_key` has a color in the options.
+  """
+  @doc since: "1.18.0"
+  @spec color_doc(t, Inspect.Opts.color_key(), Inspect.Opts.t()) :: t
+  def color_doc(doc, color_key, %Inspect.Opts{syntax_colors: syntax_colors}) when is_doc(doc) do
+    if precolor = Keyword.get(syntax_colors, color_key) do
+      postcolor = Keyword.get(syntax_colors, :reset, :reset)
+      concat(doc_color(doc, ansi(precolor)), doc_color(empty(), ansi(postcolor)))
+    else
+      doc
+    end
+  end
+
+  defp ansi(color) do
+    color
+    |> IO.ANSI.format_fragment(true)
+    |> IO.iodata_to_binary()
   end
 
   # Algebra API
@@ -619,21 +646,16 @@ defmodule Inspect.Algebra do
   """
   @spec concat([t]) :: t
   def concat(docs) when is_list(docs) do
-    fold_doc(docs, &concat(&1, &2))
+    fold(docs, &concat(&1, &2))
   end
 
   @doc ~S"""
-  Colors a document if the `color_key` has a color in the options.
+  Colors a document with the given color (preceding the document itself).
   """
-  @doc since: "1.4.0"
-  @spec color(t, Inspect.Opts.color_key(), Inspect.Opts.t()) :: t
-  def color(doc, color_key, %Inspect.Opts{syntax_colors: syntax_colors}) when is_doc(doc) do
-    if precolor = Keyword.get(syntax_colors, color_key) do
-      postcolor = Keyword.get(syntax_colors, :reset, :reset)
-      concat(doc_color(doc, precolor), doc_color(empty(), postcolor))
-    else
-      doc
-    end
+  @doc since: "1.18.0"
+  @spec color(t, binary) :: t
+  def color(doc, color) when is_doc(doc) and is_binary(color) do
+    doc_color(doc, color)
   end
 
   @doc ~S"""
@@ -933,6 +955,10 @@ defmodule Inspect.Algebra do
   @spec line(t, t) :: t
   def line(doc1, doc2), do: concat(doc1, concat(line(), doc2))
 
+  # TODO: Deprecate me on Elixir v1.23
+  @doc deprecated: "Use fold/2 instead"
+  def fold_doc(docs, folder_fun), do: fold(docs, folder_fun)
+
   @doc ~S"""
   Folds a list of documents into a document using the given folder function.
 
@@ -944,21 +970,22 @@ defmodule Inspect.Algebra do
 
       iex> docs = ["A", "B", "C"]
       iex> docs =
-      ...>   Inspect.Algebra.fold_doc(docs, fn doc, acc ->
+      ...>   Inspect.Algebra.fold(docs, fn doc, acc ->
       ...>     Inspect.Algebra.concat([doc, "!", acc])
       ...>   end)
       iex> Inspect.Algebra.format(docs, 80)
       ["A", "!", "B", "!", "C"]
 
   """
-  @spec fold_doc([t], (t, t -> t)) :: t
-  def fold_doc(docs, folder_fun)
+  @doc since: "1.18.0"
+  @spec fold([t], (t, t -> t)) :: t
+  def fold(docs, folder_fun)
 
-  def fold_doc([], _folder_fun), do: empty()
-  def fold_doc([doc], _folder_fun), do: doc
+  def fold([], _folder_fun), do: empty()
+  def fold([doc], _folder_fun), do: doc
 
-  def fold_doc([doc | docs], folder_fun) when is_function(folder_fun, 2),
-    do: folder_fun.(doc, fold_doc(docs, folder_fun))
+  def fold([doc | docs], folder_fun) when is_function(folder_fun, 2),
+    do: folder_fun.(doc, fold(docs, folder_fun))
 
   @doc ~S"""
   Formats a given document for a given width.
@@ -1079,7 +1106,7 @@ defmodule Inspect.Algebra do
   defp format(w, k, [{_, _, :doc_nil} | t]), do: format(w, k, t)
   defp format(w, _, [{i, _, :doc_line} | t]), do: [indent(i) | format(w, i, t)]
   defp format(w, k, [{i, m, doc_cons(x, y)} | t]), do: format(w, k, [{i, m, x}, {i, m, y} | t])
-  defp format(w, k, [{i, m, doc_color(x, c)} | t]), do: [ansi(c) | format(w, k, [{i, m, x} | t])]
+  defp format(w, k, [{i, m, doc_color(x, c)} | t]), do: [c | format(w, k, [{i, m, x} | t])]
   defp format(w, k, [{_, _, doc_string(s, l)} | t]), do: [s | format(w, k + l, t)]
   defp format(w, k, [{_, _, s} | t]) when is_binary(s), do: [s | format(w, k + byte_size(s), t)]
   defp format(w, k, [{i, m, doc_force(x)} | t]), do: format(w, k, [{i, m, x} | t])
@@ -1162,10 +1189,6 @@ defmodule Inspect.Algebra do
   defp apply_nesting(_, k, :cursor), do: k
   defp apply_nesting(_, _, :reset), do: 0
   defp apply_nesting(i, _, j), do: i + j
-
-  defp ansi(color) do
-    IO.ANSI.format_fragment(color, true)
-  end
 
   defp indent(0), do: @newline
   defp indent(i), do: @newline <> :binary.copy(" ", i)

@@ -1364,7 +1364,7 @@ interpolation_format({_, _, _} = Reason, _Extension, _Args, _Line, _Column, _Ope
 
 %% Terminators
 
-handle_terminator(Rest, _, _, Scope, {'(', {Line, Column, _}}, [{alias, _, Alias} | Tokens]) ->
+handle_terminator(Rest, _, _, Scope, {'(', {Line, Column, _}}, [{alias, _, Alias} | Tokens]) when is_atom(Alias) ->
   Reason =
     io_lib:format(
       "unexpected ( after alias ~ts. Function names and identifiers in Elixir "

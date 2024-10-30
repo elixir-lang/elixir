@@ -158,6 +158,65 @@ defmodule PartitionSupervisorTest do
     end
   end
 
+  describe "resize!/1" do
+    test "resizes the number of children", config do
+      {:ok, _} =
+        PartitionSupervisor.start_link(
+          child_spec: {Agent, fn -> %{} end},
+          name: config.test,
+          partitions: 8
+        )
+
+      for range <- [8..0//1, 0..8//1, Enum.shuffle(0..8)], i <- range do
+        PartitionSupervisor.resize!(config.test, i)
+        assert PartitionSupervisor.partitions(config.test) == i
+
+        assert PartitionSupervisor.count_children(config.test) ==
+                 %{active: i, specs: 8, supervisors: 0, workers: 8}
+
+        # Assert that we can still query across all range,
+        # but they are routed properly, as long as we have
+        # a single partition.
+        children =
+          for partition <- 0..7, i != 0, uniq: true do
+            GenServer.whereis({:via, PartitionSupervisor, {config.test, partition}})
+          end
+
+        assert length(children) == i
+      end
+    end
+
+    test "raises on lookup after resizing to zero", config do
+      {:ok, _} =
+        PartitionSupervisor.start_link(
+          child_spec: {Agent, fn -> %{} end},
+          name: config.test,
+          partitions: 8
+        )
+
+      assert PartitionSupervisor.resize!(config.test, 0) == 8
+
+      assert_raise ArgumentError, ~r"has zero partitions", fn ->
+        GenServer.whereis({:via, PartitionSupervisor, {config.test, 0}})
+      end
+
+      assert PartitionSupervisor.resize!(config.test, 8) == 0
+    end
+
+    test "raises if trying to increase the number of partitions", config do
+      {:ok, _} =
+        PartitionSupervisor.start_link(
+          child_spec: {Agent, fn -> %{} end},
+          name: config.test,
+          partitions: 8
+        )
+
+      assert_raise ArgumentError,
+                   "the number of partitions to resize to must be a number between 0 and 8, got: 9",
+                   fn -> PartitionSupervisor.resize!(config.test, 9) end
+    end
+  end
+
   describe "which_children/1" do
     test "returns all partitions", config do
       {:ok, _} =

@@ -8,8 +8,8 @@ defmodule Module.Types.PatternTest do
 
   describe "variables" do
     test "captures variables from simple assignment in head" do
-      assert typecheck!([x = :foo], x) == atom([:foo])
-      assert typecheck!([:foo = x], x) == atom([:foo])
+      assert typecheck!([x = :foo], x) == dynamic(atom([:foo]))
+      assert typecheck!([:foo = x], x) == dynamic(atom([:foo]))
     end
 
     test "captures variables from simple assignment in =" do
@@ -19,6 +19,54 @@ defmodule Module.Types.PatternTest do
                  x
                )
              ) == atom([:foo])
+    end
+
+    test "refines information across patterns" do
+      assert typecheck!([%y{}, %x{}, x = y, x = Point], y) == dynamic(atom([Point]))
+    end
+
+    test "repeated refinements are ignored on reporting" do
+      assert typeerror!([{name, arity}, arity = 123], hd(Atom.to_charlist(name))) |> strip_ansi() ==
+               ~l"""
+               incompatible types given to Kernel.hd/1:
+
+                   hd(Atom.to_charlist(name))
+
+               given types:
+
+                   empty_list() or non_empty_list(integer())
+
+               but expected one of:
+
+                   non_empty_list(term(), term())
+
+               where "name" was given the type:
+
+                   # type: dynamic()
+                   # from: types_test.ex
+                   {name, arity}
+               """
+    end
+
+    test "errors on conflicting refinements" do
+      assert typeerror!([a = b, a = :foo, b = :bar], {a, b}) ==
+               ~l"""
+               the following pattern will never match:
+
+                   a = b
+
+               where "a" was given the type:
+
+                   # type: dynamic(:foo)
+                   # from: types_test.ex:LINE-1
+                   a = :foo
+
+               where "b" was given the type:
+
+                   # type: dynamic(:bar)
+                   # from: types_test.ex:LINE-1
+                   b = :bar
+               """
     end
   end
 
@@ -32,7 +80,7 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([x = %_{}], x) == dynamic(open_map(__struct__: atom()))
 
       assert typecheck!([x = %m{}, m = Point], x) ==
-               dynamic(open_map(__struct__: atom()))
+               dynamic(open_map(__struct__: atom([Point])))
 
       assert typecheck!([m = Point, x = %m{}], x) ==
                dynamic(open_map(__struct__: atom([Point])))
@@ -43,13 +91,13 @@ defmodule Module.Types.PatternTest do
 
                    %^m{}
 
-               expected type:
-
-                   atom()
-
-               but got type:
+               got type:
 
                    integer()
+
+               but expected type:
+
+                   atom()
 
                where "m" was given the type:
 
@@ -60,19 +108,18 @@ defmodule Module.Types.PatternTest do
     end
 
     test "fields in guards" do
-      assert typewarn!([x = %Point{}], [x.foo_bar], :ok) ==
-               {atom([:ok]),
-                ~l"""
-                unknown key .foo_bar in expression:
+      assert typeerror!([x = %Point{}], x.foo_bar, :ok) ==
+               ~l"""
+               unknown key .foo_bar in expression:
 
-                    x.foo_bar
+                   x.foo_bar
 
-                where "x" was given the type:
+               where "x" was given the type:
 
-                    # type: dynamic(%Point{x: term(), y: term(), z: term()})
-                    # from: types_test.ex:LINE-2
-                    x = %Point{}
-                """}
+                   # type: dynamic(%Point{x: term(), y: term(), z: term()})
+                   # from: types_test.ex:LINE-1
+                   x = %Point{}
+               """
     end
   end
 
@@ -84,7 +131,46 @@ defmodule Module.Types.PatternTest do
     end
 
     test "fields in guards" do
-      assert typecheck!([x = %{foo: :bar}], [x.bar], x) == dynamic(open_map(foo: atom([:bar])))
+      assert typecheck!([x = %{foo: :bar}], x.bar, x) == dynamic(open_map(foo: atom([:bar])))
+    end
+  end
+
+  describe "tuples" do
+    test "in patterns" do
+      assert typecheck!([x = {:ok, 123}], x) == dynamic(tuple([atom([:ok]), integer()]))
+      assert typecheck!([{:x, y} = {x, :y}], {x, y}) == dynamic(tuple([atom([:x]), atom([:y])]))
+    end
+  end
+
+  describe "lists" do
+    test "in patterns" do
+      assert typecheck!([x = [1, 2, 3]], x) ==
+               dynamic(non_empty_list(integer()))
+
+      assert typecheck!([x = [1, 2, 3 | y], y = :foo], x) ==
+               dynamic(non_empty_list(integer(), atom([:foo])))
+
+      assert typecheck!([x = [1, 2, 3 | y], y = [1.0, 2.0, 3.0]], x) ==
+               dynamic(non_empty_list(union(integer(), float())))
+
+      assert typecheck!([x = [:ok | z]], {x, z}) ==
+               dynamic(tuple([non_empty_list(term(), term()), term()]))
+
+      assert typecheck!([x = [y | z]], {x, y, z}) ==
+               dynamic(tuple([non_empty_list(term(), term()), term(), term()]))
+    end
+
+    test "in patterns through ++" do
+      assert typecheck!([x = [] ++ []], x) == dynamic(empty_list())
+
+      assert typecheck!([x = [] ++ y, y = :foo], x) ==
+               dynamic(atom([:foo]))
+
+      assert typecheck!([x = [1, 2, 3] ++ y, y = :foo], x) ==
+               dynamic(non_empty_list(integer(), atom([:foo])))
+
+      assert typecheck!([x = [1, 2, 3] ++ y, y = [1.0, 2.0, 3.0]], x) ==
+               dynamic(non_empty_list(union(integer(), float())))
     end
   end
 
@@ -137,27 +223,42 @@ defmodule Module.Types.PatternTest do
     end
 
     test "size error" do
-      assert typewarn!([<<x::float, _::size(x)>>], :ok) ==
-               {atom([:ok]),
-                ~l"""
-                incompatible types in expression:
+      assert typeerror!([<<x::float, _::size(x)>>], :ok) ==
+               ~l"""
+               incompatible types in expression:
 
-                    <<..., _::integer-size(x)>>
+                   size(x)
 
-                expected type:
+               got type:
 
-                    integer()
+                   float()
 
-                but got type:
+               but expected type:
 
-                    float()
+                   integer()
 
-                where "x" was given the type:
+               where "x" was given the type:
 
-                    # type: float()
-                    # from: types_test.ex:LINE-2
-                    <<x::float, ...>>
-                """}
+                   # type: float()
+                   # from: types_test.ex:LINE-1
+                   <<x::float, ...>>
+               """
+    end
+  end
+
+  describe "inference" do
+    test "refines information across patterns" do
+      result = [
+        dynamic(open_map(__struct__: atom([Point]))),
+        dynamic(open_map(__struct__: atom([Point]))),
+        dynamic(atom([Point])),
+        dynamic(atom([Point]))
+      ]
+
+      assert typeinfer!([%y{}, %x{}, x = y, x = Point]) == result
+      assert typeinfer!([%x{}, %y{}, x = y, x = Point]) == result
+      assert typeinfer!([%y{}, %x{}, x = y, y = Point]) == result
+      assert typeinfer!([%x{}, %y{}, x = y, y = Point]) == result
     end
   end
 end

@@ -1091,6 +1091,38 @@ defmodule CodeFragmentTest do
       end
     end
 
+    test "capture operator" do
+      assert CF.surround_context("& &123 + 1", {1, 1}) == %{
+               context: {:operator, ~c"&"},
+               begin: {1, 1},
+               end: {1, 2}
+             }
+
+      for i <- 3..6 do
+        assert CF.surround_context("& &123 + 1", {1, i}) == %{
+                 context: {:capture_arg, ~c"&123"},
+                 begin: {1, 3},
+                 end: {1, 7}
+               }
+      end
+    end
+
+    test "capture operator false positive" do
+      assert CF.surround_context("1&&2", {1, 3}) == %{
+               context: {:operator, ~c"&&"},
+               begin: {1, 2},
+               end: {1, 4}
+             }
+
+      assert CF.surround_context("1&&2", {1, 4}) == :none
+
+      assert CF.surround_context("&a", {1, 2}) == %{
+               context: {:local_or_var, ~c"a"},
+               begin: {1, 2},
+               end: {1, 3}
+             }
+    end
+
     test "unquoted atom" do
       for i <- 1..10 do
         assert CF.surround_context(":hello_wor", {1, i}) == %{

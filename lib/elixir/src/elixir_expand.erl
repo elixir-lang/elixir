@@ -5,11 +5,13 @@
 
 %% =
 
+expand({'=', Meta, [_, _]} = Expr, S, #{context := match} = E) ->
+  elixir_clauses:parallel_match(Meta, Expr, S, E);
+
 expand({'=', Meta, [Left, Right]}, S, E) ->
   assert_no_guard_scope(Meta, "=", S, E),
   {ERight, SR, ER} = expand(Right, S, E),
-  {ELeft, SL, EL} = elixir_clauses:match(fun expand/3, Left, SR, S, ER),
-  refute_parallel_bitstring_match(ELeft, ERight, E, ?key(E, context) == match),
+  {ELeft, SL, EL} = elixir_clauses:match(fun expand/3, Meta, Left, SR, S, ER),
   {{'=', Meta, [ELeft, ERight]}, SL, EL};
 
 %% Literal operators
@@ -329,7 +331,7 @@ expand({'_', Meta, Kind} = Var, S, #{context := Context} = E) when is_atom(Kind)
 
 expand({Name, Meta, Kind}, S, #{context := match} = E) when is_atom(Name), is_atom(Kind) ->
   #elixir_ex{
-    prematch={_, PrematchVersion, _},
+    prematch={_, _, PrematchVersion},
     unused={Unused, Version},
     vars={Read, Write}
   } = S,
@@ -341,8 +343,9 @@ expand({Name, Meta, Kind}, S, #{context := match} = E) when is_atom(Name), is_at
     #{Pair := VarVersion} when VarVersion >= PrematchVersion ->
       maybe_warn_underscored_var_repeat(Meta, Name, Kind, E),
       NewUnused = var_used(Pair, Meta, VarVersion, Unused),
+      NewWrite = (Write /= false) andalso Write#{Pair => Version},
       Var = {Name, [{version, VarVersion} | Meta], Kind},
-      {Var, S#elixir_ex{unused={NewUnused, Version}}, E};
+      {Var, S#elixir_ex{vars={Read, NewWrite}, unused={NewUnused, Version}}, E};
 
     %% Variable is being overridden now
     #{Pair := _} ->
@@ -369,17 +372,20 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
     case Read of
       #{Pair := CurrentVersion} ->
         case Prematch of
-          {Pre, _Counter, {bitsize, Original}} ->
+          {Pre, _Cycle, {bitsize, Original}} ->
             if
               map_get(Pair, Pre) /= CurrentVersion ->
                 {ok, CurrentVersion};
+
               is_map_key(Pair, Pre) ->
                 %% TODO: Enable this warning on Elixir v1.19
                 %% TODO: Remove me on Elixir 2.0
                 %% elixir_errors:file_warn(Meta, E, ?MODULE, {unpinned_bitsize_var, Name, Kind}),
                 {ok, CurrentVersion};
+
               not is_map_key(Pair, Original) ->
                 {ok, CurrentVersion};
+
               true ->
                 raise
             end;
@@ -389,7 +395,12 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
         end;
 
       _ ->
-        Prematch
+        case E of
+          #{context := guard} -> raise;
+          #{} when S#elixir_ex.prematch =:= pin -> pin;
+          %% TODO: Remove fallback on on_undefined_variable
+          _ -> elixir_config:get(on_undefined_variable)
+        end
     end,
 
   case Result of
@@ -417,7 +428,7 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
           function_error(Meta, E, ?MODULE, {undefined_var_pin, Name, Kind}),
           {{Name, Meta, Kind}, S, E};
 
-        _ ->
+        _ when Error == raise ->
           SpanMeta =  elixir_env:calculate_span(Meta, Name),
           function_error(SpanMeta, E, ?MODULE, {undefined_var, Name, Kind}),
           {{Name, SpanMeta, Kind}, S, E}
@@ -431,7 +442,7 @@ expand({Atom, Meta, Args}, S, E) when is_atom(Atom), is_list(Meta), is_list(Args
 
   elixir_dispatch:dispatch_import(Meta, Atom, Args, S, E, fun
     ({AR, AF}) ->
-      expand_remote(AR, Meta, AF, Meta, Args, S, elixir_env:prepare_write(S), E);
+      expand_remote(AR, Meta, AF, Meta, Args, S, elixir_env:prepare_write(S, E), E);
 
     (local) ->
       expand_local(Meta, Atom, Args, S, E)
@@ -441,7 +452,7 @@ expand({Atom, Meta, Args}, S, E) when is_atom(Atom), is_list(Meta), is_list(Args
 
 expand({{'.', DotMeta, [Left, Right]}, Meta, Args}, S, E)
     when (is_tuple(Left) orelse is_atom(Left)), is_atom(Right), is_list(Meta), is_list(Args) ->
-  {ELeft, SL, EL} = expand(Left, elixir_env:prepare_write(S), E),
+  {ELeft, SL, EL} = expand(Left, elixir_env:prepare_write(S, E), E),
 
   elixir_dispatch:dispatch_require(Meta, ELeft, Right, Args, S, EL, fun(AR, AF) ->
     expand_remote(AR, DotMeta, AF, Meta, Args, S, SL, EL)
@@ -474,9 +485,16 @@ expand(List, S, E) when is_list(List) ->
 
   {EArgs, elixir_env:close_write(SE, S), EE};
 
+expand(Zero, S, #{context := match} = E) when is_float(Zero), Zero == 0.0 ->
+  elixir_errors:file_warn([], E, ?MODULE, invalid_match_on_zero_float),
+  {Zero, S, E};
+
+expand(Other, S, E) when is_number(Other); is_atom(Other); is_binary(Other) ->
+  {Other, S, E};
+
 expand(Function, S, E) when is_function(Function) ->
   case (erlang:fun_info(Function, type) == {type, external}) andalso
-       (erlang:fun_info(Function, env) == {env, []}) of
+        (erlang:fun_info(Function, env) == {env, []}) of
     true ->
       {elixir_quote:fun_to_quoted(Function), S, E};
     false ->
@@ -492,13 +510,6 @@ expand(Pid, S, E) when is_pid(Pid) ->
       elixir_errors:file_warn([], E, ?MODULE, {invalid_pid_in_function, Pid, Function}),
       {Pid, S, E}
   end;
-
-expand(Zero, S, #{context := match} = E) when is_float(Zero), Zero == 0.0 ->
-  elixir_errors:file_warn([], E, ?MODULE, invalid_match_on_zero_float),
-  {Zero, S, E};
-
-expand(Other, S, E) when is_number(Other); is_atom(Other); is_binary(Other) ->
-  {Other, S, E};
 
 expand(Other, _S, E) ->
   file_error([{line, 0}], ?key(E, file), ?MODULE, {invalid_quoted_expr, Other}).
@@ -700,9 +711,6 @@ maybe_warn_deprecated_super_in_gen_server_callback(Meta, Function, SuperMeta, E)
       ok
   end.
 
-context_info(Kind) when Kind == nil; is_integer(Kind) -> "";
-context_info(Kind) -> io_lib:format(" (context ~ts)", [elixir_aliases:inspect(Kind)]).
-
 should_warn(Meta) ->
   lists:keyfind(generated, 1, Meta) /= {generated, true}.
 
@@ -819,7 +827,7 @@ expand_for_do_block(Meta, [{'->', _, _} | _] = Clauses, S, E, {reduce, _}) ->
       SReset = elixir_env:reset_unused_vars(SA),
 
       {EClause, SAcc, EAcc} =
-        elixir_clauses:clause(Meta, fn, fun elixir_clauses:head/3, Clause, SReset, E),
+        elixir_clauses:clause(Meta, fn, fun elixir_clauses:head/4, Clause, SReset, E),
 
       {EClause, elixir_env:merge_and_check_unused_vars(SAcc, SA, EAcc)};
 
@@ -859,7 +867,7 @@ expand_local(Meta, Name, Args, S, #{module := Module, function := Function, cont
       module_error(Meta, E, ?MODULE, {invalid_local_invocation, "match", {Name, Meta, Args}});
 
     guard ->
-      module_error(Meta, E, ?MODULE, {invalid_local_invocation, guard_context(S), {Name, Meta, Args}});
+      module_error(Meta, E, ?MODULE, {invalid_local_invocation, elixir_utils:guard_info(S), {Name, Meta, Args}});
 
     nil ->
       Arity = length(Args),
@@ -879,20 +887,27 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, S, SL, #{context := Context}
   if
     Context =:= guard, is_tuple(Receiver) ->
       (lists:keyfind(no_parens, 1, Meta) /= {no_parens, true}) andalso
-        function_error(Meta, E, ?MODULE, {parens_map_lookup, Receiver, Right, guard_context(S)}),
+        function_error(Meta, E, ?MODULE, {parens_map_lookup, Receiver, Right, elixir_utils:guard_info(S)}),
 
       {{{'.', DotMeta, [Receiver, Right]}, Meta, []}, SL, E};
 
-    true ->
+    Context =:= nil ->
       AttachedMeta = attach_runtime_module(Receiver, Meta, S, E),
       {EArgs, {SA, _}, EA} = mapfold(fun expand_arg/3, {SL, S}, E, Args),
+      Rewritten = elixir_rewrite:rewrite(Receiver, DotMeta, Right, AttachedMeta, EArgs),
+      {Rewritten, elixir_env:close_write(SA, S), EA};
 
-      case rewrite(Context, Receiver, DotMeta, Right, AttachedMeta, EArgs, S) of
-        {ok, Rewritten} ->
-          {Rewritten, elixir_env:close_write(SA, S), EA};
+    true ->
+      case {Receiver, Right, Args} of
+        {erlang, '+', [Arg]} when is_number(Arg) -> {+Arg, SL, E};
+        {erlang, '-', [Arg]} when is_number(Arg) -> {-Arg, SL, E};
+        _ ->
+          {EArgs, SA, EA} = mapfold(fun expand/3, SL, E, Args),
 
-        {error, Error} ->
-          file_error(Meta, E, elixir_rewrite, Error)
+          case elixir_rewrite:Context(Receiver, DotMeta, Right, Meta, EArgs, S) of
+            {ok, Rewritten} -> {Rewritten, SA, EA};
+            {error, Error} -> file_error(Meta, E, elixir_rewrite, Error)
+          end
       end
   end;
 expand_remote(Receiver, DotMeta, Right, Meta, Args, _, _, E) ->
@@ -904,16 +919,6 @@ attach_runtime_module(Receiver, Meta, S, _E) ->
     true -> [{runtime_module, true} | Meta];
     false -> Meta
   end.
-
-% Signed numbers can be rewritten no matter the context
-rewrite(_, erlang, _, '+', _, [Arg], _S) when is_number(Arg) -> {ok, Arg};
-rewrite(_, erlang, _, '-', _, [Arg], _S) when is_number(Arg) -> {ok, -Arg};
-rewrite(match, Receiver, DotMeta, Right, Meta, EArgs, _S) ->
-  elixir_rewrite:match_rewrite(Receiver, DotMeta, Right, Meta, EArgs);
-rewrite(guard, Receiver, DotMeta, Right, Meta, EArgs, S) ->
-  elixir_rewrite:guard_rewrite(Receiver, DotMeta, Right, Meta, EArgs, guard_context(S));
-rewrite(_, Receiver, DotMeta, Right, Meta, EArgs, _S) ->
-  {ok, elixir_rewrite:rewrite(Receiver, DotMeta, Right, Meta, EArgs)}.
 
 %% Lexical helpers
 
@@ -986,7 +991,7 @@ expand_aliases({'__aliases__', Meta, List} = Alias, S, E, Report) ->
 expand_for_generator({'<-', Meta, [Left, Right]}, S, E) ->
   {ERight, SR, ER} = expand(Right, S, E),
   SM = elixir_env:reset_read(SR, S),
-  {[ELeft], SL, EL} = elixir_clauses:head([Left], SM, ER),
+  {[ELeft], SL, EL} = elixir_clauses:head(Meta, [Left], SM, ER),
   {{'<-', Meta, [ELeft, ERight]}, SL, EL};
 expand_for_generator({'<<>>', Meta, Args} = X, S, E) when is_list(Args) ->
   case elixir_utils:split_last(Args) of
@@ -995,7 +1000,7 @@ expand_for_generator({'<<>>', Meta, Args} = X, S, E) when is_list(Args) ->
       SM = elixir_env:reset_read(SR, S),
       {ELeft, SL, EL} = elixir_clauses:match(fun(BArg, BS, BE) ->
         elixir_bitstring:expand(Meta, BArg, BS, BE, true)
-      end, LeftStart ++ [LeftEnd], SM, SM, ER),
+      end, Meta, LeftStart ++ [LeftEnd], SM, SM, ER),
       {{'<<>>', Meta, [{'<-', OpMeta, [ELeft, ERight]}]}, SL, EL};
     _ ->
       expand(X, S, E)
@@ -1011,45 +1016,6 @@ assert_generator_start(Meta, _, E) ->
   elixir_errors:file_error(Meta, E, ?MODULE, for_generator_start).
 
 %% Assertions
-
-refute_parallel_bitstring_match({'<<>>', _, _}, {'<<>>', Meta, _} = Arg, E, true) ->
-  file_error(Meta, E, ?MODULE, {parallel_bitstring_match, Arg});
-refute_parallel_bitstring_match(Left, {'=', _Meta, [MatchLeft, MatchRight]}, E, Parallel) ->
-  refute_parallel_bitstring_match(Left, MatchLeft, E, true),
-  refute_parallel_bitstring_match(Left, MatchRight, E, Parallel);
-refute_parallel_bitstring_match([_ | _] = Left, [_ | _] = Right, E, Parallel) ->
-  refute_parallel_bitstring_match_each(Left, Right, E, Parallel);
-refute_parallel_bitstring_match({Left1, Left2}, {Right1, Right2}, E, Parallel) ->
-  refute_parallel_bitstring_match_each([Left1, Left2], [Right1, Right2], E, Parallel);
-refute_parallel_bitstring_match({'{}', _, Args1}, {'{}', _, Args2}, E, Parallel) ->
-  refute_parallel_bitstring_match_each(Args1, Args2, E, Parallel);
-refute_parallel_bitstring_match({'%{}', _, Args1}, {'%{}', _, Args2}, E, Parallel) ->
-  refute_parallel_bitstring_match_map_field(lists:sort(Args1), lists:sort(Args2), E, Parallel);
-refute_parallel_bitstring_match({'%', _, [_, Args]}, Right, E, Parallel) ->
-  refute_parallel_bitstring_match(Args, Right, E, Parallel);
-refute_parallel_bitstring_match(Left, {'%', _, [_, Args]}, E, Parallel) ->
-  refute_parallel_bitstring_match(Left, Args, E, Parallel);
-refute_parallel_bitstring_match(_Left, _Right, _E, _Parallel) ->
-  ok.
-
-refute_parallel_bitstring_match_each([Arg1 | Rest1], [Arg2 | Rest2], E, Parallel) ->
-  refute_parallel_bitstring_match(Arg1, Arg2, E, Parallel),
-    refute_parallel_bitstring_match_each(Rest1, Rest2, E, Parallel);
-refute_parallel_bitstring_match_each(_List1, _List2, _E, _Parallel) ->
-  ok.
-
-refute_parallel_bitstring_match_map_field([{Key, Val1} | Rest1], [{Key, Val2} | Rest2], E, Parallel) ->
-  refute_parallel_bitstring_match(Val1, Val2, E, Parallel),
-  refute_parallel_bitstring_match_map_field(Rest1, Rest2, E, Parallel);
-refute_parallel_bitstring_match_map_field([Field1 | Rest1] = Args1, [Field2 | Rest2] = Args2, E, Parallel) ->
-  case Field1 > Field2 of
-    true ->
-      refute_parallel_bitstring_match_map_field(Args1, Rest2, E, Parallel);
-    false ->
-      refute_parallel_bitstring_match_map_field(Rest1, Args2, E, Parallel)
-  end;
-refute_parallel_bitstring_match_map_field(_Args1, _Args2, _E, _Parallel) ->
-  ok.
 
 assert_module_scope(Meta, Kind, #{module := nil, file := File}) ->
   file_error(Meta, File, ?MODULE, {invalid_expr_in_scope, "module", Kind});
@@ -1067,8 +1033,8 @@ assert_no_match_scope(Meta, Kind, #{context := match, file := File}) ->
 assert_no_match_scope(_Meta, _Kind, _E) -> ok.
 assert_no_guard_scope(Meta, Kind, S, #{context := guard, file := File}) ->
   Key =
-    case S#elixir_ex.prematch of
-      {_, _, {bitsize, _}}  -> invalid_expr_in_bitsize;
+    case S of
+      #elixir_ex{prematch={_, _, {bitsize, _}}}  -> invalid_expr_in_bitsize;
       _ -> invalid_expr_in_guard
     end,
   file_error(Meta, File, ?MODULE, {Key, Kind});
@@ -1091,9 +1057,6 @@ assert_no_underscore_clause_in_cond(_Other, _E) ->
   ok.
 
 %% Errors
-
-guard_context(#elixir_ex{prematch={_, _, {bitsize, _}}}) -> "bitstring size specifier";
-guard_context(_) -> "guard".
 
 format_error(invalid_match_on_zero_float) ->
   "pattern matching on 0.0 is equivalent to matching only on +0.0 from Erlang/OTP 27+. Instead you must match on +0.0 or -0.0";
@@ -1170,10 +1133,10 @@ format_error({pin_outside_of_match, Arg}) ->
 format_error(unbound_underscore) ->
   "invalid use of _. _ can only be used inside patterns to ignore values and cannot be used in expressions. Make sure you are inside a pattern or change it accordingly";
 format_error({undefined_var, Name, Kind}) ->
-  io_lib:format("undefined variable \"~ts\"~ts", [Name, context_info(Kind)]);
+  io_lib:format("undefined variable ~ts", [elixir_utils:var_info(Name, Kind)]);
 format_error({undefined_var_pin, Name, Kind}) ->
-  Message = "undefined variable ^~ts. No variable \"~ts\"~ts has been defined before the current pattern",
-  io_lib:format(Message, [Name, Name, context_info(Kind)]);
+  Message = "undefined variable ^~ts. No variable ~ts has been defined before the current pattern",
+  io_lib:format(Message, [Name, elixir_utils:var_info(Name, Kind)]);
 format_error(underscore_in_cond) ->
   "invalid use of _ inside \"cond\". If you want the last clause to always match, "
     "you probably meant to use: true ->";
@@ -1242,15 +1205,15 @@ format_error({options_are_not_keyword, Kind, Opts}) ->
 format_error({undefined_function, Name, Args}) ->
   io_lib:format("undefined function ~ts/~B (there is no such import)", [Name, length(Args)]);
 format_error({unpinned_bitsize_var, Name, Kind}) ->
-  io_lib:format("the variable \"~ts\"~ts is accessed inside size(...) of a bitstring "
+  io_lib:format("the variable ~ts is accessed inside size(...) of a bitstring "
                 "but it was defined outside of the match. You must precede it with the "
-                "pin operator", [Name, context_info(Kind)]);
+                "pin operator", [elixir_utils:var_info(Name, Kind)]);
 format_error({underscored_var_repeat, Name, Kind}) ->
-  io_lib:format("the underscored variable \"~ts\"~ts appears more than once in a "
+  io_lib:format("the underscored variable ~ts appears more than once in a "
                 "match. This means the pattern will only match if all \"~ts\" bind "
                 "to the same value. If this is the intended behaviour, please "
                 "remove the leading underscore from the variable name, otherwise "
-                "give the variables different names", [Name, context_info(Kind), Name]);
+                "give the variables different names", [elixir_utils:var_info(Name, Kind), Name]);
 format_error({underscored_var_access, Name}) ->
   io_lib:format("the underscored variable \"~ts\" is used after being set. "
                 "A leading underscore indicates that the value of the variable "
@@ -1282,8 +1245,4 @@ format_error({parens_map_lookup, Map, Field, Context}) ->
 format_error({super_in_genserver, {Name, Arity}}) ->
   io_lib:format("calling super for GenServer callback ~ts/~B is deprecated", [Name, Arity]);
 format_error('__cursor__') ->
-  "reserved special form __cursor__ cannot be expanded, it is used exclusively to annotate ASTs";
-format_error({parallel_bitstring_match, Expr}) ->
-  Message =
-    "binary patterns cannot be matched in parallel using \"=\", excess pattern: ~ts",
-  io_lib:format(Message, ['Elixir.Macro':to_string(Expr)]).
+  "reserved special form __cursor__ cannot be expanded, it is used exclusively to annotate ASTs".

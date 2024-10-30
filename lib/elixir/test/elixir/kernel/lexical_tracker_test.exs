@@ -411,7 +411,7 @@ defmodule Kernel.LexicalTrackerTest do
       assert URI in runtime
     end
 
-    test "Macro.struct! adds an export dependency" do
+    test "Macro.struct_info! adds an export dependency" do
       {{compile, exports, runtime, _}, _binding} =
         Code.eval_string("""
         defmodule Kernel.LexicalTrackerTest.MacroStruct do
@@ -420,7 +420,7 @@ defmodule Kernel.LexicalTrackerTest do
           # mechanism to make this expansion become a compile-time one.
           # However, in some cases, such as typespecs, we don't necessarily
           # want the compile-time dependency to happen.
-          Macro.struct!(:"Elixir.URI", __ENV__)
+          Macro.struct_info!(:"Elixir.URI", __ENV__)
           Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
         end |> elem(3)
         """)

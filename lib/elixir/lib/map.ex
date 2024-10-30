@@ -1011,9 +1011,8 @@ defmodule Map do
   @doc """
   Converts a `struct` to map.
 
-  It accepts the struct module or a struct itself and
-  simply removes the `__struct__` field from the given struct
-  or from a new struct generated from the given module.
+  It accepts a struct and simply removes the `__struct__` field
+  from the given struct.
 
   ## Example
 
@@ -1021,15 +1020,13 @@ defmodule Map do
         defstruct [:name]
       end
 
-      Map.from_struct(User)
-      #=> %{name: nil}
-
       Map.from_struct(%User{name: "john"})
       #=> %{name: "john"}
 
   """
   @spec from_struct(atom | struct) :: map
   def from_struct(struct) when is_atom(struct) do
+    IO.warn("Map.from_struct/1 with a module is deprecated, please pass a struct instead")
     delete(struct.__struct__(), :__struct__)
   end
 

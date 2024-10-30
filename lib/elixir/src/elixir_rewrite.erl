@@ -1,6 +1,7 @@
 -module(elixir_rewrite).
 -compile({inline, [inner_inline/4, inner_rewrite/5]}).
--export([erl_to_ex/3, inline/3, rewrite/5, match_rewrite/5, guard_rewrite/6, format_error/1]).
+-compile(nowarn_shadow_vars).
+-export([erl_to_ex/3, inline/3, rewrite/5, match/6, guard/6, format_error/1]).
 -include("elixir.hrl").
 
 %% Convenience variables
@@ -36,13 +37,13 @@
 -define(
   rewrite(ExMod, ExFun, ExArgs, ErlMod, ErlFun, ErlArgs),
   inner_rewrite(ex_to_erl, _Meta, ExMod, ExFun, ExArgs) -> {ErlMod, ErlFun, ErlArgs};
-  inner_rewrite(erl_to_ex, _Meta, ErlMod, ErlFun, ErlArgs) -> {ExMod, ExFun, ExArgs}
+  inner_rewrite(erl_to_ex, _Meta, ErlMod, ErlFun, ErlArgs) -> {ExMod, ExFun, ExArgs, fun(ErlArgs) -> ExArgs end}
 ).
 
 erl_to_ex(Mod, Fun, Args) ->
   case inner_inline(erl_to_ex, Mod, Fun, length(Args)) of
     false -> inner_rewrite(erl_to_ex, [], Mod, Fun, Args);
-    {ExMod, ExFun} -> {ExMod, ExFun, Args}
+    {ExMod, ExFun} -> {ExMod, ExFun, Args, fun identity/1}
   end.
 
 %% Inline  rules
@@ -198,6 +199,8 @@ inline(Mod, Fun, Arity) -> inner_inline(ex_to_erl, Mod, Fun, Arity).
 ?inline(?process, unregister, 1, erlang, unregister);
 
 ?inline(?string, duplicate, 2, binary, copy);
+?inline(?string, to_atom, 1, erlang, binary_to_atom);
+?inline(?string, to_existing_atom, 1, erlang, binary_to_existing_atom);
 ?inline(?string, to_float, 1, erlang, binary_to_float);
 ?inline(?string, to_integer, 1, erlang, binary_to_integer);
 ?inline(?string, to_integer, 2, erlang, binary_to_integer);
@@ -208,8 +211,6 @@ inline(Mod, Fun, Arity) -> inner_inline(ex_to_erl, Mod, Fun, Arity).
 ?inline(?system, time_offset, 0, erlang, time_offset);
 ?inline(?system, unique_integer, 0, erlang, unique_integer);
 ?inline(?system, unique_integer, 1, erlang, unique_integer);
-
-?inline(?tuple, append, 2, erlang, append_element);
 ?inline(?tuple, to_list, 1, erlang, tuple_to_list);
 
 % Defined without macro to avoid conflict with Bitwise named operators
@@ -237,6 +238,8 @@ rewrite(?string_chars, DotMeta, to_string, Meta, [Arg]) ->
     true -> Arg;
     false -> {{'.', DotMeta, [?string_chars, to_string]}, Meta, [Arg]}
   end;
+rewrite(erlang, _, '+', _, [Arg]) when is_number(Arg) -> +Arg;
+rewrite(erlang, _, '-', _, [Arg]) when is_number(Arg) -> -Arg;
 rewrite(Receiver, DotMeta, Right, Meta, Args) ->
   {EReceiver, ERight, EArgs} = inner_rewrite(ex_to_erl, DotMeta, Receiver, Right, Args),
   {{'.', DotMeta, [EReceiver, ERight]}, Meta, EArgs}.
@@ -256,8 +259,6 @@ rewrite(Receiver, DotMeta, Right, Meta, Args) ->
 ?rewrite(?process, monitor, [Arg, Opts], erlang, monitor, [process, Arg, Opts]);
 ?rewrite(?process, send_after, [Dest, Msg, Time], erlang, send_after, [Time, Dest, Msg]);
 ?rewrite(?process, send_after, [Dest, Msg, Time, Opts], erlang, send_after, [Time, Dest, Msg, Opts]);
-?rewrite(?string, to_atom, [Arg], erlang, binary_to_atom, [Arg, utf8]);
-?rewrite(?string, to_existing_atom, [Arg], erlang, binary_to_existing_atom, [Arg, utf8]);
 ?rewrite(?tuple, duplicate, [Data, Size], erlang, make_tuple, [Size, Data]);
 
 inner_rewrite(ex_to_erl, Meta, ?tuple, delete_at, [Tuple, Index]) ->
@@ -270,29 +271,32 @@ inner_rewrite(ex_to_erl, Meta, ?kernel, put_elem, [Tuple, Index, Value]) ->
   {erlang, setelement, [increment(Meta, Index), Tuple, Value]};
 
 inner_rewrite(erl_to_ex, _Meta, erlang, delete_element, [Index, Tuple]) when is_number(Index) ->
-  {?tuple, delete_at, [Tuple, Index - 1]};
+  {?tuple, delete_at, [Tuple, Index - 1], fun([Index, Tuple]) -> [Tuple, Index] end};
 inner_rewrite(erl_to_ex, _Meta, erlang, insert_element, [Index, Tuple, Term]) when is_number(Index) ->
-  {?tuple, insert_at, [Tuple, Index - 1, Term]};
+  {?tuple, insert_at, [Tuple, Index - 1, Term], fun([Index, Tuple, Term]) -> [Tuple, Index, Term] end};
 inner_rewrite(erl_to_ex, _Meta, erlang, element, [Index, Tuple]) when is_number(Index) ->
-  {?kernel, elem, [Tuple, Index - 1]};
-inner_rewrite(erl_to_ex, _Meta, erlang, setelement, [Index, Tuple, Value]) when is_number(Index) ->
-  {?kernel, put_elem, [Tuple, Index - 1, Value]};
+  {?kernel, elem, [Tuple, Index - 1], fun([Index, Tuple]) -> [Tuple, Index] end};
+inner_rewrite(erl_to_ex, _Meta, erlang, setelement, [Index, Tuple, Term]) when is_number(Index) ->
+  {?kernel, put_elem, [Tuple, Index - 1, Term], fun([Index, Tuple, Term]) -> [Tuple, Index, Term] end};
 
 inner_rewrite(erl_to_ex, _Meta, erlang, delete_element, [{{'.', _, [erlang, '+']}, _, [Index, 1]}, Tuple]) ->
-  {?tuple, delete_at, [Tuple, Index]};
+  {?tuple, delete_at, [Tuple, Index], fun([Index, Tuple]) -> [Tuple, Index] end};
 inner_rewrite(erl_to_ex, _Meta, erlang, insert_element, [{{'.', _, [erlang, '+']}, _, [Index, 1]}, Tuple, Term]) ->
-  {?tuple, insert_at, [Tuple, Index, Term]};
+  {?tuple, insert_at, [Tuple, Index, Term], fun([Index, Tuple, Term]) -> [Tuple, Index, Term] end};
 inner_rewrite(erl_to_ex, _Meta, erlang, element, [{{'.', _, [erlang, '+']}, _, [Index, 1]}, Tuple]) ->
-  {?kernel, elem, [Tuple, Index]};
-inner_rewrite(erl_to_ex, _Meta, erlang, setelement, [{{'.', _, [erlang, '+']}, _, [Index, 1]}, Tuple, Value]) ->
-  {?kernel, put_elem, [Tuple, Index, Value]};
+  {?kernel, elem, [Tuple, Index], fun([Index, Tuple]) -> [Tuple, Index] end};
+inner_rewrite(erl_to_ex, _Meta, erlang, setelement, [{{'.', _, [erlang, '+']}, _, [Index, 1]}, Tuple, Term]) ->
+  {?kernel, put_elem, [Tuple, Index, Term], fun([Index, Tuple, Term]) -> [Tuple, Index, Term] end};
 
 inner_rewrite(erl_to_ex, _Meta, erlang, 'orelse', [_, _] = Args) ->
-  {?kernel, 'or', Args};
+  {?kernel, 'or', Args, fun identity/1};
 inner_rewrite(erl_to_ex, _Meta, erlang, 'andalso', [_, _] = Args) ->
-  {?kernel, 'and', Args};
+  {?kernel, 'and', Args, fun identity/1};
 
-inner_rewrite(_To, _Meta, Mod, Fun, Args) -> {Mod, Fun, Args}.
+inner_rewrite(ex_to_erl, _Meta, Mod, Fun, Args) -> {Mod, Fun, Args};
+inner_rewrite(erl_to_ex, _Meta, Mod, Fun, Args) -> {Mod, Fun, Args, fun identity/1}.
+
+identity(Arg) -> Arg.
 
 increment(_Meta, Number) when is_number(Number) ->
   Number + 1;
@@ -306,11 +310,11 @@ increment(Meta, Other) ->
 %% The allowed operations are very limited.
 %% The Kernel operators are already inlined by now, we only need to
 %% care about Erlang ones.
-match_rewrite(erlang, _, '++', Meta, [Left, Right]) ->
+match(erlang, _, '++', Meta, [Left, Right], _S) ->
   try {ok, static_append(Left, Right, Meta)}
   catch impossible -> {error, {invalid_match_append, Left}}
   end;
-match_rewrite(Receiver, _, Right, _, Args) ->
+match(Receiver, _, Right, _, Args, _S) ->
   {error, {invalid_match, Receiver, Right, length(Args)}}.
 
 static_append([], Right, _Meta) -> Right;
@@ -326,14 +330,14 @@ static_append(_, _, _) -> throw(impossible).
 %% Guard rewrite is similar to regular rewrite, except
 %% it also verifies the resulting function is supported in
 %% guard context - only certain BIFs and operators are.
-guard_rewrite(Receiver, DotMeta, Right, Meta, Args, Context) ->
+guard(Receiver, DotMeta, Right, Meta, Args, S) ->
   case inner_rewrite(ex_to_erl, DotMeta, Receiver, Right, Args) of
     {erlang, RRight, RArgs} ->
       case allowed_guard(RRight, length(RArgs)) of
         true -> {ok, {{'.', DotMeta, [erlang, RRight]}, Meta, RArgs}};
-        false -> {error, {invalid_guard, Receiver, Right, length(Args), Context}}
+        false -> {error, {invalid_guard, Receiver, Right, length(Args), elixir_utils:guard_info(S)}}
       end;
-    _ -> {error, {invalid_guard, Receiver, Right, length(Args), Context}}
+    _ -> {error, {invalid_guard, Receiver, Right, length(Args), elixir_utils:guard_info(S)}}
   end.
 
 %% erlang:is_record/2-3 are compiler guards in Erlang which we

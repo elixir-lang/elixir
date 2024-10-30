@@ -610,6 +610,65 @@ defmodule Registry do
   end
 
   @doc """
+  Out-of-band locking of the given `lock_key` for the duration of `function`.
+
+  Only one function can execute under the same `lock_key` at a given
+  time. The given function always runs in the caller process.
+
+  The `lock_key` has its own namespace and therefore does not clash or
+  overlap with the regular registry keys. In other words, locking works
+  out-of-band from the regular Registry operations. See the "Use cases"
+  section below.
+
+  Locking behaves the same regardless of the registry type.
+
+  ## Use cases
+
+  The Registry is safe and concurrent out-of-the-box. You are not required
+  to use this function when interacting with the Registry. Furthermore,
+  `Registry` with `:unique` keys can already act as a process-lock for any
+  given key. For example, you can ensure only one process runs at a given
+  time for a given `:key` by doing:
+
+      name = {:via, Registry, {MyApp.Registry, :key, :value}}
+
+      # Do not attempt to start if we are already running
+      if pid = GenServer.whereis(name) do
+        pid
+      else
+        case GenServer.start_link(__MODULE__, :ok, name: name) do
+          {:ok, pid} -> pid
+          {:error, {:already_started, pid}} -> pid
+        end
+      end
+
+  Process locking gives you plenty of flexibility and fault isolation and
+  is enough for most cases.
+
+  This function is useful only when spawning processes is not an option,
+  for example, when copying the data to another process could be too
+  expensive. Or when the work must be done within the current process
+  for other reasons. In such cases, this function provides a scalable
+  mechanism for managing locks on top of the registry's infrastructure.
+
+  ## Examples
+
+      iex> Registry.start_link(keys: :unique, name: Registry.LockTest)
+      iex> Registry.lock(Registry.LockTest, :hello, fn -> :ok end)
+      :ok
+      iex> Registry.lock(Registry.LockTest, :world, fn -> self() end)
+      self()
+
+  """
+  @doc since: "1.18.0"
+  def lock(registry, lock_key, function)
+      when is_atom(registry) and is_function(function, 0) do
+    {_kind, partitions, _, pid_ets, _} = info!(registry)
+    {pid_server, _pid_ets} = pid_ets || pid_ets!(registry, lock_key, partitions)
+    Registry.Partition.lock(pid_server, lock_key, function)
+  end
+
+  @doc """
   Returns `{pid, value}` pairs under the given `key` in `registry` that match `pattern`.
 
   Pattern must be an atom or a tuple that will match the structure of the
@@ -1500,7 +1559,7 @@ defmodule Registry.Partition do
   @moduledoc false
 
   # This process owns the equivalent key and pid ETS tables
-  # and is responsible for monitoring processes that map to
+  # and is responsible for linking to processes that map to
   # its own pid table.
   use GenServer
   @all_info -1
@@ -1525,11 +1584,23 @@ defmodule Registry.Partition do
   @doc """
   Starts the registry partition.
 
-  The process is only responsible for monitoring, demonitoring
-  and cleaning up when monitored processes crash.
+  The process is only responsible for linking and cleaning up when processes crash.
   """
   def start_link(registry, arg) do
     GenServer.start_link(__MODULE__, arg, name: registry)
+  end
+
+  @doc """
+  Runs function with a lock.
+  """
+  def lock(pid, key, lock) do
+    ref = GenServer.call(pid, {:lock, key})
+
+    try do
+      lock.()
+    after
+      send(pid, {:unlock, key, ref})
+    end
   end
 
   ## Callbacks
@@ -1552,7 +1623,7 @@ defmodule Registry.Partition do
       true = :ets.insert(registry, {i, key_ets, {self(), pid_ets}})
     end
 
-    {:ok, pid_ets}
+    {:ok, {pid_ets, %{}}}
   end
 
   # The key partition is a set for unique keys,
@@ -1586,7 +1657,21 @@ defmodule Registry.Partition do
     {:reply, :ok, state}
   end
 
-  def handle_info({:EXIT, pid, _reason}, ets) do
+  def handle_call({:lock, key}, from, {ets, lock}) do
+    lock =
+      case lock do
+        %{^key => queue} ->
+          Map.put(lock, key, :queue.in(from, queue))
+
+        %{} ->
+          go(from, key)
+          Map.put(lock, key, :queue.new())
+      end
+
+    {:noreply, {ets, lock}}
+  end
+
+  def handle_info({:EXIT, pid, _reason}, {ets, lock}) do
     entries = :ets.take(ets, pid)
 
     for {_pid, key, key_ets, _counter} <- entries do
@@ -1607,6 +1692,47 @@ defmodule Registry.Partition do
       end
     end
 
-    {:noreply, ets}
+    {:noreply, {ets, lock}}
+  end
+
+  def handle_info({{:unlock, key}, _ref, :process, _pid, _reason}, state) do
+    unlock(key, state)
+  end
+
+  def handle_info({:unlock, key, ref}, state) do
+    Process.demonitor(ref, [:flush])
+    unlock(key, state)
+  end
+
+  defp unlock(key, {ets, lock}) do
+    %{^key => queue} = lock
+
+    lock =
+      case dequeue(queue, key) do
+        :empty -> Map.delete(lock, key)
+        {:not_empty, queue} -> Map.put(lock, key, queue)
+      end
+
+    {:noreply, {ets, lock}}
+  end
+
+  defp dequeue(queue, key) do
+    case :queue.out(queue) do
+      {:empty, _} ->
+        :empty
+
+      {{:value, {pid, _tag} = from}, queue} ->
+        if node(pid) != node() or Process.alive?(pid) do
+          go(from, key)
+          {:not_empty, queue}
+        else
+          dequeue(queue, key)
+        end
+    end
+  end
+
+  defp go({pid, _tag} = from, key) do
+    ref = Process.monitor(pid, tag: {:unlock, key})
+    GenServer.reply(from, ref)
   end
 end

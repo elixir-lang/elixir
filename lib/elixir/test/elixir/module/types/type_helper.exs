@@ -9,11 +9,31 @@ defmodule TypeHelper do
   alias Module.Types.{Pattern, Expr, Descr}
 
   @doc """
+  Main helper for inferring the given pattern + guards.
+  """
+  defmacro typeinfer!(patterns \\ [], guards \\ true) do
+    quote do
+      unquote(typeinfer(patterns, guards, __CALLER__))
+      |> TypeHelper.__typecheck__!()
+    end
+  end
+
+  @doc """
   Main helper for checking the given AST type checks without warnings.
   """
-  defmacro typecheck!(patterns \\ [], guards \\ [], body) do
+  defmacro typedyn!(patterns \\ [], guards \\ true, body) do
     quote do
-      unquote(typecheck(patterns, guards, body, __CALLER__))
+      unquote(typecheck(:dynamic, patterns, guards, body, __CALLER__))
+      |> TypeHelper.__typecheck__!()
+    end
+  end
+
+  @doc """
+  Main helper for checking the given AST type checks without warnings.
+  """
+  defmacro typecheck!(patterns \\ [], guards \\ true, body) do
+    quote do
+      unquote(typecheck(:static, patterns, guards, body, __CALLER__))
       |> TypeHelper.__typecheck__!()
     end
   end
@@ -21,9 +41,11 @@ defmodule TypeHelper do
   @doc """
   Main helper for checking the given AST type checks errors.
   """
-  defmacro typeerror!(patterns \\ [], guards \\ [], body) do
+  defmacro typeerror!(patterns \\ [], guards \\ true, body) do
+    [patterns, guards, body] = prune_columns([patterns, guards, body])
+
     quote do
-      unquote(typecheck(patterns, guards, body, __CALLER__))
+      unquote(typecheck(:static, patterns, guards, body, __CALLER__))
       |> TypeHelper.__typeerror__!()
     end
   end
@@ -31,9 +53,11 @@ defmodule TypeHelper do
   @doc """
   Main helper for checking the given AST type warns.
   """
-  defmacro typewarn!(patterns \\ [], guards \\ [], body) do
+  defmacro typewarn!(patterns \\ [], guards \\ true, body) do
+    [patterns, guards, body] = prune_columns([patterns, guards, body])
+
     quote do
-      unquote(typecheck(patterns, guards, body, __CALLER__))
+      unquote(typecheck(:static, patterns, guards, body, __CALLER__))
       |> TypeHelper.__typewarn__!()
     end
   end
@@ -41,62 +65,76 @@ defmodule TypeHelper do
   @doc """
   Main helper for checking the diagnostic of a given AST.
   """
-  defmacro typediag!(patterns \\ [], guards \\ [], body) do
+  defmacro typediag!(patterns \\ [], guards \\ true, body) do
     quote do
-      unquote(typecheck(patterns, guards, body, __CALLER__))
+      unquote(typecheck(:static, patterns, guards, body, __CALLER__))
       |> TypeHelper.__typediag__!()
     end
   end
 
   @doc false
-  def __typecheck__!({:ok, type, %{warnings: []}}), do: type
+  def __typecheck__!({type, %{warnings: []}}), do: type
 
-  def __typecheck__!({:ok, _type, %{warnings: warnings}}),
+  def __typecheck__!({_type, %{warnings: warnings, failed: false}}),
     do: raise("type checking ok but with warnings: #{inspect(warnings)}")
 
-  def __typecheck__!({:error, %{warnings: warnings}}),
+  def __typecheck__!({_type, %{warnings: warnings, failed: true}}),
     do: raise("type checking errored with warnings: #{inspect(warnings)}")
 
   @doc false
-  def __typeerror__!({:error, %{warnings: [{module, warning, _locs} | _]}}),
+  def __typeerror__!({_type, %{warnings: [{module, warning, _locs} | _], failed: true}}),
     do: module.format_diagnostic(warning).message
 
-  def __typeerror__!({:ok, type, _context}),
+  def __typeerror__!({_type, %{warnings: warnings, failed: false}}),
+    do: raise("type checking with warnings but expected error: #{inspect(warnings)}")
+
+  def __typeerror__!({type, _}),
     do: raise("type checking ok but expected error: #{Descr.to_quoted_string(type)}")
 
   @doc false
-  def __typediag__!({:ok, type, %{warnings: [{module, warning, _locs}]}}),
+  def __typediag__!({type, %{warnings: [{module, warning, _locs}]}}),
     do: {type, module.format_diagnostic(warning)}
 
-  def __typediag__!({:ok, type, %{warnings: []}}),
-    do: raise("type checking ok without warnings: #{Descr.to_quoted_string(type)}")
+  def __typediag__!({type, %{warnings: []}}),
+    do: raise("type checking without warnings/errors: #{Descr.to_quoted_string(type)}")
 
-  def __typediag__!({:ok, _type, %{warnings: warnings}}),
-    do: raise("type checking ok but many warnings: #{inspect(warnings)}")
-
-  def __typediag__!({:error, %{warnings: warnings}}),
-    do: raise("type checking errored with warnings: #{inspect(warnings)}")
+  def __typediag__!({_type, %{warnings: warnings}}),
+    do: raise("type checking with too many warnings/errors: #{inspect(warnings)}")
 
   @doc false
-  def __typewarn__!(result) do
-    {type, %{message: message}} = __typediag__!(result)
-    {type, message}
+  def __typewarn__!({type, %{warnings: [{module, warning, _locs}], failed: false}}),
+    do: {type, module.format_diagnostic(warning).message}
+
+  def __typewarn__!({type, %{warnings: []}}),
+    do: raise("type checking ok without warnings: #{Descr.to_quoted_string(type)}")
+
+  def __typewarn__!({_type, %{warnings: warnings, failed: false}}),
+    do: raise("type checking ok but many warnings: #{inspect(warnings)}")
+
+  def __typewarn__!({_type, %{warnings: warnings, failed: true}}),
+    do: raise("type checking errored with warnings: #{inspect(warnings)}")
+
+  defp typeinfer(patterns, guards, env) do
+    {patterns, guards, :ok} = expand_and_unpack(patterns, guards, :ok, env)
+
+    quote do
+      TypeHelper.__typeinfer__(
+        unquote(Macro.escape(patterns)),
+        unquote(Macro.escape(guards))
+      )
+    end
   end
 
-  @doc """
-  Building block for typechecking a given AST.
-  """
-  def typecheck(patterns, guards, body, env) do
-    fun =
-      quote do
-        fn unquote(patterns) when unquote(guards) -> unquote(body) end
-      end
+  def __typeinfer__(patterns, guards) do
+    Pattern.of_head(patterns, guards, [], new_stack(:infer), new_context())
+  end
 
-    {ast, _, _} = :elixir_expand.expand(fun, :elixir_env.env_to_ex(env), env)
-    {:fn, _, [{:->, _, [[{:when, _, [patterns, guards]}], body]}]} = ast
+  defp typecheck(mode, patterns, guards, body, env) do
+    {patterns, guards, body} = expand_and_unpack(patterns, guards, body, env)
 
     quote do
       TypeHelper.__typecheck__(
+        unquote(mode),
         unquote(Macro.escape(patterns)),
         unquote(Macro.escape(guards)),
         unquote(Macro.escape(body))
@@ -104,17 +142,27 @@ defmodule TypeHelper do
     end
   end
 
-  def __typecheck__(patterns, guards, body) do
-    stack = new_stack()
-
-    with {:ok, _types, context} <- Pattern.of_head(patterns, guards, [], stack, new_context()),
-         {:ok, type, context} <- Expr.of_expr(body, stack, context) do
-      {:ok, type, context}
-    end
+  def __typecheck__(mode, patterns, guards, body) do
+    stack = new_stack(mode)
+    {_types, context} = Pattern.of_head(patterns, guards, [], stack, new_context())
+    Expr.of_expr(body, stack, context)
   end
 
-  defp new_stack() do
-    Types.stack("types_test.ex", TypesTest, {:test, 0}, [], Module.ParallelChecker.test_cache())
+  defp expand_and_unpack(patterns, guards, body, env) do
+    fun =
+      quote do
+        fn unquote_splicing(patterns) when unquote(guards) -> unquote(body) end
+      end
+
+    {ast, _, _} = :elixir_expand.expand(fun, :elixir_env.env_to_ex(env), env)
+    {:fn, _, [{:->, _, [[{:when, _, args}], body]}]} = ast
+    {patterns, guards} = Enum.split(args, -1)
+    {patterns, guards, body}
+  end
+
+  defp new_stack(mode) do
+    cache = Module.ParallelChecker.test_cache()
+    Types.stack(mode, "types_test.ex", TypesTest, {:test, 0}, [], cache)
   end
 
   defp new_context() do
@@ -150,6 +198,15 @@ defmodule TypeHelper do
     {:<<>>, meta, parts}
   end
 
+  @strip_ansi [IO.ANSI.green(), IO.ANSI.red(), IO.ANSI.reset()]
+
+  @doc """
+  Strip ansi escapes from message.
+  """
+  def strip_ansi(doc) do
+    String.replace(doc, @strip_ansi, "")
+  end
+
   defp replace_line(string, line) do
     [head | rest] = String.split(string, "LINE")
 
@@ -165,5 +222,11 @@ defmodule TypeHelper do
       end
 
     IO.iodata_to_binary([head | rest])
+  end
+
+  defp prune_columns(ast) do
+    Macro.prewalk(ast, fn node ->
+      Macro.update_meta(node, &Keyword.delete(&1, :column))
+    end)
   end
 end

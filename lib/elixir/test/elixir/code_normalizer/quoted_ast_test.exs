@@ -172,6 +172,20 @@ defmodule Code.Normalizer.QuotedASTTest do
              ) == ~s[~S"""\n"123"\n"""]
     end
 
+    test "regression: invalid sigil calls" do
+      assert quoted_to_string(quote do: sigil_r(<<"foo", 123>>, [])) ==
+               "sigil_r(<<\"foo\", 123>>, [])"
+
+      assert quoted_to_string(quote do: sigil_r(<<"foo">>, :invalid_modifiers)) ==
+               "sigil_r(\"foo\", :invalid_modifiers)"
+
+      assert quoted_to_string(quote do: sigil_r(<<"foo">>, [:invalid_modifier])) ==
+               "sigil_r(\"foo\", [:invalid_modifier])"
+
+      assert quoted_to_string(quote do: sigil_r(<<"foo">>, [])) == "~r\"foo\""
+      assert quoted_to_string(quote do: sigil_r(<<"foo">>, [?a, ?b, ?c])) == "~r\"foo\"abc"
+    end
+
     test "tuple" do
       assert quoted_to_string(quote do: {1, 2}) == "{1, 2}"
       assert quoted_to_string(quote do: {1}) == "{1}"
@@ -613,6 +627,36 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(quote(do: foo(else: a))) == "foo(else: a)"
       assert quoted_to_string(quote(do: foo(catch: a))) == "foo(catch: a)"
       assert quoted_to_string(quote(do: foo |> [bar: :baz])) == "foo |> [bar: :baz]"
+    end
+
+    test "keyword arg with cursor" do
+      input = "def foo, do: :bar, __cursor__()"
+      expected = "def foo, [{:do, :bar}, __cursor__()]"
+
+      ast = Code.string_to_quoted!(input)
+      assert quoted_to_string(ast) == expected
+
+      encoder = &{:ok, {:__block__, &2, [&1]}}
+      ast = Code.string_to_quoted!(input, literal_encoder: encoder)
+      assert quoted_to_string(ast) == expected
+
+      ast = Code.string_to_quoted!(input, token_metadata: true)
+      assert quoted_to_string(ast) == expected
+
+      ast = Code.string_to_quoted!(input, literal_encoder: encoder, token_metadata: true)
+      assert quoted_to_string(ast) == expected
+    end
+
+    test "keyword arg with literal encoder and no metadata" do
+      input = """
+      foo(Bar) do
+        :ok
+      end
+      """
+
+      encoder = &{:ok, {:__block__, &2, [&1]}}
+      ast = Code.string_to_quoted!(input, literal_encoder: encoder)
+      assert quoted_to_string(ast) == "foo(Bar, do: :ok)"
     end
 
     test "list in module attribute" do
