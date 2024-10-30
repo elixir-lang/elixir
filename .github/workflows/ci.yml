@@ -30,13 +30,20 @@ jobs:
             deterministic: true
           - otp_version: "27.1"
             otp_latest: true
+            erlc_opts: "warnings_as_errors"
           - otp_version: "27.0"
+            erlc_opts: "warnings_as_errors"
           - otp_version: "26.0"
           - otp_version: master
             development: true
           - otp_version: maint
             development: true
     runs-on: ubuntu-24.04
+    # Earlier Erlang/OTP versions ignored compiler directives
+    # when using warnings_as_errors. So we only set ERLC_OPTS
+    # from Erlang/OTP 27+.
+    env:
+      ERLC_OPTS: ${{ matrix.erlc_opts || '' }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
