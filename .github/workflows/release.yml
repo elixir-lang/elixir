@@ -10,7 +10,6 @@ on:
 
 env:
   ELIXIR_OPTS: "--warnings-as-errors"
-  ERLC_OPTS: "warnings_as_errors"
   LANG: C.UTF-8
 
 permissions:
@@ -85,7 +84,7 @@ jobs:
         uses: actions/attest-build-provenance@v1
         id: attest-exe-provenance
         with:
-          subject-path: 'elixir-otp-${{ matrix.otp }}.exe'
+          subject-path: "elixir-otp-${{ matrix.otp }}.exe"
       - name: "Copy release .exe provenance"
         run: cp "$ATTESTATION" elixir-otp-${{ matrix.otp }}.exe.sigstore
         env:
@@ -95,7 +94,7 @@ jobs:
         uses: actions/attest-build-provenance@v1
         id: attest-zip-provenance
         with:
-          subject-path: 'elixir-otp-${{ matrix.otp }}.zip'
+          subject-path: "elixir-otp-${{ matrix.otp }}.zip"
       - name: "Copy release .zip provenance"
         run: cp "$ATTESTATION" elixir-otp-${{ matrix.otp }}.zip.sigstore
         env:
@@ -106,7 +105,7 @@ jobs:
         id: attest-docs-provenance
         if: ${{ matrix.build_docs }}
         with:
-          subject-path: 'Docs.zip'
+          subject-path: "Docs.zip"
       - name: "Copy docs provenance"
         if: ${{ matrix.build_docs }}
         run: cp "$ATTESTATION" Docs.zip.sigstore
@@ -191,7 +190,7 @@ jobs:
       FASTLY_REPO_SERVICE_ID: ${{ secrets.HEX_FASTLY_REPO_SERVICE_ID }}
       FASTLY_BUILDS_SERVICE_ID: ${{ secrets.HEX_FASTLY_BUILDS_SERVICE_ID }}
       FASTLY_KEY: ${{ secrets.HEX_FASTLY_KEY }}
-      OTP_GENERIC_VERSION: '25'
+      OTP_GENERIC_VERSION: "25"
     steps:
       - uses: actions/download-artifact@v4
 
