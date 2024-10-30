@@ -931,21 +931,23 @@ defmodule Module.Types.Of do
     traces = collect_traces(expr, context)
     {{:., _, [mod, fun]}, _, args} = expr
 
+    {mod, fun, args, converter} = :elixir_rewrite.erl_to_ex(mod, fun, args)
+
     %{
       details: %{typing_traces: traces},
       message:
         IO.iodata_to_binary([
           """
-          incompatible types given to #{format_mfa(mod, fun, args)}:
+          incompatible types given to #{Exception.format_mfa(mod, fun, length(args))}:
 
               #{expr_to_string(expr) |> indent(4)}
 
           given types:
 
-              #{args_to_quoted_string(mod, fun, args_types, domain) |> indent(4)}
+              #{args_to_quoted_string(args_types, domain, converter) |> indent(4)}
 
           but expected one of:
-          #{clauses_args_to_quoted_string(mod, fun, clauses)}
+          #{clauses_args_to_quoted_string(clauses, converter)}
           """,
           format_traces(traces)
         ])
@@ -1082,11 +1084,7 @@ defmodule Module.Types.Of do
   end
 
   defp format_mfa({{:., _, [mod, fun]}, _, args}) do
-    format_mfa(mod, fun, args)
-  end
-
-  defp format_mfa(mod, fun, args) do
-    {mod, fun, args} = :elixir_rewrite.erl_to_ex(mod, fun, args)
+    {mod, fun, args, _} = :elixir_rewrite.erl_to_ex(mod, fun, args)
     Exception.format_mfa(mod, fun, length(args))
   end
 
@@ -1094,29 +1092,29 @@ defmodule Module.Types.Of do
 
   alias Inspect.Algebra, as: IA
 
-  defp clauses_args_to_quoted_string(mod, fun, [{args, _return}]) do
-    "\n    " <> (clause_args_to_quoted_string(mod, fun, args) |> indent(4))
+  defp clauses_args_to_quoted_string([{args, _return}], converter) do
+    "\n    " <> (clause_args_to_quoted_string(args, converter) |> indent(4))
   end
 
-  defp clauses_args_to_quoted_string(mod, fun, clauses) do
+  defp clauses_args_to_quoted_string(clauses, converter) do
     clauses
     |> Enum.with_index(fn {args, _return}, index ->
       """
 
       ##{index + 1}
-      #{clause_args_to_quoted_string(mod, fun, args)}\
+      #{clause_args_to_quoted_string(args, converter)}\
       """
       |> indent(4)
     end)
     |> Enum.join("\n")
   end
 
-  defp clause_args_to_quoted_string(mod, fun, args) do
+  defp clause_args_to_quoted_string(args, converter) do
     docs = Enum.map(args, &(&1 |> to_quoted() |> Code.Formatter.to_algebra()))
-    args_docs_to_quoted_string(mod, fun, docs)
+    args_docs_to_quoted_string(converter.(docs))
   end
 
-  defp args_to_quoted_string(mod, fun, args_types, domain) do
+  defp args_to_quoted_string(args_types, domain, converter) do
     ansi? = IO.ANSI.enabled?()
 
     docs =
@@ -1130,11 +1128,10 @@ defmodule Module.Types.Of do
         end
       end)
 
-    args_docs_to_quoted_string(mod, fun, docs)
+    args_docs_to_quoted_string(converter.(docs))
   end
 
-  defp args_docs_to_quoted_string(mod, fun, docs) do
-    {_mod, _fun, docs} = :elixir_rewrite.erl_to_ex(mod, fun, docs)
+  defp args_docs_to_quoted_string(docs) do
     doc = IA.fold(docs, fn doc, acc -> IA.glue(IA.concat(doc, ","), acc) end)
 
     wrapped_docs =

@@ -1,5 +1,6 @@
 -module(elixir_rewrite).
 -compile({inline, [inner_inline/4, inner_rewrite/5]}).
+-compile(nowarn_shadow_vars).
 -export([erl_to_ex/3, inline/3, rewrite/5, match/6, guard/6, format_error/1]).
 -include("elixir.hrl").
 
@@ -36,13 +37,13 @@
 -define(
   rewrite(ExMod, ExFun, ExArgs, ErlMod, ErlFun, ErlArgs),
   inner_rewrite(ex_to_erl, _Meta, ExMod, ExFun, ExArgs) -> {ErlMod, ErlFun, ErlArgs};
-  inner_rewrite(erl_to_ex, _Meta, ErlMod, ErlFun, ErlArgs) -> {ExMod, ExFun, ExArgs}
+  inner_rewrite(erl_to_ex, _Meta, ErlMod, ErlFun, ErlArgs) -> {ExMod, ExFun, ExArgs, fun(ErlArgs) -> ExArgs end}
 ).
 
 erl_to_ex(Mod, Fun, Args) ->
   case inner_inline(erl_to_ex, Mod, Fun, length(Args)) of
     false -> inner_rewrite(erl_to_ex, [], Mod, Fun, Args);
-    {ExMod, ExFun} -> {ExMod, ExFun, Args}
+    {ExMod, ExFun} -> {ExMod, ExFun, Args, fun identity/1}
   end.
 
 %% Inline  rules
@@ -270,29 +271,32 @@ inner_rewrite(ex_to_erl, Meta, ?kernel, put_elem, [Tuple, Index, Value]) ->
   {erlang, setelement, [increment(Meta, Index), Tuple, Value]};
 
 inner_rewrite(erl_to_ex, _Meta, erlang, delete_element, [Index, Tuple]) when is_number(Index) ->
-  {?tuple, delete_at, [Tuple, Index - 1]};
+  {?tuple, delete_at, [Tuple, Index - 1], fun([Index, Tuple]) -> [Tuple, Index] end};
 inner_rewrite(erl_to_ex, _Meta, erlang, insert_element, [Index, Tuple, Term]) when is_number(Index) ->
-  {?tuple, insert_at, [Tuple, Index - 1, Term]};
+  {?tuple, insert_at, [Tuple, Index - 1, Term], fun([Index, Tuple, Term]) -> [Tuple, Index, Term] end};
 inner_rewrite(erl_to_ex, _Meta, erlang, element, [Index, Tuple]) when is_number(Index) ->
-  {?kernel, elem, [Tuple, Index - 1]};
-inner_rewrite(erl_to_ex, _Meta, erlang, setelement, [Index, Tuple, Value]) when is_number(Index) ->
-  {?kernel, put_elem, [Tuple, Index - 1, Value]};
+  {?kernel, elem, [Tuple, Index - 1], fun([Index, Tuple]) -> [Tuple, Index] end};
+inner_rewrite(erl_to_ex, _Meta, erlang, setelement, [Index, Tuple, Term]) when is_number(Index) ->
+  {?kernel, put_elem, [Tuple, Index - 1, Term], fun([Index, Tuple, Term]) -> [Tuple, Index, Term] end};
 
 inner_rewrite(erl_to_ex, _Meta, erlang, delete_element, [{{'.', _, [erlang, '+']}, _, [Index, 1]}, Tuple]) ->
-  {?tuple, delete_at, [Tuple, Index]};
+  {?tuple, delete_at, [Tuple, Index], fun([Index, Tuple]) -> [Tuple, Index] end};
 inner_rewrite(erl_to_ex, _Meta, erlang, insert_element, [{{'.', _, [erlang, '+']}, _, [Index, 1]}, Tuple, Term]) ->
-  {?tuple, insert_at, [Tuple, Index, Term]};
+  {?tuple, insert_at, [Tuple, Index, Term], fun([Index, Tuple, Term]) -> [Tuple, Index, Term] end};
 inner_rewrite(erl_to_ex, _Meta, erlang, element, [{{'.', _, [erlang, '+']}, _, [Index, 1]}, Tuple]) ->
-  {?kernel, elem, [Tuple, Index]};
-inner_rewrite(erl_to_ex, _Meta, erlang, setelement, [{{'.', _, [erlang, '+']}, _, [Index, 1]}, Tuple, Value]) ->
-  {?kernel, put_elem, [Tuple, Index, Value]};
+  {?kernel, elem, [Tuple, Index], fun([Index, Tuple]) -> [Tuple, Index] end};
+inner_rewrite(erl_to_ex, _Meta, erlang, setelement, [{{'.', _, [erlang, '+']}, _, [Index, 1]}, Tuple, Term]) ->
+  {?kernel, put_elem, [Tuple, Index, Term], fun([Index, Tuple, Term]) -> [Tuple, Index, Term] end};
 
 inner_rewrite(erl_to_ex, _Meta, erlang, 'orelse', [_, _] = Args) ->
-  {?kernel, 'or', Args};
+  {?kernel, 'or', Args, fun identity/1};
 inner_rewrite(erl_to_ex, _Meta, erlang, 'andalso', [_, _] = Args) ->
-  {?kernel, 'and', Args};
+  {?kernel, 'and', Args, fun identity/1};
 
-inner_rewrite(_To, _Meta, Mod, Fun, Args) -> {Mod, Fun, Args}.
+inner_rewrite(ex_to_erl, _Meta, Mod, Fun, Args) -> {Mod, Fun, Args};
+inner_rewrite(erl_to_ex, _Meta, Mod, Fun, Args) -> {Mod, Fun, Args, fun identity/1}.
+
+identity(Arg) -> Arg.
 
 increment(_Meta, Number) when is_number(Number) ->
   Number + 1;

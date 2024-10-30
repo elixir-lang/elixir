@@ -317,7 +317,7 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([x], elem({:ok, x}, 0)) == dynamic(atom([:ok]))
       assert typecheck!([x], elem({:ok, x}, 1)) == dynamic(term())
 
-      assert typeerror!([<<x::integer>>], elem(x, 0)) |> strip_ansi() ==
+      assert typeerror!([<<x::float>>], elem(x, 0)) |> strip_ansi() ==
                ~l"""
                incompatible types given to Kernel.elem/2:
 
@@ -325,17 +325,17 @@ defmodule Module.Types.ExprTest do
 
                given types:
 
-                   integer(), integer()
+                   float(), integer()
 
                but expected one of:
 
-                   integer(), {...}
+                   {...}, integer()
 
                where "x" was given the type:
 
-                   # type: integer()
+                   # type: float()
                    # from: types_test.ex:LINE-1
-                   <<x::integer>>
+                   <<x::float>>
                """
 
       assert typeerror!(elem({:ok, 123}, 2)) ==
@@ -362,7 +362,7 @@ defmodule Module.Types.ExprTest do
       assert typecheck!(Tuple.insert_at({:ok, 123}, 2, "foo")) ==
                tuple([atom([:ok]), integer(), binary()])
 
-      assert typeerror!([<<x::integer>>], Tuple.insert_at(x, 0, "foo")) |> strip_ansi() ==
+      assert typeerror!([<<x::float>>], Tuple.insert_at(x, 0, "foo")) |> strip_ansi() ==
                ~l"""
                incompatible types given to Tuple.insert_at/3:
 
@@ -370,17 +370,17 @@ defmodule Module.Types.ExprTest do
 
                given types:
 
-                   integer(), integer(), binary()
+                   float(), integer(), binary()
 
                but expected one of:
 
-                   integer(), {...}, term()
+                   {...}, integer(), term()
 
                where "x" was given the type:
 
-                   # type: integer()
+                   # type: float()
                    # from: types_test.ex:LINE-1
-                   <<x::integer>>
+                   <<x::float>>
                """
 
       assert typeerror!(Tuple.insert_at({:ok, 123}, 3, "foo")) ==
@@ -401,7 +401,7 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([x], Tuple.delete_at({:ok, x}, 0)) == dynamic(tuple([term()]))
       assert typecheck!([x], Tuple.delete_at({:ok, x}, 1)) == dynamic(tuple([atom([:ok])]))
 
-      assert typeerror!([<<x::integer>>], Tuple.delete_at(x, 0)) |> strip_ansi() ==
+      assert typeerror!([<<x::float>>], Tuple.delete_at(x, 0)) |> strip_ansi() ==
                ~l"""
                incompatible types given to Tuple.delete_at/2:
 
@@ -409,17 +409,17 @@ defmodule Module.Types.ExprTest do
 
                given types:
 
-                   integer(), integer()
+                   float(), integer()
 
                but expected one of:
 
-                   integer(), {...}
+                   {...}, integer()
 
                where "x" was given the type:
 
-                   # type: integer()
+                   # type: float()
                    # from: types_test.ex:LINE-1
-                   <<x::integer>>
+                   <<x::float>>
                """
 
       assert typeerror!(Tuple.delete_at({:ok, 123}, 2)) ==

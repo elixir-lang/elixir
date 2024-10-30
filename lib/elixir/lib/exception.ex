@@ -407,8 +407,8 @@ defmodule Exception do
 
   defp erl_to_ex(mod, fun, args, meta) do
     case :elixir_rewrite.erl_to_ex(mod, fun, args) do
-      {Kernel, fun, args} -> {fun, meta, args}
-      {mod, fun, args} -> {{:., [], [mod, fun]}, meta, args}
+      {Kernel, fun, args, _} -> {fun, meta, args}
+      {mod, fun, args, _} -> {{:., [], [mod, fun]}, meta, args}
     end
   end
 
