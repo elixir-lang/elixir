@@ -39,12 +39,14 @@ debug_info(_, _, _, _) ->
 %% Builds Erlang AST annotation.
 
 get_ann(Opts) when is_list(Opts) ->
-  get_ann(Opts, false, 0).
+  get_ann(Opts, false, 0, undefined).
 
-get_ann([{generated, true} | T], _, Line) -> get_ann(T, true, Line);
-get_ann([{line, Line} | T], Gen, _) when is_integer(Line) -> get_ann(T, Gen, Line);
-get_ann([_ | T], Gen, Line) -> get_ann(T, Gen, Line);
-get_ann([], Gen, Line) -> erl_anno:set_generated(Gen, erl_anno:new(Line)).
+get_ann([{generated, true} | T], _, Line, Column) -> get_ann(T, true, Line, Column);
+get_ann([{line, Line} | T], Gen, _, Column) when is_integer(Line) -> get_ann(T, Gen, Line, Column);
+get_ann([{column, Column} | T], Gen, Line, _) when is_integer(Column) -> get_ann(T, Gen, Line, Column);
+get_ann([_ | T], Gen, Line, Column) -> get_ann(T, Gen, Line, Column);
+get_ann([], Gen, Line, undefined) -> erl_anno:set_generated(Gen, erl_anno:new(Line));
+get_ann([], Gen, Line, Column) -> erl_anno:set_generated(Gen, erl_anno:new({Line, Column})).
 
 %% Converts an Elixir definition to an anonymous function.
 
@@ -122,7 +124,7 @@ consolidate(Map, TypeSpecs, Chunks) ->
 
 %% Dynamic compilation hook, used in regular compiler
 
-compile(#{module := Module, line := Line} = Map) ->
+compile(#{module := Module, anno := Anno} = Map) ->
   {Set, Bag} = elixir_module:data_tables(Module),
 
   TranslatedTypespecs =
@@ -135,13 +137,14 @@ compile(#{module := Module, line := Line} = Map) ->
   {Prefix, Forms, Def, Defmacro, Macros} = dynamic_form(Map),
   {Types, Callbacks, TypeSpecs} = typespecs_form(Map, TranslatedTypespecs, Macros),
 
-  DocsChunk = docs_chunk(Set, Module, Line, Def, Defmacro, Types, Callbacks),
+  DocsChunk = docs_chunk(Map, Set, Module, Anno, Def, Defmacro, Types, Callbacks),
   CheckerChunk = checker_chunk(Def, Defmacro, Map),
   load_form(Map, Prefix, Forms, TypeSpecs, DocsChunk ++ CheckerChunk).
 
-dynamic_form(#{module := Module, line := Line, relative_file := RelativeFile,
+dynamic_form(#{module := Module, anno := Anno, relative_file := RelativeFile,
                attributes := Attributes, definitions := Definitions, unreachable := Unreachable,
                deprecated := Deprecated, compile_opts := Opts} = Map) ->
+  Line = erl_anno:line(Anno),
   {Def, Defmacro, Macros, Exports, Functions} =
     split_definition(Definitions, Unreachable, Line, [], [], [], [], {[], []}),
 
@@ -168,13 +171,14 @@ split_definition([{Tuple, Kind, Meta, Clauses} | T], Unreachable, Line,
     true ->
       split_definition(T, Unreachable, Line, Def, Defmacro, Macros, Exports, Functions)
   end;
+
 split_definition([], _Unreachable, _Line, Def, Defmacro, Macros, Exports, {Head, Tail}) ->
-  {lists:usort(Def), lists:usort(Defmacro), Macros, Exports, Head ++ Tail}.
+  {lists:sort(Def), lists:sort(Defmacro), Macros, Exports, Head ++ Tail}.
 
 split_definition(Tuple, def, Meta, Clauses, T, Unreachable, Line,
                  Def, Defmacro, Macros, Exports, Functions) ->
   {_, _, N, A, _} = Entry = translate_definition(def, Line, Meta, Tuple, Clauses),
-  split_definition(T, Unreachable, Line, [Tuple | Def], Defmacro, Macros, [{N, A} | Exports],
+  split_definition(T, Unreachable, Line, [{Tuple, Meta} | Def], Defmacro, Macros, [{N, A} | Exports],
                    add_definition(Meta, Entry, Functions));
 
 split_definition(Tuple, defp, Meta, Clauses, T, Unreachable, Line,
@@ -186,7 +190,7 @@ split_definition(Tuple, defp, Meta, Clauses, T, Unreachable, Line,
 split_definition(Tuple, defmacro, Meta, Clauses, T, Unreachable, Line,
                  Def, Defmacro, Macros, Exports, Functions) ->
   {_, _, N, A, _} = Entry = translate_definition(defmacro, Line, Meta, Tuple, Clauses),
-  split_definition(T, Unreachable, Line, Def, [Tuple | Defmacro], [Tuple | Macros], [{N, A} | Exports],
+  split_definition(T, Unreachable, Line, Def, [{Tuple, Meta} | Defmacro], [Tuple | Macros], [{N, A} | Exports],
                    add_definition(Meta, Entry, Functions));
 
 split_definition(Tuple, defmacrop, Meta, Clauses, T, Unreachable, Line,
@@ -261,6 +265,9 @@ functions_form(Line, Module, Def, Defmacro, Exports, Body, Deprecated, Struct) -
   [{attribute, Line, export, lists:usort([{'__info__', 1} | Exports])}, Spec, Info | Body].
 
 add_info_function(Line, Module, Def, Defmacro, Deprecated, Struct) ->
+  DefNA = [NA || {NA, _Meta} <- Def],
+  DefmacroNA = [NA || {NA, _Meta} <- Defmacro],
+
   AllowedAttrs = [attributes, compile, functions, macros, md5, exports_md5, module, deprecated, struct],
   AllowedArgs = lists:map(fun(Atom) -> {atom, Line, Atom} end, AllowedAttrs),
 
@@ -277,10 +284,10 @@ add_info_function(Line, Module, Def, Defmacro, Deprecated, Struct) ->
   Info =
     {function, 0, '__info__', 1, [
       get_module_info(Module),
-      functions_info(Def),
-      macros_info(Defmacro),
+      functions_info(DefNA),
+      macros_info(DefmacroNA),
       struct_info(Struct),
-      exports_md5_info(Struct, Def, Defmacro),
+      exports_md5_info(Struct, DefNA, DefmacroNA),
       get_module_info(Module, attributes),
       get_module_info(Module, compile),
       get_module_info(Module, md5),
@@ -331,19 +338,34 @@ typespecs_form(Map, TranslatedTypespecs, MacroNames) ->
   Forms2 = callspecs_form(spec, Specs, [], MacroNames, Forms1, Map),
   Forms3 = callspecs_form(callback, AllCallbacks, OptionalCallbacks, MacroCallbackNames, Forms2, Map),
 
-  AllCallbacksWithoutSpecs = lists:usort([
-    {Kind, Name, Arity} || {Kind, {Name, Arity}, _Line, _Spec} <- AllCallbacks
+  AllCallbacksWithoutSpecs = usort_callbacks([
+    {{Kind, Name, Arity}, Meta} || {Kind, {Name, Arity}, Meta, _Spec} <- AllCallbacks
   ]),
 
   {Types, AllCallbacksWithoutSpecs, Forms3}.
+
+usort_callbacks(Callbacks) ->
+  % Sort and deduplicate callbacks. For duplicated callbacks we take
+  % the one with earliest line.
+
+  LineComparator = fun
+    ({Callback1, Meta1}, {Callback1, Meta2}) -> ?line(Meta1) =< ?line(Meta2);
+    ({Callback1, _Meta1}, {Callback2, _Meta2}) -> Callback1 =< Callback2
+  end,
+
+  UniqFun = fun({Callback, _Meta}) -> Callback end,
+
+  lists:uniq(UniqFun, lists:sort(LineComparator, Callbacks)).
 
 %% Types
 
 types_form(Types, Forms) ->
   Fun = fun
-    ({Kind, NameArity, Line, Expr, true}, Acc) ->
+    ({Kind, NameArity, Meta, Expr, true}, Acc) ->
+      Line = ?line(Meta),
       [{attribute, Line, export_type, [NameArity]}, {attribute, Line, Kind, Expr} | Acc];
-    ({Kind, _NameArity, Line, Expr, false}, Acc) ->
+    ({Kind, _NameArity, Meta, Expr, false}, Acc) ->
+      Line = ?line(Meta),
       [{attribute, Line, Kind, Expr} | Acc]
   end,
 
@@ -387,7 +409,9 @@ callspecs_form(Kind, Entries, Optional, Macros, Forms, ModuleMap) ->
   #{unreachable := Unreachable} = ModuleMap,
 
   {SpecsMap, Signatures} =
-    lists:foldl(fun({_, NameArity, Line, Spec}, {Acc, NA}) ->
+    lists:foldl(fun({_, NameArity, Meta, Spec}, {Acc, NA}) ->
+      Line = ?line(Meta),
+
       case Kind of
         spec -> validate_spec_for_existing_function(ModuleMap, NameArity, Line);
         _ -> ok
@@ -440,7 +464,7 @@ validate_spec_for_existing_function(ModuleMap, NameAndArity, Line) ->
 
   case lists:keymember(NameAndArity, 1, Defs) of
     true -> ok;
-    false -> file_error(#{line => Line, file => File}, {spec_for_undefined_function, NameAndArity})
+    false -> file_error(#{anno => erl_anno:new(Line), file => File}, {spec_for_undefined_function, NameAndArity})
   end.
 
 % Attributes
@@ -472,22 +496,30 @@ take_debug_opts(Opts) ->
 extra_chunks_opts([], Opts) -> Opts;
 extra_chunks_opts(Chunks, Opts) -> [{extra_chunks, Chunks} | Opts].
 
-docs_chunk(Set, Module, Line, Def, Defmacro, Types, Callbacks) ->
+docs_chunk(Map, Set, Module, Anno, Def, Defmacro, Types, Callbacks) ->
+  #{file := File, uses_behaviours := UsesBehaviours} = Map,
+
   case elixir_config:get(docs) of
     true ->
-      {ModuleDocLine, ModuleDoc} = get_moduledoc(Line, Set),
+      {ModuleDocLine, ModuleDoc} = get_moduledoc(erl_anno:line(Anno), Set),
       ModuleDocMeta = get_moduledoc_meta(Set),
       FunctionDocs = get_docs(Set, Module, Def, function),
       MacroDocs = get_docs(Set, Module, Defmacro, macro),
       CallbackDocs = get_callback_docs(Set, Callbacks),
       TypeDocs = get_type_docs(Set, Types),
 
+      ModuleMeta = ModuleDocMeta#{
+        source_path => File,
+        source_annos => [Anno],
+        behaviours => UsesBehaviours
+      },
+
       DocsChunkData = term_to_binary({docs_v1,
         erl_anno:new(ModuleDocLine),
         elixir,
         <<"text/markdown">>,
         ModuleDoc,
-        ModuleDocMeta,
+        ModuleMeta,
         FunctionDocs ++ MacroDocs ++ CallbackDocs ++ TypeDocs
       }, [deterministic, compressed]),
 
@@ -529,8 +561,8 @@ get_docs(Set, Module, Definitions, Kind) ->
     maybe_generated(erl_anno:new(Line), Ctx),
     [signature_to_binary(Module, Name, Signature)],
     doc_value(Doc, Name),
-    Meta
-   } || {Name, Arity} <- Definitions,
+    Meta#{source_annos => [?ann(DefinitionMeta)]}
+   } || {{Name, Arity}, DefinitionMeta} <- Definitions,
         {Key, Ctx, Line, Signature, Doc, Meta} <- ets:lookup(Set, {Kind, Name, Arity})].
 
 maybe_generated(Ann, nil) -> Ann;
@@ -541,16 +573,16 @@ get_callback_docs(Set, Callbacks) ->
     erl_anno:new(Line),
     [],
     doc_value(Doc, Name),
-    Meta
-   } || Callback <- Callbacks, {{_, Name, _} = Key, Line, Doc, Meta} <- ets:lookup(Set, Callback)].
+    Meta#{source_annos => [?ann(DefinitionMeta)]}
+   } || {{Kind, Name, Arity}, DefinitionMeta} <- Callbacks, {Key, Line, Doc, Meta} <- ets:lookup(Set, {Kind, Name, Arity})].
 
 get_type_docs(Set, Types) ->
   [{Key,
     erl_anno:new(Line),
     [],
     doc_value(Doc, Name),
-    Meta
-   } || {_Kind, {Name, Arity}, _, _, true} <- Types,
+    Meta#{source_annos => [?ann(DefinitionMeta)]}
+   } || {_Kind, {Name, Arity}, DefinitionMeta, _, true} <- Types,
         {Key, Line, Doc, Meta} <- ets:lookup(Set, {type, Name, Arity})].
 
 signature_to_binary(_Module, Name, _Signature) when Name == '__aliases__'; Name == '__block__' ->
@@ -580,9 +612,9 @@ checker_chunk(Def, Defmacro, #{deprecated := Deprecated, defines_behaviour := De
 
   Exports =
     [{FA, #{kind => def, deprecated_reason => maps:get(FA, DeprecatedMap, nil)}}
-     || FA <- prepend_behaviour_info(DefinesBehaviour, Def)] ++
+     || {FA, _Meta} <- prepend_behaviour_info(DefinesBehaviour, Def)] ++
     [{FA, #{kind => defmacro, deprecated_reason => maps:get(FA, DeprecatedMap, nil)}}
-     || FA <- Defmacro],
+     || {FA, _Meta} <- Defmacro],
 
   Contents = #{
     exports => Exports
@@ -590,12 +622,13 @@ checker_chunk(Def, Defmacro, #{deprecated := Deprecated, defines_behaviour := De
 
   [{<<"ExCk">>, term_to_binary({elixir_checker_v1, Contents}, [deterministic])}].
 
-prepend_behaviour_info(true, Def) -> [{behaviour_info, 1} | Def];
+prepend_behaviour_info(true, Def) -> [{{behaviour_info, 1}, []} | Def];
 prepend_behaviour_info(false, Def) -> Def.
 
 %% Errors
 
-file_error(#{line := Line, file := File}, Error) ->
+file_error(#{anno := Anno, file := File}, Error) ->
+  Line = erl_anno:line(Anno),
   elixir_errors:file_error([{line, Line}], File, ?MODULE, Error).
 
 format_error({ill_defined_optional_callback, Callback}) ->

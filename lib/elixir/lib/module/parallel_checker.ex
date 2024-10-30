@@ -229,12 +229,14 @@ defmodule Module.ParallelChecker do
     %{
       module: module,
       file: file,
-      line: line,
+      anno: anno,
       compile_opts: compile_opts,
       definitions: definitions,
       uses_behaviours: uses_behaviours,
       impls: impls
     } = module_map
+
+    line = :erl_anno.line(anno)
 
     no_warn_undefined =
       compile_opts

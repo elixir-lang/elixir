@@ -128,7 +128,7 @@ fast_compile({defmodule, Meta, [Mod, [{do, Block}]]}, NoLineE) ->
   end,
 
   ContextModules = [Expanded | ?key(E, context_modules)],
-  elixir_module:compile(Expanded, Block, [], false, E#{context_modules := ContextModules}).
+  elixir_module:compile(Meta, Expanded, Block, [], false, E#{context_modules := ContextModules}).
 
 no_tail_optimize(Meta, Block) ->
   {'__block__', Meta, [
