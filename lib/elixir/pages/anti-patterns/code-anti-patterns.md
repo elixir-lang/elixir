@@ -559,7 +559,7 @@ end
 
 The Erlang VM has two internal representations for maps: a flat map and a hash map. A flat map is represented internally as two tuples: one tuple containing the keys and another tuple holding the values. Whenever you update a flat map, the tuple keys are shared, reducing the amount of memory used by the update. A hash map has a more complex structure, which is efficient for a large amount of keys, but it does not share the key space.
 
-Maps of up to 32 keys are represented as flat maps. All others are hash map. Since structs maintain a metadata key called `__struct__`, any struct with fewer than 32 fields are represented as a flat map, which allows us to optimize several struct operations, as we never add or remove fields to structs, we simply update them.
+Maps of up to 32 keys are represented as flat maps. All others are hash map. Structs _are_ maps (with a metadata field called `__struct__`) and so any struct with fewer than 32 fields is represented as a flat map. This allows us to optimize several struct operations, as we never add or remove fields to structs, we simply update them.
 
 Furthermore, structs of the same name "instantiated" in the same module will share the same "tuple keys" at compilation times, as long as they have fewer than 32 fields. For example, the following code:
 
