@@ -577,10 +577,10 @@ All user structs will point to the same tuple keys at compile-time, also reducin
 
 Removing this anti-pattern, in a nutshell, requires ensuring your struct has fewer than 32 fields. There are a few techniques you could apply:
 
-* If the struct has "optional" fields, for example, fields which are initialized with nil, you could nest all optional fields into other field, called `:metadata`, `:optionals`, or similar. This could lead to benefits such as being able to use pattern matching to check if a field exists or not, instead of relying on `nil` values
+  * If the struct has "optional" fields, for example, fields which are initialized with nil, you could nest all optional fields into other field, called `:metadata`, `:optionals`, or similar. This could lead to benefits such as being able to use pattern matching to check if a field exists or not, instead of relying on `nil` values
 
-* You could nest structs, by storing structs within other fields. Fields that are rarely read or written to are good candidates to be moved to a nested struct
+  * You could nest structs, by storing structs within other fields. Fields that are rarely read or written to are good candidates to be moved to a nested struct
 
-* You could nest fields as tuples. For example, if two fields are always read or updated together, they could be moved to a tuple (or another composite data structure)
+  * You could nest fields as tuples. For example, if two fields are always read or updated together, they could be moved to a tuple (or another composite data structure)
 
 The challenge is to balance the changes above with API ergonomics, in particular, when fields may be frequentlyb read and written to.
