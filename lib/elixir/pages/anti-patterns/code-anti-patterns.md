@@ -561,7 +561,7 @@ The Erlang VM has two internal representations for maps: a flat map and a hash m
 
 Maps of up to 32 keys are represented as flat maps. All others are hash map. Structs *are* maps (with a metadata field called `__struct__`) and so any struct with fewer than 32 fields is represented as a flat map. This allows us to optimize several struct operations, as we never add or remove fields to structs, we simply update them.
 
-Furthermore, structs of the same name "instantiated" in the same module will share the same "tuple keys" at compilation times, as long as they have fewer than 32 fields. For example, the following code:
+Furthermore, structs of the same name "instantiated" in the same module will share the same "tuple keys" at compilation times, as long as they have fewer than 32 fields. For example, in the following code:
 
 ```elixir
 defmodule Example do
@@ -583,4 +583,4 @@ Removing this anti-pattern, in a nutshell, requires ensuring your struct has few
 
   * You could nest fields as tuples. For example, if two fields are always read or updated together, they could be moved to a tuple (or another composite data structure)
 
-The challenge is to balance the changes above with API ergonomics, in particular, when fields may be frequentlyb read and written to.
+The challenge is to balance the changes above with API ergonomics, in particular, when fields may be frequently read and written to.
