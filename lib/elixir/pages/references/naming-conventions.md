@@ -85,7 +85,6 @@ When thinking about failure cases, we are often thinking about semantic errors r
             def chardata_to_string(string) when is_binary(string)
             def chardata_to_string(list) when is_list(list)
 
-
 More examples of paired functions: `Base.decode16/2` and `Base.decode16!/2`, `File.cwd/0` and `File.cwd!/0`. In some situations, you may have bang functions without a non-bang counterpart. They also imply the possibility of errors, such as: `Protocol.assert_protocol!/1` and `PartitionSupervisor.resize!/2`. This can be useful if you foresee the possibility of adding a non-raising variant in the future.
 
 ## Trailing question mark (`foo?`)
