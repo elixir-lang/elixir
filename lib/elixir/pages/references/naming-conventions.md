@@ -47,9 +47,9 @@ Elixir also includes five special forms that follow the double underscore format
 
 ## Trailing bang (`foo!`)
 
-A trailing bang (exclamation mark) signifies a function or macro where failure cases raise an exception.
+A trailing bang (exclamation mark) signifies a function or macro where failure cases raise an exception. They most often exist as a "raising variant" of a function that returns `:ok`/`:error` tuples (or `nil`).
 
-Many functions come in pairs, such as `File.read/1` and `File.read!/1`. `File.read/1` will return a success or failure tuple, whereas `File.read!/1` will return a plain value or else raise an exception:
+One example is `File.read/1` and `File.read!/1`. `File.read/1` will return a success or failure tuple, whereas `File.read!/1` will return a plain value or else raise an exception:
 
     iex> File.read("file.txt")
     {:ok, "file contents"}
@@ -70,7 +70,7 @@ The version without `!` is preferred when you want to handle different outcomes 
 
 However, if you expect the outcome to always be successful (for instance, if you expect the file always to exist), the bang variation can be more convenient and will raise a more helpful error message (than a failed pattern match) on failure.
 
-When thinking about failure cases for functions, we are thinking strictly about errors that happen within their domain, such as failing to open a file. Errors that come from invalid argument types, for example, must always raise regardless if the function has a bang or not. The exception is often an `ArgumentError` or a detailed `FunctionClauseError`:
+When thinking about failure cases, we are often thinking about semantic errors related to the operation being performed, such as failing to open a file or trying to fetch key from a map. Errors that come from invalid argument types, or similar, must always raise regardless if the function has a bang or not. In such cases, the exception is often an `ArgumentError` or a detailed `FunctionClauseError`:
 
     iex(1)> File.read(123)
     ** (FunctionClauseError) no function clause matching in IO.chardata_to_string/1
@@ -85,11 +85,8 @@ When thinking about failure cases for functions, we are thinking strictly about 
             def chardata_to_string(string) when is_binary(string)
             def chardata_to_string(list) when is_list(list)
 
-More examples of paired functions: `Base.decode16/2` and `Base.decode16!/2`, `File.cwd/0` and `File.cwd!/0`.
 
-There are also some non-paired functions, with no non-bang variant. The bang still signifies that it will raise an exception on failure. Example: `Protocol.assert_protocol!/1`.
-
-In macro code, the bang on `alias!/1` and `var!/2` signifies that [macro hygiene](../meta-programming/macros.md#macro-hygiene) is set aside.
+More examples of paired functions: `Base.decode16/2` and `Base.decode16!/2`, `File.cwd/0` and `File.cwd!/0`. In some situations, you may have bang functions without a non-bang counterpart. They also imply the possibility of errors, such as: `Protocol.assert_protocol!/1` and `PartitionSupervisor.resize!/2`. This can be useful if you foresee the possibility of adding a non-raising variant in the future.
 
 ## Trailing question mark (`foo?`)
 
