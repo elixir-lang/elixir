@@ -960,6 +960,8 @@ defmodule Stream do
         do_transform_user(:lists.reverse(vals), user_acc, :cont, next, inner_acc, funs)
 
       {_, vals} ->
+        # Do not attempt to call the resource again, it has either done or halted
+        next = fn _ -> {:done, []} end
         do_transform_user(:lists.reverse(vals), user_acc, :last, next, inner_acc, funs)
     end
   end
@@ -972,7 +974,6 @@ defmodule Stream do
         last_fun.(user_acc)
       catch
         kind, reason ->
-          next.({:halt, []})
           after_fun.(user_acc)
           :erlang.raise(kind, reason, __STACKTRACE__)
       else

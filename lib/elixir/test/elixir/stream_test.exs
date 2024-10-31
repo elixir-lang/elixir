@@ -1046,6 +1046,38 @@ defmodule StreamTest do
     assert Process.get(__MODULE__) == 10
   end
 
+  test "transform/5 does not halt twice" do
+    resource_start = fn -> 0 end
+
+    resource_next = fn current ->
+      if current < 5 do
+        {[current], current + 1}
+      else
+        {:halt, current}
+      end
+    end
+
+    resource_after = fn _ ->
+      send(self(), {:halted, :resource})
+    end
+
+    transform_next = fn current, index -> {[current + 1], index} end
+    transform_last = fn index -> {:halt, index} end
+
+    transform_after = fn _ ->
+      send(self(), {:halted, :transform})
+    end
+
+    Stream.resource(resource_start, resource_next, resource_after)
+    |> Stream.transform(fn -> 1 end, transform_next, transform_last, transform_after)
+    |> Stream.run()
+
+    assert_received {:halted, :resource}
+    assert_received {:halted, :transform}
+    refute_received {:halted, :resource}
+    refute_received {:halted, :transform}
+  end
+
   test "scan/2" do
     stream = Stream.scan(1..5, &(&1 + &2))
     assert lazy?(stream)
