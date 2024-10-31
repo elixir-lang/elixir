@@ -139,7 +139,7 @@ end
 
 #### Problem
 
-An `Atom` is an Elixir basic type whose value is its own name. Atoms are often useful to identify resources or express the state, or result, of an operation. Creating atoms dynamically is not an anti-pattern by itself; however, atoms are not garbage collected by the Erlang Virtual Machine, so values of this type live in memory during a software's entire execution lifetime. The Erlang VM limits the number of atoms that can exist in an application by default to *1_048_576*, which is more than enough to cover all atoms defined in a program, but attempts to serve as an early limit for applications which are "leaking atoms" through dynamic creation.
+An `Atom` is an Elixir basic type whose value is its own name. Atoms are often useful to identify resources or express the state, or result, of an operation. Creating atoms dynamically is not an anti-pattern by itself. However, atoms are not garbage collected by the Erlang Virtual Machine, so values of this type live in memory during a software's entire execution lifetime. The Erlang VM limits the number of atoms that can exist in an application by default to *1_048_576*, which is more than enough to cover all atoms defined in a program, but attempts to serve as an early limit for applications which are "leaking atoms" through dynamic creation.
 
 For these reason, creating atoms dynamically can be considered an anti-pattern when the developer has no control over how many atoms will be created during the software execution. This unpredictable scenario can expose the software to unexpected behavior caused by excessive memory usage, or even by reaching the maximum number of *atoms* possible.
 
@@ -535,3 +535,52 @@ end
 ```
 
 This technique may be particularly important when working with Erlang code. Erlang does not have the concept of truthiness. It never returns `nil`, instead its functions may return `:error` or `:undefined` in places an Elixir developer would return `nil`. Therefore, to avoid accidentally interpreting `:undefined` or `:error` as a truthy value, you may prefer to use `and/2`, `or/2`, and `not/1` exclusively when interfacing with Erlang APIs.
+
+## Structs with 32 fields or more
+
+#### Problem
+
+Structs in Elixir are implemented as compile-time maps, which have a predefined amount of fields. When structs have 32 or more fields, their internal representation in the Erlang Virtual Machines changes, potentially leading to bloating and higher memory usage.
+
+#### Example
+
+Any struct with 32 or more fields will be problematic:
+
+```elixir
+defmodule MyExample do
+  defstruct [
+    :field1,
+    :field2,
+    ...,
+    :field35
+  ]
+end
+```
+
+The Erlang VM has two internal representations for maps: a flat map and a hash map. A flat map is represented internally as two tuples: one tuple containing the keys and another tuple holding the values. Whenever you update a flat map, the tuple keys are shared, reducing the amount of memory used by the update. A hash map has a more complex structure, which is efficient for a large amount of keys, but it does not share the key space.
+
+Maps of up to 32 keys are represented as flat maps. All others are hash map. Since structs maintain a metadata key called `__struct__`, any struct with fewer than 32 fields are represented as a flat map, which allows us to optimize several struct operations, as we never add or remove fields to structs, we simply update them.
+
+Furthermore, structs of the same name "instantiated" in the same module will share the same "tuple keys" at compilation times, as long as they have fewer than 32 fields. For example, the following code:
+
+```elixir
+defmodule Example do
+  def users do
+    [%User{name: "John"}, %User{name: "Meg"}, ...]
+  end
+end
+```
+
+All user structs will point to the same tuple keys at compile-time, also reducing the memory cost of instantiating structs with `%MyStruct{...}` notation. This optimization is also not available if the struct has 32 keys or more.
+
+#### Refactoring
+
+Removing this anti-pattern, in a nutshell, requires ensuring your struct has fewer than 32 fields. There are a few techniques you could apply:
+
+* If the struct has "optional" fields, for example, fields which are initialized with nil, you could nest all optional fields into other field, called `:metadata`, `:optionals`, or similar. This could lead to benefits such as being able to use pattern matching to check if a field exists or not, instead of relying on `nil` values
+
+* You could nest structs, by storing structs within other fields. Fields that are rarely read or written to are good candidates to be moved to a nested struct
+
+* You could nest fields as tuples. For example, if two fields are always read or updated together, they could be moved to a tuple (or another composite data structure)
+
+The challenge is to balance the changes above with API ergonomics, in particular, when fields may be frequentlyb read and written to.
