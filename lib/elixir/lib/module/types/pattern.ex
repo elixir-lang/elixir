@@ -42,7 +42,7 @@ defmodule Module.Types.Pattern do
   end
 
   defp of_pattern_args(patterns, expected_types, stack, context) do
-    context = %{context | pattern_info: {%{}, %{}}}
+    context = %{context | pattern_info: {%{}, %{}, 0}}
     {trees, context} = of_pattern_args_index(patterns, expected_types, 0, [], stack, context)
 
     {types, context} =
@@ -104,7 +104,7 @@ defmodule Module.Types.Pattern do
   the given expected and expr or an error in case of a typing conflict.
   """
   def of_match(pattern, expected, expr, stack, context) do
-    context = %{context | pattern_info: {%{}, %{}}}
+    context = %{context | pattern_info: {%{}, %{}, 0}}
     {tree, context} = of_pattern(pattern, [{:arg, 0, expected, expr}], stack, context)
 
     {[type], context} =
@@ -118,7 +118,7 @@ defmodule Module.Types.Pattern do
   end
 
   defp of_pattern_recur(types, stack, context, callback) do
-    %{pattern_info: {pattern_vars, pattern_args}} = context
+    %{pattern_info: {pattern_vars, pattern_info, _counter}} = context
     context = %{context | pattern_info: nil}
     pattern_vars = Map.to_list(pattern_vars)
     changed = :lists.seq(0, length(types) - 1)
@@ -126,7 +126,7 @@ defmodule Module.Types.Pattern do
     try do
       case callback.(types, changed, context) do
         {:ok, types, context} ->
-          of_pattern_recur(types, pattern_vars, pattern_args, stack, context, callback)
+          of_pattern_recur(types, pattern_vars, pattern_info, stack, context, callback)
 
         {:error, context} ->
           {types, error_vars(pattern_vars, context)}
@@ -136,7 +136,7 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  defp of_pattern_recur(types, vars, args, stack, context, callback) do
+  defp of_pattern_recur(types, vars, info, stack, context, callback) do
     %{vars: context_vars} = context
 
     {changed, context} =
@@ -148,7 +148,7 @@ defmodule Module.Types.Pattern do
             [var, {:arg, index, expected, expr} | path], {var_changed?, context} ->
               actual = Enum.fetch!(types, index)
 
-              case of_pattern_var(path, actual) do
+              case of_pattern_var(path, actual, info, context) do
                 {:ok, type} ->
                   case Of.refine_var(var, type, expr, stack, context) do
                     {:ok, type, context} ->
@@ -174,9 +174,11 @@ defmodule Module.Types.Pattern do
             case paths do
               # A single change, check if there are other variables in this index.
               [[_var, {:arg, index, _, _} | _]] ->
-                case args do
-                  %{^index => true} -> {[index | changed], context}
-                  %{^index => false} -> {changed, context}
+                arg_cons = [:arg | index]
+
+                case info do
+                  %{^arg_cons => true} -> {[index | changed], context}
+                  %{^arg_cons => false} -> {changed, context}
                 end
 
               # Several changes, we have to recompute all indexes.
@@ -195,7 +197,7 @@ defmodule Module.Types.Pattern do
         case callback.(types, changed, context) do
           # A simple structural comparison for optimization
           {:ok, ^types, context} -> {types, context}
-          {:ok, types, context} -> of_pattern_recur(types, vars, args, stack, context, callback)
+          {:ok, types, context} -> of_pattern_recur(types, vars, info, stack, context, callback)
           {:error, context} -> {types, error_vars(vars, context)}
         end
     end
@@ -226,40 +228,44 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  defp of_pattern_var([], type) do
+  defp of_pattern_var([], type, _info, _context) do
     {:ok, type}
   end
 
-  defp of_pattern_var([{:elem, index} | rest], type) when is_integer(index) do
+  defp of_pattern_var([{:elem, index} | rest], type, info, context) when is_integer(index) do
     case tuple_fetch(type, index) do
-      {_optional?, type} -> of_pattern_var(rest, type)
+      {_optional?, type} -> of_pattern_var(rest, type, info, context)
       _reason -> :error
     end
   end
 
-  defp of_pattern_var([{:key, field} | rest], type) when is_atom(field) do
+  defp of_pattern_var([{:key, field} | rest], type, info, context) when is_atom(field) do
     case map_fetch(type, field) do
-      {_optional?, type} -> of_pattern_var(rest, type)
+      {_optional?, type} -> of_pattern_var(rest, type, info, context)
       _reason -> :error
     end
   end
 
   # TODO: Implement domain key types
-  defp of_pattern_var([{:key, _key} | rest], _type) do
-    of_pattern_var(rest, dynamic())
+  defp of_pattern_var([{:key, _key} | rest], _type, info, context) do
+    of_pattern_var(rest, dynamic(), info, context)
   end
 
-  defp of_pattern_var([:head | rest], type) do
+  defp of_pattern_var([{:head, counter} | rest], type, info, context) do
     case list_hd(type) do
-      {_, head} -> of_pattern_var(rest, head)
-      _ -> :error
+      {_, head} ->
+        tree = Map.fetch!(info, [:head | counter])
+        type = intersection(of_pattern_tree(tree, context), head)
+        of_pattern_var(rest, type, info, context)
+
+      _ ->
+        :error
     end
   end
 
-  # TODO: This should intersect with the list itself and its tail.
-  defp of_pattern_var([:tail | rest], type) do
+  defp of_pattern_var([:tail | rest], type, info, context) do
     case list_tl(type) do
-      {_, tail} -> of_pattern_var(rest, tail)
+      {_, tail} -> of_pattern_var(rest, tail, info, context)
       _ -> :error
     end
   end
@@ -474,20 +480,21 @@ defmodule Module.Types.Pattern do
        when is_atom(name) and is_atom(ctx) do
     version = Keyword.fetch!(meta, :version)
     [{:arg, arg, _type, _pattern} | _] = path = Enum.reverse(reverse_path)
-    {vars, args} = context.pattern_info
+    {vars, info, counter} = context.pattern_info
 
     paths = [[var | path] | Map.get(vars, version, [])]
     vars = Map.put(vars, version, paths)
+    arg_cons = [:arg | arg]
 
     # Our goal here is to compute if an argument has more than one variable.
-    args =
-      case args do
-        %{^arg => false} -> %{args | arg => true}
-        %{^arg => true} -> args
-        %{} -> Map.put(args, arg, false)
+    info =
+      case info do
+        %{^arg_cons => false} -> %{info | arg_cons => true}
+        %{^arg_cons => true} -> info
+        %{} -> Map.put(info, arg_cons, false)
       end
 
-    {{:var, version}, %{context | pattern_info: {vars, args}}}
+    {{:var, version}, %{context | pattern_info: {vars, info, counter}}}
   end
 
   # TODO: Properly traverse domain keys
@@ -542,26 +549,45 @@ defmodule Module.Types.Pattern do
   # [prefix1, prefix2, prefix3], [prefix1, prefix2 | suffix]
   defp of_list(prefix, suffix, path, stack, context) do
     {suffix, context} = of_pattern(suffix, [:tail | path], stack, context)
+    {vars, info, counter} = context.pattern_info
+    context = %{context | pattern_info: {vars, info, counter + length(prefix)}}
 
-    acc =
-      Enum.reduce(prefix, {[], [], context}, fn arg, {static, dynamic, context} ->
-        {type, context} = of_pattern(arg, [:head | path], stack, context)
+    {static, dynamic, info, context} =
+      Enum.reduce(prefix, {[], [], %{}, context}, fn
+        arg, {static, dynamic, info, context}
+        when is_number(arg) or is_atom(arg) or is_binary(arg) or arg == [] ->
+          {type, context} = of_pattern(arg, [], stack, context)
+          {[type | static], dynamic, info, context}
 
-        if is_descr(type) do
-          {[type | static], dynamic, context}
-        else
-          {static, [type | dynamic], context}
-        end
+        arg, {static, dynamic, info, context} ->
+          counter = map_size(info) + counter
+          {type, context} = of_pattern(arg, [{:head, counter} | path], stack, context)
+          info = Map.put(info, [:head | counter], type)
+
+          if is_descr(type) do
+            {[type | static], dynamic, info, context}
+          else
+            {static, [type | dynamic], info, context}
+          end
       end)
 
-    case acc do
-      {static, [], context} when is_descr(suffix) ->
+    context =
+      if info != %{} do
+        update_in(context.pattern_info, fn {acc_vars, acc_info, acc_counter} ->
+          {acc_vars, Map.merge(acc_info, info), acc_counter}
+        end)
+      else
+        context
+      end
+
+    case {static, dynamic} do
+      {static, []} when is_descr(suffix) ->
         {non_empty_list(Enum.reduce(static, &union/2), suffix), context}
 
-      {[], dynamic, context} ->
+      {[], dynamic} ->
         {{:non_empty_list, dynamic, suffix}, context}
 
-      {static, dynamic, context} ->
+      {static, dynamic} ->
         {{:non_empty_list, [Enum.reduce(static, &union/2) | dynamic], suffix}, context}
     end
   end

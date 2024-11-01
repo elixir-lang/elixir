@@ -850,6 +850,29 @@ defmodule Module.Types.ExprTest do
                #{hints(:anonymous_rescue)}
                """
     end
+
+    test "matches on stacktrace" do
+      # TODO: we are validating the type through the exception but we should actually check the returned type
+      assert typeerror!(
+               try do
+                 :ok
+               rescue
+                 _ ->
+                   [{_, _, args_or_arity, _} | _] = __STACKTRACE__
+                   args_or_arity.fun()
+               end
+             ) =~ ~l"""
+             expected a module (an atom) when invoking fun/0 in expression:
+
+                 args_or_arity.fun()
+
+             where "args_or_arity" was given the type:
+
+                 # type: empty_list() or integer() or non_empty_list(term())
+                 # from: types_test.ex:LINE-3
+                 [{_, _, args_or_arity, _} | _] = __STACKTRACE__
+             """
+    end
   end
 
   describe "comprehensions" do

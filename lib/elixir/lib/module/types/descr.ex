@@ -1350,7 +1350,7 @@ defmodule Module.Types.Descr do
       # Optimization: we are removing an open map with one field.
       {:open, fields2, []}, dnf1 when map_size(fields2) == 1 ->
         Enum.reduce(dnf1, [], fn {tag1, fields1, negs1}, acc ->
-          {key, value} = Enum.at(fields2, 0)
+          {key, value, _rest} = :maps.next(:maps.iterator(fields2))
           t_diff = difference(Map.get(fields1, key, tag_to_type(tag1)), value)
 
           if empty?(t_diff) do
@@ -1610,7 +1610,7 @@ defmodule Module.Types.Descr do
   end
 
   defp map_fields_to_quoted(tag, map) do
-    sorted = Enum.sort(map)
+    sorted = Enum.sort(Map.to_list(map))
     keyword? = Inspect.List.keyword?(sorted)
 
     for {key, type} <- sorted,

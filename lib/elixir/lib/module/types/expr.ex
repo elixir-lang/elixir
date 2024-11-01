@@ -31,6 +31,22 @@ defmodule Module.Types.Expr do
   @atom_true atom([true])
   @exception open_map(__struct__: atom(), __exception__: @atom_true)
 
+  args_or_arity = union(list(term()), integer())
+
+  extra_info =
+    list(
+      tuple([atom([:file]), list(integer())])
+      |> union(tuple([atom([:line]), integer()]))
+      |> union(tuple([atom([:error_info]), open_map()]))
+    )
+
+  @stacktrace list(
+                union(
+                  tuple([atom(), atom(), args_or_arity, extra_info]),
+                  tuple([fun(), args_or_arity, extra_info])
+                )
+              )
+
   # :atom
   def of_expr(atom, _stack, context) when is_atom(atom),
     do: {atom([atom]), context}
@@ -80,10 +96,9 @@ defmodule Module.Types.Expr do
     {@caller, context}
   end
 
-  # TODO: __STACKTRACE__
   def of_expr({:__STACKTRACE__, _meta, var_context}, _stack, context)
       when is_atom(var_context) do
-    {list(term()), context}
+    {@stacktrace, context}
   end
 
   # {...}
