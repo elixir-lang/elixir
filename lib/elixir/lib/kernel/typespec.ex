@@ -290,7 +290,8 @@ defmodule Kernel.Typespec do
     :lists.filter(fun, types)
   end
 
-  defp translate_type({kind, {:"::", _, [{name, meta, args}, definition]}, pos}, state) do
+  defp translate_type({kind, {:"::", _, [{name, meta, args}, definition]}, pos}, state)
+       when is_list(meta) do
     caller = :elixir_locals.get_cached_env(pos)
     state = clean_local_state(state)
 
@@ -358,7 +359,7 @@ defmodule Kernel.Typespec do
   end
 
   defp translate_spec(kind, {:"::", _, [{name, meta, args}, return]}, guard, caller, state)
-       when is_atom(name) and name != :"::" do
+       when is_atom(name) and name != :"::" and is_list(meta) and (is_list(args) or is_atom(args)) do
     translate_spec(kind, meta, name, args, return, guard, caller, state)
   end
 
