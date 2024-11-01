@@ -148,12 +148,13 @@ defmodule Module.Types.Pattern do
             [var, {:arg, index, expected, expr} | path], {var_changed?, context} ->
               actual = Enum.fetch!(types, index)
 
-              case of_pattern_var(path, actual, info, context) do
-                {:ok, type} ->
+              case of_pattern_var(path, actual, true, info, context) do
+                {type, reachable_var?} ->
                   case Of.refine_var(var, type, expr, stack, context) do
                     {:ok, type, context} ->
-                      {var_changed? or current_type == nil or not equal?(current_type, type),
-                       context}
+                      {var_changed? or
+                         (reachable_var? and
+                            (current_type == nil or not equal?(current_type, type))), context}
 
                     {:error, _type, context} ->
                       throw({types, context})
@@ -226,44 +227,46 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  defp of_pattern_var([], type, _info, _context) do
-    {:ok, type}
+  defp of_pattern_var([], type, reachable_var?, _info, _context) do
+    {type, reachable_var?}
   end
 
-  defp of_pattern_var([{:elem, index} | rest], type, info, context) when is_integer(index) do
+  defp of_pattern_var([{:elem, index} | rest], type, reachable_var?, info, context)
+       when is_integer(index) do
     case tuple_fetch(type, index) do
-      {_optional?, type} -> of_pattern_var(rest, type, info, context)
+      {_optional?, type} -> of_pattern_var(rest, type, reachable_var?, info, context)
       _reason -> :error
     end
   end
 
-  defp of_pattern_var([{:key, field} | rest], type, info, context) when is_atom(field) do
+  defp of_pattern_var([{:key, field} | rest], type, reachable_var?, info, context)
+       when is_atom(field) do
     case map_fetch(type, field) do
-      {_optional?, type} -> of_pattern_var(rest, type, info, context)
+      {_optional?, type} -> of_pattern_var(rest, type, reachable_var?, info, context)
       _reason -> :error
     end
   end
 
   # TODO: Implement domain key types
-  defp of_pattern_var([{:key, _key} | rest], _type, info, context) do
-    of_pattern_var(rest, dynamic(), info, context)
+  defp of_pattern_var([{:key, _key} | rest], _type, reachable_var?, info, context) do
+    of_pattern_var(rest, dynamic(), reachable_var?, info, context)
   end
 
-  defp of_pattern_var([{:head, counter} | rest], type, info, context) do
+  defp of_pattern_var([{:head, counter} | rest], type, _reachable_var?, info, context) do
     case list_hd(type) do
       {_, head} ->
         tree = Map.fetch!(info, -counter)
         type = intersection(of_pattern_tree(tree, context), head)
-        of_pattern_var(rest, type, info, context)
+        of_pattern_var(rest, type, false, info, context)
 
       _ ->
         :error
     end
   end
 
-  defp of_pattern_var([:tail | rest], type, info, context) do
+  defp of_pattern_var([:tail | rest], type, reachable_var?, info, context) do
     case list_tl(type) do
-      {_, tail} -> of_pattern_var(rest, tail, info, context)
+      {_, tail} -> of_pattern_var(rest, tail, reachable_var?, info, context)
       _ -> :error
     end
   end

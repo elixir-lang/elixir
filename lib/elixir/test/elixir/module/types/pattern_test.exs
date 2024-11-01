@@ -182,6 +182,19 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([x = [1, 2, 3] ++ y, y = [1.0, 2.0, 3.0]], x) ==
                dynamic(non_empty_list(union(integer(), float())))
     end
+
+    test "with lists inside tuples inside lists" do
+      assert typecheck!([[node_1 = {[arg]}, node_2 = {[arg]}]], {node_1, node_2, arg})
+             |> equal?(
+               dynamic(
+                 tuple([
+                   tuple([non_empty_list(term())]),
+                   tuple([non_empty_list(term())]),
+                   term()
+                 ])
+               )
+             )
+    end
   end
 
   describe "binaries" do
