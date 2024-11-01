@@ -42,7 +42,7 @@ defmodule Module.Types.Pattern do
   end
 
   defp of_pattern_args(patterns, expected_types, stack, context) do
-    context = %{context | pattern_info: {%{}, %{}, 0}}
+    context = init_pattern_info(context)
     {trees, context} = of_pattern_args_index(patterns, expected_types, 0, [], stack, context)
 
     {types, context} =
@@ -104,7 +104,7 @@ defmodule Module.Types.Pattern do
   the given expected and expr or an error in case of a typing conflict.
   """
   def of_match(pattern, expected, expr, stack, context) do
-    context = %{context | pattern_info: {%{}, %{}, 0}}
+    context = init_pattern_info(context)
     {tree, context} = of_pattern(pattern, [{:arg, 0, expected, expr}], stack, context)
 
     {[type], context} =
@@ -119,7 +119,7 @@ defmodule Module.Types.Pattern do
 
   defp of_pattern_recur(types, stack, context, callback) do
     %{pattern_info: {pattern_vars, pattern_info, _counter}} = context
-    context = %{context | pattern_info: nil}
+    context = nilify_pattern_info(context)
     pattern_vars = Map.to_list(pattern_vars)
     changed = :lists.seq(0, length(types) - 1)
 
@@ -174,11 +174,9 @@ defmodule Module.Types.Pattern do
             case paths do
               # A single change, check if there are other variables in this index.
               [[_var, {:arg, index, _, _} | _]] ->
-                arg_cons = [:arg | index]
-
                 case info do
-                  %{^arg_cons => true} -> {[index | changed], context}
-                  %{^arg_cons => false} -> {changed, context}
+                  %{^index => true} -> {[index | changed], context}
+                  %{^index => false} -> {changed, context}
                 end
 
               # Several changes, we have to recompute all indexes.
@@ -254,7 +252,7 @@ defmodule Module.Types.Pattern do
   defp of_pattern_var([{:head, counter} | rest], type, info, context) do
     case list_hd(type) do
       {_, head} ->
-        tree = Map.fetch!(info, [:head | counter])
+        tree = Map.fetch!(info, -counter)
         type = intersection(of_pattern_tree(tree, context), head)
         of_pattern_var(rest, type, info, context)
 
@@ -484,14 +482,13 @@ defmodule Module.Types.Pattern do
 
     paths = [[var | path] | Map.get(vars, version, [])]
     vars = Map.put(vars, version, paths)
-    arg_cons = [:arg | arg]
 
     # Our goal here is to compute if an argument has more than one variable.
     info =
       case info do
-        %{^arg_cons => false} -> %{info | arg_cons => true}
-        %{^arg_cons => true} -> info
-        %{} -> Map.put(info, arg_cons, false)
+        %{^arg => false} -> %{info | arg => true}
+        %{^arg => true} -> info
+        %{} -> Map.put(info, arg, false)
       end
 
     {{:var, version}, %{context | pattern_info: {vars, info, counter}}}
@@ -562,7 +559,7 @@ defmodule Module.Types.Pattern do
         arg, {static, dynamic, info, context} ->
           counter = map_size(info) + counter
           {type, context} = of_pattern(arg, [{:head, counter} | path], stack, context)
-          info = Map.put(info, [:head | counter], type)
+          info = Map.put(info, -counter, type)
 
           if is_descr(type) do
             {[type | static], dynamic, info, context}
@@ -712,6 +709,18 @@ defmodule Module.Types.Pattern do
   end
 
   ## Helpers
+
+  # pattern_info stores the variables defined in patterns,
+  # additional information about the number of variables in
+  # arguments and list heads, and a counter used to compute
+  # the number of list heads.
+  defp init_pattern_info(context) do
+    %{context | pattern_info: {%{}, %{}, 1}}
+  end
+
+  defp nilify_pattern_info(context) do
+    %{context | pattern_info: nil}
+  end
 
   def format_diagnostic({:invalid_pattern, expr, context}) do
     traces = collect_traces(expr, context)
