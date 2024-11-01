@@ -27,6 +27,23 @@ defmodule Module.Types.Of do
   end
 
   @doc """
+  Marks a variable with error.
+  """
+  def error_var(var, context) do
+    {var_name, meta, var_context} = var
+    version = Keyword.fetch!(meta, :version)
+
+    data = %{
+      type: error_type(),
+      name: var_name,
+      context: var_context,
+      off_traces: []
+    }
+
+    put_in(context.vars[version], data)
+  end
+
+  @doc """
   Refines the type of a variable.
   """
   def refine_var(var, type, expr, formatter \\ :default, stack, context) do

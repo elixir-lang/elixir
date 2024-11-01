@@ -86,7 +86,7 @@ defmodule Module.Types.Helpers do
           version = meta[:version]
 
           case vars do
-            %{^version => %{off_traces: [_ | _] = off_traces, name: name, context: context}} ->
+            %{^version => %{off_traces: off_traces, name: name, context: context}} ->
               {:ok,
                Map.put(versions, version, %{
                  type: :variable,

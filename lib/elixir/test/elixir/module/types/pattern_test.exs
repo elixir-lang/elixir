@@ -68,6 +68,16 @@ defmodule Module.Types.PatternTest do
                    b = :bar
                """
     end
+
+    test "can be access even if they don't match" do
+      assert typeerror!(
+               (
+                 # This will never match, info should not be "corrupted"
+                 [info | _] = __ENV__.function
+                 info
+               )
+             ) =~ "incompatible types in expression"
+    end
   end
 
   describe "structs" do

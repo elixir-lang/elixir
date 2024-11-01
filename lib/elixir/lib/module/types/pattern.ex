@@ -123,15 +123,17 @@ defmodule Module.Types.Pattern do
     pattern_vars = Map.to_list(pattern_vars)
     changed = :lists.seq(0, length(types) - 1)
 
-    case callback.(types, changed, context) do
-      {:ok, types, context} ->
-        of_pattern_recur(types, pattern_vars, pattern_args, stack, context, callback)
+    try do
+      case callback.(types, changed, context) do
+        {:ok, types, context} ->
+          of_pattern_recur(types, pattern_vars, pattern_args, stack, context, callback)
 
-      {:error, context} ->
-        {types, context}
+        {:error, context} ->
+          {types, error_vars(pattern_vars, context)}
+      end
+    catch
+      {types, context} -> {types, error_vars(pattern_vars, context)}
     end
-  catch
-    {types, context} -> {types, context}
   end
 
   defp of_pattern_recur(types, vars, args, stack, context, callback) do
@@ -158,6 +160,7 @@ defmodule Module.Types.Pattern do
                   end
 
                 :error ->
+                  # TODO: This should be precised about the operation (case/=/try/etc)
                   context = Of.incompatible_error(expr, expected, actual, stack, context)
                   throw({types, context})
               end
@@ -193,9 +196,15 @@ defmodule Module.Types.Pattern do
           # A simple structural comparison for optimization
           {:ok, ^types, context} -> {types, context}
           {:ok, types, context} -> of_pattern_recur(types, vars, args, stack, context, callback)
-          {:error, context} -> {types, context}
+          {:error, context} -> {types, error_vars(vars, context)}
         end
     end
+  end
+
+  defp error_vars(vars, context) do
+    Enum.reduce(vars, context, fn {_version, [[var | _path] | _paths]}, context ->
+      Of.error_var(var, context)
+    end)
   end
 
   defp of_pattern_intersect(tree, expected, expr, stack, context) do
@@ -212,6 +221,7 @@ defmodule Module.Types.Pattern do
         {:error, error(__MODULE__, {:invalid_pattern, expr, context}, meta, stack, context)}
 
       true ->
+        # TODO: This should be precised about the operation (case/=/try/etc)
         {:error, Of.incompatible_error(expr, expected, actual, stack, context)}
     end
   end
