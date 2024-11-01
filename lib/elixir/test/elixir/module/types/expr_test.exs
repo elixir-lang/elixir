@@ -868,7 +868,7 @@ defmodule Module.Types.ExprTest do
 
              where "args_or_arity" was given the type:
 
-                 # type: empty_list() or integer() or non_empty_list(term())
+                 # type: integer() or list(term())
                  # from: types_test.ex:LINE-3
                  [{_, _, args_or_arity, _} | _] = __STACKTRACE__
              """

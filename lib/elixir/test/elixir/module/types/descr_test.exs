@@ -1043,9 +1043,7 @@ defmodule Module.Types.DescrTest do
     test "negation" do
       assert negation(negation(integer())) |> to_quoted_string() == "integer()"
       assert negation(negation(atom([:foo, :bar]))) |> to_quoted_string() == ":bar or :foo"
-
-      assert negation(negation(list(term()))) |> to_quoted_string() ==
-               "empty_list() or non_empty_list(term())"
+      assert negation(negation(list(term()))) |> to_quoted_string() == "list(term())"
     end
 
     test "atom" do
@@ -1082,8 +1080,8 @@ defmodule Module.Types.DescrTest do
     end
 
     test "lists" do
-      assert list(term()) |> to_quoted_string() == "empty_list() or non_empty_list(term())"
-      assert list(integer()) |> to_quoted_string() == "empty_list() or non_empty_list(integer())"
+      assert list(term()) |> to_quoted_string() == "list(term())"
+      assert list(integer()) |> to_quoted_string() == "list(integer())"
 
       assert list(term()) |> difference(empty_list()) |> to_quoted_string() ==
                "non_empty_list(term())"
@@ -1098,13 +1096,13 @@ defmodule Module.Types.DescrTest do
                "non_empty_list(term()) and not (non_empty_list(atom()) or non_empty_list(integer()))"
 
       assert list(term(), integer()) |> to_quoted_string() ==
-               "empty_list() or non_empty_list(term(), integer())"
+               "list(term(), integer())"
 
       assert difference(list(term(), atom()), list(term(), boolean())) |> to_quoted_string() ==
                "non_empty_list(term(), atom() and not boolean())"
 
       assert list(term(), term()) |> to_quoted_string() ==
-               "empty_list() or non_empty_list(term(), term())"
+               "list(term(), term())"
     end
 
     test "tuples" do

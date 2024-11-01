@@ -356,7 +356,22 @@ defmodule Module.Types.Descr do
     if term_type?(descr) do
       {:term, [], []}
     else
-      case Enum.flat_map(descr, fn {key, value} -> to_quoted(key, value) end) do
+      {extra, descr} =
+        case descr do
+          # Merge empty list and list together if they both exist
+          %{list: list, bitmap: bitmap} when (bitmap &&& @bit_empty_list) != 0 ->
+            descr = descr |> Map.delete(:list) |> Map.update!(:bitmap, &(&1 - @bit_empty_list))
+
+            case list_to_quoted(list, :list) do
+              [] -> {[{:empty_list, [], []}], descr}
+              unions -> {unions, descr}
+            end
+
+          %{} ->
+            {[], descr}
+        end
+
+      case extra ++ Enum.flat_map(descr, fn {key, value} -> to_quoted(key, value) end) do
         [] -> {:none, [], []}
         unions -> unions |> Enum.sort() |> Enum.reduce(&{:or, [], [&2, &1]})
       end
@@ -368,7 +383,7 @@ defmodule Module.Types.Descr do
   defp to_quoted(:bitmap, val), do: bitmap_to_quoted(val)
   defp to_quoted(:dynamic, descr), do: dynamic_to_quoted(descr)
   defp to_quoted(:map, dnf), do: map_to_quoted(dnf)
-  defp to_quoted(:list, dnf), do: list_to_quoted(dnf)
+  defp to_quoted(:list, dnf), do: list_to_quoted(dnf, :non_empty_list)
   defp to_quoted(:tuple, dnf), do: tuple_to_quoted(dnf)
 
   @doc """
@@ -963,7 +978,7 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp list_to_quoted(dnf) do
+  defp list_to_quoted(dnf, name) do
     dnf = list_normalize(dnf)
 
     for {list_type, last_type, negs} <- dnf, reduce: [] do
@@ -976,7 +991,7 @@ defmodule Module.Types.Descr do
           end
 
         if negs == [] do
-          [{:non_empty_list, [], arguments} | acc]
+          [{name, [], arguments} | acc]
         else
           negs
           |> Enum.map(fn {ty, lst} ->
@@ -987,14 +1002,14 @@ defmodule Module.Types.Descr do
                 [to_quoted(ty), to_quoted(lst)]
               end
 
-            {:non_empty_list, [], args}
+            {name, [], args}
           end)
           |> Enum.reduce(&{:or, [], [&2, &1]})
           |> Kernel.then(
             &[
               {:and, [],
                [
-                 {:non_empty_list, [], arguments},
+                 {name, [], arguments},
                  {:not, [], [&1]}
                ]}
               | acc

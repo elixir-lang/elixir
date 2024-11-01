@@ -34,7 +34,7 @@ defmodule Module.Types.PatternTest do
 
                given types:
 
-                   empty_list() or non_empty_list(integer())
+                   list(integer())
 
                but expected one of:
 
