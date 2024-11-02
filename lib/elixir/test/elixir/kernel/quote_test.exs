@@ -789,4 +789,26 @@ defmodule Kernel.QuoteTest.HasUnquoteTest do
 
     refute :elixir_quote.has_unquotes(ast)
   end
+
+  test "unquote with invalid AST (shallow check)" do
+    assert_raise ArgumentError, "tried to unquote invalid AST: %{unescaped: :map}", fn ->
+      quote do: unquote(%{unescaped: :map})
+    end
+
+    assert_raise ArgumentError, "tried to unquote invalid AST: {:bad_meta, nil, []}", fn ->
+      quote do: unquote({:bad_meta, nil, []})
+    end
+
+    assert_raise ArgumentError, "tried to unquote invalid AST: {:bad_arg, nil, 1}", fn ->
+      quote do: unquote({:bad_arg, nil, 1})
+    end
+
+    assert_raise ArgumentError, "tried to unquote invalid AST: {:bad_tuple}", fn ->
+      quote do: unquote({:bad_tuple})
+    end
+
+    assert_raise ArgumentError, ~r/tried to unquote invalid AST: #Reference</, fn ->
+      quote do: unquote(make_ref())
+    end
+  end
 end
