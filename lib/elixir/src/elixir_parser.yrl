@@ -778,7 +778,7 @@ build_map_update(Left, {Pipe, Struct, Map}, Right, Extra) ->
 
 %% Blocks
 
-build_block(Exprs) -> build_block(Exprs, {}).
+build_block(Exprs) -> build_block(Exprs, none).
 
 build_block([{unquote_splicing, _, [_]}]=Exprs, BeforeAfter) ->
   {'__block__', block_meta(BeforeAfter), Exprs};
@@ -805,7 +805,7 @@ build_block([Expr], _BeforeAfter) ->
 build_block(Exprs, BeforeAfter) ->
   {'__block__', block_meta(BeforeAfter), Exprs}.
 
-block_meta({}) -> [];
+block_meta(none) -> [];
 block_meta({Before, After}) -> meta_from_token_with_closing(Before, After).
 
 %% Newlines
