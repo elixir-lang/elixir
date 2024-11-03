@@ -61,7 +61,7 @@ While the definition above could succeed (as long as all three arguments are equ
 
     def foo(x = y, y = z, z)
 
-You may also prever to write using guards:
+You may also prefer to write using guards:
 
     def foo(x, y, z) when x == y and y == z
 
