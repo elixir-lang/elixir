@@ -558,7 +558,7 @@ defmodule ExUnit.Diff do
   end
 
   defp move_right({y, list1, [elem2 | rest2], {edit1, edit2, env}}) do
-    {y, list1, rest2, {edit1, [{:ins, elem2} | edit2], env}}
+    {y, list1, rest2, {edit1, [{:ins, build_elem(elem2)} | edit2], env}}
   end
 
   defp move_right({y, list1, [], edits}) do
@@ -566,7 +566,7 @@ defmodule ExUnit.Diff do
   end
 
   defp move_down({y, [elem1 | rest1], list2, {edit1, edit2, env}}) do
-    {y + 1, rest1, list2, {[{:del, elem1} | edit1], edit2, env}}
+    {y + 1, rest1, list2, {[{:del, build_elem(elem1)} | edit1], edit2, env}}
   end
 
   defp move_down({y, [], list2, edits}) do
@@ -762,6 +762,10 @@ defmodule ExUnit.Diff do
   rescue
     _ -> :error
   end
+
+  def build_elem(elem) when is_struct(elem), do: elem
+  def build_elem(elem) when is_map(elem), do: {:%{}, [], Map.to_list(elem)}
+  def build_elem(elem), do: elem
 
   defp maybe_struct(%name{}), do: name
   defp maybe_struct(_), do: nil
@@ -1145,6 +1149,9 @@ defmodule ExUnit.Diff do
   # We escape container types to make a distinction between AST
   # and values that should be inspected. All other values have no
   # special AST representation, so we can keep them as is.
+  # Maps should be formatted not inspected.
+  defp escape(other) when is_struct(other), do: {other}
+  defp escape({:%{}, _, _} = other), do: other
   defp escape(other) when is_list(other) or is_tuple(other), do: {other}
   defp escape(other), do: other
 

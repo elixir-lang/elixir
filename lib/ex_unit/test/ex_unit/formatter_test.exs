@@ -469,6 +469,58 @@ defmodule ExUnit.FormatterTest do
            """
   end
 
+  test "formats nested maps with column limit" do
+    map =
+      %{
+        microsecond: {1, 2},
+        second: 3,
+        month: 4,
+        day: 5,
+        year: 2024,
+        minute: 6,
+        hour: 7
+      }
+
+    failure = [{:error, catch_assertion(assert [map, %{map | hour: 8}] == [map]), []}]
+
+    assert format_test_all_failure(test_module(), failure, 1, 80, &formatter/2) == """
+             1) Hello: failure on setup_all callback, all tests have been invalidated
+                Assertion with == failed
+                code:  assert [map, %{map | hour: 8}] == [map]
+                left:  [
+                         %{
+                           microsecond: {1, 2},
+                           second: 3,
+                           month: 4,
+                           day: 5,
+                           year: 2024,
+                           minute: 6,
+                           hour: 7
+                         },
+                         %{
+                           microsecond: {1, 2},
+                           second: 3,
+                           month: 4,
+                           day: 5,
+                           year: 2024,
+                           minute: 6,
+                           hour: 8
+                         }
+                       ]
+                right: [
+                         %{
+                           microsecond: {1, 2},
+                           second: 3,
+                           month: 4,
+                           day: 5,
+                           year: 2024,
+                           minute: 6,
+                           hour: 7
+                         }
+                       ]
+           """
+  end
+
   test "formats assertions with complex function call arguments" do
     failure = [{:error, catch_assertion(assert is_list(List.to_tuple([1, 2, 3]))), []}]
 
