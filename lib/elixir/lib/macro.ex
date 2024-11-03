@@ -814,7 +814,8 @@ defmodule Macro do
 
       iex> value = {:a, :b, :c}
       iex> quote do: unquote(value)
-      {:a, :b, :c}
+      ** (ArgumentError) tried to unquote invalid AST: {:a, :b, :c}
+      Did you forget to escape term using Macro.escape/1?
 
   `escape/2` is used to escape *values* (either directly passed or variable
   bound), while `quote/2` produces syntax trees for

@@ -1,6 +1,6 @@
 -module(elixir_quote).
 -export([escape/3, linify/3, linify_with_context_counter/3, build/7, quote/2, has_unquotes/1, fun_to_quoted/1]).
--export([dot/5, tail_list/3, list/2, validate_runtime/2]). %% Quote callbacks
+-export([dot/5, tail_list/3, list/2, validate_runtime/2, shallow_validate_ast/1]). %% Quote callbacks
 
 -include("elixir.hrl").
 -define(defs(Kind), Kind == def; Kind == defp; Kind == defmacro; Kind == defmacrop; Kind == '@').
@@ -15,7 +15,8 @@
   aliases_hygiene=nil,
   imports_hygiene=nil,
   unquote=true,
-  generated=false
+  generated=false,
+  shallow_validate=false
 }).
 
 %% fun_to_quoted
@@ -215,7 +216,8 @@ build(Meta, Line, File, Context, Unquote, Generated, E) ->
     file=VFile,
     unquote=Unquote,
     context=VContext,
-    generated=Generated
+    generated=Generated,
+    shallow_validate=true
   },
 
   {Q, VContext, Acc3}.
@@ -254,6 +256,27 @@ is_valid(context, Context) -> is_atom(Context) andalso (Context /= nil);
 is_valid(generated, Generated) -> is_boolean(Generated);
 is_valid(unquote, Unquote) -> is_boolean(Unquote).
 
+shallow_validate_ast(Expr) ->
+  case shallow_valid_ast(Expr) of
+    true -> Expr;
+    false -> argument_error(
+      <<"tried to unquote invalid AST: ", ('Elixir.Kernel':inspect(Expr))/binary,
+        "\nDid you forget to escape term using Macro.escape/1?">>)
+  end.
+
+shallow_valid_ast(Expr) when is_list(Expr) -> valid_ast_list(Expr);
+shallow_valid_ast(Expr) -> valid_ast_elem(Expr).
+
+valid_ast_list([]) -> true;
+valid_ast_list([Head | Tail]) -> valid_ast_elem(Head) andalso valid_ast_list(Tail);
+valid_ast_list(_Improper) -> false.
+
+valid_ast_elem(Expr) when is_list(Expr); is_atom(Expr); is_binary(Expr); is_number(Expr); is_pid(Expr) -> true;
+valid_ast_elem({Left, Right}) -> valid_ast_elem(Left) andalso valid_ast_elem(Right);
+valid_ast_elem({Atom, Meta, Args}) when is_atom(Atom), is_list(Meta), is_atom(Args) orelse is_list(Args) -> true;
+valid_ast_elem({Call, Meta, Args}) when is_list(Meta), is_list(Args) -> shallow_valid_ast(Call);
+valid_ast_elem(_Term) -> false.
+
 quote({unquote_splicing, _, [_]}, #elixir_quote{unquote=true}) ->
   argument_error(<<"unquote_splicing only works inside arguments and block contexts, "
     "wrap it in parens if you want it to work with one-liners">>);
@@ -283,8 +306,12 @@ do_quote({quote, Meta, [Opts, Arg]}, Q) when is_list(Meta) ->
 
   {'{}', [], [quote, meta(NewMeta, Q), [TOpts, TArg]]};
 
-do_quote({unquote, Meta, [Expr]}, #elixir_quote{unquote=true}) when is_list(Meta) ->
-  Expr;
+%
+do_quote({unquote, Meta, [Expr]}, #elixir_quote{unquote=true, shallow_validate=Validate}) when is_list(Meta) ->
+  case Validate of
+    true -> {{'.', Meta, [?MODULE, shallow_validate_ast]}, Meta, [Expr]};
+    false -> Expr
+  end;
 
 %% Aliases
 

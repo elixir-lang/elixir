@@ -789,4 +789,29 @@ defmodule Kernel.QuoteTest.HasUnquoteTest do
 
     refute :elixir_quote.has_unquotes(ast)
   end
+
+  test "unquote with invalid AST (shallow check)" do
+    for term <- [
+          %{unescaped: :map},
+          1..10,
+          {:bad_meta, nil, []},
+          {:bad_arg, nil, 1},
+          {:bad_tuple},
+          make_ref(),
+          [:improper | :list],
+          [nested: {}]
+        ] do
+      message = """
+      tried to unquote invalid AST: #{inspect(term)}
+      Did you forget to escape term using Macro.escape/1?\
+      """
+
+      assert_raise ArgumentError, message, fn -> quote do: unquote(term) end
+    end
+  end
+
+  test "unquote with invalid AST is not checked deeply" do
+    assert quote do: unquote(foo: [1 | 2]) == [foo: [1 | 2]]
+    assert quote do: unquote(foo: [bar: %{}]) == [foo: [bar: %{}]]
+  end
 end
