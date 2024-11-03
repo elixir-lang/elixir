@@ -294,7 +294,6 @@ defmodule Module.Types.Expr do
     end
   end
 
-  # TODO: expr.fun(arg)
   def of_expr({{:., _, [remote, name]}, meta, args} = expr, stack, context) do
     {remote_type, context} = of_expr(remote, stack, context)
     {args_types, context} = Enum.map_reduce(args, context, &of_expr(&1, stack, &2))

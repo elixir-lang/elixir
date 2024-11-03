@@ -184,9 +184,7 @@ defmodule Module.Types.Of do
   @doc """
   Struct handling assuming the args have already been converted.
   """
-  # TODO: Allow structs fields to be defined. If the fields are defined,
-  # then the struct is no longer dynamic. And we need to validate args
-  # against the struct types.
+  # TODO: Allow structs fields to be defined and validate args against the struct types.
   # TODO: Use the struct default values to define the default types.
   def struct(struct, args_types, default_handling, meta, stack, context) do
     {info, context} = struct_info(struct, meta, stack, context)
@@ -200,7 +198,7 @@ defmodule Module.Types.Of do
         :only_defaults -> [{:__struct__, atom([struct])} | defaults]
       end
 
-    {dynamic(closed_map(pairs)), context}
+    {closed_map(pairs), context}
   end
 
   @doc """

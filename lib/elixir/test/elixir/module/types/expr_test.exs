@@ -459,31 +459,25 @@ defmodule Module.Types.ExprTest do
 
     test "creating structs" do
       assert typecheck!(%Point{}) ==
-               dynamic(
-                 closed_map(
-                   __struct__: atom([Point]),
-                   x: atom([nil]),
-                   y: atom([nil]),
-                   z: integer()
-                 )
+               closed_map(
+                 __struct__: atom([Point]),
+                 x: atom([nil]),
+                 y: atom([nil]),
+                 z: integer()
                )
 
       assert typecheck!(%Point{x: :zero}) ==
-               dynamic(
-                 closed_map(
-                   __struct__: atom([Point]),
-                   x: atom([:zero]),
-                   y: atom([nil]),
-                   z: integer()
-                 )
+               closed_map(
+                 __struct__: atom([Point]),
+                 x: atom([:zero]),
+                 y: atom([nil]),
+                 z: integer()
                )
     end
 
     test "updating structs" do
       assert typecheck!([x], %Point{x | x: :zero}) ==
-               dynamic(
-                 closed_map(__struct__: atom([Point]), x: atom([:zero]), y: term(), z: term())
-               )
+               closed_map(__struct__: atom([Point]), x: atom([:zero]), y: term(), z: term())
 
       assert typeerror!([x = :foo], %Point{x | x: :zero}) ==
                ~l"""
@@ -493,7 +487,7 @@ defmodule Module.Types.ExprTest do
 
                expected type:
 
-                   dynamic(%Point{x: term(), y: term(), z: term()})
+                   %Point{x: term(), y: term(), z: term()}
 
                but got type:
 
@@ -540,7 +534,7 @@ defmodule Module.Types.ExprTest do
 
              the given type does not have the given key:
 
-                 dynamic(%Point{x: nil, y: nil, z: integer()})
+                 %Point{x: nil, y: nil, z: integer()}
              """
     end
 
@@ -811,17 +805,15 @@ defmodule Module.Types.ExprTest do
 
                where "e" was given the type:
 
-                   # type: dynamic(
-                     %RuntimeError{__exception__: true, message: term()} or
-                       %SyntaxError{
-                         __exception__: true,
-                         column: term(),
-                         description: term(),
-                         file: term(),
-                         line: term(),
-                         snippet: term()
-                       }
-                   )
+                   # type: %RuntimeError{__exception__: true, message: term()} or
+                     %SyntaxError{
+                       __exception__: true,
+                       column: term(),
+                       description: term(),
+                       file: term(),
+                       line: term(),
+                       snippet: term()
+                     }
                    # from: types_test.ex:LINE-4
                    rescue e in [SyntaxError, RuntimeError] ->
                """
