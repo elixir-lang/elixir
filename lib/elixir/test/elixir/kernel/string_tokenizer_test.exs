@@ -70,7 +70,8 @@ defmodule Kernel.StringTokenizerTest do
     assert {:error, _} = Code.string_to_quoted("Ola!")
   end
 
-  test "tokenizes calls with thai atom" do
+  test "tokenizes remote calls" do
+    # We chose the atom below because Erlang represents it using nested lists
     assert {{:., _, [:foo, :บูมเมอแรง]}, _, []} =
              Code.string_to_quoted!(":foo.บูมเมอแรง()")
 
