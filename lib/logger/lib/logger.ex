@@ -800,8 +800,9 @@ defmodule Logger do
 
   Currently the only accepted PID is `self()`.
 
-  This will take priority over the primary level set, so it can be
-  used to increase or decrease verbosity of some parts of the running system.
+  Different from `put_module_level/2`, the process level doesn't take priority
+  over the global level, but instead works alongside it. Effectively, the higher
+  logger level is used.
   """
   @doc since: "1.15.0"
   @spec put_process_level(pid(), level() | :all | :none) :: :ok
