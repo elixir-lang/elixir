@@ -398,7 +398,13 @@ defmodule ExUnit.Diff do
 
   defp diff_improper([], right, env) when is_list(right) do
     equivalent? = right == []
-    right = right |> escape() |> update_diff_meta(not equivalent?)
+
+    right =
+      right
+      |> Enum.map(&build_elem/1)
+      |> escape()
+      |> update_diff_meta(not equivalent?)
+
     {%__MODULE__{equivalent?: equivalent?, right: right, left: []}, env}
   end
 
@@ -558,7 +564,7 @@ defmodule ExUnit.Diff do
   end
 
   defp move_right({y, list1, [elem2 | rest2], {edit1, edit2, env}}) do
-    {y, list1, rest2, {edit1, [{:ins, build_elem(elem2)} | edit2], env}}
+    {y, list1, rest2, {edit1, [{:ins, elem2} | edit2], env}}
   end
 
   defp move_right({y, list1, [], edits}) do

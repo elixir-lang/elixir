@@ -127,9 +127,11 @@ defmodule ExUnit.DiffTest do
   end
 
   defp to_diff(side, sign) do
+    terminal_width = 80
+
     side
     |> Diff.to_algebra(&diff_wrapper(&1, sign))
-    |> Algebra.format(:infinity)
+    |> Algebra.format(terminal_width)
     |> IO.iodata_to_binary()
   end
 
@@ -682,13 +684,49 @@ defmodule ExUnit.DiffTest do
     refute_diff(
       %User{age: %Date{}} = struct,
       ~s/%ExUnit.DiffTest.User{age: %-Date-{}}/,
-      ~s/%ExUnit.DiffTest.User{age: %+DateTime+{calendar: Calendar.ISO, day: 30, hour: 13, microsecond: {253158, 6}, minute: 49, month: 7, second: 59, std_offset: 0, time_zone: "Etc\/UTC", utc_offset: 0, year: 2020, zone_abbr: "UTC"}, name: nil}/
+      """
+      %ExUnit.DiffTest.User{
+        age: %+DateTime+{
+          calendar: Calendar.ISO,
+          day: 30,
+          hour: 13,
+          microsecond: {253158, 6},
+          minute: 49,
+          month: 7,
+          second: 59,
+          std_offset: 0,
+          time_zone: "Etc\/UTC",
+          utc_offset: 0,
+          year: 2020,
+          zone_abbr: "UTC"
+        },
+        name: nil
+      }\
+      """
     )
 
     refute_diff(
       %{age: %Date{}} = struct,
       ~s/%{age: %-Date-{}}/,
-      ~s/%ExUnit.DiffTest.User{age: %+DateTime+{calendar: Calendar.ISO, day: 30, hour: 13, microsecond: {253158, 6}, minute: 49, month: 7, second: 59, std_offset: 0, time_zone: "Etc\/UTC", utc_offset: 0, year: 2020, zone_abbr: "UTC"}, name: nil}/
+      """
+      %ExUnit.DiffTest.User{
+        age: %+DateTime+{
+          calendar: Calendar.ISO,
+          day: 30,
+          hour: 13,
+          microsecond: {253158, 6},
+          minute: 49,
+          month: 7,
+          second: 59,
+          std_offset: 0,
+          time_zone: \"Etc/UTC\",
+          utc_offset: 0,
+          year: 2020,
+          zone_abbr: \"UTC\"
+        },
+        name: nil
+      }\
+      """
     )
   end
 
@@ -833,6 +871,56 @@ defmodule ExUnit.DiffTest do
       %{__struct__: Date, unknown: :field} = %{},
       "%{-__struct__: Date-, -unknown: :field-}",
       "%{}"
+    )
+  end
+
+  test "maps in lists" do
+    map = %{
+      first_name: "John",
+      last_name: "Doe",
+      age: 30,
+      notifications: true,
+      language: "en-US",
+      address: %{
+        street: "123 Main St",
+        city: "Springfield",
+        state: "IL",
+        zip: "62701"
+      }
+    }
+
+    refute_diff(
+      [map] == [],
+      """
+      [
+        -%{
+          address: %{state: \"IL\", zip: \"62701\", street: \"123 Main St\", city: \"Springfield\"},
+          age: 30,
+          first_name: \"John\",
+          last_name: \"Doe\",
+          notifications: true,
+          language: \"en-US\"
+        }-
+      ]\
+      """,
+      "[]"
+    )
+
+    refute_diff(
+      [] == [map],
+      "[]",
+      """
+      [
+        +%{
+          address: %{state: \"IL\", zip: \"62701\", street: \"123 Main St\", city: \"Springfield\"},
+          age: 30,
+          first_name: \"John\",
+          last_name: \"Doe\",
+          notifications: true,
+          language: \"en-US\"
+        }+
+      ]\
+      """
     )
   end
 
@@ -1082,8 +1170,18 @@ defmodule ExUnit.DiffTest do
 
     refute_diff(
       {ref1, ref2} == {ref2, ref1},
-      "{-#{inspect_ref1}-, -#{inspect_ref2}-}",
-      "{+#{inspect_ref2}+, +#{inspect_ref1}+}"
+      """
+      {
+        -#{inspect_ref1}-,
+        -#{inspect_ref2}-
+      }\
+      """,
+      """
+      {
+        +#{inspect_ref2}+,
+        +#{inspect_ref1}+
+      }\
+      """
     )
 
     refute_diff(
