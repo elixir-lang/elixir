@@ -928,13 +928,20 @@ defmodule Logger do
   def bare_log(level, message_or_fun, metadata \\ []) do
     level = elixir_level_to_erlang_level(level)
 
-    if :logger_config.allow(level) do
-      __do_log__(level, message_or_fun, %{}, Map.new(metadata))
-    end
+    should_log? =
+      case get_process_level(self()) do
+        nil -> :logger_config.allow(level)
+        process_level -> compare_levels(level, process_level) in [:gt, :eq]
+      end
 
-    :ok
+    if should_log? do
+      __do_log__(level, message_or_fun, %{}, Map.new(metadata))
+    else
+      :ok
+    end
   end
 
+  # If there's a process level, it takes precedence over global/module levels.
   @doc false
   def __should_log__(level, module) do
     level = elixir_level_to_erlang_level(level)
@@ -946,7 +953,9 @@ defmodule Logger do
         end
 
       process_level ->
-        process_level
+        if compare_levels(level, process_level) in [:gt, :eq] do
+          level
+        end
     end
   end
 

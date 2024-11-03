@@ -12,6 +12,11 @@ defmodule LoggerTest do
     end)
   end
 
+  defmodule PerModuleLevels do
+    def debug, do: Logger.debug("debug_msg")
+    def error, do: Logger.error("error_msg")
+  end
+
   defp msg_with_meta(text) do
     msg("module=LoggerTest #{text}")
   end
@@ -55,12 +60,6 @@ defmodule LoggerTest do
   end
 
   test "per-module levels" do
-    defmodule PerModuleLevels do
-      def debug, do: Logger.debug("debug_msg")
-
-      def error, do: Logger.error("error_msg")
-    end
-
     assert capture_log(fn -> assert PerModuleLevels.debug() == :ok end) =~ "debug_msg"
     assert capture_log(fn -> assert PerModuleLevels.error() == :ok end) =~ "error_msg"
 
@@ -179,6 +178,31 @@ defmodule LoggerTest do
 
     assert capture_log(fn -> Logger.debug("debug_msg") end) =~ "debug_msg"
     assert capture_log(fn -> Logger.error("error_msg") end) =~ "error_msg"
+  end
+
+  test "process levels override primary level" do
+    current_level = Logger.level()
+    on_exit(fn -> Logger.configure(level: current_level) end)
+    Logger.configure(level: :error)
+
+    Logger.put_process_level(self(), :debug)
+    assert capture_log(fn -> Logger.debug("debug_msg") end) =~ "debug_msg"
+
+    Logger.put_process_level(self(), :emergency)
+    assert capture_log(fn -> Logger.error("error_msg") end) == ""
+
+    assert capture_log(fn -> Logger.emergency("emergency_msg") end) =~ "emergency_msg"
+
+    Logger.delete_process_level(self())
+    assert ExUnit.CaptureLog.capture_log(fn -> Logger.debug("debug_msg") end) == ""
+  end
+
+  test "process levels override module level" do
+    Logger.put_module_level(PerModuleLevels, :error)
+    assert capture_log(fn -> assert PerModuleLevels.debug() == :ok end) =~ ""
+
+    Logger.put_process_level(self(), :debug)
+    assert capture_log(fn -> assert PerModuleLevels.debug() == :ok end) =~ "debug_msg"
   end
 
   test "process metadata" do
@@ -760,7 +784,7 @@ defmodule LoggerTest do
 
     test "maps Erlang levels" do
       :logger.set_primary_config(:level, :notice)
-      assert capture_log(fn -> Logger.info("hello") end) =~ "hello"
+      assert capture_log(fn -> Logger.warning("hello") end) =~ "hello"
 
       :logger.set_primary_config(:level, :notice)
       assert Logger.level() == :notice

@@ -41,14 +41,17 @@ defmodule Logger.Case do
     end
   end
 
-  def capture_log(level \\ :debug, fun) do
+  def capture_log(level \\ Logger.level(), fun) do
+    previous_level = Logger.level()
     Logger.configure(level: level)
 
-    capture_io(:user, fn ->
-      fun.()
-      Logger.flush()
-    end)
-  after
-    Logger.configure(level: :debug)
+    try do
+      capture_io(:user, fn ->
+        fun.()
+        Logger.flush()
+      end)
+    after
+      Logger.configure(level: previous_level)
+    end
   end
 end
