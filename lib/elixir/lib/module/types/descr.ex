@@ -1256,7 +1256,7 @@ defmodule Module.Types.Descr do
         end
 
       %{map: map} ->
-        map_get(map, key) |> pop_optional_static()
+        map_fetch_dnf(map, key) |> pop_optional_static()
 
       %{} ->
         {false, none()}
@@ -1281,22 +1281,22 @@ defmodule Module.Types.Descr do
     case :maps.take(:dynamic, descr) do
       :error ->
         if map_only?(descr) do
-          map_put_static_descr(descr, key, type)
+          map_put_static_shared(descr, key, type)
         else
           :badmap
         end
 
       {dynamic, static} when static == @none ->
         if descr_key?(dynamic, :map) do
-          dynamic(map_put_static_descr(dynamic, key, type))
+          dynamic(map_put_static_shared(dynamic, key, type))
         else
           :badmap
         end
 
       {dynamic, static} ->
         if descr_key?(dynamic, :map) and map_only?(static) do
-          dynamic = map_put_static_descr(dynamic, key, type)
-          static = map_put_static_descr(static, key, type)
+          dynamic = map_put_static_shared(dynamic, key, type)
+          static = map_put_static_shared(static, key, type)
           union(dynamic(dynamic), static)
         else
           :badmap
@@ -1305,7 +1305,7 @@ defmodule Module.Types.Descr do
   end
 
   # Directly inserts a key of a given type into every positive and negative map
-  defp map_put_static_descr(descr, key, type) do
+  defp map_put_static_shared(descr, key, type) do
     case map_delete_static(descr, key) do
       %{map: dnf} = descr ->
         dnf =
@@ -1558,7 +1558,7 @@ defmodule Module.Types.Descr do
 
   # Takes a map dnf and returns the union of types it can take for a given key.
   # If the key may be undefined, it will contain the `not_set()` type.
-  defp map_get(dnf, key) do
+  defp map_fetch_dnf(dnf, key) do
     Enum.reduce(dnf, none(), fn
       # Optimization: if there are no negatives,
       # we can return the value directly.

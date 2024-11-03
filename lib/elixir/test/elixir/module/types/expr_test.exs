@@ -515,9 +515,17 @@ defmodule Module.Types.ExprTest do
 
     test "updating structs" do
       assert typecheck!([x], %Point{x | x: :zero}) ==
-               closed_map(__struct__: atom([Point]), x: atom([:zero]), y: term(), z: term())
+               dynamic(open_map(__struct__: atom([Point]), x: atom([:zero])))
 
-      assert typeerror!([x = :foo], %Point{x | x: :zero}) ==
+      assert typecheck!([x], %Point{%Point{x | x: :zero} | y: :one}) ==
+               dynamic(open_map(__struct__: atom([Point]), x: atom([:zero]), y: atom([:one])))
+
+      assert typeerror!(
+               (
+                 x = %{x: 0}
+                 %Point{x | x: :zero}
+               )
+             ) ==
                ~l"""
                incompatible types in struct update:
 
@@ -529,13 +537,13 @@ defmodule Module.Types.ExprTest do
 
                but got type:
 
-                   dynamic(:foo)
+                   %{x: integer()}
 
                where "x" was given the type:
 
-                   # type: dynamic(:foo)
-                   # from: types_test.ex:LINE-1
-                   x = :foo
+                   # type: %{x: integer()}
+                   # from: types_test.ex:LINE-4
+                   x = %{x: 0}
                """
     end
 

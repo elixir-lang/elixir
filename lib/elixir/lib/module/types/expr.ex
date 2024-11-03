@@ -114,38 +114,36 @@ defmodule Module.Types.Expr do
   end
 
   # %{map | ...}
+  # TODO: Once we support typed structs, we need to type check them here.
   def of_expr({:%{}, _, [{:|, _, [map, args]}]}, stack, context) do
-    {_args_type, context} = Of.closed_map(args, stack, context, &of_expr/3)
-    {_map_type, context} = of_expr(map, stack, context)
-    # TODO: intersect map with keys of terms for args
-    # TODO: Merge args_type into map_type with dynamic/static key requirement
-    {dynamic(open_map()), context}
+    {map_type, context} = of_expr(map, stack, context)
+    Of.update_map(map_type, args, stack, context, &of_expr/3)
   end
 
   # %Struct{map | ...}
+  # Note this code, by definition, adds missing struct fields to `map`
+  # because at runtime we do not check for them (only for __struct__ itself).
+  # TODO: Once we support typed structs, we need to type check them here.
   def of_expr(
         {:%, struct_meta, [module, {:%{}, _, [{:|, update_meta, [map, args]}]}]} = expr,
         stack,
         context
       ) do
-    {args_types, context} =
-      Enum.map_reduce(args, context, fn {key, value}, context when is_atom(key) ->
-        {type, context} = of_expr(value, stack, context)
-        {{key, type}, context}
-      end)
-
-    # TODO: args_types could be an empty list
-    {struct_type, context} =
-      Of.struct(module, args_types, :only_defaults, struct_meta, stack, context)
-
+    {info, context} = Of.struct_info(module, struct_meta, stack, context)
+    struct_type = Of.struct_type(module, info)
     {map_type, context} = of_expr(map, stack, context)
 
     if disjoint?(struct_type, map_type) do
       warning = {:badupdate, :struct, expr, struct_type, map_type, context}
       {error_type(), error(__MODULE__, warning, update_meta, stack, context)}
     else
-      # TODO: Merge args_type into map_type with dynamic/static key requirement
-      Of.struct(module, args_types, :merge_defaults, struct_meta, stack, context)
+      map_type = map_put!(map_type, :__struct__, atom([module]))
+
+      Enum.reduce(args, {map_type, context}, fn
+        {key, value}, {map_type, context} when is_atom(key) ->
+          {value_type, context} = of_expr(value, stack, context)
+          {map_put!(map_type, key, value_type), context}
+      end)
     end
   end
 
@@ -155,9 +153,8 @@ defmodule Module.Types.Expr do
   end
 
   # %Struct{}
-  def of_expr({:%, _, [module, {:%{}, _, args}]} = expr, stack, context) do
-    # TODO: We should not skip defaults
-    Of.struct(expr, module, args, :skip_defaults, stack, context, &of_expr/3)
+  def of_expr({:%, meta, [module, {:%{}, _, args}]}, stack, context) do
+    Of.struct_instance(module, args, meta, stack, context, &of_expr/3)
   end
 
   # ()
@@ -375,7 +372,8 @@ defmodule Module.Types.Expr do
         # Exceptions are not validated in the compiler,
         # to avoid export dependencies. So we do it here.
         if Code.ensure_loaded?(exception) and function_exported?(exception, :__struct__, 0) do
-          Of.struct(exception, args, :merge_defaults, meta, stack, context)
+          {info, context} = Of.struct_info(exception, meta, stack, context)
+          {Of.struct_type(exception, info, args), context}
         else
           # If the exception cannot be found or is invalid,
           # we call Of.remote/5 to emit a warning.
@@ -513,6 +511,13 @@ defmodule Module.Types.Expr do
   defp of_expr_context(expr, stack, context) do
     {_type, context} = of_expr(expr, stack, context)
     context
+  end
+
+  defp map_put!(map_type, key, value_type) do
+    case map_put(map_type, key, value_type) do
+      descr when is_descr(descr) -> descr
+      error -> raise "unexpected #{inspect(error)}"
+    end
   end
 
   ## Warning formatting

@@ -107,9 +107,29 @@ defmodule Module.Types.Of do
   @doc """
   Builds a closed map.
   """
-  def closed_map(pairs, extra \\ [], stack, context, of_fun) do
+  def closed_map(pairs, stack, context, of_fun) do
+    key_permutations(pairs, stack, context, of_fun, fn closed?, pairs ->
+      if closed?, do: closed_map(pairs), else: open_map(pairs)
+    end)
+  end
+
+  @doc """
+  Updates a map with the given keys.
+  """
+  def update_map(map_type, pairs, stack, context, of_fun) do
+    key_permutations(pairs, stack, context, of_fun, fn _closed?, pairs ->
+      Enum.reduce(pairs, map_type, fn {key, type}, acc ->
+        case map_put(acc, key, type) do
+          descr when is_descr(descr) -> descr
+          error -> throw({error, key, type})
+        end
+      end)
+    end)
+  end
+
+  defp key_permutations(pairs, stack, context, of_fun, of_map) do
     {closed?, single, multiple, context} =
-      Enum.reduce(pairs, {true, extra, [], context}, fn
+      Enum.reduce(pairs, {true, [], [], context}, fn
         {key, value}, {closed?, single, multiple, context} ->
           {keys, context} = of_finite_key_type(key, stack, context, of_fun)
           {value_type, context} = of_fun.(value, stack, context)
@@ -129,13 +149,11 @@ defmodule Module.Types.Of do
     map =
       case Enum.reverse(multiple) do
         [] ->
-          pairs = Enum.reverse(single)
-          if closed?, do: closed_map(pairs), else: open_map(pairs)
+          of_map.(closed?, Enum.reverse(single))
 
         [{keys, type} | tail] ->
           for key <- keys, t <- cartesian_map(tail) do
-            pairs = Enum.reverse(single, [{key, type} | t])
-            if closed?, do: closed_map(pairs), else: open_map(pairs)
+            of_map.(closed?, Enum.reverse(single, [{key, type} | t]))
           end
           |> Enum.reduce(&union/2)
       end
@@ -167,9 +185,9 @@ defmodule Module.Types.Of do
   end
 
   @doc """
-  Handles structs creation.
+  Handles instantiation of a new struct.
   """
-  def struct({:%, meta, _}, struct, args, default_handling, stack, context, of_fun)
+  def struct_instance(struct, args, meta, stack, context, of_fun)
       when is_atom(struct) do
     # The compiler has already checked the keys are atoms and which ones are required.
     {args_types, context} =
@@ -178,27 +196,8 @@ defmodule Module.Types.Of do
         {{key, type}, context}
       end)
 
-    struct(struct, args_types, default_handling, meta, stack, context)
-  end
-
-  @doc """
-  Struct handling assuming the args have already been converted.
-  """
-  # TODO: Allow structs fields to be defined and validate args against the struct types.
-  # TODO: Use the struct default values to define the default types.
-  def struct(struct, args_types, default_handling, meta, stack, context) do
     {info, context} = struct_info(struct, meta, stack, context)
-    term = term()
-    defaults = for %{field: field} <- info, do: {field, term}
-
-    pairs =
-      case default_handling do
-        :merge_defaults -> [{:__struct__, atom([struct])} | defaults] ++ args_types
-        :skip_defaults -> [{:__struct__, atom([struct])} | args_types]
-        :only_defaults -> [{:__struct__, atom([struct])} | defaults]
-      end
-
-    {closed_map(pairs), context}
+    {struct_type(struct, info, args_types), context}
   end
 
   @doc """
@@ -212,6 +211,17 @@ defmodule Module.Types.Of do
         raise "expected #{inspect(struct)} to return struct metadata, but got none"
 
     {info, context}
+  end
+
+  @doc """
+  Builds a type from the struct info.
+  """
+  def struct_type(struct, info, args_types \\ []) do
+    term = term()
+    pairs = for %{field: field} <- info, do: {field, term}
+    pairs = [{:__struct__, atom([struct])} | pairs]
+    pairs = if args_types == [], do: pairs, else: pairs ++ args_types
+    closed_map(pairs)
   end
 
   ## Binary
