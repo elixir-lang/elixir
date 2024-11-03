@@ -672,7 +672,7 @@ meta_from_location({Line, Column, _}) ->
 do_end_meta(Do, End) ->
   case ?token_metadata() of
     true ->
-      [{do, meta_from_location(?location(Do))}, {'end', meta_from_location(?location(End))}];
+      [{do, meta_from_token(Do)}, {'end', meta_from_token(End)}];
     false ->
       []
   end.
@@ -680,7 +680,7 @@ do_end_meta(Do, End) ->
 meta_from_token_with_closing(Begin, End) ->
   case ?token_metadata() of
     true ->
-      [{closing, meta_from_location(?location(End))} | meta_from_token(Begin)];
+      [{closing, meta_from_token(End)} | meta_from_token(Begin)];
     false ->
       meta_from_token(Begin)
   end.
@@ -778,21 +778,42 @@ build_map_update(Left, {Pipe, Struct, Map}, Right, Extra) ->
 
 %% Blocks
 
-build_block(Exprs) -> build_block(Exprs, []).
+build_block(Exprs) -> build_block(Exprs, none).
 
-build_block([{unquote_splicing, _, [_]}]=Exprs, Meta) ->
-  {'__block__', Meta, Exprs};
-build_block([Expr], _Meta) ->
+build_block([{unquote_splicing, _, [_]}]=Exprs, BeforeAfter) ->
+  {'__block__', block_meta(BeforeAfter), Exprs};
+build_block([{Op, ExprMeta, Args}], {Before, After}) ->
+  ExprMetaWithExtra =
+    case ?token_metadata() of
+      true ->
+        ParensEntry = meta_from_token(Before) ++ [{closing, meta_from_token(After)}],
+        case ExprMeta of
+          % If there are multiple parens, those will result in subsequent
+          % build_block/2 calls, so we can assume parens entry is first
+          [{parens, Parens} | Meta] ->
+            [{parens, [ParensEntry | Parens]} | Meta];
+
+          Meta ->
+            [{parens, [ParensEntry]} | Meta]
+        end;
+      false ->
+        ExprMeta
+    end,
+  {Op, ExprMetaWithExtra, Args};
+build_block([Expr], _BeforeAfter) ->
   Expr;
-build_block(Exprs, Meta) ->
-  {'__block__', Meta, Exprs}.
+build_block(Exprs, BeforeAfter) ->
+  {'__block__', block_meta(BeforeAfter), Exprs}.
+
+block_meta(none) -> [];
+block_meta({Before, After}) -> meta_from_token_with_closing(Before, After).
 
 %% Newlines
 
 newlines_pair(Left, Right) ->
   case ?token_metadata() of
     true ->
-      newlines(?location(Left), [{closing, meta_from_location(?location(Right))}]);
+      newlines(?location(Left), [{closing, meta_from_token(Right)}]);
     false ->
       []
   end.
@@ -1064,7 +1085,7 @@ build_paren_stab(_Before, [{Op, _, [_]}]=Exprs, _After) when ?rearrange_uop(Op) 
   {'__block__', [], Exprs};
 build_paren_stab(Before, Stab, After) ->
   case check_stab(Stab, none) of
-    block -> build_block(reverse(Stab), meta_from_token_with_closing(Before, After));
+    block -> build_block(reverse(Stab), {Before, After});
     stab -> handle_literal(collect_stab(Stab, [], []), Before, newlines_pair(Before, After))
   end.
 
