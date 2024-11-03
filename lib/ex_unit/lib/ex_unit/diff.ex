@@ -398,6 +398,7 @@ defmodule ExUnit.Diff do
 
   defp diff_improper([], right, env) when is_list(right) do
     equivalent? = right == []
+
     right = right |> escape() |> update_diff_meta(not equivalent?)
 
     {%__MODULE__{equivalent?: equivalent?, right: right, left: []}, env}
@@ -763,10 +764,6 @@ defmodule ExUnit.Diff do
   rescue
     _ -> :error
   end
-
-  def build_quoted(elem) when is_struct(elem), do: elem
-  def build_quoted(elem) when is_map(elem), do: {:%{}, [], Map.to_list(elem)}
-  def build_quoted(elem), do: elem
 
   defp maybe_struct(%name{}), do: name
   defp maybe_struct(_), do: nil

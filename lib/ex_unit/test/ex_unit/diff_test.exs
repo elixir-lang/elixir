@@ -126,12 +126,11 @@ defmodule ExUnit.DiffTest do
     assert env_binding == expected_binding
   end
 
+  @terminal_width 80
   defp to_diff(side, sign) do
-    terminal_width = 80
-
     side
     |> Diff.to_algebra(&diff_wrapper(&1, sign))
-    |> Algebra.format(terminal_width)
+    |> Algebra.format(@terminal_width)
     |> IO.iodata_to_binary()
   end
 
