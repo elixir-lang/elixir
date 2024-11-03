@@ -2871,11 +2871,11 @@ defmodule Kernel.ExpansionTest do
 
   test "handles invalid expressions" do
     assert_compile_error(~r"invalid quoted expression: {1, 2, 3}", fn ->
-      expand_env(quote(do: unquote({1, 2, 3})), __ENV__)
+      expand_env({1, 2, 3}, __ENV__)
     end)
 
     assert_compile_error(~r"invalid quoted expression: #Function\<", fn ->
-      expand(quote(do: unquote({:sample, fn -> nil end})))
+      expand({:sample, fn -> nil end})
     end)
 
     assert_compile_error(~r"invalid pattern in match", fn ->

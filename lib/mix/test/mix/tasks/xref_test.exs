@@ -63,7 +63,13 @@ defmodule Mix.Tasks.XrefTest do
       }
 
       output = [
-        %{callee: {A, :b, 1}, caller_module: B, file: "lib/b.ex", line: 3}
+        %{callee: {A, :b, 1}, caller_module: B, file: "lib/b.ex", line: 3},
+        %{
+          callee: {:elixir_quote, :shallow_validate_ast, 1},
+          caller_module: A,
+          file: "lib/a.ex",
+          line: 4
+        }
       ]
 
       assert_all_calls(files, output)

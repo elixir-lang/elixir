@@ -405,12 +405,16 @@ defmodule Code.Normalizer.QuotedASTTest do
     end
 
     test "range" do
-      assert quoted_to_string(quote(do: unquote(-1..+2))) == "-1..2"
+      assert quoted_to_string(quote(do: -1..+2)) == "-1..+2"
       assert quoted_to_string(quote(do: Foo.integer()..3)) == "Foo.integer()..3"
-      assert quoted_to_string(quote(do: unquote(-1..+2//-3))) == "-1..2//-3"
+      assert quoted_to_string(quote(do: -1..+2//-3)) == "-1..+2//-3"
 
       assert quoted_to_string(quote(do: Foo.integer()..3//Bar.bat())) ==
                "Foo.integer()..3//Bar.bat()"
+
+      # invalid AST
+      assert quoted_to_string(-1..+2) == "-1..2"
+      assert quoted_to_string(-1..+2//-3) == "-1..2//-3"
     end
 
     test "when" do
