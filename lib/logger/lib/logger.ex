@@ -939,8 +939,14 @@ defmodule Logger do
   def __should_log__(level, module) do
     level = elixir_level_to_erlang_level(level)
 
-    if :logger_config.allow(level, module) do
-      level
+    case get_process_level(self()) do
+      nil ->
+        if :logger_config.allow(level, module) do
+          level
+        end
+
+      process_level ->
+        process_level
     end
   end
 
