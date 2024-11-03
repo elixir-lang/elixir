@@ -398,12 +398,7 @@ defmodule ExUnit.Diff do
 
   defp diff_improper([], right, env) when is_list(right) do
     equivalent? = right == []
-
-    right =
-      right
-      |> Enum.map(&build_quoted/1)
-      |> escape()
-      |> update_diff_meta(not equivalent?)
+    right = right |> escape() |> update_diff_meta(not equivalent?)
 
     {%__MODULE__{equivalent?: equivalent?, right: right, left: []}, env}
   end
@@ -624,12 +619,12 @@ defmodule ExUnit.Diff do
   end
 
   defp list_script_to_diff([{:del, elem1} | rest1], rest2, _, left, right, env) do
-    diff_left = elem1 |> build_quoted() |> maybe_escape(env) |> update_diff_meta(true)
+    diff_left = elem1 |> maybe_escape(env) |> update_diff_meta(true)
     list_script_to_diff(rest1, rest2, false, [diff_left | left], right, env)
   end
 
   defp list_script_to_diff(rest1, [{:ins, elem2} | rest2], _, left, right, env) do
-    diff_right = elem2 |> build_quoted() |> escape() |> update_diff_meta(true)
+    diff_right = elem2 |> escape() |> update_diff_meta(true)
     list_script_to_diff(rest1, rest2, false, left, [diff_right | right], env)
   end
 
@@ -1157,7 +1152,7 @@ defmodule ExUnit.Diff do
   # special AST representation, so we can keep them as is.
   # Maps should be formatted not inspected.
   defp escape(other) when is_struct(other), do: {other}
-  defp escape({:%{}, _, _} = other), do: other
+  defp escape(elem) when is_map(elem), do: {:%{}, [], Map.to_list(elem)}
   defp escape(other) when is_list(other) or is_tuple(other), do: {other}
   defp escape(other), do: other
 

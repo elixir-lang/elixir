@@ -1200,7 +1200,16 @@ defmodule ExUnit.DiffTest do
 
     refute_diff(ref1 == :a, "-#{inspect_ref1}-", "+:a+")
     refute_diff({ref1, ref2} == :a, "-{#{inspect_ref1}, #{inspect_ref2}}", "+:a+")
-    refute_diff(%{ref1 => ref2} == :a, "-%{#{inspect_ref1} => #{inspect_ref2}}", "+:a+")
+
+    refute_diff(
+      %{ref1 => ref2} == :a,
+      """
+      -%{
+        #{inspect_ref1} => #{inspect_ref2}
+      }\
+      """,
+      "+:a+"
+    )
 
     refute_diff(
       %Opaque{data: ref1} == :a,
@@ -1241,7 +1250,16 @@ defmodule ExUnit.DiffTest do
     refute_diff(identity == :a, "-#{inspect}-", "+:a+")
     refute_diff({identity, identity} == :a, "-{#{inspect}, #{inspect}}", "+:a+")
     refute_diff({identity, :a} == {:a, identity}, "{-#{inspect}-, -:a-}", "{+:a+, +#{inspect}+}")
-    refute_diff(%{identity => identity} == :a, "-%{#{inspect} => #{inspect}}", "+:a+")
+
+    refute_diff(
+      %{identity => identity} == :a,
+      """
+      -%{
+        #{inspect} => #{inspect}
+      }-\
+      """,
+      "+:a+"
+    )
 
     refute_diff(
       (&String.to_charlist/1) == (&String.unknown/1),
