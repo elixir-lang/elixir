@@ -791,24 +791,27 @@ defmodule Kernel.QuoteTest.HasUnquoteTest do
   end
 
   test "unquote with invalid AST (shallow check)" do
-    assert_raise ArgumentError, "tried to unquote invalid AST: %{unescaped: :map}", fn ->
-      quote do: unquote(%{unescaped: :map})
-    end
+    for term <- [
+          %{unescaped: :map},
+          1..10,
+          {:bad_meta, nil, []},
+          {:bad_arg, nil, 1},
+          {:bad_tuple},
+          make_ref(),
+          [:improper | :list],
+          [nested: {}]
+        ] do
+      message = """
+      tried to unquote invalid AST: #{inspect(term)}
+      Did you forget to escape term using Macro.escape/1?\
+      """
 
-    assert_raise ArgumentError, "tried to unquote invalid AST: {:bad_meta, nil, []}", fn ->
-      quote do: unquote({:bad_meta, nil, []})
+      assert_raise ArgumentError, message, fn -> quote do: unquote(term) end
     end
+  end
 
-    assert_raise ArgumentError, "tried to unquote invalid AST: {:bad_arg, nil, 1}", fn ->
-      quote do: unquote({:bad_arg, nil, 1})
-    end
-
-    assert_raise ArgumentError, "tried to unquote invalid AST: {:bad_tuple}", fn ->
-      quote do: unquote({:bad_tuple})
-    end
-
-    assert_raise ArgumentError, ~r/tried to unquote invalid AST: #Reference</, fn ->
-      quote do: unquote(make_ref())
-    end
+  test "unquote with invalid AST is not checked deeply" do
+    assert quote do: unquote(foo: [1 | 2]) == [foo: [1 | 2]]
+    assert quote do: unquote(foo: [bar: %{}]) == [foo: [bar: %{}]]
   end
 end

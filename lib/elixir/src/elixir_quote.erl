@@ -259,15 +259,23 @@ is_valid(unquote, Unquote) -> is_boolean(Unquote).
 shallow_validate_ast(Expr) ->
   case shallow_valid_ast(Expr) of
     true -> Expr;
-    false -> argument_error(<<"tried to unquote invalid AST: ", ('Elixir.Kernel':inspect(Expr))/binary>>)
+    false -> argument_error(
+      <<"tried to unquote invalid AST: ", ('Elixir.Kernel':inspect(Expr))/binary,
+        "\nDid you forget to escape term using Macro.escape/1?">>)
   end.
 
-shallow_valid_ast(Expr) when is_list(Expr) -> lists:all(fun shallow_valid_ast/1, Expr);
-shallow_valid_ast(Expr) when is_atom(Expr); is_binary(Expr); is_number(Expr); is_pid(Expr) -> true;
-shallow_valid_ast({Left, Right}) -> shallow_valid_ast(Left) andalso shallow_valid_ast(Right);
-shallow_valid_ast({Atom, Meta, Args}) when is_atom(Atom), is_list(Meta), is_atom(Args) orelse is_list(Args) -> true;
-shallow_valid_ast({Call, Meta, Args}) when is_list(Meta), is_list(Args) -> shallow_valid_ast(Call);
-shallow_valid_ast(_Term) -> false.
+shallow_valid_ast(Expr) when is_list(Expr) -> valid_ast_list(Expr);
+shallow_valid_ast(Expr) -> valid_ast_elem(Expr).
+
+valid_ast_list([]) -> true;
+valid_ast_list([Head | Tail]) -> valid_ast_elem(Head) andalso valid_ast_list(Tail);
+valid_ast_list(_Improper) -> false.
+
+valid_ast_elem(Expr) when is_list(Expr); is_atom(Expr); is_binary(Expr); is_number(Expr); is_pid(Expr) -> true;
+valid_ast_elem({Left, Right}) -> valid_ast_elem(Left) andalso valid_ast_elem(Right);
+valid_ast_elem({Atom, Meta, Args}) when is_atom(Atom), is_list(Meta), is_atom(Args) orelse is_list(Args) -> true;
+valid_ast_elem({Call, Meta, Args}) when is_list(Meta), is_list(Args) -> shallow_valid_ast(Call);
+valid_ast_elem(_Term) -> false.
 
 quote({unquote_splicing, _, [_]}, #elixir_quote{unquote=true}) ->
   argument_error(<<"unquote_splicing only works inside arguments and block contexts, "
