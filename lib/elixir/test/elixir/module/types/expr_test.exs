@@ -513,6 +513,30 @@ defmodule Module.Types.ExprTest do
                )
     end
 
+    test "updating maps" do
+      assert typecheck!([x], %{x | x: :zero}) ==
+               dynamic(open_map(x: atom([:zero])))
+
+      assert typecheck!([x], %{%{x | x: :zero} | y: :one}) ==
+               dynamic(open_map(x: atom([:zero]), y: atom([:one])))
+
+      assert typeerror!([x = :foo], %{x | x: :zero}) == ~l"""
+             expected a map within map update syntax:
+
+                 %{x | x: :zero}
+
+             but got type:
+
+                 dynamic(:foo)
+
+             where "x" was given the type:
+
+                 # type: dynamic(:foo)
+                 # from: types_test.ex:LINE
+                 x = :foo
+             """
+    end
+
     test "updating structs" do
       assert typecheck!([x], %Point{x | x: :zero}) ==
                dynamic(open_map(__struct__: atom([Point]), x: atom([:zero])))

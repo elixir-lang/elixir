@@ -115,9 +115,20 @@ defmodule Module.Types.Expr do
 
   # %{map | ...}
   # TODO: Once we support typed structs, we need to type check them here.
-  def of_expr({:%{}, _, [{:|, _, [map, args]}]}, stack, context) do
+  def of_expr({:%{}, meta, [{:|, _, [map, args]}]} = expr, stack, context) do
     {map_type, context} = of_expr(map, stack, context)
-    Of.update_map(map_type, args, stack, context, &of_expr/3)
+
+    Of.permutate_map(args, stack, context, &of_expr/3, fn _closed?, pairs ->
+      # TODO: If closed? is false, we need to open up the map
+      Enum.reduce(pairs, map_type, fn {key, type}, acc ->
+        case map_put(acc, key, type) do
+          descr when is_descr(descr) -> descr
+          :badmap -> throw({:badmap, map_type, expr, context})
+        end
+      end)
+    end)
+  catch
+    error -> {error_type(), error(__MODULE__, error, meta, stack, context)}
   end
 
   # %Struct{map | ...}
@@ -134,7 +145,7 @@ defmodule Module.Types.Expr do
     {map_type, context} = of_expr(map, stack, context)
 
     if disjoint?(struct_type, map_type) do
-      warning = {:badupdate, :struct, expr, struct_type, map_type, context}
+      warning = {:badstruct, expr, struct_type, map_type, context}
       {error_type(), error(__MODULE__, warning, update_meta, stack, context)}
     else
       map_type = map_put!(map_type, :__struct__, atom([module]))
@@ -522,7 +533,7 @@ defmodule Module.Types.Expr do
 
   ## Warning formatting
 
-  def format_diagnostic({:badupdate, type, expr, expected_type, actual_type, context}) do
+  def format_diagnostic({:badstruct, expr, expected_type, actual_type, context}) do
     traces = collect_traces(expr, context)
 
     %{
@@ -530,7 +541,7 @@ defmodule Module.Types.Expr do
       message:
         IO.iodata_to_binary([
           """
-          incompatible types in #{type} update:
+          incompatible types in struct update:
 
               #{expr_to_string(expr) |> indent(4)}
 
@@ -541,6 +552,27 @@ defmodule Module.Types.Expr do
           but got type:
 
               #{to_quoted_string(actual_type) |> indent(4)}
+          """,
+          format_traces(traces)
+        ])
+    }
+  end
+
+  def format_diagnostic({:badmap, type, expr, context}) do
+    traces = collect_traces(expr, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          expected a map within map update syntax:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          but got type:
+
+              #{to_quoted_string(type) |> indent(4)}
           """,
           format_traces(traces)
         ])

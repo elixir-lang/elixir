@@ -108,26 +108,15 @@ defmodule Module.Types.Of do
   Builds a closed map.
   """
   def closed_map(pairs, stack, context, of_fun) do
-    key_permutations(pairs, stack, context, of_fun, fn closed?, pairs ->
+    permutate_map(pairs, stack, context, of_fun, fn closed?, pairs ->
       if closed?, do: closed_map(pairs), else: open_map(pairs)
     end)
   end
 
   @doc """
-  Updates a map with the given keys.
+  Builds permutation of maps according to the given keys.
   """
-  def update_map(map_type, pairs, stack, context, of_fun) do
-    key_permutations(pairs, stack, context, of_fun, fn _closed?, pairs ->
-      Enum.reduce(pairs, map_type, fn {key, type}, acc ->
-        case map_put(acc, key, type) do
-          descr when is_descr(descr) -> descr
-          error -> throw({error, key, type})
-        end
-      end)
-    end)
-  end
-
-  defp key_permutations(pairs, stack, context, of_fun, of_map) do
+  def permutate_map(pairs, stack, context, of_fun, of_map) do
     {closed?, single, multiple, context} =
       Enum.reduce(pairs, {true, [], [], context}, fn
         {key, value}, {closed?, single, multiple, context} ->
