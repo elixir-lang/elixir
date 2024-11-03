@@ -398,9 +398,7 @@ defmodule ExUnit.Diff do
 
   defp diff_improper([], right, env) when is_list(right) do
     equivalent? = right == []
-
     right = right |> escape() |> update_diff_meta(not equivalent?)
-
     {%__MODULE__{equivalent?: equivalent?, right: right, left: []}, env}
   end
 
