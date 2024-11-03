@@ -926,17 +926,20 @@ defmodule Logger do
   """
   @spec bare_log(level, message | (-> message | {message, keyword}), keyword) :: :ok
   def bare_log(level, message_or_fun, metadata \\ []) do
-    case __should_log__(level, nil) do
-      nil -> :ok
-      level -> __do_log__(level, message_or_fun, %{}, Map.new(metadata))
+    level = elixir_level_to_erlang_level(level)
+
+    if :logger_config.allow(level) do
+      __do_log__(level, message_or_fun, %{}, Map.new(metadata))
     end
+
+    :ok
   end
 
   @doc false
   def __should_log__(level, module) do
     level = elixir_level_to_erlang_level(level)
 
-    if :logger.allow(level, module) do
+    if :logger_config.allow(level, module) do
       level
     end
   end
