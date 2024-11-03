@@ -401,7 +401,7 @@ defmodule ExUnit.Diff do
 
     right =
       right
-      |> Enum.map(&build_elem/1)
+      |> Enum.map(&build_quoted/1)
       |> escape()
       |> update_diff_meta(not equivalent?)
 
@@ -572,7 +572,7 @@ defmodule ExUnit.Diff do
   end
 
   defp move_down({y, [elem1 | rest1], list2, {edit1, edit2, env}}) do
-    {y + 1, rest1, list2, {[{:del, build_elem(elem1)} | edit1], edit2, env}}
+    {y + 1, rest1, list2, {[{:del, elem1} | edit1], edit2, env}}
   end
 
   defp move_down({y, [], list2, edits}) do
@@ -624,12 +624,12 @@ defmodule ExUnit.Diff do
   end
 
   defp list_script_to_diff([{:del, elem1} | rest1], rest2, _, left, right, env) do
-    diff_left = elem1 |> maybe_escape(env) |> update_diff_meta(true)
+    diff_left = elem1 |> build_quoted() |> maybe_escape(env) |> update_diff_meta(true)
     list_script_to_diff(rest1, rest2, false, [diff_left | left], right, env)
   end
 
   defp list_script_to_diff(rest1, [{:ins, elem2} | rest2], _, left, right, env) do
-    diff_right = elem2 |> escape() |> update_diff_meta(true)
+    diff_right = elem2 |> build_quoted() |> escape() |> update_diff_meta(true)
     list_script_to_diff(rest1, rest2, false, left, [diff_right | right], env)
   end
 
@@ -769,9 +769,9 @@ defmodule ExUnit.Diff do
     _ -> :error
   end
 
-  def build_elem(elem) when is_struct(elem), do: elem
-  def build_elem(elem) when is_map(elem), do: {:%{}, [], Map.to_list(elem)}
-  def build_elem(elem), do: elem
+  def build_quoted(elem) when is_struct(elem), do: elem
+  def build_quoted(elem) when is_map(elem), do: {:%{}, [], Map.to_list(elem)}
+  def build_quoted(elem), do: elem
 
   defp maybe_struct(%name{}), do: name
   defp maybe_struct(_), do: nil

@@ -922,6 +922,8 @@ defmodule ExUnit.DiffTest do
       ]\
       """
     )
+
+    assert_diff([map] == [map], [])
   end
 
   test "maps and structs with escaped values" do
