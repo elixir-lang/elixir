@@ -10,6 +10,10 @@ defmodule ExUnit.DiffTest do
     defstruct [:name, :age]
   end
 
+  defmodule Customer do
+    defstruct [:address, :age, :first_name, :language, :last_name, :notifications]
+  end
+
   defmodule Person do
     defstruct [:age]
   end
@@ -875,17 +879,17 @@ defmodule ExUnit.DiffTest do
 
   test "maps in lists" do
     map = %{
-      first_name: "John",
-      last_name: "Doe",
-      age: 30,
-      notifications: true,
-      language: "en-US",
       address: %{
         street: "123 Main St",
         city: "Springfield",
         state: "IL",
         zip: "62701"
-      }
+      },
+      age: 30,
+      first_name: "John",
+      language: "en-US",
+      last_name: "Doe",
+      notifications: true
     }
 
     refute_diff(
@@ -893,12 +897,12 @@ defmodule ExUnit.DiffTest do
       """
       [
         -%{
-          address: %{state: \"IL\", zip: \"62701\", street: \"123 Main St\", city: \"Springfield\"},
+          address: %{state: "IL", zip: "62701", street: "123 Main St", city: "Springfield"},
           age: 30,
-          first_name: \"John\",
-          last_name: \"Doe\",
-          notifications: true,
-          language: \"en-US\"
+          first_name: "John",
+          language: "en-US",
+          last_name: "Doe",
+          notifications: true
         }-
       ]\
       """,
@@ -911,18 +915,70 @@ defmodule ExUnit.DiffTest do
       """
       [
         +%{
-          address: %{state: \"IL\", zip: \"62701\", street: \"123 Main St\", city: \"Springfield\"},
+          address: %{state: "IL", zip: "62701", street: "123 Main St", city: "Springfield"},
           age: 30,
-          first_name: \"John\",
-          last_name: \"Doe\",
-          notifications: true,
-          language: \"en-US\"
+          first_name: "John",
+          language: "en-US",
+          last_name: "Doe",
+          notifications: true
         }+
       ]\
       """
     )
 
     assert_diff([map] == [map], [])
+  end
+
+  test "structs in lists" do
+    customer = %Customer{
+      address: %{
+        street: "123 Main St",
+        city: "Springfield",
+        state: "IL",
+        zip: "62701"
+      },
+      age: 30,
+      first_name: "John",
+      language: "en-US",
+      last_name: "Doe",
+      notifications: true
+    }
+
+    refute_diff(
+      [customer] == [],
+      """
+      [
+        -%ExUnit.DiffTest.Customer{
+          address: %{state: "IL", zip: "62701", street: "123 Main St", city: "Springfield"},
+          age: 30,
+          first_name: "John",
+          language: "en-US",
+          last_name: "Doe",
+          notifications: true
+        }-
+      ]\
+      """,
+      "[]"
+    )
+
+    refute_diff(
+      [] == [customer],
+      "[]",
+      """
+      [
+        +%ExUnit.DiffTest.Customer{
+          address: %{state: "IL", zip: "62701", street: "123 Main St", city: "Springfield"},
+          age: 30,
+          first_name: "John",
+          language: "en-US",
+          last_name: "Doe",
+          notifications: true
+        }+
+      ]\
+      """
+    )
+
+    assert_diff([customer] == [customer], [])
   end
 
   test "maps and structs with escaped values" do
