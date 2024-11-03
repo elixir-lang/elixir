@@ -1146,7 +1146,7 @@ defmodule ExUnit.Diff do
   # and values that should be inspected. All other values have no
   # special AST representation, so we can keep them as is.
   # Maps should be formatted not inspected.
-  defp escape(other) when is_struct(other), do: {other}
+  defp escape(other) when is_struct(other), do: other
   defp escape(elem) when is_map(elem), do: {:%{}, [], Map.to_list(elem)}
   defp escape(other) when is_list(other) or is_tuple(other), do: {other}
   defp escape(other), do: other
