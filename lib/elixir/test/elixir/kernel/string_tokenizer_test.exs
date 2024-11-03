@@ -70,6 +70,15 @@ defmodule Kernel.StringTokenizerTest do
     assert {:error, _} = Code.string_to_quoted("Ola!")
   end
 
+  test "tokenizes remote calls" do
+    # We chose the atom below because Erlang represents it using nested lists
+    assert {{:., _, [:foo, :บูมเมอแรง]}, _, []} =
+             Code.string_to_quoted!(":foo.บูมเมอแรง()")
+
+    assert {{:., _, [:foo, :บูมเมอแรง]}, _, []} =
+             Code.string_to_quoted!(":foo.\"บูมเมอแรง\"()")
+  end
+
   describe "script mixing" do
     test "prevents Restricted codepoints in identifiers" do
       exception = assert_raise SyntaxError, fn -> Code.string_to_quoted!("_shibㅤ = 1") end
