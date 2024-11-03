@@ -618,10 +618,26 @@ defmodule Kernel.ParserTest do
                   1,
                   {:+,
                    [
+                     parens: [[line: 1, column: 5, closing: [line: 1, column: 11]]],
                      line: 1,
-                     column: 8,
-                     parens_opening: [line: 1, column: 5],
-                     parens_closing: [line: 1, column: 11]
+                     column: 8
+                   ], [2, 3]}
+                ]}
+
+      file = "1 + ((2 + 3))"
+
+      assert Code.string_to_quoted!(file, token_metadata: true, columns: true) ==
+               {:+, [line: 1, column: 3],
+                [
+                  1,
+                  {:+,
+                   [
+                     parens: [
+                       [line: 1, column: 5, closing: [line: 1, column: 13]],
+                       [line: 1, column: 6, closing: [line: 1, column: 12]]
+                     ],
+                     line: 1,
+                     column: 9
                    ], [2, 3]}
                 ]}
     end
@@ -666,10 +682,9 @@ defmodule Kernel.ParserTest do
                      [
                        {:__block__,
                         [
+                          parens: [[line: 1, closing: [line: 1]]],
                           token: "1",
-                          line: 1,
-                          parens_opening: [line: 1],
-                          parens_closing: [line: 1]
+                          line: 1
                         ], [1]}
                      ],
                      {:__block__, [delimiter: "\"", line: 1], ["hello"]}
@@ -677,8 +692,7 @@ defmodule Kernel.ParserTest do
                 ]}
 
       assert string_to_quoted.("(1)") ==
-               {:__block__,
-                [token: "1", line: 1, parens_opening: [line: 1], parens_closing: [line: 1]], [1]}
+               {:__block__, [parens: [[line: 1, closing: [line: 1]]], token: "1", line: 1], [1]}
     end
 
     test "adds identifier_location for qualified identifiers" do

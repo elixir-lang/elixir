@@ -786,7 +786,16 @@ build_block([{Op, ExprMeta, Args}], {Before, After}) ->
   ExprMetaWithExtra =
     case ?token_metadata() of
       true ->
-        ExprMeta ++ [{parens_opening, meta_from_token(Before)}, {parens_closing, meta_from_token(After)}];
+        ParensEntry = meta_from_token(Before) ++ [{closing, meta_from_token(After)}],
+        case ExprMeta of
+          % If there are multiple parens, those will result in subsequent
+          % build_block/2 calls, so we can assume parens entry is first
+          [{parens, Parens} | Meta] ->
+            [{parens, [ParensEntry | Parens]} | Meta];
+
+          Meta ->
+            [{parens, [ParensEntry]} | Meta]
+        end;
       false ->
         ExprMeta
     end,
