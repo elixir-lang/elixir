@@ -582,6 +582,9 @@ defmodule Module.Types.Of do
       when name in [:>=, :"=<", :>, :<, :min, :max] do
     context =
       cond do
+        stack.mode == :infer ->
+          context
+
         match?({false, _}, map_fetch(left, :__struct__)) or
             match?({false, _}, map_fetch(right, :__struct__)) ->
           warning = {:struct_comparison, expr, context}
@@ -609,6 +612,9 @@ defmodule Module.Types.Of do
       when name in [:==, :"/=", :"=:=", :"=/="] do
     context =
       cond do
+        stack.mode == :infer ->
+          context
+
         name in [:==, :"/="] and number_type?(left) and number_type?(right) ->
           context
 

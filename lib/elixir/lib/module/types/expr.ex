@@ -178,16 +178,34 @@ defmodule Module.Types.Expr do
     of_expr(post, stack, context)
   end
 
-  # TODO: cond do pat -> expr end
   def of_expr({:cond, _meta, [[{:do, clauses}]]}, stack, context) do
-    context =
-      Enum.reduce(clauses, context, fn {:->, _meta, [head, body]}, context ->
-        {_, context} = of_expr(head, stack, context)
-        {_, context} = of_expr(body, stack, context)
-        context
-      end)
+    clauses
+    |> reduce_non_empty({none(), context}, fn
+      {:->, meta, [[head], body]}, {acc, context}, last? ->
+        {head_type, context} = of_expr(head, stack, context)
 
-    {dynamic(), context}
+        context =
+          if stack.mode == :infer do
+            context
+          else
+            case truthness(head_type) do
+              :always_true when not last? ->
+                warning = {:badcond, "always match", head_type, head, context}
+                warn(__MODULE__, warning, meta, stack, context)
+
+              :always_false ->
+                warning = {:badcond, "never match", head_type, head, context}
+                warn(__MODULE__, warning, meta, stack, context)
+
+              _ ->
+                context
+            end
+          end
+
+        {body_type, context} = of_expr(body, stack, context)
+        {union(body_type, acc), context}
+    end)
+    |> dynamic_unless_static(stack)
   end
 
   # TODO: case expr do pat -> expr end
@@ -459,6 +477,15 @@ defmodule Module.Types.Expr do
     {Enum.reduce(returns, &union/2), context}
   end
 
+  defp reduce_non_empty([last], acc, fun),
+    do: fun.(last, acc, true)
+
+  defp reduce_non_empty([head | tail], acc, fun),
+    do: reduce_non_empty(tail, fun.(head, acc, false), fun)
+
+  defp dynamic_unless_static({_, _} = output, %{mode: :static}), do: output
+  defp dynamic_unless_static({type, context}, %{mode: _}), do: {dynamic(type), context}
+
   defp of_clauses(clauses, stack, context) do
     Enum.reduce(clauses, context, fn {:->, meta, [head, body]}, context ->
       {patterns, guards} = extract_head(head)
@@ -480,13 +507,8 @@ defmodule Module.Types.Expr do
     {other, []}
   end
 
-  defp flatten_when({:when, _meta, [left, right]}) do
-    [left | flatten_when(right)]
-  end
-
-  defp flatten_when(other) do
-    [other]
-  end
+  defp flatten_when({:when, _meta, [left, right]}), do: [left | flatten_when(right)]
+  defp flatten_when(other), do: [other]
 
   defp of_expr_context(expr, stack, context) do
     {_type, context} = of_expr(expr, stack, context)
@@ -575,6 +597,27 @@ defmodule Module.Types.Expr do
               #{expr_to_string(call_expr) |> indent(4)}
 
           but got type:
+
+              #{to_quoted_string(type) |> indent(4)}
+          """,
+          format_traces(traces)
+        ])
+    }
+  end
+
+  def format_diagnostic({:badcond, explain, type, expr, context}) do
+    traces = collect_traces(expr, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          this clause in cond will #{explain}:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          since it has type:
 
               #{to_quoted_string(type) |> indent(4)}
           """,

@@ -888,6 +888,82 @@ defmodule Module.Types.ExprTest do
     end
   end
 
+  describe "cond" do
+    test "always true" do
+      assert typecheck!(
+               cond do
+                 true -> :ok
+               end
+             ) == atom([:ok])
+
+      assert typecheck!(
+               [x, y],
+               cond do
+                 y -> :y
+                 x -> :x
+               end
+             ) == atom([:x, :y])
+
+      assert typedyn!(
+               [x, y],
+               cond do
+                 y -> :y
+                 x -> :x
+               end
+             ) == dynamic(atom([:x, :y]))
+
+      assert typewarn!(
+               [x, y = {:foo, :bar}],
+               cond do
+                 y -> :y
+                 x -> :x
+               end
+             ) ==
+               {atom([:x, :y]),
+                ~l"""
+                this clause in cond will always match:
+
+                    y
+
+                since it has type:
+
+                    dynamic({:foo, :bar})
+
+                where "y" was given the type:
+
+                    # type: dynamic({:foo, :bar})
+                    # from: types_test.ex:LINE-7
+                    y = {:foo, :bar}
+                """}
+    end
+
+    test "always false" do
+      assert typewarn!(
+               [x, y = false],
+               cond do
+                 y -> :y
+                 x -> :x
+               end
+             ) ==
+               {atom([:x, :y]),
+                ~l"""
+                this clause in cond will never match:
+
+                    y
+
+                since it has type:
+
+                    dynamic(false)
+
+                where "y" was given the type:
+
+                    # type: dynamic(false)
+                    # from: types_test.ex:LINE-7
+                    y = false
+                """}
+    end
+  end
+
   describe "comprehensions" do
     test "binary generators" do
       assert typeerror!([<<x>>], for(<<y <- x>>, do: y)) ==

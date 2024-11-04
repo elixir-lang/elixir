@@ -631,6 +631,48 @@ defmodule Module.Types.Descr do
   # an empty list of atoms. It is simplified to `0` in set operations, and the key
   # is removed from the map.
 
+  @false_or_nil_atoms [
+    :sets.from_list([false, nil], version: 2),
+    :sets.from_list([nil], version: 2),
+    :sets.from_list([false], version: 2)
+  ]
+
+  @doc """
+  Compute the truthness of an element.
+
+  It is either :undefined, :always_true, or :always_false.
+  """
+  def truthness(:term), do: :undefined
+
+  def truthness(%{} = descr) do
+    descr = Map.get(descr, :dynamic, descr)
+
+    case descr do
+      :term ->
+        :undefined
+
+      %{atom: {:union, set}}
+      when map_size(descr) == 1 and set in @false_or_nil_atoms ->
+        :always_false
+
+      %{atom: {:union, set}}
+      when map_size(descr) == 1 and not is_map_key(set, false) and not is_map_key(set, nil) ->
+        :always_true
+
+      %{atom: {:negation, %{nil => _, false => _}}} ->
+        :always_true
+
+      %{atom: _} ->
+        :undefined
+
+      _ when map_size(descr) == 0 ->
+        :undefined
+
+      _ ->
+        :always_true
+    end
+  end
+
   @doc """
   Optimized version of `not empty?(intersection(atom([atom]), type))`.
   """
