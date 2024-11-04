@@ -948,6 +948,7 @@ defmodule Code.Formatter.OperatorsTest do
       assert_format "&(Mod.foo/1)", "&Mod.foo/1"
       assert_format "&(Mod.++/1)", "&Mod.++/1"
       assert_format ~s[&(Mod."foo bar"/1)], ~s[&Mod."foo bar"/1]
+      assert_format ~S[&(Mod."foo\nbar"/1)], ~S[&Mod."foo\nbar"/1]
 
       # Invalid
       assert_format "& Mod.foo/bar", "&(Mod.foo() / bar)"

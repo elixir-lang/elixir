@@ -914,7 +914,9 @@ handle_dot([$., H | T] = Original, Line, Column, DotInfo, Scope, Tokens) when ?i
           InterScope
       end,
 
-      case unsafe_to_atom(Part, Line, Column, NewScope) of
+      {ok, [UnescapedPart]} = unescape_tokens([Part], Line, Column, NewScope),
+
+      case unsafe_to_atom(UnescapedPart, Line, Column, NewScope) of
         {ok, Atom} ->
           Token = check_call_identifier(Line, Column, Part, Atom, Rest),
           TokensSoFar = add_token_with_eol({'.', DotInfo}, Tokens),
