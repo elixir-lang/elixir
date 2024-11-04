@@ -814,4 +814,23 @@ defmodule Kernel.QuoteTest.HasUnquoteTest do
     assert quote do: unquote(foo: [1 | 2]) == [foo: [1 | 2]]
     assert quote do: unquote(foo: [bar: %{}]) == [foo: [bar: %{}]]
   end
+
+  test "unquote_splicing with invalid AST" do
+    for args <- [
+          "not_a_list",
+          [:improper | :list],
+          [%{unescaped: :map}],
+          [1..10],
+          [{:bad_meta, nil, []}],
+          [{:bad_arg, nil, 1}],
+          [{:bad_tuple}],
+          [make_ref()],
+          [nested: {}]
+        ] do
+      message =
+        "expected a list with quoted expressions in unquote_splicing/1, got: #{inspect(args)}"
+
+      assert_raise ArgumentError, message, fn -> quote do: [unquote_splicing(args)] end
+    end
+  end
 end

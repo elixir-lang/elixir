@@ -531,11 +531,12 @@ tail_list(Left, Right, Tail) when is_list(Left) ->
   [H | T] = lists:reverse(Tail ++ Left),
   lists:reverse([{'|', [], [H, Right]} | T]).
 
-validate_list(List) when is_list(List) ->
-  ok;
-validate_list(List) when not is_list(List) ->
-  argument_error(<<"expected a list with quoted expressions in unquote_splicing/1, got: ",
-                   ('Elixir.Kernel':inspect(List))/binary>>).
+validate_list(List) ->
+  case valid_ast_list(List) of
+    true -> ok;
+    false -> argument_error(<<"expected a list with quoted expressions in unquote_splicing/1, got: ",
+                   ('Elixir.Kernel':inspect(List))/binary>>)
+  end.
 
 argument_error(Message) ->
   error('Elixir.ArgumentError':exception([{message, Message}])).
