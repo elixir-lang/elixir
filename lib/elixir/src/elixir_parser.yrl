@@ -890,8 +890,15 @@ build_dot_container(Dot, Left, Right, Extra) ->
 
 build_dot(Dot, Left, {_, Location, _} = Right) ->
   Meta = meta_from_token(Dot),
-  IdentifierLocation = meta_from_location(Location),
-  {'.', Meta, IdentifierLocation, [Left, extract_identifier(Right)]}.
+  IdentifierMeta0 = meta_from_location(Location),
+  IdentifierMeta1 =
+    case Location of
+      {_Line, _Column, {_Unencoded, Delimiter}} when Delimiter =/= nil ->
+        delimiter(<<Delimiter>>) ++ IdentifierMeta0;
+      _ ->
+        IdentifierMeta0
+    end,
+  {'.', Meta, IdentifierMeta1, [Left, extract_identifier(Right)]}.
 
 extract_identifier({Kind, _, Identifier}) when
     Kind == identifier; Kind == bracket_identifier; Kind == paren_identifier;
@@ -916,8 +923,8 @@ build_no_parens_do_block(Expr, Args, {BlockMeta, Block}) ->
 build_no_parens(Expr, Args) ->
   build_call(Expr, Args).
 
-build_identifier({'.', Meta, IdentifierLocation, DotArgs}) ->
-  {{'.', Meta, DotArgs}, [{no_parens, true} | IdentifierLocation], []};
+build_identifier({'.', Meta, IdentifierMeta, DotArgs}) ->
+  {{'.', Meta, DotArgs}, [{no_parens, true} | IdentifierMeta], []};
 
 build_identifier({'.', Meta, _} = Dot) ->
   {Dot, [{no_parens, true} | Meta], []};
@@ -925,8 +932,8 @@ build_identifier({'.', Meta, _} = Dot) ->
 build_identifier({_, Location, Identifier}) ->
   {Identifier, meta_from_location(Location), nil}.
 
-build_call({'.', Meta, IdentifierLocation, DotArgs}, Args) ->
-  {{'.', Meta, DotArgs}, IdentifierLocation, Args};
+build_call({'.', Meta, IdentifierMeta, DotArgs}, Args) ->
+  {{'.', Meta, DotArgs}, IdentifierMeta, Args};
 
 build_call({'.', Meta, _} = Dot, Args) ->
   {Dot, Meta, Args};

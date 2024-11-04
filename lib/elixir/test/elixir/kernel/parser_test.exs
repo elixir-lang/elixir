@@ -128,7 +128,17 @@ defmodule Kernel.ParserTest do
     end
 
     test "handles graphemes inside quoted identifiers" do
-      assert {{:., _, [{:foo, _, nil}, :"➡️"]}, _, []} = Code.string_to_quoted!(~s|foo."➡️"|)
+      assert {
+               {:., _, [{:foo, _, nil}, :"➡️"]},
+               [no_parens: true, delimiter: ~S["], line: 1],
+               []
+             } = Code.string_to_quoted!(~S|foo."➡️"|, token_metadata: true)
+
+      assert {
+               {:., _, [{:foo, _, nil}, :"➡️"]},
+               [closing: [line: 1], delimiter: ~S["], line: 1],
+               []
+             } = Code.string_to_quoted!(~S|foo."➡️"()|, token_metadata: true)
     end
   end
 
