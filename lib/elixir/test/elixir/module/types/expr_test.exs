@@ -764,6 +764,32 @@ defmodule Module.Types.ExprTest do
     end
   end
 
+  describe "receive" do
+    test "errors on bad timeout" do
+      assert typeerror!(
+               [x = :timeout],
+               receive do
+               after
+                 x -> :ok
+               end
+             ) == ~l"""
+             expected "after" timeout given to receive to be an integer:
+
+                 x
+
+             but got type:
+
+                 dynamic(:timeout)
+
+             where "x" was given the type:
+
+                 # type: dynamic(:timeout)
+                 # from: types_test.ex:770
+                 x = :timeout
+             """
+    end
+  end
+
   describe "try" do
     test "warns on undefined exceptions" do
       assert typewarn!(

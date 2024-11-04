@@ -239,10 +239,16 @@ defmodule Module.Types.Expr do
         {:do, clauses}, context ->
           of_clauses(clauses, stack, context)
 
-        {:after, [{:->, _meta, [head, body]}]}, context ->
-          {_type, context} = of_expr(head, stack, context)
-          {_type, context} = of_expr(body, stack, context)
-          context
+        {:after, [{:->, meta, [[timeout], body]}]}, context ->
+          {timeout_type, context} = of_expr(timeout, stack, context)
+          {_body_type, context} = of_expr(body, stack, context)
+
+          if integer_type?(timeout_type) do
+            context
+          else
+            error = {:badtimeout, timeout_type, timeout, context}
+            error(__MODULE__, error, meta, stack, context)
+          end
       end)
 
     {dynamic(), context}
@@ -519,6 +525,27 @@ defmodule Module.Types.Expr do
         IO.iodata_to_binary([
           """
           expected the right side of <- in a binary generator to be a binary:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          but got type:
+
+              #{to_quoted_string(type) |> indent(4)}
+          """,
+          format_traces(traces)
+        ])
+    }
+  end
+
+  def format_diagnostic({:badtimeout, type, expr, context}) do
+    traces = collect_traces(expr, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          expected "after" timeout given to receive to be an integer:
 
               #{expr_to_string(expr) |> indent(4)}
 
