@@ -148,6 +148,21 @@ defmodule Module.Types.ExprTest do
 
       assert typewarn!(try(do: :ok, after: URI.unknown("foo"))) ==
                {dynamic(), "URI.unknown/1 is undefined or private"}
+
+      # Check it also emits over a union
+      assert typewarn!(
+               [x = Atom, y = GenServer, z],
+               (
+                 mod =
+                   cond do
+                     z -> x
+                     true -> y
+                   end
+
+                 mod.to_string(:atom)
+               )
+             ) ==
+               {union(dynamic(), binary()), "GenServer.to_string/1 is undefined or private"}
     end
 
     test "calling a nullary function on non atoms" do
@@ -179,6 +194,34 @@ defmodule Module.Types.ExprTest do
                    # type: integer()
                    # from: types_test.ex:LINE-1
                    <<x::integer>>
+               """
+
+      assert typeerror!(
+               [<<x::integer>>, y = Atom, z],
+               (
+                 mod =
+                   cond do
+                     z -> x
+                     true -> y
+                   end
+
+                 mod.to_string(:atom)
+               )
+             ) ==
+               ~l"""
+               expected a module (an atom) when invoking to_string/1 in expression:
+
+                   mod.to_string(:atom)
+
+               where "mod" was given the type:
+
+                   # type: dynamic(Atom or integer()) or integer()
+                   # from: types_test.ex:LINE-9
+                   mod =
+                     cond do
+                       z -> x
+                       true -> y
+                     end
                """
     end
 
