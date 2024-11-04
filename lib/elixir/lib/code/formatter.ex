@@ -582,15 +582,9 @@ defmodule Code.Formatter do
         {left, state} =
           case left_arg do
             {:__block__, _, [atom]} when is_atom(atom) ->
-              iodata =
-                if Macro.classify_atom(atom) in [:identifier, :unquoted] do
-                  [Atom.to_string(atom), ?:]
-                else
-                  [?", atom |> Atom.to_string() |> String.replace("\"", "\\\""), ?", ?:]
-                end
+              formatted = Macro.inspect_atom(:key, atom, escape: &escape_atom/2)
 
-              {iodata
-               |> IO.iodata_to_binary()
+              {formatted
                |> string()
                |> color_doc(:atom, state.inspect_opts), state}
 
@@ -1010,7 +1004,7 @@ defmodule Code.Formatter do
        )
        when is_atom(fun) and is_integer(arity) do
     {target_doc, state} = remote_target_to_algebra(target, state)
-    fun = Macro.inspect_atom(:remote_call, fun)
+    fun = Macro.inspect_atom(:remote_call, fun, escape: &escape_atom/2)
     {target_doc |> nest(1) |> concat(string(".#{fun}/#{arity}")), state}
   end
 
@@ -1057,7 +1051,9 @@ defmodule Code.Formatter do
     {target_doc, state} = remote_target_to_algebra(target, state)
 
     fun_doc =
-      Macro.inspect_atom(:remote_call, fun) |> string() |> color_doc(:call, state.inspect_opts)
+      Macro.inspect_atom(:remote_call, fun, escape: &escape_atom/2)
+      |> string()
+      |> color_doc(:call, state.inspect_opts)
 
     remote_doc = target_doc |> concat(".") |> concat(fun_doc)
 
@@ -2439,6 +2435,11 @@ defmodule Code.Formatter do
 
   defp closing_line(meta) do
     meta[:closing][:line] || @min_line
+  end
+
+  defp escape_atom(string, char) do
+    char = List.to_string([char])
+    String.replace(string, char, "\\#{char}")
   end
 
   ## Algebra helpers

@@ -126,13 +126,13 @@ defmodule Code.Normalizer do
     {:., meta, [Access, :get]}
   end
 
-  # Only normalize the left side of the dot operator
   # The right hand side is an atom in the AST but it's not an atom literal, so
-  # it should not be wrapped
-  defp do_normalize({:., meta, [left, right]}, state) do
+  # it should not be wrapped. However, it should be escaped if applicable.
+  defp do_normalize({:., meta, [left, right]}, state) when is_atom(right) do
     meta = patch_meta_line(meta, state.parent_meta)
 
     left = do_normalize(left, %{state | parent_meta: meta})
+    right = maybe_escape_literal(right, state)
 
     {:., meta, [left, right]}
   end

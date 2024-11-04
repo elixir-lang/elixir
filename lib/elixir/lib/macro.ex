@@ -2328,6 +2328,15 @@ defmodule Macro do
   as a key (`:key`), or as the function name of a remote call
   (`:remote_call`).
 
+  ## Options
+
+    * `:escape` - a two-arity function used to escape a quoted
+      atom content, if necessary. The function receives the atom
+      content as string and a quote delimiter character, which
+      should always be escaped. By default the content is escaped
+      such that the inspected sequence would be parsed as the
+      given atom.
+
   ## Examples
 
   ### As a literal
@@ -2376,14 +2385,19 @@ defmodule Macro do
 
   """
   @doc since: "1.14.0"
-  @spec inspect_atom(:literal | :key | :remote_call, atom) :: binary
-  def inspect_atom(source_format, atom)
+  @spec inspect_atom(:literal | :key | :remote_call, atom, keyword) :: binary
+  def inspect_atom(source_format, atom, opts \\ []) do
+    opts = Keyword.validate!(opts, [:escape])
 
-  def inspect_atom(:literal, atom) when is_nil(atom) or is_boolean(atom) do
+    escape = Keyword.get(opts, :escape, &inspect_atom_escape/2)
+    do_inspect_atom(source_format, atom, escape)
+  end
+
+  def do_inspect_atom(:literal, atom, _escape) when is_nil(atom) or is_boolean(atom) do
     Atom.to_string(atom)
   end
 
-  def inspect_atom(:literal, atom) when is_atom(atom) do
+  def do_inspect_atom(:literal, atom, escape) when is_atom(atom) do
     binary = Atom.to_string(atom)
 
     case classify_atom(atom) do
@@ -2395,7 +2409,7 @@ defmodule Macro do
         end
 
       :quoted ->
-        {escaped, _} = Code.Identifier.escape(binary, ?")
+        escaped = escape.(binary, ?")
         IO.iodata_to_binary([?:, ?", escaped, ?"])
 
       _ ->
@@ -2403,7 +2417,7 @@ defmodule Macro do
     end
   end
 
-  def inspect_atom(:key, atom) when is_atom(atom) do
+  def do_inspect_atom(:key, atom, escape) when is_atom(atom) do
     binary = Atom.to_string(atom)
 
     case classify_atom(atom) do
@@ -2411,7 +2425,7 @@ defmodule Macro do
         IO.iodata_to_binary([?", binary, ?", ?:])
 
       :quoted ->
-        {escaped, _} = Code.Identifier.escape(binary, ?")
+        escaped = escape.(binary, ?")
         IO.iodata_to_binary([?", escaped, ?", ?:])
 
       _ ->
@@ -2419,7 +2433,7 @@ defmodule Macro do
     end
   end
 
-  def inspect_atom(:remote_call, atom) when is_atom(atom) do
+  def do_inspect_atom(:remote_call, atom, escape) when is_atom(atom) do
     binary = Atom.to_string(atom)
 
     case inner_classify(atom) do
@@ -2431,11 +2445,16 @@ defmodule Macro do
           if type in [:not_callable, :alias] do
             binary
           else
-            elem(Code.Identifier.escape(binary, ?"), 0)
+            escape.(binary, ?")
           end
 
         IO.iodata_to_binary([?", escaped, ?"])
     end
+  end
+
+  defp inspect_atom_escape(string, char) do
+    {escaped, _} = Code.Identifier.escape(string, char)
+    escaped
   end
 
   # Classifies the given atom into one of the following categories:
