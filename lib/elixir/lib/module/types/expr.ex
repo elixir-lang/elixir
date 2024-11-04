@@ -278,13 +278,17 @@ defmodule Module.Types.Expr do
   end
 
   # TODO: fun.(args)
-  def of_expr({{:., _meta1, [fun]}, _meta2, args}, stack, context) do
+  def of_expr({{:., meta, [fun]}, _meta, args} = call, stack, context) do
     {fun_type, context} = of_expr(fun, stack, context)
     {_args_types, context} = Enum.map_reduce(args, context, &of_expr(&1, stack, &2))
 
     case fun_fetch(fun_type, length(args)) do
-      :ok -> {dynamic(), context}
-      :error -> {dynamic(), Of.incompatible_error(fun, fun(), fun_type, stack, context)}
+      :ok ->
+        {dynamic(), context}
+
+      :error ->
+        error = {:badfun, length(args), fun_type, fun, call, context}
+        {error_type(), error(__MODULE__, error, meta, stack, context)}
     end
   end
 
@@ -393,8 +397,8 @@ defmodule Module.Types.Expr do
     if binary_type?(right_type) do
       context
     else
-      warning = {:badbinary, right_type, right, context}
-      error(__MODULE__, warning, meta, stack, context)
+      error = {:badbinary, right_type, right, context}
+      error(__MODULE__, error, meta, stack, context)
     end
   end
 
@@ -548,6 +552,27 @@ defmodule Module.Types.Expr do
           expected "after" timeout given to receive to be an integer:
 
               #{expr_to_string(expr) |> indent(4)}
+
+          but got type:
+
+              #{to_quoted_string(type) |> indent(4)}
+          """,
+          format_traces(traces)
+        ])
+    }
+  end
+
+  def format_diagnostic({:badfun, arity, type, fun_expr, call_expr, context}) do
+    traces = collect_traces(fun_expr, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          expected a #{arity}-arity function on call:
+
+              #{expr_to_string(call_expr) |> indent(4)}
 
           but got type:
 

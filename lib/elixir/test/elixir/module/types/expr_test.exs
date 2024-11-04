@@ -116,26 +116,21 @@ defmodule Module.Types.ExprTest do
 
   describe "funs" do
     test "incompatible" do
-      assert typeerror!([%x{}], x.(1, 2)) ==
-               ~l"""
-               incompatible types in expression:
+      assert typeerror!([%x{}, a1, a2], x.(a1, a2)) == ~l"""
+             expected a 2-arity function on call:
 
-                   x
+                 x.(a1, a2)
 
-               got type:
+             but got type:
 
-                   dynamic(atom())
+                 dynamic(atom())
 
-               but expected type:
+             where "x" was given the type:
 
-                   fun()
-
-               where "x" was given the type:
-
-                   # type: dynamic(atom())
-                   # from: types_test.ex:LINE-1
-                   %x{}
-               """
+                 # type: dynamic(atom())
+                 # from: types_test.ex:LINE
+                 %x{}
+             """
     end
   end
 
@@ -784,7 +779,7 @@ defmodule Module.Types.ExprTest do
              where "x" was given the type:
 
                  # type: dynamic(:timeout)
-                 # from: types_test.ex:770
+                 # from: types_test.ex:LINE-5
                  x = :timeout
              """
     end
