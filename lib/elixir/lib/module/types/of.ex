@@ -108,8 +108,9 @@ defmodule Module.Types.Of do
   Builds a closed map.
   """
   def closed_map(pairs, stack, context, of_fun) do
-    permutate_map(pairs, stack, context, of_fun, fn closed?, pairs ->
-      if closed?, do: closed_map(pairs), else: open_map(pairs)
+    permutate_map(pairs, stack, context, of_fun, fn fallback, _keys, pairs ->
+      # TODO: Use the fallback type to actually indicate if open or closed.
+      if fallback == none(), do: closed_map(pairs), else: open_map(pairs)
     end)
   end
 
@@ -117,49 +118,62 @@ defmodule Module.Types.Of do
   Builds permutation of maps according to the given keys.
   """
   def permutate_map(pairs, stack, context, of_fun, of_map) do
-    {closed?, single, multiple, context} =
-      Enum.reduce(pairs, {true, [], [], context}, fn
-        {key, value}, {closed?, single, multiple, context} ->
-          {keys, context} = of_finite_key_type(key, stack, context, of_fun)
+    {dynamic?, fallback, single, multiple, assert, context} =
+      Enum.reduce(pairs, {false, none(), [], [], [], context}, fn
+        {key, value}, {dynamic?, fallback, single, multiple, assert, context} ->
+          {dynamic_key?, keys, context} = of_finite_key_type(key, stack, context, of_fun)
           {value_type, context} = of_fun.(value, stack, context)
+          dynamic? = dynamic? or dynamic_key? or gradual?(value_type)
 
           case keys do
             :none ->
-              {false, single, multiple, context}
+              fallback = union(fallback, value_type)
+
+              {fallback, assert} =
+                Enum.reduce(single, {fallback, assert}, fn {key, type}, {fallback, assert} ->
+                  {union(fallback, type), [key | assert]}
+                end)
+
+              {fallback, assert} =
+                Enum.reduce(multiple, {fallback, assert}, fn {keys, type}, {fallback, assert} ->
+                  {union(fallback, type), keys ++ assert}
+                end)
+
+              {dynamic?, fallback, [], [], assert, context}
 
             [key] when multiple == [] ->
-              {closed?, [{key, value_type} | single], multiple, context}
+              {dynamic?, fallback, [{key, value_type} | single], multiple, assert, context}
 
             keys ->
-              {closed?, single, [{keys, value_type} | multiple], context}
+              {dynamic?, fallback, single, [{keys, value_type} | multiple], assert, context}
           end
       end)
 
     map =
       case Enum.reverse(multiple) do
         [] ->
-          of_map.(closed?, Enum.reverse(single))
+          of_map.(fallback, Enum.uniq(assert), Enum.reverse(single))
 
         [{keys, type} | tail] ->
           for key <- keys, t <- cartesian_map(tail) do
-            of_map.(closed?, Enum.reverse(single, [{key, type} | t]))
+            of_map.(fallback, Enum.uniq(assert), Enum.reverse(single, [{key, type} | t]))
           end
           |> Enum.reduce(&union/2)
       end
 
-    {map, context}
+    if dynamic?, do: {dynamic(map), context}, else: {map, context}
   end
 
   defp of_finite_key_type(key, _stack, context, _of_fun) when is_atom(key) do
-    {[key], context}
+    {false, [key], context}
   end
 
   defp of_finite_key_type(key, stack, context, of_fun) do
     {key_type, context} = of_fun.(key, stack, context)
 
     case atom_fetch(key_type) do
-      {:finite, list} -> {list, context}
-      _ -> {:none, context}
+      {:finite, list} -> {gradual?(key_type), list, context}
+      _ -> {gradual?(key_type), :none, context}
     end
   end
 

@@ -118,14 +118,32 @@ defmodule Module.Types.Expr do
   def of_expr({:%{}, meta, [{:|, _, [map, args]}]} = expr, stack, context) do
     {map_type, context} = of_expr(map, stack, context)
 
-    Of.permutate_map(args, stack, context, &of_expr/3, fn _closed?, pairs ->
-      # TODO: If closed? is false, we need to open up the map
-      Enum.reduce(pairs, map_type, fn {key, type}, acc ->
-        case map_put(acc, key, type) do
-          descr when is_descr(descr) -> descr
-          :badmap -> throw({:badmap, map_type, expr, context})
-        end
-      end)
+    Of.permutate_map(args, stack, context, &of_expr/3, fn fallback, keys, pairs ->
+      # If there is no fallback (i.e. it is closed), we can update the existing map,
+      # otherwise we only assert the existing keys.
+      keys = if fallback == none(), do: keys, else: Enum.map(pairs, &elem(&1, 0)) ++ keys
+
+      # Assert the keys exist
+      fallback =
+        Enum.reduce(keys, fallback, fn key, acc ->
+          case map_fetch(map_type, key) do
+            {_, value_type} -> union(value_type, acc)
+            :badkey -> throw({:badkey, map_type, key, expr, context})
+            :badmap -> throw({:badmap, map_type, expr, context})
+          end
+        end)
+
+      if fallback == none() do
+        Enum.reduce(pairs, map_type, fn {key, type}, acc ->
+          case map_put(acc, key, type) do
+            descr when is_descr(descr) -> descr
+            :badmap -> throw({:badmap, map_type, expr, context})
+          end
+        end)
+      else
+        # TODO: Use the fallback type to actually indicate if open or closed.
+        open_map(pairs)
+      end
     end)
   catch
     error -> {error_type(), error(__MODULE__, error, meta, stack, context)}
@@ -567,6 +585,27 @@ defmodule Module.Types.Expr do
         IO.iodata_to_binary([
           """
           expected a map within map update syntax:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          but got type:
+
+              #{to_quoted_string(type) |> indent(4)}
+          """,
+          format_traces(traces)
+        ])
+    }
+  end
+
+  def format_diagnostic({:badkey, type, key, expr, context}) do
+    traces = collect_traces(expr, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          expected a map with key #{inspect(key)} in map update syntax:
 
               #{expr_to_string(expr) |> indent(4)}
 

@@ -481,10 +481,8 @@ defmodule Module.Types.ExprTest do
   end
 
   describe "maps/structs" do
-    test "creating maps" do
+    test "creating closed maps" do
       assert typecheck!(%{foo: :bar}) == closed_map(foo: atom([:bar]))
-      assert typecheck!(%{123 => 456}) == open_map()
-      assert typecheck!(%{123 => 456, foo: :bar}) == open_map(foo: atom([:bar]))
       assert typecheck!([x], %{key: x}) == dynamic(closed_map(key: term()))
 
       assert typecheck!(
@@ -493,6 +491,14 @@ defmodule Module.Types.ExprTest do
                  %{foo => :first, foo => :second}
                )
              ) == closed_map(foo: atom([:second]))
+    end
+
+    test "creating open maps" do
+      assert typecheck!(%{123 => 456}) == open_map()
+      # Since key cannot override :foo, we preserve it
+      assert typecheck!([key], %{key => 456, foo: :bar}) == dynamic(open_map(foo: atom([:bar])))
+      # Since key can override :foo, we do not preserve it
+      assert typecheck!([key], %{:foo => :bar, key => :baz}) == dynamic(open_map())
     end
 
     test "creating structs" do
@@ -513,7 +519,7 @@ defmodule Module.Types.ExprTest do
                )
     end
 
-    test "updating maps" do
+    test "updating to closed maps" do
       assert typecheck!([x], %{x | x: :zero}) ==
                dynamic(open_map(x: atom([:zero])))
 
@@ -534,6 +540,64 @@ defmodule Module.Types.ExprTest do
                  # type: dynamic(:foo)
                  # from: types_test.ex:LINE
                  x = :foo
+             """
+    end
+
+    test "updating to open maps" do
+      assert typecheck!(
+               [key],
+               (
+                 x = %{foo: :bar}
+                 %{x | key => :baz}
+               )
+             ) == dynamic(open_map())
+
+      # Since key cannot override :foo, we preserve it
+      assert typecheck!(
+               [key],
+               (
+                 x = %{foo: :bar}
+                 %{x | key => :baz, foo: :bat}
+               )
+             ) == dynamic(open_map(foo: atom([:bat])))
+
+      # Since key can override :foo, we do not preserve it
+      assert typecheck!(
+               [key],
+               (
+                 x = %{foo: :bar}
+                 %{x | :foo => :baz, key => :bat}
+               )
+             ) == dynamic(open_map())
+
+      # The goal of this test is to verufy we assert keys,
+      # even if they may be overridden later.
+      assert typeerror!(
+               [key],
+               (
+                 x = %{key: :value}
+                 %{x | :foo => :baz, key => :bat}
+               )
+             ) == ~l"""
+             expected a map with key :foo in map update syntax:
+
+                 %{x | :foo => :baz, key => :bat}
+
+             but got type:
+
+                 %{key: :value}
+
+             where "key" was given the type:
+
+                 # type: dynamic()
+                 # from: types_test.ex:538
+                 key
+
+             where "x" was given the type:
+
+                 # type: %{key: :value}
+                 # from: types_test.ex:540
+                 x = %{key: :value}
              """
     end
 
