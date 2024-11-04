@@ -124,14 +124,13 @@ defmodule Module.Types.Expr do
       keys = if fallback == none(), do: keys, else: Enum.map(pairs, &elem(&1, 0)) ++ keys
 
       # Assert the keys exist
-      fallback =
-        Enum.reduce(keys, fallback, fn key, acc ->
-          case map_fetch(map_type, key) do
-            {_, value_type} -> union(value_type, acc)
-            :badkey -> throw({:badkey, map_type, key, expr, context})
-            :badmap -> throw({:badmap, map_type, expr, context})
-          end
-        end)
+      Enum.each(keys, fn key ->
+        case map_fetch(map_type, key) do
+          {_, _} -> :ok
+          :badkey -> throw({:badkey, map_type, key, expr, context})
+          :badmap -> throw({:badmap, map_type, expr, context})
+        end
+      end)
 
       if fallback == none() do
         Enum.reduce(pairs, map_type, fn {key, type}, acc ->
@@ -142,6 +141,8 @@ defmodule Module.Types.Expr do
         end)
       else
         # TODO: Use the fallback type to actually indicate if open or closed.
+        # The fallback must be unioned with the result of map_values with all
+        # `keys` deleted.
         open_map(pairs)
       end
     end)
