@@ -570,7 +570,7 @@ defmodule Module.Types.ExprTest do
                )
              ) == dynamic(open_map())
 
-      # The goal of this test is to verufy we assert keys,
+      # The goal of this test is to verify we assert keys,
       # even if they may be overridden later.
       assert typeerror!(
                [key],
@@ -590,13 +590,13 @@ defmodule Module.Types.ExprTest do
              where "key" was given the type:
 
                  # type: dynamic()
-                 # from: types_test.ex:538
+                 # from: types_test.ex:LINE-5
                  key
 
              where "x" was given the type:
 
                  # type: %{key: :value}
-                 # from: types_test.ex:540
+                 # from: types_test.ex:LINE-3
                  x = %{key: :value}
              """
     end
