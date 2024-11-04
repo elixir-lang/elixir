@@ -2438,8 +2438,7 @@ defmodule Code.Formatter do
   end
 
   defp escape_atom(string, char) do
-    char = List.to_string([char])
-    String.replace(string, char, "\\#{char}")
+    String.replace(string, <<char>>, <<?\\, char>>)
   end
 
   ## Algebra helpers
