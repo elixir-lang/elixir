@@ -561,15 +561,6 @@ defmodule Module.Types.Descr do
   def number_type?(%{bitmap: bitmap}) when (bitmap &&& @bit_number) != 0, do: true
   def number_type?(_), do: false
 
-  @doc """
-  Optimized version of `not empty?(intersection(list(), type))`.
-  """
-  def list_type?(:term), do: true
-  def list_type?(%{dynamic: :term}), do: true
-  def list_type?(%{dynamic: %{list: _}}), do: true
-  def list_type?(%{list: _}), do: true
-  def list_type?(_), do: false
-
   ## Bitmaps
 
   defp bitmap_to_quoted(val) do
@@ -917,7 +908,7 @@ defmodule Module.Types.Descr do
     end)
   end
 
-  defp list_only?(descr), do: subtype?(Map.delete(descr, :list), empty_list())
+  defp non_empty_list_only?(descr), do: empty?(Map.delete(descr, :list))
 
   @doc """
   Returns the head of a list.
@@ -931,22 +922,19 @@ defmodule Module.Types.Descr do
   def list_hd(%{} = descr) do
     case :maps.take(:dynamic, descr) do
       :error ->
-        has_empty = empty_list_type?(descr)
-        is_list_type = list_only?(descr)
+        static_value = list_hd_static(descr)
 
-        if is_list_type and not has_empty do
-          {false, list_hd_static(descr)}
+        if non_empty_list_only?(descr) and not empty?(static_value) do
+          {false, static_value}
         else
           :badnonemptylist
         end
 
       {dynamic, static} ->
-        has_empty = empty_list_type?(static)
-        only_list = list_only?(static)
-        is_dynamic_list = list_type?(dynamic)
+        dynamic_value = list_hd_static(dynamic)
 
-        if is_dynamic_list and only_list and not has_empty do
-          {is_dynamic_list, union(dynamic(list_hd_static(dynamic)), list_hd_static(static))}
+        if non_empty_list_only?(static) and not empty?(dynamic_value) do
+          {true, union(dynamic(dynamic_value), list_hd_static(static))}
         else
           :badnonemptylist
         end
@@ -981,22 +969,19 @@ defmodule Module.Types.Descr do
   def list_tl(descr) do
     case :maps.take(:dynamic, descr) do
       :error ->
-        has_empty = empty_list_type?(descr)
-        is_list_type = list_only?(descr)
+        static_value = list_tl_static(descr)
 
-        if is_list_type and not has_empty do
-          {false, list_tl_static(descr)}
+        if non_empty_list_only?(descr) and not empty?(static_value) do
+          {false, static_value}
         else
           :badnonemptylist
         end
 
       {dynamic, static} ->
-        has_empty = empty_list_type?(static)
-        only_list = list_only?(static)
-        is_dynamic_list = list_type?(dynamic)
+        dynamic_value = list_tl_static(dynamic)
 
-        if is_dynamic_list and only_list and not has_empty do
-          {is_dynamic_list, union(dynamic(list_tl_static(dynamic)), list_tl_static(static))}
+        if non_empty_list_only?(static) and not empty?(dynamic_value) do
+          {true, union(dynamic(dynamic_value), list_tl_static(static))}
         else
           :badnonemptylist
         end
