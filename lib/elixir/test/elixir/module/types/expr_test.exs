@@ -484,13 +484,33 @@ defmodule Module.Types.ExprTest do
     test "creating closed maps" do
       assert typecheck!(%{foo: :bar}) == closed_map(foo: atom([:bar]))
       assert typecheck!([x], %{key: x}) == dynamic(closed_map(key: term()))
+    end
 
+    test "creating closed maps with dynamic keys" do
       assert typecheck!(
                (
                  foo = :foo
                  %{foo => :first, foo => :second}
                )
              ) == closed_map(foo: atom([:second]))
+
+      assert typecheck!(
+               (
+                 foo_or_bar =
+                   cond do
+                     :rand.uniform() > 0.5 -> :foo
+                     true -> :bar
+                   end
+
+                 %{foo_or_bar => :first, foo_or_bar => :second}
+               )
+             )
+             |> equal?(
+               closed_map(foo: atom([:second]))
+               |> union(closed_map(bar: atom([:second])))
+               |> union(closed_map(foo: atom([:first]), bar: atom([:second])))
+               |> union(closed_map(bar: atom([:first]), foo: atom([:second])))
+             )
     end
 
     test "creating open maps" do
