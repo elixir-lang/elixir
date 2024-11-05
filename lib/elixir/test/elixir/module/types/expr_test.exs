@@ -561,6 +561,27 @@ defmodule Module.Types.ExprTest do
                  # from: types_test.ex:LINE
                  x = :foo
              """
+
+      assert typeerror!(
+               (
+                 x = %{}
+                 %{x | x: :zero}
+               )
+             ) == ~l"""
+             expected a map within map update syntax:
+
+                 %{x | x: :zero}
+
+             but got type:
+
+                 dynamic(:foo)
+
+             where "x" was given the type:
+
+                 # type: dynamic(:foo)
+                 # from: types_test.ex:LINE
+                 x = :foo
+             """
     end
 
     test "updating to open maps" do

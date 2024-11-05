@@ -135,7 +135,8 @@ defmodule Module.Types.Expr do
       if fallback == none() do
         Enum.reduce(pairs, map_type, fn {key, type}, acc ->
           case map_put(acc, key, type) do
-            {:ok, descr} -> descr
+            {_value, descr} -> descr
+            :badkey -> throw({:badkey, map_type, key, expr, context})
             :badmap -> throw({:badmap, map_type, expr, context})
           end
         end)

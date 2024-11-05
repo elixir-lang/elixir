@@ -1429,20 +1429,46 @@ defmodule Module.Types.Descr do
   end
 
   @doc """
-  Adds a `key` of a given type, assuming that the descr is exclusively
+  Fetches and puts a `key` of a given type, assuming that the descr is exclusively
   a map (or dynamic).
   """
-  def map_put(:term, _key, _type), do: :badmap
-  def map_put(descr, key, :term) when is_atom(key), do: map_put_static_value(descr, key, :term)
+  def map_fetch_and_put(:term, _key, _type), do: :badmap
 
-  def map_put(descr, key, type) when is_atom(key) do
+  def map_fetch_and_put(descr, key, :term) when is_atom(key),
+    do: map_fetch_and_put_shared(descr, key, :term)
+
+  def map_fetch_and_put(descr, key, type) when is_atom(key) do
     case :maps.take(:dynamic, type) do
-      :error -> map_put_static_value(descr, key, type)
-      {dynamic, _static} -> map_put_static_value(dynamic(descr), key, dynamic)
+      :error -> map_fetch_and_put_shared(descr, key, type)
+      {dynamic, _static} -> map_fetch_and_put_shared(dynamic(descr), key, dynamic)
     end
   end
 
-  defp map_put_static_value(descr, key, type) do
+  defp map_fetch_and_put_shared(descr, key, type) do
+    with {value, descr} <- map_take(descr, key, none(), &map_put_static(&1, key, type)) do
+      if empty?(value) do
+        :badkey
+      else
+        {value, descr}
+      end
+    end
+  end
+
+  @doc """
+  Puts a `key` of a given type, assuming that the descr is exclusively
+  a map (or dynamic).
+  """
+  def map_put(:term, _key, _type), do: :badmap
+  def map_put(descr, key, :term) when is_atom(key), do: map_put_shared(descr, key, :term)
+
+  def map_put(descr, key, type) when is_atom(key) do
+    case :maps.take(:dynamic, type) do
+      :error -> map_put_shared(descr, key, type)
+      {dynamic, _static} -> map_put_shared(dynamic(descr), key, dynamic)
+    end
+  end
+
+  defp map_put_shared(descr, key, type) do
     with {_value, descr} <- map_take(descr, key, :term, &map_put_static(&1, key, type)) do
       {:ok, descr}
     end

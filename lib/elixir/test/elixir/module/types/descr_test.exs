@@ -852,13 +852,12 @@ defmodule Module.Types.DescrTest do
       assert map_fetch(term(), :a) == :badmap
       assert map_fetch(union(open_map(), integer()), :a) == :badmap
 
+      assert map_fetch(open_map(), :a) == :badkey
+      assert map_fetch(open_map(a: not_set()), :a) == :badkey
+      assert map_fetch(union(closed_map(a: integer()), closed_map(b: atom())), :a) == :badkey
+      assert map_fetch(difference(closed_map(a: integer()), closed_map(a: term())), :a) == :badkey
+
       assert map_fetch(closed_map(a: integer()), :a) == {false, integer()}
-
-      assert map_fetch(union(closed_map(a: integer()), closed_map(b: atom())), :a) ==
-               :badkey
-
-      assert map_fetch(difference(closed_map(a: integer()), closed_map(a: term())), :a) ==
-               :badkey
 
       assert map_fetch(union(closed_map(a: integer()), closed_map(a: atom())), :a) ==
                {false, union(integer(), atom())}
@@ -1041,6 +1040,11 @@ defmodule Module.Types.DescrTest do
       {value, type} = map_take(difference(open_map(), open_map(a: not_set())), :a)
       assert equal?(value, term())
       assert equal?(type, open_map(a: not_set()))
+    end
+
+    test "map_fetch_and_put" do
+      assert map_fetch_and_put(term(), :a, integer()) == :badmap
+      assert map_fetch_and_put(open_map(), :a, integer()) == :badkey
     end
 
     test "map_put" do
