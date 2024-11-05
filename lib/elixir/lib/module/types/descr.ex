@@ -1981,6 +1981,94 @@ defmodule Module.Types.Descr do
     end)
   end
 
+  def tuple_values(descr) do
+    case :maps.take(:dynamic, descr) do
+      :error ->
+        if tuple_only?(descr) do
+          process_tuples_values(Map.get(descr, :tuple, []))
+        else
+          :badtuple
+        end
+
+      {dynamic, static} ->
+        if tuple_only?(static) and descr_key?(dynamic, :tuple) do
+          dynamic(process_tuples_values(Map.get(dynamic, :tuple, [])))
+          |> union(process_tuples_values(Map.get(static, :tuple, [])))
+        else
+          :badtuple
+        end
+    end
+  end
+
+  defp process_tuples_values(dnf) do
+    Enum.reduce(dnf, none(), fn {tag, elements, negs}, acc ->
+      union(tuple_values(tag, elements, negs), acc)
+    end)
+  end
+
+  defp tuple_values(tag, elements, []) do
+    cond do
+      Enum.any?(elements, &empty?/1) -> none()
+      tag == :open -> term()
+      tag == :closed -> Enum.reduce(elements, none(), &union/2)
+    end
+  end
+
+  defp tuple_values(_tag, _elements, [{:open, []} | _]), do: none()
+
+  defp tuple_values(tag, elements, [{neg_tag, neg_elements} | negs]) do
+    n = length(elements)
+    m = length(neg_elements)
+
+    if (tag == :closed and n < m) or (neg_tag == :closed and n > m) do
+      tuple_values(tag, elements, negs)
+    else
+      # Those two functions eliminate the negations, transforming into
+      # a union of tuples to compute their values.
+      values_elements([], tag, elements, neg_elements, negs)
+      |> union(values_size(n, m, tag, elements, neg_tag, negs))
+    end
+  end
+
+  # This means that there are no more neg_elements to subtract -- end the recursion.
+  defp values_elements(_acc, _tag, _elements, [], _), do: none()
+
+  # Eliminates negations according to tuple content.
+  # Subtracts each element of a negative tuple to build a new tuple with the difference.
+  # Example: {number(), atom()} and not {float(), :foo} contains types {integer(), :foo}
+  # as well as {float(), atom() and not :foo}
+  # Same process as tuple_elements_empty?
+  defp values_elements(acc, tag, elements, [neg_type | neg_elements], negs) do
+    {ty, elements} = List.pop_at(elements, 0, term())
+    diff = difference(ty, neg_type)
+
+    if empty?(diff) do
+      none()
+    else
+      tuple_values(tag, Enum.reverse(acc, [diff | elements]), negs)
+    end
+    |> union(values_elements([ty | acc], tag, elements, neg_elements, negs))
+  end
+
+  # Eliminates negations according to size
+  # Example: {integer(), ...} and not {term(), term(), ...} contains {integer()}
+  defp values_size(n, m, tag, elements, neg_tag, negs) do
+    if tag == :closed do
+      none()
+    else
+      n..(m - 1)//1
+      |> Enum.map(&tuple_values(:closed, tuple_fill(elements, &1), negs))
+      |> Enum.reduce(none(), &union/2)
+      |> union(
+        if neg_tag == :open do
+          none()
+        else
+          tuple_values(tag, tuple_fill(elements, m + 1), negs)
+        end
+      )
+    end
+  end
+
   defp tuple_pop_index(tag, elements, index) do
     case List.pop_at(elements, index) do
       {nil, _} -> {tag_to_type(tag), %{tuple: [{tag, elements, []}]}}

@@ -855,6 +855,39 @@ defmodule Module.Types.DescrTest do
              |> equal?(dynamic(open_tuple([term(), boolean()])))
     end
 
+    test "tuple_values" do
+      assert tuple_values(integer()) == :badtuple
+      assert tuple_values(tuple([])) == none()
+      assert tuple_values(tuple()) == term()
+      assert tuple_values(open_tuple([integer()])) == term()
+      assert tuple_values(tuple([integer(), atom()])) == union(integer(), atom())
+
+      assert tuple_values(union(tuple([float(), pid()]), tuple([reference()]))) ==
+               union(float(), union(pid(), reference()))
+
+      assert tuple_values(difference(tuple([number(), atom()]), tuple([float(), term()]))) ==
+               union(integer(), atom())
+
+      assert union(tuple([atom([:ok])]), open_tuple([integer()]))
+             |> difference(open_tuple([term(), term()]))
+             |> tuple_values() == union(atom([:ok]), integer())
+
+      assert tuple_values(difference(tuple([number(), atom()]), tuple([float(), atom([:ok])]))) ==
+               union(number(), atom())
+
+      assert tuple_values(dynamic(tuple())) == dynamic()
+      assert tuple_values(dynamic(tuple([integer()]))) == dynamic(integer())
+
+      assert tuple_values(union(dynamic(tuple([integer()])), tuple([atom()]))) ==
+               union(dynamic(integer()), atom())
+
+      assert tuple_values(union(dynamic(tuple()), integer())) == :badtuple
+      assert tuple_values(dynamic(union(integer(), tuple([atom()])))) == dynamic(atom())
+
+      assert tuple_values(union(dynamic(tuple([integer()])), tuple([integer()])))
+             |> equal?(integer())
+    end
+
     test "map_fetch" do
       assert map_fetch(term(), :a) == :badmap
       assert map_fetch(union(open_map(), integer()), :a) == :badmap
