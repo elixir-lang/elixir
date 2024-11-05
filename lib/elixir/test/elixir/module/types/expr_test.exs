@@ -144,7 +144,7 @@ defmodule Module.Types.ExprTest do
                {dynamic(), "URI.unknown/1 is undefined or private"}
 
       assert typewarn!(if(true, do: URI.unknown("foo"))) ==
-               {dynamic(), "URI.unknown/1 is undefined or private"}
+               {dynamic() |> union(atom([nil])), "URI.unknown/1 is undefined or private"}
 
       assert typewarn!(try(do: :ok, after: URI.unknown("foo"))) ==
                {dynamic(), "URI.unknown/1 is undefined or private"}
@@ -996,7 +996,47 @@ defmodule Module.Types.ExprTest do
     end
   end
 
+  describe "case" do
+    test "returns unions of all clauses" do
+      assert typecheck!(
+               [x],
+               case x do
+                 :ok -> :ok
+                 :error -> :error
+               end
+             ) == atom([:ok, :error])
+
+      assert typedyn!(
+               [x],
+               case x do
+                 :ok -> :ok
+                 :error -> :error
+               end
+             ) == dynamic(atom([:ok, :error]))
+    end
+  end
+
   describe "receive" do
+    test "returns unions of all clauses" do
+      assert typecheck!(
+               receive do
+                 :ok -> :ok
+                 :error -> :error
+               after
+                 0 -> :timeout
+               end
+             ) == atom([:ok, :error, :timeout])
+
+      assert typedyn!(
+               receive do
+                 :ok -> :ok
+                 :error -> :error
+               after
+                 0 -> :timeout
+               end
+             ) == dynamic(atom([:ok, :error, :timeout]))
+    end
+
     test "errors on bad timeout" do
       assert typeerror!(
                [x = :timeout],

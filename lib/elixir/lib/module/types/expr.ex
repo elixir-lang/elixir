@@ -239,13 +239,15 @@ defmodule Module.Types.Expr do
   # TODO: case expr do pat -> expr end
   def of_expr({:case, _meta, [case_expr, [{:do, clauses}]]}, stack, context) do
     {_expr_type, context} = of_expr(case_expr, stack, context)
-    context = of_clauses(clauses, stack, context)
-    {dynamic(), context}
+
+    clauses
+    |> of_clauses(stack, {none(), context})
+    |> dynamic_unless_static(stack)
   end
 
   # TODO: fn pat -> expr end
   def of_expr({:fn, _meta, clauses}, stack, context) do
-    context = of_clauses(clauses, stack, context)
+    {_acc, context} = of_clauses(clauses, stack, {none(), context})
     {fun(), context}
   end
 
@@ -269,35 +271,34 @@ defmodule Module.Types.Expr do
           of_expr_context(body, stack, context)
 
         {block, clauses}, context when block in @try_clause_blocks ->
-          of_clauses(clauses, stack, context)
+          {_, context} = of_clauses(clauses, stack, {none(), context})
+          context
       end)
 
     {dynamic(), context}
   end
 
-  # TODO: receive do pat -> expr end
   def of_expr({:receive, _meta, [blocks]}, stack, context) do
-    context =
-      Enum.reduce(blocks, context, fn
-        {:do, {:__block__, _, []}}, context ->
-          context
+    blocks
+    |> Enum.reduce({none(), context}, fn
+      {:do, {:__block__, _, []}}, {acc, context} ->
+        {acc, context}
 
-        {:do, clauses}, context ->
-          of_clauses(clauses, stack, context)
+      {:do, clauses}, {acc, context} ->
+        of_clauses(clauses, stack, {acc, context})
 
-        {:after, [{:->, meta, [[timeout], body]}]}, context ->
-          {timeout_type, context} = of_expr(timeout, stack, context)
-          {_body_type, context} = of_expr(body, stack, context)
+      {:after, [{:->, meta, [[timeout], body]}]}, {acc, context} ->
+        {timeout_type, context} = of_expr(timeout, stack, context)
+        {body_type, context} = of_expr(body, stack, context)
 
-          if integer_type?(timeout_type) do
-            context
-          else
-            error = {:badtimeout, timeout_type, timeout, context}
-            error(__MODULE__, error, meta, stack, context)
-          end
-      end)
-
-    {dynamic(), context}
+        if integer_type?(timeout_type) do
+          {union(body_type, acc), context}
+        else
+          error = {:badtimeout, timeout_type, timeout, context}
+          {union(body_type, acc), error(__MODULE__, error, meta, stack, context)}
+        end
+    end)
+    |> dynamic_unless_static(stack)
   end
 
   # TODO: for pat <- expr do expr end
@@ -307,7 +308,7 @@ defmodule Module.Types.Expr do
     context = Enum.reduce(opts, context, &for_option(&1, stack, &2))
 
     if Keyword.has_key?(opts, :reduce) do
-      context = of_clauses(block, stack, context)
+      {_, context} = of_clauses(block, stack, {none(), context})
       {dynamic(), context}
     else
       {_type, context} = of_expr(block, stack, context)
@@ -484,7 +485,8 @@ defmodule Module.Types.Expr do
   end
 
   defp with_option({:else, clauses}, stack, context) do
-    of_clauses(clauses, stack, context)
+    {_, context} = of_clauses(clauses, stack, {none(), context})
+    context
   end
 
   ## General helpers
@@ -515,13 +517,12 @@ defmodule Module.Types.Expr do
   defp dynamic_unless_static({_, _} = output, %{mode: :static}), do: output
   defp dynamic_unless_static({type, context}, %{mode: _}), do: {dynamic(type), context}
 
-  defp of_clauses(clauses, stack, context) do
-    Enum.reduce(clauses, context, fn {:->, meta, [head, body]}, context ->
+  defp of_clauses(clauses, stack, acc_context) do
+    Enum.reduce(clauses, acc_context, fn {:->, meta, [head, body]}, {acc, context} ->
       {patterns, guards} = extract_head(head)
-
       {_types, context} = Pattern.of_head(patterns, guards, meta, stack, context)
-      {_, context} = of_expr(body, stack, context)
-      context
+      {body, context} = of_expr(body, stack, context)
+      {union(acc, body), context}
     end)
   end
 
