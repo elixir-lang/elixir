@@ -797,7 +797,7 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
         {ok, [Part]} when is_binary(Part) ->
           case unsafe_to_atom(Part, Line, Column - 1, Scope) of
             {ok, Atom} ->
-              Token = {kw_identifier, {Line, Column - 1, nil}, Atom},
+              Token = {kw_identifier, {Line, Column - 1, H}, Atom},
               tokenize(Rest, NewLine, NewColumn + 1, NewScope, [Token | Tokens]);
             {error, Reason} ->
               error(Reason, Rest, NewScope, Tokens)
@@ -808,7 +808,7 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
             true  -> kw_identifier_safe;
             false -> kw_identifier_unsafe
           end,
-          Token = {Key, {Line, Column - 1, nil}, Unescaped},
+          Token = {Key, {Line, Column - 1, H}, Unescaped},
           tokenize(Rest, NewLine, NewColumn + 1, NewScope, [Token | Tokens]);
 
         {error, Reason} ->
@@ -918,9 +918,8 @@ handle_dot([$., H | T] = Original, Line, Column, DotInfo, Scope, Tokens) when ?i
 
       case unsafe_to_atom(UnescapedPart, Line, Column, NewScope) of
         {ok, Atom} ->
-          Token = check_call_identifier(Line, Column, Part, Atom, Rest),
-          DotInfo1 = setelement(3, DotInfo, H),
-          TokensSoFar = add_token_with_eol({'.', DotInfo1}, Tokens),
+          Token = check_call_identifier(Line, Column, H, Atom, Rest),
+          TokensSoFar = add_token_with_eol({'.', DotInfo}, Tokens),
           tokenize(Rest, NewLine, NewColumn, NewScope, [Token | TokensSoFar]);
 
         {error, Reason} ->
@@ -1331,12 +1330,12 @@ tokenize_alias(Rest, Line, Column, Unencoded, Atom, Length, Ascii, Special, Scop
 
 %% Check if it is a call identifier (paren | bracket | do)
 
-check_call_identifier(Line, Column, Unencoded, Atom, [$( | _]) ->
-  {paren_identifier, {Line, Column, Unencoded}, Atom};
-check_call_identifier(Line, Column, Unencoded, Atom, [$[ | _]) ->
-  {bracket_identifier, {Line, Column, Unencoded}, Atom};
-check_call_identifier(Line, Column, Unencoded, Atom, _Rest) ->
-  {identifier, {Line, Column, Unencoded}, Atom}.
+check_call_identifier(Line, Column, Info, Atom, [$( | _]) ->
+  {paren_identifier, {Line, Column, Info}, Atom};
+check_call_identifier(Line, Column, Info, Atom, [$[ | _]) ->
+  {bracket_identifier, {Line, Column, Info}, Atom};
+check_call_identifier(Line, Column, Info, Atom, _Rest) ->
+  {identifier, {Line, Column, Info}, Atom}.
 
 add_token_with_eol({unary_op, _, _} = Left, T) -> [Left | T];
 add_token_with_eol(Left, [{eol, _} | T]) -> [Left | T];
