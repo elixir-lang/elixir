@@ -511,7 +511,7 @@ tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) 
         {ok, [Part]} when is_binary(Part) ->
           case unsafe_to_atom(Part, Line, Column, Scope) of
             {ok, Atom} ->
-              Token = {atom_quoted, {Line, Column, nil}, Atom},
+              Token = {atom_quoted, {Line, Column, H}, Atom},
               tokenize(Rest, NewLine, NewColumn, NewScope, [Token | Tokens]);
 
             {error, Reason} ->
@@ -523,7 +523,7 @@ tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) 
             true  -> atom_safe;
             false -> atom_unsafe
           end,
-          Token = {Key, {Line, Column, nil}, Unescaped},
+          Token = {Key, {Line, Column, H}, Unescaped},
           tokenize(Rest, NewLine, NewColumn, NewScope, [Token | Tokens]);
 
         {error, Reason} ->
@@ -919,7 +919,7 @@ handle_dot([$., H | T] = Original, Line, Column, DotInfo, Scope, Tokens) when ?i
       case unsafe_to_atom(UnescapedPart, Line, Column, NewScope) of
         {ok, Atom} ->
           Token = check_call_identifier(Line, Column, Part, Atom, Rest),
-          DotInfo1 = setelement(3, DotInfo, $"),
+          DotInfo1 = setelement(3, DotInfo, H),
           TokensSoFar = add_token_with_eol({'.', DotInfo1}, Tokens),
           tokenize(Rest, NewLine, NewColumn, NewScope, [Token | TokensSoFar]);
 
