@@ -994,14 +994,10 @@ defmodule Module.Types.DescrTest do
       assert map_take(closed_map(a: integer(), b: atom()), :a) ==
                {integer(), closed_map(b: atom())}
 
-      assert map_take(empty_map(), :a) == {none(), empty_map()}
-
-      assert map_take(closed_map(a: if_set(integer()), b: atom()), :a) ==
-               {integer(), closed_map(b: atom())}
-
       # Deleting a non-existent key
-      assert map_take(closed_map(a: integer(), b: atom()), :c) ==
-               {none(), closed_map(a: integer(), b: atom())}
+      assert map_take(empty_map(), :a) == :badkey
+      assert map_take(closed_map(a: integer(), b: atom()), :c) == :badkey
+      assert map_take(closed_map(a: if_set(integer()), b: atom()), :a) == :badkey
 
       # Deleting from a dynamic map
       assert map_take(dynamic(), :a) == {dynamic(), dynamic(open_map(a: not_set()))}
@@ -1012,13 +1008,15 @@ defmodule Module.Types.DescrTest do
       assert equal?(type, open_map(a: not_set(), b: atom()))
 
       # Deleting from a union of maps
-      {value, type} = map_take(union(closed_map(a: integer()), closed_map(b: atom())), :a)
-      assert value == integer()
-      assert equal?(type, union(empty_map(), closed_map(b: atom())))
+      union = union(closed_map(a: integer()), closed_map(b: atom()))
+      assert map_take(union, :a) == :badkey
+      {value, type} = map_take(dynamic(union), :a)
+      assert value == dynamic(integer())
+      assert equal?(type, dynamic(union(empty_map(), closed_map(b: atom()))))
 
       # Deleting from a gradual map
       {value, type} = map_take(union(dynamic(), closed_map(a: integer())), :a)
-      assert value == dynamic()
+      assert value == union(dynamic(), integer())
       assert equal?(type, union(dynamic(open_map(a: not_set())), empty_map()))
 
       {value, type} = map_take(dynamic(open_map(a: not_set())), :b)

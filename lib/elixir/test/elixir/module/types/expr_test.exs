@@ -546,6 +546,25 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([x], %{%{x | x: :zero} | y: :one}) ==
                dynamic(open_map(x: atom([:zero]), y: atom([:one])))
 
+      assert typecheck!(
+               (
+                 foo_or_bar =
+                   cond do
+                     :rand.uniform() > 0.5 -> :key1
+                     true -> :key2
+                   end
+
+                 x = %{key1: :one, key2: :two}
+                 %{x | foo_or_bar => :one!, foo_or_bar => :two!}
+               )
+             )
+             |> equal?(
+               closed_map(key1: atom([:one]), key2: atom([:two!]))
+               |> union(closed_map(key1: atom([:two!]), key2: atom([:one!])))
+               |> union(closed_map(key1: atom([:one!]), key2: atom([:two!])))
+               |> union(closed_map(key1: atom([:two!]), key2: atom([:two])))
+             )
+
       assert typeerror!([x = :foo], %{x | x: :zero}) == ~l"""
              expected a map within map update syntax:
 
@@ -568,19 +587,57 @@ defmodule Module.Types.ExprTest do
                  %{x | x: :zero}
                )
              ) == ~l"""
-             expected a map within map update syntax:
+             expected a map with key :x in map update syntax:
 
                  %{x | x: :zero}
 
              but got type:
 
-                 dynamic(:foo)
+                 empty_map()
 
              where "x" was given the type:
 
-                 # type: dynamic(:foo)
-                 # from: types_test.ex:LINE
-                 x = :foo
+                 # type: empty_map()
+                 # from: types_test.ex:LINE-3
+                 x = %{}
+             """
+
+      # Assert we check all possible combinations
+      assert typeerror!(
+               (
+                 foo_or_bar =
+                   cond do
+                     :rand.uniform() > 0.5 -> :foo
+                     true -> :bar
+                   end
+
+                 x = %{foo: :baz}
+                 %{x | foo_or_bar => :bat}
+               )
+             ) == ~l"""
+             expected a map with key :bar in map update syntax:
+
+                 %{x | foo_or_bar => :bat}
+
+             but got type:
+
+                 %{foo: :baz}
+
+             where "foo_or_bar" was given the type:
+
+                 # type: :bar or :foo
+                 # from: types_test.ex:LINE-9
+                 foo_or_bar =
+                   cond do
+                     :rand.uniform() > 0.5 -> :foo
+                     true -> :bar
+                   end
+
+             where "x" was given the type:
+
+                 # type: %{foo: :baz}
+                 # from: types_test.ex:LINE-3
+                 x = %{foo: :baz}
              """
     end
 
@@ -611,7 +668,7 @@ defmodule Module.Types.ExprTest do
                )
              ) == dynamic(open_map())
 
-      # The goal of this test is to verify we assert keys,
+      # The goal of this assertion is to verify we assert keys,
       # even if they may be overridden later.
       assert typeerror!(
                [key],
