@@ -284,9 +284,9 @@ access_expr -> list_heredoc : build_list_heredoc('$1').
 access_expr -> bitstring : '$1'.
 access_expr -> sigil : build_sigil('$1').
 access_expr -> atom : handle_literal(?exprs('$1'), '$1').
-access_expr -> atom_quoted : handle_literal(?exprs('$1'), '$1', delimiter(<<$">>)).
-access_expr -> atom_safe : build_quoted_atom('$1', true, delimiter(<<$">>)).
-access_expr -> atom_unsafe : build_quoted_atom('$1', false, delimiter(<<$">>)).
+access_expr -> atom_quoted : handle_literal(?exprs('$1'), '$1', atom_delimiter('$1')).
+access_expr -> atom_safe : build_quoted_atom('$1', true, atom_delimiter('$1')).
+access_expr -> atom_unsafe : build_quoted_atom('$1', false, atom_delimiter('$1')).
 access_expr -> dot_alias : '$1'.
 access_expr -> parens_call : '$1'.
 
@@ -553,12 +553,12 @@ call_args_parens -> open_paren call_args_parens_base ',' kw_call close_paren :
 
 % KV
 
-kw_eol -> kw_identifier : handle_literal(?exprs('$1'), '$1', [{format, keyword}]).
-kw_eol -> kw_identifier eol : handle_literal(?exprs('$1'), '$1', [{format, keyword}]).
-kw_eol -> kw_identifier_safe : build_quoted_atom('$1', true, [{format, keyword}]).
-kw_eol -> kw_identifier_safe eol : build_quoted_atom('$1', true, [{format, keyword}]).
-kw_eol -> kw_identifier_unsafe : build_quoted_atom('$1', false, [{format, keyword}]).
-kw_eol -> kw_identifier_unsafe eol : build_quoted_atom('$1', false, [{format, keyword}]).
+kw_eol -> kw_identifier : handle_literal(?exprs('$1'), '$1', kw_identifier_meta('$1')).
+kw_eol -> kw_identifier eol : handle_literal(?exprs('$1'), '$1', kw_identifier_meta('$1')).
+kw_eol -> kw_identifier_safe : build_quoted_atom('$1', true, kw_identifier_meta('$1')).
+kw_eol -> kw_identifier_safe eol : build_quoted_atom('$1', true, kw_identifier_meta('$1')).
+kw_eol -> kw_identifier_unsafe : build_quoted_atom('$1', false, kw_identifier_meta('$1')).
+kw_eol -> kw_identifier_unsafe eol : build_quoted_atom('$1', false, kw_identifier_meta('$1')).
 
 kw_base -> kw_eol container_expr : [{'$1', '$2'}].
 kw_base -> kw_base ',' kw_eol container_expr : [{'$3', '$4'} | '$1'].
@@ -892,8 +892,8 @@ build_dot(Dot, Left, {_, Location, _} = Right) ->
   Meta = meta_from_token(Dot),
   IdentifierMeta0 = meta_from_location(Location),
   IdentifierMeta1 =
-    case Dot of
-      {'.', {_Line, _Column, Delimiter}} when Delimiter =/= nil ->
+    case Location of
+      {_Line, _Column, Delimiter} when is_integer(Delimiter) ->
         delimiter(<<Delimiter>>) ++ IdentifierMeta0;
       _ ->
         IdentifierMeta0
@@ -1032,6 +1032,19 @@ build_quoted_atom({_, Location, Args}, Safe, ExtraMeta) ->
 
 binary_to_atom_op(true)  -> binary_to_existing_atom;
 binary_to_atom_op(false) -> binary_to_atom.
+
+atom_delimiter({_Kind, {_Line, _Column, Delimiter}, _Args}) ->
+  case ?token_metadata() of
+    true -> [{delimiter, <<Delimiter>>}];
+    false -> []
+  end.
+
+kw_identifier_meta({_Kind, {_Line, _Column, Delimiter}, _Args}) ->
+  Meta = [{format, keyword}],
+  case ?token_metadata() of
+    true when is_integer(Delimiter) -> [{delimiter, <<Delimiter>>} | Meta];
+    _ -> Meta
+  end.
 
 charlist_parts(Parts) ->
   [charlist_part(Part) || Part <- Parts].
