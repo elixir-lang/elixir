@@ -83,8 +83,8 @@ defmodule Module.Types.Descr do
   @boolset :sets.from_list([true, false], version: 2)
   def boolean(), do: %{atom: {:union, @boolset}}
 
-  # Map helpers
-  #
+  ## Optional
+
   # `not_set()` is a special base type that represents an not_set field in a map.
   # E.g., `%{a: integer(), b: not_set(), ...}` represents a map with an integer
   # field `a` and an not_set field `b`, and possibly other fields.
@@ -153,12 +153,15 @@ defmodule Module.Types.Descr do
 
   ## Set operations
 
-  def term_type?(:term), do: true
-  def term_type?(descr), do: subtype_static?(unfolded_term(), Map.delete(descr, :dynamic))
-
+  @doc """
+  Returns true if the type has a gradual part.
+  """
   def gradual?(:term), do: false
   def gradual?(descr), do: is_map_key(descr, :dynamic)
 
+  @doc """
+  Returns true if hte type only has a gradual part.
+  """
   def only_gradual?(%{dynamic: _} = descr), do: map_size(descr) == 1
   def only_gradual?(_), do: false
 
@@ -175,11 +178,17 @@ defmodule Module.Types.Descr do
     end
   end
 
+  @compile {:inline, lazy_union: 2}
+  defp lazy_union(:term, _fun), do: :term
+  defp lazy_union(descr, fun), do: union(descr, fun.())
+
   @doc """
   Computes the union of two descrs.
   """
   def union(:term, other), do: optional_to_term(other)
   def union(other, :term), do: optional_to_term(other)
+  def union(none, other) when none == @none, do: other
+  def union(other, none) when none == @none, do: other
 
   def union(left, right) do
     left = unfold(left)
@@ -201,7 +210,6 @@ defmodule Module.Types.Descr do
     end
   end
 
-  @compile {:inline, union: 3}
   defp union(:atom, v1, v2), do: atom_union(v1, v2)
   defp union(:bitmap, v1, v2), do: v1 ||| v2
   defp union(:dynamic, v1, v2), do: dynamic_union(v1, v2)
@@ -239,7 +247,6 @@ defmodule Module.Types.Descr do
   end
 
   # Returning 0 from the callback is taken as none() for that subtype.
-  @compile {:inline, intersection: 3}
   defp intersection(:atom, v1, v2), do: atom_intersection(v1, v2)
   defp intersection(:bitmap, v1, v2), do: v1 &&& v2
   defp intersection(:dynamic, v1, v2), do: dynamic_intersection(v1, v2)
@@ -299,7 +306,6 @@ defmodule Module.Types.Descr do
   defp iterator_difference_static(:none, map), do: map
 
   # Returning 0 from the callback is taken as none() for that subtype.
-  @compile {:inline, difference: 3}
   defp difference(:atom, v1, v2), do: atom_difference(v1, v2)
   defp difference(:bitmap, v1, v2), do: v1 - (v1 &&& v2)
   defp difference(:dynamic, v1, v2), do: dynamic_difference(v1, v2)
@@ -378,7 +384,6 @@ defmodule Module.Types.Descr do
     end
   end
 
-  @compile {:inline, to_quoted: 2}
   defp to_quoted(:atom, val), do: atom_to_quoted(val)
   defp to_quoted(:bitmap, val), do: bitmap_to_quoted(val)
   defp to_quoted(:dynamic, descr), do: dynamic_to_quoted(descr)
@@ -512,6 +517,12 @@ defmodule Module.Types.Descr do
       subtype_static?(left_static, right_dynamic)
     end
   end
+
+  @doc """
+  Optimized version of `not empty?(term(), type)`.
+  """
+  def term_type?(:term), do: true
+  def term_type?(descr), do: subtype_static?(unfolded_term(), Map.delete(descr, :dynamic))
 
   @doc """
   Optimized version of `not empty?(intersection(empty_list(), type))`.
@@ -1061,7 +1072,7 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # TODO: Eliminate empty lists from the union
+  # TODO: Eliminate empty lists from the union.
   defp list_normalize(dnf), do: dnf
   #   Enum.filter(dnf, fn {list_type, last_type, negs} ->
   #     not Enum.any?(negs, fn neg -> subtype?(list_type, neg) end)
@@ -1280,7 +1291,7 @@ defmodule Module.Types.Descr do
   defp map_put_static_value(descr, key, type) do
     case :maps.take(:dynamic, descr) do
       :error ->
-        if map_only?(descr) do
+        if descr_key?(descr, :map) and map_only?(descr) do
           map_put_static_shared(descr, key, type)
         else
           :badmap
@@ -1306,8 +1317,8 @@ defmodule Module.Types.Descr do
 
   # Directly inserts a key of a given type into every positive and negative map
   defp map_put_static_shared(descr, key, type) do
-    case map_delete_static(descr, key) do
-      %{map: dnf} = descr ->
+    case map_take_static(descr, key, :term) do
+      {_, %{map: dnf} = descr} ->
         dnf =
           Enum.map(dnf, fn {tag, fields, negs} ->
             {tag, Map.put(fields, key, type),
@@ -1318,7 +1329,7 @@ defmodule Module.Types.Descr do
 
         %{descr | map: dnf}
 
-      %{} ->
+      {_, %{}} ->
         descr
     end
   end
@@ -1439,6 +1450,17 @@ defmodule Module.Types.Descr do
 
   @doc """
   Removes a key from a map type.
+  """
+  def map_delete(descr, key) do
+    # We pass :term as the initial value so we can avoid computing the unions.
+    case map_take(descr, key, :term) do
+      {_, descr} -> {:ok, descr}
+      error -> error
+    end
+  end
+
+  @doc """
+  Removes a key from a map type and return its type.
 
   ## Algorithm
 
@@ -1448,26 +1470,38 @@ defmodule Module.Types.Descr do
   3. Intersect this with an open record type where the key is explicitly absent.
      This step eliminates the key from open record types where it was implicitly present.
   """
-  def map_delete(:term, _key), do: :badmap
+  def map_take(descr, key) do
+    map_take(descr, key, none())
+  end
 
-  def map_delete(descr, key) when is_atom(key) do
+  defp map_take(:term, _key, _initial), do: :badmap
+
+  defp map_take(descr, key, initial) when is_atom(key) do
     case :maps.take(:dynamic, descr) do
       :error ->
-        # Note: the empty typ is not a valid input
+        # Note: the empty type is not a valid input
         if descr_key?(descr, :map) and map_only?(descr) do
-          map_delete_static(descr, key)
-          |> intersection(open_map([{key, not_set()}]))
+          {taken, descr} = map_take_static(descr, key, initial)
+          {taken, intersection(descr, open_map([{key, not_set()}]))}
         else
           :badmap
         end
 
       {dynamic, static} ->
         if descr_key?(dynamic, :map) and map_only?(static) do
-          dynamic_result = map_delete_static(dynamic, key)
-          static_result = map_delete_static(static, key)
+          {dynamic_taken, dynamic_result} = map_take_static(dynamic, key, initial)
+          {static_taken, static_result} = map_take_static(static, key, initial)
 
-          union(dynamic(dynamic_result), static_result)
-          |> intersection(open_map([{key, not_set()}]))
+          taken =
+            if dynamic_taken == :term,
+              do: dynamic(),
+              else: union(dynamic(dynamic_taken), static_taken)
+
+          result =
+            union(dynamic(dynamic_result), static_result)
+            |> intersection(open_map([{key, not_set()}]))
+
+          {taken, result}
         else
           :badmap
         end
@@ -1475,35 +1509,37 @@ defmodule Module.Types.Descr do
   end
 
   # Takes a static map type and removes a key from it.
-  defp map_delete_static(%{map: dnf}, key) do
-    Enum.reduce(dnf, none(), fn
-      # Optimization: if there are no negatives, we can directly remove the key.
-      {tag, fields, []}, acc ->
-        union(acc, %{map: map_new(tag, :maps.remove(key, fields))})
+  defp map_take_static(%{map: dnf}, key, initial) do
+    {value, map} =
+      Enum.reduce(dnf, {initial, none()}, fn
+        # Optimization: if there are no negatives, we can directly remove the key.
+        {tag, fields, []}, {taken, map} ->
+          {fst, snd} = map_pop_key(tag, fields, key)
+          {lazy_union(taken, fn -> fst end), union(map, snd)}
 
-      {tag, fields, negs}, acc ->
-        {fst, snd} = map_pop_key(tag, fields, key)
+        {tag, fields, negs}, {taken, map} ->
+          {fst, snd} = map_pop_key(tag, fields, key)
 
-        union(
-          acc,
           case map_split_negative(negs, key) do
             :empty ->
-              none()
+              {taken, map}
 
             negative ->
-              negative |> pair_make_disjoint() |> pair_eliminate_negations_snd(fst, snd)
+              disjoint = pair_make_disjoint(negative)
+
+              {lazy_union(taken, fn -> pair_eliminate_negations_fst(disjoint, fst, snd) end),
+               disjoint |> pair_eliminate_negations_snd(fst, snd) |> union(map)}
           end
-        )
-    end)
+      end)
+
+    {remove_optional_static(value), map}
   end
 
-  defp map_delete_static(:term, key), do: open_map([{key, not_set()}])
+  defp map_take_static(:term, key, _initial), do: {:term, open_map([{key, not_set()}])}
 
   # If there is no map part to this static type, there is nothing to delete.
-  defp map_delete_static(_type, _key), do: none()
+  defp map_take_static(_type, _key, initial), do: {initial, none()}
 
-  # Emptiness checking for maps.
-  #
   # Short-circuits if it finds a non-empty map literal in the union.
   # Since the algorithm is recursive, we implement the short-circuiting
   # as throw/catch.
@@ -1574,10 +1610,15 @@ defmodule Module.Types.Descr do
         {fst, snd} = map_pop_key(tag, fields, key)
 
         case map_split_negative(negs, key) do
-          :empty -> none()
-          negative -> negative |> pair_make_disjoint() |> pair_eliminate_negations_fst(fst, snd)
+          :empty ->
+            acc
+
+          negative ->
+            negative
+            |> pair_make_disjoint()
+            |> pair_eliminate_negations_fst(fst, snd)
+            |> union(acc)
         end
-        |> union(acc)
     end)
   end
 
@@ -1597,7 +1638,7 @@ defmodule Module.Types.Descr do
   end
 
   # Use heuristics to normalize a map dnf for pretty printing.
-  # TODO: eliminate some simple negations, those which have only zero or one key in common.
+  # TODO: Eliminate some simple negations, those which have only zero or one key in common.
   defp map_normalize(dnf) do
     dnf
     |> Enum.reject(&map_empty?([&1]))
@@ -1989,10 +2030,15 @@ defmodule Module.Types.Descr do
         {fst, snd} = tuple_pop_index(tag, elements, index)
 
         case tuple_split_negative(negs, index) do
-          :empty -> none()
-          negative -> negative |> pair_make_disjoint() |> pair_eliminate_negations_fst(fst, snd)
+          :empty ->
+            acc
+
+          negative ->
+            negative
+            |> pair_make_disjoint()
+            |> pair_eliminate_negations_fst(fst, snd)
+            |> union(acc)
         end
-        |> union(acc)
     end)
   end
 
@@ -2077,13 +2123,16 @@ defmodule Module.Types.Descr do
       {tag, elements, negs}, acc ->
         {fst, snd} = tuple_pop_index(tag, elements, index)
 
-        union(
-          acc,
-          case tuple_split_negative(negs, index) do
-            :empty -> none()
-            negative -> negative |> pair_make_disjoint() |> pair_eliminate_negations_snd(fst, snd)
-          end
-        )
+        case tuple_split_negative(negs, index) do
+          :empty ->
+            acc
+
+          negative ->
+            negative
+            |> pair_make_disjoint()
+            |> pair_eliminate_negations_snd(fst, snd)
+            |> union(acc)
+        end
     end)
   end
 
@@ -2181,7 +2230,7 @@ defmodule Module.Types.Descr do
   end
 
   ## Pairs
-  #
+
   # To simplify disjunctive normal forms of e.g., map types, it is useful to
   # convert them into disjunctive normal forms of pairs of types, and define
   # normalization algorithms on pairs.
