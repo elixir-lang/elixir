@@ -2217,28 +2217,22 @@ defmodule Kernel do
     case Macro.expand(message, __CALLER__) do
       message when is_binary(message) ->
         quote do
-          :erlang.error(
-            :erlang.raise(:error, RuntimeError.exception(unquote(message)), unquote(stacktrace))
-          )
+          :erlang.raise(:error, RuntimeError.exception(unquote(message)), unquote(stacktrace))
         end
 
       {:<<>>, _, _} = message ->
         quote do
-          :erlang.error(
-            :erlang.raise(:error, RuntimeError.exception(unquote(message)), unquote(stacktrace))
-          )
+          :erlang.raise(:error, RuntimeError.exception(unquote(message)), unquote(stacktrace))
         end
 
       alias when is_atom(alias) ->
         quote do
-          :erlang.error(:erlang.raise(:error, unquote(alias).exception([]), unquote(stacktrace)))
+          :erlang.raise(:error, unquote(alias).exception([]), unquote(stacktrace))
         end
 
       message ->
         quote do
-          :erlang.error(
-            :erlang.raise(:error, Kernel.Utils.raise(unquote(message)), unquote(stacktrace))
-          )
+          :erlang.raise(:error, Kernel.Utils.raise(unquote(message)), unquote(stacktrace))
         end
     end
   end

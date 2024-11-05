@@ -365,6 +365,28 @@ defmodule Module.Types.Of do
 
   is_clauses = [{[term()], boolean()}]
 
+  args_or_arity = union(list(term()), integer())
+  args_or_none = union(list(term()), atom([:none]))
+
+  kw = fn kw ->
+    kw
+    |> Enum.map(fn {key, type} when is_atom(key) ->
+      tuple([atom([key]), type])
+    end)
+    |> Enum.reduce(&union/2)
+    |> list()
+  end
+
+  extra_info = kw.(file: list(integer()), line: integer(), error_info: open_map())
+
+  raise_stacktrace =
+    list(
+      tuple([atom(), atom(), args_or_arity, extra_info])
+      |> union(tuple([atom(), atom(), args_or_arity]))
+      |> union(tuple([fun(), args_or_arity, extra_info]))
+      |> union(tuple([fun(), args_or_arity]))
+    )
+
   for {mod, fun, clauses} <- [
         # :binary
         {:binary, :copy, [{[binary(), integer()], binary()}]},
@@ -403,6 +425,9 @@ defmodule Module.Types.Of do
         {:erlang, :byte_size, [{[binary()], integer()}]},
         {:erlang, :ceil, [{[union(integer(), float())], integer()}]},
         {:erlang, :div, [{[integer(), integer()], integer()}]},
+        {:erlang, :error, [{[term()], none()}]},
+        {:erlang, :error, [{[term(), args_or_none], none()}]},
+        {:erlang, :error, [{[term(), args_or_none, kw.(error_info: open_map())], none()}]},
         {:erlang, :floor, [{[union(integer(), float())], integer()}]},
         {:erlang, :function_exported, [{[atom(), atom(), integer()], boolean()}]},
         {:erlang, :integer_to_binary, [{[integer()], binary()}]},
@@ -437,6 +462,7 @@ defmodule Module.Types.Of do
         {:erlang, :node, [{[], atom()}]},
         {:erlang, :node, [{[pid() |> union(reference()) |> union(port())], atom()}]},
         {:erlang, :not, [{[atom([false])], atom([true])}, {[atom([true])], atom([false])}]},
+        {:erlang, :raise, [{[atom([:error, :exit, :throw]), term(), raise_stacktrace], none()}]},
         {:erlang, :rem, [{[integer(), integer()], integer()}]},
         {:erlang, :round, [{[union(integer(), float())], integer()}]},
         {:erlang, :self, [{[], pid()}]},

@@ -69,7 +69,7 @@ defmodule Module.Types.PatternTest do
                """
     end
 
-    test "can be access even if they don't match" do
+    test "can be accessed even if they don't match" do
       assert typeerror!(
                (
                  # This will never match, info should not be "corrupted"
@@ -77,6 +77,10 @@ defmodule Module.Types.PatternTest do
                  info
                )
              ) =~ "incompatible types in expression"
+    end
+
+    test "does not check underscore" do
+      assert typecheck!(_ = raise("oops")) == none()
     end
   end
 

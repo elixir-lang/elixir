@@ -110,7 +110,12 @@ defmodule Module.Types.Expr do
   # left = right
   def of_expr({:=, _meta, [left_expr, right_expr]} = expr, stack, context) do
     {right_type, context} = of_expr(right_expr, stack, context)
-    Pattern.of_match(left_expr, right_type, expr, stack, context)
+
+    # We do not raise on underscore in case someone writes _ = raise "omg"
+    case left_expr do
+      {:_, _, ctx} when is_atom(ctx) -> {right_type, context}
+      _ -> Pattern.of_match(left_expr, right_type, expr, stack, context)
+    end
   end
 
   # %{map | ...}
