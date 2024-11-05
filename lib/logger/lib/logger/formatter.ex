@@ -14,11 +14,9 @@ defmodule Logger.Formatter do
         format: "\n$time $metadata[$level] $message\n",
         metadata: [:user_id]
 
+  You can also use `Logger.Formatter.new/1` to create your own formatter,
+  which can then be passed as a formatter to any [`:logger_handler`](`:logger_handler`).
   See `Logger.Formatter.new/1` for all configuration options.
-
-  You can also build your own instances of this formatter by calling
-  `new/1` and setting at the formatter of any `:logger` handler by
-  settings its `:formatter` key to `Logger.Formatter.new(options)`.
 
   This module also provides several conveniences for those who wish
   to [write their custom logger formatters](https://www.erlang.org/doc/apps/kernel/logger_chapter.html#formatters).
