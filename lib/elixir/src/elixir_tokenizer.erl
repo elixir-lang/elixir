@@ -540,7 +540,7 @@ tokenize([$: | String] = Original, Line, Column, Scope, Tokens) ->
     {_Kind, Unencoded, Atom, Rest, Length, Ascii, _Special} ->
       NewScope = maybe_warn_for_ambiguous_bang_before_equals(atom, Unencoded, Rest, Line, Column, Scope),
       TrackedScope = track_ascii(Ascii, NewScope),
-      Token = {atom, {Line, Column, {Unencoded, nil}}, Atom},
+      Token = {atom, {Line, Column, Unencoded}, Atom},
       tokenize(Rest, Line, Column + 1 + Length, TrackedScope, [Token | Tokens]);
     empty when Scope#elixir_tokenizer.cursor_completion == false ->
       unexpected_token(Original, Line, Column, Scope, Tokens);
@@ -651,7 +651,7 @@ tokenize(String, Line, Column, OriginalScope, Tokens) ->
 
       case Rest of
         [$: | T] when ?is_space(hd(T)) ->
-          Token = {kw_identifier, {Line, Column, {Unencoded, nil}}, Atom},
+          Token = {kw_identifier, {Line, Column, Unencoded}, Atom},
           tokenize(T, Line, Column + Length + 1, Scope, [Token | Tokens]);
 
         [$: | T] when hd(T) =/= $: ->
@@ -671,7 +671,7 @@ tokenize(String, Line, Column, OriginalScope, Tokens) ->
 
         _ when Kind == identifier ->
           NewScope = maybe_warn_for_ambiguous_bang_before_equals(identifier, Unencoded, Rest, Line, Column, Scope),
-          Token = check_call_identifier(Line, Column, Unencoded, nil, Atom, Rest),
+          Token = check_call_identifier(Line, Column, Unencoded, Atom, Rest),
           tokenize(Rest, Line, Column + Length, NewScope, [Token | Tokens]);
 
         _ ->
@@ -918,8 +918,9 @@ handle_dot([$., H | T] = Original, Line, Column, DotInfo, Scope, Tokens) when ?i
 
       case unsafe_to_atom(UnescapedPart, Line, Column, NewScope) of
         {ok, Atom} ->
-          Token = check_call_identifier(Line, Column, Part, $", Atom, Rest),
-          TokensSoFar = add_token_with_eol({'.', DotInfo}, Tokens),
+          Token = check_call_identifier(Line, Column, Part, Atom, Rest),
+          DotInfo1 = setelement(3, DotInfo, $"),
+          TokensSoFar = add_token_with_eol({'.', DotInfo1}, Tokens),
           tokenize(Rest, NewLine, NewColumn, NewScope, [Token | TokensSoFar]);
 
         {error, Reason} ->
@@ -937,7 +938,7 @@ handle_dot([$. | Rest], Line, Column, DotInfo, Scope, Tokens) ->
   tokenize(Rest, Line, Column, Scope, TokensSoFar).
 
 handle_call_identifier(Rest, Line, Column, DotInfo, Length, UnencodedOp, Scope, Tokens) ->
-  Token = check_call_identifier(Line, Column, UnencodedOp, nil, list_to_atom(UnencodedOp), Rest),
+  Token = check_call_identifier(Line, Column, UnencodedOp, list_to_atom(UnencodedOp), Rest),
   TokensSoFar = add_token_with_eol({'.', DotInfo}, Tokens),
   tokenize(Rest, Line, Column + Length, Scope, [Token | TokensSoFar]).
 
@@ -1324,18 +1325,18 @@ tokenize_alias(Rest, Line, Column, Unencoded, Atom, Length, Ascii, Special, Scop
       error(Reason, Unencoded ++ Rest, Scope, Tokens);
 
     true ->
-      AliasesToken = {alias, {Line, Column, {Unencoded, nil}}, Atom},
+      AliasesToken = {alias, {Line, Column, Unencoded}, Atom},
       tokenize(Rest, Line, Column + Length, Scope, [AliasesToken | Tokens])
   end.
 
 %% Check if it is a call identifier (paren | bracket | do)
 
-check_call_identifier(Line, Column, Unencoded, Delimiter, Atom, [$( | _]) ->
-  {paren_identifier, {Line, Column, {Unencoded, Delimiter}}, Atom};
-check_call_identifier(Line, Column, Unencoded, Delimiter, Atom, [$[ | _]) ->
-  {bracket_identifier, {Line, Column, {Unencoded, Delimiter}}, Atom};
-check_call_identifier(Line, Column, Unencoded, Delimiter, Atom, _Rest) ->
-  {identifier, {Line, Column, {Unencoded, Delimiter}}, Atom}.
+check_call_identifier(Line, Column, Unencoded, Atom, [$( | _]) ->
+  {paren_identifier, {Line, Column, Unencoded}, Atom};
+check_call_identifier(Line, Column, Unencoded, Atom, [$[ | _]) ->
+  {bracket_identifier, {Line, Column, Unencoded}, Atom};
+check_call_identifier(Line, Column, Unencoded, Atom, _Rest) ->
+  {identifier, {Line, Column, Unencoded}, Atom}.
 
 add_token_with_eol({unary_op, _, _} = Left, T) -> [Left | T];
 add_token_with_eol(Left, [{eol, _} | T]) -> [Left | T];

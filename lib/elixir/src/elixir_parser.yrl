@@ -892,8 +892,8 @@ build_dot(Dot, Left, {_, Location, _} = Right) ->
   Meta = meta_from_token(Dot),
   IdentifierMeta0 = meta_from_location(Location),
   IdentifierMeta1 =
-    case Location of
-      {_Line, _Column, {_Unencoded, Delimiter}} when Delimiter =/= nil ->
+    case Dot of
+      {'.', {_Line, _Column, Delimiter}} when Delimiter =/= nil ->
         delimiter(<<Delimiter>>) ++ IdentifierMeta0;
       _ ->
         IdentifierMeta0

@@ -40,7 +40,7 @@ defmodule String.Tokenizer.Security do
   ]
 
   defp check_token_for_confusability(
-         {kind, {_line, _column, {[_ | _] = name, _delimiter}} = info, _},
+         {kind, {_line, _column, [_ | _] = name} = info, _},
          skeletons
        )
        when kind in @identifiers do
@@ -50,7 +50,7 @@ defmodule String.Tokenizer.Security do
       {_, _, ^name} ->
         {:ok, skeletons}
 
-      {line, _, {previous_name, _delimiter}} when name != previous_name ->
+      {line, _, previous_name} when name != previous_name ->
         {:warn,
          "confusable identifier: '#{name}' looks like '#{previous_name}' on line #{line}, " <>
            "but they are written using different characters" <> dir_compare(name, previous_name)}
