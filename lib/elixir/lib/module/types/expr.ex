@@ -135,7 +135,7 @@ defmodule Module.Types.Expr do
       if fallback == none() do
         Enum.reduce(pairs, map_type, fn {key, type}, acc ->
           case map_put(acc, key, type) do
-            descr when is_descr(descr) -> descr
+            {:ok, descr} -> descr
             :badmap -> throw({:badmap, map_type, expr, context})
           end
         end)
@@ -545,7 +545,7 @@ defmodule Module.Types.Expr do
 
   defp map_put!(map_type, key, value_type) do
     case map_put(map_type, key, value_type) do
-      descr when is_descr(descr) -> descr
+      {:ok, descr} -> descr
       error -> raise "unexpected #{inspect(error)}"
     end
   end

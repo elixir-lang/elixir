@@ -1048,50 +1048,56 @@ defmodule Module.Types.DescrTest do
       assert map_put(integer(), :a, integer()) == :badmap
       assert map_put(dynamic(integer()), :a, atom()) == :badmap
       assert map_put(union(integer(), dynamic()), :a, atom()) == :badmap
-      assert map_put(empty_map(), :a, integer()) == closed_map(a: integer())
+      assert map_put(empty_map(), :a, integer()) == {:ok, closed_map(a: integer())}
 
       # Replace an existing key in a closed map
-      assert map_put(closed_map(a: integer()), :a, atom()) == closed_map(a: atom())
+      assert map_put(closed_map(a: integer()), :a, atom()) == {:ok, closed_map(a: atom())}
 
       # Add a new key to a closed map
-      assert map_put(closed_map(a: integer()), :b, atom()) == closed_map(a: integer(), b: atom())
+      assert map_put(closed_map(a: integer()), :b, atom()) ==
+               {:ok, closed_map(a: integer(), b: atom())}
 
       # Replace an existing key in an open map
-      assert map_put(open_map(a: integer()), :a, atom()) == open_map(a: atom())
+      assert map_put(open_map(a: integer()), :a, atom()) ==
+               {:ok, open_map(a: atom())}
 
       # Add a new key to an open map
-      assert map_put(open_map(a: integer()), :b, atom()) == open_map(a: integer(), b: atom())
+      assert map_put(open_map(a: integer()), :b, atom()) ==
+               {:ok, open_map(a: integer(), b: atom())}
 
       # Put a key-value pair in a union of maps
-      assert union(closed_map(a: integer()), closed_map(b: atom()))
-             |> map_put(:c, boolean())
-             |> equal?(
+      {:ok, type} =
+        union(closed_map(a: integer()), closed_map(b: atom())) |> map_put(:c, boolean())
+
+      assert equal?(
+               type,
                union(closed_map(a: integer(), c: boolean()), closed_map(b: atom(), c: boolean()))
              )
 
       # Put a key-value pair in a dynamic map
-      assert map_put(dynamic(open_map()), :a, integer()) == dynamic(open_map(a: integer()))
+      assert map_put(dynamic(open_map()), :a, integer()) == {:ok, dynamic(open_map(a: integer()))}
 
       # Put a key-value pair in an intersection of maps
-      assert intersection(open_map(a: integer()), open_map(b: atom()))
-             |> map_put(:c, boolean())
-             |> equal?(open_map(a: integer(), b: atom(), c: boolean()))
+      {:ok, type} =
+        intersection(open_map(a: integer()), open_map(b: atom())) |> map_put(:c, boolean())
+
+      assert equal?(type, open_map(a: integer(), b: atom(), c: boolean()))
 
       # Put a key-value pair in a difference of maps
-      assert difference(open_map(), closed_map(a: integer()))
-             |> map_put(:b, atom())
-             |> equal?(difference(open_map(b: atom()), closed_map(a: integer())))
+      {:ok, type} = difference(open_map(), closed_map(a: integer())) |> map_put(:b, atom())
+      assert equal?(type, difference(open_map(b: atom()), closed_map(a: integer())))
 
       # Put a new key-value pair with dynamic type
       # Note: setting a field to a dynamic type makes the whole map become dynamic.
-      assert map_put(open_map(), :a, dynamic()) == dynamic(open_map(a: term()))
+      assert map_put(open_map(), :a, dynamic()) == {:ok, dynamic(open_map(a: term()))}
 
       # Put a key-value pair in a map with optional fields
-      assert map_put(closed_map(a: if_set(integer())), :b, atom())
-             |> equal?(closed_map(a: if_set(integer()), b: atom()))
+      {:ok, type} = closed_map(a: if_set(integer())) |> map_put(:b, atom())
+      assert equal?(type, closed_map(a: if_set(integer()), b: atom()))
 
       # Fetching on a key-value pair that was put to a given type returns {false, type}
-      {false, type} = union(dynamic(), empty_map()) |> map_put(:a, atom()) |> map_fetch(:a)
+      {:ok, map} = map_put(union(dynamic(), empty_map()), :a, atom())
+      {false, type} = map_fetch(map, :a)
       assert equal?(type, atom())
     end
   end
