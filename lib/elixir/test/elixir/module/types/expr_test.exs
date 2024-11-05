@@ -481,18 +481,44 @@ defmodule Module.Types.ExprTest do
   end
 
   describe "maps/structs" do
-    test "creating maps" do
+    test "creating closed maps" do
       assert typecheck!(%{foo: :bar}) == closed_map(foo: atom([:bar]))
-      assert typecheck!(%{123 => 456}) == open_map()
-      assert typecheck!(%{123 => 456, foo: :bar}) == open_map(foo: atom([:bar]))
       assert typecheck!([x], %{key: x}) == dynamic(closed_map(key: term()))
+    end
 
+    test "creating closed maps with dynamic keys" do
       assert typecheck!(
                (
                  foo = :foo
                  %{foo => :first, foo => :second}
                )
              ) == closed_map(foo: atom([:second]))
+
+      assert typecheck!(
+               (
+                 foo_or_bar =
+                   cond do
+                     :rand.uniform() > 0.5 -> :foo
+                     true -> :bar
+                   end
+
+                 %{foo_or_bar => :first, foo_or_bar => :second}
+               )
+             )
+             |> equal?(
+               closed_map(foo: atom([:second]))
+               |> union(closed_map(bar: atom([:second])))
+               |> union(closed_map(foo: atom([:first]), bar: atom([:second])))
+               |> union(closed_map(bar: atom([:first]), foo: atom([:second])))
+             )
+    end
+
+    test "creating open maps" do
+      assert typecheck!(%{123 => 456}) == open_map()
+      # Since key cannot override :foo, we preserve it
+      assert typecheck!([key], %{key => 456, foo: :bar}) == dynamic(open_map(foo: atom([:bar])))
+      # Since key can override :foo, we do not preserve it
+      assert typecheck!([key], %{:foo => :bar, key => :baz}) == dynamic(open_map())
     end
 
     test "creating structs" do
@@ -513,11 +539,179 @@ defmodule Module.Types.ExprTest do
                )
     end
 
+    test "updating to closed maps" do
+      assert typecheck!([x], %{x | x: :zero}) ==
+               dynamic(open_map(x: atom([:zero])))
+
+      assert typecheck!([x], %{%{x | x: :zero} | y: :one}) ==
+               dynamic(open_map(x: atom([:zero]), y: atom([:one])))
+
+      assert typecheck!(
+               (
+                 foo_or_bar =
+                   cond do
+                     :rand.uniform() > 0.5 -> :key1
+                     true -> :key2
+                   end
+
+                 x = %{key1: :one, key2: :two}
+                 %{x | foo_or_bar => :one!, foo_or_bar => :two!}
+               )
+             )
+             |> equal?(
+               closed_map(key1: atom([:one]), key2: atom([:two!]))
+               |> union(closed_map(key1: atom([:two!]), key2: atom([:one!])))
+               |> union(closed_map(key1: atom([:one!]), key2: atom([:two!])))
+               |> union(closed_map(key1: atom([:two!]), key2: atom([:two])))
+             )
+
+      assert typeerror!([x = :foo], %{x | x: :zero}) == ~l"""
+             expected a map within map update syntax:
+
+                 %{x | x: :zero}
+
+             but got type:
+
+                 dynamic(:foo)
+
+             where "x" was given the type:
+
+                 # type: dynamic(:foo)
+                 # from: types_test.ex:LINE
+                 x = :foo
+             """
+
+      assert typeerror!(
+               (
+                 x = %{}
+                 %{x | x: :zero}
+               )
+             ) == ~l"""
+             expected a map with key :x in map update syntax:
+
+                 %{x | x: :zero}
+
+             but got type:
+
+                 empty_map()
+
+             where "x" was given the type:
+
+                 # type: empty_map()
+                 # from: types_test.ex:LINE-3
+                 x = %{}
+             """
+
+      # Assert we check all possible combinations
+      assert typeerror!(
+               (
+                 foo_or_bar =
+                   cond do
+                     :rand.uniform() > 0.5 -> :foo
+                     true -> :bar
+                   end
+
+                 x = %{foo: :baz}
+                 %{x | foo_or_bar => :bat}
+               )
+             ) == ~l"""
+             expected a map with key :bar in map update syntax:
+
+                 %{x | foo_or_bar => :bat}
+
+             but got type:
+
+                 %{foo: :baz}
+
+             where "foo_or_bar" was given the type:
+
+                 # type: :bar or :foo
+                 # from: types_test.ex:LINE-9
+                 foo_or_bar =
+                   cond do
+                     :rand.uniform() > 0.5 -> :foo
+                     true -> :bar
+                   end
+
+             where "x" was given the type:
+
+                 # type: %{foo: :baz}
+                 # from: types_test.ex:LINE-3
+                 x = %{foo: :baz}
+             """
+    end
+
+    test "updating to open maps" do
+      assert typecheck!(
+               [key],
+               (
+                 x = %{foo: :bar}
+                 %{x | key => :baz}
+               )
+             ) == dynamic(open_map())
+
+      # Since key cannot override :foo, we preserve it
+      assert typecheck!(
+               [key],
+               (
+                 x = %{foo: :bar}
+                 %{x | key => :baz, foo: :bat}
+               )
+             ) == dynamic(open_map(foo: atom([:bat])))
+
+      # Since key can override :foo, we do not preserve it
+      assert typecheck!(
+               [key],
+               (
+                 x = %{foo: :bar}
+                 %{x | :foo => :baz, key => :bat}
+               )
+             ) == dynamic(open_map())
+
+      # The goal of this assertion is to verify we assert keys,
+      # even if they may be overridden later.
+      assert typeerror!(
+               [key],
+               (
+                 x = %{key: :value}
+                 %{x | :foo => :baz, key => :bat}
+               )
+             ) == ~l"""
+             expected a map with key :foo in map update syntax:
+
+                 %{x | :foo => :baz, key => :bat}
+
+             but got type:
+
+                 %{key: :value}
+
+             where "key" was given the type:
+
+                 # type: dynamic()
+                 # from: types_test.ex:LINE-5
+                 key
+
+             where "x" was given the type:
+
+                 # type: %{key: :value}
+                 # from: types_test.ex:LINE-3
+                 x = %{key: :value}
+             """
+    end
+
     test "updating structs" do
       assert typecheck!([x], %Point{x | x: :zero}) ==
-               closed_map(__struct__: atom([Point]), x: atom([:zero]), y: term(), z: term())
+               dynamic(open_map(__struct__: atom([Point]), x: atom([:zero])))
 
-      assert typeerror!([x = :foo], %Point{x | x: :zero}) ==
+      assert typecheck!([x], %Point{%Point{x | x: :zero} | y: :one}) ==
+               dynamic(open_map(__struct__: atom([Point]), x: atom([:zero]), y: atom([:one])))
+
+      assert typeerror!(
+               (
+                 x = %{x: 0}
+                 %Point{x | x: :zero}
+               )
+             ) ==
                ~l"""
                incompatible types in struct update:
 
@@ -529,13 +723,13 @@ defmodule Module.Types.ExprTest do
 
                but got type:
 
-                   dynamic(:foo)
+                   %{x: integer()}
 
                where "x" was given the type:
 
-                   # type: dynamic(:foo)
-                   # from: types_test.ex:LINE-1
-                   x = :foo
+                   # type: %{x: integer()}
+                   # from: types_test.ex:LINE-4
+                   x = %{x: 0}
                """
     end
 

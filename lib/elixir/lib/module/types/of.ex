@@ -107,52 +107,73 @@ defmodule Module.Types.Of do
   @doc """
   Builds a closed map.
   """
-  def closed_map(pairs, extra \\ [], stack, context, of_fun) do
-    {closed?, single, multiple, context} =
-      Enum.reduce(pairs, {true, extra, [], context}, fn
-        {key, value}, {closed?, single, multiple, context} ->
-          {keys, context} = of_finite_key_type(key, stack, context, of_fun)
+  def closed_map(pairs, stack, context, of_fun) do
+    permutate_map(pairs, stack, context, of_fun, fn fallback, _keys, pairs ->
+      # TODO: Use the fallback type to actually indicate if open or closed.
+      if fallback == none(), do: closed_map(pairs), else: open_map(pairs)
+    end)
+  end
+
+  @doc """
+  Builds permutation of maps according to the given keys.
+  """
+  def permutate_map(pairs, stack, context, of_fun, of_map) do
+    {dynamic?, fallback, single, multiple, assert, context} =
+      Enum.reduce(pairs, {false, none(), [], [], [], context}, fn
+        {key, value}, {dynamic?, fallback, single, multiple, assert, context} ->
+          {dynamic_key?, keys, context} = of_finite_key_type(key, stack, context, of_fun)
           {value_type, context} = of_fun.(value, stack, context)
+          dynamic? = dynamic? or dynamic_key? or gradual?(value_type)
 
           case keys do
             :none ->
-              {false, single, multiple, context}
+              fallback = union(fallback, value_type)
+
+              {fallback, assert} =
+                Enum.reduce(single, {fallback, assert}, fn {key, type}, {fallback, assert} ->
+                  {union(fallback, type), [key | assert]}
+                end)
+
+              {fallback, assert} =
+                Enum.reduce(multiple, {fallback, assert}, fn {keys, type}, {fallback, assert} ->
+                  {union(fallback, type), keys ++ assert}
+                end)
+
+              {dynamic?, fallback, [], [], assert, context}
 
             [key] when multiple == [] ->
-              {closed?, [{key, value_type} | single], multiple, context}
+              {dynamic?, fallback, [{key, value_type} | single], multiple, assert, context}
 
             keys ->
-              {closed?, single, [{keys, value_type} | multiple], context}
+              {dynamic?, fallback, single, [{keys, value_type} | multiple], assert, context}
           end
       end)
 
     map =
       case Enum.reverse(multiple) do
         [] ->
-          pairs = Enum.reverse(single)
-          if closed?, do: closed_map(pairs), else: open_map(pairs)
+          of_map.(fallback, Enum.uniq(assert), Enum.reverse(single))
 
         [{keys, type} | tail] ->
           for key <- keys, t <- cartesian_map(tail) do
-            pairs = Enum.reverse(single, [{key, type} | t])
-            if closed?, do: closed_map(pairs), else: open_map(pairs)
+            of_map.(fallback, Enum.uniq(assert), Enum.reverse(single, [{key, type} | t]))
           end
           |> Enum.reduce(&union/2)
       end
 
-    {map, context}
+    if dynamic?, do: {dynamic(map), context}, else: {map, context}
   end
 
   defp of_finite_key_type(key, _stack, context, _of_fun) when is_atom(key) do
-    {[key], context}
+    {false, [key], context}
   end
 
   defp of_finite_key_type(key, stack, context, of_fun) do
     {key_type, context} = of_fun.(key, stack, context)
 
     case atom_fetch(key_type) do
-      {:finite, list} -> {list, context}
-      _ -> {:none, context}
+      {:finite, list} -> {gradual?(key_type), list, context}
+      _ -> {gradual?(key_type), :none, context}
     end
   end
 
@@ -167,9 +188,9 @@ defmodule Module.Types.Of do
   end
 
   @doc """
-  Handles structs creation.
+  Handles instantiation of a new struct.
   """
-  def struct({:%, meta, _}, struct, args, default_handling, stack, context, of_fun)
+  def struct_instance(struct, args, meta, stack, context, of_fun)
       when is_atom(struct) do
     # The compiler has already checked the keys are atoms and which ones are required.
     {args_types, context} =
@@ -178,27 +199,8 @@ defmodule Module.Types.Of do
         {{key, type}, context}
       end)
 
-    struct(struct, args_types, default_handling, meta, stack, context)
-  end
-
-  @doc """
-  Struct handling assuming the args have already been converted.
-  """
-  # TODO: Allow structs fields to be defined and validate args against the struct types.
-  # TODO: Use the struct default values to define the default types.
-  def struct(struct, args_types, default_handling, meta, stack, context) do
     {info, context} = struct_info(struct, meta, stack, context)
-    term = term()
-    defaults = for %{field: field} <- info, do: {field, term}
-
-    pairs =
-      case default_handling do
-        :merge_defaults -> [{:__struct__, atom([struct])} | defaults] ++ args_types
-        :skip_defaults -> [{:__struct__, atom([struct])} | args_types]
-        :only_defaults -> [{:__struct__, atom([struct])} | defaults]
-      end
-
-    {closed_map(pairs), context}
+    {struct_type(struct, info, args_types), context}
   end
 
   @doc """
@@ -212,6 +214,17 @@ defmodule Module.Types.Of do
         raise "expected #{inspect(struct)} to return struct metadata, but got none"
 
     {info, context}
+  end
+
+  @doc """
+  Builds a type from the struct info.
+  """
+  def struct_type(struct, info, args_types \\ []) do
+    term = term()
+    pairs = for %{field: field} <- info, do: {field, term}
+    pairs = [{:__struct__, atom([struct])} | pairs]
+    pairs = if args_types == [], do: pairs, else: pairs ++ args_types
+    closed_map(pairs)
   end
 
   ## Binary

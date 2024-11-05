@@ -114,38 +114,67 @@ defmodule Module.Types.Expr do
   end
 
   # %{map | ...}
-  def of_expr({:%{}, _, [{:|, _, [map, args]}]}, stack, context) do
-    {_args_type, context} = Of.closed_map(args, stack, context, &of_expr/3)
-    {_map_type, context} = of_expr(map, stack, context)
-    # TODO: intersect map with keys of terms for args
-    # TODO: Merge args_type into map_type with dynamic/static key requirement
-    {dynamic(open_map()), context}
+  # TODO: Once we support typed structs, we need to type check them here.
+  def of_expr({:%{}, meta, [{:|, _, [map, args]}]} = expr, stack, context) do
+    {map_type, context} = of_expr(map, stack, context)
+
+    Of.permutate_map(args, stack, context, &of_expr/3, fn fallback, keys, pairs ->
+      # If there is no fallback (i.e. it is closed), we can update the existing map,
+      # otherwise we only assert the existing keys.
+      keys = if fallback == none(), do: keys, else: Enum.map(pairs, &elem(&1, 0)) ++ keys
+
+      # Assert the keys exist
+      Enum.each(keys, fn key ->
+        case map_fetch(map_type, key) do
+          {_, _} -> :ok
+          :badkey -> throw({:badkey, map_type, key, expr, context})
+          :badmap -> throw({:badmap, map_type, expr, context})
+        end
+      end)
+
+      if fallback == none() do
+        Enum.reduce(pairs, map_type, fn {key, type}, acc ->
+          case map_fetch_and_put(acc, key, type) do
+            {_value, descr} -> descr
+            :badkey -> throw({:badkey, map_type, key, expr, context})
+            :badmap -> throw({:badmap, map_type, expr, context})
+          end
+        end)
+      else
+        # TODO: Use the fallback type to actually indicate if open or closed.
+        # The fallback must be unioned with the result of map_values with all
+        # `keys` deleted.
+        open_map(pairs)
+      end
+    end)
+  catch
+    error -> {error_type(), error(__MODULE__, error, meta, stack, context)}
   end
 
   # %Struct{map | ...}
+  # Note this code, by definition, adds missing struct fields to `map`
+  # because at runtime we do not check for them (only for __struct__ itself).
+  # TODO: Once we support typed structs, we need to type check them here.
   def of_expr(
         {:%, struct_meta, [module, {:%{}, _, [{:|, update_meta, [map, args]}]}]} = expr,
         stack,
         context
       ) do
-    {args_types, context} =
-      Enum.map_reduce(args, context, fn {key, value}, context when is_atom(key) ->
-        {type, context} = of_expr(value, stack, context)
-        {{key, type}, context}
-      end)
-
-    # TODO: args_types could be an empty list
-    {struct_type, context} =
-      Of.struct(module, args_types, :only_defaults, struct_meta, stack, context)
-
+    {info, context} = Of.struct_info(module, struct_meta, stack, context)
+    struct_type = Of.struct_type(module, info)
     {map_type, context} = of_expr(map, stack, context)
 
     if disjoint?(struct_type, map_type) do
-      warning = {:badupdate, :struct, expr, struct_type, map_type, context}
+      warning = {:badstruct, expr, struct_type, map_type, context}
       {error_type(), error(__MODULE__, warning, update_meta, stack, context)}
     else
-      # TODO: Merge args_type into map_type with dynamic/static key requirement
-      Of.struct(module, args_types, :merge_defaults, struct_meta, stack, context)
+      map_type = map_put!(map_type, :__struct__, atom([module]))
+
+      Enum.reduce(args, {map_type, context}, fn
+        {key, value}, {map_type, context} when is_atom(key) ->
+          {value_type, context} = of_expr(value, stack, context)
+          {map_put!(map_type, key, value_type), context}
+      end)
     end
   end
 
@@ -155,9 +184,8 @@ defmodule Module.Types.Expr do
   end
 
   # %Struct{}
-  def of_expr({:%, _, [module, {:%{}, _, args}]} = expr, stack, context) do
-    # TODO: We should not skip defaults
-    Of.struct(expr, module, args, :skip_defaults, stack, context, &of_expr/3)
+  def of_expr({:%, meta, [module, {:%{}, _, args}]}, stack, context) do
+    Of.struct_instance(module, args, meta, stack, context, &of_expr/3)
   end
 
   # ()
@@ -375,7 +403,8 @@ defmodule Module.Types.Expr do
         # Exceptions are not validated in the compiler,
         # to avoid export dependencies. So we do it here.
         if Code.ensure_loaded?(exception) and function_exported?(exception, :__struct__, 0) do
-          Of.struct(exception, args, :merge_defaults, meta, stack, context)
+          {info, context} = Of.struct_info(exception, meta, stack, context)
+          {Of.struct_type(exception, info, args), context}
         else
           # If the exception cannot be found or is invalid,
           # we call Of.remote/5 to emit a warning.
@@ -515,9 +544,16 @@ defmodule Module.Types.Expr do
     context
   end
 
+  defp map_put!(map_type, key, value_type) do
+    case map_put(map_type, key, value_type) do
+      {:ok, descr} -> descr
+      error -> raise "unexpected #{inspect(error)}"
+    end
+  end
+
   ## Warning formatting
 
-  def format_diagnostic({:badupdate, type, expr, expected_type, actual_type, context}) do
+  def format_diagnostic({:badstruct, expr, expected_type, actual_type, context}) do
     traces = collect_traces(expr, context)
 
     %{
@@ -525,7 +561,7 @@ defmodule Module.Types.Expr do
       message:
         IO.iodata_to_binary([
           """
-          incompatible types in #{type} update:
+          incompatible types in struct update:
 
               #{expr_to_string(expr) |> indent(4)}
 
@@ -536,6 +572,48 @@ defmodule Module.Types.Expr do
           but got type:
 
               #{to_quoted_string(actual_type) |> indent(4)}
+          """,
+          format_traces(traces)
+        ])
+    }
+  end
+
+  def format_diagnostic({:badmap, type, expr, context}) do
+    traces = collect_traces(expr, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          expected a map within map update syntax:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          but got type:
+
+              #{to_quoted_string(type) |> indent(4)}
+          """,
+          format_traces(traces)
+        ])
+    }
+  end
+
+  def format_diagnostic({:badkey, type, key, expr, context}) do
+    traces = collect_traces(expr, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          expected a map with key #{inspect(key)} in map update syntax:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          but got type:
+
+              #{to_quoted_string(type) |> indent(4)}
           """,
           format_traces(traces)
         ])

@@ -657,10 +657,10 @@ defmodule Module.Types.Pattern do
   end
 
   # %Struct{...}
-  def of_guard({:%, _, [module, {:%{}, _, args}]} = struct, _expected, _expr, stack, context)
+  def of_guard({:%, meta, [module, {:%{}, _, args}]} = struct, _expected, _expr, stack, context)
       when is_atom(module) do
     fun = &of_guard(&1, dynamic(), struct, &2, &3)
-    Of.struct(struct, module, args, :skip_defaults, stack, context, fun)
+    Of.struct_instance(module, args, meta, stack, context, fun)
   end
 
   # %{...}

@@ -83,8 +83,8 @@ defmodule Module.Types.Descr do
   @boolset :sets.from_list([true, false], version: 2)
   def boolean(), do: %{atom: {:union, @boolset}}
 
-  # Map helpers
-  #
+  ## Optional
+
   # `not_set()` is a special base type that represents an not_set field in a map.
   # E.g., `%{a: integer(), b: not_set(), ...}` represents a map with an integer
   # field `a` and an not_set field `b`, and possibly other fields.
@@ -153,12 +153,15 @@ defmodule Module.Types.Descr do
 
   ## Set operations
 
-  def term_type?(:term), do: true
-  def term_type?(descr), do: subtype_static?(unfolded_term(), Map.delete(descr, :dynamic))
-
+  @doc """
+  Returns true if the type has a gradual part.
+  """
   def gradual?(:term), do: false
   def gradual?(descr), do: is_map_key(descr, :dynamic)
 
+  @doc """
+  Returns true if hte type only has a gradual part.
+  """
   def only_gradual?(%{dynamic: _} = descr), do: map_size(descr) == 1
   def only_gradual?(_), do: false
 
@@ -175,11 +178,17 @@ defmodule Module.Types.Descr do
     end
   end
 
+  @compile {:inline, maybe_union: 2}
+  defp maybe_union(nil, _fun), do: nil
+  defp maybe_union(descr, fun), do: union(descr, fun.())
+
   @doc """
   Computes the union of two descrs.
   """
   def union(:term, other), do: optional_to_term(other)
   def union(other, :term), do: optional_to_term(other)
+  def union(none, other) when none == @none, do: other
+  def union(other, none) when none == @none, do: other
 
   def union(left, right) do
     left = unfold(left)
@@ -190,18 +199,22 @@ defmodule Module.Types.Descr do
     cond do
       is_gradual_left and not is_gradual_right ->
         right_with_dynamic = Map.put(right, :dynamic, right)
-        symmetrical_merge(left, right_with_dynamic, &union/3)
+        union_static(left, right_with_dynamic)
 
       is_gradual_right and not is_gradual_left ->
         left_with_dynamic = Map.put(left, :dynamic, left)
-        symmetrical_merge(left_with_dynamic, right, &union/3)
+        union_static(left_with_dynamic, right)
 
       true ->
-        symmetrical_merge(left, right, &union/3)
+        union_static(left, right)
     end
   end
 
-  @compile {:inline, union: 3}
+  @compile {:inline, union_static: 2}
+  defp union_static(left, right) do
+    symmetrical_merge(left, right, &union/3)
+  end
+
   defp union(:atom, v1, v2), do: atom_union(v1, v2)
   defp union(:bitmap, v1, v2), do: v1 ||| v2
   defp union(:dynamic, v1, v2), do: dynamic_union(v1, v2)
@@ -227,19 +240,23 @@ defmodule Module.Types.Descr do
     cond do
       is_gradual_left and not is_gradual_right ->
         right_with_dynamic = Map.put(right, :dynamic, right)
-        symmetrical_intersection(left, right_with_dynamic, &intersection/3)
+        intersection_static(left, right_with_dynamic)
 
       is_gradual_right and not is_gradual_left ->
         left_with_dynamic = Map.put(left, :dynamic, left)
-        symmetrical_intersection(left_with_dynamic, right, &intersection/3)
+        intersection_static(left_with_dynamic, right)
 
       true ->
-        symmetrical_intersection(left, right, &intersection/3)
+        intersection_static(left, right)
     end
   end
 
+  @compile {:inline, intersection_static: 2}
+  defp intersection_static(left, right) do
+    symmetrical_intersection(left, right, &intersection/3)
+  end
+
   # Returning 0 from the callback is taken as none() for that subtype.
-  @compile {:inline, intersection: 3}
   defp intersection(:atom, v1, v2), do: atom_intersection(v1, v2)
   defp intersection(:bitmap, v1, v2), do: v1 &&& v2
   defp intersection(:dynamic, v1, v2), do: dynamic_intersection(v1, v2)
@@ -299,7 +316,6 @@ defmodule Module.Types.Descr do
   defp iterator_difference_static(:none, map), do: map
 
   # Returning 0 from the callback is taken as none() for that subtype.
-  @compile {:inline, difference: 3}
   defp difference(:atom, v1, v2), do: atom_difference(v1, v2)
   defp difference(:bitmap, v1, v2), do: v1 - (v1 &&& v2)
   defp difference(:dynamic, v1, v2), do: dynamic_difference(v1, v2)
@@ -378,7 +394,6 @@ defmodule Module.Types.Descr do
     end
   end
 
-  @compile {:inline, to_quoted: 2}
   defp to_quoted(:atom, val), do: atom_to_quoted(val)
   defp to_quoted(:bitmap, val), do: bitmap_to_quoted(val)
   defp to_quoted(:dynamic, descr), do: dynamic_to_quoted(descr)
@@ -512,6 +527,12 @@ defmodule Module.Types.Descr do
       subtype_static?(left_static, right_dynamic)
     end
   end
+
+  @doc """
+  Optimized version of `not empty?(term(), type)`.
+  """
+  def term_type?(:term), do: true
+  def term_type?(descr), do: subtype_static?(unfolded_term(), Map.delete(descr, :dynamic))
 
   @doc """
   Optimized version of `not empty?(intersection(empty_list(), type))`.
@@ -1046,7 +1067,7 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # TODO: Eliminate empty lists from the union
+  # TODO: Eliminate empty lists from the union.
   defp list_normalize(dnf), do: dnf
   #   Enum.filter(dnf, fn {list_type, last_type, negs} ->
   #     not Enum.any?(negs, fn neg -> subtype?(list_type, neg) end)
@@ -1184,129 +1205,7 @@ defmodule Module.Types.Descr do
 
   defp map_new(tag, fields = %{}), do: [{tag, fields, []}]
 
-  @doc """
-  Fetches the type of the value returned by accessing `key` on `map`
-  with the assumption that the descr is exclusively a map (or dynamic).
-
-  It returns a two element tuple or `:error`. The first element says
-  if the type is dynamically optional or not, the second element is
-  the type. In static mode, optional keys are not allowed.
-  """
-  def map_fetch(:term, _key), do: :badmap
-
-  def map_fetch(%{} = descr, key) when is_atom(key) do
-    case :maps.take(:dynamic, descr) do
-      :error ->
-        if descr_key?(descr, :map) and map_only?(descr) do
-          {static_optional?, static_type} = map_fetch_static(descr, key)
-
-          if static_optional? or empty?(static_type) do
-            :badkey
-          else
-            {false, static_type}
-          end
-        else
-          :badmap
-        end
-
-      {dynamic, static} ->
-        if descr_key?(dynamic, :map) and map_only?(static) do
-          {dynamic_optional?, dynamic_type} = map_fetch_static(dynamic, key)
-          {static_optional?, static_type} = map_fetch_static(static, key)
-
-          if static_optional? or empty?(dynamic_type) do
-            :badkey
-          else
-            {dynamic_optional?, union(dynamic(dynamic_type), static_type)}
-          end
-        else
-          :badmap
-        end
-    end
-  end
-
   defp map_only?(descr), do: empty?(Map.delete(descr, :map))
-
-  defp map_fetch_static(:term, _key), do: {true, term()}
-
-  defp map_fetch_static(descr, key) when is_atom(key) do
-    case descr do
-      # Optimization: if the key does not exist in the map,
-      # avoid building if_set/not_set pairs and return the
-      # popped value directly.
-      %{map: [{tag, fields, []}]} when not is_map_key(fields, key) ->
-        case tag do
-          :open -> {true, term()}
-          :closed -> {true, none()}
-        end
-
-      %{map: map} ->
-        map_get(map, key) |> pop_optional_static()
-
-      %{} ->
-        {false, none()}
-    end
-  end
-
-  @doc """
-  Adds a `key` of a given type, assuming that the descr is exclusively
-  a map (or dynamic).
-  """
-  def map_put(:term, _key, _type), do: :badmap
-  def map_put(descr, key, :term) when is_atom(key), do: map_put_static_value(descr, key, :term)
-
-  def map_put(descr, key, type) when is_atom(key) do
-    case :maps.take(:dynamic, type) do
-      :error -> map_put_static_value(descr, key, type)
-      {dynamic, _static} -> dynamic(map_put_static_value(descr, key, dynamic))
-    end
-  end
-
-  defp map_put_static_value(descr, key, type) do
-    case :maps.take(:dynamic, descr) do
-      :error ->
-        if map_only?(descr) do
-          map_put_static_descr(descr, key, type)
-        else
-          :badmap
-        end
-
-      {dynamic, static} when static == @none ->
-        if descr_key?(dynamic, :map) do
-          dynamic(map_put_static_descr(dynamic, key, type))
-        else
-          :badmap
-        end
-
-      {dynamic, static} ->
-        if descr_key?(dynamic, :map) and map_only?(static) do
-          dynamic = map_put_static_descr(dynamic, key, type)
-          static = map_put_static_descr(static, key, type)
-          union(dynamic(dynamic), static)
-        else
-          :badmap
-        end
-    end
-  end
-
-  # Directly inserts a key of a given type into every positive and negative map
-  defp map_put_static_descr(descr, key, type) do
-    case map_delete_static(descr, key) do
-      %{map: dnf} = descr ->
-        dnf =
-          Enum.map(dnf, fn {tag, fields, negs} ->
-            {tag, Map.put(fields, key, type),
-             Enum.map(negs, fn {neg_tag, neg_fields} ->
-               {neg_tag, Map.put(neg_fields, key, type)}
-             end)}
-          end)
-
-        %{descr | map: dnf}
-
-      %{} ->
-        descr
-    end
-  end
 
   # Union is list concatenation
   defp map_union(dnf1, dnf2), do: dnf1 ++ dnf2
@@ -1423,7 +1322,158 @@ defmodule Module.Types.Descr do
   end
 
   @doc """
+  Fetches the type of the value returned by accessing `key` on `map`
+  with the assumption that the descr is exclusively a map (or dynamic).
+
+  It returns a two element tuple or `:error`. The first element says
+  if the type is dynamically optional or not, the second element is
+  the type. In static mode, optional keys are not allowed.
+  """
+  def map_fetch(:term, _key), do: :badmap
+
+  def map_fetch(%{} = descr, key) when is_atom(key) do
+    case :maps.take(:dynamic, descr) do
+      :error ->
+        if descr_key?(descr, :map) and map_only?(descr) do
+          {static_optional?, static_type} = map_fetch_static(descr, key)
+
+          if static_optional? or empty?(static_type) do
+            :badkey
+          else
+            {false, static_type}
+          end
+        else
+          :badmap
+        end
+
+      {dynamic, static} ->
+        if descr_key?(dynamic, :map) and map_only?(static) do
+          {dynamic_optional?, dynamic_type} = map_fetch_static(dynamic, key)
+          {static_optional?, static_type} = map_fetch_static(static, key)
+
+          if static_optional? or empty?(dynamic_type) do
+            :badkey
+          else
+            {dynamic_optional?, union(dynamic(dynamic_type), static_type)}
+          end
+        else
+          :badmap
+        end
+    end
+  end
+
+  # Optimization: if the key does not exist in the map, avoid building
+  # if_set/not_set pairs and return the popped value directly.
+  defp map_fetch_static(%{map: [{tag, fields, []}]}, key) when not is_map_key(fields, key) do
+    case tag do
+      :open -> {true, term()}
+      :closed -> {true, none()}
+    end
+  end
+
+  # Takes a map dnf and returns the union of types it can take for a given key.
+  # If the key may be undefined, it will contain the `not_set()` type.
+  defp map_fetch_static(%{map: dnf}, key) do
+    dnf
+    |> Enum.reduce(none(), fn
+      # Optimization: if there are no negatives,
+      # we can return the value directly.
+      {_tag, %{^key => value}, []}, acc ->
+        value |> union(acc)
+
+      # Optimization: if there are no negatives
+      # and the key does not exist, return the default one.
+      {tag, %{}, []}, acc ->
+        tag_to_type(tag) |> union(acc)
+
+      {tag, fields, negs}, acc ->
+        {fst, snd} = map_pop_key(tag, fields, key)
+
+        case map_split_negative(negs, key) do
+          :empty ->
+            acc
+
+          negative ->
+            negative
+            |> pair_make_disjoint()
+            |> pair_eliminate_negations_fst(fst, snd)
+            |> union(acc)
+        end
+    end)
+    |> pop_optional_static()
+  end
+
+  defp map_fetch_static(%{}, _key), do: {false, none()}
+  defp map_fetch_static(:term, _key), do: {true, term()}
+
+  @doc """
+  Fetches and puts a `key` of a given type, assuming that the descr is exclusively
+  a map (or dynamic).
+  """
+  def map_fetch_and_put(:term, _key, _type), do: :badmap
+
+  def map_fetch_and_put(descr, key, :term) when is_atom(key),
+    do: map_fetch_and_put_shared(descr, key, :term)
+
+  def map_fetch_and_put(descr, key, type) when is_atom(key) do
+    case :maps.take(:dynamic, type) do
+      :error -> map_fetch_and_put_shared(descr, key, type)
+      {dynamic, _static} -> map_fetch_and_put_shared(dynamic(descr), key, dynamic)
+    end
+  end
+
+  defp map_fetch_and_put_shared(descr, key, type) do
+    map_take(descr, key, none(), &map_put_static(&1, key, type))
+  end
+
+  @doc """
+  Puts a `key` of a given type, assuming that the descr is exclusively
+  a map (or dynamic).
+  """
+  def map_put(:term, _key, _type), do: :badmap
+  def map_put(descr, key, :term) when is_atom(key), do: map_put_shared(descr, key, :term)
+
+  def map_put(descr, key, type) when is_atom(key) do
+    case :maps.take(:dynamic, type) do
+      :error -> map_put_shared(descr, key, type)
+      {dynamic, _static} -> map_put_shared(dynamic(descr), key, dynamic)
+    end
+  end
+
+  defp map_put_shared(descr, key, type) do
+    with {nil, descr} <- map_take(descr, key, nil, &map_put_static(&1, key, type)) do
+      {:ok, descr}
+    end
+  end
+
+  # Directly inserts a key of a given type into every positive and negative map.
+  defp map_put_static(%{map: dnf} = descr, key, type) do
+    dnf =
+      Enum.map(dnf, fn {tag, fields, negs} ->
+        {tag, Map.put(fields, key, type),
+         Enum.map(negs, fn {neg_tag, neg_fields} ->
+           {neg_tag, Map.put(neg_fields, key, type)}
+         end)}
+      end)
+
+    %{descr | map: dnf}
+  end
+
+  defp map_put_static(descr, _key, _type), do: descr
+
+  @doc """
   Removes a key from a map type.
+  """
+  def map_delete(descr, key) do
+    # We pass nil as the initial value so we can avoid computing the unions.
+    with {nil, descr} <-
+           map_take(descr, key, nil, &intersection_static(&1, open_map([{key, not_set()}]))) do
+      {:ok, descr}
+    end
+  end
+
+  @doc """
+  Removes a key from a map type and return its type.
 
   ## Algorithm
 
@@ -1433,26 +1483,39 @@ defmodule Module.Types.Descr do
   3. Intersect this with an open record type where the key is explicitly absent.
      This step eliminates the key from open record types where it was implicitly present.
   """
-  def map_delete(:term, _key), do: :badmap
+  def map_take(descr, key) do
+    map_take(descr, key, none(), &intersection_static(&1, open_map([{key, not_set()}])))
+  end
 
-  def map_delete(descr, key) when is_atom(key) do
+  @compile {:inline, map_take: 4}
+  defp map_take(:term, _key, _initial, _updater), do: :badmap
+
+  defp map_take(descr, key, initial, updater) when is_atom(key) do
     case :maps.take(:dynamic, descr) do
       :error ->
-        # Note: the empty typ is not a valid input
         if descr_key?(descr, :map) and map_only?(descr) do
-          map_delete_static(descr, key)
-          |> intersection(open_map([{key, not_set()}]))
+          {optional?, taken, result} = map_take_static(descr, key, initial)
+
+          cond do
+            taken == nil -> {nil, updater.(result)}
+            optional? or empty?(taken) -> :badkey
+            true -> {taken, updater.(result)}
+          end
         else
           :badmap
         end
 
       {dynamic, static} ->
         if descr_key?(dynamic, :map) and map_only?(static) do
-          dynamic_result = map_delete_static(dynamic, key)
-          static_result = map_delete_static(static, key)
+          {_, dynamic_taken, dynamic_result} = map_take_static(dynamic, key, initial)
+          {static_optional?, static_taken, static_result} = map_take_static(static, key, initial)
+          result = union(dynamic(updater.(dynamic_result)), updater.(static_result))
 
-          union(dynamic(dynamic_result), static_result)
-          |> intersection(open_map([{key, not_set()}]))
+          cond do
+            static_taken == nil and dynamic_taken == nil -> {nil, result}
+            static_optional? or empty?(dynamic_taken) -> :badkey
+            true -> {union(dynamic(dynamic_taken), static_taken), result}
+          end
         else
           :badmap
         end
@@ -1460,35 +1523,53 @@ defmodule Module.Types.Descr do
   end
 
   # Takes a static map type and removes a key from it.
-  defp map_delete_static(%{map: dnf}, key) do
-    Enum.reduce(dnf, none(), fn
-      # Optimization: if there are no negatives, we can directly remove the key.
-      {tag, fields, []}, acc ->
-        union(acc, %{map: map_new(tag, :maps.remove(key, fields))})
-
-      {tag, fields, negs}, acc ->
-        {fst, snd} = map_pop_key(tag, fields, key)
-
-        union(
-          acc,
-          case map_split_negative(negs, key) do
-            :empty ->
-              none()
-
-            negative ->
-              negative |> pair_make_disjoint() |> pair_eliminate_negations_snd(fst, snd)
-          end
-        )
-    end)
+  # This allows the key to be put or deleted later on.
+  defp map_take_static(%{map: [{tag, fields, []}]} = descr, key, initial)
+       when not is_map_key(fields, key) do
+    case tag do
+      :open -> {true, maybe_union(initial, fn -> term() end), descr}
+      :closed -> {true, initial, descr}
+    end
   end
 
-  defp map_delete_static(:term, key), do: open_map([{key, not_set()}])
+  defp map_take_static(%{map: dnf}, key, initial) do
+    {value, map} =
+      Enum.reduce(dnf, {initial, none()}, fn
+        # Optimization: if there are no negatives, we can directly remove the key.
+        {tag, fields, []}, {value, map} ->
+          {fst, snd} = map_pop_key(tag, fields, key)
+          {maybe_union(value, fn -> fst end), union(map, snd)}
+
+        {tag, fields, negs}, {value, map} ->
+          {fst, snd} = map_pop_key(tag, fields, key)
+
+          case map_split_negative(negs, key) do
+            :empty ->
+              {value, map}
+
+            negative ->
+              disjoint = pair_make_disjoint(negative)
+
+              {maybe_union(value, fn -> pair_eliminate_negations_fst(disjoint, fst, snd) end),
+               disjoint |> pair_eliminate_negations_snd(fst, snd) |> union(map)}
+          end
+      end)
+
+    if value == nil do
+      {false, value, map}
+    else
+      {optional?, value} = pop_optional_static(value)
+      {optional?, value, map}
+    end
+  end
 
   # If there is no map part to this static type, there is nothing to delete.
-  defp map_delete_static(_type, _key), do: none()
+  defp map_take_static(%{}, _key, initial), do: {false, initial, none()}
 
-  # Emptiness checking for maps.
-  #
+  defp map_take_static(:term, _key, initial) do
+    {true, maybe_union(initial, fn -> term() end), open_map()}
+  end
+
   # Short-circuits if it finds a non-empty map literal in the union.
   # Since the algorithm is recursive, we implement the short-circuiting
   # as throw/catch.
@@ -1541,31 +1622,6 @@ defmodule Module.Types.Descr do
        end)) or map_empty?(tag, fields, negs)
   end
 
-  # Takes a map dnf and returns the union of types it can take for a given key.
-  # If the key may be undefined, it will contain the `not_set()` type.
-  defp map_get(dnf, key) do
-    Enum.reduce(dnf, none(), fn
-      # Optimization: if there are no negatives,
-      # we can return the value directly.
-      {_tag, %{^key => value}, []}, acc ->
-        value |> union(acc)
-
-      # Optimization: if there are no negatives
-      # and the key does not exist, return the default one.
-      {tag, %{}, []}, acc ->
-        tag_to_type(tag) |> union(acc)
-
-      {tag, fields, negs}, acc ->
-        {fst, snd} = map_pop_key(tag, fields, key)
-
-        case map_split_negative(negs, key) do
-          :empty -> none()
-          negative -> negative |> pair_make_disjoint() |> pair_eliminate_negations_fst(fst, snd)
-        end
-        |> union(acc)
-    end)
-  end
-
   defp map_pop_key(tag, fields, key) do
     case :maps.take(key, fields) do
       {value, fields} -> {value, %{map: map_new(tag, fields)}}
@@ -1582,7 +1638,7 @@ defmodule Module.Types.Descr do
   end
 
   # Use heuristics to normalize a map dnf for pretty printing.
-  # TODO: eliminate some simple negations, those which have only zero or one key in common.
+  # TODO: Eliminate some simple negations, those which have only zero or one key in common.
   defp map_normalize(dnf) do
     dnf
     |> Enum.reject(&map_empty?([&1]))
@@ -1974,10 +2030,15 @@ defmodule Module.Types.Descr do
         {fst, snd} = tuple_pop_index(tag, elements, index)
 
         case tuple_split_negative(negs, index) do
-          :empty -> none()
-          negative -> negative |> pair_make_disjoint() |> pair_eliminate_negations_fst(fst, snd)
+          :empty ->
+            acc
+
+          negative ->
+            negative
+            |> pair_make_disjoint()
+            |> pair_eliminate_negations_fst(fst, snd)
+            |> union(acc)
         end
-        |> union(acc)
     end)
   end
 
@@ -2150,13 +2211,16 @@ defmodule Module.Types.Descr do
       {tag, elements, negs}, acc ->
         {fst, snd} = tuple_pop_index(tag, elements, index)
 
-        union(
-          acc,
-          case tuple_split_negative(negs, index) do
-            :empty -> none()
-            negative -> negative |> pair_make_disjoint() |> pair_eliminate_negations_snd(fst, snd)
-          end
-        )
+        case tuple_split_negative(negs, index) do
+          :empty ->
+            acc
+
+          negative ->
+            negative
+            |> pair_make_disjoint()
+            |> pair_eliminate_negations_snd(fst, snd)
+            |> union(acc)
+        end
     end)
   end
 
@@ -2254,7 +2318,7 @@ defmodule Module.Types.Descr do
   end
 
   ## Pairs
-  #
+
   # To simplify disjunctive normal forms of e.g., map types, it is useful to
   # convert them into disjunctive normal forms of pairs of types, and define
   # normalization algorithms on pairs.
