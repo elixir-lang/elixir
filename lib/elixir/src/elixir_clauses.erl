@@ -197,11 +197,14 @@ clause(Meta, Kind, _Fun, _, _, E) ->
 
 head(Meta, [{'when', WhenMeta, [_ | _] = All}], S, E) ->
   {Args, Guard} = elixir_utils:split_last(All),
-  {EArgs, SA, EA} = match(fun elixir_expand:expand_args/3, Meta, Args, S, S, E),
-  {EGuard, SG, EG} = guard(Guard, SA, EA#{context := guard}),
-  {[{'when', WhenMeta, EArgs ++ [EGuard]}], SG, EG#{context := nil}};
+  guarded_head(Meta, WhenMeta, Args, Guard, S, E);
 head(Meta, Args, S, E) ->
   match(fun elixir_expand:expand_args/3, Meta, Args, S, S, E).
+
+guarded_head(Meta, WhenMeta, Args, Guard, S, E) ->
+  {EArgs, SA, EA} = match(fun elixir_expand:expand_args/3, Meta, Args, S, S, E),
+  {EGuard, SG, EG} = guard(Guard, SA, EA#{context := guard}),
+  {[{'when', WhenMeta, EArgs ++ [EGuard]}], SG, EG#{context := nil}}.
 
 guard({'when', Meta, [Left, Right]}, S, E) ->
   {ELeft, SL, EL}  = guard(Left, S, E),
@@ -400,8 +403,12 @@ expand_clauses_with_stacktrace(Meta, Fun, Clauses, S, E) ->
 expand_catch(Meta, [{'when', _, [_, _, _, _ | _]}], _, E) ->
   Error = {wrong_number_of_args_for_clause, "one or two args", origin(Meta, 'try'), 'catch'},
   file_error(Meta, E, ?MODULE, Error);
-expand_catch(Meta, [_] = Args, S, E) ->
-  head(Meta, Args, S, E);
+expand_catch(Meta, [{'when', WhenMeta, [Arg1, Arg2, Guard]}], S, E) ->
+  guarded_head(Meta, WhenMeta, [Arg1, Arg2], Guard, S, E);
+expand_catch(Meta, [{'when', WhenMeta, [Arg1, Guard]}], S, E) ->
+  guarded_head(Meta, WhenMeta, [Arg1], Guard, S, E);
+expand_catch(Meta, [Arg], S, E) ->
+  head(Meta, [throw, Arg], S, E);
 expand_catch(Meta, [_, _] = Args, S, E) ->
   head(Meta, Args, S, E);
 expand_catch(Meta, _, _, E) ->

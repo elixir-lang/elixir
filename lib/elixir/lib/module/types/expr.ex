@@ -241,46 +241,51 @@ defmodule Module.Types.Expr do
     |> dynamic_unless_static(stack)
   end
 
-  # TODO: case expr do pat -> expr end
   def of_expr({:case, _meta, [case_expr, [{:do, clauses}]]}, stack, context) do
-    {_expr_type, context} = of_expr(case_expr, stack, context)
+    {expr_type, context} = of_expr(case_expr, stack, context)
 
     clauses
-    |> of_clauses(stack, {none(), context})
+    |> of_clauses(stack, [expr_type], {none(), context})
     |> dynamic_unless_static(stack)
   end
 
   # TODO: fn pat -> expr end
   def of_expr({:fn, _meta, clauses}, stack, context) do
-    {_acc, context} = of_clauses(clauses, stack, {none(), context})
+    [{:->, _, [args, _]} | _] = clauses
+    expected = Enum.map(args, fn _ -> dynamic() end)
+    {_acc, context} = of_clauses(clauses, stack, expected, {none(), context})
     {fun(), context}
   end
 
-  @try_blocks [:do, :after]
-  @try_clause_blocks [:catch, :else]
+  def of_expr({:try, _meta, [[do: body] ++ blocks]}, stack, context) do
+    {body_type, context} = of_expr(body, stack, context)
+    initial = if Keyword.has_key?(blocks, :else), do: none(), else: body_type
 
-  # TODO: try do expr end
-  def of_expr({:try, _meta, [blocks]}, stack, context) do
-    context =
-      Enum.reduce(blocks, context, fn
-        {:rescue, clauses}, context ->
-          Enum.reduce(clauses, context, fn
-            {:->, _, [[{:in, meta, [var, exceptions]} = expr], body]}, context ->
-              of_rescue(var, exceptions, body, expr, [], meta, stack, context)
+    blocks
+    |> Enum.reduce({initial, context}, fn
+      {:rescue, clauses}, acc_context ->
+        Enum.reduce(clauses, acc_context, fn
+          {:->, _, [[{:in, meta, [var, exceptions]} = expr], body]}, {acc, context} ->
+            {type, context} = of_rescue(var, exceptions, body, expr, [], meta, stack, context)
+            {union(type, acc), context}
 
-            {:->, meta, [[var], body]}, context ->
-              of_rescue(var, [], body, var, [:anonymous_rescue], meta, stack, context)
-          end)
+          {:->, meta, [[var], body]}, {acc, context} ->
+            hint = [:anonymous_rescue]
+            {type, context} = of_rescue(var, [], body, var, hint, meta, stack, context)
+            {union(type, acc), context}
+        end)
 
-        {block, body}, context when block in @try_blocks ->
-          of_expr_context(body, stack, context)
+      {:after, body}, {acc, context} ->
+        {_type, context} = of_expr(body, stack, context)
+        {acc, context}
 
-        {block, clauses}, context when block in @try_clause_blocks ->
-          {_, context} = of_clauses(clauses, stack, {none(), context})
-          context
-      end)
+      {:catch, clauses}, acc_context ->
+        of_clauses(clauses, stack, [atom([:error, :exit, :throw]), dynamic()], acc_context)
 
-    {dynamic(), context}
+      {:else, clauses}, acc_context ->
+        of_clauses(clauses, stack, [body_type], acc_context)
+    end)
+    |> dynamic_unless_static(stack)
   end
 
   def of_expr({:receive, _meta, [blocks]}, stack, context) do
@@ -290,7 +295,7 @@ defmodule Module.Types.Expr do
         {acc, context}
 
       {:do, clauses}, {acc, context} ->
-        of_clauses(clauses, stack, {acc, context})
+        of_clauses(clauses, stack, [dynamic()], {acc, context})
 
       {:after, [{:->, meta, [[timeout], body]}]}, {acc, context} ->
         {timeout_type, context} = of_expr(timeout, stack, context)
@@ -313,7 +318,7 @@ defmodule Module.Types.Expr do
     context = Enum.reduce(opts, context, &for_option(&1, stack, &2))
 
     if Keyword.has_key?(opts, :reduce) do
-      {_, context} = of_clauses(block, stack, {none(), context})
+      {_, context} = of_clauses(block, stack, [dynamic()], {none(), context})
       {dynamic(), context}
     else
       {_type, context} = of_expr(block, stack, context)
@@ -431,7 +436,7 @@ defmodule Module.Types.Expr do
           context
       end
 
-    of_expr_context(body, stack, context)
+    of_expr(body, stack, context)
   end
 
   ## Comprehensions
@@ -456,15 +461,18 @@ defmodule Module.Types.Expr do
   end
 
   defp for_clause(expr, stack, context) do
-    of_expr_context(expr, stack, context)
+    {_type, context} = of_expr(expr, stack, context)
+    context
   end
 
   defp for_option({:into, expr}, stack, context) do
-    of_expr_context(expr, stack, context)
+    {_type, context} = of_expr(expr, stack, context)
+    context
   end
 
   defp for_option({:reduce, expr}, stack, context) do
-    of_expr_context(expr, stack, context)
+    {_type, context} = of_expr(expr, stack, context)
+    context
   end
 
   defp for_option({:uniq, _}, _stack, context) do
@@ -482,15 +490,17 @@ defmodule Module.Types.Expr do
   end
 
   defp with_clause(expr, stack, context) do
-    of_expr_context(expr, stack, context)
+    {_type, context} = of_expr(expr, stack, context)
+    context
   end
 
   defp with_option({:do, body}, stack, context) do
-    of_expr_context(body, stack, context)
+    {_type, context} = of_expr(body, stack, context)
+    context
   end
 
   defp with_option({:else, clauses}, stack, context) do
-    {_, context} = of_clauses(clauses, stack, {none(), context})
+    {_, context} = of_clauses(clauses, stack, [dynamic()], {none(), context})
     context
   end
 
@@ -522,7 +532,7 @@ defmodule Module.Types.Expr do
   defp dynamic_unless_static({_, _} = output, %{mode: :static}), do: output
   defp dynamic_unless_static({type, context}, %{mode: _}), do: {dynamic(type), context}
 
-  defp of_clauses(clauses, stack, acc_context) do
+  defp of_clauses(clauses, stack, _expected, acc_context) do
     Enum.reduce(clauses, acc_context, fn {:->, meta, [head, body]}, {acc, context} ->
       {patterns, guards} = extract_head(head)
       {_types, context} = Pattern.of_head(patterns, guards, meta, stack, context)
@@ -544,11 +554,6 @@ defmodule Module.Types.Expr do
 
   defp flatten_when({:when, _meta, [left, right]}), do: [left | flatten_when(right)]
   defp flatten_when(other), do: [other]
-
-  defp of_expr_context(expr, stack, context) do
-    {_type, context} = of_expr(expr, stack, context)
-    context
-  end
 
   defp map_put!(map_type, key, value_type) do
     case map_put(map_type, key, value_type) do

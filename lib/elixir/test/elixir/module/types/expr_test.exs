@@ -147,7 +147,7 @@ defmodule Module.Types.ExprTest do
                {dynamic() |> union(atom([nil])), "URI.unknown/1 is undefined or private"}
 
       assert typewarn!(try(do: :ok, after: URI.unknown("foo"))) ==
-               {dynamic(), "URI.unknown/1 is undefined or private"}
+               {atom([:ok]), "URI.unknown/1 is undefined or private"}
 
       # Check it also emits over a union
       assert typewarn!(
@@ -1063,6 +1063,38 @@ defmodule Module.Types.ExprTest do
   end
 
   describe "try" do
+    test "returns unions of all clauses" do
+      assert typecheck!(
+               try do
+                 :do
+               rescue
+                 _ -> :rescue
+               catch
+                 :caught -> :caught1
+                 :throw, :caught -> :caught2
+               after
+                 :not_used
+               end
+             ) == atom([:do, :caught1, :caught2, :rescue])
+
+      assert typecheck!(
+               [x],
+               try do
+                 x
+               rescue
+                 _ -> :rescue
+               catch
+                 :caught -> :caught1
+                 :throw, :caught -> :caught2
+               after
+                 :not_used
+               else
+                 :match -> :else1
+                 _ -> :else2
+               end
+             ) == atom([:caught1, :caught2, :rescue, :else1, :else2])
+    end
+
     test "warns on undefined exceptions" do
       assert typewarn!(
                try do
@@ -1071,7 +1103,7 @@ defmodule Module.Types.ExprTest do
                  e in UnknownError -> e
                end
              ) ==
-               {dynamic(),
+               {dynamic() |> union(atom([:ok])),
                 "struct UnknownError is undefined (module UnknownError is not available or is yet to be defined). " <>
                   "Make sure the module name is correct and has been specified in full (or that an alias has been defined)"}
 
@@ -1082,67 +1114,48 @@ defmodule Module.Types.ExprTest do
                  e in Enumerable -> e
                end
              ) ==
-               {dynamic(),
+               {dynamic() |> union(atom([:ok])),
                 "struct Enumerable is undefined (there is such module but it does not define a struct)"}
     end
 
     test "defines unions of exceptions in rescue" do
-      # TODO: we are validating the type through the exception but we should actually check the returned type
-      assert typeerror!(
+      assert typecheck!(
                try do
-                 :ok
+                 raise "oops"
                rescue
-                 e in [SyntaxError, RuntimeError] ->
-                   e.unknown
+                 e in [RuntimeError, ArgumentError] ->
+                   e
                end
              ) ==
-               ~l"""
-               unknown key .unknown in expression:
-
-                   e.unknown
-
-               where "e" was given the type:
-
-                   # type: %RuntimeError{__exception__: true, message: term()} or
-                     %SyntaxError{
-                       __exception__: true,
-                       column: term(),
-                       description: term(),
-                       file: term(),
-                       line: term(),
-                       snippet: term()
-                     }
-                   # from: types_test.ex:LINE-4
-                   rescue e in [SyntaxError, RuntimeError] ->
-               """
+               union(
+                 closed_map(
+                   __struct__: atom([ArgumentError]),
+                   __exception__: atom([true]),
+                   message: term()
+                 ),
+                 closed_map(
+                   __struct__: atom([RuntimeError]),
+                   __exception__: atom([true]),
+                   message: term()
+                 )
+               )
     end
 
     test "defines an open map of two fields in anonymous rescue" do
-      # TODO: we are validating the type through the exception but we should actually check the returned type
-      assert typeerror!(
+      assert typecheck!(
                try do
-                 :ok
+                 raise "oops"
                rescue
-                 e -> e.message
+                 e -> e
                end
              ) ==
-               ~l"""
-               unknown key .message in expression:
-
-                   e.message
-
-               where "e" was given the type:
-
-                   # type: %{..., __exception__: true, __struct__: atom()}
-                   # from: types_test.ex:LINE-3
-                   rescue e ->
-
-               #{hints(:anonymous_rescue)}
-               """
+               open_map(
+                 __struct__: atom(),
+                 __exception__: atom([true])
+               )
     end
 
     test "matches on stacktrace" do
-      # TODO: we are validating the type through the exception but we should actually check the returned type
       assert typeerror!(
                try do
                  :ok
