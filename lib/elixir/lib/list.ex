@@ -774,18 +774,13 @@ defmodule List do
   """
   @spec insert_at(list, integer, any) :: list
   def insert_at(list, index, value) when is_list(list) and is_integer(index) do
-    case index do
-      -1 ->
-        list ++ [value]
-
-      _ when index < 0 ->
-        case length(list) + index + 1 do
-          index when index < 0 -> [value | list]
-          index -> do_insert_at(list, index, value)
-        end
-
-      _ ->
-        do_insert_at(list, index, value)
+    if index < 0 do
+      case length(list) + index + 1 do
+        index when index < 0 -> [value | list]
+        index -> do_insert_at(list, index, value)
+      end
+    else
+      do_insert_at(list, index, value)
     end
   end
 
