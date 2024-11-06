@@ -1051,6 +1051,16 @@ defmodule Module.Types.ExprTest do
     end
   end
 
+  describe "conditionals" do
+    test "if does not report on literal booleans" do
+      assert typecheck!(
+               if true do
+                 :ok
+               end
+             ) == atom([:ok])
+    end
+  end
+
   describe "receive" do
     test "returns unions of all clauses" do
       assert typecheck!(
