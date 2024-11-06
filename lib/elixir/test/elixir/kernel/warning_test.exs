@@ -881,25 +881,6 @@ defmodule Kernel.WarningTest do
     assert map_size(%{System.unique_integer() => 1, System.unique_integer() => 2}) == 2
   end
 
-  test "unused guard" do
-    assert_warn_eval(
-      ["nofile:5:25\n", "this check/guard will always yield the same result"],
-      """
-      defmodule Sample do
-        def atom_case do
-          v = "bc"
-          case v do
-            _ when is_atom(v) -> :ok
-            _ -> :fail
-          end
-        end
-      end
-      """
-    )
-  after
-    purge(Sample)
-  end
-
   test "length(list) == 0 in guard" do
     assert_warn_eval(
       [
@@ -1208,19 +1189,6 @@ defmodule Kernel.WarningTest do
              defp foo(_), do: :ok
            end
            """) =~ "inlined function foo/1 undefined"
-  after
-    purge(Sample)
-  end
-
-  test "in guard empty list" do
-    assert_warn_eval(
-      ["nofile:2:7\n", "this check/guard will always yield the same result"],
-      """
-      defmodule Sample do
-        def a(x) when x in [], do: x
-      end
-      """
-    )
   after
     purge(Sample)
   end
