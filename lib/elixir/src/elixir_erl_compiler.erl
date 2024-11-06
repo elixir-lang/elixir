@@ -118,7 +118,10 @@ format_warnings(Opts, Warnings) ->
 %% Those we implement ourselves
 handle_file_warning(_, _File, {_Line, v3_core, {map_key_repeated, _}}) -> ok;
 handle_file_warning(_, _File, {_Line, sys_core_fold, {ignored, useless_building}}) -> ok;
-handle_file_warning(_, _File, {_Line, sys_core_fold, {nomatch, _}}) -> ok;
+
+%% We skip all of no_clause, clause_type, guard, shadow.
+%% Those have too little information and they overlap with the type system.
+handle_file_warning(_, _File, {_Line, sys_core_fold, {nomatch, Reason}}) when is_atom(Reason) -> ok;
 
 %% Ignore all linting errors (only come up on parse transforms)
 handle_file_warning(_, _File, {_Line, erl_lint, _}) -> ok;
@@ -150,6 +153,14 @@ custom_format(sys_core_fold, {ignored, {no_effect, {erlang, F, A}}}) ->
       end
   end,
   io_lib:format(Fmt, Args);
+
+custom_format(sys_core_fold, {nomatch, {shadow, Line, {ErlName, ErlArity}}}) ->
+  {Name, Arity} = elixir_utils:erl_fa_to_elixir_fa(ErlName, ErlArity),
+
+  io_lib:format(
+    "this clause for ~ts/~B cannot match because a previous clause at line ~B always matches",
+    [Name, Arity, Line]
+  );
 
 custom_format([], Desc) ->
   io_lib:format("~p", [Desc]);
