@@ -267,7 +267,7 @@ access_expr -> fn_eoe stab_eoe 'end' : build_fn('$1', '$2', '$3').
 access_expr -> open_paren stab_eoe ')' : build_paren_stab('$1', '$2', '$3').
 access_expr -> open_paren ';' stab_eoe ')' : build_paren_stab('$1', '$3', '$4').
 access_expr -> open_paren ';' close_paren : build_paren_stab('$1', [], '$3').
-access_expr -> empty_paren : warn_empty_paren('$1'), {'__block__', [], []}.
+access_expr -> empty_paren : warn_empty_paren('$1'), {'__block__', parens_meta('$1'), []}.
 access_expr -> int : handle_number(number_value('$1'), '$1', ?exprs('$1')).
 access_expr -> flt : handle_number(number_value('$1'), '$1', ?exprs('$1')).
 access_expr -> char : handle_number(?exprs('$1'), '$1', number_value('$1')).
@@ -342,15 +342,15 @@ stab_expr -> expr :
 stab_expr -> stab_op_eol_and_expr :
                build_op([], '$1').
 stab_expr -> empty_paren stab_op_eol_and_expr :
-               build_op([], '$2').
+               build_op_with_meta([], '$2', parens_meta('$1')).
 stab_expr -> empty_paren when_op expr stab_op_eol_and_expr :
-               build_op([{'when', meta_from_token('$2'), ['$3']}], '$4').
+               build_op_with_meta([{'when', meta_from_token('$2'), ['$3']}], '$4', parens_meta('$1')).
 stab_expr -> call_args_no_parens_all stab_op_eol_and_expr :
                build_op(unwrap_when(unwrap_splice('$1')), '$2').
 stab_expr -> stab_parens_many stab_op_eol_and_expr :
-               build_op(unwrap_splice('$1'), '$2').
+               build_op_with_meta(unwrap_splice(element(2, '$1')), '$2', parens_meta('$1')).
 stab_expr -> stab_parens_many when_op expr stab_op_eol_and_expr :
-               build_op([{'when', meta_from_token('$2'), unwrap_splice('$1') ++ ['$3']}], '$4').
+               build_op_with_meta([{'when', meta_from_token('$2'), unwrap_splice(element(2, '$1')) ++ ['$3']}], '$4', parens_meta('$1')).
 
 stab_op_eol_and_expr -> stab_op_eol expr : {'$1', '$2'}.
 stab_op_eol_and_expr -> stab_op_eol : warn_empty_stab_clause('$1'), {'$1', handle_literal(nil, '$1')}.
@@ -370,7 +370,7 @@ open_paren -> '(' eol  : next_is_eol('$1', '$2').
 close_paren -> ')'     : '$1'.
 close_paren -> eol ')' : '$2'.
 
-empty_paren -> open_paren ')' : '$1'.
+empty_paren -> open_paren ')' : {'$1', '$2'}.
 
 open_bracket  -> '['     : '$1'.
 open_bracket  -> '[' eol : next_is_eol('$1', '$2').
@@ -515,8 +515,8 @@ call_args_no_parens_many_strict -> call_args_no_parens_many : '$1'.
 call_args_no_parens_many_strict -> open_paren call_args_no_parens_kw close_paren : error_no_parens_strict('$1').
 call_args_no_parens_many_strict -> open_paren call_args_no_parens_many close_paren : error_no_parens_strict('$1').
 
-stab_parens_many -> open_paren call_args_no_parens_kw close_paren : ['$2'].
-stab_parens_many -> open_paren call_args_no_parens_many close_paren : '$2'.
+stab_parens_many -> open_paren call_args_no_parens_kw close_paren : {'$1', ['$2'], '$3'}.
+stab_parens_many -> open_paren call_args_no_parens_many close_paren : {'$1', '$2', '$3'}.
 
 % Containers
 
@@ -718,6 +718,10 @@ number_value({_, {_, _, Value}, _}) ->
   Value.
 
 %% Operators
+
+build_op_with_meta(Left, {Op, Right}, Meta) ->
+  {Op1, OpMeta, Args} = build_op(Left, Op, Right),
+  {Op1, Meta ++ OpMeta, Args}.
 
 build_op(Left, {Op, Right}) ->
   build_op(Left, Op, Right).
@@ -1139,6 +1143,18 @@ unwrap_when(Args) ->
       Args
   end.
 
+parens_meta({Open, Close}) ->
+  case ?token_metadata() of
+    true ->
+      ParensEntry = meta_from_token(Open) ++ [{closing, meta_from_token(Close)}],
+      [{parens, [ParensEntry]}];
+    false ->
+      []
+  end;
+parens_meta({Open, _Args, Close}) ->
+  parens_meta({Open, Close}).
+
+
 %% Warnings and errors
 
 return_error({Line, Column, _}, ErrorMessage, ErrorToken) ->
@@ -1290,7 +1306,7 @@ warn_nested_no_parens_keyword(Key, Value) when is_atom(Key) ->
 warn_nested_no_parens_keyword(_Key, _Value) ->
   ok.
 
-warn_empty_paren({_, {Line, Column, _}}) ->
+warn_empty_paren({{_, {Line, Column, _}}, _}) ->
   warn(
     {Line, Column},
     "invalid expression (). "
