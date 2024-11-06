@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   test_linux:
-    name: Ubuntu 20.04, Erlang/OTP ${{ matrix.otp_version }}
+    name: Ubuntu 24.04, Erlang/OTP ${{ matrix.otp_version }}
     strategy:
       fail-fast: false
       matrix:
@@ -35,7 +35,7 @@ jobs:
             development: true
           - otp_version: maint
             development: true
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     # Earlier Erlang/OTP versions ignored compiler directives
     # when using warnings_as_errors. So we only set ERLC_OPTS
     # from Erlang/OTP 27+.
@@ -111,7 +111,7 @@ jobs:
 
   check_posix_compliant:
     name: Check POSIX-compliant
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
