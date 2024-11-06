@@ -328,7 +328,7 @@ defmodule Module.Types.Pattern do
   end
 
   def of_match_var(ast, expected, expr, stack, context) do
-    of_match(ast, expected, expr, {:match_var, expected}, stack, context)
+    of_match(ast, expected, expr, :default, stack, context)
   end
 
   ## Patterns
