@@ -214,7 +214,7 @@ defmodule MacroTest do
     end
 
     defp expand_once_and_clean(quoted, env) do
-      cleaner = &Keyword.drop(&1, [:counter])
+      cleaner = &Keyword.drop(&1, [:counter, :type_check])
 
       quoted
       |> Macro.expand_once(env)
@@ -276,7 +276,7 @@ defmodule MacroTest do
   end
 
   defp expand_and_clean(quoted, env) do
-    cleaner = &Keyword.drop(&1, [:counter])
+    cleaner = &Keyword.drop(&1, [:counter, :type_check])
 
     quoted
     |> Macro.expand(env)
@@ -490,7 +490,7 @@ defmodule MacroTest do
     end
 
     test "with case" do
-      list = [1, 2, 3]
+      list = List.flatten([1, 2, 3])
 
       {result, formatted} =
         dbg_format(
