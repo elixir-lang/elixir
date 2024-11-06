@@ -4,7 +4,10 @@ defmodule KernelTest do
   use ExUnit.Case, async: true
 
   # Skip these doctests are they emit warnings
-  doctest Kernel, except: [===: 2, !==: 2, is_nil: 1]
+  doctest Kernel,
+    except:
+      [===: 2, !==: 2, and: 2, or: 2] ++
+        [is_exception: 1, is_exception: 2, is_nil: 1, is_struct: 1, is_non_struct_map: 1]
 
   def id(arg), do: arg
   def id(arg1, arg2), do: {arg1, arg2}
@@ -298,8 +301,8 @@ defmodule KernelTest do
     assert (false and true) == false
     assert (false and 0) == false
     assert (false and raise("oops")) == false
-    assert ((x = true) and not x) == false
-    assert_raise BadBooleanError, fn -> 0 and 1 end
+    assert ((x = Process.get(:unused, true)) and not x) == false
+    assert_raise BadBooleanError, fn -> Process.get(:unused, 0) and 1 end
   end
 
   test "or/2" do
@@ -310,25 +313,27 @@ defmodule KernelTest do
     assert (false or false) == false
     assert (false or true) == true
     assert (false or 0) == 0
-    assert ((x = false) or not x) == true
-    assert_raise BadBooleanError, fn -> 0 or 1 end
+    assert ((x = Process.get(:unused, false)) or not x) == true
+    assert_raise BadBooleanError, fn -> Process.get(:unused, 0) or 1 end
   end
 
-  defp struct?(arg) when is_struct(arg), do: true
-  defp struct?(_arg), do: false
+  defp delegate_is_struct(arg), do: is_struct(arg)
+
+  defp guarded_is_struct(arg) when is_struct(arg), do: true
+  defp guarded_is_struct(_arg), do: false
 
   defp struct_or_map?(arg) when is_struct(arg) or is_map(arg), do: true
   defp struct_or_map?(_arg), do: false
 
   test "is_struct/1" do
-    assert is_struct(%{}) == false
-    assert is_struct([]) == false
-    assert is_struct(%Macro.Env{}) == true
-    assert is_struct(%{__struct__: "foo"}) == false
-    assert struct?(%Macro.Env{}) == true
-    assert struct?(%{__struct__: "foo"}) == false
-    assert struct?([]) == false
-    assert struct?(%{}) == false
+    assert delegate_is_struct(%{}) == false
+    assert delegate_is_struct([]) == false
+    assert delegate_is_struct(%Macro.Env{}) == true
+    assert delegate_is_struct(%{__struct__: "foo"}) == false
+    assert guarded_is_struct(%Macro.Env{}) == true
+    assert guarded_is_struct(%{__struct__: "foo"}) == false
+    assert guarded_is_struct([]) == false
+    assert guarded_is_struct(%{}) == false
   end
 
   test "is_struct/1 and other match works" do
@@ -337,8 +342,10 @@ defmodule KernelTest do
     assert struct_or_map?(10) == false
   end
 
-  defp struct?(arg, name) when is_struct(arg, name), do: true
-  defp struct?(_arg, _name), do: false
+  defp delegate_is_struct(arg, name), do: is_struct(arg, name)
+
+  defp guarded_is_struct(arg, name) when is_struct(arg, name), do: true
+  defp guarded_is_struct(_arg, _name), do: false
 
   defp struct_or_map?(arg, name) when is_struct(arg, name) or is_map(arg), do: true
   defp struct_or_map?(_arg, _name), do: false
@@ -346,16 +353,16 @@ defmodule KernelTest do
   defp not_atom(), do: "not atom"
 
   test "is_struct/2" do
-    assert is_struct(%{}, Macro.Env) == false
-    assert is_struct([], Macro.Env) == false
-    assert is_struct(%Macro.Env{}, Macro.Env) == true
-    assert is_struct(%Macro.Env{}, URI) == false
-    assert struct?(%Macro.Env{}, Macro.Env) == true
-    assert struct?(%Macro.Env{}, URI) == false
-    assert struct?(%{__struct__: "foo"}, "foo") == false
-    assert struct?(%{__struct__: "foo"}, Macro.Env) == false
-    assert struct?([], Macro.Env) == false
-    assert struct?(%{}, Macro.Env) == false
+    assert delegate_is_struct(%{}, Macro.Env) == false
+    assert delegate_is_struct([], Macro.Env) == false
+    assert delegate_is_struct(%Macro.Env{}, Macro.Env) == true
+    assert delegate_is_struct(%Macro.Env{}, URI) == false
+    assert guarded_is_struct(%Macro.Env{}, Macro.Env) == true
+    assert guarded_is_struct(%Macro.Env{}, URI) == false
+    assert guarded_is_struct(%{__struct__: "foo"}, "foo") == false
+    assert guarded_is_struct(%{__struct__: "foo"}, Macro.Env) == false
+    assert guarded_is_struct([], Macro.Env) == false
+    assert guarded_is_struct(%{}, Macro.Env) == false
 
     assert_raise ArgumentError, "argument error", fn ->
       is_struct(%{}, not_atom())
@@ -368,21 +375,23 @@ defmodule KernelTest do
     assert struct_or_map?(%Macro.Env{}, Macro.Env) == true
   end
 
-  defp non_struct_map?(arg) when is_non_struct_map(arg), do: true
-  defp non_struct_map?(_arg), do: false
+  defp delegate_is_non_struct_map(arg), do: is_non_struct_map(arg)
+
+  defp guarded_is_non_struct_map(arg) when is_non_struct_map(arg), do: true
+  defp guarded_is_non_struct_map(_arg), do: false
 
   defp non_struct_map_or_struct?(arg) when is_non_struct_map(arg) or is_struct(arg), do: true
   defp non_struct_map_or_struct?(_arg), do: false
 
   test "is_non_struct_map/1" do
-    assert is_non_struct_map(%{}) == true
-    assert is_non_struct_map([]) == false
-    assert is_non_struct_map(%Macro.Env{}) == false
-    assert is_non_struct_map(%{__struct__: "foo"}) == true
-    assert non_struct_map?(%Macro.Env{}) == false
-    assert non_struct_map?(%{__struct__: "foo"}) == true
-    assert non_struct_map?([]) == false
-    assert non_struct_map?(%{}) == true
+    assert delegate_is_non_struct_map(%{}) == true
+    assert delegate_is_non_struct_map([]) == false
+    assert delegate_is_non_struct_map(%Macro.Env{}) == false
+    assert delegate_is_non_struct_map(%{__struct__: "foo"}) == true
+    assert guarded_is_non_struct_map(%Macro.Env{}) == false
+    assert guarded_is_non_struct_map(%{__struct__: "foo"}) == true
+    assert guarded_is_non_struct_map([]) == false
+    assert guarded_is_non_struct_map(%{}) == true
   end
 
   test "is_non_struct_map/1 and other match works" do
@@ -391,21 +400,23 @@ defmodule KernelTest do
     assert non_struct_map_or_struct?(10) == false
   end
 
-  defp exception?(arg) when is_exception(arg), do: true
-  defp exception?(_arg), do: false
+  defp delegate_is_exception(arg), do: is_exception(arg)
+
+  defp guarded_is_exception(arg) when is_exception(arg), do: true
+  defp guarded_is_exception(_arg), do: false
 
   defp exception_or_map?(arg) when is_exception(arg) or is_map(arg), do: true
   defp exception_or_map?(_arg), do: false
 
   test "is_exception/1" do
-    assert is_exception(%{}) == false
-    assert is_exception([]) == false
-    assert is_exception(%RuntimeError{}) == true
-    assert is_exception(%{__exception__: "foo"}) == false
-    assert exception?(%RuntimeError{}) == true
-    assert exception?(%{__exception__: "foo"}) == false
-    assert exception?([]) == false
-    assert exception?(%{}) == false
+    assert delegate_is_exception(%{}) == false
+    assert delegate_is_exception([]) == false
+    assert delegate_is_exception(%RuntimeError{}) == true
+    assert delegate_is_exception(%{__exception__: "foo"}) == false
+    assert guarded_is_exception(%RuntimeError{}) == true
+    assert guarded_is_exception(%{__exception__: "foo"}) == false
+    assert guarded_is_exception([]) == false
+    assert guarded_is_exception(%{}) == false
   end
 
   test "is_exception/1 and other match works" do
@@ -414,26 +425,28 @@ defmodule KernelTest do
     assert exception_or_map?(10) == false
   end
 
-  defp exception?(arg, name) when is_exception(arg, name), do: true
-  defp exception?(_arg, _name), do: false
+  defp delegate_is_exception(arg, name), do: is_exception(arg, name)
+
+  defp guarded_is_exception(arg, name) when is_exception(arg, name), do: true
+  defp guarded_is_exception(_arg, _name), do: false
 
   defp exception_or_map?(arg, name) when is_exception(arg, name) or is_map(arg), do: true
   defp exception_or_map?(_arg, _name), do: false
 
   test "is_exception/2" do
-    assert is_exception(%{}, RuntimeError) == false
-    assert is_exception([], RuntimeError) == false
-    assert is_exception(%RuntimeError{}, RuntimeError) == true
-    assert is_exception(%RuntimeError{}, Macro.Env) == false
-    assert exception?(%RuntimeError{}, RuntimeError) == true
-    assert exception?(%RuntimeError{}, Macro.Env) == false
-    assert exception?(%{__exception__: "foo"}, "foo") == false
-    assert exception?(%{__exception__: "foo"}, RuntimeError) == false
-    assert exception?([], RuntimeError) == false
-    assert exception?(%{}, RuntimeError) == false
+    assert delegate_is_exception(%{}, RuntimeError) == false
+    assert delegate_is_exception([], RuntimeError) == false
+    assert delegate_is_exception(%RuntimeError{}, RuntimeError) == true
+    assert delegate_is_exception(%RuntimeError{}, Macro.Env) == false
+    assert guarded_is_exception(%RuntimeError{}, RuntimeError) == true
+    assert guarded_is_exception(%RuntimeError{}, Macro.Env) == false
+    assert guarded_is_exception(%{__exception__: "foo"}, "foo") == false
+    assert guarded_is_exception(%{__exception__: "foo"}, RuntimeError) == false
+    assert guarded_is_exception([], RuntimeError) == false
+    assert guarded_is_exception(%{}, RuntimeError) == false
 
     assert_raise ArgumentError, "argument error", fn ->
-      is_exception(%{}, not_atom())
+      delegate_is_exception(%{}, not_atom())
     end
   end
 

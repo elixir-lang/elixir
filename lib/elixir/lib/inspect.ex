@@ -571,20 +571,26 @@ defimpl Inspect, for: Any do
       |> Enum.reject(&(&1 in except))
       |> Enum.filter(&(&1 in only))
 
-    optional? =
+    filtered_guard =
+      quote do
+        var!(field) in unquote(filtered_fields)
+      end
+
+    field_guard =
       if optional == [] do
-        false
+        filtered_guard
       else
         optional_map = for field <- optional, into: %{}, do: {field, Map.fetch!(struct, field)}
 
         quote do
-          case unquote(Macro.escape(optional_map)) do
-            %{^var!(field) => var!(default)} ->
-              var!(default) == Map.get(var!(struct), var!(field))
+          unquote(filtered_guard) and
+            not case unquote(Macro.escape(optional_map)) do
+              %{^var!(field) => var!(default)} ->
+                var!(default) == Map.get(var!(struct), var!(field))
 
-            %{} ->
-              false
-          end
+              %{} ->
+                false
+            end
         end
       end
 
@@ -593,7 +599,7 @@ defimpl Inspect, for: Any do
         def inspect(var!(struct), var!(opts)) do
           var!(infos) =
             for %{field: var!(field)} = var!(info) <- unquote(module).__info__(:struct),
-                var!(field) in unquote(filtered_fields) and not unquote(optional?),
+                unquote(field_guard),
                 do: var!(info)
 
           var!(name) = Macro.inspect_atom(:literal, unquote(module))

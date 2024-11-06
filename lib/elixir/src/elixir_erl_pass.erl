@@ -302,9 +302,16 @@ translate(Other, Ann, S) ->
 
 translate_case(Meta, Expr, Opts, S) ->
   Ann = ?ann(Meta),
-  Clauses = elixir_erl_clauses:get_clauses(do, Opts, match),
   {TExpr, SE} = translate(Expr, Ann, S),
-  {TClauses, SC} = elixir_erl_clauses:clauses(Clauses, SE),
+  Clauses = elixir_erl_clauses:get_clauses(do, Opts, match),
+  RClauses =
+    %% For constructs that optimize booleans, we mark them as generated
+    %% to avoid reports from the Erlang compiler but specially Dialyzer.
+    case lists:member({optimize_boolean, true}, Meta) of
+      true -> [{N, ?generated(M), H, B} || {N, M, H, B} <- Clauses];
+      false -> Clauses
+    end,
+  {TClauses, SC} = elixir_erl_clauses:clauses(RClauses, SE),
   {{'case', Ann, TExpr, TClauses}, SC}.
 
 translate_list([{'|', _, [Left, Right]}], Ann, List, Acc) ->

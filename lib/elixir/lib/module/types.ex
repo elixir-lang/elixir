@@ -53,7 +53,9 @@ defmodule Module.Types do
   end
 
   defp warnings_from_clause(meta, args, guards, body, stack, context) do
-    {_types, context} = Pattern.of_head(args, guards, meta, stack, context)
+    dynamic = Module.Types.Descr.dynamic()
+    expected = Enum.map(args, fn _ -> dynamic end)
+    {_types, context} = Pattern.of_head(args, guards, expected, :default, meta, stack, context)
     {_type, context} = Expr.of_expr(body, stack, context)
     context.warnings
   end

@@ -219,7 +219,7 @@ defmodule Kernel.ImportTest do
   end
 
   test "import lexical on case" do
-    case true do
+    case Process.get(:unused, true) do
       false ->
         import List
         flatten([1, [2], 3])

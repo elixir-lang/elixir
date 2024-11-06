@@ -349,12 +349,12 @@ defmodule Kernel.RaiseTest do
     test "function clause error" do
       result =
         try do
-          zero(1)
+          Access.get(:ok, :error)
         rescue
           x in [FunctionClauseError] -> Exception.message(x)
         end
 
-      assert result == "no function clause matching in Kernel.RaiseTest.zero/1"
+      assert result == "no function clause matching in Access.get/3"
     end
 
     test "badarg error" do
@@ -450,7 +450,7 @@ defmodule Kernel.RaiseTest do
 
       result =
         try do
-          ^x = zero(0)
+          ^x = Process.get(:unused, 0)
         rescue
           x in [MatchError] -> Exception.message(x)
         end
@@ -483,7 +483,7 @@ defmodule Kernel.RaiseTest do
     test "bad map error" do
       result =
         try do
-          %{zero(0) | foo: :bar}
+          %{Process.get(:unused, 0) | foo: :bar}
         rescue
           x in [BadMapError] -> Exception.message(x)
         end
@@ -494,7 +494,7 @@ defmodule Kernel.RaiseTest do
     test "bad boolean error" do
       result =
         try do
-          1 and true
+          Process.get(:unused, 1) and true
         rescue
           x in [BadBooleanError] -> Exception.message(x)
         end
@@ -507,7 +507,7 @@ defmodule Kernel.RaiseTest do
 
       result =
         try do
-          case zero(0) do
+          case Process.get(:unused, 0) do
             ^x -> nil
           end
         rescue
@@ -521,7 +521,7 @@ defmodule Kernel.RaiseTest do
       result =
         try do
           cond do
-            !zero(0) -> :ok
+            !Process.get(:unused, 0) -> :ok
           end
         rescue
           x in [CondClauseError] -> Exception.message(x)
@@ -581,6 +581,4 @@ defmodule Kernel.RaiseTest do
              "function DoNotExist.for_sure/0 is undefined (module DoNotExist is not available). " <>
                "Make sure the module name is correct and has been specified in full (or that an alias has been defined)"
   end
-
-  defp zero(0), do: 0
 end

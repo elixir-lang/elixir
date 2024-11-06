@@ -720,15 +720,9 @@ expand_case(Meta, Expr, Opts, S, E) ->
   {EExpr, SE, EE} = expand(Expr, S, E),
 
   ROpts =
-    case proplists:get_value(optimize_boolean, Meta, false) of
-      true ->
-        case elixir_utils:returns_boolean(EExpr) of
-          true -> rewrite_case_clauses(Opts);
-          false -> generated_case_clauses(Opts)
-        end;
-
-      false ->
-        Opts
+    case lists:member({optimize_boolean, true}, Meta) andalso elixir_utils:returns_boolean(EExpr) of
+      true -> rewrite_case_clauses(Opts);
+      false -> Opts
     end,
 
   {EOpts, SO, EO} = elixir_clauses:'case'(Meta, ROpts, SE, EE),
@@ -752,18 +746,14 @@ rewrite_case_clauses([{do, [
 ]}]) ->
   rewrite_case_clauses(FalseMeta, FalseExpr, TrueMeta, TrueExpr);
 
-rewrite_case_clauses(Other) ->
-  generated_case_clauses(Other).
+rewrite_case_clauses(Opts) ->
+  Opts.
 
 rewrite_case_clauses(FalseMeta, FalseExpr, TrueMeta, TrueExpr) ->
   [{do, [
-    {'->', ?generated(FalseMeta), [[false], FalseExpr]},
-    {'->', ?generated(TrueMeta), [[true], TrueExpr]}
+    {'->', FalseMeta, [[false], FalseExpr]},
+    {'->', TrueMeta, [[true], TrueExpr]}
   ]}].
-
-generated_case_clauses([{do, Clauses}]) ->
-  RClauses = [{'->', ?generated(Meta), Args} || {'->', Meta, Args} <- Clauses],
-  [{do, RClauses}].
 
 %% Comprehensions
 

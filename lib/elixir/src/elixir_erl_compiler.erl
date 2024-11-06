@@ -119,6 +119,12 @@ format_warnings(Opts, Warnings) ->
 handle_file_warning(_, _File, {_Line, v3_core, {map_key_repeated, _}}) -> ok;
 handle_file_warning(_, _File, {_Line, sys_core_fold, {ignored, useless_building}}) -> ok;
 
+%% We skip all of no_match related to no_clause, clause_type, guard, shadow.
+%% Those have too little information and they overlap with the type system.
+%% We keep the remaining ones because the Erlang compiler performs analyses
+%% on literals (including numbers), which the type system does not do.
+handle_file_warning(_, _File, {_Line, sys_core_fold, {nomatch, Reason}}) when is_atom(Reason) -> ok;
+
 %% Ignore all linting errors (only come up on parse transforms)
 handle_file_warning(_, _File, {_Line, erl_lint, _}) -> ok;
 
@@ -149,10 +155,6 @@ custom_format(sys_core_fold, {ignored, {no_effect, {erlang, F, A}}}) ->
       end
   end,
   io_lib:format(Fmt, Args);
-
-%% Rewrite nomatch to be more generic, it can happen inside if, unless, and the like
-custom_format(sys_core_fold, {nomatch, X}) when X == guard; X == no_clause ->
-  "this check/guard will always yield the same result";
 
 custom_format(sys_core_fold, {nomatch, {shadow, Line, {ErlName, ErlArity}}}) ->
   {Name, Arity} = elixir_utils:erl_fa_to_elixir_fa(ErlName, ErlArity),

@@ -76,11 +76,31 @@ defmodule Module.Types.PatternTest do
                  [info | _] = __ENV__.function
                  info
                )
-             ) =~ "incompatible types in expression"
+             ) =~ "the following pattern will never match"
     end
 
     test "does not check underscore" do
       assert typecheck!(_ = raise("oops")) == none()
+    end
+  end
+
+  describe "=" do
+    test "reports incompatible types" do
+      assert typeerror!([x = {:ok, _}], [_ | _] = x) == ~l"""
+             the following pattern will never match:
+
+                 [_ | _] = x
+
+             because the right-hand side has type:
+
+                 dynamic({:ok, term()})
+
+             where "x" was given the type:
+
+                 # type: dynamic({:ok, term()})
+                 # from: types_test.ex:LINE
+                 x = {:ok, _}
+             """
     end
   end
 
