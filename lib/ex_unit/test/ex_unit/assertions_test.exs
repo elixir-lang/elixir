@@ -50,7 +50,7 @@ defmodule ExUnit.AssertionsTest do
   defmacrop assert_ok_with_pin_from_quoted_var(arg) do
     quote do
       kind = :ok
-      assert {^kind, value} = unquote(arg)
+      assert {^kind, value} = Process.get(:unused, unquote(arg))
     end
   end
 
@@ -666,22 +666,22 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert match when falsy but not match" do
     try do
-      assert {:ok, _x} = nil
+      assert {:ok, _x} = Process.get(:unused, nil)
     rescue
       error in [ExUnit.AssertionError] ->
         "match (=) failed" = error.message
-        "assert {:ok, _x} = nil" = Macro.to_string(error.expr)
+        "assert {:ok, _x} = Process.get(:unused, nil)" = Macro.to_string(error.expr)
         "nil" = Macro.to_string(error.right)
     end
   end
 
   test "assert match when falsy" do
     try do
-      assert _x = nil
+      assert _x = Process.get(:unused, nil)
     rescue
       error in [ExUnit.AssertionError] ->
         "Expected truthy, got nil" = error.message
-        "assert _x = nil" = Macro.to_string(error.expr)
+        "assert _x = Process.get(:unused, nil)" = Macro.to_string(error.expr)
     end
   end
 
@@ -1005,14 +1005,14 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "AssertionError.message/1 is nicely formatted" do
-    assert :a = :b
+    assert :a = Process.get(:unused, :b)
   rescue
     error in [ExUnit.AssertionError] ->
       """
 
 
       match (=) failed
-      code:  assert :a = :b
+      code:  assert :a = Process.get(:unused, :b)
       left:  :a
       right: :b
       """ = Exception.message(error)
