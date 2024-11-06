@@ -387,6 +387,9 @@ defmodule URITest do
     assert URI.merge("http://google.com/foo", "//example.com/baz")
            |> to_string == "http://example.com/baz"
 
+    assert URI.merge("http://google.com/foo", URI.new!("//example.com/baz"))
+           |> to_string == "http://example.com/baz"
+
     assert URI.merge("http://google.com/foo", "//example.com/.././bar/../../../baz")
            |> to_string == "http://example.com/baz"
 

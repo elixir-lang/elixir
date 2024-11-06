@@ -907,7 +907,7 @@ defmodule URI do
     %{rel | path: remove_dot_segments_from_path(rel.path)}
   end
 
-  def merge(base, %URI{host: host} = rel) when host != nil do
+  def merge(%URI{} = base, %URI{host: host} = rel) when host != nil do
     %{rel | scheme: base.scheme, path: remove_dot_segments_from_path(rel.path)}
   end
 
