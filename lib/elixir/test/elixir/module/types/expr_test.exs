@@ -1049,6 +1049,22 @@ defmodule Module.Types.ExprTest do
 
       assert type == atom([:ok, :error])
     end
+
+    test "does not report on literal booleans" do
+      assert typecheck!(
+               case true do
+                 true -> :ok
+                 false -> :error
+               end
+             ) == atom([:ok])
+
+      assert typecheck!(
+               case false do
+                 true -> :ok
+                 false -> :error
+               end
+             ) == atom([:error])
+    end
   end
 
   describe "conditionals" do

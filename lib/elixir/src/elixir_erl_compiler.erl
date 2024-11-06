@@ -118,6 +118,7 @@ format_warnings(Opts, Warnings) ->
 %% Those we implement ourselves
 handle_file_warning(_, _File, {_Line, v3_core, {map_key_repeated, _}}) -> ok;
 handle_file_warning(_, _File, {_Line, sys_core_fold, {ignored, useless_building}}) -> ok;
+handle_file_warning(_, _File, {_Line, sys_core_fold, {nomatch, _}}) -> ok;
 
 %% Ignore all linting errors (only come up on parse transforms)
 handle_file_warning(_, _File, {_Line, erl_lint, _}) -> ok;
@@ -149,18 +150,6 @@ custom_format(sys_core_fold, {ignored, {no_effect, {erlang, F, A}}}) ->
       end
   end,
   io_lib:format(Fmt, Args);
-
-%% Rewrite nomatch to be more generic, it can happen inside if, unless, and the like
-custom_format(sys_core_fold, {nomatch, X}) when X == guard; X == no_clause ->
-  "this check/guard will always yield the same result";
-
-custom_format(sys_core_fold, {nomatch, {shadow, Line, {ErlName, ErlArity}}}) ->
-  {Name, Arity} = elixir_utils:erl_fa_to_elixir_fa(ErlName, ErlArity),
-
-  io_lib:format(
-    "this clause for ~ts/~B cannot match because a previous clause at line ~B always matches",
-    [Name, Arity, Line]
-  );
 
 custom_format([], Desc) ->
   io_lib:format("~p", [Desc]);
