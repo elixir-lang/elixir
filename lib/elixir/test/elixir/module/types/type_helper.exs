@@ -92,14 +92,11 @@ defmodule TypeHelper do
     do: raise("type checking ok but expected error: #{Descr.to_quoted_string(type)}")
 
   @doc false
-  def __typediag__!({type, %{warnings: [{module, warning, _locs}]}}),
-    do: {type, module.format_diagnostic(warning)}
+  def __typediag__!({type, %{warnings: [_ | _] = warnings}}),
+    do: {type, for({module, arg, _} <- warnings, do: module.format_diagnostic(arg))}
 
   def __typediag__!({type, %{warnings: []}}),
-    do: raise("type checking without warnings/errors: #{Descr.to_quoted_string(type)}")
-
-  def __typediag__!({_type, %{warnings: warnings}}),
-    do: raise("type checking with too many warnings/errors: #{inspect(warnings)}")
+    do: raise("type checking without diagnostics: #{Descr.to_quoted_string(type)}")
 
   @doc false
   def __typewarn__!({type, %{warnings: [{module, warning, _locs}], failed: false}}),

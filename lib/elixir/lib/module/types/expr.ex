@@ -116,7 +116,7 @@ defmodule Module.Types.Expr do
     # We do not raise on underscore in case someone writes _ = raise "omg"
     case left_expr do
       {:_, _, ctx} when is_atom(ctx) -> {right_type, context}
-      _ -> Pattern.of_match(left_expr, right_type, expr, {:match, expr}, stack, context)
+      _ -> Pattern.of_match(left_expr, right_type, expr, {:match, right_type}, stack, context)
     end
   end
 
@@ -243,11 +243,11 @@ defmodule Module.Types.Expr do
     |> dynamic_unless_static(stack)
   end
 
-  def of_expr({:case, _meta, [case_expr, [{:do, clauses}]]}, stack, context) do
-    {expr_type, context} = of_expr(case_expr, stack, context)
+  def of_expr({:case, meta, [case_expr, [{:do, clauses}]]}, stack, context) do
+    {case_type, context} = of_expr(case_expr, stack, context)
 
     clauses
-    |> of_clauses([expr_type], {:case, case_expr}, stack, {none(), context})
+    |> of_clauses([case_type], {:case, meta, case_type, case_expr}, stack, {none(), context})
     |> dynamic_unless_static(stack)
   end
 
@@ -286,7 +286,7 @@ defmodule Module.Types.Expr do
         of_clauses(clauses, [@try_catch, dynamic()], :try_catch, stack, acc_context)
 
       {:else, clauses}, acc_context ->
-        of_clauses(clauses, [body_type], :try_else, stack, acc_context)
+        of_clauses(clauses, [body_type], {:try_else, body_type}, stack, acc_context)
     end)
     |> dynamic_unless_static(stack)
   end
@@ -449,7 +449,7 @@ defmodule Module.Types.Expr do
     {_, context} = of_expr(right, stack, context)
 
     {_type, context} =
-      Pattern.of_match(pattern, guards, dynamic(), expr, {:for, expr}, stack, context)
+      Pattern.of_match(pattern, guards, dynamic(), expr, :for, stack, context)
 
     context
   end
@@ -458,7 +458,7 @@ defmodule Module.Types.Expr do
     {right_type, context} = of_expr(right, stack, context)
 
     {_pattern_type, context} =
-      Pattern.of_match(left, binary(), expr, {:for, expr}, stack, context)
+      Pattern.of_match(left, binary(), expr, :for, stack, context)
 
     if binary_type?(right_type) do
       context
@@ -489,12 +489,9 @@ defmodule Module.Types.Expr do
 
   ## With
 
-  defp with_clause({:<-, meta, [left, right]} = expr, stack, context) do
+  defp with_clause({:<-, _meta, [left, right]} = expr, stack, context) do
     {pattern, guards} = extract_head([left])
-
-    {[_type], context} =
-      Pattern.of_head([pattern], guards, [dynamic()], {:with, expr}, meta, stack, context)
-
+    {_type, context} = Pattern.of_match(pattern, guards, dynamic(), :with, expr, stack, context)
     {_, context} = of_expr(right, stack, context)
     context
   end
@@ -542,14 +539,23 @@ defmodule Module.Types.Expr do
   defp dynamic_unless_static({_, _} = output, %{mode: :static}), do: output
   defp dynamic_unless_static({type, context}, %{mode: _}), do: {dynamic(type), context}
 
-  defp of_clauses(clauses, expected, info, stack, acc_context) do
-    Enum.reduce(clauses, acc_context, fn {:->, meta, [head, body]}, {acc, context} ->
+  defp of_clauses(clauses, expected, info, stack, {acc, context}) do
+    %{failed: failed?} = context
+
+    Enum.reduce(clauses, {acc, context}, fn {:->, meta, [head, body]}, {acc, context} ->
+      {failed?, context} = reset_failed(context, failed?)
       {patterns, guards} = extract_head(head)
       {_types, context} = Pattern.of_head(patterns, guards, expected, info, meta, stack, context)
       {body, context} = of_expr(body, stack, context)
-      {union(acc, body), context}
+      {union(acc, body), set_failed(context, failed?)}
     end)
   end
+
+  defp reset_failed(%{failed: true} = context, false), do: {true, %{context | failed: false}}
+  defp reset_failed(context, _), do: {false, context}
+
+  defp set_failed(%{failed: false} = context, true), do: %{context | failed: true}
+  defp set_failed(context, _bool), do: context
 
   defp extract_head([{:when, _meta, args}]) do
     case Enum.split(args, -1) do

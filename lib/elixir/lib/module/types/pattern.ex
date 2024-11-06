@@ -39,7 +39,7 @@ defmodule Module.Types.Pattern do
 
   defp of_pattern_args(patterns, expected, tag, stack, context) do
     context = init_pattern_info(context)
-    {trees, context} = of_pattern_args_index(patterns, expected, 0, [], stack, context)
+    {trees, context} = of_pattern_args_index(patterns, 0, [], stack, context)
 
     {types, context} =
       of_pattern_recur(expected, tag, stack, context, fn types, changed, context ->
@@ -49,20 +49,13 @@ defmodule Module.Types.Pattern do
     {trees, types, context}
   end
 
-  defp of_pattern_args_index(
-         [pattern | tail],
-         [type | expected_types],
-         index,
-         acc,
-         stack,
-         context
-       ) do
-    {tree, context} = of_pattern(pattern, [{:arg, index, type, pattern}], stack, context)
+  defp of_pattern_args_index([pattern | tail], index, acc, stack, context) do
+    {tree, context} = of_pattern(pattern, [{:arg, index, pattern}], stack, context)
     acc = [{pattern, tree} | acc]
-    of_pattern_args_index(tail, expected_types, index + 1, acc, stack, context)
+    of_pattern_args_index(tail, index + 1, acc, stack, context)
   end
 
-  defp of_pattern_args_index([], [], _index, acc, _stack, context),
+  defp of_pattern_args_index([], _index, acc, _stack, context),
     do: {Enum.reverse(acc), context}
 
   defp of_pattern_args_tree(
@@ -107,7 +100,7 @@ defmodule Module.Types.Pattern do
   """
   def of_match(pattern, guards \\ [], expected, expr, tag, stack, context) do
     context = init_pattern_info(context)
-    {tree, context} = of_pattern(pattern, [{:arg, 0, expected, expr}], stack, context)
+    {tree, context} = of_pattern(pattern, [{:arg, 0, expr}], stack, context)
 
     {[type], context} =
       of_pattern_recur([expected], tag, stack, context, fn [type], [0], context ->
@@ -149,7 +142,7 @@ defmodule Module.Types.Pattern do
 
         {var_changed?, context} =
           Enum.reduce(paths, {false, context}, fn
-            [var, {:arg, index, expected, expr} | path], {var_changed?, context} ->
+            [var, {:arg, index, expr} | path], {var_changed?, context} ->
               actual = Enum.fetch!(types, index)
 
               case of_pattern_var(path, actual, true, info, context) do
@@ -178,7 +171,7 @@ defmodule Module.Types.Pattern do
           true ->
             case paths do
               # A single change, check if there are other variables in this index.
-              [[_var, {:arg, index, _, _} | _]] ->
+              [[_var, {:arg, index, _} | _]] ->
                 case info do
                   %{^index => true} -> {[index | changed], context}
                   %{^index => false} -> {changed, context}
@@ -186,7 +179,7 @@ defmodule Module.Types.Pattern do
 
               # Several changes, we have to recompute all indexes.
               _ ->
-                var_changed = Enum.map(paths, fn [_var, {:arg, index, _, _} | _] -> index end)
+                var_changed = Enum.map(paths, fn [_var, {:arg, index, _} | _] -> index end)
                 {var_changed ++ changed, context}
             end
         end
@@ -327,7 +320,7 @@ defmodule Module.Types.Pattern do
   end
 
   def of_match_var(ast, expected, expr, stack, context) do
-    of_match(ast, expected, expr, :default, stack, context)
+    of_match(ast, expected, expr, {:match_var, expected}, stack, context)
   end
 
   ## Patterns
@@ -482,7 +475,7 @@ defmodule Module.Types.Pattern do
   defp of_pattern({name, meta, ctx} = var, reverse_path, _stack, context)
        when is_atom(name) and is_atom(ctx) do
     version = Keyword.fetch!(meta, :version)
-    [{:arg, arg, _type, _pattern} | _] = path = Enum.reverse(reverse_path)
+    [{:arg, arg, _pattern} | _] = path = Enum.reverse(reverse_path)
     {vars, info, counter} = context.pattern_info
 
     paths = [[var | path] | Map.get(vars, version, [])]
@@ -736,21 +729,83 @@ defmodule Module.Types.Pattern do
     %{context | pattern_info: nil}
   end
 
-  # TODO: Decide if we need expected in here
-  def format_diagnostic({:badpattern, expr, tag, context}) do
-    traces = collect_traces(expr, context)
+  # $ type tag = head_pattern() or match_pattern()
+  #
+  # $ typep head_pattern =
+  #     :for_reduce or :with_else or :receive or :try_catch or :fn or :default or
+  #       {:try_else, type} or {:case, meta, type, expr}
+  #
+  # $ typep match_pattern =
+  #     :with or :for or {:match, type}
+  #
+  # The match pattern ones have the whole expression instead
+  # of a single pattern.
+  def format_diagnostic({:badpattern, pattern_or_expr, tag, context}) do
+    traces = collect_traces(pattern_or_expr, context)
 
     %{
       details: %{typing_traces: traces},
       message:
         IO.iodata_to_binary([
-          """
-          the following pattern will never match:
-
-              #{expr_to_string(expr) |> indent(4)}
-          """,
+          badpattern(tag, pattern_or_expr),
           format_traces(traces)
         ])
     }
+  end
+
+  defp badpattern({:try_else, type}, pattern) do
+    """
+    the following clause will never match:
+
+        #{expr_to_string(pattern) |> indent(4)}
+
+    it attempts to match on the result of the try do-block which has incompatible type:
+
+        #{to_quoted_string(type) |> indent(4)}
+    """
+  end
+
+  defp badpattern({:case, meta, type, expr}, pattern) do
+    if meta[:type_check] == :expr do
+      """
+      the following expression will always evaluate to #{to_quoted_string(type)}:
+
+          #{expr_to_string(expr) |> indent(4)}
+      """
+    else
+      """
+      the following clause will never match:
+
+          #{expr_to_string(pattern) |> indent(4)}
+
+      because it attempts to match on the result of:
+
+          #{expr_to_string(expr) |> indent(4)}
+
+      which has type:
+
+          #{to_quoted_string(type) |> indent(4)}
+      """
+    end
+  end
+
+  defp badpattern({:match, type}, expr) do
+    """
+    the following pattern will never match:
+
+        #{expr_to_string(expr) |> indent(4)}
+
+    because the right-hand side has type:
+
+        #{to_quoted_string(type) |> indent(4)}
+    """
+  end
+
+  defp badpattern(_tag, pattern_or_expr) do
+    """
+    the following pattern will never match:
+
+        #{expr_to_string(pattern_or_expr) |> indent(4)}
+    """
   end
 end

@@ -755,9 +755,9 @@ defmodule Module.Types.ExprTest do
     end
 
     test "accessing an unknown field on struct with diagnostic" do
-      {type, diagnostic} = typediag!(%Point{}.foo_bar)
+      {type, [diagnostic]} = typediag!(%Point{}.foo_bar)
       assert type == dynamic()
-      assert diagnostic.span == {__ENV__.line - 2, 54}
+      assert diagnostic.span == {__ENV__.line - 2, 56}
 
       assert diagnostic.message == ~l"""
              unknown key .foo_bar in expression:
@@ -771,9 +771,9 @@ defmodule Module.Types.ExprTest do
     end
 
     test "accessing an unknown field on struct in a var with diagnostic" do
-      {type, diagnostic} = typediag!([x = %URI{}], x.foo_bar)
+      {type, [diagnostic]} = typediag!([x = %URI{}], x.foo_bar)
       assert type == dynamic()
-      assert diagnostic.span == {__ENV__.line - 2, 61}
+      assert diagnostic.span == {__ENV__.line - 2, 63}
 
       assert diagnostic.message == ~l"""
              unknown key .foo_bar in expression:
@@ -792,7 +792,7 @@ defmodule Module.Types.ExprTest do
                    scheme: term(),
                    userinfo: term()
                  })
-                 # from: types_test.ex:LINE-4:41
+                 # from: types_test.ex:LINE-4:43
                  x = %URI{}
              """
 
@@ -1014,6 +1014,41 @@ defmodule Module.Types.ExprTest do
                end
              ) == dynamic(atom([:ok, :error]))
     end
+
+    test "reports error from clause that will never match" do
+      assert typeerror!(
+               [x],
+               case Atom.to_string(x) do
+                 :error -> :error
+                 x -> x
+               end
+             ) == ~l"""
+             the following clause will never match:
+
+                 :error
+
+             because it attempts to match on the result of:
+
+                 Atom.to_string(x)
+
+             which has type:
+
+                 binary()
+             """
+    end
+
+    test "reports errors from multiple clauses" do
+      {type, [_, _]} =
+        typediag!(
+          [x],
+          case Atom.to_string(x) do
+            :ok -> :ok
+            :error -> :error
+          end
+        )
+
+      assert type == atom([:ok, :error])
+    end
   end
 
   describe "receive" do
@@ -1093,6 +1128,28 @@ defmodule Module.Types.ExprTest do
                  _ -> :else2
                end
              ) == atom([:caught1, :caught2, :rescue, :else1, :else2])
+    end
+
+    test "reports error from clause that will never match" do
+      assert typeerror!(
+               [x],
+               try do
+                 Atom.to_string(x)
+               rescue
+                 _ -> :ok
+               else
+                 :error -> :error
+                 x -> x
+               end
+             ) == ~l"""
+             the following clause will never match:
+
+                 :error
+
+             it attempts to match on the result of the try do-block which has incompatible type:
+
+                 binary()
+             """
     end
 
     test "warns on undefined exceptions" do
