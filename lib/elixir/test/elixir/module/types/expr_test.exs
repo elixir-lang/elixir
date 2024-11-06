@@ -1052,12 +1052,24 @@ defmodule Module.Types.ExprTest do
   end
 
   describe "conditionals" do
-    test "if does not report on literal booleans" do
+    test "if does not report on literal atoms" do
       assert typecheck!(
                if true do
                  :ok
                end
              ) == atom([:ok, nil])
+    end
+
+    test "and does not report on literal atoms" do
+      assert typecheck!(false and true) == boolean()
+    end
+
+    test "and reports on non-atom literals" do
+      assert typeerror!(1 and true) == ~l"""
+             the following conditional expression will always evaluate to integer():
+
+                 1
+             """
     end
   end
 
