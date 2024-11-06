@@ -126,7 +126,8 @@ defmodule TypeHelper do
   end
 
   def __typeinfer__(patterns, guards) do
-    Pattern.of_head(patterns, guards, [], new_stack(:infer), new_context())
+    expected = Enum.map(patterns, fn _ -> Module.Types.Descr.dynamic() end)
+    Pattern.of_head(patterns, guards, expected, :default, [], new_stack(:infer), new_context())
   end
 
   defp typecheck(mode, patterns, guards, body, env) do
@@ -144,7 +145,11 @@ defmodule TypeHelper do
 
   def __typecheck__(mode, patterns, guards, body) do
     stack = new_stack(mode)
-    {_types, context} = Pattern.of_head(patterns, guards, [], stack, new_context())
+    expected = Enum.map(patterns, fn _ -> Module.Types.Descr.dynamic() end)
+
+    {_types, context} =
+      Pattern.of_head(patterns, guards, expected, :default, [], stack, new_context())
+
     Expr.of_expr(body, stack, context)
   end
 

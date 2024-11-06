@@ -143,7 +143,7 @@ defmodule Module.Types.ExprTest do
       assert typewarn!(URI.unknown("foo")) ==
                {dynamic(), "URI.unknown/1 is undefined or private"}
 
-      assert typewarn!(if(true, do: URI.unknown("foo"))) ==
+      assert typewarn!(if(:rand.uniform() > 0.5, do: URI.unknown("foo"))) ==
                {dynamic() |> union(atom([nil])), "URI.unknown/1 is undefined or private"}
 
       assert typewarn!(try(do: :ok, after: URI.unknown("foo"))) ==

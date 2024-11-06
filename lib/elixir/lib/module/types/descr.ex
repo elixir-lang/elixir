@@ -582,6 +582,15 @@ defmodule Module.Types.Descr do
   def number_type?(%{bitmap: bitmap}) when (bitmap &&& @bit_number) != 0, do: true
   def number_type?(_), do: false
 
+  @doc """
+  Optimized version of `not empty?(intersection(atom(), type))`.
+  """
+  def atom_type?(:term), do: true
+  def atom_type?(%{dynamic: :term}), do: true
+  def atom_type?(%{dynamic: %{atom: _}}), do: true
+  def atom_type?(%{atom: _}), do: true
+  def atom_type?(_), do: false
+
   ## Bitmaps
 
   defp bitmap_to_quoted(val) do

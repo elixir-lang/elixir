@@ -223,10 +223,14 @@ defmodule Module.Types.Helpers do
     if Keyword.get(meta, :generated, false) do
       context
     else
-      {fun, arity} = stack.function
-      location = {stack.file, meta, {stack.module, fun, arity}}
-      %{context | warnings: [{module, warning, location} | context.warnings]}
+      effective_warn(module, warning, meta, stack, context)
     end
+  end
+
+  defp effective_warn(module, warning, meta, stack, context) do
+    {fun, arity} = stack.function
+    location = {stack.file, meta, {stack.module, fun, arity}}
+    %{context | warnings: [{module, warning, location} | context.warnings]}
   end
 
   @doc """
@@ -236,8 +240,15 @@ defmodule Module.Types.Helpers do
   """
   def error(module, warning, meta, stack, context) do
     case context do
-      %{failed: true} -> context
-      %{failed: false} -> warn(module, warning, meta, stack, %{context | failed: true})
+      %{failed: true} ->
+        context
+
+      %{failed: false} ->
+        if Keyword.get(meta, :generated, false) do
+          context
+        else
+          effective_warn(module, warning, meta, stack, %{context | failed: true})
+        end
     end
   end
 

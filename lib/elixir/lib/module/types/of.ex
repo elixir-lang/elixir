@@ -121,7 +121,7 @@ defmodule Module.Types.Of do
     {dynamic?, fallback, single, multiple, assert, context} =
       Enum.reduce(pairs, {false, none(), [], [], [], context}, fn
         {key, value}, {dynamic?, fallback, single, multiple, assert, context} ->
-          {dynamic_key?, keys, context} = of_finite_key_type(key, stack, context, of_fun)
+          {dynamic_key?, keys, context} = finite_key_type(key, stack, context, of_fun)
           {value_type, context} = of_fun.(value, stack, context)
           dynamic? = dynamic? or dynamic_key? or gradual?(value_type)
 
@@ -164,11 +164,11 @@ defmodule Module.Types.Of do
     if dynamic?, do: {dynamic(map), context}, else: {map, context}
   end
 
-  defp of_finite_key_type(key, _stack, context, _of_fun) when is_atom(key) do
+  defp finite_key_type(key, _stack, context, _of_fun) when is_atom(key) do
     {false, [key], context}
   end
 
-  defp of_finite_key_type(key, stack, context, of_fun) do
+  defp finite_key_type(key, stack, context, of_fun) do
     {key_type, context} = of_fun.(key, stack, context)
 
     case atom_fetch(key_type) do

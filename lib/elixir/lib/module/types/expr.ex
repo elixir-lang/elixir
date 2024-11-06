@@ -10,13 +10,15 @@ defmodule Module.Types.Expr do
   functions_and_macros = list(tuple([atom(), list(tuple([atom(), integer()]))]))
   list_of_modules = list(atom())
 
+  @try_catch atom([:error, :exit, :throw])
+
   @caller closed_map(
             __struct__: atom([Macro.Env]),
             aliases: aliases,
             context: atom([:match, :guard, nil]),
             context_modules: list_of_modules,
             file: binary(),
-            function: union(tuple(), atom([nil])),
+            function: union(tuple([atom(), integer()]), atom([nil])),
             functions: functions_and_macros,
             lexical_tracker: union(pid(), atom([nil])),
             line: integer(),
@@ -108,13 +110,13 @@ defmodule Module.Types.Expr do
   end
 
   # left = right
-  def of_expr({:=, _meta, [left_expr, right_expr]} = expr, stack, context) do
+  def of_expr({:=, _, [left_expr, right_expr]} = expr, stack, context) do
     {right_type, context} = of_expr(right_expr, stack, context)
 
     # We do not raise on underscore in case someone writes _ = raise "omg"
     case left_expr do
       {:_, _, ctx} when is_atom(ctx) -> {right_type, context}
-      _ -> Pattern.of_match(left_expr, right_type, expr, stack, context)
+      _ -> Pattern.of_match(left_expr, right_type, expr, {:match, expr}, stack, context)
     end
   end
 
@@ -245,15 +247,16 @@ defmodule Module.Types.Expr do
     {expr_type, context} = of_expr(case_expr, stack, context)
 
     clauses
-    |> of_clauses(stack, [expr_type], {none(), context})
+    |> of_clauses([expr_type], {:case, case_expr}, stack, {none(), context})
     |> dynamic_unless_static(stack)
   end
 
   # TODO: fn pat -> expr end
   def of_expr({:fn, _meta, clauses}, stack, context) do
-    [{:->, _, [args, _]} | _] = clauses
-    expected = Enum.map(args, fn _ -> dynamic() end)
-    {_acc, context} = of_clauses(clauses, stack, expected, {none(), context})
+    [{:->, _, [head, _]} | _] = clauses
+    {patterns, _guards} = extract_head(head)
+    expected = Enum.map(patterns, fn _ -> dynamic() end)
+    {_acc, context} = of_clauses(clauses, expected, :fn, stack, {none(), context})
     {fun(), context}
   end
 
@@ -280,10 +283,10 @@ defmodule Module.Types.Expr do
         {acc, context}
 
       {:catch, clauses}, acc_context ->
-        of_clauses(clauses, stack, [atom([:error, :exit, :throw]), dynamic()], acc_context)
+        of_clauses(clauses, [@try_catch, dynamic()], :try_catch, stack, acc_context)
 
       {:else, clauses}, acc_context ->
-        of_clauses(clauses, stack, [body_type], acc_context)
+        of_clauses(clauses, [body_type], :try_else, stack, acc_context)
     end)
     |> dynamic_unless_static(stack)
   end
@@ -291,11 +294,11 @@ defmodule Module.Types.Expr do
   def of_expr({:receive, _meta, [blocks]}, stack, context) do
     blocks
     |> Enum.reduce({none(), context}, fn
-      {:do, {:__block__, _, []}}, {acc, context} ->
-        {acc, context}
+      {:do, {:__block__, _, []}}, acc_context ->
+        acc_context
 
-      {:do, clauses}, {acc, context} ->
-        of_clauses(clauses, stack, [dynamic()], {acc, context})
+      {:do, clauses}, acc_context ->
+        of_clauses(clauses, [dynamic()], :receive, stack, acc_context)
 
       {:after, [{:->, meta, [[timeout], body]}]}, {acc, context} ->
         {timeout_type, context} = of_expr(timeout, stack, context)
@@ -318,7 +321,7 @@ defmodule Module.Types.Expr do
     context = Enum.reduce(opts, context, &for_option(&1, stack, &2))
 
     if Keyword.has_key?(opts, :reduce) do
-      {_, context} = of_clauses(block, stack, [dynamic()], {none(), context})
+      {_, context} = of_clauses(block, [dynamic()], :for_reduce, stack, {none(), context})
       {dynamic(), context}
     else
       {_type, context} = of_expr(block, stack, context)
@@ -441,16 +444,21 @@ defmodule Module.Types.Expr do
 
   ## Comprehensions
 
-  defp for_clause({:<-, meta, [left, expr]}, stack, context) do
+  defp for_clause({:<-, _, [left, right]} = expr, stack, context) do
     {pattern, guards} = extract_head([left])
-    {_expr_type, context} = of_expr(expr, stack, context)
-    {[_type], context} = Pattern.of_head([pattern], guards, meta, stack, context)
+    {_, context} = of_expr(right, stack, context)
+
+    {_type, context} =
+      Pattern.of_match(pattern, guards, dynamic(), expr, {:for, expr}, stack, context)
+
     context
   end
 
-  defp for_clause({:<<>>, _, [{:<-, meta, [left, right]}]}, stack, context) do
+  defp for_clause({:<<>>, _, [{:<-, meta, [left, right]}]} = expr, stack, context) do
     {right_type, context} = of_expr(right, stack, context)
-    {_pattern_type, context} = Pattern.of_match(left, binary(), left, stack, context)
+
+    {_pattern_type, context} =
+      Pattern.of_match(left, binary(), expr, {:for, expr}, stack, context)
 
     if binary_type?(right_type) do
       context
@@ -481,11 +489,13 @@ defmodule Module.Types.Expr do
 
   ## With
 
-  defp with_clause({:<-, meta, [left, expr]}, stack, context) do
+  defp with_clause({:<-, meta, [left, right]} = expr, stack, context) do
     {pattern, guards} = extract_head([left])
 
-    {[_type], context} = Pattern.of_head([pattern], guards, meta, stack, context)
-    {_expr_type, context} = of_expr(expr, stack, context)
+    {[_type], context} =
+      Pattern.of_head([pattern], guards, [dynamic()], {:with, expr}, meta, stack, context)
+
+    {_, context} = of_expr(right, stack, context)
     context
   end
 
@@ -500,7 +510,7 @@ defmodule Module.Types.Expr do
   end
 
   defp with_option({:else, clauses}, stack, context) do
-    {_, context} = of_clauses(clauses, stack, [dynamic()], {none(), context})
+    {_, context} = of_clauses(clauses, [dynamic()], :with_else, stack, {none(), context})
     context
   end
 
@@ -532,10 +542,10 @@ defmodule Module.Types.Expr do
   defp dynamic_unless_static({_, _} = output, %{mode: :static}), do: output
   defp dynamic_unless_static({type, context}, %{mode: _}), do: {dynamic(type), context}
 
-  defp of_clauses(clauses, stack, _expected, acc_context) do
+  defp of_clauses(clauses, expected, info, stack, acc_context) do
     Enum.reduce(clauses, acc_context, fn {:->, meta, [head, body]}, {acc, context} ->
       {patterns, guards} = extract_head(head)
-      {_types, context} = Pattern.of_head(patterns, guards, meta, stack, context)
+      {_types, context} = Pattern.of_head(patterns, guards, expected, info, meta, stack, context)
       {body, context} = of_expr(body, stack, context)
       {union(acc, body), context}
     end)
