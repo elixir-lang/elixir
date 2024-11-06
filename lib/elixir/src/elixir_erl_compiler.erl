@@ -119,8 +119,10 @@ format_warnings(Opts, Warnings) ->
 handle_file_warning(_, _File, {_Line, v3_core, {map_key_repeated, _}}) -> ok;
 handle_file_warning(_, _File, {_Line, sys_core_fold, {ignored, useless_building}}) -> ok;
 
-%% We skip all of no_clause, clause_type, guard, shadow.
+%% We skip all of no_match related to no_clause, clause_type, guard, shadow.
 %% Those have too little information and they overlap with the type system.
+%% We keep the remaining ones because the Erlang compiler performs analyses
+%% on literals (including numbers), which the type system does not do.
 handle_file_warning(_, _File, {_Line, sys_core_fold, {nomatch, Reason}}) when is_atom(Reason) -> ok;
 
 %% Ignore all linting errors (only come up on parse transforms)

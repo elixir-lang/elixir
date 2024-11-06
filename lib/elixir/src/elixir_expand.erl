@@ -732,17 +732,7 @@ expand_case(Meta, Expr, Opts, S, E) ->
     end,
 
   {EOpts, SO, EO} = elixir_clauses:'case'(Meta, ROpts, SE, EE),
-
-  case prune_case_clauses(EExpr, EOpts) of
-    {ok, Pruned} -> {Pruned, SO, EO};
-    error -> {{'case', Meta, [EExpr, EOpts]}, SO, EO}
-  end.
-
-prune_case_clauses(false, [{do, [{'->', _, [[false], Body]}, {'->', _, [[true], _]}]}]) -> {ok, Body};
-prune_case_clauses(false, [{do, [{'->', _, [[true], _]}, {'->', _, [[false], Body]}]}]) -> {ok, Body};
-prune_case_clauses(true, [{do, [{'->', _, [[false], _]}, {'->', _, [[true], Body]}]}]) -> {ok, Body};
-prune_case_clauses(true, [{do, [{'->', _, [[true], Body]}, {'->', _, [[false], _]}]}]) -> {ok, Body};
-prune_case_clauses(_, _) -> error.
+  {{'case', Meta, [EExpr, EOpts]}, SO, EO}.
 
 rewrite_case_clauses([{do, [
   {'->', FalseMeta, [

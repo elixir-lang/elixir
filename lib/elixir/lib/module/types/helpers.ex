@@ -223,11 +223,11 @@ defmodule Module.Types.Helpers do
     if Keyword.get(meta, :generated, false) do
       context
     else
-      effective_warn(module, warning, meta, stack, context)
+      effectively_warn(module, warning, meta, stack, context)
     end
   end
 
-  defp effective_warn(module, warning, meta, stack, context) do
+  defp effectively_warn(module, warning, meta, stack, context) do
     {fun, arity} = stack.function
     location = {stack.file, meta, {stack.module, fun, arity}}
     %{context | warnings: [{module, warning, location} | context.warnings]}
@@ -247,7 +247,7 @@ defmodule Module.Types.Helpers do
         if Keyword.get(meta, :generated, false) do
           context
         else
-          effective_warn(module, warning, meta, stack, %{context | failed: true})
+          effectively_warn(module, warning, meta, stack, %{context | failed: true})
         end
     end
   end
