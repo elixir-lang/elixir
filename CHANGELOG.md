@@ -6,15 +6,13 @@ TODO.
 
 * Type inference of patterns (typing inference of guards will be part of an upcoming release)
 
-* [Support for tuples and lists as composite types](https://elixir-lang.org/blog/2024/08/28/typing-lists-and-tuples/) as well as type checking of its basic operations from Kernel
+* [Support for tuples and lists as composite types](https://elixir-lang.org/blog/2024/08/28/typing-lists-and-tuples/) as well as type checking of their basic operations
 
-* Type checking of all guards
+* Type checking of all language constructs, except `for`, `with`, and closures
 
-* Type checking of all built-in conversion functions, such as `List.to_integer/1` and `Atom.to_string/1`
+* Type checking of all `Kernel` and conversion functions inlined by the compiler
 
-* Type checking of all functions in `Kernel` which are inlined by the compiler (except `apply/2` and `apply/3`)
-
-* Type checking of all functions in the `Tuple` module
+* Detection of clauses and patterns that never match
 
 ## ExUnit improvements
 
@@ -74,6 +72,7 @@ You may also prefer to write using guards:
   * [CLI] Add experimental PowerShell scripts for `elixir`, `elixirc`, and `mix` on Windows. Those provide a safer entry point for running Elixir from other platforms
   * [Code] Support several migration options in `Code.format_string!/2`
   * [Code] Add parenthesis around `--` and `---` in `Code.format_string!/2` to make precedence clearer
+  * [Code] Include more metadata in `Code.string_to_quoted/2` when `token_metadata: true` to help compute ranges from the AST
   * [Code.Fragment] Have `:capture_arg` as its own entry in `Code.Fragment.surround_context/2`
   * [Config] Add `Config.read_config/1`
   * [Enumerable] Add `Enum.product_by/2` and `Enum.sum_by/2`
@@ -82,9 +81,13 @@ You may also prefer to write using guards:
   * [Kernel] Warn on bidirectional confusability in identifiers
   * [Kernel] Now verify the type of the binary generators
   * [Kernel] Track the type of tuples in patterns and inside `elem/2`
+  * [Kernel] Perform validation of root AST nodes in `unquote` and `unquote_splicing` to catch bugs earlier
+  * [Kernel] Add source, behaviour, and record information to Docs chunk metadata
   * [List] Add `List.ends_with?/2`
   * [Macro] Improve `dbg` handling of `if/2`, `with/1` and of code blocks
   * [Macro] Add `Macro.struct_info!/2` to return struct information mirroring `mod.__info__(:struct)`
+  * [Registry] Add `Registry.lock/3` for local locking
+  * [PartitionSupervisor] Add `PartitionSupervisor.resize!/2` to resize the number of partitions in a supervisor (up to the limit it was started with)
   * [Process] Handle arbitrarily high integer values in `Process.sleep/1`
   * [String] Inspect special whitespace and zero-width characters using their Unicode representation
 
@@ -112,9 +115,13 @@ You may also prefer to write using guards:
 
 #### Elixir
 
+  * [Code] Fix delimiter metadata for single quoted atoms and remote calls in `Code.string_to_quoted/2`
+  * [Code.Formatter] Fix formatter adding extra escapes to quoted remote calls
   * [Code.Fragment] Properly handle keyword keys as their own entry
   * [Inspect.Algebra] Ensure `next_break_fits` respects `line_length`
   * [Module] Include module attribute line and name when tracing its aliases
+  * [Stream] Do not halt streams twice in `Stream.transform/5`
+  * [URI] Fix a bug when a schemaless URI is given to `URI.merge/2`
 
 #### ExUnit
 
