@@ -347,7 +347,7 @@ defmodule ExUnit.FormatterTest do
       {:error,
        catch_assertion do
          expected_module = ExUnit.TestModule
-         assert %^expected_module{} = Process.get(:unused, nil)
+         assert %^expected_module{} = nil
        end, []}
     ]
 
@@ -357,7 +357,7 @@ defmodule ExUnit.FormatterTest do
                 match (=) failed
                 The following variables were pinned:
                   expected_module = ExUnit.TestModule
-                code:  assert %^expected_module{} = Process.get(:unused, nil)
+                code:  assert %^expected_module{} = nil
                 left:  %^expected_module{}
                 right: nil
            """

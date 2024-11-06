@@ -158,9 +158,7 @@ defmodule Module.Types.Pattern do
                   end
 
                 :error ->
-                  meta = get_meta(expr) || stack.meta
-                  error = {:badpattern, expr, tag, context}
-                  throw({types, error(__MODULE__, error, meta, stack, context)})
+                  throw({types, to_badpattern_error(expr, tag, stack, context)})
               end
           end)
 
@@ -210,13 +208,23 @@ defmodule Module.Types.Pattern do
     end)
   end
 
+  defp to_badpattern_error(expr, tag, stack, context) do
+    meta =
+      if meta = get_meta(expr) do
+        meta ++ Keyword.take(stack.meta, [:generated, :line])
+      else
+        stack.meta
+      end
+
+    error(__MODULE__, {:badpattern, expr, tag, context}, meta, stack, context)
+  end
+
   defp of_pattern_intersect(tree, expected, expr, tag, stack, context) do
     actual = of_pattern_tree(tree, context)
     type = intersection(actual, expected)
 
     if empty?(type) do
-      meta = get_meta(expr) || stack.meta
-      {:error, error(__MODULE__, {:badpattern, expr, tag, context}, meta, stack, context)}
+      {:error, to_badpattern_error(expr, tag, stack, context)}
     else
       {:ok, type, context}
     end

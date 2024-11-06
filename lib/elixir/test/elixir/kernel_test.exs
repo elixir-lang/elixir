@@ -301,8 +301,8 @@ defmodule KernelTest do
     assert (false and true) == false
     assert (false and 0) == false
     assert (false and raise("oops")) == false
-    assert ((x = Process.get(:unused, true)) and not x) == false
-    assert_raise BadBooleanError, fn -> Process.get(:unused, 0) and 1 end
+    assert ((x = true) and not x) == false
+    assert_raise BadBooleanError, fn -> 0 and 1 end
   end
 
   test "or/2" do
@@ -313,8 +313,8 @@ defmodule KernelTest do
     assert (false or false) == false
     assert (false or true) == true
     assert (false or 0) == 0
-    assert ((x = Process.get(:unused, false)) or not x) == true
-    assert_raise BadBooleanError, fn -> Process.get(:unused, 0) or 1 end
+    assert ((x = false) or not x) == true
+    assert_raise BadBooleanError, fn -> 0 or 1 end
   end
 
   defp delegate_is_struct(arg), do: is_struct(arg)
@@ -967,7 +967,7 @@ defmodule KernelTest do
     end
 
     test "get_in/1" do
-      users = Process.get(:unused, %{"john" => %{age: 27}, :meg => %{age: 23}})
+      users = %{"john" => %{age: 27}, :meg => %{age: 23}}
       assert get_in(users["john"][:age]) == 27
       assert get_in(users["dave"][:age]) == nil
       assert get_in(users["john"].age) == 27
@@ -975,7 +975,7 @@ defmodule KernelTest do
       assert get_in(users.meg[:age]) == 23
       assert get_in(users.meg.age) == 23
 
-      is_nil = Process.get(:unused, nil)
+      is_nil = nil
       assert get_in(is_nil.age) == nil
 
       assert_raise KeyError, ~r"key :unknown not found", fn -> get_in(users.unknown) end
