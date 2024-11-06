@@ -741,71 +741,73 @@ defmodule Module.Types.Pattern do
   # The match pattern ones have the whole expression instead
   # of a single pattern.
   def format_diagnostic({:badpattern, pattern_or_expr, tag, context}) do
-    traces = collect_traces(pattern_or_expr, context)
+    {to_trace, message} = badpattern(tag, pattern_or_expr)
+    traces = collect_traces(to_trace, context)
 
     %{
       details: %{typing_traces: traces},
-      message:
-        IO.iodata_to_binary([
-          badpattern(tag, pattern_or_expr),
-          format_traces(traces)
-        ])
+      message: IO.iodata_to_binary([message, format_traces(traces)])
     }
   end
 
   defp badpattern({:try_else, type}, pattern) do
-    """
-    the following clause will never match:
+    {pattern,
+     """
+     the following clause will never match:
 
-        #{expr_to_string(pattern) |> indent(4)}
+         #{expr_to_string(pattern) |> indent(4)}
 
-    it attempts to match on the result of the try do-block which has incompatible type:
+     it attempts to match on the result of the try do-block which has incompatible type:
 
-        #{to_quoted_string(type) |> indent(4)}
-    """
+         #{to_quoted_string(type) |> indent(4)}
+     """}
   end
 
   defp badpattern({:case, meta, type, expr}, pattern) do
     if meta[:type_check] == :expr do
-      """
-      the following expression will always evaluate to #{to_quoted_string(type)}:
+      {expr,
+       """
+       the following conditional expression will always evaluate to #{to_quoted_string(type)}:
 
-          #{expr_to_string(expr) |> indent(4)}
-      """
+           #{expr_to_string(expr) |> indent(4)}
+       """}
     else
-      """
-      the following clause will never match:
+      {pattern,
+       """
+       the following clause will never match:
 
-          #{expr_to_string(pattern) |> indent(4)}
+           #{expr_to_string(pattern) |> indent(4)}
 
-      because it attempts to match on the result of:
+       because it attempts to match on the result of:
 
-          #{expr_to_string(expr) |> indent(4)}
+           #{expr_to_string(expr) |> indent(4)}
 
-      which has type:
+       which has type:
 
-          #{to_quoted_string(type) |> indent(4)}
-      """
+           #{to_quoted_string(type) |> indent(4)}
+       """}
     end
   end
 
   defp badpattern({:match, type}, expr) do
-    """
-    the following pattern will never match:
+    {expr,
+     """
+     the following pattern will never match:
 
-        #{expr_to_string(expr) |> indent(4)}
+         #{expr_to_string(expr) |> indent(4)}
 
-    because the right-hand side has type:
+     because the right-hand side has type:
 
-        #{to_quoted_string(type) |> indent(4)}
-    """
+         #{to_quoted_string(type) |> indent(4)}
+     """}
   end
 
   defp badpattern(_tag, pattern_or_expr) do
-    """
-    the following pattern will never match:
+    {pattern_or_expr,
+     """
+     the following pattern will never match:
 
-        #{expr_to_string(pattern_or_expr) |> indent(4)}
-    """
+         #{expr_to_string(pattern_or_expr) |> indent(4)}
+     """}
   end
 end
