@@ -23,8 +23,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - otp_version: "27.0"
+          - otp_version: "27.1"
             otp_latest: true
+            erlc_opts: "warnings_as_errors"
+          - otp_version: "27.0"
             erlc_opts: "warnings_as_errors"
           - otp_version: "26.0"
           - otp_version: "25.3"
