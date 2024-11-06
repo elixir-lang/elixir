@@ -392,13 +392,12 @@ defmodule Kernel.QuoteTest.ErrorsTest do
   test "outside function error" do
     try do
       will_raise()
+      flunk("expected failure")
     rescue
       RuntimeError ->
         mod = Kernel.QuoteTest.ErrorsTest
         file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
         assert [{^mod, _, _, [file: ^file, line: @line] ++ _} | _] = __STACKTRACE__
-    else
-      _ -> flunk("expected failure")
     end
   end
 end
