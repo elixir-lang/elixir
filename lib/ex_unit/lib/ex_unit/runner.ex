@@ -426,7 +426,7 @@ defmodule ExUnit.Runner do
     spawn_monitor(fn ->
       ExUnit.OnExitHandler.register(self())
       generate_test_seed(seed, test, rand_algorithm)
-      context = Map.merge(context, test.tags)
+      context = context |> Map.merge(test.tags) |> Map.put(:test_pid, self())
       capture_log = Map.get(context, :capture_log, capture_log)
 
       {time, test} =

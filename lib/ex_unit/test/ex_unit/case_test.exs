@@ -28,10 +28,12 @@ defmodule ExUnit.CaseTest do
   @tag world: :good
   test "tags", context do
     line = __ENV__.line - 1
+    assert context[:async] == true
+    assert context[:line] == line
     assert context[:module] == __MODULE__
     assert context[:test] == __ENV__.function |> elem(0)
-    assert context[:line] == line
-    assert context[:async] == true
+    assert context[:test_pid] == self()
+    assert context[:test_type] == :test
     assert context[:hello] == true
     assert context[:world] == :good
   end
