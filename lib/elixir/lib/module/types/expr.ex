@@ -111,6 +111,7 @@ defmodule Module.Types.Expr do
 
   # left = right
   def of_expr({:=, _, [left_expr, right_expr]} = expr, stack, context) do
+    {left_expr, right_expr} = repack_match(left_expr, right_expr)
     {right_type, context} = of_expr(right_expr, stack, context)
 
     # We do not raise on underscore in case someone writes _ = raise "omg"
@@ -583,6 +584,12 @@ defmodule Module.Types.Expr do
       error -> raise "unexpected #{inspect(error)}"
     end
   end
+
+  defp repack_match(left_expr, {:=, meta, [new_left, new_right]}),
+    do: repack_match({:=, meta, [left_expr, new_left]}, new_right)
+
+  defp repack_match(left_expr, right_expr),
+    do: {left_expr, right_expr}
 
   ## Warning formatting
 

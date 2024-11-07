@@ -85,6 +85,24 @@ defmodule Module.Types.PatternTest do
   end
 
   describe "=" do
+    test "precedence does not matter" do
+      uri_type = typecheck!([x = %URI{}], x)
+
+      assert typecheck!(
+               (
+                 x = %URI{} = URI.new!("/")
+                 x
+               )
+             ) == uri_type
+
+      assert typecheck!(
+               (
+                 %URI{} = x = URI.new!("/")
+                 x
+               )
+             ) == uri_type
+    end
+
     test "reports incompatible types" do
       assert typeerror!([x = {:ok, _}], [_ | _] = x) == ~l"""
              the following pattern will never match:
