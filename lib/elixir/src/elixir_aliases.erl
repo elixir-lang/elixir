@@ -18,18 +18,18 @@ alias(Meta, Ref, IncludeByDefault, Opts, E, Trace) ->
 
   case expand_as(lists:keyfind(as, 1, Opts), IncludeByDefault, Ref) of
     {ok, Ref} ->
-      {ok,
+      {ok, false,
        E#{aliases := remove_alias(Ref, Aliases),
           macro_aliases := remove_macro_alias(Meta, Ref, MacroAliases)}};
 
     {ok, New} ->
       Trace andalso elixir_env:trace({alias, Meta, Ref, New, Opts}, E),
-      {ok,
+      {ok, New,
        E#{aliases := store_alias(New, Ref, Aliases),
           macro_aliases := store_macro_alias(Meta, New, Ref, MacroAliases)}};
 
     none ->
-      {ok, E};
+      {ok, false, E};
 
     {error, Reason} ->
       {error, Reason}

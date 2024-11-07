@@ -9,43 +9,43 @@
 ]).
 
 -include("elixir.hrl").
--define(cache, {elixir, cache_env}).
--define(locals, {elixir, locals}).
--define(tracker, 'Elixir.Module.LocalsTracker').
+-define(cache_key, {elixir, cache_env}).
+-define(locals_key, {elixir, locals}).
+-define(locals, 'Elixir.Module.LocalsTracker').
 
 setup({DataSet, _DataBag}) ->
-  ets:insert(DataSet, {?cache, 0}),
+  ets:insert(DataSet, {?cache_key, 0}),
 
   case elixir_config:is_bootstrap() of
-    false -> ets:insert(DataSet, {?locals, true});
+    false -> ets:insert(DataSet, {?locals_key, true});
     true -> ok
   end,
 
   ok.
 
 stop({DataSet, _DataBag}) ->
-  ets:delete(DataSet, ?locals).
+  ets:delete(DataSet, ?locals_key).
 
 yank(Tuple, Module) ->
-  if_tracker(Module, fun(Tracker) -> ?tracker:yank(Tracker, Tuple) end).
+  if_tracker(Module, fun(Tracker) -> ?locals:yank(Tracker, Tuple) end).
 
 reattach(Tuple, Kind, Module, Function, Neighbours, Meta) ->
-  if_tracker(Module, fun(Tracker) -> ?tracker:reattach(Tracker, Tuple, Kind, Function, Neighbours, Meta) end).
+  if_tracker(Module, fun(Tracker) -> ?locals:reattach(Tracker, Tuple, Kind, Function, Neighbours, Meta) end).
 
 record_local(_Tuple, _Module, nil, _Meta, _IsMacroDispatch) ->
   ok;
 record_local(Tuple, Module, Function, Meta, IsMacroDispatch) ->
-  if_tracker(Module, fun(Tracker) -> ?tracker:add_local(Tracker, Function, Tuple, Meta, IsMacroDispatch), ok end).
+  if_tracker(Module, fun(Tracker) -> ?locals:add_local(Tracker, Function, Tuple, Meta, IsMacroDispatch), ok end).
 
 record_import(_Tuple, Receiver, Module, Function)
   when Function == nil; Module == Receiver -> false;
 record_import(Tuple, Receiver, Module, Function) ->
-  if_tracker(Module, fun(Tracker) -> ?tracker:add_import(Tracker, Function, Receiver, Tuple), ok end).
+  if_tracker(Module, fun(Tracker) -> ?locals:add_import(Tracker, Function, Receiver, Tuple), ok end).
 
 record_defaults(_Tuple, _Kind, _Module, 0, _Meta) ->
   ok;
 record_defaults(Tuple, Kind, Module, Defaults, Meta) ->
-  if_tracker(Module, fun(Tracker) -> ?tracker:add_defaults(Tracker, Kind, Tuple, Defaults, Meta), ok end).
+  if_tracker(Module, fun(Tracker) -> ?locals:add_defaults(Tracker, Kind, Tuple, Defaults, Meta), ok end).
 
 if_tracker(Module, Callback) ->
   if_tracker(Module, ok, Callback).
@@ -53,7 +53,7 @@ if_tracker(Module, Callback) ->
 if_tracker(Module, Default, Callback) ->
   try
     {DataSet, _} = Tables = elixir_module:data_tables(Module),
-    {ets:member(DataSet, ?locals), Tables}
+    {ets:member(DataSet, ?locals_key), Tables}
   of
     {true, Tracker} -> Callback(Tracker);
     {false, _} -> Default
@@ -66,7 +66,7 @@ if_tracker(Module, Default, Callback) ->
 cache_env(#{line := Line, module := Module} = E) ->
   {Set, _} = elixir_module:data_tables(Module),
   Cache = elixir_env:reset_vars(E#{line := nil}),
-  PrevKey = ets:lookup_element(Set, ?cache, 2),
+  PrevKey = ets:lookup_element(Set, ?cache_key, 2),
 
   Pos =
     case ets:lookup(Set, {cache_env, PrevKey}) of
@@ -74,7 +74,7 @@ cache_env(#{line := Line, module := Module} = E) ->
         PrevKey;
       _ ->
         NewKey = PrevKey + 1,
-        ets:insert(Set, [{{cache_env, NewKey}, Cache}, {?cache, NewKey}]),
+        ets:insert(Set, [{{cache_env, NewKey}, Cache}, {?cache_key, NewKey}]),
         NewKey
     end,
 
@@ -93,20 +93,20 @@ ensure_no_import_conflict('Elixir.Kernel', _All, _E) ->
 ensure_no_import_conflict(Module, All, E) ->
   if_tracker(Module, ok, fun(Tracker) ->
     [elixir_errors:module_error(Meta, E, ?MODULE, {function_conflict, Error})
-     || {Meta, Error} <- ?tracker:collect_imports_conflicts(Tracker, All)],
+     || {Meta, Error} <- ?locals:collect_imports_conflicts(Tracker, All)],
     ok
   end).
 
 ensure_no_undefined_local(Module, All, E) ->
   if_tracker(Module, [], fun(Tracker) ->
     [elixir_errors:module_error(Meta, E#{function := Function, file := File}, ?MODULE, {Error, Tuple, Module})
-     || {Function, Meta, File, Tuple, Error} <- ?tracker:collect_undefined_locals(Tracker, All, ?key(E, file))],
+     || {Function, Meta, File, Tuple, Error} <- ?locals:collect_undefined_locals(Tracker, All, ?key(E, file))],
     ok
   end).
 
 warn_unused_local(Module, All, Private, E) ->
   if_tracker(Module, [], fun(Tracker) ->
-    {Unreachable, Warnings} = ?tracker:collect_unused_locals(Tracker, All, Private),
+    {Unreachable, Warnings} = ?locals:collect_unused_locals(Tracker, All, Private),
     [elixir_errors:file_warn(Meta, E, ?MODULE, Error) || {Meta, Error} <- Warnings],
     Unreachable
   end).

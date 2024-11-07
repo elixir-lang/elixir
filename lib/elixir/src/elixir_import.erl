@@ -12,9 +12,9 @@ import(Meta, Ref, Opts, E, Warn, Trace) ->
 import(Meta, Ref, Opts, E, Warn, Trace, InfoCallback) ->
   case import_only_except(Meta, Ref, Opts, E, Warn, InfoCallback) of
     {Functions, Macros, Added} ->
-      Trace andalso elixir_env:trace({import, [{imported, Added} | Meta], Ref, Opts}, E),
+      Trace andalso elixir_env:trace({import, Meta, Ref, Opts}, E),
       EI = E#{functions := Functions, macros := Macros},
-      {ok, elixir_aliases:require(Meta, Ref, Opts, EI, Trace)};
+      {ok, Added, elixir_aliases:require(Meta, Ref, Opts, EI, Trace)};
 
     {error, Reason} ->
       {error, Reason}

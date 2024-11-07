@@ -445,7 +445,7 @@ defmodule Macro.Env do
     maybe_define_error(result, :elixir_aliases)
   end
 
-  defp maybe_define_error({:ok, env}, _mod),
+  defp maybe_define_error({:ok, _info, env}, _mod),
     do: {:ok, env}
 
   defp maybe_define_error({:error, reason}, mod),

@@ -749,6 +749,19 @@ defmodule Kernel.WarningTest do
     )
   end
 
+  test "conditional import" do
+    assert capture_err(fn ->
+             defmodule KernelTest.ConditionalImport do
+               if false do
+                 import Map, only: [new: 0]
+                 def fun, do: new()
+               end
+             end
+           end) == ""
+  after
+    purge(Sample)
+  end
+
   test "unused import of one of the functions in :only" do
     assert_warn_compile(
       [
@@ -775,6 +788,22 @@ defmodule Kernel.WarningTest do
       import String, only: [upcase: 1, downcase: 1]
       """
     )
+  end
+
+  test "unused import inside dynamic module" do
+    import List, only: [flatten: 1], warn: false
+
+    assert capture_err(fn ->
+             defmodule Sample do
+               import String, only: [downcase: 1]
+
+               def world do
+                 flatten([1, 2, 3])
+               end
+             end
+           end) =~ "unused import String"
+  after
+    purge(Sample)
   end
 
   def with(a, b, c), do: [a, b, c]
@@ -812,6 +841,17 @@ defmodule Kernel.WarningTest do
     )
   end
 
+  test "conditional alias" do
+    assert capture_err(fn ->
+             defmodule KernelTest.ConditionaAlias do
+               if false do
+                 alias Map, as: M
+                 def fun, do: M.new()
+               end
+             end
+           end) == ""
+  end
+
   test "unused alias" do
     assert_warn_compile(
       ["nofile:2:3", "unused alias List"],
@@ -837,22 +877,6 @@ defmodule Kernel.WarningTest do
       end
       """
     )
-  after
-    purge(Sample)
-  end
-
-  test "unused inside dynamic module" do
-    import List, only: [flatten: 1], warn: false
-
-    assert capture_err(fn ->
-             defmodule Sample do
-               import String, only: [downcase: 1]
-
-               def world do
-                 flatten([1, 2, 3])
-               end
-             end
-           end) =~ "unused import String"
   after
     purge(Sample)
   end
@@ -2090,15 +2114,15 @@ defmodule Kernel.WarningTest do
 
   test "defstruct warns with duplicate keys" do
     assert_warn_eval(
-      ["nofile:2: TestMod", "duplicate key :foo found in struct"],
+      ["nofile:2: Sample", "duplicate key :foo found in struct"],
       """
-      defmodule TestMod do
+      defmodule Sample do
         defstruct [:foo, :bar, foo: 1]
       end
       """
     )
   after
-    purge(TestMod)
+    purge(Sample)
   end
 
   test "deprecate nullary remote zero-arity capture with parens" do

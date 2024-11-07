@@ -4,6 +4,7 @@
 -define(generated(Meta), elixir_utils:generated(Meta)).
 -define(var_context, ?MODULE).
 -define(remote(Ann, Module, Function, Args), {call, Ann, {remote, Ann, {atom, Ann, Module}, {atom, Ann, Function}}, Args}).
+-define(tracker, 'Elixir.Kernel.LexicalTracker').
 
 -record(elixir_ex, {
   %% Stores if __CALLER__ is allowed

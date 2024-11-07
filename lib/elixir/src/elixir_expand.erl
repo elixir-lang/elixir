@@ -71,12 +71,24 @@ expand({alias, Meta, [Ref, Opts]}, S, E) ->
   {ERef, SR, ER} = expand_without_aliases_report(Ref, S, E),
   {EOpts, ST, ET} = expand_opts(Meta, alias, [as, warn], no_alias_opts(Opts), SR, ER),
 
-  if
-    is_atom(ERef) ->
-      {ERef, ST, alias(Meta, ERef, true, EOpts, ET)};
-    true ->
-      file_error(Meta, E, ?MODULE, {expected_compile_time_module, alias, Ref})
-  end;
+  is_atom(ERef) orelse
+    file_error(Meta, E, ?MODULE, {expected_compile_time_module, alias, Ref}),
+
+  {ok, New, EQ} = alias(Meta, ERef, true, EOpts, ET),
+
+  Quoted =
+    case (New /= false) andalso should_warn(Meta, EOpts, EQ) of
+      false ->
+        ERef;
+
+      Pid when ?key(EQ, function) /= nil ->
+        ?tracker:warn_alias(Pid, Meta, New, ERef);
+
+      Pid ->
+        {{'.', Meta, [?tracker, warn_alias]}, Meta, [Pid, Meta, New, ERef]}
+    end,
+
+  {Quoted, ST, EQ};
 
 expand({require, Meta, [Ref]}, S, E) ->
   expand({require, Meta, [Ref, []]}, S, E);
@@ -91,19 +103,21 @@ expand({require, Meta, [Ref, Opts]}, S, E) ->
   %% module in context modules.
   case lists:keyfind(defined, 1, Meta) of
     {defined, Mod} when is_atom(Mod) ->
-      EA = ET#{context_modules := [Mod | ?key(ET, context_modules)]},
+      Mods = [Mod | ?key(ET, context_modules)],
+      {ok, _, EU} = alias(Meta, ERef, false, EOpts, ET#{context_modules := Mods}),
 
       SU = case E of
         #{function := nil} -> ST;
         _ -> ST#elixir_ex{runtime_modules=[Mod | ST#elixir_ex.runtime_modules]}
       end,
 
-      {ERef, SU, alias(Meta, ERef, false, EOpts, EA)};
+      {ERef, SU, EU};
 
     false when is_atom(ERef) ->
       elixir_aliases:ensure_loaded(Meta, ERef, ET),
       RE = elixir_aliases:require(Meta, ERef, EOpts, ET, true),
-      {ERef, ST, alias(Meta, ERef, false, EOpts, RE)};
+      {ok, _, EU} = alias(Meta, ERef, false, EOpts, RE),
+      {ERef, ST, EU};
 
     false ->
       file_error(Meta, E, ?MODULE, {expected_compile_time_module, require, Ref})
@@ -117,16 +131,41 @@ expand({import, Meta, [Ref, Opts]}, S, E) ->
   {ERef, SR, ER} = expand_without_aliases_report(Ref, S, E),
   {EOpts, ST, ET} = expand_opts(Meta, import, [only, except, warn], Opts, SR, ER),
 
-  if
-    is_atom(ERef) ->
-      elixir_aliases:ensure_loaded(Meta, ERef, ET),
+  is_atom(ERef) orelse
+    file_error(Meta, E, ?MODULE, {expected_compile_time_module, import, Ref}),
 
-      case elixir_import:import(Meta, ERef, EOpts, ET, true, true) of
-        {ok, EI} -> {ERef, ST, EI};
-        {error, Reason} -> elixir_errors:file_error(Meta, E, elixir_import, Reason)
-      end;
-    true ->
-      file_error(Meta, E, ?MODULE, {expected_compile_time_module, import, Ref})
+  elixir_aliases:ensure_loaded(Meta, ERef, ET),
+
+  case elixir_import:import(Meta, ERef, EOpts, ET, true, true) of
+    {ok, Imported, EI} ->
+      Quoted =
+        case Imported andalso should_warn(Meta, EOpts, ET) of
+          false ->
+            ERef;
+
+          Pid ->
+            Only =
+              case lists:keyfind(only, 1, EOpts) of
+                {only, List} when is_list(List) -> List;
+                _ -> []
+              end,
+
+            %% If we are outside a function, we turn on the warnings at execution time.
+            case ET of
+              #{function := nil} ->
+                ?tracker:add_import(Pid, ERef, Only, Meta, false),
+                {{'.', Meta, [?tracker, warn_import]}, Meta, [Pid, ERef]};
+
+              #{} ->
+                ?tracker:add_import(Pid, ERef, Only, Meta, true),
+                ERef
+            end
+        end,
+
+        {Quoted, ST, EI};
+
+    {error, Reason} ->
+      elixir_errors:file_error(Meta, E, elixir_import, Reason)
   end;
 
 %% Compilation environment macros
@@ -937,11 +976,24 @@ no_alias_expansion({'__aliases__', _, [H | T]}) when is_atom(H) ->
 no_alias_expansion(Other) ->
   Other.
 
+should_warn(_Meta, _Opts, #{lexical_tracker := nil}) ->
+  false;
+should_warn(Meta, Opts, #{lexical_tracker := Pid}) ->
+  case lists:keyfind(warn, 1, Opts) of
+    {warn, false} -> false;
+    {warn, true} -> Pid;
+    false ->
+      case lists:keymember(context, 1, Meta) of
+        true -> false;
+        false -> Pid
+      end
+  end.
+
 %% Aliases
 
 alias(Meta, Ref, IncludeByDefault, Opts, E) ->
   case elixir_aliases:alias(Meta, Ref, IncludeByDefault, Opts, E, true) of
-    {ok, EA} -> EA;
+    {ok, New, EA} -> {ok, New, EA};
     {error, Reason} -> elixir_errors:file_error(Meta, E, elixir_aliases, Reason)
   end.
 

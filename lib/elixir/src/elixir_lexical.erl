@@ -3,8 +3,6 @@
 -export([run/3, with_file/3, trace/2, format_error/1]).
 -include("elixir.hrl").
 
--define(tracker, 'Elixir.Kernel.LexicalTracker').
-
 run(#{tracers := Tracers} = E, ExecutionCallback, AfterExecutionCallback) ->
   case elixir_config:is_bootstrap() of
     false ->
@@ -28,21 +26,6 @@ run(#{tracers := Tracers} = E, ExecutionCallback, AfterExecutionCallback) ->
       ExecutionCallback(E),
       AfterExecutionCallback(E)
   end.
-
-trace({import, Meta, Module, Opts}, #{lexical_tracker := Pid}) ->
-  {imported, Imported} = lists:keyfind(imported, 1, Meta),
-
-  Only =
-    case lists:keyfind(only, 1, Opts) of
-      {only, List} when is_list(List) -> List;
-      _ -> []
-    end,
-
-  ?tracker:add_import(Pid, Module, Only, Meta, Imported and should_warn(Meta, Opts)),
-  ok;
-trace({alias, Meta, _Old, New, Opts}, #{lexical_tracker := Pid}) ->
-  ?tracker:add_alias(Pid, New, Meta, should_warn(Meta, Opts)),
-  ok;
 trace({alias_expansion, _Meta, Lookup, _Result}, #{lexical_tracker := Pid}) ->
   ?tracker:alias_dispatch(Pid, Lookup),
   ok;
@@ -88,13 +71,6 @@ trace(_, _) ->
 mode(#{function := nil}) -> compile;
 mode(#{}) -> runtime.
 
-should_warn(Meta, Opts) ->
-  case lists:keyfind(warn, 1, Opts) of
-    {warn, false} -> false;
-    {warn, true} -> true;
-    false -> not lists:keymember(context, 1, Meta)
-  end.
-
 %% EXTERNAL SOURCES
 
 with_file(File, #{lexical_tracker := nil} = E, Callback) ->
@@ -117,8 +93,8 @@ warn_unused_imports(Pid, E) ->
 
 unused_imports_for_module(Module, Imports) ->
   case Imports of
-    #{Module := Line} -> [{Module, Line}];
-    #{} -> [{{Module, Fun, Arity}, Line} || {{Fun, Arity}, Line} <- maps:to_list(Imports)]
+    #{Module := Meta} -> [{Module, Meta}];
+    #{} -> [{{Module, Fun, Arity}, Meta} || {{Fun, Arity}, Meta} <- maps:to_list(Imports)]
   end.
 
 warn_unused_aliases(Pid, E) ->
