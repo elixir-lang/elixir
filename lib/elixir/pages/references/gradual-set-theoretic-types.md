@@ -12,7 +12,7 @@ The current milestone aims to infer types from patterns and guards and use them 
 
 ## Supported types
 
-At the moment, Elixir developers will interact with set-theoretic types only through warnings found by the type system. All data types in the language are modelled:
+At the moment, Elixir developers interact with set-theoretic types through warnings found by the type system. All data types in the language are modelled:
 
   * `binary()`, `integer()`, `float()`, `pid()`, `port()`, `reference()` - these types are indivisible. This means both `1` and `13` get the same `integer()` type.
 
@@ -24,7 +24,7 @@ At the moment, Elixir developers will interact with set-theoretic types only thr
 
 ## Set operations
 
-We can compose set-theoretic types by using set operations (hence the name). For example, to say a function returns either atoms or integers, one could write: `atom() or integer()`.
+We compose set-theoretic types by using set operations (hence the name). For example, to say a function returns either atoms or integers, one could write: `atom() or integer()`.
 
 Intersections are available via the `and` operator, such as `atom() and integer()`, which in this case it becomes the empty set `none()`. `term()` is the union of all types, also known as the "top" type.
 
@@ -62,7 +62,7 @@ def negate(x) when is_integer(x), do: -x
 def negate(x) when is_boolean(x), do: not x
 ```
 
-Elixir type checks it as if the function had the type `(dynamic() -> dynamic())`. We say `dynamic()` is a gradual type, which leads us to *gradual set-theoretic types*.
+Elixir type checks it as if the function had the type `(dynamic() -> dynamic())`. Then, based on patterns and guards, we can refine the value of the variable `x` to be `dynamic() and integer()` and `dynamic() and boolean()` for each clause respectively. We say `dynamic()` is a gradual type, which leads us to *gradual set-theoretic types*.
 
 The simplest way to reason about `dynamic()` in Elixir is that it is a range of types. If you have a type `atom() or integer()`, the underlying code needs to work with both `atom() or integer()`. For example, if you call `Integer.to_string(var)`, and `var` has type `atom() or integer()`, the type system will emit a warning, because `Integer.to_string/1` does not accept atoms.
 
@@ -74,29 +74,29 @@ Once Elixir introduces typed function signatures (see "Roadmap"), typed Elixir p
 
 ## Type inference
 
-Type inference (or reconstruction) is the ability of a type system automatically deduce, either partially or fully, the type of an expression at compile time. Type inference may happen at different levels. For example, many programming languages can automatically infer the types of variables, also known "local type inference", but not all can infer type signatures (in other words, they cannot reconstruct the arguments and return types of a function).
+Type inference (or reconstruction) is the ability of a type system automatically deduce, either partially or fully, the type of an expression at compile time. Type inference may happen at different levels. For example, many programming languages can automatically infer the types of variables, also known "local type inference", but not all can infer type signatures (in other words, they cannot reconstruct the arguments types and return types of a function).
 
 Inferring type signatures comes with a series of trade-offs:
 
   * speed - type inference algorithms are more expensive than type checking algorithms
 
-  * expressiveness - for any given type system, the constructs that support inference are always a subset of the constructs that can be type checked. Therefore, if a programming language restricts itself to be fully reconstructed, it is then less expressive then its type checked counter-parts
+  * expressiveness - for any given type system, the constructs that support inference are always a subset of the constructs that can be type checked. Therefore, if a programming language restricts itself to be fully reconstructed, it is then less expressive than its type checked counterparts
 
   * incremental compilation - typing inference complicates incremental compilation. If module A depends on module B, the type signatures from module A must be reconstructed whenever the inferred signatures from B changes, and so on
 
 In order to balance these trade-offs, Elixir's type system provides the following type reconstruction capabilities:
 
-  * Local type inference - the type system automatically infer the types of variables
+  * Local type inference - the type system automatically infer the types of variables, at the time those variables are defined
 
   * Type inference of patterns (and guards in future releases) - the argument types of a function is automatically inferred based on its patterns and guards
 
-  * Module-local inference of return types - the gradual return types of a function is computed considering all of the functions within the module itself (any call to a separate module is considered to return `dynamic()`)
+  * Module-local inference of return types - the gradual return types of a function is computed considering all of the functions within the module itself (any call to another module is considered to return `dynamic()`)
 
-The last two items offer gradual reconstruction of type signatures, where the inferred types are dynamic. The goal is not to infer exact types. Instead, we aim to provide an efficient type reconstruction algorithm which can help the type system spot definite bugs, even in the absence of type signatures. Precise type checking of functions will be available once Elixir introduces typed function signatures (see "Roadmap").
+The last two items offer gradual reconstruction of type signatures, where the inferred types are broadly dynamic. Our goal is to provide an efficient type reconstruction algorithm for dynamic programs, which can help the type system spot definite bugs, even in the absence of type signatures. Once Elixir introduces typed function signatures (see "Roadmap"), then no type inference of function signatures is perform, and the functions will be type checked according to the user provided signature.
 
 ## Roadmap
 
-The current milestone is to implement type inference of patterns and guards, as well as type checking of all language contructs, without changes to the Elixir language. At this stage, we want to collect feedback on the quality of error messages and performance, and therefore the type system has no user facing API.
+The current milestone is to implement type inference of patterns and guards, as well as type checking of all language contructs, without changes to the Elixir language. At this stage, we want to collect feedback on the quality of error messages and performance, and therefore the type system has no user facing API. Full type inference of patterns was released in Elixir v1.18, and inference of guards is expected as part of Elixir v1.19.
 
 If the results are satisfactory, the next milestone will include a mechanism for defining typed structs. Elixir programs frequently pattern match on structs, which reveals information about the struct fields, but it knows nothing about their respective types. By propagating types from structs and their fields throughout the program, we will increase the type system’s ability to find errors while further straining our type system implementation. Proposals including the required changes to the language surface will be sent to the community once we reach this stage.
 
