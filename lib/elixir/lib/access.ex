@@ -418,8 +418,8 @@ defmodule Access do
 
     Accessing a list by index is typically discouraged in Elixir, \
     instead we prefer to use the Enum module to manipulate lists \
-    as a whole. If you really must mostify a list element by index, \
-    you can Access.at/1 or the functions in the List module\
+    as a whole. If you really must modify a list element by index, \
+    you can use Access.at/1 or the functions in the List module\
     """
   end
 
