@@ -610,10 +610,10 @@ map_base_expr -> ellipsis_op map_base_expr : build_unary_op('$1', '$2').
 assoc_op_eol -> assoc_op : '$1'.
 assoc_op_eol -> assoc_op eol : '$1'.
 
-assoc_expr -> matched_expr assoc_op_eol matched_expr : {'$1', '$3'}.
-assoc_expr -> unmatched_expr assoc_op_eol unmatched_expr : {'$1', '$3'}.
-assoc_expr -> matched_expr assoc_op_eol unmatched_expr : {'$1', '$3'}.
-assoc_expr -> unmatched_expr assoc_op_eol matched_expr : {'$1', '$3'}.
+assoc_expr -> matched_expr assoc_op_eol matched_expr : {with_assoc_meta('$1', '$2'), '$3'}.
+assoc_expr -> unmatched_expr assoc_op_eol unmatched_expr : {with_assoc_meta('$1', '$2'), '$3'}.
+assoc_expr -> matched_expr assoc_op_eol unmatched_expr : {with_assoc_meta('$1', '$2'), '$3'}.
+assoc_expr -> unmatched_expr assoc_op_eol matched_expr : {with_assoc_meta('$1', '$2'), '$3'}.
 assoc_expr -> map_base_expr : '$1'.
 
 assoc_update -> matched_expr pipe_op_eol assoc_expr : {'$2', '$1', ['$3']}.
@@ -1154,6 +1154,15 @@ parens_meta({Open, Close}) ->
 parens_meta({Open, _Args, Close}) ->
   parens_meta({Open, Close}).
 
+with_assoc_meta({Target, Meta, Args}, AssocToken) ->
+  case ?token_metadata() of
+    true ->
+      {Target, [{assoc, meta_from_token(AssocToken)} | Meta], Args};
+    false ->
+      {Target, Meta, Args}
+  end;
+
+with_assoc_meta(Left, _AssocToken) -> Left.
 
 %% Warnings and errors
 

@@ -856,6 +856,38 @@ defmodule Kernel.ParserTest do
       assert string_to_quoted.("foo.\nBar\n.\nBaz") ==
                {:__aliases__, [last: [line: 4], line: 1], [{:foo, [line: 1], nil}, :Bar, :Baz]}
     end
+
+    test "adds metadata about assoc operator position in maps" do
+      opts = [
+        literal_encoder: &{:ok, {:__block__, &2, [&1]}},
+        token_metadata: true,
+        columns: true
+      ]
+
+      string_to_quoted = &Code.string_to_quoted!(&1, opts)
+
+      file = "%{:key => 1, {} => {}}"
+
+      assert string_to_quoted.(file) ==
+               {
+                 :%{},
+                 [closing: [line: 1, column: 22], line: 1, column: 1],
+                 [
+                   {{:__block__, [assoc: [line: 1, column: 8], line: 1, column: 3], [:key]},
+                    {:__block__, [token: "1", line: 1, column: 11], [1]}},
+                   {
+                     {:{},
+                      [
+                        assoc: [line: 1, column: 17],
+                        closing: [line: 1, column: 15],
+                        line: 1,
+                        column: 14
+                      ], []},
+                     {:{}, [closing: [line: 1, column: 21], line: 1, column: 20], []}
+                   }
+                 ]
+               }
+    end
   end
 
   describe "syntax errors" do
