@@ -193,7 +193,7 @@ defmodule Module.ParallelChecker do
   @spec fetch_export(cache(), module(), atom(), arity()) ::
           {:ok, mode(), kind(), binary() | nil} | {:error, :function | :module}
   def fetch_export({server, ets}, module, fun, arity) do
-    case :ets.lookup(ets, {:cached, module}) do
+    case :ets.lookup(ets, module) do
       [] ->
         cache_module({server, ets}, module)
         fetch_export({server, ets}, module, fun, arity)
@@ -202,25 +202,11 @@ defmodule Module.ParallelChecker do
         {:error, :module}
 
       [{_key, mode}] ->
-        case :ets.lookup(ets, {:export, module, {fun, arity}}) do
-          [{_key, kind, reason}] -> {:ok, mode, kind, reason}
+        case :ets.lookup(ets, {module, {fun, arity}}) do
+          [{_key, reason}] -> {:ok, mode, reason}
           [] -> {:error, :function}
         end
     end
-  end
-
-  @doc """
-  Returns all exported functions and macros for the given module from
-  the cache.
-  """
-  @spec all_exports(cache(), module()) :: [{atom(), arity()}]
-  def all_exports({_server, ets}, module) do
-    # This is only called after we get a deprecation notice
-    # so we can assume it's a cached module
-    ets
-    |> :ets.match({{:export, module, :"$1"}, :_, :_})
-    |> Enum.flat_map(& &1)
-    |> Enum.sort()
   end
 
   ## Module checking
@@ -229,14 +215,18 @@ defmodule Module.ParallelChecker do
     %{
       module: module,
       file: file,
-      anno: anno,
       compile_opts: compile_opts,
       definitions: definitions,
       uses_behaviours: uses_behaviours,
       impls: impls
     } = module_map
 
-    line = :erl_anno.line(anno)
+    # TODO: Match on anno directly in Elixir v1.22+
+    line =
+      case module_map do
+        %{anno: anno} -> :erl_anno.line(anno)
+        %{line: line} -> line
+      end
 
     no_warn_undefined =
       compile_opts
@@ -383,11 +373,10 @@ defmodule Module.ParallelChecker do
               # Or load exports from chunk
               with {^module, binary, _filename} <- object_code,
                    {:ok, {^module, [exports: exports]}} <- :beam_lib.chunks(binary, [:exports]) do
-                exports = Map.new(Enum.map(exports, &{&1, :def}))
                 cache_info(ets, module, exports, %{}, :erlang)
               else
                 _ ->
-                  :ets.insert(ets, {{:cached, module}, false})
+                  :ets.insert(ets, {module, false})
               end
           end
       end
@@ -397,17 +386,9 @@ defmodule Module.ParallelChecker do
   end
 
   defp info_exports(module) do
-    map =
-      Map.new(
-        [{{:__info__, 1}, :def}] ++
-          behaviour_exports(module) ++
-          Enum.map(module.__info__(:macros), &{&1, :defmacro}) ++
-          Enum.map(module.__info__(:functions), &{&1, :def})
-      )
-
-    {:elixir, map}
+    {:elixir, behaviour_exports(module) ++ [{:__info__, 1} | module.__info__(:functions)]}
   rescue
-    _ -> {:erlang, Map.new(Enum.map(module.module_info(:exports), &{&1, :def}))}
+    _ -> {:erlang, module.module_info(:exports)}
   end
 
   defp info_deprecated(module) do
@@ -430,54 +411,41 @@ defmodule Module.ParallelChecker do
 
   defp cache_from_module_map(ets, map) do
     exports =
-      [{{:__info__, 1}, :def}] ++
+      [{:__info__, 1}] ++
         behaviour_exports(map) ++
-        definitions_to_exports(map.definitions)
+        for({function, :def, _meta, _clauses} <- map.definitions, do: function)
 
     deprecated = Map.new(map.deprecated)
     cache_info(ets, map.module, exports, deprecated, :elixir)
   end
 
   defp cache_info(ets, module, exports, deprecated, mode) do
-    Enum.each(exports, fn {{fun, arity}, kind} ->
+    Enum.each(exports, fn {fun, arity} ->
       reason = Map.get(deprecated, {fun, arity})
-      :ets.insert(ets, {{:export, module, {fun, arity}}, kind, reason})
-      {{fun, arity}, kind}
+      :ets.insert(ets, {{module, {fun, arity}}, reason})
     end)
 
-    :ets.insert(ets, {{:cached, module}, mode})
+    :ets.insert(ets, {module, mode})
   end
 
   defp cache_chunk(ets, module, exports) do
-    Enum.each(exports, fn {{fun, arity}, %{kind: kind, deprecated_reason: reason}} ->
-      :ets.insert(ets, {{:export, module, {fun, arity}}, kind, reason})
-
-      {{fun, arity}, kind}
+    Enum.each(exports, fn {{fun, arity}, info} ->
+      :ets.insert(ets, {{module, {fun, arity}}, Map.get(info, :deprecated)})
     end)
 
-    :ets.insert(ets, {{:export, module, {:__info__, 1}}, :def, nil})
-    :ets.insert(ets, {{:cached, module}, :elixir})
+    :ets.insert(ets, {{module, {:__info__, 1}}, nil})
+    :ets.insert(ets, {module, :elixir})
   end
 
-  defp behaviour_exports(%{defines_behaviour: true}), do: [{{:behaviour_info, 1}, :def}]
+  defp behaviour_exports(%{defines_behaviour: true}), do: [{:behaviour_info, 1}]
   defp behaviour_exports(%{defines_behaviour: false}), do: []
 
   defp behaviour_exports(module) when is_atom(module) do
     if function_exported?(module, :behaviour_info, 1) do
-      [{{:behaviour_info, 1}, :def}]
+      [{:behaviour_info, 1}]
     else
       []
     end
-  end
-
-  defp definitions_to_exports(definitions) do
-    Enum.flat_map(definitions, fn {function, kind, _meta, _clauses} ->
-      if kind in [:def, :defmacro] do
-        [{function, kind}]
-      else
-        []
-      end
-    end)
   end
 
   defp lock(server, module) do

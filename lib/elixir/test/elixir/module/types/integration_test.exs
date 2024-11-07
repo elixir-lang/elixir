@@ -39,17 +39,16 @@ defmodule Module.Types.IntegrationTest do
       modules = compile(files)
 
       assert read_chunk(modules[A]).exports == [
-               {{:c, 0}, %{deprecated_reason: nil, kind: :def}},
-               {{:e, 0}, %{deprecated_reason: "oops", kind: :def}},
-               {{:d, 0}, %{deprecated_reason: nil, kind: :defmacro}}
+               {{:c, 0}, %{}},
+               {{:e, 0}, %{deprecated: "oops"}}
              ]
 
       assert read_chunk(modules[B]).exports == [
-               {{:behaviour_info, 1}, %{deprecated_reason: nil, kind: :def}}
+               {{:behaviour_info, 1}, %{}}
              ]
 
       assert read_chunk(modules[C]).exports == [
-               {{:behaviour_info, 1}, %{deprecated_reason: nil, kind: :def}}
+               {{:behaviour_info, 1}, %{}}
              ]
     end
   end
@@ -387,7 +386,7 @@ defmodule Module.Types.IntegrationTest do
       }
 
       warnings = [
-        "you must require B before invoking the macro B.b/0",
+        "Be sure to require B if you intend to invoke this macro",
         "ab.ex:2:18: A.a/0"
       ]
 

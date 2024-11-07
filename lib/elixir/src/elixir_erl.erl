@@ -138,7 +138,7 @@ compile(#{module := Module, anno := Anno} = Map) ->
   {Types, Callbacks, TypeSpecs} = typespecs_form(Map, TranslatedTypespecs, Macros),
 
   DocsChunk = docs_chunk(Map, Set, Module, Anno, Def, Defmacro, Types, Callbacks),
-  CheckerChunk = checker_chunk(Def, Defmacro, Map),
+  CheckerChunk = checker_chunk(Def, Map),
   load_form(Map, Prefix, Forms, TypeSpecs, DocsChunk ++ CheckerChunk).
 
 dynamic_form(#{module := Module, relative_file := RelativeFile,
@@ -612,14 +612,17 @@ signature_to_binary(_, Name, Signature) ->
   Doc = 'Elixir.Inspect.Algebra':format('Elixir.Code':quoted_to_algebra(Quoted), infinity),
   'Elixir.IO':iodata_to_binary(Doc).
 
-checker_chunk(Def, Defmacro, #{deprecated := Deprecated, defines_behaviour := DefinesBehaviour}) ->
+checker_chunk(Def, #{deprecated := Deprecated, defines_behaviour := DefinesBehaviour}) ->
   DeprecatedMap = maps:from_list(Deprecated),
 
   Exports =
-    [{FA, #{kind => def, deprecated_reason => maps:get(FA, DeprecatedMap, nil)}}
-     || {FA, _Meta} <- prepend_behaviour_info(DefinesBehaviour, Def)] ++
-    [{FA, #{kind => defmacro, deprecated_reason => maps:get(FA, DeprecatedMap, nil)}}
-     || {FA, _Meta} <- Defmacro],
+    [begin
+      Info = case DeprecatedMap of
+        #{FA := Reason} -> #{deprecated => Reason};
+        #{} -> #{}
+      end,
+      {FA, Info}
+    end || {FA, _Meta} <- prepend_behaviour_info(DefinesBehaviour, Def)],
 
   Contents = #{
     exports => Exports

@@ -742,13 +742,7 @@ defmodule Module.Types.Of do
 
   defp check_export(module, fun, arity, meta, stack, context) do
     case ParallelChecker.fetch_export(stack.cache, module, fun, arity) do
-      {:ok, mode, :def, reason} ->
-        check_deprecated(mode, module, fun, arity, reason, meta, stack, context)
-
-      {:ok, mode, :defmacro, reason} ->
-        context =
-          warn(__MODULE__, {:unrequired_module, module, fun, arity}, meta, stack, context)
-
+      {:ok, mode, reason} ->
         check_deprecated(mode, module, fun, arity, reason, meta, stack, context)
 
       {:error, :module} ->
@@ -760,8 +754,7 @@ defmodule Module.Types.Of do
 
       {:error, :function} ->
         if warn_undefined?(module, fun, arity, stack) do
-          exports = ParallelChecker.all_exports(stack.cache, module)
-          payload = {:undefined_function, module, fun, arity, exports}
+          payload = {:undefined_function, module, fun, arity}
           warn(__MODULE__, payload, meta, stack, context)
         else
           context
@@ -1081,7 +1074,7 @@ defmodule Module.Types.Of do
     }
   end
 
-  def format_diagnostic({:undefined_function, module, :__struct__, 0, _exports}) do
+  def format_diagnostic({:undefined_function, module, :__struct__, 0}) do
     %{
       message:
         "struct #{inspect(module)} is undefined (there is such module but it does not define a struct)",
@@ -1089,13 +1082,13 @@ defmodule Module.Types.Of do
     }
   end
 
-  def format_diagnostic({:undefined_function, module, fun, arity, exports}) do
+  def format_diagnostic({:undefined_function, module, fun, arity}) do
     %{
       message:
         IO.iodata_to_binary([
           Exception.format_mfa(module, fun, arity),
           " is undefined or private",
-          UndefinedFunctionError.hint_for_loaded_module(module, fun, arity, exports)
+          UndefinedFunctionError.hint_for_loaded_module(module, fun, arity)
         ]),
       group: true
     }
@@ -1108,19 +1101,6 @@ defmodule Module.Types.Of do
           Exception.format_mfa(module, fun, arity),
           " is deprecated. ",
           reason
-        ]),
-      group: true
-    }
-  end
-
-  def format_diagnostic({:unrequired_module, module, fun, arity}) do
-    %{
-      message:
-        IO.iodata_to_binary([
-          "you must require ",
-          inspect(module),
-          " before invoking the macro ",
-          Exception.format_mfa(module, fun, arity)
         ]),
       group: true
     }

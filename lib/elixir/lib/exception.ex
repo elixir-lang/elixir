@@ -1651,7 +1651,7 @@ defmodule UndefinedFunctionError do
 
   defp hint(module, function, arity, :suggest_function) do
     hint_for_behaviour(module, function, arity) <>
-      hint_for_loaded_module(module, function, arity, nil)
+      hint_for_loaded_module(module, function, arity)
   end
 
   defp hint(module, function, arity, :suggest_module) do
@@ -1708,7 +1708,7 @@ defmodule UndefinedFunctionError do
   end
 
   @doc false
-  def hint_for_loaded_module(module, function, arity, exports) do
+  def hint_for_loaded_module(module, function, arity) do
     cond do
       macro_exported?(module, function, arity) ->
         ". However, there is a macro with the same name and arity. " <>
@@ -1718,7 +1718,7 @@ defmodule UndefinedFunctionError do
         ", #{message}"
 
       true ->
-        IO.iodata_to_binary(did_you_mean(module, function, exports))
+        IO.iodata_to_binary(did_you_mean(module, function))
     end
   end
 
@@ -1760,8 +1760,8 @@ defmodule UndefinedFunctionError do
 
   ## Shared helpers across hints
 
-  defp did_you_mean(module, function, exports) do
-    exports = exports || exports_for(module)
+  defp did_you_mean(module, function) do
+    exports = exports_for(module)
 
     result =
       case Keyword.take(exports, [function]) do
