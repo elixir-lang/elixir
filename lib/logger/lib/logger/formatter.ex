@@ -84,7 +84,7 @@ defmodule Logger.Formatter do
   >   * Be an atom
   >   * Be a reference
   >   * Be a port
-  >   * Implement the `String.Chars` protocol
+  >   * Implement the `String.Chars` protocol (except for charlists)
   >
   > If none of the conditions above are `true`, the given metadata get
   > discarded.
