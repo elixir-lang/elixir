@@ -1639,8 +1639,8 @@ defmodule Code do
     * `:ignore_module_conflict` - when `true`, does not warn when a module has
       already been defined. Defaults to `false`.
 
-    * `:infer_signatures` (since v1.18.0) - when `false`, it disables inference
-      module-local signatures used when type checking remote calls to the compiled
+    * `:infer_signatures` (since v1.18.0) - when `false`, it disables module-local
+      signature inference used when type checking remote calls to the compiled
       module. Type checking it still executed. Defaults to `true`.
 
     * `:relative_paths` - when `true`, uses relative paths in quoted nodes,

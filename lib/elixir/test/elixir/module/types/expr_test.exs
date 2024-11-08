@@ -176,11 +176,10 @@ defmodule Module.Types.ExprTest do
 
                    none()
 
-               the 1th argument is empty (often represented as none()), \
+               the 1st argument is empty (often represented as none()), \
                most likely because it is the result of an expression that \
                always fails, such as a `raise` or a previous invalid call. \
-               This causes any subsequent function call with said value \
-               to always fail
+               This causes any function called with this value to fail
                """
     end
 

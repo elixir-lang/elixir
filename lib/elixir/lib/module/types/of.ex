@@ -1081,8 +1081,8 @@ defmodule Module.Types.Of do
         """
         the #{integer_to_ordinal(i + 1)} argument is empty (often represented as none()), \
         most likely because it is the result of an expression that always fails, such as \
-        a `raise` or a previous invalid call. This causes any subsequent function call with \
-        said value to always fail
+        a `raise` or a previous invalid call. This causes any function called with this \
+        value to fail
         """
       else
         """
@@ -1294,7 +1294,7 @@ defmodule Module.Types.Of do
   end
 
   defp integer_to_ordinal(i) do
-    case rem(i, 10) in [1, 2, 3] do
+    case rem(i, 10) do
       1 when rem(i, 100) != 11 -> "#{i}st"
       2 when rem(i, 100) != 12 -> "#{i}nd"
       3 when rem(i, 100) != 13 -> "#{i}rd"
