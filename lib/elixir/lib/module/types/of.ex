@@ -1076,6 +1076,21 @@ defmodule Module.Types.Of do
     {{:., _, [mod, fun]}, _, args} = expr
     {mod, fun, args, converter} = :elixir_rewrite.erl_to_ex(mod, fun, args)
 
+    explanation =
+      if i = Enum.find_index(args_types, &empty?/1) do
+        """
+        the #{integer_to_ordinal(i + 1)} argument is empty (often represented as none()), \
+        most likely because it is the result of an expression that always fails, such as \
+        a `raise` or a previous invalid call. This causes any subsequent function call with \
+        said value to always fail
+        """
+      else
+        """
+        but expected one of:
+        #{clauses_args_to_quoted_string(clauses, converter)}
+        """
+      end
+
     %{
       details: %{typing_traces: traces},
       message:
@@ -1089,9 +1104,8 @@ defmodule Module.Types.Of do
 
               #{args_to_quoted_string(args_types, domain, converter) |> indent(4)}
 
-          but expected one of:
-          #{clauses_args_to_quoted_string(clauses, converter)}
           """,
+          explanation,
           format_traces(traces)
         ])
     }
@@ -1276,6 +1290,15 @@ defmodule Module.Types.Of do
     |> case do
       "(\n" <> _ = multiple_lines -> multiple_lines
       single_line -> binary_slice(single_line, 1..-2//1)
+    end
+  end
+
+  defp integer_to_ordinal(i) do
+    case rem(i, 10) in [1, 2, 3] do
+      1 when rem(i, 100) != 11 -> "#{i}st"
+      2 when rem(i, 100) != 12 -> "#{i}nd"
+      3 when rem(i, 100) != 13 -> "#{i}rd"
+      _ -> "#{i}th"
     end
   end
 end

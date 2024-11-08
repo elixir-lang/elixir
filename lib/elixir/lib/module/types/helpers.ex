@@ -202,6 +202,15 @@ defmodule Module.Types.Helpers do
     |> Macro.to_string()
   end
 
+  defp erl_to_ex(
+         :erlang,
+         :error,
+         [expr, :none, [error_info: {:%{}, _, [module: Exception]}]],
+         meta
+       ) do
+    {:raise, meta, [expr]}
+  end
+
   defp erl_to_ex(mod, fun, args, meta) do
     case :elixir_rewrite.erl_to_ex(mod, fun, args) do
       {Kernel, fun, args, _} -> {fun, meta, args}
