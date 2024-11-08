@@ -27,6 +27,7 @@ defmodule Module.Types do
       # TODO: Reuse context from patterns and guards
       # TODO: Simplify pair types
       # TODO: Handle local calls
+      # TODO: Improve errors on bad apply if one of the arguments are empty
       {{fun, arity}, {:infer, pair_types}}
     end
   end

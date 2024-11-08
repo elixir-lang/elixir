@@ -1163,6 +1163,7 @@ defmodule Module.Types.DescrTest do
 
     test "none" do
       assert none() |> to_quoted_string() == "none()"
+      assert dynamic(none()) |> to_quoted_string() == "none()"
     end
 
     test "negation" do

@@ -1145,9 +1145,17 @@ defmodule Module.Types.Descr do
 
   defp dynamic_to_quoted(descr) do
     cond do
-      term_type?(descr) -> [{:dynamic, [], []}]
-      single = indivisible_bitmap(descr) -> [single]
-      true -> [{:dynamic, [], [to_quoted(descr)]}]
+      term_type?(descr) ->
+        [{:dynamic, [], []}]
+
+      single = indivisible_bitmap(descr) ->
+        [single]
+
+      true ->
+        case to_quoted(descr) do
+          {:none, _meta, []} = none -> [none]
+          descr -> [{:dynamic, [], [descr]}]
+        end
     end
   end
 
