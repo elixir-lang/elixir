@@ -161,7 +161,6 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
 
         RawCompileOpts = bag_lookup_element(DataBag, {accumulate, compile}, 2),
         CompileOpts = validate_compile_opts(RawCompileOpts, AllDefinitions, Unreachable, Line, E),
-        UsesBehaviours = bag_lookup_element(DataBag, {accumulate, behaviour}, 2),
         Impls = bag_lookup_element(DataBag, impls, 2),
 
         AfterVerify = bag_lookup_element(DataBag, {accumulate, after_verify}, 2),
@@ -181,7 +180,6 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
           compile_opts => CompileOpts,
           deprecated => get_deprecated(DataBag),
           defines_behaviour => defines_behaviour(DataBag),
-          uses_behaviours => UsesBehaviours,
           impls => Impls
         },
 

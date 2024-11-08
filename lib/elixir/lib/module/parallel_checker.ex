@@ -217,7 +217,7 @@ defmodule Module.ParallelChecker do
       file: file,
       compile_opts: compile_opts,
       definitions: definitions,
-      uses_behaviours: uses_behaviours,
+      attributes: attributes,
       impls: impls
     } = module_map
 
@@ -227,6 +227,8 @@ defmodule Module.ParallelChecker do
         %{anno: anno} -> :erl_anno.line(anno)
         %{line: line} -> line
       end
+
+    behaviours = for {:behaviour, module} <- attributes, do: module
 
     no_warn_undefined =
       compile_opts
@@ -238,7 +240,7 @@ defmodule Module.ParallelChecker do
         module,
         file,
         line,
-        uses_behaviours,
+        behaviours,
         impls,
         definitions
       )

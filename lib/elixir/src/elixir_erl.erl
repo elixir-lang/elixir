@@ -502,7 +502,7 @@ extra_chunks_opts([], Opts) -> Opts;
 extra_chunks_opts(Chunks, Opts) -> [{extra_chunks, Chunks} | Opts].
 
 docs_chunk(Map, Set, Module, Anno, Def, Defmacro, Types, Callbacks) ->
-  #{file := File, uses_behaviours := UsesBehaviours} = Map,
+  #{file := File, attributes := Attributes} = Map,
 
   case elixir_config:get(docs) of
     true ->
@@ -516,7 +516,7 @@ docs_chunk(Map, Set, Module, Anno, Def, Defmacro, Types, Callbacks) ->
       ModuleMeta = ModuleDocMeta#{
         source_path => File,
         source_annos => [Anno],
-        behaviours => UsesBehaviours
+        behaviours => [Mod || {behaviour, Mod} <- Attributes]
       },
 
       DocsChunkData = term_to_binary({docs_v1,
