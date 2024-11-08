@@ -12,24 +12,33 @@ defmodule Module.Types do
       expected = List.duplicate(Descr.dynamic(), arity)
 
       pair_types =
-        Enum.map(clauses, fn {meta, args, guards, body} ->
+        Enum.reduce(clauses, [], fn {meta, args, guards, body}, inferred ->
           try do
             {args, context} =
               Pattern.of_head(args, guards, expected, :default, meta, stack, context)
 
             {return, _context} = Expr.of_expr(body, stack, context)
-            {args, return}
+            add_inferred(inferred, args, return, [])
           rescue
             e -> internal_error!(e, __STACKTRACE__, :def, meta, module, fun, args, guards, body)
           end
         end)
 
       # TODO: Reuse context from patterns and guards
-      # TODO: Simplify pair types
-      # TODO: Handle local calls
-      {{fun, arity}, {:infer, pair_types}}
+      {{fun, arity}, {:infer, Enum.reverse(pair_types)}}
     end
   end
+
+  # We check for term equality of types as an optimization
+  # to reduce the amount of check we do at runtime.
+  defp add_inferred([{args, existing_return} | tail], args, return, acc),
+    do: Enum.reverse(acc, [{args, Descr.union(existing_return, return)} | tail])
+
+  defp add_inferred([head | tail], args, return, acc),
+    do: add_inferred(tail, args, return, [head | acc])
+
+  defp add_inferred([], args, return, acc),
+    do: [{args, return} | Enum.reverse(acc)]
 
   @doc false
   def warnings(module, file, defs, no_warn_undefined, cache) do

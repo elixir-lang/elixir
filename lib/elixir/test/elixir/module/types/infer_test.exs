@@ -42,4 +42,23 @@ defmodule Module.Types.InferTest do
     assert types[{:fun3, 4}] == {:infer, [{args, atom([:ok])}]}
     assert types[{:fun4, 4}] == {:infer, [{args, atom([:ok])}]}
   end
+
+  test "merges patterns", config do
+    types =
+      infer config do
+        def fun(:ok), do: :one
+        def fun("two"), do: :two
+        def fun("three"), do: :three
+        def fun("four"), do: :four
+        def fun(:error), do: :five
+      end
+
+    assert types[{:fun, 1}] ==
+             {:infer,
+              [
+                {[dynamic(atom([:ok]))], atom([:one])},
+                {[dynamic(binary())], atom([:two, :three, :four])},
+                {[dynamic(atom([:error]))], atom([:five])}
+              ]}
+  end
 end
