@@ -191,7 +191,8 @@ defmodule Module.ParallelChecker do
   or if the function does not exist return `{:error, :function}`.
   """
   @spec fetch_export(cache(), module(), atom(), arity()) ::
-          {:ok, mode(), kind(), binary() | nil} | {:error, :function | :module}
+          {:ok, mode(), binary() | nil, {:infer, [term()]} | :none}
+          | {:error, :function | :module}
   def fetch_export({server, ets}, module, fun, arity) do
     case :ets.lookup(ets, module) do
       [] ->
@@ -203,7 +204,7 @@ defmodule Module.ParallelChecker do
 
       [{_key, mode}] ->
         case :ets.lookup(ets, {module, {fun, arity}}) do
-          [{_key, reason}] -> {:ok, mode, reason}
+          [{_key, reason, signature}] -> {:ok, mode, reason, signature}
           [] -> {:error, :function}
         end
     end
@@ -369,13 +370,13 @@ defmodule Module.ParallelChecker do
             true ->
               {mode, exports} = info_exports(module)
               deprecated = info_deprecated(module)
-              cache_info(ets, module, exports, deprecated, mode)
+              cache_info(ets, module, exports, deprecated, %{}, mode)
 
             false ->
               # Or load exports from chunk
               with {^module, binary, _filename} <- object_code,
                    {:ok, {^module, [exports: exports]}} <- :beam_lib.chunks(binary, [:exports]) do
-                cache_info(ets, module, exports, %{}, :erlang)
+                cache_info(ets, module, exports, %{}, %{}, :erlang)
               else
                 _ ->
                   :ets.insert(ets, {module, false})
@@ -417,14 +418,13 @@ defmodule Module.ParallelChecker do
         behaviour_exports(map) ++
         for({function, :def, _meta, _clauses} <- map.definitions, do: function)
 
-    deprecated = Map.new(map.deprecated)
-    cache_info(ets, map.module, exports, deprecated, :elixir)
+    cache_info(ets, map.module, exports, Map.new(map.deprecated), map.signatures, :elixir)
   end
 
-  defp cache_info(ets, module, exports, deprecated, mode) do
-    Enum.each(exports, fn {fun, arity} ->
-      reason = Map.get(deprecated, {fun, arity})
-      :ets.insert(ets, {{module, {fun, arity}}, reason})
+  defp cache_info(ets, module, exports, deprecated, sigs, mode) do
+    Enum.each(exports, fn fa ->
+      reason = Map.get(deprecated, fa)
+      :ets.insert(ets, {{module, fa}, reason, Map.get(sigs, fa, :none)})
     end)
 
     :ets.insert(ets, {module, mode})
@@ -432,10 +432,14 @@ defmodule Module.ParallelChecker do
 
   defp cache_chunk(ets, module, exports) do
     Enum.each(exports, fn {{fun, arity}, info} ->
-      :ets.insert(ets, {{module, {fun, arity}}, Map.get(info, :deprecated)})
+      # TODO: Match on signature directly in Elixir v1.22+
+      :ets.insert(
+        ets,
+        {{module, {fun, arity}}, Map.get(info, :deprecated), Map.get(info, :sig, :none)}
+      )
     end)
 
-    :ets.insert(ets, {{module, {:__info__, 1}}, nil})
+    :ets.insert(ets, {{module, {:__info__, 1}}, nil, :none})
     :ets.insert(ets, {module, :elixir})
   end
 

@@ -207,13 +207,19 @@ defmodule Module.Types.Of do
   Returns `__info__(:struct)` information about a struct.
   """
   def struct_info(struct, meta, stack, context) do
-    {_, context} = remote(struct, :__struct__, 0, meta, stack, context)
+    case stack.cache do
+      %Macro.Env{} = env ->
+        {Macro.struct_info!(struct, env), context}
 
-    info =
-      struct.__info__(:struct) ||
-        raise "expected #{inspect(struct)} to return struct metadata, but got none"
+      _ ->
+        {_, context} = export(struct, :__struct__, 0, meta, stack, context)
 
-    {info, context}
+        info =
+          struct.__info__(:struct) ||
+            raise "expected #{inspect(struct)} to return struct metadata, but got none"
+
+        {info, context}
+    end
   end
 
   @doc """
@@ -803,6 +809,21 @@ defmodule Module.Types.Of do
     end
   end
 
+  defp apply_remote({:infer, clauses}, args_types, _stack) do
+    case for({expected, return} <- clauses, zip_not_disjoint?(args_types, expected), do: return) do
+      [] ->
+        domain =
+          clauses
+          |> Enum.map(fn {args, _} -> args end)
+          |> Enum.zip_with(fn types -> Enum.reduce(types, &union/2) end)
+
+        {:error, domain, clauses}
+
+      returns ->
+        {:ok, returns |> Enum.reduce(&union/2) |> dynamic()}
+    end
+  end
+
   defp zip_compatible_or_only_gradual?([actual | actuals], [expected | expecteds]) do
     (only_gradual?(actual) or compatible?(actual, expected)) and
       zip_compatible_or_only_gradual?(actuals, expecteds)
@@ -826,11 +847,15 @@ defmodule Module.Types.Of do
     {remote(:module_info, arity), context}
   end
 
+  defp export(_module, _fun, _arity, _meta, %{cache: %Macro.Env{}}, context) do
+    {:none, context}
+  end
+
   defp export(module, fun, arity, meta, stack, context) do
     case ParallelChecker.fetch_export(stack.cache, module, fun, arity) do
-      {:ok, mode, reason} ->
-        {remote(fun, arity),
-         check_deprecated(mode, module, fun, arity, reason, meta, stack, context)}
+      {:ok, mode, reason, info} ->
+        info = if info == :none, do: remote(fun, arity), else: info
+        {info, check_deprecated(mode, module, fun, arity, reason, meta, stack, context)}
 
       {:error, type} ->
         context =

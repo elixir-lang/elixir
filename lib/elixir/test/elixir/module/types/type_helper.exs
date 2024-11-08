@@ -9,16 +9,6 @@ defmodule TypeHelper do
   alias Module.Types.{Pattern, Expr, Descr}
 
   @doc """
-  Main helper for inferring the given pattern + guards.
-  """
-  defmacro typeinfer!(patterns \\ [], guards \\ true) do
-    quote do
-      unquote(typeinfer(patterns, guards, __CALLER__))
-      |> TypeHelper.__typecheck__!()
-    end
-  end
-
-  @doc """
   Main helper for checking the given AST type checks without warnings.
   """
   defmacro typedyn!(patterns \\ [], guards \\ true, body) do
@@ -111,22 +101,6 @@ defmodule TypeHelper do
   def __typewarn__!({_type, %{warnings: warnings, failed: true}}),
     do: raise("type checking errored with warnings: #{inspect(warnings)}")
 
-  defp typeinfer(patterns, guards, env) do
-    {patterns, guards, :ok} = expand_and_unpack(patterns, guards, :ok, env)
-
-    quote do
-      TypeHelper.__typeinfer__(
-        unquote(Macro.escape(patterns)),
-        unquote(Macro.escape(guards))
-      )
-    end
-  end
-
-  def __typeinfer__(patterns, guards) do
-    expected = Enum.map(patterns, fn _ -> Module.Types.Descr.dynamic() end)
-    Pattern.of_head(patterns, guards, expected, :default, [], new_stack(:infer), new_context())
-  end
-
   defp typecheck(mode, patterns, guards, body, env) do
     {patterns, guards, body} = expand_and_unpack(patterns, guards, body, env)
 
@@ -163,7 +137,7 @@ defmodule TypeHelper do
   end
 
   defp new_stack(mode) do
-    cache = Module.ParallelChecker.test_cache()
+    cache = if mode == :infer, do: :none, else: Module.ParallelChecker.test_cache()
     Types.stack(mode, "types_test.ex", TypesTest, {:test, 0}, [], cache)
   end
 

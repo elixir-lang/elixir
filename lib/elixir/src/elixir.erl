@@ -88,6 +88,7 @@ start(_Type, _Args) ->
 
     %% Compiler options
     {docs, true},
+    {infer_signatures, true},
     {ignore_already_consolidated, false},
     {ignore_module_conflict, false},
     {on_undefined_variable, raise},

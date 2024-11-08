@@ -612,14 +612,15 @@ signature_to_binary(_, Name, Signature) ->
   Doc = 'Elixir.Inspect.Algebra':format('Elixir.Code':quoted_to_algebra(Quoted), infinity),
   'Elixir.IO':iodata_to_binary(Doc).
 
-checker_chunk(Def, #{deprecated := Deprecated, defines_behaviour := DefinesBehaviour}) ->
+checker_chunk(Def, #{deprecated := Deprecated, defines_behaviour := DefinesBehaviour, signatures := Signatures}) ->
   DeprecatedMap = maps:from_list(Deprecated),
 
   Exports =
     [begin
+      Signature = maps:get(FA, Signatures, none),
       Info = case DeprecatedMap of
-        #{FA := Reason} -> #{deprecated => Reason};
-        #{} -> #{}
+        #{FA := Reason} -> #{deprecated => Reason, sig => Signature};
+        #{} -> #{sig => Signature}
       end,
       {FA, Info}
     end || {FA, _Meta} <- prepend_behaviour_info(DefinesBehaviour, Def)],

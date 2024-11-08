@@ -167,6 +167,11 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
         [elixir_env:trace({remote_function, [], VerifyMod, VerifyFun, 1}, CallbackE) ||
          {VerifyMod, VerifyFun} <- AfterVerify],
 
+        Signatures = case elixir_config:get(infer_signatures) of
+          true -> 'Elixir.Module.Types':infer(Module, File, AllDefinitions, CallbackE);
+          false -> #{}
+        end,
+
         ModuleMap = #{
           struct => get_struct(DataSet),
           module => Module,
@@ -180,7 +185,8 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
           compile_opts => CompileOpts,
           deprecated => get_deprecated(DataBag),
           defines_behaviour => defines_behaviour(DataBag),
-          impls => Impls
+          impls => Impls,
+          signatures => Signatures
         },
 
         case ets:member(DataSet, {elixir, taint}) of
