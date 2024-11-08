@@ -520,8 +520,8 @@ defmodule Module.Types.Expr do
 
   ## General helpers
 
-  defp apply_many([], _function, _args_types, _expr, _stack, context) do
-    {dynamic(), context}
+  defp apply_many([], function, args_types, expr, stack, context) do
+    Of.apply(function, args_types, expr, stack, context)
   end
 
   defp apply_many([mod], function, args_types, expr, stack, context) do

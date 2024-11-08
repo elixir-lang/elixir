@@ -4,7 +4,7 @@ defmodule Module.Behaviour do
 
   @doc false
   def callbacks(behaviour) do
-    for callback <- behaviour_info(behaviour, :callbacks) do
+    for callback <- behaviour.behaviour_info(:callbacks) do
       {pair, _kind} = normalize_macro_or_function_callback(callback)
       pair
     end
@@ -55,8 +55,8 @@ defmodule Module.Behaviour do
           warn(context, {:module_does_not_define_behaviour, context.module, behaviour})
 
         true ->
-          optional_callbacks = behaviour_info(behaviour, :optional_callbacks)
-          callbacks = behaviour_info(behaviour, :callbacks)
+          optional_callbacks = behaviour.behaviour_info(:optional_callbacks)
+          callbacks = behaviour.behaviour_info(:callbacks)
           Enum.reduce(callbacks, context, &add_callback(&2, &1, behaviour, optional_callbacks))
       end
     end)
@@ -262,13 +262,6 @@ defmodule Module.Behaviour do
       end
 
     ". The known callbacks are:\n#{formatted_callbacks}\n"
-  end
-
-  defp behaviour_info(module, key) do
-    case module.behaviour_info(key) do
-      list when is_list(list) -> list
-      :undefined -> []
-    end
   end
 
   defp normalize_macro_or_function_callback({function_name, arity}) do

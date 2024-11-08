@@ -347,6 +347,63 @@ defmodule Module.Types.Of do
   # ensuring that domains for the same function have
   # no overlaps.
 
+  # Remote for callback info functions
+
+  kw = fn kw ->
+    kw
+    |> Enum.map(fn {key, type} when is_atom(key) ->
+      tuple([atom([key]), type])
+    end)
+    |> Enum.reduce(&union/2)
+    |> list()
+  end
+
+  fas = list(tuple([atom(), integer()]))
+
+  shared_info = [
+    attributes: list(tuple([atom(), list(term())])),
+    compile: kw.(version: list(integer()), source: list(integer()), options: list(term())),
+    exports: fas,
+    md5: binary(),
+    module: atom()
+  ]
+
+  infos =
+    %{
+      behaviour_info: [
+        callbacks: fas,
+        optional_callbacks: fas
+      ],
+      module_info: [functions: fas, nifs: fas] ++ shared_info,
+      __info__:
+        [
+          deprecated: list(tuple([tuple([atom(), integer()]), binary()])),
+          exports_md5: binary(),
+          functions: fas,
+          macros: fas,
+          struct:
+            list(closed_map(default: term(), field: atom(), required: boolean()))
+            |> union(atom([nil]))
+        ] ++ shared_info
+    }
+
+  for {name, clauses} <- infos do
+    domain = atom(Keyword.keys(clauses))
+    clauses = Enum.map(clauses, fn {key, return} -> {[atom([key])], return} end)
+
+    defp remote(unquote(name), 1) do
+      {:strong, [unquote(Macro.escape(domain))], unquote(Macro.escape(clauses))}
+    end
+  end
+
+  defp remote(:module_info, 0) do
+    {:strong, nil, [{[], unquote(Macro.escape(kw.(infos.module_info)))}]}
+  end
+
+  defp remote(_, _), do: :none
+
+  # Remote for compiler functions
+
   mfargs = [atom(), atom(), list(term())]
 
   send_destination =
@@ -367,16 +424,6 @@ defmodule Module.Types.Of do
 
   args_or_arity = union(list(term()), integer())
   args_or_none = union(list(term()), atom([:none]))
-
-  kw = fn kw ->
-    kw
-    |> Enum.map(fn {key, type} when is_atom(key) ->
-      tuple([atom([key]), type])
-    end)
-    |> Enum.reduce(&union/2)
-    |> list()
-  end
-
   extra_info = kw.(file: list(integer()), line: integer(), error_info: open_map())
 
   raise_stacktrace =
@@ -386,6 +433,16 @@ defmodule Module.Types.Of do
       |> union(tuple([fun(), args_or_arity, extra_info]))
       |> union(tuple([fun(), args_or_arity]))
     )
+
+  and_signature =
+    for left <- [true, false], right <- [true, false] do
+      {[atom([left]), atom([right])], atom([left and right])}
+    end
+
+  or_signature =
+    for left <- [true, false], right <- [true, false] do
+      {[atom([left]), atom([right])], atom([left or right])}
+    end
 
   for {mod, fun, clauses} <- [
         # :binary
@@ -407,6 +464,7 @@ defmodule Module.Types.Of do
         {:erlang, :>, [{[term(), term()], boolean()}]},
         {:erlang, :>=, [{[term(), term()], boolean()}]},
         {:erlang, :abs, [{[integer()], integer()}, {[float()], float()}]},
+        {:erlang, :and, and_signature},
         {:erlang, :atom_to_binary, [{[atom()], binary()}]},
         {:erlang, :atom_to_list, [{[atom()], list(integer())}]},
         {:erlang, :band, [{[integer(), integer()], integer()}]},
@@ -462,6 +520,7 @@ defmodule Module.Types.Of do
         {:erlang, :node, [{[], atom()}]},
         {:erlang, :node, [{[pid() |> union(reference()) |> union(port())], atom()}]},
         {:erlang, :not, [{[atom([false])], atom([true])}, {[atom([true])], atom([false])}]},
+        {:erlang, :or, or_signature},
         {:erlang, :raise, [{[atom([:error, :exit, :throw]), term(), raise_stacktrace], none()}]},
         {:erlang, :rem, [{[integer(), integer()], integer()}]},
         {:erlang, :round, [{[union(integer(), float())], integer()}]},
@@ -478,6 +537,7 @@ defmodule Module.Types.Of do
         # TODO: Replace term()/dynamic() by parametric types
         {:erlang, :++, [{[list(term()), term()], dynamic(list(term(), term()))}]},
         {:erlang, :--, [{[list(term()), list(term())], dynamic(list(term()))}]},
+        {:erlang, :andalso, [{[boolean(), term()], dynamic()}]},
         {:erlang, :delete_element, [{[integer(), open_tuple([])], dynamic(open_tuple([]))}]},
         {:erlang, :hd, [{[non_empty_list(term(), term())], dynamic()}]},
         {:erlang, :element, [{[integer(), open_tuple([])], dynamic()}]},
@@ -485,13 +545,17 @@ defmodule Module.Types.Of do
          [{[integer(), open_tuple([]), term()], dynamic(open_tuple([]))}]},
         {:erlang, :max, [{[term(), term()], dynamic()}]},
         {:erlang, :min, [{[term(), term()], dynamic()}]},
+        {:erlang, :orelse, [{[boolean(), term()], dynamic()}]},
         {:erlang, :send, [{[send_destination, term()], dynamic()}]},
         {:erlang, :setelement, [{[integer(), open_tuple([]), term()], dynamic(open_tuple([]))}]},
         {:erlang, :tl, [{[non_empty_list(term(), term())], dynamic()}]},
         {:erlang, :tuple_to_list, [{[open_tuple([])], dynamic(list(term()))}]}
       ] do
     [arity] = Enum.map(clauses, fn {args, _return} -> length(args) end) |> Enum.uniq()
-    true = Code.ensure_loaded?(mod) and function_exported?(mod, fun, arity)
+
+    true =
+      Code.ensure_loaded?(mod) and
+        (function_exported?(mod, fun, arity) or fun in [:orelse, :andalso])
 
     domain_clauses =
       case clauses do
@@ -535,14 +599,29 @@ defmodule Module.Types.Of do
       {:none, context}
     else
       case remote(module, fun, arity) do
-        :none -> {:none, check_export(module, fun, arity, meta, stack, context)}
+        :none -> export(module, fun, arity, meta, stack, context)
         clauses -> {clauses, context}
       end
     end
   end
 
-  # TODO: Fix ordering of tuple operations
+  @doc """
+  Applies a function in unknown modules.
 
+  Used only by info functions.
+  """
+  def apply(name, args_types, expr, stack, context) do
+    arity = length(args_types)
+
+    case remote(name, arity) do
+      :none -> {dynamic(), context}
+      info -> apply_remote(info, args_types, expr, stack, context)
+    end
+  end
+
+  @doc """
+  Applies a function in a given module.
+  """
   def apply(:erlang, :element, [_, tuple], {_, meta, [index, _]} = expr, stack, context)
       when is_integer(index) do
     case tuple_fetch(tuple, index - 1) do
@@ -677,15 +756,7 @@ defmodule Module.Types.Of do
 
       false ->
         {info, context} = remote(mod, name, arity, elem(expr, 1), stack, context)
-
-        case apply_remote(info, args_types, stack) do
-          {:ok, type} ->
-            {type, context}
-
-          {:error, domain, clauses} ->
-            error = {:badapply, expr, args_types, domain, clauses, context}
-            {error_type(), error(error, elem(expr, 1), stack, context)}
-        end
+        apply_remote(info, args_types, expr, stack, context)
     end
   end
 
@@ -694,6 +765,17 @@ defmodule Module.Types.Of do
       stack.mode == :static -> type
       Enum.any?(args_types, &gradual?/1) -> dynamic(type)
       true -> type
+    end
+  end
+
+  defp apply_remote(info, args_types, expr, stack, context) do
+    case apply_remote(info, args_types, stack) do
+      {:ok, type} ->
+        {type, context}
+
+      {:error, domain, clauses} ->
+        error = {:badapply, expr, args_types, domain, clauses, context}
+        {error_type(), error(error, elem(expr, 1), stack, context)}
     end
   end
 
@@ -740,25 +822,25 @@ defmodule Module.Types.Of do
 
   defp zip_not_disjoint?([], []), do: true
 
-  defp check_export(module, fun, arity, meta, stack, context) do
+  defp export(_module, :module_info, arity, _meta, _stack, context) when arity in [0, 1] do
+    {remote(:module_info, arity), context}
+  end
+
+  defp export(module, fun, arity, meta, stack, context) do
     case ParallelChecker.fetch_export(stack.cache, module, fun, arity) do
       {:ok, mode, reason} ->
-        check_deprecated(mode, module, fun, arity, reason, meta, stack, context)
+        {remote(fun, arity),
+         check_deprecated(mode, module, fun, arity, reason, meta, stack, context)}
 
-      {:error, :module} ->
-        if warn_undefined?(module, fun, arity, stack) do
-          warn(__MODULE__, {:undefined_module, module, fun, arity}, meta, stack, context)
-        else
-          context
-        end
+      {:error, type} ->
+        context =
+          if warn_undefined?(module, fun, arity, stack) do
+            warn(__MODULE__, {:undefined, type, module, fun, arity}, meta, stack, context)
+          else
+            context
+          end
 
-      {:error, :function} ->
-        if warn_undefined?(module, fun, arity, stack) do
-          payload = {:undefined_function, module, fun, arity}
-          warn(__MODULE__, payload, meta, stack, context)
-        else
-          context
-        end
+        {:none, context}
     end
   end
 
@@ -785,22 +867,6 @@ defmodule Module.Types.Of do
         context
     end
   end
-
-  # The protocol code dispatches to unknown modules, so we ignore them here.
-  #
-  #     try do
-  #       SomeProtocol.Atom.__impl__
-  #     rescue
-  #       ...
-  #     end
-  #
-  # But for protocols we don't want to traverse the protocol code anyway.
-  # TODO: remove this clause once we no longer traverse the protocol code.
-  defp warn_undefined?(_module, :__impl__, 1, _stack), do: false
-  defp warn_undefined?(_module, :module_info, 0, _stack), do: false
-  defp warn_undefined?(_module, :module_info, 1, _stack), do: false
-  defp warn_undefined?(:erlang, :orelse, 2, _stack), do: false
-  defp warn_undefined?(:erlang, :andalso, 2, _stack), do: false
 
   defp warn_undefined?(_, _, _, %{no_warn_undefined: :all}) do
     false
@@ -1053,7 +1119,7 @@ defmodule Module.Types.Of do
     }
   end
 
-  def format_diagnostic({:undefined_module, module, fun, arity}) do
+  def format_diagnostic({:undefined, :module, module, fun, arity}) do
     top =
       if fun == :__struct__ and arity == 0 do
         "struct #{inspect(module)}"
@@ -1074,7 +1140,7 @@ defmodule Module.Types.Of do
     }
   end
 
-  def format_diagnostic({:undefined_function, module, :__struct__, 0}) do
+  def format_diagnostic({:undefined, :function, module, :__struct__, 0}) do
     %{
       message:
         "struct #{inspect(module)} is undefined (there is such module but it does not define a struct)",
@@ -1082,7 +1148,7 @@ defmodule Module.Types.Of do
     }
   end
 
-  def format_diagnostic({:undefined_function, module, fun, arity}) do
+  def format_diagnostic({:undefined, :function, module, fun, arity}) do
     %{
       message:
         IO.iodata_to_binary([

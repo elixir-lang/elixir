@@ -513,4 +513,4 @@ format_error({module_info, Kind, Arity}) ->
 
 format_error({is_record, Kind}) ->
   io_lib:format("cannot define ~ts is_record/2 due to compatibility "
-                "issues with the Erlang compiler (it is a known limitation)", [Kind]).
+                "with the Erlang compiler (it is a known limitation)", [Kind]).

@@ -1355,4 +1355,34 @@ defmodule Module.Types.ExprTest do
                """
     end
   end
+
+  describe "info" do
+    test "__info__/1" do
+      assert typecheck!([x], x.__info__(:functions)) == list(tuple([atom(), integer()]))
+
+      assert typecheck!(GenServer.__info__(:functions)) == list(tuple([atom(), integer()]))
+
+      assert typewarn!(:string.__info__(:functions)) ==
+               {dynamic(), ":string.__info__/1 is undefined or private"}
+    end
+
+    test "behaviour_info/1" do
+      assert typecheck!([x], x.behaviour_info(:callbacks)) == list(tuple([atom(), integer()]))
+
+      assert typecheck!(GenServer.behaviour_info(:callbacks)) == list(tuple([atom(), integer()]))
+
+      assert typewarn!(String.behaviour_info(:callbacks)) ==
+               {dynamic(), "String.behaviour_info/1 is undefined or private"}
+    end
+
+    test "module_info/1" do
+      assert typecheck!([x], x.module_info(:exports)) == list(tuple([atom(), integer()]))
+      assert typecheck!(GenServer.module_info(:exports)) == list(tuple([atom(), integer()]))
+    end
+
+    test "module_info/0" do
+      assert typecheck!([x], x.module_info()) |> subtype?(list(tuple([atom(), term()])))
+      assert typecheck!(GenServer.module_info()) |> subtype?(list(tuple([atom(), term()])))
+    end
+  end
 end
