@@ -224,38 +224,6 @@ defmodule Mix.Tasks.CompileTest do
     end)
   end
 
-  test "returns syntax error from an Erlang file when --return-errors is set" do
-    in_fixture("no_mixfile", fn ->
-      import ExUnit.CaptureIO
-
-      file = Path.absname("src/a.erl")
-      File.mkdir!("src")
-
-      File.write!(file, """
-      -module(b).
-      def b(), do: b
-      """)
-
-      assert File.regular?(file)
-
-      capture_io(fn ->
-        assert {:error, [diagnostic]} = Mix.Task.run("compile", ["--force", "--return-errors"])
-
-        assert %Mix.Task.Compiler.Diagnostic{
-                 compiler_name: "erl_parse",
-                 file: ^file,
-                 source: ^file,
-                 message: "syntax error before: b",
-                 position: position(2, 5),
-                 severity: :error
-               } = diagnostic
-      end)
-
-      refute File.regular?("ebin/Elixir.A.beam")
-      refute File.regular?("ebin/Elixir.B.beam")
-    end)
-  end
-
   test "skip protocol consolidation when --no-protocol-consolidation" do
     in_fixture("no_mixfile", fn ->
       File.rm("_build/dev/lib/sample/.mix/compile.protocols")

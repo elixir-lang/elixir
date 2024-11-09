@@ -5,7 +5,7 @@ MAN_PREFIX ?= $(SHARE_PREFIX)/man
 CANONICAL := main/
 ELIXIRC := bin/elixirc --ignore-module-conflict $(ELIXIRC_OPTS)
 ERLC := erlc -I lib/elixir/include
-ERL_MAKE := if [ -n "$(ERLC_OPTS)" ]; then ERL_COMPILER_OPTIONS=$(ERLC_OPTS) erl -make; else erl -make; fi
+ERL_MAKE := erl -make
 ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
 GENERATE_APP := $(CURDIR)/lib/elixir/scripts/generate_app.escript
 VERSION := $(strip $(shell cat VERSION))

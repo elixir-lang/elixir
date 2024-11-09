@@ -295,9 +295,8 @@ defmodule Mix.Compilers.Erlang do
 
   defp to_diagnostics(warnings_or_errors, severity) do
     for {file, issues} <- warnings_or_errors,
+        file = if(?/ in file, do: Path.absname(file), else: List.to_string(file)),
         {location, module, data} <- issues do
-      file = Path.absname(file)
-
       %Mix.Task.Compiler.Diagnostic{
         file: file,
         source: file,

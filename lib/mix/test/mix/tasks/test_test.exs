@@ -134,6 +134,7 @@ defmodule Mix.Tasks.TestTest do
   end
 
   describe "--cover" do
+    @describetag :cover
     test "reports the coverage of each app's modules in an umbrella" do
       in_fixture("umbrella_test", fn ->
         # This fixture by default results in coverage above the default threshold
@@ -341,7 +342,8 @@ defmodule Mix.Tasks.TestTest do
   end
 
   describe "--partitions" do
-    test "splits tests into partitions" do
+    @tag :cover
+    test "splits tests into partitions (with coverage)" do
       in_fixture("test_stale", fn ->
         assert mix(["test", "--partitions", "3", "--cover"], [{"MIX_TEST_PARTITION", "1"}]) =~
                  "1 test, 0 failures"

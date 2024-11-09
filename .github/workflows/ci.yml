@@ -18,11 +18,13 @@ permissions:
 
 jobs:
   test_linux:
-    name: Ubuntu 24.04, Erlang/OTP ${{ matrix.otp_version }}
+    name: Ubuntu 24.04, Erlang/OTP ${{ matrix.otp_version }}${{ matrix.deterministic && ' (deterministic)' || '' }}
     strategy:
       fail-fast: false
       matrix:
         include:
+          - otp_version: "27.1"
+            deterministic: true
           - otp_version: "27.1"
             otp_latest: true
           - otp_version: "27.0"
@@ -34,11 +36,8 @@ jobs:
           - otp_version: maint
             development: true
     runs-on: ubuntu-24.04
-    # The following env vars are only respected from Erlang/OTP 27.1,
-    # and therefore are gated behind otp_latest.
     env:
-      ERLC_OPTS: ${{ matrix.otp_latest && 'warnings_as_errors' || '' }}
-      ERL_COMPILER_OPTIONS: ${{ matrix.otp_latest && 'deterministic' || '' }}
+      ERL_COMPILER_OPTIONS: ${{ matrix.deterministic && 'warnings_as_errors deterministic' || '' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -75,7 +74,7 @@ jobs:
           # Recompile System without .git
           cd lib/elixir && ../../bin/elixirc -o ebin lib/system.ex && cd -
           taskset 1 make check_reproducible
-        if: ${{ matrix.otp_latest }}
+        if: ${{ matrix.deterministic }}
 
   test_windows:
     name: Windows Server 2019, Erlang/OTP ${{ matrix.otp_version }}
