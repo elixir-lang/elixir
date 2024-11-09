@@ -78,25 +78,34 @@ noenv_forms(Forms, File, Opts) when is_list(Forms), is_list(Opts), is_binary(Fil
           format_warnings(Opts, Warnings),
           {Module, Binary};
 
-        {ok, Module, _Binary, _Warnings} ->
-          Message = io_lib:format(
-            "could not compile module ~ts. We expected the compiler to return a .beam binary but "
-            "got something else. This usually happens because ERL_COMPILER_OPTIONS or @compile "
-            "was set to change the compilation outcome in a way that is incompatible with Elixir",
-            [elixir_aliases:inspect(Module)]
-          ),
+        {ok, Module, _, _} ->
+          incompatible_options("could not compile module ~ts", [elixir_aliases:inspect(Module)], File);
 
-          elixir_errors:compile_error([], File, Message);
+        {ok, Module, _} ->
+          incompatible_options("could not compile module ~ts", [elixir_aliases:inspect(Module)], File);
 
         {error, Errors, Warnings} ->
           format_warnings(Opts, Warnings),
-          format_errors(Errors)
+          format_errors(Errors);
+
+        _ ->
+          incompatible_options("could not compile module", [], File)
       end;
 
     {error, CoreErrors, CoreWarnings} ->
       format_warnings(Opts, CoreWarnings),
       format_errors(CoreErrors)
   end.
+
+incompatible_options(Prefix, Args, File) ->
+  Message = io_lib:format(
+    Prefix ++ ". We expected the compiler to return a .beam binary but "
+    "got something else. This usually happens because ERL_COMPILER_OPTIONS or @compile "
+    "was set to change the compilation outcome in a way that is incompatible with Elixir",
+    Args
+  ),
+
+  elixir_errors:compile_error([], File, Message).
 
 format_errors([]) ->
   exit({nocompile, "compilation failed but no error was raised"});

@@ -9,7 +9,8 @@
   warn_deprecated_function,
   warn_obsolete_guard,
   warn_exported_vars,
-  warnings_as_errors,
+  %% Enable this when we require Erlang/OTP 27+
+  %% warnings_as_errors,
   debug_info,
   {outdir, "ebin/"}
 ]}.
