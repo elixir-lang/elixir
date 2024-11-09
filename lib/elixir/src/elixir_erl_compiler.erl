@@ -44,16 +44,13 @@ copy_diagnostics({Head, _}) ->
 env_compiler_options() ->
   case persistent_term:get(?MODULE, undefined) of
     undefined ->
-      Options = compile:env_compiler_options(),
+      Options = compile:env_compiler_options() -- [warnings_as_errors],
       persistent_term:put(?MODULE, Options),
       Options;
 
     Options ->
       Options
   end.
-
-noenv_forms(Forms, File, Opts) ->
-  compile(Forms, File, Opts).
 
 erl_to_core(Forms, Opts) ->
   %% TODO: Remove parse transform handling on Elixir v2.0
@@ -67,7 +64,7 @@ erl_to_core(Forms, Opts) ->
       end
   end.
 
-compile(Forms, File, Opts) when is_list(Forms), is_list(Opts), is_binary(File) ->
+noenv_forms(Forms, File, Opts) when is_list(Forms), is_list(Opts), is_binary(File) ->
   Source = elixir_utils:characters_to_list(File),
 
   case erl_to_core(Forms, Opts) of
