@@ -167,6 +167,12 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
         [elixir_env:trace({remote_function, [], VerifyMod, VerifyFun, 1}, CallbackE) ||
          {VerifyMod, VerifyFun} <- AfterVerify],
 
+        %% Compute signatures only if the module is valid.
+        case ets:member(DataSet, {elixir, taint}) of
+          true -> elixir_errors:compile_error(E);
+          false -> ok
+        end,
+
         Signatures = case elixir_config:get(infer_signatures) of
           true -> 'Elixir.Module.Types':infer(Module, File, AllDefinitions, CallbackE);
           false -> #{}
@@ -188,11 +194,6 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
           impls => Impls,
           signatures => Signatures
         },
-
-        case ets:member(DataSet, {elixir, taint}) of
-          true -> elixir_errors:compile_error(E);
-          false -> ok
-        end,
 
         Binary = elixir_erl:compile(ModuleMap),
         Autoload = proplists:get_value(autoload, CompileOpts, true),
