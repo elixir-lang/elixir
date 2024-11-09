@@ -30,7 +30,6 @@ defmodule Module.Types do
         end)
 
       # TODO: Reuse context from patterns and guards
-      # TODO: Fix logger errors
       {{fun, arity}, {:infer, Enum.reverse(pair_types)}}
     end
   end
