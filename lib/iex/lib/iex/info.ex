@@ -31,12 +31,12 @@ defprotocol IEx.Info do
     * `"Data type"`: Name of the data type. Usually the name of the module
        defining the data type.
     * `"Description"`: One or a few sentences describing what the data type represents.
-    * `"Reference modules`: One or a few comma-separated module names that focus
+    * `"Reference modules"`: One or a few comma-separated module names that focus
       on working with this datatype.
 
   Other recommended sections are:
 
-    * `"Raw representation`: showing another way of writing the passed `term`.
+    * `"Raw representation"`: showing another way of writing the passed `term`.
       This is mostly relevant for data-structures whose `String.Chars`-implementations
       make use of sigils or other syntactic sugar.
   """
