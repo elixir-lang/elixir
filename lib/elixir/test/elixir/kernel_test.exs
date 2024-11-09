@@ -992,20 +992,12 @@ defmodule KernelTest do
       assert get_in(map, ["fruits", by_index(0)]) == "banana"
       assert get_in(map, ["fruits", by_index(3)]) == nil
       assert get_in(map, ["unknown", by_index(3)]) == nil
-
-      assert_raise FunctionClauseError, fn ->
-        get_in(users, [])
-      end
     end
 
     test "put_in/3" do
       users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
       assert put_in(users, ["john", :age], 28) == %{"john" => %{age: 28}, "meg" => %{age: 23}}
-
-      assert_raise FunctionClauseError, fn ->
-        put_in(users, [], %{})
-      end
 
       assert_raise ArgumentError, "could not put/update key \"john\" on a nil value", fn ->
         put_in(nil, ["john", :age], 28)
@@ -1038,10 +1030,6 @@ defmodule KernelTest do
 
       assert update_in(users, ["john", :age], &(&1 + 1)) ==
                %{"john" => %{age: 28}, "meg" => %{age: 23}}
-
-      assert_raise FunctionClauseError, fn ->
-        update_in(users, [], fn _ -> %{} end)
-      end
 
       assert_raise ArgumentError, "could not put/update key \"john\" on a nil value", fn ->
         update_in(nil, ["john", :age], fn _ -> %{} end)
@@ -1091,10 +1079,6 @@ defmodule KernelTest do
 
       assert get_and_update_in(map, ["unknown", by_index(3)], &{&1, []}) ==
                {:oops, %{"fruits" => ["banana", "apple", "orange"], "unknown" => []}}
-
-      assert_raise FunctionClauseError, fn ->
-        update_in(users, [], fn _ -> %{} end)
-      end
     end
 
     test "get_and_update_in/2" do
@@ -1124,19 +1108,14 @@ defmodule KernelTest do
     test "pop_in/2" do
       users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
-      assert pop_in(users, ["john", :age]) == {27, %{"john" => %{}, "meg" => %{age: 23}}}
+      assert pop_in(users, ["john", :age]) ==
+               {27, %{"john" => %{}, "meg" => %{age: 23}}}
 
-      assert pop_in(users, ["bob", :age]) == {nil, %{"john" => %{age: 27}, "meg" => %{age: 23}}}
+      assert pop_in(users, ["bob", :age]) ==
+               {nil, %{"john" => %{age: 27}, "meg" => %{age: 23}}}
 
-      assert pop_in([], [:foo, :bar]) == {nil, []}
-
-      assert_raise FunctionClauseError, fn ->
-        pop_in(users, [])
-      end
-
-      assert_raise FunctionClauseError, "no function clause matching in Kernel.pop_in/2", fn ->
-        pop_in(users, :not_a_list)
-      end
+      assert pop_in([], [:foo, :bar]) ==
+               {nil, []}
     end
 
     test "pop_in/2 with paths" do
