@@ -390,7 +390,13 @@ defmodule Module.Types.Of do
           struct:
             list(closed_map(default: term(), field: atom(), required: boolean()))
             |> union(atom([nil]))
-        ] ++ shared_info
+        ] ++ shared_info,
+      __protocol__: [
+        module: atom(),
+        functions: fas,
+        consolidated?: boolean(),
+        impls: union(atom([:not_consolidated]), tuple([atom([:consolidated]), list(atom())]))
+      ]
     }
 
   for {name, clauses} <- infos do

@@ -3,11 +3,16 @@ defmodule Module.Types do
 
   alias Module.Types.{Descr, Expr, Pattern}
 
+  # These functions are not inferred because they are added/managed by the compiler
+  @no_infer [__protocol__: 1, behaviour_info: 1]
+
   @doc false
   def infer(module, file, defs, env) do
     context = context()
 
-    for {{fun, arity}, :def, _meta, clauses} <- defs, into: %{} do
+    for {{fun, arity}, :def, _meta, clauses} <- defs,
+        {fun, arity} not in @no_infer,
+        into: %{} do
       stack = stack(:infer, file, module, {fun, arity}, :all, env)
       expected = List.duplicate(Descr.dynamic(), arity)
 
