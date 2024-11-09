@@ -1744,7 +1744,7 @@ defmodule Code do
     :ok
   end
 
-  # TODO: Make this option have no effect on Elixir v2.0
+  # TODO: Remove this option on Elixir v2.0
   # TODO: Warn if mode is :warn on Elixir v1.19
   def put_compiler_option(:on_undefined_variable, value) when value in [:raise, :warn] do
     :elixir_config.put(:on_undefined_variable, value)

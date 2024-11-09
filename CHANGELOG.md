@@ -83,6 +83,7 @@ You may also prefer to write using guards:
   * [Kernel] Track the type of tuples in patterns and inside `elem/2`
   * [Kernel] Perform validation of root AST nodes in `unquote` and `unquote_splicing` to catch bugs earlier
   * [Kernel] Add source, behaviour, and record information to Docs chunk metadata
+  * [Kernel] Support deterministic builds in tandem with Erlang by setting `ERL_COMPILER_OPTIONS=deterministic`. Keep in mind deterministic builds strip source and other compile time information, which may be relevant for programs
   * [List] Add `List.ends_with?/2`
   * [Macro] Improve `dbg` handling of `if/2`, `with/1` and of code blocks
   * [Macro] Add `Macro.struct_info!/2` to return struct information mirroring `mod.__info__(:struct)`
@@ -156,6 +157,7 @@ You may also prefer to write using guards:
 
 #### Elixir
 
+  * [Code] Setting `:warnings_as_errors` is deprecated via `Code.put_compiler_option/2`. This must not affect developers, as the `:warnings_as_errors` option is managed by Mix tasks, and not directly used via the `Code` module
   * [Enumerable] Deprecate returning a two-arity function in `Enumerable.slice/1`
   * [List] `List.zip/1` is deprecated in favor of `Enum.zip/1`
   * [Module] Deprecate `Module.eval_quoted/3` in favor of `Code.eval_quoted/3`

@@ -45,7 +45,7 @@ jobs:
           otp-version: ${{ matrix.otp_version }}
       - name: Set ERL_COMPILER_OPTIONS
         if: ${{ matrix.deterministic }}
-        run: echo "ERL_COMPILER_OPTIONS=[deterministic,warnings_as_errors]" >> $GITHUB_ENV
+        run: echo "ERL_COMPILER_OPTIONS=deterministic" >> $GITHUB_ENV
       - name: Compile Elixir
         run: |
           make compile
