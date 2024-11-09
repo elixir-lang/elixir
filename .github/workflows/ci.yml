@@ -36,8 +36,6 @@ jobs:
           - otp_version: maint
             development: true
     runs-on: ubuntu-24.04
-    env:
-      ERL_COMPILER_OPTIONS: ${{ matrix.deterministic && 'warnings_as_errors deterministic' || '' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -45,6 +43,9 @@ jobs:
       - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{ matrix.otp_version }}
+      - name: Set ERL_COMPILER_OPTIONS
+        if: ${{ matrix.deterministic }}
+        run: echo 'ERL_COMPILER_OPTIONS="deterministic warnings_as_errors"' >> $GITHUB_ENV
       - name: Compile Elixir
         run: |
           make compile
@@ -69,12 +70,12 @@ jobs:
           cd ../elixir/
           make docs
       - name: Check reproducible builds
+        if: ${{ matrix.deterministic }}
         run: |
           rm -rf .git
           # Recompile System without .git
           cd lib/elixir && ../../bin/elixirc -o ebin lib/system.ex && cd -
           taskset 1 make check_reproducible
-        if: ${{ matrix.deterministic }}
 
   test_windows:
     name: Windows Server 2019, Erlang/OTP ${{ matrix.otp_version }}
