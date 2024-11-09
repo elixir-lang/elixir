@@ -142,6 +142,7 @@ defmodule IEx.HelpersTest do
   end
 
   describe "open" do
+    @describetag :requires_source
     @iex_helpers "iex/lib/iex/helpers.ex"
     @elixir_erl "elixir/src/elixir.erl"
     @lists_erl Application.app_dir(:stdlib, "src/lists.erl")
@@ -235,35 +236,35 @@ defmodule IEx.HelpersTest do
     end
 
     test "errors if module is not available" do
-      assert capture_iex("open(:unknown)") == "Could not open: :unknown. Module is not available."
+      assert capture_iex("open(:unknown)") == "Could not open :unknown, module is not available"
     end
 
     test "errors if module.function is not available" do
       assert capture_iex("open(:unknown.unknown)") ==
-               "Could not open: :unknown.unknown. Module is not available."
+               "Could not open :unknown.unknown, module is not available"
 
       assert capture_iex("open(:elixir.unknown)") ==
-               "Could not open: :elixir.unknown. Function/macro is not available."
+               "Could not open :elixir.unknown, function/macro is not available"
 
       assert capture_iex("open(:lists.unknown)") ==
-               "Could not open: :lists.unknown. Function/macro is not available."
+               "Could not open :lists.unknown, function/macro is not available"
 
       assert capture_iex("open(:httpc.unknown)") ==
-               "Could not open: :httpc.unknown. Function/macro is not available."
+               "Could not open :httpc.unknown, function/macro is not available"
     end
 
     test "errors if module.function/arity is not available" do
       assert capture_iex("open(:unknown.start/10)") ==
-               "Could not open: :unknown.start/10. Module is not available."
+               "Could not open :unknown.start/10, module is not available"
 
       assert capture_iex("open(:elixir.start/10)") ==
-               "Could not open: :elixir.start/10. Function/macro is not available."
+               "Could not open :elixir.start/10, function/macro is not available"
 
       assert capture_iex("open(:lists.reverse/10)") ==
-               "Could not open: :lists.reverse/10. Function/macro is not available."
+               "Could not open :lists.reverse/10, function/macro is not available"
 
       assert capture_iex("open(:httpc.request/10)") ==
-               "Could not open: :httpc.request/10. Function/macro is not available."
+               "Could not open :httpc.request/10, function/macro is not available"
     end
 
     test "errors if module is in-memory" do
@@ -289,7 +290,7 @@ defmodule IEx.HelpersTest do
 
     test "errors when given {file, line} is not available" do
       assert capture_iex("open({~s[foo], 3})") =~
-               "Could not open: \"foo\". File is not available."
+               "Could not open \"foo\", file is not available"
     end
 
     defp maybe_trim_quotes(string) do
@@ -1445,6 +1446,8 @@ defmodule IEx.HelpersTest do
   end
 
   describe "r" do
+    @describetag :requires_source
+
     test "raises when reloading a nonexistent module" do
       assert_raise ArgumentError, "could not load nor find module: :nonexistent_module", fn ->
         r(:nonexistent_module)

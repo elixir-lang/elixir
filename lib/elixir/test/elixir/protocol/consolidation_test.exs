@@ -134,6 +134,7 @@ defmodule Protocol.ConsolidationTest do
     assert %{{:ok, 1} => %{deprecated: "Reason", sig: _}} = Map.new(contents.exports)
   end
 
+  @tag :requires_source
   test "consolidation keeps source" do
     assert Sample.__info__(:compile)[:source]
   end

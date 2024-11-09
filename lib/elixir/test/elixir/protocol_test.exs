@@ -305,6 +305,7 @@ defmodule ProtocolTest do
     assert Derivable.ok(struct) == {:ok, struct, struct(InlineStruct), :oops}
   end
 
+  @tag :requires_source
   test "derived implementation keeps local file/line info" do
     assert ProtocolTest.WithAny.ProtocolTest.ImplStruct.__info__(:compile)[:source] ==
              String.to_charlist(__ENV__.file)

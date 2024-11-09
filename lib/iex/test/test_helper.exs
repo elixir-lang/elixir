@@ -15,11 +15,18 @@ erlang_doc_exclude =
     [:erlang_doc]
   end
 
+source_exclude =
+  if :deterministic in :compile.env_compiler_options() do
+    [:requires_source]
+  else
+    []
+  end
+
 ExUnit.start(
   assert_receive_timeout: assert_timeout,
   trace: !!System.get_env("TRACE"),
   include: line_include,
-  exclude: line_exclude ++ erlang_doc_exclude
+  exclude: line_exclude ++ erlang_doc_exclude ++ source_exclude
 )
 
 defmodule IEx.Case do

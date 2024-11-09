@@ -109,9 +109,16 @@ distributed_exclude =
     [distributed: true]
   end
 
+source_exclude =
+  if :deterministic in :compile.env_compiler_options() do
+    [:requires_source]
+  else
+    []
+  end
+
 ExUnit.start(
   trace: !!System.get_env("TRACE"),
   assert_receive_timeout: assert_timeout,
-  exclude: epmd_exclude ++ os_exclude ++ line_exclude ++ distributed_exclude,
+  exclude: epmd_exclude ++ os_exclude ++ line_exclude ++ distributed_exclude ++ source_exclude,
   include: line_include
 )

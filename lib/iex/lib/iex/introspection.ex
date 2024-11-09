@@ -97,7 +97,7 @@ defmodule IEx.Introspection do
     case open_mfa(module, :__info__, 1) do
       {source, nil, _} -> open(source)
       {_, tuple, _} -> open(tuple)
-      :error -> puts_error("Could not open: #{inspect(module)}. Module is not available.")
+      {:error, reason} -> puts_error("Could not open #{inspect(module)}, #{reason}")
     end
 
     dont_display_result()
@@ -107,14 +107,14 @@ defmodule IEx.Introspection do
     case open_mfa(module, function, :*) do
       {_, _, nil} ->
         puts_error(
-          "Could not open: #{inspect(module)}.#{function}. Function/macro is not available."
+          "Could not open #{inspect(module)}.#{function}, function/macro is not available"
         )
 
       {_, _, tuple} ->
         open(tuple)
 
-      :error ->
-        puts_error("Could not open: #{inspect(module)}.#{function}. Module is not available.")
+      {:error, reason} ->
+        puts_error("Could not open #{inspect(module)}.#{function}, #{reason}")
     end
 
     dont_display_result()
@@ -125,16 +125,14 @@ defmodule IEx.Introspection do
     case open_mfa(module, function, arity) do
       {_, _, nil} ->
         puts_error(
-          "Could not open: #{inspect(module)}.#{function}/#{arity}. Function/macro is not available."
+          "Could not open #{inspect(module)}.#{function}/#{arity}, function/macro is not available"
         )
 
       {_, _, tuple} ->
         open(tuple)
 
-      :error ->
-        puts_error(
-          "Could not open: #{inspect(module)}.#{function}/#{arity}. Module is not available."
-        )
+      {:error, reason} ->
+        puts_error("Could not open #{inspect(module)}.#{function}/#{arity}, #{reason}")
     end
 
     dont_display_result()
@@ -143,7 +141,7 @@ defmodule IEx.Introspection do
   def open({file, line}) when is_binary(file) and is_integer(line) do
     cond do
       not File.regular?(file) ->
-        puts_error("Could not open: #{inspect(file)}. File is not available.")
+        puts_error("Could not open #{inspect(file)}, file is not available.")
 
       editor = System.get_env("ELIXIR_EDITOR") || System.get_env("EDITOR") ->
         command =
@@ -174,12 +172,19 @@ defmodule IEx.Introspection do
   end
 
   defp open_mfa(module, fun, arity) do
-    with {:module, _} <- Code.ensure_loaded(module),
-         source when is_list(source) <- module.module_info(:compile)[:source] do
-      source = rewrite_source(module, source)
-      open_abstract_code(module, fun, arity, source)
-    else
-      _ -> :error
+    case Code.ensure_loaded(module) do
+      {:module, _} ->
+        case module.module_info(:compile)[:source] do
+          [_ | _] = source ->
+            source = rewrite_source(module, source)
+            open_abstract_code(module, fun, arity, source)
+
+          _ ->
+            {:error, "source code is not available"}
+        end
+
+      _ ->
+        {:error, "module is not available"}
     end
   end
 
