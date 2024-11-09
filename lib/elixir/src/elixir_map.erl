@@ -1,5 +1,5 @@
 -module(elixir_map).
--export([expand_map/4, expand_struct/5, format_error/1, maybe_load_struct_info/4]).
+-export([expand_map/4, expand_struct/5, format_error/1, maybe_load_struct_info/5]).
 -import(elixir_errors, [function_error/4, file_error/4, file_warn/4]).
 -include("elixir.hrl").
 
@@ -128,12 +128,12 @@ validate_struct(_, _) -> false.
 load_struct_info(Meta, Name, Assocs, E) ->
   assert_struct_assocs(Meta, Assocs, E),
 
-  case maybe_load_struct_info(Meta, Name, Assocs, E) of
+  case maybe_load_struct_info(Meta, Name, Assocs, true, E) of
     {ok, Info} -> Info;
     {error, Desc} -> file_error(Meta, E, ?MODULE, Desc)
   end.
 
-maybe_load_struct_info(Meta, Name, Assocs, E) ->
+maybe_load_struct_info(Meta, Name, Assocs, Trace, E) ->
   try
     case is_open(Name, E) andalso lookup_struct_info_from_data_tables(Name) of
       %% If I am accessing myself and there is no attribute,
@@ -152,7 +152,7 @@ maybe_load_struct_info(Meta, Name, Assocs, E) ->
           function_error(Meta, E, ?MODULE, {unknown_key_for_struct, Name, Key}),
         Key
       end || {Key, _} <- Assocs],
-      elixir_env:trace({struct_expansion, Meta, Name, Keys}, E),
+      Trace andalso elixir_env:trace({struct_expansion, Meta, Name, Keys}, E),
       {ok, Info}
   catch
     error:undef -> {error, detail_undef(Name, E)}

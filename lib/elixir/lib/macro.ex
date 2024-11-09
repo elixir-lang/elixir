@@ -854,7 +854,7 @@ defmodule Macro do
   @spec struct_info!(module(), Macro.Env.t()) ::
           [%{field: atom(), required: boolean(), default: term()}]
   def struct_info!(module, env) when is_atom(module) do
-    case :elixir_map.maybe_load_struct_info([line: env.line], module, [], env) do
+    case :elixir_map.maybe_load_struct_info([line: env.line], module, [], true, env) do
       {:ok, info} -> info
       {:error, desc} -> raise ArgumentError, List.to_string(:elixir_map.format_error(desc))
     end

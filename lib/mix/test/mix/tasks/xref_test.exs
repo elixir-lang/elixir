@@ -398,7 +398,7 @@ defmodule Mix.Tasks.XrefTest do
           assert Mix.Task.run("xref", opts ++ ["trace", file]) == :ok
         end)
 
-        assert ^expected = receive_until_no_messages([])
+        assert receive_until_no_messages([]) == expected
       end)
     end
   end

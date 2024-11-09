@@ -209,7 +209,10 @@ defmodule Module.Types.Of do
   def struct_info(struct, meta, stack, context) do
     case stack.cache do
       %Macro.Env{} = env ->
-        {Macro.struct_info!(struct, env), context}
+        case :elixir_map.maybe_load_struct_info(meta, struct, [], false, env) do
+          {:ok, info} -> {info, context}
+          {:error, desc} -> raise ArgumentError, List.to_string(:elixir_map.format_error(desc))
+        end
 
       _ ->
         {_, context} = export(struct, :__struct__, 0, meta, stack, context)
