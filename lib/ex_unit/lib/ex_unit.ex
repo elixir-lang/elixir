@@ -13,7 +13,7 @@ defmodule ExUnit do
 
       # 2) Create a new test module and use "ExUnit.Case".
       defmodule AssertionTest do
-        # 3) Note that we pass "async: true", this runs tests in the
+        # 3) Note that we pass "async: true", this runs the tests in the
         #    test module concurrently with other test modules. The 
         #    individual tests within each test module are still run serially.
         use ExUnit.Case, async: true
