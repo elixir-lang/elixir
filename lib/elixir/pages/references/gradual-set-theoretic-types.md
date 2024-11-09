@@ -8,19 +8,23 @@ Elixir is in the process of incorporating set-theoretic types into the compiler.
 
   * **set-theoretic** - the types are described, implemented, and composed using basic set operations: unions, intersections, and negation
 
-The current milestone aims to infer types from patterns and guards and use them to type check programs, enabling the Elixir compiler to find faults and bugs in codebases without requiring changes to existing software. The underlying principles, theory, and roadmap of our work have been outlined in ["The Design Principles of the Elixir Type System" by Giuseppe Castagna, Guillaume Duboc, José Valim](https://arxiv.org/abs/2306.06391).
+The current milestone aims to infer types from patterns and guards and use them to type check programs, enabling the Elixir compiler to find faults and bugs in codebases without requiring changes to existing software. User provided type signatures are planned for future releases. The underlying principles, theory, and roadmap of our work have been outlined in ["The Design Principles of the Elixir Type System" by Giuseppe Castagna, Guillaume Duboc, José Valim](https://arxiv.org/abs/2306.06391).
 
 ## Supported types
 
-At the moment, Elixir developers interact with set-theoretic types through warnings found by the type system. All data types in the language are modelled:
+At the moment, Elixir developers interact with set-theoretic types through warnings found by the type system. These warnings will represent tyoes using the following notation:
 
   * `binary()`, `integer()`, `float()`, `pid()`, `port()`, `reference()` - these types are indivisible. This means both `1` and `13` get the same `integer()` type.
 
   * `atom()` - it represents all atoms and it is divisible. For instance, the atom `:foo` and `:hello_world` are also valid (distinct) types.
 
+  * `tuple()` - it represents all tuples. Tuples may also be written using the curly brackets syntax, such as `{:ok, binary()}`. A `...` at the end of the tuple means the overall size of the tuple is unknown. For example, the following tuple has at least two elements: `{:ok, binary(), ...}`.
+
+  * `list(type)` - it represents a list of `type`. More precisely, it can be written as `empty_list() or non_empty_list(type, empty_list())`. Improper lists, which are lists which do not end with an empty list, such as `[1, 2 | 3]`, can be written as `list(integer(), integer())`.
+
   * `map()` and structs - maps can be "closed" or "open". Closed maps only allow the specified keys, such as `%{key: atom(), value: integer()}`. Open maps support any other keys in addition to the ones listed and their definition starts with `...`, such as `%{..., key: atom(), value: integer()}`. Structs are closed maps with the `__struct__` key.
 
-  * `tuple()`, `list()`, and `function()` - represent their respective composite types
+  * `function()` - it represents anonymous functions (which may be closures)
 
 ## Set operations
 
@@ -39,9 +43,9 @@ If you give it an integer, it negates it. If you give it a boolean, it negates i
 
 We can say this function has the type `(integer() -> integer())` because it is capable of receiving an integer and returning an integer. In this case, `(integer() -> integer())` is a set that represents all functions that can receive an integer and return an integer. Even though this function can receive other arguments and return other values, it is still part of the `(integer() -> integer())` set.
 
-This function also has the type `(boolean() -> boolean())`, because it receives the booleans and returns booleans. Therefore, we can say the overall type of the function is `(integer() -> integer()) and (boolean() -> boolean())`. The intersection means the function belongs to both sets.
+This function also has the type `(boolean() -> boolean())`, because it receives booleans and returns booleans. Therefore, we can say the overall type of the function is `(integer() -> integer()) and (boolean() -> boolean())`. The intersection means the function belongs to both sets.
 
-At this point, some may ask, why not a union? As a real-world example, take a t-shirt with green and yellow stripes. We can say the t-shirt belongs to the set of "t-shirts with green color". We can also say the t-shirt belongs to the set of "t-shirts with yellow color". Let's see the difference between unions and intersections:
+At this point, you may ask, why not a union? As a real-world example, take a t-shirt with green and yellow stripes. We can say the t-shirt belongs to the set of "t-shirts with green color". We can also say the t-shirt belongs to the set of "t-shirts with yellow color". Let's see the difference between unions and intersections:
 
   * `(t_shirts_with_green() or t_shirts_with_yellow())` - contains t-shirts with either green or yellow, such as green, green and red, green and yellow, yellow, yellow and red, etc.
 
@@ -70,29 +74,33 @@ However, by intersecting a type with `dynamic()`, we make the type gradual and t
 
 Compared to other gradually typed languages, the `dynamic()` type in Elixir is quite powerful: it restricts our program to certain types, via intersections, while still emitting warnings once it is certain the code will fail. This makes `dynamic()` an excellent tool for typing existing Elixir code with meaningful warnings.
 
-Once Elixir introduces typed function signatures (see "Roadmap"), typed Elixir programs will behave as a statically typed code, unless the `dynamic()` type is used. This brings us to one last remark about dynamic types in Elixir: dynamic types are always at the root. For example, when you write a tuple of type `{:ok, dynamic()}`, Elixir will rewrite it to `dynamic({:ok, term()})`. While this has the downside that you cannot make part of a tuple/map/list gradual, only the whole tuple/map/list, it comes with the upside that dynamic is always explicitly at the root, making it harder to accidentally sneak `dynamic()` in a statically typed program.
+If the user provides their own types, and those types are not `dynamic()`, then Elixir's type system behaves as a statically typed one. This brings us to one last property of dynamic types in Elixir: dynamic types are always at the root. For example, when you write a tuple of type `{:ok, dynamic()}`, Elixir will rewrite it to `dynamic({:ok, term()})`. While this has the downside that you cannot make part of a tuple/map/list gradual, only the whole tuple/map/list, it comes with the upside that dynamic is always explicitly at the root, making it harder to accidentally sneak `dynamic()` in a statically typed program.
 
 ## Type inference
 
-Type inference (or reconstruction) is the ability of a type system automatically deduce, either partially or fully, the type of an expression at compile time. Type inference may happen at different levels. For example, many programming languages can automatically infer the types of variables, also known "local type inference", but not all can infer type signatures (in other words, they cannot reconstruct the arguments types and return types of a function).
+Type inference (or reconstruction) is the ability of a type system automatically deduce, either partially or fully, the type of an expression at compile time. Type inference may occur at different levels. For example, many programming languages can automatically infer the types of variables, also known "local type inference", but not all can infer type signatures. In other words, they may not reconstruct the arguments types and return types of a function.
 
 Inferring type signatures comes with a series of trade-offs:
 
-  * speed - type inference algorithms are more expensive than type checking algorithms
+  * Speed - type inference algorithms are often more computationally intensive than type checking algorithms.
 
-  * expressiveness - for any given type system, the constructs that support inference are always a subset of the constructs that can be type checked. Therefore, if a programming language restricts itself to be fully reconstructed, it is then less expressive than its type checked counterparts
+  * Expressiveness - in any given type system, the constructs that support inference are always a subset of those that can be type-checked. Therefore, if a programming language is restricted to fully reconstructed types, it is less expressive than a solely type checked counterpart.
 
-  * incremental compilation - typing inference complicates incremental compilation. If module A depends on module B, the type signatures from module A must be reconstructed whenever the inferred signatures from B changes, and so on
+  * Incremental compilation - type inference complicates incremental compilation. If module A depends on module B, which depends on module C, a change to C may require the type signature in B to be reconstructed, which may then require A to be recomputed (and so on). This dependency chain may require large projects to explicitly add type signatures for stability and compilation efficiency.
 
-In order to balance these trade-offs, Elixir's type system provides the following type reconstruction capabilities:
+  * Cascading errors - when a user accidentally makes type errors or the code has conflicting assumptions, type inference may lead to less clear error messages as the type system tries to reconcile diverging type assumptions across code paths.
 
-  * Local type inference - the type system automatically infer the types of variables, at the time those variables are defined
+On the other hand, type inference offers the benefit of enabling type checking for functions and codebases without requiring the user to add type annotations. To balance these trade-offs, Elixir’s type system provides the following type reconstruction capabilities:
 
-  * Type inference of patterns (and guards in future releases) - the argument types of a function is automatically inferred based on its patterns and guards
+  * Local type inference - the type system automatically infer the types of variables, at the place those variables are defined.
 
-  * Module-local inference of return types - the gradual return types of a function is computed considering all of the functions within the module itself (any call to another module is considered to return `dynamic()`)
+  * Type inference of patterns (and guards in future releases) - the argument types of a function are automatically inferred based on patterns and guards, which capture and narrow types based on common Elixir constructs.
 
-The last two items offer gradual reconstruction of type signatures, where the inferred types are broadly dynamic. Our goal is to provide an efficient type reconstruction algorithm for dynamic programs, which can help the type system spot definite bugs, even in the absence of type signatures. Once Elixir introduces typed function signatures (see "Roadmap"), then no type inference of function signatures is perform, and the functions will be type checked according to the user provided signature.
+  * Module-local inference of return types - the gradual return types of functions are computed considering all of the functions within the module itself. Any call to a function in another module is conservatively assumed to return `dynamic()`.
+
+The last two items offer gradual reconstruction of type signatures. Our goal is to provide an efficient type reconstruction algorithm that can detect definite bugs in dynamic codebases, even in the absence of explicit type annotations. The gradual system focuses on proving cases where all combinations of a type _will_ fail, rather than issuing warnings for cases where some combinations _might_ error.
+
+Once Elixir introduces typed function signatures (see "Roadmap"), any function with an explicit type signature will be checked against the user-provided type, as in other statically typed languages, without performing type inference of the function signature.
 
 ## Roadmap
 
