@@ -94,7 +94,6 @@ start(_Type, _Args) ->
     {on_undefined_variable, raise},
     {parser_options, [{columns, true}]},
     {debug_info, true},
-    {warnings_as_errors, false},
     {relative_paths, true},
     {no_warn_undefined, []},
     {tracers, []}

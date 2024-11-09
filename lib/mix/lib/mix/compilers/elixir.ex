@@ -1042,6 +1042,7 @@ defmodule Mix.Compilers.Elixir do
     threshold = opts[:long_compilation_threshold] || 10
     profile = opts[:profile]
     verbose = opts[:verbose] || false
+    warnings_as_errors = opts[:warnings_as_errors] || false
 
     pid =
       spawn_link(fn ->
@@ -1063,7 +1064,8 @@ defmodule Mix.Compilers.Elixir do
           long_compilation_threshold: threshold,
           profile: profile,
           beam_timestamp: timestamp,
-          return_diagnostics: true
+          return_diagnostics: true,
+          warnings_as_errors: warnings_as_errors
         ]
 
         response = Kernel.ParallelCompiler.compile_to_path(stale, dest, compile_opts)

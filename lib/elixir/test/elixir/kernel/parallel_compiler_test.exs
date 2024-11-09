@@ -422,8 +422,6 @@ defmodule Kernel.ParallelCompilerTest do
     end
 
     test "supports warnings as errors" do
-      warnings_as_errors = Code.get_compiler_option(:warnings_as_errors)
-
       [fixture] =
         write_tmp(
           "warnings_as_errors",
@@ -438,12 +436,12 @@ defmodule Kernel.ParallelCompilerTest do
       output = tmp_path("not_to_be_used")
 
       try do
-        Code.compiler_options(warnings_as_errors: true)
-
         msg =
           capture_io(:stderr, fn ->
             assert {:error, [error], []} =
-                     Kernel.ParallelCompiler.compile_to_path([fixture], output)
+                     Kernel.ParallelCompiler.compile_to_path([fixture], output,
+                       warnings_as_errors: true
+                     )
 
             assert {^fixture, {3, 7}, "this clause " <> _} = error
           end)
@@ -451,7 +449,6 @@ defmodule Kernel.ParallelCompilerTest do
         assert msg =~
                  "Compilation failed due to warnings while using the --warnings-as-errors option\n"
       after
-        Code.compiler_options(warnings_as_errors: warnings_as_errors)
         purge([WarningsSample])
       end
 
@@ -592,8 +589,6 @@ defmodule Kernel.ParallelCompilerTest do
     end
 
     test "supports warnings as errors" do
-      warnings_as_errors = Code.get_compiler_option(:warnings_as_errors)
-
       [fixture] =
         write_tmp(
           "warnings_as_errors",
@@ -606,11 +601,10 @@ defmodule Kernel.ParallelCompilerTest do
         )
 
       try do
-        Code.compiler_options(warnings_as_errors: true)
-
         msg =
           capture_io(:stderr, fn ->
-            assert {:error, [error], []} = Kernel.ParallelCompiler.require([fixture])
+            assert {:error, [error], []} =
+                     Kernel.ParallelCompiler.require([fixture], warnings_as_errors: true)
 
             assert {^fixture, {3, 7}, "this clause " <> _} = error
           end)
@@ -618,7 +612,6 @@ defmodule Kernel.ParallelCompilerTest do
         assert msg =~
                  "Compilation failed due to warnings while using the --warnings-as-errors option\n"
       after
-        Code.compiler_options(warnings_as_errors: warnings_as_errors)
         purge([WarningsSample])
       end
     end
