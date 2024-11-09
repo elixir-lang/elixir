@@ -38,18 +38,68 @@ defmodule Module.Types.IntegrationTest do
 
       modules = compile(files)
 
-      assert read_chunk(modules[A]).exports == [
+      assert [
                {{:c, 0}, %{}},
-               {{:e, 0}, %{deprecated: "oops"}}
-             ]
+               {{:e, 0}, %{deprecated: "oops", sig: {:infer, _}}}
+             ] = read_chunk(modules[A]).exports
 
       assert read_chunk(modules[B]).exports == [
-               {{:behaviour_info, 1}, %{}}
+               {{:behaviour_info, 1}, %{sig: :none}}
              ]
 
       assert read_chunk(modules[C]).exports == [
-               {{:behaviour_info, 1}, %{}}
+               {{:behaviour_info, 1}, %{sig: :none}}
              ]
+    end
+
+    test "type checks signatures" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def fun(:ok), do: :doki
+          def fun(:error), do: :bad
+        end
+        """,
+        "b.ex" => """
+        defmodule B do
+          def badarg do
+            A.fun(:unknown)
+          end
+
+          def badmatch do
+            :doki = A.fun(:error)
+          end
+        end
+        """
+      }
+
+      warnings = [
+        """
+            warning: incompatible types given to A.fun/1:
+
+                A.fun(:unknown)
+        """,
+        """
+            but expected one of:
+
+                #1
+                dynamic(:ok)
+
+                #2
+                dynamic(:error)
+        """,
+        """
+            warning: the following pattern will never match:
+
+                :doki = A.fun(:error)
+
+            because the right-hand side has type:
+
+                dynamic(:bad)
+        """
+      ]
+
+      assert_warnings(files, warnings)
     end
   end
 

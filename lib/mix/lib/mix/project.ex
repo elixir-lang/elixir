@@ -163,7 +163,12 @@ defmodule Mix.Project do
   # Only the top of the stack can be accessed.
   @doc false
   def push(module, file \\ nil, app \\ nil) when is_atom(module) do
-    file = file || (module && List.to_string(module.__info__(:compile)[:source]))
+    file =
+      cond do
+        file != nil -> file
+        source = module && module.module_info(:compile)[:source] -> List.to_string(source)
+        true -> "nofile"
+      end
 
     case Mix.ProjectStack.push(module, push_config(module, app), file) do
       :ok ->

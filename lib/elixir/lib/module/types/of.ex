@@ -207,13 +207,22 @@ defmodule Module.Types.Of do
   Returns `__info__(:struct)` information about a struct.
   """
   def struct_info(struct, meta, stack, context) do
-    {_, context} = remote(struct, :__struct__, 0, meta, stack, context)
+    case stack.cache do
+      %Macro.Env{} = env ->
+        case :elixir_map.maybe_load_struct_info(meta, struct, [], false, env) do
+          {:ok, info} -> {info, context}
+          {:error, desc} -> raise ArgumentError, List.to_string(:elixir_map.format_error(desc))
+        end
 
-    info =
-      struct.__info__(:struct) ||
-        raise "expected #{inspect(struct)} to return struct metadata, but got none"
+      _ ->
+        {_, context} = export(struct, :__struct__, 0, meta, stack, context)
 
-    {info, context}
+        info =
+          struct.__info__(:struct) ||
+            raise "expected #{inspect(struct)} to return struct metadata, but got none"
+
+        {info, context}
+    end
   end
 
   @doc """
@@ -384,7 +393,13 @@ defmodule Module.Types.Of do
           struct:
             list(closed_map(default: term(), field: atom(), required: boolean()))
             |> union(atom([nil]))
-        ] ++ shared_info
+        ] ++ shared_info,
+      __protocol__: [
+        module: atom(),
+        functions: fas,
+        consolidated?: boolean(),
+        impls: union(atom([:not_consolidated]), tuple([atom([:consolidated]), list(atom())]))
+      ]
     }
 
   for {name, clauses} <- infos do
@@ -803,6 +818,21 @@ defmodule Module.Types.Of do
     end
   end
 
+  defp apply_remote({:infer, clauses}, args_types, _stack) do
+    case for({expected, return} <- clauses, zip_not_disjoint?(args_types, expected), do: return) do
+      [] ->
+        domain =
+          clauses
+          |> Enum.map(fn {args, _} -> args end)
+          |> Enum.zip_with(fn types -> Enum.reduce(types, &union/2) end)
+
+        {:error, domain, clauses}
+
+      returns ->
+        {:ok, returns |> Enum.reduce(&union/2) |> dynamic()}
+    end
+  end
+
   defp zip_compatible_or_only_gradual?([actual | actuals], [expected | expecteds]) do
     (only_gradual?(actual) or compatible?(actual, expected)) and
       zip_compatible_or_only_gradual?(actuals, expecteds)
@@ -826,11 +856,15 @@ defmodule Module.Types.Of do
     {remote(:module_info, arity), context}
   end
 
+  defp export(_module, _fun, _arity, _meta, %{cache: %Macro.Env{}}, context) do
+    {:none, context}
+  end
+
   defp export(module, fun, arity, meta, stack, context) do
     case ParallelChecker.fetch_export(stack.cache, module, fun, arity) do
-      {:ok, mode, reason} ->
-        {remote(fun, arity),
-         check_deprecated(mode, module, fun, arity, reason, meta, stack, context)}
+      {:ok, mode, reason, info} ->
+        info = if info == :none, do: remote(fun, arity), else: info
+        {info, check_deprecated(mode, module, fun, arity, reason, meta, stack, context)}
 
       {:error, type} ->
         context =
@@ -1051,6 +1085,21 @@ defmodule Module.Types.Of do
     {{:., _, [mod, fun]}, _, args} = expr
     {mod, fun, args, converter} = :elixir_rewrite.erl_to_ex(mod, fun, args)
 
+    explanation =
+      if i = Enum.find_index(args_types, &empty?/1) do
+        """
+        the #{integer_to_ordinal(i + 1)} argument is empty (often represented as none()), \
+        most likely because it is the result of an expression that always fails, such as \
+        a `raise` or a previous invalid call. This causes any function called with this \
+        value to fail
+        """
+      else
+        """
+        but expected one of:
+        #{clauses_args_to_quoted_string(clauses, converter)}
+        """
+      end
+
     %{
       details: %{typing_traces: traces},
       message:
@@ -1064,9 +1113,8 @@ defmodule Module.Types.Of do
 
               #{args_to_quoted_string(args_types, domain, converter) |> indent(4)}
 
-          but expected one of:
-          #{clauses_args_to_quoted_string(clauses, converter)}
           """,
+          explanation,
           format_traces(traces)
         ])
     }
@@ -1251,6 +1299,15 @@ defmodule Module.Types.Of do
     |> case do
       "(\n" <> _ = multiple_lines -> multiple_lines
       single_line -> binary_slice(single_line, 1..-2//1)
+    end
+  end
+
+  defp integer_to_ordinal(i) do
+    case rem(i, 10) do
+      1 when rem(i, 100) != 11 -> "#{i}st"
+      2 when rem(i, 100) != 12 -> "#{i}nd"
+      3 when rem(i, 100) != 13 -> "#{i}rd"
+      _ -> "#{i}th"
     end
   end
 end

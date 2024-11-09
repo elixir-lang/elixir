@@ -88,12 +88,12 @@ start(_Type, _Args) ->
 
     %% Compiler options
     {docs, true},
+    {infer_signatures, true},
     {ignore_already_consolidated, false},
     {ignore_module_conflict, false},
     {on_undefined_variable, raise},
     {parser_options, [{columns, true}]},
     {debug_info, true},
-    {warnings_as_errors, false},
     {relative_paths, true},
     {no_warn_undefined, []},
     {tracers, []}

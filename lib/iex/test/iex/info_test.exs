@@ -19,12 +19,17 @@ defmodule IEx.InfoTest do
     test "loaded module (without docs)" do
       info = Info.info(Foo)
       assert get_key(info, "Data type") == "Atom"
-      assert get_key(info, "Source") == Path.relative_to_cwd(__ENV__.file)
 
       assert get_key(info, "Description") ==
                "Call IEx.InfoTest.Foo.module_info() to access metadata."
 
       assert get_key(info, "Raw representation") == ~s(:"Elixir.IEx.InfoTest.Foo")
+    end
+
+    @tag :requires_source
+    test "loaded module (with source)" do
+      info = Info.info(Foo)
+      assert get_key(info, "Source") == Path.relative_to_cwd(__ENV__.file)
     end
 
     test "loaded module (with docs)" do

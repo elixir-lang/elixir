@@ -258,7 +258,7 @@ defmodule Kernel.ParallelCompiler do
     {status, modules_or_errors, info} =
       try do
         outcome = spawn_workers(schedulers, checker, files, output, options)
-        {outcome, Code.get_compiler_option(:warnings_as_errors)}
+        {outcome, Keyword.get(options, :warnings_as_errors, false)}
       else
         {{:ok, _, %{runtime_warnings: r_warnings, compile_warnings: c_warnings} = info}, true}
         when r_warnings != [] or c_warnings != [] ->

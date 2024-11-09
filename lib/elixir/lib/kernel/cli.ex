@@ -9,6 +9,7 @@ defmodule Kernel.CLI do
     compile: [],
     no_halt: false,
     compiler_options: [],
+    warnings_as_errors: false,
     errors: [],
     verbose_compile: false,
     profile: nil,
@@ -315,8 +316,7 @@ defmodule Kernel.CLI do
   end
 
   defp parse_argv([~c"--warnings-as-errors" | t], %{mode: :elixirc} = config) do
-    compiler_options = [{:warnings_as_errors, true} | config.compiler_options]
-    parse_argv(t, %{config | compiler_options: compiler_options})
+    parse_argv(t, %{config | warnings_as_errors: true})
   end
 
   defp parse_argv([~c"--verbose" | t], %{mode: :elixirc} = config) do
@@ -499,15 +499,11 @@ defmodule Kernel.CLI do
               ]
             end
 
-          profile_opts =
-            if config.profile do
-              [profile: config.profile]
-            else
-              []
-            end
-
           output = IO.chardata_to_string(config.output)
-          opts = verbose_opts ++ profile_opts
+
+          opts =
+            verbose_opts ++
+              [profile: config.profile, warnings_as_errors: config.warnings_as_errors]
 
           case Kernel.ParallelCompiler.compile_to_path(files, output, opts) do
             {:ok, _, _} -> :ok

@@ -103,7 +103,9 @@ on Windows](https://github.com/elixir-lang/elixir/wiki/Windows).
 In case you want to use this Elixir version as your system version,
 you need to add the `bin` directory to [your PATH environment variable](https://elixir-lang.org/install.html#setting-path-environment-variable).
 
-Additionally, you may choose to run the test suite with `make clean test`.
+When updating the repository, you may want to run `make clean` before
+recompiling. For deterministic builds, you should set the environment
+variable `ERL_COMPILER_OPTIONS=deterministic`.
 
 ## Contributing
 

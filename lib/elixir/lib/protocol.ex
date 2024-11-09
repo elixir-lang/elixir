@@ -912,7 +912,7 @@ defmodule Protocol do
 
       @doc false
       @spec __protocol__(:module) :: __MODULE__
-      @spec __protocol__(:functions) :: unquote(Protocol.__functions_spec__(@__functions__))
+      @spec __protocol__(:functions) :: [{atom(), non_neg_integer()}]
       @spec __protocol__(:consolidated?) :: boolean
       @spec __protocol__(:impls) :: :not_consolidated | {:consolidated, [module]}
       Kernel.def(__protocol__(:module), do: __MODULE__)
@@ -921,12 +921,6 @@ defmodule Protocol do
       Kernel.def(__protocol__(:impls), do: :not_consolidated)
     end
   end
-
-  @doc false
-  def __functions_spec__([]), do: []
-
-  def __functions_spec__([head | tail]),
-    do: [:lists.foldl(&{:|, [], [&1, &2]}, head, tail), quote(do: ...)]
 
   @doc false
   def __impl__(protocol, opts, do_block, env) do

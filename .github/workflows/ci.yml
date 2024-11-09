@@ -18,16 +18,16 @@ permissions:
 
 jobs:
   test_linux:
-    name: Ubuntu 24.04, Erlang/OTP ${{ matrix.otp_version }}
+    name: Ubuntu 24.04, Erlang/OTP ${{ matrix.otp_version }}${{ matrix.deterministic && ' (deterministic)' || '' }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - otp_version: "27.1"
+            deterministic: true
+          - otp_version: "27.1"
             otp_latest: true
-            erlc_opts: "warnings_as_errors"
           - otp_version: "27.0"
-            erlc_opts: "warnings_as_errors"
           - otp_version: "26.0"
           - otp_version: "25.3"
           - otp_version: "25.0"
@@ -36,11 +36,6 @@ jobs:
           - otp_version: maint
             development: true
     runs-on: ubuntu-24.04
-    # Earlier Erlang/OTP versions ignored compiler directives
-    # when using warnings_as_errors. So we only set ERLC_OPTS
-    # from Erlang/OTP 27+.
-    env:
-      ERLC_OPTS: ${{ matrix.erlc_opts || '' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -48,6 +43,9 @@ jobs:
       - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{ matrix.otp_version }}
+      - name: Set ERL_COMPILER_OPTIONS
+        if: ${{ matrix.deterministic }}
+        run: echo "ERL_COMPILER_OPTIONS=deterministic" >> $GITHUB_ENV
       - name: Compile Elixir
         run: |
           make compile
@@ -72,12 +70,12 @@ jobs:
           cd ../elixir/
           make docs
       - name: Check reproducible builds
+        if: ${{ matrix.deterministic }}
         run: |
           rm -rf .git
           # Recompile System without .git
           cd lib/elixir && ../../bin/elixirc -o ebin lib/system.ex && cd -
           taskset 1 make check_reproducible
-        if: ${{ matrix.otp_latest }}
 
   test_windows:
     name: Windows Server 2019, Erlang/OTP ${{ matrix.otp_version }}

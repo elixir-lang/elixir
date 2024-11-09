@@ -165,6 +165,24 @@ defmodule Module.Types.ExprTest do
                {union(dynamic(), binary()), "GenServer.to_string/1 is undefined or private"}
     end
 
+    test "calling a function with none()" do
+      assert typeerror!(Integer.to_string(raise "oops")) |> strip_ansi() ==
+               ~l"""
+               incompatible types given to Integer.to_string/1:
+
+                   Integer.to_string(raise RuntimeError.exception("oops"))
+
+               given types:
+
+                   none()
+
+               the 1st argument is empty (often represented as none()), \
+               most likely because it is the result of an expression that \
+               always fails, such as a `raise` or a previous invalid call. \
+               This causes any function called with this value to fail
+               """
+    end
+
     test "calling a nullary function on non atoms" do
       assert typeerror!([<<x::integer>>], x.foo_bar()) ==
                ~l"""

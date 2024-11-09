@@ -77,9 +77,9 @@ defmodule Mix.Tasks.Compile.Elixir do
       Defaults to `["lib"]`.
 
     * `:elixirc_options` - compilation options that apply to Elixir's compiler.
-      See `Code.put_compiler_option/2` for a complete list of options. These
-      options are often overridable from the command line using the switches
-      above.
+      It supports many of the options above  plus the options listed in
+      `Code.put_compiler_option/2`. In case conflicting options are given,
+      the ones given through the command line are used.
 
     * `[xref: [exclude: ...]]` - a list of `module` or `{module, function, arity}`
       that should not be warned on in case on undefined modules or undefined

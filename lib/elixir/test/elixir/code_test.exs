@@ -439,13 +439,9 @@ defmodule CodeTest do
     assert meta[:end_column] == 3
   end
 
+  @tag :requires_source
   test "compile source" do
     assert __MODULE__.__info__(:compile)[:source] == String.to_charlist(__ENV__.file)
-  end
-
-  test "compile info returned with source accessible through keyword module" do
-    compile = __MODULE__.__info__(:compile)
-    assert Keyword.get(compile, :source) != nil
   end
 
   describe "compile_string/1" do

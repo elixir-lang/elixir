@@ -22,7 +22,9 @@ defmodule Mix.Compilers.Test do
   test patterns, the test paths, and the opts from the test task.
   """
   def require_and_run(matched_test_files, test_paths, elixirc_opts, opts) do
-    elixirc_opts = Keyword.merge([docs: false, debug_info: false], elixirc_opts)
+    elixirc_opts =
+      Keyword.merge([docs: false, debug_info: false, infer_signatures: false], elixirc_opts)
+
     previous_opts = Code.compiler_options(elixirc_opts)
 
     try do

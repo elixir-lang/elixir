@@ -37,9 +37,16 @@ git_exclude =
 {line_exclude, line_include} =
   if line = System.get_env("LINE"), do: {[:test], [line: line]}, else: {[], []}
 
+cover_exclude =
+  if :deterministic in :compile.env_compiler_options() do
+    [:cover]
+  else
+    []
+  end
+
 ExUnit.start(
   trace: !!System.get_env("TRACE"),
-  exclude: epmd_exclude ++ os_exclude ++ git_exclude ++ line_exclude,
+  exclude: epmd_exclude ++ os_exclude ++ git_exclude ++ line_exclude ++ cover_exclude,
   include: line_include
 )
 

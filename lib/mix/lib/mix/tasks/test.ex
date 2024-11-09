@@ -221,8 +221,8 @@ defmodule Mix.Tasks.Test do
       mechanism. See the "Coverage" section for more information
 
     * `:test_elixirc_options` - the compiler options to used when
-      loading/compiling test files. By default it disables the debug chunk
-      and docs chunk
+      loading/compiling test files. By default it disables the debug chunk,
+      docs chunk, and module type inference
 
     * `:test_paths` - list of paths containing test files. Defaults to
       `["test"]` if the `test` directory exists, otherwise, it defaults to `[]`.

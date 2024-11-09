@@ -532,8 +532,12 @@ defmodule ExUnit.Assertions do
         end
       end
 
-    failure_message =
-      failure_message ||
+    on_timeout =
+      if failure_message do
+        quote do
+          flunk(unquote(failure_message))
+        end
+      else
         quote do
           ExUnit.Assertions.__timeout__(
             unquote(Macro.escape(expanded_pattern)),
@@ -543,6 +547,7 @@ defmodule ExUnit.Assertions do
             timeout
           )
         end
+      end
 
     quote do
       timeout = ExUnit.Assertions.__timeout__(unquote(timeout), :assert_receive_timeout)
@@ -551,7 +556,7 @@ defmodule ExUnit.Assertions do
         receive do
           unquote(pattern) -> {received, unquote(mark_as_generated(vars))}
         after
-          timeout -> flunk(unquote(failure_message))
+          timeout -> unquote(on_timeout)
         end
 
       received

@@ -346,8 +346,10 @@ defmodule LoggerTest do
              end) == ""
 
       assert capture_log(:info, fn ->
-               assert Logger.debug(raise("not invoked"), []) == :ok
+               assert Logger.debug(send(self(), :something), []) == :ok
              end) == ""
+
+      refute_received :something
     end
 
     test "info/2" do
@@ -360,8 +362,10 @@ defmodule LoggerTest do
              end) == ""
 
       assert capture_log(:notice, fn ->
-               assert Logger.info(raise("not invoked"), []) == :ok
+               assert Logger.info(send(self(), :something), []) == :ok
              end) == ""
+
+      refute_received :something
     end
 
     test "warning/2" do
@@ -374,8 +378,10 @@ defmodule LoggerTest do
              end) == ""
 
       assert capture_log(:error, fn ->
-               assert Logger.warning(raise("not invoked"), []) == :ok
+               assert Logger.warning(send(self(), :something), []) == :ok
              end) == ""
+
+      refute_received :something
     end
 
     test "error/2" do
@@ -388,8 +394,10 @@ defmodule LoggerTest do
              end) == ""
 
       assert capture_log(:critical, fn ->
-               assert Logger.error(raise("not invoked"), []) == :ok
+               assert Logger.error(send(self(), :something), []) == :ok
              end) == ""
+
+      refute_received :something
     end
 
     test "critical/2" do
@@ -402,8 +410,10 @@ defmodule LoggerTest do
              end) == ""
 
       assert capture_log(:alert, fn ->
-               assert Logger.critical(raise("not invoked"), []) == :ok
+               assert Logger.critical(send(self(), :something), []) == :ok
              end) == ""
+
+      refute_received :something
     end
 
     test "alert/2" do
@@ -416,8 +426,10 @@ defmodule LoggerTest do
              end) == ""
 
       assert capture_log(:emergency, fn ->
-               assert Logger.alert(raise("not invoked"), []) == :ok
+               assert Logger.alert(send(self(), :something), []) == :ok
              end) == ""
+
+      refute_received :something
     end
 
     test "emergency/2" do
@@ -430,8 +442,10 @@ defmodule LoggerTest do
              end) == ""
 
       assert capture_log(:none, fn ->
-               assert Logger.emergency(raise("not invoked"), []) == :ok
+               assert Logger.emergency(send(self(), :something), []) == :ok
              end) == ""
+
+      refute_received :something
     end
   end
 

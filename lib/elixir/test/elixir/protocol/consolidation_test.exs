@@ -131,9 +131,10 @@ defmodule Protocol.ConsolidationTest do
 
     {:ok, {Sample, [{~c"ExCk", check_bin}]}} = :beam_lib.chunks(@sample_binary, [~c"ExCk"])
     assert {:elixir_checker_v1, contents} = :erlang.binary_to_term(check_bin)
-    assert {{:ok, 1}, %{deprecated: "Reason"}} in contents.exports
+    assert %{{:ok, 1} => %{deprecated: "Reason", sig: _}} = Map.new(contents.exports)
   end
 
+  @tag :requires_source
   test "consolidation keeps source" do
     assert Sample.__info__(:compile)[:source]
   end
