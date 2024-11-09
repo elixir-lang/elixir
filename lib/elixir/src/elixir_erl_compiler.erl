@@ -1,5 +1,5 @@
 -module(elixir_erl_compiler).
--export([spawn/1, forms/3, noenv_forms/3, erl_to_core/2]).
+-export([spawn/1, noenv_forms/3, erl_to_core/2, env_compiler_options/0]).
 -include("elixir.hrl").
 
 spawn(Fun) ->
@@ -41,8 +41,16 @@ copy_diagnostics({Head, _}) ->
     {Tail, Log} -> put(elixir_code_diagnostics, {Head ++ Tail, Log})
   end.
 
-forms(Forms, File, Opts) ->
-  compile(Forms, File, Opts ++ compile:env_compiler_options()).
+env_compiler_options() ->
+  case persistent_term:get(?MODULE, undefined) of
+    undefined ->
+      Options = compile:env_compiler_options(),
+      persistent_term:put(?MODULE, Options),
+      Options;
+
+    Options ->
+      Options
+  end.
 
 noenv_forms(Forms, File, Opts) ->
   compile(Forms, File, Opts).

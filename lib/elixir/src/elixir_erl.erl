@@ -124,7 +124,13 @@ consolidate(Map, TypeSpecs, Chunks) ->
 
 %% Dynamic compilation hook, used in regular compiler
 
-compile(#{module := Module, anno := Anno} = Map) ->
+compile(#{module := Module, anno := Anno} = BaseMap) ->
+  Map =
+    case elixir_erl_compiler:env_compiler_options() of
+      [] -> BaseMap;
+      EnvOptions -> BaseMap#{compile_opts := ?key(BaseMap, compile_opts) ++ EnvOptions}
+    end,
+
   {Set, Bag} = elixir_module:data_tables(Module),
 
   TranslatedTypespecs =
@@ -137,8 +143,14 @@ compile(#{module := Module, anno := Anno} = Map) ->
   {Prefix, Forms, Def, Defmacro, Macros} = dynamic_form(Map),
   {Types, Callbacks, TypeSpecs} = typespecs_form(Map, TranslatedTypespecs, Macros),
 
-  DocsChunk = docs_chunk(Map, Set, Module, Anno, Def, Defmacro, Types, Callbacks),
-  CheckerChunk = checker_chunk(Def, Map),
+  ChunkOpts =
+    case lists:member(deterministic, ?key(Map, compile_opts)) of
+      true -> [deterministic];
+      false -> []
+    end,
+
+  DocsChunk = docs_chunk(Map, Set, Module, Anno, Def, Defmacro, Types, Callbacks, ChunkOpts),
+  CheckerChunk = checker_chunk(Map, Def, ChunkOpts),
   load_form(Map, Prefix, Forms, TypeSpecs, DocsChunk ++ CheckerChunk).
 
 dynamic_form(#{module := Module, relative_file := RelativeFile,
@@ -482,7 +494,7 @@ attributes_form(Line, Attributes, Forms) ->
 
 load_form(#{file := File, compile_opts := Opts} = Map, Prefix, Forms, Specs, Chunks) ->
   CompileOpts = extra_chunks_opts(Chunks, debug_opts(Map, Specs, Opts)),
-  {_, Binary} = elixir_erl_compiler:forms(Prefix ++ Specs ++ Forms, File, CompileOpts),
+  {_, Binary} = elixir_erl_compiler:noenv_forms(Prefix ++ Specs ++ Forms, File, CompileOpts),
   Binary.
 
 debug_opts(Map, Specs, Opts) ->
@@ -501,7 +513,7 @@ take_debug_opts(Opts) ->
 extra_chunks_opts([], Opts) -> Opts;
 extra_chunks_opts(Chunks, Opts) -> [{extra_chunks, Chunks} | Opts].
 
-docs_chunk(Map, Set, Module, Anno, Def, Defmacro, Types, Callbacks) ->
+docs_chunk(Map, Set, Module, Anno, Def, Defmacro, Types, Callbacks, ChunkOpts) ->
   #{file := File, attributes := Attributes} = Map,
 
   case elixir_config:get(docs) of
@@ -526,7 +538,7 @@ docs_chunk(Map, Set, Module, Anno, Def, Defmacro, Types, Callbacks) ->
         ModuleDoc,
         ModuleMeta,
         FunctionDocs ++ MacroDocs ++ CallbackDocs ++ TypeDocs
-      }, [deterministic, compressed]),
+      }, [compressed | ChunkOpts]),
 
       [{<<"Docs">>, DocsChunkData}];
 
@@ -612,7 +624,8 @@ signature_to_binary(_, Name, Signature) ->
   Doc = 'Elixir.Inspect.Algebra':format('Elixir.Code':quoted_to_algebra(Quoted), infinity),
   'Elixir.IO':iodata_to_binary(Doc).
 
-checker_chunk(Def, #{deprecated := Deprecated, defines_behaviour := DefinesBehaviour, signatures := Signatures}) ->
+checker_chunk(Map, Def, ChunkOpts) ->
+  #{deprecated := Deprecated, defines_behaviour := DefinesBehaviour, signatures := Signatures} = Map,
   DeprecatedMap = maps:from_list(Deprecated),
 
   Exports =
@@ -629,7 +642,7 @@ checker_chunk(Def, #{deprecated := Deprecated, defines_behaviour := DefinesBehav
     exports => Exports
   },
 
-  [{<<"ExCk">>, term_to_binary({elixir_checker_v1, Contents}, [deterministic])}].
+  [{<<"ExCk">>, term_to_binary({elixir_checker_v1, Contents}, ChunkOpts)}].
 
 prepend_behaviour_info(true, Def) -> [{{behaviour_info, 1}, []} | Def];
 prepend_behaviour_info(false, Def) -> Def.

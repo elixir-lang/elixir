@@ -164,6 +164,11 @@ defmodule Diff do
   end
 end
 
+if :deterministic not in :compile.env_compiler_options() do
+  IO.puts("Cannot validate if reproducible without setting ERL_COMPILER_OPTIONS=deterministic")
+  System.halt(1)
+end
+
 case System.argv() do
   [dir1, dir2] ->
     case Diff.compare_dirs(dir1, dir2) do
