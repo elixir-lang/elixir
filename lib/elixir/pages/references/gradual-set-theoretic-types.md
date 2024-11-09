@@ -98,7 +98,7 @@ On the other hand, type inference offers the benefit of enabling type checking f
 
   * Module-local inference of return types - the gradual return types of functions are computed considering all of the functions within the module itself. Any call to a function in another module is conservatively assumed to return `dynamic()`.
 
-The last two items offer gradual reconstruction of type signatures. Our goal is to provide an efficient type reconstruction algorithm that can detect definite bugs in dynamic codebases, even in the absence of explicit type annotations. The gradual system focuses on proving cases where all combinations of a type _will_ fail, rather than issuing warnings for cases where some combinations _might_ error.
+The last two items offer gradual reconstruction of type signatures. Our goal is to provide an efficient type reconstruction algorithm that can detect definite bugs in dynamic codebases, even in the absence of explicit type annotations. The gradual system focuses on proving cases where all combinations of a type *will* fail, rather than issuing warnings for cases where some combinations *might* error.
 
 Once Elixir introduces typed function signatures (see "Roadmap"), any function with an explicit type signature will be checked against the user-provided type, as in other statically typed languages, without performing type inference of the function signature.
 
