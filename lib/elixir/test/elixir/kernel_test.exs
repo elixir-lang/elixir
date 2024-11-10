@@ -11,7 +11,6 @@ defmodule KernelTest do
 
   def id(arg), do: arg
   def id(arg1, arg2), do: {arg1, arg2}
-  def empty_list(), do: []
   def empty_map, do: %{}
 
   defp purge(module) do
@@ -1359,7 +1358,7 @@ defmodule KernelTest do
     assert is_map_key(Map.new(a: 1), :a) == true
 
     assert_raise BadMapError, fn ->
-      is_map_key(empty_list(), :a)
+      is_map_key(Process.get(:unused, []), :a)
     end
 
     case Map.new(a: 1) do
@@ -1381,7 +1380,7 @@ defmodule KernelTest do
   test "tl/1" do
     assert tl([:one]) == []
     assert tl([1, 2, 3]) == [2, 3]
-    assert_raise ArgumentError, fn -> tl(empty_list()) end
+    assert_raise ArgumentError, fn -> tl(Process.get(:unused, [])) end
 
     assert tl([:a | :b]) == :b
     assert tl([:a, :b | :c]) == [:b | :c]
@@ -1389,7 +1388,7 @@ defmodule KernelTest do
 
   test "hd/1" do
     assert hd([1, 2, 3, 4]) == 1
-    assert_raise ArgumentError, fn -> hd(empty_list()) end
+    assert_raise ArgumentError, fn -> hd(Process.get(:unused, [])) end
     assert hd([1 | 2]) == 1
   end
 

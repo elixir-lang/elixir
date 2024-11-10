@@ -68,12 +68,10 @@ defmodule Kernel.SpecialFormsTest do
       end
     end
 
-    def false_fun(), do: false
-
     test "cond_clause error keeps line number in stacktrace" do
       try do
         cond do
-          false_fun() -> :ok
+          Process.get(:unused, false) -> :ok
         end
       rescue
         _ ->

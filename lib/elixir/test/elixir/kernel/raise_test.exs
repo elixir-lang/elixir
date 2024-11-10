@@ -458,12 +458,10 @@ defmodule Kernel.RaiseTest do
       assert result == "no match of right hand side value: 0"
     end
 
-    defp empty_map(), do: %{}
-
     test "bad key error" do
       result =
         try do
-          %{empty_map() | foo: :bar}
+          %{Process.get(:unused, %{}) | foo: :bar}
         rescue
           x in [KeyError] -> Exception.message(x)
         end
@@ -472,7 +470,7 @@ defmodule Kernel.RaiseTest do
 
       result =
         try do
-          empty_map().foo
+          Process.get(:unused, %{}).foo
         rescue
           x in [KeyError] -> Exception.message(x)
         end

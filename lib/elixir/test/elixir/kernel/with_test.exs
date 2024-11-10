@@ -126,7 +126,7 @@ defmodule Kernel.WithTest do
     end
 
     assert_raise RuntimeError, fn ->
-      with({:ok, res} <- ok(42), res = res + oops(), do: res)
+      with({:ok, res} <- ok(42), oops(), do: res)
     end
   end
 
