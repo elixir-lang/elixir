@@ -74,6 +74,18 @@ defmodule Module.Types.InferTest do
     assert types[{:priv, 1}] == nil
   end
 
+  test "infers return types from super functions", config do
+    types =
+      infer config do
+        def pub(:ok), do: :ok
+        def pub(:error), do: :error
+        defoverridable pub: 1
+        def pub(x), do: super(x)
+      end
+
+    assert types[{:pub, 1}] == {:infer, [{[dynamic()], dynamic(atom([:ok, :error]))}]}
+  end
+
   test "infers return types even with loops", config do
     types =
       infer config do
