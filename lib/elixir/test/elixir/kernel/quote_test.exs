@@ -383,8 +383,6 @@ defmodule Kernel.QuoteTest.ErrorsTest do
         mod = Kernel.QuoteTest.ErrorsTest
         file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
         assert [{^mod, :will_raise, 2, [file: ^file, line: @line] ++ _} | _] = __STACKTRACE__
-    else
-      _ -> flunk("expected failure")
     end
   end
 

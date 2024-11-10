@@ -302,7 +302,7 @@ defmodule Kernel do
   @compile {:inline, bootstrapped?: 1}
   case :code.ensure_loaded(Kernel) do
     {:module, _} ->
-      defp bootstrapped?(_), do: true
+      defp bootstrapped?(module), do: is_atom(module)
 
     {:error, _} ->
       defp bootstrapped?(module), do: :code.ensure_loaded(module) == {:module, module}

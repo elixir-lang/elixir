@@ -106,9 +106,9 @@ ensure_no_undefined_local(Module, All, E) ->
 
 warn_unused_local(Module, All, Private, E) ->
   if_tracker(Module, [], fun(Tracker) ->
-    {_Unreachable, Warnings} = ?locals:collect_unused_locals(Tracker, All, Private),
+    {Unreachable, Warnings} = ?locals:collect_unused_locals(Tracker, All, Private),
     [elixir_errors:file_warn(Meta, E, ?MODULE, Error) || {Meta, Error} <- Warnings],
-    []
+    Unreachable
   end).
 
 format_error({function_conflict, {Receiver, {Name, Arity}}}) ->

@@ -797,15 +797,8 @@ defmodule Time do
   @doc since: "1.5.0"
   @spec convert!(Calendar.time(), Calendar.calendar()) :: t
   def convert!(time, calendar) do
-    case convert(time, calendar) do
-      {:ok, value} ->
-        value
-
-      {:error, reason} ->
-        raise ArgumentError,
-              "cannot convert #{inspect(time)} to target calendar #{inspect(calendar)}, " <>
-                "reason: #{inspect(reason)}"
-    end
+    {:ok, value} = convert(time, calendar)
+    value
   end
 
   @doc """
