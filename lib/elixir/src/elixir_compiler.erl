@@ -198,6 +198,7 @@ bootstrap_files() ->
      <<"module/types/descr.ex">>,
      <<"module/types/of.ex">>,
      <<"module/types/pattern.ex">>,
+     <<"module/types/apply.ex">>,
      <<"module/types/expr.ex">>,
      <<"module/types.ex">>,
      <<"exception.ex">>,

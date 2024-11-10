@@ -1,7 +1,7 @@
 defmodule Module.Types.Expr do
   @moduledoc false
 
-  alias Module.Types.{Of, Pattern}
+  alias Module.Types.{Apply, Of, Pattern}
   import Module.Types.{Helpers, Descr}
 
   14 = length(Macro.Env.__info__(:struct))
@@ -391,7 +391,7 @@ defmodule Module.Types.Expr do
     {mods, context} = Of.modules(remote_type, name, arity, expr, meta, stack, context)
 
     context =
-      Enum.reduce(mods, context, &(Of.remote(&1, name, arity, meta, stack, &2) |> elem(1)))
+      Enum.reduce(mods, context, &(Apply.signature(&1, name, arity, meta, stack, &2) |> elem(1)))
 
     {fun(), context}
   end
@@ -402,11 +402,11 @@ defmodule Module.Types.Expr do
     {fun(), context}
   end
 
-  # TODO: local_call(arg)
+  # Local calls
   def of_expr({fun, _meta, args}, stack, context)
       when is_atom(fun) and is_list(args) do
-    {_arg_types, context} = Enum.map_reduce(args, context, &of_expr(&1, stack, &2))
-    {dynamic(), context}
+    {args_types, context} = Enum.map_reduce(args, context, &of_expr(&1, stack, &2))
+    Apply.local(fun, args_types, stack, context)
   end
 
   # var
@@ -427,9 +427,8 @@ defmodule Module.Types.Expr do
           {info, context} = Of.struct_info(exception, meta, stack, context)
           {Of.struct_type(exception, info, args), context}
         else
-          # If the exception cannot be found or is invalid,
-          # we call Of.remote/5 to emit a warning.
-          {_, context} = Of.remote(exception, :__struct__, 0, meta, stack, context)
+          # If the exception cannot be found or is invalid, fetch the signature to emit warnings.
+          {_, context} = Apply.signature(exception, :__struct__, 0, meta, stack, context)
           {error_type(), context}
         end
       end)
@@ -521,17 +520,17 @@ defmodule Module.Types.Expr do
   ## General helpers
 
   defp apply_many([], function, args_types, expr, stack, context) do
-    Of.apply(function, args_types, expr, stack, context)
+    Apply.remote(function, args_types, expr, stack, context)
   end
 
   defp apply_many([mod], function, args_types, expr, stack, context) do
-    Of.apply(mod, function, args_types, expr, stack, context)
+    Apply.remote(mod, function, args_types, expr, stack, context)
   end
 
   defp apply_many(mods, function, args_types, expr, stack, context) do
     {returns, context} =
       Enum.map_reduce(mods, context, fn mod, context ->
-        Of.apply(mod, function, args_types, expr, stack, context)
+        Apply.remote(mod, function, args_types, expr, stack, context)
       end)
 
     {Enum.reduce(returns, &union/2), context}

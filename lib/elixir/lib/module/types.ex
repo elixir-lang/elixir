@@ -3,33 +3,117 @@ defmodule Module.Types do
 
   alias Module.Types.{Descr, Expr, Pattern}
 
+  # TODO: Inference of tail recursion
+  # TODO: Checking of unused private functions/clauses
+
   # These functions are not inferred because they are added/managed by the compiler
   @no_infer [__protocol__: 1, behaviour_info: 1]
 
   @doc false
   def infer(module, file, defs, env) do
-    context = context()
+    finder = &List.keyfind(defs, &1, 0)
+    handler = &infer_signature_for(&1, &2, module, file, finder, env)
+    context = context({handler, %{}})
 
-    for {{fun, arity}, :def, _meta, clauses} <- defs,
-        {fun, arity} not in @no_infer,
-        into: %{} do
-      stack = stack(:infer, file, module, {fun, arity}, :all, env)
-      expected = List.duplicate(Descr.dynamic(), arity)
+    {types, _context} =
+      for {fun_arity, kind, _meta, _clauses} = def <- defs,
+          kind == :def and fun_arity not in @no_infer,
+          reduce: {[], context} do
+        {types, context} ->
+          {_kind, inferred, context} =
+            infer_signature_for(fun_arity, context, module, file, fn _ -> def end, env)
 
-      pair_types =
-        Enum.reduce(clauses, [], fn {meta, args, guards, body}, inferred ->
-          try do
-            {args, context} =
-              Pattern.of_head(args, guards, expected, :default, meta, stack, context)
+          {[{fun_arity, inferred} | types], context}
+      end
 
-            {return, _context} = Expr.of_expr(body, stack, context)
-            add_inferred(inferred, args, return, [])
-          rescue
-            e -> internal_error!(e, __STACKTRACE__, :def, meta, module, fun, args, guards, body)
-          end
-        end)
+    Map.new(types)
+  end
 
-      {{fun, arity}, {:infer, Enum.reverse(pair_types)}}
+  defp infer_signature_for(fun_arity, context, module, file, finder, env) do
+    case context.local_handler do
+      {_, %{^fun_arity => {kind, inferred}}} ->
+        {kind, inferred, context}
+
+      {_, _} ->
+        {{fun, arity}, kind, _meta, clauses} = finder.(fun_arity)
+        expected = List.duplicate(Descr.dynamic(), arity)
+
+        stack = stack(:infer, file, module, fun_arity, :all, env)
+        context = update_local_state(context, &Map.put(&1, fun_arity, {kind, :none}))
+
+        {pair_types, context} =
+          Enum.reduce(clauses, {[], context}, fn
+            {meta, args, guards, body}, {inferred, context} ->
+              context = context(context.local_handler)
+
+              try do
+                {args_types, context} =
+                  Pattern.of_head(args, guards, expected, :default, meta, stack, context)
+
+                {return_type, context} = Expr.of_expr(body, stack, context)
+                {add_inferred(inferred, args_types, return_type, []), context}
+              rescue
+                e ->
+                  internal_error!(e, __STACKTRACE__, kind, meta, module, fun, args, guards, body)
+              end
+          end)
+
+        inferred = {:infer, Enum.reverse(pair_types)}
+        {kind, inferred, update_local_state(context, &Map.put(&1, fun_arity, {kind, inferred}))}
+    end
+  end
+
+  @doc false
+  def warnings(module, file, defs, no_warn_undefined, cache) do
+    finder = &List.keyfind(defs, &1, 0)
+    handler = &warnings_for(&1, &2, module, file, finder, no_warn_undefined, cache)
+    context = context({handler, %{}})
+
+    context =
+      Enum.reduce(defs, context, fn {fun_arity, _kind, _meta, _clauses} = def, context ->
+        finder = fn _ -> def end
+
+        {_kind, _inferred, context} =
+          warnings_for(fun_arity, context, module, file, finder, no_warn_undefined, cache)
+
+        context
+      end)
+
+    context.warnings
+  end
+
+  defp warnings_for(fun_arity, context, module, file, finder, no_warn_undefined, cache) do
+    case context.local_handler do
+      {_, %{^fun_arity => {kind, inferred}}} ->
+        {kind, inferred, context}
+
+      {_, _} ->
+        {{fun, arity}, kind, meta, clauses} = finder.(fun_arity)
+        expected = List.duplicate(Descr.dynamic(), arity)
+
+        file = with_file_meta(meta, file)
+        stack = stack(:dynamic, file, module, fun_arity, no_warn_undefined, cache)
+        context = update_local_state(context, &Map.put(&1, fun_arity, {kind, :none}))
+
+        {pair_types, context} =
+          Enum.reduce(clauses, {[], context}, fn
+            {meta, args, guards, body}, {inferred, context} ->
+              context = fresh_context(context)
+
+              try do
+                {args_types, context} =
+                  Pattern.of_head(args, guards, expected, :default, meta, stack, context)
+
+                {return_type, context} = Expr.of_expr(body, stack, context)
+                {add_inferred(inferred, args_types, return_type, []), context}
+              rescue
+                e ->
+                  internal_error!(e, __STACKTRACE__, kind, meta, module, fun, args, guards, body)
+              end
+          end)
+
+        inferred = {:infer, Enum.reverse(pair_types)}
+        {kind, inferred, update_local_state(context, &Map.put(&1, fun_arity, {kind, inferred}))}
     end
   end
 
@@ -43,30 +127,6 @@ defmodule Module.Types do
 
   defp add_inferred([], args, return, acc),
     do: [{args, return} | Enum.reverse(acc)]
-
-  @doc false
-  def warnings(module, file, defs, no_warn_undefined, cache) do
-    context = context()
-
-    Enum.flat_map(defs, fn {{fun, arity}, kind, meta, clauses} ->
-      file = with_file_meta(meta, file)
-      stack = stack(:dynamic, file, module, {fun, arity}, no_warn_undefined, cache)
-      expected = List.duplicate(Descr.dynamic(), arity)
-
-      Enum.flat_map(clauses, fn {meta, args, guards, body} ->
-        try do
-          {_types, context} =
-            Pattern.of_head(args, guards, expected, :default, meta, stack, context)
-
-          {_type, context} = Expr.of_expr(body, stack, context)
-          context.warnings
-        rescue
-          e ->
-            internal_error!(e, __STACKTRACE__, kind, meta, module, fun, args, guards, body)
-        end
-      end)
-    end)
-  end
 
   defp with_file_meta(meta, file) do
     case Keyword.fetch(meta, :file) do
@@ -145,16 +205,26 @@ defmodule Module.Types do
   end
 
   @doc false
-  def context() do
+  def context(local_handler, warnings \\ []) do
     %{
       # A list of all warnings found so far
-      warnings: [],
+      warnings: warnings,
       # All vars and their types
       vars: %{},
       # Variables and arguments from patterns
       pattern_info: nil,
       # If type checking has found an error/failure
-      failed: false
+      failed: false,
+      # Local handler
+      local_handler: local_handler
     }
+  end
+
+  defp fresh_context(%{local_handler: local_handler, warnings: warnings}) do
+    context(local_handler, warnings)
+  end
+
+  defp update_local_state(%{local_handler: {handler, state}} = context, fun) do
+    %{context | local_handler: {handler, fun.(state)}}
   end
 end

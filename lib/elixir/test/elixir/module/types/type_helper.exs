@@ -142,7 +142,7 @@ defmodule TypeHelper do
   end
 
   defp new_context() do
-    Types.context()
+    Types.context({fn _fun_arity, :ok -> raise "no local lookup" end, :ok})
   end
 
   @doc """

@@ -715,7 +715,7 @@ defmodule Module.Types.Pattern do
     {args_type, context} =
       Enum.map_reduce(args, context, &of_guard(&1, dynamic(), expr, stack, &2))
 
-    Of.apply(:erlang, function, args_type, call, stack, context)
+    Module.Types.Apply.remote(:erlang, function, args_type, call, stack, context)
   end
 
   # var
