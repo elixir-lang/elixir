@@ -138,11 +138,12 @@ defmodule TypeHelper do
 
   defp new_stack(mode) do
     cache = if mode == :infer, do: :none, else: Module.ParallelChecker.test_cache()
-    Types.stack(mode, "types_test.ex", TypesTest, {:test, 0}, [], cache)
+    handler = fn _, _, _ -> raise "no local lookup" end
+    Types.stack(mode, "types_test.ex", TypesTest, {:test, 0}, [], cache, handler)
   end
 
   defp new_context() do
-    Types.context({fn _fun_arity, :ok -> raise "no local lookup" end, :ok})
+    Types.context(%{})
   end
 
   @doc """

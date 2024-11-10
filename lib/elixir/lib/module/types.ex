@@ -3,6 +3,7 @@ defmodule Module.Types do
 
   alias Module.Types.{Descr, Expr, Pattern}
 
+  # TODO: Local captures
   # TODO: Inference of tail recursion
   # TODO: Checking of unused private functions/clauses
 
@@ -12,90 +13,52 @@ defmodule Module.Types do
   @doc false
   def infer(module, file, defs, env) do
     finder = &List.keyfind(defs, &1, 0)
-    handler = &infer_signature_for(&1, &2, module, file, finder, env)
-    context = context({handler, %{}})
+    handler = &local_handler(&1, &2, &3, finder)
+    stack = stack(:infer, file, module, {:__info__, 1}, :all, env, handler)
+    context = context(%{})
 
     {types, _context} =
       for {fun_arity, kind, _meta, _clauses} = def <- defs,
           kind == :def and fun_arity not in @no_infer,
           reduce: {[], context} do
         {types, context} ->
-          {_kind, inferred, context} =
-            infer_signature_for(fun_arity, context, module, file, fn _ -> def end, env)
-
+          {_kind, inferred, context} = local_handler(fun_arity, stack, context, fn _ -> def end)
           {[{fun_arity, inferred} | types], context}
       end
 
     Map.new(types)
   end
 
-  defp infer_signature_for(fun_arity, context, module, file, finder, env) do
-    case context.local_handler do
-      {_, %{^fun_arity => {kind, inferred}}} ->
-        {kind, inferred, context}
-
-      {_, _} ->
-        {{fun, arity}, kind, _meta, clauses} = finder.(fun_arity)
-        expected = List.duplicate(Descr.dynamic(), arity)
-
-        stack = stack(:infer, file, module, fun_arity, :all, env)
-        context = update_local_state(context, &Map.put(&1, fun_arity, {kind, :none}))
-
-        {pair_types, context} =
-          Enum.reduce(clauses, {[], context}, fn
-            {meta, args, guards, body}, {inferred, context} ->
-              context = context(context.local_handler)
-
-              try do
-                {args_types, context} =
-                  Pattern.of_head(args, guards, expected, :default, meta, stack, context)
-
-                {return_type, context} = Expr.of_expr(body, stack, context)
-                {add_inferred(inferred, args_types, return_type, []), context}
-              rescue
-                e ->
-                  internal_error!(e, __STACKTRACE__, kind, meta, module, fun, args, guards, body)
-              end
-          end)
-
-        inferred = {:infer, Enum.reverse(pair_types)}
-        {kind, inferred, update_local_state(context, &Map.put(&1, fun_arity, {kind, inferred}))}
-    end
-  end
-
   @doc false
   def warnings(module, file, defs, no_warn_undefined, cache) do
     finder = &List.keyfind(defs, &1, 0)
-    handler = &warnings_for(&1, &2, module, file, finder, no_warn_undefined, cache)
-    context = context({handler, %{}})
+    handler = &local_handler(&1, &2, &3, finder)
+    stack = stack(:dynamic, file, module, {:__info__, 1}, no_warn_undefined, cache, handler)
+    context = context(%{})
 
     context =
       Enum.reduce(defs, context, fn {fun_arity, _kind, _meta, _clauses} = def, context ->
-        finder = fn _ -> def end
-
-        {_kind, _inferred, context} =
-          warnings_for(fun_arity, context, module, file, finder, no_warn_undefined, cache)
-
+        {_kind, _inferred, context} = local_handler(fun_arity, stack, context, fn _ -> def end)
         context
       end)
 
     context.warnings
   end
 
-  defp warnings_for(fun_arity, context, module, file, finder, no_warn_undefined, cache) do
-    case context.local_handler do
-      {_, %{^fun_arity => {kind, inferred}}} ->
+  defp local_handler(fun_arity, stack, context, finder) do
+    case context.local_state do
+      %{^fun_arity => {kind, inferred}} ->
         {kind, inferred, context}
 
-      {_, _} ->
-        {{fun, arity}, kind, meta, clauses} = finder.(fun_arity)
+      local_state ->
+        {{fun, arity}, kind, meta, clauses} =
+          finder.(fun_arity) || raise "could not find #{inspect(fun_arity)}"
+
         expected = List.duplicate(Descr.dynamic(), arity)
+        stack = stack |> fresh_stack(fun_arity) |> with_file_meta(meta)
+        context = put_in(context.local_state, Map.put(local_state, fun_arity, {kind, :none}))
 
-        file = with_file_meta(meta, file)
-        stack = stack(:dynamic, file, module, fun_arity, no_warn_undefined, cache)
-        context = update_local_state(context, &Map.put(&1, fun_arity, {kind, :none}))
-
-        {pair_types, context} =
+        {clauses_types, clauses_context} =
           Enum.reduce(clauses, {[], context}, fn
             {meta, args, guards, body}, {inferred, context} ->
               context = fresh_context(context)
@@ -108,12 +71,13 @@ defmodule Module.Types do
                 {add_inferred(inferred, args_types, return_type, []), context}
               rescue
                 e ->
-                  internal_error!(e, __STACKTRACE__, kind, meta, module, fun, args, guards, body)
+                  internal_error!(e, __STACKTRACE__, kind, meta, fun, args, guards, body, stack)
               end
           end)
 
-        inferred = {:infer, Enum.reverse(pair_types)}
-        {kind, inferred, update_local_state(context, &Map.put(&1, fun_arity, {kind, inferred}))}
+        inferred = {:infer, Enum.reverse(clauses_types)}
+        context = update_in(context.local_state, &Map.put(&1, fun_arity, {kind, inferred}))
+        {kind, inferred, restore_context(context, clauses_context)}
     end
   end
 
@@ -128,19 +92,19 @@ defmodule Module.Types do
   defp add_inferred([], args, return, acc),
     do: [{args, return} | Enum.reverse(acc)]
 
-  defp with_file_meta(meta, file) do
+  defp with_file_meta(stack, meta) do
     case Keyword.fetch(meta, :file) do
-      {:ok, {meta_file, _}} -> meta_file
-      :error -> file
+      {:ok, {meta_file, _}} -> %{stack | file: meta_file}
+      :error -> stack
     end
   end
 
-  defp internal_error!(e, stack, kind, meta, module, fun, args, guards, body) do
+  defp internal_error!(e, trace, kind, meta, fun, args, guards, body, stack) do
     def_expr = {kind, meta, [guards_to_expr(guards, {fun, [], args}), [do: body]]}
 
     exception =
       RuntimeError.exception("""
-      found error while checking types for #{Exception.format_mfa(module, fun, length(args))}:
+      found error while checking types for #{Exception.format_mfa(stack.module, fun, length(args))}:
 
       #{Exception.format_banner(:error, e, stack)}\
 
@@ -151,7 +115,7 @@ defmodule Module.Types do
       Please report this bug at: https://github.com/elixir-lang/elixir/issues
       """)
 
-    reraise exception, stack
+    reraise exception, trace
   end
 
   defp guards_to_expr([], left) do
@@ -163,7 +127,7 @@ defmodule Module.Types do
   end
 
   @doc false
-  def stack(mode, file, module, function, no_warn_undefined, cache)
+  def stack(mode, file, module, function, no_warn_undefined, cache, handler)
       when mode in [:static, :dynamic, :infer] do
     %{
       # The fallback meta used for literals in patterns and guards
@@ -200,31 +164,37 @@ defmodule Module.Types do
       # We may also want for applications with subtyping in dynamic mode to always
       # intersect with dynamic, but this mode may be too lax (to be decided based on
       # feedback).
-      mode: mode
+      mode: mode,
+      # The function for handling local calls
+      local_handler: handler
     }
   end
 
   @doc false
-  def context(local_handler, warnings \\ []) do
+  def context(local_state) do
     %{
       # A list of all warnings found so far
-      warnings: warnings,
+      warnings: [],
       # All vars and their types
       vars: %{},
       # Variables and arguments from patterns
       pattern_info: nil,
       # If type checking has found an error/failure
       failed: false,
-      # Local handler
-      local_handler: local_handler
+      # Local state
+      local_state: local_state
     }
   end
 
-  defp fresh_context(%{local_handler: local_handler, warnings: warnings}) do
-    context(local_handler, warnings)
+  defp fresh_stack(stack, function) do
+    %{stack | function: function}
   end
 
-  defp update_local_state(%{local_handler: {handler, state}} = context, fun) do
-    %{context | local_handler: {handler, fun.(state)}}
+  defp fresh_context(context) do
+    %{context | vars: %{}, failed: false}
+  end
+
+  defp restore_context(%{vars: vars, failed: failed}, later_context) do
+    %{later_context | vars: vars, failed: failed}
   end
 end

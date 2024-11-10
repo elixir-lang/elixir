@@ -504,8 +504,20 @@ defmodule Module.Types.Apply do
 
   ## Local
 
-  def local(_fun, _args_types, _stack, context) do
-    {dynamic(), context}
+  def local(fun, args_types, meta, stack, context) do
+    arity = length(args_types)
+
+    # TODO: If kind == :defp and stack != :infer, we want to track used clauses
+    {_kind, info, context} = stack.local_handler.({fun, arity}, stack, context)
+
+    case apply_types(info, args_types, stack) do
+      {:ok, type} ->
+        {type, context}
+
+      {:error, domain, clauses} ->
+        error = {:badlocal, fun, args_types, domain, clauses, context}
+        {error_type(), error(error, meta, stack, context)}
+    end
   end
 
   ## Application helpers

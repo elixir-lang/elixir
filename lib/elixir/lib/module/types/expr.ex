@@ -396,17 +396,23 @@ defmodule Module.Types.Expr do
     {fun(), context}
   end
 
-  # &foo/1
+  # TODO: &foo/1
   # TODO: & &1
   def of_expr({:&, _meta, _arg}, _stack, context) do
     {fun(), context}
   end
 
+  # TODO: super
+  def of_expr({:super, _meta, args}, stack, context) when is_list(args) do
+    {_args_types, context} = Enum.map_reduce(args, context, &of_expr(&1, stack, &2))
+    {dynamic(), context}
+  end
+
   # Local calls
-  def of_expr({fun, _meta, args}, stack, context)
+  def of_expr({fun, meta, args}, stack, context)
       when is_atom(fun) and is_list(args) do
     {args_types, context} = Enum.map_reduce(args, context, &of_expr(&1, stack, &2))
-    Apply.local(fun, args_types, stack, context)
+    Apply.local(fun, args_types, meta, stack, context)
   end
 
   # var
