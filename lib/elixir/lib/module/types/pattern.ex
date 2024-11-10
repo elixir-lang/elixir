@@ -134,12 +134,8 @@ defmodule Module.Types.Pattern do
   end
 
   defp of_pattern_recur(types, vars, info, tag, stack, context, callback) do
-    %{vars: context_vars} = context
-
     {changed, context} =
       Enum.reduce(vars, {[], context}, fn {version, paths}, {changed, context} ->
-        current_type = context_vars[version][:type]
-
         {var_changed?, context} =
           Enum.reduce(paths, {false, context}, fn
             [var, {:arg, index, expr} | path], {var_changed?, context} ->
@@ -147,18 +143,20 @@ defmodule Module.Types.Pattern do
 
               case of_pattern_var(path, actual, true, info, context) do
                 {type, reachable_var?} ->
-                  case Of.refine_var(var, type, expr, stack, context) do
-                    {:ok, type, context} ->
-                      {var_changed? or
-                         (reachable_var? and
-                            (current_type == nil or not equal?(current_type, type))), context}
-
-                    {:error, _type, context} ->
-                      throw({types, context})
+                  # If current type is already a subtype, there is nothing to refine.
+                  with %{^version => %{type: current_type}} <- context.vars,
+                       true <- subtype?(current_type, type) do
+                    {var_changed?, context}
+                  else
+                    _ ->
+                      case Of.refine_var(var, type, expr, stack, context) do
+                        {:ok, _type, context} -> {var_changed? or reachable_var?, context}
+                        {:error, _type, context} -> throw({types, context})
+                      end
                   end
 
                 :error ->
-                  throw({types, to_badpattern_error(expr, tag, stack, context)})
+                  throw({types, badpattern_error(expr, tag, stack, context)})
               end
           end)
 
@@ -208,7 +206,7 @@ defmodule Module.Types.Pattern do
     end)
   end
 
-  defp to_badpattern_error(expr, tag, stack, context) do
+  defp badpattern_error(expr, tag, stack, context) do
     meta =
       if meta = get_meta(expr) do
         meta ++ Keyword.take(stack.meta, [:generated, :line])
@@ -224,7 +222,7 @@ defmodule Module.Types.Pattern do
     type = intersection(actual, expected)
 
     if empty?(type) do
-      {:error, to_badpattern_error(expr, tag, stack, context)}
+      {:error, badpattern_error(expr, tag, stack, context)}
     else
       {:ok, type, context}
     end
@@ -251,8 +249,8 @@ defmodule Module.Types.Pattern do
   end
 
   # TODO: Implement domain key types
-  defp of_pattern_var([{:key, _key} | rest], _type, reachable_var?, info, context) do
-    of_pattern_var(rest, dynamic(), reachable_var?, info, context)
+  defp of_pattern_var([{:key, _key} | rest], _type, _reachable_var?, info, context) do
+    of_pattern_var(rest, dynamic(), false, info, context)
   end
 
   defp of_pattern_var([{:head, counter} | rest], type, _reachable_var?, info, context) do
