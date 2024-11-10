@@ -2,6 +2,7 @@ defmodule Module.Types.Apply do
   # Typing functionality shared between Expr and Pattern.
   # Generic AST and Enum helpers go to Module.Types.Helpers.
   @moduledoc false
+  @max_clauses 32
 
   alias Module.ParallelChecker
   import Module.Types.{Helpers, Descr}
@@ -406,8 +407,8 @@ defmodule Module.Types.Apply do
   end
 
   defp apply_remote(info, args_types, expr, stack, context) do
-    case apply_types(info, args_types, stack) do
-      {:ok, type} ->
+    case apply_signature(info, args_types, stack) do
+      {:ok, _indexes, type} ->
         {type, context}
 
       {:error, domain, clauses} ->
@@ -504,19 +505,54 @@ defmodule Module.Types.Apply do
 
   ## Local
 
-  def local(fun, args_types, meta, stack, context) do
-    arity = length(args_types)
+  @doc """
+  Deal with local functions.
+  """
+  def local(fun, args_types, expr, stack, context) do
+    fun_arity = {fun, length(args_types)}
+    {kind, info, context} = stack.local_handler.(fun_arity, stack, context)
 
-    # TODO: If kind == :defp and stack != :infer, we want to track used clauses
-    {_kind, info, context} = stack.local_handler.({fun, arity}, stack, context)
+    case apply_signature(info, args_types, stack) do
+      {:ok, indexes, type} ->
+        context =
+          if stack != :infer and kind == :defp do
+            update_in(context.local_used[fun_arity], fn current ->
+              if info == :none do
+                []
+              else
+                (current || used_from_clauses(info)) -- indexes
+              end
+            end)
+          else
+            context
+          end
 
-    case apply_types(info, args_types, stack) do
-      {:ok, type} ->
         {type, context}
 
       {:error, domain, clauses} ->
-        error = {:badlocal, fun, args_types, domain, clauses, context}
-        {error_type(), error(error, meta, stack, context)}
+        error = {:badlocal, expr, args_types, domain, clauses, context}
+        {error_type(), error(error, elem(expr, 1), stack, context)}
+    end
+  end
+
+  defp used_from_clauses({:infer, clauses}),
+    do: Enum.with_index(clauses, fn _, i -> i end)
+
+  defp used_from_clauses({:strong, _, clauses}),
+    do: Enum.with_index(clauses, fn _, i -> i end)
+
+  @doc """
+  Deal with local captures.
+  """
+  def local_capture(fun, arity, _meta, stack, context) do
+    fun_arity = {fun, arity}
+    {kind, _info, context} = stack.local_handler.(fun_arity, stack, context)
+
+    if stack != :infer and kind == :defp do
+      # Mark all clauses as used, as the function is being exported.
+      {fun(), put_in(context.local_used[fun_arity], [])}
+    else
+      {fun(), context}
     end
   end
 
@@ -530,33 +566,32 @@ defmodule Module.Types.Apply do
     end
   end
 
-  defp apply_types(:none, _args_types, _stack) do
-    {:ok, dynamic()}
+  defp apply_signature(:none, _args_types, _stack) do
+    {:ok, [], dynamic()}
   end
 
-  defp apply_types({:strong, nil, [{expected, return}] = clauses}, args_types, stack) do
+  defp apply_signature({:strong, nil, [{expected, return}] = clauses}, args_types, stack) do
     # Optimize single clauses as the domain is the single clause args.
     case zip_compatible?(args_types, expected) do
-      true -> {:ok, return(return, args_types, stack)}
+      true -> {:ok, [0], return(return, args_types, stack)}
       false -> {:error, expected, clauses}
     end
   end
 
-  defp apply_types({:strong, domain, clauses}, args_types, stack) do
+  defp apply_signature({:strong, domain, clauses}, args_types, stack) do
     # If the type is only gradual, the compatibility check is the same
     # as a non disjoint check. So we skip checking compatibility twice.
     with true <- zip_compatible_or_only_gradual?(args_types, domain),
-         [_ | _] = returns <-
-           for({expected, return} <- clauses, zip_not_disjoint?(args_types, expected), do: return) do
-      {:ok, returns |> Enum.reduce(&union/2) |> return(args_types, stack)}
+         {count, used, returns} when count > 0 <- apply_clauses(clauses, args_types, 0, 0, [], []) do
+      {:ok, used, returns |> Enum.reduce(&union/2) |> return(args_types, stack)}
     else
       _ -> {:error, domain, clauses}
     end
   end
 
-  defp apply_types({:infer, clauses}, args_types, _stack) do
-    case for({expected, return} <- clauses, zip_not_disjoint?(args_types, expected), do: return) do
-      [] ->
+  defp apply_signature({:infer, clauses}, args_types, _stack) do
+    case apply_clauses(clauses, args_types, 0, 0, [], []) do
+      {0, [], []} ->
         domain =
           clauses
           |> Enum.map(fn {args, _} -> args end)
@@ -564,9 +599,24 @@ defmodule Module.Types.Apply do
 
         {:error, domain, clauses}
 
-      returns ->
-        {:ok, returns |> Enum.reduce(&union/2) |> dynamic()}
+      {count, used, _returns} when count > @max_clauses ->
+        {:ok, used, dynamic()}
+
+      {_count, used, returns} ->
+        {:ok, used, returns |> Enum.reduce(&union/2) |> dynamic()}
     end
+  end
+
+  defp apply_clauses([{expected, return} | clauses], args_types, index, count, used, returns) do
+    if zip_not_disjoint?(args_types, expected) do
+      apply_clauses(clauses, args_types, index + 1, count + 1, [index | used], [return | returns])
+    else
+      apply_clauses(clauses, args_types, index + 1, count, used, returns)
+    end
+  end
+
+  defp apply_clauses([], _args_types, _index, count, used, returns) do
+    {count, used, returns}
   end
 
   defp zip_compatible_or_only_gradual?([actual | actuals], [expected | expecteds]) do
@@ -622,25 +672,49 @@ defmodule Module.Types.Apply do
     }
   end
 
+  def format_diagnostic({:badlocal, expr, args_types, domain, clauses, context}) do
+    traces = collect_traces(expr, context)
+    converter = &Function.identity/1
+    {fun, _, _} = expr
+
+    explanation =
+      empty_arg_reason(args_types) ||
+        """
+        but expected one of:
+        #{clauses_args_to_quoted_string(clauses, converter)}
+        """
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          incompatible types given to #{fun}/#{length(args_types)}:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          given types:
+
+              #{args_to_quoted_string(args_types, domain, converter) |> indent(4)}
+
+          """,
+          explanation,
+          format_traces(traces)
+        ])
+    }
+  end
+
   def format_diagnostic({:badremote, expr, args_types, domain, clauses, context}) do
     traces = collect_traces(expr, context)
     {{:., _, [mod, fun]}, _, args} = expr
     {mod, fun, args, converter} = :elixir_rewrite.erl_to_ex(mod, fun, args)
 
     explanation =
-      if i = Enum.find_index(args_types, &empty?/1) do
-        """
-        the #{integer_to_ordinal(i + 1)} argument is empty (often represented as none()), \
-        most likely because it is the result of an expression that always fails, such as \
-        a `raise` or a previous invalid call. This causes any function called with this \
-        value to fail
-        """
-      else
+      empty_arg_reason(converter.(args_types)) ||
         """
         but expected one of:
         #{clauses_args_to_quoted_string(clauses, converter)}
         """
-      end
 
     %{
       details: %{typing_traces: traces},
@@ -760,6 +834,17 @@ defmodule Module.Types.Apply do
         ]),
       group: true
     }
+  end
+
+  defp empty_arg_reason(args_types) do
+    if i = Enum.find_index(args_types, &empty?/1) do
+      """
+      the #{integer_to_ordinal(i + 1)} argument is empty (often represented as none()), \
+      most likely because it is the result of an expression that always fails, such as \
+      a `raise` or a previous invalid call. This causes any function called with this \
+      value to fail
+      """
+    end
   end
 
   defp pluralize(1, singular, _), do: "1 #{singular}"

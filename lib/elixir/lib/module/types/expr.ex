@@ -397,22 +397,22 @@ defmodule Module.Types.Expr do
   end
 
   # TODO: &foo/1
-  def of_expr({:&, _meta, _arg}, _stack, context) do
-    {fun(), context}
+  def of_expr({:&, _meta, [{:/, _, [{fun, meta, _}, arity]}]}, stack, context) do
+    Apply.local_capture(fun, arity, meta, stack, context)
   end
 
   # Super
-  def of_expr({:super, meta, args}, stack, context) when is_list(args) do
+  def of_expr({:super, meta, args} = expr, stack, context) when is_list(args) do
     {_kind, fun} = Keyword.fetch!(meta, :super)
     {args_types, context} = Enum.map_reduce(args, context, &of_expr(&1, stack, &2))
-    Apply.local(fun, args_types, meta, stack, context)
+    Apply.local(fun, args_types, expr, stack, context)
   end
 
   # Local calls
-  def of_expr({fun, meta, args}, stack, context)
+  def of_expr({fun, _meta, args} = expr, stack, context)
       when is_atom(fun) and is_list(args) do
     {args_types, context} = Enum.map_reduce(args, context, &of_expr(&1, stack, &2))
-    Apply.local(fun, args_types, meta, stack, context)
+    Apply.local(fun, args_types, expr, stack, context)
   end
 
   # var

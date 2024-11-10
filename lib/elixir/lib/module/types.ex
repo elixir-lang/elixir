@@ -1,11 +1,10 @@
 defmodule Module.Types do
   @moduledoc false
 
-  alias Module.Types.{Descr, Expr, Pattern}
+  alias Module.Types.{Descr, Expr, Pattern, Helpers}
 
-  # TODO: Local captures
-  # TODO: Inference of tail recursion
-  # TODO: Checking of unused private functions/clauses
+  # TODO: Consider passing inferred types from infer into warnings
+  # TODO: Consider removing code from locals tracker
 
   # These functions are not inferred because they are added/managed by the compiler
   @no_infer [__protocol__: 1, behaviour_info: 1]
@@ -42,33 +41,61 @@ defmodule Module.Types do
         context
       end)
 
+    context =
+      for {fun_arity, pending} <- context.local_used, pending != [], reduce: context do
+        context ->
+          {_fun_arity, kind, _meta, clauses} = List.keyfind(defs, fun_arity, 0)
+          {_kind, _inferred, mapping} = Map.fetch!(context.local_sigs, fun_arity)
+
+          clauses_indexes =
+            for type_index <- pending, {clause_index, ^type_index} <- mapping, do: clause_index
+
+          Enum.reduce(clauses_indexes, context, fn clause_index, context ->
+            {meta, _args, _guards, _body} = Enum.fetch!(clauses, clause_index)
+            stack = %{stack | function: fun_arity}
+            Helpers.warn(__MODULE__, {:unused_clause, kind, fun_arity}, meta, stack, context)
+          end)
+      end
+
     context.warnings
   end
 
   defp local_handler(fun_arity, stack, context, finder) do
-    case context.local_state do
-      %{^fun_arity => {kind, inferred}} ->
+    case context.local_sigs do
+      %{^fun_arity => {kind, inferred, _mapping}} ->
         {kind, inferred, context}
 
-      local_state ->
+      %{^fun_arity => kind} when is_atom(kind) ->
+        {kind, :none, context}
+
+      local_sigs ->
         {{fun, arity}, kind, meta, clauses} =
           finder.(fun_arity) || raise "could not find #{inspect(fun_arity)}"
 
         expected = List.duplicate(Descr.dynamic(), arity)
         stack = stack |> fresh_stack(fun_arity) |> with_file_meta(meta)
-        context = put_in(context.local_state, Map.put(local_state, fun_arity, {kind, :none}))
+        context = put_in(context.local_sigs, Map.put(local_sigs, fun_arity, kind))
 
-        {clauses_types, clauses_context} =
-          Enum.reduce(clauses, {[], context}, fn
-            {meta, args, guards, body}, {inferred, context} ->
+        {_, _, mapping, clauses_types, clauses_context} =
+          Enum.reduce(clauses, {0, 0, [], [], context}, fn
+            {meta, args, guards, body}, {index, total, mapping, inferred, context} ->
               context = fresh_context(context)
 
               try do
                 {args_types, context} =
                   Pattern.of_head(args, guards, expected, :default, meta, stack, context)
 
-                {return_type, context} = Expr.of_expr(body, stack, context)
-                {add_inferred(inferred, args_types, return_type, []), context}
+                {return_type, context} =
+                  Expr.of_expr(body, stack, context)
+
+                {type_index, inferred} =
+                  add_inferred(inferred, args_types, return_type, total - 1, [])
+
+                if type_index == -1 do
+                  {index + 1, total + 1, [{index, total} | mapping], inferred, context}
+                else
+                  {index + 1, total, [{index, type_index} | mapping], inferred, context}
+                end
               rescue
                 e ->
                   internal_error!(e, __STACKTRACE__, kind, meta, fun, args, guards, body, stack)
@@ -76,21 +103,23 @@ defmodule Module.Types do
           end)
 
         inferred = {:infer, Enum.reverse(clauses_types)}
-        context = update_in(context.local_state, &Map.put(&1, fun_arity, {kind, inferred}))
-        {kind, inferred, restore_context(context, clauses_context)}
+        triplet = {kind, inferred, mapping}
+        context = restore_context(context, clauses_context)
+        context = update_in(context.local_sigs, &Map.put(&1, fun_arity, triplet))
+        {kind, inferred, context}
     end
   end
 
   # We check for term equality of types as an optimization
   # to reduce the amount of check we do at runtime.
-  defp add_inferred([{args, existing_return} | tail], args, return, acc),
-    do: Enum.reverse(acc, [{args, Descr.union(existing_return, return)} | tail])
+  defp add_inferred([{args, existing_return} | tail], args, return, index, acc),
+    do: {index, Enum.reverse(acc, [{args, Descr.union(existing_return, return)} | tail])}
 
-  defp add_inferred([head | tail], args, return, acc),
-    do: add_inferred(tail, args, return, [head | acc])
+  defp add_inferred([head | tail], args, return, index, acc),
+    do: add_inferred(tail, args, return, index - 1, [head | acc])
 
-  defp add_inferred([], args, return, acc),
-    do: [{args, return} | Enum.reverse(acc)]
+  defp add_inferred([], args, return, -1, acc),
+    do: {-1, [{args, return} | Enum.reverse(acc)]}
 
   defp with_file_meta(stack, meta) do
     case Keyword.fetch(meta, :file) do
@@ -171,7 +200,7 @@ defmodule Module.Types do
   end
 
   @doc false
-  def context(local_state) do
+  def context(local_sigs) do
     %{
       # A list of all warnings found so far
       warnings: [],
@@ -181,8 +210,10 @@ defmodule Module.Types do
       pattern_info: nil,
       # If type checking has found an error/failure
       failed: false,
-      # Local state
-      local_state: local_state
+      # Local signatures
+      local_sigs: local_sigs,
+      # Local clauses
+      local_used: %{}
     }
   end
 
@@ -196,5 +227,13 @@ defmodule Module.Types do
 
   defp restore_context(%{vars: vars, failed: failed}, later_context) do
     %{later_context | vars: vars, failed: failed}
+  end
+
+  ## Diagnostics
+
+  def format_diagnostic({:unused_clause, kind, {fun, arity}}) do
+    %{
+      message: "this clause of #{kind} #{fun}/#{arity} is never used"
+    }
   end
 end

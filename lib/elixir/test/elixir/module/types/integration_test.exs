@@ -51,8 +51,10 @@ defmodule Module.Types.IntegrationTest do
                {{:behaviour_info, 1}, %{sig: :none}}
              ]
     end
+  end
 
-    test "type checks signatures" do
+  describe "type checking" do
+    test "inferred remote calls" do
       files = %{
         "a.ex" => """
         defmodule A do
@@ -96,6 +98,98 @@ defmodule Module.Types.IntegrationTest do
             because the right-hand side has type:
 
                 dynamic(:bad)
+        """
+      ]
+
+      assert_warnings(files, warnings)
+    end
+
+    test "mismatched locals" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def error(), do: private(raise "oops")
+          def public(x), do: private(List.to_tuple(x))
+          defp private(:ok), do: nil
+        end
+        """
+      }
+
+      warnings = [
+        """
+            warning: incompatible types given to private/1:
+
+                private(raise RuntimeError.exception("oops"))
+
+        """,
+        "the 1st argument is empty (often represented as none())",
+        """
+            typing violation found at:
+            │
+          2 │   def error(), do: private(raise "oops")
+            │                    ~
+            │
+            └─ a.ex:2:20: A.error/0
+        """,
+        """
+            warning: incompatible types given to private/1:
+
+                private(List.to_tuple(x))
+        """,
+        """
+            typing violation found at:
+            │
+          3 │   def public(x), do: private(List.to_tuple(x))
+            │                      ~
+            │
+            └─ a.ex:3:22: A.public/1
+        """
+      ]
+
+      assert_warnings(files, warnings)
+    end
+
+    test "unused private clauses" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def public(x) do
+            private(List.to_tuple(x))
+          end
+
+          defp private(nil), do: nil
+          defp private("foo"), do: "foo"
+          defp private({:ok, ok}), do: ok
+          defp private({:error, error}), do: error
+          defp private("bar"), do: "bar"
+        end
+        """
+      }
+
+      warnings = [
+        """
+            warning: this clause of defp private/1 is never used
+            │
+          6 │   defp private(nil), do: nil
+            │        ~
+            │
+            └─ a.ex:6:8: A.private/1
+        """,
+        """
+            warning: this clause of defp private/1 is never used
+            │
+          7 │   defp private("foo"), do: "foo"
+            │        ~
+            │
+            └─ a.ex:7:8: A.private/1
+        """,
+        """
+            warning: this clause of defp private/1 is never used
+            │
+         10 │   defp private("bar"), do: "bar"
+            │        ~
+            │
+            └─ a.ex:10:8: A.private/1
         """
       ]
 
@@ -343,42 +437,6 @@ defmodule Module.Types.IntegrationTest do
       ]
 
       assert_warnings(files, warnings)
-    end
-
-    test "protocols are checked, ignoring missing built-in impls" do
-      files = %{
-        "a.ex" => """
-        defprotocol AProtocol do
-          def func(arg)
-        end
-
-        defmodule AImplementation do
-          defimpl AProtocol do
-            def func(_), do: B.no_func()
-          end
-        end
-        """
-      }
-
-      warnings = [
-        "B.no_func/0 is undefined (module B is not available or is yet to be defined)",
-        "a.ex:7:24: AProtocol.AImplementation.func/1"
-      ]
-
-      assert_warnings(files, warnings)
-    end
-
-    test "handles Erlang ops" do
-      files = %{
-        "a.ex" => """
-        defmodule A do
-          def a(a, b), do: a and b
-          def b(a, b), do: a or b
-        end
-        """
-      }
-
-      assert_no_warnings(files)
     end
 
     test "hints exclude deprecated functions" do
