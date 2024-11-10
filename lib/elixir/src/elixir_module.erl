@@ -173,12 +173,7 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
           false -> ok
         end,
 
-        Signatures = case elixir_config:get(infer_signatures) of
-          true -> 'Elixir.Module.Types':infer(Module, File, AllDefinitions, CallbackE);
-          false -> #{}
-        end,
-
-        ModuleMap = #{
+        ModuleMapWithoutSignatures = #{
           struct => get_struct(DataSet),
           module => Module,
           anno => Anno,
@@ -192,12 +187,12 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
           deprecated => get_deprecated(DataBag),
           defines_behaviour => defines_behaviour(DataBag),
           impls => Impls,
-          signatures => Signatures
+          signatures => #{}
         },
 
+        ModuleMap = spawn_parallel_checker(CheckerInfo, ModuleMapWithoutSignatures, CallbackE),
         Binary = elixir_erl:compile(ModuleMap),
         Autoload = proplists:get_value(autoload, CompileOpts, true),
-        spawn_parallel_checker(CheckerInfo, Module, ModuleMap),
         {Binary, PersistedAttributes, Autoload}
       end),
 
@@ -207,7 +202,7 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
     elixir_env:trace({on_module, Binary, none}, ModuleE),
     warn_unused_attributes(DataSet, DataBag, PersistedAttributes, E),
     make_module_available(Module, Binary),
-    (CheckerInfo == undefined) andalso
+    (CheckerInfo == nil) andalso
       [VerifyMod:VerifyFun(Module) ||
        {VerifyMod, VerifyFun} <- bag_lookup_element(DataBag, {accumulate, after_verify}, 2)],
     {module, Module, Binary, Result}
@@ -534,19 +529,26 @@ beam_location(ModuleAsCharlist) ->
 
 checker_info() ->
   case get(elixir_checker_info) of
-    undefined -> undefined;
+    undefined -> nil;
     _ -> 'Elixir.Module.ParallelChecker':get()
   end.
 
-spawn_parallel_checker(undefined, _Module, _ModuleMap) ->
-  ok;
-spawn_parallel_checker(CheckerInfo, Module, ModuleMap) ->
+spawn_parallel_checker(CheckerInfo, ModuleMap, E) ->
   Log =
     case erlang:get(elixir_code_diagnostics) of
       {_, false} -> false;
       _ -> true
     end,
-  'Elixir.Module.ParallelChecker':spawn(CheckerInfo, Module, ModuleMap, Log).
+
+  Infer = elixir_config:get(infer_signatures),
+
+  if
+    %% We need this clause for bootstrap reasons
+    CheckerInfo /= nil; Infer ->
+      'Elixir.Module.ParallelChecker':spawn(CheckerInfo, ModuleMap, Log, Infer, E);
+    true ->
+      ModuleMap
+  end.
 
 make_module_available(Module, Binary) ->
   case get(elixir_module_binaries) of

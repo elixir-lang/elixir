@@ -5,7 +5,6 @@ defmodule Module.ParallelChecker do
 
   @type cache() :: {pid(), :ets.tid()}
   @type warning() :: term()
-  @type kind() :: :def | :defmacro
   @type mode() :: :elixir | :erlang
 
   @doc """
@@ -48,7 +47,25 @@ defmodule Module.ParallelChecker do
   @doc """
   Spawns a process that runs the parallel checker.
   """
-  def spawn({pid, checker}, module, info, log?) do
+  def spawn(pid_checker, module_map, log?, infer_types?, env) do
+    %{module: module, definitions: definitions, file: file} = module_map
+
+    module_map =
+      if infer_types? do
+        %{module_map | signatures: Module.Types.infer(module, file, definitions, env)}
+      else
+        module_map
+      end
+
+    with {pid, checker} <- pid_checker do
+      ets = :gen_server.call(checker, :ets, :infinity)
+      inner_spawn(pid, checker, module, cache_from_module_map(ets, module_map), log?)
+    end
+
+    module_map
+  end
+
+  defp inner_spawn(pid, checker, module, info, log?) do
     ref = make_ref()
 
     spawned =
@@ -59,17 +76,22 @@ defmodule Module.ParallelChecker do
           {^ref, :cache, ets} ->
             Process.link(pid)
 
-            module_map =
-              if is_map(info) do
-                info
-              else
-                case File.read(info) do
-                  {:ok, binary} -> maybe_module_map(binary, module)
-                  {:error, _} -> nil
-                end
+            module_tuple =
+              cond do
+                is_tuple(info) ->
+                  info
+
+                is_binary(info) ->
+                  with {:ok, binary} <- File.read(info),
+                       {:ok, {_, [debug_info: chunk]}} <- :beam_lib.chunks(binary, [:debug_info]),
+                       {:debug_info_v1, backend, data} = chunk,
+                       {:ok, module_map} <- backend.debug_info(:elixir_v1, module, data, []) do
+                    cache_from_module_map(ets, module_map)
+                  else
+                    _ -> nil
+                  end
               end
 
-            module_map && cache_from_module_map(ets, module_map)
             send(checker, {ref, :cached})
 
             receive do
@@ -78,8 +100,8 @@ defmodule Module.ParallelChecker do
                 :erlang.put(:elixir_compiler_info, {pid, self()})
 
                 warnings =
-                  if module_map do
-                    check_module(module_map, {checker, ets}, log?)
+                  if module_tuple do
+                    check_module(module_tuple, {checker, ets}, log?)
                   else
                     []
                   end
@@ -147,7 +169,7 @@ defmodule Module.ParallelChecker do
     log? = not match?({_, false}, value)
 
     for {module, file} <- runtime_files do
-      spawn({self(), checker}, module, file, log?)
+      inner_spawn(self(), checker, module, file, log?)
     end
 
     count = :gen_server.call(checker, :start, :infinity)
@@ -212,29 +234,9 @@ defmodule Module.ParallelChecker do
 
   ## Module checking
 
-  defp check_module(module_map, cache, log?) do
-    %{
-      module: module,
-      file: file,
-      compile_opts: compile_opts,
-      definitions: definitions,
-      attributes: attributes,
-      impls: impls
-    } = module_map
-
-    # TODO: Match on anno directly in Elixir v1.22+
-    line =
-      case module_map do
-        %{anno: anno} -> :erl_anno.line(anno)
-        %{line: line} -> line
-      end
-
-    behaviours = for {:behaviour, module} <- attributes, do: module
-
-    no_warn_undefined =
-      compile_opts
-      |> extract_no_warn_undefined()
-      |> merge_compiler_no_warn_undefined()
+  defp check_module(module_tuple, cache, log?) do
+    {module, file, line, definitions, no_warn_undefined, behaviours, impls, after_verify} =
+      module_tuple
 
     behaviour_warnings =
       Module.Behaviour.check_behaviours_and_impls(
@@ -253,11 +255,39 @@ defmodule Module.ParallelChecker do
       |> group_warnings()
       |> emit_warnings(log?)
 
-    module_map
-    |> Map.get(:after_verify, [])
-    |> Enum.each(fn {verify_mod, verify_fun} -> apply(verify_mod, verify_fun, [module]) end)
+    Enum.each(after_verify, fn {verify_mod, verify_fun} ->
+      apply(verify_mod, verify_fun, [module])
+    end)
 
     diagnostics
+  end
+
+  defp module_map_to_module_tuple(module_map) do
+    %{
+      module: module,
+      file: file,
+      compile_opts: compile_opts,
+      definitions: definitions,
+      attributes: attributes,
+      impls: impls,
+      after_verify: after_verify
+    } = module_map
+
+    # TODO: Match on anno directly in Elixir v1.22+
+    line =
+      case module_map do
+        %{anno: anno} -> :erl_anno.line(anno)
+        %{line: line} -> line
+      end
+
+    behaviours = for {:behaviour, module} <- attributes, do: module
+
+    no_warn_undefined =
+      compile_opts
+      |> extract_no_warn_undefined()
+      |> merge_compiler_no_warn_undefined()
+
+    {module, file, line, definitions, no_warn_undefined, behaviours, impls, after_verify}
   end
 
   defp extract_no_warn_undefined(compile_opts) do
@@ -400,18 +430,6 @@ defmodule Module.ParallelChecker do
     _ -> %{}
   end
 
-  defp maybe_module_map(binary, module) when is_binary(binary) do
-    # If a module was compiled without debug_info,
-    # then there is no module_map for further verification.
-    with {:ok, {_, [debug_info: chunk]}} <- :beam_lib.chunks(binary, [:debug_info]),
-         {:debug_info_v1, backend, data} = chunk,
-         {:ok, module_map} <- backend.debug_info(:elixir_v1, module, data, []) do
-      module_map
-    else
-      _ -> nil
-    end
-  end
-
   defp cache_from_module_map(ets, map) do
     exports =
       [{:__info__, 1}] ++
@@ -419,6 +437,7 @@ defmodule Module.ParallelChecker do
         for({function, :def, _meta, _clauses} <- map.definitions, do: function)
 
     cache_info(ets, map.module, exports, Map.new(map.deprecated), map.signatures, :elixir)
+    module_map_to_module_tuple(map)
   end
 
   defp cache_info(ets, module, exports, deprecated, sigs, mode) do

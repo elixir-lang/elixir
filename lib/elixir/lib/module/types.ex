@@ -29,7 +29,6 @@ defmodule Module.Types do
           end
         end)
 
-      # TODO: Reuse context from patterns and guards
       {{fun, arity}, {:infer, Enum.reverse(pair_types)}}
     end
   end
