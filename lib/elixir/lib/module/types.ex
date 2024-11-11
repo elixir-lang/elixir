@@ -10,7 +10,7 @@ defmodule Module.Types do
   @no_infer [__protocol__: 1, behaviour_info: 1]
 
   @doc false
-  def infer(module, file, defs, env) do
+  def infer(module, file, defs, private, used, env) do
     finder = &List.keyfind(defs, &1, 0)
     handler = &local_handler(&1, &2, &3, finder)
     stack = stack(:infer, file, module, {:__info__, 1}, :all, env, handler)
@@ -31,12 +31,53 @@ defmodule Module.Types do
       end
 
     unreachable =
-      for {fun_arity, kind, meta, _clauses} <- defs,
-          kind == :defp or kind == :defmacrop,
+      for {fun_arity, _kind, _meta, _defaults} = info <- private,
+          maybe_warn_unused(info, local_sigs, used, env),
           not is_map_key(local_sigs, fun_arity),
-          do: {fun_arity, meta}
+          do: fun_arity
 
     {Map.new(types), unreachable}
+  end
+
+  defp maybe_warn_unused({_fun_arity, _kind, false, _}, _reachable, _used, _env) do
+    :ok
+  end
+
+  defp maybe_warn_unused({fun_arity, kind, meta, 0}, reachable, used, env) do
+    case meta == false or Map.has_key?(reachable, fun_arity) or fun_arity in used do
+      true -> :ok
+      false -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_def, fun_arity, kind})
+    end
+
+    :ok
+  end
+
+  defp maybe_warn_unused({tuple, kind, meta, default}, reachable, used, env) when default > 0 do
+    {name, arity} = tuple
+    min = arity - default
+    max = arity
+
+    case min_reachable_default(max, min, :none, name, reachable, used) do
+      :none -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_def, tuple, kind})
+      ^min -> :ok
+      ^max -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_args, tuple})
+      diff -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_args, tuple, diff})
+    end
+
+    :ok
+  end
+
+  defp min_reachable_default(max, min, last, name, reachable, used) when max >= min do
+    fun_arity = {name, max}
+
+    case Map.has_key?(reachable, fun_arity) or fun_arity in used do
+      true -> min_reachable_default(max - 1, min, max, name, reachable, used)
+      false -> min_reachable_default(max - 1, min, last, name, reachable, used)
+    end
+  end
+
+  defp min_reachable_default(_max, _min, last, _name, _reachable, _used) do
+    last
   end
 
   @doc false
@@ -247,4 +288,22 @@ defmodule Module.Types do
       message: "this clause of #{kind} #{fun}/#{arity} is never used"
     }
   end
+
+  ## Module errors
+
+  def format_error({:unused_args, {name, arity}}),
+    do: "default values for the optional arguments in #{name}/#{arity} are never used"
+
+  def format_error({:unused_args, {name, arity}, count}) when arity - count == 1,
+    do: "the default value for the last optional argument in #{name}/#{arity} is never used"
+
+  def format_error({:unused_args, {name, arity}, count}),
+    do:
+      "the default values for the last #{arity - count} optional arguments in #{name}/#{arity} are never used"
+
+  def format_error({:unused_def, {name, arity}, :defp}),
+    do: "function #{name}/#{arity} is unused"
+
+  def format_error({:unused_def, {name, arity}, :defmacrop}),
+    do: "macro #{name}/#{arity} is unused"
 end

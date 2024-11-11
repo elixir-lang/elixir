@@ -147,7 +147,7 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
         NifsAttribute = lists:keyfind(nifs, 1, Attributes),
         validate_nifs_attribute(NifsAttribute, AllDefinitions, Line, E),
 
-        Unreachable = elixir_locals:warn_unused_local(Module, AllDefinitions, NewPrivate, E),
+        % Unreachable = elixir_locals:warn_unused_local(Module, AllDefinitions, NewPrivate, E),
         elixir_locals:ensure_no_undefined_local(Module, AllDefinitions, E),
         elixir_locals:ensure_no_import_conflict(Module, AllDefinitions, E),
 
@@ -160,20 +160,14 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
          'Elixir.Module':'__check_attributes__'(E, DataSet, DataBag),
 
         RawCompileOpts = bag_lookup_element(DataBag, {accumulate, compile}, 2),
-        CompileOpts = validate_compile_opts(RawCompileOpts, AllDefinitions, Unreachable, Line, E),
+        CompileOpts = validate_compile_opts(RawCompileOpts, AllDefinitions, Line, E),
         Impls = bag_lookup_element(DataBag, impls, 2),
 
         AfterVerify = bag_lookup_element(DataBag, {accumulate, after_verify}, 2),
         [elixir_env:trace({remote_function, [], VerifyMod, VerifyFun, 1}, CallbackE) ||
          {VerifyMod, VerifyFun} <- AfterVerify],
 
-        %% Compute signatures only if the module is valid.
-        case ets:member(DataSet, {elixir, taint}) of
-          true -> elixir_errors:compile_error(E);
-          false -> ok
-        end,
-
-        ModuleMapWithoutSignatures = #{
+        PartialModuleMap = #{
           struct => get_struct(DataSet),
           module => Module,
           anno => Anno,
@@ -181,16 +175,20 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
           relative_file => elixir_utils:relative_to_cwd(File),
           attributes => Attributes,
           definitions => AllDefinitions,
-          unreachable => Unreachable,
           after_verify => AfterVerify,
           compile_opts => CompileOpts,
           deprecated => get_deprecated(DataBag),
           defines_behaviour => defines_behaviour(DataBag),
           impls => Impls,
+          unreachable => [],
           signatures => #{}
         },
 
-        ModuleMap = spawn_parallel_checker(CheckerInfo, ModuleMapWithoutSignatures, CallbackE),
+        %% Compute signatures only if the module is valid.
+        compile_error_if_tainted(DataSet, E),
+        ModuleMap = spawn_parallel_checker(DataBag, CheckerInfo, PartialModuleMap, NewPrivate, E),
+        compile_error_if_tainted(DataSet, E),
+
         Binary = elixir_erl:compile(ModuleMap),
         Autoload = proplists:get_value(autoload, CompileOpts, true),
         {Binary, PersistedAttributes, Autoload}
@@ -223,41 +221,33 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
     elixir_code_server:call({undefmodule, Ref})
   end.
 
-validate_compile_opts(Opts, Defs, Unreachable, Line, E) ->
-  lists:flatmap(fun (Opt) -> validate_compile_opt(Opt, Defs, Unreachable, Line, E) end, Opts).
+compile_error_if_tainted(DataSet, E) ->
+  case ets:member(DataSet, {elixir, taint}) of
+    true -> elixir_errors:compile_error(E);
+    false -> ok
+  end.
+
+validate_compile_opts(Opts, Defs, Line, E) ->
+  lists:flatmap(fun (Opt) -> validate_compile_opt(Opt, Defs, Line, E) end, Opts).
 
 %% TODO: Make this an error on v2.0
-validate_compile_opt({parse_transform, Module} = Opt, _Defs, _Unreachable, Line, E) ->
+validate_compile_opt({parse_transform, Module} = Opt, _Defs, Line, E) ->
   elixir_errors:file_warn([{line, Line}], E, ?MODULE, {parse_transform, Module}),
   [Opt];
-validate_compile_opt({inline, Inlines}, Defs, Unreachable, Line, E) ->
-  case validate_inlines(Inlines, Defs, Unreachable, []) of
-    {ok, []} ->
-      [];
-    {ok, FilteredInlines} ->
-      [{inline, FilteredInlines}];
-    {error, Reason} ->
-      elixir_errors:module_error([{line, Line}], E, ?MODULE, Reason),
-      []
-  end;
-validate_compile_opt(Opt, Defs, Unreachable, Line, E) when is_list(Opt) ->
-  validate_compile_opts(Opt, Defs, Unreachable, Line, E);
-validate_compile_opt(Opt, _Defs, _Unreachable, _Line, _E) ->
-  [Opt].
-
-validate_inlines([Inline | Inlines], Defs, Unreachable, Acc) ->
-  case lists:keyfind(Inline, 1, Defs) of
+validate_compile_opt({inline, Inlines} = Opt, Defs, Line, E) ->
+  [case lists:keyfind(Inline, 1, Defs) of
     false ->
-      {error, {undefined_function, {compile, inline}, Inline}};
+      elixir_errors:module_error([{line, Line}], E, ?MODULE, {undefined_function, {compile, inline}, Inline});
     {_Def, Type, _Meta, _Clauses} when Type == defmacro; Type == defmacrop ->
-      {error, {bad_macro, {compile, inline}, Inline}};
+      elixir_errors:module_error([{line, Line}], E, ?MODULE, {bad_macro, {compile, inline}, Inline});
     _ ->
-      case lists:member(Inline, Unreachable) of
-        true -> validate_inlines(Inlines, Defs, Unreachable, Acc);
-        false -> validate_inlines(Inlines, Defs, Unreachable, [Inline | Acc])
-      end
-  end;
-validate_inlines([], _Defs, _Unreachable, Acc) -> {ok, Acc}.
+      ok
+  end || Inline <- Inlines],
+  [Opt];
+validate_compile_opt(Opt, Defs, Line, E) when is_list(Opt) ->
+  validate_compile_opts(Opt, Defs, Line, E);
+validate_compile_opt(Opt, _Defs, _Line, _E) ->
+  [Opt].
 
 validate_on_load_attribute({on_load, Def}, Defs, Private, Line, E) ->
   case lists:keyfind(Def, 1, Defs) of
@@ -533,19 +523,18 @@ checker_info() ->
     _ -> 'Elixir.Module.ParallelChecker':get()
   end.
 
-spawn_parallel_checker(CheckerInfo, ModuleMap, E) ->
+spawn_parallel_checker(DataBag, CheckerInfo, ModuleMap, Private, E) ->
   Log =
     case erlang:get(elixir_code_diagnostics) of
       {_, false} -> false;
       _ -> true
     end,
 
-  if
-    %% We need this clause for bootstrap reasons
-    CheckerInfo /= nil ->
-      'Elixir.Module.ParallelChecker':spawn(CheckerInfo, ModuleMap, Log, E);
-    true ->
-      ModuleMap
+  Used = bag_lookup_element(DataBag, macro_private_calls, 2),
+
+  case elixir_config:is_bootstrap() of
+    true -> ModuleMap;
+    false -> 'Elixir.Module.ParallelChecker':spawn(CheckerInfo, ModuleMap, Log, Private, Used, E)
   end.
 
 make_module_available(Module, Binary) ->
