@@ -115,6 +115,17 @@ defmodule Module.Types.Of do
   @doc """
   Builds permutation of maps according to the given keys.
   """
+  def permutate_map(pairs, %{mode: :traversal} = stack, context, of_fun, _of_map) do
+    context =
+      Enum.reduce(pairs, context, fn {key, value}, context ->
+        {_, context} = of_fun.(key, stack, context)
+        {_, context} = of_fun.(value, stack, context)
+        context
+      end)
+
+    {dynamic(), context}
+  end
+
   def permutate_map(pairs, stack, context, of_fun, of_map) do
     {dynamic?, fallback, single, multiple, assert, context} =
       Enum.reduce(pairs, {false, none(), [], [], [], context}, fn

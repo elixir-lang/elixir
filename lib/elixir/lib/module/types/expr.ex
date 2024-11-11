@@ -78,14 +78,35 @@ defmodule Module.Types.Expr do
     {prefix, suffix} = unpack_list(list, [])
     {prefix, context} = Enum.map_reduce(prefix, context, &of_expr(&1, stack, &2))
     {suffix, context} = of_expr(suffix, stack, context)
-    {non_empty_list(Enum.reduce(prefix, &union/2), suffix), context}
+
+    if stack.mode == :traversal do
+      {dynamic(), context}
+    else
+      {non_empty_list(Enum.reduce(prefix, &union/2), suffix), context}
+    end
   end
 
   # {left, right}
   def of_expr({left, right}, stack, context) do
     {left, context} = of_expr(left, stack, context)
     {right, context} = of_expr(right, stack, context)
-    {tuple([left, right]), context}
+
+    if stack.mode == :traversal do
+      {dynamic(), context}
+    else
+      {tuple([left, right]), context}
+    end
+  end
+
+  # {...}
+  def of_expr({:{}, _meta, exprs}, stack, context) do
+    {types, context} = Enum.map_reduce(exprs, context, &of_expr(&1, stack, &2))
+
+    if stack.mode == :traversal do
+      {dynamic(), context}
+    else
+      {tuple(types), context}
+    end
   end
 
   # <<...>>>
@@ -101,12 +122,6 @@ defmodule Module.Types.Expr do
   def of_expr({:__STACKTRACE__, _meta, var_context}, _stack, context)
       when is_atom(var_context) do
     {@stacktrace, context}
-  end
-
-  # {...}
-  def of_expr({:{}, _meta, exprs}, stack, context) do
-    {types, context} = Enum.map_reduce(exprs, context, &of_expr(&1, stack, &2))
-    {tuple(types), context}
   end
 
   # left = right
