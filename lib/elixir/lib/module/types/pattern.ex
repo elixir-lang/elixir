@@ -25,6 +25,10 @@ defmodule Module.Types.Pattern do
      is refined, we restart at step 2.
 
   """
+  def of_head(_patterns, _guards, expected, _tag, _meta, %{mode: :traversal}, context) do
+    {expected, context}
+  end
+
   def of_head(patterns, guards, expected, tag, meta, stack, context) do
     stack = %{stack | meta: meta}
 
@@ -98,7 +102,13 @@ defmodule Module.Types.Pattern do
   This version tracks the whole expression in tracing,
   instead of only the pattern.
   """
-  def of_match(pattern, guards \\ [], expected, expr, tag, stack, context) do
+  def of_match(pattern, guards \\ [], expected, expr, tag, stack, context)
+
+  def of_match(_pattern, _guards, expected, _expr, _tag, %{mode: :traversal}, context) do
+    {expected, context}
+  end
+
+  def of_match(pattern, guards, expected, expr, tag, stack, context) do
     context = init_pattern_info(context)
     {tree, context} = of_pattern(pattern, [{:arg, 0, expr}], stack, context)
 

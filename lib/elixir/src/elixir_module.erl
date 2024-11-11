@@ -187,8 +187,8 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
           case elixir_config:is_bootstrap() of
             true -> {#{}, []};
             false ->
-              Used = bag_lookup_element(DataBag, macro_private_calls, 2),
-              'Elixir.Module.Types':infer(Module, File, AllDefinitions, NewPrivate, Used, E)
+              Defmacrop = bag_lookup_element(DataBag, defmacrop_calls, 2),
+              'Elixir.Module.Types':infer(Module, File, AllDefinitions, NewPrivate, Defmacrop, E)
           end,
 
         RawCompileOpts = bag_lookup_element(DataBag, {accumulate, compile}, 2),

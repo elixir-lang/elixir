@@ -221,7 +221,7 @@ defmodule Module.Types.Expr do
         {head_type, context} = of_expr(head, stack, context)
 
         context =
-          if stack.mode == :infer do
+          if stack.mode in [:infer, :traversal] do
             context
           else
             case truthness(head_type) do
@@ -386,14 +386,19 @@ defmodule Module.Types.Expr do
       )
       when is_atom(name) and is_integer(arity) do
     {remote_type, context} = of_expr(remote, stack, context)
+
     # TODO: We cannot return the unions of functions. Do we forbid this?
     # Do we check it is always the same return type? Do we simply say it is a function?
     {mods, context} = Of.modules(remote_type, name, arity, expr, meta, stack, context)
 
     context =
-      Enum.reduce(mods, context, &(Apply.signature(&1, name, arity, meta, stack, &2) |> elem(1)))
+      Enum.reduce(
+        mods,
+        context,
+        &(Apply.signature(&1, name, arity, meta, stack, &2) |> elem(1))
+      )
 
-    {fun(), context}
+    {dynamic(fun()), context}
   end
 
   # TODO: &foo/1
@@ -416,8 +421,12 @@ defmodule Module.Types.Expr do
   end
 
   # var
-  def of_expr(var, _stack, context) when is_var(var) do
-    {Of.var(var, context), context}
+  def of_expr(var, stack, context) when is_var(var) do
+    if stack.mode == :traversal do
+      {dynamic(), context}
+    else
+      {Of.var(var, context), context}
+    end
   end
 
   ## Try
@@ -551,7 +560,7 @@ defmodule Module.Types.Expr do
   defp dynamic_unless_static({_, _} = output, %{mode: :static}), do: output
   defp dynamic_unless_static({type, context}, %{mode: _}), do: {dynamic(type), context}
 
-  defp of_clauses(clauses, expected, info, stack, {acc, context}) do
+  defp of_clauses(clauses, expected, info, %{mode: mode} = stack, {acc, context}) do
     %{failed: failed?} = context
 
     Enum.reduce(clauses, {acc, context}, fn {:->, meta, [head, body]}, {acc, context} ->
@@ -559,7 +568,13 @@ defmodule Module.Types.Expr do
       {patterns, guards} = extract_head(head)
       {_types, context} = Pattern.of_head(patterns, guards, expected, info, meta, stack, context)
       {body, context} = of_expr(body, stack, context)
-      {union(acc, body), set_failed(context, failed?)}
+      context = set_failed(context, failed?)
+
+      if mode == :traversal do
+        {dynamic(), context}
+      else
+        {union(acc, body), context}
+      end
     end)
   end
 

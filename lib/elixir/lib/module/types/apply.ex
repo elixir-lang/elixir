@@ -2,7 +2,11 @@ defmodule Module.Types.Apply do
   # Typing functionality shared between Expr and Pattern.
   # Generic AST and Enum helpers go to Module.Types.Helpers.
   @moduledoc false
-  @max_clauses 32
+
+  # We limit the size of the union for two reasons:
+  # To avoid really large outputs in reports and to
+  # reduce the computation cost of inferred code.
+  @max_clauses 16
 
   alias Module.ParallelChecker
   import Module.Types.{Helpers, Descr}
@@ -188,7 +192,6 @@ defmodule Module.Types.Apply do
         {:erlang, :list_to_float, [{[non_empty_list(integer())], float()}]},
         {:erlang, :list_to_integer, [{[non_empty_list(integer())], integer()}]},
         {:erlang, :list_to_integer, [{[non_empty_list(integer()), integer()], integer()}]},
-        {:erlang, :list_to_tuple, [{[list(term())], dynamic(open_tuple([]))}]},
         {:erlang, :make_ref, [{[], reference()}]},
         {:erlang, :map_size, [{[open_map()], integer()}]},
         {:erlang, :node, [{[], atom()}]},
@@ -217,6 +220,7 @@ defmodule Module.Types.Apply do
         {:erlang, :element, [{[integer(), open_tuple([])], dynamic()}]},
         {:erlang, :insert_element,
          [{[integer(), open_tuple([]), term()], dynamic(open_tuple([]))}]},
+        {:erlang, :list_to_tuple, [{[list(term())], dynamic(open_tuple([]))}]},
         {:erlang, :max, [{[term(), term()], dynamic()}]},
         {:erlang, :min, [{[term(), term()], dynamic()}]},
         {:erlang, :orelse, [{[boolean(), term()], dynamic()}]},
@@ -256,6 +260,10 @@ defmodule Module.Types.Apply do
 
   Used only by info functions.
   """
+  def remote(_name, _args_types, _expr, %{mode: :traversal}, context) do
+    {dynamic(), context}
+  end
+
   def remote(name, args_types, expr, stack, context) do
     arity = length(args_types)
 
@@ -268,6 +276,10 @@ defmodule Module.Types.Apply do
   @doc """
   Applies a function in a given module.
   """
+  def remote(_module, _fun, _args_types, _expr, %{mode: :traversal}, context) do
+    {dynamic(), context}
+  end
+
   def remote(:erlang, :element, [_, tuple], {_, meta, [index, _]} = expr, stack, context)
       when is_integer(index) do
     case tuple_fetch(tuple, index - 1) do
@@ -515,11 +527,14 @@ defmodule Module.Types.Apply do
       false ->
         {dynamic(), context}
 
+      {_kind, _info, context} when stack.mode == :traversal ->
+        {dynamic(), context}
+
       {kind, info, context} ->
         case apply_signature(info, args_types, stack) do
           {:ok, indexes, type} ->
             context =
-              if stack != :infer and kind == :defp do
+              if stack.mode != :infer and kind == :defp do
                 update_in(context.local_used[fun_arity], fn current ->
                   if info == :none do
                     []
@@ -554,10 +569,13 @@ defmodule Module.Types.Apply do
 
     case stack.local_handler.(meta, fun_arity, stack, context) do
       false ->
+        {dynamic(fun()), context}
+
+      {_kind, _info, context} when stack.mode == :traversal ->
         {fun(), context}
 
       {kind, _info, context} ->
-        if stack != :infer and kind == :defp do
+        if stack.mode != :infer and kind == :defp do
           # Mark all clauses as used, as the function is being exported.
           {fun(), put_in(context.local_used[fun_arity], [])}
         else

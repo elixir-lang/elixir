@@ -6,7 +6,8 @@ defmodule Module.Types do
   @no_infer [__protocol__: 1, behaviour_info: 1]
 
   @doc false
-  def infer(module, file, defs, private, used, env) do
+  def infer(module, file, defs, private, defmacrop, env) do
+    defmacrop = Map.from_keys(defmacrop, [])
     finder = &:lists.keyfind(&1, 1, defs)
 
     handler = fn meta, fun_arity, stack, context ->
@@ -29,23 +30,38 @@ defmodule Module.Types do
     context = context(%{})
 
     {types, %{local_sigs: local_sigs}} =
-      for {fun_arity, kind, meta, _clauses} = def <- defs,
-          kind == :def or kind == :defmacro,
-          reduce: {[], context} do
+      for {fun_arity, kind, meta, clauses} = def <- defs, reduce: {[], context} do
         {types, context} ->
-          {_kind, inferred, context} =
-            local_handler(meta, fun_arity, stack, context, fn _ -> def end)
+          cond do
+            kind in [:def, :defmacro] ->
+              {_kind, inferred, context} =
+                local_handler(meta, fun_arity, stack, context, fn _ -> def end)
 
-          if kind == :def and fun_arity not in @no_infer do
-            {[{fun_arity, inferred} | types], context}
-          else
-            {types, context}
+              if kind == :def and fun_arity not in @no_infer do
+                {[{fun_arity, inferred} | types], context}
+              else
+                {types, context}
+              end
+
+            kind == :defmacrop and is_map_key(defmacrop, fun_arity) ->
+              # Bypass the caching structure for defmacrop, that's because
+              # we don't need them stored in the signatures when we perform
+              # unreachable checks. This may cause defmacrop to be traversed
+              # twice if it uses default arguments (which is the only way
+              # to refer to another defmacrop in definitions).
+              {_kind, _inferred, context} =
+                local_handler(fun_arity, kind, meta, clauses, stack, context)
+
+              {types, context}
+
+            true ->
+              {types, context}
           end
       end
 
     unreachable =
       for {fun_arity, _kind, _meta, _defaults} = info <- private,
-          warn_unused_def(info, local_sigs, used, env),
+          warn_unused_def(info, local_sigs, defmacrop, env),
           not is_map_key(local_sigs, fun_arity),
           do: fun_arity
 
@@ -63,7 +79,7 @@ defmodule Module.Types do
   end
 
   defp warn_unused_def({fun_arity, kind, meta, 0}, reachable, used, env) do
-    case meta == false or Map.has_key?(reachable, fun_arity) or fun_arity in used do
+    case is_map_key(reachable, fun_arity) or is_map_key(used, fun_arity) do
       true -> :ok
       false -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_def, fun_arity, kind})
     end
@@ -89,7 +105,7 @@ defmodule Module.Types do
   defp min_reachable_default(max, min, last, name, reachable, used) when max >= min do
     fun_arity = {name, max}
 
-    case Map.has_key?(reachable, fun_arity) or fun_arity in used do
+    case is_map_key(reachable, fun_arity) or is_map_key(used, fun_arity) do
       true -> min_reachable_default(max - 1, min, max, name, reachable, used)
       false -> min_reachable_default(max - 1, min, last, name, reachable, used)
     end
@@ -164,7 +180,7 @@ defmodule Module.Types do
 
   defp local_handler({fun, arity} = fun_arity, kind, meta, clauses, stack, context) do
     expected = List.duplicate(Descr.dynamic(), arity)
-    stack = stack |> fresh_stack(fun_arity) |> with_file_meta(meta)
+    stack = stack |> fresh_stack(kind, fun_arity) |> with_file_meta(meta)
 
     {_, _, mapping, clauses_types, clauses_context} =
       Enum.reduce(clauses, {0, 0, [], [], context}, fn
@@ -243,7 +259,7 @@ defmodule Module.Types do
 
   @doc false
   def stack(mode, file, module, function, no_warn_undefined, cache, handler)
-      when mode in [:static, :dynamic, :infer] do
+      when mode in [:static, :dynamic, :infer, :traversal] do
     %{
       # The fallback meta used for literals in patterns and guards
       meta: [],
@@ -275,6 +291,9 @@ defmodule Module.Types do
       #
       #   * :infer - Same as :dynamic but skips remote calls.
       #
+      #   * :traversal - Focused mostly on traversing AST, skips most type system
+      #     operations. Used by macros and functions which already have signatures.
+      #
       # The mode may also control exhaustiveness checks in the future (to be decided).
       # We may also want for applications with subtyping in dynamic mode to always
       # intersect with dynamic, but this mode may be too lax (to be decided based on
@@ -303,8 +322,15 @@ defmodule Module.Types do
     }
   end
 
-  defp fresh_stack(stack, function) do
-    %{stack | function: function}
+  defp fresh_stack(%{mode: mode} = stack, kind, function) do
+    mode =
+      cond do
+        kind in [:defmacro, :defmacrop] and mode == :infer -> :traversal
+        kind in [:def, :defp] and mode == :traversal -> :infer
+        true -> mode
+      end
+
+    %{stack | function: function, mode: mode}
   end
 
   defp fresh_context(context) do
