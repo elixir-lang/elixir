@@ -508,30 +508,35 @@ defmodule Module.Types.Apply do
   @doc """
   Deal with local functions.
   """
-  def local(fun, args_types, expr, stack, context) do
+  def local(fun, args_types, {_, meta, _} = expr, stack, context) do
     fun_arity = {fun, length(args_types)}
-    {kind, info, context} = stack.local_handler.(fun_arity, stack, context)
 
-    case apply_signature(info, args_types, stack) do
-      {:ok, indexes, type} ->
-        context =
-          if stack != :infer and kind == :defp do
-            update_in(context.local_used[fun_arity], fn current ->
-              if info == :none do
-                []
+    case stack.local_handler.(meta, fun_arity, stack, context) do
+      false ->
+        {dynamic(), context}
+
+      {kind, info, context} ->
+        case apply_signature(info, args_types, stack) do
+          {:ok, indexes, type} ->
+            context =
+              if stack != :infer and kind == :defp do
+                update_in(context.local_used[fun_arity], fn current ->
+                  if info == :none do
+                    []
+                  else
+                    (current || used_from_clauses(info)) -- indexes
+                  end
+                end)
               else
-                (current || used_from_clauses(info)) -- indexes
+                context
               end
-            end)
-          else
-            context
-          end
 
-        {type, context}
+            {type, context}
 
-      {:error, domain, clauses} ->
-        error = {:badlocal, expr, args_types, domain, clauses, context}
-        {error_type(), error(error, elem(expr, 1), stack, context)}
+          {:error, domain, clauses} ->
+            error = {:badlocal, expr, args_types, domain, clauses, context}
+            {error_type(), error(error, with_span(meta, fun), stack, context)}
+        end
     end
   end
 
@@ -544,15 +549,20 @@ defmodule Module.Types.Apply do
   @doc """
   Deal with local captures.
   """
-  def local_capture(fun, arity, _meta, stack, context) do
+  def local_capture(fun, arity, meta, stack, context) do
     fun_arity = {fun, arity}
-    {kind, _info, context} = stack.local_handler.(fun_arity, stack, context)
 
-    if stack != :infer and kind == :defp do
-      # Mark all clauses as used, as the function is being exported.
-      {fun(), put_in(context.local_used[fun_arity], [])}
-    else
-      {fun(), context}
+    case stack.local_handler.(meta, fun_arity, stack, context) do
+      false ->
+        {fun(), context}
+
+      {kind, _info, context} ->
+        if stack != :infer and kind == :defp do
+          # Mark all clauses as used, as the function is being exported.
+          {fun(), put_in(context.local_used[fun_arity], [])}
+        else
+          {fun(), context}
+        end
     end
   end
 

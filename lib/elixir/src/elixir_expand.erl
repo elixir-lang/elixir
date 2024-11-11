@@ -900,8 +900,7 @@ expand_local(Meta, Name, Args, S, #{module := Module, function := Function, cont
 
     nil ->
       Arity = length(Args),
-      elixir_env:trace({local_function, Meta, Name, Arity}, E),
-      elixir_locals:record_local({Name, Arity}, Module, Function, Meta, false)
+      elixir_env:trace({local_function, Meta, Name, Arity}, E)
   end,
 
   {EArgs, SA, EA} = expand_args(Args, S, E),

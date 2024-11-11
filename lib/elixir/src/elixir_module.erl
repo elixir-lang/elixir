@@ -146,9 +146,6 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
 
         NifsAttribute = lists:keyfind(nifs, 1, Attributes),
         validate_nifs_attribute(NifsAttribute, AllDefinitions, Line, E),
-
-        % Unreachable = elixir_locals:warn_unused_local(Module, AllDefinitions, NewPrivate, E),
-        elixir_locals:ensure_no_undefined_local(Module, AllDefinitions, E),
         elixir_locals:ensure_no_import_conflict(Module, AllDefinitions, E),
 
         %% We stop tracking locals here to avoid race conditions in case after_load

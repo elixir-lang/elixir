@@ -74,7 +74,6 @@ import_function(Meta, Name, Arity, E) ->
                 elixir_def:local_for(Meta, Name, Arity, [defmacro, defmacrop], E) of
             false ->
               elixir_env:trace({local_function, Meta, Name, Arity}, E),
-              elixir_locals:record_local(Tuple, ?key(E, module), ?key(E, function), Meta, false),
               {local, Name, Arity};
             _ ->
               false
@@ -183,10 +182,7 @@ expand_import(Meta, Name, Arity, E, Extra, AllowLocals, Trace) ->
 
         %% Dispatch to the local.
         {_, {_Kind, Fun}} ->
-          Trace andalso begin
-            elixir_env:trace({local_macro, Meta, Name, Arity}, E),
-            elixir_locals:record_local(Tuple, Module, ?key(E, function), Meta, true)
-          end,
+          Trace andalso elixir_env:trace({local_macro, Meta, Name, Arity}, E),
           {macro, Module, expander_macro_fun(Meta, Fun, Module, Name, E)}
       end
   end.

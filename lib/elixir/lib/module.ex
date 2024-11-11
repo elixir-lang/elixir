@@ -1415,15 +1415,7 @@ defmodule Module do
   def delete_definition(module, {name, arity})
       when is_atom(module) and is_atom(name) and is_integer(arity) do
     assert_not_readonly!(__ENV__.function, module)
-
-    case :elixir_def.take_definition(module, {name, arity}) do
-      false ->
-        false
-
-      _ ->
-        :elixir_locals.yank({name, arity}, module)
-        true
-    end
+    :elixir_def.take_definition(module, {name, arity}) != false
   end
 
   @doc """
@@ -1452,8 +1444,7 @@ defmodule Module do
                     "overridable because it was not defined"
 
           clause ->
-            neighbours = :elixir_locals.yank(tuple, module)
-            :elixir_overridable.record_overridable(module, tuple, clause, neighbours)
+            :elixir_overridable.record_overridable(module, tuple, clause)
         end
 
       other ->

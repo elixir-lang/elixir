@@ -9,17 +9,34 @@ defmodule Module.Types do
 
   @doc false
   def infer(module, file, defs, private, used, env) do
-    finder = &List.keyfind(defs, &1, 0)
-    handler = &local_handler(&1, &2, &3, finder)
+    finder = &:lists.keyfind(&1, 1, defs)
+
+    handler = fn meta, fun_arity, stack, context ->
+      case local_handler(meta, fun_arity, stack, context, finder) do
+        false ->
+          undefined_function!(:undefined_function, meta, fun_arity, stack, env)
+          false
+
+        {kind, _, _} = triplet ->
+          if (kind == :defmacro or kind == :defmacrop) and not Keyword.has_key?(meta, :super) do
+            undefined_function!(:incorrect_dispatch, meta, fun_arity, stack, env)
+            false
+          else
+            triplet
+          end
+      end
+    end
+
     stack = stack(:infer, file, module, {:__info__, 1}, :all, env, handler)
     context = context(%{})
 
     {types, %{local_sigs: local_sigs}} =
-      for {fun_arity, kind, _meta, _clauses} = def <- defs,
+      for {fun_arity, kind, meta, _clauses} = def <- defs,
           kind == :def or kind == :defmacro,
           reduce: {[], context} do
         {types, context} ->
-          {_kind, inferred, context} = local_handler(fun_arity, stack, context, fn _ -> def end)
+          {_kind, inferred, context} =
+            local_handler(meta, fun_arity, stack, context, fn _ -> def end)
 
           if kind == :def and fun_arity not in @no_infer do
             {[{fun_arity, inferred} | types], context}
@@ -35,6 +52,12 @@ defmodule Module.Types do
           do: fun_arity
 
     {Map.new(types), unreachable}
+  end
+
+  defp undefined_function!(reason, meta, {fun, arity}, stack, env) do
+    env = %{env | function: stack.function, file: stack.file}
+    tuple = {reason, {fun, arity}, stack.module}
+    :elixir_errors.module_error(Helpers.with_span(meta, fun), env, __MODULE__, tuple)
   end
 
   defp warn_unused_def({_fun_arity, _kind, false, _}, _reachable, _used, _env) do
@@ -80,14 +103,16 @@ defmodule Module.Types do
 
   @doc false
   def warnings(module, file, defs, no_warn_undefined, cache) do
-    finder = &List.keyfind(defs, &1, 0)
-    handler = &local_handler(&1, &2, &3, finder)
+    finder = &:lists.keyfind(&1, 1, defs)
+    handler = &local_handler(&1, &2, &3, &4, finder)
     stack = stack(:dynamic, file, module, {:__info__, 1}, no_warn_undefined, cache, handler)
     context = context(%{})
 
     context =
-      Enum.reduce(defs, context, fn {fun_arity, _kind, _meta, _clauses} = def, context ->
-        {_kind, _inferred, context} = local_handler(fun_arity, stack, context, fn _ -> def end)
+      Enum.reduce(defs, context, fn {fun_arity, _kind, meta, _clauses} = def, context ->
+        {_kind, _inferred, context} =
+          local_handler(meta, fun_arity, stack, context, fn _ -> def end)
+
         context
       end)
 
@@ -112,7 +137,7 @@ defmodule Module.Types do
     end
   end
 
-  defp local_handler(fun_arity, stack, context, finder) do
+  defp local_handler(_meta, fun_arity, stack, context, finder) do
     case context.local_sigs do
       %{^fun_arity => {kind, inferred, _mapping}} ->
         {kind, inferred, context}
@@ -121,45 +146,56 @@ defmodule Module.Types do
         {kind, :none, context}
 
       local_sigs ->
-        {{fun, arity}, kind, meta, clauses} =
-          finder.(fun_arity) || raise "could not find #{inspect(fun_arity)}"
+        case finder.(fun_arity) do
+          {fun_arity, kind, meta, clauses} ->
+            context = put_in(context.local_sigs, Map.put(local_sigs, fun_arity, kind))
 
-        expected = List.duplicate(Descr.dynamic(), arity)
-        stack = stack |> fresh_stack(fun_arity) |> with_file_meta(meta)
-        context = put_in(context.local_sigs, Map.put(local_sigs, fun_arity, kind))
+            {inferred, mapping, context} =
+              local_handler(fun_arity, kind, meta, clauses, stack, context)
 
-        {_, _, mapping, clauses_types, clauses_context} =
-          Enum.reduce(clauses, {0, 0, [], [], context}, fn
-            {meta, args, guards, body}, {index, total, mapping, inferred, context} ->
-              context = fresh_context(context)
+            context =
+              update_in(context.local_sigs, &Map.put(&1, fun_arity, {kind, inferred, mapping}))
 
-              try do
-                {args_types, context} =
-                  Pattern.of_head(args, guards, expected, :default, meta, stack, context)
+            {kind, inferred, context}
 
-                {return_type, context} =
-                  Expr.of_expr(body, stack, context)
-
-                {type_index, inferred} =
-                  add_inferred(inferred, args_types, return_type, total - 1, [])
-
-                if type_index == -1 do
-                  {index + 1, total + 1, [{index, total} | mapping], inferred, context}
-                else
-                  {index + 1, total, [{index, type_index} | mapping], inferred, context}
-                end
-              rescue
-                e ->
-                  internal_error!(e, __STACKTRACE__, kind, meta, fun, args, guards, body, stack)
-              end
-          end)
-
-        inferred = {:infer, Enum.reverse(clauses_types)}
-        triplet = {kind, inferred, mapping}
-        context = restore_context(context, clauses_context)
-        context = update_in(context.local_sigs, &Map.put(&1, fun_arity, triplet))
-        {kind, inferred, context}
+          false ->
+            false
+        end
     end
+  end
+
+  defp local_handler({fun, arity} = fun_arity, kind, meta, clauses, stack, context) do
+    expected = List.duplicate(Descr.dynamic(), arity)
+    stack = stack |> fresh_stack(fun_arity) |> with_file_meta(meta)
+
+    {_, _, mapping, clauses_types, clauses_context} =
+      Enum.reduce(clauses, {0, 0, [], [], context}, fn
+        {meta, args, guards, body}, {index, total, mapping, inferred, context} ->
+          context = fresh_context(context)
+
+          try do
+            {args_types, context} =
+              Pattern.of_head(args, guards, expected, :default, meta, stack, context)
+
+            {return_type, context} =
+              Expr.of_expr(body, stack, context)
+
+            {type_index, inferred} =
+              add_inferred(inferred, args_types, return_type, total - 1, [])
+
+            if type_index == -1 do
+              {index + 1, total + 1, [{index, total} | mapping], inferred, context}
+            else
+              {index + 1, total, [{index, type_index} | mapping], inferred, context}
+            end
+          rescue
+            e ->
+              internal_error!(e, __STACKTRACE__, kind, meta, fun, args, guards, body, stack)
+          end
+      end)
+
+    inferred = {:infer, Enum.reverse(clauses_types)}
+    {inferred, mapping, restore_context(context, clauses_context)}
   end
 
   # We check for term equality of types as an optimization
@@ -306,4 +342,16 @@ defmodule Module.Types do
 
   def format_error({:unused_def, {name, arity}, :defmacrop}),
     do: "macro #{name}/#{arity} is unused"
+
+  def format_error({:undefined_function, {f, a}, _})
+      when {f, a} in [__info__: 1, behaviour_info: 1, module_info: 1, module_info: 0],
+      do:
+        "undefined function #{f}/#{a} (this function is auto-generated by the compiler and must always be called as a remote, as in __MODULE__.#{f}/#{a})"
+
+  def format_error({:undefined_function, {f, a}, module}),
+    do:
+      "undefined function #{f}/#{a} (expected #{inspect(module)} to define such a function or for it to be imported, but none are available)"
+
+  def format_error({:incorrect_dispatch, {f, a}, _module}),
+    do: "cannot invoke macro #{f}/#{a} before its definition"
 end

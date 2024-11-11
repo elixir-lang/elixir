@@ -645,6 +645,37 @@ defmodule Kernel.WarningTest do
     purge([Sample, Sample2])
   end
 
+  test "unused function conditionall inside macro" do
+    assert_warn_eval(
+      ["nofile:3:8: ", "function error/0 is unused"],
+      """
+      defmodule Sample do
+        defp ok, do: :ok
+        defp error, do: :error
+
+        defmacrop hello(x) do
+          if x, do: ok(), else: error()
+        end
+
+        def uses_hello, do: hello(true)
+      end
+      """
+    )
+
+    assert_warn_eval(
+      ["nofile:2:13: ", "macro hello/0 is unused\n"],
+      ~S"""
+      defmodule Sample2 do
+        defmacrop hello do
+          quote do: unquote(1)
+        end
+      end
+      """
+    )
+  after
+    purge([Sample, Sample2])
+  end
+
   test "shadowing" do
     assert capture_eval("""
            defmodule Sample do
