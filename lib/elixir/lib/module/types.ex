@@ -2,9 +2,7 @@ defmodule Module.Types do
   @moduledoc false
 
   alias Module.Types.{Descr, Expr, Pattern, Helpers}
-
   # TODO: Consider passing inferred types from infer into warnings
-  # TODO: Consider removing code from locals tracker
 
   # These functions are not inferred because they are added/managed by the compiler
   @no_infer [__protocol__: 1, behaviour_info: 1]
@@ -32,18 +30,18 @@ defmodule Module.Types do
 
     unreachable =
       for {fun_arity, _kind, _meta, _defaults} = info <- private,
-          maybe_warn_unused(info, local_sigs, used, env),
+          warn_unused_def(info, local_sigs, used, env),
           not is_map_key(local_sigs, fun_arity),
           do: fun_arity
 
     {Map.new(types), unreachable}
   end
 
-  defp maybe_warn_unused({_fun_arity, _kind, false, _}, _reachable, _used, _env) do
+  defp warn_unused_def({_fun_arity, _kind, false, _}, _reachable, _used, _env) do
     :ok
   end
 
-  defp maybe_warn_unused({fun_arity, kind, meta, 0}, reachable, used, env) do
+  defp warn_unused_def({fun_arity, kind, meta, 0}, reachable, used, env) do
     case meta == false or Map.has_key?(reachable, fun_arity) or fun_arity in used do
       true -> :ok
       false -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_def, fun_arity, kind})
@@ -52,7 +50,7 @@ defmodule Module.Types do
     :ok
   end
 
-  defp maybe_warn_unused({tuple, kind, meta, default}, reachable, used, env) when default > 0 do
+  defp warn_unused_def({tuple, kind, meta, default}, reachable, used, env) when default > 0 do
     {name, arity} = tuple
     min = arity - default
     max = arity
@@ -93,23 +91,25 @@ defmodule Module.Types do
         context
       end)
 
-    context =
-      for {fun_arity, pending} <- context.local_used, pending != [], reduce: context do
-        context ->
-          {_fun_arity, kind, _meta, clauses} = List.keyfind(defs, fun_arity, 0)
-          {_kind, _inferred, mapping} = Map.fetch!(context.local_sigs, fun_arity)
-
-          clauses_indexes =
-            for type_index <- pending, {clause_index, ^type_index} <- mapping, do: clause_index
-
-          Enum.reduce(clauses_indexes, context, fn clause_index, context ->
-            {meta, _args, _guards, _body} = Enum.fetch!(clauses, clause_index)
-            stack = %{stack | function: fun_arity}
-            Helpers.warn(__MODULE__, {:unused_clause, kind, fun_arity}, meta, stack, context)
-          end)
-      end
-
+    context = warn_unused_clauses(defs, stack, context)
     context.warnings
+  end
+
+  defp warn_unused_clauses(defs, stack, context) do
+    for {fun_arity, pending} <- context.local_used, pending != [], reduce: context do
+      context ->
+        {_fun_arity, kind, _meta, clauses} = List.keyfind(defs, fun_arity, 0)
+        {_kind, _inferred, mapping} = Map.fetch!(context.local_sigs, fun_arity)
+
+        clauses_indexes =
+          for type_index <- pending, {clause_index, ^type_index} <- mapping, do: clause_index
+
+        Enum.reduce(clauses_indexes, context, fn clause_index, context ->
+          {meta, _args, _guards, _body} = Enum.fetch!(clauses, clause_index)
+          stack = %{stack | function: fun_arity}
+          Helpers.warn(__MODULE__, {:unused_clause, kind, fun_arity}, meta, stack, context)
+        end)
+    end
   end
 
   defp local_handler(fun_arity, stack, context, finder) do
