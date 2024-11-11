@@ -47,20 +47,9 @@ defmodule Module.ParallelChecker do
   @doc """
   Spawns a process that runs the parallel checker.
   """
-  def spawn(pid_checker, module_map, log?, private, used, env) do
-    %{module: module, definitions: definitions, file: file} = module_map
-
-    {signatures, unreachable} =
-      Module.Types.infer(module, file, definitions, private, used, env)
-
-    module_map = %{module_map | signatures: signatures, unreachable: unreachable}
-
-    with {pid, checker} <- pid_checker do
-      ets = :gen_server.call(checker, :ets, :infinity)
-      inner_spawn(pid, checker, module, cache_from_module_map(ets, module_map), log?)
-    end
-
-    module_map
+  def spawn({pid, checker}, module, module_map, log?) do
+    ets = :gen_server.call(checker, :ets, :infinity)
+    inner_spawn(pid, checker, module, cache_from_module_map(ets, module_map), log?)
   end
 
   defp inner_spawn(pid, checker, module, info, log?) do

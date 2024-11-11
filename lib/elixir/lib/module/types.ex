@@ -1,8 +1,6 @@
 defmodule Module.Types do
   @moduledoc false
-
   alias Module.Types.{Descr, Expr, Pattern, Helpers}
-  # TODO: Consider passing inferred types from infer into warnings
 
   # These functions are not inferred because they are added/managed by the compiler
   @no_infer [__protocol__: 1, behaviour_info: 1]

@@ -739,8 +739,8 @@ defmodule Kernel.ErrorsTest do
     )
 
     assert_compile_error(
-      ["nofile:1: ", "undefined function foo/1 given to @compile :inline"],
-      ~c"defmodule Test do @compile {:inline, foo: 1}; defmacro foo(_) end"
+      ["nofile:1: ", "macro foo/1 given to @compile :inline"],
+      ~c"defmodule Test do @compile {:inline, foo: 1}; defmacro foo(_), do: :ok end"
     )
   end
 
