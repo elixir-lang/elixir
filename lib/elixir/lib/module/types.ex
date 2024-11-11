@@ -16,16 +16,27 @@ defmodule Module.Types do
     stack = stack(:infer, file, module, {:__info__, 1}, :all, env, handler)
     context = context(%{})
 
-    {types, _context} =
+    {types, %{local_sigs: local_sigs}} =
       for {fun_arity, kind, _meta, _clauses} = def <- defs,
-          kind == :def and fun_arity not in @no_infer,
+          kind == :def or kind == :defmacro,
           reduce: {[], context} do
         {types, context} ->
           {_kind, inferred, context} = local_handler(fun_arity, stack, context, fn _ -> def end)
-          {[{fun_arity, inferred} | types], context}
+
+          if kind == :def and fun_arity not in @no_infer do
+            {[{fun_arity, inferred} | types], context}
+          else
+            {types, context}
+          end
       end
 
-    Map.new(types)
+    unreachable =
+      for {fun_arity, kind, meta, _clauses} <- defs,
+          kind == :defp or kind == :defmacrop,
+          not is_map_key(local_sigs, fun_arity),
+          do: {fun_arity, meta}
+
+    {Map.new(types), unreachable}
   end
 
   @doc false

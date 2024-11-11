@@ -23,7 +23,7 @@ defmodule Mix.Compilers.Test do
   """
   def require_and_run(matched_test_files, test_paths, elixirc_opts, opts) do
     elixirc_opts =
-      Keyword.merge([docs: false, debug_info: false, infer_signatures: false], elixirc_opts)
+      Keyword.merge([docs: false, debug_info: false], elixirc_opts)
 
     previous_opts = Code.compiler_options(elixirc_opts)
 

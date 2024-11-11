@@ -144,7 +144,6 @@ bootstrap() ->
   elixir_config:static(#{bootstrap => true}),
   elixir_config:put(docs, false),
   elixir_config:put(ignore_module_conflict, true),
-  elixir_config:put(infer_signatures, false),
   elixir_config:put(on_undefined_variable, raise),
   elixir_config:put(parser_options, []),
   elixir_config:put(relative_paths, false),

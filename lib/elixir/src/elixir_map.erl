@@ -192,7 +192,7 @@ maybe_load_struct(Meta, Name, Assocs, E) ->
       false ->
         Name:'__struct__'(Assocs);
 
-      ExternalFun ->
+      {_, ExternalFun} ->
         %% There is an inherent race condition when using external_for.
         %% By the time we got to execute the function, the ETS table
         %% with temporary definitions for the given module may no longer

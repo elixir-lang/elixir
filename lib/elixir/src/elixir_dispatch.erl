@@ -171,23 +171,23 @@ expand_import(Meta, Name, Arity, E, Extra, AllowLocals, Trace) ->
     _ ->
       Local = AllowLocals andalso elixir_def:local_for(Meta, Name, Arity, [defmacro, defmacrop], E),
 
-      case Dispatch of
+      case {Dispatch, Local} of
         %% There is a local and an import. This is a conflict unless
         %% the receiver is the same as module (happens on bootstrap).
-        {_, Receiver} when Local /= false, Receiver /= Module ->
+        {{_, Receiver}, {_, _}} when Receiver /= Module ->
           {conflict, Receiver};
 
         %% There is no local. Dispatch the import.
-        _ when Local == false ->
+        {_, false} ->
           do_expand_import(Dispatch, Meta, Name, Arity, Module, E, Trace);
 
         %% Dispatch to the local.
-        _ ->
+        {_, {_Kind, Fun}} ->
           Trace andalso begin
             elixir_env:trace({local_macro, Meta, Name, Arity}, E),
             elixir_locals:record_local(Tuple, Module, ?key(E, function), Meta, true)
           end,
-          {macro, Module, expander_macro_fun(Meta, Local, Module, Name, E)}
+          {macro, Module, expander_macro_fun(Meta, Fun, Module, Name, E)}
       end
   end.
 

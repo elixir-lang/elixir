@@ -37,9 +37,11 @@ fun_for(Meta, Module, Name, Arity, Kinds, External) ->
     {[{_, Kind, LocalMeta, _, _, _}], ClausesPairs} ->
       case (Kinds == all) orelse (lists:member(Kind, Kinds)) of
         true ->
-          Local = {value, fun(Fun, Args) -> invoke_local(Meta, Module, Fun, Args, External) end},
+          TrackLocal = (Kind == defmacrop),
+          TrackLocal andalso track_local(Module, Tuple),
+          Local = {value, fun(Fun, Args) -> invoke_local(Meta, Module, Fun, Args, TrackLocal, External) end},
           Clauses = [Clause || {_, Clause} <- ClausesPairs],
-          elixir_erl:definition_to_anonymous(Kind, LocalMeta, Clauses, Local, External);
+          {Kind, elixir_erl:definition_to_anonymous(Kind, LocalMeta, Clauses, Local, External)};
         false ->
           false
       end;
@@ -49,16 +51,21 @@ fun_for(Meta, Module, Name, Arity, Kinds, External) ->
     _:_ -> false
   end.
 
-invoke_local(Meta, Module, ErlName, Args, External) ->
+invoke_local(Meta, Module, ErlName, Args, TrackLocal, External) ->
   {Name, Arity} = elixir_utils:erl_fa_to_elixir_fa(ErlName, length(Args)),
 
   case fun_for(Meta, Module, Name, Arity, all, External) of
     false ->
       {current_stacktrace, [_ | T]} = erlang:process_info(self(), current_stacktrace),
       erlang:raise(error, undef, [{Module, Name, Arity, []} | T]);
-    Fun ->
+    {Kind, Fun} ->
+      (TrackLocal and (Kind == defp)) andalso track_local(Module, {Name, Arity}),
       apply(Fun, Args)
   end.
+
+track_local(Module, FunArity) ->
+  {_, Bag} = elixir_module:data_tables(Module),
+  ets:insert(Bag, {macro_private_calls, FunArity}).
 
 invoke_external(Meta, Mod, Name, Args, E) ->
   is_map(E) andalso elixir_env:trace({require, Meta, Mod, []}, E),

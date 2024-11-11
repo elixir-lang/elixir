@@ -540,12 +540,10 @@ spawn_parallel_checker(CheckerInfo, ModuleMap, E) ->
       _ -> true
     end,
 
-  Infer = elixir_config:get(infer_signatures),
-
   if
     %% We need this clause for bootstrap reasons
-    CheckerInfo /= nil; Infer ->
-      'Elixir.Module.ParallelChecker':spawn(CheckerInfo, ModuleMap, Log, Infer, E);
+    CheckerInfo /= nil ->
+      'Elixir.Module.ParallelChecker':spawn(CheckerInfo, ModuleMap, Log, E);
     true ->
       ModuleMap
   end.
