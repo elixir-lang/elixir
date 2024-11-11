@@ -1,9 +1,10 @@
 -module(elixir_module).
 -export([file/1, data_tables/1, is_open/1, mode/1, delete_definition_attributes/6,
          compile/6, expand_callback/6, format_error/1, compiler_modules/0,
-         write_cache/3, read_cache/2, next_counter/1, taint/1]).
+         write_cache/3, read_cache/2, next_counter/1, taint/1, cache_env/1, get_cached_env/1]).
 -include("elixir.hrl").
 -define(counter_attr, {elixir, counter}).
+-define(cache_key, {elixir, cache_env}).
 
 %% Stores modules currently being defined by the compiler
 
@@ -70,6 +71,29 @@ taint(Module) ->
   catch
     _:_ -> false
   end.
+
+cache_env(#{line := Line, module := Module} = E) ->
+  {Set, _} = data_tables(Module),
+  Cache = elixir_env:reset_vars(E#{line := nil}),
+  PrevKey = ets:lookup_element(Set, ?cache_key, 2),
+
+  Pos =
+    case ets:lookup(Set, {cache_env, PrevKey}) of
+      [{_, Cache}] ->
+        PrevKey;
+      _ ->
+        NewKey = PrevKey + 1,
+        ets:insert(Set, [{{cache_env, NewKey}, Cache}, {?cache_key, NewKey}]),
+        NewKey
+    end,
+
+  {Module, {Line, Pos}}.
+
+get_cached_env({Module, {Line, Pos}}) ->
+  {Set, _} = data_tables(Module),
+  (ets:lookup_element(Set, {cache_env, Pos}, 2))#{line := Line};
+get_cached_env(Env) ->
+  Env.
 
 %% Compilation hook
 
@@ -146,37 +170,30 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
 
         NifsAttribute = lists:keyfind(nifs, 1, Attributes),
         validate_nifs_attribute(NifsAttribute, AllDefinitions, Line, E),
-
-        Unreachable = elixir_locals:warn_unused_local(Module, AllDefinitions, NewPrivate, E),
-        elixir_locals:ensure_no_undefined_local(Module, AllDefinitions, E),
-        elixir_locals:ensure_no_import_conflict(Module, AllDefinitions, E),
-
-        %% We stop tracking locals here to avoid race conditions in case after_load
-        %% evaluates code in a separate process that may write to locals table.
-        elixir_locals:stop({DataSet, DataBag}),
+        elixir_import:ensure_no_local_conflict(Module, AllDefinitions, E),
         make_readonly(Module),
 
         (not elixir_config:is_bootstrap()) andalso
          'Elixir.Module':'__check_attributes__'(E, DataSet, DataBag),
 
-        RawCompileOpts = bag_lookup_element(DataBag, {accumulate, compile}, 2),
-        CompileOpts = validate_compile_opts(RawCompileOpts, AllDefinitions, Unreachable, Line, E),
-        Impls = bag_lookup_element(DataBag, impls, 2),
-
         AfterVerify = bag_lookup_element(DataBag, {accumulate, after_verify}, 2),
         [elixir_env:trace({remote_function, [], VerifyMod, VerifyFun, 1}, CallbackE) ||
          {VerifyMod, VerifyFun} <- AfterVerify],
 
-        %% Compute signatures only if the module is valid.
-        case ets:member(DataSet, {elixir, taint}) of
-          true -> elixir_errors:compile_error(E);
-          false -> ok
-        end,
+        %% Ensure there are no errors before we infer types
+        compile_error_if_tainted(DataSet, E),
 
-        Signatures = case elixir_config:get(infer_signatures) of
-          true -> 'Elixir.Module.Types':infer(Module, File, AllDefinitions, CallbackE);
-          false -> #{}
-        end,
+        {Signatures, Unreachable} =
+          case elixir_config:is_bootstrap() of
+            true -> {#{}, []};
+            false ->
+              Defmacrop = bag_lookup_element(DataBag, defmacrop_calls, 2),
+              'Elixir.Module.Types':infer(Module, File, AllDefinitions, NewPrivate, Defmacrop, E)
+          end,
+
+        RawCompileOpts = bag_lookup_element(DataBag, {accumulate, compile}, 2),
+        CompileOpts = validate_compile_opts(RawCompileOpts, AllDefinitions, Unreachable, Line, E),
+        Impls = bag_lookup_element(DataBag, impls, 2),
 
         ModuleMap = #{
           struct => get_struct(DataSet),
@@ -186,15 +203,16 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
           relative_file => elixir_utils:relative_to_cwd(File),
           attributes => Attributes,
           definitions => AllDefinitions,
-          unreachable => Unreachable,
           after_verify => AfterVerify,
           compile_opts => CompileOpts,
           deprecated => get_deprecated(DataBag),
           defines_behaviour => defines_behaviour(DataBag),
           impls => Impls,
+          unreachable => Unreachable,
           signatures => Signatures
         },
 
+        compile_error_if_tainted(DataSet, E),
         Binary = elixir_erl:compile(ModuleMap),
         Autoload = proplists:get_value(autoload, CompileOpts, true),
         spawn_parallel_checker(CheckerInfo, Module, ModuleMap),
@@ -226,6 +244,12 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
     ets:delete(DataSet),
     ets:delete(DataBag),
     elixir_code_server:call({undefmodule, Ref})
+  end.
+
+compile_error_if_tainted(DataSet, E) ->
+  case ets:member(DataSet, {elixir, taint}) of
+    true -> elixir_errors:compile_error(E);
+    false -> ok
   end.
 
 validate_compile_opts(Opts, Defs, Unreachable, Line, E) ->
@@ -351,7 +375,6 @@ build(Module, Line, File, E) ->
   %% * {{type, Tuple}, ...}, {{opaque, Tuple}, ...}
   %% * {{callback, Tuple}, ...}, {{macrocallback, Tuple}, ...}
   %% * {{def, Tuple}, ...} (from elixir_def)
-  %% * {{import, Tuple}, ...} (from elixir_locals)
   %% * {{overridable, Tuple}, ...} (from elixir_overridable)
   %%
   DataSet = ets:new(Module, [set, public]),
@@ -367,8 +390,6 @@ build(Module, Line, File, E) ->
   %% * {overridables, ...} (from elixir_overridable)
   %% * {{default, Name}, ...} (from elixir_def)
   %% * {{clauses, Tuple}, ...} (from elixir_def)
-  %% * {reattach, ...} (from elixir_locals)
-  %% * {{local, Tuple}, ...} (from elixir_locals)
   %%
   DataBag = ets:new(Module, [duplicate_bag, public]),
 
@@ -395,6 +416,7 @@ build(Module, Line, File, E) ->
     {optional_callbacks, [], accumulate, []},
 
     % Others
+    {?cache_key, 0},
     {?counter_attr, 0}
   ]),
 
@@ -411,7 +433,6 @@ build(Module, Line, File, E) ->
   %% Setup definition related modules
   Tables = {DataSet, DataBag},
   elixir_def:setup(Tables),
-  elixir_locals:setup(Tables),
   Tuple = {Module, Tables, Line, File, all},
 
   Ref =

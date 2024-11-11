@@ -2,7 +2,9 @@
 %% between local functions and imports.
 %% For imports dispatch, please check elixir_dispatch.
 -module(elixir_import).
--export([import/6, import/7, special_form/2, format_error/1]).
+-export([import/6, import/7, special_form/2,
+         record/4, ensure_no_local_conflict/3,
+         format_error/1]).
 -compile(inline_list_funcs).
 -include("elixir.hrl").
 
@@ -135,6 +137,31 @@ calculate_key(Meta, Key, Old, New, E, Warn) ->
       {true, FinalSet, [{Key, FinalSet} | keydelete(Key, Old)]}
   end.
 
+%% Record function calls for local conflicts
+
+record(_Tuple, Receiver, Module, Function)
+  when Function == nil; Module == Receiver -> false;
+record(Tuple, Receiver, Module, _Function) ->
+  try
+    {Set, _Bag} = elixir_module:data_tables(Module),
+    ets:insert(Set, {{import, Tuple}, Receiver}),
+    true
+  catch
+    error:badarg -> false
+  end.
+
+ensure_no_local_conflict('Elixir.Kernel', _All, _E) ->
+  ok;
+ensure_no_local_conflict(Module, AllDefinitions, E) ->
+  {Set, _} = elixir_module:data_tables(Module),
+
+  [try
+     Receiver = ets:lookup_element(Set, {import, Pair}, 2),
+     elixir_errors:module_error(Meta, E, ?MODULE, {import_conflict, Receiver, Pair})
+   catch
+    error:badarg -> false
+   end || {Pair, _, Meta, _} <- AllDefinitions].
+
 %% Retrieve functions and macros from modules
 
 get_functions(Module, InfoCallback) ->
@@ -229,7 +256,11 @@ format_error({special_form_conflict, {Receiver, Name, Arity}}) ->
     [elixir_aliases:inspect(Receiver), Name, Arity]);
 
 format_error({no_macros, Module}) ->
-  io_lib:format("could not load macros from module ~ts", [elixir_aliases:inspect(Module)]).
+  io_lib:format("could not load macros from module ~ts", [elixir_aliases:inspect(Module)]);
+
+format_error({import_conflict, Receiver, {Name, Arity}}) ->
+  io_lib:format("imported ~ts.~ts/~B conflicts with local function",
+    [elixir_aliases:inspect(Receiver), Name, Arity]).
 
 %% LIST HELPERS
 

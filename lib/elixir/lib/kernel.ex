@@ -302,7 +302,7 @@ defmodule Kernel do
   @compile {:inline, bootstrapped?: 1}
   case :code.ensure_loaded(Kernel) do
     {:module, _} ->
-      defp bootstrapped?(_), do: true
+      defp bootstrapped?(module), do: is_atom(module)
 
     {:error, _} ->
       defp bootstrapped?(module), do: :code.ensure_loaded(module) == {:module, module}
@@ -3646,7 +3646,7 @@ defmodule Kernel do
             :ok
 
           true ->
-            pos = :elixir_locals.cache_env(__CALLER__)
+            pos = :elixir_module.cache_env(__CALLER__)
             %{line: line, file: file, module: module} = __CALLER__
 
             quote do
@@ -5323,7 +5323,7 @@ defmodule Kernel do
           key
       end
 
-    pos = :elixir_locals.cache_env(env)
+    pos = :elixir_module.cache_env(env)
 
     quote do
       :elixir_def.store_definition(unquote(kind), unquote(store), unquote(pos))

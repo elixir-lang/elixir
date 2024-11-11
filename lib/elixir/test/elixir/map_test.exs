@@ -6,8 +6,7 @@ defmodule MapTest do
   doctest Map
 
   @sample %{a: 1, b: 2}
-
-  defp sample, do: @sample
+  defp sample, do: Process.get(:unused, %{a: 1, b: 2})
 
   test "maps in attributes" do
     assert @sample == %{a: 1, b: 2}
@@ -82,7 +81,7 @@ defmodule MapTest do
 
   test "map_size/1" do
     assert map_size(%{}) == 0
-    assert map_size(@sample) == 2
+    assert map_size(sample()) == 2
   end
 
   test "new/1" do
@@ -282,8 +281,6 @@ defmodule MapTest do
     defstruct name: "john", age: 27
   end
 
-  defp empty_map(), do: %{}
-
   test "structs" do
     assert %ExternalUser{} == %{__struct__: ExternalUser, name: "john", age: 27}
 
@@ -294,10 +291,6 @@ defmodule MapTest do
 
     %ExternalUser{name: name} = %ExternalUser{}
     assert name == "john"
-
-    assert_raise BadStructError, "expected a struct named MapTest.ExternalUser, got: %{}", fn ->
-      %ExternalUser{empty_map() | name: "meg"}
-    end
   end
 
   describe "structs with variable name" do
@@ -325,12 +318,11 @@ defmodule MapTest do
       end
     end
 
-    defp foo(), do: "foo"
     defp destruct1(%module{}), do: module
     defp destruct2(%_{}), do: :ok
 
     test "does not match" do
-      invalid_struct = %{__struct__: foo()}
+      invalid_struct = Process.get(:unused, %{__struct__: "foo"})
 
       assert_raise CaseClauseError, fn ->
         case invalid_struct do
@@ -345,7 +337,7 @@ defmodule MapTest do
       end
 
       assert_raise CaseClauseError, fn ->
-        foo = foo()
+        foo = Process.get(:unused, "foo")
 
         case invalid_struct do
           %^foo{} -> :ok
@@ -370,7 +362,7 @@ defmodule MapTest do
       end
 
       assert_raise MatchError, fn ->
-        foo = foo()
+        foo = Process.get(:unused, "foo")
         %^foo{} = invalid_struct
       end
     end

@@ -314,13 +314,13 @@ defmodule ExUnit.AssertionsTest do
     true = assert match?({2, 1}, Value.tuple())
 
     try do
-      assert match?({:ok, _}, error(true))
+      assert match?({:ok, _}, Process.get(:unused, :ok))
       flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
         "match (match?) failed" = error.message
-        "assert match?({:ok, _}, error(true))" = Macro.to_string(error.expr)
-        "{:error, true}" = Macro.to_string(error.right)
+        "assert match?({:ok, _}, Process.get(:unused, :ok))" = Macro.to_string(error.expr)
+        ":ok" = Macro.to_string(error.right)
     end
   end
 

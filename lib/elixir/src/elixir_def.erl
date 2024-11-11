@@ -37,6 +37,7 @@ fun_for(Meta, Module, Name, Arity, Kinds, External) ->
     {[{_, Kind, LocalMeta, _, _, _}], ClausesPairs} ->
       case (Kinds == all) orelse (lists:member(Kind, Kinds)) of
         true ->
+          (Kind == defmacrop) andalso track_defmacrop(Module, Tuple),
           Local = {value, fun(Fun, Args) -> invoke_local(Meta, Module, Fun, Args, External) end},
           Clauses = [Clause || {_, Clause} <- ClausesPairs],
           elixir_erl:definition_to_anonymous(Kind, LocalMeta, Clauses, Local, External);
@@ -59,6 +60,10 @@ invoke_local(Meta, Module, ErlName, Args, External) ->
     Fun ->
       apply(Fun, Args)
   end.
+
+track_defmacrop(Module, FunArity) ->
+  {_, Bag} = elixir_module:data_tables(Module),
+  ets:insert(Bag, {defmacrop_calls, FunArity}).
 
 invoke_external(Meta, Mod, Name, Args, E) ->
   is_map(E) andalso elixir_env:trace({require, Meta, Mod, []}, E),
@@ -128,10 +133,10 @@ head_and_definition_meta(_, _Meta, _HeadDefaults, [{_, _, HeadMeta, _} | _]) ->
 %% Section for storing definitions
 
 store_definition(Kind, {Call, Body}, Pos) ->
-  E = elixir_locals:get_cached_env(Pos),
+  E = elixir_module:get_cached_env(Pos),
   store_definition(Kind, false, Call, Body, E);
 store_definition(Kind, Key, Pos) ->
-  #{module := Module} = E = elixir_locals:get_cached_env(Pos),
+  #{module := Module} = E = elixir_module:get_cached_env(Pos),
   {Call, Body} = elixir_module:read_cache(Module, Key),
   store_definition(Kind, true, Call, Body, E).
 
@@ -210,7 +215,6 @@ store_definition(Meta, Kind, CheckClauses, Name, Arity, DefaultsArgs, Guards, Bo
              Clause <- def_to_clauses(Kind, Meta, Args, Guards, Body, E)],
 
   DefaultsLength = length(Defaults),
-  elixir_locals:record_defaults(Tuple, Kind, Module, DefaultsLength, Meta),
   check_previous_defaults(Meta, Module, Name, Arity, Kind, DefaultsLength, E),
 
   store_definition(CheckClauses, Kind, Meta, Name, Arity, File,

@@ -1649,7 +1649,7 @@ defmodule Code do
 
     * `:infer_signatures` (since v1.18.0) - when `false`, it disables module-local
       signature inference used when type checking remote calls to the compiled
-      module. Type checking will be executed regardless of this value of this option.
+      module. Type checking will be executed regardless of the value of this option.
       Defaults to `true`.
 
       `mix test` automatically disables this option via the `:test_elixirc_options`

@@ -1,10 +1,10 @@
 % Holds the logic responsible for defining overridable functions and handling super.
 -module(elixir_overridable).
 -export([overridables_for/1, overridable_for/2,
-         record_overridable/4, super/4,
+         record_overridable/3, super/4,
          store_not_overridden/1, format_error/1]).
 -include("elixir.hrl").
--define(overridden_pos, 5).
+-define(overridden_pos, 4).
 
 overridables_for(Module) ->
   {_, Bag} = elixir_module:data_tables(Module),
@@ -22,20 +22,20 @@ overridable_for(Module, Tuple) ->
     [] -> not_overridable
   end.
 
-record_overridable(Module, Tuple, Def, Neighbours) ->
+record_overridable(Module, Tuple, Def) ->
   {Set, Bag} = elixir_module:data_tables(Module),
 
-  case ets:insert_new(Set, {{overridable, Tuple}, 1, Def, Neighbours, false}) of
+  case ets:insert_new(Set, {{overridable, Tuple}, 1, Def, false}) of
     true ->
       ets:insert(Bag, {overridables, Tuple});
     false ->
-      [{_, Count, PreviousDef, _, _}] = ets:lookup(Set, {overridable, Tuple}),
+      [{_, Count, PreviousDef, _}] = ets:lookup(Set, {overridable, Tuple}),
       {{_, Kind, Meta, File, _, _}, _} = Def,
       {{_, PreviousKind, _, _, _, _}, _} = PreviousDef,
 
       case is_valid_kind(Kind, PreviousKind) of
         true ->
-          ets:insert(Set, {{overridable, Tuple}, Count + 1, Def, Neighbours, false});
+          ets:insert(Set, {{overridable, Tuple}, Count + 1, Def, false});
         false ->
           elixir_errors:file_error(Meta, File, ?MODULE, {bad_kind, Module, Tuple, Kind})
       end
@@ -74,7 +74,7 @@ store_not_overridden(Module) ->
 
 %% Private
 
-store(Set, Module, Tuple, {_, Count, Def, Neighbours, Overridden}, Hidden) ->
+store(Set, Module, Tuple, {_, Count, Def, Overridden}, Hidden) ->
   {{{def, {Name, Arity}}, Kind, Meta, File, _Check,
    {Defaults, _HasBody, _LastDefaults}}, Clauses} = Def,
 
@@ -92,8 +92,7 @@ store(Set, Module, Tuple, {_, Count, Def, Neighbours, Overridden}, Hidden) ->
     false ->
       ets:update_element(Set, {overridable, Tuple}, {?overridden_pos, true}),
       elixir_def:store_definition(none, FinalKind, Meta, FinalName, FinalArity,
-                                  File, Module, Defaults, FinalClauses),
-      elixir_locals:reattach({FinalName, FinalArity}, FinalKind, Module, Tuple, Neighbours, Meta);
+                                  File, Module, Defaults, FinalClauses);
     true ->
       ok
   end,

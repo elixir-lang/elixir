@@ -25,6 +25,10 @@ defmodule Module.Types.Pattern do
      is refined, we restart at step 2.
 
   """
+  def of_head(_patterns, _guards, expected, _tag, _meta, %{mode: :traversal}, context) do
+    {expected, context}
+  end
+
   def of_head(patterns, guards, expected, tag, meta, stack, context) do
     stack = %{stack | meta: meta}
 
@@ -98,7 +102,13 @@ defmodule Module.Types.Pattern do
   This version tracks the whole expression in tracing,
   instead of only the pattern.
   """
-  def of_match(pattern, guards \\ [], expected, expr, tag, stack, context) do
+  def of_match(pattern, guards \\ [], expected, expr, tag, stack, context)
+
+  def of_match(_pattern, _guards, expected, _expr, _tag, %{mode: :traversal}, context) do
+    {expected, context}
+  end
+
+  def of_match(pattern, guards, expected, expr, tag, stack, context) do
     context = init_pattern_info(context)
     {tree, context} = of_pattern(pattern, [{:arg, 0, expr}], stack, context)
 
@@ -114,32 +124,39 @@ defmodule Module.Types.Pattern do
     {type, context}
   end
 
+  defp all_single_path?(vars, info, index) do
+    info
+    |> Map.get(index, [])
+    |> Enum.all?(fn version -> match?([_], Map.fetch!(vars, version)) end)
+  end
+
   defp of_pattern_recur(types, tag, stack, context, callback) do
-    %{pattern_info: {pattern_vars, pattern_info, _counter}} = context
+    %{pattern_info: {vars, info, _counter}} = context
     context = nilify_pattern_info(context)
-    pattern_vars = Map.to_list(pattern_vars)
     changed = :lists.seq(0, length(types) - 1)
+
+    # If all variables in a given index have a single path,
+    # then there are no changes to propagate
+    unchangeable = for index <- changed, all_single_path?(vars, info, index), do: index
+
+    vars = Map.to_list(vars)
 
     try do
       case callback.(types, changed, context) do
         {:ok, types, context} ->
-          of_pattern_recur(types, pattern_vars, pattern_info, tag, stack, context, callback)
+          of_pattern_recur(types, unchangeable, vars, info, tag, stack, context, callback)
 
         {:error, context} ->
-          {types, error_vars(pattern_vars, context)}
+          {types, error_vars(vars, context)}
       end
     catch
-      {types, context} -> {types, error_vars(pattern_vars, context)}
+      {types, context} -> {types, error_vars(vars, context)}
     end
   end
 
-  defp of_pattern_recur(types, vars, info, tag, stack, context, callback) do
-    %{vars: context_vars} = context
-
+  defp of_pattern_recur(types, unchangeable, vars, info, tag, stack, context, callback) do
     {changed, context} =
       Enum.reduce(vars, {[], context}, fn {version, paths}, {changed, context} ->
-        current_type = context_vars[version][:type]
-
         {var_changed?, context} =
           Enum.reduce(paths, {false, context}, fn
             [var, {:arg, index, expr} | path], {var_changed?, context} ->
@@ -147,18 +164,20 @@ defmodule Module.Types.Pattern do
 
               case of_pattern_var(path, actual, true, info, context) do
                 {type, reachable_var?} ->
-                  case Of.refine_var(var, type, expr, stack, context) do
-                    {:ok, type, context} ->
-                      {var_changed? or
-                         (reachable_var? and
-                            (current_type == nil or not equal?(current_type, type))), context}
-
-                    {:error, _type, context} ->
-                      throw({types, context})
+                  # If current type is already a subtype, there is nothing to refine.
+                  with %{^version => %{type: current_type}} <- context.vars,
+                       true <- subtype?(current_type, type) do
+                    {var_changed?, context}
+                  else
+                    _ ->
+                      case Of.refine_var(var, type, expr, stack, context) do
+                        {:ok, _type, context} -> {var_changed? or reachable_var?, context}
+                        {:error, _type, context} -> throw({types, context})
+                      end
                   end
 
                 :error ->
-                  throw({types, to_badpattern_error(expr, tag, stack, context)})
+                  throw({types, badpattern_error(expr, tag, stack, context)})
               end
           end)
 
@@ -167,23 +186,12 @@ defmodule Module.Types.Pattern do
             {changed, context}
 
           true ->
-            case paths do
-              # A single change, check if there are other variables in this index.
-              [[_var, {:arg, index, _} | _]] ->
-                case info do
-                  %{^index => true} -> {[index | changed], context}
-                  %{^index => false} -> {changed, context}
-                end
-
-              # Several changes, we have to recompute all indexes.
-              _ ->
-                var_changed = Enum.map(paths, fn [_var, {:arg, index, _} | _] -> index end)
-                {var_changed ++ changed, context}
-            end
+            var_changed = Enum.map(paths, fn [_var, {:arg, index, _} | _] -> index end)
+            {var_changed ++ changed, context}
         end
       end)
 
-    case :lists.usort(changed) do
+    case :lists.usort(changed) -- unchangeable do
       [] ->
         {types, context}
 
@@ -194,7 +202,7 @@ defmodule Module.Types.Pattern do
             {types, context}
 
           {:ok, types, context} ->
-            of_pattern_recur(types, vars, info, tag, stack, context, callback)
+            of_pattern_recur(types, unchangeable, vars, info, tag, stack, context, callback)
 
           {:error, context} ->
             {types, error_vars(vars, context)}
@@ -208,7 +216,7 @@ defmodule Module.Types.Pattern do
     end)
   end
 
-  defp to_badpattern_error(expr, tag, stack, context) do
+  defp badpattern_error(expr, tag, stack, context) do
     meta =
       if meta = get_meta(expr) do
         meta ++ Keyword.take(stack.meta, [:generated, :line])
@@ -224,7 +232,7 @@ defmodule Module.Types.Pattern do
     type = intersection(actual, expected)
 
     if empty?(type) do
-      {:error, to_badpattern_error(expr, tag, stack, context)}
+      {:error, badpattern_error(expr, tag, stack, context)}
     else
       {:ok, type, context}
     end
@@ -251,8 +259,8 @@ defmodule Module.Types.Pattern do
   end
 
   # TODO: Implement domain key types
-  defp of_pattern_var([{:key, _key} | rest], _type, reachable_var?, info, context) do
-    of_pattern_var(rest, dynamic(), reachable_var?, info, context)
+  defp of_pattern_var([{:key, _key} | rest], _type, _reachable_var?, info, context) do
+    of_pattern_var(rest, dynamic(), false, info, context)
   end
 
   defp of_pattern_var([{:head, counter} | rest], type, _reachable_var?, info, context) do
@@ -489,14 +497,8 @@ defmodule Module.Types.Pattern do
     paths = [[var | path] | Map.get(vars, version, [])]
     vars = Map.put(vars, version, paths)
 
-    # Our goal here is to compute if an argument has more than one variable.
-    info =
-      case info do
-        %{^arg => false} -> %{info | arg => true}
-        %{^arg => true} -> info
-        %{} -> Map.put(info, arg, false)
-      end
-
+    # Stores all variables used at any given argument
+    info = Map.update(info, arg, [version], &[version | &1])
     {{:var, version}, %{context | pattern_info: {vars, info, counter}}}
   end
 
@@ -715,7 +717,7 @@ defmodule Module.Types.Pattern do
     {args_type, context} =
       Enum.map_reduce(args, context, &of_guard(&1, dynamic(), expr, stack, &2))
 
-    Of.apply(:erlang, function, args_type, call, stack, context)
+    Module.Types.Apply.remote(:erlang, function, args_type, call, stack, context)
   end
 
   # var

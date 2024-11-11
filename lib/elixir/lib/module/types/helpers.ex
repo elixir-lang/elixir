@@ -38,6 +38,13 @@ defmodule Module.Types.Helpers do
   def get_meta({_, meta, _}), do: meta
   def get_meta(_other), do: []
 
+  @doc """
+  Attaches span information.
+  """
+  def with_span(meta, name) do
+    :elixir_env.calculate_span(meta, name)
+  end
+
   ## Warnings
 
   @doc """

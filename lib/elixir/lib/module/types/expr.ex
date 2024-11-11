@@ -1,7 +1,7 @@
 defmodule Module.Types.Expr do
   @moduledoc false
 
-  alias Module.Types.{Of, Pattern}
+  alias Module.Types.{Apply, Of, Pattern}
   import Module.Types.{Helpers, Descr}
 
   14 = length(Macro.Env.__info__(:struct))
@@ -78,14 +78,35 @@ defmodule Module.Types.Expr do
     {prefix, suffix} = unpack_list(list, [])
     {prefix, context} = Enum.map_reduce(prefix, context, &of_expr(&1, stack, &2))
     {suffix, context} = of_expr(suffix, stack, context)
-    {non_empty_list(Enum.reduce(prefix, &union/2), suffix), context}
+
+    if stack.mode == :traversal do
+      {dynamic(), context}
+    else
+      {non_empty_list(Enum.reduce(prefix, &union/2), suffix), context}
+    end
   end
 
   # {left, right}
   def of_expr({left, right}, stack, context) do
     {left, context} = of_expr(left, stack, context)
     {right, context} = of_expr(right, stack, context)
-    {tuple([left, right]), context}
+
+    if stack.mode == :traversal do
+      {dynamic(), context}
+    else
+      {tuple([left, right]), context}
+    end
+  end
+
+  # {...}
+  def of_expr({:{}, _meta, exprs}, stack, context) do
+    {types, context} = Enum.map_reduce(exprs, context, &of_expr(&1, stack, &2))
+
+    if stack.mode == :traversal do
+      {dynamic(), context}
+    else
+      {tuple(types), context}
+    end
   end
 
   # <<...>>>
@@ -101,12 +122,6 @@ defmodule Module.Types.Expr do
   def of_expr({:__STACKTRACE__, _meta, var_context}, _stack, context)
       when is_atom(var_context) do
     {@stacktrace, context}
-  end
-
-  # {...}
-  def of_expr({:{}, _meta, exprs}, stack, context) do
-    {types, context} = Enum.map_reduce(exprs, context, &of_expr(&1, stack, &2))
-    {tuple(types), context}
   end
 
   # left = right
@@ -221,7 +236,7 @@ defmodule Module.Types.Expr do
         {head_type, context} = of_expr(head, stack, context)
 
         context =
-          if stack.mode == :infer do
+          if stack.mode in [:infer, :traversal] do
             context
           else
             case truthness(head_type) do
@@ -386,32 +401,47 @@ defmodule Module.Types.Expr do
       )
       when is_atom(name) and is_integer(arity) do
     {remote_type, context} = of_expr(remote, stack, context)
+
     # TODO: We cannot return the unions of functions. Do we forbid this?
     # Do we check it is always the same return type? Do we simply say it is a function?
     {mods, context} = Of.modules(remote_type, name, arity, expr, meta, stack, context)
 
     context =
-      Enum.reduce(mods, context, &(Of.remote(&1, name, arity, meta, stack, &2) |> elem(1)))
+      Enum.reduce(
+        mods,
+        context,
+        &(Apply.signature(&1, name, arity, meta, stack, &2) |> elem(1))
+      )
 
-    {fun(), context}
+    {dynamic(fun()), context}
   end
 
-  # &foo/1
-  # TODO: & &1
-  def of_expr({:&, _meta, _arg}, _stack, context) do
-    {fun(), context}
+  # TODO: &foo/1
+  def of_expr({:&, _meta, [{:/, _, [{fun, meta, _}, arity]}]}, stack, context) do
+    Apply.local_capture(fun, arity, meta, stack, context)
   end
 
-  # TODO: local_call(arg)
-  def of_expr({fun, _meta, args}, stack, context)
+  # Super
+  def of_expr({:super, meta, args} = expr, stack, context) when is_list(args) do
+    {_kind, fun} = Keyword.fetch!(meta, :super)
+    {args_types, context} = Enum.map_reduce(args, context, &of_expr(&1, stack, &2))
+    Apply.local(fun, args_types, expr, stack, context)
+  end
+
+  # Local calls
+  def of_expr({fun, _meta, args} = expr, stack, context)
       when is_atom(fun) and is_list(args) do
-    {_arg_types, context} = Enum.map_reduce(args, context, &of_expr(&1, stack, &2))
-    {dynamic(), context}
+    {args_types, context} = Enum.map_reduce(args, context, &of_expr(&1, stack, &2))
+    Apply.local(fun, args_types, expr, stack, context)
   end
 
   # var
-  def of_expr(var, _stack, context) when is_var(var) do
-    {Of.var(var, context), context}
+  def of_expr(var, stack, context) when is_var(var) do
+    if stack.mode == :traversal do
+      {dynamic(), context}
+    else
+      {Of.var(var, context), context}
+    end
   end
 
   ## Try
@@ -427,9 +457,8 @@ defmodule Module.Types.Expr do
           {info, context} = Of.struct_info(exception, meta, stack, context)
           {Of.struct_type(exception, info, args), context}
         else
-          # If the exception cannot be found or is invalid,
-          # we call Of.remote/5 to emit a warning.
-          {_, context} = Of.remote(exception, :__struct__, 0, meta, stack, context)
+          # If the exception cannot be found or is invalid, fetch the signature to emit warnings.
+          {_, context} = Apply.signature(exception, :__struct__, 0, meta, stack, context)
           {error_type(), context}
         end
       end)
@@ -521,17 +550,17 @@ defmodule Module.Types.Expr do
   ## General helpers
 
   defp apply_many([], function, args_types, expr, stack, context) do
-    Of.apply(function, args_types, expr, stack, context)
+    Apply.remote(function, args_types, expr, stack, context)
   end
 
   defp apply_many([mod], function, args_types, expr, stack, context) do
-    Of.apply(mod, function, args_types, expr, stack, context)
+    Apply.remote(mod, function, args_types, expr, stack, context)
   end
 
   defp apply_many(mods, function, args_types, expr, stack, context) do
     {returns, context} =
       Enum.map_reduce(mods, context, fn mod, context ->
-        Of.apply(mod, function, args_types, expr, stack, context)
+        Apply.remote(mod, function, args_types, expr, stack, context)
       end)
 
     {Enum.reduce(returns, &union/2), context}
@@ -546,7 +575,7 @@ defmodule Module.Types.Expr do
   defp dynamic_unless_static({_, _} = output, %{mode: :static}), do: output
   defp dynamic_unless_static({type, context}, %{mode: _}), do: {dynamic(type), context}
 
-  defp of_clauses(clauses, expected, info, stack, {acc, context}) do
+  defp of_clauses(clauses, expected, info, %{mode: mode} = stack, {acc, context}) do
     %{failed: failed?} = context
 
     Enum.reduce(clauses, {acc, context}, fn {:->, meta, [head, body]}, {acc, context} ->
@@ -554,7 +583,13 @@ defmodule Module.Types.Expr do
       {patterns, guards} = extract_head(head)
       {_types, context} = Pattern.of_head(patterns, guards, expected, info, meta, stack, context)
       {body, context} = of_expr(body, stack, context)
-      {union(acc, body), set_failed(context, failed?)}
+      context = set_failed(context, failed?)
+
+      if mode == :traversal do
+        {dynamic(), context}
+      else
+        {union(acc, body), context}
+      end
     end)
   end
 

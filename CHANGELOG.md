@@ -6,13 +6,15 @@ TODO.
 
 * Type inference of patterns (typing inference of guards will be part of an upcoming release)
 
-* [Support for tuples and lists as composite types](https://elixir-lang.org/blog/2024/08/28/typing-lists-and-tuples/) as well as type checking of their basic operations
-
-* Type checking of all language constructs, except `for`, `with`, and closures
+* Type checking of all language constructs, including local and remote calls, except `for`, `with`, and closures
 
 * Type checking of all `Kernel` and conversion functions inlined by the compiler
 
-* Detection of clauses and patterns that never match
+* [Support for tuples and lists as composite types](https://elixir-lang.org/blog/2024/08/28/typing-lists-and-tuples/) as well as type checking of their basic operations
+
+* Detection of clauses and patterns that will never match from `case`, `cond`, and `=`
+
+* Detection of unused clauses from private functions
 
 ## ExUnit improvements
 

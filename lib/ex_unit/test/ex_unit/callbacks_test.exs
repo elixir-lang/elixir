@@ -446,10 +446,14 @@ defmodule ExUnit.CallbacksNoTests do
   use ExUnit.Case, async: true
 
   setup_all do
-    raise "never run"
+    if :rand.uniform() >= 0 do
+      raise "never run"
+    end
   end
 
   setup do
-    raise "never run"
+    if :rand.uniform() >= 0 do
+      raise "never run"
+    end
   end
 end

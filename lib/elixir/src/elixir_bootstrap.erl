@@ -50,7 +50,7 @@ define({Line, _S, #{module := Module} = E}, Kind, Call, Expr) ->
         Key
     end,
 
-  Args = [Kind, Store, elixir_locals:cache_env(E#{line := Line})],
+  Args = [Kind, Store, elixir_module:cache_env(E#{line := Line})],
   {{'.', [], [elixir_def, store_definition]}, [], Args}.
 
 unless_loaded(Fun, Args, Callback) ->
