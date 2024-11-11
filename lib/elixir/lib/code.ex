@@ -249,7 +249,7 @@ defmodule Code do
     :debug_info,
     :ignore_already_consolidated,
     :ignore_module_conflict,
-    i:nfer_signatures,
+    :infer_signatures,
     :relative_paths
   ]
 
