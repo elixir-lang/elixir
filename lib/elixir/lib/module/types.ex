@@ -2,13 +2,48 @@ defmodule Module.Types do
   @moduledoc false
   alias Module.Types.{Descr, Expr, Pattern, Helpers}
 
+  # The mode controls what happens on function application when
+  # there are gradual arguments. Non-gradual arguments always
+  # perform subtyping and return its output (OUT).
+  #
+  #   * :strict - Requires types signatures (not implemented).
+  #     * Strong arrows with gradual performs subtyping and returns OUT
+  #     * Weak arrows with gradual performs subtyping and returns OUT
+  #
+  #   * :static - Type signatures have been given.
+  #     * Strong arrows with gradual performs compatibility and returns OUT
+  #     * Weak arrows with gradual performs compatibility and returns dynamic()
+  #
+  #   * :dynamic - Type signatures have not been given.
+  #     * Strong arrows with gradual performs compatibility and returns dynamic(OUT)
+  #     * Weak arrows with gradual performs compatibility and returns dynamic()
+  #
+  #   * :infer - Same as :dynamic but skips remote calls.
+  #
+  #   * :traversal - Focused mostly on traversing AST, skips most type system
+  #     operations. Used by macros and when skipping inference.
+  #
+  # The mode may also control exhaustiveness checks in the future (to be decided).
+  # We may also want for applications with subtyping in dynamic mode to always
+  # intersect with dynamic, but this mode may be too lax (to be decided based on
+  # feedback).
+  @modes [:static, :dynamic, :infer, :traversal]
+
   # These functions are not inferred because they are added/managed by the compiler
   @no_infer [__protocol__: 1, behaviour_info: 1]
 
   @doc false
   def infer(module, file, defs, private, defmacrop, env) do
+    infer_signatures? = :elixir_config.get(:infer_signatures)
     defmacrop = Map.from_keys(defmacrop, [])
-    finder = &:lists.keyfind(&1, 1, defs)
+
+    finder =
+      fn fun_arity ->
+        case :lists.keyfind(fun_arity, 1, defs) do
+          {_, kind, _, _} = clause -> {infer_mode(kind, infer_signatures?), clause}
+          false -> false
+        end
+      end
 
     handler = fn meta, fun_arity, stack, context ->
       case local_handler(meta, fun_arity, stack, context, finder) do
@@ -34,10 +69,10 @@ defmodule Module.Types do
         {types, context} ->
           cond do
             kind in [:def, :defmacro] ->
-              {_kind, inferred, context} =
-                local_handler(meta, fun_arity, stack, context, fn _ -> def end)
+              finder = fn _ -> {infer_mode(kind, infer_signatures?), def} end
+              {_kind, inferred, context} = local_handler(meta, fun_arity, stack, context, finder)
 
-              if kind == :def and fun_arity not in @no_infer do
+              if infer_signatures? and kind == :def and fun_arity not in @no_infer do
                 {[{fun_arity, inferred} | types], context}
               else
                 {types, context}
@@ -48,9 +83,10 @@ defmodule Module.Types do
               # we don't need them stored in the signatures when we perform
               # unreachable checks. This may cause defmacrop to be traversed
               # twice if it uses default arguments (which is the only way
-              # to refer to another defmacrop in definitions).
+              # to refer to another defmacrop in definitions) but that should
+              # be cheap anyway.
               {_kind, _inferred, context} =
-                local_handler(fun_arity, kind, meta, clauses, stack, context)
+                local_handler(fun_arity, kind, meta, clauses, :traversal, stack, context)
 
               {types, context}
 
@@ -66,6 +102,10 @@ defmodule Module.Types do
           do: fun_arity
 
     {Map.new(types), unreachable}
+  end
+
+  defp infer_mode(kind, infer_signatures?) do
+    if infer_signatures? and kind in [:def, :defp], do: :infer, else: :traversal
   end
 
   defp undefined_function!(reason, meta, {fun, arity}, stack, env) do
@@ -117,16 +157,21 @@ defmodule Module.Types do
 
   @doc false
   def warnings(module, file, defs, no_warn_undefined, cache) do
-    finder = &:lists.keyfind(&1, 1, defs)
+    finder = fn fun_arity ->
+      case :lists.keyfind(fun_arity, 1, defs) do
+        {_, _, _, _} = clause -> {:dynamic, clause}
+        false -> false
+      end
+    end
+
     handler = &local_handler(&1, &2, &3, &4, finder)
     stack = stack(:dynamic, file, module, {:__info__, 1}, no_warn_undefined, cache, handler)
     context = context(%{})
 
     context =
       Enum.reduce(defs, context, fn {fun_arity, _kind, meta, _clauses} = def, context ->
-        {_kind, _inferred, context} =
-          local_handler(meta, fun_arity, stack, context, fn _ -> def end)
-
+        finder = fn _ -> {:dynamic, def} end
+        {_kind, _inferred, context} = local_handler(meta, fun_arity, stack, context, finder)
         context
       end)
 
@@ -161,11 +206,11 @@ defmodule Module.Types do
 
       local_sigs ->
         case finder.(fun_arity) do
-          {fun_arity, kind, meta, clauses} ->
+          {mode, {fun_arity, kind, meta, clauses}} ->
             context = put_in(context.local_sigs, Map.put(local_sigs, fun_arity, kind))
 
             {inferred, mapping, context} =
-              local_handler(fun_arity, kind, meta, clauses, stack, context)
+              local_handler(fun_arity, kind, meta, clauses, mode, stack, context)
 
             context =
               update_in(context.local_sigs, &Map.put(&1, fun_arity, {kind, inferred, mapping}))
@@ -178,9 +223,9 @@ defmodule Module.Types do
     end
   end
 
-  defp local_handler({fun, arity} = fun_arity, kind, meta, clauses, stack, context) do
+  defp local_handler({fun, arity} = fun_arity, kind, meta, clauses, mode, stack, context) do
     expected = List.duplicate(Descr.dynamic(), arity)
-    stack = stack |> fresh_stack(kind, fun_arity) |> with_file_meta(meta)
+    stack = stack |> fresh_stack(mode, fun_arity) |> with_file_meta(meta)
 
     {_, _, mapping, clauses_types, clauses_context} =
       Enum.reduce(clauses, {0, 0, [], [], context}, fn
@@ -259,7 +304,7 @@ defmodule Module.Types do
 
   @doc false
   def stack(mode, file, module, function, no_warn_undefined, cache, handler)
-      when mode in [:static, :dynamic, :infer, :traversal] do
+      when mode in @modes do
     %{
       # The fallback meta used for literals in patterns and guards
       meta: [],
@@ -273,31 +318,7 @@ defmodule Module.Types do
       no_warn_undefined: no_warn_undefined,
       # A tuple with cache information or a Macro.Env struct indicating no remote traversals
       cache: cache,
-      # The mode controls what happens on function application when
-      # there are gradual arguments. Non-gradual arguments always
-      # perform subtyping and return its output (OUT).
-      #
-      #   * :strict - Requires types signatures (not implemented).
-      #     * Strong arrows with gradual performs subtyping and returns OUT
-      #     * Weak arrows with gradual performs subtyping and returns OUT
-      #
-      #   * :static - Type signatures have been given.
-      #     * Strong arrows with gradual performs compatibility and returns OUT
-      #     * Weak arrows with gradual performs compatibility and returns dynamic()
-      #
-      #   * :dynamic - Type signatures have not been given.
-      #     * Strong arrows with gradual performs compatibility and returns dynamic(OUT)
-      #     * Weak arrows with gradual performs compatibility and returns dynamic()
-      #
-      #   * :infer - Same as :dynamic but skips remote calls.
-      #
-      #   * :traversal - Focused mostly on traversing AST, skips most type system
-      #     operations. Used by macros and functions which already have signatures.
-      #
-      # The mode may also control exhaustiveness checks in the future (to be decided).
-      # We may also want for applications with subtyping in dynamic mode to always
-      # intersect with dynamic, but this mode may be too lax (to be decided based on
-      # feedback).
+      # The mode to be used, see the @modes attribute
       mode: mode,
       # The function for handling local calls
       local_handler: handler
@@ -322,15 +343,8 @@ defmodule Module.Types do
     }
   end
 
-  defp fresh_stack(%{mode: mode} = stack, kind, function) do
-    mode =
-      cond do
-        kind in [:defmacro, :defmacrop] and mode == :infer -> :traversal
-        kind in [:def, :defp] and mode == :traversal -> :infer
-        true -> mode
-      end
-
-    %{stack | function: function, mode: mode}
+  defp fresh_stack(stack, mode, function) when mode in @modes do
+    %{stack | mode: mode, function: function}
   end
 
   defp fresh_context(context) do

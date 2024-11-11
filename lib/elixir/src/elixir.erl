@@ -90,6 +90,7 @@ start(_Type, _Args) ->
     {docs, true},
     {ignore_already_consolidated, false},
     {ignore_module_conflict, false},
+    {infer_signatures, true},
     {on_undefined_variable, raise},
     {parser_options, [{columns, true}]},
     {debug_info, true},
