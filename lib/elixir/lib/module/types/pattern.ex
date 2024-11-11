@@ -114,26 +114,37 @@ defmodule Module.Types.Pattern do
     {type, context}
   end
 
+  defp all_single_path?(vars, info, index) do
+    info
+    |> Map.get(index, [])
+    |> Enum.all?(fn version -> match?([_], Map.fetch!(vars, version)) end)
+  end
+
   defp of_pattern_recur(types, tag, stack, context, callback) do
-    %{pattern_info: {pattern_vars, pattern_info, _counter}} = context
+    %{pattern_info: {vars, info, _counter}} = context
     context = nilify_pattern_info(context)
-    pattern_vars = Map.to_list(pattern_vars)
     changed = :lists.seq(0, length(types) - 1)
+
+    # If all variables in a given index have a single path,
+    # then there are no changes to propagate
+    unchangeable = for index <- changed, all_single_path?(vars, info, index), do: index
+
+    vars = Map.to_list(vars)
 
     try do
       case callback.(types, changed, context) do
         {:ok, types, context} ->
-          of_pattern_recur(types, pattern_vars, pattern_info, tag, stack, context, callback)
+          of_pattern_recur(types, unchangeable, vars, info, tag, stack, context, callback)
 
         {:error, context} ->
-          {types, error_vars(pattern_vars, context)}
+          {types, error_vars(vars, context)}
       end
     catch
-      {types, context} -> {types, error_vars(pattern_vars, context)}
+      {types, context} -> {types, error_vars(vars, context)}
     end
   end
 
-  defp of_pattern_recur(types, vars, info, tag, stack, context, callback) do
+  defp of_pattern_recur(types, unchangeable, vars, info, tag, stack, context, callback) do
     {changed, context} =
       Enum.reduce(vars, {[], context}, fn {version, paths}, {changed, context} ->
         {var_changed?, context} =
@@ -165,23 +176,12 @@ defmodule Module.Types.Pattern do
             {changed, context}
 
           true ->
-            case paths do
-              # A single change, check if there are other variables in this index.
-              [[_var, {:arg, index, _} | _]] ->
-                case info do
-                  %{^index => true} -> {[index | changed], context}
-                  %{^index => false} -> {changed, context}
-                end
-
-              # Several changes, we have to recompute all indexes.
-              _ ->
-                var_changed = Enum.map(paths, fn [_var, {:arg, index, _} | _] -> index end)
-                {var_changed ++ changed, context}
-            end
+            var_changed = Enum.map(paths, fn [_var, {:arg, index, _} | _] -> index end)
+            {var_changed ++ changed, context}
         end
       end)
 
-    case :lists.usort(changed) do
+    case :lists.usort(changed) -- unchangeable do
       [] ->
         {types, context}
 
@@ -192,7 +192,7 @@ defmodule Module.Types.Pattern do
             {types, context}
 
           {:ok, types, context} ->
-            of_pattern_recur(types, vars, info, tag, stack, context, callback)
+            of_pattern_recur(types, unchangeable, vars, info, tag, stack, context, callback)
 
           {:error, context} ->
             {types, error_vars(vars, context)}
@@ -487,14 +487,8 @@ defmodule Module.Types.Pattern do
     paths = [[var | path] | Map.get(vars, version, [])]
     vars = Map.put(vars, version, paths)
 
-    # Our goal here is to compute if an argument has more than one variable.
-    info =
-      case info do
-        %{^arg => false} -> %{info | arg => true}
-        %{^arg => true} -> info
-        %{} -> Map.put(info, arg, false)
-      end
-
+    # Stores all variables used at any given argument
+    info = Map.update(info, arg, [version], &[version | &1])
     {{:var, version}, %{context | pattern_info: {vars, info, counter}}}
   end
 
