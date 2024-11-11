@@ -62,10 +62,9 @@ defmodule Module.Types do
     end
 
     stack = stack(:infer, file, module, {:__info__, 1}, :all, env, handler)
-    context = context(%{})
 
     {types, %{local_sigs: local_sigs}} =
-      for {fun_arity, kind, meta, clauses} = def <- defs, reduce: {[], context} do
+      for {fun_arity, kind, meta, clauses} = def <- defs, reduce: {[], context()} do
         {types, context} ->
           cond do
             kind in [:def, :defmacro] ->
@@ -166,10 +165,9 @@ defmodule Module.Types do
 
     handler = &local_handler(&1, &2, &3, &4, finder)
     stack = stack(:dynamic, file, module, {:__info__, 1}, no_warn_undefined, cache, handler)
-    context = context(%{})
 
     context =
-      Enum.reduce(defs, context, fn {fun_arity, _kind, meta, _clauses} = def, context ->
+      Enum.reduce(defs, context(), fn {fun_arity, _kind, meta, _clauses} = def, context ->
         finder = fn _ -> {:dynamic, def} end
         {_kind, _inferred, context} = local_handler(meta, fun_arity, stack, context, finder)
         context
@@ -326,7 +324,7 @@ defmodule Module.Types do
   end
 
   @doc false
-  def context(local_sigs) do
+  def context() do
     %{
       # A list of all warnings found so far
       warnings: [],
@@ -336,9 +334,9 @@ defmodule Module.Types do
       pattern_info: nil,
       # If type checking has found an error/failure
       failed: false,
-      # Local signatures
-      local_sigs: local_sigs,
-      # Local clauses
+      # Local signatures used by local handler
+      local_sigs: %{},
+      # Track which clauses have been used across private local calls
       local_used: %{}
     }
   end
