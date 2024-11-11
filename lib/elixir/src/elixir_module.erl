@@ -148,9 +148,6 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
         validate_nifs_attribute(NifsAttribute, AllDefinitions, Line, E),
         elixir_locals:ensure_no_import_conflict(Module, AllDefinitions, E),
 
-        %% We stop tracking locals here to avoid race conditions in case after_load
-        %% evaluates code in a separate process that may write to locals table.
-        elixir_locals:stop({DataSet, DataBag}),
         make_readonly(Module),
 
         (not elixir_config:is_bootstrap()) andalso
