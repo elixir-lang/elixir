@@ -1,9 +1,10 @@
 -module(elixir_module).
 -export([file/1, data_tables/1, is_open/1, mode/1, delete_definition_attributes/6,
          compile/6, expand_callback/6, format_error/1, compiler_modules/0,
-         write_cache/3, read_cache/2, next_counter/1, taint/1]).
+         write_cache/3, read_cache/2, next_counter/1, taint/1, cache_env/1, get_cached_env/1]).
 -include("elixir.hrl").
 -define(counter_attr, {elixir, counter}).
+-define(cache_key, {elixir, cache_env}).
 
 %% Stores modules currently being defined by the compiler
 
@@ -70,6 +71,29 @@ taint(Module) ->
   catch
     _:_ -> false
   end.
+
+cache_env(#{line := Line, module := Module} = E) ->
+  {Set, _} = data_tables(Module),
+  Cache = elixir_env:reset_vars(E#{line := nil}),
+  PrevKey = ets:lookup_element(Set, ?cache_key, 2),
+
+  Pos =
+    case ets:lookup(Set, {cache_env, PrevKey}) of
+      [{_, Cache}] ->
+        PrevKey;
+      _ ->
+        NewKey = PrevKey + 1,
+        ets:insert(Set, [{{cache_env, NewKey}, Cache}, {?cache_key, NewKey}]),
+        NewKey
+    end,
+
+  {Module, {Line, Pos}}.
+
+get_cached_env({Module, {Line, Pos}}) ->
+  {Set, _} = data_tables(Module),
+  (ets:lookup_element(Set, {cache_env, Pos}, 2))#{line := Line};
+get_cached_env(Env) ->
+  Env.
 
 %% Compilation hook
 
@@ -146,7 +170,7 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
 
         NifsAttribute = lists:keyfind(nifs, 1, Attributes),
         validate_nifs_attribute(NifsAttribute, AllDefinitions, Line, E),
-        elixir_locals:ensure_no_import_conflict(Module, AllDefinitions, E),
+        elixir_import:ensure_no_local_conflict(Module, AllDefinitions, E),
 
         make_readonly(Module),
 
@@ -330,7 +354,6 @@ build(Module, Line, File, E) ->
   %% * {{type, Tuple}, ...}, {{opaque, Tuple}, ...}
   %% * {{callback, Tuple}, ...}, {{macrocallback, Tuple}, ...}
   %% * {{def, Tuple}, ...} (from elixir_def)
-  %% * {{import, Tuple}, ...} (from elixir_locals)
   %% * {{overridable, Tuple}, ...} (from elixir_overridable)
   %%
   DataSet = ets:new(Module, [set, public]),
@@ -346,8 +369,6 @@ build(Module, Line, File, E) ->
   %% * {overridables, ...} (from elixir_overridable)
   %% * {{default, Name}, ...} (from elixir_def)
   %% * {{clauses, Tuple}, ...} (from elixir_def)
-  %% * {reattach, ...} (from elixir_locals)
-  %% * {{local, Tuple}, ...} (from elixir_locals)
   %%
   DataBag = ets:new(Module, [duplicate_bag, public]),
 
@@ -374,6 +395,7 @@ build(Module, Line, File, E) ->
     {optional_callbacks, [], accumulate, []},
 
     % Others
+    {?cache_key, 0},
     {?counter_attr, 0}
   ]),
 
@@ -390,7 +412,6 @@ build(Module, Line, File, E) ->
   %% Setup definition related modules
   Tables = {DataSet, DataBag},
   elixir_def:setup(Tables),
-  elixir_locals:setup(Tables),
   Tuple = {Module, Tables, Line, File, all},
 
   Ref =

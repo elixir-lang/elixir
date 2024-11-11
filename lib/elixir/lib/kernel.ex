@@ -3646,7 +3646,7 @@ defmodule Kernel do
             :ok
 
           true ->
-            pos = :elixir_locals.cache_env(__CALLER__)
+            pos = :elixir_module.cache_env(__CALLER__)
             %{line: line, file: file, module: module} = __CALLER__
 
             quote do
@@ -5323,7 +5323,7 @@ defmodule Kernel do
           key
       end
 
-    pos = :elixir_locals.cache_env(env)
+    pos = :elixir_module.cache_env(env)
 
     quote do
       :elixir_def.store_definition(unquote(kind), unquote(store), unquote(pos))

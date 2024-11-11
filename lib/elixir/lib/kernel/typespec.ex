@@ -138,7 +138,7 @@ defmodule Kernel.Typespec do
     case type_to_signature(expr) do
       {name, arity} = signature when signature in @reserved_signatures ->
         compile_error(
-          :elixir_locals.get_cached_env(pos),
+          :elixir_module.get_cached_env(pos),
           "type #{name}/#{arity} is a reserved type and it cannot be defined"
         )
 
@@ -247,7 +247,7 @@ defmodule Kernel.Typespec do
 
   defp collect_defined_type_pairs(type_typespecs) do
     fun = fn {_kind, expr, pos}, type_pairs ->
-      %{file: file, line: line} = env = :elixir_locals.get_cached_env(pos)
+      %{file: file, line: line} = env = :elixir_module.get_cached_env(pos)
 
       case type_to_signature(expr) do
         {name, arity} = type_pair ->
@@ -292,7 +292,7 @@ defmodule Kernel.Typespec do
 
   defp translate_type({kind, {:"::", _, [{name, meta, args}, definition]}, pos}, state)
        when is_list(meta) do
-    caller = :elixir_locals.get_cached_env(pos)
+    caller = :elixir_module.get_cached_env(pos)
     state = clean_local_state(state)
 
     args =
@@ -349,12 +349,12 @@ defmodule Kernel.Typespec do
   defp underspecified?(_kind, _arity, _spec), do: false
 
   defp translate_spec({kind, {:when, _meta, [spec, guard]}, pos}, state) do
-    caller = :elixir_locals.get_cached_env(pos)
+    caller = :elixir_module.get_cached_env(pos)
     translate_spec(kind, spec, guard, caller, state)
   end
 
   defp translate_spec({kind, spec, pos}, state) do
-    caller = :elixir_locals.get_cached_env(pos)
+    caller = :elixir_module.get_cached_env(pos)
     translate_spec(kind, spec, [], caller, state)
   end
 

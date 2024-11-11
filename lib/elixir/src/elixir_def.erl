@@ -135,10 +135,10 @@ head_and_definition_meta(_, _Meta, _HeadDefaults, [{_, _, HeadMeta, _} | _]) ->
 %% Section for storing definitions
 
 store_definition(Kind, {Call, Body}, Pos) ->
-  E = elixir_locals:get_cached_env(Pos),
+  E = elixir_module:get_cached_env(Pos),
   store_definition(Kind, false, Call, Body, E);
 store_definition(Kind, Key, Pos) ->
-  #{module := Module} = E = elixir_locals:get_cached_env(Pos),
+  #{module := Module} = E = elixir_module:get_cached_env(Pos),
   {Call, Body} = elixir_module:read_cache(Module, Key),
   store_definition(Kind, true, Call, Body, E).
 

@@ -55,7 +55,7 @@ import_function(Meta, Name, Arity, E) ->
   case find_import_by_name_arity(Meta, Tuple, [], E) of
     {function, Receiver} ->
       elixir_env:trace({imported_function, Meta, Receiver, Name, Arity}, E),
-      elixir_locals:record_import(Tuple, Receiver, ?key(E, module), ?key(E, function)),
+      elixir_import:record(Tuple, Receiver, ?key(E, module), ?key(E, function)),
       remote_function(Meta, Receiver, Name, Arity, E);
     {macro, _Receiver} ->
       false;
@@ -192,13 +192,13 @@ do_expand_import(Result, Meta, Name, Arity, Module, E, Trace) ->
     {function, Receiver} ->
       Trace andalso begin
         elixir_env:trace({imported_function, Meta, Receiver, Name, Arity}, E),
-        elixir_locals:record_import({Name, Arity}, Receiver, Module, ?key(E, function))
+        elixir_import:record({Name, Arity}, Receiver, Module, ?key(E, function))
       end,
       {function, Receiver, Name};
     {macro, Receiver} ->
       Trace andalso begin
         elixir_env:trace({imported_macro, Meta, Receiver, Name, Arity}, E),
-        elixir_locals:record_import({Name, Arity}, Receiver, Module, ?key(E, function))
+        elixir_import:record({Name, Arity}, Receiver, Module, ?key(E, function))
       end,
       {macro, Receiver, expander_macro_named(Meta, Receiver, Name, Arity, E)};
     {import, Receiver} ->
