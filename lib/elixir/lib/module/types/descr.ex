@@ -864,7 +864,7 @@ defmodule Module.Types.Descr do
   defp list_tail_unfold(:term), do: @not_non_empty_list
   defp list_tail_unfold(other), do: Map.delete(other, :list)
 
-  defp list_union(dnf1, dnf2), do: dnf1 ++ dnf2
+  defp list_union(dnf1, dnf2), do: dnf1 ++ (dnf2 -- dnf1)
 
   defp list_intersection(dnf1, dnf2) do
     for {list_type1, last_type1, negs1} <- dnf1,
@@ -1076,12 +1076,39 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # TODO: Eliminate empty lists from the union.
-  defp list_normalize(dnf), do: dnf
-  #   Enum.filter(dnf, fn {list_type, last_type, negs} ->
-  #     not Enum.any?(negs, fn neg -> subtype?(list_type, neg) end)
-  #   end)
-  # end
+  # Eliminate empty lists from the union, and redundant types (that are subtypes of others,
+  # or that can be merged with others).
+  defp list_normalize(dnf) do
+    Enum.reduce(dnf, [], fn {lt, last, negs}, acc ->
+      if list_literal_empty?(lt, last, negs),
+        do: acc,
+        else: add_to_list_normalize(acc, lt, last, negs)
+    end)
+  end
+
+  defp list_literal_empty?(list_type, last_type, negations) do
+    empty?(list_type) or empty?(last_type) or
+      Enum.any?(negations, fn {neg_type, neg_last} ->
+        subtype?(list_type, neg_type) and subtype?(last_type, neg_last)
+      end)
+  end
+
+  # Inserts a list type into a list of non-subtype list types.
+  # If the {list_type, last_type} is a subtype of an existing type, the negs
+  # are added to that type.
+  # If one list member is a subtype of {list_type, last_type}, it is replaced
+  # and its negations are added to the new type.
+  # If the type of elements are the same, the last types are merged.
+  defp add_to_list_normalize([{t, l, n} | rest], list, last, negs) do
+    cond do
+      subtype?(list, t) and subtype?(last, l) -> [{t, l, n ++ negs} | rest]
+      subtype?(t, list) and subtype?(l, last) -> [{list, last, n ++ negs} | rest]
+      equal?(t, list) -> [{t, union(l, last), n ++ negs} | rest]
+      true -> [{t, l, n} | add_to_list_normalize(rest, list, last, negs)]
+    end
+  end
+
+  defp add_to_list_normalize([], list, last, negs), do: [{list, last, negs}]
 
   ## Dynamic
   #
