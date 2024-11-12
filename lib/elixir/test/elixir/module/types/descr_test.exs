@@ -334,6 +334,159 @@ defmodule Module.Types.DescrTest do
 
       assert difference(tuple(), open_tuple([term(), term()]))
              |> equal?(union(tuple([term()]), tuple([])))
+
+      # Large difference with no duplicates
+      descr1 = %{
+        dynamic: %{
+          atom: {:union, %{reset: [], ignored: []}},
+          tuple: [
+            {:closed, [%{atom: {:union, %{font_style: []}}}, %{atom: {:union, %{italic: []}}}],
+             []}
+          ]
+        }
+      }
+
+      descr2 = %{
+        dynamic: %{
+          atom: {:union, %{reset: [], ignored: []}},
+          tuple: [
+            {:closed, [%{atom: {:union, %{font_weight: []}}}, %{atom: {:union, %{bold: []}}}],
+             []},
+            {:closed, [%{atom: {:union, %{font_style: []}}}, %{atom: {:union, %{italic: []}}}],
+             []},
+            {:closed, [%{atom: {:union, %{font_weight: []}}}, %{atom: {:union, %{clear: []}}}],
+             []},
+            {:closed,
+             [
+               %{atom: {:union, %{text_decoration: []}}},
+               %{atom: {:union, %{clear_decoration: []}}}
+             ], []},
+            {:closed,
+             [
+               %{atom: {:union, %{text_decoration: []}}},
+               %{atom: {:union, %{remove_decoration: []}}}
+             ], []},
+            {:closed,
+             [
+               %{atom: {:union, %{text_decoration: []}}},
+               %{atom: {:union, %{undo_decoration: []}}}
+             ], []},
+            {:closed,
+             [
+               %{atom: {:union, %{text_decoration: []}}},
+               %{atom: {:union, %{default_decoration: []}}}
+             ], []},
+            {:closed,
+             [
+               %{atom: {:union, %{foreground_color: []}}},
+               %{atom: {:union, %{clear_foreground: []}}}
+             ], []},
+            {:closed,
+             [
+               %{atom: {:union, %{foreground_color: []}}},
+               %{atom: {:union, %{remove_foreground: []}}}
+             ], []},
+            {:closed,
+             [
+               %{atom: {:union, %{foreground_color: []}}},
+               %{atom: {:union, %{undo_foreground: []}}}
+             ], []},
+            {:closed,
+             [
+               %{atom: {:union, %{foreground_color: []}}},
+               %{atom: {:union, %{default_foreground: []}}}
+             ], []},
+            {:closed,
+             [
+               %{atom: {:union, %{background_color: []}}},
+               %{atom: {:union, %{clear_background: []}}}
+             ], []},
+            {:closed,
+             [
+               %{atom: {:union, %{background_color: []}}},
+               %{atom: {:union, %{remove_background: []}}}
+             ], []},
+            {:closed,
+             [
+               %{atom: {:union, %{background_color: []}}},
+               %{atom: {:union, %{undo_background: []}}}
+             ], []},
+            {:closed,
+             [
+               %{atom: {:union, %{background_color: []}}},
+               %{atom: {:union, %{default_background: []}}}
+             ], []},
+            {:closed,
+             [
+               %{atom: {:union, %{text_decoration: []}}},
+               %{atom: {:union, %{overline: []}}}
+             ], []},
+            {:closed,
+             [
+               %{atom: {:union, %{text_decoration: []}}},
+               %{atom: {:union, %{clear_text: []}}}
+             ], []},
+            {:closed,
+             [
+               %{atom: {:union, %{text_decoration: []}}},
+               %{atom: {:union, %{remove_text: []}}}
+             ], []},
+            {:closed,
+             [
+               %{atom: {:union, %{text_decoration: []}}},
+               %{atom: {:union, %{undo_text: []}}}
+             ], []},
+            {:closed,
+             [
+               %{atom: {:union, %{text_decoration: []}}},
+               %{atom: {:union, %{default_text: []}}}
+             ], []},
+            {:closed,
+             [
+               %{atom: {:union, %{foreground_color: []}}},
+               %{atom: {:union, %{clear_fg: []}}}
+             ], []},
+            {:closed,
+             [
+               %{atom: {:union, %{foreground_color: []}}},
+               %{atom: {:union, %{remove_fg: []}}}
+             ], []},
+            {:closed,
+             [
+               %{atom: {:union, %{foreground_color: []}}},
+               %{atom: {:union, %{undo_fg: []}}}
+             ], []},
+            {:closed,
+             [
+               %{atom: {:union, %{foreground_color: []}}},
+               %{atom: {:union, %{default_fg: []}}}
+             ], []},
+            {:closed,
+             [
+               %{atom: {:union, %{background_color: []}}},
+               %{atom: {:union, %{clear_bg: []}}}
+             ], []},
+            {:closed,
+             [
+               %{atom: {:union, %{background_color: []}}},
+               %{atom: {:union, %{remove_bg: []}}}
+             ], []},
+            {:closed,
+             [
+               %{atom: {:union, %{background_color: []}}},
+               %{atom: {:union, %{undo_bg: []}}}
+             ], []},
+            {:closed,
+             [
+               %{atom: {:union, %{background_color: []}}},
+               %{atom: {:union, %{default_bg: []}}}
+             ], []}
+          ]
+        }
+      }
+
+      assert subtype?(descr1, descr2)
+      refute subtype?(descr2, descr1)
     end
 
     test "map" do
@@ -1243,7 +1396,7 @@ defmodule Module.Types.DescrTest do
                "{integer(), atom()} or {atom(), ...}"
 
       assert difference(tuple([integer(), atom()]), open_tuple([atom()])) |> to_quoted_string() ==
-               "{integer(), atom()} and not {atom(), ...}"
+               "{integer(), atom()}"
 
       assert tuple([closed_map(a: integer()), open_map()]) |> to_quoted_string() ==
                "{%{a: integer()}, %{...}}"
