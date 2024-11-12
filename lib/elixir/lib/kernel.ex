@@ -2449,8 +2449,9 @@ defmodule Kernel do
     * when updating a struct, as in `struct!(%SomeStruct{}, key: :value)`,
       it is equivalent to `%SomeStruct{struct | key: :value}` and therefore this
       function will check if every given key-value belongs to the struct.
-      However, updating structs does not enforce keys, as keys are enforced
-      only when building;
+      Updating structs does not enforce keys, as keys are enforced
+      only when building. This is relevant if a struct is created in a way that
+      avoids key enforcement.
 
   """
   @spec struct!(module | struct, Enumerable.t()) :: struct
