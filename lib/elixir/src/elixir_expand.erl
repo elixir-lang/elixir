@@ -887,7 +887,7 @@ assert_no_ambiguous_op(Name, Meta, [Arg], S, E) ->
 assert_no_ambiguous_op(_Atom, _Meta, _Args, _S, _E) ->
   ok.
 
-expand_local(Meta, Name, Args, S, #{module := Module, function := Function, context := Context} = E)
+expand_local(Meta, Name, Args, S, #{function := Function, context := Context} = E)
     when Function /= nil ->
   %% In case we have the wrong context, we log a module error
   %% so we can print multiple entries at the same time.

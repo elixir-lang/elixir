@@ -63,36 +63,29 @@ defmodule Module.Types do
 
     stack = stack(:infer, file, module, {:__info__, 1}, :all, env, handler)
 
-    {types, %{local_sigs: local_sigs}} =
-      for {fun_arity, kind, meta, clauses} = def <- defs, reduce: {[], context()} do
+    {types, %{local_sigs: local_sigs} = context} =
+      for {fun_arity, kind, meta, _clauses} = def <- defs,
+          kind in [:def, :defmacro] or (kind == :defmacrop and is_map_key(defmacrop, fun_arity)),
+          reduce: {[], context()} do
         {types, context} ->
-          cond do
-            kind in [:def, :defmacro] ->
-              finder = fn _ -> {infer_mode(kind, infer_signatures?), def} end
-              {_kind, inferred, context} = local_handler(meta, fun_arity, stack, context, finder)
+          finder = fn _ -> {infer_mode(kind, infer_signatures?), def} end
+          {_kind, inferred, context} = local_handler(meta, fun_arity, stack, context, finder)
 
-              if infer_signatures? and kind == :def and fun_arity not in @no_infer do
-                {[{fun_arity, inferred} | types], context}
-              else
-                {types, context}
-              end
-
-            kind == :defmacrop and is_map_key(defmacrop, fun_arity) ->
-              # Bypass the caching structure for defmacrop, that's because
-              # we don't need them stored in the signatures when we perform
-              # unreachable checks. This may cause defmacrop to be traversed
-              # twice if it uses default arguments (which is the only way
-              # to refer to another defmacrop in definitions) but that should
-              # be cheap anyway.
-              {_kind, _inferred, context} =
-                local_handler(fun_arity, kind, meta, clauses, :traversal, stack, context)
-
-              {types, context}
-
-            true ->
-              {types, context}
+          if infer_signatures? and kind == :def and fun_arity not in @no_infer do
+            {[{fun_arity, inferred} | types], context}
+          else
+            {types, context}
           end
       end
+
+    for {fun_arity, kind, meta, _clauses} = def <- defs,
+        kind in [:defp, :defmacrop],
+        reduce: context do
+      context ->
+        finder = fn _ -> {:traversal, def} end
+        {_kind, _inferred, context} = local_handler(meta, fun_arity, stack, context, finder)
+        context
+    end
 
     unreachable =
       for {fun_arity, _kind, _meta, _defaults} = info <- private,

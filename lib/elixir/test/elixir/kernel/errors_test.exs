@@ -123,6 +123,17 @@ defmodule Kernel.ErrorsTest do
     )
   end
 
+  test "undefined function within unused function" do
+    assert_compile_error(
+      ["nofile:2:8", "undefined function bar/0"],
+      ~c"""
+      defmodule Sample do
+        defp foo, do: bar()
+      end
+      """
+    )
+  end
+
   test "undefined non-local function" do
     assert_compile_error(
       ["nofile:1:1", "undefined function call/2 (there is no such import)"],
