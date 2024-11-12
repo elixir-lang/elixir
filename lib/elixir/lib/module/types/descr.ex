@@ -1860,6 +1860,7 @@ defmodule Module.Types.Descr do
   end
 
   # Removes duplicates in union, which should trickle to other operations.
+  # This is a cheap optimization that relies on structural equality.
   defp tuple_union(left, right), do: left ++ (right -- left)
 
   defp tuple_to_quoted(dnf) do
