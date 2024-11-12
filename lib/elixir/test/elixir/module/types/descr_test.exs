@@ -1229,6 +1229,22 @@ defmodule Module.Types.DescrTest do
 
       assert list(term(), term()) |> to_quoted_string() ==
                "list(term(), term())"
+
+      # Test normalization
+
+      # Remove duplicates
+      assert union(list(integer()), list(integer())) |> to_quoted_string() == "list(integer())"
+
+      # Merge subtypes
+      assert union(list(float(), pid()), list(number(), pid())) |> to_quoted_string() ==
+               "list(float() or integer(), pid())"
+
+      # Merge last element types
+      assert union(list(atom([:ok]), integer()), list(atom([:ok]), float())) |> to_quoted_string() ==
+               "list(:ok, float() or integer())"
+
+      assert union(dynamic(list(integer(), float())), dynamic(list(integer(), pid())))
+             |> to_quoted_string() == "dynamic(list(integer(), float() or pid()))"
     end
 
     test "tuples" do
