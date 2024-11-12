@@ -115,7 +115,7 @@ defmodule Time do
           Calendar.hour(),
           Calendar.minute(),
           Calendar.second(),
-          Calendar.microsecond() | non_neg_integer,
+          Calendar.microsecond() | non_neg_integer(),
           Calendar.calendar()
         ) :: {:ok, t} | {:error, atom}
   def new(hour, minute, second, microsecond \\ {0, 0}, calendar \\ Calendar.ISO)
@@ -355,13 +355,21 @@ defmodule Time do
 
   ## Examples
 
+      iex> Time.from_erl({23, 30, 15})
+      {:ok, ~T[23:30:15]}
+      iex> Time.from_erl({23, 30, 15}, 5000)
+      {:ok, ~T[23:30:15.005000]}
       iex> Time.from_erl({23, 30, 15}, {5000, 3})
       {:ok, ~T[23:30:15.005]}
       iex> Time.from_erl({24, 30, 15})
       {:error, :invalid_time}
 
   """
-  @spec from_erl(:calendar.time(), Calendar.microsecond(), Calendar.calendar()) ::
+  @spec from_erl(
+          :calendar.time(),
+          Calendar.microsecond() | non_neg_integer(),
+          Calendar.calendar()
+        ) ::
           {:ok, t} | {:error, atom}
   def from_erl(tuple, microsecond \\ {0, 0}, calendar \\ Calendar.ISO)
 
@@ -377,6 +385,8 @@ defmodule Time do
 
       iex> Time.from_erl!({23, 30, 15})
       ~T[23:30:15]
+      iex> Time.from_erl!({23, 30, 15}, 5000)
+      ~T[23:30:15.005000]
       iex> Time.from_erl!({23, 30, 15}, {5000, 3})
       ~T[23:30:15.005]
       iex> Time.from_erl!({24, 30, 15})
