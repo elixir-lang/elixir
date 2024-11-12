@@ -1792,10 +1792,8 @@ defmodule Module.Types.Descr do
         {tag2, elements2, negs2} <- dnf2,
         reduce: [] do
       acc ->
-        try do
-          {tag, fields} = tuple_literal_intersection(tag1, elements1, tag2, elements2)
-          [{tag, fields, negs1 ++ negs2} | acc]
-        catch
+        case tuple_literal_intersection(tag1, elements1, tag2, elements2) do
+          {tag, fields} -> [{tag, fields, negs1 ++ negs2} | acc]
           :empty -> acc
         end
     end
@@ -1811,13 +1809,21 @@ defmodule Module.Types.Descr do
 
     cond do
       (tag1 == :closed and n < m) or (tag2 == :closed and n > m) ->
-        throw(:empty)
+        :empty
 
       tag1 == :open and tag2 == :open ->
-        {:open, zip_non_empty_intersection!(elements1, elements2, [])}
+        try do
+          {:open, zip_non_empty_intersection!(elements1, elements2, [])}
+        catch
+          :empty -> :empty
+        end
 
       true ->
-        {:closed, zip_non_empty_intersection!(elements1, elements2, [])}
+        try do
+          {:closed, zip_non_empty_intersection!(elements1, elements2, [])}
+        catch
+          :empty -> :empty
+        end
     end
   end
 
@@ -1832,14 +1838,17 @@ defmodule Module.Types.Descr do
   defp tuple_difference(dnf1, dnf2) do
     Enum.reduce(dnf2, dnf1, fn {tag2, elements2, negs2}, dnf1 ->
       Enum.reduce(dnf1, [], fn {tag1, elements1, negs1}, acc ->
-        acc = [{tag1, elements1, [{tag2, elements2} | negs1]}] ++ acc
+        # Prune negations that have no values in common
+        acc =
+          case tuple_literal_intersection(tag1, elements1, tag2, elements2) do
+            :empty -> [{tag1, elements1, negs1}] ++ acc
+            _ -> [{tag1, elements1, [{tag2, elements2} | negs1]}] ++ acc
+          end
 
-        Enum.reduce(negs2, acc, fn {neg_tag2, neg_elements2}, acc ->
-          try do
-            {tag, fields} = tuple_literal_intersection(tag1, elements1, neg_tag2, neg_elements2)
-            [{tag, fields, negs1}] ++ acc
-          catch
-            :empty -> acc
+        Enum.reduce(negs2, acc, fn {neg_tag2, neg_elements2}, inner_acc ->
+          case tuple_literal_intersection(tag1, elements1, neg_tag2, neg_elements2) do
+            :empty -> inner_acc
+            {tag, fields} -> [{tag, fields, negs1} | inner_acc]
           end
         end)
       end)
@@ -1850,7 +1859,8 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp tuple_union(left, right), do: left ++ right
+  # Removes duplicates in union, which should trickle to other operations.
+  defp tuple_union(left, right), do: left ++ (right -- left)
 
   defp tuple_to_quoted(dnf) do
     dnf
@@ -1902,7 +1912,7 @@ defmodule Module.Types.Descr do
     Enum.all?(dnf, fn {tag, pos, negs} -> tuple_empty?(tag, pos, negs) end)
   end
 
-  # No negations, so not empty
+  # No negations, so not empty unless there's an empty type
   defp tuple_empty?(_, pos, []), do: Enum.any?(pos, &empty?/1)
   # Open empty negation makes it empty
   defp tuple_empty?(_, _, [{:open, []} | _]), do: true
