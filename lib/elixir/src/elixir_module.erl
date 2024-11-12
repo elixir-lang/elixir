@@ -163,7 +163,7 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
         {AllDefinitions, Private} = elixir_def:fetch_definitions(Module, E),
 
         OnLoadAttribute = lists:keyfind(on_load, 1, Attributes),
-        NewPrivate = validate_on_load_attribute(OnLoadAttribute, AllDefinitions, Private, Line, E),
+        validate_on_load_attribute(OnLoadAttribute, AllDefinitions, DataBag, Line, E),
 
         DialyzerAttribute = lists:keyfind(dialyzer, 1, Attributes),
         validate_dialyzer_attribute(DialyzerAttribute, AllDefinitions, Line, E),
@@ -187,8 +187,8 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
           case elixir_config:is_bootstrap() of
             true -> {#{}, []};
             false ->
-              Defmacrop = bag_lookup_element(DataBag, defmacrop_calls, 2),
-              'Elixir.Module.Types':infer(Module, File, AllDefinitions, NewPrivate, Defmacrop, E)
+              UsedPrivate = bag_lookup_element(DataBag, used_private, 2),
+              'Elixir.Module.Types':infer(Module, File, AllDefinitions, Private, UsedPrivate, E)
           end,
 
         RawCompileOpts = bag_lookup_element(DataBag, {accumulate, compile}, 2),
@@ -278,7 +278,7 @@ validate_inlines([Inline | Inlines], Defs, Unreachable, Acc) ->
   case lists:keyfind(Inline, 1, Defs) of
     false ->
       {error, {undefined_function, {compile, inline}, Inline}};
-    {_Def, Type, _Meta, _Clauses} when Type == defmacro; Type == defmacrop ->
+    {_Def, Kind, _Meta, _Clauses} when Kind == defmacro; Kind == defmacrop ->
       {error, {bad_macro, {compile, inline}, Inline}};
     _ ->
       case lists:member(Inline, Unreachable) of
@@ -288,18 +288,16 @@ validate_inlines([Inline | Inlines], Defs, Unreachable, Acc) ->
   end;
 validate_inlines([], _Defs, _Unreachable, Acc) -> {ok, Acc}.
 
-validate_on_load_attribute({on_load, Def}, Defs, Private, Line, E) ->
+validate_on_load_attribute({on_load, Def}, Defs, Bag, Line, E) ->
   case lists:keyfind(Def, 1, Defs) of
     false ->
-      elixir_errors:module_error([{line, Line}], E, ?MODULE, {undefined_function, on_load, Def}),
-      Private;
-    {_Def, Type, _Meta, _Clauses} when Type == defmacro; Type == defmacrop ->
-      elixir_errors:module_error([{line, Line}], E, ?MODULE, {bad_macro, on_load, Def}),
-      Private;
-    _ ->
-      lists:keydelete(Def, 1, Private)
+      elixir_errors:module_error([{line, Line}], E, ?MODULE, {undefined_function, on_load, Def});
+    {_Def, Kind, _Meta, _Clauses} when Kind == defmacro; Kind == defmacrop ->
+      elixir_errors:module_error([{line, Line}], E, ?MODULE, {bad_macro, on_load, Def});
+    {_Def, Kind, _Meta, _Clauses} ->
+      (Kind == defp) andalso ets:insert(Bag, {used_private, Def})
   end;
-validate_on_load_attribute(false, _Defs, Private, _Line, _E) -> Private.
+validate_on_load_attribute(false, _Defs, _Bag, _Line, _E) -> ok.
 
 validate_dialyzer_attribute({dialyzer, Dialyzer}, Defs, Line, E) ->
   [validate_definition({dialyzer, Key}, Fun, Defs, Line, E)

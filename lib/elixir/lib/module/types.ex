@@ -33,9 +33,8 @@ defmodule Module.Types do
   @no_infer [__protocol__: 1, behaviour_info: 1]
 
   @doc false
-  def infer(module, file, defs, private, defmacrop, env) do
+  def infer(module, file, defs, private, used_private, env) do
     infer_signatures? = :elixir_config.get(:infer_signatures)
-    defmacrop = Map.from_keys(defmacrop, [])
 
     finder =
       fn fun_arity ->
@@ -63,9 +62,9 @@ defmodule Module.Types do
 
     stack = stack(:infer, file, module, {:__info__, 1}, :all, env, handler)
 
-    {types, %{local_sigs: local_sigs} = context} =
+    {types, %{local_sigs: reachable_sigs} = context} =
       for {fun_arity, kind, meta, _clauses} = def <- defs,
-          kind in [:def, :defmacro] or (kind == :defmacrop and is_map_key(defmacrop, fun_arity)),
+          kind in [:def, :defmacro],
           reduce: {[], context()} do
         {types, context} ->
           finder = fn _ -> {infer_mode(kind, infer_signatures?), def} end
@@ -78,20 +77,32 @@ defmodule Module.Types do
           end
       end
 
-    for {fun_arity, kind, meta, _clauses} = def <- defs,
-        kind in [:defp, :defmacrop],
-        reduce: context do
-      context ->
-        finder = fn _ -> {:traversal, def} end
-        {_kind, _inferred, context} = local_handler(meta, fun_arity, stack, context, finder)
-        context
-    end
+    # Now traverse all used privates to find any other private that have been used by them.
+    context =
+      %{local_sigs: used_sigs} =
+      for fun_arity <- used_private, reduce: context do
+        context ->
+          {_kind, _inferred, context} = local_handler([], fun_arity, stack, context, finder)
+          context
+      end
 
-    unreachable =
-      for {fun_arity, _kind, _meta, _defaults} = info <- private,
-          warn_unused_def(info, local_sigs, defmacrop, env),
-          not is_map_key(local_sigs, fun_arity),
-          do: fun_arity
+    {unreachable, _context} =
+      Enum.reduce(private, {[], context}, fn
+        {fun_arity, kind, _meta, _defaults} = info, {unreachable, context} ->
+          warn_unused_def(info, used_sigs, env)
+
+          # Find anything undefined within unused functions
+          {_kind, _inferred, context} = local_handler([], fun_arity, stack, context, finder)
+
+          # defp is reachable if used, defmacrop only if directly invoked
+          private_sigs = if kind == :defp, do: used_sigs, else: reachable_sigs
+
+          if is_map_key(private_sigs, fun_arity) do
+            {unreachable, context}
+          else
+            {[fun_arity | unreachable], context}
+          end
+      end)
 
     {Map.new(types), unreachable}
   end
@@ -106,12 +117,12 @@ defmodule Module.Types do
     :elixir_errors.module_error(Helpers.with_span(meta, fun), env, __MODULE__, tuple)
   end
 
-  defp warn_unused_def({_fun_arity, _kind, false, _}, _reachable, _used, _env) do
+  defp warn_unused_def({_fun_arity, _kind, false, _}, _used, _env) do
     :ok
   end
 
-  defp warn_unused_def({fun_arity, kind, meta, 0}, reachable, used, env) do
-    case is_map_key(reachable, fun_arity) or is_map_key(used, fun_arity) do
+  defp warn_unused_def({fun_arity, kind, meta, 0}, used, env) do
+    case is_map_key(used, fun_arity) do
       true -> :ok
       false -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_def, fun_arity, kind})
     end
@@ -119,12 +130,12 @@ defmodule Module.Types do
     :ok
   end
 
-  defp warn_unused_def({tuple, kind, meta, default}, reachable, used, env) when default > 0 do
+  defp warn_unused_def({tuple, kind, meta, default}, used, env) when default > 0 do
     {name, arity} = tuple
     min = arity - default
     max = arity
 
-    case min_reachable_default(max, min, :none, name, reachable, used) do
+    case min_reachable_default(max, min, :none, name, used) do
       :none -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_def, tuple, kind})
       ^min -> :ok
       ^max -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_args, tuple})
@@ -134,16 +145,16 @@ defmodule Module.Types do
     :ok
   end
 
-  defp min_reachable_default(max, min, last, name, reachable, used) when max >= min do
+  defp min_reachable_default(max, min, last, name, used) when max >= min do
     fun_arity = {name, max}
 
-    case is_map_key(reachable, fun_arity) or is_map_key(used, fun_arity) do
-      true -> min_reachable_default(max - 1, min, max, name, reachable, used)
-      false -> min_reachable_default(max - 1, min, last, name, reachable, used)
+    case is_map_key(used, fun_arity) do
+      true -> min_reachable_default(max - 1, min, max, name, used)
+      false -> min_reachable_default(max - 1, min, last, name, used)
     end
   end
 
-  defp min_reachable_default(_max, _min, last, _name, _reachable, _used) do
+  defp min_reachable_default(_max, _min, last, _name, _used) do
     last
   end
 

@@ -63,7 +63,7 @@ invoke_local(Meta, Module, ErlName, Args, External) ->
 
 track_defmacrop(Module, FunArity) ->
   {_, Bag} = elixir_module:data_tables(Module),
-  ets:insert(Bag, {defmacrop_calls, FunArity}).
+  ets:insert(Bag, {used_private, FunArity}).
 
 invoke_external(Meta, Mod, Name, Args, E) ->
   is_map(E) andalso elixir_env:trace({require, Meta, Mod, []}, E),
