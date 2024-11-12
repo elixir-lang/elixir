@@ -252,7 +252,7 @@ defmodule NaiveDateTime do
           Calendar.hour(),
           Calendar.minute(),
           Calendar.second(),
-          Calendar.microsecond() | non_neg_integer,
+          Calendar.microsecond() | non_neg_integer(),
           Calendar.calendar()
         ) :: {:ok, t} | {:error, atom}
   def new(year, month, day, hour, minute, second, microsecond \\ {0, 0}, calendar \\ Calendar.ISO)
@@ -317,7 +317,7 @@ defmodule NaiveDateTime do
           Calendar.hour(),
           Calendar.minute(),
           Calendar.second(),
-          Calendar.microsecond() | non_neg_integer,
+          Calendar.microsecond() | non_neg_integer(),
           Calendar.calendar()
         ) :: t
   def new!(
@@ -993,6 +993,8 @@ defmodule NaiveDateTime do
 
       iex> NaiveDateTime.from_erl({{2000, 1, 1}, {13, 30, 15}})
       {:ok, ~N[2000-01-01 13:30:15]}
+      iex> NaiveDateTime.from_erl({{2000, 1, 1}, {13, 30, 15}}, 5000)
+      {:ok, ~N[2000-01-01 13:30:15.005000]}
       iex> NaiveDateTime.from_erl({{2000, 1, 1}, {13, 30, 15}}, {5000, 3})
       {:ok, ~N[2000-01-01 13:30:15.005]}
       iex> NaiveDateTime.from_erl({{2000, 13, 1}, {13, 30, 15}})
@@ -1001,7 +1003,11 @@ defmodule NaiveDateTime do
       {:error, :invalid_date}
 
   """
-  @spec from_erl(:calendar.datetime(), Calendar.microsecond(), Calendar.calendar()) ::
+  @spec from_erl(
+          :calendar.datetime(),
+          Calendar.microsecond() | non_neg_integer(),
+          Calendar.calendar()
+        ) ::
           {:ok, t} | {:error, atom}
   def from_erl(tuple, microsecond \\ {0, 0}, calendar \\ Calendar.ISO)
 
@@ -1020,13 +1026,19 @@ defmodule NaiveDateTime do
 
       iex> NaiveDateTime.from_erl!({{2000, 1, 1}, {13, 30, 15}})
       ~N[2000-01-01 13:30:15]
+      iex> NaiveDateTime.from_erl!({{2000, 1, 1}, {13, 30, 15}}, 5000)
+      ~N[2000-01-01 13:30:15.005000]
       iex> NaiveDateTime.from_erl!({{2000, 1, 1}, {13, 30, 15}}, {5000, 3})
       ~N[2000-01-01 13:30:15.005]
       iex> NaiveDateTime.from_erl!({{2000, 13, 1}, {13, 30, 15}})
       ** (ArgumentError) cannot convert {{2000, 13, 1}, {13, 30, 15}} to naive datetime, reason: :invalid_date
 
   """
-  @spec from_erl!(:calendar.datetime(), Calendar.microsecond(), Calendar.calendar()) :: t
+  @spec from_erl!(
+          :calendar.datetime(),
+          Calendar.microsecond() | non_neg_integer(),
+          Calendar.calendar()
+        ) :: t
   def from_erl!(tuple, microsecond \\ {0, 0}, calendar \\ Calendar.ISO) do
     case from_erl(tuple, microsecond, calendar) do
       {:ok, value} ->
