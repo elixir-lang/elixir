@@ -229,7 +229,7 @@ defmodule ExUnit.Assertions do
 
   defmacro refute(assertion) do
     if translated = translate_assertion(:refute, assertion, __CALLER__) do
-      {:!, [], [translated]}
+      {:!, [generated: true], [translated]}
     else
       {args, value} = extract_args(assertion, __CALLER__)
 

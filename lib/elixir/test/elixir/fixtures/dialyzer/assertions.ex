@@ -21,6 +21,10 @@ defmodule Dialyzer.Assertions do
     refute unknown_type_falsy()
   end
 
+  def refute_with_operator(log) do
+    refute log == "failure"
+  end
+
   defp known_type_truthy, do: :ok
   defp known_type_falsy, do: nil
 
