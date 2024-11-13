@@ -12,7 +12,7 @@ The current milestone aims to infer types from patterns and guards and use them 
 
 ## Supported types
 
-At the moment, Elixir developers interact with set-theoretic types through warnings found by the type system. These warnings will represent tyoes using the following notation:
+At the moment, Elixir developers interact with set-theoretic types through warnings found by the type system. These warnings will represent types using the following notation:
 
   * `binary()`, `integer()`, `float()`, `pid()`, `port()`, `reference()` - these types are indivisible. This means both `1` and `13` get the same `integer()` type.
 
