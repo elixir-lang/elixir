@@ -271,7 +271,7 @@ valid_ast_list([]) -> true;
 valid_ast_list([Head | Tail]) -> valid_ast_elem(Head) andalso valid_ast_list(Tail);
 valid_ast_list(_Improper) -> false.
 
-valid_ast_elem(Expr) when is_list(Expr); is_atom(Expr); is_binary(Expr); is_number(Expr); is_pid(Expr) -> true;
+valid_ast_elem(Expr) when is_list(Expr); is_atom(Expr); is_binary(Expr); is_number(Expr); is_pid(Expr); is_function(Expr) -> true;
 valid_ast_elem({Left, Right}) -> valid_ast_elem(Left) andalso valid_ast_elem(Right);
 valid_ast_elem({Atom, Meta, Args}) when is_atom(Atom), is_list(Meta), is_atom(Args) orelse is_list(Args) -> true;
 valid_ast_elem({Call, Meta, Args}) when is_list(Meta), is_list(Args) -> shallow_valid_ast(Call);
