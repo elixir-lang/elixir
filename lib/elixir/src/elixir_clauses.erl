@@ -406,7 +406,7 @@ expand_catch(Meta, [{'when', _, [_, _, _, _ | _]}], _, E) ->
 expand_catch(Meta, [{'when', WhenMeta, [Arg1, Arg2, Guard]}], S, E) ->
   guarded_head(Meta, WhenMeta, [Arg1, Arg2], Guard, S, E);
 expand_catch(Meta, [{'when', WhenMeta, [Arg1, Guard]}], S, E) ->
-  guarded_head(Meta, WhenMeta, [Arg1], Guard, S, E);
+  guarded_head(Meta, WhenMeta, [throw, Arg1], Guard, S, E);
 expand_catch(Meta, [Arg], S, E) ->
   head(Meta, [throw, Arg], S, E);
 expand_catch(Meta, [_, _] = Args, S, E) ->

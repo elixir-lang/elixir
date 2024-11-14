@@ -1980,6 +1980,32 @@ defmodule Kernel.ExpansionTest do
       assert expand(before_expansion) == after_expansion
     end
 
+    test "expands catch with when" do
+      before_expansion =
+        quote do
+          try do
+            x
+          catch
+            x when x -> z = :erlang.-(x)
+          end
+
+          z
+        end
+
+      after_expansion =
+        quote do
+          try do
+            x()
+          catch
+            x when x -> z = :erlang.-(x)
+          end
+
+          z()
+        end
+
+      assert expand(before_expansion) == after_expansion
+    end
+
     test "expands after" do
       before_expansion =
         quote do
