@@ -249,6 +249,13 @@ defmodule DateTest do
                  "cannot shift date by time scale unit. Expected :year, :month, :week, :day",
                  fn -> Date.shift(~D[2012-02-29], %Duration{second: 86400}) end
 
+    # Microsecond precision is ignored
+    assert Date.shift(~D[2012-02-29], Duration.new!(microsecond: {0, 6})) == ~D[2012-02-29]
+
+    assert_raise ArgumentError,
+                 "cannot shift date by time scale unit. Expected :year, :month, :week, :day",
+                 fn -> Date.shift(~D[2012-02-29], %Duration{microsecond: {100, 6}}) end
+
     # Implements calendar callback
     assert_raise RuntimeError, "shift_date/4 not implemented", fn ->
       date = Calendar.Holocene.date(10000, 01, 01)
