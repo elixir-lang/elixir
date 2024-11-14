@@ -1710,7 +1710,7 @@ defmodule Calendar.ISO do
          hour: 0,
          minute: 0,
          second: 0,
-         microsecond: {0, 0}
+         microsecond: {0, _precision}
        }) do
     [
       month: year * 12 + month,
