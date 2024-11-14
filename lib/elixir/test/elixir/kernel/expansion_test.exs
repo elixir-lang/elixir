@@ -1997,7 +1997,7 @@ defmodule Kernel.ExpansionTest do
           try do
             x()
           catch
-            x when x -> z = :erlang.-(x)
+            :throw, x when x -> z = :erlang.-(x)
           end
 
           z()
