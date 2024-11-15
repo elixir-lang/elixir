@@ -657,7 +657,7 @@ defmodule Kernel.ParserTest do
                   1,
                   {:+,
                    [
-                     parens: [[line: 1, column: 5, closing: [line: 1, column: 11]]],
+                     parens: [line: 1, column: 5, closing: [line: 1, column: 11]],
                      line: 1,
                      column: 8
                    ], [2, 3]}
@@ -671,10 +671,8 @@ defmodule Kernel.ParserTest do
                   1,
                   {:+,
                    [
-                     parens: [
-                       [line: 1, column: 5, closing: [line: 1, column: 13]],
-                       [line: 1, column: 6, closing: [line: 1, column: 12]]
-                     ],
+                     parens: [line: 1, column: 5, closing: [line: 1, column: 13]],
+                     parens: [line: 1, column: 6, closing: [line: 1, column: 12]],
                      line: 1,
                      column: 9
                    ], [2, 3]}
@@ -688,17 +686,33 @@ defmodule Kernel.ParserTest do
       file = "()"
 
       assert string_to_quoted.(file) ==
-               {:__block__, [parens: [[line: 1, column: 1, closing: [line: 1, column: 2]]]], []}
+               {:__block__, [parens: [line: 1, column: 1, closing: [line: 1, column: 2]]], []}
 
       file = "(())"
 
       assert string_to_quoted.(file) ==
                {:__block__,
                 [
-                  parens: [
-                    [line: 1, column: 1, closing: [line: 1, column: 4]],
-                    [line: 1, column: 2, closing: [line: 1, column: 3]]
-                  ]
+                  parens: [line: 1, column: 1, closing: [line: 1, column: 4]],
+                  parens: [line: 1, column: 2, closing: [line: 1, column: 3]]
+                ], []}
+
+      file = """
+      (
+        # Foo
+        (
+          # Bar
+        )
+      )
+      """
+
+      assert string_to_quoted.(file) ==
+               {:__block__,
+                [
+                  end_of_expression: [newlines: 1, line: 6, column: 2],
+                  parens: [line: 1, column: 1, closing: [line: 6, column: 1]],
+                  end_of_expression: [newlines: 1, line: 5, column: 4],
+                  parens: [line: 3, column: 3, closing: [line: 5, column: 3]]
                 ], []}
     end
 
@@ -710,7 +724,7 @@ defmodule Kernel.ParserTest do
                 [
                   {:->,
                    [
-                     parens: [[line: 1, column: 4, closing: [line: 1, column: 5]]],
+                     parens: [line: 1, column: 4, closing: [line: 1, column: 5]],
                      line: 1,
                      column: 7
                    ], [[], {:x, [line: 1, column: 10], nil}]}
@@ -725,7 +739,7 @@ defmodule Kernel.ParserTest do
                  [
                    {:->,
                     [
-                      parens: [[line: 1, column: 4, closing: [line: 1, column: 9]]],
+                      parens: [line: 1, column: 4, closing: [line: 1, column: 9]],
                       line: 1,
                       column: 11
                     ],
@@ -753,7 +767,7 @@ defmodule Kernel.ParserTest do
                      do: [
                        {:->,
                         [
-                          parens: [[line: 1, column: 12, closing: [line: 1, column: 17]]],
+                          parens: [line: 1, column: 12, closing: [line: 1, column: 17]],
                           line: 1,
                           column: 19
                         ],
@@ -807,7 +821,7 @@ defmodule Kernel.ParserTest do
                      [
                        {:__block__,
                         [
-                          parens: [[line: 1, closing: [line: 1]]],
+                          parens: [line: 1, closing: [line: 1]],
                           token: "1",
                           line: 1
                         ], [1]}
@@ -817,7 +831,7 @@ defmodule Kernel.ParserTest do
                 ]}
 
       assert string_to_quoted.("(1)") ==
-               {:__block__, [parens: [[line: 1, closing: [line: 1]]], token: "1", line: 1], [1]}
+               {:__block__, [parens: [line: 1, closing: [line: 1]], token: "1", line: 1], [1]}
     end
 
     test "adds identifier_location for qualified identifiers" do
