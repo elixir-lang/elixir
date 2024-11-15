@@ -284,7 +284,7 @@ defmodule Module.Types do
       RuntimeError.exception("""
       found error while checking types for #{Exception.format_mfa(stack.module, fun, length(args))}:
 
-      #{Exception.format_banner(:error, e, stack)}\
+      #{Exception.format_banner(:error, e, trace)}\
 
       The exception happened while checking this code:
 
