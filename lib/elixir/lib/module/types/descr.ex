@@ -1252,7 +1252,7 @@ defmodule Module.Types.Descr do
   defp map_only?(descr), do: empty?(Map.delete(descr, :map))
 
   # Union is list concatenation
-  defp map_union(dnf1, dnf2), do: dnf1 ++ dnf2
+  defp map_union(dnf1, dnf2), do: dnf1 ++ (dnf2 -- dnf1)
 
   # Given two unions of maps, intersects each pair of maps.
   defp map_intersection(dnf1, dnf2) do
@@ -1682,13 +1682,45 @@ defmodule Module.Types.Descr do
   end
 
   # Use heuristics to normalize a map dnf for pretty printing.
-  # TODO: Eliminate some simple negations, those which have only zero or one key in common.
   defp map_normalize(dnf) do
     dnf
     |> Enum.reject(&map_empty?([&1]))
     |> Enum.map(fn {tag, fields, negs} ->
-      {tag, fields, Enum.reject(negs, &map_empty_negation?(tag, fields, &1))}
+      {fields, negs} =
+        Enum.reduce(negs, {fields, []}, fn neg = {neg_tag, neg_fields}, {acc_fields, acc_negs} ->
+          if map_empty_negation?(tag, acc_fields, neg) do
+            {acc_fields, acc_negs}
+          else
+            case all_but_one?(tag, acc_fields, neg_tag, neg_fields) do
+              {:one, diff_key} ->
+                {Map.update!(acc_fields, diff_key, &difference(&1, neg_fields[diff_key])),
+                 acc_negs}
+
+              _ ->
+                {acc_fields, [neg | acc_negs]}
+            end
+          end
+        end)
+
+      {tag, fields, negs}
     end)
+  end
+
+  # If all fields are the same except one, we can optimize map difference.
+  defp all_but_one?(tag1, fields1, tag2, fields2) do
+    keys1 = Map.keys(fields1)
+    keys2 = Map.keys(fields2)
+
+    if {tag1, tag2} == {:open, :closed} or
+         :sets.from_list(keys1, version: 2) != :sets.from_list(keys2, version: 2) do
+      :no
+    else
+      Enum.count(keys1, fn key -> Map.get(fields1, key) != Map.get(fields2, key) end)
+      |> case do
+        1 -> {:one, Enum.find(keys1, &(Map.get(fields1, &1) != Map.get(fields2, &1)))}
+        _ -> :no
+      end
+    end
   end
 
   # Adapted from `map_empty?` to remove useless negations.
