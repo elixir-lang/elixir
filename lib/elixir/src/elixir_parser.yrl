@@ -841,10 +841,10 @@ annotate_eoe(Token, Stack) ->
     true ->
       case {Token, Stack} of
         {{_, Location}, [{'->', StabMeta, [StabArgs, {Left, Meta, Right}]} | Rest]} when is_list(Meta) ->
-          [{'->', StabMeta, [StabArgs, {Left, [{end_of_expression, end_of_expression(Location)} | Meta], Right}]} | Rest];
+          [{'->', StabMeta, [StabArgs, {Left, add_eoe_meta(Meta, end_of_expression(Location)), Right}]} | Rest];
 
         {{_, Location}, [{Left, Meta, Right} | Rest]} when is_list(Meta), Left =/= '->' ->
-          [{Left, [{end_of_expression, end_of_expression(Location)} | Meta], Right} | Rest];
+          [{Left, add_eoe_meta(Meta, end_of_expression(Location)), Right} | Rest];
 
         _ ->
           Stack
@@ -857,6 +857,13 @@ end_of_expression({_, _, Count} = Location) when is_integer(Count) ->
   [{newlines, Count} | meta_from_location(Location)];
 end_of_expression(Location) ->
   meta_from_location(Location).
+
+add_eoe_meta([{end_of_expression, _Entry} | Meta], Entry) ->
+  [{end_of_expression, Entry} | Meta];
+add_eoe_meta([MetaEntry | Meta], Entry) ->
+  [MetaEntry | add_eoe_meta(Meta, Entry)];
+add_eoe_meta([], Entry) ->
+  [{end_of_expression, Entry}].
 
 %% Dots
 

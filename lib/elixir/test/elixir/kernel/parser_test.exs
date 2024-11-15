@@ -468,38 +468,38 @@ defmodule Kernel.ParserTest do
       args = [
         {:one,
          [
-           end_of_expression: [newlines: 0, line: 1, column: 6],
            closing: [line: 1, column: 5],
            line: 1,
-           column: 1
+           column: 1,
+           end_of_expression: [newlines: 0, line: 1, column: 6]
          ], []},
         {:two,
          [
-           end_of_expression: [newlines: 1, line: 1, column: 12],
            closing: [line: 1, column: 11],
            line: 1,
-           column: 7
+           column: 7,
+           end_of_expression: [newlines: 1, line: 1, column: 12]
          ], []},
         {:three,
          [
-           end_of_expression: [newlines: 2, line: 2, column: 8],
            closing: [line: 2, column: 7],
            line: 2,
-           column: 1
+           column: 1,
+           end_of_expression: [newlines: 2, line: 2, column: 8]
          ], []},
         {:four,
          [
-           end_of_expression: [newlines: 3, line: 4, column: 7],
            closing: [line: 4, column: 6],
            line: 4,
-           column: 1
+           column: 1,
+           end_of_expression: [newlines: 3, line: 4, column: 7]
          ], []},
         {:five,
          [
-           end_of_expression: [newlines: 1, line: 7, column: 7],
            closing: [line: 7, column: 6],
            line: 7,
-           column: 1
+           column: 1,
+           end_of_expression: [newlines: 1, line: 7, column: 7]
          ], []}
       ]
 
@@ -518,10 +518,10 @@ defmodule Kernel.ParserTest do
       assert Code.string_to_quoted!(file, token_metadata: true) ==
                {:case,
                 [
-                  end_of_expression: [newlines: 1, line: 4],
                   do: [line: 1],
                   end: [line: 4],
-                  line: 1
+                  line: 1,
+                  end_of_expression: [newlines: 1, line: 4]
                 ],
                 [
                   true,
@@ -534,15 +534,15 @@ defmodule Kernel.ParserTest do
                           [
                             {:bar,
                              [
-                               end_of_expression: [newlines: 0, line: 2],
                                closing: [line: 2],
-                               line: 2
+                               line: 2,
+                               end_of_expression: [newlines: 0, line: 2]
                              ], []},
                             {:two,
                              [
-                               end_of_expression: [newlines: 1, line: 2],
                                closing: [line: 2],
-                               line: 2
+                               line: 2,
+                               end_of_expression: [newlines: 1, line: 2]
                              ], []}
                           ]}
                        ]},
@@ -551,9 +551,9 @@ defmodule Kernel.ParserTest do
                          [:baz],
                          {:bat,
                           [
-                            end_of_expression: [newlines: 1, line: 3],
                             closing: [line: 3],
-                            line: 3
+                            line: 3,
+                            end_of_expression: [newlines: 1, line: 3]
                           ], []}
                        ]}
                     ]
@@ -577,10 +577,10 @@ defmodule Kernel.ParserTest do
              ) ==
                {:a,
                 [
-                  end_of_expression: [newlines: 1, line: 6],
                   do: [line: 1],
                   end: [line: 6],
-                  line: 1
+                  line: 1,
+                  end_of_expression: [newlines: 1, line: 6]
                 ],
                 [
                   [
@@ -591,17 +591,17 @@ defmodule Kernel.ParserTest do
                           [{:d, [line: 2], nil}],
                           {:__block__,
                            [
-                             end_of_expression: [newlines: 1, line: 5],
                              newlines: 1,
                              closing: [line: 5],
-                             line: 3
+                             line: 3,
+                             end_of_expression: [newlines: 1, line: 5]
                            ],
                            [
                              [
                                {:->, [line: 4],
                                 [
                                   [{:b, [line: 4], nil}],
-                                  {:c, [end_of_expression: [newlines: 1, line: 4], line: 4], nil}
+                                  {:c, [line: 4, end_of_expression: [newlines: 1, line: 4]], nil}
                                 ]}
                              ]
                            ]}
@@ -713,11 +713,11 @@ defmodule Kernel.ParserTest do
       assert string_to_quoted.(file) ==
                {:__block__,
                 [
-                  end_of_expression: [newlines: 1, line: 6, column: 2],
                   parens: [
                     [line: 1, column: 1, closing: [line: 6, column: 1]],
-                    [line: 3, column: 3, closing: [line: 5, column: 3]],
-                  ]
+                    [line: 3, column: 3, closing: [line: 5, column: 3]]
+                  ],
+                  end_of_expression: [newlines: 1, line: 6, column: 2]
                 ], []}
     end
 
