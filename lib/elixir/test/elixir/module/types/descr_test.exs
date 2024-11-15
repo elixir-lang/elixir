@@ -1263,6 +1263,11 @@ defmodule Module.Types.DescrTest do
 
       assert tuple([closed_map(a: integer()), open_map()]) |> to_quoted_string() ==
                "{%{a: integer()}, %{...}}"
+
+      # TODO: eliminate tuple differences
+      # assert difference(tuple([number(), term()]), tuple([integer(), atom()]))
+      #        |> to_quoted_string() ==
+      #          "{float(), term()} or {number(), term() and not atom()}"
     end
 
     test "map" do
@@ -1278,9 +1283,8 @@ defmodule Module.Types.DescrTest do
       assert open_map("Elixir.Foo.Bar": float()) |> to_quoted_string() ==
                "%{..., Foo.Bar => float()}"
 
-      # TODO: support this simplification
-      # assert difference(open_map(), open_map(a: term())) |> to_quoted_string() ==
-      #          "%{..., a: not_set()}"
+      assert difference(open_map(), open_map(a: term())) |> to_quoted_string() ==
+               "%{..., a: not_set()}"
 
       assert closed_map(a: integer(), b: atom()) |> to_quoted_string() ==
                "%{a: integer(), b: atom()}"
@@ -1295,13 +1299,40 @@ defmodule Module.Types.DescrTest do
       assert closed_map(foo: union(integer(), not_set())) |> to_quoted_string() ==
                "%{foo: if_set(integer())}"
 
-      assert difference(open_map(a: integer()), closed_map(b: boolean())) |> to_quoted_string() ==
-               "%{..., a: integer()}"
-
+      # Test normalization
       assert open_map(a: integer(), b: atom())
              |> difference(open_map(b: atom()))
              |> union(open_map(a: integer()))
              |> to_quoted_string() == "%{..., a: integer()}"
+
+      assert union(open_map(a: integer()), open_map(a: integer())) |> to_quoted_string() ==
+               "%{..., a: integer()}"
+
+      assert difference(open_map(a: number(), b: atom()), open_map(a: integer()))
+             |> to_quoted_string() == "%{..., a: float(), b: atom()}"
+
+      # Test complex combinations
+      assert intersection(open_map(a: number(), b: atom()), open_map(a: integer(), c: boolean()))
+             |> union(difference(open_map(x: atom()), open_map(x: boolean())))
+             |> to_quoted_string() ==
+               "%{..., a: integer(), b: atom(), c: boolean()} or %{..., x: atom() and not boolean()}"
+
+      assert closed_map(a: number(), b: atom(), c: pid())
+             |> difference(closed_map(a: integer(), b: atom(), c: pid()))
+             |> to_quoted_string() == "%{a: float(), b: atom(), c: pid()}"
+
+      # No simplification compared to above, as it is an open map
+      assert open_map(a: number(), b: atom())
+             |> difference(closed_map(a: integer(), b: atom()))
+             |> to_quoted_string() ==
+               "%{..., a: float() or integer(), b: atom()} and not %{a: integer(), b: atom()}"
+
+      # Remark: this simplification is order dependent. Having the first difference
+      # after the second gives a different result.
+      assert open_map(a: number(), b: atom(), c: union(pid(), port()))
+             |> difference(open_map(a: float(), b: atom(), c: pid()))
+             |> difference(open_map(a: integer(), b: atom(), c: union(pid(), port())))
+             |> to_quoted_string() == "%{..., a: float(), b: atom(), c: port()}"
     end
 
     test "structs" do
@@ -1343,6 +1374,57 @@ defmodule Module.Types.DescrTest do
 
       assert subtype?(descr1, descr2)
       refute subtype?(descr2, descr1)
+    end
+
+    test "map difference" do
+      # Create a large map with various types
+      map1 =
+        open_map([
+          {:id, integer()},
+          {:name, binary()},
+          {:age, union(integer(), atom())},
+          {:email, binary()},
+          {:active, boolean()},
+          {:tags, list(atom())}
+        ])
+
+      # Create another large map with some differences and many more entries
+      map2 =
+        open_map(
+          [
+            {:id, integer()},
+            {:name, binary()},
+            {:age, integer()},
+            {:email, binary()},
+            {:active, boolean()},
+            {:tags, non_empty_list(atom())},
+            {:meta,
+             open_map([
+               {:created_at, binary()},
+               {:updated_at, binary()},
+               {:status, atom()}
+             ])},
+            {:permissions, tuple([atom(), integer(), atom()])},
+            {:profile,
+             open_map([
+               {:bio, binary()},
+               {:interests, non_empty_list(binary())},
+               {:social_media,
+                open_map([
+                  {:twitter, binary()},
+                  {:instagram, binary()},
+                  {:linkedin, binary()}
+                ])}
+             ])},
+            {:notifications, boolean()}
+          ] ++
+            Enum.map(1..50, fn i ->
+              {:"field_#{i}", atom([:"value_#{i}"])}
+            end)
+        )
+
+      refute subtype?(map1, map2)
+      assert subtype?(map2, map1)
     end
   end
 end
