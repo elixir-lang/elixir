@@ -879,17 +879,15 @@ defmodule ExUnit.DiffTest do
 
   test "maps in lists" do
     map = %{
-      address: %{
-        street: "123 Main St",
-        city: "Springfield",
-        state: "IL",
-        zip: "62701"
+      "address" => %{
+        "street" => "123 Main St",
+        "zip" => "62701"
       },
-      age: 30,
-      first_name: "John",
-      language: "en-US",
-      last_name: "Doe",
-      notifications: true
+      "age" => 30,
+      "first_name" => "John",
+      "language" => "en-US",
+      "last_name" => "Doe",
+      "notifications" => true
     }
 
     refute_diff(
@@ -897,12 +895,12 @@ defmodule ExUnit.DiffTest do
       """
       [
         -%{
-          address: %{state: "IL", zip: "62701", street: "123 Main St", city: "Springfield"},
-          age: 30,
-          first_name: "John",
-          language: "en-US",
-          last_name: "Doe",
-          notifications: true
+          "address" => %{"street" => "123 Main St", "zip" => "62701"},
+          "age" => 30,
+          "first_name" => "John",
+          "language" => "en-US",
+          "last_name" => "Doe",
+          "notifications" => true
         }-
       ]\
       """,
@@ -915,12 +913,12 @@ defmodule ExUnit.DiffTest do
       """
       [
         +%{
-          address: %{state: "IL", zip: "62701", street: "123 Main St", city: "Springfield"},
-          age: 30,
-          first_name: "John",
-          language: "en-US",
-          last_name: "Doe",
-          notifications: true
+          "address" => %{"street" => "123 Main St", "zip" => "62701"},
+          "age" => 30,
+          "first_name" => "John",
+          "language" => "en-US",
+          "last_name" => "Doe",
+          "notifications" => true
         }+
       ]\
       """
@@ -932,10 +930,8 @@ defmodule ExUnit.DiffTest do
   test "structs in lists" do
     customer = %Customer{
       address: %{
-        street: "123 Main St",
-        city: "Springfield",
-        state: "IL",
-        zip: "62701"
+        "street" => "123 Main St",
+        "zip" => "62701"
       },
       age: 30,
       first_name: "John",
@@ -949,7 +945,7 @@ defmodule ExUnit.DiffTest do
       """
       [
         -%ExUnit.DiffTest.Customer{
-          address: %{state: "IL", zip: "62701", street: "123 Main St", city: "Springfield"},
+          address: %{"street" => "123 Main St", "zip" => "62701"},
           age: 30,
           first_name: "John",
           language: "en-US",
@@ -967,7 +963,7 @@ defmodule ExUnit.DiffTest do
       """
       [
         +%ExUnit.DiffTest.Customer{
-          address: %{state: "IL", zip: "62701", street: "123 Main St", city: "Springfield"},
+          address: %{"street" => "123 Main St", "zip" => "62701"},
           age: 30,
           first_name: "John",
           language: "en-US",
