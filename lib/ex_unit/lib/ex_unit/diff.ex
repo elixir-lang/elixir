@@ -1142,9 +1142,22 @@ defmodule ExUnit.Diff do
   defp maybe_escape(other, %{context: :match}), do: other
   defp maybe_escape(other, _env), do: escape(other)
 
-  # We escape container types to make a distinction between AST
-  # and values that should be inspected. All other values have no
-  # special AST representation, so we can keep them as is.
+  # We escape container types to make a distinction between AST and values that
+  # should be inspected. Maps and structs without custom inspect implementation
+  # should not be inspected, convert it to ast.
+  # All other values have no special AST representation, so we can keep them as is.
+  defp escape(other) when is_map(other) do
+    struct = maybe_struct(other)
+
+    if struct && Inspect.impl_for(other) not in [Inspect.Any, Inspect.Map] do
+      other
+    else
+      other
+      |> Map.to_list()
+      |> build_map_or_struct(struct)
+    end
+  end
+
   defp escape(other) when is_list(other) or is_tuple(other), do: {other}
   defp escape(other), do: other
 
