@@ -136,17 +136,14 @@ defmodule Mix.Compilers.Test do
 
         # Otherwise let's start with the new sources
         # Plus the sources that have changed in disk
-        for(
-          source <- matched_test_files,
-          not is_map_key(test_sources, source),
-          do: source
-        ) ++
-          for(
-            {source, source(external: external)} <- test_sources,
-            times = Enum.map([source | external], &Map.fetch!(sources_mtimes, &1)),
-            Mix.Utils.stale?(times, [modified]),
-            do: source
-          )
+        for source <- matched_test_files, not is_map_key(test_sources, source) do
+          source
+        end ++
+          for {source, source(external: external)} <- test_sources,
+              times = Enum.map([source | external], &Map.fetch!(sources_mtimes, &1)),
+              Mix.Utils.stale?(times, [modified]) do
+            source
+          end
       end
 
     stale = MapSet.new(changed -- removed)

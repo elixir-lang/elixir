@@ -3321,21 +3321,17 @@ defmodule Enum do
   list of IDs. You want to keep all products that are in the given IDs and
   return their names sorted by their price. You could write it like this:
 
-      for(
-        product <- products,
-        product.id in ids,
-        do: product
-      )
+      for product <- products, product.id in ids do
+        product
+      end
       |> Enum.sort_by(& &1.price)
       |> Enum.map(& &1.name)
 
   However, you could also write it like this:
 
-      for(
-        product <- products,
-        product.id in ids,
-        do: {product.name, product.price}
-      )
+      for product <- products, product.id in ids do
+        {product.name, product.price}
+      end
       |> List.keysort(1)
       |> Enum.map(&elem(&1, 0))
 
