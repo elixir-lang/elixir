@@ -434,15 +434,15 @@ defmodule Kernel.RaiseTest do
 
       :code.purge(BadFunction.Missing)
 
-      result =
-        try do
-          fun.()
-        rescue
-          x in [BadFunctionError] -> Exception.message(x)
-        end
-
-      assert result =~
-               ~r/function #Function<[0-9]\.[0-9]*\/0[^>]*> is invalid, likely because it points to an old version of the code/
+      try do
+        fun.()
+      rescue
+        x in [BadFunctionError] ->
+          assert Exception.message(x) =~
+                   ~r/function #Function<[0-9]\.[0-9]*\/0[^>]*> is invalid, likely because it points to an old version of the code/
+      else
+        _ -> flunk("this should not be invoked")
+      end
     end
 
     test "badmatch error" do
