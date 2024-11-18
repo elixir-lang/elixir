@@ -125,7 +125,7 @@ defmodule Diff do
             chunk1 != chunk2 do
           tmp_file1 = chunk1 |> formatter.() |> write_tmp()
           tmp_file2 = chunk2 |> formatter.() |> write_tmp()
-          [name1, ?\n, file_diff(tmp_file1, tmp_file2)]
+          [to_string(name1), ?\n, file_diff(tmp_file1, tmp_file2)]
         end
       end
     else
