@@ -295,12 +295,11 @@ defmodule Mix.DepTest do
 
         Mix.Tasks.Deps.run([])
         assert_received {:mix_shell, :info, ["* deps_repo1" <> _]}
-        assert_received {:mix_shell, :info, [_]}
         assert_received {:mix_shell, :info, ["* deps_repo2" <> _]}
-        assert_received {:mix_shell, :info, [_]}
         assert_received {:mix_shell, :info, ["* git_repo" <> _]}
-        assert_received {:mix_shell, :info, [msg]}
-        assert msg =~ "different specs were given for the git_repo"
+
+        assert_received {:mix_shell, :info,
+                         ["  different specs were given for the git_repo app" <> _]}
       end)
     end)
   end
@@ -343,12 +342,11 @@ defmodule Mix.DepTest do
 
         Mix.Tasks.Deps.run([])
         assert_received {:mix_shell, :info, ["* deps_repo1" <> _]}
-        assert_received {:mix_shell, :info, [_]}
         assert_received {:mix_shell, :info, ["* deps_repo2" <> _]}
-        assert_received {:mix_shell, :info, [_]}
         assert_received {:mix_shell, :info, ["* git_repo" <> _]}
-        assert_received {:mix_shell, :info, [msg]}
-        assert msg =~ "different specs were given for the git_repo"
+
+        assert_received {:mix_shell, :info,
+                         ["  different specs were given for the git_repo app" <> _]}
       end)
     end)
   end

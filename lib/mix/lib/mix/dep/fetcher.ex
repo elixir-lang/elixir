@@ -51,6 +51,10 @@ defmodule Mix.Dep.Fetcher do
     cond do
       # Dependencies that cannot be fetched are always compiled afterwards
       not scm.fetchable?() ->
+        if not scm.checked_out?(opts) do
+          Mix.shell().error("warning: missing dependency #{format_dep(dep)}")
+        end
+
         {dep, [app | acc], lock}
 
       # If the dependency is not available or we have a lock mismatch
