@@ -188,7 +188,7 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
             true -> {#{}, []};
             false ->
               UsedPrivate = bag_lookup_element(DataBag, used_private, 2),
-              'Elixir.Module.Types':infer(Module, File, AllDefinitions, Private, UsedPrivate, E)
+              'Elixir.Module.Types':infer(Module, File, AllDefinitions, Private, UsedPrivate, E, CheckerInfo)
           end,
 
         RawCompileOpts = bag_lookup_element(DataBag, {accumulate, compile}, 2),
@@ -225,7 +225,7 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
     elixir_env:trace({on_module, Binary, none}, ModuleE),
     warn_unused_attributes(DataSet, DataBag, PersistedAttributes, E),
     make_module_available(Module, Binary),
-    (CheckerInfo == undefined) andalso
+    (element(2, CheckerInfo) == nil) andalso
       [VerifyMod:VerifyFun(Module) ||
        {VerifyMod, VerifyFun} <- bag_lookup_element(DataBag, {accumulate, after_verify}, 2)],
     {module, Module, Binary, Result}
@@ -553,11 +553,11 @@ beam_location(ModuleAsCharlist) ->
 
 checker_info() ->
   case get(elixir_checker_info) of
-    undefined -> undefined;
+    undefined -> {self(), nil};
     _ -> 'Elixir.Module.ParallelChecker':get()
   end.
 
-spawn_parallel_checker(undefined, _Module, _ModuleMap) ->
+spawn_parallel_checker({_, nil}, _Module, _ModuleMap) ->
   ok;
 spawn_parallel_checker(CheckerInfo, Module, ModuleMap) ->
   Log =
