@@ -28,12 +28,12 @@ defmodule Module.ParallelChecker do
   def get do
     case :erlang.get(:elixir_checker_info) do
       {parent, nil} ->
-        {:ok, checker_table} = start_link()
-        put(parent, checker_table)
-        {parent, checker_table}
+        {:ok, cache} = start_link()
+        put(parent, cache)
+        {parent, cache}
 
-      {parent, checker_table} ->
-        {parent, checker_table}
+      {parent, cache} ->
+        {parent, cache}
     end
   end
 
@@ -189,8 +189,8 @@ defmodule Module.ParallelChecker do
   Test cache.
   """
   def test_cache do
-    {:ok, checker_table} = start_link()
-    checker_table
+    {:ok, cache} = start_link()
+    cache
   end
 
   @doc """
