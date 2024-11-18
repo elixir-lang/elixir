@@ -795,6 +795,9 @@ defmodule Kernel.ParserTest do
       assert string_to_quoted.("nil") == {:__block__, [line: 1], [nil]}
       assert string_to_quoted.(":one") == {:__block__, [line: 1], [:one]}
 
+      assert string_to_quoted.("true") == {:__block__, [line: 1], [true]}
+      assert string_to_quoted.(":true") == {:__block__, [format: :atom, line: 1], [true]}
+
       assert string_to_quoted.("[one: :two]") == {
                :__block__,
                [{:closing, [line: 1]}, {:line, 1}],

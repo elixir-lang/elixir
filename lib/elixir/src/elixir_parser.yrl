@@ -283,10 +283,10 @@ access_expr -> bin_heredoc : build_bin_heredoc('$1').
 access_expr -> list_heredoc : build_list_heredoc('$1').
 access_expr -> bitstring : '$1'.
 access_expr -> sigil : build_sigil('$1').
-access_expr -> atom : handle_literal(?exprs('$1'), '$1').
-access_expr -> atom_quoted : handle_literal(?exprs('$1'), '$1', atom_delimiter('$1')).
-access_expr -> atom_safe : build_quoted_atom('$1', true, atom_delimiter('$1')).
-access_expr -> atom_unsafe : build_quoted_atom('$1', false, atom_delimiter('$1')).
+access_expr -> atom : handle_literal(?exprs('$1'), '$1', atom_colon_meta('$1')).
+access_expr -> atom_quoted : handle_literal(?exprs('$1'), '$1', atom_delimiter_meta('$1')).
+access_expr -> atom_safe : build_quoted_atom('$1', true, atom_delimiter_meta('$1')).
+access_expr -> atom_unsafe : build_quoted_atom('$1', false, atom_delimiter_meta('$1')).
 access_expr -> dot_alias : '$1'.
 access_expr -> parens_call : '$1'.
 
@@ -1029,7 +1029,12 @@ build_quoted_atom({_, Location, Args}, Safe, ExtraMeta) ->
 binary_to_atom_op(true)  -> binary_to_existing_atom;
 binary_to_atom_op(false) -> binary_to_atom.
 
-atom_delimiter({_Kind, {_Line, _Column, Delimiter}, _Args}) ->
+atom_colon_meta({atom, _Location, Atom}) when Atom =:= true orelse Atom =:= false orelse Atom =:= nil ->
+  [{format, atom}];
+atom_colon_meta(_) ->
+  [].
+
+atom_delimiter_meta({_Kind, {_Line, _Column, Delimiter}, _Args}) ->
   case ?token_metadata() of
     true -> [{delimiter, <<Delimiter>>}];
     false -> []
