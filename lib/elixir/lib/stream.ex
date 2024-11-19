@@ -31,11 +31,9 @@ defmodule Stream do
   Due to their laziness, streams are useful when working with large
   (or even infinite) collections. When chaining many operations with `Enum`,
   intermediate lists are created, while `Stream` creates a recipe of
-  computations that are executed at a later moment.
-  Notably, the issue with using `Enum` in this context is with the
-  intermediate lists that are created as their result. An `Enum` function
-  used on a stream will still process the elements one by one as they are
-  emitted by the stream.
+  computations that are executed at a later moment. Then when the
+  stream is consumed later on, most commonly by using a function in
+  the `Enum` module, the stream will emit its elements one by one.
 
   Let's see another example:
 
