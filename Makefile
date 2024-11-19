@@ -146,7 +146,7 @@ check_reproducible: compile
 	$(Q) mv lib/iex/ebin/* lib/iex/tmp/ebin_reproducible/
 	$(Q) mv lib/logger/ebin/* lib/logger/tmp/ebin_reproducible/
 	$(Q) mv lib/mix/ebin/* lib/mix/tmp/ebin_reproducible/
-	$(Q) rm -rfv lib/*/ebin
+	$(Q) rm -rf lib/*/ebin
 	SOURCE_DATE_EPOCH=$(call READ_SOURCE_DATE_EPOCH) "$(MAKE)" compile
 	$(Q) echo "Diffing..."
 	$(Q) bin/elixir lib/elixir/scripts/diff.exs lib/elixir/ebin/ lib/elixir/tmp/ebin_reproducible/

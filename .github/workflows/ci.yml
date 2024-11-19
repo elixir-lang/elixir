@@ -25,16 +25,16 @@ jobs:
         include:
           - otp_version: "27.1"
             deterministic: true
-          # - otp_version: "27.1"
-          #   otp_latest: true
-          # - otp_version: "27.0"
-          # - otp_version: "26.0"
-          # - otp_version: "25.3"
-          # - otp_version: "25.0"
-          # - otp_version: master
-          #   development: true
-          # - otp_version: maint
-          #   development: true
+          - otp_version: "27.1"
+            otp_latest: true
+          - otp_version: "27.0"
+          - otp_version: "26.0"
+          - otp_version: "25.3"
+          - otp_version: "25.0"
+          - otp_version: master
+            development: true
+          - otp_version: maint
+            development: true
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -77,49 +77,49 @@ jobs:
           cd lib/elixir && ../../bin/elixirc -o ebin lib/system.ex && cd -
           taskset 1 make check_reproducible
 
-  # test_windows:
-  #   name: Windows Server 2019, Erlang/OTP ${{ matrix.otp_version }}
-  #   strategy:
-  #     matrix:
-  #       otp_version: ["25.3", "26.2", "27.1"]
-  #   runs-on: windows-2022
-  #   steps:
-  #     - name: Configure Git
-  #       run: git config --global core.autocrlf input
-  #     - uses: actions/checkout@v4
-  #       with:
-  #         fetch-depth: 50
-  #     - uses: erlef/setup-beam@v1
-  #       with:
-  #         otp-version: ${{ matrix.otp_version }}
-  #     - name: Compile Elixir
-  #       run: |
-  #         Remove-Item -Recurse -Force '.git'
-  #         make compile
-  #     - name: Build info
-  #       run: bin/elixir --version
-  #     - name: Check format
-  #       run: make test_formatted && echo "All Elixir source code files are properly formatted."
-  #     - name: Erlang test suite
-  #       run: make --keep-going test_erlang
-  #     - name: Elixir test suite
-  #       run: |
-  #         Remove-Item 'c:/Windows/System32/drivers/etc/hosts'
-  #         make --keep-going test_elixir
+  test_windows:
+    name: Windows Server 2019, Erlang/OTP ${{ matrix.otp_version }}
+    strategy:
+      matrix:
+        otp_version: ["25.3", "26.2", "27.1"]
+    runs-on: windows-2022
+    steps:
+      - name: Configure Git
+        run: git config --global core.autocrlf input
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 50
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{ matrix.otp_version }}
+      - name: Compile Elixir
+        run: |
+          Remove-Item -Recurse -Force '.git'
+          make compile
+      - name: Build info
+        run: bin/elixir --version
+      - name: Check format
+        run: make test_formatted && echo "All Elixir source code files are properly formatted."
+      - name: Erlang test suite
+        run: make --keep-going test_erlang
+      - name: Elixir test suite
+        run: |
+          Remove-Item 'c:/Windows/System32/drivers/etc/hosts'
+          make --keep-going test_elixir
 
-  # check_posix_compliant:
-  #   name: Check POSIX-compliant
-  #   runs-on: ubuntu-24.04
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #       with:
-  #         fetch-depth: 50
-  #     - name: Install Shellcheck
-  #       run: |
-  #         sudo apt update
-  #         sudo apt install -y shellcheck
-  #     - name: Check POSIX-compliant
-  #       run: |
-  #         shellcheck -e SC2039,2086 bin/elixir && echo "bin/elixir is POSIX compliant"
-  #         shellcheck bin/elixirc && echo "bin/elixirc is POSIX compliant"
-  #         shellcheck bin/iex && echo "bin/iex is POSIX compliant"
+  check_posix_compliant:
+    name: Check POSIX-compliant
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 50
+      - name: Install Shellcheck
+        run: |
+          sudo apt update
+          sudo apt install -y shellcheck
+      - name: Check POSIX-compliant
+        run: |
+          shellcheck -e SC2039,2086 bin/elixir && echo "bin/elixir is POSIX compliant"
+          shellcheck bin/elixirc && echo "bin/elixirc is POSIX compliant"
+          shellcheck bin/iex && echo "bin/iex is POSIX compliant"
