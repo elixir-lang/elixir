@@ -216,7 +216,7 @@ defmodule Module.Types.Of do
   Returns `__info__(:struct)` information about a struct.
   """
   def struct_info(struct, meta, stack, context) do
-    case stack.cache do
+    case stack.no_warn_undefined do
       %Macro.Env{} = env ->
         case :elixir_map.maybe_load_struct_info(meta, struct, [], false, env) do
           {:ok, info} -> {info, context}

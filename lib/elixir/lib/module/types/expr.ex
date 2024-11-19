@@ -401,19 +401,8 @@ defmodule Module.Types.Expr do
       )
       when is_atom(name) and is_integer(arity) do
     {remote_type, context} = of_expr(remote, stack, context)
-
-    # TODO: We cannot return the unions of functions. Do we forbid this?
-    # Do we check it is always the same return type? Do we simply say it is a function?
     {mods, context} = Of.modules(remote_type, name, arity, expr, meta, stack, context)
-
-    context =
-      Enum.reduce(
-        mods,
-        context,
-        &(Apply.signature(&1, name, arity, meta, stack, &2) |> elem(1))
-      )
-
-    {dynamic(fun()), context}
+    Apply.remote_capture(mods, name, arity, meta, stack, context)
   end
 
   # TODO: &foo/1

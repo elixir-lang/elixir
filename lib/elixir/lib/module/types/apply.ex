@@ -430,6 +430,26 @@ defmodule Module.Types.Apply do
   end
 
   @doc """
+  Returns the type of a remote capture.
+  """
+  def remote_capture(modules, fun, arity, meta, stack, context) do
+    # TODO: We cannot return the unions of functions. Do we forbid this?
+    # Do we check it is always the same return type? Do we simply say it is a function?
+    if stack.mode == :traversal do
+      {dynamic(fun()), context}
+    else
+      context =
+        Enum.reduce(
+          modules,
+          context,
+          &(signature(&1, fun, arity, meta, stack, &2) |> elem(1))
+        )
+
+      {dynamic(fun()), context}
+    end
+  end
+
+  @doc """
   Gets a mfa signature.
 
   It returns either a tuple with the remote information and the context.
@@ -461,25 +481,30 @@ defmodule Module.Types.Apply do
     {signature(:module_info, arity), context}
   end
 
-  defp export(_module, _fun, _arity, _meta, %{cache: %Macro.Env{}}, context) do
-    {:none, context}
-  end
-
-  defp export(module, fun, arity, meta, stack, context) do
-    case ParallelChecker.fetch_export(stack.cache, module, fun, arity) do
-      {:ok, mode, reason, info} ->
-        info = if info == :none, do: signature(fun, arity), else: info
-        {info, check_deprecated(mode, module, fun, arity, reason, meta, stack, context)}
-
-      {:error, type} ->
-        context =
-          if warn_undefined?(module, fun, arity, stack) do
-            warn(__MODULE__, {:undefined, type, module, fun, arity}, meta, stack, context)
-          else
-            context
-          end
-
+  defp export(module, fun, arity, meta, %{cache: cache} = stack, context) do
+    cond do
+      cache == nil or stack.mode == :traversal ->
         {:none, context}
+
+      stack.mode == :infer and not builtin_module?(module) ->
+        {:none, context}
+
+      true ->
+        case ParallelChecker.fetch_export(stack.cache, module, fun, arity) do
+          {:ok, mode, reason, info} ->
+            info = if info == :none, do: signature(fun, arity), else: info
+            {info, check_deprecated(mode, module, fun, arity, reason, meta, stack, context)}
+
+          {:error, type} ->
+            context =
+              if warn_undefined?(module, fun, arity, stack) do
+                warn(__MODULE__, {:undefined, type, module, fun, arity}, meta, stack, context)
+              else
+                context
+              end
+
+            {:none, context}
+        end
     end
   end
 
@@ -505,6 +530,27 @@ defmodule Module.Types.Apply do
       _ ->
         context
     end
+  end
+
+  defp builtin_module?(module) do
+    is_map_key(builtin_modules(), module)
+  end
+
+  defp builtin_modules do
+    case :persistent_term.get(__MODULE__, nil) do
+      nil ->
+        {:ok, mods} = :application.get_key(:elixir, :modules)
+        mods = Map.from_keys(mods, [])
+        :persistent_term.put(__MODULE__, mods)
+        mods
+
+      %{} = mods ->
+        mods
+    end
+  end
+
+  defp warn_undefined?(_, _, _, %{no_warn_undefined: %Macro.Env{}}) do
+    false
   end
 
   defp warn_undefined?(_, _, _, %{no_warn_undefined: :all}) do
@@ -572,14 +618,14 @@ defmodule Module.Types.Apply do
         {dynamic(fun()), context}
 
       {_kind, _info, context} when stack.mode == :traversal ->
-        {fun(), context}
+        {dynamic(fun()), context}
 
       {kind, _info, context} ->
         if stack.mode != :infer and kind == :defp do
           # Mark all clauses as used, as the function is being exported.
-          {fun(), put_in(context.local_used[fun_arity], [])}
+          {dynamic(fun()), put_in(context.local_used[fun_arity], [])}
         else
-          {fun(), context}
+          {dynamic(fun()), context}
         end
     end
   end

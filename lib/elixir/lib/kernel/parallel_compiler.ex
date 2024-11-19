@@ -31,11 +31,11 @@ defmodule Kernel.ParallelCompiler do
         dest = :erlang.get(:elixir_compiler_dest)
 
         {:error_handler, error_handler} = :erlang.process_info(self(), :error_handler)
-        {_parent, checker} = Module.ParallelChecker.get()
+        {_parent, cache} = Module.ParallelChecker.get()
 
         task =
           Task.async(fn ->
-            Module.ParallelChecker.put(compiler_pid, checker)
+            Module.ParallelChecker.put(compiler_pid, cache)
             :erlang.put(:elixir_compiler_info, {compiler_pid, file_pid})
             :erlang.put(:elixir_compiler_file, file)
             dest != :undefined and :erlang.put(:elixir_compiler_dest, dest)
@@ -253,11 +253,11 @@ defmodule Kernel.ParallelCompiler do
         max(:erlang.system_info(:schedulers_online), 2)
       end)
 
-    {:ok, checker} = Module.ParallelChecker.start_link(schedulers)
+    {:ok, cache} = Module.ParallelChecker.start_link(schedulers)
 
     {status, modules_or_errors, info} =
       try do
-        outcome = spawn_workers(schedulers, checker, files, output, options)
+        outcome = spawn_workers(schedulers, cache, files, output, options)
         {outcome, Keyword.get(options, :warnings_as_errors, false)}
       else
         {{:ok, _, %{runtime_warnings: r_warnings, compile_warnings: c_warnings} = info}, true}
@@ -281,7 +281,7 @@ defmodule Kernel.ParallelCompiler do
         {{:error, errors, info}, _} ->
           {:error, errors, info}
       after
-        Module.ParallelChecker.stop(checker)
+        Module.ParallelChecker.stop(cache)
       end
 
     # TODO: Require this to be set from Elixir v1.19
@@ -428,13 +428,13 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp spawn_workers([file | queue], spawned, waiting, files, result, warnings, errors, state) do
-    %{output: output, dest: dest, checker: checker} = state
+    %{output: output, dest: dest, checker: cache} = state
     parent = self()
     file = Path.expand(file)
 
     {pid, ref} =
       :erlang.spawn_monitor(fn ->
-        Module.ParallelChecker.put(parent, checker)
+        Module.ParallelChecker.put(parent, cache)
         :erlang.put(:elixir_compiler_info, {parent, self()})
         :erlang.put(:elixir_compiler_file, file)
 

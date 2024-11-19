@@ -33,8 +33,8 @@ defmodule Module.Types do
   @no_infer [__protocol__: 1, behaviour_info: 1]
 
   @doc false
-  def infer(module, file, defs, private, used_private, env) do
-    infer_signatures? = :elixir_config.get(:infer_signatures)
+  def infer(module, file, defs, private, used_private, env, {_, cache}) do
+    infer_signatures? = :elixir_config.get(:infer_signatures) and cache != nil
 
     finder =
       fn fun_arity ->
@@ -60,7 +60,7 @@ defmodule Module.Types do
       end
     end
 
-    stack = stack(:infer, file, module, {:__info__, 1}, :all, env, handler)
+    stack = stack(:infer, file, module, {:__info__, 1}, env, cache, handler)
 
     {types, %{local_sigs: reachable_sigs} = context} =
       for {fun_arity, kind, meta, _clauses} = def <- defs,
@@ -316,9 +316,9 @@ defmodule Module.Types do
       module: module,
       # Current function
       function: function,
-      # List of calls to not warn on as undefined or :all
+      # List of calls to not warn on as undefined or :all or Macro.Env indicating limited remotes
       no_warn_undefined: no_warn_undefined,
-      # A tuple with cache information or a Macro.Env struct indicating no remote traversals
+      # A tuple with cache information (may be nil)
       cache: cache,
       # The mode to be used, see the @modes attribute
       mode: mode,

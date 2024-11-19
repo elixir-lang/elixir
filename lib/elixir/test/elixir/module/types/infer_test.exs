@@ -7,14 +7,19 @@ defmodule Module.Types.InferTest do
 
   defmacro infer(config, do: block) do
     quote do
-      defmodule unquote(config).test do
-        unquote(block)
-      end
-      |> runtime_infer()
+      runtime_infer(unquote(config).test, unquote(Macro.escape(block)))
     end
   end
 
-  defp runtime_infer({:module, module, binary, _result}) do
+  defp runtime_infer(module, block) do
+    {{:module, _, binary, _}, []} =
+      Code.eval_quoted(
+        quote do
+          defmodule unquote(module), do: unquote(block)
+        end,
+        []
+      )
+
     {:ok, {_, [debug_info: chunk]}} = :beam_lib.chunks(binary, [:debug_info])
     {:debug_info_v1, backend, data} = chunk
     {:ok, %{signatures: signatures}} = backend.debug_info(:elixir_v1, module, data, [])
@@ -41,6 +46,16 @@ defmodule Module.Types.InferTest do
     assert types[{:fun2, 4}] == {:infer, [{args, atom([:ok])}]}
     assert types[{:fun3, 4}] == {:infer, [{args, atom([:ok])}]}
     assert types[{:fun4, 4}] == {:infer, [{args, atom([:ok])}]}
+  end
+
+  test "infer with Elixir built-in", config do
+    types =
+      infer config do
+        def parse(string), do: Integer.parse(string)
+      end
+
+    assert types[{:parse, 1}] ==
+             {:infer, [{[dynamic()], dynamic(union(atom([:error]), tuple([integer(), term()])))}]}
   end
 
   test "merges patterns", config do

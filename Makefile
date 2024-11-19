@@ -21,7 +21,7 @@ GIT_TAG = $(strip $(shell head="$(call GIT_REVISION)"; git tag --points-at $$hea
 SOURCE_DATE_EPOCH_PATH = lib/elixir/tmp/ebin_reproducible
 SOURCE_DATE_EPOCH_FILE = $(SOURCE_DATE_EPOCH_PATH)/SOURCE_DATE_EPOCH
 
-.PHONY: install compile erlang elixir unicode app build_plt clean_plt dialyze test check_reproducible clean clean_residual_files format install_man clean_man docs Docs.zip Precompiled.zip zips
+.PHONY: install install_man build_plt clean_plt dialyze test check_reproducible clean clean_elixir clean_man format docs Docs.zip Precompiled.zip zips
 .NOTPARALLEL:
 
 #==> Functions
@@ -65,17 +65,21 @@ endef
 #==> Compilation tasks
 
 APP := lib/elixir/ebin/elixir.app
+EEX := lib/eex/ebin/Elixir.EEx.beam
+ELIXIR := lib/elixir/ebin/elixir.beam
 PARSER := lib/elixir/src/elixir_parser.erl
 KERNEL := lib/elixir/ebin/Elixir.Kernel.beam
 UNICODE := lib/elixir/ebin/Elixir.String.Unicode.beam
 
 default: compile
 
-compile: erlang $(APP) elixir
+compile: erlang elixir
 
-erlang: $(PARSER)
+erlang: $(ELIXIR)
+$(ELIXIR): $(PARSER) lib/elixir/src/*
 	$(Q) if [ ! -f $(APP) ]; then $(call CHECK_ERLANG_RELEASE); fi
 	$(Q) cd lib/elixir && mkdir -p ebin && $(ERL_MAKE)
+	$(Q) $(GENERATE_APP) $(VERSION)
 
 $(PARSER): lib/elixir/src/elixir_parser.yrl
 	$(Q) erlc -o $@ +'{verbose,true}' +'{report,true}' $<
@@ -83,21 +87,20 @@ $(PARSER): lib/elixir/src/elixir_parser.yrl
 # Since Mix depends on EEx and EEx depends on Mix,
 # we first compile EEx without the .app file,
 # then Mix, and then compile EEx fully
-elixir: stdlib lib/eex/ebin/Elixir.EEx.beam mix ex_unit logger eex iex
+elixir: stdlib $(EEX) mix ex_unit logger eex iex
+stdlib: $(KERNEL) $(UNICODE) $(APP)
 
-stdlib: lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex lib/elixir/lib/*/*/*.ex VERSION
+$(KERNEL): lib/elixir/src/* lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex lib/elixir/lib/*/*/*.ex VERSION
 	$(Q) if [ ! -f $(KERNEL) ]; then \
 		echo "==> bootstrap (compile)"; \
 		$(ERL) -s elixir_compiler bootstrap -s erlang halt; \
+		"$(MAKE)" unicode; \
 	fi
-	$(Q) "$(MAKE)" unicode
 	@ echo "==> elixir (compile)";
 	$(Q) cd lib/elixir && ../../$(ELIXIRC) "lib/**/*.ex" -o ebin;
-	$(Q) "$(MAKE)" app
 
-app: $(APP)
 $(APP): lib/elixir/src/elixir.app.src lib/elixir/ebin VERSION $(GENERATE_APP)
-	$(Q) $(GENERATE_APP) $< $@ $(VERSION)
+	$(Q) $(GENERATE_APP) $(VERSION)
 
 unicode: $(UNICODE)
 $(UNICODE): lib/elixir/unicode/*
@@ -143,6 +146,7 @@ check_reproducible: compile
 	$(Q) mv lib/iex/ebin/* lib/iex/tmp/ebin_reproducible/
 	$(Q) mv lib/logger/ebin/* lib/logger/tmp/ebin_reproducible/
 	$(Q) mv lib/mix/ebin/* lib/mix/tmp/ebin_reproducible/
+	$(Q) rm -rf lib/*/ebin
 	SOURCE_DATE_EPOCH=$(call READ_SOURCE_DATE_EPOCH) "$(MAKE)" compile
 	$(Q) echo "Diffing..."
 	$(Q) bin/elixir lib/elixir/scripts/diff.exs lib/elixir/ebin/ lib/elixir/tmp/ebin_reproducible/
@@ -153,16 +157,10 @@ check_reproducible: compile
 	$(Q) bin/elixir lib/elixir/scripts/diff.exs lib/mix/ebin/ lib/mix/tmp/ebin_reproducible/
 	$(Q) echo "Builds are reproducible"
 
-clean:
+clean: clean_man
 	rm -rf ebin
 	rm -rf lib/*/ebin
 	rm -rf $(PARSER)
-	$(Q) "$(MAKE)" clean_residual_files
-
-clean_elixir:
-	$(Q) rm -f lib/*/ebin/Elixir.*.beam
-
-clean_residual_files:
 	rm -rf lib/*/_build/
 	rm -rf lib/*/tmp/
 	rm -rf lib/elixir/test/ebin/
@@ -172,7 +170,9 @@ clean_residual_files:
 	rm -rf lib/mix/test/fixtures/git_sparse_repo/
 	rm -rf lib/mix/test/fixtures/archive/ebin/
 	rm -f erl_crash.dump
-	$(Q) "$(MAKE)" clean_man
+
+clean_elixir:
+	$(Q) rm -f lib/*/ebin/Elixir.*.beam
 
 #==> Documentation tasks
 
