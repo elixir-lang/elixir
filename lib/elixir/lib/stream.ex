@@ -31,8 +31,11 @@ defmodule Stream do
   Due to their laziness, streams are useful when working with large
   (or even infinite) collections. When chaining many operations with `Enum`,
   intermediate lists are created, while `Stream` creates a recipe of
-  computations that are executed at a later moment. Let's see another
-  example:
+  computations that are executed at a later moment. Then when the
+  stream is consumed later on, most commonly by using a function in
+  the `Enum` module, the stream will emit its elements one by one.
+
+  Let's see another example:
 
       1..3
       |> Enum.map(&IO.inspect(&1))
