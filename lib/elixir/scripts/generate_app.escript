@@ -1,7 +1,9 @@
 #!/usr/bin/env escript
 %% -*- erlang -*-
 
-main([Source, Target, Version]) ->
+main([Version]) ->
+  Source = "lib/elixir/src/elixir.app.src",
+  Target = "lib/elixir/ebin/elixir.app",
   {ok, [{application, Name, Props0}]} = file:consult(Source),
   Ebin = filename:dirname(Target),
   Files = filelib:wildcard(filename:join(Ebin, "*.beam")),
