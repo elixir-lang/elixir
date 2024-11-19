@@ -539,7 +539,7 @@ defmodule Module.Types.Apply do
   defp builtin_modules do
     case :persistent_term.get(__MODULE__, nil) do
       nil ->
-        {:ok, mods} = :application.get_key(:elixir, :modules)
+        {:ok, mods} = :application.get_key(:elixir, :modules) |> IO.inspect
         mods = Map.from_keys(mods, [])
         :persistent_term.put(__MODULE__, mods)
         mods
