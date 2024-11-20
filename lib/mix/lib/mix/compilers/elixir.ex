@@ -373,8 +373,7 @@ defmodule Mix.Compilers.Elixir do
             Map.has_key?(stale_modules, module) ->
               {[module | modules_to_recompile], modules_to_mix_check}
 
-            recompile? and Code.ensure_loaded?(module) and
-                function_exported?(module, :__mix_recompile__?, 0) ->
+            recompile? ->
               {modules_to_recompile, [module | modules_to_mix_check]}
 
             true ->
@@ -385,7 +384,17 @@ defmodule Mix.Compilers.Elixir do
     modules_to_recompile =
       modules_to_recompile ++
         for {:ok, {module, true}} <-
-              Task.async_stream(modules_to_mix_check, &{&1, &1.__mix_recompile__?()},
+              Task.async_stream(
+                modules_to_mix_check,
+                fn mod ->
+                  # Since loading the modules themselves can be expensive,
+                  # we want to do it inside the task too. Modules being deleted
+                  # are uncommon, so this optimizes the common case.
+                  {mod,
+                   Code.ensure_loaded?(mod) and
+                     function_exported?(mod, :__mix_recompile__?, 0) and
+                     mod.__mix_recompile__?()}
+                end,
                 ordered: false,
                 timeout: :infinity
               ) do
