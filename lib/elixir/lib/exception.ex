@@ -1997,8 +1997,10 @@ defmodule Protocol.UndefinedError do
 
   @impl true
   def message(%{protocol: protocol, value: value, description: description}) do
-    "protocol #{inspect(protocol)} not implemented for type " <> value_type(value) <>
-      maybe_description(description) <> maybe_available(protocol) <>
+    "protocol #{inspect(protocol)} not implemented for type " <>
+      value_type(value) <>
+      maybe_description(description) <>
+      maybe_available(protocol) <>
       "\n\nGot value: #{inspect(value, pretty: true)}"
   end
 
