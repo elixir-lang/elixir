@@ -346,7 +346,7 @@ defmodule Exception do
   defp rewrite_arg(arg) do
     Macro.prewalk(arg, fn
       {:%{}, meta, [__struct__: Range, first: first, last: last, step: step]} ->
-        {:..//, meta, [first, last, step]}
+        {:"..//", meta, [first, last, step]}
 
       other ->
         other
@@ -1997,11 +1997,11 @@ defmodule Protocol.UndefinedError do
 
   @impl true
   def message(%{protocol: protocol, value: value, description: description}) do
-    "protocol #{inspect(protocol)} not implemented for #{inspect(value)} of type " <>
+    "protocol #{inspect(protocol)} not implemented for #{inspect(value, pretty: true)} of type " <>
       value_type(value) <> maybe_description(description) <> maybe_available(protocol)
   end
 
-  defp value_type(%{__struct__: struct}), do: "#{inspect(struct)} (a struct)"
+  defp value_type(%{__struct__: struct}), do: "#{inspect(struct, pretty: true)} (a struct)"
   defp value_type(value) when is_atom(value), do: "Atom"
   defp value_type(value) when is_bitstring(value), do: "BitString"
   defp value_type(value) when is_float(value), do: "Float"
