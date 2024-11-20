@@ -2001,7 +2001,7 @@ defmodule Protocol.UndefinedError do
       value_type(value) <> maybe_description(description) <> maybe_available(protocol)
   end
 
-  defp value_type(%{__struct__: struct}), do: "#{inspect(struct, pretty: true)} (a struct)"
+  defp value_type(%{__struct__: struct}), do: "#{inspect(struct)} (a struct)"
   defp value_type(value) when is_atom(value), do: "Atom"
   defp value_type(value) when is_bitstring(value), do: "BitString"
   defp value_type(value) when is_float(value), do: "Float"
