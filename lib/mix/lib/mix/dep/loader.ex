@@ -106,7 +106,7 @@ defmodule Mix.Dep.Loader do
           {dep, []}
       end
 
-    validate_app(%{dep | deps: attach_only_and_targets(children, opts)})
+    %{dep | deps: attach_only_and_targets(children, opts)}
   end
 
   @doc """
@@ -378,29 +378,63 @@ defmodule Mix.Dep.Loader do
   defp overrides(:rebar3, config), do: config[:overrides] || []
   defp overrides(_, _config), do: []
 
-  defp validate_app(%Mix.Dep{opts: opts, requirement: req, app: app} = dep) do
-    opts_app = opts[:app]
+  @doc """
+  Validates the application of a dependency.
+  """
+  def validate_app(dep) do
+    validate_app_callback(init_validate_app(dep))
+  end
 
-    cond do
-      not ok?(dep) ->
+  @doc """
+  Validates the application of a dependency asynchronously.
+  """
+  def validate_app_async(dep) do
+    case init_validate_app(dep) do
+      {dep, nil} ->
+        {dep, nil}
+
+      {dep, callback} ->
+        task = Task.async(callback)
+        {dep, fn -> Task.await(task, :infinity) end}
+    end
+  end
+
+  @doc """
+  Awaits for the result of `validate_app_async/1`.
+  """
+  def validate_app_callback(pair) do
+    case pair do
+      {dep, nil} ->
         dep
 
-      recently_fetched?(dep) ->
-        %{dep | status: :compile}
-
-      opts_app == false ->
-        dep
-
-      true ->
-        path = if is_binary(opts_app), do: opts_app, else: "ebin/#{app}.app"
-        path = Path.expand(path, opts[:build])
-
-        case app_status(path, app, req) do
-          {:ok, vsn, app} -> %{dep | status: {:ok, vsn}, opts: [app_properties: app] ++ opts}
+      {dep, callback} ->
+        case callback.() do
+          {:ok, vsn, app} -> %{dep | status: {:ok, vsn}, opts: [app_properties: app] ++ dep.opts}
           status -> %{dep | status: status}
         end
     end
   end
+
+  defp init_validate_app(
+         %Mix.Dep{status: {:ok, nil}, opts: opts, requirement: req, app: app} = dep
+       ) do
+    opts_app = opts[:app]
+
+    cond do
+      recently_fetched?(dep) ->
+        {%{dep | status: :compile}, nil}
+
+      opts_app == false ->
+        {dep, nil}
+
+      true ->
+        path = if is_binary(opts_app), do: opts_app, else: "ebin/#{app}.app"
+        path = Path.expand(path, opts[:build])
+        {dep, fn -> app_status(path, app, req) end}
+    end
+  end
+
+  defp init_validate_app(dep), do: {dep, nil}
 
   defp recently_fetched?(%Mix.Dep{opts: opts, scm: scm}) do
     scm.fetchable?() and not File.exists?(Path.join(opts[:build], ".mix/compile.fetch"))

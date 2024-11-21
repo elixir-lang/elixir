@@ -88,7 +88,14 @@ defmodule Mix.Dep.Converger do
   def converge(acc, lock, opts, callback) do
     {deps, acc, lock} = all(acc, lock, opts, callback)
     if remote = Mix.RemoteConverger.get(), do: remote.post_converge()
-    {topological_sort(deps), acc, lock}
+
+    deps =
+      deps
+      |> Enum.map(&Mix.Dep.Loader.validate_app_async/1)
+      |> Enum.map(&Mix.Dep.Loader.validate_app_callback/1)
+      |> topological_sort()
+
+    {deps, acc, lock}
   end
 
   defp all(acc, lock, opts, callback) do
@@ -298,35 +305,38 @@ defmodule Mix.Dep.Converger do
           )
         end
 
-        cond do
-          in_upper? && other_opts[:override] ->
-            {:match, list}
+        if in_upper? && other_opts[:override] do
+          {:match, list}
+        else
+          other = Mix.Dep.Loader.validate_app(other)
 
-          not converge?(other, dep) ->
-            tag = if in_upper?, do: :overridden, else: :diverged
-            other = %{other | status: {tag, dep}}
-            {:match, pre ++ [other | pos]}
+          cond do
+            not converge?(other, dep) ->
+              tag = if in_upper?, do: :overridden, else: :diverged
+              other = %{other | status: {tag, dep}}
+              {:match, pre ++ [other | pos]}
 
-          vsn = req_mismatch(other, dep) ->
-            other = %{other | status: {:divergedreq, vsn, dep}}
-            {:match, pre ++ [other | pos]}
+            vsn = req_mismatch(other, dep) ->
+              other = %{other | status: {:divergedreq, vsn, dep}}
+              {:match, pre ++ [other | pos]}
 
-          not in_upper? and Mix.Dep.Loader.skip?(other, env_target) and
-              not Mix.Dep.Loader.skip?(dep, env_target) ->
-            dep =
-              dep
-              |> with_matching_only_and_targets(other, in_upper?)
-              |> merge_manager(other, in_upper?)
+            not in_upper? and Mix.Dep.Loader.skip?(other, env_target) and
+                not Mix.Dep.Loader.skip?(dep, env_target) ->
+              dep =
+                dep
+                |> with_matching_only_and_targets(other, in_upper?)
+                |> merge_manager(other, in_upper?)
 
-            {:replace, dep, pre ++ pos}
+              {:replace, dep, pre ++ pos}
 
-          true ->
-            other =
-              other
-              |> with_matching_only_and_targets(dep, in_upper?)
-              |> merge_manager(dep, in_upper?)
+            true ->
+              other =
+                other
+                |> with_matching_only_and_targets(dep, in_upper?)
+                |> merge_manager(dep, in_upper?)
 
-            {:match, pre ++ [other | pos]}
+              {:match, pre ++ [other | pos]}
+          end
         end
     end
   end
