@@ -244,9 +244,9 @@ defmodule Mix.Tasks.Format do
     end
 
     {formatter_opts_and_subs, _sources} =
-      eval_deps_and_subdirectories(cwd, dot_formatter, formatter_opts, [dot_formatter])
+      eval_deps_and_subdirectories(cwd, dot_formatter, formatter_opts, [dot_formatter], opts)
 
-    formatter_opts_and_subs = load_plugins(formatter_opts_and_subs)
+    formatter_opts_and_subs = load_plugins(formatter_opts_and_subs, opts)
     files = expand_args(args, cwd, dot_formatter, formatter_opts_and_subs, opts)
 
     maybe_cache_timestamps(all_args, files, fn files ->
@@ -290,20 +290,19 @@ defmodule Mix.Tasks.Format do
 
   defp maybe_cache_timestamps([_ | _], files, fun), do: fun.(files)
 
-  defp load_plugins({formatter_opts, subs}) do
+  defp load_plugins({formatter_opts, subs}, opts) do
     plugins = Keyword.get(formatter_opts, :plugins, [])
 
     if not is_list(plugins) do
       Mix.raise("Expected :plugins to return a list of modules, got: #{inspect(plugins)}")
     end
 
-    if plugins != [] do
-      Mix.Task.run("loadpaths", [])
-    end
-
-    if not Enum.all?(plugins, &Code.ensure_loaded?/1) do
-      Mix.Task.run("compile", [])
-    end
+    plugins =
+      if plugins != [] do
+        Keyword.get(opts, :plugin_loader, &plugin_loader/1).(plugins)
+      else
+        []
+      end
 
     for plugin <- plugins do
       cond do
@@ -336,7 +335,21 @@ defmodule Mix.Tasks.Format do
       end)
 
     {Keyword.put(formatter_opts, :sigils, sigils),
-     Enum.map(subs, fn {path, opts} -> {path, load_plugins(opts)} end)}
+     Enum.map(subs, fn {path, formatter_opts_and_subs} ->
+       {path, load_plugins(formatter_opts_and_subs, opts)}
+     end)}
+  end
+
+  defp plugin_loader(plugins) do
+    if plugins != [] do
+      Mix.Task.run("loadpaths", [])
+    end
+
+    if not Enum.all?(plugins, &Code.ensure_loaded?/1) do
+      Mix.Task.run("compile", [])
+    end
+
+    plugins
   end
 
   @doc """
@@ -346,6 +359,26 @@ defmodule Mix.Tasks.Format do
   The function must be called with the contents of the file
   to be formatted. The options are returned for reflection
   purposes.
+
+  ## Options
+
+    * `:deps_paths` (since v1.18.0) - the dependencies path to be used to resolve
+      `import_deps`. It defaults to `Mix.Project.deps_paths`.
+
+    * `:dot_formatter` - use the given file as the `dot_formatter`
+      root. If this option is specified, it uses the default one.
+      The default one is cached, so use this option only if necessary.
+
+    * `:plugin_loader` (since v1.18.0) - a function that receives a list of plugins,
+      which may or may not yet be loaded, and ensures all of them are
+      loaded. It must return a list of plugins, which is recommended
+      to be the exact same list given as argument. You may choose to
+      skip plugins, but then it means the code will be partially
+      formatted (as in the plugins will be skipped). By default,
+      this function calls `mix loadpaths` and then, if not enough,
+      `mix compile`.
+
+    * `:root` - use the given root as the current working directory.
   """
   @doc since: "1.13.0"
   def formatter_for_file(file, opts \\ []) do
@@ -353,17 +386,14 @@ defmodule Mix.Tasks.Format do
     {dot_formatter, formatter_opts} = eval_dot_formatter(cwd, opts)
 
     {formatter_opts_and_subs, _sources} =
-      eval_deps_and_subdirectories(cwd, dot_formatter, formatter_opts, [dot_formatter])
+      eval_deps_and_subdirectories(cwd, dot_formatter, formatter_opts, [dot_formatter], opts)
 
-    formatter_opts_and_subs = load_plugins(formatter_opts_and_subs)
+    formatter_opts_and_subs = load_plugins(formatter_opts_and_subs, opts)
 
     find_formatter_and_opts_for_file(Path.expand(file, cwd), formatter_opts_and_subs)
   end
 
-  @doc """
-  Returns formatter options to be used for the given file.
-  """
-  # TODO: Remove me Elixir v1.17
+  @doc false
   @deprecated "Use formatter_for_file/2 instead"
   def formatter_opts_for_file(file, opts \\ []) do
     {_, formatter_opts} = formatter_for_file(file, opts)
@@ -391,7 +421,7 @@ defmodule Mix.Tasks.Format do
   # This function reads exported configuration from the imported
   # dependencies and subdirectories and deals with caching the result
   # of reading such configuration in a manifest file.
-  defp eval_deps_and_subdirectories(cwd, dot_formatter, formatter_opts, sources) do
+  defp eval_deps_and_subdirectories(cwd, dot_formatter, formatter_opts, sources, opts) do
     deps = Keyword.get(formatter_opts, :import_deps, [])
     subs = Keyword.get(formatter_opts, :subdirectories, [])
 
@@ -410,8 +440,8 @@ defmodule Mix.Tasks.Format do
 
       {{locals_without_parens, subdirectories}, sources} =
         maybe_cache_in_manifest(dot_formatter, manifest, fn ->
-          {subdirectories, sources} = eval_subs_opts(subs, cwd, sources)
-          {{eval_deps_opts(deps), subdirectories}, sources}
+          {subdirectories, sources} = eval_subs_opts(subs, cwd, sources, opts)
+          {{eval_deps_opts(deps, opts), subdirectories}, sources}
         end)
 
       formatter_opts =
@@ -457,12 +487,12 @@ defmodule Mix.Tasks.Format do
     {entry, sources}
   end
 
-  defp eval_deps_opts([]) do
+  defp eval_deps_opts([], _opts) do
     []
   end
 
-  defp eval_deps_opts(deps) do
-    deps_paths = Mix.Project.deps_paths()
+  defp eval_deps_opts(deps, opts) do
+    deps_paths = opts[:deps_paths] || Mix.Project.deps_paths()
 
     for dep <- deps,
         dep_path = assert_valid_dep_and_fetch_path(dep, deps_paths),
@@ -474,7 +504,7 @@ defmodule Mix.Tasks.Format do
         do: parenless_call
   end
 
-  defp eval_subs_opts(subs, cwd, sources) do
+  defp eval_subs_opts(subs, cwd, sources, opts) do
     {subs, sources} =
       Enum.flat_map_reduce(subs, sources, fn sub, sources ->
         cwd = Path.expand(sub, cwd)
@@ -488,7 +518,7 @@ defmodule Mix.Tasks.Format do
         formatter_opts = eval_file_with_keyword_list(sub_formatter)
 
         {formatter_opts_and_subs, sources} =
-          eval_deps_and_subdirectories(sub, :in_memory, formatter_opts, sources)
+          eval_deps_and_subdirectories(sub, :in_memory, formatter_opts, sources, opts)
 
         {[{sub, formatter_opts_and_subs}], sources}
       else

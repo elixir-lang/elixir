@@ -510,6 +510,31 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
+  test "customizes plugin loading", context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["a.ex"],
+        plugins: [UnknownPlugin],
+      ]
+      """)
+
+      File.write!("a.ex", """
+      foo bar baz
+      """)
+
+      assert_raise Mix.NoProjectError, fn ->
+        Mix.Tasks.Format.formatter_for_file("a.ex")
+      end
+
+      assert_raise Mix.Error, "Formatter plugin UnknownPlugin cannot be found", fn ->
+        Mix.Tasks.Format.formatter_for_file("a.ex", plugin_loader: fn plugins -> plugins end)
+      end
+
+      assert Mix.Tasks.Format.formatter_for_file("a.ex", plugin_loader: fn _plugins -> [] end)
+    end)
+  end
+
   test "uses extension plugins with --stdin-filename", context do
     in_tmp(context.test, fn ->
       File.write!(".formatter.exs", """
@@ -694,6 +719,13 @@ defmodule Mix.Tasks.FormatTest do
 
       {_, formatter_opts} = Mix.Tasks.Format.formatter_for_file("a.ex")
       assert [my_fun: 2] = Keyword.get(formatter_opts, :locals_without_parens)
+
+      # Check the deps_path option is respected
+      assert_raise Mix.Error, ~r"Unknown dependency :my_dep given to :import_deps", fn ->
+        # Let's check that the manifest gets updated if it's stale.
+        File.touch!(manifest_path, {{2010, 1, 1}, {0, 0, 0}})
+        Mix.Tasks.Format.formatter_for_file("a.ex", deps_paths: %{})
+      end
 
       Mix.Tasks.Format.run(["a.ex"])
       assert File.stat!(manifest_path).mtime > {{2010, 1, 1}, {0, 0, 0}}
