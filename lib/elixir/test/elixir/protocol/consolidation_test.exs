@@ -182,8 +182,9 @@ defmodule Protocol.ConsolidationTest do
 
   test "protocol not implemented" do
     message =
-      "protocol Protocol.ConsolidationTest.Sample not implemented for :foo of type Atom. " <>
-        "This protocol is implemented for the following type(s): Protocol.ConsolidationTest.ImplStruct"
+      "protocol Protocol.ConsolidationTest.Sample not implemented for type Atom. " <>
+        "This protocol is implemented for the following type(s): Protocol.ConsolidationTest.ImplStruct" <>
+        "\n\nGot value:\n\n:foo"
 
     assert_raise Protocol.UndefinedError, message, fn ->
       sample = String.to_atom("Elixir.Protocol.ConsolidationTest.Sample")

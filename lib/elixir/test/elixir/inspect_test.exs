@@ -526,7 +526,11 @@ defmodule Inspect.MapTest do
     # Inspect.Error is raised here when we tried to print the error message
     # called by another exception (Protocol.UndefinedError in this case)
     exception_message = ~s'''
-    protocol Enumerable not implemented for #Inspect.Error<
+    protocol Enumerable not implemented for type Inspect.MapTest.Failing (a struct)
+
+    Got value:
+
+    #Inspect.Error<
       got ArgumentError with message:
 
           """
@@ -926,7 +930,11 @@ defmodule Inspect.CustomProtocolTest do
     got Protocol.UndefinedError with message:
 
         """
-        protocol Inspect.CustomProtocolTest.CustomInspect not implemented for %Inspect.CustomProtocolTest.MissingImplementation{} of type Inspect.CustomProtocolTest.MissingImplementation (a struct)
+        protocol Inspect.CustomProtocolTest.CustomInspect not implemented for type Inspect.CustomProtocolTest.MissingImplementation (a struct)
+
+        Got value:
+
+        %Inspect.CustomProtocolTest.MissingImplementation{}
         """
 
     while inspecting:
@@ -953,7 +961,11 @@ defmodule Inspect.CustomProtocolTest do
       got Protocol.UndefinedError with message:
 
           """
-          protocol Inspect.CustomProtocolTest.CustomInspect not implemented for %Inspect.CustomProtocolTest.MissingImplementation{} of type Inspect.CustomProtocolTest.MissingImplementation (a struct)
+          protocol Inspect.CustomProtocolTest.CustomInspect not implemented for type Inspect.CustomProtocolTest.MissingImplementation (a struct)
+
+          Got value:
+
+          %Inspect.CustomProtocolTest.MissingImplementation{}
           """
 
       while inspecting:

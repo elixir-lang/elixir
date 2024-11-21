@@ -113,7 +113,7 @@ defmodule ProtocolTest do
   end
 
   test "protocol not implemented" do
-    message = "protocol ProtocolTest.Sample not implemented for :foo of type Atom"
+    message = "protocol ProtocolTest.Sample not implemented for type Atom\n\nGot value:\n\n:foo"
 
     assert_raise Protocol.UndefinedError, message, fn ->
       sample = String.to_atom("Elixir.ProtocolTest.Sample")

@@ -2001,7 +2001,7 @@ defmodule Protocol.UndefinedError do
       value_type(value) <>
       maybe_description(description) <>
       maybe_available(protocol) <>
-      "\n\nGot value: #{inspect(value, pretty: true)}"
+      "\n\nGot value:\n\n#{inspect(value, pretty: true)}"
   end
 
   defp value_type(%{__struct__: struct}), do: "#{inspect(struct)} (a struct)"
