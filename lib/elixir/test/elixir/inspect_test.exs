@@ -530,16 +530,16 @@ defmodule Inspect.MapTest do
 
     Got value:
 
-    #Inspect.Error<
-      got ArgumentError with message:
+        #Inspect.Error<
+          got ArgumentError with message:
 
-          """
-          errors were found at the given arguments:
+              """
+              errors were found at the given arguments:
 
-            * 1st argument: not an atom
-          """
+                * 1st argument: not an atom
+              """
 
-      while inspecting:
+          while inspecting:
 
     '''
 
@@ -934,7 +934,7 @@ defmodule Inspect.CustomProtocolTest do
 
         Got value:
 
-        %Inspect.CustomProtocolTest.MissingImplementation{}
+            %Inspect.CustomProtocolTest.MissingImplementation{}
         """
 
     while inspecting:
@@ -965,7 +965,7 @@ defmodule Inspect.CustomProtocolTest do
 
           Got value:
 
-          %Inspect.CustomProtocolTest.MissingImplementation{}
+              %Inspect.CustomProtocolTest.MissingImplementation{}
           """
 
       while inspecting:

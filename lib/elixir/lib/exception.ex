@@ -1997,11 +1997,22 @@ defmodule Protocol.UndefinedError do
 
   @impl true
   def message(%{protocol: protocol, value: value, description: description}) do
+    inspected =
+      value
+      |> inspect(pretty: true)
+      |> String.replace(~r/^(?=.+)/m, "    ")
+
     "protocol #{inspect(protocol)} not implemented for type " <>
       value_type(value) <>
       maybe_description(description) <>
       maybe_available(protocol) <>
-      "\n\nGot value:\n\n#{inspect(value, pretty: true)}"
+      """
+
+
+      Got value:
+
+      #{inspected}
+      """
   end
 
   defp value_type(%{__struct__: struct}), do: "#{inspect(struct)} (a struct)"
