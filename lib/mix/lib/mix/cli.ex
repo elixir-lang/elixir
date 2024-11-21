@@ -5,17 +5,21 @@ defmodule Mix.CLI do
   Runs Mix according to the command line arguments.
   """
   def main(args \\ System.argv()) do
+    if env_variable_activated?("MIX_DEBUG") do
+      IO.puts("-> Running mix CLI")
+      {time, res} = :timer.tc(&main/2, [args, true])
+      IO.puts(["<- Ran mix CLI in ", Integer.to_string(div(time, 1000)), "ms"])
+      res
+    else
+      main(args, false)
+    end
+  end
+
+  defp main(args, debug?) do
     Mix.start()
 
+    if debug?, do: Mix.debug(true)
     if env_variable_activated?("MIX_QUIET"), do: Mix.shell(Mix.Shell.Quiet)
-
-    debug? =
-      if env_variable_activated?("MIX_DEBUG") do
-        Mix.debug(true)
-        true
-      else
-        false
-      end
 
     if profile = System.get_env("MIX_PROFILE") do
       Mix.State.put(:profile, String.split(profile, ","))
@@ -28,13 +32,6 @@ defmodule Mix.CLI do
 
       :version ->
         display_version()
-
-      nil when debug? ->
-        shell = Mix.shell()
-        shell.info("-> Running mix CLI")
-        {time, res} = :timer.tc(&proceed/1, [args])
-        shell.info(["<- Ran mix CLI in ", Integer.to_string(div(time, 1000)), "ms"])
-        res
 
       nil ->
         proceed(args)
