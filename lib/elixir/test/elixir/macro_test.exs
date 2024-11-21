@@ -803,11 +803,117 @@ defmodule MacroTest do
               true
             else
               :error -> false
-            end
+            end,
+            print_location: false
           )
         end
 
       assert error.term == :unexpected
+    end
+
+    test "with zero arity function calls" do
+      {result, formatted} =
+        dbg_format(Map.new())
+
+      assert result == %{}
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             Function result:
+             Map.new() #=> %{}
+             """
+    end
+
+    test "with one arity function calls" do
+      zero = 0
+
+      {result, formatted} =
+        dbg_format(DateTime.from_unix!(zero))
+
+      assert result == ~U[1970-01-01 00:00:00Z]
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             Function arguments:
+             zero #=> 0
+
+             Function result:
+             DateTime.from_unix!(zero) #=> ~U[1970-01-01 00:00:00Z]
+             """
+    end
+
+    test "with two arity function calls" do
+      {result, formatted} =
+        dbg_format(Enum.into(Enum.to_list(1..5), MapSet.new()))
+
+      assert result == MapSet.new([1, 2, 3, 4, 5])
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             Function arguments:
+             Enum.to_list(1..5) #=> [1, 2, 3, 4, 5]
+             MapSet.new() #=> MapSet.new([])
+
+             Function result:
+             Enum.into(Enum.to_list(1..5), MapSet.new()) #=> MapSet.new([1, 2, 3, 4, 5])
+             """
+    end
+
+    test "with two arity function calls using variables" do
+      list = Enum.to_list(1..5)
+      set = MapSet.new()
+
+      {result, formatted} =
+        dbg_format(Enum.into(list, set))
+
+      assert result == MapSet.new([1, 2, 3, 4, 5])
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             Function arguments:
+             list #=> [1, 2, 3, 4, 5]
+             set #=> MapSet.new([])
+
+             Function result:
+             Enum.into(list, set) #=> MapSet.new([1, 2, 3, 4, 5])
+             """
+    end
+
+    test "with erlang style function calls" do
+      {one, two} = {1, 2}
+
+      {result, formatted} =
+        dbg_format(:math.pow(one, two))
+
+      assert result == 1
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             Function arguments:
+             one #=> 1
+             two #=> 2
+
+             Function result:
+             :math.pow(one, two) #=> 1.0
+             """
+    end
+
+    test "with local function recursion" do
+      list = [1, 2, 3, 4, 5]
+
+      {result, formatted} =
+        dbg_format(local_recursive_sum(list))
+
+      assert result == 15
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             Function arguments:
+             list #=> [1, 2, 3, 4, 5]
+
+             Function result:
+             local_recursive_sum(list) #=> 15
+             """
     end
 
     test "with \"syntax_colors: []\" it doesn't print any color sequences" do
@@ -831,6 +937,10 @@ defmodule MacroTest do
       assert result == "hello"
       refute formatted =~ Path.basename(__ENV__.file)
     end
+
+    defp local_recursive_sum(list), do: local_recursive_sum(list, 0)
+    defp local_recursive_sum([h | t], acc), do: local_recursive_sum(t, acc + h)
+    defp local_recursive_sum([], acc), do: acc
   end
 
   describe "to_string/1" do

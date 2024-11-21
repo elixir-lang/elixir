@@ -1495,7 +1495,7 @@ defmodule Macro do
     :error
   end
 
-  defp op_call({:..//, _, [left, middle, right]} = ast, fun) do
+  defp op_call({:"..//", _, [left, middle, right]} = ast, fun) do
     left = op_to_string(left, fun, :.., :left)
     middle = op_to_string(middle, fun, :.., :right)
     right = op_to_string(right, fun, :"//", :right)
@@ -1946,7 +1946,7 @@ defmodule Macro do
   @spec operator?(name :: atom(), arity()) :: boolean()
   def operator?(name, arity)
 
-  def operator?(:..//, 3),
+  def operator?(:"..//", 3),
     do: true
 
   # Code.Identifier treats :// as a binary operator for precedence
@@ -2482,7 +2482,7 @@ defmodule Macro do
   #
   defp inner_classify(atom) when is_atom(atom) do
     cond do
-      atom in [:%, :%{}, :{}, :<<>>, :..., :.., :., :..//, :->] ->
+      atom in [:%, :%{}, :{}, :<<>>, :..., :.., :., :"..//", :->] ->
         :not_callable
 
       # <|>, ^^^, and ~~~ are deprecated
@@ -2777,9 +2777,31 @@ defmodule Macro do
     end
   end
 
+  defp dbg_ast_to_debuggable({local_function, _, args} = ast, env)
+       when is_atom(local_function) and is_list(args) do
+    dbg_ast_to_debuggable_function(args, ast, env)
+  end
+
+  defp dbg_ast_to_debuggable({{:., _, _fname}, _, args} = ast, env) do
+    dbg_ast_to_debuggable_function(args, ast, env)
+  end
+
   # Any other AST.
   defp dbg_ast_to_debuggable(ast, _env) do
     quote do: {:value, unquote(escape(ast)), unquote(ast)}
+  end
+
+  defp dbg_ast_to_debuggable_function(args, ast, _env) do
+    arguments =
+      Enum.map(args, fn arg ->
+        quote do
+          {unquote(escape(arg)), unquote(arg)}
+        end
+      end)
+
+    quote do
+      {:function, unquote(escape(ast)), unquote(arguments), unquote(ast)}
+    end
   end
 
   # This is a binary operator. We replace the left side with a recursive call to
@@ -2842,6 +2864,37 @@ defmodule Macro do
     :ok = IO.write(IO.ANSI.format(formatted, ansi_enabled?))
 
     result
+  end
+
+  defp dbg_format_ast_to_debug({:function, expr_ast, components, expr_value}, options) do
+    function_arguments =
+      if components == [] do
+        []
+      else
+        [
+          dbg_maybe_underline("Function arguments", options),
+          ":\n",
+          Enum.map(components, fn {ast, value} ->
+            [
+              dbg_format_ast(to_string_with_colors(ast, options)),
+              " ",
+              inspect(value, options),
+              ?\n
+            ]
+          end),
+          ?\n
+        ]
+      end
+
+    formatted =
+      function_arguments ++
+        [
+          dbg_maybe_underline("Function result", options),
+          ":\n",
+          dbg_format_ast_with_value(expr_ast, expr_value, options)
+        ]
+
+    {formatted, expr_value}
   end
 
   defp dbg_format_ast_to_debug({:pipe, code_asts, values}, options) do
