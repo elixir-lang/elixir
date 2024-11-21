@@ -595,7 +595,7 @@ defmodule Mix.Utils do
     end
   end
 
-  @checksums [:sha512]
+  @checksums [:sha224, :sha256, :sha384, :sha512, :sha3_224, :sha3_256, :sha3_384, :sha3_512]
 
   defp require_checksum(opts) do
     cond do
@@ -615,7 +615,7 @@ defmodule Mix.Utils do
       with expected when expected != nil <- opts[hash],
            actual when actual != expected <- hexhash(binary, hash) do
         message = """
-        Data does not match the given SHA-512 checksum.
+        Data does not match the given #{hash_name(hash)} checksum.
 
         Expected: #{expected}
           Actual: #{actual}
@@ -627,6 +627,15 @@ defmodule Mix.Utils do
       end
     end)
   end
+
+  defp hash_name(:sha224), do: "SHA-224"
+  defp hash_name(:sha256), do: "SHA-256"
+  defp hash_name(:sha384), do: "SHA-384"
+  defp hash_name(:sha512), do: "SHA-512"
+  defp hash_name(:sha3_224), do: "SHA3-224"
+  defp hash_name(:sha3_256), do: "SHA3-256"
+  defp hash_name(:sha3_384), do: "SHA3-384"
+  defp hash_name(:sha3_512), do: "SHA3-512"
 
   defp hexhash(binary, hash) do
     Base.encode16(:crypto.hash(hash, binary), case: :lower)
