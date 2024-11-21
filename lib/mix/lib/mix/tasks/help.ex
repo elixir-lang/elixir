@@ -12,8 +12,7 @@ defmodule Mix.Tasks.Help do
       $ mix help ALIAS            - prints the definition for the given alias
       $ mix help TASK             - prints full docs for the given task
       $ mix help --search PATTERN - prints all tasks and aliases that contain PATTERN in the name
-      $ mix help --names          - prints all task names and aliases
-                                  (useful for autocompleting)
+      $ mix help --names          - prints all task names and aliases (useful for autocompletion)
       $ mix help --aliases        - prints all aliases
 
   ## Colors
@@ -53,6 +52,7 @@ defmodule Mix.Tasks.Help do
     display_default_task_doc(max)
     display_doc_list(docs, max)
     display_iex_task_doc(max)
+    Mix.shell().info("\nUse \"mix help <TASK>\" for more information on a particular command.")
   end
 
   def run(["--names"]) do
