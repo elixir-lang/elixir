@@ -357,8 +357,12 @@ defmodule Mix.Tasks.Format do
   be used for the given file.
 
   The function must be called with the contents of the file
-  to be formatted. The options are returned for reflection
-  purposes.
+  to be formatted. Keep in mind that a function is always
+  returned, even if it doesn't match any of the inputs
+  specified in the `formatter.exs`. You can retrieve the
+  `:inputs` from the returned options, alongside the `:root`
+  option, to validate if the returned file matches the given
+  `:root` and `:inputs`.
 
   ## Options
 
@@ -390,7 +394,7 @@ defmodule Mix.Tasks.Format do
 
     formatter_opts_and_subs = load_plugins(formatter_opts_and_subs, opts)
 
-    find_formatter_and_opts_for_file(Path.expand(file, cwd), formatter_opts_and_subs)
+    find_formatter_and_opts_for_file(Path.expand(file, cwd), cwd, formatter_opts_and_subs)
   end
 
   @doc false
@@ -589,11 +593,11 @@ defmodule Mix.Tasks.Format do
         stdin_filename = Path.expand(Keyword.get(opts, :stdin_filename, "stdin.exs"), cwd)
 
         {formatter, _opts} =
-          find_formatter_and_opts_for_file(stdin_filename, {formatter_opts, subs})
+          find_formatter_and_opts_for_file(stdin_filename, cwd, {formatter_opts, subs})
 
         {file, formatter}
       else
-        {formatter, _opts} = find_formatter_and_opts_for_file(file, {formatter_opts, subs})
+        {formatter, _opts} = find_formatter_and_opts_for_file(file, cwd, {formatter_opts, subs})
         {file, formatter}
       end
     end
@@ -659,19 +663,19 @@ defmodule Mix.Tasks.Format do
     if plugins != [], do: plugins, else: nil
   end
 
-  defp find_formatter_and_opts_for_file(file, formatter_opts_and_subs) do
-    formatter_opts = recur_formatter_opts_for_file(file, formatter_opts_and_subs)
-    {find_formatter_for_file(file, formatter_opts), formatter_opts}
+  defp find_formatter_and_opts_for_file(file, root, formatter_opts_and_subs) do
+    {formatter_opts, root} = recur_formatter_opts_for_file(file, root, formatter_opts_and_subs)
+    {find_formatter_for_file(file, formatter_opts), [root: root] ++ formatter_opts}
   end
 
-  defp recur_formatter_opts_for_file(file, {formatter_opts, subs}) do
-    Enum.find_value(subs, formatter_opts, fn {sub, formatter_opts_and_subs} ->
+  defp recur_formatter_opts_for_file(file, root, {formatter_opts, subs}) do
+    Enum.find_value(subs, {formatter_opts, root}, fn {sub, formatter_opts_and_subs} ->
       size = byte_size(sub)
 
       case file do
         <<prefix::binary-size(size), dir_separator, _::binary>>
         when prefix == sub and dir_separator in [?\\, ?/] ->
-          recur_formatter_opts_for_file(file, formatter_opts_and_subs)
+          recur_formatter_opts_for_file(file, sub, formatter_opts_and_subs)
 
         _ ->
           nil

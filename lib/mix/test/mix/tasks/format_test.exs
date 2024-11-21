@@ -608,7 +608,7 @@ defmodule Mix.Tasks.FormatTest do
 
       root = File.cwd!()
 
-      {formatter_function, _options} =
+      {formatter_function, options} =
         File.cd!("lib", fn ->
           Mix.Tasks.Format.formatter_for_file("lib/a.ex", root: root)
         end)
@@ -618,6 +618,8 @@ defmodule Mix.Tasks.FormatTest do
              """) == """
              foo bar(baz)
              """
+
+      assert options[:root] == root
     end)
   end
 
@@ -642,12 +644,14 @@ defmodule Mix.Tasks.FormatTest do
 
       # Should hit the formatter
       {formatter, formatter_opts} = Mix.Tasks.Format.formatter_for_file("lib/extra/a.ex")
-      assert Keyword.get(formatter_opts, :locals_without_parens) == [my_fun: 2]
+      assert formatter_opts[:root] == Path.expand("lib")
+      assert formatter_opts[:locals_without_parens] == [my_fun: 2]
       assert formatter.("my_fun 1, 2") == "my_fun 1, 2\n"
 
       # Another directory should not hit the formatter
       {formatter, formatter_opts} = Mix.Tasks.Format.formatter_for_file("test/a.ex")
-      assert Keyword.get(formatter_opts, :locals_without_parens) == []
+      assert formatter_opts[:root] == Path.expand(".")
+      assert formatter_opts[:locals_without_parens] == []
       assert formatter.("my_fun 1, 2") == "my_fun(1, 2)\n"
 
       File.write!("lib/a.ex", """
@@ -718,7 +722,7 @@ defmodule Mix.Tasks.FormatTest do
       File.touch!(manifest_path, {{2010, 1, 1}, {0, 0, 0}})
 
       {_, formatter_opts} = Mix.Tasks.Format.formatter_for_file("a.ex")
-      assert [my_fun: 2] = Keyword.get(formatter_opts, :locals_without_parens)
+      assert [my_fun: 2] = formatter_opts[:locals_without_parens]
 
       # Check the deps_path option is respected
       assert_raise Mix.Error, ~r"Unknown dependency :my_dep given to :import_deps", fn ->
@@ -810,7 +814,8 @@ defmodule Mix.Tasks.FormatTest do
       Mix.Tasks.Format.run([])
 
       {_, formatter_opts} = Mix.Tasks.Format.formatter_for_file("lib/extra/a.ex")
-      assert [other_fun: 1] = Keyword.get(formatter_opts, :locals_without_parens)
+      assert formatter_opts[:root] == Path.expand("lib/extra")
+      assert formatter_opts[:locals_without_parens] == [other_fun: 1]
 
       assert File.read!("lib/extra/a.ex") == """
              my_fun(:foo, :bar)
