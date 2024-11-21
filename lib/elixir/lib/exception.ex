@@ -2000,6 +2000,7 @@ defmodule Protocol.UndefinedError do
     inspected =
       value
       |> inspect(pretty: true)
+      # Indent only lines with contents on them
       |> String.replace(~r/^(?=.+)/m, "    ")
 
     "protocol #{inspect(protocol)} not implemented for type " <>
