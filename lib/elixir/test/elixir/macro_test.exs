@@ -915,6 +915,26 @@ defmodule MacroTest do
              """
     end
 
+    test "with anonymous function" do
+      add = fn a, b -> a + b end
+      {a, b} = {1, 2}
+
+      {result, formatted} =
+        dbg_format(add.(a, b))
+
+      assert result == 3
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             Function arguments:
+             a #=> 1
+             b #=> 2
+
+             Function result:
+             add.(a, b) #=> 3
+             """
+    end
+
     test "with \"syntax_colors: []\" it doesn't print any color sequences" do
       {_result, formatted} = dbg_format("hello")
       refute formatted =~ "\e["
