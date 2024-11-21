@@ -381,7 +381,7 @@ defmodule Mix.Compilers.Elixir do
           end
       end
 
-    Code.ensure_all_loaded!(modules_to_mix_check)
+    _ = Code.ensure_all_loaded(modules_to_mix_check)
 
     modules_to_recompile =
       modules_to_recompile ++
