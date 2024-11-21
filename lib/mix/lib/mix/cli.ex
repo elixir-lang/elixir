@@ -8,7 +8,14 @@ defmodule Mix.CLI do
     Mix.start()
 
     if env_variable_activated?("MIX_QUIET"), do: Mix.shell(Mix.Shell.Quiet)
-    if env_variable_activated?("MIX_DEBUG"), do: Mix.debug(true)
+
+    debug? =
+      if env_variable_activated?("MIX_DEBUG") do
+        Mix.debug(true)
+        true
+      else
+        false
+      end
 
     if profile = System.get_env("MIX_PROFILE") do
       Mix.State.put(:profile, String.split(profile, ","))
@@ -21,6 +28,13 @@ defmodule Mix.CLI do
 
       :version ->
         display_version()
+
+      nil when debug? ->
+        shell = Mix.shell()
+        shell.info("-> Running mix CLI")
+        {time, res} = :timer.tc(&proceed/1, [args])
+        shell.info(["<- Ran mix CLI in ", Integer.to_string(div(time, 1000)), "ms"])
+        res
 
       nil ->
         proceed(args)

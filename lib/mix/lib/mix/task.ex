@@ -523,7 +523,7 @@ defmodule Mix.Task do
       task in Mix.State.get(:profile, []) ->
         shell = Mix.shell()
         shell.info(["-> Profiling mix ", task_to_string(task, args), project_to_string(proj)])
-        Mix.Tasks.Profile.Eprof.profile(fun, warmup: false, set_on_spawn: false)
+        Mix.Tasks.Profile.Tprof.profile(fun, warmup: false, set_on_spawn: false)
 
       true ->
         fun.()
