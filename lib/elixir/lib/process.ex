@@ -569,10 +569,15 @@ defmodule Process do
 
       send(pid, {:ping, ref_and_alias})
 
-      receive do: msg -> msg
+      receive do: (msg -> msg)
       #=> :pong
 
-      receive do: msg -> msg
+      ref_and_alias = Process.monitor(pid, alias: :reply_demonitor)
+      #=> #Reference<0.906660723.3006791681.40191>
+
+      send(pid, {:ping, ref_and_alias})
+
+      receive do: (msg -> msg)
       #=> {:DOWN, #Reference<0.906660723.3006791681.40191>, :process, #PID<0.118.0>, :noproc}
 
   """
