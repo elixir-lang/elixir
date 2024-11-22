@@ -370,7 +370,7 @@ defmodule Mix.Tasks.Format do
       `import_deps`. It defaults to `Mix.Project.deps_paths`.
 
     * `:dot_formatter` - use the given file as the `dot_formatter`
-      root. If this option is specified, it uses the default one.
+      root. If this option is not specified, it uses the default one.
       The default one is cached, so use this option only if necessary.
 
     * `:plugin_loader` (since v1.18.0) - a function that receives a list of plugins,
