@@ -92,6 +92,13 @@ defmodule Mix.Tasks.Compile.App do
     * `--compile-path` - where to find `.beam` files and write the
       resulting `.app` file, defaults to `Mix.Project.compile_path/0`
 
+  ## Configuration
+
+    * `:reliable_dir_mtime` - this task relies on the operating system
+      changing the mtime on a directory whenever a file is added or removed.
+      You can set this option to false if your system does not provide
+      reliable mtimes. Defaults to false on Windows.
+
   ## Phases
 
   Applications provide a start phases mechanism which will be called,
@@ -151,7 +158,20 @@ defmodule Mix.Tasks.Compile.App do
 
     current_properties = current_app_properties(target)
 
-    if opts[:force] || new_mtime > Mix.Utils.last_modified(target) do
+    {changed?, modules} =
+      cond do
+        opts[:force] || new_mtime > Mix.Utils.last_modified(target) ->
+          {true, nil}
+
+        Keyword.get(config, :reliable_dir_mtime, fn -> not match?({:win32, _}, :os.type()) end) ->
+          {false, nil}
+
+        true ->
+          modules = modules_from(compile_path)
+          {modules != Keyword.get(current_properties, :modules, []), modules}
+      end
+
+    if changed? do
       properties =
         [
           description: to_charlist(config[:description] || app),
@@ -161,7 +181,7 @@ defmodule Mix.Tasks.Compile.App do
         |> merge_project_application(project)
         |> handle_extra_applications(config)
         |> add_compile_env(current_properties)
-        |> add_modules(compile_path)
+        |> add_modules(modules, compile_path)
 
       contents = :io_lib.format("~p.~n", [{:application, app, properties}])
       :application.load({:application, app, properties})
@@ -210,9 +230,11 @@ defmodule Mix.Tasks.Compile.App do
   defp modules_from(path) do
     case File.ls(path) do
       {:ok, entries} ->
-        for entry <- entries,
-            String.ends_with?(entry, ".beam"),
-            do: entry |> binary_part(0, byte_size(entry) - 5) |> String.to_atom()
+        Enum.sort(
+          for entry <- entries,
+              String.ends_with?(entry, ".beam"),
+              do: entry |> binary_part(0, byte_size(entry) - 5) |> String.to_atom()
+        )
 
       {:error, _} ->
         []
@@ -341,6 +363,10 @@ defmodule Mix.Tasks.Compile.App do
   defp typed_app?(_), do: false
 
   defp add_compile_env(properties, current_properties) do
+    # If someone calls compile.elixir and then compile.app across two
+    # separate OS calls, then the compile_env won't be properly reflected.
+    # This is ok because compile_env is not used for correctness. It is
+    # simply to catch possible errors early.
     case Mix.ProjectStack.compile_env(nil) do
       nil -> Keyword.take(current_properties, [:compile_env]) ++ properties
       [] -> properties
@@ -348,8 +374,8 @@ defmodule Mix.Tasks.Compile.App do
     end
   end
 
-  defp add_modules(properties, path) do
-    Keyword.put_new_lazy(properties, :modules, fn -> path |> modules_from() |> Enum.sort() end)
+  defp add_modules(properties, modules, compile_path) do
+    Keyword.put_new_lazy(properties, :modules, fn -> modules || modules_from(compile_path) end)
   end
 
   defp handle_extra_applications(properties, config) do
