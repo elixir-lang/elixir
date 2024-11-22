@@ -130,50 +130,45 @@ defmodule Mix.Tasks.Compile.App do
   @impl true
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean, compile_path: :string])
-
     project = Mix.Project.get!()
     config = Mix.Project.config()
 
     app = Keyword.get(config, :app)
     version = Keyword.get(config, :version)
+    validate_app!(app)
+    validate_version!(version)
 
-    validate_app(app)
-    validate_version(version)
+    compile_path = Keyword.get_lazy(opts, :compile_path, &Mix.Project.compile_path/0)
+    target = Path.join(compile_path, "#{app}.app")
 
-    path = Keyword.get_lazy(opts, :compile_path, &Mix.Project.compile_path/0)
-    modules = modules_from(path) |> Enum.sort()
-
-    target = Path.join(path, "#{app}.app")
-
-    # We mostly depend on the project_file through the def application function,
-    # but it doesn't hurt to also include config_mtime.
+    # If configurations changed, we may have changed compile_env.
+    # If compile_path changed, we may have added or removed files.
+    # If the project changed, we may have changed other properties.
     new_mtime =
-      max(Mix.Project.config_mtime(), Mix.Utils.last_modified(Mix.Project.project_file()))
+      Mix.Project.config_mtime()
+      |> max(Mix.Utils.last_modified(Mix.Project.project_file()))
+      |> max(Mix.Utils.last_modified(compile_path))
 
     current_properties = current_app_properties(target)
-    compile_env = load_compile_env(current_properties)
-    old_mtime = Keyword.get(current_properties, :config_mtime, 0)
 
-    if opts[:force] || new_mtime > old_mtime ||
-         app_changed?(current_properties, modules, compile_env) do
+    if opts[:force] || new_mtime > Mix.Utils.last_modified(target) do
       properties =
         [
           description: to_charlist(config[:description] || app),
-          modules: modules,
           registered: [],
           vsn: to_charlist(version)
         ]
         |> merge_project_application(project)
-        |> validate_properties!()
         |> handle_extra_applications(config)
-        |> add_compile_env(compile_env)
+        |> add_compile_env(current_properties)
+        |> add_modules(compile_path)
 
-      properties = [config_mtime: new_mtime] ++ properties
       contents = :io_lib.format("~p.~n", [{:application, app, properties}])
       :application.load({:application, app, properties})
 
       Mix.Project.ensure_structure()
       File.write!(target, IO.chardata_to_string(contents))
+      File.touch!(target, new_mtime)
       Mix.shell().info("Generated #{app} app")
       {:ok, []}
     else
@@ -189,27 +184,15 @@ defmodule Mix.Tasks.Compile.App do
     end
   end
 
-  defp load_compile_env(current_properties) do
-    case Mix.ProjectStack.compile_env(nil) do
-      nil -> Keyword.get(current_properties, :compile_env, [])
-      list -> list
-    end
-  end
+  defp validate_app!(app) when is_atom(app), do: :ok
 
-  defp app_changed?(properties, mods, compile_env) do
-    Keyword.get(properties, :modules, []) != mods or
-      Keyword.get(properties, :compile_env, []) != compile_env
-  end
-
-  defp validate_app(app) when is_atom(app), do: :ok
-
-  defp validate_app(app) do
-    ensure_present(:app, app)
+  defp validate_app!(app) do
+    ensure_present!(:app, app)
     Mix.raise("Expected :app to be an atom, got: #{inspect(app)}")
   end
 
-  defp validate_version(version) do
-    ensure_present(:version, version)
+  defp validate_version!(version) do
+    ensure_present!(:version, version)
 
     if not (is_binary(version) and match?({:ok, _}, Version.parse(version))) do
       Mix.raise(
@@ -218,11 +201,11 @@ defmodule Mix.Tasks.Compile.App do
     end
   end
 
-  defp ensure_present(name, nil) do
+  defp ensure_present!(name, nil) do
     Mix.raise("Please ensure mix.exs file has the #{inspect(name)} in the project definition")
   end
 
-  defp ensure_present(_name, _val), do: :ok
+  defp ensure_present!(_name, _val), do: :ok
 
   defp modules_from(path) do
     case File.ls(path) do
@@ -246,7 +229,7 @@ defmodule Mix.Tasks.Compile.App do
         )
       end
 
-      Keyword.merge(best_guess, project_application)
+      Keyword.merge(best_guess, validate_properties!(project_application))
     else
       best_guess
     end
@@ -357,8 +340,17 @@ defmodule Mix.Tasks.Compile.App do
   defp typed_app?({app, type}) when is_atom(app) and type in [:required, :optional], do: true
   defp typed_app?(_), do: false
 
-  defp add_compile_env(properties, []), do: properties
-  defp add_compile_env(properties, compile_env), do: [compile_env: compile_env] ++ properties
+  defp add_compile_env(properties, current_properties) do
+    case Mix.ProjectStack.compile_env(nil) do
+      nil -> Keyword.take(current_properties, [:compile_env]) ++ properties
+      [] -> properties
+      compile_env -> Keyword.put(properties, :compile_env, compile_env)
+    end
+  end
+
+  defp add_modules(properties, path) do
+    Keyword.put_new_lazy(properties, :modules, fn -> path |> modules_from() |> Enum.sort() end)
+  end
 
   defp handle_extra_applications(properties, config) do
     {extra, properties} = Keyword.pop(properties, :extra_applications, [])

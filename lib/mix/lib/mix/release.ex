@@ -882,9 +882,7 @@ defmodule Mix.Release do
 
   defp process_app_file(source_file, target_file) do
     with {:ok, [{:application, app, info}]} <- :file.consult(source_file) do
-      # Remove :config_mtime so that .app files are deterministic between builds
-      new_info = Keyword.delete(info, :config_mtime)
-      File.write!(target_file, :io_lib.format("~tp.~n", [{:application, app, new_info}]))
+      File.write!(target_file, :io_lib.format("~tp.~n", [{:application, app, info}]))
     else
       _ -> File.cp!(source_file, target_file)
     end

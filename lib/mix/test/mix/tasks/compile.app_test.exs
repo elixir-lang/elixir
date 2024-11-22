@@ -86,24 +86,32 @@ defmodule Mix.Tasks.Compile.AppTest do
   test "generates .app file with compile_env" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
+      File.mkdir_p!("config")
+      File.write!("config/config.exs", "[]")
+      Mix.Task.run("loadconfig")
+
+      reset_config = fn ->
+        Mix.ProjectStack.reset_config_mtime()
+        ensure_touched("config/config.exs", "_build/dev/lib/sample/ebin/sample.app")
+      end
 
       Mix.ProjectStack.compile_env([{:app, :key, :error}])
       assert Mix.Tasks.Compile.App.run([]) == {:ok, []}
       assert parse_resource_file(:sample)[:compile_env] == [{:app, :key, :error}]
 
       # No-op with untouched unset compile_env
-      assert Mix.Tasks.Compile.App.run([]) == {:noop, []}
-
-      # No-op with same compile_env
-      Mix.ProjectStack.compile_env([{:app, :key, :error}])
-      assert Mix.Tasks.Compile.App.run([]) == {:noop, []}
+      reset_config.()
+      assert Mix.Tasks.Compile.App.run([]) == {:ok, []}
+      assert parse_resource_file(:sample)[:compile_env] == [{:app, :key, :error}]
 
       # Recompiles with new compile_env
+      reset_config.()
       Mix.ProjectStack.compile_env([{:app, :another, :error}])
       assert Mix.Tasks.Compile.App.run([]) == {:ok, []}
       assert parse_resource_file(:sample)[:compile_env] == [{:app, :another, :error}]
 
       # Keeps compile_env if forcing
+      reset_config.()
       assert Mix.Tasks.Compile.App.run(["--force"]) == {:ok, []}
       assert parse_resource_file(:sample)[:compile_env] == [{:app, :another, :error}]
     end)
