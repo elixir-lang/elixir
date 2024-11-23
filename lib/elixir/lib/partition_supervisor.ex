@@ -96,7 +96,7 @@ defmodule PartitionSupervisor do
 
       DynamicSupervisor.start_child(MyApp.DynamicSupervisor, {Agent, fn -> %{} end})
 
-  You can do start the dynamic supervisors under a `PartitionSupervisor`:
+  You can start the dynamic supervisors under a `PartitionSupervisor`:
 
       children = [
         {PartitionSupervisor,
