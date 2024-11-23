@@ -242,8 +242,8 @@ defmodule Mix.Tasks.Release do
   but usually separate, and often there are many targets (either multiple
   instances, or the release is deployed to heterogeneous environments).
 
-  To deploy straight from a host to a separate target without cross-compilation,
-  the following must be the same between the host and the target:
+  To deploy straight from a host to a separate target, the following must be
+  the same between the host and the target:
 
     * Target architecture (for example, x86_64 or ARM)
     * Target vendor + operating system (for example, Windows, Linux, or Darwin/macOS)
@@ -251,23 +251,24 @@ defmodule Mix.Tasks.Release do
 
   This is often represented in the form of target triples, for example,
   `x86_64-unknown-linux-gnu`, `x86_64-unknown-linux-musl`, `x86_64-apple-darwin`.
+  If you are building on a MacBook (`x86_64-apple-darwin`) and trying to deploy
+  to a typical Ubuntu machine (`x86_64-unknown-linux-gnu`), the release will not
+  work. Instead you should build the release on a `x86_64-unknown-linux-gnu` host.
 
-  So to be more precise, to deploy straight from a host to a separate target,
-  the Erlang Runtime System (ERTS), and any native dependencies (NIFs), must
-  be compiled for the same target triple. If you are building on a MacBook
-  (`x86_64-apple-darwin`) and trying to deploy to a typical Ubuntu machine
-  (`x86_64-unknown-linux-gnu`), the release will not work. Instead you should
-  build the release on a `x86_64-unknown-linux-gnu` host. As we will see, this
-  can be done in multiple ways, such as releasing on the target itself, or by
-  using virtual machines or containers, usually as part of your release pipeline.
+  Typically, different versions of Erlang VM and Elixir are available for
+  different targets via package managers, precompiled artifacts, and similar.
+  However, to deploy from a host to a separate target, you must also guarantee
+  that any dependency with NIFs (Natively-Implemented Functions) are compiled
+  for the same triplet. As we will see, this can be done in different ways,
+  such as releasing on the target itself, or by using virtual machines or
+  containers, usually as part of your release pipeline.
 
   In addition to matching the target triple, it is also important that the
   target has all of the system packages that your application will need at
   runtime. A common one is the need for OpenSSL when building an application
-  that uses `:crypto` or `:ssl`, which is dynamically linked to ERTS. The other
-  common source for native dependencies like this comes from dependencies
-  containing NIFs (natively-implemented functions) which may expect to
-  dynamically link to libraries they use.
+  that uses `:crypto` or `:ssl`, which is dynamically linked to the Erlang VM.
+  Project dependencies containing NIFs (natively-implemented functions) may
+  also dynamically link to system libraries, so check those accordingly.
 
   Of course, some operating systems and package managers can differ between
   versions, so if your goal is to have full compatibility between host and
@@ -276,26 +277,7 @@ defmodule Mix.Tasks.Release do
   some systems, especially so with package managers that try to create fully
   reproducible environments (Nix, Guix).
 
-  Similarly, when creating a stand-alone package and release for Windows, note
-  the Erlang Runtime System has a dependency to some Microsoft libraries
-  (Visual C++ Redistributable Packages for Visual Studio 2013). These libraries
-  are installed (if not present before) when Erlang is installed but it is not
-  part of the standard Windows environment. Deploying a stand-alone release on
-  a computer without these libraries will result in a failure when trying to
-  run the release. One way to solve this is to download and install these
-  Microsoft libraries the first time a release is deployed (the Erlang installer
-  version 10.6 ships with “Microsoft Visual C++ 2013 Redistributable - 12.0.30501”).
-
-  Alternatively, you can also bundle the compiled object files in the release,
-  as long as they were compiled for the same target. If doing so, you need to
-  update `LD_LIBRARY_PATH` environment variable with the paths containing the
-  bundled objects on Unix-like systems or the `$PATH` environment variable on
-  Windows systems.
-
-  Currently, there is no official way to cross-compile a release from one
-  target triple to another, due to the complexities involved in the process.
-
-  ### Techniques
+  ### Using matching host and target
 
   There are a couple of ways to guarantee that a release is built on a host with
   the same properties as the target. A simple option is to fetch the source,
@@ -334,6 +316,8 @@ defmodule Mix.Tasks.Release do
   production machines can fetch the deployment from the network storage
   and run `bin/my_app start`.
 
+  ### Using images
+
   Another mechanism to automate deployments is to use images, such as
   Amazon Machine Images, or container platforms, such as Docker.
   For instance, you can use Docker to run locally a system with the
@@ -342,9 +326,14 @@ defmodule Mix.Tasks.Release do
   a complete image and/or container with the operating system, all
   dependencies as well as the releases.
 
-  In other words, there are multiple ways systems can be deployed and
-  releases can be automated and incorporated into all of them as long
-  as you remember to build the system in the same target triple.
+  However, when building such images on your machine, those technologies
+  use emulation which may not interplay well with Erlang VM's JIT
+  (just-in time) compiler. To address this, you can set this environment
+  variable on your build stage:
+
+      ENV ERL_AFLAGS "+JMsingle true"
+
+  ## Shutting down
 
   Once a system is deployed, shutting down the system can be done by
   sending SIGINT/SIGTERM to the system, which is what most containers,
