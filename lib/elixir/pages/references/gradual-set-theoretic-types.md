@@ -6,7 +6,7 @@ Elixir is in the process of incorporating set-theoretic types into the compiler.
 
   * **gradual** - Elixir's type system includes the `dynamic()` type, which can be used when the type of a varible or expression is checked at runtime. In the absense of `dynamic()`, Elixir's type system behaves as a static one
 
-  * **set-theoretic** - the types are described, implemented, and composed using basic set operations: unions, intersections, and negation
+  * **developer friendly** - the types are described, implemented, and composed using basic set operations: unions, intersections, and negation (hence it is a set-theoretic type system)
 
 The current milestone aims to infer types from patterns and guards and use them to type check programs, enabling the Elixir compiler to find faults and bugs in codebases without requiring changes to existing software. User provided type signatures are planned for future releases. The underlying principles, theory, and roadmap of our work have been outlined in ["The Design Principles of the Elixir Type System" by Giuseppe Castagna, Guillaume Duboc, José Valim](https://arxiv.org/abs/2306.06391).
 
@@ -28,7 +28,7 @@ At the moment, Elixir developers interact with set-theoretic types through warni
 
 ## Set operations
 
-We compose set-theoretic types by using set operations (hence the name). For example, to say a function returns either atoms or integers, one could write: `atom() or integer()`.
+We compose types by using set operations. For example, to say a function returns either atoms or integers, one could write: `atom() or integer()`.
 
 Intersections are available via the `and` operator, such as `atom() and integer()`, which in this case it becomes the empty set `none()`. `term()` is the union of all types, also known as the "top" type.
 
