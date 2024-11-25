@@ -77,11 +77,11 @@ defmodule Mix.Project do
 
   > #### Keep `project/0` fast {: .warning}
   >
-  > `project/0` is called upon every Mix task invocation in your project, so
-  > heavy computation should be avoided. If a task requires a potentially
-  > complex configuration value, it should allow for lazy evaluation via a
-  > function configuration value that can be invoked only when needed by the
-  > task itself.
+  > `project/0` is called whenever your `mix.exs` is loaded, so heavy
+  > computation should be avoided. If a task requires a potentially complex
+  > configuration value, it should allow its configuration to be set to an
+  > anonymous function or similar, so that it can be invoked only when
+  > needed by the task itself.
 
   ## CLI configuration
 
