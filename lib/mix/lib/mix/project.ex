@@ -75,6 +75,14 @@ defmodule Mix.Project do
   the `:erlc_paths` configuration is used by `mix compile.erlang`, `mix compile.yecc`,
   and other tasks.
 
+  > #### Keep `project/0` fast {: .warning}
+  >
+  > `project/0` is called upon every Mix task invocation in your project, so
+  > heavy computation should be avoided. If a task requires a potentially
+  > complex configuration value, it should allow for lazy evaluation via a
+  > function configuration value that can be invoked only when needed by the
+  > task itself.
+
   ## CLI configuration
 
   Mix is most often invoked from the command line. For this purpose, you may define
