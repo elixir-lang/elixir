@@ -118,34 +118,36 @@ defmodule Mix.Tasks.Compile.ErlangTest do
       my_fn() -> ok.
       """)
 
-      capture_io(fn ->
-        assert {:ok, [diagnostic]} = Mix.Tasks.Compile.Erlang.run([])
+      capture_io(:stderr, fn ->
+        capture_io(fn ->
+          assert {:ok, [diagnostic]} = Mix.Tasks.Compile.Erlang.run([])
 
-        assert %Mix.Task.Compiler.Diagnostic{
-                 file: ^source,
-                 source: ^source,
-                 compiler_name: "erl_lint",
-                 message: "function my_fn/0 is unused",
-                 position: position(2, 1),
-                 severity: :warning
-               } = diagnostic
+          assert %Mix.Task.Compiler.Diagnostic{
+                   file: ^source,
+                   source: ^source,
+                   compiler_name: "erl_lint",
+                   message: "function my_fn/0 is unused",
+                   position: position(2, 1),
+                   severity: :warning
+                 } = diagnostic
 
-        # Should return warning without recompiling file
-        assert {:noop, [^diagnostic]} = Mix.Tasks.Compile.Erlang.run(["--verbose"])
-        refute_received {:mix_shell, :info, ["Compiled src/has_warning.erl"]}
+          # Should return warning without recompiling file
+          assert {:noop, [^diagnostic]} = Mix.Tasks.Compile.Erlang.run(["--verbose"])
+          refute_received {:mix_shell, :info, ["Compiled src/has_warning.erl"]}
 
-        assert [^diagnostic] = Mix.Tasks.Compile.Erlang.diagnostics()
-        assert [^diagnostic] = Mix.Task.Compiler.diagnostics()
+          assert [^diagnostic] = Mix.Tasks.Compile.Erlang.diagnostics()
+          assert [^diagnostic] = Mix.Task.Compiler.diagnostics()
 
-        # Should not return warning after changing file
-        File.write!(file, """
-        -module(has_warning).
-        -export([my_fn/0]).
-        my_fn() -> ok.
-        """)
+          # Should not return warning after changing file
+          File.write!(file, """
+          -module(has_warning).
+          -export([my_fn/0]).
+          my_fn() -> ok.
+          """)
 
-        ensure_touched(file)
-        assert {:ok, []} = Mix.Tasks.Compile.Erlang.run([])
+          ensure_touched(file)
+          assert {:ok, []} = Mix.Tasks.Compile.Erlang.run([])
+        end)
       end)
     end)
   end

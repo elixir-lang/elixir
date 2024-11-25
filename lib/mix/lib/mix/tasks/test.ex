@@ -608,7 +608,25 @@ defmodule Mix.Tasks.Test do
       |> filter_to_allowed_files(allowed_files)
       |> filter_by_partition(shell, partitions)
 
-    display_warn_test_pattern(test_files, test_pattern, unfiltered_test_files, warn_test_pattern)
+    warnings =
+      display_warn_test_pattern(
+        test_files,
+        test_pattern,
+        unfiltered_test_files,
+        warn_test_pattern
+      )
+
+    if warnings != [] and Keyword.get(opts, :warnings_as_errors) do
+      System.at_exit(fn _ ->
+        message =
+          "\nERROR! Test suite aborted after successful execution due to " <>
+            "warnings while using the --warnings-as-errors option"
+
+        Mix.shell().error(message)
+
+        exit({:shutdown, 1})
+      end)
+    end
 
     try do
       Enum.each(test_paths, &require_test_helper(shell, &1))
