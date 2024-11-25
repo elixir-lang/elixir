@@ -683,9 +683,7 @@ defmodule Mix.Tasks.Test do
     files = Mix.Utils.extract_files(test_files, warn_test_pattern) -- matched_test_files
 
     for file <- files do
-      Mix.shell().info(
-        "warning: #{file} does not match #{inspect(test_pattern)} and won't be loaded"
-      )
+      warning("warning: #{file} does not match #{inspect(test_pattern)} and won't be loaded")
     end
   end
 
@@ -878,5 +876,16 @@ defmodule Mix.Tasks.Test do
     else
       []
     end
+  end
+
+  # Prints the given ANSI warning to the shell followed by a newline.
+  defp warning(message) do
+    Mix.shell().print_app()
+
+    IO.puts(:stderr, IO.ANSI.format(yellow(message)))
+  end
+
+  defp yellow(message) do
+    [:yellow, :bright, message]
   end
 end
