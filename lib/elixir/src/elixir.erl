@@ -460,8 +460,8 @@ quoted_to_erl(Quoted, ErlS, ExS, Env) ->
 
 string_to_tokens(String, StartLine, StartColumn, File, Opts) when is_integer(StartLine), is_binary(File) ->
   case elixir_tokenizer:tokenize(String, StartLine, StartColumn, Opts) of
-    {ok, _Line, _Column, [], Tokens, Terminators} ->
-      {ok, lists:reverse(Tokens, Terminators)};
+    {ok, _Line, _Column, [], Tokens, []} ->
+      {ok, lists:reverse(Tokens)};
     {ok, _Line, _Column, Warnings, Tokens, Terminators} ->
       (lists:keyfind(emit_warnings, 1, Opts) /= {emit_warnings, false}) andalso
         [elixir_errors:erl_warn(L, File, M) || {L, M} <- lists:reverse(Warnings)],

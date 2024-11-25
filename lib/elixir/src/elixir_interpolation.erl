@@ -64,7 +64,8 @@ extract([$#, ${ | Rest], Buffer, Output, Line, Column, Scope, true, Last) ->
       {error, Reason};
     {ok, EndLine, EndColumn, Warnings, Tokens, Terminators} when Scope#elixir_tokenizer.cursor_completion /= false ->
       NewScope = Scope#elixir_tokenizer{warnings=Warnings, cursor_completion=noprune},
-      Output2 = build_interpol(Line, Column, EndLine, EndColumn, lists:reverse(Tokens, Terminators), Output1),
+      {CursorTerminators, _} = cursor_complete(EndLine, EndColumn, Terminators),
+      Output2 = build_interpol(Line, Column, EndLine, EndColumn, lists:reverse(Tokens, CursorTerminators), Output1),
       extract([], [], Output2, EndLine, EndColumn, NewScope, true, Last);
     {ok, _, _, _, _, _} ->
       {error, {string, Line, Column, "missing interpolation terminator: \"}\"", []}}
@@ -116,6 +117,16 @@ strip_horizontal_space([H | T], Buffer, Counter) when H =:= $\s; H =:= $\t ->
   strip_horizontal_space(T, [H | Buffer], Counter + 1);
 strip_horizontal_space(T, Buffer, Counter) ->
   {T, Buffer, Counter}.
+
+cursor_complete(Line, Column, Terminators) ->
+  lists:mapfoldl(
+    fun({Start, _, _}, AccColumn) ->
+      End = elixir_tokenizer:terminator(Start),
+      {{End, {Line, AccColumn, nil}}, AccColumn + length(erlang:atom_to_list(End))}
+    end,
+    Column,
+    Terminators
+  ).
 
 %% Unescape a series of tokens as returned by extract.
 

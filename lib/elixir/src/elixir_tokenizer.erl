@@ -115,9 +115,9 @@ tokenize(String, Line, Column, Opts) ->
   Scope =
     lists:foldl(fun
       ({check_terminators, false}, Acc) ->
-        Acc#elixir_tokenizer{terminators=none};
-      ({cursor_completion, true}, Acc) ->
-        Acc#elixir_tokenizer{cursor_completion=prune_and_cursor};
+        Acc#elixir_tokenizer{cursor_completion=false, terminators=none};
+      ({check_terminators, {cursor, Terminators}}, Acc) ->
+        Acc#elixir_tokenizer{cursor_completion=prune_and_cursor, terminators=Terminators};
       ({existing_atoms_only, ExistingAtomsOnly}, Acc) when is_boolean(ExistingAtomsOnly) ->
         Acc#elixir_tokenizer{existing_atoms_only=ExistingAtomsOnly};
       ({static_atoms_encoder, StaticAtomsEncoder}, Acc) when is_function(StaticAtomsEncoder) ->
@@ -138,11 +138,10 @@ tokenize(String, Line, Opts) ->
 tokenize([], Line, Column, #elixir_tokenizer{cursor_completion=Cursor} = Scope, Tokens) when Cursor /= false ->
   #elixir_tokenizer{ascii_identifiers_only=Ascii, terminators=Terminators, warnings=Warnings} = Scope,
 
-  {CursorColumn, CursorTerminators, AccTokens} =
+  {CursorColumn, AccTerminators, AccTokens} =
     add_cursor(Line, Column, Cursor, Terminators, Tokens),
 
   AllWarnings = maybe_unicode_lint_warnings(Ascii, Tokens, Warnings),
-  {AccTerminators, _AccColumn} = cursor_complete(Line, CursorColumn, CursorTerminators),
   {ok, Line, CursorColumn, AllWarnings, AccTokens, AccTerminators};
 
 tokenize([], EndLine, EndColumn, #elixir_tokenizer{terminators=[{Start, {StartLine, StartColumn, _}, _} | _]} = Scope, Tokens) ->
@@ -1746,16 +1745,6 @@ error(Reason, Rest, #elixir_tokenizer{warnings=Warnings}, Tokens) ->
   {error, Reason, Rest, Warnings, Tokens}.
 
 %% Cursor handling
-
-cursor_complete(Line, Column, Terminators) ->
-  lists:mapfoldl(
-    fun({Start, _, _}, AccColumn) ->
-      End = terminator(Start),
-      {{End, {Line, AccColumn, nil}}, AccColumn + length(erlang:atom_to_list(End))}
-    end,
-    Column,
-    Terminators
-  ).
 
 add_cursor(_Line, Column, noprune, Terminators, Tokens) ->
   {Column, Terminators, Tokens};

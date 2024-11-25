@@ -1099,6 +1099,13 @@ defmodule Code.Fragment do
       iex> Code.Fragment.container_cursor_to_quoted("foo +")
       {:ok, {:+, [line: 1], [{:foo, [line: 1], nil}, {:__cursor__, [line: 1], []}]}}
 
+  In order to parse the left-side of `->` properly, which appears both
+  in anonymous functions and do-end blocks, the trailing fragment option
+  must be given with the rest of the contents:
+
+      iex> Code.Fragment.container_cursor_to_quoted("fn x", trailing_fragment: " -> :ok end")
+      {:ok, {:fn, [line: 1], [{:->, [line: 1], [[{:__cursor__, [line: 1], []}], :ok]}]}}
+
   ## Options
 
     * `:file` - the filename to be reported in case of parsing errors.
@@ -1121,46 +1128,108 @@ defmodule Code.Fragment do
     * `:literal_encoder` - a function to encode literals in the AST.
       See the documentation for `Code.string_to_quoted/2` for more information.
 
+    * `:trailing_fragment` (since v1.18.0) - the rest of the contents after
+      the cursor. This is necessary to correctly complete anonymous functions
+      and the left-hand side of `->`
+
   """
   @doc since: "1.13.0"
   @spec container_cursor_to_quoted(List.Chars.t(), keyword()) ::
           {:ok, Macro.t()} | {:error, {location :: keyword, binary | {binary, binary}, binary}}
   def container_cursor_to_quoted(fragment, opts \\ []) do
+    {trailing_fragment, opts} = Keyword.pop(opts, :trailing_fragment)
     opts = Keyword.take(opts, [:columns, :token_metadata, :literal_encoder])
-    opts = [cursor_completion: true, emit_warnings: false] ++ opts
+    opts = [check_terminators: {:cursor, []}, emit_warnings: false] ++ opts
 
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
     column = Keyword.get(opts, :column, 1)
 
     case :elixir_tokenizer.tokenize(to_charlist(fragment), line, column, opts) do
+      {:ok, line, column, _warnings, rev_tokens, rev_terminators}
+      when trailing_fragment == nil ->
+        {rev_tokens, rev_terminators} =
+          with [close, open, {_, _, :__cursor__} = cursor | rev_tokens] <- rev_tokens,
+               {_, [_ | after_fn]} <- Enum.split_while(rev_terminators, &(elem(&1, 0) != :fn)),
+               true <- maybe_missing_stab?(rev_tokens),
+               [_ | rev_tokens] <- Enum.drop_while(rev_tokens, &(elem(&1, 0) != :fn)) do
+            {[close, open, cursor | rev_tokens], after_fn}
+          else
+            _ -> {rev_tokens, rev_terminators}
+          end
+
+        tokens = reverse_tokens(line, column, rev_tokens, rev_terminators)
+        :elixir.tokens_to_quoted(tokens, file, opts)
+
       {:ok, line, column, _warnings, rev_tokens, rev_terminators} ->
-        tokens = :lists.reverse(rev_tokens, rev_terminators)
+        tokens =
+          with {before_start, [_ | _] = after_start} <-
+                 Enum.split_while(rev_terminators, &(elem(&1, 0) not in [:do, :fn])),
+               true <- maybe_missing_stab?(rev_tokens),
+               opts =
+                 Keyword.put(opts, :check_terminators, {:cursor, before_start}),
+               {:error, {meta, _, ~c"end"}, _rest, _warnings, trailing_rev_tokens} <-
+                 :elixir_tokenizer.tokenize(to_charlist(trailing_fragment), line, column, opts) do
+            trailing_tokens =
+              reverse_tokens(meta[:line], meta[:column], trailing_rev_tokens, after_start)
 
-        case :elixir.tokens_to_quoted(tokens, file, opts) do
-          {:ok, ast} ->
-            {:ok, ast}
+            Enum.reverse(rev_tokens, drop_tokens(trailing_tokens, 0))
+          else
+            _ -> reverse_tokens(line, column, rev_tokens, rev_terminators)
+          end
 
-          {:error, error} ->
-            # In case parsing fails, we give it another shot but handling fn/do/else/catch/rescue/after.
-            tokens =
-              :lists.reverse(
-                rev_tokens,
-                [{:stab_op, {line, column, nil}, :->}, {nil, {line, column + 2, nil}}] ++
-                  Enum.map(rev_terminators, fn tuple ->
-                    {line, column, info} = elem(tuple, 1)
-                    put_elem(tuple, 1, {line, column + 5, info})
-                  end)
-              )
-
-            case :elixir.tokens_to_quoted(tokens, file, opts) do
-              {:ok, ast} -> {:ok, ast}
-              {:error, _} -> {:error, error}
-            end
-        end
+        :elixir.tokens_to_quoted(tokens, file, opts)
 
       {:error, info, _rest, _warnings, _so_far} ->
         {:error, :elixir.format_token_error(info)}
     end
   end
+
+  defp reverse_tokens(line, column, tokens, terminators) do
+    {terminators, _} =
+      Enum.map_reduce(terminators, column, fn {start, _, _}, column ->
+        atom = :elixir_tokenizer.terminator(start)
+
+        {{atom, {line, column, nil}}, column + length(Atom.to_charlist(atom))}
+      end)
+
+    Enum.reverse(tokens, terminators)
+  end
+
+  defp drop_tokens([{:"}", _} | _] = tokens, 0), do: tokens
+  defp drop_tokens([{:"]", _} | _] = tokens, 0), do: tokens
+  defp drop_tokens([{:")", _} | _] = tokens, 0), do: tokens
+  defp drop_tokens([{:">>", _} | _] = tokens, 0), do: tokens
+  defp drop_tokens([{:end, _} | _] = tokens, 0), do: tokens
+  defp drop_tokens([{:",", _} | _] = tokens, 0), do: tokens
+  defp drop_tokens([{:stab_op, _, :->} | _] = tokens, 0), do: tokens
+
+  defp drop_tokens([{:"}", _} | tokens], counter), do: drop_tokens(tokens, counter - 1)
+  defp drop_tokens([{:"]", _} | tokens], counter), do: drop_tokens(tokens, counter - 1)
+  defp drop_tokens([{:")", _} | tokens], counter), do: drop_tokens(tokens, counter - 1)
+  defp drop_tokens([{:">>", _} | tokens], counter), do: drop_tokens(tokens, counter - 1)
+  defp drop_tokens([{:end, _} | tokens], counter), do: drop_tokens(tokens, counter - 1)
+
+  defp drop_tokens([{:"{", _} | tokens], counter), do: drop_tokens(tokens, counter + 1)
+  defp drop_tokens([{:"[", _} | tokens], counter), do: drop_tokens(tokens, counter + 1)
+  defp drop_tokens([{:"(", _} | tokens], counter), do: drop_tokens(tokens, counter + 1)
+  defp drop_tokens([{:"<<", _} | tokens], counter), do: drop_tokens(tokens, counter + 1)
+  defp drop_tokens([{:fn, _} | tokens], counter), do: drop_tokens(tokens, counter + 1)
+  defp drop_tokens([{:do, _} | tokens], counter), do: drop_tokens(tokens, counter + 1)
+
+  defp drop_tokens([_ | tokens], counter), do: drop_tokens(tokens, counter)
+  defp drop_tokens([], 0), do: []
+
+  defp maybe_missing_stab?([{:after, _} | _]), do: true
+  defp maybe_missing_stab?([{:do, _} | _]), do: true
+  defp maybe_missing_stab?([{:fn, _} | _]), do: true
+  defp maybe_missing_stab?([{:else, _} | _]), do: true
+  defp maybe_missing_stab?([{:catch, _} | _]), do: true
+  defp maybe_missing_stab?([{:rescue, _} | _]), do: true
+
+  defp maybe_missing_stab?([{:stab_op, _, :->} | _]), do: false
+  defp maybe_missing_stab?([{:eol, _}, next | _]) when elem(next, 0) != :",", do: false
+
+  defp maybe_missing_stab?([_ | tail]), do: maybe_missing_stab?(tail)
+  defp maybe_missing_stab?([]), do: false
 end

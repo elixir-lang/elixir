@@ -1228,7 +1228,9 @@ defmodule CodeFragmentTest do
       assert cc2q!("foo(bar do baz ") == s2q!("foo(bar do baz(__cursor__()) end)")
       assert cc2q!("foo(bar do baz(") == s2q!("foo(bar do baz(__cursor__()) end)")
       assert cc2q!("foo(bar do baz bat,") == s2q!("foo(bar do baz(bat, __cursor__()) end)")
-      assert cc2q!("foo(bar do baz, bat") == s2q!("foo(bar do baz, __cursor__() -> nil end)")
+
+      assert cc2q!("foo(bar do baz, bat", trailing_fragment: " -> :ok end") ==
+               s2q!("foo(bar do baz, __cursor__() -> :ok end)")
     end
 
     test "keyword lists" do
@@ -1283,6 +1285,48 @@ defmodule CodeFragmentTest do
       assert cc2q!("<<foo, bar::baz") == s2q!("<<foo, bar::__cursor__()>>")
     end
 
+    test "anonymous functions" do
+      assert cc2q!("(fn", trailing_fragment: "-> end)") == s2q!("(fn __cursor__() -> nil end)")
+
+      assert cc2q!("(fn", trailing_fragment: "-> 1 + 2 end)") ==
+               s2q!("(fn __cursor__() -> 1 + 2 end)")
+
+      assert cc2q!("(fn x", trailing_fragment: "-> :ok end)") ==
+               s2q!("(fn __cursor__() -> :ok end)")
+
+      assert cc2q!("(fn x", trailing_fragment: ", y -> :ok end)") ==
+               s2q!("(fn __cursor__(), y -> :ok end)")
+
+      assert cc2q!("(fn x,", trailing_fragment: "y -> :ok end)") ==
+               s2q!("(fn x, __cursor__() -> :ok end)")
+
+      assert cc2q!("(fn x,", trailing_fragment: "\ny -> :ok end)") ==
+               s2q!("(fn x, __cursor__()\n -> :ok end)")
+
+      assert cc2q!("(fn x, {", trailing_fragment: "y, z} -> :ok end)") ==
+               s2q!("(fn x, {__cursor__(), z} -> :ok end)")
+
+      assert cc2q!("(fn x, {y", trailing_fragment: ", z} -> :ok end)") ==
+               s2q!("(fn x, {__cursor__(), z} -> :ok end)")
+
+      assert cc2q!("(fn x, {y, ", trailing_fragment: "z} -> :ok end)") ==
+               s2q!("(fn x, {y, __cursor__()} -> :ok end)")
+
+      assert cc2q!("(fn x ->", trailing_fragment: ":ok end)") ==
+               s2q!("(fn x -> __cursor__() end)")
+
+      assert cc2q!("(fn x ->", trailing_fragment: ":ok end)") ==
+               s2q!("(fn x -> __cursor__() end)")
+
+      assert cc2q!("(fn") == s2q!("(__cursor__())")
+      assert cc2q!("(fn x") == s2q!("(__cursor__())")
+      assert cc2q!("(fn x,") == s2q!("(__cursor__())")
+      assert cc2q!("(fn x ->") == s2q!("(fn x -> __cursor__() end)")
+      assert cc2q!("(fn x -> x") == s2q!("(fn x -> __cursor__() end)")
+      assert cc2q!("(fn x, y -> x + y") == s2q!("(fn x, y -> x + __cursor__() end)")
+      assert cc2q!("(fn x, y -> x + y end") == s2q!("(__cursor__())")
+    end
+
     test "removes tokens until opening" do
       assert cc2q!("(123") == s2q!("(__cursor__())")
       assert cc2q!("[foo") == s2q!("[__cursor__()]")
@@ -1297,15 +1341,6 @@ defmodule CodeFragmentTest do
       assert cc2q!("<<bar, \"sample\"") == s2q!("<<bar, __cursor__()>>")
       assert cc2q!("foo(bar, :atom") == s2q!("foo(bar, __cursor__())")
       assert cc2q!("foo bar, :atom") == s2q!("foo(bar, __cursor__())")
-    end
-
-    test "removes anonymous functions" do
-      assert cc2q!("(fn") == s2q!("(fn __cursor__() -> nil end)")
-      assert cc2q!("(fn x") == s2q!("(fn __cursor__() -> nil end)")
-      assert cc2q!("(fn x ->") == s2q!("(fn x -> __cursor__() end)")
-      assert cc2q!("(fn x -> x") == s2q!("(fn x -> __cursor__() end)")
-      assert cc2q!("(fn x, y -> x + y") == s2q!("(fn x, y -> x + __cursor__() end)")
-      assert cc2q!("(fn x, y -> x + y end") == s2q!("(__cursor__())")
     end
 
     test "removes closed terminators" do
