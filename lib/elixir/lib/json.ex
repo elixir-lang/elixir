@@ -1,6 +1,25 @@
 defprotocol JSON.Encoder do
   @moduledoc """
   A protocol for custom JSON encoding of data structures.
+
+  If you have a struct, you can derive the implementation of this protocol
+  by specifying which fields should be encoded to JSON:
+
+        @derive {JSON.Encoder, only: [....]}
+        defstruct ...
+
+  It is also possible to encode all fields or skip some fields via the
+  `:except` option, although this should be used carefully to avoid
+  accidentally leaking private information when new fields are added:
+
+      @derive JSON.Encoder
+      defstruct ...
+
+  Finally, if you don't own the struct you want to encode to JSON,
+  you may use Protocol.derive/3 placed outside of any module:
+
+      Protocol.derive(JSON.Encoder, NameOfTheStruct, only: [...])
+      Protocol.derive(JSON.Encoder, NameOfTheStruct)
   """
 
   @undefined_impl_description """
