@@ -234,7 +234,7 @@ defmodule Protocol do
   @callback __protocol__(:consolidated?) :: boolean()
   @callback __protocol__(:functions) :: [{atom(), arity()}]
   @callback __protocol__(:impls) :: {:consolidated, [module()]} | :not_consolidated
-  @callback __protocol__(:module) :: module
+  @callback __protocol__(:module) :: module()
 
   @doc """
   A function available in all protocol definitions that returns the implementation
@@ -898,9 +898,9 @@ defmodule Protocol do
 
       @doc false
       @spec __protocol__(:module) :: __MODULE__
-      @spec __protocol__(:functions) :: [{atom(), non_neg_integer()}]
-      @spec __protocol__(:consolidated?) :: boolean
-      @spec __protocol__(:impls) :: :not_consolidated | {:consolidated, [module]}
+      @spec __protocol__(:functions) :: [{atom(), arity()}]
+      @spec __protocol__(:consolidated?) :: boolean()
+      @spec __protocol__(:impls) :: :not_consolidated | {:consolidated, [module()]}
       Kernel.def(__protocol__(:module), do: __MODULE__)
       Kernel.def(__protocol__(:functions), do: unquote(:lists.sort(@__functions__)))
       Kernel.def(__protocol__(:consolidated?), do: false)
