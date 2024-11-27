@@ -745,6 +745,10 @@ defmodule Module do
         doc:
           "If set to `true` generates a default protocol implementation for all types (inside `defprotocol`)."
       },
+      undefined_impl_description: %{
+        doc:
+          "A string with additional description to be used on `Protocol.UndefinedError` when looking up the implementation fails."
+      },
       for: %{
         doc:
           "The current module/type a protocol implementation is being defined for (inside `defimpl`)."

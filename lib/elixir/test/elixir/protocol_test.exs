@@ -26,6 +26,7 @@ defmodule ProtocolTest do
   @with_any_binary with_any_binary
 
   defprotocol Derivable do
+    @undefined_impl_description "you should try harder"
     def ok(a)
   end
 
@@ -283,10 +284,12 @@ defmodule ProtocolTest do
     struct = %ImplStruct{a: 1, b: 1}
     assert Derivable.ok(struct) == {:ok, struct, %ImplStruct{}, []}
 
-    assert_raise Protocol.UndefinedError, fn ->
-      struct = %NoImplStruct{a: 1, b: 1}
-      Derivable.ok(struct)
-    end
+    assert_raise Protocol.UndefinedError,
+                 ~r"protocol ProtocolTest.Derivable not implemented for type ProtocolTest.NoImplStruct \(a struct\), you should try harder",
+                 fn ->
+                   struct = %NoImplStruct{a: 1, b: 1}
+                   Derivable.ok(struct)
+                 end
   end
 
   test "derives protocol explicitly with options" do

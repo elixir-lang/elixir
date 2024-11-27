@@ -6,7 +6,7 @@ defmodule Protocol do
   implementations. A protocol is defined with `Kernel.defprotocol/2`
   and its implementations with `Kernel.defimpl/3`.
 
-  ## A real case
+  ## Example
 
   In Elixir, we have two nouns for checking how many items there
   are in a data structure: `length` and `size`.  `length` means the
@@ -102,8 +102,7 @@ defmodule Protocol do
   invoking the protocol will raise unless it is configured to
   fall back to `Any`. Conveniences for building implementations
   on top of existing ones are also available, look at `defstruct/1`
-  for more information about deriving
-  protocols.
+  for more information about deriving protocols.
 
   ## Fallback to `Any`
 
@@ -164,6 +163,17 @@ defmodule Protocol do
 
   The `@spec` above expresses that all types allowed to implement the
   given protocol are valid argument types for the given function.
+
+  ## Configuration
+
+  The following module attributes are available to configure a protocol:
+
+    * `@fallback_to_any` - when true, enables protocol dispatch to
+      fallback to any
+
+    * `@undefined_impl_description` - a string with additional description
+      to be used on `Protocol.UndefinedError` when looking up the implementation
+      fails. This option is only applied if `@fallback_to_any` is not set to true
 
   ## Reflection
 
@@ -828,7 +838,7 @@ defmodule Protocol do
     quote bind_quoted: [built_in: __built_in__()] do
       any_impl_for =
         if @fallback_to_any do
-          quote do: unquote(__MODULE__.Any)
+          __MODULE__.Any
         else
           nil
         end
@@ -874,6 +884,9 @@ defmodule Protocol do
         unquote(any_impl_for)
       end
 
+      undefined_impl_description =
+        Module.get_attribute(__MODULE__, :undefined_impl_description, "")
+
       @doc false
       @spec impl_for!(term) :: atom
       if any_impl_for do
@@ -882,17 +895,21 @@ defmodule Protocol do
         end
       else
         Kernel.def impl_for!(data) do
-          impl_for(data) || raise(Protocol.UndefinedError, protocol: __MODULE__, value: data)
+          impl_for(data) ||
+            raise(Protocol.UndefinedError,
+              protocol: __MODULE__,
+              value: data,
+              description: unquote(undefined_impl_description)
+            )
         end
       end
 
       # Internal handler for Structs
       Kernel.defp struct_impl_for(struct) do
-        target =
-          case Code.ensure_compiled(Module.concat(__MODULE__, struct)) do
-            {:module, module} -> module
-            {:error, _} -> unquote(any_impl_for)
-          end
+        case Code.ensure_compiled(Module.concat(__MODULE__, struct)) do
+          {:module, module} -> module
+          {:error, _} -> unquote(any_impl_for)
+        end
       end
 
       # Inline struct implementation for performance
