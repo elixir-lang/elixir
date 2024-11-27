@@ -3,57 +3,31 @@ defprotocol JSON.Encoder do
   A protocol for custom JSON encoding of data structures.
   """
 
-  @fallback_to_any true
+  @undefined_impl_description """
+  the protocol must be explicitly implemented.
 
-  @doc """
-  A function invoked to encode the given term.
+  If you have a struct, you can derive the implementation specifying \
+  which fields should be encoded to JSON:
+
+      @derive {JSON.Encoder, only: [....]}
+      defstruct ...
+
+  It is also possible to encode all fields, although this should be \
+  used carefully to avoid accidentally leaking private information \
+  when new fields are added:
+
+      @derive JSON.Encoder
+      defstruct ...
+
+  Finally, if you don't own the struct you want to encode to JSON, \
+  you may use Protocol.derive/3 placed outside of any module:
+
+      Protocol.derive(JSON.Encoder, NameOfTheStruct, only: [...])
+      Protocol.derive(JSON.Encoder, NameOfTheStruct)\
   """
-  def encode(term, encoder)
-end
 
-defimpl JSON.Encoder, for: Atom do
-  def encode(value, encoder) do
-    case value do
-      nil -> "null"
-      true -> "true"
-      false -> "false"
-      _ -> encoder.(Atom.to_string(value), encoder)
-    end
-  end
-end
-
-defimpl JSON.Encoder, for: BitString do
-  def encode(value, _encoder) do
-    :elixir_json.encode_binary(value)
-  end
-end
-
-defimpl JSON.Encoder, for: List do
-  def encode(value, encoder) do
-    :elixir_json.encode_list(value, encoder)
-  end
-end
-
-defimpl JSON.Encoder, for: Integer do
-  def encode(value, _encoder) do
-    :elixir_json.encode_integer(value)
-  end
-end
-
-defimpl JSON.Encoder, for: Float do
-  def encode(value, _encoder) do
-    :elixir_json.encode_float(value)
-  end
-end
-
-defimpl JSON.Encoder, for: Map do
-  def encode(value, encoder) do
-    :elixir_json.encode_map(value, encoder)
-  end
-end
-
-defimpl JSON.Encoder, for: Any do
-  defmacro __deriving__(module, _struct, opts) do
+  @impl true
+  defmacro __deriving__(module, opts) do
     fields = module |> Macro.struct_info!(__CALLER__) |> Enum.map(& &1.field)
     fields = fields_to_encode(fields, opts)
     vars = Macro.generate_arguments(length(fields), __MODULE__)
@@ -105,38 +79,50 @@ defimpl JSON.Encoder, for: Any do
     end
   end
 
-  def encode(%_{} = struct, _encoder) do
-    raise Protocol.UndefinedError,
-      protocol: @protocol,
-      value: struct,
-      description: """
-      JSON.Encoder protocol must be explicitly implemented for structs
+  @doc """
+  A function invoked to encode the given term.
+  """
+  def encode(term, encoder)
+end
 
-      If you own the struct, you can derive the implementation specifying \
-      which fields should be encoded to JSON:
-
-          @derive {JSON.Encoder, only: [....]}
-          defstruct ...
-
-      It is also possible to encode all fields, although this should be \
-      used carefully to avoid accidentally leaking private information \
-      when new fields are added:
-
-          @derive JSON.Encoder
-          defstruct ...
-
-      Finally, if you don't own the struct you want to encode to JSON, \
-      you may use Protocol.derive/3 placed outside of any module:
-
-          Protocol.derive(JSON.Encoder, NameOfTheStruct, only: [...])
-          Protocol.derive(JSON.Encoder, NameOfTheStruct)
-      """
+defimpl JSON.Encoder, for: Atom do
+  def encode(value, encoder) do
+    case value do
+      nil -> "null"
+      true -> "true"
+      false -> "false"
+      _ -> encoder.(Atom.to_string(value), encoder)
+    end
   end
+end
 
+defimpl JSON.Encoder, for: BitString do
   def encode(value, _encoder) do
-    raise Protocol.UndefinedError,
-      protocol: @protocol,
-      value: value
+    :elixir_json.encode_binary(value)
+  end
+end
+
+defimpl JSON.Encoder, for: List do
+  def encode(value, encoder) do
+    :elixir_json.encode_list(value, encoder)
+  end
+end
+
+defimpl JSON.Encoder, for: Integer do
+  def encode(value, _encoder) do
+    :elixir_json.encode_integer(value)
+  end
+end
+
+defimpl JSON.Encoder, for: Float do
+  def encode(value, _encoder) do
+    :elixir_json.encode_float(value)
+  end
+end
+
+defimpl JSON.Encoder, for: Map do
+  def encode(value, encoder) do
+    :elixir_json.encode_map(value, encoder)
   end
 end
 
