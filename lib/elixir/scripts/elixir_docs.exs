@@ -2,7 +2,7 @@
 canonical = System.fetch_env!("CANONICAL")
 
 [
-  assets: "lib/elixir/pages/images",
+  assets: %{"lib/elixir/pages/images" => "assets"},
   extras: [
     "lib/elixir/pages/getting-started/introduction.md",
     "lib/elixir/pages/getting-started/basic-types.md",
@@ -74,7 +74,7 @@ canonical = System.fetch_env!("CANONICAL")
     "Mix & OTP": ~r"pages/mix-and-otp/.*\.md$",
     References: ~r"pages/references/.*\.md$"
   ],
-  groups_for_functions: [
+  groups_for_docs: [
     Guards: &(&1[:guard] == true)
   ],
   skip_undefined_reference_warnings_on: [
