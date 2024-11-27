@@ -240,7 +240,7 @@ defmodule JSON do
   A shortcut for `encode_to_iodata/2` used for compatibility purposes.
 
   If you are targetting the `JSON` module directly, do not use
-  this function, use `JSON.encode/2` instead. This function will
+  this function, use `JSON.encode_to_iodata/2` instead. This function will
   be deprecated in Elixir v1.22
   """
   @doc deprecated: "Use JSON.encode_to_iodata/2 instead"
