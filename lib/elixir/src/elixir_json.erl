@@ -314,7 +314,7 @@ list_loop([Elem | Rest], Encode) -> [$,, Encode(Elem, Encode) | list_loop(Rest, 
 encode_map(Map, Encode) when is_map(Map) ->
     do_encode_map(Map, Encode).
 
-%% TODO: Remove conditional once Erlang/OTP 26+ is supported exclusively supported.
+%% TODO: Remove conditional once Erlang/OTP 26+ is exclusively supported.
 -if(?OTP_RELEASE >= 26).
 do_encode_map(Map, Encode) when is_function(Encode, 2) ->
     encode_object([[$,, key(Key, Encode), $: | Encode(Value, Encode)] || Key := Value <- Map]).
