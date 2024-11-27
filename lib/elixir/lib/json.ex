@@ -146,7 +146,7 @@ defimpl JSON.Encoder, for: Map do
 end
 
 defmodule JSON do
-  @moduledoc """
+  @moduledoc ~S"""
   JSON encoding and decoding.
 
   Both encoder and decoder fully conform to [RFC 8259](https://tools.ietf.org/html/rfc8259) and
