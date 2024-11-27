@@ -13,6 +13,8 @@ defmodule Mix.Tasks.App.StartTest do
     end
   end
 
+  @moduletag :capture_log
+
   test "compiles and starts the project" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(AppStartSample)
@@ -42,6 +44,8 @@ defmodule Mix.Tasks.App.StartTest do
       assert List.keyfind(Application.started_applications(), :app_start_sample, 0)
       assert List.keyfind(Application.started_applications(), :logger, 0)
     end)
+  after
+    Application.stop(:app_start_sample)
   end
 
   describe "unit tests" do
