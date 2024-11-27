@@ -26,6 +26,8 @@ defmodule Mix.Local.InstallerTest do
     assert config[:app] == :git_repo
     assert config[:deps_path] =~ ~r/mix-local-installer-fetcher-.*\/deps/
     assert config[:lockfile] =~ ~r/mix-local-installer-fetcher-.*\/mix.lock/
+  after
+    purge([GitRepo.MixProject, Mix.Local.Installer.MixProject])
   end
 
   test "parse_args Git" do

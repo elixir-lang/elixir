@@ -172,7 +172,7 @@ defmodule Mix.Tasks.ArchiveTest do
       assert File.dir?(tmp_path("userhome/.mix/archives/git_repo-0.1.0/git_repo-0.1.0/ebin"))
     end)
   after
-    purge([GitRepo.Archive, GitRepo.MixProject])
+    purge([GitRepo.Archive, GitRepo.MixProject, Mix.Local.Installer.MixProject])
   end
 
   test "archive install, update, and uninstall life cycle" do

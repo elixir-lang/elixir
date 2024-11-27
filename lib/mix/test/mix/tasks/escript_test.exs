@@ -336,7 +336,7 @@ defmodule Mix.Tasks.EscriptTest do
       require Application
       true = Application.compile_env!(:git_repo, :escript_config)
 
-      defmodule GitRepo do
+      defmodule GitRepo.Escript do
         def main(_argv) do
           IO.puts("TEST")
         end
@@ -348,7 +348,7 @@ defmodule Mix.Tasks.EscriptTest do
         use Mix.Project
 
         def project do
-          [app: :git_repo, version: "0.1.0", escript: [main_module: GitRepo]]
+          [app: :git_repo, version: "0.1.0", escript: [main_module: GitRepo.Escript]]
         end
       end
       """)
@@ -364,7 +364,7 @@ defmodule Mix.Tasks.EscriptTest do
       assert System.cmd("escript", [escript_path]) == {"TEST\n", 0}
     end)
   after
-    purge([GitRepo, GitRepo.MixProject])
+    purge([GitRepo.Escript, GitRepo.MixProject, Mix.Local.Installer.MixProject])
   end
 
   defp push_project_with_config(module, config \\ []) do
