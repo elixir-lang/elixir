@@ -796,7 +796,7 @@ defmodule KernelTest do
 
     test ":struct" do
       assert Kernel.__info__(:struct) == nil
-      assert [%{field: :scheme, required: false, default: nil} | _] = URI.__info__(:struct)
+      assert [%{field: :scheme, default: nil} | _] = URI.__info__(:struct)
     end
 
     test "others" do

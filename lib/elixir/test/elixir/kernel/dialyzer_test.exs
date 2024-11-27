@@ -41,6 +41,7 @@ defmodule Kernel.DialyzerTest do
       Macro,
       Macro.Env,
       Module,
+      Protocol,
       String,
       String.Chars
     ]

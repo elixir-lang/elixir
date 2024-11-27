@@ -175,57 +175,6 @@ defmodule Protocol do
       to be used on `Protocol.UndefinedError` when looking up the implementation
       fails. This option is only applied if `@fallback_to_any` is not set to true
 
-  ## Reflection
-
-  Any protocol module contains three extra functions:
-
-    * `__protocol__/1` - returns the protocol information. The function takes
-      one of the following atoms:
-
-      * `:consolidated?` - returns whether the protocol is consolidated
-
-      * `:functions` - returns a keyword list of protocol functions and their arities
-
-      * `:impls` - if consolidated, returns `{:consolidated, modules}` with the list of modules
-        implementing the protocol, otherwise `:not_consolidated`
-
-      * `:module` - the protocol module atom name
-
-    * `impl_for/1` - returns the module that implements the protocol for the given argument,
-      `nil` otherwise
-
-    * `impl_for!/1` - same as above but raises `Protocol.UndefinedError` if an implementation is
-      not found
-
-  For example, for the `Enumerable` protocol we have:
-
-      iex> Enumerable.__protocol__(:functions)
-      [count: 1, member?: 2, reduce: 3, slice: 1]
-
-      iex> Enumerable.impl_for([])
-      Enumerable.List
-
-      iex> Enumerable.impl_for(42)
-      nil
-
-  In addition, every protocol implementation module contains the `__impl__/1`
-  function. The function takes one of the following atoms:
-
-    * `:for` - returns the module responsible for the data structure of the
-      protocol implementation
-
-    * `:protocol` - returns the protocol module for which this implementation
-    is provided
-
-  For example, the module implementing the `Enumerable` protocol for lists is
-  `Enumerable.List`. Therefore, we can invoke `__impl__/1` on this module:
-
-      iex(1)> Enumerable.List.__impl__(:for)
-      List
-
-      iex(2)> Enumerable.List.__impl__(:protocol)
-      Enumerable
-
   ## Consolidation
 
   In order to speed up protocol dispatching, whenever all protocol implementations
@@ -278,6 +227,41 @@ defmodule Protocol do
   used for consolidation and it is removed after consolidation unless
   globally set.
   """
+
+  @doc """
+  A function available in all protocol definitions that returns protocol metadata.
+  """
+  @callback __protocol__(:consolidated?) :: boolean()
+  @callback __protocol__(:functions) :: [{atom(), arity()}]
+  @callback __protocol__(:impls) :: {:consolidated, [module()]} | :not_consolidated
+  @callback __protocol__(:module) :: module
+
+  @doc """
+  A function available in all protocol definitions that returns the implementation
+  for the given `term` or nil.
+
+  If `@fallback_to_any` is true, `nil` is never returned.
+  """
+  @callback impl_for(term) :: module() | nil
+
+  @doc """
+  A function available in all protocol definitions that returns the implementation
+  for the given `term` or raises.
+
+  If `@fallback_to_any` is true, it never raises.
+  """
+  @callback impl_for!(term) :: module()
+
+  @doc """
+  An optional callback to be implemented by protocol authors for custom deriving.
+
+  It must return a quoted expression that implements the protocol for the given module.
+
+  See `Protocol.derive/3` for an example.
+  """
+  @macrocallback __deriving__(module(), term()) :: Macro.t()
+
+  @optional_callbacks __deriving__: 2
 
   @doc false
   defmacro def(signature)
@@ -391,32 +375,35 @@ defmodule Protocol do
   @doc """
   Derives the `protocol` for `module` with the given options.
 
-  If your implementation passes options or if you are generating
-  custom code based on the struct, you will also need to implement
-  a macro defined as `__deriving__(module, struct, options)`
-  to get the options that were passed.
+  Every time you derive a protocol, Elixir will verify if the protocol
+  has implemented the `c:Protocol.__deriving__/2` callback. If so,
+  the callback will be invoked and it should define the implementation
+  module. Otherwise an implementation that simply points to the `Any`
+  implementation is automatically derived.
 
   ## Examples
 
       defprotocol Derivable do
-        def ok(arg)
-      end
+        @impl true
+        defmacro __deriving__(module, options) do
+          # If you need to load struct metadata, you may call:
+          # struct_info = Macro.struct_info!(module, __CALLER__)
 
-      defimpl Derivable, for: Any do
-        defmacro __deriving__(module, struct, options) do
           quote do
             defimpl Derivable, for: unquote(module) do
               def ok(arg) do
-                {:ok, arg, unquote(Macro.escape(struct)), unquote(options)}
+                {:ok, arg, unquote(options)}
               end
             end
           end
         end
 
-        def ok(arg) do
-          {:ok, arg}
-        end
+        def ok(arg)
       end
+
+  Once the protocol is defined, there are two ways it can be
+  derived. The first is by using the `@derive` module attribute
+  by the time you define the struct:
 
       defmodule ImplStruct do
         @derive [Derivable]
@@ -424,19 +411,14 @@ defmodule Protocol do
       end
 
       Derivable.ok(%ImplStruct{})
-      #=> {:ok, %ImplStruct{a: 0, b: 0}, %ImplStruct{a: 0, b: 0}, []}
+      #=> {:ok, %ImplStruct{a: 0, b: 0}, []}
 
-  Explicit derivations can now be called via `__deriving__/3`:
+  If the struct has already been defined, you can call this macro:
 
-      # Explicitly derived via `__deriving__/3`
-      Derivable.ok(%ImplStruct{a: 1, b: 1})
-      #=> {:ok, %ImplStruct{a: 1, b: 1}, %ImplStruct{a: 0, b: 0}, []}
-
-      # Explicitly derived by API via `__deriving__/3`
       require Protocol
       Protocol.derive(Derivable, ImplStruct, :oops)
       Derivable.ok(%ImplStruct{a: 1, b: 1})
-      #=> {:ok, %ImplStruct{a: 1, b: 1}, %ImplStruct{a: 0, b: 0}, :oops}
+      #=> {:ok, %ImplStruct{a: 1, b: 1}, :oops}
 
   """
   defmacro derive(protocol, module, options \\ []) do
@@ -711,25 +693,14 @@ defmodule Protocol do
   def __protocol__(name, do: block) do
     quote do
       defmodule unquote(name) do
+        @behaviour Protocol
         @before_compile Protocol
 
         # We don't allow function definition inside protocols
         import Kernel,
-          except: [
-            def: 1,
-            def: 2,
-            defp: 1,
-            defp: 2,
-            defdelegate: 2,
-            defguard: 1,
-            defguardp: 1,
-            defmacro: 1,
-            defmacro: 2,
-            defmacrop: 1,
-            defmacrop: 2
-          ]
+          except: [def: 1, def: 2, defdelegate: 2, defguard: 1, defguardp: 1]
 
-        # Import the new dsl that holds the new def
+        # Import the new `def` that is used by protocols
         import Protocol, only: [def: 1]
 
         # Compile with debug info for consolidation
@@ -748,19 +719,17 @@ defmodule Protocol do
     end
   end
 
-  defp callback_ast_to_fa({kind, {:"::", meta, [{name, _, args}, _return]}, _pos})
-       when kind in [:callback, :macrocallback] do
+  defp callback_ast_to_fa({_kind, {:"::", meta, [{name, _, args}, _return]}, _pos}) do
     [{{name, length(List.wrap(args))}, meta}]
   end
 
   defp callback_ast_to_fa(
-         {kind, {:when, _, [{:"::", meta, [{name, _, args}, _return]}, _vars]}, _pos}
-       )
-       when kind in [:callback, :macrocallback] do
+         {_kind, {:when, _, [{:"::", meta, [{name, _, args}, _return]}, _vars]}, _pos}
+       ) do
     [{{name, length(List.wrap(args))}, meta}]
   end
 
-  defp callback_ast_to_fa({kind, _, _pos}) when kind in [:callback, :macrocallback] do
+  defp callback_ast_to_fa({_kind, _clause, _pos}) do
     []
   end
 
@@ -778,13 +747,10 @@ defmodule Protocol do
   end
 
   defp warn(message, env, line) when is_integer(line) do
-    stacktrace = :maps.update(:line, line, env) |> Macro.Env.stacktrace()
-    IO.warn(message, stacktrace)
+    IO.warn(message, %{env | line: line})
   end
 
   def __before_compile__(env) do
-    callback_metas = callback_metas(env.module, :callback)
-    callbacks = :maps.keys(callback_metas)
     functions = Module.get_attribute(env.module, :__functions__)
 
     if functions == [] do
@@ -795,8 +761,11 @@ defmodule Protocol do
       )
     end
 
+    callback_metas = callback_metas(env.module, :callback)
+    callbacks = :maps.keys(callback_metas)
+
     # TODO: Convert the following warnings into errors in future Elixir versions
-    :lists.map(
+    :lists.foreach(
       fn {name, arity} = fa ->
         warn(
           "cannot define @callback #{name}/#{arity} inside protocol, use def/1 to outline your protocol definition",
@@ -811,7 +780,7 @@ defmodule Protocol do
     macrocallback_metas = callback_metas(env.module, :macrocallback)
     macrocallbacks = :maps.keys(macrocallback_metas)
 
-    :lists.map(
+    :lists.foreach(
       fn {name, arity} = fa ->
         warn(
           "cannot define @macrocallback #{name}/#{arity} inside protocol, use def/1 to outline your protocol definition",
@@ -1002,14 +971,12 @@ defmodule Protocol do
 
   @doc false
   def __derive__(derives, for, %Macro.Env{} = env) when is_atom(for) do
-    struct = Macro.struct!(for, env)
-
     foreach = fn
       proto when is_atom(proto) ->
-        derive(proto, for, struct, [], env)
+        derive(proto, for, [], env)
 
       {proto, opts} when is_atom(proto) ->
-        derive(proto, for, struct, opts, env)
+        derive(proto, for, opts, env)
     end
 
     :lists.foreach(foreach, :lists.flatten(derives))
@@ -1017,21 +984,30 @@ defmodule Protocol do
     :ok
   end
 
-  defp derive(protocol, for, struct, opts, env) do
+  defp derive(protocol, for, opts, env) do
     extra = ", cannot derive #{inspect(protocol)} for #{inspect(for)}"
     assert_protocol!(protocol, extra)
-    __ensure_defimpl__(protocol, for, env)
-    assert_impl!(protocol, Any, extra)
+
+    {mod, args} =
+      if macro_exported?(protocol, :__deriving__, 2) do
+        {protocol, [for, opts]}
+      else
+        # TODO: Deprecate this on Elixir v1.22+
+        assert_impl!(protocol, Any, extra)
+        {Module.concat(protocol, Any), [for, Macro.struct!(for, env), opts]}
+      end
 
     # Clean up variables from eval context
     env = :elixir_env.reset_vars(env)
-    args = [for, struct, opts]
-    impl = Module.concat(protocol, Any)
 
-    :elixir_module.expand_callback(env.line, impl, :__deriving__, args, env, fn mod, fun, args ->
+    :elixir_module.expand_callback(env.line, mod, :__deriving__, args, env, fn mod, fun, args ->
       if function_exported?(mod, fun, length(args)) do
         apply(mod, fun, args)
       else
+        __ensure_defimpl__(protocol, for, env)
+        assert_impl!(protocol, Any, extra)
+        impl = Module.concat(protocol, Any)
+
         funs =
           for {fun, arity} <- protocol.__protocol__(:functions) do
             args = Macro.generate_arguments(arity, nil)

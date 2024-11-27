@@ -1552,28 +1552,28 @@ defmodule MacroTest do
       defstruct [:a, :b]
 
       assert Macro.struct_info!(StructBang, __ENV__) == [
-               %{field: :a, required: false, default: nil},
-               %{field: :b, required: false, default: nil}
+               %{field: :a, default: nil},
+               %{field: :b, default: nil}
              ]
 
       def within_function do
         assert Macro.struct_info!(StructBang, __ENV__) == [
-                 %{field: :a, required: false, default: nil},
-                 %{field: :b, required: false, default: nil}
+                 %{field: :a, default: nil},
+                 %{field: :b, default: nil}
                ]
       end
 
       defmodule Nested do
         assert Macro.struct_info!(StructBang, __ENV__) == [
-                 %{field: :a, required: false, default: nil},
-                 %{field: :b, required: false, default: nil}
+                 %{field: :a, default: nil},
+                 %{field: :b, default: nil}
                ]
       end
     end
 
     assert Macro.struct_info!(StructBang, __ENV__) == [
-             %{field: :a, required: false, default: nil},
-             %{field: :b, required: false, default: nil}
+             %{field: :a, default: nil},
+             %{field: :b, default: nil}
            ]
   end
 

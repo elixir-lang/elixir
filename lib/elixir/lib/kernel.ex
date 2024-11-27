@@ -5406,12 +5406,12 @@ defmodule Kernel do
         defstruct name: nil, age: nil
       end
 
-  For each protocol in `@derive`, Elixir will assert the protocol has
-  been implemented for `Any`. If the `Any` implementation defines a
-  `__deriving__/3` callback, the callback will be invoked and it should define
-  the implementation module. Otherwise an implementation that simply points to
-  the `Any` implementation is automatically derived. For more information on
-  the `__deriving__/3` callback, see `Protocol.derive/3`.
+  For each protocol in `@derive`, Elixir will verify if the protocol
+  has implemented the `c:Protocol.__deriving__/2` callback. If so,
+  the callback will be invoked and it should define the implementation
+  module. Otherwise an implementation that simply points to the `Any`
+  implementation is automatically derived. For more information, see
+  `Protocol.derive/3`.
 
   ## Enforcing keys
 

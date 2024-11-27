@@ -704,7 +704,8 @@ defmodule Module do
   @callback __info__(:macros) :: keyword()
   @callback __info__(:md5) :: binary()
   @callback __info__(:module) :: module()
-  @callback __info__(:struct) :: list(%{field: atom(), required: boolean()}) | nil
+  @callback __info__(:struct) ::
+              list(%{required(:field) => atom(), optional(:default) => term()}) | nil
 
   @doc """
   Returns information about module attributes used by Elixir.

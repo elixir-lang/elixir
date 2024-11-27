@@ -27,11 +27,11 @@ defmodule ProtocolTest do
 
   defprotocol Derivable do
     @undefined_impl_description "you should try harder"
-    def ok(a)
-  end
 
-  defimpl Derivable, for: Any do
-    defmacro __deriving__(module, struct, options) do
+    @impl true
+    defmacro __deriving__(module, options) do
+      struct = Macro.struct!(module, __CALLER__)
+
       quote do
         defimpl Derivable, for: unquote(module) do
           def ok(arg) do
@@ -41,6 +41,10 @@ defmodule ProtocolTest do
       end
     end
 
+    def ok(a)
+  end
+
+  defimpl Derivable, for: Any do
     def ok(arg) do
       {:ok, arg}
     end

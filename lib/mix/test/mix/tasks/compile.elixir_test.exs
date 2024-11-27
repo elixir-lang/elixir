@@ -1106,8 +1106,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       File.write!("lib/a.ex", """
       defmodule A do
-        @enforce_keys [:foo]
-        defstruct [:foo, :bar]
+        defstruct [:foo, bar: 1]
       end
       """)
 
@@ -1118,8 +1117,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       File.write!("lib/a.ex", """
       defmodule A do
-        @enforce_keys [:foo]
-        defstruct [:foo, :bar]
+        defstruct [:foo, bar: 1]
         def some_fun, do: :ok
       end
       """)
@@ -1140,7 +1138,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       # At the code back and it should work again
       File.write!("lib/a.ex", """
       defmodule A do
-        defstruct [:foo, :bar]
+        defstruct [:foo, bar: 1]
       end
       """)
 

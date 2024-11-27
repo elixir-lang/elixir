@@ -139,6 +139,85 @@ defprotocol Inspect do
   # Handle structs in Any
   @fallback_to_any true
 
+  @impl true
+  defmacro __deriving__(module, options) do
+    info = Macro.struct_info!(module, __CALLER__)
+    fields = Enum.sort(Enum.map(info, & &1.field) -- [:__exception__, :__struct__])
+
+    only = Keyword.get(options, :only, fields)
+    except = Keyword.get(options, :except, [])
+    optional = Keyword.get(options, :optional, [])
+
+    :ok = validate_option(:only, only, fields, module)
+    :ok = validate_option(:except, except, fields, module)
+    :ok = validate_option(:optional, optional, fields, module)
+
+    inspect_module =
+      if fields == Enum.sort(only) and except == [] do
+        Inspect.Map
+      else
+        Inspect.Any
+      end
+
+    filtered_fields =
+      fields
+      |> Enum.reject(&(&1 in except))
+      |> Enum.filter(&(&1 in only))
+
+    filtered_guard =
+      quote do
+        var!(field) in unquote(filtered_fields)
+      end
+
+    field_guard =
+      if optional == [] do
+        filtered_guard
+      else
+        optional_map =
+          for field <- optional, into: %{} do
+            default = Enum.find(info, %{}, &(&1.field == field)) |> Map.get(:default, nil)
+            {field, default}
+          end
+
+        quote do
+          unquote(filtered_guard) and
+            not case unquote(Macro.escape(optional_map)) do
+              %{^var!(field) => var!(default)} ->
+                var!(default) == Map.get(var!(struct), var!(field))
+
+              %{} ->
+                false
+            end
+        end
+      end
+
+    quote do
+      defimpl Inspect, for: unquote(module) do
+        def inspect(var!(struct), var!(opts)) do
+          var!(infos) =
+            for %{field: var!(field)} = var!(info) <- unquote(module).__info__(:struct),
+                unquote(field_guard),
+                do: var!(info)
+
+          var!(name) = Macro.inspect_atom(:literal, unquote(module))
+          unquote(inspect_module).inspect(var!(struct), var!(name), var!(infos), var!(opts))
+        end
+      end
+    end
+  end
+
+  defp validate_option(option, option_list, fields, module) do
+    case option_list -- fields do
+      [] ->
+        :ok
+
+      unknown_fields ->
+        raise ArgumentError,
+              "unknown fields #{Kernel.inspect(unknown_fields)} in #{Kernel.inspect(option)} " <>
+                "when deriving the Inspect protocol for #{Kernel.inspect(module)}"
+    end
+  end
+
   @doc """
   Converts `term` into an algebra document.
 
@@ -548,79 +627,6 @@ defimpl Inspect, for: Reference do
 end
 
 defimpl Inspect, for: Any do
-  defmacro __deriving__(module, struct, options) do
-    fields = Enum.sort(Map.keys(struct) -- [:__exception__, :__struct__])
-
-    only = Keyword.get(options, :only, fields)
-    except = Keyword.get(options, :except, [])
-    optional = Keyword.get(options, :optional, [])
-
-    :ok = validate_option(:only, only, fields, module)
-    :ok = validate_option(:except, except, fields, module)
-    :ok = validate_option(:optional, optional, fields, module)
-
-    inspect_module =
-      if fields == Enum.sort(only) and except == [] do
-        Inspect.Map
-      else
-        Inspect.Any
-      end
-
-    filtered_fields =
-      fields
-      |> Enum.reject(&(&1 in except))
-      |> Enum.filter(&(&1 in only))
-
-    filtered_guard =
-      quote do
-        var!(field) in unquote(filtered_fields)
-      end
-
-    field_guard =
-      if optional == [] do
-        filtered_guard
-      else
-        optional_map = for field <- optional, into: %{}, do: {field, Map.fetch!(struct, field)}
-
-        quote do
-          unquote(filtered_guard) and
-            not case unquote(Macro.escape(optional_map)) do
-              %{^var!(field) => var!(default)} ->
-                var!(default) == Map.get(var!(struct), var!(field))
-
-              %{} ->
-                false
-            end
-        end
-      end
-
-    quote do
-      defimpl Inspect, for: unquote(module) do
-        def inspect(var!(struct), var!(opts)) do
-          var!(infos) =
-            for %{field: var!(field)} = var!(info) <- unquote(module).__info__(:struct),
-                unquote(field_guard),
-                do: var!(info)
-
-          var!(name) = Macro.inspect_atom(:literal, unquote(module))
-          unquote(inspect_module).inspect(var!(struct), var!(name), var!(infos), var!(opts))
-        end
-      end
-    end
-  end
-
-  defp validate_option(option, option_list, fields, module) do
-    case option_list -- fields do
-      [] ->
-        :ok
-
-      unknown_fields ->
-        raise ArgumentError,
-              "unknown fields #{Kernel.inspect(unknown_fields)} in #{Kernel.inspect(option)} " <>
-                "when deriving the Inspect protocol for #{Kernel.inspect(module)}"
-    end
-  end
-
   def inspect(%module{} = struct, opts) do
     try do
       {module.__struct__(), module.__info__(:struct)}

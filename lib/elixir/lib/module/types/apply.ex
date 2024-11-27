@@ -54,7 +54,7 @@ defmodule Module.Types.Apply do
           functions: fas,
           macros: fas,
           struct:
-            list(closed_map(default: term(), field: atom(), required: boolean()))
+            list(closed_map(default: if_set(term()), field: atom()))
             |> union(atom([nil]))
         ] ++ shared_info,
       __protocol__: [
