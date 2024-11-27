@@ -145,8 +145,13 @@ list_loop([Elem | Rest], Encode) -> [$,, Encode(Elem, Encode) | list_loop(Rest, 
 encode_map(Map, Encode) when is_map(Map) ->
     do_encode_map(Map, Encode).
 
+-if(?OTP_RELEASE >= 26).
 do_encode_map(Map, Encode) when is_function(Encode, 2) ->
     encode_object([[$,, key(Key, Encode), $: | Encode(Value, Encode)] || Key := Value <- Map]).
+-else.
+do_encode_map(Map, Encode) when is_function(Encode, 2) ->
+    encode_object([[$,, key(Key, Encode), $: | Encode(Value, Encode)] || {Key, Value} <- maps:to_list(Map)]).
+-endif.
 
 -spec encode_map_checked(map(), encoder()) -> iodata().
 encode_map_checked(Map, Encode) ->
