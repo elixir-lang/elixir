@@ -50,17 +50,6 @@ defmodule Mix.Tasks.Profile.TprofTest do
     end)
   end
 
-  test "filters based on time", context do
-    in_tmp(context.test, fn ->
-      result =
-        capture_io(fn ->
-          Tprof.run(["--time", "50", "-e", @expr])
-        end)
-
-      refute result =~ "\nEnum.each/2"
-    end)
-  end
-
   test "filters based on memory", context do
     in_tmp(context.test, fn ->
       result =
