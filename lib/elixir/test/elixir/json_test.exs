@@ -17,34 +17,34 @@ defmodule JSONTest do
 
   describe "encode" do
     test "atoms" do
-      assert JSON.encode([nil, false, true, :another]) == "[null,false,true,\"another\"]"
+      assert JSON.encode!([nil, false, true, :another]) == "[null,false,true,\"another\"]"
     end
 
     test "binaries" do
-      assert JSON.encode("hello\0world\t✂️") == "\"hello\\u0000world\\t✂️\""
+      assert JSON.encode!("hello\0world\t✂️") == "\"hello\\u0000world\\t✂️\""
     end
 
     test "integers" do
-      assert JSON.encode(123_456) == "123456"
+      assert JSON.encode!(123_456) == "123456"
     end
 
     test "floats" do
-      assert JSON.encode(123.456) == "123.456"
+      assert JSON.encode!(123.456) == "123.456"
     end
 
     test "maps" do
-      assert JSON.encode(%{1 => 2, 3.0 => 4.0, key: :bar}) ==
+      assert JSON.encode!(%{1 => 2, 3.0 => 4.0, key: :bar}) ==
                "{\"1\":2,\"3.0\":4.0,\"key\":\"bar\"}"
     end
 
     test "lists" do
-      assert JSON.encode([1, 1.0, "one", %{1 => 2, 3.0 => 4.0, key: :bar}]) ==
+      assert JSON.encode!([1, 1.0, "one", %{1 => 2, 3.0 => 4.0, key: :bar}]) ==
                "[1,1.0,\"one\",{\"1\":2,\"3.0\":4.0,\"key\":\"bar\"}]"
     end
 
     test "structs" do
-      assert JSON.encode(%Token{value: :example}) == "[\"example\"]"
-      assert JSON.encode(%Token{value: "hello\0world"}) == "[\"hello\\u0000world\"]"
+      assert JSON.encode!(%Token{value: :example}) == "[\"example\"]"
+      assert JSON.encode!(%Token{value: "hello\0world"}) == "[\"hello\\u0000world\"]"
     end
   end
 
@@ -88,7 +88,7 @@ defmodule JSONTest do
   end
 
   test "encode_to_iodata" do
-    list = JSON.encode_to_iodata([1, 1.0, "one", %{1 => 2, 3.0 => 4.0, key: :bar}])
+    list = JSON.encode_to_iodata!([1, 1.0, "one", %{1 => 2, 3.0 => 4.0, key: :bar}])
     assert is_list(list)
     assert IO.iodata_to_binary(list) == "[1,1.0,\"one\",{\"1\":2,\"3.0\":4.0,\"key\":\"bar\"}]"
   end
@@ -109,7 +109,7 @@ defmodule JSONTest do
 
     test "with only" do
       assert ["{\"a\":", _, ",\"b\":", _, ",\"d\":", _, 125] =
-               json = JSON.encode_to_iodata(%WithOnly{a: :a, b: "b", c: make_ref(), d: [?d]})
+               json = JSON.encode_to_iodata!(%WithOnly{a: :a, b: "b", c: make_ref(), d: [?d]})
 
       assert IO.iodata_to_binary(json) == "{\"a\":\"a\",\"b\":\"b\",\"d\":[100]}"
     end
@@ -121,7 +121,7 @@ defmodule JSONTest do
 
     test "with except" do
       assert ["{\"a\":", _, ",\"b\":", _, ",\"d\":", _, 125] =
-               json = JSON.encode_to_iodata(%WithExcept{a: :a, b: "b", c: make_ref(), d: [?d]})
+               json = JSON.encode_to_iodata!(%WithExcept{a: :a, b: "b", c: make_ref(), d: [?d]})
 
       assert IO.iodata_to_binary(json) == "{\"a\":\"a\",\"b\":\"b\",\"d\":[100]}"
     end
@@ -132,7 +132,7 @@ defmodule JSONTest do
     end
 
     test "with empty" do
-      assert JSON.encode_to_iodata(%WithEmpty{}) == "{}"
+      assert JSON.encode_to_iodata!(%WithEmpty{}) == "{}"
     end
   end
 end

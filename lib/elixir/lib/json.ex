@@ -195,11 +195,11 @@ defmodule JSON do
 
   ## Examples
 
-      iex> JSON.encode([123, "string", %{key: "value"}])
+      iex> JSON.encode!([123, "string", %{key: "value"}])
       "[123,\"string\",{\"key\":\"value\"}]"
 
   """
-  def encode(term, encoder \\ &encode_value/2) do
+  def encode!(term, encoder \\ &encode_value/2) do
     IO.iodata_to_binary(encoder.(term, encoder))
   end
 
@@ -214,39 +214,13 @@ defmodule JSON do
 
   ## Examples
 
-      iex> data = JSON.encode_to_iodata([123, "string", %{key: "value"}])
+      iex> data = JSON.encode_to_iodata!([123, "string", %{key: "value"}])
       iex> IO.iodata_to_binary(data)
       "[123,\"string\",{\"key\":\"value\"}]"
 
   """
-  def encode_to_iodata(term, encoder \\ &encode_value/2) do
-    encoder.(term, encoder)
-  end
-
-  @doc """
-  A shortcut for `encode/2` used for compatibility purposes.
-
-  If you are targetting the `JSON` module directly, do not use
-  this function, use `JSON.encode/2` instead. This function will
-  be deprecated in Elixir v1.22
-  """
-  @doc deprecated: "Use JSON.encode/2 instead"
-  # TODO: Deprecate on Elixir v1.22
-  def encode!(term, encoder \\ &encode_value/2) do
-    encode(term, encoder)
-  end
-
-  @doc """
-  A shortcut for `encode_to_iodata/2` used for compatibility purposes.
-
-  If you are targetting the `JSON` module directly, do not use
-  this function, use `JSON.encode_to_iodata/2` instead. This function will
-  be deprecated in Elixir v1.22
-  """
-  @doc deprecated: "Use JSON.encode_to_iodata/2 instead"
-  # TODO: Deprecate on Elixir v1.22
   def encode_to_iodata!(term, encoder \\ &encode_value/2) do
-    encode_to_iodata(term, encoder)
+    encoder.(term, encoder)
   end
 
   @doc """
