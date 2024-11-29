@@ -135,4 +135,40 @@ defmodule JSONTest do
       assert JSON.encode_to_iodata!(%WithEmpty{}) == "{}"
     end
   end
+
+  describe "decode" do
+    test "succeeds" do
+      assert JSON.decode("[null,123,456.7,\"string\",{\"key\":\"value\"}]") ==
+               {:ok, [nil, 123, 456.7, "string", %{"key" => "value"}]}
+
+      assert JSON.decode!("[null,123,456.7,\"string\",{\"key\":\"value\"}]") ==
+               [nil, 123, 456.7, "string", %{"key" => "value"}]
+    end
+
+    test "unexpected end" do
+      assert JSON.decode("{") == {:error, {:unexpected_end, 1}}
+
+      assert_raise ArgumentError, "unexpected end of JSON binary at position 1", fn ->
+        JSON.decode!("{")
+      end
+    end
+
+    test "invalid byte" do
+      assert JSON.decode(",") == {:error, {:invalid_byte, 0, ?,}}
+      assert JSON.decode("123o") == {:error, {:invalid_byte, 3, ?o}}
+
+      assert_raise ArgumentError, "invalid byte 111 at position 3", fn ->
+        JSON.decode!("123o")
+      end
+    end
+
+    test "unexpected sequence" do
+      assert JSON.decode("\"\\ud8aa\\udcxx\"") ==
+               {:error, {:unexpected_sequence, 1, "\\ud8aa\\udcxx"}}
+
+      assert_raise ArgumentError,
+                   "unexpected sequence \"\\\\ud8aa\\\\udcxx\" at position 1",
+                   fn -> JSON.decode!("\"\\ud8aa\\udcxx\"") end
+    end
+  end
 end

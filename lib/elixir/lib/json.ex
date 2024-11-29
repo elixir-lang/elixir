@@ -187,6 +187,117 @@ defmodule JSON do
 
   @moduledoc since: "1.18.0"
 
+  @type decode_error ::
+          {:unexpected_end, non_neg_integer()}
+          | {:invalid_byte, non_neg_integer(), byte()}
+          | {:unexpected_sequence, non_neg_integer(), binary()}
+
+  @doc ~S"""
+  Decodes the given JSON.
+
+  Returns `{:ok, decoded}` or `{:error, reason}`.
+
+  ## Examples
+
+      iex> JSON.decode("[null,123,\"string\",{\"key\":\"value\"}]")
+      {:ok, [nil, 123, "string", %{"key" => "value"}]}
+
+  ## Error reasons
+
+  The error tuple will have one of the following reasons.
+
+    * `{:unexpected_end, position}` if `binary` contains incomplete JSON value
+    * `{:invalid_byte, position, byte}` if `binary` contains unexpected byte or invalid UTF-8 byte
+    * `{:unexpected_sequence, position, bytes}` if `binary` contains invalid UTF-8 escape
+  """
+  @spec decode(binary()) :: {:ok, term()} | decode_error()
+  def decode(binary) when is_binary(binary) do
+    with {decoded, :ok, rest} <- decode(binary, :ok, []) do
+      if rest == "" do
+        {:ok, decoded}
+      else
+        {:error, {:invalid_byte, byte_size(binary) - byte_size(rest), :binary.at(rest, 0)}}
+      end
+    end
+  end
+
+  @doc ~S"""
+  Decodes the given JSON with the given decoders.
+
+  Returns `{decoded, acc, rest}` or `{:error, reason}`.
+  See `decode/1` for the error reasons.
+
+  ## Decoders
+
+  All decoders are optional. If not provided, they will fall back to
+  implementations used by the `decode/1` function:
+
+    * for `array_start`: `fn _ -> [] end`
+    * for `array_push`: `fn elem, acc -> [elem | acc] end`
+    * for `array_finish`: `fn acc, old_acc -> {Enum.reverse(acc), old_acc} end`
+    * for `object_start`: `fn _ -> [] end`
+    * for `object_push`: `fn key, value, acc -> [{key, value} | acc] end`
+    * for `object_finish`: `fn acc, old_acc -> {Map.new(acc), old_acc} end`
+    * for `float`: `&String.to_float/1`
+    * for `integer`: `&String.to_integer/1`
+    * for `string`: `&Function.identity/1`
+    * for `null`: the atom `nil`
+
+  For streaming decoding, see Erlang's `:json` module.
+  """
+  @spec decode(binary(), term(), keyword()) :: {term(), term(), binary()} | decode_error()
+  def decode(binary, acc, decoders) when is_binary(binary) and is_list(decoders) do
+    decoders = Keyword.put_new(decoders, :null, nil)
+
+    try do
+      :elixir_json.decode(binary, acc, Map.new(decoders))
+    catch
+      :error, :unexpected_end ->
+        {:error, {:unexpected_end, byte_size(binary)}}
+
+      :error, {:invalid_byte, byte} ->
+        {:error, {:invalid_byte, position(__STACKTRACE__), byte}}
+
+      :error, {:unexpected_sequence, bytes} ->
+        {:error, {:unexpected_sequence, position(__STACKTRACE__), bytes}}
+    end
+  end
+
+  defp position(stacktrace) do
+    with [{_, _, _, opts} | _] <- stacktrace,
+         %{cause: %{position: position}} <- opts[:error_info] do
+      position
+    else
+      _ -> 0
+    end
+  end
+
+  @doc ~S"""
+  Decodes the given JSON but raises an exception in case of errors.
+
+  Returns the decoded content. See `decode!/1` for possible errors.
+
+  ## Examples
+
+      iex> JSON.decode!("[null,123,\"string\",{\"key\":\"value\"}]")
+      [nil, 123, "string", %{"key" => "value"}]
+  """
+  def decode!(binary) when is_binary(binary) do
+    case decode(binary) do
+      {:ok, decoded} ->
+        decoded
+
+      {:error, {:unexpected_end, position}} ->
+        raise ArgumentError, "unexpected end of JSON binary at position #{position}"
+
+      {:error, {:invalid_byte, position, byte}} ->
+        raise ArgumentError, "invalid byte #{byte} at position #{position}"
+
+      {:error, {:unexpected_sequence, position, bytes}} ->
+        raise ArgumentError, "unexpected sequence #{inspect(bytes)} at position #{position}"
+    end
+  end
+
   @doc ~S"""
   Encodes the given term to JSON as a binary.
 
