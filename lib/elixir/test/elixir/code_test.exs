@@ -95,7 +95,7 @@ defmodule CodeTest do
       sample = """
       defmodule CodeTest.UnknownRemoteCall do
         def perform do
-          UnkownModule.foo()
+          UnknownModule.foo()
         end
       end
       """

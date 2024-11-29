@@ -4,7 +4,7 @@ Elixir is in the process of incorporating set-theoretic types into the compiler.
 
   * **sound** - the inferred and assigned by the type system align with the behaviour of the program
 
-  * **gradual** - Elixir's type system includes the `dynamic()` type, which can be used when the type of a varible or expression is checked at runtime. In the absense of `dynamic()`, Elixir's type system behaves as a static one
+  * **gradual** - Elixir's type system includes the `dynamic()` type, which can be used when the type of a variable or expression is checked at runtime. In the absence of `dynamic()`, Elixir's type system behaves as a static one
 
   * **developer friendly** - the types are described, implemented, and composed using basic set operations: unions, intersections, and negation (hence it is a set-theoretic type system)
 
@@ -104,7 +104,7 @@ Once Elixir introduces typed function signatures (see "Roadmap"), any function w
 
 ## Roadmap
 
-The current milestone is to implement type inference of patterns and guards, as well as type checking of all language contructs, without changes to the Elixir language. At this stage, we want to collect feedback on the quality of error messages and performance, and therefore the type system has no user facing API. Full type inference of patterns was released in Elixir v1.18, and inference of guards is expected as part of Elixir v1.19.
+The current milestone is to implement type inference of patterns and guards, as well as type checking of all language constructs, without changes to the Elixir language. At this stage, we want to collect feedback on the quality of error messages and performance, and therefore the type system has no user facing API. Full type inference of patterns was released in Elixir v1.18, and inference of guards is expected as part of Elixir v1.19.
 
 If the results are satisfactory, the next milestone will include a mechanism for defining typed structs. Elixir programs frequently pattern match on structs, which reveals information about the struct fields, but it knows nothing about their respective types. By propagating types from structs and their fields throughout the program, we will increase the type system’s ability to find errors while further straining our type system implementation. Proposals including the required changes to the language surface will be sent to the community once we reach this stage.
 

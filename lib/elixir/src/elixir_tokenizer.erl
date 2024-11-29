@@ -1449,7 +1449,7 @@ check_terminator({End, {EndLine, EndColumn, _}}, [{Start, {StartLine, StartColum
 check_terminator({'end', {Line, Column, _}}, [], #elixir_tokenizer{mismatch_hints=Hints}) ->
   Suffix =
     case lists:keyfind('end', 1, Hints) of
-      {'end', HintLine, _Identation} ->
+      {'end', HintLine, _Indentation} ->
         io_lib:format("\n~ts the \"end\" on line ~B may not have a matching \"do\" "
                       "defined before it (based on indentation)", [elixir_errors:prefix(hint), HintLine]);
       false ->

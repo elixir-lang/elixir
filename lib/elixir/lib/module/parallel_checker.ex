@@ -503,8 +503,8 @@ defmodule Module.ParallelChecker do
 
   def handle_call({:lock, module}, from, %{waiting: waiting} = state) do
     case waiting do
-      %{^module => froms} ->
-        waiting = Map.put(state.waiting, module, [from | froms])
+      %{^module => from_list} ->
+        waiting = Map.put(state.waiting, module, [from | from_list])
         {:noreply, %{state | waiting: waiting}}
 
       %{} ->
@@ -514,8 +514,8 @@ defmodule Module.ParallelChecker do
   end
 
   def handle_call({:unlock, module}, _from, %{waiting: waiting} = state) do
-    froms = Map.fetch!(waiting, module)
-    Enum.each(froms, &:gen_server.reply(&1, false))
+    from_list = Map.fetch!(waiting, module)
+    Enum.each(from_list, &:gen_server.reply(&1, false))
     waiting = Map.delete(waiting, module)
     {:reply, :ok, %{state | waiting: waiting}}
   end
