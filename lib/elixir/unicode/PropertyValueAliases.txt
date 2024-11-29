@@ -1,8 +1,8 @@
-# PropertyValueAliases-15.1.0.txt
-# Date: 2023-08-07, 15:21:34 GMT
-# © 2023 Unicode®, Inc.
+# PropertyValueAliases-16.0.0.txt
+# Date: 2024-07-30, 19:59:00 GMT
+# © 2024 Unicode®, Inc.
 # Unicode and the Unicode Logo are registered trademarks of Unicode, Inc. in the U.S. and other countries.
-# For terms of use, see https://www.unicode.org/terms_of_use.html
+# For terms of use and license, see https://www.unicode.org/terms_of_use.html
 #
 # Unicode Character Database
 #   For documentation, see https://www.unicode.org/reports/tr44/
@@ -92,6 +92,7 @@ age; 13.0                             ; V13_0
 age; 14.0                             ; V14_0
 age; 15.0                             ; V15_0
 age; 15.1                             ; V15_1
+age; 16.0                             ; V16_0
 age; NA                               ; Unassigned
 
 # Alphabetic (Alpha)
@@ -245,6 +246,7 @@ blk; Duployan                         ; Duployan
 blk; Early_Dynastic_Cuneiform         ; Early_Dynastic_Cuneiform
 blk; Egyptian_Hieroglyph_Format_Controls; Egyptian_Hieroglyph_Format_Controls
 blk; Egyptian_Hieroglyphs             ; Egyptian_Hieroglyphs
+blk; Egyptian_Hieroglyphs_Ext_A       ; Egyptian_Hieroglyphs_Extended_A
 blk; Elbasan                          ; Elbasan
 blk; Elymaic                          ; Elymaic
 blk; Emoticons                        ; Emoticons
@@ -257,6 +259,7 @@ blk; Ethiopic_Ext                     ; Ethiopic_Extended
 blk; Ethiopic_Ext_A                   ; Ethiopic_Extended_A
 blk; Ethiopic_Ext_B                   ; Ethiopic_Extended_B
 blk; Ethiopic_Sup                     ; Ethiopic_Supplement
+blk; Garay                            ; Garay
 blk; Geometric_Shapes                 ; Geometric_Shapes
 blk; Geometric_Shapes_Ext             ; Geometric_Shapes_Extended
 blk; Georgian                         ; Georgian
@@ -271,6 +274,7 @@ blk; Greek_Ext                        ; Greek_Extended
 blk; Gujarati                         ; Gujarati
 blk; Gunjala_Gondi                    ; Gunjala_Gondi
 blk; Gurmukhi                         ; Gurmukhi
+blk; Gurung_Khema                     ; Gurung_Khema
 blk; Half_And_Full_Forms              ; Halfwidth_And_Fullwidth_Forms
 blk; Half_Marks                       ; Combining_Half_Marks
 blk; Hangul                           ; Hangul_Syllables
@@ -311,6 +315,7 @@ blk; Khmer                            ; Khmer
 blk; Khmer_Symbols                    ; Khmer_Symbols
 blk; Khojki                           ; Khojki
 blk; Khudawadi                        ; Khudawadi
+blk; Kirat_Rai                        ; Kirat_Rai
 blk; Lao                              ; Lao
 blk; Latin_1_Sup                      ; Latin_1_Supplement               ; Latin_1
 blk; Latin_Ext_A                      ; Latin_Extended_A
@@ -367,6 +372,7 @@ blk; Music                            ; Musical_Symbols
 blk; Myanmar                          ; Myanmar
 blk; Myanmar_Ext_A                    ; Myanmar_Extended_A
 blk; Myanmar_Ext_B                    ; Myanmar_Extended_B
+blk; Myanmar_Ext_C                    ; Myanmar_Extended_C
 blk; Nabataean                        ; Nabataean
 blk; Nag_Mundari                      ; Nag_Mundari
 blk; Nandinagari                      ; Nandinagari
@@ -380,6 +386,7 @@ blk; Nyiakeng_Puachue_Hmong           ; Nyiakeng_Puachue_Hmong
 blk; OCR                              ; Optical_Character_Recognition
 blk; Ogham                            ; Ogham
 blk; Ol_Chiki                         ; Ol_Chiki
+blk; Ol_Onal                          ; Ol_Onal
 blk; Old_Hungarian                    ; Old_Hungarian
 blk; Old_Italic                       ; Old_Italic
 blk; Old_North_Arabian                ; Old_North_Arabian
@@ -425,6 +432,7 @@ blk; Soyombo                          ; Soyombo
 blk; Specials                         ; Specials
 blk; Sundanese                        ; Sundanese
 blk; Sundanese_Sup                    ; Sundanese_Supplement
+blk; Sunuwar                          ; Sunuwar
 blk; Sup_Arrows_A                     ; Supplemental_Arrows_A
 blk; Sup_Arrows_B                     ; Supplemental_Arrows_B
 blk; Sup_Arrows_C                     ; Supplemental_Arrows_C
@@ -438,6 +446,7 @@ blk; Sutton_SignWriting               ; Sutton_SignWriting
 blk; Syloti_Nagri                     ; Syloti_Nagri
 blk; Symbols_And_Pictographs_Ext_A    ; Symbols_And_Pictographs_Extended_A
 blk; Symbols_For_Legacy_Computing     ; Symbols_For_Legacy_Computing
+blk; Symbols_For_Legacy_Computing_Sup ; Symbols_For_Legacy_Computing_Supplement
 blk; Syriac                           ; Syriac
 blk; Syriac_Sup                       ; Syriac_Supplement
 blk; Tagalog                          ; Tagalog
@@ -460,8 +469,10 @@ blk; Thai                             ; Thai
 blk; Tibetan                          ; Tibetan
 blk; Tifinagh                         ; Tifinagh
 blk; Tirhuta                          ; Tirhuta
+blk; Todhri                           ; Todhri
 blk; Toto                             ; Toto
 blk; Transport_And_Map                ; Transport_And_Map_Symbols
+blk; Tulu_Tigalari                    ; Tulu_Tigalari
 blk; UCAS                             ; Unified_Canadian_Aboriginal_Syllabics; Canadian_Syllabics
 blk; UCAS_Ext                         ; Unified_Canadian_Aboriginal_Syllabics_Extended
 blk; UCAS_Ext_A                       ; Unified_Canadian_Aboriginal_Syllabics_Extended_A
@@ -909,6 +920,7 @@ InSC; Number_Joiner                   ; Number_Joiner
 InSC; Other                           ; Other
 InSC; Pure_Killer                     ; Pure_Killer
 InSC; Register_Shifter                ; Register_Shifter
+InSC; Reordering_Killer               ; Reordering_Killer
 InSC; Syllable_Modifier               ; Syllable_Modifier
 InSC; Tone_Letter                     ; Tone_Letter
 InSC; Tone_Mark                       ; Tone_Mark
@@ -1008,6 +1020,7 @@ jg ; Heh_Goal                         ; Heh_Goal
 jg ; Heth                             ; Heth
 jg ; Kaf                              ; Kaf
 jg ; Kaph                             ; Kaph
+jg ; Kashmiri_Yeh                     ; Kashmiri_Yeh
 jg ; Khaph                            ; Khaph
 jg ; Knotted_Heh                      ; Knotted_Heh
 jg ; Lam                              ; Lam
@@ -1073,7 +1086,7 @@ jg ; Syriac_Waw                       ; Syriac_Waw
 jg ; Tah                              ; Tah
 jg ; Taw                              ; Taw
 jg ; Teh_Marbuta                      ; Teh_Marbuta
-jg ; Teh_Marbuta_Goal                 ; Hamza_On_Heh_Goal
+jg ; Teh_Marbuta_Goal                 ; Teh_Marbuta_Goal                 ; Hamza_On_Heh_Goal
 jg ; Teth                             ; Teth
 jg ; Thin_Yeh                         ; Thin_Yeh
 jg ; Vertical_Tail                    ; Vertical_Tail
@@ -1164,6 +1177,11 @@ Lower; Y                              ; Yes                              ; T    
 
 Math; N                               ; No                               ; F                                ; False
 Math; Y                               ; Yes                              ; T                                ; True
+
+# Modifier_Combining_Mark (MCM)
+
+MCM; N                                ; No                               ; F                                ; False
+MCM; Y                                ; Yes                              ; T                                ; True
 
 # NFC_Quick_Check (NFC_QC)
 
@@ -1326,6 +1344,7 @@ sc ; Egyp                             ; Egyptian_Hieroglyphs
 sc ; Elba                             ; Elbasan
 sc ; Elym                             ; Elymaic
 sc ; Ethi                             ; Ethiopic
+sc ; Gara                             ; Garay
 sc ; Geor                             ; Georgian
 sc ; Glag                             ; Glagolitic
 sc ; Gong                             ; Gunjala_Gondi
@@ -1334,6 +1353,7 @@ sc ; Goth                             ; Gothic
 sc ; Gran                             ; Grantha
 sc ; Grek                             ; Greek
 sc ; Gujr                             ; Gujarati
+sc ; Gukh                             ; Gurung_Khema
 sc ; Guru                             ; Gurmukhi
 sc ; Hang                             ; Hangul
 sc ; Hani                             ; Han
@@ -1356,6 +1376,7 @@ sc ; Khmr                             ; Khmer
 sc ; Khoj                             ; Khojki
 sc ; Kits                             ; Khitan_Small_Script
 sc ; Knda                             ; Kannada
+sc ; Krai                             ; Kirat_Rai
 sc ; Kthi                             ; Kaithi
 sc ; Lana                             ; Tai_Tham
 sc ; Laoo                             ; Lao
@@ -1392,6 +1413,7 @@ sc ; Nkoo                             ; Nko
 sc ; Nshu                             ; Nushu
 sc ; Ogam                             ; Ogham
 sc ; Olck                             ; Ol_Chiki
+sc ; Onao                             ; Ol_Onal
 sc ; Orkh                             ; Old_Turkic
 sc ; Orya                             ; Oriya
 sc ; Osge                             ; Osage
@@ -1423,6 +1445,7 @@ sc ; Sogo                             ; Old_Sogdian
 sc ; Sora                             ; Sora_Sompeng
 sc ; Soyo                             ; Soyombo
 sc ; Sund                             ; Sundanese
+sc ; Sunu                             ; Sunuwar
 sc ; Sylo                             ; Syloti_Nagri
 sc ; Syrc                             ; Syriac
 sc ; Tagb                             ; Tagbanwa
@@ -1440,7 +1463,9 @@ sc ; Thai                             ; Thai
 sc ; Tibt                             ; Tibetan
 sc ; Tirh                             ; Tirhuta
 sc ; Tnsa                             ; Tangsa
+sc ; Todr                             ; Todhri
 sc ; Toto                             ; Toto
+sc ; Tutg                             ; Tulu_Tigalari
 sc ; Ugar                             ; Ugaritic
 sc ; Vaii                             ; Vai
 sc ; Vith                             ; Vithkuqi
@@ -1649,5 +1674,35 @@ XIDS; Y                               ; Yes                              ; T    
 # cjkRSUnicode (cjkRSUnicode)
 
 # @missing: 0000..10FFFF; cjkRSUnicode; <none>
+
+# kEH_Cat (kEH_Cat)
+
+# @missing: 0000..10FFFF; kEH_Cat; <none>
+
+# kEH_Desc (kEH_Desc)
+
+# @missing: 0000..10FFFF; kEH_Desc; <none>
+
+# kEH_HG (kEH_HG)
+
+# @missing: 0000..10FFFF; kEH_HG; <none>
+
+# kEH_IFAO (kEH_IFAO)
+
+# @missing: 0000..10FFFF; kEH_IFAO; <none>
+
+# kEH_JSesh (kEH_JSesh)
+
+# @missing: 0000..10FFFF; kEH_JSesh; <none>
+
+# kEH_NoMirror (kEH_NoMirror)
+
+kEH_NoMirror; N                       ; No                               ; F                                ; False
+kEH_NoMirror; Y                       ; Yes                              ; T                                ; True
+
+# kEH_NoRotate (kEH_NoRotate)
+
+kEH_NoRotate; N                       ; No                               ; F                                ; False
+kEH_NoRotate; Y                       ; Yes                              ; T                                ; True
 
 # EOF

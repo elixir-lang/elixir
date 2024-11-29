@@ -18,7 +18,7 @@ defmodule String do
       "hello world"
 
   The functions in this module act according to
-  [The Unicode Standard, Version 15.1.0](http://www.unicode.org/versions/Unicode15.1.0/).
+  [The Unicode Standard, Version 16.0.0](http://www.unicode.org/versions/Unicode16.0.0/).
 
   ## Interpolation
 
