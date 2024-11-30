@@ -6708,7 +6708,7 @@ defmodule Kernel do
 
   defp to_calendar_struct(type, fields) do
     quote do
-      %{unquote_splicing([__struct__: type] ++ fields)}
+      %unquote(type){unquote_splicing(fields)}
     end
   end
 
