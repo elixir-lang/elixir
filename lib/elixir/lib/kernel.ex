@@ -238,7 +238,7 @@ defmodule Kernel do
   When comparing two numbers of different types (a number being either
   an integer or a float), a conversion to the type with greater precision
   will always occur, unless the comparison operator used is either `===/2`
-  or `!==`. A float will be considered more precise than an integer, unless
+  or `!==/2`. A float will be considered more precise than an integer, unless
   the float is greater/less than +/-9007199254740992.0 respectively,
   at which point all the significant figures of the float are to the left
   of the decimal point. This behavior exists so that the comparison of large
@@ -247,9 +247,7 @@ defmodule Kernel do
   The collection types are compared using the following rules:
 
   * Tuples are compared by size, then element by element.
-  * Maps are compared by size, then by keys in ascending term order,
-    then by values in key order. In the specific case of maps' key
-    ordering, integers are always considered to be less than floats.
+  * Maps are compared by size, then by key-value pairs.
   * Lists are compared element by element.
   * Bitstrings are compared byte by byte, incomplete bytes are compared bit by bit.
   * Atoms are compared using their string value, codepoint by codepoint.
