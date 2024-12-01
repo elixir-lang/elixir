@@ -95,12 +95,12 @@ defmodule CodeTest do
       sample = """
       defmodule CodeTest.UnknownRemoteCall do
         def perform do
-          UnkownModule.foo()
+          UnknownModule.foo()
         end
       end
       """
 
-      assert {_, [%{position: {3, 18}}]} =
+      assert {_, [%{position: {3, 19}}]} =
                Code.with_diagnostics(fn ->
                  quoted = Code.string_to_quoted!(sample, columns: true)
                  Code.eval_quoted(quoted, [])

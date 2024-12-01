@@ -160,7 +160,7 @@ defmodule Module.Types.Descr do
   def gradual?(descr), do: is_map_key(descr, :dynamic)
 
   @doc """
-  Returns true if hte type only has a gradual part.
+  Returns true if the type only has a gradual part.
   """
   def only_gradual?(%{dynamic: _} = descr), do: map_size(descr) == 1
   def only_gradual?(_), do: false

@@ -782,7 +782,7 @@ defmodule Module.Types.DescrTest do
              |> tuple_delete_at(1)
              |> equal?(union(tuple([integer()]), dynamic(tuple([float()]))))
 
-      # Succesfully deleting at position `index` in a tuple means that the dynamic
+      # Successfully deleting at position `index` in a tuple means that the dynamic
       # values that succeed are intersected with tuples of size at least `index`
       assert dynamic(tuple()) |> tuple_delete_at(0) == dynamic(tuple())
       assert dynamic(term()) |> tuple_delete_at(0) == dynamic(tuple())
@@ -848,7 +848,7 @@ defmodule Module.Types.DescrTest do
                )
              )
 
-      # If you succesfully intersect at position index in a type, then the dynamic values
+      # If you successfully intersect at position index in a type, then the dynamic values
       # that succeed are intersected with tuples of size at least index
       assert dynamic(union(tuple(), integer()))
              |> tuple_insert_at(1, boolean())

@@ -234,8 +234,8 @@ defmodule PathTest do
 
     assert Path.relative_to_cwd(Path.dirname(File.cwd!()), force: true) == ".."
 
-    [slash | splitted_cwd] = Path.split(File.cwd!())
-    relative_to_root = List.duplicate("..", length(splitted_cwd))
+    [slash | split_cwd] = Path.split(File.cwd!())
+    relative_to_root = List.duplicate("..", length(split_cwd))
 
     assert Path.relative_to_cwd(slash) == slash
     assert Path.relative_to_cwd(slash, force: true) == Path.join(relative_to_root)
