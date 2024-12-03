@@ -326,7 +326,7 @@ defmodule String do
     recur_printable?(string, character_limit)
   end
 
-  defp recur_printable?(_string, 0), do: true
+  defp recur_printable?(<<_::binary>>, 0), do: true
   defp recur_printable?(<<>>, _character_limit), do: true
 
   for char <- 0x20..0x7E do
