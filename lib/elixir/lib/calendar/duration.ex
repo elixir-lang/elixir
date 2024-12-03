@@ -356,6 +356,81 @@ defmodule Duration do
   end
 
   @doc """
+  Converts the given `duration` to a human readable representation.
+
+  ## Examples
+
+      iex> Duration.to_string(Duration.new!(year: 3))
+      "3 years"
+      iex> Duration.to_string(Duration.new!(day: 40, hour: 12, minute: 42, second: 12))
+      "40 days, 12 hours, 42 minutes, 12 seconds"
+      iex> Duration.to_string(Duration.new!(second: 30))
+      "30 seconds"
+
+      iex> Duration.to_string(Duration.new!([]))
+      "0 seconds"
+
+      iex> Duration.to_string(Duration.new!(second: 1, microsecond: {2_200, 3}))
+      "1.002 seconds"
+      iex> Duration.to_string(Duration.new!(second: 1, microsecond: {-1_200_000, 4}))
+      "-0.2000 seconds"
+
+  """
+  @doc since: "1.18.0"
+  def to_string(%Duration{} = duration) do
+    case to_string_year(duration, []) do
+      [] ->
+        "0 seconds"
+
+      [part] ->
+        IO.iodata_to_binary(part)
+
+      parts ->
+        parts |> Enum.reduce(&[&1, ", " | &2]) |> IO.iodata_to_binary()
+    end
+  end
+
+  defp to_string_part(0, _singular, _plural, acc), do: acc
+  defp to_string_part(1, singular, _plural, acc), do: [["1" | singular] | acc]
+  defp to_string_part(x, _singular, plural, acc), do: [[Integer.to_string(x) | plural] | acc]
+
+  defp to_string_year(%{year: year} = duration, acc) do
+    to_string_month(duration, to_string_part(year, " year", " years", acc))
+  end
+
+  defp to_string_month(%{month: month} = duration, acc) do
+    to_string_week(duration, to_string_part(month, " month", " months", acc))
+  end
+
+  defp to_string_week(%{week: week} = duration, acc) do
+    to_string_day(duration, to_string_part(week, " week", " weeks", acc))
+  end
+
+  defp to_string_day(%{day: day} = duration, acc) do
+    to_string_hour(duration, to_string_part(day, " day", " days", acc))
+  end
+
+  defp to_string_hour(%{hour: hour} = duration, acc) do
+    to_string_minute(duration, to_string_part(hour, " hour", " hours", acc))
+  end
+
+  defp to_string_minute(%{minute: minute} = duration, acc) do
+    to_string_second(duration, to_string_part(minute, " minute", " minutes", acc))
+  end
+
+  defp to_string_second(%{second: 1, microsecond: {0, _}}, acc) do
+    ["1 second" | acc]
+  end
+
+  defp to_string_second(%{second: 0, microsecond: {0, _}}, acc) do
+    acc
+  end
+
+  defp to_string_second(%{second: s, microsecond: {ms, p}}, acc) do
+    [[second_component(s, ms, p) | " seconds"] | acc]
+  end
+
+  @doc """
   Converts the given `duration` to an [ISO 8601-2:2019](https://en.wikipedia.org/wiki/ISO_8601) formatted string.
 
   Note this function implements the *extension* of ISO 8601:2019. This extensions allows weeks to
@@ -407,15 +482,15 @@ defmodule Duration do
     []
   end
 
-  defp second_component(%{second: 0, microsecond: {_, 0}}) do
-    ~c"0S"
-  end
-
-  defp second_component(%{second: second, microsecond: {_, 0}}) do
-    [Integer.to_string(second), ?S]
-  end
-
   defp second_component(%{second: second, microsecond: {ms, p}}) do
+    [second_component(second, ms, p), ?S]
+  end
+
+  defp second_component(second, _ms, 0) do
+    Integer.to_string(second)
+  end
+
+  defp second_component(second, ms, p) do
     total_ms = second * @microseconds_per_second + ms
     second = total_ms |> div(@microseconds_per_second) |> abs()
     ms = total_ms |> rem(@microseconds_per_second) |> abs()
@@ -425,8 +500,7 @@ defmodule Duration do
       sign,
       Integer.to_string(second),
       ?.,
-      ms |> Integer.to_string() |> String.pad_leading(6, "0") |> binary_part(0, p),
-      ?S
+      ms |> Integer.to_string() |> String.pad_leading(6, "0") |> binary_part(0, p)
     ]
   end
 

@@ -358,4 +358,69 @@ defmodule DurationTest do
     assert %Duration{microsecond: {-800_000, 0}} |> Duration.to_iso8601() == "PT0S"
     assert %Duration{microsecond: {-1_200_000, 2}} |> Duration.to_iso8601() == "PT-1.20S"
   end
+
+  test "to_string/1" do
+    assert Duration.to_string(%Duration{year: 1, month: 2, day: 3, hour: 4, minute: 5, second: 6}) ==
+             "1 year, 2 months, 3 days, 4 hours, 5 minutes, 6 seconds"
+
+    assert Duration.to_string(%Duration{week: 3, hour: 5, minute: 3}) ==
+             "3 weeks, 5 hours, 3 minutes"
+
+    assert Duration.to_string(%Duration{hour: 5, minute: 3}) ==
+             "5 hours, 3 minutes"
+
+    assert Duration.to_string(%Duration{year: 1, month: 2, day: 3}) ==
+             "1 year, 2 months, 3 days"
+
+    assert Duration.to_string(%Duration{hour: 4, minute: 5, second: 6}) ==
+             "4 hours, 5 minutes, 6 seconds"
+
+    assert Duration.to_string(%Duration{year: 1, month: 2}) ==
+             "1 year, 2 months"
+
+    assert Duration.to_string(%Duration{day: 3}) ==
+             "3 days"
+
+    assert Duration.to_string(%Duration{hour: 4, minute: 5}) ==
+             "4 hours, 5 minutes"
+
+    assert Duration.to_string(%Duration{second: 6}) ==
+             "6 seconds"
+
+    assert Duration.to_string(%Duration{second: 1, microsecond: {600_000, 1}}) ==
+             "1.6 seconds"
+
+    assert Duration.to_string(%Duration{second: -1, microsecond: {-600_000, 1}}) ==
+             "-1.6 seconds"
+
+    assert Duration.to_string(%Duration{second: -1, microsecond: {-234_567, 6}}) ==
+             "-1.234567 seconds"
+
+    assert Duration.to_string(%Duration{second: 1, microsecond: {123_456, 6}}) ==
+             "1.123456 seconds"
+
+    assert Duration.to_string(%Duration{year: 3, week: 4, day: -3, second: -6}) ==
+             "3 years, 4 weeks, -3 days, -6 seconds"
+
+    assert Duration.to_string(%Duration{second: -4, microsecond: {-230_000, 2}}) ==
+             "-4.23 seconds"
+
+    assert Duration.to_string(%Duration{second: -4, microsecond: {230_000, 2}}) ==
+             "-3.77 seconds"
+
+    assert Duration.to_string(%Duration{second: 2, microsecond: {-1_200_000, 4}}) ==
+             "0.8000 seconds"
+
+    assert Duration.to_string(%Duration{second: 1, microsecond: {-1_200_000, 3}}) ==
+             "-0.200 seconds"
+
+    assert Duration.to_string(%Duration{microsecond: {-800_000, 2}}) ==
+             "-0.80 seconds"
+
+    assert Duration.to_string(%Duration{microsecond: {-800_000, 0}}) ==
+             "0 seconds"
+
+    assert Duration.to_string(%Duration{microsecond: {-1_200_000, 2}}) ==
+             "-1.20 seconds"
+  end
 end
