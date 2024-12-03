@@ -358,8 +358,7 @@ defmodule Duration do
   @doc """
   Converts the given `duration` to an [ISO 8601-2:2019](https://en.wikipedia.org/wiki/ISO_8601) formatted string.
 
-  Note this function implements the *extension* of ISO 8601:2019. This extensions allows weeks to
-  appear between months and days: `P3M3W3D`, making it fully compatible with any `Duration` struct.
+  This function implements the extension of ISO 8601:2019, allowing weeks to appear between months and days: `P3M3W3D`.
 
   ## Examples
 
