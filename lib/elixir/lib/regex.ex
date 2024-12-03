@@ -567,31 +567,31 @@ defmodule Regex do
 
   ## Examples
 
-      iex> Regex.split(~r{-}, "a-b-c")
+      iex> Regex.split(~r/-/, "a-b-c")
       ["a", "b", "c"]
 
-      iex> Regex.split(~r{-}, "a-b-c", parts: 2)
+      iex> Regex.split(~r/-/, "a-b-c", parts: 2)
       ["a", "b-c"]
 
-      iex> Regex.split(~r{-}, "abc")
+      iex> Regex.split(~r/-/, "abc")
       ["abc"]
 
-      iex> Regex.split(~r{}, "abc")
+      iex> Regex.split(~r//, "abc")
       ["", "a", "b", "c", ""]
 
-      iex> Regex.split(~r{a(?<second>b)c}, "abc")
+      iex> Regex.split(~r/a(?<second>b)c/, "abc")
       ["", ""]
 
-      iex> Regex.split(~r{a(?<second>b)c}, "abc", on: [:second])
+      iex> Regex.split(~r/a(?<second>b)c/, "abc", on: [:second])
       ["a", "c"]
 
-      iex> Regex.split(~r{(x)}, "Elixir", include_captures: true)
+      iex> Regex.split(~r/(x)/, "Elixir", include_captures: true)
       ["Eli", "x", "ir"]
 
-      iex> Regex.split(~r{a(?<second>b)c}, "abc", on: [:second], include_captures: true)
+      iex> Regex.split(~r/a(?<second>b)c/, "abc", on: [:second], include_captures: true)
       ["a", "b", "c"]
 
-      iex> Regex.split(~r{-}, "-a-b--c", trim: true)
+      iex> Regex.split(~r/-/, "-a-b--c", trim: true)
       ["a", "b", "c"]
 
   """
