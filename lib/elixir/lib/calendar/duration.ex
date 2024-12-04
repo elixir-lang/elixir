@@ -356,6 +356,114 @@ defmodule Duration do
   end
 
   @doc """
+  Converts the given `duration` to a human readable representation.
+
+  ## Options
+
+    * `:units` - the units to be used alongside each duration component.
+      The default units follow the ISO 80000-3 standard:
+
+          [
+            year: "a",
+            month: "mo",
+            week: "wk",
+            day: "d",
+            hour: "h",
+            minute: "min",
+            second: "s"
+          ]
+
+    * `:separator` - a string used to separate the distinct components. Defaults to `" "`.
+
+  ## Examples
+
+      iex> Duration.to_string(Duration.new!(second: 30))
+      "30s"
+      iex> Duration.to_string(Duration.new!(day: 40, hour: 12, minute: 42, second: 12))
+      "40d 12h 42min 12s"
+
+  By default, this function uses ISO 80000-3 units, which uses "a" for years.
+  But you can customize all units via the units option:
+
+      iex> Duration.to_string(Duration.new!(year: 3))
+      "3a"
+      iex> Duration.to_string(Duration.new!(year: 3), units: [year: "y"])
+      "3y"
+
+  You may also choose the separator:
+
+      iex> Duration.to_string(Duration.new!(day: 40, hour: 12, minute: 42, second: 12), separator: ", ")
+      "40d, 12h, 42min, 12s"
+
+  A duration without components is rendered as "0s":
+
+      iex> Duration.to_string(Duration.new!([]))
+      "0s"
+
+  Microseconds are rendered as part of seconds with the appropriate precision:
+
+      iex> Duration.to_string(Duration.new!(second: 1, microsecond: {2_200, 3}))
+      "1.002s"
+      iex> Duration.to_string(Duration.new!(second: 1, microsecond: {-1_200_000, 4}))
+      "-0.2000s"
+
+  """
+  @doc since: "1.18.0"
+  def to_string(%Duration{} = duration, opts \\ []) do
+    units = Keyword.get(opts, :units, [])
+    separator = Keyword.get(opts, :separator, " ")
+
+    case to_string_year(duration, [], units) do
+      [] ->
+        "0" <> Keyword.get(units, :second, "s")
+
+      [part] ->
+        IO.iodata_to_binary(part)
+
+      parts ->
+        parts |> Enum.reduce(&[&1, separator | &2]) |> IO.iodata_to_binary()
+    end
+  end
+
+  defp to_string_part(0, _units, _key, _default, acc),
+    do: acc
+
+  defp to_string_part(x, units, key, default, acc),
+    do: [[Integer.to_string(x) | Keyword.get(units, key, default)] | acc]
+
+  defp to_string_year(%{year: year} = duration, acc, units) do
+    to_string_month(duration, to_string_part(year, units, :year, "a", acc), units)
+  end
+
+  defp to_string_month(%{month: month} = duration, acc, units) do
+    to_string_week(duration, to_string_part(month, units, :month, "mo", acc), units)
+  end
+
+  defp to_string_week(%{week: week} = duration, acc, units) do
+    to_string_day(duration, to_string_part(week, units, :week, "wk", acc), units)
+  end
+
+  defp to_string_day(%{day: day} = duration, acc, units) do
+    to_string_hour(duration, to_string_part(day, units, :day, "d", acc), units)
+  end
+
+  defp to_string_hour(%{hour: hour} = duration, acc, units) do
+    to_string_minute(duration, to_string_part(hour, units, :hour, "h", acc), units)
+  end
+
+  defp to_string_minute(%{minute: minute} = duration, acc, units) do
+    to_string_second(duration, to_string_part(minute, units, :minute, "min", acc), units)
+  end
+
+  defp to_string_second(%{second: 0, microsecond: {0, _}}, acc, _units) do
+    acc
+  end
+
+  defp to_string_second(%{second: s, microsecond: {ms, p}}, acc, units) do
+    [[second_component(s, ms, p) | Keyword.get(units, :second, "s")] | acc]
+  end
+
+  @doc """
   Converts the given `duration` to an [ISO 8601-2:2019](https://en.wikipedia.org/wiki/ISO_8601) formatted string.
 
   This function implements the extension of ISO 8601:2019, allowing weeks to appear between months and days: `P3M3W3D`.
@@ -406,15 +514,15 @@ defmodule Duration do
     []
   end
 
-  defp second_component(%{second: 0, microsecond: {_, 0}}) do
-    ~c"0S"
-  end
-
-  defp second_component(%{second: second, microsecond: {_, 0}}) do
-    [Integer.to_string(second), ?S]
-  end
-
   defp second_component(%{second: second, microsecond: {ms, p}}) do
+    [second_component(second, ms, p), ?S]
+  end
+
+  defp second_component(second, _ms, 0) do
+    Integer.to_string(second)
+  end
+
+  defp second_component(second, ms, p) do
     total_ms = second * @microseconds_per_second + ms
     second = total_ms |> div(@microseconds_per_second) |> abs()
     ms = total_ms |> rem(@microseconds_per_second) |> abs()
@@ -424,8 +532,7 @@ defmodule Duration do
       sign,
       Integer.to_string(second),
       ?.,
-      ms |> Integer.to_string() |> String.pad_leading(6, "0") |> binary_part(0, p),
-      ?S
+      ms |> Integer.to_string() |> String.pad_leading(6, "0") |> binary_part(0, p)
     ]
   end
 
