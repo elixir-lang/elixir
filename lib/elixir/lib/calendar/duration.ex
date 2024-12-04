@@ -373,7 +373,7 @@ defmodule Duration do
             second: "s"
           ]
 
-    * `:separator` - how to separate the distinct components
+    * `:separator` - a string used to separate the distinct components. Defaults to `" "`.
 
   ## Examples
 
