@@ -1030,9 +1030,12 @@ defmodule DateTime do
   By default, `DateTime.to_iso8601/2` returns datetimes formatted in the "extended"
   format, for human readability. It also supports the "basic" format through passing the `:basic` option.
 
-  Only supports converting datetimes which are in the ISO calendar,
-  attempting to convert datetimes from other calendars will raise.
   You can also optionally specify an offset for the formatted string.
+  If none is given, the one in the given `datetime` is used.
+
+  Only supports converting datetimes which are in the ISO calendar.
+  If another calendar is given, it is automatically converted to ISO.
+  It raises if not possible.
 
   WARNING: the ISO 8601 datetime format does not contain the time zone nor
   its abbreviation, which means information is lost when converting to such
@@ -1345,6 +1348,11 @@ defmodule DateTime do
 
   @doc """
   Converts the given `datetime` to a string according to its calendar.
+
+  Unfortunately, there is no standard that specifies rendering of a
+  datetime with its complete time zone information, so Elixir uses a
+  custom (but relatively common) representation which appends the time
+  zone abbreviation and full name to the datetime.
 
   ### Examples
 

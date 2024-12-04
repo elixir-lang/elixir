@@ -358,76 +358,109 @@ defmodule Duration do
   @doc """
   Converts the given `duration` to a human readable representation.
 
+  ## Options
+
+    * `:units` - the units to be used alongside each duration component.
+      The default units follow the ISO 80000-3 standard:
+
+          [
+            year: "a",
+            month: "mo",
+            week: "wk",
+            day: "d",
+            hour: "h",
+            minute: "min",
+            second: "s"
+          ]
+
+    * `:separator` - how to separate the distinct components
+
   ## Examples
 
-      iex> Duration.to_string(Duration.new!(year: 3))
-      "3 years"
-      iex> Duration.to_string(Duration.new!(day: 40, hour: 12, minute: 42, second: 12))
-      "40 days, 12 hours, 42 minutes, 12 seconds"
       iex> Duration.to_string(Duration.new!(second: 30))
-      "30 seconds"
+      "30s"
+      iex> Duration.to_string(Duration.new!(day: 40, hour: 12, minute: 42, second: 12))
+      "40d 12h 42min 12s"
+
+  By default, this function uses ISO 80000-3 units, which uses "a" for years.
+  But you can customize all units via the units option:
+
+      iex> Duration.to_string(Duration.new!(year: 3))
+      "3a"
+      iex> Duration.to_string(Duration.new!(year: 3), units: [year: "y"])
+      "3y"
+
+  You may also choose the separator:
+
+      iex> Duration.to_string(Duration.new!(day: 40, hour: 12, minute: 42, second: 12), separator: ", ")
+      "40d, 12h, 42min, 12s"
+
+  A duration without components is rendered as "0s":
 
       iex> Duration.to_string(Duration.new!([]))
-      "0 seconds"
+      "0s"
+
+  Microseconds are rendered as part of seconds with the appropriate precision:
 
       iex> Duration.to_string(Duration.new!(second: 1, microsecond: {2_200, 3}))
-      "1.002 seconds"
+      "1.002s"
       iex> Duration.to_string(Duration.new!(second: 1, microsecond: {-1_200_000, 4}))
-      "-0.2000 seconds"
+      "-0.2000s"
 
   """
   @doc since: "1.18.0"
-  def to_string(%Duration{} = duration) do
-    case to_string_year(duration, []) do
+  def to_string(%Duration{} = duration, opts \\ []) do
+    units = Keyword.get(opts, :units, [])
+    separator = Keyword.get(opts, :separator, " ")
+
+    case to_string_year(duration, [], units) do
       [] ->
-        "0 seconds"
+        "0" <> Keyword.get(units, :second, "s")
 
       [part] ->
         IO.iodata_to_binary(part)
 
       parts ->
-        parts |> Enum.reduce(&[&1, ", " | &2]) |> IO.iodata_to_binary()
+        parts |> Enum.reduce(&[&1, separator | &2]) |> IO.iodata_to_binary()
     end
   end
 
-  defp to_string_part(0, _singular, _plural, acc), do: acc
-  defp to_string_part(1, singular, _plural, acc), do: [["1" | singular] | acc]
-  defp to_string_part(x, _singular, plural, acc), do: [[Integer.to_string(x) | plural] | acc]
+  defp to_string_part(0, _units, _key, _default, acc),
+    do: acc
 
-  defp to_string_year(%{year: year} = duration, acc) do
-    to_string_month(duration, to_string_part(year, " year", " years", acc))
+  defp to_string_part(x, units, key, default, acc),
+    do: [[Integer.to_string(x) | Keyword.get(units, key, default)] | acc]
+
+  defp to_string_year(%{year: year} = duration, acc, units) do
+    to_string_month(duration, to_string_part(year, units, :year, "a", acc), units)
   end
 
-  defp to_string_month(%{month: month} = duration, acc) do
-    to_string_week(duration, to_string_part(month, " month", " months", acc))
+  defp to_string_month(%{month: month} = duration, acc, units) do
+    to_string_week(duration, to_string_part(month, units, :month, "mo", acc), units)
   end
 
-  defp to_string_week(%{week: week} = duration, acc) do
-    to_string_day(duration, to_string_part(week, " week", " weeks", acc))
+  defp to_string_week(%{week: week} = duration, acc, units) do
+    to_string_day(duration, to_string_part(week, units, :week, "wk", acc), units)
   end
 
-  defp to_string_day(%{day: day} = duration, acc) do
-    to_string_hour(duration, to_string_part(day, " day", " days", acc))
+  defp to_string_day(%{day: day} = duration, acc, units) do
+    to_string_hour(duration, to_string_part(day, units, :day, "d", acc), units)
   end
 
-  defp to_string_hour(%{hour: hour} = duration, acc) do
-    to_string_minute(duration, to_string_part(hour, " hour", " hours", acc))
+  defp to_string_hour(%{hour: hour} = duration, acc, units) do
+    to_string_minute(duration, to_string_part(hour, units, :hour, "h", acc), units)
   end
 
-  defp to_string_minute(%{minute: minute} = duration, acc) do
-    to_string_second(duration, to_string_part(minute, " minute", " minutes", acc))
+  defp to_string_minute(%{minute: minute} = duration, acc, units) do
+    to_string_second(duration, to_string_part(minute, units, :minute, "min", acc), units)
   end
 
-  defp to_string_second(%{second: 1, microsecond: {0, _}}, acc) do
-    ["1 second" | acc]
-  end
-
-  defp to_string_second(%{second: 0, microsecond: {0, _}}, acc) do
+  defp to_string_second(%{second: 0, microsecond: {0, _}}, acc, _units) do
     acc
   end
 
-  defp to_string_second(%{second: s, microsecond: {ms, p}}, acc) do
-    [[second_component(s, ms, p) | " seconds"] | acc]
+  defp to_string_second(%{second: s, microsecond: {ms, p}}, acc, units) do
+    [[second_component(s, ms, p) | Keyword.get(units, :second, "s")] | acc]
   end
 
   @doc """
