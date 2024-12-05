@@ -624,6 +624,33 @@ defmodule Mix.Tasks.TestTest do
     end
   end
 
+  describe "test_load_filters and test_warn_filters" do
+    test "warns for files that are not loaded and don't match test_warn_filters" do
+      in_fixture("test_warn", fn ->
+        output = mix(["test"])
+
+        # This test relies on the files present in the test_warn fixture.
+        #
+        # We test that we don't warn about a_tests.exs, as it already matches the load pattern.
+        # Similarly, we ignore the empty but present ignored_file.exs and ignored_regex.exs.
+        # other_file.txt does not match the test_pattern and is ignored from the beginning.
+        #
+        # Therefore, we expect to get a warning for a_missing.exs and a_tests.ex.
+        assert output =~ """
+               the following files do not match any of the configured `:test_load_filters` / `:test_warn_filters`:
+
+               test/a_missing.exs
+               test/a_tests.ex
+
+               This might indicate a typo\
+               """
+
+        # the dummy test ran successfully
+        assert output =~ "1 test, 0 failures"
+      end)
+    end
+  end
+
   defp receive_until_match(port, expected, acc) do
     receive do
       {^port, {:data, output}} ->
