@@ -705,7 +705,7 @@ defmodule Logger do
   This guarantees all logger handlers flush to disk or storage.
   This is useful for testing but it should be avoided in production,
   as it could force logger handlers to drop whatever they are doing
-  and flush, even if continuing to buffer would be the most peformant
+  and flush, even if continuing to buffer would be the most performant
   option.
   """
   @spec flush :: :ok
