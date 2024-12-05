@@ -228,10 +228,21 @@ defmodule Mix.Tasks.Test do
       `["test"]` if the `test` directory exists, otherwise, it defaults to `[]`.
       It is expected that all test paths contain a `test_helper.exs` file
 
-    * `:test_pattern` - a pattern to load test files. Defaults to `*_test.exs`
+    * `:test_pattern` - a pattern to find potential test files.
+      Defaults to `*.{ex,exs}`
 
-    * `:warn_test_pattern` - a pattern to match potentially misnamed test files
-      and display a warning. Defaults to `*_test.ex`
+    * `:test_load_pattern` - a regular expression to load test files.
+      Defaults to `~r/.*_test\\.exs$/`
+
+    * `:test_warn_pattern` - a regular expression to match potentially
+      misnamed test files and display a warning.
+      Defaults to `~r/^(?!.*_helper\.exs$)(?:.*_test\.ex|.*\.exs)$/`,
+      matching any file that ends in `_test.ex` or `.exs`, ignoring files
+      ending in `_helper.exs`. Warnings can be disabled by setting this to
+      `nil` or `false`.
+
+    * `:test_warn_ignore_files` - a list of files to ignore when displaying
+      warnings about potentially misnamed test files. Defaults to `[]`.
 
   ## Coloring
 
@@ -595,20 +606,50 @@ defmodule Mix.Tasks.Test do
 
     # Prepare and extract all files to require and run
     test_paths = project[:test_paths] || default_test_paths()
-    test_pattern = project[:test_pattern] || "*_test.exs"
-    warn_test_pattern = project[:warn_test_pattern] || "*_test.ex"
+    test_pattern = project[:test_pattern] || "*.{ex,exs}"
+    test_load_pattern = project[:test_load_pattern] || ~r/.*_test\.exs$/
+
+    test_warn_pattern =
+      Keyword.get(project, :test_warn_pattern, ~r/^(?!.*_helper\.exs$)(?:.*_test\.ex|.*\.exs)$/)
+
+    test_warn_ignore_files = project[:test_warn_ignore_files] || []
+
+    # Warn about deprecated configurations
+    if project[:test_pattern] do
+      Mix.shell().info(
+        "warning: the `:test_pattern` configuration is deprecated and will be ignored. Use `:test_load_pattern` instead."
+      )
+    end
+
+    if project[:warn_test_pattern] do
+      Mix.shell().info(
+        "warning: the `:warn_test_pattern` configuration is deprecated and will be ignored. Use `:test_warn_pattern` instead."
+      )
+    end
 
     {test_files, test_opts} =
       if files != [], do: ExUnit.Filters.parse_paths(files), else: {test_paths, []}
 
-    unfiltered_test_files = Mix.Utils.extract_files(test_files, test_pattern)
+    # get a list of all files in the test folders, which we filter by the test_load_pattern
+    potential_test_files = Mix.Utils.extract_files(test_files, test_pattern)
+
+    unfiltered_test_files =
+      Enum.filter(potential_test_files, &Regex.match?(test_load_pattern, &1))
 
     matched_test_files =
       unfiltered_test_files
       |> filter_to_allowed_files(allowed_files)
       |> filter_by_partition(shell, partitions)
 
-    display_warn_test_pattern(test_files, test_pattern, unfiltered_test_files, warn_test_pattern)
+    # do not warn if test_warn_pattern is nil or false
+    test_warn_pattern &&
+      maybe_warn_misnamed_test_files(
+        potential_test_files,
+        unfiltered_test_files,
+        test_warn_ignore_files,
+        test_load_pattern,
+        test_warn_pattern
+      )
 
     try do
       Enum.each(test_paths, &require_test_helper(shell, &1))
@@ -679,13 +720,31 @@ defmodule Mix.Tasks.Test do
     end
   end
 
-  defp display_warn_test_pattern(test_files, test_pattern, matched_test_files, warn_test_pattern) do
-    files = Mix.Utils.extract_files(test_files, warn_test_pattern) -- matched_test_files
+  defp maybe_warn_misnamed_test_files(
+         potential_test_files,
+         unfiltered_test_files,
+         test_warn_ignore_files,
+         test_load_pattern,
+         test_warn_pattern
+       )
+       when is_struct(test_warn_pattern, Regex) do
+    missing_files = (potential_test_files -- unfiltered_test_files) -- test_warn_ignore_files
 
-    for file <- files do
-      Mix.shell().info(
-        "warning: #{file} does not match #{inspect(test_pattern)} and won't be loaded"
-      )
+    ignored = Enum.filter(missing_files, &Regex.match?(test_warn_pattern, &1))
+
+    if ignored != [] do
+      Mix.shell().info("""
+      warning: the following files do not match the test load pattern #{inspect(test_load_pattern)} and won't be loaded:
+
+      #{Enum.join(ignored, "\n")}
+
+      This might indicate a typo in a test file name (for example, using "foo_tests.exs" instead of "foo_test.exs").
+
+      You can adjust which files trigger this warning by configuring the `:test_warn_pattern` option in your
+      Mix project's configuration. To disable the warning entirely, set that option to false.
+
+      For more information, run `mix help test`.
+      """)
     end
   end
 
