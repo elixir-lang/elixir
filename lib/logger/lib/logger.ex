@@ -702,8 +702,11 @@ defmodule Logger do
   @doc """
   Flushes the logger.
 
-  This guarantees all log handlers are flushed. This is useful
-  for testing and it should not be called in production code.
+  This guarantees all logger handlers flush to disk or storage.
+  This is useful for testing but it should be avoided in production,
+  as it could force logger handlers to drop whatever they are doing
+  and flush, even if continuing to buffer would be the most peformant
+  option.
   """
   @spec flush :: :ok
   def flush do
