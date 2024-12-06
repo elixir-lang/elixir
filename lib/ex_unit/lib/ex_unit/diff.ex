@@ -989,7 +989,8 @@ defmodule ExUnit.Diff do
     container_to_algebra("%{", list, "}", diff_wrapper, select_map_item_to_algebra(list))
   end
 
-  defp safe_to_algebra({_, _, _} = quoted, _diff_wrapper) do
+  defp safe_to_algebra({_, meta, args} = quoted, _diff_wrapper)
+       when is_list(meta) and (is_list(args) or is_atom(args)) do
     Macro.to_string(quoted)
   end
 
@@ -1185,8 +1186,12 @@ defmodule ExUnit.Diff do
   defp update_diff_meta(literal, true),
     do: {:__block__, [diff: true], [literal]}
 
-  defp extract_diff_meta({:__block__, [diff: true], [literal]}), do: {literal, true}
-  defp extract_diff_meta({left, meta, right}), do: {{left, meta, right}, !!meta[:diff]}
+  defp extract_diff_meta({:__block__, [diff: true], [literal]}),
+    do: {literal, true}
+
+  defp extract_diff_meta({left, meta, right}) when is_list(meta),
+    do: {{left, meta, right}, !!meta[:diff]}
+
   defp extract_diff_meta(other), do: {other, false}
 
   defp keyword?(quoted) do

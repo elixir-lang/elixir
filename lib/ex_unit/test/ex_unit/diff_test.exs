@@ -649,6 +649,12 @@ defmodule ExUnit.DiffTest do
       "%-ExUnit.DiffTest.User-{age: 1-6-, -name: nil-}",
       "%+ExUnit.DiffTest.Person+{age: +2+1}"
     )
+
+    refute_diff(
+      %User{name: {:a, :b, :c}} == :error,
+      "-%ExUnit.DiffTest.User{name: {:a, :b, :c}, age: nil}-",
+      "+:error+"
+    )
   end
 
   test "structs with inspect" do
