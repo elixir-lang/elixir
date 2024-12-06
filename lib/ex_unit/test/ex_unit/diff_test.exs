@@ -580,6 +580,12 @@ defmodule ExUnit.DiffTest do
     refute_diff(%{a: 1, b: 12} == %{a: 1, b: 2}, "%{a: 1, b: -1-2}", "%{a: 1, b: 2}")
     refute_diff(%{a: 1, b: 2} == %{a: 1, b: 12}, "%{a: 1, b: 2}", "%{a: 1, b: +1+2}")
     refute_diff(%{a: 1, b: 2} == %{a: 1, c: 2}, "%{a: 1, -b: 2-}", "%{a: 1, +c: 2+}")
+
+    refute_diff(
+      %{name: {:a, :b, :c}} == :error,
+      "-%{name: {:a, :b, :c}}",
+      "+:error+"
+    )
   end
 
   test "structs" do
@@ -648,12 +654,6 @@ defmodule ExUnit.DiffTest do
       %User{age: 16} == %Person{age: 21},
       "%-ExUnit.DiffTest.User-{age: 1-6-, -name: nil-}",
       "%+ExUnit.DiffTest.Person+{age: +2+1}"
-    )
-
-    refute_diff(
-      %User{name: {:a, :b, :c}} == :error,
-      "-%ExUnit.DiffTest.User{name: {:a, :b, :c}, age: nil}-",
-      "+:error+"
     )
   end
 
