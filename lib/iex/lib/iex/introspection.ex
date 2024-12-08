@@ -635,7 +635,6 @@ defmodule IEx.Introspection do
   defp format_callback({{kind, name, _arity}, specs}) do
     Enum.map(specs, fn spec ->
       Typespec.spec_to_quoted(name, spec)
-      |> Macro.prewalk(&drop_macro_env/1)
       |> format_typespec(kind, 0)
     end)
   end
@@ -663,11 +662,6 @@ defmodule IEx.Introspection do
   defp format_optional_callbacks(callbacks) do
     format_typespec(callbacks, :optional_callbacks, 0)
   end
-
-  defp drop_macro_env({name, meta, [{:"::", _, [_, {{:., _, [Macro.Env, :t]}, _, _}]} | args]}),
-    do: {name, meta, args}
-
-  defp drop_macro_env(other), do: other
 
   @doc """
   Prints the types for the given module and type documentation.
