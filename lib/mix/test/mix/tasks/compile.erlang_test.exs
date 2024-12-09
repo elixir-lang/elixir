@@ -161,13 +161,13 @@ defmodule Mix.Tasks.Compile.ErlangTest do
 
       capture_io(fn -> Mix.Tasks.Compile.Erlang.run([]) end)
 
-      assert capture_io(fn ->
+      assert capture_io(:stderr, fn ->
                assert {:noop, _} = Mix.Tasks.Compile.Erlang.run([])
-             end) =~ ~r"has_warning.erl:2:(1:)? warning: function my_fn/0 is unused\n"
+             end) =~ ~r"has_warning.erl:2:(1:)? warning: function my_fn/0 is unused"
 
-      assert capture_io(fn ->
+      assert capture_io(:stderr, fn ->
                assert {:noop, _} = Mix.Tasks.Compile.Erlang.run([])
-             end) =~ ~r"has_warning.erl:2:(1:)? warning: function my_fn/0 is unused\n"
+             end) =~ ~r"has_warning.erl:2:(1:)? warning: function my_fn/0 is unused"
 
       # Should not print old warnings after fixing
       File.write!(file, """
