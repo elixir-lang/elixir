@@ -13,7 +13,7 @@ defprotocol JSON.Encoder do
 
       @derive JSON.Encoder
       defstruct ...
-      
+
   > #### Leaking Private Information {: .error}
   >
   > The `:except` approach should be used carefully to avoid
@@ -150,6 +150,13 @@ defimpl JSON.Encoder, for: Map do
   end
 end
 
+defmodule JSON.DecodeError do
+  @moduledoc """
+  The exception raised by `JSON.decode!/1`.
+  """
+  defexception [:message, :offset, :data]
+end
+
 defmodule JSON do
   @moduledoc ~S"""
   JSON encoding and decoding.
@@ -192,7 +199,7 @@ defmodule JSON do
 
   @moduledoc since: "1.18.0"
 
-  @type decode_error ::
+  @type decode_error_reason ::
           {:unexpected_end, non_neg_integer()}
           | {:invalid_byte, non_neg_integer(), byte()}
           | {:unexpected_sequence, non_neg_integer(), binary()}
@@ -211,11 +218,11 @@ defmodule JSON do
 
   The error tuple will have one of the following reasons.
 
-    * `{:unexpected_end, position}` if `binary` contains incomplete JSON value
-    * `{:invalid_byte, position, byte}` if `binary` contains unexpected byte or invalid UTF-8 byte
-    * `{:unexpected_sequence, position, bytes}` if `binary` contains invalid UTF-8 escape
+    * `{:unexpected_end, offset}` if `binary` contains incomplete JSON value
+    * `{:invalid_byte, offset, byte}` if `binary` contains unexpected byte or invalid UTF-8 byte
+    * `{:unexpected_sequence, offset, bytes}` if `binary` contains invalid UTF-8 escape
   """
-  @spec decode(binary()) :: {:ok, term()} | {:error, decode_error()}
+  @spec decode(binary()) :: {:ok, term()} | {:error, decode_error_reason()}
   def decode(binary) when is_binary(binary) do
     with {decoded, :ok, rest} <- decode(binary, :ok, []) do
       if rest == "" do
@@ -250,7 +257,7 @@ defmodule JSON do
 
   For streaming decoding, see Erlang's `:json` module.
   """
-  @spec decode(binary(), term(), keyword()) :: {term(), term(), binary()} | decode_error()
+  @spec decode(binary(), term(), keyword()) :: {term(), term(), binary()} | decode_error_reason()
   def decode(binary, acc, decoders) when is_binary(binary) and is_list(decoders) do
     decoders = Keyword.put_new(decoders, :null, nil)
 
@@ -261,14 +268,14 @@ defmodule JSON do
         {:error, {:unexpected_end, byte_size(binary)}}
 
       :error, {:invalid_byte, byte} ->
-        {:error, {:invalid_byte, position(__STACKTRACE__), byte}}
+        {:error, {:invalid_byte, offset(__STACKTRACE__), byte}}
 
       :error, {:unexpected_sequence, bytes} ->
-        {:error, {:unexpected_sequence, position(__STACKTRACE__), bytes}}
+        {:error, {:unexpected_sequence, offset(__STACKTRACE__), bytes}}
     end
   end
 
-  defp position(stacktrace) do
+  defp offset(stacktrace) do
     with [{_, _, _, opts} | _] <- stacktrace,
          %{cause: %{position: position}} <- opts[:error_info] do
       position
@@ -293,14 +300,23 @@ defmodule JSON do
       {:ok, decoded} ->
         decoded
 
-      {:error, {:unexpected_end, position}} ->
-        raise ArgumentError, "unexpected end of JSON binary at position #{position}"
+      {:error, {:unexpected_end, offset}} ->
+        raise JSON.DecodeError,
+          message: "unexpected end of JSON binary at position (byte offset) #{offset}",
+          data: binary,
+          offset: offset
 
-      {:error, {:invalid_byte, position, byte}} ->
-        raise ArgumentError, "invalid byte #{byte} at position #{position}"
+      {:error, {:invalid_byte, offset, byte}} ->
+        raise JSON.DecodeError,
+          message: "invalid byte #{byte} at position (byte offset) #{offset}",
+          data: binary,
+          offset: offset
 
-      {:error, {:unexpected_sequence, position, bytes}} ->
-        raise ArgumentError, "unexpected sequence #{inspect(bytes)} at position #{position}"
+      {:error, {:unexpected_sequence, offset, bytes}} ->
+        raise JSON.DecodeError,
+          message: "unexpected sequence #{inspect(bytes)} at position (byte offset) #{offset}",
+          data: binary,
+          offset: offset
     end
   end
 
@@ -316,6 +332,7 @@ defmodule JSON do
       "[123,\"string\",{\"key\":\"value\"}]"
 
   """
+  @spec encode!(a, (a -> iodata())) :: binary() when a: var
   def encode!(term, encoder \\ &encode_value/2) do
     IO.iodata_to_binary(encoder.(term, encoder))
   end
@@ -336,6 +353,7 @@ defmodule JSON do
       "[123,\"string\",{\"key\":\"value\"}]"
 
   """
+  @spec encode!(a, (a -> iodata())) :: iodata() when a: var
   def encode_to_iodata!(term, encoder \\ &encode_value/2) do
     encoder.(term, encoder)
   end

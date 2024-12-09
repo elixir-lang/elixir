@@ -148,26 +148,26 @@ defmodule JSONTest do
     test "unexpected end" do
       assert JSON.decode("{") == {:error, {:unexpected_end, 1}}
 
-      assert_raise ArgumentError, "unexpected end of JSON binary at position 1", fn ->
-        JSON.decode!("{")
-      end
+      assert_raise JSON.DecodeError,
+                   "unexpected end of JSON binary at position (byte offset) 1",
+                   fn -> JSON.decode!("{") end
     end
 
     test "invalid byte" do
       assert JSON.decode(",") == {:error, {:invalid_byte, 0, ?,}}
       assert JSON.decode("123o") == {:error, {:invalid_byte, 3, ?o}}
 
-      assert_raise ArgumentError, "invalid byte 111 at position 3", fn ->
-        JSON.decode!("123o")
-      end
+      assert_raise JSON.DecodeError,
+                   "invalid byte 111 at position (byte offset) 3",
+                   fn -> JSON.decode!("123o") end
     end
 
     test "unexpected sequence" do
       assert JSON.decode("\"\\ud8aa\\udcxx\"") ==
                {:error, {:unexpected_sequence, 1, "\\ud8aa\\udcxx"}}
 
-      assert_raise ArgumentError,
-                   "unexpected sequence \"\\\\ud8aa\\\\udcxx\" at position 1",
+      assert_raise JSON.DecodeError,
+                   "unexpected sequence \"\\\\ud8aa\\\\udcxx\" at position (byte offset) 1",
                    fn -> JSON.decode!("\"\\ud8aa\\udcxx\"") end
     end
   end
