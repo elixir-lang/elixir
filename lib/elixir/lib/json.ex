@@ -9,17 +9,22 @@ defprotocol JSON.Encoder do
         defstruct ...
 
   It is also possible to encode all fields or skip some fields via the
-  `:except` option, although this should be used carefully to avoid
-  accidentally leaking private information when new fields are added:
+  `:except` option:
 
       @derive JSON.Encoder
       defstruct ...
+      
+  > #### Leaking Private Information {: .error}
+  >
+  > The `:except` approach should be used carefully to avoid
+  > accidentally leaking private information when new fields are added.
 
   Finally, if you don't own the struct you want to encode to JSON,
-  you may use Protocol.derive/3 placed outside of any module:
+  you may use `Protocol.derive/3` placed outside of any module:
 
       Protocol.derive(JSON.Encoder, NameOfTheStruct, only: [...])
       Protocol.derive(JSON.Encoder, NameOfTheStruct)
+
   """
 
   @undefined_impl_description """
@@ -99,7 +104,7 @@ defprotocol JSON.Encoder do
   end
 
   @doc """
-  A function invoked to encode the given term.
+  A function invoked to encode the given term to `t:iodata/0`.
   """
   def encode(term, encoder)
 end
@@ -210,7 +215,7 @@ defmodule JSON do
     * `{:invalid_byte, position, byte}` if `binary` contains unexpected byte or invalid UTF-8 byte
     * `{:unexpected_sequence, position, bytes}` if `binary` contains invalid UTF-8 escape
   """
-  @spec decode(binary()) :: {:ok, term()} | decode_error()
+  @spec decode(binary()) :: {:ok, term()} | {:error, decode_error()}
   def decode(binary) when is_binary(binary) do
     with {decoded, :ok, rest} <- decode(binary, :ok, []) do
       if rest == "" do
@@ -275,13 +280,14 @@ defmodule JSON do
   @doc ~S"""
   Decodes the given JSON but raises an exception in case of errors.
 
-  Returns the decoded content. See `decode!/1` for possible errors.
+  Returns the decoded content. See `decode/1` for possible errors.
 
   ## Examples
 
       iex> JSON.decode!("[null,123,\"string\",{\"key\":\"value\"}]")
       [nil, 123, "string", %{"key" => "value"}]
   """
+  @spec decode!(binary()) :: term()
   def decode!(binary) when is_binary(binary) do
     case decode(binary) do
       {:ok, decoded} ->
