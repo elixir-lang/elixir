@@ -96,11 +96,11 @@ defmodule Map do
       iex> %{map | one: "one"}
       %{one: "one", two: 2}
 
-  Or any other key:
+  Or any other keys:
 
-      iex> other_map = %{"three" => 3, "four" => 4}
-      iex> %{other_map | "three" => "three"}
-      %{"four" => 4, "three" => "three"}
+      iex> other_map = %{"three" => 3, "four" => 4, "five" => 5}
+      iex> %{other_map | "three" => "three", "four" => "four"}
+      %{"five" => 5, "four" => "four", "three" => "three"}
 
   When a key that does not exist in the map is updated a `KeyError` exception will be raised:
 
