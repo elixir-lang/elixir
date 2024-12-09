@@ -99,6 +99,7 @@ canonical = System.fetch_env!("CANONICAL")
       Float,
       Function,
       Integer,
+      JSON,
       Module,
       NaiveDateTime,
       Record,
@@ -159,6 +160,7 @@ canonical = System.fetch_env!("CANONICAL")
     Protocols: [
       Collectable,
       Enumerable,
+      JSON.Encoder,
       Inspect,
       Inspect.Algebra,
       Inspect.Opts,
