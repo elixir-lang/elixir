@@ -376,7 +376,7 @@ defmodule Mix.Tasks.Escript.Build do
       quote do
         @spec main(OptionParser.argv()) :: any
         def main(args) do
-          unquote(main_body_for(language, module, app, compile_config, runtime_config))
+          unquote(main_body_for(language, module, compile_config, runtime_config))
         end
 
         defp load_config(config) do
@@ -389,33 +389,8 @@ defmodule Mix.Tasks.Escript.Build do
           :ok
         end
 
-        defp start_app(nil) do
-          :ok
-        end
-
-        defp start_app(app) do
-          case :application.ensure_all_started(app) do
-            {:ok, _} ->
-              :ok
-
-            {:error, {app, reason}} ->
-              formatted_error =
-                case :code.ensure_loaded(Application) do
-                  {:module, Application} -> Application.format_error(reason)
-                  {:error, _} -> :io_lib.format(~c"~p", [reason])
-                end
-
-              error_message = [
-                "ERROR! Could not start application ",
-                :erlang.atom_to_binary(app, :utf8),
-                ": ",
-                formatted_error,
-                ?\n
-              ]
-
-              io_error(error_message)
-              :erlang.halt(1)
-          end
+        defp start_app() do
+          unquote(start_app_for(app))
         end
 
         defp io_error(message) do
@@ -427,7 +402,7 @@ defmodule Mix.Tasks.Escript.Build do
     [{~c"#{name}.beam", binary}]
   end
 
-  defp main_body_for(:elixir, module, app, compile_config, runtime_config) do
+  defp main_body_for(:elixir, module, compile_config, runtime_config) do
     config =
       if runtime_config do
         quote do
@@ -452,7 +427,7 @@ defmodule Mix.Tasks.Escript.Build do
           args = Enum.map(args, &List.to_string(&1))
           System.argv(args)
           load_config(unquote(config))
-          start_app(unquote(app))
+          start_app()
           Kernel.CLI.run(fn _ -> unquote(module).main(args) end)
 
         error ->
@@ -462,11 +437,42 @@ defmodule Mix.Tasks.Escript.Build do
     end
   end
 
-  defp main_body_for(:erlang, module, app, compile_config, _runtime_config) do
+  defp main_body_for(:erlang, module, compile_config, _runtime_config) do
     quote do
       load_config(unquote(compile_config))
-      start_app(unquote(app))
+      start_app()
       unquote(module).main(args)
+    end
+  end
+
+  defp start_app_for(nil) do
+    :ok
+  end
+
+  defp start_app_for(app) do
+    quote do
+      case :application.ensure_all_started(unquote(app)) do
+        {:ok, _} ->
+          :ok
+
+        {:error, {app, reason}} ->
+          formatted_error =
+            case :code.ensure_loaded(Application) do
+              {:module, Application} -> Application.format_error(reason)
+              {:error, _} -> :io_lib.format(~c"~p", [reason])
+            end
+
+          error_message = [
+            "ERROR! Could not start application ",
+            :erlang.atom_to_binary(app, :utf8),
+            ": ",
+            formatted_error,
+            ?\n
+          ]
+
+          io_error(error_message)
+          :erlang.halt(1)
+      end
     end
   end
 end
