@@ -190,7 +190,7 @@ defmodule Kernel.WarningTest do
       )
 
       assert_warn_eval(
-        ["nofile:1:3", "found quoted keyword \"foo\" but the quotes are not required"],
+        ["nofile:1:2", "found quoted keyword \"foo\" but the quotes are not required"],
         ~s/["foo": :bar]/
       )
 

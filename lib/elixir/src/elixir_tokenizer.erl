@@ -266,11 +266,7 @@ tokenize([$" | T], Line, Column, Scope, Tokens) ->
 
 %% TODO: Remove me in Elixir v2.0
 tokenize([$' | T], Line, Column, Scope, Tokens) ->
-  Message = "single-quoted strings represent charlists. "
-    "Use ~c\"\" if you indeed want a charlist or use \"\" instead.\n"
-    "You may run \"mix format --migrate\" to fix this warning automatically.",
-  NewScope = prepend_warning(Line, Column, Message, Scope),
-  handle_strings(T, Line, Column + 1, $', NewScope, Tokens);
+  handle_strings(T, Line, Column + 1, $', Scope, Tokens);
 
 % Operator atoms
 
@@ -786,7 +782,11 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
             "number do not require quotes",
             [hd(Parts)]
           ),
-          prepend_warning(Line, Column, WarnMsg, InterScope);
+          prepend_warning(Line, Column-1, WarnMsg, InterScope);
+
+        false when H =:= $' ->
+          WarnMsg = "single quotes around keywords are deprecated. Use double quotes instead",
+          prepend_warning(Line, Column-1, WarnMsg, InterScope);
 
         false ->
           InterScope
@@ -814,7 +814,19 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
           error(Reason, Rest, NewScope, Tokens)
       end;
 
-    {NewLine, NewColumn, Parts, Rest, NewScope} ->
+    {NewLine, NewColumn, Parts, Rest, InterScope} ->
+      NewScope =
+        case H of
+          $' ->
+            Message = "single-quoted strings represent charlists. "
+              "Use ~c\"\" if you indeed want a charlist or use \"\" instead.\n"
+              "You may run \"mix format --migrate\" to fix this warning automatically.",
+            prepend_warning(Line, Column-1, Message, InterScope);
+
+          _ ->
+            InterScope
+        end,
+
       case unescape_tokens(Parts, Line, Column, NewScope) of
         {ok, Unescaped} ->
           Token = {string_type(H), {Line, Column - 1, nil}, Unescaped},
