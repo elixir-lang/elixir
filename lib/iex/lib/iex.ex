@@ -391,16 +391,17 @@ defmodule IEx do
 
   The supported options are:
 
-    * `:colors`
-    * `:inspect`
-    * `:width`
-    * `:history_size`
-    * `:default_prompt`
-    * `:continuation_prompt`
-    * `:alive_prompt`
+    * `:auto_reload`
     * `:alive_continuation_prompt`
-    * `:parser`
+    * `:alive_prompt`
+    * `:colors`
+    * `:continuation_prompt`
+    * `:default_prompt`
     * `:dot_iex`
+    * `:history_size`
+    * `:inspect`
+    * `:parser`
+    * `:width`
 
   They are discussed individually in the sections below.
 
@@ -488,9 +489,6 @@ defmodule IEx do
     * `:alive_continuation_prompt` - used when `Node.alive?/0` returns
       `true` and more input is expected
 
-    * `:auto_reload` - when set to `true`, automatically purges in-memory
-      modules when they get invalidated by a concurrent compilation
-
   The following values in the prompt string will be replaced appropriately:
 
     * `%counter` - the index of the history
@@ -510,10 +508,16 @@ defmodule IEx do
 
   If the parser raises, the buffer is reset to an empty string.
 
-  ## dot_iex
+  ## `.iex`
 
   Configure the file loaded into your IEx session when it starts.
   See more information [in the `.iex.exs` documentation](`m:IEx#module-the-iex-exs-file`).
+
+  ## Auto reloading
+
+  When set to `true`, the `:auto_reload` option automatically purges
+  in-memory modules when they get invalidated by a concurrent compilation
+  happening in the Operating System.
   """
   @spec configure(keyword()) :: :ok
   def configure(options) do
