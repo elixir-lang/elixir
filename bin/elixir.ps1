@@ -1,6 +1,6 @@
 #!/usr/bin/env pwsh
 
-$ELIXIR_VERSION = "1.18.0-dev"
+$ELIXIR_VERSION = "1.18.0-rc.0"
 
 $scriptPath = Split-Path -Parent $PSCommandPath
 $erlExec = "erl"

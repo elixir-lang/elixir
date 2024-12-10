@@ -182,7 +182,7 @@ If you have a struct, you can derive the implementation of the `JSON.Encoder`
 by specifying which fields should be encoded to JSON:
 
 ```elixir
-  @derive {JSON.Encoder, only: [....]}
+  @derive {JSON.Encoder, only: [...]}
   defstruct ...
 ```
 
@@ -219,7 +219,7 @@ You may also prefer to write using guards:
 
     def foo(x, y, z) when x == y and y == z
 
-## v1.18.0-dev
+## v1.18.0-rc.0 (2024-12-10)
 
 ### 1. Enhancements
 
