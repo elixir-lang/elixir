@@ -26,27 +26,22 @@
 -type struct() :: #{'__struct__' := atom(), atom() => any()}.
 
 %% OTP Application API
-%% TODO: Remove Erlang/OTP 26+ checks
-
-load_paths(OTP, Paths) when OTP >= 26 -> code:add_pathsa(Paths, cache);
-load_paths(_OTP, Paths) -> code:add_pathsa(Paths).
 
 start(_Type, _Args) ->
-  OTP = parse_otp_release(),
   preload_common_modules(),
-  set_stdio_and_stderr_to_binary_and_maybe_utf8(OTP),
+  ok = io:setopts(standard_io, [binary]),
   check_file_encoding(file:native_name_encoding()),
 
   case init:get_argument(elixir_root) of
     {ok, [[Root]]} ->
-      load_paths(OTP, [
+      code:add_pathsa([
         Root ++ "/eex/ebin",
         Root ++ "/ex_unit/ebin",
         Root ++ "/iex/ebin",
         Root ++ "/logger/ebin",
         Root ++ "/mix/ebin",
         Root ++ "/elixir/ebin"
-      ]);
+      ], cache);
     _ ->
       ok
   end,
@@ -57,11 +52,11 @@ start(_Type, _Args) ->
   end,
 
   case application:get_env(elixir, ansi_enabled) of
-    {ok, _} -> ok;
+    {ok, _} ->
+      ok;
+
     undefined ->
-      %% Remove prim_tty module check as well as checks from scripts on Erlang/OTP 26
-      ANSIEnabled = erlang:module_loaded(prim_tty) andalso (prim_tty:isatty(stdout) == true),
-      application:set_env(elixir, ansi_enabled, ANSIEnabled)
+      application:set_env(elixir, ansi_enabled, prim_tty:isatty(stdout) == true)
   end,
 
   Tokenizer = case code:ensure_loaded('Elixir.String.Tokenizer') of
@@ -117,19 +112,6 @@ stop(Tab) ->
 config_change(_Changed, _New, _Remove) ->
   ok.
 
-set_stdio_and_stderr_to_binary_and_maybe_utf8(OTP) when OTP >= 26 ->
-  ok = io:setopts(standard_io, [binary]),
-  ok;
-set_stdio_and_stderr_to_binary_and_maybe_utf8(_OTP) ->
-  Opts =
-    case init:get_argument(noshell) of
-      {ok, _} -> [binary, {encoding, utf8}];
-      error   -> [binary]
-    end,
-  ok = io:setopts(standard_io, Opts),
-  ok = io:setopts(standard_error, [{encoding, utf8}]),
-  ok.
-
 preload_common_modules() ->
   %% We attempt to load those modules here so throughout
   %% the codebase we can avoid code:ensure_loaded/1 checks.
@@ -140,10 +122,10 @@ preload_common_modules() ->
 parse_otp_release() ->
   %% Whenever we change this check, we should also change Makefile.
   case string:to_integer(erlang:system_info(otp_release)) of
-    {Num, _} when Num >= 25 ->
+    {Num, _} when Num >= 26 ->
       Num;
     _ ->
-      io:format(standard_error, "ERROR! Unsupported Erlang/OTP version, expected Erlang/OTP 25+~n", []),
+      io:format(standard_error, "ERROR! Unsupported Erlang/OTP version, expected Erlang/OTP 26+~n", []),
       erlang:halt(1)
   end.
 
@@ -177,19 +159,9 @@ check_file_encoding(Encoding) ->
   end.
 
 %% Boot and process given options. Invoked by Elixir's script.
-%% TODO: Delete prim_tty branches on Erlang/OTP 26.
 
 start() ->
-  case code:ensure_loaded(prim_tty) of
-    {module, _} ->
-      user_drv:start(#{initial_shell => iex:shell()});
-    {error, _} ->
-      case init:get_argument(elixir_root) of
-        {ok, [[Root]]} -> code:add_patha(Root ++ "/iex/ebin");
-        _ -> ok
-      end,
-      'Elixir.IEx.CLI':deprecated()
-  end.
+  user_drv:start(#{initial_shell => iex:shell()}).
 
 start_cli() ->
   {ok, _} = application:ensure_all_started(elixir),

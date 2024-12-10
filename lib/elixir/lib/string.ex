@@ -1829,7 +1829,6 @@ defmodule String do
   the `:fast_ascii` algorithm to see if it yields performance benefits in your
   specific scenario:
 
-  * You are running Erlang/OTP 26 or newer on a 64 bit platform
   * You expect most of your strings to be longer than ~64 bytes
   * You expect most of your strings to contain mostly ASCII codepoints
 

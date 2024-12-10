@@ -343,7 +343,7 @@ defmodule Code do
 
     * `:cache` - (since v1.15.0) when true, the code path is cached
       the first time it is traversed in order to reduce file system
-      operations. It requires Erlang/OTP 26, otherwise it is a no-op.
+      operations.
 
   """
   @spec append_path(Path.t(), cache: boolean()) :: true | false
@@ -374,7 +374,7 @@ defmodule Code do
 
     * `:cache` - (since v1.15.0) when true, the code path is cached
       the first time it is traversed in order to reduce file system
-      operations. It requires Erlang/OTP 26, otherwise it is a no-op.
+      operations.
 
   """
   @spec prepend_path(Path.t(), cache: boolean()) :: boolean()
@@ -403,7 +403,7 @@ defmodule Code do
 
     * `:cache` - when true, the code path is cached the first time
       it is traversed in order to reduce file system operations.
-      It requires Erlang/OTP 26, otherwise it is a no-op.
+
   """
   @doc since: "1.15.0"
   @spec prepend_paths([Path.t()], cache: boolean()) :: :ok
@@ -432,7 +432,7 @@ defmodule Code do
 
     * `:cache` - when true, the code path is cached the first time
       it is traversed in order to reduce file system operations.
-      It requires Erlang/OTP 26, otherwise it is a no-op.
+
   """
   @doc since: "1.15.0"
   @spec append_paths([Path.t()], cache: boolean()) :: :ok

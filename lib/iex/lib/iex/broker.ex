@@ -10,34 +10,10 @@ defmodule IEx.Broker do
   ## Shell API
 
   @doc """
-  Finds the IEx server.
-  """
-  @spec shell :: shell()
-  # TODO: Use shell:whereis() from Erlang/OTP 26+.
-  def shell() do
-    if user = Process.whereis(:user) do
-      if user_drv = get_from_dict(user, :user_drv) do
-        if group = get_from_dict(user_drv, :current_group) do
-          get_from_dict(group, :shell)
-        end
-      end
-    end
-  end
-
-  defp get_from_dict(pid, key) do
-    with {:dictionary, dictionary} <- Process.info(pid, :dictionary),
-         {^key, value} <- List.keyfind(dictionary, key, 0) do
-      value
-    else
-      _ -> nil
-    end
-  end
-
-  @doc """
   Finds the evaluator and server running inside `:user_drv`, on this node exclusively.
   """
   @spec evaluator(shell()) :: {evaluator :: pid, server :: pid} | nil
-  def evaluator(pid \\ shell()) do
+  def evaluator(pid \\ :shell.whereis()) do
     if pid do
       {:dictionary, dictionary} = Process.info(pid, :dictionary)
       {dictionary[:evaluator], pid}

@@ -29,8 +29,6 @@ jobs:
             otp_latest: true
           - otp_version: "27.0"
           - otp_version: "26.0"
-          - otp_version: "25.3"
-          - otp_version: "25.0"
           - otp_version: master
             development: true
           - otp_version: maint
@@ -81,7 +79,7 @@ jobs:
     name: Windows Server 2019, Erlang/OTP ${{ matrix.otp_version }}
     strategy:
       matrix:
-        otp_version: ["25.3", "26.2", "27.1"]
+        otp_version: ["26.2", "27.1"]
     runs-on: windows-2022
     steps:
       - name: Configure Git

@@ -908,8 +908,7 @@ defmodule Application do
       `:permanent`, or `:transient`. See `t:restart_type/1` for more information.
 
     * `:mode` - (since v1.15.0) if the applications should be started serially
-      (`:serial`, default) or concurrently (`:concurrent`). This option requires
-      Erlang/OTP 26+.
+      (`:serial`, default) or concurrently (`:concurrent`).
 
   """
   @spec ensure_all_started(app | [app], type: restart_type(), mode: :serial | :concurrent) ::
@@ -930,18 +929,7 @@ defmodule Application do
 
   def ensure_all_started(apps, opts) when is_list(apps) and is_list(opts) do
     opts = Keyword.validate!(opts, type: :temporary, mode: :serial)
-
-    if function_exported?(:application, :ensure_all_started, 3) do
-      :application.ensure_all_started(apps, opts[:type], opts[:mode])
-    else
-      # TODO: Remove this clause when we require Erlang/OTP 26+
-      Enum.reduce_while(apps, {:ok, []}, fn app, {:ok, acc} ->
-        case :application.ensure_all_started(app, opts[:type]) do
-          {:ok, apps} -> {:cont, {:ok, apps ++ acc}}
-          {:error, e} -> {:halt, {:error, e}}
-        end
-      end)
-    end
+    :application.ensure_all_started(apps, opts[:type], opts[:mode])
   end
 
   @doc """

@@ -20,8 +20,7 @@ defmodule Mix.Tasks.App.Start do
       applications are started in permanent mode. Defaults to `false`.
 
     * `:start_concurrently` - applications are started concurrently
-      whenever possible. This option only has an effect on Erlang/OTP 26+.
-      Defaults to `false`.
+      whenever possible. Defaults to `false`.
 
   ## Command line options
 
