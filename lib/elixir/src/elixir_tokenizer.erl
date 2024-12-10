@@ -488,16 +488,16 @@ tokenize([T | Rest], Line, Column, Scope, Tokens) when ?pipe_op(T) ->
 
 % Non-operator Atoms
 
-tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) ->
-  OuterScope = case H == $' of
+tokenize([$:, H | T] = Original, Line, Column, BaseScope, Tokens) when ?is_quote(H) ->
+  Scope = case H == $' of
     true ->
-      prepend_warning(Line, Column, "single quotes around atoms are deprecated. Use double quotes instead.", Scope);
+      prepend_warning(Line, Column, "single quotes around atoms are deprecated. Use double quotes instead", BaseScope);
 
     false ->
-      Scope
+      BaseScope
   end,
 
-  case elixir_interpolation:extract(Line, Column + 2, OuterScope, true, T, H) of
+  case elixir_interpolation:extract(Line, Column + 2, Scope, true, T, H) of
     {NewLine, NewColumn, Parts, Rest, InterScope} ->
       NewScope = case is_unnecessary_quote(Parts, InterScope) of
         true ->
@@ -516,7 +516,7 @@ tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) 
 
       case unescape_tokens(Parts, Line, Column, NewScope) of
         {ok, [Part]} when is_binary(Part) ->
-          case unsafe_to_atom(Part, Line, Column, OuterScope) of
+          case unsafe_to_atom(Part, Line, Column, Scope) of
             {ok, Atom} ->
               Token = {atom_quoted, {Line, Column, H}, Atom},
               tokenize(Rest, NewLine, NewColumn, NewScope, [Token | Tokens]);
@@ -526,7 +526,7 @@ tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) 
           end;
 
         {ok, Unescaped} ->
-          Key = case OuterScope#elixir_tokenizer.existing_atoms_only of
+          Key = case Scope#elixir_tokenizer.existing_atoms_only of
             true  -> atom_safe;
             false -> atom_unsafe
           end,
@@ -539,7 +539,7 @@ tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) 
 
     {error, Reason} ->
       Message = " (for atom starting at line ~B)",
-      interpolation_error(Reason, Original, OuterScope, Tokens, Message, [Line], Line, Column + 1, [H], [H])
+      interpolation_error(Reason, Original, Scope, Tokens, Message, [Line], Line, Column + 1, [H], [H])
   end;
 
 tokenize([$: | String] = Original, Line, Column, Scope, Tokens) ->
@@ -904,16 +904,16 @@ handle_dot([$., $( | Rest], Line, Column, DotInfo, Scope, Tokens) ->
   TokensSoFar = add_token_with_eol({dot_call_op, DotInfo, '.'}, Tokens),
   tokenize([$( | Rest], Line, Column, Scope, TokensSoFar);
 
-handle_dot([$., H | T] = Original, Line, Column, DotInfo, Scope, Tokens) when ?is_quote(H) ->
-  OuterScope = case H == $' of
+handle_dot([$., H | T] = Original, Line, Column, DotInfo, BaseScope, Tokens) when ?is_quote(H) ->
+  Scope = case H == $' of
     true ->
-      prepend_warning(Line, Column, "single quotes around calls are deprecated. Use double quotes instead.", Scope);
+      prepend_warning(Line, Column, "single quotes around calls are deprecated. Use double quotes instead", BaseScope);
 
     false ->
-      Scope
+      BaseScope
   end,
 
-  case elixir_interpolation:extract(Line, Column + 1, OuterScope, true, T, H) of
+  case elixir_interpolation:extract(Line, Column + 1, Scope, true, T, H) of
     {NewLine, NewColumn, [Part], Rest, InterScope} when is_list(Part) ->
       NewScope = case is_unnecessary_quote([Part], InterScope) of
         true ->
@@ -944,7 +944,7 @@ handle_dot([$., H | T] = Original, Line, Column, DotInfo, Scope, Tokens) when ?i
       Message = "interpolation is not allowed when calling function/macro. Found interpolation in a call starting with: ",
       error({?LOC(Line, Column), Message, [H]}, Rest, NewScope, Tokens);
     {error, Reason} ->
-      interpolation_error(Reason, Original, OuterScope, Tokens, " (for function name starting at line ~B)", [Line], Line, Column, [H], [H])
+      interpolation_error(Reason, Original, Scope, Tokens, " (for function name starting at line ~B)", [Line], Line, Column, [H], [H])
   end;
 
 handle_dot([$. | Rest], Line, Column, DotInfo, Scope, Tokens) ->
