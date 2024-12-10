@@ -10,7 +10,7 @@ The most exciting change in Elixir v1.18 is type checking of function calls, alo
 defmodule User do
   defstruct [:age, :car_choice]
 
-  def drive(%User{age: age, car_choice: car}, cars_choices) when age >= 18 do
+  def drive(%User{age: age, car_choice: car}, car_choices) when age >= 18 do
     if car in car_choices do
       {:ok, car}
     else
