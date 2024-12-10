@@ -373,8 +373,7 @@ defmodule Mix.Compilers.Elixir do
             Map.has_key?(stale_modules, module) ->
               {[module | modules_to_recompile], modules_to_mix_check}
 
-            recompile? and Code.ensure_loaded?(module) and
-                function_exported?(module, :__mix_recompile__?, 0) ->
+            recompile? ->
               {modules_to_recompile, [module | modules_to_mix_check]}
 
             true ->
@@ -382,10 +381,18 @@ defmodule Mix.Compilers.Elixir do
           end
       end
 
+    _ = Code.ensure_all_loaded(modules_to_mix_check)
+
     modules_to_recompile =
       modules_to_recompile ++
         for {:ok, {module, true}} <-
-              Task.async_stream(modules_to_mix_check, &{&1, &1.__mix_recompile__?()},
+              Task.async_stream(
+                modules_to_mix_check,
+                fn module ->
+                  {module,
+                   function_exported?(module, :__mix_recompile__?, 0) and
+                     module.__mix_recompile__?()}
+                end,
                 ordered: false,
                 timeout: :infinity
               ) do
