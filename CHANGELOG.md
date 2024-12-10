@@ -1,20 +1,117 @@
 # Changelog for Elixir v1.18
 
-TODO.
+Elixir v1.18 is an impressive release with improvements across the two main efforts happening within the Elixir ecosystem right now: set-theoretic types and language servers. It also comes with built-in JSON support and adds new capabilities to its unit testing library. Here is a quick break down.
 
 ## Type system improvements
+
+The most exciting change in Elixir v1.18 is typing checking of function calls, alongside gradual inference of patterns and return types. To understand how this will impact your programs, consider the following code:
+
+```elixir
+defmodule User do
+  defstruct [:age, :car_choice]
+
+  def drive(%User{age: age, car_choice: car}, cars_choices) when age >= 18 do
+    if car in car_choices do
+      {:ok, car}
+    else
+      {:error, :no_choice}
+    end
+  end
+
+  def drive(%User{}, _car_choices) do
+    {:error, :not_allowed}
+  end
+end
+```
+
+Elixir's type system will infer the drive function expects a `%User{}` struct as input and returns either `{:ok, dynamic()}` or `{:error, :no_choice}` or `{:error, :not_allowed}`.
+
+Therefore, the following code should emit a violation, due to an invalid argument:
+
+```elixir
+User.drive({:ok, %User{}}, car_choices)
+```
+
+Here is the warning:
+
+```
+    warning: incompatible types given to User.drive/2:
+
+        User.drive({:ok, %User{age: nil, car_choice: nil}}, car_choices)
+
+    given types:
+
+        {:ok, %User{age: nil, car_choice: nil}}, empty_list()
+
+    but expected one of:
+
+        dynamic(%User{age: term(), car_choice: term()}), dynamic()
+
+    where "car_choices" was given the type:
+
+        # type: empty_list()
+        # from: lib/foo.ex:21:17
+        car_choices = []
+
+    typing violation found at:
+    │
+ 22 │     User.drive({:ok, %User{}}, car_choices)
+    │          ~
+    │
+    └─ lib/foo.ex:22:10: Example.run/0
+```
+
+> The mismatched arguments are shown in red, if your terminal supports ANSI coloring.
+
+And the next snippet will warn because the `:error` clause will never match, as that's not a valid return type of the `User.drive/2` call:
+
+```elixir
+case User.drive(user, car_choices) do
+  {:ok, car} -> car
+  :error -> Logger.error("User cannot drive")
+end
+```
+
+And here is the warning:
+
+```
+    warning: the following clause will never match:
+
+        :error
+
+    because it attempts to match on the result of:
+
+        User.drive(user, car_choices)
+
+    which has type:
+
+        dynamic({:ok, term()} or {:error, :no_choice} or {:error, :not_allowed})
+
+    typing violation found at:
+    │
+ 26 │       :error -> Logger.error("User cannot drive")
+    │       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    │
+    └─ lib/foo.ex:26: Example.run/0
+```
+
+For more details on typing inference and the trade-offs made by the Elixir team, [see our official documentation](https://hexdocs.pm/elixir/1.18/gradual-set-theoretic-types.html#type-inference).
+
+There are many other improvements to the type system, which we will go in detail within the official release. Meanwhile, here is a list summary of the overall improvements done to the type system:
 
 * Type inference of patterns (typing inference of guards will be part of an upcoming release)
 
 * Type checking of all language constructs, including local and remote calls, except `for`, `with`, and closures
 
-* Type checking of all `Kernel` and conversion functions inlined by the compiler
+* Type checking of all functions inlined by the compiler found in `Kernel`
+
+* Type checking of all conversion functions inlined by the compiler
 
 * [Support for tuples and lists as composite types](https://elixir-lang.org/blog/2024/08/28/typing-lists-and-tuples/) as well as type checking of their basic operations
 
 * Detection of clauses and patterns that will never match from `case`, `cond`, and `=`
 
-* Detection of unused clauses from private functions
+* Detection of unused clauses in private functions
 
 ## ExUnit improvements
 
@@ -43,11 +140,68 @@ With features like async tests, suite partitioning, and now grouping, Elixir dev
 
 ## `mix format --migrate`
 
-TODO.
+The `mix format` command now supports an explicit `--migrate` flag, which will convert constructs that have been deprecated in Elixir to their latest version. Because this flag rewrites the AST, it is not guaranteed the migrated format will always be valid when used in combination with macros that also perform AST rewriting.
+
+As of this release, the following migrations are executed:
+
+  * Normalize parens in bitstring modifiers - it removes unnecessary parentheses in known bitstring modifiers, for example `<<foo::binary()>>` becomes `<<foo::binary>>`, or adds parentheses for custom modifiers, where `<<foo::custom_type>>` becomes `<<foo::custom_type()>>`.
+
+  * Charlists as sigils - formats charlists as `~c` sigils, for example `'foo'` becomes `~c"foo"`.
+
+  * `unless` as negated `if`s - rewrites `unless` expressions using `if` with a negated condition, for example `unless foo do` becomes `if !foo do`.
+
+More migrations may be added in future releases.
+
+## JSON support
+
+This release includes official support for JSON encoding and decoding.
+
+Both encoder and decoder fully conform to [RFC 8259](https://tools.ietf.org/html/rfc8259) and
+[ECMA 404](https://ecma-international.org/publications-and-standards/standards/ecma-404/)
+standards.
+
+### Encoding
+
+Encoding can be done via `JSON.encode!/1` and `JSON.encode_to_iodata!/1` functions.
+The default encoding rules are applied as follows:
+
+| **Elixir**             | **JSON** |
+|------------------------|----------|
+| `integer() \| float()` | Number   |
+| `true \| false `       | Boolean  |
+| `nil`                  | Null     |
+| `binary()`             | String   |
+| `atom()`               | String   |
+| `list()`               | Array    |
+| `%{binary() => _}`     | Object   |
+| `%{atom() => _}`       | Object   |
+| `%{integer() => _}`    | Object   |
+
+You may also implement the `JSON.Encoder` protocol for custom data structures.
+If you have a struct, you can derive the implementation of the `JSON.Encoder`
+by specifying which fields should be encoded to JSON:
+
+```elixir
+  @derive {JSON.Encoder, only: [....]}
+  defstruct ...
+```
+
+### Decoding
+
+Decoding can be done via `JSON.decode/2` and `JSON.decode!/2` functions.
+The default decoding rules are applied as follows:
+
+| **JSON** | **Elixir**             |
+|----------|------------------------|
+| Number   | `integer() \| float()` |
+| Boolean  | `true \| false`        |
+| Null     | `nil`                  |
+| String   | `binary()`             |
+| Object   | `%{binary() => _}`     |
 
 ## Potential incompatibilities
 
-This release no longer supports WERL (a graphical user interface on Windows used by Erlang 25 and earlier). For a better user experience on Windows terminals, use Erlang/OTP 26+.
+This release no longer supports WERL (a graphical user interface on Windows used by Erlang 25 and earlier). For a better user experience on Windows terminals, use Erlang/OTP 26+ (this is also the last Elixir release to support Erlang/OTP 25).
 
 Furthermore, in order to support inference of patterns, Elixir will raise if it finds recursive variable definitions. This means patterns that never match, such as this one, will no longer compile:
 
@@ -72,6 +226,7 @@ You may also prefer to write using guards:
 #### Elixir
 
   * [CLI] Add experimental PowerShell scripts for `elixir`, `elixirc`, and `mix` on Windows. Those provide a safer entry point for running Elixir from other platforms
+  * [Calendar] Add `Duration.to_string/1`
   * [Code] Support several migration options in `Code.format_string!/2`
   * [Code] Add parenthesis around `--` and `---` in `Code.format_string!/2` to make precedence clearer
   * [Code] Include more metadata in `Code.string_to_quoted/2` when `token_metadata: true` to help compute ranges from the AST
@@ -86,18 +241,23 @@ You may also prefer to write using guards:
   * [Kernel] Perform validation of root AST nodes in `unquote` and `unquote_splicing` to catch bugs earlier
   * [Kernel] Add source, behaviour, and record information to Docs chunk metadata
   * [Kernel] Support deterministic builds in tandem with Erlang by setting `ERL_COMPILER_OPTIONS=deterministic`. Keep in mind deterministic builds strip source and other compile time information, which may be relevant for programs
+  * [Kernel] Allow aliases and imports to be enabled conditionally in module body
   * [List] Add `List.ends_with?/2`
   * [Macro] Improve `dbg` handling of `if/2`, `with/1` and of code blocks
   * [Macro] Add `Macro.struct_info!/2` to return struct information mirroring `mod.__info__(:struct)`
   * [Registry] Add `Registry.lock/3` for local locking
   * [PartitionSupervisor] Add `PartitionSupervisor.resize!/2` to resize the number of partitions in a supervisor (up to the limit it was started with)
   * [Process] Handle arbitrarily high integer values in `Process.sleep/1`
+  * [Protocol] Add `@undefined_impl_description` to customize error message when an implementation is undefined
+  * [Protocol] Add `__deriving__` as optional macro callback to `Protocol`, no longer requiring empty implementations
   * [String] Inspect special whitespace and zero-width characters using their Unicode representation
+  * [String] Update Unicode to 16.0
 
 #### ExUnit
 
   * [ExUnit] Support parameterized tests on `ExUnit.Case`
   * [ExUnit] Support test groups: tests in the same group never run concurrently
+  * [ExUnit.Case] Add `test_pid` as a tag
 
 #### IEx
 
@@ -109,6 +269,7 @@ You may also prefer to write using guards:
   * [mix compile] Ensure only a single operating system process can compile at a given time
   * [mix deps.get] Ensure only a single operating system process can fetch deps at a given time
   * [mix format] Add `mix format --migrate` to migrate from deprecated functionality
+  * [mix format] Add new options and metadata to improve formatting applying by editors and other environments
   * [mix test] Taint failure manifest if requiring or compiling tests fail
   * [Mix.Project] Add a `:listeners` configuration to listen to compilation events from the current and other operating system processes
   * [Mix.Task.Compiler] Add API for fetching all persisted compiler diagnostics
@@ -122,6 +283,7 @@ You may also prefer to write using guards:
   * [Code.Formatter] Fix formatter adding extra escapes to quoted remote calls
   * [Code.Fragment] Properly handle keyword keys as their own entry
   * [Inspect.Algebra] Ensure `next_break_fits` respects `line_length`
+  * [Kernel] Validate AST on `unquote` and `unquote_splicing` to provide better error reports instead of failing too late inside the compiler
   * [Module] Include module attribute line and name when tracing its aliases
   * [Stream] Do not halt streams twice in `Stream.transform/5`
   * [URI] Fix a bug when a schemaless URI is given to `URI.merge/2`
@@ -129,6 +291,7 @@ You may also prefer to write using guards:
 #### ExUnit
 
   * [ExUnit.Assertions] Raise if guards are used in `assert/1` with `=`
+  * [ExUnit.Assertions] Format inserted/deleted maps in list assertions
 
 #### IEx
 
@@ -140,6 +303,7 @@ You may also prefer to write using guards:
   * [mix deps.compile] Fix escaping issues when invoking `rebar3` in some cases
   * [mix escript] Fix escript layout and support storing `priv` directories
   * [mix release] Make `.app` files deterministic in releases
+  * [Mix.Shell] Fix `Mix.Shell` on Windows when outputting non UTF-8 characters
 
 ### 3. Soft deprecations (no warnings emitted)
 
@@ -149,6 +313,7 @@ You may also prefer to write using guards:
   * [Inspect.Algebra] `fold_doc/2` is deprecated in favor of `fold/2`
   * [Kernel] Deprecate `unless` in favor of `if`. Use `mix format --migrate` to automate the migration
   * [Macro] `Macro.struct!/2` is deprecated in favor of `Macro.struct_info!/2`
+  * [Protocol] Defining the `__deriving__` macro inside the `Any` implementation is deprecated, derive it inside the protocol definition itself
 
 ### 4. Hard deprecations
 

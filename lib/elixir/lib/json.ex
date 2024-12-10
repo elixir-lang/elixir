@@ -363,8 +363,9 @@ defmodule JSON do
 
   This function is most typically passed as second argument to
   `encode!/2` and `encode_to_iodata!/2`. The default implementation
-  simply dispatches to `JSON.Encoder.encode/2`.
+  is an optimized dispatch to the `JSON.Encoder` protocol.
   """
+  @spec protocol_encode(a, (a -> iodata())) :: iodata() when a: var
   def protocol_encode(value, encoder) when is_atom(value) do
     case value do
       nil -> "null"
