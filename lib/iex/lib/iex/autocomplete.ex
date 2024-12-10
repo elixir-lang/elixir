@@ -28,7 +28,7 @@ defmodule IEx.Autocomplete do
   def remsh(node) do
     fn e ->
       try do
-        :erpc.call(node, IEx.Autocomplete, :expand, [e, IEx.Broker.shell()])
+        :erpc.call(node, IEx.Autocomplete, :expand, [e, :shell.whereis()])
       catch
         _, _ -> {:no, ~c"", []}
       end
@@ -41,7 +41,7 @@ defmodule IEx.Autocomplete do
   Some of the expansion has to use the current shell
   environment, which is found via the broker.
   """
-  def expand(code, shell \\ IEx.Broker.shell()) do
+  def expand(code, shell \\ :shell.whereis()) do
     case path_fragment(code) do
       [] -> expand_code(code, shell)
       path -> expand_path(path)
