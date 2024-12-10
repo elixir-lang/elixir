@@ -972,7 +972,7 @@ defmodule Kernel do
   comparison"](#module-structural-comparison) section
   for more information.
 
-  Inlined by the compiler.
+  Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 
@@ -982,6 +982,7 @@ defmodule Kernel do
       "b"
 
   """
+  @doc guard: true
   @spec max(first, second) :: first | second when first: term, second: term
   def max(first, second) do
     :erlang.max(first, second)
@@ -998,7 +999,7 @@ defmodule Kernel do
   comparison"](#module-structural-comparison) section
   for more information.
 
-  Inlined by the compiler.
+  Allowed in guard tests. Inlined by the compiler.
 
   ## Examples
 
@@ -1008,6 +1009,7 @@ defmodule Kernel do
       "bar"
 
   """
+  @doc guard: true
   @spec min(first, second) :: first | second when first: term, second: term
   def min(first, second) do
     :erlang.min(first, second)
