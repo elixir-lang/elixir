@@ -201,6 +201,42 @@ defmodule Kernel.WarningTest do
     end
   end
 
+  describe "deprecated single quotes in atoms" do
+    test "warns for single quotes in atoms" do
+      assert_warn_eval(
+        [
+          "nofile:1:1",
+          "single quotes around atoms are deprecated. Use double quotes instead"
+        ],
+        ~s/:'a+b'/
+      )
+    end
+
+    test "warns twice for single and unnecessary atom quotes" do
+      assert_warn_eval(
+        [
+          "nofile:1:1",
+          "single quotes around atoms are deprecated. Use double quotes instead",
+          "nofile:1:1",
+          "found quoted atom \"ab\" but the quotes are not required"
+        ],
+        ~s/:'ab'/
+      )
+    end
+
+    test "warns twice for single and unnecessary call quotes" do
+      assert_warn_eval(
+        [
+          "nofile:1:9",
+          "single quotes around calls are deprecated. Use double quotes instead",
+          "nofile:1:9",
+          "found quoted call \"length\" but the quotes are not required"
+        ],
+        ~s/[Kernel.'length'([])]/
+      )
+    end
+  end
+
   test "warns on :: as atom" do
     assert_warn_eval(
       [

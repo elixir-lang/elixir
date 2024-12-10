@@ -484,7 +484,15 @@ tokenize([T | Rest], Line, Column, Scope, Tokens) when ?pipe_op(T) ->
 
 % Non-operator Atoms
 
-tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) ->
+tokenize([$:, H | T] = Original, Line, Column, BaseScope, Tokens) when ?is_quote(H) ->
+  Scope = case H == $' of
+    true ->
+      prepend_warning(Line, Column, "single quotes around atoms are deprecated. Use double quotes instead", BaseScope);
+
+    false ->
+      BaseScope
+  end,
+
   case elixir_interpolation:extract(Line, Column + 2, Scope, true, T, H) of
     {NewLine, NewColumn, Parts, Rest, InterScope} ->
       NewScope = case is_unnecessary_quote(Parts, InterScope) of
@@ -908,7 +916,15 @@ handle_dot([$., $( | Rest], Line, Column, DotInfo, Scope, Tokens) ->
   TokensSoFar = add_token_with_eol({dot_call_op, DotInfo, '.'}, Tokens),
   tokenize([$( | Rest], Line, Column, Scope, TokensSoFar);
 
-handle_dot([$., H | T] = Original, Line, Column, DotInfo, Scope, Tokens) when ?is_quote(H) ->
+handle_dot([$., H | T] = Original, Line, Column, DotInfo, BaseScope, Tokens) when ?is_quote(H) ->
+  Scope = case H == $' of
+    true ->
+      prepend_warning(Line, Column, "single quotes around calls are deprecated. Use double quotes instead", BaseScope);
+
+    false ->
+      BaseScope
+  end,
+
   case elixir_interpolation:extract(Line, Column + 1, Scope, true, T, H) of
     {NewLine, NewColumn, [Part], Rest, InterScope} when is_list(Part) ->
       NewScope = case is_unnecessary_quote([Part], InterScope) of
