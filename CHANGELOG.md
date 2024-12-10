@@ -4,7 +4,7 @@ Elixir v1.18 is an impressive release with improvements across the two main effo
 
 ## Type system improvements
 
-The most exciting change in Elixir v1.18 is typing checking of function calls, alongside gradual inference of patterns and return types. To understand how this will impact your programs, consider the following code:
+The most exciting change in Elixir v1.18 is type checking of function calls, alongside gradual inference of patterns and return types. To understand how this will impact your programs, consider the following code:
 
 ```elixir
 defmodule User do
@@ -24,7 +24,7 @@ defmodule User do
 end
 ```
 
-Elixir's type system will infer the drive function expects a `%User{}` struct as input and returns either `{:ok, dynamic()}` or `{:error, :no_choice}` or `{:error, :not_allowed}`.
+Elixir's type system will infer the `drive` function expects a `%User{}` struct as input and returns either `{:ok, dynamic()}`, `{:error, :no_choice}`, or `{:error, :not_allowed}`.
 
 Therefore, the following code should emit a violation, due to an invalid argument:
 
@@ -236,7 +236,7 @@ You may also prefer to write using guards:
   * [Exception] Add `MissingApplicationsError` exception to denote missing applications
   * [Kernel] Update source code parsing to match [UTS #55](https://www.unicode.org/reports/tr55/) latest recommendations. In particular, mixed script is allowed in identifiers as long as they are separate by underscores (`_`), such as `http_сервер`. Previously allowed highly restrictive identifiers, which mixed Latin and other scripts, such as the japanese word for t-shirt, `Tシャツ`, now require the underscore as well
   * [Kernel] Warn on bidirectional confusability in identifiers
-  * [Kernel] Now verify the type of the binary generators
+  * [Kernel] Verify the type of the binary generators
   * [Kernel] Track the type of tuples in patterns and inside `elem/2`
   * [Kernel] Perform validation of root AST nodes in `unquote` and `unquote_splicing` to catch bugs earlier
   * [Kernel] Add source, behaviour, and record information to Docs chunk metadata
