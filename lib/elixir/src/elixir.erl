@@ -211,7 +211,6 @@ start_cli() ->
 env_for_eval(#{lexical_tracker := Pid} = Env) ->
   NewEnv = Env#{
     context := nil,
-    context_modules := [],
     macro_aliases := [],
     versioned_vars := #{}
   },
@@ -260,6 +259,7 @@ env_for_eval(Opts) when is_list(Opts) ->
     false -> []
   end,
 
+  %% TODO: Remove the following deprecations in future releases
   Aliases = case lists:keyfind(aliases, 1, Opts) of
     {aliases, AliasesOpt} when is_list(AliasesOpt) ->
       'Elixir.IO':warn(<<":aliases option in eval is deprecated">>),

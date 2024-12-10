@@ -249,7 +249,7 @@ You may also prefer to write using guards:
   * [PartitionSupervisor] Add `PartitionSupervisor.resize!/2` to resize the number of partitions in a supervisor (up to the limit it was started with)
   * [Process] Handle arbitrarily high integer values in `Process.sleep/1`
   * [Protocol] Add `@undefined_impl_description` to customize error message when an implementation is undefined
-  * [Protocol] Add `__deriving__` as optional macro callback to `Protocol`, no longer requiring empty implementations
+  * [Protocol] Add `__deriving__/1` as optional macro callback to `Protocol`, no longer requiring empty implementations
   * [String] Inspect special whitespace and zero-width characters using their Unicode representation
   * [String] Update Unicode to 16.0
 
@@ -313,7 +313,7 @@ You may also prefer to write using guards:
   * [Inspect.Algebra] `fold_doc/2` is deprecated in favor of `fold/2`
   * [Kernel] Deprecate `unless` in favor of `if`. Use `mix format --migrate` to automate the migration
   * [Macro] `Macro.struct!/2` is deprecated in favor of `Macro.struct_info!/2`
-  * [Protocol] Defining the `__deriving__` macro inside the `Any` implementation is deprecated, derive it inside the protocol definition itself
+  * [Protocol] Defining `__deriving__/3` inside the `Any` implementation is deprecated, derive it inside the protocol definition itself
 
 ### 4. Hard deprecations
 
