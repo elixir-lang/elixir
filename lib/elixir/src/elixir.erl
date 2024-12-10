@@ -28,6 +28,7 @@
 %% OTP Application API
 
 start(_Type, _Args) ->
+  _OTP = parse_otp_release(),
   preload_common_modules(),
   ok = io:setopts(standard_io, [binary]),
   check_file_encoding(file:native_name_encoding()),
