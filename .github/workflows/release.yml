@@ -81,7 +81,7 @@ jobs:
           build_docs: ${{ matrix.build_docs }}
 
       - name: "Attest release .exe provenance"
-        uses: actions/attest-build-provenance@v1
+        uses: actions/attest-build-provenance@v2
         id: attest-exe-provenance
         with:
           subject-path: "elixir-otp-${{ matrix.otp }}.exe"
@@ -91,7 +91,7 @@ jobs:
           ATTESTATION: "${{ steps.attest-exe-provenance.outputs.bundle-path }}"
 
       - name: "Attest release .zip provenance"
-        uses: actions/attest-build-provenance@v1
+        uses: actions/attest-build-provenance@v2
         id: attest-zip-provenance
         with:
           subject-path: "elixir-otp-${{ matrix.otp }}.zip"
@@ -101,7 +101,7 @@ jobs:
           ATTESTATION: "${{ steps.attest-zip-provenance.outputs.bundle-path }}"
 
       - name: "Attest docs provenance"
-        uses: actions/attest-build-provenance@v1
+        uses: actions/attest-build-provenance@v2
         id: attest-docs-provenance
         if: ${{ matrix.build_docs }}
         with:
