@@ -13,7 +13,7 @@ defmodule IEx.Broker do
   Finds the evaluator and server running inside `:user_drv`, on this node exclusively.
   """
   @spec evaluator(shell()) :: {evaluator :: pid, server :: pid} | nil
-  def evaluator(pid \\ shell()) do
+  def evaluator(pid \\ :shell.whereis()) do
     if pid do
       {:dictionary, dictionary} = Process.info(pid, :dictionary)
       {dictionary[:evaluator], pid}
