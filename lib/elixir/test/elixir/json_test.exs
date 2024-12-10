@@ -51,7 +51,7 @@ defmodule JSONTest do
   describe "JSON.Encoder" do
     defp protocol_encode(term) do
       term
-      |> JSON.Encoder.encode(&JSON.default_encode/2)
+      |> JSON.Encoder.encode(&JSON.protocol_encode/2)
       |> IO.iodata_to_binary()
     end
 

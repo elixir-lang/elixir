@@ -333,7 +333,7 @@ defmodule JSON do
 
   """
   @spec encode!(a, (a -> iodata())) :: binary() when a: var
-  def encode!(term, encoder \\ &default_encode/2) do
+  def encode!(term, encoder \\ &protocol_encode/2) do
     IO.iodata_to_binary(encoder.(term, encoder))
   end
 
@@ -354,7 +354,7 @@ defmodule JSON do
 
   """
   @spec encode_to_iodata!(a, (a -> iodata())) :: iodata() when a: var
-  def encode_to_iodata!(term, encoder \\ &default_encode/2) do
+  def encode_to_iodata!(term, encoder \\ &protocol_encode/2) do
     encoder.(term, encoder)
   end
 
@@ -365,7 +365,7 @@ defmodule JSON do
   `encode!/2` and `encode_to_iodata!/2`. The default implementation
   simply dispatches to `JSON.Encoder.encode/2`.
   """
-  def default_encode(value, encoder) when is_atom(value) do
+  def protocol_encode(value, encoder) when is_atom(value) do
     case value do
       nil -> "null"
       true -> "true"
@@ -374,21 +374,21 @@ defmodule JSON do
     end
   end
 
-  def default_encode(value, _encoder) when is_binary(value),
+  def protocol_encode(value, _encoder) when is_binary(value),
     do: :elixir_json.encode_binary(value)
 
-  def default_encode(value, _encoder) when is_integer(value),
+  def protocol_encode(value, _encoder) when is_integer(value),
     do: :elixir_json.encode_integer(value)
 
-  def default_encode(value, _encoder) when is_float(value),
+  def protocol_encode(value, _encoder) when is_float(value),
     do: :elixir_json.encode_float(value)
 
-  def default_encode(value, encoder) when is_list(value),
+  def protocol_encode(value, encoder) when is_list(value),
     do: :elixir_json.encode_list(value, encoder)
 
-  def default_encode(%{} = value, encoder) when not is_map_key(value, :__struct__),
+  def protocol_encode(%{} = value, encoder) when not is_map_key(value, :__struct__),
     do: :elixir_json.encode_map(value, encoder)
 
-  def default_encode(value, encoder),
+  def protocol_encode(value, encoder),
     do: JSON.Encoder.encode(value, encoder)
 end
