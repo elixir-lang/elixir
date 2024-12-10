@@ -256,6 +256,8 @@ defmodule Mix.Tasks.Compile.AppTest do
   test ".app contains description and registered (as required by systools)" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
+      # Pre-create the compilation path to avoid mtime races
+      File.mkdir_p(Mix.Project.compile_path())
 
       Mix.Tasks.Compile.Elixir.run([])
       assert Mix.Tasks.Compile.App.run([]) == {:ok, []}
