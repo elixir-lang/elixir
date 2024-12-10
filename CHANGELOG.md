@@ -156,14 +156,11 @@ More migrations may be added in future releases.
 
 This release includes official support for JSON encoding and decoding.
 
-Both encoder and decoder fully conform to [RFC 8259](https://tools.ietf.org/html/rfc8259) and
-[ECMA 404](https://ecma-international.org/publications-and-standards/standards/ecma-404/)
-standards.
+Both encoder and decoder fully conform to [RFC 8259](https://tools.ietf.org/html/rfc8259) and [ECMA 404](https://ecma-international.org/publications-and-standards/standards/ecma-404/) standards.
 
 ### Encoding
 
-Encoding can be done via `JSON.encode!/1` and `JSON.encode_to_iodata!/1` functions.
-The default encoding rules are applied as follows:
+Encoding can be done via `JSON.encode!/1` and `JSON.encode_to_iodata!/1` functions. The default encoding rules are applied as follows:
 
 | **Elixir**             | **JSON** |
 |------------------------|----------|
@@ -177,9 +174,7 @@ The default encoding rules are applied as follows:
 | `%{atom() => _}`       | Object   |
 | `%{integer() => _}`    | Object   |
 
-You may also implement the `JSON.Encoder` protocol for custom data structures.
-If you have a struct, you can derive the implementation of the `JSON.Encoder`
-by specifying which fields should be encoded to JSON:
+You may also implement the `JSON.Encoder` protocol for custom data structures. If you have a struct, you can derive the implementation of the `JSON.Encoder` by specifying which fields should be encoded to JSON:
 
 ```elixir
   @derive {JSON.Encoder, only: [...]}
@@ -188,8 +183,7 @@ by specifying which fields should be encoded to JSON:
 
 ### Decoding
 
-Decoding can be done via `JSON.decode/2` and `JSON.decode!/2` functions.
-The default decoding rules are applied as follows:
+Decoding can be done via `JSON.decode/2` and `JSON.decode!/2` functions. The default decoding rules are applied as follows:
 
 | **JSON** | **Elixir**             |
 |----------|------------------------|
