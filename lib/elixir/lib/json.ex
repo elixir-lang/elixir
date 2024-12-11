@@ -150,6 +150,12 @@ defimpl JSON.Encoder, for: Map do
   end
 end
 
+defimpl JSON.Encoder, for: [Date, Time, NaiveDateTime, DateTime] do
+  def encode(value, _encoder) do
+    [?", @for.to_iso8601(value), ?"]
+  end
+end
+
 defmodule JSON.DecodeError do
   @moduledoc """
   The exception raised by `JSON.decode!/1`.
