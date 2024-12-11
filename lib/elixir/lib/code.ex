@@ -696,6 +696,13 @@ defmodule Code do
       modifiers, where `<<foo::custom_type>>` becomes `<<foo::custom_type()>>`.
       Defaults to the value of the `:migrate` option. This option changes the AST.
 
+    * `:migrate_call_parens_on_pipe` (since v1.19.0) - when `true`,
+      formats local calls on the right-hand side of the pipe operator to always
+      include parentheses, for example `foo |> bar` becomes `foo |> bar()`.
+      Parentheses are always added for qualified calls like `foo |> Bar.bar`
+      disregarding of this option.
+      Defaults to the value of the `:migrate` option. This option changes the AST.
+
     * `:migrate_charlists_as_sigils` (since v1.18.0) - when `true`,
       formats charlists as [`~c`](`Kernel.sigil_c/2`) sigils, for example
       `'foo'` becomes `~c"foo"`.

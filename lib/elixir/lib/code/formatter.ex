@@ -191,6 +191,7 @@ defmodule Code.Formatter do
     sigils = Keyword.get(opts, :sigils, [])
     migrate = Keyword.get(opts, :migrate, false)
     migrate_bitstring_modifiers = Keyword.get(opts, :migrate_bitstring_modifiers, migrate)
+    migrate_call_parens_on_pipe = Keyword.get(opts, :migrate_call_parens_on_pipe, migrate)
     migrate_charlists_as_sigils = Keyword.get(opts, :migrate_charlists_as_sigils, migrate)
     migrate_unless = Keyword.get(opts, :migrate_unless, migrate)
     syntax_colors = Keyword.get(opts, :syntax_colors, [])
@@ -218,6 +219,7 @@ defmodule Code.Formatter do
       sigils: sigils,
       file: file,
       migrate_bitstring_modifiers: migrate_bitstring_modifiers,
+      migrate_call_parens_on_pipe: migrate_call_parens_on_pipe,
       migrate_charlists_as_sigils: migrate_charlists_as_sigils,
       migrate_unless: migrate_unless,
       inspect_opts: %Inspect.Opts{syntax_colors: syntax_colors}
@@ -487,7 +489,16 @@ defmodule Code.Formatter do
     binary_op_to_algebra(:in, "not in", meta, left, right, context, state)
   end
 
-  # disable migrate_unless within defmacro
+  # disable migrate_call_parens_on_pipe within defmacro
+  defp quoted_to_algebra(
+         {atom, _, [{:|>, _, _}, _]} = ast,
+         context,
+         %{migrate_call_parens_on_pipe: true} = state
+       )
+       when atom in [:defmacro, :defmacrop] do
+    quoted_to_algebra(ast, context, %{state | migrate_call_parens_on_pipe: false})
+  end
+
   defp quoted_to_algebra(
          {atom, _, [{:unless, _, _}, _]} = ast,
          context,
@@ -830,6 +841,20 @@ defmodule Code.Formatter do
        when op in [:not, :!] do
     {doc, state} = unary_op_to_algebra(op, meta, arg, context, state)
     {wrap_in_parens(doc), state}
+  end
+
+  defp binary_operand_to_algebra(
+         {var, meta, atom},
+         context,
+         %{migrate_call_parens_on_pipe: true} = state,
+         :|>,
+         _parent_info,
+         :right,
+         _nesting
+       )
+       when is_atom(var) and is_atom(atom) do
+    operand = {var, meta, []}
+    quoted_to_algebra(operand, context, state)
   end
 
   defp binary_operand_to_algebra(operand, context, state, parent_op, parent_info, side, nesting) do
