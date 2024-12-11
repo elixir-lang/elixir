@@ -589,7 +589,7 @@ defmodule Logger do
 
       delete_process_level(pid)
   """
-  # TODO: Deprecate me on v1.19
+  # TODO: Deprecate me on v1.20
   @doc deprecated: "Use Logger.delete_process_level(pid) instead"
   @spec enable(pid) :: :ok
   def enable(pid) when pid == self() do
@@ -690,10 +690,23 @@ defmodule Logger do
       end
     end
 
-    # TODO: Deprecate passing backend options to configure on Elixir v1.19
     case Keyword.take(options, @backend_options) do
-      [] -> :ok
-      backend_options -> Logger.Backends.Internal.configure(backend_options)
+      [] ->
+        :ok
+
+      backend_options ->
+        for {key, _} <- backend_options do
+          IO.warn_once(
+            {__MODULE__, :configure, key},
+            fn ->
+              "setting #{inspect(key)} in Logger.configure/2 is deprecated, " <>
+                "add the :logger_backends dependency and configure it instead"
+            end,
+            3
+          )
+        end
+
+        Logger.Backends.Internal.configure(backend_options)
     end
 
     :ok

@@ -1747,6 +1747,17 @@ defmodule Code do
   # TODO: Remove this option on Elixir v2.0
   # TODO: Warn if mode is :warn on Elixir v1.19
   def put_compiler_option(:on_undefined_variable, value) when value in [:raise, :warn] do
+    if value == :warn do
+      IO.warn_once(
+        {__MODULE__, :on_undefined_variable},
+        fn ->
+          "setting :on_undefined_variable to :warn is deprecated. " <>
+            "The warning behaviour will be removed in future releases"
+        end,
+        3
+      )
+    end
+
     :elixir_config.put(:on_undefined_variable, value)
     :ok
   end

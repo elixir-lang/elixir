@@ -170,7 +170,7 @@ defmodule Mix.Tasks.Run do
     require_runner =
       if opts[:parallel] do
         fn files ->
-          case Kernel.ParallelCompiler.require(files) do
+          case Kernel.ParallelCompiler.require(files, return_diagnostics: true) do
             {:ok, _, _} -> :ok
             {:error, _, _} -> exit({:shutdown, 1})
           end

@@ -25,16 +25,18 @@ defmodule Mix.Tasks.DoTest do
   end
 
   test "gather_command supports deprecated comma commands" do
-    assert gather_commands(["compile", "--list,", "help"]) == [["compile", "--list"], ["help"]]
-    assert gather_commands(["help,", "compile", "--list"]) == [["help"], ["compile", "--list"]]
+    ExUnit.CaptureIO.capture_io(:stderr, fn ->
+      assert gather_commands(["compile", "--list,", "help"]) == [["compile", "--list"], ["help"]]
+      assert gather_commands(["help,", "compile", "--list"]) == [["help"], ["compile", "--list"]]
 
-    assert gather_commands(["compile,", "run", "-e", "IO.puts :hello"]) ==
-             [["compile"], ["run", "-e", "IO.puts :hello"]]
+      assert gather_commands(["compile,", "run", "-e", "IO.puts :hello"]) ==
+               [["compile"], ["run", "-e", "IO.puts :hello"]]
 
-    assert gather_commands(["compile,", "run", "-e", "[1, 2]"]) ==
-             [["compile"], ["run", "-e", "[1, 2]"]]
+      assert gather_commands(["compile,", "run", "-e", "[1, 2]"]) ==
+               [["compile"], ["run", "-e", "[1, 2]"]]
 
-    assert gather_commands(["test", ",", "help"]) == [["test"], ["help"]]
+      assert gather_commands(["test", ",", "help"]) == [["test"], ["help"]]
+    end)
   end
 
   test "runs given tasks for a single app specified by app flag" do

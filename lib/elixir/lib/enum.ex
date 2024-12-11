@@ -2430,7 +2430,7 @@ defmodule Enum do
         {:ok, count, fun} when is_function(fun, 3) ->
           fun.(random_count(count), 1, 1)
 
-        # TODO: Remove deprecation on Elixir v1.20.
+        # TODO: Remove me on v2.0
         {:ok, count, fun} when is_function(fun, 2) ->
           IO.warn(
             "#{inspect(Enumerable.impl_for(enumerable))} must return a three arity function on slice/1"
@@ -4584,7 +4584,7 @@ defmodule Enum do
         amount = Kernel.min(amount, count - start) |> amount_with_step(step)
         fun.(start, amount, step)
 
-      # TODO: Remove me on v2.0.
+      # TODO: Remove me on v2.0
       {:ok, count, fun} when is_function(fun, 2) ->
         IO.warn(
           "#{inspect(Enumerable.impl_for(enumerable))} must return a three arity function on slice/1"

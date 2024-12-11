@@ -831,6 +831,14 @@ defmodule File do
 
   # TODO: Deprecate me on Elixir v1.19
   def cp(source_file, destination_file, callback) when is_function(callback, 2) do
+    IO.warn_once(
+      {__MODULE__, :cp},
+      fn ->
+        "passing a callback to File.cp/3 is deprecated, pass it as a on_conflict: callback option instead"
+      end,
+      3
+    )
+
     cp(source_file, destination_file, on_conflict: callback)
   end
 
@@ -936,6 +944,14 @@ defmodule File do
 
   # TODO: Deprecate me on Elixir v1.19
   def cp_r(source, destination, callback) when is_function(callback, 2) do
+    IO.warn_once(
+      {__MODULE__, :cp_r},
+      fn ->
+        "passing a callback to File.cp_r/3 is deprecated, pass it as a on_conflict: callback option instead"
+      end,
+      3
+    )
+
     cp_r(source, destination, on_conflict: callback)
   end
 

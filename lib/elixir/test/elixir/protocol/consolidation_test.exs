@@ -4,7 +4,7 @@ path = Path.expand("../../ebin", __DIR__)
 File.mkdir_p!(path)
 
 files = Path.wildcard(PathHelpers.fixture_path("consolidation/*"))
-Kernel.ParallelCompiler.compile_to_path(files, path)
+Kernel.ParallelCompiler.compile_to_path(files, path, return_diagnostics: true)
 
 defmodule Protocol.ConsolidationTest do
   use ExUnit.Case, async: true

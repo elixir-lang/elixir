@@ -269,7 +269,7 @@ defmodule ExUnit.Case do
   in them (or between tests) are never captured. If you want to suppress these
   messages as well, remove the console backend globally by setting:
 
-      config :logger, backends: []
+      config :logger, :default_handler, false
 
   ## Tmp Dir
 

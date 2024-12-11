@@ -1,7 +1,7 @@
 defmodule Mix.Rebar do
   @moduledoc false
 
-  # TODO: Remove on Elixir v1.20 because phx_new and other installers rely on it.
+  # TODO: Remove on Elixir v1.22 because phx_new and other installers rely on it.
   @deprecated "Use env_rebar_path/1 instead"
   def global_rebar_cmd(manager) do
     env_rebar_path(manager)

@@ -51,7 +51,9 @@ defmodule Kernel.DialyzerTest do
 
     # Compile Dialyzer fixtures
     source_files = Path.wildcard(Path.join(fixture_path("dialyzer"), "*"))
-    {:ok, _, _} = Kernel.ParallelCompiler.compile_to_path(source_files, dir)
+
+    {:ok, _, _} =
+      Kernel.ParallelCompiler.compile_to_path(source_files, dir, return_diagnostics: true)
 
     {:ok, [base_dir: dir, base_plt: plt]}
   end

@@ -467,7 +467,7 @@ defmodule Kernel.CLI do
 
     if files != [] do
       wrapper(fn ->
-        case Kernel.ParallelCompiler.require(files) do
+        case Kernel.ParallelCompiler.require(files, return_diagnostics: true) do
           {:ok, _, _} -> :ok
           {:error, _, _} -> exit({:shutdown, 1})
         end
@@ -503,7 +503,11 @@ defmodule Kernel.CLI do
 
           opts =
             verbose_opts ++
-              [profile: config.profile, warnings_as_errors: config.warnings_as_errors]
+              [
+                profile: config.profile,
+                warnings_as_errors: config.warnings_as_errors,
+                return_diagnostics: true
+              ]
 
           case Kernel.ParallelCompiler.compile_to_path(files, output, opts) do
             {:ok, _, _} -> :ok

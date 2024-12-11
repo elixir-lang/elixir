@@ -497,7 +497,9 @@ defmodule IEx.Helpers do
 
     elixir =
       if elixir != [] do
-        {:ok, modules, _warning} = Kernel.ParallelCompiler.compile(elixir)
+        {:ok, modules, _warning} =
+          Kernel.ParallelCompiler.compile(elixir, return_diagnostics: true)
+
         modules
       else
         []
@@ -1359,8 +1361,11 @@ defmodule IEx.Helpers do
     end
   end
 
-  defp compile_elixir(exs, :in_memory), do: Kernel.ParallelCompiler.compile(exs)
-  defp compile_elixir(exs, path), do: Kernel.ParallelCompiler.compile_to_path(exs, path)
+  defp compile_elixir(exs, :in_memory),
+    do: Kernel.ParallelCompiler.compile(exs, return_diagnostics: true)
+
+  defp compile_elixir(exs, path),
+    do: Kernel.ParallelCompiler.compile_to_path(exs, path, return_diagnostics: true)
 
   # Compiles and loads an Erlang source file, returns {module, binary}
   defp compile_erlang(source) do

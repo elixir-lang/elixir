@@ -84,6 +84,18 @@ The first column is the version the feature was hard deprecated. The second colu
 
 Version | Deprecated feature                                  | Replaced by (available since)
 :-------| :-------------------------------------------------- | :---------------------------------------------------------------
+[v1.19] | CLI configuration in `def project` inside `mix.exs` | Moving it to `def cli` (v1.14)
+[v1.19] | Using `,` to separate tasks in `mix do`             | Using `+` (v1.14)
+[v1.19] | Logger's `:backends` configuration                  | Logger's `:default_handler` configuration (v1.15)
+[v1.19] | Passing a callback to `File.cp`/`File.cp_r`         | The `:on_conflict` option (v1.14)
+[v1.18] | `<%#` in EEx                                        | `<%!--` (v1.14) or `<% #` (v1.0)
+[v1.18] | `handle_text/2` callback in EEx                     | `handle_text/3` (v1.14)
+[v1.18] | Returning 2-arity fun from `Enumerable.slice/1`     | Returning 3-arity (v1.14)
+[v1.18] | Ranges with negative steps in `Range.new/2`         | Explicit steps in ranges (v1.11)
+[v1.18] | `Tuple.append/2`                                    | `Tuple.insert_at/3` (v1.0)
+[v1.18] | `mix cmd --app APP`                                 | `mix do --app APP` (v1.14)
+[v1.18] | `List.zip/1`                                        | `Enum.zip/1` (v1.0)
+[v1.18] | `Module.eval_quoted/3`                              | `Code.eval_quoted/3` (v1.0)
 [v1.17] | Single-quoted charlists (`'foo'`)                   | `~c"foo"` (v1.0)
 [v1.17] | `left..right` in patterns and guards                | `left..right//step` (v1.11)
 [v1.17] | `ExUnit.Case.register_test/4`                       | `register_test/6` (v1.10)
@@ -216,4 +228,23 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.14]: https://github.com/elixir-lang/elixir/blob/v1.14/CHANGELOG.md#4-hard-deprecations
 [v1.15]: https://github.com/elixir-lang/elixir/blob/v1.15/CHANGELOG.md#4-hard-deprecations
 [v1.16]: https://github.com/elixir-lang/elixir/blob/v1.16/CHANGELOG.md#4-hard-deprecations
-[v1.17]: https://github.com/elixir-lang/elixir/blob/main/CHANGELOG.md#4-hard-deprecations
+[v1.17]: https://github.com/elixir-lang/elixir/blob/v1.17/CHANGELOG.md#4-hard-deprecations
+[v1.18]: https://github.com/elixir-lang/elixir/blob/v1.18/CHANGELOG.md#4-hard-deprecations
+[v1.19]: https://github.com/elixir-lang/elixir/blob/main/CHANGELOG.md#4-hard-deprecations
+
+#### Elixir
+
+  * [Code] The `on_undefined_variable: :warn` is deprecated. Relying on undefined variables becoming function calls will not be supported in the future
+
+  * [Kernel] Using `size(var)` in bitstrings requires the pin operator on the variable if the variable was defined outside of the current pattern
+  * [Kernel.ParallelCompiler] Passing `return_diagnostics: true` as an option is required on `compile`, `compile_to_path` and `require`
+
+#### Logger
+
+  * [Logger] `Logger.enable/1` is deprecated in favor of `Logger.delete_process_level/1`
+  * [Logger] The `:backends` configuration is deprecated, either set the `:default_handler` to false or start backends in your application start callback
+
+#### Mix
+
+  * [mix] The `:default_task`, `:preferred_cli_env`, and `:preferred_cli_target` configuration inside `def project` in your `mix.exs` has been deprecated in favor of `:default_task`, `:preferred_envs` and `:preferred_targets` inside the `def cli` function
+  * [mix do] Using commas as task separator in `mix do` (such as `mix do foo, bar`) is deprecated, use `+` instead (as in `mix do foo + bar`)

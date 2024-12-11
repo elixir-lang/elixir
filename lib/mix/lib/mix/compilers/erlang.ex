@@ -162,8 +162,7 @@ defmodule Mix.Compilers.Erlang do
     end
   end
 
-  # TODO: Deprecate this in favor of `Mix.ensure_application!/1` in Elixir v1.19.
-  @doc false
+  @deprecated "Use Mix.ensure_application!(app) plus Application.ensure_all_started(app) instead"
   def ensure_application!(app, _input) do
     Mix.ensure_application!(app)
     {:ok, _} = Application.ensure_all_started(app)

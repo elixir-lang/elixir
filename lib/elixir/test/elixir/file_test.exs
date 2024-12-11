@@ -431,11 +431,13 @@ defmodule FileTest do
       try do
         assert File.exists?(dest)
 
-        assert File.cp(src, dest, fn src_file, dest_file ->
-                 assert src_file == src
-                 assert dest_file == dest
-                 false
-               end) == :ok
+        assert File.cp(src, dest,
+                 on_conflict: fn src_file, dest_file ->
+                   assert src_file == src
+                   assert dest_file == dest
+                   false
+                 end
+               ) == :ok
 
         assert File.read!(dest) == "hello"
       after
@@ -734,11 +736,13 @@ defmodule FileTest do
       try do
         assert File.exists?(tmp_path("tmp/a/1.txt"))
 
-        File.cp_r(src, dest, fn src_file, dest_file ->
-          assert src_file == fixture_path("cp_r/a/1.txt")
-          assert dest_file == tmp_path("tmp/a/1.txt")
-          false
-        end)
+        File.cp_r(src, dest,
+          on_conflict: fn src_file, dest_file ->
+            assert src_file == fixture_path("cp_r/a/1.txt")
+            assert dest_file == tmp_path("tmp/a/1.txt")
+            false
+          end
+        )
 
         assert File.read!(tmp_path("tmp/a/1.txt")) == "hello"
       after
@@ -790,7 +794,7 @@ defmodule FileTest do
       assert src_mode == dest_mode
 
       # On overwrite
-      File.cp!(src, dest, fn _, _ -> true end)
+      File.cp!(src, dest, on_conflict: fn _, _ -> true end)
       %File.Stat{mode: src_mode} = File.stat!(src)
       %File.Stat{mode: dest_mode} = File.stat!(dest)
       assert src_mode == dest_mode

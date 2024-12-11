@@ -49,8 +49,6 @@ defmodule Mix.Tasks.Do do
 
   """
 
-  # TODO: Deprecate using comma on Elixir v1.19
-
   @impl true
   def run(args) do
     Mix.Task.reenable("do")
@@ -99,6 +97,10 @@ defmodule Mix.Tasks.Do do
 
   defp gather_commands([head | rest], current, acc)
        when binary_part(head, byte_size(head), -1) == "," do
+    IO.warn(
+      "using commas as separators in \"mix do\" is deprecated, use + between commands instead"
+    )
+
     current =
       case binary_part(head, 0, byte_size(head) - 1) do
         "" -> Enum.reverse(current)

@@ -222,7 +222,7 @@ defmodule Kernel.ParallelCompiler do
   end
 
   @doc false
-  # TODO: Deprecate me on Elixir v1.19
+  @deprecated "Use Code.print_diagnostic/2 instead"
   def print_warning({file, location, warning}) do
     :elixir_errors.print_warning(location, file, warning)
   end
@@ -284,10 +284,10 @@ defmodule Kernel.ParallelCompiler do
         Module.ParallelChecker.stop(cache)
       end
 
-    # TODO: Require this to be set from Elixir v1.19
     if Keyword.get(options, :return_diagnostics, false) do
       {status, modules_or_errors, info}
     else
+      IO.warn("you must pass return_diagnostics: true when invoking Kernel.ParallelCompiler")
       to_tuples = &Enum.map(&1, fn diag -> {diag.file, diag.position, diag.message} end)
 
       modules_or_errors =

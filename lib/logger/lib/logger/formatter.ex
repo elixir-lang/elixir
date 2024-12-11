@@ -167,22 +167,12 @@ defmodule Logger.Formatter do
   end
 
   defp colors(colors) do
-    warning =
-      Keyword.get_lazy(colors, :warning, fn ->
-        # TODO: Deprecate :warn option on Elixir v1.19
-        if warn = Keyword.get(colors, :warn) do
-          warn
-        else
-          :yellow
-        end
-      end)
-
     %{
       emergency: Keyword.get(colors, :error, :red),
       alert: Keyword.get(colors, :error, :red),
       critical: Keyword.get(colors, :error, :red),
       error: Keyword.get(colors, :error, :red),
-      warning: warning,
+      warning: Keyword.get(colors, :warning, :yellow),
       notice: Keyword.get(colors, :info, :normal),
       info: Keyword.get(colors, :info, :normal),
       debug: Keyword.get(colors, :debug, :cyan),

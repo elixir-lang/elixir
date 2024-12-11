@@ -47,9 +47,9 @@ defmodule Mix.Compilers.Test do
 
     shared_require_options =
       if max_requires do
-        [max_concurrency: max_requires]
+        [max_concurrency: max_requires, return_diagnostics: true]
       else
-        []
+        [return_diagnostics: true]
       end
 
     Application.ensure_all_started(:ex_unit)
@@ -83,9 +83,15 @@ defmodule Mix.Compilers.Test do
 
           failed? =
             case Kernel.ParallelCompiler.require(test_files, parallel_require_options) do
-              {:ok, _, [_ | _]} when warnings_as_errors? -> true
-              {:ok, _, _} -> false
-              {:error, _, _} -> exit({:shutdown, 1})
+              {:ok, _, %{compile_warnings: c, runtime_warnings: r}}
+              when (c != [] or r != []) and warnings_as_errors? ->
+                true
+
+              {:ok, _, _} ->
+                false
+
+              {:error, _, _} ->
+                exit({:shutdown, 1})
             end
 
           %{failures: failures} = results = ExUnit.await_run(task)

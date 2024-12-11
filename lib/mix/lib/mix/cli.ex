@@ -90,11 +90,23 @@ defmodule Mix.CLI do
   end
 
   defp default_task(project) do
-    if function_exported?(project, :cli, 0) do
-      project.cli()[:default_task] || "run"
-    else
-      # TODO: Deprecate default_task in v1.19
-      Mix.Project.config()[:default_task] || "run"
+    cond do
+      function_exported?(project, :cli, 0) ->
+        project.cli()[:default_task] || "run"
+
+      default_task = Mix.Project.config()[:default_task] ->
+        IO.warn("""
+        setting :default_task in your mix.exs \"def project\" is deprecated, set it inside \"def cli\" instead:
+
+            def cli do
+              [default_task: #{inspect(default_task)}]
+            end
+        """)
+
+        default_task
+
+      true ->
+        "run"
     end
   end
 
@@ -155,21 +167,43 @@ defmodule Mix.CLI do
     end
   end
 
-  # TODO: Deprecate preferred_cli_env in v1.19
   defp preferred_cli_env(project, task, config) do
     if function_exported?(project, :cli, 0) || System.get_env("MIX_ENV") do
       nil
     else
-      config[:preferred_cli_env][task] || preferred_cli_env(task)
+      value = config[:preferred_cli_env]
+
+      if value do
+        IO.warn("""
+        setting :preferred_cli_env in your mix.exs \"def project\" is deprecated, set it inside \"def cli\" instead:
+
+            def cli do
+              [preferred_envs: #{inspect(value)}]
+            end
+        """)
+      end
+
+      value[task] || preferred_cli_env(task)
     end
   end
 
-  # TODO: Deprecate preferred_cli_target in v1.19
   defp preferred_cli_target(project, task, config) do
     if function_exported?(project, :cli, 0) || System.get_env("MIX_TARGET") do
       nil
     else
-      config[:preferred_cli_target][task]
+      value = config[:preferred_cli_target]
+
+      if value do
+        IO.warn("""
+        setting :preferred_cli_target in your mix.exs \"def project\" is deprecated, set it inside \"def cli\" instead:
+
+            def cli do
+              [preferred_targets: #{inspect(value)}]
+            end
+        """)
+      end
+
+      value[task]
     end
   end
 

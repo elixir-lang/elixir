@@ -131,7 +131,6 @@ defmodule Config do
 
       config :logger,
         level: :warn,
-        backends: [:console]
 
       config :logger,
         level: :info,
@@ -139,7 +138,7 @@ defmodule Config do
 
   will have a final configuration for `:logger` of:
 
-      [level: :info, backends: [:console], truncate: 1024]
+      [level: :info, truncate: 1024]
 
   """
   @doc since: "1.9.0"

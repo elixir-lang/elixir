@@ -18,9 +18,7 @@ System.delete_env("XDG_CONFIG_HOME")
 Mix.start()
 Mix.shell(Mix.Shell.Process)
 Application.put_env(:mix, :colors, enabled: false)
-
-Logger.remove_backend(:console)
-Application.put_env(:logger, :backends, [])
+Application.put_env(:logger, :default_handler, false)
 
 ## Setup ExUnit
 

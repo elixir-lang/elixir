@@ -944,7 +944,8 @@ defmodule Module.Types.IntegrationTest do
   end
 
   defp compile_files(paths) do
-    {:ok, modules, _warnings} = Kernel.ParallelCompiler.compile_to_path(paths, ".")
+    {:ok, modules, _warnings} =
+      Kernel.ParallelCompiler.compile_to_path(paths, ".", return_diagnostics: true)
 
     Map.new(modules, fn module ->
       {^module, binary, _filename} = :code.get_object_code(module)

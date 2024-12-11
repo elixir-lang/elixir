@@ -1912,7 +1912,9 @@ defmodule Kernel.WarningTest do
   end
 
   test "variable is being expanded to function call (on_undefined_variable: warn)" do
-    Code.put_compiler_option(:on_undefined_variable, :warn)
+    capture_io(:stderr, fn ->
+      Code.put_compiler_option(:on_undefined_variable, :warn)
+    end)
 
     output =
       capture_eval("""

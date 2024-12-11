@@ -429,8 +429,10 @@ defmodule Mix.Tasks.New do
 
   # Sample configuration:
   #
-  #     config :logger, :console,
-  #       level: :info,
+  #     config :logger, :default_handler,
+  #       level: :info
+  #
+  #     config :logger, :default_formatter,
   #       format: "$date $time [$level] $metadata$message\n",
   #       metadata: [:user_id]
   #

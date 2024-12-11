@@ -5,9 +5,11 @@ defmodule Logger.Backends.ConsoleTest do
   import ExUnit.CaptureIO
 
   setup_all do
-    Application.put_env(:logger, :backends, [Logger.Backends.Console])
-    Logger.App.stop()
-    Application.start(:logger)
+    capture_io(:stderr, fn ->
+      Application.put_env(:logger, :backends, [Logger.Backends.Console])
+      Logger.App.stop()
+      Application.start(:logger)
+    end)
 
     on_exit(fn ->
       Application.delete_env(:logger, :backends)

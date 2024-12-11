@@ -673,7 +673,7 @@ defmodule Mix.Tasks.Format do
       size = byte_size(sub)
 
       case file do
-        <<prefix::binary-size(size), dir_separator, _::binary>>
+        <<prefix::binary-size(^size), dir_separator, _::binary>>
         when prefix == sub and dir_separator in [?\\, ?/] ->
           recur_formatter_opts_for_file(file, sub, formatter_opts_and_subs)
 

@@ -12,12 +12,29 @@ defmodule Logger.App do
 
     {backends, console?} =
       case Application.fetch_env(:logger, :backends) do
-        {:ok, backends} -> {List.delete(backends, :console), :console in backends}
-        :error -> {[], true}
+        {:ok, backends} ->
+          IO.warn("""
+          the :backends key for the :logger application is deprecated.
+          Here is how to proceed:
+
+          1. If you want to set it to [:console], simply remove the option.
+
+          2. If you want to disable logging, remove :backends and instead set:
+
+              config :logger, :default_handler, false
+
+          3. If you want to configure any other backend, then it is recommended
+             to add `{:logger_backends, "~> 1.0"}` as a dependency and call
+             `LoggerBackends.add(CustomBackend)` in your application start callback
+          """)
+
+          {List.delete(backends, :console), :console in backends}
+
+        :error ->
+          {[], true}
       end
 
-    # TODO: Warn if :backends is set on Elixir v1.19
-    # TODO: Warn if :console is set on Elixir v1.19
+    # TODO: Warn if :console is set on Elixir v1.20
     default_handler =
       if console = Application.get_env(:logger, :console) do
         {handler, formatter} = Keyword.split(console, [:level])
