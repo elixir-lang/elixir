@@ -328,6 +328,12 @@ defmodule JSON do
   The second argument is a function that is recursively
   invoked to encode a term.
 
+  > #### IO and performance {: .tip}
+  >
+  > If you need to encode data to be sent over the network
+  > or written to the filesystem, consider using the more
+  > efficient `encode_to_iodata!/2`.
+
   ## Examples
 
       iex> JSON.encode!([123, "string", %{key: "value"}])
