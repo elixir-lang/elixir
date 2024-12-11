@@ -843,8 +843,10 @@ defmodule Code.Formatter do
     {wrap_in_parens(doc), state}
   end
 
+  # |> var
+  # |> var()
   defp binary_operand_to_algebra(
-         {var, meta, atom},
+         {var, meta, var_context},
          context,
          %{migrate_call_parens_on_pipe: true} = state,
          :|>,
@@ -852,9 +854,25 @@ defmodule Code.Formatter do
          :right,
          _nesting
        )
-       when is_atom(var) and is_atom(atom) do
+       when is_atom(var) and is_atom(var_context) do
     operand = {var, meta, []}
     quoted_to_algebra(operand, context, state)
+  end
+
+  # |> var.fun
+  # |> var.fun()
+  defp binary_operand_to_algebra(
+         {{:., _, [_, fun]} = call, meta, []},
+         context,
+         %{migrate_call_parens_on_pipe: true} = state,
+         :|>,
+         _parent_info,
+         :right,
+         _nesting
+       )
+       when is_atom(fun) do
+    meta = Keyword.put_new_lazy(meta, :closing, fn -> [line: meta[:line]] end)
+    quoted_to_algebra({call, meta, []}, context, state)
   end
 
   defp binary_operand_to_algebra(operand, context, state, parent_op, parent_info, side, nesting) do

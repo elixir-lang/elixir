@@ -33,6 +33,8 @@ defmodule Code.Formatter.MigrationTest do
     test "adds parentheses on the right operand" do
       assert_format "x |> y", "x |> y()", @opts
       assert_format "x |> y |> z", "x |> y() |> z()", @opts
+      assert_format "x |> y.z", "x |> y.z()", @opts
+      assert_format "x |> y.z.t", "x |> y.z.t()", @opts
     end
 
     test "does nothing within defmacro" do
@@ -42,6 +44,7 @@ defmodule Code.Formatter.MigrationTest do
     test "does nothing without the migrate_unless option" do
       assert_same "x |> y"
       assert_same "x |> y |> z"
+      assert_same "x |> y.z"
     end
   end
 
