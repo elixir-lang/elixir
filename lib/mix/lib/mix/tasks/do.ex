@@ -58,12 +58,25 @@ defmodule Mix.Tasks.Do do
     {apps, args} = extract_apps_from_args(args)
     show_forgotten_apps_warning(apps)
 
-    Enum.each(gather_commands(args), fn [task | args] ->
-      if apps == [] do
-        Mix.Task.run(task, args)
-      else
-        Mix.Task.run_in_apps(task, apps, args)
-      end
+    Enum.each(gather_commands(args), fn
+      [task | args] ->
+        if apps == [] do
+          Mix.Task.run(task, args)
+        else
+          Mix.Task.run_in_apps(task, apps, args)
+        end
+
+      [] ->
+        Mix.raise("""
+        One of the commands passed to "mix do" is empty. Each command passed to "mix do" must \
+        have at least the task name. These are all invalid:
+
+          mix do
+          mix do my_task +
+          mix do + my_task
+
+        Run "mix help do" for more information.
+        """)
     end)
   end
 
