@@ -332,7 +332,7 @@ defmodule Mix.Tasks.Xref do
 
   ### Understanding the printed cycle
 
-  If you run `mix xref graph --format cycle`, Elixir will print cycles
+  If you run `mix xref graph --format cycles`, Elixir will print cycles
   of shape:
 
       Cycle of length 3:
