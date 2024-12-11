@@ -8,6 +8,10 @@
 
 ### 3. Soft deprecations (no warnings emitted)
 
+#### Elixir
+
+  * [Node] `Node.start/2-3` is deprecated in favor of `Node.start/2` with a keyword list
+
 ### 4. Hard deprecations
 
 ## v1.18
