@@ -13,6 +13,14 @@ defmodule Mix.Tasks.DoTest do
     end)
   end
 
+  test "raises if a task is empty" do
+    for args <- [~w(), ~w(+), ~w(help +), ~w(+ help)] do
+      assert_raise Mix.Error, ~r"^One of the commands passed to \"mix do\" is empty", fn ->
+        Mix.Tasks.Do.run(args)
+      end
+    end
+  end
+
   test "gather_command returns a list of commands" do
     assert gather_commands(["help", "+", "compile"]) ==
              [["help"], ["compile"]]
