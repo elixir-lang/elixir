@@ -24,7 +24,7 @@ defmodule User do
 end
 ```
 
-Elixir's type system will infer the `drive` function expects a `%User{}` struct as input and returns either `{:ok, dynamic()}`, `{:error, :no_choice}`, or `{:error, :not_allowed}`.
+Elixir's type system will infer that the `drive/2` function expects a `%User{}` struct and returns either `{:ok, dynamic()}`, `{:error, :no_choice}`, or `{:error, :not_allowed}`.
 
 Therefore, the following code should emit a violation, due to an invalid argument:
 
