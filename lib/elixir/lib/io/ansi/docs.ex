@@ -437,7 +437,7 @@ defmodule IO.ANSI.Docs do
       col
       |> String.trim()
       |> String.replace("\\\|", "|")
-      |> handle_links
+      |> handle_links()
       |> handle_inline(options)
 
     {col, length_without_escape(col, 0)}
@@ -610,8 +610,8 @@ defmodule IO.ANSI.Docs do
 
   defp handle_links(text) do
     text
-    |> remove_square_brackets_in_link
-    |> escape_underlines_in_link
+    |> remove_square_brackets_in_link()
+    |> escape_underlines_in_link()
   end
 
   defp escape_underlines_in_link(text) do

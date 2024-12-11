@@ -309,7 +309,7 @@ defmodule Module.Types.DescrTest do
 
       refute difference(tuple(), empty_tuple())
              |> difference(open_tuple([term(), term()]))
-             |> empty?
+             |> empty?()
 
       assert difference(open_tuple([term()]), open_tuple([term(), term()]))
              |> difference(tuple([term()]))

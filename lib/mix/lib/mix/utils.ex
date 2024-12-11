@@ -309,7 +309,7 @@ defmodule Mix.Utils do
   end
 
   defp depth(_pretty?, []), do: ""
-  defp depth(pretty?, depth), do: Enum.reverse(depth) |> tl |> Enum.map(&entry(pretty?, &1))
+  defp depth(pretty?, depth), do: Enum.reverse(depth) |> tl() |> Enum.map(&entry(pretty?, &1))
 
   defp entry(false, true), do: "|   "
   defp entry(false, false), do: "    "

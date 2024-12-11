@@ -1296,7 +1296,7 @@ defmodule NaiveDateTime do
     if Calendar.compatible_calendars?(ndt_calendar, calendar) do
       result_naive_datetime =
         naive_datetime
-        |> to_iso_days
+        |> to_iso_days()
         |> from_iso_days(calendar, precision)
 
       {:ok, result_naive_datetime}

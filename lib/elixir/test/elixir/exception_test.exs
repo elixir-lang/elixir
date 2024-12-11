@@ -894,68 +894,68 @@ defmodule ExceptionTest do
     import Exception, only: [message: 1]
 
     test "RuntimeError" do
-      assert %RuntimeError{} |> message == "runtime error"
-      assert %RuntimeError{message: "unexpected roquefort"} |> message == "unexpected roquefort"
+      assert %RuntimeError{} |> message() == "runtime error"
+      assert %RuntimeError{message: "unexpected roquefort"} |> message() == "unexpected roquefort"
     end
 
     test "ArithmeticError" do
-      assert %ArithmeticError{} |> message == "bad argument in arithmetic expression"
+      assert %ArithmeticError{} |> message() == "bad argument in arithmetic expression"
 
       assert %ArithmeticError{message: "unexpected camembert"}
-             |> message == "unexpected camembert"
+             |> message() == "unexpected camembert"
     end
 
     test "ArgumentError" do
-      assert %ArgumentError{} |> message == "argument error"
-      assert %ArgumentError{message: "unexpected comté"} |> message == "unexpected comté"
+      assert %ArgumentError{} |> message() == "argument error"
+      assert %ArgumentError{message: "unexpected comté"} |> message() == "unexpected comté"
     end
 
     test "KeyError" do
-      assert %KeyError{} |> message == "key nil not found"
-      assert %KeyError{message: "key missed"} |> message == "key missed"
+      assert %KeyError{} |> message() == "key nil not found"
+      assert %KeyError{message: "key missed"} |> message() == "key missed"
     end
 
     test "Enum.OutOfBoundsError" do
-      assert %Enum.OutOfBoundsError{} |> message == "out of bounds error"
+      assert %Enum.OutOfBoundsError{} |> message() == "out of bounds error"
 
       assert %Enum.OutOfBoundsError{message: "the brie is not on the table"}
-             |> message == "the brie is not on the table"
+             |> message() == "the brie is not on the table"
     end
 
     test "Enum.EmptyError" do
-      assert %Enum.EmptyError{} |> message == "empty error"
+      assert %Enum.EmptyError{} |> message() == "empty error"
 
       assert %Enum.EmptyError{message: "there is no saint-nectaire left!"}
-             |> message == "there is no saint-nectaire left!"
+             |> message() == "there is no saint-nectaire left!"
     end
 
     test "UndefinedFunctionError" do
-      assert %UndefinedFunctionError{} |> message == "undefined function"
+      assert %UndefinedFunctionError{} |> message() == "undefined function"
 
       assert %UndefinedFunctionError{module: Kernel, function: :bar, arity: 1}
-             |> message == "function Kernel.bar/1 is undefined or private"
+             |> message() == "function Kernel.bar/1 is undefined or private"
 
       assert %UndefinedFunctionError{module: Foo, function: :bar, arity: 1}
-             |> message ==
+             |> message() ==
                "function Foo.bar/1 is undefined (module Foo is not available). " <>
                  "Make sure the module name is correct and has been specified in full (or that an alias has been defined)"
 
       assert %UndefinedFunctionError{module: nil, function: :bar, arity: 3}
-             |> message == "function nil.bar/3 is undefined"
+             |> message() == "function nil.bar/3 is undefined"
 
       assert %UndefinedFunctionError{module: nil, function: :bar, arity: 0}
-             |> message == "function nil.bar/0 is undefined"
+             |> message() == "function nil.bar/0 is undefined"
     end
 
     test "FunctionClauseError" do
-      assert %FunctionClauseError{} |> message == "no function clause matches"
+      assert %FunctionClauseError{} |> message() == "no function clause matches"
 
       assert %FunctionClauseError{module: Foo, function: :bar, arity: 1}
-             |> message == "no function clause matching in Foo.bar/1"
+             |> message() == "no function clause matching in Foo.bar/1"
     end
 
     test "ErlangError" do
-      assert %ErlangError{original: :sample} |> message == "Erlang error: :sample"
+      assert %ErlangError{original: :sample} |> message() == "Erlang error: :sample"
     end
 
     test "MissingApplicationsError" do
@@ -963,7 +963,7 @@ defmodule ExceptionTest do
                apps: [{:logger, "~> 1.18"}, {:ex_unit, Version.parse_requirement!(">= 0.0.0")}],
                description: "applications are required"
              }
-             |> message == """
+             |> message() == """
              applications are required
 
              To address this, include these applications as your dependencies:

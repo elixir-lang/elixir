@@ -560,7 +560,7 @@ defmodule FileTest do
 
       try do
         File.touch!(dest)
-        assert File.cp_r(src, dest) |> io_error?
+        assert File.cp_r(src, dest) |> io_error?()
       after
         File.rm_rf(dest)
       end
@@ -686,8 +686,8 @@ defmodule FileTest do
     end
 
     test "cp_r with src dir and dest dir using lists" do
-      src = fixture_path("cp_r") |> to_charlist
-      dest = tmp_path("tmp") |> to_charlist
+      src = fixture_path("cp_r") |> to_charlist()
+      dest = tmp_path("tmp") |> to_charlist()
 
       File.mkdir(dest)
 
@@ -1012,7 +1012,7 @@ defmodule FileTest do
     end
 
     test "mkdir with list" do
-      fixture = tmp_path("tmp_test") |> to_charlist
+      fixture = tmp_path("tmp_test") |> to_charlist()
 
       try do
         refute File.exists?(fixture)
@@ -1083,7 +1083,7 @@ defmodule FileTest do
     end
 
     test "mkdir_p with nested directory and list" do
-      base = tmp_path("tmp_test") |> to_charlist
+      base = tmp_path("tmp_test") |> to_charlist()
       fixture = Path.join(base, "test")
       refute File.exists?(base)
 
@@ -1287,7 +1287,7 @@ defmodule FileTest do
     end
 
     test "rm_rf with charlist" do
-      fixture = tmp_path("tmp") |> to_charlist
+      fixture = tmp_path("tmp") |> to_charlist()
       File.mkdir(fixture)
       File.cp_r!(fixture_path("cp_r"), fixture)
 

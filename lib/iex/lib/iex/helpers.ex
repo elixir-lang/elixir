@@ -590,13 +590,13 @@ defmodule IEx.Helpers do
   def runtime_info(topic) when is_atom(topic) and topic in @runtime_info_topics do
     topic
     |> List.wrap()
-    |> runtime_info
+    |> runtime_info()
   end
 
   def runtime_info(topics) when is_list(topics) do
     topics
     |> Enum.uniq()
-    |> print_runtime_info
+    |> print_runtime_info()
   end
 
   defp print_runtime_info(topics) do
