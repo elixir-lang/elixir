@@ -277,7 +277,7 @@ Not all expressions are allowed in guard clauses, but only a handful of them. Th
 You can find the built-in list of guards [in the `Kernel` module](`Kernel#guards`). Here is an overview:
 
   * comparison operators ([`==`](`==/2`), [`!=`](`!=/2`), [`===`](`===/2`), [`!==`](`!==/2`),
-    [`<`](`</2`), [`<=`](`<=/2`), [`>`](`>/2`), [`>=`](`>=/2`))
+    [`<`](`</2`), [`<=`](`<=/2`), [`>`](`>/2`), [`>=`](`>=/2`)), [`max`](`max/2`), [`min`](`min/2`)
   * strictly boolean operators ([`and`](`and/2`), [`or`](`or/2`), [`not`](`not/1`)). Note [`&&`](`&&/2`), [`||`](`||/2`), and [`!`](`!/1`) sibling operators are **not allowed** as they're not *strictly* boolean - meaning they don't require arguments to be booleans
   * arithmetic unary operators ([`+`](`+/1`), [`-`](`-/1`))
   * arithmetic binary operators ([`+`](`+/2`), [`-`](`-/2`), [`*`](`*/2`), [`/`](`//2`))
