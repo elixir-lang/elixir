@@ -199,7 +199,7 @@ Decoding can be done via `JSON.decode/2` and `JSON.decode!/2` functions. The def
 
 At the moment, all language server implementations have their own compilation environment. This means that your project and dependencies during development are compiled once, for your own use, and then again for the language server. This duplicate effort could cause the language server experience to lag, when it could be relying on the already compiled artifacts of your project.
 
-This release address by introducing a compiler lock, ensuring that only a single operating system running Elixir compiles your project at a given moment, and by providing the ability for one operating system process to listen to the compilation results of others. In other words, different Elixir instances can now communicate over the same compilation build, instead of racing each other.
+This release address by introducing a compiler lock, ensuring that only a single operating system process running Elixir compiles your project at a given moment, and by providing the ability for one operating system process to listen to the compilation results of others. In other words, different Elixir instances can now communicate over the same compilation build, instead of racing each other.
 
 These enhancements do not only improve editor tooling, but they also directly benefit projects like IEx and Phoenix. For example, you can invoke `IEx.configure(auto_reload: true)` and IEx will automatically reload modules changed elsewhere, either by a separate terminal or your IDE.
 
