@@ -46,6 +46,13 @@ defmodule JSONTest do
       assert JSON.encode!(%Token{value: :example}) == "[\"example\"]"
       assert JSON.encode!(%Token{value: "hello\0world"}) == "[\"hello\\u0000world\"]"
     end
+
+    test "calendar" do
+      assert JSON.encode!(~D[2010-04-17]) == "\"2010-04-17\""
+      assert JSON.encode!(~T[14:00:00.123]) == "\"14:00:00.123\""
+      assert JSON.encode!(~N[2010-04-17 14:00:00.123]) == "\"2010-04-17T14:00:00.123\""
+      assert JSON.encode!(~U[2010-04-17 14:00:00.123Z]) == "\"2010-04-17T14:00:00.123Z\""
+    end
   end
 
   describe "JSON.Encoder" do
