@@ -418,7 +418,8 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
 
               is_map_key(Pair, Pre) ->
                 %% TODO: Remove me on Elixir 2.0
-                elixir_errors:file_warn(Meta, E, ?MODULE, {unpinned_bitsize_var, Name, Kind}),
+                %% TODO: Deprecate me on Elixir 1.20
+                %% elixir_errors:file_warn(Meta, E, ?MODULE, {unpinned_bitsize_var, Name, Kind}),
                 {ok, CurrentVersion};
 
               not is_map_key(Pair, Original) ->
