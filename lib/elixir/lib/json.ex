@@ -199,6 +199,8 @@ defmodule JSON do
 
   @moduledoc since: "1.18.0"
 
+  @type encoder :: (term(), encoder() -> iodata())
+
   @type decode_error_reason ::
           {:unexpected_end, non_neg_integer()}
           | {:invalid_byte, non_neg_integer(), byte()}
@@ -332,7 +334,7 @@ defmodule JSON do
       "[123,\"string\",{\"key\":\"value\"}]"
 
   """
-  @spec encode!(a, (a -> iodata())) :: binary() when a: var
+  @spec encode!(term(), encoder()) :: binary()
   def encode!(term, encoder \\ &protocol_encode/2) do
     IO.iodata_to_binary(encoder.(term, encoder))
   end
@@ -353,7 +355,7 @@ defmodule JSON do
       "[123,\"string\",{\"key\":\"value\"}]"
 
   """
-  @spec encode_to_iodata!(a, (a -> iodata())) :: iodata() when a: var
+  @spec encode_to_iodata!(term(), encoder()) :: iodata()
   def encode_to_iodata!(term, encoder \\ &protocol_encode/2) do
     encoder.(term, encoder)
   end
@@ -365,7 +367,7 @@ defmodule JSON do
   `encode!/2` and `encode_to_iodata!/2`. The default implementation
   is an optimized dispatch to the `JSON.Encoder` protocol.
   """
-  @spec protocol_encode(a, (a -> iodata())) :: iodata() when a: var
+  @spec protocol_encode(term(), encoder()) :: iodata()
   def protocol_encode(value, encoder) when is_atom(value) do
     case value do
       nil -> "null"
