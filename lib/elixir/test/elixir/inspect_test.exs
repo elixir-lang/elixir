@@ -294,6 +294,17 @@ defmodule Inspect.ListTest do
              "[\n  foo: [1, 2, 3],\n  baz: [4, 5, 6]\n]"
   end
 
+  test "keyword - with filtering" do
+    assert inspect([password: "hideme"], filter: [:password]) ==
+             "[password: [FILTERED]]"
+
+    # Adding custom messages supported
+    redact = "[REDACTED]"
+
+    assert inspect([password: "hideme"], filter: [:password], filter_message: redact) ==
+             "[password: [REDACTED]]"
+  end
+
   test "keyword operators" do
     assert inspect("::": 1, +: 2) == ~s(["::": 1, +: 2])
   end
@@ -405,7 +416,10 @@ defmodule Inspect.MapTest do
   end
 
   test "basic - with filtering" do
-    redact = "[FILTERED]"
+    assert inspect(%{"password" => "hideme"}, filter: ["password"]) ==
+             "%{\"password\" => [FILTERED]}"
+
+    redact = "[REDACTED]"
 
     assert inspect(%{"password" => "hideme"}, filter: ["password"], filter_message: redact) ==
              "%{\"password\" => #{redact}}"
@@ -420,7 +434,10 @@ defmodule Inspect.MapTest do
   end
 
   test "keyword - with filtering" do
-    redact = "[FILTERED]"
+    assert inspect(%{"password" => "hideme"}, filter: ["password"]) ==
+             "%{\"password\" => [FILTERED]}"
+
+    redact = "[REDACTED]"
 
     assert inspect(%{password: "hideme"}, filter: [:password], filter_message: redact) ==
              "%{password: #{redact}}"
