@@ -176,7 +176,9 @@ clean_elixir:
 
 #==> Documentation tasks
 
-SOURCE_REF = $(shell tag="$(call GIT_TAG)" revision="$(call GIT_REVISION)"; echo "$${tag:-$$revision}")
+SOURCE_REF = $(shell tag="$(call GIT_TAG)"; revision="$(call GIT_REVISION)"; \
+               if echo "$$tag" | grep -Eq -- '-latest$$'; then tag=""; fi; \
+               echo "$${tag:-$$revision}")
 DOCS_COMPILE = CANONICAL=$(CANONICAL) bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" --main "$(3)" --source-url "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" --logo lib/elixir/pages/images/logo.png --output doc/$(2) --canonical "https://hexdocs.pm/$(2)/$(CANONICAL)" --homepage-url "https://elixir-lang.org/docs.html" $(4)
 DOCS_CONFIG = bin/elixir lib/elixir/scripts/docs_config.exs "$(1)"
 
