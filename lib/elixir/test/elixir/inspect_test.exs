@@ -404,12 +404,26 @@ defmodule Inspect.MapTest do
              "%{\n  1 => \"b\",\n  2 => \"c\"\n}"
   end
 
+  test "basic - with filtering" do
+    redact = "[FILTERED]"
+
+    assert inspect(%{"password" => "hideme"}, filter: ["password"], filter_message: redact) ==
+             "%{\"password\" => #{redact}}"
+  end
+
   test "keyword" do
     assert inspect(%{a: 1}) == "%{a: 1}"
     assert inspect(%{a: 1, b: 2}, custom_options: [sort_maps: true]) == "%{a: 1, b: 2}"
 
     assert inspect(%{a: 1, b: 2, c: 3}, custom_options: [sort_maps: true]) ==
              "%{a: 1, b: 2, c: 3}"
+  end
+
+  test "keyword - with filtering" do
+    redact = "[FILTERED]"
+
+    assert inspect(%{password: "hideme"}, filter: [:password], filter_message: redact) ==
+             "%{password: #{redact}}"
   end
 
   test "with limit" do
