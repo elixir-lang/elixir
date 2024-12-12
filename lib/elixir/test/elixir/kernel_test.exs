@@ -1136,6 +1136,8 @@ defmodule KernelTest do
     test "pop_in/1" do
       users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
+      assert pop_in(users["john"]) == {%{age: 27}, %{"meg" => %{age: 23}}}
+
       assert pop_in(users["john"][:age]) == {27, %{"john" => %{}, "meg" => %{age: 23}}}
       assert pop_in(users["john"][:name]) == {nil, %{"john" => %{age: 27}, "meg" => %{age: 23}}}
       assert pop_in(users["bob"][:age]) == {nil, %{"john" => %{age: 27}, "meg" => %{age: 23}}}
