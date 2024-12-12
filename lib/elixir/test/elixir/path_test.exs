@@ -242,12 +242,12 @@ defmodule PathTest do
   end
 
   test "absname/1,2" do
-    assert Path.absname("/") |> strip_drive_letter_if_windows == "/"
-    assert Path.absname("/foo") |> strip_drive_letter_if_windows == "/foo"
-    assert Path.absname("/./foo") |> strip_drive_letter_if_windows == "/foo"
-    assert Path.absname("/foo/bar") |> strip_drive_letter_if_windows == "/foo/bar"
-    assert Path.absname("/foo/bar/") |> strip_drive_letter_if_windows == "/foo/bar"
-    assert Path.absname("/foo/bar/../bar") |> strip_drive_letter_if_windows == "/foo/bar/../bar"
+    assert Path.absname("/") |> strip_drive_letter_if_windows() == "/"
+    assert Path.absname("/foo") |> strip_drive_letter_if_windows() == "/foo"
+    assert Path.absname("/./foo") |> strip_drive_letter_if_windows() == "/foo"
+    assert Path.absname("/foo/bar") |> strip_drive_letter_if_windows() == "/foo/bar"
+    assert Path.absname("/foo/bar/") |> strip_drive_letter_if_windows() == "/foo/bar"
+    assert Path.absname("/foo/bar/../bar") |> strip_drive_letter_if_windows() == "/foo/bar/../bar"
 
     assert Path.absname("bar", "/foo") == "/foo/bar"
     assert Path.absname("bar/", "/foo") == "/foo/bar"
@@ -273,33 +273,33 @@ defmodule PathTest do
   end
 
   test "expand/1,2" do
-    assert Path.expand("/") |> strip_drive_letter_if_windows == "/"
-    assert Path.expand("/foo/../..") |> strip_drive_letter_if_windows == "/"
-    assert Path.expand("/foo") |> strip_drive_letter_if_windows == "/foo"
-    assert Path.expand("/./foo") |> strip_drive_letter_if_windows == "/foo"
-    assert Path.expand("/../foo") |> strip_drive_letter_if_windows == "/foo"
-    assert Path.expand("/foo/bar") |> strip_drive_letter_if_windows == "/foo/bar"
-    assert Path.expand("/foo/bar/") |> strip_drive_letter_if_windows == "/foo/bar"
-    assert Path.expand("/foo/bar/.") |> strip_drive_letter_if_windows == "/foo/bar"
-    assert Path.expand("/foo/bar/../bar") |> strip_drive_letter_if_windows == "/foo/bar"
+    assert Path.expand("/") |> strip_drive_letter_if_windows() == "/"
+    assert Path.expand("/foo/../..") |> strip_drive_letter_if_windows() == "/"
+    assert Path.expand("/foo") |> strip_drive_letter_if_windows() == "/foo"
+    assert Path.expand("/./foo") |> strip_drive_letter_if_windows() == "/foo"
+    assert Path.expand("/../foo") |> strip_drive_letter_if_windows() == "/foo"
+    assert Path.expand("/foo/bar") |> strip_drive_letter_if_windows() == "/foo/bar"
+    assert Path.expand("/foo/bar/") |> strip_drive_letter_if_windows() == "/foo/bar"
+    assert Path.expand("/foo/bar/.") |> strip_drive_letter_if_windows() == "/foo/bar"
+    assert Path.expand("/foo/bar/../bar") |> strip_drive_letter_if_windows() == "/foo/bar"
 
-    assert Path.expand("bar", "/foo") |> strip_drive_letter_if_windows == "/foo/bar"
-    assert Path.expand("bar/", "/foo") |> strip_drive_letter_if_windows == "/foo/bar"
-    assert Path.expand("bar/.", "/foo") |> strip_drive_letter_if_windows == "/foo/bar"
-    assert Path.expand("bar/../bar", "/foo") |> strip_drive_letter_if_windows == "/foo/bar"
+    assert Path.expand("bar", "/foo") |> strip_drive_letter_if_windows() == "/foo/bar"
+    assert Path.expand("bar/", "/foo") |> strip_drive_letter_if_windows() == "/foo/bar"
+    assert Path.expand("bar/.", "/foo") |> strip_drive_letter_if_windows() == "/foo/bar"
+    assert Path.expand("bar/../bar", "/foo") |> strip_drive_letter_if_windows() == "/foo/bar"
 
     drive_letter =
-      Path.expand("../bar/../bar", "/foo/../foo/../foo") |> strip_drive_letter_if_windows
+      Path.expand("../bar/../bar", "/foo/../foo/../foo") |> strip_drive_letter_if_windows()
 
     assert drive_letter == "/bar"
 
     drive_letter =
       Path.expand([~c"..", ?/, "bar/../bar"], ~c"/foo/../foo/../foo")
-      |> strip_drive_letter_if_windows
+      |> strip_drive_letter_if_windows()
 
     assert "/bar" == drive_letter
 
-    assert Path.expand("/..") |> strip_drive_letter_if_windows == "/"
+    assert Path.expand("/..") |> strip_drive_letter_if_windows() == "/"
 
     assert Path.expand("bar/../bar", "foo") == Path.expand("foo/bar")
   end

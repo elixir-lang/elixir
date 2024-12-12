@@ -1913,7 +1913,7 @@ defmodule DateTime do
     if Calendar.compatible_calendars?(dt_calendar, calendar) do
       result_datetime =
         datetime
-        |> to_iso_days
+        |> to_iso_days()
         |> from_iso_days(datetime, calendar, precision)
 
       {:ok, result_datetime}

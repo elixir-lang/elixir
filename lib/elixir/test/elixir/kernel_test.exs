@@ -1215,11 +1215,11 @@ defmodule KernelTest do
     end
 
     test "local call" do
-      assert [1, [2], 3] |> List.flatten() |> local == [2, 4, 6]
+      assert [1, [2], 3] |> List.flatten() |> local() == [2, 4, 6]
     end
 
     test "with capture" do
-      assert Enum.map([1, 2, 3], &(&1 |> twice |> twice)) == [4, 8, 12]
+      assert Enum.map([1, 2, 3], &(&1 |> twice() |> twice())) == [4, 8, 12]
     end
 
     test "with anonymous functions" do

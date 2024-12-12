@@ -27,7 +27,7 @@ defmodule IO.ANSI.DocsTest do
 
     test "multiple entries formatted" do
       result = format_headings(["foo", "bar"])
-      assert :binary.matches(result, "\e[0m\n\e[7m\e[33m") |> length == 2
+      assert :binary.matches(result, "\e[0m\n\e[7m\e[33m") |> length() == 2
       assert String.starts_with?(result, "\e[0m\n\e[7m\e[33m")
       assert String.ends_with?(result, "\e[0m\n\e[0m")
       assert String.contains?(result, " foo ")
@@ -36,7 +36,7 @@ defmodule IO.ANSI.DocsTest do
 
     test "is correctly formatted when newline character is present" do
       result = format_headings(["foo\nbar"])
-      assert :binary.matches(result, "\e[0m\n\e[7m\e[33m") |> length == 2
+      assert :binary.matches(result, "\e[0m\n\e[7m\e[33m") |> length() == 2
       assert ["\e[0m", foo_line, bar_line, "\e[0m"] = String.split(result, "\n")
       assert Regex.match?(~r/\e\[7m\e\[33m +foo +\e\[0m/, foo_line)
       assert Regex.match?(~r/\e\[7m\e\[33m +bar +\e\[0m/, bar_line)

@@ -155,7 +155,7 @@ defmodule System do
     ~c"git rev-parse --short=7 HEAD 2> "
     |> Kernel.++(null)
     |> :os.cmd()
-    |> strip
+    |> strip()
   end
 
   defp revision, do: get_revision()

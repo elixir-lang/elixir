@@ -157,7 +157,7 @@ defmodule Kernel.CLI.ExecutableTest do
   end
 
   test "parses paths", %{cli_extension: cli_extension} do
-    root = fixture_path("../../..") |> to_charlist
+    root = fixture_path("../../..") |> to_charlist()
 
     args =
       ~c"-pa \"#{root}/*\" -pz \"#{root}/lib/*\" -e \"IO.inspect(:code.get_path(), limit: :infinity)\""

@@ -184,7 +184,7 @@ defmodule Mix.Tasks.Compile do
   end
 
   defp first_line(doc) do
-    String.split(doc, "\n", parts: 2) |> hd |> String.trim() |> String.trim_trailing(".")
+    String.split(doc, "\n", parts: 2) |> hd() |> String.trim() |> String.trim_trailing(".")
   end
 
   defp merge_diagnostics({status1, diagnostics1}, {status2, diagnostics2}) do
