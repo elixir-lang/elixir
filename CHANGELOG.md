@@ -4,7 +4,7 @@ Elixir v1.18 is an impressive release with improvements across the two main effo
 
 ## Type system improvements
 
-The most exciting change in Elixir v1.18 is type checking of function calls, alongside gradual inference of patterns and return types. To understand how this will impact your programs, consider the following code:
+The most exciting change in Elixir v1.18 is type checking of function calls, alongside gradual inference of patterns and return types. To understand how this will impact your programs, consider the following code in "lib/user.ex":
 
 ```elixir
 defmodule User do
@@ -26,7 +26,7 @@ end
 
 Elixir's type system will infer that the `drive/2` function expects a `%User{}` struct and returns either `{:ok, dynamic()}`, `{:error, :no_choice}`, or `{:error, :not_allowed}`.
 
-Therefore, the following code should emit a violation, due to an invalid argument:
+Therefore, the following code in a separate module (either in a separate or the same file), should emit a violation, due to an invalid argument:
 
 ```elixir
 User.drive({:ok, %User{}}, car_choices)
