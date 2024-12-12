@@ -3306,7 +3306,7 @@ defmodule Kernel do
   end
 
   defp nest_pop_in(:map, h, [{:access, key}]) do
-    quote do
+    quote generated: true do
       case unquote(h) do
         nil -> {nil, nil}
         h -> Access.pop(h, unquote(key))
@@ -3327,7 +3327,7 @@ defmodule Kernel do
   end
 
   defp nest_pop_in(_, h, [{:access, key}]) do
-    quote do
+    quote generated: true do
       case unquote(h) do
         nil -> :pop
         h -> Access.pop(h, unquote(key))
