@@ -315,7 +315,7 @@ defimpl Inspect, for: List do
     %Inspect.Opts{
       charlists: lists,
       char_lists: lists_deprecated,
-      printable_limit: printable_limit,
+      printable_limit: printable_limit
     } = opts
 
     lists =
@@ -365,7 +365,7 @@ defimpl Inspect, for: List do
     filter_values = Keyword.get(opts.custom_options, :filter, [])
     filter_message = Keyword.get(opts.custom_options, :filter_message, "[FILTERED]")
 
-    value = if value in filter_values, do: filter_message, else: value
+    value = if key in filter_values, do: filter_message, else: value
 
     key = color_doc(Macro.inspect_atom(:key, key), :atom, opts)
     concat(key, concat(" ", to_doc(value, opts)))
@@ -403,17 +403,18 @@ defimpl Inspect, for: Map do
       end
 
     list =
-        case Keyword.get(opts.custom_options, :filter, []) do
-          [] ->
-            list
+      case Keyword.get(opts.custom_options, :filter, []) do
+        [] ->
+          list
 
-          filter_values ->
-            filter_message = Keyword.get(opts.custom_options, :filter_message, "[FILTERED]")
-            Enum.map(list, fn {key, value} -> 
-              value = if key in filter_values, do: filter_message, else: value
-              {key, value}
-            end)
-        end
+        filter_values ->
+          filter_message = Keyword.get(opts.custom_options, :filter_message, "[FILTERED]")
+
+          Enum.map(list, fn {key, value} ->
+            value = if key in filter_values, do: filter_message, else: value
+            {key, value}
+          end)
+      end
 
     fun =
       if Inspect.List.keyword?(list) do

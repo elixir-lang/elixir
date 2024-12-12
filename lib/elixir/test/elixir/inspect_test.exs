@@ -296,13 +296,15 @@ defmodule Inspect.ListTest do
 
   test "keyword - with filtering" do
     assert inspect([password: "hideme"], custom_options: [filter: [:password]]) ==
-             "[password: [FILTERED]]"
+             "[password: \"[FILTERED]\"]"
 
     # Adding custom messages supported
     redact = "[REDACTED]"
 
-    assert inspect([password: "hideme"], filter: [:password], filter_message: redact) ==
-             "[password: [REDACTED]]"
+    assert inspect([password: "hideme"],
+             custom_options: [filter: [:password], filter_message: redact]
+           ) ==
+             "[password: \"[REDACTED]\"]"
   end
 
   test "keyword operators" do
@@ -441,7 +443,7 @@ defmodule Inspect.MapTest do
 
     redact = "[REDACTED]"
 
-    assert inspect(%{password: "hideme"}, 
+    assert inspect(%{password: "hideme"},
              custom_options: [filter: [:password], filter_message: redact]
            ) ==
              "%{password: \"#{redact}\"}"
