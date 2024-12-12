@@ -316,7 +316,6 @@ defimpl Inspect, for: List do
       charlists: lists,
       char_lists: lists_deprecated,
       printable_limit: printable_limit,
-      custom_options: custom_opts
     } = opts
 
     lists =
@@ -363,6 +362,11 @@ defimpl Inspect, for: List do
 
   @doc false
   def keyword({key, value}, opts) do
+    filter_values = Keyword.get(opts.custom_options, :filter, [])
+    filter_message = Keyword.get(opts.custom_options, :filter_message, "[FILTERED]")
+
+    value = if value in filter_values, do: filter_message, else: value
+
     key = color_doc(Macro.inspect_atom(:key, key), :atom, opts)
     concat(key, concat(" ", to_doc(value, opts)))
   end
@@ -398,26 +402,25 @@ defimpl Inspect, for: Map do
         Map.to_list(map)
       end
 
+    list =
+        case Keyword.get(opts.custom_options, :filter, []) do
+          [] ->
+            list
+
+          filter_values ->
+            filter_message = Keyword.get(opts.custom_options, :filter_message, "[FILTERED]")
+            Enum.map(list, fn {key, value} -> 
+              value = if key in filter_values, do: filter_message, else: value
+              {key, value}
+            end)
+        end
+
     fun =
       if Inspect.List.keyword?(list) do
         &Inspect.List.keyword/2
       else
         sep = color_doc(" => ", :map, opts)
-        # Case is not strictly necessary, but since most times we will not be filtering, 
-        # it seems ideal to prioritize the empty list path
-        case Keyword.get(opts.custom_options, :filter, []) do
-          [] ->
-            &to_assoc(&1, &2, sep)
-
-          filter_values ->
-            filter_message = Keyword.get(opts.custom_options, :filter_message, "[FILTERED]")
-            
-            &to_assoc(
-              {elem(&1,0), if(elem(&1,0) in filter_values, do: filter_message, else: elem(&1,1))},
-              &2, 
-              sep
-            )
-        end
+        &to_assoc(&1, &2, sep)
       end
 
     map_container_doc(list, "", opts, fun)

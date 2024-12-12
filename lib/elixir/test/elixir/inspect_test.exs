@@ -295,7 +295,7 @@ defmodule Inspect.ListTest do
   end
 
   test "keyword - with filtering" do
-    assert inspect([password: "hideme"], filter: [:password]) ==
+    assert inspect([password: "hideme"], custom_options: [filter: [:password]]) ==
              "[password: [FILTERED]]"
 
     # Adding custom messages supported
@@ -436,13 +436,15 @@ defmodule Inspect.MapTest do
   end
 
   test "keyword - with filtering" do
-    assert inspect(%{password: "hideme"}, custom_options: [filter: ["password"]]) ==
-             "%{password: [FILTERED]}"
+    assert inspect(%{password: "hideme"}, custom_options: [filter: [:password]]) ==
+             "%{password: \"[FILTERED]\"}"
 
     redact = "[REDACTED]"
 
-    assert inspect(%{password: "hideme"}, filter: [:password], filter_message: redact) ==
-             "%{password: #{redact}}"
+    assert inspect(%{password: "hideme"}, 
+             custom_options: [filter: [:password], filter_message: redact]
+           ) ==
+             "%{password: \"#{redact}\"}"
   end
 
   test "with limit" do
