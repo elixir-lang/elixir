@@ -9,6 +9,7 @@ defmodule Node do
   """
 
   @type t :: node
+  @type state :: :visible | :hidden | :connected | :this | :known
 
   @doc """
   Turns a non-distributed node into a distributed node.
@@ -92,10 +93,47 @@ defmodule Node do
 
   Inlined by the compiler.
   """
-  @type state :: :visible | :hidden | :connected | :this | :known
   @spec list(state | [state]) :: [t]
   def list(args) do
     :erlang.nodes(args)
+  end
+
+  @doc """
+  Returns a list of nodes according to argument given, with extra info.
+
+  The second argument is used to request additional information with the
+  following options:
+
+  * `:connection_id` - boolean. Returns the connection id from each node.
+  * `:node_type` - boolean. Returns the node type (or state) of each node.
+
+  The additional information is returned as a keyword.
+
+  ## Examples
+
+      iex> Node.list([:connected, :this], [connection_id: true])
+      [myself@localhost: [connection_id: nil], node_a@localhost: [connection_id: 1]]
+
+      iex> Node.list([:connected, :this], [connection_id: true, node_type: true])
+      [myself@localhost: [connection_id: nil, node_type: :this], node_a@localhost: [connection_id: 1, node_type: :visible]]
+
+  For more information, see `:erlang.nodes/2`.
+  """
+  @spec list(
+    state | [state],
+    [{:connection_id, boolean()} | {:node_type, boolean()}]
+  ) :: [{t, [{:connection_id, integer() | nil} | {:node_type, state()}]}]
+  def list(args, info_opts) do
+    args
+    |> :erlang.nodes(Map.new(info_opts))
+    |> Enum.map(fn {node, info} ->
+      info = Enum.map(info, fn
+        {:connection_id, :undefined} -> {:connection_id, nil}
+        other -> other
+      end)
+
+      {node, info}
+    end)
   end
 
   @doc """
