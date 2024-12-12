@@ -27,7 +27,7 @@ defmodule Kernel do
   If you don't want to import a function or macro from `Kernel`, use the `:except`
   option and then list the function/macro by arity:
 
-      import Kernel, except: [if: 2, unless: 2]
+      import Kernel, except: [if: 2, is_number: 1]
 
   See `import/2` for more information on importing.
 
