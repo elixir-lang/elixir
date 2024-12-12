@@ -416,13 +416,15 @@ defmodule Inspect.MapTest do
   end
 
   test "basic - with filtering" do
-    assert inspect(%{"password" => "hideme"}, filter: ["password"]) ==
-             "%{\"password\" => [FILTERED]}"
+    assert inspect(%{"password" => "hideme"}, custom_options: [filter: ["password"]]) ==
+             "%{\"password\" => \"[FILTERED]\"}"
 
     redact = "[REDACTED]"
 
-    assert inspect(%{"password" => "hideme"}, filter: ["password"], filter_message: redact) ==
-             "%{\"password\" => #{redact}}"
+    assert inspect(%{"password" => "hideme"},
+             custom_options: [filter: ["password"], filter_message: redact]
+           ) ==
+             "%{\"password\" => \"#{redact}\"}"
   end
 
   test "keyword" do
@@ -434,8 +436,8 @@ defmodule Inspect.MapTest do
   end
 
   test "keyword - with filtering" do
-    assert inspect(%{"password" => "hideme"}, filter: ["password"]) ==
-             "%{\"password\" => [FILTERED]}"
+    assert inspect(%{password: "hideme"}, custom_options: [filter: ["password"]]) ==
+             "%{password: [FILTERED]}"
 
     redact = "[REDACTED]"
 

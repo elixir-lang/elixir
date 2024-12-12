@@ -315,7 +315,8 @@ defimpl Inspect, for: List do
     %Inspect.Opts{
       charlists: lists,
       char_lists: lists_deprecated,
-      printable_limit: printable_limit
+      printable_limit: printable_limit,
+      custom_options: custom_opts
     } = opts
 
     lists =
@@ -402,7 +403,21 @@ defimpl Inspect, for: Map do
         &Inspect.List.keyword/2
       else
         sep = color_doc(" => ", :map, opts)
-        &to_assoc(&1, &2, sep)
+        # Case is not strictly necessary, but since most times we will not be filtering, 
+        # it seems ideal to prioritize the empty list path
+        case Keyword.get(opts.custom_options, :filter, []) do
+          [] ->
+            &to_assoc(&1, &2, sep)
+
+          filter_values ->
+            filter_message = Keyword.get(opts.custom_options, :filter_message, "[FILTERED]")
+            
+            &to_assoc(
+              {elem(&1,0), if(elem(&1,0) in filter_values, do: filter_message, else: elem(&1,1))},
+              &2, 
+              sep
+            )
+        end
       end
 
     map_container_doc(list, "", opts, fun)
