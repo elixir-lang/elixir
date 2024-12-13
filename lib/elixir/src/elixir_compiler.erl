@@ -203,6 +203,7 @@ bootstrap_files() ->
      <<"path.ex">>,
      <<"file.ex">>,
      <<"map.ex">>,
+     <<"function.ex">>,
      <<"range.ex">>,
      <<"access.ex">>,
      <<"io.ex">>,
