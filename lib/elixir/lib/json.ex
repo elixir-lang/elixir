@@ -265,7 +265,8 @@ defmodule JSON do
 
   For streaming decoding, see Erlang's `:json` module.
   """
-  @spec decode(binary(), term(), keyword()) :: {term(), term(), binary()} | decode_error_reason()
+  @spec decode(binary(), term(), keyword()) ::
+          {term(), term(), binary()} | {:error, decode_error_reason()}
   def decode(binary, acc, decoders) when is_binary(binary) and is_list(decoders) do
     decoders = Keyword.put_new(decoders, :null, nil)
 
