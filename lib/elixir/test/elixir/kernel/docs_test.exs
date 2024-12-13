@@ -255,7 +255,7 @@ defmodule Kernel.DocsTest do
 
       assert module_doc == "Module doc"
 
-      file = __ENV__.file
+      file = String.to_charlist(__ENV__.file)
 
       source_annos = [:erl_anno.new({line + 3, 19})]
 
