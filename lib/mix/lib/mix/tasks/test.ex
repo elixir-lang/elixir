@@ -634,11 +634,18 @@ defmodule Mix.Tasks.Test do
     # get a list of all files in the test folders, which we filter by the test_load_filters
     potential_test_files = Mix.Utils.extract_files(test_files, test_pattern)
 
-    {unfiltered_test_files, _ignored_files, warn_files} =
+    {load_files, _ignored_files, warn_files} =
       classify_test_files(potential_test_files, project)
 
+    # ensure that files given as direct argument to mix test are loaded,
+    # even if the test_load_filters don't match
+    load_files =
+      if files != [],
+        do: Enum.uniq(load_files ++ directly_included_test_files(files)),
+        else: load_files
+
     matched_test_files =
-      unfiltered_test_files
+      load_files
       |> filter_to_allowed_files(allowed_files)
       |> filter_by_partition(shell, partitions)
 
@@ -711,6 +718,10 @@ defmodule Mix.Tasks.Test do
         Mix.shell().error(message)
         System.at_exit(fn _ -> exit({:shutdown, 1}) end)
     end
+  end
+
+  defp directly_included_test_files(files) do
+    Enum.filter(files, fn path -> :elixir_utils.read_file_type(path) == {:ok, :regular} end)
   end
 
   defp classify_test_files(potential_test_files, project) do
