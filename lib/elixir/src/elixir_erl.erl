@@ -526,7 +526,7 @@ docs_chunk(Map, Set, Module, Anno, Def, Defmacro, Types, Callbacks, ChunkOpts) -
       TypeDocs = get_type_docs(Set, Types),
 
       ModuleMeta = ModuleDocMeta#{
-        source_path => File,
+        source_path => elixir_utils:characters_to_list(File),
         source_annos => [Anno],
         behaviours => [Mod || {behaviour, Mod} <- Attributes]
       },
