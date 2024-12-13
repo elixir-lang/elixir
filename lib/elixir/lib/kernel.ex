@@ -4066,7 +4066,7 @@ defmodule Kernel do
   end
 
   defp stepless_range(nil, first, last, _caller) do
-    quote(do: Elixir.Range.new(unquote(first), unquote(last)))
+    quote(do: Function.identity(Elixir.Range.new(unquote(first), unquote(last))))
   end
 
   defp stepless_range(:guard, first, last, caller) do
