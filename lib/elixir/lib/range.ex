@@ -192,7 +192,7 @@ defmodule Range do
         IO.warn_once(
           {__MODULE__, :new},
           fn ->
-            "Range.new/2 has a default step of -1 when last < first, please call Range.new/3 explicitly passing the step of -1 instead"
+            "Range.new/2 and first..last default to a step of -1 when last < first. Use Range.new(first, last, -1) or first..last//-1, or pass 1 if that was your intention"
           end,
           3
         )
