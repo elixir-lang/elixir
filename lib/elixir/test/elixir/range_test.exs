@@ -35,7 +35,7 @@ defmodule RangeTest do
 
     assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
              assert Range.new(3, 1) == 3..1//-1
-           end) =~ "has a default step of -1"
+           end) =~ "default to a step of -1"
   end
 
   test "fields" do
