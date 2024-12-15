@@ -27,11 +27,6 @@ defmodule Code.Typespec do
     end
   end
 
-  def spec_to_quoted(name, {:type, anno, :fun, []}) when is_atom(name) do
-    meta = meta(anno)
-    {:"::", meta, [{name, meta, []}, quote(do: term)]}
-  end
-
   def spec_to_quoted(name, {:type, anno, :bounded_fun, [type, constrs]}) when is_atom(name) do
     meta = meta(anno)
     {:type, _, :fun, [{:type, _, :product, args}, result]} = type
@@ -315,10 +310,6 @@ defmodule Code.Typespec do
 
   defp typespec_to_quoted({:type, anno, :fun, [args, result]}) do
     [{:->, meta(anno), [[typespec_to_quoted(args)], typespec_to_quoted(result)]}]
-  end
-
-  defp typespec_to_quoted({:type, anno, :fun, []}) do
-    typespec_to_quoted({:type, anno, :fun, [{:type, anno, :any}, {:type, anno, :any, []}]})
   end
 
   defp typespec_to_quoted({:type, anno, :range, [left, right]}) do
