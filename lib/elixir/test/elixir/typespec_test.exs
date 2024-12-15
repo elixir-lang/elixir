@@ -710,7 +710,8 @@ defmodule TypespecTest do
           @type my_type :: (... -> any)
         end
 
-      assert [type: {:my_type, {:type, _, :fun, []}, []}] = types(bytecode)
+      assert [type: {:my_type, {:type, _, :fun, [{:type, _, :any}, {:type, _, :any, []}]}, []}] =
+               types(bytecode)
     end
 
     test "@type with a fun with multiple arguments and return type" do
@@ -1519,9 +1520,6 @@ defmodule TypespecTest do
           {:literal_struct_all_fields_key_type, _, _} ->
             assert ast_string ==
                      "@type literal_struct_all_fields_key_type() :: %TypespecTest.SomeStruct{key: integer()}"
-
-          {:built_in_fun, _, _} ->
-            assert ast_string == "@type built_in_fun() :: (... -> any())"
 
           {:built_in_nonempty_list, _, _} ->
             assert ast_string == "@type built_in_nonempty_list() :: [...]"

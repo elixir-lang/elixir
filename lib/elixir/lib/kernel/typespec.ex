@@ -668,14 +668,7 @@ defmodule Kernel.Typespec do
        when is_list(args) do
     {args, state} = fn_args(meta, args, vars, caller, state)
     {spec, state} = typespec(return, vars, caller, state)
-
-    fun_args =
-      case [args, spec] do
-        [{:type, _, :any}, {:type, _, :any, []}] -> []
-        pair -> pair
-      end
-
-    {{:type, location(meta), :fun, fun_args}, state}
+    {{:type, location(meta), :fun, [args, spec]}, state}
   end
 
   # Handle type operator
