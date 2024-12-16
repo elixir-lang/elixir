@@ -10,8 +10,8 @@ defmodule IEx.Autocomplete do
     %{kind: :variable, name: "little"},
     %{kind: :variable, name: "native"},
     %{kind: :variable, name: "signed"},
-    %{kind: :function, name: "size", arity: 1},
-    %{kind: :function, name: "unit", arity: 1},
+    %{kind: :export, name: "size", arity: 1},
+    %{kind: :export, name: "unit", arity: 1},
     %{kind: :variable, name: "unsigned"},
     %{kind: :variable, name: "utf8"},
     %{kind: :variable, name: "utf16"},
@@ -162,7 +162,7 @@ defmodule IEx.Autocomplete do
       {:ok, mod} when is_atom(mod) ->
         mod
         |> fun.()
-        |> match_module_funs(hint, false)
+        |> match_exports(hint, false)
         |> format_expansion(hint)
 
       _ ->
@@ -197,7 +197,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp expand_signatures([_ | _] = signatures, _shell) do
-    yes("", Enum.sort_by(signatures, &String.length/1))
+    yes(~c"", signatures |> Enum.map(&String.to_charlist/1) |> Enum.sort_by(&length/1))
   end
 
   defp expand_signatures([], shell), do: expand_local_or_var("", shell)
@@ -251,14 +251,13 @@ defmodule IEx.Autocomplete do
   end
 
   defp expand_dot_aliases(mod) do
-    all = match_elixir_modules(mod, "") ++ match_module_funs(get_module_funs(mod), "", false)
+    all = match_elixir_modules(mod, "") ++ get_and_match_module_defs(mod, "", false)
     format_expansion(all, "")
   end
 
   defp expand_require(mod, hint, exact?) do
     mod
-    |> get_module_funs()
-    |> match_module_funs(hint, exact?)
+    |> get_and_match_module_defs(hint, exact?)
     |> format_expansion(hint)
   end
 
@@ -282,8 +281,8 @@ defmodule IEx.Autocomplete do
 
   defp match_local(hint, exact?, shell) do
     imports = imports_from_env(shell) |> Enum.flat_map(&elem(&1, 1))
-    module_funs = get_module_funs(Kernel.SpecialForms)
-    match_module_funs(imports ++ module_funs, hint, exact?)
+    module_funs = exports(Kernel.SpecialForms)
+    match_exports(imports ++ module_funs, hint, exact?)
   end
 
   defp match_var(hint, shell) do
@@ -520,7 +519,7 @@ defmodule IEx.Autocomplete do
 
   defp format_expansion([uniq], hint) do
     case to_hint(uniq, hint) do
-      "" -> yes("", to_entries(uniq))
+      ~c"" -> yes(~c"", [to_entry(uniq)])
       hint -> yes(hint, [])
     end
   end
@@ -531,14 +530,32 @@ defmodule IEx.Autocomplete do
     prefix = :binary.longest_common_prefix(binary)
 
     if prefix in [0, length] do
-      yes("", Enum.flat_map(entries, &to_entries/1))
+      case Enum.group_by(entries, &Map.get(&1, :group, "Exports")) do
+        groups when map_size(groups) == 1 ->
+          yes(~c"", Enum.map(entries, &to_entry/1))
+
+        groups ->
+          sections =
+            groups
+            |> Enum.map(fn {group, entries} ->
+              %{
+                title: to_charlist(group),
+                options: [{:highlight_all}],
+                elems: Enum.map(entries, &to_entry/1)
+              }
+            end)
+            |> Enum.sort_by(&length(&1.elems))
+
+          yes(~c"", sections)
+      end
     else
-      yes(binary_part(first.name, prefix, length - prefix), [])
+      hint = binary_part(first.name, prefix, length - prefix)
+      yes(String.to_charlist(hint), [])
     end
   end
 
-  defp yes(hint, entries) do
-    {:yes, String.to_charlist(hint), Enum.map(entries, &String.to_charlist/1)}
+  defp yes(hint, entries) when is_list(hint) and is_list(entries) do
+    {:yes, hint, entries}
   end
 
   defp no do
@@ -591,19 +608,6 @@ defmodule IEx.Autocomplete do
     :ets.match(:ac_tab, {{:loaded, :"$1"}, :_})
   end
 
-  defp match_module_funs(funs, hint, exact?) do
-    for {fun, arity} <- funs,
-        name = Atom.to_string(fun),
-        if(exact?, do: name == hint, else: String.starts_with?(name, hint)) do
-      %{
-        kind: :function,
-        name: name,
-        arity: arity
-      }
-    end
-    |> Enum.sort_by(&{&1.name, &1.arity})
-  end
-
   defp match_map_fields(map, hint) do
     for {key, value} when is_atom(key) <- Map.to_list(map),
         key = Atom.to_string(key),
@@ -613,18 +617,38 @@ defmodule IEx.Autocomplete do
     |> Enum.sort_by(& &1.name)
   end
 
-  defp get_module_funs(mod) do
+  defp match_exports(funs, hint, exact?) do
+    for {fun, arity} <- funs,
+        name = Atom.to_string(fun),
+        if(exact?, do: name == hint, else: String.starts_with?(name, hint)) do
+      %{
+        kind: :export,
+        name: name,
+        arity: arity
+      }
+    end
+    |> Enum.sort_by(&{&1.name, &1.arity})
+  end
+
+  defp get_and_match_module_defs(mod, hint, exact?) do
     cond do
       not ensure_loaded?(mod) ->
         []
 
       docs = get_docs(mod, [:function, :macro]) ->
         exports(mod)
+        |> Enum.filter(fn {fun, _} ->
+          name = Atom.to_string(fun)
+          if exact?, do: name == hint, else: String.starts_with?(name, hint)
+        end)
         |> Kernel.--(default_arg_functions_with_doc_false(docs))
-        |> Enum.reject(&hidden_fun?(&1, docs))
+        |> Enum.sort()
+        |> Enum.flat_map(&decorate_definition(&1, docs))
 
       true ->
-        exports(mod)
+        mod
+        |> exports()
+        |> match_exports(hint, exact?)
     end
   end
 
@@ -683,11 +707,20 @@ defmodule IEx.Autocomplete do
         do: {fun_name, new_arity}
   end
 
-  defp hidden_fun?({name, arity}, docs) do
-    case Enum.find(docs, &match?({{_, ^name, ^arity}, _, _, _, _}, &1)) do
-      nil -> match?([?_ | _], Atom.to_charlist(name))
-      {_, _, _, :hidden, _} -> true
-      {_, _, _, _, _} -> false
+  defp decorate_definition({fun, arity}, docs) do
+    case Enum.find(docs, &match?({{_, ^fun, ^arity}, _, _, _, _}, &1)) do
+      nil ->
+        case Atom.to_string(fun) do
+          "_" <> _ -> []
+          name -> [%{kind: :export, name: name, arity: arity}]
+        end
+
+      {_, _, _, :hidden, _} ->
+        []
+
+      {_, _, _, _, metadata} ->
+        group = metadata[:group] || (metadata[:guard] && "Guards") || "Exports"
+        [%{kind: :export, name: Atom.to_string(fun), arity: arity, group: group}]
     end
   end
 
@@ -696,46 +729,46 @@ defmodule IEx.Autocomplete do
 
   ## Ad-hoc conversions
 
-  defp to_entries(%{kind: :function, name: name, arity: arity}) do
-    ["#{name}/#{arity}"]
+  defp to_entry(%{kind: :export, name: name, arity: arity}) do
+    ~c"#{name}/#{arity}"
   end
 
-  defp to_entries(%{kind: :sigil, name: name}) do
-    ["~#{name} (sigil_#{name})"]
+  defp to_entry(%{kind: :sigil, name: name}) do
+    ~c"~#{name} (sigil_#{name})"
   end
 
-  defp to_entries(%{kind: :keyword, name: name}) do
-    ["#{name}:"]
+  defp to_entry(%{kind: :keyword, name: name}) do
+    ~c"#{name}:"
   end
 
-  defp to_entries(%{kind: _, name: name}) do
-    [name]
+  defp to_entry(%{kind: _, name: name}) do
+    String.to_charlist(name)
   end
 
   # Add extra character only if pressing tab when done
   defp to_hint(%{kind: :module, name: hint}, hint) do
-    "."
+    ~c"."
   end
 
   defp to_hint(%{kind: :map_key, name: hint, value_is_map: true}, hint) do
-    "."
+    ~c"."
   end
 
   defp to_hint(%{kind: :file, name: hint}, hint) do
-    "\""
+    ~c"\""
   end
 
   # Add extra character whenever possible
   defp to_hint(%{kind: :dir, name: name}, hint) do
-    format_hint(name, hint) <> "/"
+    format_hint(name, hint) ++ ~c"/"
   end
 
   defp to_hint(%{kind: :struct, name: name}, hint) do
-    format_hint(name, hint) <> "{"
+    format_hint(name, hint) ++ ~c"{"
   end
 
   defp to_hint(%{kind: :keyword, name: name}, hint) do
-    format_hint(name, hint) <> ": "
+    format_hint(name, hint) ++ ~c": "
   end
 
   defp to_hint(%{kind: _, name: name}, hint) do
@@ -744,7 +777,10 @@ defmodule IEx.Autocomplete do
 
   defp format_hint(name, hint) do
     hint_size = byte_size(hint)
-    binary_part(name, hint_size, byte_size(name) - hint_size)
+
+    name
+    |> binary_part(hint_size, byte_size(name) - hint_size)
+    |> String.to_charlist()
   end
 
   ## Evaluator interface

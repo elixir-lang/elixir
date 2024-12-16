@@ -185,6 +185,16 @@ defmodule IEx.AutocompleteTest do
     assert expand(~c":ets.fun2") == {:yes, ~c"ms", []}
   end
 
+  test "function completion with groups" do
+    {:yes, ~c"", [exports, guards]} = expand(~c"Kernel.i")
+    assert %{title: ~c"Exports", elems: [~c"if/2", ~c"inspect/1", ~c"inspect/2"]} = exports
+    assert %{title: ~c"Guards", elems: [_ | _]} = guards
+
+    {:yes, ~c"", [guards, exports]} = expand(~c"Kernel.in")
+    assert %{title: ~c"Guards", elems: [~c"in/2"]} = guards
+    assert %{title: ~c"Exports", elems: [~c"inspect/1", ~c"inspect/2"]} = exports
+  end
+
   test "function completion with arity" do
     assert expand(~c"String.printable?") == {:yes, ~c"", [~c"printable?/1", ~c"printable?/2"]}
     assert expand(~c"String.printable?/") == {:yes, ~c"", [~c"printable?/1", ~c"printable?/2"]}

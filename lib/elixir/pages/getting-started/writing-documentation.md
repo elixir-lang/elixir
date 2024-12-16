@@ -61,7 +61,11 @@ end
 
 ## Documentation metadata
 
-Elixir allows developers to attach arbitrary metadata to the documentation. This is done by passing a keyword list to the relevant attribute (such as `@moduledoc`, `@typedoc`, and `@doc`). A commonly used metadata is `:since`, which annotates in which version that particular module, function, type, or callback was added, as shown in the example above.
+Elixir allows developers to attach arbitrary metadata to the documentation. This is done by passing a keyword list to the relevant attribute (such as `@moduledoc`, `@typedoc`, and `@doc`).
+
+Metadata can have any key. Documentation tools often use metadata to provide more data to readers and to enrich the user experience. The following keys already have a predefined meaning used by tooling:
+
+### `:deprecated`
 
 Another common metadata is `:deprecated`, which emits a warning in the documentation, explaining that its usage is discouraged:
 
@@ -75,7 +79,28 @@ Note that the `:deprecated` key does not warn when a developer invokes the funct
 @deprecated "Use Foo.bar/2 instead"
 ```
 
-Metadata can have any key. Documentation tools often use metadata to provide more data to readers and to enrich the user experience.
+### `:group`
+
+The group a function, callback or type belongs to. This is used in `iex` for autocompleting and also to automatically by [ExDoc](https://github.com/elixir-lang/ex_doc/) to group items in the sidebar:
+
+```elixir
+@doc group: "Query"
+def all(query)
+
+@doc group: "Schema"
+def insert(schema)
+```
+
+### `:since`
+
+It annotates in which version that particular module, function, type, or callback was added:
+
+```elixir
+@doc since: "1.3.0"
+def world(name) do
+  IO.puts("hello #{name}")
+end
+```
 
 ## Recommendations
 
