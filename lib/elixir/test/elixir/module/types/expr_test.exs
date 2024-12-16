@@ -1224,16 +1224,18 @@ defmodule Module.Types.ExprTest do
                    e
                end
              ) ==
-               union(
-                 closed_map(
-                   __struct__: atom([ArgumentError]),
-                   __exception__: atom([true]),
-                   message: term()
-                 ),
-                 closed_map(
-                   __struct__: atom([RuntimeError]),
-                   __exception__: atom([true]),
-                   message: term()
+               dynamic(
+                 union(
+                   closed_map(
+                     __struct__: atom([ArgumentError]),
+                     __exception__: atom([true]),
+                     message: term()
+                   ),
+                   closed_map(
+                     __struct__: atom([RuntimeError]),
+                     __exception__: atom([true]),
+                     message: term()
+                   )
                  )
                )
     end
