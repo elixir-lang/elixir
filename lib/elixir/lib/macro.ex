@@ -2692,23 +2692,17 @@ defmodule Macro do
 
         quote do
           Macro.write_underline("If condition:", unquote(options))
+          Macro.write_ast(unquote(escape(condition_ast)), unquote(options))
+
           unquote(condition_result_var) = unquote(condition_ast)
 
-          Macro.write_ast_value(
-            unquote(escape(condition_ast)),
-            unquote(condition_result_var),
-            unquote(options)
-          )
-
+          Macro.write_result(unquote(condition_result_var), unquote(options))
           Macro.write_underline("If expression:", unquote(options))
+          Macro.write_ast(unquote(escape(ast)), unquote(options))
+
           unquote(result_var) = unquote({:if, meta, [condition_result_var, clauses]})
 
-          Macro.write_ast_value(
-            unquote(escape(ast)),
-            unquote(result_var),
-            unquote(options)
-          )
-
+          Macro.write_result(unquote(result_var), unquote(options))
           Macro.write("\n", [])
 
           {:if, unquote(result_var)}
@@ -3002,9 +2996,20 @@ defmodule Macro do
     |> __MODULE__.write(options)
   end
 
-  def write_ast_value(ast, value, options) do
-    dbg_format_ast_with_value(ast, value, options)
-    |> __MODULE__.write(options)
+  def write_result(value, options) do
+    formatted = [" ", inspect(value, options), ?\n, ?\n]
+    ansi_enabled? = options[:syntax_colors] != []
+    :ok = IO.write(IO.ANSI.format(formatted, ansi_enabled?))
+  end
+
+  def write_ast(ast, options) do
+    formatted =
+      ast
+      |> to_string_with_colors(options)
+      |> dbg_format_ast()
+
+    ansi_enabled? = options[:syntax_colors] != []
+    :ok = IO.write(IO.ANSI.format(formatted, ansi_enabled?))
   end
 
   def write(formatted, options) do
