@@ -11,7 +11,7 @@
 
 parallel_match(Meta, Expr, S, #{context := match} = E) ->
   #elixir_ex{vars={_Read, Write}} = S,
-  Matches = unpack_match(Expr, Meta, []),
+  Matches = unpack_match(Expr, Meta, [], E),
 
   {[{_, EHead} | ETail], EWrites, SM, EM} =
     lists:foldl(fun({EMeta, Match}, {AccMatches, AccWrites, SI, EI}) ->
@@ -31,9 +31,13 @@ parallel_match(Meta, Expr, S, #{context := match} = E) ->
   VWrite = (Write /= false) andalso elixir_env:merge_vars(Write, PWrites),
   {EMatch, SM#elixir_ex{vars={VRead, VWrite}, prematch={PRead, PCycles, PInfo}}, EM}.
 
-unpack_match({'=', Meta, [Left, Right]}, _Meta, Acc) ->
-  unpack_match(Left, Meta, unpack_match(Right, Meta, Acc));
-unpack_match(Node, Meta, Acc) ->
+unpack_match({'=', Meta, [{_, VarMeta, _} = Node, Node]}, _Meta, Acc, E) ->
+  %% TODO: remove this clause on Elixir v1.23
+  file_warn(VarMeta, ?key(E, file), ?MODULE, {duplicate_match, Node}),
+  unpack_match(Node, Meta, Acc, E);
+unpack_match({'=', Meta, [Left, Right]}, _Meta, Acc, E) ->
+  unpack_match(Left, Meta, unpack_match(Right, Meta, Acc, E), E);
+unpack_match(Node, Meta, Acc, _E) ->
   [{Meta, Node} | Acc].
 
 store_cycles([Write | Writes], {Cycles, SkipList}, Acc) ->
@@ -531,6 +535,13 @@ origin(Meta, Default) ->
     {origin, Origin} -> Origin;
     false -> Default
   end.
+
+format_error({duplicate_match, Expr}) ->
+  String = 'Elixir.Macro':to_string(Expr),
+  io_lib:format(
+    "this pattern is matched against itself inside a match: ~ts = ~ts",
+    [String, String]
+  );
 
 format_error({recursive, Vars, TypeExpr}) ->
   Code =

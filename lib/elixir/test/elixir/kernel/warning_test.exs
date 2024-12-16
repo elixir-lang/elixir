@@ -264,6 +264,20 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
+  test "duplicate pattern" do
+    output =
+      capture_eval("""
+      defmodule Sample do
+        var = quote(do: x)
+        def hello(unquote(var) = unquote(var)), do: unquote(var)
+      end
+      """)
+
+    assert output =~ "this pattern is matched against itself inside a match: x = x"
+  after
+    purge(Sample)
+  end
+
   test "unused compiler variable" do
     output =
       capture_eval("""
