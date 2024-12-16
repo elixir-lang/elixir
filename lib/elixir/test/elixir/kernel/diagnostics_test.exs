@@ -859,6 +859,35 @@ defmodule Kernel.DiagnosticsTest do
       purge(Sample)
     end
 
+    @tag :tmp_dir
+    test "simple warning with tabs (line + file)", %{tmp_dir: tmp_dir} do
+      path = make_relative_tmp(tmp_dir, "long-warning.ex")
+
+      source = """
+      defmodule Sample do
+      \t@file "#{path}"
+      \tdefp a do
+      \t\tUnknown.b()
+      \tend
+      end
+      """
+
+      File.write!(path, source)
+
+      expected = """
+          warning: Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined). Make sure the module name is correct and has been specified in full (or that an alias has been defined)
+          │
+        4 │ \t\tUnknown.b()
+          │                 ~~~~~~~~~~~
+          │
+          └─ #{path}:4: Sample.a/0
+      """
+
+      assert capture_eval(source, columns: false) =~ expected
+    after
+      purge(Sample)
+    end
+
     test "simple warning (no file)" do
       source = """
       defmodule Sample do
