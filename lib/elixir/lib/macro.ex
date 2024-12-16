@@ -1495,7 +1495,7 @@ defmodule Macro do
     :error
   end
 
-  defp op_call({:..//, _, [left, middle, right]} = ast, fun) do
+  defp op_call({:"..//", _, [left, middle, right]} = ast, fun) do
     left = op_to_string(left, fun, :.., :left)
     middle = op_to_string(middle, fun, :.., :right)
     right = op_to_string(right, fun, :"//", :right)
@@ -1946,7 +1946,7 @@ defmodule Macro do
   @spec operator?(name :: atom(), arity()) :: boolean()
   def operator?(name, arity)
 
-  def operator?(:..//, 3),
+  def operator?(:"..//", 3),
     do: true
 
   # Code.Identifier treats :// as a binary operator for precedence
@@ -2482,7 +2482,7 @@ defmodule Macro do
   #
   defp inner_classify(atom) when is_atom(atom) do
     cond do
-      atom in [:%, :%{}, :{}, :<<>>, :..., :.., :., :..//, :->] ->
+      atom in [:%, :%{}, :{}, :<<>>, :..., :.., :., :"..//", :->] ->
         :not_callable
 
       # <|>, ^^^, and ~~~ are deprecated
@@ -2578,10 +2578,13 @@ defmodule Macro do
     end
 
     header = dbg_format_header(env)
+    IO.inspect(options)
 
     quote do
+      unquote(__MODULE__).__print_dbg_header__(unquote(header), unquote(options))
+      options = unquote(__MODULE__).__update_options__(unquote(options))
       to_debug = unquote(dbg_ast_to_debuggable(code, env))
-      unquote(__MODULE__).__dbg__(unquote(header), to_debug, unquote(options))
+      unquote(__MODULE__).__dbg__(to_debug, options)
     end
   end
 
@@ -2824,19 +2827,22 @@ defmodule Macro do
   # Made public to be called from Macro.dbg/3, so that we generate as little code
   # as possible and call out into a function as soon as we can.
   @doc false
-  def __dbg__(header_string, to_debug, options) do
-    {print_location?, options} = Keyword.pop(options, :print_location, true)
+  def __print_dbg_header__(header_string, options) do
+    if Keyword.get(options, :print_location, true) do
+      formatted = [:cyan, :italic, header_string, :reset, "\n"]
+      ansi_enabled? = options[:syntax_colors] != []
+      :ok = IO.write(IO.ANSI.format(formatted, ansi_enabled?))
+    end
+  end
+
+  def __update_options__(options) do
     syntax_colors = if IO.ANSI.enabled?(), do: IO.ANSI.syntax_colors(), else: []
-    options = Keyword.merge([width: 80, pretty: true, syntax_colors: syntax_colors], options)
+    Keyword.merge([width: 80, pretty: true, syntax_colors: syntax_colors], options)
+  end
 
+  def __dbg__(to_debug, options) do
     {formatted, result} = dbg_format_ast_to_debug(to_debug, options)
-
-    formatted =
-      if print_location? do
-        [:cyan, :italic, header_string, :reset, "\n", formatted, "\n"]
-      else
-        [formatted, "\n"]
-      end
+    formatted = [formatted, "\n"]
 
     ansi_enabled? = options[:syntax_colors] != []
     :ok = IO.write(IO.ANSI.format(formatted, ansi_enabled?))
