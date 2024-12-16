@@ -112,7 +112,8 @@ defmodule JSONTest do
   describe "deriving" do
     defmodule WithOnly do
       @derive {JSON.Encoder, only: [:a, :b, :d]}
-      defstruct [:a, :b, :c, :d]
+      # The encoded order depends on only
+      defstruct Enum.shuffle([:a, :b, :c, :d])
     end
 
     test "with only" do
