@@ -1495,7 +1495,7 @@ defmodule Macro do
     :error
   end
 
-  defp op_call({:"..//", _, [left, middle, right]} = ast, fun) do
+  defp op_call({:..//, _, [left, middle, right]} = ast, fun) do
     left = op_to_string(left, fun, :.., :left)
     middle = op_to_string(middle, fun, :.., :right)
     right = op_to_string(right, fun, :"//", :right)
@@ -1946,7 +1946,7 @@ defmodule Macro do
   @spec operator?(name :: atom(), arity()) :: boolean()
   def operator?(name, arity)
 
-  def operator?(:"..//", 3),
+  def operator?(:..//, 3),
     do: true
 
   # Code.Identifier treats :// as a binary operator for precedence
@@ -2482,7 +2482,7 @@ defmodule Macro do
   #
   defp inner_classify(atom) when is_atom(atom) do
     cond do
-      atom in [:%, :%{}, :{}, :<<>>, :..., :.., :., :"..//", :->] ->
+      atom in [:%, :%{}, :{}, :<<>>, :..., :.., :., :..//, :->] ->
         :not_callable
 
       # <|>, ^^^, and ~~~ are deprecated
