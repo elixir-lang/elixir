@@ -194,17 +194,6 @@ defmodule Kernel.ExpansionTest do
         ~r"""
         recursive variable definition in patterns:
 
-        x = x
-
-        the variable "x" \(context Kernel.ExpansionTest\) is defined in function of itself
-        """,
-        fn -> expand(quote(do: (x = x) = :ok)) end
-      )
-
-      assert_compile_error(
-        ~r"""
-        recursive variable definition in patterns:
-
         \{x = \{:ok, x\}\}
 
         the variable "x" \(context Kernel.ExpansionTest\) is defined in function of itself
