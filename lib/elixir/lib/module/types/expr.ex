@@ -444,7 +444,8 @@ defmodule Module.Types.Expr do
         # to avoid export dependencies. So we do it here.
         if Code.ensure_loaded?(exception) and function_exported?(exception, :__struct__, 0) do
           {info, context} = Of.struct_info(exception, meta, stack, context)
-          {Of.struct_type(exception, info, args), context}
+          # TODO: For properly defined structs, this should not be dynamic
+          {dynamic(Of.struct_type(exception, info, args)), context}
         else
           # If the exception cannot be found or is invalid, fetch the signature to emit warnings.
           {_, context} = Apply.signature(exception, :__struct__, 0, meta, stack, context)
