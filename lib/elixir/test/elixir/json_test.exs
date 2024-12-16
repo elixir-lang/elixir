@@ -52,6 +52,7 @@ defmodule JSONTest do
       assert JSON.encode!(~T[14:00:00.123]) == "\"14:00:00.123\""
       assert JSON.encode!(~N[2010-04-17 14:00:00.123]) == "\"2010-04-17T14:00:00.123\""
       assert JSON.encode!(~U[2010-04-17 14:00:00.123Z]) == "\"2010-04-17T14:00:00.123Z\""
+      assert JSON.encode!(Duration.new!(month: 2, hour: 3)) == "\"P2MT3H\""
     end
   end
 

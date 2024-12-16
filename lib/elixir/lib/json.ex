@@ -150,7 +150,7 @@ defimpl JSON.Encoder, for: Map do
   end
 end
 
-defimpl JSON.Encoder, for: [Date, Time, NaiveDateTime, DateTime] do
+defimpl JSON.Encoder, for: [Date, Time, NaiveDateTime, DateTime, Duration] do
   def encode(value, _encoder) do
     [?", @for.to_iso8601(value), ?"]
   end
