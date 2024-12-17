@@ -1704,6 +1704,49 @@ defmodule Module.Types.Descr do
 
       {tag, fields, negs}
     end)
+    |> map_fusion()
+  end
+
+  # Given a dnf, fuse maps when possible
+  # e.g. %{a: integer(), b: atom()} or %{a: float(), b: atom()} into %{a: number(), b: atom()}
+  defp map_fusion(dnf) do
+    # Steps:
+    # 1. Group maps by tags and keys
+    # 2. Try fusions for each group until no fusion is found
+    # 3. Merge the groups back into a dnf
+    dnf
+    |> Enum.group_by(fn {tag, fields, _} -> {tag, Map.keys(fields)} end)
+    |> Enum.flat_map(fn {_, maps} -> fuse_maps(maps) end)
+  end
+
+  defp fuse_maps(maps) do
+    Enum.reduce(maps, [], fn map, acc ->
+      case Enum.split_while(acc, &fusible_maps?(map, &1)) do
+        {_, []} ->
+          [map | acc]
+
+        {others, [match | rest]} ->
+          fused = fuse_map_pair(map, match)
+          others ++ [fused | rest]
+      end
+    end)
+  end
+
+  # Two maps are fusible if they have no negations and differ in at most one element.
+  defp fusible_maps?({_, fields1, negs1}, {_, fields2, negs2}) do
+    negs1 != [] or negs2 != [] or
+      Map.keys(fields1)
+      |> Enum.count(fn key -> Map.get(fields1, key) != Map.get(fields2, key) end) > 1
+  end
+
+  defp fuse_map_pair({tag, fields1, []}, {_, fields2, []}) do
+    fused_fields =
+      Map.new(fields1, fn {key, type1} ->
+        type2 = Map.get(fields2, key)
+        {key, if(type1 != type2, do: union(type1, type2), else: type1)}
+      end)
+
+    {tag, fused_fields, []}
   end
 
   # If all fields are the same except one, we can optimize map difference.
@@ -1925,6 +1968,7 @@ defmodule Module.Types.Descr do
   defp tuple_to_quoted(dnf) do
     dnf
     |> tuple_simplify()
+    |> tuple_fusion()
     |> Enum.map(&tuple_each_to_quoted/1)
     |> case do
       [] -> []
@@ -1932,17 +1976,58 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp tuple_each_to_quoted({tag, positive_map, negative_maps}) do
-    case negative_maps do
+  # Given a dnf of tuples, fuses the tuple unions when possible,
+  # e.g. {integer(), atom()} or {float(), atom()} into {number(), atom()}
+  # The negations of two fused tuples are just concatenated.
+  defp tuple_fusion(dnf) do
+    # Steps:
+    # 1. Consider tuples without negations apart from those with
+    # 2. Group tuples by size and tag
+    # 3. Try fusions for each group until no fusion is found
+    # 4. Merge the groups back into a dnf
+    dnf
+    |> Enum.group_by(fn {tag, elems, _} -> {tag, length(elems)} end)
+    |> Enum.flat_map(fn {_, tuples} -> fuse_tuples(tuples) end)
+  end
+
+  defp fuse_tuples(tuples) do
+    Enum.reduce(tuples, [], fn tuple, acc ->
+      case Enum.split_while(acc, &fusible_tuples?(tuple, &1)) do
+        {_, []} ->
+          [tuple | acc]
+
+        {others, [match | rest]} ->
+          fused = fuse_tuple_pair(tuple, match)
+          others ++ [fused | rest]
+      end
+    end)
+  end
+
+  # Two tuples are fusible if they have no negations and differ in at most one element.
+  defp fusible_tuples?({_, elems1, negs1}, {_, elems2, negs2}) do
+    negs1 != [] or negs2 != [] or
+      Enum.zip(elems1, elems2) |> Enum.count(fn {a, b} -> a != b end) > 1
+  end
+
+  defp fuse_tuple_pair({tag, elems1, []}, {_, elems2, []}) do
+    fused_elements =
+      Enum.zip(elems1, elems2)
+      |> Enum.map(fn {a, b} -> if a != b, do: union(a, b), else: a end)
+
+    {tag, fused_elements, []}
+  end
+
+  defp tuple_each_to_quoted({tag, positive_tuple, negative_tuples}) do
+    case negative_tuples do
       [] ->
-        tuple_literal_to_quoted({tag, positive_map})
+        tuple_literal_to_quoted({tag, positive_tuple})
 
       _ ->
-        negative_maps
+        negative_tuples
         |> Enum.map(&tuple_literal_to_quoted/1)
         |> Enum.reduce(&{:or, [], [&2, &1]})
         |> Kernel.then(
-          &{:and, [], [tuple_literal_to_quoted({tag, positive_map}), {:not, [], [&1]}]}
+          &{:and, [], [tuple_literal_to_quoted({tag, positive_tuple}), {:not, [], [&1]}]}
         )
     end
   end
