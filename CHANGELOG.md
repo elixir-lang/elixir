@@ -4,6 +4,15 @@
 
 ### 1. Enhancements
 
+#### Elixir
+
+  * [Code] Add `:migrate_call_parens_on_pipe` formatter option
+  * [Kernel] Add `min/2` and `max/2` as valid guards
+
+#### IEx
+
+  * [IEx.Autocomplete] Functions annotated with `@doc group: "Name"` metadata will appear in disctint groups during autocompletion
+
 ### 2. Bug fixes
 
 ### 3. Soft deprecations (no warnings emitted)
