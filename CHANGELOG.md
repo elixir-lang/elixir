@@ -174,7 +174,9 @@ Encoding can be done via `JSON.encode!/1` and `JSON.encode_to_iodata!/1` functio
 | `%{atom() => _}`       | Object   |
 | `%{integer() => _}`    | Object   |
 
-You may also implement the `JSON.Encoder` protocol for custom data structures. If you have a struct, you can derive the implementation of the `JSON.Encoder` by specifying which fields should be encoded to JSON:
+You may also implement the `JSON.Encoder` protocol for custom data structures. Elixir already implements the protocol for all Calendar types.
+
+If you have a struct, you can derive the implementation of the `JSON.Encoder` by specifying which fields should be encoded to JSON:
 
 ```elixir
   @derive {JSON.Encoder, only: [...]}
@@ -222,6 +224,32 @@ While the definition above could succeed (as long as all three arguments are equ
 You may also prefer to write using guards:
 
     def foo(x, y, z) when x == y and y == z
+
+## v1.18.0-rc.1
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [JSON] Implement `JSON.Encoder` for all Calendar types
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Kernel] Avoid crashes when emitting diagnostics on code using \t for indentation
+
+### 3. Regressions
+
+#### Elixir
+
+  * [Kernel] Fix type warnings in `pop_in/1`
+  * [Kernel] Fix false positive warnings when accessing exceptions from `rescue`
+  * [Kernel] Emit warnings for duplicate patterns instead of errors
+
+#### ExUnit
+
+  * [ExUnit] Do not warn on user-supplied CaseTemplate options
 
 ## v1.18.0-rc.0 (2024-12-10)
 
