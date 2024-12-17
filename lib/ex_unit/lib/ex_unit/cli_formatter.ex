@@ -384,14 +384,20 @@ defmodule ExUnit.CLIFormatter do
     IO.puts(formatted)
   end
 
-  defp format_test_type_counts(%{test_counter: test_counter} = _config) do
-    test_counter
+  defp format_test_type_counts(config) do
+    config.test_counter
     |> Enum.sort()
     |> Enum.map(fn {test_type, count} ->
-      type_pluralized = pluralize(count, test_type, ExUnit.plural_rule(test_type |> to_string()))
-      "#{count} #{type_pluralized}, "
+      executed_count = calculate_executed_test_count(test_type, count, config.excluded_counter)
+      plural_rule = ExUnit.plural_rule(test_type |> to_string())
+      type_pluralized = pluralize(executed_count, test_type, plural_rule)
+
+      "#{executed_count} #{type_pluralized}, "
     end)
   end
+
+  defp calculate_executed_test_count(:test, count, excluded_counter), do: count - excluded_counter
+  defp calculate_executed_test_count(_test_type, count, _excluded_counter), do: count
 
   defp collect_test_type_counts(%{test_counter: test_counter} = _config) do
     Enum.reduce(test_counter, 0, fn {_, count}, acc ->
