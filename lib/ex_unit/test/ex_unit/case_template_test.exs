@@ -36,7 +36,7 @@ defmodule ExUnit.NestedCase do
 end
 
 defmodule ExUnit.CaseTemplateTest do
-  use ExUnit.SampleCase, async: true
+  use ExUnit.SampleCase, async: true, another_option: 123
   use ExUnit.NestedCase
 
   two = 2

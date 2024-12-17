@@ -315,6 +315,11 @@ defmodule ExUnit.Case do
     end
   end
 
+  @keys [:async, :group, :parameterize, :register]
+
+  @doc false
+  def __keys__(opts), do: Keyword.take(opts, @keys)
+
   @doc false
   def __register__(module, opts) do
     if not Keyword.keyword?(opts) do
@@ -324,7 +329,7 @@ defmodule ExUnit.Case do
     end
 
     {register?, opts} = Keyword.pop(opts, :register, true)
-    {next_opts, opts} = Keyword.split(opts, [:async, :group, :parameterize])
+    {next_opts, opts} = Keyword.split(opts, @keys)
 
     if opts != [] do
       IO.warn("unknown options given to ExUnit.Case: #{inspect(opts)}")

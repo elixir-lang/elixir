@@ -83,7 +83,7 @@ defmodule ExUnit.CaseTemplate do
   # We inject this code in the module that calls "use MyTemplate".
   def __proxy__(module, opts) do
     quote do
-      use ExUnit.Case, unquote(opts)
+      use ExUnit.Case, ExUnit.Case.__keys__(unquote(opts))
 
       setup_all context do
         unquote(module).__ex_unit__(:setup_all, context)
