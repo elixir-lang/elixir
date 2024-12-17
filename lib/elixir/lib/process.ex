@@ -84,7 +84,7 @@ defmodule Process do
   Tells whether the given process is alive on the local node.
 
   If the process identified by `pid` is alive (that is, it's not exiting and has
-  not exited yet) than this function returns `true`. Otherwise, it returns
+  not exited yet) then this function returns `true`. Otherwise, it returns
   `false`.
 
   `pid` must refer to a process running on the local node or `ArgumentError` is raised.
