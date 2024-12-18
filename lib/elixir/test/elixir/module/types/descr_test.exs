@@ -1268,6 +1268,91 @@ defmodule Module.Types.DescrTest do
       # assert difference(tuple([number(), term()]), tuple([integer(), atom()]))
       #        |> to_quoted_string() ==
       #          "{float(), term()} or {number(), term() and not atom()}"
+
+      assert union(tuple([integer(), atom()]), tuple([integer(), atom()])) |> to_quoted_string() ==
+               "{integer(), atom()}"
+
+      assert union(tuple([integer(), atom()]), tuple([float(), atom()])) |> to_quoted_string() ==
+               "{float() or integer(), atom()}"
+
+      assert union(tuple([integer(), atom()]), tuple([float(), atom()]))
+             |> union(tuple([pid(), pid(), port()]))
+             |> union(tuple([pid(), pid(), atom()]))
+             |> to_quoted_string() ==
+               "{float() or integer(), atom()} or {pid(), pid(), atom() or port()}"
+
+      assert union(open_tuple([integer()]), open_tuple([float()])) |> to_quoted_string() ==
+               "{float() or integer(), ...}"
+
+      # {:ok, {term(), integer()}} or {:ok, {term(), float()}} or {:exit, :kill} or {:exit, :timeout}
+      assert tuple([atom([:ok]), tuple([term(), empty_list()])])
+             |> union(tuple([atom([:ok]), tuple([term(), open_map()])]))
+             |> union(tuple([atom([:exit]), atom([:kill])]))
+             |> union(tuple([atom([:exit]), atom([:timeout])]))
+             |> to_quoted_string() ==
+               "{:exit, :kill or :timeout} or {:ok, {term(), %{...} or empty_list()}}"
+
+      # Detection of duplicates
+      assert tuple([atom([:ok]), term()])
+             |> union(tuple([atom([:ok]), term()]))
+             |> to_quoted_string() == "{:ok, term()}"
+
+      assert tuple([closed_map(a: integer(), b: atom()), open_map()])
+             |> union(tuple([closed_map(a: integer(), b: atom()), open_map()]))
+             |> to_quoted_string() ==
+               "{%{a: integer(), b: atom()}, %{...}}"
+
+      # Nested fusion
+      assert tuple([closed_map(a: integer(), b: atom()), open_map()])
+             |> union(tuple([closed_map(a: float(), b: atom()), open_map()]))
+             |> to_quoted_string() ==
+               "{%{a: float() or integer(), b: atom()}, %{...}}"
+
+      # Complex simplification of map/tuple combinations. Initial type is:
+      # ```
+      #   dynamic(
+      #     :error or
+      #     ({%Decimal{coef: :inf, exp: integer(), sign: integer()}, binary()} or
+      #       {%Decimal{coef: :NaN, exp: integer(), sign: integer()}, binary()} or
+      #       {%Decimal{coef: integer(), exp: integer(), sign: integer()}, term()} or
+      #       {%Decimal{coef: :inf, exp: integer(), sign: integer()} or
+      #           %Decimal{coef: :NaN, exp: integer(), sign: integer()} or
+      #           %Decimal{coef: integer(), exp: integer(), sign: integer()}, term()})
+      #   )
+      # ```
+      decimal_inf =
+        closed_map(
+          __struct__: atom([Decimal]),
+          coef: atom([:inf]),
+          exp: integer(),
+          sign: integer()
+        )
+
+      decimal_nan =
+        closed_map(
+          __struct__: atom([Decimal]),
+          coef: atom([:NaN]),
+          exp: integer(),
+          sign: integer()
+        )
+
+      decimal_int =
+        closed_map(__struct__: atom([Decimal]), coef: integer(), exp: integer(), sign: integer())
+
+      assert atom([:error])
+             |> union(
+               tuple([decimal_inf, binary()])
+               |> union(
+                 tuple([decimal_nan, binary()])
+                 |> union(
+                   tuple([decimal_int, term()])
+                   |> union(tuple([union(decimal_inf, union(decimal_nan, decimal_int)), term()]))
+                 )
+               )
+             )
+             |> dynamic()
+             |> to_quoted_string() ==
+               "dynamic(\n  :error or\n    ({%Decimal{coef: integer() or (:NaN or :inf), exp: integer(), sign: integer()}, term()} or\n       {%Decimal{coef: :NaN or :inf, exp: integer(), sign: integer()}, binary()})\n)"
     end
 
     test "map" do
@@ -1310,6 +1395,50 @@ defmodule Module.Types.DescrTest do
 
       assert difference(open_map(a: number(), b: atom()), open_map(a: integer()))
              |> to_quoted_string() == "%{..., a: float(), b: atom()}"
+
+      # Basic map fusion
+      assert union(closed_map(a: integer()), closed_map(a: integer())) |> to_quoted_string() ==
+               "%{a: integer()}"
+
+      assert union(closed_map(a: integer()), closed_map(a: float())) |> to_quoted_string() ==
+               "%{a: float() or integer()}"
+
+      # Nested fusion
+      assert union(closed_map(a: integer(), b: atom()), closed_map(a: float(), b: atom()))
+             |> union(closed_map(x: pid(), y: pid(), z: port()))
+             |> union(closed_map(x: pid(), y: pid(), z: atom()))
+             |> to_quoted_string() ==
+               "%{a: float() or integer(), b: atom()} or %{x: pid(), y: pid(), z: atom() or port()}"
+
+      # Open map fusion
+      assert union(open_map(a: integer()), open_map(a: float())) |> to_quoted_string() ==
+               "%{..., a: float() or integer()}"
+
+      # Fusing complex nested maps with unions
+      assert closed_map(status: atom([:ok]), data: closed_map(value: term(), count: empty_list()))
+             |> union(
+               closed_map(status: atom([:ok]), data: closed_map(value: term(), count: open_map()))
+             )
+             |> union(closed_map(status: atom([:error]), reason: atom([:timeout])))
+             |> union(closed_map(status: atom([:error]), reason: atom([:crash])))
+             |> to_quoted_string() ==
+               "%{data: %{count: %{...} or empty_list(), value: term()}, status: :ok} or\n  %{reason: :crash or :timeout, status: :error}"
+
+      # Difference and union tests
+      assert closed_map(status: atom([:ok]), value: term())
+             |> difference(closed_map(status: atom([:ok]), value: float()))
+             |> union(
+               closed_map(status: atom([:ok]), value: term())
+               |> difference(closed_map(status: atom([:ok]), value: integer()))
+             )
+             |> to_quoted_string() ==
+               "%{status: :ok, value: term()}"
+
+      # Nested map fusion
+      assert closed_map(data: closed_map(x: integer(), y: atom()), meta: open_map())
+             |> union(closed_map(data: closed_map(x: float(), y: atom()), meta: open_map()))
+             |> to_quoted_string() ==
+               "%{data: %{x: float() or integer(), y: atom()}, meta: %{...}}"
 
       # Test complex combinations
       assert intersection(open_map(a: number(), b: atom()), open_map(a: integer(), c: boolean()))
