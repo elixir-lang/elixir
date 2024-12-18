@@ -1184,7 +1184,7 @@ defmodule Module.Types.DescrTest do
 
     test "boolean" do
       assert boolean() |> to_quoted_string() == "boolean()"
-      assert atom([true, false, :a]) |> to_quoted_string() == "boolean() or :a"
+      assert atom([true, false, :a]) |> to_quoted_string() == ":a or boolean()"
       assert atom([true, :a]) |> to_quoted_string() == ":a or true"
       assert difference(atom(), boolean()) |> to_quoted_string() == "atom() and not boolean()"
     end
@@ -1199,7 +1199,7 @@ defmodule Module.Types.DescrTest do
       assert intersection(atom(), dynamic()) |> to_quoted_string() == "dynamic(atom())"
 
       assert union(atom([:foo, :bar]), dynamic()) |> to_quoted_string() ==
-               "dynamic() or (:bar or :foo)"
+               "dynamic() or :bar or :foo"
 
       assert intersection(dynamic(), closed_map(a: integer())) |> to_quoted_string() ==
                "dynamic(%{a: integer()})"
@@ -1256,7 +1256,7 @@ defmodule Module.Types.DescrTest do
       assert open_tuple([integer(), atom()]) |> to_quoted_string() == "{integer(), atom(), ...}"
 
       assert union(tuple([integer(), atom()]), open_tuple([atom()])) |> to_quoted_string() ==
-               "{integer(), atom()} or {atom(), ...}"
+               "{atom(), ...} or {integer(), atom()}"
 
       assert difference(tuple([integer(), atom()]), open_tuple([atom()])) |> to_quoted_string() ==
                "{integer(), atom()}"
@@ -1352,7 +1352,12 @@ defmodule Module.Types.DescrTest do
              )
              |> dynamic()
              |> to_quoted_string() ==
-               "dynamic(\n  :error or\n    ({%Decimal{coef: integer() or (:NaN or :inf), exp: integer(), sign: integer()}, term()} or\n       {%Decimal{coef: :NaN or :inf, exp: integer(), sign: integer()}, binary()})\n)"
+               """
+               dynamic(
+                 :error or {%Decimal{coef: :NaN or :inf, exp: integer(), sign: integer()}, binary()} or
+                   {%Decimal{coef: :NaN or :inf or integer(), exp: integer(), sign: integer()}, term()}
+               )\
+               """
     end
 
     test "map" do
