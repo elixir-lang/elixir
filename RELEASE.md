@@ -30,7 +30,7 @@
 
 ### Back in main
 
-1. Bump /VERSION file, bin/elixir and bin/elixir.bat
+1. Bump /VERSION file, bin/elixir, bin/elixir.bat, and bin/elixir.ps1
 
 2. Start new /CHANGELOG.md
 
