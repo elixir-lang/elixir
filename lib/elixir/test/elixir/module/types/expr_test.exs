@@ -798,9 +798,9 @@ defmodule Module.Types.ExprTest do
 
                  x.foo_bar
 
-             where "x" was given the type:
+             the given type does not have the given key:
 
-                 # type: dynamic(%URI{
+                 dynamic(%URI{
                    authority: term(),
                    fragment: term(),
                    host: term(),
@@ -810,6 +810,10 @@ defmodule Module.Types.ExprTest do
                    scheme: term(),
                    userinfo: term()
                  })
+
+             where "x" was given the type:
+
+                 # type: dynamic(%URI{})
                  # from: types_test.ex:LINE-4:43
                  x = %URI{}
              """
@@ -903,7 +907,7 @@ defmodule Module.Types.ExprTest do
 
                 given types:
 
-                    dynamic(:foo) <= dynamic(%Point{x: term(), y: term(), z: term()})
+                    dynamic(:foo) <= dynamic(%Point{})
 
                 where "mod" was given the type:
 
@@ -919,7 +923,7 @@ defmodule Module.Types.ExprTest do
 
                 where "y" was given the type:
 
-                    # type: dynamic(%Point{x: term(), y: term(), z: term()})
+                    # type: dynamic(%Point{})
                     # from: types_test.ex:LINE-2
                     y = %Point{}
 

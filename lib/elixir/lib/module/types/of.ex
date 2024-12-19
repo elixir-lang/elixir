@@ -495,13 +495,11 @@ defmodule Module.Types.Of do
           unknown key .#{key} in expression:
 
               #{expr_to_string(expr) |> indent(4)}
-          """,
-          empty_if(dot_var?(expr), """
 
           the given type does not have the given key:
 
               #{to_quoted_string(type) |> indent(4)}
-          """),
+          """,
           format_traces(traces)
         ])
     }

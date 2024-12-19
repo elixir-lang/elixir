@@ -367,8 +367,13 @@ defmodule Module.Types.Descr do
 
   @doc """
   Converts a descr to its quoted representation.
+
+  ## Options
+
+    * `:collapse_structs` - do not show struct fields that match
+      their default type
   """
-  def to_quoted(descr) do
+  def to_quoted(descr, opts \\ []) do
     if term_type?(descr) do
       {:term, [], []}
     else
@@ -376,7 +381,7 @@ defmodule Module.Types.Descr do
       {dynamic, descr} =
         case :maps.take(:dynamic, descr) do
           :error -> {[], descr}
-          {dynamic, descr} -> {to_quoted(:dynamic, dynamic), descr}
+          {dynamic, descr} -> {to_quoted(:dynamic, dynamic, opts), descr}
         end
 
       # Merge empty list and list together if they both exist
@@ -385,7 +390,7 @@ defmodule Module.Types.Descr do
           %{list: list, bitmap: bitmap} when (bitmap &&& @bit_empty_list) != 0 ->
             descr = descr |> Map.delete(:list) |> Map.replace!(:bitmap, bitmap - @bit_empty_list)
 
-            case list_to_quoted(list, :list) do
+            case list_to_quoted(list, :list, opts) do
               [] -> {[{:empty_list, [], []}], descr}
               unions -> {unions, descr}
             end
@@ -396,7 +401,9 @@ defmodule Module.Types.Descr do
 
       unions =
         dynamic ++
-          Enum.sort(extra ++ Enum.flat_map(descr, fn {key, value} -> to_quoted(key, value) end))
+          Enum.sort(
+            extra ++ Enum.flat_map(descr, fn {key, value} -> to_quoted(key, value, opts) end)
+          )
 
       case unions do
         [] -> {:none, [], []}
@@ -405,19 +412,19 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp to_quoted(:atom, val), do: atom_to_quoted(val)
-  defp to_quoted(:bitmap, val), do: bitmap_to_quoted(val)
-  defp to_quoted(:dynamic, descr), do: dynamic_to_quoted(descr)
-  defp to_quoted(:map, dnf), do: map_to_quoted(dnf)
-  defp to_quoted(:list, dnf), do: list_to_quoted(dnf, :non_empty_list)
-  defp to_quoted(:tuple, dnf), do: tuple_to_quoted(dnf)
+  defp to_quoted(:atom, val, _opts), do: atom_to_quoted(val)
+  defp to_quoted(:bitmap, val, _opts), do: bitmap_to_quoted(val)
+  defp to_quoted(:dynamic, descr, opts), do: dynamic_to_quoted(descr, opts)
+  defp to_quoted(:map, dnf, opts), do: map_to_quoted(dnf, opts)
+  defp to_quoted(:list, dnf, opts), do: list_to_quoted(dnf, :non_empty_list, opts)
+  defp to_quoted(:tuple, dnf, opts), do: tuple_to_quoted(dnf, opts)
 
   @doc """
   Converts a descr to its quoted string representation.
   """
-  def to_quoted_string(descr) do
+  def to_quoted_string(descr, opts \\ []) do
     descr
-    |> to_quoted()
+    |> to_quoted(opts)
     |> Code.Formatter.to_algebra()
     |> Inspect.Algebra.format(98)
     |> IO.iodata_to_binary()
@@ -1045,16 +1052,16 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp list_to_quoted(dnf, name) do
+  defp list_to_quoted(dnf, name, opts) do
     dnf = list_normalize(dnf)
 
     for {list_type, last_type, negs} <- dnf, reduce: [] do
       acc ->
         arguments =
           if subtype?(last_type, @empty_list) do
-            [to_quoted(list_type)]
+            [to_quoted(list_type, opts)]
           else
-            [to_quoted(list_type), to_quoted(last_type)]
+            [to_quoted(list_type, opts), to_quoted(last_type, opts)]
           end
 
         if negs == [] do
@@ -1064,9 +1071,9 @@ defmodule Module.Types.Descr do
           |> Enum.map(fn {ty, lst} ->
             args =
               if subtype?(lst, @empty_list) do
-                [to_quoted(ty)]
+                [to_quoted(ty, opts)]
               else
-                [to_quoted(ty), to_quoted(lst)]
+                [to_quoted(ty, opts), to_quoted(lst, opts)]
               end
 
             {name, [], args}
@@ -1176,7 +1183,7 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp dynamic_to_quoted(descr) do
+  defp dynamic_to_quoted(descr, opts) do
     cond do
       term_type?(descr) ->
         [{:dynamic, [], []}]
@@ -1185,7 +1192,7 @@ defmodule Module.Types.Descr do
         [single]
 
       true ->
-        case to_quoted(descr) do
+        case to_quoted(descr, opts) do
           {:none, _meta, []} = none -> [none]
           descr -> [{:dynamic, [], [descr]}]
         end
@@ -1786,51 +1793,77 @@ defmodule Module.Types.Descr do
          end))
   end
 
-  defp map_to_quoted(dnf) do
+  defp map_to_quoted(dnf, opts) do
     dnf
     |> map_normalize()
-    |> Enum.map(&map_each_to_quoted/1)
+    |> Enum.map(&map_each_to_quoted(&1, opts))
   end
 
-  defp map_each_to_quoted({tag, positive_map, negative_maps}) do
+  defp map_each_to_quoted({tag, positive_map, negative_maps}, opts) do
     case negative_maps do
       [] ->
-        map_literal_to_quoted({tag, positive_map})
+        map_literal_to_quoted({tag, positive_map}, opts)
 
       _ ->
         negative_maps
-        |> Enum.map(&map_literal_to_quoted/1)
+        |> Enum.map(&map_literal_to_quoted(&1, opts))
         |> Enum.reduce(&{:or, [], [&2, &1]})
         |> Kernel.then(
-          &{:and, [], [map_literal_to_quoted({tag, positive_map}), {:not, [], [&1]}]}
+          &{:and, [], [map_literal_to_quoted({tag, positive_map}, opts), {:not, [], [&1]}]}
         )
     end
   end
 
-  def map_literal_to_quoted({:closed, fields}) when map_size(fields) == 0 do
+  def map_literal_to_quoted({:closed, fields}, _opts) when map_size(fields) == 0 do
     {:empty_map, [], []}
   end
 
-  def map_literal_to_quoted({tag, fields}) do
+  def map_literal_to_quoted({tag, fields}, opts) do
     case tag do
       :closed ->
         with %{__struct__: struct_descr} <- fields,
              {_, [struct]} <- atom_fetch(struct_descr) do
+          fields = Map.delete(fields, :__struct__)
+
+          fields =
+            with true <- Keyword.get(opts, :collapse_structs, false),
+                 [_ | _] = info <- maybe_struct(struct),
+                 true <- Enum.all?(info, &is_map_key(fields, &1.field)) do
+              Enum.reduce(info, fields, fn %{field: field}, acc ->
+                # TODO: This should consider the struct default value
+                if Map.fetch!(acc, field) == term() do
+                  Map.delete(acc, field)
+                else
+                  acc
+                end
+              end)
+            else
+              _ -> fields
+            end
+
           {:%, [],
            [
              literal_to_quoted(struct),
-             {:%{}, [], map_fields_to_quoted(tag, Map.delete(fields, :__struct__))}
+             {:%{}, [], map_fields_to_quoted(tag, fields, opts)}
            ]}
         else
-          _ -> {:%{}, [], map_fields_to_quoted(tag, fields)}
+          _ -> {:%{}, [], map_fields_to_quoted(tag, fields, opts)}
         end
 
       :open ->
-        {:%{}, [], [{:..., [], nil} | map_fields_to_quoted(tag, fields)]}
+        {:%{}, [], [{:..., [], nil} | map_fields_to_quoted(tag, fields, opts)]}
     end
   end
 
-  defp map_fields_to_quoted(tag, map) do
+  defp maybe_struct(struct) do
+    try do
+      struct.__info__(:struct)
+    rescue
+      _ -> nil
+    end
+  end
+
+  defp map_fields_to_quoted(tag, map, opts) do
     sorted = Enum.sort(Map.to_list(map))
     keyword? = Inspect.List.keyword?(sorted)
 
@@ -1846,9 +1879,9 @@ defmodule Module.Types.Descr do
       {optional?, type} = pop_optional_static(type)
 
       cond do
-        not optional? -> {key, to_quoted(type)}
+        not optional? -> {key, to_quoted(type, opts)}
         empty?(type) -> {key, {:not_set, [], []}}
-        true -> {key, {:if_set, [], [to_quoted(type)]}}
+        true -> {key, {:if_set, [], [to_quoted(type, opts)]}}
       end
     end
   end
@@ -1969,11 +2002,11 @@ defmodule Module.Types.Descr do
   # This is a cheap optimization that relies on structural equality.
   defp tuple_union(left, right), do: left ++ (right -- left)
 
-  defp tuple_to_quoted(dnf) do
+  defp tuple_to_quoted(dnf, opts) do
     dnf
     |> tuple_simplify()
     |> tuple_fusion()
-    |> Enum.map(&tuple_each_to_quoted/1)
+    |> Enum.map(&tuple_each_to_quoted(&1, opts))
   end
 
   # Given a dnf of tuples, fuses the tuple unions when possible,
@@ -2020,27 +2053,27 @@ defmodule Module.Types.Descr do
     {tag, fused_elements, []}
   end
 
-  defp tuple_each_to_quoted({tag, positive_tuple, negative_tuples}) do
+  defp tuple_each_to_quoted({tag, positive_tuple, negative_tuples}, opts) do
     case negative_tuples do
       [] ->
-        tuple_literal_to_quoted({tag, positive_tuple})
+        tuple_literal_to_quoted({tag, positive_tuple}, opts)
 
       _ ->
         negative_tuples
-        |> Enum.map(&tuple_literal_to_quoted/1)
+        |> Enum.map(&tuple_literal_to_quoted(&1, opts))
         |> Enum.reduce(&{:or, [], [&2, &1]})
         |> Kernel.then(
-          &{:and, [], [tuple_literal_to_quoted({tag, positive_tuple}), {:not, [], [&1]}]}
+          &{:and, [], [tuple_literal_to_quoted({tag, positive_tuple}, opts), {:not, [], [&1]}]}
         )
     end
   end
 
-  defp tuple_literal_to_quoted({:closed, []}), do: {:{}, [], []}
+  defp tuple_literal_to_quoted({:closed, []}, _opts), do: {:{}, [], []}
 
-  defp tuple_literal_to_quoted({tag, elements}) do
+  defp tuple_literal_to_quoted({tag, elements}, opts) do
     case tag do
-      :closed -> {:{}, [], Enum.map(elements, &to_quoted/1)}
-      :open -> {:{}, [], Enum.map(elements, &to_quoted/1) ++ [{:..., [], nil}]}
+      :closed -> {:{}, [], Enum.map(elements, &to_quoted(&1, opts))}
+      :open -> {:{}, [], Enum.map(elements, &to_quoted(&1, opts)) ++ [{:..., [], nil}]}
     end
   end
 

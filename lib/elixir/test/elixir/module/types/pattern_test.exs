@@ -166,9 +166,13 @@ defmodule Module.Types.PatternTest do
 
                    x.foo_bar
 
+               the given type does not have the given key:
+
+                   dynamic(%Point{x: term(), y: term(), z: term()})
+
                where "x" was given the type:
 
-                   # type: dynamic(%Point{x: term(), y: term(), z: term()})
+                   # type: dynamic(%Point{})
                    # from: types_test.ex:LINE-1
                    x = %Point{}
                """

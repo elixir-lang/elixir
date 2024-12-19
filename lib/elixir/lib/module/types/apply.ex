@@ -944,7 +944,7 @@ defmodule Module.Types.Apply do
   defp type_comparison_to_string(fun, left, right) do
     {Kernel, fun, [left, right], _} = :elixir_rewrite.erl_to_ex(:erlang, fun, [left, right])
 
-    {fun, [], [to_quoted(left), to_quoted(right)]}
+    {fun, [], [to_quoted(left, collapse_structs: true), to_quoted(right, collapse_structs: true)]}
     |> Code.Formatter.to_algebra()
     |> Inspect.Algebra.format(98)
     |> IO.iodata_to_binary()
