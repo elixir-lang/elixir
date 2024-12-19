@@ -363,14 +363,14 @@ defmodule Module.Types.Apply do
 
         match?({false, _}, map_fetch(left, :__struct__)) or
             match?({false, _}, map_fetch(right, :__struct__)) ->
-          warning = {:struct_comparison, expr, context}
+          warning = {:struct_comparison, expr, name, left, right, context}
           warn(__MODULE__, warning, elem(expr, 1), stack, context)
 
         number_type?(left) and number_type?(right) ->
           context
 
         disjoint?(left, right) ->
-          warning = {:mismatched_comparison, expr, context}
+          warning = {:mismatched_comparison, expr, name, left, right, context}
           warn(__MODULE__, warning, elem(expr, 1), stack, context)
 
         true ->
@@ -395,7 +395,7 @@ defmodule Module.Types.Apply do
           context
 
         disjoint?(left, right) ->
-          warning = {:mismatched_comparison, expr, context}
+          warning = {:mismatched_comparison, expr, name, left, right, context}
           warn(__MODULE__, warning, elem(expr, 1), stack, context)
 
         true ->
@@ -810,7 +810,7 @@ defmodule Module.Types.Apply do
     }
   end
 
-  def format_diagnostic({:mismatched_comparison, expr, context}) do
+  def format_diagnostic({:mismatched_comparison, expr, name, left, right, context}) do
     traces = collect_traces(expr, context)
 
     %{
@@ -821,6 +821,10 @@ defmodule Module.Types.Apply do
           comparison between distinct types found:
 
               #{expr_to_string(expr) |> indent(4)}
+
+          given types:
+
+              #{type_comparison_to_string(name, left, right) |> indent(4)}
           """,
           format_traces(traces),
           """
@@ -833,7 +837,7 @@ defmodule Module.Types.Apply do
     }
   end
 
-  def format_diagnostic({:struct_comparison, expr, context}) do
+  def format_diagnostic({:struct_comparison, expr, name, left, right, context}) do
     traces = collect_traces(expr, context)
 
     %{
@@ -844,6 +848,10 @@ defmodule Module.Types.Apply do
           comparison with structs found:
 
               #{expr_to_string(expr) |> indent(4)}
+
+          given types:
+
+              #{type_comparison_to_string(name, left, right) |> indent(4)}
           """,
           format_traces(traces),
           """
@@ -932,6 +940,15 @@ defmodule Module.Types.Apply do
   ## Algebra helpers
 
   alias Inspect.Algebra, as: IA
+
+  defp type_comparison_to_string(fun, left, right) do
+    {Kernel, fun, [left, right], _} = :elixir_rewrite.erl_to_ex(:erlang, fun, [left, right])
+
+    {fun, [], [to_quoted(left), to_quoted(right)]}
+    |> Code.Formatter.to_algebra()
+    |> Inspect.Algebra.format(98)
+    |> IO.iodata_to_binary()
+  end
 
   defp clauses_args_to_quoted_string([{args, _return}], converter) do
     "\n    " <> (clause_args_to_quoted_string(args, converter) |> indent(4))

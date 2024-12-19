@@ -845,6 +845,10 @@ defmodule Module.Types.ExprTest do
 
                     min(x, y)
 
+                given types:
+
+                    min(dynamic(:foo), integer())
+
                 where "x" was given the type:
 
                     # type: dynamic(:foo)
@@ -867,6 +871,10 @@ defmodule Module.Types.ExprTest do
                 comparison between distinct types found:
 
                     x === y
+
+                given types:
+
+                    integer() === float()
 
                 where "x" was given the type:
 
@@ -892,6 +900,10 @@ defmodule Module.Types.ExprTest do
                 comparison with structs found:
 
                     mod.<=(x, y)
+
+                given types:
+
+                    dynamic(:foo) <= dynamic(%Point{x: term(), y: term(), z: term()})
 
                 where "mod" was given the type:
 
