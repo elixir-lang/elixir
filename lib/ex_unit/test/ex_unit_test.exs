@@ -508,6 +508,7 @@ defmodule ExUnitTest do
 
     # Empty because it is already loaded
     {result, output} = run_with_filter([exclude: :module], [])
+
     assert result == %{failures: 0, skipped: 0, excluded: 2, total: 2}
     assert output =~ "\n0 tests, 0 failures, 2 excluded\n"
 
