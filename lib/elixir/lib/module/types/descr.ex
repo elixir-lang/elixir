@@ -1822,24 +1822,18 @@ defmodule Module.Types.Descr do
     case tag do
       :closed ->
         with %{__struct__: struct_descr} <- fields,
-             {_, [struct]} <- atom_fetch(struct_descr) do
-          fields = Map.delete(fields, :__struct__)
+             {_, [struct]} <- atom_fetch(struct_descr),
+             [_ | _] = info <- maybe_struct(struct),
+             true <- map_size(fields) == length(info) + 1,
+             true <- Enum.all?(info, &is_map_key(fields, &1.field)) do
+          collapse? = Keyword.get(opts, :collapse_structs, false)
 
           fields =
-            with true <- Keyword.get(opts, :collapse_structs, false),
-                 [_ | _] = info <- maybe_struct(struct),
-                 true <- Enum.all?(info, &is_map_key(fields, &1.field)) do
-              Enum.reduce(info, fields, fn %{field: field}, acc ->
-                # TODO: This should consider the struct default value
-                if Map.fetch!(acc, field) == term() do
-                  Map.delete(acc, field)
-                else
-                  acc
-                end
-              end)
-            else
-              _ -> fields
-            end
+            for %{field: field} <- info,
+                type = Map.fetch!(fields, field),
+                # TODO: This should consider the struct default type
+                not collapse? or type != term(),
+                do: {field, type}
 
           {:%, [],
            [
@@ -1847,11 +1841,11 @@ defmodule Module.Types.Descr do
              {:%{}, [], map_fields_to_quoted(tag, fields, opts)}
            ]}
         else
-          _ -> {:%{}, [], map_fields_to_quoted(tag, fields, opts)}
+          _ -> {:%{}, [], map_fields_to_quoted(tag, Enum.sort(fields), opts)}
         end
 
       :open ->
-        {:%{}, [], [{:..., [], nil} | map_fields_to_quoted(tag, fields, opts)]}
+        {:%{}, [], [{:..., [], nil} | map_fields_to_quoted(tag, Enum.sort(fields), opts)]}
     end
   end
 
@@ -1863,8 +1857,7 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp map_fields_to_quoted(tag, map, opts) do
-    sorted = Enum.sort(Map.to_list(map))
+  defp map_fields_to_quoted(tag, sorted, opts) do
     keyword? = Inspect.List.keyword?(sorted)
 
     for {key, type} <- sorted,

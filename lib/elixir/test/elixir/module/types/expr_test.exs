@@ -801,14 +801,14 @@ defmodule Module.Types.ExprTest do
              the given type does not have the given key:
 
                  dynamic(%URI{
-                   authority: term(),
-                   fragment: term(),
-                   host: term(),
-                   path: term(),
-                   port: term(),
-                   query: term(),
                    scheme: term(),
-                   userinfo: term()
+                   authority: term(),
+                   userinfo: term(),
+                   host: term(),
+                   port: term(),
+                   path: term(),
+                   query: term(),
+                   fragment: term()
                  })
 
              where "x" was given the type:

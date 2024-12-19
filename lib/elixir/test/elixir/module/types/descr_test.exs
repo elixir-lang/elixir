@@ -1,5 +1,9 @@
 Code.require_file("type_helper.exs", __DIR__)
 
+defmodule Decimal do
+  defstruct [:sign, :coef, :exp]
+end
+
 defmodule Module.Types.DescrTest do
   use ExUnit.Case, async: true
 
@@ -1354,8 +1358,8 @@ defmodule Module.Types.DescrTest do
              |> to_quoted_string() ==
                """
                dynamic(
-                 :error or {%Decimal{coef: :NaN or :inf, exp: integer(), sign: integer()}, binary()} or
-                   {%Decimal{coef: :NaN or :inf or integer(), exp: integer(), sign: integer()}, term()}
+                 :error or {%Decimal{sign: integer(), coef: :NaN or :inf, exp: integer()}, binary()} or
+                   {%Decimal{sign: integer(), coef: :NaN or :inf or integer(), exp: integer()}, term()}
                )\
                """
     end
@@ -1470,16 +1474,26 @@ defmodule Module.Types.DescrTest do
     end
 
     test "structs" do
-      assert open_map(__struct__: atom([URI])) |> to_quoted_string() == "%{..., __struct__: URI}"
+      assert open_map(__struct__: atom([URI])) |> to_quoted_string() ==
+               "%{..., __struct__: URI}"
 
       assert closed_map(__struct__: atom([URI])) |> to_quoted_string() ==
-               "%URI{}"
-
-      assert closed_map(__struct__: atom([URI]), path: atom([nil])) |> to_quoted_string() ==
-               "%URI{path: nil}"
+               "%{__struct__: URI}"
 
       assert closed_map(__struct__: atom([URI, Another])) |> to_quoted_string() ==
                "%{__struct__: Another or URI}"
+
+      assert closed_map(__struct__: atom([Decimal]), coef: term(), exp: term(), sign: term())
+             |> to_quoted_string() ==
+               "%Decimal{sign: term(), coef: term(), exp: term()}"
+
+      assert closed_map(__struct__: atom([Decimal]), coef: term(), exp: term(), sign: term())
+             |> to_quoted_string(collapse_structs: true) ==
+               "%Decimal{}"
+
+      assert closed_map(__struct__: atom([Decimal]), coef: term(), exp: term(), sign: integer())
+             |> to_quoted_string(collapse_structs: true) ==
+               "%Decimal{sign: integer()}"
     end
   end
 
