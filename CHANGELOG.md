@@ -293,6 +293,7 @@ You may also prefer to write using guards:
 
 #### IEx
 
+  * [IEx] Add `IEx.configure(auto_reload: true)` to automatically pick up modules recompiled from other operating system processes
   * [IEx] Add `:dot_iex` support to `IEx.configure/1`
   * [IEx] Add report for normal/shutdown exits in IEx
 
@@ -366,6 +367,8 @@ You may also prefer to write using guards:
 #### Mix
 
   * [mix cmd] Deprecate `mix cmd --app APP` in favor of `mix do --app APP`
+  * [mix compile] `:warnings_as_errors` configuration in `:elixirc_options` is deprecated. Instead pass the `--warnings-as-errors` flag to `mix compile`. Alternatively, you might alias the task: `aliases: [compile: "compile --warnings-as-errors"]`
+  * [mix test] `:warnings_as_errors` configuration in `:test_elixirc_options` is deprecated. Instead pass the `--warnings-as-errors` flag to `mix test`. Alternatively, you might alias the task: `aliases: [test: "test --warnings-as-errors"]`
   * [Mix.Tasks.Compile] Deprecate `compilers/0` in favor of `Mix.Task.Compiler.compilers/0`
 
 ## v1.17
