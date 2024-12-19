@@ -110,30 +110,12 @@ defmodule NaiveDateTime do
   @spec utc_now(Calendar.calendar() | :native | :microsecond | :millisecond | :second) :: t
   def utc_now(calendar_or_time_unit \\ Calendar.ISO)
 
-  def utc_now(Calendar.ISO) do
-    {:ok, {year, month, day}, {hour, minute, second}, microsecond} =
-      Calendar.ISO.from_unix(:os.system_time(), :native)
-
-    %NaiveDateTime{
-      year: year,
-      month: month,
-      day: day,
-      hour: hour,
-      minute: minute,
-      second: second,
-      microsecond: microsecond,
-      calendar: Calendar.ISO
-    }
-  end
-
   def utc_now(time_unit) when time_unit in [:microsecond, :millisecond, :second, :native] do
     utc_now(time_unit, Calendar.ISO)
   end
 
   def utc_now(calendar) do
-    calendar
-    |> DateTime.utc_now()
-    |> DateTime.to_naive()
+    utc_now(:native, calendar)
   end
 
   @doc """
@@ -158,7 +140,20 @@ defmodule NaiveDateTime do
   @spec utc_now(:native | :microsecond | :millisecond | :second, Calendar.calendar()) :: t
   def utc_now(time_unit, calendar)
       when time_unit in [:native, :microsecond, :millisecond, :second] do
-    DateTime.utc_now(time_unit, calendar) |> DateTime.to_naive()
+    {:ok, {year, month, day}, {hour, minute, second}, microsecond} =
+      Calendar.ISO.from_unix(System.os_time(time_unit), time_unit)
+
+    %NaiveDateTime{
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond,
+      calendar: Calendar.ISO
+    }
+    |> convert!(calendar)
   end
 
   @doc """
@@ -1265,6 +1260,10 @@ defmodule NaiveDateTime do
           {:ok, t} | {:error, :incompatible_calendars}
 
   # Keep it multiline for proper function clause errors.
+  def convert(%NaiveDateTime{calendar: calendar} = ndt, calendar) do
+    {:ok, ndt}
+  end
+
   def convert(
         %{
           calendar: calendar,
