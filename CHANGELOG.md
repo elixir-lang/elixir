@@ -225,33 +225,7 @@ You may also prefer to write using guards:
 
     def foo(x, y, z) when x == y and y == z
 
-## v1.18.0-rc.1
-
-### 1. Enhancements
-
-#### Elixir
-
-  * [JSON] Implement `JSON.Encoder` for all Calendar types
-
-### 2. Bug fixes
-
-#### Elixir
-
-  * [Kernel] Avoid crashes when emitting diagnostics on code using \t for indentation
-
-### 3. Regressions
-
-#### Elixir
-
-  * [Kernel] Fix type warnings in `pop_in/1`
-  * [Kernel] Fix false positive warnings when accessing exceptions from `rescue`
-  * [Kernel] Emit warnings for duplicate patterns instead of errors
-
-#### ExUnit
-
-  * [ExUnit] Do not warn on user-supplied CaseTemplate options
-
-## v1.18.0-rc.0 (2024-12-10)
+## v1.18.0 (2024-12-19)
 
 ### 1. Enhancements
 
@@ -266,6 +240,8 @@ You may also prefer to write using guards:
   * [Config] Add `Config.read_config/1`
   * [Enumerable] Add `Enum.product_by/2` and `Enum.sum_by/2`
   * [Exception] Add `MissingApplicationsError` exception to denote missing applications
+  * [JSON] Add a new `JSON` module with encoding and decoding functionality
+  * [JSON] Implement `JSON.Encoder` for all Calendar types
   * [Kernel] Update source code parsing to match [UTS #55](https://www.unicode.org/reports/tr55/) latest recommendations. In particular, mixed script is allowed in identifiers as long as they are separate by underscores (`_`), such as `http_сервер`. Previously allowed highly restrictive identifiers, which mixed Latin and other scripts, such as the japanese word for t-shirt, `Tシャツ`, now require the underscore as well
   * [Kernel] Warn on bidirectional confusability in identifiers
   * [Kernel] Verify the type of the binary generators
@@ -317,6 +293,7 @@ You may also prefer to write using guards:
   * [Code.Fragment] Properly handle keyword keys as their own entry
   * [Inspect.Algebra] Ensure `next_break_fits` respects `line_length`
   * [Kernel] Validate AST on `unquote` and `unquote_splicing` to provide better error reports instead of failing too late inside the compiler
+  * [Kernel] Avoid crashes when emitting diagnostics on code using \t for indentation
   * [Module] Include module attribute line and name when tracing its aliases
   * [Stream] Do not halt streams twice in `Stream.transform/5`
   * [URI] Fix a bug when a schemaless URI is given to `URI.merge/2`
