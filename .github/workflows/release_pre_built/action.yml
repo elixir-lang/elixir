@@ -19,8 +19,6 @@ runs:
       run: |
         make Precompiled.zip
         mv Precompiled.zip elixir-otp-${{ inputs.otp }}.zip
-        shasum -a 1 elixir-otp-${{ inputs.otp }}.zip > elixir-otp-${{ inputs.otp }}.zip.sha1sum
-        shasum -a 256 elixir-otp-${{ inputs.otp }}.zip > elixir-otp-${{ inputs.otp }}.zip.sha256sum
         echo "$PWD/bin" >> $GITHUB_PATH
     - name: Install NSIS
       shell: bash
@@ -34,8 +32,6 @@ runs:
         export ELIXIR_ZIP=$PWD/elixir-otp-${{ inputs.otp }}.zip
         (cd lib/elixir/scripts/windows_installer && ./build.sh)
         mv lib/elixir/scripts/windows_installer/tmp/elixir-otp-${{ inputs.otp }}.exe .
-        shasum -a 1   elixir-otp-${{ inputs.otp }}.exe > elixir-otp-${{ inputs.otp }}.exe.sha1sum
-        shasum -a 256 elixir-otp-${{ inputs.otp }}.exe > elixir-otp-${{ inputs.otp }}.exe.sha256sum
     - name: Get ExDoc ref
       if: ${{ inputs.build_docs }}
       shell: bash
@@ -66,5 +62,3 @@ runs:
       run: |
         git fetch --tags
         make Docs.zip
-        shasum -a 1 Docs.zip > Docs.zip.sha1sum
-        shasum -a 256 Docs.zip > Docs.zip.sha256sum
