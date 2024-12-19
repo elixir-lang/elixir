@@ -379,13 +379,12 @@ defmodule DateTime do
   @doc """
   Converts the given Unix time to `DateTime`.
 
-  The integer can be given in different unit
-  according to `System.convert_time_unit/3` and it will
-  be converted to microseconds internally. Up to
-  253402300799 seconds is supported.
+  The integer can be given in different unit, according to `System.convert_time_unit/3`,
+  and it will be converted to microseconds internally, which is the maximum precision
+  supported by `DateTime`. In other words, any precision higher than microseconds will
+  lead to truncation.
 
-  Unix times are always in UTC and therefore the DateTime
-  will be returned in UTC.
+  Unix times are always in UTC. Therefore the DateTime will be returned in UTC.
 
   ## Examples
 
@@ -881,8 +880,10 @@ defmodule DateTime do
   The `datetime` is expected to be using the ISO calendar
   with a year greater than or equal to 0.
 
-  It will return the integer with the given unit,
-  according to `System.convert_time_unit/3`.
+  It will return the integer with the given unit, according
+  to `System.convert_time_unit/3`. If the given unit is different
+  than microseconds, the returned value will be either truncated
+  or padded accordingly.
 
   ## Examples
 
