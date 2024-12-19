@@ -141,7 +141,7 @@ defmodule Module.Types.Helpers do
         column: meta[:column],
         hints: formatter_hints ++ expr_hints(expr),
         formatted_expr: formatted_expr,
-        formatted_type: Module.Types.Descr.to_quoted_string(type)
+        formatted_type: Module.Types.Descr.to_quoted_string(type, collapse_structs: true)
       }
     end)
     |> Enum.sort_by(&{&1.line, &1.column})
