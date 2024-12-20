@@ -112,6 +112,10 @@ capture_expr(Meta, Expr, S, E, Escaped, Sequential) ->
   case escape(Expr, E, Escaped) of
     {_, []} when not Sequential ->
       invalid_capture(Meta, Expr, E);
+    {EExpr, []} ->
+      Meta2 = lists:keydelete(no_parens, 1, Meta),
+      Fn = {fn, Meta2, [{'->', Meta2, [[], remove_no_parens(EExpr)]}]},
+      {expand, Fn, S, E};
     {EExpr, EDict} ->
       EVars = validate(Meta, EDict, 1, E),
       Fn = {fn, Meta, [{'->', Meta, [EVars, EExpr]}]},
@@ -120,6 +124,11 @@ capture_expr(Meta, Expr, S, E, Escaped, Sequential) ->
 
 invalid_capture(Meta, Arg, E) ->
   file_error(Meta, E, ?MODULE, {invalid_args_for_capture, Arg}).
+
+remove_no_parens({{'.', _, [_, _]} = Dot, Meta, Args}) when is_list(Args) ->
+  Meta2 = lists:keydelete(no_parens, 1, Meta),
+  {Dot, Meta2, Args};
+remove_no_parens(Other) -> Other.
 
 validate(Meta, [{Pos, Var} | T], Pos, E) ->
   [Var | validate(Meta, T, Pos + 1, E)];

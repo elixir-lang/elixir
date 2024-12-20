@@ -1203,6 +1203,11 @@ defmodule Kernel.ExpansionTest do
                 [{:->, [{:line, 1}], [[{:capture, [line: 1], nil}], {:capture, [line: 1], nil}]}]}
     end
 
+    test "removes no_parens when expanding 0-arity capture to fn" do
+      assert expand(quote(do: &foo().bar/0)) ==
+               quote(do: fn -> foo().bar() end)
+    end
+
     test "expands remotes" do
       assert expand(quote(do: &List.flatten/2)) ==
                quote(do: &:"Elixir.List".flatten/2)
