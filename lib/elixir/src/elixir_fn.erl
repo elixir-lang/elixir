@@ -112,6 +112,10 @@ capture_expr(Meta, Expr, S, E, Escaped, Sequential) ->
   case escape(Expr, E, Escaped) of
     {_, []} when not Sequential ->
       invalid_capture(Meta, Expr, E);
+    {{{'.', _, [_, _]} = Dot, _, Args}, []} ->
+      Meta2 = lists:keydelete(no_parens, 1, Meta),
+      Fn = {fn, Meta2, [{'->', Meta2, [[], {Dot, Meta2, Args}]}]},
+      {expand, Fn, S, E};
     {EExpr, EDict} ->
       EVars = validate(Meta, EDict, 1, E),
       Fn = {fn, Meta, [{'->', Meta, [EVars, EExpr]}]},
