@@ -85,6 +85,9 @@ defmodule Module.Types.Helpers do
 
   @doc """
   Collect traces from variables in expression.
+
+  This information is exposed to language servers and
+  therefore must remain backwards compatible.
   """
   def collect_traces(expr, %{vars: vars}) do
     {_, versions} =
@@ -135,16 +138,17 @@ defmodule Module.Types.Helpers do
           formatter -> formatter.(expr)
         end
 
+      # This information is exposed to language servers and
+      # therefore must remain backwards compatible.
       %{
         file: file,
-        line: meta[:line],
-        column: meta[:column],
-        hints: formatter_hints ++ expr_hints(expr),
+        meta: meta,
         formatted_expr: formatted_expr,
+        formatted_hints: format_hints(formatter_hints ++ expr_hints(expr)),
         formatted_type: Module.Types.Descr.to_quoted_string(type, collapse_structs: true)
       }
     end)
-    |> Enum.sort_by(&{&1.line, &1.column})
+    |> Enum.sort_by(&{&1.meta[:line], &1.meta[:column]})
     |> Enum.dedup()
   end
 
@@ -161,7 +165,7 @@ defmodule Module.Types.Helpers do
         location =
           trace.file
           |> Path.relative_to_cwd()
-          |> Exception.format_file_line(trace.line, trace.column)
+          |> Exception.format_file_line(trace.meta[:line], trace.meta[:column])
           |> String.replace_suffix(":", "")
 
         [
@@ -173,7 +177,7 @@ defmodule Module.Types.Helpers do
           """,
           indent(trace.formatted_expr, 4),
           ?\n,
-          format_hints(trace.hints)
+          trace.formatted_hints
         ]
       end
 
