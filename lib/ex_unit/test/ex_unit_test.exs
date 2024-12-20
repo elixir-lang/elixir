@@ -29,7 +29,7 @@ defmodule ExUnitTest do
     assert capture_io(fn ->
              assert ExUnit.async_run() |> ExUnit.await_run() ==
                       %{failures: 0, skipped: 0, total: 0, excluded: 0}
-           end) =~ "\n0 failures\n"
+           end) =~ "\n0 tests, 0 failures\n"
   end
 
   test "supports rerunning given modules" do
@@ -137,7 +137,7 @@ defmodule ExUnitTest do
     assert result =~ """
            Showing results so far...
 
-           0 failures
+           0 tests, 0 failures
            """
   end
 

@@ -19,7 +19,7 @@ defmodule ExUnit.CLIFormatter do
       width: get_terminal_width(),
       slowest: opts[:slowest],
       slowest_modules: opts[:slowest_modules],
-      test_counter: %{test: 0},
+      test_counter: %{},
       test_timings: [],
       failure_counter: 0,
       skipped_counter: 0,
@@ -37,7 +37,7 @@ defmodule ExUnit.CLIFormatter do
   def handle_cast({:suite_finished, times_us}, config) do
     test_type_counts = collect_test_type_counts(config)
 
-    if test_type_counts == 0 && config.excluded_counter > 0 do
+    if test_type_counts == 0 and config.excluded_counter > 0 do
       IO.puts(invalid("All tests have been excluded.", config))
     end
 
@@ -335,8 +335,9 @@ defmodule ExUnit.CLIFormatter do
   ## Printing
 
   defp print_summary(config, force_failures?) do
-    formatted_test_type_counts = format_test_type_counts(config)
     test_type_counts = collect_test_type_counts(config)
+    test_counter = test_counter_or_default(config, test_type_counts)
+    formatted_test_type_counts = format_test_type_counts(test_counter)
     failure_pl = pluralize(config.failure_counter, "failure", "failures")
 
     message =
@@ -388,7 +389,7 @@ defmodule ExUnit.CLIFormatter do
     IO.puts(formatted)
   end
 
-  defp format_test_type_counts(%{test_counter: test_counter} = _config) do
+  defp format_test_type_counts(test_counter) do
     test_counter
     |> Enum.sort()
     |> Enum.map(fn {test_type, count} ->
@@ -396,6 +397,14 @@ defmodule ExUnit.CLIFormatter do
 
       "#{count} #{type_pluralized}, "
     end)
+  end
+
+  defp test_counter_or_default(_config, 0) do
+    %{test: 0}
+  end
+
+  defp test_counter_or_default(%{test_counter: test_counter} = _config, _test_type_counts) do
+    test_counter
   end
 
   defp collect_test_type_counts(%{test_counter: test_counter} = _config) do
