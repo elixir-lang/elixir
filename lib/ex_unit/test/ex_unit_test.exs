@@ -681,7 +681,7 @@ defmodule ExUnitTest do
       end)
 
     refute output =~ max_failures_reached_msg()
-    assert output =~ "\n5 tests, 0 failures, 1 excluded, 4 invalid, 1 skipped\n"
+    assert output =~ "\n5 tests, 0 failures, 4 invalid, 1 skipped, 1 excluded\n"
   end
 
   test "parameterized tests" do
@@ -788,7 +788,7 @@ defmodule ExUnitTest do
         end)
 
       assert output =~ max_failures_reached_msg()
-      assert output =~ "\n5 tests, 2 failures, 1 excluded, 1 skipped\n"
+      assert output =~ "\n5 tests, 2 failures, 1 skipped, 1 excluded\n"
     end
 
     test ":max_failures is not reached" do
@@ -819,7 +819,7 @@ defmodule ExUnitTest do
         end)
 
       refute output =~ max_failures_reached_msg()
-      assert output =~ "\n6 tests, 2 failures, 2 excluded, 1 skipped\n"
+      assert output =~ "\n6 tests, 2 failures, 1 skipped, 2 excluded\n"
     end
 
     test ":max_failures has been reached" do
@@ -853,7 +853,7 @@ defmodule ExUnitTest do
         end)
 
       assert output =~ max_failures_reached_msg()
-      assert output =~ "\n5 tests, 2 failures, 2 excluded, 2 skipped\n"
+      assert output =~ "\n5 tests, 2 failures, 2 skipped, 2 excluded\n"
     end
 
     # Excluded and skipped tests are detected before setup_all
@@ -887,7 +887,7 @@ defmodule ExUnitTest do
         end)
 
       assert output =~ max_failures_reached_msg()
-      assert output =~ "\n3 tests, 0 failures, 1 excluded, 2 invalid, 1 skipped\n"
+      assert output =~ "\n3 tests, 0 failures, 2 invalid, 1 skipped, 1 excluded\n"
     end
 
     test ":max_failures flushes all async/sync cases" do

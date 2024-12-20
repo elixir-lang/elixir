@@ -343,16 +343,16 @@ defmodule ExUnit.CLIFormatter do
     message =
       "#{formatted_test_type_counts}#{config.failure_counter} #{failure_pl}"
       |> if_true(
-        config.excluded_counter > 0,
-        &(&1 <> ", #{config.excluded_counter} excluded")
-      )
-      |> if_true(
         config.invalid_counter > 0,
         &(&1 <> ", #{config.invalid_counter} invalid")
       )
       |> if_true(
         config.skipped_counter > 0,
         &(&1 <> ", " <> skipped("#{config.skipped_counter} skipped", config))
+      )
+      |> if_true(
+        config.excluded_counter > 0,
+        &(&1 <> ", #{config.excluded_counter} excluded")
       )
 
     cond do
