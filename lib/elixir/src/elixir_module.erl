@@ -404,9 +404,10 @@ build(Module, Line, File, E) ->
     {derive, [], accumulate, []},
     {dialyzer, [], accumulate, []},
     {external_resource, [], accumulate, []},
+    {nifs, [], accumulate, []},
     {on_definition, [], accumulate, []},
-    {type, [], accumulate, []},
     {opaque, [], accumulate, []},
+    {type, [], accumulate, []},
     {typep, [], accumulate, []},
     {spec, [], accumulate, []},
     {callback, [], accumulate, []},
@@ -418,7 +419,7 @@ build(Module, Line, File, E) ->
     {?counter_attr, 0}
   ]),
 
-  Persisted = [behaviour, dialyzer, external_resource, on_load, vsn, nifs],
+  Persisted = [behaviour, dialyzer, external_resource, nifs, on_load, vsn],
   ets:insert(DataBag, [{persisted_attributes, Attr} || Attr <- Persisted]),
 
   OnDefinition =
