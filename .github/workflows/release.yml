@@ -55,7 +55,6 @@ jobs:
           git push origin $ref_name --force
 
   build:
-    needs: create_draft_release
     strategy:
       fail-fast: true
       matrix:
@@ -77,6 +76,22 @@ jobs:
           otp_version: ${{ matrix.otp_version }}
           otp: ${{ matrix.otp }}
           build_docs: ${{ matrix.build_docs }}
+
+      - name: "Sign files with Trusted Signing"
+        if: github.repository == 'elixir-lang/elixir'
+        uses: azure/trusted-signing-action@v0.5.0
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: https://eus.codesigning.azure.net/
+          trusted-signing-account-name: trusted-signing-elixir
+          certificate-profile-name: Elixir
+          files-folder: ${{ github.workspace }}
+          files-folder-filter: exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
 
       - name: "Attest release .exe provenance"
         uses: actions/attest-build-provenance@v2
@@ -110,6 +125,18 @@ jobs:
         env:
           ATTESTATION: "${{ steps.attest-docs-provenance.outputs.bundle-path }}"
 
+      - name: Create Release Hashes
+        run: |
+          shasum -a 1   elixir-otp-${{ matrix.otp }}.zip > elixir-otp-${{ matrix.otp }}.zip.sha1sum
+          shasum -a 256 elixir-otp-${{ matrix.otp }}.zip > elixir-otp-${{ matrix.otp }}.zip.sha256sum
+          shasum -a 1   elixir-otp-${{ matrix.otp }}.exe > elixir-otp-${{ matrix.otp }}.exe.sha1sum
+          shasum -a 256 elixir-otp-${{ matrix.otp }}.exe > elixir-otp-${{ matrix.otp }}.exe.sha256sum
+      - name: Create Docs Hashes
+        if: ${{ matrix.build_docs }}
+        run: |
+          shasum -a 1   Docs.zip > Docs.zip.sha1sum
+          shasum -a 256 Docs.zip > Docs.zip.sha256sum
+
       - name: "Upload release artifacts"
         uses: actions/upload-artifact@v4
         with:
@@ -124,7 +151,7 @@ jobs:
           path: Docs.zip*
 
   upload-release:
-    needs: build
+    needs: [build, create_draft_release]
     runs-on: windows-2022
 
     steps:
@@ -134,22 +161,6 @@ jobs:
           mv elixir-otp-*/* .
           mv Docs/* .
         shell: bash
-
-      - name: "Sign files with Trusted Signing"
-        if: github.repository == 'elixir-lang/elixir'
-        uses: azure/trusted-signing-action@v0.5.0
-        with:
-          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-          endpoint: https://eus.codesigning.azure.net/
-          trusted-signing-account-name: trusted-signing-elixir
-          certificate-profile-name: Elixir
-          files-folder: ${{ github.workspace }}
-          files-folder-filter: exe
-          file-digest: SHA256
-          timestamp-rfc3161: http://timestamp.acs.microsoft.com
-          timestamp-digest: SHA256
 
       - name: Upload Pre-built
         shell: bash
