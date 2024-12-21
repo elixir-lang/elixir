@@ -264,7 +264,6 @@ jobs:
           done
 
       - name: Upload Docs to S3
-        working-directory: Docs
         run: |
           version=$(echo ${{ github.ref_name }} | sed -e 's/^v//g')
 
