@@ -41,17 +41,17 @@ fn_arity(Args) -> length(Args).
 capture(Meta, {'/', _, [{{'.', _, [M, F]} = Dot, RequireMeta, []}, A]}, S, E) when is_atom(F), is_integer(A) ->
   Args = args_from_arity(Meta, A, E),
   handle_capture_possible_warning(Meta, RequireMeta, M, F, A, E),
-  capture_require({Dot, RequireMeta, Args}, S, E, true);
+  capture_require({Dot, RequireMeta, Args}, S, E, arity);
 
 capture(Meta, {'/', _, [{F, ImportMeta, C}, A]}, S, E) when is_atom(F), is_integer(A), is_atom(C) ->
   Args = args_from_arity(Meta, A, E),
-  capture_import({F, ImportMeta, Args}, S, E, true);
+  capture_import({F, ImportMeta, Args}, S, E, arity);
 
 capture(_Meta, {{'.', _, [_, Fun]}, _, Args} = Expr, S, E) when is_atom(Fun), is_list(Args) ->
-  capture_require(Expr, S, E, is_sequential_and_not_empty(Args));
+  capture_require(Expr, S, E, check_sequential_and_not_empty(Args));
 
 capture(Meta, {{'.', _, [_]}, _, Args} = Expr, S, E) when is_list(Args) ->
-  capture_expr(Meta, Expr, S, E, false);
+  capture_expr(Meta, Expr, S, E, non_sequential);
 
 capture(Meta, {'__block__', _, [Expr]}, S, E) ->
   capture(Meta, Expr, S, E);
@@ -60,13 +60,13 @@ capture(Meta, {'__block__', _, _} = Expr, _S, E) ->
   file_error(Meta, E, ?MODULE, {block_expr_in_capture, Expr});
 
 capture(_Meta, {Atom, _, Args} = Expr, S, E) when is_atom(Atom), is_list(Args) ->
-  capture_import(Expr, S, E, is_sequential_and_not_empty(Args));
+  capture_import(Expr, S, E, check_sequential_and_not_empty(Args));
 
 capture(Meta, {Left, Right}, S, E) ->
   capture(Meta, {'{}', Meta, [Left, Right]}, S, E);
 
 capture(Meta, List, S, E) when is_list(List) ->
-  capture_expr(Meta, List, S, E, is_sequential_and_not_empty(List));
+  capture_expr(Meta, List, S, E, check_sequential_and_not_empty(List));
 
 capture(Meta, Integer, _S, E) when is_integer(Integer) ->
   file_error(Meta, E, ?MODULE, {capture_arg_outside_of_capture, Integer});
@@ -74,17 +74,17 @@ capture(Meta, Integer, _S, E) when is_integer(Integer) ->
 capture(Meta, Arg, _S, E) ->
   invalid_capture(Meta, Arg, E).
 
-capture_import({Atom, ImportMeta, Args} = Expr, S, E, Sequential) ->
-  Res = Sequential andalso
+capture_import({Atom, ImportMeta, Args} = Expr, S, E, ArgsType) ->
+  Res = ArgsType /= non_sequential andalso
         elixir_dispatch:import_function(ImportMeta, Atom, length(Args), E),
-  handle_capture(Res, ImportMeta, ImportMeta, Expr, S, E, Sequential).
+  handle_capture(Res, ImportMeta, ImportMeta, Expr, S, E, ArgsType).
 
-capture_require({{'.', DotMeta, [Left, Right]}, RequireMeta, Args}, S, E, Sequential) ->
+capture_require({{'.', DotMeta, [Left, Right]}, RequireMeta, Args}, S, E, ArgsType) ->
   case escape(Left, E, []) of
     {EscLeft, []} ->
       {ELeft, SE, EE} = elixir_expand:expand(EscLeft, S, E),
 
-      Res = Sequential andalso case ELeft of
+      Res = ArgsType /= non_sequential andalso case ELeft of
         {Name, _, Context} when is_atom(Name), is_atom(Context) ->
           {remote, ELeft, Right, length(Args)};
         _ when is_atom(ELeft) ->
@@ -94,23 +94,23 @@ capture_require({{'.', DotMeta, [Left, Right]}, RequireMeta, Args}, S, E, Sequen
       end,
 
       Dot = {{'.', DotMeta, [ELeft, Right]}, RequireMeta, Args},
-      handle_capture(Res, RequireMeta, DotMeta, Dot, SE, EE, Sequential);
+      handle_capture(Res, RequireMeta, DotMeta, Dot, SE, EE, ArgsType);
 
     {EscLeft, Escaped} ->
       Dot = {{'.', DotMeta, [EscLeft, Right]}, RequireMeta, Args},
-      capture_expr(RequireMeta, Dot, S, E, Escaped, Sequential)
+      capture_expr(RequireMeta, Dot, S, E, Escaped, ArgsType)
   end.
 
-handle_capture(false, Meta, _DotMeta, Expr, S, E, Sequential) ->
-  capture_expr(Meta, Expr, S, E, Sequential);
-handle_capture(LocalOrRemote, Meta, DotMeta, _Expr, S, E, _Sequential) ->
+handle_capture(false, Meta, _DotMeta, Expr, S, E, ArgsType) ->
+  capture_expr(Meta, Expr, S, E, ArgsType);
+handle_capture(LocalOrRemote, Meta, DotMeta, _Expr, S, E, _ArgsType) ->
   {LocalOrRemote, Meta, DotMeta, S, E}.
 
-capture_expr(Meta, Expr, S, E, Sequential) ->
-  capture_expr(Meta, Expr, S, E, [], Sequential).
-capture_expr(Meta, Expr, S, E, Escaped, Sequential) ->
+capture_expr(Meta, Expr, S, E, ArgsType) ->
+  capture_expr(Meta, Expr, S, E, [], ArgsType).
+capture_expr(Meta, Expr, S, E, Escaped, ArgsType) ->
   case escape(Expr, E, Escaped) of
-    {_, []} when not Sequential ->
+    {_, []} when ArgsType == non_sequential ->
       invalid_capture(Meta, Expr, E);
     {{{'.', _, [_, _]} = Dot, _, Args}, []} ->
       Meta2 = lists:keydelete(no_parens, 1, Meta),
@@ -166,12 +166,12 @@ args_from_arity(_Meta, A, _E) when is_integer(A), A >= 0, A =< 255 ->
 args_from_arity(Meta, A, E) ->
   file_error(Meta, E, ?MODULE, {invalid_arity_for_capture, A}).
 
-is_sequential_and_not_empty([])   -> false;
-is_sequential_and_not_empty(List) -> is_sequential(List, 1).
+check_sequential_and_not_empty([])   -> non_sequential;
+check_sequential_and_not_empty(List) -> check_sequential(List, 1).
 
-is_sequential([{'&', _, [Int]} | T], Int) -> is_sequential(T, Int + 1);
-is_sequential([], _Int) -> true;
-is_sequential(_, _Int) -> false.
+check_sequential([{'&', _, [Int]} | T], Int) -> check_sequential(T, Int + 1);
+check_sequential([], _Int) -> sequential;
+check_sequential(_, _Int) -> non_sequential.
 
 handle_capture_possible_warning(Meta, DotMeta, Mod, Fun, Arity, E) ->
   case (Arity =:= 0) andalso (lists:keyfind(no_parens, 1, DotMeta) /= {no_parens, true}) of
