@@ -130,11 +130,11 @@ defmodule Supervisor do
       to start the child process. This key is required.
 
     * `:restart` - an atom that defines when a terminated child process
-       should be restarted (see the "Restart values" section below).
+       should be restarted (see the ["Restart values"](#module-restart-values-restart) section below).
        This key is optional and defaults to `:permanent`.
 
     * `:shutdown` - an integer or atom that defines how a child process should
-      be terminated (see the "Shutdown values" section below). This key
+      be terminated (see the ["Shutdown values"](#module-shutdown-values-shutdown) section below). This key
       is optional and defaults to `5_000` if the type is `:worker` or
       `:infinity` if the type is `:supervisor`.
 

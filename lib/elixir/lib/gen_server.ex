@@ -203,14 +203,16 @@ defmodule GenServer do
   The generated `child_spec/1` can be customized with the following options:
 
     * `:id` - the child specification identifier, defaults to the current module
-    * `:restart` - when the child should be restarted, defaults to `:permanent`
-    * `:shutdown` - how to shut down the child, either immediately or by giving it time to shut down
+    * [`:restart`](`m:Supervisor#module-restart-values-restart`) - when the
+      child should be restarted, defaults to `:permanent`
+    * [`:shutdown`](`m:Supervisor#module-shutdown-values-shutdown`) - how to
+      shut down the child, either immediately or by giving it time to shut down
 
   For example:
 
       use GenServer, restart: :transient, shutdown: 10_000
 
-  See the "Child specification" section in the `Supervisor` module for more
+  See the ["Child specification"](`m:Supervisor#module-child_spec-1-function`) section in the `Supervisor` module for more
   detailed information. The `@doc` annotation immediately preceding
   `use GenServer` will be attached to the generated `child_spec/1` function.
 
