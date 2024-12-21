@@ -195,6 +195,31 @@ defmodule Module.Types.IntegrationTest do
 
       assert_warnings(files, warnings)
     end
+
+    test "unused generated overridable private clauses" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          use B
+          def public(x), do: private(x)
+          defp private(x), do: super(List.to_tuple(x))
+        end
+        """,
+        "b.ex" => """
+        defmodule B do
+          defmacro __using__(_) do
+            quote generated: true do
+              defp private({:ok, ok}), do: ok
+              defp private(:error), do: :error
+              defoverridable private: 1
+            end
+          end
+        end
+        """
+      }
+
+      assert_no_warnings(files)
+    end
   end
 
   describe "undefined warnings" do
