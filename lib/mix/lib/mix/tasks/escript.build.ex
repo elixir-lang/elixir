@@ -342,7 +342,7 @@ defmodule Mix.Tasks.Escript.Build do
         {zip_path, consolidated[Path.basename(path)] || path}
       end
     else
-      []
+      files
     end
   end
 
