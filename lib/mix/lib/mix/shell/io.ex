@@ -100,12 +100,12 @@ defmodule Mix.Shell.IO do
   """
   def cmd(command, opts \\ []) do
     print_app? = Keyword.get(opts, :print_app, true)
+    windows? = match?({:win32, _}, :os.type())
 
     Mix.Shell.cmd(command, opts, fn data ->
       if print_app?, do: print_app()
-      # Due to encoding of shell command on Windows,
-      # let's write the data as is
-      IO.binwrite(data)
+      # Due to encoding of shell command on Windows, write the data as is.
+      if windows?, do: IO.binwrite(data), else: IO.write(data)
     end)
   end
 end
