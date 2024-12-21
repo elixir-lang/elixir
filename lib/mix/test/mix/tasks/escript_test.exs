@@ -50,6 +50,20 @@ defmodule Mix.Tasks.EscriptTest do
     end)
   end
 
+  test "generate escript without protocol consolidation" do
+    in_fixture("escript_test", fn ->
+      push_project_with_config(Escript, consolidate_protocols: false)
+
+      Mix.Tasks.Escript.Build.run([])
+      assert_received {:mix_shell, :info, ["Generated escript escript_test with MIX_ENV=dev"]}
+      assert System.cmd("escript", ["escript_test"]) == {"TEST\n", 0}
+      assert count_abstract_code("escript_test") == 0
+
+      # Does not consolidate protocols
+      assert System.cmd("escript", ["escript_test", "--protocol", "Enumerable"]) == {"false\n", 0}
+    end)
+  end
+
   test "generate escript with --no-compile option" do
     in_fixture("escript_test", fn ->
       push_project_with_config(Escript)
