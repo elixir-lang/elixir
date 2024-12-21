@@ -2194,6 +2194,29 @@ defmodule Kernel.WarningTest do
     )
   end
 
+  test "deprecate &module.fun/arity captures with complex expressions as modules" do
+    assert_warn_eval(
+      [
+        "nofile:2:",
+        """
+        using complex expressions for modules in &module.function/arity capture syntax has been deprecated:
+          &hd(modules).module_info/0
+
+        You can either:
+          * use the fn syntax
+          * assign the module to a variable if it can be evaluated outside of the capture
+        """
+      ],
+      """
+      defmodule Sample do
+        def foo(modules), do: &hd(modules).module_info/0
+      end
+      """
+    )
+  after
+    purge(Sample)
+  end
+
   defp assert_compile_error(messages, string) do
     captured =
       capture_err(fn ->
