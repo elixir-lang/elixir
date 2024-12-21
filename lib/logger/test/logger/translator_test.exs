@@ -161,7 +161,10 @@ defmodule Logger.TranslatorTest do
       :ignore
     end
 
+    {:ok, %{filters: [{key, filter} | _]}} = :logger.get_handler_config(:default)
+    :logger.remove_handler_filter(:default, key)
     :logger.add_handler_filter(:default, :forwarder, {fun, self()})
+    :logger.add_handler_filter(:default, key, filter)
     on_exit(fn -> :logger.remove_handler_filter(:default, :forwarder) end)
   end
 
