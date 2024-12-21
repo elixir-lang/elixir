@@ -85,15 +85,11 @@ capture_require({{'.', DotMeta, [Left, Right]}, RequireMeta, Args}, S, E, ArgsTy
       {ELeft, SE, EE} = elixir_expand:expand(EscLeft, S, E),
 
       case ELeft of
-        _ when ArgsType /= arity ->
-          ok;
-        Atom when is_atom(Atom) ->
-          ok;
-        {Var, _, Ctx} when is_atom(Var), is_atom(Ctx) ->
-          ok;
-        _ ->
-          elixir_errors:file_warn(RequireMeta, E, ?MODULE,
-            {complex_module_capture, Left, Right, length(Args)})
+        _ when ArgsType /= arity -> ok;
+        Atom when is_atom(Atom) -> ok;
+        {Var, _, Ctx} when is_atom(Var), is_atom(Ctx) -> ok;
+        %% TODO: Raise on Elixir v2.0
+        _ -> elixir_errors:file_warn(RequireMeta, E, ?MODULE, {complex_module_capture, Left})
       end,
 
       Res = ArgsType /= non_sequential andalso case ELeft of
@@ -124,7 +120,7 @@ capture_expr(Meta, Expr, S, E, Escaped, ArgsType) ->
   case escape(Expr, E, Escaped) of
     {_, []} when ArgsType == non_sequential ->
       invalid_capture(Meta, Expr, E);
-    % TODO remove this clause once we raise on complex module captures like &get_mod().fun/0
+    %% TODO: Remove this clause once we raise on complex module captures like &get_mod().fun/0
     {{{'.', _, [_, _]} = Dot, _, Args}, []} ->
       Meta2 = lists:keydelete(no_parens, 1, Meta),
       Fn = {fn, Meta2, [{'->', Meta2, [[], {Dot, Meta2, Args}]}]},
@@ -199,13 +195,10 @@ format_error({parens_remote_capture, Mod, Fun}) ->
   io_lib:format("extra parentheses on a remote function capture &~ts.~ts()/0 have been "
                  "deprecated. Please remove the parentheses: &~ts.~ts/0",
                  ['Elixir.Macro':to_string(Mod), Fun, 'Elixir.Macro':to_string(Mod), Fun]);
-format_error({complex_module_capture, Mod, Fun, Arity}) ->
-  io_lib:format("using complex expressions for modules in &module.function/arity capture syntax has been deprecated:\n"
-                "  &~ts.~ts/~B\n\n"
-                "You can either:\n"
-                "  * use the fn syntax\n"
-                "  * assign the module to a variable if it can be evaluated outside of the capture",
-                 ['Elixir.Macro':to_string(Mod), Fun, Arity]);
+format_error({complex_module_capture, Mod}) ->
+  io_lib:format("expected the module in &module.fun/arity to expand to a variable or an atom, got: ~ts\n"
+                "You can either compute the module name outside of & or convert it to a regular anonymous function.",
+                 ['Elixir.Macro':to_string(Mod)]);
 format_error(clauses_with_different_arities) ->
   "cannot mix clauses with different arities in anonymous functions";
 format_error(defaults_in_args) ->

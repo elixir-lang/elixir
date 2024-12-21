@@ -2199,12 +2199,8 @@ defmodule Kernel.WarningTest do
       [
         "nofile:2:",
         """
-        using complex expressions for modules in &module.function/arity capture syntax has been deprecated:
-          &hd(modules).module_info/0
-
-        You can either:
-          * use the fn syntax
-          * assign the module to a variable if it can be evaluated outside of the capture
+        expected the module in &module.fun/arity to expand to a variable or an atom, got: hd(modules)
+        You can either compute the module name outside of & or convert it to a regular anonymous function.
         """
       ],
       """
