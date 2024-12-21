@@ -77,8 +77,63 @@ jobs:
           otp: ${{ matrix.otp }}
           build_docs: ${{ matrix.build_docs }}
 
+      - name: "Attest docs provenance"
+        uses: actions/attest-build-provenance@v2
+        id: attest-docs-provenance
+        if: ${{ matrix.build_docs }}
+        with:
+          subject-path: "Docs.zip"
+      - name: "Copy docs provenance"
+        if: ${{ matrix.build_docs }}
+        run: cp "$ATTESTATION" Docs.zip.sigstore
+        env:
+          ATTESTATION: "${{ steps.attest-docs-provenance.outputs.bundle-path }}"
+
+      - name: Create Docs Hashes
+        if: ${{ matrix.build_docs }}
+        run: |
+          shasum -a 1   Docs.zip > Docs.zip.sha1sum
+          shasum -a 256 Docs.zip > Docs.zip.sha256sum
+
+      - name: "Upload linux release artifacts"
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-linux-elixir-otp-${{ matrix.otp }}
+          path: elixir-otp-${{ matrix.otp }}.zip
+
+      - name: "Upload windows release artifacts"
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-windows-elixir-otp-${{ matrix.otp }}
+          path: elixir-otp-${{ matrix.otp }}.exe
+
+      - name: "Upload doc artifacts"
+        uses: actions/upload-artifact@v4
+        if: ${{ matrix.build_docs }}
+        with:
+          name: Docs
+          path: Docs.zip*
+  
+  sign:
+    needs: [build]
+    strategy:
+      fail-fast: true
+      matrix:
+        otp: [26, 27]
+        flavor: [windows, linux]
+
+    env:
+      RELEASE_FILE: elixir-otp-${{ matrix.otp }}.${{ matrix.flavor == 'linux' && 'zip' || 'exe' }}
+
+    runs-on: ${{ matrix.flavor == 'linux' && 'ubuntu-22.04' || 'windows-2022' }}
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-${{ matrix.flavor }}-elixir-otp-${{ matrix.otp }}
+
       - name: "Sign files with Trusted Signing"
-        if: github.repository == 'elixir-lang/elixir'
+        if: github.repository == 'elixir-lang/elixir' && matrix.flavor == 'windows'
         uses: azure/trusted-signing-action@v0.5.0
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -93,74 +148,49 @@ jobs:
           timestamp-rfc3161: http://timestamp.acs.microsoft.com
           timestamp-digest: SHA256
 
-      - name: "Attest release .exe provenance"
+      - name: "Attest release provenance"
         uses: actions/attest-build-provenance@v2
-        id: attest-exe-provenance
+        id: attest-provenance
         with:
-          subject-path: "elixir-otp-${{ matrix.otp }}.exe"
-      - name: "Copy release .exe provenance"
-        run: cp "$ATTESTATION" elixir-otp-${{ matrix.otp }}.exe.sigstore
-        env:
-          ATTESTATION: "${{ steps.attest-exe-provenance.outputs.bundle-path }}"
-
-      - name: "Attest release .zip provenance"
-        uses: actions/attest-build-provenance@v2
-        id: attest-zip-provenance
-        with:
-          subject-path: "elixir-otp-${{ matrix.otp }}.zip"
+          subject-path: ${{ env.RELEASE_FILE }}
       - name: "Copy release .zip provenance"
-        run: cp "$ATTESTATION" elixir-otp-${{ matrix.otp }}.zip.sigstore
+        shell: bash
+        run: cp "$ATTESTATION" "${RELEASE_FILE}.sigstore"
         env:
-          ATTESTATION: "${{ steps.attest-zip-provenance.outputs.bundle-path }}"
-
-      - name: "Attest docs provenance"
-        uses: actions/attest-build-provenance@v2
-        id: attest-docs-provenance
-        if: ${{ matrix.build_docs }}
-        with:
-          subject-path: "Docs.zip"
-      - name: "Copy docs provenance"
-        if: ${{ matrix.build_docs }}
-        run: cp "$ATTESTATION" Docs.zip.sigstore
-        env:
-          ATTESTATION: "${{ steps.attest-docs-provenance.outputs.bundle-path }}"
+          ATTESTATION: "${{ steps.attest-provenance.outputs.bundle-path }}"
+      
+      - name: Create Release Hashes
+        if: matrix.flavor == 'windows'
+        shell: pwsh
+        run: |
+          $sha1 = Get-FileHash "$env:RELEASE_FILE" -Algorithm SHA1
+          $sha1.Hash.ToLower() + "  " + $env:RELEASE_FILE | Out-File "$env:RELEASE_FILE.sha1sum"
+          
+          $sha256 = Get-FileHash "$env:RELEASE_FILE" -Algorithm SHA256
+          $sha256.Hash.ToLower() + "  " + $env:RELEASE_FILE | Out-File "$env:RELEASE_FILE.sha256sum"
 
       - name: Create Release Hashes
+        if: matrix.flavor == 'linux'
+        shell: bash
         run: |
-          shasum -a 1   elixir-otp-${{ matrix.otp }}.zip > elixir-otp-${{ matrix.otp }}.zip.sha1sum
-          shasum -a 256 elixir-otp-${{ matrix.otp }}.zip > elixir-otp-${{ matrix.otp }}.zip.sha256sum
-          shasum -a 1   elixir-otp-${{ matrix.otp }}.exe > elixir-otp-${{ matrix.otp }}.exe.sha1sum
-          shasum -a 256 elixir-otp-${{ matrix.otp }}.exe > elixir-otp-${{ matrix.otp }}.exe.sha256sum
-      - name: Create Docs Hashes
-        if: ${{ matrix.build_docs }}
-        run: |
-          shasum -a 1   Docs.zip > Docs.zip.sha1sum
-          shasum -a 256 Docs.zip > Docs.zip.sha256sum
+          shasum -a 1   "$RELEASE_FILE" > "${RELEASE_FILE}.sha1sum"
+          shasum -a 256 "$RELEASE_FILE" > "${RELEASE_FILE}.sha256sum"
 
-      - name: "Upload release artifacts"
+      - name: "Upload linux release artifacts"
         uses: actions/upload-artifact@v4
         with:
-          name: elixir-otp-${{ matrix.otp }}
-          path: elixir-otp-${{ matrix.otp }}*
-
-      - name: "Upload doc artifacts"
-        uses: actions/upload-artifact@v4
-        if: ${{ matrix.build_docs }}
-        with:
-          name: Docs
-          path: Docs.zip*
+          name: sign-${{ matrix.flavor }}-elixir-otp-${{ matrix.otp }}
+          path: ${{ env.RELEASE_FILE }}*
 
   upload-release:
-    needs: [build, create_draft_release]
-    runs-on: windows-2022
+    needs: [create_draft_release, build, sign]
+    runs-on: ubuntu-22.04
 
     steps:
       - uses: actions/download-artifact@v4
-
-      - run: |
-          mv elixir-otp-*/* .
-          mv Docs/* .
-        shell: bash
+        with:
+          pattern: '{sign-*-elixir-otp-*,Docs}'
+          merge-multiple: true
 
       - name: Upload Pre-built
         shell: bash
@@ -188,7 +218,7 @@ jobs:
             Docs.zip.sigstore
 
   upload-builds-hex-pm:
-    needs: build
+    needs: [build, sign]
     runs-on: ubuntu-22.04
     concurrency: builds-hex-pm
     env:
@@ -202,6 +232,9 @@ jobs:
       OTP_GENERIC_VERSION: "25"
     steps:
       - uses: actions/download-artifact@v4
+        with:
+          pattern: '{sign-*-elixir-otp-*,Docs}'
+          merge-multiple: true
 
       - name: Init purge keys file
         run: |
@@ -211,7 +244,6 @@ jobs:
         run: |
           ref_name=${{ github.ref_name }}
 
-          mv elixir-otp-*/* .
           for zip in $(find . -type f -name 'elixir-otp-*.zip' | sed 's/^\.\///'); do
             dest=${zip/elixir/${ref_name}}
             surrogate_key=${dest/.zip$/}
