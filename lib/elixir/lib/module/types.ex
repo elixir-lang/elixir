@@ -182,9 +182,12 @@ defmodule Module.Types do
   end
 
   defp warn_unused_clauses(defs, stack, context) do
-    for {fun_arity, pending} <- context.local_used, pending != [], reduce: context do
+    for {fun_arity, pending} <- context.local_used,
+        pending != [],
+        {_fun_arity, kind, meta, clauses} = List.keyfind(defs, fun_arity, 0),
+        not Keyword.get(meta, :from_super, false),
+        reduce: context do
       context ->
-        {_fun_arity, kind, _meta, clauses} = List.keyfind(defs, fun_arity, 0)
         {_kind, _inferred, mapping} = Map.fetch!(context.local_sigs, fun_arity)
 
         clauses_indexes =

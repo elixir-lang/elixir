@@ -75,8 +75,9 @@ store_not_overridden(Module) ->
 %% Private
 
 store(Set, Module, Tuple, {_, Count, Def, Overridden}, Hidden) ->
-  {{{def, {Name, Arity}}, Kind, Meta, File, _Check,
+  {{{def, {Name, Arity}}, Kind, BaseMeta, File, _Check,
    {Defaults, _HasBody, _LastDefaults}}, Clauses} = Def,
+  Meta = [{from_super, Hidden} | BaseMeta],
 
   {FinalKind, FinalName, FinalArity, FinalClauses} =
     case Hidden of
