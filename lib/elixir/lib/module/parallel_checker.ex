@@ -239,7 +239,7 @@ defmodule Module.ParallelChecker do
       |> Module.Types.warnings(file, definitions, no_warn_undefined, cache)
       |> Kernel.++(behaviour_warnings)
       |> group_warnings()
-      |> emit_warnings(log?)
+      |> emit_warnings(file, log?)
 
     Enum.each(after_verify, fn {verify_mod, verify_fun} ->
       apply(verify_mod, verify_fun, [module])
@@ -320,9 +320,9 @@ defmodule Module.ParallelChecker do
     Enum.sort(ungrouped ++ grouped)
   end
 
-  defp emit_warnings(warnings, log?) do
+  defp emit_warnings(warnings, file, log?) do
     Enum.flat_map(warnings, fn {locations, diagnostic} ->
-      diagnostics = Enum.map(locations, &to_diagnostic(diagnostic, &1))
+      diagnostics = Enum.map(locations, &to_diagnostic(diagnostic, file, &1))
       log? and print_diagnostics(diagnostics)
       diagnostics
     end)
@@ -336,10 +336,12 @@ defmodule Module.ParallelChecker do
     :elixir_errors.print_diagnostics(diagnostics)
   end
 
-  defp to_diagnostic(diagnostic, {file, position, mfa}) when is_list(position) do
+  defp to_diagnostic(diagnostic, source, {file, position, mfa}) when is_list(position) do
+    file = Path.absname(file)
+
     %{
       severity: :warning,
-      source: file,
+      source: source,
       file: file,
       position: position_to_tuple(position),
       stacktrace: [to_stacktrace(file, position, mfa)],

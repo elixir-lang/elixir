@@ -36,7 +36,7 @@ defmodule Module.Types.IntegrationTest do
         """
       }
 
-      modules = compile(files)
+      modules = compile_modules(files)
 
       assert [
                {{:c, 0}, %{}},
@@ -242,6 +242,37 @@ defmodule Module.Types.IntegrationTest do
       }
 
       assert_no_warnings(files)
+    end
+
+    test "returns diagnostics with source and file" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          @file "generated.ex"
+          def fun(arg) do
+            :ok = List.to_tuple(arg)
+          end
+        end
+        """
+      }
+
+      {_modules, warnings} = with_compile_warnings(files)
+
+      assert [
+               %{
+                 message: "the following pattern will never match" <> _,
+                 file: file,
+                 source: source
+               }
+             ] = warnings.runtime_warnings
+
+      assert String.ends_with?(source, "a.ex")
+      assert Path.type(source) == :absolute
+      assert String.ends_with?(file, "generated.ex")
+      assert Path.type(file) == :absolute
+    after
+      :code.delete(A)
+      :code.purge(A)
     end
   end
 
@@ -980,27 +1011,39 @@ defmodule Module.Types.IntegrationTest do
   defp capture_compile_warnings(files) do
     in_tmp(fn ->
       paths = generate_files(files)
-      capture_io(:stderr, fn -> compile_files(paths) end)
+      capture_io(:stderr, fn -> compile_to_path(paths) end)
     end)
   end
 
-  defp compile(files) do
+  defp with_compile_warnings(files) do
     in_tmp(fn ->
       paths = generate_files(files)
-      compile_files(paths)
+      with_io(:stderr, fn -> compile_to_path(paths) end) |> elem(0)
     end)
   end
 
-  defp compile_files(paths) do
-    {:ok, modules, _warnings} =
+  defp compile_modules(files) do
+    in_tmp(fn ->
+      paths = generate_files(files)
+      {modules, _warnings} = compile_to_path(paths)
+
+      Map.new(modules, fn module ->
+        {^module, binary, _filename} = :code.get_object_code(module)
+        {module, binary}
+      end)
+    end)
+  end
+
+  defp compile_to_path(paths) do
+    {:ok, modules, warnings} =
       Kernel.ParallelCompiler.compile_to_path(paths, ".", return_diagnostics: true)
 
-    Map.new(modules, fn module ->
-      {^module, binary, _filename} = :code.get_object_code(module)
+    for module <- modules do
       :code.delete(module)
       :code.purge(module)
-      {module, binary}
-    end)
+    end
+
+    {modules, warnings}
   end
 
   defp generate_files(files) do

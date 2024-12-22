@@ -92,7 +92,10 @@ emit_diagnostic(Severity, Position, File, Message, Stacktrace, Options) ->
 
   Diagnostic = #{
     severity => Severity,
-    source => File,
+    source => case get(elixir_compiler_file) of
+      undefined -> File;
+      CompilerFile -> CompilerFile
+    end,
     file => File,
     position => Position,
     message => unicode:characters_to_binary(Message),
