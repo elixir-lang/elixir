@@ -515,6 +515,31 @@ defmodule Kernel.ParallelCompilerTest do
       end)
     end
 
+    test "gets both source and file on @file annotations" do
+      File.mkdir_p!(tmp_path())
+
+      [a] =
+        write_tmp(
+          "file_source",
+          a: """
+          defmodule FileAttr do
+            @file "unknown.foo.bar"
+            def fun, do: (unused = :ok)
+          end
+          """
+        )
+
+      capture_io(:stderr, fn ->
+        assert {:ok, [FileAttr], %{compile_warnings: [%{source: ^a, file: file, message: _}]}} =
+                 compile([a])
+
+        assert String.ends_with?(file, "unknown.foo.bar")
+        assert Path.type(file) == :absolute
+      end)
+    after
+      purge([FileAttr])
+    end
+
     test "gets correct line number for UndefinedFunctionError" do
       File.mkdir_p!(tmp_path())
 
