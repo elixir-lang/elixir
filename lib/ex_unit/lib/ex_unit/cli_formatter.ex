@@ -352,7 +352,7 @@ defmodule ExUnit.CLIFormatter do
       )
       |> if_true(
         config.excluded_counter > 0,
-        &(&1 <> ", #{config.excluded_counter} excluded")
+        &(&1 <> " (#{config.excluded_counter} excluded)")
       )
 
     cond do
