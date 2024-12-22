@@ -269,7 +269,7 @@ defmodule Module.Types.Apply do
 
     case signature(name, arity) do
       :none -> {dynamic(), context}
-      info -> apply_remote(info, args_types, expr, stack, context)
+      info -> apply_remote(nil, name, info, args_types, expr, stack, context)
     end
   end
 
@@ -287,10 +287,14 @@ defmodule Module.Types.Apply do
         {value_type, context}
 
       :badtuple ->
-        {error_type(), badremote_error(expr, [integer(), tuple], stack, context)}
+        {error_type(),
+         badremote_error(:erlang, :element, expr, [integer(), tuple], stack, context)}
 
-      reason ->
-        {error_type(), error({reason, expr, tuple, index - 1, context}, meta, stack, context)}
+      :badindex ->
+        mfac = mfac(expr, :erlang, :element, 2)
+
+        {error_type(),
+         error({:badindex, mfac, expr, tuple, index - 1, context}, meta, stack, context)}
     end
   end
 
@@ -308,10 +312,16 @@ defmodule Module.Types.Apply do
         {value_type, context}
 
       :badtuple ->
-        {error_type(), badremote_error(expr, [integer(), tuple, value], stack, context)}
+        args_types = [integer(), tuple, value]
 
-      reason ->
-        {error_type(), error({reason, expr, tuple, index - 2, context}, meta, stack, context)}
+        {error_type(),
+         badremote_error(:erlang, :insert_element, expr, args_types, stack, context)}
+
+      :badindex ->
+        mfac = mfac(expr, :erlang, :insert_element, 3)
+
+        {error_type(),
+         error({:badindex, mfac, expr, tuple, index - 2, context}, meta, stack, context)}
     end
   end
 
@@ -322,10 +332,16 @@ defmodule Module.Types.Apply do
         {value_type, context}
 
       :badtuple ->
-        {error_type(), badremote_error(expr, [integer(), tuple], stack, context)}
+        args_types = [integer(), tuple]
 
-      reason ->
-        {error_type(), error({reason, expr, tuple, index - 1, context}, meta, stack, context)}
+        {error_type(),
+         badremote_error(:erlang, :delete_element, expr, args_types, stack, context)}
+
+      :badindex ->
+        mfac = mfac(expr, :erlang, :delete_element, 2)
+
+        {error_type(),
+         error({:badindex, mfac, expr, tuple, index - 1, context}, meta, stack, context)}
     end
   end
 
@@ -340,7 +356,7 @@ defmodule Module.Types.Apply do
         {value_type, context}
 
       :badnonemptylist ->
-        {error_type(), badremote_error(expr, [list], stack, context)}
+        {error_type(), badremote_error(:erlang, :hd, expr, [list], stack, context)}
     end
   end
 
@@ -350,7 +366,7 @@ defmodule Module.Types.Apply do
         {value_type, context}
 
       :badnonemptylist ->
-        {error_type(), badremote_error(expr, [list], stack, context)}
+        {error_type(), badremote_error(:erlang, :tl, expr, [list], stack, context)}
     end
   end
 
@@ -405,28 +421,34 @@ defmodule Module.Types.Apply do
     {return(boolean(), args_types, stack), context}
   end
 
-  def remote(mod, name, args_types, expr, stack, context) do
+  def remote(mod, fun, args_types, expr, stack, context) do
     arity = length(args_types)
 
-    case :elixir_rewrite.inline(mod, name, arity) do
-      {mod, name} ->
-        remote(mod, name, args_types, expr, stack, context)
+    case :elixir_rewrite.inline(mod, fun, arity) do
+      {new_mod, new_fun} ->
+        expr = inline_meta(expr, mod, fun)
+        remote(new_mod, new_fun, args_types, expr, stack, context)
 
       false ->
-        {info, context} = signature(mod, name, arity, elem(expr, 1), stack, context)
-        apply_remote(info, args_types, expr, stack, context)
+        {info, context} = signature(mod, fun, arity, elem(expr, 1), stack, context)
+        apply_remote(mod, fun, info, args_types, expr, stack, context)
     end
   end
 
-  defp apply_remote(info, args_types, expr, stack, context) do
+  defp apply_remote(mod, fun, info, args_types, expr, stack, context) do
     case apply_signature(info, args_types, stack) do
       {:ok, _indexes, type} ->
         {type, context}
 
       {:error, domain, clauses} ->
-        error = {:badremote, expr, args_types, domain, clauses, context}
+        mfac = mfac(expr, mod, fun, length(args_types))
+        error = {:badremote, mfac, expr, args_types, domain, clauses, context}
         {error_type(), error(error, elem(expr, 1), stack, context)}
     end
+  end
+
+  defp inline_meta({node, meta, args}, mod, fun) do
+    {node, [inline: {mod, fun}] ++ meta, args}
   end
 
   @doc """
@@ -718,22 +740,28 @@ defmodule Module.Types.Apply do
     error(__MODULE__, warning, meta, stack, context)
   end
 
-  defp badremote_error({{:., _, [mod, fun]}, meta, _} = expr, args_types, stack, context) do
-    {_type, domain, [{args, _} | _] = clauses} = signature(mod, fun, length(args_types))
-    error({:badremote, expr, args_types, domain || args, clauses, context}, meta, stack, context)
+  defp badremote_error(mod, fun, {_, meta, _} = expr, args_types, stack, context) do
+    arity = length(args_types)
+    mfac = mfac(expr, mod, fun, arity)
+    {_type, domain, [{args, _} | _] = clauses} = signature(mod, fun, arity)
+    domain = domain || args
+    tuple = {:badremote, mfac, expr, args_types, domain, clauses, context}
+    error(tuple, meta, stack, context)
   end
 
-  ## Diagnosstics
+  ## Diagnostics
 
-  def format_diagnostic({:badindex, expr, type, index, context}) do
+  def format_diagnostic({:badindex, mfac, expr, type, index, context}) do
     traces = collect_traces(expr, context)
+    {mod, fun, arity, _converter} = mfac
+    mfa = Exception.format_mfa(mod, fun, arity)
 
     %{
       details: %{typing_traces: traces},
       message:
         IO.iodata_to_binary([
           """
-          expected a tuple with at least #{pluralize(index + 1, "element", "elements")} in #{format_mfa(expr)}:
+          expected a tuple with at least #{pluralize(index + 1, "element", "elements")} in #{mfa}:
 
               #{expr_to_string(expr) |> indent(4)}
 
@@ -778,10 +806,9 @@ defmodule Module.Types.Apply do
     }
   end
 
-  def format_diagnostic({:badremote, expr, args_types, domain, clauses, context}) do
+  def format_diagnostic({:badremote, mfac, expr, args_types, domain, clauses, context}) do
     traces = collect_traces(expr, context)
-    {{:., _, [mod, fun]}, _, args} = expr
-    {mod, fun, args, converter} = :elixir_rewrite.erl_to_ex(mod, fun, args)
+    {mod, fun, arity, converter} = mfac
 
     explanation =
       empty_arg_reason(converter.(args_types)) ||
@@ -790,12 +817,15 @@ defmodule Module.Types.Apply do
         #{clauses_args_to_quoted_string(clauses, converter)}
         """
 
+    mfa_or_fa =
+      if mod, do: Exception.format_mfa(mod, fun, arity), else: "#{fun}/#{arity}"
+
     %{
       details: %{typing_traces: traces},
       message:
         IO.iodata_to_binary([
           """
-          incompatible types given to #{Exception.format_mfa(mod, fun, length(args))}:
+          incompatible types given to #{mfa_or_fa}:
 
               #{expr_to_string(expr) |> indent(4)}
 
@@ -932,9 +962,19 @@ defmodule Module.Types.Apply do
   defp pluralize(1, singular, _), do: "1 #{singular}"
   defp pluralize(i, _, plural), do: "#{i} #{plural}"
 
-  defp format_mfa({{:., _, [mod, fun]}, _, args}) do
-    {mod, fun, args, _} = :elixir_rewrite.erl_to_ex(mod, fun, args)
-    Exception.format_mfa(mod, fun, length(args))
+  defp mfac({_, [inline: {mod, fun}] ++ _, _}, _mod, _fun, arity) do
+    {mod, fun, arity, & &1}
+  end
+
+  defp mfac({{:., _, [mod, fun]}, _, args}, _mod, _fun, _arity)
+       when is_atom(mod) and is_atom(fun) do
+    {mod, fun, args, converter} = :elixir_rewrite.erl_to_ex(mod, fun, args)
+    {mod, fun, length(args), converter}
+  end
+
+  defp mfac(_, mod, fun, arity)
+       when is_atom(mod) and is_atom(fun) and is_integer(arity) do
+    {mod, fun, arity, & &1}
   end
 
   ## Algebra helpers
