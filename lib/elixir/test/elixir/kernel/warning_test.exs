@@ -2194,6 +2194,25 @@ defmodule Kernel.WarningTest do
     )
   end
 
+  test "deprecate &module.fun/arity captures with complex expressions as modules" do
+    assert_warn_eval(
+      [
+        "nofile:2:",
+        """
+        expected the module in &module.fun/arity to expand to a variable or an atom, got: hd(modules)
+        You can either compute the module name outside of & or convert it to a regular anonymous function.
+        """
+      ],
+      """
+      defmodule Sample do
+        def foo(modules), do: &hd(modules).module_info/0
+      end
+      """
+    )
+  after
+    purge(Sample)
+  end
+
   defp assert_compile_error(messages, string) do
     captured =
       capture_err(fn ->
