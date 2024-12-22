@@ -1045,12 +1045,15 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       # Compiles with missing external resources
       file = Path.absname("lib/a.eex")
+      source = Path.absname("lib/a.ex")
 
       assert capture_io(:stderr, fn ->
-               assert {:ok, [%Mix.Task.Compiler.Diagnostic{file: ^file, position: 13}]} =
+               assert {:ok,
+                       [%Mix.Task.Compiler.Diagnostic{source: ^source, file: ^file, position: 13}]} =
                         Mix.Tasks.Compile.Elixir.run([])
 
-               assert {:noop, [%Mix.Task.Compiler.Diagnostic{file: ^file, position: 13}]} =
+               assert {:noop,
+                       [%Mix.Task.Compiler.Diagnostic{source: ^source, file: ^file, position: 13}]} =
                         Mix.Tasks.Compile.Elixir.run(["--all-warnings"])
              end) =~ "oops"
 
