@@ -243,6 +243,35 @@ defmodule Module.Types.ExprTest do
                """
     end
 
+    test "calling a function with invalid arguments on variables" do
+      assert typeerror!(
+               (
+                 x = List
+                 x.to_tuple(123)
+               )
+             )
+             |> strip_ansi() ==
+               ~l"""
+               incompatible types given to List.to_tuple/1:
+
+                   x.to_tuple(123)
+
+               given types:
+
+                   integer()
+
+               but expected one of:
+
+                   list(term())
+
+               where "x" was given the type:
+
+                   # type: List
+                   # from: types_test.ex:LINE-5
+                   x = List
+               """
+    end
+
     test "capture a function with non atoms" do
       assert typeerror!([<<x::integer>>], &x.foo_bar/2) ==
                ~l"""
@@ -1400,6 +1429,16 @@ defmodule Module.Types.ExprTest do
 
       assert typewarn!(:string.__info__(:functions)) ==
                {dynamic(), ":string.__info__/1 is undefined or private"}
+
+      assert typeerror!([x], x.__info__(:whatever)) |> strip_ansi() =~ """
+             incompatible types given to __info__/1:
+
+                 x.__info__(:whatever)
+
+             given types:
+
+                 :whatever
+             """
     end
 
     test "behaviour_info/1" do
