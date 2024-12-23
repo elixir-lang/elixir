@@ -1717,7 +1717,7 @@ defmodule Code do
   def put_compiler_option(:warnings_as_errors, _value) do
     IO.warn(
       ":warnings_as_errors is deprecated as part of Code.put_compiler_option/2, " <>
-        "pass it as option to Kernel.ParallelCompiler instead or as a --warnings-as-errors flag. " <>
+        "instead you must pass it as a --warnings-as-errors flag. " <>
         "If you need to set it as a default in a mix task, you can also set it under aliases: " <>
         "[compile: \"compile --warnings-as-errors\"]"
     )

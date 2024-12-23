@@ -257,28 +257,13 @@ defmodule Kernel.ParallelCompiler do
 
     {status, modules_or_errors, info} =
       try do
-        outcome = spawn_workers(schedulers, cache, files, output, options)
-        {outcome, Keyword.get(options, :warnings_as_errors, false)}
+        spawn_workers(schedulers, cache, files, output, options)
       else
-        {{:ok, _, %{runtime_warnings: r_warnings, compile_warnings: c_warnings} = info}, true}
-        when r_warnings != [] or c_warnings != [] ->
-          message =
-            "Compilation failed due to warnings while using the --warnings-as-errors option"
-
-          IO.puts(:stderr, message)
-          errors = Enum.map(r_warnings ++ c_warnings, &Map.replace!(&1, :severity, :error))
-          {:error, errors, %{info | runtime_warnings: [], compile_warnings: []}}
-
-        {{:ok, outcome, info}, _} ->
+        {:ok, outcome, info} ->
           beam_timestamp = Keyword.get(options, :beam_timestamp)
           {:ok, write_module_binaries(outcome, output, beam_timestamp), info}
 
-        {{:error, errors, info}, true} ->
-          %{runtime_warnings: r_warnings, compile_warnings: c_warnings} = info
-          info = %{info | runtime_warnings: [], compile_warnings: []}
-          {:error, c_warnings ++ r_warnings ++ errors, info}
-
-        {{:error, errors, info}, _} ->
+        {:error, errors, info} ->
           {:error, errors, info}
       after
         Module.ParallelChecker.stop(cache)

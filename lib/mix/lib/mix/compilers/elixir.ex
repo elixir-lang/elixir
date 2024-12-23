@@ -208,14 +208,18 @@ defmodule Mix.Compilers.Elixir do
           end
 
           Mix.Task.Compiler.notify_modules_compiled(lazy_modules_diff)
-
-          unless_previous_warnings_as_errors(previous_warnings, opts, {:ok, all_warnings})
+          unless_warnings_as_errors(opts, {:ok, all_warnings})
 
         {:error, errors, %{runtime_warnings: r_warnings, compile_warnings: c_warnings}, state} ->
+          {errors, warnings} =
+            if opts[:warnings_as_errors],
+              do: {errors ++ r_warnings ++ c_warnings, []},
+              else: {errors, r_warnings ++ c_warnings}
+
           # In case of errors, we show all previous warnings and all new ones.
           {_, _, sources, _, _, _} = state
           errors = Enum.map(errors, &diagnostic/1)
-          warnings = Enum.map(r_warnings ++ c_warnings, &diagnostic/1)
+          warnings = Enum.map(warnings, &diagnostic/1)
           all_warnings = Keyword.get(opts, :all_warnings, errors == [])
           {:error, previous_warnings(sources, all_warnings) ++ warnings ++ errors}
       after
@@ -254,8 +258,7 @@ defmodule Mix.Compilers.Elixir do
 
       all_warnings = Keyword.get(opts, :all_warnings, true)
       previous_warnings = previous_warnings(sources, all_warnings)
-
-      unless_previous_warnings_as_errors(previous_warnings, opts, {status, previous_warnings})
+      unless_warnings_as_errors(opts, {status, previous_warnings})
     end
   end
 
@@ -1012,8 +1015,8 @@ defmodule Mix.Compilers.Elixir do
     File.rm(manifest <> ".checkpoint")
   end
 
-  defp unless_previous_warnings_as_errors(previous_warnings, opts, {status, all_warnings}) do
-    if previous_warnings != [] and opts[:warnings_as_errors] do
+  defp unless_warnings_as_errors(opts, {status, all_warnings}) do
+    if all_warnings != [] and opts[:warnings_as_errors] do
       message = "Compilation failed due to warnings while using the --warnings-as-errors option"
       IO.puts(:stderr, message)
       {:error, all_warnings}
@@ -1049,7 +1052,6 @@ defmodule Mix.Compilers.Elixir do
     threshold = opts[:long_compilation_threshold] || 10
     profile = opts[:profile]
     verbose = opts[:verbose] || false
-    warnings_as_errors = opts[:warnings_as_errors] || false
 
     pid =
       spawn_link(fn ->
@@ -1071,8 +1073,7 @@ defmodule Mix.Compilers.Elixir do
           long_compilation_threshold: threshold,
           profile: profile,
           beam_timestamp: timestamp,
-          return_diagnostics: true,
-          warnings_as_errors: warnings_as_errors
+          return_diagnostics: true
         ]
 
         response = Kernel.ParallelCompiler.compile_to_path(stale, dest, compile_opts)
