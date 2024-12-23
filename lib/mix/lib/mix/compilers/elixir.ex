@@ -1026,8 +1026,11 @@ defmodule Mix.Compilers.Elixir do
     pid =
       spawn_link(fn ->
         compile_opts = [
+          after_persistence: fn ->
+            compiler_call(parent, ref, {:after_persistence, opts})
+          end,
           each_cycle: fn ->
-            compiler_call(parent, ref, {:each_cycle, stale_modules, dest, timestamp, opts})
+            compiler_call(parent, ref, {:each_cycle, stale_modules, dest, timestamp})
           end,
           each_file: fn file, lexical ->
             compiler_call(parent, ref, {:each_file, file, lexical, verbose})
@@ -1063,8 +1066,13 @@ defmodule Mix.Compilers.Elixir do
 
   defp compiler_loop(ref, pid, state, cwd) do
     receive do
-      {^ref, {:each_cycle, stale_modules, dest, timestamp, opts}} ->
-        {response, state} = each_cycle(stale_modules, dest, timestamp, state, opts)
+      {^ref, {:after_persistence, opts}} ->
+        {response, state} = after_persistence(state, opts)
+        send(pid, {ref, response})
+        compiler_loop(ref, pid, state, cwd)
+
+      {^ref, {:each_cycle, stale_modules, dest, timestamp}} ->
+        {response, state} = each_cycle(stale_modules, dest, timestamp, state)
         send(pid, {ref, response})
         compiler_loop(ref, pid, state, cwd)
 
@@ -1092,7 +1100,17 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp each_cycle(stale_modules, compile_path, timestamp, state, opts) do
+  defp after_persistence(state, opts) do
+    {modules, exports, sources, changed, pending_modules, stale_exports, consolidation} = state
+
+    state =
+      {modules, exports, sources, changed, pending_modules, stale_exports,
+       maybe_consolidate(consolidation, modules, opts)}
+
+    {:ok, state}
+  end
+
+  defp each_cycle(stale_modules, compile_path, timestamp, state) do
     {modules, _exports, sources, changed, pending_modules, stale_exports, consolidation} = state
 
     {pending_modules, exports, changed} =
@@ -1136,8 +1154,7 @@ defmodule Mix.Compilers.Elixir do
       runtime_paths =
         Enum.map(runtime_modules, &{&1, Path.join(compile_path, Atom.to_string(&1) <> ".beam")})
 
-      protocols_and_impls = maybe_consolidate(consolidation, modules, opts)
-      state = {modules, exports, sources, [], pending_modules, stale_exports, protocols_and_impls}
+      state = {modules, exports, sources, [], pending_modules, stale_exports, consolidation}
       {{:runtime, runtime_paths, []}, state}
     else
       Mix.Utils.compiling_n(length(changed), :ex)
