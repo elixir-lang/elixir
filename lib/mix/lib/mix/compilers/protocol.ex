@@ -6,9 +6,18 @@ defmodule Mix.Compilers.Protocol do
   ## Umbrella handling
 
   def umbrella(args, res) do
+    config = Mix.Project.config()
+    config_mtime = Mix.Project.config_mtime(config)
     {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean, verbose: :boolean])
+
+    opts =
+      if "--no-protocol-consolidation" in args do
+        Keyword.put(opts, :consolidate_protocols, false)
+      else
+        Keyword.take(config, [:consolidate_protocols]) ++ opts
+      end
+
     manifest = manifest()
-    config_mtime = Mix.Project.config_mtime()
     {old_config_mtime, old_protocols_and_impls} = read_manifest(manifest)
 
     case status(config_mtime > old_config_mtime, opts) do

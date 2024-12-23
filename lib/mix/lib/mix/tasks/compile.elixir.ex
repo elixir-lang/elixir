@@ -90,7 +90,6 @@ defmodule Mix.Tasks.Compile.Elixir do
   @switches [
     force: :boolean,
     docs: :boolean,
-    consolidate_protocols: :boolean,
     warnings_as_errors: :boolean,
     ignore_module_conflict: :boolean,
     debug_info: :boolean,
@@ -124,6 +123,13 @@ defmodule Mix.Tasks.Compile.Elixir do
       |> Keyword.merge(opts)
       |> tracers_opts(tracers)
       |> profile_opts()
+
+    opts =
+      if "--no-protocol-consolidation" in args do
+        Keyword.put(opts, :consolidate_protocols, false)
+      else
+        opts
+      end
 
     # Having compilations racing with other is most undesired,
     # so we wrap the compiler in a lock.

@@ -71,7 +71,7 @@ defmodule Mix.Tasks.Compile do
       default case with dependencies)
     * `--no-prune-code-paths` - do not prune code paths before compilation, this keeps
       the entirety of Erlang/OTP available when the project starts
-    * `--no-consolidate-protocols` - skips protocol consolidation
+    * `--no-protocol-consolidation` - skips protocol consolidation
     * `--no-validate-compile-env` - does not validate the application compile environment
     * `--return-errors` - returns error status and diagnostics instead of exiting on error
     * `--warnings-as-errors` - exit with non-zero status if compilation has one or more

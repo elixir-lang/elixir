@@ -63,7 +63,7 @@ defmodule Mix.Tasks.Archive.Build do
     if project && Keyword.get(opts, :compile, true) do
       # We only care about the archive ebin, so we disable protocol
       # consolidation to avoid further changes to the environment.
-      Mix.Task.run(:compile, ["--no-consolidate-protocols" | args])
+      Mix.Task.run(:compile, ["--no-protocol-consolidation" | args])
     end
 
     source =

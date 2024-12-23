@@ -224,10 +224,10 @@ defmodule Mix.Tasks.CompileTest do
     end)
   end
 
-  test "skip protocol consolidation when --no-consolidate-protocols" do
+  test "skip protocol consolidation when --no-protocol-consolidation" do
     in_fixture("no_mixfile", fn ->
       File.rm("_build/dev/lib/sample/.mix/compile.protocols")
-      assert Mix.Task.run("compile", ["--no-consolidate-protocols"]) == {:ok, []}
+      assert Mix.Task.run("compile", ["--no-protocol-consolidation"]) == {:ok, []}
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
       refute File.regular?("_build/dev/lib/sample/consolidated/Elixir.Enumerable.beam")
     end)
@@ -283,7 +283,7 @@ defmodule Mix.Tasks.CompileTest do
     Mix.Project.push(WrongPath)
 
     ExUnit.CaptureIO.capture_io(fn ->
-      assert Mix.Task.run("compile", ["--no-consolidate-protocols"]) == {:noop, []}
+      assert Mix.Task.run("compile", ["--no-protocol-consolidation"]) == {:noop, []}
     end)
   end
 
