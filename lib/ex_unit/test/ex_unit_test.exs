@@ -29,7 +29,7 @@ defmodule ExUnitTest do
     assert capture_io(fn ->
              assert ExUnit.async_run() |> ExUnit.await_run() ==
                       %{failures: 0, skipped: 0, total: 0, excluded: 0}
-           end) =~ "\n0 failures\n"
+           end) =~ "\n0 tests, 0 failures\n"
   end
 
   test "supports rerunning given modules" do
@@ -137,7 +137,7 @@ defmodule ExUnitTest do
     assert result =~ """
            Showing results so far...
 
-           0 failures
+           0 tests, 0 failures
            """
   end
 
@@ -331,19 +331,19 @@ defmodule ExUnitTest do
 
     {result, output} = run_with_filter([exclude: [even: true]], [ParityTest])
     assert result == %{failures: 0, skipped: 0, excluded: 1, total: 4}
-    assert output =~ "\n4 tests, 0 failures, 1 excluded\n"
+    assert output =~ "\n3 tests, 0 failures (1 excluded)\n"
 
     {result, output} = run_with_filter([exclude: :even], [ParityTest])
     assert result == %{failures: 0, skipped: 0, excluded: 3, total: 4}
-    assert output =~ "\n4 tests, 0 failures, 3 excluded\n"
+    assert output =~ "\n1 test, 0 failures (3 excluded)\n"
 
     {result, output} = run_with_filter([exclude: :even, include: [even: true]], [ParityTest])
     assert result == %{failures: 1, skipped: 0, excluded: 2, total: 4}
-    assert output =~ "\n4 tests, 1 failure, 2 excluded\n"
+    assert output =~ "\n2 tests, 1 failure (2 excluded)\n"
 
     {result, output} = run_with_filter([exclude: :test, include: [even: true]], [ParityTest])
     assert result == %{failures: 1, skipped: 0, excluded: 3, total: 4}
-    assert output =~ "\n4 tests, 1 failure, 3 excluded\n"
+    assert output =~ "\n1 test, 1 failure (3 excluded)\n"
   end
 
   test "log capturing" do
@@ -508,8 +508,9 @@ defmodule ExUnitTest do
 
     # Empty because it is already loaded
     {result, output} = run_with_filter([exclude: :module], [])
+
     assert result == %{failures: 0, skipped: 0, excluded: 2, total: 2}
-    assert output =~ "\n2 tests, 0 failures, 2 excluded\n"
+    assert output =~ "\n0 tests, 0 failures (2 excluded)\n"
 
     {result, output} =
       [exclude: :test, include: [module: "ExUnitTest.SecondTestModule"]]
@@ -517,7 +518,7 @@ defmodule ExUnitTest do
 
     assert result == %{failures: 1, skipped: 0, excluded: 1, total: 2}
     assert output =~ "\n  1) test false (ExUnitTest.SecondTestModule)\n"
-    assert output =~ "\n2 tests, 1 failure, 1 excluded\n"
+    assert output =~ "\n1 test, 1 failure (1 excluded)\n"
   end
 
   test "raises on reserved tag :file in module" do
@@ -680,7 +681,7 @@ defmodule ExUnitTest do
       end)
 
     refute output =~ max_failures_reached_msg()
-    assert output =~ "\n6 tests, 0 failures, 1 excluded, 4 invalid, 1 skipped\n"
+    assert output =~ "\n5 tests, 0 failures, 4 invalid, 1 skipped (1 excluded)\n"
   end
 
   test "parameterized tests" do
@@ -787,7 +788,7 @@ defmodule ExUnitTest do
         end)
 
       assert output =~ max_failures_reached_msg()
-      assert output =~ "\n6 tests, 2 failures, 1 excluded, 1 skipped\n"
+      assert output =~ "\n5 tests, 2 failures, 1 skipped (1 excluded)\n"
     end
 
     test ":max_failures is not reached" do
@@ -818,7 +819,7 @@ defmodule ExUnitTest do
         end)
 
       refute output =~ max_failures_reached_msg()
-      assert output =~ "\n8 tests, 2 failures, 2 excluded, 1 skipped\n"
+      assert output =~ "\n6 tests, 2 failures, 1 skipped (2 excluded)\n"
     end
 
     test ":max_failures has been reached" do
@@ -852,7 +853,7 @@ defmodule ExUnitTest do
         end)
 
       assert output =~ max_failures_reached_msg()
-      assert output =~ "\n7 tests, 2 failures, 2 excluded, 2 skipped\n"
+      assert output =~ "\n5 tests, 2 failures, 2 skipped (2 excluded)\n"
     end
 
     # Excluded and skipped tests are detected before setup_all
@@ -886,7 +887,7 @@ defmodule ExUnitTest do
         end)
 
       assert output =~ max_failures_reached_msg()
-      assert output =~ "\n4 tests, 0 failures, 1 excluded, 2 invalid, 1 skipped\n"
+      assert output =~ "\n3 tests, 0 failures, 2 invalid, 1 skipped (1 excluded)\n"
     end
 
     test ":max_failures flushes all async/sync cases" do
@@ -1077,7 +1078,7 @@ defmodule ExUnitTest do
       end)
 
     assert output =~ "All tests have been excluded.\n"
-    assert output =~ "2 tests, 0 failures, 2 excluded\n"
+    assert output =~ "0 tests, 0 failures (2 excluded)\n"
   end
 
   test "tests are run in compile order (FIFO)" do

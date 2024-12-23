@@ -37,7 +37,7 @@ defmodule ExUnit.CLIFormatter do
   def handle_cast({:suite_finished, times_us}, config) do
     test_type_counts = collect_test_type_counts(config)
 
-    if test_type_counts > 0 && config.excluded_counter == test_type_counts do
+    if test_type_counts == 0 and config.excluded_counter > 0 do
       IO.puts(invalid("All tests have been excluded.", config))
     end
 
@@ -256,6 +256,10 @@ defmodule ExUnit.CLIFormatter do
     end
   end
 
+  defp update_test_counter(test_counter, %{state: {:excluded, _reason}}) do
+    test_counter
+  end
+
   defp update_test_counter(test_counter, %{tags: %{test_type: test_type}}) do
     Map.update(test_counter, test_type, 1, &(&1 + 1))
   end
@@ -331,16 +335,13 @@ defmodule ExUnit.CLIFormatter do
   ## Printing
 
   defp print_summary(config, force_failures?) do
-    formatted_test_type_counts = format_test_type_counts(config)
     test_type_counts = collect_test_type_counts(config)
+    test_counter = test_counter_or_default(config, test_type_counts)
+    formatted_test_type_counts = format_test_type_counts(test_counter)
     failure_pl = pluralize(config.failure_counter, "failure", "failures")
 
     message =
       "#{formatted_test_type_counts}#{config.failure_counter} #{failure_pl}"
-      |> if_true(
-        config.excluded_counter > 0,
-        &(&1 <> ", #{config.excluded_counter} excluded")
-      )
       |> if_true(
         config.invalid_counter > 0,
         &(&1 <> ", #{config.invalid_counter} invalid")
@@ -348,6 +349,10 @@ defmodule ExUnit.CLIFormatter do
       |> if_true(
         config.skipped_counter > 0,
         &(&1 <> ", " <> skipped("#{config.skipped_counter} skipped", config))
+      )
+      |> if_true(
+        config.excluded_counter > 0,
+        &(&1 <> " (#{config.excluded_counter} excluded)")
       )
 
     cond do
@@ -384,13 +389,22 @@ defmodule ExUnit.CLIFormatter do
     IO.puts(formatted)
   end
 
-  defp format_test_type_counts(%{test_counter: test_counter} = _config) do
+  defp format_test_type_counts(test_counter) do
     test_counter
     |> Enum.sort()
     |> Enum.map(fn {test_type, count} ->
       type_pluralized = pluralize(count, test_type, ExUnit.plural_rule(test_type |> to_string()))
+
       "#{count} #{type_pluralized}, "
     end)
+  end
+
+  defp test_counter_or_default(_config, 0) do
+    %{test: 0}
+  end
+
+  defp test_counter_or_default(%{test_counter: test_counter} = _config, _test_type_counts) do
+    test_counter
   end
 
   defp collect_test_type_counts(%{test_counter: test_counter} = _config) do
