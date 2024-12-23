@@ -48,6 +48,12 @@ defmodule Mix.Tasks.Deps.Loadpaths do
       Mix.Task.run("archive.check", args)
     end
 
+    config = Mix.Project.config()
+
+    if "--no-elixir-version-check" not in args do
+      check_elixir_version(config)
+    end
+
     all = Mix.Dep.load_and_cache()
 
     all =
@@ -57,14 +63,8 @@ defmodule Mix.Tasks.Deps.Loadpaths do
         all
       end
 
-    config = Mix.Project.config()
-
-    if "--no-elixir-version-check" not in args do
-      check_elixir_version(config)
-    end
-
     if "--no-deps-check" not in args do
-      deps_check(all, "--no-compile" in args)
+      deps_check(config, all, "--no-compile" in args)
     end
 
     Code.prepend_paths(Enum.flat_map(all, &Mix.Dep.load_paths/1), cache: true)
@@ -93,25 +93,38 @@ defmodule Mix.Tasks.Deps.Loadpaths do
     end
   end
 
+  defp deps_check(config, all, no_compile?) do
+    with {:compile, _to_compile} <- deps_check(all, no_compile?) do
+      # We need to compile, we first grab the lock, then, we check
+      # again and compile if still applicable
+      Mix.Project.with_build_lock(config, fn ->
+        all = reload_deps(all)
+
+        with {:compile, to_compile} <- deps_check(all, no_compile?) do
+          Mix.Tasks.Deps.Compile.compile(to_compile)
+
+          to_compile
+          |> reload_deps()
+          |> Enum.filter(&(not Mix.Dep.ok?(&1)))
+          |> show_not_ok!()
+        end
+      end)
+    end
+  end
+
   defp deps_check(all, no_compile?) do
     all = Enum.map(all, &check_lock/1)
-    {not_ok, compile} = partition(all, [], [])
+    {not_ok, to_compile} = partition(all, [], [])
 
     cond do
       not_ok != [] ->
         show_not_ok!(not_ok)
 
-      compile == [] or no_compile? ->
+      to_compile == [] or no_compile? ->
         :ok
 
       true ->
-        Mix.Tasks.Deps.Compile.compile(compile)
-
-        compile
-        |> Enum.map(& &1.app)
-        |> Mix.Dep.filter_by_name(Mix.Dep.load_and_cache())
-        |> Enum.filter(&(not Mix.Dep.ok?(&1)))
-        |> show_not_ok!()
+        {:compile, to_compile}
     end
   end
 
@@ -134,6 +147,12 @@ defmodule Mix.Tasks.Deps.Loadpaths do
 
   defp partition([], not_ok, compile) do
     {Enum.reverse(not_ok), Enum.reverse(compile)}
+  end
+
+  defp reload_deps(deps) do
+    deps
+    |> Enum.map(& &1.app)
+    |> Mix.Dep.filter_by_name(Mix.Dep.load_and_cache())
   end
 
   # Those are compiled by umbrella.
