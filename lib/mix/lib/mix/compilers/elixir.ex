@@ -293,7 +293,7 @@ defmodule Mix.Compilers.Elixir do
     rescue
       _ -> {[], []}
     else
-      {@manifest_vsn, modules, sources, _, _, _, _, _, _} -> {modules, sources}
+      {@manifest_vsn, modules, sources, _, _, _, _, _, _, _} -> {modules, sources}
       _ -> {[], []}
     end
   end
@@ -302,8 +302,8 @@ defmodule Mix.Compilers.Elixir do
   Retrieves all diagnostics from the given manifest.
   """
   def diagnostics(manifest, dest) do
-    {_, all_sources, _, _, _, _, _, _, _} = parse_manifest(manifest, dest)
-    previous_warnings(all_sources, false)
+    {_, sources} = read_manifest(manifest, dest)
+    previous_warnings(sources, false)
   end
 
   defp compiler_info_from_force(manifest, all_paths, all_modules, dest) do
@@ -647,7 +647,10 @@ defmodule Mix.Compilers.Elixir do
         modules = modules |> Map.merge(dep_modules) |> Map.merge(removed)
         exports = Map.merge(exports, removed)
         deps_exports = Map.put(deps_exports, app, new_exports)
-        protocols_and_impls = protocols_and_impls_from_modules(modules, protocols_and_impls)
+
+        protocols_and_impls =
+          protocols_and_impls_from_modules(manifest_modules, protocols_and_impls)
+
         {modules, exports, deps_exports, protocols_and_impls}
     end
   end
@@ -1160,7 +1163,7 @@ defmodule Mix.Compilers.Elixir do
           {Map.replace!(acc_sources, file, source(size: size, digest: digest)), acc_modules}
         end)
 
-      state = {modules, exports, sources, [], pending_modules, removed_modules}
+      state = {modules, exports, sources, [], pending_modules, removed_modules, consolidate}
       {{:compile, changed, []}, state}
     end
   end

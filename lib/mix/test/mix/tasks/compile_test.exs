@@ -29,7 +29,7 @@ defmodule Mix.Tasks.CompileTest do
     msg = "\nEnabled compilers: yecc, leex, erlang, elixir, app, protocols"
     assert_received {:mix_shell, :info, [^msg]}
 
-    assert_received {:mix_shell, :info, ["mix compile.elixir    # " <> _]}
+    assert_received {:mix_shell, :info, ["mix compile.elixir # " <> _]}
   end
 
   @tag project: [compilers: [:elixir, :app, :custom]]

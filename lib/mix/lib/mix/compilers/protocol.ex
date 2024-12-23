@@ -86,21 +86,23 @@ defmodule Mix.Compilers.Protocol do
 
   def compile(force?, old_protocols_and_impls, protocols_and_impls, opts) do
     output = Mix.Project.consolidation_path()
-    File.mkdir_p!(output)
+
+    res =
+      if opts[:force] || force? do
+        clean_consolidated()
+        paths = consolidation_paths()
+
+        paths
+        |> Protocol.extract_protocols()
+        |> consolidate(paths, output, opts)
+      else
+        protocols_and_impls
+        |> diff_manifest(old_protocols_and_impls, output)
+        |> consolidate(consolidation_paths(), output, opts)
+      end
+
     Code.prepend_path(output)
-
-    if opts[:force] || force? do
-      clean_consolidated()
-      paths = consolidation_paths()
-
-      paths
-      |> Protocol.extract_protocols()
-      |> consolidate(paths, output, opts)
-    else
-      protocols_and_impls
-      |> diff_manifest(old_protocols_and_impls, output)
-      |> consolidate(consolidation_paths(), output, opts)
-    end
+    res
   end
 
   defp clean_consolidated do
@@ -115,11 +117,15 @@ defmodule Mix.Compilers.Protocol do
     Enum.filter(paths, &(not :lists.prefix(otp, &1)))
   end
 
-  defp consolidate([], _paths, _output, _opts) do
+  defp consolidate([], _paths, output, _opts) do
+    File.mkdir_p!(output)
+
     :noop
   end
 
   defp consolidate(protocols, paths, output, opts) do
+    File.mkdir_p!(output)
+
     protocols
     |> Enum.uniq()
     |> Enum.map(&Task.async(fn -> consolidate_each(&1, paths, output, opts) end))
