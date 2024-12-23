@@ -163,8 +163,9 @@ defmodule Mix.Tasks.Compile do
           res
       end
 
-    with path = Mix.Project.consolidation_path(config),
-         {:ok, protocols} <- File.ls(path) do
+    path = Mix.Project.consolidation_path(config)
+
+    with {:ok, protocols} <- File.ls(path) do
       # We don't cache consolidation path as we may write to it
       Code.prepend_path(path)
       Enum.each(protocols, &load_protocol/1)

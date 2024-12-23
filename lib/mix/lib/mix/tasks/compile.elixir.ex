@@ -149,8 +149,7 @@ defmodule Mix.Tasks.Compile.Elixir do
 
   @impl true
   def diagnostics do
-    dest = Mix.Project.compile_path()
-    Mix.Compilers.Elixir.diagnostics(manifest(), dest)
+    Mix.Compilers.Elixir.diagnostics(manifest())
   end
 
   @impl true

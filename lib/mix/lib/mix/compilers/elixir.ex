@@ -181,8 +181,6 @@ defmodule Mix.Compilers.Elixir do
       true = Code.prepend_path(dest)
       previous_opts = set_compiler_opts(opts)
 
-      # Group consolidation information to pass to compiler
-
       try do
         consolidation = {consolidation_status, old_protocols_and_impls, protocols_and_impls}
         state = {%{}, exports, sources, [], modules, removed_modules, consolidation}
@@ -301,8 +299,8 @@ defmodule Mix.Compilers.Elixir do
   @doc """
   Retrieves all diagnostics from the given manifest.
   """
-  def diagnostics(manifest, dest) do
-    {_, sources} = read_manifest(manifest, dest)
+  def diagnostics(manifest) do
+    {_, sources} = read_manifest(manifest)
     previous_warnings(sources, false)
   end
 
@@ -1163,14 +1161,14 @@ defmodule Mix.Compilers.Elixir do
           {Map.replace!(acc_sources, file, source(size: size, digest: digest)), acc_modules}
         end)
 
-      state = {modules, exports, sources, [], pending_modules, removed_modules, consolidate}
+      state = {modules, exports, sources, [], pending_modules, removed_modules, consolidation}
       {{:compile, changed, []}, state}
     end
   end
 
   defp each_file(file, references, verbose, state, cwd) do
     {compile_references, export_references, runtime_references, compile_env} = references
-    {modules, exports, sources, changed, pending_modules, stale_exports, consolidate} = state
+    {modules, exports, sources, changed, pending_modules, stale_exports, consolidation} = state
 
     file = Path.relative_to(file, cwd)
 
@@ -1198,11 +1196,11 @@ defmodule Mix.Compilers.Elixir do
       )
 
     sources = Map.replace!(sources, file, source)
-    {modules, exports, sources, changed, pending_modules, stale_exports, consolidate}
+    {modules, exports, sources, changed, pending_modules, stale_exports, consolidation}
   end
 
   defp each_module(file, module, kind, external, new_export, state, timestamp, cwd) do
-    {modules, exports, sources, changed, pending_modules, stale_exports, consolidate} = state
+    {modules, exports, sources, changed, pending_modules, stale_exports, consolidation} = state
 
     file = Path.relative_to(file, cwd)
     external = process_external_resources(external, cwd)
@@ -1255,7 +1253,7 @@ defmodule Mix.Compilers.Elixir do
         %{} -> changed
       end
 
-    {modules, exports, sources, changed, pending_modules, stale_exports, consolidate}
+    {modules, exports, sources, changed, pending_modules, stale_exports, consolidation}
   end
 
   defp detect_kind(module) do
