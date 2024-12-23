@@ -7,7 +7,6 @@ defmodule Mix.Compilers.Protocol do
 
   def umbrella(args, res) do
     config = Mix.Project.config()
-    config_mtime = Mix.Project.config_mtime(config)
     {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean, verbose: :boolean])
 
     opts =
@@ -18,6 +17,7 @@ defmodule Mix.Compilers.Protocol do
       end
 
     manifest = manifest()
+    config_mtime = Mix.Project.config_mtime()
     {old_config_mtime, old_protocols_and_impls} = read_manifest(manifest)
 
     case status(config_mtime > old_config_mtime, opts) do
