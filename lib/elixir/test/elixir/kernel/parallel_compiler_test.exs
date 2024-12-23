@@ -421,40 +421,6 @@ defmodule Kernel.ParallelCompilerTest do
       end)
     end
 
-    test "supports warnings as errors" do
-      [fixture] =
-        write_tmp(
-          "warnings_as_errors",
-          warnings_as_errors: """
-          defmodule WarningsSample do
-            def hello(a), do: a
-            def hello(b), do: b
-          end
-          """
-        )
-
-      output = tmp_path("not_to_be_used")
-
-      try do
-        msg =
-          capture_io(:stderr, fn ->
-            assert {:error, [error], []} =
-                     Kernel.ParallelCompiler.compile_to_path([fixture], output,
-                       warnings_as_errors: true
-                     )
-
-            assert {^fixture, {3, 7}, "this clause " <> _} = error
-          end)
-
-        assert msg =~
-                 "Compilation failed due to warnings while using the --warnings-as-errors option\n"
-      after
-        purge([WarningsSample])
-      end
-
-      refute File.exists?(output)
-    end
-
     test "does not use incorrect line number when error originates in another file" do
       File.mkdir_p!(tmp_path())
 
@@ -586,34 +552,6 @@ defmodule Kernel.ParallelCompilerTest do
                assert compile_msg =~
                         "cannot compile module WithBehaviourAndStruct (errors have been logged)"
              end) =~ expected_msg
-    end
-
-    test "supports warnings as errors" do
-      [fixture] =
-        write_tmp(
-          "warnings_as_errors",
-          warnings_as_errors: """
-          defmodule WarningsSample do
-            def hello(a), do: a
-            def hello(b), do: b
-          end
-          """
-        )
-
-      try do
-        msg =
-          capture_io(:stderr, fn ->
-            assert {:error, [error], []} =
-                     Kernel.ParallelCompiler.require([fixture], warnings_as_errors: true)
-
-            assert {^fixture, {3, 7}, "this clause " <> _} = error
-          end)
-
-        assert msg =~
-                 "Compilation failed due to warnings while using the --warnings-as-errors option\n"
-      after
-        purge([WarningsSample])
-      end
     end
   end
 end
