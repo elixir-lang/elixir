@@ -5,15 +5,18 @@ defmodule Mix.Compilers.Protocol do
 
   ## Umbrella handling
 
+  @switches [force: :boolean, verbose: :boolean, consolidate_protocols: :boolean]
+
   def umbrella(args, res) do
     config = Mix.Project.config()
-    {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean, verbose: :boolean])
+    {opts, _, _} = OptionParser.parse(args, switches: @switches)
 
     opts =
       if "--no-protocol-consolidation" in args do
+        # TODO: Deprecate me on Elixir v1.23
         Keyword.put(opts, :consolidate_protocols, false)
       else
-        Keyword.take(config, [:consolidate_protocols]) ++ opts
+        opts ++ Keyword.take(config, [:consolidate_protocols])
       end
 
     manifest = manifest()

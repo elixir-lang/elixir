@@ -90,6 +90,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   @switches [
     force: :boolean,
     docs: :boolean,
+    consolidate_protocols: :boolean,
     warnings_as_errors: :boolean,
     ignore_module_conflict: :boolean,
     debug_info: :boolean,
@@ -126,6 +127,7 @@ defmodule Mix.Tasks.Compile.Elixir do
 
     opts =
       if "--no-protocol-consolidation" in args do
+        # TODO: Deprecate me on Elixir v1.23
         Keyword.put(opts, :consolidate_protocols, false)
       else
         opts
