@@ -90,6 +90,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   @switches [
     force: :boolean,
     docs: :boolean,
+    consolidate_protocols: :boolean,
     warnings_as_errors: :boolean,
     ignore_module_conflict: :boolean,
     debug_info: :boolean,

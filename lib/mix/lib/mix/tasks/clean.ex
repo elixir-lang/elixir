@@ -39,11 +39,12 @@ defmodule Mix.Tasks.Clean do
     # First, we get the tasks. After that, we clean them.
     # This is to avoid a task cleaning a compiler module.
     tasks =
-      for compiler <- [:protocols] ++ Mix.Task.Compiler.compilers(),
+      for compiler <- Mix.Task.Compiler.compilers(),
           module = Mix.Task.get("compile.#{compiler}"),
           function_exported?(module, :clean, 0),
           do: module
 
+    Mix.Compilers.Protocol.clean()
     Enum.each(tasks, & &1.clean())
 
     build =

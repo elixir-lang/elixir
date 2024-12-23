@@ -704,8 +704,7 @@ defmodule Mix do
     * `:verbose` - if `true`, prints additional debugging information
       (Default: `false`)
 
-    * `:consolidate_protocols` - if `true`, runs protocol
-      consolidation via the `mix compile.protocols` task (Default: `true`)
+    * `:consolidate_protocols` - if `true`, runs protocol consolidation (Default: `true`)
 
     * `:elixir` - if set, ensures the current Elixir version matches the given
       version requirement (Default: `nil`)

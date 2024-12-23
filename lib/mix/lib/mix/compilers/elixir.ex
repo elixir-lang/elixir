@@ -1,7 +1,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 26
+  @manifest_vsn 27
   @checkpoint_vsn 2
 
   import Record
@@ -46,9 +46,8 @@ defmodule Mix.Compilers.Elixir do
     all_paths = Mix.Utils.extract_files(srcs, [:ex])
 
     {all_modules, all_sources, all_local_exports, old_parents, old_cache_key, old_deps_config,
-     old_project_mtime,
-     old_config_mtime} =
-      parse_manifest(manifest, dest)
+     old_project_mtime, old_config_mtime,
+     old_protocols_and_impls} = parse_manifest(manifest, dest)
 
     # Prepend ourselves early because of __mix_recompile__? checks
     # and also that, in case of nothing compiled, we already need
@@ -129,7 +128,7 @@ defmodule Mix.Compilers.Elixir do
           {false, stale, old_deps_config}
       end
 
-    {stale_modules, stale_exports, all_local_exports} =
+    {stale_modules, stale_exports, all_local_exports, protocols_and_impls} =
       stale_local_deps(local_deps, manifest, stale, modified, all_local_exports)
 
     prev_paths = Map.keys(all_sources)
@@ -157,26 +156,41 @@ defmodule Mix.Compilers.Elixir do
     {sources, removed_modules} =
       update_stale_sources(sources, stale, removed_modules, sources_stats)
 
-    if stale != [] or stale_modules != %{} do
+    consolidation_status =
+      if Mix.Project.umbrella?() do
+        :off
+      else
+        Mix.Compilers.Protocol.status(config_mtime > old_config_mtime, opts)
+      end
+
+    if stale != [] or stale_modules != %{} or removed != [] or deps_changed? or
+         consolidation_status == :force do
       path = opts[:purge_consolidation_path_if_stale]
 
       if is_binary(path) and Code.delete_path(path) do
         purge_modules_in_path(path)
       end
 
-      Mix.Utils.compiling_n(length(stale), :ex)
+      if stale != [] do
+        Mix.Utils.compiling_n(length(stale), :ex)
+      end
+
       Mix.Project.ensure_structure()
 
       # We don't want to cache this path as we will write to it
       true = Code.prepend_path(dest)
       previous_opts = set_compiler_opts(opts)
 
+      # Group consolidation information to pass to compiler
+
       try do
-        state = {%{}, exports, sources, [], modules, removed_modules}
+        consolidation = {consolidation_status, old_protocols_and_impls, protocols_and_impls}
+        state = {%{}, exports, sources, [], modules, removed_modules, consolidation}
         compiler_loop(stale, stale_modules, dest, timestamp, opts, state)
       else
         {:ok, %{runtime_warnings: runtime_warnings, compile_warnings: compile_warnings}, state} ->
-          {modules, _exports, sources, _changed, pending_modules, _stale_exports} = state
+          {modules, _exports, sources, _changed, pending_modules, _stale_exports,
+           protocols_and_impls} = state
 
           previous_warnings =
             if Keyword.get(opts, :all_warnings, true),
@@ -197,6 +211,7 @@ defmodule Mix.Compilers.Elixir do
             new_deps_config,
             project_mtime,
             config_mtime,
+            protocols_and_impls,
             timestamp
           )
 
@@ -217,7 +232,7 @@ defmodule Mix.Compilers.Elixir do
               else: {errors, r_warnings ++ c_warnings}
 
           # In case of errors, we show all previous warnings and all new ones.
-          {_, _, sources, _, _, _} = state
+          {_, _, sources, _, _, _, _} = state
           errors = Enum.map(errors, &diagnostic/1)
           warnings = Enum.map(warnings, &diagnostic/1)
           all_warnings = Keyword.get(opts, :all_warnings, errors == [])
@@ -226,39 +241,13 @@ defmodule Mix.Compilers.Elixir do
         Code.compiler_options(previous_opts)
       end
     else
-      # We need to return ok if deps_changed? or stale_modules changed,
-      # even if no code was compiled, because we need to propagate the changed
-      # status to compile.protocols. This will be the case whenever:
-      #
-      #   * the lock file or a config changes
-      #   * any module in a path dependency changes
-      #   * the mix.exs changes
-      #   * the Erlang manifest updates (Erlang files are compiled)
-      #
-      # In the first case, we will consolidate from scratch. In the remaining, we
-      # will only compute the diff with current protocols. In fact, there is no
-      # need to reconsolidate if an Erlang file changes and it doesn't trigger
-      # any other change, but the diff check should be reasonably fast anyway.
-      status = if removed != [] or deps_changed? or stale_modules != %{}, do: :ok, else: :noop
-
-      if status != :noop do
-        write_manifest(
-          manifest,
-          modules,
-          sources,
-          all_local_exports,
-          new_parents,
-          new_cache_key,
-          new_deps_config,
-          project_mtime,
-          config_mtime,
-          timestamp
-        )
-      end
-
       all_warnings = Keyword.get(opts, :all_warnings, true)
       previous_warnings = previous_warnings(sources, all_warnings)
+<<<<<<< HEAD
       unless_warnings_as_errors(opts, {status, previous_warnings})
+=======
+      unless_previous_warnings_as_errors(previous_warnings, opts, {:noop, previous_warnings})
+>>>>>>> 737162c52 (Merge protocol consolidation into compile.elixir)
     end
   end
 
@@ -296,24 +285,6 @@ defmodule Mix.Compilers.Elixir do
   end
 
   @doc """
-  Returns protocols and implementations for the given `manifest`.
-  """
-  def protocols_and_impls(paths) do
-    Enum.reduce(paths, {%{}, %{}}, fn path, acc ->
-      {modules, _} = read_manifest(Path.join(path, ".mix/compile.elixir"))
-
-      Enum.reduce(modules, acc, fn
-        {module, module(kind: kind, timestamp: timestamp)}, {protocols, impls} ->
-          case kind do
-            :protocol -> {Map.put(protocols, module, timestamp), impls}
-            {:impl, protocol} -> {protocols, Map.put(impls, module, protocol)}
-            _ -> {protocols, impls}
-          end
-      end)
-    end)
-  end
-
-  @doc """
   Reads the manifest for external consumption.
   """
   def read_manifest(manifest) do
@@ -331,7 +302,7 @@ defmodule Mix.Compilers.Elixir do
   Retrieves all diagnostics from the given manifest.
   """
   def diagnostics(manifest, dest) do
-    {_, all_sources, _, _, _, _, _, _} = parse_manifest(manifest, dest)
+    {_, all_sources, _, _, _, _, _, _, _} = parse_manifest(manifest, dest)
     previous_warnings(all_sources, false)
   end
 
@@ -622,8 +593,8 @@ defmodule Mix.Compilers.Elixir do
     for %{app: app, opts: opts} <- local_deps,
         manifest = Path.join([opts[:build], ".mix", base]),
         Mix.Utils.last_modified(manifest) > modified,
-        reduce: {stale_modules, stale_modules, deps_exports} do
-      {modules, exports, deps_exports} ->
+        reduce: {stale_modules, stale_modules, deps_exports, protocols_and_impls()} do
+      {modules, exports, deps_exports, protocols_and_impls} ->
         {manifest_modules, manifest_sources} = read_manifest(manifest)
 
         dep_modules =
@@ -676,7 +647,8 @@ defmodule Mix.Compilers.Elixir do
         modules = modules |> Map.merge(dep_modules) |> Map.merge(removed)
         exports = Map.merge(exports, removed)
         deps_exports = Map.put(deps_exports, app, new_exports)
-        {modules, exports, deps_exports}
+        protocols_and_impls = protocols_and_impls_from_modules(modules, protocols_and_impls)
+        {modules, exports, deps_exports, protocols_and_impls}
     end
   end
 
@@ -882,7 +854,7 @@ defmodule Mix.Compilers.Elixir do
 
   ## Manifest handling
 
-  @default_manifest {%{}, %{}, %{}, [], nil, nil, 0, 0}
+  @default_manifest {%{}, %{}, %{}, [], nil, nil, 0, 0, {%{}, %{}}}
 
   # Similar to read_manifest, but for internal consumption and with data migration support.
   defp parse_manifest(manifest, compile_path) do
@@ -893,9 +865,9 @@ defmodule Mix.Compilers.Elixir do
         @default_manifest
     else
       {@manifest_vsn, modules, sources, local_exports, parent, cache_key, deps_config,
-       project_mtime, config_mtime} ->
+       project_mtime, config_mtime, protocols_and_impls} ->
         {modules, sources, local_exports, parent, cache_key, deps_config, project_mtime,
-         config_mtime}
+         config_mtime, protocols_and_impls}
 
       # {vsn, %{module => record}, sources, ...} v22-?
       # {vsn, [module_record], sources, ...} v5-v21
@@ -949,6 +921,7 @@ defmodule Mix.Compilers.Elixir do
          deps_config,
          project_mtime,
          config_mtime,
+         protocols_and_impls,
          timestamp
        ) do
     if modules == %{} and sources == %{} do
@@ -958,7 +931,7 @@ defmodule Mix.Compilers.Elixir do
 
       term =
         {@manifest_vsn, modules, sources, exports, parents, cache_key, deps_config, project_mtime,
-         config_mtime}
+         config_mtime, protocols_and_impls}
 
       manifest_data = :erlang.term_to_binary(term, [:compressed])
       File.write!(manifest, manifest_data)
@@ -1057,7 +1030,7 @@ defmodule Mix.Compilers.Elixir do
       spawn_link(fn ->
         compile_opts = [
           each_cycle: fn ->
-            compiler_call(parent, ref, {:each_cycle, stale_modules, dest, timestamp})
+            compiler_call(parent, ref, {:each_cycle, stale_modules, dest, timestamp, opts})
           end,
           each_file: fn file, lexical ->
             compiler_call(parent, ref, {:each_file, file, lexical, verbose})
@@ -1093,8 +1066,8 @@ defmodule Mix.Compilers.Elixir do
 
   defp compiler_loop(ref, pid, state, cwd) do
     receive do
-      {^ref, {:each_cycle, stale_modules, dest, timestamp}} ->
-        {response, state} = each_cycle(stale_modules, dest, timestamp, state)
+      {^ref, {:each_cycle, stale_modules, dest, timestamp, opts}} ->
+        {response, state} = each_cycle(stale_modules, dest, timestamp, state, opts)
         send(pid, {ref, response})
         compiler_loop(ref, pid, state, cwd)
 
@@ -1122,8 +1095,8 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp each_cycle(stale_modules, compile_path, timestamp, state) do
-    {modules, _exports, sources, changed, pending_modules, stale_exports} = state
+  defp each_cycle(stale_modules, compile_path, timestamp, state, opts) do
+    {modules, _exports, sources, changed, pending_modules, stale_exports, consolidation} = state
 
     {pending_modules, exports, changed} =
       update_stale_entries(pending_modules, sources, changed, %{}, stale_exports, compile_path)
@@ -1166,7 +1139,8 @@ defmodule Mix.Compilers.Elixir do
       runtime_paths =
         Enum.map(runtime_modules, &{&1, Path.join(compile_path, Atom.to_string(&1) <> ".beam")})
 
-      state = {modules, exports, sources, [], pending_modules, stale_exports}
+      protocols_and_impls = maybe_consolidate(consolidation, modules, opts)
+      state = {modules, exports, sources, [], pending_modules, stale_exports, protocols_and_impls}
       {{:runtime, runtime_paths, []}, state}
     else
       Mix.Utils.compiling_n(length(changed), :ex)
@@ -1193,7 +1167,7 @@ defmodule Mix.Compilers.Elixir do
 
   defp each_file(file, references, verbose, state, cwd) do
     {compile_references, export_references, runtime_references, compile_env} = references
-    {modules, exports, sources, changed, pending_modules, stale_exports} = state
+    {modules, exports, sources, changed, pending_modules, stale_exports, consolidate} = state
 
     file = Path.relative_to(file, cwd)
 
@@ -1221,11 +1195,11 @@ defmodule Mix.Compilers.Elixir do
       )
 
     sources = Map.replace!(sources, file, source)
-    {modules, exports, sources, changed, pending_modules, stale_exports}
+    {modules, exports, sources, changed, pending_modules, stale_exports, consolidate}
   end
 
   defp each_module(file, module, kind, external, new_export, state, timestamp, cwd) do
-    {modules, exports, sources, changed, pending_modules, stale_exports} = state
+    {modules, exports, sources, changed, pending_modules, stale_exports, consolidate} = state
 
     file = Path.relative_to(file, cwd)
     external = process_external_resources(external, cwd)
@@ -1278,7 +1252,7 @@ defmodule Mix.Compilers.Elixir do
         %{} -> changed
       end
 
-    {modules, exports, sources, changed, pending_modules, stale_exports}
+    {modules, exports, sources, changed, pending_modules, stale_exports, consolidate}
   end
 
   defp detect_kind(module) do
@@ -1306,5 +1280,51 @@ defmodule Mix.Compilers.Elixir do
 
       {Path.relative_to(file, cwd), Mix.Utils.last_modified_and_size(file), digest}
     end
+  end
+
+  ## Consolidation
+
+  @doc """
+  Returns protocols and implementations for the given `manifest`.
+  """
+  def protocols_and_impls_from_paths(paths) do
+    Enum.reduce(paths, protocols_and_impls(), fn path, acc ->
+      {modules, _} = read_manifest(Path.join(path, ".mix/compile.elixir"))
+      protocols_and_impls_from_modules(modules, acc)
+    end)
+  end
+
+  defp protocols_and_impls_from_modules(modules, protocols_and_impls) do
+    Enum.reduce(modules, protocols_and_impls, fn
+      {module, module(kind: kind, timestamp: timestamp)}, {protocols, impls} ->
+        case kind do
+          :protocol -> {Map.put(protocols, module, timestamp), impls}
+          {:impl, protocol} -> {protocols, Map.put(impls, module, protocol)}
+          _ -> {protocols, impls}
+        end
+    end)
+  end
+
+  defp protocols_and_impls(), do: {%{}, %{}}
+
+  defp maybe_consolidate({:off, _, _}, _, _) do
+    protocols_and_impls()
+  end
+
+  defp maybe_consolidate(
+         {on_or_force, old_protocols_and_impls, protocols_and_impls},
+         modules,
+         opts
+       ) do
+    protocols_and_impls = protocols_and_impls_from_modules(modules, protocols_and_impls)
+
+    Mix.Compilers.Protocol.compile(
+      on_or_force == :force,
+      old_protocols_and_impls,
+      protocols_and_impls,
+      opts
+    )
+
+    protocols_and_impls
   end
 end
