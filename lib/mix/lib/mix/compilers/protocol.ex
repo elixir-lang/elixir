@@ -86,6 +86,8 @@ defmodule Mix.Compilers.Protocol do
 
   def compile(force?, old_protocols_and_impls, protocols_and_impls, opts) do
     output = Mix.Project.consolidation_path()
+    File.mkdir_p!(output)
+    Code.prepend_path(output)
 
     if opts[:force] || force? do
       clean_consolidated()
@@ -113,14 +115,11 @@ defmodule Mix.Compilers.Protocol do
     Enum.filter(paths, &(not :lists.prefix(otp, &1)))
   end
 
-  defp consolidate([], _paths, output, _opts) do
-    File.mkdir_p!(output)
+  defp consolidate([], _paths, _output, _opts) do
     :noop
   end
 
   defp consolidate(protocols, paths, output, opts) do
-    File.mkdir_p!(output)
-
     protocols
     |> Enum.uniq()
     |> Enum.map(&Task.async(fn -> consolidate_each(&1, paths, output, opts) end))
