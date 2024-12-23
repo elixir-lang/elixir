@@ -19,7 +19,7 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
       end
       """)
 
-      assert compile_elixir_and_protocols() == :ok
+      assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
       mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.Compile.Protocol.beam")
 
       # Implement a local protocol
@@ -29,21 +29,21 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
       end
       """)
 
-      assert compile_elixir_and_protocols() == :ok
+      assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
 
       assert mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.Compile.Protocol.beam") !=
                @old
 
       # Delete a local implementation
       File.rm!("lib/impl.ex")
-      assert compile_elixir_and_protocols() == :ok
+      assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
 
       assert mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.Compile.Protocol.beam") !=
                @old
 
       # Delete a local protocol
       File.rm!("lib/protocol.ex")
-      assert compile_elixir_and_protocols() == :noop
+      assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
       refute File.regular?("_build/dev/lib/sample/consolidated/Elixir.Compile.Protocol.beam")
     end)
   end
@@ -67,7 +67,7 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
       end
       """)
 
-      assert compile_elixir_and_protocols() == :ok
+      assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
       mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.Compile.Protocol.beam")
       File.rm!("lib/protocol.ex")
 
@@ -77,11 +77,12 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
       end
       """)
 
-      assert compile_elixir_and_protocols() == :noop
+      purge_protocol(Compile.Protocol)
+      assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
 
       # Delete a local protocol
       File.rm!("lib/protocol.ex")
-      assert compile_elixir_and_protocols() == :noop
+      assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
       refute File.regular?("_build/dev/lib/sample/consolidated/Elixir.Compile.Protocol.beam")
     end)
   end
@@ -95,7 +96,7 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
       purge_protocol(String.Chars)
       mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.String.Chars.beam")
 
-      assert compile_elixir_and_protocols() == :noop
+      assert Mix.Tasks.Compile.Elixir.run([]) == {:noop, []}
       assert mtime("_build/dev/lib/sample/consolidated/Elixir.String.Chars.beam") == @old
 
       # Implement a deps protocol
@@ -108,12 +109,12 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
       end
       """)
 
-      assert compile_elixir_and_protocols() == :ok
+      assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
       assert mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.String.Chars.beam") != @old
 
       # Delete the local implementation
       File.rm!("lib/struct.ex")
-      assert compile_elixir_and_protocols() == :ok
+      assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
       assert mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.String.Chars.beam") != @old
     end)
   end
@@ -121,7 +122,7 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
   test "consolidated protocols keep relative path to their source" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
-      compile_elixir_and_protocols()
+      Mix.Task.run("compile")
 
       # Load consolidated
       :code.add_patha(~c"_build/dev/lib/sample/consolidated")
@@ -140,11 +141,6 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
         purge_protocol(Enumerable)
       end
     end)
-  end
-
-  defp compile_elixir_and_protocols do
-    Mix.Tasks.Compile.Elixir.run([])
-    Mix.Tasks.Compile.Protocols.run([])
   end
 
   defp mtime(path) do

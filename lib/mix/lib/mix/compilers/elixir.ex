@@ -921,26 +921,21 @@ defmodule Mix.Compilers.Elixir do
          protocols_and_impls,
          timestamp
        ) do
-    if modules == %{} and sources == %{} do
-      File.rm(manifest)
-    else
-      File.mkdir_p!(Path.dirname(manifest))
+    File.mkdir_p!(Path.dirname(manifest))
 
-      term =
-        {@manifest_vsn, modules, sources, exports, parents, cache_key, deps_config, project_mtime,
-         config_mtime, protocols_and_impls}
+    term =
+      {@manifest_vsn, modules, sources, exports, parents, cache_key, deps_config, project_mtime,
+       config_mtime, protocols_and_impls}
 
-      manifest_data = :erlang.term_to_binary(term, [:compressed])
-      File.write!(manifest, manifest_data)
-      File.touch!(manifest, timestamp)
-      delete_checkpoint(manifest)
+    manifest_data = :erlang.term_to_binary(term, [:compressed])
+    File.write!(manifest, manifest_data)
+    File.touch!(manifest, timestamp)
+    delete_checkpoint(manifest)
 
-      # Since Elixir is a dependency itself, we need to touch the lock
-      # so the current Elixir version, used to compile the files above,
-      # is properly stored.
-      Mix.Dep.ElixirSCM.update()
-    end
-
+    # Since Elixir is a dependency itself, we need to touch the lock
+    # so the current Elixir version, used to compile the files above,
+    # is properly stored.
+    Mix.Dep.ElixirSCM.update()
     :ok
   end
 
@@ -1105,7 +1100,7 @@ defmodule Mix.Compilers.Elixir do
 
     state =
       {modules, exports, sources, changed, pending_modules, stale_exports,
-       maybe_consolidate(consolidation, modules, opts)}
+       maybe_consolidate(consolidation, modules, pending_modules, opts)}
 
     {:ok, state}
   end
@@ -1321,16 +1316,18 @@ defmodule Mix.Compilers.Elixir do
 
   defp protocols_and_impls(), do: {%{}, %{}}
 
-  defp maybe_consolidate({:off, _, _}, _, _) do
+  defp maybe_consolidate({:off, _, _}, _, _, _) do
     protocols_and_impls()
   end
 
   defp maybe_consolidate(
          {on_or_force, old_protocols_and_impls, protocols_and_impls},
          modules,
+         pending_modules,
          opts
        ) do
     protocols_and_impls = protocols_and_impls_from_modules(modules, protocols_and_impls)
+    protocols_and_impls = protocols_and_impls_from_modules(pending_modules, protocols_and_impls)
 
     Mix.Compilers.Protocol.compile(
       on_or_force == :force,

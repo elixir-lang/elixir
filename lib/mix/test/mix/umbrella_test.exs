@@ -569,7 +569,7 @@ defmodule Mix.UmbrellaTest do
 
         Mix.Task.run("compile")
         assert File.regular?("_build/dev/lib/bar/consolidated/Elixir.Foo.beam")
-        assert Mix.Tasks.Compile.Protocols.run([]) == :noop
+        assert Mix.Tasks.Compile.Elixir.run([]) == {:noop, []}
 
         # Mark protocol as outdated
         File.touch!("_build/dev/lib/bar/consolidated/Elixir.Foo.beam", {{2010, 1, 1}, {0, 0, 0}})
