@@ -1315,8 +1315,14 @@ defmodule CodeFragmentTest do
       assert cc2q!("(fn x ->", trailing_fragment: ":ok end)") ==
                s2q!("(fn x -> __cursor__() end)")
 
-      assert cc2q!("(fn x ->", trailing_fragment: ":ok end)") ==
+      assert cc2q!("(fn x ->", trailing_fragment: "\n:ok end)") ==
                s2q!("(fn x -> __cursor__() end)")
+
+      assert cc2q!("(fn x when ", trailing_fragment: "-> :ok end)") ==
+               s2q!("(fn x when __cursor__() -> :ok end)")
+
+      assert cc2q!("(fn x when ", trailing_fragment: "->\n:ok end)") ==
+               s2q!("(fn x when __cursor__() -> :ok end)")
 
       assert cc2q!("(fn") == s2q!("(__cursor__())")
       assert cc2q!("(fn x") == s2q!("(__cursor__())")
@@ -1325,6 +1331,23 @@ defmodule CodeFragmentTest do
       assert cc2q!("(fn x -> x") == s2q!("(fn x -> __cursor__() end)")
       assert cc2q!("(fn x, y -> x + y") == s2q!("(fn x, y -> x + __cursor__() end)")
       assert cc2q!("(fn x, y -> x + y end") == s2q!("(__cursor__())")
+    end
+
+    test "do -> end" do
+      assert cc2q!("if do\nx ->\n", trailing_fragment: "y\nz ->\nw\nend") ==
+               s2q!("if do\nx ->\n__cursor__()\nend")
+
+      assert cc2q!("if do\nx ->\ny", trailing_fragment: "\nz ->\nw\nend") ==
+               s2q!("if do\nx ->\n__cursor__()\nend")
+
+      assert cc2q!("if do\nx ->\ny\n", trailing_fragment: "\nz ->\nw\nend") ==
+               s2q!("if do\nx ->\ny\n__cursor__()\nend")
+
+      assert cc2q!("for x <- [], reduce: %{} do\ny, ", trailing_fragment: "-> :ok\nend") ==
+               s2q!("for x <- [], reduce: %{} do\ny, __cursor__() -> :ok\nend")
+
+      assert cc2q!("for x <- [], reduce: %{} do\ny, z when ", trailing_fragment: "-> :ok\nend") ==
+               s2q!("for x <- [], reduce: %{} do\ny, z when __cursor__() -> :ok\nend")
     end
 
     test "removes tokens until opening" do

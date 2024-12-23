@@ -1226,10 +1226,7 @@ defmodule Code.Fragment do
   defp maybe_missing_stab?([{:else, _} | _]), do: true
   defp maybe_missing_stab?([{:catch, _} | _]), do: true
   defp maybe_missing_stab?([{:rescue, _} | _]), do: true
-
   defp maybe_missing_stab?([{:stab_op, _, :->} | _]), do: false
-  defp maybe_missing_stab?([{:eol, _}, next | _]) when elem(next, 0) != :",", do: false
-
   defp maybe_missing_stab?([_ | tail]), do: maybe_missing_stab?(tail)
   defp maybe_missing_stab?([]), do: false
 end
