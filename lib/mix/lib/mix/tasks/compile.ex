@@ -163,8 +163,7 @@ defmodule Mix.Tasks.Compile do
           res
       end
 
-    with true <- config[:consolidate_protocols] and "--no-consolidate-protocols" not in args,
-         path = Mix.Project.consolidation_path(config),
+    with path = Mix.Project.consolidation_path(config),
          {:ok, protocols} <- File.ls(path) do
       # We don't cache consolidation path as we may write to it
       Code.prepend_path(path)
