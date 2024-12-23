@@ -1077,7 +1077,7 @@ defmodule Mix do
       app: @mix_install_app,
       erlc_paths: [],
       elixirc_paths: [],
-      compilers: [],
+      compilers: [:elixir],
       prune_code_paths: false
     ] ++ dynamic_config
   end

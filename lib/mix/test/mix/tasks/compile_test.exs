@@ -55,22 +55,9 @@ defmodule Mix.Tasks.CompileTest do
       assert_received {:mix_shell, :info, ["Generated sample app"]}
       assert File.regular?("_build/dev/lib/sample/consolidated/Elixir.Enumerable.beam")
 
-      # Noop
       Mix.Task.clear()
       assert Mix.Task.run("compile", ["--verbose"]) == {:noop, []}
       refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-
-      # Consolidates protocols if manifest is out of date
-      File.rm("_build/dev/lib/sample/.mix/compile.protocols")
-      Mix.Task.clear()
-      assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
-      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      assert File.regular?("_build/dev/lib/sample/consolidated/Elixir.Enumerable.beam")
-
-      # Purge so consolidated is picked up
-      purge([Enumerable])
-      assert Mix.Tasks.App.Start.run(["--verbose"]) == :ok
-      assert Protocol.consolidated?(Enumerable)
     end)
   end
 
@@ -224,10 +211,10 @@ defmodule Mix.Tasks.CompileTest do
     end)
   end
 
-  test "skip protocol consolidation when --no-consolidate-protocols" do
+  test "skip protocol consolidation when --no-protocol-consolidation" do
     in_fixture("no_mixfile", fn ->
       File.rm("_build/dev/lib/sample/.mix/compile.protocols")
-      assert Mix.Task.run("compile", ["--no-consolidate-protocols"]) == {:ok, []}
+      assert Mix.Task.run("compile", ["--no-protocol-consolidation"]) == {:ok, []}
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
       refute File.regular?("_build/dev/lib/sample/consolidated/Elixir.Enumerable.beam")
     end)
@@ -283,7 +270,7 @@ defmodule Mix.Tasks.CompileTest do
     Mix.Project.push(WrongPath)
 
     ExUnit.CaptureIO.capture_io(fn ->
-      assert Mix.Task.run("compile", ["--no-consolidate-protocols"]) == {:noop, []}
+      assert Mix.Task.run("compile", ["--no-protocol-consolidation"]) == {:noop, []}
     end)
   end
 

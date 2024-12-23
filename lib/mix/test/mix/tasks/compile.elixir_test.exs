@@ -1315,6 +1315,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiling 1 file (.ex)"]}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      Mix.shell().flush()
 
       File.rm!("lib/a.ex")
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}

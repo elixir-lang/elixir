@@ -130,7 +130,7 @@ defmodule Mix.Tasks.Compile.Elixir do
         # TODO: Deprecate me on Elixir v1.23
         Keyword.put(opts, :consolidate_protocols, false)
       else
-        opts
+        opts ++ Keyword.take(project, [:consolidate_protocols])
       end
 
     # Having compilations racing with other is most undesired,
