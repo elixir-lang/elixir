@@ -6,13 +6,29 @@ defmodule Mix.Tasks.Compile.ElixirTest do
   import ExUnit.CaptureIO
   alias Mix.Task.Compiler.Diagnostic
 
+  @old_time {{2010, 1, 1}, {0, 0, 0}}
+  @elixir_otp_version {System.version(), :erlang.system_info(:otp_release)}
+
   def trace(event, env) do
     send(__MODULE__, {event, env})
     :ok
   end
 
-  @old_time {{2010, 1, 1}, {0, 0, 0}}
-  @elixir_otp_version {System.version(), :erlang.system_info(:otp_release)}
+  defp mtime(path) do
+    File.stat!(path).mtime
+  end
+
+  defp mark_as_old!(path) do
+    mtime = mtime(path)
+    File.touch!(path, @old_time)
+    mtime
+  end
+
+  defp purge_protocol(module) do
+    :code.del_path(:filename.absname(~c"_build/dev/lib/sample/consolidated"))
+    :code.purge(module)
+    :code.delete(module)
+  end
 
   test "compiles a project without per environment build" do
     Mix.ProjectStack.post_config(build_per_environment: false)
@@ -128,7 +144,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-      assert File.stat!("_build/dev/lib/sample/.mix/compile.elixir").mtime > @old_time
+      assert mtime("_build/dev/lib/sample/.mix/compile.elixir") > @old_time
 
       ensure_touched(__ENV__.file, "_build/dev/lib/sample/.mix/compile.elixir")
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
@@ -245,7 +261,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-      assert File.stat!("_build/dev/lib/sample/.mix/compile.elixir").mtime > @old_time
+      assert mtime("_build/dev/lib/sample/.mix/compile.elixir") > @old_time
     end)
   after
     Application.put_env(:elixir, :dbg_callback, {Macro, :dbg, []})
@@ -482,7 +498,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert recompile.() == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-      assert File.stat!("_build/dev/lib/sample/.mix/compile.elixir").mtime > @old_time
+      assert mtime("_build/dev/lib/sample/.mix/compile.elixir") > @old_time
 
       # Changing lock recompiles
       File.write!("mix.lock", """
@@ -494,7 +510,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert recompile.() == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-      assert File.stat!("_build/dev/lib/sample/.mix/compile.elixir").mtime > @old_time
+      assert mtime("_build/dev/lib/sample/.mix/compile.elixir") > @old_time
 
       # Removing a lock recompiles
       File.write!("mix.lock", """
@@ -506,7 +522,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert recompile.() == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-      assert File.stat!("_build/dev/lib/sample/.mix/compile.elixir").mtime > @old_time
+      assert mtime("_build/dev/lib/sample/.mix/compile.elixir") > @old_time
 
       # Adding an unknown dependency returns :ok but does not recompile
       File.write!("mix.lock", """
@@ -584,9 +600,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       Mix.Tasks.Compile.run([])
       assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path}
 
-      assert File.stat!("_build/dev/lib/sample/.mix/compile.elixir_scm").mtime >
-               @old_time
-
+      assert mtime("_build/dev/lib/sample/.mix/compile.elixir_scm") > @old_time
       refute File.exists?("_build/dev/lib/sample/consolidated/.to_be_removed")
     end)
   end
@@ -608,8 +622,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       Mix.Tasks.Compile.run([])
       assert Mix.Dep.ElixirSCM.read() == {:ok, @elixir_otp_version, Mix.SCM.Path}
 
-      assert File.stat!("_build/dev/lib/sample/.mix/compile.elixir_scm").mtime >
-               @old_time
+      assert mtime("_build/dev/lib/sample/.mix/compile.elixir_scm") > @old_time
     end)
   end
 
@@ -717,38 +730,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       refute File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
       refute Code.ensure_loaded?(A)
       refute String.contains?(File.read!("_build/dev/lib/sample/.mix/compile.elixir"), "Elixir.A")
-    end)
-  end
-
-  test "purges consolidation path if asked" do
-    in_fixture("no_mixfile", fn ->
-      File.write!("lib/a.ex", """
-      defmodule A do
-        defstruct []
-      end
-
-      defimpl Inspect, for: A do
-        def inspect(_, _), do: "sample"
-      end
-      """)
-
-      Mix.Project.push(MixTest.Case.Sample)
-      assert Mix.Tasks.Compile.run([]) == {:ok, []}
-      assert inspect(struct(A, [])) == "sample"
-
-      purge([A, B, Inspect.A])
-      Mix.Task.clear()
-
-      assert capture_io(:stderr, fn ->
-               {:ok, [_]} = Mix.Tasks.Compile.run(["--force"])
-             end) =~
-               "the Inspect protocol has already been consolidated"
-
-      purge([A, B, Inspect.A])
-      Mix.Task.clear()
-      consolidation = Mix.Project.consolidation_path()
-      args = ["--force", "--purge-consolidation-path-if-stale", consolidation]
-      assert Mix.Tasks.Compile.run(args) == {:ok, []}
     end)
   end
 
@@ -1344,7 +1325,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
 
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
-      assert File.stat!("lib/a.ex").mtime == @old_time
+      assert mtime("lib/a.ex") == @old_time
 
       Agent.update(:mix_recompile_raise, fn _ -> true end)
 
@@ -1728,5 +1709,181 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert Mix.Tasks.Compile.Elixir.run([]) == {:noop, []}
       assert Mix.Tasks.Compile.Elixir.run(["--no-optional-deps"]) == {:ok, []}
     end)
+  end
+
+  describe "consolidation protocols" do
+    test "with local protocols", context do
+      in_tmp(context.test, fn ->
+        Mix.Project.push(MixTest.Case.Sample)
+
+        File.mkdir_p!("lib")
+        assert Mix.Task.run("compile")
+
+        # Define a local protocol
+        File.write!("lib/protocol.ex", """
+        defprotocol Compile.Protocol do
+          def foo(a, b)
+        end
+        """)
+
+        assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
+        mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.Compile.Protocol.beam")
+
+        # Implement a local protocol
+        File.write!("lib/impl.ex", """
+        defimpl Compile.Protocol, for: Integer do
+          def foo(a, b), do: a + b
+        end
+        """)
+
+        assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
+
+        assert mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.Compile.Protocol.beam") !=
+                 @old_time
+
+        # Delete a local implementation
+        File.rm!("lib/impl.ex")
+        assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
+
+        assert mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.Compile.Protocol.beam") !=
+                 @old_time
+
+        # Delete a local protocol
+        File.rm!("lib/protocol.ex")
+        assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
+        refute File.regular?("_build/dev/lib/sample/consolidated/Elixir.Compile.Protocol.beam")
+      end)
+    end
+
+    test "compiles after converting a protocol into a standard module", context do
+      in_tmp(context.test, fn ->
+        Mix.Project.push(MixTest.Case.Sample)
+
+        File.mkdir_p!("lib")
+        Mix.Task.run("compile")
+        purge_protocol(Compile.Protocol)
+
+        # Define a local protocol
+        File.write!("lib/protocol.ex", """
+        defprotocol Compile.Protocol do
+          def foo(a)
+        end
+
+        defimpl Compile.Protocol, for: Integer do
+          def foo(a), do: a
+        end
+        """)
+
+        assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
+        mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.Compile.Protocol.beam")
+        File.rm!("lib/protocol.ex")
+
+        # Define a standard module
+        File.write!("lib/protocol.ex", """
+        defmodule Compile.Protocol do
+        end
+        """)
+
+        purge_protocol(Compile.Protocol)
+        assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
+
+        # Delete a local protocol
+        File.rm!("lib/protocol.ex")
+        assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
+        refute File.regular?("_build/dev/lib/sample/consolidated/Elixir.Compile.Protocol.beam")
+      end)
+    end
+
+    test "with deps protocols", context do
+      in_tmp(context.test, fn ->
+        Mix.Project.push(MixTest.Case.Sample)
+
+        File.mkdir_p!("lib")
+        Mix.Task.run("compile")
+        purge_protocol(String.Chars)
+        mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.String.Chars.beam")
+
+        assert Mix.Tasks.Compile.Elixir.run([]) == {:noop, []}
+        assert mtime("_build/dev/lib/sample/consolidated/Elixir.String.Chars.beam") == @old_time
+
+        # Implement a deps protocol
+        File.write!("lib/struct.ex", """
+        defmodule Compile.Protocol.Struct do
+          defstruct a: nil
+          defimpl String.Chars do
+            def to_string(_), do: "ok"
+          end
+        end
+        """)
+
+        assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
+
+        assert mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.String.Chars.beam") !=
+                 @old_time
+
+        # Delete the local implementation
+        File.rm!("lib/struct.ex")
+        assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
+
+        assert mark_as_old!("_build/dev/lib/sample/consolidated/Elixir.String.Chars.beam") !=
+                 @old_time
+      end)
+    end
+
+    test "keep relative path to their source" do
+      in_fixture("no_mixfile", fn ->
+        Mix.Project.push(MixTest.Case.Sample)
+        Mix.Task.run("compile")
+
+        # Load consolidated
+        :code.add_patha(~c"_build/dev/lib/sample/consolidated")
+        :code.purge(Enumerable)
+        :code.delete(Enumerable)
+
+        try do
+          Enumerable.impl_for!(:oops)
+        rescue
+          Protocol.UndefinedError ->
+            assert [{_, _, _, [file: ~c"lib/enum.ex"] ++ _} | _] = __STACKTRACE__
+        else
+          _ ->
+            flunk("Enumerable.impl_for!/1 should have failed")
+        after
+          purge_protocol(Enumerable)
+        end
+      end)
+    end
+
+    test "purges consolidation path if asked" do
+      in_fixture("no_mixfile", fn ->
+        File.write!("lib/a.ex", """
+        defmodule A do
+          defstruct []
+        end
+
+        defimpl Inspect, for: A do
+          def inspect(_, _), do: "sample"
+        end
+        """)
+
+        Mix.Project.push(MixTest.Case.Sample)
+        assert Mix.Tasks.Compile.run([]) == {:ok, []}
+        assert inspect(struct(A, [])) == "sample"
+
+        purge([A, B, Inspect.A])
+        Mix.Task.clear()
+
+        assert capture_io(:stderr, fn ->
+                 {:ok, [_]} = Mix.Tasks.Compile.run(["--force"])
+               end) =~
+                 "the Inspect protocol has already been consolidated"
+
+        purge([A, B, Inspect.A])
+        Mix.Task.clear()
+        consolidation = Mix.Project.consolidation_path()
+        args = ["--force", "--purge-consolidation-path-if-stale", consolidation]
+        assert Mix.Tasks.Compile.run(args) == {:ok, []}
+      end)
+    end
   end
 end
