@@ -173,20 +173,13 @@ defmodule ExUnit.Server do
   end
 
   defp take_modules(%{waiting: {from, count}} = state) do
-    has_async_modules? = not :queue.is_empty(state.async_modules)
-    has_async_groups? = state.async_groups != []
-
     cond do
-      not has_async_modules? and not has_async_groups? and state.loaded == :done ->
-        GenServer.reply(from, nil)
-        %{state | waiting: nil}
-
-      has_async_modules? ->
+      not :queue.is_empty(state.async_modules) ->
         {reply, remaining_modules} = take_until(count, state.async_modules)
         GenServer.reply(from, reply)
         %{state | async_modules: remaining_modules, waiting: nil}
 
-      has_async_groups? ->
+      state.async_groups != [] and state.loaded == :done ->
         {groups, remaining_groups} = Enum.split(state.async_groups, count)
 
         {reply, groups} =
@@ -197,6 +190,10 @@ defmodule ExUnit.Server do
 
         GenServer.reply(from, reply)
         %{state | groups: groups, async_groups: remaining_groups, waiting: nil}
+
+      state.loaded == :done ->
+        GenServer.reply(from, nil)
+        %{state | waiting: nil}
 
       true ->
         state
