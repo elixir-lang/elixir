@@ -997,6 +997,24 @@ defmodule ExUnitTest do
       assert length(runs) == 6
     end
 
+    test "repeats tests up to the configured number of times with groups" do
+      defmodule TestGroupedRepeatUntilFailureReached do
+        use ExUnit.Case, async: true, group: :example
+        test __ENV__.line, do: assert(true)
+      end
+
+      configure_and_reload_on_exit(repeat_until_failure: 5)
+
+      output =
+        capture_io(fn ->
+          assert ExUnit.run() == %{total: 1, failures: 0, skipped: 0, excluded: 0}
+        end)
+
+      runs = String.split(output, "Running ExUnit", trim: true)
+      # 6 runs in total, 5 repeats
+      assert length(runs) == 6
+    end
+
     test "stops on failure" do
       {:ok, pid} = Agent.start_link(fn -> 0 end)
       Process.register(pid, :ex_unit_repeat_until_failure_count)

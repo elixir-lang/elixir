@@ -192,7 +192,7 @@ defmodule ExUnit.Server do
         {reply, groups} =
           Enum.map_reduce(groups, state.groups, fn group, acc ->
             {entries, acc} = Map.pop!(acc, group)
-            {Enum.reverse(entries), acc}
+            {{group, Enum.reverse(entries)}, acc}
           end)
 
         GenServer.reply(from, reply)
@@ -204,15 +204,14 @@ defmodule ExUnit.Server do
   end
 
   # :queue.split fails if the provided count is larger than the queue size.
-  # We also want to return the values as a list of lists, so we directly
-  # return {list, queue} instead of {queue, queue}.
+  # We also want to return the values as tuples of shape {group, [modules]}.
   defp take_until(n, queue), do: take_until(n, queue, [])
 
   defp take_until(0, queue, acc), do: {Enum.reverse(acc), queue}
 
   defp take_until(n, queue, acc) do
     case :queue.out(queue) do
-      {{:value, item}, queue} -> take_until(n - 1, queue, [[item] | acc])
+      {{:value, item}, queue} -> take_until(n - 1, queue, [{nil, [item]} | acc])
       {:empty, queue} -> {Enum.reverse(acc), queue}
     end
   end

@@ -125,7 +125,7 @@ defmodule ExUnit.Runner do
 
         # Run all sync modules directly
         for pair <- sync_modules do
-          running = spawn_modules(config, [[pair]], false, %{})
+          running = spawn_modules(config, [{nil, [pair]}], false, %{})
           running != %{} and wait_until_available(config, running)
         end
 
@@ -161,7 +161,7 @@ defmodule ExUnit.Runner do
     running
   end
 
-  defp spawn_modules(config, [[_ | _] = modules | groups], async?, running) do
+  defp spawn_modules(config, [{_group, [_ | _] = modules} | groups], async?, running) do
     if max_failures_reached?(config) do
       running
     else
