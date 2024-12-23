@@ -241,11 +241,7 @@ defmodule Mix.Compilers.Elixir do
     else
       all_warnings = Keyword.get(opts, :all_warnings, true)
       previous_warnings = previous_warnings(sources, all_warnings)
-<<<<<<< HEAD
-      unless_warnings_as_errors(opts, {status, previous_warnings})
-=======
-      unless_previous_warnings_as_errors(previous_warnings, opts, {:noop, previous_warnings})
->>>>>>> 737162c52 (Merge protocol consolidation into compile.elixir)
+      unless_warnings_as_errors(opts, {:noop, previous_warnings})
     end
   end
 
