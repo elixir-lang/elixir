@@ -263,8 +263,9 @@ defmodule Module.Types.Expr do
     {case_type, context} = of_expr(case_expr, stack, context)
 
     # If we are only type checking the expression and the expression is a literal,
-    # let's mark it as generated, as it is most likely a macro code.
-    if is_atom(case_expr) and {:type_check, :expr} in meta do
+    # let's mark it as generated, as it is most likely a macro code. However, if
+    # no clause is matched, we should still check for that.
+    if Macro.quoted_literal?(case_expr) do
       for {:->, meta, args} <- clauses, do: {:->, [generated: true] ++ meta, args}
     else
       clauses
