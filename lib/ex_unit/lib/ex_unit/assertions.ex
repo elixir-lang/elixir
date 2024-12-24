@@ -786,7 +786,7 @@ defmodule ExUnit.Assertions do
   ## Examples
 
       assert_raise ArithmeticError, "bad argument in arithmetic expression", fn ->
-        1 + "test"
+        1 / 0
       end
 
       assert_raise RuntimeError, ~r/^today's lucky number is 0\.\d+!$/, fn ->
