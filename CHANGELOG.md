@@ -225,6 +225,36 @@ You may also prefer to write using guards:
 
     def foo(x, y, z) when x == y and y == z
 
+## v1.18.1 (2024-12-24)
+
+### 1. Enhancements
+
+  * [Kernel] Do not emit type violation warnings when comparing or matching against literals
+  * [Kernel] Do not validate clauses of private overridable functions
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Code.Fragment] Ensure `Code.Fragment.container_cursor_to_quoted/2` with `:trailing_fragment` parses expressions that were supported in previous versions
+  * [Kernel] Do not crash when typing violation is detected on dynamic dispatch
+  * [Kernel] Properly annotate the source for warnings emitted by the compiler with the `@file` annotation
+  * [Kernel] Properly annotate the source for warnings emitted by the type system with the `@file` annotation
+  * [Kernel] Remove `:no_parens` metadata when using capture with arity on all cases
+  * [Kernel] Ensure diagnostic traces are kept backwards compatible
+
+#### ExUnit
+
+  * [ExUnit.Case] Ensure async groups do not run concurrenly while the test suite is still loading
+  * [ExUnit.Case] Ensure `--repeat-until-failure` can be combined with groups
+
+#### Mix
+
+  * [mix compile.elixir] Store compilation results if compilation fails due to `--warnings-as-errors`
+  * [mix deps.loadpaths] Add build lock
+  * [mix escript.build] Ensure build succeeds when protocol consolidation is disabled
+  * [Mix.Shell] Ensure encoding is properly respected on Windows and Unix systems
+
 ## v1.18.0 (2024-12-19)
 
 ### 1. Enhancements
