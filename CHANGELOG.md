@@ -7,11 +7,11 @@
 #### Elixir
 
   * [Code] Add `:migrate_call_parens_on_pipe` formatter option
-  * [Kernel] Add `min/2` and `max/2` as valid guards
+  * [Kernel] Support `min/2` and `max/2` as guards
 
 #### IEx
 
-  * [IEx.Autocomplete] Functions annotated with `@doc group: "Name"` metadata will appear in disctint groups during autocompletion
+  * [IEx.Autocomplete] Functions annotated with `@doc group: "Name"` metadata will appear in within their own groups in autocompletion
 
 ### 2. Bug fixes
 
@@ -23,7 +23,7 @@
 
 #### Mix
 
-  * [mix compile] `--no-protocol-consolidation` is deprecated in favor of `--no-consolidate-protocols` for consistency with the `mix.exs` flag
+  * [mix compile] `--no-protocol-consolidation` is deprecated in favor of `--no-consolidate-protocols` for consistency with `mix.exs` configuration
   * [mix compile.protocols] Protocol consolidation is now part of `compile.elixir` and has no effect
 
 ### 4. Hard deprecations
