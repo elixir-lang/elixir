@@ -5,7 +5,7 @@ defmodule TestStale.MixProject do
     [
       app: :test_stale,
       version: "0.0.1",
-      test_pattern: "*_test_stale.exs"
+      test_load_filters: [fn file -> String.ends_with?(file, "_test_stale.exs") end]
     ]
   end
 end
