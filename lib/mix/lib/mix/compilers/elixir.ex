@@ -1021,8 +1021,8 @@ defmodule Mix.Compilers.Elixir do
     pid =
       spawn_link(fn ->
         compile_opts = [
-          after_persistence: fn ->
-            compiler_call(parent, ref, {:after_persistence, opts})
+          after_compile: fn ->
+            compiler_call(parent, ref, {:after_compile, opts})
           end,
           each_cycle: fn ->
             compiler_call(parent, ref, {:each_cycle, stale_modules, dest, timestamp})
@@ -1061,8 +1061,8 @@ defmodule Mix.Compilers.Elixir do
 
   defp compiler_loop(ref, pid, state, cwd) do
     receive do
-      {^ref, {:after_persistence, opts}} ->
-        {response, state} = after_persistence(state, opts)
+      {^ref, {:after_compile, opts}} ->
+        {response, state} = after_compile(state, opts)
         send(pid, {ref, response})
         compiler_loop(ref, pid, state, cwd)
 
@@ -1095,7 +1095,7 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp after_persistence(state, opts) do
+  defp after_compile(state, opts) do
     {modules, exports, sources, changed, pending_modules, stale_exports, consolidation} = state
 
     state =

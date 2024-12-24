@@ -122,6 +122,10 @@ defmodule Kernel.ParallelCompiler do
 
   ## Options
 
+    * `:after_compile` - invoked after all modules are compiled, but before
+      they are verified. If the files are being written to disk, such as in
+      `compile_to_path/3`, this will be invoked after the files are written
+
     * `:each_file` - for each file compiled, invokes the callback passing the
       file
 
@@ -138,8 +142,6 @@ defmodule Kernel.ParallelCompiler do
         further modules to compile
       * `{:runtime, modules, warnings}` - to stop compilation and verify the list
         of modules because dependent modules have changed
-
-    * `:after_persistence` - ...
 
     * `:long_compilation_threshold` - the timeout (in seconds) to check for modules
       taking too long to compile. For each file that exceeds the threshold, the
@@ -285,7 +287,7 @@ defmodule Kernel.ParallelCompiler do
       spawn_workers(files, %{}, %{}, [], %{}, [], [], %{
         beam_timestamp: Keyword.get(options, :beam_timestamp),
         dest: Keyword.get(options, :dest),
-        after_persistence: Keyword.get(options, :after_persistence, fn -> :ok end),
+        after_compile: Keyword.get(options, :after_compile, fn -> :ok end),
         each_cycle: Keyword.get(options, :each_cycle, fn -> {:runtime, [], []} end),
         each_file: Keyword.get(options, :each_file, fn _, _ -> :ok end) |> each_file(),
         each_long_compilation: Keyword.get(options, :each_long_compilation, fn _file -> :ok end),
@@ -343,7 +345,7 @@ defmodule Kernel.ParallelCompiler do
 
   defp verify_modules(result, compile_warnings, dependent_modules, state) do
     modules = write_module_binaries(result, state.output, state.beam_timestamp)
-    _ = state.after_persistence.()
+    _ = state.after_compile.()
     runtime_warnings = maybe_check_modules(result, dependent_modules, state)
     info = %{compile_warnings: Enum.reverse(compile_warnings), runtime_warnings: runtime_warnings}
     {{:ok, modules, info}, state}
