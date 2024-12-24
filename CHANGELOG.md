@@ -21,6 +21,11 @@
 
   * [Node] `Node.start/2-3` is deprecated in favor of `Node.start/2` with a keyword list
 
+#### Mix
+
+  * [mix compile] `--no-protocol-consolidation` is deprecated in favor of `--no-consolidate-protocols` for consistency with the `mix.exs` flag
+  * [mix compile.protocols] Protocol consolidation is now part of `compile.elixir` and has no effect
+
 ### 4. Hard deprecations
 
 #### Elixir
