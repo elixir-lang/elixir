@@ -803,7 +803,8 @@ defmodule MacroTest do
               true
             else
               :error -> false
-            end
+            end,
+            print_location: false
           )
         end
 
