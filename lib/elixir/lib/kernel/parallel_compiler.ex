@@ -122,6 +122,10 @@ defmodule Kernel.ParallelCompiler do
 
   ## Options
 
+    * `:after_compile` - invoked after all modules are compiled, but before
+      they are verified. If the files are being written to disk, such as in
+      `compile_to_path/3`, this will be invoked after the files are written
+
     * `:each_file` - for each file compiled, invokes the callback passing the
       file
 
@@ -258,13 +262,6 @@ defmodule Kernel.ParallelCompiler do
     {status, modules_or_errors, info} =
       try do
         spawn_workers(schedulers, cache, files, output, options)
-      else
-        {:ok, outcome, info} ->
-          beam_timestamp = Keyword.get(options, :beam_timestamp)
-          {:ok, write_module_binaries(outcome, output, beam_timestamp), info}
-
-        {:error, errors, info} ->
-          {:error, errors, info}
       after
         Module.ParallelChecker.stop(cache)
       end
@@ -288,7 +285,9 @@ defmodule Kernel.ParallelCompiler do
 
     {outcome, state} =
       spawn_workers(files, %{}, %{}, [], %{}, [], [], %{
+        beam_timestamp: Keyword.get(options, :beam_timestamp),
         dest: Keyword.get(options, :dest),
+        after_compile: Keyword.get(options, :after_compile, fn -> :ok end),
         each_cycle: Keyword.get(options, :each_cycle, fn -> {:runtime, [], []} end),
         each_file: Keyword.get(options, :each_file, fn _, _ -> :ok end) |> each_file(),
         each_long_compilation: Keyword.get(options, :each_long_compilation, fn _file -> :ok end),
@@ -345,9 +344,11 @@ defmodule Kernel.ParallelCompiler do
   ## Verification
 
   defp verify_modules(result, compile_warnings, dependent_modules, state) do
+    modules = write_module_binaries(result, state.output, state.beam_timestamp)
+    _ = state.after_compile.()
     runtime_warnings = maybe_check_modules(result, dependent_modules, state)
     info = %{compile_warnings: Enum.reverse(compile_warnings), runtime_warnings: runtime_warnings}
-    {{:ok, result, info}, state}
+    {{:ok, modules, info}, state}
   end
 
   defp maybe_check_modules(result, runtime_modules, state) do

@@ -29,7 +29,7 @@ defmodule Mix.Tasks.CompileTest do
     msg = "\nEnabled compilers: yecc, leex, erlang, elixir, app, protocols"
     assert_received {:mix_shell, :info, [^msg]}
 
-    assert_received {:mix_shell, :info, ["mix compile.elixir    # " <> _]}
+    assert_received {:mix_shell, :info, ["mix compile.elixir # " <> _]}
   end
 
   @tag project: [compilers: [:elixir, :app, :custom]]
@@ -55,22 +55,9 @@ defmodule Mix.Tasks.CompileTest do
       assert_received {:mix_shell, :info, ["Generated sample app"]}
       assert File.regular?("_build/dev/lib/sample/consolidated/Elixir.Enumerable.beam")
 
-      # Noop
       Mix.Task.clear()
       assert Mix.Task.run("compile", ["--verbose"]) == {:noop, []}
       refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-
-      # Consolidates protocols if manifest is out of date
-      File.rm("_build/dev/lib/sample/.mix/compile.protocols")
-      Mix.Task.clear()
-      assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
-      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      assert File.regular?("_build/dev/lib/sample/consolidated/Elixir.Enumerable.beam")
-
-      # Purge so consolidated is picked up
-      purge([Enumerable])
-      assert Mix.Tasks.App.Start.run(["--verbose"]) == :ok
-      assert Protocol.consolidated?(Enumerable)
     end)
   end
 

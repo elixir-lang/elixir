@@ -24,8 +24,7 @@ defmodule Mix.Tasks.Compile do
       which are `[:erlang, :elixir, :app]`.
 
     * `:consolidate_protocols` - when `true`, runs protocol
-      consolidation via the `mix compile.protocols` task. The default
-      value is `true`.
+      consolidation after compiling Elixir. The default value is `true`.
 
     * `:build_path` - the directory where build artifacts
       should be written to. This option is intended only for
@@ -151,26 +150,22 @@ defmodule Mix.Tasks.Compile do
       Code.prepend_paths(loaded_paths -- :code.get_path())
     end
 
-    consolidate_protocols? =
-      config[:consolidate_protocols] and "--no-protocol-consolidation" not in args
-
     res =
       cond do
         "--no-compile" in args ->
           Mix.Task.reenable("compile")
           :noop
 
-        consolidate_protocols? and reconsolidate_protocols?(res) ->
-          Mix.Task.run("compile.protocols", args)
-          :ok
+        Mix.Project.umbrella?(config) ->
+          Mix.Compilers.Protocol.umbrella(args, res)
 
         true ->
           res
       end
 
-    with true <- consolidate_protocols?,
-         path = Mix.Project.consolidation_path(config),
-         {:ok, protocols} <- File.ls(path) do
+    path = Mix.Project.consolidation_path(config)
+
+    with {:ok, protocols} <- File.ls(path) do
       # We don't cache consolidation path as we may write to it
       Code.prepend_path(path)
       Enum.each(protocols, &load_protocol/1)
@@ -207,12 +202,6 @@ defmodule Mix.Tasks.Compile do
 
   @deprecated "Use Mix.Task.Compiler.manifests/0 instead"
   defdelegate manifests, to: Mix.Task.Compiler
-
-  ## Consolidation handling
-
-  defp reconsolidate_protocols?(:ok), do: true
-  defp reconsolidate_protocols?(:noop), do: not Mix.Tasks.Compile.Protocols.consolidated?()
-  defp reconsolidate_protocols?(:error), do: false
 
   defp load_protocol(file) do
     case file do

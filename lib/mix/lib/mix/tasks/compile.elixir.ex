@@ -90,6 +90,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   @switches [
     force: :boolean,
     docs: :boolean,
+    consolidate_protocols: :boolean,
     warnings_as_errors: :boolean,
     ignore_module_conflict: :boolean,
     debug_info: :boolean,
@@ -124,6 +125,14 @@ defmodule Mix.Tasks.Compile.Elixir do
       |> tracers_opts(tracers)
       |> profile_opts()
 
+    opts =
+      if "--no-protocol-consolidation" in args do
+        # TODO: Deprecate me on Elixir v1.23
+        Keyword.put(opts, :consolidate_protocols, false)
+      else
+        opts ++ Keyword.take(project, [:consolidate_protocols])
+      end
+
     # Having compilations racing with other is most undesired,
     # so we wrap the compiler in a lock.
 
@@ -148,8 +157,7 @@ defmodule Mix.Tasks.Compile.Elixir do
 
   @impl true
   def diagnostics do
-    dest = Mix.Project.compile_path()
-    Mix.Compilers.Elixir.diagnostics(manifest(), dest)
+    Mix.Compilers.Elixir.diagnostics(manifest())
   end
 
   @impl true
