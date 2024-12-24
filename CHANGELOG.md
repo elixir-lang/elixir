@@ -11,7 +11,7 @@
 
 #### IEx
 
-  * [IEx.Autocomplete] Functions annotated with `@doc group: "Name"` metadata will appear in within their own groups in autocompletion
+  * [IEx.Autocomplete] Functions annotated with `@doc group: "Name"` metadata will appear within their own groups in autocompletion
 
 ### 2. Bug fixes
 
