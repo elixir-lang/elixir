@@ -400,11 +400,19 @@ defmodule Module.Types.Apply do
     end
   end
 
-  def remote(:erlang, name, [left, right] = args_types, expr, stack, context)
+  def remote(
+        :erlang,
+        name,
+        [left, right] = args_types,
+        {_, _, args} = expr,
+        stack,
+        context
+      )
       when name in [:==, :"/=", :"=:=", :"=/="] do
     context =
       cond do
-        stack.mode == :infer ->
+        # We ignore quoted literals as they most likely come from generated code.
+        stack.mode == :infer or Macro.quoted_literal?(args) ->
           context
 
         name in [:==, :"/="] and number_type?(left) and number_type?(right) ->

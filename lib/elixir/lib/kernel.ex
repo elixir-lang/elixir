@@ -1974,7 +1974,7 @@ defmodule Kernel do
 
   defp build_boolean_check(operator, check, true_clause, false_clause) do
     annotate_case(
-      [optimize_boolean: true, type_check: :expr],
+      [optimize_boolean: true],
       quote do
         case unquote(check) do
           false -> unquote(false_clause)
@@ -2008,7 +2008,7 @@ defmodule Kernel do
     assert_no_match_or_guard_scope(__CALLER__.context, "!")
 
     annotate_case(
-      [optimize_boolean: true, type_check: :expr],
+      [optimize_boolean: true],
       quote do
         case unquote(value) do
           x when :"Elixir.Kernel".in(x, [false, nil]) -> false
@@ -2022,7 +2022,7 @@ defmodule Kernel do
     assert_no_match_or_guard_scope(__CALLER__.context, "!")
 
     annotate_case(
-      [optimize_boolean: true, type_check: :expr],
+      [optimize_boolean: true],
       quote do
         case unquote(value) do
           x when :"Elixir.Kernel".in(x, [false, nil]) -> true
@@ -3912,7 +3912,7 @@ defmodule Kernel do
 
   defp build_if(condition, do: do_clause, else: else_clause) do
     annotate_case(
-      [optimize_boolean: true, type_check: :expr],
+      [optimize_boolean: true],
       quote do
         case unquote(condition) do
           x when :"Elixir.Kernel".in(x, [false, nil]) -> unquote(else_clause)

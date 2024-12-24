@@ -860,7 +860,11 @@ defmodule Module.Types.ExprTest do
     test "in dynamic mode" do
       assert typedyn!([x = 123, y = 456.0], x < y) == dynamic(boolean())
       assert typedyn!([x = 123, y = 456.0], x == y) == dynamic(boolean())
-      assert typedyn!(123 == 456) == boolean()
+      assert typedyn!([x = 123, y = 456], x == y) == dynamic(boolean())
+    end
+
+    test "using literals" do
+      assert typecheck!(:foo == :bar) == boolean()
     end
 
     test "min/max" do
@@ -1060,6 +1064,15 @@ defmodule Module.Types.ExprTest do
   end
 
   describe "case" do
+    test "does not type check literals" do
+      assert typecheck!(
+               case :dev do
+                 :dev -> :ok
+                 :prod -> :error
+               end
+             ) == atom([:ok, :error])
+    end
+
     test "returns unions of all clauses" do
       assert typecheck!(
                [x],
@@ -1115,7 +1128,7 @@ defmodule Module.Types.ExprTest do
   end
 
   describe "conditionals" do
-    test "if does not report on literal atoms" do
+    test "if does not report on literals" do
       assert typecheck!(
                if true do
                  :ok
@@ -1123,16 +1136,8 @@ defmodule Module.Types.ExprTest do
              ) == atom([:ok, nil])
     end
 
-    test "and does not report on literal atoms" do
+    test "and does not report on literals" do
       assert typecheck!(false and true) == boolean()
-    end
-
-    test "and reports on non-atom literals" do
-      assert typeerror!(1 and true) == ~l"""
-             the following conditional expression will always evaluate to integer():
-
-                 1
-             """
     end
   end
 
