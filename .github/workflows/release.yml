@@ -71,17 +71,14 @@ jobs:
             run_job: true
     runs-on: ubuntu-22.04
     steps:
-      - if: ${{ !matrix.run_job }}
-        run: |
-          echo "Erlang/OTP ${{ matrix.otp_build }} build not required for this branch - skipping job"
-          exit 0
-
       - uses: actions/checkout@v4
+        if: matrix.run_job
         with:
           fetch-depth: 50
 
       - name: "Build Release"
         uses: ./.github/workflows/release_pre_built
+        if: matrix.run_job
         with:
           otp_version: ${{ matrix.otp_version }}
           otp: ${{ matrix.otp }}
@@ -90,36 +87,39 @@ jobs:
       - name: "Attest docs provenance"
         uses: actions/attest-build-provenance@v2
         id: attest-docs-provenance
-        if: ${{ matrix.build_docs }}
+        if: matrix.run_job && matrix.build_docs
         with:
           subject-path: "Docs.zip"
+
       - name: "Copy docs provenance"
-        if: ${{ matrix.build_docs }}
+        if: matrix.run_job && matrix.build_docs
         run: cp "$ATTESTATION" Docs.zip.sigstore
         env:
           ATTESTATION: "${{ steps.attest-docs-provenance.outputs.bundle-path }}"
 
       - name: Create Docs Hashes
-        if: ${{ matrix.build_docs }}
+        if: matrix.run_job && matrix.build_docs
         run: |
           shasum -a 1   Docs.zip > Docs.zip.sha1sum
           shasum -a 256 Docs.zip > Docs.zip.sha256sum
 
       - name: "Upload linux release artifacts"
         uses: actions/upload-artifact@v4
+        if: matrix.run_job
         with:
           name: build-linux-elixir-otp-${{ matrix.otp }}
           path: elixir-otp-${{ matrix.otp }}.zip
 
       - name: "Upload windows release artifacts"
         uses: actions/upload-artifact@v4
+        if: matrix.run_job
         with:
           name: build-windows-elixir-otp-${{ matrix.otp }}
           path: elixir-otp-${{ matrix.otp }}.exe
 
       - name: "Upload doc artifacts"
         uses: actions/upload-artifact@v4
-        if: ${{ matrix.build_docs }}
+        if: matrix.run_job && matrix.build_docs
         with:
           name: Docs
           path: Docs.zip*
@@ -145,15 +145,9 @@ jobs:
         with:
           name: build-${{ matrix.flavor }}-elixir-otp-${{ matrix.otp }}
 
-      - name: "Check download status"
-        if: steps.download.outcome != 'success'
-        run: |
-          echo "Erlang/OTP ${{ matrix.otp_build }} build not found - skipping job"
-          exit 0
-
       - name: "Sign files with Trusted Signing"
-        if: github.repository == 'elixir-lang/elixir' && matrix.flavor == 'windows'
         uses: azure/trusted-signing-action@v0.5.0
+        if: github.repository == 'elixir-lang/elixir' && matrix.flavor == 'windows' && steps.download.outcome == 'success'
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -168,18 +162,21 @@ jobs:
           timestamp-digest: SHA256
 
       - name: "Attest release provenance"
-        uses: actions/attest-build-provenance@v2
         id: attest-provenance
+        uses: actions/attest-build-provenance@v2
+        if: steps.download.outcome == 'success'
         with:
           subject-path: ${{ env.RELEASE_FILE }}
+
       - name: "Copy release .zip provenance"
+        if: steps.download.outcome == 'success'
         shell: bash
         run: cp "$ATTESTATION" "${RELEASE_FILE}.sigstore"
         env:
           ATTESTATION: "${{ steps.attest-provenance.outputs.bundle-path }}"
 
       - name: Create Release Hashes
-        if: matrix.flavor == 'windows'
+        if: matrix.flavor == 'windows' && steps.download.outcome == 'success'
         shell: pwsh
         run: |
           $sha1 = Get-FileHash "$env:RELEASE_FILE" -Algorithm SHA1
@@ -189,7 +186,7 @@ jobs:
           $sha256.Hash.ToLower() + "  " + $env:RELEASE_FILE | Out-File "$env:RELEASE_FILE.sha256sum"
 
       - name: Create Release Hashes
-        if: matrix.flavor == 'linux'
+        if: matrix.flavor == 'linux' && steps.download.outcome == 'success'
         shell: bash
         run: |
           shasum -a 1   "$RELEASE_FILE" > "${RELEASE_FILE}.sha1sum"
@@ -197,6 +194,7 @@ jobs:
 
       - name: "Upload linux release artifacts"
         uses: actions/upload-artifact@v4
+        if: steps.download.outcome == 'success'
         with:
           name: sign-${{ matrix.flavor }}-elixir-otp-${{ matrix.otp }}
           path: ${{ env.RELEASE_FILE }}*
