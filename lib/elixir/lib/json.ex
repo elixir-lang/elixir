@@ -5,8 +5,8 @@ defprotocol JSON.Encoder do
   If you have a struct, you can derive the implementation of this protocol
   by specifying which fields should be encoded to JSON:
 
-        @derive {JSON.Encoder, only: [....]}
-        defstruct ...
+      @derive {JSON.Encoder, only: [....]}
+      defstruct ...
 
   It is also possible to encode all fields or skip some fields via the
   `:except` option:
