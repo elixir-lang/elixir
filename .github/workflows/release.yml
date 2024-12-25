@@ -69,9 +69,13 @@ jobs:
             otp_version: "27.0"
             build_docs: build_docs
             run_job: true
-    if: ${{ matrix.run_job }}
     runs-on: ubuntu-22.04
     steps:
+      - if: ${{ !matrix.run_job }}
+        run: |
+          echo "Erlang/OTP ${{ matrix.otp_build }} build not required for this branch - skipping job"
+          exit 0
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 50
@@ -125,7 +129,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        otp: [26, 27]
+        otp: [25, 26, 27]
         flavor: [windows, linux]
 
     env:
@@ -134,9 +138,18 @@ jobs:
     runs-on: ${{ matrix.flavor == 'linux' && 'ubuntu-22.04' || 'windows-2022' }}
 
     steps:
-      - uses: actions/download-artifact@v4
+      - name: "Download build"
+        id: download
+        continue-on-error: true
+        uses: actions/download-artifact@v4
         with:
           name: build-${{ matrix.flavor }}-elixir-otp-${{ matrix.otp }}
+
+      - name: "Check download status"
+        if: steps.download.outcome != 'success'
+        run: |
+          echo "Erlang/OTP ${{ matrix.otp_build }} build not found - skipping job"
+          exit 0
 
       - name: "Sign files with Trusted Signing"
         if: github.repository == 'elixir-lang/elixir' && matrix.flavor == 'windows'
