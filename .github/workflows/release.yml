@@ -69,7 +69,7 @@ jobs:
             otp_version: "27.0"
             build_docs: build_docs
             run_job: true
-    if: ${{ matrix.run_job == 'true' }}
+    if: ${{ matrix.run_job }}
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
