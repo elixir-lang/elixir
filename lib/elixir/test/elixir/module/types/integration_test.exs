@@ -79,6 +79,7 @@ defmodule Module.Types.IntegrationTest do
             Unknown
           ] do
           def itself(data), do: data
+          def this_wont_warn(:ok), do: :ok
         end
         """
       }
@@ -87,6 +88,8 @@ defmodule Module.Types.IntegrationTest do
 
       assert stderr =~
                "you are implementing a protocol for Unknown but said module is not available"
+
+      refute stderr =~ "this_wont_warn"
 
       itself_arg = fn mod ->
         {_, %{sig: {:infer, [{[value], value}]}}} =

@@ -130,17 +130,25 @@ defmodule Module.Types do
 
   defp impl_for(attrs) do
     case List.keyfind(attrs, :__impl__, 0) do
-      {:__impl__, [protocol: _, for: for]} -> for
-      _ -> nil
+      {:__impl__, [protocol: protocol, for: for]} ->
+        if Code.ensure_loaded?(protocol) and function_exported?(protocol, :behaviour_info, 1) do
+          {for, protocol.behaviour_info(:callbacks)}
+        else
+          nil
+        end
+
+      _ ->
+        nil
     end
   end
 
-  defp default_domain({fun, arity}, impl) when impl != nil and fun != :__impl__ and arity >= 1 do
-    [Module.Types.Of.impl(impl) | List.duplicate(Descr.dynamic(), arity - 1)]
-  end
-
-  defp default_domain({_, arity}, _) do
-    List.duplicate(Descr.dynamic(), arity)
+  defp default_domain({_, arity} = fun_arity, impl) do
+    with {for, callbacks} <- impl,
+         true <- fun_arity in callbacks do
+      [Module.Types.Of.impl(for) | List.duplicate(Descr.dynamic(), arity - 1)]
+    else
+      _ -> List.duplicate(Descr.dynamic(), arity)
+    end
   end
 
   defp undefined_function!(reason, meta, {fun, arity}, stack, env) do
