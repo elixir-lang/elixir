@@ -59,11 +59,17 @@ jobs:
       fail-fast: true
       matrix:
         include:
+          - otp: 25
+            otp_version: "25.3"
+            run_job: ${{ startsWith(github.ref_name, 'v1.18') }}
           - otp: 26
             otp_version: "26.0"
+            run_job: true
           - otp: 27
             otp_version: "27.0"
             build_docs: build_docs
+            run_job: true
+    if: ${{ matrix.run_job == 'true' }}
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -113,7 +119,7 @@ jobs:
         with:
           name: Docs
           path: Docs.zip*
-  
+
   sign:
     needs: [build]
     strategy:
@@ -158,14 +164,14 @@ jobs:
         run: cp "$ATTESTATION" "${RELEASE_FILE}.sigstore"
         env:
           ATTESTATION: "${{ steps.attest-provenance.outputs.bundle-path }}"
-      
+
       - name: Create Release Hashes
         if: matrix.flavor == 'windows'
         shell: pwsh
         run: |
           $sha1 = Get-FileHash "$env:RELEASE_FILE" -Algorithm SHA1
           $sha1.Hash.ToLower() + "  " + $env:RELEASE_FILE | Out-File "$env:RELEASE_FILE.sha1sum"
-          
+
           $sha256 = Get-FileHash "$env:RELEASE_FILE" -Algorithm SHA256
           $sha256.Hash.ToLower() + "  " + $env:RELEASE_FILE | Out-File "$env:RELEASE_FILE.sha256sum"
 
@@ -189,7 +195,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: '{sign-*-elixir-otp-*,Docs}'
+          pattern: "{sign-*-elixir-otp-*,Docs}"
           merge-multiple: true
 
       - name: Upload Pre-built
@@ -233,7 +239,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: '{sign-*-elixir-otp-*,Docs}'
+          pattern: "{sign-*-elixir-otp-*,Docs}"
           merge-multiple: true
 
       - name: Init purge keys file
