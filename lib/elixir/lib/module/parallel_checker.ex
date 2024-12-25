@@ -47,8 +47,17 @@ defmodule Module.ParallelChecker do
   @doc """
   Spawns a process that runs the parallel checker.
   """
-  def spawn({pid, {checker, table}}, module, module_map, log?) do
-    inner_spawn(pid, checker, table, module, cache_from_module_map(table, module_map), log?)
+  def spawn({pid, {checker, table}}, module, module_map, beam_location, log?) do
+    # Protocols may have been consolidated. So if we know their beam location,
+    # we discard their module map on purpose and start from file.
+    info =
+      if beam_location != [] and List.keymember?(module_map.attributes, :__protocol__, 0) do
+        List.to_string(beam_location)
+      else
+        cache_from_module_map(table, module_map)
+      end
+
+    inner_spawn(pid, checker, table, module, info, log?)
   end
 
   defp inner_spawn(pid, checker, table, module, info, log?) do
@@ -221,7 +230,7 @@ defmodule Module.ParallelChecker do
   ## Module checking
 
   defp check_module(module_tuple, cache, log?) do
-    {module, file, line, definitions, no_warn_undefined, behaviours, impls, after_verify} =
+    {module, file, line, definitions, no_warn_undefined, behaviours, impls, attrs, after_verify} =
       module_tuple
 
     behaviour_warnings =
@@ -236,7 +245,7 @@ defmodule Module.ParallelChecker do
 
     diagnostics =
       module
-      |> Module.Types.warnings(file, definitions, no_warn_undefined, cache)
+      |> Module.Types.warnings(file, attrs, definitions, no_warn_undefined, cache)
       |> Kernel.++(behaviour_warnings)
       |> group_warnings()
       |> emit_warnings(file, log?)
@@ -273,7 +282,10 @@ defmodule Module.ParallelChecker do
       |> extract_no_warn_undefined()
       |> merge_compiler_no_warn_undefined()
 
-    {module, file, line, definitions, no_warn_undefined, behaviours, impls, after_verify}
+    attributes = Keyword.take(attributes, [:__protocol__, :__impl__])
+
+    {module, file, line, definitions, no_warn_undefined, behaviours, impls, attributes,
+     after_verify}
   end
 
   defp extract_no_warn_undefined(compile_opts) do

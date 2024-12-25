@@ -577,36 +577,6 @@ defimpl Inspect, for: Function do
   end
 end
 
-defimpl Inspect, for: Inspect.Error do
-  @impl true
-  def inspect(%{stacktrace: stacktrace} = inspect_error, _opts) do
-    message = Exception.message(inspect_error)
-    format_output(message, stacktrace)
-  end
-
-  defp format_output(message, [_ | _] = stacktrace) do
-    stacktrace = Exception.format_stacktrace(stacktrace)
-
-    """
-    #Inspect.Error<
-    #{Inspect.Error.pad(message, 2)}
-
-      Stacktrace:
-
-    #{stacktrace}
-    >\
-    """
-  end
-
-  defp format_output(message, []) do
-    """
-    #Inspect.Error<
-      #{Inspect.Error.pad(message, 2)}
-    >\
-    """
-  end
-end
-
 defimpl Inspect, for: PID do
   def inspect(pid, _opts) do
     "#PID" <> IO.iodata_to_binary(:erlang.pid_to_list(pid))

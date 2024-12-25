@@ -30,17 +30,26 @@ defmodule Module.Types do
   @modes [:static, :dynamic, :infer, :traversal]
 
   # These functions are not inferred because they are added/managed by the compiler
-  @no_infer [__protocol__: 1, behaviour_info: 1]
+  @no_infer [behaviour_info: 1]
 
   @doc false
-  def infer(module, file, defs, private, used_private, env, {_, cache}) do
-    infer_signatures? = :elixir_config.get(:infer_signatures) and cache != nil
+  def infer(module, file, attrs, defs, private, used_private, env, {_, cache}) do
+    # We don't care about inferring signatures for protocols,
+    # those will be replaced anyway. There is also nothing to
+    # infer if there is no cache system, we only do traversals.
+    infer_signatures? =
+      :elixir_config.get(:infer_signatures) and cache != nil and not protocol?(attrs)
+
+    impl = impl_for(attrs)
 
     finder =
       fn fun_arity ->
         case :lists.keyfind(fun_arity, 1, defs) do
-          {_, kind, _, _} = clause -> {infer_mode(kind, infer_signatures?), clause}
-          false -> false
+          {_, kind, _, _} = clause ->
+            {infer_mode(kind, infer_signatures?), clause, default_domain(fun_arity, impl)}
+
+          false ->
+            false
         end
       end
 
@@ -67,7 +76,11 @@ defmodule Module.Types do
           kind in [:def, :defmacro],
           reduce: {[], context()} do
         {types, context} ->
-          finder = fn _ -> {infer_mode(kind, infer_signatures?), def} end
+          # Optimized version of finder, since we already the definition
+          finder = fn _ ->
+            {infer_mode(kind, infer_signatures?), def, default_domain(fun_arity, impl)}
+          end
+
           {_kind, inferred, context} = local_handler(meta, fun_arity, stack, context, finder)
 
           if infer_signatures? and kind == :def and fun_arity not in @no_infer do
@@ -109,6 +122,25 @@ defmodule Module.Types do
 
   defp infer_mode(kind, infer_signatures?) do
     if infer_signatures? and kind in [:def, :defp], do: :infer, else: :traversal
+  end
+
+  defp protocol?(attrs) do
+    List.keymember?(attrs, :__protocol__, 0)
+  end
+
+  defp impl_for(attrs) do
+    case List.keyfind(attrs, :__impl__, 0) do
+      {:__impl__, [protocol: _, for: for]} -> for
+      _ -> nil
+    end
+  end
+
+  defp default_domain({fun, arity}, impl) when impl != nil and fun != :__impl__ and arity >= 1 do
+    [Module.Types.Of.impl(impl) | List.duplicate(Descr.dynamic(), arity - 1)]
+  end
+
+  defp default_domain({_, arity}, _) do
+    List.duplicate(Descr.dynamic(), arity)
   end
 
   defp undefined_function!(reason, meta, {fun, arity}, stack, env) do
@@ -159,10 +191,12 @@ defmodule Module.Types do
   end
 
   @doc false
-  def warnings(module, file, defs, no_warn_undefined, cache) do
+  def warnings(module, file, attrs, defs, no_warn_undefined, cache) do
+    impl = impl_for(attrs)
+
     finder = fn fun_arity ->
       case :lists.keyfind(fun_arity, 1, defs) do
-        {_, _, _, _} = clause -> {:dynamic, clause}
+        {_, _, _, _} = clause -> {:dynamic, clause, default_domain(fun_arity, impl)}
         false -> false
       end
     end
@@ -172,7 +206,8 @@ defmodule Module.Types do
 
     context =
       Enum.reduce(defs, context(), fn {fun_arity, _kind, meta, _clauses} = def, context ->
-        finder = fn _ -> {:dynamic, def} end
+        # Optimized version of finder, since we already the definition
+        finder = fn _ -> {:dynamic, def, default_domain(fun_arity, impl)} end
         {_kind, _inferred, context} = local_handler(meta, fun_arity, stack, context, finder)
         context
       end)
@@ -211,11 +246,11 @@ defmodule Module.Types do
 
       local_sigs ->
         case finder.(fun_arity) do
-          {mode, {fun_arity, kind, meta, clauses}} ->
+          {mode, {fun_arity, kind, meta, clauses}, expected} ->
             context = put_in(context.local_sigs, Map.put(local_sigs, fun_arity, kind))
 
             {inferred, mapping, context} =
-              local_handler(fun_arity, kind, meta, clauses, mode, stack, context)
+              local_handler(fun_arity, kind, meta, clauses, expected, mode, stack, context)
 
             context =
               update_in(context.local_sigs, &Map.put(&1, fun_arity, {kind, inferred, mapping}))
@@ -228,8 +263,8 @@ defmodule Module.Types do
     end
   end
 
-  defp local_handler({fun, arity} = fun_arity, kind, meta, clauses, mode, stack, context) do
-    expected = List.duplicate(Descr.dynamic(), arity)
+  defp local_handler(fun_arity, kind, meta, clauses, expected, mode, stack, context) do
+    {fun, _arity} = fun_arity
     stack = stack |> fresh_stack(mode, fun_arity) |> with_file_meta(meta)
 
     {_, _, mapping, clauses_types, clauses_context} =

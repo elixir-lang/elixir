@@ -4,6 +4,7 @@ defmodule Module.Types.IntegrationTest do
   use ExUnit.Case
 
   import ExUnit.CaptureIO
+  import Module.Types.Descr
 
   setup_all do
     previous = Application.get_env(:elixir, :ansi_enabled, false)
@@ -50,6 +51,69 @@ defmodule Module.Types.IntegrationTest do
       assert read_chunk(modules[C]).exports == [
                {{:behaviour_info, 1}, %{sig: :none}}
              ]
+    end
+
+    test "writes exports for inferred protocols and implementations" do
+      files = %{
+        "pi.ex" => """
+        defprotocol Itself do
+          @fallback_to_any true
+          def itself(data)
+        end
+
+        defimpl Itself,
+          for: [
+            Atom,
+            BitString,
+            Float,
+            Function,
+            Integer,
+            List,
+            Map,
+            Port,
+            PID,
+            Reference,
+            Tuple,
+            Any,
+            Range,
+            Unknown
+          ] do
+          def itself(data), do: data
+        end
+        """
+      }
+
+      {modules, stderr} = with_io(:stderr, fn -> compile_modules(files) end)
+
+      assert stderr =~
+               "you are implementing a protocol for Unknown but said module is not available"
+
+      itself_arg = fn mod ->
+        {_, %{sig: {:infer, [{[value], value}]}}} =
+          List.keyfind(read_chunk(modules[mod]).exports, {:itself, 1}, 0)
+
+        value
+      end
+
+      assert itself_arg.(Itself.Atom) == dynamic(atom())
+      assert itself_arg.(Itself.BitString) == dynamic(binary())
+      assert itself_arg.(Itself.Float) == dynamic(float())
+      assert itself_arg.(Itself.Function) == dynamic(fun())
+      assert itself_arg.(Itself.Integer) == dynamic(integer())
+      assert itself_arg.(Itself.List) == dynamic(list(term()))
+      assert itself_arg.(Itself.Map) == dynamic(open_map())
+      assert itself_arg.(Itself.Port) == dynamic(port())
+      assert itself_arg.(Itself.PID) == dynamic(pid())
+      assert itself_arg.(Itself.Reference) == dynamic(reference())
+      assert itself_arg.(Itself.Tuple) == dynamic(tuple())
+      assert itself_arg.(Itself.Any) == dynamic(term())
+
+      assert itself_arg.(Itself.Range) ==
+               dynamic(
+                 closed_map(__struct__: atom([Range]), first: term(), last: term(), step: term())
+               )
+
+      assert itself_arg.(Itself.Unknown) == dynamic(open_map(__struct__: atom([Unknown])))
     end
   end
 
