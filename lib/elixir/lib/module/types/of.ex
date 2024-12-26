@@ -87,6 +87,40 @@ defmodule Module.Types.Of do
   defp new_trace(expr, type, formatter, stack, traces),
     do: [{expr, stack.file, type, formatter} | traces]
 
+  ## Implementations
+
+  # Right now we are still defaulting all implementations to their dynamic variations.
+  # TODO: What should the default types be once we have typed protocols?
+
+  impls = [
+    {Atom, atom()},
+    {BitString, binary()},
+    {Float, float()},
+    {Function, fun()},
+    {Integer, integer()},
+    {List, list(term())},
+    {Map, open_map()},
+    {Port, port()},
+    {PID, pid()},
+    {Reference, reference()},
+    {Tuple, tuple()},
+    {Any, term()}
+  ]
+
+  for {for, type} <- impls do
+    def impl(unquote(for)), do: unquote(Macro.escape(dynamic(type)))
+  end
+
+  def impl(struct) do
+    # Elixir did not strictly require the implementation to be available, so we need a fallback.
+    # TODO: Assume implementation is available on Elixir v2.0.
+    if info = Code.ensure_loaded?(struct) && struct.__info__(:struct) do
+      dynamic(struct_type(struct, info))
+    else
+      dynamic(open_map(__struct__: atom([struct])))
+    end
+  end
+
   ## Map/structs
 
   @doc """

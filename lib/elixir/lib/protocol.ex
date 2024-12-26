@@ -600,7 +600,7 @@ defmodule Protocol do
   # impl_for/1 dispatch version.
   defp change_debug_info(protocol, {any, definitions}, types) do
     types = if any, do: types, else: List.delete(types, Any)
-    all = [Any] ++ for {_guard, mod} <- __built_in__(), do: mod
+    all = [Any] ++ for {mod, _guard} <- built_in(), do: mod
     structs = types -- all
 
     case List.keytake(definitions, {:__protocol__, 1}, 0) do
@@ -635,7 +635,7 @@ defmodule Protocol do
     line = meta[:line]
 
     clauses =
-      for {guard, mod} <- __built_in__(),
+      for {mod, guard} <- built_in(),
           mod in types,
           do: built_in_clause_for(mod, guard, protocol, meta, line)
 
@@ -804,7 +804,7 @@ defmodule Protocol do
   end
 
   defp after_defprotocol do
-    quote bind_quoted: [built_in: __built_in__()] do
+    quote bind_quoted: [built_in: built_in()] do
       any_impl_for =
         if @fallback_to_any do
           __MODULE__.Any
@@ -830,7 +830,7 @@ defmodule Protocol do
 
       # Define the implementation for built-ins
       :lists.foreach(
-        fn {guard, mod} ->
+        fn {mod, guard} ->
           target = Module.concat(__MODULE__, mod)
 
           Kernel.def impl_for(data) when :erlang.unquote(guard)(data) do
@@ -951,7 +951,7 @@ defmodule Protocol do
       name = Module.concat(protocol, for)
 
       Protocol.assert_protocol!(protocol)
-      Protocol.__ensure_defimpl__(protocol, for, __ENV__)
+      Protocol.__impl__!(protocol, for, __ENV__)
 
       defmodule name do
         @moduledoc false
@@ -1004,7 +1004,7 @@ defmodule Protocol do
       if function_exported?(mod, fun, length(args)) do
         apply(mod, fun, args)
       else
-        __ensure_defimpl__(protocol, for, env)
+        __impl__!(protocol, for, env)
         assert_impl!(protocol, Any, extra)
         impl = Module.concat(protocol, Any)
 
@@ -1037,7 +1037,7 @@ defmodule Protocol do
   end
 
   @doc false
-  def __ensure_defimpl__(protocol, for, env) do
+  def __impl__!(protocol, for, env) do
     if not Code.get_compiler_option(:ignore_already_consolidated) and
          Protocol.consolidated?(protocol) do
       message =
@@ -1049,25 +1049,34 @@ defmodule Protocol do
       IO.warn(message, env)
     end
 
+    # TODO: Make this an error on Elixir v2.0
+    if for != Any and not Keyword.has_key?(built_in(), for) and for != env.module and
+         for not in env.context_modules and
+         not Code.ensure_loaded?(for) do
+      IO.warn(
+        "you are implementing a protocol for #{inspect(for)} but said module is not available. " <>
+          "Make sure the module name is correct. If #{inspect(for)} is an optional dependency, " <>
+          "please wrap the protocol implementation in a Code.ensure_loaded?(#{inspect(for)}) check",
+        env
+      )
+    end
+
     :ok
   end
 
-  ## Helpers
-
-  @doc false
-  def __built_in__ do
+  defp built_in do
     [
-      is_tuple: Tuple,
-      is_atom: Atom,
-      is_list: List,
-      is_map: Map,
-      is_bitstring: BitString,
-      is_integer: Integer,
-      is_float: Float,
-      is_function: Function,
-      is_pid: PID,
-      is_port: Port,
-      is_reference: Reference
+      {Tuple, :is_tuple},
+      {Atom, :is_atom},
+      {List, :is_list},
+      {Map, :is_map},
+      {BitString, :is_bitstring},
+      {Integer, :is_integer},
+      {Float, :is_float},
+      {Function, :is_function},
+      {PID, :is_pid},
+      {Port, :is_port},
+      {Reference, :is_reference}
     ]
   end
 end

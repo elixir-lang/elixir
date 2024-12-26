@@ -155,6 +155,7 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
     put_compiler_modules([Module | CompilerModules]),
     {Result, ModuleE, CallbackE} = eval_form(Line, Module, DataBag, Block, Vars, Prune, E),
     CheckerInfo = checker_info(),
+    BeamLocation = beam_location(ModuleAsCharlist),
 
     {Binary, PersistedAttributes, Autoload} =
       elixir_erl_compiler:spawn(fun() ->
@@ -188,7 +189,7 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
             true -> {#{}, []};
             false ->
               UsedPrivate = bag_lookup_element(DataBag, used_private, 2),
-              'Elixir.Module.Types':infer(Module, File, AllDefinitions, Private, UsedPrivate, E, CheckerInfo)
+              'Elixir.Module.Types':infer(Module, File, Attributes, AllDefinitions, Private, UsedPrivate, E, CheckerInfo)
           end,
 
         RawCompileOpts = bag_lookup_element(DataBag, {accumulate, compile}, 2),
@@ -215,11 +216,11 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
         compile_error_if_tainted(DataSet, E),
         Binary = elixir_erl:compile(ModuleMap),
         Autoload = proplists:get_value(autoload, CompileOpts, true),
-        spawn_parallel_checker(CheckerInfo, Module, ModuleMap),
+        spawn_parallel_checker(CheckerInfo, Module, ModuleMap, BeamLocation),
         {Binary, PersistedAttributes, Autoload}
       end),
 
-    Autoload andalso code:load_binary(Module, beam_location(ModuleAsCharlist), Binary),
+    Autoload andalso code:load_binary(Module, BeamLocation, Binary),
     put_compiler_modules(CompilerModules),
     eval_callbacks(Line, DataBag, after_compile, [CallbackE, Binary], CallbackE),
     elixir_env:trace({on_module, Binary, none}, ModuleE),
@@ -558,15 +559,15 @@ checker_info() ->
     _ -> 'Elixir.Module.ParallelChecker':get()
   end.
 
-spawn_parallel_checker({_, nil}, _Module, _ModuleMap) ->
+spawn_parallel_checker({_, nil}, _Module, _ModuleMap, _BeamLocation) ->
   ok;
-spawn_parallel_checker(CheckerInfo, Module, ModuleMap) ->
+spawn_parallel_checker(CheckerInfo, Module, ModuleMap, BeamLocation) ->
   Log =
     case erlang:get(elixir_code_diagnostics) of
       {_, false} -> false;
       _ -> true
     end,
-  'Elixir.Module.ParallelChecker':spawn(CheckerInfo, Module, ModuleMap, Log).
+  'Elixir.Module.ParallelChecker':spawn(CheckerInfo, Module, ModuleMap, BeamLocation, Log).
 
 make_module_available(Module, Binary) ->
   case get(elixir_module_binaries) of
