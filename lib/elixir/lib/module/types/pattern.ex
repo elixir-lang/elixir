@@ -72,7 +72,8 @@ defmodule Module.Types.Pattern do
          stack,
          context
        ) do
-    with {:ok, type, context} <- of_pattern_intersect(tree, type, pattern, tag, stack, context) do
+    with {:ok, type, context} <-
+           of_pattern_intersect(tree, type, pattern, index, tag, stack, context) do
       acc = [type | acc]
       of_pattern_args_tree(tail, expected_types, changed, index + 1, acc, tag, stack, context)
     end
@@ -115,7 +116,7 @@ defmodule Module.Types.Pattern do
     {[type], context} =
       of_pattern_recur([expected], tag, stack, context, fn [type], [0], context ->
         with {:ok, type, context} <-
-               of_pattern_intersect(tree, type, expr, tag, stack, context) do
+               of_pattern_intersect(tree, type, expr, 0, tag, stack, context) do
           {:ok, [type], context}
         end
       end)
@@ -177,7 +178,7 @@ defmodule Module.Types.Pattern do
                   end
 
                 :error ->
-                  throw({types, badpattern_error(expr, tag, stack, context)})
+                  throw({types, badpattern_error(expr, index, tag, stack, context)})
               end
           end)
 
@@ -216,7 +217,7 @@ defmodule Module.Types.Pattern do
     end)
   end
 
-  defp badpattern_error(expr, tag, stack, context) do
+  defp badpattern_error(expr, index, tag, stack, context) do
     meta =
       if meta = get_meta(expr) do
         meta ++ Keyword.take(stack.meta, [:generated, :line])
@@ -224,15 +225,15 @@ defmodule Module.Types.Pattern do
         stack.meta
       end
 
-    error(__MODULE__, {:badpattern, expr, tag, context}, meta, stack, context)
+    error(__MODULE__, {:badpattern, expr, index, tag, context}, meta, stack, context)
   end
 
-  defp of_pattern_intersect(tree, expected, expr, tag, stack, context) do
+  defp of_pattern_intersect(tree, expected, expr, index, tag, stack, context) do
     actual = of_pattern_tree(tree, context)
     type = intersection(actual, expected)
 
     if empty?(type) do
-      {:error, badpattern_error(expr, tag, stack, context)}
+      {:error, badpattern_error(expr, index, tag, stack, context)}
     else
       {:ok, type, context}
     end
@@ -750,8 +751,8 @@ defmodule Module.Types.Pattern do
   #
   # The match pattern ones have the whole expression instead
   # of a single pattern.
-  def format_diagnostic({:badpattern, pattern_or_expr, tag, context}) do
-    {to_trace, message} = badpattern(tag, pattern_or_expr)
+  def format_diagnostic({:badpattern, pattern_or_expr, index, tag, context}) do
+    {to_trace, message} = badpattern(tag, pattern_or_expr, index)
     traces = collect_traces(to_trace, context)
 
     %{
@@ -760,7 +761,7 @@ defmodule Module.Types.Pattern do
     }
   end
 
-  defp badpattern({:try_else, type}, pattern) do
+  defp badpattern({:try_else, type}, pattern, _) do
     {pattern,
      """
      the following clause will never match:
@@ -773,7 +774,7 @@ defmodule Module.Types.Pattern do
      """}
   end
 
-  defp badpattern({:case, meta, type, expr}, pattern) do
+  defp badpattern({:case, meta, type, expr}, pattern, _) do
     if meta[:type_check] == :expr do
       {expr,
        """
@@ -799,7 +800,7 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  defp badpattern({:match, type}, expr) do
+  defp badpattern({:match, type}, expr, _) do
     {expr,
      """
      the following pattern will never match:
@@ -812,7 +813,32 @@ defmodule Module.Types.Pattern do
      """}
   end
 
-  defp badpattern(_tag, pattern_or_expr) do
+  defp badpattern({:infer, types}, pattern_or_expr, index) do
+    type = Enum.fetch!(types, index)
+
+    if type == dynamic() do
+      {pattern_or_expr,
+       """
+       the #{integer_to_ordinal(index + 1)} pattern in clause will never match:
+
+           #{expr_to_string(pattern_or_expr) |> indent(4)}
+       """}
+    else
+      # This can only happen in protocol implementations
+      {pattern_or_expr,
+       """
+       the #{integer_to_ordinal(index + 1)} pattern in clause will never match:
+
+           #{expr_to_string(pattern_or_expr) |> indent(4)}
+
+       because it is expected to receive type:
+
+           #{to_quoted_string(type) |> indent(4)}
+       """}
+    end
+  end
+
+  defp badpattern(:default, pattern_or_expr, _) do
     {pattern_or_expr,
      """
      the following pattern will never match:

@@ -282,7 +282,7 @@ defmodule Module.Types do
 
           try do
             {args_types, context} =
-              Pattern.of_head(args, guards, expected, :default, meta, stack, context)
+              Pattern.of_head(args, guards, expected, {:infer, expected}, meta, stack, context)
 
             {return_type, context} =
               Expr.of_expr(body, stack, context)

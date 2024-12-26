@@ -53,7 +53,7 @@ defmodule Module.Types.IntegrationTest do
              ]
     end
 
-    test "writes exports for inferred protocols and implementations" do
+    test "writes exports for implementations" do
       files = %{
         "pi.ex" => """
         defprotocol Itself do
@@ -309,6 +309,42 @@ defmodule Module.Types.IntegrationTest do
       }
 
       assert_no_warnings(files)
+    end
+
+    test "mismatched impl" do
+      files = %{
+        "a.ex" => """
+        defprotocol Itself do
+          def itself(data)
+        end
+
+        defimpl Itself, for: Range do
+          def itself(nil), do: nil
+          def itself(range), do: range
+        end
+        """
+      }
+
+      warnings = [
+        """
+            warning: the 1st pattern in clause will never match:
+
+                nil
+
+            because it is expected to receive type:
+
+                dynamic(%Range{first: term(), last: term(), step: term()})
+
+            typing violation found at:
+            │
+          6 │   def itself(nil), do: nil
+            │   ~~~~~~~~~~~~~~~~~~~~~~~~
+            │
+            └─ a.ex:6: Itself.Range.itself/1
+        """
+      ]
+
+      assert_warnings(files, warnings)
     end
 
     test "returns diagnostics with source and file" do

@@ -48,6 +48,18 @@ defmodule Module.Types.Helpers do
   ## Warnings
 
   @doc """
+  Converts an itneger into ordinal.
+  """
+  def integer_to_ordinal(i) do
+    case rem(i, 10) do
+      1 when rem(i, 100) != 11 -> "#{i}st"
+      2 when rem(i, 100) != 12 -> "#{i}nd"
+      3 when rem(i, 100) != 13 -> "#{i}rd"
+      _ -> "#{i}th"
+    end
+  end
+
+  @doc """
   Formatted hints in typing errors.
   """
   def format_hints(hints) do
