@@ -5382,7 +5382,7 @@ defmodule Kernel do
 
       john = %User{name: "John"}
       MyProtocol.call(john)
-      ** (Protocol.UndefinedError) protocol MyProtocol not implemented for %User{...}
+      ** (Protocol.UndefinedError) protocol MyProtocol not implemented for User (a struct)
 
   `defstruct/1`, however, allows protocol implementations to be
   *derived*. This can be done by defining a `@derive` attribute as a

@@ -2003,7 +2003,7 @@ defmodule Protocol.UndefinedError do
       # Indent only lines with contents on them
       |> String.replace(~r/^(?=.+)/m, "    ")
 
-    "protocol #{inspect(protocol)} not implemented for type " <>
+    "protocol #{inspect(protocol)} not implemented for " <>
       value_type(value) <>
       maybe_description(description) <>
       maybe_available(protocol) <>
@@ -2038,7 +2038,7 @@ defmodule Protocol.UndefinedError do
         ". There are no implementations for this protocol."
 
       {:consolidated, types} ->
-        ". This protocol is implemented for the following type(s): " <>
+        ". This protocol is implemented for: " <>
           Enum.map_join(types, ", ", &inspect/1)
 
       :not_consolidated ->

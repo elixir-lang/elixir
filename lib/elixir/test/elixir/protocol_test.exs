@@ -120,7 +120,7 @@ defmodule ProtocolTest do
   test "protocol not implemented" do
     message =
       """
-      protocol ProtocolTest.Sample not implemented for type Atom
+      protocol ProtocolTest.Sample not implemented for Atom
 
       Got value:
 
@@ -289,7 +289,7 @@ defmodule ProtocolTest do
     assert Derivable.ok(struct) == {:ok, struct, %ImplStruct{}, []}
 
     assert_raise Protocol.UndefinedError,
-                 ~r"protocol ProtocolTest.Derivable not implemented for type ProtocolTest.NoImplStruct \(a struct\), you should try harder",
+                 ~r"protocol ProtocolTest.Derivable not implemented for ProtocolTest.NoImplStruct \(a struct\), you should try harder",
                  fn ->
                    struct = %NoImplStruct{a: 1, b: 1}
                    Derivable.ok(struct)
