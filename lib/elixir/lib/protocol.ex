@@ -631,10 +631,17 @@ defmodule Protocol do
         {[Module.Types.Of.impl(impl)], Descr.atom([Module.concat(protocol, impl)])}
       end)
 
+    # TODO: Test a protocol with no implementation
     domain =
-      clauses
-      |> Enum.map(fn {[domain], _} -> domain end)
-      |> Enum.reduce(&Descr.union/2)
+      case clauses do
+        [] ->
+          Descr.none()
+
+        _ ->
+          clauses
+          |> Enum.map(fn {[domain], _} -> domain end)
+          |> Enum.reduce(&Descr.union/2)
+      end
 
     not_domain = Descr.negation(domain)
 
