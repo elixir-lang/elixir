@@ -1139,6 +1139,14 @@ defmodule Module.Types.ExprTest do
     test "and does not report on literals" do
       assert typecheck!(false and true) == boolean()
     end
+
+    test "and reports violations" do
+      assert typeerror!([x = 123], x and true) =~ """
+             the following conditional expression will always evaluate to integer():
+
+                 x
+             """
+    end
   end
 
   describe "receive" do
