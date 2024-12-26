@@ -70,6 +70,21 @@ defmodule Module.Types.Helpers do
         "var.fun()" (with parentheses) means "var" is an atom()
         """
 
+      :interpolation ->
+        """
+
+        #{hint()} string interpolation in Elixir use the String.Chars protocol to \
+        convert a data structure into a string. Either convert the data type into a \
+        string upfront or implement the protocol accordingly
+        """
+
+      {:protocol, protocol} ->
+        """
+
+        #{hint()} #{inspect(protocol)} is a protocol in Elixir. Either make sure you \
+        give valid data types as argument or implement the protocol accordingly
+        """
+
       :anonymous_rescue ->
         """
 

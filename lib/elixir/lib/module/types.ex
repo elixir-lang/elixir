@@ -145,7 +145,7 @@ defmodule Module.Types do
   defp default_domain({_, arity} = fun_arity, impl) do
     with {for, callbacks} <- impl,
          true <- fun_arity in callbacks do
-      [Module.Types.Of.impl(for) | List.duplicate(Descr.dynamic(), arity - 1)]
+      [Descr.dynamic(Module.Types.Of.impl(for)) | List.duplicate(Descr.dynamic(), arity - 1)]
     else
       _ -> List.duplicate(Descr.dynamic(), arity)
     end

@@ -118,9 +118,10 @@ scope(_Meta, ExpandCaptures) ->
 
 %% Static compilation hook, used in protocol consolidation
 
-consolidate(Map, TypeSpecs, Chunks) ->
-  {Prefix, Forms, _Def, _Defmacro, _Macros} = dynamic_form(Map),
-  load_form(Map, Prefix, Forms, TypeSpecs, Chunks).
+consolidate(Map, TypeSpecs, DocsChunk) ->
+  {Prefix, Forms, Def, _Defmacro, _Macros} = dynamic_form(Map),
+  CheckerChunk = checker_chunk(Map, Def, chunk_opts(Map)),
+  load_form(Map, Prefix, Forms, TypeSpecs, DocsChunk ++ CheckerChunk).
 
 %% Dynamic compilation hook, used in regular compiler
 
@@ -143,15 +144,16 @@ compile(#{module := Module, anno := Anno} = BaseMap) ->
   {Prefix, Forms, Def, Defmacro, Macros} = dynamic_form(Map),
   {Types, Callbacks, TypeSpecs} = typespecs_form(Map, TranslatedTypespecs, Macros),
 
-  ChunkOpts =
-    case lists:member(deterministic, ?key(Map, compile_opts)) of
-      true -> [deterministic];
-      false -> []
-    end,
-
+  ChunkOpts = chunk_opts(Map),
   DocsChunk = docs_chunk(Map, Set, Module, Anno, Def, Defmacro, Types, Callbacks, ChunkOpts),
   CheckerChunk = checker_chunk(Map, Def, ChunkOpts),
   load_form(Map, Prefix, Forms, TypeSpecs, DocsChunk ++ CheckerChunk).
+
+chunk_opts(Map) ->
+  case lists:member(deterministic, ?key(Map, compile_opts)) of
+    true -> [deterministic];
+    false -> []
+  end.
 
 dynamic_form(#{module := Module, relative_file := RelativeFile,
                attributes := Attributes, definitions := Definitions, unreachable := Unreachable,

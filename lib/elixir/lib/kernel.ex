@@ -3409,7 +3409,7 @@ defmodule Kernel do
 
   """
   defmacro to_charlist(term) do
-    quote(do: List.Chars.to_charlist(unquote(term)))
+    quote(do: :"Elixir.List.Chars".to_charlist(unquote(term)))
   end
 
   @doc """
@@ -4149,7 +4149,7 @@ defmodule Kernel do
   defp range(context, first, last, step)
        when is_integer(first) and is_integer(last) and is_integer(step)
        when context != nil do
-    {:%{}, [], [__struct__: Elixir.Range, first: first, last: last, step: step]}
+    {:%, [], [Elixir.Range, {:%{}, [], [first: first, last: last, step: step]}]}
   end
 
   defp range(nil, first, last, step) do
