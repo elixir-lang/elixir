@@ -4230,15 +4230,18 @@ defmodule Kernel do
   defmacro left && right do
     assert_no_match_or_guard_scope(__CALLER__.context, "&&")
 
-    quote do
-      case unquote(left) do
-        x when :"Elixir.Kernel".in(x, [false, nil]) ->
-          x
+    annotate_case(
+      [type_check: :expr],
+      quote do
+        case unquote(left) do
+          x when :"Elixir.Kernel".in(x, [false, nil]) ->
+            x
 
-        _ ->
-          unquote(right)
+          _ ->
+            unquote(right)
+        end
       end
-    end
+    )
   end
 
   @doc """
@@ -4270,15 +4273,18 @@ defmodule Kernel do
   defmacro left || right do
     assert_no_match_or_guard_scope(__CALLER__.context, "||")
 
-    quote do
-      case unquote(left) do
-        x when :"Elixir.Kernel".in(x, [false, nil]) ->
-          unquote(right)
+    annotate_case(
+      [type_check: :expr],
+      quote do
+        case unquote(left) do
+          x when :"Elixir.Kernel".in(x, [false, nil]) ->
+            unquote(right)
 
-        x ->
-          x
+          x ->
+            x
+        end
       end
-    end
+    )
   end
 
   @doc """
