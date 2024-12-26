@@ -5001,3 +5001,69 @@ defimpl Enumerable, for: Function do
       description: "only anonymous functions of arity 2 are enumerable"
   end
 end
+
+defimpl Enumerable, for: Range do
+  def reduce(first..last//step, acc, fun) do
+    reduce(first, last, acc, fun, step)
+  end
+
+  # TODO: Remove me on v2.0
+  def reduce(%{__struct__: Range, first: first, last: last} = range, acc, fun) do
+    step = if first <= last, do: 1, else: -1
+    reduce(Map.put(range, :step, step), acc, fun)
+  end
+
+  defp reduce(_first, _last, {:halt, acc}, _fun, _step) do
+    {:halted, acc}
+  end
+
+  defp reduce(first, last, {:suspend, acc}, fun, step) do
+    {:suspended, acc, &reduce(first, last, &1, fun, step)}
+  end
+
+  defp reduce(first, last, {:cont, acc}, fun, step)
+       when step > 0 and first <= last
+       when step < 0 and first >= last do
+    reduce(first + step, last, fun.(first, acc), fun, step)
+  end
+
+  defp reduce(_, _, {:cont, acc}, _fun, _up) do
+    {:done, acc}
+  end
+
+  def member?(first..last//step, value) when is_integer(value) do
+    if step > 0 do
+      {:ok, first <= value and value <= last and rem(value - first, step) == 0}
+    else
+      {:ok, last <= value and value <= first and rem(value - first, step) == 0}
+    end
+  end
+
+  # TODO: Remove me on v2.0
+  def member?(%{__struct__: Range, first: first, last: last} = range, value)
+      when is_integer(value) do
+    step = if first <= last, do: 1, else: -1
+    member?(Map.put(range, :step, step), value)
+  end
+
+  def member?(_, _value) do
+    {:ok, false}
+  end
+
+  def count(range) do
+    {:ok, Range.size(range)}
+  end
+
+  def slice(first.._//step = range) do
+    {:ok, Range.size(range), &slice(first + &1 * step, step + &3 - 1, &2)}
+  end
+
+  # TODO: Remove me on v2.0
+  def slice(%{__struct__: Range, first: first, last: last} = range) do
+    step = if first <= last, do: 1, else: -1
+    slice(Map.put(range, :step, step))
+  end
+
+  defp slice(_current, _step, 0), do: []
+  defp slice(current, step, remaining), do: [current | slice(current + step, step, remaining - 1)]
+end

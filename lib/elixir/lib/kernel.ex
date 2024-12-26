@@ -4064,7 +4064,7 @@ defmodule Kernel do
         -1
       end
 
-    {:%{}, [], [__struct__: Elixir.Range, first: first, last: last, step: step]}
+    {:%, [], [Elixir.Range, {:%{}, [], [first: first, last: last, step: step]}]}
   end
 
   defp stepless_range(nil, first, last, _caller) do
@@ -4090,7 +4090,7 @@ defmodule Kernel do
       Macro.Env.stacktrace(caller)
     )
 
-    {:%{}, [], [__struct__: Elixir.Range, first: first, last: last, step: step]}
+    {:%, [], [Elixir.Range, {:%{}, [], [first: first, last: last, step: step]}]}
   end
 
   defp stepless_range(:match, first, last, caller) do
@@ -4103,7 +4103,7 @@ defmodule Kernel do
       Macro.Env.stacktrace(caller)
     )
 
-    {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]}
+    {:%, [], [Elixir.Range, {:%{}, [], [first: first, last: last]}]}
   end
 
   @doc """
@@ -4142,7 +4142,7 @@ defmodule Kernel do
         range(__CALLER__.context, first, last, step)
 
       false ->
-        range(__CALLER__.context, first, last, step)
+        {:%{}, [], [__struct__: Elixir.Range, first: first, last: last, step: step]}
     end
   end
 
@@ -4553,11 +4553,10 @@ defmodule Kernel do
         raise ArgumentError, "found unescaped value on the right side of in/2: #{inspect(right)}"
 
       right ->
-        with {:%{}, _meta, fields} <- right,
-             [__struct__: Elixir.Range, first: first, last: last, step: step] <-
-               :lists.usort(fields) do
-          in_var(in_body?, left, &in_range(&1, expand.(first), expand.(last), expand.(step)))
-        else
+        case range_fields(right) do
+          [first: first, last: last, step: step] ->
+            in_var(in_body?, left, &in_range(&1, expand.(first), expand.(last), expand.(step)))
+
           _ when in_body? ->
             quote(do: Elixir.Enum.member?(unquote(right), unquote(left)))
 
@@ -4566,6 +4565,10 @@ defmodule Kernel do
         end
     end
   end
+
+  defp range_fields({:%, _, [Elixir.Range, {:%{}, _, fields}]}), do: :lists.usort(fields)
+  defp range_fields({:%{}, _, [__struct__: Elixir.Range] ++ fields}), do: :lists.usort(fields)
+  defp range_fields(_), do: []
 
   defp raise_on_invalid_args_in_2(right) do
     raise ArgumentError, <<

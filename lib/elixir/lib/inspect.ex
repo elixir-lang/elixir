@@ -200,7 +200,13 @@ defprotocol Inspect do
                 do: var!(info)
 
           var!(name) = Macro.inspect_atom(:literal, unquote(module))
-          unquote(inspect_module).inspect(var!(struct), var!(name), var!(infos), var!(opts))
+
+          unquote(inspect_module).inspect_as_struct(
+            var!(struct),
+            var!(name),
+            var!(infos),
+            var!(opts)
+          )
         end
       end
     end
@@ -390,6 +396,10 @@ end
 
 defimpl Inspect, for: Map do
   def inspect(map, opts) do
+    inspect_as_map(map, opts)
+  end
+
+  def inspect_as_map(map, opts) do
     list =
       if Keyword.get(opts.custom_options, :sort_maps) do
         map |> Map.to_list() |> :lists.sort()
@@ -408,7 +418,7 @@ defimpl Inspect, for: Map do
     map_container_doc(list, "", opts, fun)
   end
 
-  def inspect(map, name, infos, opts) do
+  def inspect_as_struct(map, name, infos, opts) do
     fun = fn %{field: field}, opts -> Inspect.List.keyword({field, Map.get(map, field)}, opts) end
     map_container_doc(infos, name, opts, fun)
   end
@@ -599,25 +609,36 @@ end
 defimpl Inspect, for: Any do
   def inspect(%module{} = struct, opts) do
     try do
-      {module.__struct__(), module.__info__(:struct)}
+      module.__info__(:struct)
     rescue
-      _ -> Inspect.Map.inspect(struct, opts)
+      _ -> Inspect.Map.inspect_as_map(struct, opts)
     else
-      {dunder, fields} ->
-        if Map.keys(dunder) == Map.keys(struct) do
-          infos =
-            for %{field: field} = info <- fields,
-                field not in [:__struct__, :__exception__],
-                do: info
+      info ->
+        if valid_struct?(info, struct) do
+          info =
+            for %{field: field} = map <- info,
+                field != :__exception__,
+                do: map
 
-          Inspect.Map.inspect(struct, Macro.inspect_atom(:literal, module), infos, opts)
+          Inspect.Map.inspect_as_struct(struct, Macro.inspect_atom(:literal, module), info, opts)
         else
-          Inspect.Map.inspect(struct, opts)
+          Inspect.Map.inspect_as_map(struct, opts)
         end
     end
   end
 
-  def inspect(map, name, infos, opts) do
+  defp valid_struct?(info, struct), do: valid_struct?(info, struct, map_size(struct) - 1)
+
+  defp valid_struct?([%{field: field} | info], struct, count) when is_map_key(struct, field),
+    do: valid_struct?(info, struct, count - 1)
+
+  defp valid_struct?([], _struct, 0),
+    do: true
+
+  defp valid_struct?(_fields, _struct, _count),
+    do: false
+
+  def inspect_as_struct(map, name, infos, opts) do
     open = color_doc("#" <> name <> "<", :map, opts)
     sep = color_doc(",", :map, opts)
     close = color_doc(">", :map, opts)
@@ -628,6 +649,25 @@ defimpl Inspect, for: Any do
     end
 
     container_doc(open, infos ++ [:...], close, opts, fun, separator: sep, break: :strict)
+  end
+end
+
+defimpl Inspect, for: Range do
+  import Inspect.Algebra
+  import Kernel, except: [inspect: 2]
+
+  def inspect(first..last//1, opts) when last >= first do
+    concat([to_doc(first, opts), "..", to_doc(last, opts)])
+  end
+
+  def inspect(first..last//step, opts) do
+    concat([to_doc(first, opts), "..", to_doc(last, opts), "//", to_doc(step, opts)])
+  end
+
+  # TODO: Remove me on v2.0
+  def inspect(%{__struct__: Range, first: first, last: last} = range, opts) do
+    step = if first <= last, do: 1, else: -1
+    inspect(Map.put(range, :step, step), opts)
   end
 end
 

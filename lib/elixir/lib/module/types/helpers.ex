@@ -73,7 +73,7 @@ defmodule Module.Types.Helpers do
       :interpolation ->
         """
 
-        #{hint()} string interpolation in Elixir use the String.Chars protocol to \
+        #{hint()} string interpolation in Elixir uses the String.Chars protocol to \
         convert a data structure into a string. Either convert the data type into a \
         string upfront or implement the protocol accordingly
         """
@@ -82,7 +82,7 @@ defmodule Module.Types.Helpers do
         """
 
         #{hint()} #{inspect(protocol)} is a protocol in Elixir. Either make sure you \
-        give valid data types as argument or implement the protocol accordingly
+        give valid data types as arguments or implement the protocol accordingly
         """
 
       :anonymous_rescue ->
@@ -218,12 +218,34 @@ defmodule Module.Types.Helpers do
   @doc """
   Converts the given expression to a string,
   translating inlined Erlang calls back to Elixir.
+
+  We also undo some macro expresions done by the Kernel module.
   """
   def expr_to_string(expr) do
     expr
     |> Macro.prewalk(fn
-      {{:., _, [mod, fun]}, meta, args} -> erl_to_ex(mod, fun, args, meta)
-      other -> other
+      {:%, _, [Range, {:%{}, _, fields}]} = node ->
+        case :lists.usort(fields) do
+          [first: first, last: last, step: step] ->
+            quote do
+              unquote(first)..unquote(last)//unquote(step)
+            end
+
+          _ ->
+            node
+        end
+
+      {{:., _, [Elixir.String.Chars, :to_string]}, meta, [arg]} ->
+        {:to_string, meta, [arg]}
+
+      {{:., _, [Elixir.List.Chars, :to_charlist]}, meta, [arg]} ->
+        {:to_charlist, meta, [arg]}
+
+      {{:., _, [mod, fun]}, meta, args} ->
+        erl_to_ex(mod, fun, args, meta)
+
+      other ->
+        other
     end)
     |> Macro.to_string()
   end

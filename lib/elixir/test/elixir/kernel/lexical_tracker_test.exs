@@ -453,7 +453,7 @@ defmodule Kernel.LexicalTrackerTest do
         Code.eval_string("""
         defmodule Kernel.LexicalTrackerTest.PatternGuardsCompile do
           %URI{} = URI.parse("/")
-          case 1..3 do
+          case Range.new(1, 3) do
             range when is_struct(range, Range) -> :ok
           end
           Kernel.LexicalTracker.references(__ENV__.lexical_tracker)

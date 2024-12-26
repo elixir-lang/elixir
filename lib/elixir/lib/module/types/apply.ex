@@ -829,20 +829,26 @@ defmodule Module.Types.Apply do
     {mod, fun, arity, converter} = mfac
     meta = elem(expr, 1)
 
-    mfa_or_fa = if mod, do: Exception.format_mfa(mod, fun, arity), else: "#{fun}/#{arity}"
-
     # Protocol errors can be very verbose, so we collapse structs
-    {caller, hints, opts} =
+    {banner, hints, opts} =
       cond do
         meta[:from_interpolation] ->
-          {"string interpolation", [:interpolation], [collapse_structs: true]}
+          {_, _, [arg]} = expr
+
+          {"""
+           incompatible value given to string interpolation:
+
+               #{expr_to_string(arg) |> indent(4)}
+
+           it has type:
+           """, [:interpolation], [collapse_structs: true]}
 
         Code.ensure_loaded?(mod) and
             Keyword.has_key?(mod.module_info(:attributes), :__protocol__) ->
-          {mfa_or_fa, [{:protocol, mod}], [collapse_structs: true]}
+          {nil, [{:protocol, mod}], [collapse_structs: true]}
 
         true ->
-          {mfa_or_fa, [], []}
+          {nil, [], []}
       end
 
     explanation =
@@ -852,16 +858,24 @@ defmodule Module.Types.Apply do
         #{clauses_args_to_quoted_string(clauses, converter, opts)}
         """
 
+    mfa_or_fa = if mod, do: Exception.format_mfa(mod, fun, arity), else: "#{fun}/#{arity}"
+
+    banner =
+      banner ||
+        """
+        incompatible types given to #{mfa_or_fa}:
+
+            #{expr_to_string(expr) |> indent(4)}
+
+        given types:
+        """
+
     %{
       details: %{typing_traces: traces},
       message:
         IO.iodata_to_binary([
+          banner,
           """
-          incompatible types given to #{caller}:
-
-              #{expr_to_string(expr) |> indent(4)}
-
-          given types:
 
               #{args_to_quoted_string(args_types, domain, converter) |> indent(4)}
 

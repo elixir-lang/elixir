@@ -355,14 +355,14 @@ defmodule Inspect.Algebra do
           # we won't try to render any failed instruct when building
           # the error message.
           if Process.get(:inspect_trap) do
-            Inspect.Map.inspect(struct, opts)
+            Inspect.Map.inspect_as_map(struct, opts)
           else
             try do
               Process.put(:inspect_trap, true)
 
               inspected_struct =
                 struct
-                |> Inspect.Map.inspect(%{
+                |> Inspect.Map.inspect_as_map(%{
                   opts
                   | syntax_colors: [],
                     inspect_fun: Inspect.Opts.default_inspect_fun()
@@ -389,7 +389,7 @@ defmodule Inspect.Algebra do
           end
       end
     else
-      Inspect.Map.inspect(struct, opts)
+      Inspect.Map.inspect_as_map(struct, opts)
     end
   end
 
