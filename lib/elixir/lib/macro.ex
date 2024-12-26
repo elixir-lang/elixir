@@ -146,8 +146,6 @@ defmodule Macro do
     * `:delimiter` - contains the opening delimiter for sigils, strings,
       and charlists as a string (such as `"{"`, `"/"`, `"'"`, and the like)
 
-    * `:format` - set to `:keyword` when an atom is defined as a keyword
-
     * `:do` - contains metadata about the `do` location in a function call with
       `do`-`end` blocks (when `:token_metadata` is true)
 
@@ -159,9 +157,16 @@ defmodule Macro do
       expressions inside "blocks of code", which are either direct children
       of a `__block__` or the right side of `->`. The last expression of the
       block does not have metadata if it is not followed by an end of line
-      character (either a newline or `;`)
+      character (either a newline or `;`). This entry may appear multiple times
+      in the same metadata if the expression is surround by parens
+
+    * `:format` - set to `:keyword` when an atom is defined as a keyword
 
     * `:indentation` - indentation of a sigil heredoc
+
+    * `:parens` - denote a node was surrounded by parens for grouping.
+      This entry may appear multiple times in the same metadata if
+      multiple pairs are used for grouping
 
   The following metadata keys are private:
 
