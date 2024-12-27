@@ -658,7 +658,7 @@ defmodule Mix.Tasks.TestTest do
         end
         """)
 
-        File.write!("test/test_helper_tests.exs", "ExUnit.start()")
+        File.write!("test/test_helper.exs", "ExUnit.start()")
         File.touch("test/a_missing.exs")
         File.touch("test/a_tests.ex")
         File.touch("test/ignored_file.exs")
@@ -717,7 +717,7 @@ defmodule Mix.Tasks.TestTest do
         end
         """)
 
-        File.write!("test/test_helper_tests.exs", "ExUnit.start()")
+        File.write!("test/test_helper.exs", "ExUnit.start()")
         File.touch("test/a_missing.exs")
         File.touch("test/a_tests.ex")
         File.touch("test/ignored_file.exs")
