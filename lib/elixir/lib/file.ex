@@ -1143,7 +1143,7 @@ defmodule File do
   Check `File.open/2` for other available options.
   """
   @spec write(Path.t(), iodata, [mode]) ::
-          :ok | {:error, posix | :badarg, :terminated | :system_limit}
+          :ok | {:error, posix | :badarg | :terminated | :system_limit}
   def write(path, content, modes \\ []) do
     modes = normalize_modes(modes, false)
     :file.write_file(IO.chardata_to_string(path), content, modes)
@@ -1599,7 +1599,7 @@ defmodule File do
   current directory. For this reason, returns `{:ok, cwd}` in case
   of success, `{:error, reason}` otherwise.
   """
-  @spec cwd() :: {:ok, binary} | {:error, posix, :badarg}
+  @spec cwd() :: {:ok, binary} | {:error, posix | :badarg}
   def cwd() do
     case :file.get_cwd() do
       {:ok, base} -> {:ok, IO.chardata_to_string(fix_drive_letter(base))}
@@ -1700,7 +1700,7 @@ defmodule File do
   Returns `{:ok, files}` in case of success,
   `{:error, reason}` otherwise.
   """
-  @spec ls(Path.t()) :: {:ok, [binary]} | {:error, posix | :badarg, {:no_translation, binary}}
+  @spec ls(Path.t()) :: {:ok, [binary]} | {:error, posix | :badarg | {:no_translation, binary}}
   def ls(path \\ ".") do
     case :file.list_dir(IO.chardata_to_string(path)) do
       {:ok, file_list} -> {:ok, Enum.map(file_list, &IO.chardata_to_string/1)}
