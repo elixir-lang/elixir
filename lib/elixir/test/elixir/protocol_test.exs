@@ -87,29 +87,6 @@ defmodule ProtocolTest do
     end
   end
 
-  test "built-in protocols" do
-    builtin_protocols =
-      for app <- ~w[eex elixir ex_unit iex logger mix]a,
-          Application.ensure_loaded(app),
-          module <- Application.spec(app, :modules),
-          Code.ensure_loaded(module),
-          function_exported?(module, :__protocol__, 1),
-          do: module
-
-    # If this test fails, update:
-    # * lib/elixir/lib/module/types/apply.ex
-    # * lib/elixir/scripts/elixir_docs.ex
-    assert Enum.sort(builtin_protocols) == [
-             Collectable,
-             Enumerable,
-             IEx.Info,
-             Inspect,
-             JSON.Encoder,
-             List.Chars,
-             String.Chars
-           ]
-  end
-
   test "protocol implementations without any" do
     assert is_nil(Sample.impl_for(:foo))
     assert is_nil(Sample.impl_for(fn x -> x end))

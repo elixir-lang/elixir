@@ -459,18 +459,16 @@ indent_n([H | T], Count, Indent) -> [Indent, H | indent_n(T, Count - 1, Indent)]
 
 prefix(warning) -> highlight(<<"warning:">>, warning);
 prefix(error) -> highlight(<<"error:">>, error);
-prefix(hint) -> highlight(<<"hint:">>, hint).
+prefix(hint) -> <<"hint:">>.
 
 highlight(Message, Severity) ->
   case {Severity, application:get_env(elixir, ansi_enabled, false)} of
     {warning, true} -> yellow(Message);
     {error, true} -> red(Message);
-    {hint, true} -> blue(Message);
     _ -> Message
   end.
 
 yellow(Msg) -> ["\e[33m", Msg, "\e[0m"].
-blue(Msg) -> ["\e[34m", Msg, "\e[0m"].
 red(Msg) -> ["\e[31m", Msg, "\e[0m"].
 
 env_format(Meta, #{file := EnvFile} = E) ->
