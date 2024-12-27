@@ -612,9 +612,9 @@ defmodule Protocol do
         protocol_def = change_protocol(protocol_def, types)
         impl_for = change_impl_for(impl_for, protocol, types)
         struct_impl_for = change_struct_impl_for(struct_impl_for, protocol, types, structs)
-        definitions = [protocol_def, impl_for, impl_for!, struct_impl_for] ++ definitions
+        new_signatures = new_signatures(definitions, protocol, types)
 
-        new_signatures = new_signatures(definitions, protocol, types, structs)
+        definitions = [protocol_def, impl_for, impl_for!, struct_impl_for] ++ definitions
         signatures = Enum.into(new_signatures, signatures)
         {:ok, definitions, signatures}
 
@@ -623,34 +623,41 @@ defmodule Protocol do
     end
   end
 
-  defp new_signatures(definitions, protocol, types, structs) do
+  defp new_signatures(definitions, protocol, types) do
     alias Module.Types.Descr
 
     clauses =
-      Enum.map(structs ++ List.delete(types, Any), fn impl ->
+      types
+      |> List.delete(Any)
+      |> Enum.map(fn impl ->
         {[Module.Types.Of.impl(impl)], Descr.atom([Module.concat(protocol, impl)])}
       end)
 
-    # TODO: Test a protocol with no implementation
-    domain =
+    {domain, impl_for, impl_for!} =
       case clauses do
         [] ->
-          Descr.none()
+          if Any in types do
+            clauses = [{[Descr.term()], Descr.atom([Module.concat(protocol, Any)])}]
+            {Descr.none(), clauses, clauses}
+          else
+            {Descr.none(), [{[Descr.term()], Descr.atom([nil])}],
+             [{[Descr.none()], Descr.none()}]}
+          end
 
         _ ->
-          clauses
-          |> Enum.map(fn {[domain], _} -> domain end)
-          |> Enum.reduce(&Descr.union/2)
-      end
+          domain =
+            clauses
+            |> Enum.map(fn {[domain], _} -> domain end)
+            |> Enum.reduce(&Descr.union/2)
 
-    not_domain = Descr.negation(domain)
+          not_domain = Descr.negation(domain)
 
-    {domain, impl_for, impl_for!} =
-      if Any in types do
-        clauses = clauses ++ [{[not_domain], Descr.atom([Module.concat(protocol, Any)])}]
-        {Descr.term(), clauses, clauses}
-      else
-        {domain, clauses ++ [{[not_domain], Descr.atom([nil])}], clauses}
+          if Any in types do
+            clauses = clauses ++ [{[not_domain], Descr.atom([Module.concat(protocol, Any)])}]
+            {Descr.term(), clauses, clauses}
+          else
+            {domain, clauses ++ [{[not_domain], Descr.atom([nil])}], clauses}
+          end
       end
 
     new_signatures =
