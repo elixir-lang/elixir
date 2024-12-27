@@ -165,7 +165,7 @@ defmodule Macro do
 
     * `:indentation` - indentation of a sigil heredoc
 
-    * `:parens` - denote a node was surrounded by parens for grouping.
+    * `:parens` - denotes a node was surrounded by parens for grouping.
       This entry may appear multiple times in the same metadata if
       multiple pairs are used for grouping
 
