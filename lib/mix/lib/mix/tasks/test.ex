@@ -750,7 +750,7 @@ defmodule Mix.Tasks.Test do
   end
 
   defp classify_test_files(potential_test_files, project) do
-    test_load_filters = project[:test_load_filters] || [&String.starts_with?(&1, "_test.exs")]
+    test_load_filters = project[:test_load_filters] || [&String.ends_with?(&1, "_test.exs")]
     elixirc_paths = project[:elixirc_paths] || []
 
     # ignore any _helper.exs files and files that are compiled (test support files)
@@ -769,11 +769,10 @@ defmodule Mix.Tasks.Test do
             any_file_matches?(file, test_load_filters) ->
               {[file | to_load], to_ignore, to_warn}
 
-            any_file_matches?(file, test_ignore_filters) ->
+            !test_ignore_filters || any_file_matches?(file, test_ignore_filters) ->
               {to_load, [file | to_ignore], to_warn}
 
-            # don't warn if test_ignore_filters is explicitly set to nil / false
-            !!test_ignore_filters ->
+            true ->
               {to_load, to_ignore, [file | to_warn]}
           end
       end
