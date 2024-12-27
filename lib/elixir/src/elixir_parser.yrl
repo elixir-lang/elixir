@@ -905,7 +905,9 @@ extract_identifier({Kind, _, Identifier}) when
 
 build_nested_parens(Dot, Args1, {Args2Meta, Args2}, {BlockMeta, Block}) ->
   Identifier = build_parens(Dot, Args1, {[], []}),
-  Meta = BlockMeta ++ Args2Meta ++ ?meta(Identifier),
+  %% Take line and column meta from the call target node
+  LocationMeta = lists:filter(fun({Key, _}) -> Key == line orelse Key == column end, ?meta(Identifier)),
+  Meta = BlockMeta ++ Args2Meta ++ LocationMeta,
   {Identifier, Meta, append_non_empty(Args2, Block)}.
 
 build_parens(Expr, {ArgsMeta, Args}, {BlockMeta, Block}) ->
