@@ -687,6 +687,51 @@ defmodule Mix.Tasks.TestTest do
         assert output =~ "1 test, 0 failures"
       end)
     end
+
+    test "does not warn when test_ignore_filters are disabled" do
+      in_tmp("test_warn", fn ->
+        File.write!("mix.exs", """
+        defmodule TestWarn.MixProject do
+          use Mix.Project
+
+          def project do
+            [
+              app: :test_warn,
+              version: "0.0.1",
+              test_load_filters: [~r/.*_tests\.exs/],
+              test_ignore_filters: false
+            ]
+          end
+        end
+        """)
+
+        File.mkdir!("test")
+
+        File.write!("test/a_tests.exs", """
+        defmodule ATests do
+          use ExUnit.Case
+
+          test "dummy" do
+            assert true
+          end
+        end
+        """)
+
+        File.write!("test/test_helper_tests.exs", "ExUnit.start()")
+        File.touch("test/a_missing.exs")
+        File.touch("test/a_tests.ex")
+        File.touch("test/ignored_file.exs")
+        File.touch("test/ignored_regex.exs")
+        File.write!("test/other_file.txt", "this is not a test file")
+
+        output = mix(["test"])
+
+        refute output =~ "the following files do not match"
+
+        # the dummy test ran successfully
+        assert output =~ "1 test, 0 failures"
+      end)
+    end
   end
 
   defp receive_until_match(port, expected, acc) do
