@@ -646,6 +646,10 @@ defmodule Kernel.ParserTest do
       assert string_to_quoted.("foo(\n) do\nend") ==
                {:foo, [do: [line: 2], end: [line: 3], newlines: 1, closing: [line: 2], line: 1],
                 [[do: {:__block__, [], []}]]}
+
+      assert string_to_quoted.("foo(\n)(\n)") ==
+               {{:foo, [newlines: 1, closing: [line: 2], line: 1], []},
+                [newlines: 1, closing: [line: 3], line: 1], []}
     end
 
     test "adds opening and closing information for single-expression block" do
