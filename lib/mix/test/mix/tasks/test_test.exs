@@ -624,9 +624,47 @@ defmodule Mix.Tasks.TestTest do
     end
   end
 
-  describe "test_load_filters and test_warn_filters" do
-    test "warns for files that are not loaded and don't match test_warn_filters" do
-      in_fixture("test_warn", fn ->
+  describe "test_load_filters and test_ignore_filters" do
+    test "warns for files that are not loaded and don't match test_ignore_filters" do
+      in_tmp("test_warn", fn ->
+        File.write!("mix.exs", """
+        defmodule TestWarn.MixProject do
+          use Mix.Project
+
+          def project do
+            [
+              app: :test_warn,
+              version: "0.0.1",
+              test_load_filters: [~r/.*_tests\.exs/],
+              test_ignore_filters: [
+                "test/test_helper.exs",
+                ~r/ignored_regex/,
+                fn file -> file == "test/ignored_file.exs" end
+              ]
+            ]
+          end
+        end
+        """)
+
+        File.mkdir!("test")
+
+        File.write!("test/a_tests.exs", """
+        defmodule ATests do
+          use ExUnit.Case
+
+          test "dummy" do
+            assert true
+          end
+        end
+        """)
+
+        File.write!("test/test_helper_tests.exs", "ExUnit.start()")
+        File.touch("test/a_missing.exs")
+        File.touch("test/a_tests.ex")
+        File.touch("test/ignored_file.exs")
+        File.touch("test/ignored_regex.exs")
+        File.write!("test/other_file.txt", "this is not a test file")
+
         output = mix(["test"])
 
         # This test relies on the files present in the test_warn fixture.
@@ -637,7 +675,7 @@ defmodule Mix.Tasks.TestTest do
         #
         # Therefore, we expect to get a warning for a_missing.exs and a_tests.ex.
         assert output =~ """
-               the following files do not match any of the configured `:test_load_filters` / `:test_warn_filters`:
+               the following files do not match any of the configured `:test_load_filters` / `:test_ignore_filters`:
 
                test/a_missing.exs
                test/a_tests.ex
