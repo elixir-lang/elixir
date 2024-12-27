@@ -263,7 +263,7 @@ defmodule File do
       on some platforms, `:enoent` is returned instead
 
   """
-  @spec mkdir(Path.t()) :: :ok | {:error, posix}
+  @spec mkdir(Path.t()) :: :ok | {:error, posix | :badarg}
   def mkdir(path) do
     :file.make_dir(IO.chardata_to_string(path))
   end
@@ -300,7 +300,7 @@ defmodule File do
     * `:enotdir` - a component of `path` is not a directory
 
   """
-  @spec mkdir_p(Path.t()) :: :ok | {:error, posix}
+  @spec mkdir_p(Path.t()) :: :ok | {:error, posix | :badarg}
   def mkdir_p(path) do
     do_mkdir_p(IO.chardata_to_string(path))
   end
@@ -366,7 +366,7 @@ defmodule File do
 
   You can use `:file.format_error/1` to get a descriptive string of the error.
   """
-  @spec read(Path.t()) :: {:ok, binary} | {:error, posix}
+  @spec read(Path.t()) :: {:ok, binary} | {:error, posix | :badarg | :terminated | :system_limit}
   def read(path) do
     :file.read_file(IO.chardata_to_string(path))
   end
@@ -408,7 +408,7 @@ defmodule File do
   Note: Since file times are stored in POSIX time format on most operating systems,
   it is faster to retrieve file information with the `time: :posix` option.
   """
-  @spec stat(Path.t(), stat_options) :: {:ok, File.Stat.t()} | {:error, posix}
+  @spec stat(Path.t(), stat_options) :: {:ok, File.Stat.t()} | {:error, posix | :badarg}
   def stat(path, opts \\ []) do
     opts = Keyword.put_new(opts, :time, :universal)
 
@@ -461,7 +461,7 @@ defmodule File do
   Note: Since file times are stored in POSIX time format on most operating systems,
   it is faster to retrieve file information with the `time: :posix` option.
   """
-  @spec lstat(Path.t(), stat_options) :: {:ok, File.Stat.t()} | {:error, posix}
+  @spec lstat(Path.t(), stat_options) :: {:ok, File.Stat.t()} | {:error, posix | :badarg}
   def lstat(path, opts \\ []) do
     opts = Keyword.put_new(opts, :time, :universal)
 
@@ -508,7 +508,7 @@ defmodule File do
 
   """
   @doc since: "1.5.0"
-  @spec read_link(Path.t()) :: {:ok, binary} | {:error, posix}
+  @spec read_link(Path.t()) :: {:ok, binary} | {:error, posix | :badarg}
   def read_link(path) do
     case path |> IO.chardata_to_string() |> :file.read_link() do
       {:ok, target} -> {:ok, IO.chardata_to_string(target)}
@@ -536,7 +536,7 @@ defmodule File do
   Writes the given `File.Stat` back to the file system at the given
   path. Returns `:ok` or `{:error, reason}`.
   """
-  @spec write_stat(Path.t(), File.Stat.t(), stat_options) :: :ok | {:error, posix}
+  @spec write_stat(Path.t(), File.Stat.t(), stat_options) :: :ok | {:error, posix | :badarg}
   def write_stat(path, stat, opts \\ []) do
     opts = Keyword.put_new(opts, :time, :universal)
     :file.write_file_info(IO.chardata_to_string(path), File.Stat.to_record(stat), opts)
@@ -585,7 +585,8 @@ defmodule File do
       #=> :ok
 
   """
-  @spec touch(Path.t(), erlang_time() | posix_time()) :: :ok | {:error, posix}
+  @spec touch(Path.t(), erlang_time() | posix_time()) ::
+          :ok | {:error, posix | :badarg | :terminated | :system_limit}
   def touch(path, time \\ System.os_time(:second))
 
   def touch(path, time) when is_tuple(time) do
@@ -641,7 +642,7 @@ defmodule File do
   `{:error, :enotsup}`.
   """
   @doc since: "1.5.0"
-  @spec ln(Path.t(), Path.t()) :: :ok | {:error, posix}
+  @spec ln(Path.t(), Path.t()) :: :ok | {:error, posix | :badarg}
   def ln(existing, new) do
     :file.make_link(IO.chardata_to_string(existing), IO.chardata_to_string(new))
   end
@@ -674,7 +675,7 @@ defmodule File do
   `{:error, :enotsup}`.
   """
   @doc since: "1.5.0"
-  @spec ln_s(Path.t(), Path.t()) :: :ok | {:error, posix}
+  @spec ln_s(Path.t(), Path.t()) :: :ok | {:error, posix | :badarg}
   def ln_s(existing, new) do
     :file.make_symlink(IO.chardata_to_string(existing), IO.chardata_to_string(new))
   end
@@ -721,7 +722,7 @@ defmodule File do
   `read/1` and `write/3`.
   """
   @spec copy(Path.t() | io_device, Path.t() | io_device, pos_integer | :infinity) ::
-          {:ok, non_neg_integer} | {:error, posix}
+          {:ok, non_neg_integer} | {:error, posix | :badarg | :terminated}
   def copy(source, destination, bytes_count \\ :infinity) do
     source = normalize_path_or_io_device(source)
     destination = normalize_path_or_io_device(destination)
@@ -771,7 +772,7 @@ defmodule File do
 
   """
   @doc since: "1.1.0"
-  @spec rename(Path.t(), Path.t()) :: :ok | {:error, posix}
+  @spec rename(Path.t(), Path.t()) :: :ok | {:error, posix | :badarg}
   def rename(source, destination) do
     source = IO.chardata_to_string(source)
     destination = IO.chardata_to_string(destination)
@@ -826,7 +827,8 @@ defmodule File do
       given as third argument, but such behavior is now deprecated.
 
   """
-  @spec cp(Path.t(), Path.t(), on_conflict: on_conflict_callback) :: :ok | {:error, posix}
+  @spec cp(Path.t(), Path.t(), on_conflict: on_conflict_callback) ::
+          :ok | {:error, posix | :badarg | :terminated}
   def cp(source_file, destination_file, options \\ [])
 
   # TODO: Deprecate me on Elixir v1.19
@@ -938,7 +940,7 @@ defmodule File do
           on_conflict: on_conflict_callback,
           dereference_symlinks: boolean()
         ) ::
-          {:ok, [binary]} | {:error, posix, binary}
+          {:ok, [binary]} | {:error, posix | :badarg | :terminated, binary}
 
   def cp_r(source, destination, options \\ [])
 
@@ -1140,7 +1142,8 @@ defmodule File do
 
   Check `File.open/2` for other available options.
   """
-  @spec write(Path.t(), iodata, [mode]) :: :ok | {:error, posix}
+  @spec write(Path.t(), iodata, [mode]) ::
+          :ok | {:error, posix | :badarg, :terminated | :system_limit}
   def write(path, content, modes \\ []) do
     modes = normalize_modes(modes, false)
     :file.write_file(IO.chardata_to_string(path), content, modes)
@@ -1189,7 +1192,7 @@ defmodule File do
       #=> {:error, :eperm}
 
   """
-  @spec rm(Path.t()) :: :ok | {:error, posix}
+  @spec rm(Path.t()) :: :ok | {:error, posix | :badarg}
   def rm(path) do
     path = IO.chardata_to_string(path)
 
@@ -1257,7 +1260,7 @@ defmodule File do
       #=> {:error, :enotdir}
 
   """
-  @spec rmdir(Path.t()) :: :ok | {:error, posix}
+  @spec rmdir(Path.t()) :: :ok | {:error, posix | :badarg}
   def rmdir(path) do
     :file.del_dir(IO.chardata_to_string(path))
   end
@@ -1266,7 +1269,7 @@ defmodule File do
   Same as `rmdir/1`, but raises a `File.Error` exception in case of failure.
   Otherwise `:ok`.
   """
-  @spec rmdir!(Path.t()) :: :ok | {:error, posix}
+  @spec rmdir!(Path.t()) :: :ok
   def rmdir!(path) do
     case rmdir(path) do
       :ok ->
@@ -1298,7 +1301,7 @@ defmodule File do
       #=> {:ok, []}
 
   """
-  @spec rm_rf(Path.t()) :: {:ok, [binary]} | {:error, posix, binary}
+  @spec rm_rf(Path.t()) :: {:ok, [binary]} | {:error, posix | :badarg, binary}
   def rm_rf(path) do
     {major, _} = :os.type()
 
@@ -1496,8 +1499,10 @@ defmodule File do
       File.close(file)
 
   """
-  @spec open(Path.t(), [mode | :ram]) :: {:ok, io_device | file_descriptor} | {:error, posix}
-  @spec open(Path.t(), (io_device | file_descriptor -> res)) :: {:ok, res} | {:error, posix}
+  @spec open(Path.t(), [mode | :ram]) ::
+          {:ok, io_device | file_descriptor} | {:error, posix | :badarg | :system_limit}
+  @spec open(Path.t(), (io_device | file_descriptor -> res)) ::
+          {:ok, res} | {:error, posix | :badarg | :system_limit}
         when res: var
   def open(path, modes_or_function \\ [])
 
@@ -1533,7 +1538,7 @@ defmodule File do
   See `open/2` for the list of available `modes`.
   """
   @spec open(Path.t(), [mode | :ram], (io_device | file_descriptor -> res)) ::
-          {:ok, res} | {:error, posix}
+          {:ok, res} | {:error, posix | :badarg | :system_limit}
         when res: var
   def open(path, modes, function) when is_list(modes) and is_function(function, 1) do
     case open(path, modes) do
@@ -1594,7 +1599,7 @@ defmodule File do
   current directory. For this reason, returns `{:ok, cwd}` in case
   of success, `{:error, reason}` otherwise.
   """
-  @spec cwd() :: {:ok, binary} | {:error, posix}
+  @spec cwd() :: {:ok, binary} | {:error, posix, :badarg}
   def cwd() do
     case :file.get_cwd() do
       {:ok, base} -> {:ok, IO.chardata_to_string(fix_drive_letter(base))}
@@ -1636,7 +1641,7 @@ defmodule File do
 
   Returns `:ok` if successful, `{:error, reason}` otherwise.
   """
-  @spec cd(Path.t()) :: :ok | {:error, posix}
+  @spec cd(Path.t()) :: :ok | {:error, posix | :badarg | :no_translation}
   def cd(path) do
     :file.set_cwd(IO.chardata_to_string(path))
   end
@@ -1695,7 +1700,7 @@ defmodule File do
   Returns `{:ok, files}` in case of success,
   `{:error, reason}` otherwise.
   """
-  @spec ls(Path.t()) :: {:ok, [binary]} | {:error, posix}
+  @spec ls(Path.t()) :: {:ok, [binary]} | {:error, posix | :badarg, {:no_translation, binary}}
   def ls(path \\ ".") do
     case :file.list_dir(IO.chardata_to_string(path)) do
       {:ok, file_list} -> {:ok, Enum.map(file_list, &IO.chardata_to_string/1)}
@@ -1841,7 +1846,7 @@ defmodule File do
   and both read and execute permission to group
   and others.
   """
-  @spec chmod(Path.t(), non_neg_integer) :: :ok | {:error, posix}
+  @spec chmod(Path.t(), non_neg_integer) :: :ok | {:error, posix | :badarg}
   def chmod(path, mode) do
     :file.change_mode(IO.chardata_to_string(path), mode)
   end
@@ -1869,7 +1874,7 @@ defmodule File do
   for a given `file`. Returns `:ok` on success, or
   `{:error, reason}` on failure.
   """
-  @spec chgrp(Path.t(), non_neg_integer) :: :ok | {:error, posix}
+  @spec chgrp(Path.t(), non_neg_integer) :: :ok | {:error, posix | :badarg}
   def chgrp(path, gid) do
     :file.change_group(IO.chardata_to_string(path), gid)
   end
@@ -1897,7 +1902,7 @@ defmodule File do
   for a given `file`. Returns `:ok` on success,
   or `{:error, reason}` on failure.
   """
-  @spec chown(Path.t(), non_neg_integer) :: :ok | {:error, posix}
+  @spec chown(Path.t(), non_neg_integer) :: :ok | {:error, posix | :badarg}
   def chown(path, uid) do
     :file.change_owner(IO.chardata_to_string(path), uid)
   end
