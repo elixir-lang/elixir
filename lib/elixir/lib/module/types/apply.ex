@@ -566,11 +566,21 @@ defmodule Module.Types.Apply do
     is_map_key(builtin_modules(), module)
   end
 
+  @builtin_protocols [
+    Collectable,
+    Enumerable,
+    IEx.Info,
+    Inspect,
+    JSON.Encoder,
+    List.Chars,
+    String.Chars
+  ]
+
   defp builtin_modules do
     case :persistent_term.get(__MODULE__, nil) do
       nil ->
         {:ok, mods} = :application.get_key(:elixir, :modules)
-        mods = Map.from_keys(mods, [])
+        mods = Map.from_keys(mods -- @builtin_protocols, [])
         :persistent_term.put(__MODULE__, mods)
         mods
 
@@ -791,7 +801,7 @@ defmodule Module.Types.Apply do
       empty_arg_reason(args_types) ||
         """
         but expected one of:
-        #{clauses_args_to_quoted_string(clauses, converter)}
+        #{clauses_args_to_quoted_string(clauses, converter, [])}
         """
 
     %{
@@ -817,33 +827,62 @@ defmodule Module.Types.Apply do
   def format_diagnostic({:badremote, mfac, expr, args_types, domain, clauses, context}) do
     traces = collect_traces(expr, context)
     {mod, fun, arity, converter} = mfac
+    meta = elem(expr, 1)
+
+    # Protocol errors can be very verbose, so we collapse structs
+    {banner, hints, opts} =
+      cond do
+        meta[:from_interpolation] ->
+          {_, _, [arg]} = expr
+
+          {"""
+           incompatible value given to string interpolation:
+
+               #{expr_to_string(arg) |> indent(4)}
+
+           it has type:
+           """, [:interpolation], [collapse_structs: true]}
+
+        Code.ensure_loaded?(mod) and
+            Keyword.has_key?(mod.module_info(:attributes), :__protocol__) ->
+          {nil, [{:protocol, mod}], [collapse_structs: true]}
+
+        true ->
+          {nil, [], []}
+      end
 
     explanation =
       empty_arg_reason(converter.(args_types)) ||
         """
         but expected one of:
-        #{clauses_args_to_quoted_string(clauses, converter)}
+        #{clauses_args_to_quoted_string(clauses, converter, opts)}
         """
 
-    mfa_or_fa =
-      if mod, do: Exception.format_mfa(mod, fun, arity), else: "#{fun}/#{arity}"
+    mfa_or_fa = if mod, do: Exception.format_mfa(mod, fun, arity), else: "#{fun}/#{arity}"
+
+    banner =
+      banner ||
+        """
+        incompatible types given to #{mfa_or_fa}:
+
+            #{expr_to_string(expr) |> indent(4)}
+
+        given types:
+        """
 
     %{
       details: %{typing_traces: traces},
       message:
         IO.iodata_to_binary([
+          banner,
           """
-          incompatible types given to #{mfa_or_fa}:
-
-              #{expr_to_string(expr) |> indent(4)}
-
-          given types:
 
               #{args_to_quoted_string(args_types, domain, converter) |> indent(4)}
 
           """,
           explanation,
-          format_traces(traces)
+          format_traces(traces),
+          format_hints(hints)
         ])
     }
   end
@@ -998,25 +1037,25 @@ defmodule Module.Types.Apply do
     |> IO.iodata_to_binary()
   end
 
-  defp clauses_args_to_quoted_string([{args, _return}], converter) do
-    "\n    " <> (clause_args_to_quoted_string(args, converter) |> indent(4))
+  defp clauses_args_to_quoted_string([{args, _return}], converter, opts) do
+    "\n    " <> (clause_args_to_quoted_string(args, converter, opts) |> indent(4))
   end
 
-  defp clauses_args_to_quoted_string(clauses, converter) do
+  defp clauses_args_to_quoted_string(clauses, converter, opts) do
     clauses
     |> Enum.with_index(fn {args, _return}, index ->
       """
 
       ##{index + 1}
-      #{clause_args_to_quoted_string(args, converter)}\
+      #{clause_args_to_quoted_string(args, converter, opts)}\
       """
       |> indent(4)
     end)
     |> Enum.join("\n")
   end
 
-  defp clause_args_to_quoted_string(args, converter) do
-    docs = Enum.map(args, &(&1 |> to_quoted() |> Code.Formatter.to_algebra()))
+  defp clause_args_to_quoted_string(args, converter, opts) do
+    docs = Enum.map(args, &(&1 |> to_quoted(opts) |> Code.Formatter.to_algebra()))
     args_docs_to_quoted_string(converter.(docs))
   end
 
@@ -1052,15 +1091,6 @@ defmodule Module.Types.Apply do
     |> case do
       "(\n" <> _ = multiple_lines -> multiple_lines
       single_line -> binary_slice(single_line, 1..-2//1)
-    end
-  end
-
-  defp integer_to_ordinal(i) do
-    case rem(i, 10) do
-      1 when rem(i, 100) != 11 -> "#{i}st"
-      2 when rem(i, 100) != 12 -> "#{i}nd"
-      3 when rem(i, 100) != 13 -> "#{i}rd"
-      _ -> "#{i}th"
     end
   end
 end

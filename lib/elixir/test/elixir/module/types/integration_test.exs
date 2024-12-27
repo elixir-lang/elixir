@@ -6,6 +6,33 @@ defmodule Module.Types.IntegrationTest do
   import ExUnit.CaptureIO
   import Module.Types.Descr
 
+  defp builtin_protocols do
+    [
+      Collectable,
+      Enumerable,
+      IEx.Info,
+      Inspect,
+      JSON.Encoder,
+      List.Chars,
+      String.Chars
+    ]
+  end
+
+  test "built-in protocols" do
+    builtin_protocols =
+      for app <- ~w[eex elixir ex_unit iex logger mix]a,
+          Application.ensure_loaded(app),
+          module <- Application.spec(app, :modules),
+          Code.ensure_loaded(module),
+          function_exported?(module, :__protocol__, 1),
+          do: module
+
+    # If this test fails, update:
+    # * lib/elixir/lib/module/types/apply.ex
+    # * lib/elixir/scripts/elixir_docs.ex
+    assert Enum.sort(builtin_protocols) == builtin_protocols()
+  end
+
   setup_all do
     previous = Application.get_env(:elixir, :ansi_enabled, false)
     Application.put_env(:elixir, :ansi_enabled, false)
@@ -53,7 +80,7 @@ defmodule Module.Types.IntegrationTest do
              ]
     end
 
-    test "writes exports for inferred protocols and implementations" do
+    test "writes exports for implementations" do
       files = %{
         "pi.ex" => """
         defprotocol Itself do
@@ -104,7 +131,7 @@ defmodule Module.Types.IntegrationTest do
       assert itself_arg.(Itself.Function) == dynamic(fun())
       assert itself_arg.(Itself.Integer) == dynamic(integer())
       assert itself_arg.(Itself.List) == dynamic(list(term()))
-      assert itself_arg.(Itself.Map) == dynamic(open_map())
+      assert itself_arg.(Itself.Map) == dynamic(open_map(__struct__: not_set()))
       assert itself_arg.(Itself.Port) == dynamic(port())
       assert itself_arg.(Itself.PID) == dynamic(pid())
       assert itself_arg.(Itself.Reference) == dynamic(reference())
@@ -311,6 +338,102 @@ defmodule Module.Types.IntegrationTest do
       assert_no_warnings(files)
     end
 
+    test "mismatched impl" do
+      files = %{
+        "a.ex" => """
+        defprotocol Itself do
+          def itself(data)
+        end
+
+        defimpl Itself, for: Range do
+          def itself(nil), do: nil
+          def itself(range), do: range
+        end
+        """
+      }
+
+      warnings = [
+        """
+            warning: the 1st pattern in clause will never match:
+
+                nil
+
+            because it is expected to receive type:
+
+                dynamic(%Range{first: term(), last: term(), step: term()})
+
+            typing violation found at:
+            │
+          6 │   def itself(nil), do: nil
+            │   ~~~~~~~~~~~~~~~~~~~~~~~~
+            │
+            └─ a.ex:6: Itself.Range.itself/1
+        """
+      ]
+
+      assert_warnings(files, warnings)
+    end
+
+    test "protocol dispatch" do
+      files = %{
+        "a.ex" => """
+        defmodule FooBar do
+          def example1(_.._//_ = data), do: to_string(data)
+          def example2(_.._//_ = data), do: "hello \#{data} world"
+        end
+        """
+      }
+
+      warnings = [
+        """
+            warning: incompatible value given to string interpolation:
+
+                data
+
+            it has type:
+
+                -dynamic(%Range{first: term(), last: term(), step: term()})-
+
+            but expected one of:
+
+                %Date{} or %DateTime{} or %NaiveDateTime{} or %Time{} or %URI{} or %Version{} or
+                  %Version.Requirement{} or atom() or binary() or float() or integer() or list(term())
+
+            where "data" was given the type:
+
+                # type: dynamic(%Range{})
+                # from: a.ex:3:24
+                _.._//_ = data
+
+            hint: string interpolation in Elixir uses the String.Chars protocol to convert a data structure into a string. Either convert the data type into a string upfront or implement the protocol accordingly
+        """,
+        """
+            warning: incompatible types given to String.Chars.to_string/1:
+
+                to_string(data)
+
+            given types:
+
+                -dynamic(%Range{first: term(), last: term(), step: term()})-
+
+            but expected one of:
+
+                %Date{} or %DateTime{} or %NaiveDateTime{} or %Time{} or %URI{} or %Version{} or
+                  %Version.Requirement{} or atom() or binary() or float() or integer() or list(term())
+
+            where "data" was given the type:
+
+                # type: dynamic(%Range{})
+                # from: a.ex:2:24
+                _.._//_ = data
+
+            hint: String.Chars is a protocol in Elixir. Either make sure you give valid data types as arguments or implement the protocol accordingly
+        """
+      ]
+
+      assert_warnings(files, warnings, consolidate_protocols: true)
+    end
+
     test "returns diagnostics with source and file" do
       files = %{
         "a.ex" => """
@@ -338,8 +461,7 @@ defmodule Module.Types.IntegrationTest do
       assert String.ends_with?(file, "generated.ex")
       assert Path.type(file) == :absolute
     after
-      :code.delete(A)
-      :code.purge(A)
+      purge(A)
     end
   end
 
@@ -1059,12 +1181,14 @@ defmodule Module.Types.IntegrationTest do
     end
   end
 
-  defp assert_warnings(files, expected) when is_binary(expected) do
-    assert capture_compile_warnings(files) == expected
+  defp assert_warnings(files, expected, opts \\ [])
+
+  defp assert_warnings(files, expected, opts) when is_binary(expected) do
+    assert capture_compile_warnings(files, opts) == expected
   end
 
-  defp assert_warnings(files, expecteds) when is_list(expecteds) do
-    output = capture_compile_warnings(files)
+  defp assert_warnings(files, expecteds, opts) when is_list(expecteds) do
+    output = capture_compile_warnings(files, opts)
 
     Enum.each(expecteds, fn expected ->
       assert output =~ expected
@@ -1072,27 +1196,27 @@ defmodule Module.Types.IntegrationTest do
   end
 
   defp assert_no_warnings(files) do
-    assert capture_compile_warnings(files) == ""
+    assert capture_compile_warnings(files, []) == ""
   end
 
-  defp capture_compile_warnings(files) do
+  defp capture_compile_warnings(files, opts) do
     in_tmp(fn ->
       paths = generate_files(files)
-      capture_io(:stderr, fn -> compile_to_path(paths) end)
+      capture_io(:stderr, fn -> compile_to_path(paths, opts) end)
     end)
   end
 
   defp with_compile_warnings(files) do
     in_tmp(fn ->
       paths = generate_files(files)
-      with_io(:stderr, fn -> compile_to_path(paths) end) |> elem(0)
+      with_io(:stderr, fn -> compile_to_path(paths, []) end) |> elem(0)
     end)
   end
 
   defp compile_modules(files) do
     in_tmp(fn ->
       paths = generate_files(files)
-      {modules, _warnings} = compile_to_path(paths)
+      {modules, _warnings} = compile_to_path(paths, [])
 
       Map.new(modules, fn module ->
         {^module, binary, _filename} = :code.get_object_code(module)
@@ -1101,13 +1225,43 @@ defmodule Module.Types.IntegrationTest do
     end)
   end
 
-  defp compile_to_path(paths) do
+  defp compile_to_path(paths, opts) do
+    if opts[:consolidate_protocols] do
+      Code.prepend_path(".")
+
+      result =
+        compile_to_path_with_after_compile(paths, fn ->
+          if Keyword.get(opts, :consolidate_protocols, false) do
+            paths = [".", Application.app_dir(:elixir, "ebin")]
+            protocols = Protocol.extract_protocols(paths)
+
+            for protocol <- protocols do
+              impls = Protocol.extract_impls(protocol, paths)
+              {:ok, binary} = Protocol.consolidate(protocol, impls)
+              File.write!(Atom.to_string(protocol) <> ".beam", binary)
+              purge(protocol)
+            end
+          end
+        end)
+
+      Code.delete_path(".")
+      Enum.each(builtin_protocols(), &purge/1)
+
+      result
+    else
+      compile_to_path_with_after_compile(paths, fn -> :ok end)
+    end
+  end
+
+  defp compile_to_path_with_after_compile(paths, callback) do
     {:ok, modules, warnings} =
-      Kernel.ParallelCompiler.compile_to_path(paths, ".", return_diagnostics: true)
+      Kernel.ParallelCompiler.compile_to_path(paths, ".",
+        return_diagnostics: true,
+        after_compile: callback
+      )
 
     for module <- modules do
-      :code.delete(module)
-      :code.purge(module)
+      purge(module)
     end
 
     {modules, warnings}
@@ -1124,6 +1278,11 @@ defmodule Module.Types.IntegrationTest do
     assert {:ok, {_module, [{~c"ExCk", chunk}]}} = :beam_lib.chunks(binary, [~c"ExCk"])
     assert {:elixir_checker_v1, map} = :erlang.binary_to_term(chunk)
     map
+  end
+
+  defp purge(mod) do
+    :code.delete(mod)
+    :code.purge(mod)
   end
 
   defp in_tmp(fun) do

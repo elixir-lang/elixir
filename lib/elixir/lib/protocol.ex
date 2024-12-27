@@ -560,25 +560,26 @@ defmodule Protocol do
     # Ensure the types are sorted so the compiled beam is deterministic
     types = Enum.sort(types)
 
-    with {:ok, ast_info, specs, compile_info} <- beam_protocol(protocol),
-         {:ok, definitions} <- change_debug_info(protocol, ast_info, types),
-         do: compile(definitions, specs, compile_info)
+    with {:ok, any, definitions, signatures, compile_info} <- beam_protocol(protocol),
+         {:ok, definitions, signatures} <-
+           consolidate(protocol, any, definitions, signatures, types),
+         do: compile(definitions, signatures, compile_info)
   end
 
   defp beam_protocol(protocol) do
-    chunk_ids = [:debug_info, [?D, ?o, ?c, ?s], [?E, ?x, ?C, ?k]]
+    chunk_ids = [:debug_info, [?D, ?o, ?c, ?s]]
     opts = [:allow_missing_chunks]
 
     case :beam_lib.chunks(beam_file(protocol), chunk_ids, opts) do
       {:ok, {^protocol, [{:debug_info, debug_info} | chunks]}} ->
-        {:debug_info_v1, _backend, {:elixir_v1, info, specs}} = debug_info
-        %{attributes: attributes, definitions: definitions} = info
+        {:debug_info_v1, _backend, {:elixir_v1, module_map, specs}} = debug_info
+        %{attributes: attributes, definitions: definitions, signatures: signatures} = module_map
         chunks = :lists.filter(fn {_name, value} -> value != :missing_chunk end, chunks)
         chunks = :lists.map(fn {name, value} -> {List.to_string(name), value} end, chunks)
 
         case attributes[:__protocol__] do
           [fallback_to_any: any] ->
-            {:ok, {any, definitions}, specs, {info, chunks}}
+            {:ok, any, definitions, signatures, {module_map, specs, chunks}}
 
           _ ->
             {:error, :not_a_protocol}
@@ -596,27 +597,79 @@ defmodule Protocol do
     end
   end
 
-  # Change the debug information to the optimized
-  # impl_for/1 dispatch version.
-  defp change_debug_info(protocol, {any, definitions}, types) do
-    types = if any, do: types, else: List.delete(types, Any)
-    all = [Any] ++ for {mod, _guard} <- built_in(), do: mod
-    structs = types -- all
-
+  # Consolidate the protocol for faster implementations and fine-grained type information.
+  defp consolidate(protocol, fallback_to_any?, definitions, signatures, types) do
     case List.keytake(definitions, {:__protocol__, 1}, 0) do
       {protocol_def, definitions} ->
+        types = if fallback_to_any?, do: types, else: List.delete(types, Any)
+        built_in_plus_any = [Any] ++ for {mod, _guard} <- built_in(), do: mod
+        structs = types -- built_in_plus_any
+
         {impl_for, definitions} = List.keytake(definitions, {:impl_for, 1}, 0)
+        {impl_for!, definitions} = List.keytake(definitions, {:impl_for!, 1}, 0)
         {struct_impl_for, definitions} = List.keytake(definitions, {:struct_impl_for, 1}, 0)
 
         protocol_def = change_protocol(protocol_def, types)
         impl_for = change_impl_for(impl_for, protocol, types)
         struct_impl_for = change_struct_impl_for(struct_impl_for, protocol, types, structs)
+        new_signatures = new_signatures(definitions, protocol, types)
 
-        {:ok, [protocol_def, impl_for, struct_impl_for] ++ definitions}
+        definitions = [protocol_def, impl_for, impl_for!, struct_impl_for] ++ definitions
+        signatures = Enum.into(new_signatures, signatures)
+        {:ok, definitions, signatures}
 
       nil ->
         {:error, :not_a_protocol}
     end
+  end
+
+  defp new_signatures(definitions, protocol, types) do
+    alias Module.Types.Descr
+
+    clauses =
+      types
+      |> List.delete(Any)
+      |> Enum.map(fn impl ->
+        {[Module.Types.Of.impl(impl)], Descr.atom([Module.concat(protocol, impl)])}
+      end)
+
+    {domain, impl_for, impl_for!} =
+      case clauses do
+        [] ->
+          if Any in types do
+            clauses = [{[Descr.term()], Descr.atom([Module.concat(protocol, Any)])}]
+            {Descr.none(), clauses, clauses}
+          else
+            {Descr.none(), [{[Descr.term()], Descr.atom([nil])}],
+             [{[Descr.none()], Descr.none()}]}
+          end
+
+        _ ->
+          domain =
+            clauses
+            |> Enum.map(fn {[domain], _} -> domain end)
+            |> Enum.reduce(&Descr.union/2)
+
+          not_domain = Descr.negation(domain)
+
+          if Any in types do
+            clauses = clauses ++ [{[not_domain], Descr.atom([Module.concat(protocol, Any)])}]
+            {Descr.term(), clauses, clauses}
+          else
+            {domain, clauses ++ [{[not_domain], Descr.atom([nil])}], clauses}
+          end
+      end
+
+    new_signatures =
+      for {{fun, arity}, :def, _, _} <- definitions do
+        rest = List.duplicate(Descr.term(), arity - 1)
+        {{fun, arity}, {:strong, nil, [{[domain | rest], Descr.dynamic()}]}}
+      end
+
+    [
+      {{:impl_for, 1}, {:strong, [Descr.term()], impl_for}},
+      {{:impl_for!, 1}, {:strong, [domain], impl_for!}}
+    ] ++ new_signatures
   end
 
   defp change_protocol({_name, _kind, meta, clauses}, types) do
@@ -682,9 +735,9 @@ defmodule Protocol do
   end
 
   # Finally compile the module and emit its bytecode.
-  defp compile(definitions, specs, {info, chunks}) do
-    info = %{info | definitions: definitions}
-    {:ok, :elixir_erl.consolidate(info, specs, chunks)}
+  defp compile(definitions, signatures, {module_map, specs, docs_chunk}) do
+    module_map = %{module_map | definitions: definitions, signatures: signatures}
+    {:ok, :elixir_erl.consolidate(module_map, specs, docs_chunk)}
   end
 
   ## Definition callbacks

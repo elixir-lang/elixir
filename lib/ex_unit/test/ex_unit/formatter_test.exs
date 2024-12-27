@@ -507,8 +507,8 @@ defmodule ExUnit.FormatterTest do
     defstruct key: 0
 
     defimpl Inspect do
-      def inspect(struct, opts) when is_atom(opts) do
-        struct.unknown
+      def inspect(_struct, opts) when is_atom(opts) do
+        raise "the clause above should never match"
       end
     end
   end

@@ -89,9 +89,6 @@ defmodule Module.Types.Of do
 
   ## Implementations
 
-  # Right now we are still defaulting all implementations to their dynamic variations.
-  # TODO: What should the default types be once we have typed protocols?
-
   impls = [
     {Atom, atom()},
     {BitString, binary()},
@@ -99,7 +96,7 @@ defmodule Module.Types.Of do
     {Function, fun()},
     {Integer, integer()},
     {List, list(term())},
-    {Map, open_map()},
+    {Map, open_map(__struct__: not_set())},
     {Port, port()},
     {PID, pid()},
     {Reference, reference()},
@@ -108,16 +105,16 @@ defmodule Module.Types.Of do
   ]
 
   for {for, type} <- impls do
-    def impl(unquote(for)), do: unquote(Macro.escape(dynamic(type)))
+    def impl(unquote(for)), do: unquote(Macro.escape(type))
   end
 
   def impl(struct) do
     # Elixir did not strictly require the implementation to be available, so we need a fallback.
     # TODO: Assume implementation is available on Elixir v2.0.
     if info = Code.ensure_loaded?(struct) && struct.__info__(:struct) do
-      dynamic(struct_type(struct, info))
+      struct_type(struct, info)
     else
-      dynamic(open_map(__struct__: atom([struct])))
+      open_map(__struct__: atom([struct]))
     end
   end
 
@@ -330,11 +327,23 @@ defmodule Module.Types.Of do
           Module.Types.Pattern.of_guard(left, type, expr, stack, context)
 
         :expr ->
+          left = annotate_interpolation(left, right)
           {actual, context} = Module.Types.Expr.of_expr(left, stack, context)
           intersect(actual, type, expr, stack, context)
       end
 
     specifier_size(kind, right, stack, context)
+  end
+
+  defp annotate_interpolation(
+         {{:., _, [String.Chars, :to_string]} = dot, meta, [arg]},
+         {:binary, _, nil}
+       ) do
+    {dot, [from_interpolation: true] ++ meta, [arg]}
+  end
+
+  defp annotate_interpolation(left, _right) do
+    left
   end
 
   defp specifier_type(kind, {:-, _, [left, _right]}), do: specifier_type(kind, left)

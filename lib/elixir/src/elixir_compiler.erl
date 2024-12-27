@@ -171,6 +171,7 @@ bootstrap_files() ->
     [
      <<"kernel/utils.ex">>,
      <<"macro/env.ex">>,
+     <<"range.ex">>,
      <<"keyword.ex">>,
      <<"module.ex">>,
      <<"list.ex">>,
@@ -203,7 +204,6 @@ bootstrap_files() ->
      <<"path.ex">>,
      <<"file.ex">>,
      <<"map.ex">>,
-     <<"range.ex">>,
      <<"access.ex">>,
      <<"io.ex">>,
      <<"system.ex">>,
