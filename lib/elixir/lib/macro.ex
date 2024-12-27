@@ -160,7 +160,8 @@ defmodule Macro do
       character (either a newline or `;`). This entry may appear multiple times
       in the same metadata if the expression is surround by parens
 
-    * `:format` - set to `:keyword` when an atom is defined as a keyword
+    * `:format` - set to `:keyword` when an atom is defined as a keyword.
+      It may also be set to `:atom` to distinguish `nil`, `false`, and `true`
 
     * `:indentation` - indentation of a sigil heredoc
 
