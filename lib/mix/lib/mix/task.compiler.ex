@@ -323,7 +323,7 @@ defmodule Mix.Task.Compiler do
   `Mix.Task.Compiler.compilers()` are to be reenabled. This task always
   re-enables `"compile"` and `"compile.all"`.
   """
-  @spec reenable([{:compilers, compilers}]) :: :ok when compilers: :all | [Mix.Task.task_name()]
+  @spec reenable(compilers: compilers) :: :ok when compilers: :all | [atom()]
   def reenable(opts \\ []) do
     compilers =
       case Keyword.get(opts, :compilers, :all) do
