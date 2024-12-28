@@ -566,6 +566,10 @@ defmodule ExUnit.Case do
     group = Keyword.get(opts, :group, nil)
     parameterize = Keyword.get(opts, :parameterize, nil)
 
+    if not is_boolean(async?) do
+      raise ArgumentError, ":async must be a boolean, got: #{inspect(async?)}"
+    end
+
     if not (parameterize == nil or (is_list(parameterize) and Enum.all?(parameterize, &is_map/1))) do
       raise ArgumentError, ":parameterize must be a list of maps, got: #{inspect(parameterize)}"
     end
