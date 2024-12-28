@@ -383,7 +383,7 @@ defmodule Module.Types.Expr do
       Of.map_fetch(expr, type, key_or_fun, stack, context)
     else
       {mods, context} = Of.modules(type, key_or_fun, 0, [:dot], expr, meta, stack, context)
-      apply_many(mods, key_or_fun, [], expr, stack, context)
+      apply_many(mods, key_or_fun, [], [], expr, stack, context)
     end
   end
 
@@ -391,7 +391,7 @@ defmodule Module.Types.Expr do
     {remote_type, context} = of_expr(remote, stack, context)
     {args_types, context} = Enum.map_reduce(args, context, &of_expr(&1, stack, &2))
     {mods, context} = Of.modules(remote_type, name, length(args), expr, meta, stack, context)
-    apply_many(mods, name, args_types, expr, stack, context)
+    apply_many(mods, name, args, args_types, expr, stack, context)
   end
 
   # TODO: &Foo.bar/1
@@ -540,18 +540,18 @@ defmodule Module.Types.Expr do
 
   ## General helpers
 
-  defp apply_many([], function, args_types, expr, stack, context) do
+  defp apply_many([], function, _args, args_types, expr, stack, context) do
     Apply.remote(function, args_types, expr, stack, context)
   end
 
-  defp apply_many([mod], function, args_types, expr, stack, context) do
-    Apply.remote(mod, function, args_types, expr, stack, context)
+  defp apply_many([mod], function, args, args_types, expr, stack, context) do
+    Apply.remote(mod, function, args, args_types, expr, stack, context)
   end
 
-  defp apply_many(mods, function, args_types, expr, stack, context) do
+  defp apply_many(mods, function, args, args_types, expr, stack, context) do
     {returns, context} =
       Enum.map_reduce(mods, context, fn mod, context ->
-        Apply.remote(mod, function, args_types, expr, stack, context)
+        Apply.remote(mod, function, args, args_types, expr, stack, context)
       end)
 
     {Enum.reduce(returns, &union/2), context}

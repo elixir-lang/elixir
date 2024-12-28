@@ -276,11 +276,11 @@ defmodule Module.Types.Apply do
   @doc """
   Applies a function in a given module.
   """
-  def remote(_module, _fun, _args_types, _expr, %{mode: :traversal}, context) do
+  def remote(_module, _fun, _args, _args_types, _expr, %{mode: :traversal}, context) do
     {dynamic(), context}
   end
 
-  def remote(:erlang, :element, [_, tuple], {_, meta, [index, _]} = expr, stack, context)
+  def remote(:erlang, :element, [index, _], [_, tuple], expr, stack, context)
       when is_integer(index) do
     case tuple_fetch(tuple, index - 1) do
       {_optional?, value_type} ->
@@ -294,18 +294,11 @@ defmodule Module.Types.Apply do
         mfac = mfac(expr, :erlang, :element, 2)
 
         {error_type(),
-         error({:badindex, mfac, expr, tuple, index - 1, context}, meta, stack, context)}
+         error({:badindex, mfac, expr, tuple, index - 1, context}, elem(expr, 1), stack, context)}
     end
   end
 
-  def remote(
-        :erlang,
-        :insert_element,
-        [_, tuple, value],
-        {_, meta, [index, _, _]} = expr,
-        stack,
-        context
-      )
+  def remote(:erlang, :insert_element, [index, _, _], [_, tuple, value], expr, stack, context)
       when is_integer(index) do
     case tuple_insert_at(tuple, index - 1, value) do
       value_type when is_descr(value_type) ->
@@ -321,11 +314,11 @@ defmodule Module.Types.Apply do
         mfac = mfac(expr, :erlang, :insert_element, 3)
 
         {error_type(),
-         error({:badindex, mfac, expr, tuple, index - 2, context}, meta, stack, context)}
+         error({:badindex, mfac, expr, tuple, index - 2, context}, elem(expr, 1), stack, context)}
     end
   end
 
-  def remote(:erlang, :delete_element, [_, tuple], {_, meta, [index, _]} = expr, stack, context)
+  def remote(:erlang, :delete_element, [index, _], [_, tuple], expr, stack, context)
       when is_integer(index) do
     case tuple_delete_at(tuple, index - 1) do
       value_type when is_descr(value_type) ->
@@ -341,16 +334,16 @@ defmodule Module.Types.Apply do
         mfac = mfac(expr, :erlang, :delete_element, 2)
 
         {error_type(),
-         error({:badindex, mfac, expr, tuple, index - 1, context}, meta, stack, context)}
+         error({:badindex, mfac, expr, tuple, index - 1, context}, elem(expr, 1), stack, context)}
     end
   end
 
-  def remote(:erlang, :make_tuple, [_, elem], {_, _meta, [size, _]}, _stack, context)
+  def remote(:erlang, :make_tuple, [size, _], [_, elem], _expr, _stack, context)
       when is_integer(size) and size >= 0 do
     {tuple(List.duplicate(elem, size)), context}
   end
 
-  def remote(:erlang, :hd, [list], expr, stack, context) do
+  def remote(:erlang, :hd, _args, [list], expr, stack, context) do
     case list_hd(list) do
       {_, value_type} ->
         {value_type, context}
@@ -360,7 +353,7 @@ defmodule Module.Types.Apply do
     end
   end
 
-  def remote(:erlang, :tl, [list], expr, stack, context) do
+  def remote(:erlang, :tl, _args, [list], expr, stack, context) do
     case list_tl(list) do
       {_, value_type} ->
         {value_type, context}
@@ -370,7 +363,7 @@ defmodule Module.Types.Apply do
     end
   end
 
-  def remote(:erlang, name, [left, right] = args_types, expr, stack, context)
+  def remote(:erlang, name, _args, [left, right], expr, stack, context)
       when name in [:>=, :"=<", :>, :<, :min, :max] do
     context =
       cond do
@@ -396,18 +389,11 @@ defmodule Module.Types.Apply do
     if name in [:min, :max] do
       {union(left, right), context}
     else
-      {return(boolean(), args_types, stack), context}
+      {return(boolean(), [left, right], stack), context}
     end
   end
 
-  def remote(
-        :erlang,
-        name,
-        [left, right] = args_types,
-        {_, _, args} = expr,
-        stack,
-        context
-      )
+  def remote(:erlang, name, args, [left, right] = args_types, expr, stack, context)
       when name in [:==, :"/=", :"=:=", :"=/="] do
     context =
       cond do
@@ -429,13 +415,13 @@ defmodule Module.Types.Apply do
     {return(boolean(), args_types, stack), context}
   end
 
-  def remote(mod, fun, args_types, expr, stack, context) do
+  def remote(mod, fun, args, args_types, expr, stack, context) do
     arity = length(args_types)
 
     case :elixir_rewrite.inline(mod, fun, arity) do
       {new_mod, new_fun} ->
         expr = inline_meta(expr, mod, fun)
-        remote(new_mod, new_fun, args_types, expr, stack, context)
+        remote(new_mod, new_fun, args, args_types, expr, stack, context)
 
       false ->
         {info, context} = signature(mod, fun, arity, elem(expr, 1), stack, context)
