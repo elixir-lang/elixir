@@ -119,27 +119,41 @@ defmodule Mix.Tasks.CompileTest do
 
       File.mkdir_p!("lib/foo")
 
-      File.write!("lib/foo/z.ex", """
-      defmodule Z do
+      File.write!("lib/foo/z1.ex", """
+      defmodule Z1 do
         def ok, do: :ok
       end
       """)
 
       assert :ok = Mix.Task.reenable("compile")
       assert {:noop, []} = Mix.Task.run("compile")
-      refute File.regular?("_build/dev/lib/sample/ebin/Elixir.Z.beam")
+      refute File.regular?("_build/dev/lib/sample/ebin/Elixir.Z1.beam")
 
       assert :ok = Mix.Task.Compiler.reenable(compilers: [])
       assert {:noop, []} = Mix.Task.run("compile")
-      refute File.regular?("_build/dev/lib/sample/ebin/Elixir.Z.beam")
+      refute File.regular?("_build/dev/lib/sample/ebin/Elixir.Z1.beam")
 
       assert :ok = Mix.Task.Compiler.reenable(compilers: ["erlang"])
       assert {:noop, []} = Mix.Task.run("compile")
-      refute File.regular?("_build/dev/lib/sample/ebin/Elixir.Z.beam")
+      refute File.regular?("_build/dev/lib/sample/ebin/Elixir.Z1.beam")
 
       assert :ok = Mix.Task.Compiler.reenable()
       assert {:ok, []} = Mix.Task.run("compile")
-      assert File.regular?("_build/dev/lib/sample/ebin/Elixir.Z.beam")
+      assert File.regular?("_build/dev/lib/sample/ebin/Elixir.Z1.beam")
+
+      File.write!("lib/foo/z2.ex", """
+      defmodule Z2 do
+        def ko, do: :ko
+      end
+      """)
+
+      assert :ok = Mix.Task.Compiler.reenable(compilers: [:erlang])
+      assert {:noop, []} = Mix.Task.run("compile")
+      refute File.regular?("_build/dev/lib/sample/ebin/Elixir.Z2.beam")
+
+      assert :ok = Mix.Task.Compiler.reenable(compilers: [:elixir])
+      assert {:ok, []} = Mix.Task.run(:compile)
+      assert File.regular?("_build/dev/lib/sample/ebin/Elixir.Z2.beam")
     end)
   end
 
