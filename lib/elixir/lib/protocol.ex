@@ -1104,8 +1104,7 @@ defmodule Protocol do
 
     # TODO: Make this an error on Elixir v2.0
     if for != Any and not Keyword.has_key?(built_in(), for) and for != env.module and
-         for not in env.context_modules and
-         not Code.ensure_loaded?(for) do
+         for not in env.context_modules and Code.ensure_compiled(for) != {:module, for} do
       IO.warn(
         "you are implementing a protocol for #{inspect(for)} but said module is not available. " <>
           "Make sure the module name is correct. If #{inspect(for)} is an optional dependency, " <>
