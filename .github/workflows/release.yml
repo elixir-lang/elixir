@@ -115,13 +115,13 @@ jobs:
         with:
           name: Docs
           path: Docs.zip*
-  
+
   sign:
     needs: [build]
     strategy:
       fail-fast: true
       matrix:
-        otp: [26, 27]
+        otp: [25, 26, 27]
         flavor: [windows, linux]
 
     env:
@@ -160,14 +160,14 @@ jobs:
         run: cp "$ATTESTATION" "${RELEASE_FILE}.sigstore"
         env:
           ATTESTATION: "${{ steps.attest-provenance.outputs.bundle-path }}"
-      
+
       - name: Create Release Hashes
         if: matrix.flavor == 'windows'
         shell: pwsh
         run: |
           $sha1 = Get-FileHash "$env:RELEASE_FILE" -Algorithm SHA1
           $sha1.Hash.ToLower() + "  " + $env:RELEASE_FILE | Out-File "$env:RELEASE_FILE.sha1sum"
-          
+
           $sha256 = Get-FileHash "$env:RELEASE_FILE" -Algorithm SHA256
           $sha256.Hash.ToLower() + "  " + $env:RELEASE_FILE | Out-File "$env:RELEASE_FILE.sha256sum"
 
@@ -191,7 +191,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: '{sign-*-elixir-otp-*,Docs}'
+          pattern: "{sign-*-elixir-otp-*,Docs}"
           merge-multiple: true
 
       - name: Upload Pre-built
@@ -235,7 +235,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: '{sign-*-elixir-otp-*,Docs}'
+          pattern: "{sign-*-elixir-otp-*,Docs}"
           merge-multiple: true
 
       - name: Init purge keys file
