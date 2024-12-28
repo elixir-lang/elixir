@@ -112,7 +112,7 @@ defmodule Mix.Tasks.CompileTest do
     end)
   end
 
-  test "recompiles newly created files" do
+  test "reenables compilers" do
     in_fixture("no_mixfile", fn ->
       assert Mix.Tasks.Compile.run(["--verbose"]) == {:ok, []}
       Mix.shell().flush()
