@@ -85,7 +85,7 @@ defmodule Module.Types.Helpers do
       :interpolation ->
         """
 
-        #{hint()} string interpolation in Elixir uses the String.Chars protocol to \
+        #{hint()} string interpolation uses the String.Chars protocol to \
         convert a data structure into a string. Either convert the data type into a \
         string upfront or implement the protocol accordingly
         """
@@ -93,9 +93,16 @@ defmodule Module.Types.Helpers do
       :generator ->
         """
 
-        #{hint()} for-comprehensions in Elixir use the Enumerable protocol to traverse \
+        #{hint()} for-comprehensions use the Enumerable protocol to traverse \
         data structures. Either convert the data type into a list (or another Enumerable) \
         or implement the protocol accordingly
+        """
+
+      :into ->
+        """
+
+        #{hint()} the :into option in for-comprehensions use the Enumerable protocol to \
+        build its result. Either pass a valid data type or implement the protocol accordingly
         """
 
       :anonymous_rescue ->

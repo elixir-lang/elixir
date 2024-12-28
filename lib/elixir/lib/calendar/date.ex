@@ -188,9 +188,8 @@ defmodule Date do
   end
 
   def utc_today(calendar) do
-    calendar
-    |> DateTime.utc_now()
-    |> DateTime.to_date()
+    %{year: year, month: month, day: day} = DateTime.utc_now(calendar)
+    %Date{year: year, month: month, day: day, calendar: calendar}
   end
 
   @doc """

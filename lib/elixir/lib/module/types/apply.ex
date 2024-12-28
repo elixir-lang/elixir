@@ -838,6 +838,15 @@ defmodule Module.Types.Apply do
            it has type:
            """, [:generator], collect_traces(arg, context)}
 
+        :into ->
+          {"""
+           incompatible value given to :into option in for-comprehension:
+
+               into: #{expr_to_string(expr) |> indent(4)}
+
+           it has type:
+           """, [:into], collect_traces(expr, context)}
+
         _ ->
           mfa_or_fa = if mod, do: Exception.format_mfa(mod, fun, arity), else: "#{fun}/#{arity}"
 
