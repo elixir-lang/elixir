@@ -4,6 +4,7 @@ defmodule Kernel.LexicalTrackerTest do
   use ExUnit.Case, async: true
 
   alias Kernel.LexicalTracker, as: D
+  defstruct used_by_tests: :ok
 
   setup do
     {:ok, pid} = D.start_link()
@@ -516,6 +517,20 @@ defmodule Kernel.LexicalTrackerTest do
       assert URI in compile
       refute URI in exports
       refute URI in runtime
+    end
+
+    test "defimpl does not add dependencies" do
+      {{compile, exports, runtime, _}, _binding} =
+        Code.eval_string("""
+        defimpl String.Chars, for: Kernel.LexicalTrackerTest do
+          def to_string(val), do: val.used_by_tests
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      refute Kernel.LexicalTrackerTest in compile
+      refute Kernel.LexicalTrackerTest in exports
+      refute Kernel.LexicalTrackerTest in runtime
     end
   end
 end
