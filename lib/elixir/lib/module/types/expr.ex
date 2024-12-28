@@ -504,6 +504,10 @@ defmodule Module.Types.Expr do
     context
   end
 
+  defp for_option({:into, expr}, _meta, _stack, context) when is_list(expr) or is_binary(expr) do
+    context
+  end
+
   defp for_option({:into, expr}, meta, stack, context) do
     {type, context} = of_expr(expr, stack, context)
 

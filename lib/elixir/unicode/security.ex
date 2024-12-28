@@ -146,10 +146,11 @@ defmodule String.Tokenizer.Security do
   defp dir_breakdown(s) do
     init = "'#{s}' includes right-to-left characters:\n"
 
-    for codepoint <- s, into: init do
-      hex = :io_lib.format(~c"~4.16.0B", [codepoint])
-      "  \\u#{hex} #{[codepoint]} #{String.Tokenizer.dir(codepoint)}\n"
-    end
+    init <>
+      for codepoint <- s do
+        hex = :io_lib.format(~c"~4.16.0B", [codepoint])
+        "  \\u#{hex} #{[codepoint]} #{String.Tokenizer.dir(codepoint)}\n"
+      end
   end
 
   # make charlist match visual order by reversing spans of {rtl, neutral}
