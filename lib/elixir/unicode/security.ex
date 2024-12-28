@@ -147,7 +147,7 @@ defmodule String.Tokenizer.Security do
     init = "'#{s}' includes right-to-left characters:\n"
 
     init <>
-      for codepoint <- s do
+      for codepoint <- s, into: "" do
         hex = :io_lib.format(~c"~4.16.0B", [codepoint])
         "  \\u#{hex} #{[codepoint]} #{String.Tokenizer.dir(codepoint)}\n"
       end
