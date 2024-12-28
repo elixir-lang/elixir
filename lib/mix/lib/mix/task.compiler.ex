@@ -331,7 +331,8 @@ defmodule Mix.Task.Compiler do
         list when is_list(list) -> list
       end
 
-    Enum.each(["compile", "compile.all"], &Mix.Task.reenable(&1))
+    Mix.Task.reenable("compile")
+    Mix.Task.reenable("compile.all")
     Enum.each(compilers, &Mix.Task.reenable("compile.#{&1}"))
   end
 end
