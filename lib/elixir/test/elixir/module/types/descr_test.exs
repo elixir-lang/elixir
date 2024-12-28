@@ -1494,6 +1494,15 @@ defmodule Module.Types.DescrTest do
       assert closed_map(__struct__: atom([Decimal]), coef: term(), exp: term(), sign: integer())
              |> to_quoted_string(collapse_structs: true) ==
                "%Decimal{sign: integer()}"
+
+      # Does not fuse structs
+      assert union(closed_map(__struct__: atom([Foo])), closed_map(__struct__: atom([Bar])))
+             |> to_quoted_string() ==
+               "%{__struct__: Bar} or %{__struct__: Foo}"
+
+      # Properly format non_struct_map
+      assert open_map(__struct__: if_set(negation(atom()))) |> to_quoted_string() ==
+               "non_struct_map()"
     end
   end
 

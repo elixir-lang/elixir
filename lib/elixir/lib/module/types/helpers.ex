@@ -90,11 +90,12 @@ defmodule Module.Types.Helpers do
         string upfront or implement the protocol accordingly
         """
 
-      {:protocol, protocol} ->
+      :generator ->
         """
 
-        #{hint()} #{inspect(protocol)} is a protocol in Elixir. Either make sure you \
-        give valid data types as arguments or implement the protocol accordingly
+        #{hint()} for-comprehensions in Elixir use the Enumerable protocol to traverse \
+        data structures. Either convert the data type into a list (or another Enumerable) \
+        or implement the protocol accordingly
         """
 
       :anonymous_rescue ->

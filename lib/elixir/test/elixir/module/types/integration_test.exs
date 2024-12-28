@@ -131,7 +131,7 @@ defmodule Module.Types.IntegrationTest do
       assert itself_arg.(Itself.Function) == dynamic(fun())
       assert itself_arg.(Itself.Integer) == dynamic(integer())
       assert itself_arg.(Itself.List) == dynamic(list(term()))
-      assert itself_arg.(Itself.Map) == dynamic(open_map(__struct__: not_set()))
+      assert itself_arg.(Itself.Map) == dynamic(open_map(__struct__: if_set(negation(atom()))))
       assert itself_arg.(Itself.Port) == dynamic(port())
       assert itself_arg.(Itself.PID) == dynamic(pid())
       assert itself_arg.(Itself.Reference) == dynamic(reference())
@@ -374,7 +374,7 @@ defmodule Module.Types.IntegrationTest do
       assert_warnings(files, warnings)
     end
 
-    test "protocol dispatch" do
+    test "String.Chars protocol dispatch" do
       files = %{
         "a.ex" => """
         defmodule FooBar do
@@ -394,7 +394,7 @@ defmodule Module.Types.IntegrationTest do
 
                 -dynamic(%Range{first: term(), last: term(), step: term()})-
 
-            but expected one of:
+            but expected a type that implements the String.Chars protocol, it must be one of:
 
                 %Date{} or %DateTime{} or %NaiveDateTime{} or %Time{} or %URI{} or %Version{} or
                   %Version.Requirement{} or atom() or binary() or float() or integer() or list(term())
@@ -416,7 +416,7 @@ defmodule Module.Types.IntegrationTest do
 
                 -dynamic(%Range{first: term(), last: term(), step: term()})-
 
-            but expected one of:
+            but expected a type that implements the String.Chars protocol, it must be one of:
 
                 %Date{} or %DateTime{} or %NaiveDateTime{} or %Time{} or %URI{} or %Version{} or
                   %Version.Requirement{} or atom() or binary() or float() or integer() or list(term())
@@ -426,8 +426,43 @@ defmodule Module.Types.IntegrationTest do
                 # type: dynamic(%Range{})
                 # from: a.ex:2:24
                 _.._//_ = data
+        """
+      ]
 
-            hint: String.Chars is a protocol in Elixir. Either make sure you give valid data types as arguments or implement the protocol accordingly
+      assert_warnings(files, warnings, consolidate_protocols: true)
+    end
+
+    test "Enumerable protocol dispatch" do
+      files = %{
+        "a.ex" => """
+        defmodule FooBar do
+          def example1(%Date{} = date), do: for(x <- date, do: x)
+        end
+        """
+      }
+
+      warnings = [
+        """
+            warning: incompatible value given to for-comprehension:
+
+                x <- date
+
+            it has type:
+
+                -dynamic(%Date{year: term(), month: term(), day: term(), calendar: term()})-
+
+            but expected a type that implements the Enumerable protocol, it must be one of:
+
+                %Date.Range{} or %File.Stream{} or %GenEvent.Stream{} or %HashDict{} or %HashSet{} or
+                  %IO.Stream{} or %MapSet{} or %Range{} or %Stream{} or fun() or list(term()) or non_struct_map()
+
+            where "date" was given the type:
+
+                # type: dynamic(%Date{})
+                # from: a.ex:2:24
+                %Date{} = date
+
+            hint: for-comprehensions in Elixir use the Enumerable protocol to traverse data structures. Either convert the data type into a list (or another Enumerable) or implement the protocol accordingly
         """
       ]
 

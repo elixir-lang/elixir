@@ -471,12 +471,16 @@ defmodule Module.Types.Expr do
 
   ## Comprehensions
 
-  defp for_clause({:<-, _, [left, right]} = expr, stack, context) do
+  defp for_clause({:<-, meta, [left, right]}, stack, context) do
+    expr = {:<-, [type_check: :generator] ++ meta, [left, right]}
     {pattern, guards} = extract_head([left])
-    {_, context} = of_expr(right, stack, context)
+    {type, context} = of_expr(right, stack, context)
 
     {_type, context} =
       Pattern.of_match(pattern, guards, dynamic(), expr, :for, stack, context)
+
+    {_type, context} =
+      Apply.remote(Enumerable, :count, [right], [type], expr, stack, context)
 
     context
   end
@@ -511,6 +515,7 @@ defmodule Module.Types.Expr do
   end
 
   defp for_option({:uniq, _}, _stack, context) do
+    # This option is verified to be a boolean at compile-time
     context
   end
 
