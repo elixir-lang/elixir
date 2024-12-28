@@ -82,42 +82,6 @@ defmodule Mix.Tasks.Compile do
   @deprecated "Use Mix.Task.Compiler.compilers/1 instead"
   defdelegate compilers(config \\ Mix.Project.config()), to: Mix.Task.Compiler
 
-  @doc """
-  Reenables given compilers so they can be executed again down the stack.
-
-  If an umbrella project reenables compilers, they are re-enabled for all
-  child projects.
-
-  By default reenables all compilers.
-  """
-  @spec reenable([{:compilers, compilers} | {:protocols, protocols}]) :: :ok
-        when compilers: :all | [atom()], protocols: :consolidate | nil
-  def reenable(opts \\ []) do
-    compilers =
-      case Keyword.get(opts, :compilers, :all) do
-        :all -> compilers()
-        list when is_list(list) -> list
-      end
-
-    compilers =
-      if Keyword.get(opts, :protocols) in [:consolidate, true] do
-        compilers
-        |> Enum.map(&to_string/1)
-        |> Enum.reduce([], fn
-          "elixir", acc -> ["protocols", "elixir" | acc]
-          "app", acc -> ["app", "protocols", "elixir" | acc]
-          other, acc -> [other | acc]
-        end)
-        |> Enum.reverse()
-        |> Enum.uniq()
-      else
-        compilers
-      end
-
-    Enum.each(["compile", "compile.all"], &Mix.Task.reenable(&1))
-    Enum.each(compilers, &Mix.Task.reenable("compile.#{&1}"))
-  end
-
   @impl true
   def run(["--list"]) do
     # Loadpaths without checks because compilers may be defined in deps.

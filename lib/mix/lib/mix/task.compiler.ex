@@ -175,7 +175,7 @@ defmodule Mix.Task.Compiler do
   """
   @callback clean() :: any
 
-  @optional_callbacks clean: 0, manifests: 0
+  @optional_callbacks clean: 0, manifests: 0, diagnostics: 0
 
   @doc """
   Adds a callback that runs after a given compiler.
@@ -319,26 +319,19 @@ defmodule Mix.Task.Compiler do
   If an umbrella project reenables compilers, they are re-enabled for all
   child projects.
 
-  Default is `[]`, for none compilers to be reenabled.
-  This task always re-enables `"compiler.all"`.
+  Default is `:all` which effectively means all the compilers returned by
+  `Mix.Task.Compiler.compilers()` are to be reenabled. This task always
+  re-enables `"compile"` and `"compile.all"`.
   """
   @spec reenable([{:compilers, compilers}]) :: :ok when compilers: :all | [Mix.Task.task_name()]
   def reenable(opts \\ []) do
-    if not Keyword.keyword?(opts) do
-      IO.warn(
-        "Mix.Task.Compiler.reenable/1 expects a keyword list " <>
-          "as an argument with compilers: [compiler()], " <>
-          "reenabling no compiler"
-      )
-    else
-      compilers =
-        case Keyword.get(opts, :compilers, []) do
-          :all -> Mix.Tasks.Compile.compilers()
-          list when is_list(list) -> list
-        end
+    compilers =
+      case Keyword.get(opts, :compilers, :all) do
+        :all -> Mix.Task.Compiler.compilers()
+        list when is_list(list) -> list
+      end
 
-      Enum.each(["loadpaths", "compile", "compile.all"], &Mix.Task.reenable(&1))
-      Enum.each(compilers, &Mix.Task.reenable("compile.#{&1}"))
-    end
+    Enum.each(["compile", "compile.all"], &Mix.Task.reenable(&1))
+    Enum.each(compilers, &Mix.Task.reenable("compile.#{&1}"))
   end
 end
