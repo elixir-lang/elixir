@@ -472,15 +472,6 @@ defmodule Module.Types.IntegrationTest do
                 into: Date.utc_today()
 
             it has type:
-
-                -dynamic(%Date{year: term(), month: term(), day: term(), calendar: term()})-
-
-            but expected a type that implements the Collectable protocol, it must be one of:
-
-                %File.Stream{} or %HashDict{} or %HashSet{} or %IO.Stream{} or %MapSet{} or binary() or
-                  list(term()) or non_struct_map()
-
-            hint: the :into option in for-comprehensions use the Collectable protocol to build its result. Either pass a valid data type or implement the protocol accordingly
         """,
         """
             warning: incompatible value given to :into option in for-comprehension:
