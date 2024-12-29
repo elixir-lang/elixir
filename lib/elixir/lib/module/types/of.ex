@@ -96,7 +96,7 @@ defmodule Module.Types.Of do
     {Function, fun()},
     {Integer, integer()},
     {List, list(term())},
-    {Map, open_map(__struct__: not_set())},
+    {Map, open_map(__struct__: if_set(negation(atom())))},
     {Port, port()},
     {PID, pid()},
     {Reference, reference()},
@@ -339,7 +339,7 @@ defmodule Module.Types.Of do
          {{:., _, [String.Chars, :to_string]} = dot, meta, [arg]},
          {:binary, _, nil}
        ) do
-    {dot, [from_interpolation: true] ++ meta, [arg]}
+    {dot, [type_check: :interpolation] ++ meta, [arg]}
   end
 
   defp annotate_interpolation(left, _right) do

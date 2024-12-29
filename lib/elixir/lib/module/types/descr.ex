@@ -31,8 +31,6 @@ defmodule Module.Types.Descr do
   @map_empty [{:closed, %{}, []}]
 
   @none %{}
-  @empty_list %{bitmap: @bit_empty_list}
-  @not_non_empty_list %{bitmap: @bit_top, atom: @atom_top, tuple: @tuple_top, map: @map_top}
   @term %{
     bitmap: @bit_top,
     atom: @atom_top,
@@ -40,6 +38,8 @@ defmodule Module.Types.Descr do
     map: @map_top,
     list: @non_empty_list_top
   }
+  @empty_list %{bitmap: @bit_empty_list}
+  @not_non_empty_list Map.delete(@term, :list)
 
   @empty_intersection [0, @none]
   @empty_difference [0, []]
@@ -98,6 +98,7 @@ defmodule Module.Types.Descr do
   @not_set %{optional: 1}
   @term_or_optional Map.put(@term, :optional, 1)
   @term_or_dynamic_optional Map.put(@term, :dynamic, %{optional: 1})
+  @not_atom_or_optional Map.delete(@term_or_optional, :atom)
 
   def not_set(), do: @not_set
   def if_set(:term), do: term_or_optional()
@@ -1751,9 +1752,31 @@ defmodule Module.Types.Descr do
   end
 
   # Two maps are fusible if they differ in at most one element.
-  defp non_fusible_maps?({_, fields1, []}, {_, fields2, []}) do
-    Enum.count_until(fields1, fn {key, value} -> Map.fetch!(fields2, key) != value end, 2) > 1
+  defp non_fusible_maps?({_, fields1, []}, {_, fields2, []})
+       when map_size(fields1) > map_size(fields2) do
+    not fusible_maps?(Map.to_list(fields2), fields1, 0)
   end
+
+  defp non_fusible_maps?({_, fields1, []}, {_, fields2, []}) do
+    not fusible_maps?(Map.to_list(fields1), fields2, 0)
+  end
+
+  defp fusible_maps?([{:__struct__, value} | rest], fields, count) do
+    case Map.fetch!(fields, :__struct__) do
+      ^value -> fusible_maps?(rest, fields, count)
+      _ -> false
+    end
+  end
+
+  defp fusible_maps?([{key, value} | rest], fields, count) do
+    case Map.fetch!(fields, key) do
+      ^value -> fusible_maps?(rest, fields, count)
+      _ when count == 1 -> false
+      _ when count == 0 -> fusible_maps?(rest, fields, count + 1)
+    end
+  end
+
+  defp fusible_maps?([], _fields, _count), do: true
 
   defp map_non_negated_fuse_pair({tag, fields1, []}, {_, fields2, []}) do
     fields =
@@ -1816,6 +1839,11 @@ defmodule Module.Types.Descr do
 
   def map_literal_to_quoted({:closed, fields}, _opts) when map_size(fields) == 0 do
     {:empty_map, [], []}
+  end
+
+  def map_literal_to_quoted({:open, %{__struct__: @not_atom_or_optional} = fields}, _opts)
+      when map_size(fields) == 1 do
+    {:non_struct_map, [], []}
   end
 
   def map_literal_to_quoted({tag, fields}, opts) do

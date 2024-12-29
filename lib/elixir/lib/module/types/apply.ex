@@ -811,14 +811,12 @@ defmodule Module.Types.Apply do
   end
 
   def format_diagnostic({:badremote, mfac, expr, args_types, domain, clauses, context}) do
-    traces = collect_traces(expr, context)
     {mod, fun, arity, converter} = mfac
     meta = elem(expr, 1)
 
-    # Protocol errors can be very verbose, so we collapse structs
-    {banner, hints, opts} =
-      cond do
-        meta[:from_interpolation] ->
+    {banner, hints, traces} =
+      case Keyword.get(meta, :type_check) do
+        :interpolation ->
           {_, _, [arg]} = expr
 
           {"""
@@ -827,34 +825,59 @@ defmodule Module.Types.Apply do
                #{expr_to_string(arg) |> indent(4)}
 
            it has type:
-           """, [:interpolation], [collapse_structs: true]}
+           """, [:interpolation], collect_traces(expr, context)}
 
-        Code.ensure_loaded?(mod) and
-            Keyword.has_key?(mod.module_info(:attributes), :__protocol__) ->
-          {nil, [{:protocol, mod}], [collapse_structs: true]}
+        :generator ->
+          {:<-, _, [_, arg]} = expr
 
-        true ->
-          {nil, [], []}
+          {"""
+           incompatible value given to for-comprehension:
+
+               #{expr_to_string(expr) |> indent(4)}
+
+           it has type:
+           """, [:generator], collect_traces(arg, context)}
+
+        :into ->
+          {"""
+           incompatible value given to :into option in for-comprehension:
+
+               into: #{expr_to_string(expr) |> indent(4)}
+
+           it has type:
+           """, [:into], collect_traces(expr, context)}
+
+        _ ->
+          mfa_or_fa = if mod, do: Exception.format_mfa(mod, fun, arity), else: "#{fun}/#{arity}"
+
+          {"""
+           incompatible types given to #{mfa_or_fa}:
+
+               #{expr_to_string(expr) |> indent(4)}
+
+           given types:
+           """, [], collect_traces(expr, context)}
       end
 
     explanation =
-      empty_arg_reason(converter.(args_types)) ||
-        """
-        but expected one of:
-        #{clauses_args_to_quoted_string(clauses, converter, opts)}
-        """
+      cond do
+        reason = empty_arg_reason(converter.(args_types)) ->
+          reason
 
-    mfa_or_fa = if mod, do: Exception.format_mfa(mod, fun, arity), else: "#{fun}/#{arity}"
+        Code.ensure_loaded?(mod) and
+            Keyword.has_key?(mod.module_info(:attributes), :__protocol__) ->
+          # Protocol errors can be very verbose, so we collapse structs
+          """
+          but expected a type that implements the #{inspect(mod)} protocol, it must be one of:
+          #{clauses_args_to_quoted_string(clauses, converter, collapse_structs: true)}
+          """
 
-    banner =
-      banner ||
-        """
-        incompatible types given to #{mfa_or_fa}:
-
-            #{expr_to_string(expr) |> indent(4)}
-
-        given types:
-        """
+        true ->
+          """
+          but expected one of:
+          #{clauses_args_to_quoted_string(clauses, converter, [])}
+          """
+      end
 
     %{
       details: %{typing_traces: traces},

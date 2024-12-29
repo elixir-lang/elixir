@@ -338,10 +338,10 @@ defmodule Module.Types.Expr do
   end
 
   # TODO: for pat <- expr do expr end
-  def of_expr({:for, _meta, [_ | _] = args}, stack, context) do
+  def of_expr({:for, meta, [_ | _] = args}, stack, context) do
     {clauses, [[{:do, block} | opts]]} = Enum.split(args, -1)
     context = Enum.reduce(clauses, context, &for_clause(&1, stack, &2))
-    context = Enum.reduce(opts, context, &for_option(&1, stack, &2))
+    context = Enum.reduce(opts, context, &for_option(&1, meta, stack, &2))
 
     if Keyword.has_key?(opts, :reduce) do
       {_, context} = of_clauses(block, [dynamic()], :for_reduce, stack, {none(), context})
@@ -471,12 +471,16 @@ defmodule Module.Types.Expr do
 
   ## Comprehensions
 
-  defp for_clause({:<-, _, [left, right]} = expr, stack, context) do
+  defp for_clause({:<-, meta, [left, right]}, stack, context) do
+    expr = {:<-, [type_check: :generator] ++ meta, [left, right]}
     {pattern, guards} = extract_head([left])
-    {_, context} = of_expr(right, stack, context)
+    {type, context} = of_expr(right, stack, context)
 
     {_type, context} =
       Pattern.of_match(pattern, guards, dynamic(), expr, :for, stack, context)
+
+    {_type, context} =
+      Apply.remote(Enumerable, :count, [right], [type], expr, stack, context)
 
     context
   end
@@ -500,17 +504,34 @@ defmodule Module.Types.Expr do
     context
   end
 
-  defp for_option({:into, expr}, stack, context) do
+  defp for_option({:into, expr}, _meta, _stack, context) when is_list(expr) or is_binary(expr) do
+    context
+  end
+
+  defp for_option({:into, expr}, meta, stack, context) do
+    {type, context} = of_expr(expr, stack, context)
+
+    meta =
+      case expr do
+        {_, meta, _} -> meta
+        _ -> meta
+      end
+
+    wrapped_expr = {:__block__, [type_check: :into] ++ meta, [expr]}
+
+    {_type, context} =
+      Apply.remote(Collectable, :into, [expr], [type], wrapped_expr, stack, context)
+
+    context
+  end
+
+  defp for_option({:reduce, expr}, _meta, stack, context) do
     {_type, context} = of_expr(expr, stack, context)
     context
   end
 
-  defp for_option({:reduce, expr}, stack, context) do
-    {_type, context} = of_expr(expr, stack, context)
-    context
-  end
-
-  defp for_option({:uniq, _}, _stack, context) do
+  defp for_option({:uniq, _}, _meta, _stack, context) do
+    # This option is verified to be a boolean at compile-time
     context
   end
 
