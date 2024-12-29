@@ -209,7 +209,8 @@ defmodule Module.ParallelChecker do
   """
   @spec fetch_export(cache(), module(), atom(), arity()) ::
           {:ok, mode(), binary() | nil, {:infer, [term()]} | :none}
-          | {:error, :function | :module}
+          | :badmodule
+          | {:badfunction, mode()}
   def fetch_export({checker, table}, module, fun, arity) do
     case :ets.lookup(table, module) do
       [] ->
@@ -217,12 +218,12 @@ defmodule Module.ParallelChecker do
         fetch_export({checker, table}, module, fun, arity)
 
       [{_key, false}] ->
-        {:error, :module}
+        :badmodule
 
       [{_key, mode}] ->
         case :ets.lookup(table, {module, {fun, arity}}) do
           [{_key, reason, signature}] -> {:ok, mode, reason, signature}
-          [] -> {:error, :function}
+          [] -> {:badfunction, mode}
         end
     end
   end
@@ -419,7 +420,7 @@ defmodule Module.ParallelChecker do
   end
 
   defp info_exports(module) do
-    {:elixir, behaviour_exports(module) ++ [{:__info__, 1} | module.__info__(:functions)]}
+    {:elixir, behaviour_exports(module) ++ module.__info__(:functions)}
   rescue
     _ -> {:erlang, module.module_info(:exports)}
   end
@@ -432,8 +433,7 @@ defmodule Module.ParallelChecker do
 
   defp cache_from_module_map(table, map) do
     exports =
-      [{:__info__, 1}] ++
-        behaviour_exports(map) ++
+      behaviour_exports(map) ++
         for({function, :def, _meta, _clauses} <- map.definitions, do: function)
 
     cache_info(table, map.module, exports, Map.new(map.deprecated), map.signatures, :elixir)
@@ -458,7 +458,6 @@ defmodule Module.ParallelChecker do
       )
     end)
 
-    :ets.insert(table, {{module, {:__info__, 1}}, nil, :none})
     :ets.insert(table, {module, :elixir})
   end
 

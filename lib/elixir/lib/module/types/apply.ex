@@ -31,6 +31,7 @@ defmodule Module.Types.Apply do
   end
 
   fas = list(tuple([atom(), integer()]))
+  struct_info = list(closed_map(default: if_set(term()), field: atom()))
 
   shared_info = [
     attributes: list(tuple([atom(), list(term())])),
@@ -40,31 +41,32 @@ defmodule Module.Types.Apply do
     module: atom()
   ]
 
+  module_info = [functions: fas, nifs: fas] ++ shared_info
+
+  elixir_info =
+    [
+      deprecated: list(tuple([tuple([atom(), integer()]), binary()])),
+      exports_md5: binary(),
+      functions: fas,
+      macros: fas,
+      struct: struct_info |> union(atom([nil]))
+    ] ++ shared_info
+
   infos =
-    %{
-      behaviour_info: [
-        callbacks: fas,
-        optional_callbacks: fas
-      ],
-      module_info: [functions: fas, nifs: fas] ++ shared_info,
-      __info__:
-        [
-          deprecated: list(tuple([tuple([atom(), integer()]), binary()])),
-          exports_md5: binary(),
-          functions: fas,
-          macros: fas,
-          struct:
-            list(closed_map(default: if_set(term()), field: atom()))
-            |> union(atom([nil]))
-        ] ++ shared_info,
-      # TODO: Move this to a type signature in the long term
-      __protocol__: [
-        module: atom(),
-        functions: fas,
-        consolidated?: boolean(),
-        impls: union(atom([:not_consolidated]), tuple([atom([:consolidated]), list(atom())]))
-      ]
-    }
+    [
+      # We have a special key that tracks if something is a struct or not
+      {{:__info__, true}, Keyword.put(elixir_info, :struct, struct_info)},
+      {{:__info__, false}, Keyword.put(elixir_info, :struct, atom([nil]))},
+      {:__info__, elixir_info},
+      {:behaviour_info, callbacks: fas, optional_callbacks: fas},
+      {:module_info, module_info},
+      # TODO: Move this to a type signature declared by `defprotocol` (or perhaps part of the behaviour)
+      {:__protocol__,
+       module: atom(),
+       functions: fas,
+       consolidated?: boolean(),
+       impls: union(atom([:not_consolidated]), tuple([atom([:consolidated]), list(atom())]))}
+    ]
 
   for {name, clauses} <- infos do
     domain = atom(Keyword.keys(clauses))
@@ -76,7 +78,7 @@ defmodule Module.Types.Apply do
   end
 
   defp signature(:module_info, 0) do
-    {:strong, nil, [{[], unquote(Macro.escape(kw.(infos.module_info)))}]}
+    {:strong, nil, [{[], unquote(Macro.escape(kw.(module_info)))}]}
   end
 
   defp signature(_, _), do: :none
@@ -512,24 +514,26 @@ defmodule Module.Types.Apply do
             info = if info == :none, do: signature(fun, arity), else: info
             {info, check_deprecated(mode, module, fun, arity, reason, meta, stack, context)}
 
-          {:error, type} ->
+          {:badfunction, :elixir} when fun == :__info__ and arity == 1 ->
+            key =
+              cond do
+                not Code.ensure_loaded?(module) -> :__info__
+                module.__info__(:struct) != nil -> {:__info__, true}
+                true -> {:__info__, false}
+              end
+
+            {signature(key, arity), context}
+
+          error ->
             context =
               if warn_undefined?(module, fun, arity, stack) do
-                warn(__MODULE__, {:undefined, type, module, fun, arity}, meta, stack, context)
+                warn(__MODULE__, {:undefined, error, module, fun, arity}, meta, stack, context)
               else
                 context
               end
 
             {:none, context}
         end
-    end
-  end
-
-  defp check_deprecated(:elixir, module, fun, arity, reason, meta, stack, context) do
-    if reason do
-      warn(__MODULE__, {:deprecated, module, fun, arity, reason}, meta, stack, context)
-    else
-      context
     end
   end
 
@@ -546,6 +550,14 @@ defmodule Module.Types.Apply do
 
       _ ->
         context
+    end
+  end
+
+  defp check_deprecated(_, module, fun, arity, reason, meta, stack, context) do
+    if reason do
+      warn(__MODULE__, {:deprecated, module, fun, arity, reason}, meta, stack, context)
+    else
+      context
     end
   end
 
@@ -952,7 +964,7 @@ defmodule Module.Types.Apply do
     }
   end
 
-  def format_diagnostic({:undefined, :module, module, fun, arity}) do
+  def format_diagnostic({:undefined, :badmodule, module, fun, arity}) do
     top =
       if fun == :__struct__ and arity == 0 do
         "struct #{inspect(module)}"
@@ -973,7 +985,7 @@ defmodule Module.Types.Apply do
     }
   end
 
-  def format_diagnostic({:undefined, :function, module, :__struct__, 0}) do
+  def format_diagnostic({:undefined, {:badfunction, _}, module, :__struct__, 0}) do
     %{
       message:
         "struct #{inspect(module)} is undefined (there is such module but it does not define a struct)",
@@ -981,7 +993,7 @@ defmodule Module.Types.Apply do
     }
   end
 
-  def format_diagnostic({:undefined, :function, module, fun, arity}) do
+  def format_diagnostic({:undefined, {:badfunction, _}, module, fun, arity}) do
     %{
       message:
         IO.iodata_to_binary([

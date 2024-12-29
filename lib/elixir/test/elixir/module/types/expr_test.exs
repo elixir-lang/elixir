@@ -1436,12 +1436,12 @@ defmodule Module.Types.ExprTest do
 
   describe "info" do
     test "__info__/1" do
-      assert typecheck!([x], x.__info__(:functions)) == list(tuple([atom(), integer()]))
-
       assert typecheck!(GenServer.__info__(:functions)) == list(tuple([atom(), integer()]))
 
       assert typewarn!(:string.__info__(:functions)) ==
                {dynamic(), ":string.__info__/1 is undefined or private"}
+
+      assert typecheck!([x], x.__info__(:functions)) == list(tuple([atom(), integer()]))
 
       assert typeerror!([x], x.__info__(:whatever)) |> strip_ansi() =~ """
              incompatible types given to __info__/1:
@@ -1452,6 +1452,16 @@ defmodule Module.Types.ExprTest do
 
                  :whatever
              """
+    end
+
+    test "__info__/1 for struct information" do
+      assert typecheck!(GenServer.__info__(:struct)) == atom([nil])
+
+      assert typecheck!(URI.__info__(:struct)) ==
+               list(closed_map(default: if_set(term()), field: atom()))
+
+      assert typecheck!([x], x.__info__(:struct)) ==
+               list(closed_map(default: if_set(term()), field: atom())) |> union(atom([nil]))
     end
 
     test "behaviour_info/1" do
