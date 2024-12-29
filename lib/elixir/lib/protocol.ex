@@ -573,7 +573,12 @@ defmodule Protocol do
     case :beam_lib.chunks(beam_file(protocol), chunk_ids, opts) do
       {:ok, {^protocol, [{:debug_info, debug_info} | chunks]}} ->
         {:debug_info_v1, _backend, {:elixir_v1, module_map, specs}} = debug_info
-        %{attributes: attributes, definitions: definitions, signatures: signatures} = module_map
+        %{attributes: attributes, definitions: definitions} = module_map
+
+        # Protocols in precompiled archives may not have signatures, so we default to an empty map.
+        # TODO: Remove this on Elixir v1.23.
+        signatures = Map.get(module_map, :signatures, %{})
+
         chunks = :lists.filter(fn {_name, value} -> value != :missing_chunk end, chunks)
         chunks = :lists.map(fn {name, value} -> {List.to_string(name), value} end, chunks)
 
@@ -736,7 +741,9 @@ defmodule Protocol do
 
   # Finally compile the module and emit its bytecode.
   defp compile(definitions, signatures, {module_map, specs, docs_chunk}) do
-    module_map = %{module_map | definitions: definitions, signatures: signatures}
+    # Protocols in precompiled archives may not have signatures, so we default to an empty map.
+    # TODO: Remove this on Elixir v1.23.
+    module_map = %{module_map | definitions: definitions} |> Map.put(:signatures, signatures)
     {:ok, :elixir_erl.consolidate(module_map, specs, docs_chunk)}
   end
 
@@ -817,7 +824,7 @@ defmodule Protocol do
     callback_metas = callback_metas(env.module, :callback)
     callbacks = :maps.keys(callback_metas)
 
-    # TODO: Convert the following warnings into errors in future Elixir versions
+    # TODO: Make an error on Elixir v2.0
     :lists.foreach(
       fn {name, arity} = fa ->
         warn(
@@ -833,6 +840,7 @@ defmodule Protocol do
     macrocallback_metas = callback_metas(env.module, :macrocallback)
     macrocallbacks = :maps.keys(macrocallback_metas)
 
+    # TODO: Make an error on Elixir v2.0
     :lists.foreach(
       fn {name, arity} = fa ->
         warn(
