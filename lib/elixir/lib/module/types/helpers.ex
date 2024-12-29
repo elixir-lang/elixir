@@ -101,7 +101,7 @@ defmodule Module.Types.Helpers do
       :into ->
         """
 
-        #{hint()} the :into option in for-comprehensions use the Enumerable protocol to \
+        #{hint()} the :into option in for-comprehensions use the Collectable protocol to \
         build its result. Either pass a valid data type or implement the protocol accordingly
         """
 

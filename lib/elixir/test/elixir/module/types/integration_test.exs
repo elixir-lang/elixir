@@ -480,7 +480,7 @@ defmodule Module.Types.IntegrationTest do
                 %File.Stream{} or %HashDict{} or %HashSet{} or %IO.Stream{} or %MapSet{} or binary() or
                   list(term()) or non_struct_map()
 
-            hint: the :into option in for-comprehensions use the Enumerable protocol to build its result. Either pass a valid data type or implement the protocol accordingly
+            hint: the :into option in for-comprehensions use the Collectable protocol to build its result. Either pass a valid data type or implement the protocol accordingly
         """,
         """
             warning: incompatible value given to :into option in for-comprehension:
@@ -496,7 +496,7 @@ defmodule Module.Types.IntegrationTest do
                 %File.Stream{} or %HashDict{} or %HashSet{} or %IO.Stream{} or %MapSet{} or binary() or
                   list(term()) or non_struct_map()
 
-            hint: the :into option in for-comprehensions use the Enumerable protocol to build its result. Either pass a valid data type or implement the protocol accordingly
+            hint: the :into option in for-comprehensions use the Collectable protocol to build its result. Either pass a valid data type or implement the protocol accordingly
         """
       ]
 
