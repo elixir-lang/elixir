@@ -169,10 +169,8 @@ defmodule IEx.Helpers do
   end
 
   defp reenable_tasks(config) do
-    Mix.Task.reenable("compile")
-    Mix.Task.reenable("compile.all")
     compilers = config[:compilers] || Mix.compilers()
-    Enum.each(compilers, &Mix.Task.reenable("compile.#{&1}"))
+    Mix.Task.Compiler.reenable(compilers: compilers)
   end
 
   @doc """

@@ -112,6 +112,51 @@ defmodule Mix.Tasks.CompileTest do
     end)
   end
 
+  test "reenables compilers" do
+    in_fixture("no_mixfile", fn ->
+      assert Mix.Tasks.Compile.run(["--verbose"]) == {:ok, []}
+      Mix.shell().flush()
+
+      File.mkdir_p!("lib/foo")
+
+      File.write!("lib/foo/z1.ex", """
+      defmodule Z1 do
+        def ok, do: :ok
+      end
+      """)
+
+      assert :ok = Mix.Task.reenable("compile")
+      assert {:noop, []} = Mix.Task.run("compile")
+      refute File.regular?("_build/dev/lib/sample/ebin/Elixir.Z1.beam")
+
+      assert :ok = Mix.Task.Compiler.reenable(compilers: [])
+      assert {:noop, []} = Mix.Task.run("compile")
+      refute File.regular?("_build/dev/lib/sample/ebin/Elixir.Z1.beam")
+
+      assert :ok = Mix.Task.Compiler.reenable(compilers: ["erlang"])
+      assert {:noop, []} = Mix.Task.run("compile")
+      refute File.regular?("_build/dev/lib/sample/ebin/Elixir.Z1.beam")
+
+      assert :ok = Mix.Task.Compiler.reenable()
+      assert {:ok, []} = Mix.Task.run("compile")
+      assert File.regular?("_build/dev/lib/sample/ebin/Elixir.Z1.beam")
+
+      File.write!("lib/foo/z2.ex", """
+      defmodule Z2 do
+        def ko, do: :ko
+      end
+      """)
+
+      assert :ok = Mix.Task.Compiler.reenable(compilers: [:erlang])
+      assert {:noop, []} = Mix.Task.run("compile")
+      refute File.regular?("_build/dev/lib/sample/ebin/Elixir.Z2.beam")
+
+      assert :ok = Mix.Task.Compiler.reenable(compilers: [:elixir])
+      assert {:ok, []} = Mix.Task.run(:compile)
+      assert File.regular?("_build/dev/lib/sample/ebin/Elixir.Z2.beam")
+    end)
+  end
+
   test "recompiles app cache if manifest changes" do
     in_fixture("no_mixfile", fn ->
       Mix.Tasks.Compile.run(["--force"])

@@ -312,4 +312,28 @@ defmodule Mix.Task.Compiler do
 
     Mix.Sync.PubSub.broadcast(build_path, lazy_message)
   end
+
+  @doc """
+  Reenables given compilers so they can be executed again down the stack.
+
+  If an umbrella project reenables compilers, they are re-enabled for all
+  child projects.
+
+  Default is `:all` which effectively means all the compilers returned by
+  `Mix.Task.Compiler.compilers()` are to be reenabled. This task always
+  re-enables `"compile"` and `"compile.all"`.
+  """
+  @doc since: "1.19.0"
+  @spec reenable(compilers: compilers) :: :ok when compilers: :all | [atom()]
+  def reenable(opts \\ []) do
+    compilers =
+      case Keyword.get(opts, :compilers, :all) do
+        :all -> Mix.Task.Compiler.compilers()
+        list when is_list(list) -> list
+      end
+
+    Mix.Task.reenable("compile")
+    Mix.Task.reenable("compile.all")
+    Enum.each(compilers, &Mix.Task.reenable("compile.#{&1}"))
+  end
 end
