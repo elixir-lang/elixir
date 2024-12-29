@@ -134,6 +134,10 @@ defmodule Macro do
 
   The following metadata keys are enabled by `Code.string_to_quoted/2`:
 
+    * `:assoc` - contains metadata about the `=>` operator location in a
+      map key-value AST node (when `:token_metadata` is true). This entry
+      appears on map key nodes only
+
     * `:closing` - contains metadata about the closing pair, such as a `}`
       in a tuple or in a map, or such as the closing `)` in a function call
       with parens (when `:token_metadata` is true). If the function call
