@@ -57,6 +57,7 @@ defmodule Module.Types.Apply do
             list(closed_map(default: if_set(term()), field: atom()))
             |> union(atom([nil]))
         ] ++ shared_info,
+      # TODO: Move this to a type signature in the long term
       __protocol__: [
         module: atom(),
         functions: fas,
@@ -1069,20 +1070,37 @@ defmodule Module.Types.Apply do
   end
 
   defp args_to_quoted_string(args_types, domain, converter) do
-    ansi? = IO.ANSI.enabled?()
-
     docs =
       Enum.zip_with(args_types, domain, fn actual, expected ->
-        doc = actual |> to_quoted() |> Code.Formatter.to_algebra()
+        if compatible?(actual, expected) do
+          actual |> to_quoted() |> Code.Formatter.to_algebra()
+        else
+          common = intersection(actual, expected)
 
-        cond do
-          compatible?(actual, expected) -> doc
-          ansi? -> IA.concat(IA.color(doc, IO.ANSI.red()), IA.color(IA.empty(), IO.ANSI.reset()))
-          true -> IA.concat(["-", doc, "-"])
+          uncommon_doc =
+            difference(actual, common)
+            |> to_quoted()
+            |> Code.Formatter.to_algebra()
+            |> ansi_red()
+
+          if empty?(common) do
+            uncommon_doc
+          else
+            common_doc = common |> to_quoted() |> Code.Formatter.to_algebra()
+            IA.glue(IA.concat(uncommon_doc, " or"), IA.nest(common_doc, 2))
+          end
         end
       end)
 
     args_docs_to_quoted_string(converter.(docs))
+  end
+
+  defp ansi_red(doc) do
+    if IO.ANSI.enabled?() do
+      IA.concat(IA.color(doc, IO.ANSI.red()), IA.color(IA.empty(), IO.ANSI.reset()))
+    else
+      IA.concat(["-", doc, "-"])
+    end
   end
 
   defp args_docs_to_quoted_string(docs) do
