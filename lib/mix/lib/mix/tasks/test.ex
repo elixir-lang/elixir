@@ -228,10 +228,30 @@ defmodule Mix.Tasks.Test do
       `["test"]` if the `test` directory exists, otherwise, it defaults to `[]`.
       It is expected that all test paths contain a `test_helper.exs` file
 
-    * `:test_pattern` - a pattern to load test files. Defaults to `*_test.exs`
+    * `:test_pattern` - a pattern to find potential test files.
+      Defaults to `*.{ex,exs}`.
 
-    * `:warn_test_pattern` - a pattern to match potentially misnamed test files
-      and display a warning. Defaults to `*_test.ex`
+      In Elixir versions earlier than 1.19.0, this option defaulted to `*_test.exs`,
+      but to allow better warnings for misnamed test files, it since matches any
+      Elixir file and expects those to be filtered by `:test_load_filters` and
+      `:test_ignore_filters`.
+
+    * `:test_load_filters` - a list of files, regular expressions or one-arity
+      functions to restrict which files matched by the `:test_pattern` are loaded.
+      Defaults to `[&String.ends_with?(&1, "_test.exs")]`. Paths are relative to
+      the project root and separated by `/`, even on Windows.
+
+    * `:test_ignore_filters` - a list of files, regular expressions or one-arity
+      functions to restrict which files matched by the `:test_pattern`, but not loaded
+      by `:test_load_filters`, trigger a warning for a potentially misnamed test file.
+
+      Mix ignores files ending in `_helper.exs` by default, as well as any file
+      included in the project's `:elixirc_paths`. This ensures that any helper
+      or test support files are not triggering a warning.
+
+      Any extra filters configured in the project are appended to the defaults.
+      Warnings can be disabled by setting this option to `[fn _ -> true end]`.
+      Paths are relative to the project root and separated by `/`, even on Windows.
 
   ## Coloring
 
@@ -595,20 +615,38 @@ defmodule Mix.Tasks.Test do
 
     # Prepare and extract all files to require and run
     test_paths = project[:test_paths] || default_test_paths()
-    test_pattern = project[:test_pattern] || "*_test.exs"
-    warn_test_pattern = project[:warn_test_pattern] || "*_test.ex"
+    test_pattern = project[:test_pattern] || "*.{ex,exs}"
+
+    # Warn about deprecated warn configuration
+    if project[:warn_test_pattern] do
+      Mix.shell().info("""
+      warning: the `:warn_test_pattern` configuration is deprecated and will be ignored. \
+      Use `:test_load_filters` and `:test_ignore_filters` instead.
+      """)
+    end
 
     {test_files, test_opts} =
       if files != [], do: ExUnit.Filters.parse_paths(files), else: {test_paths, []}
 
-    unfiltered_test_files = Mix.Utils.extract_files(test_files, test_pattern)
+    # get a list of all files in the test folders, which we filter by the test_load_filters
+    {potential_test_files, directly_included_test_files} = extract_files(test_files, test_pattern)
+
+    {load_files, _ignored_files, warn_files} =
+      classify_test_files(potential_test_files, project)
+
+    # ensure that files given as direct argument to mix test are loaded,
+    # even if the test_load_filters don't match
+    load_files =
+      if files != [],
+        do: Enum.uniq(load_files ++ directly_included_test_files),
+        else: load_files
 
     matched_test_files =
-      unfiltered_test_files
+      load_files
       |> filter_to_allowed_files(allowed_files)
       |> filter_by_partition(shell, partitions)
 
-    display_warn_test_pattern(test_files, test_pattern, unfiltered_test_files, warn_test_pattern)
+    warn_files != [] && warn_misnamed_test_files(warn_files)
 
     try do
       Enum.each(test_paths, &require_test_helper(shell, &1))
@@ -660,6 +698,33 @@ defmodule Mix.Tasks.Test do
     end
   end
 
+  # similar to Mix.Utils.extract_files/2, but returns a list of directly included test files,
+  # that should be not filtered by the test_load_filters, e.g.
+  # mix test test/some_file.exs
+  defp extract_files(paths, pattern) do
+    {files, directly_included} =
+      for path <- paths, reduce: {[], []} do
+        {acc, directly_included} ->
+          case :elixir_utils.read_file_type(path) do
+            {:ok, :directory} ->
+              {[Path.wildcard("#{path}/**/#{pattern}") | acc], directly_included}
+
+            {:ok, :regular} ->
+              {[path | acc], [path | directly_included]}
+
+            _ ->
+              {acc, directly_included}
+          end
+      end
+
+    files =
+      files
+      |> List.flatten()
+      |> Enum.uniq()
+
+    {files, directly_included}
+  end
+
   defp raise_with_shell(shell, message) do
     Mix.shell(shell)
     Mix.raise(message)
@@ -679,14 +744,64 @@ defmodule Mix.Tasks.Test do
     end
   end
 
-  defp display_warn_test_pattern(test_files, test_pattern, matched_test_files, warn_test_pattern) do
-    files = Mix.Utils.extract_files(test_files, warn_test_pattern) -- matched_test_files
+  defp classify_test_files(potential_test_files, project) do
+    test_load_filters = project[:test_load_filters] || [&String.ends_with?(&1, "_test.exs")]
+    elixirc_paths = project[:elixirc_paths] || []
 
-    for file <- files do
-      Mix.shell().info(
-        "warning: #{file} does not match #{inspect(test_pattern)} and won't be loaded"
-      )
-    end
+    # ignore any _helper.exs files and files that are compiled (test support files)
+    test_ignore_filters =
+      [
+        &String.ends_with?(&1, "_helper.exs"),
+        fn file -> Enum.any?(elixirc_paths, &String.starts_with?(file, &1)) end
+      ] ++ Keyword.get(project, :test_ignore_filters, [])
+
+    {to_load, to_ignore, to_warn} =
+      for file <- potential_test_files, reduce: {[], [], []} do
+        {to_load, to_ignore, to_warn} ->
+          cond do
+            any_file_matches?(file, test_load_filters) ->
+              {[file | to_load], to_ignore, to_warn}
+
+            any_file_matches?(file, test_ignore_filters) ->
+              {to_load, [file | to_ignore], to_warn}
+
+            true ->
+              {to_load, to_ignore, [file | to_warn]}
+          end
+      end
+
+    # get the files back in the original order
+    {Enum.reverse(to_load), Enum.reverse(to_ignore), Enum.reverse(to_warn)}
+  end
+
+  defp any_file_matches?(file, filters) do
+    Enum.any?(filters, fn filter ->
+      case filter do
+        regex when is_struct(regex, Regex) ->
+          Regex.match?(regex, file)
+
+        binary when is_binary(binary) ->
+          file == binary
+
+        fun when is_function(fun, 1) ->
+          fun.(file)
+      end
+    end)
+  end
+
+  defp warn_misnamed_test_files(ignored) do
+    Mix.shell().info("""
+    warning: the following files do not match any of the configured `:test_load_filters` / `:test_ignore_filters`:
+
+    #{Enum.join(ignored, "\n")}
+
+    This might indicate a typo in a test file name (for example, using "foo_tests.exs" instead of "foo_test.exs").
+
+    You can adjust which files trigger this warning by configuring the `:test_ignore_filters` option in your
+    Mix project's configuration. To disable the warning entirely, set that option to false.
+
+    For more information, run `mix help test`.
+    """)
   end
 
   @option_keys [
