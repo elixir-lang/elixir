@@ -473,10 +473,7 @@ defmodule Module.Types.IntegrationTest do
 
             it has type:
 
-                -dynamic(
-                  %Date{year: term(), month: integer(), day: float() or integer(), calendar: Calendar.ISO} or
-                    %Date{year: term(), month: term(), day: term(), calendar: term()}
-                )-
+                -dynamic(%Date{year: term(), month: term(), day: term(), calendar: term()})-
 
             but expected a type that implements the Collectable protocol, it must be one of:
 
