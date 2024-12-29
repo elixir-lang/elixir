@@ -239,7 +239,7 @@ defmodule Module.Types.Helpers do
   Converts the given expression to a string,
   translating inlined Erlang calls back to Elixir.
 
-  We also undo some macro expresions done by the Kernel module.
+  We also undo some macro expressions done by the Kernel module.
   """
   def expr_to_string(expr) do
     expr
