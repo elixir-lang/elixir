@@ -753,7 +753,7 @@ defmodule Mix.Tasks.Test do
       [
         &String.ends_with?(&1, "_helper.exs"),
         fn file -> Enum.any?(elixirc_paths, &String.starts_with?(file, &1)) end
-      ] ++ Keyword.get_lazy(project, :test_ignore_filters, [])
+      ] ++ Keyword.get(project, :test_ignore_filters, [])
 
     {to_load, to_ignore, to_warn} =
       for file <- potential_test_files, reduce: {[], [], []} do
