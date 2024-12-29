@@ -754,7 +754,7 @@ defmodule NaiveDateTime do
   @doc """
   Converts the given naive datetime to a string according to its calendar.
 
-  For redability, this function follows the RFC3339 suggestion of removing
+  For readability, this function follows the RFC3339 suggestion of removing
   the "T" separator between the date and time components.
 
   ### Examples

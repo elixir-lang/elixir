@@ -716,7 +716,7 @@ value(<<$[, Rest/bits>>, Original, Skip, Acc, Stack, Decode) ->
 value(<<${, Rest/bits>>, Original, Skip, Acc, Stack, Decode) ->
     object_start(Rest, Original, Skip, Acc, Stack, Decode, 1);
 value(<<Byte, _/bits>>, Original, Skip, _Acc, _Stack, _Decode) when ?is_ascii_plain(Byte) ->
-    %% this clause is effecively the same as the last one, but necessary to
+    %% this clause is effectively the same as the last one, but necessary to
     %% force compiler to emit a jump table dispatch, rather than binary search
     invalid_byte(Original, Skip);
 value(_, Original, Skip, Acc, Stack, Decode) ->
