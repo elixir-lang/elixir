@@ -245,17 +245,12 @@ defmodule Mix.Tasks.Test do
       functions to restrict which files matched by the `:test_pattern`, but not loaded
       by `:test_load_filters`, trigger a warning for a potentially misnamed test file.
 
-      Defaults to:
+      Mix ignores files ending in `_helper.exs` by default, as well as any file
+      included in the project's `:elixirc_paths`. This ensures that any helper
+      or test support files are not triggering a warning.
 
-      ```elixir
-      [
-        &String.ends_with?(&1, "_helper.exs"),
-        fn file -> Enum.any?(elixirc_paths(Mix.env()), &String.starts_with?(file, &1)) end
-      ]
-      ```
-
-      This ensures that any helper or test support files are not triggering a warning.
-      Warnings can be disabled by setting this option to `false` or `nil`.
+      Any extra filters configured in the project are appended to the defaults.
+      Warnings can be disabled by setting this option to `[fn _ -> true end]`.
       Paths are relative to the project root and separated by `/`, even on Windows.
 
   ## Coloring
@@ -755,12 +750,10 @@ defmodule Mix.Tasks.Test do
 
     # ignore any _helper.exs files and files that are compiled (test support files)
     test_ignore_filters =
-      Keyword.get_lazy(project, :test_ignore_filters, fn ->
-        [
-          &String.ends_with?(&1, "_helper.exs"),
-          fn file -> Enum.any?(elixirc_paths, &String.starts_with?(file, &1)) end
-        ]
-      end)
+      [
+        &String.ends_with?(&1, "_helper.exs"),
+        fn file -> Enum.any?(elixirc_paths, &String.starts_with?(file, &1)) end
+      ] ++ Keyword.get_lazy(project, :test_ignore_filters, [])
 
     {to_load, to_ignore, to_warn} =
       for file <- potential_test_files, reduce: {[], [], []} do
@@ -769,7 +762,7 @@ defmodule Mix.Tasks.Test do
             any_file_matches?(file, test_load_filters) ->
               {[file | to_load], to_ignore, to_warn}
 
-            !test_ignore_filters || any_file_matches?(file, test_ignore_filters) ->
+            any_file_matches?(file, test_ignore_filters) ->
               {to_load, [file | to_ignore], to_warn}
 
             true ->

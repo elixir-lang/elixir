@@ -699,7 +699,7 @@ defmodule Mix.Tasks.TestTest do
               app: :test_warn,
               version: "0.0.1",
               test_load_filters: [~r/.*_tests\.exs/],
-              test_ignore_filters: false
+              test_ignore_filters: [fn _ -> true end]
             ]
           end
         end
