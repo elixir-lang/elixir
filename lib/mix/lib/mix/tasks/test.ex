@@ -712,10 +712,10 @@ defmodule Mix.Tasks.Test do
         {acc, directly_included} ->
           case :elixir_utils.read_file_type(path) do
             {:ok, :directory} ->
-              {[acc, Path.wildcard("#{path}/**/#{pattern}")], directly_included}
+              {[Path.wildcard("#{path}/**/#{pattern}") | acc], directly_included}
 
             {:ok, :regular} ->
-              {[acc, path], [path | directly_included]}
+              {[path | acc], [path | directly_included]}
 
             _ ->
               {acc, directly_included}
