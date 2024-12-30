@@ -351,7 +351,7 @@ defmodule Module.Types.Expr do
       {dynamic(), context}
     else
       into = Keyword.get(opts, :into, [])
-      {into_wrapper, context} = for_into(into, meta, stack, context)
+      {into_wrapper, gradual?, context} = for_into(into, meta, stack, context)
       {block_type, context} = of_expr(block, stack, context)
 
       for_type =
@@ -359,12 +359,12 @@ defmodule Module.Types.Expr do
           case type do
             :binary -> binary()
             :list -> list(block_type)
-            :dynamic -> dynamic()
+            :term -> term()
           end
         end
         |> Enum.reduce(&union/2)
 
-      {for_type, context}
+      {if(gradual?, do: dynamic(for_type), else: for_type), context}
     end
   end
 
@@ -523,10 +523,10 @@ defmodule Module.Types.Expr do
   @into_compile union(binary(), empty_list())
 
   defp for_into([], _meta, _stack, context),
-    do: {[:list], context}
+    do: {[:list], false, context}
 
   defp for_into(binary, _meta, _stack, context) when is_binary(binary),
-    do: {[:binary], context}
+    do: {[:binary], false, context}
 
   # TODO: Use the collectable protocol for the output
   defp for_into(into, meta, stack, context) do
@@ -534,9 +534,9 @@ defmodule Module.Types.Expr do
 
     if subtype?(type, @into_compile) do
       case {binary_type?(type), empty_list_type?(type)} do
-        {false, true} -> {[:list], context}
-        {true, false} -> {[:binary], context}
-        {_, _} -> {[:binary, :list], context}
+        {false, true} -> {[:list], gradual?(type), context}
+        {true, false} -> {[:binary], gradual?(type), context}
+        {_, _} -> {[:binary, :list], gradual?(type), context}
       end
     else
       meta =
@@ -547,7 +547,7 @@ defmodule Module.Types.Expr do
 
       expr = {:__block__, [type_check: :into] ++ meta, [into]}
       {_type, context} = Apply.remote(Collectable, :into, [into], [type], expr, stack, context)
-      {[:dynamic], context}
+      {[:term], true, context}
     end
   end
 

@@ -1443,6 +1443,22 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([enum], for(x <- enum, do: x, into: [])) == list(dynamic())
       assert typecheck!([enum], for(x <- enum, do: x, into: "")) == binary()
       assert typecheck!([enum, other], for(x <- enum, do: x, into: other)) == dynamic()
+
+      assert typecheck!(
+               [binary],
+               (
+                 into = if :rand.uniform() > 0.5, do: [], else: "0"
+                 for(<<x::float <- binary>>, do: x, into: into)
+               )
+             ) == union(binary(), list(float()))
+
+      assert typecheck!(
+               [binary, empty_list = []],
+               (
+                 into = if :rand.uniform() > 0.5, do: empty_list, else: "0"
+                 for(<<x::float <- binary>>, do: x, into: into)
+               )
+             ) == dynamic(union(binary(), list(float())))
     end
   end
 
