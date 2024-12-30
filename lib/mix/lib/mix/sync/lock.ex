@@ -79,8 +79,9 @@ defmodule Mix.Sync.Lock do
   This function can also be called if this process already has the
   lock. In such case the function is executed immediately.
 
-  When the `MIX_DISABLE_LOCK` environment variable is set, the lock is
-  ignored and the function is executed immediately.
+  When the `MIX_OS_CONCURRENCY_LOCK` environment variable is set to
+  a falsy value, the lock is ignored and the function is executed
+  immediately.
 
   ## Options
 
@@ -118,7 +119,7 @@ defmodule Mix.Sync.Lock do
     end
   end
 
-  defp lock_disabled?(), do: System.get_env("MIX_DISABLE_LOCK") in ~w(1 true)
+  defp lock_disabled?(), do: System.get_env("MIX_OS_CONCURRENCY_LOCK") in ~w(0 false)
 
   defp lock(path, on_taken) do
     File.mkdir_p!(path)
@@ -207,7 +208,7 @@ defmodule Mix.Sync.Lock do
         could not create hard link from #{port_path} to "#{lock_path}: #{:file.format_error(reason)}.
 
         Hard link support is required for Mix compilation locking. If your system \
-        does not support hard links, set MIX_DISABLE_LOCK=1\
+        does not support hard links, set MIX_OS_CONCURRENCY_LOCK=1\
         """)
     end
   end
