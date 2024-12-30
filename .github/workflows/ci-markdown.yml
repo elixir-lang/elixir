@@ -27,7 +27,7 @@ jobs:
           fetch-depth: 10
 
       - name: Run markdownlint
-        uses: DavidAnson/markdownlint-cli2-action@v18.0.0
+        uses: DavidAnson/markdownlint-cli2-action@v19.0.0
         with:
           globs: |
             lib/elixir/pages/**/*.md
