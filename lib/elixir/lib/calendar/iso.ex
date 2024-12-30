@@ -1233,7 +1233,7 @@ defmodule Calendar.ISO do
   @doc """
   Converts the given time into a iodata.
 
-  Loog at time_to_string/5 for more information
+  Look at time_to_string/5 for more information
 
   ## Examples
 
