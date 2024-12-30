@@ -1249,7 +1249,7 @@ defmodule Calendar.ISO do
   defp time_to_iodata_guarded(hour, minute, second, {microsecond, precision}, format) do
     [
       time_to_iodata_format(hour, minute, second, format),
-      ".",
+      ?.,
       microseconds_to_iodata(microsecond, precision)
     ]
   end
@@ -1269,7 +1269,7 @@ defmodule Calendar.ISO do
   defp div_factor(5), do: 10
 
   defp time_to_iodata_format(hour, minute, second, :extended) do
-    [zero_pad(hour, 2), ":", zero_pad(minute, 2), ":", zero_pad(second, 2)]
+    [zero_pad(hour, 2), ?:, zero_pad(minute, 2), ?:, zero_pad(second, 2)]
   end
 
   defp time_to_iodata_format(hour, minute, second, :basic) do
@@ -1313,15 +1313,11 @@ defmodule Calendar.ISO do
   end
 
   defp date_to_iodata_guarded(year, month, day, :extended) do
-    [zero_pad(year, 4), "-", zero_pad(month, 2), "-", zero_pad(day, 2)]
+    [zero_pad(year, 4), ?-, zero_pad(month, 2), ?-, zero_pad(day, 2)]
   end
 
   defp date_to_iodata_guarded(year, month, day, :basic) do
-    [
-      zero_pad(year, 4),
-      zero_pad(month, 2),
-      zero_pad(day, 2)
-    ]
+    [zero_pad(year, 4), zero_pad(month, 2), zero_pad(day, 2)]
   end
 
   @doc """
@@ -1389,7 +1385,7 @@ defmodule Calendar.ISO do
       ) do
     [
       date_to_iodata(year, month, day, format),
-      " ",
+      ?\s,
       time_to_iodata(hour, minute, second, microsecond, format)
     ]
   end
@@ -1493,7 +1489,7 @@ defmodule Calendar.ISO do
              is_std_offset(std_offset) do
     [
       date_to_iodata(year, month, day, format),
-      " ",
+      ?\s,
       time_to_iodata(hour, minute, second, microsecond, format),
       offset_to_iodata(utc_offset, std_offset, time_zone, format),
       zone_to_iodata(utc_offset, std_offset, zone_abbr, time_zone)
@@ -1508,7 +1504,7 @@ defmodule Calendar.ISO do
     |> IO.iodata_to_binary()
   end
 
-  def offset_to_iodata(0, 0, "Etc/UTC", _format), do: "Z"
+  def offset_to_iodata(0, 0, "Etc/UTC", _format), do: ?Z
 
   def offset_to_iodata(utc, std, _zone, format) do
     total = utc + std
@@ -1519,15 +1515,15 @@ defmodule Calendar.ISO do
   end
 
   defp format_offset(total, hour, minute, :extended) do
-    [sign(total), zero_pad(hour, 2), ":", zero_pad(minute, 2)]
+    [sign(total), zero_pad(hour, 2), ?:, zero_pad(minute, 2)]
   end
 
   defp format_offset(total, hour, minute, :basic) do
     [sign(total), zero_pad(hour, 2), zero_pad(minute, 2)]
   end
 
-  defp zone_to_iodata(_, _, _, "Etc/UTC"), do: ""
-  defp zone_to_iodata(_, _, abbr, zone), do: [" ", abbr, " ", zone]
+  defp zone_to_iodata(_, _, _, "Etc/UTC"), do: []
+  defp zone_to_iodata(_, _, abbr, zone), do: [?\s, abbr, ?\s, zone]
 
   @doc """
   Determines if the date given is valid according to the proleptic Gregorian calendar.
@@ -1588,8 +1584,8 @@ defmodule Calendar.ISO do
     {0, 1}
   end
 
-  defp sign(total) when total < 0, do: "-"
-  defp sign(_), do: "+"
+  defp sign(total) when total < 0, do: ?-
+  defp sign(_), do: ?+
 
   defp zero_pad(val, count) when val >= 0 and count <= 6 do
     num = Integer.to_string(val)
@@ -1605,7 +1601,7 @@ defmodule Calendar.ISO do
   end
 
   defp zero_pad(val, count) do
-    ["-", zero_pad(-val, count)]
+    [?-, zero_pad(-val, count)]
   end
 
   @doc """
