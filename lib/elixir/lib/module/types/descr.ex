@@ -1329,11 +1329,10 @@ defmodule Module.Types.Descr do
         :maps.next(iterator) |> map_literal_intersection_loop(acc)
 
       _ ->
-        # If the key is marked as not_set in the open map, we can ignore it.
-        if type1 == @not_set do
-          :maps.next(iterator) |> map_literal_intersection_loop(acc)
-        else
-          throw(:empty)
+        # If the key is optional in the open map, we can ignore it
+        case type1 do
+          %{optional: 1} -> :maps.next(iterator) |> map_literal_intersection_loop(acc)
+          _ -> throw(:empty)
         end
     end
   end

@@ -163,6 +163,9 @@ defmodule Module.Types.DescrTest do
       assert intersection(closed_map(a: integer()), open_map(b: not_set())) ==
                closed_map(a: integer())
 
+      assert intersection(closed_map(a: integer()), open_map(b: if_set(integer()))) ==
+               closed_map(a: integer())
+
       assert equal?(
                intersection(closed_map(a: integer()), closed_map(a: if_set(integer()))),
                closed_map(a: integer())
