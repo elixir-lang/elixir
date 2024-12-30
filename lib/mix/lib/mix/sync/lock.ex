@@ -79,6 +79,9 @@ defmodule Mix.Sync.Lock do
   This function can also be called if this process already has the
   lock. In such case the function is executed immediately.
 
+  When the `MIX_DISABLE_LOCK` environment variable is set, the lock is
+  ignored and the function is executed immediately.
+
   ## Options
 
     * `:on_taken` - a one-arity function called if the lock is held
@@ -96,9 +99,9 @@ defmodule Mix.Sync.Lock do
     path = Path.join([System.tmp_dir!(), "mix_lock", hash])
 
     pdict_key = {__MODULE__, path}
-    has_lock? = Process.get(pdict_key)
+    has_lock? = Process.get(pdict_key, false)
 
-    if has_lock? do
+    if has_lock? or lock_disabled?() do
       fun.()
     else
       lock = lock(path, opts[:on_taken])
@@ -114,6 +117,8 @@ defmodule Mix.Sync.Lock do
       end
     end
   end
+
+  defp lock_disabled?(), do: System.get_env("MIX_DISABLE_LOCK") in ~w(1 true)
 
   defp lock(path, on_taken) do
     File.mkdir_p!(path)
@@ -198,11 +203,12 @@ defmodule Mix.Sync.Lock do
         :invalidated
 
       {:error, reason} ->
-        raise File.LinkError,
-          reason: reason,
-          action: "create hard link",
-          existing: port_path,
-          new: lock_path
+        Mix.raise("""
+        could not create hard link from #{port_path} to "#{lock_path}: #{:file.format_error(reason)}.
+
+        Hard link support is required for Mix compilation locking. If your system \
+        does not support hard links, set MIX_DISABLE_LOCK=1\
+        """)
     end
   end
 

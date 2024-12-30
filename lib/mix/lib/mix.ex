@@ -352,6 +352,10 @@ defmodule Mix do
     * `MIX_INSTALL_DIR` *(since v1.12.0)* - specifies directory where `Mix.install/2` keeps
        install cache
 
+    * `MIX_DISABLE_LOCK` - disables mix compilation locking. While not recommended, this may be
+      necessary in cases where hard links or TCP sockets are not available. When opting for this
+      behaviour, make sure to not start concurrent compilations of the same project.
+
     * `MIX_PATH` - appends extra code paths
 
     * `MIX_PROFILE` - a list of comma-separated Mix tasks to profile the time spent on
