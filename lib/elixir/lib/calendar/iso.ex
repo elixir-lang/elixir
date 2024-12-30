@@ -1223,29 +1223,43 @@ defmodule Calendar.ISO do
         hour,
         minute,
         second,
+        microsecond,
+        format \\ :extended
+      ) do
+    time_to_iodata(hour, minute, second, microsecond, format)
+    |> IO.iodata_to_binary()
+  end
+
+  def time_to_iodata(
+        hour,
+        minute,
+        second,
         {ms_value, ms_precision} = microsecond,
         format \\ :extended
       )
       when is_hour(hour) and is_minute(minute) and is_second(second) and
              is_microsecond(ms_value, ms_precision) and format in [:basic, :extended] do
-    time_to_string_guarded(hour, minute, second, microsecond, format)
+    time_to_iodata_guarded(hour, minute, second, microsecond, format)
   end
 
-  defp time_to_string_guarded(hour, minute, second, {_, 0}, format) do
-    time_to_string_format(hour, minute, second, format)
+  defp time_to_iodata_guarded(hour, minute, second, {_, 0}, format) do
+    time_to_iodata_format(hour, minute, second, format)
   end
 
-  defp time_to_string_guarded(hour, minute, second, {microsecond, precision}, format) do
-    time_to_string_format(hour, minute, second, format) <>
-      "." <> (microsecond |> zero_pad(6) |> binary_part(0, precision))
+  defp time_to_iodata_guarded(hour, minute, second, {microsecond, precision}, format) do
+    [
+      time_to_iodata_format(hour, minute, second, format),
+      ".",
+      microsecond |> zero_pad(6) |> IO.iodata_to_binary() |> binary_part(0, precision)
+    ]
   end
 
-  defp time_to_string_format(hour, minute, second, :extended) do
-    zero_pad(hour, 2) <> ":" <> zero_pad(minute, 2) <> ":" <> zero_pad(second, 2)
+  defp time_to_iodata_format(hour, minute, second, :extended) do
+    [zero_pad(hour, 2), ":", zero_pad(minute, 2), ":", zero_pad(second, 2)]
   end
 
-  defp time_to_string_format(hour, minute, second, :basic) do
-    zero_pad(hour, 2) <> zero_pad(minute, 2) <> zero_pad(second, 2)
+  defp time_to_iodata_format(hour, minute, second, :basic) do
+    [zero_pad(hour, 2), zero_pad(minute, 2), zero_pad(second, 2)]
   end
 
   @doc """
@@ -1273,18 +1287,27 @@ defmodule Calendar.ISO do
   @doc since: "1.4.0"
   @spec date_to_string(year, month, day, :basic | :extended) :: String.t()
   @impl true
-  def date_to_string(year, month, day, format \\ :extended)
+  def date_to_string(year, month, day, format \\ :extended) do
+    date_to_iodata(year, month, day, format)
+    |> IO.iodata_to_binary()
+  end
+
+  def date_to_iodata(year, month, day, format \\ :extended)
       when is_integer(year) and is_integer(month) and is_integer(day) and
              format in [:basic, :extended] do
-    date_to_string_guarded(year, month, day, format)
+    date_to_iodata_guarded(year, month, day, format)
   end
 
-  defp date_to_string_guarded(year, month, day, :extended) do
-    zero_pad(year, 4) <> "-" <> zero_pad(month, 2) <> "-" <> zero_pad(day, 2)
+  defp date_to_iodata_guarded(year, month, day, :extended) do
+    [zero_pad(year, 4), "-", zero_pad(month, 2), "-", zero_pad(day, 2)]
   end
 
-  defp date_to_string_guarded(year, month, day, :basic) do
-    zero_pad(year, 4) <> zero_pad(month, 2) <> zero_pad(day, 2)
+  defp date_to_iodata_guarded(year, month, day, :basic) do
+    [
+      zero_pad(year, 4),
+      zero_pad(month, 2),
+      zero_pad(day, 2)
+    ]
   end
 
   @doc """
@@ -1327,8 +1350,34 @@ defmodule Calendar.ISO do
         microsecond,
         format \\ :extended
       ) do
-    date_to_string(year, month, day, format) <>
-      " " <> time_to_string(hour, minute, second, microsecond, format)
+    naive_datetime_to_iodata(
+      year,
+      month,
+      day,
+      hour,
+      minute,
+      second,
+      microsecond,
+      format
+    )
+    |> IO.iodata_to_binary()
+  end
+
+  def naive_datetime_to_iodata(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        microsecond,
+        format \\ :extended
+      ) do
+    [
+      date_to_iodata(year, month, day, format),
+      " ",
+      time_to_iodata(hour, minute, second, microsecond, format)
+    ]
   end
 
   @doc """
@@ -1397,17 +1446,27 @@ defmodule Calendar.ISO do
       )
       when is_time_zone(time_zone) and is_zone_abbr(zone_abbr) and is_utc_offset(utc_offset) and
              is_std_offset(std_offset) do
-    date_to_string(year, month, day, format) <>
-      " " <>
-      time_to_string(hour, minute, second, microsecond, format) <>
-      offset_to_string(utc_offset, std_offset, time_zone, format) <>
-      zone_to_string(utc_offset, std_offset, zone_abbr, time_zone)
+    [
+      date_to_iodata(year, month, day, format),
+      " ",
+      time_to_iodata(hour, minute, second, microsecond, format),
+      offset_to_iodata(utc_offset, std_offset, time_zone, format),
+      zone_to_iodata(utc_offset, std_offset, zone_abbr, time_zone)
+    ]
+    |> IO.iodata_to_binary()
   end
 
   @doc false
   def offset_to_string(0, 0, "Etc/UTC", _format), do: "Z"
 
-  def offset_to_string(utc, std, _zone, format) do
+  def offset_to_string(utc, std, zone, format) do
+    offset_to_iodata(utc, std, zone, format)
+    |> IO.iodata_to_binary()
+  end
+
+  def offset_to_iodata(0, 0, "Etc/UTC", _format), do: "Z"
+
+  def offset_to_iodata(utc, std, _zone, format) do
     total = utc + std
     second = abs(total)
     minute = second |> rem(3600) |> div(60)
@@ -1416,15 +1475,15 @@ defmodule Calendar.ISO do
   end
 
   defp format_offset(total, hour, minute, :extended) do
-    sign(total) <> zero_pad(hour, 2) <> ":" <> zero_pad(minute, 2)
+    [sign(total), zero_pad(hour, 2), ":", zero_pad(minute, 2)]
   end
 
   defp format_offset(total, hour, minute, :basic) do
-    sign(total) <> zero_pad(hour, 2) <> zero_pad(minute, 2)
+    [sign(total), zero_pad(hour, 2), zero_pad(minute, 2)]
   end
 
-  defp zone_to_string(_, _, _, "Etc/UTC"), do: ""
-  defp zone_to_string(_, _, abbr, zone), do: " " <> abbr <> " " <> zone
+  defp zone_to_iodata(_, _, _, "Etc/UTC"), do: ""
+  defp zone_to_iodata(_, _, abbr, zone), do: [" ", abbr, " ", zone]
 
   @doc """
   Determines if the date given is valid according to the proleptic Gregorian calendar.
@@ -1490,11 +1549,20 @@ defmodule Calendar.ISO do
 
   defp zero_pad(val, count) when val >= 0 do
     num = Integer.to_string(val)
-    :binary.copy("0", max(count - byte_size(num), 0)) <> num
+
+    case max(count - byte_size(num), 0) do
+      0 -> num
+      1 -> ["0", num]
+      2 -> ["00", num]
+      3 -> ["000", num]
+      4 -> ["0000", num]
+      5 -> ["00000", num]
+      6 -> ["000000", num]
+    end
   end
 
   defp zero_pad(val, count) do
-    "-" <> zero_pad(-val, count)
+    ["-", zero_pad(-val, count)]
   end
 
   @doc """
