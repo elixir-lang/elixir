@@ -208,7 +208,7 @@ defmodule Mix.Sync.Lock do
         could not create hard link from #{port_path} to "#{lock_path}: #{:file.format_error(reason)}.
 
         Hard link support is required for Mix compilation locking. If your system \
-        does not support hard links, set MIX_OS_CONCURRENCY_LOCK=1\
+        does not support hard links, set MIX_OS_CONCURRENCY_LOCK=0\
         """)
     end
   end
