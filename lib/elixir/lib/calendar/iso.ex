@@ -1230,6 +1230,18 @@ defmodule Calendar.ISO do
     |> IO.iodata_to_binary()
   end
 
+  @doc """
+  Converts the given time into a iodata.
+
+  Loog at time_to_string/5 for more information
+
+  ## Examples
+
+      iex> Calendar.ISO.time_to_iodata(2, 2, 2, {2, 6})
+      [[["0", "2"], 58, ["0", "2"], 58, ["0", "2"]], 46, ["00000", "2"]]
+
+  """
+  @doc since: "1.19.0"
   def time_to_iodata(
         hour,
         minute,
@@ -1306,6 +1318,17 @@ defmodule Calendar.ISO do
     |> IO.iodata_to_binary()
   end
 
+  @doc """
+  Converts the given date into a iodata.
+  Look at date_to_string/4 for more information
+
+  ## Examples
+
+      iex> Calendar.ISO.date_to_iodata(2015, 2, 28)
+      ["2015", 45, ["0", "2"], 45, "28"]
+  """
+  @doc since: "1.19.0"
+  @spec date_to_iodata(year, month, day, :basic | :extended) :: iodata
   def date_to_iodata(year, month, day, format \\ :extended)
       when is_integer(year) and is_integer(month) and is_integer(day) and
              format in [:basic, :extended] do
@@ -1373,6 +1396,17 @@ defmodule Calendar.ISO do
     |> IO.iodata_to_binary()
   end
 
+  @doc """
+  Converts the given naive_datetime into a iodata.
+  Look at naive_datetime_to_iodata/8 for more information
+
+  ## Examples
+
+      iex> Calendar.ISO.naive_datetime_to_iodata(2015, 2, 28, 1, 2, 3, {4, 6}, :basic)
+      [["2015", ["0", "2"], "28"], 32, [[["0", "1"], ["0", "2"], ["0", "3"]], 46, ["00000", "4"]]]
+
+  """
+  @doc since: "1.19.0"
   def naive_datetime_to_iodata(
         year,
         month,
@@ -1471,6 +1505,18 @@ defmodule Calendar.ISO do
     |> IO.iodata_to_binary()
   end
 
+  @doc """
+  Converts the given datetime into a iodata.
+  Look at datetime_to_iodata/12 for more information
+
+  ## Examples
+
+      iex> time_zone = "Etc/UTC"
+      iex> Calendar.ISO.datetime_to_iodata(2017, 8, 1, 1, 2, 3, {4, 5}, time_zone, "UTC", 0, 0)
+      [["2017", 45, ["0", "8"], 45, ["0", "1"]], 32, [[["0", "1"], 58, ["0", "2"], 58, ["0", "3"]], 46, ["0000", "0"]], 90, []]
+
+  """
+  @doc since: "1.19.0"
   def datetime_to_iodata(
         year,
         month,
@@ -1504,6 +1550,7 @@ defmodule Calendar.ISO do
     |> IO.iodata_to_binary()
   end
 
+  @doc false
   def offset_to_iodata(0, 0, "Etc/UTC", _format), do: ?Z
 
   def offset_to_iodata(utc, std, _zone, format) do
