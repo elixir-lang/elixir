@@ -1443,6 +1443,37 @@ defmodule Calendar.ISO do
         utc_offset,
         std_offset,
         format \\ :extended
+      ) do
+    datetime_to_iodata(
+      year,
+      month,
+      day,
+      hour,
+      minute,
+      second,
+      microsecond,
+      time_zone,
+      zone_abbr,
+      utc_offset,
+      std_offset,
+      format
+    )
+    |> IO.iodata_to_binary()
+  end
+
+  def datetime_to_iodata(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        microsecond,
+        time_zone,
+        zone_abbr,
+        utc_offset,
+        std_offset,
+        format \\ :extended
       )
       when is_time_zone(time_zone) and is_zone_abbr(zone_abbr) and is_utc_offset(utc_offset) and
              is_std_offset(std_offset) do
@@ -1453,7 +1484,6 @@ defmodule Calendar.ISO do
       offset_to_iodata(utc_offset, std_offset, time_zone, format),
       zone_to_iodata(utc_offset, std_offset, zone_abbr, time_zone)
     ]
-    |> IO.iodata_to_binary()
   end
 
   @doc false
