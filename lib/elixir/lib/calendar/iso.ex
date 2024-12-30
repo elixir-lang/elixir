@@ -1250,9 +1250,23 @@ defmodule Calendar.ISO do
     [
       time_to_iodata_format(hour, minute, second, format),
       ".",
-      microsecond |> zero_pad(6) |> IO.iodata_to_binary() |> binary_part(0, precision)
+      microseconds_to_iodata(microsecond, precision)
     ]
   end
+
+  defp microseconds_to_iodata(_microsecond, 0), do: []
+  defp microseconds_to_iodata(microsecond, 6), do: zero_pad(microsecond, 6)
+
+  defp microseconds_to_iodata(microsecond, precision) do
+    num = div(microsecond, div_factor(precision))
+    zero_pad(num, precision)
+  end
+
+  defp div_factor(1), do: 100_000
+  defp div_factor(2), do: 10_000
+  defp div_factor(3), do: 1_000
+  defp div_factor(4), do: 100
+  defp div_factor(5), do: 10
 
   defp time_to_iodata_format(hour, minute, second, :extended) do
     [zero_pad(hour, 2), ":", zero_pad(minute, 2), ":", zero_pad(second, 2)]
@@ -1577,7 +1591,7 @@ defmodule Calendar.ISO do
   defp sign(total) when total < 0, do: "-"
   defp sign(_), do: "+"
 
-  defp zero_pad(val, count) when val >= 0 do
+  defp zero_pad(val, count) when val >= 0 and count <= 6 do
     num = Integer.to_string(val)
 
     case max(count - byte_size(num), 0) do
@@ -1587,7 +1601,6 @@ defmodule Calendar.ISO do
       3 -> ["000", num]
       4 -> ["0000", num]
       5 -> ["00000", num]
-      6 -> ["000000", num]
     end
   end
 
