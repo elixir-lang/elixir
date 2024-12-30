@@ -1237,11 +1237,19 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.time_to_iodata(2, 2, 2, {2, 6})
-      [[["0", "2"], 58, ["0", "2"], 58, ["0", "2"]], 46, ["00000", "2"]]
+      iex> data = Calendar.ISO.time_to_iodata(2, 2, 2, {2, 6})
+      iex> IO.iodata_to_binary(data)
+      "02:02:02.000002"
 
   """
   @doc since: "1.19.0"
+  @spec time_to_iodata(
+          Calendar.hour(),
+          Calendar.minute(),
+          Calendar.second(),
+          Calendar.microsecond(),
+          :basic | :extended
+        ) :: iodata
   def time_to_iodata(
         hour,
         minute,
@@ -1261,15 +1269,16 @@ defmodule Calendar.ISO do
   defp time_to_iodata_guarded(hour, minute, second, {microsecond, precision}, format) do
     [
       time_to_iodata_format(hour, minute, second, format),
-      ?.,
-      microseconds_to_iodata(microsecond, precision)
+      ?.
+      | microseconds_to_iodata(microsecond, precision)
     ]
   end
 
-  defp microseconds_to_iodata(_microsecond, 0), do: []
-  defp microseconds_to_iodata(microsecond, 6), do: zero_pad(microsecond, 6)
+  @doc false
+  def microseconds_to_iodata(_microsecond, 0), do: []
+  def microseconds_to_iodata(microsecond, 6), do: zero_pad(microsecond, 6)
 
-  defp microseconds_to_iodata(microsecond, precision) do
+  def microseconds_to_iodata(microsecond, precision) do
     num = div(microsecond, div_factor(precision))
     zero_pad(num, precision)
   end
@@ -1281,11 +1290,11 @@ defmodule Calendar.ISO do
   defp div_factor(5), do: 10
 
   defp time_to_iodata_format(hour, minute, second, :extended) do
-    [zero_pad(hour, 2), ?:, zero_pad(minute, 2), ?:, zero_pad(second, 2)]
+    [zero_pad(hour, 2), ?:, zero_pad(minute, 2), ?: | zero_pad(second, 2)]
   end
 
   defp time_to_iodata_format(hour, minute, second, :basic) do
-    [zero_pad(hour, 2), zero_pad(minute, 2), zero_pad(second, 2)]
+    [zero_pad(hour, 2), zero_pad(minute, 2) | zero_pad(second, 2)]
   end
 
   @doc """
@@ -1324,8 +1333,9 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.date_to_iodata(2015, 2, 28)
-      ["2015", 45, ["0", "2"], 45, "28"]
+      iex> data = Calendar.ISO.date_to_iodata(2015, 2, 28)
+      iex> IO.iodata_to_binary(data)
+      "2015-02-28"
   """
   @doc since: "1.19.0"
   @spec date_to_iodata(year, month, day, :basic | :extended) :: iodata
@@ -1336,11 +1346,11 @@ defmodule Calendar.ISO do
   end
 
   defp date_to_iodata_guarded(year, month, day, :extended) do
-    [zero_pad(year, 4), ?-, zero_pad(month, 2), ?-, zero_pad(day, 2)]
+    [zero_pad(year, 4), ?-, zero_pad(month, 2), ?- | zero_pad(day, 2)]
   end
 
   defp date_to_iodata_guarded(year, month, day, :basic) do
-    [zero_pad(year, 4), zero_pad(month, 2), zero_pad(day, 2)]
+    [zero_pad(year, 4), zero_pad(month, 2) | zero_pad(day, 2)]
   end
 
   @doc """
@@ -1402,11 +1412,26 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.naive_datetime_to_iodata(2015, 2, 28, 1, 2, 3, {4, 6}, :basic)
-      [["2015", ["0", "2"], "28"], 32, [[["0", "1"], ["0", "2"], ["0", "3"]], 46, ["00000", "4"]]]
+      iex> data = Calendar.ISO.naive_datetime_to_iodata(2015, 2, 28, 1, 2, 3, {4, 6}, :basic)
+      iex> IO.iodata_to_binary(data)
+      "20150228 010203.000004"
+
+      iex> data = Calendar.ISO.naive_datetime_to_iodata(2015, 2, 28, 1, 2, 3, {4, 6}, :extended)
+      iex> IO.iodata_to_binary(data)
+      "2015-02-28 01:02:03.000004"
 
   """
   @doc since: "1.19.0"
+  @spec naive_datetime_to_string(
+          year,
+          month,
+          day,
+          Calendar.hour(),
+          Calendar.minute(),
+          Calendar.second(),
+          Calendar.microsecond(),
+          :basic | :extended
+        ) :: iodata
   def naive_datetime_to_iodata(
         year,
         month,
@@ -1419,8 +1444,8 @@ defmodule Calendar.ISO do
       ) do
     [
       date_to_iodata(year, month, day, format),
-      ?\s,
-      time_to_iodata(hour, minute, second, microsecond, format)
+      ?\s
+      | time_to_iodata(hour, minute, second, microsecond, format)
     ]
   end
 
@@ -1512,11 +1537,26 @@ defmodule Calendar.ISO do
   ## Examples
 
       iex> time_zone = "Etc/UTC"
-      iex> Calendar.ISO.datetime_to_iodata(2017, 8, 1, 1, 2, 3, {4, 5}, time_zone, "UTC", 0, 0)
-      [["2017", 45, ["0", "8"], 45, ["0", "1"]], 32, [[["0", "1"], 58, ["0", "2"], 58, ["0", "3"]], 46, ["0000", "0"]], 90, []]
+      iex> data = Calendar.ISO.datetime_to_iodata(2017, 8, 1, 1, 2, 3, {4, 5}, time_zone, "UTC", 0, 0)
+      iex> IO.iodata_to_binary(data)
+      "2017-08-01 01:02:03.00000Z"
 
   """
   @doc since: "1.19.0"
+  @spec datetime_to_iodata(
+          year,
+          month,
+          day,
+          Calendar.hour(),
+          Calendar.minute(),
+          Calendar.second(),
+          Calendar.microsecond(),
+          Calendar.time_zone(),
+          Calendar.zone_abbr(),
+          Calendar.utc_offset(),
+          Calendar.std_offset(),
+          :basic | :extended
+        ) :: iodata
   def datetime_to_iodata(
         year,
         month,
@@ -1562,15 +1602,15 @@ defmodule Calendar.ISO do
   end
 
   defp format_offset(total, hour, minute, :extended) do
-    [sign(total), zero_pad(hour, 2), ?:, zero_pad(minute, 2)]
+    [sign(total), zero_pad(hour, 2), ?: | zero_pad(minute, 2)]
   end
 
   defp format_offset(total, hour, minute, :basic) do
-    [sign(total), zero_pad(hour, 2), zero_pad(minute, 2)]
+    [sign(total), zero_pad(hour, 2) | zero_pad(minute, 2)]
   end
 
   defp zone_to_iodata(_, _, _, "Etc/UTC"), do: []
-  defp zone_to_iodata(_, _, abbr, zone), do: [?\s, abbr, ?\s, zone]
+  defp zone_to_iodata(_, _, abbr, zone), do: [?\s, abbr, ?\s | zone]
 
   @doc """
   Determines if the date given is valid according to the proleptic Gregorian calendar.
@@ -1639,16 +1679,16 @@ defmodule Calendar.ISO do
 
     case max(count - byte_size(num), 0) do
       0 -> num
-      1 -> ["0", num]
-      2 -> ["00", num]
-      3 -> ["000", num]
-      4 -> ["0000", num]
-      5 -> ["00000", num]
+      1 -> ["0" | num]
+      2 -> ["00" | num]
+      3 -> ["000" | num]
+      4 -> ["0000" | num]
+      5 -> ["00000" | num]
     end
   end
 
   defp zero_pad(val, count) do
-    [?-, zero_pad(-val, count)]
+    [?- | zero_pad(-val, count)]
   end
 
   @doc """
