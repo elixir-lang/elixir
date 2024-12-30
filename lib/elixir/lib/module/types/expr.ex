@@ -555,7 +555,7 @@ defmodule Module.Types.Expr do
 
   defp with_clause({:<-, _meta, [left, right]} = expr, stack, context) do
     {pattern, guards} = extract_head([left])
-    {_type, context} = Pattern.of_match(pattern, guards, dynamic(), :with, expr, stack, context)
+    {_type, context} = Pattern.of_match(pattern, guards, dynamic(), expr, :with, stack, context)
     {_, context} = of_expr(right, stack, context)
     context
   end
