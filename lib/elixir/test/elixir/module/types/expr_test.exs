@@ -1432,6 +1432,18 @@ defmodule Module.Types.ExprTest do
                #{hints(:inferred_bitstring_spec)}
                """
     end
+
+    test ":into" do
+      assert typecheck!([binary], for(<<x <- binary>>, do: x)) == list(integer())
+      assert typecheck!([binary], for(<<x <- binary>>, do: x, into: [])) == list(integer())
+      assert typecheck!([binary], for(<<x <- binary>>, do: x, into: "")) == binary()
+      assert typecheck!([binary, other], for(<<x <- binary>>, do: x, into: other)) == dynamic()
+
+      assert typecheck!([enum], for(x <- enum, do: x)) == list(dynamic())
+      assert typecheck!([enum], for(x <- enum, do: x, into: [])) == list(dynamic())
+      assert typecheck!([enum], for(x <- enum, do: x, into: "")) == binary()
+      assert typecheck!([enum, other], for(x <- enum, do: x, into: other)) == dynamic()
+    end
   end
 
   describe "info" do

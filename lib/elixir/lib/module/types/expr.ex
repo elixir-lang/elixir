@@ -341,14 +341,30 @@ defmodule Module.Types.Expr do
   def of_expr({:for, meta, [_ | _] = args}, stack, context) do
     {clauses, [[{:do, block} | opts]]} = Enum.split(args, -1)
     context = Enum.reduce(clauses, context, &for_clause(&1, stack, &2))
-    context = Enum.reduce(opts, context, &for_option(&1, meta, stack, &2))
 
+    # We don't need to type check uniq, as it is a compile-time boolean.
+    # We handle reduce and into accordingly instead.
     if Keyword.has_key?(opts, :reduce) do
+      reduce = Keyword.fetch!(opts, :reduce)
+      {_, context} = of_expr(reduce, stack, context)
       {_, context} = of_clauses(block, [dynamic()], :for_reduce, stack, {none(), context})
       {dynamic(), context}
     else
-      {_type, context} = of_expr(block, stack, context)
-      {dynamic(), context}
+      into = Keyword.get(opts, :into, [])
+      {into_wrapper, context} = for_into(into, meta, stack, context)
+      {block_type, context} = of_expr(block, stack, context)
+
+      for_type =
+        for type <- into_wrapper do
+          case type do
+            :binary -> binary()
+            :list -> list(block_type)
+            :dynamic -> dynamic()
+          end
+        end
+        |> Enum.reduce(&union/2)
+
+      {for_type, context}
     end
   end
 
@@ -504,35 +520,35 @@ defmodule Module.Types.Expr do
     context
   end
 
-  defp for_option({:into, expr}, _meta, _stack, context) when is_list(expr) or is_binary(expr) do
-    context
-  end
+  @into_compile union(binary(), empty_list())
 
-  defp for_option({:into, expr}, meta, stack, context) do
-    {type, context} = of_expr(expr, stack, context)
+  defp for_into([], _meta, _stack, context),
+    do: {[:list], context}
 
-    meta =
-      case expr do
-        {_, meta, _} -> meta
-        _ -> meta
+  defp for_into(binary, _meta, _stack, context) when is_binary(binary),
+    do: {[:binary], context}
+
+  # TODO: Use the collectable protocol for the output
+  defp for_into(into, meta, stack, context) do
+    {type, context} = of_expr(into, stack, context)
+
+    if subtype?(type, @into_compile) do
+      case {binary_type?(type), empty_list_type?(type)} do
+        {false, true} -> {[:list], context}
+        {true, false} -> {[:binary], context}
+        {_, _} -> {[:binary, :list], context}
       end
+    else
+      meta =
+        case into do
+          {_, meta, _} -> meta
+          _ -> meta
+        end
 
-    wrapped_expr = {:__block__, [type_check: :into] ++ meta, [expr]}
-
-    {_type, context} =
-      Apply.remote(Collectable, :into, [expr], [type], wrapped_expr, stack, context)
-
-    context
-  end
-
-  defp for_option({:reduce, expr}, _meta, stack, context) do
-    {_type, context} = of_expr(expr, stack, context)
-    context
-  end
-
-  defp for_option({:uniq, _}, _meta, _stack, context) do
-    # This option is verified to be a boolean at compile-time
-    context
+      expr = {:__block__, [type_check: :into] ++ meta, [into]}
+      {_type, context} = Apply.remote(Collectable, :into, [into], [type], expr, stack, context)
+      {[:dynamic], context}
+    end
   end
 
   ## With
