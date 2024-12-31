@@ -928,7 +928,8 @@ defmodule NaiveDateTime do
   @spec to_iso8601(Calendar.naive_datetime(), :basic | :extended) :: String.t()
   def to_iso8601(naive_datetime, format \\ :extended)
 
-  def to_iso8601(%{calendar: Calendar.ISO} = naive_datetime, format) do
+  def to_iso8601(%{calendar: Calendar.ISO} = naive_datetime, format)
+      when format in [:basic, :extended] do
     naive_datetime
     |> to_iso8601_iodata(format)
     |> IO.iodata_to_binary()
@@ -941,8 +942,7 @@ defmodule NaiveDateTime do
     |> to_iso8601(format)
   end
 
-  defp to_iso8601_iodata(naive_datetime, format)
-       when format in [:basic, :extended] do
+  defp to_iso8601_iodata(naive_datetime, format) do
     %{
       year: year,
       month: month,
