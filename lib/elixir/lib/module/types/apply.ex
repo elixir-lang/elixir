@@ -145,6 +145,8 @@ defmodule Module.Types.Apply do
         {:erlang, :>, [{[term(), term()], boolean()}]},
         {:erlang, :>=, [{[term(), term()], boolean()}]},
         {:erlang, :abs, [{[integer()], integer()}, {[float()], float()}]},
+        {:erlang, :apply, [{[fun(), list(term())], dynamic()}]},
+        {:erlang, :apply, [{[atom(), atom(), list(term())], dynamic()}]},
         {:erlang, :and, and_signature},
         {:erlang, :atom_to_binary, [{[atom()], binary()}]},
         {:erlang, :atom_to_list, [{[atom()], list(integer())}]},

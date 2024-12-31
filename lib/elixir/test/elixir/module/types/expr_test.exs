@@ -1472,6 +1472,44 @@ defmodule Module.Types.ExprTest do
     end
   end
 
+  describe "apply" do
+    test "handles conditional modules and functions" do
+      assert typecheck!([fun], apply(String, fun, ["foo", "bar", "baz"])) == dynamic()
+
+      assert typecheck!(
+               [condition, string],
+               (
+                 fun = if condition, do: :to_integer, else: :to_float
+                 apply(String, fun, [string])
+               )
+             ) == union(integer(), float())
+
+      assert typecheck!(
+               [condition, string],
+               (
+                 mod = if condition, do: String, else: List
+                 fun = if condition, do: :to_integer, else: :to_float
+                 apply(mod, fun, [string])
+               )
+             ) == union(integer(), float())
+
+      assert typeerror!(
+               [condition, string],
+               (
+                 mod = if condition, do: String, else: List
+                 fun = if condition, do: :to_integer, else: :to_float
+                 :erlang.apply(mod, fun, [string | "tail"])
+               )
+             ) =~
+               """
+               incompatible types given to Kernel.apply/3:
+
+                   apply(mod, fun, [string | "tail"])
+
+               """
+    end
+  end
+
   describe "info" do
     test "__info__/1" do
       assert typecheck!(GenServer.__info__(:functions)) == list(tuple([atom(), integer()]))
