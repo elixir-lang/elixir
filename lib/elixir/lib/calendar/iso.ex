@@ -1424,7 +1424,7 @@ defmodule Calendar.ISO do
 
   """
   @doc since: "1.19.0"
-  @spec naive_datetime_to_string(
+  @spec naive_datetime_to_iodata(
           year,
           month,
           day,
