@@ -99,6 +99,18 @@ defmodule JSONTest do
     list = JSON.encode_to_iodata!([1, 1.0, "one", %{1 => 2, 3.0 => 4.0, key: :bar}])
     assert is_list(list)
     assert IO.iodata_to_binary(list) == "[1,1.0,\"one\",{\"1\":2,\"3.0\":4.0,\"key\":\"bar\"}]"
+
+    list =
+      JSON.encode_to_iodata!([
+        ~T[12:34:56.78],
+        ~D[2024-12-31],
+        ~N[2010-04-17 14:00:00.123],
+        ~U[2010-04-17 14:00:00.123Z],
+        Duration.new!(month: 2, hour: 3)
+      ])
+
+    assert IO.iodata_to_binary(list) ==
+             ~s'["12:34:56.78","2024-12-31","2010-04-17T14:00:00.123","2010-04-17T14:00:00.123Z","P2MT3H"]'
   end
 
   test "deprecated" do
