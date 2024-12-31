@@ -1223,29 +1223,78 @@ defmodule Calendar.ISO do
         hour,
         minute,
         second,
+        microsecond,
+        format \\ :extended
+      ) do
+    time_to_iodata(hour, minute, second, microsecond, format)
+    |> IO.iodata_to_binary()
+  end
+
+  @doc """
+  Converts the given time into a iodata.
+
+  See `time_to_string/5` for more information.
+
+  ## Examples
+
+      iex> data = Calendar.ISO.time_to_iodata(2, 2, 2, {2, 6})
+      iex> IO.iodata_to_binary(data)
+      "02:02:02.000002"
+
+  """
+  @doc since: "1.19.0"
+  @spec time_to_iodata(
+          Calendar.hour(),
+          Calendar.minute(),
+          Calendar.second(),
+          Calendar.microsecond(),
+          :basic | :extended
+        ) :: iodata
+  def time_to_iodata(
+        hour,
+        minute,
+        second,
         {ms_value, ms_precision} = microsecond,
         format \\ :extended
       )
       when is_hour(hour) and is_minute(minute) and is_second(second) and
              is_microsecond(ms_value, ms_precision) and format in [:basic, :extended] do
-    time_to_string_guarded(hour, minute, second, microsecond, format)
+    time_to_iodata_guarded(hour, minute, second, microsecond, format)
   end
 
-  defp time_to_string_guarded(hour, minute, second, {_, 0}, format) do
-    time_to_string_format(hour, minute, second, format)
+  defp time_to_iodata_guarded(hour, minute, second, {_, 0}, format) do
+    time_to_iodata_format(hour, minute, second, format)
   end
 
-  defp time_to_string_guarded(hour, minute, second, {microsecond, precision}, format) do
-    time_to_string_format(hour, minute, second, format) <>
-      "." <> (microsecond |> zero_pad(6) |> binary_part(0, precision))
+  defp time_to_iodata_guarded(hour, minute, second, {microsecond, precision}, format) do
+    [
+      time_to_iodata_format(hour, minute, second, format),
+      ?.
+      | microseconds_to_iodata(microsecond, precision)
+    ]
   end
 
-  defp time_to_string_format(hour, minute, second, :extended) do
-    zero_pad(hour, 2) <> ":" <> zero_pad(minute, 2) <> ":" <> zero_pad(second, 2)
+  @doc false
+  def microseconds_to_iodata(_microsecond, 0), do: []
+  def microseconds_to_iodata(microsecond, 6), do: zero_pad(microsecond, 6)
+
+  def microseconds_to_iodata(microsecond, precision) do
+    num = div(microsecond, div_factor(precision))
+    zero_pad(num, precision)
   end
 
-  defp time_to_string_format(hour, minute, second, :basic) do
-    zero_pad(hour, 2) <> zero_pad(minute, 2) <> zero_pad(second, 2)
+  defp div_factor(1), do: 100_000
+  defp div_factor(2), do: 10_000
+  defp div_factor(3), do: 1_000
+  defp div_factor(4), do: 100
+  defp div_factor(5), do: 10
+
+  defp time_to_iodata_format(hour, minute, second, :extended) do
+    [zero_pad(hour, 2), ?:, zero_pad(minute, 2), ?: | zero_pad(second, 2)]
+  end
+
+  defp time_to_iodata_format(hour, minute, second, :basic) do
+    [zero_pad(hour, 2), zero_pad(minute, 2) | zero_pad(second, 2)]
   end
 
   @doc """
@@ -1273,18 +1322,36 @@ defmodule Calendar.ISO do
   @doc since: "1.4.0"
   @spec date_to_string(year, month, day, :basic | :extended) :: String.t()
   @impl true
-  def date_to_string(year, month, day, format \\ :extended)
+  def date_to_string(year, month, day, format \\ :extended) do
+    date_to_iodata(year, month, day, format)
+    |> IO.iodata_to_binary()
+  end
+
+  @doc """
+  Converts the given date into a iodata.
+
+  See `date_to_string/4` for more information.
+
+  ## Examples
+
+      iex> data = Calendar.ISO.date_to_iodata(2015, 2, 28)
+      iex> IO.iodata_to_binary(data)
+      "2015-02-28"
+  """
+  @doc since: "1.19.0"
+  @spec date_to_iodata(year, month, day, :basic | :extended) :: iodata
+  def date_to_iodata(year, month, day, format \\ :extended)
       when is_integer(year) and is_integer(month) and is_integer(day) and
              format in [:basic, :extended] do
-    date_to_string_guarded(year, month, day, format)
+    date_to_iodata_guarded(year, month, day, format)
   end
 
-  defp date_to_string_guarded(year, month, day, :extended) do
-    zero_pad(year, 4) <> "-" <> zero_pad(month, 2) <> "-" <> zero_pad(day, 2)
+  defp date_to_iodata_guarded(year, month, day, :extended) do
+    [zero_pad(year, 4), ?-, zero_pad(month, 2), ?- | zero_pad(day, 2)]
   end
 
-  defp date_to_string_guarded(year, month, day, :basic) do
-    zero_pad(year, 4) <> zero_pad(month, 2) <> zero_pad(day, 2)
+  defp date_to_iodata_guarded(year, month, day, :basic) do
+    [zero_pad(year, 4), zero_pad(month, 2) | zero_pad(day, 2)]
   end
 
   @doc """
@@ -1327,8 +1394,61 @@ defmodule Calendar.ISO do
         microsecond,
         format \\ :extended
       ) do
-    date_to_string(year, month, day, format) <>
-      " " <> time_to_string(hour, minute, second, microsecond, format)
+    naive_datetime_to_iodata(
+      year,
+      month,
+      day,
+      hour,
+      minute,
+      second,
+      microsecond,
+      format
+    )
+    |> IO.iodata_to_binary()
+  end
+
+  @doc """
+  Converts the given naive_datetime into a iodata.
+
+  See `naive_datetime_to_iodata/8` for more information.
+
+  ## Examples
+
+      iex> data = Calendar.ISO.naive_datetime_to_iodata(2015, 2, 28, 1, 2, 3, {4, 6}, :basic)
+      iex> IO.iodata_to_binary(data)
+      "20150228 010203.000004"
+
+      iex> data = Calendar.ISO.naive_datetime_to_iodata(2015, 2, 28, 1, 2, 3, {4, 6}, :extended)
+      iex> IO.iodata_to_binary(data)
+      "2015-02-28 01:02:03.000004"
+
+  """
+  @doc since: "1.19.0"
+  @spec naive_datetime_to_string(
+          year,
+          month,
+          day,
+          Calendar.hour(),
+          Calendar.minute(),
+          Calendar.second(),
+          Calendar.microsecond(),
+          :basic | :extended
+        ) :: iodata
+  def naive_datetime_to_iodata(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        microsecond,
+        format \\ :extended
+      ) do
+    [
+      date_to_iodata(year, month, day, format),
+      ?\s
+      | time_to_iodata(hour, minute, second, microsecond, format)
+    ]
   end
 
   @doc """
@@ -1394,20 +1514,89 @@ defmodule Calendar.ISO do
         utc_offset,
         std_offset,
         format \\ :extended
+      ) do
+    datetime_to_iodata(
+      year,
+      month,
+      day,
+      hour,
+      minute,
+      second,
+      microsecond,
+      time_zone,
+      zone_abbr,
+      utc_offset,
+      std_offset,
+      format
+    )
+    |> IO.iodata_to_binary()
+  end
+
+  @doc """
+  Converts the given datetime into a iodata.
+
+  See `datetime_to_iodata/12` for more information.
+
+  ## Examples
+
+      iex> time_zone = "Etc/UTC"
+      iex> data = Calendar.ISO.datetime_to_iodata(2017, 8, 1, 1, 2, 3, {4, 5}, time_zone, "UTC", 0, 0)
+      iex> IO.iodata_to_binary(data)
+      "2017-08-01 01:02:03.00000Z"
+
+  """
+  @doc since: "1.19.0"
+  @spec datetime_to_iodata(
+          year,
+          month,
+          day,
+          Calendar.hour(),
+          Calendar.minute(),
+          Calendar.second(),
+          Calendar.microsecond(),
+          Calendar.time_zone(),
+          Calendar.zone_abbr(),
+          Calendar.utc_offset(),
+          Calendar.std_offset(),
+          :basic | :extended
+        ) :: iodata
+  def datetime_to_iodata(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        microsecond,
+        time_zone,
+        zone_abbr,
+        utc_offset,
+        std_offset,
+        format \\ :extended
       )
       when is_time_zone(time_zone) and is_zone_abbr(zone_abbr) and is_utc_offset(utc_offset) and
              is_std_offset(std_offset) do
-    date_to_string(year, month, day, format) <>
-      " " <>
-      time_to_string(hour, minute, second, microsecond, format) <>
-      offset_to_string(utc_offset, std_offset, time_zone, format) <>
-      zone_to_string(utc_offset, std_offset, zone_abbr, time_zone)
+    [
+      date_to_iodata(year, month, day, format),
+      ?\s,
+      time_to_iodata(hour, minute, second, microsecond, format),
+      offset_to_iodata(utc_offset, std_offset, time_zone, format),
+      zone_to_iodata(utc_offset, std_offset, zone_abbr, time_zone)
+    ]
   end
 
   @doc false
   def offset_to_string(0, 0, "Etc/UTC", _format), do: "Z"
 
-  def offset_to_string(utc, std, _zone, format) do
+  def offset_to_string(utc, std, zone, format) do
+    offset_to_iodata(utc, std, zone, format)
+    |> IO.iodata_to_binary()
+  end
+
+  @doc false
+  def offset_to_iodata(0, 0, "Etc/UTC", _format), do: ?Z
+
+  def offset_to_iodata(utc, std, _zone, format) do
     total = utc + std
     second = abs(total)
     minute = second |> rem(3600) |> div(60)
@@ -1416,15 +1605,15 @@ defmodule Calendar.ISO do
   end
 
   defp format_offset(total, hour, minute, :extended) do
-    sign(total) <> zero_pad(hour, 2) <> ":" <> zero_pad(minute, 2)
+    [sign(total), zero_pad(hour, 2), ?: | zero_pad(minute, 2)]
   end
 
   defp format_offset(total, hour, minute, :basic) do
-    sign(total) <> zero_pad(hour, 2) <> zero_pad(minute, 2)
+    [sign(total), zero_pad(hour, 2) | zero_pad(minute, 2)]
   end
 
-  defp zone_to_string(_, _, _, "Etc/UTC"), do: ""
-  defp zone_to_string(_, _, abbr, zone), do: " " <> abbr <> " " <> zone
+  defp zone_to_iodata(_, _, _, "Etc/UTC"), do: []
+  defp zone_to_iodata(_, _, abbr, zone), do: [?\s, abbr, ?\s | zone]
 
   @doc """
   Determines if the date given is valid according to the proleptic Gregorian calendar.
@@ -1485,16 +1674,24 @@ defmodule Calendar.ISO do
     {0, 1}
   end
 
-  defp sign(total) when total < 0, do: "-"
-  defp sign(_), do: "+"
+  defp sign(total) when total < 0, do: ?-
+  defp sign(_), do: ?+
 
-  defp zero_pad(val, count) when val >= 0 do
+  defp zero_pad(val, count) when val >= 0 and count <= 6 do
     num = Integer.to_string(val)
-    :binary.copy("0", max(count - byte_size(num), 0)) <> num
+
+    case max(count - byte_size(num), 0) do
+      0 -> num
+      1 -> ["0" | num]
+      2 -> ["00" | num]
+      3 -> ["000" | num]
+      4 -> ["0000" | num]
+      5 -> ["00000" | num]
+    end
   end
 
   defp zero_pad(val, count) do
-    "-" <> zero_pad(-val, count)
+    [?- | zero_pad(-val, count)]
   end
 
   @doc """
