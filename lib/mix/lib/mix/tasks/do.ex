@@ -4,7 +4,9 @@ defmodule Mix.Tasks.Do do
   @shortdoc "Executes the tasks separated by plus"
 
   @moduledoc """
-  Executes the tasks separated by `+`:
+  Executes the tasks separated by `+`, aborting if any task errors.
+  
+  Here is an example:
 
       $ mix do compile --list + deps
 
@@ -40,6 +42,16 @@ defmodule Mix.Tasks.Do do
 
   Since then, the `+` operator has been introduced as a
   separator for better support on Windows terminals.
+
+  ## Error handling
+
+  If any task in the list of tasks exits with an error,
+  no subsequent tasks will be run. For instance:
+
+      $ mix do compile + test
+
+  If the compilation step fails, the tests will not be
+  attempted.
 
   ## Command line options
 
