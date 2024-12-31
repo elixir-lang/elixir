@@ -4584,6 +4584,9 @@ defmodule Kernel do
   defp in_var(true, {atom, _, context} = var, fun) when is_atom(atom) and is_atom(context),
     do: fun.(var)
 
+  defp in_var(true, var, fun) when is_atom(var) or is_binary(var) or is_number(var),
+    do: fun.(var)
+
   defp in_var(true, ast, fun) do
     quote do
       var = unquote(ast)
