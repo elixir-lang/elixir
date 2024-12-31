@@ -1329,6 +1329,7 @@ defmodule Calendar.ISO do
 
   @doc """
   Converts the given date into a iodata.
+
   See date_to_string/4 for more information
 
   ## Examples
@@ -1408,6 +1409,7 @@ defmodule Calendar.ISO do
 
   @doc """
   Converts the given naive_datetime into a iodata.
+
   See naive_datetime_to_iodata/8 for more information
 
   ## Examples
@@ -1532,6 +1534,7 @@ defmodule Calendar.ISO do
 
   @doc """
   Converts the given datetime into a iodata.
+
   See datetime_to_iodata/12 for more information
 
   ## Examples
