@@ -150,9 +150,93 @@ defimpl JSON.Encoder, for: Map do
   end
 end
 
-defimpl JSON.Encoder, for: [Date, Time, NaiveDateTime, DateTime, Duration] do
+defimpl JSON.Encoder, for: Duration do
   def encode(value, _encoder) do
-    [?", @for.to_iso8601(value), ?"]
+    [?", Duration.to_iso8601(value), ?"]
+  end
+end
+
+defimpl JSON.Encoder, for: Date do
+  def encode(%{calendar: Calendar.ISO} = date, _encoder) do
+    %{year: year, month: month, day: day} = date
+    [?", Calendar.ISO.date_to_iodata(year, month, day), ?"]
+  end
+
+  def encode(value, _encoder) do
+    [?", Date.to_iso8601(value), ?"]
+  end
+end
+
+defimpl JSON.Encoder, for: Time do
+  def encode(%{calendar: Calendar.ISO} = time, _encoder) do
+    %{
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond
+    } = time
+
+    [?", Calendar.ISO.time_to_iodata(hour, minute, second, microsecond), ?"]
+  end
+
+  def encode(value, _encoder) do
+    [?", Time.to_iso8601(value), ?"]
+  end
+end
+
+defimpl JSON.Encoder, for: NaiveDateTime do
+  def encode(%{calendar: Calendar.ISO} = naive_datetime, _encoder) do
+    %{
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond
+    } = naive_datetime
+
+    [
+      ?",
+      Calendar.ISO.date_to_iodata(year, month, day),
+      ?T,
+      Calendar.ISO.time_to_iodata(hour, minute, second, microsecond),
+      ?"
+    ]
+  end
+
+  def encode(value, _encoder) do
+    [?", NaiveDateTime.to_iso8601(value), ?"]
+  end
+end
+
+defimpl JSON.Encoder, for: DateTime do
+  def encode(%{calendar: Calendar.ISO} = datetime, _encoder) do
+    %{
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond,
+      time_zone: time_zone,
+      utc_offset: utc_offset,
+      std_offset: std_offset
+    } = datetime
+
+    [
+      ?",
+      Calendar.ISO.date_to_iodata(year, month, day),
+      ?T,
+      Calendar.ISO.time_to_iodata(hour, minute, second, microsecond),
+      Calendar.ISO.offset_to_iodata(utc_offset, std_offset, time_zone, :extended),
+      ?"
+    ]
+  end
+
+  def encode(value, _encoder) do
+    [?", DateTime.to_iso8601(value), ?"]
   end
 end
 

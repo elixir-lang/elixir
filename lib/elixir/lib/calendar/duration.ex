@@ -532,7 +532,7 @@ defmodule Duration do
       sign,
       Integer.to_string(second),
       ?.,
-      ms |> Integer.to_string() |> String.pad_leading(6, "0") |> binary_part(0, p)
+      Calendar.ISO.microseconds_to_iodata(ms, p)
     ]
   end
 
