@@ -770,6 +770,9 @@ defmodule KernelTest do
 
       assert expand_to_string(quote(do: foo in 1..1)) ==
                ":erlang.\"=:=\"(foo, 1)"
+
+      assert expand_to_string(quote(do: 2 in 1..3)) ==
+               ":erlang.andalso(:erlang.is_integer(2), :erlang.andalso(:erlang.>=(2, 1), :erlang.\"=<\"(2, 3)))"
     end
 
     defp expand_to_string(ast, environment_or_context \\ __ENV__)
