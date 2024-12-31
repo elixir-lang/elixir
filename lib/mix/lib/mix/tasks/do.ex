@@ -5,7 +5,7 @@ defmodule Mix.Tasks.Do do
 
   @moduledoc """
   Executes the tasks separated by `+`, aborting if any task errors.
-  
+
   Here is an example:
 
       $ mix do compile --list + deps
