@@ -1460,6 +1460,16 @@ defmodule Module.Types.ExprTest do
                )
              ) == dynamic(union(binary(), list(float())))
     end
+
+    test ":reduce" do
+      assert typecheck!(
+               [list],
+               for _ <- list, reduce: :ok do
+                 :ok -> 1
+                 _ -> 2.0
+               end
+             ) == union(atom([:ok]), union(integer(), float()))
+    end
   end
 
   describe "info" do

@@ -838,7 +838,7 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  defp badpattern(:default, pattern_or_expr, _) do
+  defp badpattern(_, pattern_or_expr, _) do
     {pattern_or_expr,
      """
      the following pattern will never match:

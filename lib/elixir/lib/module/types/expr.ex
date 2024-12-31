@@ -346,9 +346,10 @@ defmodule Module.Types.Expr do
     # We handle reduce and into accordingly instead.
     if Keyword.has_key?(opts, :reduce) do
       reduce = Keyword.fetch!(opts, :reduce)
-      {_, context} = of_expr(reduce, stack, context)
-      {_, context} = of_clauses(block, [dynamic()], :for_reduce, stack, {none(), context})
-      {dynamic(), context}
+      {reduce_type, context} = of_expr(reduce, stack, context)
+      # TODO: We need to type check against dynamic() instead of using reduce_type
+      # because this is recursive. We need to infer the block type first.
+      of_clauses(block, [dynamic()], :for_reduce, stack, {reduce_type, context})
     else
       into = Keyword.get(opts, :into, [])
       {into_wrapper, gradual?, context} = for_into(into, meta, stack, context)
