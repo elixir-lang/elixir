@@ -1092,8 +1092,21 @@ defmodule DateTime do
   @spec to_iso8601(Calendar.datetime(), :basic | :extended, nil | integer()) :: String.t()
   def to_iso8601(datetime, format \\ :extended, offset \\ nil)
 
-  def to_iso8601(%{calendar: Calendar.ISO} = datetime, format, nil)
+  def to_iso8601(%{calendar: Calendar.ISO} = datetime, format, offset)
       when format in [:extended, :basic] do
+    datetime
+    |> to_iso8601_iodata(format, offset)
+    |> IO.iodata_to_binary()
+  end
+
+  def to_iso8601(%{calendar: _} = datetime, format, offset)
+      when format in [:extended, :basic] do
+    datetime
+    |> convert!(Calendar.ISO)
+    |> to_iso8601(format, offset)
+  end
+
+  defp to_iso8601_iodata(datetime, format, nil) do
     %{
       year: year,
       month: month,
@@ -1107,35 +1120,51 @@ defmodule DateTime do
       std_offset: std_offset
     } = datetime
 
-    datetime_to_string(year, month, day, hour, minute, second, microsecond, format) <>
-      Calendar.ISO.offset_to_string(utc_offset, std_offset, time_zone, format)
+    [
+      datetime_to_iodata(year, month, day, hour, minute, second, microsecond, format),
+      Calendar.ISO.offset_to_iodata(utc_offset, std_offset, time_zone, format)
+    ]
   end
 
-  def to_iso8601(
-        %{calendar: Calendar.ISO, microsecond: {_, precision}, time_zone: "Etc/UTC"} = datetime,
-        format,
-        0
-      )
-      when format in [:extended, :basic] do
+  defp to_iso8601_iodata(
+         %{microsecond: {_, precision}, time_zone: "Etc/UTC"} = datetime,
+         format,
+         0
+       ) do
     {year, month, day, hour, minute, second, {microsecond, _}} = shift_by_offset(datetime, 0)
 
-    datetime_to_string(year, month, day, hour, minute, second, {microsecond, precision}, format) <>
-      "Z"
+    [
+      datetime_to_iodata(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        {microsecond, precision},
+        format
+      ),
+      ?Z
+    ]
   end
 
-  def to_iso8601(%{calendar: Calendar.ISO} = datetime, format, offset)
-      when format in [:extended, :basic] do
+  defp to_iso8601_iodata(datetime, format, offset) do
     {_, precision} = datetime.microsecond
     {year, month, day, hour, minute, second, {microsecond, _}} = shift_by_offset(datetime, offset)
 
-    datetime_to_string(year, month, day, hour, minute, second, {microsecond, precision}, format) <>
-      Calendar.ISO.offset_to_string(offset, 0, nil, format)
-  end
-
-  def to_iso8601(%{calendar: _} = datetime, format, offset) when format in [:extended, :basic] do
-    datetime
-    |> convert!(Calendar.ISO)
-    |> to_iso8601(format, offset)
+    [
+      datetime_to_iodata(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        {microsecond, precision},
+        format
+      ),
+      Calendar.ISO.offset_to_iodata(offset, 0, nil, format)
+    ]
   end
 
   defp shift_by_offset(%{calendar: calendar} = datetime, offset) do
@@ -1148,10 +1177,12 @@ defmodule DateTime do
     |> calendar.naive_datetime_from_iso_days()
   end
 
-  defp datetime_to_string(year, month, day, hour, minute, second, microsecond, format) do
-    Calendar.ISO.date_to_string(year, month, day, format) <>
-      "T" <>
-      Calendar.ISO.time_to_string(hour, minute, second, microsecond, format)
+  defp datetime_to_iodata(year, month, day, hour, minute, second, microsecond, format) do
+    [
+      Calendar.ISO.date_to_iodata(year, month, day, format),
+      ?T,
+      Calendar.ISO.time_to_iodata(hour, minute, second, microsecond, format)
+    ]
   end
 
   @doc """

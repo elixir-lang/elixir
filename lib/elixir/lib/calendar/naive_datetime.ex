@@ -930,6 +930,19 @@ defmodule NaiveDateTime do
 
   def to_iso8601(%{calendar: Calendar.ISO} = naive_datetime, format)
       when format in [:basic, :extended] do
+    naive_datetime
+    |> to_iso8601_iodata(format)
+    |> IO.iodata_to_binary()
+  end
+
+  def to_iso8601(%{calendar: _} = naive_datetime, format)
+      when format in [:basic, :extended] do
+    naive_datetime
+    |> convert!(Calendar.ISO)
+    |> to_iso8601(format)
+  end
+
+  defp to_iso8601_iodata(naive_datetime, format) do
     %{
       year: year,
       month: month,
@@ -940,14 +953,11 @@ defmodule NaiveDateTime do
       microsecond: microsecond
     } = naive_datetime
 
-    Calendar.ISO.date_to_string(year, month, day, format) <>
-      "T" <> Calendar.ISO.time_to_string(hour, minute, second, microsecond, format)
-  end
-
-  def to_iso8601(%{calendar: _} = naive_datetime, format) when format in [:basic, :extended] do
-    naive_datetime
-    |> convert!(Calendar.ISO)
-    |> to_iso8601(format)
+    [
+      Calendar.ISO.date_to_iodata(year, month, day, format),
+      ?T,
+      Calendar.ISO.time_to_iodata(hour, minute, second, microsecond, format)
+    ]
   end
 
   @doc """
