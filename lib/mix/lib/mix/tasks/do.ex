@@ -4,8 +4,9 @@ defmodule Mix.Tasks.Do do
   @shortdoc "Executes the tasks separated by plus"
 
   @moduledoc """
-  Executes the tasks separated by `+`, aborting if any task exits
-  with an error:
+  Executes the tasks separated by `+`, aborting if any task errors.
+  
+  Here is an example:
 
       $ mix do compile --list + deps
 
