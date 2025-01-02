@@ -42,6 +42,39 @@ defmodule Module.Types.Of do
   end
 
   @doc """
+  Refines a variable that already exists.
+
+  This only happens if the var contains a gradual type,
+  or if we are doing a guard analysis or occurrence typing.
+  Returns `true` if there was a refinement, `false` otherwise.
+  """
+  def refine_existing_var({_, meta, _}, type, expr, stack, context) do
+    version = Keyword.fetch!(meta, :version)
+    %{vars: %{^version => %{type: old_type, off_traces: off_traces} = data} = vars} = context
+
+    context =
+      if gradual?(old_type) and type not in [term(), dynamic()] do
+        case compatible_intersection(old_type, type) do
+          {:ok, new_type} when new_type != old_type ->
+            data = %{
+              data
+              | type: new_type,
+                off_traces: new_trace(expr, new_type, :default, stack, off_traces)
+            }
+
+            %{context | vars: %{vars | version => data}}
+
+          _ ->
+            context
+        end
+      else
+        context
+      end
+
+    {old_type, context}
+  end
+
+  @doc """
   Refines the type of a variable.
   """
   def refine_var(var, type, expr, formatter \\ :default, stack, context) do
@@ -49,7 +82,7 @@ defmodule Module.Types.Of do
     version = Keyword.fetch!(meta, :version)
 
     case context.vars do
-      %{^version => %{type: old_type, off_traces: off_traces} = data} ->
+      %{^version => %{type: old_type, off_traces: off_traces} = data} = vars ->
         new_type = intersection(type, old_type)
 
         data = %{
@@ -58,7 +91,7 @@ defmodule Module.Types.Of do
             off_traces: new_trace(expr, type, formatter, stack, off_traces)
         }
 
-        context = put_in(context.vars[version], data)
+        context = %{context | vars: %{vars | version => data}}
 
         # We need to return error otherwise it leads to cascading errors
         if empty?(new_type) do
@@ -68,7 +101,7 @@ defmodule Module.Types.Of do
           {:ok, new_type, context}
         end
 
-      %{} ->
+      %{} = vars ->
         data = %{
           type: type,
           name: var_name,
@@ -76,7 +109,7 @@ defmodule Module.Types.Of do
           off_traces: new_trace(expr, type, formatter, stack, [])
         }
 
-        context = put_in(context.vars[version], data)
+        context = %{context | vars: Map.put(vars, version, data)}
         {:ok, type, context}
     end
   end
@@ -328,7 +361,7 @@ defmodule Module.Types.Of do
 
         :expr ->
           left = annotate_interpolation(left, right)
-          {actual, context} = Module.Types.Expr.of_expr(left, stack, context)
+          {actual, context} = Module.Types.Expr.of_expr(left, {type, expr}, stack, context)
           intersect(actual, type, expr, stack, context)
       end
 
@@ -368,7 +401,7 @@ defmodule Module.Types.Of do
 
   defp specifier_size(:expr, {:size, _, [arg]} = expr, stack, context)
        when not is_integer(arg) do
-    {actual, context} = Module.Types.Expr.of_expr(arg, stack, context)
+    {actual, context} = Module.Types.Expr.of_expr(arg, {integer(), expr}, stack, context)
     {_, context} = intersect(actual, integer(), expr, stack, context)
     context
   end

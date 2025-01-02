@@ -116,12 +116,12 @@ defmodule TypeHelper do
 
   def __typecheck__(mode, patterns, guards, body) do
     stack = new_stack(mode)
-    expected = Enum.map(patterns, fn _ -> Module.Types.Descr.dynamic() end)
+    expected = Enum.map(patterns, fn _ -> Descr.dynamic() end)
 
     {_types, context} =
       Pattern.of_head(patterns, guards, expected, :default, [], stack, new_context())
 
-    Expr.of_expr(body, stack, context)
+    Expr.of_expr(body, {Descr.term(), :ok}, stack, context)
   end
 
   defp expand_and_unpack(patterns, guards, body, env) do

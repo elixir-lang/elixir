@@ -37,6 +37,7 @@ defmodule Mix.Tasks.Local.Hex do
   used for fetching Hex, set the `HEX_BUILDS_URL` environment variable.
   """
   @switches [if_missing: :boolean, force: :boolean]
+  @compile {:no_warn_undefined, {Hex, :version, 0}}
 
   @impl true
   def run(argv) do
@@ -46,8 +47,7 @@ defmodule Mix.Tasks.Local.Hex do
     should_install? =
       if Keyword.get(opts, :if_missing, false) do
         if version do
-          not Code.ensure_loaded?(Hex) or
-            Version.compare(apply(Hex, :version, []), version) == :gt
+          not Code.ensure_loaded?(Hex) or Version.compare(Hex.version(), version) == :gt
         else
           not Code.ensure_loaded?(Hex)
         end

@@ -382,7 +382,8 @@ defmodule Module.Types.Descr do
       {dynamic, descr} =
         case :maps.take(:dynamic, descr) do
           :error -> {[], descr}
-          {dynamic, descr} -> {to_quoted(:dynamic, dynamic, opts), descr}
+          {:term, descr} -> {to_quoted(:dynamic, :term, opts), descr}
+          {dynamic, descr} -> {to_quoted(:dynamic, difference(dynamic, descr), opts), descr}
         end
 
       # Merge empty list and list together if they both exist
@@ -544,6 +545,41 @@ defmodule Module.Types.Descr do
       not disjoint?(left_dynamic, right_dynamic)
     else
       subtype_static?(left_static, right_dynamic)
+    end
+  end
+
+  @doc """
+  Returns the intersection between two types
+  only if they are compatible. Otherwise returns `:error`.
+
+  This finds the intersection between the arguments and the
+  domain of a function. It is used to refine dynamic types
+  as we traverse the program.
+  """
+  def compatible_intersection(left, right) do
+    {left_dynamic, left_static} =
+      case left do
+        :term -> {:term, :term}
+        _ -> Map.pop(left, :dynamic, left)
+      end
+
+    right_dynamic =
+      case right do
+        %{dynamic: dynamic} -> dynamic
+        _ -> right
+      end
+
+    cond do
+      empty?(left_static) ->
+        dynamic = intersection_static(unfold(left_dynamic), unfold(right_dynamic))
+        if empty?(dynamic), do: :error, else: {:ok, dynamic(dynamic)}
+
+      subtype_static?(left_static, right_dynamic) ->
+        dynamic = intersection_static(unfold(left_dynamic), unfold(right_dynamic))
+        {:ok, union(dynamic(dynamic), left_static)}
+
+      true ->
+        :error
     end
   end
 

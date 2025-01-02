@@ -1198,6 +1198,10 @@ defmodule Module.Types.DescrTest do
 
     test "dynamic" do
       assert dynamic() |> to_quoted_string() == "dynamic()"
+
+      assert dynamic(union(atom(), integer())) |> union(integer()) |> to_quoted_string() ==
+               "dynamic(atom()) or integer()"
+
       assert intersection(binary(), dynamic()) |> to_quoted_string() == "binary()"
 
       assert intersection(union(binary(), pid()), dynamic()) |> to_quoted_string() ==

@@ -287,6 +287,16 @@ defmodule Module.Types.PatternTest do
              """
     end
 
+    test "pin inference" do
+      assert typecheck!(
+               [x, y],
+               (
+                 <<^x>> = y
+                 x
+               )
+             ) == dynamic(integer())
+    end
+
     test "size ok" do
       assert typecheck!([<<x, y, _::size(x - y)>>], :ok) == atom([:ok])
     end
@@ -312,6 +322,16 @@ defmodule Module.Types.PatternTest do
                    # from: types_test.ex:LINE-1
                    <<x::float, ...>>
                """
+    end
+
+    test "size pin inference" do
+      assert typecheck!(
+               [x, y],
+               (
+                 <<_::size(^x)>> = y
+                 x
+               )
+             ) == dynamic(integer())
     end
   end
 end

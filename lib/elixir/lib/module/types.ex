@@ -285,7 +285,7 @@ defmodule Module.Types do
               Pattern.of_head(args, guards, expected, {:infer, expected}, meta, stack, context)
 
             {return_type, context} =
-              Expr.of_expr(body, stack, context)
+              Expr.of_expr(body, {Descr.term(), :ok}, stack, context)
 
             {type_index, inferred} =
               add_inferred(inferred, args_types, return_type, total - 1, [])

@@ -115,6 +115,16 @@ defmodule Module.Types.ExprTest do
   end
 
   describe "funs" do
+    test "infers funs" do
+      assert typecheck!(
+               [x],
+               (
+                 x.(1, 2)
+                 x
+               )
+             ) == dynamic(fun())
+    end
+
     test "incompatible" do
       assert typeerror!([%x{}, a1, a2], x.(a1, a2)) == ~l"""
              expected a 2-arity function on call:
@@ -137,6 +147,43 @@ defmodule Module.Types.ExprTest do
   describe "remotes" do
     test "dynamic calls" do
       assert typecheck!([%x{}], x.foo_bar()) == dynamic()
+    end
+
+    test "infers atoms" do
+      assert typecheck!(
+               [x],
+               (
+                 x.foo_bar()
+                 x
+               )
+             ) == dynamic(atom())
+
+      assert typecheck!(
+               [x],
+               (
+                 x.foo_bar(123)
+                 x
+               )
+             ) == dynamic(atom())
+
+      assert typecheck!(
+               [x],
+               (
+                 &x.foo_bar/1
+                 x
+               )
+             ) == dynamic(atom())
+    end
+
+    test "infers maps" do
+      assert typecheck!(
+               [x],
+               (
+                 x.foo_bar
+                 x.baz_bat
+                 x
+               )
+             ) == dynamic(open_map(foo_bar: term(), baz_bat: term()))
     end
 
     test "undefined function warnings" do
@@ -215,7 +262,7 @@ defmodule Module.Types.ExprTest do
                """
 
       assert typeerror!(
-               [<<x::integer>>, y = Atom, z],
+               [<<x::integer>>, y = SomeMod, z],
                (
                  mod =
                    cond do
@@ -233,7 +280,7 @@ defmodule Module.Types.ExprTest do
 
                where "mod" was given the type:
 
-                   # type: dynamic(Atom or integer()) or integer()
+                   # type: dynamic(SomeMod) or integer()
                    # from: types_test.ex:LINE-9
                    mod =
                      cond do
@@ -1431,6 +1478,16 @@ defmodule Module.Types.ExprTest do
 
                #{hints(:inferred_bitstring_spec)}
                """
+    end
+
+    test "infers binary generators" do
+      assert typecheck!(
+               [x],
+               (
+                 for <<_ <- x>>, do: :ok
+                 x
+               )
+             ) == dynamic(binary())
     end
 
     test ":into" do

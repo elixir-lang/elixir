@@ -324,7 +324,8 @@ defmodule Module.Types.Pattern do
   and binary patterns.
   """
   def of_match_var({:^, _, [var]}, expected, expr, stack, context) do
-    Of.intersect(Of.var(var, context), expected, expr, stack, context)
+    {type, context} = Of.refine_existing_var(var, expected, expr, stack, context)
+    Of.intersect(type, expected, expr, stack, context)
   end
 
   def of_match_var({:_, _, _}, expected, _expr, _stack, context) do
@@ -687,7 +688,8 @@ defmodule Module.Types.Pattern do
   # ^var
   def of_guard({:^, _meta, [var]}, expected, expr, stack, context) do
     # This is by definition a variable defined outside of this pattern, so we don't track it.
-    Of.intersect(Of.var(var, context), expected, expr, stack, context)
+    {type, context} = Of.refine_existing_var(var, expected, expr, stack, context)
+    Of.intersect(type, expected, expr, stack, context)
   end
 
   # {...}

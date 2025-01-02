@@ -96,7 +96,7 @@ On the other hand, type inference offers the benefit of enabling type checking f
 
   * Type inference of patterns (and guards in future releases) - the argument types of a function are automatically inferred based on patterns and guards, which capture and narrow types based on common Elixir constructs.
 
-  * Module-local inference of return types - the gradual return types of functions are computed considering all of the functions within the module itself. Any call to a function in another module is conservatively assumed to return `dynamic()`.
+  * Module-local inference of return types - the gradual return types of functions are computed considering all of the functions within the module itself. Any call to a function in another module is conservatively assumed to return `dynamic()` during inference.
 
 The last two items offer gradual reconstruction of type signatures. Our goal is to provide an efficient type reconstruction algorithm that can detect definite bugs in dynamic codebases, even in the absence of explicit type annotations. The gradual system focuses on proving cases where all combinations of a type *will* fail, rather than issuing warnings for cases where some combinations *might* error.
 
