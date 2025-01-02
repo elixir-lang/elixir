@@ -796,7 +796,7 @@ defmodule Module.Types.Apply do
   def format_diagnostic({:badlocal, expr, args_types, domain, clauses, context}) do
     traces = collect_traces(expr, context)
     converter = &Function.identity/1
-    {fun, _, _} = expr
+    {fun, meta, _} = expr
 
     explanation =
       empty_arg_reason(args_types) ||
@@ -805,16 +805,29 @@ defmodule Module.Types.Apply do
         #{clauses_args_to_quoted_string(clauses, converter, [])}
         """
 
-    %{
-      details: %{typing_traces: traces},
-      message:
-        IO.iodata_to_binary([
+    banner =
+      case fun == :super && meta[:default] && meta[:super] do
+        {_kind, fun} ->
+          """
+          incompatible types given as default arguments to #{fun}/#{length(args_types)}:
+          """
+
+        _ ->
           """
           incompatible types given to #{fun}/#{length(args_types)}:
 
               #{expr_to_string(expr) |> indent(4)}
 
           given types:
+          """
+      end
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          banner,
+          """
 
               #{args_to_quoted_string(args_types, domain, converter) |> indent(4)}
 
