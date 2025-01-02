@@ -496,37 +496,54 @@ defmodule Calendar do
 
   The accepted formats for `string_format` are:
 
-  Format | Description                                                                                               | Examples (in ISO)
-  :----- | :-------------------------------------------------------------------------------------------------------- | :------------------------
-  a      | Abbreviated name of day                                                                                   | Mon
-  A      | Full name of day                                                                                          | Monday
-  b      | Abbreviated month name                                                                                    | Jan
-  B      | Full month name                                                                                           | January
-  c      | Preferred date+time representation                                                                        | 2018-10-17 12:34:56
-  d      | Day of the month                                                                                          | 01, 31
-  f      | Microseconds (truncated to the microsecond precision, but *does not support width and padding modifiers*) | 000000, 999999, 0123
-  H      | Hour using a 24-hour clock                                                                                | 00, 23
-  I      | Hour using a 12-hour clock                                                                                | 01, 12
-  j      | Day of the year                                                                                           | 001, 366
-  m      | Month                                                                                                     | 01, 12
-  M      | Minute                                                                                                    | 00, 59
-  p      | "AM" or "PM" (noon is "PM", midnight as "AM")                                                             | AM, PM
-  P      | "am" or "pm" (noon is "pm", midnight as "am")                                                             | am, pm
-  q      | Quarter                                                                                                   | 1, 2, 3, 4
-  s      | Number of seconds since the Epoch, 1970-01-01 00:00:00+0000 (UTC)                                         | 1565888877
-  S      | Second                                                                                                    | 00, 59, 60
-  u      | Day of the week                                                                                           | 1 (Monday), 7 (Sunday)
-  x      | Preferred date (without time) representation                                                              | 2018-10-17
-  X      | Preferred time (without date) representation                                                              | 12:34:56
-  y      | Year as 2-digits                                                                                          | 01, 01, 86, 18
-  Y      | Year                                                                                                      | -0001, 0001, 1986
-  z      | +hhmm/-hhmm time zone offset from UTC (empty string if naive)                                             | +0300, -0530
-  Z      | Time zone abbreviation (empty string if naive)                                                            | CET, BRST
-  %      | Literal "%" character                                                                                     | %
+  Format | Description                                                              | Examples (in ISO)
+  :----- | :----------------------------------------------------------------------- | :------------------------
+  a      | Abbreviated name of day                                                  | Mon
+  A      | Full name of day                                                         | Monday
+  b      | Abbreviated month name                                                   | Jan
+  B      | Full month name                                                          | January
+  c      | Preferred date+time representation                                       | 2018-10-17 12:34:56
+  d      | Day of the month                                                         | 01, 31
+  f      | Microseconds (uses its precision for width and padding)                  | 000000, 999999, 0123
+  H      | Hour using a 24-hour clock                                               | 00, 23
+  I      | Hour using a 12-hour clock                                               | 01, 12
+  j      | Day of the year                                                          | 001, 366
+  m      | Month                                                                    | 01, 12
+  M      | Minute                                                                   | 00, 59
+  p      | "AM" or "PM" (noon is "PM", midnight as "AM")                            | AM, PM
+  P      | "am" or "pm" (noon is "pm", midnight as "am")                            | am, pm
+  q      | Quarter                                                                  | 1, 2, 3, 4
+  s      | Number of seconds since the Epoch, 1970-01-01 00:00:00+0000 (UTC)        | 1565888877
+  S      | Second                                                                   | 00, 59, 60
+  u      | Day of the week                                                          | 1 (Monday), 7 (Sunday)
+  x      | Preferred date (without time) representation                             | 2018-10-17
+  X      | Preferred time (without date) representation                             | 12:34:56
+  y      | Year as 2-digits                                                         | 01, 01, 86, 18
+  Y      | Year                                                                     | -0001, 0001, 1986
+  z      | +hhmm/-hhmm time zone offset from UTC (empty string if naive)            | +0300, -0530
+  Z      | Time zone abbreviation (empty string if naive)                           | CET, BRST
+  %      | Literal "%" character                                                    | %
 
   Any other character will be interpreted as an invalid format and raise an error.
 
+  ### `%f` Microseconds
+
+  `%f` does not support width and padding modifiers.  It will be formatted by truncating
+  the microseconds to the precision of the `microseconds` field of the struct, with a
+  minimum precision of 1.
+
   ## Examples
+
+  Microsecond formatting:
+
+      iex> Calendar.strftime(~U[2019-08-26 13:52:06Z], "%y-%m-%d %H:%M:%S.%f")
+      "19-08-26 13:52:06.0"
+
+      iex> Calendar.strftime(~U[2019-08-26 13:52:06.048Z], "%y-%m-%d %H:%M:%S.%f")
+      "19-08-26 13:52:06.048"
+
+      iex> Calendar.strftime(~U[2019-08-26 13:52:06.048531Z], "%y-%m-%d %H:%M:%S.%f")
+      "19-08-26 13:52:06.048531"
 
   Without user options:
 
