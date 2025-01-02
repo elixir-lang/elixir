@@ -118,7 +118,7 @@ defmodule TypeHelper do
     stack = new_stack(mode)
     expected = Enum.map(patterns, fn _ -> Descr.dynamic() end)
 
-    {_types, context} =
+    {_trees, context} =
       Pattern.of_head(patterns, guards, expected, :default, [], stack, new_context())
 
     Expr.of_expr(body, {Descr.term(), :ok}, stack, context)

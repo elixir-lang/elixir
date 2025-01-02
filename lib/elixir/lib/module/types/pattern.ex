@@ -25,32 +25,44 @@ defmodule Module.Types.Pattern do
      is refined, we restart at step 2.
 
   """
-  def of_head(_patterns, _guards, expected, _tag, _meta, %{mode: :traversal}, context) do
-    {expected, context}
+  def of_head(patterns, _guards, _expected, _tag, _meta, %{mode: :traversal}, context) do
+    term = term()
+    {Enum.map(patterns, &{&1, term}), context}
   end
 
   def of_head(patterns, guards, expected, tag, meta, stack, context) do
     stack = %{stack | meta: meta}
 
-    {_trees, types, context} = of_pattern_args(patterns, expected, tag, stack, context)
+    {trees, context} = of_pattern_args(patterns, expected, tag, stack, context)
     {_, context} = Enum.map_reduce(guards, context, &of_guard(&1, @guard, &1, stack, &2))
-    {types, context}
+    {trees, context}
+  end
+
+  @doc """
+  Computes the domain from the pattern tree and expected types.
+  """
+  def of_domain([{_pattern, tree} | trees], [type | expected], context) do
+    [intersection(of_pattern_tree(tree, context), type) | of_domain(trees, expected, context)]
+  end
+
+  def of_domain([], [], _context) do
+    []
   end
 
   defp of_pattern_args([], [], _tag, _stack, context) do
-    {[], [], context}
+    {[], context}
   end
 
   defp of_pattern_args(patterns, expected, tag, stack, context) do
     context = init_pattern_info(context)
     {trees, context} = of_pattern_args_index(patterns, 0, [], stack, context)
 
-    {types, context} =
+    context =
       of_pattern_recur(expected, tag, stack, context, fn types, changed, context ->
         of_pattern_args_tree(trees, types, changed, 0, [], tag, stack, context)
       end)
 
-    {trees, types, context}
+    {trees, context}
   end
 
   defp of_pattern_args_index([pattern | tail], index, acc, stack, context) do
@@ -105,15 +117,15 @@ defmodule Module.Types.Pattern do
   """
   def of_match(pattern, guards \\ [], expected, expr, tag, stack, context)
 
-  def of_match(_pattern, _guards, expected, _expr, _tag, %{mode: :traversal}, context) do
-    {expected, context}
+  def of_match(_pattern, _guards, _expected, _expr, _tag, %{mode: :traversal}, context) do
+    context
   end
 
   def of_match(pattern, guards, expected, expr, tag, stack, context) do
     context = init_pattern_info(context)
     {tree, context} = of_pattern(pattern, [{:arg, 0, expr}], stack, context)
 
-    {[type], context} =
+    context =
       of_pattern_recur([expected], tag, stack, context, fn [type], [0], context ->
         with {:ok, type, context} <-
                of_pattern_intersect(tree, type, expr, 0, tag, stack, context) do
@@ -122,7 +134,7 @@ defmodule Module.Types.Pattern do
       end)
 
     {_, context} = Enum.map_reduce(guards, context, &of_guard(&1, @guard, &1, stack, &2))
-    {type, context}
+    context
   end
 
   defp all_single_path?(vars, info, index) do
@@ -148,10 +160,10 @@ defmodule Module.Types.Pattern do
           of_pattern_recur(types, unchangeable, vars, info, tag, stack, context, callback)
 
         {:error, context} ->
-          {types, error_vars(vars, context)}
+          error_vars(vars, context)
       end
     catch
-      {types, context} -> {types, error_vars(vars, context)}
+      context -> error_vars(vars, context)
     end
   end
 
@@ -173,12 +185,12 @@ defmodule Module.Types.Pattern do
                     _ ->
                       case Of.refine_var(var, type, expr, stack, context) do
                         {:ok, _type, context} -> {var_changed? or reachable_var?, context}
-                        {:error, _type, context} -> throw({types, context})
+                        {:error, _type, context} -> throw(context)
                       end
                   end
 
                 :error ->
-                  throw({types, badpattern_error(expr, index, tag, stack, context)})
+                  throw(badpattern_error(expr, index, tag, stack, context))
               end
           end)
 
@@ -194,19 +206,19 @@ defmodule Module.Types.Pattern do
 
     case :lists.usort(changed) -- unchangeable do
       [] ->
-        {types, context}
+        context
 
       changed ->
         case callback.(types, changed, context) do
           # A simple structural comparison for optimization
           {:ok, ^types, context} ->
-            {types, context}
+            context
 
           {:ok, types, context} ->
             of_pattern_recur(types, unchangeable, vars, info, tag, stack, context, callback)
 
           {:error, context} ->
-            {types, error_vars(vars, context)}
+            error_vars(vars, context)
         end
     end
   end
@@ -283,36 +295,39 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  defp of_pattern_tree(descr, _context) when is_descr(descr),
+  @doc """
+  Receives the pattern tree and the context and returns a concrete type.
+  """
+  def of_pattern_tree(descr, _context) when is_descr(descr),
     do: descr
 
-  defp of_pattern_tree({:tuple, entries}, context) do
+  def of_pattern_tree({:tuple, entries}, context) do
     tuple(Enum.map(entries, &of_pattern_tree(&1, context)))
   end
 
-  defp of_pattern_tree({:open_map, static, dynamic}, context) do
+  def of_pattern_tree({:open_map, static, dynamic}, context) do
     dynamic = Enum.map(dynamic, fn {key, value} -> {key, of_pattern_tree(value, context)} end)
     open_map(static ++ dynamic)
   end
 
-  defp of_pattern_tree({:closed_map, static, dynamic}, context) do
+  def of_pattern_tree({:closed_map, static, dynamic}, context) do
     dynamic = Enum.map(dynamic, fn {key, value} -> {key, of_pattern_tree(value, context)} end)
     closed_map(static ++ dynamic)
   end
 
-  defp of_pattern_tree({:non_empty_list, [head | tail], suffix}, context) do
+  def of_pattern_tree({:non_empty_list, [head | tail], suffix}, context) do
     tail
     |> Enum.reduce(of_pattern_tree(head, context), &union(of_pattern_tree(&1, context), &2))
     |> non_empty_list(of_pattern_tree(suffix, context))
   end
 
-  defp of_pattern_tree({:intersection, entries}, context) do
+  def of_pattern_tree({:intersection, entries}, context) do
     entries
     |> Enum.map(&of_pattern_tree(&1, context))
     |> Enum.reduce(&intersection/2)
   end
 
-  defp of_pattern_tree({:var, version}, context) do
+  def of_pattern_tree({:var, version}, context) do
     case context do
       %{vars: %{^version => %{type: type}}} -> type
       _ -> term()

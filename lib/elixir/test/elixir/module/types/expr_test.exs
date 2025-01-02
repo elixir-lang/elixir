@@ -1120,6 +1120,20 @@ defmodule Module.Types.ExprTest do
              ) == atom([:ok, :error])
     end
 
+    test "resets branches" do
+      assert typecheck!(
+               [x],
+               (
+                 case :rand.uniform() do
+                   y when y < 0.5 -> x.foo
+                   y when y > 0.5 -> x.bar()
+                 end
+
+                 x
+               )
+             ) == dynamic()
+    end
+
     test "returns unions of all clauses" do
       assert typecheck!(
                [x],
@@ -1217,6 +1231,22 @@ defmodule Module.Types.ExprTest do
              ) == dynamic(atom([:ok, :error, :timeout]))
     end
 
+    test "resets branches" do
+      assert typecheck!(
+               [x, timeout = :infinity],
+               (
+                 receive do
+                   y when y > 0.5 -> x.foo
+                   _ -> x.bar()
+                 after
+                   timeout -> <<^x::integer>> = :crypto.strong_rand_bytes(1)
+                 end
+
+                 x
+               )
+             ) == dynamic()
+    end
+
     test "errors on bad timeout" do
       assert typeerror!(
                [x = :timeout],
@@ -1273,6 +1303,25 @@ defmodule Module.Types.ExprTest do
                  _ -> :else2
                end
              ) == atom([:caught1, :caught2, :rescue, :else1, :else2])
+    end
+
+    test "resets branches (except after)" do
+      assert typecheck!(
+               [x],
+               (
+                 try do
+                   <<^x::float>> = :crypto.strong_rand_bytes(8)
+                 rescue
+                   ArgumentError -> x.foo
+                 catch
+                   _, _ -> x.bar()
+                 after
+                   <<^x::integer>> = :crypto.strong_rand_bytes(8)
+                 end
+
+                 x
+               )
+             ) == dynamic(integer())
     end
 
     test "reports error from clause that will never match" do
@@ -1455,6 +1504,20 @@ defmodule Module.Types.ExprTest do
                     # from: types_test.ex:LINE-7
                     y = false
                 """}
+    end
+
+    test "resets branches" do
+      assert typecheck!(
+               [x],
+               (
+                 cond do
+                   :rand.uniform() > 0.5 -> x.foo
+                   true -> x.bar()
+                 end
+
+                 x
+               )
+             ) == dynamic()
     end
   end
 

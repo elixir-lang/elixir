@@ -48,6 +48,22 @@ defmodule Module.Types.InferTest do
     assert types[{:fun4, 4}] == {:infer, [{args, atom([:ok])}]}
   end
 
+  test "infer types from expressions", config do
+    types =
+      infer config do
+        def fun(x) do
+          x.foo + x.bar
+        end
+      end
+
+    assert types[{:fun, 1}] ==
+             {:infer,
+              [
+                {[dynamic(open_map(foo: term(), bar: term()))],
+                 dynamic(union(integer(), float()))}
+              ]}
+  end
+
   test "infer with Elixir built-in", config do
     types =
       infer config do
