@@ -1231,6 +1231,16 @@ defmodule Module.Types.ExprTest do
              ) == dynamic(atom([:ok, :error, :timeout]))
     end
 
+    test "infers type for timeout" do
+      assert typecheck!(
+               [x],
+               receive do
+               after
+                 x -> x
+               end
+             ) == dynamic(union(integer(), atom([:infinity])))
+    end
+
     test "resets branches" do
       assert typecheck!(
                [x, timeout = :infinity],

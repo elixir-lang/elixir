@@ -360,7 +360,7 @@ defmodule Module.Types.Expr do
         {timeout_type, context} = of_expr(timeout, {@timeout_type, after_expr}, stack, context)
         {body_type, context} = of_expr(body, expected_expr, stack, context)
 
-        if compatible?(timeout_type, @timeout_type) do
+        if integer_type?(timeout_type) or atom_type?(timeout_type, :infinity) do
           {union(body_type, acc), reset_vars(context, original)}
         else
           error = {:badtimeout, timeout_type, timeout, context}
@@ -620,6 +620,8 @@ defmodule Module.Types.Expr do
   defp for_into(into, meta, stack, context) do
     {type, context} = of_expr(into, @expected_expr, stack, context)
 
+    # We use subtype? instead of compatible because we want to handle
+    # only binary/list, even if a dynamic with something else is given.
     if subtype?(type, @into_compile) do
       case {binary_type?(type), empty_list_type?(type)} do
         {false, true} -> {[:list], gradual?(type), context}

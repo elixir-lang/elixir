@@ -177,7 +177,7 @@ defmodule Module.Types.Pattern do
 
               case of_pattern_var(path, actual, true, info, context) do
                 {type, reachable_var?} ->
-                  # If current type is already a subtype, there is nothing to refine.
+                  # Optimization: if current type is already a subtype, there is nothing to refine.
                   with %{^version => %{type: current_type}} <- context.vars,
                        true <- subtype?(current_type, type) do
                     {var_changed?, context}
