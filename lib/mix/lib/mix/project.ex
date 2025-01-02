@@ -917,7 +917,10 @@ defmodule Mix.Project do
     build_path = build_path(config)
 
     on_taken = fn os_pid ->
-      Mix.shell().info("Waiting for lock on the build directory (held by process #{os_pid})")
+      Mix.shell().error([
+        IO.ANSI.reset(),
+        "Waiting for lock on the build directory (held by process #{os_pid})"
+      ])
     end
 
     Mix.Sync.Lock.with_lock(build_path, fun, on_taken: on_taken)
@@ -931,7 +934,10 @@ defmodule Mix.Project do
     deps_path = deps_path(config)
 
     on_taken = fn os_pid ->
-      Mix.shell().info("Waiting for lock on the deps directory (held by process #{os_pid})")
+      Mix.shell().error([
+        IO.ANSI.reset(),
+        "Waiting for lock on the deps directory (held by process #{os_pid})"
+      ])
     end
 
     Mix.Sync.Lock.with_lock(deps_path, fun, on_taken: on_taken)
