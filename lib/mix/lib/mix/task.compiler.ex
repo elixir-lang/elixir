@@ -29,7 +29,7 @@ defmodule Mix.Task.Compiler do
 
   ## Listening to compilation
 
-  When a running a long-lived Mix task you may want to detect compilations
+  When running a long-lived Mix task you may want to detect compilations
   triggered in a separate OS process, for example, to reload the modules.
   In order to do that, the Mix project may configure listeners:
 
