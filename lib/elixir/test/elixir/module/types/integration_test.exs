@@ -244,6 +244,39 @@ defmodule Module.Types.IntegrationTest do
       assert_no_warnings(files)
     end
 
+    test "incompatible default argument" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def ok(x = :ok \\\\ nil) do
+            x
+          end
+        end
+        """
+      }
+
+      warnings = [
+        ~S"""
+            warning: incompatible types given as default arguments to ok/1:
+
+                -nil-
+
+            but expected one of:
+
+                dynamic(:ok)
+
+            typing violation found at:
+            │
+          2 │   def ok(x = :ok \\ nil) do
+            │                  ~
+            │
+            └─ a.ex:2:18: A.ok/0
+        """
+      ]
+
+      assert_warnings(files, warnings)
+    end
+
     test "returns diagnostics with source and file" do
       files = %{
         "a.ex" => """
