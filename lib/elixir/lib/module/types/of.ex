@@ -366,7 +366,7 @@ defmodule Module.Types.Of do
 
         :expr ->
           left = annotate_interpolation(left, right)
-          {actual, context} = Module.Types.Expr.of_expr(left, {type, expr}, stack, context)
+          {actual, context} = Module.Types.Expr.of_expr(left, type, expr, stack, context)
           compatible(actual, type, expr, stack, context)
       end
 
@@ -406,7 +406,7 @@ defmodule Module.Types.Of do
 
   defp specifier_size(:expr, {:size, _, [arg]} = expr, stack, context)
        when not is_integer(arg) do
-    {actual, context} = Module.Types.Expr.of_expr(arg, {integer(), expr}, stack, context)
+    {actual, context} = Module.Types.Expr.of_expr(arg, integer(), expr, stack, context)
     {_, context} = compatible(actual, integer(), expr, stack, context)
     context
   end

@@ -121,7 +121,7 @@ defmodule TypeHelper do
     {_trees, context} =
       Pattern.of_head(patterns, guards, expected, :default, [], stack, new_context())
 
-    Expr.of_expr(body, {Descr.term(), :ok}, stack, context)
+    Expr.of_expr(body, Descr.term(), :ok, stack, context)
   end
 
   defp expand_and_unpack(patterns, guards, body, env) do
