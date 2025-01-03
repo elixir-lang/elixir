@@ -48,8 +48,19 @@ defmodule Registry do
       {:ok, _} = Registry.start_link(keys: :unique, name: MyApp.Registry)
       name = {:via, Registry, {MyApp.Registry, "agent", :hello}}
       {:ok, agent_pid} = Agent.start_link(fn -> 0 end, name: name)
+
       Registry.lookup(MyApp.Registry, "agent")
       #=> [{agent_pid, :hello}]
+
+      name_without_meta = {:via, Registry, {MyApp.Registry, "agent"}}
+      Agent.update(name_without_meta, fn x -> x + 1 end)
+      Agent.get(name_without_meta, & &1)
+      #=> 1
+
+  > #### With *and* without metadata {: .tip}
+  >
+  > When using the version of `:via` tuples with *metadata*, you can still use the version
+  > **without** metadata to look up the process.
 
   To this point, we have been starting `Registry` using `start_link/1`.
   Typically the registry is started as part of a supervision tree though:
