@@ -579,20 +579,6 @@ defmodule Module.Types.DescrTest do
     end
   end
 
-  describe "queries" do
-    test "atom_type?" do
-      assert atom_type?(term(), :foo)
-      assert atom_type?(dynamic(), :foo)
-
-      assert atom_type?(atom([:foo, :bar]), :foo)
-      refute atom_type?(atom([:foo, :bar]), :baz)
-      assert atom_type?(negation(atom([:foo, :bar])), :baz)
-
-      refute atom_type?(union(atom([:foo, :bar]), integer()), :baz)
-      refute atom_type?(dynamic(union(atom([:foo, :bar]), integer())), :baz)
-    end
-  end
-
   describe "projections" do
     test "fun_fetch" do
       assert fun_fetch(term(), 1) == :error

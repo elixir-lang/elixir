@@ -1279,6 +1279,17 @@ defmodule Module.Types.ExprTest do
                  # from: types_test.ex:LINE-5
                  x = :timeout
              """
+
+      # Check for compatibility, not subtyping
+      assert typeerror!(
+               [<<x::integer, y::float>>],
+               receive do
+               after
+                 if(:rand.uniform(), do: x, else: y) -> :ok
+               end
+             ) =~ "expected "
+    after
+      " timeout given to receive to be an integer"
     end
   end
 
@@ -1551,6 +1562,13 @@ defmodule Module.Types.ExprTest do
 
                #{hints(:inferred_bitstring_spec)}
                """
+
+      # Check for compatibility, not subtyping
+      assert typeerror!(
+               [<<x::integer, y::binary>>],
+               for(<<i <- if(:rand.uniform() > 0.5, do: x, else: y)>>, do: i)
+             ) =~
+               "expected the right side of <- in a binary generator to be a binary"
     end
 
     test "infers binary generators" do

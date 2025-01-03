@@ -618,48 +618,28 @@ defmodule Module.Types.Pattern do
   # This function is public as it is invoked from Of.binary/4.
 
   # :atom
-  def of_guard(atom, expected, expr, stack, context) when is_atom(atom) do
-    if atom_type?(expected, atom) do
-      {atom([atom]), context}
-    else
-      {error_type(), Of.incompatible_error(expr, expected, atom([atom]), stack, context)}
-    end
+  def of_guard(atom, _expected, _expr, _stack, context) when is_atom(atom) do
+    {atom([atom]), context}
   end
 
   # 12
-  def of_guard(literal, expected, expr, stack, context) when is_integer(literal) do
-    if integer_type?(expected) do
-      {integer(), context}
-    else
-      {error_type(), Of.incompatible_error(expr, expected, integer(), stack, context)}
-    end
+  def of_guard(literal, _expected, _expr, _stack, context) when is_integer(literal) do
+    {integer(), context}
   end
 
   # 1.2
-  def of_guard(literal, expected, expr, stack, context) when is_float(literal) do
-    if float_type?(expected) do
-      {float(), context}
-    else
-      {error_type(), Of.incompatible_error(expr, expected, float(), stack, context)}
-    end
+  def of_guard(literal, _expected, _expr, _stack, context) when is_float(literal) do
+    {float(), context}
   end
 
   # "..."
-  def of_guard(literal, expected, expr, stack, context) when is_binary(literal) do
-    if binary_type?(expected) do
-      {binary(), context}
-    else
-      {error_type(), Of.incompatible_error(expr, expected, binary(), stack, context)}
-    end
+  def of_guard(literal, _expected, _expr, _stack, context) when is_binary(literal) do
+    {binary(), context}
   end
 
   # []
-  def of_guard([], expected, expr, stack, context) do
-    if empty_list_type?(expected) do
-      {empty_list(), context}
-    else
-      {error_type(), Of.incompatible_error(expr, expected, empty_list(), stack, context)}
-    end
+  def of_guard([], _expected, _expr, _stack, context) do
+    {empty_list(), context}
   end
 
   # [expr, ...]
@@ -691,13 +671,9 @@ defmodule Module.Types.Pattern do
   end
 
   # <<>>
-  def of_guard({:<<>>, _meta, args}, expected, expr, stack, context) do
-    if binary_type?(expected) do
-      context = Of.binary(args, :guard, stack, context)
-      {binary(), context}
-    else
-      {error_type(), Of.incompatible_error(expr, expected, binary(), stack, context)}
-    end
+  def of_guard({:<<>>, _meta, args}, _expected, _expr, stack, context) do
+    context = Of.binary(args, :guard, stack, context)
+    {binary(), context}
   end
 
   # ^var

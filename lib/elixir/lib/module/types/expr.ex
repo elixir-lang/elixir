@@ -360,7 +360,7 @@ defmodule Module.Types.Expr do
         {timeout_type, context} = of_expr(timeout, {@timeout_type, after_expr}, stack, context)
         {body_type, context} = of_expr(body, expected_expr, stack, context)
 
-        if integer_type?(timeout_type) or atom_type?(timeout_type, :infinity) do
+        if compatible?(timeout_type, @timeout_type) do
           {union(body_type, acc), reset_vars(context, original)}
         else
           error = {:badtimeout, timeout_type, timeout, context}
@@ -592,10 +592,9 @@ defmodule Module.Types.Expr do
 
   defp for_clause({:<<>>, _, [{:<-, meta, [left, right]}]} = expr, stack, context) do
     {right_type, context} = of_expr(right, {binary(), expr}, stack, context)
-
     context = Pattern.of_match(left, binary(), expr, :for, stack, context)
 
-    if binary_type?(right_type) do
+    if compatible?(right_type, binary()) do
       context
     else
       error = {:badbinary, right_type, right, context}
