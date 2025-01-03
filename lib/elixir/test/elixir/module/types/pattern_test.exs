@@ -103,6 +103,16 @@ defmodule Module.Types.PatternTest do
              ) == uri_type
     end
 
+    test "refines types" do
+      assert typecheck!(
+               [x, foo = :foo, bar = 123],
+               (
+                 {^foo, ^bar} = x
+                 x
+               )
+             ) == dynamic(tuple([atom([:foo]), integer()]))
+    end
+
     test "reports incompatible types" do
       assert typeerror!([x = {:ok, _}], [_ | _] = x) == ~l"""
              the following pattern will never match:

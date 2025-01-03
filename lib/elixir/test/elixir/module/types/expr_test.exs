@@ -179,11 +179,11 @@ defmodule Module.Types.ExprTest do
       assert typecheck!(
                [x],
                (
-                 x.foo_bar
-                 x.baz_bat
+                 :foo = x.foo_bar
+                 123 = x.baz_bat
                  x
                )
-             ) == dynamic(open_map(foo_bar: term(), baz_bat: term()))
+             ) == dynamic(open_map(foo_bar: atom([:foo]), baz_bat: integer()))
     end
 
     test "undefined function warnings" do

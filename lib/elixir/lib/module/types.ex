@@ -285,7 +285,7 @@ defmodule Module.Types do
               Pattern.of_head(args, guards, expected, {:infer, expected}, meta, stack, context)
 
             {return_type, context} =
-              Expr.of_expr(body, Descr.term(), :ok, stack, context)
+              Expr.of_expr(body, Descr.term(), body, stack, context)
 
             args_types =
               if stack.mode == :traversal do

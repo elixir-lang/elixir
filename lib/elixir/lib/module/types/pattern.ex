@@ -56,9 +56,10 @@ defmodule Module.Types.Pattern do
   defp of_pattern_args(patterns, expected, tag, stack, context) do
     context = init_pattern_info(context)
     {trees, context} = of_pattern_args_index(patterns, 0, [], stack, context)
+    {pattern_info, context} = pop_pattern_info(context)
 
-    context =
-      of_pattern_recur(expected, tag, stack, context, fn types, changed, context ->
+    {_, context} =
+      of_pattern_recur(expected, tag, pattern_info, stack, context, fn types, changed, context ->
         of_pattern_args_tree(trees, types, changed, 0, [], tag, stack, context)
       end)
 
@@ -110,31 +111,51 @@ defmodule Module.Types.Pattern do
   end
 
   @doc """
-  A simplified version of `of_head` used by `=` and `<-`.
-
-  This version tracks the whole expression in tracing,
-  instead of only the pattern.
+  Handles the match operator.
   """
-  def of_match(pattern, guards \\ [], expected, expr, tag, stack, context)
+  def of_match(pattern, expected_fun, expr, stack, context)
 
-  def of_match(_pattern, _guards, _expected, _expr, _tag, %{mode: :traversal}, context) do
+  def of_match(_pattern, expected_fun, _expr, %{mode: :traversal}, context) do
+    expected_fun.(dynamic(), context)
+  end
+
+  def of_match(pattern, expected_fun, expr, stack, context) do
+    context = init_pattern_info(context)
+    {tree, context} = of_pattern(pattern, [{:arg, 0, expr}], stack, context)
+    {pattern_info, context} = pop_pattern_info(context)
+    {expected, context} = expected_fun.(of_pattern_tree(tree, context), context)
+
+    {[type], context} =
+      of_single_pattern_recur(expected, {:match, expected}, tree, pattern_info, expr, stack, context)
+
+    {type, context}
+  end
+
+  @doc """
+  Handles matches in generators.
+  """
+  def of_generator(pattern, guards, expected, tag, expr, stack, context)
+
+  def of_generator(_pattern, _guards, _expected, _tag, _expr, %{mode: :traversal}, context) do
     context
   end
 
-  def of_match(pattern, guards, expected, expr, tag, stack, context) do
+  def of_generator(pattern, guards, expected, tag, expr, stack, context) do
     context = init_pattern_info(context)
     {tree, context} = of_pattern(pattern, [{:arg, 0, expr}], stack, context)
-
-    context =
-      of_pattern_recur([expected], tag, stack, context, fn [type], [0], context ->
-        with {:ok, type, context} <-
-               of_pattern_intersect(tree, type, expr, 0, tag, stack, context) do
-          {:ok, [type], context}
-        end
-      end)
-
+    {pattern_info, context} = pop_pattern_info(context)
+    {_, context} = of_single_pattern_recur(expected, tag, tree, pattern_info, expr, stack, context)
     {_, context} = Enum.map_reduce(guards, context, &of_guard(&1, @guard, &1, stack, &2))
     context
+  end
+
+  defp of_single_pattern_recur(expected, tag, tree, pattern_info, expr, stack, context) do
+    of_pattern_recur([expected], tag, pattern_info, stack, context, fn [type], [0], context ->
+      with {:ok, type, context} <-
+             of_pattern_intersect(tree, type, expr, 0, tag, stack, context) do
+        {:ok, [type], context}
+      end
+    end)
   end
 
   defp all_single_path?(vars, info, index) do
@@ -143,15 +164,13 @@ defmodule Module.Types.Pattern do
     |> Enum.all?(fn version -> match?([_], Map.fetch!(vars, version)) end)
   end
 
-  defp of_pattern_recur(types, tag, stack, context, callback) do
-    %{pattern_info: {vars, info, _counter}} = context
-    context = nilify_pattern_info(context)
+  defp of_pattern_recur(types, tag, pattern_info, stack, context, callback) do
+    {vars, info, _counter} = pattern_info
     changed = :lists.seq(0, length(types) - 1)
 
     # If all variables in a given index have a single path,
     # then there are no changes to propagate
     unchangeable = for index <- changed, all_single_path?(vars, info, index), do: index
-
     vars = Map.to_list(vars)
 
     try do
@@ -160,10 +179,10 @@ defmodule Module.Types.Pattern do
           of_pattern_recur(types, unchangeable, vars, info, tag, stack, context, callback)
 
         {:error, context} ->
-          error_vars(vars, context)
+          {types, error_vars(vars, context)}
       end
     catch
-      context -> error_vars(vars, context)
+      {types, context} -> {types, error_vars(vars, context)}
     end
   end
 
@@ -185,12 +204,12 @@ defmodule Module.Types.Pattern do
                     _ ->
                       case Of.refine_head_var(var, type, expr, stack, context) do
                         {:ok, _type, context} -> {var_changed? or reachable_var?, context}
-                        {:error, _type, context} -> throw(context)
+                        {:error, _type, context} -> throw({types, context})
                       end
                   end
 
                 :error ->
-                  throw(badpattern_error(expr, index, tag, stack, context))
+                  throw({types, badpattern_error(expr, index, tag, stack, context)})
               end
           end)
 
@@ -206,19 +225,19 @@ defmodule Module.Types.Pattern do
 
     case :lists.usort(changed) -- unchangeable do
       [] ->
-        context
+        {types, context}
 
       changed ->
         case callback.(types, changed, context) do
           # A simple structural comparison for optimization
           {:ok, ^types, context} ->
-            context
+            {types, context}
 
           {:ok, types, context} ->
             of_pattern_recur(types, unchangeable, vars, info, tag, stack, context, callback)
 
           {:error, context} ->
-            error_vars(vars, context)
+            {types, error_vars(vars, context)}
         end
     end
   end
@@ -733,8 +752,8 @@ defmodule Module.Types.Pattern do
     %{context | pattern_info: {%{}, %{}, 1}}
   end
 
-  defp nilify_pattern_info(context) do
-    %{context | pattern_info: nil}
+  defp pop_pattern_info(%{pattern_info: pattern_info} = context) do
+    {pattern_info, %{context | pattern_info: nil}}
   end
 
   # $ type tag = head_pattern() or match_pattern()
