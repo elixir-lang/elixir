@@ -124,9 +124,10 @@ defmodule Module.Types.Pattern do
     {tree, context} = of_pattern(pattern, [{:arg, 0, expr}], stack, context)
     {pattern_info, context} = pop_pattern_info(context)
     {expected, context} = expected_fun.(of_pattern_tree(tree, context), context)
+    tag = {:match, expected}
 
     {[type], context} =
-      of_single_pattern_recur(expected, {:match, expected}, tree, pattern_info, expr, stack, context)
+      of_single_pattern_recur(expected, tag, tree, pattern_info, expr, stack, context)
 
     {type, context}
   end
@@ -144,7 +145,10 @@ defmodule Module.Types.Pattern do
     context = init_pattern_info(context)
     {tree, context} = of_pattern(pattern, [{:arg, 0, expr}], stack, context)
     {pattern_info, context} = pop_pattern_info(context)
-    {_, context} = of_single_pattern_recur(expected, tag, tree, pattern_info, expr, stack, context)
+
+    {_, context} =
+      of_single_pattern_recur(expected, tag, tree, pattern_info, expr, stack, context)
+
     {_, context} = Enum.map_reduce(guards, context, &of_guard(&1, @guard, &1, stack, &2))
     context
   end
