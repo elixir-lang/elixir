@@ -94,7 +94,7 @@ defmodule ExUnit.CaptureLog do
 
   """
   @doc since: "1.13.0"
-  @spec with_log(keyword, (-> result)) :: {result, String.t()} when result: any
+  @spec with_log(keyword, (-> result)) :: {result, log :: String.t()} when result: any
   def with_log(opts \\ [], fun) when is_list(opts) do
     opts =
       if opts[:level] == :warn do
