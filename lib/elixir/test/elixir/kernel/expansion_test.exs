@@ -2387,6 +2387,15 @@ defmodule Kernel.ExpansionTest do
                |> clean_bit_modifiers()
     end
 
+    test "invalid match" do
+      assert_compile_error(
+        "a bitstring only accepts binaries, numbers, and variables inside a match",
+        fn ->
+          expand(quote(do: <<%{}>> = foo()))
+        end
+      )
+    end
+
     test "nested match" do
       assert expand(quote(do: <<foo = bar>>)) |> clean_meta([:alignment]) ==
                quote(do: <<foo = bar()::integer>>) |> clean_bit_modifiers()
@@ -2395,16 +2404,6 @@ defmodule Kernel.ExpansionTest do
              |> clean_meta([:alignment]) ==
                quote(do: <<45::integer, <<_::integer, _::binary>> = rest()::binary>>)
                |> clean_bit_modifiers()
-
-      message = ~r"cannot pattern match inside a bitstring that is already in match"
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: <<bar = baz>> = foo()))
-      end)
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: <<?-, <<_, _::binary>> = rest::binary>> = foo()))
-      end)
     end
 
     test "inlines binaries inside interpolation" do

@@ -183,7 +183,7 @@ defmodule Module.Types.Pattern do
                     {var_changed?, context}
                   else
                     _ ->
-                      case Of.refine_var(var, type, expr, stack, context) do
+                      case Of.refine_head_var(var, type, expr, stack, context) do
                         {:ok, _type, context} -> {var_changed? or reachable_var?, context}
                         {:error, _type, context} -> throw(context)
                       end
@@ -337,10 +337,14 @@ defmodule Module.Types.Pattern do
   @doc """
   Function used to assign a type to a variable. Used by %struct{}
   and binary patterns.
+
+  Given those values are actually checked at compile-time,
+  except for the variables, that's the only scenario we need to handle.
   """
+  # TODO: Perhaps merge this with guards
   def of_match_var({:^, _, [var]}, expected, expr, stack, context) do
-    {type, context} = Of.refine_existing_var(var, expected, expr, stack, context)
-    Of.intersect(type, expected, expr, stack, context)
+    {type, context} = Of.refine_body_var(var, expected, expr, stack, context)
+    Of.compatible(type, expected, expr, stack, context)
   end
 
   def of_match_var({:_, _, _}, expected, _expr, _stack, context) do
@@ -348,12 +352,12 @@ defmodule Module.Types.Pattern do
   end
 
   def of_match_var(var, expected, expr, stack, context) when is_var(var) do
-    {_ok?, type, context} = Of.refine_var(var, expected, expr, stack, context)
+    {_ok?, type, context} = Of.refine_head_var(var, expected, expr, stack, context)
     {type, context}
   end
 
-  def of_match_var(ast, expected, expr, stack, context) do
-    of_match(ast, expected, expr, :default, stack, context)
+  def of_match_var(_ast, expected, _expr, _stack, context) do
+    {expected, context}
   end
 
   ## Patterns
@@ -678,9 +682,9 @@ defmodule Module.Types.Pattern do
 
   # ^var
   def of_guard({:^, _meta, [var]}, expected, expr, stack, context) do
-    # This is by definition a variable defined outside of this pattern, so we don't track it.
-    {type, context} = Of.refine_existing_var(var, expected, expr, stack, context)
-    Of.intersect(type, expected, expr, stack, context)
+    # This is used by binary size, which behaves as a mixture of match and guard
+    {type, context} = Of.refine_body_var(var, expected, expr, stack, context)
+    Of.compatible(type, expected, expr, stack, context)
   end
 
   # {...}
@@ -716,7 +720,7 @@ defmodule Module.Types.Pattern do
 
   # var
   def of_guard(var, expected, expr, stack, context) when is_var(var) do
-    Of.intersect(Of.var(var, context), expected, expr, stack, context)
+    Of.compatible(Of.var(var, context), expected, expr, stack, context)
   end
 
   ## Helpers

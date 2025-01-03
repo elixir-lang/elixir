@@ -941,7 +941,7 @@ defmodule Kernel.ErrorsTest do
 
   test "failed remote call stacktrace includes file/line info" do
     try do
-      bad_remote_call(1)
+      bad_remote_call(Process.get(:unused, 1))
     rescue
       ArgumentError ->
         assert [

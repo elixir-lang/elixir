@@ -42,13 +42,13 @@ defmodule Module.Types.Of do
   end
 
   @doc """
-  Refines a variable that already exists.
+  Refines a variable that already exists (in a body).
 
   This only happens if the var contains a gradual type,
   or if we are doing a guard analysis or occurrence typing.
   Returns `true` if there was a refinement, `false` otherwise.
   """
-  def refine_existing_var({_, meta, _}, type, expr, stack, context) do
+  def refine_body_var({_, meta, _}, type, expr, stack, context) do
     version = Keyword.fetch!(meta, :version)
     %{vars: %{^version => %{type: old_type, off_traces: off_traces} = data} = vars} = context
 
@@ -76,8 +76,12 @@ defmodule Module.Types.Of do
 
   @doc """
   Refines the type of a variable.
+
+  Since this happens in a head, we use intersection
+  because we want to refine types. Otherwise we should
+  use compatibility.
   """
-  def refine_var(var, type, expr, formatter \\ :default, stack, context) do
+  def refine_head_var(var, type, expr, formatter \\ :default, stack, context) do
     {var_name, meta, var_context} = var
     version = Keyword.fetch!(meta, :version)
 
@@ -96,7 +100,7 @@ defmodule Module.Types.Of do
         # We need to return error otherwise it leads to cascading errors
         if empty?(new_type) do
           {:error, error_type(),
-           error({:refine_var, old_type, type, var, context}, meta, stack, context)}
+           error({:refine_head_var, old_type, type, var, context}, meta, stack, context)}
         else
           {:ok, new_type, context}
         end
@@ -357,12 +361,13 @@ defmodule Module.Types.Of do
           Module.Types.Pattern.of_match_var(left, type, expr, stack, context)
 
         :guard ->
-          Module.Types.Pattern.of_guard(left, type, expr, stack, context)
+          {actual, context} = Module.Types.Pattern.of_guard(left, type, expr, stack, context)
+          compatible(actual, type, expr, stack, context)
 
         :expr ->
           left = annotate_interpolation(left, right)
           {actual, context} = Module.Types.Expr.of_expr(left, {type, expr}, stack, context)
-          intersect(actual, type, expr, stack, context)
+          compatible(actual, type, expr, stack, context)
       end
 
     specifier_size(kind, right, stack, context)
@@ -402,13 +407,14 @@ defmodule Module.Types.Of do
   defp specifier_size(:expr, {:size, _, [arg]} = expr, stack, context)
        when not is_integer(arg) do
     {actual, context} = Module.Types.Expr.of_expr(arg, {integer(), expr}, stack, context)
-    {_, context} = intersect(actual, integer(), expr, stack, context)
+    {_, context} = compatible(actual, integer(), expr, stack, context)
     context
   end
 
   defp specifier_size(_pattern_or_guard, {:size, _, [arg]} = expr, stack, context)
        when not is_integer(arg) do
-    {_type, context} = Module.Types.Pattern.of_guard(arg, integer(), expr, stack, context)
+    {actual, context} = Module.Types.Pattern.of_guard(arg, integer(), expr, stack, context)
+    {_, context} = compatible(actual, integer(), expr, stack, context)
     context
   end
 
@@ -437,15 +443,14 @@ defmodule Module.Types.Of do
   ## Warning helpers
 
   @doc """
-  Intersects two types and emit an incompatible error if empty.
+  Checks if two types are compatible and emit an incompatible error if not.
   """
-  def intersect(actual, expected, expr, stack, context) do
-    type = intersection(actual, expected)
-
-    if empty?(type) do
-      {error_type(), incompatible_error(expr, expected, actual, stack, context)}
+  # TODO: Consider getting rid of this and emitting precise errors instead.
+  def compatible(actual, expected, expr, stack, context) do
+    if compatible?(actual, expected) do
+      {actual, context}
     else
-      {type, context}
+      {error_type(), incompatible_error(expr, expected, actual, stack, context)}
     end
   end
 
@@ -468,7 +473,7 @@ defmodule Module.Types.Of do
 
   ## Warning formatting
 
-  def format_diagnostic({:refine_var, old_type, new_type, var, context}) do
+  def format_diagnostic({:refine_head_var, old_type, new_type, var, context}) do
     traces = collect_traces(var, context)
 
     %{

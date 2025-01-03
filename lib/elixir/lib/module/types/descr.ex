@@ -1885,6 +1885,7 @@ defmodule Module.Types.Descr do
         end
 
       :open ->
+        fields = Map.to_list(fields)
         {:%{}, [], [{:..., [], nil} | map_fields_to_quoted(tag, Enum.sort(fields), opts)]}
     end
   end
