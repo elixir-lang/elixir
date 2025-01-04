@@ -68,7 +68,7 @@ defmodule Module.Types.IntegrationTest do
 
       assert [
                {{:c, 0}, %{}},
-               {{:e, 0}, %{deprecated: "oops", sig: {:infer, _}}}
+               {{:e, 0}, %{deprecated: "oops", sig: {:infer, _, _}}}
              ] = read_chunk(modules[A]).exports
 
       assert read_chunk(modules[B]).exports == [
@@ -119,7 +119,7 @@ defmodule Module.Types.IntegrationTest do
       refute stderr =~ "this_wont_warn"
 
       itself_arg = fn mod ->
-        {_, %{sig: {:infer, [{[value], value}]}}} =
+        {_, %{sig: {:infer, nil, [{[value], value}]}}} =
           List.keyfind(read_chunk(modules[mod]).exports, {:itself, 1}, 0)
 
         value

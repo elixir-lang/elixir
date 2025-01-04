@@ -333,4 +333,19 @@ defmodule Module.Types.Helpers do
   The type to return when there is an error.
   """
   def error_type, do: Module.Types.Descr.dynamic()
+
+  ## Enum helpers
+
+  def zip_map_reduce(args1, args2, acc, fun) do
+    zip_map_reduce(args1, args2, [], acc, fun)
+  end
+
+  defp zip_map_reduce([arg1 | args1], [arg2 | args2], list, acc, fun) do
+    {item, acc} = fun.(arg1, arg2, acc)
+    zip_map_reduce(args1, args2, [item | list], acc, fun)
+  end
+
+  defp zip_map_reduce([], [], list, acc, _fun) do
+    {Enum.reverse(list), acc}
+  end
 end

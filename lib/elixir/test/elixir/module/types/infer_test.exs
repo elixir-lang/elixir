@@ -42,10 +42,10 @@ defmodule Module.Types.InferTest do
       dynamic(atom([Point]))
     ]
 
-    assert types[{:fun1, 4}] == {:infer, [{args, atom([:ok])}]}
-    assert types[{:fun2, 4}] == {:infer, [{args, atom([:ok])}]}
-    assert types[{:fun3, 4}] == {:infer, [{args, atom([:ok])}]}
-    assert types[{:fun4, 4}] == {:infer, [{args, atom([:ok])}]}
+    assert types[{:fun1, 4}] == {:infer, nil, [{args, atom([:ok])}]}
+    assert types[{:fun2, 4}] == {:infer, nil, [{args, atom([:ok])}]}
+    assert types[{:fun3, 4}] == {:infer, nil, [{args, atom([:ok])}]}
+    assert types[{:fun4, 4}] == {:infer, nil, [{args, atom([:ok])}]}
   end
 
   test "infer types from expressions", config do
@@ -56,12 +56,10 @@ defmodule Module.Types.InferTest do
         end
       end
 
+    number = union(integer(), float())
+
     assert types[{:fun, 1}] ==
-             {:infer,
-              [
-                {[dynamic(open_map(foo: term(), bar: term()))],
-                 dynamic(union(integer(), float()))}
-              ]}
+             {:infer, nil, [{[dynamic(open_map(foo: number, bar: number))], dynamic(number)}]}
   end
 
   test "infer with Elixir built-in", config do
@@ -71,7 +69,8 @@ defmodule Module.Types.InferTest do
       end
 
     assert types[{:parse, 1}] ==
-             {:infer, [{[dynamic()], dynamic(union(atom([:error]), tuple([integer(), term()])))}]}
+             {:infer, nil,
+              [{[dynamic()], dynamic(union(atom([:error]), tuple([integer(), term()])))}]}
   end
 
   test "merges patterns", config do
@@ -85,7 +84,7 @@ defmodule Module.Types.InferTest do
       end
 
     assert types[{:fun, 1}] ==
-             {:infer,
+             {:infer, [dynamic(union(atom([:ok, :error]), binary()))],
               [
                 {[dynamic(atom([:ok]))], atom([:one])},
                 {[dynamic(binary())], atom([:two, :three, :four])},
@@ -101,7 +100,9 @@ defmodule Module.Types.InferTest do
         defp priv(:error), do: :error
       end
 
-    assert types[{:pub, 1}] == {:infer, [{[dynamic()], dynamic(atom([:ok, :error]))}]}
+    assert types[{:pub, 1}] ==
+             {:infer, nil, [{[dynamic(atom([:ok, :error]))], dynamic(atom([:ok, :error]))}]}
+
     assert types[{:priv, 1}] == nil
   end
 
@@ -114,7 +115,8 @@ defmodule Module.Types.InferTest do
         def pub(x), do: super(x)
       end
 
-    assert types[{:pub, 1}] == {:infer, [{[dynamic()], dynamic(atom([:ok, :error]))}]}
+    assert types[{:pub, 1}] ==
+             {:infer, nil, [{[dynamic(atom([:ok, :error]))], dynamic(atom([:ok, :error]))}]}
   end
 
   test "infers return types even with loops", config do
@@ -123,6 +125,6 @@ defmodule Module.Types.InferTest do
         def pub(x), do: pub(x)
       end
 
-    assert types[{:pub, 1}] == {:infer, [{[dynamic()], dynamic()}]}
+    assert types[{:pub, 1}] == {:infer, nil, [{[dynamic()], dynamic()}]}
   end
 end

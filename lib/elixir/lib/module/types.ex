@@ -308,7 +308,18 @@ defmodule Module.Types do
           end
       end)
 
-    inferred = {:infer, Enum.reverse(clauses_types)}
+    domain =
+      case clauses_types do
+        [_] ->
+          nil
+
+        _ ->
+          clauses_types
+          |> Enum.map(fn {args, _} -> args end)
+          |> Enum.zip_with(fn types -> Enum.reduce(types, &Descr.union/2) end)
+      end
+
+    inferred = {:infer, domain, Enum.reverse(clauses_types)}
     {inferred, mapping, restore_context(clauses_context, context)}
   end
 

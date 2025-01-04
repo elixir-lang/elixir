@@ -572,14 +572,14 @@ defmodule Module.Types.Descr do
     cond do
       empty?(left_static) ->
         dynamic = intersection_static(unfold(left_dynamic), unfold(right_dynamic))
-        if empty?(dynamic), do: :error, else: {:ok, dynamic(dynamic)}
+        if empty?(dynamic), do: {:error, left}, else: {:ok, dynamic(dynamic)}
 
       subtype_static?(left_static, right_dynamic) ->
         dynamic = intersection_static(unfold(left_dynamic), unfold(right_dynamic))
         {:ok, union(dynamic(dynamic), left_static)}
 
       true ->
-        :error
+        {:error, left}
     end
   end
 

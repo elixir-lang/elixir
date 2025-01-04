@@ -261,193 +261,217 @@ defmodule Module.Types.Apply do
   defp signature(_mod, _fun, _arity), do: :none
 
   @doc """
-  Applies a function in unknown modules.
+  Returns the domain of an unknown module.
 
   Used only by info functions.
   """
-  def remote(_name, _args_types, _expr, %{mode: :traversal}, context) do
-    {dynamic(), context}
+  def remote_domain(_fun, args, _expected, %{mode: :traversal}) do
+    {:none, Enum.map(args, fn _ -> term() end)}
   end
 
-  def remote(name, args_types, expr, stack, context) do
-    arity = length(args_types)
+  def remote_domain(fun, args, _expected, _stack) do
+    arity = length(args)
 
-    case signature(name, arity) do
-      :none -> {dynamic(), context}
-      info -> apply_remote(nil, name, info, args_types, expr, stack, context)
+    case signature(fun, arity) do
+      :none -> {:none, Enum.map(args, fn _ -> term() end)}
+      {:strong, domain, clauses} = info -> {info, domain(domain, clauses)}
     end
   end
 
   @doc """
-  Applies a function in a given module.
+  Returns the domain of a remote function with info to apply it.
   """
-  def remote(_module, _fun, _args, _args_types, _expr, %{mode: :traversal}, context) do
-    {dynamic(), context}
+  def remote_domain(_module, _fun, args, _expected, _meta, %{mode: :traversal}, context) do
+    {:none, Enum.map(args, fn _ -> term() end), context}
   end
 
-  def remote(:erlang, :element, [index, _], [_, tuple], expr, stack, context)
+  def remote_domain(:erlang, :element, [index, _], expected, _meta, _stack, context)
       when is_integer(index) do
-    case tuple_fetch(tuple, index - 1) do
-      {_optional?, value_type} ->
-        {value_type, context}
-
-      :badtuple ->
-        {error_type(),
-         badremote_error(:erlang, :element, expr, [integer(), tuple], stack, context)}
-
-      :badindex ->
-        mfac = mfac(expr, :erlang, :element, 2)
-
-        {error_type(),
-         error({:badindex, mfac, expr, tuple, index - 1, context}, elem(expr, 1), stack, context)}
-    end
+    tuple = open_tuple(List.duplicate(term(), max(index - 1, 0)) ++ [expected])
+    {{:element, index}, [integer(), tuple], context}
   end
 
-  def remote(:erlang, :insert_element, [index, _, _], [_, tuple, value], expr, stack, context)
+  def remote_domain(:erlang, :insert_element, [index, _, _], _expected, _meta, _stack, context)
       when is_integer(index) do
-    case tuple_insert_at(tuple, index - 1, value) do
-      value_type when is_descr(value_type) ->
-        {value_type, context}
-
-      :badtuple ->
-        args_types = [integer(), tuple, value]
-
-        {error_type(),
-         badremote_error(:erlang, :insert_element, expr, args_types, stack, context)}
-
-      :badindex ->
-        mfac = mfac(expr, :erlang, :insert_element, 3)
-
-        {error_type(),
-         error({:badindex, mfac, expr, tuple, index - 2, context}, elem(expr, 1), stack, context)}
-    end
+    tuple = open_tuple(List.duplicate(term(), max(index - 1, 0)))
+    {{:insert_element, index}, [integer(), tuple, term()], context}
   end
 
-  def remote(:erlang, :delete_element, [index, _], [_, tuple], expr, stack, context)
+  def remote_domain(:erlang, :delete_element, [index, _], _expected, _meta, _stack, context)
       when is_integer(index) do
-    case tuple_delete_at(tuple, index - 1) do
-      value_type when is_descr(value_type) ->
-        {value_type, context}
-
-      :badtuple ->
-        args_types = [integer(), tuple]
-
-        {error_type(),
-         badremote_error(:erlang, :delete_element, expr, args_types, stack, context)}
-
-      :badindex ->
-        mfac = mfac(expr, :erlang, :delete_element, 2)
-
-        {error_type(),
-         error({:badindex, mfac, expr, tuple, index - 1, context}, elem(expr, 1), stack, context)}
-    end
+    tuple = open_tuple(List.duplicate(term(), max(index, 1)))
+    {{:delete_element, index}, [integer(), tuple], context}
   end
 
-  def remote(:erlang, :make_tuple, [size, _], [_, elem], _expr, _stack, context)
+  def remote_domain(:erlang, :make_tuple, [size, _elem], _expected, _meta, _stack, context)
       when is_integer(size) and size >= 0 do
-    {tuple(List.duplicate(elem, size)), context}
+    {{:make_tuple, size}, [integer(), term()], context}
   end
 
-  def remote(:erlang, :hd, _args, [list], expr, stack, context) do
-    case list_hd(list) do
-      {_, value_type} ->
-        {value_type, context}
-
-      :badnonemptylist ->
-        {error_type(), badremote_error(:erlang, :hd, expr, [list], stack, context)}
-    end
+  def remote_domain(:erlang, :hd, [_list], expected, _meta, _stack, context) do
+    {:hd, [non_empty_list(expected, term())], context}
   end
 
-  def remote(:erlang, :tl, _args, [list], expr, stack, context) do
-    case list_tl(list) do
-      {_, value_type} ->
-        {value_type, context}
-
-      :badnonemptylist ->
-        {error_type(), badremote_error(:erlang, :tl, expr, [list], stack, context)}
-    end
+  def remote_domain(:erlang, :tl, [_list], _expected, _meta, _stack, context) do
+    {:tl, [non_empty_list(term(), term())], context}
   end
 
-  def remote(:erlang, name, _args, [left, right], expr, stack, context)
+  def remote_domain(:erlang, name, [_left, _right], _expected, _meta, stack, context)
       when name in [:>=, :"=<", :>, :<, :min, :max] do
-    context =
-      cond do
-        stack.mode == :infer ->
-          context
-
-        match?({false, _}, map_fetch(left, :__struct__)) or
-            match?({false, _}, map_fetch(right, :__struct__)) ->
-          warning = {:struct_comparison, expr, name, left, right, context}
-          warn(__MODULE__, warning, elem(expr, 1), stack, context)
-
-        number_type?(left) and number_type?(right) ->
-          context
-
-        disjoint?(left, right) ->
-          warning = {:mismatched_comparison, expr, name, left, right, context}
-          warn(__MODULE__, warning, elem(expr, 1), stack, context)
-
-        true ->
-          context
-      end
-
-    if name in [:min, :max] do
-      {union(left, right), context}
-    else
-      {return(boolean(), [left, right], stack), context}
-    end
+    skip? = stack.mode == :infer
+    {{:ordered_compare, name, skip?}, [term(), term()], context}
   end
 
-  def remote(:erlang, name, args, [left, right] = args_types, expr, stack, context)
+  def remote_domain(:erlang, name, [_left, _right] = args, _expected, _meta, stack, context)
       when name in [:==, :"/=", :"=:=", :"=/="] do
-    context =
-      cond do
-        # We ignore quoted literals as they most likely come from generated code.
-        stack.mode == :infer or Macro.quoted_literal?(args) ->
-          context
-
-        name in [:==, :"/="] and number_type?(left) and number_type?(right) ->
-          context
-
-        disjoint?(left, right) ->
-          warning = {:mismatched_comparison, expr, name, left, right, context}
-          warn(__MODULE__, warning, elem(expr, 1), stack, context)
-
-        true ->
-          context
-      end
-
-    {return(boolean(), args_types, stack), context}
+    skip? = stack.mode == :infer or Macro.quoted_literal?(args)
+    {{:compare, name, skip?}, [term(), term()], context}
   end
 
-  def remote(mod, fun, args, args_types, expr, stack, context) do
-    arity = length(args_types)
+  def remote_domain(mod, fun, args, expected, meta, stack, context) do
+    arity = length(args)
 
     case :elixir_rewrite.inline(mod, fun, arity) do
       {new_mod, new_fun} ->
-        expr = inline_meta(expr, mod, fun)
-        remote(new_mod, new_fun, args, args_types, expr, stack, context)
+        remote_domain(new_mod, new_fun, args, expected, meta, stack, context)
 
       false ->
-        {info, context} = signature(mod, fun, arity, elem(expr, 1), stack, context)
-        apply_remote(mod, fun, info, args_types, expr, stack, context)
+        {info, context} = signature(mod, fun, arity, meta, stack, context)
+
+        case info do
+          {type, domain, clauses} ->
+            domain = domain(domain, clauses)
+            {{type, domain, clauses}, domain, context}
+
+          :none ->
+            {:none, List.duplicate(term(), arity), context}
+        end
     end
   end
 
-  defp apply_remote(mod, fun, info, args_types, expr, stack, context) do
-    case apply_signature(info, args_types, stack) do
-      {:ok, _indexes, type} ->
+  @doc """
+  Applies a previously collected domain from `remote_domain/7`.
+  """
+  def remote_apply(info, mod, fun, args_types, expr, stack, context) do
+    case remote_apply(info, args_types, stack) do
+      {:ok, type} ->
         {type, context}
 
-      {:error, domain, clauses} ->
+      {:error, error} ->
         mfac = mfac(expr, mod, fun, length(args_types))
-        error = {:badremote, mfac, expr, args_types, domain, clauses, context}
+        error = {error, args_types, mfac, expr, context}
         {error_type(), error(error, elem(expr, 1), stack, context)}
     end
   end
 
-  defp inline_meta({node, meta, args}, mod, fun) do
-    {node, [inline: {mod, fun}] ++ meta, args}
+  defp remote_apply(:none, _args_types, _stack) do
+    {:ok, dynamic()}
+  end
+
+  defp remote_apply({:infer, domain, clauses}, args_types, _stack) do
+    case apply_infer(domain, clauses, args_types) do
+      {_used, type} -> {:ok, type}
+      {:error, domain, clauses} -> {:error, {:badremote, domain, clauses}}
+    end
+  end
+
+  defp remote_apply({:strong, domain, clauses}, args_types, stack) do
+    case apply_strong(domain, clauses, args_types, stack) do
+      {_used, type} -> {:ok, type}
+      {:error, domain, clauses} -> {:error, {:badremote, domain, clauses}}
+    end
+  end
+
+  defp remote_apply({:element, index}, [_index, tuple], _stack) do
+    case tuple_fetch(tuple, index - 1) do
+      {_optional?, value_type} -> {:ok, value_type}
+      :badtuple -> {:error, badremote(:erlang, :element, 2)}
+      :badindex -> {:error, {:badindex, index, tuple}}
+    end
+  end
+
+  defp remote_apply({:insert_element, index}, [_index, tuple, value], _stack) do
+    case tuple_insert_at(tuple, index - 1, value) do
+      value_type when is_descr(value_type) -> {:ok, value_type}
+      :badtuple -> {:error, badremote(:erlang, :insert_element, 3)}
+      :badindex -> {:error, {:badindex, index - 1, tuple}}
+    end
+  end
+
+  defp remote_apply({:delete_element, index}, [_index, tuple], _stack) do
+    case tuple_delete_at(tuple, index - 1) do
+      value_type when is_descr(value_type) -> {:ok, value_type}
+      :badtuple -> {:error, badremote(:erlang, :delete_element, 2)}
+      :badindex -> {:error, {:badindex, index, tuple}}
+    end
+  end
+
+  defp remote_apply({:make_tuple, size}, [_size, elem], _stack) do
+    {:ok, tuple(List.duplicate(elem, size))}
+  end
+
+  defp remote_apply(:hd, [list], _stack) do
+    case list_hd(list) do
+      {_, value_type} -> {:ok, value_type}
+      :badnonemptylist -> {:error, badremote(:erlang, :hd, 1)}
+    end
+  end
+
+  defp remote_apply(:tl, [list], _stack) do
+    case list_tl(list) do
+      {_, value_type} -> {:ok, value_type}
+      :badnonemptylist -> {:error, badremote(:erlang, :tl, 1)}
+    end
+  end
+
+  defp remote_apply({:ordered_compare, name, skip?}, [left, right], stack) do
+    result =
+      if name in [:min, :max] do
+        union(left, right)
+      else
+        return(boolean(), [left, right], stack)
+      end
+
+    cond do
+      skip? ->
+        {:ok, result}
+
+      match?({false, _}, map_fetch(left, :__struct__)) or
+          match?({false, _}, map_fetch(right, :__struct__)) ->
+        {:error, :struct_comparison}
+
+      number_type?(left) and number_type?(right) ->
+        {:ok, result}
+
+      disjoint?(left, right) ->
+        {:error, :mismatched_comparison}
+
+      true ->
+        {:ok, result}
+    end
+  end
+
+  defp remote_apply({:compare, name, skip?}, [left, right], stack) do
+    result = return(boolean(), [left, right], stack)
+
+    cond do
+      skip? ->
+        {:ok, result}
+
+      name in [:==, :"/="] and number_type?(left) and number_type?(right) ->
+        {:ok, result}
+
+      disjoint?(left, right) ->
+        {:error, :mismatched_comparison}
+
+      true ->
+        {:ok, result}
+    end
+  end
+
+  defp badremote(mod, fun, arity) do
+    {_, domain, clauses} = signature(mod, fun, arity)
+    {:badremote, domain, clauses}
   end
 
   @doc """
@@ -478,7 +502,7 @@ defmodule Module.Types.Apply do
 
     * `:none` - no typing information found.
 
-    * `{:infer, clauses}` - clauses from inferences. You must check all
+    * `{:infer, domain or nil, clauses}` - clauses from inferences. You must check all
       all clauses and return the union between them. They are dynamic
       and they can only be converted into arrows by computing the union
       of all arguments.
@@ -604,48 +628,63 @@ defmodule Module.Types.Apply do
 
   ## Local
 
-  @doc """
-  Deal with local functions.
-  """
-  def local(fun, args_types, {_, meta, _} = expr, stack, context) do
-    fun_arity = {fun, length(args_types)}
+  def local_domain(fun, args, meta, stack, context) do
+    arity = length(args)
 
-    case stack.local_handler.(meta, fun_arity, stack, context) do
+    case stack.local_handler.(meta, {fun, arity}, stack, context) do
       false ->
-        {dynamic(), context}
-
-      {_kind, _info, context} when stack.mode == :traversal ->
-        {dynamic(), context}
+        {{false, :none}, List.duplicate(term(), arity), context}
 
       {kind, info, context} ->
-        case apply_signature(info, args_types, stack) do
-          {:ok, indexes, type} ->
-            context =
-              if stack.mode != :infer and kind == :defp do
-                update_in(context.local_used[fun_arity], fn current ->
-                  if info == :none do
-                    []
-                  else
-                    (current || used_from_clauses(info)) -- indexes
-                  end
-                end)
-              else
-                context
-              end
+        update_used? = stack.mode not in [:traversal, :infer] and kind == :defp
 
-            {type, context}
+        case info do
+          _ when stack.mode == :traversal or info == :none ->
+            {{update_used?, :none}, List.duplicate(term(), arity), context}
 
-          {:error, domain, clauses} ->
-            error = {:badlocal, expr, args_types, domain, clauses, context}
-            {error_type(), error(error, with_span(meta, fun), stack, context)}
+          {_strong_or_infer, domain, clauses} ->
+            {{update_used?, info}, domain(domain, clauses), context}
         end
     end
   end
 
-  defp used_from_clauses({:infer, clauses}),
-    do: Enum.with_index(clauses, fn _, i -> i end)
+  def local_apply({update_used?, info}, fun, args_types, expr, stack, context) do
+    case local_apply(info, args_types, stack) do
+      {indexes, type} ->
+        context =
+          if update_used? do
+            update_in(context.local_used[{fun, length(args_types)}], fn current ->
+              if info == :none do
+                []
+              else
+                (current || used_from_clauses(info)) -- indexes
+              end
+            end)
+          else
+            context
+          end
 
-  defp used_from_clauses({:strong, _, clauses}),
+        {type, context}
+
+      {:error, domain, clauses} ->
+        error = {:badlocal, domain, clauses, args_types, expr, context}
+        {error_type(), error(error, with_span(elem(expr, 1), fun), stack, context)}
+    end
+  end
+
+  defp local_apply(:none, _args_types, _stack) do
+    {[], dynamic()}
+  end
+
+  defp local_apply({:infer, domain, clauses}, args_types, _stack) do
+    apply_infer(domain, clauses, args_types)
+  end
+
+  defp local_apply({:strong, domain, clauses}, args_types, stack) do
+    apply_strong(domain, clauses, args_types, stack)
+  end
+
+  defp used_from_clauses({_strong_or_infer, _domain, clauses}),
     do: Enum.with_index(clauses, fn _, i -> i end)
 
   @doc """
@@ -681,44 +720,38 @@ defmodule Module.Types.Apply do
     end
   end
 
-  defp apply_signature(:none, _args_types, _stack) do
-    {:ok, [], dynamic()}
-  end
+  defp domain(nil, [{domain, _}]), do: domain
+  defp domain(domain, _clauses), do: domain
 
-  defp apply_signature({:strong, nil, [{expected, return}] = clauses}, args_types, stack) do
-    # Optimize single clauses as the domain is the single clause args.
-    case zip_compatible?(args_types, expected) do
-      true -> {:ok, [0], return(return, args_types, stack)}
-      false -> {:error, expected, clauses}
+  defp apply_infer(domain, clauses, args_types) do
+    case apply_clauses(clauses, args_types, 0, 0, [], []) do
+      {0, [], []} ->
+        {:error, domain, clauses}
+
+      {count, used, _returns} when count > @max_clauses ->
+        {used, dynamic()}
+
+      {_count, used, returns} ->
+        {used, returns |> Enum.reduce(&union/2) |> dynamic()}
     end
   end
 
-  defp apply_signature({:strong, domain, clauses}, args_types, stack) do
+  defp apply_strong(domain, [{expected, return}] = clauses, args_types, stack) do
+    # Optimize single clauses as the domain is the single clause args.
+    case zip_compatible?(args_types, expected) do
+      true -> {[0], return(return, args_types, stack)}
+      false -> {:error, domain, clauses}
+    end
+  end
+
+  defp apply_strong(domain, clauses, args_types, stack) do
     # If the type is only gradual, the compatibility check is the same
     # as a non disjoint check. So we skip checking compatibility twice.
     with true <- zip_compatible_or_only_gradual?(args_types, domain),
          {count, used, returns} when count > 0 <- apply_clauses(clauses, args_types, 0, 0, [], []) do
-      {:ok, used, returns |> Enum.reduce(&union/2) |> return(args_types, stack)}
+      {used, returns |> Enum.reduce(&union/2) |> return(args_types, stack)}
     else
       _ -> {:error, domain, clauses}
-    end
-  end
-
-  defp apply_signature({:infer, clauses}, args_types, _stack) do
-    case apply_clauses(clauses, args_types, 0, 0, [], []) do
-      {0, [], []} ->
-        domain =
-          clauses
-          |> Enum.map(fn {args, _} -> args end)
-          |> Enum.zip_with(fn types -> Enum.reduce(types, &union/2) end)
-
-        {:error, domain, clauses}
-
-      {count, used, _returns} when count > @max_clauses ->
-        {:ok, used, dynamic()}
-
-      {_count, used, returns} ->
-        {:ok, used, returns |> Enum.reduce(&union/2) |> dynamic()}
     end
   end
 
@@ -759,41 +792,10 @@ defmodule Module.Types.Apply do
     error(__MODULE__, warning, meta, stack, context)
   end
 
-  defp badremote_error(mod, fun, {_, meta, _} = expr, args_types, stack, context) do
-    arity = length(args_types)
-    mfac = mfac(expr, mod, fun, arity)
-    {_type, domain, [{args, _} | _] = clauses} = signature(mod, fun, arity)
-    domain = domain || args
-    tuple = {:badremote, mfac, expr, args_types, domain, clauses, context}
-    error(tuple, meta, stack, context)
-  end
-
   ## Diagnostics
 
-  def format_diagnostic({:badindex, mfac, expr, type, index, context}) do
-    traces = collect_traces(expr, context)
-    {mod, fun, arity, _converter} = mfac
-    mfa = Exception.format_mfa(mod, fun, arity)
-
-    %{
-      details: %{typing_traces: traces},
-      message:
-        IO.iodata_to_binary([
-          """
-          expected a tuple with at least #{pluralize(index + 1, "element", "elements")} in #{mfa}:
-
-              #{expr_to_string(expr) |> indent(4)}
-
-          the given type does not have the given index:
-
-              #{to_quoted_string(type) |> indent(4)}
-          """,
-          format_traces(traces)
-        ])
-    }
-  end
-
-  def format_diagnostic({:badlocal, expr, args_types, domain, clauses, context}) do
+  def format_diagnostic({:badlocal, domain, clauses, args_types, expr, context}) do
+    domain = domain(domain, clauses)
     traces = collect_traces(expr, context)
     converter = &Function.identity/1
     {fun, _, _} = expr
@@ -825,7 +827,31 @@ defmodule Module.Types.Apply do
     }
   end
 
-  def format_diagnostic({:badremote, mfac, expr, args_types, domain, clauses, context}) do
+  def format_diagnostic({{:badindex, index, type}, _args_types, mfac, expr, context}) do
+    traces = collect_traces(expr, context)
+    {mod, fun, arity, _converter} = mfac
+    mfa = Exception.format_mfa(mod, fun, arity)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          expected a tuple with at least #{pluralize(index, "element", "elements")} in #{mfa}:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          the given type does not have the given index:
+
+              #{to_quoted_string(type) |> indent(4)}
+          """,
+          format_traces(traces)
+        ])
+    }
+  end
+
+  def format_diagnostic({{:badremote, domain, clauses}, args_types, mfac, expr, context}) do
+    domain = domain(domain, clauses)
     {mod, fun, arity, converter} = mfac
     meta = elem(expr, 1)
 
@@ -911,7 +937,8 @@ defmodule Module.Types.Apply do
     }
   end
 
-  def format_diagnostic({:mismatched_comparison, expr, name, left, right, context}) do
+  def format_diagnostic({:mismatched_comparison, [left, right], mfac, expr, context}) do
+    {_, name, _, _} = mfac
     traces = collect_traces(expr, context)
 
     %{
@@ -938,7 +965,8 @@ defmodule Module.Types.Apply do
     }
   end
 
-  def format_diagnostic({:struct_comparison, expr, name, left, right, context}) do
+  def format_diagnostic({:struct_comparison, [left, right], mfac, expr, context}) do
+    {_, name, _, _} = mfac
     traces = collect_traces(expr, context)
 
     %{
@@ -1033,10 +1061,6 @@ defmodule Module.Types.Apply do
   defp pluralize(1, singular, _), do: "1 #{singular}"
   defp pluralize(i, _, plural), do: "#{i} #{plural}"
 
-  defp mfac({_, [inline: {mod, fun}] ++ _, _}, _mod, _fun, arity) do
-    {mod, fun, arity, & &1}
-  end
-
   defp mfac({{:., _, [mod, fun]}, _, args}, _mod, _fun, _arity)
        when is_atom(mod) and is_atom(fun) do
     {mod, fun, args, converter} = :elixir_rewrite.erl_to_ex(mod, fun, args)
@@ -1053,7 +1077,7 @@ defmodule Module.Types.Apply do
   alias Inspect.Algebra, as: IA
 
   defp type_comparison_to_string(fun, left, right) do
-    {Kernel, fun, [left, right], _} = :elixir_rewrite.erl_to_ex(:erlang, fun, [left, right])
+    {_, fun, _, _} = :elixir_rewrite.erl_to_ex(:erlang, fun, [left, right])
 
     {fun, [], [to_quoted(left, collapse_structs: true), to_quoted(right, collapse_structs: true)]}
     |> Code.Formatter.to_algebra()

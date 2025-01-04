@@ -145,12 +145,7 @@ defmodule Module.Types.Expr do
         type_fun = fn pattern_type, context ->
           # See if we can use the expected type to further refine the pattern type,
           # if we cannot, use the pattern type as that will fail later on.
-          type =
-            case compatible_intersection(pattern_type, expected) do
-              {:ok, expected} -> expected
-              :error -> pattern_type
-            end
-
+          {_ok_or_error, type} = compatible_intersection(pattern_type, expected)
           of_expr(right_expr, type, expr, stack, context)
         end
 
@@ -439,7 +434,6 @@ defmodule Module.Types.Expr do
   end
 
   # TODO: with pat <- expr do expr end
-  # TODO: here
   def of_expr({:with, _meta, [_ | _] = clauses}, _expected, _expr, stack, original) do
     {clauses, [options]} = Enum.split(clauses, -1)
     context = Enum.reduce(clauses, original, &with_clause(&1, stack, &2))
@@ -448,7 +442,6 @@ defmodule Module.Types.Expr do
   end
 
   # TODO: fun.(args)
-  # TODO: here
   def of_expr({{:., meta, [fun]}, _meta, args} = call, _expected, _expr, stack, context) do
     {fun_type, context} = of_expr(fun, fun(), call, stack, context)
 
@@ -473,14 +466,14 @@ defmodule Module.Types.Expr do
     else
       {type, context} = of_expr(callee, atom(), call, stack, context)
       {mods, context} = Of.modules(type, key_or_fun, 0, [:dot], call, meta, stack, context)
-      apply_many(mods, key_or_fun, [], [], call, stack, context)
+      apply_many(mods, key_or_fun, [], expected, call, stack, context)
     end
   end
 
   # TODO: here
   def of_expr(
         {{:., _, [remote, :apply]}, _meta, [mod, fun, args]} = call,
-        _expected,
+        expected,
         _expr,
         stack,
         context
@@ -498,32 +491,25 @@ defmodule Module.Types.Expr do
             _ -> []
           end
 
-        {args_types, context} =
-          Enum.map_reduce(args, context, &of_expr(&1, @pending, &1, stack, &2))
-
         {types, context} =
           Enum.map_reduce(funs, context, fn fun, context ->
-            apply_many(mods, fun, args, args_types, call, stack, context)
+            apply_many(mods, fun, args, expected, call, stack, context)
           end)
 
         {Enum.reduce(types, &union/2), context}
 
       _ ->
-        {args_type, context} = of_expr(args, list(term()), call, stack, context)
-        args_types = [mod_type, fun_type, args_type]
-        Apply.remote(:erlang, :apply, [mod, fun, args], args_types, call, stack, context)
+        # PENDING: Do not process args twice
+        apply_args = [mod, fun, args]
+        apply_one(:erlang, :apply, apply_args, expected, call, stack, context)
     end
   end
 
   # TODO: here
-  def of_expr({{:., _, [remote, name]}, meta, args} = call, _expected, _expr, stack, context) do
+  def of_expr({{:., _, [remote, name]}, meta, args} = call, expected, _expr, stack, context) do
     {remote_type, context} = of_expr(remote, atom(), call, stack, context)
-
-    {args_types, context} =
-      Enum.map_reduce(args, context, &of_expr(&1, @pending, &1, stack, &2))
-
     {mods, context} = Of.modules(remote_type, name, length(args), call, meta, stack, context)
-    apply_many(mods, name, args, args_types, call, stack, context)
+    apply_many(mods, name, args, expected, call, stack, context)
   end
 
   # TODO: &Foo.bar/1
@@ -549,21 +535,14 @@ defmodule Module.Types.Expr do
   # TODO: here
   def of_expr({:super, meta, args} = expr, _expected, _expr, stack, context) when is_list(args) do
     {_kind, fun} = Keyword.fetch!(meta, :super)
-
-    {args_types, context} =
-      Enum.map_reduce(args, context, &of_expr(&1, @pending, &1, stack, &2))
-
-    Apply.local(fun, args_types, expr, stack, context)
+    apply_local(fun, args, expr, stack, context)
   end
 
   # Local calls
   # TODO: here
   def of_expr({fun, _meta, args} = expr, _expected, _expr, stack, context)
       when is_atom(fun) and is_list(args) do
-    {args_types, context} =
-      Enum.map_reduce(args, context, &of_expr(&1, @pending, &1, stack, &2))
-
-    Apply.local(fun, args_types, expr, stack, context)
+    apply_local(fun, args, expr, stack, context)
   end
 
   # var
@@ -620,8 +599,11 @@ defmodule Module.Types.Expr do
   defp for_clause({:<-, meta, [left, right]}, stack, context) do
     expr = {:<-, [type_check: :generator] ++ meta, [left, right]}
     {pattern, guards} = extract_head([left])
-    {type, context} = of_expr(right, @pending, expr, stack, context)
-    {_type, context} = Apply.remote(Enumerable, :count, [right], [type], expr, stack, context)
+
+    # PENDING: test this
+    {_type, context} =
+      apply_one(Enumerable, :count, [right], dynamic(), expr, stack, context)
+
     Pattern.of_generator(pattern, guards, dynamic(), :for, expr, stack, context)
   end
 
@@ -669,8 +651,12 @@ defmodule Module.Types.Expr do
           _ -> meta
         end
 
+      # PENDING: do not do this twice
       expr = {:__block__, [type_check: :into] ++ meta, [into]}
-      {_type, context} = Apply.remote(Collectable, :into, [into], [type], expr, stack, context)
+
+      {_type, context} =
+        apply_one(Collectable, :into, [into], dynamic(), expr, stack, context)
+
       {[:term], true, context}
     end
   end
@@ -702,18 +688,42 @@ defmodule Module.Types.Expr do
 
   ## General helpers
 
-  defp apply_many([], function, _args, args_types, expr, stack, context) do
-    Apply.remote(function, args_types, expr, stack, context)
+  defp apply_local(fun, args, {_, meta, _} = expr, stack, context) do
+    {local_info, domain, context} = Apply.local_domain(fun, args, meta, stack, context)
+
+    {args_types, context} =
+      zip_map_reduce(args, domain, context, &of_expr(&1, &2, expr, stack, &3))
+
+    Apply.local_apply(local_info, fun, args_types, expr, stack, context)
   end
 
-  defp apply_many([mod], function, args, args_types, expr, stack, context) do
-    Apply.remote(mod, function, args, args_types, expr, stack, context)
+  defp apply_one(mod, fun, args, expected, expr, stack, context) do
+    {info, domain, context} =
+      Apply.remote_domain(mod, fun, args, expected, elem(expr, 1), stack, context)
+
+    {args_types, context} =
+      zip_map_reduce(args, domain, context, &of_expr(&1, &2, expr, stack, &3))
+
+    Apply.remote_apply(info, mod, fun, args_types, expr, stack, context)
   end
 
-  defp apply_many(mods, function, args, args_types, expr, stack, context) do
+  defp apply_many([], fun, args, expected, expr, stack, context) do
+    {info, domain} = Apply.remote_domain(fun, args, expected, stack)
+
+    {args_types, context} =
+      zip_map_reduce(args, domain, context, &of_expr(&1, &2, expr, stack, &3))
+
+    Apply.remote_apply(info, nil, fun, args_types, expr, stack, context)
+  end
+
+  defp apply_many([mod], fun, args, expected, expr, stack, context) do
+    apply_one(mod, fun, args, expected, expr, stack, context)
+  end
+
+  defp apply_many(mods, fun, args, expected, expr, stack, context) do
     {returns, context} =
       Enum.map_reduce(mods, context, fn mod, context ->
-        Apply.remote(mod, function, args, args_types, expr, stack, context)
+        apply_one(mod, fun, args, expected, expr, stack, context)
       end)
 
     {Enum.reduce(returns, &union/2), context}

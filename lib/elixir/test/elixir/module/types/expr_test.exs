@@ -922,93 +922,90 @@ defmodule Module.Types.ExprTest do
     end
 
     test "warns when comparison is constant" do
-      assert typewarn!([x = :foo, y = 321], min(x, y)) ==
-               {dynamic(union(integer(), atom([:foo]))),
-                ~l"""
-                comparison between distinct types found:
+      assert typeerror!([x = :foo, y = 321], min(x, y)) ==
+               ~l"""
+               comparison between distinct types found:
 
-                    min(x, y)
+                   min(x, y)
 
-                given types:
+               given types:
 
-                    min(dynamic(:foo), integer())
+                   min(dynamic(:foo), integer())
 
-                where "x" was given the type:
+               where "x" was given the type:
 
-                    # type: dynamic(:foo)
-                    # from: types_test.ex:LINE-2
-                    x = :foo
+                   # type: dynamic(:foo)
+                   # from: types_test.ex:LINE-1
+                   x = :foo
 
-                where "y" was given the type:
+               where "y" was given the type:
 
-                    # type: integer()
-                    # from: types_test.ex:LINE-2
-                    y = 321
+                   # type: integer()
+                   # from: types_test.ex:LINE-1
+                   y = 321
 
-                While Elixir can compare across all types, you are comparing across types \
-                which are always disjoint, and the result is either always true or always false
-                """}
+               While Elixir can compare across all types, you are comparing across types \
+               which are always disjoint, and the result is either always true or always false
+               """
 
-      assert typewarn!([x = 123, y = 456.0], x === y) ==
-               {boolean(),
-                ~l"""
-                comparison between distinct types found:
+      assert typeerror!([x = 123, y = 456.0], x === y) ==
+               ~l"""
+               comparison between distinct types found:
 
-                    x === y
+                   x === y
 
-                given types:
+               given types:
 
-                    integer() === float()
+                   integer() === float()
 
-                where "x" was given the type:
+               where "x" was given the type:
 
-                    # type: integer()
-                    # from: types_test.ex:LINE-2
-                    x = 123
+                   # type: integer()
+                   # from: types_test.ex:LINE-1
+                   x = 123
 
-                where "y" was given the type:
+               where "y" was given the type:
 
-                    # type: float()
-                    # from: types_test.ex:LINE-2
-                    y = 456.0
+                   # type: float()
+                   # from: types_test.ex:LINE-1
+                   y = 456.0
 
-                While Elixir can compare across all types, you are comparing across types \
-                which are always disjoint, and the result is either always true or always false
-                """}
+               While Elixir can compare across all types, you are comparing across types \
+               which are always disjoint, and the result is either always true or always false
+               """
     end
 
     test "warns on comparison with struct across dynamic call" do
-      assert typewarn!([x = :foo, y = %Point{}, mod = Kernel], mod.<=(x, y)) ==
-               {boolean(),
-                ~l"""
-                comparison with structs found:
+      assert typeerror!([x = :foo, y = %Point{}, mod = Kernel], mod.<=(x, y)) ==
+               ~l"""
+               comparison with structs found:
 
-                    mod.<=(x, y)
+                   mod.<=(x, y)
 
-                given types:
+               given types:
 
-                    dynamic(:foo) <= dynamic(%Point{})
+                   dynamic(:foo) <= dynamic(%Point{})
 
-                where "mod" was given the type:
+               where "mod" was given the type:
 
-                    # type: dynamic(Kernel)
-                    # from: types_test.ex:LINE-2
-                    mod = Kernel
+                   # type: dynamic(Kernel)
+                   # from: types_test.ex:LINE-1
+                   mod = Kernel
 
-                where "x" was given the type:
+               where "x" was given the type:
 
-                    # type: dynamic(:foo)
-                    # from: types_test.ex:LINE-2
-                    x = :foo
+                   # type: dynamic(:foo)
+                   # from: types_test.ex:LINE-1
+                   x = :foo
 
-                where "y" was given the type:
+               where "y" was given the type:
 
-                    # type: dynamic(%Point{})
-                    # from: types_test.ex:LINE-2
-                    y = %Point{}
+                   # type: dynamic(%Point{})
+                   # from: types_test.ex:LINE-1
+                   y = %Point{}
 
-                Comparison operators (>, <, >=, <=, min, and max) perform structural and not semantic comparison. Comparing with a struct won't give meaningful results. Structs that can be compared typically define a compare/2 function within their modules that can be used for semantic comparison.
-                """}
+               Comparison operators (>, <, >=, <=, min, and max) perform structural and not semantic comparison. Comparing with a struct won't give meaningful results. Structs that can be compared typically define a compare/2 function within their modules that can be used for semantic comparison.
+               """
     end
   end
 

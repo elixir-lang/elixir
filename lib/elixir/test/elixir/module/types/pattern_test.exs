@@ -42,9 +42,9 @@ defmodule Module.Types.PatternTest do
 
                where "name" was given the type:
 
-                   # type: dynamic()
-                   # from: types_test.ex
-                   {name, arity}
+                   # type: dynamic(atom())
+                   # from: types_test.ex:LINE-1
+                   Atom.to_charlist(name)
                """
     end
 

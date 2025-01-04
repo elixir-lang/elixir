@@ -208,7 +208,7 @@ defmodule Module.ParallelChecker do
   or if the function does not exist return `{:error, :function}`.
   """
   @spec fetch_export(cache(), module(), atom(), arity()) ::
-          {:ok, mode(), binary() | nil, {:infer, [term()]} | :none}
+          {:ok, mode(), binary() | nil, {:infer, [term()] | nil, [term()]} | :none}
           | :badmodule
           | {:badfunction, mode()}
   def fetch_export({checker, table}, module, fun, arity) do
@@ -451,10 +451,15 @@ defmodule Module.ParallelChecker do
 
   defp cache_chunk(table, module, exports) do
     Enum.each(exports, fn {{fun, arity}, info} ->
-      # TODO: Match on signature directly in Elixir v1.22+
+      sig =
+        case info do
+          %{sig: {key, _, _} = sig} when key in [:infer, :strong] -> sig
+          _ -> :none
+        end
+
       :ets.insert(
         table,
-        {{module, {fun, arity}}, Map.get(info, :deprecated), Map.get(info, :sig, :none)}
+        {{module, {fun, arity}}, Map.get(info, :deprecated), sig}
       )
     end)
 

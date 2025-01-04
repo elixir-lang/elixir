@@ -1,7 +1,7 @@
 defmodule Module.Types.Pattern do
   @moduledoc false
 
-  alias Module.Types.Of
+  alias Module.Types.{Apply, Of}
   import Module.Types.{Helpers, Descr}
 
   @guard atom([true, false, :fail])
@@ -733,12 +733,15 @@ defmodule Module.Types.Pattern do
   end
 
   # Remote
-  def of_guard({{:., _, [:erlang, function]}, _, args} = call, _expected, expr, stack, context)
-      when is_atom(function) do
-    {args_type, context} =
-      Enum.map_reduce(args, context, &of_guard(&1, dynamic(), expr, stack, &2))
+  def of_guard({{:., _, [:erlang, fun]}, meta, args} = call, expected, _expr, stack, context)
+      when is_atom(fun) do
+    {info, domain, context} =
+      Apply.remote_domain(:erlang, fun, args, expected, meta, stack, context)
 
-    Module.Types.Apply.remote(:erlang, function, args, args_type, call, stack, context)
+    {args_types, context} =
+      zip_map_reduce(args, domain, context, &of_guard(&1, &2, call, stack, &3))
+
+    Apply.remote_apply(info, :erlang, fun, args_types, call, stack, context)
   end
 
   # var
