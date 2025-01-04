@@ -504,7 +504,7 @@ defmodule Calendar do
   B      | Full month name                                                         | January
   c      | Preferred date+time representation                                      | 2018-10-17 12:34:56
   d      | Day of the month                                                        | 01, 31
-  f      | Microseconds *(does not support width and padding modifiers)*           | 000000, 999999, 0123
+  f      | Microseconds (uses its precision for width and padding)                 | 000000, 999999, 0123
   H      | Hour using a 24-hour clock                                              | 00, 23
   I      | Hour using a 12-hour clock                                              | 01, 12
   j      | Day of the year                                                         | 001, 366
@@ -525,6 +525,12 @@ defmodule Calendar do
   %      | Literal "%" character                                                   | %
 
   Any other character will be interpreted as an invalid format and raise an error.
+
+  ### `%f` Microseconds
+
+  `%f` does not support width and padding modifiers.  It will be formatted by truncating
+  the microseconds to the precision of the `microseconds` field of the struct, with a
+  minimum precision of 1.
 
   ## Examples
 
@@ -568,6 +574,17 @@ defmodule Calendar do
       ...>  end
       ...>)
       "серпень"
+
+   Microsecond formatting:
+
+      iex> Calendar.strftime(~U[2019-08-26 13:52:06Z], "%y-%m-%d %H:%M:%S.%f")
+      "19-08-26 13:52:06.0"
+
+      iex> Calendar.strftime(~U[2019-08-26 13:52:06.048Z], "%y-%m-%d %H:%M:%S.%f")
+      "19-08-26 13:52:06.048"
+
+      iex> Calendar.strftime(~U[2019-08-26 13:52:06.048531Z], "%y-%m-%d %H:%M:%S.%f")
+      "19-08-26 13:52:06.048531"
 
   """
   @doc since: "1.11.0"
