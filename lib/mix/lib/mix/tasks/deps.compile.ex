@@ -228,6 +228,7 @@ defmodule Mix.Tasks.Deps.Compile do
     env = [
       # REBAR_BARE_COMPILER_OUTPUT_DIR is only honored by rebar3 >= 3.14
       {"REBAR_BARE_COMPILER_OUTPUT_DIR", build_path},
+      {"REBAR_SKIP_PROJECT_PLUGINS", "true"},
       {"REBAR_CONFIG", config_path},
       {"REBAR_PROFILE", "prod"},
       {"TERM", "dumb"}
