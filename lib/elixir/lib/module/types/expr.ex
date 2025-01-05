@@ -115,7 +115,6 @@ defmodule Module.Types.Expr do
   end
 
   # <<...>>>
-  # TODO: here (including tests)
   def of_expr({:<<>>, _meta, args}, _expected, _expr, stack, context) do
     context = Of.binary(args, :expr, stack, context)
     {binary(), context}
@@ -306,7 +305,6 @@ defmodule Module.Types.Expr do
   end
 
   # TODO: fn pat -> expr end
-  # TODO: here
   def of_expr({:fn, _meta, clauses}, _expected, _expr, stack, context) do
     [{:->, _, [head, _]} | _] = clauses
     {patterns, _guards} = extract_head(head)
@@ -399,8 +397,6 @@ defmodule Module.Types.Expr do
     |> dynamic_unless_static(stack)
   end
 
-  # TODO: for pat <- expr do expr end
-  # TODO: here
   def of_expr({:for, meta, [_ | _] = args}, expected, expr, stack, context) do
     {clauses, [[{:do, block} | opts]]} = Enum.split(args, -1)
     context = Enum.reduce(clauses, context, &for_clause(&1, stack, &2))
@@ -414,6 +410,7 @@ defmodule Module.Types.Expr do
       # because this is recursive. We need to infer the block type first.
       of_clauses(block, [dynamic()], expected, expr, :for_reduce, stack, {reduce_type, context})
     else
+      # TODO: Use the collectable protocol for the output
       into = Keyword.get(opts, :into, [])
       {into_wrapper, gradual?, context} = for_into(into, meta, stack, context)
       {block_type, context} = of_expr(block, @pending, block, stack, context)
@@ -469,7 +466,6 @@ defmodule Module.Types.Expr do
     end
   end
 
-  # TODO: here
   def of_expr(
         {{:., _, [remote, :apply]}, _meta, [mod, fun, args]} = call,
         expected,
@@ -505,7 +501,6 @@ defmodule Module.Types.Expr do
     end
   end
 
-  # TODO: here
   def of_expr({{:., _, [remote, name]}, meta, args} = call, expected, _expr, stack, context) do
     {remote_type, context} = of_expr(remote, atom(), call, stack, context)
     {mods, context} = Of.modules(remote_type, name, length(args), call, meta, stack, context)
@@ -532,21 +527,18 @@ defmodule Module.Types.Expr do
   end
 
   # Super
-  # TODO: here
-  def of_expr({:super, meta, args} = expr, _expected, _expr, stack, context) when is_list(args) do
+  def of_expr({:super, meta, args} = call, expected, _expr, stack, context) when is_list(args) do
     {_kind, fun} = Keyword.fetch!(meta, :super)
-    apply_local(fun, args, expr, stack, context)
+    apply_local(fun, args, expected, call, stack, context)
   end
 
   # Local calls
-  # TODO: here
-  def of_expr({fun, _meta, args} = expr, _expected, _expr, stack, context)
+  def of_expr({fun, _meta, args} = call, expected, _expr, stack, context)
       when is_atom(fun) and is_list(args) do
-    apply_local(fun, args, expr, stack, context)
+    apply_local(fun, args, expected, call, stack, context)
   end
 
   # var
-  # TODO: here
   def of_expr(var, expected, expr, stack, context) when is_var(var) do
     if stack.mode == :traversal do
       {dynamic(), context}
@@ -631,7 +623,6 @@ defmodule Module.Types.Expr do
   defp for_into(binary, _meta, _stack, context) when is_binary(binary),
     do: {[:binary], false, context}
 
-  # TODO: Use the collectable protocol for the output
   defp for_into(into, meta, stack, context) do
     meta =
       case into do
@@ -689,7 +680,7 @@ defmodule Module.Types.Expr do
 
   ## General helpers
 
-  defp apply_local(fun, args, {_, meta, _} = expr, stack, context) do
+  defp apply_local(fun, args, _expected, {_, meta, _} = expr, stack, context) do
     {local_info, domain, context} = Apply.local_domain(fun, args, meta, stack, context)
 
     {args_types, context} =

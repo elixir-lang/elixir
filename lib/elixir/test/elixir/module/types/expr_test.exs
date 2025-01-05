@@ -340,6 +340,16 @@ defmodule Module.Types.ExprTest do
   end
 
   describe "binaries" do
+    test "inference" do
+      assert typecheck!(
+               [x, y],
+               (
+                 <<x::float-size(y)>>
+                 {x, y}
+               )
+             ) == dynamic(tuple([union(float(), integer()), integer()]))
+    end
+
     test "warnings" do
       assert typeerror!([<<x::binary-size(2)>>], <<x::float>>) ==
                ~l"""
@@ -1606,7 +1616,7 @@ defmodule Module.Types.ExprTest do
              ) == dynamic(union(binary(), list(float())))
     end
 
-    test ":reduce" do
+    test ":reduce checks" do
       assert typecheck!(
                [list],
                for _ <- list, reduce: :ok do
@@ -1614,6 +1624,20 @@ defmodule Module.Types.ExprTest do
                  _ -> 2.0
                end
              ) == union(atom([:ok]), union(integer(), float()))
+    end
+
+    test ":reduce inference" do
+      assert typecheck!(
+               [list, x],
+               (
+                 123 =
+                   for _ <- list, reduce: x do
+                     x -> x
+                   end
+
+                 x
+               )
+             ) == dynamic(integer())
     end
   end
 
