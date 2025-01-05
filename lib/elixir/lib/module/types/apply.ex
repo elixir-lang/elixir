@@ -72,16 +72,16 @@ defmodule Module.Types.Apply do
     domain = atom(Keyword.keys(clauses))
     clauses = Enum.map(clauses, fn {key, return} -> {[atom([key])], return} end)
 
-    defp signature(unquote(name), 1) do
+    def signature(unquote(name), 1) do
       {:strong, [unquote(Macro.escape(domain))], unquote(Macro.escape(clauses))}
     end
   end
 
-  defp signature(:module_info, 0) do
+  def signature(:module_info, 0) do
     {:strong, nil, [{[], unquote(Macro.escape(kw.(module_info)))}]}
   end
 
-  defp signature(_, _), do: :none
+  def signature(_, _), do: :none
 
   # Remote for compiler functions
 
@@ -254,11 +254,11 @@ defmodule Module.Types.Apply do
           {:strong, domain, clauses}
       end
 
-    defp signature(unquote(mod), unquote(fun), unquote(arity)),
+    def signature(unquote(mod), unquote(fun), unquote(arity)),
       do: unquote(Macro.escape(domain_clauses))
   end
 
-  defp signature(_mod, _fun, _arity), do: :none
+  def signature(_mod, _fun, _arity), do: :none
 
   @doc """
   Returns the domain of an unknown module.

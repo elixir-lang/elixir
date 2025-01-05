@@ -30,6 +30,8 @@ defmodule Module.Types.Expr do
             versioned_vars: open_map()
           )
 
+  # This is used temporarily until reverse arrows are defined
+  @pending term()
   @atom_true atom([true])
   @exception open_map(__struct__: atom(), __exception__: @atom_true)
 
@@ -48,9 +50,6 @@ defmodule Module.Types.Expr do
                   tuple([fun(), args_or_arity, extra_info])
                 )
               )
-
-  @term term()
-  @pending term()
 
   # :atom
   def of_expr(atom, _expected, _expr, _stack, context) when is_atom(atom),
@@ -246,7 +245,7 @@ defmodule Module.Types.Expr do
 
     context =
       Enum.reduce(pre, context, fn expr, context ->
-        {_, context} = of_expr(expr, @term, expr, stack, context)
+        {_, context} = of_expr(expr, term(), expr, stack, context)
         context
       end)
 
@@ -367,7 +366,7 @@ defmodule Module.Types.Expr do
       |> dynamic_unless_static(stack)
 
     if after_block do
-      {_type, context} = of_expr(after_block, @term, after_block, stack, context)
+      {_type, context} = of_expr(after_block, term(), after_block, stack, context)
       {type, context}
     else
       {type, context}
@@ -499,9 +498,10 @@ defmodule Module.Types.Expr do
         {Enum.reduce(types, &union/2), context}
 
       _ ->
-        # PENDING: Do not process args twice
-        apply_args = [mod, fun, args]
-        apply_one(:erlang, :apply, apply_args, expected, call, stack, context)
+        info = Apply.signature(:erlang, :apply, 3)
+        {args_type, context} = of_expr(args, list(term()), call, stack, context)
+        apply_types = [mod_type, fun_type, args_type]
+        Apply.remote_apply(info, :erlang, :apply, apply_types, call, stack, context)
     end
   end
 
@@ -600,7 +600,6 @@ defmodule Module.Types.Expr do
     expr = {:<-, [type_check: :generator] ++ meta, [left, right]}
     {pattern, guards} = extract_head([left])
 
-    # PENDING: test this
     {_type, context} =
       apply_one(Enumerable, :count, [right], dynamic(), expr, stack, context)
 
@@ -620,7 +619,7 @@ defmodule Module.Types.Expr do
   end
 
   defp for_clause(expr, stack, context) do
-    {_type, context} = of_expr(expr, @term, expr, stack, context)
+    {_type, context} = of_expr(expr, term(), expr, stack, context)
     context
   end
 
@@ -634,7 +633,18 @@ defmodule Module.Types.Expr do
 
   # TODO: Use the collectable protocol for the output
   defp for_into(into, meta, stack, context) do
-    {type, context} = of_expr(into, @pending, into, stack, context)
+    meta =
+      case into do
+        {_, meta, _} -> meta
+        _ -> meta
+      end
+
+    expr = {:__block__, [type_check: :into] ++ meta, [into]}
+
+    {info, [domain], context} =
+      Apply.remote_domain(Collectable, :into, [into], term(), meta, stack, context)
+
+    {type, context} = of_expr(into, domain, expr, stack, context)
 
     # We use subtype? instead of compatible because we want to handle
     # only binary/list, even if a dynamic with something else is given.
@@ -645,17 +655,8 @@ defmodule Module.Types.Expr do
         {_, _} -> {[:binary, :list], gradual?(type), context}
       end
     else
-      meta =
-        case into do
-          {_, meta, _} -> meta
-          _ -> meta
-        end
-
-      # PENDING: do not do this twice
-      expr = {:__block__, [type_check: :into] ++ meta, [into]}
-
       {_type, context} =
-        apply_one(Collectable, :into, [into], dynamic(), expr, stack, context)
+        Apply.remote_apply(info, Collectable, :into, [type], expr, stack, context)
 
       {[:term], true, context}
     end
