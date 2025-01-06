@@ -36,10 +36,10 @@ defmodule NaiveDateTime do
 
   Comparisons in Elixir using `==/2`, `>/2`, `</2` and similar are structural
   and based on the `NaiveDateTime` struct fields. For proper comparison
-  between naive datetimes, use the `compare/2` function. The existence of the
-  `compare/2` function in this module also allows using `Enum.min/2` and
-  `Enum.max/2` functions to get the minimum and maximum naive datetime of an
-  `Enum`. For example:
+  between naive datetimes, use the `compare/2`, `after?/2` and `before?/2` functions.
+  The existence of the `compare/2` function in this module also allows
+  using `Enum.min/2` and `Enum.max/2` functions to get the minimum and
+  maximum naive datetime of an `Enum`. For example:
 
       iex> Enum.min([~N[2020-01-01 23:00:07], ~N[2000-01-01 23:00:07]], NaiveDateTime)
       ~N[2000-01-01 23:00:07]

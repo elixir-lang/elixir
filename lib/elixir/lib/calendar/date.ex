@@ -31,9 +31,10 @@ defmodule Date do
 
   Comparisons in Elixir using `==/2`, `>/2`, `</2` and similar are structural
   and based on the `Date` struct fields. For proper comparison between
-  dates, use the `compare/2` function. The existence of the `compare/2`
-  function in this module also allows using `Enum.min/2` and `Enum.max/2`
-  functions to get the minimum and maximum date of an `Enum`. For example:
+  dates, use the `compare/2`, `after?/2` and `before?/2` functions.
+  The existence of the `compare/2` function in this module also allows
+  using `Enum.min/2` and `Enum.max/2` functions to get the minimum and
+  maximum date of an `Enum`. For example:
 
       iex>  Enum.min([~D[2017-03-31], ~D[2017-04-01]], Date)
       ~D[2017-03-31]
