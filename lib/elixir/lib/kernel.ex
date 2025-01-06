@@ -5611,11 +5611,10 @@ defmodule Kernel do
   and arity, then the overridable ones are discarded. Otherwise, the
   original definitions are used.
 
-  It is possible for the overridden definition to have a different visibility
-  than the original: a public function can be overridden by a private
-  function and vice-versa.
-
-  Macros cannot be overridden as functions and vice-versa.
+  It is possible for the overridden definition to have a different
+  visibility than the original: a public function can be overridden
+  by a private function and vice-versa. Macros cannot be overridden
+  as functions and vice-versa.
 
   ## Example
 
@@ -5642,31 +5641,15 @@ defmodule Kernel do
   As seen as in the example above, `super` can be used to call the default
   implementation.
 
-  > #### Disclaimer {: .tip}
-  >
-  > Use `defoverridable` with care. If you need to define multiple modules
-  > with the same behaviour, it may be best to move the default implementation
-  > to the caller, and check if a callback exists via `Code.ensure_loaded?/1` and
-  > `function_exported?/3`.
-  >
-  > For example, in the example above, imagine there is a module that calls the
-  > `test/2` function. This module could be defined as such:
-  >
-  >     defmodule CallsTest do
-  >       def receives_module_and_calls_test(module, x, y) do
-  >         if Code.ensure_loaded?(module) and function_exported?(module, :test, 2) do
-  >           module.test(x, y)
-  >         else
-  >           x + y
-  >         end
-  >       end
-  >     end
-
   ## Example with behaviour
 
-  You can also pass a behaviour to `defoverridable` and it will mark all of the
-  callbacks in the behaviour as overridable:
+  `defoverridable` is commonly used with behaviours. The behaviours use
+  `@callback` definitions to define the general module API and the
+  `__using__` callback is used to define default implementations of
+  functions, which can then be overridable.
 
+  For convenience, you can pass a behaviour to `defoverridable` and it
+  will mark all of the callbacks in the behaviour as overridable:
 
       defmodule Behaviour do
         @callback test(number(), number()) :: number()
@@ -5694,6 +5677,52 @@ defmodule Kernel do
         end
       end
 
+  > #### Narrow behaviours and entry points {: .tip}
+  >
+  > When defining behaviours, a general rule of thumb is to define narrow
+  > behaviours, with the minumum amount of callbacks, to facilitate maintenance
+  > over time. Fewer callbacks minimize the points of contact between different
+  > parts of the system and reduces the risk of breaking changes and of different
+  > implementations having inconsistent behaviour. However, when using `defoverridable`
+  > with behaviours, you may accidentally define broad interfaces as all default
+  > behaviour is provided via `defoverridable`. Furthermore, `defoverridable`
+  > necessarily relies on meta-programming, which complicates debugging. `super` is
+  > also hard to troubleshoot, as it by definition relies on calling an implicitly
+  > defined function.
+  >
+  > A possible alternative to `defoverridable` is to use optional callbacks and
+  > move the default implementation to the caller. Then you can check if a callback
+  > exists via `Code.ensure_loaded?/1` and `function_exported?/3`. For instance,
+  > in the example above, imagine there is a module that calls the `test/2` function.
+  > This module could be defined as such:
+  >
+  >     defmodule CallsTest do
+  >       def receives_module_and_calls_test(module, x, y) do
+  >         if Code.ensure_loaded?(module) and function_exported?(module, :test, 2) do
+  >           module.test(x, y)
+  >         else
+  >           x + y
+  >         end
+  >       end
+  >     end
+  >
+  > The downside of the above code is that it must call `Code.ensure_loaded?/1` and
+  > `function_exported?/3` on every invocation of the behaviour, which may impact
+  > runtime performance. For this reason, this approach works best when the behaviour
+  > has an entry point, such as a `init` callback (as seen in `GenServer`), which you
+  > invoke once to guarantee the module is loaded, and from that moment, you only need
+  > to perform `function_exported?/3` checks.
+  >
+  > To recap:
+  >
+  >   * Prefer narrow behaviours
+  >
+  >   * If your behaviour has an entry point, consider using optional callbacks
+  >     followed by `Code.ensure_loaded?/1` and `function_exported?/3` checks
+  >
+  >   * If using `defoverridable`, avoid relying on `super` to trigger the default
+  >     behaviour, suggesting users to invoke well-defined APIs instead.
+  > 
   """
   defmacro defoverridable(keywords_or_behaviour) do
     quote do
