@@ -453,8 +453,6 @@ defmodule IEx.AutocompleteTest do
 
     assert {:yes, ~c"ry: ", []} = expand(~c"%{var | path: \"foo\", que")
     assert {:no, [], []} = expand(~c"%URI{var | path: \"foo\", unkno")
-
-
   end
 
   test "completion for map keys in update syntax" do
