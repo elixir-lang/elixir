@@ -59,7 +59,7 @@ defmodule Module.Types.Of do
             data = %{
               data
               | type: new_type,
-                off_traces: new_trace(expr, new_type, :default, stack, off_traces)
+                off_traces: new_trace(expr, new_type, stack, off_traces)
             }
 
             %{context | vars: %{vars | version => data}}
@@ -81,7 +81,7 @@ defmodule Module.Types.Of do
   because we want to refine types. Otherwise we should
   use compatibility.
   """
-  def refine_head_var(var, type, expr, formatter \\ :default, stack, context) do
+  def refine_head_var(var, type, expr, stack, context) do
     {var_name, meta, var_context} = var
     version = Keyword.fetch!(meta, :version)
 
@@ -92,7 +92,7 @@ defmodule Module.Types.Of do
         data = %{
           data
           | type: new_type,
-            off_traces: new_trace(expr, type, formatter, stack, off_traces)
+            off_traces: new_trace(expr, type, stack, off_traces)
         }
 
         context = %{context | vars: %{vars | version => data}}
@@ -110,7 +110,7 @@ defmodule Module.Types.Of do
           type: type,
           name: var_name,
           context: var_context,
-          off_traces: new_trace(expr, type, formatter, stack, [])
+          off_traces: new_trace(expr, type, stack, [])
         }
 
         context = %{context | vars: Map.put(vars, version, data)}
@@ -118,11 +118,11 @@ defmodule Module.Types.Of do
     end
   end
 
-  defp new_trace(nil, _type, _formatter, _stack, traces),
+  defp new_trace(nil, _type, _stack, traces),
     do: traces
 
-  defp new_trace(expr, type, formatter, stack, traces),
-    do: [{expr, stack.file, type, formatter} | traces]
+  defp new_trace(expr, type, stack, traces),
+    do: [{expr, stack.file, type} | traces]
 
   ## Implementations
 

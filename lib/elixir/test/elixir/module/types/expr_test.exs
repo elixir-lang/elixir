@@ -337,6 +337,48 @@ defmodule Module.Types.ExprTest do
                    <<x::integer>>
                """
     end
+
+    test "requires all combinations to be compatible" do
+      assert typeerror!(
+               [condition, string],
+               (
+                 mod = if condition, do: String, else: List
+                 mod.to_integer(string)
+               )
+             )
+             |> strip_ansi() == ~l"""
+             incompatible types given to String.to_integer/1:
+
+                 mod.to_integer(string)
+                 #=> invoked as String.to_integer/1
+
+             given types:
+
+                 dynamic(non_empty_list(integer()))
+
+             but expected one of:
+
+                 binary()
+
+             where "mod" was given the type:
+
+                 # type: List or String
+                 # from: types_test.ex:LINE-4
+                 mod =
+                   if condition do
+                     String
+                   else
+                     List
+                   end
+
+             where "string" was given the type:
+
+                 # type: dynamic(non_empty_list(integer()))
+                 # from: types_test.ex:LINE-3
+                 mod.to_integer(string)
+                 #=> invoked as List.to_integer/1
+             """
+    end
   end
 
   describe "binaries" do
@@ -1422,6 +1464,38 @@ defmodule Module.Types.ExprTest do
                )
     end
 
+    test "generates custom traces" do
+      assert typeerror!(
+               try do
+                 raise "oops"
+               rescue
+                 e ->
+                   Integer.to_string(e)
+               end
+             )
+             |> strip_ansi() == ~l"""
+             incompatible types given to Integer.to_string/1:
+
+                 Integer.to_string(e)
+
+             given types:
+
+                 %{..., __exception__: true, __struct__: atom()}
+
+             but expected one of:
+
+                 integer()
+
+             where "e" was given the type:
+
+                 # type: %{..., __exception__: true, __struct__: atom()}
+                 # from: types_test.ex
+                 rescue e
+
+             hint: when you rescue without specifying exception names, the variable is assigned a type of a struct but all of its fields are unknown. If you are trying to access an exception's :message key, either specify the exception names or use `Exception.message/1`.
+             """
+    end
+
     test "defines an open map of two fields in anonymous rescue" do
       assert typecheck!(
                try do
@@ -1575,7 +1649,31 @@ defmodule Module.Types.ExprTest do
                [<<x::integer, y::binary>>],
                for(<<i <- if(:rand.uniform() > 0.5, do: x, else: y)>>, do: i)
              ) =~
-               "expected the right side of <- in a binary generator to be a binary"
+               ~l"""
+               expected the right side of <- in a binary generator to be a binary:
+
+                   if :rand.uniform() > 0.5 do
+                     x
+                   else
+                     y
+                   end
+
+               but got type:
+
+                   binary() or integer()
+
+               where "x" was given the type:
+
+                   # type: integer()
+                   # from: types_test.ex:LINE-3
+                   <<x::integer, ...>>
+
+               where "y" was given the type:
+
+                   # type: binary()
+                   # from: types_test.ex:LINE-3
+                   <<..., y::binary>>
+               """
     end
 
     test "infers binary generators" do
@@ -1638,44 +1736,6 @@ defmodule Module.Types.ExprTest do
                  x
                )
              ) == dynamic(integer())
-    end
-  end
-
-  describe "apply" do
-    test "handles conditional modules and functions" do
-      assert typecheck!([fun], apply(String, fun, ["foo", "bar", "baz"])) == dynamic()
-
-      assert typecheck!(
-               [condition, string],
-               (
-                 fun = if condition, do: :to_integer, else: :to_float
-                 apply(String, fun, [string])
-               )
-             ) == union(integer(), float())
-
-      assert typecheck!(
-               [condition, string],
-               (
-                 mod = if condition, do: String, else: List
-                 fun = if condition, do: :to_integer, else: :to_float
-                 apply(mod, fun, [string])
-               )
-             ) == union(integer(), float())
-
-      assert typeerror!(
-               [condition, string],
-               (
-                 mod = if condition, do: String, else: List
-                 fun = if condition, do: :to_integer, else: :to_float
-                 :erlang.apply(mod, fun, [string | "tail"])
-               )
-             ) =~
-               """
-               incompatible types given to Kernel.apply/3:
-
-                   apply(mod, fun, [string | "tail"])
-
-               """
     end
   end
 

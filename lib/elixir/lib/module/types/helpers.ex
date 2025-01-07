@@ -137,7 +137,7 @@ defmodule Module.Types.Helpers do
                  type: :variable,
                  name: name,
                  context: context,
-                 traces: collect_var_traces(off_traces)
+                 traces: collect_var_traces(expr, off_traces)
                })}
 
             _ ->
@@ -153,38 +153,48 @@ defmodule Module.Types.Helpers do
     |> Enum.sort_by(& &1.name)
   end
 
-  defp collect_var_traces(traces) do
+  defp collect_var_traces(parent_expr, traces) do
     traces
-    |> Enum.reject(fn {_expr, _file, type, _formatter} ->
+    |> Enum.reject(fn {expr, _file, type} ->
       # As an otimization do not care about dynamic terms
-      type == %{dynamic: :term}
+      type == %{dynamic: :term} or expr == parent_expr
     end)
     |> case do
       [] -> traces
       filtered -> filtered
     end
     |> Enum.reverse()
-    |> Enum.map(fn {expr, file, type, formatter} ->
+    |> Enum.map(fn {expr, file, type} ->
       meta = get_meta(expr)
-
-      {formatted_expr, formatter_hints} =
-        case formatter do
-          :default -> {expr_to_string(expr), []}
-          formatter -> formatter.(expr)
-        end
 
       # This information is exposed to language servers and
       # therefore must remain backwards compatible.
       %{
         file: file,
         meta: meta,
-        formatted_expr: formatted_expr,
-        formatted_hints: format_hints(formatter_hints ++ expr_hints(expr)),
+        formatted_expr: expr_to_string(expr),
+        formatted_hints: format_hints(expr_hints(expr)),
         formatted_type: Module.Types.Descr.to_quoted_string(type, collapse_structs: true)
       }
     end)
     |> Enum.sort_by(&{&1.meta[:line], &1.meta[:column]})
     |> Enum.dedup()
+  end
+
+  defp expr_hints(expr) do
+    case expr do
+      {:<<>>, [inferred_bitstring_spec: true] ++ _meta, _} ->
+        [:inferred_bitstring_spec]
+
+      {_, meta, _} ->
+        case meta[:type_check] do
+          :anonymous_rescue -> [:anonymous_rescue]
+          _ -> []
+        end
+
+      _ ->
+        []
+    end
   end
 
   @doc """
@@ -230,11 +240,6 @@ defmodule Module.Types.Helpers do
   defp pluralize([_], singular, _plural), do: singular
   defp pluralize(_, _singular, plural), do: plural
 
-  defp expr_hints({:<<>>, [inferred_bitstring_spec: true] ++ _meta, _}),
-    do: [:inferred_bitstring_spec]
-
-  defp expr_hints(_), do: []
-
   @doc """
   Converts the given expression to a string,
   translating inlined Erlang calls back to Elixir.
@@ -242,6 +247,30 @@ defmodule Module.Types.Helpers do
   We also undo some macro expressions done by the Kernel module.
   """
   def expr_to_string(expr) do
+    string = prewalk_expr_to_string(expr)
+
+    case expr do
+      {_, meta, _} ->
+        case meta[:type_check] do
+          :anonymous_rescue ->
+            "rescue " <> string
+
+          :rescue ->
+            "rescue " <> string
+
+          {:invoked_as, mod, fun, arity} ->
+            string <> "\n#=> invoked as " <> Exception.format_mfa(mod, fun, arity)
+
+          _ ->
+            string
+        end
+
+      _ ->
+        string
+    end
+  end
+
+  defp prewalk_expr_to_string(expr) do
     expr
     |> Macro.prewalk(fn
       {:%, _, [Range, {:%{}, _, fields}]} = node ->
@@ -263,6 +292,42 @@ defmodule Module.Types.Helpers do
 
       {{:., _, [mod, fun]}, meta, args} ->
         erl_to_ex(mod, fun, args, meta)
+
+      {:case, meta, [expr, [do: clauses]]} = case ->
+        if meta[:type_check] == :expr do
+          case clauses do
+            [
+              {:->, _,
+               [
+                 [
+                   {:when, _,
+                    [
+                      {var, _, Kernel},
+                      {{:., _, [:erlang, :orelse]}, _,
+                       [
+                         {{:., _, [:erlang, :"=:="]}, _, [{var, _, Kernel}, false]},
+                         {{:., _, [:erlang, :"=:="]}, _, [{var, _, Kernel}, nil]}
+                       ]}
+                    ]}
+                 ],
+                 else_block
+               ]},
+              {:->, _, [[{:_, _, Kernel}], do_block]}
+            ] ->
+              {:if, meta, [expr, [do: do_block, else: else_block]]}
+
+            [
+              {:->, _, [[false], else_block]},
+              {:->, _, [[true], do_block]}
+            ] ->
+              {:if, meta, [expr, [do: do_block, else: else_block]]}
+
+            _ ->
+              case
+          end
+        else
+          case
+        end
 
       other ->
         other

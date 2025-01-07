@@ -325,12 +325,15 @@ defmodule Module.Types.Expr do
         {:rescue, clauses}, acc_context ->
           Enum.reduce(clauses, acc_context, fn
             {:->, _, [[{:in, meta, [var, exceptions]} = expr], body]}, {acc, context} ->
-              {type, context} = of_rescue(var, exceptions, body, expr, [], meta, stack, context)
+              {type, context} =
+                of_rescue(var, exceptions, body, expr, :rescue, meta, stack, context)
+
               {union(type, acc), context}
 
             {:->, meta, [[var], body]}, {acc, context} ->
-              hint = [:anonymous_rescue]
-              {type, context} = of_rescue(var, [], body, var, hint, meta, stack, context)
+              {type, context} =
+                of_rescue(var, [], body, var, :anonymous_rescue, meta, stack, context)
+
               {union(type, acc), context}
           end)
 
@@ -532,7 +535,7 @@ defmodule Module.Types.Expr do
 
   ## Try
 
-  defp of_rescue(var, exceptions, body, expr, hints, meta, stack, original) do
+  defp of_rescue(var, exceptions, body, expr, info, meta, stack, original) do
     args = [__exception__: @atom_true]
 
     {structs, context} =
@@ -557,11 +560,8 @@ defmodule Module.Types.Expr do
 
         _ ->
           expected = if structs == [], do: @exception, else: Enum.reduce(structs, &union/2)
-          formatter = fn expr -> {"rescue #{expr_to_string(expr)} ->", hints} end
-
-          {_ok?, _type, context} =
-            Of.refine_head_var(var, expected, expr, formatter, stack, context)
-
+          expr = {:__block__, [type_check: info], [expr]}
+          {_ok?, _type, context} = Of.refine_head_var(var, expected, expr, stack, context)
           context
       end
 
@@ -695,9 +695,10 @@ defmodule Module.Types.Expr do
     apply_one(mod, fun, args, expected, expr, stack, context)
   end
 
-  defp apply_many(mods, fun, args, expected, expr, stack, context) do
+  defp apply_many(mods, fun, args, expected, {remote, meta, args}, stack, context) do
     {returns, context} =
       Enum.map_reduce(mods, context, fn mod, context ->
+        expr = {remote, [type_check: {:invoked_as, mod, fun, length(args)}] ++ meta, args}
         apply_one(mod, fun, args, expected, expr, stack, context)
       end)
 
