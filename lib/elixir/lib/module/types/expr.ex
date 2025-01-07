@@ -76,7 +76,7 @@ defmodule Module.Types.Expr do
     do: {empty_list(), context}
 
   # [expr, ...]
-  # TODO: here
+  # PENDING: here
   def of_expr(list, _expected, expr, stack, context) when is_list(list) do
     {prefix, suffix} = unpack_list(list, [])
     {prefix, context} = Enum.map_reduce(prefix, context, &of_expr(&1, @pending, expr, stack, &2))
@@ -90,7 +90,7 @@ defmodule Module.Types.Expr do
   end
 
   # {left, right}
-  # TODO: here
+  # PENDING: here
   def of_expr({left, right}, _expected, expr, stack, context) do
     {left, context} = of_expr(left, @pending, expr, stack, context)
     {right, context} = of_expr(right, @pending, expr, stack, context)
@@ -103,7 +103,7 @@ defmodule Module.Types.Expr do
   end
 
   # {...}
-  # TODO: here
+  # PENDING: here
   def of_expr({:{}, _meta, exprs}, _expected, expr, stack, context) do
     {types, context} = Enum.map_reduce(exprs, context, &of_expr(&1, @pending, expr, stack, &2))
 
@@ -153,7 +153,7 @@ defmodule Module.Types.Expr do
 
   # %{map | ...}
   # TODO: Once we support typed structs, we need to type check them here.
-  # TODO: here
+  # PENDING: here
   def of_expr({:%{}, meta, [{:|, _, [map, args]}]} = expr, _expected, _expr, stack, context) do
     {map_type, context} = of_expr(map, @pending, expr, stack, context)
 
@@ -195,7 +195,7 @@ defmodule Module.Types.Expr do
   # Note this code, by definition, adds missing struct fields to `map`
   # because at runtime we do not check for them (only for __struct__ itself).
   # TODO: Once we support typed structs, we need to type check them here.
-  # TODO: here
+  # PENDING: here
   def of_expr(
         {:%, struct_meta, [module, {:%{}, _, [{:|, update_meta, [map, args]}]}]} = expr,
         _expected,
@@ -222,13 +222,13 @@ defmodule Module.Types.Expr do
   end
 
   # %{...}
-  # TODO: here
+  # PENDING: here
   def of_expr({:%{}, _meta, args}, _expected, expr, stack, context) do
     Of.closed_map(args, stack, context, &of_expr(&1, @pending, expr, &2, &3))
   end
 
   # %Struct{}
-  # TODO: here
+  # PENDING: here
   def of_expr({:%, meta, [module, {:%{}, _, args}]}, _expected, expr, stack, context) do
     Of.struct_instance(module, args, meta, stack, context, &of_expr(&1, @pending, expr, &2, &3))
   end
@@ -281,9 +281,9 @@ defmodule Module.Types.Expr do
     |> dynamic_unless_static(stack)
   end
 
-  # TODO: here
   def of_expr({:case, meta, [case_expr, [{:do, clauses}]]}, expected, expr, stack, context) do
     {case_type, context} = of_expr(case_expr, @pending, case_expr, stack, context)
+    info = {:case, meta, case_type, case_expr}
 
     # If we are only type checking the expression and the expression is a literal,
     # let's mark it as generated, as it is most likely a macro code. However, if
@@ -293,14 +293,7 @@ defmodule Module.Types.Expr do
     else
       clauses
     end
-    |> of_clauses(
-      [case_type],
-      expected,
-      expr,
-      {:case, meta, case_type, case_expr},
-      stack,
-      {none(), context}
-    )
+    |> of_clauses([case_type], expected, expr, info, stack, {none(), context})
     |> dynamic_unless_static(stack)
   end
 
@@ -313,7 +306,6 @@ defmodule Module.Types.Expr do
     {fun(), context}
   end
 
-  # TODO: here
   def of_expr({:try, _meta, [[do: body] ++ blocks]}, expected, expr, stack, original) do
     {after_block, blocks} = Keyword.pop(blocks, :after)
     {else_block, blocks} = Keyword.pop(blocks, :else)
@@ -321,16 +313,8 @@ defmodule Module.Types.Expr do
     {type, context} =
       if else_block do
         {type, context} = of_expr(body, @pending, body, stack, original)
-
-        of_clauses(
-          else_block,
-          [type],
-          expected,
-          expr,
-          {:try_else, type},
-          stack,
-          {none(), context}
-        )
+        info = {:try_else, type}
+        of_clauses(else_block, [type], expected, expr, info, stack, {none(), context})
       else
         of_expr(body, expected, expr, stack, original)
       end
@@ -373,7 +357,6 @@ defmodule Module.Types.Expr do
 
   @timeout_type union(integer(), atom([:infinity]))
 
-  # TODO: here
   def of_expr({:receive, _meta, [blocks]}, expected, expr, stack, original) do
     blocks
     |> Enum.reduce({none(), original}, fn
