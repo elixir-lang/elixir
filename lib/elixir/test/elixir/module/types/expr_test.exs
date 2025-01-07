@@ -41,6 +41,16 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([x], [:ok | x]) == dynamic(non_empty_list(term(), term()))
     end
 
+    test "inference" do
+      assert typecheck!(
+               [x, y, z],
+               (
+                 List.to_integer([x, y | z])
+                 {x, y, z}
+               )
+             ) == dynamic(tuple([integer(), integer(), list(integer())]))
+    end
+
     test "hd" do
       assert typecheck!([x = [123, :foo]], hd(x)) == dynamic(union(atom([:foo]), integer()))
       assert typecheck!([x = [123 | :foo]], hd(x)) == dynamic(integer())

@@ -76,15 +76,35 @@ defmodule Module.Types.Expr do
     do: {empty_list(), context}
 
   # [expr, ...]
-  # PENDING: here
-  def of_expr(list, _expected, expr, stack, context) when is_list(list) do
+  def of_expr(list, expected, expr, stack, context) when is_list(list) do
     {prefix, suffix} = unpack_list(list, [])
-    {prefix, context} = Enum.map_reduce(prefix, context, &of_expr(&1, @pending, expr, stack, &2))
-    {suffix, context} = of_expr(suffix, @pending, expr, stack, context)
 
     if stack.mode == :traversal do
+      {_, context} = Enum.map_reduce(prefix, context, &of_expr(&1, term(), expr, stack, &2))
+      {_, context} = of_expr(suffix, term(), expr, stack, context)
       {dynamic(), context}
     else
+      hd_type =
+        case list_hd(expected) do
+          {_, type} -> type
+          _ -> term()
+        end
+
+      {prefix, context} = Enum.map_reduce(prefix, context, &of_expr(&1, hd_type, expr, stack, &2))
+
+      {suffix, context} =
+        if suffix == [] do
+          {empty_list(), context}
+        else
+          tl_type =
+            case list_tl(expected) do
+              {_, type} -> type
+              _ -> term()
+            end
+
+          of_expr(suffix, tl_type, expr, stack, context)
+        end
+
       {non_empty_list(Enum.reduce(prefix, &union/2), suffix), context}
     end
   end
