@@ -495,6 +495,16 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([x], {:ok, x}) == dynamic(tuple([atom([:ok]), term()]))
     end
 
+    test "inference" do
+      assert typecheck!(
+               [x, y],
+               (
+                 {:ok, :error} = {x, y}
+                 {x, y}
+               )
+             ) == dynamic(tuple([atom([:ok]), atom([:error])]))
+    end
+
     test "elem/2" do
       assert typecheck!(elem({:ok, 123}, 0)) == atom([:ok])
       assert typecheck!(elem({:ok, 123}, 1)) == integer()
@@ -618,7 +628,7 @@ defmodule Module.Types.ExprTest do
                """
     end
 
-    test "duplicate/2" do
+    test "Tuple.duplicate/2" do
       assert typecheck!(Tuple.duplicate(123, 0)) == tuple([])
       assert typecheck!(Tuple.duplicate(123, 1)) == tuple([integer()])
       assert typecheck!(Tuple.duplicate(123, 2)) == tuple([integer(), integer()])

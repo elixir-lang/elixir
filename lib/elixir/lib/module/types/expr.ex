@@ -30,7 +30,7 @@ defmodule Module.Types.Expr do
             versioned_vars: open_map()
           )
 
-  # This is used temporarily until reverse arrows are defined
+  # An annotation for terms where the reverse arrow is not yet fully defined
   @pending term()
   @atom_true atom([true])
   @exception open_map(__struct__: atom(), __exception__: @atom_true)
@@ -90,28 +90,13 @@ defmodule Module.Types.Expr do
   end
 
   # {left, right}
-  # PENDING: here
-  def of_expr({left, right}, _expected, expr, stack, context) do
-    {left, context} = of_expr(left, @pending, expr, stack, context)
-    {right, context} = of_expr(right, @pending, expr, stack, context)
-
-    if stack.mode == :traversal do
-      {dynamic(), context}
-    else
-      {tuple([left, right]), context}
-    end
+  def of_expr({left, right}, expected, expr, stack, context) do
+    of_tuple([left, right], expected, expr, stack, context)
   end
 
   # {...}
-  # PENDING: here
-  def of_expr({:{}, _meta, exprs}, _expected, expr, stack, context) do
-    {types, context} = Enum.map_reduce(exprs, context, &of_expr(&1, @pending, expr, stack, &2))
-
-    if stack.mode == :traversal do
-      {dynamic(), context}
-    else
-      {tuple(types), context}
-    end
+  def of_expr({:{}, _meta, exprs}, expected, expr, stack, context) do
+    of_tuple(exprs, expected, expr, stack, context)
   end
 
   # <<...>>>
@@ -531,6 +516,32 @@ defmodule Module.Types.Expr do
     else
       Of.refine_body_var(var, expected, expr, stack, context)
     end
+  end
+
+  ## Tuples
+
+  defp of_tuple(elems, _expected, expr, %{mode: :traversal} = stack, context) do
+    {_types, context} = Enum.map_reduce(elems, context, &of_expr(&1, term(), expr, stack, &2))
+    {dynamic(), context}
+  end
+
+  defp of_tuple(elems, expected, expr, stack, context) do
+    of_tuple(elems, 0, [], expected, expr, stack, context)
+  end
+
+  defp of_tuple([elem | elems], index, acc, expected, expr, stack, context) do
+    expr_expected =
+      case tuple_fetch(expected, index) do
+        {_, type} -> type
+        _ -> term()
+      end
+
+    {type, context} = of_expr(elem, expr_expected, expr, stack, context)
+    of_tuple(elems, index + 1, [type | acc], expected, expr, stack, context)
+  end
+
+  defp of_tuple([], _index, acc, _expected, _expr, _stack, context) do
+    {tuple(Enum.reverse(acc)), context}
   end
 
   ## Try
