@@ -441,7 +441,7 @@ defmodule IEx.AutocompleteTest do
     assert {:no, [], []} = expand(~c"%URI{var | path: \"foo\", unkno")
     assert {:no, [], []} = expand(~c"%Unknown{var | path: \"foo\", unkno")
 
-    eval "var = %URI{}"
+    eval("var = %URI{}")
 
     assert {:yes, ~c"", entries} = expand(~c"%{var | ")
     assert ~c"path:" in entries
