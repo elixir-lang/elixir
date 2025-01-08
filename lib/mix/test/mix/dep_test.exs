@@ -1264,9 +1264,7 @@ defmodule Mix.DepTest do
     test "errors when more overrides are needed for an app" do
       deps = [
         {:deps_repo, "0.1.0", path: "custom/deps_repo"},
-        {:override_for_repo, "0.1.0", path: "custom/override_for_repo"},
-        {:git_repo, "0.2.0",
-         git: MixTest.Case.fixture_path("git_repo"), override_for: [:deps_repo]}
+        {:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo"), override_for: []}
       ]
 
       with_deps(deps, fn ->
@@ -1277,7 +1275,7 @@ defmodule Mix.DepTest do
       end)
 
       message =
-        "Dependency git_repo (#{fixture_path("git_repo")}) requires override_for on override_for_repo"
+        "Dependency git_repo (#{fixture_path("git_repo")}) requires override_for on deps_repo"
 
       assert_received {:mix_shell, :info, [^message]}
     end
