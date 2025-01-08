@@ -21,7 +21,7 @@ defmodule Float do
   and arithmetic due to the fact most decimal fractions cannot be
   represented by a floating-point binary and most operations are not exact,
   but operate on approximations. Those issues are not specific
-  to Elixir,mthey are a property of floating point representation itself.
+  to Elixir, they are a property of floating point representation itself.
 
   For example, the numbers 0.1 and 0.01 are two of them, what means the result
   of squaring 0.1 does not give 0.01 neither the closest representable. Here is
