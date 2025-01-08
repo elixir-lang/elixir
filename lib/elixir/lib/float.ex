@@ -21,7 +21,7 @@ defmodule Float do
   and arithmetic due to the fact most decimal fractions cannot be
   represented by a floating-point binary and most operations are not exact,
   but operate on approximations. Those issues are not specific
-  to Elixir, they are a property of floating point representation itself.
+  to Elixir,mthey are a property of floating point representation itself.
 
   For example, the numbers 0.1 and 0.01 are two of them, what means the result
   of squaring 0.1 does not give 0.01 neither the closest representable. Here is
@@ -164,40 +164,50 @@ defmodule Float do
   end
 
   defp parse_unsigned(<<digit, rest::binary>>) when digit in ?0..?9,
-    do: parse_unsigned(rest, false, false, <<digit>>)
+    do: parse_unsigned(rest, false, false, [digit])
 
   defp parse_unsigned(binary) when is_binary(binary), do: :error
 
   defp parse_unsigned(<<digit, rest::binary>>, dot?, e?, acc) when digit in ?0..?9,
-    do: parse_unsigned(rest, dot?, e?, <<acc::binary, digit>>)
+    do: parse_unsigned(rest, dot?, e?, [digit | acc])
 
   defp parse_unsigned(<<?., digit, rest::binary>>, false, false, acc) when digit in ?0..?9,
-    do: parse_unsigned(rest, true, false, <<acc::binary, ?., digit>>)
+    do: parse_unsigned(rest, true, false, [digit, ?. | acc])
 
   defp parse_unsigned(<<exp_marker, digit, rest::binary>>, dot?, false, acc)
        when exp_marker in ~c"eE" and digit in ?0..?9,
-       do: parse_unsigned(rest, true, true, <<add_dot(acc, dot?)::binary, ?e, digit>>)
+       do: parse_unsigned(rest, true, true, [digit, ?e | add_dot(acc, dot?)])
 
   defp parse_unsigned(<<exp_marker, sign, digit, rest::binary>>, dot?, false, acc)
        when exp_marker in ~c"eE" and sign in ~c"-+" and digit in ?0..?9,
-       do: parse_unsigned(rest, true, true, <<add_dot(acc, dot?)::binary, ?e, sign, digit>>)
+       do: parse_unsigned(rest, true, true, [digit, sign, ?e | add_dot(acc, dot?)])
 
   # When floats are expressed in scientific notation, :erlang.binary_to_float/1 can raise an
   # ArgumentError if the e exponent is too big. For example, "1.0e400". Because of this, we
   # rescue the ArgumentError here and return an error.
   defp parse_unsigned(rest, dot?, true = _e?, acc) do
-    :erlang.binary_to_float(add_dot(acc, dot?))
+    acc
+    |> add_dot(dot?)
+    |> :lists.reverse()
+    |> :erlang.list_to_float()
   rescue
     ArgumentError -> :error
   else
     float -> {float, rest}
   end
 
-  defp parse_unsigned(rest, dot?, false = _e?, acc),
-    do: {:erlang.binary_to_float(add_dot(acc, dot?)), rest}
+  defp parse_unsigned(rest, dot?, false = _e?, acc) do
+    float =
+      acc
+      |> add_dot(dot?)
+      |> :lists.reverse()
+      |> :erlang.list_to_float()
+
+    {float, rest}
+  end
 
   defp add_dot(acc, true), do: acc
-  defp add_dot(acc, false), do: acc <> ".0"
+  defp add_dot(acc, false), do: [?0, ?. | acc]
 
   @doc """
   Rounds a float to the largest float less than or equal to `number`.
