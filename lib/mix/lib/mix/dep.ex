@@ -392,7 +392,7 @@ defmodule Mix.Dep do
     if dep.opts[:from_umbrella] || other.opts[:from_umbrella] do
       "Please remove the conflicting options from your definition"
     else
-      "Ensure they match or specify one of the above in your deps and set \"override: true\""
+      "Ensure they match or specify one of the above in your deps and set \"override: true\" or \"override_for:\""
     end
   end
 

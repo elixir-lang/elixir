@@ -1240,6 +1240,49 @@ defmodule Mix.DepTest do
     end
   end
 
+  describe "override_for" do
+    test "warns when overrides are no longer needed for an app" do
+      deps = [
+        {:deps_repo, "0.1.0", path: "custom/deps_repo"},
+        {:git_repo, "0.1.0",
+         git: MixTest.Case.fixture_path("git_repo"), override_for: [:deps_repo]}
+      ]
+
+      with_deps(deps, fn ->
+        in_fixture("deps_status", fn ->
+          Mix.Tasks.Deps.Get.run([])
+          Mix.Tasks.Deps.Compile.run([])
+        end)
+      end)
+
+      message =
+        "Dependency git_repo (#{fixture_path("git_repo")}) no longer requires override_for on deps_repo"
+
+      assert_received {:mix_shell, :info, [^message]}
+    end
+
+    test "errors when more overrides are needed for an app" do
+      deps = [
+        {:deps_repo, "0.1.0", path: "custom/deps_repo"},
+        {:override_for_repo, "0.1.0", path: "custom/override_for_repo"},
+        {:git_repo, "0.2.0",
+         git: MixTest.Case.fixture_path("git_repo"), override_for: [:deps_repo]}
+      ]
+
+      with_deps(deps, fn ->
+        in_fixture("deps_status", fn ->
+          Mix.Tasks.Deps.Get.run([])
+          Mix.Tasks.Deps.Compile.run([])
+        end)
+      end)
+
+      message =
+        "Dependency git_repo (#{fixture_path("git_repo")}) requires override_for on override_for_repo"
+
+      assert_received {:mix_shell, :info, [^message]}
+    end
+  end
+
   describe "app generation" do
     test "considers runtime from current app on nested deps" do
       Process.put(:custom_deps_git_repo_opts, runtime: false)
