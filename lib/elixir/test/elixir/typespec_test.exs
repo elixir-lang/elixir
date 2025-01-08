@@ -75,6 +75,14 @@ defmodule TypespecTest do
                        @type my_type :: %URI.t(){}
                      end
                    end
+
+      assert_raise Kernel.TypespecError,
+                   ~r"unexpected expression in typespec: t\.Foo",
+                   fn ->
+                     test_module do
+                       @type my_type :: t.Foo
+                     end
+                   end
     end
 
     test "invalid function specification" do
@@ -120,7 +128,7 @@ defmodule TypespecTest do
 
     test "redefined type" do
       assert_raise Kernel.TypespecError,
-                   ~r"type foo/0 is already defined in .*test/elixir/typespec_test.exs:126",
+                   ~r"type foo/0 is already defined in .*test/elixir/typespec_test.exs:134",
                    fn ->
                      test_module do
                        @type foo :: atom
@@ -129,7 +137,7 @@ defmodule TypespecTest do
                    end
 
       assert_raise Kernel.TypespecError,
-                   ~r"type foo/2 is already defined in .*test/elixir/typespec_test.exs:136",
+                   ~r"type foo/2 is already defined in .*test/elixir/typespec_test.exs:144",
                    fn ->
                      test_module do
                        @type foo :: atom
@@ -139,7 +147,7 @@ defmodule TypespecTest do
                    end
 
       assert_raise Kernel.TypespecError,
-                   ~r"type foo/0 is already defined in .*test/elixir/typespec_test.exs:145",
+                   ~r"type foo/0 is already defined in .*test/elixir/typespec_test.exs:153",
                    fn ->
                      test_module do
                        @type foo :: atom

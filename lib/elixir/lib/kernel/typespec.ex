@@ -947,8 +947,11 @@ defmodule Kernel.Typespec do
 
       [head | tail] ->
         case Macro.expand_once(head, env) do
-          head when is_atom(head) -> :elixir_aliases.concat([head | tail])
-          _ -> alias
+          head when is_atom(head) ->
+            :elixir_aliases.concat([head | tail])
+
+          _ ->
+            compile_error(env, "unexpected expression in typespec: #{Macro.to_string(alias)}")
         end
     end
   end
