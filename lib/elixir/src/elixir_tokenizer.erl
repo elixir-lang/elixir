@@ -826,9 +826,10 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
       NewScope =
         case H of
           $' ->
-            Message = "single-quoted strings represent charlists. "
+            Message = "using single-quoted strings to represent charlists is deprecated.\n"
               "Use ~c\"\" if you indeed want a charlist or use \"\" instead.\n"
-              "You may run \"mix format --migrate\" to fix this warning automatically.",
+              "You may run \"mix format --migrate\" to change all single-quoted\n"
+              "strings to use the ~c sigil and fix this warning.",
             prepend_warning(Line, Column-1, Message, InterScope);
 
           _ ->
