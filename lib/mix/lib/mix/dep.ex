@@ -347,7 +347,7 @@ defmodule Mix.Dep do
       dep_status(dep) <>
       "\n  does not match the requirement specified\n" <>
       dep_status(other) <>
-      "\n  Ensure they match or specify one of the above in your deps and set \"override: true\""
+      "\n  Ensure they match or specify one of the above in your deps and set \"override: [#{inspect(other.app)}]\""
   end
 
   def format_status(%Mix.Dep{app: app, status: {:divergedonly, other}} = dep) do

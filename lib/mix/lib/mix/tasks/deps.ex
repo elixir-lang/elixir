@@ -99,7 +99,11 @@ defmodule Mix.Tasks.Deps do
       targets (like `[:host, :rpi3]`)
 
     * `:override` - if set to `true` the dependency will override any other
-      definitions of itself by other dependencies
+      definitions of itself by other dependencies. This option can also be a
+      list, which overrides the definitions of only certain dependencies. If
+      a dependency is not included in the list and an override is required,
+      it will still fail. If a dependency is in the list and no longer necessary,
+      then a warning is emitted
 
     * `:manager` - Mix can also compile Rebar3 and makefile projects
       and can fetch sub dependencies of Rebar3 projects. Mix will
