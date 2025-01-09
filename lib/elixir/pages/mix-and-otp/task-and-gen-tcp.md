@@ -305,6 +305,6 @@ Now we have an always running acceptor that starts temporary task processes unde
 
 ## Wrapping up
 
-In this chapter we have implemented a straigh-forward TCP acceptor, which allowed is to explore tools for concurrency and fault-tolerance. While our acceptor can manage concurrent connections, it is still not ready for production. In practice, TCP servers run a pool of acceptors, instead of a single one, each of them with their own supervisor. While Elixir has tools to make it easier to partition and scale the accept, such as the `PartitionSupervisor`, they are out of scope for this guide. In any case, a better path forward may be to use existing packages tailored for this use case, such as [Ranch](https://github.com/ninenines/ranch) (in Erlang) or [Thousand Island](https://github.com/mtrudel/thousand_island) (in Elixir).
+In this chapter, we implemented a basic TCP acceptor while exploring concurrency and fault-tolerance. Our acceptor can manage concurrent connections, but it is still not ready for production. Production-ready TCP servers run a pool of acceptors, each with their own supervisor. Elixir's `PartitionSupervisor` might be used to partition and scale the acceptor, but it is out of scope for this guide. In practice, you will use existing packages tailored for this use-case, such as [Ranch](https://github.com/ninenines/ranch) (in Erlang) or [Thousand Island](https://github.com/mtrudel/thousand_island) (in Elixir).
 
 In the next chapter, we will start parsing the client requests and sending responses, finishing our server.
