@@ -758,7 +758,15 @@ defmodule Protocol do
 
         # We don't allow function definition inside protocols
         import Kernel,
-          except: [def: 1, def: 2, defdelegate: 2, defguard: 1, defguardp: 1]
+          except: [
+            def: 1,
+            def: 2,
+            defdelegate: 2,
+            defguard: 1,
+            defguardp: 1,
+            defstruct: 1,
+            defexception: 1
+          ]
 
         # Import the new `def` that is used by protocols
         import Protocol, only: [def: 1]
