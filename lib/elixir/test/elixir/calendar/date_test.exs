@@ -1,5 +1,6 @@
 Code.require_file("../test_helper.exs", __DIR__)
 Code.require_file("holocene.exs", __DIR__)
+Code.require_file("week_starts_on_sunday.exs", __DIR__)
 Code.require_file("fakes.exs", __DIR__)
 
 defmodule DateTest do
@@ -138,6 +139,15 @@ defmodule DateTest do
     assert Date.day_of_week(Calendar.Holocene.date(2016, 11, 04), :sunday) == 6
     assert Date.day_of_week(Calendar.Holocene.date(2016, 11, 05), :sunday) == 7
     assert Date.day_of_week(Calendar.Holocene.date(2016, 11, 06), :sunday) == 1
+
+    assert Date.day_of_week(Calendar.WeekStartsSunday.date(2025, 01, 06)) == 1
+    assert Date.day_of_week(Calendar.WeekStartsSunday.date(2025, 01, 07)) == 2
+    assert Date.day_of_week(Calendar.WeekStartsSunday.date(2025, 01, 08)) == 3
+    assert Date.day_of_week(Calendar.WeekStartsSunday.date(2025, 01, 09)) == 4
+    assert Date.day_of_week(Calendar.WeekStartsSunday.date(2025, 01, 10)) == 5
+    assert Date.day_of_week(Calendar.WeekStartsSunday.date(2025, 01, 11)) == 6
+    assert Date.day_of_week(Calendar.WeekStartsSunday.date(2025, 01, 12)) == 7
+    assert Date.day_of_week(Calendar.WeekStartsSunday.date(2025, 01, 13)) == 1
   end
 
   test "beginning_of_week" do
@@ -152,6 +162,12 @@ defmodule DateTest do
 
     assert Date.beginning_of_week(Calendar.Holocene.date(2020, 07, 11), :saturday) ==
              Calendar.Holocene.date(2020, 07, 11)
+
+    assert Date.beginning_of_week(Calendar.WeekStartsSunday.date(2025, 01, 08)) ==
+             Calendar.WeekStartsSunday.date(2025, 01, 05)
+
+    assert Date.beginning_of_week(Calendar.WeekStartsSunday.date(2025, 01, 01)) ==
+             Calendar.WeekStartsSunday.date(2024, 12, 29)
   end
 
   test "end_of_week" do
@@ -166,6 +182,12 @@ defmodule DateTest do
 
     assert Date.end_of_week(Calendar.Holocene.date(2020, 07, 05), :saturday) ==
              Calendar.Holocene.date(2020, 07, 10)
+
+    assert Date.end_of_week(Calendar.WeekStartsSunday.date(2025, 01, 08)) ==
+             Calendar.WeekStartsSunday.date(2025, 01, 11)
+
+    assert Date.end_of_week(Calendar.WeekStartsSunday.date(2025, 01, 01)) ==
+             Calendar.WeekStartsSunday.date(2025, 01, 04)
   end
 
   test "convert/2" do

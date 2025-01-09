@@ -942,7 +942,7 @@ defmodule Date do
         %Date{calendar: calendar, year: year, month: month, day: day}
 
       {day_of_week, first_day_of_week, _} ->
-        add(date, -(day_of_week - first_day_of_week))
+        add(date, -Integer.mod(day_of_week - first_day_of_week, 7))
     end
   end
 
@@ -995,7 +995,7 @@ defmodule Date do
         %Date{calendar: calendar, year: year, month: month, day: day}
 
       {day_of_week, _, last_day_of_week} ->
-        add(date, last_day_of_week - day_of_week)
+        add(date, Integer.mod(last_day_of_week - day_of_week, 7))
     end
   end
 
