@@ -849,6 +849,19 @@ defmodule TypespecTest do
       assert [{:atom, _, Keyword}, {:atom, _, :t}, [{:var, _, :value}]] = kw_with_value_args
     end
 
+    test "@type with macro in alias" do
+      bytecode =
+        test_module do
+          defmacro module() do
+            quote do: __MODULE__
+          end
+
+          @type my_type :: module().Foo
+        end
+
+      assert [type: {:my_type, {:atom, _, TypespecTest.TypespecSample.Foo}, []}] = types(bytecode)
+    end
+
     test "@type with a reserved signature" do
       assert_raise Kernel.TypespecError,
                    ~r"type required\/1 is a reserved type and it cannot be defined",
