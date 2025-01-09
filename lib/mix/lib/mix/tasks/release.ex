@@ -12,7 +12,7 @@ defmodule Mix.Tasks.Release do
   Once a release is assembled, it can be packaged and deployed to a
   target, as long as the target runs on the same operating system (OS)
   distribution and version as the machine running the `mix release`
-  command.
+  command. Windows releases also require Microsoft Visual C++ Runtime.
 
   A release can be configured in your `mix.exs` file under the `:releases`
   key inside `def project`:
