@@ -271,10 +271,8 @@ defmodule JSON do
   | `%{atom() => _}`       | Object   |
   | `%{integer() => _}`    | Object   |
 
-
   You may also implement the `JSON.Encoder` protocol for custom data structures.
   Some built-in data-structures already derive the `JSON.Encoder` protocol:
-
 
   | **Elixir**             | **JSON**        |
   |------------------------|-----------------|
