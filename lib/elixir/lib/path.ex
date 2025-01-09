@@ -884,7 +884,7 @@ defmodule Path do
     * A `..` component would make it so that the path would traverse up above
       the root of `relative_to`.
 
-    * A symbolic link in the path points to something above the root of `cwd`.
+    * A symbolic link in the path points to something above the root of `relative_to`.
 
   ## Examples
 
@@ -906,10 +906,10 @@ defmodule Path do
   """
   @doc since: "1.14.0"
   @spec safe_relative(t, t) :: {:ok, binary} | :error
-  def safe_relative(path, cwd \\ File.cwd!()) do
+  def safe_relative(path, relative_to \\ File.cwd!()) do
     path = IO.chardata_to_string(path)
 
-    case :filelib.safe_relative_path(path, cwd) do
+    case :filelib.safe_relative_path(path, relative_to) do
       :unsafe -> :error
       relative_path -> {:ok, IO.chardata_to_string(relative_path)}
     end
