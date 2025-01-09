@@ -257,7 +257,7 @@ defmodule JSON do
 
   ## Encoding
 
-  Elixir built-in data structures are encoded to JSON as follows:
+  Elixir primitive types are encoded to JSON as follows:
 
   | **Elixir**             | **JSON** |
   |------------------------|----------|
@@ -272,10 +272,19 @@ defmodule JSON do
   | `%{integer() => _}`    | Object   |
 
   You may also implement the `JSON.Encoder` protocol for custom data structures.
+  Some built-in data-structures already derive the `JSON.Encoder` protocol:
+
+  | **Elixir**             | **JSON**        |
+  |------------------------|-----------------|
+  | `Date.t()`             | ISO 8601 string |
+  | `Time.t()`             | ISO 8601 string |
+  | `DateTime.t()`         | ISO 8601 string |
+  | `NaiveDateTime.t()`    | ISO 8601 string |
+  | `Duration.t()`         | ISO 8601 string |
 
   ## Decoding
 
-  Elixir built-in data structures are decoded from JSON as follows:
+  Elixir types are decoded from JSON as follows:
 
   | **JSON** | **Elixir**             |
   |----------|------------------------|
