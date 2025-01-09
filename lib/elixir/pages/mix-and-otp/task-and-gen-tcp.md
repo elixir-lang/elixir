@@ -157,7 +157,7 @@ say me
 say me
 ```
 
-Yes, it works! However, does it *scale*?
+Yes, it works! However, can it handle more than one client?
 
 Try to connect two telnet clients at the same time. When you do so, you will notice that the second client doesn't echo:
 
@@ -302,5 +302,9 @@ Luckily, this can be done by using `Supervisor.child_spec/2`, which allows us to
 ```
 
 Now we have an always running acceptor that starts temporary task processes under an always running task supervisor.
+
+## Wrapping up
+
+In this chapter we have implemented a straigh-forward TCP acceptor, which allowed is to explore tools for concurrency and fault-tolerance. While our acceptor can manage concurrent connections, it is still not ready for production. In practice, TCP servers run a pool of acceptors, instead of a single one, each of them with their own supervisor. While Elixir has tools to make it easier to partition and scale the accept, such as the `PartitionSupervisor`, they are out of scope for this guide. In any case, a better path forward may be to use existing packages tailored for this use case, such as [Ranch](https://github.com/ninenines/ranch) (in Erlang) or [Thousand Island](https://github.com/mtrudel/thousand_island) (in Elixir).
 
 In the next chapter, we will start parsing the client requests and sending responses, finishing our server.
