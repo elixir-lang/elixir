@@ -75,6 +75,14 @@ defmodule TypespecTest do
                        @type my_type :: %URI.t(){}
                      end
                    end
+
+      assert_raise Kernel.TypespecError,
+                   ~r"unexpected expression in typespec: t\.Foo",
+                   fn ->
+                     test_module do
+                       @type my_type :: t.Foo
+                     end
+                   end
     end
 
     test "invalid function specification" do
@@ -120,7 +128,7 @@ defmodule TypespecTest do
 
     test "redefined type" do
       assert_raise Kernel.TypespecError,
-                   ~r"type foo/0 is already defined in .*test/elixir/typespec_test.exs:126",
+                   ~r"type foo/0 is already defined in .*test/elixir/typespec_test.exs:134",
                    fn ->
                      test_module do
                        @type foo :: atom
@@ -129,7 +137,7 @@ defmodule TypespecTest do
                    end
 
       assert_raise Kernel.TypespecError,
-                   ~r"type foo/2 is already defined in .*test/elixir/typespec_test.exs:136",
+                   ~r"type foo/2 is already defined in .*test/elixir/typespec_test.exs:144",
                    fn ->
                      test_module do
                        @type foo :: atom
@@ -139,7 +147,7 @@ defmodule TypespecTest do
                    end
 
       assert_raise Kernel.TypespecError,
-                   ~r"type foo/0 is already defined in .*test/elixir/typespec_test.exs:145",
+                   ~r"type foo/0 is already defined in .*test/elixir/typespec_test.exs:153",
                    fn ->
                      test_module do
                        @type foo :: atom
@@ -839,6 +847,19 @@ defmodule TypespecTest do
       assert {:remote_type, _, [{:atom, _, Keyword}, {:atom, _, :t}, []]} = kw
       assert {:remote_type, _, kw_with_value_args} = kw_with_value
       assert [{:atom, _, Keyword}, {:atom, _, :t}, [{:var, _, :value}]] = kw_with_value_args
+    end
+
+    test "@type with macro in alias" do
+      bytecode =
+        test_module do
+          defmacro module() do
+            quote do: __MODULE__
+          end
+
+          @type my_type :: module().Foo
+        end
+
+      assert [type: {:my_type, {:atom, _, TypespecTest.TypespecSample.Foo}, []}] = types(bytecode)
     end
 
     test "@type with a reserved signature" do
