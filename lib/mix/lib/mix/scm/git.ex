@@ -126,17 +126,17 @@ defmodule Mix.SCM.Git do
     update_origin(opts[:git])
 
     # Fetch external data
-    rev = get_lock_rev(opts[:lock], opts) || get_opts_rev(opts)
+    lock_rev = get_lock_rev(opts[:lock], opts)
 
     ["--git-dir=.git", "fetch", "--force", "--quiet"]
     |> Kernel.++(progress_switch(git_version()))
     |> Kernel.++(tags_switch(opts[:tag]))
     |> Kernel.++(depth_switch(opts[:depth]))
-    |> Kernel.++(refspec_switch(opts, rev))
+    |> Kernel.++(refspec_switch(opts, lock_rev || get_opts_rev(opts)))
     |> git!()
 
     # Migrate the Git repo
-    rev = rev || default_branch()
+    rev = lock_rev || get_origin_opts_rev(opts) || default_branch()
     git!(["--git-dir=.git", "checkout", "--quiet", rev])
 
     if opts[:submodules] do
@@ -312,6 +312,14 @@ defmodule Mix.SCM.Git do
 
   defp get_opts_rev(opts) do
     opts[:branch] || opts[:ref] || opts[:tag]
+  end
+
+  defp get_origin_opts_rev(opts) do
+    if branch = opts[:branch] do
+      "origin/#{branch}"
+    else
+      opts[:ref] || opts[:tag]
+    end
   end
 
   defp redact_uri(git) do
