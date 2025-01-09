@@ -878,7 +878,8 @@ defmodule ExUnit.Diff do
   end
 
   defp rebuild_split_strings(%{contents: contents, delimiter: delimiter}, right) do
-    %{contents: contents ++ [{false, right}], delimiter: delimiter}
+    {new_right, diff} = extract_diff_meta(right)
+    %{contents: contents ++ [{diff, new_right}], delimiter: delimiter}
   end
 
   defp rebuild_concat_string(literal, nil, []) do

@@ -1133,6 +1133,12 @@ defmodule ExUnit.DiffTest do
       "-<<trap::binary-size(3)>> <> \"baz\"-",
       "+\"foobar\"+"
     )
+
+    refute_diff(
+      "hello " <> <<_::binary-size(6)>> = "hello world",
+      "\"hello \" <> -<<_::binary-size(6)>>-",
+      "\"hello +world+\""
+    )
   end
 
   test "underscore" do
