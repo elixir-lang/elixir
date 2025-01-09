@@ -259,17 +259,22 @@ defmodule JSON do
 
   Elixir built-in data structures are encoded to JSON as follows:
 
-  | **Elixir**             | **JSON** |
-  |------------------------|----------|
-  | `integer() \| float()` | Number   |
-  | `true \| false `       | Boolean  |
-  | `nil`                  | Null     |
-  | `binary()`             | String   |
-  | `atom()`               | String   |
-  | `list()`               | Array    |
-  | `%{binary() => _}`     | Object   |
-  | `%{atom() => _}`       | Object   |
-  | `%{integer() => _}`    | Object   |
+  | **Elixir**             | **JSON**        |
+  |------------------------|-----------------|
+  | `integer() \| float()` | Number          |
+  | `true \| false `       | Boolean         |
+  | `nil`                  | Null            |
+  | `binary()`             | String          |
+  | `atom()`               | String          |
+  | `list()`               | Array           |
+  | `Date.t()`             | ISO 8601 string |
+  | `Time.t()`             | ISO 8601 string |
+  | `DateTime.t()`         | ISO 8601 string |
+  | `NaiveDateTime.t()`    | ISO 8601 string |
+  | `Duration.t()`         | ISO 8601 string |
+  | `%{binary() => _}`     | Object          |
+  | `%{atom() => _}`       | Object          |
+  | `%{integer() => _}`    | Object          |
 
   You may also implement the `JSON.Encoder` protocol for custom data structures.
 
