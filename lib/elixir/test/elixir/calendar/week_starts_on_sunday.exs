@@ -162,7 +162,6 @@ defmodule Calendar.WeekStartsSunday do
   @impl true
   defdelegate iso_days_to_end_of_day(iso_days), to: Calendar.ISO
 
-  # The Holocene calendar extends most year and day count guards implemented in the ISO calendars.
   @impl true
   def shift_date(_year, _month, _day, _duration) do
     raise "shift_date/4 not implemented"
