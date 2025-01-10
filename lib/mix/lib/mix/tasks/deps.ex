@@ -97,6 +97,13 @@ defmodule Mix.Tasks.Deps do
     * `:override` - if set to `true` the dependency will override any other
       definitions of itself by other dependencies
 
+    * `:override_for` - if set to a list of applications requiring the
+      override (see the `override` opt), warnings will be emitted when other
+      apps are added that also require an override, and when the override is no
+      longer required. This setting behaves similarly to `override: true` for
+      dependency resolution. It does not fail resolution when more apps require
+      an override.
+
     * `:manager` - Mix can also compile Rebar3 and makefile projects
       and can fetch sub dependencies of Rebar3 projects. Mix will
       try to infer the type of project but it can be overridden with this
