@@ -159,7 +159,8 @@ defmodule Date do
     range(first, first_days, last, last_days, calendar, step)
   end
 
-  def range(%{calendar: calendar} = first, %Duration{} = duration, step) do
+  def range(%{calendar: calendar} = first, %Duration{} = duration, step)
+      when is_integer(step) and step != 0 do
     last = shift(first, duration)
     range(first, last, step)
   end
@@ -172,6 +173,12 @@ defmodule Date do
     raise ArgumentError,
           "both dates must have matching calendar and the step must be a " <>
             "non-zero integer, got: #{inspect(first)}, #{inspect(last)}, #{step}"
+  end
+
+  def range(%{calendar: _, year: _, month: _, day: _} = first, duration, step) do
+    raise ArgumentError,
+          "expected a Date or Duration as second argument and the step must be a " <>
+            "non-zero integer, got: #{inspect(first)}, #{inspect(duration)}, #{step}"
   end
 
   defp range(first, first_days, last, last_days, calendar, step) do
