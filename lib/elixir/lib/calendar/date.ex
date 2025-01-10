@@ -84,6 +84,11 @@ defmodule Date do
       iex> Date.range(~D[1999-01-01], ~D[2000-01-01])
       Date.range(~D[1999-01-01], ~D[2000-01-01])
 
+  Alternatively, a range may be built from a first `Date` and a `Duration`:
+
+      iex> Date.range(~D[1999-01-01], Duration.new!(year: 1))
+      Date.range(~D[1999-01-01], ~D[2000-01-01])
+
   A range of dates implements the `Enumerable` protocol, which means
   functions in the `Enum` module can be used to work with
   ranges:
@@ -100,7 +105,7 @@ defmodule Date do
 
   """
   @doc since: "1.5.0"
-  @spec range(Calendar.date(), Calendar.date()) :: Date.Range.t()
+  @spec range(Calendar.date(), Calendar.date() | Duration.t()) :: Date.Range.t()
   def range(%{calendar: calendar} = first, %{calendar: calendar} = last) do
     {first_days, _} = to_iso_days(first)
     {last_days, _} = to_iso_days(last)
@@ -117,6 +122,11 @@ defmodule Date do
       end
 
     range(first, first_days, last, last_days, calendar, step)
+  end
+
+  def range(%{calendar: calendar} = first, %Duration{} = duration) do
+    last = shift(first, duration)
+    range(first, last)
   end
 
   def range(%{calendar: _, year: _, month: _, day: _}, %{calendar: _, year: _, month: _, day: _}) do
@@ -140,13 +150,18 @@ defmodule Date do
 
   """
   @doc since: "1.12.0"
-  @spec range(Calendar.date(), Calendar.date(), step :: pos_integer | neg_integer) ::
+  @spec range(Calendar.date(), Calendar.date() | Duration.t(), step :: pos_integer | neg_integer) ::
           Date.Range.t()
   def range(%{calendar: calendar} = first, %{calendar: calendar} = last, step)
       when is_integer(step) and step != 0 do
     {first_days, _} = to_iso_days(first)
     {last_days, _} = to_iso_days(last)
     range(first, first_days, last, last_days, calendar, step)
+  end
+
+  def range(%{calendar: calendar} = first, %Duration{} = duration, step) do
+    last = shift(first, duration)
+    range(first, last, step)
   end
 
   def range(

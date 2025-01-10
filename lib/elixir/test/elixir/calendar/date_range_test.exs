@@ -6,8 +6,12 @@ defmodule Date.RangeTest do
 
   @asc_range Date.range(~D[2000-01-01], ~D[2001-01-01])
   @asc_range_2 Date.range(~D[2000-01-01], ~D[2001-01-01], 2)
+  @asc_range_duration Date.range(~D[2000-01-01], Duration.new!(year: 1))
+  @asc_range_duration_2 Date.range(~D[2000-01-01], Duration.new!(year: 1), 2)
   @desc_range Date.range(~D[2001-01-01], ~D[2000-01-01], -1)
   @desc_range_2 Date.range(~D[2001-01-01], ~D[2000-01-01], -2)
+  @desc_range_duration Date.range(~D[2001-01-01], Duration.new!(year: -1))
+  @desc_range_duration_2 Date.range(~D[2001-01-01], Duration.new!(year: -1), 2)
   @empty_range Date.range(~D[2001-01-01], ~D[2000-01-01], 1)
 
   describe "Enum.member?/2" do
@@ -20,6 +24,9 @@ defmodule Date.RangeTest do
 
       assert Enum.member?(@asc_range_2, ~D[2000-01-03])
       refute Enum.member?(@asc_range_2, ~D[2000-01-02])
+
+      assert Enum.member?(@asc_range_duration, ~D[2000-01-03])
+      refute Enum.member?(@asc_range_duration_2, ~D[2000-01-02])
     end
 
     test "for descending range" do
@@ -31,6 +38,9 @@ defmodule Date.RangeTest do
 
       assert Enum.member?(@desc_range_2, ~D[2000-12-30])
       refute Enum.member?(@desc_range_2, ~D[2000-12-29])
+
+      assert Enum.member?(@desc_range_duration, ~D[2000-12-30])
+      refute Enum.member?(@desc_range_duration_2, ~D[2000-12-29])
     end
 
     test "empty range" do
@@ -104,6 +114,18 @@ defmodule Date.RangeTest do
     assert Enum.to_list(range) == [~D[2000-01-01], ~D[2000-01-02]]
 
     range = Date.range(~N[2000-01-01 09:00:00], ~U[2000-01-03 09:00:00Z], 2)
+    assert range.first == ~D[2000-01-01]
+    assert range.last == ~D[2000-01-03]
+    assert Enum.to_list(range) == [~D[2000-01-01], ~D[2000-01-03]]
+  end
+
+  test "works with durations" do
+    range = Date.range(~D[2000-01-01], Duration.new!(day: 1))
+    assert range.first == ~D[2000-01-01]
+    assert range.last == ~D[2000-01-02]
+    assert Enum.to_list(range) == [~D[2000-01-01], ~D[2000-01-02]]
+
+    range = Date.range(~D[2000-01-01], Duration.new!(day: 2), 2)
     assert range.first == ~D[2000-01-01]
     assert range.last == ~D[2000-01-03]
     assert Enum.to_list(range) == [~D[2000-01-01], ~D[2000-01-03]]
