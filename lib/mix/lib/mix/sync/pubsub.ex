@@ -272,9 +272,16 @@ defmodule Mix.Sync.PubSub do
 
   defp hash(key), do: :erlang.md5(key)
 
+  defp base_path do
+    user = System.get_env("USER", "default")
+    path = Path.join([System.tmp_dir!(), "mix_pubsub_#{Base.url_encode64(user, padding: false)}"])
+    File.mkdir_p!(path)
+    path
+  end
+
   defp path(hash) do
     hash = Base.url_encode64(hash, padding: false)
-    Path.join([System.tmp_dir!(), "mix_pubsub", hash])
+    Path.join(base_path(), hash)
   end
 
   defp recv(socket, size, timeout \\ :infinity) do
