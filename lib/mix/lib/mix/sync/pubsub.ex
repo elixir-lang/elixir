@@ -127,6 +127,7 @@ defmodule Mix.Sync.PubSub do
   @impl true
   def init({}) do
     state = %{port: nil, hash_to_pids: %{}}
+    init_base_path()
     {:ok, state}
   end
 
@@ -272,9 +273,20 @@ defmodule Mix.Sync.PubSub do
 
   defp hash(key), do: :erlang.md5(key)
 
+  defp base_path do
+    Path.join(System.tmp_dir!(), "mix_pubsub")
+  end
+
   defp path(hash) do
     hash = Base.url_encode64(hash, padding: false)
-    Path.join([System.tmp_dir!(), "mix_pubsub", hash])
+    Path.join([base_path(), hash])
+  end
+
+  defp init_base_path do
+    path = base_path()
+    File.mkdir_p!(path)
+    # ensure other users can write to the directory
+    _ = File.chmod(path, 0o777)
   end
 
   defp recv(socket, size, timeout \\ :infinity) do
