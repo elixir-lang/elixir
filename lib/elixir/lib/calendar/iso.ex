@@ -1993,13 +1993,9 @@ defmodule Calendar.ISO do
       {[], 0, _} ->
         :error
 
-      {microsecond, precision, rest} when precision in 1..6 ->
-        bs = length(microsecond)
-        scale = scale_factor(bs)
+      {microsecond, precision, rest} ->
+        scale = scale_factor(precision)
         {{:erlang.list_to_integer(microsecond) * scale, precision}, rest}
-
-      {microsecond, _precision, rest} ->
-        {{:erlang.list_to_integer(Enum.take(microsecond, 6)), 6}, rest}
     end
   end
 
@@ -2010,6 +2006,9 @@ defmodule Calendar.ISO do
   defp parse_microsecond(rest) do
     {{0, 0}, rest}
   end
+
+  defp parse_microsecond(<<head, tail::binary>>, 6, acc) when head in ?0..?9,
+    do: parse_microsecond(tail, 6, acc)
 
   defp parse_microsecond(<<head, tail::binary>>, precision, acc) when head in ?0..?9,
     do: parse_microsecond(tail, precision + 1, [head | acc])
