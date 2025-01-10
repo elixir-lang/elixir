@@ -1279,15 +1279,16 @@ defmodule Calendar.ISO do
   def microseconds_to_iodata(microsecond, 6), do: zero_pad(microsecond, 6)
 
   def microseconds_to_iodata(microsecond, precision) do
-    num = div(microsecond, div_factor(precision))
+    num = div(microsecond, scale_factor(precision))
     zero_pad(num, precision)
   end
 
-  defp div_factor(1), do: 100_000
-  defp div_factor(2), do: 10_000
-  defp div_factor(3), do: 1_000
-  defp div_factor(4), do: 100
-  defp div_factor(5), do: 10
+  defp scale_factor(1), do: 100_000
+  defp scale_factor(2), do: 10_000
+  defp scale_factor(3), do: 1_000
+  defp scale_factor(4), do: 100
+  defp scale_factor(5), do: 10
+  defp scale_factor(6), do: 1
 
   defp time_to_iodata_format(hour, minute, second, :extended) do
     [zero_pad(hour, 2), ?:, zero_pad(minute, 2), ?: | zero_pad(second, 2)]
@@ -1988,16 +1989,17 @@ defmodule Calendar.ISO do
   end
 
   defp parse_microsecond("." <> rest) do
-    case parse_microsecond(rest, 0, "") do
-      {"", 0, _} ->
+    case parse_microsecond(rest, 0, []) do
+      {[], 0, _} ->
         :error
 
       {microsecond, precision, rest} when precision in 1..6 ->
-        pad = String.duplicate("0", 6 - byte_size(microsecond))
-        {{String.to_integer(microsecond <> pad), precision}, rest}
+        bs = length(microsecond)
+        scale = scale_factor(bs)
+        {{:erlang.list_to_integer(microsecond) * scale, precision}, rest}
 
       {microsecond, _precision, rest} ->
-        {{String.to_integer(binary_part(microsecond, 0, 6)), 6}, rest}
+        {{:erlang.list_to_integer(Enum.take(microsecond, 6)), 6}, rest}
     end
   end
 
@@ -2010,33 +2012,38 @@ defmodule Calendar.ISO do
   end
 
   defp parse_microsecond(<<head, tail::binary>>, precision, acc) when head in ?0..?9,
-    do: parse_microsecond(tail, precision + 1, <<acc::binary, head>>)
+    do: parse_microsecond(tail, precision + 1, [head | acc])
 
-  defp parse_microsecond(rest, precision, acc), do: {acc, precision, rest}
+  defp parse_microsecond(rest, precision, acc) do
+    {:lists.reverse(acc), precision, rest}
+  end
 
   defp parse_offset(""), do: {nil, ""}
   defp parse_offset("Z"), do: {0, ""}
   defp parse_offset("-00:00"), do: :error
 
-  defp parse_offset(<<?+, hour::2-bytes, ?:, min::2-bytes, rest::binary>>),
-    do: parse_offset(1, hour, min, rest)
+  defp parse_offset(<<?+, h1, h2, ?:, m1, m2, rest::binary>>),
+    do: parse_offset(1, h1, h2, m1, m2, rest)
 
-  defp parse_offset(<<?-, hour::2-bytes, ?:, min::2-bytes, rest::binary>>),
-    do: parse_offset(-1, hour, min, rest)
+  defp parse_offset(<<?-, h1, h2, ?:, m1, m2, rest::binary>>),
+    do: parse_offset(-1, h1, h2, m1, m2, rest)
 
-  defp parse_offset(<<?+, hour::2-bytes, min::2-bytes, rest::binary>>),
-    do: parse_offset(1, hour, min, rest)
+  defp parse_offset(<<?+, h1, h2, m1, m2, rest::binary>>),
+    do: parse_offset(1, h1, h2, m1, m2, rest)
 
-  defp parse_offset(<<?-, hour::2-bytes, min::2-bytes, rest::binary>>),
-    do: parse_offset(-1, hour, min, rest)
+  defp parse_offset(<<?-, h1, h2, m1, m2, rest::binary>>),
+    do: parse_offset(-1, h1, h2, m1, m2, rest)
 
-  defp parse_offset(<<?+, hour::2-bytes, rest::binary>>), do: parse_offset(1, hour, "00", rest)
-  defp parse_offset(<<?-, hour::2-bytes, rest::binary>>), do: parse_offset(-1, hour, "00", rest)
+  defp parse_offset(<<?+, h1, h2, rest::binary>>), do: parse_offset(1, h1, h2, ?0, ?0, rest)
+  defp parse_offset(<<?-, h1, h2, rest::binary>>), do: parse_offset(-1, h1, h2, ?0, ?0, rest)
   defp parse_offset(_), do: :error
 
-  defp parse_offset(sign, hour, min, rest) do
-    with {hour, ""} when hour < 24 <- Integer.parse(hour),
-         {min, ""} when min < 60 <- Integer.parse(min) do
+  defp parse_offset(sign, h1, h2, m1, m2, rest) do
+    with true <- h1 in ?0..?2 and h2 in ?0..?9,
+         true <- m1 in ?0..?5 and m2 in ?0..?9,
+         hour = (h1 - ?0) * 10 + h2 - ?0,
+         min = (m1 - ?0) * 10 + m2 - ?0,
+         true <- hour < 24 do
       {(hour * 60 + min) * 60 * sign, rest}
     else
       _ -> :error
