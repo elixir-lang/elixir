@@ -12,7 +12,7 @@ However, when macros are used in the body of a module, the arguments to the macr
 
 #### Example
 
-Let's take the [`Plug`](https://github.com/elixir-plug/plug) library as an example. The `Plug` project allows you specify several modules, also known as plugs, which will be invoked whenever there is a request. As a user of `Plug`, you would use it as follows:
+Let's take the [`Plug`](https://github.com/elixir-plug/plug) library as an example. The `Plug` project allows you to specify several modules, also known as plugs, which will be invoked whenever there is a request. As a user of `Plug`, you would use it as follows:
 
 ```elixir
 defmodule MyApp do
