@@ -562,7 +562,7 @@ defmodule ExUnit.Case do
       |> Map.new()
 
     opts = Module.get_attribute(module, :ex_unit_module, [])
-    async? = Keyword.get(opts, :async, false)
+    async? = Keyword.get(opts, :async) || false
     group = Keyword.get(opts, :group, nil)
     parameterize = Keyword.get(opts, :parameterize, nil)
 
