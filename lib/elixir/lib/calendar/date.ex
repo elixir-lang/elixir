@@ -862,7 +862,8 @@ defmodule Date do
   configures the weekday the week starts on. The default value
   for it is `:default`, which translates to `:monday` for the
   built-in ISO 8601 calendar. Any other weekday may be used for
-  `starting_on`.
+  `starting_on`, in such cases, that weekday will be considered the first
+  day of the week, and therefore it will be assigned the ordinal number 1.
 
   The other calendars, the value returned is an ordinal day of week.
   For example, `1` may mean "first day of the week" and `7` is
