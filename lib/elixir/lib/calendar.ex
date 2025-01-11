@@ -175,13 +175,12 @@ defmodule Calendar do
 
   The value of `day_of_week` is an ordinal number meaning that a
   value of `1` is defined to mean "first day of the week". It is
-  specifically not defined to meean `1` is `Monday`.
+  specifically not defined to mean `1` is `Monday`.
 
   It is a requirement that `first_day_of_week` is less than `last_day_of_week`
   and that `day_of_week` must be within that range. Therefore it can be said
   that `day_of_week in first_day_of_week..last_day_of_week//1` must be
   `true` for all values of `day_of_week`.
-
   """
   @callback day_of_week(year, month, day, starting_on :: :default | atom) ::
               {day_of_week(), first_day_of_week :: non_neg_integer(),
