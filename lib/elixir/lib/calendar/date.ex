@@ -872,6 +872,7 @@ defmodule Date do
 
   ## Examples
 
+      # 2016-10-31 is a Monday and by default Monday is the first day of the week
       iex> Date.day_of_week(~D[2016-10-31])
       1
       iex> Date.day_of_week(~D[2016-11-01])
@@ -881,6 +882,7 @@ defmodule Date do
       iex> Date.day_of_week(~D[-0015-10-30])
       3
 
+      # 2016-10-31 is a Monday but, as we start the week on Sunday, now it returns 2
       iex> Date.day_of_week(~D[2016-10-31], :sunday)
       2
       iex> Date.day_of_week(~D[2016-11-01], :sunday)
