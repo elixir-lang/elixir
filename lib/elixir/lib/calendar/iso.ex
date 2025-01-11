@@ -203,15 +203,16 @@ defmodule Calendar.ISO do
   [match_basic_date, match_ext_date, guard_date, read_date] =
     quote do
       [
-        <<y1, y2, y3, y4, m1, m2, d1, d2>>,
-        <<y1, y2, y3, y4, @ext_date_sep, m1, m2, @ext_date_sep, d1, d2>>,
-        y1 >= ?0 and y1 <= ?9 and y2 >= ?0 and y2 <= ?9 and y3 >= ?0 and y3 <= ?9 and y4 >= ?0 and
-          y4 <= ?9 and m1 >= ?0 and m1 <= ?9 and m2 >= ?0 and m2 <= ?9 and d1 >= ?0 and d1 <= ?9 and
-          d2 >= ?0 and d2 <= ?9,
+        <<3::4, y1::4, 3::4, y2::4, 3::4, y3::4, 3::4, y4::4, 3::4, m1::4, 3::4, m2::4, 3::4,
+          d1::4, 3::4, d2::4>>,
+        <<3::4, y1::4, 3::4, y2::4, 3::4, y3::4, 3::4, y4::4, @ext_date_sep, 3::4, m1::4, 3::4,
+          m2::4, @ext_date_sep, 3::4, d1::4, 3::4, d2::4>>,
+        y1 <= 9 and y2 <= 9 and y3 <= 9 and y4 <= 9 and m1 <= 9 and m2 <= 9 and d1 <= 9 and
+          d2 <= 9,
         {
-          (y1 - ?0) * 1000 + (y2 - ?0) * 100 + (y3 - ?0) * 10 + (y4 - ?0),
-          (m1 - ?0) * 10 + (m2 - ?0),
-          (d1 - ?0) * 10 + (d2 - ?0)
+          y1 * 1000 + y2 * 100 + y3 * 10 + y4,
+          m1 * 10 + m2,
+          d1 * 10 + d2
         }
       ]
     end
@@ -219,14 +220,14 @@ defmodule Calendar.ISO do
   [match_basic_time, match_ext_time, guard_time, read_time] =
     quote do
       [
-        <<h1, h2, i1, i2, s1, s2>>,
-        <<h1, h2, @ext_time_sep, i1, i2, @ext_time_sep, s1, s2>>,
-        h1 >= ?0 and h1 <= ?9 and h2 >= ?0 and h2 <= ?9 and i1 >= ?0 and i1 <= ?9 and i2 >= ?0 and
-          i2 <= ?9 and s1 >= ?0 and s1 <= ?9 and s2 >= ?0 and s2 <= ?9,
+        <<3::4, h1::4, 3::4, h2::4, 3::4, i1::4, 3::4, i2::4, 3::4, s1::4, 3::4, s2::4>>,
+        <<3::4, h1::4, 3::4, h2::4, @ext_time_sep, 3::4, i1::4, 3::4, i2::4, @ext_time_sep, 3::4,
+          s1::4, 3::4, s2::4>>,
+        h1 <= 9 and h2 <= 9 and i1 <= 9 and i2 <= 9 and s1 <= 9 and s2 <= 9,
         {
-          (h1 - ?0) * 10 + (h2 - ?0),
-          (i1 - ?0) * 10 + (i2 - ?0),
-          (s1 - ?0) * 10 + (s2 - ?0)
+          h1 * 10 + h2,
+          i1 * 10 + i2,
+          s1 * 10 + s2
         }
       ]
     end
@@ -2021,33 +2022,37 @@ defmodule Calendar.ISO do
   defp parse_offset("Z"), do: {0, ""}
   defp parse_offset("-00:00"), do: :error
 
-  defp parse_offset(<<?+, h1, h2, ?:, m1, m2, rest::binary>>),
+  defp parse_offset(<<?+, 3::4, h1::4, 3::4, h2::4, ?:, 3::4, m1::4, 3::4, m2::4, rest::binary>>),
     do: parse_offset(1, h1, h2, m1, m2, rest)
 
-  defp parse_offset(<<?-, h1, h2, ?:, m1, m2, rest::binary>>),
+  defp parse_offset(<<?-, 3::4, h1::4, 3::4, h2::4, ?:, 3::4, m1::4, 3::4, m2::4, rest::binary>>),
     do: parse_offset(-1, h1, h2, m1, m2, rest)
 
-  defp parse_offset(<<?+, h1, h2, m1, m2, rest::binary>>),
+  defp parse_offset(<<?+, 3::4, h1::4, 3::4, h2::4, 3::4, m1::4, 3::4, m2::4, rest::binary>>),
     do: parse_offset(1, h1, h2, m1, m2, rest)
 
-  defp parse_offset(<<?-, h1, h2, m1, m2, rest::binary>>),
+  defp parse_offset(<<?-, 3::4, h1::4, 3::4, h2::4, 3::4, m1::4, 3::4, m2::4, rest::binary>>),
     do: parse_offset(-1, h1, h2, m1, m2, rest)
 
-  defp parse_offset(<<?+, h1, h2, rest::binary>>), do: parse_offset(1, h1, h2, ?0, ?0, rest)
-  defp parse_offset(<<?-, h1, h2, rest::binary>>), do: parse_offset(-1, h1, h2, ?0, ?0, rest)
+  defp parse_offset(<<?+, 3::4, h1::4, 3::4, h2::4, rest::binary>>),
+    do: parse_offset(1, h1, h2, 0, 0, rest)
+
+  defp parse_offset(<<?-, 3::4, h1::4, 3::4, h2::4, rest::binary>>),
+    do: parse_offset(-1, h1, h2, 0, 0, rest)
+
   defp parse_offset(_), do: :error
 
-  defp parse_offset(sign, h1, h2, m1, m2, rest) do
-    with true <- h1 in ?0..?2 and h2 in ?0..?9,
-         true <- m1 in ?0..?5 and m2 in ?0..?9,
-         hour = (h1 - ?0) * 10 + h2 - ?0,
-         min = (m1 - ?0) * 10 + m2 - ?0,
-         true <- hour < 24 do
+  defp parse_offset(sign, h1, h2, m1, m2, rest)
+       when h2 < 10 and m1 < 6 and m2 < 10 do
+    with hour when hour < 24 <- h1 * 10 + h2,
+         min = m1 * 10 + m2 do
       {(hour * 60 + min) * 60 * sign, rest}
     else
       _ -> :error
     end
   end
+
+  defp parse_offset(_, _, _, _, _, _), do: :error
 
   @doc false
   def gregorian_seconds_to_iso_days(seconds, microsecond) do
