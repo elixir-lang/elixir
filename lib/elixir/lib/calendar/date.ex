@@ -135,12 +135,12 @@ defmodule Date do
   end
 
   def range(%{calendar: calendar} = first, %Duration{} = duration) do
-    last = shift(first, __duration__!(duration))
+    last = shift(first, duration)
     range(first, last)
   end
 
   def range(%{calendar: calendar} = first, duration) when is_list(duration) do
-    last = shift(first, __duration__!(duration))
+    last = shift(first, duration)
     range(first, last)
   end
 
@@ -189,13 +189,13 @@ defmodule Date do
 
   def range(%{calendar: calendar} = first, %Duration{} = duration, step)
       when is_integer(step) and step != 0 do
-    last = shift(first, __duration__!(duration))
+    last = shift(first, duration)
     range(first, last, step)
   end
 
   def range(%{calendar: calendar} = first, duration, step)
       when is_list(duration) and is_integer(step) and step != 0 do
-    last = shift(first, __duration__!(duration))
+    last = shift(first, duration)
     range(first, last, step)
   end
 
