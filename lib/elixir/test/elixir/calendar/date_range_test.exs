@@ -131,12 +131,32 @@ defmodule Date.RangeTest do
     assert Enum.to_list(range) == [~D[2000-01-01], ~D[2000-01-03]]
   end
 
+  test "accepts durations as keyword list" do
+    range = Date.range(~D[2000-01-01], day: 1)
+    assert range.first == ~D[2000-01-01]
+    assert range.last == ~D[2000-01-02]
+    assert Enum.to_list(range) == [~D[2000-01-01], ~D[2000-01-02]]
+
+    range = Date.range(~D[2000-01-01], [day: 2], 2)
+    assert range.first == ~D[2000-01-01]
+    assert range.last == ~D[2000-01-03]
+    assert Enum.to_list(range) == [~D[2000-01-01], ~D[2000-01-03]]
+  end
+
   test "both dates must have matching calendars" do
     first = ~D[2000-01-01]
     last = Calendar.Holocene.date(12001, 1, 1)
 
     assert_raise ArgumentError, "both dates must have matching calendars", fn ->
       Date.range(first, last)
+    end
+  end
+
+  test "second argument is validated" do
+    first = ~D[2000-01-01]
+
+    assert_raise ArgumentError, "expected a date or duration as second argument", fn ->
+      Date.range(first, 123)
     end
   end
 

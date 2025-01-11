@@ -105,7 +105,8 @@ defmodule Date do
 
   """
   @doc since: "1.5.0"
-  @spec range(Calendar.date(), Calendar.date() | Duration.t()) :: Date.Range.t()
+  @spec range(Calendar.date(), Calendar.date() | Duration.t() | [unit_pair]) :: Date.Range.t()
+        when unit_pair: {:year, integer} | {:month, integer} | {:week, integer} | {:day, integer}
   def range(%{calendar: calendar} = first, %{calendar: calendar} = last) do
     {first_days, _} = to_iso_days(first)
     {last_days, _} = to_iso_days(last)
@@ -124,13 +125,22 @@ defmodule Date do
     range(first, first_days, last, last_days, calendar, step)
   end
 
+  def range(%{calendar: _, year: _, month: _, day: _}, %{calendar: _, year: _, month: _, day: _}) do
+    raise ArgumentError, "both dates must have matching calendars"
+  end
+
   def range(%{calendar: calendar} = first, %Duration{} = duration) do
-    last = shift(first, duration)
+    last = shift(first, __duration__!(duration))
     range(first, last)
   end
 
-  def range(%{calendar: _, year: _, month: _, day: _}, %{calendar: _, year: _, month: _, day: _}) do
-    raise ArgumentError, "both dates must have matching calendars"
+  def range(%{calendar: calendar} = first, duration) when is_list(duration) do
+    last = shift(first, __duration__!(duration))
+    range(first, last)
+  end
+
+  def range(%{calendar: _, year: _, month: _, day: _}, duration) do
+    raise ArgumentError, "expected a date or duration as second argument"
   end
 
   @doc """
@@ -150,19 +160,18 @@ defmodule Date do
 
   """
   @doc since: "1.12.0"
-  @spec range(Calendar.date(), Calendar.date() | Duration.t(), step :: pos_integer | neg_integer) ::
+  @spec range(
+          Calendar.date(),
+          Calendar.date() | Duration.t() | [unit_pair],
+          step :: pos_integer | neg_integer
+        ) ::
           Date.Range.t()
+        when unit_pair: {:year, integer} | {:month, integer} | {:week, integer} | {:day, integer}
   def range(%{calendar: calendar} = first, %{calendar: calendar} = last, step)
       when is_integer(step) and step != 0 do
     {first_days, _} = to_iso_days(first)
     {last_days, _} = to_iso_days(last)
     range(first, first_days, last, last_days, calendar, step)
-  end
-
-  def range(%{calendar: calendar} = first, %Duration{} = duration, step)
-      when is_integer(step) and step != 0 do
-    last = shift(first, duration)
-    range(first, last, step)
   end
 
   def range(
@@ -175,9 +184,21 @@ defmodule Date do
             "non-zero integer, got: #{inspect(first)}, #{inspect(last)}, #{step}"
   end
 
+  def range(%{calendar: calendar} = first, %Duration{} = duration, step)
+      when is_integer(step) and step != 0 do
+    last = shift(first, __duration__!(duration))
+    range(first, last, step)
+  end
+
+  def range(%{calendar: calendar} = first, duration, step)
+      when is_list(duration) and is_integer(step) and step != 0 do
+    last = shift(first, __duration__!(duration))
+    range(first, last, step)
+  end
+
   def range(%{calendar: _, year: _, month: _, day: _} = first, duration, step) do
     raise ArgumentError,
-          "expected a Date or Duration as second argument and the step must be a " <>
+          "expected a date or duration as second argument and the step must be a " <>
             "non-zero integer, got: #{inspect(first)}, #{inspect(duration)}, #{step}"
   end
 
