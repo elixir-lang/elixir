@@ -854,11 +854,9 @@ defmodule Date do
   @doc """
   Calculates the ordinal day of the week of a given `date`.
 
-  Returns the day of the week as an integer. The value
-  returned is an ordinal day of week meaning that `1`
-  is defined to mean "first day of the week" and `7` is
-  defined to mean "seventh day of the week". This is true
-  for all calendars including the default ISO 8601 calendar.
+  Returns the day of the week as an integer. For the ISO 8601
+  calendar (the default), it is an integer from 1 to 7, where
+  1 is Monday and 7 is Sunday. 
 
   An optional `starting_on` value may be supplied, which
   configures the weekday the week starts on. The default value
@@ -866,9 +864,11 @@ defmodule Date do
   built-in ISO 8601 calendar. Any other weekday may be used for
   `starting_on`.
 
-  For the ISO 8601 calendar *only*, the value `1`
-  can be interpreted to mean `Monday` *only* when `starting_on`
-  is `:default` (itself the default value of `starting_on`).
+  The other calendars, the value returned is an ordinal day of week.
+  For example, `1` may mean "first day of the week" and `7` is
+  defined to mean "seventh day of the week". Custom calendars may
+  also accept their own variations of the `starting_on` parameter
+  with their own meaning.
 
   ## Examples
 
