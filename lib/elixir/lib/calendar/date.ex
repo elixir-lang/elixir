@@ -852,7 +852,7 @@ defmodule Date do
   end
 
   @doc """
-  Calculates the day of the week of a given `date`.
+  Calculates the ordinal day of the week of a given `date`.
 
   Returns the day of the week as an integer. For the ISO 8601
   calendar (the default), it is an integer from 1 to 7, where
@@ -861,10 +861,19 @@ defmodule Date do
   An optional `starting_on` value may be supplied, which
   configures the weekday the week starts on. The default value
   for it is `:default`, which translates to `:monday` for the
-  built-in ISO calendar. Any other weekday may be given to.
+  built-in ISO 8601 calendar. Any other weekday may be used for
+  `starting_on`, in such cases, that weekday will be considered the first
+  day of the week, and therefore it will be assigned the ordinal number 1.
+
+  The other calendars, the value returned is an ordinal day of week.
+  For example, `1` may mean "first day of the week" and `7` is
+  defined to mean "seventh day of the week". Custom calendars may
+  also accept their own variations of the `starting_on` parameter
+  with their own meaning.
 
   ## Examples
 
+      # 2016-10-31 is a Monday and by default Monday is the first day of the week
       iex> Date.day_of_week(~D[2016-10-31])
       1
       iex> Date.day_of_week(~D[2016-11-01])
@@ -874,6 +883,7 @@ defmodule Date do
       iex> Date.day_of_week(~D[-0015-10-30])
       3
 
+      # 2016-10-31 is a Monday but, as we start the week on Sunday, now it returns 2
       iex> Date.day_of_week(~D[2016-10-31], :sunday)
       2
       iex> Date.day_of_week(~D[2016-11-01], :sunday)
