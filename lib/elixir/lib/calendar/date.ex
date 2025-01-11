@@ -87,9 +87,11 @@ defmodule Date do
       iex> Date.range(~D[1999-01-01], ~D[2000-01-01])
       Date.range(~D[1999-01-01], ~D[2000-01-01])
 
-  Alternatively, a range may be built from a first `Date` and a `Duration`:
+  A range may also be built from a `Date` and a `Duration`:
 
       iex> Date.range(~D[1999-01-01], Duration.new!(year: 1))
+      Date.range(~D[1999-01-01], ~D[2000-01-01])
+      iex> Date.range(~D[1999-01-01], year: 1)
       Date.range(~D[1999-01-01], ~D[2000-01-01])
 
   A range of dates implements the `Enumerable` protocol, which means
