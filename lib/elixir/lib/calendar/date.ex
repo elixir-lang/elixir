@@ -69,6 +69,9 @@ defmodule Date do
           calendar: Calendar.calendar()
         }
 
+  @type duration_unit_pair ::
+          {:year, integer} | {:month, integer} | {:week, integer} | {:day, integer}
+
   @doc """
   Returns a range of dates.
 
@@ -105,8 +108,8 @@ defmodule Date do
 
   """
   @doc since: "1.5.0"
-  @spec range(Calendar.date(), Calendar.date() | Duration.t() | [unit_pair]) :: Date.Range.t()
-        when unit_pair: {:year, integer} | {:month, integer} | {:week, integer} | {:day, integer}
+  @spec range(Calendar.date(), Calendar.date() | Duration.t() | [duration_unit_pair]) ::
+          Date.Range.t()
   def range(%{calendar: calendar} = first, %{calendar: calendar} = last) do
     {first_days, _} = to_iso_days(first)
     {last_days, _} = to_iso_days(last)
@@ -162,11 +165,9 @@ defmodule Date do
   @doc since: "1.12.0"
   @spec range(
           Calendar.date(),
-          Calendar.date() | Duration.t() | [unit_pair],
+          Calendar.date() | Duration.t() | [duration_unit_pair],
           step :: pos_integer | neg_integer
-        ) ::
-          Date.Range.t()
-        when unit_pair: {:year, integer} | {:month, integer} | {:week, integer} | {:day, integer}
+        ) :: Date.Range.t()
   def range(%{calendar: calendar} = first, %{calendar: calendar} = last, step)
       when is_integer(step) and step != 0 do
     {first_days, _} = to_iso_days(first)
@@ -838,8 +839,7 @@ defmodule Date do
 
   """
   @doc since: "1.17.0"
-  @spec shift(Calendar.date(), Duration.t() | [unit_pair]) :: t
-        when unit_pair: {:year, integer} | {:month, integer} | {:week, integer} | {:day, integer}
+  @spec shift(Calendar.date(), Duration.t() | [duration_unit_pair]) :: t
   def shift(%{calendar: calendar} = date, duration) do
     %{year: year, month: month, day: day} = date
     {year, month, day} = calendar.shift_date(year, month, day, __duration__!(duration))
