@@ -856,7 +856,7 @@ defmodule Date do
 
   Returns the day of the week as an integer. For the ISO 8601
   calendar (the default), it is an integer from 1 to 7, where
-  1 is Monday and 7 is Sunday. 
+  1 is Monday and 7 is Sunday.
 
   An optional `starting_on` value may be supplied, which
   configures the weekday the week starts on. The default value
