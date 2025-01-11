@@ -144,7 +144,7 @@ defmodule Date do
     range(first, last)
   end
 
-  def range(%{calendar: _, year: _, month: _, day: _}, duration) do
+  def range(%{calendar: _, year: _, month: _, day: _}, _duration) do
     raise ArgumentError, "expected a date or duration as second argument"
   end
 
