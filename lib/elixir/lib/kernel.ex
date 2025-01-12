@@ -5468,33 +5468,21 @@ defmodule Kernel do
   use `@type`.
   """
   defmacro defstruct(fields) do
-    header =
-      quote bind_quoted: [fields: fields, bootstrapped?: bootstrapped?(Enum)] do
-        {struct, derive, escaped_struct, kv, body} =
-          Kernel.Utils.defstruct(__MODULE__, fields, bootstrapped?, __ENV__)
+    quote bind_quoted: [fields: fields, bootstrapped?: bootstrapped?(Enum)] do
+      {struct, derive, escaped_struct, kv, body} =
+        Kernel.Utils.defstruct(__MODULE__, fields, bootstrapped?, __ENV__)
 
-        case derive do
-          [] -> :ok
-          _ -> Protocol.__derive__(derive, __MODULE__, __ENV__)
-        end
+      case derive do
+        [] -> :ok
+        _ -> Protocol.__derive__(derive, __MODULE__, __ENV__)
       end
 
-    # We attach the line: 0 to struct functions because we don't want
-    # the generated callbacks to count towards code coverage and metrics,
-    # especially since they are often expanded at compile-time.
-    functions =
-      quote line: 0, unquote: false do
-        def __struct__(), do: unquote(escaped_struct)
-        def __struct__(unquote(kv)), do: unquote(body)
-      end
+      def __struct__(), do: unquote(escaped_struct)
+      def __struct__(unquote(kv)), do: unquote(body)
 
-    footer =
-      quote do
-        Kernel.Utils.announce_struct(__MODULE__)
-        struct
-      end
-
-    {:__block__, [], [header, functions, footer]}
+      Kernel.Utils.announce_struct(__MODULE__)
+      struct
+    end
   end
 
   @doc ~S"""
