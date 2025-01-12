@@ -167,8 +167,8 @@ defmodule Mix.Tasks.Release do
       $ bin/RELEASE_NAME daemon
 
   In daemon mode, the system is started on the background via
-  [`run_erl`](https://www.erlang.org/doc/apps/erts/run_erl_cmd.html). You may also
-  want to enable [`heart`](https://www.erlang.org/doc/man/heart.html)
+  [`run_erl`](https://www.erlang.org/doc/apps/erts/run_erl_cmd.html).
+  You may also want to enable [`:heart`](`:heart`)
   in daemon mode so it automatically restarts the system in case
   of crashes. See the generated `releases/RELEASE_VSN/env.sh` file.
 

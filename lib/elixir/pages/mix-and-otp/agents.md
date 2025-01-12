@@ -9,7 +9,7 @@ If you have skipped the *Getting Started* guide or read it long ago, be sure to 
 Elixir is an immutable language where nothing is shared by default. If we want to share information, which can be read and modified from multiple places, we have two main options in Elixir:
 
   * Using processes and message passing
-  * [ETS (Erlang Term Storage)](http://www.erlang.org/doc/man/ets.html)
+  * [ETS (Erlang Term Storage)](`:ets`)
 
 We covered processes in the *Getting Started* guide. ETS (Erlang Term Storage) is a new topic that we will explore in later chapters. When it comes to processes though, we rarely hand-roll our own, instead we use the abstractions available in Elixir and OTP:
 

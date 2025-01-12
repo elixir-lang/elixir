@@ -43,8 +43,7 @@ defmodule MapSet do
   `MapSet`s can also be constructed starting from other collection-type data
   structures: for example, see `MapSet.new/1` or `Enum.into/2`.
 
-  `MapSet` is built on top of Erlang's
-  [`:sets`](https://www.erlang.org/doc/man/sets.html) (version 2). This means
+  `MapSet` is built on top of Erlang's [`:sets`](`:sets`) (version 2). This means
   that they share many properties, including logarithmic time complexity. Erlang
   `:sets` (version 2) are implemented on top of maps, so see the documentation
   for `Map` for more information on its execution time complexity.
