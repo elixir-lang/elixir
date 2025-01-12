@@ -60,7 +60,7 @@ defmodule Kernel do
 
     * Bitstring - a sequence of bits, created with `<<>>/1`.
       When the number of bits is divisible by 8, they are called binaries and can
-      be manipulated with Erlang's `:binary` module
+      be manipulated with Erlang's [`:binary`](`:binary`) module
     * Reference - a unique value in the runtime system, created with `make_ref/0`
 
   ### Data types
@@ -5722,7 +5722,7 @@ defmodule Kernel do
   >
   >   * If using `defoverridable`, avoid relying on `super` to trigger the default
   >     behaviour, suggesting users to invoke well-defined APIs instead.
-  > 
+  >
   """
   defmacro defoverridable(keywords_or_behaviour) do
     quote do

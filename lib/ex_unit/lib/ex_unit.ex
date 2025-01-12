@@ -321,8 +321,8 @@ defmodule ExUnit do
 
     * `:seed` - an integer seed value to randomize the test suite. This seed
       is also mixed with the test module and name to create a new unique seed
-      on every test, which is automatically fed into the `:rand` module. This
-      provides randomness between tests, but predictable and reproducible
+      on every test, which is automatically fed into the [`:rand`](`:rand`) module.
+      This provides randomness between tests, but predictable and reproducible
       results. A `:seed` of `0` will disable randomization and the tests in each
       file will always run in the order that they were defined in;
 
