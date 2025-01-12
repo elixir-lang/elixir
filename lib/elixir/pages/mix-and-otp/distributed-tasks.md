@@ -15,7 +15,7 @@ The router will check the first byte of the bucket name against the table and di
 
 If the matching entry points to the node evaluating the request, then we've finished routing, and this node will perform the requested operation. If the matching entry points to a different node, we'll pass the request to said node, which will look at its own routing table (which may be different from the one in the first node) and act accordingly. If no entry matches, an error will be raised.
 
-> Note: we will be using two nodes in the same machine throughout this chapter. You are free to use two (or more) different machines on the same network but you need to do some prep work. First of all, you need to ensure all machines have a `~/.erlang.cookie` file with exactly the same value. Then you need to guarantee [epmd](http://www.erlang.org/doc/man/epmd.html) is running on a port that is not blocked (you can run `epmd -d` for debug info).
+> Note: we will be using two nodes in the same machine throughout this chapter. You are free to use two (or more) different machines on the same network but you need to do some prep work. First of all, you need to ensure all machines have a `~/.erlang.cookie` file with exactly the same value. Then you need to guarantee [epmd](https://www.erlang.org/doc/apps/erts/epmd_cmd) is running on a port that is not blocked (you can run `epmd -d` for debug info).
 
 ## Our first distributed code
 
@@ -86,7 +86,7 @@ From our quick exploration, we could conclude that we should use `Node.spawn_lin
 
 There are three better alternatives to `Node.spawn_link/2` that we could use in our implementation:
 
-1. We could use Erlang's [:erpc](http://www.erlang.org/doc/man/erpc.html) module to execute functions on a remote node. Inside the `bar@computer-name` shell above, you can call `:erpc.call(:"foo@computer-name", Hello, :world, [])` and it will print "hello world"
+1. We could use Erlang's [`:erpc`](`:erpc`) module to execute functions on a remote node. Inside the `bar@computer-name` shell above, you can call `:erpc.call(:"foo@computer-name", Hello, :world, [])` and it will print "hello world"
 
 2. We could have a server running on the other node and send requests to that node via the `GenServer` API. For example, you can call a server on a remote node by using `GenServer.call({name, node}, arg)` or passing the remote process PID as the first argument
 
@@ -347,8 +347,8 @@ Distributed key-value stores, used in real-life, need to consider the fact nodes
 These topics can be daunting at first but remember that most Elixir frameworks abstract those concerns for you. For example, when using [the Phoenix web framework](https://phoenixframework.org), its plug-and-play abstractions take care of sending messages and tracking how users join and leave a cluster. However, if you are interested in distributed systems after all, there is much to explore. Here are some additional references:
 
   * [The excellent Distribunomicon chapter from Learn You Some Erlang](http://learnyousomeerlang.com/distribunomicon)
-  * [Erlang's global module](https://www.erlang.org/doc/man/global.html), which can provide global names and global locks, allowing unique names and unique locks in a whole cluster of machines
-  * [Erlang's pg module](https://www.erlang.org/doc/man/pg.html), which allows process to join different groups shared across the whole cluster
+  * Erlang's [`:global` module](`:global`), which can provide global names and global locks, allowing unique names and unique locks in a whole cluster of machines
+  * Erlang's [`:pg` module](`:pg`), which allows process to join different groups shared across the whole cluster
   * [Phoenix PubSub project](https://github.com/phoenixframework/phoenix_pubsub), which provides a distributed messaging system and a distributed presence system for tracking users and processes in a cluster
 
 You will also find many libraries for building distributed systems within the overall Erlang ecosystem. For now, it is time to go back to our simple distributed key-value store and learn how to configure and package it for production.

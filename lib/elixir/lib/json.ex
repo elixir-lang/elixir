@@ -356,7 +356,7 @@ defmodule JSON do
     * for `string`: `&Function.identity/1`
     * for `null`: the atom `nil`
 
-  For streaming decoding, see Erlang's `:json` module.
+  For streaming decoding, see Erlang's [`:json`](`:json`) module.
   """
   @spec decode(binary(), term(), keyword()) ::
           {term(), term(), binary()} | {:error, decode_error_reason()}

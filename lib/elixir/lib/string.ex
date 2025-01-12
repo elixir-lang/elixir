@@ -172,7 +172,7 @@ defmodule String do
   Standard Annex #29](https://www.unicode.org/reports/tr29/).
 
   For converting a binary to a different encoding and for Unicode
-  normalization mechanisms, see Erlang's `:unicode` module.
+  normalization mechanisms, see Erlang's [`:unicode`](`:unicode`) module.
 
   ## String and binary operations
 

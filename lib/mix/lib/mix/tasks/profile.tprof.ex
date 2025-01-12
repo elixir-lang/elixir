@@ -125,7 +125,7 @@ defmodule Mix.Tasks.Profile.Tprof do
   ## Caveats
 
   You should be aware that the code being profiled is running in an anonymous
-  function which is invoked by [`:tprof` module](https://www.erlang.org/doc/man/tprof.html).
+  function which is invoked by [`:tprof` module](`:tprof`).
   Thus, you'll see some additional entries in your profile output. It is also
   important to note that the profiler is stopped as soon as the code has finished running,
   and this may need special attention, when: running asynchronous code as function calls which were

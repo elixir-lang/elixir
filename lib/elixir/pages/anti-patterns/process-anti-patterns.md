@@ -227,7 +227,7 @@ This anti-pattern has many potential remedies:
 
   * If the only process that needs data is the one you are sending to, consider making the process fetch that data instead of passing it.
 
-  * Some abstractions, such as [`:persistent_term`](https://www.erlang.org/doc/man/persistent_term.html), allows you to share data between processes, as long as such data changes infrequently.
+  * Some abstractions, such as [`:persistent_term`](`:persistent_term`), allows you to share data between processes, as long as such data changes infrequently.
 
 In our case, limiting the input data is a reasonable strategy. If all we need *right now* is the IP address, then let's only work with that and make sure we're only passing the IP address into the closure, like so:
 

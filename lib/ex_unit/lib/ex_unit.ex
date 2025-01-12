@@ -14,7 +14,7 @@ defmodule ExUnit do
       # 2) Create a new test module and use "ExUnit.Case".
       defmodule AssertionTest do
         # 3) Note that we pass "async: true", this runs the tests in the
-        #    test module concurrently with other test modules. The 
+        #    test module concurrently with other test modules. The
         #    individual tests within each test module are still run serially.
         use ExUnit.Case, async: true
 
@@ -311,7 +311,7 @@ defmodule ExUnit do
 
     * `:rand_algorithm` - algorithm to be used when generating the test seed.
       Available algorithms can be found in Erlang's
-      [`:rand`](https://www.erlang.org/doc/man/rand.html) documentation (see
+      [`:rand`](`:rand`) documentation (see
       [`:rand.builting_arg/0`](https://www.erlang.org/doc/apps/stdlib/rand.html#t:builtin_alg/0)).
       Available since v1.16.0. Before v1.16.0, the algorithm was hard-coded to
       `:exs1024`. On Elixir v1.16.0 and after, the default changed to `:exsss`;
@@ -321,8 +321,8 @@ defmodule ExUnit do
 
     * `:seed` - an integer seed value to randomize the test suite. This seed
       is also mixed with the test module and name to create a new unique seed
-      on every test, which is automatically fed into the `:rand` module. This
-      provides randomness between tests, but predictable and reproducible
+      on every test, which is automatically fed into the [`:rand`](`:rand`) module.
+      This provides randomness between tests, but predictable and reproducible
       results. A `:seed` of `0` will disable randomization and the tests in each
       file will always run in the order that they were defined in;
 

@@ -11,9 +11,9 @@ defmodule Mix.Tasks.Test.Coverage do
 
   ## Line coverage
 
-  Elixir uses Erlang's [`:cover`](https://www.erlang.org/doc/man/cover.html)
-  for its default test coverage. Erlang coverage is done by tracking
-  *executable lines of code*. This implies blank lines, code comments,
+  Elixir uses Erlang's [`:cover`](`:cover`) for its default test coverage.
+  Erlang coverage is done by tracking *executable lines of code*.
+  This implies blank lines, code comments,
   function signatures, and patterns are not necessarily executable and
   therefore won't be tracked in coverage reports. Code in macros are
   also often executed at compilation time, and therefore may not be covered.
