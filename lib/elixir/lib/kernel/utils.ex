@@ -174,14 +174,14 @@ defmodule Kernel.Utils do
         true ->
           case enforce_keys do
             [] ->
-              quote do
+              quote line: 0, generated: true do
                 Enum.reduce(kv, unquote(escaped_struct), fn {key, val}, map ->
                   %{map | key => val}
                 end)
               end
 
             _ ->
-              quote do
+              quote line: 0, generated: true do
                 {map, keys} =
                   Enum.reduce(kv, {unquote(escaped_struct), unquote(enforce_keys)}, fn
                     {key, val}, {map, keys} ->
@@ -201,7 +201,7 @@ defmodule Kernel.Utils do
           end
 
         false ->
-          quote do
+          quote line: 0, generated: true do
             :lists.foldl(
               fn {key, val}, acc -> %{acc | key => val} end,
               unquote(escaped_struct),
