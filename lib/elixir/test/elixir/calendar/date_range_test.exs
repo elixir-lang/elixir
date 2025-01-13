@@ -163,18 +163,22 @@ defmodule Date.RangeTest do
   end
 
   test "step is a non-zero integer" do
-    step = 1.0
     message = ~r"the step must be a non-zero integer"
 
     assert_raise ArgumentError, message, fn ->
-      Date.range(~D[2000-01-01], ~D[2000-01-31], step)
+      Date.range(~D[2000-01-01], ~D[2000-01-31], 1.0)
     end
 
-    step = 0
-    message = ~r"the step must be a non-zero integer"
+    assert_raise ArgumentError, message, fn ->
+      Date.range(~D[2000-01-01], [month: 1], 1.0)
+    end
 
     assert_raise ArgumentError, message, fn ->
-      Date.range(~D[2000-01-01], ~D[2000-01-31], step)
+      Date.range(~D[2000-01-01], ~D[2000-01-31], 0)
+    end
+
+    assert_raise ArgumentError, message, fn ->
+      Date.range(~D[2000-01-01], [month: 1], 0)
     end
   end
 

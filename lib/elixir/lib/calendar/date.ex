@@ -207,6 +207,12 @@ defmodule Date do
     range(first, last, step)
   end
 
+  def range(%{calendar: _} = first, last, step) do
+    raise ArgumentError,
+          "expected a date or duration as second argument and the step must be a " <>
+            "non-zero integer, got: #{inspect(first)}, #{inspect(last)}, #{step}"
+  end
+
   defp range(first, first_days, last, last_days, calendar, step) do
     %Date.Range{
       first: %Date{calendar: calendar, year: first.year, month: first.month, day: first.day},
