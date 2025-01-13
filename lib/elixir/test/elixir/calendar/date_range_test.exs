@@ -152,14 +152,6 @@ defmodule Date.RangeTest do
     end
   end
 
-  test "second argument is validated" do
-    first = ~D[2000-01-01]
-
-    assert_raise ArgumentError, "expected a date or duration as second argument", fn ->
-      Date.range(first, 123)
-    end
-  end
-
   test "accepts equal but non Calendar.ISO calendars" do
     first = Calendar.Holocene.date(12000, 1, 1)
     last = Calendar.Holocene.date(12001, 1, 1)
