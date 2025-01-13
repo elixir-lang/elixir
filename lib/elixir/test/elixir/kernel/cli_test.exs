@@ -94,8 +94,8 @@ defmodule Kernel.CLI.ExecutableTest do
     assert {_output, 0} =
              System.cmd(elixir_executable(context.cli_extension), ["-e", "Time.new!(0, 0, 0)"])
 
-    # TODO: remove this once we bump CI to 26.3
-    if not (windows?() and System.otp_release() == "26") do
+    # TODO: Remove this once we bump CI to Erlang/OTP 27
+    if cli_extension == "" and System.otp_release() != "26" do
       {output, 0} =
         System.cmd(iex_executable(context.cli_extension), [
           "--eval",
@@ -119,14 +119,16 @@ defmodule Kernel.CLI.ExecutableTest do
     assert output =~ "Erlang/OTP #{System.otp_release()}"
     assert output =~ "Elixir #{System.version()}"
 
-    output = iex(~c"--version", cli_extension)
-    assert output =~ "Erlang/OTP #{System.otp_release()}"
-    assert output =~ "IEx #{System.version()}"
-
     output = elixir(~c"--version -e \"IO.puts(:test_output)\"", cli_extension)
     assert output =~ "Erlang/OTP #{System.otp_release()}"
     assert output =~ "Elixir #{System.version()}"
     assert output =~ "Standalone options can't be combined with other options"
+
+    if cli_extension != "ps1" do
+      output = iex(~c"--version", cli_extension)
+      assert output =~ "Erlang/OTP #{System.otp_release()}"
+      assert output =~ "IEx #{System.version()}"
+    end
   end
 
   test "--short-version smoke test", %{cli_extension: cli_extension} do
