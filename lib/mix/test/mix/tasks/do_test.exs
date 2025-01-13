@@ -52,11 +52,10 @@ defmodule Mix.Tasks.DoTest do
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         Mix.Tasks.Do.run(~w(--app bar compile --list + cmd echo hello))
 
-        nl = os_newline()
         assert_received {:mix_shell, :info, ["==> bar"]}
-        assert_received {:mix_shell, :run, ["hello" <> ^nl]}
+        assert_received {:mix_shell, :run, ["hello\n"]}
         refute_received {:mix_shell, :info, ["==> foo"]}
-        refute_received {:mix_shell, :run, ["hello" <> ^nl]}
+        refute_received {:mix_shell, :run, ["hello\n"]}
       end)
     end)
   end
@@ -66,11 +65,10 @@ defmodule Mix.Tasks.DoTest do
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         Mix.Tasks.Do.run(~w(--app bar --app foo compile --list + cmd echo hello))
 
-        nl = os_newline()
         assert_received {:mix_shell, :info, ["==> bar"]}
-        assert_received {:mix_shell, :run, ["hello" <> ^nl]}
+        assert_received {:mix_shell, :run, ["hello\n"]}
         assert_received {:mix_shell, :info, ["==> foo"]}
-        assert_received {:mix_shell, :run, ["hello" <> ^nl]}
+        assert_received {:mix_shell, :run, ["hello\n"]}
       end)
     end)
   end
@@ -105,13 +103,12 @@ defmodule Mix.Tasks.DoTest do
         Mix.Tasks.Do.run(["compile"])
         Mix.Tasks.Do.run(["--app", "bar", "--app", "foo", "e", "+", "p", "Foo"])
 
-        nl = os_newline()
         assert_received {:mix_shell, :info, ["==> bar"]}
-        assert_received {:mix_shell, :run, ["hello" <> ^nl]}
+        assert_received {:mix_shell, :run, ["hello\n"]}
         assert_received {:mix_shell, :info, ["[\"Foo\"]"]}
 
         assert_received {:mix_shell, :info, ["==> foo"]}
-        assert_received {:mix_shell, :run, ["hello" <> ^nl]}
+        assert_received {:mix_shell, :run, ["hello\n"]}
         assert_received {:mix_shell, :info, ["[\"Foo\"]"]}
       end)
     end)
