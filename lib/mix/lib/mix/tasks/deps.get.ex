@@ -1,11 +1,10 @@
 defmodule Mix.Tasks.Deps.Get do
   use Mix.Task
 
-  @shortdoc "Gets all out of date dependencies"
+  @shortdoc "Fetches unavailable and out of date dependencies"
 
   @moduledoc """
-  Gets all out of date dependencies, i.e. dependencies
-  that are not available or have an invalid lock.
+  Fetches unavailable and out of date dependencies.
 
   ## Command line options
 
@@ -40,7 +39,7 @@ defmodule Mix.Tasks.Deps.Get do
     apps = Mix.Dep.Fetcher.all(%{}, Mix.Dep.Lock.read(), fetch_opts)
 
     if apps == [] do
-      Mix.shell().info("All dependencies are up to date")
+      Mix.shell().info("All dependencies have been fetched")
     else
       :ok
     end
