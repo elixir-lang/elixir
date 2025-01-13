@@ -133,9 +133,9 @@ if not defined useIEx (
 set beforeExtra=-noshell -elixir_root "%SCRIPT_PATH%..\lib" -pa "%SCRIPT_PATH%..\lib\elixir\ebin" %beforeExtra%
 
 if defined ELIXIR_CLI_DRY_RUN (
-  echo "%ERTS_BIN%erl.exe" %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %*
+  echo "%ERTS_BIN%erl.exe" %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %*
 ) else (
-  "%ERTS_BIN%erl.exe" %ext_libs% %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %*
+  "%ERTS_BIN%erl.exe" %ELIXIR_ERL_OPTIONS% %parsErlang% %beforeExtra% -extra %*
 )
 exit /B %ERRORLEVEL%
 :end

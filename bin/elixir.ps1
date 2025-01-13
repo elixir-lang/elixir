@@ -76,14 +76,6 @@ if (($allArgs.Count -eq 0) -or (($allArgs.Count -eq 1) -and ($allArgs[0] -in @("
   exit 1
 }
 
-function NormalizeArg {
-  param(
-    [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
-    [string[]] $Items
-  )
-  $Items -join ","
-}
-
 function QuoteString {
   param(
     [Parameter(ValueFromPipeline = $true)]
@@ -103,7 +95,6 @@ function QuoteString {
   }
 }
 
-$elixirParams = @()
 $erlangParams = @()
 $beforeExtras = @()
 $allOtherParams = @()
@@ -111,32 +102,16 @@ $allOtherParams = @()
 $runErlPipe = $null
 $runErlLog = $null
 
-for ($i = 0; $i -lt $allArgs.Count; $i++) {
+:loop for ($i = 0; $i -lt $allArgs.Count; $i++) {
   $private:arg = $allArgs[$i]
 
   switch -exact ($arg) {
     { $_ -in @("-e", "-r", "-pr", "-pa", "-pz", "--eval", "--remsh", "--dot-iex", "--dbg") } {
-      $private:nextArg = NormalizeArg($allArgs[++$i])
-
-      $elixirParams += $arg
-      $elixirParams += $nextArg
-
+      ++$i
       break
     }
 
-    { $_ -in @("-v", "--version") } {
-      # Standalone options goes only once in the Elixir params, when they are empty.
-      if (($elixirParams.Count -eq 0) -and ($allOtherParams.Count -eq 0)) {
-        $elixirParams += $arg
-      }
-      else {
-        $allOtherParams += $arg
-      }
-      break
-    }
-
-    "--no-halt" {
-      $elixirParams += $arg
+    { $_ -in @("-v", "--version", "--no-halt") } {
       break
     }
 
@@ -204,14 +179,11 @@ for ($i = 0; $i -lt $allArgs.Count; $i++) {
     }
 
     "+iex" {
-      $elixirParams += "+iex"
       $useIex = $true
-
       break
     }
 
     "+elixirc" {
-      $elixirParams += "+elixirc"
       break
     }
 
@@ -229,9 +201,6 @@ for ($i = 0; $i -lt $allArgs.Count; $i++) {
         exit 1
       }
 
-      $elixirParams += "--rpc-eval"
-      $elixirParams += $key
-      $elixirParams += $value
       break
     }
 
@@ -249,16 +218,14 @@ for ($i = 0; $i -lt $allArgs.Count; $i++) {
         exit 1
       }
 
-      $elixirParams += "-boot_var"
-      $elixirParams += $key
-      $elixirParams += $value
+      $erlangParams += "-boot_var"
+      $erlangParams += $key
+      $erlangParams += $value
       break
     }
 
     Default {
-      $private:normalized = NormalizeArg $arg
-      $allOtherParams += $normalized
-      break
+      break :loop
     }
   }
 }
@@ -280,8 +247,7 @@ if ($null -ne $env:ELIXIR_ERL_OPTIONS) {
 $allParams += $erlangParams
 $allParams += $beforeExtras
 $allParams += "-extra"
-$allParams += $elixirParams
-$allParams += $allOtherParams
+$allParams += $allArgs
 
 $binSuffix = ""
 
