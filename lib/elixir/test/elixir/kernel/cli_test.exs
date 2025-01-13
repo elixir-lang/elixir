@@ -124,7 +124,7 @@ defmodule Kernel.CLI.ExecutableTest do
     assert output =~ "Elixir #{System.version()}"
     assert output =~ "Standalone options can't be combined with other options"
 
-    if cli_extension != "ps1" do
+    if cli_extension != ".ps1" do
       output = iex(~c"--version", cli_extension)
       assert output =~ "Erlang/OTP #{System.otp_release()}"
       assert output =~ "IEx #{System.version()}"
