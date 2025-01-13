@@ -7,8 +7,8 @@ defmodule Mix.Tasks.CmdTest do
     nl = os_newline()
     Mix.Task.run("cmd", ["echo", "hello"])
     assert_received {:mix_shell, :run, ["hello" <> ^nl]}
-    Mix.Task.run("cmd", ["echo", "hello"])
-    assert_received {:mix_shell, :run, ["hello" <> ^nl]}
+    Mix.Task.run("cmd", ["echo", "hello world"])
+    assert_received {:mix_shell, :run, ["hello world" <> ^nl]}
   end
 
   test "runs the command for each app" do
