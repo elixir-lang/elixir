@@ -69,6 +69,11 @@ defmodule Date do
           calendar: Calendar.calendar()
         }
 
+  @typedoc "A duration unit expressed as a tuple."
+  @typedoc since: "1.19.0"
+  @type duration_unit_pair ::
+          {:year, integer} | {:month, integer} | {:week, integer} | {:day, integer}
+
   @doc """
   Returns a range of dates.
 
@@ -83,6 +88,20 @@ defmodule Date do
 
       iex> Date.range(~D[1999-01-01], ~D[2000-01-01])
       Date.range(~D[1999-01-01], ~D[2000-01-01])
+
+  A range may also be built from a `Date` and a `Duration`
+  (also expressed as a keyword list of `t:duration_unit_pair/0`):
+
+      iex> Date.range(~D[1999-01-01], Duration.new!(year: 1))
+      Date.range(~D[1999-01-01], ~D[2000-01-01])
+      iex> Date.range(~D[1999-01-01], year: 1)
+      Date.range(~D[1999-01-01], ~D[2000-01-01])
+
+  > #### Durations {: .warning}
+  >
+  > Support for expressing `last` as a [`Duration`](`t:Duration.t/0`) or
+  > keyword list of `t:duration_unit_pair/0`s was introduced in
+  > v1.19.0.
 
   A range of dates implements the `Enumerable` protocol, which means
   functions in the `Enum` module can be used to work with
@@ -100,7 +119,11 @@ defmodule Date do
 
   """
   @doc since: "1.5.0"
-  @spec range(Calendar.date(), Calendar.date()) :: Date.Range.t()
+  @spec range(
+          first :: Calendar.date(),
+          last_or_duration :: Calendar.date() | Duration.t() | [duration_unit_pair]
+        ) ::
+          Date.Range.t()
   def range(%{calendar: calendar} = first, %{calendar: calendar} = last) do
     {first_days, _} = to_iso_days(first)
     {last_days, _} = to_iso_days(last)
@@ -123,6 +146,16 @@ defmodule Date do
     raise ArgumentError, "both dates must have matching calendars"
   end
 
+  def range(%{calendar: _} = first, %Duration{} = duration) do
+    last = shift(first, duration)
+    range(first, last)
+  end
+
+  def range(%{calendar: _} = first, duration) when is_list(duration) do
+    last = shift(first, duration)
+    range(first, last)
+  end
+
   @doc """
   Returns a range of dates with a step.
 
@@ -140,8 +173,11 @@ defmodule Date do
 
   """
   @doc since: "1.12.0"
-  @spec range(Calendar.date(), Calendar.date(), step :: pos_integer | neg_integer) ::
-          Date.Range.t()
+  @spec range(
+          first :: Calendar.date(),
+          last_or_duration :: Calendar.date() | Duration.t() | [duration_unit_pair],
+          step :: pos_integer | neg_integer
+        ) :: Date.Range.t()
   def range(%{calendar: calendar} = first, %{calendar: calendar} = last, step)
       when is_integer(step) and step != 0 do
     {first_days, _} = to_iso_days(first)
@@ -156,6 +192,24 @@ defmodule Date do
       ) do
     raise ArgumentError,
           "both dates must have matching calendar and the step must be a " <>
+            "non-zero integer, got: #{inspect(first)}, #{inspect(last)}, #{step}"
+  end
+
+  def range(%{calendar: _} = first, %Duration{} = duration, step)
+      when is_integer(step) and step != 0 do
+    last = shift(first, duration)
+    range(first, last, step)
+  end
+
+  def range(%{calendar: _} = first, duration, step)
+      when is_list(duration) and is_integer(step) and step != 0 do
+    last = shift(first, duration)
+    range(first, last, step)
+  end
+
+  def range(%{calendar: _} = first, last, step) do
+    raise ArgumentError,
+          "expected a date or duration as second argument and the step must be a " <>
             "non-zero integer, got: #{inspect(first)}, #{inspect(last)}, #{step}"
   end
 
@@ -795,8 +849,7 @@ defmodule Date do
 
   """
   @doc since: "1.17.0"
-  @spec shift(Calendar.date(), Duration.t() | [unit_pair]) :: t
-        when unit_pair: {:year, integer} | {:month, integer} | {:week, integer} | {:day, integer}
+  @spec shift(Calendar.date(), Duration.t() | [duration_unit_pair]) :: t
   def shift(%{calendar: calendar} = date, duration) do
     %{year: year, month: month, day: day} = date
     {year, month, day} = calendar.shift_date(year, month, day, __duration__!(duration))
