@@ -57,6 +57,10 @@ defmodule Mix.Tasks.Cmd do
   def run(args) do
     {opts, args} = OptionParser.parse_head!(args, strict: @switches)
 
+    if args == [] do
+      Mix.raise("Expected at least one argument in mix cmd")
+    end
+
     apps =
       opts
       |> Keyword.get_values(:app)
@@ -69,7 +73,7 @@ defmodule Mix.Tasks.Cmd do
     if apps == [] or Mix.Project.config()[:app] in apps do
       cmd_opts = Keyword.take(opts, [:cd])
 
-      case Mix.shell().cmd(Enum.join(args, " "), cmd_opts) do
+      case Mix.shell().cmd({hd(args), tl(args)}, cmd_opts) do
         0 -> :ok
         status -> exit(status)
       end
