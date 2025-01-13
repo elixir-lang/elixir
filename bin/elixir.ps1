@@ -26,6 +26,7 @@ Usage: $scriptName [options] [.exs file] [data]
   -pz "PATH"                   Appends the given path to Erlang code path (*)
   -v, --version                Prints Erlang/OTP and Elixir versions (standalone)
 
+  --color                      Enables or disables ANSI coloring
   --erl "SWITCHES"             Switches to be passed down to Erlang (*)
   --eval "COMMAND"             Evaluates the given command, same as -e (*)
   --logger-otp-reports BOOL    Enables or disables OTP reporting
@@ -106,7 +107,7 @@ $runErlLog = $null
   $private:arg = $allArgs[$i]
 
   switch -exact ($arg) {
-    { $_ -in @("-e", "-r", "-pr", "-pa", "-pz", "--eval", "--remsh", "--dot-iex", "--dbg") } {
+    { $_ -in @("-e", "-r", "-pr", "-pa", "-pz", "--eval", "--remsh", "--dot-iex", "--dbg", "--color") } {
       ++$i
       break
     }
