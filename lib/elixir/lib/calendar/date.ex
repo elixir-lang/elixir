@@ -69,6 +69,8 @@ defmodule Date do
           calendar: Calendar.calendar()
         }
 
+  @typedoc "A duration unit expressed as a tuple."
+  @typedoc since: "1.19.0"
   @type duration_unit_pair ::
           {:year, integer} | {:month, integer} | {:week, integer} | {:day, integer}
 
@@ -87,12 +89,19 @@ defmodule Date do
       iex> Date.range(~D[1999-01-01], ~D[2000-01-01])
       Date.range(~D[1999-01-01], ~D[2000-01-01])
 
-  A range may also be built from a `Date` and a `Duration`:
+  A range may also be built from a `Date` and a `Duration`
+  (also expressed as a keyword list of `t:duration_unit_pair/0`):
 
       iex> Date.range(~D[1999-01-01], Duration.new!(year: 1))
       Date.range(~D[1999-01-01], ~D[2000-01-01])
       iex> Date.range(~D[1999-01-01], year: 1)
       Date.range(~D[1999-01-01], ~D[2000-01-01])
+
+  > #### Durations {: .warning}
+  >
+  > Support for expressing `last` as a [`Duration`](`t:Duration.t/0`) or
+  > keyword list of `t:duration_unit_pair/0`s was introduced in
+  > v1.19.0.
 
   A range of dates implements the `Enumerable` protocol, which means
   functions in the `Enum` module can be used to work with
@@ -110,7 +119,7 @@ defmodule Date do
 
   """
   @doc since: "1.5.0"
-  @spec range(Calendar.date(), Calendar.date() | Duration.t() | [duration_unit_pair]) ::
+  @spec range(first :: Calendar.date(), last_or_duration :: Calendar.date() | Duration.t() | [duration_unit_pair]) ::
           Date.Range.t()
   def range(%{calendar: calendar} = first, %{calendar: calendar} = last) do
     {first_days, _} = to_iso_days(first)
@@ -166,8 +175,8 @@ defmodule Date do
   """
   @doc since: "1.12.0"
   @spec range(
-          Calendar.date(),
-          Calendar.date() | Duration.t() | [duration_unit_pair],
+          first :: Calendar.date(),
+          last_or_duration :: Calendar.date() | Duration.t() | [duration_unit_pair],
           step :: pos_integer | neg_integer
         ) :: Date.Range.t()
   def range(%{calendar: calendar} = first, %{calendar: calendar} = last, step)
