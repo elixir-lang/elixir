@@ -95,7 +95,7 @@ defmodule Kernel.CLI.ExecutableTest do
              System.cmd(elixir_executable(context.cli_extension), ["-e", "Time.new!(0, 0, 0)"])
 
     # TODO: Remove this once we bump CI to Erlang/OTP 27
-    if cli_extension == "" and System.otp_release() != "26" do
+    if context.cli_extension == "" and System.otp_release() != "26" do
       {output, 0} =
         System.cmd(iex_executable(context.cli_extension), [
           "--eval",
