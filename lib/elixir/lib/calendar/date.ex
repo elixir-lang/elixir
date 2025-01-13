@@ -146,12 +146,12 @@ defmodule Date do
     raise ArgumentError, "both dates must have matching calendars"
   end
 
-  def range(%{calendar: calendar} = first, %Duration{} = duration) do
+  def range(%{calendar: _} = first, %Duration{} = duration) do
     last = shift(first, duration)
     range(first, last)
   end
 
-  def range(%{calendar: calendar} = first, duration) when is_list(duration) do
+  def range(%{calendar: _} = first, duration) when is_list(duration) do
     last = shift(first, duration)
     range(first, last)
   end
@@ -195,13 +195,13 @@ defmodule Date do
             "non-zero integer, got: #{inspect(first)}, #{inspect(last)}, #{step}"
   end
 
-  def range(%{calendar: calendar} = first, %Duration{} = duration, step)
+  def range(%{calendar: _} = first, %Duration{} = duration, step)
       when is_integer(step) and step != 0 do
     last = shift(first, duration)
     range(first, last, step)
   end
 
-  def range(%{calendar: calendar} = first, duration, step)
+  def range(%{calendar: _} = first, duration, step)
       when is_list(duration) and is_integer(step) and step != 0 do
     last = shift(first, duration)
     range(first, last, step)
