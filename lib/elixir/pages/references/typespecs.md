@@ -6,8 +6,7 @@
 > [own type system](./gradual-set-theoretic-types.md) based on set-theoretic types.
 > Typespecs, which are described in the following document, are a distinct notation
 > for declaring types and specifications based on Erlang.
->
-> Typespecs will be phased out as the set-theoretic type effort moves forward.
+> Typespecs may be phased out as the set-theoretic type effort moves forward.
 
 Elixir is a dynamically typed language, and as such, type specifications are never used by the compiler to optimize or modify code. Still, using type specifications is useful because:
 
