@@ -196,6 +196,16 @@ defmodule Module.Types.ExprTest do
              ) == dynamic(open_map(foo_bar: atom([:foo]), baz_bat: integer()))
     end
 
+    test "infers args" do
+      assert typecheck!(
+               [x, y],
+               (
+                 z = Integer.to_string(x + y)
+                 {x, y, z}
+               )
+             ) == dynamic(tuple([integer(), integer(), binary()]))
+    end
+
     test "undefined function warnings" do
       assert typewarn!(URI.unknown("foo")) ==
                {dynamic(), "URI.unknown/1 is undefined or private"}

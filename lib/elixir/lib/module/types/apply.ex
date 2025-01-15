@@ -270,13 +270,10 @@ defmodule Module.Types.Apply do
     {:none, Enum.map(args, fn _ -> term() end)}
   end
 
-  def remote_domain(fun, args, _expected, _stack) do
+  def remote_domain(fun, args, expected, _stack) do
     arity = length(args)
-
-    case signature(fun, arity) do
-      :none -> {:none, Enum.map(args, fn _ -> term() end)}
-      {:strong, domain, clauses} = info -> {info, domain(domain, clauses)}
-    end
+    info = signature(fun, arity)
+    {info, filter_domain(info, expected, arity)}
   end
 
   @doc """
@@ -338,15 +335,7 @@ defmodule Module.Types.Apply do
 
       false ->
         {info, context} = signature(mod, fun, arity, meta, stack, context)
-
-        case info do
-          {type, domain, clauses} ->
-            domain = domain(domain, clauses)
-            {{type, domain, clauses}, domain, context}
-
-          :none ->
-            {:none, List.duplicate(term(), arity), context}
-        end
+        {info, filter_domain(info, expected, arity), context}
     end
   end
 
@@ -369,17 +358,17 @@ defmodule Module.Types.Apply do
     {:ok, dynamic()}
   end
 
-  defp remote_apply({:infer, domain, clauses}, args_types, _stack) do
-    case apply_infer(domain, clauses, args_types) do
+  defp remote_apply({:infer, _domain, clauses} = sig, args_types, _stack) do
+    case apply_infer(clauses, args_types) do
       {_used, type} -> {:ok, type}
-      {:error, domain, clauses} -> {:error, {:badremote, domain, clauses}}
+      :error -> {:error, {:badremote, sig}}
     end
   end
 
-  defp remote_apply({:strong, domain, clauses}, args_types, stack) do
+  defp remote_apply({:strong, domain, clauses} = sig, args_types, stack) do
     case apply_strong(domain, clauses, args_types, stack) do
       {_used, type} -> {:ok, type}
-      {:error, domain, clauses} -> {:error, {:badremote, domain, clauses}}
+      :error -> {:error, {:badremote, sig}}
     end
   end
 
@@ -471,8 +460,7 @@ defmodule Module.Types.Apply do
   end
 
   defp badremote(mod, fun, arity) do
-    {_, domain, clauses} = signature(mod, fun, arity)
-    {:badremote, domain, clauses}
+    {:badremote, signature(mod, fun, arity)}
   end
 
   @doc """
@@ -629,8 +617,7 @@ defmodule Module.Types.Apply do
 
   ## Local
 
-  # PENDING: expected
-  def local_domain(fun, args, _expected, meta, stack, context) do
+  def local_domain(fun, args, expected, meta, stack, context) do
     arity = length(args)
 
     case stack.local_handler.(meta, {fun, arity}, stack, context) do
@@ -640,13 +627,19 @@ defmodule Module.Types.Apply do
       {kind, info, context} ->
         update_used? = stack.mode not in [:traversal, :infer] and kind == :defp
 
-        case info do
-          _ when stack.mode == :traversal or info == :none ->
-            {{update_used?, :none}, List.duplicate(term(), arity), context}
-
-          {_strong_or_infer, domain, clauses} ->
-            {{update_used?, info}, domain(domain, clauses), context}
+        if stack.mode == :traversal or info == :none do
+          {{update_used?, :none}, List.duplicate(term(), arity), context}
+        else
+          {{update_used?, info}, filter_domain(info, expected, arity), context}
         end
+    end
+  end
+
+  def local_apply({update_used?, :none}, fun, args_types, _expr, _stack, context) do
+    if update_used? do
+      {dynamic(), put_in(context.local_used[{fun, length(args_types)}], [])}
+    else
+      {dynamic(), context}
     end
   end
 
@@ -656,11 +649,7 @@ defmodule Module.Types.Apply do
         context =
           if update_used? do
             update_in(context.local_used[{fun, length(args_types)}], fn current ->
-              if info == :none do
-                []
-              else
-                (current || used_from_clauses(info)) -- indexes
-              end
+              (current || used_from_clauses(info)) -- indexes
             end)
           else
             context
@@ -668,18 +657,14 @@ defmodule Module.Types.Apply do
 
         {type, context}
 
-      {:error, domain, clauses} ->
-        error = {:badlocal, domain, clauses, args_types, expr, context}
+      :error ->
+        error = {:badlocal, info, args_types, expr, context}
         {error_type(), error(error, with_span(elem(expr, 1), fun), stack, context)}
     end
   end
 
-  defp local_apply(:none, _args_types, _stack) do
-    {[], dynamic()}
-  end
-
-  defp local_apply({:infer, domain, clauses}, args_types, _stack) do
-    apply_infer(domain, clauses, args_types)
+  defp local_apply({:infer, _domain, clauses}, args_types, _stack) do
+    apply_infer(clauses, args_types)
   end
 
   defp local_apply({:strong, domain, clauses}, args_types, stack) do
@@ -725,10 +710,39 @@ defmodule Module.Types.Apply do
   defp domain(nil, [{domain, _}]), do: domain
   defp domain(domain, _clauses), do: domain
 
-  defp apply_infer(domain, clauses, args_types) do
+  @term_or_dynamic [term(), dynamic()]
+
+  defp filter_domain(:none, _expected, arity) do
+    List.duplicate(term(), arity)
+  end
+
+  defp filter_domain({_, domain, clauses}, expected, _arity) when expected in @term_or_dynamic do
+    domain(domain, clauses)
+  end
+
+  defp filter_domain({_type, domain, clauses}, expected, arity) do
+    case filter_domain(clauses, expected, [], true) do
+      :none -> List.duplicate(term(), arity)
+      :all -> domain(domain, clauses)
+      args -> Enum.zip_with(args, fn types -> Enum.reduce(types, &union/2) end)
+    end
+  end
+
+  defp filter_domain([{args, return} | clauses], expected, acc, all_compatible?) do
+    case compatible?(return, expected) do
+      true -> filter_domain(clauses, expected, [args | acc], all_compatible?)
+      false -> filter_domain(clauses, expected, acc, false)
+    end
+  end
+
+  defp filter_domain([], _expected, [], _all_compatible?), do: :none
+  defp filter_domain([], _expected, _acc, true), do: :all
+  defp filter_domain([], _expected, acc, false), do: acc
+
+  defp apply_infer(clauses, args_types) do
     case apply_clauses(clauses, args_types, 0, 0, [], []) do
       {0, [], []} ->
-        {:error, domain, clauses}
+        :error
 
       {count, used, _returns} when count > @max_clauses ->
         {used, dynamic()}
@@ -738,11 +752,11 @@ defmodule Module.Types.Apply do
     end
   end
 
-  defp apply_strong(domain, [{expected, return}] = clauses, args_types, stack) do
+  defp apply_strong(_domain, [{expected, return}], args_types, stack) do
     # Optimize single clauses as the domain is the single clause args.
     case zip_compatible?(args_types, expected) do
       true -> {[0], return(return, args_types, stack)}
-      false -> {:error, domain, clauses}
+      false -> :error
     end
   end
 
@@ -753,7 +767,7 @@ defmodule Module.Types.Apply do
          {count, used, returns} when count > 0 <- apply_clauses(clauses, args_types, 0, 0, [], []) do
       {used, returns |> Enum.reduce(&union/2) |> return(args_types, stack)}
     else
-      _ -> {:error, domain, clauses}
+      _ -> :error
     end
   end
 
@@ -796,7 +810,7 @@ defmodule Module.Types.Apply do
 
   ## Diagnostics
 
-  def format_diagnostic({:badlocal, domain, clauses, args_types, expr, context}) do
+  def format_diagnostic({:badlocal, {_, domain, clauses}, args_types, expr, context}) do
     domain = domain(domain, clauses)
     traces = collect_traces(expr, context)
     converter = &Function.identity/1
@@ -852,7 +866,7 @@ defmodule Module.Types.Apply do
     }
   end
 
-  def format_diagnostic({{:badremote, domain, clauses}, args_types, mfac, expr, context}) do
+  def format_diagnostic({{:badremote, {_, domain, clauses}}, args_types, mfac, expr, context}) do
     domain = domain(domain, clauses)
     {mod, fun, arity, converter} = mfac
     meta = elem(expr, 1)
