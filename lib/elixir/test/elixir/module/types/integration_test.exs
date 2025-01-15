@@ -68,7 +68,7 @@ defmodule Module.Types.IntegrationTest do
 
       assert [
                {{:c, 0}, %{}},
-               {{:e, 0}, %{deprecated: "oops", sig: {:infer, _}}}
+               {{:e, 0}, %{deprecated: "oops", sig: {:infer, _, _}}}
              ] = read_chunk(modules[A]).exports
 
       assert read_chunk(modules[B]).exports == [
@@ -78,6 +78,77 @@ defmodule Module.Types.IntegrationTest do
       assert read_chunk(modules[C]).exports == [
                {{:behaviour_info, 1}, %{sig: :none}}
              ]
+    end
+
+    test "writes exports with inferred map types" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          defstruct [:x, :y, :z]
+
+          def struct_create_with_atom_keys(x) do
+            infer(y = %A{x: x})
+            {x, y}
+          end
+
+          def map_create_with_atom_keys(x) do
+            infer(%{__struct__: A, x: x, y: nil, z: nil})
+            x
+          end
+
+          def map_update_with_atom_keys(x) do
+            infer(%{x | y: nil})
+            x
+          end
+
+          def map_update_with_unknown_keys(x, y) do
+            infer(%{x | y => 123})
+            x
+          end
+
+          defp infer(%A{x: <<_::binary>>, y: nil}) do
+            :ok
+          end
+        end
+        """
+      }
+
+      modules = compile_modules(files)
+      exports = read_chunk(modules[A]).exports |> Map.new()
+
+      return = fn name, arity ->
+        pair = {name, arity}
+        %{^pair => %{sig: {:infer, nil, [{_, return}]}}} = exports
+        return
+      end
+
+      assert return.(:struct_create_with_atom_keys, 1) ==
+               dynamic(
+                 tuple([
+                   binary(),
+                   closed_map(
+                     __struct__: atom([A]),
+                     x: binary(),
+                     y: atom([nil]),
+                     z: atom([nil])
+                   )
+                 ])
+               )
+
+      assert return.(:map_create_with_atom_keys, 1) == dynamic(binary())
+
+      assert return.(:map_update_with_atom_keys, 1) ==
+               dynamic(
+                 closed_map(
+                   __struct__: atom([A]),
+                   x: binary(),
+                   y: term(),
+                   z: term()
+                 )
+               )
+
+      assert return.(:map_update_with_unknown_keys, 2) ==
+               dynamic(open_map())
     end
 
     test "writes exports for implementations" do
@@ -119,7 +190,7 @@ defmodule Module.Types.IntegrationTest do
       refute stderr =~ "this_wont_warn"
 
       itself_arg = fn mod ->
-        {_, %{sig: {:infer, [{[value], value}]}}} =
+        {_, %{sig: {:infer, nil, [{[value], value}]}}} =
           List.keyfind(read_chunk(modules[mod]).exports, {:itself, 1}, 0)
 
         value
@@ -396,8 +467,10 @@ defmodule Module.Types.IntegrationTest do
 
             but expected a type that implements the String.Chars protocol, it must be one of:
 
-                %Date{} or %DateTime{} or %NaiveDateTime{} or %Time{} or %URI{} or %Version{} or
-                  %Version.Requirement{} or atom() or binary() or float() or integer() or list(term())
+                dynamic(
+                  %Date{} or %DateTime{} or %NaiveDateTime{} or %Time{} or %URI{} or %Version{} or
+                    %Version.Requirement{}
+                ) or atom() or binary() or float() or integer() or list(term())
 
             where "data" was given the type:
 
@@ -418,8 +491,10 @@ defmodule Module.Types.IntegrationTest do
 
             but expected a type that implements the String.Chars protocol, it must be one of:
 
-                %Date{} or %DateTime{} or %NaiveDateTime{} or %Time{} or %URI{} or %Version{} or
-                  %Version.Requirement{} or atom() or binary() or float() or integer() or list(term())
+                dynamic(
+                  %Date{} or %DateTime{} or %NaiveDateTime{} or %Time{} or %URI{} or %Version{} or
+                    %Version.Requirement{}
+                ) or atom() or binary() or float() or integer() or list(term())
 
             where "data" was given the type:
 
@@ -455,8 +530,10 @@ defmodule Module.Types.IntegrationTest do
 
             but expected a type that implements the Enumerable protocol, it must be one of:
 
-                %Date.Range{} or %File.Stream{} or %GenEvent.Stream{} or %HashDict{} or %HashSet{} or
-                  %IO.Stream{} or %MapSet{} or %Range{} or %Stream{} or fun() or list(term()) or non_struct_map()
+                dynamic(
+                  %Date.Range{} or %File.Stream{} or %GenEvent.Stream{} or %HashDict{} or %HashSet{} or
+                    %IO.Stream{} or %MapSet{} or %Range{} or %Stream{}
+                ) or fun() or list(term()) or non_struct_map()
 
             where "date" was given the type:
 
@@ -484,7 +561,7 @@ defmodule Module.Types.IntegrationTest do
 
             but expected a type that implements the Collectable protocol, it must be one of:
 
-                %File.Stream{} or %HashDict{} or %HashSet{} or %IO.Stream{} or %MapSet{} or binary() or
+                dynamic(%File.Stream{} or %HashDict{} or %HashSet{} or %IO.Stream{} or %MapSet{}) or binary() or
                   list(term()) or non_struct_map()
 
             hint: the :into option in for-comprehensions use the Collectable protocol to build its result. Either pass a valid data type or implement the protocol accordingly

@@ -1,6 +1,6 @@
 -module(elixir_bitstring).
 -export([expand/5, format_error/1, validate_spec/2]).
--import(elixir_errors, [function_error/4, file_error/4]).
+-import(elixir_errors, [function_error/4]).
 -include("elixir.hrl").
 
 expand_match(Expr, {S, OriginalS}, E) ->
@@ -12,11 +12,6 @@ expand(Meta, Args, S, E, RequireSize) ->
     match ->
       {EArgs, Alignment, {SA, _}, EA} =
         expand(Meta, fun expand_match/3, Args, [], {S, S}, E, 0, RequireSize),
-
-      case find_match(EArgs) of
-        false -> ok;
-        Match -> file_error(Meta, EA, ?MODULE, {nested_match, Match})
-      end,
 
       {{'<<>>', [{alignment, Alignment} | Meta], EArgs}, SA, EA};
     _ ->
@@ -32,6 +27,7 @@ expand(_BitstrMeta, _Fun, [], Acc, S, E, Alignment, _RequireSize) ->
   {lists:reverse(Acc), Alignment, S, E};
 expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, S, E, Alignment, RequireSize) ->
   {ELeft, {SL, OriginalS}, EL} = expand_expr(Left, Fun, S, E),
+  validate_expr(ELeft, Meta, E),
 
   MatchOrRequireSize = RequireSize or is_match_size(T, EL),
   EType = expr_type(ELeft),
@@ -47,6 +43,7 @@ expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, S, E, Alignment,
 expand(BitstrMeta, Fun, [H | T], Acc, S, E, Alignment, RequireSize) ->
   Meta = extract_meta(H, BitstrMeta),
   {ELeft, {SS, OriginalS}, ES} = expand_expr(H, Fun, S, E),
+  validate_expr(ELeft, Meta, E),
 
   MatchOrRequireSize = RequireSize or is_match_size(T, ES),
   EType = expr_type(ELeft),
@@ -144,6 +141,17 @@ expand_expr({{'.', _, [Mod, to_string]}, _, [Arg]} = AST, Fun, S, #{context := C
   end;
 expand_expr(Component, Fun, S, E) ->
   Fun(Component, S, E).
+
+validate_expr(Expr, Meta, #{context := match} = E) ->
+  case Expr of
+    {Var, _Meta, Ctx} when is_atom(Var), is_atom(Ctx) -> ok;
+    {'<<>>', _, _} -> ok;
+    {'^', _, _} -> ok;
+    _ when is_number(Expr); is_binary(Expr) -> ok;
+    _ -> function_error(extract_meta(Expr, Meta), E, ?MODULE, {unknown_match, Expr})
+  end;
+validate_expr(_Expr, _Meta, _E) ->
+  ok.
 
 %% Expands and normalizes types of a bitstring.
 
@@ -353,18 +361,6 @@ valid_float_size(_) -> false.
 add_spec(default, Spec) -> Spec;
 add_spec(Key, Spec) -> [{Key, [], nil} | Spec].
 
-find_match([{'=', _, [_Left, _Right]} = Expr | _Rest]) ->
-  Expr;
-find_match([{_, _, Args} | Rest]) when is_list(Args) ->
-  case find_match(Args) of
-    false -> find_match(Rest);
-    Match -> Match
-  end;
-find_match([_Arg | Rest]) ->
-  find_match(Rest);
-find_match([]) ->
-  false.
-
 format_error({unaligned_binary, Expr}) ->
   Message = "expected ~ts to be a binary but its number of bits is not divisible by 8",
   io_lib:format(Message, ['Elixir.Macro':to_string(Expr)]);
@@ -409,10 +405,9 @@ format_error({bittype_mismatch, Val1, Val2, Where}) ->
 format_error({bad_unit_argument, Unit}) ->
   io_lib:format("unit in bitstring expects an integer as argument, got: ~ts",
                 ['Elixir.Macro':to_string(Unit)]);
-format_error({nested_match, Expr}) ->
+format_error({unknown_match, Expr}) ->
   Message =
-    "cannot pattern match inside a bitstring "
-      "that is already in match, got: ~ts",
+    "a bitstring only accepts binaries, numbers, and variables inside a match, got: ~ts",
   io_lib:format(Message, ['Elixir.Macro':to_string(Expr)]);
 format_error({undefined_var_in_spec, Var}) ->
   Message =

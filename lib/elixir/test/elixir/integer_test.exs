@@ -51,11 +51,6 @@ defmodule IntegerTest do
     assert_raise ArithmeticError, fn -> Integer.mod(-50, 0) end
   end
 
-  test "mod/2 raises ArithmeticError when non-integers used as arguments" do
-    assert_raise ArithmeticError, fn -> Integer.mod(3.0, 2) end
-    assert_raise ArithmeticError, fn -> Integer.mod(20, 1.2) end
-  end
-
   test "floor_div/2" do
     assert Integer.floor_div(3, 2) == 1
     assert Integer.floor_div(0, 10) == 0

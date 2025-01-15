@@ -1,7 +1,7 @@
 defmodule Module.Types.Pattern do
   @moduledoc false
 
-  alias Module.Types.Of
+  alias Module.Types.{Apply, Of}
   import Module.Types.{Helpers, Descr}
 
   @guard atom([true, false, :fail])
@@ -25,32 +25,45 @@ defmodule Module.Types.Pattern do
      is refined, we restart at step 2.
 
   """
-  def of_head(_patterns, _guards, expected, _tag, _meta, %{mode: :traversal}, context) do
-    {expected, context}
+  def of_head(patterns, _guards, _expected, _tag, _meta, %{mode: :traversal}, context) do
+    term = term()
+    {Enum.map(patterns, &{&1, term}), context}
   end
 
   def of_head(patterns, guards, expected, tag, meta, stack, context) do
     stack = %{stack | meta: meta}
 
-    {_trees, types, context} = of_pattern_args(patterns, expected, tag, stack, context)
+    {trees, context} = of_pattern_args(patterns, expected, tag, stack, context)
     {_, context} = Enum.map_reduce(guards, context, &of_guard(&1, @guard, &1, stack, &2))
-    {types, context}
+    {trees, context}
+  end
+
+  @doc """
+  Computes the domain from the pattern tree and expected types.
+  """
+  def of_domain([{_pattern, tree} | trees], [type | expected], context) do
+    [intersection(of_pattern_tree(tree, context), type) | of_domain(trees, expected, context)]
+  end
+
+  def of_domain([], [], _context) do
+    []
   end
 
   defp of_pattern_args([], [], _tag, _stack, context) do
-    {[], [], context}
+    {[], context}
   end
 
   defp of_pattern_args(patterns, expected, tag, stack, context) do
     context = init_pattern_info(context)
     {trees, context} = of_pattern_args_index(patterns, 0, [], stack, context)
+    {pattern_info, context} = pop_pattern_info(context)
 
-    {types, context} =
-      of_pattern_recur(expected, tag, stack, context, fn types, changed, context ->
+    {_, context} =
+      of_pattern_recur(expected, tag, pattern_info, stack, context, fn types, changed, context ->
         of_pattern_args_tree(trees, types, changed, 0, [], tag, stack, context)
       end)
 
-    {trees, types, context}
+    {trees, context}
   end
 
   defp of_pattern_args_index([pattern | tail], index, acc, stack, context) do
@@ -98,31 +111,55 @@ defmodule Module.Types.Pattern do
   end
 
   @doc """
-  A simplified version of `of_head` used by `=` and `<-`.
-
-  This version tracks the whole expression in tracing,
-  instead of only the pattern.
+  Handles the match operator.
   """
-  def of_match(pattern, guards \\ [], expected, expr, tag, stack, context)
+  def of_match(pattern, expected_fun, expr, stack, context)
 
-  def of_match(_pattern, _guards, expected, _expr, _tag, %{mode: :traversal}, context) do
-    {expected, context}
+  def of_match(_pattern, expected_fun, _expr, %{mode: :traversal}, context) do
+    expected_fun.(dynamic(), context)
   end
 
-  def of_match(pattern, guards, expected, expr, tag, stack, context) do
+  def of_match(pattern, expected_fun, expr, stack, context) do
     context = init_pattern_info(context)
     {tree, context} = of_pattern(pattern, [{:arg, 0, expr}], stack, context)
+    {pattern_info, context} = pop_pattern_info(context)
+    {expected, context} = expected_fun.(of_pattern_tree(tree, context), context)
+    tag = {:match, expected}
 
     {[type], context} =
-      of_pattern_recur([expected], tag, stack, context, fn [type], [0], context ->
-        with {:ok, type, context} <-
-               of_pattern_intersect(tree, type, expr, 0, tag, stack, context) do
-          {:ok, [type], context}
-        end
-      end)
+      of_single_pattern_recur(expected, tag, tree, pattern_info, expr, stack, context)
+
+    {type, context}
+  end
+
+  @doc """
+  Handles matches in generators.
+  """
+  def of_generator(pattern, guards, expected, tag, expr, stack, context)
+
+  def of_generator(_pattern, _guards, _expected, _tag, _expr, %{mode: :traversal}, context) do
+    context
+  end
+
+  def of_generator(pattern, guards, expected, tag, expr, stack, context) do
+    context = init_pattern_info(context)
+    {tree, context} = of_pattern(pattern, [{:arg, 0, expr}], stack, context)
+    {pattern_info, context} = pop_pattern_info(context)
+
+    {_, context} =
+      of_single_pattern_recur(expected, tag, tree, pattern_info, expr, stack, context)
 
     {_, context} = Enum.map_reduce(guards, context, &of_guard(&1, @guard, &1, stack, &2))
-    {type, context}
+    context
+  end
+
+  defp of_single_pattern_recur(expected, tag, tree, pattern_info, expr, stack, context) do
+    of_pattern_recur([expected], tag, pattern_info, stack, context, fn [type], [0], context ->
+      with {:ok, type, context} <-
+             of_pattern_intersect(tree, type, expr, 0, tag, stack, context) do
+        {:ok, [type], context}
+      end
+    end)
   end
 
   defp all_single_path?(vars, info, index) do
@@ -131,15 +168,13 @@ defmodule Module.Types.Pattern do
     |> Enum.all?(fn version -> match?([_], Map.fetch!(vars, version)) end)
   end
 
-  defp of_pattern_recur(types, tag, stack, context, callback) do
-    %{pattern_info: {vars, info, _counter}} = context
-    context = nilify_pattern_info(context)
+  defp of_pattern_recur(types, tag, pattern_info, stack, context, callback) do
+    {vars, info, _counter} = pattern_info
     changed = :lists.seq(0, length(types) - 1)
 
     # If all variables in a given index have a single path,
     # then there are no changes to propagate
     unchangeable = for index <- changed, all_single_path?(vars, info, index), do: index
-
     vars = Map.to_list(vars)
 
     try do
@@ -165,13 +200,13 @@ defmodule Module.Types.Pattern do
 
               case of_pattern_var(path, actual, true, info, context) do
                 {type, reachable_var?} ->
-                  # If current type is already a subtype, there is nothing to refine.
+                  # Optimization: if current type is already a subtype, there is nothing to refine.
                   with %{^version => %{type: current_type}} <- context.vars,
                        true <- subtype?(current_type, type) do
                     {var_changed?, context}
                   else
                     _ ->
-                      case Of.refine_var(var, type, expr, stack, context) do
+                      case Of.refine_head_var(var, type, expr, stack, context) do
                         {:ok, _type, context} -> {var_changed? or reachable_var?, context}
                         {:error, _type, context} -> throw({types, context})
                       end
@@ -283,36 +318,39 @@ defmodule Module.Types.Pattern do
     end
   end
 
-  defp of_pattern_tree(descr, _context) when is_descr(descr),
+  @doc """
+  Receives the pattern tree and the context and returns a concrete type.
+  """
+  def of_pattern_tree(descr, _context) when is_descr(descr),
     do: descr
 
-  defp of_pattern_tree({:tuple, entries}, context) do
+  def of_pattern_tree({:tuple, entries}, context) do
     tuple(Enum.map(entries, &of_pattern_tree(&1, context)))
   end
 
-  defp of_pattern_tree({:open_map, static, dynamic}, context) do
+  def of_pattern_tree({:open_map, static, dynamic}, context) do
     dynamic = Enum.map(dynamic, fn {key, value} -> {key, of_pattern_tree(value, context)} end)
     open_map(static ++ dynamic)
   end
 
-  defp of_pattern_tree({:closed_map, static, dynamic}, context) do
+  def of_pattern_tree({:closed_map, static, dynamic}, context) do
     dynamic = Enum.map(dynamic, fn {key, value} -> {key, of_pattern_tree(value, context)} end)
     closed_map(static ++ dynamic)
   end
 
-  defp of_pattern_tree({:non_empty_list, [head | tail], suffix}, context) do
+  def of_pattern_tree({:non_empty_list, [head | tail], suffix}, context) do
     tail
     |> Enum.reduce(of_pattern_tree(head, context), &union(of_pattern_tree(&1, context), &2))
     |> non_empty_list(of_pattern_tree(suffix, context))
   end
 
-  defp of_pattern_tree({:intersection, entries}, context) do
+  def of_pattern_tree({:intersection, entries}, context) do
     entries
     |> Enum.map(&of_pattern_tree(&1, context))
     |> Enum.reduce(&intersection/2)
   end
 
-  defp of_pattern_tree({:var, version}, context) do
+  def of_pattern_tree({:var, version}, context) do
     case context do
       %{vars: %{^version => %{type: type}}} -> type
       _ -> term()
@@ -322,9 +360,14 @@ defmodule Module.Types.Pattern do
   @doc """
   Function used to assign a type to a variable. Used by %struct{}
   and binary patterns.
+
+  Given those values are actually checked at compile-time,
+  except for the variables, that's the only scenario we need to handle.
   """
+  # TODO: Perhaps merge this with guards
   def of_match_var({:^, _, [var]}, expected, expr, stack, context) do
-    Of.intersect(Of.var(var, context), expected, expr, stack, context)
+    {type, context} = Of.refine_body_var(var, expected, expr, stack, context)
+    Of.compatible(type, expected, expr, stack, context)
   end
 
   def of_match_var({:_, _, _}, expected, _expr, _stack, context) do
@@ -332,12 +375,12 @@ defmodule Module.Types.Pattern do
   end
 
   def of_match_var(var, expected, expr, stack, context) when is_var(var) do
-    {_ok?, type, context} = Of.refine_var(var, expected, expr, stack, context)
+    {_ok?, type, context} = Of.refine_head_var(var, expected, expr, stack, context)
     {type, context}
   end
 
-  def of_match_var(ast, expected, expr, stack, context) do
-    of_match(ast, expected, expr, :default, stack, context)
+  def of_match_var(_ast, expected, _expr, _stack, context) do
+    {expected, context}
   end
 
   ## Patterns
@@ -602,48 +645,28 @@ defmodule Module.Types.Pattern do
   # This function is public as it is invoked from Of.binary/4.
 
   # :atom
-  def of_guard(atom, expected, expr, stack, context) when is_atom(atom) do
-    if atom_type?(expected, atom) do
-      {atom([atom]), context}
-    else
-      {error_type(), Of.incompatible_error(expr, expected, atom([atom]), stack, context)}
-    end
+  def of_guard(atom, _expected, _expr, _stack, context) when is_atom(atom) do
+    {atom([atom]), context}
   end
 
   # 12
-  def of_guard(literal, expected, expr, stack, context) when is_integer(literal) do
-    if integer_type?(expected) do
-      {integer(), context}
-    else
-      {error_type(), Of.incompatible_error(expr, expected, integer(), stack, context)}
-    end
+  def of_guard(literal, _expected, _expr, _stack, context) when is_integer(literal) do
+    {integer(), context}
   end
 
   # 1.2
-  def of_guard(literal, expected, expr, stack, context) when is_float(literal) do
-    if float_type?(expected) do
-      {float(), context}
-    else
-      {error_type(), Of.incompatible_error(expr, expected, float(), stack, context)}
-    end
+  def of_guard(literal, _expected, _expr, _stack, context) when is_float(literal) do
+    {float(), context}
   end
 
   # "..."
-  def of_guard(literal, expected, expr, stack, context) when is_binary(literal) do
-    if binary_type?(expected) do
-      {binary(), context}
-    else
-      {error_type(), Of.incompatible_error(expr, expected, binary(), stack, context)}
-    end
+  def of_guard(literal, _expected, _expr, _stack, context) when is_binary(literal) do
+    {binary(), context}
   end
 
   # []
-  def of_guard([], expected, expr, stack, context) do
-    if empty_list_type?(expected) do
-      {empty_list(), context}
-    else
-      {error_type(), Of.incompatible_error(expr, expected, empty_list(), stack, context)}
-    end
+  def of_guard([], _expected, _expr, _stack, context) do
+    {empty_list(), context}
   end
 
   # [expr, ...]
@@ -651,9 +674,9 @@ defmodule Module.Types.Pattern do
     {prefix, suffix} = unpack_list(list, [])
 
     {prefix, context} =
-      Enum.map_reduce(prefix, context, &of_guard(&1, dynamic(), expr, stack, &2))
+      Enum.map_reduce(prefix, context, &of_guard(&1, term(), expr, stack, &2))
 
-    {suffix, context} = of_guard(suffix, dynamic(), expr, stack, context)
+    {suffix, context} = of_guard(suffix, term(), expr, stack, context)
     {non_empty_list(Enum.reduce(prefix, &union/2), suffix), context}
   end
 
@@ -663,43 +686,40 @@ defmodule Module.Types.Pattern do
   end
 
   # %Struct{...}
-  def of_guard({:%, meta, [module, {:%{}, _, args}]} = struct, _expected, _expr, stack, context)
+  def of_guard({:%, meta, [module, {:%{}, _, args}]} = struct, expected, _expr, stack, context)
       when is_atom(module) do
-    fun = &of_guard(&1, dynamic(), struct, &2, &3)
-    Of.struct_instance(module, args, meta, stack, context, fun)
+    fun = &of_guard(&1, &2, struct, &3, &4)
+    Of.struct_instance(module, args, expected, meta, stack, context, fun)
   end
 
   # %{...}
-  def of_guard({:%{}, _meta, args}, _expected, expr, stack, context) do
-    Of.closed_map(args, stack, context, &of_guard(&1, dynamic(), expr, &2, &3))
+  def of_guard({:%{}, _meta, args}, expected, expr, stack, context) do
+    Of.closed_map(args, expected, stack, context, &of_guard(&1, &2, expr, &3, &4))
   end
 
   # <<>>
-  def of_guard({:<<>>, _meta, args}, expected, expr, stack, context) do
-    if binary_type?(expected) do
-      context = Of.binary(args, :guard, stack, context)
-      {binary(), context}
-    else
-      {error_type(), Of.incompatible_error(expr, expected, binary(), stack, context)}
-    end
+  def of_guard({:<<>>, _meta, args}, _expected, _expr, stack, context) do
+    context = Of.binary(args, :guard, stack, context)
+    {binary(), context}
   end
 
   # ^var
   def of_guard({:^, _meta, [var]}, expected, expr, stack, context) do
-    # This is by definition a variable defined outside of this pattern, so we don't track it.
-    Of.intersect(Of.var(var, context), expected, expr, stack, context)
+    # This is used by binary size, which behaves as a mixture of match and guard
+    {type, context} = Of.refine_body_var(var, expected, expr, stack, context)
+    Of.compatible(type, expected, expr, stack, context)
   end
 
   # {...}
   def of_guard({:{}, _meta, args}, _expected, expr, stack, context) do
-    {types, context} = Enum.map_reduce(args, context, &of_guard(&1, dynamic(), expr, stack, &2))
+    {types, context} = Enum.map_reduce(args, context, &of_guard(&1, term(), expr, stack, &2))
     {tuple(types), context}
   end
 
   # var.field
   def of_guard({{:., _, [callee, key]}, _, []} = map_fetch, _expected, expr, stack, context)
       when not is_atom(callee) do
-    {type, context} = of_guard(callee, dynamic(), expr, stack, context)
+    {type, context} = of_guard(callee, term(), expr, stack, context)
     Of.map_fetch(map_fetch, type, key, stack, context)
   end
 
@@ -707,23 +727,26 @@ defmodule Module.Types.Pattern do
   def of_guard({{:., _, [:erlang, function]}, _, args}, _expected, expr, stack, context)
       when function in [:==, :"/=", :"=:=", :"=/="] do
     {_args_type, context} =
-      Enum.map_reduce(args, context, &of_guard(&1, dynamic(), expr, stack, &2))
+      Enum.map_reduce(args, context, &of_guard(&1, term(), expr, stack, &2))
 
     {boolean(), context}
   end
 
   # Remote
-  def of_guard({{:., _, [:erlang, function]}, _, args} = call, _expected, expr, stack, context)
-      when is_atom(function) do
-    {args_type, context} =
-      Enum.map_reduce(args, context, &of_guard(&1, dynamic(), expr, stack, &2))
+  def of_guard({{:., _, [:erlang, fun]}, meta, args} = call, expected, _expr, stack, context)
+      when is_atom(fun) do
+    {info, domain, context} =
+      Apply.remote_domain(:erlang, fun, args, expected, meta, stack, context)
 
-    Module.Types.Apply.remote(:erlang, function, args, args_type, call, stack, context)
+    {args_types, context} =
+      zip_map_reduce(args, domain, context, &of_guard(&1, &2, call, stack, &3))
+
+    Apply.remote_apply(info, :erlang, fun, args_types, call, stack, context)
   end
 
   # var
   def of_guard(var, expected, expr, stack, context) when is_var(var) do
-    Of.intersect(Of.var(var, context), expected, expr, stack, context)
+    Of.compatible(Of.var(var, context), expected, expr, stack, context)
   end
 
   ## Helpers
@@ -736,8 +759,8 @@ defmodule Module.Types.Pattern do
     %{context | pattern_info: {%{}, %{}, 1}}
   end
 
-  defp nilify_pattern_info(context) do
-    %{context | pattern_info: nil}
+  defp pop_pattern_info(%{pattern_info: pattern_info} = context) do
+    {pattern_info, %{context | pattern_info: nil}}
   end
 
   # $ type tag = head_pattern() or match_pattern()

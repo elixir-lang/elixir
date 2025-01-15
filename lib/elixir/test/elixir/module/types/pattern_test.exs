@@ -103,6 +103,16 @@ defmodule Module.Types.PatternTest do
              ) == uri_type
     end
 
+    test "refines types" do
+      assert typecheck!(
+               [x, foo = :foo, bar = 123],
+               (
+                 {^foo, ^bar} = x
+                 x
+               )
+             ) == dynamic(tuple([atom([:foo]), integer()]))
+    end
+
     test "reports incompatible types" do
       assert typeerror!([x = {:ok, _}], [_ | _] = x) == ~l"""
              the following pattern will never match:
@@ -287,6 +297,16 @@ defmodule Module.Types.PatternTest do
              """
     end
 
+    test "pin inference" do
+      assert typecheck!(
+               [x, y],
+               (
+                 <<^x>> = y
+                 x
+               )
+             ) == dynamic(integer())
+    end
+
     test "size ok" do
       assert typecheck!([<<x, y, _::size(x - y)>>], :ok) == atom([:ok])
     end
@@ -312,6 +332,16 @@ defmodule Module.Types.PatternTest do
                    # from: types_test.ex:LINE-1
                    <<x::float, ...>>
                """
+    end
+
+    test "size pin inference" do
+      assert typecheck!(
+               [x, y],
+               (
+                 <<_::size(^x)>> = y
+                 x
+               )
+             ) == dynamic(integer())
     end
   end
 end

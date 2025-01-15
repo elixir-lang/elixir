@@ -53,11 +53,11 @@ defmodule Calendar.ISOTest do
   describe "naive_datetime_to_iso_days/7" do
     test "raises with invalid dates" do
       assert_raise ArgumentError, "invalid date: 2018-02-30", fn ->
-        Calendar.ISO.naive_datetime_to_iso_days(2018, 2, 30, 0, 0, 0, 0)
+        Calendar.ISO.naive_datetime_to_iso_days(2018, 2, 30, 0, 0, 0, {0, 0})
       end
 
       assert_raise ArgumentError, "invalid date: 2017-11--03", fn ->
-        Calendar.ISO.naive_datetime_to_iso_days(2017, 11, -3, 0, 0, 0, 0)
+        Calendar.ISO.naive_datetime_to_iso_days(2017, 11, -3, 0, 0, 0, {0, 0})
       end
     end
   end

@@ -281,11 +281,18 @@ defmodule Module.Types do
           context = fresh_context(context)
 
           try do
-            {args_types, context} =
+            {trees, context} =
               Pattern.of_head(args, guards, expected, {:infer, expected}, meta, stack, context)
 
             {return_type, context} =
-              Expr.of_expr(body, stack, context)
+              Expr.of_expr(body, Descr.term(), body, stack, context)
+
+            args_types =
+              if stack.mode == :traversal do
+                expected
+              else
+                Pattern.of_domain(trees, expected, context)
+              end
 
             {type_index, inferred} =
               add_inferred(inferred, args_types, return_type, total - 1, [])
@@ -301,8 +308,19 @@ defmodule Module.Types do
           end
       end)
 
-    inferred = {:infer, Enum.reverse(clauses_types)}
-    {inferred, mapping, restore_context(context, clauses_context)}
+    domain =
+      case clauses_types do
+        [_] ->
+          nil
+
+        _ ->
+          clauses_types
+          |> Enum.map(fn {args, _} -> args end)
+          |> Enum.zip_with(fn types -> Enum.reduce(types, &Descr.union/2) end)
+      end
+
+    inferred = {:infer, domain, Enum.reverse(clauses_types)}
+    {inferred, mapping, restore_context(clauses_context, context)}
   end
 
   # We check for term equality of types as an optimization
@@ -399,7 +417,7 @@ defmodule Module.Types do
     %{context | vars: %{}, failed: false}
   end
 
-  defp restore_context(%{vars: vars, failed: failed}, later_context) do
+  defp restore_context(later_context, %{vars: vars, failed: failed}) do
     %{later_context | vars: vars, failed: failed}
   end
 

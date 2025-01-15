@@ -382,7 +382,8 @@ defmodule Module.Types.Descr do
       {dynamic, descr} =
         case :maps.take(:dynamic, descr) do
           :error -> {[], descr}
-          {dynamic, descr} -> {to_quoted(:dynamic, dynamic, opts), descr}
+          {:term, descr} -> {to_quoted(:dynamic, :term, opts), descr}
+          {dynamic, descr} -> {to_quoted(:dynamic, difference(dynamic, descr), opts), descr}
         end
 
       # Merge empty list and list together if they both exist
@@ -548,6 +549,41 @@ defmodule Module.Types.Descr do
   end
 
   @doc """
+  Returns the intersection between two types
+  only if they are compatible. Otherwise returns `:error`.
+
+  This finds the intersection between the arguments and the
+  domain of a function. It is used to refine dynamic types
+  as we traverse the program.
+  """
+  def compatible_intersection(left, right) do
+    {left_dynamic, left_static} =
+      case left do
+        :term -> {:term, :term}
+        _ -> Map.pop(left, :dynamic, left)
+      end
+
+    right_dynamic =
+      case right do
+        %{dynamic: dynamic} -> dynamic
+        _ -> right
+      end
+
+    cond do
+      empty?(left_static) ->
+        dynamic = intersection_static(unfold(left_dynamic), unfold(right_dynamic))
+        if empty?(dynamic), do: {:error, left}, else: {:ok, dynamic(dynamic)}
+
+      subtype_static?(left_static, right_dynamic) ->
+        dynamic = intersection_static(unfold(left_dynamic), unfold(right_dynamic))
+        {:ok, union(dynamic(dynamic), left_static)}
+
+      true ->
+        {:error, left}
+    end
+  end
+
+  @doc """
   Optimized version of `not empty?(term(), type)`.
   """
   def term_type?(:term), do: true
@@ -600,15 +636,6 @@ defmodule Module.Types.Descr do
   def number_type?(%{dynamic: %{bitmap: bitmap}}) when (bitmap &&& @bit_number) != 0, do: true
   def number_type?(%{bitmap: bitmap}) when (bitmap &&& @bit_number) != 0, do: true
   def number_type?(_), do: false
-
-  @doc """
-  Optimized version of `not empty?(intersection(atom(), type))`.
-  """
-  def atom_type?(:term), do: true
-  def atom_type?(%{dynamic: :term}), do: true
-  def atom_type?(%{dynamic: %{atom: _}}), do: true
-  def atom_type?(%{atom: _}), do: true
-  def atom_type?(_), do: false
 
   ## Bitmaps
 
@@ -710,20 +737,6 @@ defmodule Module.Types.Descr do
 
       _ ->
         :always_true
-    end
-  end
-
-  @doc """
-  Optimized version of `not empty?(intersection(atom([atom]), type))`.
-  """
-  def atom_type?(:term, _atom), do: true
-
-  def atom_type?(%{} = descr, atom) do
-    case Map.get(descr, :dynamic, descr) do
-      :term -> true
-      %{atom: {:union, set}} -> :sets.is_element(atom, set)
-      %{atom: {:negation, set}} -> not :sets.is_element(atom, set)
-      %{} -> false
     end
   end
 
@@ -1872,6 +1885,7 @@ defmodule Module.Types.Descr do
         end
 
       :open ->
+        fields = Map.to_list(fields)
         {:%{}, [], [{:..., [], nil} | map_fields_to_quoted(tag, Enum.sort(fields), opts)]}
     end
   end
