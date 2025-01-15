@@ -1,7 +1,12 @@
 # Typespecs reference
 
-Elixir comes with a notation for declaring types and specifications. This document is a
-reference into their uses and syntax.
+> #### Typespecs are not set-theoretic types {: .warning}
+>
+> Elixir is in the process of implementing its
+> [own type system](./gradual-set-theoretic-types.md) based on set-theoretic types.
+> Typespecs, which are described in the following document, are a distinct notation
+> for declaring types and specifications based on Erlang.
+> Typespecs may be phased out as the set-theoretic type effort moves forward.
 
 Elixir is a dynamically typed language, and as such, type specifications are never used by the compiler to optimize or modify code. Still, using type specifications is useful because:
 
@@ -47,6 +52,13 @@ In the example above:
 The syntax Elixir provides for type specifications is similar to [the one in Erlang](https://www.erlang.org/doc/reference_manual/typespec.html). Most of the built-in types provided in Erlang (for example, `pid()`) are expressed in the same way: `pid()` (or simply `pid`). Parameterized types (such as `list(integer)`) are supported as well and so are remote types (such as [`Enum.t()`](`t:Enum.t/0`)). Integers and atom literals are allowed as types (for example, `1`, `:atom`, or `false`). All other types are built out of unions of predefined types. Some types can also be declared using their syntactical notation, such as `[type]` for lists, `{type1, type2, ...}` for tuples and `<<_ * _>>` for binaries.
 
 The notation to represent the union of types is the pipe `|`. For example, the typespec `type :: atom() | pid() | tuple()` creates a type `type` that can be either an `atom`, a `pid`, or a `tuple`. This is usually called a [sum type](https://en.wikipedia.org/wiki/Tagged_union) in other languages
+
+> #### Differences with set-theoretic types {: .warning}
+>
+> While they do share some similarities, the types below do not map one-to-one
+> to the new types from the set theoretic type system.
+> For example, there is no plan to support subsets of the `integer()` type such
+> as positive, ranges or literals.
 
 ### Basic types
 
