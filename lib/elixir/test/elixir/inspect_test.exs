@@ -595,10 +595,9 @@ defmodule Inspect.MapTest do
 
     {my_argument_error, stacktrace} =
       try do
-        atom_to_string(failing.name)
+        atom_to_string(Process.get(:unused, failing.name))
       rescue
-        e ->
-          {e, __STACKTRACE__}
+        e -> {e, __STACKTRACE__}
       end
 
     inspected =

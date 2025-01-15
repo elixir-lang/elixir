@@ -147,7 +147,7 @@ defmodule Kernel.ComprehensionTest do
 
   test "for comprehensions with errors on filters" do
     assert_raise ArgumentError, fn ->
-      for x <- 1..3, hd(x), do: x * 2
+      for x <- 1..3, hd(x), do: :ok
     end
   end
 
@@ -338,7 +338,7 @@ defmodule Kernel.ComprehensionTest do
 
   test "list for comprehensions with errors on filters" do
     assert_raise ArgumentError, fn ->
-      for x <- [1, 2, 3], hd(x), do: x * 2
+      for x <- [1, 2, 3], hd(Process.get(:unused, x)), do: x * 2
     end
   end
 

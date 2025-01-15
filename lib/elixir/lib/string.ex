@@ -1825,6 +1825,10 @@ defmodule String do
   from a validation perspective (they will always produce the same output), but
   `:fast_ascii` can yield significant performance benefits in specific scenarios.
 
+  If anything else but a string is given as argument, it raises.
+
+  ## Fast ASCII
+
   If all of the following conditions are true, you may want to experiment with
   the `:fast_ascii` algorithm to see if it yields performance benefits in your
   specific scenario:
@@ -1857,9 +1861,6 @@ defmodule String do
 
       iex> String.valid?("a", :fast_ascii)
       true
-
-      iex> String.valid?(4)
-      ** (FunctionClauseError) no function clause matching in String.valid?/2
 
   """
   @spec valid?(t, :default | :fast_ascii) :: boolean
