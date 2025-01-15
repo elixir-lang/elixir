@@ -674,9 +674,9 @@ defmodule Module.Types.Pattern do
     {prefix, suffix} = unpack_list(list, [])
 
     {prefix, context} =
-      Enum.map_reduce(prefix, context, &of_guard(&1, dynamic(), expr, stack, &2))
+      Enum.map_reduce(prefix, context, &of_guard(&1, term(), expr, stack, &2))
 
-    {suffix, context} = of_guard(suffix, dynamic(), expr, stack, context)
+    {suffix, context} = of_guard(suffix, term(), expr, stack, context)
     {non_empty_list(Enum.reduce(prefix, &union/2), suffix), context}
   end
 
@@ -712,14 +712,14 @@ defmodule Module.Types.Pattern do
 
   # {...}
   def of_guard({:{}, _meta, args}, _expected, expr, stack, context) do
-    {types, context} = Enum.map_reduce(args, context, &of_guard(&1, dynamic(), expr, stack, &2))
+    {types, context} = Enum.map_reduce(args, context, &of_guard(&1, term(), expr, stack, &2))
     {tuple(types), context}
   end
 
   # var.field
   def of_guard({{:., _, [callee, key]}, _, []} = map_fetch, _expected, expr, stack, context)
       when not is_atom(callee) do
-    {type, context} = of_guard(callee, dynamic(), expr, stack, context)
+    {type, context} = of_guard(callee, term(), expr, stack, context)
     Of.map_fetch(map_fetch, type, key, stack, context)
   end
 
@@ -727,7 +727,7 @@ defmodule Module.Types.Pattern do
   def of_guard({{:., _, [:erlang, function]}, _, args}, _expected, expr, stack, context)
       when function in [:==, :"/=", :"=:=", :"=/="] do
     {_args_type, context} =
-      Enum.map_reduce(args, context, &of_guard(&1, dynamic(), expr, stack, &2))
+      Enum.map_reduce(args, context, &of_guard(&1, term(), expr, stack, &2))
 
     {boolean(), context}
   end
