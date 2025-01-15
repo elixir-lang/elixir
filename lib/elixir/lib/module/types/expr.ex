@@ -499,41 +499,6 @@ defmodule Module.Types.Expr do
     end
   end
 
-  def of_expr(
-        {{:., _, [remote, :apply]}, _meta, [mod, fun, args]} = call,
-        expected,
-        _expr,
-        stack,
-        context
-      )
-      when remote in [Kernel, :erlang] and is_list(args) do
-    {mod_type, context} = of_expr(mod, atom(), call, stack, context)
-    {fun_type, context} = of_expr(fun, atom(), call, stack, context)
-    improper_list? = Enum.any?(args, &match?({:|, _, [_, _]}, &1))
-
-    case atom_fetch(fun_type) do
-      {_, [_ | _] = funs} when not improper_list? ->
-        mods =
-          case atom_fetch(mod_type) do
-            {_, mods} -> mods
-            _ -> []
-          end
-
-        {types, context} =
-          Enum.map_reduce(funs, context, fn fun, context ->
-            apply_many(mods, fun, args, expected, call, stack, context)
-          end)
-
-        {Enum.reduce(types, &union/2), context}
-
-      _ ->
-        info = Apply.signature(:erlang, :apply, 3)
-        {args_type, context} = of_expr(args, list(term()), call, stack, context)
-        apply_types = [mod_type, fun_type, args_type]
-        Apply.remote_apply(info, :erlang, :apply, apply_types, call, stack, context)
-    end
-  end
-
   def of_expr({{:., _, [remote, name]}, meta, args} = call, expected, _expr, stack, context) do
     {remote_type, context} = of_expr(remote, atom(), call, stack, context)
     {mods, context} = Of.modules(remote_type, name, length(args), call, meta, stack, context)

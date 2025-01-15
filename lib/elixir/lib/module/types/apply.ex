@@ -145,6 +145,7 @@ defmodule Module.Types.Apply do
         {:erlang, :>, [{[term(), term()], boolean()}]},
         {:erlang, :>=, [{[term(), term()], boolean()}]},
         {:erlang, :abs, [{[integer()], integer()}, {[float()], float()}]},
+        # TODO: Decide if it returns dynamic() or term()
         {:erlang, :apply, [{[fun(), list(term())], dynamic()}]},
         {:erlang, :apply, [{[atom(), atom(), list(term())], dynamic()}]},
         {:erlang, :and, and_signature},
