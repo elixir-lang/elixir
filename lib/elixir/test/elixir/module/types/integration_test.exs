@@ -80,6 +80,77 @@ defmodule Module.Types.IntegrationTest do
              ]
     end
 
+    test "writes exports with inferred map types" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          defstruct [:x, :y, :z]
+
+          def struct_create_with_atom_keys(x) do
+            infer(y = %A{x: x})
+            {x, y}
+          end
+
+          def map_create_with_atom_keys(x) do
+            infer(%{__struct__: A, x: x, y: nil, z: nil})
+            x
+          end
+
+          def map_update_with_atom_keys(x) do
+            infer(%{x | y: nil})
+            x
+          end
+
+          def map_update_with_unknown_keys(x, y) do
+            infer(%{x | y => 123})
+            x
+          end
+
+          defp infer(%A{x: <<_::binary>>, y: nil}) do
+            :ok
+          end
+        end
+        """
+      }
+
+      modules = compile_modules(files)
+      exports = read_chunk(modules[A]).exports |> Map.new()
+
+      return = fn name, arity ->
+        pair = {name, arity}
+        %{^pair => %{sig: {:infer, nil, [{_, return}]}}} = exports
+        return
+      end
+
+      assert return.(:struct_create_with_atom_keys, 1) ==
+               dynamic(
+                 tuple([
+                   binary(),
+                   closed_map(
+                     __struct__: atom([A]),
+                     x: binary(),
+                     y: atom([nil]),
+                     z: atom([nil])
+                   )
+                 ])
+               )
+
+      assert return.(:map_create_with_atom_keys, 1) == dynamic(binary())
+
+      assert return.(:map_update_with_atom_keys, 1) ==
+               dynamic(
+                 closed_map(
+                   __struct__: atom([A]),
+                   x: binary(),
+                   y: term(),
+                   z: term()
+                 )
+               )
+
+      assert return.(:map_update_with_unknown_keys, 2) ==
+               dynamic(open_map())
+    end
+
     test "writes exports for implementations" do
       files = %{
         "pi.ex" => """

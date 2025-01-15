@@ -148,7 +148,7 @@ defmodule Module.Types.Expr do
         type_fun = fn pattern_type, context ->
           # See if we can use the expected type to further refine the pattern type,
           # if we cannot, use the pattern type as that will fail later on.
-          {_ok_or_error, type} = compatible_intersection(pattern_type, expected)
+          {_ok_or_error, type} = compatible_intersection(dynamic(pattern_type), expected)
           of_expr(right_expr, type, expr, stack, context)
         end
 
