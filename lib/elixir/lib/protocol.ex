@@ -666,7 +666,7 @@ defmodule Protocol do
       end
 
     new_signatures =
-      for {{fun, arity}, :def, _, _} <- definitions do
+      for {{fun, arity}, :def, _, _} when arity > 0 <- definitions do
         rest = List.duplicate(Descr.term(), arity - 1)
         {{fun, arity}, {:strong, nil, [{[domain | rest], Descr.dynamic()}]}}
       end
