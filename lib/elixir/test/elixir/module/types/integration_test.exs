@@ -396,8 +396,10 @@ defmodule Module.Types.IntegrationTest do
 
             but expected a type that implements the String.Chars protocol, it must be one of:
 
-                %Date{} or %DateTime{} or %NaiveDateTime{} or %Time{} or %URI{} or %Version{} or
-                  %Version.Requirement{} or atom() or binary() or float() or integer() or list(term())
+                dynamic(
+                  %Date{} or %DateTime{} or %NaiveDateTime{} or %Time{} or %URI{} or %Version{} or
+                    %Version.Requirement{}
+                ) or atom() or binary() or float() or integer() or list(term())
 
             where "data" was given the type:
 
@@ -418,8 +420,10 @@ defmodule Module.Types.IntegrationTest do
 
             but expected a type that implements the String.Chars protocol, it must be one of:
 
-                %Date{} or %DateTime{} or %NaiveDateTime{} or %Time{} or %URI{} or %Version{} or
-                  %Version.Requirement{} or atom() or binary() or float() or integer() or list(term())
+                dynamic(
+                  %Date{} or %DateTime{} or %NaiveDateTime{} or %Time{} or %URI{} or %Version{} or
+                    %Version.Requirement{}
+                ) or atom() or binary() or float() or integer() or list(term())
 
             where "data" was given the type:
 
@@ -455,8 +459,10 @@ defmodule Module.Types.IntegrationTest do
 
             but expected a type that implements the Enumerable protocol, it must be one of:
 
-                %Date.Range{} or %File.Stream{} or %GenEvent.Stream{} or %HashDict{} or %HashSet{} or
-                  %IO.Stream{} or %MapSet{} or %Range{} or %Stream{} or fun() or list(term()) or non_struct_map()
+                dynamic(
+                  %Date.Range{} or %File.Stream{} or %GenEvent.Stream{} or %HashDict{} or %HashSet{} or
+                    %IO.Stream{} or %MapSet{} or %Range{} or %Stream{}
+                ) or fun() or list(term()) or non_struct_map()
 
             where "date" was given the type:
 
@@ -484,7 +490,7 @@ defmodule Module.Types.IntegrationTest do
 
             but expected a type that implements the Collectable protocol, it must be one of:
 
-                %File.Stream{} or %HashDict{} or %HashSet{} or %IO.Stream{} or %MapSet{} or binary() or
+                dynamic(%File.Stream{} or %HashDict{} or %HashSet{} or %IO.Stream{} or %MapSet{}) or binary() or
                   list(term()) or non_struct_map()
 
             hint: the :into option in for-comprehensions use the Collectable protocol to build its result. Either pass a valid data type or implement the protocol accordingly

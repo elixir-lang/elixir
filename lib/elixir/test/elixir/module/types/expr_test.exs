@@ -867,10 +867,19 @@ defmodule Module.Types.ExprTest do
 
     test "updating structs" do
       assert typecheck!([x], %Point{x | x: :zero}) ==
-               dynamic(open_map(__struct__: atom([Point]), x: atom([:zero])))
+               dynamic(
+                 closed_map(__struct__: atom([Point]), x: atom([:zero]), y: term(), z: term())
+               )
 
       assert typecheck!([x], %Point{%Point{x | x: :zero} | y: :one}) ==
-               dynamic(open_map(__struct__: atom([Point]), x: atom([:zero]), y: atom([:one])))
+               dynamic(
+                 closed_map(
+                   __struct__: atom([Point]),
+                   x: atom([:zero]),
+                   y: atom([:one]),
+                   z: term()
+                 )
+               )
 
       assert typeerror!(
                (
@@ -885,7 +894,7 @@ defmodule Module.Types.ExprTest do
 
                expected type:
 
-                   %Point{x: term(), y: term(), z: term()}
+                   dynamic(%Point{x: term(), y: term(), z: term()})
 
                but got type:
 
@@ -896,6 +905,44 @@ defmodule Module.Types.ExprTest do
                    # type: %{x: integer()}
                    # from: types_test.ex:LINE-4
                    x = %{x: 0}
+               """
+    end
+
+    test "inference on struct update" do
+      assert typecheck!(
+               [x],
+               (
+                 %Point{x | x: :zero}
+                 x
+               )
+             ) ==
+               dynamic(closed_map(__struct__: atom([Point]), x: term(), y: term(), z: term()))
+
+      assert typeerror!(
+               [x],
+               (
+                 x.w
+                 %Point{x | x: :zero}
+               )
+             ) ==
+               ~l"""
+               incompatible types in struct update:
+
+                   %Point{x | x: :zero}
+
+               expected type:
+
+                   dynamic(%Point{x: term(), y: term(), z: term()})
+
+               but got type:
+
+                   dynamic(%{..., w: term()})
+
+               where "x" was given the type:
+
+                   # type: dynamic(%{..., w: term()})
+                   # from: types_test.ex:LINE-4
+                   x.w
                """
     end
 

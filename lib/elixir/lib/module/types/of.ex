@@ -52,26 +52,23 @@ defmodule Module.Types.Of do
     version = Keyword.fetch!(meta, :version)
     %{vars: %{^version => %{type: old_type, off_traces: off_traces} = data} = vars} = context
 
-    context =
-      if gradual?(old_type) and type not in [term(), dynamic()] do
-        case compatible_intersection(old_type, type) do
-          {:ok, new_type} when new_type != old_type ->
-            data = %{
-              data
-              | type: new_type,
-                off_traces: new_trace(expr, new_type, stack, off_traces)
-            }
+    if gradual?(old_type) and type not in [term(), dynamic()] do
+      case compatible_intersection(old_type, type) do
+        {:ok, new_type} when new_type != old_type ->
+          data = %{
+            data
+            | type: new_type,
+              off_traces: new_trace(expr, new_type, stack, off_traces)
+          }
 
-            %{context | vars: %{vars | version => data}}
+          {new_type, %{context | vars: %{vars | version => data}}}
 
-          _ ->
-            context
-        end
-      else
-        context
+        _ ->
+          {old_type, context}
       end
-
-    {old_type, context}
+    else
+      {old_type, context}
+    end
   end
 
   @doc """
@@ -173,34 +170,70 @@ defmodule Module.Types.Of do
   @doc """
   Builds a closed map.
   """
-  def closed_map(pairs, stack, context, of_fun) do
-    permutate_map(pairs, stack, context, of_fun, fn fallback, _keys, pairs ->
-      # TODO: Use the fallback type to actually indicate if open or closed.
-      if fallback == none(), do: closed_map(pairs), else: open_map(pairs)
-    end)
+  def closed_map(pairs, expected, stack, context, of_fun) do
+    {pairs_types, context} = pairs(pairs, expected, stack, context, of_fun)
+
+    map =
+      permutate_map(pairs_types, stack, fn fallback, _keys, pairs ->
+        # TODO: Use the fallback type to actually indicate if open or closed.
+        if fallback == none(), do: closed_map(pairs), else: open_map(pairs)
+      end)
+
+    {map, context}
   end
 
   @doc """
-  Builds permutation of maps according to the given keys.
+  Computes the types of key-value pairs.
   """
-  def permutate_map(pairs, %{mode: :traversal} = stack, context, of_fun, _of_map) do
-    context =
-      Enum.reduce(pairs, context, fn {key, value}, context ->
-        {_, context} = of_fun.(key, stack, context)
-        {_, context} = of_fun.(value, stack, context)
-        context
-      end)
-
-    {dynamic(), context}
+  def pairs(pairs, _expected, %{mode: :traversal} = stack, context, of_fun) do
+    Enum.map_reduce(pairs, context, fn {key, value}, context ->
+      {_key_type, context} = of_fun.(key, term(), stack, context)
+      {value_type, context} = of_fun.(value, term(), stack, context)
+      {{true, :none, value_type}, context}
+    end)
   end
 
-  def permutate_map(pairs, stack, context, of_fun, of_map) do
-    {dynamic?, fallback, single, multiple, assert, context} =
-      Enum.reduce(pairs, {false, none(), [], [], [], context}, fn
-        {key, value}, {dynamic?, fallback, single, multiple, assert, context} ->
-          {dynamic_key?, keys, context} = finite_key_type(key, stack, context, of_fun)
-          {value_type, context} = of_fun.(value, stack, context)
-          dynamic? = dynamic? or dynamic_key? or gradual?(value_type)
+  def pairs(pairs, expected, stack, context, of_fun) do
+    Enum.map_reduce(pairs, context, fn {key, value}, context ->
+      {dynamic_key?, keys, context} = finite_key_type(key, stack, context, of_fun)
+
+      expected_value_type =
+        with [key] <- keys, {_, expected_value_type} <- map_fetch(expected, key) do
+          expected_value_type
+        else
+          _ -> term()
+        end
+
+      {value_type, context} = of_fun.(value, expected_value_type, stack, context)
+      {{dynamic_key? or gradual?(value_type), keys, value_type}, context}
+    end)
+  end
+
+  defp finite_key_type(key, _stack, context, _of_fun) when is_atom(key) do
+    {false, [key], context}
+  end
+
+  defp finite_key_type(key, stack, context, of_fun) do
+    {key_type, context} = of_fun.(key, term(), stack, context)
+
+    case atom_fetch(key_type) do
+      {:finite, list} -> {gradual?(key_type), list, context}
+      _ -> {gradual?(key_type), :none, context}
+    end
+  end
+
+  @doc """
+  Builds permutation of maps according to the given pairs types.
+  """
+  def permutate_map(_pairs_types, %{mode: :traversal}, _of_map) do
+    dynamic()
+  end
+
+  def permutate_map(pairs_types, _stack, of_map) do
+    {dynamic?, fallback, single, multiple, assert} =
+      Enum.reduce(pairs_types, {false, none(), [], [], []}, fn
+        {dynamic_pair?, keys, value_type}, {dynamic?, fallback, single, multiple, assert} ->
+          dynamic? = dynamic? or dynamic_pair?
 
           case keys do
             :none ->
@@ -216,13 +249,15 @@ defmodule Module.Types.Of do
                   {union(fallback, type), keys ++ assert}
                 end)
 
-              {dynamic?, fallback, [], [], assert, context}
+              {dynamic?, fallback, [], [], assert}
 
+            # Because a multiple key may override single keys, we can only
+            # collect single keys while there are no multiples.
             [key] when multiple == [] ->
-              {dynamic?, fallback, [{key, value_type} | single], multiple, assert, context}
+              {dynamic?, fallback, [{key, value_type} | single], multiple, assert}
 
             keys ->
-              {dynamic?, fallback, single, [{keys, value_type} | multiple], assert, context}
+              {dynamic?, fallback, single, [{keys, value_type} | multiple], assert}
           end
       end)
 
@@ -238,20 +273,7 @@ defmodule Module.Types.Of do
           |> Enum.reduce(&union/2)
       end
 
-    if dynamic?, do: {dynamic(map), context}, else: {map, context}
-  end
-
-  defp finite_key_type(key, _stack, context, _of_fun) when is_atom(key) do
-    {false, [key], context}
-  end
-
-  defp finite_key_type(key, stack, context, of_fun) do
-    {key_type, context} = of_fun.(key, stack, context)
-
-    case atom_fetch(key_type) do
-      {:finite, list} -> {gradual?(key_type), list, context}
-      _ -> {gradual?(key_type), :none, context}
-    end
+    if dynamic?, do: dynamic(map), else: map
   end
 
   defp cartesian_map(lists) do
@@ -267,17 +289,27 @@ defmodule Module.Types.Of do
   @doc """
   Handles instantiation of a new struct.
   """
-  def struct_instance(struct, args, meta, stack, context, of_fun)
+  # TODO: Type check the fields match the struct
+  def struct_instance(struct, args, expected, meta, %{mode: mode} = stack, context, of_fun)
       when is_atom(struct) do
+    {_info, context} = struct_info(struct, meta, stack, context)
+
     # The compiler has already checked the keys are atoms and which ones are required.
     {args_types, context} =
       Enum.map_reduce(args, context, fn {key, value}, context when is_atom(key) ->
-        {type, context} = of_fun.(value, stack, context)
+        value_type =
+          with true <- mode != :traversal,
+               {_, expected_value_type} <- map_fetch(expected, key) do
+            expected_value_type
+          else
+            _ -> term()
+          end
+
+        {type, context} = of_fun.(value, value_type, stack, context)
         {{key, type}, context}
       end)
 
-    {info, context} = struct_info(struct, meta, stack, context)
-    {struct_type(struct, info, args_types), context}
+    {closed_map([{:__struct__, atom([struct])} | args_types]), context}
   end
 
   @doc """
@@ -306,8 +338,10 @@ defmodule Module.Types.Of do
   @doc """
   Builds a type from the struct info.
   """
+  # TODO: This function shuold not receive args_types once
+  # we introduce typed structs. They are only used by exceptions.
   def struct_type(struct, info, args_types \\ []) do
-    term = term()
+    term = dynamic()
     pairs = for %{field: field} <- info, do: {field, term}
     pairs = [{:__struct__, atom([struct])} | pairs]
     pairs = if args_types == [], do: pairs, else: pairs ++ args_types

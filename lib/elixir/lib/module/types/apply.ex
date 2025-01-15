@@ -265,6 +265,7 @@ defmodule Module.Types.Apply do
 
   Used only by info functions.
   """
+  # PENDING: expected
   def remote_domain(_fun, args, _expected, %{mode: :traversal}) do
     {:none, Enum.map(args, fn _ -> term() end)}
   end
@@ -628,7 +629,8 @@ defmodule Module.Types.Apply do
 
   ## Local
 
-  def local_domain(fun, args, meta, stack, context) do
+  # PENDING: expected
+  def local_domain(fun, args, _expected, meta, stack, context) do
     arity = length(args)
 
     case stack.local_handler.(meta, {fun, arity}, stack, context) do

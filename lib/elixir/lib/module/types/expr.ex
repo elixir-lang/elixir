@@ -158,31 +158,56 @@ defmodule Module.Types.Expr do
 
   # %{map | ...}
   # TODO: Once we support typed structs, we need to type check them here.
-  # PENDING: here
-  def of_expr({:%{}, meta, [{:|, _, [map, args]}]} = expr, _expected, _expr, stack, context) do
-    {map_type, context} = of_expr(map, @pending, expr, stack, context)
+  def of_expr({:%{}, meta, [{:|, _, [map, args]}]} = update, expected, expr, stack, context) do
+    # Theoretically we cannot process entries out of order but,
+    # because all variables are versioned, and Elixir does not
+    # allow variables defined on the left side of | to be available
+    # on the right side, this is safe.
+    {pairs_types, context} =
+      Of.pairs(args, expected, stack, context, &of_expr(&1, &2, expr, &3, &4))
 
-    Of.permutate_map(args, stack, context, &of_expr(&1, @pending, expr, &2, &3), fn
-      fallback, keys, pairs ->
-        # If there is no fallback (i.e. it is closed), we can update the existing map,
-        # otherwise we only assert the existing keys.
-        keys = if fallback == none(), do: keys, else: Enum.map(pairs, &elem(&1, 0)) ++ keys
+    expected =
+      if stack.mode == :traversal do
+        expected
+      else
+        # TODO: Once we introduce domain keys, if we ever find a domain
+        # that overlaps atoms, we can only assume optional(atom()) => term(),
+        # which is what the `open_map()` below falls back into anyway.
+        Enum.reduce_while(pairs_types, expected, fn
+          {_, [key], _}, acc ->
+            case map_fetch_and_put(acc, key, term()) do
+              {_value, acc} -> {:cont, acc}
+              _ -> {:halt, open_map()}
+            end
 
-        # Assert the keys exist
-        Enum.each(keys, fn key ->
+          _, _ ->
+            {:halt, open_map()}
+        end)
+      end
+
+    {map_type, context} = of_expr(map, expected, expr, stack, context)
+
+    try do
+      Of.permutate_map(pairs_types, stack, fn fallback, keys_to_assert, pairs ->
+        # Ensure all keys to assert and all type pairs exist in map
+        keys_to_assert = Enum.map(pairs, &elem(&1, 0)) ++ keys_to_assert
+
+        Enum.each(Enum.map(pairs, &elem(&1, 0)) ++ keys_to_assert, fn key ->
           case map_fetch(map_type, key) do
             {_, _} -> :ok
-            :badkey -> throw({:badkey, map_type, key, expr, context})
-            :badmap -> throw({:badmap, map_type, expr, context})
+            :badkey -> throw({:badkey, map_type, key, update, context})
+            :badmap -> throw({:badmap, map_type, update, context})
           end
         end)
 
+        # If all keys are known is no fallback (i.e. we know all keys being updated),
+        # we can update the existing map.
         if fallback == none() do
           Enum.reduce(pairs, map_type, fn {key, type}, acc ->
             case map_fetch_and_put(acc, key, type) do
               {_value, descr} -> descr
-              :badkey -> throw({:badkey, map_type, key, expr, context})
-              :badmap -> throw({:badmap, map_type, expr, context})
+              :badkey -> throw({:badkey, map_type, key, update, context})
+              :badmap -> throw({:badmap, map_type, update, context})
             end
           end)
         else
@@ -191,51 +216,68 @@ defmodule Module.Types.Expr do
           # `keys` deleted.
           open_map(pairs)
         end
-    end)
-  catch
-    error -> {error_type(), error(__MODULE__, error, meta, stack, context)}
+      end)
+    catch
+      error -> {error_type(), error(__MODULE__, error, meta, stack, context)}
+    else
+      map -> {map, context}
+    end
   end
 
   # %Struct{map | ...}
-  # Note this code, by definition, adds missing struct fields to `map`
-  # because at runtime we do not check for them (only for __struct__ itself).
-  # TODO: Once we support typed structs, we need to type check them here.
-  # PENDING: here
   def of_expr(
-        {:%, struct_meta, [module, {:%{}, _, [{:|, update_meta, [map, args]}]}]} = expr,
-        _expected,
-        _expr,
+        {:%, struct_meta, [module, {:%{}, _, [{:|, update_meta, [map, args]}]}]} = struct,
+        expected,
+        expr,
         stack,
         context
       ) do
-    {info, context} = Of.struct_info(module, struct_meta, stack, context)
-    struct_type = Of.struct_type(module, info)
-    {map_type, context} = of_expr(map, @pending, expr, stack, context)
+    if stack.mode == :traversal do
+      {_, context} = of_expr(map, term(), struct, stack, context)
 
-    if disjoint?(struct_type, map_type) do
-      warning = {:badstruct, expr, struct_type, map_type, context}
-      {error_type(), error(__MODULE__, warning, update_meta, stack, context)}
+      context =
+        Enum.reduce(args, context, fn {key, value}, context when is_atom(key) ->
+          {_, context} = of_expr(value, term(), expr, stack, context)
+          context
+        end)
+
+      {dynamic(), context}
     else
-      map_type = map_put!(map_type, :__struct__, atom([module]))
+      {info, context} = Of.struct_info(module, struct_meta, stack, context)
+      struct_type = Of.struct_type(module, info)
+      {map_type, context} = of_expr(map, struct_type, struct, stack, context)
 
-      Enum.reduce(args, {map_type, context}, fn
-        {key, value}, {map_type, context} when is_atom(key) ->
-          {value_type, context} = of_expr(value, @pending, expr, stack, context)
-          {map_put!(map_type, key, value_type), context}
-      end)
+      if compatible?(map_type, struct_type) do
+        map_type = map_put!(map_type, :__struct__, atom([module]))
+
+        Enum.reduce(args, {map_type, context}, fn
+          {key, value}, {map_type, context} when is_atom(key) ->
+            # TODO: Once we support typed structs, we need to type check them here.
+            expected_value_type =
+              case map_fetch(expected, key) do
+                {_, expected_value_type} -> expected_value_type
+                _ -> term()
+              end
+
+            {value_type, context} = of_expr(value, expected_value_type, expr, stack, context)
+            {map_put!(map_type, key, value_type), context}
+        end)
+      else
+        warning = {:badstruct, struct, struct_type, map_type, context}
+        {error_type(), error(__MODULE__, warning, update_meta, stack, context)}
+      end
     end
   end
 
   # %{...}
-  # PENDING: here
-  def of_expr({:%{}, _meta, args}, _expected, expr, stack, context) do
-    Of.closed_map(args, stack, context, &of_expr(&1, @pending, expr, &2, &3))
+  def of_expr({:%{}, _meta, args}, expected, expr, stack, context) do
+    Of.closed_map(args, expected, stack, context, &of_expr(&1, &2, expr, &3, &4))
   end
 
   # %Struct{}
-  # PENDING: here
-  def of_expr({:%, meta, [module, {:%{}, _, args}]}, _expected, expr, stack, context) do
-    Of.struct_instance(module, args, meta, stack, context, &of_expr(&1, @pending, expr, &2, &3))
+  def of_expr({:%, meta, [module, {:%{}, _, args}]}, expected, expr, stack, context) do
+    fun = &of_expr(&1, &2, expr, &3, &4)
+    Of.struct_instance(module, args, expected, meta, stack, context, fun)
   end
 
   # ()
@@ -575,8 +617,7 @@ defmodule Module.Types.Expr do
         # to avoid export dependencies. So we do it here.
         if Code.ensure_loaded?(exception) and function_exported?(exception, :__struct__, 0) do
           {info, context} = Of.struct_info(exception, meta, stack, context)
-          # TODO: For properly defined structs, this should not be dynamic
-          {dynamic(Of.struct_type(exception, info, args)), context}
+          {Of.struct_type(exception, info, args), context}
         else
           # If the exception cannot be found or is invalid, fetch the signature to emit warnings.
           {_, context} = Apply.signature(exception, :__struct__, 0, meta, stack, context)
@@ -694,8 +735,8 @@ defmodule Module.Types.Expr do
 
   ## General helpers
 
-  defp apply_local(fun, args, _expected, {_, meta, _} = expr, stack, context) do
-    {local_info, domain, context} = Apply.local_domain(fun, args, meta, stack, context)
+  defp apply_local(fun, args, expected, {_, meta, _} = expr, stack, context) do
+    {local_info, domain, context} = Apply.local_domain(fun, args, expected, meta, stack, context)
 
     {args_types, context} =
       zip_map_reduce(args, domain, context, &of_expr(&1, &2, expr, stack, &3))

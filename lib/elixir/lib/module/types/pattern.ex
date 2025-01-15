@@ -686,15 +686,15 @@ defmodule Module.Types.Pattern do
   end
 
   # %Struct{...}
-  def of_guard({:%, meta, [module, {:%{}, _, args}]} = struct, _expected, _expr, stack, context)
+  def of_guard({:%, meta, [module, {:%{}, _, args}]} = struct, expected, _expr, stack, context)
       when is_atom(module) do
-    fun = &of_guard(&1, dynamic(), struct, &2, &3)
-    Of.struct_instance(module, args, meta, stack, context, fun)
+    fun = &of_guard(&1, &2, struct, &3, &4)
+    Of.struct_instance(module, args, expected, meta, stack, context, fun)
   end
 
   # %{...}
-  def of_guard({:%{}, _meta, args}, _expected, expr, stack, context) do
-    Of.closed_map(args, stack, context, &of_guard(&1, dynamic(), expr, &2, &3))
+  def of_guard({:%{}, _meta, args}, expected, expr, stack, context) do
+    Of.closed_map(args, expected, stack, context, &of_guard(&1, &2, expr, &3, &4))
   end
 
   # <<>>
