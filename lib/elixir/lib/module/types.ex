@@ -231,16 +231,33 @@ defmodule Module.Types do
         not Keyword.get(meta, :from_super, false),
         reduce: context do
       context ->
-        {_kind, _inferred, mapping} = Map.fetch!(context.local_sigs, fun_arity)
+        {_kind, info, mapping} = Map.fetch!(context.local_sigs, fun_arity)
 
         clauses_indexes =
-          for type_index <- pending, {clause_index, ^type_index} <- mapping, do: clause_index
+          for type_index <- pending,
+              not skip_unused_clause?(info, type_index),
+              {clause_index, ^type_index} <- mapping,
+              do: clause_index
 
         Enum.reduce(clauses_indexes, context, fn clause_index, context ->
           {meta, _args, _guards, _body} = Enum.fetch!(clauses, clause_index)
           stack = %{stack | function: fun_arity}
           Helpers.warn(__MODULE__, {:unused_clause, kind, fun_arity}, meta, stack, context)
         end)
+    end
+  end
+
+  defp skip_unused_clause?(info, type_index) do
+    case info do
+      # If an inferred clause returns an empty type, then the reverse arrow
+      # will never propagate its domain up, which may lead to the clause never
+      # being invoked.
+      {:infer, _, inferred} ->
+        {_args_types, return} = Enum.fetch!(inferred, type_index)
+        Descr.empty?(return)
+
+      _ ->
+        false
     end
   end
 

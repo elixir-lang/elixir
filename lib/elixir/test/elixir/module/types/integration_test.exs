@@ -361,29 +361,6 @@ defmodule Module.Types.IntegrationTest do
       assert_warnings(files, warnings)
     end
 
-    test "unused generated private clauses" do
-      files = %{
-        "a.ex" => """
-        defmodule A do
-          use B
-          def public(x), do: private(List.to_tuple(x))
-        end
-        """,
-        "b.ex" => """
-        defmodule B do
-          defmacro __using__(_) do
-            quote generated: true do
-              defp private({:ok, ok}), do: ok
-              defp private(:error), do: :error
-            end
-          end
-        end
-        """
-      }
-
-      assert_no_warnings(files)
-    end
-
     test "unused overridable private clauses" do
       files = %{
         "a.ex" => """
@@ -400,6 +377,37 @@ defmodule Module.Types.IntegrationTest do
               defp private({:ok, ok}), do: ok
               defp private(:error), do: :error
               defoverridable private: 1
+            end
+          end
+        end
+        """
+      }
+
+      assert_no_warnings(files)
+    end
+
+    test "unused private clauses without warnings" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          use B
+
+          # Not all clauses are invoked, but do not warn since they are generated
+          def public1(x), do: generated(List.to_tuple(x))
+
+          # Avoid false positives caused by inference
+          def public2(x), do: (:ok = raising_private(x))
+
+          defp raising_private(true), do: :ok
+          defp raising_private(false), do: raise "oops"
+        end
+        """,
+        "b.ex" => """
+        defmodule B do
+          defmacro __using__(_) do
+            quote generated: true do
+              defp generated({:ok, ok}), do: ok
+              defp generated(:error), do: :error
             end
           end
         end
