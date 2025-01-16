@@ -614,10 +614,12 @@ defmodule Protocol do
         {impl_for!, definitions} = List.keytake(definitions, {:impl_for!, 1}, 0)
         {struct_impl_for, definitions} = List.keytake(definitions, {:struct_impl_for, 1}, 0)
 
+        protocol_funs = get_protocol_functions(protocol_def)
+
         protocol_def = change_protocol(protocol_def, types)
         impl_for = change_impl_for(impl_for, protocol, types)
         struct_impl_for = change_struct_impl_for(struct_impl_for, protocol, types, structs)
-        new_signatures = new_signatures(definitions, protocol, types)
+        new_signatures = new_signatures(definitions, protocol_funs, protocol, types)
 
         definitions = [protocol_def, impl_for, impl_for!, struct_impl_for] ++ definitions
         signatures = Enum.into(new_signatures, signatures)
@@ -628,7 +630,7 @@ defmodule Protocol do
     end
   end
 
-  defp new_signatures(definitions, protocol, types) do
+  defp new_signatures(definitions, protocol_funs, protocol, types) do
     alias Module.Types.Descr
 
     clauses =
@@ -665,11 +667,9 @@ defmodule Protocol do
           end
       end
 
-    fun_arities = :sets.from_list(protocol.__protocol__(:functions), version: 2)
-
     new_signatures =
       for {{_fun, arity} = fun_arity, :def, _, _} <- definitions,
-          :sets.is_element(fun_arity, fun_arities) do
+          fun_arity in protocol_funs do
         rest = List.duplicate(Descr.term(), arity - 1)
         {fun_arity, {:strong, nil, [{[domain | rest], Descr.dynamic()}]}}
       end
@@ -678,6 +678,13 @@ defmodule Protocol do
       {{:impl_for, 1}, {:strong, [Descr.term()], impl_for}},
       {{:impl_for!, 1}, {:strong, [domain], impl_for!}}
     ] ++ new_signatures
+  end
+
+  defp get_protocol_functions({_name, _kind, _meta, clauses}) do
+    Enum.find_value(clauses, fn
+      {_meta, [:functions], [], clauses} -> clauses
+      _ -> nil
+    end)
   end
 
   defp change_protocol({_name, _kind, meta, clauses}, types) do
