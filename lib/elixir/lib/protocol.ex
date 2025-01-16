@@ -665,10 +665,13 @@ defmodule Protocol do
           end
       end
 
+    fun_arities = :sets.from_list(protocol.__protocol__(:functions), version: 2)
+
     new_signatures =
-      for {{fun, arity}, :def, _, _} when arity > 0 <- definitions do
+      for {{_fun, arity} = fun_arity, :def, _, _} <- definitions,
+          :sets.is_element(fun_arity, fun_arities) do
         rest = List.duplicate(Descr.term(), arity - 1)
-        {{fun, arity}, {:strong, nil, [{[domain | rest], Descr.dynamic()}]}}
+        {fun_arity, {:strong, nil, [{[domain | rest], Descr.dynamic()}]}}
       end
 
     [
