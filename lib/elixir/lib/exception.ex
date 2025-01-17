@@ -2216,7 +2216,25 @@ defmodule Enum.OutOfBoundsError do
   For example, this is raised by `Access.at!/1`.
   """
 
-  defexception message: "out of bounds error"
+  defexception [:enumerable, :index, :message]
+
+  @impl true
+  def message(exception = %{message: nil}), do: message(exception.index, exception.enumerable)
+  def message(%{message: message}), do: message
+
+  def message(index, enumerable) do
+    "out of bounds error" <>
+      if index do
+        " at position #{index}"
+      else
+        ""
+      end <>
+      if enumerable do
+        " when traversing enumerable #{inspect(enumerable)}"
+      else
+        ""
+      end
+  end
 end
 
 defmodule Enum.EmptyError do

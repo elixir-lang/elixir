@@ -1074,14 +1074,14 @@ defmodule Enum do
       6
 
       iex> Enum.fetch!([2, 4, 6], 4)
-      ** (Enum.OutOfBoundsError) out of bounds error
+      ** (Enum.OutOfBoundsError) out of bounds error at position 4 when traversing enumerable [2, 4, 6]
 
   """
   @spec fetch!(t, index) :: element
   def fetch!(enumerable, index) when is_integer(index) do
     case slice_forward(enumerable, index, 1, 1) do
       [value] -> value
-      [] -> raise Enum.OutOfBoundsError
+      [] -> raise Enum.OutOfBoundsError, index: index, enumerable: enumerable
     end
   end
 

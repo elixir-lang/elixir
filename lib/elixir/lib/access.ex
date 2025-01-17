@@ -807,7 +807,7 @@ defmodule Access do
       iex> get_in([:a, :b, :c], [Access.at!(2)])
       :c
       iex> get_in([:a, :b, :c], [Access.at!(3)])
-      ** (Enum.OutOfBoundsError) out of bounds error
+      ** (Enum.OutOfBoundsError) out of bounds error at position 3 when traversing enumerable [:a, :b, :c]
 
   """
   @doc since: "1.11.0"
@@ -819,12 +819,14 @@ defmodule Access do
   defp at!(:get, data, index, next) when is_list(data) do
     case Enum.fetch(data, index) do
       {:ok, value} -> next.(value)
-      :error -> raise Enum.OutOfBoundsError
+      :error -> raise Enum.OutOfBoundsError, index: index, enumerable: data
     end
   end
 
   defp at!(:get_and_update, data, index, next) when is_list(data) do
-    get_and_update_at(data, index, next, [], fn -> raise Enum.OutOfBoundsError end)
+    get_and_update_at(data, index, next, [], fn ->
+      raise Enum.OutOfBoundsError, index: index, enumerable: data
+    end)
   end
 
   defp at!(_op, data, _index, _next) do
