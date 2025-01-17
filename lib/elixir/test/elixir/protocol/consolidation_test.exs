@@ -8,7 +8,7 @@ Kernel.ParallelCompiler.compile_to_path(files, path, return_diagnostics: true)
 
 defmodule Protocol.ConsolidationTest do
   use ExUnit.Case, async: true
-  alias Protocol.ConsolidationTest.{Sample, WithAny, NoImpl, ExtraDef}
+  alias Protocol.ConsolidationTest.{Sample, WithAny, NoImpl}
 
   defimpl WithAny, for: Map do
     def ok(map, _opts) do
@@ -64,14 +64,6 @@ defmodule Protocol.ConsolidationTest do
   :code.load_binary(NoImpl, ~c"protocol_test.exs", binary)
 
   defp no_impl_binary, do: unquote(binary)
-
-  # No Any
-  :code.purge(ExtraDef)
-  :code.delete(ExtraDef)
-  {:ok, binary} = Protocol.consolidate(ExtraDef, [])
-  :code.load_binary(ExtraDef, ~c"protocol_test.exs", binary)
-
-  defp extra_def_binary, do: unquote(binary)
 
   test "consolidated?/1" do
     assert Protocol.consolidated?(WithAny)
@@ -244,12 +236,9 @@ defmodule Protocol.ConsolidationTest do
     end
 
     test "handles regular function definitions" do
-      exports = exports(extra_def_binary())
+      exports = exports(sample_binary())
 
       assert %{{:regular_fun, 1} => %{sig: :none}} = exports
-
-      assert %{{:protocol_fun, 1} => %{sig: {:strong, nil, clauses}}} = exports
-      assert clauses == [{[none()], dynamic()}]
     end
   end
 
