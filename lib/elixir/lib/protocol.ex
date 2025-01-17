@@ -684,7 +684,7 @@ defmodule Protocol do
     Enum.find_value(clauses, fn
       {_meta, [:functions], [], clauses} -> clauses
       _ -> nil
-    end)
+    end) || raise "could not find protocol functions"
   end
 
   defp change_protocol({_name, _kind, meta, clauses}, types) do
