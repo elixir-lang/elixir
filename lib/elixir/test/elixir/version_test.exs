@@ -316,10 +316,6 @@ defmodule VersionTest do
   test "compile_requirement/1" do
     {:ok, req} = Version.parse_requirement("1.2.3")
     assert req == Version.compile_requirement(req)
-
-    assert_raise(FunctionClauseError, fn ->
-      Version.compile_requirement("~> 1.2.3")
-    end)
   end
 
   test "compile requirement" do

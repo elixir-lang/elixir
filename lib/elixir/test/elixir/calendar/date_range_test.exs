@@ -10,7 +10,7 @@ defmodule Date.RangeTest do
   @asc_range_duration_2 Date.range(~D[2000-01-01], Duration.new!(year: 1), 2)
   @desc_range Date.range(~D[2001-01-01], ~D[2000-01-01], -1)
   @desc_range_2 Date.range(~D[2001-01-01], ~D[2000-01-01], -2)
-  @desc_range_duration Date.range(~D[2001-01-01], Duration.new!(year: -1))
+  @desc_range_duration Date.range(~D[2001-01-01], Duration.new!(year: -1), -1)
   @desc_range_duration_2 Date.range(~D[2001-01-01], Duration.new!(year: -1), 2)
   @empty_range Date.range(~D[2001-01-01], ~D[2000-01-01], 1)
 
@@ -180,6 +180,16 @@ defmodule Date.RangeTest do
     assert_raise ArgumentError, message, fn ->
       Date.range(~D[2000-01-01], [month: 1], 0)
     end
+  end
+
+  test "warns when inferring a negative step" do
+    {result, captured} =
+      ExUnit.CaptureIO.with_io(:stderr, fn ->
+        Date.range(~D[2001-01-01], Duration.new!(year: -1))
+      end)
+
+    assert result == Date.range(~D[2001-01-01], ~D[2000-01-01], -1)
+    assert captured =~ "negative range was inferred for Date.range/2"
   end
 
   describe "old date ranges" do
