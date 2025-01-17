@@ -1508,7 +1508,7 @@ defmodule Stream do
   @doc """
   Emits a sequence of values for the given resource.
 
-  Similar to `transform/3` but the initial accumulated value is
+  Similar to `unfold/2` but the initial accumulated value is
   computed lazily via `start_fun` and executes an `after_fun` at
   the end of enumeration (both in cases of success and failure).
 
