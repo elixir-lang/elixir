@@ -234,6 +234,12 @@ defmodule Protocol.ConsolidationTest do
       assert %{{:ok, 1} => %{sig: {:strong, nil, clauses}}} = exports
       assert clauses == [{[none()], dynamic()}]
     end
+
+    test "handles regular function definitions" do
+      exports = exports(sample_binary())
+
+      assert %{{:regular_fun, 1} => %{sig: :none}} = exports
+    end
   end
 
   test "consolidation errors on missing BEAM files" do
