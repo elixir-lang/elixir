@@ -36,7 +36,7 @@ defmodule Date do
   using `Enum.min/2` and `Enum.max/2` functions to get the minimum and
   maximum date of an `Enum`. For example:
 
-      iex>  Enum.min([~D[2017-03-31], ~D[2017-04-01]], Date)
+      iex> Enum.min([~D[2017-03-31], ~D[2017-04-01]], Date)
       ~D[2017-03-31]
 
   ## Using epochs

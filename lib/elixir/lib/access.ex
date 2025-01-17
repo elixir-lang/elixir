@@ -1038,9 +1038,9 @@ defmodule Access do
       iex> list = [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]
       iex> get_in(list, [Access.find(&(&1.salary > 20)), :name])
       "francine"
-      iex>  get_and_update_in(list, [Access.find(&(&1.salary <= 40)), :name], fn prev ->
-      ...> {prev, String.upcase(prev)}
-      ...>  end)
+      iex> get_and_update_in(list, [Access.find(&(&1.salary <= 40)), :name], fn prev ->
+      ...>   {prev, String.upcase(prev)}
+      ...> end)
       {"john", [%{name: "JOHN", salary: 10}, %{name: "francine", salary: 30}]}
 
   `find/1` can also be used to pop the first found element out of a list or
@@ -1067,7 +1067,7 @@ defmodule Access do
 
   An error is raised if the accessed structure is not a list:
 
-      iex>  get_in(%{}, [Access.find(fn a -> a == 10 end)])
+      iex> get_in(%{}, [Access.find(fn a -> a == 10 end)])
       ** (RuntimeError) Access.find/1 expected a list, got: %{}
   """
   @doc since: "1.17.0"
