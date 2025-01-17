@@ -1289,7 +1289,16 @@ defmodule Module.Types.Descr do
       acc ->
         try do
           {tag, fields} = map_literal_intersection(tag1, pos1, tag2, pos2)
-          [{tag, fields, negs1 ++ negs2} | acc]
+          entry = {tag, fields, negs1 ++ negs2}
+
+          # Imagine a, b, c, where a is closed and b and c are open with
+          # no keys in common. The result in both cases will be a and we
+          # want to avoid adding duplicates, especially as intersection
+          # is a cartesian product.
+          case :lists.member(entry, acc) do
+            true -> acc
+            false -> [entry | acc]
+          end
         catch
           :empty -> acc
         end
@@ -1966,8 +1975,16 @@ defmodule Module.Types.Descr do
         reduce: [] do
       acc ->
         case tuple_literal_intersection(tag1, elements1, tag2, elements2) do
-          {tag, fields} -> [{tag, fields, negs1 ++ negs2} | acc]
-          :empty -> acc
+          {tag, elements} ->
+            entry = {tag, elements, negs1 ++ negs2}
+
+            case :lists.member(entry, acc) do
+              true -> acc
+              false -> [entry | acc]
+            end
+
+          :empty ->
+            acc
         end
     end
     |> case do
