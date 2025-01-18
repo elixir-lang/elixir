@@ -225,48 +225,23 @@ defmodule Module.Types.Expr do
   end
 
   # %Struct{map | ...}
+  # This syntax is deprecated, so we simply traverse.
   def of_expr(
-        {:%, struct_meta, [module, {:%{}, _, [{:|, update_meta, [map, args]}]}]} = struct,
-        expected,
+        {:%, _, [_, {:%{}, _, [{:|, _, [map, args]}]}]} = struct,
+        _expected,
         expr,
         stack,
         context
       ) do
-    if stack.mode == :traversal do
-      {_, context} = of_expr(map, term(), struct, stack, context)
+    {_, context} = of_expr(map, term(), struct, stack, context)
 
-      context =
-        Enum.reduce(args, context, fn {key, value}, context when is_atom(key) ->
-          {_, context} = of_expr(value, term(), expr, stack, context)
-          context
-        end)
+    context =
+      Enum.reduce(args, context, fn {key, value}, context when is_atom(key) ->
+        {_, context} = of_expr(value, term(), expr, stack, context)
+        context
+      end)
 
-      {dynamic(), context}
-    else
-      {info, context} = Of.struct_info(module, struct_meta, stack, context)
-      struct_type = Of.struct_type(module, info)
-      {map_type, context} = of_expr(map, struct_type, struct, stack, context)
-
-      if compatible?(map_type, struct_type) do
-        map_type = map_put!(map_type, :__struct__, atom([module]))
-
-        Enum.reduce(args, {map_type, context}, fn
-          {key, value}, {map_type, context} when is_atom(key) ->
-            # TODO: Once we support typed structs, we need to type check them here.
-            expected_value_type =
-              case map_fetch(expected, key) do
-                {_, expected_value_type} -> expected_value_type
-                _ -> term()
-              end
-
-            {value_type, context} = of_expr(value, expected_value_type, expr, stack, context)
-            {map_put!(map_type, key, value_type), context}
-        end)
-      else
-        warning = {:badstruct, struct, struct_type, map_type, context}
-        {error_type(), error(__MODULE__, warning, update_meta, stack, context)}
-      end
-    end
+    {dynamic(), context}
   end
 
   # %{...}
@@ -792,13 +767,6 @@ defmodule Module.Types.Expr do
   defp flatten_when({:when, _meta, [left, right]}), do: [left | flatten_when(right)]
   defp flatten_when(other), do: [other]
 
-  defp map_put!(map_type, key, value_type) do
-    case map_put(map_type, key, value_type) do
-      {:ok, descr} -> descr
-      error -> raise "unexpected #{inspect(error)}"
-    end
-  end
-
   defp repack_match(left_expr, {:=, meta, [new_left, new_right]}),
     do: repack_match({:=, meta, [left_expr, new_left]}, new_right)
 
@@ -806,31 +774,6 @@ defmodule Module.Types.Expr do
     do: {left_expr, right_expr}
 
   ## Warning formatting
-
-  def format_diagnostic({:badstruct, expr, expected_type, actual_type, context}) do
-    traces = collect_traces(expr, context)
-
-    %{
-      details: %{typing_traces: traces},
-      message:
-        IO.iodata_to_binary([
-          """
-          incompatible types in struct update:
-
-              #{expr_to_string(expr) |> indent(4)}
-
-          expected type:
-
-              #{to_quoted_string(expected_type) |> indent(4)}
-
-          but got type:
-
-              #{to_quoted_string(actual_type) |> indent(4)}
-          """,
-          format_traces(traces)
-        ])
-    }
-  end
 
   def format_diagnostic({:badmap, type, expr, context}) do
     traces = collect_traces(expr, context)

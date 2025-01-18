@@ -283,11 +283,7 @@ defmodule MapTest do
 
   test "structs" do
     assert %ExternalUser{} == %{__struct__: ExternalUser, name: "john", age: 27}
-
     assert %ExternalUser{name: "meg"} == %{__struct__: ExternalUser, name: "meg", age: 27}
-
-    user = %ExternalUser{}
-    assert %ExternalUser{user | name: "meg"} == %{__struct__: ExternalUser, name: "meg", age: 27}
 
     %ExternalUser{name: name} = %ExternalUser{}
     assert name == "john"

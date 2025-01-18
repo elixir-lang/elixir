@@ -98,8 +98,8 @@ defmodule Kernel.SpecialForms do
 
       %User{}
 
-  Underneath a struct is just a map with a `:__struct__` key
-  pointing to the `User` module:
+  Underneath a struct is a map with a `:__struct__` key pointing
+  to the `User` module, where the keys are validated at compile-time:
 
       %User{} == %{__struct__: User, name: "john", age: 27}
 
@@ -118,16 +118,7 @@ defmodule Kernel.SpecialForms do
 
       %User{full_name: "john doe"}
 
-  An update operation specific for structs is also available:
-
-      %User{user | age: 28}
-
-  Once again, the syntax above will guarantee the given keys
-  are valid at compilation time and it will guarantee at runtime
-  the given argument is a struct, failing with `BadStructError`
-  otherwise. The map update syntax can also be used for updating
-  structs, and it is useful when you want to update any struct,
-  regardless of their name, as long as they have matching fields:
+  The map update syntax can also be used for updating structs:
 
       %{user | age: 28}
 

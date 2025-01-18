@@ -483,8 +483,7 @@ defmodule DateTimeTest do
     assert DateTime.to_unix(gregorian_0) == -62_167_219_200
     assert DateTime.to_unix(Map.from_struct(gregorian_0)) == -62_167_219_200
 
-    min_datetime = %DateTime{gregorian_0 | year: -9999}
-
+    min_datetime = %{gregorian_0 | year: -9999}
     assert DateTime.to_unix(min_datetime) == -377_705_116_800
   end
 

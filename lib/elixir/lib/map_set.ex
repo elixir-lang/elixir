@@ -440,8 +440,8 @@ defmodule MapSet do
   defimpl Inspect do
     import Inspect.Algebra
 
-    def inspect(map_set, opts) do
-      opts = %Inspect.Opts{opts | charlists: :as_lists}
+    def inspect(map_set, %Inspect.Opts{} = opts) do
+      opts = %{opts | charlists: :as_lists}
       concat(["MapSet.new(", Inspect.List.inspect(MapSet.to_list(map_set), opts), ")"])
     end
   end

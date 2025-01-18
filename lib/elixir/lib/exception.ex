@@ -1387,6 +1387,8 @@ defmodule BadFunctionError do
 end
 
 defmodule BadStructError do
+  @moduledoc deprecated:
+               "This exception is deprecated alongside the struct update syntax that raises it"
   defexception [:struct, :term]
 
   @impl true

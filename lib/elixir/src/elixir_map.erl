@@ -15,13 +15,21 @@ expand_map(Meta, Args, S, E) ->
   {{'%{}', Meta, EArgs}, SE, EE}.
 
 expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, S, #{context := Context} = E) ->
-  CleanMapArgs = clean_struct_key_from_map_args(Meta, MapArgs, E),
+  CleanMapArgs = delete_struct_key(Meta, MapArgs, E),
   {[ELeft, ERight], SE, EE} = elixir_expand:expand_args([Left, {'%{}', MapMeta, CleanMapArgs}], S, E),
 
   case validate_struct(ELeft, Context) of
     true when is_atom(ELeft) ->
-      case extract_struct_assocs(Meta, ERight, E) of
-        {expand, MapMeta, Assocs} when Context /= match -> %% Expand
+      case ERight of
+        {'%{}', MapMeta, [{'|', _, [_, Assocs]}]} ->
+          %% The update syntax for structs is deprecated,
+          %% so we return only the update syntax downstream.
+          %% TODO: Remove me on Elixir v2.0
+          file_warn(MapMeta, ?key(E, file), ?MODULE, {deprecated_update, ELeft, ERight}),
+          _ = load_struct_info(Meta, ELeft, Assocs, EE),
+          {{'%', Meta, [ELeft, ERight]}, SE, EE};
+
+        {'%{}', MapMeta, Assocs} when Context /= match ->
           AssocKeys = [K || {K, _} <- Assocs],
           Struct = load_struct(Meta, ELeft, Assocs, EE),
           Keys = ['__struct__'] ++ AssocKeys,
@@ -29,7 +37,7 @@ expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, S, #{context := Context} = 
           StructAssocs = elixir_quote:escape(WithoutKeys, none, false),
           {{'%', Meta, [ELeft, {'%{}', MapMeta, StructAssocs ++ Assocs}]}, SE, EE};
 
-        {_, _, Assocs} -> %% Update or match
+        {'%{}', MapMeta, Assocs} ->
           _ = load_struct_info(Meta, ELeft, Assocs, EE),
           {{'%', Meta, [ELeft, ERight]}, SE, EE}
       end;
@@ -46,12 +54,12 @@ expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, S, #{context := Context} = 
 expand_struct(Meta, _Left, Right, _S, E) ->
   file_error(Meta, E, ?MODULE, {non_map_after_struct, Right}).
 
-clean_struct_key_from_map_args(Meta, [{'|', PipeMeta, [Left, MapAssocs]}], E) ->
-  [{'|', PipeMeta, [Left, clean_struct_key_from_map_assocs(Meta, MapAssocs, E)]}];
-clean_struct_key_from_map_args(Meta, MapAssocs, E) ->
-  clean_struct_key_from_map_assocs(Meta, MapAssocs, E).
+delete_struct_key(Meta, [{'|', PipeMeta, [Left, MapAssocs]}], E) ->
+  [{'|', PipeMeta, [Left, delete_struct_key_assoc(Meta, MapAssocs, E)]}];
+delete_struct_key(Meta, MapAssocs, E) ->
+  delete_struct_key_assoc(Meta, MapAssocs, E).
 
-clean_struct_key_from_map_assocs(Meta, Assocs, E) ->
+delete_struct_key_assoc(Meta, Assocs, E) ->
   case lists:keytake('__struct__', 1, Assocs) of
     {value, _, CleanAssocs} ->
       file_warn(Meta, ?key(E, file), ?MODULE, ignored_struct_key_in_struct),
@@ -109,16 +117,6 @@ validate_kv(Meta, KV, Original, #{context := Context} = E) ->
     (_, {Index, _Used}) ->
       file_error(Meta, E, ?MODULE, {not_kv_pair, lists:nth(Index, Original)})
   end, {1, #{}}, KV).
-
-extract_struct_assocs(_, {'%{}', Meta, [{'|', _, [_, Assocs]}]}, _) ->
-  {update, Meta, delete_struct_key(Assocs)};
-extract_struct_assocs(_, {'%{}', Meta, Assocs}, _) ->
-  {expand, Meta, delete_struct_key(Assocs)};
-extract_struct_assocs(Meta, Other, E) ->
-  file_error(Meta, E, ?MODULE, {non_map_after_struct, Other}).
-
-delete_struct_key(Assocs) ->
-  lists:keydelete('__struct__', 1, Assocs).
 
 validate_struct({'^', _, [{Var, _, Ctx}]}, match) when is_atom(Var), is_atom(Ctx) -> true;
 validate_struct({Var, _Meta, Ctx}, match) when is_atom(Var), is_atom(Ctx) -> true;
@@ -301,4 +299,9 @@ format_error({invalid_key_for_struct, Key}) ->
   io_lib:format("invalid key ~ts for struct, struct keys must be atoms, got: ",
                 ['Elixir.Macro':to_string(Key)]);
 format_error(ignored_struct_key_in_struct) ->
-  "key :__struct__ is ignored when using structs".
+  "key :__struct__ is ignored when using structs";
+format_error({deprecated_update, Struct, MapUpdate}) ->
+  io_lib:format("the struct update syntax is deprecated:\n\n~ts\n\n"
+                "Instead, prefer to pattern matching on structs when the variable is first defined and "
+                "use the regular map update syntax instead:\n\n~ts\n",
+                ['Elixir.Macro':to_string({'%', [], [Struct, MapUpdate]}), 'Elixir.Macro':to_string(MapUpdate)]).

@@ -477,6 +477,7 @@ translate_struct(Ann, Name, {'%{}', _, [{'|', _, [Update, Assocs]}]}, S) ->
   Map = {map, Ann, [{map_field_exact, Ann, {atom, Ann, '__struct__'}, {atom, Ann, Name}}]},
 
   Match = {match, Ann, Var, Map},
+  %% Once this is removed, we should remove badstruct handling from elixir_erl_try
   Error = {tuple, Ann, [{atom, Ann, badstruct}, {atom, Ann, Name}, Var]},
 
   {TUpdate, TU} = translate(Update, Ann, VS),

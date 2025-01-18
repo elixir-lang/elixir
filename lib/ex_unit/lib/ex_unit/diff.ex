@@ -218,19 +218,19 @@ defmodule ExUnit.Diff do
   # Guards
 
   defp diff_guard({:when, _, [expression, clause]}, right, env) do
-    {diff_expression, post_env} = diff_quoted(expression, right, nil, env)
+    {diff, post_env} = diff_quoted(expression, right, nil, env)
 
     {guard_clause, guard_equivalent?} =
-      if diff_expression.equivalent? do
+      if diff.equivalent? do
         bindings = Map.merge(post_env.pins, post_env.current_vars)
         diff_guard_clause(clause, bindings)
       else
         {clause, false}
       end
 
-    diff = %__MODULE__{
-      diff_expression
-      | left: {:when, [], [diff_expression.left, guard_clause]},
+    diff = %{
+      diff
+      | left: {:when, [], [diff.left, guard_clause]},
         equivalent?: guard_equivalent?
     }
 
@@ -825,10 +825,10 @@ defmodule ExUnit.Diff do
   end
 
   defp diff_string_concat(left, nil, indexes, _left_length, right, env) do
-    {parsed_diff, parsed_post_env} = diff_string(left, right, ?", env)
-    left_diff = rebuild_concat_string(parsed_diff.left, nil, indexes)
+    {diff, parsed_post_env} = diff_string(left, right, ?", env)
+    left_diff = rebuild_concat_string(diff.left, nil, indexes)
 
-    diff = %__MODULE__{parsed_diff | left: left_diff}
+    diff = %{diff | left: left_diff}
     {diff, parsed_post_env}
   end
 
