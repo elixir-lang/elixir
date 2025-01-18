@@ -477,7 +477,19 @@ defmodule ExUnit.Formatter do
     content_width = if width == :infinity, do: width, else: width - padding_size
 
     case format_diff(left, right, context, formatter) do
-      {result, env} ->
+      {nil, hints} when is_atom(context) ->
+        {if_value(left, inspect), if_value(right, inspect), hints}
+
+      {nil, hints} ->
+        left =
+          Macro.prewalk(left, fn
+            {_, [original: original], _} -> original
+            other -> other
+          end)
+
+        {if_value(left, &code_multiline(&1, padding_size)), if_value(right, inspect), hints}
+
+      {result, hints} ->
         left =
           result.left
           |> Diff.to_algebra(&colorize_diff_delete(&1, formatter))
@@ -490,30 +502,23 @@ defmodule ExUnit.Formatter do
           |> Algebra.nest(padding_size)
           |> Algebra.format(content_width)
 
-        {left, right, Enum.map(env.hints, &{:hint, format_hint(&1)})}
+        {left, right, hints}
+    end
+  end
 
-      nil when is_atom(context) ->
-        {if_value(left, inspect), if_value(right, inspect), []}
-
-      nil ->
-        left =
-          Macro.prewalk(left, fn
-            {_, [original: original], _} -> original
-            other -> other
-          end)
-
-        {if_value(left, &code_multiline(&1, padding_size)), if_value(right, inspect), []}
+  defp format_diff(left, right, context, formatter) do
+    if has_value?(left) and has_value?(right) do
+      {result, env} = find_diff(left, right, context)
+      result = if formatter.(:diff_enabled?, false), do: result
+      hints = Enum.map(env.hints, &{:hint, format_hint(&1)})
+      {result, hints}
+    else
+      {nil, []}
     end
   end
 
   defp format_hint(:equivalent_but_different_strings) do
     "you are comparing strings that have the same visual representation but are made of different Unicode codepoints"
-  end
-
-  defp format_diff(left, right, context, formatter) do
-    if has_value?(left) and has_value?(right) and formatter.(:diff_enabled?, false) do
-      find_diff(left, right, context)
-    end
   end
 
   defp colorize_diff_delete(doc, formatter) do
