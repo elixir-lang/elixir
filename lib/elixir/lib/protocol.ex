@@ -308,6 +308,49 @@ defmodule Protocol do
   end
 
   @doc """
+  Returns the implementation of a given protocol for a given data type
+  or `nil`.
+
+  This wraps `protocol.impl_for(value)` with a generic type signature.
+
+  ## Examples
+
+      iex> Protocol.impl_for(Enumerable, [1, 2, 3])
+      Enumerable.List
+
+      iex> Protocol.impl_for(Enumerable, :atom)
+      nil
+  """
+  @doc since: "1.19.0"
+  def impl_for(protocol, value) do
+    protocol.impl_for(value)
+  end
+
+  @doc """
+  Returns the implementation of a given protocol for a given data type
+  or raises.
+
+  This wraps `protocol.impl_for!(value)` with a generic type signature.
+
+  ## Examples
+
+      iex> Protocol.impl_for!(Enumerable, [1, 2, 3])
+      Enumerable.List
+
+      iex> try do
+      ...>   Protocol.impl_for!(Enumerable, :atom)
+      ...> rescue
+      ...>   Protocol.UndefinedError -> :raised
+      ...> end
+      :raised
+
+  """
+  @doc since: "1.19.0"
+  def impl_for!(protocol, value) do
+    protocol.impl_for!(value)
+  end
+
+  @doc """
   Checks if the given module is loaded and is protocol.
 
   Returns `:ok` if so, otherwise raises `ArgumentError`.
