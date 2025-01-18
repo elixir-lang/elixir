@@ -332,6 +332,9 @@ defmodule ExUnit.FormatterTest do
                 hint:  you are comparing strings that have the same visual representation but are made of different Unicode codepoints
            """
 
+    assert format_test_failure(test(), failure, 1, 80, &diff_formatter/2) ==
+             format_test_failure(test(), failure, 1, 80, &formatter/2)
+
     assert format_assertion_diff(assertion_error, 0, :infinity, &diff_formatter/2)
            |> kw_to_string() ==
              [
