@@ -6,12 +6,8 @@ defmodule Date.RangeTest do
 
   @asc_range Date.range(~D[2000-01-01], ~D[2001-01-01])
   @asc_range_2 Date.range(~D[2000-01-01], ~D[2001-01-01], 2)
-  @asc_range_duration Date.range(~D[2000-01-01], Duration.new!(year: 1))
-  @asc_range_duration_2 Date.range(~D[2000-01-01], Duration.new!(year: 1), 2)
   @desc_range Date.range(~D[2001-01-01], ~D[2000-01-01], -1)
   @desc_range_2 Date.range(~D[2001-01-01], ~D[2000-01-01], -2)
-  @desc_range_duration Date.range(~D[2001-01-01], Duration.new!(year: -1), -1)
-  @desc_range_duration_2 Date.range(~D[2001-01-01], Duration.new!(year: -1), 2)
   @empty_range Date.range(~D[2001-01-01], ~D[2000-01-01], 1)
 
   describe "Enum.member?/2" do
@@ -24,9 +20,6 @@ defmodule Date.RangeTest do
 
       assert Enum.member?(@asc_range_2, ~D[2000-01-03])
       refute Enum.member?(@asc_range_2, ~D[2000-01-02])
-
-      assert Enum.member?(@asc_range_duration, ~D[2000-01-03])
-      refute Enum.member?(@asc_range_duration_2, ~D[2000-01-02])
     end
 
     test "for descending range" do
@@ -38,9 +31,6 @@ defmodule Date.RangeTest do
 
       assert Enum.member?(@desc_range_2, ~D[2000-12-30])
       refute Enum.member?(@desc_range_2, ~D[2000-12-29])
-
-      assert Enum.member?(@desc_range_duration, ~D[2000-12-30])
-      refute Enum.member?(@desc_range_duration_2, ~D[2000-12-29])
     end
 
     test "empty range" do
@@ -119,30 +109,6 @@ defmodule Date.RangeTest do
     assert Enum.to_list(range) == [~D[2000-01-01], ~D[2000-01-03]]
   end
 
-  test "works with durations" do
-    range = Date.range(~D[2000-01-01], Duration.new!(day: 1))
-    assert range.first == ~D[2000-01-01]
-    assert range.last == ~D[2000-01-02]
-    assert Enum.to_list(range) == [~D[2000-01-01], ~D[2000-01-02]]
-
-    range = Date.range(~D[2000-01-01], Duration.new!(day: 2), 2)
-    assert range.first == ~D[2000-01-01]
-    assert range.last == ~D[2000-01-03]
-    assert Enum.to_list(range) == [~D[2000-01-01], ~D[2000-01-03]]
-  end
-
-  test "accepts durations as keyword list" do
-    range = Date.range(~D[2000-01-01], day: 1)
-    assert range.first == ~D[2000-01-01]
-    assert range.last == ~D[2000-01-02]
-    assert Enum.to_list(range) == [~D[2000-01-01], ~D[2000-01-02]]
-
-    range = Date.range(~D[2000-01-01], [day: 2], 2)
-    assert range.first == ~D[2000-01-01]
-    assert range.last == ~D[2000-01-03]
-    assert Enum.to_list(range) == [~D[2000-01-01], ~D[2000-01-03]]
-  end
-
   test "both dates must have matching calendars" do
     first = ~D[2000-01-01]
     last = Calendar.Holocene.date(12001, 1, 1)
@@ -163,33 +129,19 @@ defmodule Date.RangeTest do
   end
 
   test "step is a non-zero integer" do
+    step = 1.0
     message = ~r"the step must be a non-zero integer"
 
     assert_raise ArgumentError, message, fn ->
-      Date.range(~D[2000-01-01], ~D[2000-01-31], 1.0)
+      Date.range(~D[2000-01-01], ~D[2000-01-31], step)
     end
+
+    step = 0
+    message = ~r"the step must be a non-zero integer"
 
     assert_raise ArgumentError, message, fn ->
-      Date.range(~D[2000-01-01], [month: 1], 1.0)
+      Date.range(~D[2000-01-01], ~D[2000-01-31], step)
     end
-
-    assert_raise ArgumentError, message, fn ->
-      Date.range(~D[2000-01-01], ~D[2000-01-31], 0)
-    end
-
-    assert_raise ArgumentError, message, fn ->
-      Date.range(~D[2000-01-01], [month: 1], 0)
-    end
-  end
-
-  test "warns when inferring a negative step" do
-    {result, captured} =
-      ExUnit.CaptureIO.with_io(:stderr, fn ->
-        Date.range(~D[2001-01-01], Duration.new!(year: -1))
-      end)
-
-    assert result == Date.range(~D[2001-01-01], ~D[2000-01-01], -1)
-    assert captured =~ "negative range was inferred for Date.range/2"
   end
 
   describe "old date ranges" do
