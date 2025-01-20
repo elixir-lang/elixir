@@ -176,7 +176,7 @@ defmodule Module.Types.Of do
     map =
       permutate_map(pairs_types, stack, fn fallback, _keys, pairs ->
         # TODO: Use the fallback type to actually indicate if open or closed.
-        if fallback == none(), do: closed_map(pairs), else: open_map(pairs)
+        if fallback == none(), do: closed_map(pairs), else: dynamic(open_map(pairs))
       end)
 
     {map, context}

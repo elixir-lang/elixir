@@ -1140,7 +1140,7 @@ defmodule Module.Types.Apply do
   defp args_to_quoted_string(args_types, domain, converter) do
     docs =
       Enum.zip_with(args_types, domain, fn actual, expected ->
-        if compatible?(actual, expected) do
+        if compatible?(actual, expected) or not has_simple_difference?(actual, expected) do
           actual |> to_quoted() |> Code.Formatter.to_algebra()
         else
           common = intersection(actual, expected)
@@ -1161,6 +1161,21 @@ defmodule Module.Types.Apply do
       end)
 
     args_docs_to_quoted_string(converter.(docs))
+  end
+
+  @composite_types non_empty_list(term(), term())
+                   |> union(tuple())
+                   |> union(open_map())
+                   |> union(fun())
+
+  # If actual/expected have a composite type, computing the
+  # `intersection(actual, expected) or difference(actual, expected)`
+  # can lead to an explosion of terms that actually make debugging
+  # harder. So we check that at least one of the two operations
+  # return none() (i.e. actual is a subtype or they are disjoint).
+  defp has_simple_difference?(actual, expected) do
+    composite_types = intersection(actual, @composite_types)
+    subtype?(composite_types, expected) or disjoint?(composite_types, expected)
   end
 
   defp ansi_red(doc) do

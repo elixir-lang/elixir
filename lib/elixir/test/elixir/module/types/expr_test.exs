@@ -690,7 +690,7 @@ defmodule Module.Types.ExprTest do
     end
 
     test "creating open maps" do
-      assert typecheck!(%{123 => 456}) == open_map()
+      assert typecheck!(%{123 => 456}) == dynamic(open_map())
       # Since key cannot override :foo, we preserve it
       assert typecheck!([key], %{key => 456, foo: :bar}) == dynamic(open_map(foo: atom([:bar])))
       # Since key can override :foo, we do not preserve it

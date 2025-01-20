@@ -214,7 +214,7 @@ defmodule Module.Types.Expr do
           # TODO: Use the fallback type to actually indicate if open or closed.
           # The fallback must be unioned with the result of map_values with all
           # `keys` deleted.
-          open_map(pairs)
+          dynamic(open_map(pairs))
         end
       end)
     catch
