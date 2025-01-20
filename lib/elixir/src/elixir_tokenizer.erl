@@ -1779,84 +1779,81 @@ add_cursor(_Line, Column, noprune, Terminators, Tokens) ->
   {Column, Terminators, Tokens};
 add_cursor(Line, Column, prune_and_cursor, Terminators, Tokens) ->
   PrePrunedTokens = prune_identifier(Tokens),
-  {PrunedTokens, PrunedTerminators} = prune_tokens(PrePrunedTokens, [], Terminators),
+  PrunedTokens = prune_tokens(PrePrunedTokens, []),
   CursorTokens = [
     {')', {Line, Column + 11, nil}},
     {'(', {Line, Column + 10, nil}},
     {paren_identifier, {Line, Column, nil}, '__cursor__'}
     | PrunedTokens
   ],
-  {Column + 12, PrunedTerminators, CursorTokens}.
+  {Column + 12, Terminators, CursorTokens}.
 
 prune_identifier([{identifier, _, _} | Tokens]) -> Tokens;
 prune_identifier(Tokens) -> Tokens.
 
 %%% Any terminator needs to be closed
-prune_tokens([{'end', _} | Tokens], Opener, Terminators) ->
-  prune_tokens(Tokens, ['end' | Opener], Terminators);
-prune_tokens([{')', _} | Tokens], Opener, Terminators) ->
-  prune_tokens(Tokens, [')' | Opener], Terminators);
-prune_tokens([{']', _} | Tokens], Opener, Terminators) ->
-  prune_tokens(Tokens, [']' | Opener], Terminators);
-prune_tokens([{'}', _} | Tokens], Opener, Terminators) ->
-  prune_tokens(Tokens, ['}' | Opener], Terminators);
-prune_tokens([{'>>', _} | Tokens], Opener, Terminators) ->
-  prune_tokens(Tokens, ['>>' | Opener], Terminators);
+prune_tokens([{'end', _} | Tokens], Opener) ->
+  prune_tokens(Tokens, ['end' | Opener]);
+prune_tokens([{')', _} | Tokens], Opener) ->
+  prune_tokens(Tokens, [')' | Opener]);
+prune_tokens([{']', _} | Tokens], Opener) ->
+  prune_tokens(Tokens, [']' | Opener]);
+prune_tokens([{'}', _} | Tokens], Opener) ->
+  prune_tokens(Tokens, ['}' | Opener]);
+prune_tokens([{'>>', _} | Tokens], Opener) ->
+  prune_tokens(Tokens, ['>>' | Opener]);
 %%% Close opened terminators
-prune_tokens([{'fn', _} | Tokens], ['end' | Opener], Terminators) ->
-  prune_tokens(Tokens, Opener, Terminators);
-prune_tokens([{'do', _} | Tokens], ['end' | Opener], Terminators) ->
-  prune_tokens(Tokens, Opener, Terminators);
-prune_tokens([{'(', _} | Tokens], [')' | Opener], Terminators) ->
-  prune_tokens(Tokens, Opener, Terminators);
-prune_tokens([{'[', _} | Tokens], [']' | Opener], Terminators) ->
-  prune_tokens(Tokens, Opener, Terminators);
-prune_tokens([{'{', _} | Tokens], ['}' | Opener], Terminators) ->
-  prune_tokens(Tokens, Opener, Terminators);
-prune_tokens([{'<<', _} | Tokens], ['>>' | Opener], Terminators) ->
-  prune_tokens(Tokens, Opener, Terminators);
-%%% Handle anonymous functions
-prune_tokens([{'(', _}, {capture_op, _, _} | Tokens], [], [{'(', _, _} | Terminators]) ->
-  prune_tokens(Tokens, [], Terminators);
+prune_tokens([{'fn', _} | Tokens], ['end' | Opener]) ->
+  prune_tokens(Tokens, Opener);
+prune_tokens([{'do', _} | Tokens], ['end' | Opener]) ->
+  prune_tokens(Tokens, Opener);
+prune_tokens([{'(', _} | Tokens], [')' | Opener]) ->
+  prune_tokens(Tokens, Opener);
+prune_tokens([{'[', _} | Tokens], [']' | Opener]) ->
+  prune_tokens(Tokens, Opener);
+prune_tokens([{'{', _} | Tokens], ['}' | Opener]) ->
+  prune_tokens(Tokens, Opener);
+prune_tokens([{'<<', _} | Tokens], ['>>' | Opener]) ->
+  prune_tokens(Tokens, Opener);
 %%% or it is time to stop...
-prune_tokens([{';', _} | _] = Tokens, [], Terminators) ->
-  {Tokens, Terminators};
-prune_tokens([{'eol', _} | _] = Tokens, [], Terminators) ->
-  {Tokens, Terminators};
-prune_tokens([{',', _} | _] = Tokens, [], Terminators) ->
-  {Tokens, Terminators};
-prune_tokens([{'fn', _} | _] = Tokens, [], Terminators) ->
-  {Tokens, Terminators};
-prune_tokens([{'do', _} | _] = Tokens, [], Terminators) ->
-  {Tokens, Terminators};
-prune_tokens([{'(', _} | _] = Tokens, [], Terminators) ->
-  {Tokens, Terminators};
-prune_tokens([{'[', _} | _] = Tokens, [], Terminators) ->
-  {Tokens, Terminators};
-prune_tokens([{'{', _} | _] = Tokens, [], Terminators) ->
-  {Tokens, Terminators};
-prune_tokens([{'<<', _} | _] = Tokens, [], Terminators) ->
-  {Tokens, Terminators};
-prune_tokens([{identifier, _, _} | _] = Tokens, [], Terminators) ->
-  {Tokens, Terminators};
-prune_tokens([{block_identifier, _, _} | _] = Tokens, [], Terminators) ->
-  {Tokens, Terminators};
-prune_tokens([{kw_identifier, _, _} | _] = Tokens, [], Terminators) ->
-  {Tokens, Terminators};
-prune_tokens([{kw_identifier_safe, _, _} | _] = Tokens, [], Terminators) ->
-  {Tokens, Terminators};
-prune_tokens([{kw_identifier_unsafe, _, _} | _] = Tokens, [], Terminators) ->
-  {Tokens, Terminators};
-prune_tokens([{OpType, _, _} | _] = Tokens, [], Terminators)
+prune_tokens([{';', _} | _] = Tokens, []) ->
+  Tokens;
+prune_tokens([{'eol', _} | _] = Tokens, []) ->
+  Tokens;
+prune_tokens([{',', _} | _] = Tokens, []) ->
+  Tokens;
+prune_tokens([{'fn', _} | _] = Tokens, []) ->
+  Tokens;
+prune_tokens([{'do', _} | _] = Tokens, []) ->
+  Tokens;
+prune_tokens([{'(', _} | _] = Tokens, []) ->
+  Tokens;
+prune_tokens([{'[', _} | _] = Tokens, []) ->
+  Tokens;
+prune_tokens([{'{', _} | _] = Tokens, []) ->
+  Tokens;
+prune_tokens([{'<<', _} | _] = Tokens, []) ->
+  Tokens;
+prune_tokens([{identifier, _, _} | _] = Tokens, []) ->
+  Tokens;
+prune_tokens([{block_identifier, _, _} | _] = Tokens, []) ->
+  Tokens;
+prune_tokens([{kw_identifier, _, _} | _] = Tokens, []) ->
+  Tokens;
+prune_tokens([{kw_identifier_safe, _, _} | _] = Tokens, []) ->
+  Tokens;
+prune_tokens([{kw_identifier_unsafe, _, _} | _] = Tokens, []) ->
+  Tokens;
+prune_tokens([{OpType, _, _} | _] = Tokens, [])
   when OpType =:= comp_op; OpType =:= at_op; OpType =:= unary_op; OpType =:= and_op;
        OpType =:= or_op; OpType =:= arrow_op; OpType =:= match_op; OpType =:= in_op;
        OpType =:= in_match_op; OpType =:= type_op; OpType =:= dual_op; OpType =:= mult_op;
        OpType =:= power_op; OpType =:= concat_op; OpType =:= range_op; OpType =:= xor_op;
        OpType =:= pipe_op; OpType =:= stab_op; OpType =:= when_op; OpType =:= assoc_op;
        OpType =:= rel_op; OpType =:= ternary_op; OpType =:= capture_op; OpType =:= ellipsis_op ->
-  {Tokens, Terminators};
+  Tokens;
 %%% or we traverse until the end.
-prune_tokens([_ | Tokens], Opener, Terminators) ->
-  prune_tokens(Tokens, Opener, Terminators);
-prune_tokens([], [], Terminators) ->
-  {[], Terminators}.
+prune_tokens([_ | Tokens], Opener) ->
+  prune_tokens(Tokens, Opener);
+prune_tokens([], _Opener) ->
+  [].
