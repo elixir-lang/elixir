@@ -220,9 +220,9 @@ defmodule Module.Types.Descr do
   defp union(:bitmap, v1, v2), do: v1 ||| v2
   defp union(:dynamic, v1, v2), do: dynamic_union(v1, v2)
   defp union(:list, v1, v2), do: list_union(v1, v2)
-  defp union(:map, v1, v2), do: map_union(v1, v2)
+  defp union(:map, v1, v2), do: map_or_tuple_union(v1, v2)
   defp union(:optional, 1, 1), do: 1
-  defp union(:tuple, v1, v2), do: tuple_union(v1, v2)
+  defp union(:tuple, v1, v2), do: map_or_tuple_union(v1, v2)
 
   @doc """
   Computes the intersection of two descrs.
@@ -1278,8 +1278,75 @@ defmodule Module.Types.Descr do
 
   defp map_only?(descr), do: empty?(Map.delete(descr, :map))
 
-  # Union is list concatenation
-  defp map_union(dnf1, dnf2), do: dnf1 ++ (dnf2 -- dnf1)
+  defp map_or_tuple_union(dnf1, dnf2) do
+    if optimized = maybe_optimize_union(dnf1, dnf2) do
+      optimized
+    else
+      # Union is list concatenation
+      # Removes duplicates in union, which should trickle to other operations.
+      # This is a cheap optimization that relies on structural equality.
+      dnf1 ++ (dnf2 -- dnf1)
+    end
+  end
+
+  defp maybe_optimize_union([{tag1, pos1, []}] = dnf1, [{tag2, pos2, []}] = dnf2) do
+    # Avoid the explosion for unions of very similar maps or tuples,
+    # by returning only one if it contains the other
+    # e.g. %{a: integer()} or %{..., a: term()} -> %{..., a: term()}
+    cond do
+      map_or_tuple_simple_subtype?(tag1, pos1, tag2, pos2) -> dnf2
+      map_or_tuple_simple_subtype?(tag2, pos2, tag1, pos1) -> dnf1
+      true -> nil
+    end
+  end
+
+  defp maybe_optimize_union(_, _), do: nil
+
+  defp map_or_tuple_simple_subtype?(_, _, :open, pos2) when pos2 == %{}, do: true
+
+  defp map_or_tuple_simple_subtype?(:closed, pos1, :closed, pos2)
+       when map_size(pos1) == map_size(pos2) do
+    all_key_simple_subtypes?(pos1, pos2)
+  end
+
+  defp map_or_tuple_simple_subtype?(_, pos1, :open, pos2) when map_size(pos1) >= map_size(pos2) do
+    all_key_simple_subtypes?(pos1, pos2)
+  end
+
+  defp map_or_tuple_simple_subtype?(_, _, _, _), do: false
+
+  defp all_key_simple_subtypes?(pos1, pos2) do
+    Enum.all?(pos1, fn {key, type1} ->
+      case pos2 do
+        %{^key => type2} -> simple_subtype?(type1, type2)
+        _ -> false
+      end
+    end)
+  end
+
+  defp simple_subtype?(_, :term), do: true
+  defp simple_subtype?(same, same), do: true
+
+  defp simple_subtype?(type1, type2) when map_size(type1) == 1 and map_size(type2) == 1 do
+    case {type1, type2} do
+      {%{atom: _}, %{atom: {:negation, neg}}} when neg == %{} ->
+        true
+
+      {%{bitmap: bitmap1}, %{bitmap: bitmap2}} ->
+        (bitmap1 &&& bitmap2) === bitmap2
+
+      {%{map: [{tag1, pos1, []}]}, %{map: [{tag2, pos2, []}]}} ->
+        map_or_tuple_simple_subtype?(tag1, pos1, tag2, pos2)
+
+      {%{tuple: [{tag1, pos1, []}]}, %{tuple: [{tag2, pos2, []}]}} ->
+        map_or_tuple_simple_subtype?(tag1, pos1, tag2, pos2)
+
+      _ ->
+        false
+    end
+  end
+
+  defp simple_subtype?(_, _), do: false
 
   # Given two unions of maps, intersects each pair of maps.
   defp map_intersection(dnf1, dnf2) do
@@ -2048,10 +2115,6 @@ defmodule Module.Types.Descr do
       acc -> acc
     end
   end
-
-  # Removes duplicates in union, which should trickle to other operations.
-  # This is a cheap optimization that relies on structural equality.
-  defp tuple_union(left, right), do: left ++ (right -- left)
 
   defp tuple_to_quoted(dnf, opts) do
     dnf
