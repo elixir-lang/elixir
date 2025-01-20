@@ -95,7 +95,6 @@ but expected a type that implements the Enumerable protocol, it must be one of:
 #### Elixir
 
   * [Code] Add `:migrate_call_parens_on_pipe` formatter option
-  * [Date] Support durations as the second element in `Date.range/3`
   * [Enum] Provide more information on `Enum.OutOfBoundsError`
   * [Kernel] Support `min/2` and `max/2` as guards
   * [Protocol] Type checking of protocols dispatch and implementations
