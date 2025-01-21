@@ -3902,6 +3902,7 @@ defmodule Enum do
 
   """
   @spec unzip(t) :: {[element], [element]}
+  def unzip(enumerable)
 
   def unzip([_ | _] = list) do
     :lists.reverse(list) |> unzip([], [])
@@ -4170,8 +4171,8 @@ defmodule Enum do
   @spec zip_reduce(t, acc, ([term], acc -> acc)) :: acc when acc: term
   def zip_reduce([], acc, reducer) when is_function(reducer, 2), do: acc
 
-  def zip_reduce(enums, acc, reducer) when is_function(reducer, 2) do
-    R.zip_with(enums, & &1).({:cont, acc}, &{:cont, reducer.(&1, &2)}) |> elem(1)
+  def zip_reduce(enumerables, acc, reducer) when is_function(reducer, 2) do
+    R.zip_with(enumerables, & &1).({:cont, acc}, &{:cont, reducer.(&1, &2)}) |> elem(1)
   end
 
   ## Helpers
