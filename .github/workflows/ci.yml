@@ -66,6 +66,7 @@ jobs:
           cd ex_doc
           ../elixir/bin/mix do local.rebar --force + local.hex --force + deps.get + compile
           cd ../elixir/
+          git fetch --tags
           make docs
       - name: Check reproducible builds
         if: ${{ matrix.deterministic }}
