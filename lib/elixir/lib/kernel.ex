@@ -6471,29 +6471,37 @@ defmodule Kernel do
   """
   defmacro sigil_r(term, modifiers)
 
-  defmacro sigil_r({:<<>>, _meta, [string]}, options) when is_binary(string) do
-    binary = :elixir_interpolation.unescape_string(string, &regex_unescape_map/1)
-    regex = Regex.compile!(binary, :binary.list_to_bin(options))
-    Macro.escape(regex)
+  defmacro sigil_r({:<<>>, _meta, [binary]}, options) when is_binary(binary) do
+    binary = :elixir_interpolation.unescape_string(binary, &regex_unescape_map/1)
+    compile_regex(binary, options)
   end
 
   defmacro sigil_r({:<<>>, meta, pieces}, options) do
-    binary = {:<<>>, meta, unescape_tokens(pieces, &regex_unescape_map/1)}
-    quote(do: Regex.compile!(unquote(binary), unquote(:binary.list_to_bin(options))))
+    tuple = {:<<>>, meta, unescape_tokens(pieces, &regex_unescape_map/1)}
+    compile_regex(tuple, options)
   end
 
   defp regex_unescape_map(:newline), do: true
   defp regex_unescape_map(_), do: false
 
   @doc false
-  defmacro sigil_R({:<<>>, _meta, [string]}, options) when is_binary(string) do
+  defmacro sigil_R({:<<>>, _meta, [binary]}, options) when is_binary(binary) do
     IO.warn(
       "~R/.../ is deprecated, use ~r/.../ instead",
       Macro.Env.stacktrace(__CALLER__)
     )
 
-    regex = Regex.compile!(string, :binary.list_to_bin(options))
-    Macro.escape(regex)
+    compile_regex(binary, options)
+  end
+
+  defp compile_regex(binary_or_tuple, options) do
+    case is_binary(binary_or_tuple) and :erlang.system_info(:otp_release) < [?2, ?8] do
+      true ->
+        Macro.escape(Regex.compile!(binary_or_tuple, :binary.list_to_bin(options)))
+
+      false ->
+        quote(do: Regex.compile!(unquote(binary_or_tuple), unquote(:binary.list_to_bin(options))))
+    end
   end
 
   @doc ~S"""
