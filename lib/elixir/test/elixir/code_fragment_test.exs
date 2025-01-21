@@ -1335,19 +1335,22 @@ defmodule CodeFragmentTest do
 
     test "do -> end" do
       assert cc2q!("if do\nx ->\n", trailing_fragment: "y\nz ->\nw\nend") ==
-               s2q!("if do\nx ->\n__cursor__()\nend")
+               s2q!("if do\nx ->\n__cursor__()\nz -> \nw\nend")
 
       assert cc2q!("if do\nx ->\ny", trailing_fragment: "\nz ->\nw\nend") ==
-               s2q!("if do\nx ->\n__cursor__()\nend")
+               s2q!("if do\nx ->\n__cursor__()\nz -> \nw\nend")
 
       assert cc2q!("if do\nx ->\ny\n", trailing_fragment: "\nz ->\nw\nend") ==
-               s2q!("if do\nx ->\ny\n__cursor__()\nend")
+               s2q!("if do\nx ->\ny\n__cursor__()\nz -> \nw\nend")
 
       assert cc2q!("for x <- [], reduce: %{} do\ny, ", trailing_fragment: "-> :ok\nend") ==
                s2q!("for x <- [], reduce: %{} do\ny, __cursor__() -> :ok\nend")
 
       assert cc2q!("for x <- [], reduce: %{} do\ny, z when ", trailing_fragment: "-> :ok\nend") ==
                s2q!("for x <- [], reduce: %{} do\ny, z when __cursor__() -> :ok\nend")
+
+      assert cc2q!("case do\na -> a\nb = ", trailing_fragment: "c -> c\nend") ==
+               s2q!("case do\na -> a\nb = __cursor__() -> c\nend")
     end
 
     test "removes tokens until opening" do
