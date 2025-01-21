@@ -1151,7 +1151,7 @@ defmodule Code.Fragment do
         {rev_tokens, rev_terminators} =
           with [close, open, {_, _, :__cursor__} = cursor | rev_tokens] <- rev_tokens,
                {_, [_ | after_fn]} <- Enum.split_while(rev_terminators, &(elem(&1, 0) != :fn)),
-               true <- maybe_missing_stab?(rev_tokens),
+               true <- maybe_missing_stab?(rev_tokens, false),
                [_ | rev_tokens] <- Enum.drop_while(rev_tokens, &(elem(&1, 0) != :fn)) do
             {[close, open, cursor | rev_tokens], after_fn}
           else
@@ -1165,13 +1165,21 @@ defmodule Code.Fragment do
         tokens =
           with {before_start, [_ | _] = after_start} <-
                  Enum.split_while(rev_terminators, &(elem(&1, 0) not in [:do, :fn])),
-               true <- maybe_missing_stab?(rev_tokens),
+               true <- maybe_missing_stab?(rev_tokens, true),
                opts =
                  Keyword.put(opts, :check_terminators, {:cursor, before_start}),
                {:error, {meta, _, ~c"end"}, _rest, _warnings, trailing_rev_tokens} <-
                  :elixir_tokenizer.tokenize(to_charlist(trailing_fragment), line, column, opts) do
             trailing_tokens =
               reverse_tokens(meta[:line], meta[:column], trailing_rev_tokens, after_start)
+
+            # If the cursor has its own line, then we do not trim new lines trailing tokens.
+            # Otherwise we want to drop any newline so we drop the next tokens after eol.
+            trailing_tokens =
+              case rev_tokens do
+                [_close, _open, {_, _, :__cursor__}, {:eol, _} | _] -> trailing_tokens
+                _ -> Enum.drop_while(trailing_tokens, &match?({:eol, _}, &1))
+              end
 
             Enum.reverse(rev_tokens, drop_tokens(trailing_tokens, 0))
           else
@@ -1196,12 +1204,16 @@ defmodule Code.Fragment do
     Enum.reverse(tokens, terminators)
   end
 
+  # Otherwise we drop all tokens, trying to build a minimal AST
+  # for cursor completion.
   defp drop_tokens([{:"}", _} | _] = tokens, 0), do: tokens
   defp drop_tokens([{:"]", _} | _] = tokens, 0), do: tokens
   defp drop_tokens([{:")", _} | _] = tokens, 0), do: tokens
   defp drop_tokens([{:">>", _} | _] = tokens, 0), do: tokens
   defp drop_tokens([{:end, _} | _] = tokens, 0), do: tokens
   defp drop_tokens([{:",", _} | _] = tokens, 0), do: tokens
+  defp drop_tokens([{:";", _} | _] = tokens, 0), do: tokens
+  defp drop_tokens([{:eol, _} | _] = tokens, 0), do: tokens
   defp drop_tokens([{:stab_op, _, :->} | _] = tokens, 0), do: tokens
 
   defp drop_tokens([{:"}", _} | tokens], counter), do: drop_tokens(tokens, counter - 1)
@@ -1220,13 +1232,13 @@ defmodule Code.Fragment do
   defp drop_tokens([_ | tokens], counter), do: drop_tokens(tokens, counter)
   defp drop_tokens([], 0), do: []
 
-  defp maybe_missing_stab?([{:after, _} | _]), do: true
-  defp maybe_missing_stab?([{:do, _} | _]), do: true
-  defp maybe_missing_stab?([{:fn, _} | _]), do: true
-  defp maybe_missing_stab?([{:else, _} | _]), do: true
-  defp maybe_missing_stab?([{:catch, _} | _]), do: true
-  defp maybe_missing_stab?([{:rescue, _} | _]), do: true
-  defp maybe_missing_stab?([{:stab_op, _, :->} | _]), do: false
-  defp maybe_missing_stab?([_ | tail]), do: maybe_missing_stab?(tail)
-  defp maybe_missing_stab?([]), do: false
+  defp maybe_missing_stab?([{:after, _} | _], _stab_choice?), do: true
+  defp maybe_missing_stab?([{:do, _} | _], _stab_choice?), do: true
+  defp maybe_missing_stab?([{:fn, _} | _], _stab_choice?), do: true
+  defp maybe_missing_stab?([{:else, _} | _], _stab_choice?), do: true
+  defp maybe_missing_stab?([{:catch, _} | _], _stab_choice?), do: true
+  defp maybe_missing_stab?([{:rescue, _} | _], _stab_choice?), do: true
+  defp maybe_missing_stab?([{:stab_op, _, :->} | _], stab_choice?), do: stab_choice?
+  defp maybe_missing_stab?([_ | tail], stab_choice?), do: maybe_missing_stab?(tail, stab_choice?)
+  defp maybe_missing_stab?([], _stab_choice?), do: false
 end
