@@ -1773,11 +1773,7 @@ defmodule Module.Types.Descr do
   end
 
   # Two maps are fusible if they differ in at most one element.
-  defp non_fusible_maps?({_, fields1, []}, {_, fields2, []})
-       when map_size(fields1) > map_size(fields2) do
-    not fusible_maps?(Map.to_list(fields2), fields1, 0)
-  end
-
+  # Given they are of the same size, the side you traverse is not important.
   defp non_fusible_maps?({_, fields1, []}, {_, fields2, []}) do
     not fusible_maps?(Map.to_list(fields1), fields2, 0)
   end
