@@ -1861,24 +1861,24 @@ defmodule Mix.Tasks.Compile.ElixirTest do
           defstruct []
         end
 
-        defimpl Inspect, for: A do
-          def inspect(_, _), do: "sample"
+        defimpl Collectable, for: A do
+          def into(_), do: fn _, _  -> raise "oops" end
         end
         """)
 
         Mix.Project.push(MixTest.Case.Sample)
         assert Mix.Tasks.Compile.run([]) == {:ok, []}
-        assert inspect(struct(A, [])) == "sample"
+        assert is_function(Collectable.into(struct(A, [])), 2)
 
-        purge([A, B, Inspect.A])
+        purge([A, B, Collectable.A])
         Mix.Task.clear()
 
         assert capture_io(:stderr, fn ->
                  {:ok, [_]} = Mix.Tasks.Compile.run(["--force"])
                end) =~
-                 "the Inspect protocol has already been consolidated"
+                 "the Collectable protocol has already been consolidated"
 
-        purge([A, B, Inspect.A])
+        purge([A, B, Collectable.A])
         Mix.Task.clear()
         consolidation = Mix.Project.consolidation_path()
         args = ["--force", "--purge-consolidation-path-if-stale", consolidation]
