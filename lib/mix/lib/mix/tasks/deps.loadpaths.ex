@@ -4,10 +4,11 @@ defmodule Mix.Tasks.Deps.Loadpaths do
   import Mix.Dep, only: [format_dep: 1, format_status: 1, check_lock: 1]
 
   @moduledoc """
-  Checks, compiles, and loads all dependencies along the way.
+  Checks, compiles, and loads dependencies.
 
-  If there is an invalid dependency, its status is printed
-  before aborting.
+  If a dependency has been fetched/updated and not yet compiled,
+  it will be automatically compiled. If a dependency is missing
+  or is invalid, its status is printed before aborting.
 
   Although this task does not show up in `mix help`, it is
   part of Mix public API and can be depended on.
