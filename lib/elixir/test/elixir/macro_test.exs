@@ -329,7 +329,11 @@ defmodule MacroTest do
       quote do
         {result, formatted} =
           ExUnit.CaptureIO.with_io(fn ->
-            unquote(Macro.dbg(ast, options, __CALLER__))
+            try do
+              unquote(Macro.dbg(ast, options, __CALLER__))
+            rescue
+              e -> e
+            end
           end)
 
         # Make sure there's an empty line after the output.
@@ -340,27 +344,27 @@ defmodule MacroTest do
       end
     end
 
-    test "with a simple expression" do
+    test "simple expression" do
       {result, formatted} = dbg_format(1 + 1)
       assert result == 2
       assert formatted =~ "1 + 1 #=> 2"
     end
 
-    test "with variables" do
+    test "variables" do
       my_var = 1 + 1
       {result, formatted} = dbg_format(my_var)
       assert result == 2
       assert formatted =~ "my_var #=> 2"
     end
 
-    test "with a function call" do
+    test "function call" do
       {result, formatted} = dbg_format(Atom.to_string(:foo))
 
       assert result == "foo"
       assert formatted =~ ~s[Atom.to_string(:foo) #=> "foo"]
     end
 
-    test "with a multiline input" do
+    test "multiline input" do
       {result, formatted} =
         dbg_format(
           case 1 + 1 do
@@ -381,7 +385,7 @@ defmodule MacroTest do
 
     defp abc, do: [:a, :b, :c]
 
-    test "with a pipeline on a single line" do
+    test "pipeline on a single line" do
       {result, formatted} = dbg_format(abc() |> tl() |> tl |> Kernel.hd())
       assert result == :c
 
@@ -399,7 +403,7 @@ defmodule MacroTest do
       assert formatted =~ ~r/[^\n]\n\n$/
     end
 
-    test "with a pipeline on multiple lines" do
+    test "pipeline on multiple lines" do
       {result, formatted} =
         dbg_format(
           abc()
@@ -424,7 +428,7 @@ defmodule MacroTest do
       assert formatted =~ ~r/[^\n]\n\n$/
     end
 
-    test "with simple boolean expressions" do
+    test "simple boolean expressions" do
       {result, formatted} = dbg_format(:rand.uniform() < 0.0 and length([]) == 0)
       assert result == false
 
@@ -436,7 +440,7 @@ defmodule MacroTest do
              """
     end
 
-    test "with left-associative operators" do
+    test "left-associative operators" do
       {result, formatted} = dbg_format(List.first([]) || "yes" || raise("foo"))
       assert result == "yes"
 
@@ -449,7 +453,7 @@ defmodule MacroTest do
              """
     end
 
-    test "with composite boolean expressions" do
+    test "composite boolean expressions" do
       true1 = length([]) == 0
       true2 = length([]) == 0
       {result, formatted} = dbg_format((true1 and true2) or (List.first([]) || true1))
@@ -465,7 +469,7 @@ defmodule MacroTest do
              """
     end
 
-    test "with block of code" do
+    test "block of code" do
       {result, formatted} =
         dbg_format(
           (
@@ -489,7 +493,7 @@ defmodule MacroTest do
              """
     end
 
-    test "with case" do
+    test "case" do
       list = List.flatten([1, 2, 3])
 
       {result, formatted} =
@@ -516,7 +520,28 @@ defmodule MacroTest do
              """
     end
 
-    test "with case - guard" do
+    test "case that raises" do
+      x = true
+
+      {result, formatted} =
+        dbg_format(
+          case true and x do
+            true -> raise "oops"
+            false -> :ok
+          end
+        )
+
+      assert %RuntimeError{} = result
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             Case argument:
+             true and x #=> true
+             """
+    end
+
+    test "case with guards" do
       {result, formatted} =
         dbg_format(
           case 0..100//5 do
@@ -549,7 +574,7 @@ defmodule MacroTest do
              """
     end
 
-    test "with cond" do
+    test "cond" do
       map = %{b: 5}
 
       {result, formatted} =
@@ -608,6 +633,26 @@ defmodule MacroTest do
              """
     end
 
+    test "if expression that raises" do
+      x = true
+
+      {result, formatted} =
+        dbg_format(
+          if true and x do
+            raise "oops"
+          end
+        )
+
+      assert %RuntimeError{} = result
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             If condition:
+             true and x #=> true
+             """
+    end
+
     test "if expression without else" do
       x = true
       map = %{a: 5, b: 1}
@@ -654,7 +699,7 @@ defmodule MacroTest do
              """
     end
 
-    test "with with/1 (all clauses match)" do
+    test "with/1 (all clauses match)" do
       opts = %{width: 10, height: 15}
 
       {result, formatted} =
@@ -687,7 +732,7 @@ defmodule MacroTest do
              """
     end
 
-    test "with with/1 (no else)" do
+    test "with/1 (no else)" do
       opts = %{width: 10}
 
       {result, formatted} =
@@ -715,7 +760,7 @@ defmodule MacroTest do
              """
     end
 
-    test "with with/1 (else clause)" do
+    test "with/1 (else clause)" do
       opts = %{width: 10}
 
       {result, formatted} =
@@ -746,7 +791,7 @@ defmodule MacroTest do
              """
     end
 
-    test "with with/1 (guard)" do
+    test "with/1 (guard)" do
       opts = %{width: 10, height: 0.0}
 
       {result, formatted} =
@@ -777,7 +822,7 @@ defmodule MacroTest do
              """
     end
 
-    test "with with/1 (guard in else)" do
+    test "with/1 (guard in else)" do
       opts = %{}
 
       {result, _formatted} =
@@ -793,18 +838,20 @@ defmodule MacroTest do
       assert result == :atom
     end
 
-    test "with with/1 respects the WithClauseError" do
+    test "with/1 respects the WithClauseError" do
       value = Enum.random([:unexpected])
 
       error =
         assert_raise WithClauseError, fn ->
-          dbg(
-            with :ok <- value do
-              true
-            else
-              :error -> false
-            end
-          )
+          ExUnit.CaptureIO.capture_io(fn ->
+            dbg(
+              with :ok <- value do
+                true
+              else
+                :error -> false
+              end
+            )
+          end)
         end
 
       assert error.term == :unexpected

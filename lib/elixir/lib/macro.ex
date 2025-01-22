@@ -2589,10 +2589,18 @@ defmodule Macro do
 
     header = dbg_format_header(env)
 
-    quote do
-      to_debug = unquote(dbg_ast_to_debuggable(code, env))
-      unquote(__MODULE__).__dbg__(unquote(header), to_debug, unquote(options))
-    end
+    prelude =
+      quote do
+        options = unquote(__MODULE__).__dbg_header__(unquote(header), unquote(options))
+      end
+
+    Enum.reduce(dbg_ast_to_debuggable(code, env), prelude, fn entry, acc ->
+      quote do
+        unquote(acc)
+        to_debug = unquote(entry)
+        unquote(__MODULE__).__dbg__(to_debug, options)
+      end
+    end)
   end
 
   # Pipelines.
@@ -2619,11 +2627,13 @@ defmodule Macro do
           end
       end
 
-    quote do
-      unquote(values_ast)
+    [
+      quote do
+        unquote(values_ast)
 
-      {:pipe, unquote(escape(asts)), Enum.reverse(unquote(values_acc_var))}
-    end
+        {:pipe, unquote(escape(asts)), Enum.reverse(unquote(values_acc_var))}
+      end
+    ]
   end
 
   dbg_decomposed_binary_operators = [:&&, :||, :and, :or]
@@ -2634,22 +2644,26 @@ defmodule Macro do
     acc_var = unique_var(:acc, __MODULE__)
     result_var = unique_var(:result, __MODULE__)
 
-    quote do
-      unquote(acc_var) = []
-      unquote(dbg_boolean_tree(ast, acc_var, result_var))
-      {:logic_op, Enum.reverse(unquote(acc_var)), unquote(result_var)}
-    end
+    [
+      quote do
+        unquote(acc_var) = []
+        unquote(dbg_boolean_tree(ast, acc_var, result_var))
+        {:logic_op, Enum.reverse(unquote(acc_var)), unquote(result_var)}
+      end
+    ]
   end
 
   defp dbg_ast_to_debuggable({:__block__, _meta, exprs} = ast, _env) when exprs != [] do
     acc_var = unique_var(:acc, __MODULE__)
     result_var = unique_var(:result, __MODULE__)
 
-    quote do
-      unquote(acc_var) = []
-      unquote(dbg_block(ast, acc_var, result_var))
-      {:block, Enum.reverse(unquote(acc_var)), unquote(result_var)}
-    end
+    [
+      quote do
+        unquote(acc_var) = []
+        unquote(dbg_block(ast, acc_var, result_var))
+        {:block, Enum.reverse(unquote(acc_var)), unquote(result_var)}
+      end
+    ]
   end
 
   defp dbg_ast_to_debuggable({:case, _meta, [expr, [do: clauses]]} = ast, _env) do
@@ -2658,16 +2672,20 @@ defmodule Macro do
         {:->, meta, [left, {right, index}]}
       end)
 
-    quote do
-      expr = unquote(expr)
+    [
+      quote do
+        expr = unquote(expr)
+        {:case_argument, unquote(escape(expr)), expr}
+      end,
+      quote do
+        {result, clause_index} =
+          case expr do
+            unquote(clauses_returning_index)
+          end
 
-      {result, clause_index} =
-        case expr do
-          unquote(clauses_returning_index)
-        end
-
-      {:case, unquote(escape(ast)), expr, clause_index, result}
-    end
+        {:case_expression, unquote(escape(ast)), clause_index, result}
+      end
+    ]
   end
 
   defp dbg_ast_to_debuggable({:cond, _meta, [[do: clauses]]} = ast, _env) do
@@ -2681,14 +2699,16 @@ defmodule Macro do
         )
       end)
 
-    quote do
-      {clause_ast, clause_value, clause_index, value} =
-        cond do
-          unquote(modified_clauses)
-        end
+    [
+      quote do
+        {clause_ast, clause_value, clause_index, value} =
+          cond do
+            unquote(modified_clauses)
+          end
 
-      {:cond, unquote(escape(ast)), clause_ast, clause_value, clause_index, value}
-    end
+        {:cond, unquote(escape(ast)), clause_ast, clause_value, clause_index, value}
+      end
+    ]
   end
 
   defp dbg_ast_to_debuggable({:if, meta, [condition_ast, clauses]} = ast, env) do
@@ -2696,16 +2716,19 @@ defmodule Macro do
       [macro: Kernel] ->
         condition_result_var = unique_var(:condition_result, __MODULE__)
 
-        quote do
-          unquote(condition_result_var) = unquote(condition_ast)
-          result = unquote({:if, meta, [condition_result_var, clauses]})
-
-          {:if, unquote(escape(ast)), unquote(escape(condition_ast)),
-           unquote(condition_result_var), result}
-        end
+        [
+          quote do
+            unquote(condition_result_var) = unquote(condition_ast)
+            {:if_condition, unquote(escape(condition_ast)), unquote(condition_result_var)}
+          end,
+          quote do
+            result = unquote({:if, meta, [condition_result_var, clauses]})
+            {:if_result, unquote(escape(ast)), result}
+          end
+        ]
 
       _ ->
-        quote do: {:value, unquote(escape(ast)), unquote(ast)}
+        [quote(do: {:value, unquote(escape(ast)), unquote(ast)})]
     end
   end
 
@@ -2778,18 +2801,20 @@ defmodule Macro do
 
     modified_with_ast = {:with, meta, modified_clauses ++ [modified_opts]}
 
-    quote do
-      unquote(acc_var) = []
+    [
+      quote do
+        unquote(acc_var) = []
 
-      {value, acc} = unquote(modified_with_ast)
+        {value, acc} = unquote(modified_with_ast)
 
-      {:with, unquote(escape(ast)), Enum.reverse(acc), value}
-    end
+        {:with, unquote(escape(ast)), Enum.reverse(acc), value}
+      end
+    ]
   end
 
   # Any other AST.
   defp dbg_ast_to_debuggable(ast, _env) do
-    quote do: {:value, unquote(escape(ast)), unquote(ast)}
+    [quote(do: {:value, unquote(escape(ast)), unquote(ast)})]
   end
 
   # This is a binary operator. We replace the left side with a recursive call to
@@ -2834,23 +2859,25 @@ defmodule Macro do
   # Made public to be called from Macro.dbg/3, so that we generate as little code
   # as possible and call out into a function as soon as we can.
   @doc false
-  def __dbg__(header_string, to_debug, options) do
+  def __dbg_header__(header_string, options) do
     {print_location?, options} = Keyword.pop(options, :print_location, true)
+
+    if print_location? do
+      ansi_enabled? = options[:syntax_colors] != []
+      formatted = [:cyan, :italic, header_string, :reset, "\n"]
+      :ok = IO.write(IO.ANSI.format(formatted, ansi_enabled?))
+    end
+
+    options
+  end
+
+  @doc false
+  def __dbg__(to_debug, options) do
     syntax_colors = if IO.ANSI.enabled?(), do: IO.ANSI.syntax_colors(), else: []
     options = Keyword.merge([width: 80, pretty: true, syntax_colors: syntax_colors], options)
-
     {formatted, result} = dbg_format_ast_to_debug(to_debug, options)
-
-    formatted =
-      if print_location? do
-        [:cyan, :italic, header_string, :reset, "\n", formatted, "\n"]
-      else
-        [formatted, "\n"]
-      end
-
     ansi_enabled? = options[:syntax_colors] != []
-    :ok = IO.write(IO.ANSI.format(formatted, ansi_enabled?))
-
+    :ok = IO.write(IO.ANSI.format([formatted, ?\n], ansi_enabled?))
     result
   end
 
@@ -2891,14 +2918,18 @@ defmodule Macro do
     {formatted, value}
   end
 
-  defp dbg_format_ast_to_debug({:case, ast, expr_value, clause_index, value}, options) do
-    {:case, _meta, [expr_ast, _]} = ast
-
+  defp dbg_format_ast_to_debug({:case_argument, expr_ast, expr_value}, options) do
     formatted = [
       dbg_maybe_underline("Case argument", options),
       ":\n",
-      dbg_format_ast_with_value(expr_ast, expr_value, options),
-      ?\n,
+      dbg_format_ast_with_value(expr_ast, expr_value, options)
+    ]
+
+    {formatted, expr_value}
+  end
+
+  defp dbg_format_ast_to_debug({:case_expression, ast, clause_index, value}, options) do
+    formatted = [
       dbg_maybe_underline("Case expression", options),
       " (clause ##{clause_index + 1} matched):\n",
       dbg_format_ast_with_value(ast, value, options)
@@ -2924,15 +2955,18 @@ defmodule Macro do
     {formatted, value}
   end
 
-  defp dbg_format_ast_to_debug(
-         {:if, ast, condition_ast, condition_result, result},
-         options
-       ) do
+  defp dbg_format_ast_to_debug({:if_condition, condition_ast, condition_result}, options) do
     formatted = [
       dbg_maybe_underline("If condition", options),
       ":\n",
-      dbg_format_ast_with_value(condition_ast, condition_result, options),
-      ?\n,
+      dbg_format_ast_with_value(condition_ast, condition_result, options)
+    ]
+
+    {formatted, condition_result}
+  end
+
+  defp dbg_format_ast_to_debug({:if_result, ast, result}, options) do
+    formatted = [
       dbg_maybe_underline("If expression", options),
       ":\n",
       dbg_format_ast_with_value(ast, result, options)
