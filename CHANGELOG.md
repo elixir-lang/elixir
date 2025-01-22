@@ -225,6 +225,40 @@ You may also prefer to write using guards:
 
     def foo(x, y, z) when x == y and y == z
 
+## v1.18.2 (2024-01-22)
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [CLI] Add `--color`/`--no-color` for enabling and disabling of ANSI colors
+  * [Code.Fragment] Provide more AST context when invoking `container_cursor_to_quoted` with trailing fragments
+  * [Regex] Ensure compatibility with Erlang/OTP 28+ new Regex engine
+
+#### Mix
+
+  * [mix] Print compilation lock waiting message to stderr
+  * [mix] Add an environment variable to optionally disable compilation locking
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [CLI] Temporarily remove PowerShell scripts for `elixir`, `elixirc`, and `mix` on Windows, as they leave the shell broken after quitting Erlang
+
+#### ExUnit
+
+  * [ExUnit] Fix crash when diffing bitstring specifiers
+
+#### IEx
+
+  * [IEx.Autocomplete] Fix crashing whhen autocompleting structs with runtime values
+
+#### Mix
+
+  * [mix] Track compilation locks per user to avoid permission errors
+  * [mix deps.update] Ensure Git dependencies can be upgraded by doing so against the origin
+
 ## v1.18.1 (2024-12-24)
 
 ### 1. Enhancements
