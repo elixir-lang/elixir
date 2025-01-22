@@ -113,7 +113,7 @@ defmodule Mix.Tasks.Test do
       and imports (but not local functions). You can press `n` for the next line
       and `c` for the next test. This automatically sets `--trace`
 
-    * `--color` - enables color in the output
+    * `--color` - enables color in ExUnit formatting results
 
     * `--cover` - runs coverage tool. See "Coverage" section below
 

@@ -295,21 +295,13 @@ defmodule Kernel.CLI do
     parse_argv(t, %{config | commands: [{:parallel_require, h} | config.commands]})
   end
 
-  defp parse_argv([~c"--color", value | t], config) do
-    config =
-      case value do
-        ~c"true" ->
-          Application.put_env(:elixir, :ansi_enabled, true)
-          config
+  defp parse_argv([~c"--color" | t], config) do
+    Application.put_env(:elixir, :ansi_enabled, true)
+    parse_argv(t, config)
+  end
 
-        ~c"false" ->
-          Application.put_env(:elixir, :ansi_enabled, false)
-          config
-
-        _ ->
-          %{config | errors: ["--color : must be a boolean" | config.errors]}
-      end
-
+  defp parse_argv([~c"--no-color" | t], config) do
+    Application.put_env(:elixir, :ansi_enabled, true)
     parse_argv(t, config)
   end
 
