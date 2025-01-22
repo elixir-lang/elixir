@@ -90,9 +90,11 @@ Inferring type signatures comes with a series of trade-offs:
 
   * Cascading errors - when a user accidentally makes type errors or the code has conflicting assumptions, type inference may lead to less clear error messages as the type system tries to reconcile diverging type assumptions across code paths.
 
-On the other hand, type inference offers the benefit of enabling type checking for functions and codebases without requiring the user to add type annotations. To balance these trade-offs, Elixir performs module-local inference: the arguments, returns types, and all variables in a function are computed considering all of the function calls to the same module and to Elixir's standard library. Any call to a function in another module is conservatively assumed to return `dynamic()` during inference. Our goal is to provide an efficient type reconstruction algorithm that can detect definite bugs in dynamic codebases, even in the absence of explicit type annotations.
+On the other hand, type inference offers the benefit of enabling type checking for functions and codebases without requiring the user to add type annotations. To balance these trade-offs, Elixir has a two-steps system, where we first perform module-local inference on functions without a type signature, and then we type check all modules.
 
-The gradual system focuses on proving cases where all combinations of a type *will* fail, rather than issuing warnings for cases where some combinations *might* error. Once Elixir introduces typed function signatures (see "Roadmap"), any function with an explicit type signature will be checked against the user-provided type, as in other statically typed languages, without performing type inference.
+Module-local inference means the types of the arguments, return values, and all variables are computed considering all of the function calls to the same module and to Elixir's standard library. Any call to a function in another module is conservatively assumed to return `dynamic()` during inference. Our goal is to provide an efficient type reconstruction algorithm that can detect definite bugs in dynamic codebases, where all combinations of a type *will* fail, even in the absence of explicit type annotations.
+
+Once Elixir introduces typed function signatures (see "Roadmap"), any function with an explicit type signature will be checked against the user-provided type, as in other statically typed languages, without performing type inference. In summary, type checking will rely on type signatures and only fallback to inferred types when no signature is available.
 
 ## Roadmap
 
