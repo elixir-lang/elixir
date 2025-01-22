@@ -14,7 +14,7 @@ expand_map(Meta, Args, S, E) ->
   validate_kv(Meta, EArgs, Args, E),
   {{'%{}', Meta, EArgs}, SE, EE}.
 
-expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, S, #{context := Context} = E) ->
+expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs} = Right, S, #{context := Context} = E) ->
   CleanMapArgs = delete_struct_key(Meta, MapArgs, E),
   {[ELeft, ERight], SE, EE} = elixir_expand:expand_args([Left, {'%{}', MapMeta, CleanMapArgs}], S, E),
 
@@ -25,7 +25,7 @@ expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, S, #{context := Context} = 
           %% The update syntax for structs is deprecated,
           %% so we return only the update syntax downstream.
           %% TODO: Remove me on Elixir v2.0
-          file_warn(MapMeta, ?key(E, file), ?MODULE, {deprecated_update, ELeft, ERight}),
+          file_warn(MapMeta, ?key(E, file), ?MODULE, {deprecated_update, ELeft, Right}),
           _ = load_struct_info(Meta, ELeft, Assocs, EE),
           {{'%', Meta, [ELeft, ERight]}, SE, EE};
 
