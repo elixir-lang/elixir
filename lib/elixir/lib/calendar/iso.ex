@@ -1,5 +1,5 @@
 defmodule Ascii do
-  defmacro ascii(x) do
+  defmacro int(x) do
     quote do
       <<3::4, unquote(x)::4>>
     end
@@ -213,10 +213,9 @@ defmodule Calendar.ISO do
   [match_basic_date, match_ext_date, guard_date, read_date] =
     quote do
       [
-        <<ascii(y1), ascii(y2), ascii(y3), ascii(y4), ascii(m1), ascii(m2), ascii(d1),
-          ascii(d2)>>,
-        <<ascii(y1), ascii(y2), ascii(y3), ascii(y4), @ext_date_sep, ascii(m1), ascii(m2),
-          @ext_date_sep, ascii(d1), ascii(d2)>>,
+        <<int(y1), int(y2), int(y3), int(y4), int(m1), int(m2), int(d1), int(d2)>>,
+        <<int(y1), int(y2), int(y3), int(y4), @ext_date_sep, int(m1), int(m2), @ext_date_sep,
+          int(d1), int(d2)>>,
         y1 <= 9 and y2 <= 9 and y3 <= 9 and y4 <= 9 and m1 <= 9 and m2 <= 9 and d1 <= 9 and
           d2 <= 9,
         {
@@ -230,9 +229,8 @@ defmodule Calendar.ISO do
   [match_basic_time, match_ext_time, guard_time, read_time] =
     quote do
       [
-        <<ascii(h1), ascii(h2), ascii(i1), ascii(i2), ascii(s1), ascii(s2)>>,
-        <<ascii(h1), ascii(h2), @ext_time_sep, ascii(i1), ascii(i2), @ext_time_sep, ascii(s1),
-          ascii(s2)>>,
+        <<int(h1), int(h2), int(i1), int(i2), int(s1), int(s2)>>,
+        <<int(h1), int(h2), @ext_time_sep, int(i1), int(i2), @ext_time_sep, int(s1), int(s2)>>,
         h1 <= 9 and h2 <= 9 and i1 <= 9 and i2 <= 9 and s1 <= 9 and s2 <= 9,
         {
           h1 * 10 + h2,
@@ -2032,22 +2030,22 @@ defmodule Calendar.ISO do
   defp parse_offset("Z"), do: {0, ""}
   defp parse_offset("-00:00"), do: :error
 
-  defp parse_offset(<<?+, ascii(h1), ascii(h2), ?:, ascii(m1), ascii(m2), rest::binary>>),
+  defp parse_offset(<<?+, int(h1), int(h2), ?:, int(m1), int(m2), rest::binary>>),
     do: parse_offset(1, h1, h2, m1, m2, rest)
 
-  defp parse_offset(<<?-, ascii(h1), ascii(h2), ?:, ascii(m1), ascii(m2), rest::binary>>),
+  defp parse_offset(<<?-, int(h1), int(h2), ?:, int(m1), int(m2), rest::binary>>),
     do: parse_offset(-1, h1, h2, m1, m2, rest)
 
-  defp parse_offset(<<?+, ascii(h1), ascii(h2), ascii(m1), ascii(m2), rest::binary>>),
+  defp parse_offset(<<?+, int(h1), int(h2), int(m1), int(m2), rest::binary>>),
     do: parse_offset(1, h1, h2, m1, m2, rest)
 
-  defp parse_offset(<<?-, ascii(h1), ascii(h2), ascii(m1), ascii(m2), rest::binary>>),
+  defp parse_offset(<<?-, int(h1), int(h2), int(m1), int(m2), rest::binary>>),
     do: parse_offset(-1, h1, h2, m1, m2, rest)
 
-  defp parse_offset(<<?+, ascii(h1), ascii(h2), rest::binary>>),
+  defp parse_offset(<<?+, int(h1), int(h2), rest::binary>>),
     do: parse_offset(1, h1, h2, 0, 0, rest)
 
-  defp parse_offset(<<?-, ascii(h1), ascii(h2), rest::binary>>),
+  defp parse_offset(<<?-, int(h1), int(h2), rest::binary>>),
     do: parse_offset(-1, h1, h2, 0, 0, rest)
 
   defp parse_offset(_), do: :error
