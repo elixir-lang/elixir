@@ -24,7 +24,7 @@ echo   -pa "PATH"                   Prepends the given path to Erlang code path 
 echo   -pz "PATH"                   Appends the given path to Erlang code path (*)
 echo   -v, --version                Prints Erlang/OTP and Elixir versions (standalone)
 echo.
-echo   --color BOOL                 Enables or disables ANSI coloring
+echo   --color, --no-color          Enables or disables ANSI coloring
 echo   --erl "SWITCHES"             Switches to be passed down to Erlang (*)
 echo   --eval "COMMAND"             Evaluates the given command, same as -e (*)
 echo   --logger-otp-reports BOOL    Enables or disables OTP reporting
@@ -108,10 +108,11 @@ if ""==!par:-pz=!         (shift && goto startloop)
 if ""==!par:-v=!          (goto startloop)
 if ""==!par:--version=!   (goto startloop)
 if ""==!par:--no-halt=!   (goto startloop)
+if ""==!par:--color=!     (goto startloop)
+if ""==!par:--no-color=!  (goto startloop)
 if ""==!par:--remsh=!     (shift && goto startloop)
 if ""==!par:--dot-iex=!   (shift && goto startloop)
 if ""==!par:--dbg=!       (shift && goto startloop)
-if ""==!par:--color=!     (shift && goto startloop)
 rem ******* ERLANG PARAMETERS **********************
 if ""==!par:--boot=!                (set "parsErlang=!parsErlang! -boot "%~1"" && shift && goto startloop)
 if ""==!par:--boot-var=!            (set "parsErlang=!parsErlang! -boot_var "%~1" "%~2"" && shift && shift && goto startloop)
