@@ -55,6 +55,8 @@ jobs:
           git push origin $ref_name --force
 
   build:
+    name: "Build Elixir"
+
     strategy:
       fail-fast: true
       matrix:
@@ -64,7 +66,9 @@ jobs:
           - otp: 27
             otp_version: "27.0"
             build_docs: build_docs
+
     runs-on: ubuntu-22.04
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -76,19 +80,6 @@ jobs:
           otp_version: ${{ matrix.otp_version }}
           otp: ${{ matrix.otp }}
           build_docs: ${{ matrix.build_docs }}
-
-      - name: "Attest docs provenance"
-        uses: actions/attest-build-provenance@v2
-        id: attest-docs-provenance
-        if: matrix.build_docs
-        with:
-          subject-path: "Docs.zip"
-
-      - name: "Copy docs provenance"
-        if: matrix.build_docs
-        run: cp "$ATTESTATION" Docs.zip.sigstore
-        env:
-          ATTESTATION: "${{ steps.attest-docs-provenance.outputs.bundle-path }}"
 
       - name: Create Docs Hashes
         if: matrix.build_docs
@@ -150,18 +141,6 @@ jobs:
           timestamp-rfc3161: http://timestamp.acs.microsoft.com
           timestamp-digest: SHA256
 
-      - name: "Attest release provenance"
-        id: attest-provenance
-        uses: actions/attest-build-provenance@v2
-        with:
-          subject-path: ${{ env.RELEASE_FILE }}
-
-      - name: "Copy release .zip provenance"
-        shell: bash
-        run: cp "$ATTESTATION" "${RELEASE_FILE}.sigstore"
-        env:
-          ATTESTATION: "${{ steps.attest-provenance.outputs.bundle-path }}"
-
       - name: Create Release Hashes
         if: matrix.flavor == 'windows'
         shell: pwsh
@@ -185,14 +164,92 @@ jobs:
           name: sign-${{ matrix.flavor }}-elixir-otp-${{ matrix.otp }}
           path: ${{ env.RELEASE_FILE }}*
 
+  sbom:
+    name: Generate SBoM
+
+    needs: [build, sign]
+
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Use HTTPS instead of SSH for Git cloning
+        id: git-config
+        shell: bash
+        run: git config --global url.https://github.com/.insteadOf ssh://git@github.com/
+  
+      - name: Checkout project
+        id: checkout
+        uses: actions/checkout@v4
+  
+      - name: "Download Build Artifacts"
+        id: download-build-artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "{sign-*-elixir-otp-*,Docs}"
+          merge-multiple: true
+          path: /tmp/build-artifacts/
+        
+      - name: "Run OSS Review Toolkit"
+        id: ort
+        uses: ./.github/workflows/ort
+        with:
+          build-artifacts: "/tmp/build-artifacts/*"
+          report-formats: "CycloneDx,SpdxDocument"
+          version: "${{ github.ref_type	== 'tag' && github.ref_name || github.sha }}"
+
+      - name: Attest Distribution Assets with SBoM
+        id: attest-sbom
+        uses: actions/attest-sbom@v2
+        with:
+          subject-path: |
+            /tmp/build-artifacts/{elixir-otp-*.*,Docs.zip}
+            ${{ steps.ort.outputs.results-sbom-cyclonedx-xml-path }}
+            ${{ steps.ort.outputs.results-sbom-cyclonedx-json-path }}
+            ${{ steps.ort.outputs.results-sbom-spdx-yml-path }}
+            ${{ steps.ort.outputs.results-sbom-spdx-json-path }}
+          sbom-path: "${{ steps.ort.outputs.results-sbom-spdx-json-path }}"
+
+      - name: "Copy SBoM provenance"
+        id: sbom-provenance
+        shell: bash
+        run: |
+          mkdir attestations
+
+          for FILE in /tmp/build-artifacts/{elixir-otp-*.*,Docs.zip}; do
+            cp "$ATTESTATION" "attestations/$(basename "$FILE").sigstore"
+          done
+
+          cp "$ATTESTATION" "attestations/$(basename "${{ steps.ort.outputs.results-sbom-cyclonedx-xml-path }}").sigstore"
+          cp "$ATTESTATION" "attestations/$(basename "${{ steps.ort.outputs.results-sbom-cyclonedx-json-path }}").sigstore"
+          cp "$ATTESTATION" "attestations/$(basename "${{ steps.ort.outputs.results-sbom-spdx-yml-path }}").sigstore"
+          cp "$ATTESTATION" "attestations/$(basename "${{ steps.ort.outputs.results-sbom-spdx-json-path }}").sigstore"
+        env:
+          ATTESTATION: "${{ steps.attest-sbom.outputs.bundle-path }}"
+
+      - name: "Assemble Release SBoM Artifacts"
+        uses: actions/upload-artifact@v4
+        with:
+          name: "SBoM"
+          path: |
+            ${{ steps.ort.outputs.results-sbom-cyclonedx-xml-path }}
+            ${{ steps.ort.outputs.results-sbom-cyclonedx-json-path }}
+            ${{ steps.ort.outputs.results-sbom-spdx-yml-path }}
+            ${{ steps.ort.outputs.results-sbom-spdx-json-path }}
+
+      - name: "Assemble Distribution Attestations"
+        uses: actions/upload-artifact@v4
+        with:
+          name: "Attestations"
+          path: "attestations/*.sigstore"
+
   upload-release:
-    needs: [create_draft_release, build, sign]
+    needs: [create_draft_release, build, sign, sbom]
     runs-on: ubuntu-22.04
 
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: "{sign-*-elixir-otp-*,Docs}"
+          pattern: "{sign-*-elixir-otp-*,Docs,SBoM,Attestations}"
           merge-multiple: true
 
       - name: Upload Pre-built
@@ -218,7 +275,8 @@ jobs:
             elixir-otp-*.exe.sigstore \
             Docs.zip \
             Docs.zip.sha{1,256}sum \
-            Docs.zip.sigstore
+            Docs.zip.sigstore \
+            bom.*
 
   upload-builds-hex-pm:
     needs: [build, sign]

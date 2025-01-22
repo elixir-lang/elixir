@@ -1,0 +1,9 @@
+ort:
+  scanner:
+    skipConcluded: false
+    includeFilesWithoutFindings: true
+
+  analyzer:
+    allowDynamicVersions: true
+    enabledPackageManagers: [Unmanaged]
+    skipExcluded: true
