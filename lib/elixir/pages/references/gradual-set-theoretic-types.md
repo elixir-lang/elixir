@@ -8,31 +8,72 @@ Elixir is in the process of incorporating set-theoretic types into the compiler.
 
   * **developer friendly** - the types are described, implemented, and composed using basic set operations: unions, intersections, and negation (hence it is a set-theoretic type system)
 
-The current milestone aims to infer types from patterns and guards and use them to type check programs, enabling the Elixir compiler to find faults and bugs in codebases without requiring changes to existing software. User provided type signatures are planned for future releases. The underlying principles, theory, and roadmap of our work have been outlined in ["The Design Principles of the Elixir Type System" by Giuseppe Castagna, Guillaume Duboc, José Valim](https://arxiv.org/abs/2306.06391).
+The current milestone aims to infer types from existing programs and use them for type checking, enabling the Elixir compiler to find faults and bugs in codebases without requiring changes to existing software. User provided type signatures are planned for future releases. The underlying principles, theory, and roadmap of our work have been outlined in ["The Design Principles of the Elixir Type System" by Giuseppe Castagna, Guillaume Duboc, José Valim](https://arxiv.org/abs/2306.06391).
 
-## Supported types
+## A gentle introduction
 
-At the moment, Elixir developers interact with set-theoretic types through warnings found by the type system. These warnings will represent types using the following notation:
+Types in Elixir are written using the type named followed by parentheses, such as `integer()` or `list(integer())`. The basic types in the language are: `atom()`, `binary()`, `integer()`, `float()`, `function()`, `list()` (and `improper_list()`), `map()`, `pid()`, `port()`, `reference()`, and `tuple()`.
 
-  * `binary()`, `integer()`, `float()`, `pid()`, `port()`, `reference()` - these types are indivisible. This means both `1` and `13` get the same `integer()` type.
+Many of the types above can also be written more precisely. We will discuss their syntax in detail later, but here are some examples:
 
-  * `atom()` - it represents all atoms and it is divisible. For instance, the atom `:foo` and `:hello_world` are also valid (distinct) types.
+  * While `atom()` represents all atoms, the atom `:ok` can also be represented in the type system as `:ok`
 
-  * `tuple()` - it represents all tuples. Tuples may also be written using the curly brackets syntax, such as `{:ok, binary()}`. A `...` at the end of the tuple means the overall size of the tuple is unknown. For example, the following tuple has at least two elements: `{:ok, binary(), ...}`.
+  * While `tuple()` represents all tuples, you can specify the type of a two-element tuple where the first element is the atom `:ok` and the second is an integer as `{:ok, integer()}`
 
-  * `list(type)` - it represents a list of `type`. More precisely, it can be written as `empty_list() or non_empty_list(type, empty_list())`. Improper lists, which are lists which do not end with an empty list, such as `[1, 2 | 3]`, can be written as `list(integer(), integer())`.
+  * While `function()` represents all functions, you can specify a function that receives an integer and returns a boolean as `(integer() -> boolean())`
 
-  * `map()` and structs - maps can be "closed" or "open". Closed maps only allow the specified keys, such as `%{key: atom(), value: integer()}`. Open maps support any other keys in addition to the ones listed and their definition starts with `...`, such as `%{..., key: atom(), value: integer()}`. Structs are closed maps with the `__struct__` key.
+There are also three special types: `none()` (represents an empty set), `term()` (represents all types), `dynamic()` (represents a range of the given types).
 
-  * `function()` - it represents anonymous functions (which may be closures)
+Given the types are set-theoretic, we can compose them using unions (`or`), intersections (`and`), and negations (`not`). For example, to say a function returns either atoms or integers, one could write: `atom() or integer()`.
 
-## Set operations
+Intersections will find the elements in common between the operands. For example, `atom() and integer()`, which in this case it becomes the empty set `none()`. You can combine intersections and negations to perform difference, for example, to say that a function expects all atoms, except `nil` (which is an atom), you could write: `atom() and not nil`.
 
-We compose types by using set operations. For example, to say a function returns either atoms or integers, one could write: `atom() or integer()`.
+## The syntax of data types
 
-Intersections are available via the `and` operator, such as `atom() and integer()`, which in this case it becomes the empty set `none()`. `term()` is the union of all types, also known as the "top" type.
+In this section we will cover the syntax of all data types.
 
-Intersections are useful when modelling functions. For example, imagine the following function:
+### Indivisible types
+
+These types are indivisibile and have no further representation. They are: `binary()`, `integer()`, `float()`, `pid()`, `port()`, `reference()`.  For example, the numbers `1` and `42` are both represented by the type `integer()`.
+
+### Atoms
+
+You can represent all atoms as `atom()`. You can also represent each individual atom using their literal syntax. For instance, the atom `:foo` and `:hello_world` are also valid (distinct) types.
+
+`nil`, `true`, and `false` are also atoms and can be written as is. `boolean()` is a convenience type alias that represents `true or false`.
+
+### Tuples
+
+You can represent all tuples as `tuple()`. Tuples may also be written using the curly brackets syntax, such as `{:ok, binary()}`.
+
+You may use `...` at the end of the tuple to imply the overall size of the tuple is unknown. For example, the following tuple has at least two elements: `{:ok, binary(), ...}`.
+
+### Lists
+
+You can represent all _proper_ lists as `list()`, which also includes the empty list.
+
+You can also specify the type of the list element as argument. For example, `list(integer())` represents the values `[]` and `[1, 2, 3]`, but not `[1, "two", 3]`.
+
+Internally, Elixir represents the type `list(a)` as the union two distinct types, `empty_list()` and `not_empty_list(a)`. In other words, `list(integer())` is equivalent to `empty_list() or non_empty_list(integer())`.
+
+Elixir also supports improper lists, where the last element is not an empty list, via `non_empty_list(elem_type, tail_type)`. For example, the value `[1, 2 | 3]` would have the type `non_empty_list(integer(), integer())`.
+
+While most developers will simply use `list(a)`, the type system can express all different representations of lists in Elixir. At the end of the day, `list()` and `improper_list()` are translations to the following constructs:
+
+    list() == empty_list() or non_empty_list(term())
+    improper_list() == non_empty_list(term(), term() and not empty_list())
+
+### Maps
+
+You can represent all maps as `map()`. Maps may also be written using their literal syntax, such as `%{name: binary(), age: integer()}`, which outlines a map with exactly two keys, `:name` and `:age`, and values of type `binary()` and `integer()` respectively.
+
+We say the map above is a "closed" map: it only supports the two keys explicitly defined. We can also mark a map as "open", by including `...` as its last element. For example, the type `%{name: binary(), age: integer(), ...}` means the keys `:name` and `:age` must exist, with their respective types, but any other key may also be present. Structs are closed maps with the `__struct__` key pointing to the struct name.
+
+### Functions
+
+You can represent all functions as `function()`.  However, in practice, most functions are represented as arrows. For example, a function that receives an integer and return boolean would be written as `(integer() -> boolean())`. A function that receives two integers and return a string (i.e. a binary) would be written as `(integer(), integer() -> binary())`.
+
+When representing functions with multiple clauses, which may take different input types, we use intersections. For example, imagine the following function:
 
 ```elixir
 def negate(x) when is_integer(x), do: -x
@@ -52,8 +93,6 @@ At this point, you may ask, why not a union? As a real-world example, take a t-s
   * `(t_shirts_with_green() and t_shirts_with_yellow())` - contains t-shirts with both green and yellow (and also other colors)
 
 Since the t-shirt has both colors, we say it belongs to the intersection of both sets. The same way that a function that goes from `(integer() -> integer())` and `(boolean() -> boolean())` is also an intersection. In practice, it does not make sense to define the union of two functions in Elixir, so the compiler will always point to the right direction.
-
-Finally, we can also negate types by using `not`. For example, to express all atoms, except the atoms `:foo` and `:bar`, one can write: `atom() and not (:foo or :bar)`.
 
 ## The `dynamic()` type
 
@@ -90,15 +129,15 @@ Inferring type signatures comes with a series of trade-offs:
 
   * Cascading errors - when a user accidentally makes type errors or the code has conflicting assumptions, type inference may lead to less clear error messages as the type system tries to reconcile diverging type assumptions across code paths.
 
-On the other hand, type inference offers the benefit of enabling type checking for functions and codebases without requiring the user to add type annotations. To balance these trade-offs, Elixir has a two-steps system, where we first perform module-local inference on functions without a type signature, and then we type check all modules.
+On the other hand, type inference offers the benefit of enabling type checking for functions and codebases without requiring the user to add type annotations. To balance these trade-offs, Elixir has a two-steps system, where we first perform module-local inference on functions without type signatures, and then we type check all modules. Module-local inference means the types of the arguments, return values, and all variables are computed considering all of the function calls to the same module and to Elixir's standard library. Any call to a function in another module is conservatively assumed to return `dynamic()` during inference.
 
-Module-local inference means the types of the arguments, return values, and all variables are computed considering all of the function calls to the same module and to Elixir's standard library. Any call to a function in another module is conservatively assumed to return `dynamic()` during inference. Our goal is to provide an efficient type reconstruction algorithm that can detect definite bugs in dynamic codebases, where all combinations of a type *will* fail, even in the absence of explicit type annotations.
+Type inference in Elixir is best-effort: it doesn't guarantee it will find all possible type incompatibilities, only that it may find bugs where all combinations of a type *will* fail, even in the absence of explicit type annotations. It is meant to be an efficient routine that brings developers some benefits of static typing without requiring any effort from them.
 
-Once Elixir introduces typed function signatures (see "Roadmap"), any function with an explicit type signature will be checked against the user-provided type, as in other statically typed languages, without performing type inference. In summary, type checking will rely on type signatures and only fallback to inferred types when no signature is available.
+In the long term, Elixir developers who want typing guarantees must explicitly add type signatures to their functions (see "Roadmap"). Any function with an explicit type signature will be typed checked against the user-provided annotations, as in other statically typed languages, without performing type inference. In summary, type checking will rely on type signatures and only fallback to inferred types when no signature is available.
 
 ## Roadmap
 
-The current milestone is to implement type inference of patterns and guards, as well as type checking of all language constructs, without changes to the Elixir language. At this stage, we want to collect feedback on the quality of error messages and performance, and therefore the type system has no user facing API. Full type inference of patterns was released in Elixir v1.18, and inference of guards is expected as part of Elixir v1.19.
+The current milestone is to implement type inference of existing codebases, as well as type checking of all language constructs, without changes to the Elixir language. At this stage, we want to collect feedback on the quality of error messages and performance, and therefore the type system has no user facing API. Full type inference of patterns was released in Elixir v1.18, and complete inference is expected as part of Elixir v1.19.
 
 If the results are satisfactory, the next milestone will include a mechanism for defining typed structs. Elixir programs frequently pattern match on structs, which reveals information about the struct fields, but it knows nothing about their respective types. By propagating types from structs and their fields throughout the program, we will increase the type system’s ability to find errors while further straining our type system implementation. Proposals including the required changes to the language surface will be sent to the community once we reach this stage.
 
