@@ -1678,21 +1678,25 @@ defmodule Calendar.ISO do
   defp sign(total) when total < 0, do: ?-
   defp sign(_), do: ?+
 
-  defp zero_pad(val, count) when val >= 0 and count <= 6 do
-    num = Integer.to_string(val)
-
-    case max(count - byte_size(num), 0) do
-      0 -> num
-      1 -> ["0" | num]
-      2 -> ["00" | num]
-      3 -> ["000" | num]
-      4 -> ["0000" | num]
-      5 -> ["00000" | num]
-    end
+  defp zero_pad(val, count) when val >= 0 do
+    do_zero_pad(val, count, [])
   end
 
   defp zero_pad(val, count) do
     [?- | zero_pad(-val, count)]
+  end
+
+  defp do_zero_pad(val, count, acc) when val > 0 do
+    digit = rem(val, 10)
+    do_zero_pad(div(val, 10), count - 1, [digit + ?0 | acc])
+  end
+
+  defp do_zero_pad(0, count, acc) when count > 0 do
+    do_zero_pad(0, count - 1, [?0 | acc])
+  end
+
+  defp do_zero_pad(0, _count, acc) do
+    acc
   end
 
   @doc """
