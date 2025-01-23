@@ -105,6 +105,47 @@ defmodule Module.Types.DescrTest do
       assert union(difference(list(term()), list(integer())), list(integer()))
              |> equal?(list(term()))
     end
+
+    test "optimizations" do
+      # The tests are checking the actual implementation, not the semantics.
+      # This is why we are using structural comparisons.
+      # It's fine to remove these if the implementation changes, but breaking
+      # these might have an important impact on compile times.
+
+      # Optimization one: same tags, all but one key are structurally equal
+      assert union(
+               open_map(a: float(), b: atom()),
+               open_map(a: integer(), b: atom())
+             ) == open_map(a: union(float(), integer()), b: atom())
+
+      assert union(
+               closed_map(a: float(), b: atom()),
+               closed_map(a: integer(), b: atom())
+             ) == closed_map(a: union(float(), integer()), b: atom())
+
+      # Optimization two: we can tell that one map is a trivial subtype of the other:
+
+      assert union(
+               closed_map(a: term(), b: term()),
+               closed_map(a: float(), b: binary())
+             ) == closed_map(a: term(), b: term())
+
+      assert union(
+               open_map(a: term()),
+               closed_map(a: float(), b: binary())
+             ) == open_map(a: term())
+
+      assert union(
+               closed_map(a: float(), b: binary()),
+               open_map(a: term())
+             ) == open_map(a: term())
+
+      #  Do we want this want to pass or keep shallow checks only?
+      # assert union(
+      #          closed_map(a: term(), b: tuple([term(), term()])),
+      #          closed_map(a: float(), b: tuple([atom(), binary()]))
+      #        ) == closed_map(a: term(), b: term())
+    end
   end
 
   describe "intersection" do
