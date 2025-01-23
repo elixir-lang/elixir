@@ -842,11 +842,13 @@ defmodule Module.Types.Descr do
   # `{list_type, last_type}`.
   #
   # We compute if it is a proper or improper list based if the last_type
-  # is an empty_list() or a list(). In particular, the last_type is not
-  # pruned to remove the empty_list() or list(), and therefore it may
-  # contain the list itself. This is ok because operations like `tl`
-  # effectively return the list itself plus the union of the tail (and
-  # if the tail includes the list itself, they are equivalent).
+  # is an empty_list() or a list(). In particular, the last_type may be
+  # stored as `:term` for optimization purposes. This is ok because operations
+  # like `tl` effectively return the list itself plus the union of the tail
+  # (and if the tail includes the list itself, they are equivalent). And,
+  # for other operations like difference, we expand the tail_type back into
+  # `not non_empty_list()` via `list_tail_unfold/1`. Overall, this simplifies
+  # the code because we don't need to special case `not non_empty_list()`.
   #
   # none() types can be given and, while stored, it means the list type is empty.
   defp list_descr(list_type, last_type, empty?) do
@@ -855,7 +857,7 @@ defmodule Module.Types.Descr do
 
     list_part =
       if last_type == :term do
-        list_new(term(), term())
+        list_new(:term, :term)
       else
         case :maps.take(:list, last_type) do
           :error ->
@@ -938,15 +940,15 @@ defmodule Module.Types.Descr do
       Enum.flat_map(acc_dnf1, fn {t1, last1, negs1} ->
         last1 = list_tail_unfold(last1)
 
-        i = intersection(t1, t2)
-        l = intersection(last1, last2)
-
         new_negs =
           Enum.reduce(negs2, [], fn {nt, nlast}, nacc ->
             t = intersection(t1, nt)
             last = intersection(last1, nlast)
             if empty?(t) or empty?(last), do: nacc, else: [{t, last, negs1} | nacc]
           end)
+
+        i = intersection(t1, t2)
+        l = intersection(last1, last2)
 
         cond do
           empty?(i) or empty?(l) -> [{t1, last1, negs1}]
