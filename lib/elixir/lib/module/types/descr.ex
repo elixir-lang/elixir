@@ -1283,31 +1283,40 @@ defmodule Module.Types.Descr do
     # avoid the list to grow when possible
 
     # first pass trying to identify patterns where two maps can be fused as one
-    with [{tag1, pos1, []}] <- dnf1,
-         [{tag2, pos2, []}] <- dnf2,
-         strategy when strategy != nil <- map_union_optimization_strategy(tag1, pos1, tag2, pos2) do
-      case strategy do
-        :all_equal ->
-          dnf1
-
-        :any_map ->
-          [{:open, %{}, []}]
-
-        {:one_key_difference, key, v1, v2} ->
-          new_pos = Map.put(pos1, key, union(v1, v2))
-          [{tag1, new_pos, []}]
-
-        :left_subtype_of_right ->
-          dnf2
-
-        :right_subtype_of_left ->
-          dnf1
-      end
+    with [map1] <- dnf1,
+         [map2] <- dnf2,
+         optimized when optimized != nil <- maybe_optimize_map_union(map1, map2) do
+      [optimized]
     else
       # otherwise we just concatenate and remove structural duplicates
       _ -> dnf1 ++ (dnf2 -- dnf1)
     end
   end
+
+  defp maybe_optimize_map_union({tag1, pos1, []} = map1, {tag2, pos2, []} = map2) do
+    case map_union_optimization_strategy(tag1, pos1, tag2, pos2) do
+      :all_equal ->
+        map1
+
+      :any_map ->
+        {:open, %{}, []}
+
+      {:one_key_difference, key, v1, v2} ->
+        new_pos = Map.put(pos1, key, union(v1, v2))
+        {tag1, new_pos, []}
+
+      :left_subtype_of_right ->
+        map2
+
+      :right_subtype_of_left ->
+        map1
+
+      nil ->
+        nil
+    end
+  end
+
+  defp maybe_optimize_map_union(_, _), do: nil
 
   defp map_union_optimization_strategy(tag1, pos1, tag2, pos2)
   defp map_union_optimization_strategy(tag, pos, tag, pos), do: :all_equal
