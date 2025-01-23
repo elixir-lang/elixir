@@ -506,12 +506,29 @@ defmodule MacroTest do
       assert formatted =~ "macro_test.exs"
 
       assert formatted =~ """
-             Code block:
-             (
-               a = 1 #=> 1
-               b = a + 2 #=> 3
-               a + b #=> 4
-             )
+             a = 1 #=> 1
+             b = a + 2 #=> 3
+             a + b #=> 4
+             """
+    end
+
+    test "block that raises" do
+      {result, formatted} =
+        dbg_format_no_newline(
+          (
+            a = 1
+            b = a - 1
+            a / b
+          )
+        )
+
+      assert result == %ArithmeticError{}
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             a = 1 #=> 1
+             b = a - 1 #=> 0
              """
     end
 
