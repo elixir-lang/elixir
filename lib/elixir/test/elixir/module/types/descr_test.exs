@@ -144,7 +144,7 @@ defmodule Module.Types.DescrTest do
       # assert union(
       #          closed_map(a: term(), b: tuple([term(), term()])),
       #          closed_map(a: float(), b: tuple([atom(), binary()]))
-      #        ) == closed_map(a: term(), b: term())
+      #        ) == closed_map(a: term(), b: tuple([term(), term()])),
     end
   end
 
