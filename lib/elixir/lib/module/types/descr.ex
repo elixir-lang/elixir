@@ -1365,43 +1365,19 @@ defmodule Module.Types.Descr do
     # we have at least two key differences now, we switch strategy
     # if both are subtypes in one direction, keep checking
     cond do
-      trivial_subtype?(d1, d2) and trivial_subtype?(v1, v2) -> :left_subtype_of_right
-      trivial_subtype?(d2, d1) and trivial_subtype?(v2, v1) -> :right_subtype_of_left
+      subtype?(d1, d2) and subtype?(v1, v2) -> :left_subtype_of_right
+      subtype?(d2, d1) and subtype?(v2, v1) -> :right_subtype_of_left
       true -> nil
     end
   end
 
   defp map_union_next_strategy(_key, v1, v2, :left_subtype_of_right) do
-    if trivial_subtype?(v1, v2), do: :left_subtype_of_right
+    if subtype?(v1, v2), do: :left_subtype_of_right
   end
 
   defp map_union_next_strategy(_key, v1, v2, :right_subtype_of_left) do
-    if trivial_subtype?(v2, v1), do: :right_subtype_of_left
+    if subtype?(v2, v1), do: :right_subtype_of_left
   end
-
-  # cheap to compute sub-typing
-  # a trivial subtype is always a subtype, but not all subtypes are subtypes
-  defp trivial_subtype?(_, :term), do: true
-  defp trivial_subtype?(same, same), do: true
-
-  defp trivial_subtype?(%{} = left, %{} = right)
-       when map_size(left) == 1 and map_size(right) == 1 do
-    case {left, right} do
-      {%{atom: _}, %{atom: {:negation, neg}}} when neg == %{} ->
-        true
-
-      {%{map: _}, %{map: [{:open, pos, []}]}} when pos == %{} ->
-        true
-
-      {%{bitmap: bitmap1}, %{bitmap: bitmap2}} ->
-        (bitmap1 &&& bitmap2) === bitmap2
-
-      _ ->
-        false
-    end
-  end
-
-  defp trivial_subtype?(_, _), do: false
 
   # Given two unions of maps, intersects each pair of maps.
   defp map_intersection(dnf1, dnf2) do
