@@ -140,11 +140,10 @@ defmodule Module.Types.DescrTest do
                open_map(a: term())
              ) == open_map(a: term())
 
-      #  Do we want this want to pass or keep shallow checks only?
-      # assert union(
-      #          closed_map(a: term(), b: tuple([term(), term()])),
-      #          closed_map(a: float(), b: tuple([atom(), binary()]))
-      #        ) == closed_map(a: term(), b: tuple([term(), term()])),
+      assert union(
+               closed_map(a: term(), b: tuple([term(), term()])),
+               closed_map(a: float(), b: tuple([atom(), binary()]))
+             ) == closed_map(a: term(), b: tuple([term(), term()]))
     end
   end
 
