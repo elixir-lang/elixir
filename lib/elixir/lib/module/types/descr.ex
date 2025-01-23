@@ -40,6 +40,7 @@ defmodule Module.Types.Descr do
   }
   @empty_list %{bitmap: @bit_empty_list}
   @not_non_empty_list Map.delete(@term, :list)
+  @not_list Map.replace!(@not_non_empty_list, :bitmap, @bit_top - @bit_empty_list)
 
   @empty_intersection [0, @none]
   @empty_difference [0, []]
@@ -69,7 +70,7 @@ defmodule Module.Types.Descr do
   def integer(), do: %{bitmap: @bit_integer}
   def float(), do: %{bitmap: @bit_float}
   def fun(), do: %{bitmap: @bit_fun}
-  def list(type, tail \\ @empty_list), do: list_descr(type, tail, true)
+  def list(type), do: list_descr(type, @empty_list, true)
   def non_empty_list(type, tail \\ @empty_list), do: list_descr(type, tail, false)
   def open_map(), do: %{map: @map_top}
   def open_map(pairs), do: map_descr(:open, pairs)
@@ -391,11 +392,7 @@ defmodule Module.Types.Descr do
         case descr do
           %{list: list, bitmap: bitmap} when (bitmap &&& @bit_empty_list) != 0 ->
             descr = descr |> Map.delete(:list) |> Map.replace!(:bitmap, bitmap - @bit_empty_list)
-
-            case list_to_quoted(list, :list, opts) do
-              [] -> {[{:empty_list, [], []}], descr}
-              unions -> {unions, descr}
-            end
+            {list_to_quoted(list, true, opts), descr}
 
           %{} ->
             {[], descr}
@@ -418,7 +415,7 @@ defmodule Module.Types.Descr do
   defp to_quoted(:bitmap, val, _opts), do: bitmap_to_quoted(val)
   defp to_quoted(:dynamic, descr, opts), do: dynamic_to_quoted(descr, opts)
   defp to_quoted(:map, dnf, opts), do: map_to_quoted(dnf, opts)
-  defp to_quoted(:list, dnf, opts), do: list_to_quoted(dnf, :non_empty_list, opts)
+  defp to_quoted(:list, dnf, opts), do: list_to_quoted(dnf, false, opts)
   defp to_quoted(:tuple, dnf, opts), do: tuple_to_quoted(dnf, opts)
 
   @doc """
@@ -841,13 +838,17 @@ defmodule Module.Types.Descr do
 
   ## List
 
-  # Represents both list and improper list simultaneously using a pair {list_type, last_type}.
+  # Represents both list and improper list simultaneously using a pair
+  # `{list_type, last_type}`.
   #
-  # For proper lists, the last_type is empty_list().
-  # In general, list(term(), term()) is interpreted as {term(), term()}
-  # and not non_empty_list(term(), term()).
+  # We compute if it is a proper or improper list based if the last_type
+  # is an empty_list() or a list(). In particular, the last_type is not
+  # pruned to remove the empty_list() or list(), and therefore it may
+  # contain the list itself. This is ok because operations like `tl`
+  # effectively return the list itself plus the union of the tail (and
+  # if the tail includes the list itself, they are equivalent).
   #
-  # Note: A type being none() is handled separately.
+  # none() types can be given and, while stored, it means the list type is empty.
   defp list_descr(list_type, last_type, empty?) do
     {list_dynamic?, list_type} = list_pop_dynamic(list_type)
     {last_dynamic?, last_type} = list_pop_dynamic(last_type)
@@ -861,6 +862,10 @@ defmodule Module.Types.Descr do
             list_new(list_type, last_type)
 
           {dnf, last_type} ->
+            # It is safe to discard the negations for the tail because
+            # `list(term()) and not list(integer())` means a list
+            # of all terms except lists where all of them are integer,
+            # which means the head is still a term().
             {list_type, last_type} =
               Enum.reduce(dnf, {list_type, last_type}, fn {head, tail, _}, {acc_head, acc_tail} ->
                 {union(head, acc_head), union(tail, acc_tail)}
@@ -1051,55 +1056,77 @@ defmodule Module.Types.Descr do
 
   defp list_tl_static(:term), do: :term
 
-  defp list_tl_static(descr) do
-    case descr do
-      %{list: dnf} ->
-        Enum.reduce(dnf, %{list: dnf, bitmap: @bit_empty_list}, fn {_, last, _}, acc ->
-          union(last, acc)
-        end)
+  defp list_tl_static(%{list: dnf} = descr) do
+    initial =
+      case descr do
+        %{bitmap: bitmap} when (bitmap &&& @bit_empty_list) != 0 ->
+          %{list: dnf, bitmap: @bit_empty_list}
 
-      %{bitmap: bitmap} when (bitmap &&& @bit_empty_list) != 0 ->
-        empty_list()
+        %{} ->
+          %{list: dnf}
+      end
 
-      %{} ->
-        none()
-    end
+    Enum.reduce(dnf, initial, fn {_, last, _}, acc ->
+      union(last, acc)
+    end)
   end
 
-  defp list_to_quoted(dnf, name, opts) do
+  defp list_tl_static(%{}), do: none()
+
+  defp list_improper_static?(:term), do: false
+  defp list_improper_static?(%{bitmap: bitmap}) when (bitmap &&& @bit_empty_list) != 0, do: false
+  defp list_improper_static?(term), do: equal?(term, @not_list)
+
+  defp list_to_quoted(dnf, empty?, opts) do
     dnf = list_normalize(dnf)
 
-    for {list_type, last_type, negs} <- dnf, reduce: [] do
-      acc ->
-        arguments =
-          if subtype?(last_type, @empty_list) do
-            [to_quoted(list_type, opts)]
-          else
-            [to_quoted(list_type, opts), to_quoted(last_type, opts)]
+    {unions, list_rendered?} =
+      Enum.reduce(dnf, {[], false}, fn {list_type, last_type, negs}, {acc, list_rendered?} ->
+        {name, arguments, list_rendered?} =
+          cond do
+            list_type == term() and list_improper_static?(last_type) ->
+              {:improper_list, [], list_rendered?}
+
+            subtype?(last_type, @empty_list) ->
+              name = if empty?, do: :list, else: :non_empty_list
+              {name, [to_quoted(list_type, opts)], empty?}
+
+            true ->
+              args = [to_quoted(list_type, opts), to_quoted(last_type, opts)]
+              {:non_empty_list, args, list_rendered?}
           end
 
-        if negs == [] do
-          [{name, [], arguments} | acc]
-        else
-          negs
-          |> Enum.map(fn {ty, lst} ->
-            args =
-              if subtype?(lst, @empty_list) do
-                [to_quoted(ty, opts)]
-              else
-                [to_quoted(ty, opts), to_quoted(lst, opts)]
-              end
+        acc =
+          if negs == [] do
+            [{name, [], arguments} | acc]
+          else
+            negs
+            |> Enum.map(fn {ty, lst} ->
+              args =
+                if subtype?(lst, @empty_list) do
+                  [to_quoted(ty, opts)]
+                else
+                  [to_quoted(ty, opts), to_quoted(lst, opts)]
+                end
 
-            {name, [], args}
-          end)
-          |> Enum.reduce(&{:or, [], [&2, &1]})
-          |> Kernel.then(
-            &[
-              {:and, [], [{name, [], arguments}, {:not, [], [&1]}]}
-              | acc
-            ]
-          )
-        end
+              {name, [], args}
+            end)
+            |> Enum.reduce(&{:or, [], [&2, &1]})
+            |> Kernel.then(
+              &[
+                {:and, [], [{name, [], arguments}, {:not, [], [&1]}]}
+                | acc
+              ]
+            )
+          end
+
+        {acc, list_rendered?}
+      end)
+
+    if empty? and not list_rendered? do
+      [{:empty_list, [], []} | unions]
+    else
+      unions
     end
   end
 
@@ -1856,6 +1883,10 @@ defmodule Module.Types.Descr do
 
   def map_literal_to_quoted({:closed, fields}, _opts) when map_size(fields) == 0 do
     {:empty_map, [], []}
+  end
+
+  def map_literal_to_quoted({:open, fields}, _opts) when map_size(fields) == 0 do
+    {:map, [], []}
   end
 
   def map_literal_to_quoted({:open, %{__struct__: @not_atom_or_optional} = fields}, _opts)

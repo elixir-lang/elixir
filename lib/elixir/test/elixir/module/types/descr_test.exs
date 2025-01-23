@@ -362,7 +362,7 @@ defmodule Module.Types.DescrTest do
       refute empty?(difference(open_map(), empty_map()))
     end
 
-    defp improper_list(type), do: difference(list(type, term()), list(type))
+    defp list(elem_type, tail_type), do: union(empty_list(), non_empty_list(elem_type, tail_type))
 
     test "list" do
       # Basic list type differences
@@ -390,7 +390,12 @@ defmodule Module.Types.DescrTest do
 
       # Tests for list with last element
       assert difference(list(integer(), atom()), list(number(), term())) == none()
-      assert difference(list(atom(), term()), improper_list(atom())) |> equal?(list(atom()))
+
+      assert difference(
+               list(atom(), term()),
+               difference(list(atom(), term()), list(atom()))
+             )
+             |> equal?(list(atom()))
 
       assert difference(list(integer(), float()), list(number(), integer()))
              |> equal?(non_empty_list(integer(), difference(float(), integer())))
@@ -655,7 +660,7 @@ defmodule Module.Types.DescrTest do
       assert list_tl(non_empty_list(integer())) == {false, list(integer())}
 
       assert list_tl(non_empty_list(integer(), atom())) ==
-               {false, union(atom(), list(integer(), atom()))}
+               {false, union(atom(), non_empty_list(integer(), atom()))}
 
       # The tail of either a (non empty) list of integers with an atom tail or a (non empty) list
       # of tuples with a float tail is either an atom, or a float, or a (possibly empty) list of
@@ -664,7 +669,9 @@ defmodule Module.Types.DescrTest do
                {false,
                 atom()
                 |> union(float())
-                |> union(union(list(integer(), atom()), list(tuple(), float())))}
+                |> union(
+                  union(non_empty_list(integer(), atom()), non_empty_list(tuple(), float()))
+                )}
 
       assert list_tl(dynamic()) == {true, dynamic()}
       assert list_tl(dynamic(list(integer()))) == {true, dynamic(list(integer()))}
@@ -1219,13 +1226,16 @@ defmodule Module.Types.DescrTest do
                "non_empty_list(term()) and not (non_empty_list(atom()) or non_empty_list(integer()))"
 
       assert list(term(), integer()) |> to_quoted_string() ==
-               "list(term(), integer())"
+               "empty_list() or non_empty_list(term(), integer())"
 
       assert difference(list(term(), atom()), list(term(), boolean())) |> to_quoted_string() ==
                "non_empty_list(term(), atom() and not boolean())"
 
       assert list(term(), term()) |> to_quoted_string() ==
-               "list(term(), term())"
+               "empty_list() or non_empty_list(term(), term())"
+
+      assert non_empty_list(term(), difference(term(), list(term()))) |> to_quoted_string() ==
+               "improper_list()"
 
       # Test normalization
 
@@ -1234,14 +1244,15 @@ defmodule Module.Types.DescrTest do
 
       # Merge subtypes
       assert union(list(float(), pid()), list(number(), pid())) |> to_quoted_string() ==
-               "list(float() or integer(), pid())"
+               "empty_list() or non_empty_list(float() or integer(), pid())"
 
       # Merge last element types
       assert union(list(atom([:ok]), integer()), list(atom([:ok]), float())) |> to_quoted_string() ==
-               "list(:ok, float() or integer())"
+               "empty_list() or non_empty_list(:ok, float() or integer())"
 
       assert union(dynamic(list(integer(), float())), dynamic(list(integer(), pid())))
-             |> to_quoted_string() == "dynamic(list(integer(), float() or pid()))"
+             |> to_quoted_string() ==
+               "dynamic(empty_list() or non_empty_list(integer(), float() or pid()))"
     end
 
     test "tuples" do
@@ -1259,7 +1270,7 @@ defmodule Module.Types.DescrTest do
                "{integer(), atom()}"
 
       assert tuple([closed_map(a: integer()), open_map()]) |> to_quoted_string() ==
-               "{%{a: integer()}, %{...}}"
+               "{%{a: integer()}, map()}"
 
       # TODO: eliminate tuple differences
       # assert difference(tuple([number(), term()]), tuple([integer(), atom()]))
@@ -1287,7 +1298,7 @@ defmodule Module.Types.DescrTest do
              |> union(tuple([atom([:exit]), atom([:kill])]))
              |> union(tuple([atom([:exit]), atom([:timeout])]))
              |> to_quoted_string() ==
-               "{:exit, :kill or :timeout} or {:ok, {term(), %{...} or empty_list()}}"
+               "{:exit, :kill or :timeout} or {:ok, {term(), empty_list() or map()}}"
 
       # Detection of duplicates
       assert tuple([atom([:ok]), term()])
@@ -1297,13 +1308,13 @@ defmodule Module.Types.DescrTest do
       assert tuple([closed_map(a: integer(), b: atom()), open_map()])
              |> union(tuple([closed_map(a: integer(), b: atom()), open_map()]))
              |> to_quoted_string() ==
-               "{%{a: integer(), b: atom()}, %{...}}"
+               "{%{a: integer(), b: atom()}, map()}"
 
       # Nested fusion
       assert tuple([closed_map(a: integer(), b: atom()), open_map()])
              |> union(tuple([closed_map(a: float(), b: atom()), open_map()]))
              |> to_quoted_string() ==
-               "{%{a: float() or integer(), b: atom()}, %{...}}"
+               "{%{a: float() or integer(), b: atom()}, map()}"
 
       # Complex simplification of map/tuple combinations. Initial type is:
       # ```
@@ -1359,7 +1370,7 @@ defmodule Module.Types.DescrTest do
 
     test "map" do
       assert empty_map() |> to_quoted_string() == "empty_map()"
-      assert open_map() |> to_quoted_string() == "%{...}"
+      assert open_map() |> to_quoted_string() == "map()"
 
       assert closed_map(a: integer()) |> to_quoted_string() == "%{a: integer()}"
       assert open_map(a: float()) |> to_quoted_string() == "%{..., a: float()}"
@@ -1381,7 +1392,7 @@ defmodule Module.Types.DescrTest do
              |> to_quoted_string() == "%{..., a: float()} and not %{a: float()}"
 
       assert difference(open_map(), empty_map()) |> to_quoted_string() ==
-               "%{...} and not empty_map()"
+               "map() and not empty_map()"
 
       assert closed_map(foo: union(integer(), not_set())) |> to_quoted_string() ==
                "%{foo: if_set(integer())}"
@@ -1424,7 +1435,7 @@ defmodule Module.Types.DescrTest do
              |> union(closed_map(status: atom([:error]), reason: atom([:timeout])))
              |> union(closed_map(status: atom([:error]), reason: atom([:crash])))
              |> to_quoted_string() ==
-               "%{data: %{count: %{...} or empty_list(), value: term()}, status: :ok} or\n  %{reason: :crash or :timeout, status: :error}"
+               "%{data: %{count: empty_list() or map(), value: term()}, status: :ok} or\n  %{reason: :crash or :timeout, status: :error}"
 
       # Difference and union tests
       assert closed_map(status: atom([:ok]), value: term())
@@ -1440,7 +1451,7 @@ defmodule Module.Types.DescrTest do
       assert closed_map(data: closed_map(x: integer(), y: atom()), meta: open_map())
              |> union(closed_map(data: closed_map(x: float(), y: atom()), meta: open_map()))
              |> to_quoted_string() ==
-               "%{data: %{x: float() or integer(), y: atom()}, meta: %{...}}"
+               "%{data: %{x: float() or integer(), y: atom()}, meta: map()}"
 
       # Test complex combinations
       assert intersection(open_map(a: number(), b: atom()), open_map(a: integer(), c: boolean()))

@@ -90,7 +90,7 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([x = [123, :foo]], tl(x)) == dynamic(list(union(atom([:foo]), integer())))
 
       assert typecheck!([x = [123 | :foo]], tl(x)) ==
-               dynamic(union(atom([:foo]), list(integer(), atom([:foo]))))
+               dynamic(union(atom([:foo]), non_empty_list(integer(), atom([:foo]))))
 
       assert typeerror!(tl([])) |> strip_ansi() ==
                ~l"""

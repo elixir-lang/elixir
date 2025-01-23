@@ -30,7 +30,7 @@ Intersections will find the elements in common between the operands. For example
 
 ## The syntax of data types
 
-In this section we will cover the syntax of all data types.
+In this section we will cover the syntax of all data types. At the moment, developers will interact with those types mostly through compiler warnings and diagnostics.
 
 ### Indivisible types
 
@@ -56,18 +56,26 @@ You can also specify the type of the list element as argument. For example, `lis
 
 Internally, Elixir represents the type `list(a)` as the union two distinct types, `empty_list()` and `not_empty_list(a)`. In other words, `list(integer())` is equivalent to `empty_list() or non_empty_list(integer())`.
 
-Elixir also supports improper lists, where the last element is not an empty list, via `non_empty_list(elem_type, tail_type)`. For example, the value `[1, 2 | 3]` would have the type `non_empty_list(integer(), integer())`.
+#### Improper lists
+
+You can represent all _improper_ lists as `improper_list()`. Most times, however, an `improper_list` is built by passing a second argument to `non_empty_list`, which represents the type of the tail.
+
+A proper list is one where the tail is the empty list itself. The type `non_empty_list(integer())` is equivalent to `non_empty_list(integer(), empty_list())`.
+
+If the `tail_type` is anything but a list, then we have an improper list. For example, the value `[1, 2 | 3]` would have the type `non_empty_list(integer(), integer())`.
 
 While most developers will simply use `list(a)`, the type system can express all different representations of lists in Elixir. At the end of the day, `list()` and `improper_list()` are translations to the following constructs:
 
     list() == empty_list() or non_empty_list(term())
-    improper_list() == non_empty_list(term(), term() and not empty_list())
+    improper_list() == non_empty_list(term(), term() and not list())
 
 ### Maps
 
 You can represent all maps as `map()`. Maps may also be written using their literal syntax, such as `%{name: binary(), age: integer()}`, which outlines a map with exactly two keys, `:name` and `:age`, and values of type `binary()` and `integer()` respectively.
 
-We say the map above is a "closed" map: it only supports the two keys explicitly defined. We can also mark a map as "open", by including `...` as its last element. For example, the type `%{name: binary(), age: integer(), ...}` means the keys `:name` and `:age` must exist, with their respective types, but any other key may also be present. Structs are closed maps with the `__struct__` key pointing to the struct name.
+We say the map above is a "closed" map: it only supports the two keys explicitly defined. We can also mark a map as "open", by including `...` as its last element. For example, the type `%{name: binary(), age: integer(), ...}` means the keys `:name` and `:age` must exist, with their respective types, but any other key may also be present. In other words, `map()` is the same as `%{...}`. For the empty map, you may write `%{}`, although we recommend using `empty_map()` for clarity.
+
+Structs are closed maps with the `__struct__` key pointing to the struct name.
 
 ### Functions
 
@@ -105,7 +113,7 @@ def negate(x) when is_integer(x), do: -x
 def negate(x) when is_boolean(x), do: not x
 ```
 
-Elixir type checks it as if the function had the type `(dynamic() -> dynamic())`. Then, based on patterns and guards, we can refine the value of the variable `x` to be `dynamic() and integer()` and `dynamic() and boolean()` for each clause respectively. We say `dynamic()` is a gradual type, which leads us to *gradual set-theoretic types*.
+Elixir type checks it as if the function had the type `(dynamic() -> dynamic())`. Then, based on patterns and guards, we can refine the value of the variable `x` to be `dynamic() and integer()` and `dynamic() and boolean()` for each clause respectively. We say `dynamic()` is a gradual type, which leads us to _gradual set-theoretic types_.
 
 The simplest way to reason about `dynamic()` in Elixir is that it is a range of types. If you have a type `atom() or integer()`, the underlying code needs to work with both `atom() or integer()`. For example, if you call `Integer.to_string(var)`, and `var` has type `atom() or integer()`, the type system will emit a warning, because `Integer.to_string/1` does not accept atoms.
 
@@ -131,7 +139,7 @@ Inferring type signatures comes with a series of trade-offs:
 
 On the other hand, type inference offers the benefit of enabling type checking for functions and codebases without requiring the user to add type annotations. To balance these trade-offs, Elixir has a two-steps system, where we first perform module-local inference on functions without type signatures, and then we type check all modules. Module-local inference means the types of the arguments, return values, and all variables are computed considering all of the function calls to the same module and to Elixir's standard library. Any call to a function in another module is conservatively assumed to return `dynamic()` during inference.
 
-Type inference in Elixir is best-effort: it doesn't guarantee it will find all possible type incompatibilities, only that it may find bugs where all combinations of a type *will* fail, even in the absence of explicit type annotations. It is meant to be an efficient routine that brings developers some benefits of static typing without requiring any effort from them.
+Type inference in Elixir is best-effort: it doesn't guarantee it will find all possible type incompatibilities, only that it may find bugs where all combinations of a type _will_ fail, even in the absence of explicit type annotations. It is meant to be an efficient routine that brings developers some benefits of static typing without requiring any effort from them.
 
 In the long term, Elixir developers who want typing guarantees must explicitly add type signatures to their functions (see "Roadmap"). Any function with an explicit type signature will be typed checked against the user-provided annotations, as in other statically typed languages, without performing type inference. In summary, type checking will rely on type signatures and only fallback to inferred types when no signature is available.
 

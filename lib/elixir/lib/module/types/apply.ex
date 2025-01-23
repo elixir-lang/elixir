@@ -218,7 +218,11 @@ defmodule Module.Types.Apply do
         {:erlang, :trunc, [{[union(integer(), float())], integer()}]},
 
         # TODO: Replace term()/dynamic() by parametric types
-        {:erlang, :++, [{[list(term()), term()], dynamic(list(term(), term()))}]},
+        {:erlang, :++,
+         [
+           {[empty_list(), term()], dynamic(term())},
+           {[non_empty_list(term()), term()], dynamic(non_empty_list(term(), term()))}
+         ]},
         {:erlang, :--, [{[list(term()), list(term())], dynamic(list(term()))}]},
         {:erlang, :andalso, [{[boolean(), term()], dynamic()}]},
         {:erlang, :delete_element, [{[integer(), open_tuple([])], dynamic(open_tuple([]))}]},
