@@ -1868,47 +1868,19 @@ defmodule Module.Types.Descr do
 
   defp map_non_negated_fuse(maps) do
     Enum.reduce(maps, [], fn map, acc ->
-      case Enum.split_while(acc, &non_fusible_maps?(map, &1)) do
-        {_, []} ->
-          [map | acc]
-
-        {others, [match | rest]} ->
-          fused = map_non_negated_fuse_pair(map, match)
-          others ++ [fused | rest]
-      end
+      fuse_with_first_fusible(map, acc)
     end)
   end
 
-  # Two maps are fusible if they differ in at most one element.
-  # Given they are of the same size, the side you traverse is not important.
-  defp non_fusible_maps?({_, fields1, []}, {_, fields2, []}) do
-    not fusible_maps?(Map.to_list(fields1), fields2, 0)
-  end
+  defp fuse_with_first_fusible(map, []), do: [map]
 
-  defp fusible_maps?([{:__struct__, value} | rest], fields, count) do
-    case Map.fetch!(fields, :__struct__) do
-      ^value -> fusible_maps?(rest, fields, count)
-      _ -> false
+  defp fuse_with_first_fusible(map, [candidate | rest]) do
+    if fused = maybe_optimize_map_union(map, candidate) do
+      # we found a fusible candidate, we're done
+      [fused | rest]
+    else
+      [candidate | fuse_with_first_fusible(map, rest)]
     end
-  end
-
-  defp fusible_maps?([{key, value} | rest], fields, count) do
-    case Map.fetch!(fields, key) do
-      ^value -> fusible_maps?(rest, fields, count)
-      _ when count == 1 -> false
-      _ when count == 0 -> fusible_maps?(rest, fields, count + 1)
-    end
-  end
-
-  defp fusible_maps?([], _fields, _count), do: true
-
-  defp map_non_negated_fuse_pair({tag, fields1, []}, {_, fields2, []}) do
-    fields =
-      symmetrical_merge(fields1, fields2, fn _k, v1, v2 ->
-        if v1 == v2, do: v1, else: union(v1, v2)
-      end)
-
-    {tag, fields, []}
   end
 
   # If all fields are the same except one, we can optimize map difference.
