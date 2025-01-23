@@ -325,16 +325,22 @@ defmodule MacroTest do
   end
 
   describe "dbg/3" do
+    defmacrop dbg_format_no_newline(ast, options \\ quote(do: [syntax_colors: []])) do
+      quote do
+        ExUnit.CaptureIO.with_io(fn ->
+          try do
+            unquote(Macro.dbg(ast, options, __CALLER__))
+          rescue
+            e -> e
+          end
+        end)
+      end
+    end
+
     defmacrop dbg_format(ast, options \\ quote(do: [syntax_colors: []])) do
       quote do
         {result, formatted} =
-          ExUnit.CaptureIO.with_io(fn ->
-            try do
-              unquote(Macro.dbg(ast, options, __CALLER__))
-            rescue
-              e -> e
-            end
-          end)
+          dbg_format_no_newline(unquote(ast), unquote(options))
 
         # Make sure there's an empty line after the output.
         assert String.ends_with?(formatted, "\n\n") or
@@ -466,6 +472,22 @@ defmodule MacroTest do
              true1 #=> true
              true1 and true2 #=> true
              (true1 and true2) or (List.first([]) || true1) #=> true
+             """
+    end
+
+    test "boolean expressions that raise" do
+      falsy = length([]) != 0
+      x = 0
+
+      {result, formatted} = dbg_format_no_newline((falsy || x) && 1 / x)
+
+      assert %ArithmeticError{} = result
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             falsy #=> false
+             falsy || x #=> 0
              """
     end
 

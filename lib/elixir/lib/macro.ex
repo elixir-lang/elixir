@@ -2641,16 +2641,8 @@ defmodule Macro do
   # Logic operators.
   defp dbg_ast_to_debuggable({op, _meta, [_left, _right]} = ast, _env)
        when op in unquote(dbg_decomposed_binary_operators) do
-    acc_var = unique_var(:acc, __MODULE__)
     result_var = unique_var(:result, __MODULE__)
-
-    [
-      quote do
-        unquote(acc_var) = []
-        unquote(dbg_boolean_tree(ast, acc_var, result_var))
-        {:logic_op, Enum.reverse(unquote(acc_var)), unquote(result_var)}
-      end
-    ]
+    dbg_boolean_tree(ast, result_var, [])
   end
 
   defp dbg_ast_to_debuggable({:__block__, _meta, exprs} = ast, _env) when exprs != [] do
@@ -2818,30 +2810,27 @@ defmodule Macro do
   end
 
   # This is a binary operator. We replace the left side with a recursive call to
-  # this function to decompose it, and then execute the operation and add it to the acc.
-  defp dbg_boolean_tree({op, _meta, [left, right]} = ast, acc_var, result_var)
+  # this function to decompose it
+  defp dbg_boolean_tree({op, _meta, [left, right]} = ast, result_var, nodes)
        when op in unquote(dbg_decomposed_binary_operators) do
-    replaced_left = dbg_boolean_tree(left, acc_var, result_var)
+    tag = if nodes == [], do: :value, else: :multi_value
 
-    quote do
-      unquote(result_var) = unquote(op)(unquote(replaced_left), unquote(right))
+    node =
+      quote do
+        unquote(result_var) = unquote(op)(unquote(result_var), unquote(right))
+        {unquote(tag), unquote(escape(ast)), unquote(result_var)}
+      end
 
-      unquote(acc_var) = [
-        {unquote(escape(ast)), unquote(result_var)} | unquote(acc_var)
-      ]
-
-      unquote(result_var)
-    end
+    dbg_boolean_tree(left, result_var, [node | nodes])
   end
 
-  # This is finally an expression, so we assign "result = expr", add it to the acc, and
-  # return the result.
-  defp dbg_boolean_tree(ast, acc_var, result_var) do
-    quote do
-      unquote(result_var) = unquote(ast)
-      unquote(acc_var) = [{unquote(escape(ast)), unquote(result_var)} | unquote(acc_var)]
-      unquote(result_var)
-    end
+  defp dbg_boolean_tree(ast, result_var, nodes) do
+    node =
+      quote do
+        {:multi_value, unquote(escape(ast)), unquote(result_var) = unquote(ast)}
+      end
+
+    [node | nodes]
   end
 
   defp dbg_block({:__block__, meta, exprs}, acc_var, result_var) do
@@ -2893,15 +2882,6 @@ defmodule Macro do
       end)
 
     {[first_formatted | rest_formatted], result}
-  end
-
-  defp dbg_format_ast_to_debug({:logic_op, components, value}, options) do
-    formatted =
-      Enum.map(components, fn {ast, value} ->
-        [dbg_format_ast(to_string_with_colors(ast, options)), " ", inspect(value, options), ?\n]
-      end)
-
-    {formatted, value}
   end
 
   defp dbg_format_ast_to_debug({:block, components, value}, options) do
@@ -2994,12 +2974,20 @@ defmodule Macro do
     {formatted, result}
   end
 
+  defp dbg_format_ast_to_debug({:multi_value, code_ast, value}, options) do
+    {dbg_format_ast_with_value_no_newline(code_ast, value, options), value}
+  end
+
   defp dbg_format_ast_to_debug({:value, code_ast, value}, options) do
     {dbg_format_ast_with_value(code_ast, value, options), value}
   end
 
+  defp dbg_format_ast_with_value_no_newline(ast, value, options) do
+    [dbg_format_ast(to_string_with_colors(ast, options)), " ", inspect(value, options)]
+  end
+
   defp dbg_format_ast_with_value(ast, value, options) do
-    [dbg_format_ast(to_string_with_colors(ast, options)), " ", inspect(value, options), ?\n]
+    [dbg_format_ast_with_value_no_newline(ast, value, options), ?\n]
   end
 
   defp to_string_with_colors(ast, options) do
