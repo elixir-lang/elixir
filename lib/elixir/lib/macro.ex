@@ -2645,17 +2645,18 @@ defmodule Macro do
     dbg_boolean_tree(ast, result_var, [])
   end
 
-  defp dbg_ast_to_debuggable({:__block__, _meta, exprs} = ast, _env) when exprs != [] do
-    acc_var = unique_var(:acc, __MODULE__)
+  defp dbg_ast_to_debuggable({:__block__, _meta, exprs}, _env) when exprs != [] do
     result_var = unique_var(:result, __MODULE__)
+    count = length(exprs)
 
-    [
+    Enum.with_index(exprs, fn expr, i ->
+      tag = if i + 1 == count, do: :value, else: :multi_value
+
       quote do
-        unquote(acc_var) = []
-        unquote(dbg_block(ast, acc_var, result_var))
-        {:block, Enum.reverse(unquote(acc_var)), unquote(result_var)}
+        unquote(result_var) = unquote(expr)
+        {unquote(tag), unquote(Macro.escape(expr)), unquote(result_var)}
       end
-    ]
+    end)
   end
 
   defp dbg_ast_to_debuggable({:case, _meta, [expr, [do: clauses]]} = ast, _env) do
@@ -2833,18 +2834,6 @@ defmodule Macro do
     [node | nodes]
   end
 
-  defp dbg_block({:__block__, meta, exprs}, acc_var, result_var) do
-    modified_exprs =
-      Enum.map(exprs, fn expr ->
-        quote do
-          unquote(result_var) = unquote(expr)
-          unquote(acc_var) = [{unquote(escape(expr)), unquote(result_var)} | unquote(acc_var)]
-        end
-      end)
-
-    {:__block__, meta, modified_exprs}
-  end
-
   # Made public to be called from Macro.dbg/3, so that we generate as little code
   # as possible and call out into a function as soon as we can.
   @doc false
@@ -2882,20 +2871,6 @@ defmodule Macro do
       end)
 
     {[first_formatted | rest_formatted], result}
-  end
-
-  defp dbg_format_ast_to_debug({:block, components, value}, options) do
-    formatted =
-      [
-        dbg_maybe_underline("Code block", options),
-        ":\n(\n",
-        Enum.map(components, fn {ast, value} ->
-          ["  ", dbg_format_ast_with_value(ast, value, options)]
-        end),
-        ")\n"
-      ]
-
-    {formatted, value}
   end
 
   defp dbg_format_ast_to_debug({:case_argument, expr_ast, expr_value}, options) do
