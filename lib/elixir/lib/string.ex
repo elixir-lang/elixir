@@ -488,6 +488,15 @@ defmodule String do
       iex> String.split(String.normalize("é", :nfc), "e")
       ["é"]
 
+  When using both the `:trim` and the `:parts` option, the empty values
+  are removed as the parts are computed (if any). No trimming happens
+  after all parts are computed:
+
+      iex> String.split(" a  b  c  ", " ", trim: true, parts: 2)
+      ["a", " b  c  "]
+      iex> String.split(" a  b  c  ", " ", trim: true, parts: 3)
+      ["a", "b", " c  "]
+
   """
   @spec split(t, pattern | Regex.t(), keyword) :: [t]
   def split(string, pattern, options \\ [])
