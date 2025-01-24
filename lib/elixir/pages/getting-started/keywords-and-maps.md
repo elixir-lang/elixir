@@ -11,36 +11,40 @@ Keyword lists are a data-structure used to pass options to functions. Let's see 
 Imagine you want to split a string of numbers. Initially, we can invoke `String.split/2` passing two strings as arguments:
 
 ```elixir
-iex> String.split("1 2 3", " ")
-["1", "2", "3"]
+iex> String.split("1 2 3 4", " ")
+["1", "2", "3", "4"]
 ```
 
-However, what happens if there is an additional space between the numbers:
+What if you only want to split at most 2 times? The `String.split/3` function allows the `parts` option to be set to the maximum number of entries in the result:
 
 ```elixir
-iex> String.split("1  2  3", " ")
-["1", "", "2", "", "3"]
+iex> String.split("1 2 3 4", " ", [parts: 3])
+["1", "2", "3 4"]
 ```
 
-As you can see, there are now empty strings in our results. Luckily, the `String.split/3` function allows the `trim` option to be set to true to remove empty entries from the result:
+As you can see, we got 3 parts, the last one containing the remaining of the input without splitting it.
+
+Now imagine that some of the inputs you must split on contains additional spaces between the numbers:
 
 ```elixir
-iex> String.split("1  2  3", " ", [trim: true])
-["1", "2", "3"]
+iex> String.split("1  2  3  4", " ", [parts: 3])
+["1", "", "2  3  4"]
 ```
 
-We can also use options to limit the splitting algorithm to a maximum number of parts, as shown next:
+As you can see, the additional spaces lead to empty entries in the output. Luckily, we can also set the `trim` option to `true` to remove them:
 
 ```elixir
-iex> String.split("1  2  3", " ", [trim: true, parts: 2])
-["1", " 2  3"]
+iex> String.split("1  2  3  4", " ", [parts: 3, trim: true])
+["1", "2", " 3  4"]
 ```
 
-`[trim: true]` and `[trim: true, parts: 2]` are keyword lists. When a keyword list is the last argument of a function, we can skip the brackets and write:
+Once again we got 3 parts, with the last one containing the leftovers.
+
+`[parts: 3]` and `[parts: 3, trim: true]` are keyword lists. When a keyword list is the last argument of a function, we can skip the brackets and write:
 
 ```elixir
-iex> String.split("1  2  3", " ", trim: true, parts: 2)
-["1", " 2  3"]
+iex> String.split("1  2  3  4", " ", parts: 3, trim: true)
+["1", "2", " 3  4"]
 ```
 
 As shown in the example above, keyword lists are mostly used as optional arguments to functions.
@@ -48,7 +52,7 @@ As shown in the example above, keyword lists are mostly used as optional argumen
 As the name implies, keyword lists are simply lists. In particular, they are lists consisting of 2-item tuples where the first element (the key) is an atom and the second element can be any value. Both representations are the same:
 
 ```elixir
-iex> [{:trim, true}, {:parts, 2}] == [trim: true, parts: 2]
+iex> [{:parts, 3}, {:trim, true}] == [parts: 3, trim: true]
 true
 ```
 
