@@ -33,14 +33,14 @@ We can also use options to limit the splitting algorithm to a maximum number of 
 
 ```elixir
 iex> String.split("1  2  3", " ", [trim: true, parts: 2])
-["1", "2  3"]
+["1", " 2  3"]
 ```
 
 `[trim: true]` and `[trim: true, parts: 2]` are keyword lists. When a keyword list is the last argument of a function, we can skip the brackets and write:
 
 ```elixir
 iex> String.split("1  2  3", " ", trim: true, parts: 2)
-["1", "2  3"]
+["1", " 2  3"]
 ```
 
 As shown in the example above, keyword lists are mostly used as optional arguments to functions.
