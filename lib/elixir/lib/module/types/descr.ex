@@ -1264,8 +1264,115 @@ defmodule Module.Types.Descr do
 
   defp map_only?(descr), do: empty?(Map.delete(descr, :map))
 
-  # Union is list concatenation
-  defp map_union(dnf1, dnf2), do: dnf1 ++ (dnf2 -- dnf1)
+  defp map_union(dnf1, dnf2) do
+    # Union is just concatenation, but we rely on some optimization strategies to
+    # avoid the list to grow when possible
+
+    # first pass trying to identify patterns where two maps can be fused as one
+    with [map1] <- dnf1,
+         [map2] <- dnf2,
+         optimized when optimized != nil <- maybe_optimize_map_union(map1, map2) do
+      [optimized]
+    else
+      # otherwise we just concatenate and remove structural duplicates
+      _ -> dnf1 ++ (dnf2 -- dnf1)
+    end
+  end
+
+  defp maybe_optimize_map_union({tag1, pos1, []} = map1, {tag2, pos2, []} = map2) do
+    case map_union_optimization_strategy(tag1, pos1, tag2, pos2) do
+      :all_equal ->
+        map1
+
+      :any_map ->
+        {:open, %{}, []}
+
+      {:one_key_difference, key, v1, v2} ->
+        new_pos = Map.put(pos1, key, union(v1, v2))
+        {tag1, new_pos, []}
+
+      :left_subtype_of_right ->
+        map2
+
+      :right_subtype_of_left ->
+        map1
+
+      nil ->
+        nil
+    end
+  end
+
+  defp maybe_optimize_map_union(_, _), do: nil
+
+  defp map_union_optimization_strategy(tag1, pos1, tag2, pos2)
+  defp map_union_optimization_strategy(tag, pos, tag, pos), do: :all_equal
+  defp map_union_optimization_strategy(:open, empty, _, _) when empty == %{}, do: :any_map
+  defp map_union_optimization_strategy(_, _, :open, empty) when empty == %{}, do: :any_map
+
+  defp map_union_optimization_strategy(tag, pos1, tag, pos2)
+       when map_size(pos1) == map_size(pos2) do
+    :maps.iterator(pos1)
+    |> :maps.next()
+    |> do_map_union_optimization_strategy(pos2, :all_equal)
+  end
+
+  defp map_union_optimization_strategy(:open, pos1, _, pos2)
+       when map_size(pos1) <= map_size(pos2) do
+    :maps.iterator(pos1)
+    |> :maps.next()
+    |> do_map_union_optimization_strategy(pos2, :right_subtype_of_left)
+  end
+
+  defp map_union_optimization_strategy(_, pos1, :open, pos2)
+       when map_size(pos1) >= map_size(pos2) do
+    :maps.iterator(pos2)
+    |> :maps.next()
+    |> do_map_union_optimization_strategy(pos1, :right_subtype_of_left)
+    |> case do
+      :right_subtype_of_left -> :left_subtype_of_right
+      nil -> nil
+    end
+  end
+
+  defp map_union_optimization_strategy(_, _, _, _), do: nil
+
+  defp do_map_union_optimization_strategy(:none, _, status), do: status
+
+  defp do_map_union_optimization_strategy({key, v1, iterator}, pos2, status) do
+    with %{^key => v2} <- pos2,
+         next_status when next_status != nil <- map_union_next_strategy(key, v1, v2, status) do
+      do_map_union_optimization_strategy(:maps.next(iterator), pos2, next_status)
+    else
+      _ -> nil
+    end
+  end
+
+  defp map_union_next_strategy(key, v1, v2, status)
+
+  # structurally equal values do not impact the ongoing strategy
+  defp map_union_next_strategy(_key, same, same, status), do: status
+
+  defp map_union_next_strategy(key, v1, v2, :all_equal) do
+    if key != :__struct__, do: {:one_key_difference, key, v1, v2}
+  end
+
+  defp map_union_next_strategy(_key, v1, v2, {:one_key_difference, _, d1, d2}) do
+    # we have at least two key differences now, we switch strategy
+    # if both are subtypes in one direction, keep checking
+    cond do
+      subtype?(d1, d2) and subtype?(v1, v2) -> :left_subtype_of_right
+      subtype?(d2, d1) and subtype?(v2, v1) -> :right_subtype_of_left
+      true -> nil
+    end
+  end
+
+  defp map_union_next_strategy(_key, v1, v2, :left_subtype_of_right) do
+    if subtype?(v1, v2), do: :left_subtype_of_right
+  end
+
+  defp map_union_next_strategy(_key, v1, v2, :right_subtype_of_left) do
+    if subtype?(v2, v1), do: :right_subtype_of_left
+  end
 
   # Given two unions of maps, intersects each pair of maps.
   defp map_intersection(dnf1, dnf2) do
@@ -1747,29 +1854,19 @@ defmodule Module.Types.Descr do
 
   defp map_non_negated_fuse(maps) do
     Enum.reduce(maps, [], fn map, acc ->
-      case Enum.split_while(acc, &non_fusible_maps?(map, &1)) do
-        {_, []} ->
-          [map | acc]
-
-        {others, [match | rest]} ->
-          fused = map_non_negated_fuse_pair(map, match)
-          others ++ [fused | rest]
-      end
+      fuse_with_first_fusible(map, acc)
     end)
   end
 
-  # Two maps are fusible if they differ in at most one element.
-  defp non_fusible_maps?({_, fields1, []}, {_, fields2, []}) do
-    Enum.count_until(fields1, fn {key, value} -> Map.fetch!(fields2, key) != value end, 2) > 1
-  end
+  defp fuse_with_first_fusible(map, []), do: [map]
 
-  defp map_non_negated_fuse_pair({tag, fields1, []}, {_, fields2, []}) do
-    fields =
-      symmetrical_merge(fields1, fields2, fn _k, v1, v2 ->
-        if v1 == v2, do: v1, else: union(v1, v2)
-      end)
-
-    {tag, fields, []}
+  defp fuse_with_first_fusible(map, [candidate | rest]) do
+    if fused = maybe_optimize_map_union(map, candidate) do
+      # we found a fusible candidate, we're done
+      [fused | rest]
+    else
+      [candidate | fuse_with_first_fusible(map, rest)]
+    end
   end
 
   # If all fields are the same except one, we can optimize map difference.
