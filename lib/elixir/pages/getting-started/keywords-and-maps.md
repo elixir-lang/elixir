@@ -22,7 +22,7 @@ iex> String.split("1  2  3", " ")
 ["1", "", "2", "", "3"]
 ```
 
-As you can see, there are now empty strings in our results. Luckily, the `String.split/3` function allows the `trim` option to be set to true:
+As you can see, there are now empty strings in our results. Luckily, the `String.split/3` function allows the `trim` option to be set to true to remove empty entries from the result:
 
 ```elixir
 iex> String.split("1  2  3", " ", [trim: true])
