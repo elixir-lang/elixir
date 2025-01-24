@@ -115,6 +115,9 @@ defmodule ExUnit.DocTest do
 
       inspect(map.datetime) == "#DateTime<2023-06-26 09:30:00+09:00 JST Asia/Tokyo>"
 
+  You can also control `doctest` to use certain inspect options. See the
+  documentation on the `:inspect_opts` option below.
+
   Alternatively, since doctest results are actually evaluated, you can have
   the `DateTime` building expression as the doctest result:
 
@@ -196,6 +199,10 @@ defmodule ExUnit.DocTest do
 
     * `:tags` - a list of tags to apply to all generated doctests.
 
+    * `:inspect_opts` - A keyword list with options for `inspect/2` on opaque
+      types. This is useful when inspection output on opaque types utilizes
+      pretty printing and to keep the doctests more readable.
+
   ## Examples
 
       defmodule MyModuleTest do
@@ -241,6 +248,10 @@ defmodule ExUnit.DocTest do
 
     * `:tags` - a list of tags to apply to all generated doctests.
 
+    * `:inspect_opts` - A keyword list with options for `inspect/2` on opaque
+      types. This is useful when inspection output on opaque types utilizes
+      pretty printing and to keep the doctests more readable.
+
   ## Examples
 
       defmodule ReadmeTest do
@@ -270,10 +281,15 @@ defmodule ExUnit.DocTest do
     doc = File.read!(file)
     file = Path.relative_to_cwd(file)
     tags = [doctest: file] ++ Keyword.get(opts, :tags, [])
+    inspect_opts = Keyword.get(opts, :inspect_opts, [])
 
     extract_tests(1, doc, module, :moduledoc)
     |> Enum.with_index(fn test, acc ->
-      {"#{file} (#{acc + 1})", test_content(test, module, false, file), test_tags(test, tags)}
+      {
+        "#{file} (#{acc + 1})",
+        test_content(test, module, false, file, inspect_opts),
+        test_tags(test, tags)
+      }
     end)
   end
 
@@ -293,6 +309,7 @@ defmodule ExUnit.DocTest do
   def __doctests__(module, opts) do
     tags = [doctest: module] ++ Keyword.get(opts, :tags, [])
     import = Keyword.get(opts, :import, false)
+    inspect_opts = Keyword.get(opts, :inspect_opts, [])
 
     maybe_source =
       if source = module.module_info(:compile)[:source] do
@@ -303,7 +320,7 @@ defmodule ExUnit.DocTest do
     |> filter_by_opts(module, opts)
     |> Enum.sort_by(& &1.line)
     |> Enum.with_index(fn test, index ->
-      compile_test(test, module, import, index + 1, maybe_source, tags)
+      compile_test(test, module, import, index + 1, maybe_source, tags, inspect_opts)
     end)
   end
 
@@ -349,9 +366,12 @@ defmodule ExUnit.DocTest do
 
   ## Compilation of extracted tests
 
-  defp compile_test(test, module, do_import, n, maybe_source, tags) do
-    {test_name(test, module, n), test_content(test, module, do_import, maybe_source),
-     test_tags(test, tags)}
+  defp compile_test(test, module, do_import, n, maybe_source, tags, inspect_opts) do
+    {
+      test_name(test, module, n),
+      test_content(test, module, do_import, maybe_source, inspect_opts),
+      test_tags(test, tags)
+    }
   end
 
   defp test_name(%{fun_arity: :moduledoc}, m, n) do
@@ -362,7 +382,7 @@ defmodule ExUnit.DocTest do
     "#{inspect(m)}.#{f}/#{a} (#{n})"
   end
 
-  defp test_content(%{exprs: exprs, line: line}, module, do_import, maybe_source) do
+  defp test_content(%{exprs: exprs, line: line}, module, do_import, maybe_source, inspect_opts) do
     if multiple_exceptions?(exprs) do
       raise Error,
         line: line,
@@ -372,7 +392,9 @@ defmodule ExUnit.DocTest do
             "please separate your iex> prompts by multiple newlines to start new examples"
     end
 
-    tests = Enum.map(exprs, fn expr -> test_case_content(expr, module, maybe_source) end)
+    tests =
+      Enum.map(exprs, fn expr -> test_case_content(expr, module, maybe_source, inspect_opts) end)
+
     {:__block__, [], test_import(module, do_import) ++ tests}
   end
 
@@ -387,12 +409,17 @@ defmodule ExUnit.DocTest do
     end) > 1
   end
 
-  defp test_case_content(%{expected: :test} = data, module, maybe_source) do
+  defp test_case_content(%{expected: :test} = data, module, maybe_source, _inspect_opts) do
     %{expr: expr, expr_line: expr_line, doctest: doctest} = data
     string_to_quoted(module, maybe_source, expr_line, expr, doctest) |> insert_assertions()
   end
 
-  defp test_case_content(%{expected: {:test, expected}} = data, module, maybe_source) do
+  defp test_case_content(
+         %{expected: {:test, expected}} = data,
+         module,
+         maybe_source,
+         _inspect_opts
+       ) do
     %{expr: expr, expr_line: expr_line, expected_line: expected_line, doctest: doctest} = data
 
     expr_ast =
@@ -419,7 +446,12 @@ defmodule ExUnit.DocTest do
     end
   end
 
-  defp test_case_content(%{expected: {:inspect, expected}} = data, module, maybe_source) do
+  defp test_case_content(
+         %{expected: {:inspect, expected}} = data,
+         module,
+         maybe_source,
+         inspect_opts
+       ) do
     %{expr: expr, expr_line: expr_line, doctest: doctest} = data
 
     expr_ast =
@@ -436,12 +468,18 @@ defmodule ExUnit.DocTest do
         unquote(inspect(expected)),
         unquote(module),
         unquote(maybe_source),
-        unquote(expr_line)
+        unquote(expr_line),
+        unquote(inspect_opts)
       )
     end
   end
 
-  defp test_case_content(%{expected: {:error, exception, message}} = data, module, maybe_source) do
+  defp test_case_content(
+         %{expected: {:error, exception, message}} = data,
+         module,
+         maybe_source,
+         _inspect_opts
+       ) do
     %{expr: expr, expr_line: expr_line, doctest: doctest} = data
     expr_ast = string_to_quoted(module, maybe_source, expr_line, expr, doctest)
 
@@ -478,10 +516,20 @@ defmodule ExUnit.DocTest do
   end
 
   @doc false
-  def __inspect__(value, expected, doctest, last_expr, expected_expr, module, maybe_source, line) do
+  def __inspect__(
+        value,
+        expected,
+        doctest,
+        last_expr,
+        expected_expr,
+        module,
+        maybe_source,
+        line,
+        inspect_opts
+      ) do
     result =
       try do
-        inspect(value, safe: false)
+        inspect(value, Keyword.put(inspect_opts, :safe, false))
       rescue
         e ->
           stack = Enum.drop(__STACKTRACE__, 1)
