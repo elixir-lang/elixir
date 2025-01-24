@@ -448,19 +448,62 @@ defmodule ExUnit.DocTestTest.Haiku do
   def crlf_test, do: :ok
 
   defimpl Inspect do
-    def inspect(haiku, _opts) do
-      author = if haiku.author == "", do: "", else: "\n  -- #{haiku.author}"
+    def inspect(haiku, opts) do
+      indent = Keyword.get(opts.custom_options, :indent, 2)
+      spaces = String.duplicate(" ", indent)
+      author = if haiku.author == "", do: "", else: "\n#{spaces}-- #{haiku.author}"
 
       """
       #Haiku<
-        #{haiku.first_phrase}
-        #{haiku.second_phrase}
-        #{haiku.third_phrase}#{author}
+      #{spaces}#{haiku.first_phrase}
+      #{spaces}#{haiku.second_phrase}
+      #{spaces}#{haiku.third_phrase}#{author}
       >
       """
       |> String.trim_trailing("\n")
     end
   end
+end
+|> ExUnit.BeamHelpers.write_beam()
+
+defmodule ExUnit.DocTestTest.HaikuIndent4UsingInspectOpts do
+  @moduledoc """
+  This module is part of the DocTest test suite,
+  to ensure that DocTest respect the `:inspect_opts` options.
+  """
+
+  @doc """
+      # Simple Haiku, inspect output consists of multiple lines.
+      iex> ExUnit.DocTestTest.Haiku.new("Haikus are easy", "But sometimes they don't make sense", "Refrigerator")
+      #Haiku<
+          Haikus are easy
+          But sometimes they don't make sense
+          Refrigerator
+      >
+
+      # Haiku with Unicode characters (Japanese Kanji, em-dash).
+      iex> ExUnit.DocTestTest.Haiku.new("古池や", "蛙飛びこむ", "水の音", "Matsuo Basho")
+      #Haiku<
+          古池や
+          蛙飛びこむ
+          水の音
+          -- Matsuo Basho
+      >
+
+  """
+  def indent_4, do: :ok
+
+  @doc """
+       iex> ExUnit.DocTestTest.Haiku.new("古池や", "蛙飛びこむ", "水の音", "Matsuo Basho")
+       #Haiku<
+           古池や
+           蛙飛びこむ
+           水の音
+           -- Matsuo Basho
+       >
+       """
+       |> String.replace("\n", "\r\n")
+  def crlf_test, do: :ok
 end
 |> ExUnit.BeamHelpers.write_beam()
 
@@ -527,6 +570,9 @@ defmodule ExUnit.DocTestTest do
   doctest ExUnit.DocTestTest.IndentationHeredocs
   doctest ExUnit.DocTestTest.FencedHeredocs
   doctest ExUnit.DocTestTest.Haiku
+
+  doctest ExUnit.DocTestTest.HaikuIndent4UsingInspectOpts,
+    inspect_opts: [custom_options: [indent: 4]]
 
   import ExUnit.CaptureIO
 
