@@ -191,12 +191,19 @@ canonical = System.fetch_env!("CANONICAL")
   before_closing_body_tag: fn
     :html ->
       """
+      <script defer src="https://cdn.jsdelivr.net/npm/mermaid@10.2.3/dist/mermaid.min.js"></script>
       <script>
-        function mermaidLoaded() {
-          mermaid.initialize({
-            startOnLoad: false,
-            theme: document.body.className.includes("dark") ? "dark" : "default"
-          });
+        let initialized = false;
+
+        window.addEventListener("exdoc:loaded", () => {
+          if (!initialized) {
+            mermaid.initialize({
+              startOnLoad: false,
+              theme: document.body.className.includes("dark") ? "dark" : "default"
+            });
+            initialized = true;
+          }
+
           let id = 0;
           for (const codeEl of document.querySelectorAll("pre code.mermaid")) {
             const preEl = codeEl.parentElement;
@@ -210,9 +217,8 @@ canonical = System.fetch_env!("CANONICAL")
               preEl.remove();
             });
           }
-        }
+        });
       </script>
-      <script async src="https://cdn.jsdelivr.net/npm/mermaid@10.2.3/dist/mermaid.min.js" onload="mermaidLoaded();"></script>
       """
 
     _ ->
