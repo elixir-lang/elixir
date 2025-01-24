@@ -488,6 +488,12 @@ defmodule String do
       iex> String.split(String.normalize("é", :nfc), "e")
       ["é"]
 
+  When using both the `:trim` and the `:parts` option, note that the
+  trimming doesn't affect the last part:
+
+      iex> String.split(" a  b  c  ", " ", trim: true, parts: 2)
+      ["a", " b  c  "]
+
   """
   @spec split(t, pattern | Regex.t(), keyword) :: [t]
   def split(string, pattern, options \\ [])
