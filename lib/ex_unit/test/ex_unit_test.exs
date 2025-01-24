@@ -1120,6 +1120,66 @@ defmodule ExUnitTest do
     assert third =~ "ThirdTestFIFO"
   end
 
+  test "does not print skipped tests if ignore_skipped is true" do
+    defmodule WithSkippedTest do
+      use ExUnit.Case
+
+      test "included test", do: assert(true)
+
+      @tag :skip
+      test "skipped test", do: assert(false)
+    end
+
+    configure_and_reload_on_exit(trace: true, ignore_skipped: true)
+
+    output =
+      capture_io(fn ->
+        assert ExUnit.run() == %{total: 2, failures: 0, excluded: 0, skipped: 1}
+      end)
+
+    refute output =~ "test skipped test (skipped)"
+  end
+
+  test "does not print excluded tests if ignore_excluded is true" do
+    defmodule WithSkippedTest do
+      use ExUnit.Case
+
+      test "included test", do: assert(true)
+
+      @tag :exclude
+      test "excluded test", do: assert(false)
+    end
+
+    configure_and_reload_on_exit(trace: true, ignore_excluded: true)
+
+    output =
+      capture_io(fn ->
+        assert ExUnit.run() == %{total: 2, failures: 0, excluded: 1, skipped: 0}
+      end)
+
+    refute output =~ "test excluded test (excluded)"
+  end
+
+  test "warns if using ignore flag without --trace" do
+    defmodule WithSkippedTest do
+      use ExUnit.Case
+
+      test "included test", do: assert(true)
+
+      @tag :exclude
+      test "excluded test", do: assert(false)
+    end
+
+    configure_and_reload_on_exit(trace: false, ignore_excluded: true)
+
+    output =
+      capture_io(fn ->
+        assert ExUnit.run() == %{total: 2, failures: 0, excluded: 1, skipped: 0}
+      end)
+
+    assert output =~ "warning"
+  end
+
   test "groups are run in compile order (FIFO)" do
     defmodule RedOneFIFO do
       use ExUnit.Case, async: true, group: :red

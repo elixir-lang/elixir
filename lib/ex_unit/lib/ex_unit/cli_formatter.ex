@@ -19,6 +19,8 @@ defmodule ExUnit.CLIFormatter do
       width: get_terminal_width(),
       slowest: opts[:slowest],
       slowest_modules: opts[:slowest_modules],
+      ignore_excluded: opts[:ignore_excluded],
+      ignore_skipped: opts[:ignore_skipped],
       test_counter: %{},
       test_timings: [],
       failure_counter: 0,
@@ -26,6 +28,10 @@ defmodule ExUnit.CLIFormatter do
       excluded_counter: 0,
       invalid_counter: 0
     }
+
+    if (config.ignore_excluded or config.ignore_skipped) and not config.trace do
+      IO.puts("warning: --ignore_excluded and --ignore_skipped do nothing without --trace")
+    end
 
     {:ok, config}
   end
@@ -74,7 +80,16 @@ defmodule ExUnit.CLIFormatter do
 
   def handle_cast({:test_finished, %ExUnit.Test{state: {:excluded, reason}} = test}, config)
       when is_binary(reason) do
-    if config.trace, do: IO.puts(trace_test_excluded(test))
+    case config do
+      %{ignore_excluded: true} ->
+        :ok
+
+      %{trace: true} ->
+        IO.puts(trace_test_excluded(test))
+
+      _ ->
+        :ok
+    end
 
     test_counter = update_test_counter(config.test_counter, test)
     config = %{config | test_counter: test_counter, excluded_counter: config.excluded_counter + 1}
@@ -84,10 +99,15 @@ defmodule ExUnit.CLIFormatter do
 
   def handle_cast({:test_finished, %ExUnit.Test{state: {:skipped, reason}} = test}, config)
       when is_binary(reason) do
-    if config.trace do
-      IO.puts(skipped(trace_test_skipped(test), config))
-    else
-      IO.write(skipped("*", config))
+    case config do
+      %{ignore_skipped: true} ->
+        :ok
+
+      %{trace: true} ->
+        IO.puts(skipped(trace_test_skipped(test), config))
+
+      _ ->
+        IO.write(skipped("*", config))
     end
 
     test_counter = update_test_counter(config.test_counter, test)

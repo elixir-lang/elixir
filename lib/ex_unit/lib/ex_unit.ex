@@ -334,6 +334,12 @@ defmodule ExUnit do
       ExUnit with slow test reporting automatically runs in `trace` mode. It
       is disabled by default;
 
+    * `:ignore_excluded` - only valid when used with `--trace`. Does not print trace
+      information for excluded tests.
+
+    * `:ignore_skipped` - only valid when used with `--trace`. Does not print trace
+      information for skipped tests.
+
     * `:stacktrace_depth` - configures the stacktrace depth to be used
       on formatting and reporters, defaults to `20`;
 

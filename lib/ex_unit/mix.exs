@@ -31,6 +31,8 @@ defmodule ExUnit.MixProject do
         refute_receive_timeout: 100,
         slowest: 0,
         slowest_modules: 0,
+        ignore_excluded: false,
+        ignore_skipped: false,
         stacktrace_depth: 20,
         timeout: 60000,
         trace: false,
