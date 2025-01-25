@@ -280,9 +280,7 @@ defmodule Module.Types.Expr do
         {head_type, context} = of_expr(head, @pending, head, stack, context)
 
         context =
-          if stack.mode in [:infer, :traversal] do
-            context
-          else
+          if is_warning(stack) do
             case truthness(head_type) do
               :always_true when not last? ->
                 warning = {:badcond, "always match", head_type, head, context}
@@ -295,6 +293,8 @@ defmodule Module.Types.Expr do
               _ ->
                 context
             end
+          else
+            context
           end
 
         {body_type, context} = of_expr(body, expected, expr, stack, context)

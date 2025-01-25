@@ -5,6 +5,11 @@ defmodule Module.Types.Helpers do
   ## AST helpers
 
   @doc """
+  Returns true if the mode cares about warnings.
+  """
+  defguard is_warning(stack) when stack.mode not in [:traversal, :infer]
+
+  @doc """
   Guard function to check if an AST node is a variable.
   """
   defmacro is_var(expr) do

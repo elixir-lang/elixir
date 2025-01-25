@@ -321,14 +321,13 @@ defmodule Module.Types.Apply do
 
   def remote_domain(:erlang, name, [_left, _right], _expected, _meta, stack, context)
       when name in [:>=, :"=<", :>, :<, :min, :max] do
-    skip? = stack.mode == :infer
-    {{:ordered_compare, name, skip?}, [term(), term()], context}
+    {{:ordered_compare, name, is_warning(stack)}, [term(), term()], context}
   end
 
   def remote_domain(:erlang, name, [_left, _right] = args, _expected, _meta, stack, context)
       when name in [:==, :"/=", :"=:=", :"=/="] do
-    skip? = stack.mode == :infer or Macro.quoted_literal?(args)
-    {{:compare, name, skip?}, [term(), term()], context}
+    check? = is_warning(stack) and not Macro.quoted_literal?(args)
+    {{:compare, name, check?}, [term(), term()], context}
   end
 
   def remote_domain(mod, fun, args, expected, meta, stack, context) do
@@ -419,7 +418,7 @@ defmodule Module.Types.Apply do
     end
   end
 
-  defp remote_apply({:ordered_compare, name, skip?}, [left, right], stack) do
+  defp remote_apply({:ordered_compare, name, check?}, [left, right], stack) do
     result =
       if name in [:min, :max] do
         union(left, right)
@@ -428,7 +427,7 @@ defmodule Module.Types.Apply do
       end
 
     cond do
-      skip? ->
+      not check? ->
         {:ok, result}
 
       match?({false, _}, map_fetch(left, :__struct__)) or
@@ -446,11 +445,11 @@ defmodule Module.Types.Apply do
     end
   end
 
-  defp remote_apply({:compare, name, skip?}, [left, right], stack) do
+  defp remote_apply({:compare, name, check?}, [left, right], stack) do
     result = return(boolean(), [left, right], stack)
 
     cond do
-      skip? ->
+      not check? ->
         {:ok, result}
 
       name in [:==, :"/="] and number_type?(left) and number_type?(right) ->
@@ -522,6 +521,7 @@ defmodule Module.Types.Apply do
 
   defp export(module, fun, arity, meta, %{cache: cache} = stack, context) do
     cond do
+      # Cache == nil implies the mode is traversal
       cache == nil or stack.mode == :traversal ->
         {:none, context}
 
@@ -630,7 +630,7 @@ defmodule Module.Types.Apply do
         {{false, :none}, List.duplicate(term(), arity), context}
 
       {kind, info, context} ->
-        update_used? = stack.mode not in [:traversal, :infer] and kind == :defp
+        update_used? = is_warning(stack) and kind == :defp
 
         if stack.mode == :traversal or info == :none do
           {{update_used?, :none}, List.duplicate(term(), arity), context}
