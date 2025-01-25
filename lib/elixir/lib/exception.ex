@@ -1045,6 +1045,16 @@ defmodule ArgumentError do
   `ArgumentError` exceptions have a single field, `:message` (a `t:String.t/0`),
   which is public and can be accessed freely when reading or creating `ArgumentError`
   exceptions.
+   For example, this exception is when a function expects an integer as an index to access elements in a list but instead receives a string, it might raise an ArgumentError to indicate invalid input.
+      iex> :erlang.list_to_integer('abc')
+
+
+  ** (ArgumentError) errors were found at the given arguments:
+
+  * 1st argument: not a textual representation of an integer
+
+    (erts 15.0) erlang.erl:12782: :erlang.list_to_integer(~c"abc")
+
   """
 
   defexception message: "argument error"
@@ -1105,6 +1115,10 @@ defmodule SystemLimitError do
   An exception raised when a system limit has been reached.
 
   For example, this can happen if you try to create an atom that is too large.
+
+      iex> :erlang.binary_to_atom(:erlang.list_to_binary(List.duplicate(100_000, 1)), :utf8)
+      ** (SystemLimitError) a system limit has been reached
+
   """
 
   defexception message: "a system limit has been reached"
@@ -1198,6 +1212,17 @@ defmodule SyntaxError do
     * `:column` - the column where the error occurred
     * `:description` - a description of the syntax error
 
+    if true else
+  IO.puts("This will break")
+  end
+
+  ** (SyntaxError) invalid syntax found on Desktop/important/notebook/error_handling.livemd#cell:sslzfkto2taubx37:3:1:
+    error: unexpected reserved word: end
+    │
+  3 │ end
+    │
+
+
   """
 
   defexception [:file, :line, :column, :snippet, description: "syntax error"]
@@ -1252,6 +1277,16 @@ defmodule TokenMissingError do
     * `:opening_delimiter` - an atom representing the opening delimiter
     * `:expected_delimiter` - an atom representing the expected delimiter
     * `:description` - a description of the missing token error
+    For example, trying to inspect a code and didn't add the end parenthesis:
+   iex> IO.puts("Hello, world!"
+    ** (TokenMissingError) token missing
+    error: missing terminator: )
+    │
+  1 │ IO.puts("Hello, world!"
+    │        │               └ missing closing delimiter (expected ")")
+    │        └ unclosed delimiter
+
+
   """
 
   defexception [
@@ -1337,6 +1372,17 @@ defmodule CompileError do
       the error occurred in code that did not come from a file
     * `:line` (`t:non_neg_integer/0`) - the line where the error occurred
 
+      For example, this exception gets raised when the function calls an unkwon fucntion:
+    iex>defmodule MyApp do
+  def greet(name) do
+    IO.puts(say_hello(name))
+  end
+
+  MyApp.greet("ijeoma")
+  ** (CompileError)  cannot compile module MyApp (errors have been logged)
+    (elixir 1.17.2) src/elixir_module.erl:186: anonymous fn/9 in :elixir_module.compile/7
+
+
   """
 
   defexception [:file, :line, description: "compile error"]
@@ -1360,6 +1406,19 @@ defmodule Kernel.TypespecError do
       the error occurred in code that did not come from a file
     * `:line` (`t:non_neg_integer/0`) - the line where the error occurred
 
+    For example,this error is caused because of an exception in the typespec
+   iex > defmodule Example do
+  @type my_type :: strng()
+  end
+
+  ** (Kernel.TypespecError)  type strng/0 undefined (no such type in Example)
+    (elixir 1.17.2) lib/kernel/typespec.ex:969: Kernel.Typespec.compile_error/2
+    (elixir 1.17.2) lib/kernel/typespec.ex:307: Kernel.Typespec.translate_type/2
+    (stdlib 6.0) lists.erl:2343: :lists.mapfoldl_1/3
+    (elixir 1.17.2) lib/kernel/typespec.ex:235: Kernel.Typespec.translate_typespecs_for_module/2
+    (elixir 1.17.2) src/elixir_erl.erl:121: :elixir_erl.compile/1
+    (elixir 1.17.2) src/elixir_module.erl:190: anonymous fn/9 in :elixir_module.compile/7
+
   """
 
   defexception [:file, :line, :description]
@@ -1374,6 +1433,17 @@ defmodule Kernel.TypespecError do
 end
 
 defmodule BadFunctionError do
+  @moduledoc """
+  An exception raised when something expected a function, but received something else.
+
+  For example, this exception gets raised when a function is expected but a string is passed instead:
+
+      iex> value = "hello"
+  value.()
+  ** (BadFunctionError) expected a function, got: "hello"
+
+  """
+
   defexception [:term]
 
   @impl true
@@ -1400,6 +1470,13 @@ end
 defmodule BadMapError do
   @moduledoc """
   An exception raised when something expected a map, but received something else.
+    For example this exception gets raised when a map is expected but a string is passed instead:
+
+      iex> value = "hello"
+  %{value | key: "value"}
+  ** (BadMapError) expected a map, got: "hello"
+    (stdlib 6.0) :maps.put(:k, :v, "hello")
+
   """
 
   defexception [:term]
@@ -1413,6 +1490,31 @@ end
 defmodule BadBooleanError do
   @moduledoc """
   An exception raised when an operator expected a boolean, but received something else.
+    for example, this exception gets raised operator expected a boolean but receive other data types this error is a runtime error that occur when the value is strictly boolean:
+  iex> defmodule Example do
+  def test(value) do
+    if is_boolean(value) and value do
+      IO.puts("Boolean value is true.")
+    else
+      raise BadBooleanError, "Expected a boolean"
+    end
+  end
+  end
+
+  Example.test(:ok)
+
+  ** (FunctionClauseError) no function clause matching in BadBooleanError.exception/1
+
+    The following arguments were given to BadBooleanError.exception/1:
+
+        # 1
+        "Expected a boolean, got: :ok"
+
+    Attempted function clauses (showing 1 out of 1):
+
+        def exception(args) when is_list(args)
+
+
   """
 
   defexception [:term, :operator]
@@ -1531,6 +1633,15 @@ defmodule TryClauseError do
 
     * `:term` (`t:term/0`) - the term that did not match any of the clauses
 
+    for example, this exception does not match any of the term:
+    iex> try do
+  throw(:unexpected_value)
+  rescue
+  ArgumentError -> IO.puts("ArgumentError handled")
+  end
+
+  ** (throw) :unexpected_value
+
   """
   defexception [:term]
 
@@ -1543,6 +1654,15 @@ end
 defmodule BadArityError do
   @moduledoc """
   An exception raised when a function is called with the wrong number of arguments.
+   for example, this exception gets raised when a function is called with the wrong number of arguments:
+
+   iex> my_function = fn x, y -> x + y end
+  my_function.(1)
+
+  ** (BadArityError) #Function<41.39164016/2 in :erl_eval.expr/6> with arity 2 called with 1 argument (1)
+    (stdlib 6.0) erl_eval.erl:870: :erl_eval.do_apply/6
+
+
   """
 
   defexception [:function, :args]
@@ -1959,6 +2079,10 @@ defmodule Code.LoadError do
 
     * `:file` (`t:String.t/0`) - the file name
     * `:reason` (`t:term/0`) - the reason why the file could not be loaded
+  for example, this exception gets raised when a file cannot be loaded:
+
+      iex> Code.require_file("missing_file.exs")
+      ** (Code.LoadError) could not load non_existent.ex. Reason: enoent
 
   """
 
@@ -2061,6 +2185,13 @@ defmodule KeyError do
     * `:term` (`t:term/0`) - the data structure that was searched
     * `:key` (`t:term/0`) - the key that was not found
 
+    iex> map = %{name: "Alice", age: 25}
+  name = Map.fetch!(map, :gender)
+
+  ** (KeyError) key :gender not found in: %{name: "Alice", age: 25}
+    (stdlib 6.0) :maps.get(:gender, %{name: "Alice",Regex.CompileError age: 25})
+
+
   """
 
   defexception [:key, :term, :message]
@@ -2138,6 +2269,12 @@ defmodule KeyError do
 end
 
 defmodule UnicodeConversionError do
+  @moduledoc """
+  An exception raised  when there is an issue converting data to or from Unicode.
+  his exception typically occurs when working with strings or binaries that are invalid UTF-8.
+
+
+  """
   defexception [:encoded, :message]
 
   def exception(opts) do
@@ -2216,6 +2353,13 @@ defmodule Enum.OutOfBoundsError do
   a certain size but finds that it is too small.
 
   For example, this is raised by `Access.at!/1`.
+
+    list = []
+  Enum.fetch!(list, 0)
+
+  ** (Enum.OutOfBoundsError) out of bounds error
+    (elixir 1.17.2) lib/enum.ex:1084: Enum.fetch!/2
+
   """
 
   defexception [:enumerable, :index, :message]
@@ -2245,6 +2389,12 @@ defmodule Enum.EmptyError do
   but finds an empty one.
 
   For example, this is raised by `Enum.min/3`.
+
+   iex> list = []
+  Enum.min(list)
+  ** (Enum.EmptyError) empty error
+    (elixir 1.17.2) lib/enum.ex:2084: anonymous fn/0 in Enum.min/1
+
   """
 
   defexception message: "empty error"
@@ -2258,6 +2408,11 @@ defmodule File.Error do
 
     * `:path` (`t:Path.t/0`) - the path of the file that caused the error
     * `:reason` (`t:File.posix/0`) - the reason for the error
+
+      For example, this exception is raised, when trying to read a non existent file:
+  iex> File.read("nonexistent_file.txt")
+  {:error, :enoent}
+
 
   """
 
@@ -2288,6 +2443,10 @@ defmodule File.CopyError do
     * `:destination` (`t:Path.t/0`) - the destination path
     * `:reason` (`t:File.posix/0`) - the reason why the file could not be copied
 
+     For example, this exception is raised when trying to copy to file or directory that isn't present
+  iex> File.cp_r("source_dir", "source_dir/subdir")
+  {:error, :enoent, "source_dir"}
+
   """
 
   defexception [:reason, :source, :destination, on: "", action: ""]
@@ -2316,6 +2475,10 @@ defmodule File.RenameError do
     * `:source` (`t:Path.t/0`) - the source path
     * `:destination` (`t:Path.t/0`) - the destination path
     * `:reason` (`t:File.posix/0`) - the reason why the file could not be renamed
+
+      for example this exception is raised when trying to rename a file that isn't present
+  iex> File.rename("source.txt", "target.txt")
+  {:error, :enoent, "source.txt"}
 
   """
 
@@ -2346,6 +2509,12 @@ defmodule File.LinkError do
     * `:new` (`t:Path.t/0`) - the link destination
     * `:reason` (`t:File.posix/0`) - the reason why the file could not be linked
 
+  For example, an exception error that can happen:
+    File.write!("source.txt", "content")
+  File.write!("target.txt", "existing content")
+  File.ln("source.txt", "target.txt")
+  errorMessage: {:error, :eexist}
+
   """
 
   defexception [:reason, :existing, :new, action: ""]
@@ -2360,6 +2529,14 @@ defmodule File.LinkError do
 end
 
 defmodule ErlangError do
+  @moduledoc """
+  An exception raised when an Erlang error is encountered while compliling an Erlang code
+  for example using :erlang with a function that isn't define on erlang.
+  :erlang.error(:some_invalid_error)
+
+  ** (ErlangError) Erlang error: :some_invalid_errors
+  """
+
   defexception [:original, :reason]
 
   @impl true
