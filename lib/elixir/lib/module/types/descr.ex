@@ -2157,9 +2157,106 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # Removes duplicates in union, which should trickle to other operations.
-  # This is a cheap optimization that relies on structural equality.
-  defp tuple_union(left, right), do: left ++ (right -- left)
+  defp tuple_union(dnf1, dnf2) do
+    # Union is just concatenation, but we rely on some optimization strategies to
+    # avoid the list to grow when possible
+
+    # first pass trying to identify patterns where two maps can be fused as one
+    with [tuple1] <- dnf1,
+         [tuple2] <- dnf2,
+         optimized when optimized != nil <- maybe_optimize_tuple_union(tuple1, tuple2) do
+      [optimized]
+    else
+      # otherwise we just concatenate and remove structural duplicates
+      _ -> dnf1 ++ (dnf2 -- dnf1)
+    end
+  end
+
+  defp maybe_optimize_tuple_union({tag1, pos1, []} = tuple1, {tag2, pos2, []} = tuple2) do
+    case tuple_union_optimization_strategy(tag1, pos1, tag2, pos2) do
+      :all_equal ->
+        tuple1
+
+      {:one_index_difference, index, v1, v2} ->
+        new_pos = List.replace_at(pos1, index, union(v1, v2))
+        {tag1, new_pos, []}
+
+      :left_subtype_of_right ->
+        tuple2
+
+      :right_subtype_of_left ->
+        tuple1
+
+      nil ->
+        nil
+    end
+  end
+
+  defp maybe_optimize_tuple_union(_, _), do: nil
+
+  defp tuple_union_optimization_strategy(tag1, pos1, tag2, pos2)
+  defp tuple_union_optimization_strategy(tag, pos, tag, pos), do: :all_equal
+
+  # might be one extra loop but cheap and avoids doing deep subtype comparisons
+  defp tuple_union_optimization_strategy(:closed, pos1, :closed, pos2)
+       when length(pos1) != length(pos2),
+       do: nil
+
+  defp tuple_union_optimization_strategy(tag1, pos1, tag2, pos2) do
+    status =
+      case {tag1, tag2} do
+        {:open, :closed} -> :right_subtype_of_left
+        {:closed, :open} -> :left_subtype_of_right
+        {same, same} -> :all_equal
+      end
+
+    do_tuple_union_optimization_strategy(tag1, pos1, tag2, pos2, 0, status)
+  end
+
+  defp do_tuple_union_optimization_strategy(_tag1, [], _tag2, [], _i, status), do: status
+
+  defp do_tuple_union_optimization_strategy(:open, [], _tag2, _pos2, _i, status)
+       when status in [:all_equal, :right_subtype_of_left],
+       do: :right_subtype_of_left
+
+  defp do_tuple_union_optimization_strategy(_tag1, _pos1, :open, [], _i, status)
+       when status in [:all_equal, :left_subtype_of_right],
+       do: :left_subtype_of_right
+
+  defp do_tuple_union_optimization_strategy(tag1, [v1 | pos1], tag2, [v2 | pos2], i, status) do
+    if next_status = tuple_union_next_strategy(i, v1, v2, status) do
+      do_tuple_union_optimization_strategy(tag1, pos1, tag2, pos2, i + 1, next_status)
+    end
+  end
+
+  defp do_tuple_union_optimization_strategy(_tag1, _pos1, _tag2, _pos2, _i, _status), do: nil
+
+  defp tuple_union_next_strategy(index, v1, v2, status)
+
+  # structurally equal values do not impact the ongoing strategy
+  defp tuple_union_next_strategy(_index, same, same, status), do: status
+
+  defp tuple_union_next_strategy(index, v1, v2, :all_equal) do
+    {:one_index_difference, index, v1, v2}
+  end
+
+  defp tuple_union_next_strategy(_index, v1, v2, {:one_index_difference, _, d1, d2}) do
+    # we have at least two differences now, we switch strategy
+    # if both are subtypes in one direction, keep checking
+    cond do
+      subtype?(d1, d2) and subtype?(v1, v2) -> :left_subtype_of_right
+      subtype?(d2, d1) and subtype?(v2, v1) -> :right_subtype_of_left
+      true -> nil
+    end
+  end
+
+  defp tuple_union_next_strategy(_index, v1, v2, :left_subtype_of_right) do
+    if subtype?(v1, v2), do: :left_subtype_of_right
+  end
+
+  defp tuple_union_next_strategy(_index, v1, v2, :right_subtype_of_left) do
+    if subtype?(v2, v1), do: :right_subtype_of_left
+  end
 
   defp tuple_to_quoted(dnf, opts) do
     dnf

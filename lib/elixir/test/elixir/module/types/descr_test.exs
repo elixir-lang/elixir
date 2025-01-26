@@ -106,7 +106,7 @@ defmodule Module.Types.DescrTest do
              |> equal?(list(term()))
     end
 
-    test "optimizations" do
+    test "optimizations (maps)" do
       # The tests are checking the actual implementation, not the semantics.
       # This is why we are using structural comparisons.
       # It's fine to remove these if the implementation changes, but breaking
@@ -123,7 +123,7 @@ defmodule Module.Types.DescrTest do
                closed_map(a: integer(), b: atom())
              ) == closed_map(a: union(float(), integer()), b: atom())
 
-      # Optimization two: we can tell that one map is a trivial subtype of the other:
+      # Optimization two: we can tell that one map is a subtype of the other:
 
       assert union(
                closed_map(a: term(), b: term()),
@@ -144,6 +144,36 @@ defmodule Module.Types.DescrTest do
                closed_map(a: term(), b: tuple([term(), term()])),
                closed_map(a: float(), b: tuple([atom(), binary()]))
              ) == closed_map(a: term(), b: tuple([term(), term()]))
+    end
+
+    test "optimizations (tuples)" do
+      # Optimization one: same tags, all but one key are structurally equal
+      assert union(
+               open_tuple([float(), atom()]),
+               open_tuple([integer(), atom()])
+             ) == open_tuple([union(float(), integer()), atom()])
+
+      assert union(
+               tuple([float(), atom()]),
+               tuple([integer(), atom()])
+             ) == tuple([union(float(), integer()), atom()])
+
+      # Optimization two: we can tell that one tuple is a subtype of the other:
+
+      assert union(
+               tuple([term(), term()]),
+               tuple([float(), binary()])
+             ) == tuple([term(), term()])
+
+      assert union(
+               open_tuple([term()]),
+               tuple([float(), binary()])
+             ) == open_tuple([term()])
+
+      assert union(
+               tuple([float(), binary()]),
+               open_tuple([term()])
+             ) == open_tuple([term()])
     end
   end
 
@@ -1402,8 +1432,7 @@ defmodule Module.Types.DescrTest do
              |> to_quoted_string() ==
                """
                dynamic(
-                 :error or {%Decimal{sign: integer(), coef: :NaN or :inf, exp: integer()}, binary()} or
-                   {%Decimal{sign: integer(), coef: :NaN or :inf or integer(), exp: integer()}, term()}
+                 :error or {%Decimal{sign: integer(), coef: :NaN or :inf or integer(), exp: integer()}, term()}
                )\
                """
     end
