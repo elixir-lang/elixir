@@ -1103,7 +1103,7 @@ defmodule Module.Types.Descr do
             [{name, [], arguments} | acc]
           else
             negs
-            |> Enum.map(fn {ty, lst} ->
+            |> map_or(fn {ty, lst} ->
               args =
                 if subtype?(lst, @empty_list) do
                   [to_quoted(ty, opts)]
@@ -1113,7 +1113,6 @@ defmodule Module.Types.Descr do
 
               {name, [], args}
             end)
-            |> Enum.reduce(&{:or, [], [&2, &1]})
             |> Kernel.then(
               &[
                 {:and, [], [{name, [], arguments}, {:not, [], [&1]}]}
@@ -1853,10 +1852,10 @@ defmodule Module.Types.Descr do
   end
 
   # Use heuristics to normalize a map dnf for pretty printing.
-  defp map_normalize(dnf) do
-    dnf
-    |> Enum.reject(&map_empty?([&1]))
-    |> Enum.map(fn {tag, fields, negs} ->
+  defp map_normalize(dnfs) do
+    for dnf <- dnfs, not map_empty?([dnf]) do
+      {tag, fields, negs} = dnf
+
       {fields, negs} =
         Enum.reduce(negs, {fields, []}, fn neg = {neg_tag, neg_fields}, {acc_fields, acc_negs} ->
           if map_empty_negation?(tag, acc_fields, neg) do
@@ -1874,7 +1873,7 @@ defmodule Module.Types.Descr do
         end)
 
       {tag, fields, negs}
-    end)
+    end
     |> map_fusion()
   end
 
@@ -1954,8 +1953,7 @@ defmodule Module.Types.Descr do
 
       _ ->
         negative_maps
-        |> Enum.map(&map_literal_to_quoted(&1, opts))
-        |> Enum.reduce(&{:or, [], [&2, &1]})
+        |> map_or(&map_literal_to_quoted(&1, opts))
         |> Kernel.then(
           &{:and, [], [map_literal_to_quoted({tag, positive_map}, opts), {:not, [], [&1]}]}
         )
@@ -2308,8 +2306,7 @@ defmodule Module.Types.Descr do
 
       _ ->
         negative_tuples
-        |> Enum.map(&tuple_literal_to_quoted(&1, opts))
-        |> Enum.reduce(&{:or, [], [&2, &1]})
+        |> map_or(&tuple_literal_to_quoted(&1, opts))
         |> Kernel.then(
           &{:and, [], [tuple_literal_to_quoted({tag, positive_tuple}, opts), {:not, [], [&1]}]}
         )
@@ -2574,8 +2571,9 @@ defmodule Module.Types.Descr do
       none()
     else
       n..(m - 1)//1
-      |> Enum.map(&tuple_values(:closed, tuple_fill(elements, &1), negs))
-      |> Enum.reduce(none(), &union/2)
+      |> Enum.reduce(none(), fn i, acc ->
+        tuple_values(:closed, tuple_fill(elements, i), negs) |> union(acc)
+      end)
       |> union(
         if neg_tag == :open do
           none()
@@ -2970,4 +2968,8 @@ defmodule Module.Types.Descr do
   end
 
   defp iterator_non_disjoint_intersection?(:none, _map), do: false
+
+  defp map_or([head | tail], fun) do
+    Enum.reduce(tail, fun.(head), &{:or, [], [&2, fun.(&1)]})
+  end
 end
