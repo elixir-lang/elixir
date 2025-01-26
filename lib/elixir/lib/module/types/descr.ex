@@ -1897,18 +1897,18 @@ defmodule Module.Types.Descr do
 
   defp map_non_negated_fuse(maps) do
     Enum.reduce(maps, [], fn map, acc ->
-      fuse_with_first_fusible(map, acc)
+      map_fuse_with_first_fusible(map, acc)
     end)
   end
 
-  defp fuse_with_first_fusible(map, []), do: [map]
+  defp map_fuse_with_first_fusible(map, []), do: [map]
 
-  defp fuse_with_first_fusible(map, [candidate | rest]) do
+  defp map_fuse_with_first_fusible(map, [candidate | rest]) do
     if fused = maybe_optimize_map_union(map, candidate) do
       # we found a fusible candidate, we're done
       [fused | rest]
     else
-      [candidate | fuse_with_first_fusible(map, rest)]
+      [candidate | map_fuse_with_first_fusible(map, rest)]
     end
   end
 
@@ -2286,27 +2286,19 @@ defmodule Module.Types.Descr do
 
   defp tuple_non_negated_fuse(tuples) do
     Enum.reduce(tuples, [], fn tuple, acc ->
-      case Enum.split_while(acc, &non_fusible_tuples?(tuple, &1)) do
-        {_, []} ->
-          [tuple | acc]
-
-        {others, [match | rest]} ->
-          fused = tuple_non_negated_fuse_pair(tuple, match)
-          others ++ [fused | rest]
-      end
+      tuple_fuse_with_first_fusible(tuple, acc)
     end)
   end
 
-  # Two tuples are fusible if they have no negations and differ in at most one element.
-  defp non_fusible_tuples?({_, elems1, []}, {_, elems2, []}) do
-    Enum.zip(elems1, elems2) |> Enum.count_until(fn {a, b} -> a != b end, 2) > 1
-  end
+  defp tuple_fuse_with_first_fusible(tuple, []), do: [tuple]
 
-  defp tuple_non_negated_fuse_pair({tag, elems1, []}, {_, elems2, []}) do
-    fused_elements =
-      Enum.zip_with(elems1, elems2, fn a, b -> if a == b, do: a, else: union(a, b) end)
-
-    {tag, fused_elements, []}
+  defp tuple_fuse_with_first_fusible(tuple, [candidate | rest]) do
+    if fused = maybe_optimize_tuple_union(tuple, candidate) do
+      # we found a fusible candidate, we're done
+      [fused | rest]
+    else
+      [candidate | tuple_fuse_with_first_fusible(tuple, rest)]
+    end
   end
 
   defp tuple_each_to_quoted({tag, positive_tuple, negative_tuples}, opts) do
