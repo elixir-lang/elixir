@@ -301,7 +301,7 @@ defmodule Kernel.CLI do
   end
 
   defp parse_argv([~c"--no-color" | t], config) do
-    Application.put_env(:elixir, :ansi_enabled, true)
+    Application.put_env(:elixir, :ansi_enabled, false)
     parse_argv(t, config)
   end
 
