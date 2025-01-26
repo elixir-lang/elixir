@@ -343,7 +343,7 @@ defmodule Module.Types.Descr do
   def empty?(:term), do: false
 
   def empty?(%{} = descr) do
-    case Map.get(descr, :dynamic, descr) do
+    case :maps.get(:dynamic, descr, _default = descr) do
       :term ->
         false
 
