@@ -548,6 +548,26 @@ defmodule ExUnit.DocTestTest.PatternMatching do
 end
 |> ExUnit.BeamHelpers.write_beam()
 
+defmodule ExUnit.DocTestTest.Ellipsis do
+  @doc """
+      iex> ExUnit.DocTestTest.Ellipsis.same_line_err(self())
+      ** (ArgumentError) Unexpected: ...
+  """
+  def same_line_err(arg) do
+    raise ArgumentError, message: "Unexpected: #{inspect(arg)}"
+  end
+
+  @doc """
+      iex> ExUnit.DocTestTest.Ellipsis.multi_line_err(self())
+      ** (ArgumentError) Unexpected:
+      ...
+  """
+  def multi_line_err(arg) do
+    raise ArgumentError, message: "Unexpected:\n#{inspect(arg)}"
+  end
+end
+|> ExUnit.BeamHelpers.write_beam()
+
 defmodule ExUnit.DocTestTest do
   use ExUnit.Case
 
@@ -573,6 +593,8 @@ defmodule ExUnit.DocTestTest do
 
   doctest ExUnit.DocTestTest.HaikuIndent4UsingInspectOpts,
     inspect_opts: [custom_options: [indent: 4]]
+
+  doctest ExUnit.DocTestTest.Ellipsis
 
   import ExUnit.CaptureIO
 

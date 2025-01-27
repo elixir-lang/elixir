@@ -1,5 +1,5 @@
 defmodule ExUnit.DocTest do
-  @moduledoc """
+  @moduledoc ~S"""
   Extract test cases from the documentation.
 
   Doctests allow us to generate tests from code examples found
@@ -131,7 +131,7 @@ defmodule ExUnit.DocTest do
 
   You can also showcase expressions raising an exception, for example:
 
-      iex(1)> raise "some error"
+      iex> raise "some error"
       ** (RuntimeError) some error
 
   Doctest will look for a line starting with `** (` and it will parse it
@@ -140,6 +140,19 @@ defmodule ExUnit.DocTest do
   is an empty line or there is a new expression prefixed with `iex>`.
   Therefore, it is possible to match on multiline messages as long as there
   are no empty lines on the message itself.
+
+  Asserting on the full exception message might not be possible because it is
+  non-deterministic, or it might result in brittle tests if the exact message
+  changes and gets more detailed.
+  Since Elixir 1.19.0, doctests allow the use of an ellipsis (`...`) at the
+  end of messages:
+
+      iex> raise "some error in pid: #{inspect(self())}"
+      ** (RuntimeError) some error in pid: ...
+
+      iex> raise "some error in pid:\n#{inspect(self())}"
+      ** (RuntimeError) some error in pid:
+      ...
 
   ## When not to use doctest
 
@@ -565,7 +578,7 @@ defmodule ExUnit.DocTest do
               "Doctest failed: expected exception #{inspect(exception)} but got " <>
                 "#{inspect(actual_exception)} with message #{inspect(actual_message)}"
 
-            actual_message != message ->
+            not error_message_matches?(actual_message, message) ->
               "Doctest failed: wrong message for #{inspect(actual_exception)}\n" <>
                 "expected:\n" <>
                 "  #{inspect(message)}\n" <>
@@ -585,6 +598,15 @@ defmodule ExUnit.DocTest do
         failed = "Doctest failed: expected exception #{inspect(exception)} but nothing was raised"
         error = [message: failed, doctest: doctest]
         reraise ExUnit.AssertionError, error, stack(module, maybe_source, line)
+    end
+  end
+
+  defp error_message_matches?(actual, expected) when actual == expected, do: true
+
+  defp error_message_matches?(actual, expected) do
+    case String.replace_suffix(expected, "...", "") do
+      ^expected -> false
+      ellipsis_removed -> String.starts_with?(actual, ellipsis_removed)
     end
   end
 
