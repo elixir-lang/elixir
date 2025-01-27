@@ -416,8 +416,7 @@ if not File.dir?(target) do
   File.mkdir_p!(Path.join(target, "ebin"))
   File.mkdir_p!(Path.join(target, "src"))
 
-  # This is used to test that the built-in ebin is ignored
-  # when build_embedded is true.
+  # This is used to test that the built-in ebin is ignored.
   File.write!(Path.join(target, "ebin/.unused"), """
   """)
 

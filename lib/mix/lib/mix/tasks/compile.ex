@@ -16,10 +16,6 @@ defmodule Mix.Tasks.Compile do
 
   ## Configuration
 
-    * `:build_embedded` - this option was used to copy all code and
-      priv content to the `_build` directory. However, this option no
-      longer has an effect as Elixir will now copy those at release time
-
     * `:compilers` - compilers to run, defaults to `Mix.compilers/0`,
       which are `[:erlang, :elixir, :app]`.
 

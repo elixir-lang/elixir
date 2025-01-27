@@ -983,7 +983,6 @@ defmodule Mix.Project do
   defp default_config do
     [
       aliases: [],
-      build_embedded: false,
       build_per_environment: true,
       build_scm: Mix.SCM.Path,
       config_path: "config/config.exs",
