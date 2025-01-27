@@ -1862,7 +1862,7 @@ defmodule Module.Types.Descr do
           if map_empty_negation?(tag, acc_fields, neg) do
             {acc_fields, acc_negs}
           else
-            case map_all_but_one?(tag, acc_fields, neg_tag, neg_fields) do
+            case map_all_but_one(tag, acc_fields, neg_tag, neg_fields) do
               {:one, diff_key} ->
                 {Map.update!(acc_fields, diff_key, &difference(&1, neg_fields[diff_key])),
                  acc_negs}
@@ -1913,19 +1913,20 @@ defmodule Module.Types.Descr do
   end
 
   # If all fields are the same except one, we can optimize map difference.
-  defp map_all_but_one?(tag1, fields1, tag2, fields2) do
-    keys1 = Map.keys(fields1)
-    keys2 = Map.keys(fields2)
-
-    if {tag1, tag2} == {:open, :closed} or
-         :sets.from_list(keys1, version: 2) != :sets.from_list(keys2, version: 2) do
-      :no
+  defp map_all_but_one(tag1, fields1, tag2, fields2) do
+    with true <- {tag1, tag2} != {:open, :closed},
+         true <- map_size(fields1) == map_size(fields2),
+         keys = :maps.keys(fields1),
+         true <- Enum.all?(keys, fn key -> is_map_key(fields2, key) end),
+         1 <-
+           Enum.count_until(
+             keys,
+             fn key -> Map.fetch!(fields1, key) != Map.fetch!(fields2, key) end,
+             _limit = 2
+           ) do
+      {:one, Enum.find(keys, &(Map.fetch!(fields1, &1) != Map.fetch!(fields2, &1)))}
     else
-      Enum.count(keys1, fn key -> Map.get(fields1, key) != Map.get(fields2, key) end)
-      |> case do
-        1 -> {:one, Enum.find(keys1, &(Map.get(fields1, &1) != Map.get(fields2, &1)))}
-        _ -> :no
-      end
+      _ -> :no
     end
   end
 
