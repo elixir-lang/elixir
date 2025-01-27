@@ -520,13 +520,21 @@ defmodule Mix.Task do
         shell.info(["<- Ran mix ", task, " in ", Integer.to_string(div(time, 1000)), "ms"])
         res
 
-      task in Mix.State.get(:profile, []) ->
+      opts = profile_opts_for(task) ->
         shell = Mix.shell()
         shell.info(["-> Profiling mix ", task_to_string(task, args), project_to_string(proj)])
-        Mix.Tasks.Profile.Tprof.profile(fun, warmup: false, set_on_spawn: false)
+        Mix.Tasks.Profile.Tprof.profile(fun, opts)
 
       true ->
         fun.()
+    end
+  end
+
+  defp profile_opts_for(task) do
+    {opts, tasks} = Mix.State.get(:profile, {[], []})
+
+    if task in tasks do
+      opts
     end
   end
 

@@ -56,6 +56,7 @@ defmodule Mix.Tasks.Profile.Tprof do
     * `--no-deps-check` - does not check dependencies
     * `--no-archives-check` - does not check archives
     * `--no-halt` - does not halt the system after running the command
+    * `--no-set-on-spawn` - does not profile spawned processes
     * `--no-start` - does not start applications after compilation
     * `--no-elixir-version-check` - does not check the Elixir version from mix.exs
 
@@ -159,7 +160,8 @@ defmodule Mix.Tasks.Profile.Tprof do
     archives_check: :boolean,
     warmup: :boolean,
     elixir_version_check: :boolean,
-    parallel_require: :keep
+    parallel_require: :keep,
+    set_on_spawn: :boolean
   ]
 
   @aliases [
@@ -171,7 +173,7 @@ defmodule Mix.Tasks.Profile.Tprof do
 
   @impl true
   def run(args) do
-    {opts, head} = OptionParser.parse_head!(args, aliases: @aliases, strict: @switches)
+    {opts, head} = parse!(args)
     Mix.Task.reenable("profile.tprof")
 
     Mix.Tasks.Run.run(
@@ -183,9 +185,13 @@ defmodule Mix.Tasks.Profile.Tprof do
     )
   end
 
-  defp profile_code(code_string, opts) do
-    opts = Enum.map(opts, &parse_opt/1)
+  @doc false
+  def parse!(args) do
+    {opts, args} = OptionParser.parse!(args, aliases: @aliases, strict: @switches)
+    {Enum.map(opts, &parse_opt/1), args}
+  end
 
+  defp profile_code(code_string, opts) do
     content =
       quote do
         unquote(__MODULE__).profile(

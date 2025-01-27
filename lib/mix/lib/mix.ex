@@ -360,7 +360,9 @@ defmodule Mix do
     * `MIX_PATH` - appends extra code paths
 
     * `MIX_PROFILE` - a list of comma-separated Mix tasks to profile the time spent on
-      functions by the process running the task
+      functions by the process running the task, such as `MIX_PROFILE=compile,test`.
+      You can also set `MIX_PROFILE_FLAGS` to control the flags given to profiling,
+      see `mix profile.tprof` for all options. By default, it uses `--no-warmup`.
 
     * `MIX_QUIET` - does not print information messages to the terminal
 

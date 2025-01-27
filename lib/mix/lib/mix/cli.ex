@@ -22,7 +22,15 @@ defmodule Mix.CLI do
     if env_variable_activated?("MIX_QUIET"), do: Mix.shell(Mix.Shell.Quiet)
 
     if profile = System.get_env("MIX_PROFILE") do
-      Mix.State.put(:profile, String.split(profile, ","))
+      flags = System.get_env("MIX_PROFILE_FLAGS", "")
+      {opts, args} = Mix.Tasks.Profile.Tprof.parse!(OptionParser.split(flags))
+
+      if args != [] do
+        Mix.raise("Invalid arguments given to MIX_PROFILE_FLAGS: #{inspect(args)}")
+      end
+
+      opts = Keyword.put_new(opts, :warmup, false)
+      Mix.State.put(:profile, {opts, String.split(profile, ",")})
     end
 
     case check_for_shortcuts(args) do
