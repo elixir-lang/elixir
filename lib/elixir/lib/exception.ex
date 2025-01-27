@@ -1041,7 +1041,7 @@ defmodule ArgumentError do
 
   You can raise this exception when you want to signal that an argument to
   a function is invalid. For example, this exception is raised when calling
-  `Integer.to_string/1` without an invalid argument:
+  `Integer.to_string/1` with an invalid argument:
 
       iex> Integer.to_string(1.0)
       ** (ArgumentError) errors were found at the given arguments:
