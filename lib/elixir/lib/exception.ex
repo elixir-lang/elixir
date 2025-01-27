@@ -1210,17 +1210,6 @@ defmodule SyntaxError do
     * `:column` - the column where the error occurred
     * `:description` - a description of the syntax error
 
-    if true else
-  IO.puts("This will break")
-  end
-
-  ** (SyntaxError) invalid syntax found on Desktop/important/notebook/error_handling.livemd#cell:sslzfkto2taubx37:3:1:
-    error: unexpected reserved word: end
-    │
-  3 │ end
-    │
-
-
   """
 
   defexception [:file, :line, :column, :snippet, description: "syntax error"]
