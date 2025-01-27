@@ -1381,7 +1381,7 @@ defmodule Kernel.TypespecError do
 
   will raise:
 
-      ** (Kernel.TypespecError) type strng/0 undefined
+      ** (Kernel.TypespecError) type intger/0 undefined
 
   """
 
