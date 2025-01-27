@@ -1103,7 +1103,7 @@ defmodule Module.Types.Descr do
             [{name, [], arguments} | acc]
           else
             negs
-            |> map_or(fn {ty, lst} ->
+            |> non_empty_map_or(fn {ty, lst} ->
               args =
                 if subtype?(lst, @empty_list) do
                   [to_quoted(ty, opts)]
@@ -1953,7 +1953,7 @@ defmodule Module.Types.Descr do
 
       _ ->
         negative_maps
-        |> map_or(&map_literal_to_quoted(&1, opts))
+        |> non_empty_map_or(&map_literal_to_quoted(&1, opts))
         |> Kernel.then(
           &{:and, [], [map_literal_to_quoted({tag, positive_map}, opts), {:not, [], [&1]}]}
         )
@@ -2306,7 +2306,7 @@ defmodule Module.Types.Descr do
 
       _ ->
         negative_tuples
-        |> map_or(&tuple_literal_to_quoted(&1, opts))
+        |> non_empty_map_or(&tuple_literal_to_quoted(&1, opts))
         |> Kernel.then(
           &{:and, [], [tuple_literal_to_quoted({tag, positive_tuple}, opts), {:not, [], [&1]}]}
         )
@@ -2969,7 +2969,7 @@ defmodule Module.Types.Descr do
 
   defp iterator_non_disjoint_intersection?(:none, _map), do: false
 
-  defp map_or([head | tail], fun) do
+  defp non_empty_map_or([head | tail], fun) do
     Enum.reduce(tail, fun.(head), &{:or, [], [&2, fun.(&1)]})
   end
 end
