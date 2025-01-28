@@ -439,10 +439,16 @@ defmodule Module.ParallelChecker do
 
   defp cache_chunk(table, module, exports) do
     Enum.each(exports, fn {{fun, arity}, info} ->
-      # TODO: Match on signature directly in Elixir v1.22+
+      sig =
+        case info do
+          %{sig: {:strong, _, _} = sig} -> sig
+          %{sig: {:infer, _} = sig} -> sig
+          _ -> :none
+        end
+
       :ets.insert(
         table,
-        {{module, {fun, arity}}, Map.get(info, :deprecated), Map.get(info, :sig, :none)}
+        {{module, {fun, arity}}, Map.get(info, :deprecated), sig}
       )
     end)
 
