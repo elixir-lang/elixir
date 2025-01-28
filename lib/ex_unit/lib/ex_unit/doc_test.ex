@@ -604,9 +604,11 @@ defmodule ExUnit.DocTest do
   defp error_message_matches?(actual, expected) when actual == expected, do: true
 
   defp error_message_matches?(actual, expected) do
-    case String.replace_suffix(expected, "...", "") do
-      ^expected -> false
-      ellipsis_removed -> String.starts_with?(actual, ellipsis_removed)
+    if String.ends_with?(expected, "...") do
+      ellipsis_removed = binary_slice(expected, 0..-4//1)
+      String.starts_with?(actual, ellipsis_removed)
+    else
+      false
     end
   end
 
