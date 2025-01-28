@@ -554,7 +554,7 @@ defmodule ExUnit.DocTestTest.Ellipsis do
       ** (ArgumentError) Unexpected: ...
   """
   def same_line_err(arg) do
-    raise ArgumentError, message: "Unexpected: #{inspect(arg)}"
+    raise ArgumentError, "Unexpected: #{inspect(arg)}"
   end
 
   @doc """
@@ -563,7 +563,7 @@ defmodule ExUnit.DocTestTest.Ellipsis do
       ...
   """
   def multi_line_err(arg) do
-    raise ArgumentError, message: "Unexpected:\n#{inspect(arg)}"
+    raise ArgumentError, "Unexpected:\n#{inspect(arg)}"
   end
 
   @doc """
@@ -571,7 +571,7 @@ defmodule ExUnit.DocTestTest.Ellipsis do
       ** (ArgumentError) :foo ...
   """
   def triple_dot_err(arg) do
-    raise ArgumentError, message: "#{inspect(arg)} ..."
+    raise ArgumentError, "#{inspect(arg)} ..."
   end
 end
 |> ExUnit.BeamHelpers.write_beam()
