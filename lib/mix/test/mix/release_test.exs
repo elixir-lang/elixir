@@ -80,6 +80,11 @@ defmodule Mix.ReleaseTest do
       assert release.applications.kernel[:otp_app?]
     end
 
+    test "does not include erts in applications" do
+      release = from_config!(nil, config(releases: [foo: [applications: [erts: :permanent]]]), [])
+      assert release.applications[:erts] == nil
+    end
+
     test "allows release to be given as an anonymous function" do
       release = from_config!(:foo, config(releases: [foo: fn -> [version: "0.2.0"] end]), [])
       assert release.name == :foo
