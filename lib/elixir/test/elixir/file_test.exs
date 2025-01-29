@@ -1146,6 +1146,28 @@ defmodule FileTest do
         File.mkdir_p!(invalid)
       end
     end
+
+    @tag :unix
+    test "mkdir_p with non-accessible parent directory" do
+      fixture = tmp_path("tmp_test_parent")
+
+      try do
+        refute File.exists?(fixture)
+        assert File.mkdir_p!(fixture) == :ok
+        %File.Stat{mode: orig_mode} = File.stat!(fixture)
+        assert File.chmod!(fixture, 0o000) == :ok
+
+        child = Path.join(fixture, "child")
+        refute File.exists?(child)
+
+        assert File.mkdir_p(child) == {:error, :eacces}
+        refute File.exists?(child)
+
+        assert File.chmod!(fixture, orig_mode) == :ok
+      after
+        File.rm_rf(fixture)
+      end
+    end
   end
 
   describe "rm" do
