@@ -219,6 +219,16 @@ defmodule Process do
 
   Inlined by the compiler.
 
+  > #### Differences to `Kernel.exit/1` {: .info }
+  >
+  > The functions `Kernel.exit/1` and `Process.exit/2` are
+  > named similarly but provide very different functionalities. The
+  > `Kernel:exit/1` function should be used when the intent is to stop the current
+  > process while `Process.exit/2` should be used when the intent is to send an
+  > exit signal to another process. Note also that `Kernel.exit/1` can be caught
+  > with `try/1` while `Process.exit/2` can only be handled by trapping exits and
+  > when the signal is different than `:kill`.
+
   ## Examples
 
       Process.exit(pid, :kill)
