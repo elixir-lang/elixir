@@ -67,7 +67,7 @@ defmodule Mix.Tasks.Cmd do
       |> Enum.map(&String.to_atom/1)
 
     if apps != [] do
-      IO.warn("the --app in mix cmd is deprecated")
+      IO.warn("the --app in mix cmd is deprecated. Use mix do --app instead.")
     end
 
     if apps == [] or Mix.Project.config()[:app] in apps do
