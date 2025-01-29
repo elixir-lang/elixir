@@ -219,7 +219,7 @@ defmodule Process do
 
   Inlined by the compiler.
 
-  > #### Note {: .info }
+  > #### Differences to `Kernel.exit/1` {: .info }
   >
   > The functions `Kernel.exit/1` and `Process.exit/2` are
   > named similarly but provide very different functionalities. The
