@@ -393,6 +393,7 @@ defmodule TypespecTest do
           @type size :: <<_::3>>
           @type unit :: <<_::_*8>>
           @type size_and_unit :: <<_::3, _::_*8>>
+          @type size_prod_unit :: <<_::3*8>>
         end
 
       assert [
@@ -401,17 +402,15 @@ defmodule TypespecTest do
                type: {:size, {:type, _, :binary, [{:integer, _, 3}, {:integer, _, 0}]}, []},
                type:
                  {:size_and_unit, {:type, _, :binary, [{:integer, _, 3}, {:integer, _, 8}]}, []},
+               type:
+                 {:size_prod_unit,
+                  {:type, _, :binary,
+                   [{:op, _, :*, {:integer, _, 3}, {:integer, _, 8}}, {:integer, _, 0}]}, []},
                type: {:unit, {:type, _, :binary, [{:integer, _, 0}, {:integer, _, 8}]}, []}
              ] = types(bytecode)
     end
 
     test "@type with invalid binary spec" do
-      assert_raise Kernel.TypespecError, ~r"invalid binary specification", fn ->
-        test_module do
-          @type my_type :: <<_::3*8>>
-        end
-      end
-
       assert_raise Kernel.TypespecError, ~r"invalid binary specification", fn ->
         test_module do
           @type my_type :: <<_::atom()>>
@@ -1217,6 +1216,7 @@ defmodule TypespecTest do
           quote(do: @type(binary_type1() :: <<_::_*8>>)),
           quote(do: @type(binary_type2() :: <<_::3>>)),
           quote(do: @type(binary_type3() :: <<_::3, _::_*8>>)),
+          quote(do: @type(binary_type4() :: <<_::3*8>>)),
           quote(do: @type(tuple_type() :: {integer()})),
           quote(do: @type(ftype() :: (-> any()) | (-> integer()) | (integer() -> integer()))),
           quote(do: @type(cl() :: charlist())),

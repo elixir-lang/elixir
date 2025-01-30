@@ -493,6 +493,24 @@ defmodule Kernel.Typespec do
      state}
   end
 
+  defp typespec(
+         {:<<>>, meta, [{:"::", _, [{:_, _, ctx1}, {:*, prod_meta, [size, unit]}]}]},
+         _,
+         _,
+         state
+       )
+       when is_atom(ctx1) and is_integer(size) and size >= 0 and unit in 1..256 do
+    location = location(meta)
+    prod_location = location(prod_meta)
+
+    {{:type, location, :binary,
+      [
+        {:op, prod_location, :*, {:integer, prod_location, size},
+         {:integer, prod_location, unit}},
+        {:integer, location, 0}
+      ]}, state}
+  end
+
   defp typespec({:<<>>, meta, [{:"::", size_meta, [{:_, _, ctx}, size]}]}, _, _, state)
        when is_atom(ctx) and is_integer(size) and size >= 0 do
     location = location(meta)
