@@ -283,7 +283,6 @@ defmodule Code.Typespec do
   end
 
   defp typespec_to_quoted({:type, anno, :binary, [arg1, arg2]}) do
-    [arg1, arg2] = for arg <- [arg1, arg2], do: typespec_to_quoted(arg)
     line = meta(anno)[:line]
 
     case {typespec_to_quoted(arg1), typespec_to_quoted(arg2)} do
@@ -329,8 +328,12 @@ defmodule Code.Typespec do
     {erl_to_ex_var(var), meta(anno), nil}
   end
 
-  defp typespec_to_quoted({:op, anno, op, arg}) do
+  defp typespec_to_quoted({:op, anno, op, arg}) when op in [:+, :-] do
     {op, meta(anno), [typespec_to_quoted(arg)]}
+  end
+
+  defp typespec_to_quoted({:op, anno, :*, arg1, arg2}) do
+    {:*, meta(anno), [typespec_to_quoted(arg1), typespec_to_quoted(arg2)]}
   end
 
   defp typespec_to_quoted({:remote_type, anno, [mod, name, args]}) do
