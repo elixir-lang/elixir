@@ -310,24 +310,23 @@ defmodule File do
   end
 
   defp do_mkdir_p(path) do
-    if dir?(path) do
+    parent = Path.dirname(path)
+
+    if parent == path do
       :ok
     else
-      parent = Path.dirname(path)
+      case do_mkdir_p(parent) do
+        :ok ->
+          case :file.make_dir(path) do
+            {:error, :eexist} ->
+              if dir?(path), do: :ok, else: {:error, :enotdir}
 
-      if parent == path do
-        # Protect against infinite loop
-        {:error, :einval}
-      else
-        _ = do_mkdir_p(parent)
+            other ->
+              other
+          end
 
-        case :file.make_dir(path) do
-          {:error, :eexist} = error ->
-            if dir?(path), do: :ok, else: error
-
-          other ->
-            other
-        end
+        e ->
+          e
       end
     end
   end
