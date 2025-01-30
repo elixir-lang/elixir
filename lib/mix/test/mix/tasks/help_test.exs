@@ -191,6 +191,52 @@ defmodule Mix.Tasks.HelpTest do
     end)
   end
 
+  test "help Elixir MODULE", context do
+    in_tmp(context.test, fn ->
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["Mix"])
+        end)
+
+      assert output =~
+               "Mix is a build tool that provides tasks for creating, compiling, and testing\nElixir projects, managing its dependencies, and more."
+    end)
+  end
+
+  test "help Erlang MODULE", context do
+    in_tmp(context.test, fn ->
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run([":math"])
+        end)
+
+      assert output =~ "This module provides an interface to a number of mathematical functions."
+    end)
+  end
+
+  test "help FUNCTION/0", context do
+    in_tmp(context.test, fn ->
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["DateTime.utc_now()"])
+        end)
+
+      assert output =~ "Returns the current datetime in UTC"
+    end)
+  end
+
+  test "help FUNCTION/1", context do
+    in_tmp(context.test, fn ->
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["Enum.all?/1"])
+        end)
+
+      assert output =~
+               "Returns \e[36mtrue\e[0m if all elements in \e[36menumerable\e[0m are truthy"
+    end)
+  end
+
   test "help --search PATTERN", context do
     in_tmp(context.test, fn ->
       Mix.Tasks.Help.run(["--search", "deps"])

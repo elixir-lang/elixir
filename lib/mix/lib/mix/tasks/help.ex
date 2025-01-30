@@ -94,13 +94,22 @@ defmodule Mix.Tasks.Help do
     Mix.raise("Unexpected arguments, expected \"mix help --search PATTERN\"")
   end
 
-  def run([task]) do
-    loadpaths!()
-    opts = Application.get_env(:mix, :colors)
-    opts = [width: width(), enabled: ansi_docs?(opts)] ++ opts
+  def run([task_or_module]) do
+    if Regex.match?(~r/(:|[A-Z]).*/, task_or_module) do
+      task_or_module
+      |> Code.string_to_quoted!()
+      |> IEx.Introspection.decompose(__ENV__)
+      |> Code.eval_quoted()
+      |> elem(0)
+      |> IEx.Introspection.h()
+    else
+      loadpaths!()
+      opts = Application.get_env(:mix, :colors)
+      opts = [width: width(), enabled: ansi_docs?(opts)] ++ opts
 
-    for doc <- verbose_doc(task) do
-      print_doc(task, doc, opts)
+      for doc <- verbose_doc(task_or_module) do
+        print_doc(task_or_module, doc, opts)
+      end
     end
 
     :ok
