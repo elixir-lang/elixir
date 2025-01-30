@@ -1867,7 +1867,10 @@ defmodule Mix.Tasks.Compile.ElixirTest do
         """)
 
         Mix.Project.push(MixTest.Case.Sample)
-        assert Mix.Tasks.Compile.run([]) == {:ok, []}
+
+        # At this point, it may or may not emit warnings, but we don't care,
+        # we validate both scenarios next.
+        assert {:ok, _} = Mix.Tasks.Compile.run([])
         assert is_function(Collectable.into(struct(A, [])), 2)
 
         purge([A, B, Collectable.A])
