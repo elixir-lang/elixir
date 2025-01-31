@@ -96,6 +96,10 @@ defmodule Mix.Tasks.Help do
 
   def run([task_or_module]) do
     if Regex.match?(~r/(:|[A-Z]).*/, task_or_module) do
+      if Mix.Project.get() do
+        Mix.Tasks.Compile.run([])
+      end
+
       task_or_module
       |> Code.string_to_quoted!()
       |> IEx.Introspection.decompose(__ENV__)
