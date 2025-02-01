@@ -203,6 +203,17 @@ defmodule Mix.Tasks.HelpTest do
     end)
   end
 
+  test "help Elixir NESTED MODULE", context do
+    in_tmp(context.test, fn ->
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["IO.ANSI"])
+        end)
+
+      assert output =~ "Functionality to render ANSI escape sequences."
+    end)
+  end
+
   test "help Erlang MODULE", context do
     otp_docs? = match?({:docs_v1, _, _, _, _, _, _}, Code.fetch_docs(:math))
 
@@ -239,8 +250,18 @@ defmodule Mix.Tasks.HelpTest do
           Mix.Tasks.Help.run(["Enum.all?/1"])
         end)
 
-      assert output =~
-               "Returns \e[36mtrue\e[0m if all elements in \e[36menumerable\e[0m are truthy"
+      assert output =~ "Returns `true` if all elements in `enumerable` are truthy."
+    end)
+  end
+
+  test "help NESTED MODULE FUNCTION/3", context do
+    in_tmp(context.test, fn ->
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["IO.ANSI.color/3"])
+        end)
+
+      assert output =~ "Sets the foreground color from individual RGB values"
     end)
   end
 
