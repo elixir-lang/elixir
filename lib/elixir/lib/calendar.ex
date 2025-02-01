@@ -977,7 +977,7 @@ defmodule Calendar do
   defp apply_format(term, formatter, datetime) when is_function(formatter, 2) do
     formatter.(term, datetime)
   end
-  
+
   defp apply_format(_term, formatter, _datetime) do
     raise ArgumentError, "formatter functions must be of arity 1 or 2, got: #{inspect(formatter)}"
   end
