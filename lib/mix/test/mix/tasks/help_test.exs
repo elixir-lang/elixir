@@ -204,13 +204,20 @@ defmodule Mix.Tasks.HelpTest do
   end
 
   test "help Erlang MODULE", context do
+    otp_docs? = match?({:docs_v1, _, _, _, _, _, _}, Code.fetch_docs(:math))
+
     in_tmp(context.test, fn ->
       output =
         capture_io(fn ->
           Mix.Tasks.Help.run([":math"])
         end)
 
-      assert output =~ "This module provides an interface to a number of mathematical functions."
+      if otp_docs? do
+        assert output =~
+                 "This module provides an interface to a number of mathematical functions."
+      else
+        assert output =~ ":math was not compiled with docs"
+      end
     end)
   end
 
