@@ -175,7 +175,8 @@ defmodule Logger.Formatter do
       warning: Keyword.get(colors, :warning, :yellow),
       notice: Keyword.get(colors, :info, :normal),
       info: Keyword.get(colors, :info, :normal),
-      debug: Keyword.get(colors, :debug, :cyan)
+      debug: Keyword.get(colors, :debug, :cyan),
+      enabled: Keyword.get(colors, :enabled, &IO.ANSI.enabled?/0)
     }
   end
 
@@ -221,12 +222,14 @@ defmodule Logger.Formatter do
 
   defp format_fa(fun, arity), do: [Atom.to_string(fun), "/", Integer.to_string(arity)]
 
-  defp colorize(data, level, colors, md) do
-    if Map.get_lazy(colors, :enabled, &IO.ANSI.enabled?/0) do
-      color = md[:ansi_color] || Map.fetch!(colors, level)
-      [IO.ANSI.format_fragment(color, true), data | IO.ANSI.reset()]
-    else
-      data
+  defp colorize(data, level, %{enabled: enabled} = colors, md) do
+    case if(is_function(enabled, 0), do: enabled.(), else: enabled) do
+      true ->
+        color = md[:ansi_color] || Map.fetch!(colors, level)
+        [IO.ANSI.format_fragment(color, true), data | IO.ANSI.reset()]
+
+      false ->
+        data
     end
   end
 
