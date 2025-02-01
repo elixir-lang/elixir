@@ -397,6 +397,39 @@ defmodule CalendarTest do
              ) == "четверг ЧТВ P Agosto Ago % 02019-08-15 07: 1757"
     end
 
+    test "formats according to custom configs with 2-arity functions" do
+      assert Calendar.strftime(
+               ~U[2019-08-15 17:07:57.001Z],
+               "%A %a %p %B %b %c %x %X",
+               am_pm_names: fn
+                 :am, ~U[2019-08-15 17:07:57.001Z] -> "a"
+                 :pm, ~U[2019-08-15 17:07:57.001Z] -> "p"
+               end,
+               month_names: fn month, ~U[2019-08-15 17:07:57.001Z] ->
+                 {"Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto",
+                  "Setembro", "Outubro", "Novembro", "Dezembro"}
+                 |> elem(month - 1)
+               end,
+               day_of_week_names: fn day_of_week, ~U[2019-08-15 17:07:57.001Z] ->
+                 {"понедельник", "вторник", "среда", "четверг", "пятница", "суббота",
+                  "воскресенье"}
+                 |> elem(day_of_week - 1)
+               end,
+               abbreviated_month_names: fn month, ~U[2019-08-15 17:07:57.001Z] ->
+                 {"Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov",
+                  "Dez"}
+                 |> elem(month - 1)
+               end,
+               abbreviated_day_of_week_names: fn day_of_week, ~U[2019-08-15 17:07:57.001Z] ->
+                 {"ПНД", "ВТР", "СРД", "ЧТВ", "ПТН", "СБТ", "ВСК"}
+                 |> elem(day_of_week - 1)
+               end,
+               preferred_date: "%05Y-%m-%d",
+               preferred_time: "%M:%_3H%S",
+               preferred_datetime: "%%"
+             ) == "четверг ЧТВ P Agosto Ago % 02019-08-15 07: 1757"
+    end
+
     test "raises on unknown option according to custom configs" do
       assert_raise ArgumentError, "unknown option :unknown given to Calendar.strftime/3", fn ->
         Calendar.strftime(~D[2019-08-15], "%D", unknown: "option")
