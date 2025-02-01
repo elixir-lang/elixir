@@ -970,17 +970,16 @@ defmodule Calendar do
   defp do_pad_leading(count, padding, acc),
     do: do_pad_leading(count - 1, padding, [padding | acc])
 
-  defp apply_format(term, formatter, datetime) do
-    case Function.info(formatter, :arity) do
-      {:arity, 1} ->
-        formatter.(term)
+  defp apply_format(term, formatter, _datetime) when is_function(formatter, 1) do
+    formatter.(term)
+  end
 
-      {:arity, 2} ->
-        formatter.(term, datetime)
-
-      {:arity, n} ->
-        raise ArgumentError, "Formatter funtion must be of arity 1 or 2. Found #{inspect(n)}"
-    end
+  defp apply_format(term, formatter, datetime) when is_function(formatter, 2) do
+    formatter.(term, datetime)
+  end
+  
+  defp apply_format(_term, formatter, _datetime) do
+    raise ArgumentError, "formatter functions must be of arity 1 or 2, got: #{inspect(formatter)}"
   end
 
   defp options(user_options) do
