@@ -106,8 +106,6 @@ defmodule Mix.Tasks.Help do
       module
       |> Code.string_to_quoted!()
       |> IEx.Introspection.decompose(__ENV__)
-      |> Code.eval_quoted()
-      |> elem(0)
       |> IEx.Introspection.h()
     after
       Application.put_env(:iex, :colors, iex_colors)
