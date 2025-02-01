@@ -64,7 +64,7 @@ defmodule Logger.FormatterTest do
         )
 
       assert %{
-               level: :warn,
+               level: :warning,
                msg: {:string, "foo"},
                meta: %{
                  mfa: {Logger.Formatter, :compile, 1}
@@ -83,7 +83,7 @@ defmodule Logger.FormatterTest do
         )
 
       assert %{
-               level: :warn,
+               level: :warning,
                msg: {:string, "message"},
                meta: %{
                  mfa: {Logger.Formatter, :compile, 1},
