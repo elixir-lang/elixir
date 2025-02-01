@@ -94,26 +94,33 @@ defmodule Mix.Tasks.Help do
     Mix.raise("Unexpected arguments, expected \"mix help --search PATTERN\"")
   end
 
-  def run([task_or_module]) do
-    if Regex.match?(~r/(:|[A-Z]).*/, task_or_module) do
-      if Mix.Project.get() do
-        Mix.Tasks.Compile.run([])
-      end
+  def run([module = <<first, _::binary>>]) when first in ?A..?Z or first == ?: do
+    loadpaths!()
 
-      task_or_module
+    iex_colors = Application.get_env(:iex, :colors, [])
+    mix_colors = Application.get_env(:mix, :colors, [])
+
+    try do
+      Application.put_env(:iex, :colors, mix_colors)
+
+      module
       |> Code.string_to_quoted!()
       |> IEx.Introspection.decompose(__ENV__)
       |> Code.eval_quoted()
       |> elem(0)
       |> IEx.Introspection.h()
-    else
-      loadpaths!()
-      opts = Application.get_env(:mix, :colors)
-      opts = [width: width(), enabled: ansi_docs?(opts)] ++ opts
+    after
+      Application.put_env(:iex, :colors, iex_colors)
+    end
+  end
 
-      for doc <- verbose_doc(task_or_module) do
-        print_doc(task_or_module, doc, opts)
-      end
+  def run([task]) do
+    loadpaths!()
+    opts = Application.get_env(:mix, :colors)
+    opts = [width: width(), enabled: ansi_docs?(opts)] ++ opts
+
+    for doc <- verbose_doc(task) do
+      print_doc(task, doc, opts)
     end
 
     :ok
