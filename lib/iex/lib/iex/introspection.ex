@@ -17,7 +17,7 @@ defmodule IEx.Introspection do
     Macro.expand(module, context)
   end
 
-  def decompose({:/, _, [call, arity]} = term, context) do
+  def decompose({:/, _, [call, arity]}, context) do
     case Macro.decompose_call(call) do
       {_mod, :__info__, []} when arity == 1 ->
         {Module, :__info__, 1}
@@ -29,7 +29,7 @@ defmodule IEx.Introspection do
         {find_decompose_fun_arity(fun, arity, context), fun, arity}
 
       _ ->
-        term
+        :error
     end
   end
 
@@ -44,7 +44,7 @@ defmodule IEx.Introspection do
             {find_decompose_fun_arity(maybe_sigil, 2, context), maybe_sigil, 2}
 
           _ ->
-            call
+            :error
         end
 
       {mod, fun, []} ->
@@ -54,7 +54,7 @@ defmodule IEx.Introspection do
         {find_decompose_fun(fun, context), fun}
 
       _ ->
-        call
+        :error
     end
   end
 

@@ -333,7 +333,7 @@ defmodule IEx.Helpers do
   """
   defmacro open(term) do
     quote do
-      IEx.Introspection.open(unquote(Macro.escape(IEx.Introspection.decompose(term, __CALLER__))))
+      IEx.Introspection.open(unquote(decompose(term, __CALLER__)))
     end
   end
 
@@ -362,7 +362,7 @@ defmodule IEx.Helpers do
   """
   defmacro h(term) do
     quote do
-      IEx.Introspection.h(unquote(Macro.escape(IEx.Introspection.decompose(term, __CALLER__))))
+      IEx.Introspection.h(unquote(decompose(term, __CALLER__)))
     end
   end
 
@@ -381,7 +381,7 @@ defmodule IEx.Helpers do
   """
   defmacro b(term) do
     quote do
-      IEx.Introspection.b(unquote(Macro.escape(IEx.Introspection.decompose(term, __CALLER__))))
+      IEx.Introspection.b(unquote(decompose(term, __CALLER__)))
     end
   end
 
@@ -406,7 +406,7 @@ defmodule IEx.Helpers do
   """
   defmacro t(term) do
     quote do
-      IEx.Introspection.t(unquote(Macro.escape(IEx.Introspection.decompose(term, __CALLER__))))
+      IEx.Introspection.t(unquote(decompose(term, __CALLER__)))
     end
   end
 
@@ -551,6 +551,13 @@ defmodule IEx.Helpers do
     end
 
     dont_display_result()
+  end
+
+  defp decompose(term, context) do
+    case IEx.Introspection.decompose(term, context) do
+      :error -> term
+      m_mf_mfa -> Macro.escape(m_mf_mfa)
+    end
   end
 
   # Given any "term", this function returns all the protocols in

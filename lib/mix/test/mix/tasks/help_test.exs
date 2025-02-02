@@ -265,6 +265,12 @@ defmodule Mix.Tasks.HelpTest do
     end)
   end
 
+  test "help ERROR" do
+    assert_raise Mix.Error, "Invalid expression: Foo.bar(~s[baz])", fn ->
+      Mix.Tasks.Help.run(["Foo.bar(~s[baz])"])
+    end
+  end
+
   test "help --search PATTERN", context do
     in_tmp(context.test, fn ->
       Mix.Tasks.Help.run(["--search", "deps"])

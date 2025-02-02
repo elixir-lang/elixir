@@ -106,6 +106,10 @@ defmodule Mix.Tasks.Help do
       module
       |> Code.string_to_quoted!()
       |> IEx.Introspection.decompose(__ENV__)
+      |> case do
+        :error -> Mix.raise("Invalid expression: #{module}")
+        decomposition -> decomposition
+      end
       |> IEx.Introspection.h()
     after
       Application.put_env(:iex, :colors, iex_colors)
