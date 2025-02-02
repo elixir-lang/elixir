@@ -94,6 +94,28 @@ defmodule Mix.Tasks.Help do
     Mix.raise("Unexpected arguments, expected \"mix help --search PATTERN\"")
   end
 
+  def run([module = <<first, _::binary>>]) when first in ?A..?Z or first == ?: do
+    loadpaths!()
+
+    iex_colors = Application.get_env(:iex, :colors, [])
+    mix_colors = Application.get_env(:mix, :colors, [])
+
+    try do
+      Application.put_env(:iex, :colors, mix_colors)
+
+      module
+      |> Code.string_to_quoted!()
+      |> IEx.Introspection.decompose(__ENV__)
+      |> case do
+        :error -> Mix.raise("Invalid expression: #{module}")
+        decomposition -> decomposition
+      end
+      |> IEx.Introspection.h()
+    after
+      Application.put_env(:iex, :colors, iex_colors)
+    end
+  end
+
   def run([task]) do
     loadpaths!()
     opts = Application.get_env(:mix, :colors)

@@ -191,6 +191,86 @@ defmodule Mix.Tasks.HelpTest do
     end)
   end
 
+  test "help Elixir MODULE", context do
+    in_tmp(context.test, fn ->
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["Mix"])
+        end)
+
+      assert output =~
+               "Mix is a build tool that provides tasks for creating, compiling, and testing\nElixir projects, managing its dependencies, and more."
+    end)
+  end
+
+  test "help Elixir NESTED MODULE", context do
+    in_tmp(context.test, fn ->
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["IO.ANSI"])
+        end)
+
+      assert output =~ "Functionality to render ANSI escape sequences."
+    end)
+  end
+
+  test "help Erlang MODULE", context do
+    otp_docs? = match?({:docs_v1, _, _, _, _, _, _}, Code.fetch_docs(:math))
+
+    in_tmp(context.test, fn ->
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run([":math"])
+        end)
+
+      if otp_docs? do
+        assert output =~
+                 "This module provides an interface to a number of mathematical"
+      else
+        assert output =~ ":math was not compiled with docs"
+      end
+    end)
+  end
+
+  test "help FUNCTION/0", context do
+    in_tmp(context.test, fn ->
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["DateTime.utc_now()"])
+        end)
+
+      assert output =~ "Returns the current datetime in UTC"
+    end)
+  end
+
+  test "help FUNCTION/1", context do
+    in_tmp(context.test, fn ->
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["Enum.all?/1"])
+        end)
+
+      assert output =~ "Returns `true` if all elements in `enumerable` are truthy."
+    end)
+  end
+
+  test "help NESTED MODULE FUNCTION/3", context do
+    in_tmp(context.test, fn ->
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["IO.ANSI.color/3"])
+        end)
+
+      assert output =~ "Sets the foreground color from individual RGB values"
+    end)
+  end
+
+  test "help ERROR" do
+    assert_raise Mix.Error, "Invalid expression: Foo.bar(~s[baz])", fn ->
+      Mix.Tasks.Help.run(["Foo.bar(~s[baz])"])
+    end
+  end
+
   test "help --search PATTERN", context do
     in_tmp(context.test, fn ->
       Mix.Tasks.Help.run(["--search", "deps"])

@@ -11,44 +11,50 @@ defmodule IEx.Introspection do
   Decomposes an introspection call into `{mod, fun, arity}`,
   `{mod, fun}` or `mod`.
   """
-  def decompose({:/, _, [call, arity]} = term, context) do
+  def decompose(atom, _context) when is_atom(atom), do: atom
+
+  def decompose({:__aliases__, _, _} = module, context) do
+    Macro.expand(module, context)
+  end
+
+  def decompose({:/, _, [call, arity]}, context) do
     case Macro.decompose_call(call) do
       {_mod, :__info__, []} when arity == 1 ->
-        {:{}, [], [Module, :__info__, 1]}
+        {Module, :__info__, 1}
 
       {mod, fun, []} ->
-        {:{}, [], [mod, fun, arity]}
+        {Macro.expand(mod, context), fun, arity}
 
       {fun, []} ->
-        {:{}, [], [find_decompose_fun_arity(fun, arity, context), fun, arity]}
+        {find_decompose_fun_arity(fun, arity, context), fun, arity}
 
       _ ->
-        term
+        :error
     end
   end
 
   def decompose(call, context) do
     case Macro.decompose_call(call) do
       {_mod, :__info__, []} ->
-        Macro.escape({Module, :__info__, 1})
-
-      {mod, fun, []} ->
-        {mod, fun}
+        {Module, :__info__, 1}
 
       {maybe_sigil, [_, _]} ->
         case Atom.to_string(maybe_sigil) do
           "sigil_" <> _ ->
-            {:{}, [], [find_decompose_fun_arity(maybe_sigil, 2, context), maybe_sigil, 2]}
+            {find_decompose_fun_arity(maybe_sigil, 2, context), maybe_sigil, 2}
 
           _ ->
-            call
+            :error
         end
+
+      {mod, fun, []} ->
+        {Macro.expand(mod, context), fun}
 
       {fun, []} ->
         {find_decompose_fun(fun, context), fun}
 
       _ ->
-        call
+        :error
     end
   end
 
