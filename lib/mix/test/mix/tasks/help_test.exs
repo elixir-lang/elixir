@@ -225,7 +225,7 @@ defmodule Mix.Tasks.HelpTest do
 
       if otp_docs? do
         assert output =~
-                 "This module provides an interface to a number of mathematical functions."
+                 "This module provides an interface to a number of mathematical"
       else
         assert output =~ ":math was not compiled with docs"
       end
