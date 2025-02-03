@@ -94,6 +94,8 @@ defmodule Mix.Tasks.Help do
     Mix.raise("Unexpected arguments, expected \"mix help --search PATTERN\"")
   end
 
+  @compile {:no_warn_undefined, IEx.Introspection}
+
   def run([module = <<first, _::binary>>]) when first in ?A..?Z or first == ?: do
     loadpaths!()
 
