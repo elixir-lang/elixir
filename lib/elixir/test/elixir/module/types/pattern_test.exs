@@ -149,17 +149,13 @@ defmodule Module.Types.PatternTest do
 
       assert typeerror!([m = 123], %^m{} = %Point{}) ==
                ~l"""
-               incompatible types in expression:
+               expected an atom as struct name:
 
                    %^m{}
 
                got type:
 
                    integer()
-
-               but expected type:
-
-                   atom()
 
                where "m" was given the type:
 
@@ -314,17 +310,13 @@ defmodule Module.Types.PatternTest do
     test "size error" do
       assert typeerror!([<<x::float, _::size(x)>>], :ok) ==
                ~l"""
-               incompatible types in expression:
+               expected an integer in binary size:
 
                    size(x)
 
                got type:
 
                    float()
-
-               but expected type:
-
-                   integer()
 
                where "x" was given the type:
 

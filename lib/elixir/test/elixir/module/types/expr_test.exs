@@ -415,7 +415,7 @@ defmodule Module.Types.ExprTest do
     test "warnings" do
       assert typeerror!([<<x::binary-size(2)>>], <<x::float>>) ==
                ~l"""
-               incompatible types in expression:
+               incompatible types in binary construction:
 
                    <<x::float>>
 
@@ -436,7 +436,7 @@ defmodule Module.Types.ExprTest do
 
       assert typeerror!([<<x::binary>>], <<x>>) ==
                ~l"""
-               incompatible types in expression:
+               incompatible types in binary construction:
 
                    <<x>>
 
@@ -459,7 +459,7 @@ defmodule Module.Types.ExprTest do
 
       assert typeerror!([<<x>>], <<x::binary>>) ==
                ~l"""
-               incompatible types in expression:
+               incompatible types in binary construction:
 
                    <<x::binary>>
 
@@ -488,17 +488,13 @@ defmodule Module.Types.ExprTest do
     test "size error" do
       assert typeerror!([<<x::binary>>, y], <<y::size(x)>>) ==
                ~l"""
-               incompatible types in expression:
+               expected an integer in binary size:
 
                    size(x)
 
                got type:
 
                    binary()
-
-               but expected type:
-
-                   integer()
 
                where "x" was given the type:
 

@@ -389,22 +389,25 @@ defmodule Module.Types.Of do
     type = specifier_type(kind, right)
     expr = {:<<>>, meta, args}
 
-    {_type, context} =
+    {actual, context} =
       case kind do
         :match ->
           Module.Types.Pattern.of_match_var(left, type, expr, stack, context)
 
         :guard ->
-          {actual, context} = Module.Types.Pattern.of_guard(left, type, expr, stack, context)
-          compatible(actual, type, expr, stack, context)
+          Module.Types.Pattern.of_guard(left, type, expr, stack, context)
 
         :expr ->
           left = annotate_interpolation(left, right)
-          {actual, context} = Module.Types.Expr.of_expr(left, type, expr, stack, context)
-          compatible(actual, type, expr, stack, context)
+          Module.Types.Expr.of_expr(left, type, expr, stack, context)
       end
 
-    specifier_size(kind, right, stack, context)
+    if compatible?(actual, type) do
+      specifier_size(kind, right, stack, context)
+    else
+      error = {:badbinary, kind, meta, expr, type, actual, context}
+      error(error, meta, stack, context)
+    end
   end
 
   defp annotate_interpolation(
@@ -441,19 +444,26 @@ defmodule Module.Types.Of do
   defp specifier_size(:expr, {:size, _, [arg]} = expr, stack, context)
        when not is_integer(arg) do
     {actual, context} = Module.Types.Expr.of_expr(arg, integer(), expr, stack, context)
-    {_, context} = compatible(actual, integer(), expr, stack, context)
-    context
+    compatible_size(actual, expr, stack, context)
   end
 
   defp specifier_size(_pattern_or_guard, {:size, _, [arg]} = expr, stack, context)
        when not is_integer(arg) do
     {actual, context} = Module.Types.Pattern.of_guard(arg, integer(), expr, stack, context)
-    {_, context} = compatible(actual, integer(), expr, stack, context)
-    context
+    compatible_size(actual, expr, stack, context)
   end
 
   defp specifier_size(_kind, _specifier, _stack, context) do
     context
+  end
+
+  defp compatible_size(actual, expr, stack, context) do
+    if compatible?(actual, integer()) do
+      context
+    else
+      error = {:badsize, expr, actual, context}
+      error(error, elem(expr, 1), stack, context)
+    end
   end
 
   ## Modules
@@ -474,38 +484,11 @@ defmodule Module.Types.Of do
     end
   end
 
-  ## Warning helpers
-
-  @doc """
-  Checks if two types are compatible and emit an incompatible error if not.
-  """
-  # TODO: Consider getting rid of this and emitting precise errors instead.
-  def compatible(actual, expected, expr, stack, context) do
-    if compatible?(actual, expected) do
-      {actual, context}
-    else
-      {error_type(), incompatible_error(expr, expected, actual, stack, context)}
-    end
-  end
-
-  @doc """
-  Emits incompatible types warning for the given expression.
-
-  This is a generic warning for when the expected/actual types
-  themselves may come from several different circumstances.
-  """
-  def incompatible_error(expr, expected_type, actual_type, stack, context) do
-    meta = get_meta(expr) || stack.meta
-    hints = if meta[:inferred_bitstring_spec], do: [:inferred_bitstring_spec], else: []
-    warning = {:incompatible, expr, expected_type, actual_type, hints, context}
-    error(warning, meta, stack, context)
-  end
+  ## Warning
 
   defp error(warning, meta, stack, context) do
     error(__MODULE__, warning, meta, stack, context)
   end
-
-  ## Warning formatting
 
   def format_diagnostic({:refine_head_var, old_type, new_type, var, context}) do
     traces = collect_traces(var, context)
@@ -524,7 +507,9 @@ defmodule Module.Types.Of do
     }
   end
 
-  def format_diagnostic({:incompatible, expr, expected_type, actual_type, hints, context}) do
+  def format_diagnostic({:badbinary, kind, meta, expr, expected_type, actual_type, context}) do
+    type = if kind == :match, do: "matching", else: "construction"
+    hints = if meta[:inferred_bitstring_spec], do: [:inferred_bitstring_spec], else: []
     traces = collect_traces(expr, context)
 
     %{
@@ -532,7 +517,7 @@ defmodule Module.Types.Of do
       message:
         IO.iodata_to_binary([
           """
-          incompatible types in expression:
+          incompatible types in binary #{type}:
 
               #{expr_to_string(expr) |> indent(4)}
 
@@ -546,6 +531,27 @@ defmodule Module.Types.Of do
           """,
           format_traces(traces),
           format_hints(hints)
+        ])
+    }
+  end
+
+  def format_diagnostic({:badsize, expr, type, context}) do
+    traces = collect_traces(expr, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          expected an integer in binary size:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          got type:
+
+              #{to_quoted_string(type) |> indent(4)}
+          """,
+          format_traces(traces)
         ])
     }
   end

@@ -364,12 +364,6 @@ defmodule Module.Types.Pattern do
   Given those values are actually checked at compile-time,
   except for the variables, that's the only scenario we need to handle.
   """
-  # TODO: Perhaps merge this with guards
-  def of_match_var({:^, _, [var]}, expected, expr, stack, context) do
-    {type, context} = Of.refine_body_var(var, expected, expr, stack, context)
-    Of.compatible(type, expected, expr, stack, context)
-  end
-
   def of_match_var({:_, _, _}, expected, _expr, _stack, context) do
     {expected, context}
   end
@@ -379,8 +373,8 @@ defmodule Module.Types.Pattern do
     {type, context}
   end
 
-  def of_match_var(_ast, expected, _expr, _stack, context) do
-    {expected, context}
+  def of_match_var(ast, expected, expr, stack, context) do
+    of_guard(ast, expected, expr, stack, context)
   end
 
   ## Patterns
@@ -491,13 +485,19 @@ defmodule Module.Types.Pattern do
 
   # %^var{...} and %_{...}
   defp of_pattern(
-         {:%, _meta, [var, {:%{}, _meta2, args}]} = expr,
+         {:%, meta, [var, {:%{}, _meta2, args}]} = expr,
          path,
          stack,
          context
        ) do
     {refined, context} = of_match_var(var, atom(), expr, stack, context)
-    of_open_map(args, [__struct__: refined], [], path, stack, context)
+
+    if compatible?(refined, atom()) do
+      of_open_map(args, [__struct__: refined], [], path, stack, context)
+    else
+      error = {:badstruct, refined, expr, context}
+      {error_type(), error(__MODULE__, error, meta, stack, context)}
+    end
   end
 
   # %{...}
@@ -706,8 +706,7 @@ defmodule Module.Types.Pattern do
   # ^var
   def of_guard({:^, _meta, [var]}, expected, expr, stack, context) do
     # This is used by binary size, which behaves as a mixture of match and guard
-    {type, context} = Of.refine_body_var(var, expected, expr, stack, context)
-    Of.compatible(type, expected, expr, stack, context)
+    Of.refine_body_var(var, expected, expr, stack, context)
   end
 
   # {...}
@@ -745,8 +744,8 @@ defmodule Module.Types.Pattern do
   end
 
   # var
-  def of_guard(var, expected, expr, stack, context) when is_var(var) do
-    Of.compatible(Of.var(var, context), expected, expr, stack, context)
+  def of_guard(var, _expected, _expr, _stack, context) when is_var(var) do
+    {Of.var(var, context), context}
   end
 
   ## Helpers
@@ -761,6 +760,27 @@ defmodule Module.Types.Pattern do
 
   defp pop_pattern_info(%{pattern_info: pattern_info} = context) do
     {pattern_info, %{context | pattern_info: nil}}
+  end
+
+  def format_diagnostic({:badstruct, type, expr, context}) do
+    traces = collect_traces(expr, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          expected an atom as struct name:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          got type:
+
+              #{to_quoted_string(type) |> indent(4)}
+          """,
+          format_traces(traces)
+        ])
+    }
   end
 
   # $ type tag = head_pattern() or match_pattern()
