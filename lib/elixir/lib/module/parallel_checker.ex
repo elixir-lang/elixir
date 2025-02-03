@@ -5,7 +5,7 @@ defmodule Module.ParallelChecker do
 
   @type cache() :: {pid(), :ets.tid()}
   @type warning() :: term()
-  @type mode() :: :elixir | :erlang
+  @type mode() :: :erlang | :elixir | :protocol
 
   @doc """
   Initializes the parallel checker process.
@@ -51,7 +51,7 @@ defmodule Module.ParallelChecker do
     # Protocols may have been consolidated. So if we know their beam location,
     # we discard their module map on purpose and start from file.
     info =
-      if beam_location != [] and List.keymember?(module_map.attributes, :__protocol__, 0) do
+      if beam_location != [] and Keyword.has_key?(module_map.attributes, :__protocol__) do
         List.to_string(beam_location)
       else
         cache_from_module_map(table, module_map)
@@ -204,20 +204,28 @@ defmodule Module.ParallelChecker do
 
   @doc """
   Returns the export kind and deprecation reason for the given MFA from
-  the cache. If the module does not exist return `{:error, :module}`,
-  or if the function does not exist return `{:error, :function}`.
+  the cache. If the module does not exist return `:badmodule`,
+  or if the function does not exist return `{:badfunction, mode}`.
   """
-  @spec fetch_export(cache(), module(), atom(), arity()) ::
+  @spec fetch_export(cache(), module(), atom(), arity(), boolean()) ::
           {:ok, mode(), binary() | nil, {:infer, [term()] | nil, [term()]} | :none}
           | :badmodule
           | {:badfunction, mode()}
-  def fetch_export({checker, table}, module, fun, arity) do
+  def fetch_export({checker, table}, module, fun, arity, force?) do
     case :ets.lookup(table, module) do
       [] ->
-        cache_module({checker, table}, module)
-        fetch_export({checker, table}, module, fun, arity)
+        if force? do
+          cache_module({checker, table}, module)
+          fetch_export({checker, table}, module, fun, arity, false)
+        else
+          :badmodule
+        end
 
-      [{_key, false}] ->
+      [{_key, :uncached}] ->
+        cache_module({checker, table}, module)
+        fetch_export({checker, table}, module, fun, arity, false)
+
+      [{_key, :not_found}] ->
         :badmodule
 
       [{_key, mode}] ->
@@ -389,40 +397,47 @@ defmodule Module.ParallelChecker do
     if lock(checker, module) do
       object_code = :code.get_object_code(module)
 
-      # The chunk has more information, so that's our preference
-      with {^module, binary, _filename} <- object_code,
-           {:ok, {^module, [{~c"ExCk", chunk}]}} <- :beam_lib.chunks(binary, [~c"ExCk"]),
-           {:elixir_checker_v1, contents} <- :erlang.binary_to_term(chunk) do
-        cache_chunk(table, module, contents.exports)
-      else
-        _ ->
-          # Otherwise, if the module is loaded, use its info
-          case :erlang.module_loaded(module) do
-            true ->
-              {mode, exports} = info_exports(module)
-              deprecated = info_deprecated(module)
-              cache_info(table, module, exports, deprecated, %{}, mode)
+      mode =
+        with {^module, binary, _filename} <- object_code,
+             {:ok, {^module, [{~c"ExCk", chunk}]}} <- :beam_lib.chunks(binary, [~c"ExCk"]),
+             {:elixir_checker_v1, contents} <- :erlang.binary_to_term(chunk) do
+          # The chunk has more information, so that's our preference
+          cache_chunk(table, module, contents)
+        else
+          _ ->
+            # Otherwise, if the module is loaded, use its info
+            case :erlang.module_loaded(module) do
+              true ->
+                {mode, exports} = info_exports(module)
+                deprecated = info_deprecated(module)
+                cache_info(table, module, exports, deprecated, %{}, mode)
 
-            false ->
-              # Or load exports from chunk
-              with {^module, binary, _filename} <- object_code,
-                   {:ok, {^module, [exports: exports]}} <- :beam_lib.chunks(binary, [:exports]) do
-                cache_info(table, module, exports, %{}, %{}, :erlang)
-              else
-                _ ->
-                  :ets.insert(table, {module, false})
-              end
-          end
-      end
+              false ->
+                # Or load exports from chunk
+                with {^module, binary, _filename} <- object_code,
+                     {:ok, {^module, [exports: exports]}} <- :beam_lib.chunks(binary, [:exports]) do
+                  cache_info(table, module, exports, %{}, %{}, :erlang)
+                else
+                  _ ->
+                    :ets.insert(table, {module, :not_found})
+                    nil
+                end
+            end
+        end
 
-      unlock(checker, module)
+      unlock(checker, module, mode)
     end
   end
 
   defp info_exports(module) do
-    {:elixir, behaviour_exports(module) ++ module.__info__(:functions)}
-  rescue
-    _ -> {:erlang, module.module_info(:exports)}
+    try do
+      module.__info__(:functions)
+    rescue
+      _ -> {:erlang, module.module_info(:exports)}
+    else
+      functions ->
+        {elixir_mode(module.module_info(:attributes)), behaviour_exports(module) ++ functions}
+    end
   end
 
   defp info_deprecated(module) do
@@ -431,12 +446,24 @@ defmodule Module.ParallelChecker do
     _ -> %{}
   end
 
+  defp elixir_mode(attributes) do
+    if Keyword.has_key?(attributes, :__protocol__), do: :protocol, else: :elixir
+  end
+
   defp cache_from_module_map(table, map) do
     exports =
       behaviour_exports(map) ++
         for({function, :def, _meta, _clauses} <- map.definitions, do: function)
 
-    cache_info(table, map.module, exports, Map.new(map.deprecated), map.signatures, :elixir)
+    cache_info(
+      table,
+      map.module,
+      exports,
+      Map.new(map.deprecated),
+      map.signatures,
+      elixir_mode(map.attributes)
+    )
+
     module_map_to_module_tuple(map)
   end
 
@@ -447,10 +474,11 @@ defmodule Module.ParallelChecker do
     end)
 
     :ets.insert(table, {module, mode})
+    mode
   end
 
-  defp cache_chunk(table, module, exports) do
-    Enum.each(exports, fn {{fun, arity}, info} ->
+  defp cache_chunk(table, module, contents) do
+    Enum.each(contents.exports, fn {{fun, arity}, info} ->
       sig =
         case info do
           %{sig: {key, _, _} = sig} when key in [:infer, :strong] -> sig
@@ -463,7 +491,9 @@ defmodule Module.ParallelChecker do
       )
     end)
 
-    :ets.insert(table, {module, :elixir})
+    mode = Map.get(contents, :mode, :elixir)
+    :ets.insert(table, {module, mode})
+    mode
   end
 
   defp behaviour_exports(%{defines_behaviour: true}), do: [{:behaviour_info, 1}]
@@ -481,8 +511,8 @@ defmodule Module.ParallelChecker do
     :gen_server.call(server, {:lock, module}, :infinity)
   end
 
-  defp unlock(server, module) do
-    :gen_server.call(server, {:unlock, module}, :infinity)
+  defp unlock(server, module, mode) do
+    :gen_server.call(server, {:unlock, module, mode}, :infinity)
   end
 
   defp register(server, pid, ref) do
@@ -495,17 +525,42 @@ defmodule Module.ParallelChecker do
     table = :ets.new(__MODULE__, [:set, :public, {:read_concurrency, true}])
     :proc_lib.init_ack({:ok, {self(), table}})
 
+    case :elixir_config.get(:infer_signatures) do
+      false ->
+        false
+
+      applications ->
+        for application <- applications do
+          case :application.get_key(application, :modules) do
+            {:ok, modules} ->
+              :ets.insert(table, Enum.map(modules, &{&1, :uncached}))
+
+            :undefined ->
+              IO.warn(
+                "cannot infer signatures from #{inspect(application)} because it is not loaded",
+                []
+              )
+          end
+        end
+    end
+
     state = %{
       waiting: %{},
       modules: [],
       spawned: 0,
-      schedulers: schedulers || max(:erlang.system_info(:schedulers_online), 2)
+      schedulers: schedulers || max(:erlang.system_info(:schedulers_online), 2),
+      protocols: [],
+      table: table
     }
 
     :gen_server.enter_loop(__MODULE__, [], state)
   end
 
-  def handle_call(:start, _from, %{modules: modules} = state) do
+  def handle_call(:start, _from, %{modules: modules, protocols: protocols, table: table} = state) do
+    for protocol <- protocols do
+      :ets.delete(table, protocol)
+    end
+
     for {pid, ref} <- modules do
       send(pid, {ref, :cache})
     end
@@ -516,7 +571,7 @@ defmodule Module.ParallelChecker do
       end
     end
 
-    {:reply, length(modules), run_checkers(state)}
+    {:reply, length(modules), run_checkers(%{state | protocols: []})}
   end
 
   def handle_call({:lock, module}, from, %{waiting: waiting} = state) do
@@ -531,11 +586,14 @@ defmodule Module.ParallelChecker do
     end
   end
 
-  def handle_call({:unlock, module}, _from, %{waiting: waiting} = state) do
+  def handle_call({:unlock, module, mode}, _from, state) do
+    %{waiting: waiting, protocols: protocols} = state
     from_list = Map.fetch!(waiting, module)
     Enum.each(from_list, &:gen_server.reply(&1, false))
+
     waiting = Map.delete(waiting, module)
-    {:reply, :ok, %{state | waiting: waiting}}
+    protocols = if mode == :protocol, do: [module | protocols], else: protocols
+    {:reply, :ok, %{state | waiting: waiting, protocols: protocols}}
   end
 
   def handle_info({__MODULE__, :done}, state) do

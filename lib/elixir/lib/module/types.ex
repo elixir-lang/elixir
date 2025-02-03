@@ -38,7 +38,7 @@ defmodule Module.Types do
     # those will be replaced anyway. There is also nothing to
     # infer if there is no cache system, we only do traversals.
     infer_signatures? =
-      :elixir_config.get(:infer_signatures) and cache != nil and not protocol?(attrs)
+      :elixir_config.get(:infer_signatures) != false and cache != nil and not protocol?(attrs)
 
     impl = impl_for(attrs)
 

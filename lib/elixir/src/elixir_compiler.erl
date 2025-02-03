@@ -148,6 +148,7 @@ bootstrap() ->
   elixir_config:put(parser_options, []),
   elixir_config:put(relative_paths, false),
   elixir_config:put(tracers, []),
+  elixir_config:put(infer_signatures, []),
   {Init, Main} = bootstrap_files(),
   {ok, Cwd} = file:get_cwd(),
   Lib = filename:join(Cwd, "lib/elixir/lib"),

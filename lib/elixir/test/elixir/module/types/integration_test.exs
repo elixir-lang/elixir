@@ -28,7 +28,6 @@ defmodule Module.Types.IntegrationTest do
           do: module
 
     # If this test fails, update:
-    # * lib/elixir/lib/module/types/apply.ex
     # * lib/elixir/scripts/elixir_docs.ex
     assert Enum.sort(builtin_protocols) == builtin_protocols()
   end
@@ -36,7 +35,12 @@ defmodule Module.Types.IntegrationTest do
   setup_all do
     previous = Application.get_env(:elixir, :ansi_enabled, false)
     Application.put_env(:elixir, :ansi_enabled, false)
-    on_exit(fn -> Application.put_env(:elixir, :ansi_enabled, previous) end)
+    Code.put_compiler_option(:infer_signatures, [:elixir])
+
+    on_exit(fn ->
+      Application.put_env(:elixir, :ansi_enabled, previous)
+      Code.put_compiler_option(:infer_signatures, false)
+    end)
   end
 
   describe "ExCk chunk" do

@@ -521,20 +521,28 @@ defmodule Module.Types.Apply do
 
   defp export(module, fun, arity, meta, %{cache: cache} = stack, context) do
     cond do
-      # Cache == nil implies the mode is traversal
       cache == nil or stack.mode == :traversal ->
         {:none, context}
 
-      stack.mode == :infer and not builtin_module?(module) ->
-        {:none, context}
+      stack.mode == :infer ->
+        case ParallelChecker.fetch_export(stack.cache, module, fun, arity, false) do
+          {:ok, mode, _, info} when info == :none or mode == :protocol ->
+            {signature(fun, arity), context}
+
+          {:ok, _mode, _, info} ->
+            {info, context}
+
+          _ ->
+            {:none, context}
+        end
 
       true ->
-        case ParallelChecker.fetch_export(stack.cache, module, fun, arity) do
+        case ParallelChecker.fetch_export(stack.cache, module, fun, arity, true) do
           {:ok, mode, reason, info} ->
             info = if info == :none, do: signature(fun, arity), else: info
             {info, check_deprecated(mode, module, fun, arity, reason, meta, stack, context)}
 
-          {:badfunction, :elixir} when fun == :__info__ and arity == 1 ->
+          {:badfunction, mode} when mode != :erlang and fun == :__info__ and arity == 1 ->
             key =
               cond do
                 not Code.ensure_loaded?(module) -> :__info__
@@ -573,38 +581,11 @@ defmodule Module.Types.Apply do
     end
   end
 
-  defp check_deprecated(_, module, fun, arity, reason, meta, stack, context) do
+  defp check_deprecated(_elixir_or_protocol, module, fun, arity, reason, meta, stack, context) do
     if reason do
       warn(__MODULE__, {:deprecated, module, fun, arity, reason}, meta, stack, context)
     else
       context
-    end
-  end
-
-  defp builtin_module?(module) do
-    is_map_key(builtin_modules(), module)
-  end
-
-  @builtin_protocols [
-    Collectable,
-    Enumerable,
-    IEx.Info,
-    Inspect,
-    JSON.Encoder,
-    List.Chars,
-    String.Chars
-  ]
-
-  defp builtin_modules do
-    case :persistent_term.get(__MODULE__, nil) do
-      nil ->
-        {:ok, mods} = :application.get_key(:elixir, :modules)
-        mods = Map.from_keys(mods -- @builtin_protocols, [])
-        :persistent_term.put(__MODULE__, mods)
-        mods
-
-      %{} = mods ->
-        mods
     end
   end
 

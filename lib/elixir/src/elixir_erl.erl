@@ -627,7 +627,8 @@ signature_to_binary(_, Name, Signature) ->
   'Elixir.IO':iodata_to_binary(Doc).
 
 checker_chunk(Map, Def, ChunkOpts) ->
-  #{deprecated := Deprecated, defines_behaviour := DefinesBehaviour, signatures := Signatures} = Map,
+  #{deprecated := Deprecated, defines_behaviour := DefinesBehaviour,
+    signatures := Signatures, attributes := Attributes} = Map,
   DeprecatedMap = maps:from_list(Deprecated),
 
   Exports =
@@ -641,7 +642,11 @@ checker_chunk(Map, Def, ChunkOpts) ->
     end || {FA, _Meta} <- prepend_behaviour_info(DefinesBehaviour, Def)],
 
   Contents = #{
-    exports => Exports
+    exports => Exports,
+    mode => case lists:keymember('__protocol__', 1, Attributes) of
+      true -> protocol;
+      false -> elixir
+    end
   },
 
   [{<<"ExCk">>, term_to_binary({elixir_checker_v1, Contents}, ChunkOpts)}].
