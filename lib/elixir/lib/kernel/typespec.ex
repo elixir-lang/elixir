@@ -626,12 +626,12 @@ defmodule Kernel.Typespec do
     typespec({:record, meta, [atom, []]}, vars, caller, state)
   end
 
-  defp typespec({:record, meta, [tag, field_specs]}, vars, caller, state)
-       when is_atom(tag) and is_list(field_specs) do
+  defp typespec({:record, meta, [name, field_specs]}, vars, caller, state)
+       when is_atom(name) and is_list(field_specs) do
     # We cannot set a function name to avoid tracking
     # as a compile time dependency because for records it actually is one.
-    case Macro.expand({tag, [], [{:{}, [], []}]}, caller) do
-      {_, _, [name, fields | _]} when is_list(fields) ->
+    case Macro.expand({name, [], [{:{}, [], []}]}, caller) do
+      {_, _, [tag, fields | _]} when is_list(fields) ->
         types =
           :lists.map(
             fn {field, _} ->
@@ -646,19 +646,19 @@ defmodule Kernel.Typespec do
 
         fun = fn {field, _} ->
           if not Keyword.has_key?(fields, field) do
-            compile_error(caller, "undefined field #{field} on record #{inspect(tag)}")
+            compile_error(caller, "undefined field #{field} on record #{inspect(name)}")
           end
         end
 
         :lists.foreach(fun, field_specs)
-        typespec({:{}, meta, [name | types]}, vars, caller, state)
+        typespec({:{}, meta, [tag | types]}, vars, caller, state)
 
       _ ->
-        compile_error(caller, "unknown record #{inspect(tag)}")
+        compile_error(caller, "unknown record #{inspect(name)}")
     end
   end
 
-  defp typespec({:record, _meta, [_tag, _field_specs]}, _vars, caller, _state) do
+  defp typespec({:record, _meta, [_name, _field_specs]}, _vars, caller, _state) do
     message = "invalid record specification, expected the record name to be an atom literal"
     compile_error(caller, message)
   end
