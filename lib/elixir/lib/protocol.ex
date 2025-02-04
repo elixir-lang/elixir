@@ -281,7 +281,7 @@ defmodule Protocol do
     call_args = :lists.map(varify, :lists.seq(2, arity))
     call_args = [quote(do: term) | call_args]
 
-    quote do
+    quote generated: true do
       name = unquote(name)
       arity = unquote(arity)
 
