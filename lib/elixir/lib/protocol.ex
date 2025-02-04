@@ -688,7 +688,7 @@ defmodule Protocol do
         [] ->
           if Any in types do
             clauses = [{[Descr.term()], Descr.atom([Module.concat(protocol, Any)])}]
-            {Descr.none(), clauses, clauses}
+            {Descr.term(), clauses, clauses}
           else
             {Descr.none(), [{[Descr.term()], Descr.atom([nil])}],
              [{[Descr.none()], Descr.none()}]}

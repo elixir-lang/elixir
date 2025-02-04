@@ -52,7 +52,7 @@ defmodule Module.ParallelChecker do
     # we discard their module map on purpose and start from file.
     info =
       if beam_location != [] and Keyword.has_key?(module_map.attributes, :__protocol__) do
-        List.to_string(beam_location)
+        {module, List.to_string(beam_location)}
       else
         cache_from_module_map(table, module_map)
       end
@@ -72,12 +72,15 @@ defmodule Module.ParallelChecker do
             Process.link(pid)
 
             module_tuple =
-              cond do
-                is_tuple(info) ->
-                  info
+              case info do
+                {module, location} ->
+                  location =
+                    case :code.which(module) do
+                      [_ | _] = path -> path
+                      _ -> location
+                    end
 
-                is_binary(info) ->
-                  with {:ok, binary} <- File.read(info),
+                  with {:ok, binary} <- File.read(location),
                        {:ok, {_, [debug_info: chunk]}} <- :beam_lib.chunks(binary, [:debug_info]),
                        {:debug_info_v1, backend, data} = chunk,
                        {:ok, module_map} <- backend.debug_info(:elixir_v1, module, data, []) do
@@ -85,6 +88,9 @@ defmodule Module.ParallelChecker do
                   else
                     _ -> nil
                   end
+
+                _ ->
+                  info
               end
 
             send(checker, {ref, :cached})
@@ -557,9 +563,7 @@ defmodule Module.ParallelChecker do
   end
 
   def handle_call(:start, _from, %{modules: modules, protocols: protocols, table: table} = state) do
-    for protocol <- protocols do
-      :ets.delete(table, protocol)
-    end
+    :ets.insert(table, Enum.map(protocols, &{&1, :uncached}))
 
     for {pid, ref} <- modules do
       send(pid, {ref, :cache})
