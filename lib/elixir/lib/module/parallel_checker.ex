@@ -52,7 +52,7 @@ defmodule Module.ParallelChecker do
     # we discard their module map on purpose and start from file.
     info =
       if beam_location != [] and Keyword.has_key?(module_map.attributes, :__protocol__) do
-        {module, List.to_string(beam_location)}
+        List.to_string(beam_location)
       else
         cache_from_module_map(table, module_map)
       end
@@ -72,12 +72,12 @@ defmodule Module.ParallelChecker do
             Process.link(pid)
 
             module_tuple =
-              case info do
-                {module, location} ->
+              cond do
+                is_binary(info) ->
                   location =
                     case :code.which(module) do
                       [_ | _] = path -> path
-                      _ -> location
+                      _ -> info
                     end
 
                   with {:ok, binary} <- File.read(location),
@@ -89,7 +89,7 @@ defmodule Module.ParallelChecker do
                     _ -> nil
                   end
 
-                _ ->
+                is_tuple(info) ->
                   info
               end
 
