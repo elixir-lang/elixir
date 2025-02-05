@@ -1,3 +1,7 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 -module(elixir_rewrite).
 -compile({inline, [inner_inline/4, inner_rewrite/5]}).
 -compile(nowarn_shadow_vars).

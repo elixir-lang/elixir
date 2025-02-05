@@ -1,3 +1,7 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 -module(elixir_code_server).
 -export([call/1, cast/1]).
 -export([start_link/0, init/1, handle_call/3, handle_cast/2,

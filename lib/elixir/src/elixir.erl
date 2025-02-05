@@ -1,3 +1,7 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 %% Main entry point for Elixir functions. All of those functions are
 %% private to the Elixir compiler and reserved to be used by Elixir only.
 -module(elixir).

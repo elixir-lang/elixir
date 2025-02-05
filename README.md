@@ -257,4 +257,4 @@ and `mix` under the `doc` directory. If you are planning to contribute documenta
 
 Elixir source code is released under Apache License 2.0.
 
-Check [NOTICE](NOTICE) and [LICENSE](LICENSE) files for more information.
+Check [LICENSE](LICENSE) file for more information.

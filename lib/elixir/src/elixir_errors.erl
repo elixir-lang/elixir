@@ -1,3 +1,7 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 %% A bunch of helpers to help to deal with errors in Elixir source code.
 %% This is not exposed in the Elixir language.
 %%

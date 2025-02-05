@@ -1,3 +1,7 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 -module(elixir_erl_compiler).
 -export([spawn/1, noenv_forms/3, erl_to_core/2, env_compiler_options/0]).
 -include("elixir.hrl").

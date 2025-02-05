@@ -1,3 +1,7 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 -module(elixir_aliases).
 -export([inspect/1, concat/1, safe_concat/1, format_error/1,
          ensure_loaded/3, expand/4, expand_or_concat/4, alias/6, require/5]).

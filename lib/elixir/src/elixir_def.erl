@@ -1,3 +1,7 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 % Holds the logic responsible for function definitions (def(p) and defmacro(p)).
 -module(elixir_def).
 -export([setup/1, reset_last/1, local_for/5, external_for/5,
