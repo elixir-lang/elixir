@@ -196,7 +196,6 @@ jobs:
         id: ort
         uses: ./.github/workflows/ort
         with:
-          build-artifacts: "/tmp/build-artifacts/*"
           report-formats: "CycloneDx,SpdxDocument"
           version: "${{ github.ref_type	== 'tag' && github.ref_name || github.sha }}"
 
