@@ -4,6 +4,7 @@ SHARE_PREFIX ?= $(PREFIX)/share
 MAN_PREFIX ?= $(SHARE_PREFIX)/man
 CANONICAL := main/
 ELIXIRC := bin/elixirc --ignore-module-conflict $(ELIXIRC_OPTS)
+ELIXIRC_MIN_SIG := $(ELIXIRC) -e ':elixir_config.put :infer_signatures, []'
 ERLC := erlc -I lib/elixir/include
 ERL_MAKE := erl -make
 ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
@@ -97,7 +98,7 @@ $(KERNEL): lib/elixir/src/* lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex lib/elixir
 		"$(MAKE)" unicode; \
 	fi
 	@ echo "==> elixir (compile)";
-	$(Q) cd lib/elixir && ../../$(ELIXIRC) "lib/**/*.ex" -o ebin;
+	$(Q) cd lib/elixir && ../../$(ELIXIRC_MIN_SIG) "lib/**/*.ex" -o ebin;
 
 $(APP): lib/elixir/src/elixir.app.src lib/elixir/ebin VERSION $(GENERATE_APP)
 	$(Q) $(GENERATE_APP) $(VERSION)
@@ -105,9 +106,9 @@ $(APP): lib/elixir/src/elixir.app.src lib/elixir/ebin VERSION $(GENERATE_APP)
 unicode: $(UNICODE)
 $(UNICODE): lib/elixir/unicode/*
 	@ echo "==> unicode (compile)";
-	$(Q) $(ELIXIRC) lib/elixir/unicode/unicode.ex -o lib/elixir/ebin;
-	$(Q) $(ELIXIRC) lib/elixir/unicode/tokenizer.ex -o lib/elixir/ebin;
-	$(Q) $(ELIXIRC) lib/elixir/unicode/security.ex -o lib/elixir/ebin;
+	$(Q) $(ELIXIRC_MIN_SIG) lib/elixir/unicode/unicode.ex -o lib/elixir/ebin;
+	$(Q) $(ELIXIRC_MIN_SIG) lib/elixir/unicode/tokenizer.ex -o lib/elixir/ebin;
+	$(Q) $(ELIXIRC_MIN_SIG) lib/elixir/unicode/security.ex -o lib/elixir/ebin;
 
 $(eval $(call APP_TEMPLATE,ex_unit,ExUnit))
 $(eval $(call APP_TEMPLATE,logger,Logger))
