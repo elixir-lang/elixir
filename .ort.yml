@@ -1,0 +1,20 @@
+curations:
+  license_findings:
+    - path: "lib/elixir/pages/images/logo.png"
+      reason: "INCORRECT"
+      comment: "Apply Trademark Policy to Elixir Logo"
+      detected_license: "NONE"
+      concluded_license: "LicenseRef-elixir-trademark-policy"
+
+    - path: "lib/elixir/pages/references/library-guidelines.md"
+      reason: "INCORRECT"
+      comment: |
+        The guide mentions multiple licenses for users to choose from.
+        It however is not licensed itself by the mentioned licenses.
+      concluded_license: "Apache-2.0"
+
+    - path: "**/*"
+      reason: "INCORRECT"
+      comment: "Apply default license to all unknown files"
+      detected_license: "NONE"
+      concluded_license: "Apache-2.0"
