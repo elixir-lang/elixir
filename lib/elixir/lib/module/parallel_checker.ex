@@ -71,7 +71,7 @@ defmodule Module.ParallelChecker do
           {^ref, :cache} ->
             Process.link(pid)
 
-            module_tuple =
+            {mode, module_tuple} =
               cond do
                 is_binary(info) ->
                   location =
@@ -86,13 +86,15 @@ defmodule Module.ParallelChecker do
                        {:ok, module_map} <- backend.debug_info(:elixir_v1, module, data, []) do
                     cache_from_module_map(table, module_map)
                   else
-                    _ -> nil
+                    _ -> {:not_found, nil}
                   end
 
                 is_tuple(info) ->
                   info
               end
 
+            # We only make the module available now, so they are not visible during inference
+            :ets.insert(table, {module, mode})
             send(checker, {ref, :cached})
 
             receive do
@@ -416,21 +418,22 @@ defmodule Module.ParallelChecker do
               true ->
                 {mode, exports} = info_exports(module)
                 deprecated = info_deprecated(module)
-                cache_info(table, module, exports, deprecated, %{}, mode)
+                cache_info(table, module, exports, deprecated, %{})
+                mode
 
               false ->
                 # Or load exports from chunk
                 with {^module, binary, _filename} <- object_code,
                      {:ok, {^module, [exports: exports]}} <- :beam_lib.chunks(binary, [:exports]) do
-                  cache_info(table, module, exports, %{}, %{}, :erlang)
+                  cache_info(table, module, exports, %{}, %{})
+                  :erlang
                 else
-                  _ ->
-                    :ets.insert(table, {module, :not_found})
-                    nil
+                  _ -> :not_found
                 end
             end
         end
 
+      :ets.insert(table, {module, mode})
       unlock(checker, module, mode)
     end
   end
@@ -461,26 +464,15 @@ defmodule Module.ParallelChecker do
       behaviour_exports(map) ++
         for({function, :def, _meta, _clauses} <- map.definitions, do: function)
 
-    cache_info(
-      table,
-      map.module,
-      exports,
-      Map.new(map.deprecated),
-      map.signatures,
-      elixir_mode(map.attributes)
-    )
-
-    module_map_to_module_tuple(map)
+    cache_info(table, map.module, exports, Map.new(map.deprecated), map.signatures)
+    {elixir_mode(map.attributes), module_map_to_module_tuple(map)}
   end
 
-  defp cache_info(table, module, exports, deprecated, sigs, mode) do
+  defp cache_info(table, module, exports, deprecated, sigs) do
     Enum.each(exports, fn fa ->
       reason = Map.get(deprecated, fa)
       :ets.insert(table, {{module, fa}, reason, Map.get(sigs, fa, :none)})
     end)
-
-    :ets.insert(table, {module, mode})
-    mode
   end
 
   defp cache_chunk(table, module, contents) do
@@ -497,9 +489,7 @@ defmodule Module.ParallelChecker do
       )
     end)
 
-    mode = Map.get(contents, :mode, :elixir)
-    :ets.insert(table, {module, mode})
-    mode
+    Map.get(contents, :mode, :elixir)
   end
 
   defp behaviour_exports(%{defines_behaviour: true}), do: [{:behaviour_info, 1}]
