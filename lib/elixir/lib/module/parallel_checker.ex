@@ -93,6 +93,7 @@ defmodule Module.ParallelChecker do
                   info
               end
 
+            # We only make the module available now, so they are not visible during inference
             :ets.insert(table, {module, mode})
             send(checker, {ref, :cached})
 
