@@ -226,12 +226,12 @@ docs_logger: compile ../ex_doc/bin/ex_doc
 
 Docs.zip: docs
 	rm -f Docs.zip
-	zip -9 -r Docs.zip CHANGELOG.md doc NOTICE LICENSE README.md
+	zip -9 -r Docs.zip CHANGELOG.md doc LICENSE README.md
 	@ echo "Docs file created $(CURDIR)/Docs.zip"
 
 Precompiled.zip: build_man compile
 	rm -f Precompiled.zip
-	zip -9 -r Precompiled.zip bin CHANGELOG.md lib/*/ebin lib/*/lib LICENSE Makefile man NOTICE README.md VERSION
+	zip -9 -r Precompiled.zip bin CHANGELOG.md lib/*/ebin lib/*/lib LICENSE Makefile man README.md VERSION
 	@ echo "Precompiled file created $(CURDIR)/Precompiled.zip"
 
 #==> Test tasks

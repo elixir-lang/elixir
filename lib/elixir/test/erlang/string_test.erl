@@ -1,3 +1,7 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 -module(string_test).
 -include("../../src/elixir.hrl").
 -include_lib("eunit/include/eunit.hrl").

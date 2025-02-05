@@ -1,3 +1,7 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 -module(elixir_config).
 -compile({no_auto_import, [get/1]}).
 -export([new/1, warn/2, serial/1]).

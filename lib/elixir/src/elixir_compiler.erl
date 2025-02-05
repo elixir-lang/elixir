@@ -1,3 +1,7 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 %% Elixir compiler front-end to the Erlang backend.
 -module(elixir_compiler).
 -export([string/3, quoted/3, bootstrap/0, file/2, compile/4]).

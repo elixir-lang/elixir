@@ -1,3 +1,7 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 -module(elixir_map).
 -export([expand_map/4, expand_struct/5, format_error/1, maybe_load_struct_info/5]).
 -import(elixir_errors, [function_error/4, file_error/4, file_warn/4]).

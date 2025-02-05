@@ -1,3 +1,7 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 %% Helpers related to dispatching to imports and references.
 %% This module access the information stored on the scope
 %% by elixir_import and therefore assumes it is normalized (ordsets)

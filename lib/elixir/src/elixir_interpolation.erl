@@ -1,3 +1,7 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 % Handle string and string-like interpolations.
 -module(elixir_interpolation).
 -export([extract/6, unescape_string/1, unescape_string/2,

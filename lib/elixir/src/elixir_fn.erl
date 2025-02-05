@@ -1,3 +1,7 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 -module(elixir_fn).
 -export([capture/4, expand/4, format_error/1]).
 -import(elixir_errors, [file_error/4]).

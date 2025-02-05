@@ -1,4 +1,7 @@
 #!/usr/bin/env escript
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+
 %%! -noinput
 
 %% This file is used by the Elixir installer and uninstaller.

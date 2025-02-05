@@ -1,3 +1,7 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 -module(test_helper).
 -export([test/0, run_and_remove/2, throw_elixir/1, throw_erlang/1]).
 -define(TESTS, [

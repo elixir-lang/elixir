@@ -1,3 +1,7 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 %% Module responsible for tracking lexical information.
 -module(elixir_lexical).
 -export([run/3, with_file/3, trace/2, format_error/1]).

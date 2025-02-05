@@ -1,3 +1,13 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
+%% REUSE-IgnoreStart
+Header "%% SPDX-License-Identifier: Apache-2.0"
+"%% SPDX-FileCopyrightText: 2021 The Elixir Team"
+"%% SPDX-FileCopyrightText: 2012 Plataformatec".
+%% REUSE-IgnoreEnd
+
 Nonterminals
   grammar expr_list
   expr container_expr block_expr access_expr

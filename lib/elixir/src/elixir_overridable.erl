@@ -1,3 +1,7 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 % Holds the logic responsible for defining overridable functions and handling super.
 -module(elixir_overridable).
 -export([overridables_for/1, overridable_for/2,

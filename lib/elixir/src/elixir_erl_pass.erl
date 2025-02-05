@@ -1,3 +1,7 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 %% Translate Elixir quoted expressions to Erlang Abstract Format.
 -module(elixir_erl_pass).
 -export([translate/3, translate_args/3, no_parens_remote/2, parens_map_field/2]).
