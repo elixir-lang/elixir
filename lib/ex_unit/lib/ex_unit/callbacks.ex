@@ -63,7 +63,7 @@ defmodule ExUnit.Callbacks do
     * a keyword list or map
     * a tuple in the shape of `{:ok, keyword() | map()}`
 
-  If a keyword list or map is returned, it be merged into the current context
+  If a keyword list or map is returned, it will be merged into the current context
   and will be available in all subsequent `setup_all`, `setup`, and the `test`
   itself.
 
