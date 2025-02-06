@@ -104,8 +104,7 @@ defmodule Mix.Shell.IO do
 
     Mix.Shell.cmd(command, opts, fn data ->
       if print_app?, do: print_app()
-      # Due to encoding of shell command on Windows, write the data as is.
-      if windows?, do: IO.binwrite(data), else: IO.write(data)
+      IO.write(data)
     end)
   end
 end
