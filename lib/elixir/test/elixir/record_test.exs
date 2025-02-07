@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule RecordTest do
@@ -350,7 +354,7 @@ defmodule RecordTest do
       end
     )
 
-    {:docs_v1, 348, :elixir, "text/markdown", _, %{}, docs} = Code.fetch_docs(RecordTest.Metadata)
+    {:docs_v1, 352, :elixir, "text/markdown", _, %{}, docs} = Code.fetch_docs(RecordTest.Metadata)
     {{:macro, :user, 1}, _meta, _sig, _docs, metadata} = List.keyfind(docs, {:macro, :user, 1}, 0)
     assert %{record: {:user, [foo: 0, bar: "baz"]}} = metadata
   end

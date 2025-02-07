@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Kernel.RaiseTest do
@@ -22,7 +26,7 @@ defmodule Kernel.RaiseTest do
 
     file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
 
-    assert {__MODULE__, :"test raise preserves the stacktrace", _, [file: ^file, line: 18] ++ _} =
+    assert {__MODULE__, :"test raise preserves the stacktrace", _, [file: ^file, line: 22] ++ _} =
              stacktrace
   end
 

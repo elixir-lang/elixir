@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("type_helper.exs", __DIR__)
 
 defmodule Module.Types.ExprTest do
@@ -964,7 +968,7 @@ defmodule Module.Types.ExprTest do
              where "p" was given the type:
 
                  # type: %Point{x: integer(), y: nil, z: integer()}
-                 # from: types_test.ex:947
+                 # from: types_test.ex:951
                  p = %Point{..., x: 123}
              """
     end

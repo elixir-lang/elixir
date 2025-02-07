@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule ExUnit.FormatterTest do
@@ -219,7 +223,7 @@ defmodule ExUnit.FormatterTest do
   end
 
   test "formats test errors with code snippets" do
-    stack = {Hello, :world, 1, [file: __ENV__.file, line: 3]}
+    stack = {Hello, :world, 1, [file: __ENV__.file, line: 7]}
     failure = [{:error, catch_error(raise "oops"), [stack]}]
 
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 require EEx
@@ -860,13 +864,13 @@ defmodule EExTest do
       file = to_charlist(Path.relative_to_cwd(__ENV__.file))
 
       assert EExTest.Compiled.before_compile() ==
-               {7, {EExTest.Compiled, :before_compile, 0, [file: file, line: 7]}}
+               {11, {EExTest.Compiled, :before_compile, 0, [file: file, line: 11]}}
 
       assert EExTest.Compiled.after_compile() ==
-               {21, {EExTest.Compiled, :after_compile, 0, [file: file, line: 21]}}
+               {25, {EExTest.Compiled, :after_compile, 0, [file: file, line: 25]}}
 
       assert EExTest.Compiled.unknown() ==
-               {26, {EExTest.Compiled, :unknown, 0, [file: ~c"unknown", line: 26]}}
+               {30, {EExTest.Compiled, :unknown, 0, [file: ~c"unknown", line: 30]}}
     end
   end
 
