@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule DynamicSupervisor do
   @moduledoc ~S"""
   A supervisor optimized to only start children dynamically.

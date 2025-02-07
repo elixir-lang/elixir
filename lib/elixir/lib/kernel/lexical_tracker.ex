@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 # This is an Elixir module responsible for tracking references
 # to modules, remote dispatches, and the usage of
 # aliases/imports/requires in the Elixir scope.

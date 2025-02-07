@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
 defprotocol JSON.Encoder do
   @moduledoc """
   A protocol for custom JSON encoding of data structures.

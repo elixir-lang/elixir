@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Binaries, strings, and charlists
 
 In ["Basic types"](basic-types.md), we learned a bit about strings and we used the `is_binary/1` function for checks:

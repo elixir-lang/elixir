@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 # Convenience helpers for showing docs, specs, types
 # and opening modules. Invoked directly from IEx.Helpers.
 defmodule IEx.Introspection do

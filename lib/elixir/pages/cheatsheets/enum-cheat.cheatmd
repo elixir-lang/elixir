@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Enum cheatsheet
 
 A quick reference into the `Enum` module, a module for working with collections (known as enumerables). Most of the examples below use the following data structure:

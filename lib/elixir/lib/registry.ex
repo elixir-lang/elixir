@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Registry do
   @moduledoc ~S"""
   A local, decentralized and scalable key-value process storage.

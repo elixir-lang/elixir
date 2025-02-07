@@ -1,4 +1,8 @@
 # #!/usr/bin/env elixir
+
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
 [tag] = System.argv()
 
 Mix.install([

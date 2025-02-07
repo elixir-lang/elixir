@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule File.Stream do
   @moduledoc """
   Defines a `File.Stream` struct returned by `File.stream!/3`.

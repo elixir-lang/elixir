@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
 defmodule Module.Types.Apply do
   # Typing functionality shared between Expr and Pattern.
   # Generic AST and Enum helpers go to Module.Types.Helpers.

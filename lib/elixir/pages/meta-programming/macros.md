@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Macros
 
 Even though Elixir attempts its best to provide a safe environment for macros, most of the responsibility of writing clean code with macros falls on developers. Macros are harder to write than ordinary Elixir functions, and it's considered to be bad style to use them when they're not necessary. Write macros responsibly.

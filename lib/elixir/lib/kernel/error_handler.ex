@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 # Implement error_handler pattern for Erlang
 # which is integrated with Kernel.ParallelCompiler
 defmodule Kernel.ErrorHandler do

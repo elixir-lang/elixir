@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Design-related anti-patterns
 
 This document outlines potential anti-patterns related to your modules, functions, and the role they play within a codebase.

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Task.Compiler do
   @moduledoc """
   This module defines the behaviour for a Mix task that does compilation.

@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Enumerables and Streams
 
 While Elixir allows us to write recursive code, most operations we perform on collections is done with the help of the `Enum` and `Stream` modules. Let's learn how.

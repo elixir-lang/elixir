@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
 defmodule PartitionSupervisor do
   @moduledoc """
   A supervisor that starts multiple partitions of the same child.

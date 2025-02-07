@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 # How to update the Unicode files
 #
 # Unicode files can be found in https://www.unicode.org/Public/VERSION_NUMBER/ where

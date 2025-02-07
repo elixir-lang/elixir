@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Pattern matching
 
 In this chapter, we will learn why the [`=`](`=/2`) operator in Elixir is called the match operator and how to use it to pattern match inside data structures. We will learn about the pin operator [`^`](`^/1`) used to access previously bound values.

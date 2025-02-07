@@ -1,3 +1,9 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+  SPDX-FileCopyrightText: 2012 Plataformatec
+-->
+
 # Unicode syntax
 
 Elixir supports Unicode throughout the language. This document is a complete reference of how

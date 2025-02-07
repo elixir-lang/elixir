@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Configuration and releases
 
 In this last guide, we will make the routing table for our distributed key-value store configurable, and then finally package the software for production.

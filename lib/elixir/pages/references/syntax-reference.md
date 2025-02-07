@@ -1,3 +1,9 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+  SPDX-FileCopyrightText: 2012 Plataformatec
+-->
+
 # Syntax reference
 
 Elixir syntax was designed to have a straightforward conversion to an abstract syntax tree (AST). This means the Elixir syntax is mostly uniform with a handful of "syntax sugar" constructs to reduce the noise in common Elixir idioms.

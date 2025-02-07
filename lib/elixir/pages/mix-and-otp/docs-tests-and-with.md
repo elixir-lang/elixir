@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Doctests, patterns, and with
 
 In this chapter, we will implement the code that parses the commands we described in the first chapter:
