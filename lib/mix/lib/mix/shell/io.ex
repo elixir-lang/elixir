@@ -100,7 +100,6 @@ defmodule Mix.Shell.IO do
   """
   def cmd(command, opts \\ []) do
     print_app? = Keyword.get(opts, :print_app, true)
-    windows? = match?({:win32, _}, :os.type())
 
     Mix.Shell.cmd(command, opts, fn data ->
       if print_app?, do: print_app()
