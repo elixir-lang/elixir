@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 assert_timeout = String.to_integer(System.get_env("ELIXIR_ASSERT_TIMEOUT") || "500")
 System.put_env("ELIXIR_EDITOR", "echo")
 

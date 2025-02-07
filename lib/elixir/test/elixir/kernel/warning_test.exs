@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Kernel.WarningTest do
@@ -63,7 +67,7 @@ defmodule Kernel.WarningTest do
 
   test "warnings from macro" do
     assert_warn_eval(
-      ["demo:60\n", "key :dup will be overridden in map\n"],
+      ["demo:64\n", "key :dup will be overridden in map\n"],
       """
       import Kernel.WarningTest
       will_warn()

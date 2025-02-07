@@ -1,17 +1,21 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule CharlistTest do
   use ExUnit.Case, async: true
 
   test "heredoc" do
-    assert __ENV__.line == 7
+    assert __ENV__.line == 11
 
     assert ~c"foo\nbar\n" == ~c"""
            foo
            bar
            """
 
-    assert __ENV__.line == 14
+    assert __ENV__.line == 18
 
     assert ~c"foo\nbar '''\n" == ~c"""
            foo

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule FakeCalendar do
   def time_to_string(hour, minute, second, _), do: "#{hour}::#{minute}::#{second}"
   def date_to_string(year, month, day), do: "#{day}/#{month}/#{year}"

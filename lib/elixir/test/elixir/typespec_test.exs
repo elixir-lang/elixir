@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 # Holds tests for both Kernel.Typespec and Code.Typespec
@@ -128,7 +132,7 @@ defmodule TypespecTest do
 
     test "redefined type" do
       assert_raise Kernel.TypespecError,
-                   ~r"type foo/0 is already defined in .*test/elixir/typespec_test.exs:134",
+                   ~r"type foo/0 is already defined in .*test/elixir/typespec_test.exs:138",
                    fn ->
                      test_module do
                        @type foo :: atom
@@ -137,7 +141,7 @@ defmodule TypespecTest do
                    end
 
       assert_raise Kernel.TypespecError,
-                   ~r"type foo/2 is already defined in .*test/elixir/typespec_test.exs:144",
+                   ~r"type foo/2 is already defined in .*test/elixir/typespec_test.exs:148",
                    fn ->
                      test_module do
                        @type foo :: atom
@@ -147,7 +151,7 @@ defmodule TypespecTest do
                    end
 
       assert_raise Kernel.TypespecError,
-                   ~r"type foo/0 is already defined in .*test/elixir/typespec_test.exs:153",
+                   ~r"type foo/0 is already defined in .*test/elixir/typespec_test.exs:157",
                    fn ->
                      test_module do
                        @type foo :: atom

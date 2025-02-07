@@ -1,17 +1,21 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Kernel.BinaryTest do
   use ExUnit.Case, async: true
 
   test "heredoc" do
-    assert 7 == __ENV__.line
+    assert 11 == __ENV__.line
 
     assert "foo\nbar\n" == """
            foo
            bar
            """
 
-    assert 14 == __ENV__.line
+    assert 18 == __ENV__.line
 
     assert "foo\nbar \"\"\"\n" == """
            foo
@@ -27,11 +31,11 @@ defmodule Kernel.BinaryTest do
   end
 
   test "heredoc with interpolation" do
-    assert "31\n" == """
+    assert "35\n" == """
            #{__ENV__.line}
            """
 
-    assert "\n36\n" == """
+    assert "\n40\n" == """
 
            #{__ENV__.line}
            """

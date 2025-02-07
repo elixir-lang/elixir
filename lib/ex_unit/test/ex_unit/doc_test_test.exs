@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule ExUnit.BeamHelpers do
@@ -875,7 +879,7 @@ defmodule ExUnit.DocTestTest do
                 Doctest did not compile, got: (TokenMissingError) token missing on #{location}:#{line}:20:
                      error: missing terminator: }
                      │
-                 228 │ {:ok, #Inspect<[]>}
+                 #{line} │ {:ok, #Inspect<[]>}
                      │ │                  └ missing closing delimiter (expected "}")
                      │ └ unclosed delimiter
                      │
@@ -1109,22 +1113,22 @@ defmodule ExUnit.DocTestTest do
     assert %{
              test_type: :doctest,
              doctest: NoImport,
-             doctest_line: 133,
-             doctest_data: %{end_line: 134}
+             doctest_line: 137,
+             doctest_data: %{end_line: 138}
            } = test1.tags
 
     assert %{
              test_type: :doctest,
              doctest: NoImport,
-             doctest_line: 136,
-             doctest_data: %{end_line: 137}
+             doctest_line: 140,
+             doctest_data: %{end_line: 141}
            } = test2.tags
 
     assert %{
              test_type: :doctest,
              doctest: NoTrailing,
-             doctest_line: 145,
-             doctest_data: %{end_line: 145}
+             doctest_line: 149,
+             doctest_data: %{end_line: 149}
            } = test3.tags
   end
 

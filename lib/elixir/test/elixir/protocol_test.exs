@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule ProtocolTest do
@@ -184,15 +188,15 @@ defmodule ProtocolTest do
   end
 
   test "protocol defines callbacks" do
-    assert [{:type, {13, 13}, :fun, args}] = get_callbacks(@sample_binary, :ok, 1)
+    assert [{:type, {17, 13}, :fun, args}] = get_callbacks(@sample_binary, :ok, 1)
 
     assert args == [
-             {:type, {13, 13}, :product, [{:user_type, {13, 16}, :t, []}]},
-             {:type, {13, 22}, :boolean, []}
+             {:type, {17, 13}, :product, [{:user_type, {17, 16}, :t, []}]},
+             {:type, {17, 22}, :boolean, []}
            ]
 
-    assert [{:type, 23, :fun, args}] = get_callbacks(@with_any_binary, :ok, 1)
-    assert args == [{:type, 23, :product, [{:user_type, 23, :t, []}]}, {:type, 23, :term, []}]
+    assert [{:type, 27, :fun, args}] = get_callbacks(@with_any_binary, :ok, 1)
+    assert args == [{:type, 27, :product, [{:user_type, 27, :t, []}]}, {:type, 27, :term, []}]
   end
 
   test "protocol defines t/0 type with documentation" do

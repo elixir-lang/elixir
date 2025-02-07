@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule IEx.PryTest do
@@ -11,24 +15,22 @@ defmodule IEx.PryTest do
     test "shows lines with radius" do
       Application.put_env(:elixir, :ansi_enabled, true)
 
-      {:ok, contents} = IEx.Pry.whereami(__ENV__.file, 3, 2)
+      {:ok, contents} = IEx.Pry.whereami(__ENV__.file, 7, 2)
 
       assert IO.iodata_to_binary(contents) == """
-                 1: Code.require_file("../test_helper.exs", __DIR__)
-                 2:\s
-             \e[1m    3: defmodule IEx.PryTest do
-             \e[22m    4:   use ExUnit.Case
-                 5:\s
+                 5: Code.require_file("../test_helper.exs", __DIR__)
+                 6:\s
+             \e[1m    7: defmodule IEx.PryTest do
+             \e[22m    8:   use ExUnit.Case
+                 9:\s
              """
 
-      {:ok, contents} = IEx.Pry.whereami(__ENV__.file, 1, 4)
+      {:ok, contents} = IEx.Pry.whereami(__ENV__.file, 7, 1)
 
       assert IO.iodata_to_binary(contents) == """
-             \e[1m    1: Code.require_file("../test_helper.exs", __DIR__)
-             \e[22m    2:\s
-                 3: defmodule IEx.PryTest do
-                 4:   use ExUnit.Case
-                 5:\s
+                 6:\s
+             \e[1m    7: defmodule IEx.PryTest do
+             \e[22m    8:   use ExUnit.Case
              """
     after
       Application.delete_env(:elixir, :ansi_enabled)

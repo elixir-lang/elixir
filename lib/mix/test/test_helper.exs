@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 home = Path.expand("../tmp/.home", __DIR__)
 File.mkdir_p!(home)
 System.put_env("HOME", home)

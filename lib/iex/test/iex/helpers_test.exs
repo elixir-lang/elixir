@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule IEx.HelpersTest do
@@ -13,9 +17,9 @@ defmodule IEx.HelpersTest do
     end
 
     test "shows current location for custom envs" do
-      whereami = capture_iex("whereami()", [], env: %{__ENV__ | line: 3})
-      assert whereami =~ "test/iex/helpers_test.exs:3"
-      assert whereami =~ "3: defmodule IEx.HelpersTest do"
+      whereami = capture_iex("whereami()", [], env: %{__ENV__ | line: 7})
+      assert whereami =~ "test/iex/helpers_test.exs:7"
+      assert whereami =~ "7: defmodule IEx.HelpersTest do"
     end
 
     test "prints message when location is not available" do

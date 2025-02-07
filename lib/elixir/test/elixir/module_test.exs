@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule ModuleTest.ToBeUsed do
@@ -35,7 +39,7 @@ end
 
 defmodule ModuleTest.ToUse do
   # Moving the next line around can make tests fail
-  38 = __ENV__.line
+  42 = __ENV__.line
   var = 1
   # Not available in callbacks
   _ = var
@@ -122,7 +126,7 @@ defmodule ModuleTest do
   ## Callbacks
 
   test "retrieves line from use callsite" do
-    assert ModuleTest.ToUse.line() == 43
+    assert ModuleTest.ToUse.line() == 47
   end
 
   test "executes custom before_compile callback" do
