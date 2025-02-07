@@ -1,3 +1,6 @@
+.\" SPDX-License-Identifier: Apache-2.0
+.\" SPDX-FileCopyrightText: 2021 The Elixir Team
+.\" SPDX-FileCopyrightText: 2012 Plataformatec
 .It Fl h , -help
 Displays the help message to the standard error (stderr) and exits.
 .It Fl v , -version

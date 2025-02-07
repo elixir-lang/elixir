@@ -163,7 +163,7 @@ defmodule IEx.HelpersTest do
     end
 
     test "opens Elixir module" do
-      assert capture_iex("open(IEx.Helpers)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:1$/
+      assert capture_iex("open(IEx.Helpers)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:5$/
     end
 
     test "opens function" do

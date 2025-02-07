@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Code-related anti-patterns
 
 This document outlines potential anti-patterns related to your code and particular Elixir idioms and features.

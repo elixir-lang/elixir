@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Calendar.ISO do
   @moduledoc """
   The default calendar implementation, a Gregorian calendar following ISO 8601.

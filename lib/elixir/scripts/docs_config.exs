@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
 # Generate docs_config.js for version chooser in ExDoc
 [app] = System.argv()
 

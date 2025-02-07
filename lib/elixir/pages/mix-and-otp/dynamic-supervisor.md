@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Supervising dynamic children
 
 We have now successfully defined our supervisor which is automatically started (and stopped) as part of our application life cycle.

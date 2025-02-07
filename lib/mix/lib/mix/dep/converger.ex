@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 # This module is the one responsible for converging
 # dependencies in a recursive fashion. This
 # module and its functions are private to Mix.

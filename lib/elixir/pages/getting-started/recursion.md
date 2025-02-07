@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Recursion
 
 Elixir does not provide loop constructs. Instead we leverage recursion and high-level functions for working with collections. This chapter will explore the former.

@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Modules and functions
 
 In Elixir we group several functions into modules. We've already used many different modules in the previous chapters, such as the `String` module:

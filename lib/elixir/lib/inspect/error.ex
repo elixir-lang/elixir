@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
 defmodule Inspect.Error do
   @moduledoc """
   Raised when a struct cannot be inspected.

@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Introduction to Mix
 
 In this guide, we will build a complete Elixir application, with its own supervision tree, configuration, tests, and more.

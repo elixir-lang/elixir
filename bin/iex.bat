@@ -1,4 +1,9 @@
 @echo off
+
+:: SPDX-License-Identifier: Apache-2.0
+:: SPDX-FileCopyrightText: 2021 The Elixir Team
+:: SPDX-FileCopyrightText: 2012 Plataformatec
+
 setlocal
 if /I ""%1""==""--help"" goto documentation
 if /I ""%1""==""-h""     goto documentation

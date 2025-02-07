@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 # Run it from root as: make compile && bin/elixir lib/ex_unit/examples/one_of_each.exs
 ExUnit.start(seed: 0)
 

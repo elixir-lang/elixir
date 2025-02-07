@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Dependencies and umbrella projects
 
 In this chapter, we will discuss how to manage dependencies in Mix.

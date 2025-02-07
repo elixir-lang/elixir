@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Anonymous functions
 
 Anonymous functions allow us to store and pass executable code around as if it was an integer or a string. Let's learn more.

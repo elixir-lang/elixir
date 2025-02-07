@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 # This module keeps a lock file and the manifest for the lock file.
 # The lockfile keeps the latest dependency information while the
 # manifest is used whenever a dependency is affected via any of the

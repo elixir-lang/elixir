@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Sigils
 
 Elixir provides double-quoted strings as well as a concept called charlists, which are defined using the `~c"hello world"` sigil syntax. In this chapter, we will learn more about sigils and how to define our own.

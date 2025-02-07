@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # IO and the file system
 
 This chapter introduces the input/output mechanisms, file-system-related tasks, and related modules such as `IO`, `File`, and `Path`. The IO system provides a great opportunity to shed some light on some philosophies and curiosities of Elixir and the Erlang VM.

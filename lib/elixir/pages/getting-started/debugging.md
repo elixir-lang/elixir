@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Debugging
 
 There are a number of ways to debug code in Elixir. In this chapter we will cover some of the more common ways of doing so.

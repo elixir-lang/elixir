@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # case, cond, and if
 
 In this chapter, we will learn about the [`case`](`case/2`), [`cond`](`cond/1`), and [`if`](`if/2`) control flow structures.

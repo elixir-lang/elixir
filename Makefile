@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 PREFIX ?= /usr/local
 TEST_FILES ?= "*_test.exs"
 SHARE_PREFIX ?= $(PREFIX)/share

@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Lists and tuples
 
 In this chapter we will learn two of the most used collection data-types in Elixir: lists and tuples.
