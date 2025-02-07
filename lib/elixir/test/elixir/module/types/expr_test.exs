@@ -940,6 +940,34 @@ defmodule Module.Types.ExprTest do
 
       assert [%{type: :variable, name: :x}] = diagnostic.details.typing_traces
     end
+
+    test "inspect struct definition" do
+      assert typeerror!(
+               (
+                 p = %Point{x: 123}
+                 Integer.to_string(p)
+               )
+             )
+             |> strip_ansi() == ~l"""
+             incompatible types given to Integer.to_string/1:
+
+                 Integer.to_string(p)
+
+             given types:
+
+                 %Point{x: integer(), y: nil, z: integer()}
+
+             but expected one of:
+
+                 integer()
+
+             where "p" was given the type:
+
+                 # type: %Point{x: integer(), y: nil, z: integer()}
+                 # from: types_test.ex:947
+                 p = %Point{..., x: 123}
+             """
+    end
   end
 
   describe "comparison" do

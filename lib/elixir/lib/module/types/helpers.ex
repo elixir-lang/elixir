@@ -251,8 +251,8 @@ defmodule Module.Types.Helpers do
 
   We also undo some macro expressions done by the Kernel module.
   """
-  def expr_to_string(expr) do
-    string = prewalk_expr_to_string(expr)
+  def expr_to_string(expr, opts \\ []) do
+    string = prewalk_expr_to_string(expr, opts)
 
     case expr do
       {_, meta, _} ->
@@ -275,7 +275,9 @@ defmodule Module.Types.Helpers do
     end
   end
 
-  defp prewalk_expr_to_string(expr) do
+  defp prewalk_expr_to_string(expr, opts) do
+    collapse_structs? = Keyword.get(opts, :collapse_structs, true)
+
     expr
     |> Macro.prewalk(fn
       {:%, _, [Range, {:%{}, _, fields}]} = node ->
@@ -287,6 +289,26 @@ defmodule Module.Types.Helpers do
 
           _ ->
             node
+        end
+
+      {:%, struct_meta, [struct, {:%{}, map_meta, fields}]} = node
+      when collapse_structs? ->
+        try do
+          struct.__info__(:struct)
+        rescue
+          _ -> node
+        else
+          infos ->
+            filtered =
+              for {field, value} <- fields, not matches_default?(infos, field, value) do
+                {field, value}
+              end
+
+            if length(fields) != length(filtered) do
+              {:%, struct_meta, [struct, {:%{}, map_meta, [{:..., [], []} | filtered]}]}
+            else
+              node
+            end
         end
 
       {{:., _, [Elixir.String.Chars, :to_string]}, meta, [arg]} ->
@@ -338,6 +360,13 @@ defmodule Module.Types.Helpers do
         other
     end)
     |> Macro.to_string()
+  end
+
+  defp matches_default?(infos, field, value) do
+    case Enum.find(infos, &(&1.field == field)) do
+      %{default: default} -> Macro.escape(default) == value
+      _ -> false
+    end
   end
 
   defp erl_to_ex(

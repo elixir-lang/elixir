@@ -1557,15 +1557,15 @@ defmodule Module.Types.DescrTest do
                "%{__struct__: Another or URI}"
 
       assert closed_map(__struct__: atom([Decimal]), coef: term(), exp: term(), sign: term())
-             |> to_quoted_string() ==
+             |> to_quoted_string(collapse_structs: false) ==
                "%Decimal{sign: term(), coef: term(), exp: term()}"
 
       assert closed_map(__struct__: atom([Decimal]), coef: term(), exp: term(), sign: term())
-             |> to_quoted_string(collapse_structs: true) ==
+             |> to_quoted_string() ==
                "%Decimal{}"
 
       assert closed_map(__struct__: atom([Decimal]), coef: term(), exp: term(), sign: integer())
-             |> to_quoted_string(collapse_structs: true) ==
+             |> to_quoted_string() ==
                "%Decimal{sign: integer()}"
 
       # Does not fuse structs

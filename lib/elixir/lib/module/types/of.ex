@@ -615,11 +615,11 @@ defmodule Module.Types.Of do
           """
           unknown key .#{key} in expression:
 
-              #{expr_to_string(expr) |> indent(4)}
+              #{expr_to_string(expr, collapse_structs: false) |> indent(4)}
 
           the given type does not have the given key:
 
-              #{to_quoted_string(type) |> indent(4)}
+              #{to_quoted_string(type, collapse_structs: false) |> indent(4)}
           """,
           format_traces(traces)
         ])

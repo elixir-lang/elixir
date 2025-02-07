@@ -1982,7 +1982,7 @@ defmodule Module.Types.Descr do
              [_ | _] = info <- maybe_struct(struct),
              true <- map_size(fields) == length(info) + 1,
              true <- Enum.all?(info, &is_map_key(fields, &1.field)) do
-          collapse? = Keyword.get(opts, :collapse_structs, false)
+          collapse? = Keyword.get(opts, :collapse_structs, true)
 
           fields =
             for %{field: field} <- info,

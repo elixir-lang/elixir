@@ -806,11 +806,11 @@ defmodule Module.Types.Expr do
           """
           expected a map with key #{inspect(key)} in map update syntax:
 
-              #{expr_to_string(expr) |> indent(4)}
+              #{expr_to_string(expr, collapse_structs: false) |> indent(4)}
 
           but got type:
 
-              #{to_quoted_string(type) |> indent(4)}
+              #{to_quoted_string(type, collapse_structs: false) |> indent(4)}
           """,
           format_traces(traces)
         ])

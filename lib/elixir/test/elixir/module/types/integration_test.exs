@@ -443,7 +443,7 @@ defmodule Module.Types.IntegrationTest do
 
             because it is expected to receive type:
 
-                dynamic(%Range{first: term(), last: term(), step: term()})
+                dynamic(%Range{})
 
             typing violation found at:
             │
@@ -475,7 +475,7 @@ defmodule Module.Types.IntegrationTest do
 
             it has type:
 
-                -dynamic(%Range{first: term(), last: term(), step: term()})-
+                -dynamic(%Range{})-
 
             but expected a type that implements the String.Chars protocol, it must be one of:
 
@@ -499,7 +499,7 @@ defmodule Module.Types.IntegrationTest do
 
             given types:
 
-                -dynamic(%Range{first: term(), last: term(), step: term()})-
+                -dynamic(%Range{})-
 
             but expected a type that implements the String.Chars protocol, it must be one of:
 
@@ -538,7 +538,7 @@ defmodule Module.Types.IntegrationTest do
 
             it has type:
 
-                -dynamic(%Date{year: term(), month: term(), day: term(), calendar: term()})-
+                -dynamic(%Date{})-
 
             but expected a type that implements the Enumerable protocol, it must be one of:
 
