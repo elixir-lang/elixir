@@ -8,5 +8,5 @@ ort:
 
   analyzer:
     allowDynamicVersions: true
-    enabledPackageManagers: [Unmanaged]
+    enabledPackageManagers: [SpdxDocumentFile]
     skipExcluded: true

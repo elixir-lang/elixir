@@ -4,12 +4,6 @@
 name: "Run OSS Review Toolkit"
 description: "Runs OSS Review Toolkit & generates SBoMs"
 inputs:
-  build-artifacts:
-    description: |
-      Build Artifact paths to include into SBoM.
-      May contain a glob pattern or list of paths separated by a newline.
-    required: false
-    default: ""
   report-formats:
     description: "ORT Report Formats"
     required: true

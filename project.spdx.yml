@@ -1,0 +1,28 @@
+SPDXID: "SPDXRef-DOCUMENT"
+spdxVersion: "SPDX-2.2"
+creationInfo:
+  created: "2025-02-05T12:29:35Z"
+  creators:
+  - "Organization: The Elixir Team"
+  licenseListVersion: "3.9"
+name: "elixir"
+dataLicense: "CC0-1.0"
+documentNamespace: "https://github.com/elixir-lang/elixir"
+documentDescribes:
+- "SPDXRef-Package-elixir"
+packages:
+- SPDXID: "SPDXRef-Package-elixir"
+  summary: "About Elixir is a dynamic, functional language for building scalable and maintainable applications"
+  copyrightText: "Copyright (c) 2012 Plataformatec. Copyright (c) 2021 The Elixir Team. All Rights Reserved."
+  downloadLocation: "git+https://github.com/elixir-lang/elixir.git"
+  filesAnalyzed: false
+  homepage: "https://elixir-lang.org/"
+  licenseConcluded: "Apache-2.0 AND LicenseRef-scancode-unicode"
+  licenseDeclared: "Apache-2.0 AND LicenseRef-scancode-unicode"
+  name: "elixir"
+  packageFileName: "./"
+  externalRefs:
+    - referenceCategory: PACKAGE-MANAGER
+      referenceType: "purl"
+      referenceLocator: "pkg:github/elixir-lang/elixir"
+      comment: "GitHub PURL"
