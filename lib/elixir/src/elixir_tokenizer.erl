@@ -668,12 +668,12 @@ tokenize("\\\r\n" ++ Rest, Line, _Column, Scope, Tokens) ->
   tokenize_eol(Rest, Line, Scope, Tokens);
 
 tokenize("\n" ++ Rest, Line, Column, Scope, Tokens) ->
-  {{Line1, Column1}, Scope1} = token_position({Line, Column}, Scope),
-  tokenize_eol(Rest, Line, Scope1, eol(Line1, Column1, Tokens));
+  {NewScope, NewTokens} = eol(Line, Column, Scope, Tokens),
+  tokenize_eol(Rest, Line, NewScope, NewTokens);
 
 tokenize("\r\n" ++ Rest, Line, Column, Scope, Tokens) ->
-  {{Line1, Column1}, Scope1} = token_position({Line, Column}, Scope),
-  tokenize_eol(Rest, Line, Scope1, eol(Line1, Column1, Tokens));
+  {NewScope, NewTokens} = eol(Line, Column, Scope, Tokens),
+  tokenize_eol(Rest, Line, NewScope, NewTokens);
 
 % Others
 
@@ -1073,14 +1073,15 @@ handle_space_sensitive_tokens(String, Line, Column, Scope, Tokens) ->
 
 %% Helpers
 
-eol(_Line, _Column, [{',', {Line, Column, Count}} | Tokens]) ->
-  [{',', {Line, Column, Count + 1}} | Tokens];
-eol(_Line, _Column, [{';', {Line, Column, Count}} | Tokens]) ->
-  [{';', {Line, Column, Count + 1}} | Tokens];
-eol(_Line, _Column, [{eol, {Line, Column, Count}} | Tokens]) ->
-  [{eol, {Line, Column, Count + 1}} | Tokens];
-eol(Line, Column, Tokens) ->
-  [{eol, {Line, Column, 1}} | Tokens].
+eol(_Line, _Column, Scope, [{',', {Line, Column, Count}} | Tokens]) ->
+  {Scope, [{',', {Line, Column, Count + 1}} | Tokens]};
+eol(_Line, _Column, Scope, [{';', {Line, Column, Count}} | Tokens]) ->
+  {Scope, [{';', {Line, Column, Count + 1}} | Tokens]};
+eol(_Line, _Column, Scope, [{eol, {Line, Column, Count}} | Tokens]) ->
+  {Scope, [{eol, {Line, Column, Count + 1}} | Tokens]};
+eol(Line, Column, Scope, Tokens) ->
+  {{Line1, Column1}, Scope1} = token_position({Line, Column}, Scope),
+  {Scope1, [{eol, {Line1, Column1, 1}} | Tokens]}.
 
 is_unnecessary_quote([Part], Scope) when is_list(Part) ->
   case (Scope#elixir_tokenizer.identifier_tokenizer):tokenize(Part) of
