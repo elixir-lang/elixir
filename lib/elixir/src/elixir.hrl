@@ -77,5 +77,7 @@
   indentation=0,
   column=1,
   mismatch_hints=[],
-  warnings=[]
+  warnings=[],
+  mode=absolute,
+  prev_pos={1, 1}
 }).

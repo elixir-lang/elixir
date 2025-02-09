@@ -10,7 +10,12 @@ tokenize(String) ->
 
 tokenize(String, Opts) ->
   {ok, _Line, _Column, _Warnings, Result, []} = elixir_tokenizer:tokenize(String, 1, Opts),
-  lists:reverse(Result).
+  ReversedResult = lists:reverse(Result),
+  {ok, _Line1, _Column1, _Warnings1, ResultRelative, []} = elixir_tokenizer:tokenize(String, 1, [{mode, relative} | Opts]),
+  ReversedResultRelative = lists:reverse(ResultRelative),
+  Converted = elixir_tokenizer:to_absolute_tokens(ReversedResultRelative, {1, 1}),
+  ?assertEqual(ReversedResult, Converted),
+  ReversedResult.
 
 tokenize_error(String) ->
   {error, Error, _, _, _} = elixir_tokenizer:tokenize(String, 1, []),

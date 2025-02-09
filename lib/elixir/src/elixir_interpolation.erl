@@ -123,6 +123,7 @@ strip_horizontal_space(T, Buffer, Counter) ->
   {T, Buffer, Counter}.
 
 cursor_complete(Line, Column, Terminators) ->
+  % TODO handle relative position in inserted cursor
   lists:mapfoldl(
     fun({Start, _, _}, AccColumn) ->
       End = elixir_tokenizer:terminator(Start),
