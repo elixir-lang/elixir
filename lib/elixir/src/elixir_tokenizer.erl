@@ -161,6 +161,7 @@ tokenize([], EndLine, EndColumn, #elixir_tokenizer{terminators=[{Start, {StartLi
   Hint = missing_terminator_hint(Start, End, Scope),
   Message = "missing terminator: ~ts",
   Formatted = io_lib:format(Message, [End]),
+  % TODO StartLine StartColumn should be converted to absolute
   Meta = [
     {opening_delimiter, Start},
     {expected_delimiter, End},
@@ -1473,6 +1474,7 @@ interpolation_error(Reason, Rest, Scope, Tokens, Extension, Args, Line, Column, 
   error(interpolation_format(Reason, Extension, Args, Line, Column, Opening, Closing), Rest, Scope, Tokens).
 
 interpolation_format({string, EndLine, EndColumn, Message, Token}, Extension, Args, Line, Column, Opening, Closing) ->
+  % TODO check if lines and columns need to be converted to absolute here
   Meta = [
     {opening_delimiter, list_to_atom(Opening)},
     {expected_delimiter, list_to_atom(Closing)},
@@ -1481,6 +1483,7 @@ interpolation_format({string, EndLine, EndColumn, Message, Token}, Extension, Ar
     {end_line, EndLine},
     {end_column, EndColumn}
   ],
+  io:format("interpolation_format meta ~p~n", [Meta]),
   {Meta, [Message, io_lib:format(Extension, Args)], Token};
 interpolation_format({_, _, _} = Reason, _Extension, _Args, _Line, _Column, _Opening, _Closing) ->
   Reason.
@@ -1517,10 +1520,12 @@ handle_terminator(Rest, Line, Column, Scope, Token, Tokens) ->
 check_terminator({Start, Meta}, Terminators, Scope)
     when Start == '('; Start == '['; Start == '{'; Start == '<<' ->
   Indentation = Scope#elixir_tokenizer.indentation,
-  {ok, Scope#elixir_tokenizer{terminators=[{Start, Meta, Indentation} | Terminators]}};
+  PrevPos = Scope#elixir_tokenizer.prev_pos,
+  {ok, Scope#elixir_tokenizer{terminators=[{Start, Meta, Indentation, PrevPos} | Terminators]}};
 
 check_terminator({Start, Meta}, Terminators, Scope) when Start == 'fn'; Start == 'do' ->
   Indentation = Scope#elixir_tokenizer.indentation,
+  PrevPos = Scope#elixir_tokenizer.prev_pos,
 
   NewScope =
     case Terminators of
@@ -1532,9 +1537,9 @@ check_terminator({Start, Meta}, Terminators, Scope) when Start == 'fn'; Start ==
         Scope
     end,
 
-  {ok, NewScope#elixir_tokenizer{terminators=[{Start, Meta, Indentation} | Terminators]}};
+  {ok, NewScope#elixir_tokenizer{terminators=[{Start, Meta, Indentation, PrevPos} | Terminators]}};
 
-check_terminator({'end', {EndLine, _, _}}, [{'do', _, Indentation} | Terminators], Scope) ->
+check_terminator({'end', {EndLine, _, _}}, [{'do', _, Indentation, _} | Terminators], Scope) ->
   NewScope =
     %% If the end is more indented than the do, it may be a missing do error!
     case Scope#elixir_tokenizer.indentation > Indentation of
@@ -1548,18 +1553,26 @@ check_terminator({'end', {EndLine, _, _}}, [{'do', _, Indentation} | Terminators
 
   {ok, NewScope#elixir_tokenizer{terminators=Terminators}};
 
-check_terminator({End, {EndLine, EndColumn, _}}, [{Start, {StartLine, StartColumn, _}, _} | Terminators], Scope)
+check_terminator({End, {EndLine, EndColumn, _}}, [{Start, {StartLine, StartColumn, _}, _, {StartPrevLine, StartPrevColumn}} | Terminators], Scope)
     when End == 'end'; End == ')'; End == ']'; End == '}'; End == '>>' ->
   case terminator(Start) of
     End ->
       {ok, Scope#elixir_tokenizer{terminators=Terminators}};
 
     ExpectedEnd ->
+      {EndPrevLine, EndPrevColumn} = Scope#elixir_tokenizer.prev_pos,
+      {StartLine1, StartColumn1, EndLine1, EndColumn1} = case Scope#elixir_tokenizer.mode of
+        relative ->
+          {StartLine + StartPrevLine, StartColumn + StartPrevColumn, EndLine + EndPrevLine, EndColumn + EndPrevColumn};
+        absolute ->
+          {StartLine, StartColumn, EndLine, EndColumn}
+      end,
+      
       Meta = [
-        {line, StartLine},
-        {column, StartColumn},
-        {end_line, EndLine},
-        {end_column, EndColumn},
+        {line, StartLine1},
+        {column, StartColumn1},
+        {end_line, EndLine1},
+        {end_column, EndColumn1},
         {error_type, mismatched_delimiter},
         {opening_delimiter, Start},
         {closing_delimiter, End},
@@ -1568,7 +1581,7 @@ check_terminator({End, {EndLine, EndColumn, _}}, [{Start, {StartLine, StartColum
      {error, {Meta, unexpected_token_or_reserved(End), [atom_to_list(End)]}}
   end;
 
-check_terminator({'end', {Line, Column, _}}, [], #elixir_tokenizer{mismatch_hints=Hints}) ->
+check_terminator({'end', {Line, Column, _}}, [], #elixir_tokenizer{mismatch_hints=Hints} = Scope) ->
   Suffix =
     case lists:keyfind('end', 1, Hints) of
       {'end', HintLine, _Indentation} ->
@@ -1577,12 +1590,23 @@ check_terminator({'end', {Line, Column, _}}, [], #elixir_tokenizer{mismatch_hint
       false ->
         ""
     end,
+  Loc = case Scope of
+    #elixir_tokenizer{mode=relative, prev_pos={PrevLine, PrevColumn}} ->
+      ?LOC(PrevLine, PrevColumn);
+    _ ->
+      ?LOC(Line, Column)
+  end,
+  {error, {Loc, {"unexpected reserved word: ", Suffix}, "end"}};
 
-  {error, {?LOC(Line, Column), {"unexpected reserved word: ", Suffix}, "end"}};
-
-check_terminator({End, {Line, Column, _}}, [], _Scope)
+check_terminator({End, {Line, Column, _}}, [], Scope)
     when End == ')'; End == ']'; End == '}'; End == '>>' ->
-  {error, {?LOC(Line, Column), "unexpected token: ", atom_to_list(End)}};
+  Loc = case Scope of
+    #elixir_tokenizer{mode=relative, prev_pos={PrevLine, PrevColumn}} ->
+      ?LOC(PrevLine, PrevColumn);
+    _ ->
+      ?LOC(Line, Column)
+  end,
+  {error, {Loc, "unexpected token: ", atom_to_list(End)}};
 
 check_terminator(_, _, Scope) ->
   {ok, Scope}.
@@ -1975,4 +1999,29 @@ to_absolute_tokens([Token | Rest], {CurrLine, CurrCol}, Acc) ->
     NewInfo1 = setelement(1, Info, NewLine),
     NewInfo2 = setelement(2, NewInfo1, NewCol),
     NewToken = setelement(2, Token, NewInfo2),
-    to_absolute_tokens(Rest, {NewLine, NewCol}, [NewToken | Acc]).
+    NewTokenWithSubtokens = case NewToken of
+        {Key, Meta, Unescaped} when key =:= atom_safe; Key =:= atom_unsafe; Key =:= kw_identifier_safe; Key =:= kw_identifier_unsafe; Key =:= bin_string; Key =:= list_string ->
+          NewUnescaped = to_absolute_interpolation(Unescaped, {NewLine, NewCol}),
+          {Key, Meta, NewUnescaped};
+        {Key, Meta, Indentation, Unescaped} when Key =:= bin_heredoc; Key =:= list_heredoc ->
+          NewUnescaped = to_absolute_interpolation(Unescaped, {NewLine, NewCol}),
+          {Key, Meta, Indentation, NewUnescaped};
+        {sigil, Meta, Atom, Parts, Modifiers, Indentation, Delimiter} ->
+          NewParts = to_absolute_interpolation(Parts, {NewLine, NewCol}),
+          {sigil, Meta, Atom, NewParts, Modifiers, Indentation, Delimiter};
+        Other -> 
+            Other
+    end,
+    to_absolute_tokens(Rest, {NewLine, NewCol}, [NewTokenWithSubtokens | Acc]).
+
+to_absolute_interpolation(Parts, CurrentAbs) ->
+  to_absolute_interpolation(Parts, CurrentAbs, []).
+to_absolute_interpolation([], _CurrentAbs, Acc) ->
+  lists:reverse(Acc);
+to_absolute_interpolation([Binary | Rest], CurrentAbs, Acc) when is_binary(Binary); is_list(Binary) ->
+  to_absolute_interpolation(Rest, CurrentAbs, [Binary | Acc]);
+to_absolute_interpolation([{{BeginLine, BeginColumn, nil}, {EndLine, EndColumn, nil}, Tokens} | Rest], {CurrentLine, CurrentCol}, Acc) ->
+  NewBegin = {BeginLine + CurrentLine, BeginColumn + CurrentCol, nil},
+  NewEnd = {EndLine + CurrentLine, EndColumn + CurrentCol, nil},
+  NewTokens = to_absolute_tokens(Tokens, {BeginLine + CurrentLine, BeginColumn + CurrentCol}),
+  to_absolute_interpolation(Rest, {CurrentLine, CurrentCol}, [{NewBegin, NewEnd, NewTokens} | Acc]).

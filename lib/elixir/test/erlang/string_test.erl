@@ -14,8 +14,13 @@ eval(Content) ->
 extract_interpolations(String) ->
   case elixir_interpolation:extract(1, 1, #elixir_tokenizer{}, true, String ++ [$"], $") of
     {error, Error} ->
+      {error, RelError} = elixir_interpolation:extract(1, 1, #elixir_tokenizer{mode=relative, prev_pos={1, 1}}, true, String ++ [$"], $"),
+      ?assertEqual(Error, RelError),
       Error;
     {_, _, Parts, _, _} ->
+      {_, _, PartsRel, _, _} = elixir_interpolation:extract(1, 1, #elixir_tokenizer{mode=relative, prev_pos={1, 1}}, true, String ++ [$"], $"),
+      [{bin_string, {1, 1, nil}, PartsRelConverted}] = elixir_tokenizer:to_absolute_tokens([{bin_string, {0, 0, nil}, PartsRel}], {1, 1}),
+      ?assertEqual(Parts, PartsRelConverted),
       Parts
    end.
 

@@ -57,12 +57,20 @@ extract([$\\, $#, ${ | Rest], Buffer, Output, Line, Column, Scope, true, Last) -
 
 extract([$#, ${ | Rest], Buffer, Output, Line, Column, Scope, true, Last) ->
   Output1 = build_string(Buffer, Output),
-  case elixir_tokenizer:tokenize(Rest, Line, Column + 2, Scope#elixir_tokenizer{terminators=[]}) of
+  case elixir_tokenizer:tokenize(Rest, Line, Column + 2, Scope#elixir_tokenizer{terminators=[], prev_pos={Line, Column}}) of
     {error, {Location, _, "}"}, [$} | NewRest], Warnings, Tokens} ->
       NewScope = Scope#elixir_tokenizer{warnings=Warnings},
       {line, EndLine} = lists:keyfind(line, 1, Location),
       {column, EndColumn} = lists:keyfind(column, 1, Location),
-      Output2 = build_interpol(Line, Column, EndLine, EndColumn, lists:reverse(Tokens), Output1),
+
+      {Line1, Column1, EndLine1, EndColumn1} = case Scope of
+        #elixir_tokenizer{mode=relative, prev_pos={PrevLine, PrevColumn}} ->
+          {Line - PrevLine, Column - PrevColumn, EndLine - PrevLine, EndColumn - PrevColumn};
+        _ ->
+          {Line, Column, EndLine, EndColumn}
+      end,
+
+      Output2 = build_interpol(Line1, Column1, EndLine1, EndColumn1, lists:reverse(Tokens), Output1),
       extract(NewRest, [], Output2, EndLine, EndColumn + 1, NewScope, true, Last);
     {error, Reason, _, _, _} ->
       {error, Reason};
