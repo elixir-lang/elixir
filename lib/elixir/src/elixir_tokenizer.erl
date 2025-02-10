@@ -156,17 +156,24 @@ tokenize([], Line, Column, #elixir_tokenizer{cursor_completion=Cursor} = Scope, 
   AllWarnings = maybe_unicode_lint_warnings(Ascii, Tokens, Warnings),
   {ok, Line, CursorColumn, AllWarnings, AccTokens, AccTerminators};
 
-tokenize([], EndLine, EndColumn, #elixir_tokenizer{terminators=[{Start, {StartLine, StartColumn, _}, _, _} | _]} = Scope, Tokens) ->
+tokenize([], EndLine, EndColumn, #elixir_tokenizer{terminators=[{Start, {StartLine, StartColumn, _}, _, {StartPrevLine, StartPrevColumn}} | _]} = Scope, Tokens) ->
   End = terminator(Start),
   Hint = missing_terminator_hint(Start, End, Scope),
   Message = "missing terminator: ~ts",
   Formatted = io_lib:format(Message, [End]),
-  % TODO StartLine StartColumn should be converted to absolute
+
+  {StartLine1, StartColumn1} = case Scope#elixir_tokenizer.mode of
+    relative ->
+      {StartPrevLine, StartPrevColumn};
+    absolute ->
+      {StartLine, StartColumn}
+  end,
+
   Meta = [
     {opening_delimiter, Start},
     {expected_delimiter, End},
-    {line, StartLine},
-    {column, StartColumn},
+    {line, StartLine1},
+    {column, StartColumn1},
     {end_line, EndLine},
     {end_column, EndColumn}
   ],
