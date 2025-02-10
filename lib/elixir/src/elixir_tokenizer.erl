@@ -536,7 +536,7 @@ tokenize([$:, H | T] = Original, Line, Column, BaseScope, Tokens) when ?is_quote
       BaseScope
   end,
 
-  case elixir_interpolation:extract(Line, Column + 2, Scope, true, T, H) of
+  case elixir_interpolation:extract(Line, Column + 2, Scope#elixir_tokenizer{prev_pos={Line, Column}}, true, T, H) of
     {NewLine, NewColumn, Parts, Rest, InterScope} ->
       NewScope = case is_unnecessary_quote(Parts, InterScope) of
         true ->
@@ -557,7 +557,7 @@ tokenize([$:, H | T] = Original, Line, Column, BaseScope, Tokens) when ?is_quote
         {ok, [Part]} when is_binary(Part) ->
           case unsafe_to_atom(Part, Line, Column, Scope) of
             {ok, Atom} ->
-              {{Line1, Column1}, NewScope1} = token_position({Line, Column}, NewScope),
+              {{Line1, Column1}, NewScope1} = token_position({Line, Column}, NewScope#elixir_tokenizer{prev_pos=Scope#elixir_tokenizer.prev_pos}),
               Token = {atom_quoted, {Line1, Column1, H}, Atom},
               tokenize(Rest, NewLine, NewColumn, NewScope1, [Token | Tokens]);
 
@@ -570,12 +570,12 @@ tokenize([$:, H | T] = Original, Line, Column, BaseScope, Tokens) when ?is_quote
             true  -> atom_safe;
             false -> atom_unsafe
           end,
-          {{Line1, Column1}, NewScope1} = token_position({Line, Column}, NewScope),
+          {{Line1, Column1}, NewScope1} = token_position({Line, Column}, NewScope#elixir_tokenizer{prev_pos=Scope#elixir_tokenizer.prev_pos}),
           Token = {Key, {Line1, Column1, H}, Unescaped},
           tokenize(Rest, NewLine, NewColumn, NewScope1, [Token | Tokens]);
 
         {error, Reason} ->
-          error(Reason, Rest, NewScope, Tokens)
+          error(Reason, Rest, NewScope#elixir_tokenizer{prev_pos=Scope#elixir_tokenizer.prev_pos}, Tokens)
       end;
 
     {error, Reason} ->
@@ -833,7 +833,7 @@ handle_heredocs(T, Line, Column, H, Scope, Tokens) ->
   end.
 
 handle_strings(T, Line, Column, H, Scope, Tokens) ->
-  case elixir_interpolation:extract(Line, Column, Scope, true, T, H) of
+  case elixir_interpolation:extract(Line, Column, Scope#elixir_tokenizer{prev_pos={Line, Column - 1}}, true, T, H) of
     {error, Reason} ->
       interpolation_error(Reason, [H | T], Scope, Tokens, " (for string starting at line ~B)", [Line], Line, Column-1, [H], [H]);
 
@@ -874,12 +874,12 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
             true  -> kw_identifier_safe;
             false -> kw_identifier_unsafe
           end,
-          {{Line1, Column1}, NewScope1} = token_position({Line, Column - 1}, NewScope),
+          {{Line1, Column1}, NewScope1} = token_position({Line, Column - 1}, NewScope#elixir_tokenizer{prev_pos=Scope#elixir_tokenizer.prev_pos}),
           Token = {Key, {Line1, Column1, H}, Unescaped},
           tokenize(Rest, NewLine, NewColumn + 1, NewScope1, [Token | Tokens]);
 
         {error, Reason} ->
-          error(Reason, Rest, NewScope, Tokens)
+          error(Reason, Rest, NewScope#elixir_tokenizer{prev_pos=Scope#elixir_tokenizer.prev_pos}, Tokens)
       end;
 
     {NewLine, NewColumn, Parts, Rest, InterScope} ->
@@ -898,12 +898,12 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
 
       case unescape_tokens(Parts, Line, Column, NewScope) of
         {ok, Unescaped} ->
-          {{Line1, Column1}, NewScope1} = token_position({Line, Column - 1}, NewScope),
+          {{Line1, Column1}, NewScope1} = token_position({Line, Column - 1}, NewScope#elixir_tokenizer{prev_pos=Scope#elixir_tokenizer.prev_pos}),
           Token = {string_type(H), {Line1, Column1, nil}, Unescaped},
           tokenize(Rest, NewLine, NewColumn, NewScope1, [Token | Tokens]);
 
         {error, Reason} ->
-          error(Reason, Rest, NewScope, Tokens)
+          error(Reason, Rest, NewScope#elixir_tokenizer{prev_pos=Scope#elixir_tokenizer.prev_pos}, Tokens)
       end
   end.
 
@@ -995,7 +995,7 @@ handle_dot([$., H | T] = Original, Line, Column, DotInfo, BaseScope, Tokens) whe
       BaseScope
   end,
 
-  case elixir_interpolation:extract(Line, Column + 1, Scope, true, T, H) of
+  case elixir_interpolation:extract(Line, Column + 1, Scope#elixir_tokenizer{prev_pos={Line, Column}}, true, T, H) of
     {NewLine, NewColumn, [Part], Rest, InterScope} when is_list(Part) ->
       NewScope = case is_unnecessary_quote([Part], InterScope) of
         true ->
@@ -1016,7 +1016,7 @@ handle_dot([$., H | T] = Original, Line, Column, DotInfo, BaseScope, Tokens) whe
       case unsafe_to_atom(UnescapedPart, Line, Column, NewScope) of
         {ok, Atom} ->
           {DotLine, DotColumn, DotOther} = DotInfo,
-          {{DotLine1, DotColumn1}, NewScope1} = token_position({DotLine, DotColumn}, NewScope),
+          {{DotLine1, DotColumn1}, NewScope1} = token_position({DotLine, DotColumn}, NewScope#elixir_tokenizer{prev_pos=Scope#elixir_tokenizer.prev_pos}),
           TokensSoFar = add_token_with_eol(NewScope1, {'.', {DotLine1, DotColumn1, DotOther}}, Tokens),
 
           {{Line1, Column1}, NewScope2} = token_position({Line, Column}, NewScope1),
@@ -1025,11 +1025,11 @@ handle_dot([$., H | T] = Original, Line, Column, DotInfo, BaseScope, Tokens) whe
           tokenize(Rest, NewLine, NewColumn, NewScope2, [Token | TokensSoFar]);
 
         {error, Reason} ->
-          error(Reason, Original, NewScope, Tokens)
+          error(Reason, Original, NewScope#elixir_tokenizer{prev_pos=Scope#elixir_tokenizer.prev_pos}, Tokens)
       end;
     {_NewLine, _NewColumn, _Parts, Rest, NewScope} ->
       Message = "interpolation is not allowed when calling function/macro. Found interpolation in a call starting with: ",
-      error({?LOC(Line, Column), Message, [H]}, Rest, NewScope, Tokens);
+      error({?LOC(Line, Column), Message, [H]}, Rest, NewScope#elixir_tokenizer{prev_pos=Scope#elixir_tokenizer.prev_pos}, Tokens);
     {error, Reason} ->
       interpolation_error(Reason, Original, Scope, Tokens, " (for function name starting at line ~B)", [Line], Line, Column, [H], [H])
   end;
@@ -1136,13 +1136,13 @@ extract_heredoc_with_interpolation(Line, Column, Scope, Interpol, T, H) ->
       %% We prepend a new line so we can transparently remove
       %% spaces later. This new line is removed by calling "tl"
       %% in the final heredoc body three lines below.
-      case elixir_interpolation:extract(Line, Column, Scope, Interpol, [$\n|Headerless], [H,H,H]) of
+      case elixir_interpolation:extract(Line, Column, Scope#elixir_tokenizer{prev_pos={Line, Column}}, Interpol, [$\n|Headerless], [H,H,H]) of
         {NewLine, NewColumn, Parts0, Rest, InterScope} ->
           Indent = NewColumn - 4,
           Fun = fun(Part, Acc) -> extract_heredoc_indent(Part, Acc, Indent) end,
           {Parts1, {ShouldWarn, _}} = lists:mapfoldl(Fun, {false, Line}, Parts0),
           Parts2 = extract_heredoc_head(Parts1),
-          NewScope = maybe_heredoc_warn(ShouldWarn, Column, InterScope, H),
+          NewScope = maybe_heredoc_warn(ShouldWarn, Column, InterScope#elixir_tokenizer{prev_pos=Scope#elixir_tokenizer.prev_pos}, H),
           {ok, NewLine, NewColumn, tokens_to_binary(Parts2), Rest, NewScope};
 
         {error, Reason} ->
@@ -1755,10 +1755,10 @@ tokenize_sigil_contents([H, H, H | T] = Original, [S | _] = SigilName, Line, Col
 
 tokenize_sigil_contents([H | T] = Original, [S | _] = SigilName, Line, Column, Scope, Tokens)
     when ?is_sigil(H) ->
-  case elixir_interpolation:extract(Line, Column + 1, Scope, ?is_downcase(S), T, sigil_terminator(H)) of
+  case elixir_interpolation:extract(Line, Column + 1, Scope#elixir_tokenizer{prev_pos={Line, Column}}, ?is_downcase(S), T, sigil_terminator(H)) of
     {NewLine, NewColumn, Parts, Rest, NewScope} ->
       Indentation = nil,
-      add_sigil_token(SigilName, Line, Column, NewLine, NewColumn, tokens_to_binary(Parts), Rest, NewScope, Tokens, Indentation, <<H>>);
+      add_sigil_token(SigilName, Line, Column, NewLine, NewColumn, tokens_to_binary(Parts), Rest, NewScope#elixir_tokenizer{prev_pos=Scope#elixir_tokenizer.prev_pos}, Tokens, Indentation, <<H>>);
 
     {error, Reason} ->
       Sigil = [$~, S, H],
@@ -2023,5 +2023,5 @@ to_absolute_interpolation([Binary | Rest], CurrentAbs, Acc) when is_binary(Binar
 to_absolute_interpolation([{{BeginLine, BeginColumn, nil}, {EndLine, EndColumn, nil}, Tokens} | Rest], {CurrentLine, CurrentCol}, Acc) ->
   NewBegin = {BeginLine + CurrentLine, BeginColumn + CurrentCol, nil},
   NewEnd = {EndLine + CurrentLine, EndColumn + CurrentCol, nil},
-  NewTokens = to_absolute_tokens(Tokens, {BeginLine + CurrentLine, BeginColumn + CurrentCol}),
+  NewTokens = to_absolute_tokens(Tokens, {CurrentLine, CurrentCol}),
   to_absolute_interpolation(Rest, {CurrentLine, CurrentCol}, [{NewBegin, NewEnd, NewTokens} | Acc]).
