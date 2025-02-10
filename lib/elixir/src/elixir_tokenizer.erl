@@ -1481,7 +1481,6 @@ interpolation_error(Reason, Rest, Scope, Tokens, Extension, Args, Line, Column, 
   error(interpolation_format(Reason, Extension, Args, Line, Column, Opening, Closing), Rest, Scope, Tokens).
 
 interpolation_format({string, EndLine, EndColumn, Message, Token}, Extension, Args, Line, Column, Opening, Closing) ->
-  % TODO check if lines and columns need to be converted to absolute here
   Meta = [
     {opening_delimiter, list_to_atom(Opening)},
     {expected_delimiter, list_to_atom(Closing)},
@@ -1490,7 +1489,6 @@ interpolation_format({string, EndLine, EndColumn, Message, Token}, Extension, Ar
     {end_line, EndLine},
     {end_column, EndColumn}
   ],
-  io:format("interpolation_format meta ~p~n", [Meta]),
   {Meta, [Message, io_lib:format(Extension, Args)], Token};
 interpolation_format({_, _, _} = Reason, _Extension, _Args, _Line, _Column, _Opening, _Closing) ->
   Reason.
@@ -1510,8 +1508,13 @@ handle_terminator(Rest, _, _, Scope, {'(', {Line, Column, _}}, [{alias, _, Alias
       "Unexpected token: ",
       [Alias]
     ),
-
-  error({?LOC(Line, Column), Reason, ["("]}, atom_to_list(Alias) ++ [$( | Rest], Scope, Tokens);
+  Loc = case Scope of
+    #elixir_tokenizer{mode=relative, prev_pos={PrevLine, PrevColumn}} ->
+      ?LOC(PrevLine, PrevColumn);
+    _ ->
+      ?LOC(Line, Column)
+  end,
+  error({Loc, Reason, ["("]}, atom_to_list(Alias) ++ [$( | Rest], Scope, Tokens);
 handle_terminator(Rest, Line, Column, #elixir_tokenizer{terminators=none} = Scope, Token, Tokens) ->
   tokenize(Rest, Line, Column, Scope, [Token | Tokens]);
 handle_terminator(Rest, Line, Column, Scope, Token, Tokens) ->
@@ -1537,7 +1540,7 @@ check_terminator({Start, Meta}, Terminators, Scope) when Start == 'fn'; Start ==
   NewScope =
     case Terminators of
       %% If the do is indented equally or less than the previous do, it may be a missing end error!
-      [{Start, _, PreviousIndentation} = Previous | _] when Indentation =< PreviousIndentation ->
+      [{Start, _, PreviousIndentation, _} = Previous | _] when Indentation =< PreviousIndentation ->
         Scope#elixir_tokenizer{mismatch_hints=[Previous | Scope#elixir_tokenizer.mismatch_hints]};
 
       _ ->
@@ -1551,7 +1554,13 @@ check_terminator({'end', {EndLine, _, _}}, [{'do', _, Indentation, _} | Terminat
     %% If the end is more indented than the do, it may be a missing do error!
     case Scope#elixir_tokenizer.indentation > Indentation of
       true ->
-        Hint = {'end', EndLine, Scope#elixir_tokenizer.indentation},
+        EndLine1 = case Scope of
+          #elixir_tokenizer{mode=relative, prev_pos={PrevLine, _PrevColumn}} ->
+            PrevLine;
+          _ ->
+            EndLine
+        end,
+        Hint = {'end', EndLine1, Scope#elixir_tokenizer.indentation},
         Scope#elixir_tokenizer{mismatch_hints=[Hint | Scope#elixir_tokenizer.mismatch_hints]};
 
       false ->
@@ -1570,7 +1579,7 @@ check_terminator({End, {EndLine, EndColumn, _}}, [{Start, {StartLine, StartColum
       {EndPrevLine, EndPrevColumn} = Scope#elixir_tokenizer.prev_pos,
       {StartLine1, StartColumn1, EndLine1, EndColumn1} = case Scope#elixir_tokenizer.mode of
         relative ->
-          {StartLine + StartPrevLine, StartColumn + StartPrevColumn, EndLine + EndPrevLine, EndColumn + EndPrevColumn};
+          {StartPrevLine, StartPrevColumn, EndPrevLine, EndPrevColumn};
         absolute ->
           {StartLine, StartColumn, EndLine, EndColumn}
       end,
