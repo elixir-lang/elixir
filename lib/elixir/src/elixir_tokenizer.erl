@@ -2000,7 +2000,7 @@ to_absolute_tokens([Token | Rest], {CurrLine, CurrCol}, Acc) ->
     NewInfo2 = setelement(2, NewInfo1, NewCol),
     NewToken = setelement(2, Token, NewInfo2),
     NewTokenWithSubtokens = case NewToken of
-        {Key, Meta, Unescaped} when key =:= atom_safe; Key =:= atom_unsafe; Key =:= kw_identifier_safe; Key =:= kw_identifier_unsafe; Key =:= bin_string; Key =:= list_string ->
+        {Key, Meta, Unescaped} when Key =:= atom_safe; Key =:= atom_unsafe; Key =:= kw_identifier_safe; Key =:= kw_identifier_unsafe; Key =:= bin_string; Key =:= list_string ->
           NewUnescaped = to_absolute_interpolation(Unescaped, {NewLine, NewCol}),
           {Key, Meta, NewUnescaped};
         {Key, Meta, Indentation, Unescaped} when Key =:= bin_heredoc; Key =:= list_heredoc ->
