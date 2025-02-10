@@ -816,7 +816,7 @@ handle_char(_)  -> false.
 %% Handlers
 
 handle_heredocs(T, Line, Column, H, Scope, Tokens) ->
-  case extract_heredoc_with_interpolation(Line, Column, Scope, true, T, H) of
+  case extract_heredoc_with_interpolation(Line, Column, Column, Scope, true, T, H) of
     {ok, NewLine, NewColumn, Parts, Rest, NewScope} ->
       case unescape_tokens(Parts, Line, Column, NewScope) of
         {ok, Unescaped} ->
@@ -1130,13 +1130,13 @@ collect_modifiers(Rest, Buffer) ->
 
 %% Heredocs
 
-extract_heredoc_with_interpolation(Line, Column, Scope, Interpol, T, H) ->
+extract_heredoc_with_interpolation(Line, Column, TokenColumn, Scope, Interpol, T, H) ->
   case extract_heredoc_header(T) of
     {ok, Headerless} ->
       %% We prepend a new line so we can transparently remove
       %% spaces later. This new line is removed by calling "tl"
       %% in the final heredoc body three lines below.
-      case elixir_interpolation:extract(Line, Column, Scope#elixir_tokenizer{prev_pos={Line, Column}}, Interpol, [$\n|Headerless], [H,H,H]) of
+      case elixir_interpolation:extract(Line, Column, Scope#elixir_tokenizer{prev_pos={Line, TokenColumn}}, Interpol, [$\n|Headerless], [H,H,H]) of
         {NewLine, NewColumn, Parts0, Rest, InterScope} ->
           Indent = NewColumn - 4,
           Fun = fun(Part, Acc) -> extract_heredoc_indent(Part, Acc, Indent) end,
@@ -1744,7 +1744,7 @@ sigil_name_error() ->
 
 tokenize_sigil_contents([H, H, H | T] = Original, [S | _] = SigilName, Line, Column, Scope, Tokens)
     when ?is_quote(H) ->
-  case extract_heredoc_with_interpolation(Line, Column, Scope, ?is_downcase(S), T, H) of
+  case extract_heredoc_with_interpolation(Line, Column, Column - 1 - length(SigilName), Scope, ?is_downcase(S), T, H) of
     {ok, NewLine, NewColumn, Parts, Rest, NewScope} ->
       Indentation = NewColumn - 4,
       add_sigil_token(SigilName, Line, Column, NewLine, NewColumn, Parts, Rest, NewScope, Tokens, Indentation, <<H, H, H>>);
@@ -1755,7 +1755,7 @@ tokenize_sigil_contents([H, H, H | T] = Original, [S | _] = SigilName, Line, Col
 
 tokenize_sigil_contents([H | T] = Original, [S | _] = SigilName, Line, Column, Scope, Tokens)
     when ?is_sigil(H) ->
-  case elixir_interpolation:extract(Line, Column + 1, Scope#elixir_tokenizer{prev_pos={Line, Column}}, ?is_downcase(S), T, sigil_terminator(H)) of
+  case elixir_interpolation:extract(Line, Column + 1, Scope#elixir_tokenizer{prev_pos={Line, Column - 1 - length(SigilName)}}, ?is_downcase(S), T, sigil_terminator(H)) of
     {NewLine, NewColumn, Parts, Rest, NewScope} ->
       Indentation = nil,
       add_sigil_token(SigilName, Line, Column, NewLine, NewColumn, tokens_to_binary(Parts), Rest, NewScope#elixir_tokenizer{prev_pos=Scope#elixir_tokenizer.prev_pos}, Tokens, Indentation, <<H>>);
