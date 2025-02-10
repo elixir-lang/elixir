@@ -1195,7 +1195,8 @@ defmodule Code.Fragment do
 
   defp reverse_tokens(line, column, tokens, terminators) do
     {terminators, _} =
-      Enum.map_reduce(terminators, column, fn {start, _, _}, column ->
+      Enum.map_reduce(terminators, column, fn {start, _, _, _}, column ->
+        # TODO handle relative positions
         atom = :elixir_tokenizer.terminator(start)
 
         {{atom, {line, column, nil}}, column + length(Atom.to_charlist(atom))}
