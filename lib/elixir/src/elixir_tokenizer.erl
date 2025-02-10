@@ -862,11 +862,11 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
         {ok, [Part]} when is_binary(Part) ->
           case unsafe_to_atom(Part, Line, Column - 1, Scope) of
             {ok, Atom} ->
-              {{Line1, Column1}, NewScope1} = token_position({Line, Column - 1}, NewScope),
+              {{Line1, Column1}, NewScope1} = token_position({Line, Column - 1}, NewScope#elixir_tokenizer{prev_pos=Scope#elixir_tokenizer.prev_pos}),
               Token = {kw_identifier, {Line1, Column1, H}, Atom},
               tokenize(Rest, NewLine, NewColumn + 1, NewScope1, [Token | Tokens]);
             {error, Reason} ->
-              error(Reason, Rest, NewScope, Tokens)
+              error(Reason, Rest, NewScope#elixir_tokenizer{prev_pos=Scope#elixir_tokenizer.prev_pos}, Tokens)
           end;
 
         {ok, Unescaped} ->
