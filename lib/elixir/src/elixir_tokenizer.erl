@@ -156,7 +156,7 @@ tokenize([], Line, Column, #elixir_tokenizer{cursor_completion=Cursor} = Scope, 
   AllWarnings = maybe_unicode_lint_warnings(Ascii, Tokens, Warnings),
   {ok, Line, CursorColumn, AllWarnings, AccTokens, AccTerminators};
 
-tokenize([], EndLine, EndColumn, #elixir_tokenizer{terminators=[{Start, {StartLine, StartColumn, _}, _} | _]} = Scope, Tokens) ->
+tokenize([], EndLine, EndColumn, #elixir_tokenizer{terminators=[{Start, {StartLine, StartColumn, _}, _, _} | _]} = Scope, Tokens) ->
   End = terminator(Start),
   Hint = missing_terminator_hint(Start, End, Scope),
   Message = "missing terminator: ~ts",
