@@ -15,10 +15,18 @@ defmodule IEx.MixListener do
 
   @doc """
   Unloads all modules invalidated by external compilations.
+
+  Returns `:noop` if there is no module to purge or if
+  the listener is not running (it may happen when connecting
+  via --remsh to a node that was started without IEx).
   """
   @spec purge :: :ok | :noop
   def purge do
-    GenServer.call(@name, :purge, :infinity)
+    if Process.whereis(@name) do
+      GenServer.call(@name, :purge, :infinity)
+    else
+      :noop
+    end
   end
 
   @impl true
