@@ -151,7 +151,7 @@ tokenize([], Line, Column, #elixir_tokenizer{cursor_completion=Cursor} = Scope, 
   #elixir_tokenizer{ascii_identifiers_only=Ascii, terminators=Terminators, warnings=Warnings} = Scope,
 
   {CursorColumn, AccTerminators, AccTokens} =
-    add_cursor(Line, Column, Cursor, Terminators, Tokens),
+    add_cursor(Line, Column, Cursor, Scope, Terminators, Tokens),
 
   AllWarnings = maybe_unicode_lint_warnings(Ascii, Tokens, Warnings),
   {ok, Line, CursorColumn, AllWarnings, AccTokens, AccTerminators};
@@ -1918,89 +1918,103 @@ error(Reason, Rest, #elixir_tokenizer{warnings=Warnings}, Tokens) ->
 
 %% Cursor handling
 
-add_cursor(_Line, Column, noprune, Terminators, Tokens) ->
+add_cursor(_Line, Column, noprune, _Scope, Terminators, Tokens) ->
   {Column, Terminators, Tokens};
-add_cursor(Line, Column, prune_and_cursor, Terminators, Tokens) ->
-  % TODO handle relative positions in cursor and backtrack in prune
-  PrePrunedTokens = prune_identifier(Tokens),
-  PrunedTokens = prune_tokens(PrePrunedTokens, []),
-  CursorTokens = [
-    {')', {Line, Column + 11, nil}},
-    {'(', {Line, Column + 10, nil}},
-    {paren_identifier, {Line, Column, nil}, '__cursor__'}
-    | PrunedTokens
-  ],
+add_cursor(Line, Column, prune_and_cursor, Scope, Terminators, Tokens) ->
+  {Scope1, PrePrunedTokens} = prune_identifier(Scope, Tokens),
+  {Scope2, PrunedTokens} = prune_tokens(PrePrunedTokens, [], Scope1),
+  CursorTokens = case Scope2 of
+    #elixir_tokenizer{mode=relative, prev_pos={PrevLine, PrevColumn}} -> [
+      {')', {0, 1, nil}},
+      {'(', {0, 10, nil}},
+      {paren_identifier, {Line - PrevLine, Column - PrevColumn, nil}, '__cursor__'}
+      | PrunedTokens
+    ];
+    _ -> [
+      {')', {Line, Column + 11, nil}},
+      {'(', {Line, Column + 10, nil}},
+      {paren_identifier, {Line, Column, nil}, '__cursor__'}
+      | PrunedTokens
+    ]
+  end,
   {Column + 12, Terminators, CursorTokens}.
 
-prune_identifier([{identifier, _, _} | Tokens]) -> Tokens;
-prune_identifier(Tokens) -> Tokens.
+revert_prev_pos(Token, #elixir_tokenizer{prev_pos={PrevLine, PrevColumn, mode=relative}} = Scope) ->
+  Info = element(2, Token),
+  Line = element(1, Info),
+  Column = element(2, Info),
+  Scope#elixir_tokenizer{prev_pos={PrevLine - Line, PrevColumn - Column}};
+revert_prev_pos(_Token, Scope) -> Scope.
+
+prune_identifier(Scope, [{identifier, _, _} = Token | Tokens]) -> {revert_prev_pos(Token, Scope), Tokens};
+prune_identifier(Scope, Tokens) -> {Scope, Tokens}.
 
 %%% Any terminator needs to be closed
-prune_tokens([{'end', _} | Tokens], Opener) ->
-  prune_tokens(Tokens, ['end' | Opener]);
-prune_tokens([{')', _} | Tokens], Opener) ->
-  prune_tokens(Tokens, [')' | Opener]);
-prune_tokens([{']', _} | Tokens], Opener) ->
-  prune_tokens(Tokens, [']' | Opener]);
-prune_tokens([{'}', _} | Tokens], Opener) ->
-  prune_tokens(Tokens, ['}' | Opener]);
-prune_tokens([{'>>', _} | Tokens], Opener) ->
-  prune_tokens(Tokens, ['>>' | Opener]);
+prune_tokens([{'end', _} = Token | Tokens], Opener, Scope) ->
+  prune_tokens(Tokens, ['end' | Opener], revert_prev_pos(Token, Scope));
+prune_tokens([{')', _} = Token | Tokens], Opener, Scope) ->
+  prune_tokens(Tokens, [')' | Opener], revert_prev_pos(Token, Scope));
+prune_tokens([{']', _} = Token | Tokens], Opener, Scope) ->
+  prune_tokens(Tokens, [']' | Opener], revert_prev_pos(Token, Scope));
+prune_tokens([{'}', _} = Token | Tokens], Opener, Scope) ->
+  prune_tokens(Tokens, ['}' | Opener], revert_prev_pos(Token, Scope));
+prune_tokens([{'>>', _} = Token | Tokens], Opener, Scope) ->
+  prune_tokens(Tokens, ['>>' | Opener], revert_prev_pos(Token, Scope));
 %%% Close opened terminators
-prune_tokens([{'fn', _} | Tokens], ['end' | Opener]) ->
-  prune_tokens(Tokens, Opener);
-prune_tokens([{'do', _} | Tokens], ['end' | Opener]) ->
-  prune_tokens(Tokens, Opener);
-prune_tokens([{'(', _} | Tokens], [')' | Opener]) ->
-  prune_tokens(Tokens, Opener);
-prune_tokens([{'[', _} | Tokens], [']' | Opener]) ->
-  prune_tokens(Tokens, Opener);
-prune_tokens([{'{', _} | Tokens], ['}' | Opener]) ->
-  prune_tokens(Tokens, Opener);
-prune_tokens([{'<<', _} | Tokens], ['>>' | Opener]) ->
-  prune_tokens(Tokens, Opener);
+prune_tokens([{'fn', _} = Token | Tokens], ['end' | Opener], Scope) ->
+  prune_tokens(Tokens, Opener, revert_prev_pos(Token, Scope));
+prune_tokens([{'do', _} = Token | Tokens], ['end' | Opener], Scope) ->
+  prune_tokens(Tokens, Opener, revert_prev_pos(Token, Scope));
+prune_tokens([{'(', _} = Token | Tokens], [')' | Opener], Scope) ->
+  prune_tokens(Tokens, Opener, revert_prev_pos(Token, Scope));
+prune_tokens([{'[', _} = Token | Tokens], [']' | Opener], Scope) ->
+  prune_tokens(Tokens, Opener, revert_prev_pos(Token, Scope));
+prune_tokens([{'{', _} = Token | Tokens], ['}' | Opener], Scope) ->
+  prune_tokens(Tokens, Opener, revert_prev_pos(Token, Scope));
+prune_tokens([{'<<', _} = Token | Tokens], ['>>' | Opener], Scope) ->
+  prune_tokens(Tokens, Opener, revert_prev_pos(Token, Scope));
 %%% or it is time to stop...
-prune_tokens([{';', _} | _] = Tokens, []) ->
-  Tokens;
-prune_tokens([{'eol', _} | _] = Tokens, []) ->
-  Tokens;
-prune_tokens([{',', _} | _] = Tokens, []) ->
-  Tokens;
-prune_tokens([{'fn', _} | _] = Tokens, []) ->
-  Tokens;
-prune_tokens([{'do', _} | _] = Tokens, []) ->
-  Tokens;
-prune_tokens([{'(', _} | _] = Tokens, []) ->
-  Tokens;
-prune_tokens([{'[', _} | _] = Tokens, []) ->
-  Tokens;
-prune_tokens([{'{', _} | _] = Tokens, []) ->
-  Tokens;
-prune_tokens([{'<<', _} | _] = Tokens, []) ->
-  Tokens;
-prune_tokens([{identifier, _, _} | _] = Tokens, []) ->
-  Tokens;
-prune_tokens([{block_identifier, _, _} | _] = Tokens, []) ->
-  Tokens;
-prune_tokens([{kw_identifier, _, _} | _] = Tokens, []) ->
-  Tokens;
-prune_tokens([{kw_identifier_safe, _, _} | _] = Tokens, []) ->
-  Tokens;
-prune_tokens([{kw_identifier_unsafe, _, _} | _] = Tokens, []) ->
-  Tokens;
-prune_tokens([{OpType, _, _} | _] = Tokens, [])
+prune_tokens([{';', _} | _] = Tokens, [], Scope) ->
+  {Scope, Tokens};
+prune_tokens([{'eol', _} | _] = Tokens, [], Scope) ->
+  {Scope, Tokens};
+prune_tokens([{',', _} | _] = Tokens, [], Scope) ->
+  {Scope, Tokens};
+prune_tokens([{'fn', _} | _] = Tokens, [], Scope) ->
+  {Scope, Tokens};
+prune_tokens([{'do', _} | _] = Tokens, [], Scope) ->
+  {Scope, Tokens};
+prune_tokens([{'(', _} | _] = Tokens, [], Scope) ->
+  {Scope, Tokens};
+prune_tokens([{'[', _} | _] = Tokens, [], Scope) ->
+  {Scope, Tokens};
+prune_tokens([{'{', _} | _] = Tokens, [], Scope) ->
+  {Scope, Tokens};
+prune_tokens([{'<<', _} | _] = Tokens, [], Scope) ->
+  {Scope, Tokens};
+prune_tokens([{identifier, _, _} | _] = Tokens, [], Scope) ->
+  {Scope, Tokens};
+prune_tokens([{block_identifier, _, _} | _] = Tokens, [], Scope) ->
+  {Scope, Tokens};
+prune_tokens([{kw_identifier, _, _} | _] = Tokens, [], Scope) ->
+  {Scope, Tokens};
+prune_tokens([{kw_identifier_safe, _, _} | _] = Tokens, [], Scope) ->
+  {Scope, Tokens};
+prune_tokens([{kw_identifier_unsafe, _, _} | _] = Tokens, [], Scope) ->
+  {Scope, Tokens};
+prune_tokens([{OpType, _, _} | _] = Tokens, [], Scope)
   when OpType =:= comp_op; OpType =:= at_op; OpType =:= unary_op; OpType =:= and_op;
        OpType =:= or_op; OpType =:= arrow_op; OpType =:= match_op; OpType =:= in_op;
        OpType =:= in_match_op; OpType =:= type_op; OpType =:= dual_op; OpType =:= mult_op;
        OpType =:= power_op; OpType =:= concat_op; OpType =:= range_op; OpType =:= xor_op;
        OpType =:= pipe_op; OpType =:= stab_op; OpType =:= when_op; OpType =:= assoc_op;
        OpType =:= rel_op; OpType =:= ternary_op; OpType =:= capture_op; OpType =:= ellipsis_op ->
-  Tokens;
+  {Scope, Tokens};
 %%% or we traverse until the end.
-prune_tokens([_ | Tokens], Opener) ->
-  prune_tokens(Tokens, Opener);
-prune_tokens([], _Opener) ->
-  [].
+prune_tokens([Token | Tokens], Opener, Scope) ->
+  prune_tokens(Tokens, Opener, revert_prev_pos(Token, Scope));
+prune_tokens([], _Opener, Scope) ->
+  {Scope, []}.
 
 to_absolute_tokens(RelTokens, {StartLine, StartColumn}) ->
     to_absolute_tokens(RelTokens, {StartLine, StartColumn}, []).
