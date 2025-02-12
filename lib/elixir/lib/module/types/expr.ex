@@ -517,10 +517,10 @@ defmodule Module.Types.Expr do
 
   # var
   def of_expr(var, expected, expr, stack, context) when is_var(var) do
-    if stack.mode == :traversal do
-      {dynamic(), context}
-    else
-      Of.refine_body_var(var, expected, expr, stack, context)
+    case stack do
+      %{mode: :traversal} -> {dynamic(), context}
+      %{refine_vars: false} -> {Of.var(var, context), context}
+      %{} -> Of.refine_body_var(var, expected, expr, stack, context)
     end
   end
 
@@ -715,7 +715,7 @@ defmodule Module.Types.Expr do
     {returns, context} =
       Enum.map_reduce(mods, context, fn mod, context ->
         expr = {remote, [type_check: {:invoked_as, mod, fun, length(args)}] ++ meta, args}
-        apply_one(mod, fun, args, expected, expr, stack, context)
+        apply_one(mod, fun, args, expected, expr, %{stack | refine_vars: false}, context)
       end)
 
     {Enum.reduce(returns, &union/2), context}

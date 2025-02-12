@@ -362,27 +362,51 @@ defmodule Module.Types.ExprTest do
                """
     end
 
-    test "requires all combinations to be compatible" do
-      assert typeerror!(
-               [condition, string],
+    test "requires all combinations to be compatible (except refinements)" do
+      assert typecheck!(
+               [condition, arg],
                (
+                 # While the code below may raise, it may also always succeed
+                 # if condition and arg are passed in tandem. Therefore, we
+                 # turn off refinement on dynamic calls.
                  mod = if condition, do: String, else: List
-                 mod.to_integer(string)
+                 res = mod.to_integer(arg)
+                 {arg, res}
+               )
+             ) == tuple([dynamic(), integer()])
+
+      assert typeerror!(
+               [condition],
+               (
+                 arg = if condition, do: "foo", else: [?f, ?o, ?o]
+                 mod = if condition, do: String, else: List
+                 mod.to_integer(arg)
                )
              )
              |> strip_ansi() == ~l"""
-             incompatible types given to String.to_integer/1:
+             incompatible types given to List.to_integer/1:
 
-                 mod.to_integer(string)
-                 #=> invoked as String.to_integer/1
+                 mod.to_integer(arg)
+                 #=> invoked as List.to_integer/1
 
              given types:
 
-                 dynamic(non_empty_list(integer()))
+                 binary() or non_empty_list(integer())
 
              but expected one of:
 
-                 binary()
+                 non_empty_list(integer())
+
+             where "arg" was given the type:
+
+                 # type: binary() or non_empty_list(integer())
+                 # from: types_test.ex:LINE-5
+                 arg =
+                   if condition do
+                     "foo"
+                   else
+                     ~c"foo"
+                   end
 
              where "mod" was given the type:
 
@@ -394,13 +418,6 @@ defmodule Module.Types.ExprTest do
                    else
                      List
                    end
-
-             where "string" was given the type:
-
-                 # type: dynamic(non_empty_list(integer()))
-                 # from: types_test.ex:LINE-3
-                 mod.to_integer(string)
-                 #=> invoked as List.to_integer/1
              """
     end
   end
@@ -968,7 +985,7 @@ defmodule Module.Types.ExprTest do
              where "p" was given the type:
 
                  # type: %Point{x: integer(), y: nil, z: integer()}
-                 # from: types_test.ex:951
+                 # from: types_test.ex:LINE-4
                  p = %Point{..., x: 123}
              """
     end

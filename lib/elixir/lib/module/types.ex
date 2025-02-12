@@ -401,14 +401,25 @@ defmodule Module.Types do
       module: module,
       # Current function
       function: function,
-      # List of calls to not warn on as undefined or :all or Macro.Env indicating limited remotes
+      # Handling of undefined remote calls. May be one of:
+      #
+      # * List of calls to not warn on as undefined
+      #
+      # * The atom `:all` to not mark anything as undefined
+      #
+      # * A Macro.Env struct to not mark anything as undefined
+      #   also used to extract structs from
+      #
       no_warn_undefined: no_warn_undefined,
       # A tuple with cache information (may be nil)
       cache: cache,
       # The mode to be used, see the @modes attribute
       mode: mode,
       # The function for handling local calls
-      local_handler: handler
+      local_handler: handler,
+      # Control if variable refinment is enabled.
+      # It is disabled only on dynamic dispatches.
+      refine_vars: true
     }
   end
 
