@@ -37,13 +37,10 @@ defmodule Module.Types.IntegrationTest do
   end
 
   setup_all do
-    previous = Application.get_env(:elixir, :ansi_enabled, false)
     Application.put_env(:elixir, :ansi_enabled, false)
-    Code.put_compiler_option(:infer_signatures, [:elixir])
 
     on_exit(fn ->
-      Application.put_env(:elixir, :ansi_enabled, previous)
-      Code.put_compiler_option(:infer_signatures, false)
+      Application.put_env(:elixir, :ansi_enabled, true)
     end)
   end
 

@@ -9,7 +9,7 @@ File.mkdir_p!(path)
 Code.prepend_path(path)
 
 Application.put_env(:elixir, :ansi_enabled, true)
-Code.compiler_options(debug_info: true)
+Code.compiler_options(debug_info: true, infer_signatures: [:elixir])
 
 defmodule PathHelpers do
   def fixture_path() do
