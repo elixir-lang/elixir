@@ -33,4 +33,31 @@ defmodule Mix.GleamTest do
              ]
     end
   end
+
+  describe "integration with Mix" do
+    test "gets and compiles dependencies" do
+      in_tmp("get and compile dependencies", fn ->
+        Mix.Project.push(GleamAsDep)
+
+        Mix.Tasks.Deps.Get.run([])
+        assert_received {:mix_shell, :info, ["* Getting gleam_stdlib " <> _]}
+        assert_received {:mix_shell, :info, ["* Getting gleam_otp " <> _]}
+        assert_received {:mix_shell, :info, ["* Getting gleeunit " <> _]}
+
+        Mix.Tasks.Deps.Compile.run([])
+        assert :gleam_dep.main()
+        assert :gleam@int.to_string(1) == "1"
+
+        load_paths =
+          Mix.Dep.Converger.converge([])
+          |> Enum.map(&Mix.Dep.load_paths(&1))
+          |> Enum.concat()
+
+        assert Enum.any?(load_paths, &String.ends_with?(&1, "gleam_dep/ebin"))
+        assert Enum.any?(load_paths, &String.ends_with?(&1, "gleam_stdlib/ebin"))
+        # Dep of a dep
+        assert Enum.any?(load_paths, &String.ends_with?(&1, "gleam_erlang/ebin"))
+      end)
+    end
+  end
 end
