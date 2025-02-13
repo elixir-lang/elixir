@@ -14,6 +14,28 @@ defmodule Mix.Gleam do
     end
   end
 
+  def available? do
+    case version_cmd() do
+      {:ok, _} -> true
+      {:error, _} -> false
+    end
+  end
+
+  defp version_cmd do
+    try do
+      case System.cmd("gleam", ["--version"]) do
+        {output, 0} -> {:ok, output}
+        {_output, error_code} -> {:error, error_code}
+      end
+    rescue
+      error in ErlangError ->
+        case error do
+          %ErlangError{original: :enoent} -> {:error, :enoent}
+          _ -> raise error
+        end
+    end
+  end
+
   defp parse_config(config) do
     dependencies =
       config

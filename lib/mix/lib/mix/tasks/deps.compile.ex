@@ -300,7 +300,14 @@ defmodule Mix.Tasks.Deps.Compile do
     true
   end
 
-  defp do_gleam(%Mix.Dep{opts: opts} = dep, config) do
+  defp do_gleam(%Mix.Dep{app: app, opts: opts} = dep, config) do
+    if not Mix.Gleam.available?() do
+      Mix.raise(
+        "Could not find gleam binary, which is needed to build dependency #{inspect(app)}\n" <>
+          "Please head to https://gleam.run/getting-started/installing/ and install it."
+      )
+    end
+
     lib = Path.join(Mix.Project.build_path(), "lib")
     out = opts[:build]
     package = opts[:dest]
