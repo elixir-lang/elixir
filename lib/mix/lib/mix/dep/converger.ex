@@ -426,7 +426,7 @@ defmodule Mix.Dep.Converger do
     %{other | manager: sort_manager(other_manager, manager, in_upper?)}
   end
 
-  @managers [:mix, :rebar3, :make]
+  @managers [:mix, :rebar3, :make, :gleam]
 
   defp sort_manager(other_manager, manager, true) do
     other_manager || manager
