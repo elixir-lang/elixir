@@ -290,6 +290,15 @@ Enum.each(fixtures, fn fixture ->
   File.cp_r!(source, dest)
 end)
 
+## Set up Gleam fixtures
+
+fixture = "gleam_dep"
+
+source = MixTest.Case.fixture_path(fixture)
+dest = MixTest.Case.tmp_path(fixture)
+File.mkdir_p!(dest)
+File.cp_r!(source, dest)
+
 ## Set up Git fixtures
 
 System.cmd("git", ~w[config --global user.email mix@example.com])
