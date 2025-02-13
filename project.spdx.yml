@@ -9,20 +9,184 @@ name: "elixir"
 dataLicense: "CC0-1.0"
 documentNamespace: "https://github.com/elixir-lang/elixir"
 documentDescribes:
-- "SPDXRef-Package-elixir"
+- "SPDXRef-Project-elixir-lang"
 packages:
-- SPDXID: "SPDXRef-Package-elixir"
+- SPDXID: "SPDXRef-Project-elixir-lang"
   summary: "About Elixir is a dynamic, functional language for building scalable and maintainable applications"
   copyrightText: "Copyright (c) 2012 Plataformatec. Copyright (c) 2021 The Elixir Team. All Rights Reserved."
   downloadLocation: "git+https://github.com/elixir-lang/elixir.git"
   filesAnalyzed: false
   homepage: "https://elixir-lang.org/"
-  licenseConcluded: "Apache-2.0 AND LicenseRef-scancode-unicode"
-  licenseDeclared: "Apache-2.0 AND LicenseRef-scancode-unicode"
-  name: "elixir"
-  packageFileName: "./"
+  licenseConcluded: "Apache-2.0 AND LicenseRef-scancode-unicode AND LicenseRef-elixir-trademark-policy"
+  licenseDeclared: "Apache-2.0 AND LicenseRef-scancode-unicode AND LicenseRef-elixir-trademark-policy"
+  name: "elixir-lang"
+  originator: "Organization: The Elixir Team"
+  supplier: "Organization: The Elixir Team"
+  packageFileName: "."
   externalRefs:
     - referenceCategory: PACKAGE-MANAGER
       referenceType: "purl"
       referenceLocator: "pkg:github/elixir-lang/elixir"
       comment: "GitHub PURL"
+  # elixir-version-insert
+- SPDXID: "SPDXRef-Package-eex"
+  summary: "About Elixir is a dynamic, functional language for building scalable and maintainable applications"
+  copyrightText: "Copyright (c) 2012 Plataformatec. Copyright (c) 2021 The Elixir Team. All Rights Reserved."
+  downloadLocation: "git+https://github.com/elixir-lang/elixir.git#lib/eex"
+  filesAnalyzed: false
+  homepage: "https://elixir-lang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "eex"
+  originator: "Organization: The Elixir Team"
+  supplier: "Organization: The Elixir Team"
+  packageFileName: "./lib/eex"
+  externalRefs:
+    - referenceCategory: PACKAGE-MANAGER
+      referenceType: "purl"
+      referenceLocator: "pkg:otp/eex"
+      comment: "OTP PURL"
+  # elixir-version-insert
+- SPDXID: "SPDXRef-Package-elixir"
+  summary: "About Elixir is a dynamic, functional language for building scalable and maintainable applications"
+  copyrightText: "Copyright (c) 2012 Plataformatec. Copyright (c) 2021 The Elixir Team. All Rights Reserved."
+  downloadLocation: "git+https://github.com/elixir-lang/elixir.git#lib/elixir"
+  filesAnalyzed: false
+  homepage: "https://elixir-lang.org/"
+  licenseConcluded: "Apache-2.0 AND LicenseRef-scancode-unicode"
+  licenseDeclared: "Apache-2.0 AND LicenseRef-scancode-unicode"
+  name: "elixir"
+  originator: "Organization: The Elixir Team"
+  supplier: "Organization: The Elixir Team"
+  packageFileName: "./lib/elixir"
+  externalRefs:
+    - referenceCategory: PACKAGE-MANAGER
+      referenceType: "purl"
+      referenceLocator: "pkg:otp/elixir"
+      comment: "OTP PURL"
+  # elixir-version-insert
+- SPDXID: "SPDXRef-Package-exunit"
+  summary: "About Elixir is a dynamic, functional language for building scalable and maintainable applications"
+  copyrightText: "Copyright (c) 2012 Plataformatec. Copyright (c) 2021 The Elixir Team. All Rights Reserved."
+  downloadLocation: "git+https://github.com/elixir-lang/elixir.git#lib/ex_unit"
+  filesAnalyzed: false
+  homepage: "https://elixir-lang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "exunit"
+  originator: "Organization: The Elixir Team"
+  supplier: "Organization: The Elixir Team"
+  packageFileName: "./lib/ex_unit"
+  externalRefs:
+    - referenceCategory: PACKAGE-MANAGER
+      referenceType: "purl"
+      referenceLocator: "pkg:otp/ex_unit"
+      comment: "OTP PURL"
+  # elixir-version-insert
+- SPDXID: "SPDXRef-Package-iex"
+  summary: "About Elixir is a dynamic, functional language for building scalable and maintainable applications"
+  copyrightText: "Copyright (c) 2012 Plataformatec. Copyright (c) 2021 The Elixir Team. All Rights Reserved."
+  downloadLocation: "git+https://github.com/elixir-lang/elixir.git#lib/iex"
+  filesAnalyzed: false
+  homepage: "https://elixir-lang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "iex"
+  originator: "Organization: The Elixir Team"
+  supplier: "Organization: The Elixir Team"
+  packageFileName: "./lib/iex"
+  externalRefs:
+    - referenceCategory: PACKAGE-MANAGER
+      referenceType: "purl"
+      referenceLocator: "pkg:otp/iex"
+      comment: "OTP PURL"
+  # elixir-version-insert
+- SPDXID: "SPDXRef-Package-logger"
+  summary: "About Elixir is a dynamic, functional language for building scalable and maintainable applications"
+  copyrightText: "Copyright (c) 2012 Plataformatec. Copyright (c) 2021 The Elixir Team. All Rights Reserved."
+  downloadLocation: "git+https://github.com/elixir-lang/elixir.git/lib/logger"
+  filesAnalyzed: false
+  homepage: "https://elixir-lang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "logger"
+  originator: "Organization: The Elixir Team"
+  supplier: "Organization: The Elixir Team"
+  packageFileName: "./lib/logger"
+  externalRefs:
+    - referenceCategory: PACKAGE-MANAGER
+      referenceType: "purl"
+      referenceLocator: "pkg:otp/logger"
+      comment: "OTP PURL"
+  # elixir-version-insert
+- SPDXID: "SPDXRef-Package-mix"
+  summary: "About Elixir is a dynamic, functional language for building scalable and maintainable applications"
+  copyrightText: "Copyright (c) 2012 Plataformatec. Copyright (c) 2021 The Elixir Team. All Rights Reserved."
+  downloadLocation: "git+https://github.com/elixir-lang/elixir.git#lib/mix"
+  filesAnalyzed: false
+  homepage: "https://elixir-lang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "mix"
+  originator: "Organization: The Elixir Team"
+  supplier: "Organization: The Elixir Team"
+  packageFileName: "./lib/mix"
+  externalRefs:
+    - referenceCategory: PACKAGE-MANAGER
+      referenceType: "purl"
+      referenceLocator: "pkg:otp/mix"
+      comment: "OTP PURL"
+  # elixir-version-insert
+- SPDXID: "SPDXRef-Project-erlang"
+  description: "Erlang is a programming language and runtime system for building massively scalable soft real-time systems with requirements on high availability."
+  copyrightText: "Copyright Ericsson AB 2010-2024. All Rights Reserved."
+  downloadLocation: "git+https://github.com/erlang/otp.git"
+  filesAnalyzed: false
+  homepage: "https://www.erlang.org/"
+  licenseConcluded: "Apache-2.0"
+  licenseDeclared: "Apache-2.0"
+  name: "erlang"
+  originator: "Organization: Ericsson AB"
+  supplier: "Organization: Ericsson AB"
+  externalRefs:
+    - referenceCategory: PACKAGE-MANAGER
+      referenceType: "purl"
+      referenceLocator: "pkg:github/erlang/otp"
+      comment: "GitHub PURL"
+relationships:
+- spdxElementId: "SPDXRef-Project-elixir-lang"
+  relatedSpdxElement: "SPDXRef-Package-eex"
+  relationshipType: "STATIC_LINK" # Should be CONTAINS, issue with ORT
+- spdxElementId: "SPDXRef-Project-elixir-lang"
+  relatedSpdxElement: "SPDXRef-Package-elixir"
+  relationshipType: "STATIC_LINK" # Should be CONTAINS, issue with ORT
+- spdxElementId: "SPDXRef-Project-elixir-lang"
+  relatedSpdxElement: "SPDXRef-Package-exunit"
+  relationshipType: "STATIC_LINK" # Should be CONTAINS, issue with ORT
+- spdxElementId: "SPDXRef-Project-elixir-lang"
+  relatedSpdxElement: "SPDXRef-Package-iex"
+  relationshipType: "STATIC_LINK" # Should be CONTAINS, issue with ORT
+- spdxElementId: "SPDXRef-Project-elixir-lang"
+  relatedSpdxElement: "SPDXRef-Package-logger"
+  relationshipType: "STATIC_LINK" # Should be CONTAINS, issue with ORT
+- spdxElementId: "SPDXRef-Project-elixir-lang"
+  relatedSpdxElement: "SPDXRef-Package-mix"
+  relationshipType: "STATIC_LINK" # Should be CONTAINS, issue with ORT
+- spdxElementId: "SPDXRef-Package-elixir"
+  relatedSpdxElement: "SPDXRef-Project-erlang"
+  relationshipType: "RUNTIME_DEPENDENCY_OF"
+- spdxElementId: "SPDXRef-Package-eex"
+  relatedSpdxElement: "SPDXRef-Package-elixir"
+  relationshipType: "STATIC_LINK"
+- spdxElementId: "SPDXRef-Package-exunit"
+  relatedSpdxElement: "SPDXRef-Package-elixir"
+  relationshipType: "STATIC_LINK"
+- spdxElementId: "SPDXRef-Package-iex"
+  relatedSpdxElement: "SPDXRef-Package-elixir"
+  relationshipType: "STATIC_LINK"
+- spdxElementId: "SPDXRef-Package-logger"
+  relatedSpdxElement: "SPDXRef-Package-elixir"
+  relationshipType: "STATIC_LINK"
+- spdxElementId: "SPDXRef-Package-mix"
+  relatedSpdxElement: "SPDXRef-Package-elixir"
+  relationshipType: "STATIC_LINK"

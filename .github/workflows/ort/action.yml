@@ -54,13 +54,21 @@ runs:
         mkdir -p "/$HOME/.ort/"
 
         # Move Fetched Default Config into Place
-        mv .ort-config "/$HOME/.ort/config"
+        mv .ort-config "$HOME/.ort/config"
         
         # Append Global ORT Config
         cat .ort/config/config.yml >> "$HOME/.ort/config/config.yml"
         
         # Override Default Evaluator Rules
         cp .ort/config/evaluator.rules.kts "$HOME/.ort/config/evaluator.rules.kts"
+
+        # Set Version in SPDX & Config
+        sed -i "s/# elixir-version-insert/versionInfo: '${ELIXIR_VERSION}'/" project.spdx.yml
+        sed -i -E "s/(\"SpdxDocumentFile:The Elixir Team:.+:)\"/\1${ELIXIR_VERSION}\"/" .ort.yml
+        sed -i "s|https://github.com/elixir-lang/elixir.git|${ELIXIR_REPO}@${ELIXIR_VERSION}|" project.spdx.yml
+      env:
+        ELIXIR_VERSION: "${{ inputs.version }}"
+        ELIXIR_REPO: "${{ github.server_url }}/${{ github.repository }}.git"
 
     - name: "Cache ScanCode"
       uses: actions/cache@v4
@@ -74,10 +82,10 @@ runs:
       # * https://github.com/oss-review-toolkit/ort-ci-github-action/issues/37
       # * https://github.com/oss-review-toolkit/ort-ci-github-action/pull/41
       # * https://github.com/oss-review-toolkit/ort-ci-github-action/pull/43
-      uses: maennchen/ort-ci-github-action@action-output
+      uses: oss-review-toolkit/ort-ci-github-action@2cda885c8eefaf92bab9f3e979b5d5a42970dfa4 # main
       with:
-        image: ghcr.io/oss-review-toolkit/ort-minimal:latest
-        run: >
+        image: ghcr.io/oss-review-toolkit/ort-minimal:51.1.0
+        run: >-
           labels,
           cache-dependencies,
           cache-scan-results,
@@ -89,5 +97,7 @@ runs:
           ${{ inputs.upload-reports == 'true' && 'upload-results' || '' }}
         fail-on: "${{ inputs.fail-on-violation == 'true' && 'violations,issues' || '' }}"
         report-formats: "${{ inputs.report-formats }}"
-        ort-cli-report-args: '-O CycloneDX=output.file.formats=json,xml -O SpdxDocument=outputFileFormats=JSON,YAML'
+        ort-cli-report-args: >-
+          -O CycloneDX=output.file.formats=json,xml
+          -O SpdxDocument=outputFileFormats=JSON,YAML
         sw-version: "${{ inputs.version }}"
