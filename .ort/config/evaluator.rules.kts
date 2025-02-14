@@ -25,7 +25,9 @@ val whitelistedLicenses = listOf(
   // License for the Elixir Logo
   "LicenseRef-elixir-trademark-policy",
   // License for included Unicode Files
-  "LicenseRef-scancode-unicode"
+  "LicenseRef-scancode-unicode",
+  // DCO for committers
+  "LicenseRef-scancode-dco-1.1"
 ).map { SpdxSingleLicenseExpression.parse(it) }.toSet()
 
 fun PackageRule.howToFixDefault() = """
