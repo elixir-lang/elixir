@@ -1492,7 +1492,11 @@ defmodule MatchError do
 
   @impl true
   def message(exception) do
-    "no match of right hand side value: #{inspect(exception.term)}"
+    """
+    no match of right hand side value:
+
+    #{inspect(exception.term, pretty: true, limit: :infinity)}
+    """
   end
 end
 

@@ -450,16 +450,20 @@ defmodule Kernel.RaiseTest do
     end
 
     test "badmatch error" do
-      x = :example
-
       result =
         try do
-          ^x = Process.get(:unused, 0)
+          [] = Range.to_list(1000_000..1_000_009)
         rescue
           x in [MatchError] -> Exception.message(x)
         end
 
-      assert result == "no match of right hand side value: 0"
+      assert result ==
+               """
+               no match of right hand side value:
+
+               [1000000, 1000001, 1000002, 1000003, 1000004, 1000005, 1000006, 1000007,
+                1000008, 1000009]
+               """
     end
 
     test "bad key error" do
