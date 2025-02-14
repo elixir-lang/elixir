@@ -2026,13 +2026,13 @@ defmodule String do
   ## Examples
 
       iex> String.chunk(<<?a, ?b, ?c, 0>>, :valid)
-      ["abc\0"]
+      [<<97, 98, 99, 0>>]
 
       iex> String.chunk(<<?a, ?b, ?c, 0, 0xFFFF::utf16>>, :valid)
-      ["abc\0", <<0xFFFF::utf16>>]
+      [<<97, 98, 99, 0>>, <<255, 255>>]
 
       iex> String.chunk(<<?a, ?b, ?c, 0, 0x0FFFF::utf8>>, :printable)
-      ["abc", <<0, 0x0FFFF::utf8>>]
+      ["abc", <<0, 239, 191, 191>>]
 
   """
   @spec chunk(t, :valid | :printable) :: [t]
