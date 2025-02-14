@@ -18,10 +18,10 @@ excludes:
     - pattern: "man/*"
       reason: "DOCUMENTATION_OF"
       comment: "Documentation"
-    - pattern: ".github/*"
+    - pattern: ".github/**/*"
       reason: "BUILD_TOOL_OF"
       comment: "Documentation"
-    - pattern: ".ort/*"
+    - pattern: ".ort/**/*"
       reason: "BUILD_TOOL_OF"
       comment: "Documentation"
 
@@ -109,3 +109,32 @@ curations:
       comment: "Ignored by ScanCode"
       detected_license: "NONE"
       concluded_license: "Apache-2.0"
+  
+  packages:
+    - id: "SpdxDocumentFile:The Elixir Team:elixir-lang:"
+      curations:
+        concluded_license: "Apache-2.0 AND LicenseRef-scancode-unicode"
+    - id: "SpdxDocumentFile:The Elixir Team:eex:"
+      curations:
+        concluded_license: "Apache-2.0"
+        is_metadata_only: true
+    - id: "SpdxDocumentFile:The Elixir Team:elixir:"
+      curations:
+        concluded_license: "Apache-2.0 AND LicenseRef-scancode-unicode"
+        is_metadata_only: true
+    - id: "SpdxDocumentFile:The Elixir Team:exunit:"
+      curations:
+        concluded_license: "Apache-2.0"
+        is_metadata_only: true
+    - id: "SpdxDocumentFile:The Elixir Team:iex:"
+      curations:
+        concluded_license: "Apache-2.0"
+        is_metadata_only: true
+    - id: "SpdxDocumentFile:The Elixir Team:logger:"
+      curations:
+        concluded_license: "Apache-2.0"
+        is_metadata_only: true
+    - id: "SpdxDocumentFile:The Elixir Team:mix:"
+      curations:
+        concluded_license: "Apache-2.0"
+        is_metadata_only: true
