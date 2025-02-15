@@ -177,6 +177,16 @@ defmodule Exception do
     end
   end
 
+  @spec format(String.t(), any) :: String.t()
+  def format_message_with_term(message, term) do
+    inspected =
+      term
+      |> inspect(pretty: true)
+      |> String.replace(~r/^(?=.+)/m, "    ")
+
+    message <> "\n\n" <> inspected
+  end
+
   @doc """
   Attaches information to exceptions for extra debugging.
 
@@ -1431,7 +1441,10 @@ defmodule BadStructError do
 
   @impl true
   def message(exception) do
-    "expected a struct named #{inspect(exception.struct)}, got: #{inspect(exception.term)}"
+    Exception.format_message_with_term(
+      "expected a struct named #{inspect(exception.struct)}, got:",
+      exception.term
+    )
   end
 end
 
@@ -1451,7 +1464,10 @@ defmodule BadMapError do
 
   @impl true
   def message(exception) do
-    "expected a map, got: #{inspect(exception.term)}"
+    Exception.format_message_with_term(
+      "expected a map, got:",
+      exception.term
+    )
   end
 end
 
@@ -1470,7 +1486,10 @@ defmodule BadBooleanError do
 
   @impl true
   def message(exception) do
-    "expected a boolean on left-side of \"#{exception.operator}\", got: #{inspect(exception.term)}"
+    Exception.format_message_with_term(
+      "expected a boolean on left-side of \"#{exception.operator}\", got:",
+      exception.term
+    )
   end
 end
 
@@ -1492,11 +1511,10 @@ defmodule MatchError do
 
   @impl true
   def message(exception) do
-    """
-    no match of right hand side value:
-
-    #{inspect(exception.term, pretty: true, limit: :infinity)}
-    """
+    Exception.format_message_with_term(
+      "no match of right hand side value:",
+      exception.term
+    )
   end
 end
 
@@ -1522,7 +1540,10 @@ defmodule CaseClauseError do
 
   @impl true
   def message(exception) do
-    "no case clause matching: #{inspect(exception.term)}"
+    Exception.format_message_with_term(
+      "no case clause matching:",
+      exception.term
+    )
   end
 end
 
@@ -1552,7 +1573,10 @@ defmodule WithClauseError do
 
   @impl true
   def message(exception) do
-    "no with clause matching: #{inspect(exception.term)}"
+    Exception.format_message_with_term(
+      "no with clause matching:",
+      exception.term
+    )
   end
 end
 
@@ -1602,7 +1626,10 @@ defmodule TryClauseError do
 
   @impl true
   def message(exception) do
-    "no try clause matching: #{inspect(exception.term)}"
+    Exception.format_message_with_term(
+      "no try clause matching:",
+      exception.term
+    )
   end
 end
 
@@ -2164,7 +2191,10 @@ defmodule KeyError do
           "make sure to add parentheses after the function name)"
 
       true ->
-        message <> " in: #{inspect(term, pretty: true, limit: :infinity)}"
+        Exception.format_message_with_term(
+          message <> " in:",
+          term
+        )
     end
   end
 
