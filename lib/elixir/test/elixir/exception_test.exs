@@ -701,25 +701,26 @@ defmodule ExceptionTest do
       message = blame_message(%{first: nil, second: nil}, fn map -> map.firts end)
 
       assert message == """
-             key :firts not found in: %{first: nil, second: nil}. Did you mean:
+             key :firts not found in:\n\n    %{first: nil, second: nil}. Did you mean:
 
                    * :first
              """
 
       message = blame_message(%{"first" => nil, "second" => nil}, fn map -> map.firts end)
 
-      assert message == "key :firts not found in: %{\"first\" => nil, \"second\" => nil}"
+      assert message == "key :firts not found in:\n\n    %{\"first\" => nil, \"second\" => nil}"
 
       message =
         blame_message(%{"first" => nil, "second" => nil}, fn map -> Map.fetch!(map, "firts") end)
 
-      assert message == "key \"firts\" not found in: %{\"first\" => nil, \"second\" => nil}"
+      assert message ==
+               "key \"firts\" not found in:\n\n    %{\"first\" => nil, \"second\" => nil}"
 
       message =
         blame_message([first: nil, second: nil], fn kwlist -> Keyword.fetch!(kwlist, :firts) end)
 
       assert message == """
-             key :firts not found in: [first: nil, second: nil]. Did you mean:
+             key :firts not found in:\n\n    [first: nil, second: nil]. Did you mean:
 
                    * :first
              """
@@ -727,7 +728,7 @@ defmodule ExceptionTest do
 
     test "annotates key error with suggestions for structs" do
       message = blame_message(%URI{}, fn map -> map.schema end)
-      assert message =~ "key :schema not found in: %URI{"
+      assert message =~ "key :schema not found in:\n\n    %URI{"
       assert message =~ "Did you mean:"
       assert message =~ "* :scheme"
     end

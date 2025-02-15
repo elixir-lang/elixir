@@ -225,11 +225,11 @@ defmodule MapTest do
     assert Map.replace!(map, :b, 10) == %{c: 3, b: 10, a: 1}
     assert Map.replace!(map, :a, 1) == map
 
-    assert_raise KeyError, ~r/key :x not found in: %{.*a: 1.*}/, fn ->
+    assert_raise KeyError, ~r/key :x not found in:\n\n    %{.*a: 1.*}/, fn ->
       Map.replace!(map, :x, 10)
     end
 
-    assert_raise KeyError, "key :x not found in: %{}", fn ->
+    assert_raise KeyError, "key :x not found in:\n\n    %{}", fn ->
       Map.replace!(%{}, :x, 10)
     end
   end
