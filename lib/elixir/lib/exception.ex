@@ -183,7 +183,9 @@ defmodule Exception do
     inspected =
       term
       |> inspect(pretty: true)
-      |> String.replace(~r/^(?=.+)/m, "    ")
+      |> String.split("\n")
+      |> Enum.map(&("    " <> &1))
+      |> Enum.join("\n")
 
     message <> "\n\n" <> inspected
   end
