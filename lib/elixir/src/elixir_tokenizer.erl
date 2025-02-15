@@ -153,7 +153,10 @@ tokenize([], Line, Column, #elixir_tokenizer{cursor_completion=Cursor} = Scope, 
   {CursorColumn, AccTerminators, AccTokens} =
     add_cursor(Line, Column, Cursor, Scope, Terminators, Tokens),
 
-  AllWarnings = maybe_unicode_lint_warnings(Ascii, Tokens, Warnings),
+  AllWarnings = maybe_unicode_lint_warnings(Ascii, case Scope of
+    #elixir_tokenizer{mode=relative} -> lists:reverse(to_absolute_tokens(lists:reverse(Tokens), {1, 1}));
+    _ -> Tokens
+    end, Warnings),
   {ok, Line, CursorColumn, AllWarnings, AccTokens, AccTerminators};
 
 tokenize([], EndLine, EndColumn, #elixir_tokenizer{terminators=[{Start, {StartLine, StartColumn, _}, _, {StartPrevLine, StartPrevColumn}} | _]} = Scope, Tokens) ->
@@ -181,7 +184,10 @@ tokenize([], EndLine, EndColumn, #elixir_tokenizer{terminators=[{Start, {StartLi
 
 tokenize([], Line, Column, #elixir_tokenizer{} = Scope, Tokens) ->
   #elixir_tokenizer{ascii_identifiers_only=Ascii, warnings=Warnings} = Scope,
-  AllWarnings = maybe_unicode_lint_warnings(Ascii, Tokens, Warnings),
+  AllWarnings = maybe_unicode_lint_warnings(Ascii, case Scope of
+    #elixir_tokenizer{mode=relative} -> lists:reverse(to_absolute_tokens(lists:reverse(Tokens), {1, 1}));
+    _ -> Tokens
+    end, Warnings),
   {ok, Line, Column, AllWarnings, Tokens, []};
 
 % VC merge conflict
