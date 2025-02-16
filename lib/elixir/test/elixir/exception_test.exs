@@ -729,33 +729,31 @@ defmodule ExceptionTest do
       message =
         blame_message(
           [
-            first: nil,
-            second: nil,
-            third: nil,
-            fourth: nil,
-            fifth: nil,
-            sixth: nil,
-            seventh: nil
+            created_at: nil,
+            updated_at: nil,
+            deleted_at: nil,
+            started_at: nil,
+            finished_at: nil
           ],
           fn kwlist ->
-            Keyword.fetch!(kwlist, :firts)
+            Keyword.fetch!(kwlist, :inserted_at)
           end
         )
 
       assert message == """
-             key :firts not found in:
+             key :inserted_at not found in:
 
                  [
-                   first: nil,
-                   second: nil,
-                   third: nil,
-                   fourth: nil,
-                   fifth: nil,
-                   sixth: nil,
-                   seventh: nil
+                   created_at: nil,
+                   updated_at: nil,
+                   deleted_at: nil,
+                   started_at: nil,
+                   finished_at: nil
                  ]. Did you mean:
 
-                   * :first
+                   * :created_at
+                   * :finished_at
+                   * :started_at
              """
     end
 
