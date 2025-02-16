@@ -1198,10 +1198,13 @@ defmodule Code.Fragment do
     {terminators, _} =
       Enum.map_reduce(terminators, {column, 1}, fn {start, _, _, _}, {column, prev_length} ->
         atom = :elixir_tokenizer.terminator(start)
-        meta = case mode do
-          :relative -> {0, prev_length, nil}
-          _ -> {line, column, nil}
-        end
+
+        meta =
+          case mode do
+            :relative -> {0, prev_length, nil}
+            _ -> {line, column, nil}
+          end
+
         length = length(Atom.to_charlist(atom))
         {{atom, meta}, {column + length, length}}
       end)
