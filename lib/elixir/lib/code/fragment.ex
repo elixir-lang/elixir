@@ -1138,12 +1138,13 @@ defmodule Code.Fragment do
           {:ok, Macro.t()} | {:error, {location :: keyword, binary | {binary, binary}, binary}}
   def container_cursor_to_quoted(fragment, opts \\ []) do
     {trailing_fragment, opts} = Keyword.pop(opts, :trailing_fragment)
-    opts = Keyword.take(opts, [:columns, :token_metadata, :literal_encoder])
+    opts = Keyword.take(opts, [:columns, :token_metadata, :literal_encoder, :mode])
     opts = [check_terminators: {:cursor, []}, emit_warnings: false] ++ opts
 
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
     column = Keyword.get(opts, :column, 1)
+    mode = Keyword.get(opts, :mode, :absolute)
 
     case :elixir_tokenizer.tokenize(to_charlist(fragment), line, column, opts) do
       {:ok, line, column, _warnings, rev_tokens, rev_terminators}
@@ -1158,7 +1159,7 @@ defmodule Code.Fragment do
             _ -> {rev_tokens, rev_terminators}
           end
 
-        tokens = reverse_tokens(line, column, rev_tokens, rev_terminators)
+        tokens = reverse_tokens(line, column, rev_tokens, rev_terminators, mode)
         :elixir.tokens_to_quoted(tokens, file, opts)
 
       {:ok, line, column, _warnings, rev_tokens, rev_terminators} ->
@@ -1171,7 +1172,7 @@ defmodule Code.Fragment do
                {:error, {meta, _, ~c"end"}, _rest, _warnings, trailing_rev_tokens} <-
                  :elixir_tokenizer.tokenize(to_charlist(trailing_fragment), line, column, opts) do
             trailing_tokens =
-              reverse_tokens(meta[:line], meta[:column], trailing_rev_tokens, after_start)
+              reverse_tokens(meta[:line], meta[:column], trailing_rev_tokens, after_start, mode)
 
             # If the cursor has its own line, then we do not trim new lines trailing tokens.
             # Otherwise we want to drop any newline so we drop the next tokens after eol.
@@ -1183,7 +1184,7 @@ defmodule Code.Fragment do
 
             Enum.reverse(rev_tokens, drop_tokens(trailing_tokens, 0))
           else
-            _ -> reverse_tokens(line, column, rev_tokens, rev_terminators)
+            _ -> reverse_tokens(line, column, rev_tokens, rev_terminators, mode)
           end
 
         :elixir.tokens_to_quoted(tokens, file, opts)
@@ -1193,13 +1194,16 @@ defmodule Code.Fragment do
     end
   end
 
-  defp reverse_tokens(line, column, tokens, terminators) do
+  defp reverse_tokens(line, column, tokens, terminators, mode) do
     {terminators, _} =
-      Enum.map_reduce(terminators, column, fn {start, _, _, _}, column ->
-        # TODO handle relative positions
+      Enum.map_reduce(terminators, {column, 1}, fn {start, _, _, _}, {column, prev_length} ->
         atom = :elixir_tokenizer.terminator(start)
-
-        {{atom, {line, column, nil}}, column + length(Atom.to_charlist(atom))}
+        meta = case mode do
+          :relative -> {0, prev_length, nil}
+          _ -> {line, column, nil}
+        end
+        length = length(Atom.to_charlist(atom))
+        {{atom, meta}, {column + length, length}}
       end)
 
     Enum.reverse(tokens, terminators)
