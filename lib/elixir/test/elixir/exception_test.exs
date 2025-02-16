@@ -701,26 +701,59 @@ defmodule ExceptionTest do
       message = blame_message(%{first: nil, second: nil}, fn map -> map.firts end)
 
       assert message == """
-             key :firts not found in:\n\n    %{first: nil, second: nil}. Did you mean:
+             key :firts not found in:
+
+                 %{first: nil, second: nil}. Did you mean:
 
                    * :first
              """
 
       message = blame_message(%{"first" => nil, "second" => nil}, fn map -> map.firts end)
 
-      assert message == "key :firts not found in:\n\n    %{\"first\" => nil, \"second\" => nil}"
+      assert message == """
+             key :firts not found in:
+
+                 %{"first" => nil, "second" => nil}\
+             """
 
       message =
         blame_message(%{"first" => nil, "second" => nil}, fn map -> Map.fetch!(map, "firts") end)
 
       assert message ==
-               "key \"firts\" not found in:\n\n    %{\"first\" => nil, \"second\" => nil}"
+               """
+               key "firts" not found in:
+
+                   %{"first" => nil, "second" => nil}\
+               """
 
       message =
-        blame_message([first: nil, second: nil], fn kwlist -> Keyword.fetch!(kwlist, :firts) end)
+        blame_message(
+          [
+            first: nil,
+            second: nil,
+            third: nil,
+            fourth: nil,
+            fifth: nil,
+            sixth: nil,
+            seventh: nil
+          ],
+          fn kwlist ->
+            Keyword.fetch!(kwlist, :firts)
+          end
+        )
 
       assert message == """
-             key :firts not found in:\n\n    [first: nil, second: nil]. Did you mean:
+             key :firts not found in:
+
+                 [
+                   first: nil,
+                   second: nil,
+                   third: nil,
+                   fourth: nil,
+                   fifth: nil,
+                   sixth: nil,
+                   seventh: nil
+                 ]. Did you mean:
 
                    * :first
              """

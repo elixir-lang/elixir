@@ -183,8 +183,11 @@ defmodule Exception do
     inspected =
       term
       |> inspect(pretty: true)
-      |> String.split("\n", trim: true)
-      |> Enum.map(&("    " <> &1))
+      |> String.split("\n")
+      |> Enum.map(fn
+        "" -> ""
+        line -> "    " <> line
+      end)
       |> Enum.join("\n")
 
     message <> "\n\n" <> inspected
