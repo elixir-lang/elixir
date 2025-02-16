@@ -1945,7 +1945,7 @@ add_cursor(Line, Column, prune_and_cursor, Scope, Terminators, Tokens) ->
   end,
   {Column + 12, Terminators, CursorTokens}.
 
-revert_prev_pos(Token, #elixir_tokenizer{prev_pos={PrevLine, PrevColumn, mode=relative}} = Scope) ->
+revert_prev_pos(Token, #elixir_tokenizer{prev_pos={PrevLine, PrevColumn}, mode=relative} = Scope) ->
   Info = element(2, Token),
   Line = element(1, Info),
   Column = element(2, Info),
