@@ -5,7 +5,7 @@
 -module(elixir_tokenizer).
 -include("elixir.hrl").
 -include("elixir_tokenizer.hrl").
--export([tokenize/1, tokenize/3, tokenize/4, invalid_do_error/1, terminator/1, to_absolute_tokens/2]).
+-export([tokenize/1, tokenize/3, tokenize/4, invalid_do_error/1, terminator/1, to_absolute_tokens/2, to_absolute_terminators/1]).
 
 -define(at_op(T),
   T =:= $@).
@@ -2061,3 +2061,9 @@ to_absolute_interpolation([{{BeginLine, BeginColumn, nil}, {EndLine, EndColumn, 
   NewEnd = {EndLine + CurrentLine, EndColumn + CurrentCol, nil},
   NewTokens = to_absolute_tokens(Tokens, {CurrentLine, CurrentCol}),
   to_absolute_interpolation(Rest, {CurrentLine, CurrentCol}, [{NewBegin, NewEnd, NewTokens} | Acc]).
+
+to_absolute_terminators(List) -> to_absolute_terminators(List, []).
+
+to_absolute_terminators([], Acc) -> lists:reverse(Acc);
+to_absolute_terminators([{Terminator, {_Line, _Column, nil}, X, {PrevLine, PrevColumn}} | Rest], Acc) ->
+  to_absolute_terminators(Rest, [{Terminator, {PrevLine, PrevColumn, nil}, X, {1, 1}} | Acc]).
