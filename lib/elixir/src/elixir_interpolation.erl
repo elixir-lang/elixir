@@ -76,8 +76,14 @@ extract([$#, ${ | Rest], Buffer, Output, Line, Column, Scope, true, Last) ->
       {error, Reason};
     {ok, EndLine, EndColumn, Warnings, Tokens, Terminators} when Scope#elixir_tokenizer.cursor_completion /= false ->
       NewScope = Scope#elixir_tokenizer{warnings=Warnings, cursor_completion=noprune},
-      {CursorTerminators, _} = cursor_complete(EndLine, EndColumn, Terminators),
-      Output2 = build_interpol(Line, Column, EndLine, EndColumn, lists:reverse(Tokens, CursorTerminators), Output1),
+      {CursorTerminators, _} = cursor_complete(EndLine, EndColumn, Terminators, NewScope),
+      {Line1, Column1, EndLine1, EndColumn1} = case Scope of
+        #elixir_tokenizer{mode=relative, prev_pos={PrevLine, PrevColumn}} ->
+          {Line - PrevLine, Column - PrevColumn, EndLine - PrevLine, EndColumn - PrevColumn};
+        _ ->
+          {Line, Column, EndLine, EndColumn}
+      end,
+      Output2 = build_interpol(Line1, Column1, EndLine1, EndColumn1, lists:reverse(Tokens, CursorTerminators), Output1),
       extract([], [], Output2, EndLine, EndColumn, NewScope, true, Last);
     {ok, _, _, _, _, _} ->
       {error, {string, Line, Column, "missing interpolation terminator: \"}\"", []}}
@@ -130,14 +136,19 @@ strip_horizontal_space([H | T], Buffer, Counter) when H =:= $\s; H =:= $\t ->
 strip_horizontal_space(T, Buffer, Counter) ->
   {T, Buffer, Counter}.
 
-cursor_complete(Line, Column, Terminators) ->
-  % TODO handle relative position in inserted cursor
+cursor_complete(Line, Column, Terminators, Scope) ->
   lists:mapfoldl(
-    fun({Start, _, _, _StartPos}, AccColumn) ->
+    fun({Start, _, _, _StartPos}, {AccColumn, PrevLength}) ->
       End = elixir_tokenizer:terminator(Start),
-      {{End, {Line, AccColumn, nil}}, AccColumn + length(erlang:atom_to_list(End))}
+      Meta = case Scope of
+        #elixir_tokenizer{mode=relative} ->
+          {0, PrevLength, nil};
+        _ -> {Line, AccColumn, nil}
+      end,
+      Length = length(erlang:atom_to_list(End)),
+      {{End, Meta}, {AccColumn + Length, Length}}
     end,
-    Column,
+    {Column, 1},
     Terminators
   ).
 
