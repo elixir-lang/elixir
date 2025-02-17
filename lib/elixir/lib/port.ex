@@ -142,22 +142,22 @@ defmodule Port do
   reimplementing core part of the Runtime System, such as the `:user` and
   `:shell` processes.
 
-  ## Zombie operating system processes
+  ## Orphan operating system processes
 
   A port can be closed via the `close/1` function or by sending a `{pid, :close}`
   message. However, if the VM crashes, a long-running program started by the port
   will have its stdin and stdout channels closed but **it won't be automatically
   terminated**.
 
-  While most Unix command line tools will exit once its communication channels
-  are closed, not all command line applications will do so. You can easily check
+  While some Unix command line tools will exit once its parent process
+  terminates, not all command line applications will do so. You can easily check
   this by starting the port and then shutting down the VM and inspecting your
   operating system to see if the port process is still running.
 
-  While we encourage graceful termination by detecting if stdin/stdout has been
-  closed, we do not always have control over how third-party software terminates.
-  In those cases, you can wrap the application in a script that checks for stdin.
-  Here is such script that has been verified to work on bash shells:
+  We do not always have control over how third-party software terminates.
+  If necessary, one workaround is to wrap the child application in a script that
+  checks whether stdin has been closed.  Here is such a script that has been
+  verified to work on bash shells:
 
       #!/usr/bin/env bash
 
