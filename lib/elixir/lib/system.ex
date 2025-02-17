@@ -997,7 +997,7 @@ defmodule System do
   ports guarantee stdin/stdout devices will be closed but it does not
   automatically terminate the program. The documentation for the
   `Port` module describes this problem and possible solutions under
-  the "Zombie processes" section.
+  the "Orphan operating system processes" section.
 
   > #### Windows argument splitting and untrusted arguments {: .warning}
   >
