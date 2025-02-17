@@ -818,6 +818,13 @@ defmodule DateTimeTest do
 
       assert DateTime.diff(in_almost_7_days, datetime, :day) == 6
     end
+
+    test "diff in microseconds" do
+      datetime1 = ~U[2023-02-01 10:30:10.000000Z]
+      datetime2 = DateTime.add(datetime1, 1234, :microsecond)
+
+      assert DateTime.diff(datetime1, datetime2, :microsecond) == -1234
+    end
   end
 
   describe "from_naive" do
