@@ -807,6 +807,24 @@ defmodule DateTimeTest do
       # Test with a non-struct map conforming to Calendar.datetime
       assert DateTime.diff(Map.from_struct(dt1), Map.from_struct(dt2)) == 3_281_904_000
     end
+
+    test "diff with microseconds" do
+      datetime = ~U[2023-02-01 10:30:10.123456Z]
+
+      in_almost_7_days =
+        datetime
+        |> DateTime.add(7, :day)
+        |> DateTime.add(-1, :microsecond)
+
+      assert DateTime.diff(in_almost_7_days, datetime, :day) == 6
+    end
+
+    test "diff in microseconds" do
+      datetime1 = ~U[2023-02-01 10:30:10.000000Z]
+      datetime2 = DateTime.add(datetime1, 1234, :microsecond)
+
+      assert DateTime.diff(datetime1, datetime2, :microsecond) == -1234
+    end
   end
 
   describe "from_naive" do
