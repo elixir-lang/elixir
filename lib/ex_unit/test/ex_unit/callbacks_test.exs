@@ -106,7 +106,7 @@ defmodule ExUnit.CallbacksTest do
     end
 
     assert capture_io(fn -> ExUnit.run() end) =~
-             "** (MatchError) no match of right hand side value: :error"
+             "** (MatchError) no match of right hand side value:"
   end
 
   test "doesn't choke on setup_all errors" do
@@ -125,7 +125,7 @@ defmodule ExUnit.CallbacksTest do
     end
 
     assert capture_io(fn -> ExUnit.run() end) =~
-             "** (MatchError) no match of right hand side value: :error"
+             "** (MatchError) no match of right hand side value:"
   end
 
   test "doesn't choke on setup_all exits" do
@@ -175,7 +175,7 @@ defmodule ExUnit.CallbacksTest do
     end
 
     assert capture_io(fn -> ExUnit.run() end) =~
-             "** (MatchError) no match of right hand side value: :error"
+             "** (MatchError) no match of right hand side value:"
   end
 
   test "doesn't choke when on_exit exits" do

@@ -54,7 +54,8 @@ defmodule Map do
       map.foo
       #=> "bar"
       map.non_existing_key
-      ** (KeyError) key :non_existing_key not found in: %{baz: "bong", foo: "bar"}
+      ** (KeyError) key :non_existing_key not found in:
+      ...
 
   > #### Avoid parentheses {: .warning}
   >
@@ -388,7 +389,8 @@ defmodule Map do
       %{a: 3, b: 2}
 
       iex> Map.replace!(%{a: 1}, :b, 2)
-      ** (KeyError) key :b not found in: %{a: 1}
+      ** (KeyError) key :b not found in:
+      ...
 
   """
   @doc since: "1.5.0"
@@ -725,7 +727,8 @@ defmodule Map do
       iex> Map.pop!(%{a: 1, b: 2}, :a)
       {1, %{b: 2}}
       iex> Map.pop!(%{a: 1}, :b)
-      ** (KeyError) key :b not found in: %{a: 1}
+      ** (KeyError) key :b not found in:
+      ...
 
   """
   @doc since: "1.10.0"
@@ -911,7 +914,8 @@ defmodule Map do
       %{a: 2}
 
       iex> Map.update!(%{a: 1}, :b, &(&1 * 2))
-      ** (KeyError) key :b not found in: %{a: 1}
+      ** (KeyError) key :b not found in:
+      ...
 
   """
   @spec update!(map, key, (existing_value :: value -> new_value :: value)) :: map
@@ -986,7 +990,8 @@ defmodule Map do
       iex> Map.get_and_update!(%{a: 1}, :b, fn current_value ->
       ...>   {current_value, "new value!"}
       ...> end)
-      ** (KeyError) key :b not found in: %{a: 1}
+      ** (KeyError) key :b not found in:
+      ...
 
       iex> Map.get_and_update!(%{a: 1}, :a, fn _ ->
       ...>   :pop

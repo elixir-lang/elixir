@@ -529,7 +529,8 @@ defmodule Keyword do
       iex> Keyword.get_and_update!([a: 1], :b, fn current_value ->
       ...>   {current_value, "new value!"}
       ...> end)
-      ** (KeyError) key :b not found in: [a: 1]
+      ** (KeyError) key :b not found in:
+      ...
 
       iex> Keyword.get_and_update!([a: 1], :a, fn _ ->
       ...>   :pop
@@ -596,7 +597,8 @@ defmodule Keyword do
       iex> Keyword.fetch!([a: 1], :a)
       1
       iex> Keyword.fetch!([a: 1], :b)
-      ** (KeyError) key :b not found in: [a: 1]
+      ** (KeyError) key :b not found in:
+      ...
 
   """
   @spec fetch!(t, key) :: value
@@ -879,7 +881,8 @@ defmodule Keyword do
       [a: 1, b: :new, c: 3]
 
       iex> Keyword.replace!([a: 1], :b, 2)
-      ** (KeyError) key :b not found in: [a: 1]
+      ** (KeyError) key :b not found in:
+      ...
 
   """
   @doc since: "1.5.0"
@@ -1135,7 +1138,8 @@ defmodule Keyword do
       [a: 1, b: 4, c: 3]
 
       iex> Keyword.update!([a: 1], :b, &(&1 * 2))
-      ** (KeyError) key :b not found in: [a: 1]
+      ** (KeyError) key :b not found in:
+      ...
 
   """
   @spec update!(t, key, (current_value :: value -> new_value :: value)) :: t
@@ -1348,7 +1352,8 @@ defmodule Keyword do
       iex> Keyword.pop!([a: 1, a: 2], :a)
       {1, []}
       iex> Keyword.pop!([a: 1], :b)
-      ** (KeyError) key :b not found in: [a: 1]
+      ** (KeyError) key :b not found in:
+      ...
 
   """
   @doc since: "1.10.0"

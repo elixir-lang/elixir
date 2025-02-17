@@ -742,7 +742,8 @@ defmodule Kernel.SpecialForms do
       iex> x = 1
       iex> ^x = List.first([1])
       iex> ^x = List.first([2])
-      ** (MatchError) no match of right hand side value: 2
+      ** (MatchError) no match of right hand side value:
+      ...
 
   Note that `^x` always refers to the value of `x` prior to the match. The
   following example will match:
