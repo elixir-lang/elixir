@@ -1599,11 +1599,13 @@ defmodule DateTime do
     end
 
     naive_diff =
-      (datetime1 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(unit)) -
-        (datetime2 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(unit))
+      (datetime1 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(:microsecond)) -
+        (datetime2 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(:microsecond))
 
     offset_diff = utc_offset2 + std_offset2 - (utc_offset1 + std_offset1)
-    naive_diff + System.convert_time_unit(offset_diff, :second, unit)
+
+    System.convert_time_unit(naive_diff, :microsecond, unit) +
+      System.convert_time_unit(offset_diff, :second, unit)
   end
 
   @doc """
