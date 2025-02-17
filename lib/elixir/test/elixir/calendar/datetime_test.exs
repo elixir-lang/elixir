@@ -809,7 +809,7 @@ defmodule DateTimeTest do
     end
 
     test "diff with microseconds" do
-      datetime = ~U[2023-02-01 10:30:10.000000Z]
+      datetime = ~U[2023-02-01 10:30:10.123456Z]
 
       in_almost_7_days =
         datetime
