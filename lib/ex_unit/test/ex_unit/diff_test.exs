@@ -117,6 +117,7 @@ defmodule ExUnit.DiffTest do
 
   defp refute_diff(left, right, expected_left, expected_right, context) do
     {diff, _env} = Diff.compute(left, right, context)
+
     assert diff.equivalent? == false
 
     diff_left = to_diff(diff.left, "-")
@@ -237,6 +238,7 @@ defmodule ExUnit.DiffTest do
     refute_diff([:a, :b, :c] = [:a, :b, :x], "[:a, :b, -:c-]", "[:a, :b, +:x+]")
     refute_diff([:a, :x, :c] = [:a, :b, :c], "[:a, -:x-, :c]", "[:a, +:b+, :c]")
     refute_diff([:a, :d, :b, :c] = [:a, :b, :c, :d], "[:a, -:d-, :b, :c]", "[:a, :b, :c, +:d+]")
+    refute_diff([:b, :c] = [:a, :b, :c], "[:b, :c]", "[+:a+, :b, :c]")
 
     refute_diff([:a, :b, :c] = [:a, :b, []], "[:a, :b, -:c-]", "[:a, :b, +[]+]")
     refute_diff([:a, :b, []] = [:a, :b, :c], "[:a, :b, -[]-]", "[:a, :b, +:c+]")
@@ -318,7 +320,7 @@ defmodule ExUnit.DiffTest do
       "[:a, +:b+, :c | +:d+]"
     )
 
-    refute_diff([:a | :d] = [:a, :b, :c | :d], "[:a | -:d-]", "[:a, +:b+, +:c+ | +:d+]")
+    refute_diff([:a | :d] = [:a, :b, :c | :d], "[:a | :d]", "[:a, +:b+, +:c+ | :d]")
 
     refute_diff(
       [[:a | :x], :x | :d] = [[:a | :b], :c | :d],
@@ -354,7 +356,7 @@ defmodule ExUnit.DiffTest do
     )
 
     refute_diff([:a, :b | [:c]] = [:a, :b], "[:a, :b | [-:c-]]", "[:a, :b]")
-    refute_diff([:a, :b | []] = [:a, :b, :c], "[:a, :b | -[]-]", "[:a, :b, +:c+]")
+    refute_diff([:a, :b | []] = [:a, :b, :c], "[:a, :b | []]", "[:a, :b, +:c+]")
     refute_diff([:a, :b | [:c, :d]] = [:a, :b, :c], "[:a, :b | [:c, -:d-]]", "[:a, :b, :c]")
     refute_diff([:a, :b | [:c, :d]] = [:a], "[:a, -:b- | [-:c-, -:d-]]", "[:a]")
 
