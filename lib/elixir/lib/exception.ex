@@ -2242,7 +2242,7 @@ defmodule KeyError do
 
     case suggestions do
       [] -> []
-      suggestions -> [". Did you mean:\n\n" | format_suggestions(suggestions)]
+      suggestions -> ["\n\nDid you mean:\n\n" | format_suggestions(suggestions)]
     end
   end
 

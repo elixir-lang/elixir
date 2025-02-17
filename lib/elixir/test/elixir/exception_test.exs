@@ -703,7 +703,9 @@ defmodule ExceptionTest do
       assert message == """
              key :firts not found in:
 
-                 %{first: nil, second: nil}. Did you mean:
+                 %{first: nil, second: nil}
+
+             Did you mean:
 
                    * :first
              """
@@ -749,7 +751,9 @@ defmodule ExceptionTest do
                    deleted_at: nil,
                    started_at: nil,
                    finished_at: nil
-                 ]. Did you mean:
+                 ]
+
+             Did you mean:
 
                    * :created_at
                    * :finished_at
