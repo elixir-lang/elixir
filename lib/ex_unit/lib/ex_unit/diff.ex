@@ -374,10 +374,18 @@ defmodule ExUnit.Diff do
   # are handled as quoted expressions. Improper lists on the right side are
   # handled as runtime improper lists.
   defp diff_maybe_improper_list(left, right, env) do
-    {parsed_left, improper_left, operators_left, _length_left} =
+    {parsed_left, improper_left, operators_left, length_left} =
       split_left_list(left, 0, env.context)
 
-    {parsed_right, improper_right} = split_right_list(right, [])
+    # For improper lists, we split based on the left side's structure
+    # For proper lists, we process the entire right side
+    {parsed_right, improper_right} =
+      if improper_left != [] do
+        split_right_list(right, length_left, [])
+      else
+        split_right_list(right, [])
+      end
+
     {parsed_diff, parsed_post_env} = myers_difference_list(parsed_left, parsed_right, env)
 
     {improper_diff, improper_post_env} =
@@ -410,6 +418,14 @@ defmodule ExUnit.Diff do
     diff(left, right, env)
   end
 
+  # When matching improper lists, split right list up to the length of left list's proper part
+  defp split_right_list([head | tail], length, acc) when length > 0,
+    do: split_right_list(tail, length - 1, [head | acc])
+
+  defp split_right_list(rest, length, acc) when is_integer(length),
+    do: {Enum.reverse(acc), rest}
+
+  # For proper lists, process the entire list
   defp split_right_list([head | tail], acc),
     do: split_right_list(tail, [head | acc])
 

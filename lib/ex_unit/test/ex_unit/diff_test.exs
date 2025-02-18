@@ -320,7 +320,7 @@ defmodule ExUnit.DiffTest do
       "[:a, +:b+, :c | +:d+]"
     )
 
-    refute_diff([:a | :d] = [:a, :b, :c | :d], "[:a | :d]", "[:a, +:b+, +:c+ | :d]")
+    refute_diff([:a | :d] = [:a, :b, :c | :d], "[:a | -:d-]", "[:a, +:b+, +:c+ | +:d+]")
 
     refute_diff(
       [[:a | :x], :x | :d] = [[:a | :b], :c | :d],
@@ -339,6 +339,7 @@ defmodule ExUnit.DiffTest do
   end
 
   test "proper lists" do
+    assert [:a | _x] = [:a, :b | :c]
     assert_diff([:a | [:b]] = [:a, :b], [])
     assert_diff([:a | [:b, :c]] = [:a, :b, :c], [])
 
