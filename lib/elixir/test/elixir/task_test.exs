@@ -930,6 +930,16 @@ defmodule TaskTest do
       assert_receive 2
       assert_receive 3
     end
+
+    test "wrapping a flat_map/concat with a haltable stream" do
+      result =
+        Stream.take([:foo, :bar], 1)
+        |> Stream.concat([1, 2])
+        |> Task.async_stream(& &1)
+        |> Enum.to_list()
+
+      assert result == [ok: :foo, ok: 1, ok: 2]
+    end
   end
 
   for {desc, concurrency} <- [==: 4, <: 2, >: 8] do

@@ -1067,17 +1067,17 @@ defmodule Stream do
     {_, _, _, _, after_fun} = funs
 
     try do
-      reduce.({op, [:outer | inner_acc]})
+      reduce.({op, [:cont | inner_acc]})
     catch
       kind, reason ->
         next.({:halt, []})
         after_fun.(user_acc)
         :erlang.raise(kind, reason, __STACKTRACE__)
     else
-      # Only take into account outer halts when the op is not halt itself.
-      # Otherwise, we were the ones wishing to halt, so we should just stop.
-      {:halted, [:outer | acc]} when op != :halt ->
-        do_transform_user(vals, user_acc, next_op, next, {:cont, acc}, funs)
+      # The user wanted to cont/suspend but the stream halted,
+      # so we continue with the user intention.
+      {:halted, [inner_op | acc]} when op != :halt and inner_op != :halt ->
+        do_transform_user(vals, user_acc, next_op, next, {inner_op, acc}, funs)
 
       {:halted, [_ | acc]} ->
         next.({:halt, []})
@@ -1093,10 +1093,9 @@ defmodule Stream do
     end
   end
 
-  defp do_transform_each(x, [:outer | acc], f) do
+  defp do_transform_each(x, [:cont | acc], f) do
     case f.(x, acc) do
-      {:halt, res} -> {:halt, [:inner | res]}
-      {op, res} -> {op, [:outer | res]}
+      {op, res} -> {op, [op | res]}
     end
   end
 
@@ -1632,17 +1631,14 @@ defmodule Stream do
 
   defp do_enum_resource(next_acc, next_fun, {op, acc}, fun, after_fun, reduce) do
     try do
-      reduce.({op, [:outer | acc]})
+      reduce.({op, [:cont | acc]})
     catch
       kind, reason ->
         after_fun.(next_acc)
         :erlang.raise(kind, reason, __STACKTRACE__)
     else
-      {:halted, [:outer | acc]} ->
-        do_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun)
-
-      {:halted, [:inner | acc]} ->
-        do_resource(next_acc, next_fun, {:halt, acc}, fun, after_fun)
+      {:halted, [inner_op | acc]} ->
+        do_resource(next_acc, next_fun, {inner_op, acc}, fun, after_fun)
 
       {:done, [_ | acc]} ->
         do_resource(next_acc, next_fun, {:cont, acc}, fun, after_fun)
@@ -1652,10 +1648,9 @@ defmodule Stream do
     end
   end
 
-  defp do_resource_each(x, [:outer | acc], f) do
+  defp do_resource_each(x, [:cont | acc], f) do
     case f.(x, acc) do
-      {:halt, res} -> {:halt, [:inner | res]}
-      {op, res} -> {op, [:outer | res]}
+      {op, res} -> {op, [op | res]}
     end
   end
 
