@@ -418,14 +418,12 @@ defmodule ExUnit.Diff do
     diff(left, right, env)
   end
 
-  # When matching improper lists, split right list up to the length of left list's proper part
   defp split_right_list([head | tail], length, acc) when length > 0,
     do: split_right_list(tail, length - 1, [head | acc])
 
   defp split_right_list(rest, length, acc) when is_integer(length),
     do: {Enum.reverse(acc), rest}
 
-  # For proper lists, process the entire list
   defp split_right_list([head | tail], acc),
     do: split_right_list(tail, [head | acc])
 
