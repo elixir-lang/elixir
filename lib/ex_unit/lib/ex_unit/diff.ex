@@ -377,12 +377,8 @@ defmodule ExUnit.Diff do
     {parsed_left, improper_left, operators_left, length_left} =
       split_left_list(left, 0, env.context)
 
-    {parsed_right, improper_right} =
-      if improper_left != [] do
-        split_right_list(right, length_left, [])
-      else
-        split_right_list(right, -1, [])
-      end
+    element_limit = if improper_left == [], do: -1, else: length_left
+    {parsed_right, improper_right} = split_right_list(right, element_limit, [])
 
     {parsed_diff, parsed_post_env} = myers_difference_list(parsed_left, parsed_right, env)
 
