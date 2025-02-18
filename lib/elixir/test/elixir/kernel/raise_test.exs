@@ -450,16 +450,20 @@ defmodule Kernel.RaiseTest do
     end
 
     test "badmatch error" do
-      x = :example
-
       result =
         try do
-          ^x = Process.get(:unused, 0)
+          [] = Range.to_list(1000_000..1_000_009)
         rescue
           x in [MatchError] -> Exception.message(x)
         end
 
-      assert result == "no match of right hand side value: 0"
+      assert result ==
+               """
+               no match of right hand side value:
+
+                   [1000000, 1000001, 1000002, 1000003, 1000004, 1000005, 1000006, 1000007,
+                    1000008, 1000009]\
+               """
     end
 
     test "bad key error" do
@@ -479,7 +483,7 @@ defmodule Kernel.RaiseTest do
           x in [KeyError] -> Exception.message(x)
         end
 
-      assert result == "key :foo not found in: %{}"
+      assert result == "key :foo not found in:\n\n    %{}"
     end
 
     test "bad map error" do
@@ -490,7 +494,7 @@ defmodule Kernel.RaiseTest do
           x in [BadMapError] -> Exception.message(x)
         end
 
-      assert result == "expected a map, got: 0"
+      assert result == "expected a map, got:\n\n    0"
     end
 
     test "bad boolean error" do
@@ -501,7 +505,7 @@ defmodule Kernel.RaiseTest do
           x in [BadBooleanError] -> Exception.message(x)
         end
 
-      assert result == "expected a boolean on left-side of \"and\", got: 1"
+      assert result == "expected a boolean on left-side of \"and\", got:\n\n    1"
     end
 
     test "case clause error" do
@@ -516,7 +520,7 @@ defmodule Kernel.RaiseTest do
           x in [CaseClauseError] -> Exception.message(x)
         end
 
-      assert result == "no case clause matching: 0"
+      assert result == "no case clause matching:\n\n    0"
     end
 
     test "cond clause error" do
@@ -550,7 +554,7 @@ defmodule Kernel.RaiseTest do
           x in [TryClauseError] -> Exception.message(x)
         end
 
-      assert result == "no try clause matching: :example"
+      assert result == "no try clause matching:\n\n    :example"
     end
 
     test "undefined function error as Erlang error" do

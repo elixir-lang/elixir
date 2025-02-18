@@ -517,8 +517,8 @@ defmodule Access do
   An error is raised if the accessed structure is not a map or a struct:
 
       iex> get_in([], [Access.key(:foo)])
-      ** (BadMapError) expected a map, got: []
-
+      ** (BadMapError) expected a map, got:
+      ...
   """
   @spec key(key, term) :: access_fun(data :: struct | map, current_value :: term)
   def key(key, default \\ nil) do
@@ -556,7 +556,8 @@ defmodule Access do
       iex> pop_in(map, [Access.key!(:user), Access.key!(:name)])
       {"john", %{user: %{}}}
       iex> get_in(map, [Access.key!(:user), Access.key!(:unknown)])
-      ** (KeyError) key :unknown not found in: %{name: \"john\"}
+      ** (KeyError) key :unknown not found in:
+      ...
 
   The examples above could be partially written as:
 

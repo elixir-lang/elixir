@@ -701,33 +701,69 @@ defmodule ExceptionTest do
       message = blame_message(%{first: nil, second: nil}, fn map -> map.firts end)
 
       assert message == """
-             key :firts not found in: %{first: nil, second: nil}. Did you mean:
+             key :firts not found in:
+
+                 %{first: nil, second: nil}
+
+             Did you mean:
 
                    * :first
              """
 
       message = blame_message(%{"first" => nil, "second" => nil}, fn map -> map.firts end)
 
-      assert message == "key :firts not found in: %{\"first\" => nil, \"second\" => nil}"
+      assert message == """
+             key :firts not found in:
+
+                 %{"first" => nil, "second" => nil}\
+             """
 
       message =
         blame_message(%{"first" => nil, "second" => nil}, fn map -> Map.fetch!(map, "firts") end)
 
-      assert message == "key \"firts\" not found in: %{\"first\" => nil, \"second\" => nil}"
+      assert message ==
+               """
+               key "firts" not found in:
+
+                   %{"first" => nil, "second" => nil}\
+               """
 
       message =
-        blame_message([first: nil, second: nil], fn kwlist -> Keyword.fetch!(kwlist, :firts) end)
+        blame_message(
+          [
+            created_at: nil,
+            updated_at: nil,
+            deleted_at: nil,
+            started_at: nil,
+            finished_at: nil
+          ],
+          fn kwlist ->
+            Keyword.fetch!(kwlist, :inserted_at)
+          end
+        )
 
       assert message == """
-             key :firts not found in: [first: nil, second: nil]. Did you mean:
+             key :inserted_at not found in:
 
-                   * :first
+                 [
+                   created_at: nil,
+                   updated_at: nil,
+                   deleted_at: nil,
+                   started_at: nil,
+                   finished_at: nil
+                 ]
+
+             Did you mean:
+
+                   * :created_at
+                   * :finished_at
+                   * :started_at
              """
     end
 
     test "annotates key error with suggestions for structs" do
       message = blame_message(%URI{}, fn map -> map.schema end)
-      assert message =~ "key :schema not found in: %URI{"
+      assert message =~ "key :schema not found in:\n\n    %URI{"
       assert message =~ "Did you mean:"
       assert message =~ "* :scheme"
     end
