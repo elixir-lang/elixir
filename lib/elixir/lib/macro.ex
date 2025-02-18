@@ -2592,19 +2592,21 @@ defmodule Macro do
     end
 
     prelude = quote do: options = unquote(Macro.escape(options))
+    acc = {prelude, dbg_format_header(env)}
 
-    dbg_ast_to_debuggable(code, env)
-    |> Enum.reduce({prelude, dbg_format_header(env)}, fn entry, {acc, header} ->
-      acc =
-        quote do
-          unquote(acc)
-          to_debug = unquote(entry)
-          unquote(__MODULE__).__dbg__(to_debug, unquote(header), options)
-        end
+    {acc, nil} =
+      Enum.reduce(dbg_ast_to_debuggable(code, env), acc, fn entry, {acc, header} ->
+        acc =
+          quote do
+            unquote(acc)
+            to_debug = unquote(entry)
+            unquote(__MODULE__).__dbg__(to_debug, unquote(header), options)
+          end
 
-      {acc, nil}
-    end)
-    |> elem(0)
+        {acc, nil}
+      end)
+
+    acc
   end
 
   # Pipelines.
