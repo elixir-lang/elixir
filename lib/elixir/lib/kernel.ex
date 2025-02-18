@@ -5672,7 +5672,7 @@ defmodule Kernel do
   > #### Narrow behaviours and entry points {: .tip}
   >
   > When defining behaviours, a general rule of thumb is to define narrow
-  > behaviours, with the minumum amount of callbacks, to facilitate maintenance
+  > behaviours, with the minimum amount of callbacks, to facilitate maintenance
   > over time. Fewer callbacks minimize the points of contact between different
   > parts of the system and reduces the risk of breaking changes and of different
   > implementations having inconsistent behaviour. However, when using `defoverridable`
