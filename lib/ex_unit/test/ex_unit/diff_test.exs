@@ -117,7 +117,6 @@ defmodule ExUnit.DiffTest do
 
   defp refute_diff(left, right, expected_left, expected_right, context) do
     {diff, _env} = Diff.compute(left, right, context)
-
     assert diff.equivalent? == false
 
     diff_left = to_diff(diff.left, "-")
