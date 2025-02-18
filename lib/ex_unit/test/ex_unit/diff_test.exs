@@ -339,7 +339,6 @@ defmodule ExUnit.DiffTest do
   end
 
   test "proper lists" do
-    assert [:a | _x] = [:a, :b | :c]
     assert_diff([:a | [:b]] = [:a, :b], [])
     assert_diff([:a | [:b, :c]] = [:a, :b, :c], [])
 

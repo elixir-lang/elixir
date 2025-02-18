@@ -377,8 +377,6 @@ defmodule ExUnit.Diff do
     {parsed_left, improper_left, operators_left, length_left} =
       split_left_list(left, 0, env.context)
 
-    # For improper lists, we split based on the left side's structure
-    # For proper lists, we process the entire right side
     {parsed_right, improper_right} =
       if improper_left != [] do
         split_right_list(right, length_left, [])
