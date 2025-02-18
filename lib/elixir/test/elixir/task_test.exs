@@ -904,6 +904,16 @@ defmodule TaskTest do
              |> Enum.to_list() == [ok: :ok]
     end
 
+    test "stream concatenation edge case" do
+      result =
+        Stream.take([:foo, :bar], 1)
+        |> Stream.concat([1, 2])
+        |> Task.async_stream(& &1)
+        |> Enum.to_list()
+
+      assert result == [ok: :foo, ok: 1, ok: 2]
+    end
+
     test "with $callers" do
       grandparent = self()
 

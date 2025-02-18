@@ -377,16 +377,25 @@ defmodule Task.Supervised do
         stream_close(config)
         :erlang.raise(kind, reason, __STACKTRACE__)
     else
-      {:suspended, [value], next} ->
-        waiting = stream_spawn(value, spawned, waiting, config)
-        stream_reduce({:cont, acc}, max - 1, spawned + 1, delivered, waiting, next, config)
-
-      {_, [value]} ->
-        waiting = stream_spawn(value, spawned, waiting, config)
-        stream_reduce({:cont, acc}, max - 1, spawned + 1, delivered, waiting, :done, config)
-
       {_, []} ->
         stream_reduce({:cont, acc}, max, spawned, delivered, waiting, :done, config)
+
+      result ->
+        {values, next} =
+          case result do
+            {:suspended, values = [_ | _], next} -> {values, next}
+            {_, values = [_ | _]} -> {values, :done}
+          end
+
+        # right fold because values are in reverse order
+        {waiting, spawned} =
+          List.foldr(values, {waiting, spawned}, fn value, {waiting, spawned} ->
+            waiting = stream_spawn(value, spawned, waiting, config)
+            {waiting, spawned + 1}
+          end)
+
+        max = max - length(values)
+        stream_reduce({:cont, acc}, max, spawned, delivered, waiting, next, config)
     end
   end
 
