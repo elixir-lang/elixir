@@ -381,7 +381,7 @@ defmodule ExUnit.Diff do
       if improper_left != [] do
         split_right_list(right, length_left, [])
       else
-        split_right_list(right, [])
+        split_right_list(right, -1, [])
       end
 
     {parsed_diff, parsed_post_env} = myers_difference_list(parsed_left, parsed_right, env)
@@ -416,16 +416,10 @@ defmodule ExUnit.Diff do
     diff(left, right, env)
   end
 
-  defp split_right_list([head | tail], length, acc) when length > 0,
+  defp split_right_list([head | tail], length, acc) when length != 0,
     do: split_right_list(tail, length - 1, [head | acc])
 
-  defp split_right_list(rest, length, acc) when is_integer(length),
-    do: {Enum.reverse(acc), rest}
-
-  defp split_right_list([head | tail], acc),
-    do: split_right_list(tail, [head | acc])
-
-  defp split_right_list(rest, acc),
+  defp split_right_list(rest, _length, acc),
     do: {Enum.reverse(acc), rest}
 
   defp rebuild_right_list(left, right) do
