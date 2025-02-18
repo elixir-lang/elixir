@@ -2591,20 +2591,20 @@ defmodule Macro do
         :ok
     end
 
-    header = dbg_format_header(env)
+    prelude = quote do: options = unquote(Macro.escape(options))
 
-    prelude =
-      quote do
-        options = unquote(__MODULE__).__dbg_header__(unquote(header), unquote(options))
-      end
+    dbg_ast_to_debuggable(code, env)
+    |> Enum.reduce({prelude, dbg_format_header(env)}, fn entry, {acc, header} ->
+      acc =
+        quote do
+          unquote(acc)
+          to_debug = unquote(entry)
+          unquote(__MODULE__).__dbg__(to_debug, unquote(header), options)
+        end
 
-    Enum.reduce(dbg_ast_to_debuggable(code, env), prelude, fn entry, acc ->
-      quote do
-        unquote(acc)
-        to_debug = unquote(entry)
-        unquote(__MODULE__).__dbg__(to_debug, options)
-      end
+      {acc, nil}
     end)
+    |> elem(0)
   end
 
   # Pipelines.
@@ -2841,24 +2841,18 @@ defmodule Macro do
   # Made public to be called from Macro.dbg/3, so that we generate as little code
   # as possible and call out into a function as soon as we can.
   @doc false
-  def __dbg_header__(header_string, options) do
+  def __dbg__(to_debug, header, options) do
     {print_location?, options} = Keyword.pop(options, :print_location, true)
+    ansi_enabled? = options[:syntax_colors] != []
 
-    if print_location? do
-      ansi_enabled? = options[:syntax_colors] != []
-      formatted = [:cyan, :italic, header_string, :reset, "\n"]
+    if print_location? and is_binary(header) do
+      formatted = [:cyan, :italic, header, :reset, "\n"]
       :ok = IO.write(IO.ANSI.format(formatted, ansi_enabled?))
     end
 
-    options
-  end
-
-  @doc false
-  def __dbg__(to_debug, options) do
     syntax_colors = if IO.ANSI.enabled?(), do: IO.ANSI.syntax_colors(), else: []
     options = Keyword.merge([width: 80, pretty: true, syntax_colors: syntax_colors], options)
     {formatted, result} = dbg_format_ast_to_debug(to_debug, options)
-    ansi_enabled? = options[:syntax_colors] != []
     :ok = IO.write(IO.ANSI.format([formatted, ?\n], ansi_enabled?))
     result
   end
