@@ -377,7 +377,9 @@ defmodule ExUnit.Diff do
     {parsed_left, improper_left, operators_left, length_left} =
       split_left_list(left, 0, env.context)
 
-    {parsed_right, improper_right} = split_right_list(right, length_left, [])
+    element_limit = if improper_left == [], do: -1, else: length_left
+    {parsed_right, improper_right} = split_right_list(right, element_limit, [])
+
     {parsed_diff, parsed_post_env} = myers_difference_list(parsed_left, parsed_right, env)
 
     {improper_diff, improper_post_env} =
@@ -410,7 +412,7 @@ defmodule ExUnit.Diff do
     diff(left, right, env)
   end
 
-  defp split_right_list([head | tail], length, acc) when length > 0,
+  defp split_right_list([head | tail], length, acc) when length != 0,
     do: split_right_list(tail, length - 1, [head | acc])
 
   defp split_right_list(rest, _length, acc),
