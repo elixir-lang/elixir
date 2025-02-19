@@ -26,8 +26,8 @@ defmodule ExUnit.Callbacks do
   naming a local function, a `{module, function}` tuple, or a list of atoms/tuples.
 
   Both can opt to receive the current context by specifying it
-  as parameter if defined by a block. Functions used to define a test
-  setup must accept the context as single argument.
+  as a parameter if defined by a block. Functions used to define a test
+  setup must accept the context as a single argument.
 
   A test module can define multiple `setup` and `setup_all` callbacks,
   and they are invoked in order of appearance.
