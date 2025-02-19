@@ -134,6 +134,13 @@ jobs:
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          # AZURE_TENANT_ID and AZURE_CLIENT_ID should stay the same,
+          # but AZURE_CLIENT_SECRET has expiration date. When it expires go to
+          # App Registrations / <app> / Certificates & secrets,
+          # click (+) New client secret, note the "Value" (not "Secret ID")
+          # and update it:
+          #
+          #     $ gh --repo elixir-lang/elixir secret set AZURE_CLIENT_SECRET
           azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
           endpoint: https://eus.codesigning.azure.net/
           trusted-signing-account-name: trusted-signing-elixir
