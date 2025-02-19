@@ -16,7 +16,7 @@ inputs:
     required: false
     default: false
   version:
-    desctiption: "Elixir Version (Tag / SHA)"
+    description: "Elixir Version (Tag / SHA)"
     required: true
 
 outputs:
