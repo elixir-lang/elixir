@@ -38,8 +38,17 @@ defmodule Mix.Gleam do
 
     spec =
       case requirement do
-        %{"version" => version} -> {dep, version, opts}
-        %{"path" => path} -> {dep, Keyword.merge(opts, path: path)}
+        %{"version" => version} ->
+          {dep, version, opts}
+
+        %{"path" => path} ->
+          {dep, Keyword.merge(opts, path: path)}
+
+        %{"git" => git, "ref" => ref} ->
+          {dep, git: git, ref: ref}
+
+        _ ->
+          Mix.raise("Gleam package #{dep} has unsupported requirement: #{inspect(requirement)}")
       end
 
     case spec do
