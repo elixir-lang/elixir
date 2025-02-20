@@ -350,6 +350,10 @@ defmodule Code.Normalizer.FormatterASTTest do
         def sample, do: :ok
       end
       """
+
+      assert_same ~S"""
+      with true, do: :ok, else: (_ -> :ok)
+      """
     end
 
     test "omitting brackets" do
