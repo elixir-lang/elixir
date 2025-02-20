@@ -8,7 +8,7 @@
 defmodule Mix.Dep.Loader do
   @moduledoc false
 
-  import Mix.Dep, only: [ok?: 1, mix?: 1, rebar?: 1, make?: 1]
+  import Mix.Dep, only: [ok?: 1, mix?: 1, rebar?: 1, make?: 1, gleam?: 1]
 
   @doc """
   Gets all direct children of the current `Mix.Project`
@@ -84,9 +84,9 @@ defmodule Mix.Dep.Loader do
   def load(%Mix.Dep{manager: manager, scm: scm, opts: opts} = dep, children, locked?) do
     # The manager for a child dependency is set based on the following rules:
     #   1. Set in dependency definition
-    #   2. From SCM, so that Hex dependencies of a rebar project can be compiled with mix
+    #   2. From SCM, so that Hex dependencies of a rebar/gleam project can be compiled with mix
     #   3. From the parent dependency, used for rebar dependencies from git
-    #   4. Inferred from files in dependency (mix.exs, rebar.config, Makefile)
+    #   4. Inferred from files in dependency (mix.exs, rebar.config, Makefile, gleam.toml)
     manager = opts[:manager] || scm_manager(scm, opts) || manager || infer_manager(opts[:dest])
     dep = %{dep | manager: manager, status: scm_status(scm, opts)}
 
@@ -105,6 +105,9 @@ defmodule Mix.Dep.Loader do
 
         make?(dep) ->
           make_dep(dep)
+
+        gleam?(dep) ->
+          gleam_dep(dep, children, locked?)
 
         true ->
           {dep, []}
@@ -220,7 +223,7 @@ defmodule Mix.Dep.Loader do
 
   # Note that we ignore Make dependencies because the
   # file based heuristic will always figure it out.
-  @scm_managers ~w(mix rebar3)a
+  @scm_managers ~w(mix rebar3 gleam)a
 
   defp scm_manager(scm, opts) do
     managers = scm.managers(opts)
@@ -245,6 +248,9 @@ defmodule Mix.Dep.Loader do
 
       any_of?(dest, ["Makefile", "Makefile.win"]) ->
         :make
+
+      any_of?(dest, ["gleam.toml"]) ->
+        :gleam
 
       true ->
         nil
@@ -359,6 +365,21 @@ defmodule Mix.Dep.Loader do
 
   defp make_dep(dep) do
     {dep, []}
+  end
+
+  defp gleam_dep(%Mix.Dep{opts: opts} = dep, children, locked?) do
+    Mix.Gleam.require!()
+
+    deps =
+      if children do
+        Enum.map(children, &to_dep(&1, opts[:dest], _manager = nil, locked?))
+      else
+        config = File.cd!(opts[:dest], fn -> Mix.Gleam.load_config(".") end)
+        from = Path.join(opts[:dest], "gleam.toml")
+        Enum.map(config[:deps], &to_dep(&1, from, _manager = nil, locked?))
+      end
+
+    {%{dep | opts: Keyword.merge(opts, app: false, override: true)}, deps}
   end
 
   defp mix_children(config, locked?, opts) do
