@@ -3069,6 +3069,7 @@ defmodule Kernel do
       nil
 
   """
+  @doc since: "1.17.0"
   defmacro get_in(path) do
     {[h | t], _} = unnest(path, [], true, "get_in/1")
     nest_get_in(h, quote(do: x), t)
