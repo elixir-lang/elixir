@@ -188,7 +188,7 @@ defmodule Regex do
   check and recompile the regex if necessary.
   """
 
-  defstruct re_pattern: nil, source: "", opts: [], re_version: ""
+  defstruct re_pattern: nil, source: "", opts: []
 
   @type t :: %__MODULE__{re_pattern: term, source: binary, opts: binary | [term]}
 
@@ -213,38 +213,35 @@ defmodule Regex do
 
   ## Examples
 
-      iex> Regex.compile("foo")
-      {:ok, ~r/foo/}
+      Regex.compile("foo")
+      #=> {:ok, ~r/foo/}
 
-      iex> Regex.compile("*foo")
-      {:error, {~c"nothing to repeat", 0}}
+      Regex.compile("foo", "i")
+      #=> {:ok, ~r/foo/i}
 
-      iex> Regex.compile("foo", "i")
-      {:ok, ~r/foo/i}
-
-      iex> Regex.compile("foo", [:caseless])
-      {:ok, Regex.compile!("foo", [:caseless])}
+      Regex.compile("*foo")
+      #=> {:error, {~c"quantifier does not follow a repeatable item", 0}}
 
   """
   @spec compile(binary, binary | [term]) :: {:ok, t} | {:error, term}
   def compile(source, opts \\ "") when is_binary(source) do
-    compile(source, opts, version())
+    do_compile(source, opts)
   end
 
-  defp compile(source, opts, version) when is_binary(opts) do
+  defp do_compile(source, opts) when is_binary(opts) do
     case translate_options(opts, []) do
       {:error, rest} ->
         {:error, {:invalid_option, rest}}
 
       translated_opts ->
-        compile(source, translated_opts, version)
+        do_compile(source, translated_opts)
     end
   end
 
-  defp compile(source, opts, version) when is_list(opts) do
+  defp do_compile(source, opts) when is_list(opts) do
     case :re.compile(source, opts) do
       {:ok, re_pattern} ->
-        {:ok, %Regex{re_pattern: re_pattern, re_version: version, source: source, opts: opts}}
+        {:ok, %Regex{re_pattern: re_pattern, source: source, opts: opts}}
 
       error ->
         error
@@ -268,38 +265,29 @@ defmodule Regex do
   This checks the version stored in the regular expression
   and recompiles the regex in case of version mismatch.
   """
+  # Remove me on Elixir v1.22
+  @doc deprecated: "It can be removed and it has no effect"
   @doc since: "1.4.0"
-  @spec recompile(t) :: {:ok, t} | {:error, any}
   def recompile(%Regex{} = regex) do
-    version = version()
-
-    case regex do
-      %{re_version: ^version} ->
-        {:ok, regex}
-
-      _ ->
-        %{source: source, opts: opts} = regex
-        compile(source, opts, version)
-    end
+    {:ok, regex}
   end
 
   @doc """
   Recompiles the existing regular expression and raises `Regex.CompileError` in case of errors.
   """
+  # Remove me on Elixir v1.22
+  @doc deprecated: "It can be removed and it has no effect"
   @doc since: "1.4.0"
-  @spec recompile!(t) :: t
   def recompile!(regex) do
-    case recompile(regex) do
-      {:ok, regex} -> regex
-      {:error, {reason, at}} -> raise Regex.CompileError, "#{reason} at position #{at}"
-    end
+    regex
   end
 
   @doc """
   Returns the version of the underlying Regex engine.
   """
+  # Remove me on Elixir v1.22
+  @doc deprecated: "Use :re.version() instead"
   @doc since: "1.4.0"
-  @spec version :: term()
   def version do
     {:re.version(), :erlang.system_info(:endian)}
   end
@@ -455,17 +443,7 @@ defmodule Regex do
 
   """
   @spec names(t) :: [String.t()]
-  def names(%Regex{re_pattern: compiled, re_version: version, source: source}) do
-    re_pattern =
-      case version() do
-        ^version ->
-          compiled
-
-        _ ->
-          {:ok, recompiled} = :re.compile(source)
-          recompiled
-      end
-
+  def names(%Regex{re_pattern: re_pattern}) do
     {:namelist, names} = :re.inspect(re_pattern, :namelist)
     names
   end
@@ -528,22 +506,8 @@ defmodule Regex do
     end
   end
 
-  defp safe_run(
-         %Regex{re_pattern: compiled, source: source, re_version: version, opts: compile_opts},
-         string,
-         options
-       ) do
-    case version() do
-      ^version ->
-        :re.run(string, compiled, options)
-
-      _ when is_list(compile_opts) ->
-        :re.run(string, source, compile_opts ++ options)
-
-      # TODO: This clause is kept for compatibility with previous Elixir versions. Remove on v2.0+.
-      _ when is_binary(compile_opts) ->
-        :re.run(string, source, translate_options(compile_opts, options))
-    end
+  defp safe_run(%Regex{re_pattern: re_pattern}, string, options) do
+    :re.run(string, re_pattern, options)
   end
 
   @doc """

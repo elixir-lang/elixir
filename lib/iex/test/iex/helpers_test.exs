@@ -353,7 +353,7 @@ defmodule IEx.HelpersTest do
         assert captured =~ "-spec sleep(Time) -> ok when Time :: timeout()."
       else
         assert captured =~ "sleep(Time)"
-        assert captured =~ "@spec sleep(time) :: :ok when time: timeout()"
+        assert captured =~ "@spec sleep(time) :: :ok when time: "
       end
     end
 

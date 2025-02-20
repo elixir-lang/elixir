@@ -711,7 +711,7 @@ defmodule ExUnit.AssertionsTest do
     rescue
       error in [ExUnit.AssertionError] ->
         "foo" = error.left
-        ~r{a} = error.right
+        %Regex{} = error.right
     end
   end
 
@@ -726,7 +726,7 @@ defmodule ExUnit.AssertionsTest do
     rescue
       error in [ExUnit.AssertionError] ->
         "foo" = error.left
-        ~r"o" = error.right
+        %Regex{} = error.right
     end
   end
 

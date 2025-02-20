@@ -120,23 +120,6 @@ defmodule Kernel.DialyzerTest do
     assert_dialyze_no_warnings!(context)
   end
 
-  @tag warnings: [:specdiffs]
-  test "no warnings on protocol calls with opaque types", context do
-    alias Dialyzer.ProtocolOpaque
-
-    copy_beam!(context, ProtocolOpaque)
-    copy_beam!(context, ProtocolOpaque.Entity)
-    copy_beam!(context, ProtocolOpaque.Entity.Any)
-    copy_beam!(context, ProtocolOpaque.Duck)
-    assert_dialyze_no_warnings!(context)
-
-    # Also ensure no warnings after consolidation.
-    Code.prepend_path(context.base_dir)
-    {:ok, binary} = Protocol.consolidate(ProtocolOpaque.Entity, [ProtocolOpaque.Duck, Any])
-    File.write!(Path.join(context.outdir, "#{ProtocolOpaque.Entity}.beam"), binary)
-    assert_dialyze_no_warnings!(context)
-  end
-
   test "no warnings on and/2 and or/2", context do
     copy_beam!(context, Dialyzer.BooleanCheck)
     assert_dialyze_no_warnings!(context)

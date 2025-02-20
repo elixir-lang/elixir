@@ -171,7 +171,12 @@ dynamic_form(#{module := Module, relative_file := RelativeFile,
   {Def, Defmacro, Macros, Exports, Functions} =
     split_definition(Definitions, Unreachable, Line, [], [], [], [], {[], []}),
 
-  FilteredOpts = lists:filter(fun({no_warn_undefined, _}) -> false; (_) -> true end, Opts),
+  FilteredOpts = lists:filter(fun(
+    {no_warn_undefined, _}) -> false;
+    (debug_info) -> false;
+    (_) -> true
+  end, Opts),
+
   Location = {elixir_utils:characters_to_list(RelativeFile), Line},
 
   Prefix = [{attribute, Line, file, Location},
