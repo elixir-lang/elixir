@@ -46,9 +46,18 @@ cover_exclude =
     []
   end
 
+gleam_exclude =
+  try do
+    Mix.Gleam.require!()
+    []
+  rescue
+    Mix.Error -> [gleam: true]
+  end
+
 ExUnit.start(
   trace: !!System.get_env("TRACE"),
-  exclude: epmd_exclude ++ os_exclude ++ git_exclude ++ line_exclude ++ cover_exclude,
+  exclude:
+    epmd_exclude ++ os_exclude ++ git_exclude ++ line_exclude ++ cover_exclude ++ gleam_exclude,
   include: line_include,
   # Many mix tests spawns separate processes which leads to failures on Windows CI
   max_cases: if(match?({:win32, _}, :os.type()), do: 1, else: System.schedulers_online() * 2)

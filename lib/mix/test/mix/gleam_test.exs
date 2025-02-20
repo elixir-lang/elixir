@@ -6,6 +6,7 @@ Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Mix.GleamTest do
   use MixTest.Case
+  @moduletag :gleam
 
   @compile {:no_warn_undefined, [:gleam_dep, :gleam@int]}
 
