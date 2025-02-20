@@ -44,6 +44,7 @@ defmodule Mix.GleamTest do
           "version" => "1.0.0",
           "gleam" => ">= 1.8.0",
           "dependencies" => %{
+            "git_dep" => %{"git" => "../git_dep", "ref" => "957b83b"},
             "gleam_stdlib" => %{"version" => ">= 0.18.0 and < 2.0.0"},
             "my_other_project" => %{"path" => "../my_other_project"}
           },
@@ -56,6 +57,7 @@ defmodule Mix.GleamTest do
                version: "1.0.0",
                gleam: ">= 1.8.0",
                deps: [
+                 {:git_dep, git: "../git_dep", ref: "957b83b"},
                  {:gleam_stdlib, ">= 0.18.0 and < 2.0.0"},
                  {:my_other_project, path: "../my_other_project"},
                  {:gleeunit, ">= 1.0.0 and < 2.0.0", only: :dev}
