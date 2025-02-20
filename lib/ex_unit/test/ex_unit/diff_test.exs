@@ -335,6 +335,8 @@ defmodule ExUnit.DiffTest do
       "[[[[], \"Hello-,- \"] | \"world\"] | \"!\"]",
       "[[[[], \"Hello \"] | \"world\"] | \"!\"]"
     )
+
+    refute_diff(:foo = %{bar: [:a | :b]}, "", "")
   end
 
   test "proper lists" do
