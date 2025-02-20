@@ -428,10 +428,9 @@ end
 defmodule OptionsParserDeprecationsTest do
   use ExUnit.Case, async: true
 
-  @warning ~r[not passing the :switches or :strict option to OptionParser is deprecated]
-
   def assert_deprecated(fun) do
-    assert ExUnit.CaptureIO.capture_io(:stderr, fun) =~ @warning
+    assert ExUnit.CaptureIO.capture_io(:stderr, fun) =~
+             "not passing the :switches or :strict option to OptionParser is deprecated"
   end
 
   test "parses boolean option" do

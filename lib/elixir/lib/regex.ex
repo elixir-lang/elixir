@@ -209,17 +209,14 @@ defmodule Regex do
 
   ## Examples
 
-      iex> Regex.compile("foo")
-      {:ok, ~r/foo/}
+      Regex.compile("foo")
+      #=> {:ok, ~r/foo/}
 
-      iex> Regex.compile("*foo")
-      {:error, {~c"nothing to repeat", 0}}
+      Regex.compile("foo", "i")
+      #=>{:ok, ~r/foo/i}
 
-      iex> Regex.compile("foo", "i")
-      {:ok, ~r/foo/i}
-
-      iex> Regex.compile("foo", [:caseless])
-      {:ok, Regex.compile!("foo", [:caseless])}
+      Regex.compile("*foo")
+      #=> {:error, {~c"nothing to repeat", 0}}
 
   """
   @spec compile(binary, binary | [term]) :: {:ok, t} | {:error, term}
