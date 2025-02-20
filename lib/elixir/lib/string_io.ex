@@ -208,15 +208,18 @@ defmodule StringIO do
 
   @impl true
   def handle_call(:contents, _from, %{input: input, output: output} = state) do
-    {:reply, {input, output}, state}
+    # output is built as iodata, and converted before we need to cross the process boundary
+    output = IO.iodata_to_binary(output)
+    {:reply, {input, output}, %{state | output: output}}
   end
 
   def handle_call(:flush, _from, %{output: output} = state) do
-    {:reply, output, %{state | output: ""}}
+    {:reply, IO.iodata_to_binary(output), %{state | output: ""}}
   end
 
   def handle_call(:close, _from, %{input: input, output: output} = state) do
-    {:stop, :normal, {:ok, {input, output}}, state}
+    output = IO.iodata_to_binary(output)
+    {:stop, :normal, {:ok, {input, output}}, %{state | output: output}}
   end
 
   defp io_request(from, reply_as, req, state) do
@@ -302,7 +305,8 @@ defmodule StringIO do
   defp put_chars(encoding, chars, req, state) do
     case :unicode.characters_to_binary(chars, encoding, state.encoding) do
       string when is_binary(string) ->
-        {:ok, %{state | output: state.output <> string}}
+        # we build output as iodata internally
+        {:ok, %{state | output: [state.output | string]}}
 
       {_, _, _} ->
         {{:error, {:no_translation, encoding, state.encoding}}, state}
@@ -455,7 +459,7 @@ defmodule StringIO do
   end
 
   defp state_after_read(%{capture_prompt: true, output: output} = state, remainder, prompt, count) do
-    output = <<output::binary, :binary.copy(IO.chardata_to_string(prompt), count)::binary>>
+    output = IO.iodata_to_binary([output | :binary.copy(IO.chardata_to_string(prompt), count)])
     %{state | input: remainder, output: output}
   end
 
