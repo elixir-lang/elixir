@@ -503,6 +503,17 @@ defmodule ExUnit.FormatterTest do
            """
   end
 
+  test "formats assertions with nested improper list diffing" do
+    failure = [{:error, catch_assertion(assert :foo = %{bar: [1 | 2]}), []}]
+
+    assert format_test_all_failure(test_module(), failure, 1, :infinity, &diff_formatter/2) =~ """
+           match (=) failed
+                code:  assert :foo = %{bar: [1 | 2]}
+                left:  :foo
+                right: %{bar: [1 | 2]}
+           """
+  end
+
   defmodule BadInspect do
     defstruct key: 0
 
