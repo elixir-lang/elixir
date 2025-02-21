@@ -389,6 +389,10 @@ defmodule Mix.Tasks.CompileTest do
       File.write!("src/b.erl", "-module(b).")
       File.write!("src/c.erl", "-module(c).")
 
+      # Ensure we can boot with compilation and listeners if desired
+      assert mix(["loadpaths", "--no-compile", "--no-listeners"]) == ""
+
+      # Now setup dependencies
       mix(["deps.compile"])
 
       parent = self()

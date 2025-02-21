@@ -21,6 +21,7 @@ defmodule Mix.Tasks.Loadpaths do
     * `--no-compile` - does not compile dependencies, only check and load them
     * `--no-deps-check` - does not check dependencies, only load available ones
     * `--no-elixir-version-check` - does not check Elixir version
+    * `--no-listeners` - does not start Mix listeners
     * `--no-optional-deps` - does not compile or load optional deps
 
   """
