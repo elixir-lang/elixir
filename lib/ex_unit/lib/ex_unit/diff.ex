@@ -1162,6 +1162,7 @@ defmodule ExUnit.Diff do
     else
       other
       |> Map.to_list()
+      |> Enum.map(&escape_pair/1)
       |> build_map_or_struct(struct)
     end
   end
