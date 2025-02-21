@@ -22,7 +22,7 @@ defmodule Mix.Tasks.Deps.Compile do
     * `Makefile.win`- invokes `nmake /F Makefile.win` (only on Windows)
     * `Makefile` - invokes `gmake` on DragonFlyBSD, FreeBSD, NetBSD, and OpenBSD,
       invokes `make` on any other operating system (except on Windows)
-    * `gleam.toml` - invokes `gleam export`
+    * `gleam.toml` - invokes `gleam compile-package`
 
   The compilation can be customized by passing a `compile` option
   in the dependency:
@@ -356,7 +356,7 @@ defmodule Mix.Tasks.Deps.Compile do
   defp shell_cmd!(%Mix.Dep{app: app} = dep, config, command, env \\ []) do
     if Mix.shell().cmd(command, [print_app: true] ++ opts_for_cmd(dep, config, env)) != 0 do
       Mix.raise(
-        "Could not compile dependency #{inspect(app)}, \"#{command}\" command failed. " <>
+        "Could not compile dependency #{inspect(app)}, \"#{inspect(command)}\" command failed. " <>
           deps_compile_feedback(app)
       )
     end
