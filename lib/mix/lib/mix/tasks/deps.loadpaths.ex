@@ -28,6 +28,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
     * `--no-compile` - does not compile even if files require compilation
     * `--no-deps-check` - does not check or compile deps, only load available ones
     * `--no-elixir-version-check` - does not check Elixir version
+    * `--no-listeners` - does not start Mix listeners
     * `--no-optional-deps` - does not compile or load optional deps
 
   """
@@ -76,7 +77,9 @@ defmodule Mix.Tasks.Deps.Loadpaths do
 
     # For now we only allow listeners defined in dependencies, so
     # we start them right after adding adding deps to the path
-    Mix.PubSub.start_listeners()
+    if "--no-listeners" not in args do
+      Mix.PubSub.start_listeners()
+    end
 
     :ok
   end
