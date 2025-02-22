@@ -878,17 +878,40 @@ defmodule IEx.Helpers do
 
   @doc """
   Prints a list of all the functions and macros exported by the given module.
+  
+  ## Examples
+  
+      iex> exports(String)
+      # at/2              bag_distance/2     byte_slice/3       ...
+      # capitalize/2      chunk/2            codepoints/1       ...
+  
+      iex> exports(String, single_column: true)
+      # at/2
+      # bag_distance/2
+      # byte_slice/3
+      # capitalize/1
+      # capitalize/2
+      # chunk/2
+      # ...
+  
+  ## Options
+  - `:single_column` - When `true`, prints one function per line. Default: `false`.
   """
   @doc since: "1.5.0"
-  def exports(module \\ Kernel) do
+  def exports(module \\ Kernel, opts \\ []) do
     exports = IEx.Autocomplete.exports(module)
-
+  
     list =
       Enum.map(exports, fn {name, arity} ->
         Atom.to_string(name) <> "/" <> Integer.to_string(arity)
       end)
-
-    print_table(list)
+  
+    if Keyword.get(opts, :single_column, false) do
+      Enum.each(list, &IO.puts/1)
+    else
+      print_table(list)
+    end
+  
     dont_display_result()
   end
 
