@@ -906,10 +906,10 @@ defmodule IEx.Helpers do
         Atom.to_string(name) <> "/" <> Integer.to_string(arity)
       end)
   
-    if Keyword.get(opts, :single_column, false) do
-      Enum.each(list, &IO.puts/1)
-    else
+    if not Keyword.get(opts, :single_column, false) do
       print_table(list)
+    else
+      Enum.each(list, &IO.puts/1)
     end
   
     dont_display_result()
