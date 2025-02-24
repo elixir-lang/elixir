@@ -367,19 +367,30 @@ defmodule Mix.Dep.Loader do
     {dep, []}
   end
 
-  defp gleam_dep(%Mix.Dep{opts: opts} = dep, children, locked?) do
+  defp gleam_dep(%Mix.Dep{opts: opts} = dep, _children = nil, locked?) do
     Mix.Gleam.require!()
 
-    deps =
-      if children do
-        Enum.map(children, &to_dep(&1, opts[:dest], _manager = nil, locked?))
-      else
-        config = File.cd!(opts[:dest], fn -> Mix.Gleam.load_config(".") end)
-        from = Path.join(opts[:dest], "gleam.toml")
-        Enum.map(config[:deps], &to_dep(&1, from, _manager = nil, locked?))
-      end
+    config = File.cd!(opts[:dest], fn -> Mix.Gleam.load_config(".") end)
+    from = Path.join(opts[:dest], "gleam.toml")
+    deps = Enum.map(config[:deps], &to_dep(&1, from, _manager = nil, locked?))
 
-    {%{dep | opts: Keyword.merge(opts, app: false, override: true)}, deps}
+    properties = [
+      {:vsn, to_charlist(config[:version])},
+      {:mod, {String.to_atom(config[:mod]), []}}
+    ]
+
+    contents = :io_lib.format("~p.~n", [{:application, dep.app, properties}])
+
+    [opts[:build], "ebin", "#{dep.app}.app"]
+    |> Path.join()
+    |> File.write!(IO.chardata_to_string(contents))
+
+    {dep, deps}
+  end
+
+  defp gleam_dep(%Mix.Dep{opts: opts} = dep, children, locked?) do
+    dep = %{dep | opts: Keyword.merge(opts, app: false, override: true)}
+    {dep, Enum.map(children, &to_dep(&1, opts[:dest], _manager = nil, locked?))}
   end
 
   defp mix_children(config, locked?, opts) do

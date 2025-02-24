@@ -49,7 +49,12 @@ defmodule Mix.GleamTest do
             "gleam_stdlib" => %{"version" => ">= 0.18.0 and < 2.0.0"},
             "my_other_project" => %{"path" => "../my_other_project"}
           },
-          "dev-dependencies" => %{"gleeunit" => %{"version" => ">= 1.0.0 and < 2.0.0"}}
+          "dev-dependencies" => %{
+            "gleeunit" => %{"version" => ">= 1.0.0 and < 2.0.0"}
+          },
+          "erlang" => %{
+            "application_start_module" => "some@application"
+          }
         }
         |> Mix.Gleam.parse_config()
 
@@ -62,7 +67,8 @@ defmodule Mix.GleamTest do
                  {:gleam_stdlib, ">= 0.18.0 and < 2.0.0"},
                  {:my_other_project, path: "../my_other_project"},
                  {:gleeunit, ">= 1.0.0 and < 2.0.0", only: :dev}
-               ]
+               ],
+               mod: "some@application"
              }
     end
   end
