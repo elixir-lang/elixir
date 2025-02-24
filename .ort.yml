@@ -109,7 +109,7 @@ curations:
       comment: "Ignored by ScanCode"
       detected_license: "NONE"
       concluded_license: "Apache-2.0"
-    - path: "README.md"
+    - path: "CONTRIBUTING.md"
       reason: "INCORRECT"
       comment: "Wrongly identified TSL license"
       detected_license: "Apache-2.0 OR NOASSERTION OR LicenseRef-scancode-tsl-2020"
