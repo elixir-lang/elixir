@@ -31,7 +31,7 @@ iex> h Kernel.trunc/1
 Returns the integer part of number.
 ```
 
-You can use the module+function to lookup for anything, including operators (try `h Kernel.+/2`). Invoking [`h`](`IEx.Helpers.h/1`) without arguments displays the documentation for `IEx.Helpers`, which is where `h` and other functionalities are defined.
+You can use the module+function identifiers to lookup documentation for anything, including operators (try `h Kernel.+/2`). Invoking [`h`](`IEx.Helpers.h/1`) without arguments displays the documentation for `IEx.Helpers`, which is where `h` and other functionalities are defined.
 
 ## Defining anonymous functions
 
