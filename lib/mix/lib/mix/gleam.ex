@@ -26,7 +26,8 @@ defmodule Mix.Gleam do
         version: Map.fetch!(json, "version"),
         deps: deps ++ dev_deps
       }
-      |> maybe_gleam_version(json["gleam"])
+      |> maybe_gleam_version(json)
+      |> maybe_application_start_module(json)
     rescue
       KeyError ->
         Mix.raise("Command \"gleam export package-information\" unexpected format: \n" <> json)
@@ -57,10 +58,18 @@ defmodule Mix.Gleam do
     end
   end
 
-  defp maybe_gleam_version(config, nil), do: config
+  defp maybe_gleam_version(config, json) do
+    case json["gleam"] do
+      nil -> config
+      version -> Map.put(config, :gleam, version)
+    end
+  end
 
-  defp maybe_gleam_version(config, version) do
-    Map.put(config, :gleam, version)
+  defp maybe_application_start_module(config, json) do
+    case get_in(json, ["erlang", "application_start_module"]) do
+      nil -> config
+      mod -> Map.put(config, :mod, mod)
+    end
   end
 
   def require!() do
