@@ -82,7 +82,8 @@ runs:
       # * https://github.com/oss-review-toolkit/ort-ci-github-action/issues/37
       # * https://github.com/oss-review-toolkit/ort-ci-github-action/pull/41
       # * https://github.com/oss-review-toolkit/ort-ci-github-action/pull/43
-      uses: oss-review-toolkit/ort-ci-github-action@2cda885c8eefaf92bab9f3e979b5d5a42970dfa4 # main
+      # * https://github.com/oss-review-toolkit/ort-ci-github-action/pull/45
+      uses: oss-review-toolkit/ort-ci-github-action@1805edcf1f4f55f35ae6e4d2d9795ccfb29b6021 # main
       with:
         image: ghcr.io/oss-review-toolkit/ort-minimal:51.1.0
         run: >-
