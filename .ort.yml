@@ -109,6 +109,16 @@ curations:
       comment: "Ignored by ScanCode"
       detected_license: "NONE"
       concluded_license: "Apache-2.0"
+    - path: "README.md"
+      reason: "INCORRECT"
+      comment: "Wrongly identified TSL license"
+      detected_license: "Apache-2.0 OR NOASSERTION OR LicenseRef-scancode-tsl-2020"
+      concluded_license: "Apache-2.0"
+    - path: "OPEN_SOURCE_POLICY.md"
+      reason: "INCORRECT"
+      comment: "Wrongly identified NOASSERTION"
+      detected_license: "NOASSERTION"
+      concluded_license: "Apache-2.0"
   
   packages:
     - id: "SpdxDocumentFile:The Elixir Team:elixir-lang:"
