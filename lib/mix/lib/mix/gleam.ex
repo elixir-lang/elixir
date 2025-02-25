@@ -27,7 +27,7 @@ defmodule Mix.Gleam do
         deps: deps ++ dev_deps
       }
       |> maybe_gleam_version(json)
-      |> maybe_application_start_module(json)
+      |> maybe_erlang_opts(json)
     rescue
       KeyError ->
         Mix.raise("Command \"gleam export package-information\" unexpected format: \n" <> json)
@@ -65,10 +65,16 @@ defmodule Mix.Gleam do
     end
   end
 
-  defp maybe_application_start_module(config, json) do
-    case get_in(json, ["erlang", "application_start_module"]) do
+  defp maybe_erlang_opts(config, json) do
+    config =
+      case get_in(json, ["erlang", "application_start_module"]) do
+        nil -> config
+        mod -> Map.put(config, :mod, mod)
+      end
+
+    case get_in(json, ["erlang", "extra_applications"]) do
       nil -> config
-      mod -> Map.put(config, :mod, mod)
+      extra_applications -> Map.put(config, :extra_applications, extra_applications)
     end
   end
 
