@@ -374,12 +374,16 @@ defmodule Mix.Dep.Loader do
     from = Path.join(opts[:dest], "gleam.toml")
     deps = Enum.map(config[:deps], &to_dep(&1, from, _manager = nil, locked?))
 
-    properties = [
-      {:vsn, to_charlist(config[:version])},
-      {:mod, {String.to_atom(config[:mod]), []}}
-    ]
+    properties =
+      [{:vsn, to_charlist(config[:version])}]
+      |> gleam_mod(config)
+      |> gleam_applications(config)
 
     contents = :io_lib.format("~p.~n", [{:application, dep.app, properties}])
+
+    [opts[:build], "ebin"]
+    |> Path.join()
+    |> File.mkdir_p!()
 
     [opts[:build], "ebin", "#{dep.app}.app"]
     |> Path.join()
@@ -391,6 +395,24 @@ defmodule Mix.Dep.Loader do
   defp gleam_dep(%Mix.Dep{opts: opts} = dep, children, locked?) do
     dep = %{dep | opts: Keyword.merge(opts, app: false, override: true)}
     {dep, Enum.map(children, &to_dep(&1, opts[:dest], _manager = nil, locked?))}
+  end
+
+  defp gleam_mod(properties, config) do
+    case config[:mod] do
+      nil -> properties
+      mod -> [{:mod, {String.to_atom(mod), []}} | properties]
+    end
+  end
+
+  defp gleam_applications(properties, config) do
+    case config[:extra_applications] do
+      nil ->
+        properties
+
+      applications ->
+        applications = Enum.map(applications, &String.to_atom/1)
+        [{:applications, applications} | properties]
+    end
   end
 
   defp mix_children(config, locked?, opts) do
