@@ -407,9 +407,8 @@ defmodule DynamicSupervisor do
   @doc """
   Dynamically adds a child specification to `supervisor` and starts that child.
 
-  `child_spec` should be a valid child specification as detailed in the
-  "Child specification" section of the documentation for `Supervisor`. The child
-  process will be started as defined in the child specification. Note that while
+  `child_spec` should be a valid [child specification](`m:Supervisor#module-child-specification`).
+  The child process will be started as defined in the child specification. Note that while
   the `:id` field is still required in the spec, the value is ignored and
   therefore does not need to be unique. Unlike `Supervisor`, this module does not
   return `{:error, {:already_started, pid}}` for child specs given with the same id.
