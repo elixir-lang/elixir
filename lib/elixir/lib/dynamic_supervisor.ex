@@ -230,7 +230,14 @@ defmodule DynamicSupervisor do
   @typedoc "Supported strategies"
   @type strategy :: :one_for_one
 
-  @typedoc "Return values of `start_child` functions"
+  @typedoc """
+  Return values of `start_child` functions.
+
+  Unlike `Supervisor`, this module ignores the child spec ids, so
+  `{:error, {:already_started, pid}}` is not returned for child specs given with the same id.
+  `{:error, {:already_started, pid}}` is returned however if a duplicate name is used when using
+  [name registration](`m:GenServer#module-name-registration`).
+  """
   @type on_start_child ::
           {:ok, pid}
           | {:ok, pid, info :: term}
@@ -404,7 +411,10 @@ defmodule DynamicSupervisor do
   "Child specification" section of the documentation for `Supervisor`. The child
   process will be started as defined in the child specification. Note that while
   the `:id` field is still required in the spec, the value is ignored and
-  therefore does not need to be unique.
+  therefore does not need to be unique. Unlike `Supervisor`, this module does not
+  return `{:error, {:already_started, pid}}` for child specs given with the same id.
+  `{:error, {:already_started, pid}}` is returned however if a duplicate name is
+  used when using [name registration](`m:GenServer#module-name-registration`).
 
   If the child process start function returns `{:ok, child}` or `{:ok, child,
   info}`, then child specification and PID are added to the supervisor and
