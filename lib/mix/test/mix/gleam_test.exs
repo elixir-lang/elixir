@@ -96,6 +96,12 @@ defmodule Mix.GleamTest do
         assert Enum.any?(load_paths, &String.ends_with?(&1, "gleam_stdlib/ebin"))
         # Dep of a dep
         assert Enum.any?(load_paths, &String.ends_with?(&1, "gleam_erlang/ebin"))
+        {:ok, content} = :file.consult("_build/dev/lib/gleam_dep/ebin/gleam_dep.app")
+
+        assert content == [
+                 {:application, :gleam_dep,
+                  [applications: [:ssl], mod: {:gleam_dep@somemodule, []}, vsn: ~c"1.0.0"]}
+               ]
       end)
     end
   end
