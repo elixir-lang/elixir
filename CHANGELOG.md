@@ -252,7 +252,7 @@ You may also prefer to write using guards:
 
 #### IEx
 
-  * [IEx.Autocomplete] Fix crashing whhen autocompleting structs with runtime values
+  * [IEx.Autocomplete] Fix crashing when autocompleting structs with runtime values
 
 #### Mix
 
