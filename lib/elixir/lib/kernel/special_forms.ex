@@ -834,8 +834,8 @@ defmodule Kernel.SpecialForms do
     * `:context` - sets the resolution context.
 
     * `:generated` - marks the given chunk as generated so it does not emit warnings.
-      It is also useful to avoid dialyzer reporting errors when macros generate
-      unused clauses.
+      It is also useful to prevent the type system or dialyzer from reporting errors
+      when macros generate unused clauses.
 
     * `:file` - sets the quoted expressions to have the given file.
 
