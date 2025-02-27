@@ -225,7 +225,7 @@ You may also prefer to write using guards:
 
     def foo(x, y, z) when x == y and y == z
 
-## v1.18.2 (2024-01-22)
+## v1.18.2 (2025-01-22)
 
 ### 1. Enhancements
 
