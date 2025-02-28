@@ -205,14 +205,14 @@ defmodule Mix.Tasks.XrefTest do
       end)
     end
 
-    defp assert_callers(opts \\ [], module, files, expected) do
+    defp assert_callers(args \\ [], module, files, expected) do
       in_fixture("no_mixfile", fn ->
         for {file, contents} <- files do
           File.write!(file, contents)
         end
 
         capture_io(:stderr, fn ->
-          assert Mix.Task.run("xref", opts ++ ["callers", module]) == :ok
+          assert Mix.Task.run("xref", args ++ ["callers", module]) == :ok
         end)
 
         assert ^expected = receive_until_no_messages([])
@@ -392,14 +392,14 @@ defmodule Mix.Tasks.XrefTest do
       end
     end
 
-    defp assert_trace(opts \\ [], file, files, expected) do
+    defp assert_trace(args \\ [], file, files, expected) do
       in_fixture("no_mixfile", fn ->
         for {file, contents} <- files do
           File.write!(file, contents)
         end
 
         capture_io(:stderr, fn ->
-          assert Mix.Task.run("xref", opts ++ ["trace", file]) == :ok
+          assert Mix.Task.run("xref", args ++ ["trace", file]) == :ok
         end)
 
         assert receive_until_no_messages([]) == expected
@@ -715,16 +715,25 @@ defmodule Mix.Tasks.XrefTest do
     end
 
     test "sources" do
-      assert_graph(~w[--source lib/a.ex --source lib/c.ex], """
-      lib/a.ex
-      `-- lib/b.ex (compile)
-          |-- lib/a.ex
-          |-- lib/c.ex
-          `-- lib/e.ex (compile)
-      lib/c.ex
-      `-- lib/d.ex (compile)
-          `-- lib/e.ex
-      """)
+      assert_graph(
+        ~w[--source lib/a.ex --source lib/c.ex],
+        """
+        lib/a.ex
+        `-- lib/b.ex (compile)
+            |-- lib/a.ex
+            |-- lib/c.ex
+            `-- lib/e.ex (compile)
+        lib/c.ex
+        `-- lib/d.ex (compile)
+            `-- lib/e.ex
+
+        WARNING: Source lib/a.ex is part of a cycle of 2 nodes and this cycle has a compile \
+        dependency. Therefore source and the whole cycle will recompile whenever any of the \
+        files they depend on change. Run "mix xref graph --format stats --label compile-connected" \
+        to print compilation cycles and "mix help xref" for information on removing them
+        """,
+        warnings: true
+      )
     end
 
     test "source with compile label" do
@@ -1151,19 +1160,27 @@ defmodule Mix.Tasks.XrefTest do
       """
     }
 
-    defp assert_graph(opts \\ [], expected, params \\ []) do
+    defp assert_graph(args \\ [], expected, opts \\ []) do
       in_fixture("no_mixfile", fn ->
         nb_files =
-          Enum.count(params[:files] || @default_files, fn {path, content} ->
+          Enum.count(opts[:files] || @default_files, fn {path, content} ->
             File.write!(path, content)
           end)
 
-        assert Mix.Task.run("xref", opts ++ ["graph"]) == :ok
+        assert Mix.Task.run("xref", args ++ ["graph"]) == :ok
         first_line = "Compiling #{nb_files} files (.ex)"
 
         assert [
-                 ^first_line | ["Generated sample app" | result]
+                 ^first_line,
+                 "Generated sample app" | result
                ] = receive_until_no_messages([]) |> String.split("\n")
+
+        result =
+          if Keyword.get(opts, :warnings, false) do
+            result
+          else
+            Enum.take_while(result, &(not String.starts_with?(&1, "WARNING: ")))
+          end
 
         assert result |> Enum.join("\n") |> normalize_graph_output() == expected
       end)

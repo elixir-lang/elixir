@@ -34,13 +34,44 @@ defmodule Mix.Tasks.Xref do
   (for example, by invoking its macro or using it in the body of a module)
   which also have their own dependencies.
 
-  Therefore, if your goal is to reduce recompilations, the first step is to run:
+  The most harmful form of compile-connected dependencies are the ones
+  that are also in a cycle. Imagine you have files `lib/a.ex`, `lib/b.ex`,
+  and `lib/c.ex` with the following dependencies:
+
+      lib/a.ex
+      └── lib/b.ex (compile)
+            └── lib/c.ex
+                  └── lib/a.ex
+
+  Because you have a compile-time dependency, any of the files `lib/a.ex`,
+  `lib/b.ex`, and `lib/c.ex` depend on will cause the whole cycle to
+  recompile. Therefore, your first priority to reduce compile times is
+  to remove such cycles. You can spot them by running:
 
       $ mix xref graph --format stats --label compile-connected
 
-  This command will show general information about the project, but
-  focus on compile-connected dependencies. In the stats, you will see
-  the following report:
+  Whenever you find a compile-time dependency, such as `lib/a.ex` pointing
+  to `lib/b.ex`, there are two ways to remove them:
+
+    1. Run `mix xref trace lib/a.ex` to understand where and how `lib/a.ex`
+       depends on `lib/b.ex` at compile time and address it
+
+    2. Or run `mix xref trace lib/b.ex` and make sure it does not depend on
+       any other module in your project because a compile dependency makes
+       those runtime dependencies also compile time by transitivity
+
+  We outline all options for `mix xref trace` and the types of dependencies
+  over the following sections.
+
+  If you don't have compile cycles in your project, that's a good beginning,
+  but you want to avoid any compile-connected dependencies in general, as they
+  may become cycles in the future. To verify the general health of your project,
+  you may run:
+
+      $ mix xref graph --format stats --label compile-connected
+
+  This command will show general information about the project, but focus on
+  compile-connected dependencies. In the stats, you will see the following report:
 
       Top 10 files with most incoming dependencies:
         * lib/livebook_web.ex (97)
@@ -62,17 +93,9 @@ defmodule Mix.Tasks.Xref do
 
   The trouble here is precisely that, if any of the files in the latter
   command changes, all of the files in the first command will be recompiled,
-  because compile time dependencies are transitive.
-
-  Having compile time dependencies is a common feature in Elixir projects.
-  However, the modules you depend on at compile-time must avoid dependencies
-  to modules within the same project. You can understand all of the
-  dependencies of a given file by running:
-
-      $ mix xref trace lib/livebook_web.ex
-
-  The command above will output three types of dependencies, which we
-  detail next.
+  because compile time dependencies are transitive. As we did with cycles,
+  you can use `mix xref trace` to understand why and how these dependencies
+  exist.
 
   ### Dependency types
 
@@ -911,20 +934,20 @@ defmodule Mix.Tasks.Xref do
     if files == [], do: nil, else: files
   end
 
-  defp write_graph(file_references, filter, opts) do
-    {file_references, aliases} = merge_groups(file_references, Keyword.get_values(opts, :group))
+  defp write_graph(all_references, filter, opts) do
+    {all_references, aliases} = merge_groups(all_references, Keyword.get_values(opts, :group))
 
-    file_references =
-      exclude(file_references, get_files(:exclude, opts, file_references, aliases))
+    all_references =
+      exclude(all_references, get_files(:exclude, opts, all_references, aliases))
 
-    sources = get_files(:source, opts, file_references, aliases)
-    sinks = get_files(:sink, opts, file_references, aliases)
+    sources = get_files(:source, opts, all_references, aliases)
+    sinks = get_files(:sink, opts, all_references, aliases)
 
     file_references =
       cond do
-        sinks -> sink_tree(file_references, sinks)
-        sources -> source_tree(file_references, sources)
-        true -> file_references
+        sinks -> sink_tree(all_references, sinks)
+        sources -> source_tree(all_references, sources)
+        true -> all_references
       end
 
     {found, count} =
@@ -965,6 +988,12 @@ defmodule Mix.Tasks.Xref do
             roots_and_callback(file_references, filter, sources, sinks, opts)
 
           Mix.Utils.print_tree(Enum.sort(roots), callback, opts)
+
+          if sources do
+            # We compute the tree again in case sinks are also given
+            file_references = source_tree(all_references, sources)
+            print_sources_cycles(file_references, sources, opts)
+          end
 
           {:references, count}
 
@@ -1216,6 +1245,29 @@ defmodule Mix.Tasks.Xref do
 
           length(cycles)
       end
+    end)
+  end
+
+  defp print_sources_cycles(references, sources, opts) do
+    with_digraph(references, fn graph ->
+      shell = Mix.shell()
+
+      graph
+      |> cycles(:compile, opts)
+      |> Enum.sort(:desc)
+      |> Enum.each(fn {length, cycle} ->
+        if source = Enum.find(sources, &List.keymember?(cycle, &1, 0)) do
+          shell.info("""
+
+          WARNING: Source #{source} is part of a cycle of #{length} nodes \
+          and this cycle has a compile dependency. Therefore source and the \
+          whole cycle will recompile whenever any of the files they depend \
+          on change. Run "mix xref graph --format stats --label compile-connected" \
+          to print compilation cycles and "mix help xref" for information on \
+          removing them\
+          """)
+        end
+      end)
     end)
   end
 
