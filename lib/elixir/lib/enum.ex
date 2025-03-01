@@ -3837,6 +3837,9 @@ defmodule Enum do
   @doc """
   Enumerates the `enumerable`, removing all duplicate elements.
 
+  The first occurrence of each element is kept and all following
+  duplicates are removed. The overall order is preserved.
+
   ## Examples
 
       iex> Enum.uniq([1, 2, 3, 3, 2, 1])
@@ -3862,7 +3865,8 @@ defmodule Enum do
   considered duplicates if the return value of `fun` is equal for
   both of them.
 
-  The first occurrence of each element is kept.
+  The first occurrence of each element is kept and all following
+  duplicates are removed. The overall order is preserved.
 
   ## Example
 
