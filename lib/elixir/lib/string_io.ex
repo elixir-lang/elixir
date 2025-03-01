@@ -183,7 +183,7 @@ defmodule StringIO do
     _ = Process.monitor(pid)
     capture_prompt = options[:capture_prompt] || false
     encoding = options[:encoding] || :unicode
-    {:ok, %{encoding: encoding, input: string, output: "", capture_prompt: capture_prompt}}
+    {:ok, %{encoding: encoding, input: string, output: [], capture_prompt: capture_prompt}}
   end
 
   @impl true
@@ -208,18 +208,18 @@ defmodule StringIO do
 
   @impl true
   def handle_call(:contents, _from, %{input: input, output: output} = state) do
-    # output is built as iodata, and converted before we need to cross the process boundary
-    output = IO.iodata_to_binary(output)
-    {:reply, {input, output}, %{state | output: output}}
+    string_output = reverse_join(output)
+    # update the state too to avoid having to do the same joining in future calls
+    {:reply, {input, string_output}, %{state | output: [string_output]}}
   end
 
   def handle_call(:flush, _from, %{output: output} = state) do
-    {:reply, IO.iodata_to_binary(output), %{state | output: ""}}
+    {:reply, reverse_join(output), %{state | output: []}}
   end
 
   def handle_call(:close, _from, %{input: input, output: output} = state) do
-    output = IO.iodata_to_binary(output)
-    {:stop, :normal, {:ok, {input, output}}, %{state | output: output}}
+    string_output = reverse_join(output)
+    {:stop, :normal, {:ok, {input, string_output}}, %{state | output: [string_output]}}
   end
 
   defp io_request(from, reply_as, req, state) do
@@ -305,8 +305,7 @@ defmodule StringIO do
   defp put_chars(encoding, chars, req, state) do
     case :unicode.characters_to_binary(chars, encoding, state.encoding) do
       string when is_binary(string) ->
-        # we build output as iodata internally
-        {:ok, %{state | output: [state.output | string]}}
+        {:ok, %{state | output: [string | state.output]}}
 
       {_, _, _} ->
         {{:error, {:no_translation, encoding, state.encoding}}, state}
@@ -454,12 +453,14 @@ defmodule StringIO do
 
   ## helpers
 
+  defp reverse_join(output), do: output |> :lists.reverse() |> IO.iodata_to_binary()
+
   defp state_after_read(%{capture_prompt: false} = state, remainder, _prompt, _count) do
     %{state | input: remainder}
   end
 
   defp state_after_read(%{capture_prompt: true, output: output} = state, remainder, prompt, count) do
-    output = IO.iodata_to_binary([output | :binary.copy(IO.chardata_to_string(prompt), count)])
+    output = [:binary.copy(IO.chardata_to_string(prompt), count) | output]
     %{state | input: remainder, output: output}
   end
 
