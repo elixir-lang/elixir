@@ -1517,6 +1517,18 @@ defmodule EnumTest do
     assert Enum.zip([], []) == []
   end
 
+  test "zip/2 with infinite streams" do
+    assert Enum.zip([], Stream.cycle([1, 2])) == []
+    assert Enum.zip([], Stream.cycle(1..2)) == []
+    assert Enum.zip(.., Stream.cycle([1, 2])) == []
+    assert Enum.zip(.., Stream.cycle(1..2)) == []
+
+    assert Enum.zip(Stream.cycle([1, 2]), ..) == []
+    assert Enum.zip(Stream.cycle(1..2), ..) == []
+    assert Enum.zip(Stream.cycle([1, 2]), ..) == []
+    assert Enum.zip(Stream.cycle(1..2), ..) == []
+  end
+
   test "zip/1" do
     assert Enum.zip([[:a, :b], [1, 2], ["foo", "bar"]]) == [{:a, 1, "foo"}, {:b, 2, "bar"}]
 

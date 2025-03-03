@@ -1444,7 +1444,7 @@ defmodule Stream do
   defp check_cycle_first_element(reduce) do
     fn acc ->
       case reduce.(acc) do
-        {state, []} when state in [:done, :halted] ->
+        {state, []} when state in [:done, :halted] and elem(acc, 0) != :halt ->
           raise ArgumentError, "cannot cycle over an empty enumerable"
 
         other ->
