@@ -430,6 +430,9 @@ defmodule IEx.AutocompleteTest do
     assert {:yes, ~c"ry: ", []} = expand(~c"%URI{path: \"foo\", que")
     assert {:no, [], []} = expand(~c"%URI{path: \"foo\", unkno")
     assert {:no, [], []} = expand(~c"%Unknown{path: \"foo\", unkno")
+
+    assert {:yes, [], _} = expand(~c"%__MODULE__{")
+    assert {:yes, [], _} = expand(~c"%__MODULE__.Some{")
   end
 
   test "completion for struct keys in update syntax" do
