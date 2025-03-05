@@ -378,7 +378,8 @@ defmodule IEx.Autocomplete do
     case Code.Fragment.container_cursor_to_quoted(code) do
       {:ok, quoted} ->
         case Macro.path(quoted, &match?({:__cursor__, _, []}, &1)) do
-          [cursor, {:%{}, _, pairs}, {:%, _, [{:__aliases__, _, aliases}, _map]} | _] ->
+          [cursor, {:%{}, _, pairs}, {:%, _, [{:__aliases__, _, aliases = [h | _]}, _map]} | _]
+          when is_atom(h) ->
             container_context_struct(cursor, pairs, aliases, shell)
 
           [
@@ -386,8 +387,9 @@ defmodule IEx.Autocomplete do
             pairs,
             {:|, _, _},
             {:%{}, _, _},
-            {:%, _, [{:__aliases__, _, aliases}, _map]} | _
-          ] ->
+            {:%, _, [{:__aliases__, _, aliases = [h | _]}, _map]} | _
+          ]
+          when is_atom(h) ->
             container_context_struct(cursor, pairs, aliases, shell)
 
           [cursor, pairs, {:|, _, [{variable, _, nil} | _]}, {:%{}, _, _} | _] ->
