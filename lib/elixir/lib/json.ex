@@ -146,8 +146,30 @@ end
 
 defimpl JSON.Encoder, for: Map do
   def encode(value, encoder) do
-    :elixir_json.encode_map(value, encoder)
+    case :maps.next(:maps.iterator(value)) do
+      :none ->
+        "{}"
+
+      {key, value, iterator} ->
+        [?{, key(key, encoder), ?:, encoder.(value, encoder) | next(iterator, encoder)]
+    end
   end
+
+  defp next(iterator, encoder) do
+    case :maps.next(iterator) do
+      :none ->
+        "}"
+
+      {key, value, iterator} ->
+        [?,, key(key, encoder), ?:, encoder.(value, encoder) | next(iterator, encoder)]
+    end
+  end
+
+  # Erlang supports only numbers, binaries, and atoms as keys,
+  # we support anything that implements the String.Chars protocol.
+  defp key(key, encoder) when is_atom(key), do: encoder.(Atom.to_string(key), encoder)
+  defp key(key, encoder) when is_binary(key), do: encoder.(key, encoder)
+  defp key(key, encoder), do: encoder.(String.Chars.to_string(key), encoder)
 end
 
 defimpl JSON.Encoder, for: [Date, Time, NaiveDateTime, DateTime, Duration] do
@@ -175,17 +197,15 @@ defmodule JSON do
 
   Elixir built-in data structures are encoded to JSON as follows:
 
-  | **Elixir**             | **JSON** |
-  |------------------------|----------|
-  | `integer() \| float()` | Number   |
-  | `true \| false `       | Boolean  |
-  | `nil`                  | Null     |
-  | `binary()`             | String   |
-  | `atom()`               | String   |
-  | `list()`               | Array    |
-  | `%{binary() => _}`     | Object   |
-  | `%{atom() => _}`       | Object   |
-  | `%{integer() => _}`    | Object   |
+  | **Elixir**                 | **JSON** |
+  |----------------------------|----------|
+  | `integer() \| float()`     | Number   |
+  | `true \| false `           | Boolean  |
+  | `nil`                      | Null     |
+  | `binary()`                 | String   |
+  | `atom()`                   | String   |
+  | `list()`                   | Array    |
+  | `%{String.Chars.t() => _}` | Object   |
 
   You may also implement the `JSON.Encoder` protocol for custom data structures.
 
@@ -403,7 +423,7 @@ defmodule JSON do
     do: :elixir_json.encode_list(value, encoder)
 
   def protocol_encode(%{} = value, encoder) when not is_map_key(value, :__struct__),
-    do: :elixir_json.encode_map(value, encoder)
+    do: JSON.Encoder.Map.encode(value, encoder)
 
   def protocol_encode(value, encoder),
     do: JSON.Encoder.encode(value, encoder)

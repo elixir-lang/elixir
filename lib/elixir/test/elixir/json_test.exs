@@ -33,8 +33,8 @@ defmodule JSONTest do
     end
 
     test "maps" do
-      assert JSON.encode!(%{1 => 2, 3.0 => 4.0, key: :bar}) ==
-               "{\"1\":2,\"3.0\":4.0,\"key\":\"bar\"}"
+      assert JSON.encode!(%{1 => 2, 3.0 => 4.0, ~c"list" => ~c"list", key: :bar}) ==
+               "{\"1\":2,\"3.0\":4.0,\"key\":\"bar\",\"list\":[108,105,115,116]}"
     end
 
     test "lists" do
@@ -80,8 +80,8 @@ defmodule JSONTest do
     end
 
     test "maps" do
-      assert protocol_encode(%{1 => 2, 3.0 => 4.0, key: :bar}) ==
-               "{\"1\":2,\"3.0\":4.0,\"key\":\"bar\"}"
+      assert protocol_encode(%{1 => 2, 3.0 => 4.0, ~c"list" => ~c"list", key: :bar}) ==
+               "{\"1\":2,\"3.0\":4.0,\"key\":\"bar\",\"list\":[108,105,115,116]}"
     end
 
     test "lists" do
