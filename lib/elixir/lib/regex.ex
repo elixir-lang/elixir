@@ -26,7 +26,7 @@ defmodule Regex do
   A Regex is represented internally as the `Regex` struct. Therefore,
   `%Regex{}` can be used whenever there is a need to match on them.
   Keep in mind that all of the structs fields are private. There is
-  also not guarantee two regular expressions from the same source are
+  also no guarantee two regular expressions from the same source are
   equal, for example:
 
       ~r/(?<foo>.)(?<bar>.)/ == ~r/(?<foo>.)(?<bar>.)/
