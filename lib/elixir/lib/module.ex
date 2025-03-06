@@ -950,7 +950,8 @@ defmodule Module do
   @doc """
   Concatenates two aliases and returns a new alias.
 
-  It handles binaries and atoms.
+  It handles binaries and atoms. If one of the aliases
+  is nil, it is discarded.
 
   ## Examples
 
@@ -959,6 +960,9 @@ defmodule Module do
 
       iex> Module.concat(Foo, "Bar")
       Foo.Bar
+
+      iex> Module.concat(Foo, nil)
+      Foo
 
   """
   @spec concat(binary | atom, binary | atom) :: atom
