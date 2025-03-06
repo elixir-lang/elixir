@@ -2,7 +2,7 @@
 
 ## Shipping a new version
 
-1. Update version in /VERSION, bin/elixir, bin/elixir.bat, and bin/elixir.ps1
+1. Update version in /VERSION, bin/elixir, and bin/elixir.bat
 
 2. Ensure /CHANGELOG.md is updated, versioned and add the current date
 

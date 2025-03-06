@@ -162,17 +162,15 @@ Both encoder and decoder fully conform to [RFC 8259](https://tools.ietf.org/html
 
 Encoding can be done via `JSON.encode!/1` and `JSON.encode_to_iodata!/1` functions. The default encoding rules are applied as follows:
 
-| **Elixir**             | **JSON** |
-|------------------------|----------|
-| `integer() \| float()` | Number   |
-| `true \| false `       | Boolean  |
-| `nil`                  | Null     |
-| `binary()`             | String   |
-| `atom()`               | String   |
-| `list()`               | Array    |
-| `%{binary() => _}`     | Object   |
-| `%{atom() => _}`       | Object   |
-| `%{integer() => _}`    | Object   |
+| **Elixir**                  | **JSON** |
+|-----------------------------|----------|
+| `integer() \| float()`      | Number   |
+| `true \| false `            | Boolean  |
+| `nil`                       | Null     |
+| `binary()`                  | String   |
+| `atom()`                    | String   |
+| `list()`                    | Array    |
+| `%{String.Chars.t() => _}`  | Object   |
 
 You may also implement the `JSON.Encoder` protocol for custom data structures. Elixir already implements the protocol for all Calendar types.
 
@@ -224,6 +222,36 @@ While the definition above could succeed (as long as all three arguments are equ
 You may also prefer to write using guards:
 
     def foo(x, y, z) when x == y and y == z
+
+## v1.18.3 (2025-03-06)
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [JSON] Encode any JSON key to string
+  * [Kernel] Allow `<<_::3*8>>` in typespecs
+
+#### Mix
+
+  * [mix loadpaths] Support `--no-listeners` option
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [CLI] Fix `--no-color` not setting `:ansi_enabled` to false
+  * [Protocol] Return correct implementation for an invalid struct pointing to `nil`
+  * [Stream] Do not raise when `Stream.cycle/1` is explicitly halted
+
+#### ExUnit
+
+  * [ExUnit.Diff] Fix regression when diffing nested improper lists
+
+#### IEx
+
+  * [IEx.Autocomplete] Fix autocomplete crash when expanding struct with `__MODULE__`
+  * [IEx.Helpers] Do not purge on `recompile` if IEx is not running
 
 ## v1.18.2 (2025-01-22)
 
