@@ -106,15 +106,18 @@ defmodule ProtocolTest do
     assert Sample.impl_for(%ImplStruct{}) == Sample.ProtocolTest.ImplStruct
     assert Sample.impl_for(%ImplStructExplicitFor{}) == Sample.ProtocolTest.ImplStructExplicitFor
     assert Sample.impl_for(%NoImplStruct{}) == nil
+    assert is_nil(Sample.impl_for(%{__struct__: nil}))
   end
 
   test "protocol implementation with Any and struct fallbacks" do
     assert WithAny.impl_for(%NoImplStruct{}) == WithAny.Any
-    # Derived
-    assert WithAny.impl_for(%ImplStruct{}) == ProtocolTest.WithAny.ProtocolTest.ImplStruct
+    assert WithAny.impl_for(%{__struct__: nil}) == WithAny.Any
     assert WithAny.impl_for(%{__struct__: "foo"}) == WithAny.Map
     assert WithAny.impl_for(%{}) == WithAny.Map
     assert WithAny.impl_for(self()) == WithAny.Any
+
+    # Derived
+    assert WithAny.impl_for(%ImplStruct{}) == ProtocolTest.WithAny.ProtocolTest.ImplStruct
   end
 
   test "protocol not implemented" do

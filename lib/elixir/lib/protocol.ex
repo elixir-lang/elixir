@@ -347,7 +347,7 @@ defmodule Protocol do
   end
 
   defp assert_impl!(protocol, base, extra) do
-    impl = Module.concat(protocol, base)
+    impl = Protocol.__concat__(protocol, base)
 
     try do
       Code.ensure_compiled!(impl)
@@ -678,7 +678,7 @@ defmodule Protocol do
   end
 
   defp load_impl(protocol, for) do
-    Module.concat(protocol, for)
+    Protocol.__concat__(protocol, for)
   end
 
   # Finally compile the module and emit its bytecode.
@@ -831,7 +831,7 @@ defmodule Protocol do
       # Define the implementation for built-ins
       :lists.foreach(
         fn {guard, mod} ->
-          target = Module.concat(__MODULE__, mod)
+          target = Protocol.__concat__(__MODULE__, mod)
 
           Kernel.def impl_for(data) when :erlang.unquote(guard)(data) do
             case Code.ensure_compiled(unquote(target)) do
@@ -875,7 +875,7 @@ defmodule Protocol do
 
       # Internal handler for Structs
       Kernel.defp struct_impl_for(struct) do
-        case Code.ensure_compiled(Module.concat(__MODULE__, struct)) do
+        case Code.ensure_compiled(Protocol.__concat__(__MODULE__, struct)) do
           {:module, module} -> module
           {:error, _} -> unquote(any_impl_for)
         end
@@ -948,7 +948,7 @@ defmodule Protocol do
     quote do
       protocol = unquote(protocol)
       for = unquote(for)
-      name = Module.concat(protocol, for)
+      name = Protocol.__concat__(protocol, for)
 
       Protocol.assert_protocol!(protocol)
       Protocol.__ensure_defimpl__(protocol, for, __ENV__)
@@ -994,7 +994,7 @@ defmodule Protocol do
       else
         # TODO: Deprecate this on Elixir v1.22+
         assert_impl!(protocol, Any, extra)
-        {Module.concat(protocol, Any), [for, Macro.struct!(for, env), opts]}
+        {Protocol.__concat__(protocol, Any), [for, Macro.struct!(for, env), opts]}
       end
 
     # Clean up variables from eval context
@@ -1006,7 +1006,7 @@ defmodule Protocol do
       else
         __ensure_defimpl__(protocol, for, env)
         assert_impl!(protocol, Any, extra)
-        impl = Module.concat(protocol, Any)
+        impl = Protocol.__concat__(protocol, Any)
 
         funs =
           for {fun, arity} <- protocol.__protocol__(:functions) do
@@ -1031,7 +1031,11 @@ defmodule Protocol do
             def __impl__(:for), do: unquote(for)
           end
 
-        Module.create(Module.concat(protocol, for), [quoted | funs], Macro.Env.location(env))
+        Module.create(
+          Protocol.__concat__(protocol, for),
+          [quoted | funs],
+          Macro.Env.location(env)
+        )
       end
     end)
   end
@@ -1070,4 +1074,17 @@ defmodule Protocol do
       is_reference: Reference
     ]
   end
+
+  @doc false
+  def __concat__(left, right) do
+    String.to_atom(
+      ensure_prefix(Atom.to_string(left)) <> "." <> remove_prefix(Atom.to_string(right))
+    )
+  end
+
+  defp ensure_prefix("Elixir." <> _ = left), do: left
+  defp ensure_prefix(left), do: "Elixir." <> left
+
+  defp remove_prefix("Elixir." <> right), do: right
+  defp remove_prefix(right), do: right
 end
