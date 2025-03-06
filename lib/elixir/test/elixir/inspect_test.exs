@@ -444,6 +444,12 @@ defmodule Inspect.MapTest do
              "%{__struct__: Inspect.MapTest.Private, key: 1}"
   end
 
+  test "invalid struct" do
+    assert inspect(%{__struct__: nil}) == "%{__struct__: nil}"
+    assert inspect(%{__struct__: false}) == "%{__struct__: false}"
+    assert inspect(%{__struct__: "foo"}) == "%{__struct__: \"foo\"}"
+  end
+
   defmodule Failing do
     @enforce_keys [:name]
     defstruct @enforce_keys

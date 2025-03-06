@@ -106,6 +106,7 @@ defmodule ProtocolTest do
     assert is_nil(Sample.impl_for(self()))
     assert is_nil(Sample.impl_for(hd(:erlang.ports())))
     assert is_nil(Sample.impl_for(make_ref()))
+    assert is_nil(Sample.impl_for(%{__struct__: nil}))
 
     assert Sample.impl_for(%ImplStruct{}) == Sample.ProtocolTest.ImplStruct
     assert Sample.impl_for(%ImplStructExplicitFor{}) == Sample.ProtocolTest.ImplStructExplicitFor
@@ -117,6 +118,7 @@ defmodule ProtocolTest do
     # Derived
     assert WithAny.impl_for(%ImplStruct{}) == ProtocolTest.WithAny.ProtocolTest.ImplStruct
     assert WithAny.impl_for(%{__struct__: "foo"}) == WithAny.Map
+    assert WithAny.impl_for(%{__struct__: nil}) == WithAny.Any
     assert WithAny.impl_for(%{}) == WithAny.Map
     assert WithAny.impl_for(self()) == WithAny.Any
   end
