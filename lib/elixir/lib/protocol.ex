@@ -1000,6 +1000,8 @@ defmodule Protocol do
       end
 
       # Internal handler for Structs
+      Kernel.defp(struct_impl_for(nil), do: unquote(any_impl_for))
+
       Kernel.defp struct_impl_for(struct) do
         case Code.ensure_compiled(Module.concat(__MODULE__, struct)) do
           {:module, module} -> module
