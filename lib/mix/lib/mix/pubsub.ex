@@ -17,7 +17,7 @@ defmodule Mix.PubSub do
   # modules are available, so we start the local subscriber process
   # separately with `start/0`, and then start the listeners later
   # with `start_listeners/0`. The subscriber is going to accumulate
-  # events and reply them once the listenres are started.
+  # events and reply them once the listeners are started.
 
   @spec start :: :ok
   def start do
