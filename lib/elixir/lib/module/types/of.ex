@@ -341,7 +341,7 @@ defmodule Module.Types.Of do
   @doc """
   Builds a type from the struct info.
   """
-  # TODO: This function shuold not receive args_types once
+  # TODO: This function should not receive args_types once
   # we introduce typed structs. They are only used by exceptions.
   def struct_type(struct, info, args_types \\ []) do
     term = dynamic()
