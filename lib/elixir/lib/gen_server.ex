@@ -937,6 +937,24 @@ defmodule GenServer do
       end
 
       @doc false
+      def handle_continue(msg, state) do
+        proc =
+          case Process.info(self(), :registered_name) do
+            {_, []} -> self()
+            {_, name} -> name
+          end
+
+        # We do this to trick Dialyzer to not complain about non-local returns.
+        case :erlang.phash2(1, 1) do
+          0 ->
+            raise "attempted to continue GenServer #{inspect(proc)} but no handle_continue/2 clause was provided"
+
+          1 ->
+            {:stop, {:bad_continue, msg}, state}
+        end
+      end
+
+      @doc false
       def terminate(_reason, _state) do
         :ok
       end
@@ -946,7 +964,12 @@ defmodule GenServer do
         {:ok, state}
       end
 
-      defoverridable code_change: 3, terminate: 2, handle_info: 2, handle_cast: 2, handle_call: 3
+      defoverridable code_change: 3,
+                     terminate: 2,
+                     handle_info: 2,
+                     handle_cast: 2,
+                     handle_call: 3,
+                     handle_continue: 2
     end
   end
 
