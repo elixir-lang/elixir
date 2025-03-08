@@ -43,7 +43,7 @@ To learn more about all Unicode characters allowed in atom, see the [Unicode syn
 
 Single-line strings in Elixir are written between double-quotes, such as `"foo"`. Any double-quote inside the string must be escaped with `\ `. Strings support Unicode characters and are stored as UTF-8 encoded binaries.
 
-Multi-line strings in Elixir are written with three double-quotes, and can have unescaped quotes within them. The resulting string will end with a newline. The indentation of the last `"""` is used to strip indentation from the inner string. For example:
+Multi-line strings in Elixir are called heredocs. They are written with three double-quotes, and can have unescaped quotes within them. The resulting string will end with a newline. The indentation of the last `"""` is used to strip indentation from the inner string. For example:
 
 ```elixir
 iex> test = """
