@@ -464,14 +464,16 @@ defmodule Module.Types do
   ## Module errors
 
   def format_error({:unused_args, {name, arity}}),
-    do: "default values for the optional arguments in #{name}/#{arity} are never used"
+    do:
+      "default values for the optional arguments in the private function #{name}/#{arity} are never used"
 
   def format_error({:unused_args, {name, arity}, count}) when arity - count == 1,
-    do: "the default value for the last optional argument in #{name}/#{arity} is never used"
+    do:
+      "the default value for the last optional argument in the private function #{name}/#{arity} is never used"
 
   def format_error({:unused_args, {name, arity}, count}),
     do:
-      "the default values for the last #{arity - count} optional arguments in #{name}/#{arity} are never used"
+      "the default values for the last #{arity - count} optional arguments in the private function #{name}/#{arity} are never used"
 
   def format_error({:unused_def, {name, arity}, :defp}),
     do: "function #{name}/#{arity} is unused"

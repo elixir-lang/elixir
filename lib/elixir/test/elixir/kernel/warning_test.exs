@@ -716,7 +716,10 @@ defmodule Kernel.WarningTest do
 
   test "unused default args" do
     assert_warn_eval(
-      ["nofile:3:8: ", "default values for the optional arguments in b/3 are never used"],
+      [
+        "nofile:3:8: ",
+        "default values for the optional arguments in the private function b/3 are never used"
+      ],
       ~S"""
       defmodule Sample1 do
         def a, do: b(1, 2, 3)
@@ -728,7 +731,7 @@ defmodule Kernel.WarningTest do
     assert_warn_eval(
       [
         "nofile:3:8: ",
-        "the default value for the last optional argument in b/3 is never used"
+        "the default value for the last optional argument in the private function b/3 is never used"
       ],
       ~S"""
       defmodule Sample2 do
@@ -741,7 +744,7 @@ defmodule Kernel.WarningTest do
     assert_warn_eval(
       [
         "nofile:3:8: ",
-        "the default values for the last 2 optional arguments in b/4 are never used"
+        "the default values for the last 2 optional arguments in the private function b/4 are never used"
       ],
       ~S"""
       defmodule Sample3 do
@@ -759,7 +762,10 @@ defmodule Kernel.WarningTest do
            """) == ""
 
     assert_warn_eval(
-      ["nofile:3:8: ", "the default value for the last optional argument in b/3 is never used"],
+      [
+        "nofile:3:8: ",
+        "the default value for the last optional argument in the private function b/3 is never used"
+      ],
       ~S"""
       defmodule Sample5 do
         def a, do: b(1, 2)
