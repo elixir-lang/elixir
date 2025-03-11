@@ -356,10 +356,14 @@ defmodule Logger do
   ## Erlang/OTP handlers
 
   Handlers represent the ability to integrate into the logging system to
-  handle each logged message/event. Elixir's Logger automatically sets a
-  default handler based on Erlang's `:logger_std_h`, which you can configure
-  using the `:default_handler` boot configuration outlined above. You may
-  also attach additional handlers when you boot your application.
+  handle each logged message/event.
+
+  ### Built-in handlers
+
+  Elixir's Logger automatically sets a default handler based on Erlang's
+  `:logger_std_h`, which you can configure using the `:default_handler` boot
+  configuration outlined above. You may also attach additional handlers
+  when you boot your application.
 
   To do so, you must list a series of handlers under the `:logger` key
   of your application configuration. For example, to setup an additional
@@ -381,24 +385,47 @@ defmodule Logger do
 
   Each handler has the shape `{:handler, name, handler_module, config_map}`.
   Once defined, a handler can be explicitly attached in your
-  `c:Application.start/2` callback with `add_handlers/1`:
+  `c:Application.start/2` callback, typically in `lib/my_app/application.ex`
+  with `Logger.add_handlers/1`:
 
       Logger.add_handlers(:my_app)
 
   You can also add, remove, and update handlers at runtime with the help
   of the Erlang's [`:logger`](`:logger`) module.
 
+  ### Custom handlers
+
   You may also develop your own handlers. Handlers run in the same
   process as the process logging the message/event. This gives developers
   flexibility but they should avoid performing any long running action in
   such handlers, as it may slow down the action being executed considerably.
-  At the moment, there is no built-in overload protection for Erlang handlers,
-  so it is your responsibility to implement it.
 
-  Alternatively, you can use the
-  [`:logger_backends`](https://github.com/elixir-lang/logger_backends) project.
-  It sets up a log handler with overload protection and allows incoming events
-  to be dispatched to multiple backends.
+  You must implement the [`:logger_handler`](`:logger_handler`) behaviour
+  to define custom handlers, which has only one required callback:
+
+      defmodule MyApp.CustomHandler do
+        @behaviour :logger_handler
+
+        def log(event, _config) do
+          IO.inspect(event)
+        end
+      end
+
+  Then you must define the handler in your configuration file:
+
+      config :my_app, :logger, [
+        {:handler, :my_handler, MyApp.CustomHandler, _config = %{}}
+      ]
+
+  And attach it on your application start using `Logger.add_handlers/1`,
+  as in the previous section.
+
+  Note there is no built-in overload protection for Erlang handlers,
+  so it is your responsibility to implement it if necessary. One alternative is
+  to use the [`:logger_backends`](https://github.com/elixir-lang/logger_backends)
+  project, which sets up a log handler with overload protection and allows
+  incoming events to be dispatched to multiple backends, although one must be
+  careful for backends to not become a bottleneck during logging.
 
   ### Filtering
 
