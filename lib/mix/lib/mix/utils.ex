@@ -2,6 +2,9 @@
 # SPDX-FileCopyrightText: 2021 The Elixir Team
 # SPDX-FileCopyrightText: 2012 Plataformatec
 
+# NOTE: As this is a utils file it should not contain hard coded files
+# everything should be parameterized.
+
 defmodule Mix.Utils do
   @moduledoc false
 
@@ -261,6 +264,74 @@ defmodule Mix.Utils do
     |> Enum.uniq()
   end
 
+  @doc """
+  Handles writing the contents to either STDOUT or to a file, as specified
+  by the :output keyword in opts, defaulting to the provided default_file_spec.
+
+  If the resolved file specification is "-" then the contents is written to STDOUT,
+  otherwise if the file already exists it is renamed with a ".bak" suffix before
+  the contents is written.  The underlying IO operations will throw an exception
+  if there is an error.
+
+  Returns the name of the file written to, or "-" if the output was to STDOUT.
+  """
+  @spec write_according_to_opts!(Path.t(), iodata(), keyword) :: Path.t()
+  def write_according_to_opts!(default_file_spec, contents, opts) do
+    file_spec = Keyword.get(opts, :output, default_file_spec)
+
+    if file_spec == "-" do
+      IO.write(contents)
+    else
+      if File.exists?(file_spec) do
+        new_file_spec = "#{file_spec}.bak"
+        File.rename!(file_spec, new_file_spec)
+      end
+
+      File.write!(file_spec, contents)
+    end
+
+    # return the file_spec just in case the caller has a use for it.
+    file_spec
+  end
+
+  @doc """
+  Outputs the given tree according to the callback as a two level
+  map of maps in JSON format.
+
+  The callback will be invoked for each node and it
+  must return a `{printed, children}` tuple.
+
+  If the `:output` option is `-` then prints to standard output,
+  see write_according_to_opts!/3 for details.
+  """
+  @spec write_json_tree!(Path.t(), [node], (node -> {formatted_node, [node]}), keyword) :: :ok
+        when node: term()
+  def write_json_tree!(default_file_spec, nodes, callback, opts \\ []) do
+    src_map = build_json_tree(_src_map = %{}, nodes, callback)
+    write_according_to_opts!(default_file_spec, JSON.encode_to_iodata!(src_map), opts)
+  end
+
+  defp build_json_tree(src_map, [], _callback), do: src_map
+
+  defp build_json_tree(src_map, nodes, callback) do
+    Enum.reduce(nodes, src_map, fn node, src_map ->
+      {{name, _}, children} = callback.(node)
+
+      if Map.has_key?(src_map, name) do
+        src_map
+      else
+        sink_map =
+          Enum.reduce(children, %{}, fn {name, info}, sink_map ->
+            info = if info == nil, do: "runtime", else: Atom.to_string(info)
+            Map.put(sink_map, name, info)
+          end)
+
+        Map.put(src_map, name, sink_map)
+        |> build_json_tree(children, callback)
+      end
+    end)
+  end
+
   @type formatted_node :: {name :: String.Chars.t(), edge_info :: String.Chars.t()}
 
   @doc """
@@ -333,7 +404,8 @@ defmodule Mix.Utils do
   The callback will be invoked for each node and it
   must return a `{printed, children}` tuple.
 
-  If `path` is `-`, prints the output to standard output.
+  If the `:output` option is `-` then prints to standard output,
+  see write_according_to_opts!/3 for details.
   """
   @spec write_dot_graph!(
           Path.t(),
@@ -341,17 +413,12 @@ defmodule Mix.Utils do
           [node],
           (node -> {formatted_node, [node]}),
           keyword
-        ) :: :ok
+        ) :: Path.t()
         when node: term()
-  def write_dot_graph!(path, title, nodes, callback, _opts \\ []) do
+  def write_dot_graph!(default_file_spec, title, nodes, callback, opts \\ []) do
     {dot, _} = build_dot_graph(make_ref(), nodes, MapSet.new(), callback)
     contents = ["digraph ", quoted(title), " {\n", dot, "}\n"]
-
-    if path == "-" do
-      IO.write(contents)
-    else
-      File.write!(path, contents)
-    end
+    write_according_to_opts!(default_file_spec, contents, opts)
   end
 
   defp build_dot_graph(_parent, [], seen, _callback), do: {[], seen}

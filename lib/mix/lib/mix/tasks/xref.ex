@@ -252,16 +252,31 @@ defmodule Mix.Tasks.Xref do
 
       * `cycles` - prints all strongly connected cycles in the graph;
 
-      * `dot` - produces a DOT graph description in `xref_graph.dot` in the
-        current directory. Warning: this will override any previously generated file
+      * `dot` - produces a DOT graph description, by default written to `xref_graph.dot`
+        in the current directory.  See the documentation for the `--output` option to
+        learn how to control where the file is written and other related details.
 
-    * `--output` *(since v1.15.0)* - can be set to one of
+      * `json` *(since v1.19.0)* - produces a JSON file, by default written to
+        `xref_graph.json` in the current directory.  See the documentation for the
+        `--output` option to learn how to control where the file is written and other
+        related details.
+
+        The JSON format is always a two level map of maps. The top level keys
+        specify source files, with their values containing maps whose keys specify
+        sink files and whose values specify the type of relationship, which will
+        be one of `compile`, `export` or `runtime`. Files which have no dependencies
+        will be present in the top level map, and will have empty maps for values.
+
+    * `--output` *(since v1.15.0)* - can be used to override the location of
+      the files created by the `dot` and `json` formats. It can be set to
 
       * `-` - prints the output to standard output;
 
       * a path - writes the output graph to the given path
 
-      Defaults to `xref_graph.dot` in the current directory.
+      If the output file already exists then it will be renamed in place
+      to have a `.bak` suffix, possibly overwriting any existing `.bak` file.
+      If this rename fails a fatal exception will be thrown.
 
   The `--source` and `--sink` options are particularly useful when trying to understand
   how the modules in a particular file interact with the whole system. You can combine
@@ -949,17 +964,22 @@ defmodule Mix.Tasks.Xref do
           {roots, callback, count} =
             roots_and_callback(file_references, filter, sources, sinks, opts)
 
-          path = Keyword.get(opts, :output, "xref_graph.dot")
+          file_spec =
+            Mix.Utils.write_dot_graph!(
+              "xref_graph.dot",
+              "xref graph",
+              Enum.sort(roots),
+              callback,
+              opts
+            )
 
-          Mix.Utils.write_dot_graph!(path, "xref graph", Enum.sort(roots), callback, opts)
-
-          if path != "-" do
-            png_path = (path |> Path.rootname() |> Path.basename()) <> ".png"
+          if file_spec != "-" do
+            png_file_spec = (file_spec |> Path.rootname() |> Path.basename()) <> ".png"
 
             """
-            Generated #{inspect(path)} in the current directory. To generate a PNG:
+            Generated '#{Path.relative_to_cwd(file_spec)}'. To generate a PNG:
 
-               dot -Tpng #{inspect(path)} -o #{inspect(png_path)}
+               dot -Tpng #{inspect(file_spec)} -o #{inspect(png_file_spec)}
 
             For more options see http://www.graphviz.org/.
             """
@@ -975,6 +995,19 @@ defmodule Mix.Tasks.Xref do
 
         "cycles" ->
           {:cycles, print_cycles(file_references, filter, opts)}
+
+        "json" ->
+          {roots, callback, count} =
+            roots_and_callback(file_references, filter, sources, sinks, opts)
+
+          file_spec =
+            Mix.Utils.write_json_tree!("xref_graph.json", Enum.sort(roots), callback, opts)
+
+          if file_spec != "-" do
+            Mix.shell().info("Generated '#{file_spec}'.")
+          end
+
+          {:references, count}
 
         other when other in [nil, "plain", "pretty"] ->
           {roots, callback, count} =
