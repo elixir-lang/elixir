@@ -1197,20 +1197,27 @@ defmodule Mix.Tasks.Xref do
   defp cycle_filter_fn(filter), do: fn {_node, type} -> type == filter end
 
   defp add_labels(vertices, graph) do
+    set = MapSet.new(vertices)
+
     vertices
-    |> Enum.map(fn v -> {v, cycle_label(vertices, graph, v, false)} end)
+    |> Enum.map(fn v ->
+      {v,
+       graph
+       |> :digraph.out_neighbours(v)
+       |> cycle_label(set, graph, v, false)}
+    end)
     |> Enum.sort()
   end
 
-  defp cycle_label([out | outs], graph, v, export?) do
-    case :digraph.edge(graph, {v, out}) do
+  defp cycle_label([out | outs], set, graph, v, export?) do
+    case out in set && :digraph.edge(graph, {v, out}) do
       {_, _, _, :compile} -> :compile
-      {_, _, _, :export} -> cycle_label(outs, graph, v, true)
-      _ -> cycle_label(outs, graph, v, export?)
+      {_, _, _, :export} -> cycle_label(outs, set, graph, v, true)
+      _ -> cycle_label(outs, set, graph, v, export?)
     end
   end
 
-  defp cycle_label([], _graph, _v, export?) do
+  defp cycle_label([], _set, _graph, _v, export?) do
     if export?, do: :export, else: nil
   end
 
