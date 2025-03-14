@@ -20,7 +20,15 @@ reduce_clauses([], Acc, OldStack, SAcc, _S) ->
   {lists:reverse(Acc), SAcc#elixir_erl{stacktrace=OldStack}}.
 
 each_clause({'catch', Meta, Raw, Expr}, S) ->
-  {Match, Guards} = elixir_utils:extract_splat_guards(Raw),
+  {Args, Guards} = elixir_utils:extract_splat_guards(Raw),
+
+  Match =
+    %% Elixir v1.17 and earlier emitted single argument
+    %% and may still be processed via debug_info
+    case Args of
+      [X] -> [throw, X];
+      [X, Y] -> [X, Y]
+    end,
 
   {{clause, Line, [TKind, TMatches], TGuards, TBody}, TS} =
     elixir_erl_clauses:clause(?ann(Meta), fun elixir_erl_pass:translate_args/3, Match, Expr, Guards, S),
