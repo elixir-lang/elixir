@@ -250,7 +250,7 @@ defmodule Mix.Tasks.Xref do
 
       * `stats` - prints general statistics about the graph;
 
-      * `cycles` - prints all cycles in the graph;
+      * `cycles` - prints all strongly connected cycles in the graph;
 
       * `dot` - produces a DOT graph description in `xref_graph.dot` in the
         current directory. Warning: this will override any previously generated file
@@ -366,26 +366,19 @@ defmodule Mix.Tasks.Xref do
 
           lib/c.ex
           lib/b.ex
-          lib/a.ex
+          lib/a.ex (compile)
 
-  The cycles are given in order: `c.ex` depends on `b.ex` which depends
-  on `a.ex` which depends on `c.ex`. In particular, you want to avoid
-  cycles with compile dependencies in there. You can find those cycles
-  with:
+  More precisely, `xref` is printing strongly connected cycles, which
+  is the largest cycle possible involving these files. For this reason,
+  files may have multiple relationships between them, and therefore the
+  cycles are not printed in order. The label reflects the highest type
+  of relationship between the given file and any other file in the cycle.
+  In the example above, it means `lib/a.ex` depends on something else in
+  the cycle at compile-time. Those are exactly the type of dependencies
+  we want to avoid, and you can ask `mix xref` to only print graphs with
+  with compile dependencies in them by passing the `--label` flag:
 
       $ mix xref graph --format cycles --label compile-connected
-
-  Which may look like this:
-
-      Cycle of length 3:
-
-          lib/c.ex
-          lib/b.ex (compile)
-          lib/a.ex
-
-  This means `c.ex` depends on `b.ex` at compile time. Any compile dependency
-  in a cycle is by definition a compile-connected dependency, which must be
-  generally avoided, as explained earlier in the module documentation.
 
   ## Shared options
 
@@ -1181,8 +1174,7 @@ defmodule Mix.Tasks.Xref do
     cycles =
       graph
       |> :digraph_utils.cyclic_strong_components()
-      |> Enum.reduce([], &inner_cycles(graph, Enum.sort(&1), &2))
-      |> Enum.map(&{length(&1), &1})
+      |> Enum.map(&{length(&1), add_labels(&1, graph)})
 
     cycles =
       if min = opts[:min_cycle_size] do
@@ -1204,20 +1196,22 @@ defmodule Mix.Tasks.Xref do
   defp cycle_filter_fn(:compile_connected), do: cycle_filter_fn(:compile)
   defp cycle_filter_fn(filter), do: fn {_node, type} -> type == filter end
 
-  defp inner_cycles(_graph, [], acc), do: acc
-
-  defp inner_cycles(graph, [v | vertices], acc) do
-    cycle = :digraph.get_cycle(graph, v)
-    inner_cycles(graph, vertices -- cycle, [label_cycle(cycle, graph) | acc])
+  defp add_labels(vertices, graph) do
+    vertices
+    |> Enum.map(fn v -> {v, cycle_label(vertices, graph, v, false)} end)
+    |> Enum.sort()
   end
 
-  defp label_cycle([from, to | cycle], graph) do
-    {_edge, _v1, _v2, label} = :digraph.edge(graph, {from, to})
-    [{to, label} | label_cycle([to | cycle], graph)]
+  defp cycle_label([out | outs], graph, v, export?) do
+    case :digraph.edge(graph, {v, out}) do
+      {_, _, _, :compile} -> :compile
+      {_, _, _, :export} -> cycle_label(outs, graph, v, true)
+      _ -> cycle_label(outs, graph, v, export?)
+    end
   end
 
-  defp label_cycle([_from], _graph) do
-    []
+  defp cycle_label([], _graph, _v, export?) do
+    if export?, do: :export, else: nil
   end
 
   defp print_cycles(references, filter, opts) do
