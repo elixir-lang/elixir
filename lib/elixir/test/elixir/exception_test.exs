@@ -50,6 +50,19 @@ defmodule ExceptionTest do
                {:io, :put_chars, [self(), <<222>>],
                 [error_info: %{module: __MODULE__, function: :dummy_error_extras}]}
              ])
+
+    assert %ErlangError{
+             original: {:failed_load_cacerts, :enoent},
+             reason: ": Failed to load cacerts: operating system CA bundle could not be located"
+           } =
+             Exception.normalize(:error, {:failed_load_cacerts, :enoent}, [
+               {:pubkey_os_cacerts, :get, 0,
+                [
+                  file: ~c"pubkey_os_cacerts.erl",
+                  line: 53,
+                  error_info: %{cause: :enoent, module: :pubkey_os_cacerts}
+                ]}
+             ])
   end
 
   test "format/2 without stacktrace" do
