@@ -178,6 +178,53 @@ defmodule Mix.UtilsTest do
     end
   end
 
+  test "verify that write_according_to_opts/3 works as expected" do
+    # ignore any error from this call.
+
+    test_out = "test.out"
+    test_out_bak = "test.out.bak"
+    hello_world = "Hello World!"
+    new_hello_world = "New Hello World!"
+    default_out = "default.out"
+
+    # make sure none of the files exist - ignore errors
+    File.rm(test_out)
+    File.rm(test_out_bak)
+    File.rm(default_out)
+
+    # no optional override - write to the specified default file
+    assert Mix.Utils.write_according_to_opts!(test_out, [hello_world], []) == test_out
+    assert File.read!(test_out) == hello_world
+
+    # no optional override - write to the specified default file again, with old file backed up
+    assert Mix.Utils.write_according_to_opts!(test_out, [new_hello_world], []) == test_out
+    assert File.read!(test_out) == new_hello_world
+    assert File.read!(test_out_bak) == hello_world
+
+    # cleanup
+    File.rm!(test_out)
+    File.rm!(test_out_bak)
+
+    # with optional override - write to the specified default file
+    assert Mix.Utils.write_according_to_opts!(default_out, [hello_world], output: test_out) ==
+             test_out
+
+    assert File.read!(test_out) == hello_world
+
+    # with optional override - write to the specified default file again, with old file backed up
+    assert Mix.Utils.write_according_to_opts!(default_out, [new_hello_world], output: test_out) ==
+             test_out
+
+    assert File.read!(test_out) == new_hello_world
+    assert File.read!(test_out_bak) == hello_world
+
+    # cleanup again
+    File.rm!(test_out)
+    File.rm!(test_out_bak)
+
+    # we don't test the handling of "-" here, we test it implicitly in xref_test.exs
+  end
+
   defp assert_ebin_symlinked_or_copied(result) do
     case result do
       {:ok, paths} ->
