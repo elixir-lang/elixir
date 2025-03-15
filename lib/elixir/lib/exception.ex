@@ -2530,7 +2530,7 @@ defmodule ErlangError do
           {:ok, reason, IO.iodata_to_binary([":\n\n" | Enum.map(args_errors, &arg_error/1)])}
 
         general = extra[:general] ->
-          {:ok, reason, ": " <> general}
+          {:ok, reason, ": " <> IO.chardata_to_string(general)}
 
         true ->
           :error
