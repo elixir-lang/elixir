@@ -51,17 +51,10 @@ defmodule ExceptionTest do
                 [error_info: %{module: __MODULE__, function: :dummy_error_extras}]}
              ])
 
-    assert %ErlangError{
-             original: {:failed_load_cacerts, :enoent},
-             reason: ": Failed to load cacerts: operating system CA bundle could not be located"
-           } =
+    assert %ErlangError{original: {:failed_load_cacerts, :enoent}, reason: ": this is chardata"} =
              Exception.normalize(:error, {:failed_load_cacerts, :enoent}, [
                {:pubkey_os_cacerts, :get, 0,
-                [
-                  file: ~c"pubkey_os_cacerts.erl",
-                  line: 53,
-                  error_info: %{cause: :enoent, module: :pubkey_os_cacerts}
-                ]}
+                [error_info: %{module: __MODULE__, function: :dummy_error_chardata}]}
              ])
   end
 
@@ -1079,4 +1072,8 @@ defmodule ExceptionTest do
   end
 
   def dummy_error_extras(_exception, _stacktrace), do: %{general: "foo"}
+
+  def dummy_error_chardata(_exception, _stacktrace) do
+    %{general: ~c"this is " ++ [~c"chardata"], reason: ~c"this " ++ [~c"too"]}
+  end
 end
