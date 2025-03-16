@@ -217,16 +217,14 @@ defmodule Mix.UtilsTest do
     end
 
     test "verify that writing to STDOUT works as expected" do
-      in_tmp("make sure we don't actually write to disk", fn ->
-        output =
-          ExUnit.CaptureIO.capture_io(fn ->
-            Mix.Utils.write_according_to_opts!("the_file.txt", ["some text"], output: "-")
-          end)
+      output =
+        ExUnit.CaptureIO.capture_io(fn ->
+          Mix.Utils.write_according_to_opts!("the_file.txt", ["some text"], output: "-")
+        end)
 
-        assert output == "some text"
+      assert output == "some text"
 
-        assert File.exists?("the_file.txt") == false
-      end)
+      refute File.exists?("the_file.txt")
     end
   end
 
