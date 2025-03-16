@@ -977,7 +977,7 @@ defmodule Mix.Tasks.Xref do
             png_file_spec = (file_spec |> Path.rootname() |> Path.basename()) <> ".png"
 
             """
-            Generated '#{Path.relative_to_cwd(file_spec)}'. To generate a PNG:
+            Generated "#{Path.relative_to_cwd(file_spec)}". To generate a PNG:
 
                dot -Tpng #{inspect(file_spec)} -o #{inspect(png_file_spec)}
 
@@ -1004,7 +1004,7 @@ defmodule Mix.Tasks.Xref do
             Mix.Utils.write_json_tree!("xref_graph.json", Enum.sort(roots), callback, opts)
 
           if file_spec != "-" do
-            Mix.shell().info("Generated '#{file_spec}'.")
+            Mix.shell().info("Generated \"#{file_spec}\".")
           end
 
           {:references, count}

@@ -274,6 +274,7 @@ defmodule Mix.Utils do
   if there is an error.
 
   Returns the name of the file written to, or "-" if the output was to STDOUT.
+  This function is made public mostly for testing.
   """
   @spec write_according_to_opts!(Path.t(), iodata(), keyword) :: Path.t()
   def write_according_to_opts!(default_file_spec, contents, opts) do
