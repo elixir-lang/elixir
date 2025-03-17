@@ -16,13 +16,13 @@ env:
   LANG: C.UTF-8
 
 permissions:
-  contents: write
-  id-token: write
-  attestations: write
+  contents: read
 
 jobs:
   create_draft_release:
     runs-on: ubuntu-22.04
+    permissions:
+      contents: write
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
@@ -122,6 +122,9 @@ jobs:
 
     runs-on: ${{ matrix.flavor == 'linux' && 'ubuntu-22.04' || 'windows-2022' }}
 
+    permissions:
+      contents: write
+
     steps:
       - name: "Download build"
         uses: actions/download-artifact@v4
@@ -180,6 +183,11 @@ jobs:
     needs: [build, sign]
 
     runs-on: ubuntu-24.04
+
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
 
     steps:
       - name: Use HTTPS instead of SSH for Git cloning
@@ -254,6 +262,9 @@ jobs:
   upload-release:
     needs: [create_draft_release, build, sign, sbom]
     runs-on: ubuntu-22.04
+
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/download-artifact@v4
