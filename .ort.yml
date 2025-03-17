@@ -83,11 +83,6 @@ curations:
       concluded_license: "LicenseRef-scancode-unicode"
 
     # Wrongly Identified
-    - path: "LICENSES/LicenseRef-elixir-trademark-policy.txt"
-      reason: "INCORRECT"
-      comment: "Correct LicenseRef"
-      detected_license: "LicenseRef-scancode-proprietary-license"
-      concluded_license: "LicenseRef-elixir-trademark-policy"
     - path: "lib/elixir/pages/references/library-guidelines.md"
       reason: "INCORRECT"
       comment: |

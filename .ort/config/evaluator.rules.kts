@@ -24,6 +24,7 @@ val whitelistedLicenses = listOf(
   "Apache-2.0",
   // License for the Elixir Logo
   "LicenseRef-elixir-trademark-policy",
+  "LicenseRef-scancode-elixir-trademark-policy",
   // License for included Unicode Files
   "LicenseRef-scancode-unicode",
   // DCO for committers
