@@ -12,6 +12,7 @@
 </h1>
 
 [![CI](https://github.com/elixir-lang/elixir/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/elixir-lang/elixir/actions/workflows/ci.yml?query=branch%3Amain)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/elixir-lang/elixir/badge)](https://scorecard.dev/viewer/?uri=github.com/elixir-lang/elixir)
 
 Elixir is a dynamic, functional language designed for building scalable
 and maintainable applications.

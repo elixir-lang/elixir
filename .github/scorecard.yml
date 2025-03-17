@@ -1,0 +1,17 @@
+annotations:
+  - checks:
+      - fuzzing # Erlang / Elixir is memory safe
+      - sast # No SAST Tooling available with SARIF Support
+      - packaging # For Installation see https://elixir-lang.org/install.html
+    reasons:
+      - reason: not-applicable
+   # TODO: Implement checks
+   # The checks are ignored here to avoid GitHub Code Scanning Alerts until they
+   # are implemented.
+  - checks:
+      - cii-best-practices
+      - branch-protection
+      - code-review
+    reasons:
+      - reason: not-applicable
+
