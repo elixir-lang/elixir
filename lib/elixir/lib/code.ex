@@ -1036,12 +1036,13 @@ defmodule Code do
       [
         unescape: false,
         literal_encoder: &{:ok, {:__block__, &2, [&1]}},
+        include_comments: true,
         token_metadata: true,
         emit_warnings: false
       ] ++ opts
 
-    {forms, comments} = string_to_quoted_with_comments!(string, to_quoted_opts)
-    to_algebra_opts = [comments: comments] ++ opts
+    forms = string_to_quoted!(string, to_quoted_opts)
+    to_algebra_opts = opts
     doc = Code.Formatter.to_algebra(forms, to_algebra_opts)
     Inspect.Algebra.format(doc, line_length)
   end
@@ -1254,11 +1255,22 @@ defmodule Code do
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
     column = Keyword.get(opts, :column, 1)
+    include_comments = Keyword.get(opts, :include_comments, false)
 
-    case :elixir.string_to_tokens(to_charlist(string), line, column, file, opts) do
-      {:ok, tokens} ->
-        :elixir.tokens_to_quoted(tokens, file, opts)
+    Process.put(:code_formatter_comments, [])
+    opts = [preserve_comments: &preserve_comments/5] ++ opts
 
+    with {:ok, tokens} <- :elixir.string_to_tokens(to_charlist(string), line, column, file, opts),
+         {:ok, quoted} <- :elixir.tokens_to_quoted(tokens, file, opts) do
+      if include_comments do
+        quoted = Code.Normalizer.normalize(quoted)
+        quoted = Code.Comments.merge_comments(quoted, Process.get(:code_formatter_comments))
+
+        {:ok, quoted}
+      else
+        {:ok, quoted}
+      end
+    else
       {:error, _error_msg} = error ->
         error
     end
@@ -1280,7 +1292,30 @@ defmodule Code do
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
     column = Keyword.get(opts, :column, 1)
-    :elixir.string_to_quoted!(to_charlist(string), line, column, file, opts)
+    include_comments = Keyword.get(opts, :include_comments, false)
+
+    Process.put(:code_formatter_comments, [])
+
+    opts = 
+      if include_comments do
+        [preserve_comments: &preserve_comments/5,
+          literal_encoder: &{:ok, {:__block__, &2, [&1]}},
+      token_metadata: true,
+      unescape: false,
+      columns: true,
+] ++ opts
+      else
+        opts
+      end
+
+    quoted = :elixir.string_to_quoted!(to_charlist(string), line, column, file, opts)
+
+    if include_comments do
+      # quoted = Code.Normalizer.normalize(quoted)
+      Code.Comments.merge_comments(quoted, Process.get(:code_formatter_comments))
+    else
+      quoted
+    end
   end
 
   @doc """
