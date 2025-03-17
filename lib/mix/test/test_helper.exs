@@ -49,9 +49,7 @@ cover_exclude =
 ExUnit.start(
   trace: !!System.get_env("TRACE"),
   exclude: epmd_exclude ++ os_exclude ++ git_exclude ++ line_exclude ++ cover_exclude,
-  include: line_include,
-  # Many mix tests spawns separate processes which leads to failures on Windows CI
-  max_cases: if(match?({:win32, _}, :os.type()), do: 1, else: System.schedulers_online() * 2)
+  include: line_include
 )
 
 # Clear environment variables that may affect tests
