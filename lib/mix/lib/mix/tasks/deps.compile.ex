@@ -22,6 +22,7 @@ defmodule Mix.Tasks.Deps.Compile do
     * `Makefile.win`- invokes `nmake /F Makefile.win` (only on Windows)
     * `Makefile` - invokes `gmake` on DragonFlyBSD, FreeBSD, NetBSD, and OpenBSD,
       invokes `make` on any other operating system (except on Windows)
+    * `gleam.toml` - invokes `gleam compile-package`
 
   The compilation can be customized by passing a `compile` option
   in the dependency:
@@ -101,9 +102,12 @@ defmodule Mix.Tasks.Deps.Compile do
             dep.manager == :rebar3 ->
               do_rebar3(dep, config)
 
+            dep.manager == :gleam ->
+              do_gleam(dep, config)
+
             true ->
               shell.error(
-                "Could not compile #{inspect(app)}, no \"mix.exs\", \"rebar.config\" or \"Makefile\" " <>
+                "Could not compile #{inspect(app)}, no \"mix.exs\", \"rebar.config\", \"Makefile\" or \"gleam.toml\" " <>
                   "(pass :compile as an option to customize compilation, set it to \"false\" to do nothing)"
               )
 
@@ -296,6 +300,21 @@ defmodule Mix.Tasks.Deps.Compile do
     true
   end
 
+  defp do_gleam(%Mix.Dep{opts: opts} = dep, config) do
+    Mix.Gleam.require!()
+
+    lib = Path.join(Mix.Project.build_path(), "lib")
+    out = opts[:build]
+    package = opts[:dest]
+
+    command =
+      {"gleam",
+       ["compile-package", "--target", "erlang", "--package", package, "--out", out, "--lib", lib]}
+
+    shell_cmd!(dep, config, command)
+    Code.prepend_path(Path.join(out, "ebin"), cache: true)
+  end
+
   defp make_command(dep) do
     makefile_win? = makefile_win?(dep)
 
@@ -331,7 +350,7 @@ defmodule Mix.Tasks.Deps.Compile do
   defp shell_cmd!(%Mix.Dep{app: app} = dep, config, command, env \\ []) do
     if Mix.shell().cmd(command, [print_app: true] ++ opts_for_cmd(dep, config, env)) != 0 do
       Mix.raise(
-        "Could not compile dependency #{inspect(app)}, \"#{command}\" command failed. " <>
+        "Could not compile dependency #{inspect(app)}, \"#{inspect(command)}\" command failed. " <>
           deps_compile_feedback(app)
       )
     end

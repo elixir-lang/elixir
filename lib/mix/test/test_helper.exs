@@ -46,9 +46,18 @@ cover_exclude =
     []
   end
 
+gleam_exclude =
+  try do
+    Mix.Gleam.require!()
+    []
+  rescue
+    Mix.Error -> [gleam: true]
+  end
+
 ExUnit.start(
   trace: !!System.get_env("TRACE"),
-  exclude: epmd_exclude ++ os_exclude ++ git_exclude ++ line_exclude ++ cover_exclude,
+  exclude:
+    epmd_exclude ++ os_exclude ++ git_exclude ++ line_exclude ++ cover_exclude ++ gleam_exclude,
   include: line_include,
   # Many mix tests spawns separate processes which leads to failures on Windows CI
   max_cases: if(match?({:win32, _}, :os.type()), do: 1, else: System.schedulers_online() * 2)
@@ -270,6 +279,15 @@ Enum.each(fixtures, fn fixture ->
   File.mkdir_p!(dest)
   File.cp_r!(source, dest)
 end)
+
+## Set up Gleam fixtures
+
+fixture = "gleam_dep"
+
+source = MixTest.Case.fixture_path(fixture)
+dest = MixTest.Case.tmp_path(fixture)
+File.mkdir_p!(dest)
+File.cp_r!(source, dest)
 
 ## Set up Git fixtures
 
