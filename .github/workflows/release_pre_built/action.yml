@@ -13,7 +13,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: erlef/setup-beam@v1
+    - uses: erlef/setup-beam@5304e04ea2b355f03681464e683d92e3b2f18451 # v1.18.2
       with:
         otp-version: ${{ inputs.otp_version }}
         version-type: strict
@@ -45,7 +45,7 @@ runs:
           ref=v$(curl -s https://hex.pm/api/packages/ex_doc | jq --raw-output '.latest_stable_version')
         fi
         echo "EX_DOC_REF=$ref" >> $GITHUB_ENV
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       if: ${{ inputs.build_docs }}
       with:
         repository: elixir-lang/ex_doc

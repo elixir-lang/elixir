@@ -41,7 +41,7 @@ runs:
   steps:
     - name: Fetch Default ORT Config
       id: fetch-default-ort-config
-      uses: actions/checkout@v4
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       with:
         repository: oss-review-toolkit/ort-config
         ref: "main"
@@ -71,7 +71,7 @@ runs:
         ELIXIR_REPO: "${{ github.server_url }}/${{ github.repository }}.git"
 
     - name: "Cache ScanCode"
-      uses: actions/cache@v4
+      uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
       with:
         path: "~/.cache/scancode-tk"
         key: ${{ runner.os }}-scancode
