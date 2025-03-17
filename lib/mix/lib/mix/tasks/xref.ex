@@ -368,13 +368,15 @@ defmodule Mix.Tasks.Xref do
           lib/b.ex
           lib/a.ex (compile)
 
-  More precisely, `xref` is printing strongly connected cycles, which
-  is the largest cycle possible involving these files. For this reason,
-  files may have multiple relationships between them, and therefore the
-  cycles are not printed in order. The label reflects the highest type
-  of relationship between the given file and any other file in the cycle.
-  In the example above, it means `lib/a.ex` depends on something else in
-  the cycle at compile-time. Those are exactly the type of dependencies
+  More precisely, `xref` is printing the (strongly connected components)[https://en.wikipedia.org/wiki/Strongly_connected_component]
+  in the dependency graph, which is (roughly speaking) the largest set of
+  files which are part of a dependency cycle involving these files.
+
+  For this reason, files may have multiple relationships between them, and
+  therefore the cycles are not printed in order. The label reflects the
+  highest type of relationship between the given file and any other file in
+  the cycle. In the example above, it means `lib/a.ex` depends on something
+  else in the cycle at compile-time.  Those are exactly the type of dependencies
   we want to avoid, and you can ask `mix xref` to only print graphs with
   with compile dependencies in them by passing the `--label` flag:
 
@@ -1231,7 +1233,9 @@ defmodule Mix.Tasks.Xref do
           0
 
         cycles ->
-          shell.info("#{length(cycles)} cycles found. Showing them in decreasing size:\n")
+          shell.info(
+            "#{length(cycles)} strongly connected components (cycles) found. Showing them in decreasing size:\n"
+          )
 
           for {length, cycle} <- cycles do
             shell.info("Cycle of length #{length}:\n")
