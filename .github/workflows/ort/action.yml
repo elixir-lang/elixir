@@ -78,14 +78,9 @@ runs:
 
     - name: Run OSS Review Toolkit
       id: ort
-      # TODO: Use released version once the following issue has been released:
-      # * https://github.com/oss-review-toolkit/ort-ci-github-action/issues/37
-      # * https://github.com/oss-review-toolkit/ort-ci-github-action/pull/41
-      # * https://github.com/oss-review-toolkit/ort-ci-github-action/pull/43
-      # * https://github.com/oss-review-toolkit/ort-ci-github-action/pull/45
-      uses: oss-review-toolkit/ort-ci-github-action@1805edcf1f4f55f35ae6e4d2d9795ccfb29b6021 # main
+      uses: oss-review-toolkit/ort-ci-github-action@1805edcf1f4f55f35ae6e4d2d9795ccfb29b6021 # v1.1.0
       with:
-        image: ghcr.io/oss-review-toolkit/ort-minimal:51.1.0
+        image: ghcr.io/oss-review-toolkit/ort-minimal:54.0.0
         run: >-
           labels,
           cache-dependencies,
