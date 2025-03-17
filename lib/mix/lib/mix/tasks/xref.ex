@@ -48,7 +48,7 @@ defmodule Mix.Tasks.Xref do
   recompile. Therefore, your first priority to reduce compile times is
   to remove such cycles. You can spot them by running:
 
-      $ mix xref graph --format stats --label compile-connected
+      $ mix xref graph --format cycles --label compile-connected
 
   Whenever you find a compile-time dependency, such as `lib/a.ex` pointing
   to `lib/b.ex`, there are two ways to remove them:
