@@ -99,7 +99,7 @@ defmodule Module.Types.Descr do
   def fun(args, return) when is_list(args), do: %{fun: fun_descr(args, return)}
 
   @doc """
-  Creates a function type with the given arity, where all arguments are none()
+  Creates the top function type for the given arity, where all arguments are none()
   and return is term().
 
   ## Examples
@@ -687,23 +687,32 @@ defmodule Module.Types.Descr do
   ## Funs
 
   @doc """
-  Checks there is a function type (and only functions) with said arity.
+  Checks if a function type with the specified arity exists in the descriptor.
+
+  Returns `:ok` if a function of the given arity exists, otherwise `:error`.
+
+  1. If there is no dynamic component:
+     - The static part must be a non-empty function type of the given arity
+
+  2. If there is a dynamic component:
+     - Either the static part is a non-empty function type of the given arity, or
+     - The static part is empty and the dynamic part contains functions of the given arity
   """
   def fun_fetch(:term, _arity), do: :error
 
   def fun_fetch(%{} = descr, arity) when is_integer(arity) do
     case :maps.take(:dynamic, descr) do
       :error ->
-        # No dynamic component, check if it's only functions of given arity
-        if fun_only?(descr, arity), do: :ok, else: :error
+        if not empty?(descr) and fun_only?(descr, arity), do: :ok, else: :error
 
-      {dynamic, @none} ->
-        # Only dynamic component, check if it contains functions of given arity
-        if empty?(intersection(dynamic, fun(arity))), do: :error, else: :ok
+      {dynamic, static} ->
+        empty_static = empty?(static)
 
-      {_dynamic, static} ->
-        # Both dynamic and static, check static component
-        if fun_only?(static, arity), do: :ok, else: :error
+        cond do
+          not empty_static -> if fun_only?(static, arity), do: :ok, else: :error
+          empty_static and not empty?(intersection(dynamic, fun(arity))) -> :ok
+          true -> :error
+        end
     end
   end
 
@@ -870,23 +879,23 @@ defmodule Module.Types.Descr do
   end
 
   ## Functions
+  # Function Type Representation
   #
-  # The top function type, fun(), is represent by 1.
-  # Other function types are represented by unions of intersections of
+  # The top function type, fun(), is represented by the integer 1.
+  # All other function types are represented as unions of intersections of
   # positive and negative function literals.
   #
-  # Function literals are of shape {[t1, ..., tn], t} with the arguments
-  # first and then the return type.
+  # Function literals have the form {[t1, ..., tn], t} where:
+  # - [t1, ..., tn] is the list of argument types
+  # - t is the return type
   #
-  # To compute function applications, we use a normalized form
-  # {domain, union_of_intersections} where union_of_intersections is a
-  # list of lists of arrow intersections. That's because arrow negations
-  # do not impact the type of applications unless they wholly cancel out
-  # with the positive arrows.
+  # For function applications, we use a normalized form (produced by fun_normalize/1)
+  # {domain, arrows, arity}
+  # where arrows is a list of lists of arrow intersections.
 
   defp fun_descr(inputs, output), do: {{:weak, inputs, output}, 1, 0}
 
-  @doc "Utility function to create a function type from a list of intersections"
+  @doc "Utility function to quickly create a function type from a list of intersections"
   def fun_from_intersection(intersection) do
     Enum.reduce(intersection, 1, fn {dom, ret}, acc ->
       {{:weak, dom, ret}, acc, 0}
@@ -1234,31 +1243,28 @@ defmodule Module.Types.Descr do
     fun_get(fun_get(acc, [a | pos], neg, b1), pos, [a | neg], b2)
   end
 
-  # Turns a function BDD into a normalized form {domain, arrows}.
-  # If the BDD encodes an empty function type, then return :empty.
-
-  # This function converts a Binary Decision Diagram (BDD) representation of a function type
-  # into a more usable normalized form consisting of:
-
-  # 1. domain: The union of all domains of positive functions in the BDD
-  # 2. arrows: A list (union) of lists (intersections) of function arrows
-
-  # This normalized form makes it easier to perform operations like function application
-  # and subtyping checks.
+  # Normalizes a function BDD into {domain, arrows, arity} or :emptyfunction.
+  #
+  # The normalized form consists of:
+  # 1. domain: Union of all domains from positive functions
+  # 2. arrows: List of function arrow intersections
+  # 3. arity: Function arity
+  #
+  # This makes operations like function application and subtyping more efficient
+  # by handling arrow negations properly.
+  # TODO: what if i am normalizing 1, or fun() and not fun(1)?
   defp fun_normalize(bdd) do
     {domain, arrows, arity} =
       fun_get(bdd)
       |> Enum.reduce({term(), [], nil}, fn {pos_funs, neg_funs}, {domain, arrows, arity} ->
+        # Skip empty function intersections
         if fun_empty?(pos_funs, neg_funs) do
           {domain, arrows, arity}
         else
-          # Compute the arity for this path if not already set
-          new_arity =
-            case {arity, pos_funs} do
-              {nil, [{_, args, _} | _]} -> length(args)
-              {existing_arity, _} -> existing_arity
-            end
+          # Determine arity from first positive function or keep existing
+          new_arity = arity || pos_funs |> List.first() |> elem(1) |> length()
 
+          # Calculate domain from all positive functions
           path_domain =
             Enum.reduce(pos_funs, none(), fn {_, args, _}, acc ->
               union(acc, domain_repr(args))
@@ -1268,7 +1274,6 @@ defmodule Module.Types.Descr do
         end
       end)
 
-    # If no valid paths found, return :emptyfunction
     if arrows == [], do: :emptyfunction, else: {domain, arrows, arity}
   end
 

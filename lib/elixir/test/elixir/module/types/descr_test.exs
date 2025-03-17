@@ -1163,8 +1163,10 @@ defmodule Module.Types.DescrTest do
 
   describe "projections" do
     test "fun_fetch" do
+      assert fun_fetch(none(), 1) == :error
       assert fun_fetch(term(), 1) == :error
       assert fun_fetch(union(term(), dynamic(fun())), 1) == :error
+      assert fun_fetch(union(atom(), dynamic(fun())), 1) == :error
       assert fun_fetch(dynamic(fun()), 1) == :ok
       assert fun_fetch(dynamic(), 1) == :ok
       assert fun_fetch(dynamic(fun(2)), 1) == :error
