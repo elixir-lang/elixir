@@ -1266,9 +1266,7 @@ defmodule Mix.Tasks.Xref do
           0
 
         cycles ->
-          shell.info(
-            "#{length(cycles)} strongly connected components (cycles) found. Showing them in decreasing size:\n"
-          )
+          shell.info("#{length(cycles)} cycles found. Showing them in decreasing size:\n")
 
           for {length, cycle} <- cycles do
             shell.info("Cycle of length #{length}:\n")
