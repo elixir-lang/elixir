@@ -1042,8 +1042,9 @@ defmodule Protocol do
           raise ArgumentError, "defimpl/3 expects a :for option when declared outside a module"
       end)
 
-    for =
-      Macro.expand_literals(for, %{env | module: env.module || Elixir, function: {:__impl__, 1}})
+    expansion_env = %{env | module: env.module || Elixir, function: {:__impl__, 1}}
+    protocol = Macro.expand_literals(protocol, expansion_env)
+    for = Macro.expand_literals(for, expansion_env)
 
     case opts do
       [] -> raise ArgumentError, "defimpl expects a do-end block"
@@ -1069,6 +1070,16 @@ defmodule Protocol do
         def __impl__(:protocol), do: unquote(protocol)
       end
 
+    # If the protocol is an atom, we will add an export dependency,
+    # since it was expanded before-hand. Otherwise it is a dynamic
+    # expression (and therefore most likely a compile-time one).
+    behaviour =
+      if is_atom(protocol) do
+        quote(do: require(unquote(protocol)))
+      else
+        quote(do: protocol)
+      end
+
     quote do
       protocol = unquote(protocol)
       for = unquote(for)
@@ -1079,7 +1090,7 @@ defmodule Protocol do
 
       defmodule name do
         @moduledoc false
-        @behaviour protocol
+        @behaviour unquote(behaviour)
         @protocol protocol
         @for for
 
