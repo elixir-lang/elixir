@@ -305,7 +305,8 @@ defmodule Mix.Utils do
   If the `:output` option is `-` then prints to standard output,
   see write_according_to_opts!/3 for details.
   """
-  @spec write_json_tree!(Path.t(), [node], (node -> {formatted_node, [node]}), keyword) :: Path.t()
+  @spec write_json_tree!(Path.t(), [node], (node -> {formatted_node, [node]}), keyword) ::
+          Path.t()
         when node: term()
   def write_json_tree!(default_file_spec, nodes, callback, opts \\ []) do
     src_map = build_json_tree(_src_map = %{}, nodes, callback)
