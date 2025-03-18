@@ -47,9 +47,20 @@ source_exclude =
     []
   end
 
+cover_enabled? = Code.eval_file("../../scripts/cover_record.exs", __DIR__)
+
+cover_exclude =
+  if cover_enabled? do
+    [:require_ast]
+  else
+    []
+  end
+
 ExUnit.start(
   trace: !!System.get_env("TRACE"),
   assert_receive_timeout: assert_timeout,
-  exclude: epmd_exclude ++ os_exclude ++ line_exclude ++ distributed_exclude ++ source_exclude,
+  exclude:
+    epmd_exclude ++
+      os_exclude ++ line_exclude ++ distributed_exclude ++ source_exclude ++ cover_exclude,
   include: line_include
 )

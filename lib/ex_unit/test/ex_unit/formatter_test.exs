@@ -86,7 +86,9 @@ defmodule ExUnit.FormatterTest do
 
     failure = [{:exit, {{error, stack}, {:mod, :fun, []}}, []}]
 
-    assert trim_multiline_whitespace(format_test_failure(test(), failure, 1, 80, &formatter/2)) =~
+    format = trim_multiline_whitespace(format_test_failure(test(), failure, 1, 80, &formatter/2))
+
+    assert format =~
              """
                1) world (Hello)
                   test/ex_unit/formatter_test.exs:1
@@ -101,11 +103,16 @@ defmodule ExUnit.FormatterTest do
 
                            # 2
                            :bar
-
-                       Attempted function clauses (showing 5 out of 5):
-
-                           def fetch(%module{} = container, key)
              """
+
+    if Access not in :cover.modules() do
+      assert format =~
+               """
+                         Attempted function clauses (showing 5 out of 5):
+
+                             def fetch(%module{} = container, key)
+               """
+    end
   end
 
   test "formats test exits with assertion mfa" do
@@ -177,11 +184,16 @@ defmodule ExUnit.FormatterTest do
 
                            # 2
                            :bar
-
-                       Attempted function clauses (showing 5 out of 5):
-
-                           def fetch(%module{} = container, key)
              """
+
+    if Access not in :cover.modules() do
+      assert format =~
+               """
+                         Attempted function clauses (showing 5 out of 5):
+
+                             def fetch(%module{} = container, key)
+               """
+    end
 
     assert format =~ ~r"lib/access.ex:\d+: Access.fetch/2"
   end
@@ -418,11 +430,16 @@ defmodule ExUnit.FormatterTest do
 
                     # 2
                     :bar
-
-                Attempted function clauses (showing 5 out of 5):
-
-                    def fetch(%module{} = container, key)
            """
+
+    if Access not in :cover.modules() do
+      assert failure =~
+               """
+                    Attempted function clauses (showing 5 out of 5):
+
+                        def fetch(%module{} = container, key)
+               """
+    end
 
     assert failure =~ ~r"\(elixir #{System.version()}\) lib/access\.ex:\d+: Access\.fetch/2"
   end
