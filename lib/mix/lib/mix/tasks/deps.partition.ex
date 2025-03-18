@@ -79,7 +79,7 @@ defmodule Mix.Tasks.Deps.Partition do
   end
 
   defp send_deps([client | available], busy, deps, completed) do
-    case pop_with(deps, fn dep -> Enum.all?(dep.deps, &Keyword.has_key?(completed, &1.app)) end) do
+    case pop_with(deps, fn dep -> Enum.all?(dep.deps, &not_pending?(&1.app, deps, completed)) end) do
       :error ->
         {[client | available], busy, deps}
 
@@ -95,6 +95,10 @@ defmodule Mix.Tasks.Deps.Partition do
 
   defp send_deps([], busy, deps, _completed) do
     {[], busy, deps}
+  end
+
+  defp not_pending?(app, deps, completed) do
+    Keyword.has_key?(completed, app) or not Enum.any?(deps, &(&1.app == app))
   end
 
   defp server_loop(available, _busy = [], _deps = [], completed) do
