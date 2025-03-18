@@ -71,6 +71,17 @@ updating an existing checkout, run `make clean compile`. You can check
 [the official build status](https://github.com/elixir-lang/elixir/actions/workflows/ci.yml).
 More tasks can be found by reading the [Makefile](Makefile).
 
+We encourage contributors to write tests that capture both existing and newly
+introduced behavior, especially for bug fixes and major changes:
+
+  * **Bug Fixes:** If you are fixing a bug, please try to include a test that
+    *fails* before your change and *passes* afterward. This makes it easier to
+    confirm that the fix addresses the underlying issue and helps prevent
+    regressions in the future.
+  * **New Features or Major Changes:** If you are adding a new feature or making
+    major changes to existing functionality, please add tests that cover the
+    major parts of that functionality. Aim to have the best code coverage possible.
+
 With tests running and passing, you are ready to contribute to Elixir and
 [send a pull request](https://help.github.com/articles/using-pull-requests/).
 We have saved some excellent pull requests we have received in the past in
