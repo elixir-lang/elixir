@@ -61,12 +61,12 @@ defmodule Mix.Tasks.Deps.Partition do
             %{port: port, index: index, socket: client}
 
           error ->
-            raise """
+            Mix.raise("""
             could not start partition dependency compiler, no connection made to TCP port: #{inspect(error)}
 
             The spawned operating system process wrote the following output:
             #{close_port(port, "")}
-            """
+            """)
         end
       end)
 
@@ -117,14 +117,11 @@ defmodule Mix.Tasks.Deps.Partition do
 
       {:tcp_closed, socket} ->
         shutdown_clients(available ++ busy)
-        Mix.shell().error("ERROR! mix deps.partition #{inspect(socket)} closed unexpectedly")
+        Mix.raise("ERROR! mix deps.partition #{inspect(socket)} closed unexpectedly")
 
       {:tcp_error, socket, error} ->
         shutdown_clients(available ++ busy)
-
-        Mix.shell().error(
-          "ERROR! mix deps.partition #{inspect(socket)} errored: #{inspect(error)}"
-        )
+        Mix.raise("ERROR! mix deps.partition #{inspect(socket)} errored: #{inspect(error)}")
 
       {port, {:data, {eol, data}}} ->
         with %{index: index} <-
@@ -186,8 +183,12 @@ defmodule Mix.Tasks.Deps.Partition do
     {:ok, socket} =
       :gen_tcp.connect(String.to_charlist(host), port, [:binary, packet: :line, active: false])
 
-    deps = Mix.Dep.load_and_cache()
-    client_loop(socket, deps, force?, Mix.Project.deps_config())
+    try do
+      deps = Mix.Dep.load_and_cache()
+      client_loop(socket, deps, force?, Mix.Project.deps_config())
+    after
+      :gen_tcp.close(socket)
+    end
   end
 
   def client_loop(socket, deps, force?, config) do
