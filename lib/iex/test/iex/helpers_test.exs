@@ -38,44 +38,52 @@ defmodule IEx.HelpersTest do
       on_exit(fn -> IEx.Pry.remove_breaks() end)
     end
 
+    @tag :require_ast
     test "sets up a breakpoint with capture syntax" do
       assert break!(URI.decode_query() / 2) == 1
       assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 1}]
     end
 
+    @tag :require_ast
     test "sets up a breakpoint with call syntax" do
       assert break!(URI.decode_query(_, %{})) == 1
       assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 1}]
     end
 
+    @tag :require_ast
     test "sets up a breakpoint with guards syntax" do
       assert break!(URI.decode_query(_, map) when is_map(map)) == 1
       assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 1}]
     end
 
+    @tag :require_ast
     test "sets up a breakpoint on the given module" do
       assert break!(URI, :decode_query, 2) == 1
       assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 1}]
     end
 
+    @tag :require_ast
     test "resets breaks on the given ID" do
       assert break!(URI, :decode_query, 2) == 1
       assert reset_break(1) == :ok
       assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 0}]
     end
 
+    @tag :require_ast
     test "resets breaks on the given module" do
       assert break!(URI, :decode_query, 2) == 1
       assert reset_break(URI, :decode_query, 2) == :ok
       assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 0}]
     end
 
+    @tag :require_ast
     test "removes breaks in the given module" do
       assert break!(URI.decode_query() / 2) == 1
       assert remove_breaks(URI) == :ok
       assert IEx.Pry.breaks() == []
     end
 
+    @tag :require_ast
     test "removes breaks on all modules" do
       assert break!(URI.decode_query() / 2) == 1
       assert remove_breaks() == :ok
@@ -96,18 +104,21 @@ defmodule IEx.HelpersTest do
                    fn -> break!(__MODULE__, :setup, 1) end
     end
 
+    @tag :require_ast
     test "errors when setting up a break for unknown function" do
       assert_raise RuntimeError,
                    "could not set breakpoint, unknown function/macro URI.unknown/2",
                    fn -> break!(URI, :unknown, 2) end
     end
 
+    @tag :require_ast
     test "errors for non-Elixir modules" do
       assert_raise RuntimeError,
                    "could not set breakpoint, module :elixir was not written in Elixir",
                    fn -> break!(:elixir, :unknown, 2) end
     end
 
+    @tag :require_ast
     test "prints table with breaks" do
       break!(URI, :decode_query, 2)
 
@@ -162,24 +173,29 @@ defmodule IEx.HelpersTest do
       System.put_env("ELIXIR_EDITOR", @editor)
     end
 
+    @tag :require_ast
     test "opens Elixir module" do
       assert capture_iex("open(IEx.Helpers)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:5$/
     end
 
+    @tag :require_ast
     test "opens function" do
       assert capture_iex("open(h)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:\d+$/
     end
 
+    @tag :require_ast
     test "opens function/arity" do
       assert capture_iex("open(b/1)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:\d+$/
       assert capture_iex("open(h/0)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:\d+$/
     end
 
+    @tag :require_ast
     test "opens module.function" do
       assert capture_iex("open(IEx.Helpers.b)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:\d+$/
       assert capture_iex("open(IEx.Helpers.h)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:\d+$/
     end
 
+    @tag :require_ast
     test "opens module.function/arity" do
       assert capture_iex("open(IEx.Helpers.b/1)") |> maybe_trim_quotes() =~
                ~r/#{@iex_helpers}:\d+$/
@@ -188,14 +204,17 @@ defmodule IEx.HelpersTest do
                ~r/#{@iex_helpers}:\d+$/
     end
 
+    @tag :require_ast
     test "opens Erlang module" do
       assert capture_iex("open(:elixir)") |> maybe_trim_quotes() =~ ~r/#{@elixir_erl}:\d+$/
     end
 
+    @tag :require_ast
     test "opens Erlang module.function" do
       assert capture_iex("open(:elixir.start)") |> maybe_trim_quotes() =~ ~r/#{@elixir_erl}:\d+$/
     end
 
+    @tag :require_ast
     test "opens Erlang module.function/arity" do
       assert capture_iex("open(:elixir.start/2)") |> maybe_trim_quotes() =~
                ~r/#{@elixir_erl}:\d+$/

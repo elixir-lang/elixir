@@ -556,7 +556,9 @@ defmodule ExceptionTest do
     end
 
     test "annotates function clause errors" do
-      assert blame_message(Access, & &1.fetch(:foo, :bar)) =~ """
+      message = blame_message(Access, & &1.fetch(:foo, :bar))
+
+      assert message =~ """
              no function clause matching in Access.fetch/2
 
              The following arguments were given to Access.fetch/2:
@@ -566,11 +568,15 @@ defmodule ExceptionTest do
 
                  # 2
                  :bar
-
-             Attempted function clauses (showing 5 out of 5):
-
-                 def fetch(-%module{} = container-, key)
              """
+
+      if Access not in :cover.modules() do
+        assert message =~ """
+               Attempted function clauses (showing 5 out of 5):
+
+                   def fetch(-%module{} = container-, key)
+               """
+      end
     end
 
     test "annotates undefined function error with suggestions" do
@@ -863,10 +869,16 @@ defmodule ExceptionTest do
       {exception, stack} =
         Exception.blame(:error, :function_clause, [{Keyword, :pop, args, [line: 13]}])
 
-      assert %FunctionClauseError{kind: :def, args: ^args, clauses: [_]} = exception
+      if Keyword in :cover.modules() do
+        assert %FunctionClauseError{kind: nil, args: ^args, clauses: nil} = exception
+      else
+        assert %FunctionClauseError{kind: :def, args: ^args, clauses: [_]} = exception
+      end
+
       assert stack == [{Keyword, :pop, 3, [line: 13]}]
     end
 
+    @tag :require_ast
     test "annotates args and clauses from mfa" do
       import PathHelpers
 

@@ -8,6 +8,7 @@ defmodule Kernel.DialyzerTest do
   use ExUnit.Case, async: true
 
   @moduletag :dialyzer
+  @moduletag :require_ast
   import PathHelpers
 
   setup_all do

@@ -46,12 +46,14 @@ defmodule IEx.PryTest do
   end
 
   describe "break" do
+    @tag :require_ast
     test "sets up a breakpoint on the given module" do
       assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
       assert instrumented?(URI)
       assert [_] = IEx.Pry.breaks()
     end
 
+    @tag :require_ast
     test "sets up multiple breakpoints in the same module" do
       assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
       assert instrumented?(URI)
@@ -60,6 +62,7 @@ defmodule IEx.PryTest do
       assert [_, _] = IEx.Pry.breaks()
     end
 
+    @tag :require_ast
     test "reinstruments if module has been reloaded" do
       assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
       assert instrumented?(URI)
@@ -70,12 +73,14 @@ defmodule IEx.PryTest do
       assert [_, _] = IEx.Pry.breaks()
     end
 
+    @tag :require_ast
     test "returns ID when breakpoint is already set" do
       assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
       assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
       assert [_] = IEx.Pry.breaks()
     end
 
+    @tag :require_ast
     test "returns ID even when breakpoint is already set on deinstrument" do
       assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
       deinstrument!(URI)
@@ -87,16 +92,18 @@ defmodule IEx.PryTest do
       assert IEx.Pry.break(__MODULE__, :setup, 2) == {:error, :no_beam_file}
     end
 
+    @tag :require_ast
     test "errors when setting up a break for unknown function" do
       assert IEx.Pry.break(URI, :unknown, 2) == {:error, :unknown_function_arity}
     end
 
     test "errors for non-Elixir modules" do
-      assert IEx.Pry.break(:elixir, :unknown, 2) == {:error, :non_elixir_module}
+      assert IEx.Pry.break(:maps, :unknown, 2) == {:error, :non_elixir_module}
     end
   end
 
   describe "breaks" do
+    @tag :require_ast
     test "returns all breaks" do
       assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
       assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 1}]
@@ -108,12 +115,14 @@ defmodule IEx.PryTest do
       assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 10}, {2, URI, {:parse, 1}, 1}]
     end
 
+    @tag :require_ast
     test "sets negative break to 0" do
       assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
       :ets.insert(IEx.Pry, {1, URI, {:decode_query, 2}, {[], true}, -1})
       assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 0}]
     end
 
+    @tag :require_ast
     test "do not return break points for deinstrumented modules" do
       assert IEx.Pry.break(URI, :parse, 1) == {:ok, 1}
       assert IEx.Pry.breaks() == [{1, URI, {:parse, 1}, 1}]
@@ -123,18 +132,21 @@ defmodule IEx.PryTest do
   end
 
   describe "reset_break" do
+    @tag :require_ast
     test "resets break for given ID" do
       assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
       assert IEx.Pry.reset_break(1) == :ok
       assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 0}]
     end
 
+    @tag :require_ast
     test "resets break for given mfa" do
       assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
       assert IEx.Pry.reset_break(URI, :decode_query, 2) == :ok
       assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 0}]
     end
 
+    @tag :require_ast
     test "returns not_found if module is deinstrumented" do
       assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
       deinstrument!(URI)
@@ -146,6 +158,7 @@ defmodule IEx.PryTest do
       assert IEx.Pry.reset_break(URI, :decode_query, 2) == :not_found
     end
 
+    @tag :require_ast
     test "returns not_found if ID is deinstrumented" do
       assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
       deinstrument!(URI)
@@ -159,12 +172,14 @@ defmodule IEx.PryTest do
   end
 
   describe "remove_breaks" do
+    @tag :require_ast
     test "removes all breaks" do
       assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
       assert IEx.Pry.remove_breaks() == :ok
       assert IEx.Pry.breaks() == []
     end
 
+    @tag :require_ast
     test "removes all breaks even if module is deinstrumented" do
       assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
       deinstrument!(URI)
@@ -172,6 +187,7 @@ defmodule IEx.PryTest do
       assert IEx.Pry.breaks() == []
     end
 
+    @tag :require_ast
     test "remove breaks in a given module" do
       assert IEx.Pry.remove_breaks(Date.Range) == :ok
       assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
@@ -180,6 +196,7 @@ defmodule IEx.PryTest do
       assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 1}]
     end
 
+    @tag :require_ast
     test "remove breaks in a given module even if deinstrumented" do
       assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
       deinstrument!(URI)
