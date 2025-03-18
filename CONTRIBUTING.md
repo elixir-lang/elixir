@@ -80,8 +80,7 @@ introduced behavior, especially for bug fixes and major changes:
     regressions in the future.
   * **New Features or Major Changes:** If you are adding a new feature or making
     major changes to existing functionality, please add tests that cover the
-    major parts of that functionality. Perfect coverage isn’t required, but we
-    do ask that you exercise the main use cases and scenarios.
+    major parts of that functionality. Aim to have the best code coverage possible.
 
 With tests running and passing, you are ready to contribute to Elixir and
 [send a pull request](https://help.github.com/articles/using-pull-requests/).
