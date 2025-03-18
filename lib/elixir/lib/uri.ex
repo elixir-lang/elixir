@@ -903,7 +903,7 @@ defmodule URI do
   @spec merge(t | binary, t | binary) :: t
   def merge(uri, rel)
 
-  def merge(%URI{host: nil}, _rel) do
+  def merge(%URI{scheme: nil}, _rel) do
     raise ArgumentError, "you must merge onto an absolute URI"
   end
 
