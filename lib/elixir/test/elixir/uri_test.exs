@@ -520,6 +520,115 @@ defmodule URITest do
     end
   end
 
+  test "merge/2 (with W3C examples)" do
+    # These examples are from the W3C JSON-LD test suite:
+    #
+    # https://w3c.github.io/json-ld-api/tests/toRdf-manifest#t0124
+    # https://w3c.github.io/json-ld-api/tests/toRdf-manifest#t0125
+
+    base1 = "http://a/bb/ccc/."
+
+    rel_and_result1 = %{
+      "g:h" => "g:h",
+      "g" => "http://a/bb/ccc/g",
+      "./g" => "http://a/bb/ccc/g",
+      "g/" => "http://a/bb/ccc/g/",
+      "/g" => "http://a/g",
+      "//g" => "http://g",
+      "?y" => "http://a/bb/ccc/.?y",
+      "g?y" => "http://a/bb/ccc/g?y",
+      "#s" => "http://a/bb/ccc/.#s",
+      "g#s" => "http://a/bb/ccc/g#s",
+      "g?y#s" => "http://a/bb/ccc/g?y#s",
+      ";x" => "http://a/bb/ccc/;x",
+      "g;x" => "http://a/bb/ccc/g;x",
+      "g;x?y#s" => "http://a/bb/ccc/g;x?y#s",
+      "" => "http://a/bb/ccc/.",
+      "." => "http://a/bb/ccc/",
+      "./" => "http://a/bb/ccc/",
+      ".." => "http://a/bb/",
+      "../" => "http://a/bb/",
+      "../g" => "http://a/bb/g",
+      "../.." => "http://a/",
+      "../../" => "http://a/",
+      "../../g" => "http://a/g",
+      "../../../g" => "http://a/g",
+      "../../../../g" => "http://a/g",
+      "/./g" => "http://a/g",
+      "/../g" => "http://a/g",
+      "g." => "http://a/bb/ccc/g.",
+      ".g" => "http://a/bb/ccc/.g",
+      "g.." => "http://a/bb/ccc/g..",
+      "..g" => "http://a/bb/ccc/..g",
+      "./../g" => "http://a/bb/g",
+      "./g/." => "http://a/bb/ccc/g/",
+      "g/./h" => "http://a/bb/ccc/g/h",
+      "g/../h" => "http://a/bb/ccc/h",
+      "g;x=1/./y" => "http://a/bb/ccc/g;x=1/y",
+      "g;x=1/../y" => "http://a/bb/ccc/y",
+      "g?y/./x" => "http://a/bb/ccc/g?y/./x",
+      "g?y/../x" => "http://a/bb/ccc/g?y/../x",
+      "g#s/./x" => "http://a/bb/ccc/g#s/./x",
+      "g#s/../x" => "http://a/bb/ccc/g#s/../x",
+      "http:g" => "http:g"
+    }
+
+    for {rel, result} <- rel_and_result1 do
+      assert URI.merge(base1, rel) |> URI.to_string() == result
+    end
+
+    base2 = "http://a/bb/ccc/.."
+
+    rel_and_result2 = %{
+      "g:h" => "g:h",
+      "g" => "http://a/bb/ccc/g",
+      "./g" => "http://a/bb/ccc/g",
+      "g/" => "http://a/bb/ccc/g/",
+      "/g" => "http://a/g",
+      "//g" => "http://g",
+      "?y" => "http://a/bb/ccc/..?y",
+      "g?y" => "http://a/bb/ccc/g?y",
+      "#s" => "http://a/bb/ccc/..#s",
+      "g#s" => "http://a/bb/ccc/g#s",
+      "g?y#s" => "http://a/bb/ccc/g?y#s",
+      ";x" => "http://a/bb/ccc/;x",
+      "g;x" => "http://a/bb/ccc/g;x",
+      "g;x?y#s" => "http://a/bb/ccc/g;x?y#s",
+      "" => "http://a/bb/ccc/..",
+      "." => "http://a/bb/ccc/",
+      "./" => "http://a/bb/ccc/",
+      ".." => "http://a/bb/",
+      "../" => "http://a/bb/",
+      "../g" => "http://a/bb/g",
+      "../.." => "http://a/",
+      "../../" => "http://a/",
+      "../../g" => "http://a/g",
+      "../../../g" => "http://a/g",
+      "../../../../g" => "http://a/g",
+      "/./g" => "http://a/g",
+      "/../g" => "http://a/g",
+      "g." => "http://a/bb/ccc/g.",
+      ".g" => "http://a/bb/ccc/.g",
+      "g.." => "http://a/bb/ccc/g..",
+      "..g" => "http://a/bb/ccc/..g",
+      "./../g" => "http://a/bb/g",
+      "./g/." => "http://a/bb/ccc/g/",
+      "g/./h" => "http://a/bb/ccc/g/h",
+      "g/../h" => "http://a/bb/ccc/h",
+      "g;x=1/./y" => "http://a/bb/ccc/g;x=1/y",
+      "g;x=1/../y" => "http://a/bb/ccc/y",
+      "g?y/./x" => "http://a/bb/ccc/g?y/./x",
+      "g?y/../x" => "http://a/bb/ccc/g?y/../x",
+      "g#s/./x" => "http://a/bb/ccc/g#s/./x",
+      "g#s/../x" => "http://a/bb/ccc/g#s/../x",
+      "http:g" => "http:g"
+    }
+
+    for {rel, result} <- rel_and_result2 do
+      assert URI.merge(base2, rel) |> URI.to_string() == result
+    end
+  end
+
   test "append_query/2" do
     assert URI.append_query(URI.parse("http://example.com/?x=1"), "x=2").query == "x=1&x=2"
     assert URI.append_query(URI.parse("http://example.com/?x=1&"), "x=2").query == "x=1&x=2"

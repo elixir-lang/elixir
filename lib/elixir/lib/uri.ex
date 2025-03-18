@@ -954,12 +954,12 @@ defmodule URI do
 
   defp remove_dot_segments([], acc), do: acc
   defp remove_dot_segments([:/ | tail], acc), do: remove_dot_segments(tail, [:/ | acc])
+  defp remove_dot_segments([_, :+ | tail], acc), do: remove_dot_segments(tail, acc)
   defp remove_dot_segments(["."], acc), do: remove_dot_segments([], ["" | acc])
   defp remove_dot_segments(["." | tail], acc), do: remove_dot_segments(tail, acc)
   defp remove_dot_segments([".." | tail], [:/]), do: remove_dot_segments(tail, [:/])
   defp remove_dot_segments([".."], [_ | acc]), do: remove_dot_segments([], ["" | acc])
   defp remove_dot_segments([".." | tail], [_ | acc]), do: remove_dot_segments(tail, acc)
-  defp remove_dot_segments([_, :+ | tail], acc), do: remove_dot_segments(tail, acc)
   defp remove_dot_segments([head | tail], acc), do: remove_dot_segments(tail, [head | acc])
 
   defp join_reversed_segments(segments) do
