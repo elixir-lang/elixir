@@ -168,10 +168,12 @@ defmodule IEx.HelpersTest do
                ~r/#{@example_module_path}:\d+$/
     end
 
+    @tag :require_ast
     test "opens function" do
       assert capture_iex("open(h)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:\d+$/
     end
 
+    @tag :require_ast
     test "opens function/arity" do
       assert capture_iex("open(b/1)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:\d+$/
       assert capture_iex("open(h/0)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:\d+$/
@@ -193,14 +195,17 @@ defmodule IEx.HelpersTest do
                ~r/#{@example_module_path}:\d+$/
     end
 
+    @tag :require_ast
     test "opens Erlang module" do
       assert capture_iex("open(:elixir)") |> maybe_trim_quotes() =~ ~r/#{@elixir_erl}:\d+$/
     end
 
+    @tag :require_ast
     test "opens Erlang module.function" do
       assert capture_iex("open(:elixir.start)") |> maybe_trim_quotes() =~ ~r/#{@elixir_erl}:\d+$/
     end
 
+    @tag :require_ast
     test "opens Erlang module.function/arity" do
       assert capture_iex("open(:elixir.start/2)") |> maybe_trim_quotes() =~
                ~r/#{@elixir_erl}:\d+$/

@@ -53,6 +53,10 @@ lib/$(1)/ebin/Elixir.$(2).beam: $(wildcard lib/$(1)/lib/*.ex) $(wildcard lib/$(1
 test_$(1): test_formatted $(1)
 	@ echo "==> $(1) (ex_unit)"
 	$(Q) cd lib/$(1) && ../../bin/elixir -r "test/test_helper.exs" -pr "test/**/$(TEST_FILES)";
+
+cover/ex_unit_$(1).coverdata:
+	$(Q) COVER="1" $(MAKE) test_$(1)
+cover/combined.coverdata: cover/ex_unit_$(1).coverdata
 endef
 
 define WRITE_SOURCE_DATE_EPOCH
@@ -175,6 +179,7 @@ clean: clean_man
 	rm -rf lib/mix/test/fixtures/git_sparse_repo/
 	rm -rf lib/mix/test/fixtures/archive/ebin/
 	rm -f erl_crash.dump
+	rm -rf cover
 
 clean_elixir:
 	$(Q) rm -f lib/*/ebin/Elixir.*.beam
@@ -286,6 +291,16 @@ test_stdlib: compile
 	else \
 		cd lib/elixir && ../../bin/elixir --sname primary -r "test/elixir/test_helper.exs" -pr "test/elixir/**/$(TEST_FILES)"; \
 	fi
+
+cover/ex_unit_elixir.coverdata:
+	$(Q) COVER="1" $(MAKE) test_stdlib
+cover/combined.coverdata: cover/ex_unit_elixir.coverdata
+
+cover/combined.coverdata:
+	bin/elixir ./lib/elixir/scripts/cover.exs
+
+.PHONY: cover
+cover: cover/combined.coverdata
 
 #==> Dialyzer tasks
 
