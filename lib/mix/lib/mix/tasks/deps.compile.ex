@@ -75,86 +75,82 @@ defmodule Mix.Tasks.Deps.Compile do
 
   @doc false
   def compile(deps, options \\ []) do
-    shell = Mix.shell()
-    config = Mix.Project.deps_config()
     Mix.Task.run("deps.precompile")
+    force? = Keyword.get(options, :force, false)
 
-    compiled =
+    deps =
       deps
       |> reject_umbrella_children(options)
       |> reject_local_deps(options)
-      |> Enum.map(fn %Mix.Dep{app: app, status: status, opts: opts, scm: scm} = dep ->
-        check_unavailable!(app, scm, status)
-        maybe_clean(dep, options)
 
-        compiled? =
-          cond do
-            not is_nil(opts[:compile]) ->
-              do_compile(dep, config)
+    count = System.get_env("MIX_DEPS_COMPILE_PARALLEL_COUNT", "0") |> String.to_integer()
 
-            Mix.Dep.mix?(dep) ->
-              do_mix(dep, config)
+    compiled? =
+      if count > 1 and length(deps) > count do
+        Mix.shell().info("mix deps.compile running in parallel with count=#{count}")
+        Mix.Tasks.Deps.Parallel.server(deps, count, force?)
+      else
+        config = Mix.Project.deps_config()
+        true in Enum.map(deps, &compile_single(&1, force?, config))
+      end
 
-            Mix.Dep.make?(dep) ->
-              do_make(dep, config)
-
-            dep.manager == :rebar3 ->
-              do_rebar3(dep, config)
-
-            true ->
-              shell.error(
-                "Could not compile #{inspect(app)}, no \"mix.exs\", \"rebar.config\" or \"Makefile\" " <>
-                  "(pass :compile as an option to customize compilation, set it to \"false\" to do nothing)"
-              )
-
-              false
-          end
-
-        if compiled? do
-          build_path = Mix.Project.build_path(config)
-
-          lazy_message = fn ->
-            info = %{
-              app: dep.app,
-              scm: dep.scm,
-              manager: dep.manager,
-              os_pid: System.pid()
-            }
-
-            {:dep_compiled, info}
-          end
-
-          Mix.Sync.PubSub.broadcast(build_path, lazy_message)
-        end
-
-        # We should touch fetchable dependencies even if they
-        # did not compile otherwise they will always be marked
-        # as stale, even when there is nothing to do.
-        fetchable? = touch_fetchable(scm, opts[:build])
-
-        compiled? and fetchable?
-      end)
-
-    if true in compiled, do: Mix.Task.run("will_recompile"), else: :ok
+    if compiled?, do: Mix.Task.run("will_recompile"), else: :ok
   end
 
-  defp maybe_clean(dep, opts) do
+  @doc false
+  def compile_single(%Mix.Dep{} = dep, force?, config) do
+    %{app: app, status: status, opts: opts, scm: scm} = dep
+    check_unavailable!(app, scm, status)
+
     # If a dependency was marked as fetched or with an out of date lock
     # or missing the app file, we always compile it from scratch.
-    if Keyword.get(opts, :force, false) or Mix.Dep.compilable?(dep) do
+    if force? or Mix.Dep.compilable?(dep) do
       File.rm_rf!(Path.join([Mix.Project.build_path(), "lib", Atom.to_string(dep.app)]))
     end
-  end
 
-  defp touch_fetchable(scm, path) do
-    if scm.fetchable?() do
-      path = Path.join(path, ".mix")
-      File.mkdir_p!(path)
-      File.touch!(Path.join(path, "compile.fetch"))
-      true
-    else
-      false
+    compiled? =
+      cond do
+        not is_nil(opts[:compile]) ->
+          do_compile(dep, config)
+
+        Mix.Dep.mix?(dep) ->
+          do_mix(dep, config)
+
+        Mix.Dep.make?(dep) ->
+          do_make(dep, config)
+
+        dep.manager == :rebar3 ->
+          do_rebar3(dep, config)
+
+        true ->
+          Mix.shell().error(
+            "Could not compile #{inspect(app)}, no \"mix.exs\", \"rebar.config\" or \"Makefile\" " <>
+              "(pass :compile as an option to customize compilation, set it to \"false\" to do nothing)"
+          )
+
+          false
+      end
+
+    if compiled? do
+      config
+      |> Mix.Project.build_path()
+      |> Mix.Sync.PubSub.broadcast(fn ->
+        info = %{
+          app: dep.app,
+          scm: dep.scm,
+          manager: dep.manager,
+          os_pid: System.pid()
+        }
+
+        {:dep_compiled, info}
+      end)
     end
+
+    # We should touch fetchable dependencies even if they
+    # did not compile otherwise they will always be marked
+    # as stale, even when there is nothing to do.
+    fetchable? = touch_fetchable(scm, opts[:build])
+    compiled? and fetchable?
   end
 
   defp check_unavailable!(app, scm, {:unavailable, path}) do
@@ -174,6 +170,17 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp check_unavailable!(_, _, _) do
     :ok
+  end
+
+  defp touch_fetchable(scm, path) do
+    if scm.fetchable?() do
+      path = Path.join(path, ".mix")
+      File.mkdir_p!(path)
+      File.touch!(Path.join(path, "compile.fetch"))
+      true
+    else
+      false
+    end
   end
 
   defp do_mix(dep, _config) do
