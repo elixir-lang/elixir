@@ -83,12 +83,12 @@ defmodule Mix.Tasks.Deps.Compile do
       |> reject_umbrella_children(options)
       |> reject_local_deps(options)
 
-    count = System.get_env("MIX_DEPS_COMPILE_PARALLEL_COUNT", "0") |> String.to_integer()
+    count = System.get_env("MIX_OS_DEPS_COMPILE_PARTITION_COUNT", "0") |> String.to_integer()
 
     compiled? =
       if count > 1 and length(deps) > count do
-        Mix.shell().info("mix deps.compile running in parallel with count=#{count}")
-        Mix.Tasks.Deps.Parallel.server(deps, count, force?)
+        Mix.shell().info("mix deps.compile running across #{count} OS processes")
+        Mix.Tasks.Deps.Partition.server(deps, count, force?)
       else
         config = Mix.Project.deps_config()
         true in Enum.map(deps, &compile_single(&1, force?, config))

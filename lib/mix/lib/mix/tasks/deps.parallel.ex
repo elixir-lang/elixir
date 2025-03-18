@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: 2021 The Elixir Team
 
-defmodule Mix.Tasks.Deps.Parallel do
+defmodule Mix.Tasks.Deps.Partition do
   @moduledoc false
   use Mix.Task
 
@@ -20,7 +20,7 @@ defmodule Mix.Tasks.Deps.Parallel do
   defp server(socket, deps, count, force?) do
     elixir =
       System.find_executable("elixir") ||
-        raise "cannot find elixir executable for parallel compilation"
+        raise "cannot find elixir executable for partition compilation"
 
     {:ok, {ip, port}} = :inet.sockname(socket)
     ansi_flag = if IO.ANSI.enabled?(), do: ~c"--color", else: ~c"--no-color"
@@ -30,7 +30,7 @@ defmodule Mix.Tasks.Deps.Parallel do
       ansi_flag,
       ~c"-e",
       ~c"Mix.CLI.main()",
-      ~c"deps.parallel",
+      ~c"deps.partition",
       force_flag,
       ~c"--port",
       Integer.to_charlist(port),
@@ -51,7 +51,7 @@ defmodule Mix.Tasks.Deps.Parallel do
     clients =
       Enum.map(1..count//1, fn index ->
         if Mix.debug?() do
-          IO.puts("-> Starting mix deps.parallel ##{index}")
+          IO.puts("-> Starting mix deps.partition ##{index}")
         end
 
         port = Port.open({:spawn_executable, String.to_charlist(elixir)}, options)
@@ -62,7 +62,7 @@ defmodule Mix.Tasks.Deps.Parallel do
 
           error ->
             raise """
-            could not start parallel dependency compiler, no connection made to TCP port: #{inspect(error)}
+            could not start partition dependency compiler, no connection made to TCP port: #{inspect(error)}
 
             The spawned operating system process wrote the following output:
             #{close_port(port, "")}
@@ -85,7 +85,7 @@ defmodule Mix.Tasks.Deps.Parallel do
 
       {dep, deps} ->
         if Mix.debug?() do
-          Mix.shell().info("-- Sending #{dep.app} to mix deps.parallel #{client.index}")
+          Mix.shell().info("-- Sending #{dep.app} to mix deps.partition #{client.index}")
         end
 
         :gen_tcp.send(client.socket, "#{dep.app}\n")
@@ -110,20 +110,20 @@ defmodule Mix.Tasks.Deps.Parallel do
         {client, busy} = pop_with(busy, &(&1.socket == socket))
 
         if Mix.debug?() do
-          Mix.shell().info("-- mix deps.parallel #{client.index} compiled #{app}")
+          Mix.shell().info("-- mix deps.partition #{client.index} compiled #{app}")
         end
 
         send_deps_and_server_loop([client | available], busy, deps, [{app, status} | completed])
 
       {:tcp_closed, socket} ->
         shutdown_clients(available ++ busy)
-        Mix.shell().error("ERROR! mix deps.parallel #{inspect(socket)} closed unexpectedly")
+        Mix.shell().error("ERROR! mix deps.partition #{inspect(socket)} closed unexpectedly")
 
       {:tcp_error, socket, error} ->
         shutdown_clients(available ++ busy)
 
         Mix.shell().error(
-          "ERROR! mix deps.parallel #{inspect(socket)} errored: #{inspect(error)}"
+          "ERROR! mix deps.partition #{inspect(socket)} errored: #{inspect(error)}"
         )
 
       {port, {:data, {eol, data}}} ->
@@ -147,7 +147,7 @@ defmodule Mix.Tasks.Deps.Parallel do
   defp shutdown_clients(clients) do
     Enum.each(clients, fn %{socket: socket, port: port, index: index} ->
       if Mix.debug?() do
-        IO.puts("-> Closing mix deps.parallel ##{index}")
+        IO.puts("-> Closing mix deps.partition ##{index}")
       end
 
       _ = :gen_tcp.close(socket)
