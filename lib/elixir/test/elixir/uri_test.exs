@@ -460,6 +460,11 @@ defmodule URITest do
              "https://images.example.com/t/1600x/https://images.example.com/foo.jpg"
   end
 
+  test "merge/2 with host-less URIs" do
+    assert URI.merge("tag:example", "foo") |> to_string == "tag:foo"
+    assert URI.merge("tag:example", "#fragment") |> to_string == "tag:example#fragment"
+  end
+
   test "merge/2 (with RFC examples)" do
     # These are examples from:
     #
