@@ -5,11 +5,20 @@ defmodule Mix.Tasks.Deps.Parallel do
   ## Server
 
   def server(deps, count, force?) do
+    {:ok, socket} = :gen_tcp.listen(0, [:binary, packet: :line, active: true, reuseaddr: true])
+
+    try do
+      server(socket, deps, count, force?)
+    after
+      :gen_tcp.close(socket)
+    end
+  end
+
+  defp server(socket, deps, count, force?) do
     elixir =
       System.find_executable("elixir") ||
         raise "cannot find elixir executable for parallel compilation"
 
-    {:ok, socket} = :gen_tcp.listen(0, [:binary, packet: :line, active: true, reuseaddr: true])
     {:ok, {ip, port}} = :inet.sockname(socket)
     ansi_flag = if IO.ANSI.enabled?(), do: ~c"--color", else: ~c"--no-color"
     force_flag = if force?, do: ~c"--force", else: ~c"--no-force"
@@ -53,7 +62,7 @@ defmodule Mix.Tasks.Deps.Parallel do
             could not start parallel dependency compiler, no connection made to TCP port: #{inspect(error)}
 
             The spawned operating system process wrote the following output:
-            #{collect_data(port, "")}
+            #{close_port(port, "")}
             """
         end
       end)
@@ -105,11 +114,14 @@ defmodule Mix.Tasks.Deps.Parallel do
 
       {:tcp_closed, socket} ->
         shutdown_clients(available ++ busy)
-        raise "socket #{inspect(socket)} closed unexpectedly"
+        Mix.shell().error("ERROR! mix deps.parallel #{inspect(socket)} closed unexpectedly")
 
       {:tcp_error, socket, error} ->
         shutdown_clients(available ++ busy)
-        raise "socket #{inspect(socket)} errored: #{inspect(error)}"
+
+        Mix.shell().error(
+          "ERROR! mix deps.parallel #{inspect(socket)} errored: #{inspect(error)}"
+        )
 
       {port, {:data, {eol, data}}} ->
         with %{index: index} <-
@@ -136,16 +148,18 @@ defmodule Mix.Tasks.Deps.Parallel do
       end
 
       _ = :gen_tcp.close(socket)
-      IO.write(collect_data(port, "#{index}> "))
+      IO.write(close_port(port, "#{index}> "))
     end)
   end
 
-  defp collect_data(port, prefix) do
+  defp close_port(port, prefix) do
     receive do
-      {^port, {:data, {:eol, data}}} -> [prefix, data, ?\n | collect_data(port, prefix)]
-      {^port, {:data, {:noeol, data}}} -> [data | collect_data(port, prefix)]
+      {^port, {:data, {:eol, data}}} -> [prefix, data, ?\n | close_port(port, prefix)]
+      {^port, {:data, {:noeol, data}}} -> [data | close_port(port, prefix)]
     after
-      0 -> []
+      0 ->
+        Port.close(port)
+        []
     end
   end
 
