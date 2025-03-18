@@ -26,6 +26,8 @@ source_exclude =
     []
   end
 
+Code.eval_file("../../../../cover_record.exs", __ENV__.file)
+
 ExUnit.start(
   assert_receive_timeout: assert_timeout,
   trace: !!System.get_env("TRACE"),
