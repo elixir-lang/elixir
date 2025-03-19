@@ -10,7 +10,7 @@ defmodule Mix.Tasks.Deps.Partition do
   @deps_partition_install_mix_exs ~c"deps.partition.mix.exs"
 
   def server(deps, count, force?) do
-    {:ok, socket} = :gen_tcp.listen(0, [:binary, packet: :line, active: true, reuseaddr: true])
+    {:ok, socket} = :gen_tcp.listen(0, [:binary, packet: :line, active: false])
 
     try do
       server(socket, deps, count, force?)
@@ -71,28 +71,37 @@ defmodule Mix.Tasks.Deps.Partition do
       :use_stdio,
       :stderr_to_stdout,
       line: 1_000_000,
-      args: args,
       env: [{~c"MIX_OS_CONCURRENCY_LOCK", ~c"false"} | env_vars]
     ]
 
-    clients =
-      Enum.map(1..count//1, fn index ->
+    ports =
+      Map.new(1..count//1, fn index ->
         if Mix.debug?() do
           IO.puts("-> Starting mix deps.partition ##{index}")
         end
 
-        port = Port.open({:spawn_executable, String.to_charlist(elixir)}, options)
+        args = args ++ [~c"--index", Integer.to_charlist(index)]
+        port = Port.open({:spawn_executable, String.to_charlist(elixir)}, [args: args] ++ options)
 
-        case :gen_tcp.accept(socket, 15000) do
-          {:ok, client} ->
-            %{port: port, index: index, socket: client}
+        {index, port}
+      end)
 
+    clients =
+      Enum.map(1..count//1, fn _ ->
+        with {:ok, client} <- :gen_tcp.accept(socket, 15000),
+             {:ok, message} <- :gen_tcp.recv(socket, 0, 15000) do
+          :inet.setopts(client, active: true)
+          index = message |> String.trim() |> String.to_integer()
+          %{port: Map.fetch!(ports, index), index: index, socket: client}
+        else
           error ->
+            logs =
+              Enum.map_join(ports, "\n", fn {index, port} -> close_port(port, "#{index} >") end)
+
             Mix.raise("""
             could not start partition dependency compiler, no connection made to TCP port: #{inspect(error)}
 
-            The spawned operating system process wrote the following output:
-            #{close_port(port, "")}
+            #{logs}
             """)
         end
       end)
@@ -203,7 +212,7 @@ defmodule Mix.Tasks.Deps.Partition do
 
   ## Client
 
-  @switches [port: :integer, host: :string, force: :boolean]
+  @switches [port: :integer, host: :string, force: :boolean, index: :string]
 
   @impl true
   def run(args) do
@@ -216,10 +225,13 @@ defmodule Mix.Tasks.Deps.Partition do
     {opts, []} = OptionParser.parse!(args, strict: @switches)
     host = Keyword.fetch!(opts, :host)
     port = Keyword.fetch!(opts, :port)
+    index = Keyword.fetch!(opts, :index)
     force? = Keyword.get(opts, :force, false)
 
     {:ok, socket} =
       :gen_tcp.connect(String.to_charlist(host), port, [:binary, packet: :line, active: false])
+
+    :gen_tcp.send(socket, "#{index}\n")
 
     try do
       deps = Mix.Dep.load_and_cache()
