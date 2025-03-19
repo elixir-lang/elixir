@@ -95,6 +95,16 @@ defmodule ExUnit.CaptureLogTest do
     end)
   end
 
+  test "exits don't leak" do
+    Process.flag(:trap_exit, true)
+
+    capture_log(fn ->
+      Logger.error("oh no!")
+    end)
+
+    refute_receive {:EXIT, _, _}
+  end
+
   describe "with_log/2" do
     test "returns the result and the log" do
       {result, log} =
