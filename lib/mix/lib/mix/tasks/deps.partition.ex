@@ -89,7 +89,7 @@ defmodule Mix.Tasks.Deps.Partition do
     clients =
       Enum.map(1..count//1, fn _ ->
         with {:ok, client} <- :gen_tcp.accept(socket, 15000),
-             {:ok, message} <- :gen_tcp.recv(socket, 0, 15000) do
+             {:ok, message} <- :gen_tcp.recv(client, 0, 15000) do
           :inet.setopts(client, active: true)
           index = message |> String.trim() |> String.to_integer()
           %{port: Map.fetch!(ports, index), index: index, socket: client}
