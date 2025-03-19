@@ -420,7 +420,7 @@ defmodule Mix do
 
   """
 
-  @mix_install_project __MODULE__.InstallProject
+  @mix_install_project Mix.InstallProject
   @mix_install_app :mix_install
   @mix_install_app_string Atom.to_string(@mix_install_app)
 
@@ -905,9 +905,7 @@ defmodule Mix do
 
     case Mix.State.get(:installed) do
       nil ->
-        Application.put_all_env(config, persistent: true)
         System.put_env(system_env)
-
         install_project_dir = install_project_dir(id)
 
         if Keyword.fetch!(opts, :verbose) do
@@ -924,10 +922,14 @@ defmodule Mix do
           config_path: config_path
         ]
 
-        config = install_project_config(dynamic_config)
+        :ok =
+          Mix.ProjectStack.push(
+            @mix_install_project,
+            [compile_config: config] ++ install_project_config(dynamic_config),
+            "nofile"
+          )
 
         started_apps = Application.started_applications()
-        :ok = Mix.ProjectStack.push(@mix_install_project, config, "nofile")
         build_dir = Path.join(install_project_dir, "_build")
         external_lockfile = expand_path(opts[:lockfile], deps, :lockfile, "mix.lock")
 
@@ -944,9 +946,9 @@ defmodule Mix do
           File.mkdir_p!(install_project_dir)
 
           File.cd!(install_project_dir, fn ->
-            if config_path do
-              Mix.Task.rerun("loadconfig")
-            end
+            # This steps need to be mirror in mix deps.partition
+            Application.put_all_env(config, persistent: true)
+            Mix.Task.rerun("loadconfig")
 
             cond do
               external_lockfile ->
@@ -1079,7 +1081,7 @@ defmodule Mix do
 
   defp install_project_config(dynamic_config) do
     [
-      version: "0.1.0",
+      version: "1.0.0",
       build_per_environment: true,
       build_path: "_build",
       lockfile: "mix.lock",

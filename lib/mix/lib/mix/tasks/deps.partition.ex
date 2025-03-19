@@ -7,6 +7,8 @@ defmodule Mix.Tasks.Deps.Partition do
 
   ## Server
 
+  @deps_partition_install_mix_exs ~c"deps.partition.mix.exs"
+
   def server(deps, count, force?) do
     {:ok, socket} = :gen_tcp.listen(0, [:binary, packet: :line, active: true, reuseaddr: true])
 
@@ -25,6 +27,31 @@ defmodule Mix.Tasks.Deps.Partition do
     {:ok, {ip, port}} = :inet.sockname(socket)
     ansi_flag = if IO.ANSI.enabled?(), do: ~c"--color", else: ~c"--no-color"
     force_flag = if force?, do: ~c"--force", else: ~c"--no-force"
+
+    env_vars =
+      if Mix.install?() do
+        blob =
+          Mix.Project.config()
+          |> :erlang.term_to_binary()
+          |> :binary.bin_to_list()
+          |> Enum.join(",")
+
+        # We replicate the initialization logic from Mix.install/2 as part of mix.exs
+        File.write!(@deps_partition_install_mix_exs, """
+        config = <<#{blob}>>
+        project = :erlang.binary_to_term(config)
+
+        if compile_config = project[:compile_config] do
+          Application.put_all_env(compile_config, persistent: true)
+        end
+
+        Mix.ProjectStack.push(Mix.InstallProject, project, "nofile")
+        """)
+
+        [{~c"MIX_EXS", @deps_partition_install_mix_exs}]
+      else
+        []
+      end
 
     args = [
       ansi_flag,
@@ -45,7 +72,7 @@ defmodule Mix.Tasks.Deps.Partition do
       :stderr_to_stdout,
       line: 1_000_000,
       args: args,
-      env: [{~c"MIX_OS_CONCURRENCY_LOCK", ~c"false"}]
+      env: [{~c"MIX_OS_CONCURRENCY_LOCK", ~c"false"} | env_vars]
     ]
 
     clients =
@@ -123,11 +150,11 @@ defmodule Mix.Tasks.Deps.Partition do
 
       {:tcp_closed, socket} ->
         shutdown_clients(available ++ busy)
-        Mix.raise("ERROR! mix deps.partition #{inspect(socket)} closed unexpectedly")
+        Mix.raise("mix deps.partition #{inspect(socket)} closed unexpectedly")
 
       {:tcp_error, socket, error} ->
         shutdown_clients(available ++ busy)
-        Mix.raise("ERROR! mix deps.partition #{inspect(socket)} errored: #{inspect(error)}")
+        Mix.raise("mix deps.partition #{inspect(socket)} errored: #{inspect(error)}")
 
       {port, {:data, {eol, data}}} ->
         with %{index: index} <-
@@ -164,7 +191,12 @@ defmodule Mix.Tasks.Deps.Partition do
       {^port, {:data, {:noeol, data}}} -> [data | close_port(port, prefix)]
     after
       0 ->
-        Port.close(port)
+        try do
+          Port.close(port)
+        catch
+          _, _ -> :ok
+        end
+
         []
     end
   end
