@@ -530,6 +530,7 @@ defmodule URITest do
     #
     # https://w3c.github.io/json-ld-api/tests/toRdf-manifest#t0124
     # https://w3c.github.io/json-ld-api/tests/toRdf-manifest#t0125
+    # https://w3c.github.io/json-ld-api/tests/toRdf-manifest#t0123
 
     base1 = "http://a/bb/ccc/."
 
@@ -631,6 +632,57 @@ defmodule URITest do
 
     for {rel, result} <- rel_and_result2 do
       assert URI.merge(base2, rel) |> URI.to_string() == result
+    end
+
+    base3 = "http://a/bb/ccc/../d;p?q"
+
+    rel_and_result = %{
+      "g:h" => "g:h",
+      "g" => "http://a/bb/g",
+      "./g" => "http://a/bb/g",
+      "g/" => "http://a/bb/g/",
+      "/g" => "http://a/g",
+      "//g" => "http://g",
+      "?y" => "http://a/bb/ccc/../d;p?y",
+      "g?y" => "http://a/bb/g?y",
+      "#s" => "http://a/bb/ccc/../d;p?q#s",
+      "g#s" => "http://a/bb/g#s",
+      "g?y#s" => "http://a/bb/g?y#s",
+      ";x" => "http://a/bb/;x",
+      "g;x" => "http://a/bb/g;x",
+      "g;x?y#s" => "http://a/bb/g;x?y#s",
+      "" => "http://a/bb/ccc/../d;p?q",
+      "." => "http://a/bb/",
+      "./" => "http://a/bb/",
+      ".." => "http://a/",
+      "../" => "http://a/",
+      "../g" => "http://a/g",
+      "../.." => "http://a/",
+      "../../" => "http://a/",
+      "../../g" => "http://a/g",
+      "../../../g" => "http://a/g",
+      "../../../../g" => "http://a/g",
+      "/./g" => "http://a/g",
+      "/../g" => "http://a/g",
+      "g." => "http://a/bb/g.",
+      ".g" => "http://a/bb/.g",
+      "g.." => "http://a/bb/g..",
+      "..g" => "http://a/bb/..g",
+      "./../g" => "http://a/g",
+      "./g/." => "http://a/bb/g/",
+      "g/./h" => "http://a/bb/g/h",
+      "g/../h" => "http://a/bb/h",
+      "g;x=1/./y" => "http://a/bb/g;x=1/y",
+      "g;x=1/../y" => "http://a/bb/y",
+      "g?y/./x" => "http://a/bb/g?y/./x",
+      "g?y/../x" => "http://a/bb/g?y/../x",
+      "g#s/./x" => "http://a/bb/g#s/./x",
+      "g#s/../x" => "http://a/bb/g#s/../x",
+      "http:g" => "http:g"
+    }
+
+    for {rel, result} <- rel_and_result do
+      assert URI.merge(base3, rel) |> URI.to_string() == result
     end
   end
 
