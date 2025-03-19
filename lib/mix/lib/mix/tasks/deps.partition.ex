@@ -70,16 +70,19 @@ defmodule Mix.Tasks.Deps.Partition do
         end
       end)
 
-    send_deps_and_server_loop(clients, [], deps, [])
+    status = Map.new(deps, &{&1.app, :pending})
+    send_deps_and_server_loop(clients, [], deps, status)
   end
 
-  defp send_deps_and_server_loop(available, busy, deps, completed) do
-    {available, busy, deps} = send_deps(available, busy, deps, completed)
-    server_loop(available, busy, deps, completed)
+  defp send_deps_and_server_loop(available, busy, deps, status) do
+    {available, busy, deps} = send_deps(available, busy, deps, status)
+    server_loop(available, busy, deps, status)
   end
 
-  defp send_deps([client | available], busy, deps, completed) do
-    case pop_with(deps, fn dep -> Enum.all?(dep.deps, &not_pending?(&1.app, deps, completed)) end) do
+  defp send_deps([client | available], busy, deps, status) do
+    case pop_with(deps, fn dep ->
+           Enum.all?(dep.deps, &(Map.get(status, &1.app, :unknown) != :pending))
+         end) do
       :error ->
         {[client | available], busy, deps}
 
@@ -89,35 +92,34 @@ defmodule Mix.Tasks.Deps.Partition do
         end
 
         :gen_tcp.send(client.socket, "#{dep.app}\n")
-        send_deps(available, [client | busy], deps, completed)
+        send_deps(available, [client | busy], deps, status)
     end
   end
 
-  defp send_deps([], busy, deps, _completed) do
+  defp send_deps([], busy, deps, _status) do
     {[], busy, deps}
   end
 
-  defp not_pending?(app, deps, completed) do
-    Keyword.has_key?(completed, app) or not Enum.any?(deps, &(&1.app == app))
-  end
-
-  defp server_loop(available, _busy = [], _deps = [], completed) do
+  defp server_loop(available, _busy = [], _deps = [], status) do
     shutdown_clients(available)
-    Enum.any?(completed, &(elem(&1, 1) == true))
+    Enum.any?(status, &(elem(&1, 1) == true))
   end
 
-  defp server_loop(available, busy, deps, completed) do
+  defp server_loop(available, busy, deps, status) do
     receive do
       {:tcp, socket, data} ->
-        [app, status] = data |> String.trim() |> String.split(":") |> Enum.map(&String.to_atom/1)
+        [app, compiled?] =
+          data |> String.trim() |> String.split(":") |> Enum.map(&String.to_atom/1)
+
         deps = Enum.reject(deps, &(&1.app == app))
+        status = Map.replace!(status, app, compiled?)
         {client, busy} = pop_with(busy, &(&1.socket == socket))
 
         if Mix.debug?() do
           Mix.shell().info("-- mix deps.partition #{client.index} compiled #{app}")
         end
 
-        send_deps_and_server_loop([client | available], busy, deps, [{app, status} | completed])
+        send_deps_and_server_loop([client | available], busy, deps, status)
 
       {:tcp_closed, socket} ->
         shutdown_clients(available ++ busy)
@@ -134,7 +136,7 @@ defmodule Mix.Tasks.Deps.Partition do
           IO.write([Integer.to_string(index), "> ", data, terminator])
         end
 
-        server_loop(available, busy, deps, completed)
+        server_loop(available, busy, deps, status)
     end
   end
 
