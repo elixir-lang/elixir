@@ -35,13 +35,13 @@ defmodule Mix.Tasks.Deps.Compile do
   recompiled without propagating those changes upstream. To ensure
   `b` is included in the compilation step, pass `--include-children`.
 
-  ## Compiling dependencies across multiple OSes processes
+  ## Compiling dependencies across multiple OS processes
 
   If you set the environment variable `MIX_OS_DEPS_COMPILE_PARTITION_COUNT`
   to a number greater than 1, Mix will start multiple operating system
   processes to compile your dependencies concurrently.
 
-  While Mix and Rebar will compile all files in a given project in parallel,
+  While Mix and Rebar compile all files within a given project in parallel,
   enabling this environment variable can still yield useful gains in several
   cases, such as when compiling dependencies with native code, dependencies
   that must download assets, or dependencies where the compilation time is not
