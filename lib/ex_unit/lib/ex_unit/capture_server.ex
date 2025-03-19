@@ -231,6 +231,8 @@ defmodule ExUnit.CaptureServer do
   ## :logger handler callback.
 
   def log(event, _config) do
+    trap_exits = Process.flag(:trap_exit, false)
+
     :ets.tab2list(@ets)
     |> Enum.filter(fn {_ref, _string_io, level, _formatter_mod, _formatter_config} ->
       :logger.compare_levels(event.level, level) in [:gt, :eq]
@@ -254,6 +256,8 @@ defmodule ExUnit.CaptureServer do
       end)
     end)
     |> Task.await_many(:infinity)
+
+    Process.flag(:trap_exit, trap_exits)
 
     :ok
   end
