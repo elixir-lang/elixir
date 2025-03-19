@@ -35,6 +35,24 @@ defmodule Mix.Tasks.Deps.Compile do
   recompiled without propagating those changes upstream. To ensure
   `b` is included in the compilation step, pass `--include-children`.
 
+  ## Compiling dependencies across multiple OSes processes
+
+  If you set the environment variable `MIX_OS_DEPS_COMPILE_PARTITION_COUNT`
+  to a number greater than 1, Mix will start multiple operating system
+  processes to compile your dependencies concurrently.
+
+  While Mix and Rebar will compile all files in a given project in parallel,
+  enabling this environment variable can still yield useful gains in several
+  cases, such as when compiling dependencies with native code, dependencies
+  that must download assets, or dependencies where the compilation time is not
+  evenly distributed (for example, one file takes much longer to compile than
+  all others).
+
+  While most configuration in Mix is done via command line flags, this particular
+  environment variable exists because the best number will vary per machine
+  (and often per project too). The environment variable also makes it more accessible
+  to enable concurrent compilation in CI and also during `Mix.install/2` commands.
+
   ## Command line options
 
     * `--force` - force compilation of deps
@@ -57,7 +75,6 @@ defmodule Mix.Tasks.Deps.Compile do
     end
 
     Mix.Project.get!()
-
     config = Mix.Project.config()
 
     Mix.Project.with_build_lock(config, fn ->
@@ -86,7 +103,7 @@ defmodule Mix.Tasks.Deps.Compile do
     count = System.get_env("MIX_OS_DEPS_COMPILE_PARTITION_COUNT", "0") |> String.to_integer()
 
     compiled? =
-      if count > 1 and length(deps) > count do
+      if count > 1 and length(deps) > 1 do
         Mix.shell().info("mix deps.compile running across #{count} OS processes")
         Mix.Tasks.Deps.Partition.server(deps, count, force?)
       else
