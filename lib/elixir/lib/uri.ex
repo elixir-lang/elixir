@@ -962,6 +962,8 @@ defmodule URI do
   defp remove_dot_segments([".." | tail], [_ | acc]), do: remove_dot_segments(tail, acc)
   defp remove_dot_segments([head | tail], acc), do: remove_dot_segments(tail, [head | acc])
 
+  defp join_reversed_segments([:/]), do: "/"
+
   defp join_reversed_segments(segments) do
     case Enum.reverse(segments) do
       [:/ | tail] -> ["" | tail]
