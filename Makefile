@@ -224,7 +224,7 @@ docs_logger: compile ../ex_doc/bin/ex_doc
 	$(call DOCS_CONFIG,logger)
 
 ../ex_doc/bin/ex_doc:
-	@ echo "ex_doc is not found in ../ex_doc as expected. See README for more information."
+	@ echo "ex_doc is not found in ../ex_doc as expected. See CONTRIBUTING.md for more information."
 	@ false
 
 #==> Zip tasks
