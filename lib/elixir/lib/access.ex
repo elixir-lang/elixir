@@ -999,6 +999,124 @@ defmodule Access do
     raise ArgumentError, "Access.slice/1 expected a list, got: #{inspect(data)}"
   end
 
+  @doc """
+  Returns a function that accesses all values in a map.
+
+  The returned function is typically passed as an accessor to `Kernel.get_in/2`,
+  `Kernel.get_and_update_in/3`, and friends.
+
+  See `keys/0` for a function that accesses all keys in a map.
+
+  ## Examples
+
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> get_in(users, [Access.values(), :age])
+      [27, 23]
+      iex> update_in(users, [Access.values(), :age], fn age -> age + 1 end)
+      %{"john" => %{age: 28}, "meg" => %{age: 24}}
+      iex> put_in(users, [Access.values(), :planet], "Earth")
+      %{"john" => %{age: 27, planet: "Earth"}, "meg" => %{age: 23, planet: "Earth"}}
+
+  By returning `:pop` from an accessor function, you can remove the accessed key and value
+  from the map:
+
+      iex> require Integer
+      iex> numbers = %{one: 1, two: 2, three: 3, four: 4}
+      iex> get_and_update_in(numbers, [Access.values()], fn num ->
+      ...>   if Integer.is_even(num), do: :pop, else: {num, to_string(num)}
+      ...> end)
+      {[1, 2, 3, 4], %{one: "1", three: "3"}}
+
+  An error is raised if the accessed structure is not a map:
+
+      iex> get_in([1, 2, 3], [Access.values()])
+      ** (RuntimeError) Access.values/0 expected a map, got: [1, 2, 3]
+  """
+  @spec values() :: Access.access_fun(data :: map(), current_value :: list())
+  def values do
+    &values/3
+  end
+
+  defp values(:get, data = %{}, next) do
+    Enum.map(data, fn {_key, value} -> next.(value) end)
+  end
+
+  defp values(:get_and_update, data = %{}, next) do
+    {reverse_gets, updated_data} =
+      Enum.reduce(data, {[], %{}}, fn {key, value}, {gets, data_acc} ->
+        case next.(value) do
+          {get, update} -> {[get | gets], Map.put(data_acc, key, update)}
+          :pop -> {[value | gets], data_acc}
+        end
+      end)
+
+    {Enum.reverse(reverse_gets), updated_data}
+  end
+
+  defp values(_op, data, _next) do
+    raise "Access.values/0 expected a map, got: #{inspect(data)}"
+  end
+
+  @doc """
+  Returns a function that accesses all keys in a map.
+
+  The returned function is typically passed as an accessor to `Kernel.get_in/2`,
+  `Kernel.get_and_update_in/3`, and friends.
+
+  Beware that returning the same key multiple times in `Kernel.put_in/3`, `Kernel.update_in/3`,
+  or `Kernel.get_and_update_in/3` will cause the previous values of the same key to be
+  overwritten as maps cannot have duplicate keys.
+
+  See `values/0` for a function that accesses all values in a map.
+
+  ## Examples
+
+      iex> data = %{users: %{"john" => %{age: 27}, "meg" => %{age: 23}}}
+      iex> get_in(data, [:users, Access.keys()])
+      ["john", "meg"]
+      iex> update_in(data, [:users, Access.keys()], fn name -> String.upcase(name) end)
+      %{users: %{"JOHN" => %{age: 27}, "MEG" => %{age: 23}}}
+
+  By returning `:pop` from an accessor function, you can remove the accessed key and value
+  from the map:
+
+      iex> require Integer
+      iex> numbers = %{1 => "one", 2 => "two", 3 => "three", 4 => "four"}
+      iex> get_and_update_in(numbers, [Access.keys()], fn num ->
+      ...>   if Integer.is_even(num), do: :pop, else: {num, to_string(num)}
+      ...> end)
+      {[1, 2, 3, 4], %{"1" => "one", "3" => "three"}}
+
+  An error is raised if the accessed structure is not a map:
+
+      iex> get_in([1, 2, 3], [Access.keys()])
+      ** (RuntimeError) Access.keys/0 expected a map, got: [1, 2, 3]
+  """
+  @spec keys() :: Access.access_fun(data :: map(), current_value :: list())
+  def keys do
+    &keys/3
+  end
+
+  defp keys(:get, data = %{}, next) do
+    Enum.map(data, fn {key, _value} -> next.(key) end)
+  end
+
+  defp keys(:get_and_update, data = %{}, next) do
+    {reverse_gets, updated_data} =
+      Enum.reduce(data, {[], %{}}, fn {key, value}, {gets, data_acc} ->
+        case next.(key) do
+          {get, update} -> {[get | gets], Map.put(data_acc, update, value)}
+          :pop -> {[key | gets], data_acc}
+        end
+      end)
+
+    {Enum.reverse(reverse_gets), updated_data}
+  end
+
+  defp keys(_op, data, _next) do
+    raise "Access.keys/0 expected a map, got: #{inspect(data)}"
+  end
+
   defp normalize_range(%Range{first: first, last: last, step: step}, list)
        when first < 0 or last < 0 do
     count = length(list)
