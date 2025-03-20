@@ -1032,6 +1032,7 @@ defmodule Access do
       iex> get_in([1, 2, 3], [Access.values()])
       ** (RuntimeError) Access.values/0 expected a map, got: [1, 2, 3]
   """
+  @doc since: "1.19.0"
   @spec values() :: Access.access_fun(data :: map(), current_value :: list())
   def values do
     &values/3
@@ -1092,6 +1093,7 @@ defmodule Access do
       iex> get_in([1, 2, 3], [Access.keys()])
       ** (RuntimeError) Access.keys/0 expected a map, got: [1, 2, 3]
   """
+  @doc since: "1.19.0"
   @spec keys() :: Access.access_fun(data :: map(), current_value :: list())
   def keys do
     &keys/3
