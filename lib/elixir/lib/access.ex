@@ -1000,7 +1000,7 @@ defmodule Access do
   end
 
   @doc """
-  Returns a function that accesses all values in a map.
+  Returns a function that accesses all values in a map or a keyword list.
 
   The returned function is typically passed as an accessor to `Kernel.get_in/2`,
   `Kernel.get_and_update_in/3`, and friends.
@@ -1008,30 +1008,36 @@ defmodule Access do
   ## Examples
 
       iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
-      iex> get_in(users, [Access.values(), :age])
-      [27, 23]
+      iex> get_in(users, [Access.values(), :age]) |> Enum.sort()
+      [23, 27]
       iex> update_in(users, [Access.values(), :age], fn age -> age + 1 end)
       %{"john" => %{age: 28}, "meg" => %{age: 24}}
       iex> put_in(users, [Access.values(), :planet], "Earth")
       %{"john" => %{age: 27, planet: "Earth"}, "meg" => %{age: 23, planet: "Earth"}}
 
+  Values in keyword lists can be accessed as well:
+
+      iex> users = [john: %{age: 27}, meg: %{age: 23}]
+      iex> get_and_update_in(users, [Access.values(), :age], fn age -> {age, age + 1} end)
+      {[27, 23], [john: %{age: 28}, meg: %{age: 24}]}
+
   By returning `:pop` from an accessor function, you can remove the accessed key and value
-  from the map:
+  from the map or keyword list:
 
       iex> require Integer
-      iex> numbers = %{one: 1, two: 2, three: 3, four: 4}
+      iex> numbers = [one: 1, two: 2, three: 3, four: 4]
       iex> get_and_update_in(numbers, [Access.values()], fn num ->
       ...>   if Integer.is_even(num), do: :pop, else: {num, to_string(num)}
       ...> end)
-      {[1, 2, 3, 4], %{one: "1", three: "3"}}
+      {[1, 2, 3, 4], [one: "1", three: "3"]}
 
-  An error is raised if the accessed structure is not a map:
+  An error is raised if the accessed structure is not a map nor a keyword list:
 
       iex> get_in([1, 2, 3], [Access.values()])
-      ** (RuntimeError) Access.values/0 expected a map, got: [1, 2, 3]
+      ** (RuntimeError) Access.values/0 expected a map or a keyword list, got: [1, 2, 3]
   """
   @doc since: "1.19.0"
-  @spec values() :: Access.access_fun(data :: map(), current_value :: list())
+  @spec values() :: Access.access_fun(data :: map() | keyword(), current_value :: list())
   def values do
     &values/3
   end
@@ -1052,8 +1058,32 @@ defmodule Access do
     {Enum.reverse(reverse_gets), updated_data}
   end
 
+  defp values(op, data = [], next) do
+    values_keyword(op, data, next)
+  end
+
+  defp values(op, data = [{key, _value} | _tail], next) when is_atom(key) do
+    values_keyword(op, data, next)
+  end
+
   defp values(_op, data, _next) do
-    raise "Access.values/0 expected a map, got: #{inspect(data)}"
+    raise "Access.values/0 expected a map or a keyword list, got: #{inspect(data)}"
+  end
+
+  defp values_keyword(:get, data, next) do
+    Enum.map(data, fn {_key, value} -> next.(value) end)
+  end
+
+  defp values_keyword(:get_and_update, data, next) do
+    {reverse_gets, reverse_updated_data} =
+      Enum.reduce(data, {[], []}, fn {key, value}, {gets, data_acc} ->
+        case next.(value) do
+          {get, update} -> {[get | gets], [{key, update} | data_acc]}
+          :pop -> {[value | gets], data_acc}
+        end
+      end)
+
+    {Enum.reverse(reverse_gets), Enum.reverse(reverse_updated_data)}
   end
 
   defp normalize_range(%Range{first: first, last: last, step: step}, list)
