@@ -1071,12 +1071,12 @@ defmodule Access do
   end
 
   defp values_keyword(:get, data, next) do
-    Enum.map(data, fn {_key, value} -> next.(value) end)
+    Enum.map(data, fn {key, value} when is_atom(key) -> next.(value) end)
   end
 
   defp values_keyword(:get_and_update, data, next) do
     {reverse_gets, reverse_updated_data} =
-      Enum.reduce(data, {[], []}, fn {key, value}, {gets, data_acc} ->
+      Enum.reduce(data, {[], []}, fn {key, value}, {gets, data_acc} when is_atom(key) ->
         case next.(value) do
           {get, update} -> {[get | gets], [{key, update} | data_acc]}
           :pop -> {[value | gets], data_acc}
