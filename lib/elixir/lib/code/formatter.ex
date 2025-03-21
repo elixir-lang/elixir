@@ -641,8 +641,21 @@ defmodule Code.Formatter do
     paren_fun_to_algebra(paren_fun, min_line, max_line, state)
   end
 
-  defp block_to_algebra({:__block__, _, []}, min_line, max_line, state) do
-    block_args_to_algebra([], min_line, max_line, state)
+  defp block_to_algebra({:__block__, meta, args}, _min_line, _max_line, state) when args in [[], [nil]] do
+    inner_comments = meta[:inner_comments] || []
+    comments_docs =
+      Enum.map(inner_comments, fn comment ->
+        comment = format_comment(comment)
+        {comment.text, @empty, 1}
+      end)
+
+    docs = merge_algebra_with_comments(comments_docs, @empty)
+
+    case docs do
+      [] -> {@empty, state}
+      [line] -> {line, state}
+      lines -> {lines |> Enum.reduce(&line(&2, &1)) |> force_unfit(), state}
+    end
   end
 
   defp block_to_algebra({:__block__, _, [_, _ | _] = args}, min_line, max_line, state) do
@@ -1827,7 +1840,12 @@ defmodule Code.Formatter do
       end
 
     {args_docs, comments?, state} =
-      quoted_to_algebra_with_comments(args, acc, min_line, max_line, state, arg_to_algebra)
+      case args do
+        [] ->
+          quoted_to_algebra_with_comments(args, acc, min_line, max_line, state, arg_to_algebra)
+        _ ->
+          quoted_to_algebra_with_comments(args, acc, min_line, max_line, state, arg_to_algebra)
+      end
 
     cond do
       args_docs == [] ->
@@ -2089,69 +2107,67 @@ defmodule Code.Formatter do
   end
 
   ## Quoted helpers for comments
-
-  defp quoted_to_algebra_with_comments(args, acc, min_line, max_line, state, fun) do
-    {pre_comments, state} =
-      get_and_update_in(state.comments, fn comments ->
-        Enum.split_while(comments, fn %{line: line} -> line <= min_line end)
-      end)
-
-    {reverse_docs, comments?, state} =
-      if state.comments == [] do
-        each_quoted_to_algebra_without_comments(args, acc, state, fun)
-      else
-        each_quoted_to_algebra_with_comments(args, acc, max_line, state, false, fun)
-      end
+  defp quoted_to_algebra_with_comments(args, acc, _min_line, _max_line, state, fun) do
+    {reverse_docs, comments?, state} = each_quoted_to_algebra_with_comments(args, acc, state, fun, false)
 
     docs = merge_algebra_with_comments(Enum.reverse(reverse_docs), @empty)
-    {docs, comments?, update_in(state.comments, &(pre_comments ++ &1))}
+
+    {docs, comments?, state}
   end
 
-  defp each_quoted_to_algebra_without_comments([], acc, state, _fun) do
-    {acc, false, state}
+  defp each_quoted_to_algebra_with_comments([], acc, state, _fun, comments?) do
+    {acc, comments?, state}
   end
 
-  defp each_quoted_to_algebra_without_comments([arg | args], acc, state, fun) do
+  defp each_quoted_to_algebra_with_comments([arg | args], acc, state, fun, comments?) do
     {doc_triplet, state} = fun.(arg, args, state)
-    acc = [doc_triplet | acc]
-    each_quoted_to_algebra_without_comments(args, acc, state, fun)
-  end
 
-  defp each_quoted_to_algebra_with_comments([], acc, max_line, state, comments?, _fun) do
-    {acc, comments, comments?} = extract_comments_before(max_line, acc, state.comments, comments?)
-    {acc, comments?, %{state | comments: comments}}
-  end
 
-  defp each_quoted_to_algebra_with_comments([arg | args], acc, max_line, state, comments?, fun) do
     case traverse_line(arg, {@max_line, @min_line}) do
       {@max_line, @min_line} ->
-        {doc_triplet, state} = fun.(arg, args, state)
         acc = [doc_triplet | acc]
-        each_quoted_to_algebra_with_comments(args, acc, max_line, state, comments?, fun)
+        each_quoted_to_algebra_with_comments(args, acc, state, fun, comments?)
 
       {doc_start, doc_end} ->
-        {acc, comments, comments?} =
-          extract_comments_before(doc_start, acc, state.comments, comments?)
+        {leading_comments, trailing_comments} =
+          case arg do
+            {_, meta, _} ->
+              leading_comments = meta[:leading_comments] || []
+              trailing_comments = meta[:trailing_comments] || []
+              {leading_comments, trailing_comments}
 
-        {doc_triplet, state} = fun.(arg, args, %{state | comments: comments})
+            {{_, left_meta, _}, {_, right_meta, _}} ->
+              leading_comments = left_meta[:leading_comments] || []
+              trailing_comments = right_meta[:trailing_comments] || []
 
-        {acc, comments, comments?} =
-          extract_comments_trailing(doc_start, doc_end, acc, state.comments, comments?)
+              {leading_comments, trailing_comments}
+            _ ->
+              {[], []}
+          end
 
-        acc = [adjust_trailing_newlines(doc_triplet, doc_end, comments) | acc]
-        state = %{state | comments: comments}
-        each_quoted_to_algebra_with_comments(args, acc, max_line, state, comments?, fun)
+        comments? = leading_comments != [] or trailing_comments != []
+
+        leading_docs = build_leading_comments([], leading_comments, doc_start)
+        trailing_docs = build_trailing_comments([], trailing_comments)
+
+        doc_triplet = adjust_trailing_newlines(doc_triplet, doc_end, trailing_comments)
+
+        acc = Enum.concat([trailing_docs, [doc_triplet], leading_docs, acc])
+
+        each_quoted_to_algebra_with_comments(args, acc, state, fun, comments?)
     end
   end
 
-  defp extract_comments_before(max, acc, [%{line: line} = comment | rest], _) when line < max do
-    %{previous_eol_count: previous, next_eol_count: next, text: doc} = comment
-    acc = [{doc, @empty, next} | add_previous_to_acc(acc, previous)]
-    extract_comments_before(max, acc, rest, true)
-  end
+  defp build_leading_comments(acc, [], _), do: acc
 
-  defp extract_comments_before(_max, acc, rest, comments?) do
-    {acc, rest, comments?}
+  defp build_leading_comments(acc, [comment | rest], doc_start) do
+    comment = format_comment(comment)
+    %{previous_eol_count: previous, next_eol_count: next, text: doc, line: line} = comment
+    # If the comment is on the same line as the document, we need to adjust the newlines
+    # such that the comment is placed right above the document line.
+    next = if line == doc_start, do: 1, else: next
+    acc = [{doc, @empty, next} | add_previous_to_acc(acc, previous)]
+    build_leading_comments(acc, rest, doc_start)
   end
 
   defp add_previous_to_acc([{doc, next_line, newlines} | acc], previous) when newlines < previous,
@@ -2159,15 +2175,13 @@ defmodule Code.Formatter do
 
   defp add_previous_to_acc(acc, _previous),
     do: acc
+  defp build_trailing_comments(acc, []), do: acc
 
-  defp extract_comments_trailing(min, max, acc, [%{line: line, text: doc_comment} | rest], _)
-       when line >= min and line <= max do
-    acc = [{doc_comment, @empty, 1} | acc]
-    extract_comments_trailing(min, max, acc, rest, true)
-  end
-
-  defp extract_comments_trailing(_min, _max, acc, rest, comments?) do
-    {acc, rest, comments?}
+  defp build_trailing_comments(acc, [comment | rest]) do
+    comment = format_comment(comment)
+    %{previous_eol_count: previous, next_eol_count: next, text: doc} = comment
+    acc = [{doc, @empty, next} | acc]
+    build_trailing_comments(acc, rest)
   end
 
   # If the document is immediately followed by comment which is followed by newlines,
@@ -2178,6 +2192,7 @@ defmodule Code.Formatter do
   end
 
   defp adjust_trailing_newlines(doc_triplet, _, _), do: doc_triplet
+
 
   defp traverse_line({expr, meta, args}, {min, max}) do
     # This is a hot path, so use :lists.keyfind/3 instead Keyword.fetch!/2
