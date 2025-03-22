@@ -14,10 +14,13 @@
 
 test() ->
   application:ensure_all_started(elixir),
-  case eunit:test(?TESTS) of
-    error -> erlang:halt(1);
-    _Res  -> erlang:halt(0)
-  end.
+  enable_coverage_report(),
+  ExitCode = case eunit:test(?TESTS) of
+    error -> 1;
+    _Res  -> 0
+  end,
+  write_report_coverage(),
+  erlang:halt(ExitCode).
 
 % Execute a piece of code and purge given modules right after
 run_and_remove(Fun, Modules) ->
@@ -39,3 +42,20 @@ throw_erlang(String) ->
   {ok, Tokens, _} = erl_scan:string(String),
   {ok, [Form]} = erl_parse:parse_exprs(Tokens),
   erlang:error(io:format("~p~n", [Form])).
+
+enable_coverage_report() ->
+  case os:getenv("COVER_FILE") of
+    false -> ok;
+    _File ->
+      _ = cover:stop(),
+      {ok, _Pid} = cover:start(),
+      Ebin = filename:dirname(filename:absname(?FILE)) ++ "/../../ebin",
+      % TODO: Check Result
+      cover:compile_beam_directory(Ebin)
+  end.
+
+write_report_coverage() ->
+  case os:getenv("COVER_FILE") of
+    false -> ok;
+    File -> cover:export(File)
+  end.

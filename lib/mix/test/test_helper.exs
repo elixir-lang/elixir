@@ -46,6 +46,8 @@ cover_exclude =
     []
   end
 
+Code.eval_file("../../../../cover_record.exs", __ENV__.file)
+
 ExUnit.start(
   trace: !!System.get_env("TRACE"),
   exclude: epmd_exclude ++ os_exclude ++ git_exclude ++ line_exclude ++ cover_exclude,
