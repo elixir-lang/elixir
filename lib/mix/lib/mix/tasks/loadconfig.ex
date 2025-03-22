@@ -40,10 +40,10 @@ defmodule Mix.Tasks.Loadconfig do
   end
 
   defp load_default do
-    config = Mix.Project.config()
+    config_path = Mix.Project.config()[:config_path]
 
-    if File.regular?(config[:config_path]) or config[:config_path] != "config/config.exs" do
-      load_compile(config[:config_path])
+    if config_path != nil and (File.regular?(config_path) or config_path != "config/config.exs") do
+      load_compile(config_path)
     else
       []
     end

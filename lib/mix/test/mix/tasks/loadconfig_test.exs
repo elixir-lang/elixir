@@ -67,6 +67,11 @@ defmodule Mix.Tasks.LoadconfigTest do
     end)
   end
 
+  test "is a no-op with nil custom config_path" do
+    Mix.ProjectStack.post_config(config_path: nil)
+    assert Mix.Task.run("loadconfig", []) == []
+  end
+
   test "updates config files and config mtime", context do
     in_tmp(context.test, fn ->
       Mix.Project.push(MixTest.Case.Sample)

@@ -359,7 +359,11 @@ defmodule Mix do
     * `MIX_OS_CONCURRENCY_LOCK` - when set to `0` or `false`, disables mix compilation locking.
       While not recommended, this may be necessary in cases where hard links or TCP sockets are
       not available. When opting for this behaviour, make sure to not start concurrent compilations
-      of the same project.
+      of the same project
+
+    * `MIX_OS_DEPS_COMPILE_PARTITION_COUNT` - when set to a number greater than 1, it enables
+      compilation of dependencies over multiple operating system processes. See `mix help deps.compile`
+      for more information
 
     * `MIX_PATH` - appends extra code paths
 
@@ -420,7 +424,7 @@ defmodule Mix do
 
   """
 
-  @mix_install_project __MODULE__.InstallProject
+  @mix_install_project Mix.InstallProject
   @mix_install_app :mix_install
   @mix_install_app_string Atom.to_string(@mix_install_app)
 
@@ -905,9 +909,7 @@ defmodule Mix do
 
     case Mix.State.get(:installed) do
       nil ->
-        Application.put_all_env(config, persistent: true)
         System.put_env(system_env)
-
         install_project_dir = install_project_dir(id)
 
         if Keyword.fetch!(opts, :verbose) do
@@ -924,10 +926,14 @@ defmodule Mix do
           config_path: config_path
         ]
 
-        config = install_project_config(dynamic_config)
+        :ok =
+          Mix.ProjectStack.push(
+            @mix_install_project,
+            [compile_config: config] ++ install_project_config(dynamic_config),
+            "nofile"
+          )
 
         started_apps = Application.started_applications()
-        :ok = Mix.ProjectStack.push(@mix_install_project, config, "nofile")
         build_dir = Path.join(install_project_dir, "_build")
         external_lockfile = expand_path(opts[:lockfile], deps, :lockfile, "mix.lock")
 
@@ -944,9 +950,9 @@ defmodule Mix do
           File.mkdir_p!(install_project_dir)
 
           File.cd!(install_project_dir, fn ->
-            if config_path do
-              Mix.Task.rerun("loadconfig")
-            end
+            # This steps need to be mirror in mix deps.partition
+            Application.put_all_env(config, persistent: true)
+            Mix.Task.rerun("loadconfig")
 
             cond do
               external_lockfile ->
@@ -1079,7 +1085,7 @@ defmodule Mix do
 
   defp install_project_config(dynamic_config) do
     [
-      version: "0.1.0",
+      version: "1.0.0",
       build_per_environment: true,
       build_path: "_build",
       lockfile: "mix.lock",
