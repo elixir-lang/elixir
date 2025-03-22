@@ -8,7 +8,7 @@ defmodule Logger.Utils do
   @doc """
   A filter for default translation and handling of reports.
   """
-  def translator(%{domain: [:elixir | _]}, %{otp: false}), do: :stop
+  def translator(%{meta: %{domain: [:otp | _]}}, %{otp: false}), do: :stop
   def translator(%{meta: %{domain: [:otp, :sasl | _]}}, %{sasl: false}), do: :stop
   def translator(%{meta: %{domain: [:supervisor_report | _]}}, %{sasl: false}), do: :stop
   def translator(%{msg: {:string, _}}, _config), do: :ignore
