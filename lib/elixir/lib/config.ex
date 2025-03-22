@@ -227,7 +227,8 @@ defmodule Config do
   Returns the environment this configuration file is executed on.
 
   In Mix projects this function returns the environment this configuration
-  file is executed on. In releases, the environment when `mix release` ran.
+  file is executed on. 
+  In releases, returns the `MIX_ENV` specified when running `mix release`.
 
   This is most often used to execute conditional code:
 
