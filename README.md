@@ -12,6 +12,7 @@
 </h1>
 
 [![CI](https://github.com/elixir-lang/elixir/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/elixir-lang/elixir/actions/workflows/ci.yml?query=branch%3Amain)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10187/badge)](https://www.bestpractices.dev/projects/10187)
 
 Elixir is a dynamic, functional language designed for building scalable
 and maintainable applications.
