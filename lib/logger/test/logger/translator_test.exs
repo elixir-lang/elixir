@@ -140,23 +140,27 @@ defmodule Logger.TranslatorTest do
   end
 
   setup_all do
-    sasl_reports? = Application.get_env(:logger, :handle_sasl_reports, false)
-    Application.put_env(:logger, :handle_sasl_reports, true)
+    config = Application.get_all_env(:logger)
 
-    # Shutdown the application
-    Logger.App.stop()
+    config
+    |> Keyword.put(:handle_sasl_reports, true)
+    |> put_logger_config()
 
-    # And start it without warnings
-    Application.put_env(:logger, :level, :error)
-    Application.start(:logger)
-    Application.delete_env(:logger, :level)
-    Logger.configure(level: :debug)
+    on_exit(fn -> restore_logger_config(config) end)
+  end
 
-    on_exit(fn ->
-      Application.put_env(:logger, :handle_sasl_reports, sasl_reports?)
-      Logger.App.stop()
-      Application.start(:logger)
-    end)
+  setup context do
+    test_overrides = Map.get(context, :logger_config, [])
+    existing_config = Application.get_all_env(:logger)
+
+    case Keyword.merge(existing_config, test_overrides) do
+      ^existing_config ->
+        :ok
+
+      new_config ->
+        put_logger_config(new_config)
+        on_exit(fn -> restore_logger_config(existing_config) end)
+    end
   end
 
   setup do
@@ -1259,6 +1263,13 @@ defmodule Logger.TranslatorTest do
     :code.delete(WeirdFunctionNamesGenServer)
   end
 
+  @tag logger_config: [handle_otp_reports: false]
+  test "drops events if otp report handling is switched off" do
+    {:ok, pid} = GenServer.start(MyGenServer, :ok)
+    catch_exit(GenServer.call(pid, :error))
+    refute_receive {:event, _, _}, 200
+  end
+
   def task(parent, fun \\ fn -> raise "oops" end) do
     mon = Process.monitor(parent)
     Process.unlink(parent)
@@ -1311,5 +1322,26 @@ defmodule Logger.TranslatorTest do
 
   defp worker(name, args, opts \\ []) do
     Enum.into(opts, %{id: name, start: {name, opts[:function] || :start_link, args}})
+  end
+
+  defp put_logger_config(new_config) do
+    Application.put_all_env(logger: new_config)
+
+    Logger.App.stop()
+
+    # Shutdown the application
+    Logger.App.stop()
+
+    # And start it without warnings
+    Application.put_env(:logger, :level, :error)
+    Application.start(:logger)
+    Application.delete_env(:logger, :level)
+    Logger.configure(level: :debug)
+  end
+
+  defp restore_logger_config(config) do
+    Application.put_all_env(logger: config)
+    Logger.App.stop()
+    Application.start(:logger)
   end
 end
