@@ -45,4 +45,4 @@ An additional section with "Additional Remarks" may be provided. Those may inclu
 
 The initial catalog of anti-patterns was proposed by Lucas Vegi and Marco Tulio Valente, from [ASERG/DCC/UFMG](http://aserg.labsoft.dcc.ufmg.br/). For more info, see [Understanding Code Smells in Elixir Functional Language](https://github.com/lucasvegi/Elixir-Code-Smells/blob/main/etc/2023-emse-code-smells-elixir.pdf) and [the associated code repository](https://github.com/lucasvegi/Elixir-Code-Smells).
 
-Additionally, the Security Working Group of the [Erlang Ecosystem Foundation](https://erlef.github.io/security-wg/) publishes [documents with security resources and best-practices of both Erlang and Elixir, including detailed guides for web applications](https://erlef.github.io/security-wg/).
+Additionally, the Security Working Group of the [Erlang Ecosystem Foundation](https://security.erlef.org) publishes [documents with security resources and best-practices of both Erlang and Elixir, including detailed guides for web applications](https://security.erlef.org).
