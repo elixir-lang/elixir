@@ -465,6 +465,15 @@ defmodule URITest do
     assert URI.merge("tag:example", "#fragment") |> to_string == "tag:example#fragment"
   end
 
+  test "merge/2 with non-hierarchical base without host and path" do
+    assert URI.merge("ex:", "test") |> to_string() == "ex:test"
+    assert URI.merge("ex:", "a/b/c") |> to_string() == "ex:a/b/c"
+    assert URI.merge("ex:", "a/b/./../c") |> to_string() == "ex:a/c"
+    assert URI.merge("ex:", "test?query=value") |> to_string() == "ex:test?query=value"
+    assert URI.merge("mailto:", "user@example.com") |> to_string() == "mailto:user@example.com"
+    assert URI.merge("urn:isbn", "0451450523") |> to_string() == "urn:0451450523"
+  end
+
   test "merge/2 (with RFC examples)" do
     # These are examples from:
     #

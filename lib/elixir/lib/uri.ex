@@ -919,6 +919,15 @@ defmodule URI do
     %{base | query: rel.query || base.query, fragment: rel.fragment}
   end
 
+  def merge(%URI{host: nil, path: nil} = base, %URI{} = rel) do
+    %{
+      base
+      | path: remove_dot_segments_from_path(rel.path),
+        query: rel.query,
+        fragment: rel.fragment
+    }
+  end
+
   def merge(%URI{} = base, %URI{} = rel) do
     new_path = merge_paths(base.path, rel.path)
     %{base | path: new_path, query: rel.query, fragment: rel.fragment}
