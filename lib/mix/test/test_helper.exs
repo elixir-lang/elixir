@@ -10,9 +10,6 @@ mix = Path.expand("../tmp/.mix", __DIR__)
 File.mkdir_p!(mix)
 System.put_env("MIX_HOME", mix)
 
-System.delete_env("XDG_DATA_HOME")
-System.delete_env("XDG_CONFIG_HOME")
-
 # Load protocols to make sure they are not unloaded during tests
 [Collectable, Enumerable, Inspect, String.Chars, List.Chars]
 |> Enum.each(& &1.__protocol__(:module))
@@ -53,12 +50,12 @@ ExUnit.start(
 )
 
 # Clear environment variables that may affect tests
-System.delete_env("http_proxy")
-System.delete_env("https_proxy")
-System.delete_env("HTTP_PROXY")
-System.delete_env("HTTPS_PROXY")
-System.delete_env("MIX_ENV")
-System.delete_env("MIX_TARGET")
+Enum.each(
+  ~w(http_proxy https_proxy HTTP_PROXY HTTPS_PROXY) ++
+    ~w(MIX_ENV MIX_OS_DEPS_COMPILE_PARTITION_COUNT MIX_TARGET) ++
+    ~w(XDG_DATA_HOME XDG_CONFIG_HOME),
+  &System.delete_env/1
+)
 
 defmodule MixTest.Case do
   use ExUnit.CaseTemplate

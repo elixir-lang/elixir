@@ -61,7 +61,7 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  defmodule RawRepoDep do
+  defmodule RawRepoDepApp do
     def project do
       [
         app: :raw_sample,
@@ -217,6 +217,38 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.Compile.run(["--force"])
       refute File.exists?("_build/dev/lib/ok/clean-me")
     end)
+  end
+
+  test "compiles deps using os partitions" do
+    System.put_env("MIX_OS_DEPS_COMPILE_PARTITION_COUNT", "2")
+
+    in_fixture("deps_status", fn ->
+      File.write!("mix.exs", """
+      defmodule ParDepsApp do
+        use Mix.Project
+
+        def project do
+          [
+            app: :par_sample,
+            version: "0.1.0",
+            deps: [
+              {:raw_repo, "0.1.0", path: "custom/raw_repo"},
+              {:git_repo, "0.1.0", path: #{inspect(fixture_path("git_repo"))}}
+            ]
+          ]
+        end
+      end
+      """)
+
+      Mix.Project.in_project(:par_sample, ".", fn _ ->
+        output = ExUnit.CaptureIO.capture_io(fn -> Mix.Tasks.Deps.Compile.run([]) end)
+        assert output =~ ~r/\d> Generated git_repo app/
+        assert output =~ ~r/\d> Generated raw_repo app/
+        assert_received {:mix_shell, :info, ["mix deps.compile running across 2 OS processes"]}
+      end)
+    end)
+  after
+    System.delete_env("MIX_OS_DEPS_COMPILE_PARTITION_COUNT")
   end
 
   test "doesn't compile any umbrella apps if --skip-umbrella-children is given" do
@@ -414,7 +446,7 @@ defmodule Mix.Tasks.DepsTest do
 
   test "sets deps env to prod by default" do
     in_fixture("deps_status", fn ->
-      Mix.Project.push(RawRepoDep)
+      Mix.Project.push(RawRepoDepApp)
 
       Mix.Tasks.Deps.Update.run(["--all"])
       assert_received {:mix_shell, :info, [":raw_repo env is prod"]}
@@ -751,7 +783,7 @@ defmodule Mix.Tasks.DepsTest do
 
   test "checks if compile env changed" do
     in_fixture("deps_status", fn ->
-      Mix.Project.push(RawRepoDep)
+      Mix.Project.push(RawRepoDepApp)
       Mix.Tasks.Deps.Loadpaths.run([])
       assert_receive {:mix_shell, :info, ["Generated raw_repo app"]}
       assert Application.spec(:raw_repo, :vsn)
@@ -766,7 +798,7 @@ defmodule Mix.Tasks.DepsTest do
       Application.unload(:raw_repo)
       Mix.ProjectStack.pop()
       Mix.Task.clear()
-      Mix.Project.push(RawRepoDep)
+      Mix.Project.push(RawRepoDepApp)
       purge([RawRepo])
       Mix.Tasks.Loadconfig.load_compile("config/config.exs")
 
