@@ -25,7 +25,7 @@ defmodule Mix.Tasks.Deps.Partition do
         System.find_executable("elixir") ||
         raise "cannot find elixir executable for partition compilation"
 
-    {:ok, {ip, port}} = :inet.sockname(socket)
+    {:ok, {_ip, port}} = :inet.sockname(socket)
     ansi_flag = if IO.ANSI.enabled?(), do: ~c"--color", else: ~c"--no-color"
     force_flag = if force?, do: ~c"--force", else: ~c"--no-force"
 
@@ -63,7 +63,7 @@ defmodule Mix.Tasks.Deps.Partition do
       ~c"--port",
       Integer.to_charlist(port),
       ~c"--host",
-      :inet.ntoa(ip)
+      ~c"127.0.0.1"
     ]
 
     options = [
