@@ -765,8 +765,8 @@ defmodule Mix.Utils do
           :httpc.set_options([ipfamily: fallback(inet)], :mix)
           request |> httpc_request(http_options) |> httpc_response()
 
-        {:error, {:failed_connect, [{:to_address, _}, {inet, _, {:tls_alert, _}}]}}
-        when inet in [:inet, :inet6] ->
+        {:error, {:failed_connect, [{:to_address, _}, {inet, _, reason}]}}
+        when inet in [:inet, :inet6] and elem(reason, 0) == :tls_alert ->
           http_options = put_in(http_options, [:ssl, :middlebox_comp_mode], false)
           request |> httpc_request(http_options) |> httpc_response()
 
