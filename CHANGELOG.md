@@ -94,17 +94,36 @@ but expected a type that implements the Enumerable protocol, it must be one of:
     ) or fun() or list(term()) or non_struct_map()
 ```
 
+## Parallelization of `mix deps.compile`
+
+https://github.com/elixir-lang/elixir/pull/14340
+
+## OpenChain certification
+
+https://elixir-lang.org/blog/2025/02/26/elixir-openchain-certification/
+
 ## v1.19.0-dev
 
 ### 1. Enhancements
 
 #### Elixir
 
+  * [Access] Add `Access.values/0` for traversing maps and keyword lists values
+  * [Calendar] Support 2-arity options for `Calendar.strftime/3` which receives the whole data type
   * [Code] Add `:migrate_call_parens_on_pipe` formatter option
+  * [Code.Fragment] Preserve more block content around cursor in `container_cursor_to_quoted` `:migrate_call_parens_on_pipe` formatter option
   * [Enum] Provide more information on `Enum.OutOfBoundsError`
+  * [Kernel] Allow controlling which applications are used during inference
   * [Kernel] Support `min/2` and `max/2` as guards
+  * [Macro] Print debugging results from `Macro.dbg/1` as they happen, instead of once at the end
   * [Protocol] Type checking of protocols dispatch and implementations
   * [Protocol] Add `Protocol.impl_for/2` and `Protocol.impl_for!/2`
+
+#### ExUnit
+
+  * [ExUnit.CaptureLog] Parallelize log dispatch when multiple processes are capturing log
+  * [ExUnit.Doctest] Support ellipsis in doctest exceptions to match the remaining of the exception
+  * [ExUnit.Doctest] Add `:inspect_opts` option for doctest
 
 #### IEx
 
@@ -112,13 +131,26 @@ but expected a type that implements the Enumerable protocol, it must be one of:
 
 #### Mix
 
-  * [Mix.Tasks.Compile] Add `Mix.Tasks.Compile.reenable/1`
+  * [mix] Add support for `MIX_PROFILE_FLAGS` to configure `MIX_PROFILE`
+  * [mix compile] Add `Mix.Tasks.Compile.reenable/1`
+  * [mix deps.compile] Support `MIX_OS_DEPS_COMPILE_PARTITION_COUNT` for compiling deps concurrently across multiple operating system processes
+  * [mix help] Add `mix help Mod`, `mix help :mod`, `mix help Mod.fun` and `mix help Mod.fun/arity`
+  * [mix xref graph] Add support for `--format json`
+  * [mix xref graph] Emit a warning if `--source` is part of a cycle
 
 ### 2. Bug fixes
+
+#### Elixir
+
+  * [DateTime] Do not truncate microseconds regardless of precision in `DateTime.diff/3`
+  * [File] Properly handle permissions errors cascading from parent in `File.mkdir_p/1`
+  * [Stream] Ensure `Stream.transform/1` respects suspend command when its inner stream halts
+  * [URI] Several fixes to `URI.merge/2` related to trailing slashes, trailing dots, and hostless base URIs
 
 #### Mix
 
   * [mix cmd] Preserve argument quoting in subcommands
+  * [mix xref graph] Provide more consistent output by considering strong connected components only when computing graphs
 
 ### 3. Soft deprecations (no warnings emitted)
 
