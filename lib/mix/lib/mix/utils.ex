@@ -738,21 +738,11 @@ defmodule Mix.Utils do
         file -> {:cacertfile, file}
       end
 
-    # disable middlebox compatibility mode by default
-    # but allow it to be enabled via an environment variable
-    # see https://github.com/elixir-lang/elixir/issues/14356
-    middlebox_comp_mode =
-      case System.get_env("HEX_MIDDLEBOX_COMP_MODE") do
-        t when t in ["true", "t", "yes", "y", "1"] -> true
-        _ -> false
-      end
-
-    # Use the system certificates and set the middlebox compatibility mode
+    # Use the system certificates
     ssl_options = [
       cacert_opt,
       verify: :verify_peer,
-      customize_hostname_check: [match_fun: :public_key.pkix_verify_hostname_match_fun(:https)],
-      middlebox_comp_mode: middlebox_comp_mode
+      customize_hostname_check: [match_fun: :public_key.pkix_verify_hostname_match_fun(:https)]
     ]
 
     # We are using relaxed: true because some servers is returning a Location
@@ -773,6 +763,11 @@ defmodule Mix.Utils do
         when inet in [:inet, :inet6] and
                reason in [:ehostunreach, :enetunreach, :eprotonosupport, :nxdomain] ->
           :httpc.set_options([ipfamily: fallback(inet)], :mix)
+          request |> httpc_request(http_options) |> httpc_response()
+
+        {:error, {:failed_connect, [{:to_address, _}, {inet, _, {:tls_alert, _}}]}}
+        when inet in [:inet, :inet6] ->
+          http_options = put_in(http_options, [:ssl, :middlebox_comp_mode], false)
           request |> httpc_request(http_options) |> httpc_response()
 
         response ->
