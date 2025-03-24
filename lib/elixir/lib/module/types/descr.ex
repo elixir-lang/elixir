@@ -894,7 +894,7 @@ defmodule Module.Types.Descr do
   # * Representation:
   #   - fun(): Top function type (leaf 1)
   #   - Function literals: {[t1, ..., tn], t} where [t1, ..., tn] are argument types and t is return type
-  #   - Normalized form for function applications: {domain, arrows, arity}
+  #   - Normalized form for function applications: {domain, arrows, arity} is produced by `fun_normalize/1`
 
   # * Examples:
   #   - fun([integer()], atom()): A function from integer to atom
