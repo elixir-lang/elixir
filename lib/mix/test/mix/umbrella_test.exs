@@ -276,10 +276,27 @@ defmodule Mix.UmbrellaTest do
   test "compile for umbrella as dependency" do
     in_fixture("umbrella_dep", fn ->
       Mix.Project.in_project(:umbrella_dep, ".", fn _ ->
-        Mix.Task.run("deps.compile")
+        Mix.Task.run("compile")
         assert Bar.bar() == "hello world"
       end)
     end)
+  end
+
+  test "compile for umbrella as dependency with os partitions" do
+    System.put_env("MIX_OS_DEPS_COMPILE_PARTITION_COUNT", "2")
+
+    in_fixture("umbrella_dep", fn ->
+      Mix.Project.in_project(:umbrella_dep, ".", fn _ ->
+        output = ExUnit.CaptureIO.capture_io(fn -> Mix.Task.run("compile") end)
+        assert output =~ ~r/\d> :foo env is prod/
+        assert output =~ ~r/\d> :bar env is prod/
+
+        assert_received {:mix_shell, :info, ["mix deps.compile running across 2 OS processes"]}
+        assert Bar.bar() == "hello world"
+      end)
+    end)
+  after
+    System.delete_env("MIX_OS_DEPS_COMPILE_PARTITION_COUNT")
   end
 
   defmodule CycleDeps do
@@ -351,7 +368,7 @@ defmodule Mix.UmbrellaTest do
           def project do
             [app: :bar,
              version: "0.1.0",
-             aliases: ["compile.all": fn _ -> Mix.shell().info "no compile bar" end]]
+             aliases: ["compile.elixir": fn _ -> Mix.shell().info "no compile bar" end]]
           end
         end
         """)
