@@ -57,7 +57,7 @@ defmodule Mix.Tasks.Deps.Partition do
     args = [
       ansi_flag,
       ~c"-e",
-      ~c"Mix.CLI.main()",
+      ~c"Mix.CLI.main",
       ~c"deps.partition",
       force_flag,
       ~c"--port",
