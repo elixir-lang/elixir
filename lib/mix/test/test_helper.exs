@@ -49,14 +49,6 @@ ExUnit.start(
   include: line_include
 )
 
-# Clear environment variables that may affect tests
-Enum.each(
-  ~w(http_proxy https_proxy HTTP_PROXY HTTPS_PROXY) ++
-    ~w(MIX_ENV MIX_OS_DEPS_COMPILE_PARTITION_COUNT MIX_TARGET) ++
-    ~w(XDG_DATA_HOME XDG_CONFIG_HOME),
-  &System.delete_env/1
-)
-
 defmodule MixTest.Case do
   use ExUnit.CaseTemplate
 
@@ -248,6 +240,20 @@ defmodule MixTest.Case do
     end)
   end
 end
+
+# Prepare and clear environment variables
+System.put_env(
+  "MIX_OS_DEPS_COMPILE_PARTITION_ELIXIR_EXECUTABLE",
+  MixTest.Case.elixir_executable()
+)
+
+# Clear environment variables that may affect tests
+Enum.each(
+  ~w(http_proxy https_proxy HTTP_PROXY HTTPS_PROXY) ++
+    ~w(MIX_ENV MIX_OS_DEPS_COMPILE_PARTITION_COUNT MIX_TARGET) ++
+    ~w(XDG_DATA_HOME XDG_CONFIG_HOME),
+  &System.delete_env/1
+)
 
 ## Set up Rebar fixtures
 

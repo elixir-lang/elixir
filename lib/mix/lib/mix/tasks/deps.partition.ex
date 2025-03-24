@@ -21,7 +21,8 @@ defmodule Mix.Tasks.Deps.Partition do
 
   defp server(socket, deps, count, force?) do
     elixir =
-      System.find_executable("elixir") ||
+      System.get_env("MIX_OS_DEPS_COMPILE_PARTITION_ELIXIR_EXECUTABLE") ||
+        System.find_executable("elixir") ||
         raise "cannot find elixir executable for partition compilation"
 
     {:ok, {ip, port}} = :inet.sockname(socket)
