@@ -221,11 +221,11 @@ defmodule MixTest.Case do
     File.write!(file, File.read!(file) <> "\n")
   end
 
-  defp mix_executable do
+  def mix_executable do
     Path.expand("../../../bin/mix", __DIR__)
   end
 
-  defp elixir_executable do
+  def elixir_executable do
     Path.expand("../../../bin/elixir", __DIR__)
   end
 
