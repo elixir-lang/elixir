@@ -689,8 +689,6 @@ defmodule Module.Types.Descr do
   @doc """
   Checks if a function type with the specified arity exists in the descriptor.
 
-  Returns `:ok` if a function of the given arity exists, otherwise `:error`.
-
   1. If there is no dynamic component:
      - The static part must be a non-empty function type of the given arity
 
@@ -879,36 +877,50 @@ defmodule Module.Types.Descr do
   end
 
   ## Functions
-  # Function Type Representation
-  #
-  # The top function type, fun(), is represented by the integer 1.
-  # All other function types are represented as unions of intersections of
-  # positive and negative function literals.
-  #
-  # Function literals have the form {[t1, ..., tn], t} where:
-  # - [t1, ..., tn] is the list of argument types
-  # - t is the return type
-  #
-  # For function applications, we use a normalized form (produced by fun_normalize/1)
-  # {domain, arrows, arity}
-  # where arrows is a list of lists of arrow intersections.
+
+  # Function types are represented using Binary Decision Diagrams (BDDs) for efficient
+  # handling of unions, intersections, and negations.
+
+  ### Key concepts:
+
+  # * BDD structure: A tree with function nodes and 0/1 leaves. Paths to leaf 1
+  #   represent valid function types. Nodes are positive when following a left
+  #   branch (e.g. (int, float) -> bool) and negative otherwise.
+
+  # * Function variance:
+  #   - Contravariance in arguments: If s <: t, then (t → r) <: (s → r)
+  #   - Covariance in returns: If s <: t, then (u → s) <: (u → t)
+
+  # * Representation:
+  #   - fun(): Top function type (leaf 1)
+  #   - Function literals: {[t1, ..., tn], t} where [t1, ..., tn] are argument types and t is return type
+  #   - Normalized form for function applications: {domain, arrows, arity}
+
+  # * Examples:
+  #   - fun([integer()], atom()): A function from integer to atom
+  #   - intersection(fun([integer()], atom()), fun([float()], boolean())): A function handling both signatures
+
+  # Note: Function domains are expressed as tuple types. We use separate representations rather than
+  # unary functions with tuple domains to handle special cases like representing functions of a
+  # specific arity (e.g., (none,none->term) for arity 2).
 
   defp fun_descr(inputs, output), do: {{:weak, inputs, output}, 1, 0}
 
-  @doc "Utility function to quickly create a function type from a list of intersections"
+  @doc "Utility function: fast build an intersection from a list of functions"
   def fun_from_intersection(intersection) do
-    Enum.reduce(intersection, 1, fn {dom, ret}, acc ->
-      {{:weak, dom, ret}, acc, 0}
-    end)
+    Enum.reduce(intersection, 1, fn {dom, ret}, acc -> {{:weak, dom, ret}, acc, 0} end)
   end
 
   @doc """
   Creates a function type from a list of inputs and an output where the inputs and/or output may be dynamic.
 
-  The general principle is to transform (t->s) into (down(t)->up(s)) ∪ dynamic(up(t)->down(s))
-  where:
-  - down(t->s) = up(t)->down(s) due to contravariance in function arguments
-  - up(t->s) = down(t)->up(s) due to covariance in function return type
+  For function (t → s) with dynamic components:
+  - Static part:  (up(t) → down(s))
+  - Dynamic part: dynamic(down(t) → up(s))
+
+  When handling dynamic types:
+  - `up(t)` extracts the upper bound (most general type) of a gradual type
+  - `down(t)` extracts the lower bound (most specific type) of a gradual type
   """
   def fun_from_annotation(inputs, output) do
     dynamic_arguments? = are_arguments_dynamic?(inputs)
@@ -916,27 +928,18 @@ defmodule Module.Types.Descr do
 
     cond do
       dynamic_arguments? and dynamic_output? ->
-        # For a function type t->s with dynamic components:
-        # We create (down(t->s) ∪ dynamic(up(t->s)))
-        # Note: down(t->s) = up(t)->down(s) due to contravariance
-
-        # Static part: maximum possible arguments (up) to minimum possible return (down)
         static_part = fun(materialize_arguments(inputs, :up), down(output))
-
-        # Dynamic part: minimum possible arguments (down) to maximum possible return (up)
         dynamic_part = dynamic(fun(materialize_arguments(inputs, :down), up(output)))
-
-        # Union of static and dynamic parts
         union(static_part, dynamic_part)
 
+      # Only arguments are dynamic
       dynamic_arguments? ->
-        # Only arguments are dynamic
         static_part = fun(materialize_arguments(inputs, :up), output)
         dynamic_part = dynamic(fun(materialize_arguments(inputs, :down), output))
         union(static_part, dynamic_part)
 
+      # Only return type is dynamic
       dynamic_output? ->
-        # Only return type is dynamic
         static_part = fun(inputs, down(output))
         dynamic_part = dynamic(fun(inputs, up(output)))
         union(static_part, dynamic_part)
@@ -955,14 +958,11 @@ defmodule Module.Types.Descr do
   defp down(:term), do: :term
   defp down(type), do: Map.delete(type, :dynamic)
 
-  # Our representation for domain types.
-  # The operations used are union (to compute the domain of an intersection of functions),
-  # intersections (to compute the domain of a union of functions) and subtyping (to see if a
-  # given argument can be applied to a function.
-  # Arguments types cannot always be collapsed into a single map: consider the function
-  # (int, float) -> :ok  and    (float, int) -> :error
-  # Its domain is not (int or float, float or int), because it refuses arguments (float, float).
-  def domain_repr(types) when is_list(types), do: tuple(types)
+  # Tuples represent function domains, using unions to combine parameters.
+  # Example: for functions (integer,float)->:ok and (float,integer)->:error
+  # domain isn't {integer|float,integer|float} as that would incorrectly accept {float,float}
+  # Instead, it is {integer,float} or {float,integer}
+  def domain_new(types) when is_list(types), do: tuple(types)
 
   @doc """
   Calculates the domain of a function type.
@@ -1021,16 +1021,16 @@ defmodule Module.Types.Descr do
   # Returns {:ok, domain} if the domain of the static type is well-defined.
   # For that, it has to contain a non-empty function type.
   # Otherwise, returns :badfunction.
-  defp fun_domain_static(type) do
-    with %{fun: bdd} <- type,
-         {domain, _, _} <- fun_normalize(bdd) do
-      {:ok, domain}
-    else
-      :term -> :badfunction
-      %{} -> {:ok, none()}
-      :emptyfunction -> {:ok, none()}
+  defp fun_domain_static(%{fun: bdd}) do
+    case fun_normalize(bdd) do
+      {domain, _, _} -> {:ok, domain}
+      _ -> {:ok, none()}
     end
   end
+
+  defp fun_domain_static(:term), do: :badfunction
+  defp fun_domain_static(%{}), do: {:ok, none()}
+  defp fun_domain_static(:emptyfunction), do: {:ok, none()}
 
   @doc """
   Applies a function type to a list of argument types.
@@ -1063,104 +1063,58 @@ defmodule Module.Types.Descr do
       atom()
   """
   def fun_apply(fun, arguments) do
-    # This type operation depends on whether fun and arguments are dynamic or static
     case :maps.take(:dynamic, fun) do
-      :error ->
-        apply_static_fun_to_arguments(fun, arguments)
-
-      {fun_dynamic, fun_static} ->
-        apply_dynamic_fun_to_arguments(fun_static, fun_dynamic, arguments)
+      :error -> fun_apply_with_strategy(fun, nil, arguments)
+      {fun_dynamic, fun_static} -> fun_apply_with_strategy(fun_static, fun_dynamic, arguments)
     end
   end
 
-  # Applies a static function to arguments (which may be dynamic)
-  defp apply_static_fun_to_arguments(fun, arguments) do
-    with true <- are_arguments_dynamic?(arguments),
-         result_upper when not is_atom(result_upper) <-
-           fun_apply_static(fun, materialize_arguments(arguments, :up)),
-         result_lower when not is_atom(result_lower) <-
-           fun_apply_static(fun, materialize_arguments(arguments, :down)) do
-      union(result_upper, dynamic(result_lower))
+  defp fun_apply_with_strategy(fun_static, fun_dynamic, arguments) do
+    args_dynamic? = are_arguments_dynamic?(arguments)
+
+    # For non-dynamic function and arguments, just return the static result
+    if fun_dynamic == nil and not args_dynamic? do
+      with {:ok, type} <- fun_apply_static(fun_static, arguments), do: type
     else
-      false -> fun_apply_static(fun, arguments)
-      _ -> :badarguments
+      # For dynamic cases, combine static and dynamic results
+      {static_args, dynamic_args} =
+        if args_dynamic?,
+          do: {materialize_arguments(arguments, :up), materialize_arguments(arguments, :down)},
+          else: {arguments, arguments}
+
+      dynamic_fun = fun_dynamic || fun_static
+
+      with {:ok, res1} <- fun_apply_static(fun_static, static_args),
+           {:ok, res2} <- fun_apply_static(dynamic_fun, dynamic_args) do
+        union(res1, dynamic(res2))
+      else
+        _ -> :badarguments
+      end
     end
   end
 
-  defp apply_dynamic_fun_to_arguments(fun_static, fun_dynamic, arguments) do
-    if are_arguments_dynamic?(arguments) do
-      apply_dynamic_fun_to_dynamic_arguments(fun_static, fun_dynamic, arguments)
-    else
-      apply_dynamic_fun_to_static_arguments(fun_static, fun_dynamic, arguments)
-    end
-  end
+  # Materializes arguments using the specified direction (up or down)
+  defp materialize_arguments(arguments, :up), do: Enum.map(arguments, &up/1)
+  defp materialize_arguments(arguments, :down), do: Enum.map(arguments, &down/1)
 
-  # if t is dynamic and t' is static, then we have:
-  # app(t, t') = app(down(t), t') or dynamic(app(up(t), t'))
-  defp apply_dynamic_fun_to_static_arguments(fun_static, fun_dynamic, arguments) do
-    with result_static when result_static not in [:badarguments, :emptyfunction] <-
-           fun_apply_static(fun_static, arguments),
-         result_dynamic when result_dynamic not in [:badarguments, :emptyfunction] <-
-           fun_apply_static(fun_dynamic, arguments) do
-      union(result_static, dynamic(result_dynamic))
-    else
-      _ -> :badarguments
-    end
-  end
-
-  # both dynamic: it is
-  # app(t, t') = app(down(t), up(t')) or dynamic(app(up(t), down(t')))
-  defp apply_dynamic_fun_to_dynamic_arguments(fun_static, fun_dynamic, arguments) do
-    with static_result when static_result not in [:badarguments, :emptyfunction] <-
-           fun_apply_static(fun_static, materialize_arguments(arguments, :up)),
-         dynamic_result when dynamic_result not in [:badarguments, :emptyfunction] <-
-           fun_apply_static(fun_dynamic, materialize_arguments(arguments, :down)) do
-      union(static_result, dynamic(dynamic_result))
-    else
-      _ -> :badarguments
-    end
-  end
-
-  # Determine the arity of a function type - this is still needed for other operations
-  # defp get_function_arity(%{fun: fun_bdd}) do
-  #   with {_domain, _arrows, arity} <- fun_normalize(fun_bdd) do
-  #     {:ok, arity}
-  #   else
-  #     :emptyfunction -> {:error, :empty_function}
-  #     _ -> {:error, :invalid_function}
-  #   end
-  # end
-
-  # Materializes all arguments to their maximum possible type.
-  defp materialize_arguments(arguments, :up) do
-    Enum.map(arguments, fn
-      %{dynamic: dynamic} -> dynamic
-      static -> static
-    end)
-  end
-
-  # Materializes all arguments to their minimum possible type.
-  defp materialize_arguments(arguments, :down) do
-    Enum.map(arguments, &Map.delete(&1, :dynamic))
-  end
-
-  defp are_arguments_dynamic?(arguments) do
-    Enum.any?(arguments, &match?(%{dynamic: _}, &1))
-  end
+  defp are_arguments_dynamic?(arguments), do: Enum.any?(arguments, &match?(%{dynamic: _}, &1))
 
   defp fun_apply_static(%{fun: fun_bdd}, arguments) do
-    (type_args = domain_repr(arguments))
-    |> empty?()
-    |> if do
+    type_args = domain_new(arguments)
+
+    if empty?(type_args) do
       # At this stage we do not check that the function can be applied to the arguments (using domain)
       with {_domain, arrows, arity} <- fun_normalize(fun_bdd),
            true <- arity == length(arguments) do
-        Enum.reduce(arrows, none(), fn intersection_of_arrows, acc ->
-          Enum.reduce(intersection_of_arrows, term(), fn {_tag, _dom, ret}, acc ->
-            intersection(acc, ret)
+        result =
+          Enum.reduce(arrows, none(), fn intersection_of_arrows, acc ->
+            Enum.reduce(intersection_of_arrows, term(), fn {_tag, _dom, ret}, acc ->
+              intersection(acc, ret)
+            end)
+            |> union(acc)
           end)
-          |> union(acc)
-        end)
+
+        {:ok, result}
       else
         false -> :badarity
       end
@@ -1168,10 +1122,12 @@ defmodule Module.Types.Descr do
       with {domain, arrows, arity} <- fun_normalize(fun_bdd),
            true <- arity == length(arguments),
            true <- subtype?(type_args, domain) do
-        arrows
-        |> Enum.reduce(none(), fn intersection_of_arrows, acc ->
-          aux_apply(acc, type_args, term(), intersection_of_arrows)
-        end)
+        result =
+          Enum.reduce(arrows, none(), fn intersection_of_arrows, acc ->
+            aux_apply(acc, type_args, term(), intersection_of_arrows)
+          end)
+
+        {:ok, result}
       else
         :emptyfunction -> :emptyfunction
         :badarguments -> :badarguments
@@ -1200,7 +1156,7 @@ defmodule Module.Types.Descr do
 
   defp aux_apply(result, input, returns_reached, [{_tag, dom, ret} | arrow_intersections]) do
     # Calculate the part of the input not covered by this arrow's domain
-    dom_subtract = difference(input, domain_repr(dom))
+    dom_subtract = difference(input, domain_new(dom))
 
     # Refine the return type by intersecting with this arrow's return type
     ret_refine = intersection(returns_reached, ret)
@@ -1223,7 +1179,7 @@ defmodule Module.Types.Descr do
     # The result type is also refined (intersected) in the sense that, if several arrows match
     # the same part of the input, then the result type is an intersection of the return types of
     # those arrows.
-    #
+
     # e.g. (integer()->atom()) and (integer()->pid()) when applied to integer()
     # should result in (atom() ∩ pid()), which is none().
     aux_apply(result, input, ret_refine, arrow_intersections)
@@ -1232,27 +1188,34 @@ defmodule Module.Types.Descr do
   # Takes all the paths from the root to the leaves finishing with a 1,
   # and compile into tuples of positive and negative nodes. Positive nodes are
   # those followed by a left path, negative nodes are those followed by a right path.
-  def fun_get(bdd) do
-    fun_get([], [], [], bdd)
+  def fun_get(bdd), do: fun_get([], [], [], bdd)
+
+  def fun_get(acc, pos, neg, bdd) do
+    case bdd do
+      0 -> acc
+      1 -> [{pos, neg} | acc]
+      {fun, left, right} -> fun_get(fun_get(acc, [fun | pos], neg, left), pos, [fun | neg], right)
+    end
   end
 
-  def fun_get(acc, _pos, _neg, 0), do: acc
-  def fun_get(acc, pos, neg, 1), do: [{pos, neg} | acc]
-
-  def fun_get(acc, pos, neg, {a, b1, b2}) do
-    fun_get(fun_get(acc, [a | pos], neg, b1), pos, [a | neg], b2)
-  end
-
-  # Normalizes a function BDD into {domain, arrows, arity} or :emptyfunction.
+  # Transforms a binary decision diagram (BDD) into the canonical form {domain, arrows, arity}:
   #
-  # The normalized form consists of:
-  # 1. domain: Union of all domains from positive functions
-  # 2. arrows: List of function arrow intersections
-  # 3. arity: Function arity
+  # 1. **domain**: The union of all domains from positive functions in the BDD
+  # 2. **arrows**: List of lists, where each inner list contains an intersection of function arrows
+  # 3. **arity**: Function arity (number of parameters)
   #
-  # This makes operations like function application and subtyping more efficient
-  # by handling arrow negations properly.
-  # TODO: what if i am normalizing 1, or fun() and not fun(1)?
+  # This canonical form simplifies operations like function application, domain calculation,
+  # and subtyping checks by properly handling arrow intersections and negations.
+  #
+  ## Return Values
+  #
+  # - `{domain, arrows, arity}` for valid function BDDs
+  # - `:emptyfunction` if the BDD represents an empty function type
+  #
+  # ## Internal Use
+  #
+  # This function is used internally by `fun_apply`, `fun_domain`, and others to
+  # ensure consistent handling of function types in all operations.
   defp fun_normalize(bdd) do
     {domain, arrows, arity} =
       fun_get(bdd)
@@ -1266,9 +1229,7 @@ defmodule Module.Types.Descr do
 
           # Calculate domain from all positive functions
           path_domain =
-            Enum.reduce(pos_funs, none(), fn {_, args, _}, acc ->
-              union(acc, domain_repr(args))
-            end)
+            Enum.reduce(pos_funs, none(), fn {_, args, _}, acc -> union(acc, domain_new(args)) end)
 
           {intersection(domain, path_domain), [pos_funs | arrows], new_arity}
         end
@@ -1289,13 +1250,12 @@ defmodule Module.Types.Descr do
   # - `fun(1) and not fun(1)` is empty
   # - `fun(integer() -> atom()) and not fun(none() -> term())` is empty
   # - `fun(integer() -> atom()) and not fun(atom() -> integer())` is not empty
-  defp fun_empty?(1), do: false
-  defp fun_empty?(0), do: true
-
   defp fun_empty?(bdd) do
-    bdd
-    |> fun_get()
-    |> Enum.all?(fn {positives, negatives} -> fun_empty?(positives, negatives) end)
+    case bdd do
+      1 -> false
+      0 -> true
+      bdd -> fun_get(bdd) |> Enum.all?(fn {posits, negats} -> fun_empty?(posits, negats) end)
+    end
   end
 
   # Checks if a function type represented by positive and negative function literals is empty.
@@ -1327,7 +1287,7 @@ defmodule Module.Types.Descr do
           # function's domain is a supertype of the positive domain and if the phi function
           # determines emptiness.
           length(neg_arguments) == positive_arity and
-            subtype?(domain_repr(neg_arguments), positive_domain) and
+            subtype?(domain_new(neg_arguments), positive_domain) and
             phi_starter(neg_arguments, negation(neg_return), positives)
         end)
     end
@@ -1340,56 +1300,47 @@ defmodule Module.Types.Descr do
     positives
     |> Enum.reduce_while({:empty, none()}, fn
       {_tag, args, _}, {:empty, _} ->
-        {:cont, {length(args), domain_repr(args)}}
+        {:cont, {length(args), domain_new(args)}}
 
       {_tag, args, _}, {arity, dom} when length(args) == arity ->
-        {:cont, {arity, union(dom, domain_repr(args))}}
+        {:cont, {arity, union(dom, domain_new(args))}}
 
       {_tag, _args, _}, {_arity, _} ->
         {:halt, {:empty, none()}}
     end)
   end
 
-  # Implements the phi function from the subtyping algorithm for function types.
-
-  # This function is the core of the subtyping algorithm for function types. It determines
-  # whether a function type is a subtype of another by checking the contravariance of
-  # argument types and covariance of return types.
-
-  # ## Algorithm
-
-  # For arguments t1...tn, return type t, and set of arrow types P:
-
-  # Φ(t1...tn, t, ∅) = (∃j ∈ [1,n]. tj ≤ ∅) ∨ (t ≤ ∅)
-
-  # Φ(t1...tn, t, {(t'1...t'n) → t'} ∪ P) =
-  #       Φ(t1...tn, t ∧ t', P) ∧
-  #         ∀j ∈ [1,n]. Φ(t1...tj∖t'j...tn, t, P)
+  # Implements the Φ (phi) function for determining function subtyping relationships.
   #
-  # Source: https://arxiv.org/abs/2408.14345 see Theorem 4.2
+  ## Algorithm
+  #
+  # For inputs t₁...tₙ, booleans b₁...bₙ, negated return type t, and set of arrow types P:
+  #
+  # Φ((b₁,t₁)...(bₙ,tₙ), (b,t), ∅) = (∃j ∈ [1,n]. bⱼ and tⱼ ≤ ∅) ∨ (b and t ≤ ∅)
+  #
+  # Φ((b₁,t₁)...(bₙ,tₙ), t, {(t'₁...t'ₙ) → t'} ∪ P) =
+  #       Φ((b₁,t₁)...(bₙ,tₙ), (true,t ∧ t'), P) ∧
+  #         ∀j ∈ [1,n]. Φ((b₁,t₁)...(true,tⱼ∖t'ⱼ)...(bₙ,tₙ), (b,t), P)
+  #
+  # Returns true if the intersection of the positives is a subtype of (t1,...,tn)->(not t).
+  #
+  # See [Castagna and Lanvin (2024)](https://arxiv.org/abs/2408.14345), Theorem 4.2.
 
-  # ## Parameters
-
-  # - neg_args: List of domain types [t1, t2, ..., tn] from the negative function
-  # - neg_return: Codomain type from the negative function
-  # - positives: Set of positive arrow types (each arrow is a tuple {tag, [t'1, t'2, ..., t'n], t'})
-
-  # ## Returns
-
-  # - true if the function type is empty (i.e., the intersection is a subtype of the negative)
-  # - false otherwise
   defp phi_starter(arguments, return, positives) do
     arguments = Enum.map(arguments, &{false, &1})
-    phi(arguments, {false, return}, positives)
+    n = length(arguments)
+    # Arity mismatch: if there is one positive function with a different arity,
+    # then it cannot be a subtype of the (arguments->type) functions.
+    if Enum.any?(positives, fn {_tag, args, _ret} -> length(args) != n end) do
+      false
+    else
+      phi(arguments, {false, return}, positives)
+    end
   end
 
-  defp phi(args, {b, t}, []),
-    do: Enum.any?(args, fn {bool, typ} -> bool and empty?(typ) end) or (b and empty?(t))
-
-  # Arity mismatch: functions with different arities can't be subtypes
-  defp phi(args, _t, [{_tag, arg_types, _} | _rest])
-       when length(args) != length(arg_types),
-       do: false
+  defp phi(args, {b, t}, []) do
+    Enum.any?(args, fn {bool, typ} -> bool and empty?(typ) end) or (b and empty?(t))
+  end
 
   defp phi(args, {b, ret}, [{_tag, arguments, return} | rest_positive]) do
     phi(args, {true, intersection(ret, return)}, rest_positive) and
@@ -1399,31 +1350,51 @@ defmodule Module.Types.Descr do
       end)
   end
 
-  defp fun_union(a, b) when a == 1 or b == 1, do: 1
-  defp fun_union(0, b), do: b
-  defp fun_union(b, 0), do: b
+  defp fun_union(bdd1, bdd2) do
+    case {bdd1, bdd2} do
+      {1, _} -> 1
+      {_, 1} -> 1
+      {0, bdd} -> bdd
+      {bdd, 0} -> bdd
+      {{fun, l1, r1}, {fun, l2, r2}} -> {fun, fun_union(l1, l2), fun_union(r1, r2)}
+      # Note: this is a deep merge, that goes down bdd1 to insert bdd2 into it.
+      # It is the same as going down bdd1 to insert bdd1 into it.
+      # Possible opti: insert into the bdd with smallest height
+      {{fun, l, r}, bdd} -> {fun, fun_union(l, bdd), fun_union(r, bdd)}
+    end
+  end
 
-  defp fun_union({a, c1, d1}, {a, c2, d2}), do: {a, fun_union(c1, c2), fun_union(d1, d2)}
-  defp fun_union({a1, c1, d1}, b2), do: {a1, fun_union(c1, b2), fun_union(d1, b2)}
+  defp fun_intersection(bdd1, bdd2) do
+    case {bdd1, bdd2} do
+      # Base cases
+      {_, 0} -> 0
+      {0, _} -> 0
+      {1, bdd} -> bdd
+      {bdd, 1} -> bdd
+      # Optimizations
+      # If intersecting with a single positive or negative function, we insert
+      # it at the root instead of merging the trees (this avoids going down the
+      # whole bdd).
+      {bdd, {fun, 1, 0}} -> {fun, bdd, 0}
+      {bdd, {fun, 0, 1}} -> {fun, 0, bdd}
+      {{fun, 1, 0}, bdd} -> {fun, bdd, 0}
+      {{fun, 0, 1}, bdd} -> {fun, 0, bdd}
+      # General cases
+      {{fun, l1, r1}, {fun, l2, r2}} -> {fun, fun_intersection(l1, l2), fun_intersection(r1, r2)}
+      {{fun, l, r}, bdd} -> {fun, fun_intersection(l, bdd), fun_intersection(r, bdd)}
+    end
+  end
 
-  defp fun_intersection(a, b) when a == 0 or b == 0, do: 0
-  defp fun_intersection(1, b), do: b
-  defp fun_intersection(b, 1), do: b
-
-  defp fun_intersection({a, c1, d1}, {a, c2, d2}),
-    do: {a, fun_intersection(c1, c2), fun_intersection(d1, d2)}
-
-  defp fun_intersection({a1, c1, d1}, b2),
-    do: {a1, fun_intersection(c1, b2), fun_intersection(d1, b2)}
-
-  defp fun_difference(a, b) when a == 0 or b == 1, do: 0
-  defp fun_difference(b, 0), do: b
-  defp fun_difference(1, {a, b1, b2}), do: {a, fun_difference(1, b1), fun_difference(1, b2)}
-
-  defp fun_difference({a, c1, d1}, {a, c2, d2}),
-    do: {a, fun_difference(c1, c2), fun_difference(d1, d2)}
-
-  defp fun_difference({a1, c1, d1}, b2), do: {a1, fun_difference(c1, b2), fun_difference(d1, b2)}
+  defp fun_difference(bdd1, bdd2) do
+    case {bdd1, bdd2} do
+      {0, _} -> 0
+      {_, 1} -> 0
+      {bdd, 0} -> bdd
+      {1, {fun, left, right}} -> {fun, fun_difference(1, left), fun_difference(1, right)}
+      {{fun, l1, r1}, {fun, l2, r2}} -> {fun, fun_difference(l1, l2), fun_difference(r1, r2)}
+      {{fun, l, r}, bdd} -> {fun, fun_difference(l, bdd), fun_difference(r, bdd)}
+    end
+  end
 
   # Converts a function BDD (Binary Decision Diagram) to its quoted representation.
   defp fun_to_quoted(:fun, _opts), do: [{:fun, [], []}]
@@ -3015,10 +2986,10 @@ defmodule Module.Types.Descr do
 
   ## Examples
 
-      iex> tuple_fetch(domain_repr([integer(), atom()]), 0)
+      iex> tuple_fetch(domain_new([integer(), atom()]), 0)
       {false, integer()}
 
-      iex> tuple_fetch(union(domain_repr([integer()]), domain_repr([integer(), atom()])), 1)
+      iex> tuple_fetch(union(domain_new([integer()]), domain_new([integer(), atom()])), 1)
       {true, atom()}
 
       iex> tuple_fetch(dynamic(), 0)

@@ -288,7 +288,7 @@ defmodule Module.Types.DescrTest do
 
     defmacro assert_domain(f, expected) do
       quote do
-        assert equal?(fun_domain(unquote(f)), domain_repr(unquote(expected)))
+        assert equal?(fun_domain(unquote(f)), domain_new(unquote(expected)))
       end
     end
 
@@ -362,14 +362,12 @@ defmodule Module.Types.DescrTest do
       refute fun([integer(), float()], term())
              |> intersection(fun([float(), integer()], term()))
              |> fun_domain()
-             |> equal?(domain_repr([number(), number()]))
+             |> equal?(domain_new([number(), number()]))
 
       assert fun([integer(), float()], term())
              |> intersection(fun([float(), integer()], term()))
              |> fun_domain()
-             |> equal?(
-               union(domain_repr([integer(), float()]), domain_repr([float(), integer()]))
-             )
+             |> equal?(union(domain_new([integer(), float()]), domain_new([float(), integer()])))
 
       # Empty argument list
       assert_domain(fun([], term()), [])
@@ -382,7 +380,7 @@ defmodule Module.Types.DescrTest do
                fun([float(), float()], term())
              )
              |> fun_domain()
-             |> equal?(domain_repr([float(), float()]))
+             |> equal?(domain_new([float(), float()]))
 
       # Union of function domains
       fun1 = union(fun([integer()], atom()), fun([float()], boolean()))
