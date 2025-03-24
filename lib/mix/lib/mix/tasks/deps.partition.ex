@@ -72,7 +72,12 @@ defmodule Mix.Tasks.Deps.Partition do
       :use_stdio,
       :stderr_to_stdout,
       line: 1_000_000,
-      env: [{~c"MIX_OS_CONCURRENCY_LOCK", ~c"false"} | env_vars]
+      env: [
+        {~c"MIX_OS_CONCURRENCY_LOCK", ~c"false"},
+        {~c"MIX_ENV", Atom.to_charlist(Mix.env())},
+        {~c"MIX_TARGET", Atom.to_charlist(Mix.target())}
+        | env_vars
+      ]
     ]
 
     ports =
