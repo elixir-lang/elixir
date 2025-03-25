@@ -62,7 +62,7 @@ defmodule Time do
 
   You can pass a time unit to automatically truncate the resulting time.
 
-  The default unit if none gets passed is `:microseconds`.
+  The default unit if none gets passed is `:microsecond`.
 
   ## Examples
 
@@ -76,7 +76,7 @@ defmodule Time do
 
   """
   @doc since: "1.4.0"
-  @spec utc_now(Calendar.calendar()) :: t
+  @spec utc_now(Calendar.calendar() | :microsecond | :millisecond | :second) :: t
   def utc_now(calendar_or_time_unit \\ Calendar.ISO) do
     case calendar_or_time_unit do
       unit when unit in [:microsecond, :millisecond, :second] ->
@@ -88,8 +88,7 @@ defmodule Time do
   end
 
   @doc """
-  Returns the current time in UTC, supporting
-  a specific calendar and precision.
+  Returns the current time in UTC, supporting a precision and a specific calendar.
 
   ## Examples
       iex> time = Time.utc_now(:microsecond, Calendar.ISO)
