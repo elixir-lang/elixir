@@ -100,7 +100,7 @@ defmodule Time do
       {0, 0}
 
   """
-  @doc since: "1.9.0"
+  @doc since: "1.19.0"
   @spec utc_now(:microsecond | :millisecond | :second, Calendar.calendar()) :: t
   def utc_now(time_unit, calendar) when time_unit in [:microsecond, :millisecond, :second] do
     {:ok, _, time, microsecond} = Calendar.ISO.from_unix(:os.system_time(), :native)
