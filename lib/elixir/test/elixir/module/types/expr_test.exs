@@ -1103,18 +1103,27 @@ defmodule Module.Types.ExprTest do
       assert typeerror!(
                [x = %Point{}, mod = Kernel, condition],
                (
-                 y = if condition, do: 123, else: %Point{}
+                 y = if condition, do: 456, else: %Point{}
                  mod.<=(x, y)
                )
              ) =~ "comparison with structs found:"
 
       assert typecheck!(
-               [x = 456, mod = Kernel, condition],
+               [x = 123, mod = Kernel, condition],
                (
-                 y = if condition, do: 123, else: %Point{}
+                 y = if condition, do: 456, else: %Point{}
                  mod.<=(x, y)
                )
              ) == boolean()
+
+      assert typeerror!(
+               [mod = Kernel, condition],
+               (
+                 x = if condition, do: 123, else: %Point{}
+                 y = if condition, do: 456, else: %Point{}
+                 mod.<=(x, y)
+               )
+             ) =~ "comparison with structs found:"
     end
   end
 
