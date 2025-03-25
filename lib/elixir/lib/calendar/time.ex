@@ -62,7 +62,7 @@ defmodule Time do
 
   You can pass a time unit to automatically truncate the resulting time.
 
-  The default unit if none gets passed is `:microsecond`.
+  The default unit if none gets passed is `:native` which results on a default resolution of microseconds.
 
   ## Examples
 
@@ -76,14 +76,14 @@ defmodule Time do
 
   """
   @doc since: "1.4.0"
-  @spec utc_now(Calendar.calendar() | :microsecond | :millisecond | :second) :: t
+  @spec utc_now(Calendar.calendar() | :native | :microsecond | :millisecond | :second) :: t
   def utc_now(calendar_or_time_unit \\ Calendar.ISO) do
     case calendar_or_time_unit do
-      unit when unit in [:microsecond, :millisecond, :second] ->
+      unit when unit in [:native, :microsecond, :millisecond, :second] ->
         utc_now(unit, Calendar.ISO)
 
       calendar ->
-        utc_now(:microsecond, calendar)
+        utc_now(:native, calendar)
     end
   end
 
@@ -101,9 +101,10 @@ defmodule Time do
 
   """
   @doc since: "1.19.0"
-  @spec utc_now(:microsecond | :millisecond | :second, Calendar.calendar()) :: t
-  def utc_now(time_unit, calendar) when time_unit in [:microsecond, :millisecond, :second] do
-    {:ok, _, time, microsecond} = Calendar.ISO.from_unix(:os.system_time(), :native)
+  @spec utc_now(:native | :microsecond | :millisecond | :second, Calendar.calendar()) :: t
+  def utc_now(time_unit, calendar)
+      when time_unit in [:native, :microsecond, :millisecond, :second] do
+    {:ok, _, time, microsecond} = Calendar.ISO.from_unix(System.os_time(time_unit), time_unit)
     {hour, minute, second} = time
 
     iso_time = %Time{
@@ -114,9 +115,7 @@ defmodule Time do
       calendar: Calendar.ISO
     }
 
-    iso_time
-    |> convert!(calendar)
-    |> truncate(time_unit)
+    convert!(iso_time, calendar)
   end
 
   @doc """
