@@ -60,16 +60,49 @@ defmodule Time do
   @doc """
   Returns the current time in UTC.
 
+  You can pass a time unit to automatically truncate the resulting time.
+
+  The default unit if none gets passed is `:microseconds`.
+
   ## Examples
 
       iex> time = Time.utc_now()
       iex> time.hour >= 0
       true
 
+      iex> time = Time.utc_now(:second)
+      iex> time.microsecond
+      {0, 0}
+
   """
   @doc since: "1.4.0"
   @spec utc_now(Calendar.calendar()) :: t
-  def utc_now(calendar \\ Calendar.ISO) do
+  def utc_now(calendar_or_time_unit \\ Calendar.ISO) do
+    case calendar_or_time_unit do
+      unit when unit in [:microsecond, :millisecond, :second] ->
+        utc_now(unit, Calendar.ISO)
+
+      calendar ->
+        utc_now(:microsecond, calendar)
+    end
+  end
+
+  @doc """
+  Returns the current time in UTC, supporting
+  a specific calendar and precision.
+
+  ## Examples
+      iex> time = Time.utc_now(:microsecond, Calendar.ISO)
+      iex> time.hour >= 0
+
+      iex> time = Time.utc_now(:second, Calendar.ISO)
+      iex> time.microsecond
+      {0, 0}
+
+  """
+  @doc since: "1.9.0"
+  @spec utc_now(:microsecond | :millisecond | :second, Calendar.calendar()) :: t
+  def utc_now(time_unit, calendar) when time_unit in [:microsecond, :millisecond, :second] do
     {:ok, _, time, microsecond} = Calendar.ISO.from_unix(:os.system_time(), :native)
     {hour, minute, second} = time
 
@@ -81,7 +114,9 @@ defmodule Time do
       calendar: Calendar.ISO
     }
 
-    convert!(iso_time, calendar)
+    iso_time
+    |> convert!(calendar)
+    |> truncate(time_unit)
   end
 
   @doc """
