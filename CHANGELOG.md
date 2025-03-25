@@ -117,7 +117,6 @@ https://elixir-lang.org/blog/2025/02/26/elixir-openchain-certification/
   * [Kernel] Support `min/2` and `max/2` as guards
   * [Macro] Print debugging results from `Macro.dbg/1` as they happen, instead of once at the end
   * [Protocol] Type checking of protocols dispatch and implementations
-  * [Protocol] Add `Protocol.impl_for/2` and `Protocol.impl_for!/2`
 
 #### ExUnit
 
