@@ -395,6 +395,14 @@ defmodule MapTest do
     assert quoted == {:%, [], [User, {:%{}, [], [{:foo, 1}]}]}
   end
 
+  test "structs with bitstring defaults" do
+    defmodule WithBitstring do
+      defstruct bitstring: <<255, 127::7>>
+    end
+
+    assert struct!(WithBitstring).bitstring == <<255, 127::7>>
+  end
+
   test "defstruct can only be used once in a module" do
     message =
       "defstruct has already been called for TestMod, " <>

@@ -96,6 +96,9 @@ elixir_to_erl(Tree, Ann) when is_binary(Tree) ->
   %% considers a string in a binary to be encoded in latin1, so the bytes
   %% are not changed in any fashion.
   {bin, Ann, [{bin_element, Ann, {string, Ann, binary_to_list(Tree)}, default, default}]};
+elixir_to_erl(Tree, Ann) when is_bitstring(Tree) ->
+  Segments = [elixir_to_erl_bitstring_segment(X, Ann) || X <- bitstring_to_list(Tree)],
+  {bin, Ann, Segments};
 elixir_to_erl(Tree, Ann) when is_function(Tree) ->
   case (erlang:fun_info(Tree, type) == {type, external}) andalso
        (erlang:fun_info(Tree, env) == {env, []}) of
@@ -114,6 +117,13 @@ elixir_to_erl(Tree, Ann) ->
 
 elixir_to_erl_cons([H | T], Ann) -> {cons, Ann, elixir_to_erl(H, Ann), elixir_to_erl_cons(T, Ann)};
 elixir_to_erl_cons(T, Ann) -> elixir_to_erl(T, Ann).
+
+elixir_to_erl_bitstring_segment(Int, Ann) when is_integer(Int) ->
+  {bin_element, Ann, {integer, Ann, Int}, default, [integer]};
+elixir_to_erl_bitstring_segment(Rest, Ann) when is_bitstring(Rest) ->
+  Size = bit_size(Rest),
+  <<Int:Size>> = Rest,
+  {bin_element, Ann, {integer, Ann, Int}, {integer, Ann, Size}, [integer]}.
 
 %% Returns a scope for translation.
 
