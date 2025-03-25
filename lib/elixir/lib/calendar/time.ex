@@ -60,17 +60,52 @@ defmodule Time do
   @doc """
   Returns the current time in UTC.
 
+  You can pass a time unit to automatically truncate the resulting time.
+
+  The default unit if none gets passed is `:native` which results on a default resolution of microseconds.
+
   ## Examples
 
       iex> time = Time.utc_now()
       iex> time.hour >= 0
       true
 
+      iex> time = Time.utc_now(:second)
+      iex> time.microsecond
+      {0, 0}
+
   """
   @doc since: "1.4.0"
-  @spec utc_now(Calendar.calendar()) :: t
-  def utc_now(calendar \\ Calendar.ISO) do
-    {:ok, _, time, microsecond} = Calendar.ISO.from_unix(:os.system_time(), :native)
+  @spec utc_now(Calendar.calendar() | :native | :microsecond | :millisecond | :second) :: t
+  def utc_now(calendar_or_time_unit \\ Calendar.ISO) do
+    case calendar_or_time_unit do
+      unit when unit in [:native, :microsecond, :millisecond, :second] ->
+        utc_now(unit, Calendar.ISO)
+
+      calendar ->
+        utc_now(:native, calendar)
+    end
+  end
+
+  @doc """
+  Returns the current time in UTC, supporting a precision and a specific calendar.
+
+  ## Examples
+
+      iex> time = Time.utc_now(:microsecond, Calendar.ISO)
+      iex> time.hour >= 0
+      true
+
+      iex> time = Time.utc_now(:second, Calendar.ISO)
+      iex> time.microsecond
+      {0, 0}
+
+  """
+  @doc since: "1.19.0"
+  @spec utc_now(:native | :microsecond | :millisecond | :second, Calendar.calendar()) :: t
+  def utc_now(time_unit, calendar)
+      when time_unit in [:native, :microsecond, :millisecond, :second] do
+    {:ok, _, time, microsecond} = Calendar.ISO.from_unix(System.os_time(time_unit), time_unit)
     {hour, minute, second} = time
 
     iso_time = %Time{
