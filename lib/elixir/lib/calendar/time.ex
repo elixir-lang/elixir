@@ -91,6 +91,7 @@ defmodule Time do
   Returns the current time in UTC, supporting a precision and a specific calendar.
 
   ## Examples
+
       iex> time = Time.utc_now(:microsecond, Calendar.ISO)
       iex> time.hour >= 0
 
