@@ -96,7 +96,7 @@ defmodule Module.Types.Descr do
       iex> fun([integer()], atom())  # Creates (integer) -> atom
       iex> fun([integer(), float()], boolean())  # Creates (integer, float) -> boolean
   """
-  def fun(args, return) when is_list(args), do: %{fun: fun_descr(args, return)}
+  def fun(args, return) when is_list(args), do: fun_descr(args, return)
 
   @doc """
   Creates the top function type for the given arity, where all arguments are none()
@@ -893,7 +893,9 @@ defmodule Module.Types.Descr do
 
   # * Representation:
   #   - fun(): Top function type (leaf 1)
-  #   - Function literals: {[t1, ..., tn], t} where [t1, ..., tn] are argument types and t is return type
+  #   - Function literals: {tag, [t1, ..., tn], t} where [t1, ..., tn] are argument types and t is return type
+  #     tag is either `:weak` or `:strong`
+  #     TODO: implement `:strong`
   #   - Normalized form for function applications: {domain, arrows, arity} is produced by `fun_normalize/1`
 
   # * Examples:
@@ -904,12 +906,7 @@ defmodule Module.Types.Descr do
   # unary functions with tuple domains to handle special cases like representing functions of a
   # specific arity (e.g., (none,none->term) for arity 2).
 
-  defp fun_descr(inputs, output), do: {{:weak, inputs, output}, 1, 0}
-
-  @doc "Utility function: fast build an intersection from a list of functions"
-  def fun_from_intersection(intersection) do
-    Enum.reduce(intersection, 1, fn {dom, ret}, acc -> {{:weak, dom, ret}, acc, 0} end)
-  end
+  defp fun_new(inputs, output), do: {{:weak, inputs, output}, 1, 0}
 
   @doc """
   Creates a function type from a list of inputs and an output where the inputs and/or output may be dynamic.
@@ -919,34 +916,28 @@ defmodule Module.Types.Descr do
   - Dynamic part: dynamic(down(t) → up(s))
 
   When handling dynamic types:
-  - `up(t)` extracts the upper bound (most general type) of a gradual type
-  - `down(t)` extracts the lower bound (most specific type) of a gradual type
+  - `up(t)` extracts the upper bound (most general type) of a gradual type.
+    For `dynamic(integer())`, it is `integer()`.
+  - `down(t)` extracts the lower bound (most specific type) of a gradual type.
   """
-  def fun_from_annotation(inputs, output) do
-    dynamic_arguments? = are_arguments_dynamic?(inputs)
+  def fun_descr(args, output) when is_list(args) do
+    dynamic_arguments? = are_arguments_dynamic?(args)
     dynamic_output? = match?(%{dynamic: _}, output)
 
-    cond do
-      dynamic_arguments? and dynamic_output? ->
-        static_part = fun(materialize_arguments(inputs, :up), down(output))
-        dynamic_part = dynamic(fun(materialize_arguments(inputs, :down), up(output)))
-        union(static_part, dynamic_part)
+    if dynamic_arguments? or dynamic_output? do
+      input_static = if dynamic_arguments?, do: materialize_arguments(args, :up), else: args
+      input_dynamic = if dynamic_arguments?, do: materialize_arguments(args, :down), else: args
 
-      # Only arguments are dynamic
-      dynamic_arguments? ->
-        static_part = fun(materialize_arguments(inputs, :up), output)
-        dynamic_part = dynamic(fun(materialize_arguments(inputs, :down), output))
-        union(static_part, dynamic_part)
+      output_static = if dynamic_output?, do: down(output), else: output
+      output_dynamic = if dynamic_output?, do: up(output), else: output
 
-      # Only return type is dynamic
-      dynamic_output? ->
-        static_part = fun(inputs, down(output))
-        dynamic_part = dynamic(fun(inputs, up(output)))
-        union(static_part, dynamic_part)
-
-      true ->
-        # No dynamic components, use standard function type
-        fun(inputs, output)
+      %{
+        fun: fun_new(input_static, output_static),
+        dynamic: %{fun: fun_new(input_dynamic, output_dynamic)}
+      }
+    else
+      # No dynamic components, use standard function type
+      %{fun: fun_new(args, output)}
     end
   end
 
@@ -962,7 +953,7 @@ defmodule Module.Types.Descr do
   # Example: for functions (integer,float)->:ok and (float,integer)->:error
   # domain isn't {integer|float,integer|float} as that would incorrectly accept {float,float}
   # Instead, it is {integer,float} or {float,integer}
-  def domain_new(types) when is_list(types), do: tuple(types)
+  def domain_descr(types) when is_list(types), do: tuple(types)
 
   @doc """
   Calculates the domain of a function type.
@@ -1063,9 +1054,13 @@ defmodule Module.Types.Descr do
       atom()
   """
   def fun_apply(fun, arguments) do
-    case :maps.take(:dynamic, fun) do
-      :error -> fun_apply_with_strategy(fun, nil, arguments)
-      {fun_dynamic, fun_static} -> fun_apply_with_strategy(fun_static, fun_dynamic, arguments)
+    if empty?(domain_descr(arguments)) do
+      :badarguments
+    else
+      case :maps.take(:dynamic, fun) do
+        :error -> fun_apply_with_strategy(fun, nil, arguments)
+        {fun_dynamic, fun_static} -> fun_apply_with_strategy(fun_static, fun_dynamic, arguments)
+      end
     end
   end
 
@@ -1100,7 +1095,7 @@ defmodule Module.Types.Descr do
   defp are_arguments_dynamic?(arguments), do: Enum.any?(arguments, &match?(%{dynamic: _}, &1))
 
   defp fun_apply_static(%{fun: fun_bdd}, arguments) do
-    type_args = domain_new(arguments)
+    type_args = domain_descr(arguments)
 
     if empty?(type_args) do
       # At this stage we do not check that the function can be applied to the arguments (using domain)
@@ -1129,9 +1124,7 @@ defmodule Module.Types.Descr do
 
         {:ok, result}
       else
-        :emptyfunction -> :emptyfunction
-        :badarguments -> :badarguments
-        false -> :badarguments
+        _ -> :badarguments
       end
     end
   end
@@ -1156,7 +1149,7 @@ defmodule Module.Types.Descr do
 
   defp aux_apply(result, input, returns_reached, [{_tag, dom, ret} | arrow_intersections]) do
     # Calculate the part of the input not covered by this arrow's domain
-    dom_subtract = difference(input, domain_new(dom))
+    dom_subtract = difference(input, domain_descr(dom))
 
     # Refine the return type by intersecting with this arrow's return type
     ret_refine = intersection(returns_reached, ret)
@@ -1229,7 +1222,9 @@ defmodule Module.Types.Descr do
 
           # Calculate domain from all positive functions
           path_domain =
-            Enum.reduce(pos_funs, none(), fn {_, args, _}, acc -> union(acc, domain_new(args)) end)
+            Enum.reduce(pos_funs, none(), fn {_, args, _}, acc ->
+              union(acc, domain_descr(args))
+            end)
 
           {intersection(domain, path_domain), [pos_funs | arrows], new_arity}
         end
@@ -1269,6 +1264,8 @@ defmodule Module.Types.Descr do
   # - `{[fun(1), fun(2)], []}` is empty (different arities)
   # - `{[fun(integer() -> atom())], [fun(none() -> term())]}` is empty
   # - `{[], _}` (representing the top function type fun()) is never empty
+  #
+  # TODO: test performance
   defp fun_empty?([], _), do: false
 
   defp fun_empty?(positives, negatives) do
@@ -1287,7 +1284,7 @@ defmodule Module.Types.Descr do
           # function's domain is a supertype of the positive domain and if the phi function
           # determines emptiness.
           length(neg_arguments) == positive_arity and
-            subtype?(domain_new(neg_arguments), positive_domain) and
+            subtype?(domain_descr(neg_arguments), positive_domain) and
             phi_starter(neg_arguments, negation(neg_return), positives)
         end)
     end
@@ -1300,10 +1297,10 @@ defmodule Module.Types.Descr do
     positives
     |> Enum.reduce_while({:empty, none()}, fn
       {_tag, args, _}, {:empty, _} ->
-        {:cont, {length(args), domain_new(args)}}
+        {:cont, {length(args), domain_descr(args)}}
 
       {_tag, args, _}, {arity, dom} when length(args) == arity ->
-        {:cont, {arity, union(dom, domain_new(args))}}
+        {:cont, {arity, union(dom, domain_descr(args))}}
 
       {_tag, _args, _}, {_arity, _} ->
         {:halt, {:empty, none()}}
@@ -2986,10 +2983,10 @@ defmodule Module.Types.Descr do
 
   ## Examples
 
-      iex> tuple_fetch(domain_new([integer(), atom()]), 0)
+      iex> tuple_fetch(domain_descr([integer(), atom()]), 0)
       {false, integer()}
 
-      iex> tuple_fetch(union(domain_new([integer()]), domain_new([integer(), atom()])), 1)
+      iex> tuple_fetch(union(domain_descr([integer()]), domain_descr([integer(), atom()])), 1)
       {true, atom()}
 
       iex> tuple_fetch(dynamic(), 0)
