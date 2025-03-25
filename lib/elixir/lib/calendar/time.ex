@@ -94,6 +94,7 @@ defmodule Time do
 
       iex> time = Time.utc_now(:microsecond, Calendar.ISO)
       iex> time.hour >= 0
+      true
 
       iex> time = Time.utc_now(:second, Calendar.ISO)
       iex> time.microsecond
