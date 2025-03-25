@@ -644,8 +644,8 @@ defmodule Module.Types.DescrTest do
       refute subtype?(fun([], term()), fun([], float()))
 
       # Contravariance of domain
-      assert subtype?(fun([integer()], boolean()), fun([number()], boolean()))
-      refute subtype?(fun([number()], boolean()), fun([integer()], boolean()))
+      refute subtype?(fun([integer()], boolean()), fun([number()], boolean()))
+      assert subtype?(fun([number()], boolean()), fun([integer()], boolean()))
 
       # Nested function types
       higher_order = fun([fun([integer()], atom())], boolean())
