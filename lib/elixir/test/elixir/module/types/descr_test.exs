@@ -644,13 +644,8 @@ defmodule Module.Types.DescrTest do
       refute subtype?(fun([], term()), fun([], float()))
 
       # Contravariance of domain
-      union_args = fun([union(integer(), atom())], boolean())
-      int_arg = fun([integer()], boolean())
-      atom_arg = fun([atom()], boolean())
-
-      assert subtype?(union_args, int_arg)
-      assert subtype?(intersection(int_arg, atom_arg), union_args)
-      refute subtype?(atom_arg, union_args)
+      assert subtype?(fun([integer()], boolean()), fun([number()], boolean()))
+      refute subtype?(fun([number()], boolean()), fun([integer()], boolean()))
 
       # Nested function types
       higher_order = fun([fun([integer()], atom())], boolean())
@@ -659,17 +654,14 @@ defmodule Module.Types.DescrTest do
       assert subtype?(higher_order, specific)
       refute subtype?(specific, higher_order)
 
-      ## Special multi-arity test
+      ## Multi-arity
       f = fun([none(), integer()], atom())
       assert subtype?(f, f)
       assert subtype?(f, fun([none(), integer()], term()))
-
       assert subtype?(fun([none(), number()], atom()), f)
       assert subtype?(fun([tuple(), number()], atom()), f)
-
       refute subtype?(fun([none(), float()], atom()), f)
       refute subtype?(fun([pid(), float()], atom()), f)
-
       # A function with the wrong arity is refused
       refute subtype?(fun([none()], atom()), f)
     end

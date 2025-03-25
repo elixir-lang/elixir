@@ -1197,9 +1197,6 @@ defmodule Module.Types.Descr do
   # 2. **arrows**: List of lists, where each inner list contains an intersection of function arrows
   # 3. **arity**: Function arity (number of parameters)
   #
-  # This canonical form simplifies operations like function application, domain calculation,
-  # and subtyping checks by properly handling arrow intersections and negations.
-  #
   ## Return Values
   #
   # - `{domain, arrows, arity}` for valid function BDDs
