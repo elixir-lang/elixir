@@ -206,7 +206,10 @@ defmodule Module.Types.IntegrationTest do
       assert itself_arg.(Itself.Float) == dynamic(float())
       assert itself_arg.(Itself.Function) == dynamic(fun())
       assert itself_arg.(Itself.Integer) == dynamic(integer())
-      assert itself_arg.(Itself.List) == dynamic(list(term()))
+
+      assert itself_arg.(Itself.List) ==
+               dynamic(union(empty_list(), non_empty_list(term(), term())))
+
       assert itself_arg.(Itself.Map) == dynamic(open_map(__struct__: if_set(negation(atom()))))
       assert itself_arg.(Itself.Port) == dynamic(port())
       assert itself_arg.(Itself.PID) == dynamic(pid())
@@ -484,7 +487,7 @@ defmodule Module.Types.IntegrationTest do
                 dynamic(
                   %Date{} or %DateTime{} or %NaiveDateTime{} or %Time{} or %URI{} or %Version{} or
                     %Version.Requirement{}
-                ) or atom() or binary() or float() or integer() or list(term())
+                ) or atom() or binary() or empty_list() or float() or integer() or non_empty_list(term(), term())
 
             where "data" was given the type:
 
@@ -508,7 +511,7 @@ defmodule Module.Types.IntegrationTest do
                 dynamic(
                   %Date{} or %DateTime{} or %NaiveDateTime{} or %Time{} or %URI{} or %Version{} or
                     %Version.Requirement{}
-                ) or atom() or binary() or float() or integer() or list(term())
+                ) or atom() or binary() or empty_list() or float() or integer() or non_empty_list(term(), term())
 
             where "data" was given the type:
 
@@ -519,6 +522,19 @@ defmodule Module.Types.IntegrationTest do
       ]
 
       assert_warnings(files, warnings, consolidate_protocols: true)
+    end
+
+    @tag :require_ast
+    test "String.Chars protocol dispatch on improper lists" do
+      files = %{
+        "a.ex" => """
+        defmodule FooBar do
+          def example1, do: to_string([?a, ?b | "!"])
+        end
+        """
+      }
+
+      assert_no_warnings(files, consolidate_protocols: true)
     end
 
     @tag :require_ast
@@ -548,7 +564,7 @@ defmodule Module.Types.IntegrationTest do
                 dynamic(
                   %Date.Range{} or %File.Stream{} or %GenEvent.Stream{} or %HashDict{} or %HashSet{} or
                     %IO.Stream{} or %MapSet{} or %Range{} or %Stream{}
-                ) or fun() or list(term()) or non_struct_map()
+                ) or empty_list() or fun() or non_empty_list(term(), term()) or non_struct_map()
 
             where "date" was given the type:
 
@@ -577,7 +593,7 @@ defmodule Module.Types.IntegrationTest do
             but expected a type that implements the Collectable protocol, it must be one of:
 
                 dynamic(%File.Stream{} or %HashDict{} or %HashSet{} or %IO.Stream{} or %MapSet{}) or binary() or
-                  list(term()) or non_struct_map()
+                  empty_list() or non_empty_list(term(), term()) or non_struct_map()
 
             hint: the :into option in for-comprehensions use the Collectable protocol to build its result. Either pass a valid data type or implement the protocol accordingly
         """
@@ -1380,8 +1396,8 @@ defmodule Module.Types.IntegrationTest do
     end)
   end
 
-  defp assert_no_warnings(files) do
-    assert capture_compile_warnings(files, []) == ""
+  defp assert_no_warnings(files, opts \\ []) do
+    assert capture_compile_warnings(files, opts) == ""
   end
 
   defp capture_compile_warnings(files, opts) do
