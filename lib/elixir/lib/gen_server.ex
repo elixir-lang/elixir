@@ -271,6 +271,14 @@ defmodule GenServer do
   generated atoms won't be garbage-collected. For such cases, you can
   set up your own local registry by using the `Registry` module.
 
+  For example:
+
+      {:ok, _} = Registry.start_link(keys: :unique, name: :stacks)
+      name = {:via, Registry, {:stacks, "stack 1"}}
+      {:ok, _pid} = GenServer.start_link(Stack, "hello", name: name)
+      Registry.lookup(:stacks, "stack 1")
+      #=> [{#PID<0.150.0>, nil}]
+
   ## Receiving "regular" messages
 
   The goal of a `GenServer` is to abstract the "receive" loop for developers,
