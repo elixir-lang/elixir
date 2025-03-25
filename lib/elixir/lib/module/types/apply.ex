@@ -436,11 +436,14 @@ defmodule Module.Types.Apply do
       number_type?(left) and number_type?(right) ->
         {:ok, result}
 
-      disjoint?(left, right) ->
-        {:error, :mismatched_comparison}
-
       true ->
-        {:ok, result}
+        common = intersection(left, right)
+
+        cond do
+          empty?(common) -> {:error, :mismatched_comparison}
+          match?({false, _}, map_fetch(common, :__struct__)) -> {:error, :struct_comparison}
+          true -> {:ok, result}
+        end
     end
   end
 
@@ -974,6 +977,35 @@ defmodule Module.Types.Apply do
           While Elixir can compare across all types, you are comparing \
           across types which are always disjoint, and the result is either \
           always true or always false
+          """
+        ])
+    }
+  end
+
+  def format_diagnostic({:struct_comparison, [left, right], mfac, expr, context}) do
+    {_, name, _, _} = mfac
+    traces = collect_traces(expr, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          comparison with structs found:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          given types:
+
+              #{type_comparison_to_string(name, left, right) |> indent(4)}
+          """,
+          format_traces(traces),
+          """
+
+          Comparison operators (>, <, >=, <=, min, and max) perform structural \
+          and not semantic comparison. Comparing with a struct won't give meaningful \
+          results. Structs that can be compared typically define a compare/2 function \
+          within their modules that can be used for semantic comparison.
           """
         ])
     }

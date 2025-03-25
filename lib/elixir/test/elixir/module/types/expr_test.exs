@@ -1067,6 +1067,55 @@ defmodule Module.Types.ExprTest do
                which are always disjoint, and the result is either always true or always false
                """
     end
+
+    test "warns on comparison with struct across dynamic call" do
+      assert typeerror!([x = %Point{}, y = %Point{}, mod = Kernel], mod.<=(x, y)) ==
+               ~l"""
+               comparison with structs found:
+
+                   mod.<=(x, y)
+
+               given types:
+
+                   dynamic(%Point{}) <= dynamic(%Point{})
+
+               where "mod" was given the type:
+
+                   # type: dynamic(Kernel)
+                   # from: types_test.ex:LINE-1
+                   mod = Kernel
+
+               where "x" was given the type:
+
+                   # type: dynamic(%Point{})
+                   # from: types_test.ex:LINE-1
+                   x = %Point{}
+
+               where "y" was given the type:
+
+                   # type: dynamic(%Point{})
+                   # from: types_test.ex:LINE-1
+                   y = %Point{}
+
+               Comparison operators (>, <, >=, <=, min, and max) perform structural and not semantic comparison. Comparing with a struct won't give meaningful results. Structs that can be compared typically define a compare/2 function within their modules that can be used for semantic comparison.
+               """
+
+      assert typeerror!(
+               [x = %Point{}, mod = Kernel, condition],
+               (
+                 y = if condition, do: 123, else: %Point{}
+                 mod.<=(x, y)
+               )
+             ) =~ "comparison with structs found:"
+
+      assert typecheck!(
+               [x = 456, mod = Kernel, condition],
+               (
+                 y = if condition, do: 123, else: %Point{}
+                 mod.<=(x, y)
+               )
+             ) == boolean()
+    end
   end
 
   describe ":erlang rewrites" do
