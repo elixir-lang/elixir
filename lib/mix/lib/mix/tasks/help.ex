@@ -119,7 +119,13 @@ defmodule Mix.Tasks.Help do
 
   # Loadpaths without checks because tasks may be defined in deps.
   defp loadpaths! do
-    args = ["--no-elixir-version-check", "--no-deps-check", "--no-archives-check"]
+    args = [
+      "--no-elixir-version-check",
+      "--no-deps-check",
+      "--no-archives-check",
+      "--no-listeners"
+    ]
+
     Mix.Task.run("loadpaths", args)
     Mix.Task.reenable("loadpaths")
     Mix.Task.reenable("deps.loadpaths")
