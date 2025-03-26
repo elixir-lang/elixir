@@ -356,7 +356,7 @@ defmodule Mix.Tasks.Deps.Compile do
   defp shell_cmd!(%Mix.Dep{app: app} = dep, config, command, env \\ []) do
     if Mix.shell().cmd(command, [print_app: true] ++ opts_for_cmd(dep, config, env)) != 0 do
       Mix.raise(
-        "Could not compile dependency #{inspect(app)}, \"#{inspect(command)}\" command failed. " <>
+        "Could not compile dependency #{inspect(app)}, #{inspect(command)} command failed. " <>
           deps_compile_feedback(app)
       )
     end
