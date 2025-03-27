@@ -922,6 +922,7 @@ defmodule Stream do
   itself). `after_fun` is always invoked, therefore `after_fun` must be the
   one used for closing resources.
   """
+  @doc since: "1.14.0"
   @spec transform(Enumerable.t(), start_fun, reducer, last_fun, after_fun) :: Enumerable.t()
         when start_fun: (-> acc),
              reducer: (element, acc -> {Enumerable.t(), acc} | {:halt, acc}),
