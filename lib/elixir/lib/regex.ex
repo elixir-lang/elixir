@@ -355,8 +355,15 @@ defmodule Regex do
       iex> Regex.named_captures(~r/a(?<foo>b)c(?<bar>d)/, "efgh")
       nil
 
+  You can also retrieve indexes from the named captures. This is particularly
+  useful if you want to know if a named capture matched or not:
+
+      iex> Regex.named_captures(~r/a(?<foo>b)c(?<bar>d)?/, "abc", return: :index)
+      %{"bar" => {-1, 0}, "foo" => {1, 1}}
+
+  You can then use `binary_part/3` to fetch the relevant part from the given string.
   """
-  @spec named_captures(t, String.t(), [term]) :: map | nil
+  @spec named_captures(t, String.t(), keyword) :: map | nil
   def named_captures(regex, string, options \\ []) when is_binary(string) do
     names = names(regex)
     options = Keyword.put(options, :capture, names)
