@@ -990,6 +990,12 @@ defmodule Supervisor do
   value, or if it fails, the child specification is discarded and this function
   returns `{:error, error}` where `error` is a term containing information about
   the error and child specification.
+
+  > #### Order Among Children {: .tip}
+  >
+  > The child specification is **appended** to the children of `supervisor`.
+  > This guarantees that semantics of things such as the `:rest_for_one` strategy
+  > are preserved correctly.
   """
   @spec start_child(
           supervisor,
