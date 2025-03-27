@@ -19,15 +19,11 @@ defmodule Regex do
       # A regular expression with case insensitive and Unicode options
       ~r/foo/iu
 
-  Regular expressions created via sigils are pre-compiled and stored
-  in the `.beam` file. Note that this may be a problem if you are precompiling
-  Elixir, see the "Precompilation" section for more information.
-
   A Regex is represented internally as the `Regex` struct. Therefore,
   `%Regex{}` can be used whenever there is a need to match on them.
-  Keep in mind that all of the structs fields are private. There is
-  also no guarantee two regular expressions from the same source are
-  equal, for example:
+  Keep in mind that all of the structs fields are private. And since
+  regexes are compiled, there is no guarantee two regular expressions
+  from the same source are equal, for example:
 
       ~r/(?<foo>.)(?<bar>.)/ == ~r/(?<foo>.)(?<bar>.)/
 
@@ -96,15 +92,6 @@ defmodule Regex do
     * `:ungreedy` (U) - inverts the "greediness" of the regexp
       (the previous `r` option is deprecated in favor of `U`)
 
-  The options not available are:
-
-    * `:anchored` - not available, use `^` or `\A` instead
-    * `:dollar_endonly` - not available, use `\z` instead
-    * `:no_auto_capture` - not available, use `?:` instead
-    * `:newline` - not available, use `(*CR)` or `(*LF)` or `(*CRLF)` or
-      `(*ANYCRLF)` or `(*ANY)` at the beginning of the regexp according to the
-      `:re` documentation
-
   ## Captures
 
   Many functions in this module handle what to capture in a regex
@@ -171,26 +158,11 @@ defmodule Regex do
       iex> Regex.replace(~r/\s/u, "Unicode\u00A0spaces", "-")
       "Unicode-spaces"
 
-  ## Precompilation
-
-  Regular expressions built with sigil are precompiled and stored in `.beam`
-  files. Precompiled regexes will be checked in runtime and may work slower
-  between operating systems and OTP releases. This is rarely a problem, as most Elixir code
-  shared during development is compiled on the target (such as dependencies,
-  archives, and escripts) and, when running in production, the code must either
-  be compiled on the target (via `mix compile` or similar) or released on the
-  host (via `mix releases` or similar) with a matching OTP, operating system
-  and architecture as the target.
-
-  If you know you are running on a different system than the current one and
-  you are doing multiple matches with the regex, you can manually invoke
-  `Regex.recompile/1` or `Regex.recompile!/1` to perform a runtime version
-  check and recompile the regex if necessary.
   """
 
   defstruct re_pattern: nil, source: "", opts: []
 
-  @type t :: %__MODULE__{re_pattern: term, source: binary, opts: binary | [term]}
+  @type t :: %__MODULE__{re_pattern: term, source: binary, opts: [term]}
 
   defmodule CompileError do
     @moduledoc """
