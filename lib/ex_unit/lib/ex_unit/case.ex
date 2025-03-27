@@ -307,24 +307,18 @@ defmodule ExUnit.Case do
   An ExUnit test case uses several processes when it runs. These are illustrated below.
 
   ```mermaid
-  flowchart TD
-    subgraph setup_alls [setup_all process]
-      setup_all(All setup_all callbacks)
-    end
+  sequenceDiagram
+    participant runner as ExUnit Case
+    runner->>runner: Run setup_all callbacks
 
-    setup_alls --> tests
-
-    subgraph tests [Test process]
-      setup(setup callbacks)
-      test(Test)
-
-      setup --> test
-    end
-
-    tests --> on_exits
-
-    subgraph on_exits [on_exit process]
-      on_exit(on_exit callbacks, reverse order)
+    loop Each test
+      create participant test as Test Process
+      runner->>test: Spawn
+      test->>test: Run setup callbacks
+      test->>test: Run test
+      destroy test
+      test-xrunner: Exits
+      runner->>runner: Run on_exit callbacks
     end
   ```
 
