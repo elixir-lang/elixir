@@ -17,7 +17,7 @@ canonical = System.fetch_env!("CANONICAL")
   before_closing_body_tag: fn
     :html ->
       """
-      <script defer src="https://cdn.jsdelivr.net/npm/mermaid@10.2.3/dist/mermaid.min.js"></script>
+      <script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.min.js"></script>
       <script>
         let initialized = false;
 
