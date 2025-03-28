@@ -1291,7 +1291,7 @@ defmodule Code do
 
     Process.put(:code_formatter_comments, [])
 
-    opts = 
+    opts =
       if include_comments do
         [preserve_comments: &preserve_comments/5,
           literal_encoder: &{:ok, {:__block__, &2, [&1]}},

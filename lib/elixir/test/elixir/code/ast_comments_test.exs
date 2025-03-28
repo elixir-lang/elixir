@@ -210,6 +210,7 @@ defmodule Code.AstCommentsTest do
         #trailing 3
         ] # trailing outside
         """)
+        |> IO.inspect()
 
       assert {:__block__, list_meta,
               [
@@ -646,6 +647,29 @@ defmodule Code.AstCommentsTest do
              ] = world_meta[:leading_comments]
 
       assert [%{line: 10, text: "# after body"}] = world_meta[:trailing_comments]
+    end
+
+    test "merges leading comments into the stab if left side is empty" do
+      quoted =
+        parse_string!("""
+        fn
+          # leading
+          ->
+          hello
+          hello
+        end
+        """)
+
+      assert {:fn, _,
+              [
+                {:->, stab_meta,
+                 [
+                   [],
+                   _
+                 ]}
+              ]} = quoted
+
+      assert [%{line: 2, text: "# leading"}] = stab_meta[:leading_comments]
     end
   end
 end
