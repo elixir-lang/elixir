@@ -64,3 +64,9 @@ defimpl String.Chars, for: Float do
     Float.to_string(term)
   end
 end
+
+defimpl String.Chars, for: Regex do
+  def to_string(term) do
+    Regex.to_string!(term)
+  end
+end
