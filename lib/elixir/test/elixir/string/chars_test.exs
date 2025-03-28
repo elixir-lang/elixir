@@ -100,6 +100,21 @@ defmodule String.Chars.URITest do
   end
 end
 
+defmodule String.Chars.RegexTest do
+  use ExUnit.Case, async: true
+
+  test "regex" do
+    re1 = ~r/foo|bar/
+    assert "#{re1}" == "(?-imsx:foo|bar)"
+    re2 = ~r/(#{re1})/
+    assert re2 == ~r/((?-imsx:foo|bar))/
+    re3 = ~r/thing # comment/x
+    assert "#{re3}" == "(?x-ims:thing # comment\n)"
+    re4 = ~r/#{re3}#{re1}ee/i
+    assert "#{re4}" == "(?i-msx:(?x-ims:thing # comment\n)(?-imsx:foo|bar)ee)"
+  end
+end
+
 defmodule String.Chars.ErrorsTest do
   use ExUnit.Case, async: true
 

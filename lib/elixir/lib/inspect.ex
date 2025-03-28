@@ -489,7 +489,7 @@ end
 
 defimpl Inspect, for: Regex do
   def inspect(regex = %{opts: regex_opts}, opts) when is_list(regex_opts) do
-    case translate_options(regex_opts, []) do
+    case Regex.modifiers(regex) do
       :error ->
         concat([
           "Regex.compile!(",
@@ -499,7 +499,7 @@ defimpl Inspect, for: Regex do
           ")"
         ])
 
-      translated_opts ->
+      {:ok, translated_opts} ->
         {escaped, _} =
           regex.source
           |> normalize(<<>>)
@@ -509,18 +509,6 @@ defimpl Inspect, for: Regex do
         color_doc(source, :regex, opts)
     end
   end
-
-  defp translate_options([:dotall, {:newline, :anycrlf} | t], acc),
-    do: translate_options(t, [?s | acc])
-
-  defp translate_options([:unicode, :ucp | t], acc), do: translate_options(t, [?u | acc])
-  defp translate_options([:caseless | t], acc), do: translate_options(t, [?i | acc])
-  defp translate_options([:extended | t], acc), do: translate_options(t, [?x | acc])
-  defp translate_options([:firstline | t], acc), do: translate_options(t, [?f | acc])
-  defp translate_options([:ungreedy | t], acc), do: translate_options(t, [?U | acc])
-  defp translate_options([:multiline | t], acc), do: translate_options(t, [?m | acc])
-  defp translate_options([], acc), do: acc
-  defp translate_options(_t, _acc), do: :error
 
   defp normalize(<<?\\, ?\\, rest::binary>>, acc), do: normalize(rest, <<acc::binary, ?\\, ?\\>>)
   defp normalize(<<?\\, ?/, rest::binary>>, acc), do: normalize(rest, <<acc::binary, ?/>>)

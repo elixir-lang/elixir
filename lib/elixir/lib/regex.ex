@@ -3,6 +3,8 @@
 # SPDX-FileCopyrightText: 2012 Plataformatec
 
 defmodule Regex do
+  import Kernel, except: [to_string: 1]
+
   @moduledoc ~S"""
   Provides regular expressions for Elixir.
 
@@ -170,6 +172,29 @@ defmodule Regex do
     """
 
     defexception message: "regex could not be compiled"
+  end
+
+  defmodule ModifierError do
+    @moduledoc """
+    An exception raised when a regular expression modifier or option that
+    cannot be represented as an embeddable expression is passed into
+    to_string!() or modifiers!()
+
+    See `Regex.modifiers/2` for more details on embeddable modifiers.
+    """
+
+    defexception [:regex, :modifiers]
+
+    def message(%{regex: regex, modifiers: modifiers}) do
+      if modifiers == nil do
+        "regex #{inspect(regex)} compiled with unknown options"
+      else
+        ess = if String.length(modifiers) > 1, do: "s", else: ""
+
+        "regex #{inspect(regex)} compiled with modifier#{ess}" <>
+          " #{inspect(modifiers)} which cannot be embedded"
+      end
+    end
   end
 
   @doc """
@@ -391,6 +416,71 @@ defmodule Regex do
   @spec source(t) :: String.t()
   def source(%Regex{source: source}) do
     source
+  end
+
+  @embeddable_modifiers [?i, ?m, ?s, ?x]
+
+  @doc """
+  Returns an {:ok, ...} tuple containing the regex source as a
+  binary in an embeddable form wrapped in a `(?:...)` construct.
+  If the pattern was compiled with an option which cannot be embedded
+  in such a construct an `{:error, ...}` tuple containing the
+  offending modifer letters will be returned.
+
+  See `Regex.modifiers/2` for more details on embeddable modifiers.
+
+  ## Examples
+
+      iex> Regex.to_string(~r/foo/ix)
+      {:ok, "(?ix-ms:foo\\n)"}
+      iex> Regex.to_string(~r/foo/u)
+      {:error, "u"}
+
+  """
+  @spec to_string(t) :: :error | {:ok, String.t()} | {:error, String.t()}
+  def to_string(%Regex{source: source, opts: opts}) do
+    nl = if Enum.member?(opts, :extended), do: "\n", else: ""
+
+    case _modifiers(opts, true) do
+      :error ->
+        :error
+
+      {:ok, modifiers} ->
+        disabled = Enum.reject(@embeddable_modifiers, &(&1 in modifiers))
+        disabled = if disabled == [], do: "", else: "-" <> to_sorted_string(disabled)
+
+        modifiers = to_sorted_string(modifiers) <> disabled
+
+        {:ok, "(?#{modifiers}:#{source}#{nl})"}
+
+      {:error, modifiers} ->
+        {:error, to_sorted_string(modifiers)}
+    end
+  end
+
+  @doc """
+  Returns a string containing the regex source as a binary in an
+  embeddable form wrapped in a `(?:...)` construct.  If the pattern
+  was compiled with an option that cannot be represented with this
+  type of construct then a `Regex.ModifierError` error will be raised.
+
+  See `Regex.modifiers/2` for more details on embeddable modifiers.
+
+  ## Examples
+
+      iex> Regex.to_string!(~r/foo/xism)
+      "(?imsx:foo\\n)"
+      iex> Regex.to_string!(~r/foo/uf)
+      ** (Regex.ModifierError) regex ~r/foo/fu compiled with modifiers "fu" which cannot be embedded
+
+  """
+  @spec to_string!(t) :: String.t()
+  def to_string!(%Regex{} = regex) do
+    case to_string(regex) do
+      :error -> raise Regex.ModifierError, regex: regex
+      {:ok, pattern} -> pattern
+      {:error, modifiers} -> raise Regex.ModifierError, regex: regex, modifiers: modifiers
+    end
   end
 
   @doc """
@@ -843,7 +933,106 @@ defmodule Regex do
     [binary_part(original, 0, length), ?\\, char | escape(rest, 0, rest)]
   end
 
+  @doc """
+  Returns a binary containing the regex modifier letters that
+  a pattern was compiled with.  If the `embed_only` option is true
+  then the function will throw an error if the regex was
+  compiled with a modifier which cannot be embeddd in a pattern.
+
+  See `Regex.modifiers/1` for more details.
+
+  ## Examples
+
+      iex> Regex.modifiers!(~r/foo/x)
+      "x"
+      iex> Regex.modifiers!(~r/foo/u, true)
+      ** (Regex.ModifierError) regex ~r/foo/u compiled with modifier "u" which cannot be embedded
+  """
+  @spec modifiers!(t, boolean) :: String.t()
+  def modifiers!(%Regex{} = regex, embed_only \\ false) do
+    case modifiers(regex, embed_only) do
+      :error -> raise Regex.ModifierError, regex: regex
+      {:ok, modifiers} -> modifiers
+      {:error, modifiers} -> raise Regex.ModifierError, regex: regex, modifiers: modifiers
+    end
+  end
+
+  @doc """
+  Returns an `{:ok, ...}` tuple containing the regex options as a
+  binary.
+
+  If the embed_only option is enabled then with only return `{:ok, ...}`
+  if all the options provided are found in the following list
+
+    * (m) :multiline
+    * (s) :dotall
+    * (i) :caseless
+    * (x) :extended
+
+  if any option is in the following list
+
+    * (u) :unicode
+    * (f) :firstline
+    * (U) :ungreedy
+
+  then an `{:error, ...}` tuple containing the offending modifers will
+  be returned instead.
+
+  Returns `:error` if an option that is not listed here has been discovered
+  in the `%Regex` struct.
+
+  ## Examples
+
+      iex> Regex.modifiers(~r/foo/x)
+      {:ok, "x"}
+      iex> Regex.modifiers(~r/foo/u)
+      {:ok, "u"}
+      iex> Regex.modifiers(~r/foo/xsim)
+      {:ok, "imsx"}
+      iex> Regex.modifiers(~r/foo/u, true)
+      {:error, "u"}
+  """
+  @spec modifiers(t, boolean()) :: String.t()
+  def modifiers(%Regex{opts: opts}, embed_only \\ false) do
+    case _modifiers(opts, embed_only) do
+      {:ok, list} -> {:ok, to_sorted_string(list)}
+      {:error, list} -> {:error, to_sorted_string(list)}
+      :error -> :error
+    end
+  end
+
   # Helpers
+
+  defp to_sorted_string(list), do: List.to_string(Enum.sort(list))
+
+  defp _modifiers(list, embed_only), do: _modifiers(list, [], [], embed_only)
+
+  defp _modifiers([:dotall, {:newline, :anycrlf} | t], acc, err, embed_only),
+    do: _modifiers(t, [?s | acc], err, embed_only)
+
+  defp _modifiers([:unicode, :ucp | t], acc, err, false),
+    do: _modifiers(t, [?u | acc], err, false)
+
+  defp _modifiers([:unicode, :ucp | t], acc, err, true),
+    do: _modifiers(t, acc, [?u | err], true)
+
+  defp _modifiers([:caseless | t], acc, err, embed_only),
+    do: _modifiers(t, [?i | acc], err, embed_only)
+
+  defp _modifiers([:extended | t], acc, err, embed_only),
+    do: _modifiers(t, [?x | acc], err, embed_only)
+
+  defp _modifiers([:firstline | t], acc, err, false), do: _modifiers(t, [?f | acc], err, false)
+  defp _modifiers([:firstline | t], acc, err, true), do: _modifiers(t, acc, [?f | err], true)
+  defp _modifiers([:ungreedy | t], acc, err, false), do: _modifiers(t, [?U | acc], err, false)
+  defp _modifiers([:ungreedy | t], acc, err, true), do: _modifiers(t, acc, [?U | err], true)
+
+  defp _modifiers([:multiline | t], acc, err, embed_only),
+    do: _modifiers(t, [?m | acc], err, embed_only)
+
+  defp _modifiers([], acc, [], _all), do: {:ok, acc}
+  defp _modifiers([], _acc, err, _all), do: {:error, err}
+  defp _modifiers(_t, _acc, _err, _all), do: :error
 
   defp translate_options(<<?s, t::binary>>, acc),
     do: translate_options(t, [:dotall, {:newline, :anycrlf} | acc])
