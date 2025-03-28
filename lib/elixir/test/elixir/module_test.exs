@@ -431,6 +431,7 @@ defmodule ModuleTest do
     assert backend.debug_info(:elixir_v1, ModuleCreateNoDebugInfo, data, []) == {:error, :missing}
   end
 
+  @tag :require_ast
   test "compiles to core" do
     {:ok, {Atom, [{~c"Dbgi", dbgi}]}} = Atom |> :code.which() |> :beam_lib.chunks([~c"Dbgi"])
     {:debug_info_v1, backend, data} = :erlang.binary_to_term(dbgi)

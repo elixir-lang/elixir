@@ -25,6 +25,7 @@ GIT_REVISION = $(strip $(shell git rev-parse HEAD 2> /dev/null ))
 GIT_TAG = $(strip $(shell head="$(call GIT_REVISION)"; git tag --points-at $$head 2> /dev/null | grep -v latest | tail -1))
 SOURCE_DATE_EPOCH_PATH = lib/elixir/tmp/ebin_reproducible
 SOURCE_DATE_EPOCH_FILE = $(SOURCE_DATE_EPOCH_PATH)/SOURCE_DATE_EPOCH
+ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
 .PHONY: install install_man build_plt clean_plt dialyze test check_reproducible clean clean_elixir clean_man format docs Docs.zip Precompiled.zip zips
 .NOTPARALLEL:
@@ -53,6 +54,11 @@ lib/$(1)/ebin/Elixir.$(2).beam: $(wildcard lib/$(1)/lib/*.ex) $(wildcard lib/$(1
 test_$(1): test_formatted $(1)
 	@ echo "==> $(1) (ex_unit)"
 	$(Q) cd lib/$(1) && ../../bin/elixir -r "test/test_helper.exs" -pr "test/**/$(TEST_FILES)";
+
+cover/ex_unit_$(1).coverdata:
+	$(Q) mkdir -p "$(ROOT_DIR)/cover"
+	$(Q) COVER_FILE="$(ROOT_DIR)/cover/ex_unit_$(1).coverdata" $(MAKE) test_$(1)
+cover/combined.coverdata: cover/ex_unit_$(1).coverdata
 endef
 
 define WRITE_SOURCE_DATE_EPOCH
@@ -175,6 +181,7 @@ clean: clean_man
 	rm -rf lib/mix/test/fixtures/git_sparse_repo/
 	rm -rf lib/mix/test/fixtures/archive/ebin/
 	rm -f erl_crash.dump
+	rm -rf cover/*
 
 clean_elixir:
 	$(Q) rm -f lib/*/ebin/Elixir.*.beam
@@ -286,6 +293,17 @@ test_stdlib: compile
 	else \
 		cd lib/elixir && ../../bin/elixir --sname primary -r "test/elixir/test_helper.exs" -pr "test/elixir/**/$(TEST_FILES)"; \
 	fi
+
+cover/ex_unit_stdlib.coverdata:
+	$(Q) mkdir -p "$(ROOT_DIR)/cover"
+	$(Q) COVER_FILE="$(ROOT_DIR)/cover/ex_unit_stdlib.coverdata" $(MAKE) test_stdlib
+cover/combined.coverdata: cover/ex_unit_stdlib.coverdata
+
+cover/combined.coverdata:
+	$(Q) bin/elixir ./lib/elixir/scripts/cover.exs
+
+.PHONY: cover
+cover: cover/combined.coverdata
 
 #==> Dialyzer tasks
 

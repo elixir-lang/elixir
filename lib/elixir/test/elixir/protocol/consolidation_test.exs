@@ -246,6 +246,7 @@ defmodule Protocol.ConsolidationTest do
     end
   end
 
+  @tag :require_ast
   test "consolidation errors on missing BEAM files" do
     defprotocol NoBeam do
       def example(arg)
