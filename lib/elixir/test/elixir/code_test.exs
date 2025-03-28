@@ -443,6 +443,77 @@ defmodule CodeTest do
     assert meta[:end_column] == 3
   end
 
+  test "string_to_quoted with comments" do
+    assert Code.string_to_quoted_with_comments("""
+           # top
+           [
+             # before
+
+             # right-before
+             expr, # middle
+             # right-after
+
+             # after
+           ]
+           # bottom
+           """) ==
+             {
+               :ok,
+               [{:expr, [line: 6], nil}],
+               [
+                 %{
+                   column: 1,
+                   line: 1,
+                   next_eol_count: 1,
+                   previous_eol_count: 1,
+                   text: "# top"
+                 },
+                 %{
+                   column: 3,
+                   line: 3,
+                   next_eol_count: 2,
+                   previous_eol_count: 1,
+                   text: "# before"
+                 },
+                 %{
+                   column: 3,
+                   line: 5,
+                   next_eol_count: 1,
+                   previous_eol_count: 2,
+                   text: "# right-before"
+                 },
+                 %{
+                   column: 9,
+                   line: 6,
+                   next_eol_count: 1,
+                   previous_eol_count: 0,
+                   text: "# middle"
+                 },
+                 %{
+                   column: 3,
+                   line: 7,
+                   next_eol_count: 2,
+                   previous_eol_count: 1,
+                   text: "# right-after"
+                 },
+                 %{
+                   column: 3,
+                   line: 9,
+                   next_eol_count: 1,
+                   previous_eol_count: 2,
+                   text: "# after"
+                 },
+                 %{
+                   column: 1,
+                   line: 11,
+                   next_eol_count: 1,
+                   previous_eol_count: 1,
+                   text: "# bottom"
+                 }
+               ]
+             }
+  end
+
   @tag :requires_source
   test "compile source" do
     assert __MODULE__.__info__(:compile)[:source] == String.to_charlist(__ENV__.file)

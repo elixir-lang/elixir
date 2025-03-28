@@ -1376,7 +1376,7 @@ defmodule Code do
     comment = %{
       line: line,
       column: column,
-      previous_eol_count: previous_eol_count(tokens),
+      previous_eol_count: min(previous_eol_count(tokens), last_comment_distance(comments, line)),
       next_eol_count: next_eol_count(rest, 0),
       text: List.to_string(comment)
     }
@@ -1389,6 +1389,9 @@ defmodule Code do
   defp next_eol_count([?\n | rest], count), do: next_eol_count(rest, count + 1)
   defp next_eol_count([?\r, ?\n | rest], count), do: next_eol_count(rest, count + 1)
   defp next_eol_count(_, count), do: count
+
+  defp last_comment_distance([%{line: last_line} | _], line), do: line - last_line
+  defp last_comment_distance([], _line), do: :infinity
 
   defp previous_eol_count([{token, {_, _, count}} | _])
        when token in [:eol, :",", :";"] and count > 0 do
