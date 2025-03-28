@@ -613,18 +613,18 @@ defmodule ExUnit.Callbacks do
   Note that if the started process terminates before it is linked to the test process,
   this function will exit with reason `:noproc`.
 
-  > #### To Link or Not To Link {: .warning}
+  > #### To link or not to link {: .warning}
   >
-  > When using `start_link_supervised!/2`, be aware that the order of process termination
-  > during test exit is not guaranteed (for the processes started with
-  > `start_link_supervised!/2`). When the test process exits, the crash signal propagates
-  > to all linked processes virtually simultaneously, which can lead to processes
-  > terminating in an unpredictable order. This is particularly problematic when you have
-  > processes that the test starts with `start_link_supervised!/2` and that depend  on
-  > each other.
+  > When using `start_link_supervised!/2`, the test process will be linked to the
+  > spawned processes. When the test process exits, it exits with reason `:shutdown`,
+  > and the crash signal propagates to all linked processes virtually simultaneously,
+  > which can lead to processes terminating in an unpredictable order if they are not
+  > trapping exits. This is particularly problematic when you have processes that the
+  > test starts with `start_link_supervised!/2` and that depend on each other.
   >
-  > If you need guaranteed shutdown order, use `start_supervised/2`. With that, processes
-  > are shut down *by the test supervisor* in reverse order, ensuring graceful termination.
+  > If you need guaranteed shutdown order, use `start_supervised!/2`. This way the
+  > test process exiting does not affect the started processes, and they will be shut down
+  > *by the test supervisor* in reverse order, ensuring graceful termination.
   """
   @doc since: "1.14.0"
   @spec start_link_supervised!(Supervisor.child_spec() | module | {module, term}, keyword) ::
