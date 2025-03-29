@@ -42,9 +42,20 @@ defmodule Logger.Utils do
     else
       :none -> :ignore
       :skip -> :stop
-      {:ok, chardata} -> %{event | msg: {:string, chardata}}
-      {:ok, char, meta} -> %{event | msg: {:string, char}, meta: Enum.into(meta, event.meta)}
+      {:ok, chardata} -> return_translated_event(event, chardata)
+      {:ok, char, meta} -> return_translated_event(event, char, meta)
     end
+  end
+
+  defp return_translated_event(event, translated, meta \\ [])
+
+  defp return_translated_event(%{msg: {:report, _}} = event, translated, meta) do
+    meta = Enum.into(meta, event.meta)
+    %{event | meta: Enum.into([report_cb: fn _, _ -> translated end], meta)}
+  end
+
+  defp return_translated_event(event, translated, meta) do
+    %{event | msg: {:string, translated}, meta: Enum.into(meta, event.meta)}
   end
 
   defp translate([{mod, fun} | t], min_level, level, kind, data) do
