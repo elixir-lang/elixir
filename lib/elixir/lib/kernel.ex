@@ -3716,26 +3716,25 @@ defmodule Kernel do
 
     case function? do
       true ->
-        value =
-          case Module.__get_attribute__(env.module, name, line, false) do
-            {_, doc} when doc_attr? -> doc
-            other -> other
-          end
+        case Module.__get_attribute__(env.module, name, line, false) do
+          {_, doc} when doc_attr? ->
+            do_at_escape(name, doc)
 
-        try do
-          :elixir_quote.escape(value, :none, false)
-        rescue
-          ex in [ArgumentError] ->
-            raise ArgumentError,
-                  "cannot inject attribute @#{name} into function/macro because " <>
-                    Exception.message(ex)
+          %{__struct__: Regex, source: source, opts: opts} = regex ->
+            case :erlang.system_info(:otp_release) < [?2, ?8] do
+              true -> do_at_escape(name, regex)
+              false -> quote(do: Regex.compile!(unquote(source), unquote(opts)))
+            end
+
+          value ->
+            do_at_escape(name, value)
         end
 
       false when doc_attr? ->
         quote do
           case Module.__get_attribute__(__MODULE__, unquote(name), unquote(line), false) do
             {_, doc} -> doc
-            other -> other
+            value -> value
           end
         end
 
@@ -3768,6 +3767,17 @@ defmodule Kernel do
 
   defp do_at(args, _meta, name, _function?, _env) do
     raise ArgumentError, "expected 0 or 1 argument for @#{name}, got: #{length(args)}"
+  end
+
+  defp do_at_escape(name, value) do
+    try do
+      :elixir_quote.escape(value, :none, false)
+    rescue
+      ex in [ArgumentError] ->
+        raise ArgumentError,
+              "cannot inject attribute @#{name} into function/macro because " <>
+                Exception.message(ex)
+    end
   end
 
   # Those are always compile-time dependencies, so we can skip the trace.
@@ -6461,6 +6471,7 @@ defmodule Kernel do
   end
 
   defp compile_regex(binary_or_tuple, options) do
+    # TODO: Remove this when we require Erlang/OTP 28+
     case is_binary(binary_or_tuple) and :erlang.system_info(:otp_release) < [?2, ?8] do
       true ->
         Macro.escape(Regex.compile!(binary_or_tuple, :binary.list_to_bin(options)))
