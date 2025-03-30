@@ -3738,7 +3738,7 @@ defmodule Kernel do
             case :erlang.system_info(:otp_release) < [?2, ?8] do
               true -> do_at_escape(name, regex)
               false -> quote(do: Regex.compile!(unquote(source), unquote(opts)))
-            end 
+            end
 
           value ->
             do_at_escape(name, value)
