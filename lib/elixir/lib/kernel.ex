@@ -3727,7 +3727,7 @@ defmodule Kernel do
           {_, doc} when doc_attr? ->
             do_at_escape(name, doc)
 
-          %{__struct__: Regex, source: source, opts: opts} ->
+          %{__struct__: Regex, source: source, opts: opts} = regex ->
             # TODO: Remove this in Elixir v2.0
             IO.warn(
               "storing and reading regexes from module attributes is deprecated, " <>
@@ -3735,7 +3735,11 @@ defmodule Kernel do
               env
             )
 
-            quote(do: Regex.compile!(unquote(source), unquote(opts)))
+            if :erlang.system_info(:otp_release) < [?2, ?8] do
+              do_at_escape(name, regex)
+            else
+              quote(do: Regex.compile!(unquote(source), unquote(opts)))
+            end 
 
           value ->
             do_at_escape(name, value)
