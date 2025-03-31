@@ -354,7 +354,6 @@ defmodule Code.Comments do
   defp merge_mixed_comments({:->, _, [left, right]} = quoted, state) do
     start_line = get_line(right)
     end_line = get_end_line({:__block__, state.parent_meta, [quoted]}, start_line)
-    block_start = get_line({:__block__, state.parent_meta, [quoted]})
 
     {right, comments} =
       case right do
@@ -374,20 +373,6 @@ defmodule Code.Comments do
           else
             {right, state.comments}
           end
-      end
-
-    {quoted, comments} =
-      case left do
-        [] ->
-          {leading_comments, comments} =
-            split_leading_comments(comments, block_start, start_line)
-
-          quoted = append_comments(quoted, :leading_comments, leading_comments)
-
-          {quoted, comments}
-
-        _ ->
-          {quoted, comments}
       end
 
     quoted = put_args(quoted, [left, right])

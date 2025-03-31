@@ -1891,9 +1891,13 @@ defmodule Code.Formatter do
     comments = merge_algebra_with_comments(comments, @empty)
 
     # If there are any comments before the ->, we hoist them up above the fn
-    doc = case comments do
+    doc =
+      case comments do
       [] -> doc
-      [comments] -> line(comments, doc)
+      [comment] -> line(comment, doc)
+      comments ->
+        comments_doc = comments |> Enum.reduce(&line(&2, &1)) |> force_unfit()
+        line(comments_doc, doc)
     end
 
     {doc, state}
