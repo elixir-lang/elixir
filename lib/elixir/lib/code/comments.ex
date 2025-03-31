@@ -269,7 +269,7 @@ defmodule Code.Comments do
           end_line = get_end_line(quoted, start_line)
 
           {trailing_comments, comments} =
-            Enum.split_with(comments, &(&1.line > start_line and &1.line < end_line))
+            split_trailing_comments(comments, start_line, end_line)
 
           quoted = append_comments(quoted, :inner_comments, trailing_comments)
 
@@ -281,7 +281,7 @@ defmodule Code.Comments do
           end_line = get_end_line(quoted, start_line)
 
           {trailing_comments, comments} =
-            Enum.split_with(comments, &(&1.line > start_line and &1.line < end_line))
+            split_trailing_comments(comments, start_line, end_line)
 
           last_value = append_comments(last_value, :trailing_comments, trailing_comments)
 
@@ -295,7 +295,7 @@ defmodule Code.Comments do
           end_line = get_end_line(quoted, start_line)
 
           {trailing_comments, comments} =
-            Enum.split_with(comments, &(&1.line > start_line and &1.line < end_line))
+            split_trailing_comments(comments, start_line, end_line)
 
           unquote_splicing =
             append_comments(unquote_splicing, :trailing_comments, trailing_comments)
@@ -316,7 +316,7 @@ defmodule Code.Comments do
           end_line = get_end_line(quoted, start_line)
 
           {trailing_comments, comments} =
-            Enum.split_with(comments, &(&1.line > start_line and &1.line < end_line))
+            split_trailing_comments(comments, start_line, end_line)
 
           value = append_comments(value, :trailing_comments, trailing_comments)
 
@@ -342,7 +342,7 @@ defmodule Code.Comments do
     end_line = get_end_line(quoted, start_line)
 
     {trailing_comments, comments} =
-      Enum.split_with(comments, &(&1.line > start_line and &1.line < end_line))
+      split_trailing_comments(comments, start_line, end_line)
 
     right = append_comments(right, :trailing_comments, trailing_comments)
 
@@ -366,7 +366,7 @@ defmodule Code.Comments do
             line = get_line(call)
 
             {trailing_comments, comments} =
-              Enum.split_with(state.comments, &(&1.line > line and &1.line < end_line))
+              split_trailing_comments(state.comments, line, end_line)
 
             call = append_comments(call, :trailing_comments, trailing_comments)
 
@@ -380,7 +380,7 @@ defmodule Code.Comments do
       case left do
         [] ->
           {leading_comments, comments} =
-            Enum.split_with(comments, &(&1.line > block_start and &1.line < start_line))
+            split_leading_comments(comments, block_start, start_line)
 
           quoted = append_comments(quoted, :leading_comments, leading_comments)
 
@@ -401,11 +401,11 @@ defmodule Code.Comments do
     with true <- is_atom(form),
          <<"sigil_", _name::binary>> <- Atom.to_string(form),
          true <- not is_nil(meta) do
-      [content, modifiers] = args
+      [content | modifiers] = args
 
       {content, state} = merge_mixed_comments(content, state)
 
-      quoted = put_args(quoted, [content, modifiers])
+      quoted = put_args(quoted, [content | modifiers])
 
       {quoted, state}
     else
@@ -461,7 +461,7 @@ defmodule Code.Comments do
           line = get_line(last_value)
 
           {trailing_comments, comments} =
-            Enum.split_with(comments, &(&1.line > line and &1.line < end_line))
+            split_trailing_comments(comments, line, end_line)
 
           last_value = append_comments(last_value, :trailing_comments, trailing_comments)
 
@@ -488,7 +488,7 @@ defmodule Code.Comments do
           start_line = get_line(last_block_arg)
 
           {trailing_comments, comments} =
-            Enum.split_with(comments, &(&1.line > start_line and &1.line < end_line))
+            split_trailing_comments(comments, start_line, end_line)
 
           last_block_arg = append_comments(last_block_arg, :trailing_comments, trailing_comments)
 
@@ -510,7 +510,7 @@ defmodule Code.Comments do
             line = get_end_line(last_arg, get_line(last_arg))
 
             {trailing_comments, comments} =
-              Enum.split_with(comments, &(&1.line > line and &1.line < end_line))
+              split_trailing_comments(comments, line, end_line)
 
             last_arg = append_comments(last_arg, :trailing_comments, trailing_comments)
 
@@ -523,7 +523,7 @@ defmodule Code.Comments do
 
         nil ->
           {trailing_comments, comments} =
-            Enum.split_with(comments, &(&1.line > start_line and &1.line < end_line))
+            split_trailing_comments(comments, start_line, end_line)
 
           quoted = append_comments(quoted, :inner_comments, trailing_comments)
           {quoted, comments}
@@ -544,10 +544,10 @@ defmodule Code.Comments do
     value_line = get_line(value)
 
     {leading_comments, comments} =
-      Enum.split_with(state.comments, &(&1.line > start_line and &1.line <= value_line))
+      split_leading_comments(state.comments, start_line, value_line)
 
     {trailing_comments, comments} =
-      Enum.split_with(comments, &(&1.line > value_line and &1.line < end_line))
+      split_trailing_comments(comments, value_line, end_line)
 
     value = put_leading_comments(value, leading_comments)
     value = put_trailing_comments(value, trailing_comments)
@@ -566,10 +566,10 @@ defmodule Code.Comments do
     value_line = get_line(value)
 
     {leading_comments, comments} =
-      Enum.split_with(state.comments, &(&1.line > start_line and &1.line <= value_line))
+      split_leading_comments(state.comments, start_line, value_line)
 
     {trailing_comments, comments} =
-      Enum.split_with(comments, &(&1.line > value_line and &1.line < end_line))
+      split_trailing_comments(comments, value_line, end_line)
 
     value = put_leading_comments(value, leading_comments)
     value = put_trailing_comments(value, trailing_comments)
@@ -590,7 +590,7 @@ defmodule Code.Comments do
         end_line = get_end_line(quoted, start_line)
 
         {trailing_comments, comments} =
-          Enum.split_with(comments, &(&1.line > start_line and &1.line < end_line))
+          split_trailing_comments(comments, start_line, end_line)
 
         last_value = append_comments(last_value, :trailing_comments, trailing_comments)
 
@@ -603,7 +603,7 @@ defmodule Code.Comments do
         end_line = get_end_line(quoted, start_line)
 
         {trailing_comments, comments} =
-          Enum.split_with(comments, &(&1.line > start_line and &1.line < end_line))
+          split_trailing_comments(comments, start_line, end_line)
 
         unquote_splicing =
           append_comments(unquote_splicing, :trailing_comments, trailing_comments)
@@ -654,7 +654,7 @@ defmodule Code.Comments do
     case last_arg do
       nil ->
         {trailing_comments, comments} =
-          Enum.split_with(comments, &(&1.line > block_start and &1.line < block_end))
+          split_trailing_comments(comments, block_start, block_end)
 
         block_args = append_comments(block_args, :inner_comments, trailing_comments)
 
@@ -736,7 +736,7 @@ defmodule Code.Comments do
           stab_line = get_line(stab)
 
           {leading_comments, comments} =
-            Enum.split_with(comments, &(&1.line > block_start and &1.line < stab_line))
+            split_leading_comments(comments, block_start, stab_line)
 
           stab = append_comments(stab, :leading_comments, leading_comments)
 
@@ -753,7 +753,7 @@ defmodule Code.Comments do
 
         call ->
           {trailing_comments, comments} =
-            Enum.split_with(comments, &(&1.line > start_line and &1.line < end_line))
+            split_trailing_comments(comments, start_line, end_line)
 
           call = append_comments(call, :trailing_comments, trailing_comments)
 
@@ -775,7 +775,7 @@ defmodule Code.Comments do
     case last_arg do
       nil ->
         {trailing_comments, comments} =
-          Enum.split_with(comments, &(&1.line > block_start and &1.line < block_end))
+          split_trailing_comments(comments, block_start, block_end)
 
         trailing_comments = Enum.sort_by(trailing_comments, & &1.line)
 
@@ -810,13 +810,14 @@ defmodule Code.Comments do
     line =
       case last_arg do
         [] -> block_start
+        [{_key, value} | _] -> get_line(value)
         [first | _] -> get_line(first)
         {_, _, _} -> get_line(last_arg)
         _ -> block_start
       end
 
     {trailing_comments, comments} =
-      Enum.split_with(comments, &(&1.line > line and &1.line < block_end))
+      split_trailing_comments(comments, line, block_end)
 
     last_arg = append_comments(last_arg, :trailing_comments, trailing_comments)
 
@@ -937,5 +938,13 @@ defmodule Code.Comments do
       entry when is_binary(entry) -> true
       _ -> false
     end)
+  end
+
+  defp split_leading_comments(comments, min, max) do
+    Enum.split_with(comments, &(&1.line > min and &1.line <= max))
+  end
+
+  defp split_trailing_comments(comments, min, max) do
+    Enum.split_with(comments, &(&1.line > min and &1.line < max))
   end
 end
