@@ -393,7 +393,6 @@ defmodule Mix.Dep.Loader do
   end
 
   defp gleam_dep(%Mix.Dep{opts: opts} = dep, children, locked?) do
-    dep = %{dep | opts: Keyword.merge(opts, app: false, override: true)}
     {dep, Enum.map(children, &to_dep(&1, opts[:dest], _manager = nil, locked?))}
   end
 
