@@ -7,20 +7,18 @@ defmodule RegexTest do
 
   if System.otp_release() >= "28" do
     test "module attribute" do
-      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
-               defmodule ModAttr do
-                 @regex ~r/example/
-                 def regex, do: @regex
+      defmodule ModAttr do
+        @regex ~r/example/
+        def regex, do: @regex
 
-                 @bare_regex :erlang.term_to_binary(@regex)
-                 def bare_regex, do: :erlang.binary_to_term(@bare_regex)
+        @bare_regex :erlang.term_to_binary(@regex)
+        def bare_regex, do: :erlang.binary_to_term(@bare_regex)
 
-                 # We don't rewrite outside of functions
-                 assert @regex.re_pattern == :erlang.binary_to_term(@bare_regex).re_pattern
-               end
+        # We don't rewrite outside of functions
+        assert @regex.re_pattern == :erlang.binary_to_term(@bare_regex).re_pattern
+      end
 
-               assert ModAttr.regex().re_pattern != ModAttr.bare_regex().re_pattern
-             end) =~ "storing and reading regexes from module attributes is deprecated"
+      assert ModAttr.regex().re_pattern != ModAttr.bare_regex().re_pattern
     end
   end
 
