@@ -4,7 +4,11 @@ defmodule Code.AstCommentsTest do
   use ExUnit.Case, async: true
 
   def parse_string!(string) do
-    Code.string_to_quoted!(string, include_comments: true, literal_encoder: &{:ok, {:__block__, &2, [&1]}}, emit_warnings: false)
+    Code.string_to_quoted!(string,
+      include_comments: true,
+      literal_encoder: &{:ok, {:__block__, &2, [&1]}},
+      emit_warnings: false
+    )
   end
 
   describe "merge_comments/2" do
@@ -210,7 +214,6 @@ defmodule Code.AstCommentsTest do
         #trailing 3
         ] # trailing outside
         """)
-        |> IO.inspect()
 
       assert {:__block__, list_meta,
               [
@@ -670,6 +673,94 @@ defmodule Code.AstCommentsTest do
               ]} = quoted
 
       assert [%{line: 2, text: "# leading"}] = stab_meta[:leading_comments]
+    end
+
+    # String Interpolations
+
+    test "merges comments in interpolations" do
+      quoted =
+        parse_string!(~S"""
+        # leading
+        "Hello #{world}"
+        # trailing
+        """)
+
+      assert {:<<>>, meta,
+              [
+                "Hello ",
+                {:"::", _,
+                 [{{:., _, [Kernel, :to_string]}, _, [{:world, _, _}]}, {:binary, _, _}]}
+              ]} = quoted
+
+      assert [%{line: 1, text: "# leading"}] = meta[:leading_comments]
+      assert [%{line: 3, text: "# trailing"}] = meta[:trailing_comments]
+    end
+
+    test "merges comments in interpolated strings" do
+      quoted =
+        parse_string!(~S"""
+        # leading
+        "Hello #{
+          # leading world
+          world
+          # trailing world
+        }"
+        # trailing
+        """)
+
+      assert {:<<>>, meta,
+              [
+                "Hello ",
+                {:"::", _,
+                 [{{:., _, [Kernel, :to_string]}, _, [{:world, world_meta, _}]}, {:binary, _, _}]}
+              ]} = quoted
+
+      assert [%{line: 1, text: "# leading"}] = meta[:leading_comments]
+      assert [%{line: 3, text: "# leading world"}] = world_meta[:leading_comments]
+      assert [%{line: 5, text: "# trailing world"}] = world_meta[:trailing_comments]
+      assert [%{line: 7, text: "# trailing"}] = meta[:trailing_comments]
+    end
+
+    # List interpolations
+
+    test "merges comments in list interpolations" do
+      quoted =
+        parse_string!(~S"""
+        # leading
+        'Hello #{world}'
+        # trailing
+        """)
+
+      assert {{:., _, [List, :to_charlist]}, meta,
+              [
+                ["Hello ", {{:., _, [Kernel, :to_string]}, _, [{:world, _, _}]}]
+              ]} = quoted
+
+      assert [%{line: 1, text: "# leading"}] = meta[:leading_comments]
+      assert [%{line: 3, text: "# trailing"}] = meta[:trailing_comments]
+    end
+
+    test "merges comments in list interpolations with comments" do
+      quoted =
+        parse_string!(~S"""
+        # leading
+        'Hello #{
+          # leading world
+          world
+          # trailing world
+        }'
+        # trailing
+        """)
+
+      assert {{:., _, [List, :to_charlist]}, meta,
+              [
+                ["Hello ", {{:., _, [Kernel, :to_string]}, _, [{:world, world_meta, _}]}]
+              ]} = quoted
+
+      assert [%{line: 1, text: "# leading"}] = meta[:leading_comments]
+      assert [%{line: 3, text: "# leading world"}] = world_meta[:leading_comments]
+      assert [%{line: 5, text: "# trailing world"}] = world_meta[:trailing_comments]
+      assert [%{line: 7, text: "# trailing"}] = meta[:trailing_comments]
     end
   end
 end
