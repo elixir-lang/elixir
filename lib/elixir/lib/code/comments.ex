@@ -810,11 +810,12 @@ defmodule Code.Comments do
     line =
       case last_arg do
         [] -> block_start
-        [{_key, value} | _] -> get_line(value)
-        [first | _] -> get_line(first)
-        {_, _, _} -> get_line(last_arg)
+        [{_key, value} | _] -> get_end_line(value, get_line(value))
+        [first | _] -> get_end_line(first, get_line(first))
+        {_, _, _} -> get_end_line(last_arg, get_line(last_arg))
         _ -> block_start
       end
+
 
     {trailing_comments, comments} =
       split_trailing_comments(comments, line, block_end)
