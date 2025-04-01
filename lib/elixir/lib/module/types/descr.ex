@@ -906,7 +906,7 @@ defmodule Module.Types.Descr do
   # unary functions with tuple domains to handle special cases like representing functions of a
   # specific arity (e.g., (none,none->term) for arity 2).
 
-  defp fun_new(inputs, output), do: {{:weak, inputs, output}, :fun_top, :fun_bottom}
+  defp fun_new(inputs, output), do: {{inputs, output}, :fun_top, :fun_bottom}
 
   @doc """
   Creates a function type from a list of inputs and an output where the inputs and/or output may be dynamic.
@@ -1105,8 +1105,8 @@ defmodule Module.Types.Descr do
         result =
           Enum.reduce_while(arrows, none(), fn intersection_of_arrows, acc ->
             Enum.reduce_while(intersection_of_arrows, term(), fn
-              {_tag, _dom, _ret}, acc when acc == @none -> {:halt, acc}
-              {_tag, _dom, ret}, acc -> {:cont, intersection(acc, ret)}
+              {_dom, _ret}, acc when acc == @none -> {:halt, acc}
+              {_dom, ret}, acc -> {:cont, intersection(acc, ret)}
             end)
             |> case do
               :term -> {:halt, :term}
@@ -1152,7 +1152,7 @@ defmodule Module.Types.Descr do
     if subtype?(rets_reached, result), do: result, else: union(result, rets_reached)
   end
 
-  defp aux_apply(result, input, returns_reached, [{_tag, dom, ret} | arrow_intersections]) do
+  defp aux_apply(result, input, returns_reached, [{dom, ret} | arrow_intersections]) do
     # Calculate the part of the input not covered by this arrow's domain
     dom_subtract = difference(input, domain_descr(dom))
 
@@ -1220,11 +1220,11 @@ defmodule Module.Types.Descr do
           {domain, arrows, arity}
         else
           # Determine arity from first positive function or keep existing
-          new_arity = arity || pos_funs |> List.first() |> elem(1) |> length()
+          new_arity = arity || pos_funs |> List.first() |> elem(0) |> length()
 
           # Calculate domain from all positive functions
           path_domain =
-            Enum.reduce(pos_funs, none(), fn {_, args, _}, acc ->
+            Enum.reduce(pos_funs, none(), fn {args, _}, acc ->
               union(acc, domain_descr(args))
             end)
 
@@ -1281,7 +1281,7 @@ defmodule Module.Types.Descr do
         # e.g. (integer()->atom()) is negated by
         # i) (none()->term())                                    ii)     (none()->atom())
         # ii) (integer()->term())                                iv)    (integer()->atom())
-        Enum.any?(negatives, fn {_tag, neg_arguments, neg_return} ->
+        Enum.any?(negatives, fn {neg_arguments, neg_return} ->
           # Filter positives to only those with matching arity, then check if the negative
           # function's domain is a supertype of the positive domain and if the phi function
           # determines emptiness.
@@ -1298,13 +1298,13 @@ defmodule Module.Types.Descr do
   defp fetch_arity_and_domain(positives) do
     positives
     |> Enum.reduce_while({:empty, none()}, fn
-      {_tag, args, _}, {:empty, _} ->
+      {args, _}, {:empty, _} ->
         {:cont, {length(args), domain_descr(args)}}
 
-      {_tag, args, _}, {arity, dom} when length(args) == arity ->
+      {args, _}, {arity, dom} when length(args) == arity ->
         {:cont, {arity, union(dom, domain_descr(args))}}
 
-      {_tag, _args, _}, {_arity, _} ->
+      {_args, _}, {_arity, _} ->
         {:halt, {:empty, none()}}
     end)
   end
@@ -1329,7 +1329,7 @@ defmodule Module.Types.Descr do
     n = length(arguments)
     # Arity mismatch: if there is one positive function with a different arity,
     # then it cannot be a subtype of the (arguments->type) functions.
-    if Enum.any?(positives, fn {_tag, args, _ret} -> length(args) != n end) do
+    if Enum.any?(positives, fn {args, _ret} -> length(args) != n end) do
       false
     else
       arguments = Enum.map(arguments, &{false, &1})
@@ -1341,7 +1341,7 @@ defmodule Module.Types.Descr do
     Enum.any?(args, fn {bool, typ} -> bool and empty?(typ) end) or (b and empty?(t))
   end
 
-  defp phi(args, {b, ret}, [{_tag, arguments, return} | rest_positive]) do
+  defp phi(args, {b, ret}, [{arguments, return} | rest_positive]) do
     phi(args, {true, intersection(ret, return)}, rest_positive) and
       Enum.all?(Enum.with_index(arguments), fn {type, index} ->
         List.update_at(args, index, fn {_, arg} -> {true, difference(arg, type)} end)
@@ -1414,7 +1414,7 @@ defmodule Module.Types.Descr do
 
   defp fun_intersection_to_quoted(intersection, opts) do
     intersection
-    |> Enum.map(fn {_tag, args, ret} ->
+    |> Enum.map(fn {args, ret} ->
       {:->, [], [[to_quoted(tuple_descr(:closed, args), opts)], to_quoted(ret, opts)]}
     end)
     |> case do
