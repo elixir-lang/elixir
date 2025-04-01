@@ -359,11 +359,18 @@ defmodule Mix.Tasks.Test.Coverage do
 
   defp print_summary(results, totals, opts) when is_list(opts) do
     threshold = get_threshold(opts)
-    Mix.shell().info("Percentage | Module")
-    Mix.shell().info("-----------|--------------------------")
-    results |> Enum.sort() |> Enum.each(&display(&1, threshold))
-    Mix.shell().info("-----------|--------------------------")
-    display({totals, "Total"}, threshold)
+
+    results =
+      results |> Enum.sort() |> Enum.map(fn {coverage, module} -> {coverage, inspect(module)} end)
+
+    name_max_length = results |> Enum.map(&String.length(elem(&1, 1))) |> Enum.max() |> max(10)
+    name_separator = String.duplicate("-", name_max_length)
+
+    Mix.shell().info("| Percentage | #{String.pad_trailing("Module", name_max_length)} |")
+    Mix.shell().info("|------------|-#{name_separator}-|")
+    Enum.each(results, &display(&1, threshold, name_max_length))
+    Mix.shell().info("|------------|-#{name_separator}-|")
+    display({totals, "Total"}, threshold, name_max_length)
     Mix.shell().info("")
   end
 
@@ -374,14 +381,16 @@ defmodule Mix.Tasks.Test.Coverage do
     Mix.shell().info("")
   end
 
-  defp display({percentage, name}, threshold) do
+  defp display({percentage, name}, threshold, pad_length) do
     Mix.shell().info([
+      "| ",
       color(percentage, threshold),
       format_number(percentage, 9),
       "%",
       :reset,
       " | ",
-      format_name(name)
+      String.pad_trailing(name, pad_length),
+      " |"
     ])
   end
 
@@ -394,9 +403,6 @@ defmodule Mix.Tasks.Test.Coverage do
     do: format_number(number / 1, length)
 
   defp format_number(number, length), do: :io_lib.format("~#{length}.2f", [number])
-
-  defp format_name(name) when is_binary(name), do: name
-  defp format_name(mod) when is_atom(mod), do: inspect(mod)
 
   defp get_threshold(true), do: @default_threshold
   defp get_threshold(opts), do: Keyword.get(opts, :threshold, @default_threshold)

@@ -150,12 +150,12 @@ defmodule Mix.Tasks.TestTest do
         assert output =~ """
                Generating cover results ...
 
-               Percentage | Module
-               -----------|--------------------------
-                  100.00% | Bar.Protocol
-                  100.00% | Bar.Protocol.BitString
-               -----------|--------------------------
-                  100.00% | Total
+               | Percentage | Module                 |
+               |------------|------------------------|
+               |    100.00% | Bar.Protocol           |
+               |    100.00% | Bar.Protocol.BitString |
+               |------------|------------------------|
+               |    100.00% | Total                  |
                """
 
         assert output =~ "1 test, 0 failures"
@@ -164,11 +164,11 @@ defmodule Mix.Tasks.TestTest do
         assert output =~ """
                Generating cover results ...
 
-               Percentage | Module
-               -----------|--------------------------
-                  100.00% | Foo
-               -----------|--------------------------
-                  100.00% | Total
+               | Percentage | Module     |
+               |------------|------------|
+               |    100.00% | Foo        |
+               |------------|------------|
+               |    100.00% | Total      |
                """
 
         # We skip a test in bar to force coverage below the default threshold
@@ -195,15 +195,15 @@ defmodule Mix.Tasks.TestTest do
                Importing cover results: apps/bar/cover/default.coverdata
                Importing cover results: apps/foo/cover/default.coverdata
 
-               Percentage | Module
-               -----------|--------------------------
-                  100.00% | Bar
-                  100.00% | Bar.Ignore
-                  100.00% | Bar.Protocol
-                  100.00% | Bar.Protocol.BitString
-                  100.00% | Foo
-               -----------|--------------------------
-                  100.00% | Total
+               | Percentage | Module                 |
+               |------------|------------------------|
+               |    100.00% | Bar                    |
+               |    100.00% | Bar.Ignore             |
+               |    100.00% | Bar.Protocol           |
+               |    100.00% | Bar.Protocol.BitString |
+               |    100.00% | Foo                    |
+               |------------|------------------------|
+               |    100.00% | Total                  |
                """
       end)
     end
@@ -366,12 +366,12 @@ defmodule Mix.Tasks.TestTest do
                Importing cover results: cover/1.coverdata
                Importing cover results: cover/2.coverdata
 
-               Percentage | Module
-               -----------|--------------------------
-                  100.00% | A
-                  100.00% | B
-               -----------|--------------------------
-                  100.00% | Total
+               | Percentage | Module     |
+               |------------|------------|
+               |    100.00% | A          |
+               |    100.00% | B          |
+               |------------|------------|
+               |    100.00% | Total      |
 
                Generated HTML coverage results in \"cover\" directory
                """
