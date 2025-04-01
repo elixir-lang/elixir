@@ -807,6 +807,16 @@ defmodule Code.Formatter do
     left_context = left_op_context(context)
     right_context = right_op_context(context)
 
+    {comments, [left_arg, right_arg]} = pop_binary_op_chain_comments(op, [left_arg, right_arg], [])
+    comments = Enum.sort_by(comments, &(&1.line))
+    comments_docs =
+      Enum.map(comments, fn comment ->
+        comment = format_comment(comment)
+        {comment.text, @empty, 1}
+      end)
+
+    comments_docs = merge_algebra_with_comments(comments_docs, @empty)
+
     {left, state} =
       binary_operand_to_algebra(left_arg, left_context, state, op, op_info, :left, 2)
 
@@ -826,7 +836,6 @@ defmodule Code.Formatter do
 
           next_break_fits? =
             op in @next_break_fits_operators and next_break_fits?(right_arg, state) and not eol?
-
           {" " <> op_string,
            with_next_break_fits(next_break_fits?, right, fn right ->
              right = nest(concat(break(), right), nesting, :break)
@@ -835,8 +844,60 @@ defmodule Code.Formatter do
       end
 
     op_doc = color_doc(op_string, :operator, state.inspect_opts)
-    doc = concat(concat(group(left), op_doc), group(right))
+    doc = concat(doc = concat(group(left), op_doc), group(right))
+
+    doc =
+      case comments_docs do
+        [] -> doc
+        [line] -> line(line, doc)
+        lines -> line(lines |> Enum.reduce(&line(&2, &1)) |> force_unfit(), doc)
+      end
     {doc, state}
+  end
+
+  defp pop_binary_op_chain_comments(op, [{_, left_meta, _} = left, right], acc) do
+    left_leading = List.wrap(left_meta[:leading_comments])
+    left_trailing = List.wrap(left_meta[:trailing_comments])
+
+    left = Macro.update_meta(left, &Keyword.drop(&1, [:leading_comments, :trailing_comments]))
+
+    acc = Enum.concat([left_leading, left_trailing, acc])
+
+    {_assoc, prec} = augmented_binary_op(op)
+
+    with {right_op, right_meta, right_args} <- right,
+         true <- right_op not in @pipeline_operators,
+         true <- right_op not in @right_new_line_before_binary_operators,
+         {_, right_prec} <- augmented_binary_op(right_op) do
+      {acc, right_args} = pop_binary_op_chain_comments(right_op, right_args, acc)
+
+      right = {right_op, right_meta, right_args}
+
+      {acc, [left, right]}
+    else
+      _ ->
+        {acc, right} =
+          case right do
+            {_, right_meta, _} ->
+              right_leading = List.wrap(right_meta[:leading_comments])
+              right_trailing = List.wrap(right_meta[:trailing_comments])
+
+              right = Macro.update_meta(right, &Keyword.drop(&1, [:leading_comments, :trailing_comments]))
+
+              acc = Enum.concat([right_leading, right_trailing, acc])
+
+              {acc, right}
+
+            _ ->
+              {acc, right}
+          end
+
+        {acc, [left, right]}
+    end
+  end
+
+  defp pop_binary_op_chain_comments(_, args, acc) do
+    {acc, args}
   end
 
   # TODO: We can remove this workaround once we remove
@@ -1623,6 +1684,34 @@ defmodule Code.Formatter do
     join = if eol?(meta, state), do: :line, else: :break
     fun = &quoted_to_algebra(&1, :parens_arg, &2)
     {left_doc, state} = fun.(left, state)
+
+    before_cons_comments =
+      case left do
+        {_, meta, _} ->
+          List.wrap(meta[:trailing_comments])
+
+        _ ->
+          []
+      end
+
+    right =
+      case right do
+        {_, _, _} ->
+          Macro.update_meta(right, fn meta ->
+            Keyword.update(meta, :leading_comments, before_cons_comments, &(before_cons_comments ++ &1))
+          end)
+
+        [{{_, _, _} = key, value} | rest] ->
+          key =
+            Macro.update_meta(key, fn meta ->
+              Keyword.update(meta, :leading_comments, before_cons_comments, &(before_cons_comments ++ &1))
+            end)
+
+          [{key, value} | rest]
+
+        _ ->
+          right
+      end
 
     {right_doc, _join, state} =
       args_to_algebra_with_comments(right, meta, :none, join, state, fun)
