@@ -64,6 +64,9 @@ defprotocol Inspect do
 
     * `:except` - remove the given fields when inspecting.
 
+    * `:except_if_exists` - (since v1.XX.X) does the same thing as
+      above, but it doesn't raise an error on unknown fields.
+
     * `:optional` - (since v1.14.0) do not include a field if it
       matches its default value. This can be used to simplify the
       struct representation at the cost of hiding information.
