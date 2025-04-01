@@ -47,39 +47,39 @@ defmodule IEx.PryTest do
 
   describe "break" do
     test "sets up a breakpoint on the given module" do
-      assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
-      assert instrumented?(URI)
+      assert IEx.Pry.break(PryExampleModule, :two, 2) == {:ok, 1}
+      assert instrumented?(PryExampleModule)
       assert [_] = IEx.Pry.breaks()
     end
 
     test "sets up multiple breakpoints in the same module" do
-      assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
-      assert instrumented?(URI)
-      assert IEx.Pry.break(URI, :parse, 1) == {:ok, 2}
-      assert instrumented?(URI)
+      assert IEx.Pry.break(PryExampleModule, :two, 2) == {:ok, 1}
+      assert instrumented?(PryExampleModule)
+      assert IEx.Pry.break(PryExampleModule, :one, 1) == {:ok, 2}
+      assert instrumented?(PryExampleModule)
       assert [_, _] = IEx.Pry.breaks()
     end
 
     test "reinstruments if module has been reloaded" do
-      assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
-      assert instrumented?(URI)
-      deinstrument!(URI)
-      refute instrumented?(URI)
-      assert IEx.Pry.break(URI, :parse, 1) == {:ok, 2}
-      assert instrumented?(URI)
+      assert IEx.Pry.break(PryExampleModule, :two, 2) == {:ok, 1}
+      assert instrumented?(PryExampleModule)
+      deinstrument!(PryExampleModule)
+      refute instrumented?(PryExampleModule)
+      assert IEx.Pry.break(PryExampleModule, :one, 1) == {:ok, 2}
+      assert instrumented?(PryExampleModule)
       assert [_, _] = IEx.Pry.breaks()
     end
 
     test "returns ID when breakpoint is already set" do
-      assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
-      assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
+      assert IEx.Pry.break(PryExampleModule, :two, 2) == {:ok, 1}
+      assert IEx.Pry.break(PryExampleModule, :two, 2) == {:ok, 1}
       assert [_] = IEx.Pry.breaks()
     end
 
     test "returns ID even when breakpoint is already set on deinstrument" do
-      assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
-      deinstrument!(URI)
-      assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
+      assert IEx.Pry.break(PryExampleModule, :two, 2) == {:ok, 1}
+      deinstrument!(PryExampleModule)
+      assert IEx.Pry.break(PryExampleModule, :two, 2) == {:ok, 1}
       assert [_] = IEx.Pry.breaks()
     end
 
@@ -88,67 +88,71 @@ defmodule IEx.PryTest do
     end
 
     test "errors when setting up a break for unknown function" do
-      assert IEx.Pry.break(URI, :unknown, 2) == {:error, :unknown_function_arity}
+      assert IEx.Pry.break(PryExampleModule, :unknown, 2) == {:error, :unknown_function_arity}
     end
 
     test "errors for non-Elixir modules" do
-      assert IEx.Pry.break(:elixir, :unknown, 2) == {:error, :non_elixir_module}
+      assert IEx.Pry.break(:maps, :unknown, 2) == {:error, :non_elixir_module}
     end
   end
 
   describe "breaks" do
     test "returns all breaks" do
-      assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
-      assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 1}]
+      assert IEx.Pry.break(PryExampleModule, :two, 2) == {:ok, 1}
+      assert IEx.Pry.breaks() == [{1, PryExampleModule, {:two, 2}, 1}]
 
-      assert IEx.Pry.break(URI, :decode_query, 2, 10) == {:ok, 1}
-      assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 10}]
+      assert IEx.Pry.break(PryExampleModule, :two, 2, 10) == {:ok, 1}
+      assert IEx.Pry.breaks() == [{1, PryExampleModule, {:two, 2}, 10}]
 
-      assert IEx.Pry.break(URI, :parse, 1, 1) == {:ok, 2}
-      assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 10}, {2, URI, {:parse, 1}, 1}]
+      assert IEx.Pry.break(PryExampleModule, :one, 1, 1) == {:ok, 2}
+
+      assert IEx.Pry.breaks() == [
+               {1, PryExampleModule, {:two, 2}, 10},
+               {2, PryExampleModule, {:one, 1}, 1}
+             ]
     end
 
     test "sets negative break to 0" do
-      assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
-      :ets.insert(IEx.Pry, {1, URI, {:decode_query, 2}, {[], true}, -1})
-      assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 0}]
+      assert IEx.Pry.break(PryExampleModule, :two, 2) == {:ok, 1}
+      :ets.insert(IEx.Pry, {1, PryExampleModule, {:two, 2}, {[], true}, -1})
+      assert IEx.Pry.breaks() == [{1, PryExampleModule, {:two, 2}, 0}]
     end
 
     test "do not return break points for deinstrumented modules" do
-      assert IEx.Pry.break(URI, :parse, 1) == {:ok, 1}
-      assert IEx.Pry.breaks() == [{1, URI, {:parse, 1}, 1}]
-      deinstrument!(URI)
+      assert IEx.Pry.break(PryExampleModule, :one, 1) == {:ok, 1}
+      assert IEx.Pry.breaks() == [{1, PryExampleModule, {:one, 1}, 1}]
+      deinstrument!(PryExampleModule)
       assert IEx.Pry.breaks() == []
     end
   end
 
   describe "reset_break" do
     test "resets break for given ID" do
-      assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
+      assert IEx.Pry.break(PryExampleModule, :two, 2) == {:ok, 1}
       assert IEx.Pry.reset_break(1) == :ok
-      assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 0}]
+      assert IEx.Pry.breaks() == [{1, PryExampleModule, {:two, 2}, 0}]
     end
 
     test "resets break for given mfa" do
-      assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
-      assert IEx.Pry.reset_break(URI, :decode_query, 2) == :ok
-      assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 0}]
+      assert IEx.Pry.break(PryExampleModule, :two, 2) == {:ok, 1}
+      assert IEx.Pry.reset_break(PryExampleModule, :two, 2) == :ok
+      assert IEx.Pry.breaks() == [{1, PryExampleModule, {:two, 2}, 0}]
     end
 
     test "returns not_found if module is deinstrumented" do
-      assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
-      deinstrument!(URI)
-      assert IEx.Pry.reset_break(URI, :decode_query, 2) == :not_found
+      assert IEx.Pry.break(PryExampleModule, :two, 2) == {:ok, 1}
+      deinstrument!(PryExampleModule)
+      assert IEx.Pry.reset_break(PryExampleModule, :two, 2) == :not_found
       assert IEx.Pry.breaks() == []
     end
 
     test "returns not_found if mfa has no break" do
-      assert IEx.Pry.reset_break(URI, :decode_query, 2) == :not_found
+      assert IEx.Pry.reset_break(PryExampleModule, :two, 2) == :not_found
     end
 
     test "returns not_found if ID is deinstrumented" do
-      assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
-      deinstrument!(URI)
+      assert IEx.Pry.break(PryExampleModule, :two, 2) == {:ok, 1}
+      deinstrument!(PryExampleModule)
       assert IEx.Pry.reset_break(1) == :not_found
       assert IEx.Pry.breaks() == []
     end
@@ -160,29 +164,29 @@ defmodule IEx.PryTest do
 
   describe "remove_breaks" do
     test "removes all breaks" do
-      assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
+      assert IEx.Pry.break(PryExampleModule, :two, 2) == {:ok, 1}
       assert IEx.Pry.remove_breaks() == :ok
       assert IEx.Pry.breaks() == []
     end
 
     test "removes all breaks even if module is deinstrumented" do
-      assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
-      deinstrument!(URI)
+      assert IEx.Pry.break(PryExampleModule, :two, 2) == {:ok, 1}
+      deinstrument!(PryExampleModule)
       assert IEx.Pry.remove_breaks() == :ok
       assert IEx.Pry.breaks() == []
     end
 
     test "remove breaks in a given module" do
-      assert IEx.Pry.remove_breaks(Date.Range) == :ok
-      assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
-      assert IEx.Pry.break(Date.Range, :__struct__, 1) == {:ok, 2}
-      assert IEx.Pry.remove_breaks(Date.Range) == :ok
-      assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 1}]
+      assert IEx.Pry.remove_breaks(PryExampleStruct) == :ok
+      assert IEx.Pry.break(PryExampleModule, :two, 2) == {:ok, 1}
+      assert IEx.Pry.break(PryExampleStruct, :__struct__, 1) == {:ok, 2}
+      assert IEx.Pry.remove_breaks(PryExampleStruct) == :ok
+      assert IEx.Pry.breaks() == [{1, PryExampleModule, {:two, 2}, 1}]
     end
 
     test "remove breaks in a given module even if deinstrumented" do
-      assert IEx.Pry.break(URI, :decode_query, 2) == {:ok, 1}
-      deinstrument!(URI)
+      assert IEx.Pry.break(PryExampleModule, :two, 2) == {:ok, 1}
+      deinstrument!(PryExampleModule)
       assert IEx.Pry.breaks() == []
     end
   end

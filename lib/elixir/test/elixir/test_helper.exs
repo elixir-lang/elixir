@@ -56,6 +56,10 @@ defmodule PathHelpers do
     File.mkdir_p!(unquote(path))
     beam_path = Path.join(unquote(path), Atom.to_string(name) <> ".beam")
     File.write!(beam_path, bin)
+
+    :code.purge(name)
+    :code.delete(name)
+
     res
   end
 

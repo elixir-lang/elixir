@@ -247,11 +247,18 @@ defmodule Protocol.ConsolidationTest do
   end
 
   test "consolidation errors on missing BEAM files" do
+    import PathHelpers
+
+    write_beam(
+      defmodule ExampleModule do
+      end
+    )
+
     defprotocol NoBeam do
       def example(arg)
     end
 
-    assert Protocol.consolidate(String, []) == {:error, :not_a_protocol}
+    assert Protocol.consolidate(ExampleModule, []) == {:error, :not_a_protocol}
     assert Protocol.consolidate(NoBeam, []) == {:error, :no_beam_info}
   end
 

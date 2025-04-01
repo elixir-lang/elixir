@@ -232,11 +232,30 @@ defmodule IEx.InteractionTest do
   end
 
   test "blames function clause error" do
+    import PathHelpers
+
+    write_beam(
+      defmodule ExampleModule do
+        def fun(:valid), do: :ok
+      end
+    )
+
+    content = capture_iex("IEx.InteractionTest.ExampleModule.fun(:invalid)")
+
+    assert content =~
+             "** (FunctionClauseError) no function clause matching in IEx.InteractionTest.ExampleModule.fun/1"
+
+    assert content =~
+             "The following arguments were given to IEx.InteractionTest.ExampleModule.fun/1"
+
+    assert content =~ ":invalid"
+    assert content =~ "def fun(-:valid-)"
+
+    assert content =~
+             ~r"test/iex/interaction_test.exs:\d+: IEx\.InteractionTest\.ExampleModule\.fun/1"
+
     content = capture_iex("Access.fetch(:foo, :bar)")
-    assert content =~ "** (FunctionClauseError) no function clause matching in Access.fetch/2"
-    assert content =~ "The following arguments were given to Access.fetch/2"
-    assert content =~ ":foo"
-    assert content =~ "def fetch(-%module{} = container-, key)"
+
     assert content =~ ~r"\(elixir #{System.version()}\) lib/access\.ex:\d+: Access\.fetch/2"
   end
 
