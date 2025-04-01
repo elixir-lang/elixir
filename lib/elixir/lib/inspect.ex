@@ -161,7 +161,7 @@ defprotocol Inspect do
     :ok = validate_option(:optional, optional, fields, module)
 
     inspect_module =
-      if fields == Enum.sort(only) and (except == [] or except_if_exists == []) do
+      if fields == Enum.sort(only) and except == [] and except_if_exists == [] do
         Inspect.Map
       else
         Inspect.Any
