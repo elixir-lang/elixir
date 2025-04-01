@@ -13,7 +13,7 @@ defmodule Logger.Utils do
   def translator(%{meta: %{domain: [:supervisor_report | _]}}, %{sasl: false}), do: :stop
   def translator(%{msg: {:string, _}}, _config), do: :ignore
 
-  def translator(%{msg: msg, level: level} = event, %{translators: translators}) do
+  def translator(%{msg: msg, level: level, meta: meta} = event, %{translators: translators}) do
     %{level: min_level} = :logger.get_primary_config()
 
     try do
@@ -40,10 +40,17 @@ defmodule Logger.Utils do
 
         %{event | msg: {:string, chardata}}
     else
-      :none -> :ignore
-      :skip -> :stop
-      {:ok, chardata} -> return_translated_event(event, chardata)
-      {:ok, char, meta} -> return_translated_event(event, char, meta)
+      :none ->
+        :ignore
+
+      :skip ->
+        :stop
+
+      {:ok, chardata} ->
+        return_translated_event(event, chardata, meta)
+
+      {:ok, chardata, translation_meta} ->
+        return_translated_event(event, chardata, Enum.into(translation_meta, meta))
     end
   end
 
@@ -51,21 +58,21 @@ defmodule Logger.Utils do
     {~c"~ts", [report[:elixir_translation]]}
   end
 
-  defp return_translated_event(event, translated, meta \\ [])
-
-  defp return_translated_event(%{msg: {:report, report}} = event, translated, meta) do
-    report = Enum.into([elixir_translation: translated], report)
-    meta = Enum.into(meta, event.meta)
+  defp return_translated_event(%{msg: {:report, report}} = event, translation, meta) do
+    report =
+      if is_list(report),
+        do: [elixir_translation: translation] ++ report,
+        else: Map.put(report, :elixir_translation, translation)
 
     %{
       event
       | msg: {:report, report},
-        meta: Enum.into([report_cb: &__MODULE__.translated_cb/1], meta)
+        meta: Map.put(meta, :report_cb, &__MODULE__.translated_cb/1)
     }
   end
 
-  defp return_translated_event(event, translated, meta) do
-    %{event | msg: {:string, translated}, meta: Enum.into(meta, event.meta)}
+  defp return_translated_event(event, translation, meta) do
+    %{event | msg: {:string, translation}, meta: meta}
   end
 
   defp translate([{mod, fun} | t], min_level, level, kind, data) do
