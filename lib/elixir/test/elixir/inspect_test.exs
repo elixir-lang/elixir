@@ -728,6 +728,19 @@ defmodule Inspect.MapTest do
              "#Inspect.MapTest.StructWithExceptOption<\n  a: 1,\n  d: 4,\n  ...\n>"
   end
 
+  defmodule StructWithBothOnlyAndExceptIfExistsOptions do
+    @derive {Inspect, except_if_exists: [:b, :c, :y, :z]}
+    defstruct [:a, :b, :c, :d]
+  end
+
+  test "struct with :except_if_exists options" do
+    struct = %StructWithBothOnlyAndExceptIfExistsOptions{a: 1, b: 2, c: 3, d: 4}
+    assert inspect(struct) == "#Inspect.MapTest.StructWithBothOnlyAndExceptIfExistsOptions<a: 1, ...>"
+
+    assert inspect(struct, pretty: true, width: 1) ==
+             "#Inspect.MapTest.StructWithBothOnlyAndExceptIfExistsOptions<\n  a: 1,\n  ...\n>"
+  end
+
   defmodule StructWithBothOnlyAndExceptOptions do
     @derive {Inspect, only: [:a, :b], except: [:b, :c]}
     defstruct [:a, :b, :c, :d]
@@ -739,6 +752,19 @@ defmodule Inspect.MapTest do
 
     assert inspect(struct, pretty: true, width: 1) ==
              "#Inspect.MapTest.StructWithBothOnlyAndExceptOptions<\n  a: 1,\n  ...\n>"
+  end
+
+  defmodule StructWithBothOnlyAndExceptIfExistsOptions do
+    @derive {Inspect, only: [:a, :b], except_if_exists: [:b, :c, :y, :z]}
+    defstruct [:a, :b, :c, :d]
+  end
+
+  test "struct with both :only and :except_if_exists options" do
+    struct = %StructWithBothOnlyAndExceptIfExistsOptions{a: 1, b: 2, c: 3, d: 4}
+    assert inspect(struct) == "#Inspect.MapTest.StructWithBothOnlyAndExceptIfExistsOptions<a: 1, ...>"
+
+    assert inspect(struct, pretty: true, width: 1) ==
+             "#Inspect.MapTest.StructWithBothOnlyAndExceptIfExistsOptions<\n  a: 1,\n  ...\n>"
   end
 
   defmodule StructWithOptionalAndOrder do

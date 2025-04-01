@@ -150,6 +150,7 @@ defprotocol Inspect do
 
     only = Keyword.get(options, :only, fields)
     except = Keyword.get(options, :except, [])
+    except_if_exists = Keyword.get(options, :except_if_exists, [])
     optional = Keyword.get(options, :optional, [])
 
     :ok = validate_option(:only, only, fields, module)
@@ -157,7 +158,7 @@ defprotocol Inspect do
     :ok = validate_option(:optional, optional, fields, module)
 
     inspect_module =
-      if fields == Enum.sort(only) and except == [] do
+      if fields == Enum.sort(only) and (except == [] or except_if_exists == []) do
         Inspect.Map
       else
         Inspect.Any
@@ -166,6 +167,7 @@ defprotocol Inspect do
     filtered_fields =
       fields
       |> Enum.reject(&(&1 in except))
+      |> Enum.reject(&(&1 in except_if_exists))
       |> Enum.filter(&(&1 in only))
 
     filtered_guard =
