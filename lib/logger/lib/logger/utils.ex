@@ -42,9 +42,30 @@ defmodule Logger.Utils do
     else
       :none -> :ignore
       :skip -> :stop
-      {:ok, chardata} -> %{event | msg: {:string, chardata}}
-      {:ok, char, meta} -> %{event | msg: {:string, char}, meta: Enum.into(meta, event.meta)}
+      {:ok, chardata} -> return_translated_event(event, chardata)
+      {:ok, char, meta} -> return_translated_event(event, char, meta)
     end
+  end
+
+  def translated_cb(report) do
+    {~c"~ts", [report[:elixir_translation]]}
+  end
+
+  defp return_translated_event(event, translated, meta \\ [])
+
+  defp return_translated_event(%{msg: {:report, report}} = event, translated, meta) do
+    report = Enum.into([elixir_translation: translated], report)
+    meta = Enum.into(meta, event.meta)
+
+    %{
+      event
+      | msg: {:report, report},
+        meta: Enum.into([report_cb: &__MODULE__.translated_cb/1], meta)
+    }
+  end
+
+  defp return_translated_event(event, translated, meta) do
+    %{event | msg: {:string, translated}, meta: Enum.into(meta, event.meta)}
   end
 
   defp translate([{mod, fun} | t], min_level, level, kind, data) do
