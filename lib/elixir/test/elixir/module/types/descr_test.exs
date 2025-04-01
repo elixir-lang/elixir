@@ -13,6 +13,12 @@ defmodule Module.Types.DescrTest do
   import Module.Types.Descr
 
   describe "union" do
+    test "zoom" do
+      # 1. dynamic() -> dynamic() applied to dynamic() gives dynamic()
+      f = fun([dynamic()], dynamic())
+      assert fun_apply(f, [dynamic()]) == dynamic()
+    end
+
     test "bitmap" do
       assert union(integer(), float()) == union(float(), integer())
     end
@@ -815,6 +821,9 @@ defmodule Module.Types.DescrTest do
     end
 
     test "function application" do
+      # This should not be empty
+      assert not empty?(intersection(negation(fun(2)), negation(fun(3))))
+
       # Basic function application scenarios
       assert fun_apply(fun([integer()], atom()), [integer()]) == atom()
       assert fun_apply(fun([integer()], atom()), [float()]) == :badarguments
@@ -845,6 +854,15 @@ defmodule Module.Types.DescrTest do
       # Function intersection with singleton atoms
       fun3 = intersection(fun([atom([:ok])], atom([:success])), fun([atom([:ok])], atom([:done])))
       assert fun_apply(fun3, [atom([:ok])]) == none()
+
+      # (dynamic(integer()) -> atom()
+      # cannot apply it to integer() bc integer() is not a subtype of dynamic() /\ integer()
+      # dynamic(atom())
+
+      # $ dynamic(map()) -> map()
+      # def f(x) when is_map(x) do
+      #     x.foo
+      # end
 
       fun9 = fun([intersection(dynamic(), integer())], atom())
       assert fun_apply(fun9, [dynamic(integer())]) |> equal?(atom())

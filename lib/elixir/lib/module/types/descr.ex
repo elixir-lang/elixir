@@ -26,7 +26,7 @@ defmodule Module.Types.Descr do
   @bit_top (1 <<< 7) - 1
   @bit_number @bit_integer ||| @bit_float
 
-  @fun_top 1
+  @fun_top :fun_top
   @atom_top {:negation, :sets.new(version: 2)}
   @map_top [{:open, %{}, []}]
   @non_empty_list_top [{:term, :term, []}]
@@ -883,7 +883,7 @@ defmodule Module.Types.Descr do
 
   ### Key concepts:
 
-  # * BDD structure: A tree with function nodes and 0/1 leaves. Paths to leaf 1
+  # * BDD structure: A tree with function nodes and :fun_top/:fun_bottom leaves. Paths to :fun_top
   #   represent valid function types. Nodes are positive when following a left
   #   branch (e.g. (int, float) -> bool) and negative otherwise.
 
@@ -906,19 +906,19 @@ defmodule Module.Types.Descr do
   # unary functions with tuple domains to handle special cases like representing functions of a
   # specific arity (e.g., (none,none->term) for arity 2).
 
-  defp fun_new(inputs, output), do: {{:weak, inputs, output}, 1, 0}
+  defp fun_new(inputs, output), do: {{:weak, inputs, output}, :fun_top, :fun_bottom}
 
   @doc """
   Creates a function type from a list of inputs and an output where the inputs and/or output may be dynamic.
 
   For function (t → s) with dynamic components:
-  - Static part:  (up(t) → down(s))
-  - Dynamic part: dynamic(down(t) → up(s))
+  - Static part:  (upper_bound(t) → lower_bound(s))
+  - Dynamic part: dynamic(lower_bound(t) → upper_bound(s))
 
   When handling dynamic types:
-  - `up(t)` extracts the upper bound (most general type) of a gradual type.
+  - `upper_bound(t)` extracts the upper bound (most general type) of a gradual type.
     For `dynamic(integer())`, it is `integer()`.
-  - `down(t)` extracts the lower bound (most specific type) of a gradual type.
+  - `lower_bound(t)` extracts the lower bound (most specific type) of a gradual type.
   """
   def fun_descr(args, output) when is_list(args) do
     dynamic_arguments? = are_arguments_dynamic?(args)
@@ -928,8 +928,8 @@ defmodule Module.Types.Descr do
       input_static = if dynamic_arguments?, do: materialize_arguments(args, :up), else: args
       input_dynamic = if dynamic_arguments?, do: materialize_arguments(args, :down), else: args
 
-      output_static = if dynamic_output?, do: down(output), else: output
-      output_dynamic = if dynamic_output?, do: up(output), else: output
+      output_static = if dynamic_output?, do: lower_bound(output), else: output
+      output_dynamic = if dynamic_output?, do: upper_bound(output), else: output
 
       %{
         fun: fun_new(input_static, output_static),
@@ -942,12 +942,12 @@ defmodule Module.Types.Descr do
   end
 
   # Gets the upper bound of a gradual type.
-  defp up(%{dynamic: dynamic}), do: dynamic
-  defp up(static), do: static
+  defp upper_bound(%{dynamic: dynamic}), do: dynamic
+  defp upper_bound(static), do: static
 
   # Gets the lower bound of a gradual type.
-  defp down(:term), do: :term
-  defp down(type), do: Map.delete(type, :dynamic)
+  defp lower_bound(:term), do: :term
+  defp lower_bound(type), do: Map.delete(type, :dynamic)
 
   # Tuples represent function domains, using unions to combine parameters.
   # Example: for functions (integer,float)->:ok and (float,integer)->:error
@@ -967,7 +967,7 @@ defmodule Module.Types.Descr do
   1. For static functions, returns their exact domain
   2. For dynamic functions, computes domain based on both static and dynamic parts
 
-  Formula is dom(t) = dom(up(t)) ∪ dynamic(dom(down(t))).
+  Formula is dom(t) = dom(upper_bound(t)) ∪ dynamic(dom(lower_bound(t))).
   See Definition 6.15 in https://vlanvin.fr/papers/thesis.pdf.
 
   ## Examples
@@ -1034,7 +1034,7 @@ defmodule Module.Types.Descr do
   3. For mixed static/dynamic: computes all valid combinations
 
   # Function application formula for dynamic types:
-  #   τ◦τ′ = (down(τ) ◦ up(τ′)) ∨ (dynamic(up(τ) ◦ down(τ′)))
+  #   τ◦τ′ = (lower_bound(τ) ◦ upper_bound(τ′)) ∨ (dynamic(upper_bound(τ) ◦ lower_bound(τ′)))
   #
   # Where:
   # - τ is a dynamic function type
@@ -1089,8 +1089,8 @@ defmodule Module.Types.Descr do
   end
 
   # Materializes arguments using the specified direction (up or down)
-  defp materialize_arguments(arguments, :up), do: Enum.map(arguments, &up/1)
-  defp materialize_arguments(arguments, :down), do: Enum.map(arguments, &down/1)
+  defp materialize_arguments(arguments, :up), do: Enum.map(arguments, &upper_bound/1)
+  defp materialize_arguments(arguments, :down), do: Enum.map(arguments, &lower_bound/1)
 
   defp are_arguments_dynamic?(arguments), do: Enum.any?(arguments, &match?(%{dynamic: _}, &1))
 
@@ -1101,12 +1101,17 @@ defmodule Module.Types.Descr do
       # At this stage we do not check that the function can be applied to the arguments (using domain)
       with {_domain, arrows, arity} <- fun_normalize(fun_bdd),
            true <- arity == length(arguments) do
+        # Opti: short-circuits when inner loop is none() or outer loop is term()
         result =
-          Enum.reduce(arrows, none(), fn intersection_of_arrows, acc ->
-            Enum.reduce(intersection_of_arrows, term(), fn {_tag, _dom, ret}, acc ->
-              intersection(acc, ret)
+          Enum.reduce_while(arrows, none(), fn intersection_of_arrows, acc ->
+            Enum.reduce_while(intersection_of_arrows, term(), fn
+              {_tag, _dom, _ret}, acc when acc == @none -> {:halt, acc}
+              {_tag, _dom, ret}, acc -> {:cont, intersection(acc, ret)}
             end)
-            |> union(acc)
+            |> case do
+              :term -> {:halt, :term}
+              inner -> {:cont, union(inner, acc)}
+            end
           end)
 
         {:ok, result}
@@ -1185,8 +1190,8 @@ defmodule Module.Types.Descr do
 
   def fun_get(acc, pos, neg, bdd) do
     case bdd do
-      0 -> acc
-      1 -> [{pos, neg} | acc]
+      :fun_bottom -> acc
+      :fun_top -> [{pos, neg} | acc]
       {fun, left, right} -> fun_get(fun_get(acc, [fun | pos], neg, left), pos, [fun | neg], right)
     end
   end
@@ -1244,8 +1249,8 @@ defmodule Module.Types.Descr do
   # - `fun(integer() -> atom()) and not fun(atom() -> integer())` is not empty
   defp fun_empty?(bdd) do
     case bdd do
-      1 -> false
-      0 -> true
+      :fun_bottom -> true
+      :fun_top -> false
       bdd -> fun_get(bdd) |> Enum.all?(fn {posits, negats} -> fun_empty?(posits, negats) end)
     end
   end
@@ -1321,13 +1326,13 @@ defmodule Module.Types.Descr do
   # See [Castagna and Lanvin (2024)](https://arxiv.org/abs/2408.14345), Theorem 4.2.
 
   defp phi_starter(arguments, return, positives) do
-    arguments = Enum.map(arguments, &{false, &1})
     n = length(arguments)
     # Arity mismatch: if there is one positive function with a different arity,
     # then it cannot be a subtype of the (arguments->type) functions.
     if Enum.any?(positives, fn {_tag, args, _ret} -> length(args) != n end) do
       false
     else
+      arguments = Enum.map(arguments, &{false, &1})
       phi(arguments, {false, return}, positives)
     end
   end
@@ -1346,10 +1351,10 @@ defmodule Module.Types.Descr do
 
   defp fun_union(bdd1, bdd2) do
     case {bdd1, bdd2} do
-      {1, _} -> 1
-      {_, 1} -> 1
-      {0, bdd} -> bdd
-      {bdd, 0} -> bdd
+      {:fun_top, _} -> :fun_top
+      {_, :fun_top} -> :fun_top
+      {:fun_bottom, bdd} -> bdd
+      {bdd, :fun_bottom} -> bdd
       {{fun, l1, r1}, {fun, l2, r2}} -> {fun, fun_union(l1, l2), fun_union(r1, r2)}
       # Note: this is a deep merge, that goes down bdd1 to insert bdd2 into it.
       # It is the same as going down bdd1 to insert bdd1 into it.
@@ -1361,18 +1366,18 @@ defmodule Module.Types.Descr do
   defp fun_intersection(bdd1, bdd2) do
     case {bdd1, bdd2} do
       # Base cases
-      {_, 0} -> 0
-      {0, _} -> 0
-      {1, bdd} -> bdd
-      {bdd, 1} -> bdd
+      {_, :fun_bottom} -> :fun_bottom
+      {:fun_bottom, _} -> :fun_bottom
+      {:fun_top, bdd} -> bdd
+      {bdd, :fun_top} -> bdd
       # Optimizations
       # If intersecting with a single positive or negative function, we insert
       # it at the root instead of merging the trees (this avoids going down the
       # whole bdd).
-      {bdd, {fun, 1, 0}} -> {fun, bdd, 0}
-      {bdd, {fun, 0, 1}} -> {fun, 0, bdd}
-      {{fun, 1, 0}, bdd} -> {fun, bdd, 0}
-      {{fun, 0, 1}, bdd} -> {fun, 0, bdd}
+      {bdd, {fun, :fun_top, :fun_bottom}} -> {fun, bdd, :fun_bottom}
+      {bdd, {fun, :fun_bottom, :fun_top}} -> {fun, :fun_bottom, bdd}
+      {{fun, :fun_top, :fun_bottom}, bdd} -> {fun, bdd, :fun_bottom}
+      {{fun, :fun_bottom, :fun_top}, bdd} -> {fun, :fun_bottom, bdd}
       # General cases
       {{fun, l1, r1}, {fun, l2, r2}} -> {fun, fun_intersection(l1, l2), fun_intersection(r1, r2)}
       {{fun, l, r}, bdd} -> {fun, fun_intersection(l, bdd), fun_intersection(r, bdd)}
@@ -1381,10 +1386,10 @@ defmodule Module.Types.Descr do
 
   defp fun_difference(bdd1, bdd2) do
     case {bdd1, bdd2} do
-      {0, _} -> 0
-      {_, 1} -> 0
-      {bdd, 0} -> bdd
-      {1, {fun, left, right}} -> {fun, fun_difference(1, left), fun_difference(1, right)}
+      {:fun_bottom, _} -> :fun_bottom
+      {_, :fun_top} -> :fun_bottom
+      {bdd, :fun_bottom} -> bdd
+      {:fun_top, {fun, l, r}} -> {fun, fun_difference(:fun_top, l), fun_difference(:fun_top, r)}
       {{fun, l1, r1}, {fun, l2, r2}} -> {fun, fun_difference(l1, l2), fun_difference(r1, r2)}
       {{fun, l, r}, bdd} -> {fun, fun_difference(l, bdd), fun_difference(r, bdd)}
     end
@@ -2980,10 +2985,10 @@ defmodule Module.Types.Descr do
 
   ## Examples
 
-      iex> tuple_fetch(domain_descr([integer(), atom()]), 0)
+      iex> tuple_fetch(tuple([integer(), atom()]), 0)
       {false, integer()}
 
-      iex> tuple_fetch(union(domain_descr([integer()]), domain_descr([integer(), atom()])), 1)
+      iex> tuple_fetch(union(tuple([integer()]), tuple([integer(), atom()])), 1)
       {true, atom()}
 
       iex> tuple_fetch(dynamic(), 0)
