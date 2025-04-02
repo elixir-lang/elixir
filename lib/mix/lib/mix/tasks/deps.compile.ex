@@ -318,7 +318,55 @@ defmodule Mix.Tasks.Deps.Compile do
        ["compile-package", "--target", "erlang", "--package", package, "--out", out, "--lib", lib]}
 
     shell_cmd!(dep, config, command)
-    Code.prepend_path(Path.join(out, "ebin"), cache: true)
+
+    ebin = Path.join(out, "ebin")
+    app_file_path = Keyword.get(opts, :app, Path.join(ebin, "#{dep.app}.app"))
+    create_app_file = app_file_path && !File.exists?(app_file_path)
+
+    if create_app_file do
+      generate_gleam_app_file(opts)
+    end
+
+    Code.prepend_path(ebin, cache: true)
+  end
+
+  defp gleam_extra_applications(config) do
+    config
+    |> Map.get(:extra_applications, [])
+    |> Enum.map(&String.to_atom/1)
+  end
+
+  defp gleam_mod(config) do
+    case config[:mod] do
+      nil -> []
+      mod -> {String.to_atom(mod), []}
+    end
+  end
+
+  defp generate_gleam_app_file(opts) do
+    toml = File.cd!(opts[:dest], fn -> Mix.Gleam.load_config(".") end)
+
+    module =
+      quote do
+        def project do
+          [
+            app: unquote(toml.name) |> String.to_atom(),
+            version: "#{unquote(toml.version)}"
+          ]
+        end
+
+        def application do
+          [
+            mod: unquote(gleam_mod(toml)),
+            extra_applications: unquote(gleam_extra_applications(toml))
+          ]
+        end
+      end
+
+    module_name = String.to_atom("Gleam.#{toml.name}")
+    Module.create(module_name, module, Macro.Env.location(__ENV__))
+    Mix.Project.push(module_name)
+    Mix.Tasks.Compile.App.run([])
   end
 
   defp make_command(dep) do

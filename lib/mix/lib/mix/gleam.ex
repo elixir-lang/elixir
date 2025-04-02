@@ -43,7 +43,7 @@ defmodule Mix.Gleam do
           {dep, version, opts}
 
         %{"path" => path} ->
-          {dep, Keyword.merge(opts, path: path)}
+          {dep, Keyword.merge(opts, path: Path.expand(path))}
 
         %{"git" => git, "ref" => ref} ->
           {dep, git: git, ref: ref}
