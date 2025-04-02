@@ -413,6 +413,80 @@ defmodule Regex do
   end
 
   @doc """
+  Returns the pattern as an embeddable string.
+
+  If the pattern was compiled with an option which cannot be represented
+  as an embeddable modifier in the current version of PCRE and strict is true
+  (the default) then an ArgumentError exception will be raised.
+
+  When strict is false the pattern will be returned as though any offending
+  options had not be used and the function will not raise any exceptions.
+
+  Embeddable modifiers/options are currently:
+    * 'i' - :caseless
+    * 'm' - :multiline
+    * 's' - :dotall, :newline, :anycrlf})
+    * 'x' - :extended
+
+  And unembeddable modifiers are
+    * 'f' - :firstline
+    * 'U' - :ungreedy
+    * 'u' - :unicode, :ucp
+
+  Any other regex compilation option not listed here is considered unembeddable.
+
+  ## Examples
+      iex> Regex.to_embed(~r/foo/)
+      "(?-imsx:foo)"
+
+      iex> Regex.to_embed(~r/^foo/m)
+      "(?m-isx:^foo)"
+
+      iex> Regex.to_embed(~r/foo # comment/ix)
+      "(?ix-ms:foo # comment\\n)"
+
+      iex> Regex.to_embed(~r/foo/iu)
+      ** (ArgumentError) regex compiled with options [:ucp, :unicode] which cannot be represented as an embedded pattern in this version of PCRE
+
+      iex> Regex.to_embed(~r/foo/imsxu, strict: false)
+      "(?imsx:foo\\n)"
+
+  """
+  @spec to_embed(t, [term]) :: String.t()
+  def to_embed(%Regex{source: source, opts: regex_opts}, embed_opts \\ []) do
+    strict = Keyword.get(embed_opts, :strict, true)
+
+    modifiers =
+      case embeddable_modifiers(regex_opts) do
+        {:ok, modifiers} ->
+          modifiers
+
+        {:error, modifiers, untranslatable} ->
+          if strict do
+            raise ArgumentError,
+                  "regex compiled with options #{inspect(untranslatable)} which cannot be " <>
+                    "represented as an embedded pattern in this version of PCRE"
+          else
+            modifiers
+          end
+      end
+
+    disabled =
+      Enum.reject([?i, ?m, ?s, ?x], &(&1 in modifiers))
+      |> List.to_string()
+
+    disabled = if disabled != "", do: "-#{disabled}", else: ""
+
+    modifiers =
+      Enum.sort(modifiers)
+      |> List.to_string()
+
+    nl = if Enum.member?(regex_opts, :extended), do: "\n", else: ""
+
+    "(?#{modifiers}#{disabled}:#{source}#{nl})"
+  end
+
+  @doc """
   Returns a list of names in the regex.
 
   ## Examples
@@ -844,6 +918,29 @@ defmodule Regex do
   end
 
   # Helpers
+
+  # translate options to modifiers as required for emedding
+  defp embeddable_modifiers(list), do: embeddable_modifiers(list, [], [])
+
+  defp embeddable_modifiers([:dotall, {:newline, :anycrlf} | t], acc, err),
+    do: embeddable_modifiers(t, [?s | acc], err)
+
+  defp embeddable_modifiers([:caseless | t], acc, err),
+    do: embeddable_modifiers(t, [?i | acc], err)
+
+  defp embeddable_modifiers([:extended | t], acc, err),
+    do: embeddable_modifiers(t, [?x | acc], err)
+
+  defp embeddable_modifiers([:multiline | t], acc, err),
+    do: embeddable_modifiers(t, [?m | acc], err)
+
+  defp embeddable_modifiers([option | t], acc, err),
+    do: embeddable_modifiers(t, acc, [option | err])
+
+  defp embeddable_modifiers([], acc, []), do: {:ok, acc}
+  defp embeddable_modifiers([], acc, err), do: {:error, acc, err}
+
+  # translate modifers to options
 
   defp translate_options(<<?s, t::binary>>, acc),
     do: translate_options(t, [:dotall, {:newline, :anycrlf} | acc])
