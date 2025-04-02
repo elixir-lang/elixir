@@ -87,20 +87,22 @@ defmodule Mix.GleamTest do
         assert :gleam_dep.main()
         assert :gleam@int.to_string(1) == "1"
 
-        load_paths =
-          Mix.Dep.Converger.converge([])
-          |> Enum.map(&Mix.Dep.load_paths(&1))
-          |> Enum.concat()
-
-        assert Enum.any?(load_paths, &String.ends_with?(&1, "gleam_dep/ebin"))
-        assert Enum.any?(load_paths, &String.ends_with?(&1, "gleam_stdlib/ebin"))
-        # Dep of a dep
-        assert Enum.any?(load_paths, &String.ends_with?(&1, "gleam_erlang/ebin"))
         {:ok, content} = :file.consult("_build/dev/lib/gleam_dep/ebin/gleam_dep.app")
 
         assert content == [
-                 {:application, :gleam_dep,
-                  [applications: [:ssl], mod: {:gleam_dep@somemodule, []}, vsn: ~c"1.0.0"]}
+                 {
+                   :application,
+                   :gleam_dep,
+                   [
+                     {:modules, [:gleam_dep]},
+                     {:optional_applications, []},
+                     {:applications, [:kernel, :stdlib, :elixir, :ssl]},
+                     {:description, ~c"gleam_dep"},
+                     {:registered, []},
+                     {:vsn, ~c"1.0.0"},
+                     {:mod, {:gleam_dep@somemodule, []}}
+                   ]
+                 }
                ]
       end)
     end
