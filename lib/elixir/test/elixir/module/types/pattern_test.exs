@@ -260,6 +260,10 @@ defmodule Module.Types.PatternTest do
       assert typecheck!([<<x::utf8>>], x) == integer()
     end
 
+    test "nested" do
+      assert typecheck!([<<0, <<x::bitstring>>::binary>>], x) == binary()
+    end
+
     test "error" do
       assert typeerror!([<<x::binary-size(2), x::float>>], x) == ~l"""
              incompatible types assigned to "x":
