@@ -141,7 +141,7 @@ defmodule IO do
       non-textual inputs.
 
     * if `line_or_chars` is `:line`, the device is iterated line by line.
-      CRFL newlines  ("\r\n") are automatically normalized to "\n".
+      CRLF newlines  ("\\r\\n") are automatically normalized to "\\n".
 
     * if `line_or_chars` is `:eof` (since v1.13), the device is iterated until `:eof`.
       If the device is already at the end, it returns `:eof` itself.
@@ -196,7 +196,7 @@ defmodule IO do
       non-textual inputs.
 
     * if `line_or_chars` is `:line`, the device is iterated line by line.
-      CRFL newlines  ("\r\n") are automatically normalized to "\n".
+      CRLF newlines  ("\\r\\n") are automatically normalized to "\\n".
 
     * if `line_or_chars` is `:eof` (since v1.13), the device is iterated until `:eof`.
       If the device is already at the end, it returns `:eof` itself.
@@ -612,7 +612,7 @@ defmodule IO do
 
   The `device` is iterated by the given number of characters
   or line by line if `:line` is given. In case `:line` is given,
-  "\r\n" is automatically normalized to "\n".
+  "\\r\\n" is automatically normalized to "\n".
 
   This reads from the IO as UTF-8. Check out
   `IO.binstream/2` to handle the IO as a raw binary.
@@ -666,8 +666,8 @@ defmodule IO do
   and write.
 
   The `device` is iterated by the given number of bytes or line
-  by line if `:line` is given. In case `:line` is given, "\r\n"
-  is automatically normalized to "\n". Passing the number of bytes
+  by line if `:line` is given. In case `:line` is given, "\\r\\n"
+  is automatically normalized to "\\n". Passing the number of bytes
   should be the preferred mode for reading non-textual inputs.
 
   Note that an IO stream has side effects and every time
