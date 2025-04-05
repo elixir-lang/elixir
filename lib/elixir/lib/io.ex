@@ -131,7 +131,7 @@ defmodule IO do
   defguardp is_device(term) when is_atom(term) or is_pid(term)
   defguardp is_iodata(data) when is_list(data) or is_binary(data)
 
-  @doc """
+  @doc ~S"""
   Reads from the IO `device`.
 
   The `device` is iterated as specified by the `line_or_chars` argument:
@@ -141,7 +141,7 @@ defmodule IO do
       non-textual inputs.
 
     * if `line_or_chars` is `:line`, the device is iterated line by line.
-      CRFL newlines  ("\r\n") are automatically normalized to "\n".
+      CRLF newlines  ("\r\n") are automatically normalized to "\n".
 
     * if `line_or_chars` is `:eof` (since v1.13), the device is iterated until `:eof`.
       If the device is already at the end, it returns `:eof` itself.
@@ -186,7 +186,7 @@ defmodule IO do
     :io.get_chars(map_dev(device), ~c"", count)
   end
 
-  @doc """
+  @doc ~S"""
   Reads from the IO `device`. The operation is Unicode unsafe.
 
   The `device` is iterated as specified by the `line_or_chars` argument:
@@ -196,7 +196,7 @@ defmodule IO do
       non-textual inputs.
 
     * if `line_or_chars` is `:line`, the device is iterated line by line.
-      CRFL newlines  ("\r\n") are automatically normalized to "\n".
+      CRLF newlines  ("\r\n") are automatically normalized to "\n".
 
     * if `line_or_chars` is `:eof` (since v1.13), the device is iterated until `:eof`.
       If the device is already at the end, it returns `:eof` itself.
@@ -603,7 +603,7 @@ defmodule IO do
   @spec stream() :: Enumerable.t(String.t())
   def stream, do: stream(:stdio, :line)
 
-  @doc """
+  @doc ~S"""
   Converts the IO `device` into an `IO.Stream`.
 
   An `IO.Stream` implements both `Enumerable` and
@@ -632,11 +632,11 @@ defmodule IO do
 
   Another example where you might want to collect a user input
   every new line and break on an empty line, followed by removing
-  redundant new line characters (`"\\n"`):
+  redundant new line characters (`"\n"`):
 
       IO.stream(:stdio, :line)
-      |> Enum.take_while(&(&1 != "\\n"))
-      |> Enum.map(&String.replace(&1, "\\n", ""))
+      |> Enum.take_while(&(&1 != "\n"))
+      |> Enum.map(&String.replace(&1, "\n", ""))
 
   """
   @spec stream(device, :line | pos_integer) :: Enumerable.t()
@@ -658,7 +658,7 @@ defmodule IO do
   @spec binstream() :: Enumerable.t(binary)
   def binstream, do: binstream(:stdio, :line)
 
-  @doc """
+  @doc ~S"""
   Converts the IO `device` into an `IO.Stream`. The operation is Unicode unsafe.
 
   An `IO.Stream` implements both `Enumerable` and
