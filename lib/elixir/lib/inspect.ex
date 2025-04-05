@@ -235,6 +235,13 @@ defprotocol Inspect do
   end
 
   defp validate_option(option, option_list, fields, module) do
+    if not is_list(option_list) do
+      raise ArgumentError,
+            "invalid value #{Kernel.inspect(option_list)} in #{Kernel.inspect(option)} " <>
+              "when deriving the Inspect protocol for #{Kernel.inspect(module)} " <>
+              "(expected a list)"
+    end
+
     case option_list -- fields do
       [] ->
         :ok

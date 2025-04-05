@@ -715,6 +715,17 @@ defmodule Inspect.MapTest do
                  end
   end
 
+  test "passing a non-list to the :only option" do
+    assert_raise ArgumentError,
+                 "invalid value :not_a_list in :only when deriving the Inspect protocol for Inspect.MapTest.StructInvalidListInOnlyOption (expected a list)",
+                 fn ->
+                   defmodule StructInvalidListInOnlyOption do
+                     @derive {Inspect, only: :not_a_list}
+                     defstruct [:a, :b]
+                   end
+                 end
+  end
+
   defmodule StructWithExceptOption do
     @derive {Inspect, except: [:b, :c]}
     defstruct [:a, :b, :c, :d]
