@@ -276,8 +276,8 @@ defmodule GenServer do
       {:ok, _} = Registry.start_link(keys: :unique, name: :stacks)
       name = {:via, Registry, {:stacks, "stack 1"}}
       {:ok, _pid} = GenServer.start_link(Stack, "hello", name: name)
-      Registry.lookup(:stacks, "stack 1")
-      #=> [{#PID<0.150.0>, nil}]
+      GenServer.whereis(name)
+      #=> #PID<0.150.0>
 
   ## Receiving "regular" messages
 
