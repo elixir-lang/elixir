@@ -772,6 +772,20 @@ defmodule Inspect.MapTest do
     assert inspect(struct) ==
              "#Inspect.MapTest.StructWithExceptOptionalAndOrder<d: nil, a: nil, ...>"
   end
+
+  defmodule StructWithOptionalAll do
+    @derive {Inspect, optional: :all}
+    defstruct [:a, :b, :c, :d]
+  end
+
+  test "struct with :optional set to :all" do
+    struct = %StructWithOptionalAll{a: 1, b: 2}
+
+    assert inspect(struct) == "%Inspect.MapTest.StructWithOptionalAll{a: 1, b: 2}"
+
+    struct = %StructWithOptionalAll{}
+    assert inspect(struct) == "%Inspect.MapTest.StructWithOptionalAll{}"
+  end
 end
 
 defmodule Inspect.OthersTest do
