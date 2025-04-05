@@ -476,13 +476,12 @@ defmodule Regex do
           end
       end
 
-    disabled = List.to_string([?i, ?m, ?s, ?x] -- modifiers)
+    disabled = [?i, ?m, ?s, ?x] -- modifiers
 
-    disabled = if disabled != "", do: "-#{disabled}", else: ""
+    disabled = if disabled != [], do: "-#{disabled}", else: ""
 
-    modifiers =
-      Enum.sort(modifiers)
-      |> List.to_string()
+    # Future proof option ordering consistency by sorting
+    modifiers = Enum.sort(modifiers)
 
     nl = if Enum.member?(regex_opts, :extended), do: "\n", else: ""
 
