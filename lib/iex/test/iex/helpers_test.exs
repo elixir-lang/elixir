@@ -39,45 +39,45 @@ defmodule IEx.HelpersTest do
     end
 
     test "sets up a breakpoint with capture syntax" do
-      assert break!(URI.decode_query() / 2) == 1
-      assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 1}]
+      assert break!(PryExampleModule.two() / 2) == 1
+      assert IEx.Pry.breaks() == [{1, PryExampleModule, {:two, 2}, 1}]
     end
 
     test "sets up a breakpoint with call syntax" do
-      assert break!(URI.decode_query(_, %{})) == 1
-      assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 1}]
+      assert break!(PryExampleModule.two(_, %{})) == 1
+      assert IEx.Pry.breaks() == [{1, PryExampleModule, {:two, 2}, 1}]
     end
 
     test "sets up a breakpoint with guards syntax" do
-      assert break!(URI.decode_query(_, map) when is_map(map)) == 1
-      assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 1}]
+      assert break!(PryExampleModule.two(_, map) when is_map(map)) == 1
+      assert IEx.Pry.breaks() == [{1, PryExampleModule, {:two, 2}, 1}]
     end
 
     test "sets up a breakpoint on the given module" do
-      assert break!(URI, :decode_query, 2) == 1
-      assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 1}]
+      assert break!(PryExampleModule, :two, 2) == 1
+      assert IEx.Pry.breaks() == [{1, PryExampleModule, {:two, 2}, 1}]
     end
 
     test "resets breaks on the given ID" do
-      assert break!(URI, :decode_query, 2) == 1
+      assert break!(PryExampleModule, :two, 2) == 1
       assert reset_break(1) == :ok
-      assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 0}]
+      assert IEx.Pry.breaks() == [{1, PryExampleModule, {:two, 2}, 0}]
     end
 
     test "resets breaks on the given module" do
-      assert break!(URI, :decode_query, 2) == 1
-      assert reset_break(URI, :decode_query, 2) == :ok
-      assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 0}]
+      assert break!(PryExampleModule, :two, 2) == 1
+      assert reset_break(PryExampleModule, :two, 2) == :ok
+      assert IEx.Pry.breaks() == [{1, PryExampleModule, {:two, 2}, 0}]
     end
 
     test "removes breaks in the given module" do
-      assert break!(URI.decode_query() / 2) == 1
-      assert remove_breaks(URI) == :ok
+      assert break!(PryExampleModule.two() / 2) == 1
+      assert remove_breaks(PryExampleModule) == :ok
       assert IEx.Pry.breaks() == []
     end
 
     test "removes breaks on all modules" do
-      assert break!(URI.decode_query() / 2) == 1
+      assert break!(PryExampleModule.two() / 2) == 1
       assert remove_breaks() == :ok
       assert IEx.Pry.breaks() == []
     end
@@ -85,7 +85,7 @@ defmodule IEx.HelpersTest do
     test "errors when setting up a breakpoint with invalid guard" do
       assert capture_io(:stderr, fn ->
                assert_raise CompileError, fn ->
-                 break!(URI.decode_query(_, map) when is_whatever(map))
+                 break!(PryExampleModule.two(_, map) when is_whatever(map))
                end
              end) =~ "cannot find or invoke local is_whatever/1"
     end
@@ -98,44 +98,44 @@ defmodule IEx.HelpersTest do
 
     test "errors when setting up a break for unknown function" do
       assert_raise RuntimeError,
-                   "could not set breakpoint, unknown function/macro URI.unknown/2",
-                   fn -> break!(URI, :unknown, 2) end
+                   "could not set breakpoint, unknown function/macro #{inspect(PryExampleModule)}.unknown/2",
+                   fn -> break!(PryExampleModule, :unknown, 2) end
     end
 
     test "errors for non-Elixir modules" do
       assert_raise RuntimeError,
-                   "could not set breakpoint, module :elixir was not written in Elixir",
-                   fn -> break!(:elixir, :unknown, 2) end
+                   "could not set breakpoint, module :maps was not written in Elixir",
+                   fn -> break!(:maps, :unknown, 2) end
     end
 
     test "prints table with breaks" do
-      break!(URI, :decode_query, 2)
+      break!(PryExampleModule, :two, 2)
 
       assert capture_io(fn -> breaks() end) == """
 
-              ID   Module.function/arity   Pending stops
-             ---- ----------------------- ---------------
-              1    URI.decode_query/2      1
+              ID   Module.function/arity    Pending stops
+             ---- ------------------------ ---------------
+              1    PryExampleModule.two/2   1
 
              """
 
-      assert capture_io(fn -> URI.decode_query("foo=bar", %{}) end) != ""
+      assert capture_io(fn -> PryExampleModule.two("foo=bar", %{}) end) != ""
 
       assert capture_io(fn -> breaks() end) == """
 
-              ID   Module.function/arity   Pending stops
-             ---- ----------------------- ---------------
-              1    URI.decode_query/2      0
+              ID   Module.function/arity    Pending stops
+             ---- ------------------------ ---------------
+              1    PryExampleModule.two/2   0
 
              """
 
-      assert capture_io(fn -> URI.decode_query("foo=bar", %{}) end) == ""
+      assert capture_io(fn -> PryExampleModule.two("foo=bar", %{}) end) == ""
 
       assert capture_io(fn -> breaks() end) == """
 
-              ID   Module.function/arity   Pending stops
-             ---- ----------------------- ---------------
-              1    URI.decode_query/2      0
+              ID   Module.function/arity    Pending stops
+             ---- ------------------------ ---------------
+              1    PryExampleModule.two/2   0
 
              """
     end
@@ -152,6 +152,7 @@ defmodule IEx.HelpersTest do
     @lists_erl Application.app_dir(:stdlib, "src/lists.erl")
     @httpc_erl "src/http_client/httpc.erl"
     @editor System.get_env("ELIXIR_EDITOR")
+    @example_module_path "lib/iex/test/test_helper.exs"
 
     test "opens __FILE__ and __LINE__" do
       System.put_env("ELIXIR_EDITOR", "echo __LINE__:__FILE__")
@@ -163,7 +164,8 @@ defmodule IEx.HelpersTest do
     end
 
     test "opens Elixir module" do
-      assert capture_iex("open(IEx.Helpers)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:5$/
+      assert capture_iex("open(HelperExampleModule)") |> maybe_trim_quotes() =~
+               ~r/#{@example_module_path}:\d+$/
     end
 
     test "opens function" do
@@ -176,16 +178,19 @@ defmodule IEx.HelpersTest do
     end
 
     test "opens module.function" do
-      assert capture_iex("open(IEx.Helpers.b)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:\d+$/
-      assert capture_iex("open(IEx.Helpers.h)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:\d+$/
+      assert capture_iex("open(HelperExampleModule.fun)") |> maybe_trim_quotes() =~
+               ~r/#{@example_module_path}:\d+$/
+
+      assert capture_iex("open(HelperExampleModule.macro)") |> maybe_trim_quotes() =~
+               ~r/#{@example_module_path}:\d+$/
     end
 
     test "opens module.function/arity" do
-      assert capture_iex("open(IEx.Helpers.b/1)") |> maybe_trim_quotes() =~
-               ~r/#{@iex_helpers}:\d+$/
+      assert capture_iex("open(HelperExampleModule.fun/1)") |> maybe_trim_quotes() =~
+               ~r/#{@example_module_path}:\d+$/
 
-      assert capture_iex("open(IEx.Helpers.h/0)") |> maybe_trim_quotes() =~
-               ~r/#{@iex_helpers}:\d+$/
+      assert capture_iex("open(HelperExampleModule.macro/1)") |> maybe_trim_quotes() =~
+               ~r/#{@example_module_path}:\d+$/
     end
 
     test "opens Erlang module" do
@@ -1440,11 +1445,13 @@ defmodule IEx.HelpersTest do
     @tag :capture_log
     test "loads a given module on the given nodes" do
       assert nl([node()], :lists) == {:ok, [{:nonode@nohost, :error, :sticky_directory}]}
-      assert nl([node()], Enum) == {:ok, [{:nonode@nohost, :loaded, Enum}]}
+
+      assert nl([node()], HelperExampleModule) ==
+               {:ok, [{:nonode@nohost, :loaded, HelperExampleModule}]}
 
       assert nl(:nonexistent_module) == {:error, :nofile}
 
-      assert nl([:nosuchnode@badhost], Enum) ==
+      assert nl([:nosuchnode@badhost], HelperExampleModule) ==
                {:ok, [{:nosuchnode@badhost, :badrpc, :noconnection}]}
     end
   end
