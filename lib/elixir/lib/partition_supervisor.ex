@@ -151,6 +151,25 @@ defmodule PartitionSupervisor do
   @typedoc since: "1.14.0"
   @type name :: atom() | {:via, module(), term()}
 
+  @typedoc """
+  The "identifier" of a partition.
+  """
+  @typedoc since: "1.19.0"
+  @type partition() :: non_neg_integer()
+
+  @typedoc """
+  The possible options to give to `start_link/0`.
+  """
+  @typedoc since: "1.19.0"
+  @type start_link_option ::
+          {:name, name}
+          | {:child_spec, Supervisor.child_spec() | Supervisor.module_spec()}
+          | {:partitions, pos_integer()}
+          | {:strategy, Supervisor.strategy()}
+          | {:max_restarts, non_neg_integer()}
+          | {:max_seconds, non_neg_integer()}
+          | {:with_arguments, (args :: [term()], partition() -> updated_args :: [term()])}
+
   @doc false
   def child_spec(opts) when is_list(opts) do
     id =
@@ -188,16 +207,19 @@ defmodule PartitionSupervisor do
 
   ## Options
 
+  See `t:start_link_option/0` for the type of each option.
+
     * `:name` - an atom or via tuple representing the name of the partition
-      supervisor (see `t:name/0`).
+      supervisor. *Required*.
 
-    * `:child_spec` - the child spec to be used when starting the partitions.
+    * `:child_spec` - the child spec to be used when starting the partitions. *Required*.
 
-    * `:partitions` - a positive integer with the number of partitions.
-      Defaults to `System.schedulers_online()` (typically the number of cores).
+    * `:partitions` - the number of partitions.
+      Defaults to `System.schedulers_online/0` (typically the number of cores).
 
-    * `:strategy` - the restart strategy option, defaults to `:one_for_one`.
+    * `:strategy` - the restart strategy option.
       You can learn more about strategies in the `Supervisor` module docs.
+      Defaults to `:one_for_one`.
 
     * `:max_restarts` - the maximum number of restarts allowed in
       a time frame. Defaults to `3`.
@@ -206,7 +228,9 @@ defmodule PartitionSupervisor do
       Defaults to `5`.
 
     * `:with_arguments` - a two-argument anonymous function that allows
-      the partition to be given to the child starting function. See the
+      the partition to be given to the child starting function. It takes the list of arguments
+      passed to the child start function and the partition itself, and must return
+      possibly-updated arguments to give to the child start function. See the
       `:with_arguments` section below.
 
   ## `:with_arguments`
@@ -227,7 +251,7 @@ defmodule PartitionSupervisor do
 
   """
   @doc since: "1.14.0"
-  @spec start_link(keyword) :: Supervisor.on_start()
+  @spec start_link([start_link_option()]) :: Supervisor.on_start()
   def start_link(opts) when is_list(opts) do
     name = opts[:name]
 
