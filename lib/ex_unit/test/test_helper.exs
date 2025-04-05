@@ -7,6 +7,8 @@ Logger.configure_backend(:console, colors: [enabled: false])
 {line_exclude, line_include} =
   if line = System.get_env("LINE"), do: {[:test], [line: line]}, else: {[], []}
 
+Code.eval_file("../../elixir/scripts/cover_record.exs", __DIR__)
+
 ExUnit.start(
   trace: !!System.get_env("TRACE"),
   include: line_include,

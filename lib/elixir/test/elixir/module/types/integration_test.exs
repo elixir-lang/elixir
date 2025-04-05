@@ -458,6 +458,7 @@ defmodule Module.Types.IntegrationTest do
       assert_warnings(files, warnings)
     end
 
+    @tag :require_ast
     test "String.Chars protocol dispatch" do
       files = %{
         "a.ex" => """
@@ -520,6 +521,7 @@ defmodule Module.Types.IntegrationTest do
       assert_warnings(files, warnings, consolidate_protocols: true)
     end
 
+    @tag :require_ast
     test "Enumerable protocol dispatch" do
       files = %{
         "a.ex" => """

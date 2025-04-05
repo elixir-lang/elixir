@@ -2,83 +2,10 @@
 # SPDX-FileCopyrightText: 2021 The Elixir Team
 # SPDX-FileCopyrightText: 2012 Plataformatec
 
-# Beam files compiled on demand
-path = Path.expand("../../tmp/beams", __DIR__)
-File.rm_rf!(path)
-File.mkdir_p!(path)
-Code.prepend_path(path)
-
 Application.put_env(:elixir, :ansi_enabled, true)
 Code.compiler_options(debug_info: true, infer_signatures: [:elixir])
 
-defmodule PathHelpers do
-  def fixture_path() do
-    Path.expand("fixtures", __DIR__)
-  end
-
-  def tmp_path() do
-    Path.expand("../../tmp", __DIR__)
-  end
-
-  def fixture_path(extra) do
-    Path.join(fixture_path(), extra)
-  end
-
-  def tmp_path(extra) do
-    Path.join(tmp_path(), extra)
-  end
-
-  def elixir(args, executable_extension \\ "") do
-    run_cmd(elixir_executable(executable_extension), args)
-  end
-
-  def elixir_executable(extension \\ "") do
-    executable_path("elixir", extension)
-  end
-
-  def elixirc(args, executable_extension \\ "") do
-    run_cmd(elixirc_executable(executable_extension), args)
-  end
-
-  def elixirc_executable(extension \\ "") do
-    executable_path("elixirc", extension)
-  end
-
-  def iex(args, executable_extension \\ "") do
-    run_cmd(iex_executable(executable_extension), args)
-  end
-
-  def iex_executable(extension \\ "") do
-    executable_path("iex", extension)
-  end
-
-  def write_beam({:module, name, bin, _} = res) do
-    File.mkdir_p!(unquote(path))
-    beam_path = Path.join(unquote(path), Atom.to_string(name) <> ".beam")
-    File.write!(beam_path, bin)
-    res
-  end
-
-  defp run_cmd(executable, args) do
-    ~c"#{executable} #{IO.chardata_to_string(args)}#{redirect_std_err_on_win()}"
-    |> :os.cmd()
-    |> :unicode.characters_to_binary()
-  end
-
-  defp executable_path(name, extension) do
-    Path.expand("../../../../bin/#{name}#{extension}", __DIR__)
-  end
-
-  if match?({:win32, _}, :os.type()) do
-    def windows?, do: true
-    def executable_extension, do: ".bat"
-    def redirect_std_err_on_win, do: " 2>&1"
-  else
-    def windows?, do: false
-    def executable_extension, do: ""
-    def redirect_std_err_on_win, do: ""
-  end
-end
+Code.eval_file("../../scripts/path_helpers.exs", __DIR__)
 
 defmodule CodeFormatterHelpers do
   defmacro assert_same(good, opts \\ []) do
@@ -120,9 +47,20 @@ source_exclude =
     []
   end
 
+cover_enabled? = Code.eval_file("../../scripts/cover_record.exs", __DIR__)
+
+cover_exclude =
+  if cover_enabled? do
+    [:require_ast]
+  else
+    []
+  end
+
 ExUnit.start(
   trace: !!System.get_env("TRACE"),
   assert_receive_timeout: assert_timeout,
-  exclude: epmd_exclude ++ os_exclude ++ line_exclude ++ distributed_exclude ++ source_exclude,
+  exclude:
+    epmd_exclude ++
+      os_exclude ++ line_exclude ++ distributed_exclude ++ source_exclude ++ cover_exclude,
   include: line_include
 )
