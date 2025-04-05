@@ -419,8 +419,9 @@ defmodule Regex do
   as an embeddable modifier in the current version of PCRE and strict is true
   (the default) then an ArgumentError exception will be raised.
 
-  When strict is false the pattern will be returned as though any offending
-  options had not be used and the function will not raise any exceptions.
+  When the `:strict` option is false the pattern will be returned as though
+  any offending options had not be used and the function will not raise any
+  exceptions.
 
   Embeddable modifiers/options are currently:
 
@@ -429,13 +430,14 @@ defmodule Regex do
     * 's' - `:dotall, {:newline, :anycrlf}`
     * 'x' - `:extended`
 
-  And unembeddable modifiers are:
+  Unembeddable modifiers are:
 
     * 'f' - `:firstline`
     * 'U' - `:ungreedy`
     * 'u' - `:unicode, :ucp`
 
-  Any other regex compilation option not listed here is considered unembeddable.
+  Any other regex compilation option not listed here is considered unembeddable
+  and will raise an exception unless the `:strict` option is false.
 
   ## Examples
       iex> Regex.to_embed(~r/foo/)
