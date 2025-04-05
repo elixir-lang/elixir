@@ -67,7 +67,8 @@ defprotocol Inspect do
     * `:optional` - (since v1.14.0) a list of fields that should not be
       included when they match their default value. This can be used to
       simplify the struct representation at the cost of hiding
-      information.
+      information. Since v1.19.0, the `:all` atom can be passed to
+      mark all fields as optional.
 
   Whenever `:only` or `:except` are used to restrict fields,
   the struct will be printed using the `#User<...>` notation,
@@ -159,11 +160,19 @@ defprotocol Inspect do
 
     only = Keyword.get(options, :only, fields)
     except = Keyword.get(options, :except, [])
-    optional = Keyword.get(options, :optional, [])
 
     :ok = validate_option(:only, only, fields, module)
     :ok = validate_option(:except, except, fields, module)
-    :ok = validate_option(:optional, optional, fields, module)
+
+    optional =
+      case Keyword.get(options, :optional, []) do
+        :all ->
+          fields
+
+        optional ->
+          :ok = validate_option(:optional, optional, fields, module)
+          optional
+      end
 
     inspect_module =
       if fields == Enum.sort(only) and except == [] do
@@ -226,6 +235,13 @@ defprotocol Inspect do
   end
 
   defp validate_option(option, option_list, fields, module) do
+    if not is_list(option_list) do
+      raise ArgumentError,
+            "invalid value #{Kernel.inspect(option_list)} in #{Kernel.inspect(option)} " <>
+              "when deriving the Inspect protocol for #{Kernel.inspect(module)} " <>
+              "(expected a list)"
+    end
+
     case option_list -- fields do
       [] ->
         :ok
