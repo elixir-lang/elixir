@@ -457,7 +457,7 @@ defmodule Regex do
 
   """
   @doc since: "1.19.0"
-  @spec to_embed(t, [strict: boolean()]) :: String.t()
+  @spec to_embed(t, strict: boolean()) :: String.t()
   def to_embed(%Regex{source: source, opts: regex_opts}, embed_opts \\ []) do
     strict = Keyword.get(embed_opts, :strict, true)
 
