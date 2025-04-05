@@ -423,15 +423,17 @@ defmodule Regex do
   options had not be used and the function will not raise any exceptions.
 
   Embeddable modifiers/options are currently:
-    * 'i' - :caseless
-    * 'm' - :multiline
-    * 's' - :dotall, :newline, :anycrlf})
-    * 'x' - :extended
 
-  And unembeddable modifiers are
-    * 'f' - :firstline
-    * 'U' - :ungreedy
-    * 'u' - :unicode, :ucp
+    * 'i' - `:caseless`
+    * 'm' - `:multiline`
+    * 's' - `:dotall, {:newline, :anycrlf}`
+    * 'x' - `:extended`
+
+  And unembeddable modifiers are:
+
+    * 'f' - `:firstline`
+    * 'U' - `:ungreedy`
+    * 'u' - `:unicode, :ucp`
 
   Any other regex compilation option not listed here is considered unembeddable.
 
@@ -452,6 +454,7 @@ defmodule Regex do
       "(?imsx:foo\\n)"
 
   """
+  @doc since: "1.19.0"
   @spec to_embed(t, [term]) :: String.t()
   def to_embed(%Regex{source: source, opts: regex_opts}, embed_opts \\ []) do
     strict = Keyword.get(embed_opts, :strict, true)
@@ -471,9 +474,7 @@ defmodule Regex do
           end
       end
 
-    disabled =
-      Enum.reject([?i, ?m, ?s, ?x], &(&1 in modifiers))
-      |> List.to_string()
+    disabled = List.to_string([?i, ?m, ?s, ?x] -- modifiers)
 
     disabled = if disabled != "", do: "-#{disabled}", else: ""
 
