@@ -64,9 +64,10 @@ defprotocol Inspect do
 
     * `:except` - remove the given fields when inspecting.
 
-    * `:optional` - (since v1.14.0) do not include a field if it
-      matches its default value. This can be used to simplify the
-      struct representation at the cost of hiding information.
+    * `:optional` - (since v1.14.0) a list of fields that should not be
+      included when they match their default value. This can be used to
+      simplify the struct representation at the cost of hiding
+      information.
 
   Whenever `:only` or `:except` are used to restrict fields,
   the struct will be printed using the `#User<...>` notation,
@@ -82,7 +83,15 @@ defprotocol Inspect do
       #=> #User<id: 1, name: "Jane", ...>
 
   If you use only the `:optional` option, the struct will still be
-  printed as `%User{...}`.
+  printed as a valid struct.
+
+      defmodule Point do
+        @derive {Inspect, optional: [:z]}
+        defstruct [x: 0, y: 0, z: 0]
+      end
+
+      inspect(%Point{x: 1})
+      %Point{x: 1, y: 0}
 
   ## Custom implementation
 
