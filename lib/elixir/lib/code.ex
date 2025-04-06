@@ -1578,7 +1578,7 @@ defmodule Code do
   ## Examples
 
       Code.compiler_options(infer_signatures: false)
-      #=> %{infer_signatures: true}
+      #=> %{infer_signatures: [:elixir]}
 
   """
   @spec compiler_options(Enumerable.t({atom, term})) :: %{optional(atom) => term}
