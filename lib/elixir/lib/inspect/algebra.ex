@@ -1213,7 +1213,7 @@ defmodule Inspect.Algebra do
 
   defp format(w, k, [{i, :flat, doc_group(x, :flex)} | t]) do
     if w == :infinity or fits?(w, k, false, [{i, :flat, x} | t]) do
-      format(w, k, [{i, :flat, x} | t])
+      format(w, k, [{i, :flat, x}, :group_over | t])
     else
       format(w, k, [{i, :break, x}, :group_over | t])
     end
@@ -1221,7 +1221,7 @@ defmodule Inspect.Algebra do
 
   defp format(w, k, [{i, _, doc_group(x, _)} | t]) do
     if w == :infinity or fits?(w, k, false, [{i, :flat, x}]) do
-      format(w, k, [{i, :flat, x} | t])
+      format(w, k, [{i, :flat, x}, :group_over | t])
     else
       format(w, k, [{i, :break, x}, :group_over | t])
     end

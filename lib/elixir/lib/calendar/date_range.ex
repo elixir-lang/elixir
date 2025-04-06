@@ -171,8 +171,12 @@ defmodule Date.Range do
          when step < 0 and first_days < last_days,
          do: 0
 
-    defp size(%Date.Range{first_in_iso_days: first_days, last_in_iso_days: last_days, step: step}),
-      do: abs(div(last_days - first_days, step)) + 1
+    defp size(%Date.Range{
+           first_in_iso_days: first_days,
+           last_in_iso_days: last_days,
+           step: step
+         }),
+         do: abs(div(last_days - first_days, step)) + 1
 
     # TODO: Remove me on v2.0
     defp size(
