@@ -247,7 +247,6 @@ defmodule Inspect.Algebra do
   @container_separator ","
   @tail_separator " |"
   @newline "\n"
-  @next_break_fits :enabled
 
   # Functional interface to "doc" records
 
@@ -259,7 +258,6 @@ defmodule Inspect.Algebra do
           | doc_collapse
           | doc_color
           | doc_cons
-          | doc_fits
           | doc_force
           | doc_group
           | doc_nest
@@ -291,14 +289,9 @@ defmodule Inspect.Algebra do
     quote do: {:doc_break, unquote(break), unquote(mode)}
   end
 
-  @typep doc_group :: {:doc_group, t, :inherit | :self}
+  @typep doc_group :: {:doc_group, t, :inherit | :self | :flex | :strict}
   defmacrop doc_group(group, mode) do
     quote do: {:doc_group, unquote(group), unquote(mode)}
-  end
-
-  @typep doc_fits :: {:doc_fits, t, :enabled | :disabled}
-  defmacrop doc_fits(group, mode) do
-    quote do: {:doc_fits, unquote(group), unquote(mode)}
   end
 
   @typep doc_force :: {:doc_force, t}
@@ -321,7 +314,6 @@ defmodule Inspect.Algebra do
     :doc_collapse,
     :doc_color,
     :doc_cons,
-    :doc_fits,
     :doc_force,
     :doc_group,
     :doc_nest,
@@ -784,15 +776,15 @@ defmodule Inspect.Algebra do
 
   """
   @doc since: "1.6.0"
-  @spec next_break_fits(t, :enabled | :disabled) :: doc_fits
-  def next_break_fits(doc, mode \\ @next_break_fits)
+  @spec next_break_fits(t, :enabled | :disabled) :: doc_group
+  def next_break_fits(doc, mode \\ :enabled)
       when is_doc(doc) and mode in [:enabled, :disabled] do
-    case doc do
-      doc_group(_, _) -> :ok
-      _ -> IO.warn("next_break_fits/2 expect a group as document")
-    end
+    mode = if mode == :enabled, do: :flex, else: :strict
 
-    doc_fits(doc, mode)
+    case doc do
+      doc_group(doc, _) -> doc_group(doc, mode)
+      _ -> doc_group(doc, mode)
+    end
   end
 
   @doc """
@@ -877,10 +869,21 @@ defmodule Inspect.Algebra do
   Returns a group containing the specified document `doc`.
 
   Documents in a group are attempted to be rendered together
-  to the best of the renderer ability.
+  to the best of the renderer ability. There are four types
+  of groups, described below.
 
-  The group mode can also be set to `:inherit`, which means it
-  automatically breaks if the parent group has broken too.
+  ## Group modes
+
+    * `:self` - the group breaks if it doesn't fit the width
+      as a whole
+
+    * `:flex` - the group breaks if part of it fits. This option
+      disables the `force_unfit/1` document. Any `:self` group
+      within behaves as `:flex`
+
+    * `:strict` - the group breaks if it doesn't fit the width
+      as a whole and amy group within behaves as `:strict`
+      (in other words, this group disables any `:flex` inside)
 
   ## Examples
 
@@ -907,8 +910,40 @@ defmodule Inspect.Algebra do
       iex> Inspect.Algebra.format(doc, 6)
       ["Hello,", "\n", "A", "\n", "B"]
 
+  ## Mode examples
+
+  The different groups modes are used by Elixir's code formatter
+  to avoid breaking code at some specific locations. For example,
+  consider this code:
+
+      some_function_call(%{..., key: value, ...})
+
+  Now imagine that this code does not fit its line. The code
+  formatter introduces breaks inside `(` and `)` and inside
+  `%{` and `}`, each within their own group. Therefore the
+  document would break as:
+
+      some_function_call(
+        %{
+          ...,
+          key: value,
+          ...
+        }
+      )
+
+  To address this, the formatter marks the outer group as flex.
+  This means the first break will consider the group which contains
+  the `(...)` as fit, skipping their new lines. So overall the code
+  is formatted as:
+
+      some_function_call(%{
+        ...,
+        key: value,
+        ...
+      })
+
   """
-  @spec group(t, :self | :inherit) :: doc_group
+  @spec group(t, :self | :inherit | :flex | :strict) :: doc_group
   def group(doc, mode \\ :self) when is_doc(doc) do
     doc_group(doc, mode)
   end
@@ -1063,15 +1098,18 @@ defmodule Inspect.Algebra do
 
   ## Flat no break
 
-  defp fits?(w, k, b?, [{i, _, doc_fits(x, :disabled)} | t]),
+  defp fits?(w, k, b?, [{i, _, doc_group(x, :strict)} | t]),
     do: fits?(w, k, b?, [{i, :flat_no_break, x} | t])
 
-  defp fits?(w, k, b?, [{i, :flat_no_break, doc_fits(x, _)} | t]),
+  defp fits?(w, k, b?, [{i, :flat_no_break, doc_group(x, _)} | t]),
     do: fits?(w, k, b?, [{i, :flat_no_break, x} | t])
 
   ## Breaks no flat
 
-  defp fits?(w, k, b?, [{i, _, doc_fits(x, :enabled)} | t]),
+  defp fits?(w, k, b?, [{i, _, doc_group(x, :flex)} | t]),
+    do: fits?(w, k, b?, [{i, :break_no_flat, x} | t])
+
+  defp fits?(w, k, b?, [{i, :break_no_flat, doc_group(x, _)} | t]),
     do: fits?(w, k, b?, [{i, :break_no_flat, x} | t])
 
   defp fits?(w, k, b?, [{i, :break_no_flat, doc_force(x)} | t]),
@@ -1169,18 +1207,11 @@ defmodule Inspect.Algebra do
     format(w, k, [{i, :break, x} | t])
   end
 
-  defp format(w, k, [{i, _, doc_group(x, _)} | t]) do
-    if w == :infinity or fits?(w, k, false, [{i, :flat, x}]) do
-      format(w, k, [{i, :flat, x} | t])
-    else
-      format(w, k, [{i, :break, x}, :group_over | t])
-    end
+  defp format(w, k, [{i, :break, doc_group(x, :flex)} | t]) do
+    format(w, k, [{i, :break, x} | t])
   end
 
-  # Next break fits needs to do the fitting decision
-  # if it is in flat mode, as it may be the one responsible
-  # for the flat mode.
-  defp format(w, k, [{i, :flat, doc_fits(doc_group(x, _), :enabled)} | t]) do
+  defp format(w, k, [{i, :flat, doc_group(x, :flex)} | t]) do
     if w == :infinity or fits?(w, k, false, [{i, :flat, x} | t]) do
       format(w, k, [{i, :flat, x} | t])
     else
@@ -1188,8 +1219,12 @@ defmodule Inspect.Algebra do
     end
   end
 
-  defp format(w, k, [{i, m, doc_fits(x, _)} | t]) do
-    format(w, k, [{i, m, x} | t])
+  defp format(w, k, [{i, _, doc_group(x, _)} | t]) do
+    if w == :infinity or fits?(w, k, false, [{i, :flat, x}]) do
+      format(w, k, [{i, :flat, x} | t])
+    else
+      format(w, k, [{i, :break, x}, :group_over | t])
+    end
   end
 
   # Limit is set to infinity and then reverts
@@ -1218,5 +1253,7 @@ defmodule Inspect.Algebra do
   defp apply_nesting(i, _, j), do: i + j
 
   defp indent(0), do: @newline
-  defp indent(i), do: @newline <> :binary.copy(" ", i)
+
+  defp indent(i),
+    do: @newline <> :binary.copy(" ", i)
 end

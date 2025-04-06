@@ -1264,7 +1264,7 @@ defmodule Code.Formatter do
         args_doc =
           if skip_parens? do
             left_doc
-            |> concat(next_break_fits(group(right_doc, :inherit), :enabled))
+            |> concat(group(right_doc, :flex))
             |> nest(:cursor, :break)
           else
             right_doc =
@@ -1272,8 +1272,7 @@ defmodule Code.Formatter do
               |> nest(2, :break)
               |> concat(break(""))
               |> concat(")")
-              |> group(:inherit)
-              |> next_break_fits(:enabled)
+              |> group(:flex)
 
             concat(nest(left_doc, 2, :break), right_doc)
           end
@@ -1316,13 +1315,11 @@ defmodule Code.Formatter do
           |> concat(args_doc)
           |> nest(2)
           |> concat(extra)
-          |> group()
 
         skip_parens? ->
           " "
           |> concat(args_doc)
           |> concat(extra)
-          |> group()
 
         true ->
           "("
@@ -1330,13 +1327,12 @@ defmodule Code.Formatter do
           |> nest(2, :break)
           |> concat(args_doc)
           |> concat(extra)
-          |> group()
       end
 
     if next_break_fits? do
-      {next_break_fits(doc, :disabled), state}
+      {group(doc, :strict), state}
     else
-      {doc, state}
+      {group(doc), state}
     end
   end
 
@@ -1809,10 +1805,7 @@ defmodule Code.Formatter do
             concat_to_last_group(doc, ",")
 
           [] when last_arg_mode == :next_break_fits ->
-            doc
-            |> ungroup_if_group()
-            |> group()
-            |> next_break_fits(:enabled)
+            doc |> ungroup_if_group() |> group(:flex)
 
           [] when last_arg_mode == :none ->
             doc
@@ -2333,11 +2326,9 @@ defmodule Code.Formatter do
   defp with_next_break_fits(condition, doc, fun) do
     if condition do
       doc
-      |> group()
-      |> next_break_fits(:enabled)
+      |> group(:flex)
       |> fun.()
-      |> group()
-      |> next_break_fits(:disabled)
+      |> group(:strict)
     else
       doc
       |> group()
