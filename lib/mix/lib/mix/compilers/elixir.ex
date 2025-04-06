@@ -50,8 +50,8 @@ defmodule Mix.Compilers.Elixir do
     all_paths = Mix.Utils.extract_files(srcs, [:ex])
 
     {all_modules, all_sources, all_local_exports, old_parents, old_cache_key, old_deps_config,
-     old_project_mtime, old_config_mtime,
-     old_protocols_and_impls} = parse_manifest(manifest, dest)
+     old_project_mtime, old_config_mtime, old_protocols_and_impls} =
+      parse_manifest(manifest, dest)
 
     # Prepend ourselves early because of __mix_recompile__? checks
     # and also that, in case of nothing compiled, we already need
