@@ -617,9 +617,12 @@ defmodule Code.Formatter do
       end
 
     doc =
-      with_next_break_fits(next_break_fits?(right_arg, state), right, fn right ->
-        concat(group(left), group(nest(glue(op, group(right)), 2, :break)))
-      end)
+      concat(
+        group(left),
+        with_next_break_fits(next_break_fits?(right_arg, state), right, fn right ->
+          nest(glue(op, right), 2, :break)
+        end)
+      )
 
     {doc, state}
   end
@@ -818,9 +821,8 @@ defmodule Code.Formatter do
 
           {" " <> op_string,
            with_next_break_fits(next_break_fits?, right, fn right ->
-             right = nest(concat(break(), group(right)), nesting, :break)
-             right = if eol?, do: force_unfit(right), else: right
-             group(right)
+             right = nest(concat(break(), right), nesting, :break)
+             if eol?, do: force_unfit(right), else: right
            end)}
       end
 
@@ -1800,10 +1802,20 @@ defmodule Code.Formatter do
 
       doc =
         case args do
-          [_ | _] -> concat_to_last_group(doc, ",")
-          [] when last_arg_mode == :force_comma -> concat_to_last_group(doc, ",")
-          [] when last_arg_mode == :next_break_fits -> next_break_fits(doc, :enabled)
-          [] when last_arg_mode == :none -> doc
+          [_ | _] ->
+            concat_to_last_group(doc, ",")
+
+          [] when last_arg_mode == :force_comma ->
+            concat_to_last_group(doc, ",")
+
+          [] when last_arg_mode == :next_break_fits ->
+            doc
+            |> ungroup_if_group()
+            |> group()
+            |> next_break_fits(:enabled)
+
+          [] when last_arg_mode == :none ->
+            doc
         end
 
       {{doc, @empty, 1}, state}
@@ -2321,11 +2333,16 @@ defmodule Code.Formatter do
   defp with_next_break_fits(condition, doc, fun) do
     if condition do
       doc
+      |> group()
       |> next_break_fits(:enabled)
       |> fun.()
+      |> group()
       |> next_break_fits(:disabled)
     else
-      fun.(doc)
+      doc
+      |> group()
+      |> fun.()
+      |> group()
     end
   end
 
