@@ -1264,7 +1264,7 @@ defmodule Code.Formatter do
         args_doc =
           if skip_parens? do
             left_doc
-            |> concat(group(right_doc, :flex))
+            |> concat(group(right_doc, :optimistic))
             |> nest(:cursor, :break)
           else
             right_doc =
@@ -1272,7 +1272,7 @@ defmodule Code.Formatter do
               |> nest(2, :break)
               |> concat(break(""))
               |> concat(")")
-              |> group(:flex)
+              |> group(:optimistic)
 
             concat(nest(left_doc, 2, :break), right_doc)
           end
@@ -1330,7 +1330,7 @@ defmodule Code.Formatter do
       end
 
     if next_break_fits? do
-      {group(doc, :strict), state}
+      {group(doc, :pessimistic), state}
     else
       {group(doc), state}
     end
@@ -1805,7 +1805,7 @@ defmodule Code.Formatter do
             concat_to_last_group(doc, ",")
 
           [] when last_arg_mode == :next_break_fits ->
-            doc |> ungroup_if_group() |> group(:flex)
+            doc |> ungroup_if_group() |> group(:optimistic)
 
           [] when last_arg_mode == :none ->
             doc
@@ -2326,9 +2326,9 @@ defmodule Code.Formatter do
   defp with_next_break_fits(condition, doc, fun) do
     if condition do
       doc
-      |> group(:flex)
+      |> group(:optimistic)
       |> fun.()
-      |> group(:strict)
+      |> group(:pessimistic)
     else
       doc
       |> group()
