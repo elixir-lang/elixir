@@ -237,8 +237,8 @@ defmodule Inspect.Algebra do
   Flex breaks, however, are re-evaluated on every occurrence and may still
   be rendered flat. See `break/1` and `flex_break/1` for more information.
 
-  This implementation also adds `force_unfit/1` and `next_break_fits/2` which
-  give more control over the document fitting.
+  This implementation also adds `force_unfit/1` and optimistic/pessimistic
+  groups which give more control over the document fitting.
 
     [0]: https://lindig.github.io/papers/strictly-pretty-2000.pdf
 
@@ -289,7 +289,7 @@ defmodule Inspect.Algebra do
     quote do: {:doc_break, unquote(break), unquote(mode)}
   end
 
-  @typep doc_group :: {:doc_group, t, :inherit | :self | :flex | :strict}
+  @typep doc_group :: {:doc_group, t, :normal | :optimistic | :pessimistic | :inherit}
   defmacrop doc_group(group, mode) do
     quote do: {:doc_group, unquote(group), unquote(mode)}
   end
@@ -736,50 +736,13 @@ defmodule Inspect.Algebra do
 
   @doc """
   Considers the next break as fit.
-
-  `mode` can be `:enabled` or `:disabled`. When `:enabled`,
-  it will consider the document as fit as soon as it finds
-  the next break, effectively cancelling the break. It will
-  also ignore any `force_unfit/1` in search of the next break.
-
-  When disabled, it behaves as usual and it will ignore
-  any further `next_break_fits/2` instruction.
-
-  ## Examples
-
-  This is used by Elixir's code formatter to avoid breaking
-  code at some specific locations. For example, consider this
-  code:
-
-      some_function_call(%{..., key: value, ...})
-
-  Now imagine that this code does not fit its line. The code
-  formatter introduces breaks inside `(` and `)` and inside
-  `%{` and `}`. Therefore the document would break as:
-
-      some_function_call(
-        %{
-          ...,
-          key: value,
-          ...
-        }
-      )
-
-  The formatter wraps the algebra document representing the
-  map in `next_break_fits/1` so the code is formatted as:
-
-      some_function_call(%{
-        ...,
-        key: value,
-        ...
-      })
-
   """
-  @doc since: "1.6.0"
+  # TODO: Deprecate me on Elixir v1.23
+  @doc deprecated: "Pass the optimistic/pessimistic type to group/2 instead"
   @spec next_break_fits(t, :enabled | :disabled) :: doc_group
   def next_break_fits(doc, mode \\ :enabled)
       when is_doc(doc) and mode in [:enabled, :disabled] do
-    mode = if mode == :enabled, do: :flex, else: :strict
+    mode = if mode == :enabled, do: :optimistic, else: :pessimistic
 
     case doc do
       doc_group(doc, _) -> doc_group(doc, mode)
@@ -869,21 +832,24 @@ defmodule Inspect.Algebra do
   Returns a group containing the specified document `doc`.
 
   Documents in a group are attempted to be rendered together
-  to the best of the renderer ability. There are four types
-  of groups, described below.
+  to the best of the renderer ability. If there are `break/1`s
+  in the group and the group does not fit the given width,
+  the breaks are converted into lines. Otherwise the breaks
+  are rendered as text based on their string contents.
+
+  There are three types of groups, described next.
 
   ## Group modes
 
-    * `:self` - the group breaks if it doesn't fit the width
-      as a whole
+    * `:normal` - the group fits if it fits within the given width
 
-    * `:flex` - the group breaks if part of it fits. This option
-      disables the `force_unfit/1` document. Any `:self` group
-      within behaves as `:flex`
+    * `:optimistic` - the group fits if it fits within the given
+      width. However, when nested within another group, the parent
+      group will assume this group fits as long as it has a single
+      break, even ignoring any `force_unfit/1` document
 
-    * `:strict` - the group breaks if it doesn't fit the width
-      as a whole and amy group within behaves as `:strict`
-      (in other words, this group disables any `:flex` inside)
+    * `:pessimistic` - the group fits if it fits within the given
+      width. However it disables any optimistic group within it
 
   ## Examples
 
@@ -931,9 +897,9 @@ defmodule Inspect.Algebra do
         }
       )
 
-  To address this, the formatter marks the outer group as flex.
-  This means the first break will consider the group which contains
-  the `(...)` as fit, skipping their new lines. So overall the code
+  To address this, the formatter marks the inner group as optimistic.
+  This means the first group, which is `(...)` will consider the document
+  fits and avoids adding breaks around the parens. So overall the code
   is formatted as:
 
       some_function_call(%{
@@ -943,9 +909,19 @@ defmodule Inspect.Algebra do
       })
 
   """
-  @spec group(t, :self | :inherit | :flex | :strict) :: doc_group
-  def group(doc, mode \\ :self) when is_doc(doc) do
-    doc_group(doc, mode)
+  @spec group(t, :normal | :optimistic | :pessimistic) :: doc_group
+  def group(doc, mode \\ :normal) when is_doc(doc) do
+    doc_group(
+      doc,
+      case mode do
+        # TODO: Deprecate :self and :inherit on Elixir v1.23
+        :self -> :normal
+        :inherit -> :inherit
+        :flex -> :optimistic
+        :strict -> :pessimistic
+        mode -> mode
+      end
+    )
   end
 
   @doc ~S"""
@@ -1098,7 +1074,7 @@ defmodule Inspect.Algebra do
 
   ## Flat no break
 
-  defp fits?(w, k, b?, [{i, _, doc_group(x, :strict)} | t]),
+  defp fits?(w, k, b?, [{i, _, doc_group(x, :pessimistic)} | t]),
     do: fits?(w, k, b?, [{i, :flat_no_break, x} | t])
 
   defp fits?(w, k, b?, [{i, :flat_no_break, doc_group(x, _)} | t]),
@@ -1106,10 +1082,7 @@ defmodule Inspect.Algebra do
 
   ## Breaks no flat
 
-  defp fits?(w, k, b?, [{i, _, doc_group(x, :flex)} | t]),
-    do: fits?(w, k, b?, [{i, :break_no_flat, x} | t])
-
-  defp fits?(w, k, b?, [{i, :break_no_flat, doc_group(x, _)} | t]),
+  defp fits?(w, k, b?, [{i, _, doc_group(x, :optimistic)} | t]),
     do: fits?(w, k, b?, [{i, :break_no_flat, x} | t])
 
   defp fits?(w, k, b?, [{i, :break_no_flat, doc_force(x)} | t]),
@@ -1203,15 +1176,12 @@ defmodule Inspect.Algebra do
     format(w, k, t)
   end
 
+  # TODO: Deprecate me in Elixir v1.23
   defp format(w, k, [{i, :break, doc_group(x, :inherit)} | t]) do
     format(w, k, [{i, :break, x} | t])
   end
 
-  defp format(w, k, [{i, :break, doc_group(x, :flex)} | t]) do
-    format(w, k, [{i, :break, x} | t])
-  end
-
-  defp format(w, k, [{i, :flat, doc_group(x, :flex)} | t]) do
+  defp format(w, k, [{i, :flat, doc_group(x, :optimistic)} | t]) do
     if w == :infinity or fits?(w, k, false, [{i, :flat, x} | t]) do
       format(w, k, [{i, :flat, x}, :group_over | t])
     else
@@ -1253,7 +1223,5 @@ defmodule Inspect.Algebra do
   defp apply_nesting(i, _, j), do: i + j
 
   defp indent(0), do: @newline
-
-  defp indent(i),
-    do: @newline <> :binary.copy(" ", i)
+  defp indent(i), do: @newline <> :binary.copy(" ", i)
 end
