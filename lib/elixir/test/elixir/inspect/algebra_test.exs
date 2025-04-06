@@ -196,25 +196,12 @@ defmodule Inspect.AlgebraTest do
 
   test "group doc" do
     # Consistent with definitions
-    assert group("ab") == {:doc_group, "ab", :self}
-    assert group(empty()) == {:doc_group, empty(), :self}
+    assert group("ab") == {:doc_group, "ab", :normal}
+    assert group(empty()) == {:doc_group, empty(), :normal}
 
     # Consistent formatting
     doc = concat(glue(glue(glue("hello", "a"), "b"), "c"), "d")
     assert render(group(doc), 5) == "hello\na\nb\ncd"
-  end
-
-  test "group doc with inherit" do
-    # Consistent with definitions
-    assert group("ab", :inherit) == {:doc_group, "ab", :inherit}
-    assert group(empty(), :inherit) == {:doc_group, empty(), :inherit}
-
-    # Consistent formatting
-    doc = concat(glue(glue(group(glue("a", "b"), :self), "c"), "d"), "hello")
-    assert render(group(doc), 5) == "a b\nc\ndhello"
-
-    doc = concat(glue(glue(group(glue("a", "b"), :inherit), "c"), "d"), "hello")
-    assert render(group(doc), 5) == "a\nb\nc\ndhello"
   end
 
   test "no limit doc" do
@@ -258,19 +245,16 @@ defmodule Inspect.AlgebraTest do
     assert force_unfit("ab") == {:doc_force, "ab"}
     assert force_unfit(empty()) == {:doc_force, empty()}
 
-    # Consistent with definitions
-    assert next_break_fits("ab") == {:doc_fits, "ab", :enabled}
-    assert next_break_fits(empty()) == {:doc_fits, empty(), :enabled}
-    assert next_break_fits("ab", :disabled) == {:doc_fits, "ab", :disabled}
-    assert next_break_fits(empty(), :disabled) == {:doc_fits, empty(), :disabled}
-
     # Consistent formatting
-    doc = force_unfit(concat(glue(glue(glue("hello", "a"), "b"), "c"), "d"))
-    assert render(doc, 20) == "hello\na\nb\ncd"
-    assert render(next_break_fits(doc, :enabled), 20) == "hello a b cd"
+    doc = force_unfit(glue(glue("hello", "a"), "b"))
+    assert render(doc, 20) == "hello\na\nb"
+    assert render(doc |> glue("c") |> group(), 20) == "hello\na\nb\nc"
 
-    assert render(next_break_fits(next_break_fits(doc, :enabled), :disabled), 20) ==
-             "hello\na\nb\ncd"
+    assert render(doc |> group(:optimistic) |> glue("c") |> group(), 20) ==
+             "hello\na\nb c"
+
+    assert render(doc |> group(:optimistic) |> glue("c") |> group(:pessimistic), 20) ==
+             "hello\na\nb c"
   end
 
   test "formatting groups with lines" do

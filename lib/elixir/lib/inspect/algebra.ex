@@ -846,7 +846,8 @@ defmodule Inspect.Algebra do
     * `:optimistic` - the group fits if it fits within the given
       width. However, when nested within another group, the parent
       group will assume this group fits as long as it has a single
-      break, even ignoring any `force_unfit/1` document
+      break, even if the optimistic group has a `force_unfit/1`
+      document within it
 
     * `:pessimistic` - the group fits if it fits within the given
       width. However it disables any optimistic group within it
