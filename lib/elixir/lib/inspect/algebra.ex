@@ -1031,7 +1031,10 @@ defmodule Inspect.Algebra do
           entries
         ) :: :fit | :no_fit | :break_next
         when entries:
-               maybe_improper_list({integer(), mode(), t()}, {:tail, boolean(), entries} | [])
+               maybe_improper_list(
+                 {integer(), mode(), t()} | :group_over,
+                 {:tail, boolean(), entries} | []
+               )
 
   # We need at least a break to consider the document does not fit since a
   # large document without breaks has no option but fitting its current line.
@@ -1065,6 +1068,17 @@ defmodule Inspect.Algebra do
       fits -> fits
     end
   end
+
+  ## Group over
+  # If we get to the end of the group and if fits, it is because
+  # something already broke elsewhere, so we can consider the group
+  # fits. This only appears when checking if a flex break fits.
+
+  defp fits(_w, _k, true, [:group_over | _]),
+    do: :fit
+
+  defp fits(w, k, b?, [:group_over | t]),
+    do: fits(w, k, b?, t)
 
   ## Breaks
 
@@ -1104,7 +1118,7 @@ defmodule Inspect.Algebra do
   @spec format(
           width :: non_neg_integer() | :infinity,
           column :: non_neg_integer(),
-          [{integer, mode, t}]
+          [{integer, mode, t} | :group_over]
         ) :: [binary]
   defp format(_, _, []), do: []
   defp format(w, k, [{_, _, :doc_nil} | t]), do: format(w, k, t)
@@ -1121,7 +1135,7 @@ defmodule Inspect.Algebra do
   defp format(w, k, [{i, m, doc_fits(x, _)} | t]), do: format(w, k, [{i, m, x} | t])
   defp format(w, _, [{i, _, doc_collapse(max)} | t]), do: collapse(format(w, i, t), max, 0, i)
 
-  # Flex breaks are not conditional to the mode
+  # Flex breaks are conditional to the document and the mode
   defp format(w, k, [{i, m, doc_break(s, :flex)} | t]) do
     k = k + byte_size(s)
 
@@ -1151,6 +1165,10 @@ defmodule Inspect.Algebra do
   end
 
   # Groups must do the fitting decision.
+  defp format(w, k, [:group_over | t]) do
+    format(w, k, t)
+  end
+
   defp format(w, k, [{i, :break, doc_group(x, :inherit)} | t]) do
     format(w, k, [{i, :break, x} | t])
   end
@@ -1164,8 +1182,8 @@ defmodule Inspect.Algebra do
 
     case fits do
       :fit -> format(w, k, [{i, :flat, x} | t])
-      :no_fit -> format(w, k, [{i, :break, x} | t])
-      :break_next -> format(w, k, [{i, :flat_no_break, x} | t])
+      :no_fit -> format(w, k, [{i, :break, x}, :group_over | t])
+      :break_next -> format(w, k, [{i, :flat_no_break, x}, :group_over | t])
     end
   end
 

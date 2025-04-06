@@ -802,15 +802,13 @@ defmodule Code.Formatter do
     {right, state} =
       binary_operand_to_algebra(right_arg, right_context, state, op, op_info, :right, 0)
 
-    doc =
+    {op_string, right} =
       cond do
         op in @no_space_binary_operators ->
-          op_doc = color_doc(op_string, :operator, state.inspect_opts)
-          concat(concat(group(left), op_doc), group(right))
+          {op_string, group(right)}
 
         op in @no_newline_binary_operators ->
-          op_doc = color_doc(" " <> op_string <> " ", :operator, state.inspect_opts)
-          concat(concat(group(left), op_doc), group(right))
+          {" " <> op_string <> " ", group(right)}
 
         true ->
           eol? = eol?(meta, state)
@@ -818,14 +816,16 @@ defmodule Code.Formatter do
           next_break_fits? =
             op in @next_break_fits_operators and next_break_fits?(right_arg, state) and not eol?
 
-          with_next_break_fits(next_break_fits?, right, fn right ->
-            op_doc = color_doc(" " <> op_string, :operator, state.inspect_opts)
-            right = nest(glue(op_doc, group(right)), nesting, :break)
-            right = if eol?, do: force_unfit(right), else: right
-            concat(group(left), group(right))
-          end)
+          {" " <> op_string,
+           with_next_break_fits(next_break_fits?, right, fn right ->
+             right = nest(concat(break(), group(right)), nesting, :break)
+             right = if eol?, do: force_unfit(right), else: right
+             group(right)
+           end)}
       end
 
+    op_doc = color_doc(op_string, :operator, state.inspect_opts)
+    doc = concat(concat(group(left), op_doc), group(right))
     {doc, state}
   end
 

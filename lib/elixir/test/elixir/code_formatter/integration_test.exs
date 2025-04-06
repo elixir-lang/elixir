@@ -465,6 +465,16 @@ defmodule Code.Formatter.IntegrationTest do
     """
   end
 
+  test "nested tuples as lines" do
+    assert_same """
+                {:ok,
+                 {1, 2, 3,
+                  4, 5}} =
+                  call()
+                """,
+                line_length: 10
+  end
+
   test "first argument in a call without parens with comments" do
     assert_same """
     with bar ::
