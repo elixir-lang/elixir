@@ -43,6 +43,7 @@ defmodule Mix.Tasks.TestTest do
     test "includes some default options" do
       assert ex_unit_opts(failures_manifest_path: "foo.bar") == [
                autorun: false,
+               exit_status_on_warnings_as_errors_and_failures: 2,
                exit_status: 2,
                failures_manifest_path: "foo.bar"
              ]
@@ -57,7 +58,12 @@ defmodule Mix.Tasks.TestTest do
       passed
       |> Keyword.put(:failures_manifest_path, "foo.bar")
       |> ex_unit_opts()
-      |> Keyword.drop([:failures_manifest_path, :autorun, :exit_status])
+      |> Keyword.drop([
+        :failures_manifest_path,
+        :autorun,
+        :exit_status,
+        :exit_status_on_warnings_as_errors_and_failures
+      ])
     end
   end
 
@@ -583,6 +589,34 @@ defmodule Mix.Tasks.TestTest do
         assert output =~ "variable \"unused_compile_var\" is unused"
         assert output =~ "variable \"unused_test_var\" is unused"
         assert output =~ msg
+      end)
+    end
+
+    test "fail with custom --exit-status-on-warnings-as-errors-and-failures when also failures" do
+      in_fixture("test_stale", fn ->
+        File.write!("test/warning_test_warnings_as_errors_and_failures.exs", """
+        defmodule WarningsAsErrorsAndFailuresTest do
+          use ExUnit.Case
+
+          test "warning and failure" do
+            unused_test_var = 1
+            assert false
+          end
+        end
+        """)
+
+        {output, exit_status} =
+          mix_code([
+            "test",
+            "--warnings-as-errors",
+            "--exit-status-on-warnings-as-errors-and-failures=42",
+            "test/warning_test_warnings_as_errors_and_failures.exs"
+          ])
+
+        assert output =~ "variable \"unused_test_var\" is unused"
+        assert output =~ "1 failure"
+
+        assert exit_status == 42
       end)
     end
 
