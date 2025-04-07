@@ -237,8 +237,8 @@ defmodule Inspect.Algebra do
   Flex breaks, however, are re-evaluated on every occurrence and may still
   be rendered flat. See `break/1` and `flex_break/1` for more information.
 
-  This implementation also adds `force_unfit/1` and `next_break_fits/2` which
-  give more control over the document fitting.
+  This implementation also adds `force_unfit/1` and optimistic/pessimistic
+  groups which give more control over the document fitting.
 
     [0]: https://lindig.github.io/papers/strictly-pretty-2000.pdf
 
@@ -247,7 +247,6 @@ defmodule Inspect.Algebra do
   @container_separator ","
   @tail_separator " |"
   @newline "\n"
-  @next_break_fits :enabled
 
   # Functional interface to "doc" records
 
@@ -291,7 +290,7 @@ defmodule Inspect.Algebra do
     quote do: {:doc_break, unquote(break), unquote(mode)}
   end
 
-  @typep doc_group :: {:doc_group, t, :inherit | :self}
+  @typep doc_group :: {:doc_group, t, :normal | :optimistic | :pessimistic | :inherit}
   defmacrop doc_group(group, mode) do
     quote do: {:doc_group, unquote(group), unquote(mode)}
   end
@@ -744,48 +743,11 @@ defmodule Inspect.Algebra do
 
   @doc """
   Considers the next break as fit.
-
-  `mode` can be `:enabled` or `:disabled`. When `:enabled`,
-  it will consider the document as fit as soon as it finds
-  the next break, effectively cancelling the break. It will
-  also ignore any `force_unfit/1` in search of the next break.
-
-  When disabled, it behaves as usual and it will ignore
-  any further `next_break_fits/2` instruction.
-
-  ## Examples
-
-  This is used by Elixir's code formatter to avoid breaking
-  code at some specific locations. For example, consider this
-  code:
-
-      some_function_call(%{..., key: value, ...})
-
-  Now imagine that this code does not fit its line. The code
-  formatter introduces breaks inside `(` and `)` and inside
-  `%{` and `}`. Therefore the document would break as:
-
-      some_function_call(
-        %{
-          ...,
-          key: value,
-          ...
-        }
-      )
-
-  The formatter wraps the algebra document representing the
-  map in `next_break_fits/1` so the code is formatted as:
-
-      some_function_call(%{
-        ...,
-        key: value,
-        ...
-      })
-
   """
-  @doc since: "1.6.0"
-  @spec next_break_fits(t, :enabled | :disabled) :: doc_fits
-  def next_break_fits(doc, mode \\ @next_break_fits)
+  # TODO: Deprecate me on Elixir v1.23
+  @doc deprecated: "Pass the optimistic/pessimistic type to group/2 instead"
+  @spec next_break_fits(t, :enabled | :disabled) :: doc_group
+  def next_break_fits(doc, mode \\ :enabled)
       when is_doc(doc) and mode in [:enabled, :disabled] do
     doc_fits(doc, mode)
   end
@@ -872,10 +834,31 @@ defmodule Inspect.Algebra do
   Returns a group containing the specified document `doc`.
 
   Documents in a group are attempted to be rendered together
-  to the best of the renderer ability.
+  to the best of the renderer ability. If there are `break/1`s
+  in the group and the group does not fit the given width,
+  the breaks are converted into lines. Otherwise the breaks
+  are rendered as text based on their string contents.
 
-  The group mode can also be set to `:inherit`, which means it
-  automatically breaks if the parent group has broken too.
+  There are three types of groups, described next.
+
+  ## Group modes
+
+    * `:normal` - the group fits if it fits within the given width
+
+    * `:optimistic` - the group fits if it fits within the given
+      width. However, when nested within another group, the parent
+      group will assume this group fits as long as it has a single
+      break, even if the optimistic group has a `force_unfit/1`
+      document within it. Overall, this has an effect similar
+      to swapping the order groups break. For example, if you have
+      a `parent_group(child_group)` and they do not fit, the parent
+      converts breaks into newlines first, allowing the child to compute
+      if it fits. However, if the child group is optimistic and it
+      has breaks, then the parent assumes it fits, leaving the overall
+      fitting decision to the child
+
+    * `:pessimistic` - the group fits if it fits within the given
+      width. However it disables any optimistic group within it
 
   ## Examples
 
@@ -902,10 +885,50 @@ defmodule Inspect.Algebra do
       iex> Inspect.Algebra.format(doc, 6)
       ["Hello,", "\n", "A", "\n", "B"]
 
+  ## Mode examples
+
+  The different groups modes are used by Elixir's code formatter
+  to avoid breaking code at some specific locations. For example,
+  consider this code:
+
+      some_function_call(%{..., key: value, ...})
+
+  Now imagine that this code does not fit its line. The code
+  formatter introduces breaks inside `(` and `)` and inside
+  `%{` and `}`, each within their own group. Therefore the
+  document would break as:
+
+      some_function_call(
+        %{
+          ...,
+          key: value,
+          ...
+        }
+      )
+
+  To address this, the formatter marks the inner group as optimistic.
+  This means the first group, which is `(...)` will consider the document
+  fits and avoids adding breaks around the parens. So overall the code
+  is formatted as:
+
+      some_function_call(%{
+        ...,
+        key: value,
+        ...
+      })
+
   """
-  @spec group(t, :self | :inherit) :: doc_group
-  def group(doc, mode \\ :self) when is_doc(doc) do
-    doc_group(doc, mode)
+  @spec group(t, :normal | :optimistic | :pessimistic) :: doc_group
+  def group(doc, mode \\ :normal) when is_doc(doc) do
+    doc_group(
+      doc,
+      case mode do
+        # TODO: Deprecate :self and :inherit on Elixir v1.23
+        :self -> :normal
+        :inherit -> :inherit
+        mode when mode in [:normal, :optimistic, :pessimistic] -> mode
+      end
+    )
   end
 
   @doc ~S"""
@@ -1019,17 +1042,20 @@ defmodule Inspect.Algebra do
   #
   #   * flat - represents a document with breaks as flats (a break may fit, as it may break)
   #   * break - represents a document with breaks as breaks (a break always fits, since it breaks)
+  #
+  # These other two modes only affect fitting:
+  #
   #   * flat_no_break - represents a document with breaks as flat not allowed to enter in break mode
   #   * break_no_flat - represents a document with breaks as breaks not allowed to enter in flat mode
   #
   @typep mode :: :flat | :flat_no_break | :break | :break_no_flat
 
-  @spec fits(
+  @spec fits?(
           width :: non_neg_integer() | :infinity,
           column :: non_neg_integer(),
           break? :: boolean(),
           entries
-        ) :: :fit | :no_fit | :break_next
+        ) :: boolean()
         when entries:
                maybe_improper_list(
                  {integer(), mode(), t()} | :group_over,
@@ -1041,79 +1067,80 @@ defmodule Inspect.Algebra do
   #
   # In case we have groups and the group fits, we need to consider the group
   # parent without the child breaks, hence {:tail, b?, t} below.
-  defp fits(w, k, b?, _) when k > w and b?, do: :no_fit
-  defp fits(_, _, _, []), do: :fit
-  defp fits(w, k, _, {:tail, b?, t}), do: fits(w, k, b?, t)
-
-  ## Flat no break
-
-  defp fits(w, k, b?, [{i, _, doc_fits(x, :disabled)} | t]),
-    do: fits(w, k, b?, [{i, :flat_no_break, x} | t])
-
-  defp fits(w, k, b?, [{i, :flat_no_break, doc_fits(x, _)} | t]),
-    do: fits(w, k, b?, [{i, :flat_no_break, x} | t])
-
-  ## Breaks no flat
-
-  defp fits(w, k, b?, [{i, _, doc_fits(x, :enabled)} | t]),
-    do: fits(w, k, b?, [{i, :break_no_flat, x} | t])
-
-  defp fits(w, k, b?, [{i, :break_no_flat, doc_force(x)} | t]),
-    do: fits(w, k, b?, [{i, :break_no_flat, x} | t])
-
-  defp fits(w, k, b?, [{i, :break_no_flat, x} | t])
-       when x == :doc_line or (is_tuple(x) and elem(x, 0) == :doc_break) do
-    case fits(w, k, b?, [{i, :flat, x} | t]) do
-      :no_fit -> :break_next
-      fits -> fits
-    end
-  end
+  defp fits?(w, k, b?, _) when k > w and b?, do: false
+  defp fits?(_, _, _, []), do: true
+  defp fits?(w, k, _, {:tail, b?, t}), do: fits?(w, k, b?, t)
 
   ## Group over
   # If we get to the end of the group and if fits, it is because
   # something already broke elsewhere, so we can consider the group
-  # fits. This only appears when checking if a flex break fits.
+  # fits. This only appears when checking if a flex break and fitting.
 
-  defp fits(_w, _k, true, [:group_over | _]),
-    do: :fit
+  defp fits?(_w, _k, b?, [:group_over | _]),
+    do: b?
 
-  defp fits(w, k, b?, [:group_over | t]),
-    do: fits(w, k, b?, t)
+  ## Flat no break
+
+  defp fits?(w, k, b?, [{i, _, doc_fits(x, :disabled)} | t]),
+    do: fits?(w, k, b?, [{i, :flat_no_break, x} | t])
+
+  defp fits?(w, k, b?, [{i, :flat_no_break, doc_fits(x, _)} | t]),
+    do: fits?(w, k, b?, [{i, :flat_no_break, x} | t])
+
+  defp fits?(w, k, b?, [{i, _, doc_group(x, :pessimistic)} | t]),
+    do: fits?(w, k, b?, [{i, :flat_no_break, x} | t])
+
+  defp fits?(w, k, b?, [{i, :flat_no_break, doc_group(x, _)} | t]),
+    do: fits?(w, k, b?, [{i, :flat_no_break, x} | t])
+
+  ## Breaks no flat
+
+  defp fits?(w, k, b?, [{i, _, doc_fits(x, :enabled)} | t]),
+    do: fits?(w, k, b?, [{i, :break_no_flat, x} | t])
+
+  defp fits?(w, k, b?, [{i, _, doc_group(x, :optimistic)} | t]),
+    do: fits?(w, k, b?, [{i, :break_no_flat, x} | t])
+
+  defp fits?(w, k, b?, [{i, :break_no_flat, doc_force(x)} | t]),
+    do: fits?(w, k, b?, [{i, :break_no_flat, x} | t])
+
+  defp fits?(_, _, _, [{_, :break_no_flat, doc_break(_, _)} | _]), do: true
+  defp fits?(_, _, _, [{_, :break_no_flat, :doc_line} | _]), do: true
 
   ## Breaks
 
-  defp fits(_, _, _, [{_, :break, doc_break(_, _)} | _]), do: :fit
-  defp fits(_, _, _, [{_, :break, :doc_line} | _]), do: :fit
+  defp fits?(_, _, _, [{_, :break, doc_break(_, _)} | _]), do: true
+  defp fits?(_, _, _, [{_, :break, :doc_line} | _]), do: true
 
-  defp fits(w, k, b?, [{i, :break, doc_group(x, _)} | t]),
-    do: fits(w, k, b?, [{i, :flat, x} | {:tail, b?, t}])
+  defp fits?(w, k, b?, [{i, :break, doc_group(x, _)} | t]),
+    do: fits?(w, k, b?, [{i, :flat, x} | {:tail, b?, t}])
 
   ## Catch all
 
-  defp fits(w, _, _, [{i, _, :doc_line} | t]), do: fits(w, i, false, t)
-  defp fits(w, k, b?, [{_, _, :doc_nil} | t]), do: fits(w, k, b?, t)
-  defp fits(w, _, b?, [{i, _, doc_collapse(_)} | t]), do: fits(w, i, b?, t)
-  defp fits(w, k, b?, [{i, m, doc_color(x, _)} | t]), do: fits(w, k, b?, [{i, m, x} | t])
-  defp fits(w, k, b?, [{_, _, doc_string(_, l)} | t]), do: fits(w, k + l, b?, t)
-  defp fits(w, k, b?, [{_, _, s} | t]) when is_binary(s), do: fits(w, k + byte_size(s), b?, t)
-  defp fits(_, _, _, [{_, _, doc_force(_)} | _]), do: :no_fit
-  defp fits(w, k, _, [{_, _, doc_break(s, _)} | t]), do: fits(w, k + byte_size(s), true, t)
-  defp fits(w, k, b?, [{i, m, doc_nest(x, _, :break)} | t]), do: fits(w, k, b?, [{i, m, x} | t])
+  defp fits?(w, _, _, [{i, _, :doc_line} | t]), do: fits?(w, i, false, t)
+  defp fits?(w, k, b?, [{_, _, :doc_nil} | t]), do: fits?(w, k, b?, t)
+  defp fits?(w, _, b?, [{i, _, doc_collapse(_)} | t]), do: fits?(w, i, b?, t)
+  defp fits?(w, k, b?, [{i, m, doc_color(x, _)} | t]), do: fits?(w, k, b?, [{i, m, x} | t])
+  defp fits?(w, k, b?, [{_, _, doc_string(_, l)} | t]), do: fits?(w, k + l, b?, t)
+  defp fits?(w, k, b?, [{_, _, s} | t]) when is_binary(s), do: fits?(w, k + byte_size(s), b?, t)
+  defp fits?(_, _, _, [{_, _, doc_force(_)} | _]), do: false
+  defp fits?(w, k, _, [{_, _, doc_break(s, _)} | t]), do: fits?(w, k + byte_size(s), true, t)
+  defp fits?(w, k, b?, [{i, m, doc_nest(x, _, :break)} | t]), do: fits?(w, k, b?, [{i, m, x} | t])
 
-  defp fits(w, k, b?, [{i, m, doc_nest(x, j, _)} | t]),
-    do: fits(w, k, b?, [{apply_nesting(i, k, j), m, x} | t])
+  defp fits?(w, k, b?, [{i, m, doc_nest(x, j, _)} | t]),
+    do: fits?(w, k, b?, [{apply_nesting(i, k, j), m, x} | t])
 
-  defp fits(w, k, b?, [{i, m, doc_cons(x, y)} | t]),
-    do: fits(w, k, b?, [{i, m, x}, {i, m, y} | t])
+  defp fits?(w, k, b?, [{i, m, doc_cons(x, y)} | t]),
+    do: fits?(w, k, b?, [{i, m, x}, {i, m, y} | t])
 
-  defp fits(w, k, b?, [{i, m, doc_group(x, _)} | t]),
-    do: fits(w, k, b?, [{i, m, x} | {:tail, b?, t}])
+  defp fits?(w, k, b?, [{i, m, doc_group(x, _)} | t]),
+    do: fits?(w, k, b?, [{i, m, x} | {:tail, b?, t}])
 
-  defp fits(w, k, b?, [{i, m, doc_limit(x, :infinity)} | t]) when w != :infinity,
-    do: fits(:infinity, k, b?, [{i, :flat, x}, {i, m, doc_limit(empty(), w)} | t])
+  defp fits?(w, k, b?, [{i, m, doc_limit(x, :infinity)} | t]) when w != :infinity,
+    do: fits?(:infinity, k, b?, [{i, :flat, x}, {i, m, doc_limit(empty(), w)} | t])
 
-  defp fits(_w, k, b?, [{i, m, doc_limit(x, w)} | t]),
-    do: fits(w, k, b?, [{i, m, x} | t])
+  defp fits?(_w, k, b?, [{i, m, doc_limit(x, w)} | t]),
+    do: fits?(w, k, b?, [{i, m, x} | t])
 
   @spec format(
           width :: non_neg_integer() | :infinity,
@@ -1128,10 +1155,6 @@ defmodule Inspect.Algebra do
   defp format(w, k, [{_, _, doc_string(s, l)} | t]), do: [s | format(w, k + l, t)]
   defp format(w, k, [{_, _, s} | t]) when is_binary(s), do: [s | format(w, k + byte_size(s), t)]
   defp format(w, k, [{i, m, doc_force(x)} | t]), do: format(w, k, [{i, m, x} | t])
-
-  defp format(w, k, [{i, :flat_no_break, doc_fits(x, :enabled)} | t]),
-    do: format(w, k, [{i, :break_no_flat, x} | t])
-
   defp format(w, k, [{i, m, doc_fits(x, _)} | t]), do: format(w, k, [{i, m, x} | t])
   defp format(w, _, [{i, _, doc_collapse(max)} | t]), do: collapse(format(w, i, t), max, 0, i)
 
@@ -1139,7 +1162,7 @@ defmodule Inspect.Algebra do
   defp format(w, k, [{i, m, doc_break(s, :flex)} | t]) do
     k = k + byte_size(s)
 
-    if w == :infinity or m == :flat or fits(w, k, true, t) != :no_fit do
+    if w == :infinity or m == :flat or fits?(w, k, true, t) do
       [s | format(w, k, t)]
     else
       [indent(i) | format(w, i, t)]
@@ -1169,21 +1192,24 @@ defmodule Inspect.Algebra do
     format(w, k, t)
   end
 
+  # TODO: Deprecate me in Elixir v1.23
   defp format(w, k, [{i, :break, doc_group(x, :inherit)} | t]) do
     format(w, k, [{i, :break, x} | t])
   end
 
-  defp format(w, k, [{i, :break_no_flat, doc_group(x, _)} | t]) do
-    format(w, k, [{i, :break, x} | t])
+  defp format(w, k, [{i, :flat, doc_group(x, :optimistic)} | t]) do
+    if w == :infinity or fits?(w, k, false, [{i, :flat, x} | t]) do
+      format(w, k, [{i, :flat, x}, :group_over | t])
+    else
+      format(w, k, [{i, :break, x}, :group_over | t])
+    end
   end
 
   defp format(w, k, [{i, _, doc_group(x, _)} | t]) do
-    fits = if w == :infinity, do: :fit, else: fits(w, k, false, [{i, :flat, x}])
-
-    case fits do
-      :fit -> format(w, k, [{i, :flat, x} | t])
-      :no_fit -> format(w, k, [{i, :break, x}, :group_over | t])
-      :break_next -> format(w, k, [{i, :flat_no_break, x}, :group_over | t])
+    if w == :infinity or fits?(w, k, false, [{i, :flat, x}]) do
+      format(w, k, [{i, :flat, x}, :group_over | t])
+    else
+      format(w, k, [{i, :break, x}, :group_over | t])
     end
   end
 
