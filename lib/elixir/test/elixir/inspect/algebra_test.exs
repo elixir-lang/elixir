@@ -211,6 +211,9 @@ defmodule Inspect.AlgebraTest do
     assert render(doc |> glue("c") |> group(), 10) ==
              "hello\na\nb\nc"
 
+    assert render(doc |> group() |> glue("c") |> group() |> glue("d"), 10) ==
+             "hello a b\nc\nd"
+
     assert render(doc |> group(:optimistic) |> glue("c") |> group() |> glue("d"), 10) ==
              "hello\na\nb c d"
 

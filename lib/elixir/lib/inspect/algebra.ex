@@ -849,7 +849,13 @@ defmodule Inspect.Algebra do
       width. However, when nested within another group, the parent
       group will assume this group fits as long as it has a single
       break, even if the optimistic group has a `force_unfit/1`
-      document within it
+      document within it. Overall, this has an effect similar
+      to swapping the order groups break. For example, if you have
+      a `parent_group(child_group)` and they do not fit, the parent
+      will convert breaks into newlines, hoping the child group fits.
+      However, if the child group is optimistic, then the parent can
+      assume that it will fit, leaving the overall fitting decision
+      to the child
 
     * `:pessimistic` - the group fits if it fits within the given
       width. However it disables any optimistic group within it
