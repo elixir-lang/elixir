@@ -852,10 +852,10 @@ defmodule Inspect.Algebra do
       document within it. Overall, this has an effect similar
       to swapping the order groups break. For example, if you have
       a `parent_group(child_group)` and they do not fit, the parent
-      will convert breaks into newlines, hoping the child group fits.
-      However, if the child group is optimistic, then the parent can
-      assume that it will fit, leaving the overall fitting decision
-      to the child
+      converts breaks into newlines first, allowing the child to compute
+      if it fits. However, if the child group is optimistic and it
+      has breaks, then the parent assumes it fits, leaving the overall
+      fitting decision to the child
 
     * `:pessimistic` - the group fits if it fits within the given
       width. However it disables any optimistic group within it
