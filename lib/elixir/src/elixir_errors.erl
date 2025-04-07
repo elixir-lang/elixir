@@ -446,11 +446,12 @@ cut_snippet(Location, Input) ->
       nil
   end.
 
-cut_snippet({InputString, StartLine, StartColumn}, Line, Span) ->
+cut_snippet({InputString, StartLine, StartColumn, Indentation}, Line, Span) ->
   %% In case the code is indented, we need to add the indentation back
   %% for the snippets to match the reported columns.
-  Indent = binary:copy(<<" ">>, StartColumn - 1),
-  Lines = string:split(InputString, "\n", all),
+  Prelude = lists:duplicate(max(StartColumn - Indentation - 1, 0), " "),
+  Lines = string:split(Prelude ++ InputString, "\n", all),
+  Indent = binary:copy(<<" ">>, Indentation),
   [Head | Tail] = lists:nthtail(Line - StartLine, Lines),
   IndentedTail = indent_n(Tail, Span - 1, <<"\n", Indent/binary>>),
   elixir_utils:characters_to_binary([Indent, Head, IndentedTail]).
