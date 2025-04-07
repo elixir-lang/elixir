@@ -556,20 +556,33 @@ defmodule ExceptionTest do
     end
 
     test "annotates function clause errors" do
-      assert blame_message(Access, & &1.fetch(:foo, :bar)) =~ """
-             no function clause matching in Access.fetch/2
+      import PathHelpers
 
-             The following arguments were given to Access.fetch/2:
+      write_beam(
+        defmodule ExampleModule do
+          def fun(arg1, arg2)
+          def fun(:one, :one), do: :ok
+          def fun(:two, :two), do: :ok
+        end
+      )
+
+      message = blame_message(ExceptionTest.ExampleModule, & &1.fun(:three, :four))
+
+      assert message =~ """
+             no function clause matching in ExceptionTest.ExampleModule.fun/2
+
+             The following arguments were given to ExceptionTest.ExampleModule.fun/2:
 
                  # 1
-                 :foo
+                 :three
 
                  # 2
-                 :bar
+                 :four
 
-             Attempted function clauses (showing 5 out of 5):
+             Attempted function clauses (showing 2 out of 2):
 
-                 def fetch(-%module{} = container-, key)
+                 def fun(-:one-, -:one-)
+                 def fun(-:two-, -:two-)
              """
     end
 
@@ -858,13 +871,21 @@ defmodule ExceptionTest do
 
   describe "blaming unit tests" do
     test "annotates clauses errors" do
-      args = [%{}, :key, nil]
+      import PathHelpers
+
+      write_beam(
+        defmodule BlameModule do
+          def fun(arg), do: arg
+        end
+      )
+
+      args = [nil]
 
       {exception, stack} =
-        Exception.blame(:error, :function_clause, [{Keyword, :pop, args, [line: 13]}])
+        Exception.blame(:error, :function_clause, [{BlameModule, :fun, args, [line: 13]}])
 
       assert %FunctionClauseError{kind: :def, args: ^args, clauses: [_]} = exception
-      assert stack == [{Keyword, :pop, 3, [line: 13]}]
+      assert stack == [{BlameModule, :fun, 1, [line: 13]}]
     end
 
     test "annotates args and clauses from mfa" do
