@@ -1464,6 +1464,10 @@ defmodule StreamTest do
     assert Enum.zip(list, list) == Enum.zip(stream, stream)
   end
 
+  test "inspect/1" do
+    "#Stream<[enum: 1..10, funs: " <> _ = Stream.map(1..10, & &1) |> inspect()
+  end
+
   defp lazy?(stream) do
     match?(%Stream{}, stream) or is_function(stream, 2)
   end
