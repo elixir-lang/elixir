@@ -60,8 +60,8 @@ Our *actionable item policy* has some important consequences, such as:
 
 By keeping the overall issues tracker tidy and organized, the community
 can easily peak at what is coming in new releases and also get involved
-by commenting on existing issues and submitting pull requests. Simply
-remember keep the tone positive and be kind! For more information,
+by commenting on existing issues and submitting pull requests. Please
+remember to keep the tone positive and be kind! For more information,
 see the [Code of Conduct][1].
 
 ## Discussions, support, and help
@@ -73,19 +73,18 @@ to help you.
 
 ## Proposing new features
 
-We encourage you to start by discussing potential new features in
-community spaces listed above. These discussions help refine ideas
-and gather feedback before submission. Our website also includes
-[a general outline of the language history and its current development
-focus](https://elixir-lang.org/development.html).
+We encourage you to first propose new features in the community spaces
+listed above. These discussions help refine ideas and gather feedback before
+submission. Our website also includes [a general outline of the language
+history and its current development focus](https://elixir-lang.org/development.html).
 
 Once you are ready, you can submit your proposal to the [Elixir Core
 mailing list][3], either through the web interface or by subscribing to
 it at <elixir-lang-core+subscribe@googlegroups.com>. Remember to include
-a clear problem description, describe how the proposed solution compares
-with existing alternatives in the Elixir ecosystem (as well as in other
-languages), and the potential impact your changes will have on the codebase
-and community.
+a clear problem description, compare the proposed solution to existing
+alternatives in the Elixir ecosystem (and in other languages if possible),
+and consider the potential impact your changes will have on the codebase and
+community.
 
 Once a proposal is accepted, it will be added to [the issue tracker][2].
 Features and bug fixes that have already been merged and will be included
