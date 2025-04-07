@@ -209,8 +209,12 @@ defmodule Mix.Tasks.Test do
       Note that in trace mode test timeouts will be ignored as timeout is set to `:infinity`
 
     * `--warnings-as-errors` *(since v1.12.0)* - treats compilation warnings (from loading the
-      test suite) as errors and returns a non-zero exit status if the test suite would otherwise
-      pass. Note that failures reported by `--warnings-as-errors` cannot be retried with the
+      test suite) as errors and returns an exit status of 1 if the test suite would otherwise
+      pass. If the test suite fails and also include warnings as errors, the exit
+      status returned will be the value of the `--exit-status` option, which
+      defaults to 2, plus one. Therefore in the default case, this will be exit status 3.
+
+      Note that failures reported by `--warnings-as-errors` cannot be retried with the
       `--failed` flag.
 
       This option only applies to test files. To treat warnings as errors during compilation and
@@ -617,6 +621,9 @@ defmodule Mix.Tasks.Test do
     {ex_unit_opts, allowed_files} = process_ex_unit_opts(opts)
     ExUnit.configure(ex_unit_opts)
 
+    warnings_as_errors? = Keyword.get(opts, :warnings_as_errors, false)
+    exit_status = Keyword.fetch!(ex_unit_opts, :exit_status)
+
     # Prepare and extract all files to require and run
     test_paths = project[:test_paths] || default_test_paths()
     test_pattern = project[:test_pattern] || "*.{ex,exs}"
@@ -664,17 +671,32 @@ defmodule Mix.Tasks.Test do
         ExUnit.Filters.fail_all!(file)
         :erlang.raise(kind, reason, __STACKTRACE__)
     else
-      {:ok, %{excluded: excluded, failures: failures, total: total}} ->
+      {:ok, %{excluded: excluded, failures: failures, warnings?: warnings?, total: total}} ->
         Mix.shell(shell)
         cover && cover.()
 
         cond do
+          warnings_as_errors? and warnings? and failures == 0 ->
+            message =
+              "\nERROR! Test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
+
+            IO.puts(:stderr, IO.ANSI.format([:red, message]))
+
+            System.at_exit(fn _ ->
+              exit({:shutdown, 1})
+            end)
+
           failures > 0 and opts[:raise] ->
             raise_with_shell(shell, "\"mix test\" failed")
 
+          warnings_as_errors? and warnings? and failures > 0 ->
+            System.at_exit(fn _ ->
+              exit({:shutdown, exit_status + 1})
+            end)
+
           failures > 0 ->
             System.at_exit(fn _ ->
-              exit({:shutdown, Keyword.fetch!(ex_unit_opts, :exit_status)})
+              exit({:shutdown, exit_status})
             end)
 
           excluded == total and Keyword.has_key?(opts, :only) ->
