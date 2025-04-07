@@ -79,7 +79,7 @@ defmodule CoverageRecorder do
     Mix.Tasks.Test,
     Mix.Tasks.Test.Coverage,
 
-    # Documentation only
+    # Bootstrap
     :elixir_bootstrap,
     Kernel.SpecialForms
   ]
