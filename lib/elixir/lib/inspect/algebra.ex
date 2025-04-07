@@ -918,7 +918,7 @@ defmodule Inspect.Algebra do
         # TODO: Deprecate :self and :inherit on Elixir v1.23
         :self -> :normal
         :inherit -> :inherit
-        mode -> mode
+        mode when mode in [:normal, :optimistic, :pessimistic] -> mode
       end
     )
   end
