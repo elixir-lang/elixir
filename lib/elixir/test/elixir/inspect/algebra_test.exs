@@ -252,11 +252,11 @@ defmodule Inspect.AlgebraTest do
     assert render(doc |> glue("c") |> group(), 20) ==
              "hello\na\nb\nc"
 
-    assert render(doc |> group(:optimistic) |> group() |> glue("c"), 20) ==
-             "hello\na\nb c"
+    assert render(doc |> group(:optimistic) |> glue("c") |> group() |> glue("d"), 20) ==
+             "hello\na\nb c d"
 
-    assert render(doc |> group(:optimistic) |> group(:pessimistic) |> glue("c"), 20) ==
-             "hello\na\nb\nc"
+    assert render(doc |> group(:optimistic) |> glue("c") |> group(:pessimistic) |> glue("d"), 20) ==
+             "hello\na\nb c\nd"
   end
 
   test "formatting groups with lines" do
