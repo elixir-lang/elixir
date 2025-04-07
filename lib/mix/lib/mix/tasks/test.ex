@@ -209,17 +209,17 @@ defmodule Mix.Tasks.Test do
       Note that in trace mode test timeouts will be ignored as timeout is set to `:infinity`
 
     * `--warnings-as-errors` *(since v1.12.0)* - treats compilation warnings (from loading the
-      test suite) as errors and returns a non-zero exit status if the test suite would otherwise
-      pass. Note that failures reported by `--warnings-as-errors` cannot be retried with the
+      test suite) as errors and returns an exit status of 1 if the test suite would otherwise
+      pass. If the test suite includes both warnings as errors _and test failures_, the exit
+      status returned will be the value of the `--exit-status` option (default is 2) + 1.
+      Therefore in the default case, this will be exit status 3.
+
+      Note that failures reported by `--warnings-as-errors` cannot be retried with the
       `--failed` flag.
 
       This option only applies to test files. To treat warnings as errors during compilation and
       during tests, run:
           MIX_ENV=test mix do compile --warnings-as-errors + test --warnings-as-errors
-
-    * `--exit-status-on-warnings-as-errors-and-failures` - use an alternate exit status
-      when the test suite fails _and_ there are warnings as errors via the `--warnings-as-errors`
-      option (default is 2).
 
   ## Configuration
 
@@ -494,7 +494,6 @@ defmodule Mix.Tasks.Test do
     warnings_as_errors: :boolean,
     profile_require: :string,
     exit_status: :integer,
-    exit_status_on_warnings_as_errors_and_failures: :integer,
     repeat_until_failure: :integer
   ]
 
@@ -623,6 +622,7 @@ defmodule Mix.Tasks.Test do
     ExUnit.configure(ex_unit_opts)
 
     warnings_as_errors? = Keyword.get(opts, :warnings_as_errors, false)
+    exit_status = Keyword.fetch!(ex_unit_opts, :exit_status)
 
     # Prepare and extract all files to require and run
     test_paths = project[:test_paths] || default_test_paths()
@@ -691,15 +691,12 @@ defmodule Mix.Tasks.Test do
 
           warnings_as_errors? and warnings? and failures > 0 ->
             System.at_exit(fn _ ->
-              exit(
-                {:shutdown,
-                 Keyword.fetch!(ex_unit_opts, :exit_status_on_warnings_as_errors_and_failures)}
-              )
+              exit({:shutdown, exit_status + 1})
             end)
 
           failures > 0 ->
             System.at_exit(fn _ ->
-              exit({:shutdown, Keyword.fetch!(ex_unit_opts, :exit_status)})
+              exit({:shutdown, exit_status})
             end)
 
           excluded == total and Keyword.has_key?(opts, :only) ->
@@ -850,7 +847,6 @@ defmodule Mix.Tasks.Test do
     :only_test_ids,
     :test_location_relative_path,
     :exit_status,
-    :exit_status_on_warnings_as_errors_and_failures,
     :repeat_until_failure
   ]
 
@@ -1001,9 +997,7 @@ defmodule Mix.Tasks.Test do
   end
 
   defp exit_status_opts(opts) do
-    opts
-    |> Keyword.put_new(:exit_status, 2)
-    |> Keyword.put_new(:exit_status_on_warnings_as_errors_and_failures, 2)
+    Keyword.put_new(opts, :exit_status, 2)
   end
 
   defp require_test_helper(shell, dir) do

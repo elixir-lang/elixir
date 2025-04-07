@@ -43,7 +43,6 @@ defmodule Mix.Tasks.TestTest do
     test "includes some default options" do
       assert ex_unit_opts(failures_manifest_path: "foo.bar") == [
                autorun: false,
-               exit_status_on_warnings_as_errors_and_failures: 2,
                exit_status: 2,
                failures_manifest_path: "foo.bar"
              ]
@@ -61,8 +60,7 @@ defmodule Mix.Tasks.TestTest do
       |> Keyword.drop([
         :failures_manifest_path,
         :autorun,
-        :exit_status,
-        :exit_status_on_warnings_as_errors_and_failures
+        :exit_status
       ])
     end
   end
@@ -564,7 +562,7 @@ defmodule Mix.Tasks.TestTest do
   end
 
   describe "--warnings-as-errors" do
-    test "fail on warning in tests" do
+    test "fail with exit status 1 if warning in tests but tests pass" do
       in_fixture("test_stale", fn ->
         msg =
           "Test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
@@ -585,14 +583,17 @@ defmodule Mix.Tasks.TestTest do
         end
         """)
 
-        output = mix(["test", "--warnings-as-errors", "test/warning_test_stale.exs"])
+        {output, exit_status} =
+          mix_code(["test", "--warnings-as-errors", "test/warning_test_stale.exs"])
+
         assert output =~ "variable \"unused_compile_var\" is unused"
         assert output =~ "variable \"unused_test_var\" is unused"
         assert output =~ msg
+        assert exit_status == 1
       end)
     end
 
-    test "fail with custom --exit-status-on-warnings-as-errors-and-failures when also failures" do
+    test "fail with --exit-status + 1 if warning in tests and tests fail" do
       in_fixture("test_stale", fn ->
         File.write!("test/warning_test_warnings_as_errors_and_failures.exs", """
         defmodule WarningsAsErrorsAndFailuresTest do
@@ -609,14 +610,15 @@ defmodule Mix.Tasks.TestTest do
           mix_code([
             "test",
             "--warnings-as-errors",
-            "--exit-status-on-warnings-as-errors-and-failures=42",
+            "--exit-status",
+            "42",
             "test/warning_test_warnings_as_errors_and_failures.exs"
           ])
 
         assert output =~ "variable \"unused_test_var\" is unused"
         assert output =~ "1 failure"
 
-        assert exit_status == 42
+        assert exit_status == 43
       end)
     end
 
