@@ -490,10 +490,14 @@ parser_location(Meta) ->
         {ok, Forms} ->
           Forms;
         {error, {Meta, Error, Token}} ->
-          elixir_errors:parse_error(Meta, File, Error, Token, {String, StartLine, StartColumn})
+          Indentation = proplists:get_value(indentation, Opts, 0),
+          Input = {String, StartLine, StartColumn, Indentation},
+          elixir_errors:parse_error(Meta, File, Error, Token, Input)
       end;
     {error, {Meta, Error, Token}} ->
-      elixir_errors:parse_error(Meta, File, Error, Token, {String, StartLine, StartColumn})
+      Indentation = proplists:get_value(indentation, Opts, 0),
+      Input = {String, StartLine, StartColumn, Indentation},
+      elixir_errors:parse_error(Meta, File, Error, Token, Input)
   end.
 
 to_binary(List) when is_list(List) -> elixir_utils:characters_to_binary(List);
