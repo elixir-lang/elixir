@@ -874,7 +874,7 @@ defmodule ExceptionTest do
       import PathHelpers
 
       write_beam(
-        defmodule ExampleModule do
+        defmodule BlameModule do
           def fun(arg), do: arg
         end
       )
@@ -882,11 +882,10 @@ defmodule ExceptionTest do
       args = [nil]
 
       {exception, stack} =
-        Exception.blame(:error, :function_clause, [{ExampleModule, :fun, args, [line: 13]}])
+        Exception.blame(:error, :function_clause, [{BlameModule, :fun, args, [line: 13]}])
 
       assert %FunctionClauseError{kind: :def, args: ^args, clauses: [_]} = exception
-
-      assert stack == [{ExampleModule, :fun, 1, [line: 13]}]
+      assert stack == [{BlameModule, :fun, 1, [line: 13]}]
     end
 
     test "annotates args and clauses from mfa" do
