@@ -4,6 +4,7 @@
 
 defmodule Kernel.ParallelRequire do
   @moduledoc false
+  @moduledoc deprecated: "Use the Kernel.ParallelCompiler module instead"
 
   @deprecated "Use Kernel.ParallelCompiler.require/2 instead"
   def files(files, callbacks \\ [])
