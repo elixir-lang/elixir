@@ -204,6 +204,20 @@ defmodule Inspect.AlgebraTest do
     assert render(group(doc), 5) == "hello\na\nb\ncd"
   end
 
+  test "group modes doc" do
+    doc = glue(glue("hello", "a"), "b")
+    assert render(doc, 10) == "hello a b"
+
+    assert render(doc |> glue("c") |> group(), 10) ==
+             "hello\na\nb\nc"
+
+    assert render(doc |> group(:optimistic) |> glue("c") |> group() |> glue("d"), 10) ==
+             "hello\na\nb c d"
+
+    assert render(doc |> group(:optimistic) |> glue("c") |> group(:pessimistic) |> glue("d"), 10) ==
+             "hello\na\nb c\nd"
+  end
+
   test "no limit doc" do
     doc = no_limit(group(glue(glue("hello", "a"), "b")))
     assert render(doc, 5) == "hello a b"
