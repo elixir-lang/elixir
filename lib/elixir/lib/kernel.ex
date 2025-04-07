@@ -3392,7 +3392,7 @@ defmodule Kernel do
   Converts the argument to a string according to the
   `String.Chars` protocol.
 
-  This is the function invoked when there is string interpolation.
+  This is invoked when there is string interpolation.
 
   ## Examples
 
