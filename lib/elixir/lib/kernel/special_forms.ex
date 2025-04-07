@@ -1372,6 +1372,18 @@ defmodule Kernel.SpecialForms do
       ...> end
       {:sum, [], [1, 2, 3, 4, 5]}
 
+  Also can be used in block context, outside of function arguments.
+  Though, it is still required to be wrapped into parentheses.
+
+      iex> requires = for module <- [Integer, Logger] do
+      ...>   quote do
+      ...>     require unquote(module)
+      ...>   end
+      ...> end
+      iex> block = quote do: (unquote_splicing(requires))
+      iex> Macro.to_string(block)
+      "require Integer\\nrequire Logger"
+
   """
   defmacro unquote(:unquote_splicing)(expr), do: error!([expr])
 
