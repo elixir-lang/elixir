@@ -248,13 +248,15 @@ defmodule Inspect.AlgebraTest do
     # Consistent formatting
     doc = force_unfit(glue(glue("hello", "a"), "b"))
     assert render(doc, 20) == "hello\na\nb"
-    assert render(doc |> glue("c") |> group(), 20) == "hello\na\nb\nc"
 
-    assert render(doc |> group(:optimistic) |> glue("c") |> group(), 20) ==
+    assert render(doc |> glue("c") |> group(), 20) ==
+             "hello\na\nb\nc"
+
+    assert render(doc |> group(:optimistic) |> group() |> glue("c"), 20) ==
              "hello\na\nb c"
 
-    assert render(doc |> group(:optimistic) |> glue("c") |> group(:pessimistic), 20) ==
-             "hello\na\nb c"
+    assert render(doc |> group(:optimistic) |> group(:pessimistic) |> glue("c"), 20) ==
+             "hello\na\nb\nc"
   end
 
   test "formatting groups with lines" do
