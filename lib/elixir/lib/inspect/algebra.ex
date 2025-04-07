@@ -746,7 +746,7 @@ defmodule Inspect.Algebra do
   """
   # TODO: Deprecate me on Elixir v1.23
   @doc deprecated: "Pass the optimistic/pessimistic type to group/2 instead"
-  @spec next_break_fits(t, :enabled | :disabled) :: doc_group
+  @spec next_break_fits(t, :enabled | :disabled) :: doc_fits
   def next_break_fits(doc, mode \\ :enabled)
       when is_doc(doc) and mode in [:enabled, :disabled] do
     doc_fits(doc, mode)
