@@ -71,6 +71,7 @@ defmodule CoverageRecorder do
 
   @to_skip [
     # Tested via the CLI only
+    :elixir_sup,
     :iex,
     Kernel.CLI,
     Mix.CLI,
@@ -79,6 +80,7 @@ defmodule CoverageRecorder do
     Mix.Tasks.Test.Coverage,
 
     # Documentation only
+    :elixir_bootstrap,
     Kernel.SpecialForms
   ]
 
