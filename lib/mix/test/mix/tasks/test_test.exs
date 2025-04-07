@@ -57,11 +57,7 @@ defmodule Mix.Tasks.TestTest do
       passed
       |> Keyword.put(:failures_manifest_path, "foo.bar")
       |> ex_unit_opts()
-      |> Keyword.drop([
-        :failures_manifest_path,
-        :autorun,
-        :exit_status
-      ])
+      |> Keyword.drop([:failures_manifest_path, :autorun, :exit_status])
     end
   end
 

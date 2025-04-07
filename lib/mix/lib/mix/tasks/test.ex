@@ -210,9 +210,9 @@ defmodule Mix.Tasks.Test do
 
     * `--warnings-as-errors` *(since v1.12.0)* - treats compilation warnings (from loading the
       test suite) as errors and returns an exit status of 1 if the test suite would otherwise
-      pass. If the test suite includes both warnings as errors _and test failures_, the exit
-      status returned will be the value of the `--exit-status` option (default is 2) + 1.
-      Therefore in the default case, this will be exit status 3.
+      pass. If the test suite fails and also include warnings as errors, the exit
+      status returned will be the value of the `--exit-status` option, which
+      defaults to 2, plus one. Therefore in the default case, this will be exit status 3.
 
       Note that failures reported by `--warnings-as-errors` cannot be retried with the
       `--failed` flag.
