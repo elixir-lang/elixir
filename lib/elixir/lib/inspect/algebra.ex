@@ -258,6 +258,7 @@ defmodule Inspect.Algebra do
           | doc_collapse
           | doc_color
           | doc_cons
+          | doc_fits
           | doc_force
           | doc_group
           | doc_nest
@@ -294,6 +295,11 @@ defmodule Inspect.Algebra do
     quote do: {:doc_group, unquote(group), unquote(mode)}
   end
 
+  @typep doc_fits :: {:doc_fits, t, :enabled | :disabled}
+  defmacrop doc_fits(group, mode) do
+    quote do: {:doc_fits, unquote(group), unquote(mode)}
+  end
+
   @typep doc_force :: {:doc_force, t}
   defmacrop doc_force(group) do
     quote do: {:doc_force, unquote(group)}
@@ -314,6 +320,7 @@ defmodule Inspect.Algebra do
     :doc_collapse,
     :doc_color,
     :doc_cons,
+    :doc_fits,
     :doc_force,
     :doc_group,
     :doc_nest,
@@ -742,12 +749,7 @@ defmodule Inspect.Algebra do
   @spec next_break_fits(t, :enabled | :disabled) :: doc_group
   def next_break_fits(doc, mode \\ :enabled)
       when is_doc(doc) and mode in [:enabled, :disabled] do
-    mode = if mode == :enabled, do: :optimistic, else: :pessimistic
-
-    case doc do
-      doc_group(doc, _) -> doc_group(doc, mode)
-      _ -> doc_group(doc, mode)
-    end
+    doc_fits(doc, mode)
   end
 
   @doc """
@@ -1073,6 +1075,12 @@ defmodule Inspect.Algebra do
 
   ## Flat no break
 
+  defp fits?(w, k, b?, [{i, _, doc_fits(x, :disabled)} | t]),
+    do: fits?(w, k, b?, [{i, :flat_no_break, x} | t])
+
+  defp fits?(w, k, b?, [{i, :flat_no_break, doc_fits(x, _)} | t]),
+    do: fits?(w, k, b?, [{i, :flat_no_break, x} | t])
+
   defp fits?(w, k, b?, [{i, _, doc_group(x, :pessimistic)} | t]),
     do: fits?(w, k, b?, [{i, :flat_no_break, x} | t])
 
@@ -1080,6 +1088,9 @@ defmodule Inspect.Algebra do
     do: fits?(w, k, b?, [{i, :flat_no_break, x} | t])
 
   ## Breaks no flat
+
+  defp fits?(w, k, b?, [{i, _, doc_fits(x, :enabled)} | t]),
+    do: fits?(w, k, b?, [{i, :break_no_flat, x} | t])
 
   defp fits?(w, k, b?, [{i, _, doc_group(x, :optimistic)} | t]),
     do: fits?(w, k, b?, [{i, :break_no_flat, x} | t])
@@ -1138,7 +1149,7 @@ defmodule Inspect.Algebra do
   defp format(w, k, [{_, _, doc_string(s, l)} | t]), do: [s | format(w, k + l, t)]
   defp format(w, k, [{_, _, s} | t]) when is_binary(s), do: [s | format(w, k + byte_size(s), t)]
   defp format(w, k, [{i, m, doc_force(x)} | t]), do: format(w, k, [{i, m, x} | t])
-
+  defp format(w, k, [{i, m, doc_fits(x, _)} | t]), do: format(w, k, [{i, m, x} | t])
   defp format(w, _, [{i, _, doc_collapse(max)} | t]), do: collapse(format(w, i, t), max, 0, i)
 
   # Flex breaks are conditional to the document and the mode
