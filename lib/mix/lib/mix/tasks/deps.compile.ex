@@ -22,6 +22,7 @@ defmodule Mix.Tasks.Deps.Compile do
     * `Makefile.win`- invokes `nmake /F Makefile.win` (only on Windows)
     * `Makefile` - invokes `gmake` on DragonFlyBSD, FreeBSD, NetBSD, and OpenBSD,
       invokes `make` on any other operating system (except on Windows)
+    * `gleam.toml` - invokes `gleam compile-package`
 
   The compilation can be customized by passing a `compile` option
   in the dependency:
@@ -139,9 +140,12 @@ defmodule Mix.Tasks.Deps.Compile do
         dep.manager == :rebar3 ->
           do_rebar3(dep, config)
 
+        dep.manager == :gleam ->
+          do_gleam(dep, config)
+
         true ->
           Mix.shell().error(
-            "Could not compile #{inspect(app)}, no \"mix.exs\", \"rebar.config\" or \"Makefile\" " <>
+            "Could not compile #{inspect(app)}, no \"mix.exs\", \"rebar.config\", \"Makefile\" or \"gleam.toml\" " <>
               "(pass :compile as an option to customize compilation, set it to \"false\" to do nothing)"
           )
 
@@ -320,6 +324,69 @@ defmodule Mix.Tasks.Deps.Compile do
     true
   end
 
+  defp do_gleam(%Mix.Dep{opts: opts} = dep, config) do
+    Mix.Gleam.require!()
+
+    lib = Path.join(Mix.Project.build_path(), "lib")
+    out = opts[:build]
+    package = opts[:dest]
+
+    command =
+      {"gleam",
+       ["compile-package", "--target", "erlang", "--package", package, "--out", out, "--lib", lib]}
+
+    shell_cmd!(dep, config, command)
+
+    ebin = Path.join(out, "ebin")
+    app_file_path = Keyword.get(opts, :app, Path.join(ebin, "#{dep.app}.app"))
+    create_app_file = app_file_path && !File.exists?(app_file_path)
+
+    if create_app_file do
+      generate_gleam_app_file(opts)
+    end
+
+    Code.prepend_path(ebin, cache: true)
+  end
+
+  defp gleam_extra_applications(config) do
+    config
+    |> Map.get(:extra_applications, [])
+    |> Enum.map(&String.to_atom/1)
+  end
+
+  defp gleam_mod(config) do
+    case config[:mod] do
+      nil -> []
+      mod -> {String.to_atom(mod), []}
+    end
+  end
+
+  defp generate_gleam_app_file(opts) do
+    toml = File.cd!(opts[:dest], fn -> Mix.Gleam.load_config(".") end)
+
+    module =
+      quote do
+        def project do
+          [
+            app: unquote(toml.name) |> String.to_atom(),
+            version: "#{unquote(toml.version)}"
+          ]
+        end
+
+        def application do
+          [
+            mod: unquote(gleam_mod(toml)),
+            extra_applications: unquote(gleam_extra_applications(toml))
+          ]
+        end
+      end
+
+    module_name = String.to_atom("Gleam.#{toml.name}")
+    Module.create(module_name, module, Macro.Env.location(__ENV__))
+    Mix.Project.push(module_name)
+    Mix.Tasks.Compile.App.run([])
+  end
+
   defp make_command(dep) do
     makefile_win? = makefile_win?(dep)
 
@@ -355,7 +422,7 @@ defmodule Mix.Tasks.Deps.Compile do
   defp shell_cmd!(%Mix.Dep{app: app} = dep, config, command, env \\ []) do
     if Mix.shell().cmd(command, [print_app: true] ++ opts_for_cmd(dep, config, env)) != 0 do
       Mix.raise(
-        "Could not compile dependency #{inspect(app)}, \"#{command}\" command failed. " <>
+        "Could not compile dependency #{inspect(app)}, #{inspect(command)} command failed. " <>
           deps_compile_feedback(app)
       )
     end
