@@ -1365,13 +1365,11 @@ defmodule Code do
         {forms, comments}
 
       {:error, {location, error, token}} ->
-        :elixir_errors.parse_error(
-          location,
-          Keyword.get(opts, :file, "nofile"),
-          error,
-          token,
-          {charlist, Keyword.get(opts, :line, 1), Keyword.get(opts, :column, 1)}
-        )
+        file = Keyword.get(opts, :file, "nofile")
+        line = Keyword.get(opts, :line, 1)
+        column = Keyword.get(opts, :column, 1)
+        input = {charlist, line, column, Keyword.get(opts, :indentation, 0)}
+        :elixir_errors.parse_error(location, file, error, token, input)
     end
   end
 
