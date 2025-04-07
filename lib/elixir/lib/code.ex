@@ -1068,7 +1068,8 @@ defmodule Code do
   Macro arguments are typically transformed by unquoting them into the
   returned quoted expressions (instead of evaluated).
 
-  See `eval_string/3` for a description of `binding` and `opts`.
+  See `eval_string/3` for a description of arguments and return types.
+  The options are described under `env_for_eval/1`.
 
   ## Examples
 
@@ -1167,6 +1168,10 @@ defmodule Code do
 
     * `:column` - (since v1.11.0) the starting column of the string being parsed.
       Defaults to 1.
+
+    * `:indentation` - (since v1.19.0) the indentation for the string being parsed.
+      This is useful when the code parsed is embedded within another document.
+      Defaults to 0.
 
     * `:columns` - when `true`, attach a `:column` key to the quoted
       metadata. Defaults to `false`.

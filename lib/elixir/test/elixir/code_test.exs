@@ -392,7 +392,7 @@ defmodule CodeTest do
     Code.unrequire_files([fixture_path("code_sample.exs")])
   end
 
-  test "string_to_quoted!/2 errors take lines and columns into account" do
+  test "string_to_quoted!/2 errors take lines/columns/indentation into account" do
     assert_exception(
       SyntaxError,
       ["nofile:1:5:", "syntax error before:", "1 + * 3", "^"],
@@ -419,9 +419,9 @@ defmodule CodeTest do
 
     assert_exception(
       SyntaxError,
-      ["nofile:11:7:", "syntax error before:", "1 + * 3", "^"],
+      ["nofile:11:15:", "syntax error before:", "1 + * 3", "^"],
       fn ->
-        Code.string_to_quoted!(":ok\n1 + * 3", line: 10, column: 3)
+        Code.string_to_quoted!(":ok\n1 + * 3", line: 10, column: 3, indentation: 10)
       end
     )
   end
