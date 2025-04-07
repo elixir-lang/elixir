@@ -888,6 +888,7 @@ defmodule ExceptionTest do
       assert stack == [{BlameModule, :fun, 1, [line: 13]}]
     end
 
+    @tag :require_ast
     test "annotates args and clauses from mfa" do
       import PathHelpers
 

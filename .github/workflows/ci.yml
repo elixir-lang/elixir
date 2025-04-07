@@ -21,13 +21,16 @@ permissions:
 
 jobs:
   test_linux:
-    name: Ubuntu 24.04, Erlang/OTP ${{ matrix.otp_version }}${{ matrix.deterministic && ' (deterministic)' || '' }}
+    name: Ubuntu 24.04, Erlang/OTP ${{ matrix.otp_version }}${{ matrix.deterministic && ' (deterministic)' || '' }}${{ matrix.coverage && ' (coverage)' || '' }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - otp_version: "27.1"
             deterministic: true
+          - otp_version: "27.1"
+            erlc_opts: "warnings_as_errors"
+            coverage: true
           - otp_version: "27.1"
             otp_latest: true
             erlc_opts: "warnings_as_errors"
@@ -68,6 +71,11 @@ jobs:
       - name: Elixir test suite
         run: make test_elixir
         continue-on-error: ${{ matrix.development }}
+        env:
+          COVER: "${{ matrix.coverage }}"
+      - name: "Calculate Coverage"
+        run: make cover | tee "$GITHUB_STEP_SUMMARY"
+        if: "${{ matrix.coverage }}"
       - name: Build docs (ExDoc main)
         if: ${{ matrix.otp_latest }}
         run: |
@@ -85,6 +93,12 @@ jobs:
           # Recompile System without .git
           cd lib/elixir && ../../bin/elixirc -o ebin lib/system.ex && cd -
           taskset 1 make check_reproducible
+      - name: "Upload Coverage Artifact"
+        if: "${{ matrix.coverage }}"
+        uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
+        with:
+          name: TestCoverage
+          path: cover/*
 
   test_windows:
     name: Windows Server 2019, Erlang/OTP ${{ matrix.otp_version }}

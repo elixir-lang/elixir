@@ -32,11 +32,20 @@ source_exclude =
     []
   end
 
+Code.require_file("../../elixir/scripts/cover_record.exs", __DIR__)
+
+cover_exclude =
+  if CoverageRecorder.maybe_record("iex") do
+    [:require_ast]
+  else
+    []
+  end
+
 ExUnit.start(
   assert_receive_timeout: assert_timeout,
   trace: !!System.get_env("TRACE"),
   include: line_include,
-  exclude: line_exclude ++ erlang_doc_exclude ++ source_exclude
+  exclude: line_exclude ++ erlang_doc_exclude ++ source_exclude ++ cover_exclude
 )
 
 defmodule IEx.Case do
