@@ -70,6 +70,14 @@ defmodule CoverageRecorder do
   end
 
   @to_skip [
+    # Tested via the CLI only
+    :iex,
+    Kernel.CLI,
+    Mix.CLI,
+    Mix.Compilers.Test,
+    Mix.Tasks.Test,
+    Mix.Tasks.Test.Coverage,
+
     # Documentation only
     Kernel.SpecialForms
   ]
