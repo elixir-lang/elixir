@@ -278,6 +278,34 @@ defmodule Kernel.TracersTest do
     assert meta[:from_brackets]
   end
 
+  test "traces super" do
+    compile_string("""
+    defmodule TracerOverridable do
+      def local(x), do: x
+      defoverridable [local: 1]
+      def local(x), do: super(x)
+
+      defmacro macro(x), do: x
+      defoverridable [macro: 1]
+      defmacro macro(x), do: super(x)
+
+      def capture(x), do: x
+      defoverridable [capture: 1]
+      def capture(x), do: tap(x, &super/1)
+
+      def capture_arg(x), do: x
+      defoverridable [capture_arg: 1]
+      def capture_arg(x), do: tap(x, &super(&1))
+    end
+    """)
+
+    assert_received {{:local_function, _, :"local (overridable 1)", 1}, _}
+    assert_received {{:local_function, _, :"macro (overridable 1)", 1}, _}
+    assert_received {{:local_function, _, :"capture (overridable 1)", 1}, _}
+    assert_received {{:local_function, _, :"capture_arg (overridable 1)", 1}, _}
+    refute_received {{:local_function, _, _, _}, _}
+  end
+
   test "does not trace bind quoted twice" do
     compile_string("""
     quote bind_quoted: [foo: List.flatten([])] do
