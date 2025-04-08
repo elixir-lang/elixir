@@ -517,5 +517,55 @@ defmodule Kernel.LexicalTrackerTest do
       refute URI in exports
       refute URI in runtime
     end
+
+    test "imported functions from quote adds dependencies" do
+      {{compile, exports, runtime, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.QuotedFun do
+          import URI
+
+          defmacro parse_root() do
+            quote do
+              parse("/")
+            end
+          end
+        end
+
+        defmodule Kernel.LexicalTrackerTest.UsingQuotedFun do
+          require Kernel.LexicalTrackerTest.QuotedFun, as: QF
+          QF.parse_root()
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      assert URI in compile
+      refute URI in exports
+      refute URI in runtime
+    end
+
+    test "imported macro from quote adds dependencies" do
+      {{compile, exports, runtime, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.QuotedMacro do
+          import Config
+
+          defmacro config_env() do
+            quote do
+              config_env()
+            end
+          end
+        end
+
+        defmodule Kernel.LexicalTrackerTest.UsingQuotedMacro do
+          require Kernel.LexicalTrackerTest.QuotedMacro, as: QM
+          def fun(), do: QM.config_env()
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      assert Config in compile
+      refute Config in exports
+      refute Config in runtime
+    end
   end
 end
