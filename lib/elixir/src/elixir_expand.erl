@@ -293,7 +293,7 @@ expand({'&', Meta, [{'/', ArityMeta, [{super, SuperMeta, Context}, Arity]} = Exp
 
   case resolve_super(Meta, Arity, E) of
     {Kind, Name, _} when Kind == def; Kind == defp ->
-      {{'&', Meta, [{'/', ArityMeta, [{Name, SuperMeta, Context}, Arity]}]}, S, E};
+      expand({'&', Meta, [{'/', ArityMeta, [{Name, SuperMeta, Context}, Arity]}]}, S, E);
     _ ->
       expand_fn_capture(Meta, Expr, S, E)
   end;
@@ -343,7 +343,9 @@ expand({with, Meta, [_ | _] = Args}, S, E) ->
 
 expand({super, Meta, Args}, S, E) when is_list(Args) ->
   assert_no_match_or_guard_scope(Meta, "super", S, E),
-  {Kind, Name, _} = resolve_super(Meta, length(Args), E),
+  Arity = length(Args),
+  {Kind, Name, _} = resolve_super(Meta, Arity, E),
+  elixir_env:trace({local_function, Meta, Name, Arity}, E),
   {EArgs, SA, EA} = expand_args(Args, S, E),
   {{super, [{super, {Kind, Name}} | Meta], EArgs}, SA, EA};
 
@@ -899,8 +901,7 @@ expand_local(Meta, Name, Args, S, #{function := Function, context := Context} = 
       module_error(Meta, E, ?MODULE, {invalid_local_invocation, elixir_utils:guard_info(S), {Name, Meta, Args}});
 
     nil ->
-      Arity = length(Args),
-      elixir_env:trace({local_function, Meta, Name, Arity}, E)
+      elixir_env:trace({local_function, Meta, Name, length(Args)}, E)
   end,
 
   {EArgs, SA, EA} = expand_args(Args, S, E),
