@@ -4,7 +4,7 @@
 
 defmodule GenEvent.Stream do
   @moduledoc false
-  @moduledoc deprecated: "This functinoality is no longer supported"
+  @moduledoc deprecated: "This functionality is no longer supported"
   defstruct manager: nil, timeout: :infinity
 
   @type t :: %__MODULE__{manager: GenEvent.manager(), timeout: timeout}
@@ -52,7 +52,7 @@ end
 
 defimpl Enumerable, for: GenEvent.Stream do
   @moduledoc false
-  @moduledoc deprecated: "This functinoality is no longer supported"
+  @moduledoc deprecated: "This functionality is no longer supported"
 
   def reduce(stream, acc, fun) do
     start_fun = fn -> start(stream) end
