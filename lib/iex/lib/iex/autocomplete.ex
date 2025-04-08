@@ -22,6 +22,23 @@ defmodule IEx.Autocomplete do
     %{kind: :variable, name: "utf32"}
   ]
 
+  block_keywords =
+    for block_keyword <- ~w(do end after catch else rescue) do
+      %{kind: :block_keyword, name: block_keyword}
+    end
+
+  binary_operators =
+    for operator <-
+          ["**", "*", "/", "+", "-", "++", "--", "+++", "---", "..", "<>"] ++
+            ["in", "not in", "|>", "<<<", ">>>", "<<~", "~>>", "<~", "~>", "<~>"] ++
+            ["<", ">", "<=", ">=", "==", "!=", "=~", "===", "!=="] ++
+            ["&&", "&&&", "and", "||", "|||", "or"] ++
+            ["=", "=>", "|", "::", "when", "<-", "\\\\"] do
+      %{kind: :export, name: operator, arity: 2}
+    end
+
+  @block_keyword_or_binary_operator block_keywords ++ Enum.sort(binary_operators)
+
   @alias_only_atoms ~w(alias import require)a
   @alias_only_charlists ~w(alias import require)c
 
@@ -62,6 +79,9 @@ defmodule IEx.Autocomplete do
 
       {:unquoted_atom, unquoted_atom} ->
         expand_erlang_modules(List.to_string(unquoted_atom))
+
+      {:block_keyword_or_binary_operator, hint} ->
+        filter_and_format_expansion(@block_keyword_or_binary_operator, List.to_string(hint))
 
       expansion when helper == ?b ->
         expand_typespecs(expansion, shell, &get_module_callbacks/1)
@@ -518,6 +538,12 @@ defmodule IEx.Autocomplete do
   defp valid_alias_rest?(rest), do: valid_alias_piece?(rest)
 
   ## Formatting
+
+  defp filter_and_format_expansion(results, hint) do
+    results
+    |> Enum.filter(&String.starts_with?(&1.name, hint))
+    |> format_expansion(hint)
+  end
 
   defp format_expansion([], _) do
     no()
