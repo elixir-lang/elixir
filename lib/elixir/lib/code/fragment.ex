@@ -46,6 +46,11 @@ defmodule Code.Fragment do
       or `{:local_or_var, charlist}` and `charlist` is a static part
       Examples are `__MODULE__.Submodule` or `@hello.Submodule`
 
+    * `:block_keyword_or_binary_operator` - may be a block keyword (do, end, after,
+      catch, else, rescue) or a binary operator
+
+    * `{:block_keyword, charlist}` - the context is a block keyword
+
     * `{:dot, inside_dot, charlist}` - the context is a dot
       where `inside_dot` is either a `{:var, charlist}`, `{:alias, charlist}`,
       `{:module_attribute, charlist}`, `{:unquoted_atom, charlist}` or a `dot`
@@ -139,6 +144,8 @@ defmodule Code.Fragment do
   @spec cursor_context(List.Chars.t(), keyword()) ::
           {:alias, charlist}
           | {:alias, inside_alias, charlist}
+          | :block_keyword_or_binary_operator
+          | {:block_keyword, charlist}
           | {:dot, inside_dot, charlist}
           | {:dot_arity, inside_dot, charlist}
           | {:dot_call, inside_dot, charlist}
@@ -188,15 +195,15 @@ defmodule Code.Fragment do
     cursor_context(to_charlist(other), opts)
   end
 
-  @operators ~c"\\<>+-*/:=|&~^%!"
-  @starter_punctuation ~c",([{;"
-  @non_starter_punctuation ~c")]}\"'.$"
+  @operators ~c"\\<>+-*/:=|&~^%!$"
+  @starting_punctuation ~c",([{;"
+  @closing_punctuation ~c")]}\"'"
   @space ~c"\t\s"
   @trailing_identifier ~c"?!"
   @tilde_op_prefix ~c"<=~"
 
   @non_identifier @trailing_identifier ++
-                    @operators ++ @starter_punctuation ++ @non_starter_punctuation ++ @space
+                    @operators ++ @starting_punctuation ++ @closing_punctuation ++ @space ++ [?.]
 
   @textual_operators ~w(when not and or in)c
   @keywords ~w(do end after else catch rescue fn true false nil)c
@@ -226,11 +233,11 @@ defmodule Code.Fragment do
       # A local arity definition
       [?/ | rest] -> arity_to_cursor_context(strip_spaces(rest, spaces + 1))
       # Starting a new expression
-      [h | _] when h in @starter_punctuation -> {:expr, 0}
-      # It is a local or remote call without parens
-      rest when spaces > 0 -> call_to_cursor_context({rest, spaces})
+      [h | _] when h in @starting_punctuation -> {:expr, 0}
+      # It is keyword, binary operator, a local or remote call without parens
+      rest when spaces > 0 -> closing_or_call_to_cursor_context({rest, spaces})
       # It is an identifier
-      _ -> identifier_to_cursor_context(reverse, 0, false)
+      _ -> identifier_to_cursor_context(reverse, spaces, false)
     end
   end
 
@@ -266,6 +273,14 @@ defmodule Code.Fragment do
           {{:operator, acc}, count} -> {{:operator_call, acc}, count}
           {_, _} -> {:none, 0}
         end
+    end
+  end
+
+  defp closing_or_call_to_cursor_context({reverse, spaces}) do
+    if closing?(reverse) do
+      {:block_keyword_or_binary_operator, 0}
+    else
+      call_to_cursor_context({reverse, spaces})
     end
   end
 
@@ -320,14 +335,39 @@ defmodule Code.Fragment do
           {~c"." ++ rest, count} when rest == [] or hd(rest) != ?. ->
             dot(rest, count + 1, acc)
 
-          _ ->
-            {{:local_or_var, acc}, count}
+          {rest, rest_count} ->
+            response =
+              if rest_count > count and closing?(rest), do: :block_keyword, else: :local_or_var
+
+            {{response, acc}, count}
         end
 
       {:capture_arg, acc, count} ->
         {{:capture_arg, acc}, count}
     end
   end
+
+  # If it is a closing punctuation
+  defp closing?([h | _]) when h in @closing_punctuation, do: true
+  # Closing bitstring (but deal with operators)
+  defp closing?([?>, ?> | rest]), do: rest == [] or hd(rest) not in [?>, ?~]
+  # Keywords
+  defp closing?(rest) do
+    case split_non_identifier(rest, []) do
+      {~c"nil", _} -> true
+      {~c"true", _} -> true
+      {~c"false", _} -> true
+      {[digit | _], _} when digit in ?0..?9 -> true
+      {[upper | _], _} when upper in ?A..?Z -> true
+      {[_ | _], [?: | rest]} -> rest == [] or hd(rest) != ?:
+      {_, _} -> false
+    end
+  end
+
+  defp split_non_identifier([h | t], acc) when h not in @non_identifier,
+    do: split_non_identifier(t, [h | acc])
+
+  defp split_non_identifier(rest, acc), do: {acc, rest}
 
   defp identifier([?? | rest], count), do: check_identifier(rest, count + 1, [??])
   defp identifier([?! | rest], count), do: check_identifier(rest, count + 1, [?!])

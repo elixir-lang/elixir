@@ -240,6 +240,9 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("Hello::Wor") == {:alias, ~c"Wor"}
       assert CF.cursor_context("Hello..Wor") == {:alias, ~c"Wor"}
 
+      assert CF.cursor_context("hello.World") ==
+               {:alias, {:local_or_var, ~c"hello"}, ~c"World"}
+
       assert CF.cursor_context("__MODULE__.Wor") ==
                {:alias, {:local_or_var, ~c"__MODULE__"}, ~c"Wor"}
 
@@ -368,6 +371,75 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("@hello_wo") == {:module_attribute, ~c"hello_wo"}
     end
 
+    test "keyword or binary operator" do
+      # Literals
+      assert CF.cursor_context("Foo.Bar ") == :block_keyword_or_binary_operator
+      assert CF.cursor_context("Foo ") == :block_keyword_or_binary_operator
+      assert CF.cursor_context(":foo ") == :block_keyword_or_binary_operator
+      assert CF.cursor_context("123 ") == :block_keyword_or_binary_operator
+      assert CF.cursor_context("nil ") == :block_keyword_or_binary_operator
+      assert CF.cursor_context("true ") == :block_keyword_or_binary_operator
+      assert CF.cursor_context("false ") == :block_keyword_or_binary_operator
+      assert CF.cursor_context("\"foo\" ") == :block_keyword_or_binary_operator
+      assert CF.cursor_context("'foo' ") == :block_keyword_or_binary_operator
+
+      # Containers
+      assert CF.cursor_context("(foo) ") == :block_keyword_or_binary_operator
+      assert CF.cursor_context("[foo] ") == :block_keyword_or_binary_operator
+      assert CF.cursor_context("{foo} ") == :block_keyword_or_binary_operator
+      assert CF.cursor_context("<<foo>> ") == :block_keyword_or_binary_operator
+
+      # False positives
+      assert CF.cursor_context("foo ~>> ") == {:operator_call, ~c"~>>"}
+      assert CF.cursor_context("foo >>> ") == {:operator_call, ~c">>>"}
+    end
+
+    test "keyword from keyword or binary operator" do
+      # Literals
+      assert CF.cursor_context("Foo.Bar d") == {:block_keyword, ~c"d"}
+      assert CF.cursor_context("Foo d") == {:block_keyword, ~c"d"}
+      assert CF.cursor_context(":foo d") == {:block_keyword, ~c"d"}
+      assert CF.cursor_context("123 d") == {:block_keyword, ~c"d"}
+      assert CF.cursor_context("nil d") == {:block_keyword, ~c"d"}
+      assert CF.cursor_context("true d") == {:block_keyword, ~c"d"}
+      assert CF.cursor_context("false d") == {:block_keyword, ~c"d"}
+      assert CF.cursor_context("\"foo\" d") == {:block_keyword, ~c"d"}
+      assert CF.cursor_context("'foo' d") == {:block_keyword, ~c"d"}
+
+      # Containers
+      assert CF.cursor_context("(foo) d") == {:block_keyword, ~c"d"}
+      assert CF.cursor_context("[foo] d") == {:block_keyword, ~c"d"}
+      assert CF.cursor_context("{foo} d") == {:block_keyword, ~c"d"}
+      assert CF.cursor_context("<<foo>> d") == {:block_keyword, ~c"d"}
+
+      # False positives
+      assert CF.cursor_context("foo ~>> d") == {:local_or_var, ~c"d"}
+      assert CF.cursor_context("foo >>> d") == {:local_or_var, ~c"d"}
+    end
+
+    test "operator from keyword or binary operator" do
+      # Literals
+      assert CF.cursor_context("Foo.Bar +") == {:operator, ~c"+"}
+      assert CF.cursor_context("Foo +") == {:operator, ~c"+"}
+      assert CF.cursor_context(":foo +") == {:operator, ~c"+"}
+      assert CF.cursor_context("123 +") == {:operator, ~c"+"}
+      assert CF.cursor_context("nil +") == {:operator, ~c"+"}
+      assert CF.cursor_context("true +") == {:operator, ~c"+"}
+      assert CF.cursor_context("false +") == {:operator, ~c"+"}
+      assert CF.cursor_context("\"foo\" +") == {:operator, ~c"+"}
+      assert CF.cursor_context("'foo' +") == {:operator, ~c"+"}
+
+      # Containers
+      assert CF.cursor_context("(foo) +") == {:operator, ~c"+"}
+      assert CF.cursor_context("[foo] +") == {:operator, ~c"+"}
+      assert CF.cursor_context("{foo} +") == {:operator, ~c"+"}
+      assert CF.cursor_context("<<foo>> +") == {:operator, ~c"+"}
+
+      # False positives
+      assert CF.cursor_context("foo ~>> +") == {:operator, ~c"+"}
+      assert CF.cursor_context("foo >>> +") == {:operator, ~c"+"}
+    end
+
     test "none" do
       # Punctuation
       assert CF.cursor_context(")") == :none
@@ -399,8 +471,6 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("HelloWór") == :none
       assert CF.cursor_context("@Hello") == :none
       assert CF.cursor_context("Hello(") == :none
-      assert CF.cursor_context("Hello ") == :none
-      assert CF.cursor_context("hello.World") == {:alias, {:local_or_var, ~c"hello"}, ~c"World"}
 
       # Identifier
       assert CF.cursor_context("foo@bar") == :none
