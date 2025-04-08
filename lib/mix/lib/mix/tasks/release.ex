@@ -1272,7 +1272,7 @@ defmodule Mix.Tasks.Release do
     cond do
       path ->
         msg = "#{path} to configure the release at runtime"
-        Mix.shell().info([:green, "* using ", :reset, msg])
+        info(release, [:green, "* using ", :reset, msg])
         File.cp!(path, Path.join(version_path, "runtime.exs"))
         init = {:system, "RELEASE_ROOT", "/releases/#{release.version}/runtime.exs"}
         opts = [path: init, env: Mix.env(), target: Mix.target(), imports: :disabled]
