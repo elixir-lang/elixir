@@ -70,7 +70,17 @@ defmodule CoverageRecorder do
   end
 
   @to_skip [
-    # Documentation only
+    # Tested via the CLI only
+    :elixir_sup,
+    :iex,
+    Kernel.CLI,
+    Mix.CLI,
+    Mix.Compilers.Test,
+    Mix.Tasks.Test,
+    Mix.Tasks.Test.Coverage,
+
+    # Bootstrap
+    :elixir_bootstrap,
     Kernel.SpecialForms
   ]
 
