@@ -373,21 +373,21 @@ defmodule CodeFragmentTest do
 
     test "keyword or binary operator" do
       # Literals
-      assert CF.cursor_context("Foo.Bar ") == :block_keyword_or_binary_operator
-      assert CF.cursor_context("Foo ") == :block_keyword_or_binary_operator
-      assert CF.cursor_context(":foo ") == :block_keyword_or_binary_operator
-      assert CF.cursor_context("123 ") == :block_keyword_or_binary_operator
-      assert CF.cursor_context("nil ") == :block_keyword_or_binary_operator
-      assert CF.cursor_context("true ") == :block_keyword_or_binary_operator
-      assert CF.cursor_context("false ") == :block_keyword_or_binary_operator
-      assert CF.cursor_context("\"foo\" ") == :block_keyword_or_binary_operator
-      assert CF.cursor_context("'foo' ") == :block_keyword_or_binary_operator
+      assert CF.cursor_context("Foo.Bar ") == {:block_keyword_or_binary_operator, ~c""}
+      assert CF.cursor_context("Foo ") == {:block_keyword_or_binary_operator, ~c""}
+      assert CF.cursor_context(":foo ") == {:block_keyword_or_binary_operator, ~c""}
+      assert CF.cursor_context("123 ") == {:block_keyword_or_binary_operator, ~c""}
+      assert CF.cursor_context("nil ") == {:block_keyword_or_binary_operator, ~c""}
+      assert CF.cursor_context("true ") == {:block_keyword_or_binary_operator, ~c""}
+      assert CF.cursor_context("false ") == {:block_keyword_or_binary_operator, ~c""}
+      assert CF.cursor_context("\"foo\" ") == {:block_keyword_or_binary_operator, ~c""}
+      assert CF.cursor_context("'foo' ") == {:block_keyword_or_binary_operator, ~c""}
 
       # Containers
-      assert CF.cursor_context("(foo) ") == :block_keyword_or_binary_operator
-      assert CF.cursor_context("[foo] ") == :block_keyword_or_binary_operator
-      assert CF.cursor_context("{foo} ") == :block_keyword_or_binary_operator
-      assert CF.cursor_context("<<foo>> ") == :block_keyword_or_binary_operator
+      assert CF.cursor_context("(foo) ") == {:block_keyword_or_binary_operator, ~c""}
+      assert CF.cursor_context("[foo] ") == {:block_keyword_or_binary_operator, ~c""}
+      assert CF.cursor_context("{foo} ") == {:block_keyword_or_binary_operator, ~c""}
+      assert CF.cursor_context("<<foo>> ") == {:block_keyword_or_binary_operator, ~c""}
 
       # False positives
       assert CF.cursor_context("foo ~>> ") == {:operator_call, ~c"~>>"}
@@ -396,21 +396,22 @@ defmodule CodeFragmentTest do
 
     test "keyword from keyword or binary operator" do
       # Literals
-      assert CF.cursor_context("Foo.Bar d") == {:block_keyword, ~c"d"}
-      assert CF.cursor_context("Foo d") == {:block_keyword, ~c"d"}
-      assert CF.cursor_context(":foo d") == {:block_keyword, ~c"d"}
-      assert CF.cursor_context("123 d") == {:block_keyword, ~c"d"}
-      assert CF.cursor_context("nil d") == {:block_keyword, ~c"d"}
-      assert CF.cursor_context("true d") == {:block_keyword, ~c"d"}
-      assert CF.cursor_context("false d") == {:block_keyword, ~c"d"}
-      assert CF.cursor_context("\"foo\" d") == {:block_keyword, ~c"d"}
-      assert CF.cursor_context("'foo' d") == {:block_keyword, ~c"d"}
+      assert CF.cursor_context("Foo.Bar do") == {:block_keyword_or_binary_operator, ~c"do"}
+      assert CF.cursor_context("Foo.Bar d") == {:block_keyword_or_binary_operator, ~c"d"}
+      assert CF.cursor_context("Foo d") == {:block_keyword_or_binary_operator, ~c"d"}
+      assert CF.cursor_context(":foo d") == {:block_keyword_or_binary_operator, ~c"d"}
+      assert CF.cursor_context("123 d") == {:block_keyword_or_binary_operator, ~c"d"}
+      assert CF.cursor_context("nil d") == {:block_keyword_or_binary_operator, ~c"d"}
+      assert CF.cursor_context("true d") == {:block_keyword_or_binary_operator, ~c"d"}
+      assert CF.cursor_context("false d") == {:block_keyword_or_binary_operator, ~c"d"}
+      assert CF.cursor_context("\"foo\" d") == {:block_keyword_or_binary_operator, ~c"d"}
+      assert CF.cursor_context("'foo' d") == {:block_keyword_or_binary_operator, ~c"d"}
 
       # Containers
-      assert CF.cursor_context("(foo) d") == {:block_keyword, ~c"d"}
-      assert CF.cursor_context("[foo] d") == {:block_keyword, ~c"d"}
-      assert CF.cursor_context("{foo} d") == {:block_keyword, ~c"d"}
-      assert CF.cursor_context("<<foo>> d") == {:block_keyword, ~c"d"}
+      assert CF.cursor_context("(foo) d") == {:block_keyword_or_binary_operator, ~c"d"}
+      assert CF.cursor_context("[foo] d") == {:block_keyword_or_binary_operator, ~c"d"}
+      assert CF.cursor_context("{foo} d") == {:block_keyword_or_binary_operator, ~c"d"}
+      assert CF.cursor_context("<<foo>> d") == {:block_keyword_or_binary_operator, ~c"d"}
 
       # False positives
       assert CF.cursor_context("foo ~>> d") == {:local_or_var, ~c"d"}

@@ -46,10 +46,8 @@ defmodule Code.Fragment do
       or `{:local_or_var, charlist}` and `charlist` is a static part
       Examples are `__MODULE__.Submodule` or `@hello.Submodule`
 
-    * `:block_keyword_or_binary_operator` - may be a block keyword (do, end, after,
+    * `{:block_keyword_or_binary_operator, charlist}` - may be a block keyword (do, end, after,
       catch, else, rescue) or a binary operator
-
-    * `{:block_keyword, charlist}` - the context is a block keyword
 
     * `{:dot, inside_dot, charlist}` - the context is a dot
       where `inside_dot` is either a `{:var, charlist}`, `{:alias, charlist}`,
@@ -144,8 +142,7 @@ defmodule Code.Fragment do
   @spec cursor_context(List.Chars.t(), keyword()) ::
           {:alias, charlist}
           | {:alias, inside_alias, charlist}
-          | :block_keyword_or_binary_operator
-          | {:block_keyword, charlist}
+          | {:block_keyword_or_binary_operator, charlist}
           | {:dot, inside_dot, charlist}
           | {:dot_arity, inside_dot, charlist}
           | {:dot_call, inside_dot, charlist}
@@ -278,7 +275,7 @@ defmodule Code.Fragment do
 
   defp closing_or_call_to_cursor_context({reverse, spaces}) do
     if closing?(reverse) do
-      {:block_keyword_or_binary_operator, 0}
+      {{:block_keyword_or_binary_operator, ~c""}, 0}
     else
       call_to_cursor_context({reverse, spaces})
     end
@@ -337,7 +334,9 @@ defmodule Code.Fragment do
 
           {rest, rest_count} ->
             response =
-              if rest_count > count and closing?(rest), do: :block_keyword, else: :local_or_var
+              if rest_count > count and closing?(rest),
+                do: :block_keyword_or_binary_operator,
+                else: :local_or_var
 
             {{response, acc}, count}
         end
