@@ -633,6 +633,27 @@ defmodule Base do
     string |> remove_ignored(opts[:ignore]) |> decode64base!(pad?)
   end
 
+  @doc """
+  Validates a base 64 encoded string.
+
+  ## Options
+
+  Same as `decode64/2`.
+
+  ## Examples
+
+      iex> Base.valid64?("Zm9vYmFy")
+      true
+
+      iex> Base.valid64?("Zm9vYmFy\\n", ignore: :whitespace)
+      true
+
+      iex> Base.valid64?("Zm9vYg==")
+      true
+
+  """
+  @doc since: "1.19.0"
+  @spec valid64?(binary, ignore: :whitespace, padding: boolean) :: boolean
   def valid64?(string, opts \\ []) when is_binary(string) do
     pad? = Keyword.get(opts, :padding, true)
     string |> remove_ignored(opts[:ignore]) |> validate64base!(pad?)
