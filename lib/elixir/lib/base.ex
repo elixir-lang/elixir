@@ -722,6 +722,27 @@ defmodule Base do
     string |> remove_ignored(opts[:ignore]) |> decode64url!(pad?)
   end
 
+  @doc """
+  Validates a base 64 encoded string with URL and filename safe alphabet.
+
+  ## Options
+
+  Same as `url_decode64/2`.
+
+  ## Examples
+
+      iex> Base.url_valid64?("_3_-_A==")
+      true
+
+      iex> Base.url_valid64?("_3_-_A==\\n", ignore: :whitespace)
+      true
+
+      iex> Base.url_valid64?("_3_-_A", padding: false)
+      true
+
+  """
+  @doc since: "1.19.0"
+  @spec url_valid64?(binary, ignore: :whitespace, padding: boolean) :: boolean
   def url_valid64?(string, opts \\ []) when is_binary(string) do
     pad? = Keyword.get(opts, :padding, true)
     string |> remove_ignored(opts[:ignore]) |> validate64url!(pad?)
