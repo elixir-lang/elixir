@@ -710,13 +710,11 @@ defmodule Base do
   end
 
   for {base, alphabet} <- [base: b64_alphabet, url: b64url_alphabet] do
-    name = :"decode64#{base}!"
+    decode_name = :"decode64#{base}!"
     validate_name = :"validate64#{base}!"
     {min, decoded} = alphabet |> Enum.with_index() |> to_decode_list.()
 
-    valid_chars = Enum.map(decoded, fn {char, _} -> char end)
-
-    defp unquote(validate_name)(char) when char in unquote(valid_chars), do: char
+    defp unquote(validate_name)(char) when char in unquote(alphabet), do: char
     defp unquote(validate_name)(char), do: bad_character!(char)
 
     defp unquote(validate_name)(<<>>, _pad?) do

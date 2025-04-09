@@ -965,12 +965,12 @@ defmodule BaseTest do
 
   # TODO: add valid? tests
   test "encode then decode is identity" do
-    for {encode, decode} <- [
-          {&encode16/2, &decode16!/2},
-          {&encode32/2, &decode32!/2},
-          {&hex_encode32/2, &hex_decode32!/2},
-          {&encode64/2, &decode64!/2},
-          {&url_encode64/2, &url_decode64!/2}
+    for {encode, decode, valid?} <- [
+          {&encode16/2, &decode16!/2, &valid16?/2},
+          {&encode32/2, &decode32!/2, &valid32?/2},
+          {&hex_encode32/2, &hex_decode32!/2, &hex_valid32?/2},
+          {&encode64/2, &decode64!/2, &valid64?/2},
+          {&url_encode64/2, &url_decode64!/2, &url_valid64?/2}
         ],
         encode_case <- [:upper, :lower],
         decode_case <- [:upper, :lower, :mixed],
@@ -994,10 +994,11 @@ defmodule BaseTest do
           _ -> [:case, :padding]
         end
 
-      expected =
-        data
-        |> encode.(Keyword.take([case: encode_case, padding: pad?], allowed_opts))
-        |> decode.(Keyword.take([case: decode_case, padding: pad?], allowed_opts))
+      encoded = encode.(data, Keyword.take([case: encode_case, padding: pad?], allowed_opts))
+
+      decode_opts = Keyword.take([case: decode_case, padding: pad?], allowed_opts)
+      assert valid?.(encoded, decode_opts)
+      expected = decode.(encoded, decode_opts)
 
       assert data == expected,
              "identity did not match for #{inspect(data)} when #{inspect(encode)} (#{encode_case})"
