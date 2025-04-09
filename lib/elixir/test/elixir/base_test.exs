@@ -105,6 +105,7 @@ defmodule BaseTest do
     refute valid_decode16?("66KF")
     refute valid_decode16?("66ff")
     refute valid_decode16?("66FF", case: :lower)
+    refute valid_decode16?("66fg", case: :mixed)
   end
 
   test "valid_decode16?/1 errors on odd-length string" do

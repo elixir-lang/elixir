@@ -383,13 +383,12 @@ defmodule Base do
 
     {min, decoded} = to_decode_list.(alphabet)
 
-    valid_chars = Enum.map(alphabet, fn {char, _val} -> char end)
-
     defp unquote(validate_name)(<<>>), do: :ok
 
     defp unquote(validate_name)(<<c1, c2, rest::binary>>) do
       unquote(decode_name)(c1)
       unquote(decode_name)(c2)
+      unquote(validate_name)(rest)
     end
 
     defp unquote(validate_name)(<<char, _rest::binary>>) do
