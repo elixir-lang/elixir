@@ -342,24 +342,24 @@ defmodule Base do
 
   ## Examples
 
-      iex> Base.valid16?("666F6F626172")
+      iex> Base.valid_decode16?("666F6F626172")
       true
 
-      iex> Base.valid16?("666f6f626172", case: :lower)
+      iex> Base.valid_decode16?("666f6f626172", case: :lower)
       true
 
-      iex> Base.valid16?("666f6F626172", case: :mixed)
+      iex> Base.valid_decode16?("666f6F626172", case: :mixed)
       true
 
-      iex> Base.valid16?("ff", case: :upper)
+      iex> Base.valid_decode16?("ff", case: :upper)
       false
 
   """
   @doc since: "1.19.0"
-  @spec valid16?(binary, case: decode_case) :: boolean
-  def valid16?(string, opts \\ [])
+  @spec valid_decode16?(binary, case: decode_case) :: boolean
+  def valid_decode16?(string, opts \\ [])
 
-  def valid16?(string, opts) when is_binary(string) and rem(byte_size(string), 2) == 0 do
+  def valid_decode16?(string, opts) when is_binary(string) and rem(byte_size(string), 2) == 0 do
     case Keyword.get(opts, :case, :upper) do
       :upper -> validate16upper!(string)
       :lower -> validate16lower!(string)
@@ -371,7 +371,7 @@ defmodule Base do
     ArgumentError -> false
   end
 
-  def valid16?(string, _opts) when is_binary(string) do
+  def valid_decode16?(string, _opts) when is_binary(string) do
     false
   end
 
@@ -642,19 +642,19 @@ defmodule Base do
 
   ## Examples
 
-      iex> Base.valid64?("Zm9vYmFy")
+      iex> Base.valid_decode64?("Zm9vYmFy")
       true
 
-      iex> Base.valid64?("Zm9vYmFy\\n", ignore: :whitespace)
+      iex> Base.valid_decode64?("Zm9vYmFy\\n", ignore: :whitespace)
       true
 
-      iex> Base.valid64?("Zm9vYg==")
+      iex> Base.valid_decode64?("Zm9vYg==")
       true
 
   """
   @doc since: "1.19.0"
-  @spec valid64?(binary, ignore: :whitespace, padding: boolean) :: boolean
-  def valid64?(string, opts \\ []) when is_binary(string) do
+  @spec valid_decode64?(binary, ignore: :whitespace, padding: boolean) :: boolean
+  def valid_decode64?(string, opts \\ []) when is_binary(string) do
     pad? = Keyword.get(opts, :padding, true)
     string |> remove_ignored(opts[:ignore]) |> validate64base!(pad?)
     true
@@ -731,19 +731,19 @@ defmodule Base do
 
   ## Examples
 
-      iex> Base.url_valid64?("_3_-_A==")
+      iex> Base.valid_url_decode64?("_3_-_A==")
       true
 
-      iex> Base.url_valid64?("_3_-_A==\\n", ignore: :whitespace)
+      iex> Base.valid_url_decode64?("_3_-_A==\\n", ignore: :whitespace)
       true
 
-      iex> Base.url_valid64?("_3_-_A", padding: false)
+      iex> Base.valid_url_decode64?("_3_-_A", padding: false)
       true
 
   """
   @doc since: "1.19.0"
-  @spec url_valid64?(binary, ignore: :whitespace, padding: boolean) :: boolean
-  def url_valid64?(string, opts \\ []) when is_binary(string) do
+  @spec valid_url_decode64?(binary, ignore: :whitespace, padding: boolean) :: boolean
+  def valid_url_decode64?(string, opts \\ []) when is_binary(string) do
     pad? = Keyword.get(opts, :padding, true)
     string |> remove_ignored(opts[:ignore]) |> validate64url!(pad?)
     true
@@ -1225,19 +1225,19 @@ defmodule Base do
 
   ## Examples
 
-      iex> Base.valid32?("MZXW6YTBOI======")
+      iex> Base.valid_decode32?("MZXW6YTBOI======")
       true
 
-      iex> Base.valid32?("mzxw6ytboi======", case: :lower)
+      iex> Base.valid_decode32?("mzxw6ytboi======", case: :lower)
       true
 
-      iex> Base.valid32?("zzz")
+      iex> Base.valid_decode32?("zzz")
       false
 
   """
   @doc since: "1.19.0"
-  @spec valid32?(binary, case: decode_case, padding: boolean) :: boolean()
-  def valid32?(string, opts \\ []) when is_binary(string) do
+  @spec valid_decode32?(binary, case: decode_case, padding: boolean) :: boolean()
+  def valid_decode32?(string, opts \\ []) when is_binary(string) do
     pad? = Keyword.get(opts, :padding, true)
 
     case Keyword.get(opts, :case, :upper) do
@@ -1353,19 +1353,19 @@ defmodule Base do
 
   ## Examples
 
-      iex> Base.hex_valid32?("CPNMUOJ1E8======")
+      iex> Base.valid_hex_decode32?("CPNMUOJ1E8======")
       true
 
-      iex> Base.hex_valid32?("cpnmuoj1e8======", case: :lower)
+      iex> Base.valid_hex_decode32?("cpnmuoj1e8======", case: :lower)
       true
 
-      iex> Base.hex_valid32?("zzz", padding: false)
+      iex> Base.valid_hex_decode32?("zzz", padding: false)
       false
 
   """
   @doc since: "1.19.0"
-  @spec hex_valid32?(binary, case: decode_case, padding: boolean) :: boolean
-  def hex_valid32?(string, opts \\ []) when is_binary(string) do
+  @spec valid_hex_decode32?(binary, case: decode_case, padding: boolean) :: boolean
+  def valid_hex_decode32?(string, opts \\ []) when is_binary(string) do
     pad? = Keyword.get(opts, :padding, true)
 
     case Keyword.get(opts, :case, :upper) do
