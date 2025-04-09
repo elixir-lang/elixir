@@ -44,6 +44,7 @@ defmodule IEx.Helpers do
     * `pid/3`           - creates a PID with the 3 integer arguments passed
     * `port/1`          - creates a port from a string
     * `port/2`          - creates a port with the 2 non-negative integers passed
+    * `process_info/1`  - returns information about the given process
     * `pwd/0`           - prints the current working directory
     * `r/1`             - recompiles the given module's source file
     * `recompile/0`     - recompiles the current project
@@ -826,6 +827,154 @@ defmodule IEx.Helpers do
   defp memory_unit(:KB), do: 1024
 
   defp pad_key(key), do: String.pad_trailing(key, 21, " ")
+
+  @process_info_keys_and_labels [
+    {:initial_call, "Initial call"},
+    {:dictionary, "Dictionary"},
+    {:registered_name, "Registered name"},
+    {:current_function, "Current function"},
+    {:status, "Status"},
+    {:message_queue_len, "Message queue length"},
+    {:trap_exit, "Trap exit"},
+    {:priority, "Priority"},
+    {:group_leader, "Group leader"},
+    {:reductions, "Reductions"},
+    {:links, "Links"},
+    {:monitors, "Monitors"},
+    {:memory, "Memory"},
+    {:total_heap_size, "Total heap size"},
+    {:heap_size, "Heap size"},
+    {:stack_size, "Stack size"},
+    {:current_stacktrace, "Current stacktrace"}
+  ]
+  @process_info_keys Enum.map(@process_info_keys_and_labels, fn {key, _} -> key end)
+  @process_info_label_mapping Map.new(@process_info_keys_and_labels)
+
+  @doc """
+  Prints information about the given process.
+  """
+  @doc since: "1.19.0"
+  def process_info(pid) when is_pid(pid) do
+    with true <- Process.alive?(pid),
+         info when is_list(info) <- Process.info(pid, @process_info_keys) do
+      info = Map.new(info)
+
+      print_process_overview(info)
+      print_process_links(info[:links])
+      print_process_monitors(info[:monitors])
+      print_process_memory(info)
+      print_process_stacktrace(info[:current_stacktrace])
+    else
+      _ ->
+        IO.puts(
+          IEx.color(
+            :eval_error,
+            "Failed to get process info. Either the process was not found or is not alive."
+          )
+        )
+    end
+
+    dont_display_result()
+  end
+
+  defp print_process_overview(info) do
+    print_pane("Overview")
+
+    for key <- [
+          :initial_call,
+          :current_function,
+          :registered_name,
+          :status,
+          :message_queue_len,
+          :group_leader,
+          :priority,
+          :trap_exit,
+          :reductions
+        ] do
+      print_entry(
+        @process_info_label_mapping[key],
+        inspect(info[key], printable_limit: 256, limit: 5)
+      )
+    end
+  end
+
+  defp print_process_links([]), do: :ok
+
+  defp print_process_links(ports_and_pids) do
+    print_pane("Links")
+
+    for link <- ports_and_pids do
+      print_entry(inspect(link), pid_or_port_details(link))
+    end
+  end
+
+  defp print_process_monitors([]), do: :ok
+
+  defp print_process_monitors(monitors) do
+    print_pane("Monitors")
+
+    for {_, pid_or_port} <- monitors do
+      print_entry(inspect(pid_or_port), pid_or_port_details(pid_or_port))
+    end
+  end
+
+  defp print_process_memory(info) do
+    print_pane("Memory")
+
+    for key <- [:memory, :total_heap_size, :heap_size, :stack_size] do
+      print_entry(@process_info_label_mapping[key], format_bytes(info[key]))
+    end
+  end
+
+  defp print_process_stacktrace([]), do: :ok
+
+  defp print_process_stacktrace(stacktrace) do
+    print_pane("Current stacktrace")
+
+    IO.puts(IEx.color(:eval_info, Exception.format_stacktrace(stacktrace)))
+  end
+
+  defp pid_or_port_details(pid) when is_pid(pid), do: to_process_details(pid)
+  defp pid_or_port_details(name) when is_atom(name), do: to_process_details(name)
+  defp pid_or_port_details(port) when is_port(port), do: to_port_details(port)
+  defp pid_or_port_details(reference) when is_reference(reference), do: reference
+
+  defp to_process_details(pid) when is_pid(pid) do
+    case Process.info(pid, [:initial_call, :dictionary, :registered_name]) do
+      [{:initial_call, initial_call}, {:dictionary, dictionary}, {:registered_name, name}] ->
+        initial_call = Keyword.get(dictionary, :"$initial_call", initial_call)
+
+        format_registered_name(name) ||
+          format_process_label(Keyword.get(dictionary, :"$process_label")) ||
+          format_initial_call(initial_call)
+
+      _ ->
+        "-"
+    end
+  end
+
+  defp to_process_details(name) when is_atom(name) do
+    Process.whereis(name)
+    |> to_process_details()
+  end
+
+  defp format_process_label(nil), do: nil
+  defp format_process_label(label) when is_binary(label), do: label
+  defp format_process_label(label), do: inspect(label)
+
+  defp format_registered_name([]), do: nil
+  defp format_registered_name(name), do: inspect(name)
+
+  defp format_initial_call({:supervisor, mod, arity}), do: Exception.format_mfa(mod, :init, arity)
+  defp format_initial_call({m, f, a}), do: Exception.format_mfa(m, f, a)
+  defp format_initial_call(nil), do: nil
+
+  defp to_port_details(port) when is_port(port) do
+    case Port.info(port, :name) do
+      {:name, name} -> name
+      _ -> "-"
+    end
+  end
 
   @doc """
   Clears out all messages sent to the shell's inbox and prints them out.
