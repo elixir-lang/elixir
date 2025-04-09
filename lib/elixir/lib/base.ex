@@ -387,9 +387,9 @@ defmodule Base do
 
     defp unquote(validate_name)(<<>>), do: :ok
 
-    defp unquote(validate_name)(<<c1, c2, rest::binary>>)
-         when c1 in unquote(valid_chars) and c2 in unquote(valid_chars) do
-      unquote(validate_name)(rest)
+    defp unquote(validate_name)(<<c1, c2, rest::binary>>) do
+      unquote(decode_name)(c1)
+      unquote(decode_name)(c2)
     end
 
     defp unquote(validate_name)(<<char, _rest::binary>>) do
