@@ -111,10 +111,6 @@ defmodule BaseTest do
     refute valid16?("666")
   end
 
-  test "valid16?/1 errors odd-length string" do
-    refute valid16?("666")
-  end
-
   test "encode64/1 can deal with empty strings" do
     assert "" == encode64("")
   end
@@ -596,6 +592,87 @@ defmodule BaseTest do
     "foob" = decode32!("MZXW6YQ", padding: false)
   end
 
+  ##
+  #
+  #
+  #
+  #
+  #
+  test "valid32?/1 can deal with empty strings" do
+    assert valid32?("")
+  end
+
+  test "valid32?/1 with one pad" do
+    assert valid32?("MZXW6YQ=")
+  end
+
+  test "valid32?/1 with three pads" do
+    assert valid32?("MZXW6===")
+  end
+
+  test "valid32?/1 with four pads" do
+    assert valid32?("MZXQ====")
+  end
+
+  test "valid32?/1 with lowercase" do
+    assert valid32?("mzxq====", case: :lower)
+  end
+
+  test "valid32?/1 with mixed case" do
+    assert valid32?("mZXq====", case: :mixed)
+  end
+
+  test "valid32?/1 with six pads" do
+    assert valid32?("MZXW6YTBOI======")
+  end
+
+  test "valid32?/1 with no pads" do
+    assert valid32?("MZXW6YTB")
+  end
+
+  test "valid32?/1,2 returns false on non-alphabet character" do
+    refute valid32?("MZX)6YTB")
+    refute valid32?("66ff")
+    refute valid32?("66FF", case: :lower)
+    refute valid32?("0ZXW6YTB0I======", case: :mixed)
+  end
+
+  test "valid32?/1 returns false on incorrect padding" do
+    refute valid32?("MZXW6YQ")
+  end
+
+  test "valid32?/2 with one pad and :padding to false" do
+    assert valid32?("MZXW6YQ", padding: false)
+  end
+
+  test "valid32?/2 with three pads and ignoring padding" do
+    assert valid32?("MZXW6", padding: false)
+  end
+
+  test "valid32?/2 with four pads and ignoring padding" do
+    assert valid32?("MZXQ", padding: false)
+  end
+
+  test "valid32?/2 with :lower case and ignoring padding" do
+    assert valid32?("mzxq", case: :lower, padding: false)
+  end
+
+  test "valid32?/2 with :mixed case and ignoring padding" do
+    assert valid32?("mZXq", case: :mixed, padding: false)
+  end
+
+  test "valid32?/2 with six pads and ignoring padding" do
+    assert valid32?("MZXW6YTBOI", padding: false)
+  end
+
+  test "valid32?/2 with no pads and ignoring padding" do
+    assert valid32?("MZXW6YTB", padding: false)
+  end
+
+  test "valid32?/2 ignores incorrect padding when :padding is false" do
+    assert valid32?("MZXW6YQ", padding: false)
+  end
+
   test "hex_encode32/1 can deal with empty strings" do
     assert "" == hex_encode32("")
   end
@@ -811,6 +888,82 @@ defmodule BaseTest do
     assert "fo" == hex_decode32!("cPNg", case: :mixed, padding: false)
   end
 
+  test "hex_valid32?/1 can deal with empty strings" do
+    assert hex_valid32?("")
+  end
+
+  test "hex_valid32?/1 with one pad" do
+    assert hex_valid32?("CPNMUOG=")
+  end
+
+  test "hex_valid32?/1 with three pads" do
+    assert hex_valid32?("CPNMU===")
+  end
+
+  test "hex_valid32?/1 with four pads" do
+    assert hex_valid32?("CPNG====")
+  end
+
+  test "hex_valid32?/1 with six pads" do
+    assert hex_valid32?("CPNMUOJ1E8======")
+    assert hex_valid32?("CO======")
+  end
+
+  test "hex_valid32?/1 with no pads" do
+    assert hex_valid32?("CPNMUOJ1")
+  end
+
+  test "hex_valid32?/1,2 returns false on non-alphabet character" do
+    refute hex_valid32?("CPN)UOJ1")
+    refute hex_valid32?("66f")
+    refute hex_valid32?("66F", case: :lower)
+  end
+
+  test "hex_valid32?/1 returns false on incorrect padding" do
+    refute hex_valid32?("CPNMUOG")
+  end
+
+  test "hex_valid32?/2 with lowercase" do
+    assert hex_valid32?("cpng====", case: :lower)
+  end
+
+  test "hex_valid32?/2 with mixed case" do
+    assert hex_valid32?("cPNg====", case: :mixed)
+  end
+
+  test "hex_valid32?/2 with one pad and ignoring padding" do
+    assert hex_valid32?("CPNMUOG", padding: false)
+  end
+
+  test "hex_valid32?/2 with three pads and ignoring padding" do
+    assert hex_valid32?("CPNMU", padding: false)
+  end
+
+  test "hex_valid32?/2 with four pads and ignoring padding" do
+    assert hex_valid32?("CPNG", padding: false)
+  end
+
+  test "hex_valid32?/2 with six pads and ignoring padding" do
+    assert hex_valid32?("CPNMUOJ1E8", padding: false)
+  end
+
+  test "hex_valid32?/2 with no pads and ignoring padding" do
+    assert hex_valid32?("CPNMUOJ1", padding: false)
+  end
+
+  test "hex_valid32?/2 ignores incorrect padding when :padding is false" do
+    assert hex_valid32?("CPNMUOG", padding: false)
+  end
+
+  test "hex_valid32?/2 with :lower case and ignoring padding" do
+    assert hex_valid32?("cpng", case: :lower, padding: false)
+  end
+
+  test "hex_valid32?/2 with :mixed case and ignoring padding" do
+    assert hex_valid32?("cPNg====", case: :mixed, padding: false)
+  end
+
+  # TODO: add valid? tests
   test "encode then decode is identity" do
     for {encode, decode} <- [
           {&encode16/2, &decode16!/2},

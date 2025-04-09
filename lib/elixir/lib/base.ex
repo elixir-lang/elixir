@@ -1062,6 +1062,39 @@ defmodule Base do
   end
 
   @doc """
+  Checks if a base 32 encoded string is valid.
+
+  See `decode32/2` for the accepted options.
+
+  ## Examples
+
+      iex> Base.valid32?("MZXW6YTBOI======")
+      true
+
+      iex> Base.valid32?("mzxw6ytboi======", case: :lower)
+      true
+
+      iex> Base.valid32?("zzz")
+      false
+
+  """
+  @doc since: "1.19.0"
+  @spec valid32?(binary, case: decode_case, padding: boolean) :: boolean()
+  def valid32?(string, opts \\ []) when is_binary(string) do
+    pad? = Keyword.get(opts, :padding, true)
+
+    case Keyword.get(opts, :case, :upper) do
+      :upper -> validate32upper!(string, pad?)
+      :lower -> validate32lower!(string, pad?)
+      :mixed -> validate32mixed!(string, pad?)
+    end
+
+    true
+  rescue
+    ArgumentError -> false
+  end
+
+  @doc """
   Decodes a base 32 encoded string with extended hexadecimal alphabet
   into a binary string.
 
@@ -1156,6 +1189,39 @@ defmodule Base do
     end
   end
 
+  @doc """
+  Checks if a base 32 encoded string with extended hexadecimal alphabet is valid.
+
+  See `decode32/2` for the accepted options.
+
+  ## Examples
+
+      iex> Base.hex_valid32?("CPNMUOJ1E8======")
+      true
+
+      iex> Base.hex_valid32?("cpnmuoj1e8======", case: :lower)
+      true
+
+      iex> Base.hex_valid32?("zzz", padding: false)
+      false
+
+  """
+  @doc since: "1.19.0"
+  @spec hex_valid32?(binary, case: decode_case, padding: boolean) :: boolean
+  def hex_valid32?(string, opts \\ []) when is_binary(string) do
+    pad? = Keyword.get(opts, :padding, true)
+
+    case Keyword.get(opts, :case, :upper) do
+      :upper -> validate32hexupper!(string, pad?)
+      :lower -> validate32hexlower!(string, pad?)
+      :mixed -> validate32hexmixed!(string, pad?)
+    end
+
+    true
+  rescue
+    ArgumentError -> false
+  end
+
   upper = Enum.with_index(b32_alphabet)
   hexupper = Enum.with_index(b32hex_alphabet)
 
@@ -1167,10 +1233,103 @@ defmodule Base do
         hexlower: to_lower_dec.(hexupper),
         hexmixed: to_mixed_dec.(hexupper)
       ] do
-    name = :"decode32#{base}!"
+    decode_name = :"decode32#{base}!"
+    validate_name = :"validate32#{base}!"
     {min, decoded} = to_decode_list.(alphabet)
 
-    defp unquote(name)(char) do
+    valid_chars = Enum.map(alphabet, fn {char, _val} -> char end)
+
+    defp unquote(validate_name)(char) when char in unquote(valid_chars), do: :ok
+    defp unquote(validate_name)(char), do: bad_character!(char)
+
+    defp unquote(validate_name)(<<>>, _pad?) do
+      :ok
+    end
+
+    defp unquote(validate_name)(string, pad?) do
+      segs = div(byte_size(string) + 7, 8) - 1
+      <<main::size(^segs)-binary-unit(64), rest::binary>> = string
+
+      for <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, c8::8 <- main>> do
+        unquote(validate_name)(c1)
+        unquote(validate_name)(c2)
+        unquote(validate_name)(c3)
+        unquote(validate_name)(c4)
+        unquote(validate_name)(c5)
+        unquote(validate_name)(c6)
+        unquote(validate_name)(c7)
+        unquote(validate_name)(c8)
+      end
+
+      case rest do
+        <<c1::8, c2::8, ?=, ?=, ?=, ?=, ?=, ?=>> ->
+          unquote(validate_name)(c1)
+          unquote(validate_name)(c2)
+
+        <<c1::8, c2::8, c3::8, c4::8, ?=, ?=, ?=, ?=>> ->
+          unquote(validate_name)(c1)
+          unquote(validate_name)(c2)
+          unquote(validate_name)(c3)
+          unquote(validate_name)(c4)
+
+        <<c1::8, c2::8, c3::8, c4::8, c5::8, ?=, ?=, ?=>> ->
+          unquote(validate_name)(c1)
+          unquote(validate_name)(c2)
+          unquote(validate_name)(c3)
+          unquote(validate_name)(c4)
+          unquote(validate_name)(c5)
+
+        <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, ?=>> ->
+          unquote(validate_name)(c1)
+          unquote(validate_name)(c2)
+          unquote(validate_name)(c3)
+          unquote(validate_name)(c4)
+          unquote(validate_name)(c5)
+          unquote(validate_name)(c6)
+          unquote(validate_name)(c7)
+
+        <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, c8::8>> ->
+          unquote(validate_name)(c1)
+          unquote(validate_name)(c2)
+          unquote(validate_name)(c3)
+          unquote(validate_name)(c4)
+          unquote(validate_name)(c5)
+          unquote(validate_name)(c6)
+          unquote(validate_name)(c7)
+          unquote(validate_name)(c8)
+
+        <<c1::8, c2::8>> when not pad? ->
+          unquote(validate_name)(c1)
+          unquote(validate_name)(c2)
+
+        <<c1::8, c2::8, c3::8, c4::8>> when not pad? ->
+          unquote(validate_name)(c1)
+          unquote(validate_name)(c2)
+          unquote(validate_name)(c3)
+          unquote(validate_name)(c4)
+
+        <<c1::8, c2::8, c3::8, c4::8, c5::8>> when not pad? ->
+          unquote(validate_name)(c1)
+          unquote(validate_name)(c2)
+          unquote(validate_name)(c3)
+          unquote(validate_name)(c4)
+          unquote(validate_name)(c5)
+
+        <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8>> when not pad? ->
+          unquote(validate_name)(c1)
+          unquote(validate_name)(c2)
+          unquote(validate_name)(c3)
+          unquote(validate_name)(c4)
+          unquote(validate_name)(c5)
+          unquote(validate_name)(c6)
+          unquote(validate_name)(c7)
+
+        _ ->
+          raise ArgumentError, "incorrect padding"
+      end
+    end
+
+    defp unquote(decode_name)(char) do
       try do
         elem({unquote_splicing(decoded)}, char - unquote(min))
       rescue
@@ -1181,106 +1340,106 @@ defmodule Base do
       end
     end
 
-    defp unquote(name)(<<>>, _), do: <<>>
+    defp unquote(decode_name)(<<>>, _), do: <<>>
 
-    defp unquote(name)(string, pad?) do
+    defp unquote(decode_name)(string, pad?) do
       segs = div(byte_size(string) + 7, 8) - 1
       <<main::size(^segs)-binary-unit(64), rest::binary>> = string
 
       main =
         for <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, c8::8 <- main>>, into: <<>> do
           <<
-            unquote(name)(c1)::5,
-            unquote(name)(c2)::5,
-            unquote(name)(c3)::5,
-            unquote(name)(c4)::5,
-            unquote(name)(c5)::5,
-            unquote(name)(c6)::5,
-            unquote(name)(c7)::5,
-            unquote(name)(c8)::5
+            unquote(decode_name)(c1)::5,
+            unquote(decode_name)(c2)::5,
+            unquote(decode_name)(c3)::5,
+            unquote(decode_name)(c4)::5,
+            unquote(decode_name)(c5)::5,
+            unquote(decode_name)(c6)::5,
+            unquote(decode_name)(c7)::5,
+            unquote(decode_name)(c8)::5
           >>
         end
 
       case rest do
         <<c1::8, c2::8, ?=, ?=, ?=, ?=, ?=, ?=>> ->
-          <<main::bits, unquote(name)(c1)::5, bsr(unquote(name)(c2), 2)::3>>
+          <<main::bits, unquote(decode_name)(c1)::5, bsr(unquote(decode_name)(c2), 2)::3>>
 
         <<c1::8, c2::8, c3::8, c4::8, ?=, ?=, ?=, ?=>> ->
           <<
             main::bits,
-            unquote(name)(c1)::5,
-            unquote(name)(c2)::5,
-            unquote(name)(c3)::5,
-            bsr(unquote(name)(c4), 4)::1
+            unquote(decode_name)(c1)::5,
+            unquote(decode_name)(c2)::5,
+            unquote(decode_name)(c3)::5,
+            bsr(unquote(decode_name)(c4), 4)::1
           >>
 
         <<c1::8, c2::8, c3::8, c4::8, c5::8, ?=, ?=, ?=>> ->
           <<
             main::bits,
-            unquote(name)(c1)::5,
-            unquote(name)(c2)::5,
-            unquote(name)(c3)::5,
-            unquote(name)(c4)::5,
-            bsr(unquote(name)(c5), 1)::4
+            unquote(decode_name)(c1)::5,
+            unquote(decode_name)(c2)::5,
+            unquote(decode_name)(c3)::5,
+            unquote(decode_name)(c4)::5,
+            bsr(unquote(decode_name)(c5), 1)::4
           >>
 
         <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, ?=>> ->
           <<
             main::bits,
-            unquote(name)(c1)::5,
-            unquote(name)(c2)::5,
-            unquote(name)(c3)::5,
-            unquote(name)(c4)::5,
-            unquote(name)(c5)::5,
-            unquote(name)(c6)::5,
-            bsr(unquote(name)(c7), 3)::2
+            unquote(decode_name)(c1)::5,
+            unquote(decode_name)(c2)::5,
+            unquote(decode_name)(c3)::5,
+            unquote(decode_name)(c4)::5,
+            unquote(decode_name)(c5)::5,
+            unquote(decode_name)(c6)::5,
+            bsr(unquote(decode_name)(c7), 3)::2
           >>
 
         <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, c8::8>> ->
           <<
             main::bits,
-            unquote(name)(c1)::5,
-            unquote(name)(c2)::5,
-            unquote(name)(c3)::5,
-            unquote(name)(c4)::5,
-            unquote(name)(c5)::5,
-            unquote(name)(c6)::5,
-            unquote(name)(c7)::5,
-            unquote(name)(c8)::5
+            unquote(decode_name)(c1)::5,
+            unquote(decode_name)(c2)::5,
+            unquote(decode_name)(c3)::5,
+            unquote(decode_name)(c4)::5,
+            unquote(decode_name)(c5)::5,
+            unquote(decode_name)(c6)::5,
+            unquote(decode_name)(c7)::5,
+            unquote(decode_name)(c8)::5
           >>
 
         <<c1::8, c2::8>> when not pad? ->
-          <<main::bits, unquote(name)(c1)::5, bsr(unquote(name)(c2), 2)::3>>
+          <<main::bits, unquote(decode_name)(c1)::5, bsr(unquote(decode_name)(c2), 2)::3>>
 
         <<c1::8, c2::8, c3::8, c4::8>> when not pad? ->
           <<
             main::bits,
-            unquote(name)(c1)::5,
-            unquote(name)(c2)::5,
-            unquote(name)(c3)::5,
-            bsr(unquote(name)(c4), 4)::1
+            unquote(decode_name)(c1)::5,
+            unquote(decode_name)(c2)::5,
+            unquote(decode_name)(c3)::5,
+            bsr(unquote(decode_name)(c4), 4)::1
           >>
 
         <<c1::8, c2::8, c3::8, c4::8, c5::8>> when not pad? ->
           <<
             main::bits,
-            unquote(name)(c1)::5,
-            unquote(name)(c2)::5,
-            unquote(name)(c3)::5,
-            unquote(name)(c4)::5,
-            bsr(unquote(name)(c5), 1)::4
+            unquote(decode_name)(c1)::5,
+            unquote(decode_name)(c2)::5,
+            unquote(decode_name)(c3)::5,
+            unquote(decode_name)(c4)::5,
+            bsr(unquote(decode_name)(c5), 1)::4
           >>
 
         <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8>> when not pad? ->
           <<
             main::bits,
-            unquote(name)(c1)::5,
-            unquote(name)(c2)::5,
-            unquote(name)(c3)::5,
-            unquote(name)(c4)::5,
-            unquote(name)(c5)::5,
-            unquote(name)(c6)::5,
-            bsr(unquote(name)(c7), 3)::2
+            unquote(decode_name)(c1)::5,
+            unquote(decode_name)(c2)::5,
+            unquote(decode_name)(c3)::5,
+            unquote(decode_name)(c4)::5,
+            unquote(decode_name)(c5)::5,
+            unquote(decode_name)(c6)::5,
+            bsr(unquote(decode_name)(c7), 3)::2
           >>
 
         _ ->
