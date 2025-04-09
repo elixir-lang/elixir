@@ -756,9 +756,6 @@ defmodule Base do
     validate_name = :"validate64#{base}!"
     {min, decoded} = alphabet |> Enum.with_index() |> to_decode_list.()
 
-    defp unquote(validate_name)(char) when char in unquote(alphabet), do: char
-    defp unquote(validate_name)(char), do: bad_character!(char)
-
     defp unquote(validate_name)(<<>>, _pad?) do
       true
     end
@@ -768,84 +765,84 @@ defmodule Base do
       <<main::size(^segs)-binary-unit(64), rest::binary>> = string
 
       for <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, c8::8 <- main>> do
-        unquote(validate_name)(c1)
-        unquote(validate_name)(c2)
-        unquote(validate_name)(c3)
-        unquote(validate_name)(c4)
-        unquote(validate_name)(c5)
-        unquote(validate_name)(c6)
-        unquote(validate_name)(c7)
-        unquote(validate_name)(c8)
+        unquote(decode_name)(c1)
+        unquote(decode_name)(c2)
+        unquote(decode_name)(c3)
+        unquote(decode_name)(c4)
+        unquote(decode_name)(c5)
+        unquote(decode_name)(c6)
+        unquote(decode_name)(c7)
+        unquote(decode_name)(c8)
       end
 
       case rest do
         <<c1::8, c2::8, ?=, ?=>> ->
-          unquote(validate_name)(c1)
-          unquote(validate_name)(c2)
+          unquote(decode_name)(c1)
+          unquote(decode_name)(c2)
 
         <<c1::8, c2::8, c3::8, ?=>> ->
-          unquote(validate_name)(c1)
-          unquote(validate_name)(c2)
-          unquote(validate_name)(c3)
+          unquote(decode_name)(c1)
+          unquote(decode_name)(c2)
+          unquote(decode_name)(c3)
 
         <<c1::8, c2::8, c3::8, c4::8>> ->
-          unquote(validate_name)(c1)
-          unquote(validate_name)(c2)
-          unquote(validate_name)(c3)
-          unquote(validate_name)(c4)
+          unquote(decode_name)(c1)
+          unquote(decode_name)(c2)
+          unquote(decode_name)(c3)
+          unquote(decode_name)(c4)
 
         <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, ?=, ?=>> ->
-          unquote(validate_name)(c1)
-          unquote(validate_name)(c2)
-          unquote(validate_name)(c3)
-          unquote(validate_name)(c4)
-          unquote(validate_name)(c5)
-          unquote(validate_name)(c6)
+          unquote(decode_name)(c1)
+          unquote(decode_name)(c2)
+          unquote(decode_name)(c3)
+          unquote(decode_name)(c4)
+          unquote(decode_name)(c5)
+          unquote(decode_name)(c6)
 
         <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, ?=>> ->
-          unquote(validate_name)(c1)
-          unquote(validate_name)(c2)
-          unquote(validate_name)(c3)
-          unquote(validate_name)(c4)
-          unquote(validate_name)(c5)
-          unquote(validate_name)(c6)
-          unquote(validate_name)(c7)
+          unquote(decode_name)(c1)
+          unquote(decode_name)(c2)
+          unquote(decode_name)(c3)
+          unquote(decode_name)(c4)
+          unquote(decode_name)(c5)
+          unquote(decode_name)(c6)
+          unquote(decode_name)(c7)
 
         <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, c8::8>> ->
-          unquote(validate_name)(c1)
-          unquote(validate_name)(c2)
-          unquote(validate_name)(c3)
-          unquote(validate_name)(c4)
-          unquote(validate_name)(c5)
-          unquote(validate_name)(c6)
-          unquote(validate_name)(c7)
-          unquote(validate_name)(c8)
+          unquote(decode_name)(c1)
+          unquote(decode_name)(c2)
+          unquote(decode_name)(c3)
+          unquote(decode_name)(c4)
+          unquote(decode_name)(c5)
+          unquote(decode_name)(c6)
+          unquote(decode_name)(c7)
+          unquote(decode_name)(c8)
 
         <<c1::8, c2::8>> when not pad? ->
-          unquote(validate_name)(c1)
-          unquote(validate_name)(c2)
+          unquote(decode_name)(c1)
+          unquote(decode_name)(c2)
 
         <<c1::8, c2::8, c3::8>> when not pad? ->
-          unquote(validate_name)(c1)
-          unquote(validate_name)(c2)
-          unquote(validate_name)(c3)
+          unquote(decode_name)(c1)
+          unquote(decode_name)(c2)
+          unquote(decode_name)(c3)
 
         <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8>> when not pad? ->
-          unquote(validate_name)(c1)
-          unquote(validate_name)(c2)
-          unquote(validate_name)(c3)
-          unquote(validate_name)(c4)
-          unquote(validate_name)(c5)
-          unquote(validate_name)(c6)
+          unquote(decode_name)(c1)
+          unquote(decode_name)(c2)
+          unquote(decode_name)(c3)
+          unquote(decode_name)(c4)
+          unquote(decode_name)(c5)
+          unquote(decode_name)(c6)
 
         <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8>> when not pad? ->
-          unquote(validate_name)(c1)
-          unquote(validate_name)(c2)
-          unquote(validate_name)(c3)
-          unquote(validate_name)(c4)
-          unquote(validate_name)(c5)
-          unquote(validate_name)(c6)
-          unquote(validate_name)(c7)
+          unquote(decode_name)(c1)
+          unquote(decode_name)(c2)
+          unquote(decode_name)(c3)
+          unquote(decode_name)(c4)
+          unquote(decode_name)(c5)
+          unquote(decode_name)(c6)
+          unquote(decode_name)(c7)
 
         _ ->
           raise ArgumentError, "incorrect padding"
@@ -1394,11 +1391,6 @@ defmodule Base do
     validate_name = :"validate32#{base}!"
     {min, decoded} = to_decode_list.(alphabet)
 
-    valid_chars = Enum.map(alphabet, fn {char, _val} -> char end)
-
-    defp unquote(validate_name)(char) when char in unquote(valid_chars), do: :ok
-    defp unquote(validate_name)(char), do: bad_character!(char)
-
     defp unquote(validate_name)(<<>>, _pad?) do
       :ok
     end
@@ -1408,78 +1400,78 @@ defmodule Base do
       <<main::size(^segs)-binary-unit(64), rest::binary>> = string
 
       for <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, c8::8 <- main>> do
-        unquote(validate_name)(c1)
-        unquote(validate_name)(c2)
-        unquote(validate_name)(c3)
-        unquote(validate_name)(c4)
-        unquote(validate_name)(c5)
-        unquote(validate_name)(c6)
-        unquote(validate_name)(c7)
-        unquote(validate_name)(c8)
+        unquote(decode_name)(c1)
+        unquote(decode_name)(c2)
+        unquote(decode_name)(c3)
+        unquote(decode_name)(c4)
+        unquote(decode_name)(c5)
+        unquote(decode_name)(c6)
+        unquote(decode_name)(c7)
+        unquote(decode_name)(c8)
       end
 
       case rest do
         <<c1::8, c2::8, ?=, ?=, ?=, ?=, ?=, ?=>> ->
-          unquote(validate_name)(c1)
-          unquote(validate_name)(c2)
+          unquote(decode_name)(c1)
+          unquote(decode_name)(c2)
 
         <<c1::8, c2::8, c3::8, c4::8, ?=, ?=, ?=, ?=>> ->
-          unquote(validate_name)(c1)
-          unquote(validate_name)(c2)
-          unquote(validate_name)(c3)
-          unquote(validate_name)(c4)
+          unquote(decode_name)(c1)
+          unquote(decode_name)(c2)
+          unquote(decode_name)(c3)
+          unquote(decode_name)(c4)
 
         <<c1::8, c2::8, c3::8, c4::8, c5::8, ?=, ?=, ?=>> ->
-          unquote(validate_name)(c1)
-          unquote(validate_name)(c2)
-          unquote(validate_name)(c3)
-          unquote(validate_name)(c4)
-          unquote(validate_name)(c5)
+          unquote(decode_name)(c1)
+          unquote(decode_name)(c2)
+          unquote(decode_name)(c3)
+          unquote(decode_name)(c4)
+          unquote(decode_name)(c5)
 
         <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, ?=>> ->
-          unquote(validate_name)(c1)
-          unquote(validate_name)(c2)
-          unquote(validate_name)(c3)
-          unquote(validate_name)(c4)
-          unquote(validate_name)(c5)
-          unquote(validate_name)(c6)
-          unquote(validate_name)(c7)
+          unquote(decode_name)(c1)
+          unquote(decode_name)(c2)
+          unquote(decode_name)(c3)
+          unquote(decode_name)(c4)
+          unquote(decode_name)(c5)
+          unquote(decode_name)(c6)
+          unquote(decode_name)(c7)
 
         <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, c8::8>> ->
-          unquote(validate_name)(c1)
-          unquote(validate_name)(c2)
-          unquote(validate_name)(c3)
-          unquote(validate_name)(c4)
-          unquote(validate_name)(c5)
-          unquote(validate_name)(c6)
-          unquote(validate_name)(c7)
-          unquote(validate_name)(c8)
+          unquote(decode_name)(c1)
+          unquote(decode_name)(c2)
+          unquote(decode_name)(c3)
+          unquote(decode_name)(c4)
+          unquote(decode_name)(c5)
+          unquote(decode_name)(c6)
+          unquote(decode_name)(c7)
+          unquote(decode_name)(c8)
 
         <<c1::8, c2::8>> when not pad? ->
-          unquote(validate_name)(c1)
-          unquote(validate_name)(c2)
+          unquote(decode_name)(c1)
+          unquote(decode_name)(c2)
 
         <<c1::8, c2::8, c3::8, c4::8>> when not pad? ->
-          unquote(validate_name)(c1)
-          unquote(validate_name)(c2)
-          unquote(validate_name)(c3)
-          unquote(validate_name)(c4)
+          unquote(decode_name)(c1)
+          unquote(decode_name)(c2)
+          unquote(decode_name)(c3)
+          unquote(decode_name)(c4)
 
         <<c1::8, c2::8, c3::8, c4::8, c5::8>> when not pad? ->
-          unquote(validate_name)(c1)
-          unquote(validate_name)(c2)
-          unquote(validate_name)(c3)
-          unquote(validate_name)(c4)
-          unquote(validate_name)(c5)
+          unquote(decode_name)(c1)
+          unquote(decode_name)(c2)
+          unquote(decode_name)(c3)
+          unquote(decode_name)(c4)
+          unquote(decode_name)(c5)
 
         <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8>> when not pad? ->
-          unquote(validate_name)(c1)
-          unquote(validate_name)(c2)
-          unquote(validate_name)(c3)
-          unquote(validate_name)(c4)
-          unquote(validate_name)(c5)
-          unquote(validate_name)(c6)
-          unquote(validate_name)(c7)
+          unquote(decode_name)(c1)
+          unquote(decode_name)(c2)
+          unquote(decode_name)(c3)
+          unquote(decode_name)(c4)
+          unquote(decode_name)(c5)
+          unquote(decode_name)(c6)
+          unquote(decode_name)(c7)
 
         _ ->
           raise ArgumentError, "incorrect padding"

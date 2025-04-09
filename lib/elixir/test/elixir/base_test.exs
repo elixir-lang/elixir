@@ -688,12 +688,6 @@ defmodule BaseTest do
     "foob" = decode32!("MZXW6YQ", padding: false)
   end
 
-  ##
-  #
-  #
-  #
-  #
-  #
   test "valid_decode32?/1 can deal with empty strings" do
     assert valid_decode32?("")
   end
