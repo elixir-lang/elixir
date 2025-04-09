@@ -88,6 +88,33 @@ defmodule BaseTest do
     end
   end
 
+  test "valid16?/1" do
+    assert valid16?("")
+    assert valid16?("66")
+    assert valid16?("666F")
+    assert valid16?("666F6F")
+    assert valid16?("666F6F62")
+    assert valid16?("666F6F6261")
+    assert valid16?("666F6F626172")
+    assert valid16?("A1B2C3D4E5F67891")
+    assert valid16?("a1b2c3d4e5f67891", case: :lower)
+    assert valid16?("a1B2c3D4e5F67891", case: :mixed)
+  end
+
+  test "valid16?/1 returns false on non-alphabet character" do
+    refute valid16?("66KF")
+    refute valid16?("66ff")
+    refute valid16?("66FF", case: :lower)
+  end
+
+  test "valid16?/1 errors on odd-length string" do
+    refute valid16?("666")
+  end
+
+  test "valid16?/1 errors odd-length string" do
+    refute valid16?("666")
+  end
+
   test "encode64/1 can deal with empty strings" do
     assert "" == encode64("")
   end

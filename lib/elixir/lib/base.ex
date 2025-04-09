@@ -319,13 +319,84 @@ defmodule Base do
             "Double check your string for unwanted characters or pad it accordingly"
   end
 
+  @doc """
+  Checks if a string is a valid base 16 encoded string.
+
+  Use this function when you just need to *validate* that a string is valid base64 data,
+  without actually producing a decoded output string.
+
+  ## Options
+
+  The accepted options are:
+
+    * `:case` - specifies the character case to accept when decoding
+
+  The values for `:case` can be:
+
+    * `:upper` - only allows upper case characters (default)
+    * `:lower` - only allows lower case characters
+    * `:mixed` - allows mixed case characters
+
+  An `ArgumentError` exception is raised if the padding is incorrect or
+  a non-alphabet character is present in the string.
+
+  ## Examples
+
+      iex> Base.valid16?("666F6F626172")
+      true
+
+      iex> Base.valid16?("666f6f626172", case: :lower)
+      true
+
+      iex> Base.valid16?("666f6F626172", case: :mixed)
+      true
+
+      iex> Base.valid16?("ff", case: :upper)
+      false
+
+  """
+  @doc since: "1.19.0"
+  @spec valid16?(binary, case: decode_case) :: boolean
+  def valid16?(string, opts \\ [])
+
+  def valid16?(string, opts) when is_binary(string) and rem(byte_size(string), 2) == 0 do
+    case Keyword.get(opts, :case, :upper) do
+      :upper -> validate16upper!(string)
+      :lower -> validate16lower!(string)
+      :mixed -> validate16mixed!(string)
+    end
+
+    true
+  rescue
+    ArgumentError -> false
+  end
+
+  def valid16?(string, _opts) when is_binary(string) do
+    false
+  end
+
   upper = Enum.with_index(b16_alphabet)
 
   for {base, alphabet} <- [upper: upper, lower: to_lower_dec.(upper), mixed: to_mixed_dec.(upper)] do
-    name = :"decode16#{base}!"
+    decode_name = :"decode16#{base}!"
+    validate_name = :"validate16#{base}!"
+
     {min, decoded} = to_decode_list.(alphabet)
 
-    defp unquote(name)(char) do
+    valid_chars = Enum.map(alphabet, fn {char, _val} -> char end)
+
+    defp unquote(validate_name)(<<>>), do: :ok
+
+    defp unquote(validate_name)(<<c1, c2, rest::binary>>)
+         when c1 in unquote(valid_chars) and c2 in unquote(valid_chars) do
+      unquote(validate_name)(rest)
+    end
+
+    defp unquote(validate_name)(<<char, _rest::binary>>) do
+      bad_character!(char)
+    end
+
+    defp unquote(decode_name)(char) do
       try do
         elem({unquote_splicing(decoded)}, char - unquote(min))
       rescue
@@ -336,41 +407,44 @@ defmodule Base do
       end
     end
 
-    defp unquote(name)(<<c1, c2, c3, c4, c5, c6, c7, c8, rest::binary>>, acc) do
-      unquote(name)(
+    defp unquote(decode_name)(<<c1, c2, c3, c4, c5, c6, c7, c8, rest::binary>>, acc) do
+      unquote(decode_name)(
         rest,
         <<
           acc::binary,
-          unquote(name)(c1)::4,
-          unquote(name)(c2)::4,
-          unquote(name)(c3)::4,
-          unquote(name)(c4)::4,
-          unquote(name)(c5)::4,
-          unquote(name)(c6)::4,
-          unquote(name)(c7)::4,
-          unquote(name)(c8)::4
+          unquote(decode_name)(c1)::4,
+          unquote(decode_name)(c2)::4,
+          unquote(decode_name)(c3)::4,
+          unquote(decode_name)(c4)::4,
+          unquote(decode_name)(c5)::4,
+          unquote(decode_name)(c6)::4,
+          unquote(decode_name)(c7)::4,
+          unquote(decode_name)(c8)::4
         >>
       )
     end
 
-    defp unquote(name)(<<c1, c2, c3, c4, rest::binary>>, acc) do
-      unquote(name)(
+    defp unquote(decode_name)(<<c1, c2, c3, c4, rest::binary>>, acc) do
+      unquote(decode_name)(
         rest,
         <<
           acc::binary,
-          unquote(name)(c1)::4,
-          unquote(name)(c2)::4,
-          unquote(name)(c3)::4,
-          unquote(name)(c4)::4
+          unquote(decode_name)(c1)::4,
+          unquote(decode_name)(c2)::4,
+          unquote(decode_name)(c3)::4,
+          unquote(decode_name)(c4)::4
         >>
       )
     end
 
-    defp unquote(name)(<<c1::8, c2::8, rest::binary>>, acc) do
-      unquote(name)(rest, <<acc::binary, unquote(name)(c1)::4, unquote(name)(c2)::4>>)
+    defp unquote(decode_name)(<<c1::8, c2::8, rest::binary>>, acc) do
+      unquote(decode_name)(
+        rest,
+        <<acc::binary, unquote(decode_name)(c1)::4, unquote(decode_name)(c2)::4>>
+      )
     end
 
-    defp unquote(name)(<<>>, acc) do
+    defp unquote(decode_name)(<<>>, acc) do
       acc
     end
   end
