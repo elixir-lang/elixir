@@ -854,9 +854,9 @@ defmodule IEx.Helpers do
   Prints information about the given process.
   """
   @doc since: "1.19.0"
-  def process_info(pid) when is_pid(pid) do
-    with true <- Process.alive?(pid),
-         info when is_list(info) <- Process.info(pid, @process_info_keys) do
+  def process_info(pid) do
+    with pid when is_pid(pid) <- GenServer.whereis(pid),
+         info when is_list(info) <- :erpc.call(node(pid), :erlang, :process_info, [pid, @process_info_keys]) do
       info = Map.new(info)
 
       print_process_overview(info)
