@@ -322,23 +322,17 @@ defmodule Base do
   @doc """
   Checks if a string is a valid base 16 encoded string.
 
-  Use this function when you just need to *validate* that a string is valid base64 data,
-  without actually producing a decoded output string.
+  > #### When to use this {: .tip}
+  >
+  > Use this function when you just need to *validate* that a string is
+  > valid base 16 data, without actually producing a decoded output string.
+  > This function is both more performant and memory efficient than using
+  > `decode16/2`, checking that the result is `{:ok, ...}`, and then
+  > discarding the decoded binary.
 
   ## Options
 
-  The accepted options are:
-
-    * `:case` - specifies the character case to accept when decoding
-
-  The values for `:case` can be:
-
-    * `:upper` - only allows upper case characters (default)
-    * `:lower` - only allows lower case characters
-    * `:mixed` - allows mixed case characters
-
-  An `ArgumentError` exception is raised if the padding is incorrect or
-  a non-alphabet character is present in the string.
+  Accepts the same options as `decode16/2`.
 
   ## Examples
 
@@ -635,9 +629,17 @@ defmodule Base do
   @doc """
   Validates a base 64 encoded string.
 
+  > #### When to use this {: .tip}
+  >
+  > Use this function when you just need to *validate* that a string is
+  > valid base 16 data, without actually producing a decoded output string.
+  > This function is both more performant and memory efficient than using
+  > `decode16/2`, checking that the result is `{:ok, ...}`, and then
+  > discarding the decoded binary.
+
   ## Options
 
-  Same as `decode64/2`.
+  Accepts the same options as `decode64/2`.
 
   ## Examples
 
@@ -724,9 +726,17 @@ defmodule Base do
   @doc """
   Validates a base 64 encoded string with URL and filename safe alphabet.
 
+  > #### When to use this {: .tip}
+  >
+  > Use this function when you just need to *validate* that a string is
+  > valid (URL-safe) base 64 data, without actually producing a decoded
+  > output string. This function is both more performant and memory efficient
+  > than using `url_decode64/2`, checking that the result is `{:ok, ...}`,
+  > and then discarding the decoded binary.
+
   ## Options
 
-  Same as `url_decode64/2`.
+  Accepts the same options as `url_decode64/2`.
 
   ## Examples
 
@@ -1217,7 +1227,17 @@ defmodule Base do
   @doc """
   Checks if a base 32 encoded string is valid.
 
-  See `decode32/2` for the accepted options.
+  > #### When to use this {: .tip}
+  >
+  > Use this function when you just need to *validate* that a string is
+  > valid base 32 data, without actually producing a decoded output string.
+  > This function is both more performant and memory efficient than using
+  > `decode32/2`, checking that the result is `{:ok, ...}`, and then
+  > discarding the decoded binary.
+
+  ## Options
+
+  Accepts the same options as `decode32/2`.
 
   ## Examples
 
@@ -1345,7 +1365,17 @@ defmodule Base do
   @doc """
   Checks if a base 32 encoded string with extended hexadecimal alphabet is valid.
 
-  See `decode32/2` for the accepted options.
+  > #### When to use this {: .tip}
+  >
+  > Use this function when you just need to *validate* that a string is
+  > valid (extended hexadecimal) base 32 data, without actually producing
+  > a decoded output string. This function is both more performant and
+  > memory efficient than using `hex_decode32/2`, checking that the result
+  > is `{:ok, ...}`, and then discarding the decoded binary.
+
+  ## Options
+
+  Accepts the same options as `hex_decode32/2`.
 
   ## Examples
 
