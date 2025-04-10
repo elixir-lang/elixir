@@ -1,0 +1,60 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
+id: "SpdxDocumentFile:The Elixir Team:elixir:"
+path_excludes:
+  - pattern: "lib/elixir/pages/**/*"
+    reason: "DOCUMENTATION_OF"
+    comment: "Documentation"
+  - pattern: "lib/elixir/scripts/**/*"
+    reason: "BUILD_TOOL_OF"
+    comment: "Build Tool"
+  - pattern: "lib/elixir/test/**/*"
+    reason: "TEST_OF"
+    comment: "Tests"
+license_finding_curations:
+  # Logos
+  - path: "lib/elixir/pages/images/logo.png"
+    reason: "NOT_DETECTED"
+    comment: "Apply Trademark Policy to Elixir Logo"
+    detected_license: "NONE"
+    concluded_license: "LicenseRef-elixir-trademark-policy"
+  - path: "lib/elixir/scripts/windows_installer/assets/Elixir.ico"
+    reason: "NOT_DETECTED"
+    comment: "Apply Trademark Policy to Elixir Logo"
+    detected_license: "NONE"
+    concluded_license: "LicenseRef-elixir-trademark-policy"
+
+  # Documentation Images
+  - path: "lib/elixir/pages/images/**/*.png"
+    reason: "NOT_DETECTED"
+    comment: "Apply default license to all images"
+    detected_license: "NONE"
+    concluded_license: "Apache-2.0"
+
+  # Test Fixtures
+  - path: "lib/elixir/test/elixir/fixtures/**/*"
+    reason: "NOT_DETECTED"
+    comment: "Apply default license to test fixtures"
+    detected_license: "NONE"
+    concluded_license: "Apache-2.0"
+
+  # Unicode
+  - path: "lib/elixir/unicode/*.txt"
+    reason: "NOT_DETECTED"
+    comment: "Apply default license to unicode files"
+    detected_license: "NONE"
+    concluded_license: "LicenseRef-scancode-unicode"
+
+  # Wrongly Identified
+  - path: "lib/elixir/pages/references/library-guidelines.md"
+    reason: "INCORRECT"
+    comment: |
+      The guide mentions multiple licenses for users to choose from.
+      It however is not licensed itself by the mentioned licenses.
+    concluded_license: "Apache-2.0"
+  - path: "lib/elixir/scripts/windows_installer/.gitignore"
+    reason: "INCORRECT"
+    comment: "Ignored by ScanCode"
+    detected_license: "NONE"
+    concluded_license: "Apache-2.0"
