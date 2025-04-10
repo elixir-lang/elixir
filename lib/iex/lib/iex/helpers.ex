@@ -852,12 +852,26 @@ defmodule IEx.Helpers do
 
   @doc """
   Prints information about the given process.
+
+  Includes a generic overview and details such as the linked and monitored processes,
+  the memory usage and the current stacktrace.
+
+  ## Examples
+
+      iex> process_info(self())
+      ...
+      iex> process_info({:via, Registry, {MyApp.Registry, :name}})
+      ...
+
   """
   @doc since: "1.19.0"
   def process_info(pid) do
     with pid when is_pid(pid) <- GenServer.whereis(pid),
-         info when is_list(info) <- :erpc.call(node(pid), :erlang, :process_info, [pid, @process_info_keys]) do
+         info when is_list(info) <-
+           :erpc.call(node(pid), :erlang, :process_info, [pid, @process_info_keys]) do
       info = Map.new(info)
+
+      IO.puts(IEx.color(:eval_result, ["\n# Process ", inspect(pid)]))
 
       print_process_overview(info)
       print_process_links(info[:links])
