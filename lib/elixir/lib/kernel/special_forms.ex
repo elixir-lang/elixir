@@ -715,7 +715,7 @@ defmodule Kernel.SpecialForms do
   Returns the stacktrace for the currently handled exception.
 
   It is available only in the `catch` and `rescue` clauses of `try/1`
-  expressions.
+  expressions and function definitions.
 
   To retrieve the stacktrace of the current process, use
   `Process.info(self(), :current_stacktrace)` instead.
