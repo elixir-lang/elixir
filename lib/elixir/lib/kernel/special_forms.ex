@@ -1242,8 +1242,11 @@ defmodule Kernel.SpecialForms do
       end)
 
   In the example above, we have generated the functions `foo/0` and
-  `bar/0` dynamically. Now, imagine that we want to convert this
-  functionality into a macro:
+  `bar/0` dynamically. Note the parentheses in `unquote(k)()` are important,
+  otherwise we would try to define a function as `def :foo` instead of
+  `def foo()`.
+
+  Now, imagine that we want to convert this functionality into a macro:
 
       defmacro defkv(kv) do
         Enum.map(kv, fn {k, v} ->
@@ -1268,8 +1271,9 @@ defmodule Kernel.SpecialForms do
   code fails.
 
   This is actually a common pitfall when developing macros. We are
-  assuming a particular shape in the macro. We can work around it
-  by unquoting the variable inside the quoted expression:
+  assuming a particular shape at compilation time, within the macro
+  implementation. One may try to work around it by unquoting the
+  variable inside the quoted expression:
 
       defmacro defkv(kv) do
         quote do
@@ -1281,9 +1285,10 @@ defmodule Kernel.SpecialForms do
 
   If you try to run our new macro, you will notice it won't
   even compile, complaining that the variables `k` and `v`
-  do not exist. This is because of the ambiguity: `unquote(k)`
-  can either be an unquote fragment, as previously, or a regular
-  unquote as in `unquote(kv)`.
+  do not exist. This is because the two `unquote`s in the call
+  above are meant to run at distinct moments: `unquote(kv)`
+  applies to the immediate quote, `unquote(k)` is an unquote
+  fragment.
 
   One solution to this problem is to disable unquoting in the
   macro, however, doing that would make it impossible to inject the
