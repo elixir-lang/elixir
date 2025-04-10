@@ -1641,6 +1641,37 @@ defmodule IEx.HelpersTest do
     end
   end
 
+  describe "process_info/1" do
+    test "returns information about a process" do
+      result = capture_io(fn -> process_info(self()) end)
+
+      assert result =~ "Process #{inspect(self())}"
+      assert result =~ "## Overview"
+      assert result =~ "Initial call"
+      assert result =~ "## Memory"
+      assert result =~ "## Current stacktrace"
+      assert result =~ "IEx.Helpers.process_info/1"
+
+      refute result =~ "## Links"
+      refute result =~ "## Monitors"
+    end
+
+    test "includes process links and monitors" do
+      pid =
+        spawn_link(fn ->
+          Process.register(self(), :iex_process_info_link_test)
+          Process.sleep(:infinity)
+        end)
+
+      Process.monitor(pid)
+
+      result = capture_io(fn -> process_info(self()) end)
+      assert result =~ "## Links"
+      assert result =~ "## Monitors"
+      assert result =~ ":iex_process_info_link_test"
+    end
+  end
+
   defp test_module_code do
     """
     defmodule Sample do
