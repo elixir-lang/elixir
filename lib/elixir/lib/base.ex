@@ -632,9 +632,9 @@ defmodule Base do
   > #### When to use this {: .tip}
   >
   > Use this function when you just need to *validate* that a string is
-  > valid base 16 data, without actually producing a decoded output string.
+  > valid base 64 data, without actually producing a decoded output string.
   > This function is both more performant and memory efficient than using
-  > `decode16/2`, checking that the result is `{:ok, ...}`, and then
+  > `decode64/2`, checking that the result is `{:ok, ...}`, and then
   > discarding the decoded binary.
 
   ## Options
