@@ -1914,33 +1914,31 @@ defmodule Kernel.SpecialForms do
 
   ## Examples
 
-      case File.read(file) do
-        {:ok, contents} when is_binary(contents) ->
-          String.split(contents, "\n")
-
-        {:error, _reason} ->
-          Logger.warning "could not find #{file}, assuming empty..."
-          []
-      end
+      iex> file = "no_file.txt"
+      iex> case File.read(file) do
+      ...>   {:ok, contents} when is_binary(contents) ->
+      ...>     String.split(contents, "\n")
+      ...>   {:error, _reason} ->
+      ...>     "Can't read the #{file} file"
+      ...> end
+      "Can't read the no_file.txt file"
 
   In the example above, we match the result of `File.read/1`
   against each clause "head" and execute the clause "body"
-  corresponding to the first clause that matches.
+  corresponding to the first clause that matches. In our case
+  there is no file, so `File.read/1` returns `{:error, :enoent}`
+  and the second clause is matched.
 
   If no clause matches, an error is raised. For this reason,
   it may be necessary to add a final catch-all clause (like `_`)
   which will always match.
 
-      x = 10
-
-      case x do
-        0 ->
-          "This clause won't match"
-
-        _ ->
-          "This clause would match any value (x = #{x})"
-      end
-      #=> "This clause would match any value (x = 10)"
+      iex> x = 10
+      iex> case x do
+      ...>   0 -> "This clause won't match"
+      ...>   _ -> "This clause would match any value (x = #{x})"
+      ...> end
+      "This clause would match any value (x = 10)"
 
   If you find yourself nesting `case` expressions inside
   `case` expressions, consider using `with/1`.
@@ -1949,54 +1947,54 @@ defmodule Kernel.SpecialForms do
 
   Note that variables bound in a clause do not leak to the outer context:
 
-      case data do
-        {:ok, value} -> value
-        :error -> nil
-      end
+      iex> case {:ok, 7} do
+      ...>   {:ok, value} -> value
+      ...>   :error -> nil
+      ...> end
 
-      value
-      #=> unbound variable value
+      ...> value
+      ** (CompileError) undefined variable "value"
 
   Variables in the outer context cannot be overridden either:
 
-      value = 7
+      iex> value = 7
+      iex> case 3 > 5 do
+      ...>   false ->
+      ...>     value = 3
+      ...>     value + 2
+      ...>   true ->
+      ...>     3
+      ...> end
+      iex> value
+      7
 
-      case lucky? do
-        false -> value = 13
-        true -> true
-      end
-
-      value
-      #=> 7
-
-  In the example above, `value` is going to be `7` regardless of the value of
-  `lucky?`. The variable `value` bound in the clause and the variable `value`
-  bound in the outer context are two entirely separate variables.
+  In the example above, `value` is going to be `7` regardless of
+  which clause matched. The variable `value` bound in the clause
+  and the variable `value` bound in the outer context are two
+  entirely separate variables.
 
   If you want to pattern match against an existing variable,
   you need to use the `^/1` operator:
 
-      x = 1
-
-      case 10 do
-        ^x -> "Won't match"
-        _ -> "Will match"
-      end
-      #=> "Will match"
+      iex> x = 1
+      iex> case 10 do
+      ...>   ^x -> "Won't match"
+      ...>   _ -> "Will match"
+      ...> end
+      "Will match"
 
   ## Using guards to match against multiple values
 
   While it is not possible to match against multiple patterns in a single
   clause, it's possible to match against multiple values by using guards:
 
-      case data do
-        value when value in [:one, :two] ->
-          "#{value} has been matched"
-
-        :three ->
-          "three has been matched"
-      end
-
+      iex> case :two do
+      ...>   value when value in [:one, :two] ->
+      ...>     "#{value} has been matched"
+      ...>   :three ->
+      ...>     "three has been matched"
+      ...> end
+      "two has been matched"
   """
   defmacro case(condition, clauses), do: error!([condition, clauses])
 
