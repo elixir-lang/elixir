@@ -2007,25 +2007,21 @@ defmodule Kernel.SpecialForms do
   The following example has a single clause that always evaluates
   to true:
 
-      cond do
-        hd([1, 2, 3]) ->
-          "1 is considered as true"
-      end
-      #=> "1 is considered as true"
+      iex> cond do
+      ...>   hd([1, 2, 3]) -> "1 is considered as true"
+      ...> end
+      "1 is considered as true"
 
   If all clauses evaluate to `nil` or `false`, `cond` raises an error.
   For this reason, it may be necessary to add a final always-truthy condition
   (anything non-`false` and non-`nil`), which will always match:
 
-      cond do
-        1 + 1 == 1 ->
-          "This will never match"
-        2 * 2 != 4 ->
-          "Nor this"
-        true ->
-          "This will"
-      end
-      #=> "This will"
+      iex> cond do
+      ...>   1 + 1 == 1 -> "This will never match"
+      ...>   2 * 2 != 4 -> "Nor this"
+      ...>   true -> "This will"
+      ...> end
+      "This will"
 
 
   If your `cond` has two clauses, and the last one falls back to
