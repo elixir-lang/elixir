@@ -305,7 +305,7 @@ encode_list(List, Encode) when is_list(List) ->
 do_encode_list([], _Encode) ->
     <<"[]">>;
 do_encode_list([{Key, _Value} | _Rest] = List, Encode) when is_atom(Key) ->
-    encode_key_value_list(List, Encode);
+    encode_key_value_list_checked(List, Encode);
 do_encode_list([First | Rest], Encode) when is_function(Encode, 2) ->
     [$[, Encode(First, Encode) | list_loop(Rest, Encode)].
 
@@ -343,6 +343,8 @@ do_encode_checked([{Key, Value} | Rest], Encode, Visited0) ->
             Visited = Visited0#{EncodedKey => true},
             [[$,, EncodedKey, $: | Encode(Value, Encode)] | do_encode_checked(Rest, Encode, Visited)]
     end;
+do_encode_checked([NotKV | _Rest], _Encode, _Visited) ->
+  error({invalid_keyword_list_element, NotKV});
 do_encode_checked([], _, _) ->
     [].
 

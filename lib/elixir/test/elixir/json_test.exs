@@ -46,6 +46,20 @@ defmodule JSONTest do
     end
 
     test "keyword lists" do
+      invalid_kw_list_error =
+        assert_raise(ErlangError, fn ->
+          assert JSON.encode!([{:a, 1}, {:b, 2}, "bar"]) == "foobar"
+        end)
+
+      assert invalid_kw_list_error.original == {:invalid_keyword_list_element, "bar"}
+
+      duplicate_key_error =
+        assert_raise(ErlangError, fn ->
+          JSON.encode!(a: 1, b: 2, a: "BAD")
+        end)
+
+      assert duplicate_key_error.original == {:duplicate_key, :a}
+
       ex =
         assert_raise(Protocol.UndefinedError, fn ->
           JSON.encode!([1, :a, k1: "a", k2: "b"])
