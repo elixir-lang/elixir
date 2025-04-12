@@ -355,14 +355,10 @@ defmodule Base do
 
   def valid16?(string, opts) when is_binary(string) and rem(byte_size(string), 2) == 0 do
     case Keyword.get(opts, :case, :upper) do
-      :upper -> validate16upper!(string)
-      :lower -> validate16lower!(string)
-      :mixed -> validate16mixed!(string)
+      :upper -> validate16upper?(string)
+      :lower -> validate16lower?(string)
+      :mixed -> validate16mixed?(string)
     end
-
-    true
-  rescue
-    ArgumentError -> false
   end
 
   def valid16?(string, _opts) when is_binary(string) do
@@ -373,21 +369,26 @@ defmodule Base do
 
   for {base, alphabet} <- [upper: upper, lower: to_lower_dec.(upper), mixed: to_mixed_dec.(upper)] do
     decode_name = :"decode16#{base}!"
-    validate_name = :"validate16#{base}!"
+    validate_name = :"validate16#{base}?"
+    valid_char_name = :"valid_char16#{base}?"
 
     {min, decoded} = to_decode_list.(alphabet)
 
-    defp unquote(validate_name)(<<>>), do: :ok
+    defp unquote(validate_name)(<<>>), do: true
 
     defp unquote(validate_name)(<<c1, c2, rest::binary>>) do
-      unquote(decode_name)(c1)
-      unquote(decode_name)(c2)
-      unquote(validate_name)(rest)
+      unquote(valid_char_name)(c1) and
+        unquote(valid_char_name)(c2) and
+        unquote(validate_name)(rest)
     end
 
-    defp unquote(validate_name)(<<char, _rest::binary>>) do
-      bad_character!(char)
-    end
+    defp unquote(validate_name)(<<_char, _rest::binary>>), do: false
+
+    defp unquote(valid_char_name)(char)
+         when elem({unquote_splicing(decoded)}, char - unquote(min)) != nil,
+         do: true
+
+    defp unquote(valid_char_name)(_char), do: false
 
     defp unquote(decode_name)(char) do
       index = char - unquote(min)
