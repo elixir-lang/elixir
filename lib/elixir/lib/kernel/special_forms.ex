@@ -1914,20 +1914,19 @@ defmodule Kernel.SpecialForms do
 
   ## Examples
 
-      iex> file = "no_file.txt"
-      iex> case File.read(file) do
-      ...>   {:ok, contents} when is_binary(contents) ->
-      ...>     String.split(contents, "\n")
-      ...>   {:error, _reason} ->
-      ...>     "Can't read the #{file} file"
+      iex> string_date = "2015-01-23"
+      iex> case Date.from_iso8601(string_date) do
+      ...>   {:ok, date} -> date
+      ...>   {:error, _reason} -> Date.utc_today()
       ...> end
-      "Can't read the no_file.txt file"
+      ~D[2015-01-23]
 
-  In the example above, we match the result of `File.read/1`
+  In the example above, we match the result of `Date.from_iso8601/1`
   against each clause "head" and execute the clause "body"
   corresponding to the first clause that matches. In our case
-  there is no file, so `File.read/1` returns `{:error, :enoent}`
-  and the second clause is matched.
+  `string_date` contains a string with a valid ISO 8601 representation
+  of date. The function returns `{:ok, ~D[2015-01-23]}`, so the
+  `{:ok, date}` clause is matched.
 
   If no clause matches, an error is raised. For this reason,
   it may be necessary to add a final catch-all clause (like `_`)
