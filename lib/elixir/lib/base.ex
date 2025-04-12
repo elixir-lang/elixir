@@ -390,13 +390,12 @@ defmodule Base do
     end
 
     defp unquote(decode_name)(char) do
-      try do
-        elem({unquote_splicing(decoded)}, char - unquote(min))
-      rescue
-        _ -> bad_character!(char)
-      else
-        nil -> bad_character!(char)
-        char -> char
+      index = char - unquote(min)
+
+      cond do
+        index not in 0..unquote(length(decoded) - 1) -> bad_character!(char)
+        new_char = elem({unquote_splicing(decoded)}, index) -> new_char
+        true -> bad_character!(char)
       end
     end
 
@@ -859,13 +858,12 @@ defmodule Base do
     end
 
     defp unquote(decode_name)(char) do
-      try do
-        elem({unquote_splicing(decoded)}, char - unquote(min))
-      rescue
-        _ -> bad_character!(char)
-      else
-        nil -> bad_character!(char)
-        char -> char
+      index = char - unquote(min)
+
+      cond do
+        index not in 0..unquote(length(decoded) - 1) -> bad_character!(char)
+        new_char = elem({unquote_splicing(decoded)}, index) -> new_char
+        true -> bad_character!(char)
       end
     end
 
@@ -1508,13 +1506,12 @@ defmodule Base do
     end
 
     defp unquote(decode_name)(char) do
-      try do
-        elem({unquote_splicing(decoded)}, char - unquote(min))
-      rescue
-        _ -> bad_character!(char)
-      else
-        nil -> bad_character!(char)
-        char -> char
+      index = char - unquote(min)
+
+      cond do
+        index not in 0..unquote(length(decoded) - 1) -> bad_character!(char)
+        new_char = elem({unquote_splicing(decoded)}, index) -> new_char
+        true -> bad_character!(char)
       end
     end
 
