@@ -304,6 +304,8 @@ encode_list(List, Encode) when is_list(List) ->
 
 do_encode_list([], _Encode) ->
     <<"[]">>;
+do_encode_list([{Key, _Value} | _Rest] = List, Encode) when is_atom(Key) ->
+    encode_key_value_list(List, Encode);
 do_encode_list([First | Rest], Encode) when is_function(Encode, 2) ->
     [$[, Encode(First, Encode) | list_loop(Rest, Encode)].
 

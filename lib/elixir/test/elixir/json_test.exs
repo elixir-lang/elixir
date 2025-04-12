@@ -45,6 +45,18 @@ defmodule JSONTest do
                "[1,1.0,\"one\",{\"1\":2,\"3.0\":4.0,\"key\":\"bar\"}]"
     end
 
+    test "keyword lists" do
+      ex =
+        assert_raise(Protocol.UndefinedError, fn ->
+          JSON.encode!([1, :a, k1: "a", k2: "b"])
+        end)
+
+      assert ex.value == {:k1, "a"}
+
+      assert JSON.encode!(k1: "a", k2: 123, k3: ["b", %{k4: "c"}, 123.456, [k5: [k6: :d]]]) ==
+               "{\"k1\":\"a\",\"k2\":123,\"k3\":[\"b\",{\"k4\":\"c\"},123.456,{\"k5\":{\"k6\":\"d\"}}]}"
+    end
+
     test "structs" do
       assert JSON.encode!(%Token{value: :example}) == "[\"example\"]"
       assert JSON.encode!(%Token{value: "hello\0world"}) == "[\"hello\\u0000world\"]"
@@ -91,6 +103,18 @@ defmodule JSONTest do
     test "lists" do
       assert protocol_encode([1, 1.0, "one", %{1 => 2, 3.0 => 4.0, key: :bar}]) ==
                "[1,1.0,\"one\",{\"1\":2,\"3.0\":4.0,\"key\":\"bar\"}]"
+    end
+
+    test "keyword lists" do
+      ex =
+        assert_raise(Protocol.UndefinedError, fn ->
+          assert protocol_encode(JSON.encode!([1, :a, k1: "a", k2: "b"]))
+        end)
+
+      assert ex.value == {:k1, "a"}
+
+      assert protocol_encode(k1: 2, k2: 4.0, k3: ~c"list", k4: :bar) ==
+               "{\"k1\":2,\"k2\":4.0,\"k3\":[108,105,115,116],\"k4\":\"bar\"}"
     end
 
     test "structs" do
