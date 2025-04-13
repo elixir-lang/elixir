@@ -2373,30 +2373,32 @@ defmodule Kernel.SpecialForms do
   Any new and existing messages that do not match will remain in the mailbox.
 
   ## Examples
-
-      receive do
-        {:selector, number, name} when is_integer(number) ->
-          name
-        name when is_atom(name) ->
-          name
-        _ ->
-          IO.puts(:stderr, "Unexpected message received")
-      end
+      iex> send(self(), {:selector, 5, :quantity})
+      iex> receive do
+      ...>   {:selector, number, name} when is_integer(number) ->
+      ...>     name
+      ...>   name when is_atom(name) ->
+      ...>     name
+      ...>   _ ->
+      ...>     IO.puts(:stderr, "Unexpected message received")
+      ...> end
+      :quantity
 
   An optional `after` clause can be given in case no matching message is
   received during the given timeout period, specified in milliseconds:
 
-      receive do
-        {:selector, number, name} when is_integer(number) ->
-          name
-        name when is_atom(name) ->
-          name
-        _ ->
-          IO.puts(:stderr, "Unexpected message received")
-      after
-        5000 ->
-          IO.puts(:stderr, "No message in 5 seconds")
-      end
+      iex> receive do
+      ...>   {:selector, number, name} when is_integer(number) ->
+      ...>     name
+      ...>   name when is_atom(name) ->
+      ...>     name
+      ...>   _ ->
+      ...>     IO.puts(:stderr, "Unexpected message received")
+      ...> after
+      ...>   10 ->
+      ...>     "return this after 10 milliseconds"
+      ...> end
+      "return this after 10 milliseconds"
 
   The `after` clause can be specified even if there are no match clauses.
   The timeout value given to `after` can be any expression evaluating to
