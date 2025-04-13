@@ -2094,7 +2094,7 @@ defmodule Kernel.SpecialForms do
       ...> end
       [:rescued, true]
 
-  Rescue different errors differently
+  Rescue several errors differently
 
       iex> try do
       ...>   1 / 0
@@ -2267,8 +2267,7 @@ defmodule Kernel.SpecialForms do
       iex> try do
       ...>   1 / x
       ...> rescue
-      ...>   ArithmeticError ->
-      ...>     :infinity
+      ...>   ArithmeticError -> :infinity
       ...> end
       0.2
 
