@@ -384,6 +384,7 @@ defmodule Base do
 
     defp unquote(validate_name)(<<_char, _rest::binary>>), do: false
 
+    @compile {:inline, [{valid_char_name, 1}]}
     defp unquote(valid_char_name)(char)
          when elem({unquote_splicing(decoded)}, char - unquote(min)) != nil,
          do: true
