@@ -2067,7 +2067,7 @@ defmodule Kernel.SpecialForms do
   exception by its name. All the following formats are valid patterns
   in `rescue` clauses:
 
-  Rescue a single exception without binding the exception to a variable
+  Rescue a single exception without binding the exception to a variable:
 
       iex> try do
       ...>   1 / 0
@@ -2076,7 +2076,7 @@ defmodule Kernel.SpecialForms do
       ...> end
       :rescued
 
-  Rescue any of the given exception without binding
+  Rescue any of the given exception without binding:
 
       iex> try do
       ...>   1 / 0
@@ -2085,7 +2085,7 @@ defmodule Kernel.SpecialForms do
       ...> end
       :rescued
 
-  Rescue and bind the exception to the variable "x"
+  Rescue and bind the exception to the variable `x`:
 
       iex> try do
       ...>   1 / 0
@@ -2094,7 +2094,7 @@ defmodule Kernel.SpecialForms do
       ...> end
       [:rescued, true]
 
-  Rescue several errors differently
+  Rescue different errors with separate clauses:
 
       iex> try do
       ...>   1 / 0
@@ -2105,7 +2105,7 @@ defmodule Kernel.SpecialForms do
       :rescued_arithmetic_error
 
   Rescue all kinds of exceptions and bind the rescued exception
-  to the variable "x"
+  to the variable `x`:
 
       iex> try do
       ...>   1 / 0
@@ -2216,33 +2216,26 @@ defmodule Kernel.SpecialForms do
       end
 
   Although `after` clauses are invoked whether or not there was an error, they do not
-  modify the return value. Both of the following examples return `:returned`:
+  modify the return value. Both of the following examples print a message to STDOUT
+  and return `:returned`:
 
-      iex> try do
-      ...>   :returned
-      ...> after
-      ...>   send(self(), :send_from_after_block)
-      ...>   :not_returned
-      ...> end
-      :returned
-      iex> receive do
-      ...>   :send_from_after_block -> :message_received
-      ...> end
-      :message_received
+      try do
+        :returned
+      after
+        IO.puts("This message will be printed")
+        :not_returned
+      end
+      #=> :returned
 
-      iex> try do
-      ...>   raise "boom"
-      ...> rescue
-      ...>   _ -> :returned
-      ...> after
-      ...>   send(self(), :send_from_after_block)
-      ...>   :not_returned
-      ...> end
-      :returned
-      iex> receive do
-      ...>   :send_from_after_block -> :message_received
-      ...> end
-      :message_received
+      try do
+        raise "boom"
+      rescue
+        _ -> :returned
+      after
+        IO.puts("This message will be printed")
+        :not_returned
+      end
+      #=> :returned
 
   ## `else` clauses
 
@@ -2395,9 +2388,9 @@ defmodule Kernel.SpecialForms do
       ...>     IO.puts(:stderr, "Unexpected message received")
       ...> after
       ...>   10 ->
-      ...>     "return this after 10 milliseconds"
+      ...>     "No message in 10 milliseconds"
       ...> end
-      "return this after 10 milliseconds"
+      "No message in 10 milliseconds"
 
   The `after` clause can be specified even if there are no match clauses.
   The timeout value given to `after` can be any expression evaluating to
