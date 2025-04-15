@@ -1,0 +1,142 @@
+header:
+  schema-version: 2.0.0
+  # TODO: Set Dates
+  last-updated: "2025-04-XX"
+  last-reviewed: "2025-04-XX"
+  url: https://github.com/elixir-lang/elixir
+
+project:
+  name: Elixir
+  homepage: https://elixir-lang.org/
+  roadmap: https://elixir-lang.org/development.html
+  # TODO: Add others?
+  administrators:
+    - name: José Valim
+      primary: true
+  repositories:
+    - name: elixir
+      url: https://github.com/elixir-lang/elixir
+      comment: Elixir is a dynamic, functional language for building scalable and maintainable applications
+  vulnerability-reporting:
+    reports-accepted: true
+    bug-bounty-available: false
+    security-policy: https://github.com/elixir-lang/elixir/security
+    out-of-scope:
+      - unsupported_versions
+
+repository:
+  url: https://github.com/elixir-lang/elixir
+  status: active
+  bug-fixes-only: false
+  accepts-change-request: true
+  accepts-automated-change-request: false
+  no-third-party-packages: true
+  core-team:
+    - name: José Valim
+      primary: true
+    - name: Eric Meadows-Jönsson
+    - name: Andrea Leopardi
+    - name: Fernando Tapia Rico
+    - name: Jean Klingler
+  documentation:
+    contributing-guide: https://github.com/elixir-lang/elixir/blob/main/CONTRIBUTING.md
+    review-policy: https://github.com/elixir-lang/elixir/blob/main/CONTRIBUTING.md#reviewing-changes
+    security-policy: https://github.com/elixir-lang/elixir/blob/main/SECURITY.md
+    governance: https://elixir-lang.org/development.html
+  license:
+    url: https://github.com/elixir-lang/elixir/tree/main/LICENSES
+    expression: Apache-2.0 AND LicenseRef-scancode-unicode AND LicenseRef-elixir-trademark-policy
+  release:
+    changelog: https://github.com/elixir-lang/elixir/releases/tag/{version}
+    automated-pipeline: true
+    attestations:
+      - name: Source SBOM (SPDX)
+        predicate-uri: https://spdx.dev/Document
+        location: https://github.com/elixir-lang/elixir/releases/download/{version}/bom.spdx.json
+        comment: Replace {version} with the actual version number for the release you want an SBOM for.
+      - name: Source SBOM (CycloneDX)
+        predicate-uri: https://cyclonedx.org/bom
+        location: https://github.com/elixir-lang/elixir/releases/download/{version}/bom.cyclonedex.json
+        comment: Replace {version} with the actual version number for the release you want an SBOM for.
+      - name: SLSA Build Attestation
+        predicate-uri: https://slsa.dev/provenance
+        location: https://github.com/elixir-lang/elixir/releases/download/{version}/elixir-otp-{otp-version}.exe.sigstore
+        comment: >
+          Replace {version} with the actual version number for the release and
+          {otp-version} for the OTP major version you want the
+          SLSA Build Attestation for.
+    distribution-points:
+      # TODO: Do we list all purls listed on the Installation Page?
+      # I would recommend to add them all even though they are not directly
+      # managed by this project to allow the matching of vulnerabilities to this
+      # repo when using those tools.
+
+      # Guides
+      - uri: https://elixir-lang.org/install.html
+        comment: Installation Instructions
+
+      # Source
+      - uri: https://github.com/elixir-lang/elixir/releases
+        comment: GitHub Release Page
+      - uri: pkg:github/elixir-lang/elixir
+        comment: Source
+
+      # OTP Packages (refered to in `project.spdx.yml`)
+      - uri: pkg:otp/eex
+        comment: "eex OTP Package"
+      - uri: pkg:otp/elixir
+        comment: "Elixir OTP Package"
+      - uri: pkg:otp/ex_unit
+        comment: "ex_unit OTP Package"
+      - uri: pkg:otp/iex
+        comment: "iex OTP Package"
+      - uri: pkg:otp/logger
+        comment: "logger OTP Package"
+      - uri: pkg:otp/mix
+        comment: "mix OTP Package"
+
+      # OS Package Managers
+
+      # Brew TBD https://github.com/package-url/purl-spec/issues/254
+      # - uri: pkg:brew/elixir
+      #   comment: Brew Formula
+      - uri: pkg:alpm/arch/elixir
+        comment: Arch Pacman Package
+      - uri: pkg:rpm/fedora/elixir
+        comment: Fedora RPM Package
+      # Guix TBD https://github.com/package-url/purl-spec/issues/149
+      # - uri: pkg:guix/elixir
+      #   comment: Guix Package
+      - uri: pkg:deb/debian/elixir
+        comment: Debian APT Package
+      - uri: pkg:deb/ubuntu/elixir
+        comment: Ubuntu APT Package
+
+      # Docker
+      - uri: pkg:docker/elixir
+        comment: Elixir Docker Image
+      - uri: pkg:docker/hexpm/elixir
+        comment: Elixir Hex.pm Bob Docker Image
+      - uri: pkg:docker/hexpm/elixir-amd64
+        comment: Elixir Hex.pm Bob Docker Image (AMD64)
+      - uri: pkg:docker/hexpm/elixir-arm64
+        comment: Elixir Hex.pm Bob Docker Image (ARM64)
+    license:
+      url: https://github.com/elixir-lang/elixir/tree/main/LICENSES
+      expression: Apache-2.0 AND LicenseRef-scancode-unicode
+  security:
+    assessments:
+      self:
+        - name: OpenSSF Best Practices (Passing)
+          evidence: https://www.bestpractices.dev/en/projects/10187
+          date: "2025-03-28"
+        - name: OpenChain ISO/IEC 5230 Certification
+          evidence: https://github.com/elixir-lang/elixir/blob/main/OPEN_SOURCE_POLICY.md
+          date: "2025-02-20"
+    tools:
+      - name: Dependabot
+        type: SCA
+        integration:
+          adhoc: true
+          ci: false
+          release: false
