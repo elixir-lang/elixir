@@ -37,7 +37,7 @@ defmodule Mix.GleamTest do
     end
   end
 
-  describe "gleam export package-information format" do
+  describe "Gleam export package-information format" do
     test "parse_config" do
       config =
         %{
