@@ -16,26 +16,24 @@ defmodule Mix.Gleam do
   end
 
   def parse_config(json) do
-    try do
-      deps =
-        Map.get(json, "dependencies", %{})
-        |> Enum.map(&parse_dep/1)
+    deps =
+      Map.get(json, "dependencies", %{})
+      |> Enum.map(&parse_dep/1)
 
-      dev_deps =
-        Map.get(json, "dev-dependencies", %{})
-        |> Enum.map(&parse_dep(&1, only: :dev))
+    dev_deps =
+      Map.get(json, "dev-dependencies", %{})
+      |> Enum.map(&parse_dep(&1, only: :dev))
 
-      %{
-        name: Map.fetch!(json, "name"),
-        version: Map.fetch!(json, "version"),
-        deps: deps ++ dev_deps
-      }
-      |> maybe_gleam_version(json)
-      |> maybe_erlang_opts(json)
-    rescue
-      KeyError ->
-        Mix.raise("Command \"gleam export package-information\" unexpected format: \n" <> json)
-    end
+    %{
+      name: Map.fetch!(json, "name"),
+      version: Map.fetch!(json, "version"),
+      deps: deps ++ dev_deps
+    }
+    |> maybe_gleam_version(json)
+    |> maybe_erlang_opts(json)
+  rescue
+    KeyError ->
+      Mix.raise("Command \"gleam export package-information\" unexpected format: \n" <> json)
   end
 
   defp parse_dep({dep, requirement}, opts \\ []) do
