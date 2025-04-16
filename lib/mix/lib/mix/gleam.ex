@@ -96,23 +96,21 @@ defmodule Mix.Gleam do
   end
 
   defp gleam!(args) do
-    try do
-      System.cmd("gleam", args)
-    catch
-      :error, :enoent ->
-        Mix.raise(
-          "The \"gleam\" executable is not available in your PATH. " <>
-            "Please install it, as one of your dependencies requires it. "
-        )
-    else
-      {response, 0} ->
-        String.trim(response)
+    System.cmd("gleam", args)
+  catch
+    :error, :enoent ->
+      Mix.raise(
+        "The \"gleam\" executable is not available in your PATH. " <>
+          "Please install it, as one of your dependencies requires it. "
+      )
+  else
+    {response, 0} ->
+      String.trim(response)
 
-      {response, _} when is_binary(response) ->
-        Mix.raise("Command \"gleam #{Enum.join(args, " ")}\" failed with reason: #{response}")
+    {response, _} when is_binary(response) ->
+      Mix.raise("Command \"gleam #{Enum.join(args, " ")}\" failed with reason: #{response}")
 
-      {_, _} ->
-        Mix.raise("Command \"gleam #{Enum.join(args, " ")}\" failed")
-    end
+    {_, _} ->
+      Mix.raise("Command \"gleam #{Enum.join(args, " ")}\" failed")
   end
 end
