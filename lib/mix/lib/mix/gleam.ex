@@ -86,15 +86,13 @@ defmodule Mix.Gleam do
   end
 
   defp available_version do
-    try do
-      case gleam!(["--version"]) do
-        "gleam " <> version -> Version.parse!(version) |> Version.to_string()
-        output -> Mix.raise("Command \"gleam --version\" unexpected format: #{output}")
-      end
-    rescue
-      e in Version.InvalidVersionError ->
-        Mix.raise("Command \"gleam --version\" invalid version format: #{e.version}")
+    case gleam!(["--version"]) do
+      "gleam " <> version -> Version.parse!(version) |> Version.to_string()
+      output -> Mix.raise("Command \"gleam --version\" unexpected format: #{output}")
     end
+  rescue
+    e in Version.InvalidVersionError ->
+      Mix.raise("Command \"gleam --version\" invalid version format: #{e.version}")
   end
 
   defp gleam!(args) do
