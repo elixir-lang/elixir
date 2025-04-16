@@ -5,7 +5,7 @@
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule ExUnit.CaseTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: true, group: :group_foo
 
   ExUnit.Case.register_attribute(__MODULE__, :foo)
   ExUnit.Case.register_attribute(__MODULE__, :bar, accumulate: true)
@@ -40,6 +40,7 @@ defmodule ExUnit.CaseTest do
     assert context[:test_type] == :test
     assert context[:hello] == true
     assert context[:world] == :good
+    assert context[:test_group] == :group_foo
   end
 
   test "reset tags", context do

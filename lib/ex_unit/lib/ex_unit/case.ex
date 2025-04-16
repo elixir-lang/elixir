@@ -163,6 +163,8 @@ defmodule ExUnit.Case do
 
     * `:test` - the test name
 
+    * `:test_group` - the group the test belongs to
+
     * `:test_pid` - the PID of the testing process
 
     * `:test_type` - the test type used when printing test results.
