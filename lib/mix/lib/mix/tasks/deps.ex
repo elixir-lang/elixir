@@ -101,7 +101,7 @@ defmodule Mix.Tasks.Deps do
     * `:override` - if set to `true` the dependency will override any other
       definitions of itself by other dependencies
 
-    * `:manager` - Mix can also compile Rebar3, makefile and gleam projects
+    * `:manager` - Mix can also compile Rebar3, makefile and Gleam projects
       and can fetch sub dependencies of Rebar3 projects. Mix will
       try to infer the type of project but it can be overridden with this
       option by setting it to `:mix`, `:rebar3`, `:make` or `:gleam`. In case
