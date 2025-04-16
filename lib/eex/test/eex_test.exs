@@ -502,6 +502,59 @@ defmodule EExTest do
       end
     end
 
+    test "from Elixir parser" do
+      line = __ENV__.line + 6
+
+      message =
+        assert_raise TokenMissingError, fn ->
+          EEx.compile_string(
+            """
+            <li>
+              <strong>Some:</strong>
+              <%= true && @some[ %>
+            </li>
+            """,
+            file: __ENV__.file,
+            line: line,
+            indentation: 12
+          )
+        end
+
+      assert message |> Exception.message() |> strip_ansi() =~ """
+                  │
+              514 │                   true && @some[\s
+                  │                                │ └ missing closing delimiter (expected "]")
+                  │                                └ unclosed delimiter
+             """
+    end
+
+    test "from Elixir parser with line breaks" do
+      line = __ENV__.line + 6
+
+      message =
+        assert_raise TokenMissingError, fn ->
+          EEx.compile_string(
+            """
+            <li>
+              <strong>Some:</strong>
+              <%= true &&
+                @some[ %>
+            </li>
+            """,
+            file: __ENV__.file,
+            line: line,
+            indentation: 12
+          )
+        end
+
+      assert message |> Exception.message() |> strip_ansi() =~ """
+                  │
+              #{line + 3} │                 @some[\s
+                  │                      │ └ missing closing delimiter (expected "]")
+                  │                      └ unclosed delimiter
+             """
+    end
+
     test "honor line numbers" do
       assert_raise EEx.SyntaxError,
                    "nofile:100:6: expected closing '%>' for EEx expression",
@@ -946,6 +999,12 @@ defmodule EExTest do
         parser_options: [static_atoms_encoder: atoms_encoder]
       )
     end
+  end
+
+  @strip_ansi [IO.ANSI.green(), IO.ANSI.red(), IO.ANSI.reset()]
+
+  defp strip_ansi(doc) do
+    String.replace(doc, @strip_ansi, "")
   end
 
   defp assert_eval(expected, actual, binding \\ [], opts \\ []) do

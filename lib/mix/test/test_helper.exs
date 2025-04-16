@@ -51,6 +51,9 @@ gleam_exclude =
     Mix.Error -> [gleam: true]
   end
 
+Code.require_file("../../elixir/scripts/cover_record.exs", __DIR__)
+CoverageRecorder.maybe_record("mix")
+
 ExUnit.start(
   trace: !!System.get_env("TRACE"),
   exclude:

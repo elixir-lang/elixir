@@ -260,6 +260,9 @@ defmodule HashDict do
 end
 
 defimpl Enumerable, for: HashDict do
+  @moduledoc false
+  @moduledoc deprecated: "Use Map instead"
+
   def reduce(dict, acc, fun) do
     # Avoid warnings about HashDict being deprecated.
     module = String.to_atom("HashDict")
@@ -288,6 +291,9 @@ defimpl Enumerable, for: HashDict do
 end
 
 defimpl Collectable, for: HashDict do
+  @moduledoc false
+  @moduledoc deprecated: "Use Map instead"
+
   def into(original) do
     # Avoid warnings about HashDict being deprecated.
     module = String.to_atom("HashDict")
@@ -303,6 +309,8 @@ defimpl Collectable, for: HashDict do
 end
 
 defimpl Inspect, for: HashDict do
+  @moduledoc false
+  @moduledoc deprecated: "Use Map instead"
   import Inspect.Algebra
 
   def inspect(dict, opts) do

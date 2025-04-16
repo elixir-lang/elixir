@@ -5,20 +5,6 @@
 defmodule Mix.Local do
   @moduledoc false
 
-  @public_keys_html "https://builds.hex.pm/installs/public_keys.html"
-
-  @in_memory_key """
-  -----BEGIN PUBLIC KEY-----
-  MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAslPz1mAfyAvRv8W8xOdv
-  HQMbDJkDKfRhsL4JBGwGH7qw0xh+TbaUlNaM3pF+i8VUjS/4FeXjT/OAUEAHu5Y2
-  rBVlx00QcH8Dpbyf+H73XiCs0MXnTSecqDgzx6i6NMi8knklHT7yHySHtuuPmPuN
-  Po8QTKolCKftwPE/iNDeyZfwufd+hTCoCQdoTVcB01SElfNtvKRtoKbx35q80IPr
-  rOcGsALmr58+bWqCTY/51kFeRxzrPJ5LdcLU/AebyWddD4IUfPDxk16jTiCagMWA
-  JPSwo8NUrWDIBbD+rEUp06y0ek276rG5Tzm/3Bma56RN/u6nAqBTBE8F2Hu2QBKj
-  lQIDAQAB
-  -----END PUBLIC KEY-----
-  """
-
   @doc """
   Returns the name for an archive or an escript, based on the project config.
 
@@ -167,40 +153,16 @@ defmodule Mix.Local do
 
   Used to install both Rebar and Hex from S3.
   """
-  def find_matching_versions_from_signed_csv!(name, version, path) do
-    ensure_applications!()
-    csv = read_unsafe_path!(name, path)
-
-    signature =
-      read_unsafe_path!(name, path <> ".signed")
-      |> String.replace("\n", "")
-      |> Base.decode64!()
-
-    verified? =
-      Enum.any?(public_keys(), fn {id, key} ->
-        :public_key.verify(csv, :sha512, signature, decode_pk!(id, key))
-      end)
-
-    if verified? do
-      result =
-        csv
-        |> parse_csv()
-        |> find_latest_eligible_version(version)
-
-      result || Mix.raise("Could not find a version of #{name} matching: #{version}")
-    else
-      Mix.raise(
-        "Could not install #{name} because Mix could not verify authenticity " <>
-          "of metadata file at #{inspect(path)}. This may happen because a proxy or some " <>
-          "entity is interfering with the download or because you don't have a " <>
-          "public key to verify the download.\n\nYou may try again later or check " <>
-          "if a new public key has been released in our public keys page: #{@public_keys_html}"
-      )
-    end
+  def find_matching_versions!(name, version, path) do
+    name
+    |> read_path!(path)
+    |> parse_csv()
+    |> find_latest_eligible_version(version)
+    |> Kernel.||(Mix.raise("Could not find a version of #{name} matching: #{version}"))
   end
 
-  defp read_unsafe_path!(name, path) do
-    case Mix.Utils.read_path(path, unsafe_uri: true) do
+  defp read_path!(name, path) do
+    case Mix.Utils.read_path(path) do
       {:ok, contents} ->
         contents
 
@@ -242,78 +204,20 @@ defmodule Mix.Local do
     |> find_version(artifact_version, elixir_version)
   end
 
-  defp find_version(entries, _artifact_version = nil, elixir_version) do
+  defp find_version(entries, artifact_version, elixir_version) do
+    entries =
+      if artifact_version do
+        Enum.filter(entries, &(hd(&1) == artifact_version))
+      else
+        entries
+      end
+
     Enum.find_value(entries, &find_by_elixir_version(&1, elixir_version))
   end
 
-  defp find_version(entries, artifact_version, elixir_version) do
-    Enum.find_value(entries, &find_by_artifact_version(&1, artifact_version, elixir_version))
-  end
-
-  defp find_by_elixir_version([artifact_version, digest | versions], elixir_version) do
-    if version = Enum.find(versions, &(Version.compare(&1, elixir_version) != :gt)) do
-      {version, artifact_version, digest}
+  defp find_by_elixir_version([artifact_version, digest, hex_elixir_version | _], elixir_version) do
+    if Version.compare(hex_elixir_version, elixir_version) != :gt do
+      {hex_elixir_version, artifact_version, digest}
     end
-  end
-
-  defp find_by_artifact_version(
-         [artifact_version, digest | versions],
-         artifact_version,
-         elixir_version
-       ) do
-    if version = Enum.find(versions, &(Version.compare(&1, elixir_version) != :gt)) do
-      {version, artifact_version, digest}
-    end
-  end
-
-  defp find_by_artifact_version(_entry, _artifact_version, _elixir_version) do
-    nil
-  end
-
-  ## Public keys
-
-  @doc """
-  Returns the file system path for public keys.
-  """
-  def public_keys_path, do: Path.join(Mix.Utils.mix_home(), "public_keys")
-
-  @doc """
-  Returns all public keys as a list.
-  """
-  def public_keys do
-    path = public_keys_path()
-
-    [{"in-memory public key for Elixir v#{System.version()}", @in_memory_key}] ++
-      case File.ls(path) do
-        {:ok, keys} -> Enum.map(keys, &{&1, File.read!(Path.join(path, &1))})
-        {:error, _} -> []
-      end
-  end
-
-  @doc """
-  Decodes a public key and raises if the key is invalid.
-  """
-  def decode_pk!(id, key) do
-    ensure_applications!()
-
-    try do
-      [rsa_public_key] = :public_key.pem_decode(key)
-      :public_key.pem_entry_decode(rsa_public_key)
-    rescue
-      _ ->
-        Mix.raise("""
-        Could not decode public key: #{id}. The public key contents are shown below.
-
-        #{key}
-
-        Public keys must be valid and be in the PEM format
-        """)
-    end
-  end
-
-  defp ensure_applications! do
-    Mix.ensure_application!(:crypto)
-    Mix.ensure_application!(:asn1)
-    Mix.ensure_application!(:public_key)
   end
 end

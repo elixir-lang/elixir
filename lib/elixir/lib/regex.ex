@@ -19,15 +19,11 @@ defmodule Regex do
       # A regular expression with case insensitive and Unicode options
       ~r/foo/iu
 
-  Regular expressions created via sigils are pre-compiled and stored
-  in the `.beam` file. Note that this may be a problem if you are precompiling
-  Elixir, see the "Precompilation" section for more information.
-
   A Regex is represented internally as the `Regex` struct. Therefore,
   `%Regex{}` can be used whenever there is a need to match on them.
-  Keep in mind that all of the structs fields are private. There is
-  also no guarantee two regular expressions from the same source are
-  equal, for example:
+  Keep in mind that all of the structs fields are private. And since
+  regexes are compiled, there is no guarantee two regular expressions
+  from the same source are equal, for example:
 
       ~r/(?<foo>.)(?<bar>.)/ == ~r/(?<foo>.)(?<bar>.)/
 
@@ -96,15 +92,6 @@ defmodule Regex do
     * `:ungreedy` (U) - inverts the "greediness" of the regexp
       (the previous `r` option is deprecated in favor of `U`)
 
-  The options not available are:
-
-    * `:anchored` - not available, use `^` or `\A` instead
-    * `:dollar_endonly` - not available, use `\z` instead
-    * `:no_auto_capture` - not available, use `?:` instead
-    * `:newline` - not available, use `(*CR)` or `(*LF)` or `(*CRLF)` or
-      `(*ANYCRLF)` or `(*ANY)` at the beginning of the regexp according to the
-      `:re` documentation
-
   ## Captures
 
   Many functions in this module handle what to capture in a regex
@@ -171,26 +158,11 @@ defmodule Regex do
       iex> Regex.replace(~r/\s/u, "Unicode\u00A0spaces", "-")
       "Unicode-spaces"
 
-  ## Precompilation
-
-  Regular expressions built with sigil are precompiled and stored in `.beam`
-  files. Precompiled regexes will be checked in runtime and may work slower
-  between operating systems and OTP releases. This is rarely a problem, as most Elixir code
-  shared during development is compiled on the target (such as dependencies,
-  archives, and escripts) and, when running in production, the code must either
-  be compiled on the target (via `mix compile` or similar) or released on the
-  host (via `mix releases` or similar) with a matching OTP, operating system
-  and architecture as the target.
-
-  If you know you are running on a different system than the current one and
-  you are doing multiple matches with the regex, you can manually invoke
-  `Regex.recompile/1` or `Regex.recompile!/1` to perform a runtime version
-  check and recompile the regex if necessary.
   """
 
   defstruct re_pattern: nil, source: "", opts: []
 
-  @type t :: %__MODULE__{re_pattern: term, source: binary, opts: binary | [term]}
+  @type t :: %__MODULE__{re_pattern: term, source: binary, opts: [term]}
 
   defmodule CompileError do
     @moduledoc """
@@ -383,8 +355,15 @@ defmodule Regex do
       iex> Regex.named_captures(~r/a(?<foo>b)c(?<bar>d)/, "efgh")
       nil
 
+  You can also retrieve indexes from the named captures. This is particularly
+  useful if you want to know if a named capture matched or not:
+
+      iex> Regex.named_captures(~r/a(?<foo>b)c(?<bar>d)?/, "abc", return: :index)
+      %{"bar" => {-1, 0}, "foo" => {1, 1}}
+
+  You can then use `binary_part/3` to fetch the relevant part from the given string.
   """
-  @spec named_captures(t, String.t(), [term]) :: map | nil
+  @spec named_captures(t, String.t(), keyword) :: map | nil
   def named_captures(regex, string, options \\ []) when is_binary(string) do
     names = names(regex)
     options = Keyword.put(options, :capture, names)
@@ -431,6 +410,82 @@ defmodule Regex do
   @spec opts(t) :: [term]
   def opts(%Regex{opts: opts}) do
     opts
+  end
+
+  @doc """
+  Returns the pattern as an embeddable string.
+
+  If the pattern was compiled with an option which cannot be represented
+  as an embeddable modifier in the current version of PCRE and strict is true
+  (the default) then an ArgumentError exception will be raised.
+
+  When the `:strict` option is false the pattern will be returned as though
+  any offending options had not be used and the function will not raise any
+  exceptions.
+
+  Embeddable modifiers/options are currently:
+
+    * 'i' - `:caseless`
+    * 'm' - `:multiline`
+    * 's' - `:dotall, {:newline, :anycrlf}`
+    * 'x' - `:extended`
+
+  Unembeddable modifiers are:
+
+    * 'f' - `:firstline`
+    * 'U' - `:ungreedy`
+    * 'u' - `:unicode, :ucp`
+
+  Any other regex compilation option not listed here is considered unembeddable
+  and will raise an exception unless the `:strict` option is false.
+
+  ## Examples
+      iex> Regex.to_embed(~r/foo/)
+      "(?-imsx:foo)"
+
+      iex> Regex.to_embed(~r/^foo/m)
+      "(?m-isx:^foo)"
+
+      iex> Regex.to_embed(~r/foo # comment/ix)
+      "(?ix-ms:foo # comment\\n)"
+
+      iex> Regex.to_embed(~r/foo/iu)
+      ** (ArgumentError) regex compiled with options [:ucp, :unicode] which cannot be represented as an embedded pattern in this version of PCRE
+
+      iex> Regex.to_embed(~r/foo/imsxu, strict: false)
+      "(?imsx:foo\\n)"
+
+  """
+  @doc since: "1.19.0"
+  @spec to_embed(t, strict: boolean()) :: String.t()
+  def to_embed(%Regex{source: source, opts: regex_opts}, embed_opts \\ []) do
+    strict = Keyword.get(embed_opts, :strict, true)
+
+    modifiers =
+      case embeddable_modifiers(regex_opts) do
+        {:ok, modifiers} ->
+          modifiers
+
+        {:error, modifiers, untranslatable} ->
+          if strict do
+            raise ArgumentError,
+                  "regex compiled with options #{inspect(untranslatable)} which cannot be " <>
+                    "represented as an embedded pattern in this version of PCRE"
+          else
+            modifiers
+          end
+      end
+
+    disabled = [?i, ?m, ?s, ?x] -- modifiers
+
+    disabled = if disabled != [], do: "-#{disabled}", else: ""
+
+    # Future proof option ordering consistency by sorting
+    modifiers = Enum.sort(modifiers)
+
+    nl = if Enum.member?(regex_opts, :extended), do: "\n", else: ""
+
+    "(?#{modifiers}#{disabled}:#{source}#{nl})"
   end
 
   @doc """
@@ -865,6 +920,29 @@ defmodule Regex do
   end
 
   # Helpers
+
+  # translate options to modifiers as required for emedding
+  defp embeddable_modifiers(list), do: embeddable_modifiers(list, [], [])
+
+  defp embeddable_modifiers([:dotall, {:newline, :anycrlf} | t], acc, err),
+    do: embeddable_modifiers(t, [?s | acc], err)
+
+  defp embeddable_modifiers([:caseless | t], acc, err),
+    do: embeddable_modifiers(t, [?i | acc], err)
+
+  defp embeddable_modifiers([:extended | t], acc, err),
+    do: embeddable_modifiers(t, [?x | acc], err)
+
+  defp embeddable_modifiers([:multiline | t], acc, err),
+    do: embeddable_modifiers(t, [?m | acc], err)
+
+  defp embeddable_modifiers([option | t], acc, err),
+    do: embeddable_modifiers(t, acc, [option | err])
+
+  defp embeddable_modifiers([], acc, []), do: {:ok, acc}
+  defp embeddable_modifiers([], acc, err), do: {:error, acc, err}
+
+  # translate modifers to options
 
   defp translate_options(<<?s, t::binary>>, acc),
     do: translate_options(t, [:dotall, {:newline, :anycrlf} | acc])

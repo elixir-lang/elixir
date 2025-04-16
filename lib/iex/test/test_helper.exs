@@ -2,6 +2,12 @@
 # SPDX-FileCopyrightText: 2021 The Elixir Team
 # SPDX-FileCopyrightText: 2012 Plataformatec
 
+# Beam files compiled on demand
+path = Path.expand("../tmp/beams", __DIR__)
+File.rm_rf!(path)
+File.mkdir_p!(path)
+Code.prepend_path(path)
+
 assert_timeout = String.to_integer(System.get_env("ELIXIR_ASSERT_TIMEOUT") || "500")
 System.put_env("ELIXIR_EDITOR", "echo")
 
@@ -26,11 +32,20 @@ source_exclude =
     []
   end
 
+Code.require_file("../../elixir/scripts/cover_record.exs", __DIR__)
+
+cover_exclude =
+  if CoverageRecorder.maybe_record("iex") do
+    [:require_ast]
+  else
+    []
+  end
+
 ExUnit.start(
   assert_receive_timeout: assert_timeout,
   trace: !!System.get_env("TRACE"),
   include: line_include,
-  exclude: line_exclude ++ erlang_doc_exclude ++ source_exclude
+  exclude: line_exclude ++ erlang_doc_exclude ++ source_exclude ++ cover_exclude
 )
 
 defmodule IEx.Case do
@@ -103,3 +118,36 @@ defmodule IEx.Case do
     |> String.trim()
   end
 end
+
+defmodule PathHelpers do
+  def write_beam({:module, name, bin, _} = res) do
+    File.mkdir_p!(unquote(path))
+    beam_path = Path.join(unquote(path), Atom.to_string(name) <> ".beam")
+    File.write!(beam_path, bin)
+
+    :code.purge(name)
+    :code.delete(name)
+
+    res
+  end
+end
+
+PathHelpers.write_beam(
+  defmodule HelperExampleModule do
+    def fun(_arg), do: :ok
+    defmacro macro(_arg), do: :ok
+  end
+)
+
+PathHelpers.write_beam(
+  defmodule PryExampleModule do
+    def one(_arg), do: :ok
+    def two(_arg1, _arg2), do: :ok
+  end
+)
+
+PathHelpers.write_beam(
+  defmodule PryExampleStruct do
+    defstruct one: nil
+  end
+)

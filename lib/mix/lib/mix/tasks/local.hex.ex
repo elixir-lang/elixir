@@ -73,11 +73,7 @@ defmodule Mix.Tasks.Local.Hex do
     hex_url = Mix.Hex.url()
 
     {elixir_version, hex_version, sha512} =
-      Mix.Local.find_matching_versions_from_signed_csv!(
-        "Hex",
-        version,
-        hex_url <> @hex_list_path
-      )
+      Mix.Local.find_matching_versions!("Hex", version, hex_url <> @hex_list_path)
 
     url =
       (hex_url <> @hex_archive_path)

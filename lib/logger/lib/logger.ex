@@ -341,7 +341,8 @@ defmodule Logger do
     * `:translator_inspect_opts` - when translating OTP reports and
       errors, the last message and state must be inspected in the
       error reports. This configuration allow developers to change
-      how much and how the data should be inspected.
+      how much and how the data should be inspected. See `Kernel.inspect/2`
+      for more information on the available options.
 
   For example, to configure the `:level` options in a `config/config.exs`
   file:

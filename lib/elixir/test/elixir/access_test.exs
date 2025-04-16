@@ -296,7 +296,6 @@ defmodule AccessTest do
   describe "values/0" do
     @test_map %{a: 1, b: 2, c: 3, d: 4}
     @test_list [a: 1, b: 2, c: 3, d: 4]
-    @error_msg_pattern ~r[^Access.values/0 expected a map or a keyword list, got: .*]
 
     test "retrieves values in a map" do
       assert [1, 2, 3, 4] = get_in(@test_map, [Access.values()]) |> Enum.sort()
@@ -335,23 +334,25 @@ defmodule AccessTest do
     end
 
     test "raises when not given a map or a keyword list" do
-      assert_raise RuntimeError, @error_msg_pattern, fn ->
+      message = ~r[^Access.values/0 expected a map or a keyword list, got: .*]
+
+      assert_raise RuntimeError, message, fn ->
         get_in(123, [Access.values()])
       end
 
-      assert_raise RuntimeError, @error_msg_pattern, fn ->
+      assert_raise RuntimeError, message, fn ->
         get_and_update_in(:some_atom, [Access.values()], fn x -> {x, x} end)
       end
 
-      assert_raise RuntimeError, @error_msg_pattern, fn ->
+      assert_raise RuntimeError, message, fn ->
         get_in([:a, :b, :c], [Access.values()])
       end
 
-      assert_raise RuntimeError, @error_msg_pattern, fn ->
+      assert_raise RuntimeError, message, fn ->
         get_in([{:a, :b, :c}, {:d, :e, :f}], [Access.values()])
       end
 
-      assert_raise RuntimeError, @error_msg_pattern, fn ->
+      assert_raise RuntimeError, message, fn ->
         get_in([{1, 2}, {3, 4}], [Access.values()])
       end
     end

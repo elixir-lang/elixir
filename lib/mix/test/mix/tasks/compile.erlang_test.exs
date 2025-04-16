@@ -134,22 +134,24 @@ defmodule Mix.Tasks.Compile.ErlangTest do
                  severity: :warning
                } = diagnostic
 
-        # Should return warning without recompiling file
-        assert {:noop, [^diagnostic]} = Mix.Tasks.Compile.Erlang.run(["--verbose"])
-        refute_received {:mix_shell, :info, ["Compiled src/has_warning.erl"]}
+        capture_io(:stderr, fn ->
+          # Should return warning without recompiling file
+          assert {:noop, [^diagnostic]} = Mix.Tasks.Compile.Erlang.run(["--verbose"])
+          refute_received {:mix_shell, :info, ["Compiled src/has_warning.erl"]}
 
-        assert [^diagnostic] = Mix.Tasks.Compile.Erlang.diagnostics()
-        assert [^diagnostic] = Mix.Task.Compiler.diagnostics()
+          assert [^diagnostic] = Mix.Tasks.Compile.Erlang.diagnostics()
+          assert [^diagnostic] = Mix.Task.Compiler.diagnostics()
 
-        # Should not return warning after changing file
-        File.write!(file, """
-        -module(has_warning).
-        -export([my_fn/0]).
-        my_fn() -> ok.
-        """)
+          # Should not return warning after changing file
+          File.write!(file, """
+          -module(has_warning).
+          -export([my_fn/0]).
+          my_fn() -> ok.
+          """)
 
-        ensure_touched(file)
-        assert {:ok, []} = Mix.Tasks.Compile.Erlang.run([])
+          ensure_touched(file)
+          assert {:ok, []} = Mix.Tasks.Compile.Erlang.run([])
+        end)
       end)
     end)
   end
@@ -165,11 +167,11 @@ defmodule Mix.Tasks.Compile.ErlangTest do
 
       capture_io(fn -> Mix.Tasks.Compile.Erlang.run([]) end)
 
-      assert capture_io(fn ->
+      assert capture_io(:stderr, fn ->
                assert {:noop, _} = Mix.Tasks.Compile.Erlang.run([])
              end) =~ ~r"has_warning.erl:2:(1:)? warning: function my_fn/0 is unused\n"
 
-      assert capture_io(fn ->
+      assert capture_io(:stderr, fn ->
                assert {:noop, _} = Mix.Tasks.Compile.Erlang.run([])
              end) =~ ~r"has_warning.erl:2:(1:)? warning: function my_fn/0 is unused\n"
 

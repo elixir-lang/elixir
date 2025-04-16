@@ -301,6 +301,37 @@ defmodule ExUnit.Case do
 
   As with other tags, `:tmp_dir` can also be set as `@moduletag` and
   `@describetag`.
+
+  ## Process Architecture
+
+  An ExUnit test case uses several processes when it runs. These are illustrated below.
+
+  ```mermaid
+  sequenceDiagram
+    participant runner as ExUnit Case
+    runner->>runner: Run setup_all callbacks
+
+    loop Each test
+      create participant test as Test Process
+      runner->>test: Spawn
+      test->>test: Run setup callbacks
+      test->>test: Run test
+      destroy test
+      test-xrunner: Exits
+      runner->>runner: Run on_exit callbacks
+    end
+  ```
+
+    1. First, all `ExUnit.Callbacks.setup_all/1` callbacks run in a single process, sequentially,
+       in the order they were defined.
+
+    2. Then, a new process is spawned for the test itself. In this process, first all
+       `ExUnit.Callbacks.setup/1` callbacks run, in the order they were defined. Then,
+       the test itself is executed.
+
+    3. After the test exits, a new process is spawned to run all `ExUnit.Callbacks.on_exit/2`,
+       in the reverse order they were defined.
+
   """
 
   @type env :: module() | Macro.Env.t()

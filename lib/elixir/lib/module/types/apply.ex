@@ -429,22 +429,21 @@ defmodule Module.Types.Apply do
         return(boolean(), [left, right], stack)
       end
 
-    cond do
-      not check? ->
-        {:ok, result}
+    if not check? do
+      {:ok, result}
+    else
+      common = intersection(left, right)
 
-      match?({false, _}, map_fetch(left, :__struct__)) or
-          match?({false, _}, map_fetch(right, :__struct__)) ->
-        {:error, :struct_comparison}
+      cond do
+        empty?(common) and not (number_type?(left) and number_type?(right)) ->
+          {:error, :mismatched_comparison}
 
-      number_type?(left) and number_type?(right) ->
-        {:ok, result}
+        match?({false, _}, map_fetch(dynamic(common), :__struct__)) ->
+          {:error, :struct_comparison}
 
-      disjoint?(left, right) ->
-        {:error, :mismatched_comparison}
-
-      true ->
-        {:ok, result}
+        true ->
+          {:ok, result}
+      end
     end
   end
 

@@ -304,7 +304,7 @@ defmodule EEx.Compiler do
       source: source,
       line: line,
       quoted: [],
-      parser_options: parser_options,
+      parser_options: [indentation: indentation] ++ parser_options,
       indentation: indentation
     }
 

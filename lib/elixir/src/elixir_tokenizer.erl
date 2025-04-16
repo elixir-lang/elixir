@@ -130,9 +130,11 @@ tokenize(String, Line, Column, Opts) ->
         Acc#elixir_tokenizer{preserve_comments=PreserveComments};
       ({unescape, Unescape}, Acc) when is_boolean(Unescape) ->
         Acc#elixir_tokenizer{unescape=Unescape};
+      ({indentation, Indentation}, Acc) when Indentation >= 0 ->
+        Acc#elixir_tokenizer{column=Indentation+1};
       (_, Acc) ->
         Acc
-    end, #elixir_tokenizer{identifier_tokenizer=IdentifierTokenizer, column=Column}, Opts),
+    end, #elixir_tokenizer{identifier_tokenizer=IdentifierTokenizer}, Opts),
 
   tokenize(String, Line, Column, Scope, []).
 

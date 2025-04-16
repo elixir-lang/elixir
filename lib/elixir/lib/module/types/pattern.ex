@@ -377,6 +377,10 @@ defmodule Module.Types.Pattern do
     {type, context}
   end
 
+  def of_match_var({:<<>>, _meta, args}, _expected, _expr, stack, context) do
+    {binary(), Of.binary(args, :match, stack, context)}
+  end
+
   def of_match_var(ast, expected, expr, stack, context) do
     of_guard(ast, expected, expr, stack, context)
   end

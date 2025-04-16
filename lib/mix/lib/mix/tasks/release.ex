@@ -682,7 +682,10 @@ defmodule Mix.Tasks.Release do
       You can configure the "tmp" directory by setting the `RELEASE_TMP` environment
       variable, either explicitly or inside your `releases/RELEASE_VSN/env.sh`
       (or `env.bat` on Windows). Defaults to `true` if using the deprecated
-      `config/releases.exs`, `false` otherwise.
+      `config/releases.exs`, `false` otherwise. Be careful of which libraries you
+      load when setting this option to true, if a library is loaded early during
+      configuration and it includes native code, it may not actually be able to
+      restart cleanly.
 
     * `:prune_runtime_sys_config_after_boot` - if `:reboot_system_after_config`
       is set, every time your system boots, the release will write a config file
@@ -1269,7 +1272,7 @@ defmodule Mix.Tasks.Release do
     cond do
       path ->
         msg = "#{path} to configure the release at runtime"
-        Mix.shell().info([:green, "* using ", :reset, msg])
+        info(release, [:green, "* using ", :reset, msg])
         File.cp!(path, Path.join(version_path, "runtime.exs"))
         init = {:system, "RELEASE_ROOT", "/releases/#{release.version}/runtime.exs"}
         opts = [path: init, env: Mix.env(), target: Mix.target(), imports: :disabled]

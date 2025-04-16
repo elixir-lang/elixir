@@ -432,4 +432,8 @@ defmodule DurationTest do
            ) ==
              "1year-2month-3day-4h-5min-6s"
   end
+
+  test "inspect/1" do
+    assert inspect(%Duration{hour: 5, minute: 3}) == "%Duration{hour: 5, minute: 3}"
+  end
 end

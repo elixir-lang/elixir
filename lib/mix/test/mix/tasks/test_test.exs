@@ -150,12 +150,12 @@ defmodule Mix.Tasks.TestTest do
         assert output =~ """
                Generating cover results ...
 
-               Percentage | Module
-               -----------|--------------------------
-                  100.00% | Bar.Protocol
-                  100.00% | Bar.Protocol.BitString
-               -----------|--------------------------
-                  100.00% | Total
+               | Percentage | Module                 |
+               |------------|------------------------|
+               |    100.00% | Bar.Protocol           |
+               |    100.00% | Bar.Protocol.BitString |
+               |------------|------------------------|
+               |    100.00% | Total                  |
                """
 
         assert output =~ "1 test, 0 failures"
@@ -164,11 +164,11 @@ defmodule Mix.Tasks.TestTest do
         assert output =~ """
                Generating cover results ...
 
-               Percentage | Module
-               -----------|--------------------------
-                  100.00% | Foo
-               -----------|--------------------------
-                  100.00% | Total
+               | Percentage | Module     |
+               |------------|------------|
+               |    100.00% | Foo        |
+               |------------|------------|
+               |    100.00% | Total      |
                """
 
         # We skip a test in bar to force coverage below the default threshold
@@ -195,15 +195,15 @@ defmodule Mix.Tasks.TestTest do
                Importing cover results: apps/bar/cover/default.coverdata
                Importing cover results: apps/foo/cover/default.coverdata
 
-               Percentage | Module
-               -----------|--------------------------
-                  100.00% | Bar
-                  100.00% | Bar.Ignore
-                  100.00% | Bar.Protocol
-                  100.00% | Bar.Protocol.BitString
-                  100.00% | Foo
-               -----------|--------------------------
-                  100.00% | Total
+               | Percentage | Module                 |
+               |------------|------------------------|
+               |    100.00% | Bar                    |
+               |    100.00% | Bar.Ignore             |
+               |    100.00% | Bar.Protocol           |
+               |    100.00% | Bar.Protocol.BitString |
+               |    100.00% | Foo                    |
+               |------------|------------------------|
+               |    100.00% | Total                  |
                """
       end)
     end
@@ -366,12 +366,12 @@ defmodule Mix.Tasks.TestTest do
                Importing cover results: cover/1.coverdata
                Importing cover results: cover/2.coverdata
 
-               Percentage | Module
-               -----------|--------------------------
-                  100.00% | A
-                  100.00% | B
-               -----------|--------------------------
-                  100.00% | Total
+               | Percentage | Module     |
+               |------------|------------|
+               |    100.00% | A          |
+               |    100.00% | B          |
+               |------------|------------|
+               |    100.00% | Total      |
 
                Generated HTML coverage results in \"cover\" directory
                """
@@ -558,7 +558,7 @@ defmodule Mix.Tasks.TestTest do
   end
 
   describe "--warnings-as-errors" do
-    test "fail on warning in tests" do
+    test "fail with exit status 1 if warning in tests but tests pass" do
       in_fixture("test_stale", fn ->
         msg =
           "Test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
@@ -579,10 +579,42 @@ defmodule Mix.Tasks.TestTest do
         end
         """)
 
-        output = mix(["test", "--warnings-as-errors", "test/warning_test_stale.exs"])
+        {output, exit_status} =
+          mix_code(["test", "--warnings-as-errors", "test/warning_test_stale.exs"])
+
         assert output =~ "variable \"unused_compile_var\" is unused"
         assert output =~ "variable \"unused_test_var\" is unused"
         assert output =~ msg
+        assert exit_status == 1
+      end)
+    end
+
+    test "fail with --exit-status + 1 if warning in tests and tests fail" do
+      in_fixture("test_stale", fn ->
+        File.write!("test/warning_test_warnings_as_errors_and_failures.exs", """
+        defmodule WarningsAsErrorsAndFailuresTest do
+          use ExUnit.Case
+
+          test "warning and failure" do
+            unused_test_var = 1
+            assert false
+          end
+        end
+        """)
+
+        {output, exit_status} =
+          mix_code([
+            "test",
+            "--warnings-as-errors",
+            "--exit-status",
+            "42",
+            "test/warning_test_warnings_as_errors_and_failures.exs"
+          ])
+
+        assert output =~ "variable \"unused_test_var\" is unused"
+        assert output =~ "1 failure"
+
+        assert exit_status == 43
       end)
     end
 

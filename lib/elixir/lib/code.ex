@@ -1068,7 +1068,8 @@ defmodule Code do
   Macro arguments are typically transformed by unquoting them into the
   returned quoted expressions (instead of evaluated).
 
-  See `eval_string/3` for a description of `binding` and `opts`.
+  See `eval_string/3` for a description of arguments and return types.
+  The options are described under `env_for_eval/1`.
 
   ## Examples
 
@@ -1167,6 +1168,10 @@ defmodule Code do
 
     * `:column` - (since v1.11.0) the starting column of the string being parsed.
       Defaults to 1.
+
+    * `:indentation` - (since v1.19.0) the indentation for the string being parsed.
+      This is useful when the code parsed is embedded within another document.
+      Defaults to 0.
 
     * `:columns` - when `true`, attach a `:column` key to the quoted
       metadata. Defaults to `false`.
@@ -1360,13 +1365,11 @@ defmodule Code do
         {forms, comments}
 
       {:error, {location, error, token}} ->
-        :elixir_errors.parse_error(
-          location,
-          Keyword.get(opts, :file, "nofile"),
-          error,
-          token,
-          {charlist, Keyword.get(opts, :line, 1), Keyword.get(opts, :column, 1)}
-        )
+        file = Keyword.get(opts, :file, "nofile")
+        line = Keyword.get(opts, :line, 1)
+        column = Keyword.get(opts, :column, 1)
+        input = {charlist, line, column, Keyword.get(opts, :indentation, 0)}
+        :elixir_errors.parse_error(location, file, error, token, input)
     end
   end
 
@@ -1376,7 +1379,7 @@ defmodule Code do
     comment = %{
       line: line,
       column: column,
-      previous_eol_count: previous_eol_count(tokens),
+      previous_eol_count: min(previous_eol_count(tokens), last_comment_distance(comments, line)),
       next_eol_count: next_eol_count(rest, 0),
       text: List.to_string(comment)
     }
@@ -1389,6 +1392,9 @@ defmodule Code do
   defp next_eol_count([?\n | rest], count), do: next_eol_count(rest, count + 1)
   defp next_eol_count([?\r, ?\n | rest], count), do: next_eol_count(rest, count + 1)
   defp next_eol_count(_, count), do: count
+
+  defp last_comment_distance([%{line: last_line} | _], line), do: line - last_line
+  defp last_comment_distance([], _line), do: :infinity
 
   defp previous_eol_count([{token, {_, _, count}} | _])
        when token in [:eol, :",", :";"] and count > 0 do
@@ -1575,7 +1581,7 @@ defmodule Code do
   ## Examples
 
       Code.compiler_options(infer_signatures: false)
-      #=> %{infer_signatures: true}
+      #=> %{infer_signatures: [:elixir]}
 
   """
   @spec compiler_options(Enumerable.t({atom, term})) :: %{optional(atom) => term}

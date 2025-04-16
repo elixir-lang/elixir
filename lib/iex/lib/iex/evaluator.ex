@@ -82,7 +82,7 @@ defmodule IEx.Evaluator do
       opts[:file],
       "incomplete expression",
       "",
-      {~c"", Keyword.get(opts, :line, 1), Keyword.get(opts, :column, 1)}
+      {~c"", Keyword.get(opts, :line, 1), Keyword.get(opts, :column, 1), 0}
     )
   end
 
@@ -119,7 +119,7 @@ defmodule IEx.Evaluator do
           file,
           error,
           token,
-          {charlist, line, column}
+          {charlist, line, column, 0}
         )
     end
   end

@@ -715,7 +715,7 @@ defmodule Kernel.SpecialForms do
   Returns the stacktrace for the currently handled exception.
 
   It is available only in the `catch` and `rescue` clauses of `try/1`
-  expressions.
+  expressions and function definitions.
 
   To retrieve the stacktrace of the current process, use
   `Process.info(self(), :current_stacktrace)` instead.
@@ -1242,8 +1242,11 @@ defmodule Kernel.SpecialForms do
       end)
 
   In the example above, we have generated the functions `foo/0` and
-  `bar/0` dynamically. Now, imagine that we want to convert this
-  functionality into a macro:
+  `bar/0` dynamically. Note the parentheses in `unquote(k)()` are important,
+  otherwise we would try to define a function as `def :foo` instead of
+  `def foo()`.
+
+  Now, imagine that we want to convert this functionality into a macro:
 
       defmacro defkv(kv) do
         Enum.map(kv, fn {k, v} ->
@@ -1268,8 +1271,9 @@ defmodule Kernel.SpecialForms do
   code fails.
 
   This is actually a common pitfall when developing macros. We are
-  assuming a particular shape in the macro. We can work around it
-  by unquoting the variable inside the quoted expression:
+  assuming a particular shape at compilation time, within the macro
+  implementation. One may try to work around it by unquoting the
+  variable inside the quoted expression:
 
       defmacro defkv(kv) do
         quote do
@@ -1281,9 +1285,10 @@ defmodule Kernel.SpecialForms do
 
   If you try to run our new macro, you will notice it won't
   even compile, complaining that the variables `k` and `v`
-  do not exist. This is because of the ambiguity: `unquote(k)`
-  can either be an unquote fragment, as previously, or a regular
-  unquote as in `unquote(kv)`.
+  do not exist. This is because the two `unquote`s in the call
+  above are meant to run at distinct moments: `unquote(kv)`
+  applies to the immediate quote, `unquote(k)` is an unquote
+  fragment.
 
   One solution to this problem is to disable unquoting in the
   macro, however, doing that would make it impossible to inject the
@@ -1371,6 +1376,18 @@ defmodule Kernel.SpecialForms do
       ...>   sum(1, unquote_splicing(values), 5)
       ...> end
       {:sum, [], [1, 2, 3, 4, 5]}
+
+  Also can be used in block context, outside of function arguments.
+  Though, it is still required to be wrapped into parentheses.
+
+      iex> requires = for module <- [Integer, Logger] do
+      ...>   quote do
+      ...>     require unquote(module)
+      ...>   end
+      ...> end
+      iex> block = quote do: (unquote_splicing(requires))
+      iex> Macro.to_string(block)
+      "require Integer\\nrequire Logger"
 
   """
   defmacro unquote(:unquote_splicing)(expr), do: error!([expr])
@@ -1897,33 +1914,30 @@ defmodule Kernel.SpecialForms do
 
   ## Examples
 
-      case File.read(file) do
-        {:ok, contents} when is_binary(contents) ->
-          String.split(contents, "\n")
+      iex> string_date = "2015-01-23"
+      iex> case Date.from_iso8601(string_date) do
+      ...>   {:ok, date} -> date
+      ...>   {:error, _reason} -> Date.utc_today()
+      ...> end
+      ~D[2015-01-23]
 
-        {:error, _reason} ->
-          Logger.warning "could not find #{file}, assuming empty..."
-          []
-      end
-
-  In the example above, we match the result of `File.read/1`
+  In the example above, we match the result of `Date.from_iso8601/1`
   against each clause "head" and execute the clause "body"
-  corresponding to the first clause that matches.
+  corresponding to the first clause that matches. In our case
+  `string_date` contains a string with a valid ISO 8601 representation
+  of date. The function returns `{:ok, ~D[2015-01-23]}`, so the
+  `{:ok, date}` clause is matched.
 
   If no clause matches, an error is raised. For this reason,
   it may be necessary to add a final catch-all clause (like `_`)
   which will always match.
 
-      x = 10
-
-      case x do
-        0 ->
-          "This clause won't match"
-
-        _ ->
-          "This clause would match any value (x = #{x})"
-      end
-      #=> "This clause would match any value (x = 10)"
+      iex> x = 10
+      iex> case x do
+      ...>   0 -> "This clause won't match"
+      ...>   _ -> "This clause would match any value (x = #{x})"
+      ...> end
+      "This clause would match any value (x = 10)"
 
   If you find yourself nesting `case` expressions inside
   `case` expressions, consider using `with/1`.
@@ -1932,54 +1946,54 @@ defmodule Kernel.SpecialForms do
 
   Note that variables bound in a clause do not leak to the outer context:
 
-      case data do
-        {:ok, value} -> value
-        :error -> nil
-      end
+      iex> case {:ok, 7} do
+      ...>   {:ok, value} -> value
+      ...>   :error -> nil
+      ...> end
 
-      value
-      #=> unbound variable value
+      ...> value
+      ** (CompileError) undefined variable "value"
 
   Variables in the outer context cannot be overridden either:
 
-      value = 7
+      iex> value = 7
+      iex> case 3 > 5 do
+      ...>   false ->
+      ...>     value = 3
+      ...>     value + 2
+      ...>   true ->
+      ...>     3
+      ...> end
+      iex> value
+      7
 
-      case lucky? do
-        false -> value = 13
-        true -> true
-      end
-
-      value
-      #=> 7
-
-  In the example above, `value` is going to be `7` regardless of the value of
-  `lucky?`. The variable `value` bound in the clause and the variable `value`
-  bound in the outer context are two entirely separate variables.
+  In the example above, `value` is going to be `7` regardless of
+  which clause matched. The variable `value` bound in the clause
+  and the variable `value` bound in the outer context are two
+  entirely separate variables.
 
   If you want to pattern match against an existing variable,
   you need to use the `^/1` operator:
 
-      x = 1
-
-      case 10 do
-        ^x -> "Won't match"
-        _ -> "Will match"
-      end
-      #=> "Will match"
+      iex> x = 1
+      iex> case 10 do
+      ...>   ^x -> "Won't match"
+      ...>   _ -> "Will match"
+      ...> end
+      "Will match"
 
   ## Using guards to match against multiple values
 
   While it is not possible to match against multiple patterns in a single
   clause, it's possible to match against multiple values by using guards:
 
-      case data do
-        value when value in [:one, :two] ->
-          "#{value} has been matched"
-
-        :three ->
-          "three has been matched"
-      end
-
+      iex> case :two do
+      ...>   value when value in [:one, :two] ->
+      ...>     "#{value} has been matched"
+      ...>   :three ->
+      ...>     "three has been matched"
+      ...> end
+      "two has been matched"
   """
   defmacro case(condition, clauses), do: error!([condition, clauses])
 

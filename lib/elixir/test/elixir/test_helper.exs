@@ -56,6 +56,10 @@ defmodule PathHelpers do
     File.mkdir_p!(unquote(path))
     beam_path = Path.join(unquote(path), Atom.to_string(name) <> ".beam")
     File.write!(beam_path, bin)
+
+    :code.purge(name)
+    :code.delete(name)
+
     res
   end
 
@@ -120,9 +124,20 @@ source_exclude =
     []
   end
 
+Code.require_file("../../scripts/cover_record.exs", __DIR__)
+
+cover_exclude =
+  if CoverageRecorder.maybe_record("elixir") do
+    [:require_ast]
+  else
+    []
+  end
+
 ExUnit.start(
   trace: !!System.get_env("TRACE"),
   assert_receive_timeout: assert_timeout,
-  exclude: epmd_exclude ++ os_exclude ++ line_exclude ++ distributed_exclude ++ source_exclude,
+  exclude:
+    epmd_exclude ++
+      os_exclude ++ line_exclude ++ distributed_exclude ++ source_exclude ++ cover_exclude,
   include: line_include
 )

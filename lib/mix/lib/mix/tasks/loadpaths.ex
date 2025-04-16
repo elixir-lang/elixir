@@ -58,6 +58,12 @@ defmodule Mix.Tasks.Loadpaths do
     # to dependencies and the main project alike.
     case Mix.Dep.ElixirSCM.read() do
       {:ok, old_vsn, old_scm} when old_vsn != vsn or old_scm != scm ->
+        if Mix.debug?() do
+          Mix.shell().info(
+            "-- Recompiling #{inspect(config[:app])} because Erlang/OTP, Elixir, or SCM version changed"
+          )
+        end
+
         File.rm_rf(Mix.Project.app_path(config))
         File.rm_rf(Mix.Project.consolidation_path(config))
 

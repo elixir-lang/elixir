@@ -118,6 +118,14 @@ defmodule VersionTest do
     assert %Version{major: 1, minor: 0, patch: 0} |> Version.to_string() == "1.0.0"
   end
 
+  test "to_string/1 via protocol" do
+    assert Version.parse!("1.0.0") |> to_string() == "1.0.0"
+  end
+
+  test "inspect/1" do
+    assert Version.parse!("1.0.0") |> inspect() == "%Version{major: 1, minor: 0, patch: 0}"
+  end
+
   test "match?/2 with invalid versions" do
     assert_raise Version.InvalidVersionError, fn ->
       Version.match?("foo", "2.3.0")
@@ -317,22 +325,24 @@ defmodule VersionTest do
     assert Version.match?("0.7.0", req)
   end
 
-  test "compile_requirement/1" do
-    {:ok, req} = Version.parse_requirement("1.2.3")
-    assert req == Version.compile_requirement(req)
-  end
+  describe "requirement" do
+    test "compile_requirement/1" do
+      {:ok, req} = Version.parse_requirement("1.2.3")
+      assert req == Version.compile_requirement(req)
 
-  test "compile requirement" do
-    {:ok, req} = Version.parse_requirement("1.2.3")
-    req = Version.compile_requirement(req)
+      assert Version.match?("1.2.3", req)
+      refute Version.match?("1.2.4", req)
 
-    assert Version.match?("1.2.3", req)
-    refute Version.match?("1.2.4", req)
+      assert Version.parse_requirement("1 . 2 . 3") == :error
+      assert Version.parse_requirement("== >= 1.2.3") == :error
+      assert Version.parse_requirement("1.2.3 and or 4.5.6") == :error
+      assert Version.parse_requirement(">= 1") == :error
+      assert Version.parse_requirement("1.2.3 >=") == :error
+    end
 
-    assert Version.parse_requirement("1 . 2 . 3") == :error
-    assert Version.parse_requirement("== >= 1.2.3") == :error
-    assert Version.parse_requirement("1.2.3 and or 4.5.6") == :error
-    assert Version.parse_requirement(">= 1") == :error
-    assert Version.parse_requirement("1.2.3 >=") == :error
+    test "inspect/1" do
+      assert Version.parse_requirement!("1.0.0") |> inspect() ==
+               "Version.parse_requirement!(\"1.0.0\")"
+    end
   end
 end

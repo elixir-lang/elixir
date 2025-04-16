@@ -208,7 +208,9 @@ do_expand_import(Result, Meta, Name, Arity, Module, E, Trace) ->
     {import, Receiver} ->
       case expand_require(true, Meta, Receiver, Name, Arity, E, Trace) of
         {macro, _, _} = Response -> Response;
-        error -> {function, Receiver, Name}
+        error ->
+          Trace andalso elixir_env:trace({remote_function, Meta, Receiver, Name, Arity}, E),
+          {function, Receiver, Name}
       end;
     false when Module == ?kernel ->
       case elixir_rewrite:inline(Module, Name, Arity) of

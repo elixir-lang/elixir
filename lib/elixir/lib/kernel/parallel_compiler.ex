@@ -135,7 +135,13 @@ defmodule Kernel.ParallelCompiler do
 
     * `:each_long_compilation` - for each file that takes more than a given
       timeout (see the `:long_compilation_threshold` option) to compile, invoke
-      this callback passing the file as its argument
+      this callback passing the file as its argument (and optionally the PID
+      of the process compiling the file)
+
+    * `:each_long_verification` (since v1.19.0) - for each file that takes more
+      than a given timeout (see the `:long_verification_threshold` option) to
+      compile, invoke this callback passing the module as its argument (and
+      optionally the PID of the process verifying the module)
 
     * `:each_module` - for each module compiled, invokes the callback passing
       the file, module and the module bytecode
@@ -147,11 +153,14 @@ defmodule Kernel.ParallelCompiler do
       * `{:runtime, modules, warnings}` - to stop compilation and verify the list
         of modules because dependent modules have changed
 
-    * `:long_compilation_threshold` - the timeout (in seconds) to check for modules
+    * `:long_compilation_threshold` - the timeout (in seconds) to check for files
       taking too long to compile. For each file that exceeds the threshold, the
-      `:each_long_compilation` callback is invoked. From Elixir v1.11, only the time
-      spent compiling the actual module is taken into account by the threshold, the
-      time spent waiting is not considered. Defaults to `10` seconds.
+      `:each_long_compilation` callback is invoked. Defaults to `10` seconds.
+
+    * `:long_verification_threshold` (since v1.19.0) - the timeout (in seconds) to
+      check for modules taking too long to compile. For each module that exceeds the
+      threshold, the `:each_long_verification` callback is invoked. Defaults to
+      `10` seconds.
 
     * `:profile` - if set to `:time` measure the compilation time of each compilation cycle
        and group pass checker

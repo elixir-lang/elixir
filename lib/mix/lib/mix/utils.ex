@@ -625,9 +625,7 @@ defmodule Mix.Utils do
   ## Options
 
     * `:sha512` - checks against the given SHA-512 checksum. Returns
-      `{:checksum, message}` in case it fails. This option is required
-      for URLs unless the `:unsafe_uri` is given (WHICH IS NOT RECOMMENDED
-      unless another security mechanism is in place, such as private keys)
+      `{:checksum, message}` in case it fails
 
     * `:timeout` - times out the request after the given milliseconds.
       Returns `{:remote, timeout_message}` if it fails. Defaults to 60
@@ -645,8 +643,7 @@ defmodule Mix.Utils do
       url?(path) ->
         task =
           Task.async(fn ->
-            with :ok <- require_checksum(opts),
-                 {:ok, binary} <- read_httpc(path) do
+            with {:ok, binary} <- read_httpc(path) do
               checksum(binary, opts)
             end
           end)
@@ -669,19 +666,6 @@ defmodule Mix.Utils do
   end
 
   @checksums [:sha512]
-
-  defp require_checksum(opts) do
-    cond do
-      Keyword.take(opts, @checksums) != [] ->
-        :ok
-
-      Keyword.get(opts, :unsafe_uri) ->
-        :ok
-
-      true ->
-        {:checksum, "fetching from URIs require a checksum to be given"}
-    end
-  end
 
   defp checksum(binary, opts) do
     Enum.find_value(@checksums, {:ok, binary}, fn hash ->

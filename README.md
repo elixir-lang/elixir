@@ -12,6 +12,7 @@
 </h1>
 
 [![CI](https://github.com/elixir-lang/elixir/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/elixir-lang/elixir/actions/workflows/ci.yml?query=branch%3Amain)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10187/badge)](https://www.bestpractices.dev/projects/10187)
 
 Elixir is a dynamic, functional language designed for building scalable
 and maintainable applications.
@@ -37,15 +38,12 @@ All contributions are required to conform to our [Open Source Policy][11].
 
 For reporting bugs, [visit our issue tracker][2] and follow the steps
 for reporting a new issue. **Please disclose security vulnerabilities
-privately at <elixir-security@googlegroups.com>**.
+privately [in our Security page](https://github.com/elixir-lang/elixir/security)**.
 
-## Issues tracker management
-
-All currently open bugs related to the Elixir repository are listed
-in the issues tracker. The Elixir team uses the issues tracker to focus
-on *actionable items*, including planned enhancements in the short and
-medium term. We also do our best to label entries for clarity and to ease
-collaboration.
+All currently open bugs related to Elixir are listed in the issues tracker.
+The Elixir team uses the issues tracker to focus on *actionable items*,
+including planned enhancements in the short and medium term. We also do
+our best to label entries for clarity and to ease collaboration.
 
 Our *actionable item policy* has some important consequences, such as:
 
@@ -57,37 +55,41 @@ Our *actionable item policy* has some important consequences, such as:
     elsewhere if appropriate).
 
   * We actively close unrelated and non-actionable issues to keep the
-    issues tracker tidy. We may get things wrong from time to
-    time and will gladly revisit issues, reopening when necessary.
+    issues tracker tidy. If you believe we got something wrong, drop a
+    comment and we can always reopen the issue.
 
-Keep the tone positive and be kind! For more information, see the
-[Code of Conduct][1].
+By keeping the overall issues tracker tidy and organized, the community
+can easily peak at what is coming in new releases and also get involved
+by commenting on existing issues and submitting pull requests. Please
+remember to keep the tone positive and be kind! For more information,
+see the [Code of Conduct][1].
 
-### Proposing new features
-
-For proposing new features, please start a discussion in the
-[Elixir Core mailing list][3]. The [language development history and
-its focus are described on our website](https://elixir-lang.org/development.html).
-
-Keep in mind that it is your responsibility to argue and explain
-why a feature is useful and how it will impact the codebase and
-the community. A good proposal includes the problem description
-and how the proposed solution compares with existing alternatives
-in the Elixir ecosystem (as well as in other languages). To iron
-out a proposal before submission, consider using and gathering
-feedback from the community spaces [listed on the sidebar of the
-Elixir website](https://elixir-lang.org/).
-
-Once a proposal is accepted, it will be added to [the issue tracker][2].
-Features and bug fixes that have already been merged and will be included
-in the next release are then "closed" and added to the [changelog][7].
-
-### Discussions, support, and help
+## Discussions, support, and help
 
 For general discussions, support, and help, please use the community
 spaces [listed on the sidebar of the Elixir website](https://elixir-lang.org/),
 such as forums, chat platforms, etc, where the wider community will be available
 to help you.
+
+## Proposing new features
+
+We encourage you to first propose new features in the community spaces
+listed above. These discussions help refine ideas and gather feedback before
+submission. Our website also includes [a general outline of the language
+history and its current development focus](https://elixir-lang.org/development.html).
+
+Once you are ready, you can submit your proposal to the [Elixir Core
+mailing list][3], either through the web interface or by subscribing to
+it at <elixir-lang-core+subscribe@googlegroups.com>. Remember to include
+a clear problem description, compare the proposed solution to existing
+alternatives in the Elixir ecosystem (and in other languages if possible),
+and consider the potential impact your changes will have on the codebase and
+community.
+
+Once a proposal is accepted, it will be added to [the issue tracker][2].
+Features and bug fixes that have already been merged and will be included
+in the next release are then "closed" and added to the [changelog][7]
+before release.
 
 ## Compiling from source
 

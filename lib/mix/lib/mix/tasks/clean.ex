@@ -70,7 +70,13 @@ defmodule Mix.Tasks.Clean do
 
   # Loadpaths without checks because compilers may be defined in deps.
   defp loadpaths! do
-    options = ["--no-elixir-version-check", "--no-deps-check", "--no-archives-check"]
+    options = [
+      "--no-elixir-version-check",
+      "--no-deps-check",
+      "--no-archives-check",
+      "--no-listeners"
+    ]
+
     Mix.Task.run("loadpaths", options)
     Mix.Task.reenable("loadpaths")
     Mix.Task.reenable("deps.loadpaths")

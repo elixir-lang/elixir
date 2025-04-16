@@ -392,7 +392,7 @@ defmodule CodeTest do
     Code.unrequire_files([fixture_path("code_sample.exs")])
   end
 
-  test "string_to_quoted!/2 errors take lines and columns into account" do
+  test "string_to_quoted!/2 errors take lines/columns/indentation into account" do
     assert_exception(
       SyntaxError,
       ["nofile:1:5:", "syntax error before:", "1 + * 3", "^"],
@@ -419,9 +419,9 @@ defmodule CodeTest do
 
     assert_exception(
       SyntaxError,
-      ["nofile:11:7:", "syntax error before:", "1 + * 3", "^"],
+      ["nofile:11:15:", "syntax error before:", "1 + * 3", "^"],
       fn ->
-        Code.string_to_quoted!(":ok\n1 + * 3", line: 10, column: 3)
+        Code.string_to_quoted!(":ok\n1 + * 3", line: 10, column: 3, indentation: 10)
       end
     )
   end
@@ -441,6 +441,77 @@ defmodule CodeTest do
     assert meta[:column] == 1
     assert meta[:end_line] == 1
     assert meta[:end_column] == 3
+  end
+
+  test "string_to_quoted with comments" do
+    assert Code.string_to_quoted_with_comments("""
+           # top
+           [
+             # before
+
+             # right-before
+             expr, # middle
+             # right-after
+
+             # after
+           ]
+           # bottom
+           """) ==
+             {
+               :ok,
+               [{:expr, [line: 6], nil}],
+               [
+                 %{
+                   column: 1,
+                   line: 1,
+                   next_eol_count: 1,
+                   previous_eol_count: 1,
+                   text: "# top"
+                 },
+                 %{
+                   column: 3,
+                   line: 3,
+                   next_eol_count: 2,
+                   previous_eol_count: 1,
+                   text: "# before"
+                 },
+                 %{
+                   column: 3,
+                   line: 5,
+                   next_eol_count: 1,
+                   previous_eol_count: 2,
+                   text: "# right-before"
+                 },
+                 %{
+                   column: 9,
+                   line: 6,
+                   next_eol_count: 1,
+                   previous_eol_count: 0,
+                   text: "# middle"
+                 },
+                 %{
+                   column: 3,
+                   line: 7,
+                   next_eol_count: 2,
+                   previous_eol_count: 1,
+                   text: "# right-after"
+                 },
+                 %{
+                   column: 3,
+                   line: 9,
+                   next_eol_count: 1,
+                   previous_eol_count: 2,
+                   text: "# after"
+                 },
+                 %{
+                   column: 1,
+                   line: 11,
+                   next_eol_count: 1,
+                   previous_eol_count: 1,
+                   text: "# bottom"
+                 }
+               ]
+             }
   end
 
   @tag :requires_source

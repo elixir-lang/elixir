@@ -1069,7 +1069,7 @@ defmodule Module.Types.ExprTest do
     end
 
     test "warns on comparison with struct across dynamic call" do
-      assert typeerror!([x = :foo, y = %Point{}, mod = Kernel], mod.<=(x, y)) ==
+      assert typeerror!([x = %Point{}, y = %Point{}, mod = Kernel], mod.<=(x, y)) ==
                ~l"""
                comparison with structs found:
 
@@ -1077,7 +1077,7 @@ defmodule Module.Types.ExprTest do
 
                given types:
 
-                   dynamic(:foo) <= dynamic(%Point{})
+                   dynamic(%Point{}) <= dynamic(%Point{})
 
                where "mod" was given the type:
 
@@ -1087,9 +1087,9 @@ defmodule Module.Types.ExprTest do
 
                where "x" was given the type:
 
-                   # type: dynamic(:foo)
+                   # type: dynamic(%Point{})
                    # from: types_test.ex:LINE-1
-                   x = :foo
+                   x = %Point{}
 
                where "y" was given the type:
 
@@ -1099,6 +1099,31 @@ defmodule Module.Types.ExprTest do
 
                Comparison operators (>, <, >=, <=, min, and max) perform structural and not semantic comparison. Comparing with a struct won't give meaningful results. Structs that can be compared typically define a compare/2 function within their modules that can be used for semantic comparison.
                """
+
+      assert typeerror!(
+               [x = %Point{}, mod = Kernel, condition],
+               (
+                 y = if condition, do: 456, else: %Point{}
+                 mod.<=(x, y)
+               )
+             ) =~ "comparison with structs found:"
+
+      assert typecheck!(
+               [x = 123, mod = Kernel, condition],
+               (
+                 y = if condition, do: 456, else: %Point{}
+                 mod.<=(x, y)
+               )
+             ) == boolean()
+
+      assert typeerror!(
+               [mod = Kernel, condition],
+               (
+                 x = if condition, do: 123, else: %Point{}
+                 y = if condition, do: 456, else: %Point{}
+                 mod.<=(x, y)
+               )
+             ) =~ "comparison with structs found:"
     end
   end
 

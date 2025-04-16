@@ -67,6 +67,7 @@ defmodule JSONTest do
     end
 
     test "atoms" do
+      assert protocol_encode(:another) == "\"another\""
       assert protocol_encode([nil, false, true, :another]) == "[null,false,true,\"another\"]"
     end
 

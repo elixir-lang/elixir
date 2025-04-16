@@ -315,6 +315,9 @@ defmodule Mix.Tasks.New do
   # Where third-party dependencies like ExDoc output generated docs.
   /doc/
 
+  # Temporary files, for example, from tests.
+  /tmp/
+
   # If the VM crashes, it generates a dump, let's ignore it too.
   erl_crash.dump
 
@@ -324,8 +327,6 @@ defmodule Mix.Tasks.New do
   # Ignore package tarball (built via "mix hex.build").
   <%= @app %>-*.tar
   <% end %>
-  # Temporary files, for example, from tests.
-  /tmp/
   """)
 
   embed_template(:mix_exs, """

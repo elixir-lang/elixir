@@ -184,6 +184,21 @@ defmodule IEx.AutocompleteTest do
     assert expand(~c"IEx.Xyz") == {:no, ~c"", []}
   end
 
+  test "block keywords" do
+    assert expand(~c"if true do") == {:yes, ~c"", [~c"do"]}
+    assert expand(~c"if true a") == {:yes, ~c"", [~c"after", ~c"and/2"]}
+    assert expand(~c"if true d") == {:yes, ~c"o", []}
+    assert expand(~c"if true e") == {:yes, ~c"", [~c"end", ~c"else"]}
+  end
+
+  test "block keywords or operators" do
+    {:yes, ~c"", hints} = expand(~c"if true ")
+    assert ~c"do" in hints
+    assert ~c"else" in hints
+    assert ~c"+/2" in hints
+    assert ~c"and/2" in hints
+  end
+
   test "function completion" do
     assert expand(~c"System.ve") == {:yes, ~c"rsion", []}
     assert expand(~c":ets.fun2") == {:yes, ~c"ms", []}

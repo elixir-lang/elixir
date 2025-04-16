@@ -4,6 +4,7 @@
 
 defmodule Mix.Config do
   @moduledoc false
+  @moduledoc deprecated: "Use the Config module instead"
 
   @deprecated "Use the Config module instead"
   defmacro __using__(_) do
