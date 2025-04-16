@@ -316,18 +316,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
     command =
       {"gleam",
-       [
-         "compile-package",
-         "--no-beam",
-         "--target",
-         "erlang",
-         "--package",
-         package,
-         "--out",
-         out,
-         "--lib",
-         lib
-       ]}
+       ~w(compile-package --no-beam --target erlang --package #{package} --out #{out} --lib #{lib})}
 
     shell_cmd!(dep, config, command)
 

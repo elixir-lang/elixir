@@ -1,4 +1,11 @@
-*.beam
-*.ez
-/build
+# The directory Mix will write compiled artifacts to.
+/_build/
+
+# If the VM crashes, it generates a dump, let's ignore it too.
 erl_crash.dump
+
+# BEAM bytecode files.
+*.beam
+
+# Also ignore archive artifacts (built via "mix archive.build").
+*.ez

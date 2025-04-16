@@ -84,7 +84,7 @@ defmodule Mix.Dep.Loader do
   def load(%Mix.Dep{manager: manager, scm: scm, opts: opts} = dep, children, locked?) do
     # The manager for a child dependency is set based on the following rules:
     #   1. Set in dependency definition
-    #   2. From SCM, so that Hex dependencies of a rebar/gleam project can be compiled with mix
+    #   2. From SCM, so that Hex dependencies of a Rebar/Gleam project can be compiled with Mix
     #   3. From the parent dependency, used for rebar dependencies from git
     #   4. Inferred from files in dependency (mix.exs, rebar.config, Makefile, gleam.toml)
     manager = opts[:manager] || scm_manager(scm, opts) || manager || infer_manager(opts[:dest])
@@ -369,9 +369,9 @@ defmodule Mix.Dep.Loader do
 
   defp gleam_dep(%Mix.Dep{opts: opts} = dep, _children = nil, manager, locked?) do
     Mix.Gleam.require!()
-
-    config = File.cd!(opts[:dest], fn -> Mix.Gleam.load_config(".") end)
-    from = Path.join(opts[:dest], "gleam.toml")
+    dest = opts[:dest]
+    config = File.cd!(dest, fn -> Mix.Gleam.load_config(".") end)
+    from = Path.join(dest, "gleam.toml")
     deps = Enum.map(config[:deps], &to_dep(&1, from, manager, locked?))
 
     {dep, deps}
