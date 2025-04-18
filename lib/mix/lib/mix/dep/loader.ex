@@ -107,7 +107,7 @@ defmodule Mix.Dep.Loader do
           make_dep(dep)
 
         gleam?(dep) ->
-          gleam_dep(dep, children, locked?)
+          gleam_dep(dep, children, manager, locked?)
 
         true ->
           {dep, []}
@@ -367,18 +367,18 @@ defmodule Mix.Dep.Loader do
     {dep, []}
   end
 
-  defp gleam_dep(%Mix.Dep{opts: opts} = dep, _children = nil, locked?) do
+  defp gleam_dep(%Mix.Dep{opts: opts} = dep, _children = nil, manager, locked?) do
     Mix.Gleam.require!()
 
     config = File.cd!(opts[:dest], fn -> Mix.Gleam.load_config(".") end)
     from = Path.join(opts[:dest], "gleam.toml")
-    deps = Enum.map(config[:deps], &to_dep(&1, from, _manager = nil, locked?))
+    deps = Enum.map(config[:deps], &to_dep(&1, from, manager, locked?))
 
     {dep, deps}
   end
 
-  defp gleam_dep(%Mix.Dep{opts: opts} = dep, children, locked?) do
-    {dep, Enum.map(children, &to_dep(&1, opts[:dest], _manager = nil, locked?))}
+  defp gleam_dep(%Mix.Dep{opts: opts} = dep, children, manager, locked?) do
+    {dep, Enum.map(children, &to_dep(&1, opts[:dest], manager, locked?))}
   end
 
   defp mix_children(config, locked?, opts) do
