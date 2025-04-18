@@ -25,8 +25,8 @@ defmodule Module.Types.ExprTest do
     assert typecheck!("foo") == binary()
     assert typecheck!([]) == empty_list()
     assert typecheck!(%{}) == closed_map([])
-    assert typecheck!(& &1) == fun()
-    assert typecheck!(fn -> :ok end) == fun()
+    assert typecheck!(& &1) == dynamic(fun(1))
+    assert typecheck!(fn -> :ok end) == dynamic(fun(0))
   end
 
   test "generated" do
@@ -136,7 +136,7 @@ defmodule Module.Types.ExprTest do
                  x.(1, 2)
                  x
                )
-             ) == dynamic(fun())
+             ) == dynamic(fun(2))
     end
 
     test "incompatible" do
