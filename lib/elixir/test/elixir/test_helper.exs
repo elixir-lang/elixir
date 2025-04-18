@@ -100,7 +100,6 @@ defmodule CodeFormatterHelpers do
   end
 end
 
-assert_timeout = String.to_integer(System.get_env("ELIXIR_ASSERT_TIMEOUT") || "500")
 epmd_exclude = if match?({:win32, _}, :os.type()), do: [epmd: true], else: []
 os_exclude = if PathHelpers.windows?(), do: [unix: true], else: [windows: true]
 
@@ -135,9 +134,9 @@ cover_exclude =
 
 ExUnit.start(
   trace: !!System.get_env("TRACE"),
-  assert_receive_timeout: assert_timeout,
   exclude:
     epmd_exclude ++
       os_exclude ++ line_exclude ++ distributed_exclude ++ source_exclude ++ cover_exclude,
-  include: line_include
+  include: line_include,
+  assert_receive_timeout: String.to_integer(System.get_env("ELIXIR_ASSERT_TIMEOUT", "300"))
 )

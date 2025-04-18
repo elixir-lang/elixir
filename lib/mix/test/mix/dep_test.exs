@@ -946,7 +946,7 @@ defmodule Mix.DepTest do
 
           Mix.Tasks.Deps.Get.run([])
           Mix.Tasks.Deps.Compile.run([])
-          refute_receive {:mix_shell, :error, ["Could not compile :git_repo" <> _]}
+          refute_receive {:mix_shell, :error, ["Could not compile :git_repo" <> _]}, 100
         end)
       end)
     end
