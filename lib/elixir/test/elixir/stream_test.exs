@@ -318,14 +318,14 @@ defmodule StreamTest do
     send(pid, {:stream, 1})
     send(pid, {:stream, 2})
     send(pid, {:stream, 3})
-    refute_receive {:stream, 1}
+    refute_receive {:stream, 1}, 100
 
     send(pid, {:stream, 4})
     assert_receive {:stream, 1}
 
     send(pid, {:stream, 5})
     assert_receive {:stream, 2}
-    refute_receive {:stream, 3}
+    refute_receive {:stream, 3}, 100
   end
 
   test "drop_every/2" do
