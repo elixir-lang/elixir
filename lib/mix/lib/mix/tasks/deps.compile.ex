@@ -308,6 +308,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp do_gleam(%Mix.Dep{opts: opts} = dep, config) do
     Mix.Gleam.require!()
+    Mix.Project.ensure_structure()
 
     lib = Path.join(Mix.Project.build_path(), "lib")
     out = opts[:build]
@@ -315,58 +316,51 @@ defmodule Mix.Tasks.Deps.Compile do
 
     command =
       {"gleam",
-       ["compile-package", "--target", "erlang", "--package", package, "--out", out, "--lib", lib]}
+       [
+         "compile-package",
+         "--no-beam",
+         "--target",
+         "erlang",
+         "--package",
+         package,
+         "--out",
+         out,
+         "--lib",
+         lib
+       ]}
 
     shell_cmd!(dep, config, command)
 
-    ebin = Path.join(out, "ebin")
-    app_file_path = Keyword.get(opts, :app, Path.join(ebin, "#{dep.app}.app"))
-    create_app_file = app_file_path && !File.exists?(app_file_path)
+    File.cd!(package, fn -> Mix.Gleam.load_config(".") end)
+    |> push_gleam_project(dep, Keyword.fetch!(config, :deps_path))
 
-    if create_app_file do
-      generate_gleam_app_file(opts)
-    end
-
-    Code.prepend_path(ebin, cache: true)
+    Code.prepend_path(Path.join(out, "ebin"), cache: true)
   end
 
-  defp gleam_extra_applications(config) do
-    config
-    |> Map.get(:extra_applications, [])
-    |> Enum.map(&String.to_atom/1)
-  end
+  defp push_gleam_project(toml, dep, deps_path) do
+    build = Path.expand(dep.opts[:build])
+    src = Path.join(build, "_gleam_artefacts")
+    File.mkdir(Path.join(build, "ebin"))
 
-  defp gleam_mod(config) do
-    case config[:mod] do
-      nil -> []
-      mod -> {String.to_atom(mod), []}
-    end
-  end
+    config =
+      [
+        app: dep.app,
+        version: toml.version,
+        deps: toml.deps,
+        build_per_environment: true,
+        lockfile: "mix.lock",
+        # Remove per-environment segment from the path since ProjectStack.push below will append it
+        build_path: Mix.Project.build_path() |> Path.split() |> Enum.drop(-1) |> Path.join(),
+        deps_path: deps_path,
+        erlc_paths: [src],
+        erlc_include_path: Path.join(build, "include")
+      ]
 
-  defp generate_gleam_app_file(opts) do
-    toml = File.cd!(opts[:dest], fn -> Mix.Gleam.load_config(".") end)
-
-    module =
-      quote do
-        def project do
-          [
-            app: unquote(toml.name) |> String.to_atom(),
-            version: "#{unquote(toml.version)}"
-          ]
-        end
-
-        def application do
-          [
-            mod: unquote(gleam_mod(toml)),
-            extra_applications: unquote(gleam_extra_applications(toml))
-          ]
-        end
-      end
-
-    module_name = String.to_atom("Gleam.#{toml.name}")
-    Module.create(module_name, module, Macro.Env.location(__ENV__))
-    Mix.Project.push(module_name)
-    Mix.Tasks.Compile.App.run([])
+    Mix.ProjectStack.pop()
+    Mix.ProjectStack.push(dep.app, config, "nofile")
+    # Somehow running just `compile` task won't work (doesn't compile the .erl files)
+    Mix.Task.run("compile.erlang", ["--force"])
+    Mix.Task.run("compile.app")
   end
 
   defp make_command(dep) do
