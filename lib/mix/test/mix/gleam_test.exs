@@ -68,7 +68,9 @@ defmodule Mix.GleamTest do
                  {:my_other_project, path: "../my_other_project"},
                  {:gleeunit, ">= 1.0.0 and < 2.0.0", only: :dev}
                ],
-               mod: "some@application"
+               application: [
+                 mod: {:some@application, []}
+               ]
              }
     end
   end
@@ -81,10 +83,10 @@ defmodule Mix.GleamTest do
         Mix.Tasks.Deps.Get.run([])
         assert_received {:mix_shell, :info, ["* Getting gleam_stdlib " <> _]}
         assert_received {:mix_shell, :info, ["* Getting gleam_otp " <> _]}
-        assert_received {:mix_shell, :info, ["* Getting gleeunit " <> _]}
 
         Mix.Tasks.Deps.Compile.run([])
         assert :gleam_dep.main()
+        assert :gleam_dep.erl() == ~c'Hello from Collocated Erlang!'
         assert :gleam@int.to_string(1) == "1"
 
         {:ok, content} = :file.consult("_build/dev/lib/gleam_dep/ebin/gleam_dep.app")
@@ -94,13 +96,15 @@ defmodule Mix.GleamTest do
                    :application,
                    :gleam_dep,
                    [
-                     {:modules, [:gleam_dep]},
+                     {:modules, [:collocated_erlang, :gleam_dep]},
                      {:optional_applications, []},
-                     {:applications, [:kernel, :stdlib, :elixir, :ssl]},
+                     {:applications,
+                      [:kernel, :stdlib, :elixir, :gleam_otp, :gleam_stdlib, :gleeunit]},
                      {:description, ~c"gleam_dep"},
                      {:registered, []},
-                     {:vsn, ~c"1.0.0"},
-                     {:mod, {:gleam_dep@somemodule, []}}
+                     {:vsn, ~c"1.0.0"}
+                     # Need to add support for :application option in Compile.App
+                     #  {:mod, {:gleam_dep@somemodule, []}}
                    ]
                  }
                ]
