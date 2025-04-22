@@ -118,7 +118,8 @@ defmodule ExUnit do
             state: ExUnit.state(),
             time: non_neg_integer,
             tags: map,
-            logs: String.t()
+            logs: String.t(),
+            parameters: map
           }
   end
 
