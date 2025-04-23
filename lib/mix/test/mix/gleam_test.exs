@@ -53,7 +53,8 @@ defmodule Mix.GleamTest do
             "gleeunit" => %{"version" => ">= 1.0.0 and < 2.0.0"}
           },
           "erlang" => %{
-            "application_start_module" => "some@application"
+            "application_start_module" => "some@application",
+            "extra_applications" => ["some_app"]
           }
         }
         |> Mix.Gleam.parse_config()
@@ -69,7 +70,8 @@ defmodule Mix.GleamTest do
                  {:gleeunit, ">= 1.0.0 and < 2.0.0", only: :dev}
                ],
                application: [
-                 mod: {:some@application, []}
+                 mod: {:some@application, []},
+                 extra_applications: [:some_app]
                ]
              }
     end
@@ -103,8 +105,6 @@ defmodule Mix.GleamTest do
                      {:description, ~c"gleam_dep"},
                      {:registered, []},
                      {:vsn, ~c"1.0.0"}
-                     # Need to add support for :application option in Compile.App
-                     #  {:mod, {:gleam_dep@somemodule, []}}
                    ]
                  }
                ]
