@@ -710,7 +710,7 @@ defmodule String do
   end
 
   @doc ~S"""
-  Counts the number of occurrences of a pattern in a string.
+  Counts the number of occurrences of a `pattern` in a `string`.
 
   ## Examples
 
