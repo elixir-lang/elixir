@@ -730,11 +730,11 @@ defmodule String do
   @spec count(t, pattern | Regex.t()) :: non_neg_integer
   @doc since: "1.19.0"
   def count(string, pattern) when is_struct(pattern, Regex) do
-    Enum.count(Regex.scan(pattern, string))
+    length(Regex.scan(pattern, string, return: :index))
   end
 
   def count(string, pattern) do
-    Enum.count(:binary.matches(string, pattern))
+    length(:binary.matches(string, pattern))
   end
 
   @doc ~S"""
