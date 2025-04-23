@@ -726,15 +726,19 @@ defmodule String do
       iex> String.count("hello world", ~r/o/)
       2
 
+      iex> pattern = :binary.compile_pattern([" ", "!"])
+      iex> String.count("foo bar baz!!", pattern)
+      4
+
   """
   @spec count(t, pattern | Regex.t()) :: non_neg_integer
   @doc since: "1.19.0"
   def count(string, pattern) when is_struct(pattern, Regex) do
-    length(Regex.scan(pattern, string, return: :index))
+    Kernel.length(Regex.scan(pattern, string, return: :index))
   end
 
   def count(string, pattern) do
-    length(:binary.matches(string, pattern))
+    Kernel.length(:binary.matches(string, pattern))
   end
 
   @doc ~S"""
