@@ -710,6 +710,34 @@ defmodule String do
   end
 
   @doc ~S"""
+  Counts the number of occurrences of a pattern in a string.
+
+  ## Examples
+
+      iex> String.count("hello world", "o")
+      2
+
+      iex> String.count("hello world", "l")
+      3
+
+      iex> String.count("hello world", "x")
+      0
+
+      iex> String.count("hello world", ~r/o/)
+      2
+
+  """
+  @spec count(t, pattern | Regex.t()) :: non_neg_integer
+  @doc since: "1.19.0"
+  def count(string, pattern) when is_struct(pattern, Regex) do
+    Enum.count(Regex.scan(pattern, string))
+  end
+
+  def count(string, pattern) do
+    Enum.count(:binary.matches(string, pattern))
+  end
+
+  @doc ~S"""
   Returns `true` if `string1` is canonically equivalent to `string2`.
 
   It performs Normalization Form Canonical Decomposition (NFD) on the
