@@ -726,6 +726,8 @@ defmodule String do
       iex> String.count("hello world", ~r/o/)
       2
 
+  The `pattern` can also be a compiled pattern:
+
       iex> pattern = :binary.compile_pattern([" ", "!"])
       iex> String.count("foo bar baz!!", pattern)
       4
