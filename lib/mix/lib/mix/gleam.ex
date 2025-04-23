@@ -30,7 +30,7 @@ defmodule Mix.Gleam do
       deps: deps ++ dev_deps
     }
     |> maybe_gleam_version(json)
-    |> maybe_erlang_opts(json)
+    |> maybe_erlang_opts(json["erlang"])
   rescue
     KeyError ->
       Mix.raise("Command \"gleam export package-information\" unexpected format: \n" <> json)
@@ -45,7 +45,7 @@ defmodule Mix.Gleam do
           {dep, version, opts}
 
         %{"path" => path} ->
-          {dep, Keyword.merge(opts, path: Path.expand(path))}
+          {dep, Keyword.merge(opts, path: path)}
 
         %{"git" => git, "ref" => ref} ->
           {dep, git: git, ref: ref}
@@ -67,17 +67,24 @@ defmodule Mix.Gleam do
     end
   end
 
-  defp maybe_erlang_opts(config, json) do
-    config =
-      case get_in(json, ["erlang", "application_start_module"]) do
-        nil -> config
-        mod -> Map.put(config, :mod, mod)
-      end
+  defp maybe_erlang_opts(config, nil), do: config
 
-    case get_in(json, ["erlang", "extra_applications"]) do
-      nil -> config
-      extra_applications -> Map.put(config, :extra_applications, extra_applications)
-    end
+  defp maybe_erlang_opts(config, opts) do
+    application =
+      opts
+      |> Enum.filter(fn {_, value} -> value != nil end)
+      |> Enum.map(fn
+        {"application_start_module", module} when is_binary(module) ->
+          {:mod, {String.to_atom(module), []}}
+
+        {"extra_applications", applications} when is_list(applications) ->
+          {:extra_applications, Enum.map(applications, &String.to_atom/1)}
+
+        {key, value} ->
+          IO.warn("Gleam [erlang] option not supported\n #{key}: #{inspect(value)}")
+      end)
+
+    Map.put(config, :application, application)
   end
 
   def require!() do

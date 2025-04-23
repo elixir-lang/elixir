@@ -182,7 +182,7 @@ defmodule Mix.Tasks.Compile.App do
           registered: [],
           vsn: to_charlist(version)
         ]
-        |> merge_project_application(project)
+        |> merge_project_application(project, config[:application])
         |> handle_extra_applications(config)
         |> add_compile_env(current_properties)
         |> add_modules(modules, compile_path)
@@ -263,7 +263,7 @@ defmodule Mix.Tasks.Compile.App do
     end
   end
 
-  defp merge_project_application(best_guess, project) do
+  defp merge_project_application(best_guess, project, _application = nil) do
     if function_exported?(project, :application, 0) do
       project_application = project.application()
 
@@ -277,6 +277,14 @@ defmodule Mix.Tasks.Compile.App do
     else
       best_guess
     end
+  end
+
+  defp merge_project_application(best_guess, _project, application) do
+    if not Keyword.keyword?(application) do
+      Mix.raise("Application configuration passed as :application should be a keyword list")
+    end
+
+    Keyword.merge(best_guess, validate_properties!(application))
   end
 
   defp validate_properties!(properties) do
