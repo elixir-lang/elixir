@@ -712,37 +712,45 @@ defmodule String do
   @doc ~S"""
   Counts the number of non-overlapping occurrences of a `pattern` in a `string`.
 
+  In case the pattern is an empty string, the function returns 1 + the number of graphemes
+  in the string.
+
   ## Examples
 
-      iex> String.count_occurrences("hello world", "o")
+      iex> String.count_matches("hello world", "o")
       2
 
-      iex> String.count_occurrences("hello world", "l")
+      iex> String.count_matches("hello world", "l")
       3
 
-      iex> String.count_occurrences("hello world", "x")
+      iex> String.count_matches("hello world", "x")
       0
 
-      iex> String.count_occurrences("hello world", ~r/o/)
+      iex> String.count_matches("hello world", ~r/o/)
       2
 
-      iex> String.count_occurrences("Hellooo", "oo")
+      iex> String.count_matches("Hellooo", "oo")
       1
+
+      iex> String.count_matches("hello world", "")
+      12
 
   The `pattern` can also be a compiled pattern:
 
       iex> pattern = :binary.compile_pattern([" ", "!"])
-      iex> String.count_occurrences("foo bar baz!!", pattern)
+      iex> String.count_matches("foo bar baz!!", pattern)
       4
 
   """
-  @spec count_occurrences(t, pattern | Regex.t()) :: non_neg_integer
+  @spec count_matches(t, pattern | Regex.t()) :: non_neg_integer
   @doc since: "1.19.0"
-  def count_occurrences(string, pattern) when is_struct(pattern, Regex) do
+  def count_matches(string, <<>>), do: length(string) + 1
+
+  def count_matches(string, pattern) when is_struct(pattern, Regex) do
     Kernel.length(Regex.scan(pattern, string, return: :index))
   end
 
-  def count_occurrences(string, pattern) do
+  def count_matches(string, pattern) do
     Kernel.length(:binary.matches(string, pattern))
   end
 
