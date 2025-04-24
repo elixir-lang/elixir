@@ -710,36 +710,39 @@ defmodule String do
   end
 
   @doc ~S"""
-  Counts the number of occurrences of a `pattern` in a `string`.
+  Counts the number of non-overlapping occurrences of a `pattern` in a `string`.
 
   ## Examples
 
-      iex> String.count("hello world", "o")
+      iex> String.count_occurrences("hello world", "o")
       2
 
-      iex> String.count("hello world", "l")
+      iex> String.count_occurrences("hello world", "l")
       3
 
-      iex> String.count("hello world", "x")
+      iex> String.count_occurrences("hello world", "x")
       0
 
-      iex> String.count("hello world", ~r/o/)
+      iex> String.count_occurrences("hello world", ~r/o/)
       2
+
+      iex> String.count_occurrences("Hellooo", "oo")
+      1
 
   The `pattern` can also be a compiled pattern:
 
       iex> pattern = :binary.compile_pattern([" ", "!"])
-      iex> String.count("foo bar baz!!", pattern)
+      iex> String.count_occurrences("foo bar baz!!", pattern)
       4
 
   """
-  @spec count(t, pattern | Regex.t()) :: non_neg_integer
+  @spec count_occurrences(t, pattern | Regex.t()) :: non_neg_integer
   @doc since: "1.19.0"
-  def count(string, pattern) when is_struct(pattern, Regex) do
+  def count_occurrences(string, pattern) when is_struct(pattern, Regex) do
     Kernel.length(Regex.scan(pattern, string, return: :index))
   end
 
-  def count(string, pattern) do
+  def count_occurrences(string, pattern) do
     Kernel.length(:binary.matches(string, pattern))
   end
 
