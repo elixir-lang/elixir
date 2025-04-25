@@ -181,7 +181,7 @@ defmodule Kernel.ParallelCompiler do
           {:ok, [atom], [warning] | info()}
           | {:error, [error] | [Code.diagnostic(:error)], [warning] | info()}
   def compile_to_path(files, path, options \\ []) when is_binary(path) and is_list(options) do
-    spawn_workers(files, {:compile, path}, options)
+    spawn_workers(files, {:compile, path}, Keyword.put(options, :dest, path))
   end
 
   @doc """
@@ -320,6 +320,9 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp write_module_binaries(result, {:compile, path}, timestamp) do
+    File.mkdir_p!(path)
+    Code.prepend_path(path)
+
     Enum.flat_map(result, fn
       {{:module, module}, binary} when is_binary(binary) ->
         full_path = Path.join(path, Atom.to_string(module) <> ".beam")
@@ -420,8 +423,8 @@ defmodule Kernel.ParallelCompiler do
 
         try do
           case output do
-            {:compile, path} -> compile_file(file, path, parent)
-            :compile -> compile_file(file, dest, parent)
+            {:compile, _} -> compile_file(file, dest, false, parent)
+            :compile -> compile_file(file, dest, true, parent)
             :require -> require_file(file, parent)
           end
         catch
@@ -527,9 +530,9 @@ defmodule Kernel.ParallelCompiler do
     wait_for_messages([], spawned, waiting, files, result, warnings, errors, state)
   end
 
-  defp compile_file(file, path, parent) do
+  defp compile_file(file, path, force_load?, parent) do
     :erlang.process_flag(:error_handler, Kernel.ErrorHandler)
-    :erlang.put(:elixir_compiler_dest, path)
+    :erlang.put(:elixir_compiler_dest, {path, force_load?})
     :elixir_compiler.file(file, &each_file(&1, &2, parent))
   end
 
@@ -630,19 +633,30 @@ defmodule Kernel.ParallelCompiler do
           state
         )
 
-      {:module_available, child, ref, file, module, binary} ->
+      {:module_available, child, ref, file, module, binary, loaded?} ->
         state.each_module.(file, module, binary)
+
+        available =
+          case Map.get(result, {:module, module}) do
+            [_ | _] = pids ->
+              # We prefer to load in the client, if possible,
+              # to avoid locking the compilation server.
+              loaded? or load_module(module, binary, state)
+              Enum.map(pids, &{&1, :found})
+
+            _ ->
+              []
+          end
 
         # Release the module loader which is waiting for an ack
         send(child, {ref, :ack})
-        {available, result} = update_result(result, :module, module, binary)
 
         spawn_workers(
           available ++ queue,
           spawned,
           waiting,
           files,
-          result,
+          Map.put(result, {:module, module}, binary),
           warnings,
           errors,
           state
@@ -661,6 +675,8 @@ defmodule Kernel.ParallelCompiler do
 
         {waiting, files, result} =
           if not is_list(available_or_pending) or on in defining do
+            # If what we are waiting on was defined but not loaded, we do it now.
+            load_pending(kind, on, result, state)
             send(child_pid, {ref, :found})
             {waiting, files, result}
           else
@@ -753,6 +769,30 @@ defmodule Kernel.ParallelCompiler do
 
     info = %{compile_warnings: Enum.reverse(warnings), runtime_warnings: []}
     {{:error, Enum.reverse(errors, fun.()), info}, state}
+  end
+
+  defp load_pending(kind, module, result, state) do
+    with true <- kind in [:module, :struct],
+         %{{:module, ^module} => binary} when is_binary(binary) <- result,
+         false <- :erlang.module_loaded(module) do
+      load_module(module, binary, state)
+    end
+  end
+
+  defp load_module(module, binary, state) do
+    beam_location =
+      case state.dest do
+        nil ->
+          []
+
+        dest ->
+          :filename.join(
+            :elixir_utils.characters_to_list(dest),
+            Atom.to_charlist(module) ++ ~c".beam"
+          )
+      end
+
+    :code.load_binary(module, beam_location, binary)
   end
 
   defp update_result(result, kind, module, value) do
