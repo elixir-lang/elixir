@@ -710,6 +710,51 @@ defmodule String do
   end
 
   @doc ~S"""
+  Counts the number of non-overlapping occurrences of a `pattern` in a `string`.
+
+  In case the pattern is an empty string, the function returns 1 + the number of graphemes
+  in the string.
+
+  ## Examples
+
+      iex> String.count("hello world", "o")
+      2
+
+      iex> String.count("hello world", "l")
+      3
+
+      iex> String.count("hello world", "x")
+      0
+
+      iex> String.count("hello world", ~r/o/)
+      2
+
+      iex> String.count("Hellooo", "oo")
+      1
+
+      iex> String.count("hello world", "")
+      12
+
+  The `pattern` can also be a compiled pattern:
+
+      iex> pattern = :binary.compile_pattern([" ", "!"])
+      iex> String.count("foo bar baz!!", pattern)
+      4
+
+  """
+  @spec count(t, pattern | Regex.t()) :: non_neg_integer
+  @doc since: "1.19.0"
+  def count(string, <<>>), do: length(string) + 1
+
+  def count(string, pattern) when is_struct(pattern, Regex) do
+    Kernel.length(Regex.scan(pattern, string, return: :index))
+  end
+
+  def count(string, pattern) do
+    Kernel.length(:binary.matches(string, pattern))
+  end
+
+  @doc ~S"""
   Returns `true` if `string1` is canonically equivalent to `string2`.
 
   It performs Normalization Form Canonical Decomposition (NFD) on the
