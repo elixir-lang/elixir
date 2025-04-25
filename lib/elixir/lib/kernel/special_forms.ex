@@ -2110,7 +2110,7 @@ defmodule Kernel.SpecialForms do
       iex> try do
       ...>   1 / 0
       ...> rescue
-      ...>   x in [ArithmeticError] -> [:rescued, is_exception(x)]
+      ...>   x -> [:rescued, is_exception(x)]
       ...> end
       [:rescued, true]
 
