@@ -2294,7 +2294,7 @@ defmodule Code.Formatter do
   end
 
   defp extract_arg_comments({{_, context}, {_, _, _} = quoted} = arg)
-       when context in [:left, :right, :operand, :parens_arg] do
+       when context in [:left, :right, :operand, :parens_arg, :no_parens_arg] do
     {leading_comments, trailing_comments} = extract_comments(quoted)
     {leading_comments, trailing_comments, arg}
   end
