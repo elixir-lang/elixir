@@ -717,40 +717,40 @@ defmodule String do
 
   ## Examples
 
-      iex> String.count_matches("hello world", "o")
+      iex> String.count("hello world", "o")
       2
 
-      iex> String.count_matches("hello world", "l")
+      iex> String.count("hello world", "l")
       3
 
-      iex> String.count_matches("hello world", "x")
+      iex> String.count("hello world", "x")
       0
 
-      iex> String.count_matches("hello world", ~r/o/)
+      iex> String.count("hello world", ~r/o/)
       2
 
-      iex> String.count_matches("Hellooo", "oo")
+      iex> String.count("Hellooo", "oo")
       1
 
-      iex> String.count_matches("hello world", "")
+      iex> String.count("hello world", "")
       12
 
   The `pattern` can also be a compiled pattern:
 
       iex> pattern = :binary.compile_pattern([" ", "!"])
-      iex> String.count_matches("foo bar baz!!", pattern)
+      iex> String.count("foo bar baz!!", pattern)
       4
 
   """
-  @spec count_matches(t, pattern | Regex.t()) :: non_neg_integer
+  @spec count(t, pattern | Regex.t()) :: non_neg_integer
   @doc since: "1.19.0"
-  def count_matches(string, <<>>), do: length(string) + 1
+  def count(string, <<>>), do: length(string) + 1
 
-  def count_matches(string, pattern) when is_struct(pattern, Regex) do
+  def count(string, pattern) when is_struct(pattern, Regex) do
     Kernel.length(Regex.scan(pattern, string, return: :index))
   end
 
-  def count_matches(string, pattern) do
+  def count(string, pattern) do
     Kernel.length(:binary.matches(string, pattern))
   end
 
