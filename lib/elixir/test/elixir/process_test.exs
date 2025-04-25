@@ -63,7 +63,7 @@ defmodule ProcessTest do
 
   test "sleep/1 with 2^32" do
     {pid, monitor_ref} = spawn_monitor(fn -> Process.sleep(2 ** 32) end)
-    refute_receive {:DOWN, ^monitor_ref, :process, ^pid, {:timeout_value, _trace}}
+    refute_receive {:DOWN, ^monitor_ref, :process, ^pid, {:timeout_value, _trace}}, 100
     Process.exit(pid, :kill)
   end
 
@@ -130,7 +130,7 @@ defmodule ProcessTest do
       end)
 
     true = Process.exit(pid, :normal)
-    refute_receive {:EXIT, ^pid, :normal}
+    refute_receive {:EXIT, ^pid, :normal}, 100
     assert Process.alive?(pid)
 
     # now exit the process for real so it doesn't hang around

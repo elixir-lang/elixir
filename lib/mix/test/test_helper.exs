@@ -49,7 +49,8 @@ CoverageRecorder.maybe_record("mix")
 ExUnit.start(
   trace: !!System.get_env("TRACE"),
   exclude: epmd_exclude ++ os_exclude ++ git_exclude ++ line_exclude ++ cover_exclude,
-  include: line_include
+  include: line_include,
+  assert_receive_timeout: String.to_integer(System.get_env("ELIXIR_ASSERT_TIMEOUT", "300"))
 )
 
 defmodule MixTest.Case do

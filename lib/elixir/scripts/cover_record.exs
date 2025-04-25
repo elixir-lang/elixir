@@ -66,12 +66,26 @@ defmodule CoverageRecorder do
     |> Enum.flat_map(fn ebin ->
       ebin |> Path.join("*.beam") |> Path.wildcard()
     end)
-    |> Enum.reject(&deprecated/1)
+    |> Enum.reject(&skip_from_coverage?/1)
   end
 
-  defp deprecated(file) do
-    mod = file |> Path.basename(".beam") |> String.to_atom()
+  @to_skip [
+    # Tested via the CLI only
+    :elixir_sup,
+    :iex,
+    Kernel.CLI,
+    Mix.CLI,
+    Mix.Compilers.Test,
+    Mix.Tasks.Test,
+    Mix.Tasks.Test.Coverage,
 
-    match?({:docs_v1, _, _, _, _, %{deprecated: _}, _}, Code.fetch_docs(mod))
+    # Bootstrap
+    :elixir_bootstrap,
+    Kernel.SpecialForms
+  ]
+
+  defp skip_from_coverage?(file) do
+    mod = file |> Path.basename(".beam") |> String.to_atom()
+    mod in @to_skip or match?({:docs_v1, _, _, _, _, %{deprecated: _}, _}, Code.fetch_docs(mod))
   end
 end

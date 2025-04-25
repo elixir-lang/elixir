@@ -375,7 +375,7 @@ defmodule Mix.UmbrellaTest do
 
         Mix.Task.run("compile", ["--verbose"])
         assert_receive {:mix_shell, :info, ["no compile bar"]}
-        refute_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+        refute_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}, 100
       end)
     end)
   end

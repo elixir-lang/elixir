@@ -26,7 +26,7 @@ GIT_TAG = $(strip $(shell head="$(call GIT_REVISION)"; git tag --points-at $$hea
 SOURCE_DATE_EPOCH_PATH = lib/elixir/tmp/ebin_reproducible
 SOURCE_DATE_EPOCH_FILE = $(SOURCE_DATE_EPOCH_PATH)/SOURCE_DATE_EPOCH
 
-.PHONY: install install_man build_plt clean_plt dialyze test check_reproducible clean clean_elixir clean_man format docs Docs.zip Precompiled.zip zips
+.PHONY: cover install install_man build_plt clean_plt dialyze test check_reproducible clean clean_elixir clean_man format docs Docs.zip Precompiled.zip zips
 .NOTPARALLEL:
 
 #==> Functions
@@ -299,7 +299,6 @@ cover/combined.coverdata: cover/ex_unit_elixir.coverdata
 cover/combined.coverdata:
 	bin/elixir ./lib/elixir/scripts/cover.exs
 
-.PHONY: cover
 cover: cover/combined.coverdata
 
 #==> Dialyzer tasks

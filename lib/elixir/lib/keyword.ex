@@ -742,6 +742,10 @@ defmodule Keyword do
 
       iex> Keyword.delete_first([a: 1, b: 2, a: 3], :a)
       [b: 2, a: 3]
+
+      iex> Keyword.delete_first([a: 1, b: 2, b: 3], :b)
+      [a: 1, b: 3]
+
       iex> Keyword.delete_first([b: 2], :a)
       [b: 2]
 
@@ -760,10 +764,6 @@ defmodule Keyword do
 
   defp delete_first_key([{_, _} = pair | tail], key) do
     [pair | delete_first_key(tail, key)]
-  end
-
-  defp delete_first_key([], _key) do
-    []
   end
 
   @doc """

@@ -1275,7 +1275,7 @@ defmodule Logger.TranslatorTest do
   test "drops events if otp report handling is switched off" do
     {:ok, pid} = GenServer.start(MyGenServer, :ok)
     catch_exit(GenServer.call(pid, :error))
-    refute_receive {:event, _, _}, 200
+    refute_receive {:event, _, _}, 100
   end
 
   def task(parent, fun \\ fn -> raise "oops" end) do

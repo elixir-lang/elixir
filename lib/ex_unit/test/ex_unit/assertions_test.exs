@@ -601,7 +601,7 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "refute receive waits" do
-    false = refute_receive :hello
+    false = refute_receive :hello, 100
   end
 
   test "refute received when equal" do

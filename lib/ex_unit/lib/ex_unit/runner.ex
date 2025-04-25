@@ -165,14 +165,14 @@ defmodule ExUnit.Runner do
     running
   end
 
-  defp spawn_modules(config, [{_group, [_ | _] = modules} | groups], async?, running) do
+  defp spawn_modules(config, [{group, [_ | _] = modules} | groups], async?, running) do
     if max_failures_reached?(config) do
       running
     else
       {pid, ref} =
         spawn_monitor(fn ->
           Enum.each(modules, fn {module, params} ->
-            run_module(config, module, async?, params)
+            run_module(config, module, async?, group, params)
           end)
         end)
 
@@ -231,12 +231,13 @@ defmodule ExUnit.Runner do
 
   ## Running modules
 
-  defp run_module(config, module, async?, params) do
+  defp run_module(config, module, async?, group, params) do
     test_module = %{module.__ex_unit__() | parameters: params}
     EM.module_started(config.manager, test_module)
 
     # Prepare tests, selecting which ones should be run or skipped
-    {to_run_tests, excluded_and_skipped_tests} = prepare_tests(config, async?, test_module.tests)
+    {to_run_tests, excluded_and_skipped_tests} =
+      prepare_tests(config, async?, group, test_module.tests)
 
     for excluded_or_skipped_test <- excluded_and_skipped_tests do
       EM.test_started(config.manager, excluded_or_skipped_test)
@@ -271,7 +272,7 @@ defmodule ExUnit.Runner do
     end
   end
 
-  defp prepare_tests(config, async?, tests) do
+  defp prepare_tests(config, async?, group, tests) do
     tests = shuffle(config, tests)
     include = config.include
     exclude = config.exclude
@@ -280,7 +281,13 @@ defmodule ExUnit.Runner do
     {to_run, to_skip} =
       for test <- tests, include_test?(test_ids, test), reduce: {[], []} do
         {to_run, to_skip} ->
-          tags = Map.merge(test.tags, %{test: test.name, module: test.module, async: async?})
+          tags =
+            Map.merge(test.tags, %{
+              test: test.name,
+              module: test.module,
+              async: async?,
+              test_group: group
+            })
 
           case ExUnit.Filters.eval(include, exclude, tags, tests) do
             :ok -> {[%{test | tags: tags} | to_run], to_skip}

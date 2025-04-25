@@ -274,6 +274,9 @@ defmodule HashSet do
 end
 
 defimpl Enumerable, for: HashSet do
+  @moduledoc false
+  @moduledoc deprecated: "Use MapSet instead"
+
   def reduce(set, acc, fun) do
     # Avoid warnings about HashSet being deprecated.
     module = String.to_atom("HashSet")
@@ -298,6 +301,9 @@ defimpl Enumerable, for: HashSet do
 end
 
 defimpl Collectable, for: HashSet do
+  @moduledoc false
+  @moduledoc deprecated: "Use MapSet instead"
+
   def into(original) do
     # Avoid warnings about HashSet being deprecated.
     module = String.to_atom("HashSet")
@@ -313,6 +319,8 @@ defimpl Collectable, for: HashSet do
 end
 
 defimpl Inspect, for: HashSet do
+  @moduledoc false
+  @moduledoc deprecated: "Use MapSet instead"
   import Inspect.Algebra
 
   def inspect(set, opts) do

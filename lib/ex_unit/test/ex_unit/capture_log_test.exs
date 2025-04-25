@@ -102,7 +102,7 @@ defmodule ExUnit.CaptureLogTest do
       Logger.error("oh no!")
     end)
 
-    refute_receive {:EXIT, _, _}
+    refute_receive {:EXIT, _, _}, 100
   end
 
   describe "with_log/2" do

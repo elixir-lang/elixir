@@ -247,6 +247,12 @@ defmodule IEx.InfoTest do
     assert get_key(info, "Reference modules") == "Range"
   end
 
+  test "maps" do
+    info = Info.info(%{foo: "bar"})
+    assert get_key(info, "Data type") == "Map"
+    assert get_key(info, "Reference modules") == "Map"
+  end
+
   test "structs" do
     info = Info.info(%Foo{})
     assert get_key(info, "Data type") == "IEx.InfoTest.Foo"

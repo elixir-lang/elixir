@@ -2492,8 +2492,8 @@ defmodule File.LinkError do
 
   For example, this exception is raised when trying to link to file that isn't present:
 
-      iex> File.ln!("source.txt", "target.txt")
-      ** (File.LinkError) could not create hard link from "source.txt" to "target.txt": no such file or directory
+      iex> File.ln!("existing.txt", "link.txt")
+      ** (File.LinkError) could not create hard link from "link.txt" to "existing.txt": no such file or directory
 
   The following fields of this exception are public and can be accessed freely:
 
@@ -2509,8 +2509,8 @@ defmodule File.LinkError do
   def message(exception) do
     formatted = IO.iodata_to_binary(:file.format_error(exception.reason))
 
-    "could not #{exception.action} from #{inspect(exception.existing)} to " <>
-      "#{inspect(exception.new)}: #{formatted}"
+    "could not #{exception.action} from #{inspect(exception.new)} to " <>
+      "#{inspect(exception.existing)}: #{formatted}"
   end
 end
 
