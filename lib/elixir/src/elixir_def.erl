@@ -222,7 +222,7 @@ store_definition(Meta, Kind, CheckClauses, Name, Arity, DefaultsArgs, Guards, Bo
   [store_definition(none, Kind, Meta, Name, length(DefaultArgs), File,
                     Module, 0, [Default]) || {_, DefaultArgs, _, _} = Default <- Defaults],
 
-  run_on_definition_callbacks(Kind, Module, Name, DefaultsArgs, Guards, Body, E),
+  run_on_definition_callbacks(Meta, Kind, Module, Name, DefaultsArgs, Guards, Body, E),
   Tuple.
 
 env_for_expansion(Kind, Tuple, E) when Kind =:= defmacro; Kind =:= defmacrop ->
@@ -267,10 +267,13 @@ def_to_clauses(Kind, Meta, Args, Guards, Body, E) ->
       elixir_errors:file_error(Meta, E, elixir_expand, {missing_option, Kind, [do]})
   end.
 
-run_on_definition_callbacks(Kind, Module, Name, Args, Guards, Body, E) ->
+run_on_definition_callbacks(Meta, Kind, Module, Name, Args, Guards, Body, E) ->
   {_, Bag} = elixir_module:data_tables(Module),
   Callbacks = ets:lookup_element(Bag, {accumulate, on_definition}, 2),
-  _ = [Mod:Fun(E, Kind, Name, Args, Guards, Body) || {Mod, Fun} <- lists:reverse(Callbacks)],
+  _ = [begin
+    elixir_env:trace({remote_function, Meta, Mod, Fun, 6}, E),
+    Mod:Fun(E, Kind, Name, Args, Guards, Body)
+  end || {Mod, Fun} <- lists:reverse(Callbacks)],
   ok.
 
 store_definition(CheckClauses, Kind, Meta, Name, Arity, File, Module, Defaults, Clauses)

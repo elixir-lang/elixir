@@ -295,6 +295,35 @@ defmodule Kernel.TracersTest do
     assert meta[:line] == 1
   end
 
+  def __before_compile__(_), do: :ok
+  def __after_compile__(_, _), do: :ok
+  def __after_verify__(_), do: :ok
+  def __on_definition__(_, _, _, _, _, _), do: :ok
+
+  test "traces compile time attributes" do
+    compile_string("""
+    defmodule TracerCompileAttributes do
+      @before_compile Kernel.TracersTest
+      @after_compile Kernel.TracersTest
+      @on_definition Kernel.TracersTest
+      @after_verify Kernel.TracersTest
+      def hello, do: :world
+    end
+    """)
+
+    assert_received {{:remote_function, meta, __MODULE__, :__before_compile__, 1}, _}
+    assert meta[:line] == 1
+
+    assert_received {{:remote_function, meta, __MODULE__, :__after_compile__, 2}, _}
+    assert meta[:line] == 1
+
+    assert_received {{:remote_function, meta, __MODULE__, :__after_verify__, 1}, _}
+    assert meta[:line] == 1
+
+    assert_received {{:remote_function, meta, __MODULE__, :__on_definition__, 6}, _}
+    assert meta[:line] == 6
+  end
+
   test "traces super" do
     compile_string("""
     defmodule TracerOverridable do
