@@ -182,7 +182,7 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
          'Elixir.Module':'__check_attributes__'(E, DataSet, DataBag),
 
         AfterVerify = bag_lookup_element(DataBag, {accumulate, after_verify}, 2),
-        [elixir_env:trace({remote_function, [], VerifyMod, VerifyFun, 1}, CallbackE) ||
+        [elixir_env:trace({remote_function, [{line, Line}], VerifyMod, VerifyFun, 1}, CallbackE) ||
          {VerifyMod, VerifyFun} <- AfterVerify],
 
         %% Ensure there are no errors before we infer types
@@ -299,7 +299,8 @@ validate_on_load_attribute({on_load, Def}, Defs, Bag, Line, E) ->
       elixir_errors:module_error([{line, Line}], E, ?MODULE, {undefined_function, on_load, Def});
     {_Def, Kind, _Meta, _Clauses} when Kind == defmacro; Kind == defmacrop ->
       elixir_errors:module_error([{line, Line}], E, ?MODULE, {bad_macro, on_load, Def});
-    {_Def, Kind, _Meta, _Clauses} ->
+    {{Name, Arity}, Kind, _Meta, _Clauses} ->
+      elixir_env:trace({local_function, [{line, Line}], Name, Arity}, E),
       (Kind == defp) andalso ets:insert(Bag, {used_private, Def})
   end;
 validate_on_load_attribute(false, _Defs, _Bag, _Line, _E) -> ok.

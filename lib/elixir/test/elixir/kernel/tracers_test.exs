@@ -14,16 +14,25 @@ defmodule Kernel.TracersTest do
   end
 
   def trace(event, %Macro.Env{} = env) do
-    send(self(), {event, env})
+    for {pid, _} <- Registry.lookup(__MODULE__, :tracers) do
+      send(pid, {event, env})
+    end
+
     :ok
   end
 
   setup_all do
+    start_supervised!({Registry, keys: :duplicate, name: __MODULE__})
     Code.put_compiler_option(:tracers, [__MODULE__])
 
     on_exit(fn ->
       Code.put_compiler_option(:tracers, [])
     end)
+  end
+
+  setup do
+    Registry.register(__MODULE__, :tracers, :unused)
+    :ok
   end
 
   test "traces start and stop" do
@@ -259,7 +268,7 @@ defmodule Kernel.TracersTest do
     assert meta[:from_brackets]
 
     compile_string("""
-    defmodule Foo do
+    defmodule TracerBracketAccess do
       @foo %{bar: 3}
       def a() do
         @foo[:bar]
@@ -276,6 +285,18 @@ defmodule Kernel.TracersTest do
 
     assert_received {{:remote_function, meta, Access, :get, 2}, _env}
     assert meta[:from_brackets]
+  end
+
+  test "traces on_load" do
+    compile_string("""
+    defmodule TracerOnLoad do
+      @on_load :init
+      def init, do: :ok
+    end
+    """)
+
+    assert_received {{:local_function, meta, :init, 0}, _}
+    assert meta[:line] == 1
   end
 
   test "traces super" do
