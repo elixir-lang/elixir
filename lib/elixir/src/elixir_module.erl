@@ -159,7 +159,7 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
     put_compiler_modules([Module | CompilerModules]),
     {Result, ModuleE, CallbackE} = eval_form(Line, Module, DataBag, Block, Vars, Prune, E),
     CheckerInfo = checker_info(),
-    BeamLocation = beam_location(ModuleAsCharlist),
+    {BeamLocation, Forceload} = beam_location(ModuleAsCharlist),
 
     {Binary, PersistedAttributes, Autoload} =
       elixir_erl_compiler:spawn(fun() ->
@@ -219,17 +219,17 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
 
         compile_error_if_tainted(DataSet, E),
         Binary = elixir_erl:compile(ModuleMap),
-        Autoload = proplists:get_value(autoload, CompileOpts, true),
+        Autoload = Forceload or proplists:get_value(autoload, CompileOpts, false),
         spawn_parallel_checker(CheckerInfo, Module, ModuleMap, BeamLocation),
         {Binary, PersistedAttributes, Autoload}
       end),
 
     Autoload andalso code:load_binary(Module, BeamLocation, Binary),
+    make_module_available(Module, Binary, Autoload),
     put_compiler_modules(CompilerModules),
     eval_callbacks(Line, DataBag, after_compile, [CallbackE, Binary], CallbackE),
     elixir_env:trace({on_module, Binary, none}, ModuleE),
     warn_unused_attributes(DataSet, DataBag, PersistedAttributes, E),
-    make_module_available(Module, Binary),
     (element(2, CheckerInfo) == nil) andalso
       [VerifyMod:VerifyFun(Module) ||
        {VerifyMod, VerifyFun} <- bag_lookup_element(DataBag, {accumulate, after_verify}, 2)],
@@ -550,10 +550,12 @@ bag_lookup_element(Table, Name, Pos) ->
 
 beam_location(ModuleAsCharlist) ->
   case get(elixir_compiler_dest) of
-    Dest when is_binary(Dest) ->
-      filename:join(elixir_utils:characters_to_list(Dest), ModuleAsCharlist ++ ".beam");
+    {Dest, ForceLoad} when is_binary(Dest) ->
+      BeamLocation =
+        filename:join(elixir_utils:characters_to_list(Dest), ModuleAsCharlist ++ ".beam"),
+      {BeamLocation, ForceLoad};
     _ ->
-      ""
+      {"", true}
   end.
 
 %% Integration with elixir_compiler that makes the module available
@@ -574,7 +576,7 @@ spawn_parallel_checker(CheckerInfo, Module, ModuleMap, BeamLocation) ->
     end,
   'Elixir.Module.ParallelChecker':spawn(CheckerInfo, Module, ModuleMap, BeamLocation, Log).
 
-make_module_available(Module, Binary) ->
+make_module_available(Module, Binary, Loaded) ->
   case get(elixir_module_binaries) of
     Current when is_list(Current) ->
       put(elixir_module_binaries, [{Module, Binary} | Current]);
@@ -587,7 +589,7 @@ make_module_available(Module, Binary) ->
       ok;
     {PID, _} ->
       Ref = make_ref(),
-      PID ! {module_available, self(), Ref, get(elixir_compiler_file), Module, Binary},
+      PID ! {module_available, self(), Ref, get(elixir_compiler_file), Module, Binary, Loaded},
       receive {Ref, ack} -> ok end
   end.
 

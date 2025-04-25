@@ -590,9 +590,11 @@ defmodule Module do
       name/arity pairs. Inlining is applied locally, calls from another
       module are not affected by this option
 
-    * `@compile {:autoload, false}` - disables automatic loading of
-      modules after compilation. Instead, the module will be loaded after
-      it is dispatched to
+    * `@compile {:autoload, true}` - configures if modules are automatically
+      loaded after definition. It defaults to `false` when compiling modules
+      to `.beam` files in disk (as the modules are then lazily loaded from
+      disk). If modules are not compiled to disk, then they are always loaded,
+      regardless of this flag
 
     * `@compile {:no_warn_undefined, Mod}` or
       `@compile {:no_warn_undefined, {Mod, fun, arity}}` - does not warn if
