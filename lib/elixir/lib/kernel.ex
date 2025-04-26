@@ -3901,11 +3901,17 @@ defmodule Kernel do
       iex> if 7 > 5, do: "yes"
       "yes"
 
-  In the example above, `bar` will be returned if `foo` evaluates to
-  a truthy value (neither `false` nor `nil`). Otherwise, `nil` will be
-  returned.
+      iex> if "truthy value", do: "yes"
+      "yes"
+
+  In the examples above, `"yes"` will be returned because the condition
+  evaluates to a truthy value (neither `false` nor `nil`). Otherwise, `nil`
+  will be returned:
 
       iex> if 3 > 5, do: "yes"
+      nil
+
+      iex> if nil, do: "yes"
       nil
 
   An `else` option can be given to specify the opposite:
