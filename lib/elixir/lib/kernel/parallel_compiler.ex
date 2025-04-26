@@ -342,7 +342,7 @@ defmodule Kernel.ParallelCompiler do
     Code.prepend_path(path)
 
     Enum.flat_map(result, fn
-      {{:module, module}, binary} when is_binary(binary) ->
+      {{:module, module}, {binary, _}} when is_binary(binary) ->
         full_path = Path.join(path, Atom.to_string(module) <> ".beam")
         File.write!(full_path, binary)
         if timestamp, do: File.touch!(full_path, timestamp)
@@ -354,7 +354,7 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp write_module_binaries(result, _output, _timestamp) do
-    for {{:module, module}, binary} when is_binary(binary) <- result, do: module
+    for {{:module, module}, {binary, _}} when is_binary(binary) <- result, do: module
   end
 
   ## Verification
@@ -369,7 +369,7 @@ defmodule Kernel.ParallelCompiler do
 
   defp maybe_check_modules(result, runtime_modules, state) do
     compiled_modules =
-      for {{:module, module}, binary} when is_binary(binary) <- result,
+      for {{:module, module}, {binary, _}} when is_binary(binary) <- result,
           do: module
 
     profile(
@@ -585,7 +585,7 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp count_modules(result) do
-    Enum.count(result, &match?({{:module, _}, binary} when is_binary(binary), &1))
+    Enum.count(result, &match?({{:module, _}, {binary, _}} when is_binary(binary), &1))
   end
 
   defp each_cycle_return({kind, modules, warnings}), do: {kind, modules, warnings}
@@ -664,19 +664,28 @@ defmodule Kernel.ParallelCompiler do
         send(child, {ref, load?})
         spawn_workers(queue, spawned, waiting, files, result, warnings, errors, state)
 
+      {{:module_loaded, module}, _ref, _type, _pid, _reason} ->
+        result =
+          Map.update!(result, {:module, module}, fn {binary, _loader} -> {binary, true} end)
+
+        spawn_workers(queue, spawned, waiting, files, result, warnings, errors, state)
+
       {:module_available, child, ref, file, module, binary, loaded?} ->
         state.each_module.(file, module, binary)
 
-        available =
+        {available, load_status} =
           case Map.get(result, {:module, module}) do
+            # We prefer to load in the client, if possible,
+            # to avoid locking the compilation server.
+            [_ | _] = pids when loaded? ->
+              {Enum.map(pids, &{&1, :found}), loaded?}
+
             [_ | _] = pids ->
-              # We prefer to load in the client, if possible,
-              # to avoid locking the compilation server.
-              loaded? or load_module(module, binary, state)
-              Enum.map(pids, &{&1, :found})
+              pid = load_module(module, binary, state.dest)
+              {Enum.map(pids, &{&1, {:loading, pid}}), pid}
 
             _ ->
-              []
+              {[], loaded?}
           end
 
         # Release the module loader which is waiting for an ack
@@ -687,7 +696,7 @@ defmodule Kernel.ParallelCompiler do
           spawned,
           waiting,
           files,
-          Map.put(result, {:module, module}, binary),
+          Map.put(result, {:module, module}, {binary, load_status}),
           warnings,
           errors,
           state
@@ -707,8 +716,8 @@ defmodule Kernel.ParallelCompiler do
         {waiting, files, result} =
           if not is_list(available_or_pending) or on in defining do
             # If what we are waiting on was defined but not loaded, we do it now.
-            load_pending(kind, on, result, state)
-            send(child_pid, {ref, :found})
+            {reply, result} = load_pending(kind, on, result, state)
+            send(child_pid, {ref, reply})
             {waiting, files, result}
           else
             waiting = Map.put(waiting, child_pid, {kind, ref, file_pid, on, defining, deadlock})
@@ -803,27 +812,49 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp load_pending(kind, module, result, state) do
-    with true <- kind in [:module, :struct],
-         %{{:module, ^module} => binary} when is_binary(binary) <- result,
-         false <- :erlang.module_loaded(module) do
-      load_module(module, binary, state)
+    case result do
+      %{{:module, ^module} => {binary, load_status}}
+      when kind in [:module, :struct] and is_binary(binary) ->
+        case load_status do
+          true ->
+            {:found, result}
+
+          false ->
+            pid = load_module(module, binary, state.dest)
+            result = Map.put(result, {:module, module}, {binary, pid})
+            {{:loading, pid}, result}
+
+          pid when is_pid(pid) ->
+            {{:loading, pid}, result}
+        end
+
+      _ ->
+        {:found, result}
     end
   end
 
-  defp load_module(module, binary, state) do
-    beam_location =
-      case state.dest do
-        nil ->
-          []
+  defp load_module(module, binary, dest) do
+    {pid, _ref} =
+      :erlang.spawn_opt(
+        fn ->
+          beam_location =
+            case dest do
+              nil ->
+                []
 
-        dest ->
-          :filename.join(
-            :elixir_utils.characters_to_list(dest),
-            Atom.to_charlist(module) ++ ~c".beam"
-          )
-      end
+              dest ->
+                :filename.join(
+                  :elixir_utils.characters_to_list(dest),
+                  Atom.to_charlist(module) ++ ~c".beam"
+                )
+            end
 
-    :code.load_binary(module, beam_location, binary)
+          :code.load_binary(module, beam_location, binary)
+        end,
+        monitor: [tag: {:module_loaded, module}]
+      )
+
+    pid
   end
 
   defp update_result(result, kind, module, value) do
