@@ -3898,48 +3898,40 @@ defmodule Kernel do
 
   ## One-liner examples
 
-      if(foo, do: bar)
+      iex> if 7 > 5, do: "yes"
+      "yes"
 
   In the example above, `bar` will be returned if `foo` evaluates to
   a truthy value (neither `false` nor `nil`). Otherwise, `nil` will be
   returned.
 
+      iex> if 3 > 5, do: "yes"
+      nil
+
   An `else` option can be given to specify the opposite:
 
-      if(foo, do: bar, else: baz)
+      iex> if 3 > 5, do: "yes", else: "no"
+      "no"
 
   ## Blocks examples
 
   It's also possible to pass a block to the `if/2` macro. The first
   example above would be translated to:
 
-      if foo do
-        bar
-      end
+      iex> if 7 > 5 do
+      ...>   "yes"
+      ...> end
+      "yes"
 
   Note that `do`-`end` become delimiters. The second example would
   translate to:
 
-      if foo do
-        bar
-      else
-        baz
-      end
-
-  ## Examples
-
-      iex> if 5 > 7 do
-      ...>   "This will never be returned"
+      iex> if 3 > 5 do
+      ...>   "yes"
       ...> else
-      ...>   "This will be returned"
+      ...>   "no"
       ...> end
-      "This will be returned"
-
-      iex> if 2 + 2 == 4, do: :correct
-      :correct
-
-      iex> if 2 + 2 == 5, do: :correct
-      nil
+      "no"
 
   If you find yourself nesting conditionals inside conditionals,
   consider using `cond/1`.
