@@ -421,6 +421,12 @@ defmodule Module do
         end
       end
 
+  The function given to `on_load` should avoid calling functions from
+  other modules. If you must call functions in other modules and those
+  modules are defined within the same project, the called modules must
+  have the `@compile {:autoload, true}` annotation, so they are loaded
+  upfront (and not from within the `@on_load` callback).
+
   ### `@vsn`
 
   Specify the module version. Accepts any valid Elixir value, for example:
