@@ -633,6 +633,11 @@ defmodule Kernel.ParallelCompiler do
           state
         )
 
+      {:module_pending, child, ref, module} ->
+        pending? = match?(%{{:module, ^module} => [_ | _]}, result)
+        send(child, {ref, pending?})
+        spawn_workers(queue, spawned, waiting, files, result, warnings, errors, state)
+
       {:module_available, child, ref, file, module, binary, loaded?} ->
         state.each_module.(file, module, binary)
 

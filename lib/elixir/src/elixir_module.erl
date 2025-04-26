@@ -215,7 +215,8 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
 
         compile_error_if_tainted(DataSet, E),
         Binary = elixir_erl:compile(ModuleMap),
-        Autoload = Forceload or proplists:get_value(autoload, CompileOpts, false),
+        Autoload = Forceload or proplists:get_value(autoload, CompileOpts, false) or
+          waiting_for_module(Module),
         spawn_parallel_checker(CheckerInfo, Module, ModuleMap),
         {Binary, PersistedAttributes, Autoload}
       end),
@@ -586,6 +587,16 @@ make_module_available(Module, Binary, Loaded) ->
       PID ! {module_available, self(), Ref, get(elixir_compiler_file), Module, Binary, Loaded},
       receive {Ref, ack} -> ok end
   end.
+
+  waiting_for_module(Module) ->
+    case get(elixir_compiler_info) of
+      undefined ->
+        false;
+      {PID, _} ->
+        Ref = make_ref(),
+        PID ! {module_pending, self(), Ref, Module},
+        receive {Ref, Boolean} -> Boolean end
+    end.
 
 %% Error handling and helpers.
 
