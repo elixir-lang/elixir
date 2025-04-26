@@ -3935,6 +3935,26 @@ defmodule Kernel do
 
   If you find yourself nesting conditionals inside conditionals,
   consider using `cond/1`.
+
+  ## Variables scope
+
+  Variables can be defined or rebound in `do`/`else` blocks, but these will not leak to the outer context:
+
+      x = 1
+      if x > 0 do
+        x = x + 1
+        IO.puts(x)  # prints 2
+      end
+      x  # 1
+
+  Variables can be defined in the condition as well, but they are available in the outer context:
+
+      fruits = %{oranges: 3}
+      if count = fruits[:apples] do
+        IO.puts(count + 1)
+      end
+      counts  # nil
+
   """
   defmacro if(condition, clauses) do
     build_if(condition, clauses)
