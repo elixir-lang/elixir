@@ -422,10 +422,10 @@ defmodule Kernel.ParallelCompiler do
         :erlang.put(:elixir_compiler_file, file)
 
         try do
-          if output == :require do
-            require_file(file, parent)
-          else
-            compile_file(file, dest, parent)
+          case output do
+            {:compile, _} -> compile_file(file, dest, false, parent)
+            :compile -> compile_file(file, dest, true, parent)
+            :require -> require_file(file, parent)
           end
         catch
           kind, reason ->
@@ -530,9 +530,9 @@ defmodule Kernel.ParallelCompiler do
     wait_for_messages([], spawned, waiting, files, result, warnings, errors, state)
   end
 
-  defp compile_file(file, path, parent) do
+  defp compile_file(file, path, force_load?, parent) do
     :erlang.process_flag(:error_handler, Kernel.ErrorHandler)
-    :erlang.put(:elixir_compiler_dest, path)
+    :erlang.put(:elixir_compiler_dest, {path, force_load?})
     :elixir_compiler.file(file, &each_file(&1, &2, parent))
   end
 
@@ -632,18 +632,6 @@ defmodule Kernel.ParallelCompiler do
           errors,
           state
         )
-
-      {:load_module?, child, ref, module} ->
-        # If compiling files to disk, we only load the module
-        # if other modules are waiting for it.
-        load? =
-          case state.output do
-            {:compile, _} -> match?(%{{:module, ^module} => [_ | _]}, result)
-            _ -> true
-          end
-
-        send(child, {ref, load?})
-        spawn_workers(queue, spawned, waiting, files, result, warnings, errors, state)
 
       {{:module_loaded, module}, _ref, _type, _pid, _reason} ->
         result =
