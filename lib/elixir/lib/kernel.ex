@@ -3944,7 +3944,7 @@ defmodule Kernel do
 
   ## Variables scope
 
-  Variables can be defined or rebound in `do`/`else` blocks, but these will not leak to the outer context:
+  Variables set within `do`/`else` blocks do not leak to the outer context:
 
       x = 1
       if x > 0 do
@@ -3953,7 +3953,7 @@ defmodule Kernel do
       end
       x  # 1
 
-  Variables can be defined in the condition as well, but they are available in the outer context:
+  Variables set in the condition are available in the outer context:
 
       fruits = %{oranges: 3}
       if count = fruits[:apples] do
