@@ -3904,14 +3904,14 @@ defmodule Kernel do
       iex> if "truthy value", do: "yes"
       "yes"
 
-  In the examples above, `"yes"` will be returned because the condition
-  evaluates to a truthy value (neither `false` nor `nil`). Otherwise, `nil`
-  will be returned:
+  In the examples above, the `do` clause is evaluated and `"yes"` will be returned
+  because the condition evaluates to a truthy value (neither `false` nor `nil`).
+  Otherwise, the clause is not evaluated and `nil` will be returned:
 
       iex> if 3 > 5, do: "yes"
       nil
 
-      iex> if nil, do: "yes"
+      iex> if nil, do: IO.puts("this won't be printed")
       nil
 
   An `else` option can be given to specify the opposite:
@@ -3929,7 +3929,7 @@ defmodule Kernel do
       ...> end
       "yes"
 
-  Note that `do`-`end` become delimiters. The second example would
+  Note that `do`-`end` become delimiters. The third example would
   translate to:
 
       iex> if 3 > 5 do
@@ -3957,6 +3957,7 @@ defmodule Kernel do
 
       fruits = %{oranges: 3}
       if count = fruits[:apples] do
+        # won't be evaluated
         IO.puts(count + 1)
       end
       count  # nil
