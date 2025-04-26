@@ -3953,7 +3953,7 @@ defmodule Kernel do
       if count = fruits[:apples] do
         IO.puts(count + 1)
       end
-      counts  # nil
+      count  # nil
 
   """
   defmacro if(condition, clauses) do
