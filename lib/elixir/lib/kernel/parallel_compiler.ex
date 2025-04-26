@@ -654,7 +654,9 @@ defmodule Kernel.ParallelCompiler do
 
       {:load_module?, child, ref, module} ->
         # If compiling files to disk, we only load the module
-        # if other modules are waiting for it.
+        # if other modules are waiting for it. This is done as we prefer
+        # to load the module in the same process that defines it,
+        # to avoid extra copies and to avoid blocking the parallel compiler.
         load? =
           case state.output do
             {:compile, _} -> match?(%{{:module, ^module} => [_ | _]}, result)
@@ -675,11 +677,11 @@ defmodule Kernel.ParallelCompiler do
 
         {available, load_status} =
           case Map.get(result, {:module, module}) do
-            # We prefer to load in the client, if possible,
-            # to avoid locking the compilation server.
             [_ | _] = pids when loaded? ->
               {Enum.map(pids, &{&1, :found}), loaded?}
 
+            # If we didn't load it and meanwhile we got a request,
+            # we need to start loading it now.
             [_ | _] = pids ->
               pid = load_module(module, binary, state.dest)
               {Enum.map(pids, &{&1, {:loading, pid}}), pid}
@@ -833,6 +835,9 @@ defmodule Kernel.ParallelCompiler do
     end
   end
 
+  # We load modules in a separate process to avoid blocking
+  # the parallel compiler. We store the PID of this process and
+  # all entries monitor it to know once the module is loaded.
   defp load_module(module, binary, dest) do
     {pid, _ref} =
       :erlang.spawn_opt(
