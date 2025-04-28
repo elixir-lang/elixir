@@ -270,7 +270,7 @@ defmodule Kernel.ParallelCompiler do
         max(:erlang.system_info(:schedulers_online), 2)
       end)
 
-    {:ok, cache} = Module.ParallelChecker.start_link(schedulers)
+    {:ok, cache} = Module.ParallelChecker.start_link(options)
 
     {status, modules_or_errors, info} =
       try do
@@ -341,16 +341,12 @@ defmodule Kernel.ParallelCompiler do
     File.mkdir_p!(path)
     Code.prepend_path(path)
 
-    Enum.flat_map(result, fn
-      {{:module, module}, {binary, _}} when is_binary(binary) ->
-        full_path = Path.join(path, Atom.to_string(module) <> ".beam")
-        File.write!(full_path, binary)
-        if timestamp, do: File.touch!(full_path, timestamp)
-        [module]
-
-      _ ->
-        []
-    end)
+    for {{:module, module}, {binary, _}} when is_binary(binary) <- result do
+      full_path = Path.join(path, Atom.to_string(module) <> ".beam")
+      File.write!(full_path, binary)
+      if timestamp, do: File.touch!(full_path, timestamp)
+      module
+    end
   end
 
   defp write_module_binaries(result, _output, _timestamp) do
@@ -362,16 +358,12 @@ defmodule Kernel.ParallelCompiler do
   defp verify_modules(result, compile_warnings, dependent_modules, state) do
     modules = write_module_binaries(result, state.output, state.beam_timestamp)
     _ = state.after_compile.()
-    runtime_warnings = maybe_check_modules(result, dependent_modules, state)
+    runtime_warnings = maybe_check_modules(modules, dependent_modules, state)
     info = %{compile_warnings: Enum.reverse(compile_warnings), runtime_warnings: runtime_warnings}
     {{:ok, modules, info}, state}
   end
 
-  defp maybe_check_modules(result, runtime_modules, state) do
-    compiled_modules =
-      for {{:module, module}, {binary, _}} when is_binary(binary) <- result,
-          do: module
-
+  defp maybe_check_modules(compiled_modules, runtime_modules, state) do
     profile(
       state,
       fn ->

@@ -1001,7 +1001,8 @@ defmodule Mix.Compilers.Elixir do
   defp compiler_loop(stale, stale_modules, dest, timestamp, opts, state) do
     ref = make_ref()
     parent = self()
-    threshold = opts[:long_compilation_threshold] || 10
+    compilation_threshold = opts[:long_compilation_threshold] || 10
+    verification_threshold = opts[:long_verification_threshold] || 10
     profile = opts[:profile]
     verbose = opts[:verbose] || false
 
@@ -1022,11 +1023,18 @@ defmodule Mix.Compilers.Elixir do
           end,
           each_long_compilation: fn file, pid ->
             Mix.shell().info(
-              "Compiling #{Path.relative_to(file, File.cwd!())} (it's taking more than #{threshold}s)" <>
-                "\n#{debug_stacktrace(pid)}"
+              "Compiling #{Path.relative_to(file, File.cwd!())} " <>
+                "(it's taking more than #{compilation_threshold}s)#{debug_stacktrace(pid)}"
             )
           end,
-          long_compilation_threshold: threshold,
+          each_long_verification: fn module, pid ->
+            Mix.shell().info(
+              "Verifying #{inspect(module)} " <>
+                "(it's taking more than #{verification_threshold}s)#{debug_stacktrace(pid)}"
+            )
+          end,
+          long_compilation_threshold: compilation_threshold,
+          long_verification_threshold: verification_threshold,
           profile: profile,
           beam_timestamp: timestamp,
           return_diagnostics: true
@@ -1286,7 +1294,7 @@ defmodule Mix.Compilers.Elixir do
   defp debug_stacktrace(pid) do
     with true <- Mix.debug?(),
          {:current_stacktrace, stacktrace} <- Process.info(pid, :current_stacktrace) do
-      Exception.format_stacktrace(stacktrace)
+      [?\n, Exception.format_stacktrace(stacktrace)]
     else
       _ -> ""
     end

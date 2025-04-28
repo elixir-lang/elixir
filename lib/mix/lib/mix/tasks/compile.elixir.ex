@@ -68,6 +68,8 @@ defmodule Mix.Tasks.Compile.Elixir do
     * `--ignore-module-conflict` - does not emit warnings if a module was previously defined
     * `--long-compilation-threshold N` - sets the "long compilation" threshold
       (in seconds) to `N` (see the docs for `Kernel.ParallelCompiler.compile/2`)
+    * `--long-verification-threshold N` - sets the "long verification" threshold
+      (in seconds) to `N` (see the docs for `Kernel.ParallelCompiler.compile/2`)
     * `--purge-consolidation-path-if-stale PATH` - deletes and purges modules in the
       given protocol consolidation path if compilation is required
     * `--profile` - if set to `time`, outputs timing information of compilation steps
@@ -100,6 +102,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     debug_info: :boolean,
     verbose: :boolean,
     long_compilation_threshold: :integer,
+    long_verification_threshold: :integer,
     purge_consolidation_path_if_stale: :string,
     profile: :string,
     all_warnings: :boolean,
