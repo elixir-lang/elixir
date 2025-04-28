@@ -611,7 +611,7 @@ defmodule Mix.Compilers.Elixir do
           for {module, _} <- dep_modules, reduce: {exports, []} do
             {exports, new_exports} ->
               export =
-                if function_exported?(module, :__info__, 1) do
+                if Code.ensure_loaded?(module) and function_exported?(module, :__info__, 1) do
                   module.__info__(:exports_md5)
                 end
 
