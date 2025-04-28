@@ -56,6 +56,7 @@ defmodule Mix.Compilers.Elixir do
     # Prepend ourselves early because of __mix_recompile__? checks
     # and also that, in case of nothing compiled, we already need
     # ourselves available in the path.
+    File.mkdir_p!(dest)
     Code.prepend_path(dest)
 
     # If modules have been added or removed from the Erlang compiler,

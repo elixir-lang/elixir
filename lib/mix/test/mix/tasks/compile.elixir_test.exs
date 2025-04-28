@@ -1200,7 +1200,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert Mix.Tasks.Compile.Elixir.run(["--verbose", "--ignore-module-conflict"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-      refute function_exported?(A, :one, 0)
+      refute Code.ensure_loaded?(A) and function_exported?(A, :one, 0)
 
       Mix.shell().flush()
       purge([A])
@@ -1209,7 +1209,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       Mix.Tasks.Compile.Elixir.run(["--verbose"])
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-      assert function_exported?(A, :one, 0)
+      assert Code.ensure_loaded?(A) and function_exported?(A, :one, 0)
     end)
   end
 
