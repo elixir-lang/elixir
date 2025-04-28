@@ -58,24 +58,19 @@ defmodule Calendar do
   @typedoc """
   Microseconds with stored precision.
 
+  `value` always represents the total value in microseconds.
+
   The `precision` represents the number of digits that must be used when
   representing the microseconds to external format. If the precision is `0`,
   it means microseconds must be skipped. If the precision is `6`, it means
   that `value` represents exactly the number of microseconds to be used.
 
-  The formula to calculate microseconds from this type is:
-
-      microseconds = value * Integer.pow(10, 6 - precision)
-
   ## Examples
 
     * `{0, 0}` means no microseconds.
-    * `{1, 6}` means 1µs (`value` is `1` and the precision specifies that six digits
-      must be used).
-    * `{93, 3}` means 93ms (`value` is `93` and the precision specifies that three digits
-      must be used).
-    * `{12, 2}` means 120ms (`value` is `12` and the precision specifies that two digits
-      must be used).
+    * `{1, 6}` means 1µs.
+    * `{1000, 6}` means 1000µs (which is 1ms but measured at the microsecond precision).
+    * `{1000, 3}` means 1ms (which is measured at the millisecond precision).
 
   """
   @type microsecond :: {value :: non_neg_integer, precision :: non_neg_integer}
