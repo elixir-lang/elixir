@@ -660,6 +660,7 @@ defmodule Kernel.ParallelCompiler do
 
       {:module_available, child, ref, file, module, binary, loaded?} ->
         state.each_module.(file, module, binary)
+        send(child, {ref, :ack})
 
         {available, load_status} =
           case Map.get(result, {:module, module}) do
@@ -675,9 +676,6 @@ defmodule Kernel.ParallelCompiler do
             _ ->
               {[], loaded?}
           end
-
-        # Release the module loader which is waiting for an ack
-        send(child, {ref, :ack})
 
         spawn_workers(
           available ++ queue,

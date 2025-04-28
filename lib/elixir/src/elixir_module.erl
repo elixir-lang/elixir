@@ -4,7 +4,7 @@
 
 -module(elixir_module).
 -export([file/1, data_tables/1, is_open/1, mode/1, delete_definition_attributes/6,
-         compile/6, expand_callback/6, format_error/1, compiler_modules/0,
+         compile/6, expand_callback/6, format_error/1, compiler_modules/0, exports_md5/3,
          write_cache/3, read_cache/2, next_counter/1, taint/1, cache_env/1, get_cached_env/1]).
 -include("elixir.hrl").
 -define(counter_attr, {elixir, counter}).
@@ -22,6 +22,9 @@ put_compiler_modules([]) ->
   erlang:erase(elixir_compiler_modules);
 put_compiler_modules(M) when is_list(M) ->
   erlang:put(elixir_compiler_modules, M).
+
+exports_md5(Def, Defmacro, Struct) ->
+  erlang:md5(term_to_binary({lists:sort(Def), lists:sort(Defmacro), Struct}, [deterministic])).
 
 %% Table functions
 
@@ -200,8 +203,11 @@ compile(Meta, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
         CompileOpts = validate_compile_opts(RawCompileOpts, AllDefinitions, Unreachable, Line, E),
         Impls = bag_lookup_element(DataBag, impls, 2),
 
+        Struct = get_struct(DataSet),
+        set_exports_md5(DataSet, AllDefinitions, Struct),
+
         ModuleMap = #{
-          struct => get_struct(DataSet),
+          struct => Struct,
           module => Module,
           anno => Anno,
           file => File,
@@ -256,6 +262,16 @@ compile_error_if_tainted(DataSet, E) ->
     true -> elixir_errors:compile_error(E);
     false -> ok
   end.
+
+set_exports_md5(DataSet, AllDefinitions, Struct) ->
+  {Funs, Macros} =
+    lists:foldl(fun
+      ({Tuple, def, _Meta, _Clauses}, {Funs, Macros}) -> {[Tuple | Funs], Macros};
+      ({Tuple, defmacro, _Meta, _Clauses}, {Funs, Macros}) -> {Funs, [Tuple | Macros]};
+      ({_Tuple, _Kind, _Meta, _Clauses}, {Funs, Macros}) -> {Funs, Macros}
+    end, {[], []}, AllDefinitions),
+  MD5 = exports_md5(Funs, Macros, Struct),
+  ets:insert(DataSet, {exports_md5, MD5, nil, []}).
 
 validate_compile_opts(Opts, Defs, Unreachable, Line, E) ->
   lists:flatmap(fun (Opt) -> validate_compile_opt(Opt, Defs, Unreachable, Line, E) end, Opts).

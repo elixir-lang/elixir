@@ -155,6 +155,8 @@ defmodule Mix.Tasks.ArchiveTest do
       true = Application.compile_env!(:git_repo, :archive_config)
 
       defmodule GitRepo.Archive do
+        @compile {:autoload, true}
+
         def hello do
           "World"
         end

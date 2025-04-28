@@ -610,7 +610,10 @@ defmodule Mix.Compilers.Elixir do
         {exports, new_exports} =
           for {module, _} <- dep_modules, reduce: {exports, []} do
             {exports, new_exports} ->
-              export = exports_md5(module, false)
+              export =
+                if function_exported?(module, :__info__, 1) do
+                  module.__info__(:exports_md5)
+                end
 
               # If the exports are the same, then the API did not change,
               # so we do not mark the export as stale. Note this has to
@@ -683,28 +686,6 @@ defmodule Mix.Compilers.Elixir do
 
   defp fixpoint_non_compile_modules([], modules, true, pending_sources),
     do: fixpoint_non_compile_modules(pending_sources, modules, false, [])
-
-  defp exports_md5(module, use_attributes?) do
-    cond do
-      function_exported?(module, :__info__, 1) ->
-        module.__info__(:exports_md5)
-
-      use_attributes? ->
-        defs = :lists.sort(Module.definitions_in(module, :def))
-        defmacros = :lists.sort(Module.definitions_in(module, :defmacro))
-
-        struct =
-          case Module.get_attribute(module, :__struct__) do
-            %{} = entry -> {entry, List.wrap(Module.get_attribute(module, :enforce_keys))}
-            _ -> nil
-          end
-
-        {defs, defmacros, struct} |> :erlang.term_to_binary() |> :erlang.md5()
-
-      true ->
-        nil
-    end
-  end
 
   defp remove_and_purge(beam, module) do
     _ = File.rm(beam)
@@ -1087,7 +1068,7 @@ defmodule Mix.Compilers.Elixir do
         # Read the relevant module information and unblock the compiler
         kind = detect_kind(module)
         external = Module.get_attribute(module, :external_resource)
-        new_export = exports_md5(module, true)
+        new_export = Module.get_attribute(module, :exports_md5)
         send(pid, {ref, :ok})
         state = each_module(file, module, kind, external, new_export, state, timestamp, cwd)
         compiler_loop(ref, pid, state, cwd)
