@@ -1615,8 +1615,8 @@ defmodule Code do
 
   ## Examples
 
-      iex> Code.get_compiler_option(:debug_info)
-      true
+      Code.get_compiler_option(:debug_info)
+      #=> true
 
   """
   @doc since: "1.10.0"
@@ -1725,8 +1725,8 @@ defmodule Code do
 
   ## Examples
 
-      iex> Code.put_compiler_option(:debug_info, true)
-      :ok
+      Code.put_compiler_option(:debug_info, true)
+      #=> :ok
 
   """
   @doc since: "1.10.0"
@@ -2100,11 +2100,11 @@ defmodule Code do
 
   ## Examples
 
-      Code.loaded?(Atom)
-      #=> true
+      iex> Code.loaded?(String)
+      true
 
-      Code.loaded?(NotYetLoaded)
-      #=> false
+      iex> Code.loaded?(NotYetLoaded)
+      false
 
   """
   @doc since: "1.15.0"
