@@ -62,6 +62,45 @@ defmodule Kernel.ParallelCompilerTest do
       purge([HelloWorld])
     end
 
+    test "immediately loads modules when not writing them to disk" do
+      fixtures =
+        write_tmp(
+          "compile_loads",
+          will_be_loaded: """
+          defmodule WillBeLoaded do
+          end
+          true = Code.loaded?(WillBeLoaded)
+          """
+        )
+
+      assert {:ok, _modules, @no_warnings} = compile(fixtures)
+    end
+
+    test "lazily loads modules when writing them to disk" do
+      fixtures =
+        write_tmp(
+          "compile_lazy_loads",
+          will_be_lazy_loaded: """
+          defmodule WillBeLazyLoaded do
+          end
+          false = Code.loaded?(WillBeLazyLoaded)
+          {:error, _} = Code.ensure_loaded(WillBeLazyLoaded)
+          {:module, _} = Code.ensure_compiled(WillBeLazyLoaded)
+          """,
+          is_autoloaded: """
+          defmodule WillBeAutoLoaded do
+            @compile {:autoload, true}
+          end
+          true = Code.loaded?(WillBeAutoLoaded)
+          """
+        )
+
+      assert {:ok, _modules, @no_warnings} =
+               Kernel.ParallelCompiler.compile_to_path(fixtures, tmp_path("pcload"),
+                 return_diagnostics: true
+               )
+    end
+
     test "solves dependencies between modules" do
       fixtures =
         write_tmp(
