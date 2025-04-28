@@ -1020,9 +1020,10 @@ defmodule Mix.Compilers.Elixir do
           each_module: fn file, module, _binary ->
             compiler_call(parent, ref, {:each_module, file, module, System.os_time(:second)})
           end,
-          each_long_compilation: fn file ->
+          each_long_compilation: fn file, pid ->
             Mix.shell().info(
-              "Compiling #{Path.relative_to(file, File.cwd!())} (it's taking more than #{threshold}s)"
+              "Compiling #{Path.relative_to(file, File.cwd!())} (it's taking more than #{threshold}s)" <>
+                "\n#{debug_stacktrace(pid)}"
             )
           end,
           long_compilation_threshold: threshold,
@@ -1279,6 +1280,15 @@ defmodule Mix.Compilers.Elixir do
         end
 
       {Path.relative_to(file, cwd), Mix.Utils.last_modified_and_size(file), digest}
+    end
+  end
+
+  defp debug_stacktrace(pid) do
+    with true <- Mix.debug?(),
+         {:current_stacktrace, stacktrace} <- Process.info(pid, :current_stacktrace) do
+      Exception.format_stacktrace(stacktrace)
+    else
+      _ -> ""
     end
   end
 

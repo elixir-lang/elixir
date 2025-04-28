@@ -876,7 +876,12 @@ defmodule Kernel.ParallelCompiler do
     compiling = System.convert_time_unit(data.compiling, :native, :millisecond)
 
     if not data.warned and compiling >= state.long_compilation_threshold do
-      state.each_long_compilation.(data.file)
+      if is_function(state.each_long_compilation, 2) do
+        state.each_long_compilation.(data.file, data.pid)
+      else
+        state.each_long_compilation.(data.file)
+      end
+
       %{data | warned: true}
     else
       data
