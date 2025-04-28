@@ -615,8 +615,10 @@ defmodule Module.ParallelChecker do
   end
 
   def handle_info({__MODULE__, :done, module}, state) do
-    {timer, spawned} = Map.pop!(state.spawned, module)
-    Process.cancel_timer(timer)
+    # Unfortunately we cannot assume uniqueness because the same module
+    # may be defined by mistake several times
+    {timer, spawned} = Map.pop(state.spawned, module)
+    timer && Process.cancel_timer(timer)
     {:noreply, run_checkers(%{state | spawned: spawned})}
   end
 
