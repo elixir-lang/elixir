@@ -524,7 +524,11 @@ defmodule Module do
 
   ### `@after_compile`
 
-  A hook that will be invoked right after the current module is compiled.
+  A hook that will be invoked with the bytecode of the current module.
+  Although the module has already been compiled, its bytecode may not have
+  been loaded to memory nor written to disk. For those reasons, prefer to
+  use `@after_verify` callbacks or use `Code.ensure_compiled!/1` to wait
+  until the module is fully available for introspection/invocation.
 
   Accepts a module or a `{module, function_name}` tuple. The function
   must take two arguments: the module environment and its bytecode.
