@@ -1069,8 +1069,12 @@ defmodule Mix.Compilers.Elixir do
         kind = detect_kind(module)
         external = Module.get_attribute(module, :external_resource)
         new_export = Module.get_attribute(module, :exports_md5)
+        recompile? = Module.defines?(module, {:__mix_recompile__?, 0}, :def)
         send(pid, {ref, :ok})
-        state = each_module(file, module, kind, external, new_export, state, timestamp, cwd)
+
+        state =
+          each_module(file, module, kind, external, new_export, recompile?, state, timestamp, cwd)
+
         compiler_loop(ref, pid, state, cwd)
 
       {^ref, {:ok, _modules, info}} ->
@@ -1193,7 +1197,7 @@ defmodule Mix.Compilers.Elixir do
     {modules, exports, sources, changed, pending_modules, stale_exports, consolidation}
   end
 
-  defp each_module(file, module, kind, external, new_export, state, timestamp, cwd) do
+  defp each_module(file, module, kind, external, new_export, recompile?, state, timestamp, cwd) do
     {modules, exports, sources, changed, pending_modules, stale_exports, consolidation} = state
 
     file = Path.relative_to(file, cwd)
@@ -1233,7 +1237,7 @@ defmodule Mix.Compilers.Elixir do
         sources: module_sources,
         export: new_export,
         timestamp: timestamp,
-        recompile?: function_exported?(module, :__mix_recompile__?, 0)
+        recompile?: recompile?
       )
 
     modules = Map.put(modules, module, entry)
