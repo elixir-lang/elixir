@@ -8,6 +8,7 @@
 
 spawn(Fun) ->
   CompilerInfo = get(elixir_compiler_info),
+  {error_handler, ErrorHandler} = erlang:process_info(self(), error_handler),
 
   CodeDiagnostics =
     case get(elixir_code_diagnostics) of
@@ -17,6 +18,7 @@ spawn(Fun) ->
 
   {_, Ref} =
     spawn_monitor(fun() ->
+      erlang:process_flag(error_handler, ErrorHandler),
       put(elixir_compiler_info, CompilerInfo),
       put(elixir_code_diagnostics, CodeDiagnostics),
 

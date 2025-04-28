@@ -1041,6 +1041,8 @@ defmodule Module.Types.Apply do
   end
 
   def format_diagnostic({:undefined, {:badfunction, _}, module, fun, arity}) do
+    _ = Code.ensure_loaded(module)
+
     %{
       message:
         IO.iodata_to_binary([

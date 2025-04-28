@@ -1200,7 +1200,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert Mix.Tasks.Compile.Elixir.run(["--verbose", "--ignore-module-conflict"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-      refute function_exported?(A, :one, 0)
+      refute Code.ensure_loaded?(A) and function_exported?(A, :one, 0)
 
       Mix.shell().flush()
       purge([A])
@@ -1209,7 +1209,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       Mix.Tasks.Compile.Elixir.run(["--verbose"])
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-      assert function_exported?(A, :one, 0)
+      assert Code.ensure_loaded?(A) and function_exported?(A, :one, 0)
     end)
   end
 
@@ -1278,19 +1278,10 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       end
       """)
 
-      File.write!("lib/c.ex", """
-      defmodule C do
-        @compile {:autoload, false}
-
-        def __mix_recompile__?(), do: true
-      end
-      """)
-
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
-      assert_received {:mix_shell, :info, ["Compiling 3 files (.ex)"]}
+      assert_received {:mix_shell, :info, ["Compiling 2 files (.ex)"]}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-      assert_received {:mix_shell, :info, ["Compiled lib/c.ex"]}
 
       # Mix recompile should work even if the compile path
       # was removed and the module purged
