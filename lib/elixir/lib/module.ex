@@ -1210,7 +1210,7 @@ defmodule Module do
   @spec defines?(module, definition) :: boolean
   def defines?(module, {name, arity} = tuple)
       when is_atom(module) and is_atom(name) and is_integer(arity) and arity >= 0 and arity <= 255 do
-    {set, _bag} = data_tables_for(module, __ENV__.function, @extra_error_msg_defines?)
+    {set, _bag} = data_tables_for!(module, __ENV__.function, @extra_error_msg_defines?)
     :ets.member(set, {:def, tuple})
   end
 
@@ -1237,7 +1237,7 @@ defmodule Module do
   def defines?(module, {name, arity} = tuple, def_kind)
       when is_atom(module) and is_atom(name) and is_integer(arity) and arity >= 0 and arity <= 255 and
              def_kind in [:def, :defp, :defmacro, :defmacrop] do
-    {set, _bag} = data_tables_for(module, __ENV__.function, @extra_error_msg_defines?)
+    {set, _bag} = data_tables_for!(module, __ENV__.function, @extra_error_msg_defines?)
 
     case :ets.lookup(set, {:def, tuple}) do
       [{_, ^def_kind, _, _, _, _}] -> true
@@ -1291,7 +1291,7 @@ defmodule Module do
   @doc since: "1.13.0"
   @spec attributes_in(module) :: [atom]
   def attributes_in(module) when is_atom(module) do
-    {set, _} = data_tables_for(module, __ENV__.function, "")
+    {set, _} = data_tables_for!(module, __ENV__.function, "")
     :ets.select(set, [{{:"$1", :_, :_, :_}, [{:is_atom, :"$1"}], [:"$1"]}])
   end
 
@@ -1344,7 +1344,7 @@ defmodule Module do
   """
   @spec definitions_in(module) :: [definition]
   def definitions_in(module) when is_atom(module) do
-    {_, bag} = data_tables_for(module, __ENV__.function, @extra_error_msg_definitions_in)
+    {_, bag} = data_tables_for!(module, __ENV__.function, @extra_error_msg_definitions_in)
     bag_lookup_element(bag, :defs, 2)
   end
 
@@ -1368,7 +1368,7 @@ defmodule Module do
   @spec definitions_in(module, def_kind) :: [definition]
   def definitions_in(module, kind)
       when is_atom(module) and kind in [:def, :defp, :defmacro, :defmacrop] do
-    {set, _} = data_tables_for(module, __ENV__.function, @extra_error_msg_definitions_in)
+    {set, _} = data_tables_for!(module, __ENV__.function, @extra_error_msg_definitions_in)
     :ets.select(set, [{{{:def, :"$1"}, kind, :_, :_, :_, :_}, [], [:"$1"]}])
   end
 
@@ -1402,7 +1402,7 @@ defmodule Module do
   @doc since: "1.12.0"
   def get_definition(module, {name, arity}, options \\ [])
       when is_atom(module) and is_atom(name) and is_integer(arity) and is_list(options) do
-    {set, bag} = data_tables_for(module, __ENV__.function, "")
+    {set, bag} = data_tables_for!(module, __ENV__.function, "")
 
     case :ets.lookup(set, {:def, {name, arity}}) do
       [{_key, kind, meta, _, _, _}] ->
@@ -1472,7 +1472,7 @@ defmodule Module do
 
   @spec make_overridable(module, module) :: :ok
   def make_overridable(module, behaviour) when is_atom(module) and is_atom(behaviour) do
-    {_, bag} = data_tables_for(module, __ENV__.function, "")
+    {_, bag} = data_tables_for!(module, __ENV__.function, "")
 
     case check_module_for_overridable(bag, behaviour) do
       :ok ->
@@ -1652,7 +1652,7 @@ defmodule Module do
   @doc since: "1.10.0"
   @spec has_attribute?(module, atom) :: boolean
   def has_attribute?(module, key) when is_atom(module) and is_atom(key) do
-    {set, _bag} = data_tables_for(module, __ENV__.function, "")
+    {set, _bag} = data_tables_for!(module, __ENV__.function, "")
     :ets.member(set, key)
   end
 
@@ -1676,7 +1676,7 @@ defmodule Module do
   """
   @spec delete_attribute(module, atom) :: term
   def delete_attribute(module, key) when is_atom(module) and is_atom(key) do
-    {set, bag} = data_tables_for(module, __ENV__.function, "")
+    {set, bag} = data_tables_for!(module, __ENV__.function, "")
 
     case :ets.lookup(set, key) do
       [{_, _, :accumulate, traces}] ->
@@ -1730,7 +1730,7 @@ defmodule Module do
   @spec register_attribute(module, atom, [{:accumulate, boolean}, {:persist, boolean}]) :: :ok
   def register_attribute(module, attribute, options)
       when is_atom(module) and is_atom(attribute) and is_list(options) do
-    {set, bag} = data_tables_for(module, __ENV__.function, "")
+    {set, bag} = data_tables_for!(module, __ENV__.function, "")
 
     if Keyword.get(options, :persist) do
       :ets.insert(bag, {:persisted_attributes, attribute})
@@ -1789,7 +1789,7 @@ defmodule Module do
     if kind in [:defp, :defmacrop, :typep] do
       if doc, do: {:error, :private_doc}, else: :ok
     else
-      {set, _bag} = data_tables_for(module, __ENV__.function, "")
+      {set, _bag} = data_tables_for!(module, __ENV__.function, "")
       compile_doc(set, nil, line, kind, name, arity, signature, nil, doc, %{}, __ENV__, false)
       :ok
     end
@@ -1800,7 +1800,7 @@ defmodule Module do
   # This function is private and must be used only internally.
   def compile_definition_attributes(env, kind, name, args, _guards, body) do
     %{module: module} = env
-    {set, bag} = data_tables_for(module, __ENV__.function, "")
+    {set, bag} = data_tables_for!(module, __ENV__.function, "")
     {arity, defaults} = args_count(args, 0, 0)
 
     context = Keyword.get(:ets.lookup_element(set, {:def, {name, arity}}, 3), :context)
@@ -1986,7 +1986,7 @@ defmodule Module do
          function_name_arity
        ) do
     {set, bag} =
-      data_tables_for(
+      data_tables_for!(
         module,
         function_name_arity,
         "Use the Module.__info__/1 callback or Code.fetch_docs/1 instead"
@@ -2079,8 +2079,8 @@ defmodule Module do
   # Used internally by Kernel's @.
   # This function is private and must be used only internally.
   def __put_attribute__(module, key, value, warn_line, traces) when is_atom(key) do
-    {set, bag} = data_tables_for(module, {:put_attribute, 3}, "")
     assert_not_compiled!({:put_attribute, 3}, module, :writeable)
+    {set, bag} = data_tables_for!(module, {:put_attribute, 3}, "")
     put_attribute(module, key, value, warn_line, traces, set, bag)
     :ok
   end
@@ -2371,7 +2371,7 @@ defmodule Module do
     end
   end
 
-  defp data_tables_for(module, function_name_arity, message) do
+  defp data_tables_for!(module, function_name_arity, message) do
     try do
       :elixir_module.data_tables(module)
     catch
