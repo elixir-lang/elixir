@@ -70,6 +70,8 @@ defmodule Mix.Tasks.Compile.Elixir do
       (in seconds) to `N` (see the docs for `Kernel.ParallelCompiler.compile/2`)
     * `--long-verification-threshold N` - sets the "long verification" threshold
       (in seconds) to `N` (see the docs for `Kernel.ParallelCompiler.compile/2`)
+    * `--no-verification` - disables code verification, such as unused functions,
+      deprecation warnings, and type checking. It must be used alongside `MIX_DEBUG=1`
     * `--purge-consolidation-path-if-stale PATH` - deletes and purges modules in the
       given protocol consolidation path if compilation is required
     * `--profile` - if set to `time`, outputs timing information of compilation steps
@@ -106,6 +108,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     purge_consolidation_path_if_stale: :string,
     profile: :string,
     all_warnings: :boolean,
+    verification: :boolean,
     tracer: :keep
   ]
 

@@ -162,6 +162,10 @@ defmodule Kernel.ParallelCompiler do
       threshold, the `:each_long_verification` callback is invoked. Defaults to
       `10` seconds.
 
+    * `:verification` (since v1.19.0) - if code verification, such as unused functions,
+      deprecation warnings, and type checking should run. Defaults to `true`.
+      We recommend disabling it only for debugging purposes.
+
     * `:profile` - if set to `:time` measure the compilation time of each compilation cycle
        and group pass checker
 
@@ -310,7 +314,8 @@ defmodule Kernel.ParallelCompiler do
         timer_ref: timer_ref,
         long_compilation_threshold: threshold,
         schedulers: schedulers,
-        checker: checker
+        checker: checker,
+        verification?: Keyword.get(options, :verification, true)
       })
 
     Process.cancel_timer(state.timer_ref)
@@ -358,20 +363,23 @@ defmodule Kernel.ParallelCompiler do
   defp verify_modules(result, compile_warnings, dependent_modules, state) do
     modules = write_module_binaries(result, state.output, state.beam_timestamp)
     _ = state.after_compile.()
-    runtime_warnings = maybe_check_modules(modules, dependent_modules, state)
+
+    runtime_warnings =
+      if state.verification? do
+        profile(
+          state,
+          fn ->
+            num_modules = length(modules) + length(dependent_modules)
+            "group pass check of #{num_modules} modules"
+          end,
+          fn -> Module.ParallelChecker.verify(state.checker, dependent_modules) end
+        )
+      else
+        []
+      end
+
     info = %{compile_warnings: Enum.reverse(compile_warnings), runtime_warnings: runtime_warnings}
     {{:ok, modules, info}, state}
-  end
-
-  defp maybe_check_modules(compiled_modules, runtime_modules, state) do
-    profile(
-      state,
-      fn ->
-        num_modules = length(compiled_modules) + length(runtime_modules)
-        "group pass check of #{num_modules} modules"
-      end,
-      fn -> Module.ParallelChecker.verify(state.checker, runtime_modules) end
-    )
   end
 
   defp profile_init(:time), do: {:time, System.monotonic_time(), 0}

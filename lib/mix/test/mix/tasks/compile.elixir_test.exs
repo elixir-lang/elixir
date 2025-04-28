@@ -1666,6 +1666,16 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert output =~ "B.foo/0 is undefined or private"
       assert output =~ "B.bar/0 is undefined or private"
       assert output =~ "AFTER_VERIFY"
+
+      # But we can also disable verification if we want to
+      output =
+        capture_io(:stderr, fn ->
+          Mix.Tasks.Compile.Elixir.run(["--no-verification", "--force"])
+        end)
+
+      refute output =~ "B.foo/0 is undefined or private"
+      refute output =~ "B.bar/0 is undefined or private"
+      refute output =~ "AFTER_VERIFY"
     end)
   end
 

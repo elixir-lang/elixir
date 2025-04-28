@@ -1004,7 +1004,12 @@ defmodule Mix.Compilers.Elixir do
     compilation_threshold = opts[:long_compilation_threshold] || 10
     verification_threshold = opts[:long_verification_threshold] || 10
     profile = opts[:profile]
-    verbose = opts[:verbose] || false
+    verbose = Keyword.get(opts, :verbose, false)
+    verification = Keyword.get(opts, :verification, true)
+
+    if not verification and not Mix.debug?() do
+      Mix.shell().error("--no-verification flag is only recommended with MIX_DEBUG=1")
+    end
 
     pid =
       spawn_link(fn ->
@@ -1035,9 +1040,10 @@ defmodule Mix.Compilers.Elixir do
           end,
           long_compilation_threshold: compilation_threshold,
           long_verification_threshold: verification_threshold,
-          profile: profile,
           beam_timestamp: timestamp,
-          return_diagnostics: true
+          return_diagnostics: true,
+          profile: profile,
+          verification: verification
         ]
 
         response = Kernel.ParallelCompiler.compile_to_path(stale, dest, compile_opts)
