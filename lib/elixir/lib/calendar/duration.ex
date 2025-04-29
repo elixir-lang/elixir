@@ -116,7 +116,7 @@ defmodule Duration do
           hour: integer,
           minute: integer,
           second: integer,
-          microsecond: {integer, 0..6}
+          microsecond: Calendar.microsecond()
         }
 
   @typedoc """
@@ -130,7 +130,7 @@ defmodule Duration do
           | {:hour, integer}
           | {:minute, integer}
           | {:second, integer}
-          | {:microsecond, {integer, 0..6}}
+          | {:microsecond, Calendar.microsecond()}
 
   @typedoc """
   The duration type specifies a `%Duration{}` struct or a keyword list of valid duration unit pairs.

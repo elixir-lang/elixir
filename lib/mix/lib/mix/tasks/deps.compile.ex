@@ -316,7 +316,7 @@ defmodule Mix.Tasks.Deps.Compile do
   defp do_make(dep, config) do
     command = make_command(dep)
     shell_cmd!(dep, config, command, [{"IS_DEP", "1"}])
-    build_structure(dep, config)
+    build_symlink_structure(dep, config)
     true
   end
 
@@ -345,7 +345,7 @@ defmodule Mix.Tasks.Deps.Compile do
   defp do_compile(%Mix.Dep{opts: opts} = dep, config) do
     if command = opts[:compile] do
       shell_cmd!(dep, config, command)
-      build_structure(dep, config)
+      build_symlink_structure(dep, config)
       true
     else
       false
@@ -369,7 +369,7 @@ defmodule Mix.Tasks.Deps.Compile do
     [env: env, cd: opts[:dest]]
   end
 
-  defp build_structure(%Mix.Dep{opts: opts}, config) do
+  defp build_symlink_structure(%Mix.Dep{opts: opts}, config) do
     config = Keyword.put(config, :deps_app_path, opts[:build])
     Mix.Project.build_structure(config, symlink_ebin: true, source: opts[:dest])
     Code.prepend_path(Path.join(opts[:build], "ebin"), cache: true)

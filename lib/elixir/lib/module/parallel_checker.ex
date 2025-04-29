@@ -14,8 +14,8 @@ defmodule Module.ParallelChecker do
   @doc """
   Initializes the parallel checker process.
   """
-  def start_link(schedulers \\ nil) do
-    :proc_lib.start_link(__MODULE__, :init, [schedulers])
+  def start_link(opts \\ []) do
+    :proc_lib.start_link(__MODULE__, :init, [opts])
   end
 
   @doc """
@@ -114,7 +114,7 @@ defmodule Module.ParallelChecker do
                   end
 
                 send(pid, {__MODULE__, module, warnings})
-                send(checker, {__MODULE__, :done})
+                send(checker, {__MODULE__, :done, module})
             end
 
           {:DOWN, ^mon_ref, _, _, _} ->
@@ -122,7 +122,7 @@ defmodule Module.ParallelChecker do
         end
       end)
 
-    register(checker, spawned, ref)
+    register(checker, module, spawned, ref)
     :ok
   end
 
@@ -515,13 +515,13 @@ defmodule Module.ParallelChecker do
     :gen_server.call(server, {:unlock, module, mode}, :infinity)
   end
 
-  defp register(server, pid, ref) do
-    :gen_server.cast(server, {:register, pid, ref})
+  defp register(server, module, pid, ref) do
+    :gen_server.cast(server, {:register, module, pid, ref})
   end
 
   ## Server callbacks
 
-  def init(schedulers) do
+  def init(options) do
     table = :ets.new(__MODULE__, [:set, :public, {:read_concurrency, true}])
     :proc_lib.init_ack({:ok, {self(), table}})
 
@@ -544,11 +544,26 @@ defmodule Module.ParallelChecker do
         end
     end
 
+    schedulers =
+      Keyword.get_lazy(options, :max_concurrency, fn ->
+        max(:erlang.system_info(:schedulers_online), 2)
+      end)
+
+    threshold = Keyword.get(options, :long_verification_threshold, 10) * 1000
+
+    callback =
+      case Keyword.get(options, :each_long_verification, fn _module, _pid -> :ok end) do
+        fun when is_function(fun, 1) -> fn module, _pid -> fun.(module) end
+        fun when is_function(fun, 2) -> fun
+      end
+
     state = %{
       waiting: %{},
       modules: [],
-      spawned: 0,
-      schedulers: schedulers || max(:erlang.system_info(:schedulers_online), 2),
+      spawned: %{},
+      schedulers: schedulers,
+      threshold: threshold,
+      callback: callback,
       protocols: [],
       table: table
     }
@@ -559,11 +574,11 @@ defmodule Module.ParallelChecker do
   def handle_call(:start, _from, %{modules: modules, protocols: protocols, table: table} = state) do
     :ets.insert(table, Enum.map(protocols, &{&1, :uncached}))
 
-    for {pid, ref} <- modules do
+    for {_module, pid, ref} <- modules do
       send(pid, {ref, :cache})
     end
 
-    for {_pid, ref} <- modules do
+    for {_module, _pid, ref} <- modules do
       receive do
         {^ref, :cached} -> :ok
       end
@@ -594,17 +609,25 @@ defmodule Module.ParallelChecker do
     {:reply, :ok, %{state | waiting: waiting, protocols: protocols}}
   end
 
-  def handle_info({__MODULE__, :done}, state) do
-    state = %{state | spawned: state.spawned - 1}
-    {:noreply, run_checkers(state)}
+  def handle_info({__MODULE__, :timeout, module, pid}, state) do
+    state.callback.(module, pid)
+    {:noreply, state}
+  end
+
+  def handle_info({__MODULE__, :done, module}, state) do
+    # Unfortunately we cannot assume uniqueness because the same module
+    # may be defined by mistake several times
+    {timer, spawned} = Map.pop(state.spawned, module)
+    timer && Process.cancel_timer(timer)
+    {:noreply, run_checkers(%{state | spawned: spawned})}
   end
 
   def handle_info({__MODULE__, :stop}, state) do
     {:stop, :normal, state}
   end
 
-  def handle_cast({:register, pid, ref}, %{modules: modules} = state) do
-    {:noreply, %{state | modules: [{pid, ref} | modules]}}
+  def handle_cast({:register, module, pid, ref}, %{modules: modules} = state) do
+    {:noreply, %{state | modules: [{module, pid, ref} | modules]}}
   end
 
   defp run_checkers(%{modules: []} = state) do
@@ -612,12 +635,14 @@ defmodule Module.ParallelChecker do
   end
 
   defp run_checkers(%{spawned: spawned, schedulers: schedulers} = state)
-       when spawned >= schedulers do
+       when map_size(spawned) >= schedulers do
     state
   end
 
-  defp run_checkers(%{modules: [{pid, ref} | modules]} = state) do
+  defp run_checkers(%{modules: [{module, pid, ref} | modules]} = state) do
     send(pid, {ref, :check})
-    run_checkers(%{state | modules: modules, spawned: state.spawned + 1})
+    timer = Process.send_after(self(), {__MODULE__, :timeout, module, pid}, state.threshold)
+    spawned = Map.put(state.spawned, module, timer)
+    run_checkers(%{state | modules: modules, spawned: spawned})
   end
 end

@@ -552,7 +552,8 @@ defmodule Code do
   all imports, requires and aliases defined in the current environment
   will be automatically carried over:
 
-      iex> {result, binding} = Code.eval_string("a + b", [a: 1, b: 2], __ENV__)
+      iex> require Integer
+      iex> {result, binding} = Code.eval_string("if Integer.is_odd(a), do: a + b", [a: 1, b: 2], __ENV__)
       iex> result
       3
       iex> Enum.sort(binding)
@@ -975,10 +976,16 @@ defmodule Code do
   the code representation (AST). While the formatter can preserve code
   comments between expressions and function arguments, the formatter
   cannot currently preserve them around operators. For example, the following
-  code will move the code comments to before the operator usage:
+  code:
 
       foo() ||
         # also check for bar
+        bar()
+
+  will move the code comments to before the operator usage:
+
+      # also check for bar
+      foo() ||
         bar()
 
   In some situations, code comments can be seen as ambiguous by the formatter.
@@ -1253,6 +1260,14 @@ defmodule Code do
 
     * atoms used to represent single-letter sigils like `:sigil_X`
       (but multi-letter sigils like `:sigil_XYZ` are encoded).
+
+  ## Examples
+
+      iex> Code.string_to_quoted("1 + 3")
+      {:ok, {:+, [line: 1], [1, 3]}}
+
+      iex> Code.string_to_quoted("1 \ 3")
+      {:error, {[line: 1, column: 4], "syntax error before: ", "\"3\""}}
 
   ## Comments
 
@@ -2189,7 +2204,7 @@ defmodule Code do
 
   ## Examples
 
-      iex> Code.loaded?(Atom)
+      iex> Code.loaded?(String)
       true
 
       iex> Code.loaded?(NotYetLoaded)

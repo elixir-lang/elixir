@@ -41,7 +41,15 @@ defmodule Kernel.ErrorHandler do
     :erlang.garbage_collect(self())
 
     receive do
-      {^ref, value} -> value
+      {^ref, {:loading, pid}} ->
+        ref = :erlang.monitor(:process, pid)
+
+        receive do
+          {:DOWN, ^ref, _, _, _} -> :found
+        end
+
+      {^ref, value} ->
+        value
     end
   end
 end

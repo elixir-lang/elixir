@@ -497,14 +497,14 @@ defmodule Kernel do
 
   ## Examples
 
-      div(5, 2)
-      #=> 2
+      iex> div(5, 2)
+      2
 
-      div(6, -4)
-      #=> -1
+      iex> div(6, -4)
+      -1
 
-      div(-99, 2)
-      #=> -49
+      iex> div(-99, 2)
+      -49
 
       div(100, 0)
       ** (ArithmeticError) bad argument in arithmetic expression
@@ -619,11 +619,11 @@ defmodule Kernel do
 
   ## Examples
 
-      hd([1, 2, 3, 4])
-      #=> 1
+      iex> hd([1, 2, 3, 4])
+      1
 
-      hd([1 | 2])
-      #=> 1
+      iex> hd([1 | 2])
+      1
 
   Giving it an empty list raises:
 
@@ -1153,12 +1153,12 @@ defmodule Kernel do
 
   ## Examples
 
-      current = self()
-      child = spawn(fn -> send(current, {self(), 1 + 2}) end)
-
-      receive do
-        {^child, 3} -> IO.puts("Received 3 back")
-      end
+      iex> current = self()
+      iex> child = spawn(fn -> send(current, {self(), 1 + 2}) end)
+      iex> receive do
+      ...>   {^child, 3} -> :ok
+      ...> end
+      :ok
 
   """
   @spec spawn((-> any)) :: pid
@@ -1206,12 +1206,12 @@ defmodule Kernel do
 
   ## Examples
 
-      current = self()
-      child = spawn_link(fn -> send(current, {self(), 1 + 2}) end)
-
-      receive do
-        {^child, 3} -> IO.puts("Received 3 back")
-      end
+      iex> current = self()
+      iex> child = spawn_link(fn -> send(current, {self(), 1 + 2}) end)
+      iex> receive do
+      ...>   {^child, 3} -> :ok
+      ...> end
+      :ok
 
   """
   @spec spawn_link((-> any)) :: pid
@@ -1260,8 +1260,12 @@ defmodule Kernel do
 
   ## Examples
 
-      current = self()
-      spawn_monitor(fn -> send(current, {self(), 1 + 2}) end)
+      iex> current = self()
+      iex> {child, _ref} = spawn_monitor(fn -> send(current, {self(), 1 + 2}) end)
+      iex> receive do
+      ...>   {^child, 3} -> :ok
+      ...> end
+      :ok
 
   """
   @spec spawn_monitor((-> any)) :: {pid, reference}
@@ -1347,17 +1351,17 @@ defmodule Kernel do
 
   ## Examples
 
-      tl([1, 2, 3, :go])
-      #=> [2, 3, :go]
+      iex> tl([1, 2, 3, :go])
+      [2, 3, :go]
 
-      tl([:one])
-      #=> []
+      iex> tl([:one])
+      []
 
-      tl([:a, :b | :improper_end])
-      #=> [:b | :improper_end]
+      iex> tl([:a, :b | :improper_end])
+      [:b | :improper_end]
 
-      tl([:a | %{b: 1}])
-      #=> %{b: 1}
+      iex> tl([:a | %{b: 1}])
+      %{b: 1}
 
   Giving it an empty list raises:
 
@@ -1524,14 +1528,14 @@ defmodule Kernel do
 
   ## Examples
 
-      1 / 2
-      #=> 0.5
+      iex> 1 / 2
+      0.5
 
-      -3.0 / 2.0
-      #=> -1.5
+      iex> -3.0 / 2.0
+      -1.5
 
-      5 / 1
-      #=> 5.0
+      iex> 5 / 1
+      5.0
 
       7 / 0
       ** (ArithmeticError) bad argument in arithmetic expression
@@ -1873,9 +1877,9 @@ defmodule Kernel do
 
   ## Examples
 
-      tuple = {:foo, :bar, 3}
-      elem(tuple, 1)
-      #=> :bar
+      iex> tuple = {:foo, :bar, 3}
+      iex> elem(tuple, 1)
+      :bar
 
       elem({}, 0)
       ** (ArgumentError) argument error
@@ -2210,12 +2214,13 @@ defmodule Kernel do
 
   ## Examples
 
-      try do
-        raise "oops"
-      rescue
-        exception ->
-          reraise exception, __STACKTRACE__
-      end
+      iex> try do
+      ...>  raise "oops"
+      ...> rescue
+      ...>  exception ->
+      ...>    reraise exception, __STACKTRACE__
+      ...> end
+      ** (RuntimeError) oops
 
   """
   defmacro reraise(message, stacktrace) do
@@ -3480,17 +3485,17 @@ defmodule Kernel do
 
   Remember the pin operator matches _values_, not _patterns_.
   Passing a variable as the pattern will always return `true` and will
-  result in a warning that the variable is unused:
+  result in a warning that the variable is unused. Don't do this:
 
-      # don't do this
       pattern = %{a: :a}
       match?(pattern, %{b: :b})
+      #=> true
 
   Similarly, moving an expression out the pattern may no longer preserve
   its semantics. For example:
 
-      match?([_ | _], [1, 2, 3])
-      #=> true
+      iex> match?([_ | _], [1, 2, 3])
+      true
 
       pattern = [_ | _]
       match?(pattern, [1, 2, 3])
@@ -3499,12 +3504,12 @@ defmodule Kernel do
   Another example is that a map as a pattern performs a subset match, but not
   once assigned to a variable:
 
-      match?(%{x: 1}, %{x: 1, y: 2})
-      #=> true
+      iex> match?(%{x: 1}, %{x: 1, y: 2})
+      true
 
-      attrs = %{x: 1}
-      match?(^attrs, %{x: 1, y: 2})
-      #=> false
+      iex> attrs = %{x: 1}
+      iex> match?(^attrs, %{x: 1, y: 2})
+      false
 
   The pin operator will check if the values are equal, using `===/2`, while
   patterns have their own rules when matching maps, lists, and so forth.
@@ -3893,36 +3898,70 @@ defmodule Kernel do
 
   ## One-liner examples
 
-      if(foo, do: bar)
+      iex> if 7 > 5, do: "yes"
+      "yes"
 
-  In the example above, `bar` will be returned if `foo` evaluates to
-  a truthy value (neither `false` nor `nil`). Otherwise, `nil` will be
-  returned.
+      iex> if "truthy value", do: "yes"
+      "yes"
+
+  In the examples above, the `do` clause is evaluated and `"yes"` will be returned
+  because the condition evaluates to a truthy value (neither `false` nor `nil`).
+  Otherwise, the clause is not evaluated and `nil` will be returned:
+
+      iex> if 3 > 5, do: "yes"
+      nil
+
+      iex> if nil, do: IO.puts("this won't be printed")
+      nil
 
   An `else` option can be given to specify the opposite:
 
-      if(foo, do: bar, else: baz)
+      iex> if 3 > 5, do: "yes", else: "no"
+      "no"
 
   ## Blocks examples
 
   It's also possible to pass a block to the `if/2` macro. The first
   example above would be translated to:
 
-      if foo do
-        bar
-      end
+      iex> if 7 > 5 do
+      ...>   "yes"
+      ...> end
+      "yes"
 
-  Note that `do`-`end` become delimiters. The second example would
+  Note that `do`-`end` become delimiters. The third example would
   translate to:
 
-      if foo do
-        bar
-      else
-        baz
-      end
+      iex> if 3 > 5 do
+      ...>   "yes"
+      ...> else
+      ...>   "no"
+      ...> end
+      "no"
 
   If you find yourself nesting conditionals inside conditionals,
   consider using `cond/1`.
+
+  ## Variables scope
+
+  Variables set within `do`/`else` blocks do not leak to the outer context:
+
+      x = 1
+      if x > 0 do
+        x = x + 1
+        IO.puts(x)  # prints 2
+      end
+      x  # 1
+
+  Variables set in the condition are available in the outer context:
+
+      fruits = %{oranges: 3}
+      if count = fruits[:apples] do
+        # won't be evaluated
+        IO.puts(count + 1)
+      end
+      count  # nil
+
   """
   defmacro if(condition, clauses) do
     build_if(condition, clauses)
@@ -4021,8 +4060,10 @@ defmodule Kernel do
   The left-hand side supports any expression you would use
   on the left-hand side of a match:
 
-      x = 1
-      destructure([^x, y, z], [1, 2, 3])
+      iex> x = 1
+      iex> destructure([^x, y, z], [1, 2, 3])
+      iex> {x, y, z}
+      {1, 2, 3}
 
   The example above will only work if `x` matches the first value in the right
   list. Otherwise, it will raise a `MatchError` (like the `=` operator would
@@ -4363,20 +4404,22 @@ defmodule Kernel do
   call. Therefore, to pipe into an anonymous function, you need to
   invoke it:
 
-      some_fun = &Regex.replace(~r/l/, &1, "L")
-      "Hello" |> some_fun.()
+      iex> some_fun = &Regex.replace(~r/l/, &1, "L")
+      iex> "Hello" |> some_fun.()
+      "HeLLo"
 
   Alternatively, you can use `then/2` for the same effect:
 
-      some_fun = &Regex.replace(~r/l/, &1, "L")
-      "Hello" |> then(some_fun)
+      iex> some_fun = &Regex.replace(~r/l/, &1, "L")
+      iex> "Hello" |> then(some_fun)
+      "HeLLo"
 
   `then/2` is most commonly used when you want to pipe to a function
   but the value is expected outside of the first argument, such as
   above. By replacing `some_fun` by its value, we get:
 
-      "Hello" |> then(&Regex.replace(~r/l/, &1, "L"))
-
+      iex> "Hello" |> then(&Regex.replace(~r/l/, &1, "L"))
+      "HeLLo"
   """
   defmacro left |> right do
     fun = fn {x, pos}, acc ->
