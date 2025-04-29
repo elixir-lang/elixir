@@ -343,7 +343,8 @@ defmodule Mix.Tasks.Deps.Compile do
     File.mkdir(Path.join(build, "ebin"))
 
     config =
-      [
+      Mix.Project.deps_config()
+      |> Keyword.merge(
         app: dep.app,
         version: toml.version,
         deps: toml.deps,
@@ -351,16 +352,32 @@ defmodule Mix.Tasks.Deps.Compile do
         lockfile: "mix.lock",
         # Remove per-environment segment from the path since ProjectStack.push below will append it
         build_path: Mix.Project.build_path() |> Path.split() |> Enum.drop(-1) |> Path.join(),
+        build_scm: dep.scm,
         deps_path: deps_path,
+        deps_app_path: build,
         erlc_paths: [src],
+        elixirc_paths: [src],
         erlc_include_path: Path.join(build, "include")
-      ]
+      )
 
-    Mix.ProjectStack.pop()
-    Mix.ProjectStack.push(dep.app, config, "nofile")
-    # Somehow running just `compile` task won't work (doesn't compile the .erl files)
-    Mix.Task.run("compile.erlang", ["--force"])
-    Mix.Task.run("compile.app")
+    env = dep.opts[:env] || :prod
+    old_env = Mix.env()
+
+    try do
+      Mix.env(env)
+      Mix.ProjectStack.push(dep.app, config, "nofile")
+
+      options = ["--from-mix-deps-compile", "--no-warnings-as-errors", "--no-code-path-pruning"]
+
+      # Somehow running just `compile` task won't work (doesn't compile the .erl files)
+      Mix.Task.run("compile.erlang", options)
+      Mix.Task.run("compile.elixir", options)
+      Mix.Task.run("compile.app", options)
+
+      Mix.ProjectStack.pop()
+    after
+      Mix.env(old_env)
+    end
   end
 
   defp make_command(dep) do

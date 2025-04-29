@@ -301,12 +301,14 @@ end)
 
 ## Set up Gleam fixtures
 
-fixture = "gleam_dep"
+fixtures = ~w(gleam_dep subfolder)
 
-source = MixTest.Case.fixture_path(fixture)
-dest = MixTest.Case.tmp_path(fixture)
-File.mkdir_p!(dest)
-File.cp_r!(source, dest)
+Enum.each(fixtures, fn fixture ->
+  source = MixTest.Case.fixture_path(fixture)
+  dest = MixTest.Case.tmp_path(fixture)
+  File.mkdir_p!(dest)
+  File.cp_r!(source, dest)
+end)
 
 ## Set up Git fixtures
 
