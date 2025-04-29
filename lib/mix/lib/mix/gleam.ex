@@ -22,7 +22,7 @@ defmodule Mix.Gleam do
 
     dev_deps =
       Map.get(json, "dev-dependencies", %{})
-      |> Enum.map(&parse_dep(&1, only: :dev))
+      |> Enum.map(&parse_dep(&1, only: [:dev, :test]))
 
     %{
       name: Map.fetch!(json, "name"),
@@ -45,7 +45,7 @@ defmodule Mix.Gleam do
           {dep, version, opts}
 
         %{"path" => path} ->
-          {dep, Keyword.merge(opts, path: path)}
+          {dep, Keyword.merge(opts, path: Path.expand(path))}
 
         %{"git" => git, "ref" => ref} ->
           {dep, git: git, ref: ref}
