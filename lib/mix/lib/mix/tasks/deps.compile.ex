@@ -371,6 +371,7 @@ defmodule Mix.Tasks.Deps.Compile do
         build_path: Mix.Project.build_path() |> Path.split() |> Enum.drop(-1) |> Path.join(),
         deps_path: deps_path,
         erlc_paths: [src],
+        elixirc_paths: [src],
         erlc_include_path: Path.join(build, "include")
       ]
 

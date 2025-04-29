@@ -8,7 +8,7 @@ defmodule Mix.GleamTest do
   use MixTest.Case
   @moduletag :gleam
 
-  @compile {:no_warn_undefined, [:gleam_dep, :gleam@int]}
+  @compile {:no_warn_undefined, [:gleam_dep, :gleam@int, :deeper_gleam_dep]}
 
   defmodule GleamAsDep do
     def project do
@@ -16,7 +16,7 @@ defmodule Mix.GleamTest do
         app: :gleam_as_dep,
         version: "0.1.0",
         deps: [
-          {:gleam_dep, path: MixTest.Case.tmp_path("gleam_dep"), app: false}
+          {:deeper_gleam_dep, path: MixTest.Case.tmp_path("subfolder/deeper_gleam_dep")}
         ]
       ]
     end
@@ -46,8 +46,7 @@ defmodule Mix.GleamTest do
           "gleam" => ">= 1.8.0",
           "dependencies" => %{
             "git_dep" => %{"git" => "../git_dep", "ref" => "957b83b"},
-            "gleam_stdlib" => %{"version" => ">= 0.18.0 and < 2.0.0"},
-            "my_other_project" => %{"path" => "../my_other_project"}
+            "gleam_stdlib" => %{"version" => ">= 0.18.0 and < 2.0.0"}
           },
           "dev-dependencies" => %{
             "gleeunit" => %{"version" => ">= 1.0.0 and < 2.0.0"}
@@ -66,7 +65,6 @@ defmodule Mix.GleamTest do
                deps: [
                  {:git_dep, git: "../git_dep", ref: "957b83b"},
                  {:gleam_stdlib, ">= 0.18.0 and < 2.0.0"},
-                 {:my_other_project, path: "../my_other_project"},
                  {:gleeunit, ">= 1.0.0 and < 2.0.0", only: :dev}
                ],
                application: [
@@ -90,6 +88,7 @@ defmodule Mix.GleamTest do
         assert :gleam_dep.main()
         assert :gleam_dep.erl() == ~c'Hello from Collocated Erlang!'
         assert :gleam@int.to_string(1) == "1"
+        assert :deeper_gleam_dep.main()
 
         {:ok, content} = :file.consult("_build/dev/lib/gleam_dep/ebin/gleam_dep.app")
 
@@ -108,6 +107,8 @@ defmodule Mix.GleamTest do
                    ]
                  }
                ]
+
+        assert File.exists?("_build/dev/lib/deeper_gleam_dep/ebin/deeper_gleam_dep.app")
       end)
     end
   end
