@@ -1327,7 +1327,7 @@ defmodule String do
 
   @doc ~S"""
   Returns a string where all trailing Unicode whitespaces
-  has been removed.
+  have been removed.
 
   ## Examples
 
