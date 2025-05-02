@@ -109,6 +109,7 @@ defmodule Mix.GleamTest do
                ]
 
         assert File.exists?("_build/dev/lib/deeper_gleam_dep/ebin/deeper_gleam_dep.app")
+        assert :ok == Mix.Tasks.Deps.Loadpaths.run([])
       end)
     end
   end
