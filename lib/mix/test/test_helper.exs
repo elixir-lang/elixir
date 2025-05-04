@@ -177,7 +177,10 @@ defmodule MixTest.Case do
   end
 
   def ensure_touched(file, current) when is_binary(current) do
-    ensure_touched(file, File.stat!(current).mtime)
+    case File.stat(current) do
+      {:ok, %{mtime: mtime}} -> ensure_touched(file, mtime)
+      {:error, _} -> File.touch!(file)
+    end
   end
 
   def ensure_touched(file, current) when is_tuple(current) do
