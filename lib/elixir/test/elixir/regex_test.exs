@@ -222,7 +222,7 @@ defmodule RegexTest do
              ["", "Elixir", ""]
 
     assert Regex.split(~r//, "abc", include_captures: true) ==
-             ["", "a", "", "b", "", "c", "", ""]
+             ["", "", "a", "", "b", "", "c", "", ""]
 
     assert Regex.split(~r/a/, "abc", include_captures: true) == ["", "a", "bc"]
     assert Regex.split(~r/c/, "abc", include_captures: true) == ["ab", "c", ""]
