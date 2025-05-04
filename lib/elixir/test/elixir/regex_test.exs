@@ -238,6 +238,8 @@ defmodule RegexTest do
 
     assert Regex.split(~r/[Ei]/, "Elixir", include_captures: true, parts: 3, trim: true) ==
              ["E", "l", "i", "xir"]
+
+    assert Regex.split(~r/b\K/, "abab", include_captures: true) == ["ab", "", "ab", "", "", ""]
   end
 
   test "replace/3,4" do
