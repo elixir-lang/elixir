@@ -187,6 +187,8 @@ defmodule RegexTest do
     assert Regex.split(~r" ", " foo bar baz ", trim: true) == ["foo", "bar", "baz"]
     assert Regex.split(~r" ", " foo bar baz ", parts: 2) == ["", "foo bar baz "]
     assert Regex.split(~r" ", " foo bar baz ", trim: true, parts: 2) == ["foo", "bar baz "]
+
+    assert Regex.split(~r/b\K/, "ababab") == ["ab", "ab", "ab", ""]
   end
 
   test "split/3 with the :on option" do
@@ -220,7 +222,7 @@ defmodule RegexTest do
              ["", "Elixir", ""]
 
     assert Regex.split(~r//, "abc", include_captures: true) ==
-             ["", "", "a", "", "b", "", "c", "", ""]
+             ["", "a", "", "b", "", "c", "", ""]
 
     assert Regex.split(~r/a/, "abc", include_captures: true) == ["", "a", "bc"]
     assert Regex.split(~r/c/, "abc", include_captures: true) == ["ab", "c", ""]
