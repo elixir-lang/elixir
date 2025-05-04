@@ -488,6 +488,9 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       recompile = fn ->
         Mix.ProjectStack.pop()
         Mix.Project.push(MixTest.Case.Sample)
+        File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
+        ensure_touched("mix.lock")
+        ensure_touched("_build/dev/lib/sample/.mix/compile.lock")
         Mix.Tasks.WillRecompile.run([])
         Mix.Tasks.Compile.Elixir.run(["--verbose"])
       end
@@ -497,8 +500,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       %{"logger": :unused}
       """)
 
-      ensure_touched("mix.lock")
-      File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
       assert recompile.() == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
@@ -509,8 +510,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       %{"logger": :another}
       """)
 
-      ensure_touched("mix.lock")
-      File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
       assert recompile.() == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
@@ -521,8 +520,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       %{}
       """)
 
-      ensure_touched("mix.lock")
-      File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
       assert recompile.() == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
@@ -533,8 +530,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       %{"unknown": :unknown}
       """)
 
-      # We use ensure_touched because an outdated manifest would recompile anyway.
-      ensure_touched("mix.lock", "_build/dev/lib/sample/.mix/compile.elixir")
       assert recompile.() == {:ok, []}
       refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
