@@ -486,6 +486,8 @@ defmodule KernelTest do
   end
 
   describe "in/2" do
+    # This test may take a long time on machine with low resources
+    @tag timeout: 120_000
     test "too large list in guards" do
       defmodule TooLargeList do
         @list Enum.map(1..1024, & &1)
