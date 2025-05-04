@@ -677,10 +677,15 @@ defmodule Regex do
     <<_::binary-size(^offset), part::binary-size(^keep), match::binary-size(^length), _::binary>> =
       string
 
-    if keep == 0 and (trim or (offset != 0 and length == 0)) do
-      [match | do_split([h | t], string, new_offset, counter - 1, trim, true)]
-    else
-      [part, match | do_split([h | t], string, new_offset, counter - 1, trim, true)]
+    cond do
+      keep == 0 and (offset != 0 and length == 0) ->
+        do_split([h | t], string, new_offset, counter - 1, trim, true)
+
+      keep == 0 and trim ->
+        [match | do_split([h | t], string, new_offset, counter - 1, trim, true)]
+
+      true ->
+        [part, match | do_split([h | t], string, new_offset, counter - 1, trim, true)]
     end
   end
 
