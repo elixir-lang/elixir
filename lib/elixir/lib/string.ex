@@ -1802,8 +1802,8 @@ defmodule String do
       iex> String.codepoints("olá")
       ["o", "l", "á"]
 
-      iex> String.codepoints("оптими зации")
-      ["о", "п", "т", "и", "м", "и", " ", "з", "а", "ц", "и", "и"]
+      iex> String.codepoints("оптимі зації")
+      ["о", "п", "т", "и", "м", "і", " ", "з", "а", "ц", "і", "ї"]
 
       iex> String.codepoints("ἅἪῼ")
       ["ἅ", "Ἢ", "ῼ"]
