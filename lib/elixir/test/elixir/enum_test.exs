@@ -830,6 +830,21 @@ defmodule EnumTest do
     assert Enum.random([1, 2, 3, 4, 5]) == 3
   end
 
+  test "random/1 with streams" do
+    random_stream = fn list -> list |> Stream.map(& &1) |> Enum.random() end
+
+    assert_raise Enum.EmptyError, fn -> random_stream.([]) end
+    assert random_stream.([1]) == 1
+
+    seed = {1406, 407_414, 139_258}
+    :rand.seed(:exsss, seed)
+
+    assert random_stream.([1, 2]) == 2
+    assert random_stream.([1, 2, 3]) == 3
+    assert random_stream.([1, 2, 3, 4]) == 1
+    assert random_stream.([1, 2, 3, 4, 5]) == 3
+  end
+
   test "reduce/2" do
     assert Enum.reduce([1, 2, 3], fn x, acc -> x + acc end) == 6
 
@@ -2132,6 +2147,8 @@ defmodule EnumTest.Range do
 
     assert Enum.random(1..10//2) == 7
     assert Enum.random(1..10//2) == 5
+
+    assert_raise Enum.EmptyError, fn -> Enum.random(..) end
   end
 
   test "reduce/2" do
