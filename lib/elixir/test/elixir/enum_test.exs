@@ -217,11 +217,30 @@ defmodule EnumTest do
     assert Enum.count_until([1, 2], 2) == 2
   end
 
+  test "count_until/2 with streams" do
+    count_until_stream = fn list, limit -> list |> Stream.map(& &1) |> Enum.count_until(limit) end
+
+    assert count_until_stream.([1, 2, 3], 2) == 2
+    assert count_until_stream.([], 2) == 0
+    assert count_until_stream.([1, 2], 2) == 2
+  end
+
   test "count_until/3" do
     assert Enum.count_until([1, 2, 3, 4, 5, 6], fn x -> rem(x, 2) == 0 end, 2) == 2
     assert Enum.count_until([1, 2], fn x -> rem(x, 2) == 0 end, 2) == 1
     assert Enum.count_until([1, 2, 3, 4], fn x -> rem(x, 2) == 0 end, 2) == 2
     assert Enum.count_until([], fn x -> rem(x, 2) == 0 end, 2) == 0
+  end
+
+  test "count_until/3 with streams" do
+    count_until_stream = fn list, fun, limit ->
+      list |> Stream.map(& &1) |> Enum.count_until(fun, limit)
+    end
+
+    assert count_until_stream.([1, 2, 3, 4, 5, 6], fn x -> rem(x, 2) == 0 end, 2) == 2
+    assert count_until_stream.([1, 2], fn x -> rem(x, 2) == 0 end, 2) == 1
+    assert count_until_stream.([1, 2, 3, 4], fn x -> rem(x, 2) == 0 end, 2) == 2
+    assert count_until_stream.([], fn x -> rem(x, 2) == 0 end, 2) == 0
   end
 
   test "dedup/1" do
@@ -318,6 +337,9 @@ defmodule EnumTest do
     refute Enum.empty?([1, 2, 3])
     refute Enum.empty?(%{one: 1})
     refute Enum.empty?(1..3)
+
+    assert Stream.take([1], 0) |> Enum.empty?()
+    refute Stream.take([1], 1) |> Enum.empty?()
   end
 
   test "fetch/2" do
@@ -384,6 +406,16 @@ defmodule EnumTest do
     assert Enum.flat_map([], fn x -> [x, x] end) == []
     assert Enum.flat_map([1, 2, 3], fn x -> [x, x] end) == [1, 1, 2, 2, 3, 3]
     assert Enum.flat_map([1, 2, 3], fn x -> x..(x + 1) end) == [1, 2, 2, 3, 3, 4]
+    assert Enum.flat_map([1, 2, 3], fn x -> Stream.duplicate(x, 2) end) == [1, 1, 2, 2, 3, 3]
+  end
+
+  test "flat_map/2 with streams" do
+    flat_map_stream = fn list, fun -> list |> Stream.map(& &1) |> Enum.flat_map(fun) end
+
+    assert flat_map_stream.([], fn x -> [x, x] end) == []
+    assert flat_map_stream.([1, 2, 3], fn x -> [x, x] end) == [1, 1, 2, 2, 3, 3]
+    assert flat_map_stream.([1, 2, 3], fn x -> x..(x + 1) end) == [1, 2, 2, 3, 3, 4]
+    assert flat_map_stream.([1, 2, 3], fn x -> Stream.duplicate(x, 2) end) == [1, 1, 2, 2, 3, 3]
   end
 
   test "flat_map_reduce/3" do
@@ -409,6 +441,10 @@ defmodule EnumTest do
     assert Enum.intersperse([], true) == []
     assert Enum.intersperse([1], true) == [1]
     assert Enum.intersperse([1, 2, 3], true) == [1, true, 2, true, 3]
+
+    assert Enum.intersperse(.., true) == []
+    assert Enum.intersperse(1..1, true) == [1]
+    assert Enum.intersperse(1..3, true) == [1, true, 2, true, 3]
   end
 
   test "into/2" do
