@@ -862,6 +862,13 @@ defmodule EnumTest do
     assert Enum.reduce([1, 2, 3], 1, fn x, acc -> x + acc end) == 7
   end
 
+  test "reduce/3 with streams" do
+    reduce_stream = fn list, acc, fun -> list |> Stream.map(& &1) |> Enum.reduce(acc, fun) end
+
+    assert reduce_stream.([], 1, fn x, acc -> x + acc end) == 1
+    assert reduce_stream.([1, 2, 3], 1, fn x, acc -> x + acc end) == 7
+  end
+
   test "reduce_while/3" do
     assert Enum.reduce_while([1, 2, 3], 1, fn i, acc -> {:cont, acc + i} end) == 7
     assert Enum.reduce_while([1, 2, 3], 1, fn _i, acc -> {:halt, acc} end) == 1
@@ -2682,6 +2689,11 @@ defmodule EnumTest.Map do
     assert_raise FunctionClauseError, fn ->
       Enum.slice(map, 0, 0.99)
     end
+  end
+
+  test "reduce/3" do
+    assert Enum.reduce(%{}, 1, fn x, acc -> x + acc end) == 1
+    assert Enum.reduce(%{a: 1, b: 2}, 1, fn {_, x}, acc -> x + acc end) == 4
   end
 end
 
