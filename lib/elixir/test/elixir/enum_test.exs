@@ -406,6 +406,16 @@ defmodule EnumTest do
     assert Enum.flat_map([], fn x -> [x, x] end) == []
     assert Enum.flat_map([1, 2, 3], fn x -> [x, x] end) == [1, 1, 2, 2, 3, 3]
     assert Enum.flat_map([1, 2, 3], fn x -> x..(x + 1) end) == [1, 2, 2, 3, 3, 4]
+    assert Enum.flat_map([1, 2, 3], fn x -> Stream.duplicate(x, 2) end) == [1, 1, 2, 2, 3, 3]
+  end
+
+  test "flat_map/2 with streams" do
+    flat_map_stream = fn list, fun -> list |> Stream.map(& &1) |> Enum.flat_map(fun) end
+
+    assert flat_map_stream.([], fn x -> [x, x] end) == []
+    assert flat_map_stream.([1, 2, 3], fn x -> [x, x] end) == [1, 1, 2, 2, 3, 3]
+    assert flat_map_stream.([1, 2, 3], fn x -> x..(x + 1) end) == [1, 2, 2, 3, 3, 4]
+    assert flat_map_stream.([1, 2, 3], fn x -> Stream.duplicate(x, 2) end) == [1, 1, 2, 2, 3, 3]
   end
 
   test "flat_map_reduce/3" do
