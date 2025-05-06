@@ -651,6 +651,11 @@ defmodule EnumTest do
     end
   end
 
+  test "min/2 with empty fallback" do
+    assert Enum.min([], fn -> 0 end) === 0
+    assert Enum.min([1, 2], fn -> 0 end) === 1
+  end
+
   test "min/2 with stable sorting" do
     assert Enum.min([1, 1.0], &<=/2) === 1
     assert Enum.min([1.0, 1], &<=/2) === 1.0
@@ -2069,6 +2074,11 @@ defmodule EnumTest.Range do
     assert Enum.min(-1..-9//-2) == -9
 
     assert_raise Enum.EmptyError, fn -> Enum.min(1..0//1) end
+  end
+
+  test "min/2 with empty fallback" do
+    assert Enum.min(.., fn -> 0 end) === 0
+    assert Enum.min(1..2, fn -> 0 end) === 1
   end
 
   test "min_by/2" do
