@@ -441,6 +441,10 @@ defmodule EnumTest do
     assert Enum.intersperse([], true) == []
     assert Enum.intersperse([1], true) == [1]
     assert Enum.intersperse([1, 2, 3], true) == [1, true, 2, true, 3]
+
+    assert Enum.intersperse(.., true) == []
+    assert Enum.intersperse(1..1, true) == [1]
+    assert Enum.intersperse(1..3, true) == [1, true, 2, true, 3]
   end
 
   test "into/2" do
