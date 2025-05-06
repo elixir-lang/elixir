@@ -337,6 +337,9 @@ defmodule EnumTest do
     refute Enum.empty?([1, 2, 3])
     refute Enum.empty?(%{one: 1})
     refute Enum.empty?(1..3)
+
+    assert Stream.take([1], 0) |> Enum.empty?()
+    refute Stream.take([1], 1) |> Enum.empty?()
   end
 
   test "fetch/2" do
