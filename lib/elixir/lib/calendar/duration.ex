@@ -300,6 +300,55 @@ defmodule Duration do
   end
 
   @doc """
+  Compares two durations.
+
+  Returns `:eq` if the durations are equal, `:lt` if the first duration is less than the second, and `:gt` if the first
+  duration is greater than the second.
+
+  ## Examples
+
+      iex> Duration.compare(Duration.new!(second: 10), Duration.new!(second: 20))
+      :lt
+      iex> Duration.compare(Duration.new!(second: 20), Duration.new!(second: 10))
+      :gt
+      iex> Duration.compare(Duration.new!(second: 10), Duration.new!(second: 10))
+      :eq
+  """
+  @doc since: "1.19.0"
+  @spec compare(t, t) :: :eq | :lt | :gt
+  def compare(%Duration{} = d1, %Duration{} = d2) do
+    d1_us = to_microseconds(d1)
+    d2_us = to_microseconds(d2)
+
+    cond do
+      d1_us == d2_us -> :eq
+      d1_us < d2_us -> :lt
+      d1_us > d2_us -> :gt
+    end
+  end
+
+  @second_in_us 1_000_000              # 1 second in microseconds
+  @minute_in_us @second_in_us * 60     # 1 minute = 60 seconds
+  @hour_in_us @minute_in_us * 60       # 1 hour = 60 minutes
+  @day_in_us @hour_in_us * 24          # 1 day = 24 hours
+  @week_in_us @day_in_us * 7           # 1 week = 7 days
+  @month_in_us @day_in_us * 30         # 1 month = 30 days
+  @year_in_us @day_in_us * 365         # 1 year = 365 days
+
+  def to_microseconds(duration) do
+    {microsecond, _precision} = duration.microsecond
+
+    duration.year * @year_in_us +
+      duration.month * @month_in_us +
+      duration.week * @week_in_us +
+      duration.day * @day_in_us +
+      duration.hour * @hour_in_us +
+      duration.minute * @minute_in_us +
+      duration.second * @second_in_us +
+      microsecond
+  end
+
+  @doc """
   Parses an [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) formatted duration string to a `Duration` struct.
 
   Duration strings, as well as individual units, may be prefixed with plus/minus signs so that:
