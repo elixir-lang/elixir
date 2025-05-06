@@ -1166,6 +1166,7 @@ defmodule EnumTest do
     assert [1, 2, 3] |> Stream.cycle() |> Enum.slice(0..4) == [1, 2, 3, 1, 2]
     assert [1, 2, 3] |> Stream.cycle() |> Enum.slice(0..4//2) == [1, 3, 2]
     assert [1, 2, 3] |> Stream.cycle() |> Enum.slice(0..5//2) == [1, 3, 2]
+    assert [1, 2, 3] |> Stream.cycle() |> Enum.slice(1..6//2) == [2, 1, 3]
   end
 
   test "slice on pruned infinite streams" do
