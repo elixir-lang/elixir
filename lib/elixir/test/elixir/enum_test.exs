@@ -562,6 +562,11 @@ defmodule EnumTest do
     end
   end
 
+  test "max/2 with empty fallback" do
+    assert Enum.max([], fn -> 0 end) === 0
+    assert Enum.max([1, 2], fn -> 0 end) === 2
+  end
+
   test "max/2 with stable sorting" do
     assert Enum.max([1, 1.0], &>=/2) === 1
     assert Enum.max([1.0, 1], &>=/2) === 1.0
@@ -2021,6 +2026,11 @@ defmodule EnumTest.Range do
     assert Enum.max(-1..-9//-2) == -1
 
     assert_raise Enum.EmptyError, fn -> Enum.max(1..0//1) end
+  end
+
+  test "max/2 with empty fallback" do
+    assert Enum.max(.., fn -> 0 end) === 0
+    assert Enum.max(1..2, fn -> 0 end) === 2
   end
 
   test "max_by/2" do
