@@ -539,17 +539,28 @@ defmodule Mix.Tasks.XrefTest do
         assert_graph(["--format", "cycles", "--fail-above", "0"], """
         1 cycles found. Showing them in decreasing size:
 
-        Cycle of length 3:
+        Cycle of length 2:
 
-            lib/b.ex
-            lib/a.ex
+            lib/a.ex (compile)
             lib/b.ex
 
         """)
       end
     end
 
-    test "cycles with min cycle size" do
+    test "cycles with min_cycle_size matching actual length" do
+      assert_graph(["--format", "cycles", "--min-cycle-size", "2"], """
+      1 cycles found. Showing them in decreasing size:
+
+      Cycle of length 2:
+
+          lib/a.ex (compile)
+          lib/b.ex
+
+      """)
+    end
+
+    test "cycles with min_cycle_size greater than actual length" do
       assert_graph(["--format", "cycles", "--min-cycle-size", "3"], """
       No cycles found
       """)

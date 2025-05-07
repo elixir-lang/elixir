@@ -1213,7 +1213,7 @@ defmodule Mix.Tasks.Xref do
 
     cycles =
       if min = opts[:min_cycle_size] do
-        Enum.filter(cycles, &(elem(&1, 0) > min))
+        Enum.filter(cycles, &(elem(&1, 0) >= min))
       else
         cycles
       end
