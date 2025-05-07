@@ -1166,6 +1166,7 @@ defmodule EnumTest do
     assert [1, 2, 3] |> Stream.cycle() |> Enum.slice(0..4) == [1, 2, 3, 1, 2]
     assert [1, 2, 3] |> Stream.cycle() |> Enum.slice(0..4//2) == [1, 3, 2]
     assert [1, 2, 3] |> Stream.cycle() |> Enum.slice(0..5//2) == [1, 3, 2]
+    assert [1, 2, 3] |> Stream.cycle() |> Enum.slice(1..6//2) == [2, 1, 3]
   end
 
   test "slice on pruned infinite streams" do
@@ -1206,6 +1207,13 @@ defmodule EnumTest do
     assert Enum.sort([5, 3, 2, 4, 1], &(&1 >= &2)) == [5, 4, 3, 2, 1]
     assert Enum.sort([5, 3, 2, 4, 1], :asc) == [1, 2, 3, 4, 5]
     assert Enum.sort([5, 3, 2, 4, 1], :desc) == [5, 4, 3, 2, 1]
+
+    assert Enum.sort([3, 2, 1, 3, 2, 3], :asc) == [1, 2, 2, 3, 3, 3]
+    assert Enum.sort([3, 2, 1, 3, 2, 3], :desc) == [3, 3, 3, 2, 2, 1]
+
+    shuffled = Enum.shuffle(1..100)
+    assert Enum.sort(shuffled, :asc) == Enum.to_list(1..100)
+    assert Enum.sort(shuffled, :desc) == Enum.reverse(1..100)
   end
 
   test "sort/2 with module" do
@@ -1217,6 +1225,21 @@ defmodule EnumTest do
 
     assert Enum.sort([~D[2020-01-01], ~D[2018-01-01], ~D[2019-01-01]], {:desc, Date}) ==
              [~D[2020-01-01], ~D[2019-01-01], ~D[2018-01-01]]
+  end
+
+  test "sort/2 with streams" do
+    sort_stream = fn list, sorter -> list |> Stream.map(& &1) |> Enum.sort(sorter) end
+
+    assert sort_stream.([5, 3, 2, 4, 1], &(&1 >= &2)) == [5, 4, 3, 2, 1]
+    assert sort_stream.([5, 3, 2, 4, 1], :asc) == [1, 2, 3, 4, 5]
+    assert sort_stream.([5, 3, 2, 4, 1], :desc) == [5, 4, 3, 2, 1]
+
+    assert sort_stream.([3, 2, 1, 3, 2, 3], :asc) == [1, 2, 2, 3, 3, 3]
+    assert sort_stream.([3, 2, 1, 3, 2, 3], :desc) == [3, 3, 3, 2, 2, 1]
+
+    shuffled = Enum.shuffle(1..100)
+    assert sort_stream.(shuffled, :asc) == Enum.to_list(1..100)
+    assert sort_stream.(shuffled, :desc) == Enum.reverse(1..100)
   end
 
   test "sort_by/3" do
