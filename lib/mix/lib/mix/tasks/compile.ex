@@ -66,6 +66,7 @@ defmodule Mix.Tasks.Compile do
     * `--no-compile` - does not actually compile, only loads code and perform checks
     * `--no-deps-check` - skips checking of dependencies
     * `--no-elixir-version-check` - does not check Elixir version
+    * `--no-listeners` - does not start Mix listeners
     * `--no-optional-deps` - does not compile or load optional deps. Useful for testing
       if a library still successfully compiles without optional dependencies (which is the
       default case with dependencies)
