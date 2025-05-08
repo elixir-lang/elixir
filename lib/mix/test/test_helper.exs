@@ -266,7 +266,8 @@ Enum.each(
 
 rebar3_source = System.get_env("REBAR3") || Path.expand("fixtures/rebar3", __DIR__)
 [major, minor | _] = String.split(System.version(), ".")
-rebar3_target = Path.join([mix, "elixir", "#{major}-#{minor}", "rebar3"])
+version_dir = "#{major}-#{minor}-otp-#{System.otp_release()}"
+rebar3_target = Path.join([mix, "elixir", version_dir, "rebar3"])
 File.mkdir_p!(Path.dirname(rebar3_target))
 File.cp!(rebar3_source, rebar3_target)
 
