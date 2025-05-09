@@ -167,7 +167,7 @@ defmodule Mix.Tasks.Deps do
     * `:repo` - the repository to fetch the package from, used by remote or
       private repositories. Defaults to the global "hexpm" repository
     * `:warn_if_outdated` - warn if there is a more recent version of the package
-      published to Hex.pm
+      published on Hex.pm
 
   ## Deps task
 
