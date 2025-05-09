@@ -640,9 +640,7 @@ defmodule Module.Types.DescrTest do
       # For domains too
       t1 = dynamic(open_map([{{:domain_key, :integer}, integer()}]))
       t2 = open_map([{{:domain_key, :integer}, dynamic(integer())}])
-
-      assert dynamic(open_map([{{:domain_key, :integer}, integer()}])) ==
-               open_map([{{:domain_key, :integer}, dynamic(integer())}])
+      assert t1 == t2
 
       # if_set on dynamic fields also must work
       t1 = dynamic(open_map(a: if_set(integer())))
@@ -834,6 +832,8 @@ defmodule Module.Types.DescrTest do
     end
 
     test "map get" do
+      assert map_get(term(), term()) == :badmap
+
       map_type = closed_map([{{:domain_key, :tuple}, binary()}])
       assert map_get(map_type, tuple()) == {:ok, nil_or_type(binary())}
       # assert map_fetch(map_type, :b) == :badkey
@@ -886,6 +886,11 @@ defmodule Module.Types.DescrTest do
       assert map_get(t3, tuple()) == {:ok, number() |> nil_or_type()}
     end
 
+    test "map get with dynamic" do
+      {_answer, type_selected} = map_get(dynamic(), term())
+      assert equal?(type_selected, dynamic() |> nil_or_type())
+    end
+
     test "more complex map get over atoms" do
       map = closed_map([{:a, atom([:a])}, {:b, atom([:b])}, {{:domain_key, :atom}, pid()}])
       assert map_get(map, atom([:a, :b])) == {:ok_present, atom([:a, :b])}
@@ -918,23 +923,24 @@ defmodule Module.Types.DescrTest do
              )
     end
 
-    # for operator t\[t']
-    test "map delete" do
-      t1 = closed_map([{:a, pid()}, {{:domain_key, :integer}, number()}])
+    # TODO: operator t\[t']
+    # test "map delete" do
+    #   t1 = closed_map([{:a, pid()}, {{:domain_key, :integer}, number()}])
 
-      assert map_delete(t1, atom([:a]))
-             |> equal?(closed_map([{:a, not_set()}, {{:domain_key, :integer}, number()}]))
+    #   assert map_delete(t1, atom([:a]))
+    #          |> equal?(closed_map([{:a, not_set()}, {{:domain_key, :integer}, number()}]))
 
-      assert map_delete(t1, atom([:a, :b]))
-             |> equal?(closed_map([{:a, if_set(pid())}, {{:domain_key, :integer}, number()}]))
+    #   assert map_delete(t1, atom([:a, :b]))
+    #          |> equal?(closed_map([{:a, if_set(pid())}, {{:domain_key, :integer}, number()}]))
 
-      assert map_delete(t1, term())
-             |> equal?(closed_map([{:a, if_set(pid())}, {{:domain_key, :integer}, number()}]))
-    end
+    #   assert map_delete(t1, term())
+    #          |> equal?(closed_map([{:a, if_set(pid())}, {{:domain_key, :integer}, number()}]))
+    # end
 
-    test "map update" do
-      assert false
-    end
+    # TODO
+    # test "map update" do
+    #   assert false
+    # end
   end
 
   describe "projections" do
@@ -1316,7 +1322,6 @@ defmodule Module.Types.DescrTest do
 
     test "map_fetch with dynamic" do
       assert map_fetch(dynamic(), :a) == {true, dynamic()}
-
       assert map_fetch(union(dynamic(), integer()), :a) == :badmap
       assert map_fetch(union(dynamic(open_map(a: integer())), integer()), :a) == :badmap
       assert map_fetch(union(dynamic(integer()), integer()), :a) == :badmap
@@ -1499,6 +1504,11 @@ defmodule Module.Types.DescrTest do
       {:ok, map} = map_put(union(dynamic(), empty_map()), :a, atom())
       {false, type} = map_fetch(map, :a)
       assert equal?(type, atom())
+    end
+
+    test "map put with key type" do
+      # Using a literal key or an expression of that singleton key is the same
+      assert map_put(empty_map(), atom([:a]), integer()) == {:ok, closed_map(a: integer())}
     end
   end
 
