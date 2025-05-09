@@ -830,432 +830,432 @@ defmodule Module.Types.DescrTest do
   #   assert map_delete(t1, term())
   #          |> equal?(closed_map([{:a, if_set(pid())}, {{:domain_key, :integer}, number()}]))
   # end
-end
 
-describe "projections" do
-  test "fun_fetch" do
-    assert fun_fetch(term(), 1) == :error
-    assert fun_fetch(union(term(), dynamic(fun())), 1) == :error
-    assert fun_fetch(fun(), 1) == :ok
-    assert fun_fetch(dynamic(), 1) == :ok
-  end
-
-  test "truthness" do
-    for type <- [term(), none(), atom(), boolean(), union(atom([false]), integer())] do
-      assert truthness(type) == :undefined
-      assert truthness(dynamic(type)) == :undefined
+  describe "projections" do
+    test "fun_fetch" do
+      assert fun_fetch(term(), 1) == :error
+      assert fun_fetch(union(term(), dynamic(fun())), 1) == :error
+      assert fun_fetch(fun(), 1) == :ok
+      assert fun_fetch(dynamic(), 1) == :ok
     end
 
-    for type <- [atom([false]), atom([nil]), atom([nil, false]), atom([false, nil])] do
-      assert truthness(type) == :always_false
-      assert truthness(dynamic(type)) == :always_false
+    test "truthness" do
+      for type <- [term(), none(), atom(), boolean(), union(atom([false]), integer())] do
+        assert truthness(type) == :undefined
+        assert truthness(dynamic(type)) == :undefined
+      end
+
+      for type <- [atom([false]), atom([nil]), atom([nil, false]), atom([false, nil])] do
+        assert truthness(type) == :always_false
+        assert truthness(dynamic(type)) == :always_false
+      end
+
+      for type <-
+            [negation(atom()), atom([true]), negation(atom([false, nil])), atom([:ok]), integer()] do
+        assert truthness(type) == :always_true
+        assert truthness(dynamic(type)) == :always_true
+      end
     end
 
-    for type <-
-          [negation(atom()), atom([true]), negation(atom([false, nil])), atom([:ok]), integer()] do
-      assert truthness(type) == :always_true
-      assert truthness(dynamic(type)) == :always_true
+    test "atom_fetch" do
+      assert atom_fetch(term()) == :error
+      assert atom_fetch(union(term(), dynamic(atom([:foo, :bar])))) == :error
+
+      assert atom_fetch(atom()) == {:infinite, []}
+      assert atom_fetch(dynamic()) == {:infinite, []}
+
+      assert atom_fetch(atom([:foo, :bar])) ==
+               {:finite, [:foo, :bar] |> :sets.from_list(version: 2) |> :sets.to_list()}
+
+      assert atom_fetch(union(atom([:foo, :bar]), dynamic(atom()))) == {:infinite, []}
+      assert atom_fetch(union(atom([:foo, :bar]), dynamic(term()))) == {:infinite, []}
     end
-  end
 
-  test "atom_fetch" do
-    assert atom_fetch(term()) == :error
-    assert atom_fetch(union(term(), dynamic(atom([:foo, :bar])))) == :error
+    test "list_hd" do
+      assert list_hd(none()) == :badnonemptylist
+      assert list_hd(term()) == :badnonemptylist
+      assert list_hd(list(term())) == :badnonemptylist
+      assert list_hd(empty_list()) == :badnonemptylist
+      assert list_hd(non_empty_list(term())) == {false, term()}
+      assert list_hd(non_empty_list(integer())) == {false, integer()}
+      assert list_hd(difference(list(number()), list(integer()))) == {false, number()}
 
-    assert atom_fetch(atom()) == {:infinite, []}
-    assert atom_fetch(dynamic()) == {:infinite, []}
+      assert list_hd(dynamic()) == {true, dynamic()}
+      assert list_hd(dynamic(list(integer()))) == {true, dynamic(integer())}
+      assert list_hd(union(dynamic(), atom())) == :badnonemptylist
+      assert list_hd(union(dynamic(), list(term()))) == :badnonemptylist
 
-    assert atom_fetch(atom([:foo, :bar])) ==
-             {:finite, [:foo, :bar] |> :sets.from_list(version: 2) |> :sets.to_list()}
+      assert list_hd(difference(list(number()), list(number()))) == :badnonemptylist
+      assert list_hd(dynamic(difference(list(number()), list(number())))) == :badnonemptylist
 
-    assert atom_fetch(union(atom([:foo, :bar]), dynamic(atom()))) == {:infinite, []}
-    assert atom_fetch(union(atom([:foo, :bar]), dynamic(term()))) == {:infinite, []}
-  end
+      assert list_hd(union(dynamic(list(float())), non_empty_list(atom()))) ==
+               {true, union(dynamic(float()), atom())}
 
-  test "list_hd" do
-    assert list_hd(none()) == :badnonemptylist
-    assert list_hd(term()) == :badnonemptylist
-    assert list_hd(list(term())) == :badnonemptylist
-    assert list_hd(empty_list()) == :badnonemptylist
-    assert list_hd(non_empty_list(term())) == {false, term()}
-    assert list_hd(non_empty_list(integer())) == {false, integer()}
-    assert list_hd(difference(list(number()), list(integer()))) == {false, number()}
+      # If term() is in the tail, it means list(term()) is in the tail
+      # and therefore any term can be returned from hd.
+      assert list_hd(non_empty_list(atom(), term())) == {false, term()}
+      assert list_hd(non_empty_list(atom(), negation(list(term(), term())))) == {false, atom()}
+    end
 
-    assert list_hd(dynamic()) == {true, dynamic()}
-    assert list_hd(dynamic(list(integer()))) == {true, dynamic(integer())}
-    assert list_hd(union(dynamic(), atom())) == :badnonemptylist
-    assert list_hd(union(dynamic(), list(term()))) == :badnonemptylist
+    test "list_tl" do
+      assert list_tl(none()) == :badnonemptylist
+      assert list_tl(term()) == :badnonemptylist
+      assert list_tl(empty_list()) == :badnonemptylist
+      assert list_tl(list(integer())) == :badnonemptylist
+      assert list_tl(difference(list(number()), list(number()))) == :badnonemptylist
 
-    assert list_hd(difference(list(number()), list(number()))) == :badnonemptylist
-    assert list_hd(dynamic(difference(list(number()), list(number())))) == :badnonemptylist
+      assert list_tl(non_empty_list(integer())) == {false, list(integer())}
 
-    assert list_hd(union(dynamic(list(float())), non_empty_list(atom()))) ==
-             {true, union(dynamic(float()), atom())}
+      assert list_tl(non_empty_list(integer(), atom())) ==
+               {false, union(atom(), non_empty_list(integer(), atom()))}
 
-    # If term() is in the tail, it means list(term()) is in the tail
-    # and therefore any term can be returned from hd.
-    assert list_hd(non_empty_list(atom(), term())) == {false, term()}
-    assert list_hd(non_empty_list(atom(), negation(list(term(), term())))) == {false, atom()}
-  end
+      # The tail of either a (non empty) list of integers with an atom tail or a (non empty) list
+      # of tuples with a float tail is either an atom, or a float, or a (possibly empty) list of
+      # integers with an atom tail, or a (possibly empty) list of tuples with a float tail.
+      assert list_tl(union(non_empty_list(integer(), atom()), non_empty_list(tuple(), float()))) ==
+               {false,
+                atom()
+                |> union(float())
+                |> union(
+                  union(non_empty_list(integer(), atom()), non_empty_list(tuple(), float()))
+                )}
 
-  test "list_tl" do
-    assert list_tl(none()) == :badnonemptylist
-    assert list_tl(term()) == :badnonemptylist
-    assert list_tl(empty_list()) == :badnonemptylist
-    assert list_tl(list(integer())) == :badnonemptylist
-    assert list_tl(difference(list(number()), list(number()))) == :badnonemptylist
+      assert list_tl(dynamic()) == {true, dynamic()}
+      assert list_tl(dynamic(list(integer()))) == {true, dynamic(list(integer()))}
 
-    assert list_tl(non_empty_list(integer())) == {false, list(integer())}
+      assert list_tl(dynamic(list(integer(), atom()))) ==
+               {true, dynamic(union(atom(), list(integer(), atom())))}
+    end
 
-    assert list_tl(non_empty_list(integer(), atom())) ==
-             {false, union(atom(), non_empty_list(integer(), atom()))}
+    test "tuple_fetch" do
+      assert tuple_fetch(term(), 0) == :badtuple
+      assert tuple_fetch(integer(), 0) == :badtuple
 
-    # The tail of either a (non empty) list of integers with an atom tail or a (non empty) list
-    # of tuples with a float tail is either an atom, or a float, or a (possibly empty) list of
-    # integers with an atom tail, or a (possibly empty) list of tuples with a float tail.
-    assert list_tl(union(non_empty_list(integer(), atom()), non_empty_list(tuple(), float()))) ==
-             {false,
-              atom()
-              |> union(float())
-              |> union(union(non_empty_list(integer(), atom()), non_empty_list(tuple(), float())))}
+      assert tuple_fetch(tuple([integer(), atom()]), 0) == {false, integer()}
+      assert tuple_fetch(tuple([integer(), atom()]), 1) == {false, atom()}
+      assert tuple_fetch(tuple([integer(), atom()]), 2) == :badindex
 
-    assert list_tl(dynamic()) == {true, dynamic()}
-    assert list_tl(dynamic(list(integer()))) == {true, dynamic(list(integer()))}
+      assert tuple_fetch(open_tuple([integer(), atom()]), 0) == {false, integer()}
+      assert tuple_fetch(open_tuple([integer(), atom()]), 1) == {false, atom()}
+      assert tuple_fetch(open_tuple([integer(), atom()]), 2) == :badindex
 
-    assert list_tl(dynamic(list(integer(), atom()))) ==
-             {true, dynamic(union(atom(), list(integer(), atom())))}
-  end
+      assert tuple_fetch(tuple([integer(), atom()]), -1) == :badindex
+      assert tuple_fetch(empty_tuple(), 0) == :badindex
+      assert difference(tuple(), tuple()) |> tuple_fetch(0) == :badindex
 
-  test "tuple_fetch" do
-    assert tuple_fetch(term(), 0) == :badtuple
-    assert tuple_fetch(integer(), 0) == :badtuple
+      assert tuple([atom()]) |> difference(empty_tuple()) |> tuple_fetch(0) ==
+               {false, atom()}
 
-    assert tuple_fetch(tuple([integer(), atom()]), 0) == {false, integer()}
-    assert tuple_fetch(tuple([integer(), atom()]), 1) == {false, atom()}
-    assert tuple_fetch(tuple([integer(), atom()]), 2) == :badindex
+      assert difference(tuple([union(integer(), atom())]), open_tuple([atom()]))
+             |> tuple_fetch(0) == {false, integer()}
 
-    assert tuple_fetch(open_tuple([integer(), atom()]), 0) == {false, integer()}
-    assert tuple_fetch(open_tuple([integer(), atom()]), 1) == {false, atom()}
-    assert tuple_fetch(open_tuple([integer(), atom()]), 2) == :badindex
+      assert tuple_fetch(union(tuple([integer(), atom()]), dynamic(open_tuple([atom()]))), 1)
+             |> Kernel.then(fn {opt, ty} -> opt and equal?(ty, union(atom(), dynamic())) end)
 
-    assert tuple_fetch(tuple([integer(), atom()]), -1) == :badindex
-    assert tuple_fetch(empty_tuple(), 0) == :badindex
-    assert difference(tuple(), tuple()) |> tuple_fetch(0) == :badindex
+      assert tuple_fetch(union(tuple([integer()]), tuple([atom()])), 0) ==
+               {false, union(integer(), atom())}
 
-    assert tuple([atom()]) |> difference(empty_tuple()) |> tuple_fetch(0) ==
-             {false, atom()}
+      assert tuple([integer(), atom(), union(atom(), integer())])
+             |> difference(tuple([integer(), term(), atom()]))
+             |> tuple_fetch(2) == {false, integer()}
 
-    assert difference(tuple([union(integer(), atom())]), open_tuple([atom()]))
-           |> tuple_fetch(0) == {false, integer()}
+      assert tuple([integer(), atom(), union(union(atom(), integer()), list(term()))])
+             |> difference(tuple([integer(), term(), atom()]))
+             |> difference(open_tuple([term(), atom(), list(term())]))
+             |> tuple_fetch(2) == {false, integer()}
 
-    assert tuple_fetch(union(tuple([integer(), atom()]), dynamic(open_tuple([atom()]))), 1)
-           |> Kernel.then(fn {opt, ty} -> opt and equal?(ty, union(atom(), dynamic())) end)
+      assert tuple([integer(), atom(), integer()])
+             |> difference(tuple([integer(), term(), integer()]))
+             |> tuple_fetch(1) == :badindex
 
-    assert tuple_fetch(union(tuple([integer()]), tuple([atom()])), 0) ==
-             {false, union(integer(), atom())}
+      assert tuple([integer(), atom(), integer()])
+             |> difference(tuple([integer(), term(), atom()]))
+             |> tuple_fetch(2) == {false, integer()}
 
-    assert tuple([integer(), atom(), union(atom(), integer())])
-           |> difference(tuple([integer(), term(), atom()]))
-           |> tuple_fetch(2) == {false, integer()}
+      assert tuple_fetch(tuple(), 0) == :badindex
+    end
 
-    assert tuple([integer(), atom(), union(union(atom(), integer()), list(term()))])
-           |> difference(tuple([integer(), term(), atom()]))
-           |> difference(open_tuple([term(), atom(), list(term())]))
-           |> tuple_fetch(2) == {false, integer()}
+    test "tuple_fetch with dynamic" do
+      assert tuple_fetch(dynamic(), 0) == {true, dynamic()}
+      assert tuple_fetch(dynamic(empty_tuple()), 0) == :badindex
+      assert tuple_fetch(dynamic(tuple([integer(), atom()])), 2) == :badindex
+      assert tuple_fetch(union(dynamic(), integer()), 0) == :badtuple
 
-    assert tuple([integer(), atom(), integer()])
-           |> difference(tuple([integer(), term(), integer()]))
-           |> tuple_fetch(1) == :badindex
+      assert tuple_fetch(dynamic(tuple()), 0)
+             |> Kernel.then(fn {opt, type} -> opt and equal?(type, dynamic()) end)
 
-    assert tuple([integer(), atom(), integer()])
-           |> difference(tuple([integer(), term(), atom()]))
-           |> tuple_fetch(2) == {false, integer()}
+      assert tuple_fetch(union(dynamic(), open_tuple([atom()])), 0) ==
+               {true, union(atom(), dynamic())}
+    end
 
-    assert tuple_fetch(tuple(), 0) == :badindex
-  end
+    test "tuple_delete_at" do
+      assert tuple_delete_at(tuple([integer(), atom()]), 3) == :badindex
+      assert tuple_delete_at(tuple([integer(), atom()]), -1) == :badindex
+      assert tuple_delete_at(empty_tuple(), 0) == :badindex
+      assert tuple_delete_at(integer(), 0) == :badtuple
+      assert tuple_delete_at(term(), 0) == :badtuple
 
-  test "tuple_fetch with dynamic" do
-    assert tuple_fetch(dynamic(), 0) == {true, dynamic()}
-    assert tuple_fetch(dynamic(empty_tuple()), 0) == :badindex
-    assert tuple_fetch(dynamic(tuple([integer(), atom()])), 2) == :badindex
-    assert tuple_fetch(union(dynamic(), integer()), 0) == :badtuple
+      # Test deleting an element from a closed tuple
+      assert tuple_delete_at(tuple([integer(), atom(), boolean()]), 1) ==
+               tuple([integer(), boolean()])
 
-    assert tuple_fetch(dynamic(tuple()), 0)
-           |> Kernel.then(fn {opt, type} -> opt and equal?(type, dynamic()) end)
+      # Test deleting the last element from a closed tuple
+      assert tuple_delete_at(tuple([integer(), atom()]), 1) ==
+               tuple([integer()])
 
-    assert tuple_fetch(union(dynamic(), open_tuple([atom()])), 0) ==
-             {true, union(atom(), dynamic())}
-  end
+      # Test deleting from an open tuple
+      assert tuple_delete_at(open_tuple([integer(), atom(), boolean()]), 1) ==
+               open_tuple([integer(), boolean()])
 
-  test "tuple_delete_at" do
-    assert tuple_delete_at(tuple([integer(), atom()]), 3) == :badindex
-    assert tuple_delete_at(tuple([integer(), atom()]), -1) == :badindex
-    assert tuple_delete_at(empty_tuple(), 0) == :badindex
-    assert tuple_delete_at(integer(), 0) == :badtuple
-    assert tuple_delete_at(term(), 0) == :badtuple
+      # Test deleting from a dynamic tuple
+      assert tuple_delete_at(dynamic(tuple([integer(), atom()])), 1) ==
+               dynamic(tuple([integer()]))
 
-    # Test deleting an element from a closed tuple
-    assert tuple_delete_at(tuple([integer(), atom(), boolean()]), 1) ==
-             tuple([integer(), boolean()])
+      # Test deleting from a union of tuples
+      assert tuple_delete_at(union(tuple([integer(), atom()]), tuple([float(), binary()])), 1) ==
+               union(tuple([integer()]), tuple([float()]))
 
-    # Test deleting the last element from a closed tuple
-    assert tuple_delete_at(tuple([integer(), atom()]), 1) ==
-             tuple([integer()])
+      # Test deleting from an intersection of tuples
+      assert intersection(tuple([integer(), atom()]), tuple([term(), boolean()]))
+             |> tuple_delete_at(1) == tuple([integer()])
 
-    # Test deleting from an open tuple
-    assert tuple_delete_at(open_tuple([integer(), atom(), boolean()]), 1) ==
-             open_tuple([integer(), boolean()])
+      # Test deleting from a difference of tuples
+      assert difference(tuple([integer(), atom(), boolean()]), tuple([term(), term()]))
+             |> tuple_delete_at(1)
+             |> equal?(tuple([integer(), boolean()]))
 
-    # Test deleting from a dynamic tuple
-    assert tuple_delete_at(dynamic(tuple([integer(), atom()])), 1) ==
-             dynamic(tuple([integer()]))
+      # Test deleting from a complex union involving dynamic
+      assert union(tuple([integer(), atom()]), dynamic(tuple([float(), binary()])))
+             |> tuple_delete_at(1)
+             |> equal?(union(tuple([integer()]), dynamic(tuple([float()]))))
 
-    # Test deleting from a union of tuples
-    assert tuple_delete_at(union(tuple([integer(), atom()]), tuple([float(), binary()])), 1) ==
-             union(tuple([integer()]), tuple([float()]))
+      # Successfully deleting at position `index` in a tuple means that the dynamic
+      # values that succeed are intersected with tuples of size at least `index`
+      assert dynamic(tuple()) |> tuple_delete_at(0) == dynamic(tuple())
+      assert dynamic(term()) |> tuple_delete_at(0) == dynamic(tuple())
 
-    # Test deleting from an intersection of tuples
-    assert intersection(tuple([integer(), atom()]), tuple([term(), boolean()]))
-           |> tuple_delete_at(1) == tuple([integer()])
+      assert dynamic(union(tuple(), integer()))
+             |> tuple_delete_at(1)
+             |> equal?(dynamic(tuple_of_size_at_least(1)))
+    end
 
-    # Test deleting from a difference of tuples
-    assert difference(tuple([integer(), atom(), boolean()]), tuple([term(), term()]))
-           |> tuple_delete_at(1)
-           |> equal?(tuple([integer(), boolean()]))
+    test "tuple_insert_at" do
+      assert tuple_insert_at(tuple([integer(), atom()]), 3, boolean()) == :badindex
+      assert tuple_insert_at(tuple([integer(), atom()]), -1, boolean()) == :badindex
+      assert tuple_insert_at(integer(), 0, boolean()) == :badtuple
+      assert tuple_insert_at(term(), 0, boolean()) == :badtuple
 
-    # Test deleting from a complex union involving dynamic
-    assert union(tuple([integer(), atom()]), dynamic(tuple([float(), binary()])))
-           |> tuple_delete_at(1)
-           |> equal?(union(tuple([integer()]), dynamic(tuple([float()]))))
+      # Out-of-bounds in a union
+      assert union(tuple([integer(), atom()]), tuple([float()]))
+             |> tuple_insert_at(2, boolean()) == :badindex
 
-    # Successfully deleting at position `index` in a tuple means that the dynamic
-    # values that succeed are intersected with tuples of size at least `index`
-    assert dynamic(tuple()) |> tuple_delete_at(0) == dynamic(tuple())
-    assert dynamic(term()) |> tuple_delete_at(0) == dynamic(tuple())
+      # Test inserting into a closed tuple
+      assert tuple_insert_at(tuple([integer(), atom()]), 1, boolean()) ==
+               tuple([integer(), boolean(), atom()])
 
-    assert dynamic(union(tuple(), integer()))
-           |> tuple_delete_at(1)
-           |> equal?(dynamic(tuple_of_size_at_least(1)))
-  end
+      # Test inserting at the beginning of a tuple
+      assert tuple_insert_at(tuple([integer(), atom()]), 0, boolean()) ==
+               tuple([boolean(), integer(), atom()])
 
-  test "tuple_insert_at" do
-    assert tuple_insert_at(tuple([integer(), atom()]), 3, boolean()) == :badindex
-    assert tuple_insert_at(tuple([integer(), atom()]), -1, boolean()) == :badindex
-    assert tuple_insert_at(integer(), 0, boolean()) == :badtuple
-    assert tuple_insert_at(term(), 0, boolean()) == :badtuple
+      # Test inserting at the end of a tuple
+      assert tuple_insert_at(tuple([integer(), atom()]), 2, boolean()) ==
+               tuple([integer(), atom(), boolean()])
 
-    # Out-of-bounds in a union
-    assert union(tuple([integer(), atom()]), tuple([float()]))
-           |> tuple_insert_at(2, boolean()) == :badindex
+      # Test inserting into an empty tuple
+      assert tuple_insert_at(empty_tuple(), 0, integer()) == tuple([integer()])
 
-    # Test inserting into a closed tuple
-    assert tuple_insert_at(tuple([integer(), atom()]), 1, boolean()) ==
-             tuple([integer(), boolean(), atom()])
+      # Test inserting into an open tuple
+      assert tuple_insert_at(open_tuple([integer(), atom()]), 1, boolean()) ==
+               open_tuple([integer(), boolean(), atom()])
 
-    # Test inserting at the beginning of a tuple
-    assert tuple_insert_at(tuple([integer(), atom()]), 0, boolean()) ==
-             tuple([boolean(), integer(), atom()])
+      # Test inserting a dynamic type
+      assert tuple_insert_at(tuple([integer(), atom()]), 1, dynamic()) ==
+               dynamic(tuple([integer(), term(), atom()]))
 
-    # Test inserting at the end of a tuple
-    assert tuple_insert_at(tuple([integer(), atom()]), 2, boolean()) ==
-             tuple([integer(), atom(), boolean()])
+      # Test inserting into a dynamic tuple
+      assert tuple_insert_at(dynamic(tuple([integer(), atom()])), 1, boolean()) ==
+               dynamic(tuple([integer(), boolean(), atom()]))
 
-    # Test inserting into an empty tuple
-    assert tuple_insert_at(empty_tuple(), 0, integer()) == tuple([integer()])
+      # Test inserting into a union of tuples
+      assert tuple_insert_at(union(tuple([integer()]), tuple([atom()])), 0, boolean()) ==
+               union(tuple([boolean(), integer()]), tuple([boolean(), atom()]))
 
-    # Test inserting into an open tuple
-    assert tuple_insert_at(open_tuple([integer(), atom()]), 1, boolean()) ==
-             open_tuple([integer(), boolean(), atom()])
+      # Test inserting into a difference of tuples
+      assert difference(tuple([integer(), atom(), boolean()]), tuple([term(), term()]))
+             |> tuple_insert_at(1, float())
+             |> equal?(tuple([integer(), float(), atom(), boolean()]))
 
-    # Test inserting a dynamic type
-    assert tuple_insert_at(tuple([integer(), atom()]), 1, dynamic()) ==
-             dynamic(tuple([integer(), term(), atom()]))
-
-    # Test inserting into a dynamic tuple
-    assert tuple_insert_at(dynamic(tuple([integer(), atom()])), 1, boolean()) ==
-             dynamic(tuple([integer(), boolean(), atom()]))
-
-    # Test inserting into a union of tuples
-    assert tuple_insert_at(union(tuple([integer()]), tuple([atom()])), 0, boolean()) ==
-             union(tuple([boolean(), integer()]), tuple([boolean(), atom()]))
-
-    # Test inserting into a difference of tuples
-    assert difference(tuple([integer(), atom(), boolean()]), tuple([term(), term()]))
-           |> tuple_insert_at(1, float())
-           |> equal?(tuple([integer(), float(), atom(), boolean()]))
-
-    # Test inserting into a complex union involving dynamic
-    assert union(tuple([integer(), atom()]), dynamic(tuple([float(), binary()])))
-           |> tuple_insert_at(1, boolean())
-           |> equal?(
-             union(
-               tuple([integer(), boolean(), atom()]),
-               dynamic(tuple([float(), boolean(), binary()]))
+      # Test inserting into a complex union involving dynamic
+      assert union(tuple([integer(), atom()]), dynamic(tuple([float(), binary()])))
+             |> tuple_insert_at(1, boolean())
+             |> equal?(
+               union(
+                 tuple([integer(), boolean(), atom()]),
+                 dynamic(tuple([float(), boolean(), binary()]))
+               )
              )
-           )
 
-    # If you successfully intersect at position index in a type, then the dynamic values
-    # that succeed are intersected with tuples of size at least index
-    assert dynamic(union(tuple(), integer()))
-           |> tuple_insert_at(1, boolean())
-           |> equal?(dynamic(open_tuple([term(), boolean()])))
-  end
+      # If you successfully intersect at position index in a type, then the dynamic values
+      # that succeed are intersected with tuples of size at least index
+      assert dynamic(union(tuple(), integer()))
+             |> tuple_insert_at(1, boolean())
+             |> equal?(dynamic(open_tuple([term(), boolean()])))
+    end
 
-  test "tuple_values" do
-    assert tuple_values(integer()) == :badtuple
-    assert tuple_values(tuple([])) == none()
-    assert tuple_values(tuple()) == term()
-    assert tuple_values(open_tuple([integer()])) == term()
-    assert tuple_values(tuple([integer(), atom()])) == union(integer(), atom())
+    test "tuple_values" do
+      assert tuple_values(integer()) == :badtuple
+      assert tuple_values(tuple([])) == none()
+      assert tuple_values(tuple()) == term()
+      assert tuple_values(open_tuple([integer()])) == term()
+      assert tuple_values(tuple([integer(), atom()])) == union(integer(), atom())
 
-    assert tuple_values(union(tuple([float(), pid()]), tuple([reference()]))) ==
-             union(float(), union(pid(), reference()))
+      assert tuple_values(union(tuple([float(), pid()]), tuple([reference()]))) ==
+               union(float(), union(pid(), reference()))
 
-    assert tuple_values(difference(tuple([number(), atom()]), tuple([float(), term()]))) ==
-             union(integer(), atom())
+      assert tuple_values(difference(tuple([number(), atom()]), tuple([float(), term()]))) ==
+               union(integer(), atom())
 
-    assert union(tuple([atom([:ok])]), open_tuple([integer()]))
-           |> difference(open_tuple([term(), term()]))
-           |> tuple_values() == union(atom([:ok]), integer())
+      assert union(tuple([atom([:ok])]), open_tuple([integer()]))
+             |> difference(open_tuple([term(), term()]))
+             |> tuple_values() == union(atom([:ok]), integer())
 
-    assert tuple_values(difference(tuple([number(), atom()]), tuple([float(), atom([:ok])]))) ==
-             union(number(), atom())
+      assert tuple_values(difference(tuple([number(), atom()]), tuple([float(), atom([:ok])]))) ==
+               union(number(), atom())
 
-    assert tuple_values(dynamic(tuple())) == dynamic()
-    assert tuple_values(dynamic(tuple([integer()]))) == dynamic(integer())
+      assert tuple_values(dynamic(tuple())) == dynamic()
+      assert tuple_values(dynamic(tuple([integer()]))) == dynamic(integer())
 
-    assert tuple_values(union(dynamic(tuple([integer()])), tuple([atom()]))) ==
-             union(dynamic(integer()), atom())
+      assert tuple_values(union(dynamic(tuple([integer()])), tuple([atom()]))) ==
+               union(dynamic(integer()), atom())
 
-    assert tuple_values(union(dynamic(tuple()), integer())) == :badtuple
-    assert tuple_values(dynamic(union(integer(), tuple([atom()])))) == dynamic(atom())
+      assert tuple_values(union(dynamic(tuple()), integer())) == :badtuple
+      assert tuple_values(dynamic(union(integer(), tuple([atom()])))) == dynamic(atom())
 
-    assert tuple_values(union(dynamic(tuple([integer()])), tuple([integer()])))
-           |> equal?(integer())
-  end
+      assert tuple_values(union(dynamic(tuple([integer()])), tuple([integer()])))
+             |> equal?(integer())
+    end
 
-  test "map_fetch" do
-    assert map_fetch(term(), :a) == :badmap
-    assert map_fetch(union(open_map(), integer()), :a) == :badmap
+    test "map_fetch" do
+      assert map_fetch(term(), :a) == :badmap
+      assert map_fetch(union(open_map(), integer()), :a) == :badmap
 
-    assert map_fetch(open_map(), :a) == :badkey
-    assert map_fetch(open_map(a: not_set()), :a) == :badkey
-    assert map_fetch(union(closed_map(a: integer()), closed_map(b: atom())), :a) == :badkey
-    assert map_fetch(difference(closed_map(a: integer()), closed_map(a: term())), :a) == :badkey
+      assert map_fetch(open_map(), :a) == :badkey
+      assert map_fetch(open_map(a: not_set()), :a) == :badkey
+      assert map_fetch(union(closed_map(a: integer()), closed_map(b: atom())), :a) == :badkey
+      assert map_fetch(difference(closed_map(a: integer()), closed_map(a: term())), :a) == :badkey
 
-    assert map_fetch(closed_map(a: integer()), :a) == {false, integer()}
+      assert map_fetch(closed_map(a: integer()), :a) == {false, integer()}
 
-    assert map_fetch(union(closed_map(a: integer()), closed_map(a: atom())), :a) ==
-             {false, union(integer(), atom())}
+      assert map_fetch(union(closed_map(a: integer()), closed_map(a: atom())), :a) ==
+               {false, union(integer(), atom())}
 
-    {false, value_type} =
-      open_map(my_map: open_map(foo: integer()))
-      |> intersection(open_map(my_map: open_map(bar: boolean())))
-      |> map_fetch(:my_map)
+      {false, value_type} =
+        open_map(my_map: open_map(foo: integer()))
+        |> intersection(open_map(my_map: open_map(bar: boolean())))
+        |> map_fetch(:my_map)
 
-    assert equal?(value_type, open_map(foo: integer(), bar: boolean()))
+      assert equal?(value_type, open_map(foo: integer(), bar: boolean()))
 
-    {false, value_type} =
-      closed_map(a: union(integer(), atom()))
-      |> difference(open_map(a: integer()))
-      |> map_fetch(:a)
+      {false, value_type} =
+        closed_map(a: union(integer(), atom()))
+        |> difference(open_map(a: integer()))
+        |> map_fetch(:a)
 
-    assert equal?(value_type, atom())
+      assert equal?(value_type, atom())
 
-    {false, value_type} =
-      closed_map(a: integer(), b: atom())
-      |> difference(closed_map(a: integer(), b: atom([:foo])))
-      |> map_fetch(:a)
+      {false, value_type} =
+        closed_map(a: integer(), b: atom())
+        |> difference(closed_map(a: integer(), b: atom([:foo])))
+        |> map_fetch(:a)
 
-    assert equal?(value_type, integer())
+      assert equal?(value_type, integer())
 
-    {false, value_type} =
-      closed_map(a: integer())
-      |> difference(closed_map(a: atom()))
-      |> map_fetch(:a)
+      {false, value_type} =
+        closed_map(a: integer())
+        |> difference(closed_map(a: atom()))
+        |> map_fetch(:a)
 
-    assert equal?(value_type, integer())
+      assert equal?(value_type, integer())
 
-    {false, value_type} =
-      open_map(a: integer(), b: atom())
-      |> union(closed_map(a: tuple()))
-      |> map_fetch(:a)
+      {false, value_type} =
+        open_map(a: integer(), b: atom())
+        |> union(closed_map(a: tuple()))
+        |> map_fetch(:a)
 
-    assert equal?(value_type, union(integer(), tuple()))
+      assert equal?(value_type, union(integer(), tuple()))
 
-    {false, value_type} =
-      closed_map(a: atom())
-      |> difference(closed_map(a: atom([:foo, :bar])))
-      |> difference(closed_map(a: atom([:bar])))
-      |> map_fetch(:a)
+      {false, value_type} =
+        closed_map(a: atom())
+        |> difference(closed_map(a: atom([:foo, :bar])))
+        |> difference(closed_map(a: atom([:bar])))
+        |> map_fetch(:a)
 
-    assert equal?(value_type, intersection(atom(), negation(atom([:foo, :bar]))))
+      assert equal?(value_type, intersection(atom(), negation(atom([:foo, :bar]))))
 
-    assert closed_map(a: union(atom(), pid()), b: integer(), c: tuple())
-           |> difference(open_map(a: atom(), b: integer()))
-           |> difference(open_map(a: atom(), c: tuple()))
-           |> map_fetch(:a) == {false, pid()}
+      assert closed_map(a: union(atom(), pid()), b: integer(), c: tuple())
+             |> difference(open_map(a: atom(), b: integer()))
+             |> difference(open_map(a: atom(), c: tuple()))
+             |> map_fetch(:a) == {false, pid()}
 
-    assert closed_map(a: union(atom([:foo]), pid()), b: integer(), c: tuple())
-           |> difference(open_map(a: atom([:foo]), b: integer()))
-           |> difference(open_map(a: atom(), c: tuple()))
-           |> map_fetch(:a) == {false, pid()}
+      assert closed_map(a: union(atom([:foo]), pid()), b: integer(), c: tuple())
+             |> difference(open_map(a: atom([:foo]), b: integer()))
+             |> difference(open_map(a: atom(), c: tuple()))
+             |> map_fetch(:a) == {false, pid()}
 
-    assert closed_map(a: union(atom([:foo, :bar, :baz]), integer()))
-           |> difference(open_map(a: atom([:foo, :bar])))
-           |> difference(open_map(a: atom([:foo, :baz])))
-           |> map_fetch(:a) == {false, integer()}
-  end
+      assert closed_map(a: union(atom([:foo, :bar, :baz]), integer()))
+             |> difference(open_map(a: atom([:foo, :bar])))
+             |> difference(open_map(a: atom([:foo, :baz])))
+             |> map_fetch(:a) == {false, integer()}
+    end
 
-  test "map_fetch with dynamic" do
-    assert map_fetch(dynamic(), :a) == {true, dynamic()}
-    assert map_fetch(union(dynamic(), integer()), :a) == :badmap
-    assert map_fetch(union(dynamic(open_map(a: integer())), integer()), :a) == :badmap
-    assert map_fetch(union(dynamic(integer()), integer()), :a) == :badmap
+    test "map_fetch with dynamic" do
+      assert map_fetch(dynamic(), :a) == {true, dynamic()}
+      assert map_fetch(union(dynamic(), integer()), :a) == :badmap
+      assert map_fetch(union(dynamic(open_map(a: integer())), integer()), :a) == :badmap
+      assert map_fetch(union(dynamic(integer()), integer()), :a) == :badmap
 
-    assert intersection(dynamic(), open_map(a: integer()))
-           |> map_fetch(:a) == {false, intersection(integer(), dynamic())}
+      assert intersection(dynamic(), open_map(a: integer()))
+             |> map_fetch(:a) == {false, intersection(integer(), dynamic())}
 
-    {false, type} = union(dynamic(integer()), open_map(a: integer())) |> map_fetch(:a)
-    assert equal?(type, integer())
+      {false, type} = union(dynamic(integer()), open_map(a: integer())) |> map_fetch(:a)
+      assert equal?(type, integer())
 
-    assert union(dynamic(integer()), open_map(a: if_set(integer()))) |> map_fetch(:a) == :badkey
+      assert union(dynamic(integer()), open_map(a: if_set(integer()))) |> map_fetch(:a) == :badkey
 
-    assert union(dynamic(open_map(a: atom())), open_map(a: integer()))
-           |> map_fetch(:a) == {false, union(dynamic(atom()), integer())}
+      assert union(dynamic(open_map(a: atom())), open_map(a: integer()))
+             |> map_fetch(:a) == {false, union(dynamic(atom()), integer())}
 
-    # With domains
-    integer_to_atom = open_map([{{:domain_key, :integer}, atom()}])
-    assert map_fetch(integer_to_atom, :foo) == :badkey
+      # With domains
+      integer_to_atom = open_map([{{:domain_key, :integer}, atom()}])
+      assert map_fetch(integer_to_atom, :foo) == :badkey
 
-    # the key :a is for sure of type pid and exists in type
-    # %{atom() => pid()} and not %{:a => not_set()}
-    t1 = closed_map([{{:domain_key, :atom}, pid()}])
-    t2 = closed_map(a: not_set())
-    t3 = open_map(a: not_set())
+      # the key :a is for sure of type pid and exists in type
+      # %{atom() => pid()} and not %{:a => not_set()}
+      t1 = closed_map([{{:domain_key, :atom}, pid()}])
+      t2 = closed_map(a: not_set())
+      t3 = open_map(a: not_set())
 
-    # Indeed, t2 is equivalent to the empty map
-    assert map_fetch(difference(t1, t2), :a) == :badkey
-    assert map_fetch(difference(t1, t3), :a) == {false, pid()}
+      # Indeed, t2 is equivalent to the empty map
+      assert map_fetch(difference(t1, t2), :a) == :badkey
+      assert map_fetch(difference(t1, t3), :a) == {false, pid()}
 
-    t4 = closed_map([{{:domain_key, :pid}, atom()}])
-    assert map_fetch(difference(t1, t4) |> difference(t3), :a) == {false, pid()}
+      t4 = closed_map([{{:domain_key, :pid}, atom()}])
+      assert map_fetch(difference(t1, t4) |> difference(t3), :a) == {false, pid()}
 
-    assert map_fetch(closed_map([{{:domain_key, :atom}, pid()}]), :a) == :badkey
+      assert map_fetch(closed_map([{{:domain_key, :atom}, pid()}]), :a) == :badkey
 
-    assert map_fetch(dynamic(closed_map([{{:domain_key, :atom}, pid()}])), :a) ==
-             {true, dynamic(pid())}
+      assert map_fetch(dynamic(closed_map([{{:domain_key, :atom}, pid()}])), :a) ==
+               {true, dynamic(pid())}
 
-    assert closed_map([{{:domain_key, :atom}, number()}])
-           |> difference(open_map(a: if_set(integer())))
-           |> map_fetch(:a) == {false, float()}
+      assert closed_map([{{:domain_key, :atom}, number()}])
+             |> difference(open_map(a: if_set(integer())))
+             |> map_fetch(:a) == {false, float()}
 
-    assert closed_map([{{:domain_key, :atom}, number()}])
-           |> difference(closed_map(b: if_set(integer())))
-           |> map_fetch(:a) == :badkey
-  end
+      assert closed_map([{{:domain_key, :atom}, number()}])
+             |> difference(closed_map(b: if_set(integer())))
+             |> map_fetch(:a) == :badkey
+    end
 
-  test "map_get" do
     test "map get" do
       assert map_get(term(), term()) == :badmap
 
@@ -1360,7 +1360,10 @@ describe "projections" do
 
       # Deleting from a difference of maps
       {:ok, type} =
-        map_delete(difference(closed_map(a: integer(), b: atom()), closed_map(a: integer())), :b)
+        map_delete(
+          difference(closed_map(a: integer(), b: atom()), closed_map(a: integer())),
+          :b
+        )
 
       assert equal?(type, closed_map(a: integer()))
 
@@ -1460,11 +1463,15 @@ describe "projections" do
 
       assert equal?(
                type,
-               union(closed_map(a: integer(), c: boolean()), closed_map(b: atom(), c: boolean()))
+               union(
+                 closed_map(a: integer(), c: boolean()),
+                 closed_map(b: atom(), c: boolean())
+               )
              )
 
       # Put a key-value pair in a dynamic map
-      assert map_put(dynamic(open_map()), :a, integer()) == {:ok, dynamic(open_map(a: integer()))}
+      assert map_put(dynamic(open_map()), :a, integer()) ==
+               {:ok, dynamic(open_map(a: integer()))}
 
       # Put a key-value pair in an intersection of maps
       {:ok, type} =
@@ -1524,7 +1531,10 @@ describe "projections" do
 
       assert map_refresh(empty_map(), number(), float()) ==
                {:ok,
-                closed_map([{{:domain_key, :integer}, float()}, {{:domain_key, :float}, float()}])}
+                closed_map([
+                  {{:domain_key, :integer}, float()},
+                  {{:domain_key, :float}, float()}
+                ])}
 
       # Tricky cases with atoms:
       # We add one atom fields that maps to an integer, which is not :a. So we do not touch
@@ -1648,7 +1658,8 @@ describe "projections" do
                "empty_list() or non_empty_list(float() or integer(), pid())"
 
       # Merge last element types
-      assert union(list(atom([:ok]), integer()), list(atom([:ok]), float())) |> to_quoted_string() ==
+      assert union(list(atom([:ok]), integer()), list(atom([:ok]), float()))
+             |> to_quoted_string() ==
                "empty_list() or non_empty_list(:ok, float() or integer())"
 
       assert union(dynamic(list(integer(), float())), dynamic(list(integer(), pid())))
@@ -1746,7 +1757,12 @@ describe "projections" do
         )
 
       decimal_int =
-        closed_map(__struct__: atom([Decimal]), coef: integer(), exp: integer(), sign: integer())
+        closed_map(
+          __struct__: atom([Decimal]),
+          coef: integer(),
+          exp: integer(),
+          sign: integer()
+        )
 
       assert atom([:error])
              |> union(
@@ -1828,9 +1844,15 @@ describe "projections" do
                "%{..., a: float() or integer()}"
 
       # Fusing complex nested maps with unions
-      assert closed_map(status: atom([:ok]), data: closed_map(value: term(), count: empty_list()))
+      assert closed_map(
+               status: atom([:ok]),
+               data: closed_map(value: term(), count: empty_list())
+             )
              |> union(
-               closed_map(status: atom([:ok]), data: closed_map(value: term(), count: open_map()))
+               closed_map(
+                 status: atom([:ok]),
+                 data: closed_map(value: term(), count: open_map())
+               )
              )
              |> union(closed_map(status: atom([:error]), reason: atom([:timeout])))
              |> union(closed_map(status: atom([:error]), reason: atom([:crash])))
@@ -1854,7 +1876,10 @@ describe "projections" do
                "%{data: %{x: float() or integer(), y: atom()}, meta: map()}"
 
       # Test complex combinations
-      assert intersection(open_map(a: number(), b: atom()), open_map(a: integer(), c: boolean()))
+      assert intersection(
+               open_map(a: number(), b: atom()),
+               open_map(a: integer(), c: boolean())
+             )
              |> union(difference(open_map(x: atom()), open_map(x: boolean())))
              |> to_quoted_string() ==
                "%{..., a: integer(), b: atom(), c: boolean()} or %{..., x: atom() and not boolean()}"
