@@ -3,12 +3,12 @@ name: CI for Markdown content
 on:
   push:
     branches:
-      - 'main'
+      - "main"
     paths:
-      - 'lib/**/*.md'
+      - "lib/**/*.md"
   pull_request:
     paths:
-      - 'lib/**/*.md'
+      - "lib/**/*.md"
   workflow_dispatch:
 
 jobs:
@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Check out the repository
