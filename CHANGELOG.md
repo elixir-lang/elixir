@@ -164,7 +164,7 @@ These additions offer greater transparency into the components and licenses of e
   * [Kernel] Allow controlling which applications are used during inference
   * [Kernel] Support `min/2` and `max/2` as guards
   * [Kernel.ParallelCompiler] Add `each_long_verification_threshold` which invokes a callback when type checking a module takes too long
-  * [Macro] Print debugging results from `Macro.dbg/1` as they happen, instead of once at the end
+  * [Macro] Print debugging results from `Macro.dbg/3` as they happen, instead of once at the end
   * [Module] Do not automatically load modules after their compilation, guaranteeing a more consistent compile time experience and drastically improving compilation times
   * [Protocol] Type checking of protocols dispatch and implementations
   * [Regex] Add `Regex.to_embed/2` which returns an embeddable representation of regex in another regex
@@ -185,7 +185,7 @@ These additions offer greater transparency into the components and licenses of e
 
   * [mix] Add support for `MIX_PROFILE_FLAGS` to configure `MIX_PROFILE`
   * [mix compile] Debug the compiler and type checker PID when `MIX_DEBUG=1` and compilation/verification thresholds are met
-  * [mix compile] Add `Mix.Tasks.Compile.reenable/1`
+  * [mix compile] Add `Mix.Tasks.Compiler.reenable/1`
   * [mix deps.compile] Support `MIX_OS_DEPS_COMPILE_PARTITION_COUNT` for compiling deps concurrently across multiple operating system processes
   * [mix help] Add `mix help Mod`, `mix help :mod`, `mix help Mod.fun` and `mix help Mod.fun/arity`
   * [mix test] Allow to distinguish the exit status between warnings as errors and test failures
@@ -199,7 +199,7 @@ These additions offer greater transparency into the components and licenses of e
   * [DateTime] Do not truncate microseconds regardless of precision in `DateTime.diff/3`
   * [File] Properly handle permissions errors cascading from parent in `File.mkdir_p/1`
   * [Regex] Fix `Regex.split/2` returning too many results when the chunk being split on was empty (which can happen when using features such as `/K`)
-  * [Stream] Ensure `Stream.transform/1` respects suspend command when its inner stream halts
+  * [Stream] Ensure `Stream.transform/5` respects suspend command when its inner stream halts
   * [URI] Several fixes to `URI.merge/2` related to trailing slashes, trailing dots, and hostless base URIs
 
 #### Mix

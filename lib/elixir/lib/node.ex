@@ -92,7 +92,7 @@ defmodule Node do
   Turns a distributed node into a non-distributed node.
 
   For other nodes in the network, this is the same as the node going down.
-  Only possible when the node was started with `Node.start/3`, otherwise
+  Only possible when the node was started with `Node.start/2`, otherwise
   returns `{:error, :not_allowed}`. Returns `{:error, :not_found}` if the
   local node is not alive.
   """
