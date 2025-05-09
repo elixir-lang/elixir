@@ -5,8 +5,8 @@
 defmodule Mix.Tasks.Local.Hex do
   use Mix.Task
 
-  @hex_list_path "/installs/hex-1.x.csv"
-  @hex_archive_path "/installs/[ELIXIR_VERSION]/hex-[HEX_VERSION].ez"
+  @hex_list_path "/installs/hex.csv"
+  @hex_archive_path "/installs/[ELIXIR_VERSION]/hex-[HEX_VERSION]-otp-[OTP_RELEASE].ez"
 
   @shortdoc "Installs Hex locally"
 
@@ -72,12 +72,13 @@ defmodule Mix.Tasks.Local.Hex do
   defp run_install(version, argv) do
     hex_url = Mix.Hex.url()
 
-    {elixir_version, hex_version, sha512} =
+    {elixir_version, hex_version, sha512, otp_release} =
       Mix.Local.find_matching_versions!("Hex", version, hex_url <> @hex_list_path)
 
     url =
       (hex_url <> @hex_archive_path)
       |> String.replace("[ELIXIR_VERSION]", elixir_version)
+      |> String.replace("[OTP_RELEASE]", otp_release)
       |> String.replace("[HEX_VERSION]", hex_version)
 
     # Unload the Hex module we loaded earlier to avoid conflicts when Hex is updated
