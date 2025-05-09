@@ -134,7 +134,7 @@ This release introduces a variable called `MIX_OS_DEPS_COMPILE_PARTITION_COUNT`,
 
 While fetching your dependencies and compiling an Elixir dependency in itself already happened in parallel, there were pathological cases where performance would be left on the table, such as compiling dependencies with native code or dependencies where one or two large file would take over most of the compilation time.
 
-By setting `MIX_OS_DEPS_COMPILE_PARTITION_COUNT` to a number greater than 1, Mix will now compile multiple dependencies at the same time, using separate OS processes. Emperical testing shows that setting it to half of the number of cores on your machine is enough maximize resource usage. The exact speed up will depend on the number of dependencies and the number of machine cores, although some reports mention up to 4x faster compilation times. If you plan to enable it on CI or build servers, keep in mind it will most likely have a direct impact on memory usage too.
+By setting `MIX_OS_DEPS_COMPILE_PARTITION_COUNT` to a number greater than 1, Mix will now compile multiple dependencies at the same time, using separate OS processes. Emperical testing shows that setting it to half of the number of cores on your machine is enough to maximize resource usage. The exact speed up will depend on the number of dependencies and the number of machine cores, although some reports mention up to 4x faster compilation times. If you plan to enable it on CI or build servers, keep in mind it will most likely have a direct impact on memory usage too.
 
 ## OpenChain certification
 
