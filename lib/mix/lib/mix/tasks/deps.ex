@@ -157,13 +157,17 @@ defmodule Mix.Tasks.Deps do
 
   ### Path options (`:path`)
 
-    * `:path`        - the path for the dependency
+    * `:path` - the path for the dependency
     * `:in_umbrella` - when `true`, sets a path dependency pointing to
       `"../#{app}"`, sharing the same environment as the current application
 
   ### Hex options (`:hex`)
 
-  See the [Hex usage documentation](https://hex.pm/docs/usage) for Hex options.
+    * `:hex` - the name of the package, which defaults to the application name
+    * `:repo` - the repository to fetch the package from, used by remote or
+      private repositories. Defaults to the global "hexpm" repository
+    * `:warn_if_outdated` - warn if there is a more recent version of the package
+      published to Hex.pm
 
   ## Deps task
 
