@@ -94,13 +94,56 @@ but expected a type that implements the Enumerable protocol, it must be one of:
     ) or fun() or list(term()) or non_struct_map()
 ```
 
-## Parallelization of `mix deps.compile`
+## Faster compile times in large projects
 
-https://github.com/elixir-lang/elixir/pull/14340
+This release includes two compiler improvements that can lead up to 4x faster builds in large codebases.
+
+While Elixir has always compiled the given files in project or a dependency in parallel, the compiler would sometimes be unable to use all of the machine resources efficiently. This release addresses two common limitations, delivering performance improvements that scale with codebase size and available CPU cores.
+
+### Code loading bottlenecks
+
+Prior to this release, Elixir would load modules as soon as they were defined. However, because Erlang part of code loading happens within a single process (the code server), this would make it a bottleneck, reducing the amount of parallelization, especially on large projects.
+
+This release makes it so modules are loaded lazily. This reduces the pressure on the code server, making compilation up to 2x faster for large projects, and also the overall amount of work done during compilation.
+
+Implementation wise, [the parallel compiler already acts as a mechanism to resolve modules during compilation](https://elixir-lang.org/blog/2012/04/24/a-peek-inside-elixir-s-parallel-compiler/), so we built on that. By making sure the compiler controls both module compilation and module loading, it can also better guarantee deterministic builds.
+
+The only potential regression in this approach happens if you have a module, which is used at compile time and defines an `@on_load` callback (typically used for [NIFs](https://www.erlang.org/doc/system/nif.html)) that invokes another modules within the same project. For example:
+
+```elixir
+defmodule MyLib.SomeModule do
+  @on_load :init
+
+  def init do
+    MyLib.AnotherModule.do_something()
+  end
+
+  def something_else do
+    ...
+  end
+end
+
+MyLib.SomeModule.something_else()
+```
+
+The reason this fails is because `@on_load` callbacks are invoked within the code server and therefore they have limited ability to load additional modules. It is generally advisable to limit invocation of external modules during `@on_load` callbacks but, in case it is strictly necessary, you can set `@compile {:autoload, true}` in the invoked module to addresses this issue in a forward and backwards compatible manner.
+
+### Parallel compilation of dependencies
+
+This release introduces a variable called `MIX_OS_DEPS_COMPILE_PARTITION_COUNT`, which instructs `mix deps.compile` to compile dependencies in parallel.
+
+While fetching your dependencies and compiling an Elixir dependency in itself already happened in parallel, there were pathological cases where performance would be left on the table, such as compiling dependencies with native code or dependencies where one or two large file would take over most of the compilation time.
+
+By setting `MIX_OS_DEPS_COMPILE_PARTITION_COUNT` to a number greater than 1, Mix will now compile multiple dependencies at the same time, using separate OS processes. Emperical testing shows that setting it to half of the number of cores on your machine is enough maximize resource usage. The exact speed up will depend on the number of dependencies and the number of machine cores, although some reports mention up to 4x faster compilation times. If you plan to enable it on CI or build servers, keep in mind it will most likely have a direct impact on memory usage too.
 
 ## OpenChain certification
 
-https://elixir-lang.org/blog/2025/02/26/elixir-openchain-certification/
+Elixir v1.19 is also our first release following OpenChain compliance, [as previously announced](https://elixir-lang.org/blog/2025/02/26/elixir-openchain-certification/). In a nutshell:
+
+  * Elixir releases now include a Source SBoM in CycloneDX 1.6 or later and SPDX 2.3 or later formats.
+  * Each release is attested along with the Source SBoM.
+
+These additions offer greater transparency into the components and licenses of each release, supporting more rigorous supply chain requirements.
 
 ## v1.19.0-dev
 
@@ -109,18 +152,28 @@ https://elixir-lang.org/blog/2025/02/26/elixir-openchain-certification/
 #### Elixir
 
   * [Access] Add `Access.values/0` for traversing maps and keyword lists values
+  * [Base] Add functions to verify if an encoding is valid, such as `valid16?`, `valid64?`, and so forth
   * [Calendar] Support 2-arity options for `Calendar.strftime/3` which receives the whole data type
   * [Code] Add `:migrate_call_parens_on_pipe` formatter option
+  * [Code] Add `:indentation` option to `Code.string_to_quoted/2`
   * [Code.Fragment] Preserve more block content around cursor in `container_cursor_to_quoted` `:migrate_call_parens_on_pipe` formatter option
+  * [Code.Fragment] Add `:block_keyword_or_binary_operator` to `Code.Fragment` for more precise suggestions after operators and closing terminators
   * [Enum] Provide more information on `Enum.OutOfBoundsError`
+  * [Inspect] Allow `optional: :all` when deriving Inspect
+  * [Inspect.Algebra] Add optimistic/pessimistic groups as a simplified implementation of `next_break_fits`
   * [Kernel] Allow controlling which applications are used during inference
   * [Kernel] Support `min/2` and `max/2` as guards
+  * [Kernel.ParallelCompiler] Add `each_long_verification_threshold` which invokes a callback when type checking a module takes too long
   * [Macro] Print debugging results from `Macro.dbg/1` as they happen, instead of once at the end
+  * [Module] Do not automatically load modules after their compilation, guaranteeing a more consistent compile time experience and drastically improving compilation times
   * [Protocol] Type checking of protocols dispatch and implementations
+  * [Regex] Add `Regex.to_embed/2` which returns an embeddable representation of regex in another regex
+  * [String] Add `String.count/2` to count occurrences of a pattern
 
 #### ExUnit
 
   * [ExUnit.CaptureLog] Parallelize log dispatch when multiple processes are capturing log
+  * [ExUnit.Case] Add `:test_group` to the test context
   * [ExUnit.Doctest] Support ellipsis in doctest exceptions to match the remaining of the exception
   * [ExUnit.Doctest] Add `:inspect_opts` option for doctest
 
@@ -131,9 +184,11 @@ https://elixir-lang.org/blog/2025/02/26/elixir-openchain-certification/
 #### Mix
 
   * [mix] Add support for `MIX_PROFILE_FLAGS` to configure `MIX_PROFILE`
+  * [mix compile] Debug the compiler and type checker PID when `MIX_DEBUG=1` and compilation/verification thresholds are met
   * [mix compile] Add `Mix.Tasks.Compile.reenable/1`
   * [mix deps.compile] Support `MIX_OS_DEPS_COMPILE_PARTITION_COUNT` for compiling deps concurrently across multiple operating system processes
   * [mix help] Add `mix help Mod`, `mix help :mod`, `mix help Mod.fun` and `mix help Mod.fun/arity`
+  * [mix test] Allow to distinguish the exit status between warnings as errors and test failures
   * [mix xref graph] Add support for `--format json`
   * [mix xref graph] Emit a warning if `--source` is part of a cycle
 
@@ -143,18 +198,22 @@ https://elixir-lang.org/blog/2025/02/26/elixir-openchain-certification/
 
   * [DateTime] Do not truncate microseconds regardless of precision in `DateTime.diff/3`
   * [File] Properly handle permissions errors cascading from parent in `File.mkdir_p/1`
+  * [Regex] Fix `Regex.split/2` returning too many results when the chunk being split on was empty (which can happen when using features such as `/K`)
   * [Stream] Ensure `Stream.transform/1` respects suspend command when its inner stream halts
   * [URI] Several fixes to `URI.merge/2` related to trailing slashes, trailing dots, and hostless base URIs
 
 #### Mix
 
   * [mix cmd] Preserve argument quoting in subcommands
+  * [mix format] Ensure the formatter does not go over the specified limit in certain corner cases
+  * [mix test] Preserve files with no longer filter on `mix test`
   * [mix xref graph] Provide more consistent output by considering strong connected components only when computing graphs
 
 ### 3. Soft deprecations (no warnings emitted)
 
 #### Elixir
 
+  * [Inspect.Algebra] `next_break_fits` is deprecated in favor of `optimistic`/`pessimistic` groups
   * [Node] `Node.start/2-3` is deprecated in favor of `Node.start/2` with a keyword list
 
 #### Mix

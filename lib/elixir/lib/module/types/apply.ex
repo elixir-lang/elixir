@@ -273,7 +273,6 @@ defmodule Module.Types.Apply do
 
   Used only by info functions.
   """
-  # PENDING: expected
   def remote_domain(_fun, args, _expected, %{mode: :traversal}) do
     {:none, Enum.map(args, fn _ -> term() end)}
   end
