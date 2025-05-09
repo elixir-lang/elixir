@@ -78,13 +78,14 @@ defmodule Node do
   end
 
   # TODO: Deprecate me on Elixir v1.23
-  def start(name, opts) when is_atom(opts) do
-    :net_kernel.start([name, opts, 15000])
+  def start(name, type) when is_atom(type) do
+    :net_kernel.start([name, type, 15_000])
   end
 
   # TODO: Deprecate me on Elixir v1.23
   @doc false
-  def start(name, type, tick_time) do
+  def start(name, type, tick_time)
+      when is_atom(type) and is_integer(tick_time) and tick_time > 0 do
     :net_kernel.start([name, type, tick_time])
   end
 
