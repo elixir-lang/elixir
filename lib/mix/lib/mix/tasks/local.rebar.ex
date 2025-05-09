@@ -1,8 +1,8 @@
 defmodule Mix.Tasks.Local.Rebar do
   use Mix.Task
 
-  @rebar3_list_url "/installs/rebar3-1.x.csv"
-  @rebar3_escript_url "/installs/[ELIXIR_VERSION]/rebar3-[REBAR_VERSION]"
+  @rebar3_list_url "/installs/rebar.csv"
+  @rebar3_escript_url "/installs/[ELIXIR_VERSION]/rebar3-[REBAR_VERSION]-otp-[OTP_RELEASE]"
 
   @shortdoc "Installs Rebar locally"
 
@@ -110,13 +110,14 @@ defmodule Mix.Tasks.Local.Rebar do
     hex_url = Mix.Hex.url()
     list_url = hex_url <> list_url
 
-    {elixir_version, rebar_version, sha512} =
+    {elixir_version, rebar_version, sha512, otp_release} =
       Mix.Local.find_matching_versions_from_signed_csv!("Rebar", _version = nil, list_url)
 
     url =
       (hex_url <> escript_url)
       |> String.replace("[ELIXIR_VERSION]", elixir_version)
       |> String.replace("[REBAR_VERSION]", rebar_version)
+      |> String.replace("[OTP_RELEASE]", otp_release)
 
     install_from_path(manager, url, Keyword.put(opts, :sha512, sha512))
   end

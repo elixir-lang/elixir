@@ -49,12 +49,18 @@ defmodule Mix.Rebar do
   @doc """
   Returns the path supposed to host the local copy of `rebar`.
 
-  The rebar3 installation is specific to the Elixir version,
+  The rebar3 installation is specific to the Elixir version and OTP release,
   in order to force updates when new Elixir versions come out.
   """
   def local_rebar_path(:rebar3) do
     [major, minor | _] = String.split(System.version(), ".")
-    Path.join([Mix.Utils.mix_home(), "elixir", "#{major}-#{minor}", "rebar3"])
+
+    Path.join([
+      Mix.Utils.mix_home(),
+      "elixir",
+      "#{major}-#{minor}-otp-#{System.otp_release()}",
+      "rebar3"
+    ])
   end
 
   @doc """

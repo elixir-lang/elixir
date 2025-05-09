@@ -232,38 +232,33 @@ defmodule Mix.Local do
 
   defp find_latest_eligible_version(entries, artifact_version) do
     elixir_version = Version.parse!(System.version())
+    otp_release = System.otp_release()
 
     entries
     |> Enum.reverse()
-    |> find_version(artifact_version, elixir_version)
+    |> find_version(artifact_version, elixir_version, otp_release)
   end
 
-  defp find_version(entries, _artifact_version = nil, elixir_version) do
-    Enum.find_value(entries, &find_by_elixir_version(&1, elixir_version))
+  defp find_version(entries, artifact_version, elixir_version, otp_release) do
+    entries =
+      if artifact_version do
+        Enum.filter(entries, &(hd(&1) == artifact_version))
+      else
+        entries
+      end
+
+    Enum.find_value(entries, &find_by_elixir_version(&1, elixir_version, otp_release))
   end
 
-  defp find_version(entries, artifact_version, elixir_version) do
-    Enum.find_value(entries, &find_by_artifact_version(&1, artifact_version, elixir_version))
-  end
-
-  defp find_by_elixir_version([artifact_version, digest | versions], elixir_version) do
-    if version = Enum.find(versions, &(Version.compare(&1, elixir_version) != :gt)) do
-      {version, artifact_version, digest}
-    end
-  end
-
-  defp find_by_artifact_version(
-         [artifact_version, digest | versions],
-         artifact_version,
-         elixir_version
+  defp find_by_elixir_version(
+         [artifact_version, digest, hex_elixir_version, hex_otp_release | _],
+         elixir_version,
+         otp_release
        ) do
-    if version = Enum.find(versions, &(Version.compare(&1, elixir_version) != :gt)) do
-      {version, artifact_version, digest}
+    if Version.compare(hex_elixir_version, elixir_version) != :gt and
+         hex_otp_release <= otp_release do
+      {hex_elixir_version, artifact_version, digest, hex_otp_release}
     end
-  end
-
-  defp find_by_artifact_version(_entry, _artifact_version, _elixir_version) do
-    nil
   end
 
   ## Public keys
