@@ -95,7 +95,7 @@ defmodule Duration do
   ## Comparing durations
 
   In order to accurately compare durations, you need to either compare
-  only certain fields or use a refernce time instant. This is because
+  only certain fields or use a reference time instant. This is because
   some fields are relative to others. For example, you may say that
   1 month is the same as 30 days, but if you add both of these durations
   to `~D[2015-02-01]`, you would get different results, as that month
