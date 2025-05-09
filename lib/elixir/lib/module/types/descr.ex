@@ -1796,8 +1796,6 @@ defmodule Module.Types.Descr do
   @doc """
   Puts a `key` of a given type, assuming that the descr is exclusively
   a map (or dynamic).
-
-  The key may be an atom, or a key type.
   """
   def map_put(:term, _key, _type), do: :badmap
   def map_put(descr, key, :term) when is_atom(key), do: map_put_shared(descr, key, :term)
@@ -1809,10 +1807,13 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # Map.put but because we are inserting in a key type, we use refresh (keep the previous type)
-  def map_update(:term, _key, _type), do: :badmap
+  @doc """
+  Refreshes the type of map after assuming some type was given to a key of a given type.
+  Assuming that the descr is exclusively a map (or dynamic).
+  """
+  def map_refresh(:term, _key, _type), do: :badmap
 
-  def map_update(descr, key_descr, type) do
+  def map_refresh(descr, key_descr, type) do
     {dynamic_descr, static_descr} = Map.pop(descr, :dynamic)
     key_descr = unfold(key_descr)
     type = unfold(type)
@@ -1828,7 +1829,7 @@ defmodule Module.Types.Descr do
       # Either of those three types could be dynamic.
       not (not is_nil(dynamic_descr) or Map.has_key?(key_descr, :dynamic) or
                Map.has_key?(type, :dynamic)) ->
-        map_update_static(descr, key_descr, type)
+        map_refresh_static(descr, key_descr, type)
 
       true ->
         # If one of those is dynamic, we just compute the union
@@ -1836,14 +1837,14 @@ defmodule Module.Types.Descr do
         {key_dynamic, key_static} = Map.pop(key_descr, :dynamic, key_descr)
         {type_dynamic, type_static} = Map.pop(type, :dynamic, type)
 
-        with {:ok, new_static} <- map_update_static(descr_static, key_static, type_static),
-             {:ok, new_dynamic} <- map_update_static(descr_dynamic, key_dynamic, type_dynamic) do
+        with {:ok, new_static} <- map_refresh_static(descr_static, key_static, type_static),
+             {:ok, new_dynamic} <- map_refresh_static(descr_dynamic, key_dynamic, type_dynamic) do
           {:ok, union(new_static, dynamic(new_dynamic))}
         end
     end
   end
 
-  def map_update_static(%{map: _} = descr, key_descr = %{}, type) do
+  def map_refresh_static(%{map: _} = descr, key_descr = %{}, type) do
     # Check if descr is a valid map,
     case atom_fetch(key_descr) do
       # If the key_descr is a singleton, we directly put the type into the map.
@@ -1858,18 +1859,18 @@ defmodule Module.Types.Descr do
           |> covered_key_types()
           |> Enum.reduce(descr, fn
             {:atom, atom_key}, acc ->
-              map_put_atom(acc, atom_key, type)
+              map_refresh_atom(acc, atom_key, type)
 
             key, acc ->
-              map_put_domain(acc, key, type)
+              map_refresh_domain(acc, key, type)
           end)
 
         {:ok, new_descr}
     end
   end
 
-  def map_update_static(:term, _key_descr, _type), do: {:ok, open_map()}
-  def map_update_static(_, _, _), do: {:ok, none()}
+  def map_refresh_static(:term, _key_descr, _type), do: {:ok, open_map()}
+  def map_refresh_static(_, _, _), do: {:ok, none()}
 
   @doc """
   Updates a key in a map type by fetching its current type, unioning it with a
@@ -1903,28 +1904,28 @@ defmodule Module.Types.Descr do
     end
   end
 
-  def map_put_domain(%{map: [{tag, fields, []}]}, domain, type) do
-    %{map: [{map_update_domain(tag, domain, type), fields, []}]}
+  def map_refresh_domain(%{map: [{tag, fields, []}]}, domain, type) do
+    %{map: [{map_refresh_tag(tag, domain, type), fields, []}]}
   end
 
-  def map_put_domain(%{map: dnf}, domain, type) do
+  def map_refresh_domain(%{map: dnf}, domain, type) do
     Enum.map(dnf, fn
       {tag, fields, []} ->
-        {map_update_domain(tag, domain, type), fields, []}
+        {map_refresh_tag(tag, domain, type), fields, []}
 
       {tag, fields, negs} ->
         # For negations, we count on the idea that a negation will not remove any
         # type from a domain unless it completely cancels out the type.
         # So for any non-empty map dnf, we just update the domain with the new type,
         # as well as its negations to keep them accurate.
-        {map_update_domain(tag, domain, type), fields,
+        {map_refresh_tag(tag, domain, type), fields,
          Enum.map(negs, fn {neg_tag, neg_fields} ->
-           {map_update_domain(neg_tag, domain, type), neg_fields}
+           {map_refresh_tag(neg_tag, domain, type), neg_fields}
          end)}
     end)
   end
 
-  def map_put_atom(descr = %{map: dnf}, atom_key, type) do
+  def map_refresh_atom(descr = %{map: dnf}, atom_key, type) do
     case atom_key do
       {:union, keys} ->
         keys
@@ -1940,11 +1941,11 @@ defmodule Module.Types.Descr do
         considered_keys
         |> :sets.to_list()
         |> Enum.reduce(descr, fn key, acc -> map_refresh_key(acc, key, type) end)
-        |> map_put_domain(:atom, type)
+        |> map_refresh_domain(:atom, type)
     end
   end
 
-  def map_update_domain(tag, domain, type) do
+  def map_refresh_tag(tag, domain, type) do
     case tag do
       :open ->
         :open
