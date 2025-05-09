@@ -103,10 +103,10 @@ defmodule Module.Types.Descr do
 
   def open_map(), do: %{map: @map_top}
 
-  @doc "An open map with a default type %{term() => default}"
-  def open_map_with_default(default) do
+  @doc "A map (closed or open is the same) with a default type %{term() => default}"
+  def map_with_default(default) do
     map_descr(
-      :open,
+      :closed,
       [],
       Enum.map(@domain_key_types, fn key_type ->
         {{:domain_key, key_type}, if_set(default)}
@@ -1809,15 +1809,158 @@ defmodule Module.Types.Descr do
     end
   end
 
-  def map_put(descr, key_descr = %{}, type) do
+  # Map.put but because we are inserting in a key type, we use refresh (keep the previous type)
+  def map_update(:term, _key, _type), do: :badmap
+
+  def map_update(descr, key_descr, type) do
+    {dynamic_descr, static_descr} = Map.pop(descr, :dynamic)
+    key_descr = unfold(key_descr)
+    type = unfold(type)
+
+    cond do
+      # Either 1) static part is a map, or 2) static part is empty and dynamic part contains maps
+      not map_only?(static_descr) ->
+        :badmap
+
+      empty?(static_descr) and not (not is_nil(dynamic_descr) and descr_key?(dynamic_descr, :map)) ->
+        :badmap
+
+      # Either of those three types could be dynamic.
+      not (not is_nil(dynamic_descr) or Map.has_key?(key_descr, :dynamic) or
+               Map.has_key?(type, :dynamic)) ->
+        map_update_static(descr, key_descr, type)
+
+      true ->
+        # If one of those is dynamic, we just compute the union
+        {descr_dynamic, descr_static} = Map.pop(descr, :dynamic, descr)
+        {key_dynamic, key_static} = Map.pop(key_descr, :dynamic, key_descr)
+        {type_dynamic, type_static} = Map.pop(type, :dynamic, type)
+
+        with {:ok, new_static} <- map_update_static(descr_static, key_static, type_static),
+             {:ok, new_dynamic} <- map_update_static(descr_dynamic, key_dynamic, type_dynamic) do
+          {:ok, union(new_static, dynamic(new_dynamic))}
+        end
+    end
+  end
+
+  def map_update_static(%{map: _} = descr, key_descr = %{}, type) do
+    # Check if descr is a valid map,
     case atom_fetch(key_descr) do
+      # If the key_descr is a singleton, we directly put the type into the map.
       {:finite, [single_key]} ->
         map_put(descr, single_key, type)
 
       # In this case, we iterate on key_descr to add type to each key type it covers.
+      # Since we do not know which key will be used, we do the union with previous types.
       _ ->
-        # TODO: handle general case
-        raise("TODO")
+        new_descr =
+          key_descr
+          |> covered_key_types()
+          |> Enum.reduce(descr, fn
+            {:atom, atom_key}, acc ->
+              map_put_atom(acc, atom_key, type)
+
+            key, acc ->
+              map_put_domain(acc, key, type)
+          end)
+
+        {:ok, new_descr}
+    end
+  end
+
+  def map_update_static(:term, _key_descr, _type), do: {:ok, open_map()}
+  def map_update_static(_, _, _), do: {:ok, none()}
+
+  @doc """
+  Updates a key in a map type by fetching its current type, unioning it with a
+  `new_additional_type`, and then putting the resulting union type back.
+
+  Returns:
+    - `{:ok, new_map_descr}`: If successful.
+    - `:badmap`: If the input `descr` is not a valid map type.
+    - `:badkey`: If the key is considered invalid during the take operation (e.g.,
+      an optional key that resolves to an empty type).
+  """
+  def map_refresh_key(descr, key, new_additional_type) when is_atom(key) do
+    case map_fetch(descr, key) do
+      :badmap ->
+        :badmap
+
+      # Key is not present: we just add the new one and make it optional.
+      :badkey ->
+        with {:ok, descr} <- map_put(descr, key, if_set(new_additional_type)) do
+          descr
+        end
+
+      {_optional?, current_key_type} ->
+        type_to_put = union(current_key_type, new_additional_type)
+
+        case map_fetch_and_put(descr, key, type_to_put) do
+          {_taken_type, new_map_descr} -> new_map_descr
+          # Propagates :badmap or :badkey from map_fetch_and_put
+          error -> error
+        end
+    end
+  end
+
+  def map_put_domain(%{map: [{tag, fields, []}]}, domain, type) do
+    %{map: [{map_update_domain(tag, domain, type), fields, []}]}
+  end
+
+  def map_put_domain(%{map: dnf}, domain, type) do
+    Enum.map(dnf, fn
+      {tag, fields, []} ->
+        {map_update_domain(tag, domain, type), fields, []}
+
+      {tag, fields, negs} ->
+        # For negations, we count on the idea that a negation will not remove any
+        # type from a domain unless it completely cancels out the type.
+        # So for any non-empty map dnf, we just update the domain with the new type,
+        # as well as its negations to keep them accurate.
+        {map_update_domain(tag, domain, type), fields,
+         Enum.map(negs, fn {neg_tag, neg_fields} ->
+           {map_update_domain(neg_tag, domain, type), neg_fields}
+         end)}
+    end)
+  end
+
+  def map_put_atom(descr = %{map: dnf}, atom_key, type) do
+    case atom_key do
+      {:union, keys} ->
+        keys
+        |> :sets.to_list()
+        |> Enum.reduce(descr, fn key, acc -> map_refresh_key(acc, key, type) end)
+
+      {:negation, keys} ->
+        # 1) Fetch all the possible keys in the dnf
+        # 2) Get them all, except the ones in neg_atoms
+        possible_keys = map_fetch_all_key_names(dnf)
+        considered_keys = :sets.subtract(possible_keys, keys)
+
+        considered_keys
+        |> :sets.to_list()
+        |> Enum.reduce(descr, fn key, acc -> map_refresh_key(acc, key, type) end)
+        |> map_put_domain(:atom, type)
+    end
+  end
+
+  def map_update_domain(tag, domain, type) do
+    case tag do
+      :open ->
+        :open
+
+      :closed ->
+        {:closed, %{{:domain_key, domain} => if_set(type)}}
+
+      {:open, domains} ->
+        if Map.has_key?(domains, {:domain_key, domain}) do
+          {:open, Map.update!(domains, {:domain_key, domain}, &union(&1, type))}
+        else
+          {:open, domains}
+        end
+
+      {:closed, domains} ->
+        {:closed, Map.update(domains, {:domain_key, domain}, if_set(type), &union(&1, type))}
     end
   end
 
@@ -1935,6 +2078,8 @@ defmodule Module.Types.Descr do
   # Returns the list of key types that are covered by the key_descr.
   # E.g., for `{atom([:ok]), term} or integer()` it returns `[:tuple, :integer]`.
   # We treat bitmap types as a separate key type.
+  defp covered_key_types(:term), do: @domain_key_types
+
   defp covered_key_types(key_descr) do
     for {type_kind, type} <- key_descr, reduce: [] do
       acc ->
