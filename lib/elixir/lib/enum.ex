@@ -2903,6 +2903,7 @@ defmodule Enum do
   Passes the given `acc` as the second argument for the `fun` with the first element.
 
   ## Examples
+
       iex> Enum.scan(["a", "b", "c", "d", "e"], "_", &(&1 <> String.first(&2)))
       ["a_", "ba", "cb", "dc", "ed"]
 
