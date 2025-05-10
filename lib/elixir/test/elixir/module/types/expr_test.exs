@@ -71,7 +71,7 @@ defmodule Module.Types.ExprTest do
 
                but expected one of:
 
-                   non_empty_list(term(), term())
+                   non_empty_maybe_improper_list(term(), term())
                """
 
       assert typeerror!(hd(123)) |> strip_ansi() ==
@@ -86,7 +86,7 @@ defmodule Module.Types.ExprTest do
 
                but expected one of:
 
-                   non_empty_list(term(), term())
+                   non_empty_maybe_improper_list(term(), term())
                """
     end
 
@@ -108,7 +108,7 @@ defmodule Module.Types.ExprTest do
 
                but expected one of:
 
-                   non_empty_list(term(), term())
+                   non_empty_maybe_improper_list(term(), term())
                """
 
       assert typeerror!(tl(123)) |> strip_ansi() ==
@@ -123,7 +123,7 @@ defmodule Module.Types.ExprTest do
 
                but expected one of:
 
-                   non_empty_list(term(), term())
+                   non_empty_maybe_improper_list(term(), term())
                """
     end
   end
