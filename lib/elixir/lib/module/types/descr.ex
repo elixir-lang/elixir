@@ -75,6 +75,9 @@ defmodule Module.Types.Descr do
   def fun(), do: %{bitmap: @bit_fun}
   def list(type), do: list_descr(type, @empty_list, true)
   def non_empty_list(type, tail \\ @empty_list), do: list_descr(type, tail, false)
+  def improper_list(), do: improper_list(term(), term())
+  def improper_list(type, :term), do: list_descr(type, @not_list, false)
+  def improper_list(type, tail), do: list_descr(type, difference(tail, list(term())), false)
   def open_map(), do: %{map: @map_top}
   def open_map(pairs), do: map_descr(:open, pairs)
   def open_tuple(elements, _fallback \\ term()), do: tuple_descr(:open, elements)
@@ -1078,9 +1081,8 @@ defmodule Module.Types.Descr do
 
   defp list_tl_static(%{}), do: none()
 
-  defp list_improper_static?(:term), do: false
-  defp list_improper_static?(%{bitmap: bitmap}) when (bitmap &&& @bit_empty_list) != 0, do: false
-  defp list_improper_static?(term), do: equal?(term, @not_list)
+  defp list_improper_term?(:term), do: true
+  defp list_improper_term?(term), do: equal?(term, @not_list) or equal?(term, @not_non_empty_list)
 
   defp list_to_quoted(dnf, empty?, opts) do
     dnf = list_normalize(dnf)
@@ -1088,17 +1090,21 @@ defmodule Module.Types.Descr do
     {unions, list_rendered?} =
       Enum.reduce(dnf, {[], false}, fn {list_type, last_type, negs}, {acc, list_rendered?} ->
         {name, arguments, list_rendered?} =
-          cond do
-            list_type == term() and list_improper_static?(last_type) ->
-              {:improper_list, [], list_rendered?}
+          if subtype?(last_type, @empty_list) do
+            name = if empty?, do: :list, else: :non_empty_list
+            {name, [to_quoted(list_type, opts)], empty?}
+          else
+            type =
+              if subtype?(@empty_list, last_type),
+                do: :non_empty_maybe_improper_list,
+                else: :improper_list
 
-            subtype?(last_type, @empty_list) ->
-              name = if empty?, do: :list, else: :non_empty_list
-              {name, [to_quoted(list_type, opts)], empty?}
+            # mark improper_list(term(), term()) as such rather than:
+            # improper_list(term(), atom() or binary() or float() or ...)
+            rendered_last_type = if list_improper_term?(last_type), do: :term, else: last_type
 
-            true ->
-              args = [to_quoted(list_type, opts), to_quoted(last_type, opts)]
-              {:non_empty_list, args, list_rendered?}
+            args = [to_quoted(list_type, opts), to_quoted(rendered_last_type, opts)]
+            {type, args, list_rendered?}
           end
 
         acc =
