@@ -525,19 +525,6 @@ defmodule Module.Types.IntegrationTest do
     end
 
     @tag :require_ast
-    test "String.Chars protocol dispatch on improper lists" do
-      files = %{
-        "a.ex" => """
-        defmodule FooBar do
-          def example1, do: to_string([?a, ?b | "!"])
-        end
-        """
-      }
-
-      assert_no_warnings(files, consolidate_protocols: true)
-    end
-
-    @tag :require_ast
     test "Enumerable protocol dispatch" do
       files = %{
         "a.ex" => """
@@ -663,6 +650,40 @@ defmodule Module.Types.IntegrationTest do
       assert Path.type(file) == :absolute
     after
       purge(A)
+    end
+
+    test "regressions" do
+      files = %{
+        # do not emit false positives from defguard
+        "a.ex" => """
+        defmodule A do
+          defguard is_non_nil_arity_function(fun, arity)
+                   when arity != nil and is_function(fun, arity)
+
+          def check(fun, args) do
+            is_non_nil_arity_function(fun, length(args))
+          end
+        end
+        """,
+        # do not parse binary segments as variables
+        "b.ex" => """
+        defmodule B do
+          def decode(byte) do
+            case byte do
+              enc when enc in [<<0x00>>, <<0x01>>] -> :ok
+            end
+          end
+        end
+        """,
+        # String.Chars protocol dispatch on improper lists
+        "c.ex" => """
+        defmodule C do
+          def example, do: to_string([?a, ?b | "!"])
+        end
+        """
+      }
+
+      assert_no_warnings(files, consolidate_protocols: true)
     end
   end
 
@@ -1176,41 +1197,6 @@ defmodule Module.Types.IntegrationTest do
       after
         Code.compiler_options(no_warn_undefined: no_warn_undefined)
       end
-    end
-  end
-
-  describe "regressions" do
-    test "does not emit false positives from defguard" do
-      files = %{
-        "a.ex" => """
-        defmodule A do
-          defguard is_non_nil_arity_function(fun, arity)
-                   when arity != nil and is_function(fun, arity)
-
-          def check(fun, args) do
-            is_non_nil_arity_function(fun, length(args))
-          end
-        end
-        """
-      }
-
-      assert_no_warnings(files)
-    end
-
-    test "do not parse binary segments as variables" do
-      files = %{
-        "a.ex" => """
-        defmodule A do
-          def decode(byte) do
-            case byte do
-              enc when enc in [<<0x00>>, <<0x01>>] -> :ok
-            end
-          end
-        end
-        """
-      }
-
-      assert_no_warnings(files)
     end
   end
 
