@@ -2896,11 +2896,15 @@ defmodule Enum do
   end
 
   @doc """
-  Applies the given function to each element in the `enumerable`,
-  storing the result in a list and passing it as the accumulator
-  for the next computation. Uses the given `acc` as the starting value.
+  Passes each element from `enumerable` to the `fun` as the first argument,
+  stores the `fun` result in a list and passes the result as the second argument
+  for the next computation.
+
+  Passes the given `acc` as the second argument for the `fun` with the first element.
 
   ## Examples
+      iex> Enum.scan(["a", "b", "c", "d", "e"], "_", &(&1 <> String.first(&2)))
+      ["a_", "ba", "cb", "dc", "ed"]
 
       iex> Enum.scan(1..5, 0, &(&1 + &2))
       [1, 3, 6, 10, 15]
