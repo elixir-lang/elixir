@@ -2866,8 +2866,10 @@ defmodule Enum do
   @doc """
   Passes each element from `enumerable` to the `fun` as the first argument,
   stores the `fun` result in a list and passes the result as the second argument
-  for the next computation. The `fun` isn't applied for the first element
-  of the `enumerable`, the element is taken as it is.
+  for the next computation.
+
+  The `fun` isn't applied for the first element of the `enumerable`,
+  the element is taken as it is.
 
   ## Examples
 
