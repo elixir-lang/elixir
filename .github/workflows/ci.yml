@@ -85,7 +85,7 @@ jobs:
           ../elixir/bin/mix do local.rebar --force + local.hex --force + deps.get + compile
           cd ../elixir/
           git fetch --tags
-          make docs
+          DOCS_OPTIONS="--warnings-as-errors" make docs
       - name: Check reproducible builds
         if: ${{ matrix.deterministic }}
         run: |
