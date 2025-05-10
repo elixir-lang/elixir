@@ -41,7 +41,7 @@ defmodule Module.Types.PatternTest do
 
                but expected one of:
 
-                   non_empty_list(term(), term())
+                   non_empty_maybe_improper_list(term(), term())
 
                where "name" was given the type:
 
