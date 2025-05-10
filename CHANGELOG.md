@@ -102,9 +102,9 @@ While Elixir has always compiled the given files in project or a dependency in p
 
 ### Code loading bottlenecks
 
-Prior to this release, Elixir would load modules as soon as they were defined. However, because Erlang part of code loading happens within a single process (the code server), this would make it a bottleneck, reducing the amount of parallelization, especially on large projects.
+Prior to this release, Elixir would load modules as soon as they were defined. However, because the Erlang part of code loading happens within a single process (the code server), this would make it a bottleneck, reducing the amount of parallelization, especially on large projects.
 
-This release makes it so modules are loaded lazily. This reduces the pressure on the code server, making compilation up to 2x faster for large projects, and also the overall amount of work done during compilation.
+This release makes it so modules are loaded lazily. This reduces the pressure on the code server, making compilation up to 2x faster for large projects, and also reduces the overall amount of work done during compilation.
 
 Implementation wise, [the parallel compiler already acts as a mechanism to resolve modules during compilation](https://elixir-lang.org/blog/2012/04/24/a-peek-inside-elixir-s-parallel-compiler/), so we built on that. By making sure the compiler controls both module compilation and module loading, it can also better guarantee deterministic builds.
 
@@ -134,7 +134,7 @@ This release introduces a variable called `MIX_OS_DEPS_COMPILE_PARTITION_COUNT`,
 
 While fetching your dependencies and compiling an Elixir dependency in itself already happened in parallel, there were pathological cases where performance would be left on the table, such as compiling dependencies with native code or dependencies where one or two large file would take over most of the compilation time.
 
-By setting `MIX_OS_DEPS_COMPILE_PARTITION_COUNT` to a number greater than 1, Mix will now compile multiple dependencies at the same time, using separate OS processes. Emperical testing shows that setting it to half of the number of cores on your machine is enough to maximize resource usage. The exact speed up will depend on the number of dependencies and the number of machine cores, although some reports mention up to 4x faster compilation times. If you plan to enable it on CI or build servers, keep in mind it will most likely have a direct impact on memory usage too.
+By setting `MIX_OS_DEPS_COMPILE_PARTITION_COUNT` to a number greater than 1, Mix will now compile multiple dependencies at the same time, using separate OS processes. Empirical testing shows that setting it to half of the number of cores on your machine is enough to maximize resource usage. The exact speed up will depend on the number of dependencies and the number of machine cores, although some reports mention up to 4x faster compilation times. If you plan to enable it on CI or build servers, keep in mind it will most likely have a direct impact on memory usage too.
 
 ## OpenChain certification
 
@@ -156,7 +156,7 @@ These additions offer greater transparency into the components and licenses of e
   * [Calendar] Support 2-arity options for `Calendar.strftime/3` which receives the whole data type
   * [Code] Add `:migrate_call_parens_on_pipe` formatter option
   * [Code] Add `:indentation` option to `Code.string_to_quoted/2`
-  * [Code.Fragment] Preserve more block content around cursor in `container_cursor_to_quoted` `:migrate_call_parens_on_pipe` formatter option
+  * [Code.Fragment] Preserve more block content around cursor in `container_cursor_to_quoted`
   * [Code.Fragment] Add `:block_keyword_or_binary_operator` to `Code.Fragment` for more precise suggestions after operators and closing terminators
   * [Enum] Provide more information on `Enum.OutOfBoundsError`
   * [Inspect] Allow `optional: :all` when deriving Inspect
