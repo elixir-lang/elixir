@@ -247,7 +247,7 @@ defmodule Application do
   invoked if it hasn't been done yet. Then, it checks if the dependencies listed
   in the `applications` key of the resource file are already started. Having at
   least one dependency not started is an error condition. Functions like
-  `ensure_all_started/1` takes care of starting an application and all of its
+  `ensure_all_started/1` take care of starting an application and all of its
   dependencies for you.
 
   If the application does not have a callback module configured, starting is
