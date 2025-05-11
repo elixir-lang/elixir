@@ -43,7 +43,6 @@ defmodule Module.Types.Descr do
   }
   @empty_list %{bitmap: @bit_empty_list}
   @not_non_empty_list Map.delete(@term, :list)
-  @not_list Map.replace!(@not_non_empty_list, :bitmap, @bit_top - @bit_empty_list)
 
   @empty_intersection [0, @none]
   @empty_difference [0, []]
@@ -1085,12 +1084,12 @@ defmodule Module.Types.Descr do
   defp list_to_quoted(dnf, empty?, opts) do
     dnf = list_normalize(dnf)
 
-    {unions, list_rendered?} =
-      Enum.reduce(dnf, {[], false}, fn {list_type, last_type, negs}, {acc, list_rendered?} ->
-        {name, arguments, list_rendered?} =
+    unions =
+      Enum.reduce(dnf, [], fn {list_type, last_type, negs}, acc ->
+        {name, arguments} =
           if subtype?(last_type, @empty_list) do
             name = if empty?, do: :list, else: :non_empty_list
-            {name, [to_quoted(list_type, opts)], empty?}
+            {name, [to_quoted(list_type, opts)]}
           else
             name = if empty?, do: :maybe_improper_list, else: :non_empty_maybe_improper_list
 
@@ -1098,8 +1097,7 @@ defmodule Module.Types.Descr do
             # non_empty_maybe_improper_list(term(), atom() or binary() or float() or ...)
             rendered_last_type = if list_improper_term?(last_type), do: :term, else: last_type
 
-            args = [to_quoted(list_type, opts), to_quoted(rendered_last_type, opts)]
-            {name, args, empty?}
+            {name, [to_quoted(list_type, opts), to_quoted(rendered_last_type, opts)]}
           end
 
         acc =
@@ -1125,10 +1123,10 @@ defmodule Module.Types.Descr do
             )
           end
 
-        {acc, list_rendered?}
+        acc
       end)
 
-    if empty? and not list_rendered? do
+    if empty? and dnf == [] do
       [{:empty_list, [], []} | unions]
     else
       unions

@@ -1343,11 +1343,11 @@ defmodule Module.Types.DescrTest do
              |> to_quoted_string() ==
                "non_empty_maybe_improper_list(term(), term())"
 
+      assert list(integer(), integer()) |> to_quoted_string() ==
+               "maybe_improper_list(integer(), integer())"
+
       assert non_empty_maybe_improper_list(integer(), integer()) |> to_quoted_string() ==
                "non_empty_maybe_improper_list(integer(), integer())"
-
-      assert union(empty_list(), non_empty_maybe_improper_list(integer(), integer()))
-             |> to_quoted_string() == "maybe_improper_list(integer(), integer())"
 
       assert union(non_empty_list(integer()), non_empty_maybe_improper_list(integer(), integer()))
              |> to_quoted_string() ==
