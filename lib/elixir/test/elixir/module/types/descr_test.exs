@@ -1339,6 +1339,8 @@ defmodule Module.Types.DescrTest do
       assert non_empty_maybe_improper_list(term(), term()) |> to_quoted_string() ==
                "non_empty_maybe_improper_list(term(), term())"
 
+      # TODO this feels wrong, figure this out
+      # seems to be due to how list_descr discards negations, not an issue with to_quoted_string
       assert non_empty_maybe_improper_list(term(), difference(term(), empty_list()))
              |> to_quoted_string() ==
                "non_empty_maybe_improper_list(term(), term())"
