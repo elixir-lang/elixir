@@ -652,6 +652,7 @@ defmodule Module.Types.IntegrationTest do
       purge(A)
     end
 
+    @tag :require_ast
     test "regressions" do
       files = %{
         # do not emit false positives from defguard
