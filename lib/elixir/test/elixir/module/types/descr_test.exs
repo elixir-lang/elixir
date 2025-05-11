@@ -44,7 +44,7 @@ defmodule Module.Types.DescrTest do
         float(),
         binary(),
         open_map(),
-        non_empty_list(term(), term()),
+        non_empty_maybe_improper_list(term(), term()),
         empty_list(),
         tuple(),
         fun(),
@@ -435,7 +435,8 @@ defmodule Module.Types.DescrTest do
       refute empty?(difference(open_map(), empty_map()))
     end
 
-    defp list(elem_type, tail_type), do: union(empty_list(), non_empty_list(elem_type, tail_type))
+    defp list(elem_type, tail_type),
+      do: union(empty_list(), non_empty_maybe_improper_list(elem_type, tail_type))
 
     test "list" do
       # Basic list type differences
@@ -471,26 +472,32 @@ defmodule Module.Types.DescrTest do
              |> equal?(list(atom()))
 
       assert difference(list(integer(), float()), list(number(), integer()))
-             |> equal?(non_empty_list(integer(), difference(float(), integer())))
+             |> equal?(non_empty_maybe_improper_list(integer(), difference(float(), integer())))
 
       # Empty list with last element
       assert difference(empty_list(), list(integer(), atom())) == none()
 
       assert difference(list(integer(), atom()), empty_list()) ==
-               non_empty_list(integer(), atom())
+               non_empty_maybe_improper_list(integer(), atom())
 
       # List with any type and specific last element
       assert difference(list(term(), term()), list(term(), integer()))
              |> equal?(
-               non_empty_list(term(), negation(union(integer(), non_empty_list(term(), term()))))
+               non_empty_maybe_improper_list(
+                 term(),
+                 negation(union(integer(), non_empty_maybe_improper_list(term(), term())))
+               )
              )
 
       # Nested lists with last element
       assert difference(list(list(integer()), atom()), list(list(number()), boolean()))
              |> equal?(
                union(
-                 non_empty_list(list(integer()), difference(atom(), boolean())),
-                 non_empty_list(difference(list(integer()), list(number())), atom())
+                 non_empty_maybe_improper_list(list(integer()), difference(atom(), boolean())),
+                 non_empty_maybe_improper_list(
+                   difference(list(integer()), list(number())),
+                   atom()
+                 )
                )
              )
 
@@ -498,8 +505,11 @@ defmodule Module.Types.DescrTest do
       assert difference(list(integer(), union(atom(), binary())), list(number(), atom()))
              |> equal?(
                union(
-                 non_empty_list(integer(), binary()),
-                 non_empty_list(difference(integer(), number()), union(atom(), binary()))
+                 non_empty_maybe_improper_list(integer(), binary()),
+                 non_empty_maybe_improper_list(
+                   difference(integer(), number()),
+                   union(atom(), binary())
+                 )
                )
              )
 
@@ -511,7 +521,7 @@ defmodule Module.Types.DescrTest do
 
       # Difference with proper list
       assert difference(list(integer(), atom()), list(integer())) ==
-               non_empty_list(integer(), atom())
+               non_empty_maybe_improper_list(integer(), atom())
     end
   end
 
@@ -719,8 +729,10 @@ defmodule Module.Types.DescrTest do
 
       # If term() is in the tail, it means list(term()) is in the tail
       # and therefore any term can be returned from hd.
-      assert list_hd(non_empty_list(atom(), term())) == {false, term()}
-      assert list_hd(non_empty_list(atom(), negation(list(term(), term())))) == {false, atom()}
+      assert list_hd(non_empty_maybe_improper_list(atom(), term())) == {false, term()}
+
+      assert list_hd(non_empty_maybe_improper_list(atom(), negation(list(term(), term())))) ==
+               {false, atom()}
     end
 
     test "list_tl" do
@@ -732,18 +744,26 @@ defmodule Module.Types.DescrTest do
 
       assert list_tl(non_empty_list(integer())) == {false, list(integer())}
 
-      assert list_tl(non_empty_list(integer(), atom())) ==
-               {false, union(atom(), non_empty_list(integer(), atom()))}
+      assert list_tl(non_empty_maybe_improper_list(integer(), atom())) ==
+               {false, union(atom(), non_empty_maybe_improper_list(integer(), atom()))}
 
       # The tail of either a (non empty) list of integers with an atom tail or a (non empty) list
       # of tuples with a float tail is either an atom, or a float, or a (possibly empty) list of
       # integers with an atom tail, or a (possibly empty) list of tuples with a float tail.
-      assert list_tl(union(non_empty_list(integer(), atom()), non_empty_list(tuple(), float()))) ==
+      assert list_tl(
+               union(
+                 non_empty_maybe_improper_list(integer(), atom()),
+                 non_empty_maybe_improper_list(tuple(), float())
+               )
+             ) ==
                {false,
                 atom()
                 |> union(float())
                 |> union(
-                  union(non_empty_list(integer(), atom()), non_empty_list(tuple(), float()))
+                  union(
+                    non_empty_maybe_improper_list(integer(), atom()),
+                    non_empty_maybe_improper_list(tuple(), float())
+                  )
                 )}
 
       assert list_tl(dynamic()) == {true, dynamic()}

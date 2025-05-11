@@ -109,7 +109,7 @@ defmodule Module.Types.Expr do
           of_expr(suffix, tl_type, expr, stack, context)
         end
 
-      {non_empty_list(Enum.reduce(prefix, &union/2), suffix), context}
+      {non_empty_maybe_improper_list(Enum.reduce(prefix, &union/2), suffix), context}
     end
   end
 

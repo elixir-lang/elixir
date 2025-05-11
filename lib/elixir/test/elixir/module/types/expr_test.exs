@@ -36,13 +36,13 @@ defmodule Module.Types.ExprTest do
   describe "lists" do
     test "creating lists" do
       assert typecheck!([1, 2]) == non_empty_list(integer())
-      assert typecheck!([1, 2 | 3]) == non_empty_list(integer(), integer())
+      assert typecheck!([1, 2 | 3]) == non_empty_maybe_improper_list(integer(), integer())
       assert typecheck!([1, 2 | [3, 4]]) == non_empty_list(integer())
 
       assert typecheck!([:ok, 123]) == non_empty_list(union(atom([:ok]), integer()))
-      assert typecheck!([:ok | 123]) == non_empty_list(atom([:ok]), integer())
+      assert typecheck!([:ok | 123]) == non_empty_maybe_improper_list(atom([:ok]), integer())
       assert typecheck!([x], [:ok, x]) == dynamic(non_empty_list(term()))
-      assert typecheck!([x], [:ok | x]) == dynamic(non_empty_list(term(), term()))
+      assert typecheck!([x], [:ok | x]) == dynamic(non_empty_maybe_improper_list(term(), term()))
     end
 
     test "inference" do
@@ -94,7 +94,9 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([x = [123, :foo]], tl(x)) == dynamic(list(union(atom([:foo]), integer())))
 
       assert typecheck!([x = [123 | :foo]], tl(x)) ==
-               dynamic(union(atom([:foo]), non_empty_list(integer(), atom([:foo]))))
+               dynamic(
+                 union(atom([:foo]), non_empty_maybe_improper_list(integer(), atom([:foo])))
+               )
 
       assert typeerror!(tl([])) |> strip_ansi() ==
                ~l"""

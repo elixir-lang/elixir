@@ -224,12 +224,13 @@ defmodule Module.Types.Apply do
         {:erlang, :++,
          [
            {[empty_list(), term()], dynamic(term())},
-           {[non_empty_list(term()), term()], dynamic(non_empty_list(term(), term()))}
+           {[non_empty_list(term()), term()],
+            dynamic(non_empty_maybe_improper_list(term(), term()))}
          ]},
         {:erlang, :--, [{[list(term()), list(term())], dynamic(list(term()))}]},
         {:erlang, :andalso, [{[boolean(), term()], dynamic()}]},
         {:erlang, :delete_element, [{[integer(), open_tuple([])], dynamic(open_tuple([]))}]},
-        {:erlang, :hd, [{[non_empty_list(term(), term())], dynamic()}]},
+        {:erlang, :hd, [{[non_empty_maybe_improper_list(term(), term())], dynamic()}]},
         {:erlang, :element, [{[integer(), open_tuple([])], dynamic()}]},
         {:erlang, :insert_element,
          [{[integer(), open_tuple([]), term()], dynamic(open_tuple([]))}]},
@@ -239,7 +240,7 @@ defmodule Module.Types.Apply do
         {:erlang, :orelse, [{[boolean(), term()], dynamic()}]},
         {:erlang, :send, [{[send_destination, term()], dynamic()}]},
         {:erlang, :setelement, [{[integer(), open_tuple([]), term()], dynamic(open_tuple([]))}]},
-        {:erlang, :tl, [{[non_empty_list(term(), term())], dynamic()}]},
+        {:erlang, :tl, [{[non_empty_maybe_improper_list(term(), term())], dynamic()}]},
         {:erlang, :tuple_to_list, [{[open_tuple([])], dynamic(list(term()))}]}
       ] do
     [arity] = Enum.map(clauses, fn {args, _return} -> length(args) end) |> Enum.uniq()
@@ -314,11 +315,11 @@ defmodule Module.Types.Apply do
   end
 
   def remote_domain(:erlang, :hd, [_list], expected, _meta, _stack, context) do
-    {:hd, [non_empty_list(expected, term())], context}
+    {:hd, [non_empty_maybe_improper_list(expected, term())], context}
   end
 
   def remote_domain(:erlang, :tl, [_list], _expected, _meta, _stack, context) do
-    {:tl, [non_empty_list(term(), term())], context}
+    {:tl, [non_empty_maybe_improper_list(term(), term())], context}
   end
 
   def remote_domain(:erlang, name, [_left, _right], _expected, _meta, stack, context)
@@ -1151,7 +1152,7 @@ defmodule Module.Types.Apply do
     args_docs_to_quoted_string(converter.(docs))
   end
 
-  @composite_types non_empty_list(term(), term())
+  @composite_types non_empty_maybe_improper_list(term(), term())
                    |> union(tuple())
                    |> union(open_map())
                    |> union(fun())

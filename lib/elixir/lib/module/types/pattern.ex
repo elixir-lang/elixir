@@ -345,7 +345,7 @@ defmodule Module.Types.Pattern do
   def of_pattern_tree({:non_empty_list, [head | tail], suffix}, context) do
     tail
     |> Enum.reduce(of_pattern_tree(head, context), &union(of_pattern_tree(&1, context), &2))
-    |> non_empty_list(of_pattern_tree(suffix, context))
+    |> non_empty_maybe_improper_list(of_pattern_tree(suffix, context))
   end
 
   def of_pattern_tree({:intersection, entries}, context) do
@@ -639,7 +639,7 @@ defmodule Module.Types.Pattern do
 
     case {static, dynamic} do
       {static, []} when is_descr(suffix) ->
-        {non_empty_list(Enum.reduce(static, &union/2), suffix), context}
+        {non_empty_maybe_improper_list(Enum.reduce(static, &union/2), suffix), context}
 
       {[], dynamic} ->
         {{:non_empty_list, dynamic, suffix}, context}
@@ -685,7 +685,7 @@ defmodule Module.Types.Pattern do
       Enum.map_reduce(prefix, context, &of_guard(&1, term(), expr, stack, &2))
 
     {suffix, context} = of_guard(suffix, term(), expr, stack, context)
-    {non_empty_list(Enum.reduce(prefix, &union/2), suffix), context}
+    {non_empty_maybe_improper_list(Enum.reduce(prefix, &union/2), suffix), context}
   end
 
   # {left, right}

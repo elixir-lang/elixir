@@ -213,16 +213,16 @@ defmodule Module.Types.PatternTest do
                dynamic(non_empty_list(integer()))
 
       assert typecheck!([x = [1, 2, 3 | y], y = :foo], x) ==
-               dynamic(non_empty_list(integer(), atom([:foo])))
+               dynamic(non_empty_maybe_improper_list(integer(), atom([:foo])))
 
       assert typecheck!([x = [1, 2, 3 | y], y = [1.0, 2.0, 3.0]], x) ==
                dynamic(non_empty_list(union(integer(), float())))
 
       assert typecheck!([x = [:ok | z]], {x, z}) ==
-               dynamic(tuple([non_empty_list(term(), term()), term()]))
+               dynamic(tuple([non_empty_maybe_improper_list(term(), term()), term()]))
 
       assert typecheck!([x = [y | z]], {x, y, z}) ==
-               dynamic(tuple([non_empty_list(term(), term()), term(), term()]))
+               dynamic(tuple([non_empty_maybe_improper_list(term(), term()), term(), term()]))
     end
 
     test "in patterns through ++" do
@@ -232,7 +232,7 @@ defmodule Module.Types.PatternTest do
                dynamic(atom([:foo]))
 
       assert typecheck!([x = [1, 2, 3] ++ y, y = :foo], x) ==
-               dynamic(non_empty_list(integer(), atom([:foo])))
+               dynamic(non_empty_maybe_improper_list(integer(), atom([:foo])))
 
       assert typecheck!([x = [1, 2, 3] ++ y, y = [1.0, 2.0, 3.0]], x) ==
                dynamic(non_empty_list(union(integer(), float())))

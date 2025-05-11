@@ -132,7 +132,7 @@ defmodule Module.Types.Of do
     {Float, float()},
     {Function, fun()},
     {Integer, integer()},
-    {List, union(empty_list(), non_empty_list(term(), term()))},
+    {List, union(empty_list(), non_empty_maybe_improper_list(term(), term()))},
     {Map, open_map(__struct__: if_set(negation(atom())))},
     {Port, port()},
     {PID, pid()},
