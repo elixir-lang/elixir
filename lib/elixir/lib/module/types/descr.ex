@@ -76,9 +76,6 @@ defmodule Module.Types.Descr do
   def list(type), do: list_descr(type, @empty_list, true)
   def non_empty_list(type), do: list_descr(type, @empty_list, false)
   def non_empty_maybe_improper_list(type, tail), do: list_descr(type, tail, false)
-  def improper_list(), do: improper_list(term(), term())
-  def improper_list(type, :term), do: list_descr(type, @not_list, false)
-  def improper_list(type, tail), do: list_descr(type, difference(tail, list(term())), false)
   def open_map(), do: %{map: @map_top}
   def open_map(pairs), do: map_descr(:open, pairs)
   def open_tuple(elements, _fallback \\ term()), do: tuple_descr(:open, elements)

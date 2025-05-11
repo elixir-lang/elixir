@@ -1336,23 +1336,30 @@ defmodule Module.Types.DescrTest do
       assert list(term(), term()) |> to_quoted_string() ==
                "empty_list() or non_empty_maybe_improper_list(term(), term())"
 
-      assert improper_list(term(), term()) |> to_quoted_string() ==
-               "improper_list(term(), term())"
+      assert non_empty_maybe_improper_list(term(), term()) |> to_quoted_string() ==
+               "non_empty_maybe_improper_list(term(), term())"
 
-      assert improper_list(integer(), integer()) |> to_quoted_string() ==
-               "improper_list(integer(), integer())"
+      assert non_empty_maybe_improper_list(term(), difference(term(), empty_list()))
+             |> to_quoted_string() ==
+               "non_empty_maybe_improper_list(term(), term())"
 
-      assert union(empty_list(), improper_list(integer(), integer())) |> to_quoted_string() ==
-               "empty_list() or improper_list(integer(), integer())"
+      assert non_empty_maybe_improper_list(integer(), integer()) |> to_quoted_string() ==
+               "non_empty_maybe_improper_list(integer(), integer())"
 
-      assert union(non_empty_list(integer()), improper_list(integer(), integer()))
+      assert union(empty_list(), non_empty_maybe_improper_list(integer(), integer()))
+             |> to_quoted_string() ==
+               "empty_list() or non_empty_maybe_improper_list(integer(), integer())"
+
+      assert union(non_empty_list(integer()), non_empty_maybe_improper_list(integer(), integer()))
              |> to_quoted_string() ==
                "non_empty_maybe_improper_list(integer(), empty_list() or integer())"
 
-      assert union(list(integer()), improper_list(integer(), integer())) |> to_quoted_string() ==
+      assert union(list(integer()), non_empty_maybe_improper_list(integer(), integer()))
+             |> to_quoted_string() ==
                "empty_list() or non_empty_maybe_improper_list(integer(), empty_list() or integer())"
 
-      assert union(list(term()), improper_list(term(), term())) |> to_quoted_string() ==
+      assert union(list(term()), non_empty_maybe_improper_list(term(), term()))
+             |> to_quoted_string() ==
                "empty_list() or non_empty_maybe_improper_list(term(), term())"
 
       # Test normalization
