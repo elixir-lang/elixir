@@ -487,7 +487,7 @@ defmodule Module.Types.IntegrationTest do
                 dynamic(
                   %Date{} or %DateTime{} or %NaiveDateTime{} or %Time{} or %URI{} or %Version{} or
                     %Version.Requirement{}
-                ) or atom() or binary() or empty_list() or float() or integer() or non_empty_maybe_improper_list(term(), term())
+                ) or atom() or binary() or float() or integer() or maybe_improper_list(term(), term())
 
             where "data" was given the type:
 
@@ -511,7 +511,7 @@ defmodule Module.Types.IntegrationTest do
                 dynamic(
                   %Date{} or %DateTime{} or %NaiveDateTime{} or %Time{} or %URI{} or %Version{} or
                     %Version.Requirement{}
-                ) or atom() or binary() or empty_list() or float() or integer() or non_empty_maybe_improper_list(term(), term())
+                ) or atom() or binary() or float() or integer() or maybe_improper_list(term(), term())
 
             where "data" was given the type:
 
@@ -551,7 +551,7 @@ defmodule Module.Types.IntegrationTest do
                 dynamic(
                   %Date.Range{} or %File.Stream{} or %GenEvent.Stream{} or %HashDict{} or %HashSet{} or
                     %IO.Stream{} or %MapSet{} or %Range{} or %Stream{}
-                ) or empty_list() or fun() or non_empty_maybe_improper_list(term(), term()) or non_struct_map()
+                ) or fun() or maybe_improper_list(term(), term()) or non_struct_map()
 
             where "date" was given the type:
 
@@ -580,7 +580,7 @@ defmodule Module.Types.IntegrationTest do
             but expected a type that implements the Collectable protocol, it must be one of:
 
                 dynamic(%File.Stream{} or %HashDict{} or %HashSet{} or %IO.Stream{} or %MapSet{}) or binary() or
-                  empty_list() or non_empty_maybe_improper_list(term(), term()) or non_struct_map()
+                  maybe_improper_list(term(), term()) or non_struct_map()
 
             hint: the :into option in for-comprehensions use the Collectable protocol to build its result. Either pass a valid data type or implement the protocol accordingly
         """

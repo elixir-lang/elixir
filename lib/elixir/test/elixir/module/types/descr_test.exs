@@ -1328,13 +1328,13 @@ defmodule Module.Types.DescrTest do
                "non_empty_list(atom()) or non_empty_list(integer())"
 
       assert list(term(), integer()) |> to_quoted_string() ==
-               "empty_list() or improper_list(term(), integer())"
+               "maybe_improper_list(term(), integer())"
 
       assert difference(list(term(), atom()), list(term(), boolean())) |> to_quoted_string() ==
-               "improper_list(term(), atom() and not boolean())"
+               "non_empty_maybe_improper_list(term(), atom() and not boolean())"
 
       assert list(term(), term()) |> to_quoted_string() ==
-               "empty_list() or non_empty_maybe_improper_list(term(), term())"
+               "maybe_improper_list(term(), term())"
 
       assert non_empty_maybe_improper_list(term(), term()) |> to_quoted_string() ==
                "non_empty_maybe_improper_list(term(), term())"
@@ -1347,8 +1347,7 @@ defmodule Module.Types.DescrTest do
                "non_empty_maybe_improper_list(integer(), integer())"
 
       assert union(empty_list(), non_empty_maybe_improper_list(integer(), integer()))
-             |> to_quoted_string() ==
-               "empty_list() or non_empty_maybe_improper_list(integer(), integer())"
+             |> to_quoted_string() == "maybe_improper_list(integer(), integer())"
 
       assert union(non_empty_list(integer()), non_empty_maybe_improper_list(integer(), integer()))
              |> to_quoted_string() ==
@@ -1356,11 +1355,11 @@ defmodule Module.Types.DescrTest do
 
       assert union(list(integer()), non_empty_maybe_improper_list(integer(), integer()))
              |> to_quoted_string() ==
-               "empty_list() or non_empty_maybe_improper_list(integer(), empty_list() or integer())"
+               "maybe_improper_list(integer(), empty_list() or integer())"
 
       assert union(list(term()), non_empty_maybe_improper_list(term(), term()))
              |> to_quoted_string() ==
-               "empty_list() or non_empty_maybe_improper_list(term(), term())"
+               "maybe_improper_list(term(), term())"
 
       # Test normalization
 
@@ -1369,15 +1368,15 @@ defmodule Module.Types.DescrTest do
 
       # Merge subtypes
       assert union(list(float(), pid()), list(number(), pid())) |> to_quoted_string() ==
-               "empty_list() or improper_list(float() or integer(), pid())"
+               "maybe_improper_list(float() or integer(), pid())"
 
       # Merge last element types
       assert union(list(atom([:ok]), integer()), list(atom([:ok]), float())) |> to_quoted_string() ==
-               "empty_list() or improper_list(:ok, float() or integer())"
+               "maybe_improper_list(:ok, float() or integer())"
 
       assert union(dynamic(list(integer(), float())), dynamic(list(integer(), pid())))
              |> to_quoted_string() ==
-               "dynamic(empty_list() or improper_list(integer(), float() or pid()))"
+               "dynamic(maybe_improper_list(integer(), float() or pid()))"
     end
 
     test "tuples" do

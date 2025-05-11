@@ -1080,7 +1080,7 @@ defmodule Module.Types.Descr do
   defp list_tl_static(%{}), do: none()
 
   defp list_improper_term?(:term), do: true
-  defp list_improper_term?(term), do: equal?(term, @not_list) or equal?(term, @not_non_empty_list)
+  defp list_improper_term?(term), do: equal?(term, @not_non_empty_list)
 
   defp list_to_quoted(dnf, empty?, opts) do
     dnf = list_normalize(dnf)
@@ -1092,17 +1092,14 @@ defmodule Module.Types.Descr do
             name = if empty?, do: :list, else: :non_empty_list
             {name, [to_quoted(list_type, opts)], empty?}
           else
-            type =
-              if subtype?(@empty_list, last_type),
-                do: :non_empty_maybe_improper_list,
-                else: :improper_list
+            name = if empty?, do: :maybe_improper_list, else: :non_empty_maybe_improper_list
 
-            # mark improper_list(term(), term()) as such rather than:
-            # improper_list(term(), atom() or binary() or float() or ...)
+            # mark non_empty_maybe_improper_list(term(), term()) as such rather than:
+            # non_empty_maybe_improper_list(term(), atom() or binary() or float() or ...)
             rendered_last_type = if list_improper_term?(last_type), do: :term, else: last_type
 
             args = [to_quoted(list_type, opts), to_quoted(rendered_last_type, opts)]
-            {type, args, list_rendered?}
+            {name, args, empty?}
           end
 
         acc =
