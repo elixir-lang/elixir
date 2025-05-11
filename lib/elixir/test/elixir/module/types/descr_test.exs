@@ -665,21 +665,21 @@ defmodule Module.Types.DescrTest do
       assert fun_fetch(dynamic(), 1) == :ok
     end
 
-    test "truthness" do
+    test "truthiness" do
       for type <- [term(), none(), atom(), boolean(), union(atom([false]), integer())] do
-        assert truthness(type) == :undefined
-        assert truthness(dynamic(type)) == :undefined
+        assert truthiness(type) == :undefined
+        assert truthiness(dynamic(type)) == :undefined
       end
 
       for type <- [atom([false]), atom([nil]), atom([nil, false]), atom([false, nil])] do
-        assert truthness(type) == :always_false
-        assert truthness(dynamic(type)) == :always_false
+        assert truthiness(type) == :always_false
+        assert truthiness(dynamic(type)) == :always_false
       end
 
       for type <-
             [negation(atom()), atom([true]), negation(atom([false, nil])), atom([:ok]), integer()] do
-        assert truthness(type) == :always_true
-        assert truthness(dynamic(type)) == :always_true
+        assert truthiness(type) == :always_true
+        assert truthiness(dynamic(type)) == :always_true
       end
     end
 
