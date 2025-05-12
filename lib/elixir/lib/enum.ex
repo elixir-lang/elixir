@@ -760,25 +760,9 @@ defmodule Enum do
   @doc since: "1.12.0"
   @spec count_until(t, pos_integer) :: non_neg_integer
   def count_until(enumerable, limit) when is_integer(limit) and limit > 0 do
-    stop_at = limit - 1
-
-    case Enumerable.count(enumerable) do
-      {:ok, value} ->
-        Kernel.min(value, limit)
-
-      {:error, module} ->
-        enumerable
-        |> module.reduce(
-          {:cont, 0},
-          fn
-            _, ^stop_at ->
-              {:halt, limit}
-
-            _, acc ->
-              {:cont, acc + 1}
-          end
-        )
-        |> elem(1)
+    case enumerable do
+      list when is_list(list) -> count_until_list(list, limit, 0)
+      _ -> count_until_enum(enumerable, limit)
     end
   end
 
@@ -797,24 +781,10 @@ defmodule Enum do
   @doc since: "1.12.0"
   @spec count_until(t, (element -> as_boolean(term)), pos_integer) :: non_neg_integer
   def count_until(enumerable, fun, limit) when is_integer(limit) and limit > 0 do
-    stop_at = limit - 1
-
-    Enumerable.reduce(enumerable, {:cont, 0}, fn
-      entry, ^stop_at ->
-        if fun.(entry) do
-          {:halt, limit}
-        else
-          {:cont, stop_at}
-        end
-
-      entry, acc ->
-        if fun.(entry) do
-          {:cont, acc + 1}
-        else
-          {:cont, acc}
-        end
-    end)
-    |> elem(1)
+    case enumerable do
+      list when is_list(list) -> count_until_list(list, fun, limit, 0)
+      _ -> count_until_enum(enumerable, fun, limit)
+    end
   end
 
   @doc """
@@ -4351,6 +4321,58 @@ defmodule Enum do
   defp concat_enum(enum) do
     fun = &[&1 | &2]
     enum |> reduce([], &reduce(&1, &2, fun)) |> :lists.reverse()
+  end
+
+  # count_until
+
+  @compile {:inline, count_until_list: 3}
+
+  defp count_until_list([], _limit, acc), do: acc
+
+  defp count_until_list([_head | tail], limit, acc) do
+    case acc + 1 do
+      ^limit -> limit
+      acc -> count_until_list(tail, limit, acc)
+    end
+  end
+
+  defp count_until_enum(enumerable, limit) do
+    Enumerable.reduce(enumerable, {:cont, 0}, fn _entry, acc ->
+      case acc + 1 do
+        ^limit -> {:halt, limit}
+        acc -> {:cont, acc}
+      end
+    end)
+    |> elem(1)
+  end
+
+  @compile {:inline, count_until_list: 4}
+
+  defp count_until_list([], _fun, _limit, acc), do: acc
+
+  defp count_until_list([head | tail], fun, limit, acc) do
+    if fun.(head) do
+      case acc + 1 do
+        ^limit -> limit
+        acc -> count_until_list(tail, fun, limit, acc)
+      end
+    else
+      count_until_list(tail, fun, limit, acc)
+    end
+  end
+
+  defp count_until_enum(enumerable, fun, limit) do
+    Enumerable.reduce(enumerable, {:cont, 0}, fn entry, acc ->
+      if fun.(entry) do
+        case acc + 1 do
+          ^limit -> {:halt, limit}
+          acc -> {:cont, acc}
+        end
+      else
+        {:cont, acc}
+      end
+    end)
+    |> elem(1)
   end
 
   # dedup
