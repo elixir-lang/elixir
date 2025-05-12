@@ -1672,6 +1672,24 @@ defmodule Module.Types.DescrTest do
                """
     end
 
+    test "function" do
+      assert fun() |> to_quoted_string() == "fun()"
+      assert fun(1) |> to_quoted_string() == "(none() -> term())"
+
+      assert fun([integer(), float()], boolean()) |> to_quoted_string() ==
+               "(integer(), float() -> boolean())"
+
+      assert fun([integer()], boolean())
+             |> union(fun([float()], boolean()))
+             |> to_quoted_string() ==
+               "(float() -> boolean()) or (integer() -> boolean())"
+
+      assert fun([integer()], boolean())
+             |> intersection(fun([float()], boolean()))
+             |> to_quoted_string() ==
+               "(integer() -> boolean()) and (float() -> boolean())"
+    end
+
     test "map" do
       assert empty_map() |> to_quoted_string() == "empty_map()"
       assert open_map() |> to_quoted_string() == "map()"

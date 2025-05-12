@@ -93,22 +93,41 @@ defmodule Module.Types.Descr do
   Creates a function type with the given arguments and return type.
 
   ## Examples
-      iex> fun([integer()], atom())  # Creates (integer) -> atom
-      iex> fun([integer(), float()], boolean())  # Creates (integer, float) -> boolean
+
+      fun([integer()], atom())
+      #=> (integer -> atom)
+
+      fun([integer(), float()], boolean())
+      #=> (integer, float -> boolean)
   """
   def fun(args, return) when is_list(args), do: fun_descr(args, return)
 
   @doc """
-  Creates the top function type for the given arity, where all arguments are none()
-  and return is term().
+  Creates the top function type for the given arity,
+  where all arguments are none() and return is term().
 
   ## Examples
-      iex> fun(1)  # Creates (none) -> term
-      iex> fun(2)  # Creates (none, none) -> term
+
+      fun(1)
+      #=> (none -> term)
+
+      fun(2)
+      #=> Creates (none, none) -> term
   """
   def fun(arity) when is_integer(arity) and arity >= 0 do
     fun(List.duplicate(none(), arity), term())
   end
+
+  @doc """
+  Tuples represent function domains, using unions to combine parameters.
+
+  Example: for functions (integer, float ->:ok) and (float, integer -> :error)
+  domain isn't {integer|float,integer|float} as that would incorrectly accept {float,float}
+  Instead, it is {integer,float} or {float,integer}
+
+  Made public for testing.
+  """
+  def domain_descr(types) when is_list(types), do: tuple(types)
 
   ## Optional
 
@@ -704,11 +723,11 @@ defmodule Module.Types.Descr do
         if not empty?(descr) and fun_only?(descr, arity), do: :ok, else: :error
 
       {dynamic, static} ->
-        empty_static = empty?(static)
+        empty_static? = empty?(static)
 
         cond do
-          not empty_static -> if fun_only?(static, arity), do: :ok, else: :error
-          empty_static and not empty?(intersection(dynamic, fun(arity))) -> :ok
+          not empty_static? -> if fun_only?(static, arity), do: :ok, else: :error
+          empty_static? and not empty?(intersection(dynamic, fun(arity))) -> :ok
           true -> :error
         end
     end
@@ -880,12 +899,15 @@ defmodule Module.Types.Descr do
 
   # Function types are represented using Binary Decision Diagrams (BDDs) for efficient
   # handling of unions, intersections, and negations.
+  #
+  # Currently, they only represent weak types. It is yet to be decided how all of the
+  # types will be encoded in the descr.
 
   ### Key concepts:
 
-  # * BDD structure: A tree with function nodes and :fun_top/:fun_bottom leaves. Paths to :fun_top
-  #   represent valid function types. Nodes are positive when following a left
-  #   branch (e.g. (int, float) -> bool) and negative otherwise.
+  # * BDD structure: A tree with function nodes and :fun_top/:fun_bottom leaves.
+  #   Paths to :fun_top represent valid function types. Nodes are positive when
+  #   following a left branch (e.g. (int, float -> bool) and negative otherwise.
 
   # * Function variance:
   #   - Contravariance in arguments: If s <: t, then (t → r) <: (s → r)
@@ -893,34 +915,30 @@ defmodule Module.Types.Descr do
 
   # * Representation:
   #   - fun(): Top function type (leaf 1)
-  #   - Function literals: {tag, [t1, ..., tn], t} where [t1, ..., tn] are argument types and t is return type
-  #     tag is either `:weak` or `:strong`
-  #     TODO: implement `:strong`
+  #   - Function literals: {[t1, ..., tn], t} where [t1, ..., tn] are argument types and t is return type
   #   - Normalized form for function applications: {domain, arrows, arity} is produced by `fun_normalize/1`
 
   # * Examples:
   #   - fun([integer()], atom()): A function from integer to atom
   #   - intersection(fun([integer()], atom()), fun([float()], boolean())): A function handling both signatures
 
-  # Note: Function domains are expressed as tuple types. We use separate representations rather than
-  # unary functions with tuple domains to handle special cases like representing functions of a
-  # specific arity (e.g., (none,none->term) for arity 2).
-
+  # Note: Function domains are expressed as tuple types. We use separate representations
+  # rather than unary functions with tuple domains to handle special cases like representing
+  # functions of a specific arity (e.g., (none,none->term) for arity 2).
   defp fun_new(inputs, output), do: {{inputs, output}, :fun_top, :fun_bottom}
 
-  @doc """
-  Creates a function type from a list of inputs and an output where the inputs and/or output may be dynamic.
-
-  For function (t → s) with dynamic components:
-  - Static part:  (upper_bound(t) → lower_bound(s))
-  - Dynamic part: dynamic(lower_bound(t) → upper_bound(s))
-
-  When handling dynamic types:
-  - `upper_bound(t)` extracts the upper bound (most general type) of a gradual type.
-    For `dynamic(integer())`, it is `integer()`.
-  - `lower_bound(t)` extracts the lower bound (most specific type) of a gradual type.
-  """
-  def fun_descr(args, output) when is_list(args) do
+  # Creates a function type from a list of inputs and an output
+  # where the inputs and/or output may be dynamic.
+  #
+  # For function (t → s) with dynamic components:
+  # - Static part: (upper_bound(t) → lower_bound(s))
+  # - Dynamic part: dynamic(lower_bound(t) → upper_bound(s))
+  #
+  # When handling dynamic types:
+  # - `upper_bound(t)` extracts the upper bound (most general type) of a gradual type.
+  #   For `dynamic(integer())`, it is `integer()`.
+  # - `lower_bound(t)` extracts the lower bound (most specific type) of a gradual type.
+  defp fun_descr(args, output) when is_list(args) do
     dynamic_arguments? = are_arguments_dynamic?(args)
     dynamic_output? = match?(%{dynamic: _}, output)
 
@@ -949,16 +967,11 @@ defmodule Module.Types.Descr do
   defp lower_bound(:term), do: :term
   defp lower_bound(type), do: Map.delete(type, :dynamic)
 
-  # Tuples represent function domains, using unions to combine parameters.
-  # Example: for functions (integer,float)->:ok and (float,integer)->:error
-  # domain isn't {integer|float,integer|float} as that would incorrectly accept {float,float}
-  # Instead, it is {integer,float} or {float,integer}
-  def domain_descr(types) when is_list(types), do: tuple(types)
-
   @doc """
   Calculates the domain of a function type.
 
   For a function type, the domain is the set of valid input types.
+
   Returns:
   - `:badfunction` if the type is not a function type
   - A tuple type representing the domain for valid function types
@@ -1021,7 +1034,7 @@ defmodule Module.Types.Descr do
 
   defp fun_domain_static(:term), do: :badfunction
   defp fun_domain_static(%{}), do: {:ok, none()}
-  defp fun_domain_static(:emptyfunction), do: {:ok, none()}
+  defp fun_domain_static(:empty_function), do: {:ok, none()}
 
   @doc """
   Applies a function type to a list of argument types.
@@ -1205,7 +1218,7 @@ defmodule Module.Types.Descr do
   ## Return Values
   #
   # - `{domain, arrows, arity}` for valid function BDDs
-  # - `:emptyfunction` if the BDD represents an empty function type
+  # - `:empty_function` if the BDD represents an empty function type
   #
   # ## Internal Use
   #
@@ -1232,7 +1245,7 @@ defmodule Module.Types.Descr do
         end
       end)
 
-    if arrows == [], do: :emptyfunction, else: {domain, arrows, arity}
+    if arrows == [], do: :empty_function, else: {domain, arrows, arity}
   end
 
   # Checks if a function type is empty.
@@ -1262,12 +1275,12 @@ defmodule Module.Types.Descr do
   # 2. There exists a negative function that negates the whole positive intersection
 
   ## Examples
+  #
   # - `{[fun(1)], []}` is not empty
   # - `{[fun(1), fun(2)], []}` is empty (different arities)
   # - `{[fun(integer() -> atom())], [fun(none() -> term())]}` is empty
   # - `{[], _}` (representing the top function type fun()) is never empty
   #
-  # TODO: test performance
   defp fun_empty?([], _), do: false
 
   defp fun_empty?(positives, negatives) do
@@ -1278,9 +1291,12 @@ defmodule Module.Types.Descr do
 
       {positive_arity, positive_domain} ->
         # Check if any negative function negates the whole positive intersection
-        # e.g. (integer()->atom()) is negated by
-        # i) (none()->term())                                    ii)     (none()->atom())
-        # ii) (integer()->term())                                iv)    (integer()->atom())
+        # e.g. (integer() -> atom()) is negated by:
+        #
+        # * (none() -> term())
+        # * (none() -> atom())
+        # * (integer() -> term())
+        # * (integer() -> atom())
         Enum.any?(negatives, fn {neg_arguments, neg_return} ->
           # Filter positives to only those with matching arity, then check if the negative
           # function's domain is a supertype of the positive domain and if the phi function
@@ -1311,7 +1327,7 @@ defmodule Module.Types.Descr do
 
   # Implements the Φ (phi) function for determining function subtyping relationships.
   #
-  ## Algorithm
+  # ## Algorithm
   #
   # For inputs t₁...tₙ, booleans b₁...bₙ, negated return type t, and set of arrow types P:
   #
@@ -1324,7 +1340,6 @@ defmodule Module.Types.Descr do
   # Returns true if the intersection of the positives is a subtype of (t1,...,tn)->(not t).
   #
   # See [Castagna and Lanvin (2024)](https://arxiv.org/abs/2408.14345), Theorem 4.2.
-
   defp phi_starter(arguments, return, positives) do
     n = length(arguments)
     # Arity mismatch: if there is one positive function with a different arity,
@@ -1399,15 +1414,13 @@ defmodule Module.Types.Descr do
   defp fun_to_quoted(:fun, _opts), do: [{:fun, [], []}]
 
   defp fun_to_quoted(bdd, opts) do
-    arrows = bdd |> fun_get()
+    arrows = fun_get(bdd)
 
-    for {positives, negatives} <- arrows,
-        not fun_empty?(positives, negatives) do
+    for {positives, negatives} <- arrows, not fun_empty?(positives, negatives) do
       fun_intersection_to_quoted(positives, opts)
     end
     |> case do
       [] -> []
-      [single] -> [single]
       multiple -> [Enum.reduce(multiple, &{:or, [], [&2, &1]})]
     end
   end
@@ -1415,11 +1428,11 @@ defmodule Module.Types.Descr do
   defp fun_intersection_to_quoted(intersection, opts) do
     intersection
     |> Enum.map(fn {args, ret} ->
-      {:->, [], [[to_quoted(tuple_descr(:closed, args), opts)], to_quoted(ret, opts)]}
+      {:__block__, [],
+       [[{:->, [], [Enum.map(args, &to_quoted(&1, opts)), to_quoted(ret, opts)]}]]}
     end)
     |> case do
       [] -> {:fun, [], []}
-      [single] -> single
       multiple -> Enum.reduce(multiple, &{:and, [], [&2, &1]})
     end
   end

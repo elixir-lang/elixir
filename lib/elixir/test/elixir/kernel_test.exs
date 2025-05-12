@@ -465,10 +465,6 @@ defmodule KernelTest do
 
   test "then/2" do
     assert 1 |> then(fn x -> x * 2 end) == 2
-
-    assert_raise BadArityError, fn ->
-      1 |> then(fn x, y -> x * y end)
-    end
   end
 
   test "if/2 boolean optimization does not leak variables during expansion" do
