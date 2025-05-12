@@ -705,13 +705,13 @@ defmodule Module.Types.Descr do
   ]
 
   @doc """
-  Compute the truthness of an element.
+  Compute the truthiness of an element.
 
   It is either :undefined, :always_true, or :always_false.
   """
-  def truthness(:term), do: :undefined
+  def truthiness(:term), do: :undefined
 
-  def truthness(%{} = descr) do
+  def truthiness(%{} = descr) do
     descr = Map.get(descr, :dynamic, descr)
 
     case descr do

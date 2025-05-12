@@ -285,7 +285,7 @@ defmodule Module.Types.Expr do
 
         context =
           if is_warning(stack) do
-            case truthness(head_type) do
+            case truthiness(head_type) do
               :always_true when not last? ->
                 warning = {:badcond, "always match", head_type, head, context}
                 warn(__MODULE__, warning, meta, stack, context)
