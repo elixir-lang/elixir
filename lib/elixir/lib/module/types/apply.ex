@@ -211,11 +211,11 @@ defmodule Module.Types.Apply do
         {:erlang, :rem, [{[integer(), integer()], integer()}]},
         {:erlang, :round, [{[union(integer(), float())], integer()}]},
         {:erlang, :self, [{[], pid()}]},
-        {:erlang, :spawn, [{[fun()], pid()}]},
+        {:erlang, :spawn, [{[fun(0)], pid()}]},
         {:erlang, :spawn, [{mfargs, pid()}]},
-        {:erlang, :spawn_link, [{[fun()], pid()}]},
+        {:erlang, :spawn_link, [{[fun(0)], pid()}]},
         {:erlang, :spawn_link, [{mfargs, pid()}]},
-        {:erlang, :spawn_monitor, [{[fun()], tuple([reference(), pid()])}]},
+        {:erlang, :spawn_monitor, [{[fun(0)], tuple([reference(), pid()])}]},
         {:erlang, :spawn_monitor, [{mfargs, tuple([reference(), pid()])}]},
         {:erlang, :tuple_size, [{[open_tuple([])], integer()}]},
         {:erlang, :trunc, [{[union(integer(), float())], integer()}]},
@@ -475,7 +475,7 @@ defmodule Module.Types.Apply do
     # TODO: We cannot return the unions of functions. Do we forbid this?
     # Do we check it is always the same return type? Do we simply say it is a function?
     if stack.mode == :traversal do
-      {dynamic(fun()), context}
+      {dynamic(fun(arity)), context}
     else
       context =
         Enum.reduce(
@@ -484,7 +484,7 @@ defmodule Module.Types.Apply do
           &(signature(&1, fun, arity, meta, stack, &2) |> elem(1))
         )
 
-      {dynamic(fun()), context}
+      {dynamic(fun(arity)), context}
     end
   end
 
@@ -669,17 +669,17 @@ defmodule Module.Types.Apply do
 
     case stack.local_handler.(meta, fun_arity, stack, context) do
       false ->
-        {dynamic(fun()), context}
+        {dynamic(fun(arity)), context}
 
       {_kind, _info, context} when stack.mode == :traversal ->
-        {dynamic(fun()), context}
+        {dynamic(fun(arity)), context}
 
       {kind, _info, context} ->
         if stack.mode != :infer and kind == :defp do
           # Mark all clauses as used, as the function is being exported.
-          {dynamic(fun()), put_in(context.local_used[fun_arity], [])}
+          {dynamic(fun(arity)), put_in(context.local_used[fun_arity], [])}
         else
-          {dynamic(fun()), context}
+          {dynamic(fun(arity)), context}
         end
     end
   end
