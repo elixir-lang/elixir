@@ -12,7 +12,8 @@ defmodule ExUnit.Case do
   When used, it accepts the following options:
 
     * `:async` - configures tests in this module to run concurrently with
-      tests in other modules. Tests in the same module never run concurrently.
+      tests in other modules. Tests in the same module never run concurrently
+      (with the exception of tests run via the `:parameterize` option - see below).
       It should be enabled only if tests do not change any global state.
       Defaults to `false`.
 
