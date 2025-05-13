@@ -78,8 +78,8 @@ defmodule Node do
   end
 
   # TODO: Deprecate me on Elixir v1.23
-  def start(name, opts) when is_atom(opts) do
-    :net_kernel.start([name, opts, 15000])
+  def start(name, type) when is_atom(type) do
+    :net_kernel.start([name, type, 15_000])
   end
 
   # TODO: Deprecate me on Elixir v1.23
@@ -92,7 +92,7 @@ defmodule Node do
   Turns a distributed node into a non-distributed node.
 
   For other nodes in the network, this is the same as the node going down.
-  Only possible when the node was started with `Node.start/3`, otherwise
+  Only possible when the node was started with `Node.start/2`, otherwise
   returns `{:error, :not_allowed}`. Returns `{:error, :not_found}` if the
   local node is not alive.
   """

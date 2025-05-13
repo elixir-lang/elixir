@@ -1712,7 +1712,7 @@ defmodule IEx.HelpersTest do
     Enum.each(mods, fn mod ->
       File.rm("#{mod}.beam")
       :code.purge(mod)
-      true = :code.delete(mod)
+      :code.delete(mod)
     end)
   end
 

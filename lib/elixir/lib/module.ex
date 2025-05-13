@@ -421,6 +421,12 @@ defmodule Module do
         end
       end
 
+  The function given to `on_load` should avoid calling functions from
+  other modules. If you must call functions in other modules and those
+  modules are defined within the same project, the called modules must
+  have the `@compile {:autoload, true}` annotation, so they are loaded
+  upfront (and not from within the `@on_load` callback).
+
   ### `@vsn`
 
   Specify the module version. Accepts any valid Elixir value, for example:
@@ -518,7 +524,11 @@ defmodule Module do
 
   ### `@after_compile`
 
-  A hook that will be invoked right after the current module is compiled.
+  A hook that will be invoked with the bytecode of the current module.
+  Although the module has already been compiled, its bytecode may not have
+  been loaded to memory nor written to disk. For those reasons, prefer to
+  use `@after_verify` callbacks or use `Code.ensure_compiled!/1` to wait
+  until the module is fully available for introspection/invocation.
 
   Accepts a module or a `{module, function_name}` tuple. The function
   must take two arguments: the module environment and its bytecode.
@@ -590,9 +600,11 @@ defmodule Module do
       name/arity pairs. Inlining is applied locally, calls from another
       module are not affected by this option
 
-    * `@compile {:autoload, false}` - disables automatic loading of
-      modules after compilation. Instead, the module will be loaded after
-      it is dispatched to
+    * `@compile {:autoload, true}` - configures if modules are automatically
+      loaded after definition. It defaults to `false` when compiling modules
+      to `.beam` files in disk (as the modules are then lazily loaded from
+      disk). If modules are not compiled to disk, then they are always loaded,
+      regardless of this flag
 
     * `@compile {:no_warn_undefined, Mod}` or
       `@compile {:no_warn_undefined, {Mod, fun, arity}}` - does not warn if
@@ -857,7 +869,7 @@ defmodule Module do
   end
 
   defp validated_eval_quoted(module, quoted, binding, env_or_opts) do
-    assert_not_compiled!({:eval_quoted, 4}, module)
+    assert_not_compiled!({:eval_quoted, 4}, module, :all)
     :elixir_def.reset_last(module)
     env = :elixir.env_for_eval(env_or_opts)
     {value, binding, _env} = :elixir.eval_quoted(quoted, binding, %{env | module: module})
@@ -1202,8 +1214,7 @@ defmodule Module do
   @spec defines?(module, definition) :: boolean
   def defines?(module, {name, arity} = tuple)
       when is_atom(module) and is_atom(name) and is_integer(arity) and arity >= 0 and arity <= 255 do
-    assert_not_compiled!(__ENV__.function, module, @extra_error_msg_defines?)
-    {set, _bag} = data_tables_for(module)
+    {set, _bag} = data_tables_for!(module, __ENV__.function, @extra_error_msg_defines?)
     :ets.member(set, {:def, tuple})
   end
 
@@ -1230,9 +1241,7 @@ defmodule Module do
   def defines?(module, {name, arity} = tuple, def_kind)
       when is_atom(module) and is_atom(name) and is_integer(arity) and arity >= 0 and arity <= 255 and
              def_kind in [:def, :defp, :defmacro, :defmacrop] do
-    assert_not_compiled!(__ENV__.function, module, @extra_error_msg_defines?)
-
-    {set, _bag} = data_tables_for(module)
+    {set, _bag} = data_tables_for!(module, __ENV__.function, @extra_error_msg_defines?)
 
     case :ets.lookup(set, {:def, tuple}) do
       [{_, ^def_kind, _, _, _, _}] -> true
@@ -1286,8 +1295,7 @@ defmodule Module do
   @doc since: "1.13.0"
   @spec attributes_in(module) :: [atom]
   def attributes_in(module) when is_atom(module) do
-    assert_not_compiled!(__ENV__.function, module)
-    {set, _} = data_tables_for(module)
+    {set, _} = data_tables_for!(module, __ENV__.function, "")
     :ets.select(set, [{{:"$1", :_, :_, :_}, [{:is_atom, :"$1"}], [:"$1"]}])
   end
 
@@ -1315,7 +1323,7 @@ defmodule Module do
   @doc since: "1.13.0"
   @spec overridables_in(module) :: [atom]
   def overridables_in(module) when is_atom(module) do
-    assert_not_compiled!(__ENV__.function, module)
+    assert_not_compiled!(__ENV__.function, module, :all)
     :elixir_overridable.overridables_for(module)
   end
 
@@ -1340,8 +1348,7 @@ defmodule Module do
   """
   @spec definitions_in(module) :: [definition]
   def definitions_in(module) when is_atom(module) do
-    assert_not_compiled!(__ENV__.function, module, @extra_error_msg_definitions_in)
-    {_, bag} = data_tables_for(module)
+    {_, bag} = data_tables_for!(module, __ENV__.function, @extra_error_msg_definitions_in)
     bag_lookup_element(bag, :defs, 2)
   end
 
@@ -1365,8 +1372,7 @@ defmodule Module do
   @spec definitions_in(module, def_kind) :: [definition]
   def definitions_in(module, kind)
       when is_atom(module) and kind in [:def, :defp, :defmacro, :defmacrop] do
-    assert_not_compiled!(__ENV__.function, module, @extra_error_msg_definitions_in)
-    {set, _} = data_tables_for(module)
+    {set, _} = data_tables_for!(module, __ENV__.function, @extra_error_msg_definitions_in)
     :ets.select(set, [{{{:def, :"$1"}, kind, :_, :_, :_, :_}, [], [:"$1"]}])
   end
 
@@ -1400,8 +1406,7 @@ defmodule Module do
   @doc since: "1.12.0"
   def get_definition(module, {name, arity}, options \\ [])
       when is_atom(module) and is_atom(name) and is_integer(arity) and is_list(options) do
-    assert_not_compiled!(__ENV__.function, module, "")
-    {set, bag} = data_tables_for(module)
+    {set, bag} = data_tables_for!(module, __ENV__.function, "")
 
     case :ets.lookup(set, {:def, {name, arity}}) do
       [{_key, kind, meta, _, _, _}] ->
@@ -1427,7 +1432,7 @@ defmodule Module do
   @spec delete_definition(module, definition) :: boolean()
   def delete_definition(module, {name, arity})
       when is_atom(module) and is_atom(name) and is_integer(arity) do
-    assert_not_readonly!(__ENV__.function, module)
+    assert_not_compiled!(__ENV__.function, module, :writeable)
     :elixir_def.take_definition(module, {name, arity}) != false
   end
 
@@ -1445,7 +1450,7 @@ defmodule Module do
   """
   @spec make_overridable(module, [definition]) :: :ok
   def make_overridable(module, tuples) when is_atom(module) and is_list(tuples) do
-    assert_not_readonly!(__ENV__.function, module)
+    assert_not_compiled!(__ENV__.function, module, :writeable)
 
     func = fn
       {function_name, arity} = tuple
@@ -1471,7 +1476,9 @@ defmodule Module do
 
   @spec make_overridable(module, module) :: :ok
   def make_overridable(module, behaviour) when is_atom(module) and is_atom(behaviour) do
-    case check_module_for_overridable(module, behaviour) do
+    {_, bag} = data_tables_for!(module, __ENV__.function, "")
+
+    case check_module_for_overridable(bag, behaviour) do
       :ok ->
         :ok
 
@@ -1491,8 +1498,7 @@ defmodule Module do
     make_overridable(module, tuples)
   end
 
-  defp check_module_for_overridable(module, behaviour) do
-    {_, bag} = data_tables_for(module)
+  defp check_module_for_overridable(bag, behaviour) do
     behaviour_definitions = bag_lookup_element(bag, {:accumulate, :behaviour}, 2)
 
     cond do
@@ -1650,9 +1656,7 @@ defmodule Module do
   @doc since: "1.10.0"
   @spec has_attribute?(module, atom) :: boolean
   def has_attribute?(module, key) when is_atom(module) and is_atom(key) do
-    assert_not_compiled!(__ENV__.function, module)
-    {set, _bag} = data_tables_for(module)
-
+    {set, _bag} = data_tables_for!(module, __ENV__.function, "")
     :ets.member(set, key)
   end
 
@@ -1676,8 +1680,7 @@ defmodule Module do
   """
   @spec delete_attribute(module, atom) :: term
   def delete_attribute(module, key) when is_atom(module) and is_atom(key) do
-    assert_not_readonly!(__ENV__.function, module)
-    {set, bag} = data_tables_for(module)
+    {set, bag} = data_tables_for!(module, __ENV__.function, "")
 
     case :ets.lookup(set, key) do
       [{_, _, :accumulate, traces}] ->
@@ -1731,8 +1734,7 @@ defmodule Module do
   @spec register_attribute(module, atom, [{:accumulate, boolean}, {:persist, boolean}]) :: :ok
   def register_attribute(module, attribute, options)
       when is_atom(module) and is_atom(attribute) and is_list(options) do
-    assert_not_readonly!(__ENV__.function, module)
-    {set, bag} = data_tables_for(module)
+    {set, bag} = data_tables_for!(module, __ENV__.function, "")
 
     if Keyword.get(options, :persist) do
       :ets.insert(bag, {:persisted_attributes, attribute})
@@ -1788,12 +1790,10 @@ defmodule Module do
   @doc false
   @deprecated "Use @doc instead"
   def add_doc(module, line, kind, {name, arity}, signature \\ [], doc) do
-    assert_not_compiled!(__ENV__.function, module)
-
     if kind in [:defp, :defmacrop, :typep] do
       if doc, do: {:error, :private_doc}, else: :ok
     else
-      {set, _bag} = data_tables_for(module)
+      {set, _bag} = data_tables_for!(module, __ENV__.function, "")
       compile_doc(set, nil, line, kind, name, arity, signature, nil, doc, %{}, __ENV__, false)
       :ok
     end
@@ -1804,7 +1804,7 @@ defmodule Module do
   # This function is private and must be used only internally.
   def compile_definition_attributes(env, kind, name, args, _guards, body) do
     %{module: module} = env
-    {set, bag} = data_tables_for(module)
+    {set, bag} = data_tables_for!(module, __ENV__.function, "")
     {arity, defaults} = args_count(args, 0, 0)
 
     context = Keyword.get(:ets.lookup_element(set, {:def, {name, arity}}, 3), :context)
@@ -1989,13 +1989,12 @@ defmodule Module do
          default,
          function_name_arity
        ) do
-    assert_not_compiled!(
-      function_name_arity,
-      module,
-      "Use the Module.__info__/1 callback or Code.fetch_docs/1 instead"
-    )
-
-    {set, bag} = data_tables_for(module)
+    {set, bag} =
+      data_tables_for!(
+        module,
+        function_name_arity,
+        "Use the Module.__info__/1 callback or Code.fetch_docs/1 instead"
+      )
 
     case :ets.lookup(set, key) do
       [{_, _, :unset, _}] ->
@@ -2084,8 +2083,8 @@ defmodule Module do
   # Used internally by Kernel's @.
   # This function is private and must be used only internally.
   def __put_attribute__(module, key, value, warn_line, traces) when is_atom(key) do
-    assert_not_readonly!({:put_attribute, 3}, module)
-    {set, bag} = data_tables_for(module)
+    assert_not_compiled!({:put_attribute, 3}, module, :writeable)
+    {set, bag} = data_tables_for!(module, {:put_attribute, 3}, "")
     put_attribute(module, key, value, warn_line, traces, set, bag)
     :ok
   end
@@ -2376,8 +2375,13 @@ defmodule Module do
     end
   end
 
-  defp data_tables_for(module) do
-    :elixir_module.data_tables(module)
+  defp data_tables_for!(module, function_name_arity, message) do
+    try do
+      :elixir_module.data_tables(module)
+    catch
+      :error, :badarg ->
+        raise ArgumentError, assert_not_compiled_message(function_name_arity, module, message)
+    end
   end
 
   defp bag_lookup_element(table, key, pos) do
@@ -2386,18 +2390,15 @@ defmodule Module do
     :error, :badarg -> []
   end
 
-  defp assert_not_compiled!(function_name_arity, module, extra_msg \\ "") do
-    open?(module) ||
-      raise ArgumentError,
-            assert_not_compiled_message(function_name_arity, module, extra_msg)
-  end
-
-  defp assert_not_readonly!({function_name, arity}, module) do
+  defp assert_not_compiled!({function_name, arity}, module, mode) do
     case :elixir_module.mode(module) do
       :all ->
         :ok
 
-      :readonly ->
+      :readonly when mode == :all ->
+        :ok
+
+      :readonly when mode == :writeable ->
         raise ArgumentError,
               "could not call Module.#{function_name}/#{arity} because the module " <>
                 "#{inspect(module)} is in read-only mode (@after_compile)"

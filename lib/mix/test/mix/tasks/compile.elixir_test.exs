@@ -488,6 +488,9 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       recompile = fn ->
         Mix.ProjectStack.pop()
         Mix.Project.push(MixTest.Case.Sample)
+        File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
+        ensure_touched("mix.lock")
+        ensure_touched("_build/dev/lib/sample/.mix/compile.lock")
         Mix.Tasks.WillRecompile.run([])
         Mix.Tasks.Compile.Elixir.run(["--verbose"])
       end
@@ -497,8 +500,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       %{"logger": :unused}
       """)
 
-      ensure_touched("mix.lock")
-      File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
       assert recompile.() == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
@@ -509,8 +510,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       %{"logger": :another}
       """)
 
-      ensure_touched("mix.lock")
-      File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
       assert recompile.() == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
@@ -521,8 +520,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       %{}
       """)
 
-      ensure_touched("mix.lock")
-      File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
       assert recompile.() == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
@@ -533,8 +530,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       %{"unknown": :unknown}
       """)
 
-      # We use ensure_touched because an outdated manifest would recompile anyway.
-      ensure_touched("mix.lock", "_build/dev/lib/sample/.mix/compile.elixir")
       assert recompile.() == {:ok, []}
       refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
@@ -1200,7 +1195,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert Mix.Tasks.Compile.Elixir.run(["--verbose", "--ignore-module-conflict"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-      refute function_exported?(A, :one, 0)
+      refute Code.ensure_loaded?(A) and function_exported?(A, :one, 0)
 
       Mix.shell().flush()
       purge([A])
@@ -1209,7 +1204,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       Mix.Tasks.Compile.Elixir.run(["--verbose"])
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-      assert function_exported?(A, :one, 0)
+      assert Code.ensure_loaded?(A) and function_exported?(A, :one, 0)
     end)
   end
 
@@ -1278,19 +1273,10 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       end
       """)
 
-      File.write!("lib/c.ex", """
-      defmodule C do
-        @compile {:autoload, false}
-
-        def __mix_recompile__?(), do: true
-      end
-      """)
-
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
-      assert_received {:mix_shell, :info, ["Compiling 3 files (.ex)"]}
+      assert_received {:mix_shell, :info, ["Compiling 2 files (.ex)"]}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-      assert_received {:mix_shell, :info, ["Compiled lib/c.ex"]}
 
       # Mix recompile should work even if the compile path
       # was removed and the module purged
@@ -1675,6 +1661,16 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert output =~ "B.foo/0 is undefined or private"
       assert output =~ "B.bar/0 is undefined or private"
       assert output =~ "AFTER_VERIFY"
+
+      # But we can also disable verification if we want to
+      output =
+        capture_io(:stderr, fn ->
+          Mix.Tasks.Compile.Elixir.run(["--no-verification", "--force"])
+        end)
+
+      refute output =~ "B.foo/0 is undefined or private"
+      refute output =~ "B.bar/0 is undefined or private"
+      refute output =~ "AFTER_VERIFY"
     end)
   end
 

@@ -285,7 +285,7 @@ defmodule Module.Types.Expr do
 
         context =
           if is_warning(stack) do
-            case truthness(head_type) do
+            case truthiness(head_type) do
               :always_true when not last? ->
                 warning = {:badcond, "always match", head_type, head, context}
                 warn(__MODULE__, warning, meta, stack, context)
@@ -329,7 +329,7 @@ defmodule Module.Types.Expr do
     {patterns, _guards} = extract_head(head)
     domain = Enum.map(patterns, fn _ -> dynamic() end)
     {_acc, context} = of_clauses(clauses, domain, @pending, nil, :fn, stack, {none(), context})
-    {fun(), context}
+    {dynamic(fun(length(patterns))), context}
   end
 
   def of_expr({:try, _meta, [[do: body] ++ blocks]}, expected, expr, stack, original) do
@@ -451,7 +451,7 @@ defmodule Module.Types.Expr do
 
   # TODO: fun.(args)
   def of_expr({{:., meta, [fun]}, _meta, args} = call, _expected, _expr, stack, context) do
-    {fun_type, context} = of_expr(fun, fun(), call, stack, context)
+    {fun_type, context} = of_expr(fun, fun(length(args)), call, stack, context)
 
     {_args_types, context} =
       Enum.map_reduce(args, context, &of_expr(&1, @pending, &1, stack, &2))

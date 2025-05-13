@@ -7,8 +7,6 @@ path = Path.expand("../tmp/beams", __DIR__)
 File.rm_rf!(path)
 File.mkdir_p!(path)
 Code.prepend_path(path)
-
-assert_timeout = String.to_integer(System.get_env("ELIXIR_ASSERT_TIMEOUT") || "500")
 System.put_env("ELIXIR_EDITOR", "echo")
 
 {:ok, _} = Application.ensure_all_started(:iex)
@@ -42,10 +40,10 @@ cover_exclude =
   end
 
 ExUnit.start(
-  assert_receive_timeout: assert_timeout,
   trace: !!System.get_env("TRACE"),
   include: line_include,
-  exclude: line_exclude ++ erlang_doc_exclude ++ source_exclude ++ cover_exclude
+  exclude: line_exclude ++ erlang_doc_exclude ++ source_exclude ++ cover_exclude,
+  assert_receive_timeout: String.to_integer(System.get_env("ELIXIR_ASSERT_TIMEOUT", "300"))
 )
 
 defmodule IEx.Case do

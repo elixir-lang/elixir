@@ -465,10 +465,6 @@ defmodule KernelTest do
 
   test "then/2" do
     assert 1 |> then(fn x -> x * 2 end) == 2
-
-    assert_raise BadArityError, fn ->
-      1 |> then(fn x, y -> x * y end)
-    end
   end
 
   test "if/2 boolean optimization does not leak variables during expansion" do
@@ -486,6 +482,8 @@ defmodule KernelTest do
   end
 
   describe "in/2" do
+    # This test may take a long time on machine with low resources
+    @tag timeout: 120_000
     test "too large list in guards" do
       defmodule TooLargeList do
         @list Enum.map(1..1024, & &1)

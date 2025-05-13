@@ -49,7 +49,8 @@ CoverageRecorder.maybe_record("mix")
 ExUnit.start(
   trace: !!System.get_env("TRACE"),
   exclude: epmd_exclude ++ os_exclude ++ git_exclude ++ line_exclude ++ cover_exclude,
-  include: line_include
+  include: line_include,
+  assert_receive_timeout: String.to_integer(System.get_env("ELIXIR_ASSERT_TIMEOUT", "300"))
 )
 
 defmodule MixTest.Case do
@@ -176,7 +177,10 @@ defmodule MixTest.Case do
   end
 
   def ensure_touched(file, current) when is_binary(current) do
-    ensure_touched(file, File.stat!(current).mtime)
+    case File.stat(current) do
+      {:ok, %{mtime: mtime}} -> ensure_touched(file, mtime)
+      {:error, _} -> File.touch!(file)
+    end
   end
 
   def ensure_touched(file, current) when is_tuple(current) do
@@ -262,7 +266,8 @@ Enum.each(
 
 rebar3_source = System.get_env("REBAR3") || Path.expand("fixtures/rebar3", __DIR__)
 [major, minor | _] = String.split(System.version(), ".")
-rebar3_target = Path.join([mix, "elixir", "#{major}-#{minor}", "rebar3"])
+version_dir = "#{major}-#{minor}-otp-#{System.otp_release()}"
+rebar3_target = Path.join([mix, "elixir", version_dir, "rebar3"])
 File.mkdir_p!(Path.dirname(rebar3_target))
 File.cp!(rebar3_source, rebar3_target)
 

@@ -383,7 +383,7 @@ defmodule Mix.Tasks.Xref do
           lib/b.ex
           lib/a.ex (compile)
 
-  More precisely, `xref` is printing the (strongly connected components)[https://en.wikipedia.org/wiki/Strongly_connected_component]
+  More precisely, `xref` is printing the [strongly connected components](https://en.wikipedia.org/wiki/Strongly_connected_component)
   in the dependency graph, which is (roughly speaking) the largest set of
   files which are part of a dependency cycle involving these files.
 
@@ -1213,7 +1213,7 @@ defmodule Mix.Tasks.Xref do
 
     cycles =
       if min = opts[:min_cycle_size] do
-        Enum.filter(cycles, &(elem(&1, 0) > min))
+        Enum.filter(cycles, &(elem(&1, 0) >= min))
       else
         cycles
       end

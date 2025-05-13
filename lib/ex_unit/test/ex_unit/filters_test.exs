@@ -188,11 +188,48 @@ defmodule ExUnit.FiltersTest do
              {:excluded, "due to line filter"}
   end
 
+  test "evaluating filter uses special rules for location" do
+    tests = [
+      %ExUnit.Test{tags: %{line: 3, describe_line: 2}},
+      %ExUnit.Test{tags: %{line: 5, describe_line: nil}}
+    ]
+
+    assert ExUnit.Filters.eval(
+             [location: "foo_test.exs"],
+             [:line],
+             %{line: 3, describe_line: 2, file: "foo_test.exs"},
+             tests
+           ) == :ok
+
+    assert ExUnit.Filters.eval(
+             [location: "bar_test.exs"],
+             [:line],
+             %{line: 3, describe_line: 2, file: "foo_test.exs"},
+             tests
+           ) == {:excluded, "due to line filter"}
+
+    assert ExUnit.Filters.eval(
+             [location: {"foo_test.exs", 3}],
+             [:line],
+             %{line: 3, describe_line: 2, file: "foo_test.exs"},
+             tests
+           ) == :ok
+
+    assert ExUnit.Filters.eval(
+             [location: {"bar_test.exs", 3}],
+             [:line],
+             %{line: 3, describe_line: 2, file: "foo_test.exs"},
+             tests
+           ) == {:excluded, "due to line filter"}
+  end
+
   test "parsing filters" do
     assert ExUnit.Filters.parse(["run"]) == [:run]
     assert ExUnit.Filters.parse(["run:true"]) == [run: "true"]
     assert ExUnit.Filters.parse(["run:test"]) == [run: "test"]
     assert ExUnit.Filters.parse(["line:9"]) == [line: 9]
+    assert ExUnit.Filters.parse(["location:foo.exs"]) == [location: "foo.exs"]
+    assert ExUnit.Filters.parse(["location:foo.exs:invalid"]) == [location: "foo.exs:invalid"]
     assert ExUnit.Filters.parse(["location:foo.exs:9"]) == [location: {"foo.exs", 9}]
     assert ExUnit.Filters.parse(["location:foo.exs:9:11"]) == [location: {"foo.exs", [9, 11]}]
   end
@@ -248,11 +285,14 @@ defmodule ExUnit.FiltersTest do
       fixed_path = path |> Path.split() |> Path.join()
       fixed_other_path = other_path |> Path.split() |> Path.join()
 
+      assert ExUnit.Filters.parse_paths([path, other_path]) ==
+               {[fixed_path, fixed_other_path], []}
+
       assert ExUnit.Filters.parse_paths([path, "#{other_path}:456:789"]) ==
                {[fixed_path, fixed_other_path],
                 [
                   exclude: [:test],
-                  include: [location: {fixed_other_path, [456, 789]}]
+                  include: [location: fixed_path, location: {fixed_other_path, [456, 789]}]
                 ]}
 
       assert ExUnit.Filters.parse_paths(["#{path}:123", "#{other_path}:456"]) ==

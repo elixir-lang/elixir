@@ -333,7 +333,7 @@ defmodule Inspect.Algebra do
                   (is_tuple(doc) and elem(doc, 0) in @docs)
 
   defguardp is_limit(limit) when limit == :infinity or (is_integer(limit) and limit >= 0)
-  defguardp is_width(limit) when limit == :infinity or (is_integer(limit) and limit >= 0)
+  defguardp is_width(width) when width == :infinity or (is_integer(width) and width >= 0)
 
   # Elixir + Inspect.Opts conveniences
   # These have the _doc suffix.

@@ -57,6 +57,7 @@ defmodule Mix.Tasks.Run do
     * `--no-deps-check` - does not check dependencies
     * `--no-elixir-version-check` - does not check the Elixir version from mix.exs
     * `--no-halt` - does not halt the system after running the command
+    * `--no-listeners` - does not start Mix listeners
     * `--no-mix-exs` - allows the command to run even if there is no mix.exs
     * `--no-start` - does not start applications after compilation
 
@@ -77,6 +78,7 @@ defmodule Mix.Tasks.Run do
           halt: :boolean,
           compile: :boolean,
           deps_check: :boolean,
+          listeners: :boolean,
           start: :boolean,
           archives_check: :boolean,
           elixir_version_check: :boolean,

@@ -95,7 +95,7 @@ In fact, `if/2` in Elixir is implemented as a macro:
 ```elixir
 defmacro if(clause, do: expression) do
   quote do
-    case clause do
+    case unquote(clause) do
       x when x in [false, nil] -> nil
       _ -> unquote(expression)
   end

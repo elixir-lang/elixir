@@ -217,11 +217,30 @@ defmodule EnumTest do
     assert Enum.count_until([1, 2], 2) == 2
   end
 
+  test "count_until/2 with streams" do
+    count_until_stream = fn list, limit -> list |> Stream.map(& &1) |> Enum.count_until(limit) end
+
+    assert count_until_stream.([1, 2, 3], 2) == 2
+    assert count_until_stream.([], 2) == 0
+    assert count_until_stream.([1, 2], 2) == 2
+  end
+
   test "count_until/3" do
     assert Enum.count_until([1, 2, 3, 4, 5, 6], fn x -> rem(x, 2) == 0 end, 2) == 2
     assert Enum.count_until([1, 2], fn x -> rem(x, 2) == 0 end, 2) == 1
     assert Enum.count_until([1, 2, 3, 4], fn x -> rem(x, 2) == 0 end, 2) == 2
     assert Enum.count_until([], fn x -> rem(x, 2) == 0 end, 2) == 0
+  end
+
+  test "count_until/3 with streams" do
+    count_until_stream = fn list, fun, limit ->
+      list |> Stream.map(& &1) |> Enum.count_until(fun, limit)
+    end
+
+    assert count_until_stream.([1, 2, 3, 4, 5, 6], fn x -> rem(x, 2) == 0 end, 2) == 2
+    assert count_until_stream.([1, 2], fn x -> rem(x, 2) == 0 end, 2) == 1
+    assert count_until_stream.([1, 2, 3, 4], fn x -> rem(x, 2) == 0 end, 2) == 2
+    assert count_until_stream.([], fn x -> rem(x, 2) == 0 end, 2) == 0
   end
 
   test "dedup/1" do
@@ -318,6 +337,9 @@ defmodule EnumTest do
     refute Enum.empty?([1, 2, 3])
     refute Enum.empty?(%{one: 1})
     refute Enum.empty?(1..3)
+
+    assert Stream.take([1], 0) |> Enum.empty?()
+    refute Stream.take([1], 1) |> Enum.empty?()
   end
 
   test "fetch/2" do
@@ -384,6 +406,16 @@ defmodule EnumTest do
     assert Enum.flat_map([], fn x -> [x, x] end) == []
     assert Enum.flat_map([1, 2, 3], fn x -> [x, x] end) == [1, 1, 2, 2, 3, 3]
     assert Enum.flat_map([1, 2, 3], fn x -> x..(x + 1) end) == [1, 2, 2, 3, 3, 4]
+    assert Enum.flat_map([1, 2, 3], fn x -> Stream.duplicate(x, 2) end) == [1, 1, 2, 2, 3, 3]
+  end
+
+  test "flat_map/2 with streams" do
+    flat_map_stream = fn list, fun -> list |> Stream.map(& &1) |> Enum.flat_map(fun) end
+
+    assert flat_map_stream.([], fn x -> [x, x] end) == []
+    assert flat_map_stream.([1, 2, 3], fn x -> [x, x] end) == [1, 1, 2, 2, 3, 3]
+    assert flat_map_stream.([1, 2, 3], fn x -> x..(x + 1) end) == [1, 2, 2, 3, 3, 4]
+    assert flat_map_stream.([1, 2, 3], fn x -> Stream.duplicate(x, 2) end) == [1, 1, 2, 2, 3, 3]
   end
 
   test "flat_map_reduce/3" do
@@ -409,6 +441,10 @@ defmodule EnumTest do
     assert Enum.intersperse([], true) == []
     assert Enum.intersperse([1], true) == [1]
     assert Enum.intersperse([1, 2, 3], true) == [1, true, 2, true, 3]
+
+    assert Enum.intersperse(.., true) == []
+    assert Enum.intersperse(1..1, true) == [1]
+    assert Enum.intersperse(1..3, true) == [1, true, 2, true, 3]
   end
 
   test "into/2" do
@@ -526,6 +562,11 @@ defmodule EnumTest do
     end
   end
 
+  test "max/2 with empty fallback" do
+    assert Enum.max([], fn -> 0 end) === 0
+    assert Enum.max([1, 2], fn -> 0 end) === 2
+  end
+
   test "max/2 with stable sorting" do
     assert Enum.max([1, 1.0], &>=/2) === 1
     assert Enum.max([1.0, 1], &>=/2) === 1.0
@@ -608,6 +649,11 @@ defmodule EnumTest do
     assert_raise Enum.EmptyError, fn ->
       Enum.min([])
     end
+  end
+
+  test "min/2 with empty fallback" do
+    assert Enum.min([], fn -> 0 end) === 0
+    assert Enum.min([1, 2], fn -> 0 end) === 1
   end
 
   test "min/2 with stable sorting" do
@@ -784,6 +830,21 @@ defmodule EnumTest do
     assert Enum.random([1, 2, 3, 4, 5]) == 3
   end
 
+  test "random/1 with streams" do
+    random_stream = fn list -> list |> Stream.map(& &1) |> Enum.random() end
+
+    assert_raise Enum.EmptyError, fn -> random_stream.([]) end
+    assert random_stream.([1]) == 1
+
+    seed = {1406, 407_414, 139_258}
+    :rand.seed(:exsss, seed)
+
+    assert random_stream.([1, 2]) == 2
+    assert random_stream.([1, 2, 3]) == 3
+    assert random_stream.([1, 2, 3, 4]) == 1
+    assert random_stream.([1, 2, 3, 4, 5]) == 3
+  end
+
   test "reduce/2" do
     assert Enum.reduce([1, 2, 3], fn x, acc -> x + acc end) == 6
 
@@ -799,6 +860,13 @@ defmodule EnumTest do
   test "reduce/3" do
     assert Enum.reduce([], 1, fn x, acc -> x + acc end) == 1
     assert Enum.reduce([1, 2, 3], 1, fn x, acc -> x + acc end) == 7
+  end
+
+  test "reduce/3 with streams" do
+    reduce_stream = fn list, acc, fun -> list |> Stream.map(& &1) |> Enum.reduce(acc, fun) end
+
+    assert reduce_stream.([], 1, fn x, acc -> x + acc end) == 1
+    assert reduce_stream.([1, 2, 3], 1, fn x, acc -> x + acc end) == 7
   end
 
   test "reduce_while/3" do
@@ -1098,6 +1166,7 @@ defmodule EnumTest do
     assert [1, 2, 3] |> Stream.cycle() |> Enum.slice(0..4) == [1, 2, 3, 1, 2]
     assert [1, 2, 3] |> Stream.cycle() |> Enum.slice(0..4//2) == [1, 3, 2]
     assert [1, 2, 3] |> Stream.cycle() |> Enum.slice(0..5//2) == [1, 3, 2]
+    assert [1, 2, 3] |> Stream.cycle() |> Enum.slice(1..6//2) == [2, 1, 3]
   end
 
   test "slice on pruned infinite streams" do
@@ -1138,6 +1207,13 @@ defmodule EnumTest do
     assert Enum.sort([5, 3, 2, 4, 1], &(&1 >= &2)) == [5, 4, 3, 2, 1]
     assert Enum.sort([5, 3, 2, 4, 1], :asc) == [1, 2, 3, 4, 5]
     assert Enum.sort([5, 3, 2, 4, 1], :desc) == [5, 4, 3, 2, 1]
+
+    assert Enum.sort([3, 2, 1, 3, 2, 3], :asc) == [1, 2, 2, 3, 3, 3]
+    assert Enum.sort([3, 2, 1, 3, 2, 3], :desc) == [3, 3, 3, 2, 2, 1]
+
+    shuffled = Enum.shuffle(1..100)
+    assert Enum.sort(shuffled, :asc) == Enum.to_list(1..100)
+    assert Enum.sort(shuffled, :desc) == Enum.reverse(1..100)
   end
 
   test "sort/2 with module" do
@@ -1149,6 +1225,21 @@ defmodule EnumTest do
 
     assert Enum.sort([~D[2020-01-01], ~D[2018-01-01], ~D[2019-01-01]], {:desc, Date}) ==
              [~D[2020-01-01], ~D[2019-01-01], ~D[2018-01-01]]
+  end
+
+  test "sort/2 with streams" do
+    sort_stream = fn list, sorter -> list |> Stream.map(& &1) |> Enum.sort(sorter) end
+
+    assert sort_stream.([5, 3, 2, 4, 1], &(&1 >= &2)) == [5, 4, 3, 2, 1]
+    assert sort_stream.([5, 3, 2, 4, 1], :asc) == [1, 2, 3, 4, 5]
+    assert sort_stream.([5, 3, 2, 4, 1], :desc) == [5, 4, 3, 2, 1]
+
+    assert sort_stream.([3, 2, 1, 3, 2, 3], :asc) == [1, 2, 2, 3, 3, 3]
+    assert sort_stream.([3, 2, 1, 3, 2, 3], :desc) == [3, 3, 3, 2, 2, 1]
+
+    shuffled = Enum.shuffle(1..100)
+    assert sort_stream.(shuffled, :asc) == Enum.to_list(1..100)
+    assert sort_stream.(shuffled, :desc) == Enum.reverse(1..100)
   end
 
   test "sort_by/3" do
@@ -1987,6 +2078,11 @@ defmodule EnumTest.Range do
     assert_raise Enum.EmptyError, fn -> Enum.max(1..0//1) end
   end
 
+  test "max/2 with empty fallback" do
+    assert Enum.max(.., fn -> 0 end) === 0
+    assert Enum.max(1..2, fn -> 0 end) === 2
+  end
+
   test "max_by/2" do
     assert Enum.max_by(1..1, fn x -> :math.pow(-2, x) end) == 1
     assert Enum.max_by(1..3, fn x -> :math.pow(-2, x) end) == 2
@@ -2023,6 +2119,11 @@ defmodule EnumTest.Range do
     assert Enum.min(-1..-9//-2) == -9
 
     assert_raise Enum.EmptyError, fn -> Enum.min(1..0//1) end
+  end
+
+  test "min/2 with empty fallback" do
+    assert Enum.min(.., fn -> 0 end) === 0
+    assert Enum.min(1..2, fn -> 0 end) === 1
   end
 
   test "min_by/2" do
@@ -2076,6 +2177,8 @@ defmodule EnumTest.Range do
 
     assert Enum.random(1..10//2) == 7
     assert Enum.random(1..10//2) == 5
+
+    assert_raise Enum.EmptyError, fn -> Enum.random(..) end
   end
 
   test "reduce/2" do
@@ -2609,6 +2712,11 @@ defmodule EnumTest.Map do
     assert_raise FunctionClauseError, fn ->
       Enum.slice(map, 0, 0.99)
     end
+  end
+
+  test "reduce/3" do
+    assert Enum.reduce(%{}, 1, fn x, acc -> x + acc end) == 1
+    assert Enum.reduce(%{a: 1, b: 2}, 1, fn {_, x}, acc -> x + acc end) == 4
   end
 end
 

@@ -141,7 +141,7 @@ defmodule Mix.SCM.Git do
 
     # Migrate the Git repo
     rev = lock_rev || get_origin_opts_rev(opts) || default_branch()
-    git!(["--git-dir=.git", "checkout", "--quiet", rev])
+    git!(["--git-dir=.git", "checkout", "--force", "--quiet", rev])
 
     if opts[:submodules] do
       git!(~w[-c core.hooksPath='' --git-dir=.git submodule update --init --recursive])

@@ -33,24 +33,22 @@ defmodule ExUnit.Filters do
   """
   @spec parse_paths([String.t()]) :: {[String.t()], ex_unit_opts}
   def parse_paths(file_paths) do
-    {parsed_paths, locations} =
-      Enum.map_reduce(file_paths, [], fn file_path, locations ->
-        case extract_line_numbers(file_path) do
-          {path, []} -> {path, locations}
-          {path, lines} -> {path, [{:location, {path, lines}} | locations]}
-        end
+    {parsed_paths, {lines?, locations}} =
+      Enum.map_reduce(file_paths, {false, []}, fn file_path, {lines?, locations} ->
+        {path, location} = extract_location(file_path)
+        {path, {lines? or is_tuple(location), [{:location, location} | locations]}}
       end)
 
     ex_unit_opts =
-      if locations == [], do: [], else: [exclude: [:test], include: Enum.reverse(locations)]
+      if lines?, do: [exclude: [:test], include: Enum.reverse(locations)], else: []
 
     {parsed_paths, ex_unit_opts}
   end
 
-  defp extract_line_numbers(file_path) do
+  defp extract_location(file_path) do
     case Path.relative_to_cwd(file_path) |> String.split(":") do
       [path] ->
-        {path, []}
+        {path, path}
 
       [path | parts] ->
         {path_parts, line_numbers} = Enum.split_while(parts, &(to_line_number(&1) == nil))
@@ -58,8 +56,9 @@ defmodule ExUnit.Filters do
         lines = for n <- line_numbers, valid_number = validate_line_number(n), do: valid_number
 
         case lines do
-          [line] -> {path, line}
-          lines -> {path, lines}
+          [] -> {path, path}
+          [line] -> {path, {path, line}}
+          lines -> {path, {path, lines}}
         end
     end
   end
@@ -145,8 +144,12 @@ defmodule ExUnit.Filters do
     end)
   end
 
-  defp parse_kv(:line, line) when is_binary(line), do: {:line, String.to_integer(line)}
-  defp parse_kv(:location, loc) when is_binary(loc), do: {:location, extract_line_numbers(loc)}
+  defp parse_kv(:line, line) when is_binary(line),
+    do: {:line, String.to_integer(line)}
+
+  defp parse_kv(:location, loc) when is_binary(loc),
+    do: {:location, extract_location(loc) |> elem(1)}
+
   defp parse_kv(key, value), do: {key, value}
 
   @doc """
@@ -240,7 +243,12 @@ defmodule ExUnit.Filters do
     end
   end
 
-  defp has_tag({:location, {path, lines}}, %{line: _, describe_line: _} = tags, collection) do
+  defp has_tag({:location, path}, %{file: file}, _collection) when is_binary(path) do
+    String.ends_with?(file, path)
+  end
+
+  defp has_tag({:location, {path, lines}}, %{line: _, describe_line: _} = tags, collection)
+       when is_binary(path) do
     String.ends_with?(tags.file, path) and
       lines |> List.wrap() |> Enum.any?(&has_tag({:line, &1}, tags, collection))
   end

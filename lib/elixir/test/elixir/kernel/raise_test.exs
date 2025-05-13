@@ -400,7 +400,7 @@ defmodule Kernel.RaiseTest do
 
       result =
         try do
-          fun.(1, 2)
+          Process.get(:unused, fun).(1, 2)
         rescue
           x in [BadArityError] -> Exception.message(x)
         end

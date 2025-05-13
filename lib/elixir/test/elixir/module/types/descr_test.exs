@@ -13,6 +13,12 @@ defmodule Module.Types.DescrTest do
   import Module.Types.Descr
 
   describe "union" do
+    test "zoom" do
+      # 1. dynamic() -> dynamic() applied to dynamic() gives dynamic()
+      f = fun([dynamic()], dynamic())
+      assert fun_apply(f, [dynamic()]) == dynamic()
+    end
+
     test "bitmap" do
       assert union(integer(), float()) == union(float(), integer())
     end
@@ -127,6 +133,14 @@ defmodule Module.Types.DescrTest do
 
       assert union(difference(list(term()), list(integer())), list(integer()))
              |> equal?(list(term()))
+    end
+
+    test "fun" do
+      assert equal?(union(fun(), fun()), fun())
+      assert equal?(union(fun(), fun(1)), fun())
+
+      dynamic_fun = intersection(fun(), dynamic())
+      assert equal?(union(dynamic_fun, fun()), fun())
     end
 
     test "optimizations (maps)" do
@@ -642,6 +656,25 @@ defmodule Module.Types.DescrTest do
       assert difference(list(integer(), atom()), list(integer())) ==
                non_empty_list(integer(), atom())
     end
+
+    test "fun" do
+      for arity <- [0, 1, 2, 3] do
+        assert empty?(difference(fun(arity), fun(arity)))
+      end
+
+      assert empty?(difference(fun(), fun()))
+      assert empty?(difference(fun(3), fun()))
+      refute empty?(difference(fun(), fun(1)))
+      refute empty?(difference(fun(2), fun(3)))
+      assert empty?(intersection(fun(2), fun(3)))
+
+      f1f2 = union(fun(1), fun(2))
+      assert f1f2 |> difference(fun(1)) |> difference(fun(2)) |> empty?()
+      assert fun(1) |> difference(difference(f1f2, fun(2))) |> empty?()
+      assert f1f2 |> difference(fun(1)) |> equal?(fun(2))
+
+      assert fun([integer()], term()) |> difference(fun([none()], term())) |> empty?()
+    end
   end
 
   describe "creation" do
@@ -745,6 +778,59 @@ defmodule Module.Types.DescrTest do
       assert subtype?(list(integer()), list(term()))
       assert subtype?(list(term()), list(term(), term()))
     end
+
+    test "fun" do
+      assert equal?(fun([], term()), fun([], term()))
+      refute equal?(fun([], integer()), fun([], atom()))
+      refute subtype?(fun([none()], term()), fun([integer()], integer()))
+
+      # Difference with argument/return type variations
+      int_to_atom = fun([integer()], atom())
+      num_to_atom = fun([number()], atom())
+      int_to_bool = fun([integer()], boolean())
+
+      # number->atom is a subtype of int->atom
+      assert subtype?(num_to_atom, int_to_atom)
+      refute subtype?(int_to_atom, num_to_atom)
+      assert subtype?(int_to_bool, int_to_atom)
+      refute subtype?(int_to_bool, num_to_atom)
+
+      # Multi-arity
+      f1 = fun([integer(), atom()], boolean())
+      f2 = fun([number(), atom()], boolean())
+
+      # (int,atom)->boolean is a subtype of (number,atom)->boolean
+      # since number is a supertype of int
+      assert subtype?(f2, f1)
+      # f1 is not a subtype of f2
+      refute subtype?(f1, f2)
+
+      # Unary functions / Output covariance
+      assert subtype?(fun([], float()), fun([], term()))
+      refute subtype?(fun([], term()), fun([], float()))
+
+      # Contravariance of domain
+      refute subtype?(fun([integer()], boolean()), fun([number()], boolean()))
+      assert subtype?(fun([number()], boolean()), fun([integer()], boolean()))
+
+      # Nested function types
+      higher_order = fun([fun([integer()], atom())], boolean())
+      specific = fun([fun([number()], atom())], boolean())
+
+      assert subtype?(higher_order, specific)
+      refute subtype?(specific, higher_order)
+
+      ## Multi-arity
+      f = fun([none(), integer()], atom())
+      assert subtype?(f, f)
+      assert subtype?(f, fun([none(), integer()], term()))
+      assert subtype?(fun([none(), number()], atom()), f)
+      assert subtype?(fun([tuple(), number()], atom()), f)
+      refute subtype?(fun([none(), float()], atom()), f)
+      refute subtype?(fun([pid(), float()], atom()), f)
+      # A function with the wrong arity is refused
+      refute subtype?(fun([none()], atom()), f)
+    end
   end
 
   describe "compatible" do
@@ -815,6 +901,146 @@ defmodule Module.Types.DescrTest do
       assert closed_map(a: integer(), b: none()) |> empty?()
       assert intersection(closed_map(b: atom()), open_map(a: integer())) |> empty?()
     end
+
+    test "fun" do
+      refute empty?(fun())
+      refute empty?(fun(1))
+      refute empty?(fun([integer()], atom()))
+
+      assert empty?(intersection(fun(1), fun(2)))
+      refute empty?(intersection(fun(), fun(1)))
+      assert empty?(difference(fun(1), union(fun(1), fun(2))))
+    end
+  end
+
+  describe "function operators" do
+    defmacro assert_domain(f, expected) do
+      quote do
+        assert equal?(fun_domain(unquote(f)), domain_descr(unquote(expected)))
+      end
+    end
+
+    test "domain operator" do
+      # For function domain:
+      # 1. The domain of an intersection of functions is the union of the domains of the functions
+      # 2. The domain of a union of functions is the intersection of the domains of the functions
+      # 3. If a type is not a function or its domain is empty, return :badfunction
+
+      # For gradual domain of a function type t:
+      # It is dom(t) = dom(up(t)) ∪ dynamic(dom(down(t)))
+      # where dom is the static domain, up is the upcast, and down is the downcast.
+
+      ## Basic domain tests
+      assert fun_domain(term()) == :badfunction
+      assert fun_domain(none()) == :badfunction
+      assert fun_domain(intersection(fun(1), fun(2))) == :badfunction
+      assert union(atom(), intersection(fun(1), fun(2))) |> fun_domain() == :badfunction
+      assert fun_domain(fun([none()], term())) == :badfunction
+      assert fun_domain(difference(fun([pid()], pid()), fun([pid()], term()))) == :badfunction
+
+      assert_domain(fun([], term()), [])
+      assert_domain(fun([term()], atom()), [term()])
+      assert_domain(fun([integer(), atom()], boolean()), [integer(), atom()])
+      # See 1. for intersection of functions
+      assert_domain(intersection(fun([float()], term()), fun([integer()], term())), [number()])
+      # See 2. for union of functions
+      assert_domain(union(fun([number()], term()), fun([float()], term())), [float()])
+
+      ## Gradual domain tests
+      assert fun_domain(dynamic()) == :badfunction
+      assert fun_domain(intersection(dynamic(), fun([none()], term()))) == :badfunction
+      assert_domain(fun([dynamic()], dynamic()), [dynamic()])
+      assert_domain(fun([dynamic(), dynamic()], dynamic()), [dynamic(), dynamic()])
+      assert_domain(intersection(fun([integer()], atom()), dynamic()), [integer()])
+      assert_domain(intersection(fun([integer()], term()), fun([float()], term())), [number()])
+
+      assert_domain(
+        intersection(fun([dynamic(integer())], float()), fun([float()], term())),
+        [union(dynamic(integer()), float())]
+      )
+
+      assert_domain(
+        intersection(fun([dynamic(integer())], term()), fun([integer()], term())),
+        [integer()]
+      )
+
+      # Domain of an intersection is union of domains
+      f = intersection(fun([atom(), pid()], term()), fun([pid(), atom()], term()))
+      dom = fun_domain(f)
+      refute dom |> equal?(domain_descr([union(atom(), pid()), union(pid(), atom())]))
+      assert dom |> equal?(union(domain_descr([atom(), pid()]), domain_descr([pid(), atom()])))
+
+      assert_domain(
+        intersection(fun([none(), integer()], term()), fun([float(), float()], term())),
+        [float(), float()]
+      )
+
+      # Intersection of domains int and float is empty
+      assert union(fun([integer()], atom()), fun([float()], boolean())) |> fun_domain() ==
+               :badfunction
+    end
+
+    test "function application" do
+      # This should not be empty
+      assert not empty?(intersection(negation(fun(2)), negation(fun(3))))
+
+      # Basic function application scenarios
+      assert fun_apply(fun([integer()], atom()), [integer()]) == atom()
+      assert fun_apply(fun([integer()], atom()), [float()]) == :badarguments
+      assert fun_apply(fun([integer()], atom()), [term()]) == :badarguments
+      assert fun_apply(fun([integer()], none()), [integer()]) == none()
+      assert fun_apply(fun([integer()], term()), [integer()]) == term()
+
+      # Arity mismatches
+      assert fun_apply(fun([dynamic()], integer()), [dynamic(), dynamic()]) == :badarguments
+      assert fun_apply(fun([integer(), atom()], boolean()), [integer()]) == :badarguments
+
+      # Dynamic type handling
+      assert fun_apply(fun([dynamic()], term()), [dynamic()]) == term()
+      assert fun_apply(fun([dynamic()], integer()), [dynamic()]) |> equal?(integer())
+      assert fun_apply(fun([dynamic(), atom()], float()), [dynamic(), atom()]) |> equal?(float())
+      assert fun_apply(fun([integer()], dynamic()), [integer()]) == dynamic()
+
+      # Function intersection tests - basic
+      fun1 = intersection(fun([integer()], atom()), fun([number()], term()))
+      assert fun_apply(fun1, [integer()]) == atom()
+      assert fun_apply(fun1, [float()]) == term()
+
+      # Function intersection with same domain, different codomains
+      assert fun([integer()], term())
+             |> intersection(fun([integer()], atom()))
+             |> fun_apply([integer()]) == atom()
+
+      # Function intersection with singleton atoms
+      fun3 = intersection(fun([atom([:ok])], atom([:success])), fun([atom([:ok])], atom([:done])))
+      assert fun_apply(fun3, [atom([:ok])]) == none()
+
+      # (dynamic(integer()) -> atom()
+      # cannot apply it to integer() bc integer() is not a subtype of dynamic() /\ integer()
+      # dynamic(atom())
+
+      # $ dynamic(map()) -> map()
+      # def f(x) when is_map(x) do
+      #     x.foo
+      # end
+
+      fun9 = fun([intersection(dynamic(), integer())], atom())
+      assert fun_apply(fun9, [dynamic(integer())]) |> equal?(atom())
+      assert fun_apply(fun9, [dynamic()]) == :badarguments
+      # TODO: discuss this case
+      assert fun_apply(fun9, [integer()]) == :badarguments
+
+      # Dynamic with function type combinations
+      fun12 =
+        intersection(
+          fun([union(integer(), atom())], dynamic()),
+          fun([union(integer(), pid())], atom())
+        )
+
+      assert fun_apply(fun12, [integer()]) == dynamic(atom())
+      assert fun_apply(fun12, [atom()]) == dynamic()
+      assert fun_apply(fun12, [pid()]) |> equal?(atom())
+    end
   end
 
   # TODO: operator t\[t']
@@ -833,27 +1059,33 @@ defmodule Module.Types.DescrTest do
 
   describe "projections" do
     test "fun_fetch" do
+      assert fun_fetch(none(), 1) == :error
       assert fun_fetch(term(), 1) == :error
       assert fun_fetch(union(term(), dynamic(fun())), 1) == :error
-      assert fun_fetch(fun(), 1) == :ok
+      assert fun_fetch(union(atom(), dynamic(fun())), 1) == :error
+      assert fun_fetch(intersection(fun([], term()), fun([], atom())), 0) == :ok
+      assert fun_fetch(fun([], term()), 0) == :ok
+      assert fun_fetch(union(fun([], term()), fun([pid()], term())), 0) == :error
+      assert fun_fetch(dynamic(fun()), 1) == :ok
       assert fun_fetch(dynamic(), 1) == :ok
+      assert fun_fetch(dynamic(fun(2)), 1) == :error
     end
 
-    test "truthness" do
+    test "truthiness" do
       for type <- [term(), none(), atom(), boolean(), union(atom([false]), integer())] do
-        assert truthness(type) == :undefined
-        assert truthness(dynamic(type)) == :undefined
+        assert truthiness(type) == :undefined
+        assert truthiness(dynamic(type)) == :undefined
       end
 
       for type <- [atom([false]), atom([nil]), atom([nil, false]), atom([false, nil])] do
-        assert truthness(type) == :always_false
-        assert truthness(dynamic(type)) == :always_false
+        assert truthiness(type) == :always_false
+        assert truthiness(dynamic(type)) == :always_false
       end
 
       for type <-
             [negation(atom()), atom([true]), negation(atom([false, nil])), atom([:ok]), integer()] do
-        assert truthness(type) == :always_true
-        assert truthness(dynamic(type)) == :always_true
+        assert truthiness(type) == :always_true
+        assert truthiness(dynamic(type)) == :always_true
       end
     end
 
@@ -1192,8 +1424,8 @@ defmodule Module.Types.DescrTest do
 
       assert equal?(value_type, intersection(atom(), negation(atom([:foo, :bar]))))
 
-      assert closed_map(a: union(atom(), pid()), b: integer(), c: tuple())
-             |> difference(open_map(a: atom(), b: integer()))
+      assert closed_map(a: union(atom([:ok]), pid()), b: integer(), c: tuple())
+             |> difference(open_map(a: atom([:ok]), b: integer()))
              |> difference(open_map(a: atom(), c: tuple()))
              |> map_fetch(:a) == {false, pid()}
 
@@ -1782,6 +2014,24 @@ defmodule Module.Types.DescrTest do
                  :error or {%Decimal{sign: integer(), coef: :NaN or :inf or integer(), exp: integer()}, term()}
                )\
                """
+    end
+
+    test "function" do
+      assert fun() |> to_quoted_string() == "fun()"
+      assert fun(1) |> to_quoted_string() == "(none() -> term())"
+
+      assert fun([integer(), float()], boolean()) |> to_quoted_string() ==
+               "(integer(), float() -> boolean())"
+
+      assert fun([integer()], boolean())
+             |> union(fun([float()], boolean()))
+             |> to_quoted_string() ==
+               "(float() -> boolean()) or (integer() -> boolean())"
+
+      assert fun([integer()], boolean())
+             |> intersection(fun([float()], boolean()))
+             |> to_quoted_string() ==
+               "(integer() -> boolean()) and (float() -> boolean())"
     end
 
     test "map" do

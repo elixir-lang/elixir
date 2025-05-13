@@ -2006,25 +2006,21 @@ defmodule Kernel.SpecialForms do
   The following example has a single clause that always evaluates
   to true:
 
-      cond do
-        hd([1, 2, 3]) ->
-          "1 is considered as true"
-      end
-      #=> "1 is considered as true"
+      iex> cond do
+      ...>   hd([1, 2, 3]) -> "1 is considered as true"
+      ...> end
+      "1 is considered as true"
 
   If all clauses evaluate to `nil` or `false`, `cond` raises an error.
   For this reason, it may be necessary to add a final always-truthy condition
   (anything non-`false` and non-`nil`), which will always match:
 
-      cond do
-        1 + 1 == 1 ->
-          "This will never match"
-        2 * 2 != 4 ->
-          "Nor this"
-        true ->
-          "This will"
-      end
-      #=> "This will"
+      iex> cond do
+      ...>   1 + 1 == 1 -> "This will never match"
+      ...>   2 * 2 != 4 -> "Nor this"
+      ...>   true -> "This will"
+      ...> end
+      "This will"
 
 
   If your `cond` has two clauses, and the last one falls back to
@@ -2070,68 +2066,86 @@ defmodule Kernel.SpecialForms do
   exception by its name. All the following formats are valid patterns
   in `rescue` clauses:
 
-      # Rescue a single exception without binding the exception
-      # to a variable
-      try do
-        UndefinedModule.undefined_function
-      rescue
-        UndefinedFunctionError -> nil
-      end
+  Rescue a single exception without binding the exception to a variable:
 
-      # Rescue any of the given exception without binding
-      try do
-        UndefinedModule.undefined_function
-      rescue
-        [UndefinedFunctionError, ArgumentError] -> nil
-      end
+      iex> try do
+      ...>   1 / 0
+      ...> rescue
+      ...>   ArithmeticError -> :rescued
+      ...> end
+      :rescued
 
-      # Rescue and bind the exception to the variable "x"
-      try do
-        UndefinedModule.undefined_function
-      rescue
-        x in [UndefinedFunctionError] -> nil
-      end
+  Rescue any of the given exception without binding:
 
-      # Rescue all kinds of exceptions and bind the rescued exception
-      # to the variable "x"
-      try do
-        UndefinedModule.undefined_function
-      rescue
-        x -> nil
-      end
+      iex> try do
+      ...>   1 / 0
+      ...> rescue
+      ...>   [ArithmeticError, ArgumentError] -> :rescued
+      ...> end
+      :rescued
+
+  Rescue and bind the exception to the variable `x`:
+
+      iex> try do
+      ...>   1 / 0
+      ...> rescue
+      ...>   x in [ArithmeticError] -> [:rescued, is_exception(x)]
+      ...> end
+      [:rescued, true]
+
+  Rescue different errors with separate clauses:
+
+      iex> try do
+      ...>   1 / 0
+      ...> rescue
+      ...>   ArgumentError -> :rescued_argument_error
+      ...>   ArithmeticError -> :rescued_arithmetic_error
+      ...> end
+      :rescued_arithmetic_error
+
+  Rescue all kinds of exceptions and bind the rescued exception
+  to the variable `x`:
+
+      iex> try do
+      ...>   1 / 0
+      ...> rescue
+      ...>   x -> [:rescued, is_exception(x)]
+      ...> end
+      [:rescued, true]
+
 
   ### Erlang errors
 
   Erlang errors are transformed into Elixir ones when rescuing:
 
-      try do
-        :erlang.error(:badarg)
-      rescue
-        ArgumentError -> :ok
-      end
-      #=> :ok
+      iex> try do
+      ...>   :erlang.error(:badarg)
+      ...> rescue
+      ...>   ArgumentError -> :rescued
+      ...> end
+      :rescued
 
   The most common Erlang errors will be transformed into their
   Elixir counterpart. Those which are not will be transformed
   into the more generic `ErlangError`:
 
-      try do
-        :erlang.error(:unknown)
-      rescue
-        ErlangError -> :ok
-      end
-      #=> :ok
+      iex> try do
+      ...>   :erlang.error(:unknown)
+      ...> rescue
+      ...>   ErlangError -> :rescued
+      ...> end
+      :rescued
 
   In fact, `ErlangError` can be used to rescue any error that is
   not a proper Elixir error. For example, it can be used to rescue
   the earlier `:badarg` error too, prior to transformation:
 
-      try do
-        :erlang.error(:badarg)
-      rescue
-        ErlangError -> :ok
-      end
-      #=> :ok
+      iex> try do
+      ...>   :erlang.error(:badarg)
+      ...> rescue
+      ...>   ErlangError -> :rescued
+      ...> end
+      :rescued
 
   ## `catch` clauses
 
@@ -2141,12 +2155,13 @@ defmodule Kernel.SpecialForms do
 
   `catch` can be used to catch values thrown by `Kernel.throw/1`:
 
-      try do
-        throw(:some_value)
-      catch
-        thrown_value ->
-          IO.puts("A value was thrown: #{inspect(thrown_value)}")
-      end
+      iex> try do
+      ...>   throw(:some_value)
+      ...> catch
+      ...>   thrown_value ->
+      ...>     "Thrown value: #{inspect(thrown_value)}"
+      ...> end
+      "Thrown value: :some_value"
 
   ### Catching values of any kind
 
@@ -2154,31 +2169,33 @@ defmodule Kernel.SpecialForms do
   allows matching on both the *kind* of the caught value as well as the value
   itself:
 
-      try do
-        exit(:shutdown)
-      catch
-        :exit, value ->
-          IO.puts("Exited with value #{inspect(value)}")
-      end
+      iex> try do
+      ...>   exit(:shutdown)
+      ...> catch
+      ...>   :exit, value ->
+      ...>     "Exited with value #{inspect(value)}"
+      ...> end
+      "Exited with value :shutdown"
 
-      try do
-        exit(:shutdown)
-      catch
-        kind, value when kind in [:exit, :throw] ->
-          IO.puts("Caught exit or throw with value #{inspect(value)}")
-      end
+      iex> try do
+      ...>   exit(:shutdown)
+      ...> catch
+      ...>   kind, value when kind in [:exit, :throw] ->
+      ...>     "Caught exit or throw with value #{inspect(value)}"
+      ...> end
+      "Caught exit or throw with value :shutdown"
 
   The `catch` clause also supports `:error` alongside `:exit` and `:throw` as
   in Erlang, although this is commonly avoided in favor of `raise`/`rescue` control
   mechanisms. One reason for this is that when catching `:error`, the error is
   not automatically transformed into an Elixir error:
 
-      try do
-        :erlang.error(:badarg)
-      catch
-        :error, :badarg -> :ok
-      end
-      #=> :ok
+      iex> try do
+      ...>   :erlang.error(:badarg)
+      ...> catch
+      ...>   :error, :badarg -> :rescued
+      ...> end
+      :rescued
 
   ## `after` clauses
 
@@ -2198,95 +2215,92 @@ defmodule Kernel.SpecialForms do
       end
 
   Although `after` clauses are invoked whether or not there was an error, they do not
-  modify the return value. All of the following examples return `:return_me`:
+  modify the return value. Both of the following examples print a message to STDOUT
+  and return `:returned`:
 
       try do
-        :return_me
+        :returned
       after
-        IO.puts("I will be printed")
+        IO.puts("This message will be printed")
         :not_returned
       end
+      #=> :returned
 
       try do
         raise "boom"
       rescue
-        _ -> :return_me
+        _ -> :returned
       after
-        IO.puts("I will be printed")
+        IO.puts("This message will be printed")
         :not_returned
       end
+      #=> :returned
 
   ## `else` clauses
 
   `else` clauses allow the result of the body passed to `try/1` to be pattern
   matched on:
 
-      x = 2
-      try do
-        1 / x
-      rescue
-        ArithmeticError ->
-          :infinity
-      else
-        y when y < 1 and y > -1 ->
-          :small
-        _ ->
-          :large
-      end
+      iex> x = 2
+      ...> try do
+      ...>   1 / x
+      ...> rescue
+      ...>   ArithmeticError -> :infinity
+      ...> else
+      ...>   y when y < 1 and y > -1 -> :small
+      ...>   _ -> :large
+      ...> end
+      :small
 
   If an `else` clause is not present and no exceptions are raised,
   the result of the expression will be returned:
 
-      x = 1
-      ^x =
-        try do
-          1 / x
-        rescue
-          ArithmeticError ->
-            :infinity
-        end
+      iex> x = 5
+      iex> try do
+      ...>   1 / x
+      ...> rescue
+      ...>   ArithmeticError -> :infinity
+      ...> end
+      0.2
 
   However, when an `else` clause is present but the result of the expression
   does not match any of the patterns then an exception will be raised. This
   exception will not be caught by a `catch` or `rescue` in the same `try`:
 
-      x = 1
-      try do
-        try do
-          1 / x
-        rescue
-          # The TryClauseError cannot be rescued here:
-          TryClauseError ->
-            :error_a
-        else
-          0 ->
-            :small
-        end
-      rescue
-        # The TryClauseError is rescued here:
-        TryClauseError ->
-          :error_b
-      end
+      iex> x = 1
+      iex> try do
+      ...>   try do
+      ...>     1 / x
+      ...>   rescue
+      ...>     # The TryClauseError cannot be rescued here:
+      ...>     TryClauseError -> :error_a
+      ...>   else
+      ...>      0.5 -> :small
+      ...>   end
+      ...> rescue
+      ...>   # The TryClauseError is rescued here:
+      ...>   TryClauseError -> :error_b
+      ...> end
+      :error_b
 
   Similarly, an exception inside an `else` clause is not caught or rescued
   inside the same `try`:
 
-      try do
-        try do
-          nil
-        catch
-          # The exit(1) call below can not be caught here:
-          :exit, _ ->
-            :exit_a
-        else
-          _ ->
-            exit(1)
-        end
-      catch
-        # The exit is caught here:
-        :exit, _ ->
-          :exit_b
-      end
+      iex> x = 1
+      iex> try do
+      ...>   try do
+      ...>     1 / x
+      ...>   catch
+      ...>     # The exit(1) call below can not be caught here:
+      ...>     :exit, _ -> :exit_a
+      ...>   else
+      ...>     _ -> exit(1)
+      ...>   end
+      ...> catch
+      ...>   # The exit is caught here:
+      ...>   :exit, _ -> :exit_b
+      ...> end
+      :exit_b
 
   This means the VM no longer needs to keep the stacktrace once inside
   an `else` clause and so tail recursion is possible when using a `try`
@@ -2297,16 +2311,15 @@ defmodule Kernel.SpecialForms do
   If the `try` ends up in the `rescue` or `catch` clauses, their result
   will not fall down to `else`:
 
-      try do
-        throw(:catch_this)
-      catch
-        :throw, :catch_this ->
-          :it_was_caught
-      else
-        # :it_was_caught will not fall down to this "else" clause.
-        other ->
-          {:else, other}
-      end
+      iex> try do
+      ...>   throw(:catch_this)
+      ...> catch
+      ...>   :throw, :catch_this -> :it_was_caught
+      ...> else
+      ...>   # :it_was_caught will not fall down to this "else" clause.
+      ...>   other -> {:else, other}
+      ...> end
+      :it_was_caught
 
   ## Variable handling
 
@@ -2351,30 +2364,32 @@ defmodule Kernel.SpecialForms do
   Any new and existing messages that do not match will remain in the mailbox.
 
   ## Examples
-
-      receive do
-        {:selector, number, name} when is_integer(number) ->
-          name
-        name when is_atom(name) ->
-          name
-        _ ->
-          IO.puts(:stderr, "Unexpected message received")
-      end
+      iex> send(self(), {:selector, 5, :quantity})
+      iex> receive do
+      ...>   {:selector, number, name} when is_integer(number) ->
+      ...>     name
+      ...>   name when is_atom(name) ->
+      ...>     name
+      ...>   _ ->
+      ...>     IO.puts(:stderr, "Unexpected message received")
+      ...> end
+      :quantity
 
   An optional `after` clause can be given in case no matching message is
   received during the given timeout period, specified in milliseconds:
 
-      receive do
-        {:selector, number, name} when is_integer(number) ->
-          name
-        name when is_atom(name) ->
-          name
-        _ ->
-          IO.puts(:stderr, "Unexpected message received")
-      after
-        5000 ->
-          IO.puts(:stderr, "No message in 5 seconds")
-      end
+      iex> receive do
+      ...>   {:selector, number, name} when is_integer(number) ->
+      ...>     name
+      ...>   name when is_atom(name) ->
+      ...>     name
+      ...>   _ ->
+      ...>     IO.puts(:stderr, "Unexpected message received")
+      ...> after
+      ...>   10 ->
+      ...>     "No message in 10 milliseconds"
+      ...> end
+      "No message in 10 milliseconds"
 
   The `after` clause can be specified even if there are no match clauses.
   The timeout value given to `after` can be any expression evaluating to

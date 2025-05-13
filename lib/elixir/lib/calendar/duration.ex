@@ -91,6 +91,30 @@ defmodule Duration do
   The second example consistently points to the last day of the month,
   as it performs operations on the duration, rather than shifting date
   after date.
+
+  ## Comparing durations
+
+  In order to accurately compare durations, you need to either compare
+  only certain fields or use a reference time instant. This is because
+  some fields are relative to others. For example, you may say that
+  1 month is the same as 30 days, but if you add both of these durations
+  to `~D[2015-02-01]`, you would get different results, as that month
+  has only 28 days.
+
+  Therefore, if you wish to compare durations, one option is to use
+  `Date.shift/2` (or `DateTime.shift/2` or similar), and then compare
+  the dates:
+
+      iex> date = ~D[2015-02-01]
+      iex> Date.compare(Date.shift(date, month: 1), Date.shift(date, day: 30))
+      :lt
+
+  Or alternatively convert the durations to a fixed unit by using `to_timeout/1`,
+  which supports durations only up to weeks, raising if it has the month or year
+  fields set.
+
+      iex> to_timeout(hour: 24) == to_timeout(day: 1)
+      true
   """
 
   @moduledoc since: "1.17.0"
@@ -116,7 +140,7 @@ defmodule Duration do
           hour: integer,
           minute: integer,
           second: integer,
-          microsecond: {integer, 0..6}
+          microsecond: Calendar.microsecond()
         }
 
   @typedoc """
@@ -130,7 +154,7 @@ defmodule Duration do
           | {:hour, integer}
           | {:minute, integer}
           | {:second, integer}
-          | {:microsecond, {integer, 0..6}}
+          | {:microsecond, Calendar.microsecond()}
 
   @typedoc """
   The duration type specifies a `%Duration{}` struct or a keyword list of valid duration unit pairs.

@@ -17,10 +17,10 @@ debug_info(elixir_v1, _Module, none, _Opts) ->
 debug_info(elixir_v1, _Module, {elixir_v1, Map, _Specs}, _Opts) ->
   {ok, Map};
 debug_info(erlang_v1, _Module, {elixir_v1, Map, Specs}, _Opts) ->
-  {Prefix, Forms, _, _, _} = dynamic_form(Map),
+  {Prefix, Forms, _, _, _} = dynamic_form(Map, nil),
   {ok, Prefix ++ Specs ++ Forms};
 debug_info(core_v1, _Module, {elixir_v1, Map, Specs}, Opts) ->
-  {Prefix, Forms, _, _, _} = dynamic_form(Map),
+  {Prefix, Forms, _, _, _} = dynamic_form(Map, nil),
   #{compile_opts := CompileOpts} = Map,
   AllOpts = CompileOpts ++ Opts,
 
@@ -133,7 +133,7 @@ scope(_Meta, ExpandCaptures) ->
 %% Static compilation hook, used in protocol consolidation
 
 consolidate(Map, TypeSpecs, DocsChunk) ->
-  {Prefix, Forms, Def, _Defmacro, _Macros} = dynamic_form(Map),
+  {Prefix, Forms, Def, _Defmacro, _Macros} = dynamic_form(Map, nil),
   CheckerChunk = checker_chunk(Map, Def, chunk_opts(Map)),
   load_form(Map, Prefix, Forms, TypeSpecs, DocsChunk ++ CheckerChunk).
 
@@ -155,7 +155,8 @@ compile(#{module := Module, anno := Anno} = BaseMap) ->
       false -> ?typespecs:translate_typespecs_for_module(Set, Bag)
     end,
 
-  {Prefix, Forms, Def, Defmacro, Macros} = dynamic_form(Map),
+  MD5 = ets:lookup_element(Set, exports_md5, 2),
+  {Prefix, Forms, Def, Defmacro, Macros} = dynamic_form(Map, MD5),
   {Types, Callbacks, TypeSpecs} = typespecs_form(Map, TranslatedTypespecs, Macros),
 
   ChunkOpts = chunk_opts(Map),
@@ -171,7 +172,7 @@ chunk_opts(Map) ->
 
 dynamic_form(#{module := Module, relative_file := RelativeFile,
                attributes := Attributes, definitions := Definitions, unreachable := Unreachable,
-               deprecated := Deprecated, compile_opts := Opts} = Map) ->
+               deprecated := Deprecated, compile_opts := Opts} = Map, MD5) ->
   %% TODO: Match on anno directly in Elixir v1.22+
   Line = case Map of
     #{anno := AnnoValue} -> erl_anno:line(AnnoValue);
@@ -194,7 +195,7 @@ dynamic_form(#{module := Module, relative_file := RelativeFile,
             {attribute, Line, compile, [no_auto_import | FilteredOpts]}],
 
   Struct = maps:get(struct, Map, nil),
-  Forms0 = functions_form(Line, Module, Def, Defmacro, Exports, Functions, Deprecated, Struct),
+  Forms0 = functions_form(Line, Module, Def, Defmacro, Exports, Functions, Deprecated, Struct, MD5),
   Forms1 = attributes_form(Line, Attributes, Forms0),
   {Prefix, Forms1, Def, Defmacro, Macros}.
 
@@ -298,11 +299,11 @@ is_macro(_)         -> false.
 
 % Functions
 
-functions_form(Line, Module, Def, Defmacro, Exports, Body, Deprecated, Struct) ->
-  {Spec, Info} = add_info_function(Line, Module, Def, Defmacro, Deprecated, Struct),
+functions_form(Line, Module, Def, Defmacro, Exports, Body, Deprecated, Struct, MD5) ->
+  {Spec, Info} = add_info_function(Line, Module, Def, Defmacro, Deprecated, Struct, MD5),
   [{attribute, Line, export, lists:usort([{'__info__', 1} | Exports])}, Spec, Info | Body].
 
-add_info_function(Line, Module, Def, Defmacro, Deprecated, Struct) ->
+add_info_function(Line, Module, Def, Defmacro, Deprecated, Struct, MD5) ->
   DefNA = [NA || {NA, _Meta} <- Def],
   DefmacroNA = [NA || {NA, _Meta} <- Defmacro],
 
@@ -325,7 +326,7 @@ add_info_function(Line, Module, Def, Defmacro, Deprecated, Struct) ->
       functions_info(DefNA),
       macros_info(DefmacroNA),
       struct_info(Struct),
-      exports_md5_info(Struct, DefNA, DefmacroNA),
+      exports_md5_info(MD5, DefNA, DefmacroNA, Struct),
       get_module_info(Module, attributes),
       get_module_info(Module, compile),
       get_module_info(Module, md5),
@@ -337,11 +338,12 @@ add_info_function(Line, Module, Def, Defmacro, Deprecated, Struct) ->
 get_module_info(Module) ->
   {clause, 0, [{atom, 0, module}], [], [{atom, 0, Module}]}.
 
-exports_md5_info(Struct, Def, Defmacro) ->
-  %% Deprecations do not need to be part of exports_md5 because it is always
-  %% checked by the runtime pass, so it is not really part of compilation.
-  Md5 = erlang:md5(term_to_binary({Def, Defmacro, Struct}, [deterministic])),
-  {clause, 0, [{atom, 0, exports_md5}], [], [elixir_to_erl(Md5)]}.
+exports_md5_info(MD5Attr, Def, Defmacro, Struct) ->
+  MD5 = if
+    is_binary(MD5Attr) -> MD5Attr;
+    MD5Attr =:= nil -> elixir_module:exports_md5(Def, Defmacro, Struct)
+  end,
+  {clause, 0, [{atom, 0, exports_md5}], [], [elixir_to_erl(MD5)]}.
 
 functions_info(Def) ->
   {clause, 0, [{atom, 0, functions}], [], [elixir_to_erl(Def)]}.

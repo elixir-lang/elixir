@@ -316,7 +316,9 @@ defmodule Mix.Compilers.Erlang do
     for {_, warnings} <- entries,
         {file, issues} <- warnings,
         {location, module, message} <- issues do
-      IO.puts("#{file}:#{location_to_string(location)} warning: #{module.format_error(message)}")
+      message = "#{file}:#{location_to_string(location)} warning: #{module.format_error(message)}"
+
+      IO.puts(:stderr, message)
     end
   end
 

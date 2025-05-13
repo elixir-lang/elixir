@@ -56,6 +56,7 @@ defmodule Mix.Compilers.Elixir do
     # Prepend ourselves early because of __mix_recompile__? checks
     # and also that, in case of nothing compiled, we already need
     # ourselves available in the path.
+    File.mkdir_p!(dest)
     Code.prepend_path(dest)
 
     # If modules have been added or removed from the Erlang compiler,
@@ -180,9 +181,6 @@ defmodule Mix.Compilers.Elixir do
       end
 
       Mix.Project.ensure_structure()
-
-      # We don't want to cache this path as we will write to it
-      true = Code.prepend_path(dest)
       previous_opts = set_compiler_opts(opts)
 
       try do
@@ -613,7 +611,10 @@ defmodule Mix.Compilers.Elixir do
         {exports, new_exports} =
           for {module, _} <- dep_modules, reduce: {exports, []} do
             {exports, new_exports} ->
-              export = exports_md5(module, false)
+              export =
+                if Code.ensure_loaded?(module) and function_exported?(module, :__info__, 1) do
+                  module.__info__(:exports_md5)
+                end
 
               # If the exports are the same, then the API did not change,
               # so we do not mark the export as stale. Note this has to
@@ -687,40 +688,24 @@ defmodule Mix.Compilers.Elixir do
   defp fixpoint_non_compile_modules([], modules, true, pending_sources),
     do: fixpoint_non_compile_modules(pending_sources, modules, false, [])
 
-  defp exports_md5(module, use_attributes?) do
-    cond do
-      function_exported?(module, :__info__, 1) ->
-        module.__info__(:exports_md5)
-
-      use_attributes? ->
-        defs = :lists.sort(Module.definitions_in(module, :def))
-        defmacros = :lists.sort(Module.definitions_in(module, :defmacro))
-
-        struct =
-          case Module.get_attribute(module, :__struct__) do
-            %{} = entry -> {entry, List.wrap(Module.get_attribute(module, :enforce_keys))}
-            _ -> nil
-          end
-
-        {defs, defmacros, struct} |> :erlang.term_to_binary() |> :erlang.md5()
-
-      true ->
-        nil
-    end
-  end
-
   defp remove_and_purge(beam, module) do
     _ = File.rm(beam)
-    :code.purge(module)
-    :code.delete(module)
+
+    if Code.loaded?(module) do
+      :code.purge(module)
+      :code.delete(module)
+    end
   end
 
   defp purge_modules_in_path(path) do
     with {:ok, beams} <- File.ls(path) do
       Enum.each(beams, fn beam ->
         module = beam |> Path.rootname() |> String.to_atom()
-        :code.purge(module)
-        :code.delete(module)
+
+        if Code.loaded?(module) do
+          :code.purge(module)
+          :code.delete(module)
+        end
       end)
     end
   end
@@ -898,9 +883,7 @@ defmodule Mix.Compilers.Elixir do
         end
 
       for {module, _} <- data do
-        File.rm(beam_path(compile_path, module))
-        :code.purge(module)
-        :code.delete(module)
+        remove_and_purge(beam_path(compile_path, module), module)
       end
     rescue
       _ ->
@@ -1018,9 +1001,15 @@ defmodule Mix.Compilers.Elixir do
   defp compiler_loop(stale, stale_modules, dest, timestamp, opts, state) do
     ref = make_ref()
     parent = self()
-    threshold = opts[:long_compilation_threshold] || 10
+    compilation_threshold = opts[:long_compilation_threshold] || 10
+    verification_threshold = opts[:long_verification_threshold] || 10
     profile = opts[:profile]
-    verbose = opts[:verbose] || false
+    verbose = Keyword.get(opts, :verbose, false)
+    verification = Keyword.get(opts, :verification, true)
+
+    if not verification and not Mix.debug?() do
+      Mix.shell().error("--no-verification flag is only recommended with MIX_DEBUG=1")
+    end
 
     pid =
       spawn_link(fn ->
@@ -1037,15 +1026,24 @@ defmodule Mix.Compilers.Elixir do
           each_module: fn file, module, _binary ->
             compiler_call(parent, ref, {:each_module, file, module, System.os_time(:second)})
           end,
-          each_long_compilation: fn file ->
+          each_long_compilation: fn file, pid ->
             Mix.shell().info(
-              "Compiling #{Path.relative_to(file, File.cwd!())} (it's taking more than #{threshold}s)"
+              "Compiling #{Path.relative_to(file, File.cwd!())} " <>
+                "(it's taking more than #{compilation_threshold}s)#{debug_stacktrace(pid)}"
             )
           end,
-          long_compilation_threshold: threshold,
-          profile: profile,
+          each_long_verification: fn module, pid ->
+            Mix.shell().info(
+              "Verifying #{inspect(module)} " <>
+                "(it's taking more than #{verification_threshold}s)#{debug_stacktrace(pid)}"
+            )
+          end,
+          long_compilation_threshold: compilation_threshold,
+          long_verification_threshold: verification_threshold,
           beam_timestamp: timestamp,
-          return_diagnostics: true
+          return_diagnostics: true,
+          profile: profile,
+          verification: verification
         ]
 
         response = Kernel.ParallelCompiler.compile_to_path(stale, dest, compile_opts)
@@ -1086,9 +1084,13 @@ defmodule Mix.Compilers.Elixir do
         # Read the relevant module information and unblock the compiler
         kind = detect_kind(module)
         external = Module.get_attribute(module, :external_resource)
-        new_export = exports_md5(module, true)
+        new_export = Module.get_attribute(module, :exports_md5)
+        recompile? = Module.defines?(module, {:__mix_recompile__?, 0}, :def)
         send(pid, {ref, :ok})
-        state = each_module(file, module, kind, external, new_export, state, timestamp, cwd)
+
+        state =
+          each_module(file, module, kind, external, new_export, recompile?, state, timestamp, cwd)
+
         compiler_loop(ref, pid, state, cwd)
 
       {^ref, {:ok, _modules, info}} ->
@@ -1211,7 +1213,7 @@ defmodule Mix.Compilers.Elixir do
     {modules, exports, sources, changed, pending_modules, stale_exports, consolidation}
   end
 
-  defp each_module(file, module, kind, external, new_export, state, timestamp, cwd) do
+  defp each_module(file, module, kind, external, new_export, recompile?, state, timestamp, cwd) do
     {modules, exports, sources, changed, pending_modules, stale_exports, consolidation} = state
 
     file = Path.relative_to(file, cwd)
@@ -1251,7 +1253,7 @@ defmodule Mix.Compilers.Elixir do
         sources: module_sources,
         export: new_export,
         timestamp: timestamp,
-        recompile?: function_exported?(module, :__mix_recompile__?, 0)
+        recompile?: recompile?
       )
 
     modules = Map.put(modules, module, entry)
@@ -1292,6 +1294,15 @@ defmodule Mix.Compilers.Elixir do
         end
 
       {Path.relative_to(file, cwd), Mix.Utils.last_modified_and_size(file), digest}
+    end
+  end
+
+  defp debug_stacktrace(pid) do
+    with true <- Mix.debug?(),
+         {:current_stacktrace, stacktrace} <- Process.info(pid, :current_stacktrace) do
+      [?\n, Exception.format_stacktrace(stacktrace)]
+    else
+      _ -> ""
     end
   end
 
