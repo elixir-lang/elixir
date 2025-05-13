@@ -4337,13 +4337,19 @@ defmodule Enum do
   end
 
   defp count_until_enum(enumerable, limit) do
-    Enumerable.reduce(enumerable, {:cont, 0}, fn _entry, acc ->
-      case acc + 1 do
-        ^limit -> {:halt, limit}
-        acc -> {:cont, acc}
-      end
-    end)
-    |> elem(1)
+    case Enumerable.count(enumerable) do
+      {:ok, value} ->
+        Kernel.min(value, limit)
+
+      {:error, module} ->
+        module.reduce(enumerable, {:cont, 0}, fn _entry, acc ->
+          case acc + 1 do
+            ^limit -> {:halt, limit}
+            acc -> {:cont, acc}
+          end
+        end)
+        |> elem(1)
+    end
   end
 
   @compile {:inline, count_until_list: 4}
