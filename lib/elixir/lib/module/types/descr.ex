@@ -2699,8 +2699,7 @@ defmodule Module.Types.Descr do
       if((bitmap &&& @bit_float) != 0, do: :float),
       if((bitmap &&& @bit_pid) != 0, do: :pid),
       if((bitmap &&& @bit_port) != 0, do: :port),
-      if((bitmap &&& @bit_reference) != 0, do: :reference),
-      if((bitmap &&& @bit_fun) != 0, do: :fun)
+      if((bitmap &&& @bit_reference) != 0, do: :reference)
     ]
     |> Enum.reject(&is_nil/1)
   end
