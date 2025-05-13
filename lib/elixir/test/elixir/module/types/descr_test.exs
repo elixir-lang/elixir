@@ -764,19 +764,19 @@ defmodule Module.Types.DescrTest do
       # For function domain:
       # 1. The domain of an intersection of functions is the union of the domains of the functions
       # 2. The domain of a union of functions is the intersection of the domains of the functions
-      # 3. If a type is not a function or its domain is empty, return :badfunction
+      # 3. If a type is not a function or its domain is empty, return :badfun
 
       # For gradual domain of a function type t:
       # It is dom(t) = dom(up(t)) ∪ dynamic(dom(down(t)))
       # where dom is the static domain, up is the upcast, and down is the downcast.
 
       ## Basic domain tests
-      assert fun_domain(term()) == :badfunction
-      assert fun_domain(none()) == :badfunction
-      assert fun_domain(intersection(fun(1), fun(2))) == :badfunction
-      assert union(atom(), intersection(fun(1), fun(2))) |> fun_domain() == :badfunction
-      assert fun_domain(fun([none()], term())) == :badfunction
-      assert fun_domain(difference(fun([pid()], pid()), fun([pid()], term()))) == :badfunction
+      assert fun_domain(term()) == :badfun
+      assert fun_domain(none()) == :badfun
+      assert fun_domain(intersection(fun(1), fun(2))) == :badfun
+      assert union(atom(), intersection(fun(1), fun(2))) |> fun_domain() == :badfun
+      assert fun_domain(fun([none()], term())) == :badfun
+      assert fun_domain(difference(fun([pid()], pid()), fun([pid()], term()))) == :badfun
 
       assert_domain(fun([], term()), [])
       assert_domain(fun([term()], atom()), [term()])
@@ -787,8 +787,8 @@ defmodule Module.Types.DescrTest do
       assert_domain(union(fun([number()], term()), fun([float()], term())), [float()])
 
       ## Gradual domain tests
-      assert fun_domain(dynamic()) == :badfunction
-      assert fun_domain(intersection(dynamic(), fun([none()], term()))) == :badfunction
+      assert fun_domain(dynamic()) == :badfun
+      assert fun_domain(intersection(dynamic(), fun([none()], term()))) == :badfun
       assert_domain(fun([dynamic()], dynamic()), [dynamic()])
       assert_domain(fun([dynamic(), dynamic()], dynamic()), [dynamic(), dynamic()])
       assert_domain(intersection(fun([integer()], atom()), dynamic()), [integer()])
@@ -817,7 +817,7 @@ defmodule Module.Types.DescrTest do
 
       # Intersection of domains int and float is empty
       assert union(fun([integer()], atom()), fun([float()], boolean())) |> fun_domain() ==
-               :badfunction
+               :badfun
     end
 
     test "function application" do
@@ -826,14 +826,14 @@ defmodule Module.Types.DescrTest do
 
       # Basic function application scenarios
       assert fun_apply(fun([integer()], atom()), [integer()]) == atom()
-      assert fun_apply(fun([integer()], atom()), [float()]) == :badarguments
-      assert fun_apply(fun([integer()], atom()), [term()]) == :badarguments
+      assert fun_apply(fun([integer()], atom()), [float()]) == :badarg
+      assert fun_apply(fun([integer()], atom()), [term()]) == :badarg
       assert fun_apply(fun([integer()], none()), [integer()]) == none()
       assert fun_apply(fun([integer()], term()), [integer()]) == term()
 
       # Arity mismatches
-      assert fun_apply(fun([dynamic()], integer()), [dynamic(), dynamic()]) == :badarguments
-      assert fun_apply(fun([integer(), atom()], boolean()), [integer()]) == :badarguments
+      assert fun_apply(fun([dynamic()], integer()), [dynamic(), dynamic()]) == :badarg
+      assert fun_apply(fun([integer(), atom()], boolean()), [integer()]) == {:badarity, 2}
 
       # Dynamic type handling
       assert fun_apply(fun([dynamic()], term()), [dynamic()]) == term()
@@ -866,9 +866,9 @@ defmodule Module.Types.DescrTest do
 
       fun9 = fun([intersection(dynamic(), integer())], atom())
       assert fun_apply(fun9, [dynamic(integer())]) |> equal?(atom())
-      assert fun_apply(fun9, [dynamic()]) == :badarguments
+      assert fun_apply(fun9, [dynamic()]) == :badarg
       # TODO: discuss this case
-      assert fun_apply(fun9, [integer()]) == :badarguments
+      assert fun_apply(fun9, [integer()]) == :badarg
 
       # Dynamic with function type combinations
       fun12 =
