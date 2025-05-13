@@ -973,7 +973,7 @@ defmodule Module.Types.Descr do
   For a function type, the domain is the set of valid input types.
 
   Returns:
-  - `:badfunction` if the type is not a function type
+  - `:badfun` if the type is not a function type
   - A tuple type representing the domain for valid function types
 
   Handles both static and dynamic function types:
@@ -990,7 +990,7 @@ defmodule Module.Types.Descr do
       iex> fun_domain(fun([integer(), float()], boolean()))
       domain_repr([integer(), float()])
   """
-  def fun_domain(:term), do: :badfunction
+  def fun_domain(:term), do: :badfun
 
   def fun_domain(type) do
     result =
@@ -1000,7 +1000,7 @@ defmodule Module.Types.Descr do
           with true <- fun_only?(type), {:ok, domain} <- fun_domain_static(type) do
             domain
           else
-            _ -> :badfunction
+            _ -> :badfun
           end
 
         {dynamic, static} when static == @none ->
@@ -1012,19 +1012,19 @@ defmodule Module.Types.Descr do
                {:ok, dynamic_domain} <- fun_domain_static(dynamic) do
             union(dynamic_domain, dynamic(static_domain))
           else
-            _ -> :badfunction
+            _ -> :badfun
           end
       end
 
     case result do
-      :badfunction -> :badfunction
-      result -> if empty?(result), do: :badfunction, else: result
+      :badfun -> :badfun
+      result -> if empty?(result), do: :badfun, else: result
     end
   end
 
   # Returns {:ok, domain} if the domain of the static type is well-defined.
   # For that, it has to contain a non-empty function type.
-  # Otherwise, returns :badfunction.
+  # Otherwise, returns :badfun.
   defp fun_domain_static(%{fun: bdd}) do
     case fun_normalize(bdd) do
       {domain, _, _} -> {:ok, domain}
@@ -1032,14 +1032,13 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp fun_domain_static(:term), do: :badfunction
+  defp fun_domain_static(:term), do: :badfun
   defp fun_domain_static(%{}), do: {:ok, none()}
-  defp fun_domain_static(:empty_function), do: {:ok, none()}
 
   @doc """
   Applies a function type to a list of argument types.
 
-  Returns the result type if the application is valid, or `:badarguments` if not.
+  Returns the result type if the application is valid, or `:badarg` if not.
 
   Handles both static and dynamic function types:
   1. For static functions: checks exact argument types
@@ -1061,14 +1060,14 @@ defmodule Module.Types.Descr do
       atom()
 
       iex> fun_apply(fun([integer()], atom()), [float()])
-      :badarguments
+      :badarg
 
       iex> fun_apply(fun([dynamic()], atom()), [dynamic()])
       atom()
   """
   def fun_apply(fun, arguments) do
     if empty?(domain_descr(arguments)) do
-      :badarguments
+      :badarg
     else
       case :maps.take(:dynamic, fun) do
         :error -> fun_apply_with_strategy(fun, nil, arguments)
@@ -1096,7 +1095,7 @@ defmodule Module.Types.Descr do
            {:ok, res2} <- fun_apply_static(dynamic_fun, dynamic_args) do
         union(res1, dynamic(res2))
       else
-        _ -> :badarguments
+        _ -> :badarg
       end
     end
   end
@@ -1110,40 +1109,42 @@ defmodule Module.Types.Descr do
   defp fun_apply_static(%{fun: fun_bdd}, arguments) do
     type_args = domain_descr(arguments)
 
-    if empty?(type_args) do
-      # At this stage we do not check that the function can be applied to the arguments (using domain)
-      with {_domain, arrows, arity} <- fun_normalize(fun_bdd),
-           true <- arity == length(arguments) do
-        # Opti: short-circuits when inner loop is none() or outer loop is term()
-        result =
-          Enum.reduce_while(arrows, none(), fn intersection_of_arrows, acc ->
-            Enum.reduce_while(intersection_of_arrows, term(), fn
-              {_dom, _ret}, acc when acc == @none -> {:halt, acc}
-              {_dom, ret}, acc -> {:cont, intersection(acc, ret)}
-            end)
-            |> case do
-              :term -> {:halt, :term}
-              inner -> {:cont, union(inner, acc)}
-            end
-          end)
+    case fun_normalize(fun_bdd) do
+      {domain, arrows, arity} when arity == length(arguments) ->
+        cond do
+          empty?(type_args) ->
+            # Opti: short-circuits when inner loop is none() or outer loop is term()
+            result =
+              Enum.reduce_while(arrows, none(), fn intersection_of_arrows, acc ->
+                Enum.reduce_while(intersection_of_arrows, term(), fn
+                  {_dom, _ret}, acc when acc == @none -> {:halt, acc}
+                  {_dom, ret}, acc -> {:cont, intersection(acc, ret)}
+                end)
+                |> case do
+                  :term -> {:halt, :term}
+                  inner -> {:cont, union(inner, acc)}
+                end
+              end)
 
-        {:ok, result}
-      else
-        false -> :badarity
-      end
-    else
-      with {domain, arrows, arity} <- fun_normalize(fun_bdd),
-           true <- arity == length(arguments),
-           true <- subtype?(type_args, domain) do
-        result =
-          Enum.reduce(arrows, none(), fn intersection_of_arrows, acc ->
-            aux_apply(acc, type_args, term(), intersection_of_arrows)
-          end)
+            {:ok, result}
 
-        {:ok, result}
-      else
-        _ -> :badarguments
-      end
+          subtype?(type_args, domain) ->
+            result =
+              Enum.reduce(arrows, none(), fn intersection_of_arrows, acc ->
+                aux_apply(acc, type_args, term(), intersection_of_arrows)
+              end)
+
+            {:ok, result}
+
+          true ->
+            :badarg
+        end
+
+      {_, _, arity} ->
+        {:badarity, arity}
+
+      :badfun ->
+        :badfun
     end
   end
 
@@ -1218,7 +1219,7 @@ defmodule Module.Types.Descr do
   ## Return Values
   #
   # - `{domain, arrows, arity}` for valid function BDDs
-  # - `:empty_function` if the BDD represents an empty function type
+  # - `:badfun` if the BDD represents an empty function type
   #
   # ## Internal Use
   #
@@ -1245,7 +1246,7 @@ defmodule Module.Types.Descr do
         end
       end)
 
-    if arrows == [], do: :empty_function, else: {domain, arrows, arity}
+    if arrows == [], do: :badfun, else: {domain, arrows, arity}
   end
 
   # Checks if a function type is empty.
