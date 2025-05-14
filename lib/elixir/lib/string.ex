@@ -597,13 +597,13 @@ defmodule String do
     lines(string, <<>>)
   end
 
-  def lines(<<?\n, rest::binary>>, acc),
+  defp lines(<<?\n, rest::binary>>, acc),
     do: [<<acc::binary, ?\n>> | lines(rest, <<>>)]
 
-  def lines(<<char, rest::binary>>, acc),
+  defp lines(<<char, rest::binary>>, acc),
     do: lines(rest, <<acc::binary, char>>)
 
-  def lines(<<>>, acc),
+  defp lines(<<>>, acc),
     do: [acc]
 
   @doc """
