@@ -362,8 +362,8 @@ defmodule Mix.Tasks.Release.Init do
     if not "!REL_GOTO!" == "" (
       findstr "RUNTIME_CONFIG=true" "!RELEASE_SYS_CONFIG!.config" >nul 2>&1 && (
         set DEFAULT_SYS_CONFIG=!RELEASE_SYS_CONFIG!
-        for /f "skip=1" %%X in ('wmic os get localdatetime') do if not defined TIMESTAMP set TIMESTAMP=%%X
-        set RELEASE_SYS_CONFIG=!RELEASE_TMP!\!RELEASE_NAME!-!RELEASE_VSN!-!TIMESTAMP:~0,11!-!RANDOM!.runtime
+        set "TIMESTAMP=%TIME::=%"
+        set RELEASE_SYS_CONFIG=!RELEASE_TMP!\!RELEASE_NAME!-!RELEASE_VSN!-!TIMESTAMP!-!RANDOM!.runtime
         mkdir "!RELEASE_TMP!" >nul 2>&1
         copy /y "!DEFAULT_SYS_CONFIG!.config" "!RELEASE_SYS_CONFIG!.config" >nul || (
           echo Cannot start release because it could not write to "!RELEASE_SYS_CONFIG!.config"
