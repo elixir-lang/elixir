@@ -770,6 +770,40 @@ defmodule Mix.Tasks.TestTest do
     end
   end
 
+  describe "--dry-run" do
+    test "prints which tests would run without executing them" do
+      in_fixture("test_stale", fn ->
+        File.write!("test/dry_run_test.exs", """
+        defmodule DryRunTest do
+          use ExUnit.Case
+
+          test "passing test" do
+            assert true
+          end
+
+          test "failing test" do
+            assert false
+          end
+        end
+        """)
+
+        assert {output, 0} = mix_code(["test", "--dry-run", "--stale"])
+        assert output =~ "DRY RUN"
+        assert output =~ "test/dry_run_test.exs"
+        refute output =~ "Finished in"
+      end)
+    end
+
+    test "prints message when no tests would run" do
+      in_fixture("test_stale", fn ->
+        assert {output, 0} = mix_code(["test", "--dry-run", "non_existent_test.exs"])
+        assert output =~ "DRY RUN"
+        assert output =~ "No tests would run"
+        refute output =~ "Finished in"
+      end)
+    end
+  end
+
   defp receive_until_match(port, expected, acc) do
     receive do
       {^port, {:data, output}} ->

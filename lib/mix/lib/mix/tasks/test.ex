@@ -121,6 +121,10 @@ defmodule Mix.Tasks.Test do
 
     * `--cover` - runs coverage tool. See "Coverage" section below
 
+    * `--dry-run` - prints which tests would be run based on current options,
+      but does not actually run any tests. This combines with all other options
+      like `--stale`, `--only`, `--exclude`, etc.
+
     * `--exclude` - excludes tests that match the filter. This option may be given
       several times to apply different filters, such as `--exclude ci --exclude slow`
 
@@ -494,7 +498,8 @@ defmodule Mix.Tasks.Test do
     warnings_as_errors: :boolean,
     profile_require: :string,
     exit_status: :integer,
-    repeat_until_failure: :integer
+    repeat_until_failure: :integer,
+    dry_run: :boolean
   ]
 
   @cover [output: "cover", tool: Mix.Tasks.Test.Coverage]
@@ -623,6 +628,7 @@ defmodule Mix.Tasks.Test do
 
     warnings_as_errors? = Keyword.get(opts, :warnings_as_errors, false)
     exit_status = Keyword.fetch!(ex_unit_opts, :exit_status)
+    dry_run? = Keyword.get(opts, :dry_run, false)
 
     # Prepare and extract all files to require and run
     test_paths = project[:test_paths] || default_test_paths()
@@ -659,69 +665,115 @@ defmodule Mix.Tasks.Test do
 
     warn_files != [] && warn_misnamed_test_files(warn_files)
 
-    try do
-      Enum.each(test_paths, &require_test_helper(shell, &1))
-      # test_opts always wins because those are given via args
-      ExUnit.configure(ex_unit_opts |> merge_helper_opts() |> Keyword.merge(test_opts))
-      CT.require_and_run(matched_test_files, test_paths, test_elixirc_options, opts)
-    catch
-      kind, reason ->
-        # Also mark the whole suite as failed
-        file = Keyword.fetch!(opts, :failures_manifest_path)
-        ExUnit.Filters.fail_all!(file)
-        :erlang.raise(kind, reason, __STACKTRACE__)
+    if dry_run? do
+      do_dry_run(matched_test_files)
     else
-      {:ok, %{excluded: excluded, failures: failures, warnings?: warnings?, total: total}} ->
-        Mix.shell(shell)
-        cover && cover.()
-
-        cond do
-          warnings_as_errors? and warnings? and failures == 0 ->
-            message =
-              "\nERROR! Test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
-
-            IO.puts(:stderr, IO.ANSI.format([:red, message]))
-
-            System.at_exit(fn _ ->
-              exit({:shutdown, 1})
-            end)
-
-          failures > 0 and opts[:raise] ->
-            raise_with_shell(shell, "\"mix test\" failed")
-
-          warnings_as_errors? and warnings? and failures > 0 ->
-            System.at_exit(fn _ ->
-              exit({:shutdown, exit_status + 1})
-            end)
-
-          failures > 0 ->
-            System.at_exit(fn _ ->
-              exit({:shutdown, exit_status})
-            end)
-
-          excluded == total and Keyword.has_key?(opts, :only) ->
-            message = "The --only option was given to \"mix test\" but no test was executed"
-            raise_or_error_at_exit(shell, message, opts)
-
-          true ->
-            :ok
-        end
-
-      :noop ->
-        cond do
-          opts[:stale] ->
-            Mix.shell().info("No stale tests")
-
-          opts[:failed] || files == [] ->
-            Mix.shell().info("There are no tests to run")
-
-          true ->
-            message = "Paths given to \"mix test\" did not match any directory/file: "
-            raise_or_error_at_exit(shell, message <> Enum.join(files, ", "), opts)
-        end
-
-        :ok
+      do_wet_run(
+        shell,
+        cover,
+        test_paths,
+        files,
+        matched_test_files,
+        test_opts,
+        test_elixirc_options,
+        ex_unit_opts,
+        warnings_as_errors?,
+        exit_status,
+        opts
+      )
     end
+  end
+
+  defp do_dry_run(matched_test_files) do
+    if matched_test_files == [] do
+      Mix.shell().info("""
+      -- DRY RUN --
+      No tests would run
+      """)
+    else
+      Mix.shell().info("""
+      -- DRY RUN --
+      The following test files would be run:
+
+      #{Enum.join(matched_test_files, "\n")}
+      """)
+    end
+  end
+
+  defp do_wet_run(
+         shell,
+         cover,
+         test_paths,
+         files,
+         matched_test_files,
+         test_opts,
+         test_elixirc_options,
+         ex_unit_opts,
+         warnings_as_errors?,
+         exit_status,
+         opts
+       ) do
+    Enum.each(test_paths, &require_test_helper(shell, &1))
+    # test_opts always wins because those are given via args
+    ExUnit.configure(ex_unit_opts |> merge_helper_opts() |> Keyword.merge(test_opts))
+    CT.require_and_run(matched_test_files, test_paths, test_elixirc_options, opts)
+  catch
+    kind, reason ->
+      # Also mark the whole suite as failed
+      file = Keyword.fetch!(opts, :failures_manifest_path)
+      ExUnit.Filters.fail_all!(file)
+      :erlang.raise(kind, reason, __STACKTRACE__)
+  else
+    {:ok, %{excluded: excluded, failures: failures, warnings?: warnings?, total: total}} ->
+      Mix.shell(shell)
+      cover && cover.()
+
+      cond do
+        warnings_as_errors? and warnings? and failures == 0 ->
+          message =
+            "\nERROR! Test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
+
+          IO.puts(:stderr, IO.ANSI.format([:red, message]))
+
+          System.at_exit(fn _ ->
+            exit({:shutdown, 1})
+          end)
+
+        failures > 0 and opts[:raise] ->
+          raise_with_shell(shell, "\"mix test\" failed")
+
+        warnings_as_errors? and warnings? and failures > 0 ->
+          System.at_exit(fn _ ->
+            exit({:shutdown, exit_status + 1})
+          end)
+
+        failures > 0 ->
+          System.at_exit(fn _ ->
+            exit({:shutdown, exit_status})
+          end)
+
+        excluded == total and Keyword.has_key?(opts, :only) ->
+          message = "The --only option was given to \"mix test\" but no test was executed"
+          raise_or_error_at_exit(shell, message, opts)
+
+        true ->
+          :ok
+      end
+
+    :noop ->
+      cond do
+        opts[:stale] ->
+          Mix.shell().info("No stale tests")
+
+        opts[:failed] || files == [] ->
+          Mix.shell().info("There are no tests to run")
+
+        true ->
+          message = "Paths given to \"mix test\" did not match any directory/file: "
+          raise_or_error_at_exit(shell, message <> Enum.join(files, ", "), opts)
+      end
+
+      :ok
   end
 
   # similar to Mix.Utils.extract_files/2, but returns a list of directly included test files,
@@ -847,7 +899,8 @@ defmodule Mix.Tasks.Test do
     :only_test_ids,
     :test_location_relative_path,
     :exit_status,
-    :repeat_until_failure
+    :repeat_until_failure,
+    :dry_run
   ]
 
   @doc false
