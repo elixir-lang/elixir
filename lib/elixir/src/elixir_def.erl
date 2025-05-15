@@ -508,6 +508,8 @@ format_error({invalid_def, Kind, NameAndArgs}) ->
 format_error(invalid_args_for_function_head) ->
   "only variables and \\\\ are allowed as arguments in function head.\n"
   "\n"
+  "Check that there is no use of pattern matching in the function head.\n"
+  "\n"
   "If you did not intend to define a function head, make sure your function "
   "definition has the proper syntax by wrapping the arguments in parentheses "
   "and using the do instruction accordingly:\n\n"
