@@ -88,7 +88,8 @@ defmodule ExUnit.Runner do
       seed: opts[:seed],
       stats_pid: stats_pid,
       timeout: opts[:timeout],
-      trace: opts[:trace]
+      trace: opts[:trace],
+      dry_run: opts[:dry_run]
     }
   end
 
@@ -304,6 +305,10 @@ defmodule ExUnit.Runner do
 
   defp run_module_tests(_config, test_module, _async?, []) do
     {test_module, [], []}
+  end
+
+  defp run_module_tests(%{dry_run: true}, test_module, _async?, tests) do
+    {test_module, [], tests}
   end
 
   defp run_module_tests(config, test_module, async?, tests) do

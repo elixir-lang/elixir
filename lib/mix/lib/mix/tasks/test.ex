@@ -121,6 +121,10 @@ defmodule Mix.Tasks.Test do
 
     * `--cover` - runs coverage tool. See "Coverage" section below
 
+    * `--dry-run` *(since v1.19.0)* - prints which tests would be run based on current options,
+      but does not actually run any tests. This combines with all other options
+      like `--stale`, `--only`, `--exclude`, and so on.
+
     * `--exclude` - excludes tests that match the filter. This option may be given
       several times to apply different filters, such as `--exclude ci --exclude slow`
 
@@ -494,7 +498,8 @@ defmodule Mix.Tasks.Test do
     warnings_as_errors: :boolean,
     profile_require: :string,
     exit_status: :integer,
-    repeat_until_failure: :integer
+    repeat_until_failure: :integer,
+    dry_run: :boolean
   ]
 
   @cover [output: "cover", tool: Mix.Tasks.Test.Coverage]
@@ -847,7 +852,8 @@ defmodule Mix.Tasks.Test do
     :only_test_ids,
     :test_location_relative_path,
     :exit_status,
-    :repeat_until_failure
+    :repeat_until_failure,
+    :dry_run
   ]
 
   @doc false
