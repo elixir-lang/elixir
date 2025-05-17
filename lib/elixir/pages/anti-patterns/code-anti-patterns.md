@@ -324,6 +324,13 @@ When a key is optional, the `map[:key]` notation must be used instead. This way,
 
 When you use `map[:key]` to access a key that always exists in the map, you are making the code less clear for developers and for the compiler, as they now need to work with the assumption the key may not be there. This mismatch may also make it harder to track certain bugs. If the key is unexpectedly missing, you will have a `nil` value propagate through the system, instead of raising on map access.
 
+*Table: Comparison of Map Access Notations*
+
+| Access Notation | Key Exists        | Key Doesn't Exist | Use Case      |
+| --------------- | ----------------- | ----------------- | ------------- |
+| `map.key`       | Returns the value | Raises `KeyError` | Required keys |
+| `map[:key]`     | Returns the value | Returns `nil`     | Optional keys |
+
 #### Example
 
 The function `plot/1` tries to draw a graphic to represent the position of a point in a Cartesian plane. This function receives a parameter of `Map` type with the point attributes, which can be a point of a 2D or 3D Cartesian coordinate system. This function uses dynamic access to retrieve values for the map keys:
@@ -359,6 +366,20 @@ iex> Graphics.plot(bad_point)
 
 The behavior above is unexpected because our function should not work with points without a `:x` key. This leads to subtle bugs, as we may now pass `nil` to another function, instead of raising early on.
 
+Here's another example showing how the non-assertive map access can propagate through the system:
+
+```elixir
+iex> point_without_x = %{y: 10}
+%{y: 10}
+iex> {x, y, _} = Graphics.plot(point_without_x)
+{nil, 10, nil}
+iex> distance_from_origin = :math.sqrt(x * x + y * y)
+** (ArithmeticError) bad argument in arithmetic expression
+    :erlang.*(nil, nil)
+```
+
+The error occurs much later in the code because `nil` (from missing `:x`) is invalid for arithmetic operations. This makes it harder to identify the original issue, which was using a point without the expected `:x` coordinate.
+
 #### Refactoring
 
 To remove this anti-pattern, we must use the dynamic `map[:key]` syntax and the static `map.key` notation according to our requirements. We expect `:x` and `:y` to always exist, but not `:z`. The next code illustrates the refactoring of `plot/1`, removing this anti-pattern:
@@ -380,9 +401,34 @@ iex> Graphics.plot(bad_point)
   graphic.ex:4: Graphics.plot/1
 ```
 
+This is beneficial because:
+
+1. It makes your expectations clear to others reading the code
+2. It fails fast when required data is missing
+3. It allows the compiler to provide warnings when accessing non-existent fields, particularly in compile-time structures like structs
+
 Overall, the usage of `map.key` and `map[:key]` encode important information about your data structure, allowing developers to be clear about their intent. See both `Map` and `Access` module documentation for more information and examples.
 
-An alternative to refactor this anti-pattern is to use pattern matching, defining explicit clauses for 2d vs 3d points:
+Here's a quick reference for when to use each access method:
+
+* Use `map.key` when:
+  * The key is required for your function to work correctly
+  * You want to fail fast if the key is missing
+  * You're working with structs
+
+* Use `map[:key]` when:
+  * The key is truly optional
+  * You have code that handles the `nil` case
+  * You need to access keys dynamically (using variables)
+
+Remember that using `Map.get/3` is another option when you want to provide a default value other than `nil`:
+
+```elixir
+# Returns "default" if :some_key doesn't exist
+Map.get(map, :some_key, "default")
+```
+
+An alternative to refactor this anti-pattern is to use pattern matching, defining explicit clauses for 2D vs 3D points:
 
 ```elixir
 defmodule Graphics do
@@ -400,7 +446,19 @@ defmodule Graphics do
 end
 ```
 
-Pattern-matching is specially useful when matching over multiple keys as well as on the values themselves at once.
+Pattern-matching is specially useful when matching over multiple keys as well as on the values themselves at once. In the example above, the code will not only extract the values but also verify that the required keys exist. If we try to call `plot/1` with a map that doesn't have the required keys, we'll get a `FunctionClauseError`:
+
+```elixir
+iex> incomplete_point = %{x: 5}
+%{x: 5}
+iex> Graphics.plot(incomplete_point)
+** (FunctionClauseError) no function clause matching in Graphics.plot/1
+
+    The following arguments were given to Graphics.plot/1:
+
+        # 1
+        %{x: 5}
+```
 
 Another option is to use structs. By default, structs only support static access to its fields. In such scenarios, you may consider defining structs for both 2D and 3D points:
 
