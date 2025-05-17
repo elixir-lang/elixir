@@ -574,38 +574,6 @@ defmodule String do
     end
   end
 
-  @doc ~S"""
-  Returns the list of lines in a string, preserving their line endings.
-
-  If you would like the lines without their line endings, use
-  `String.split(string, ["\r\n", "\n"])`.
-
-  ## Examples
-
-      iex> String.lines("foo\r\nbar\r\nbaz")
-      ["foo\r\n", "bar\r\n", "baz"]
-
-      iex> String.lines("foo\nbar\nbaz")
-      ["foo\n", "bar\n", "baz"]
-
-      iex> String.lines("")
-      [""]
-
-  """
-  @doc since: "1.19.0"
-  def lines(string) do
-    lines(string, <<>>)
-  end
-
-  defp lines(<<?\n, rest::binary>>, acc),
-    do: [<<acc::binary, ?\n>> | lines(rest, <<>>)]
-
-  defp lines(<<char, rest::binary>>, acc),
-    do: lines(rest, <<acc::binary, char>>)
-
-  defp lines(<<>>, acc),
-    do: [acc]
-
   @doc """
   Returns an enumerable that splits a string on demand.
 
