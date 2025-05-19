@@ -326,10 +326,12 @@ When you use `map[:key]` to access a key that always exists in the map, you are 
 
 *Table: Comparison of Map Access Notations*
 
-| Access Notation | Key Exists        | Key Doesn't Exist | Use Case      |
-| --------------- | ----------------- | ----------------- | ------------- |
-| `map.key`       | Returns the value | Raises `KeyError` | Required keys |
-| `map[:key]`     | Returns the value | Returns `nil`     | Optional keys |
+| Access Notation | Map is `nil` | Key Exists | Key Doesn't Exist | Use Case |
+| --------------- | ------------ | ---------- | ----------------- | -------- |
+| `map.key` | Raises `KeyError` | Returns the value | Raises `KeyError` | Required map, required atom keys |
+| `map[:key]` | Returns `nil` | Returns the value | Returns `nil` | Optional map, optional keys |
+| `Map.get(map, :key)` | Raises `ArgumentError` | Returns the value | Returns `nil` | Required map, optional keys |
+| `Map.fetch!(map, "key")` | Raises `ArgumentError` | Returns the value | Raises `KeyError` | Required map, required keys (works with any key type) |
 
 #### Example
 
@@ -362,13 +364,6 @@ iex> bad_point = %{y: 3, z: 4}
 %{y: 3, z: 4}
 iex> Graphics.plot(bad_point)
 {nil, 3, 4}
-```
-
-The behavior above is unexpected because our function should not work with points without a `:x` key. This leads to subtle bugs, as we may now pass `nil` to another function, instead of raising early on.
-
-Here's another example showing how the non-assertive map access can propagate through the system:
-
-```elixir
 iex> point_without_x = %{y: 10}
 %{y: 10}
 iex> {x, y, _} = Graphics.plot(point_without_x)
@@ -378,7 +373,7 @@ iex> distance_from_origin = :math.sqrt(x * x + y * y)
     :erlang.*(nil, nil)
 ```
 
-The error occurs much later in the code because `nil` (from missing `:x`) is invalid for arithmetic operations. This makes it harder to identify the original issue, which was using a point without the expected `:x` coordinate.
+The behavior above is unexpected because our function should not work with points without a `:x` key. This leads to subtle bugs, as we may now pass `nil` to another function, instead of raising early on. As shown in the last example, the error occurs much later in the code because `nil` (from missing `:x`) is invalid for arithmetic operations. This makes it harder to identify the original issue, which was using a point without the expected `:x` coordinate.
 
 #### Refactoring
 
@@ -470,6 +465,14 @@ end
 ```
 
 Generally speaking, structs are useful when sharing data structures across modules, at the cost of adding a compile time dependency between these modules. If module `A` uses a struct defined in module `B`, `A` must be recompiled if the fields in the struct `B` change.
+
+In summary, Elixir provides several ways to access map values, each with different behaviors:
+
+1. **Static access** (`map.key`): Fails fast when keys are missing, ideal for required fields
+2. **Dynamic access** (`map[:key]`): Handles missing keys and nil maps by returning `nil`, suitable for optional fields
+3. **Pattern matching**: Provides a powerful way to both extract values and ensure required keys exist in one operation
+
+Choosing the right approach depends on your requirements and can significantly impact the reliability and maintainability of your code.
 
 #### Additional remarks
 
