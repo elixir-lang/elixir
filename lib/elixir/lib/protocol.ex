@@ -280,9 +280,9 @@ defmodule Protocol do
     type_args = :lists.map(fn _ -> quote(do: term) end, :lists.seq(2, arity))
     type_args = [quote(do: t) | type_args]
 
-    verify = fn pos -> Macro.var(String.to_atom("arg" <> Integer.to_string(pos)), __MODULE__) end
+    convert_variables = fn pos -> Macro.var(String.to_atom("arg" <> Integer.to_string(pos)), __MODULE__) end
 
-    call_args = :lists.map(verify, :lists.seq(2, arity))
+    call_args = :lists.map(convert_variables, :lists.seq(2, arity))
     call_args = [quote(do: term) | call_args]
 
     quote generated: true do
