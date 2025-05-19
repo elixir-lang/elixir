@@ -3472,7 +3472,7 @@ defmodule Module.Types.Descr do
       empty_s1_diff = empty?(s1_diff)
 
       cond do
-        # if fst is a subtype of s1, the disjointness invariant ensures we can
+        # if fst is a subtype of s1, the disjointedness invariant ensures we can
         # add those two pairs and end the recursion
         empty_fst_diff and empty_s1_diff ->
           [{x, union(snd, s2)} | pairs ++ acc]
