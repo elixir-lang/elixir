@@ -947,7 +947,7 @@ defmodule Regex do
   defp embeddable_modifiers([], acc, []), do: {:ok, acc}
   defp embeddable_modifiers([], acc, err), do: {:error, acc, err}
 
-  # translate modifers to options
+  # translate modifiers to options
 
   defp translate_options(<<?s, t::binary>>, acc),
     do: translate_options(t, [:dotall, {:newline, :anycrlf} | acc])
