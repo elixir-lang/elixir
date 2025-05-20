@@ -160,10 +160,19 @@ do_escape(BitString, _) when is_bitstring(BitString) ->
   end;
 
 do_escape(Map, Q) when is_map(Map) ->
-  TT = do_quote(lists:sort(maps:to_list(Map)), Q),
+  TT =
+    [if
+      is_reference(V) ->
+        argument_error(<<('Elixir.Kernel':inspect(Map, []))/binary, " contains a reference (",
+                         ('Elixir.Kernel':inspect(V, []))/binary, ") and therefore it cannot be escaped ",
+                         "(it must be defined within a function instead). ", (bad_escape_hint())/binary>>);
+      true ->
+        {do_quote(K, Q), do_quote(V, Q)}
+     end || {K, V} <- lists:sort(maps:to_list(Map))],
   {'%{}', [], TT};
 
-do_escape([], _) -> [];
+do_escape([], _) ->
+  [];
 
 do_escape([H | T], #elixir_quote{unquote=false} = Q) ->
   do_quote_simple_list(T, do_quote(H, Q), Q);
@@ -195,8 +204,11 @@ do_escape(Other, _) ->
 
 bad_escape(Arg) ->
   argument_error(<<"cannot escape ", ('Elixir.Kernel':inspect(Arg, []))/binary, ". ",
-                   "The supported values are: lists, tuples, maps, atoms, numbers, bitstrings, ",
-                   "PIDs and remote functions in the format &Mod.fun/arity">>).
+                   (bad_escape_hint())/binary>>).
+
+bad_escape_hint() ->
+  <<"The supported values are: lists, tuples, maps, atoms, numbers, bitstrings, ",
+    "PIDs and remote functions in the format &Mod.fun/arity">>.
 
 %% Quote entry points
 
