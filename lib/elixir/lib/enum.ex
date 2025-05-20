@@ -2834,14 +2834,19 @@ defmodule Enum do
   end
 
   @doc """
-  Applies the given function to each element in the `enumerable`,
-  storing the result in a list and passing it as the accumulator
-  for the next computation. Uses the first element in the `enumerable`
-  as the starting value.
+  Passes each element from `enumerable` to the `fun` as the first argument,
+  stores the `fun` result in a list and passes the result as the second argument
+  for the next computation.
+
+  The `fun` isn't applied for the first element of the `enumerable`,
+  the element is taken as it is.
 
   ## Examples
 
-      iex> Enum.scan(1..5, &(&1 + &2))
+      iex> Enum.scan(["a", "b", "c", "d", "e"], fn element, acc -> element <> String.first(acc) end)
+      ["a", "ba", "cb", "dc", "ed"]
+
+      iex> Enum.scan(1..5, fn element, acc -> element + acc end)
       [1, 3, 6, 10, 15]
 
   """
@@ -2861,13 +2866,18 @@ defmodule Enum do
   end
 
   @doc """
-  Applies the given function to each element in the `enumerable`,
-  storing the result in a list and passing it as the accumulator
-  for the next computation. Uses the given `acc` as the starting value.
+  Passes each element from `enumerable` to the `fun` as the first argument,
+  stores the `fun` result in a list and passes the result as the second argument
+  for the next computation.
+
+  Passes the given `acc` as the second argument for the `fun` with the first element.
 
   ## Examples
 
-      iex> Enum.scan(1..5, 0, &(&1 + &2))
+      iex> Enum.scan(["a", "b", "c", "d", "e"], "_", fn element, acc -> element <> String.first(acc) end)
+      ["a_", "ba", "cb", "dc", "ed"]
+
+      iex> Enum.scan(1..5, 0, fn element, acc -> element + acc end)
       [1, 3, 6, 10, 15]
 
   """
