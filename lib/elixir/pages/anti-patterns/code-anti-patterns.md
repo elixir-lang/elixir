@@ -364,6 +364,11 @@ iex> bad_point = %{y: 3, z: 4}
 %{y: 3, z: 4}
 iex> Graphics.plot(bad_point)
 {nil, 3, 4}
+```
+
+The behavior above is unexpected because our function should not work with points without a `:x` key. This leads to subtle bugs, as we may now pass `nil` to another function, instead of raising early on, as shown next:
+
+```iex
 iex> point_without_x = %{y: 10}
 %{y: 10}
 iex> {x, y, _} = Graphics.plot(point_without_x)
@@ -373,7 +378,7 @@ iex> distance_from_origin = :math.sqrt(x * x + y * y)
     :erlang.*(nil, nil)
 ```
 
-The behavior above is unexpected because our function should not work with points without a `:x` key. This leads to subtle bugs, as we may now pass `nil` to another function, instead of raising early on. As shown in the last example, the error occurs much later in the code because `nil` (from missing `:x`) is invalid for arithmetic operations. This makes it harder to identify the original issue, which was using a point without the expected `:x` coordinate.
+The error above occurs later in the code because `nil` (from missing `:x`) is invalid for arithmetic operations, making it harder to identify the original issue.
 
 #### Refactoring
 
