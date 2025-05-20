@@ -287,3 +287,111 @@ For convenience, the markup notation to generate the admonition block above is t
 > function, so your module can be used as a child
 > in a supervision tree.
 ```
+
+## Untracked compile-time dependencies
+
+#### Problem
+
+This anti-pattern is the opposite of ["Compile-time dependencies"](#compile-time-dependencies) and it happens when a compile-time dependency is accidentally bypassed, making the Elixir compiler is to track dependencies and recompile files correctly. This happens when building aliases (in other words, module names) dynamically, either within a module or within a macro.
+
+#### Example
+
+For example, imagine you invoke a module at compile-time, you could write it as such:
+
+```elixir
+defmodule MyModule do
+  SomeOtherModule.example()
+end
+```
+
+In this case, Elixir knows `MyModule` is invoked `SomeOtherModule.example/0` outside of a function, and therefore at compile-time.
+
+Elixir can also track module names even during dynamic calls:
+
+```elixir
+defmodule MyModule do
+  mods = [OtherModule.Foo, OtherModule.Bar]
+
+  for mod <- mods do
+    mod.example()
+  end
+end
+```
+
+In the previous example, even though Elixir does not know which modules the function `example/0` was invoked on, it knows the modules `OtherModule.Foo` and `OtherModule.Bar` are referred outside of a function and therefore they become compile-time dependencies. If any of them change, Elixir will recompile `MyModule` itself.
+
+However, you should not programatically generate the module names themselves, as that would make it impossible for Elixir to track them. More precisely, do not do this:
+
+```elixir
+defmodule MyModule do
+  parts = [:Foo, :Bar]
+
+  for part <- parts do
+    Module.concat(OtherModule, part).example()
+  end
+end
+```
+
+In this case, because the whole module was generated, Elixir sees a dependency only to `OtherModule`, never to `OtherModule.Foo` and `OtherModule.Bar`, potentially leading to inconsistencies when recompiling projects.
+
+A similar bug can happen when abusing the property that aliases are simply atoms, defining the atoms directly. In the case below, Elixir never sees the aliases, leading to untracked compile-time dependencies:
+
+```elixir
+defmodule MyModule do
+  mods = [:"Elixir.OtherModule.Foo", :"Elixir.OtherModule.Bar"]
+
+  for mod <- mods do
+    mod.example()
+  end
+end
+```
+
+#### Refactoring
+
+To address this anti-pattern, you should avoid defining module names programatically. For example, if you need to dispatch to multiple modules, do so by using full module names.
+
+Instead of:
+
+```elixir
+defmodule MyModule do
+  parts = [:Foo, :Bar]
+
+  for part <- parts do
+    Module.concat(OtherModule, part).example()
+  end
+end
+```
+
+Do:
+
+```elixir
+defmodule MyModule do
+  mods = [OtherModule.Foo, OtherModule.Bar]
+
+  for mod <- mods do
+    mod.example()
+  end
+end
+```
+
+If you really need to define modules dynamically, you can do so via meta-programming, building the whole module name at compile-time:
+
+```elixir
+defmodule MyMacro do
+  defmacro call_examples(parts) do
+    for part <- parts do
+      quote do
+        # This builds OtherModule.Foo at compile-time
+        OtherModule.unquote(part).example()
+      end
+    end
+  end
+end
+
+defmodule MyModule do
+  import MyMacro
+  call_examples [:Foo, :Bar]
+end
+```
+
+In actual projects, developers may use `mix xref trace path/to/file.ex` to execute a file and have it print information about which modules it depends on, and if those modules are compile-time, runtime, or export dependencies. This can help you debug if the dependencies are being properly tracked in relation to external modules. See `mix xref` for more information.

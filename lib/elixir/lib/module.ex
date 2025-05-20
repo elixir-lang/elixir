@@ -945,6 +945,12 @@ defmodule Module do
 
   It handles binaries and atoms.
 
+  > #### Untracked compile-time dependencies {. :warning}
+  >
+  > Use this function with care, as dynamically defining
+  > module names at compilation time may lead to
+  > [untracked compile-time dependencies](macro-anti-patterns.md#untracked-compile-time-dependencies).
+
   ## Examples
 
       iex> Module.concat([Foo, Bar])
@@ -964,6 +970,12 @@ defmodule Module do
 
   It handles binaries and atoms. If one of the aliases
   is nil, it is discarded.
+
+  > #### Untracked compile-time dependencies {. :warning}
+  >
+  > Use this function with care, as dynamically defining
+  > module names at compilation time may lead to
+  > [untracked compile-time dependencies](macro-anti-patterns.md#untracked-compile-time-dependencies).
 
   ## Examples
 
@@ -990,6 +1002,12 @@ defmodule Module do
   If the alias was not referenced yet, fails with `ArgumentError`.
   It handles binaries and atoms.
 
+  > #### Untracked compile-time dependencies {. :warning}
+  >
+  > Use this function with care, as dynamically defining
+  > module names at compilation time may lead to
+  > [untracked compile-time dependencies](macro-anti-patterns.md#untracked-compile-time-dependencies).
+
   ## Examples
 
       iex> Module.safe_concat([List, Chars])
@@ -1007,6 +1025,12 @@ defmodule Module do
 
   If the alias was not referenced yet, fails with `ArgumentError`.
   It handles binaries and atoms.
+
+  > #### Untracked compile-time dependencies {. :warning}
+  >
+  > Use this function with care, as dynamically defining
+  > module names at compilation time may lead to
+  > [untracked compile-time dependencies](macro-anti-patterns.md#untracked-compile-time-dependencies).
 
   ## Examples
 
