@@ -1031,23 +1031,26 @@ defmodule Module.Types.Descr do
 
     # For non-dynamic function and arguments, just return the static result
     if fun_dynamic == nil and not args_dynamic? do
-      fun_apply_static(fun_static, arguments, :static)
+      fun_apply_static(fun_static, arguments, :static, args_dynamic?)
     else
       # For dynamic cases, combine static and dynamic results
-      {static_args, dynamic_args} =
-        if args_dynamic?,
-          do: {materialize_arguments(arguments, :up), materialize_arguments(arguments, :down)},
-          else: {arguments, arguments}
+      {static_args, dynamic_args, maybe_empty?} =
+        if args_dynamic? do
+          {materialize_arguments(arguments, :up), materialize_arguments(arguments, :down), true}
+        else
+          {arguments, arguments, false}
+        end
 
-      case fun_apply_static(fun_static, static_args, :static) do
+      case fun_apply_static(fun_static, static_args, :static, false) do
         {:ok, res1} when fun_dynamic == nil ->
-          with {:ok, res2} <- fun_apply_static(fun_static, dynamic_args, :static) do
+          # We need to compute which parts are dynamic
+          with {:ok, res2} <- fun_apply_static(fun_static, dynamic_args, :static, maybe_empty?) do
             {:ok, union(res1, dynamic(res2))}
           end
 
         {:ok, res1} when fun_dynamic != nil ->
           # If static succeeded, the dynamic part can fail, we don't care
-          case fun_apply_static(fun_dynamic, dynamic_args, :dynamic) do
+          case fun_apply_static(fun_dynamic, dynamic_args, :dynamic, maybe_empty?) do
             {:ok, res2} -> {:ok, union(res1, dynamic(res2))}
             _ -> {:ok, res1}
           end
@@ -1056,9 +1059,9 @@ defmodule Module.Types.Descr do
           # Then the dynamic call has to succeed
           result =
             if fun_dynamic do
-              fun_apply_static(fun_dynamic, dynamic_args, :dynamic)
+              fun_apply_static(fun_dynamic, dynamic_args, :dynamic, maybe_empty?)
             else
-              fun_apply_static(fun_static, dynamic_args, :static)
+              fun_apply_static(fun_static, dynamic_args, :static, maybe_empty?)
             end
 
           with {:ok, descr} <- result do
@@ -1078,15 +1081,15 @@ defmodule Module.Types.Descr do
 
   defp are_arguments_dynamic?(arguments), do: Enum.any?(arguments, &match?(%{dynamic: _}, &1))
 
-  defp fun_apply_static(%{fun: fun_bdd}, arguments, mode) do
+  defp fun_apply_static(%{fun: fun_bdd}, arguments, mode, maybe_empty?) do
     arity = length(arguments)
 
     with {:ok, domain, arrows} <- fun_normalize(fun_bdd, arity, mode) do
       type_args = domain_descr(arguments)
 
       cond do
-        empty?(type_args) ->
-          # Opti: short-circuits when inner loop is none() or outer loop is term()
+        # Optization: short-circuits when inner loop is none() or outer loop is term()
+        maybe_empty? and empty?(type_args) ->
           result =
             Enum.reduce_while(arrows, none(), fn intersection_of_arrows, acc ->
               Enum.reduce_while(intersection_of_arrows, term(), fn
@@ -1115,7 +1118,7 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp fun_apply_static(%{}, _arguments, _mode) do
+  defp fun_apply_static(%{}, _arguments, _mode, _maybe_empty?) do
     :badfun
   end
 
