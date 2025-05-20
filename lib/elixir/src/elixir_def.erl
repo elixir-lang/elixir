@@ -506,7 +506,7 @@ format_error({invalid_def, Kind, NameAndArgs}) ->
   io_lib:format("invalid syntax in ~ts ~ts", [Kind, 'Elixir.Macro':to_string(NameAndArgs)]);
 
 format_error(invalid_args_for_function_head) ->
-  "only variables and \\\\ are allowed as arguments in function head.\n"
+  "patterns are not allowed in function head, only variables and default arguments (using \\\\)\n"
   "\n"
   "If you did not intend to define a function head, make sure your function "
   "definition has the proper syntax by wrapping the arguments in parentheses "
