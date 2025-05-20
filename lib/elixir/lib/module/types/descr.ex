@@ -87,6 +87,11 @@ defmodule Module.Types.Descr do
   @boolset :sets.from_list([true, false], version: 2)
   def boolean(), do: %{atom: {:union, @boolset}}
 
+  ## Function constructors
+
+  @doc """
+  The top function type.
+  """
   def fun(), do: %{fun: @fun_top}
 
   @doc """
@@ -116,6 +121,15 @@ defmodule Module.Types.Descr do
   """
   def fun(arity) when is_integer(arity) and arity >= 0 do
     fun(List.duplicate(none(), arity), term())
+  end
+
+  @doc """
+  Creates a function from non-overlapping function clauses.
+  """
+  def fun_from_non_overlapping_clauses([{args, return} | clauses]) do
+    Enum.reduce(clauses, fun(args, return), fn {args, return}, acc ->
+      intersection(acc, fun(args, return))
+    end)
   end
 
   @doc """
@@ -1087,20 +1101,20 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # Transforms a binary decision diagram (BDD) into the canonical form {domain, arrows, arity}:
+  # Transforms a binary decision diagram (BDD) into the canonical `domain-arrows` pair:
   #
   # 1. **domain**: The union of all domains from positive functions in the BDD
   # 2. **arrows**: List of lists, where each inner list contains an intersection of function arrows
-  # 3. **arity**: Function arity (number of parameters)
   #
-  ## Return Values
+  # ## Return Values
   #
-  # - `{domain, arrows, arity}` for valid function BDDs
+  # - `{:ok, domain, arrows}` for valid function BDDs
+  # - `{:badarity, supported_arities}` if the given arity is not supported
   # - `:badfun` if the BDD represents an empty function type
   #
   # ## Internal Use
   #
-  # This function is used internally by `fun_apply`, and others to
+  # This function is used internally by `fun_apply_*`, and others to
   # ensure consistent handling of function types in all operations.
   defp fun_normalize(%{fun: bdd}, arity, mode) do
     {domain, arrows, bad_arities} =
@@ -1216,9 +1230,9 @@ defmodule Module.Types.Descr do
   # Takes all the paths from the root to the leaves finishing with a 1,
   # and compile into tuples of positive and negative nodes. Positive nodes are
   # those followed by a left path, negative nodes are those followed by a right path.
-  def fun_get(bdd), do: fun_get([], [], [], bdd)
+  defp fun_get(bdd), do: fun_get([], [], [], bdd)
 
-  def fun_get(acc, pos, neg, bdd) do
+  defp fun_get(acc, pos, neg, bdd) do
     case bdd do
       :fun_bottom -> acc
       :fun_top -> [{pos, neg} | acc]
