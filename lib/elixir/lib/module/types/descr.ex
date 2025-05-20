@@ -930,31 +930,19 @@ defmodule Module.Types.Descr do
   # Creates a function type from a list of inputs and an output
   # where the inputs and/or output may be dynamic.
   #
-  # For function (t → s) with dynamic components:
+  # One approach is, for function (t → s) with dynamic components:
   # - Static part: (upper_bound(t) → lower_bound(s))
   # - Dynamic part: dynamic(lower_bound(t) → upper_bound(s))
   #
-  # When handling dynamic types:
-  # - `upper_bound(t)` extracts the upper bound (most general type) of a gradual type.
-  #   For `dynamic(integer())`, it is `integer()`.
-  # - `lower_bound(t)` extracts the lower bound (most specific type) of a gradual type.
+  # However, this comes with the downside that `dynamic(integer()) -> binary()`
+  # cannot receive integers as arguments. So instead we surface the dynamic up,
+  # as we do for other data types, converting it to `dynamic((integer() -> binary()))`.
+  # One could obtain the other type if desired by explicitly defining it.
   defp fun_descr(args, output) when is_list(args) do
-    dynamic_arguments? = are_arguments_dynamic?(args)
-    dynamic_output? = match?(%{dynamic: _}, output)
-
-    if dynamic_arguments? or dynamic_output? do
-      input_static = if dynamic_arguments?, do: materialize_arguments(args, :up), else: args
-      input_dynamic = if dynamic_arguments?, do: materialize_arguments(args, :down), else: args
-
-      output_static = if dynamic_output?, do: lower_bound(output), else: output
-      output_dynamic = if dynamic_output?, do: upper_bound(output), else: output
-
-      %{
-        fun: fun_new(input_static, output_static),
-        dynamic: %{fun: fun_new(input_dynamic, output_dynamic)}
-      }
+    if any_dynamic?([output | args]) do
+      [output | args] = Enum.map([output | args], &upper_bound/1)
+      %{dynamic: %{fun: fun_new(args, output)}}
     else
-      # No dynamic components, use standard function type
       %{fun: fun_new(args, output)}
     end
   end
@@ -1027,7 +1015,7 @@ defmodule Module.Types.Descr do
   defp fun_only?(descr), do: empty?(Map.delete(descr, :fun))
 
   defp fun_apply_with_strategy(fun_static, fun_dynamic, arguments) do
-    args_dynamic? = are_arguments_dynamic?(arguments)
+    args_dynamic? = any_dynamic?(arguments)
     arity = length(arguments)
 
     # For non-dynamic function and arguments, just return the static result
@@ -1053,8 +1041,7 @@ defmodule Module.Types.Descr do
             # For dynamic cases, combine static and dynamic results
             {static_args, dynamic_args, maybe_empty?} =
               if args_dynamic? do
-                {materialize_arguments(arguments, :up), materialize_arguments(arguments, :down),
-                 true}
+                {Enum.map(arguments, &upper_bound/1), Enum.map(arguments, &lower_bound/1), true}
               else
                 {arguments, arguments, false}
               end
@@ -1069,11 +1056,7 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # Materializes arguments using the specified direction (up or down)
-  defp materialize_arguments(arguments, :up), do: Enum.map(arguments, &upper_bound/1)
-  defp materialize_arguments(arguments, :down), do: Enum.map(arguments, &lower_bound/1)
-
-  defp are_arguments_dynamic?(arguments), do: Enum.any?(arguments, &match?(%{dynamic: _}, &1))
+  defp any_dynamic?(arguments), do: Enum.any?(arguments, &match?(%{dynamic: _}, &1))
 
   defp fun_normalize_both(fun_static, fun_dynamic, arity) do
     case fun_normalize(fun_static, arity, :static) do

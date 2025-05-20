@@ -765,8 +765,7 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(fun([integer()], none()), [integer()]) == {:ok, none()}
       assert fun_apply(fun([integer()], term()), [integer()]) == {:ok, term()}
 
-      # Dynamic return and dynamic args
-      assert fun_apply(fun([integer()], dynamic()), [integer()]) == {:ok, dynamic()}
+      # Dynamic args
       assert fun_apply(fun([term()], term()), [dynamic()]) == {:ok, term()}
 
       # Arity mismatches
@@ -781,13 +780,13 @@ defmodule Module.Types.DescrTest do
       # Function intersection with unions and dynamic return
       fun2 =
         intersection(
-          fun([union(integer(), atom())], dynamic()),
+          fun([union(integer(), atom())], term()),
           fun([union(integer(), pid())], atom())
         )
 
-      assert fun_apply(fun2, [integer()]) == {:ok, dynamic(atom())}
-      assert fun_apply(fun2, [atom()]) == {:ok, dynamic()}
-      assert fun_apply(fun2, [pid()]) |> elem(1) |> equal?(atom())
+      assert fun_apply(fun2, [integer()]) == {:ok, atom()}
+      assert fun_apply(fun2, [atom()]) == {:ok, term()}
+      assert fun_apply(fun2, [pid()]) == {:ok, atom()}
 
       # Function intersection with same domain, different codomains
       assert fun([integer()], term())
@@ -797,25 +796,6 @@ defmodule Module.Types.DescrTest do
       # Function intersection with singleton atoms
       fun3 = intersection(fun([atom([:ok])], atom([:success])), fun([atom([:ok])], atom([:done])))
       assert fun_apply(fun3, [atom([:ok])]) == {:ok, none()}
-    end
-
-    test "static with dynamic signature" do
-      assert fun_apply(fun([dynamic()], term()), [dynamic()]) == {:ok, term()}
-
-      assert fun_apply(fun([dynamic()], integer()), [dynamic()])
-             |> elem(1)
-             |> equal?(integer())
-
-      assert fun_apply(fun([dynamic(), atom()], float()), [dynamic(), atom()])
-             |> elem(1)
-             |> equal?(float())
-
-      fun = fun([dynamic(integer())], atom())
-      assert fun_apply(fun, [dynamic(integer())]) |> elem(1) |> equal?(atom())
-      # TODO: This should work
-      assert fun_apply(fun, [dynamic(number())]) == :badarg
-      assert fun_apply(fun, [integer()]) == :badarg
-      assert fun_apply(fun, [float()]) == :badarg
     end
 
     defp dynamic_fun(args, return), do: dynamic(fun(args, return))
@@ -1711,6 +1691,9 @@ defmodule Module.Types.DescrTest do
 
       assert fun([integer(), float()], boolean()) |> to_quoted_string() ==
                "(integer(), float() -> boolean())"
+
+      assert fun([integer(), float()], dynamic()) |> to_quoted_string() ==
+               "dynamic((integer(), float() -> term()))"
 
       assert fun([integer()], boolean())
              |> union(fun([float()], boolean()))
