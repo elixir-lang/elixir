@@ -1040,114 +1040,32 @@ defmodule Module.Types.Descr do
         end
       end
     else
-      normalized =
-        case fun_normalize(fun_static, arity, :static) do
-          {:ok, static_domain, static_arrows} when fun_dynamic == nil ->
-            # TODO: Should dynamic_arrows be [] or static_arrows
-            {:ok, static_domain, static_arrows, static_arrows}
+      with {:ok, domain, static_arrows, dynamic_arrows} <-
+             fun_normalize_both(fun_static, fun_dynamic, arity) do
+        cond do
+          not subtype?(domain_descr(arguments), domain) ->
+            :badarg
 
-          {:ok, static_domain, static_arrows} when fun_dynamic != nil ->
-            case fun_normalize(fun_dynamic, arity, :dynamic) do
-              {:ok, dynamic_domain, dynamic_arrows} ->
-                domain = union(dynamic_domain, dynamic(union(static_domain, dynamic_domain)))
-                {:ok, domain, static_arrows, dynamic_arrows}
+          static_arrows == [] ->
+            {:ok, dynamic(fun_apply_static(arguments, dynamic_arrows, false))}
 
-              _ ->
-                # TODO: Should dynamic_arrows be [] or static_arrows
-                {:ok, static_domain, static_arrows, static_arrows}
-            end
+          true ->
+            # For dynamic cases, combine static and dynamic results
+            {static_args, dynamic_args, maybe_empty?} =
+              if args_dynamic? do
+                {materialize_arguments(arguments, :up), materialize_arguments(arguments, :down),
+                 true}
+              else
+                {arguments, arguments, false}
+              end
 
-          :badfun ->
-            case fun_normalize(fun_dynamic, arity, :dynamic) do
-              {:ok, dynamic_domain, dynamic_arrows} ->
-                # TODO: Should static_arrows be [] or dynamic_arrows
-                {:ok, dynamic_domain, [], dynamic_arrows}
-
-              error ->
-                error
-            end
-
-          error ->
-            error
-        end
-
-      with {:ok, domain, static_arrows, dynamic_arrows} <- normalized do
-        if subtype?(domain_descr(arguments), domain) do
-          # For dynamic cases, combine static and dynamic results
-          {static_args, dynamic_args, maybe_empty?} =
-            if args_dynamic? do
-              {materialize_arguments(arguments, :up), materialize_arguments(arguments, :down),
-               true}
-            else
-              {arguments, arguments, false}
-            end
-
-          {:ok,
-           union(
-             fun_apply_static(static_args, static_arrows, false),
-             dynamic(fun_apply_static(dynamic_args, dynamic_arrows, maybe_empty?))
-           )}
-        else
-          :badarg
+            {:ok,
+             union(
+               fun_apply_static(static_args, static_arrows, false),
+               dynamic(fun_apply_static(dynamic_args, dynamic_arrows, maybe_empty?))
+             )}
         end
       end
-
-      # case fun_normalize(fun_static, arity, :static) do
-      #     {:ok, static_domain, static_arrow} when fun_dynamic == nil ->
-      #     with {:ok, res1} <-
-      #            new_fun_apply_static(static_domain, static_arrows, static_args, false),
-      #          {:ok, res2} <-
-      #            new_fun_apply_static(static_domain, static_arrows, dynamic_args, maybe_empty?) do
-      #       {:ok, union(res1, dynamic(res2))}
-      #     end
-
-      #   {:ok, static_domain, static_arrows} when fun_dynamic != nil ->
-      #     case fun_normalize(fun_dynamic, arity, :dynamic) do
-      #       {:ok, dynamic_domain, dynamic_arrows} ->
-      #         with {:ok, res1} <-
-      #                checked_fun_apply_static(
-      #                  union(dynamic_domain, static_domain),
-      #                  static_domain,
-      #                  static_arrows,
-      #                  static_args,
-      #                  false
-      #                ) do
-      #           case checked_fun_apply_static(
-      #                  dynamic_domain,
-      #                  dynamic_domain,
-      #                  dynamic_arrows,
-      #                  dynamic_args,
-      #                  maybe_empty?
-      #                ) do
-      #             {:ok, res2} ->
-      #               {:ok, union(res1, dynamic(res2))}
-
-      #             _ ->
-      #               {:ok, res1}
-      #           end
-      #         end
-
-      #       _ ->
-      #         new_fun_apply_static(static_domain, static_arrows, static_args, false)
-      #     end
-
-      #   :badfun ->
-      #     # Then the dynamic call has to succeed
-      #     result =
-      #       if fun_dynamic do
-      #         fun_apply_static(fun_dynamic, dynamic_args, :dynamic, maybe_empty?)
-      #       else
-      #         fun_apply_static(fun_static, dynamic_args, :static, maybe_empty?)
-      #       end
-
-      #     with {:ok, descr} <- result do
-      #       {:ok, dynamic(descr)}
-      #     end
-
-      #   # badarg/badarity
-      #   error ->
-      #     error
-      # end
     end
   end
 
@@ -1156,6 +1074,90 @@ defmodule Module.Types.Descr do
   defp materialize_arguments(arguments, :down), do: Enum.map(arguments, &lower_bound/1)
 
   defp are_arguments_dynamic?(arguments), do: Enum.any?(arguments, &match?(%{dynamic: _}, &1))
+
+  defp fun_normalize_both(fun_static, fun_dynamic, arity) do
+    case fun_normalize(fun_static, arity, :static) do
+      {:ok, static_domain, static_arrows} when fun_dynamic == nil ->
+        {:ok, static_domain, static_arrows, static_arrows}
+
+      {:ok, static_domain, static_arrows} when fun_dynamic != nil ->
+        case fun_normalize(fun_dynamic, arity, :dynamic) do
+          {:ok, dynamic_domain, dynamic_arrows} ->
+            domain = union(dynamic_domain, dynamic(static_domain))
+            {:ok, domain, static_arrows, dynamic_arrows}
+
+          _ ->
+            {:ok, static_domain, static_arrows, static_arrows}
+        end
+
+      :badfun ->
+        case fun_normalize(fun_dynamic, arity, :dynamic) do
+          {:ok, dynamic_domain, dynamic_arrows} ->
+            {:ok, dynamic_domain, [], dynamic_arrows}
+
+          error ->
+            error
+        end
+
+      error ->
+        error
+    end
+  end
+
+  # Transforms a binary decision diagram (BDD) into the canonical form {domain, arrows, arity}:
+  #
+  # 1. **domain**: The union of all domains from positive functions in the BDD
+  # 2. **arrows**: List of lists, where each inner list contains an intersection of function arrows
+  # 3. **arity**: Function arity (number of parameters)
+  #
+  ## Return Values
+  #
+  # - `{domain, arrows, arity}` for valid function BDDs
+  # - `:badfun` if the BDD represents an empty function type
+  #
+  # ## Internal Use
+  #
+  # This function is used internally by `fun_apply`, and others to
+  # ensure consistent handling of function types in all operations.
+  defp fun_normalize(%{fun: bdd}, arity, mode) do
+    {domain, arrows, bad_arities} =
+      Enum.reduce(fun_get(bdd), {term(), [], []}, fn
+        {[{args, _} | _] = pos_funs, neg_funs}, {domain, arrows, bad_arities} ->
+          arrow_arity = length(args)
+
+          cond do
+            arrow_arity != arity ->
+              {domain, arrows, [arrow_arity | bad_arities]}
+
+            fun_empty?(pos_funs, neg_funs) ->
+              {domain, arrows, bad_arities}
+
+            true ->
+              # Calculate domain from all positive functions
+              path_domain =
+                Enum.reduce(pos_funs, none(), fn {args, _}, acc ->
+                  union(acc, domain_descr(args))
+                end)
+
+              {intersection(domain, path_domain), [pos_funs | arrows], bad_arities}
+          end
+      end)
+
+    case {arrows, bad_arities} do
+      {[], []} ->
+        :badfun
+
+      {arrows, [_ | _] = bad_arities} when mode == :static or arrows == [] ->
+        {:badarity, Enum.uniq(bad_arities)}
+
+      {_, _} ->
+        {:ok, domain, arrows}
+    end
+  end
+
+  defp fun_normalize(%{}, _arity, _mode) do
+    :badfun
+  end
 
   defp fun_apply_static(arguments, arrows, maybe_empty?) do
     type_args = domain_descr(arguments)
@@ -1178,55 +1180,6 @@ defmodule Module.Types.Descr do
       end)
     end
   end
-
-  # defp fun_apply_static(descr, arguments, mode, maybe_empty?) do
-  #   arity = length(arguments)
-
-  #   with {:ok, domain, arrows} <- fun_normalize(descr, arity, mode) do
-  #     new_fun_apply_static(domain, arrows, arguments, maybe_empty?)
-  #   end
-  # end
-
-  # defp checked_fun_apply_static(check_domain, domain, arrows, arguments, maybe_empty?) do
-  #   if subtype?(domain_descr(arguments), check_domain) do
-  #     new_fun_apply_static(domain, arrows, arguments, maybe_empty?)
-  #   else
-  #     :badarg
-  #   end
-  # end
-
-  # defp new_fun_apply_static(domain, arrows, arguments, maybe_empty?) do
-  #   type_args = domain_descr(arguments)
-
-  #   cond do
-  #     # Optimization: short-circuits when inner loop is none() or outer loop is term()
-  #     maybe_empty? and empty?(type_args) ->
-  #       result =
-  #         Enum.reduce_while(arrows, none(), fn intersection_of_arrows, acc ->
-  #           Enum.reduce_while(intersection_of_arrows, term(), fn
-  #             {_dom, _ret}, acc when acc == @none -> {:halt, acc}
-  #             {_dom, ret}, acc -> {:cont, intersection(acc, ret)}
-  #           end)
-  #           |> case do
-  #             :term -> {:halt, :term}
-  #             inner -> {:cont, union(inner, acc)}
-  #           end
-  #         end)
-
-  #       {:ok, result}
-
-  #     subtype?(type_args, domain) ->
-  #       result =
-  #         Enum.reduce(arrows, none(), fn intersection_of_arrows, acc ->
-  #           aux_apply(acc, type_args, term(), intersection_of_arrows)
-  #         end)
-
-  #       {:ok, result}
-
-  #     true ->
-  #       :badarg
-  #   end
-  # end
 
   # Helper function for function application that handles the application of
   # function arrows to input types.
@@ -1288,61 +1241,6 @@ defmodule Module.Types.Descr do
       :fun_top -> [{pos, neg} | acc]
       {fun, left, right} -> fun_get(fun_get(acc, [fun | pos], neg, left), pos, [fun | neg], right)
     end
-  end
-
-  # Transforms a binary decision diagram (BDD) into the canonical form {domain, arrows, arity}:
-  #
-  # 1. **domain**: The union of all domains from positive functions in the BDD
-  # 2. **arrows**: List of lists, where each inner list contains an intersection of function arrows
-  # 3. **arity**: Function arity (number of parameters)
-  #
-  ## Return Values
-  #
-  # - `{domain, arrows, arity}` for valid function BDDs
-  # - `:badfun` if the BDD represents an empty function type
-  #
-  # ## Internal Use
-  #
-  # This function is used internally by `fun_apply`, and others to
-  # ensure consistent handling of function types in all operations.
-  defp fun_normalize(%{fun: bdd}, arity, mode) do
-    {domain, arrows, bad_arities} =
-      Enum.reduce(fun_get(bdd), {term(), [], []}, fn
-        {[{args, _} | _] = pos_funs, neg_funs}, {domain, arrows, bad_arities} ->
-          arrow_arity = length(args)
-
-          cond do
-            arrow_arity != arity ->
-              {domain, arrows, [arrow_arity | bad_arities]}
-
-            fun_empty?(pos_funs, neg_funs) ->
-              {domain, arrows, bad_arities}
-
-            true ->
-              # Calculate domain from all positive functions
-              path_domain =
-                Enum.reduce(pos_funs, none(), fn {args, _}, acc ->
-                  union(acc, domain_descr(args))
-                end)
-
-              {intersection(domain, path_domain), [pos_funs | arrows], bad_arities}
-          end
-      end)
-
-    case {arrows, bad_arities} do
-      {[], []} ->
-        :badfun
-
-      {arrows, [_ | _] = bad_arities} when mode == :static or arrows == [] ->
-        {:badarity, Enum.uniq(bad_arities)}
-
-      {_, _} ->
-        {:ok, domain, arrows}
-    end
-  end
-
-  defp fun_normalize(%{}, _arity, _mode) do
-    :badfun
   end
 
   # Checks if a function type is empty.

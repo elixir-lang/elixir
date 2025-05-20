@@ -842,20 +842,30 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(dynamic_fun([integer(), atom()], boolean()), [integer()]) ==
                {:badarity, [2]}
 
-      # Function intersection tests - basic
+      # Function intersection tests
+      fun0 = intersection(dynamic_fun([integer()], atom()), dynamic_fun([float()], binary()))
+      assert fun_apply(fun0, [integer()]) == {:ok, dynamic(atom())}
+      assert fun_apply(fun0, [float()]) == {:ok, dynamic(binary())}
+      assert fun_apply(fun0, [dynamic(integer())]) == {:ok, dynamic(atom())}
+      assert fun_apply(fun0, [dynamic(float())]) == {:ok, dynamic(binary())}
+      assert fun_apply(fun0, [dynamic(number())]) == {:ok, dynamic(union(binary(), atom()))}
+
+      # Function intersection with subset domain
       fun1 = intersection(dynamic_fun([integer()], atom()), dynamic_fun([number()], term()))
       assert fun_apply(fun1, [integer()]) == {:ok, dynamic(atom())}
       assert fun_apply(fun1, [float()]) == {:ok, dynamic()}
+      assert fun_apply(fun1, [dynamic(integer())]) == {:ok, dynamic(atom())}
+      assert fun_apply(fun1, [dynamic(float())]) == {:ok, dynamic()}
 
       # Function intersection with same domain, different codomains
       assert dynamic_fun([integer()], term())
              |> intersection(dynamic_fun([integer()], atom()))
              |> fun_apply([integer()]) == {:ok, dynamic(atom())}
 
-      # Function intersection with unions and dynamic return
+      # Function intersection with overlapping domains
       fun2 =
         intersection(
-          dynamic_fun([union(integer(), atom())], dynamic()),
+          dynamic_fun([union(integer(), atom())], term()),
           dynamic_fun([union(integer(), pid())], atom())
         )
 
@@ -864,7 +874,7 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(fun2, [pid()]) |> elem(1) |> equal?(dynamic(atom()))
 
       assert fun_apply(fun2, [dynamic(integer())]) == {:ok, dynamic(atom())}
-      assert fun_apply(fun2, [dynamic(atom())]) == {:ok, dynamic(atom())}
+      assert fun_apply(fun2, [dynamic(atom())]) == {:ok, dynamic()}
       assert fun_apply(fun2, [dynamic(pid())]) |> elem(1) |> equal?(dynamic(atom()))
 
       # Function intersection with singleton atoms
