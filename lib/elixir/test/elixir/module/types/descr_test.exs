@@ -814,7 +814,7 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(fun, [dynamic(integer())]) |> elem(1) |> equal?(atom())
       # TODO: This should work
       assert fun_apply(fun, [dynamic(number())]) == :badarg
-      assert fun_apply(fun, [integer()]) == {:ok, atom()}
+      assert fun_apply(fun, [integer()]) == :badarg
       assert fun_apply(fun, [float()]) == :badarg
     end
 
@@ -829,8 +829,12 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(dynamic_fun([integer()], term()), [integer()]) == {:ok, dynamic()}
 
       # Dynamic return and dynamic args
-      assert fun_apply(dynamic_fun([integer()], dynamic()), [integer()]) == {:ok, dynamic()}
       assert fun_apply(dynamic_fun([term()], term()), [dynamic()]) == {:ok, dynamic()}
+
+      fun = dynamic_fun([integer()], binary())
+      assert fun_apply(fun, [integer()]) == {:ok, dynamic(binary())}
+      assert fun_apply(fun, [dynamic(integer())]) == {:ok, dynamic(binary())}
+      assert fun_apply(fun, [dynamic(atom())]) == :badarg
 
       # Arity mismatches
       assert fun_apply(dynamic_fun([integer()], integer()), [term(), term()]) == {:badarity, [1]}
@@ -859,6 +863,10 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(fun2, [atom()]) == {:ok, dynamic()}
       assert fun_apply(fun2, [pid()]) |> elem(1) |> equal?(dynamic(atom()))
 
+      assert fun_apply(fun2, [dynamic(integer())]) == {:ok, dynamic(atom())}
+      assert fun_apply(fun2, [dynamic(atom())]) == {:ok, dynamic(atom())}
+      assert fun_apply(fun2, [dynamic(pid())]) |> elem(1) |> equal?(dynamic(atom()))
+
       # Function intersection with singleton atoms
       fun3 =
         intersection(
@@ -870,23 +878,6 @@ defmodule Module.Types.DescrTest do
     end
 
     test "static and dynamic" do
-      fun_match =
-        union(
-          fun([atom()], integer()),
-          dynamic_fun([integer()], binary())
-        )
-
-      assert fun_match |> fun_apply([atom()]) ==
-               {:ok, integer()}
-
-      assert fun_match |> fun_apply([dynamic(atom())]) ==
-               {:ok, dynamic(union(integer(), binary())) |> union(integer())}
-
-      assert fun_match |> fun_apply([integer()]) == :badarg
-      assert fun_match |> fun_apply([dynamic(integer())]) == :badarg
-      assert fun_match |> fun_apply([union(atom(), integer())]) == :badarg
-      assert fun_match |> fun_apply([dynamic(union(atom(), integer()))]) == :badarg
-
       # Bad arity
       fun_arities =
         union(
@@ -908,11 +899,7 @@ defmodule Module.Types.DescrTest do
           dynamic_fun([integer()], binary())
         )
 
-      assert fun_args
-             |> fun_apply([atom()])
-             |> elem(1)
-             |> equal?(integer())
-
+      assert fun_args |> fun_apply([atom()]) == :badarg
       assert fun_args |> fun_apply([integer()]) == :badarg
 
       # Badfun
