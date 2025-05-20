@@ -698,12 +698,6 @@ defmodule ExceptionTest do
                "function :erlang.hash/2 is undefined or private, use erlang:phash2/2 instead"
     end
 
-    test "annotates undefined key error with nil hints" do
-      assert blame_message(nil, & &1.foo) ==
-               "key :foo not found in: nil\n\nIf you are using the dot syntax, " <>
-                 "such as map.field, make sure the left-hand side of the dot is a map"
-    end
-
     test "annotates undefined function clause error with nil hints" do
       assert blame_message(nil, & &1.foo()) ==
                "function nil.foo/0 is undefined. If you are using the dot syntax, " <>

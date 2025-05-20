@@ -178,8 +178,7 @@ defmodule Exception do
   end
 
   @doc false
-  @spec _format_message_with_term(String.t(), any) :: String.t()
-  def _format_message_with_term(message, term) do
+  def __format_message_with_term__(message, term) do
     inspected =
       term
       |> inspect(pretty: true)
@@ -1447,7 +1446,7 @@ defmodule BadStructError do
 
   @impl true
   def message(exception) do
-    Exception._format_message_with_term(
+    Exception.__format_message_with_term__(
       "expected a struct named #{inspect(exception.struct)}, got:",
       exception.term
     )
@@ -1470,7 +1469,7 @@ defmodule BadMapError do
 
   @impl true
   def message(exception) do
-    Exception._format_message_with_term(
+    Exception.__format_message_with_term__(
       "expected a map, got:",
       exception.term
     )
@@ -1492,7 +1491,7 @@ defmodule BadBooleanError do
 
   @impl true
   def message(exception) do
-    Exception._format_message_with_term(
+    Exception.__format_message_with_term__(
       "expected a boolean on left-side of \"#{exception.operator}\", got:",
       exception.term
     )
@@ -1517,7 +1516,7 @@ defmodule MatchError do
 
   @impl true
   def message(exception) do
-    Exception._format_message_with_term(
+    Exception.__format_message_with_term__(
       "no match of right hand side value:",
       exception.term
     )
@@ -1546,7 +1545,7 @@ defmodule CaseClauseError do
 
   @impl true
   def message(exception) do
-    Exception._format_message_with_term(
+    Exception.__format_message_with_term__(
       "no case clause matching:",
       exception.term
     )
@@ -1579,7 +1578,7 @@ defmodule WithClauseError do
 
   @impl true
   def message(exception) do
-    Exception._format_message_with_term(
+    Exception.__format_message_with_term__(
       "no with clause matching:",
       exception.term
     )
@@ -1632,7 +1631,7 @@ defmodule TryClauseError do
 
   @impl true
   def message(exception) do
-    Exception._format_message_with_term(
+    Exception.__format_message_with_term__(
       "no try clause matching:",
       exception.term
     )
@@ -2197,7 +2196,7 @@ defmodule KeyError do
           "make sure to add parentheses after the function name)"
 
       true ->
-        Exception._format_message_with_term(
+        Exception.__format_message_with_term__(
           message <> " in:",
           term
         )
