@@ -2873,10 +2873,10 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.scan(["a", "b", "c", "d", "e"], &(&1 <> String.first(&2)))
+      iex> Enum.scan(["a", "b", "c", "d", "e"], fn element, acc -> element <> String.first(acc) end)
       ["a", "ba", "cb", "dc", "ed"]
 
-      iex> Enum.scan(1..5, &(&1 + &2))
+      iex> Enum.scan(1..5, fn element, acc -> element + acc end)
       [1, 3, 6, 10, 15]
 
   """
@@ -2904,10 +2904,10 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.scan(["a", "b", "c", "d", "e"], "_", &(&1 <> String.first(&2)))
+      iex> Enum.scan(["a", "b", "c", "d", "e"], "_", fn element, acc -> element <> String.first(acc) end)
       ["a_", "ba", "cb", "dc", "ed"]
 
-      iex> Enum.scan(1..5, 0, &(&1 + &2))
+      iex> Enum.scan(1..5, 0, fn element, acc -> element + acc end)
       [1, 3, 6, 10, 15]
 
   """
