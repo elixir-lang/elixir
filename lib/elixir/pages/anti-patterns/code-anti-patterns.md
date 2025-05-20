@@ -326,12 +326,10 @@ When you use `map[:key]` to access a key that always exists in the map, you are 
 
 *Table: Comparison of Map Access Notations*
 
-| Access Notation | Map is `nil` | Key Exists | Key Doesn't Exist | Use Case |
-| --------------- | ------------ | ---------- | ----------------- | -------- |
-| `map.key` | Raises `KeyError` | Returns the value | Raises `KeyError` | Required map, required atom keys |
-| `map[:key]` | Returns `nil` | Returns the value | Returns `nil` | Optional map, optional keys |
-| `Map.get(map, :key)` | Raises `ArgumentError` | Returns the value | Returns `nil` | Required map, optional keys |
-| `Map.fetch!(map, "key")` | Raises `ArgumentError` | Returns the value | Raises `KeyError` | Required map, required keys (works with any key type) |
+| Access notation | Key exists | Key doesn't exist | Use case |
+| --------------- | ---------- | ----------------- | -------- |
+| `map.key` | Returns the value | Raises `KeyError` | Structs and maps with known atom keys |
+| `map[:key]` | Returns the value | Returns `nil` | Any `Access`-based data structure, optional keys |
 
 #### Example
 
@@ -407,26 +405,7 @@ This is beneficial because:
 2. It fails fast when required data is missing
 3. It allows the compiler to provide warnings when accessing non-existent fields, particularly in compile-time structures like structs
 
-Overall, the usage of `map.key` and `map[:key]` encode important information about your data structure, allowing developers to be clear about their intent. See both `Map` and `Access` module documentation for more information and examples.
-
-Here's a quick reference for when to use each access method:
-
-* Use `map.key` when:
-  * The key is required for your function to work correctly
-  * You want to fail fast if the key is missing
-  * You're working with structs
-
-* Use `map[:key]` when:
-  * The key is truly optional
-  * You have code that handles the `nil` case
-  * You need to access keys dynamically (using variables)
-
-Remember that using `Map.get/3` is another option when you want to provide a default value other than `nil`:
-
-```elixir
-# Returns "default" if :some_key doesn't exist
-Map.get(map, :some_key, "default")
-```
+Overall, the usage of `map.key` and `map[:key]` encode important information about your data structure, allowing developers to be clear about their intent. The `Access` module documentation also provides useful reference on this topic. You can also consider the `Map` module when working with maps of any keys, which contains functions for fetching keys (with or without default values), updating and removing keys, traversals, and more.
 
 An alternative to refactor this anti-pattern is to use pattern matching, defining explicit clauses for 2D vs 3D points:
 
@@ -473,11 +452,11 @@ Generally speaking, structs are useful when sharing data structures across modul
 
 In summary, Elixir provides several ways to access map values, each with different behaviors:
 
-1. **Static access** (`map.key`): Fails fast when keys are missing, ideal for required fields
-2. **Dynamic access** (`map[:key]`): Handles missing keys and nil maps by returning `nil`, suitable for optional fields
-3. **Pattern matching**: Provides a powerful way to both extract values and ensure required keys exist in one operation
+1. **Static access** (`map.key`): Fails fast when keys are missing, ideal for structs and maps with known atom keys
+2. **Dynamic access** (`map[:key]`): Works with any `Access` data structure, suitable for optional fields, returns nil for missing keys
+3. **Pattern matching**: Provides a powerful way to both extract values and ensure required map/struct keys exist in one operation
 
-Choosing the right approach depends on your requirements and can significantly impact the reliability and maintainability of your code.
+Choosing the right approach depends if the keys are known upfront or not. Static access and pattern matching are mostly equivalent (although pattern matching allows you to match on multiple keys at once, including matching on the struct name).
 
 #### Additional remarks
 
