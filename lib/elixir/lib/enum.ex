@@ -3926,7 +3926,7 @@ defmodule Enum do
 
   If a 2-arity function is given as `fun_or_offset`, the function will be invoked
   for each element in `enumerable` as the first argument and with a zero-based
-  index as the second. The result of the invocation will be listed.
+  index as the second. `with_index/2` returns a list with the result of each invocation.
 
   ## Examples
 
