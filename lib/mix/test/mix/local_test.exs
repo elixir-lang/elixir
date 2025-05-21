@@ -51,19 +51,22 @@ defmodule Mix.LocalTest do
   """
 
   @csv """
+  1.2.5,ABC,0.9.0,25
   1.2.5,ABC,0.9.0,26
+  1.2.3,DEF,1.0.0,25
   1.2.3,DEF,1.0.0,26
+  1.2.4,GHI,1.0.0,25
   1.2.4,GHI,1.0.0,26
   """
 
   # openssl dgst -sha512 -sign elixirtest.pem hex-1.x.csv | openssl base64 > elixirtest.csv.signed
   @csv_signed """
-  by/3VaN+DEeF9gwEy0Z3tO4wIHrtiH7m04HKvinWBSGa6jBceha6XZ/aHWPrvLoi
-  57U4tRHF/MjqipWuVYbhbUyXX+xpLMJP8XQq6JtN9gRdsHC1CdhOn5sA9V6iLHN0
-  cdVarW0S8f2BnblEDEqZoB2xh5MefB27bdBiGRyz6A1nS8FNgW9t/6olYKXyJhUd
-  FUC1JW2a82zQQCYM002BFKP4an4ycfhvOGcAU0cI2wXHioU/fE7kO7JBcmC1ac2u
-  wTPfMaAZTD01HPyhgcThPDNAxEqOh0MbJcioskP+dt1Yz66BArlRVeDZJY7Mw9kS
-  ur8isg6GlfiFa35j+khY9A==
+  CVkhTiuCAfooYPhjyynDq40QhmDwLAEJvpwYytPCf6mpLXVrLXo/d/A2L8iBRJVx
+  uk4PNVksLRZ1ChBzGFvEqaFjrH+ndQAYLbwqcaMIn743YNUjGNVfTZkU47nBybtJ
+  BwDSBaAsow0Iitsl+UkDN/QvVoOLiX/x2cpnwCMrCgbTMroTzhH07vfLo3uCf8iY
+  cncImd07ffCewt77AsVPpKgJNOLzn+EBnvh4LbGWQya8EkgyQKuMBuNU86MYtFiW
+  NVpR7vbvqgWpEyr1XeknxKkhzYpna3+irXdMxGZw65WvFNWGJKnpuBTNHnHL+wX8
+  oNQLUfakH8/VMV/8v6Irbg==
   """
 
   # We don't actually use it but it exists for documentation purposes.
@@ -83,8 +86,10 @@ defmodule Mix.LocalTest do
       File.write!("csv", @csv)
       File.write!("csv.signed", @csv_signed)
 
-      assert {"1.0.0", "1.2.4", "GHI", "26"} =
+      assert {"1.0.0", "1.2.4", "GHI", otp_release} =
                Mix.Local.find_matching_versions_from_signed_csv!("name", nil, "csv")
+
+      assert otp_release <= System.otp_release()
     end)
   end
 
@@ -94,11 +99,15 @@ defmodule Mix.LocalTest do
       File.write!("csv", @csv)
       File.write!("csv.signed", @csv_signed)
 
-      assert {"0.9.0", "1.2.5", "ABC", "26"} =
+      assert {"0.9.0", "1.2.5", "ABC", otp_release} =
                Mix.Local.find_matching_versions_from_signed_csv!("name", "1.2.5", "csv")
 
-      assert {"1.0.0", "1.2.3", "DEF", "26"} =
+      assert otp_release <= System.otp_release()
+
+      assert {"1.0.0", "1.2.3", "DEF", otp_release} =
                Mix.Local.find_matching_versions_from_signed_csv!("name", "1.2.3", "csv")
+
+      assert otp_release <= System.otp_release()
 
       assert_raise Mix.Error, "Could not find a version of name matching: 1.3.0", fn ->
         Mix.Local.find_matching_versions_from_signed_csv!("name", "1.3.0", "csv")
