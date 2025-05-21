@@ -4037,10 +4037,10 @@ defmodule Enum do
   key in the left map and the matching key in the right map, but there is no such
   guarantee because map keys are not ordered! Consider the following:
 
-      iex> left = %{:a => 1, 1 => 3}
-      iex> right = %{:a => 1, :b => :c}
-      iex> Enum.zip(left, right)
-      [{{1, 3}, {:a, 1}}, {{:a, 1}, {:b, :c}}]
+      left = %{:a => 1, 1 => 3}
+      right = %{:a => 1, :b => :c}
+      Enum.zip(left, right)
+      #=> [{{1, 3}, {:a, 1}}, {{:a, 1}, {:b, :c}}]
 
   As you can see `:a` does not get paired with `:a`. If this is what you want,
   you should use `Map.merge/3`.
