@@ -225,7 +225,18 @@ You may also prefer to write using guards:
 
 ## v1.18.4 (2025-05-21)
 
-This release includes initial support for Erlang/OTP 28, for those who want to try it out. In such cases, you may use Elixir v1.18.4 precompiled for Erlang/OTP 27, as it is binary compatible with Erlang/OTP 28.
+This release includes initial support for Erlang/OTP 28, for those who want to try it out. In such cases, you may use Elixir v1.18.4 precompiled for Erlang/OTP 27, as it is binary compatible with Erlang/OTP 28. Note, however, that Erlang/OTP 28 no longer allows regexes to be defined in the module body and interpolated into an attribute. If you do this:
+
+```elixir
+@some_attribute ~r/foo/
+def some_fun, do: @some_attribute
+```
+
+You must rewrite it to:
+
+```elixir
+def some_fun, do: ~r/foo/
+```
 
 ### 1. Enhancements
 
