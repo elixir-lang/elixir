@@ -4113,6 +4113,9 @@ defmodule Enum do
       iex> Enum.zip_reduce([1, 2], [3, 4, 5], 0, fn x, y, acc -> x + y + acc end)
       10
 
+  If one of the lists has more entries than the others,
+  those entries are discarded:
+
       iex> Enum.zip_reduce([1, 2, 3], [4, 5], [], fn x, y, acc -> [x + y | acc] end)
       [7, 5]
   """
