@@ -4147,7 +4147,7 @@ defmodule Enum do
 
   ## Examples
 
-      iex> enums = [[1, 1, 1, 1], [2, 2, 2], [3, 3]]
+      iex> enums = [[1, 1], [2, 2], [3, 3]]
       ...>  Enum.zip_reduce(enums, [], fn elements, acc ->
       ...>    [List.to_tuple(elements) | acc]
       ...> end)
