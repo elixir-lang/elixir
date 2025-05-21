@@ -3924,8 +3924,9 @@ defmodule Enum do
   If an integer offset is given as `fun_or_offset`, it will index from the given
   offset instead of from zero.
 
-  If a function is given as `fun_or_offset`, it will index by invoking the function
-  for each element and index (zero-based) of the enumerable.
+  If a 2-arity function is given as `fun_or_offset`, the function will be invoked
+  for each element in `enumerable` as the first argument and with a zero-based
+  index as the second. `with_index/2` returns a list with the result of each invocation.
 
   ## Examples
 
@@ -4036,10 +4037,10 @@ defmodule Enum do
   key in the left map and the matching key in the right map, but there is no such
   guarantee because map keys are not ordered! Consider the following:
 
-      left =  %{:a => 1, 1 => 3}
+      left = %{:a => 1, 1 => 3}
       right = %{:a => 1, :b => :c}
       Enum.zip(left, right)
-      # [{{1, 3}, {:a, 1}}, {{:a, 1}, {:b, :c}}]
+      #=> [{{1, 3}, {:a, 1}}, {{:a, 1}, {:b, :c}}]
 
   As you can see `:a` does not get paired with `:a`. If this is what you want,
   you should use `Map.merge/3`.
@@ -4112,8 +4113,11 @@ defmodule Enum do
       iex> Enum.zip_reduce([1, 2], [3, 4], 0, fn x, y, acc -> x + y + acc end)
       10
 
-      iex> Enum.zip_reduce([1, 2], [3, 4], [], fn x, y, acc -> [x + y | acc] end)
-      [6, 4]
+  If one of the lists has more entries than the others,
+  those entries are discarded:
+
+      iex> Enum.zip_reduce([1, 2, 3], [4, 5], [], fn x, y, acc -> [x + y | acc] end)
+      [7, 5]
   """
   @doc since: "1.12.0"
   @spec zip_reduce(t, t, acc, (enum1_elem :: term, enum2_elem :: term, acc -> acc)) :: acc
@@ -4149,7 +4153,10 @@ defmodule Enum do
       ...> end)
       [{1, 2, 3}, {1, 2, 3}]
 
-      iex> enums = [[1, 2], [a: 3, b: 4], [5, 6]]
+  If one of the lists has more entries than the others,
+  those entries are discarded:
+
+      iex> enums = [[1, 2], [a: 3, b: 4], [5, 6, 7]]
       ...> Enum.zip_reduce(enums, [], fn elements, acc ->
       ...>   [List.to_tuple(elements) | acc]
       ...> end)
