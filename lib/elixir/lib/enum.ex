@@ -4153,6 +4153,9 @@ defmodule Enum do
       ...> end)
       [{1, 2, 3}, {1, 2, 3}]
 
+  If one of the lists has more entries than the others,
+  those entries are discarded:
+
       iex> enums = [[1, 2], [a: 3, b: 4], [5, 6, 7]]
       ...> Enum.zip_reduce(enums, [], fn elements, acc ->
       ...>   [List.to_tuple(elements) | acc]
