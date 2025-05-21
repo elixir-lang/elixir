@@ -223,6 +223,43 @@ You may also prefer to write using guards:
 
     def foo(x, y, z) when x == y and y == z
 
+## v1.18.4 (2025-05-21)
+
+This release includes initial support for Erlang/OTP 28, for those who want to try it out. In such cases, you may use Elixir v1.18.4 precompiled for Erlang/OTP 27, as it is binary compatible with Erlang/OTP 28.
+
+### 1. Enhancements
+
+#### IEx
+
+  * [IEx.Helpers] Add `IEx.Helpers.process_info/1` which prints process information
+
+#### Mix
+
+  * [mix compile] Support the `--no-listeners` option
+  * [mix local] Retry HTTP requests with disabled middlebox comp mode depending on the failure reason
+  * [mix local.hex] Install Hex per OTP release
+  * [mix local.rebar] Install Hex per OTP release
+  * [mix run] Support the `--no-listeners` option
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Kernel] Emit trace events for `@on_definition` callbacks
+  * [Kernel] Emit trace events for `@on_load` callbacks
+  * [Kernel] Emit trace events for `super` calls
+  * [Kernel] Emit trace events for imported function calls
+  * [Kernel] Optimize map unions to avoid building long lists
+  * [Kernel] Do not crash when type checking nested bitstrings in patterns
+  * [Kernel] Do not crash when non-binary bitstring is given as struct default value
+  * [Kernel] Recompile regexes when escaped from module attributes for Erlang/OTP 28 compatibility
+  * [Kernel] Preserve backwards compatibility in `elixir_erl`
+
+#### Mix
+
+  * [mix deps.get] Ensure git checkout works when there are untracked files in the dependency
+  * [mix loadpaths] Do not run listeners when not checking the deps
+
 ## v1.18.3 (2025-03-06)
 
 ### 1. Enhancements

@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-ELIXIR_VERSION=1.18.3
+ELIXIR_VERSION=1.18.4
 
 if [ $# -eq 0 ] || { [ $# -eq 1 ] && { [ "$1" = "--help" ] || [ "$1" = "-h" ]; }; }; then
   cat <<USAGE >&2
