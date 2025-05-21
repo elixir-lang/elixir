@@ -26,13 +26,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - otp_version: "27.1"
+          - otp_version: "28.0"
             deterministic: true
-          - otp_version: "27.1"
+          - otp_version: "28.0"
             erlc_opts: "warnings_as_errors"
             coverage: true
-          - otp_version: "27.1"
+          - otp_version: "28.0"
             otp_latest: true
+            erlc_opts: "warnings_as_errors"
+          - otp_version: "27.3"
             erlc_opts: "warnings_as_errors"
           - otp_version: "27.0"
             erlc_opts: "warnings_as_errors"
@@ -104,7 +106,7 @@ jobs:
     name: Windows Server 2019, Erlang/OTP ${{ matrix.otp_version }}
     strategy:
       matrix:
-        otp_version: ["26.2", "27.3"]
+        otp_version: ["26.2", "27.3", "28.0"]
     runs-on: windows-2022
     steps:
       - name: Configure Git

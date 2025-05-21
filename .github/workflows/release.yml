@@ -68,6 +68,8 @@ jobs:
             otp_version: "26.0"
           - otp: 27
             otp_version: "27.0"
+          - otp: 28
+            otp_version: "28.0"
             build_docs: build_docs
 
     runs-on: ubuntu-22.04
@@ -114,7 +116,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        otp: [26, 27]
+        otp: [26, 27, 28]
         flavor: [windows, linux]
 
     env:
@@ -194,11 +196,11 @@ jobs:
         id: git-config
         shell: bash
         run: git config --global url.https://github.com/.insteadOf ssh://git@github.com/
-  
+
       - name: Checkout project
         id: checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-  
+
       - name: "Download Build Artifacts"
         id: download-build-artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
@@ -206,7 +208,7 @@ jobs:
           pattern: "{sign-*-elixir-otp-*,Docs}"
           merge-multiple: true
           path: /tmp/build-artifacts/
-        
+
       - name: "Run OSS Review Toolkit"
         id: ort
         uses: ./.github/workflows/ort
