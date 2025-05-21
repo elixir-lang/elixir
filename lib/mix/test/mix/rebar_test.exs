@@ -78,6 +78,8 @@ defmodule Mix.RebarTest do
     end
 
     test "parses Rebar dependencies" do
+      assert parse_dep(:git_rebar) == {:git_rebar, override: true}
+
       assert parse_dep({:git_rebar, ~c"~> 1.0"}) == {:git_rebar, "~> 1.0", override: true}
 
       assert parse_dep({:git_rebar, ~c"~> 1.0", {:pkg, :rebar_fork}}) ==
@@ -86,19 +88,23 @@ defmodule Mix.RebarTest do
       assert parse_dep({:git_rebar, {:pkg, :rebar_fork}}) ==
                {:git_rebar, override: true, hex: :rebar_fork}
 
-      assert parse_dep({:git_rebar, ~c"0.1..*", {:git, @git_rebar_charlist, :main}}) ==
-               {:git_rebar, ~r"0.1..*", override: true, git: @git_rebar_string, ref: "main"}
-
       assert parse_dep({:git_rebar, {:git, @git_rebar_charlist, :main}}) ==
                {:git_rebar, override: true, git: @git_rebar_string, ref: "main"}
 
-      assert parse_dep({:git_rebar, ~c"0.1..*", {:git, @git_rebar_charlist}, [:raw]}) ==
-               {:git_rebar, ~r"0.1..*", override: true, git: @git_rebar_string, compile: false}
+      assert {:git_rebar, regex, override: true, git: @git_rebar_string, compile: false} =
+               parse_dep({:git_rebar, ~c"0.1..*", {:git, @git_rebar_charlist}, [:raw]})
 
-      assert parse_dep({:git_rebar, ~c"", {:git, @git_rebar_charlist, {:ref, ~c"64691eb"}}}) ==
-               {:git_rebar, ~r"", override: true, git: @git_rebar_string, ref: "64691eb"}
+      assert Regex.source(regex) == "0.1..*"
 
-      assert parse_dep(:git_rebar) == {:git_rebar, override: true}
+      assert {:git_rebar, regex, override: true, git: @git_rebar_string, ref: "main"} =
+               parse_dep({:git_rebar, ~c"0.1..*", {:git, @git_rebar_charlist, :main}})
+
+      assert Regex.source(regex) == "0.1..*"
+
+      assert {:git_rebar, regex, override: true, git: @git_rebar_string, ref: "64691eb"} =
+               parse_dep({:git_rebar, ~c"", {:git, @git_rebar_charlist, {:ref, ~c"64691eb"}}})
+
+      assert Regex.source(regex) == ""
     end
   end
 
