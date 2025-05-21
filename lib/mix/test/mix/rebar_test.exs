@@ -92,17 +92,17 @@ defmodule Mix.RebarTest do
                {:git_rebar, override: true, git: @git_rebar_string, ref: "main"}
 
       assert {:git_rebar, regex, override: true, git: @git_rebar_string, compile: false} =
-        parse_dep({:git_rebar, ~c"0.1..*", {:git, @git_rebar_charlist}, [:raw]})
+               parse_dep({:git_rebar, ~c"0.1..*", {:git, @git_rebar_charlist}, [:raw]})
 
       assert Regex.source(regex) == "0.1..*"
 
       assert {:git_rebar, regex, override: true, git: @git_rebar_string, ref: "main"} =
-              parse_dep({:git_rebar, ~c"0.1..*", {:git, @git_rebar_charlist, :main}})
+               parse_dep({:git_rebar, ~c"0.1..*", {:git, @git_rebar_charlist, :main}})
 
       assert Regex.source(regex) == "0.1..*"
 
       assert {:git_rebar, regex, override: true, git: @git_rebar_string, ref: "64691eb"} =
-        parse_dep({:git_rebar, ~c"", {:git, @git_rebar_charlist, {:ref, ~c"64691eb"}}})
+               parse_dep({:git_rebar, ~c"", {:git, @git_rebar_charlist, {:ref, ~c"64691eb"}}})
 
       assert Regex.source(regex) == ""
     end
