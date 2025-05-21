@@ -944,19 +944,31 @@ defmodule Module.Types.Descr do
   # Creates a function type from a list of inputs and an output
   # where the inputs and/or output may be dynamic.
   #
-  # One approach is, for function (t → s) with dynamic components:
+  # For function (t → s) with dynamic components:
   # - Static part: (upper_bound(t) → lower_bound(s))
   # - Dynamic part: dynamic(lower_bound(t) → upper_bound(s))
   #
-  # However, this comes with the downside that `dynamic(integer()) -> binary()`
-  # cannot receive integers as arguments. So instead we surface the dynamic up,
-  # as we do for other data types, converting it to `dynamic((integer() -> binary()))`.
-  # One could obtain the other type if desired by explicitly defining it.
+  # When handling dynamic types:
+  # - `upper_bound(t)` extracts the upper bound (most general type) of a gradual type.
+  #   For `dynamic(integer())`, it is `integer()`.
+  # - `lower_bound(t)` extracts the lower bound (most specific type) of a gradual type.
   defp fun_descr(args, output) when is_list(args) do
-    if any_dynamic?([output | args]) do
-      [output | args] = Enum.map([output | args], &upper_bound/1)
-      %{dynamic: %{fun: fun_new(args, output)}}
+    dynamic_arguments? = any_dynamic?(args)
+    dynamic_output? = match?(%{dynamic: _}, output)
+
+    if dynamic_arguments? or dynamic_output? do
+      input_static = if dynamic_arguments?, do: Enum.map(args, &upper_bound/1), else: args
+      input_dynamic = if dynamic_arguments?, do: Enum.map(args, &lower_bound/1), else: args
+
+      output_static = if dynamic_output?, do: lower_bound(output), else: output
+      output_dynamic = if dynamic_output?, do: upper_bound(output), else: output
+
+      %{
+        fun: fun_new(input_static, output_static),
+        dynamic: %{fun: fun_new(input_dynamic, output_dynamic)}
+      }
     else
+      # No dynamic components, use standard function type
       %{fun: fun_new(args, output)}
     end
   end

@@ -777,7 +777,7 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(fun1, [integer()]) == {:ok, atom()}
       assert fun_apply(fun1, [float()]) == {:ok, term()}
 
-      # Function intersection with unions and dynamic return
+      # Function intersection with unions
       fun2 =
         intersection(
           fun([union(integer(), atom())], term()),
@@ -796,6 +796,25 @@ defmodule Module.Types.DescrTest do
       # Function intersection with singleton atoms
       fun3 = intersection(fun([atom([:ok])], atom([:success])), fun([atom([:ok])], atom([:done])))
       assert fun_apply(fun3, [atom([:ok])]) == {:ok, none()}
+    end
+
+    test "static with dynamic signature" do
+      assert fun_apply(fun([dynamic()], term()), [dynamic()]) == {:ok, term()}
+      assert fun_apply(fun([integer()], dynamic()), [integer()]) == {:ok, dynamic()}
+
+      assert fun_apply(fun([dynamic()], integer()), [dynamic()])
+             |> elem(1)
+             |> equal?(integer())
+
+      assert fun_apply(fun([dynamic(), atom()], float()), [dynamic(), atom()])
+             |> elem(1)
+             |> equal?(float())
+
+      fun = fun([dynamic(integer())], atom())
+      assert fun_apply(fun, [dynamic(integer())]) |> elem(1) |> equal?(atom())
+      assert fun_apply(fun, [dynamic(number())]) == :badarg
+      assert fun_apply(fun, [integer()]) == :badarg
+      assert fun_apply(fun, [float()]) == :badarg
     end
 
     defp dynamic_fun(args, return), do: dynamic(fun(args, return))
@@ -1689,11 +1708,14 @@ defmodule Module.Types.DescrTest do
       assert fun() |> to_quoted_string() == "fun()"
       assert fun(1) |> to_quoted_string() == "(none() -> term())"
 
-      assert fun([integer(), float()], boolean()) |> to_quoted_string() ==
-               "(integer(), float() -> boolean())"
+      assert fun([dynamic(integer())], float()) |> to_quoted_string() ==
+               "dynamic((none() -> float())) or (integer() -> float())"
 
       assert fun([integer(), float()], dynamic()) |> to_quoted_string() ==
-               "dynamic((integer(), float() -> term()))"
+               "dynamic((integer(), float() -> term())) or (integer(), float() -> none())"
+
+      assert fun([integer(), float()], boolean()) |> to_quoted_string() ==
+               "(integer(), float() -> boolean())"
 
       assert fun([integer()], boolean())
              |> union(fun([float()], boolean()))
