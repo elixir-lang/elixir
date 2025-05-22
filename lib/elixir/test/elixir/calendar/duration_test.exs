@@ -363,6 +363,8 @@ defmodule DurationTest do
   end
 
   test "to_string/1" do
+    assert to_string(%Duration{day: 3}) == "3d"
+
     assert Duration.to_string(%Duration{year: 1, month: 2, day: 3, hour: 4, minute: 5, second: 6}) ==
              "1a 2mo 3d 4h 5min 6s"
 

@@ -485,7 +485,7 @@ defmodule Module.Types.IntegrationTest do
             but expected a type that implements the String.Chars protocol, it must be one of:
 
                 dynamic(
-                  %Date{} or %DateTime{} or %NaiveDateTime{} or %Time{} or %URI{} or %Version{} or
+                  %Date{} or %DateTime{} or %Duration{} or %NaiveDateTime{} or %Time{} or %URI{} or %Version{} or
                     %Version.Requirement{}
                 ) or atom() or binary() or empty_list() or float() or integer() or non_empty_list(term(), term())
 
@@ -509,7 +509,7 @@ defmodule Module.Types.IntegrationTest do
             but expected a type that implements the String.Chars protocol, it must be one of:
 
                 dynamic(
-                  %Date{} or %DateTime{} or %NaiveDateTime{} or %Time{} or %URI{} or %Version{} or
+                  %Date{} or %DateTime{} or %Duration{} or %NaiveDateTime{} or %Time{} or %URI{} or %Version{} or
                     %Version.Requirement{}
                 ) or atom() or binary() or empty_list() or float() or integer() or non_empty_list(term(), term())
 

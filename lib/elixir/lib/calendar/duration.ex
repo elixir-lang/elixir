@@ -452,6 +452,12 @@ defmodule Duration do
     end
   end
 
+  defimpl String.Chars, for: Duration do
+    def to_string(duration) do
+      Duration.to_string(duration)
+    end
+  end
+
   defp to_string_part(0, _units, _key, _default, acc),
     do: acc
 
