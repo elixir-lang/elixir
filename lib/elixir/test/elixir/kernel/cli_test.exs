@@ -96,7 +96,7 @@ defmodule Kernel.CLI.ExecutableTest do
     assert {_output, 0} =
              System.cmd(elixir_executable(context.cli_extension), ["-e", "Time.new!(0, 0, 0)"])
 
-    # TODO: remove this once we bump CI to 26.3
+    # TODO: remove this once we bump CI to Erlang/OTP 27
     if not (windows?() and System.otp_release() == "26") do
       {output, 0} =
         System.cmd(iex_executable(context.cli_extension), [
@@ -116,14 +116,18 @@ defmodule Kernel.CLI.ExecutableTest do
     end
   end
 
+  @tag :unix
+  # This test hangs on Windows but "iex --version" works on the command line
+  test "iex smoke test", %{cli_extension: cli_extension} do
+    output = iex(~c"--version", cli_extension)
+    assert output =~ "Erlang/OTP #{System.otp_release()}"
+    assert output =~ "IEx #{System.version()}"
+  end
+
   test "--version smoke test", %{cli_extension: cli_extension} do
     output = elixir(~c"--version", cli_extension)
     assert output =~ "Erlang/OTP #{System.otp_release()}"
     assert output =~ "Elixir #{System.version()}"
-
-    output = iex(~c"--version", cli_extension)
-    assert output =~ "Erlang/OTP #{System.otp_release()}"
-    assert output =~ "IEx #{System.version()}"
 
     output = elixir(~c"--version -e \"IO.puts(:test_output)\"", cli_extension)
     assert output =~ "Erlang/OTP #{System.otp_release()}"
