@@ -363,8 +363,6 @@ defmodule DurationTest do
   end
 
   test "to_string/1" do
-    assert to_string(%Duration{day: 3}) == "3d"
-
     assert Duration.to_string(%Duration{year: 1, month: 2, day: 3, hour: 4, minute: 5, second: 6}) ==
              "1a 2mo 3d 4h 5min 6s"
 
@@ -437,5 +435,13 @@ defmodule DurationTest do
 
   test "inspect/1" do
     assert inspect(%Duration{hour: 5, minute: 3}) == "%Duration{hour: 5, minute: 3}"
+  end
+
+  test "String.Chars to_string/1" do
+    assert to_string(%Duration{day: 1}) == "~P[P1D]"
+    assert to_string(%Duration{hour: 2}) == "~P[PT2H]"
+    duration = %Duration{day: 1, hour: 2}
+    assert to_string(duration) == "~P[P1DT2H]"
+    assert "#{duration}" == "~P[P1DT2H]"
   end
 end

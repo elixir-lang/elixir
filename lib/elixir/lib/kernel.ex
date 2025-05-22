@@ -6772,6 +6772,43 @@ defmodule Kernel do
     )
   end
 
+  @doc ~S"""
+  Handles the sigil `~P` for durations, known in ISO as Periods.
+
+  This requires durations to be written in the ISO8601 format:
+
+      ~P[PyYmMdDThhHmmSss]
+
+  such as:
+
+      ~P[P1D]
+      ~P[PT2H]
+      ~P[P1DT2H]
+
+  The lower case `~p` variant does not exist as interpolation
+  and escape characters are not useful for duration sigils.
+
+  More information on naive date times can be found in the
+  `Duration` module.
+
+  ## Examples
+
+      iex> ~P[P1D]
+      ~P[P1D]
+      iex> ~P[PT2H]
+      ~P[PT2H]
+      iex> ~P[P1DT2H]
+      ~P[P1DT2H]
+
+  """
+  defmacro sigil_P(duration_string, modifiers)
+
+  defmacro sigil_P({:<<>>, _, [string]}, []) do
+    quote do
+      apply(Duration, :from_iso8601!, [unquote(string)])
+    end
+  end
+
   defp parse_with_calendar!(string, fun, context) do
     {calendar, string} = extract_calendar(string)
     result = apply(calendar, fun, [string])

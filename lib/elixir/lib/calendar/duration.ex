@@ -454,7 +454,7 @@ defmodule Duration do
 
   defimpl String.Chars, for: Duration do
     def to_string(duration) do
-      Duration.to_string(duration)
+      "~P[" <> Duration.to_iso8601(duration) <> "]"
     end
   end
 
