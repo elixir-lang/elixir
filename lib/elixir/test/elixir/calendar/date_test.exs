@@ -180,10 +180,14 @@ defmodule DateTest do
            |> Date.convert!(Calendar.Holocene)
            |> Date.convert!(Calendar.ISO) == ~D[2000-01-01]
 
-    assert Date.convert(~D[2016-02-03], FakeCalendar) == {:error, :incompatible_calendars}
-
     assert Date.convert(~N[2000-01-01 00:00:00], Calendar.Holocene) ==
              {:ok, Calendar.Holocene.date(12000, 01, 01)}
+
+    assert Date.convert(~D[2016-02-03], FakeCalendar) == {:error, :incompatible_calendars}
+
+    assert_raise ArgumentError,
+                 "cannot convert ~D[2016-02-03] to target calendar FakeCalendar, reason: :incompatible_calendars",
+                 fn -> Date.convert!(~D[2016-02-03], FakeCalendar) end
   end
 
   test "add/2" do
