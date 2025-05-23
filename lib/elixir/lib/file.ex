@@ -981,7 +981,7 @@ defmodule File do
     end
   end
 
-  @doc """
+  @doc ~S"""
   Copies the contents of `source_file` to `destination_file` preserving its modes.
 
   `source_file` must be a file or a symbolic link to one. `destination_file` must
@@ -1005,7 +1005,7 @@ defmodule File do
       File.cp("hello.txt", "hello_copy.txt")
       #=> :ok
 
-      File.cp("hello.txt", "hello_copy.txt", fn source, destination ->
+      File.cp("hello.txt", "hello_copy.txt", on_conflict: fn source, destination ->
         IO.gets("Overwriting #{destination} by #{source}. Type y to confirm. ") == "y\n"
       end)
       #=> :ok
@@ -1056,7 +1056,7 @@ defmodule File do
     Path.expand(p1) !== Path.expand(p2)
   end
 
-  @doc """
+  @doc ~S"""
   The same as `cp/3`, but raises a `File.CopyError` exception if it fails.
   Returns `:ok` otherwise.
 
@@ -1065,14 +1065,13 @@ defmodule File do
       File.cp!("hello.txt", "hello_copy.txt")
       #=> :ok
 
-      File.cp!("hello.txt", "hello_copy.txt", fn source, destination ->
+      File.cp!("hello.txt", "hello_copy.txt", on_conflict: fn source, destination ->
         IO.gets("Overwriting #{destination} by #{source}. Type y to confirm. ") == "y\n"
       end)
       #=> :ok
 
       File.cp!("non_existing.txt", "copy.txt")
       ** (File.CopyError) could not copy from "non_existing.txt" to "copy.txt": no such file or directory
-
   """
   @spec cp!(Path.t(), Path.t(), on_conflict: on_conflict_callback) :: :ok
   def cp!(source_file, destination_file, options \\ []) do
