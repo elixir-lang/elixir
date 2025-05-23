@@ -55,26 +55,21 @@ defmodule IEx.Evaluator do
     end
   end
 
-  # If parsing fails, this might be a TokenMissingError which we treat in
-  # a special way (to allow for continuation of an expression on the next
-  # line in IEx).
-  #
-  # The first two clauses provide support for the break-trigger allowing to
-  # break out from a pending incomplete expression. See
-  # https://github.com/elixir-lang/elixir/issues/1089 for discussion.
-  @break_trigger "#iex:break\n"
+  @break_trigger ~c"#iex:break\n"
 
   @op_tokens [:or_op, :and_op, :comp_op, :rel_op, :arrow_op, :in_op] ++
                [:three_op, :concat_op, :mult_op]
 
-  @doc false
+  @doc """
+  Default parsing implementation with support for pipes and #iex:break.
+
+  If parsing fails, this might be a TokenMissingError which we treat in
+  a special way (to allow for continuation of an expression on the next
+  line in IEx).
+  """
   def parse(input, opts, parser_state)
 
-  def parse(input, opts, ""), do: parse(input, opts, {"", :other})
-
-  def parse(@break_trigger, _opts, {"", _} = parser_state) do
-    {:incomplete, parser_state}
-  end
+  def parse(input, opts, []), do: parse(input, opts, {[], :other})
 
   def parse(@break_trigger, opts, _parser_state) do
     :elixir_errors.parse_error(
@@ -87,14 +82,13 @@ defmodule IEx.Evaluator do
   end
 
   def parse(input, opts, {buffer, last_op}) do
-    input = buffer <> input
+    input = buffer ++ input
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
     column = Keyword.get(opts, :column, 1)
-    charlist = String.to_charlist(input)
 
     result =
-      with {:ok, tokens} <- :elixir.string_to_tokens(charlist, line, column, file, opts),
+      with {:ok, tokens} <- :elixir.string_to_tokens(input, line, column, file, opts),
            {:ok, adjusted_tokens} <- adjust_operator(tokens, line, column, file, opts, last_op),
            {:ok, forms} <- :elixir.tokens_to_quoted(adjusted_tokens, file, opts) do
         last_op =
@@ -108,7 +102,7 @@ defmodule IEx.Evaluator do
 
     case result do
       {:ok, forms, last_op} ->
-        {:ok, forms, {"", last_op}}
+        {:ok, forms, {[], last_op}}
 
       {:error, {_, _, ""}} ->
         {:incomplete, {input, last_op}}
@@ -119,7 +113,7 @@ defmodule IEx.Evaluator do
           file,
           error,
           token,
-          {charlist, line, column, 0}
+          {input, line, column, 0}
         )
     end
   end
@@ -189,9 +183,9 @@ defmodule IEx.Evaluator do
 
   defp loop(%{server: server, ref: ref} = state) do
     receive do
-      {:eval, ^server, code, counter, parser_state} ->
-        {status, parser_state, state} = parse_eval_inspect(code, counter, parser_state, state)
-        send(server, {:evaled, self(), status, parser_state})
+      {:eval, ^server, code, counter} ->
+        {status, state} = safe_eval_and_inspect(code, counter, state)
+        send(server, {:evaled, self(), status})
         loop(state)
 
       {:fields_from_env, ^server, ref, receiver, fields} ->
@@ -296,30 +290,17 @@ defmodule IEx.Evaluator do
     end
   end
 
-  defp parse_eval_inspect(code, counter, parser_state, state) do
-    try do
-      {parser_module, parser_fun, args} = IEx.Config.parser()
-      args = [code, [line: counter, file: "iex"], parser_state | args]
-      eval_and_inspect_parsed(apply(parser_module, parser_fun, args), counter, state)
-    catch
-      kind, error ->
-        print_error(kind, error, __STACKTRACE__)
-        {:error, "", state}
-    end
-  end
-
-  defp eval_and_inspect_parsed({:ok, forms, parser_state}, counter, state) do
+  defp safe_eval_and_inspect(forms, counter, state) do
     put_history(state)
     put_whereami(state)
-    state = eval_and_inspect(forms, counter, state)
-    {:ok, parser_state, state}
+    {:ok, eval_and_inspect(forms, counter, state)}
+  catch
+    kind, error ->
+      print_error(kind, error, __STACKTRACE__)
+      {:error, state}
   after
     Process.delete(:iex_history)
     Process.delete(:iex_whereami)
-  end
-
-  defp eval_and_inspect_parsed({:incomplete, parser_state}, _counter, state) do
-    {:incomplete, parser_state, state}
   end
 
   defp put_history(%{history: history}) do
@@ -410,12 +391,7 @@ defmodule IEx.Evaluator do
 
         _ ->
           banner = Exception.format_banner(kind, blamed, stacktrace)
-
-          if String.contains?(banner, IO.ANSI.reset()) do
-            [banner]
-          else
-            [IEx.color(:eval_error, banner)]
-          end
+          [IEx.color(:eval_error, banner)]
       end
 
     stackdata = Exception.format_stacktrace(prune_stacktrace(stacktrace))
