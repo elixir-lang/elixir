@@ -256,6 +256,14 @@ defmodule File do
   Missing parent directories are not created.
   Returns `:ok` if successful, or `{:error, reason}` if an error occurs.
 
+  ## Examples
+
+        File.mkdir("test/unit")
+        #=> :ok
+
+        File.mkdir("non/existing")
+        #=> {:error, :enoent}
+
   Typical error reasons are:
 
     * `:eacces`  - missing search or write permissions for the parent
@@ -265,7 +273,6 @@ defmodule File do
     * `:enospc`  - there is no space left on the device
     * `:enotdir` - a component of `path` is not a directory;
       on some platforms, `:enoent` is returned instead
-
   """
   @spec mkdir(Path.t()) :: :ok | {:error, posix | :badarg}
   def mkdir(path) do
@@ -275,6 +282,14 @@ defmodule File do
   @doc """
   Same as `mkdir/1`, but raises a `File.Error` exception in case of failure.
   Otherwise `:ok`.
+
+  ## Examples
+
+      File.mkdir!("test/unit")
+      #=> :ok
+
+      File.mkdir!("non/existing")
+      ** (File.Error) could not make directory "non/existing": no such file or directory
   """
   @spec mkdir!(Path.t()) :: :ok
   def mkdir!(path) do
@@ -296,13 +311,21 @@ defmodule File do
   Missing parent directories are created. Returns `:ok` if successful, or
   `{:error, reason}` if an error occurs.
 
+  ## Examples
+
+      File.mkdir_p("non/existing/parents")
+      #=> :ok
+
+      File.mkdir_p("/usr/sbin/temp")
+      #=> {:error, :eperm}
+
   Typical error reasons are:
 
     * `:eacces`  - missing search or write permissions for the parent
       directories of `path`
     * `:enospc`  - there is no space left on the device
     * `:enotdir` - a component of `path` is not a directory
-
+    * `:eperm`   - missed required permisions
   """
   @spec mkdir_p(Path.t()) :: :ok | {:error, posix | :badarg}
   def mkdir_p(path) do
@@ -338,6 +361,14 @@ defmodule File do
   @doc """
   Same as `mkdir_p/1`, but raises a `File.Error` exception in case of failure.
   Otherwise `:ok`.
+
+  ## Examples
+
+      File.mkdir_p!("non/existing/parents")
+      #=> :ok
+
+      File.mkdir_p!("/usr/sbin/temp")
+      ** (File.Error) could not make directory (with -p) "/usr/sbin/temp": not owner
   """
   @spec mkdir_p!(Path.t()) :: :ok
   def mkdir_p!(path) do
@@ -356,6 +387,14 @@ defmodule File do
   @doc """
   Returns `{:ok, binary}`, where `binary` is a binary data object that contains the contents
   of `path`, or `{:error, reason}` if an error occurs.
+
+  ## Examples
+
+      File.read("hello.txt")
+      #=> {:ok, "world"}
+
+      File.read("non_existing.txt")
+      #=> {:error, :enoent}
 
   Typical error reasons:
 
@@ -377,6 +416,15 @@ defmodule File do
   @doc """
   Returns a binary with the contents of the given filename,
   or raises a `File.Error` exception if an error occurs.
+
+  ## Examples
+
+      File.read!("hello.txt")
+      #=> "world"
+
+      File.read!("non_existing.txt")
+      ** (File.Error) could not read file "non_existing.txt": no such file or directory
+
   """
   @spec read!(Path.t()) :: binary
   def read!(path) do
@@ -394,6 +442,14 @@ defmodule File do
   returns a `{:ok, info}` tuple, where info is a
   `File.Stat` struct. Returns `{:error, reason}` with
   the same reasons as `read/1` if a failure occurs.
+
+  ## Examples
+
+      File.stat("hello.txt")
+      #=> {:ok, %File.Stat{...}}
+
+      File.stat("non_existing.txt", time: :posix)
+      #=> {:error, :enoent}
 
   ## Options
 
@@ -427,6 +483,14 @@ defmodule File do
   @doc """
   Same as `stat/2` but returns the `File.Stat` directly,
   or raises a `File.Error` exception if an error is returned.
+
+  ## Examples
+
+      File.stat!("hello.txt")
+      #=> %File.Stat{...}
+
+      File.stat!("non_existing.txt", time: :posix)
+      ** (File.Error) could not read file stats "non_existing.txt": no such file or directory
   """
   @spec stat!(Path.t(), stat_options) :: File.Stat.t()
   def stat!(path, opts \\ []) do
@@ -448,6 +512,14 @@ defmodule File do
   other file, returns exactly the same values as `stat/2`.
 
   For more details, see `:file.read_link_info/2`.
+
+  ## Examples
+
+      File.lstat("link_to_hello")
+      #=> {:ok, %File.Stat{type: :symlink, ...}}
+
+      File.lstat("non_existing.txt", time: :posix)
+      #=> {:error, :enoent}
 
   ## Options
 
@@ -480,6 +552,14 @@ defmodule File do
   @doc """
   Same as `lstat/2` but returns the `File.Stat` struct directly,
   or raises a `File.Error` exception if an error is returned.
+
+  ## Examples
+
+      File.lstat!("link_to_hello")
+      #=> %File.Stat{type: :symlink, ...}
+
+      File.lstat!("non_existing.txt", time: :posix)
+      ** (File.Error) could not read file stats "non_existing.txt": no such file or directory
   """
   @spec lstat!(Path.t(), stat_options) :: File.Stat.t()
   def lstat!(path, opts \\ []) do
@@ -503,6 +583,14 @@ defmodule File do
 
   For more details, see `:file.read_link/1`.
 
+  ## Examples
+
+      File.read_link("link_to_hello")
+      #=> {:ok, "hello.txt"}
+
+      File.read_link("hello.txt")
+      #=> {:error, :einval}
+
   Typical error reasons are:
 
     * `:einval` - path is not a symbolic link
@@ -522,6 +610,14 @@ defmodule File do
   @doc """
   Same as `read_link/1` but returns the target directly,
   or raises a `File.Error` exception if an error is returned.
+
+  ## Examples
+
+      File.read_link!("link_to_hello")
+      #=> "hello.txt"
+
+      File.read_link!("hello.txt")
+      ** (File.Error) could not read link "hello.txt": invalid argument
   """
   @doc since: "1.5.0"
   @spec read_link!(Path.t()) :: binary
@@ -538,6 +634,14 @@ defmodule File do
   @doc """
   Writes the given `File.Stat` back to the file system at the given
   path. Returns `:ok` or `{:error, reason}`.
+
+  ## Examples
+
+      File.write_stat("hello.txt", new_stat)
+      #=> :ok
+
+      File.write_stat("non_existing.txt", new_stat)
+      #=> {:error, :enoent}
   """
   @spec write_stat(Path.t(), File.Stat.t(), stat_options) :: :ok | {:error, posix | :badarg}
   def write_stat(path, stat, opts \\ []) do
@@ -548,6 +652,14 @@ defmodule File do
   @doc """
   Same as `write_stat/3` but raises a `File.Error` exception if it fails.
   Returns `:ok` otherwise.
+
+  ## Examples
+
+      File.write_stat!("hello.txt", new_stat)
+      #=> :ok
+
+      File.write_stat!("non_existing.txt", new_stat)
+      ** (File.Error) could not write file stats "non_existing.txt": no such file or directory
   """
   @spec write_stat!(Path.t(), File.Stat.t(), stat_options) :: :ok
   def write_stat!(path, stat, opts \\ []) do
@@ -643,6 +755,14 @@ defmodule File do
   Returns `:ok` if successful, `{:error, reason}` otherwise.
   If the operating system does not support hard links, returns
   `{:error, :enotsup}`.
+
+  ## Examples
+
+      File.ln("hello.txt", "hard_link_to_hello")
+      #=> :ok
+
+      File.ln("non_existing.txt", "link")
+      #=> {:error, :enoent}
   """
   @doc since: "1.5.0"
   @spec ln(Path.t(), Path.t()) :: :ok | {:error, posix | :badarg}
@@ -653,6 +773,14 @@ defmodule File do
   @doc """
   Same as `ln/2` but raises a `File.LinkError` exception if it fails.
   Returns `:ok` otherwise.
+
+  ## Examples
+
+      File.ln!("hello.txt", "hard_link_to_hello")
+      #=> :ok
+
+      File.ln!("non_existing.txt", "link")
+      ** (File.LinkError) could not create hard link from "non_existing.txt" to "link": no such file or directory
   """
   @doc since: "1.5.0"
   @spec ln!(Path.t(), Path.t()) :: :ok
@@ -676,6 +804,20 @@ defmodule File do
   Returns `:ok` if successful, `{:error, reason}` otherwise.
   If the operating system does not support symlinks, returns
   `{:error, :enotsup}`.
+
+  Creates a symlink even if the `existing` target actually doesn't exist
+
+  ## Examples
+
+      File.ln_s("hello.txt", "link_to_hello")
+      #=> :ok
+
+      File.ln_s("non_existing.txt", "link")
+      #=> :ok
+
+      # Returns error if `new` file exists
+      File.ln_s("non_existing.txt", "existed_link")
+      #=> {:error, :eexist}
   """
   @doc since: "1.5.0"
   @spec ln_s(Path.t(), Path.t()) :: :ok | {:error, posix | :badarg}
@@ -686,6 +828,15 @@ defmodule File do
   @doc """
   Same as `ln_s/2` but raises a `File.LinkError` exception if it fails.
   Returns `:ok` otherwise.
+
+  ## Examples
+
+      File.ln_s!("hello.txt", "link_to_hello")
+      #=> :ok
+
+      # Raises if `new` file exists
+      File.ln_s!("non_existing.txt", "existed_link")
+      ** (File.LinkError) could not create symlink from "non_existing.txt" to "existed_link": file already exists
   """
   @spec ln_s!(Path.t(), Path.t()) :: :ok
   def ln_s!(existing, new) do
@@ -721,6 +872,14 @@ defmodule File do
   checks on both source and destination and it also preserves
   the file mode after copy.
 
+  ## Examples
+
+      File.copy("hello.txt", "hello_copy.txt")
+      #=> {:ok, 6}
+
+      File.copy("non_existing.txt", "copy.txt")
+      #=> {:error, :enoent}
+
   Typical error reasons are the same as in `open/2`,
   `read/1` and `write/3`.
   """
@@ -736,6 +895,14 @@ defmodule File do
   @doc """
   The same as `copy/3` but raises a `File.CopyError` exception if it fails.
   Returns the `bytes_copied` otherwise.
+
+  ## Examples
+
+      File.copy!("hello.txt", "hello_copy.txt")
+      #=> 6
+
+      File.copy!("non_existing.txt", "copy.txt")
+      ** (File.CopyError) could not copy from "non_existing.txt" to "copy.txt": no such file or directory
   """
   @spec copy!(Path.t() | io_device, Path.t() | io_device, pos_integer | :infinity) ::
           non_neg_integer
@@ -769,10 +936,14 @@ defmodule File do
 
       # Rename file "a.txt" to "b.txt"
       File.rename("a.txt", "b.txt")
+      #=> :ok
 
       # Rename directory "samples" to "tmp"
       File.rename("samples", "tmp")
+      #=> :ok
 
+      File.rename("non_existing.txt", "existing.txt")
+      #=> {:error, :enoent}
   """
   @doc since: "1.1.0"
   @spec rename(Path.t(), Path.t()) :: :ok | {:error, posix | :badarg}
@@ -785,6 +956,14 @@ defmodule File do
   @doc """
   The same as `rename/2` but raises a `File.RenameError` exception if it fails.
   Returns `:ok` otherwise.
+
+  ## Examples
+
+      File.rename!("samples", "tmp")
+      #=> :ok
+
+      File.rename!("non_existing.txt", "existing.txt")
+      ** (File.RenameError) could not rename from "non_existing.txt" to "existing.txt": no such file or directory
   """
   @doc since: "1.9.0"
   @spec rename!(Path.t(), Path.t()) :: :ok
@@ -820,6 +999,19 @@ defmodule File do
   whether the destination is an existing directory or not. We have chosen to
   explicitly disallow copying to a destination which is a directory,
   and an error will be returned if tried.
+
+  ## Examples
+
+      File.cp("hello.txt", "hello_copy.txt")
+      #=> :ok
+
+      File.cp("hello.txt", "hello_copy.txt", fn source, destination ->
+        IO.gets("Overwriting #{destination} by #{source}. Type y to confirm. ") == "y\n"
+      end)
+      #=> :ok
+
+      File.cp("non_existing.txt", "copy.txt")
+      #=> {:error, :enoent}
 
   ## Options
 
@@ -867,6 +1059,20 @@ defmodule File do
   @doc """
   The same as `cp/3`, but raises a `File.CopyError` exception if it fails.
   Returns `:ok` otherwise.
+
+  ## Examples
+
+      File.cp!("hello.txt", "hello_copy.txt")
+      #=> :ok
+
+      File.cp!("hello.txt", "hello_copy.txt", fn source, destination ->
+        IO.gets("Overwriting #{destination} by #{source}. Type y to confirm. ") == "y\n"
+      end)
+      #=> :ok
+
+      File.cp!("non_existing.txt", "copy.txt")
+      ** (File.CopyError) could not copy from "non_existing.txt" to "copy.txt": no such file or directory
+
   """
   @spec cp!(Path.t(), Path.t(), on_conflict: on_conflict_callback) :: :ok
   def cp!(source_file, destination_file, options \\ []) do
@@ -929,15 +1135,20 @@ defmodule File do
 
       # Copies file "a.txt" to "b.txt"
       File.cp_r("a.txt", "b.txt")
+      #=> {:ok, ["b.txt"]}
 
       # Copies all files in "samples" to "tmp"
       File.cp_r("samples", "tmp")
+      #=> {:ok, ["z.txt", "y.txt", "x.txt]}
 
       # Same as before, but asks the user how to proceed in case of conflicts
       File.cp_r("samples", "tmp", on_conflict: fn source, destination ->
         IO.gets("Overwriting #{destination} by #{source}. Type y to confirm. ") == "y\n"
       end)
+      #=> {:ok, ["z.txt", "y.txt", "x.txt]}
 
+      File.cp_r("non_existing.txt", "copy.txt")
+      #=> {:error, :enoent}
   """
   @spec cp_r(Path.t(), Path.t(),
           on_conflict: on_conflict_callback,
@@ -983,6 +1194,17 @@ defmodule File do
   @doc """
   The same as `cp_r/3`, but raises a `File.CopyError` exception if it fails.
   Returns the list of copied files otherwise.
+
+  ## Examples
+
+      File.cp_r!("a.txt", "b.txt")
+      #=> ["b.txt"]
+
+      File.cp_r!("samples", "tmp")
+      #=> ["z.txt", "y.txt", "x.txt]
+
+      File.cp_r!("non_existing.txt", "copy.txt")
+      ** (File.CopyError) could not copy recursively from "non_existing.txt" to "copy.txt". non_existing.txt: no such file or directory
   """
   @spec cp_r!(Path.t(), Path.t(),
           on_conflict: on_conflict_callback,
@@ -1133,6 +1355,14 @@ defmodule File do
   the functions in `IO` to write to the file will yield much better performance
   than calling this function multiple times.
 
+  ## Examples
+
+      File.write("hello.txt", "world!")
+      #=> :ok
+
+      File.write("temp", "world!")
+      #=> {:error, :eisdir}
+
   Typical error reasons are:
 
     * `:enoent`  - a component of the file name does not exist
@@ -1155,6 +1385,14 @@ defmodule File do
   @doc """
   Same as `write/3` but raises a `File.Error` exception if it fails.
   Returns `:ok` otherwise.
+
+  ## Examples
+
+      File.write!("hello.txt", "world!")
+      #=> :ok
+
+      File.write!("temp", "world!")
+      ** (File.Error) could not write to file "temp": illegal operation on a directory
   """
   @spec write!(Path.t(), iodata, [mode]) :: :ok
   def write!(path, content, modes \\ []) do
@@ -1233,6 +1471,14 @@ defmodule File do
   @doc """
   Same as `rm/1`, but raises a `File.Error` exception in case of failure.
   Otherwise `:ok`.
+
+  ## Examples
+
+      File.rm!("file.txt")
+      #=> :ok
+
+      File.rm!("non_existing/")
+      ** (File.Error) could not remove file "non_existing/": no such file or directory
   """
   @spec rm!(Path.t()) :: :ok
   def rm!(path) do
@@ -1261,7 +1507,6 @@ defmodule File do
 
       File.rmdir("file.txt")
       #=> {:error, :enotdir}
-
   """
   @spec rmdir(Path.t()) :: :ok | {:error, posix | :badarg}
   def rmdir(path) do
@@ -1271,6 +1516,17 @@ defmodule File do
   @doc """
   Same as `rmdir/1`, but raises a `File.Error` exception in case of failure.
   Otherwise `:ok`.
+
+  ## Examples
+
+      File.rmdir!("tmp_dir")
+      #=> :ok
+
+      File.rmdir!("non_empty_dir")
+      ** (File.Error) could not remove directory "non_empty_dir": directory is not empty
+
+      File.rmdir!("file.txt")
+      ** (File.Error) could not remove directory "file.txt": not a directory
   """
   @spec rmdir!(Path.t()) :: :ok
   def rmdir!(path) do
@@ -1303,6 +1559,8 @@ defmodule File do
       File.rm_rf("unknown")
       #=> {:ok, []}
 
+      File.rm_rf("/tmp")
+      #=> {:error, :eperm, "/tmp"}
   """
   @spec rm_rf(Path.t()) :: {:ok, [binary]} | {:error, posix | :badarg, binary}
   def rm_rf(path) do
@@ -1399,6 +1657,17 @@ defmodule File do
   @doc """
   Same as `rm_rf/1` but raises a `File.Error` exception in case of failures,
   otherwise the list of files or directories removed.
+
+  ## Examples
+
+      File.rm_rf!("samples")
+      #=> ["samples", "samples/1.txt"]
+
+      File.rm_rf!("unknown")
+      #=> []
+
+      File.rm_rf!("/tmp")
+      ** (File.Error) could not remove files and directories recursively from "/tmp": not owner
   """
   @spec rm_rf!(Path.t()) :: [binary]
   def rm_rf!(path) do
@@ -1537,6 +1806,7 @@ defmodule File do
       File.open("file.txt", [:read, :write], fn file ->
         IO.read(file, :line)
       end)
+      #=> {:ok, "file content"}
 
   See `open/2` for the list of available `modes`.
   """
@@ -1562,6 +1832,13 @@ defmodule File do
   could not be opened. Returns the IO device otherwise.
 
   See `open/2` for the list of available modes.
+
+  ## Examples
+
+      File.open!("file.txt", fn file ->
+        IO.read(file, :line)
+      end)
+      #=> "file content"
   """
   @spec open!(Path.t(), [mode | :ram]) :: io_device | file_descriptor
   @spec open!(Path.t(), (io_device | file_descriptor -> res)) :: res when res: var
@@ -1580,6 +1857,13 @@ defmodule File do
   could not be opened.
 
   If it succeeds opening the file, it returns the `function` result on the IO device.
+
+  ## Examples
+
+      File.open!("file.txt", [:read, :write], fn file ->
+        IO.read(file, :line)
+      end)
+      #=> "file content"
 
   See `open/2` for the list of available `modes`.
   """
@@ -1601,6 +1885,15 @@ defmodule File do
   if read permissions do not exist for the parent directories of the
   current directory. For this reason, returns `{:ok, cwd}` in case
   of success, `{:error, reason}` otherwise.
+
+  ## Examples
+
+      File.cwd()
+      #=> {:ok, "/Users/user/elixir/elixir_lang"}
+
+      # Missing read permission for one of the parents of the current directory
+      File.cwd()
+      #=> {:error, :eacces}
   """
   @spec cwd() :: {:ok, binary} | {:error, posix | :badarg}
   def cwd() do
@@ -1621,6 +1914,11 @@ defmodule File do
 
   @doc """
   The same as `cwd/0`, but raises a `File.Error` exception if it fails.
+
+  ## Examples
+
+      File.cwd!()
+      #=> "/Users/user/elixir/elixir_lang"
   """
   @spec cwd!() :: binary
   def cwd!() do
@@ -1643,6 +1941,14 @@ defmodule File do
   of `System.cmd/3` and `Port.open/2`.
 
   Returns `:ok` if successful, `{:error, reason}` otherwise.
+
+  ## Examples
+
+      File.cd("bin")
+      #=> :ok
+
+      File.cd("non_existing_dir")
+      #=> {:error, :enoent}
   """
   @spec cd(Path.t()) :: :ok | {:error, posix | :badarg | :no_translation}
   def cd(path) do
@@ -1651,6 +1957,14 @@ defmodule File do
 
   @doc """
   The same as `cd/1`, but raises a `File.Error` exception if it fails.
+
+  ## Examples
+
+      File.cd!("bin")
+      #=> :ok
+
+      File.cd!("non_existing_dir")
+      ** (File.Error) could not set current working directory to "non_existing_dir": no such file or directory
   """
   @spec cd!(Path.t()) :: :ok
   def cd!(path) do
@@ -1679,6 +1993,14 @@ defmodule File do
 
   Raises an error if retrieving or changing the current
   directory fails.
+
+  ## Examples
+
+      File.cd!("bin", fn -> do_something() end)
+      #=> :result_of_do_something
+
+      File.cd!("non_existing_dir", fn -> do_something() end)
+      ** (File.Error) could not set current working directory to "non_existing_dir": no such file or directory
   """
   @spec cd!(Path.t(), (-> res)) :: res when res: var
   def cd!(path, function) do
@@ -1702,6 +2024,14 @@ defmodule File do
 
   Returns `{:ok, files}` in case of success,
   `{:error, reason}` otherwise.
+
+  ## Examples
+
+      File.ls("bin")
+      #=> {:ok, ["iex", "elixir"]}
+
+      File.ls("non_existing_dir")
+      #=> {:error, :enoent}
   """
   @spec ls(Path.t()) :: {:ok, [binary]} | {:error, posix | :badarg | {:no_translation, binary}}
   def ls(path \\ ".") do
@@ -1713,6 +2043,14 @@ defmodule File do
 
   @doc """
   The same as `ls/1` but raises a `File.Error` exception in case of an error.
+
+  ## Examples
+
+      File.ls!("bin")
+      #=> ["iex", "elixir"]
+
+      File.ls!("non_existing_dir")
+      ** (File.Error) could not list directory "non_existing_dir": no such file or directory
   """
   @spec ls!(Path.t()) :: [binary]
   def ls!(path \\ ".") do
@@ -1735,6 +2073,15 @@ defmodule File do
   Note that if the option `:delayed_write` was used when opening the file,
   `close/1` might return an old write error and not even try to close the file.
   See `open/2` for more information.
+
+  ## Examples
+
+      {:ok, file} = File.open("hello.txt")
+      File.close(file)
+      #=> :ok
+
+      File.close(:not_an_io_device)
+      #=> {:error, :badarg}
   """
   @spec close(io_device) :: :ok | {:error, posix | :badarg | :terminated}
   def close(io_device) do
@@ -1804,9 +2151,11 @@ defmodule File do
 
       # Read a utf8 text file which may include BOM
       File.stream!("./test/test.txt", [:trim_bom, encoding: :utf8])
+      #=> %File.Stream{path: "./test/test.txt", ...}
 
       # Read in 2048 byte chunks rather than lines
       File.stream!("./test/test.data", 2048)
+      #=> %File.Stream{path: "./test/test.data", ...}
 
   See `Stream.run/1` for an example of streaming into a file.
   """
@@ -1827,6 +2176,14 @@ defmodule File do
   Changes the `mode` for a given `file`.
 
   Returns `:ok` on success, or `{:error, reason}` on failure.
+
+  ## Examples
+
+      File.chmod("hello.txt", 0o755)
+      #=> :ok
+
+      File.chmod("non_existing.txt", 0o755)
+      #=> {:error, :enoent}
 
   ## Permissions
 
@@ -1857,6 +2214,14 @@ defmodule File do
   @doc """
   Same as `chmod/2`, but raises a `File.Error` exception in case of failure.
   Otherwise `:ok`.
+
+  ## Examples
+
+      File.chmod!("hello.txt", 0o755)
+      #=> :ok
+
+      File.chmod!("non_existing.txt", 0o755)
+      ** (File.Error) could not change mode for "non_existing.txt": no such file or directory
   """
   @spec chmod!(Path.t(), non_neg_integer) :: :ok
   def chmod!(path, mode) do
@@ -1876,6 +2241,14 @@ defmodule File do
   Changes the group given by the group ID `gid`
   for a given `file`. Returns `:ok` on success, or
   `{:error, reason}` on failure.
+
+  ## Examples
+
+      File.chgrp("hello.txt", 10)
+      #=> :ok
+
+      File.chgrp("non_existing.txt", 10)
+      #=> {:error, :enoent}
   """
   @spec chgrp(Path.t(), non_neg_integer) :: :ok | {:error, posix | :badarg}
   def chgrp(path, gid) do
@@ -1885,6 +2258,14 @@ defmodule File do
   @doc """
   Same as `chgrp/2`, but raises a `File.Error` exception in case of failure.
   Otherwise `:ok`.
+
+  ## Examples
+
+    File.chgrp!("hello.txt", 10)
+    #=> :ok
+
+    File.chgrp!("non_existing.txt", 10)
+    ** (File.Error) could not change group for "non_existing.txt": no such file or directory
   """
   @spec chgrp!(Path.t(), non_neg_integer) :: :ok
   def chgrp!(path, gid) do
@@ -1904,6 +2285,14 @@ defmodule File do
   Changes the owner given by the user ID `uid`
   for a given `file`. Returns `:ok` on success,
   or `{:error, reason}` on failure.
+
+  ## Examples
+
+      File.chown("hello.txt", 15)
+      #=> :ok
+
+      File.chown("secret.txt", 15)
+      #=> {:error, :eperm}
   """
   @spec chown(Path.t(), non_neg_integer) :: :ok | {:error, posix | :badarg}
   def chown(path, uid) do
@@ -1913,6 +2302,14 @@ defmodule File do
   @doc """
   Same as `chown/2`, but raises a `File.Error` exception in case of failure.
   Otherwise `:ok`.
+
+  ## Examples
+
+      File.chown!("hello.txt", 15)
+      #=> :ok
+
+      File.chown!("secret.txt", 15)
+      ** (File.Error) could not change owner for "secret.txt": not owner
   """
   @spec chown!(Path.t(), non_neg_integer) :: :ok
   def chown!(path, uid) do
