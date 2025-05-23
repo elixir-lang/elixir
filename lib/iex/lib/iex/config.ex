@@ -22,15 +22,25 @@ defmodule IEx.Config do
 
   # Generate a continuation prompt based on IEx prompt.
   # This is set as global configuration on app start.
-  @compile {:no_warn_undefined, :prim_tty}
   def prompt(prompt) do
     case Enum.split_while(prompt, &(&1 != ?()) do
       # It is not the default Elixir shell, so we use the default prompt
       {_, []} ->
-        List.duplicate(?\s, max(0, :prim_tty.npwcwidthstring(prompt) - 3)) ++ ~c".. "
+        List.duplicate(?\s, max(0, prompt_width(prompt) - 3)) ++ ~c".. "
 
       {left, right} ->
-        List.duplicate(?., :prim_tty.npwcwidthstring(left)) ++ right
+        List.duplicate(?., prompt_width(left)) ++ right
+    end
+  end
+
+  # TODO: Remove this when we require Erlang/OTP 27+
+  @compile {:no_warn_undefined, :prim_tty}
+  @compile {:no_warn_undefined, :shell}
+  defp prompt_width(prompt) do
+    if function_exported?(:prim_tty, :npwcwidthstring, 1) do
+      :prim_tty.npwcwidthstring(prompt)
+    else
+      :shell.prompt_width(prompt)
     end
   end
 
