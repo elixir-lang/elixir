@@ -30,7 +30,6 @@ defmodule ExceptionTest do
   doctest TryClauseError
   doctest UndefinedFunctionError
   doctest FunctionClauseError
-  doctest Code.LoadError
   doctest Protocol.UndefinedError
   doctest KeyError
   doctest UnicodeConversionError

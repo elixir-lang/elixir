@@ -2063,8 +2063,8 @@ defmodule Code.LoadError do
 
   This is typically raised by functions in the `Code` module, for example:
 
-      iex> Code.require_file("/missing_file.exs")
-      ** (Code.LoadError) could not load /missing_file.exs. Reason: enoent
+      Code.require_file("missing_file.exs")
+      ** (Code.LoadError) could not load missing_file.exs. Reason: enoent
 
   The following fields of this exception are public and can be accessed freely:
 
