@@ -218,6 +218,10 @@ defmodule DateTest do
     date2 = Calendar.Holocene.date(12000, 01, 14)
     assert Date.diff(date1, date2) == -13
     assert Date.diff(date2, date1) == 13
+
+    assert_raise ArgumentError,
+                 ~r/cannot calculate the difference between .* because their calendars are not compatible/,
+                 fn -> Date.diff(date1, %{date2 | calendar: FakeCalendar}) end
   end
 
   test "shift/2" do
