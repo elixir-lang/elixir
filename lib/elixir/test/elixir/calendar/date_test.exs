@@ -91,6 +91,10 @@ defmodule DateTest do
     assert Date.compare(date4, date5) == :gt
     assert Date.compare(date5, date4) == :lt
     assert Date.compare(date5, date5) == :eq
+
+    assert_raise ArgumentError,
+                 ~r/cannot compare .*\n\n.* their calendars have incompatible day rollover moments/,
+                 fn -> Date.compare(date1, %{date2 | calendar: FakeCalendar}) end
   end
 
   test "before?/2 and after?/2" do
