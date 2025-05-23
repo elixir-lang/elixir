@@ -95,6 +95,26 @@ defmodule TimeTest do
     assert not Time.after?(time1, time2)
   end
 
+  test "diff/3" do
+    time1 = ~T[05:02:01.234]
+    time2 = ~T[10:00:04.123]
+    time1_holocene = ~T[05:02:01.234 Calendar.Holocene]
+
+    assert Time.diff(time1, time2) == -17883
+    assert Time.diff(time1, time2, :hour) == -4
+    assert Time.diff(time1, time2, :minute) == -298
+    assert Time.diff(time1, time2, :second) == -17883
+    assert Time.diff(time1, time2, :millisecond) == -17_882_889
+    assert Time.diff(time1, time2, :microsecond) == -17_882_889_000
+
+    assert Time.diff(time1_holocene, time2) == -17883
+    assert Time.diff(time1_holocene, time2, :hour) == -4
+    assert Time.diff(time1_holocene, time2, :minute) == -298
+    assert Time.diff(time1_holocene, time2, :second) == -17883
+    assert Time.diff(time1_holocene, time2, :millisecond) == -17_882_889
+    assert Time.diff(time1_holocene, time2, :microsecond) == -17_882_889_000
+  end
+
   test "truncate/2" do
     assert Time.truncate(~T[01:01:01.123456], :microsecond) == ~T[01:01:01.123456]
 
