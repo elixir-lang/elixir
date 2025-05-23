@@ -38,6 +38,18 @@ defmodule TimeTest do
     end
   end
 
+  test "to_iso8601/2" do
+    time1 = ~T[23:00:07.005]
+    assert Time.to_iso8601(time1) == "23:00:07.005"
+    assert Time.to_iso8601(Map.from_struct(time1)) == "23:00:07.005"
+    assert Time.to_iso8601(time1, :basic) == "230007.005"
+
+    time2 = ~T[23:00:07.005 Calendar.Holocene]
+    assert Time.to_iso8601(time2) == "23:00:07.005"
+    assert Time.to_iso8601(Map.from_struct(time2)) == "23:00:07.005"
+    assert Time.to_iso8601(time2, :basic) == "230007.005"
+  end
+
   test "to_string/1" do
     time = ~T[23:00:07.005]
     assert to_string(time) == "23:00:07.005"
