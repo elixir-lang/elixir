@@ -1064,10 +1064,7 @@ defmodule ArgumentError do
 
       iex> Integer.to_string(1.0)
       ** (ArgumentError) errors were found at the given arguments:
-
-      * 1st argument: not an integer
-
-        :erlang.integer_to_binary(1.0)
+      ...
 
   `ArgumentError` exceptions have a single field, `:message` (a `t:String.t/0`),
   which is public and can be accessed freely when reading or creating `ArgumentError`
@@ -1084,8 +1081,7 @@ defmodule ArithmeticError do
   For example, this exception is raised if you divide by `0`:
 
       iex> 1 / 0
-      ** (ArithmeticError) bad argument in arithmetic expression: 1 / 0
-
+      ** (ArithmeticError) bad argument in arithmetic expression
   """
 
   defexception message: "bad argument in arithmetic expression"
@@ -1135,7 +1131,6 @@ defmodule SystemLimitError do
 
       iex> String.to_atom(String.duplicate("a", 100_000))
       ** (SystemLimitError) a system limit has been reached
-
   """
 
   defexception message: "a system limit has been reached"
@@ -1147,8 +1142,9 @@ defmodule MismatchedDelimiterError do
 
   For example:
 
-    * `[1, 2, 3}`
-    * `fn a -> )`
+      iex> Code.eval_string("[1, 2, 3}")
+      ** (MismatchedDelimiterError) mismatched delimiter found on nofile:1:9:
+      ...
 
   The following fields of this exceptions are public and can be accessed freely:
 
@@ -1162,7 +1158,6 @@ defmodule MismatchedDelimiterError do
     * `:closing_delimiter` - an atom representing the mismatched closing delimiter
     * `:expected_delimiter` - an atom representing the closing delimiter
     * `:description` - a description of the mismatched delimiter error
-
   """
 
   defexception [
@@ -1221,6 +1216,12 @@ defmodule SyntaxError do
   @moduledoc """
   An exception raised when there's a syntax error when parsing code.
 
+  For example:
+
+      iex> Code.eval_string("5 + 5h")
+      ** (SyntaxError) invalid syntax found on nofile:1:5:
+      ...
+
   The following fields of this exceptions are public and can be accessed freely:
 
     * `:file` (`t:Path.t/0` or `nil`) - the file where the error occurred, or `nil` if
@@ -1228,7 +1229,6 @@ defmodule SyntaxError do
     * `:line` - the line where the error occurred
     * `:column` - the column where the error occurred
     * `:description` - a description of the syntax error
-
   """
 
   defexception [:file, :line, :column, :snippet, description: "syntax error"]
@@ -1271,6 +1271,12 @@ end
 defmodule TokenMissingError do
   @moduledoc """
   An exception raised when a token is missing when parsing code.
+
+  For example:
+
+      iex> Code.eval_string("[1, 2, 3")
+      ** (TokenMissingError) token missing on nofile:1:9:
+      ...
 
   The following fields of this exceptions are public and can be accessed freely:
 
@@ -1364,6 +1370,11 @@ defmodule CompileError do
   @moduledoc """
   An exception raised when there's an error when compiling code.
 
+  For example:
+
+      1 = y
+      ** (CompileError) iex:1: undefined variable "y"
+
   The following fields of this exceptions are public and can be accessed freely:
 
     * `:file` (`t:Path.t/0` or `nil`) - the file where the error occurred, or `nil` if
@@ -1388,12 +1399,6 @@ defmodule Kernel.TypespecError do
   @moduledoc """
   An exception raised when there's an error in a typespec.
 
-  The following fields of this exceptions are public and can be accessed freely:
-
-    * `:file` (`t:Path.t/0` or `nil`) - the file where the error occurred, or `nil` if
-      the error occurred in code that did not come from a file
-    * `:line` (`t:non_neg_integer/0`) - the line where the error occurred
-
   For example, if your typespec definition points to an invalid type, you get an exception:
 
       @type my_type :: intger()
@@ -1402,6 +1407,11 @@ defmodule Kernel.TypespecError do
 
       ** (Kernel.TypespecError) type intger/0 undefined
 
+  The following fields of this exceptions are public and can be accessed freely:
+
+    * `:file` (`t:Path.t/0` or `nil`) - the file where the error occurred, or `nil` if
+      the error occurred in code that did not come from a file
+    * `:line` (`t:non_neg_integer/0`) - the line where the error occurred
   """
 
   defexception [:file, :line, :description]
@@ -1422,9 +1432,8 @@ defmodule BadFunctionError do
   For example:
 
       iex> value = "hello"
-      value.()
+      iex> value.()
       ** (BadFunctionError) expected a function, got: "hello"
-
   """
 
   defexception [:term]
@@ -1460,9 +1469,9 @@ defmodule BadMapError do
   For example:
 
       iex> value = "hello"
-      %{value | key: "value"}
-      ** (BadMapError) expected a map, got: "hello"
-
+      iex> %{value | key: "value"}
+      ** (BadMapError) expected a map, got:
+      ...
   """
 
   defexception [:term]
@@ -1482,9 +1491,9 @@ defmodule BadBooleanError do
 
   This exception is raised by `and` and `or` when the first argument is not a boolean:
 
-      iex(1)> 123 and true
-      ** (BadBooleanError) expected a boolean on left-side of "and", got: 123
-
+      iex> 123 and true
+      ** (BadBooleanError) expected a boolean on left-side of "and", got:
+      ...
   """
 
   defexception [:term, :operator]
@@ -1502,13 +1511,15 @@ defmodule MatchError do
   @moduledoc """
   An exception raised when a pattern match (`=/2`) fails.
 
+  For example:
+
+      iex> [_ | _] = []
+      ** (MatchError) no match of right hand side value:
+      ...
+
   The following fields of this exception are public and can be accessed freely:
 
     * `:term` (`t:term/0`) - the term that did not match the pattern
-
-  For example, this exception gets raised for code like this:
-
-      [_ | _] = []
 
   """
 
@@ -1528,17 +1539,18 @@ defmodule CaseClauseError do
   An exception raised when a term in a `case/2` expression
   does not match any of the defined `->` clauses.
 
+  For example:
+
+      iex> case System.unique_integer() do
+      ...>   bin when is_binary(bin) -> :oops
+      ...>   :ok -> :neither_this_one
+      ...> end
+      ** (CaseClauseError) no case clause matching:
+      ...
+
   The following fields of this exception are public and can be accessed freely:
 
     * `:term` (`t:term/0`) - the term that did not match any of the clauses
-
-  For example, this exception gets raised for a `case/2` like the following:
-
-      case System.unique_integer() do
-        bin when is_binary(bin) -> :oops
-        :ok -> :neither_this_one
-      end
-
   """
 
   defexception [:term]
@@ -1557,21 +1569,22 @@ defmodule WithClauseError do
   An exception raised when a term in a `with/1` expression
   does not match any of the defined `->` clauses in its `else`.
 
-  The following fields of this exception are public and can be accessed freely:
-
-    * `:term` (`t:term/0`) - the term that did not match any of the clauses
-
   For example, this exception gets raised for a `with/1` like the following, because
   the `{:ok, 2}` term does not match the `:error` or `{:error, _}` clauses in the
   `else`:
 
-      with {:ok, 1} <- {:ok, 2} do
-        :woah
-      else
-        :error -> :error
-        {:error, _} -> :error
-      end
+      iex> with {:ok, 1} <- {:ok, 2} do
+      ...>   :woah
+      ...> else
+      ...>   :error -> :error
+      ...>   {:error, _} -> :error
+      ...> end
+      ** (WithClauseError) no with clause matching:
+      ...
 
+  The following fields of this exception are public and can be accessed freely:
+
+    * `:term` (`t:term/0`) - the term that did not match any of the clauses
   """
 
   defexception [:term]
@@ -1591,11 +1604,11 @@ defmodule CondClauseError do
 
   For example, this exception gets raised for a `cond/1` like the following:
 
-      cond do
-        1 + 1 == 3 -> :woah
-        nil -> "yeah this won't happen
-      end
-
+      iex> cond do
+      ...>   1 + 1 == 3 -> :woah
+      ...>   nil -> "yeah this won't happen"
+      ...> end
+      ** (CondClauseError) no cond clause evaluated to a truthy value
   """
 
   defexception []
@@ -1620,7 +1633,8 @@ defmodule TryClauseError do
       ...>   # :ok -> :ok is missing
       ...>   :not_ok -> :not_ok
       ...> end
-      ** (TryClauseError) no try clause matching: :ok
+      ** (TryClauseError) no try clause matching:
+      ...
 
   The following fields of this exception are public and can be accessed freely:
 
@@ -1644,10 +1658,9 @@ defmodule BadArityError do
 
   For example:
 
-      iex> my_function = fn x, y -> x + y end
-      iex> my_function.(42)
+      my_function = fn x, y -> x + y end
+      my_function.(42)
       ** (BadArityError) #Function<41.39164016/2 in :erl_eval.expr/6> with arity 2 called with 1 argument (42)
-
   """
 
   defexception [:function, :args]
@@ -1670,22 +1683,16 @@ defmodule UndefinedFunctionError do
   @moduledoc """
   An exception raised when a function is invoked that is not defined.
 
+  For example:
+
+      iex> String.non_existing_fun("hello")
+      ** (UndefinedFunctionError) function String.non_existing_fun/1 is undefined or private
+
   The following fields of this exception are public and can be accessed freely:
 
     * `:module` (`t:module/0`) - the module name
     * `:function` (`t:atom/0`) - the function name
     * `:arity` (`t:non_neg_integer/0`) - the arity of the function
-
-  For example, if you try to call `MyMod.non_existing_fun("hello", 1)`,
-  the error would look like:
-
-      %UndefinedFunctionError{
-        module: MyMod,
-        function: :non_existing_fun,
-        arity: 2,
-        # Other private fields...
-      }
-
   """
 
   @function_threshold 0.77
@@ -1925,22 +1932,16 @@ defmodule FunctionClauseError do
   @moduledoc """
   An exception raised when a function call doesn't match any defined clause.
 
+  For example:
+
+      iex> URI.parse(:wrong_argument)
+      ** (FunctionClauseError) no function clause matching in URI.parse/1
+
   The following fields of this exception are public and can be accessed freely:
 
     * `:module` (`t:module/0`) - the module name
     * `:function` (`t:atom/0`) - the function name
     * `:arity` (`t:non_neg_integer/0`) - the arity of the function
-
-  For example, if you try to call a function such as `URI.parse/1` with something
-  other than a string, the error would look like:
-
-      %FunctionClauseError{
-        module: URI,
-        function: :parse,
-        arity: 1,
-        # Other private fields...
-      }
-
   """
 
   defexception [:module, :function, :arity, :kind, :args, :clauses]
@@ -2062,14 +2063,13 @@ defmodule Code.LoadError do
 
   This is typically raised by functions in the `Code` module, for example:
 
-      iex> Code.require_file("missing_file.exs")
-      ** (Code.LoadError) could not load missing_file.exs. Reason: enoent
+      iex> Code.require_file("/missing_file.exs")
+      ** (Code.LoadError) could not load /missing_file.exs. Reason: enoent
 
   The following fields of this exception are public and can be accessed freely:
 
     * `:file` (`t:String.t/0`) - the file name
     * `:reason` (`t:term/0`) - the reason why the file could not be loaded
-
   """
 
   defexception [:file, :message, :reason]
@@ -2086,23 +2086,16 @@ defmodule Protocol.UndefinedError do
   @moduledoc """
   An exception raised when a protocol is not implemented for a given value.
 
+  For example:
+
+      iex> Enum.at("A string!", 0)
+      ** (Protocol.UndefinedError) protocol Enumerable not implemented for BitString
+      ...
+
   The following fields of this exception are public and can be accessed freely:
 
     * `:protocol` (`t:module/0`) - the protocol that is not implemented
     * `:value` (`t:term/0`) - the value that does not implement the protocol
-
-  For example, this code:
-
-      Enum.at("A string!", 0)
-
-  would raise the following exception:
-
-      %Protocol.UndefinedError{
-        protocol: Enumerable,
-        value: "A string!",
-        # ...
-      }
-
   """
 
   defexception [:protocol, :value, description: ""]
@@ -2168,13 +2161,13 @@ defmodule KeyError do
 
       iex> map = %{name: "Alice", age: 25}
       iex> Map.fetch!(map, :first_name)
-      ** (KeyError) key :first_name not found in: %{name: "Alice", age: 25}
+      ** (KeyError) key :first_name not found in:
+      ...
 
   The following fields of this exception are public and can be accessed freely:
 
     * `:term` (`t:term/0`) - the data structure that was searched
     * `:key` (`t:term/0`) - the key that was not found
-
   """
 
   defexception [:key, :term, :message]
@@ -2344,8 +2337,7 @@ defmodule Enum.OutOfBoundsError do
   For example:
 
       iex> Enum.fetch!([1, 2, 3], 5)
-      ** (Enum.OutOfBoundsError) out of bounds error
-
+      ** (Enum.OutOfBoundsError) out of bounds error at position 5 when traversing enumerable [1, 2, 3]
   """
 
   defexception [:enumerable, :index, :message]

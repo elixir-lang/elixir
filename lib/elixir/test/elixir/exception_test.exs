@@ -13,6 +13,35 @@ defmodule ExceptionTest do
 
   doctest Exception
 
+  doctest RuntimeError
+  doctest ArgumentError
+  doctest ArithmeticError
+  doctest SystemLimitError
+  doctest MismatchedDelimiterError
+  doctest SyntaxError
+  doctest TokenMissingError
+  doctest BadFunctionError
+  doctest BadMapError
+  doctest BadBooleanError
+  doctest MatchError
+  doctest CaseClauseError
+  doctest WithClauseError
+  doctest CondClauseError
+  doctest TryClauseError
+  doctest UndefinedFunctionError
+  doctest FunctionClauseError
+  doctest Code.LoadError
+  doctest Protocol.UndefinedError
+  doctest KeyError
+  doctest UnicodeConversionError
+  doctest Enum.OutOfBoundsError
+  doctest Enum.EmptyError
+  doctest File.Error
+  doctest File.CopyError
+  doctest File.RenameError
+  doctest File.LinkError
+  doctest ErlangError
+
   test "message/1" do
     defmodule BadException do
       def message(exception) do
