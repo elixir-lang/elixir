@@ -266,4 +266,18 @@ defmodule DateTest do
       Date.shift(date, month: 1)
     end
   end
+
+  test "utc_today/1" do
+    date = Date.utc_today()
+    assert date.year > 2020
+    assert date.calendar == Calendar.ISO
+
+    date = Date.utc_today(Calendar.ISO)
+    assert date.year > 2020
+    assert date.calendar == Calendar.ISO
+
+    date = Date.utc_today(Calendar.Holocene)
+    assert date.year > 12020
+    assert date.calendar == Calendar.Holocene
+  end
 end
