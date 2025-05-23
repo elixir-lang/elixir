@@ -250,6 +250,10 @@ defmodule DateTest do
                  fn -> Date.shift(~D[2012-01-01], months: 12) end
 
     assert_raise ArgumentError,
+                 "unsupported value nil for :day. Expected an integer",
+                 fn -> Date.shift(~D[2012-02-29], year: 1, day: nil) end
+
+    assert_raise ArgumentError,
                  "cannot shift date by time scale unit. Expected :year, :month, :week, :day",
                  fn -> Date.shift(~D[2012-02-29], %Duration{second: 86400}) end
 
