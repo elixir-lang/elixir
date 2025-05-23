@@ -165,5 +165,13 @@ defmodule TimeTest do
     assert_raise ArgumentError,
                  "cannot shift time by date scale unit. Expected :hour, :minute, :second, :microsecond",
                  fn -> Time.shift(time, %Duration{day: 1}) end
+
+    assert_raise ArgumentError,
+                 "unsupported value nil for :minute. Expected an integer",
+                 fn -> Time.shift(time, minute: nil) end
+
+    assert_raise ArgumentError,
+                 ~r/unsupported value 1 for :microsecond. Expected a tuple \{ms, precision\}/,
+                 fn -> Time.shift(time, microsecond: 1) end
   end
 end
