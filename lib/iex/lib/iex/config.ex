@@ -99,13 +99,7 @@ defmodule IEx.Config do
   end
 
   defp colors_enabled?(colors) do
-    case Keyword.fetch(colors, :enabled) do
-      {:ok, enabled} ->
-        enabled
-
-      :error ->
-        IO.ANSI.enabled?()
-    end
+    Keyword.get_lazy(colors, :enabled, &IO.ANSI.enabled?/0)
   end
 
   def dot_iex() do
