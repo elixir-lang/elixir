@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule ExUnit.CaseTemplate do
   @moduledoc """
   Defines a module template to be used throughout your test suite.
@@ -64,7 +68,9 @@ defmodule ExUnit.CaseTemplate do
   @doc false
   defmacro __using__(_) do
     quote do
-      use ExUnit.Callbacks
+      ExUnit.Callbacks.__register__(__MODULE__)
+      @before_compile ExUnit.Callbacks
+      import ExUnit.Callbacks
 
       import ExUnit.Assertions
       import unquote(__MODULE__)
@@ -81,7 +87,7 @@ defmodule ExUnit.CaseTemplate do
   # We inject this code in the module that calls "use MyTemplate".
   def __proxy__(module, opts) do
     quote do
-      use ExUnit.Case, unquote(opts)
+      use ExUnit.Case, ExUnit.Case.__keys__(unquote(opts))
 
       setup_all context do
         unquote(module).__ex_unit__(:setup_all, context)

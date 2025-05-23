@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule ExUnit.Diff do
   @moduledoc false
 
@@ -218,19 +222,19 @@ defmodule ExUnit.Diff do
   # Guards
 
   defp diff_guard({:when, _, [expression, clause]}, right, env) do
-    {diff_expression, post_env} = diff_quoted(expression, right, nil, env)
+    {diff, post_env} = diff_quoted(expression, right, nil, env)
 
     {guard_clause, guard_equivalent?} =
-      if diff_expression.equivalent? do
+      if diff.equivalent? do
         bindings = Map.merge(post_env.pins, post_env.current_vars)
         diff_guard_clause(clause, bindings)
       else
         {clause, false}
       end
 
-    diff = %__MODULE__{
-      diff_expression
-      | left: {:when, [], [diff_expression.left, guard_clause]},
+    diff = %{
+      diff
+      | left: {:when, [], [diff.left, guard_clause]},
         equivalent?: guard_equivalent?
     }
 
@@ -286,10 +290,10 @@ defmodule ExUnit.Diff do
   defp diff_pin({:^, _, [var]} = pin, right, %{pins: pins} = env) do
     identifier = var_context(var)
     %{^identifier => pin_value} = pins
-    {diff, post_env} = diff_value(pin_value, right, env)
+    {diff, post_env} = diff_value(pin_value, right, %{env | context: :===})
 
     diff_left = update_diff_meta(pin, not diff.equivalent?)
-    {%{diff | left: diff_left}, post_env}
+    {%{diff | left: diff_left}, %{post_env | context: :match}}
   end
 
   # Vars
@@ -373,7 +377,9 @@ defmodule ExUnit.Diff do
     {parsed_left, improper_left, operators_left, length_left} =
       split_left_list(left, 0, env.context)
 
-    {parsed_right, improper_right} = split_right_list(right, length_left, [])
+    element_limit = if improper_left == [], do: -1, else: length_left
+    {parsed_right, improper_right} = split_right_list(right, element_limit, [])
+
     {parsed_diff, parsed_post_env} = myers_difference_list(parsed_left, parsed_right, env)
 
     {improper_diff, improper_post_env} =
@@ -406,7 +412,7 @@ defmodule ExUnit.Diff do
     diff(left, right, env)
   end
 
-  defp split_right_list([head | tail], length, acc) when length > 0,
+  defp split_right_list([head | tail], length, acc) when length != 0,
     do: split_right_list(tail, length - 1, [head | acc])
 
   defp split_right_list(rest, _length, acc),
@@ -702,15 +708,13 @@ defmodule ExUnit.Diff do
   # Structs
 
   defp diff_quoted_struct(kw, right, env) do
-    struct1 = kw[:__struct__]
-    left = load_struct(kw[:__struct__])
-
-    if left && Enum.all?(kw, fn {k, _} -> Map.has_key?(left, k) end) do
+    if struct = struct_module(kw) do
       with true <- Macro.quoted_literal?(kw),
-           {eval_kw, []} <- safe_eval(kw) do
-        diff_quoted_struct(struct!(left, eval_kw), kw, right, struct1, env)
+           {eval_kw, []} <- safe_eval(kw),
+           {:ok, data} <- load_struct(struct, eval_kw) do
+        diff_quoted_struct(data, kw, right, struct, env)
       else
-        _ -> diff_map(kw, right, struct1, maybe_struct(right), env)
+        _ -> diff_map(kw, right, struct, maybe_struct(right), env)
       end
     else
       diff_map(kw, right, nil, maybe_struct(right), env)
@@ -746,11 +750,23 @@ defmodule ExUnit.Diff do
     end
   end
 
-  defp load_struct(struct) do
-    if is_atom(struct) and struct != nil and
-         Code.ensure_loaded?(struct) and function_exported?(struct, :__struct__, 0) do
-      struct.__struct__
+  defp struct_module(kw) do
+    {struct, struct_kw} = Keyword.pop(kw, :__struct__)
+
+    info =
+      is_atom(struct) and struct != nil and
+        Code.ensure_loaded?(struct) and function_exported?(struct, :__info__, 1) and
+        struct.__info__(:struct)
+
+    if info && Enum.all?(struct_kw, fn {k, _} -> Enum.any?(info, &(&1.field == k)) end) do
+      struct
     end
+  end
+
+  defp load_struct(struct, kw) do
+    {:ok, struct!(struct, kw)}
+  rescue
+    _ -> :error
   end
 
   defp maybe_struct(%name{}), do: name
@@ -815,10 +831,10 @@ defmodule ExUnit.Diff do
   end
 
   defp diff_string_concat(left, nil, indexes, _left_length, right, env) do
-    {parsed_diff, parsed_post_env} = diff_string(left, right, ?", env)
-    left_diff = rebuild_concat_string(parsed_diff.left, nil, indexes)
+    {diff, parsed_post_env} = diff_string(left, right, ?", env)
+    left_diff = rebuild_concat_string(diff.left, nil, indexes)
 
-    diff = %__MODULE__{parsed_diff | left: left_diff}
+    diff = %{diff | left: left_diff}
     {diff, parsed_post_env}
   end
 
@@ -868,7 +884,8 @@ defmodule ExUnit.Diff do
   end
 
   defp rebuild_split_strings(%{contents: contents, delimiter: delimiter}, right) do
-    %{contents: contents ++ [{false, right}], delimiter: delimiter}
+    {new_right, diff} = extract_diff_meta(right)
+    %{contents: contents ++ [{diff, new_right}], delimiter: delimiter}
   end
 
   defp rebuild_concat_string(literal, nil, []) do
@@ -979,7 +996,8 @@ defmodule ExUnit.Diff do
     container_to_algebra("%{", list, "}", diff_wrapper, select_map_item_to_algebra(list))
   end
 
-  defp safe_to_algebra({_, _, _} = quoted, _diff_wrapper) do
+  defp safe_to_algebra({_, meta, args} = quoted, _diff_wrapper)
+       when is_list(meta) and (is_list(args) or is_atom(args)) do
     Macro.to_string(quoted)
   end
 
@@ -1051,7 +1069,7 @@ defmodule ExUnit.Diff do
     docs =
       list
       |> Enum.map(&item_to_algebra.(&1, diff_wrapper))
-      |> Algebra.fold_doc(&join_docs/2)
+      |> Algebra.fold(&join_docs/2)
 
     open
     |> Algebra.glue("", docs)
@@ -1132,9 +1150,24 @@ defmodule ExUnit.Diff do
   defp maybe_escape(other, %{context: :match}), do: other
   defp maybe_escape(other, _env), do: escape(other)
 
-  # We escape container types to make a distinction between AST
-  # and values that should be inspected. All other values have no
-  # special AST representation, so we can keep them as is.
+  # We escape container types to make a distinction between AST and values that
+  # should be inspected. Maps and structs without custom inspect implementation
+  # should not be inspected, convert it to ast.
+  # All other values have no special AST representation, so we can keep them as is.
+  defp escape(other) when is_map(other) do
+    struct = maybe_struct(other)
+
+    if struct && Inspect.impl_for(other) not in [Inspect.Any, Inspect.Map] do
+      other
+    else
+      other
+      |> Map.to_list()
+      |> Enum.sort()
+      |> Enum.map(&escape_pair/1)
+      |> build_map_or_struct(struct)
+    end
+  end
+
   defp escape(other) when is_list(other) or is_tuple(other), do: {other}
   defp escape(other), do: other
 
@@ -1162,8 +1195,12 @@ defmodule ExUnit.Diff do
   defp update_diff_meta(literal, true),
     do: {:__block__, [diff: true], [literal]}
 
-  defp extract_diff_meta({:__block__, [diff: true], [literal]}), do: {literal, true}
-  defp extract_diff_meta({left, meta, right}), do: {{left, meta, right}, !!meta[:diff]}
+  defp extract_diff_meta({:__block__, [diff: true], [literal]}),
+    do: {literal, true}
+
+  defp extract_diff_meta({left, meta, right}) when is_list(meta),
+    do: {{left, meta, right}, !!meta[:diff]}
+
   defp extract_diff_meta(other), do: {other, false}
 
   defp keyword?(quoted) do

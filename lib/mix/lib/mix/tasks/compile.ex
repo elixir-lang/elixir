@@ -1,5 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Tasks.Compile do
-  use Mix.Task.Compiler
+  use Mix.Task
 
   @shortdoc "Compiles source files"
 
@@ -16,16 +20,11 @@ defmodule Mix.Tasks.Compile do
 
   ## Configuration
 
-    * `:build_embedded` - this option was used to copy all code and
-      priv content to the `_build` directory. However, this option no
-      longer has an effect as Elixir will now copy those at release time
-
     * `:compilers` - compilers to run, defaults to `Mix.compilers/0`,
       which are `[:erlang, :elixir, :app]`.
 
     * `:consolidate_protocols` - when `true`, runs protocol
-      consolidation via the `mix compile.protocols` task. The default
-      value is `true`.
+      consolidation after compiling Elixir. The default value is `true`.
 
     * `:build_path` - the directory where build artifacts
       should be written to. This option is intended only for
@@ -34,6 +33,14 @@ defmodule Mix.Tasks.Compile do
       the parent umbrella. In a non-umbrella context, configuring
       this has undesirable side-effects (such as skipping some
       compiler checks) and should be avoided.
+
+    * `:prune_code_paths` - prune code paths before compilation. When true
+      (default), this prunes code paths of applications that are not listed
+      in the project file with dependencies.  When false, this keeps the
+      entirety of Erlang/OTP available when the project starts, including
+      the paths set by the code loader from the `ERL_LIBS` environment as
+      well as explicitly listed by providing `-pa` and `-pz` options
+      to Erlang.
 
   ## Compilers
 
@@ -59,49 +66,33 @@ defmodule Mix.Tasks.Compile do
     * `--no-compile` - does not actually compile, only loads code and perform checks
     * `--no-deps-check` - skips checking of dependencies
     * `--no-elixir-version-check` - does not check Elixir version
+    * `--no-listeners` - does not start Mix listeners
     * `--no-optional-deps` - does not compile or load optional deps. Useful for testing
       if a library still successfully compiles without optional dependencies (which is the
       default case with dependencies)
     * `--no-prune-code-paths` - do not prune code paths before compilation, this keeps
-      the entirety of Erlang/OTP available on the project starts
+      the entirety of Erlang/OTP available when the project starts
     * `--no-protocol-consolidation` - skips protocol consolidation
     * `--no-validate-compile-env` - does not validate the application compile environment
     * `--return-errors` - returns error status and diagnostics instead of exiting on error
-    * `--warnings-as-errors` - exit with non-zero status if compilation has one or more warnings
+    * `--warnings-as-errors` - exit with non-zero status if compilation has one or more
+      warnings. Only concerns compilation warnings from the project, not its dependencies.
 
   """
 
-  @doc """
-  Returns all compilers for the current project.
-  """
-  def compilers(config \\ Mix.Project.config()) do
-    compilers = config[:compilers] || Mix.compilers()
-
-    if :xref in compilers do
-      IO.warn(
-        "the :xref compiler is deprecated, please remove it from your mix.exs :compilers options"
-      )
-
-      List.delete(compilers, :xref)
-    else
-      compilers
-    end
-    |> maybe_prepend(:leex)
-    |> maybe_prepend(:yecc)
-  end
-
-  defp maybe_prepend(compilers, compiler) do
-    if compiler in compilers do
-      compilers
-    else
-      [compiler | compilers]
-    end
-  end
+  @deprecated "Use Mix.Task.Compiler.compilers/1 instead"
+  defdelegate compilers(config \\ Mix.Project.config()), to: Mix.Task.Compiler
 
   @impl true
   def run(["--list"]) do
     # Loadpaths without checks because compilers may be defined in deps.
-    args = ["--no-elixir-version-check", "--no-deps-check", "--no-archives-check"]
+    args = [
+      "--no-elixir-version-check",
+      "--no-deps-check",
+      "--no-archives-check",
+      "--no-listeners"
+    ]
+
     Mix.Task.run("loadpaths", args)
     Mix.Task.reenable("loadpaths")
     Mix.Task.reenable("deps.loadpaths")
@@ -141,9 +132,7 @@ defmodule Mix.Tasks.Compile do
   def run(args) do
     Mix.Project.get!()
 
-    # We run loadpaths to perform checks but we don't bother setting
-    # up the load paths because compile.all will manage them anyway.
-    Mix.Task.run("loadpaths", ["--no-deps-loading" | args])
+    Mix.Task.run("loadpaths", args)
 
     {opts, _, _} = OptionParser.parse(args, switches: [erl_config: :string])
     load_erl_config(opts)
@@ -168,26 +157,22 @@ defmodule Mix.Tasks.Compile do
       Code.prepend_paths(loaded_paths -- :code.get_path())
     end
 
-    consolidate_protocols? =
-      config[:consolidate_protocols] and "--no-protocol-consolidation" not in args
-
     res =
       cond do
         "--no-compile" in args ->
           Mix.Task.reenable("compile")
           :noop
 
-        consolidate_protocols? and reconsolidate_protocols?(res) ->
-          Mix.Task.run("compile.protocols", args)
-          :ok
+        Mix.Project.umbrella?(config) ->
+          Mix.Compilers.Protocol.umbrella(args, res)
 
         true ->
           res
       end
 
-    with true <- consolidate_protocols?,
-         path = Mix.Project.consolidation_path(config),
-         {:ok, protocols} <- File.ls(path) do
+    path = Mix.Project.consolidation_path(config)
+
+    with {:ok, protocols} <- File.ls(path) do
       # We don't cache consolidation path as we may write to it
       Code.prepend_path(path)
       Enum.each(protocols, &load_protocol/1)
@@ -201,7 +186,7 @@ defmodule Mix.Tasks.Compile do
   end
 
   defp first_line(doc) do
-    String.split(doc, "\n", parts: 2) |> hd |> String.trim() |> String.trim_trailing(".")
+    String.split(doc, "\n", parts: 2) |> hd() |> String.trim() |> String.trim_trailing(".")
   end
 
   defp merge_diagnostics({status1, diagnostics1}, {status2, diagnostics2}) do
@@ -222,24 +207,8 @@ defmodule Mix.Tasks.Compile do
     end
   end
 
-  @impl true
-  def manifests do
-    Enum.flat_map(compilers(), fn compiler ->
-      module = Mix.Task.get("compile.#{compiler}")
-
-      if module && function_exported?(module, :manifests, 0) do
-        module.manifests
-      else
-        []
-      end
-    end)
-  end
-
-  ## Consolidation handling
-
-  defp reconsolidate_protocols?(:ok), do: true
-  defp reconsolidate_protocols?(:noop), do: not Mix.Tasks.Compile.Protocols.consolidated?()
-  defp reconsolidate_protocols?(:error), do: false
+  @deprecated "Use Mix.Task.Compiler.manifests/0 instead"
+  defdelegate manifests, to: Mix.Task.Compiler
 
   defp load_protocol(file) do
     case file do

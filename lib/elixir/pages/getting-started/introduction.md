@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Introduction
 
 Welcome!
@@ -36,8 +41,6 @@ iex(2)> "hello" <> " world"
 Please note that some details like version numbers may differ a bit in your session, that's not important. By executing the code above, you should evaluate expressions and see their results. To exit `iex` press `Ctrl+C` twice.
 
 It seems we are ready to go! We will use the interactive shell quite a lot in the next chapters to get a bit more familiar with the language constructs and basic types, starting in the next chapter.
-
-> Note: if you are on Windows and running on an Erlang/OTP version earlier than 26, you can also try `iex --werl` (`iex.bat --werl` on PowerShell) which may provide a better experience depending on which console you are using.
 
 ## Running scripts
 

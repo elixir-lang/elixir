@@ -1,46 +1,34 @@
 #!/bin/bash
+
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
 # Usage:
 #
 # With Elixir archive:
 #
 #     ELIXIR_ZIP=Precompiled.zip OTP_VERSION=25.3.2.2 ./build.sh
-#
-# With Elixir version:
-#
-#     ELIXIR_VERSION=1.14.5 OTP_VERSION=25.3.2.2 ./build.sh
 set -euo pipefail
 
-OTP_VERSION="${OTP_VERSION:-26.0}"
-otp_release=`echo "${OTP_VERSION}" | cut -d. -f1`
-
 mkdir -p tmp
+rm -rf tmp/elixir
+unzip -d "tmp/elixir" "${ELIXIR_ZIP}"
 
-ELIXIR_VERSION="${ELIXIR_VERSION:-}"
-if [ -n "${ELIXIR_VERSION}" ]; then
-  ELIXIR_ZIP="tmp/elixir-${ELIXIR_VERSION}-otp-${otp_release}.zip"
-  if [ ! -f "${ELIXIR_ZIP}" ]; then
-    url="https://github.com/elixir-lang/elixir/releases/download/v${ELIXIR_VERSION}/elixir-otp-${otp_release}.zip"
-    echo "downloading ${url}"
-    curl --fail -L -o "${ELIXIR_ZIP}" "${url}"
-  fi
-  basename=elixir-${ELIXIR_VERSION}-otp-${otp_release}
-else
-  basename=elixir-otp-${otp_release}
-fi
-
-if [ ! -d "tmp/${basename}" ]; then
-  unzip -d "tmp/${basename}" "${ELIXIR_ZIP}"
-fi
+elixir_version=`cat tmp/elixir/VERSION`
+otp_release=`erl -noshell -eval 'io:put_chars(erlang:system_info(otp_release)), halt().'`
+otp_version=`erl -noshell -eval '{ok, Vsn} = file:read_file(code:root_dir() ++ "/releases/" ++ erlang:system_info(otp_release) ++ "/OTP_VERSION"), io:put_chars(Vsn), halt().'`
+elixir_exe=elixir-otp-${otp_release}.exe
 
 # brew install makensis
 # apt install -y nsis
 # choco install -y nsis
 export PATH="/c/Program Files (x86)/NSIS:${PATH}"
 makensis \
-  -X"OutFile tmp\\${basename}.exe" \
-  -DOTP_VERSION=${OTP_VERSION} \
+  -X"OutFile tmp\\${elixir_exe}" \
   -DOTP_RELEASE="${otp_release}" \
-  -DELIXIR_DIR=tmp\\${basename} \
+  -DOTP_VERSION=${otp_version} \
+  -DELIXIR_DIR=tmp\\elixir \
+  -DELIXIR_VERSION=${elixir_version} \
   installer.nsi
 
-echo "Installer path: tmp/${basename}.exe"
+echo "Installer path: tmp/${elixir_exe}"

@@ -1,8 +1,12 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Bitwise do
   @moduledoc """
   A set of functions that perform calculations on bits.
 
-  All bitwise functions work only on integers; otherwise an
+  All bitwise functions work only on integers, otherwise an
   `ArithmeticError` is raised. The functions `band/2`,
   `bor/2`, `bsl/2`, and `bsr/2` also have operators,
   respectively: `&&&/2`, `|||/2`, `<<</2`, and `>>>/2`.

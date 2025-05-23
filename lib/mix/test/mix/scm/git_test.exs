@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.SCM.GitTest do
@@ -32,7 +36,7 @@ defmodule Mix.SCM.GitTest do
              "https://github.com/elixir-lang/some_dep.git - v1"
 
     assert Mix.SCM.Git.format(Keyword.put(opts, :branch, "b")) ==
-             "https://github.com/elixir-lang/some_dep.git - origin/b"
+             "https://github.com/elixir-lang/some_dep.git - b"
 
     assert Mix.SCM.Git.format(Keyword.put(opts, :ref, "abcdef")) ==
              "https://github.com/elixir-lang/some_dep.git - abcdef"
@@ -50,13 +54,27 @@ defmodule Mix.SCM.GitTest do
     end
   end
 
-  test "raises about conflicting Git checkout options" do
+  test "raises about conflicting Git refspec options" do
     assert_raise Mix.Error, ~r/You should specify only one of branch, ref or tag/, fn ->
       Mix.SCM.Git.accepts_options(nil, git: "/repo", branch: "main", tag: "0.1.0")
     end
 
     assert_raise Mix.Error, ~r/You should specify only one of branch, ref or tag/, fn ->
       Mix.SCM.Git.accepts_options(nil, git: "/repo", branch: "main", branch: "develop")
+    end
+  end
+
+  test "raises about non-binary Git refspec options" do
+    assert_raise Mix.Error, ~r/A dependency's branch must be a string/, fn ->
+      Mix.SCM.Git.accepts_options(nil, git: "/repo", branch: :main)
+    end
+
+    assert_raise Mix.Error, ~r/A dependency's tag must be a string/, fn ->
+      Mix.SCM.Git.accepts_options(nil, git: "/repo", tag: :stable)
+    end
+
+    assert_raise Mix.Error, ~r/A dependency's ref must be a string/, fn ->
+      Mix.SCM.Git.accepts_options(nil, git: "/repo", ref: :abcdef0123456789)
     end
   end
 

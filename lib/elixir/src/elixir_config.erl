@@ -1,6 +1,10 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 -module(elixir_config).
 -compile({no_auto_import, [get/1]}).
--export([new/1, warn/2, serial/1, booted/0, wait_until_booted/0]).
+-export([new/1, warn/2, serial/1]).
 -export([static/1, is_bootstrap/0, identifier_tokenizer/0]).
 -export([delete/1, put/2, get/1, get/2, update/2, get_and_put/2]).
 -export([start_link/0, init/1, handle_call/3, handle_cast/2]).
@@ -48,11 +52,6 @@ delete(?MODULE) ->
 
 %% MISC
 
-booted() ->
-  gen_server:call(?MODULE, booted, infinity).
-wait_until_booted() ->
-  gen_server:call(?MODULE, wait_until_booted, infinity).
-
 serial(Fun) ->
   gen_server:call(?MODULE, {serial, Fun}, infinity).
 
@@ -75,27 +74,19 @@ start_link() ->
 init(?MODULE) ->
   {ok, []}.
 
-handle_call(booted, _From, Booted) when is_list(Booted) ->
-  [gen_server:reply(Caller, ok) || Caller <- Booted],
-  {reply, ok, done};
-handle_call(wait_until_booted, From, Booted) ->
-  if
-    is_list(Booted) -> {noreply, [From | Booted]};
-    Booted =:= done -> {reply, ok, Booted}
-  end;
-handle_call({serial, Fun}, _From, Booted) ->
-  {reply, Fun(), Booted};
-handle_call({put, Key, Value}, _From, Booted) ->
+handle_call({serial, Fun}, _From, State) ->
+  {reply, Fun(), State};
+  handle_call({put, Key, Value}, _From, State) ->
   ets:insert(?MODULE, {Key, Value}),
-  {reply, ok, Booted};
-handle_call({update, Key, Fun}, _From, Booted) ->
+  {reply, ok, State};
+handle_call({update, Key, Fun}, _From, State) ->
   Value = Fun(get(Key)),
   ets:insert(?MODULE, {Key, Value}),
-  {reply, Value, Booted};
-handle_call({get_and_put, Key, Value}, _From, Booted) ->
+  {reply, Value, State};
+handle_call({get_and_put, Key, Value}, _From, State) ->
   OldValue = get(Key),
   ets:insert(?MODULE, {Key, Value}),
-  {reply, OldValue, Booted}.
+  {reply, OldValue, State}.
 
 handle_cast(Cast, Tab) ->
   {stop, {bad_cast, Cast}, Tab}.

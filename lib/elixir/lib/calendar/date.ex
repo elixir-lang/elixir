@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Date do
   @moduledoc """
   A Date struct and functions.
@@ -31,16 +35,17 @@ defmodule Date do
 
   Comparisons in Elixir using `==/2`, `>/2`, `</2` and similar are structural
   and based on the `Date` struct fields. For proper comparison between
-  dates, use the `compare/2` function. The existence of the `compare/2`
-  function in this module also allows using `Enum.min/2` and `Enum.max/2`
-  functions to get the minimum and maximum date of an `Enum`. For example:
+  dates, use the `compare/2`, `after?/2` and `before?/2` functions.
+  The existence of the `compare/2` function in this module also allows
+  using `Enum.min/2` and `Enum.max/2` functions to get the minimum and
+  maximum date of an `Enum`. For example:
 
-      iex>  Enum.min([~D[2017-03-31], ~D[2017-04-01]], Date)
+      iex> Enum.min([~D[2017-03-31], ~D[2017-04-01]], Date)
       ~D[2017-03-31]
 
   ## Using epochs
 
-  The `add/2` and `diff/2` functions can be used for computing dates
+  The `add/2`, `diff/2` and `shift/2` functions can be used for computing dates
   or retrieving the number of days between instants. For example, if there
   is an interest in computing the number of days from the Unix epoch
   (1970-01-01):
@@ -49,6 +54,9 @@ defmodule Date do
       14716
 
       iex> Date.add(~D[1970-01-01], 14716)
+      ~D[2010-04-17]
+
+      iex> Date.shift(~D[1970-01-01], year: 40, month: 3, week: 2, day: 2)
       ~D[2010-04-17]
 
   Those functions are optimized to deal with common epochs, such
@@ -185,9 +193,8 @@ defmodule Date do
   end
 
   def utc_today(calendar) do
-    calendar
-    |> DateTime.utc_now()
-    |> DateTime.to_date()
+    %{year: year, month: month, day: day} = DateTime.utc_now(calendar)
+    %Date{year: year, month: month, day: day, calendar: calendar}
   end
 
   @doc """
@@ -687,6 +694,8 @@ defmodule Date do
   The days are counted as Gregorian days. The date is returned in the same
   calendar as it was given in.
 
+  To shift a date by a `Duration` and according to its underlying calendar, use `Date.shift/2`.
+
   ## Examples
 
       iex> Date.add(~D[2000-01-03], -2)
@@ -703,12 +712,7 @@ defmodule Date do
   @spec add(Calendar.date(), integer()) :: t
   def add(%{calendar: Calendar.ISO} = date, days) do
     %{year: year, month: month, day: day} = date
-
-    {year, month, day} =
-      Calendar.ISO.date_to_iso_days(year, month, day)
-      |> Kernel.+(days)
-      |> Calendar.ISO.date_from_iso_days()
-
+    {year, month, day} = Calendar.ISO.shift_days({year, month, day}, days)
     %Date{calendar: Calendar.ISO, year: year, month: month, day: day}
   end
 
@@ -757,6 +761,81 @@ defmodule Date do
     end
   end
 
+  @doc """
+  Shifts given `date` by `duration` according to its calendar.
+
+  Allowed units are: `:year`, `:month`, `:week`, `:day`.
+
+  When using the default ISO calendar, durations are collapsed and
+  applied in the order of months and then days:
+
+  * when shifting by 1 year and 2 months the date is actually shifted by 14 months
+  * when shifting by 2 weeks and 3 days the date is shifted by 17 days
+
+  When shifting by month, days are rounded down to the nearest valid date.
+
+  Raises an `ArgumentError` when called with time scale units.
+
+  ## Examples
+
+      iex> Date.shift(~D[2016-01-03], month: 2)
+      ~D[2016-03-03]
+      iex> Date.shift(~D[2016-01-30], month: -1)
+      ~D[2015-12-30]
+      iex> Date.shift(~D[2016-01-31], year: 4, day: 1)
+      ~D[2020-02-01]
+      iex> Date.shift(~D[2016-01-03], Duration.new!(month: 2))
+      ~D[2016-03-03]
+
+      # leap years
+      iex> Date.shift(~D[2024-02-29], year: 1)
+      ~D[2025-02-28]
+      iex> Date.shift(~D[2024-02-29], year: 4)
+      ~D[2028-02-29]
+
+      # rounding down
+      iex> Date.shift(~D[2015-01-31], month: 1)
+      ~D[2015-02-28]
+
+  """
+  @doc since: "1.17.0"
+  @spec shift(Calendar.date(), Duration.t() | [unit_pair]) :: t
+        when unit_pair: {:year, integer} | {:month, integer} | {:week, integer} | {:day, integer}
+  def shift(%{calendar: calendar} = date, duration) do
+    %{year: year, month: month, day: day} = date
+    {year, month, day} = calendar.shift_date(year, month, day, __duration__!(duration))
+    %Date{calendar: calendar, year: year, month: month, day: day}
+  end
+
+  @doc false
+  def __duration__!(%Duration{} = duration) do
+    duration
+  end
+
+  # This part is inlined by the compiler on constant values
+  def __duration__!(unit_pairs) do
+    Enum.each(unit_pairs, &validate_duration_unit!/1)
+    struct!(Duration, unit_pairs)
+  end
+
+  defp validate_duration_unit!({unit, _value})
+       when unit in [:hour, :minute, :second, :microsecond] do
+    raise ArgumentError, "unsupported unit #{inspect(unit)}. Expected :year, :month, :week, :day"
+  end
+
+  defp validate_duration_unit!({unit, _value}) when unit not in [:year, :month, :week, :day] do
+    raise ArgumentError, "unknown unit #{inspect(unit)}. Expected :year, :month, :week, :day"
+  end
+
+  defp validate_duration_unit!({_unit, value}) when is_integer(value) do
+    :ok
+  end
+
+  defp validate_duration_unit!({unit, value}) do
+    raise ArgumentError,
+          "unsupported value #{inspect(value)} for #{inspect(unit)}. Expected an integer"
+  end
+
   @doc false
   def to_iso_days(%{calendar: Calendar.ISO, year: year, month: month, day: day}) do
     {Calendar.ISO.date_to_iso_days(year, month, day), {0, 86_400_000_000}}
@@ -777,7 +856,7 @@ defmodule Date do
   end
 
   @doc """
-  Calculates the day of the week of a given `date`.
+  Calculates the ordinal day of the week of a given `date`.
 
   Returns the day of the week as an integer. For the ISO 8601
   calendar (the default), it is an integer from 1 to 7, where
@@ -786,10 +865,19 @@ defmodule Date do
   An optional `starting_on` value may be supplied, which
   configures the weekday the week starts on. The default value
   for it is `:default`, which translates to `:monday` for the
-  built-in ISO calendar. Any other weekday may be given to.
+  built-in ISO 8601 calendar. Any other weekday may be used for
+  `starting_on`, in such cases, that weekday will be considered the first
+  day of the week, and therefore it will be assigned the ordinal number 1.
+
+  The other calendars, the value returned is an ordinal day of week.
+  For example, `1` may mean "first day of the week" and `7` is
+  defined to mean "seventh day of the week". Custom calendars may
+  also accept their own variations of the `starting_on` parameter
+  with their own meaning.
 
   ## Examples
 
+      # 2016-10-31 is a Monday and by default Monday is the first day of the week
       iex> Date.day_of_week(~D[2016-10-31])
       1
       iex> Date.day_of_week(~D[2016-11-01])
@@ -799,6 +887,7 @@ defmodule Date do
       iex> Date.day_of_week(~D[-0015-10-30])
       3
 
+      # 2016-10-31 is a Monday but, as we start the week on Sunday, now it returns 2
       iex> Date.day_of_week(~D[2016-10-31], :sunday)
       2
       iex> Date.day_of_week(~D[2016-11-01], :sunday)
@@ -998,13 +1087,7 @@ defmodule Date do
   def year_of_era(date)
 
   def year_of_era(%{calendar: calendar, year: year, month: month, day: day}) do
-    # TODO: Remove me on 1.17
-    # The behaviour implementation already warns on missing callback.
-    if function_exported?(calendar, :year_of_era, 3) do
-      calendar.year_of_era(year, month, day)
-    else
-      calendar.year_of_era(year)
-    end
+    calendar.year_of_era(year, month, day)
   end
 
   @doc """
@@ -1083,8 +1166,17 @@ defmodule Date do
   end
 
   defimpl Inspect do
-    def inspect(%{calendar: calendar, year: year, month: month, day: day}, _) do
+    def inspect(%{calendar: calendar, year: year, month: month, day: day}, _)
+        when calendar != Calendar.ISO or year in -9999..9999 do
       "~D[" <> calendar.date_to_string(year, month, day) <> suffix(calendar) <> "]"
+    end
+
+    def inspect(%{calendar: Calendar.ISO, year: year, month: month, day: day}, _) do
+      "Date.new!(#{Integer.to_string(year)}, #{Integer.to_string(month)}, #{Integer.to_string(day)})"
+    end
+
+    def inspect(%{calendar: calendar, year: year, month: month, day: day}, _) do
+      "Date.new!(#{Integer.to_string(year)}, #{Integer.to_string(month)}, #{Integer.to_string(day)}, #{inspect(calendar)})"
     end
 
     defp suffix(Calendar.ISO), do: ""

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule URI do
   @moduledoc """
   Utilities for working with URIs.
@@ -5,6 +9,9 @@ defmodule URI do
   This module provides functions for working with URIs (for example, parsing
   URIs or encoding query strings). The functions in this module are implemented
   according to [RFC 3986](https://tools.ietf.org/html/rfc3986).
+
+  Additionally, the Erlang [`:uri_string` module](`:uri_string`) provides certain functionalities,
+  such as RFC 3986 compliant URI normalization.
   """
 
   @doc """
@@ -235,7 +242,7 @@ defmodule URI do
 
       {{key, value}, rest} ->
         # Avoid warnings about Dict being deprecated
-        dict_module = Dict
+        dict_module = String.to_atom("Dict")
         decode_query_into_dict(rest, dict_module.put(dict, key, value), encoding)
     end
   end
@@ -362,21 +369,29 @@ defmodule URI do
   end
 
   @doc """
-  Percent-escapes all characters that require escaping in `string`.
+  Percent-encodes all characters that require escaping in `string`.
 
-  This means reserved characters, such as `:` and `/`, and the
-  so-called unreserved characters, which have the same meaning both
-  escaped and unescaped, won't be escaped by default.
+  The optional `predicate` argument specifies a function used to detect whether
+  a byte in the `string` should be escaped:
 
-  See `encode_www_form/1` if you are interested in escaping reserved
-  characters too.
+    * if the function returns a truthy value, the byte should be kept as-is.
+    * if the function returns a falsy value, the byte should be escaped.
 
-  This function also accepts a `predicate` function as an optional
-  argument. If passed, this function will be called with each byte
-  in `string` as its argument and should return a truthy value (anything other
-  than `false` or `nil`) if the given byte should be left as is, or return a
-  falsy value (`false` or `nil`) if the character should be escaped. Defaults
-  to `URI.char_unescaped?/1`.
+  The `predicate` argument can use some built-in functions:
+
+    * `URI.char_unescaped?/1` (default) - reserved characters (such as `:`
+      and `/`) or unreserved (such as letters and numbers) are kept as-is.
+      It's typically used to encode the whole URI.
+    * `URI.char_unreserved?/1` - unreserved characters (such as letters and
+      numbers) are kept as-is. It's typically used to encode components in
+      a URI, such as query or fragment.
+    * `URI.char_reserved?/1` - Reserved characters (such as `:` and `/`) are
+      kept as-is.
+
+  And, you can also use custom functions.
+
+  See `encode_www_form/1` if you are interested in encoding `string` as
+  "x-www-form-urlencoded".
 
   ## Examples
 
@@ -654,15 +669,15 @@ defmodule URI do
         scheme = String.downcase(scheme, :ascii)
 
         case map do
-          %{port: port} when port != :undefined ->
+          %{port: port} when is_integer(port) ->
             %{uri | scheme: scheme}
 
           %{} ->
-            case default_port(scheme) do
-              nil -> %{uri | scheme: scheme}
-              port -> %{uri | scheme: scheme, port: port}
-            end
+            %{uri | scheme: scheme, port: default_port(scheme)}
         end
+
+      %{port: :undefined} ->
+        %{uri | port: nil}
 
       %{} ->
         uri
@@ -688,8 +703,7 @@ defmodule URI do
 
   > #### `:authority` field {: .info}
   >
-  > This function sets the field `:authority` for backwards-compatibility reasons
-  > but it is deprecated.
+  > This function sets the deprecated field `:authority` for backwards-compatibility reasons.
 
   ## Examples
 
@@ -889,7 +903,7 @@ defmodule URI do
   @spec merge(t | binary, t | binary) :: t
   def merge(uri, rel)
 
-  def merge(%URI{host: nil}, _rel) do
+  def merge(%URI{scheme: nil}, _rel) do
     raise ArgumentError, "you must merge onto an absolute URI"
   end
 
@@ -897,12 +911,21 @@ defmodule URI do
     %{rel | path: remove_dot_segments_from_path(rel.path)}
   end
 
-  def merge(base, %URI{host: host} = rel) when host != nil do
+  def merge(%URI{} = base, %URI{host: host} = rel) when host != nil do
     %{rel | scheme: base.scheme, path: remove_dot_segments_from_path(rel.path)}
   end
 
   def merge(%URI{} = base, %URI{path: nil} = rel) do
     %{base | query: rel.query || base.query, fragment: rel.fragment}
+  end
+
+  def merge(%URI{host: nil, path: nil} = base, %URI{} = rel) do
+    %{
+      base
+      | path: remove_dot_segments_from_path(rel.path),
+        query: rel.query,
+        fragment: rel.fragment
+    }
   end
 
   def merge(%URI{} = base, %URI{} = rel) do
@@ -940,13 +963,15 @@ defmodule URI do
 
   defp remove_dot_segments([], acc), do: acc
   defp remove_dot_segments([:/ | tail], acc), do: remove_dot_segments(tail, [:/ | acc])
+  defp remove_dot_segments([_, :+ | tail], acc), do: remove_dot_segments(tail, acc)
   defp remove_dot_segments(["."], acc), do: remove_dot_segments([], ["" | acc])
   defp remove_dot_segments(["." | tail], acc), do: remove_dot_segments(tail, acc)
   defp remove_dot_segments([".." | tail], [:/]), do: remove_dot_segments(tail, [:/])
   defp remove_dot_segments([".."], [_ | acc]), do: remove_dot_segments([], ["" | acc])
   defp remove_dot_segments([".." | tail], [_ | acc]), do: remove_dot_segments(tail, acc)
-  defp remove_dot_segments([_, :+ | tail], acc), do: remove_dot_segments(tail, acc)
   defp remove_dot_segments([head | tail], acc), do: remove_dot_segments(tail, [head | acc])
+
+  defp join_reversed_segments([:/]), do: "/"
 
   defp join_reversed_segments(segments) do
     case Enum.reverse(segments) do

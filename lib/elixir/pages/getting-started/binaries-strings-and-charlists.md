@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Binaries, strings, and charlists
 
 In ["Basic types"](basic-types.md), we learned a bit about strings and we used the `is_binary/1` function for checks:
@@ -9,7 +14,9 @@ iex> is_binary(string)
 true
 ```
 
-In this chapter, we will gain clarity on what exactly binaries are, how they relate to strings, and what single-quoted values, `'like this'`, mean in Elixir. Although strings are one of the most common data types in computer languages, they are subtly complex and are often misunderstood. To understand strings in Elixir, we have to educate ourselves about [Unicode](https://en.wikipedia.org/wiki/Unicode) and character encodings, specifically the [UTF-8](https://en.wikipedia.org/wiki/UTF-8) encoding.
+In this chapter, we will gain clarity on what exactly binaries are and how they relate to strings. We will also learn about charlists, `~c"like this"`, which are often used for interoperability with Erlang.
+
+Although strings are one of the most common data types in computer languages, they are subtly complex and are often misunderstood. To understand strings in Elixir, let's first discuss [Unicode](https://en.wikipedia.org/wiki/Unicode) and character encodings, specifically the [UTF-8](https://en.wikipedia.org/wiki/UTF-8) encoding.
 
 ## Unicode and Code Points
 
@@ -94,7 +101,7 @@ We are getting a little bit ahead of ourselves. Let's talk about bitstrings to l
 
 ## Bitstrings
 
-Although we have covered code points and UTF-8 encoding, we still need to go a bit deeper into how exactly we store the encoded bytes, and this is where we introduce the **bitstring**. A bitstring is a fundamental data type in Elixir, denoted with the `<<>>/1` syntax. **A bitstring is a contiguous sequence of bits in memory.**
+Although we have covered code points and UTF-8 encoding, we still need to go a bit deeper into how exactly we store the encoded bytes, and this is where we introduce the **bitstring**. A bitstring is a fundamental data type in Elixir, denoted with the [`<<>>`](`<<>>/1`) syntax. **A bitstring is a contiguous sequence of bits in memory.**
 
 By default, 8 bits (i.e. 1 byte) is used to store each number in a bitstring, but you can manually specify the number of bits via a `::n` modifier to denote the size in `n` bits, or you can use the more verbose declaration `::size(n)`:
 
@@ -120,6 +127,8 @@ true
 ```
 
 Here, 257 in base 2 would be represented as `100000001`, but since we have reserved only 8 bits for its representation (by default), the left-most bit is ignored and the value becomes truncated to `00000001`, or simply `1` in decimal.
+
+A complete reference for the bitstring constructor can be found in [`<<>>`](`<<>>/1`)'s documentation.
 
 ## Binaries
 
@@ -180,7 +189,7 @@ iex> String.valid?(<<239, 191, 19>>)
 false
 ```
 
-The string concatenation operator `<>` is actually a binary concatenation operator:
+The string concatenation operator [`<>`](`<>/2`) is actually a binary concatenation operator:
 
 ```elixir
 iex> "a" <> "ha"
@@ -239,7 +248,7 @@ iex> [?h, ?e, ?l, ?l, ?o]
 ~c"hello"
 ```
 
-The `~c` sigil (we'll cover sigils later in the ["Sigils"](sigils.md) chapter) indicates the fact that we are dealing with a charlist and not a regular string.
+The [`~c`](`Kernel.sigil_c/2`) sigil (we'll cover sigils later in the ["Sigils"](sigils.md) chapter) indicates the fact that we are dealing with a charlist and not a regular string.
 
 Instead of containing bytes, a charlist contains integer code points. However, the list is only printed as a sigil if all code points are within the ASCII range:
 
@@ -250,14 +259,14 @@ iex> is_list(~c"hełło")
 true
 ```
 
-This is done to ease interoperability with Erlang, even though it may lead to some surprising behaviour. For example, if you are storing a list of integers that happen to range between 0 and 127, by default IEx will interpret this as a charlist and it will display the corresponding ASCII characters.
+This is done to ease interoperability with Erlang, even though it may lead to some surprising behavior. For example, if you are storing a list of integers that happen to range between 0 and 127, by default IEx will interpret this as a charlist and it will display the corresponding ASCII characters.
 
 ```elixir
 iex> heartbeats_per_minute = [99, 97, 116]
 ~c"cat"
 ```
 
-You can always for charlists to be printed in their list representation by calling the `inspect/2` function:
+You can always force charlists to be printed in their list representation by calling the `inspect/2` function:
 
 ```elixir
 iex> inspect(heartbeats_per_minute, charlists: :as_list)
@@ -279,7 +288,7 @@ iex> to_string(1)
 
 The functions above are polymorphic, in other words, they accept many shapes: not only do they convert charlists to strings (and vice-versa), they can also convert integers, atoms, and so on.
 
-String (binary) concatenation uses the `<>` operator but charlists, being lists, use the list concatenation operator `++`:
+String (binary) concatenation uses the [`<>`](`<>/2`) operator but charlists, being lists, use the list concatenation operator [`++`](`++/2`):
 
 ```elixir
 iex> ~c"this " <> ~c"fails"

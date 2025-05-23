@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 alias Kernel.AliasTest.Nested, as: Nested
@@ -87,10 +91,10 @@ end
 defmodule Kernel.AliasNestingTest do
   use ExUnit.Case, async: true
 
-  require Kernel.AliasNestingGenerator
-  Kernel.AliasNestingGenerator.create()
-
   test "aliases nesting" do
+    require Kernel.AliasNestingGenerator
+    Kernel.AliasNestingGenerator.create()
+
     assert Parent.a() == :a
     assert Parent.Child.b() == :a
   end
@@ -101,6 +105,32 @@ defmodule Kernel.AliasNestingTest do
 
   test "aliases nesting with previous alias" do
     assert Nested.value() == 2
+  end
+
+  alias Another.AliasEnv, warn: false
+  def aliases_before, do: __ENV__.aliases
+
+  defmodule Elixir.AliasEnv do
+    def aliases_nested, do: __ENV__.aliases
+  end
+
+  def aliases_after, do: __ENV__.aliases
+
+  test "keeps env after overriding nested Elixir module of the same name" do
+    assert aliases_before() == [
+             {Elixir.Nested, Kernel.AliasNestingTest.Nested},
+             {Elixir.AliasEnv, Another.AliasEnv}
+           ]
+
+    assert Elixir.AliasEnv.aliases_nested() == [
+             {Elixir.Nested, Kernel.AliasNestingTest.Nested},
+             {Elixir.AliasEnv, Another.AliasEnv}
+           ]
+
+    assert aliases_after() == [
+             {Elixir.Nested, Kernel.AliasNestingTest.Nested},
+             {Elixir.AliasEnv, Another.AliasEnv}
+           ]
   end
 end
 

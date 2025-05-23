@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule TupleTest do
@@ -47,13 +51,6 @@ defmodule TupleTest do
 
     mod = Tuple
     assert mod.insert_at({:bar, :baz}, 0, :foo) == {:foo, :bar, :baz}
-  end
-
-  test "append/2" do
-    assert Tuple.append({:foo, :bar}, :baz) == {:foo, :bar, :baz}
-
-    mod = Tuple
-    assert mod.append({:foo, :bar}, :baz) == {:foo, :bar, :baz}
   end
 
   test "delete_at/2" do

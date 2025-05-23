@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule ExceptionTest do
@@ -8,6 +12,34 @@ defmodule ExceptionTest do
   end
 
   doctest Exception
+
+  doctest RuntimeError
+  doctest ArgumentError
+  doctest ArithmeticError
+  doctest SystemLimitError
+  doctest MismatchedDelimiterError
+  doctest SyntaxError
+  doctest TokenMissingError
+  doctest BadFunctionError
+  doctest BadMapError
+  doctest BadBooleanError
+  doctest MatchError
+  doctest CaseClauseError
+  doctest WithClauseError
+  doctest CondClauseError
+  doctest TryClauseError
+  doctest UndefinedFunctionError
+  doctest FunctionClauseError
+  doctest Protocol.UndefinedError
+  doctest KeyError
+  doctest UnicodeConversionError
+  doctest Enum.OutOfBoundsError
+  doctest Enum.EmptyError
+  doctest File.Error
+  doctest File.CopyError
+  doctest File.RenameError
+  doctest File.LinkError
+  doctest ErlangError
 
   test "message/1" do
     defmodule BadException do
@@ -45,6 +77,12 @@ defmodule ExceptionTest do
              Exception.normalize(:error, :no_translation, [
                {:io, :put_chars, [self(), <<222>>],
                 [error_info: %{module: __MODULE__, function: :dummy_error_extras}]}
+             ])
+
+    assert %ErlangError{original: {:failed_load_cacerts, :enoent}, reason: ": this is chardata"} =
+             Exception.normalize(:error, {:failed_load_cacerts, :enoent}, [
+               {:pubkey_os_cacerts, :get, 0,
+                [error_info: %{module: __MODULE__, function: :dummy_error_chardata}]}
              ])
   end
 
@@ -430,8 +468,8 @@ defmodule ExceptionTest do
         end
       )
 
-      :code.delete(OperatorPrecedence)
       :code.purge(OperatorPrecedence)
+      :code.delete(OperatorPrecedence)
 
       assert blame_message(OperatorPrecedence, & &1.test!(1, 2)) =~ """
              no function clause matching in ExceptionTest.OperatorPrecedence.test!/2
@@ -469,8 +507,8 @@ defmodule ExceptionTest do
         end
       )
 
-      :code.delete(Req)
       :code.purge(Req)
+      :code.delete(Req)
 
       assert blame_message(Req, & &1.get!(url: "https://elixir-lang.org")) =~ """
              no function clause matching in ExceptionTest.Req.get!/1
@@ -534,41 +572,45 @@ defmodule ExceptionTest do
       assert blame_message([], & &1.foo()) ==
                "you attempted to apply a function named :foo on []. If you are using Kernel.apply/3, make sure " <>
                  "the module is an atom. If you are using the dot syntax, such as " <>
-                 "module.function(), make sure the left-hand side of the dot is a module atom"
+                 "module.function(), make sure the left-hand side of the dot is an atom representing a module"
 
       assert blame_message([], &apply(&1, :foo, [])) ==
                "you attempted to apply a function named :foo on []. If you are using Kernel.apply/3, make sure " <>
                  "the module is an atom. If you are using the dot syntax, such as " <>
-                 "module.function(), make sure the left-hand side of the dot is a module atom"
+                 "module.function(), make sure the left-hand side of the dot is an atom representing a module"
 
-      assert blame_message([], &apply(Kernel, &1, [1, 2])) ==
-               "you attempted to apply a function named [] on module Kernel. However, [] is not a valid function name. " <>
-                 "Function names (the second argument of apply) must always be an atom"
-
-      assert blame_message(123, &apply(Kernel, :+, &1)) ==
-               "you attempted to apply a function named :+ on module Kernel with arguments 123. " <>
-                 "Arguments (the third argument of apply) must always be a proper list"
-
-      assert blame_message(123, &apply(Kernel, :+, [&1 | 456])) ==
-               "you attempted to apply a function named :+ on module Kernel with arguments [123 | 456]. " <>
-                 "Arguments (the third argument of apply) must always be a proper list"
+      assert blame_message([], &apply(&1, :foo, [1, 2])) ==
+               "you attempted to apply a function on []. Modules (the first argument of apply) must always be an atom"
     end
 
     test "annotates function clause errors" do
-      assert blame_message(Access, & &1.fetch(:foo, :bar)) =~ """
-             no function clause matching in Access.fetch/2
+      import PathHelpers
 
-             The following arguments were given to Access.fetch/2:
+      write_beam(
+        defmodule ExampleModule do
+          def fun(arg1, arg2)
+          def fun(:one, :one), do: :ok
+          def fun(:two, :two), do: :ok
+        end
+      )
+
+      message = blame_message(ExceptionTest.ExampleModule, & &1.fun(:three, :four))
+
+      assert message =~ """
+             no function clause matching in ExceptionTest.ExampleModule.fun/2
+
+             The following arguments were given to ExceptionTest.ExampleModule.fun/2:
 
                  # 1
-                 :foo
+                 :three
 
                  # 2
-                 :bar
+                 :four
 
-             Attempted function clauses (showing 5 out of 5):
+             Attempted function clauses (showing 2 out of 2):
 
-                 def fetch(-%module{} = container-, key)
+                 def fun(-:one-, -:one-)
+                 def fun(-:two-, -:two-)
              """
     end
 
@@ -622,7 +664,8 @@ defmodule ExceptionTest do
              """
 
       assert blame_message(ENUM, & &1.not_a_function(&1, 1)) ==
-               "function ENUM.not_a_function/2 is undefined (module ENUM is not available)"
+               "function ENUM.not_a_function/2 is undefined (module ENUM is not available). " <>
+                 "Make sure the module name is correct and has been specified in full (or that an alias has been defined)"
 
       assert blame_message(One, & &1.foo()) == """
              function One.foo/0 is undefined (module One is not available). Did you mean:
@@ -632,8 +675,8 @@ defmodule ExceptionTest do
              """
 
       for module <- modules do
-        :code.delete(module)
         :code.purge(module)
+        :code.delete(module)
       end
     end
 
@@ -683,17 +726,6 @@ defmodule ExceptionTest do
                "function :erlang.hash/2 is undefined or private, use erlang:phash2/2 instead"
     end
 
-    test "annotates undefined key error with nil hints" do
-      assert blame_message(nil, & &1.foo) ==
-               "key :foo not found in: nil\n\nIf you are using the dot syntax, " <>
-                 "such as map.field, make sure the left-hand side of the dot is a map"
-
-      # we use `Code.eval_string/1` to escape the formatter and warnings
-      assert blame_message("nil.foo", &Code.eval_string/1) ==
-               "key :foo not found in: nil\n\nIf you are using the dot syntax, " <>
-                 "such as map.field, make sure the left-hand side of the dot is a map"
-    end
-
     test "annotates undefined function clause error with nil hints" do
       assert blame_message(nil, & &1.foo()) ==
                "function nil.foo/0 is undefined. If you are using the dot syntax, " <>
@@ -710,33 +742,69 @@ defmodule ExceptionTest do
       message = blame_message(%{first: nil, second: nil}, fn map -> map.firts end)
 
       assert message == """
-             key :firts not found in: %{first: nil, second: nil}. Did you mean:
+             key :firts not found in:
+
+                 %{first: nil, second: nil}
+
+             Did you mean:
 
                    * :first
              """
 
       message = blame_message(%{"first" => nil, "second" => nil}, fn map -> map.firts end)
 
-      assert message == "key :firts not found in: %{\"first\" => nil, \"second\" => nil}"
+      assert message == """
+             key :firts not found in:
+
+                 %{"first" => nil, "second" => nil}\
+             """
 
       message =
         blame_message(%{"first" => nil, "second" => nil}, fn map -> Map.fetch!(map, "firts") end)
 
-      assert message == "key \"firts\" not found in: %{\"first\" => nil, \"second\" => nil}"
+      assert message ==
+               """
+               key "firts" not found in:
+
+                   %{"first" => nil, "second" => nil}\
+               """
 
       message =
-        blame_message([first: nil, second: nil], fn kwlist -> Keyword.fetch!(kwlist, :firts) end)
+        blame_message(
+          [
+            created_at: nil,
+            updated_at: nil,
+            deleted_at: nil,
+            started_at: nil,
+            finished_at: nil
+          ],
+          fn kwlist ->
+            Keyword.fetch!(kwlist, :inserted_at)
+          end
+        )
 
       assert message == """
-             key :firts not found in: [first: nil, second: nil]. Did you mean:
+             key :inserted_at not found in:
 
-                   * :first
+                 [
+                   created_at: nil,
+                   updated_at: nil,
+                   deleted_at: nil,
+                   started_at: nil,
+                   finished_at: nil
+                 ]
+
+             Did you mean:
+
+                   * :created_at
+                   * :finished_at
+                   * :started_at
              """
     end
 
     test "annotates key error with suggestions for structs" do
       message = blame_message(%URI{}, fn map -> map.schema end)
-      assert message =~ "key :schema not found in: %URI{"
+      assert message =~ "key :schema not found in:\n\n    %URI{"
       assert message =~ "Did you mean:"
       assert message =~ "* :scheme"
     end
@@ -825,15 +893,24 @@ defmodule ExceptionTest do
 
   describe "blaming unit tests" do
     test "annotates clauses errors" do
-      args = [%{}, :key, nil]
+      import PathHelpers
+
+      write_beam(
+        defmodule BlameModule do
+          def fun(arg), do: arg
+        end
+      )
+
+      args = [nil]
 
       {exception, stack} =
-        Exception.blame(:error, :function_clause, [{Keyword, :pop, args, [line: 13]}])
+        Exception.blame(:error, :function_clause, [{BlameModule, :fun, args, [line: 13]}])
 
       assert %FunctionClauseError{kind: :def, args: ^args, clauses: [_]} = exception
-      assert stack == [{Keyword, :pop, 3, [line: 13]}]
+      assert stack == [{BlameModule, :fun, 1, [line: 13]}]
     end
 
+    @tag :require_ast
     test "annotates args and clauses from mfa" do
       import PathHelpers
 
@@ -853,8 +930,8 @@ defmodule ExceptionTest do
         end
       )
 
-      :code.delete(Blaming)
       :code.purge(Blaming)
+      :code.delete(Blaming)
 
       {:ok, :def, clauses} = Exception.blame_mfa(Blaming, :with_elem, [1, 2])
 
@@ -907,66 +984,83 @@ defmodule ExceptionTest do
     import Exception, only: [message: 1]
 
     test "RuntimeError" do
-      assert %RuntimeError{} |> message == "runtime error"
-      assert %RuntimeError{message: "unexpected roquefort"} |> message == "unexpected roquefort"
+      assert %RuntimeError{} |> message() == "runtime error"
+      assert %RuntimeError{message: "unexpected roquefort"} |> message() == "unexpected roquefort"
     end
 
     test "ArithmeticError" do
-      assert %ArithmeticError{} |> message == "bad argument in arithmetic expression"
+      assert %ArithmeticError{} |> message() == "bad argument in arithmetic expression"
 
       assert %ArithmeticError{message: "unexpected camembert"}
-             |> message == "unexpected camembert"
+             |> message() == "unexpected camembert"
     end
 
     test "ArgumentError" do
-      assert %ArgumentError{} |> message == "argument error"
-      assert %ArgumentError{message: "unexpected comté"} |> message == "unexpected comté"
+      assert %ArgumentError{} |> message() == "argument error"
+      assert %ArgumentError{message: "unexpected comté"} |> message() == "unexpected comté"
     end
 
     test "KeyError" do
-      assert %KeyError{} |> message == "key nil not found"
-      assert %KeyError{message: "key missed"} |> message == "key missed"
+      assert %KeyError{} |> message() == "key nil not found"
+      assert %KeyError{message: "key missed"} |> message() == "key missed"
     end
 
     test "Enum.OutOfBoundsError" do
-      assert %Enum.OutOfBoundsError{} |> message == "out of bounds error"
+      assert %Enum.OutOfBoundsError{} |> message() == "out of bounds error"
 
       assert %Enum.OutOfBoundsError{message: "the brie is not on the table"}
-             |> message == "the brie is not on the table"
+             |> message() == "the brie is not on the table"
     end
 
     test "Enum.EmptyError" do
-      assert %Enum.EmptyError{} |> message == "empty error"
+      assert %Enum.EmptyError{} |> message() == "empty error"
 
       assert %Enum.EmptyError{message: "there is no saint-nectaire left!"}
-             |> message == "there is no saint-nectaire left!"
+             |> message() == "there is no saint-nectaire left!"
     end
 
     test "UndefinedFunctionError" do
-      assert %UndefinedFunctionError{} |> message == "undefined function"
+      assert %UndefinedFunctionError{} |> message() == "undefined function"
 
       assert %UndefinedFunctionError{module: Kernel, function: :bar, arity: 1}
-             |> message == "function Kernel.bar/1 is undefined or private"
+             |> message() == "function Kernel.bar/1 is undefined or private"
 
       assert %UndefinedFunctionError{module: Foo, function: :bar, arity: 1}
-             |> message == "function Foo.bar/1 is undefined (module Foo is not available)"
+             |> message() ==
+               "function Foo.bar/1 is undefined (module Foo is not available). " <>
+                 "Make sure the module name is correct and has been specified in full (or that an alias has been defined)"
 
       assert %UndefinedFunctionError{module: nil, function: :bar, arity: 3}
-             |> message == "function nil.bar/3 is undefined"
+             |> message() == "function nil.bar/3 is undefined"
 
       assert %UndefinedFunctionError{module: nil, function: :bar, arity: 0}
-             |> message == "function nil.bar/0 is undefined"
+             |> message() == "function nil.bar/0 is undefined"
     end
 
     test "FunctionClauseError" do
-      assert %FunctionClauseError{} |> message == "no function clause matches"
+      assert %FunctionClauseError{} |> message() == "no function clause matches"
 
       assert %FunctionClauseError{module: Foo, function: :bar, arity: 1}
-             |> message == "no function clause matching in Foo.bar/1"
+             |> message() == "no function clause matching in Foo.bar/1"
     end
 
     test "ErlangError" do
-      assert %ErlangError{original: :sample} |> message == "Erlang error: :sample"
+      assert %ErlangError{original: :sample} |> message() == "Erlang error: :sample"
+    end
+
+    test "MissingApplicationsError" do
+      assert %MissingApplicationsError{
+               apps: [{:logger, "~> 1.18"}, {:ex_unit, Version.parse_requirement!(">= 0.0.0")}],
+               description: "applications are required"
+             }
+             |> message() == """
+             applications are required
+
+             To address this, include these applications as your dependencies:
+
+               {:logger, "~> 1.18"}
+               {:ex_unit, ">= 0.0.0"}\
+             """
     end
   end
 
@@ -1001,17 +1095,15 @@ defmodule ExceptionTest do
     end
   end
 
-  if System.otp_release() >= "25" do
-    describe "binary constructor error info" do
-      defp concat(a, b), do: a <> b
+  describe "binary constructor error info" do
+    defp concat(a, b), do: a <> b
 
-      test "on binary concatenation" do
-        assert message(123, &concat(&1, "bar")) ==
-                 "construction of binary failed: segment 1 of type 'binary': expected a binary but got: 123"
+    test "on binary concatenation" do
+      assert message(123, &concat(&1, "bar")) ==
+               "construction of binary failed: segment 1 of type 'binary': expected a binary but got: 123"
 
-        assert message(~D[0001-02-03], &concat(&1, "bar")) ==
-                 "construction of binary failed: segment 1 of type 'binary': expected a binary but got: ~D[0001-02-03]"
-      end
+      assert message(~D[0001-02-03], &concat(&1, "bar")) ==
+               "construction of binary failed: segment 1 of type 'binary': expected a binary but got: ~D[0001-02-03]"
     end
   end
 
@@ -1024,4 +1116,8 @@ defmodule ExceptionTest do
   end
 
   def dummy_error_extras(_exception, _stacktrace), do: %{general: "foo"}
+
+  def dummy_error_chardata(_exception, _stacktrace) do
+    %{general: ~c"this is " ++ [~c"chardata"], reason: ~c"this " ++ [~c"too"]}
+  end
 end

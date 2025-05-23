@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule StringIOTest do
@@ -267,7 +271,7 @@ defmodule StringIOTest do
   test "IO.stream with invalid UTF-8" do
     {:ok, pid} = StringIO.open(<<130, 227, 129, 132, 227, 129, 134>>)
 
-    assert_raise IO.StreamError, fn ->
+    assert_raise IO.StreamError, "error during streaming: :invalid_unicode", fn ->
       IO.stream(pid, 2) |> Enum.to_list()
     end
 
@@ -332,14 +336,14 @@ defmodule StringIOTest do
     {:ok, pid} = StringIO.open("abcdefg")
     result = get_until(pid, :unicode, "", GetUntilCallbacks, :up_to_3_bytes)
     assert result == "abc"
-    assert IO.read(pid, :all) == "defg"
+    assert IO.read(pid, :eof) == "defg"
   end
 
   test "get_until with up_to_3_bytes_discard_rest" do
     {:ok, pid} = StringIO.open("abcdefg")
     result = get_until(pid, :unicode, "", GetUntilCallbacks, :up_to_3_bytes_discard_rest)
     assert result == "abc"
-    assert IO.read(pid, :all) == ""
+    assert IO.read(pid, :eof) == :eof
   end
 
   test "get_until with until_eof" do
@@ -391,5 +395,10 @@ defmodule StringIOTest do
     result = :io.scan_erl_form(pid, ~c"p>")
     assert result == {:ok, [{:integer, 1, 1}, {:dot, 1}], 1}
     assert StringIO.contents(pid) == {"", "p>p>"}
+  end
+
+  test "returns enotsup for files" do
+    {:ok, pid} = StringIO.open("123")
+    assert :file.position(pid, :cur) == {:error, :enotsup}
   end
 end

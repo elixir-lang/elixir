@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Application do
   @moduledoc """
   A module for working with applications and defining application callbacks.
@@ -13,7 +17,7 @@ defmodule Application do
 
   Developers typically interact with the application environment and its
   callback module. Therefore those will be the topics we will cover first
-  before jumping into details about the application resource file and life-cycle.
+  before jumping into details about the application resource file and life cycle.
 
   ## The application environment
 
@@ -54,12 +58,12 @@ defmodule Application do
   You can also change the application environment dynamically by using functions
   such as `put_env/3` and `delete_env/2`.
 
-  > #### Environment in libraries {: .tip}
+  > #### Application environment in libraries {: .info}
   >
-  > The config files `config/config.exs` and `config/runtime.exs`
-  > are rarely used by libraries. Libraries typically define their environment
-  > in the `application/0` function of their `mix.exs`. Configuration files
-  > are rather used by applications to configure their libraries.
+  > If you are writing a library to be used by other developers,
+  > it is generally recommended to avoid the application environment, as the
+  > application environment is effectively a global storage. For more information,
+  > read about this [anti-pattern](design-anti-patterns.md#using-application-configuration-for-libraries).
 
   > #### Reading the environment of other applications {: .warning}
   >
@@ -200,7 +204,7 @@ defmodule Application do
   In the sections above, we have configured an application in the
   `application/0` section of the `mix.exs` file. Ultimately, Mix will use
   this configuration to create an [*application resource
-  file*](https://www.erlang.org/doc/man/application.html), which is a file called
+  file*](https://www.erlang.org/doc/man/app), which is a file called
   `APP_NAME.app`. For example, the application resource file of the OTP
   application `ex_unit` is called `ex_unit.app`.
 
@@ -243,7 +247,7 @@ defmodule Application do
   invoked if it hasn't been done yet. Then, it checks if the dependencies listed
   in the `applications` key of the resource file are already started. Having at
   least one dependency not started is an error condition. Functions like
-  `ensure_all_started/1` takes care of starting an application and all of its
+  `ensure_all_started/1` take care of starting an application and all of its
   dependencies for you.
 
   If the application does not have a callback module configured, starting is
@@ -258,8 +262,8 @@ defmodule Application do
       Application.stop(:ex_unit)
       #=> :ok
 
-  Stopping an application without a callback module is defined, but except for
-  some system tracing, it is in practice a no-op.
+  Stopping an application without a callback module defined, is in practice a
+  no-op, except for some system tracing.
 
   Stopping an application with a callback module has three steps:
 
@@ -277,7 +281,7 @@ defmodule Application do
   invoked only after termination of the whole supervision tree.
 
   Shutting down a live system cleanly can be done by calling `System.stop/1`. It
-  will shut down every application in the opposite order they had been started.
+  will shut down every application in the reverse order they were started.
 
   By default, a SIGTERM from the operating system will automatically translate to
   `System.stop/0`. You can also have more explicit control over operating system
@@ -466,6 +470,9 @@ defmodule Application do
   The following keys are returned:
 
     * #{Enum.map_join(@application_keys, "\n  * ", &"`#{inspect(&1)}`")}
+
+  For a description of all fields, see [Erlang's application
+  specification](https://www.erlang.org/doc/man/app).
 
   Note the environment is not returned as it can be accessed via
   `fetch_env/2`. Returns `nil` if the application is not loaded.
@@ -670,13 +677,6 @@ defmodule Application do
   > You must use this function to read only your own application
   > environment. Do not read the environment of other applications.
 
-  > #### Application environment in libraries {: .info}
-  >
-  > If you are writing a library to be used by other developers,
-  > it is generally recommended to avoid the application environment, as the
-  > application environment is effectively a global storage. For more information,
-  > read our [library guidelines](library-guidelines.md).
-
   ## Examples
 
   `get_env/3` is commonly used to read the configuration of your OTP applications.
@@ -793,6 +793,12 @@ defmodule Application do
   @doc """
   Puts the `value` in `key` for the given `app`.
 
+  > #### Compile environment {: .warning}
+  >
+  > Do not use this function to change environment variables read
+  > via `Application.compile_env/2`. The compile environment must
+  > be exclusively set before compilation, in your config files.
+
   ## Options
 
     * `:timeout` - the timeout for the change (defaults to `5_000` milliseconds)
@@ -814,16 +820,29 @@ defmodule Application do
   end
 
   @doc """
-  Puts the environment for multiple apps at the same time.
+  Puts the environment for multiple applications at the same time.
 
   The given config should not:
 
     * have the same application listed more than once
     * have the same key inside the same application listed more than once
 
-  If those conditions are not met, it will raise.
+  If those conditions are not met, this function will raise.
 
-  It receives the same options as `put_env/4`. Returns `:ok`.
+  This function receives the same options as `put_env/4`. Returns `:ok`.
+
+  ## Examples
+
+      Application.put_all_env(
+        my_app: [
+          key: :value,
+          another_key: :another_value
+        ],
+        another_app: [
+          key: :value
+        ]
+      )
+
   """
   @doc since: "1.9.0"
   @spec put_all_env([{app, [{key, value}]}], timeout: timeout, persistent: boolean) :: :ok
@@ -847,7 +866,10 @@ defmodule Application do
 
   # TODO: Remove this deprecation warning on 2.0+ and allow list lookups as in compile_env.
   defp maybe_warn_on_app_env_key(app, key) do
-    message = "passing non-atom as application env key is deprecated, got: #{inspect(key)}"
+    message = fn ->
+      "passing non-atom as application env key is deprecated, got: #{inspect(key)}"
+    end
+
     IO.warn_once({Application, :key, app, key}, message, _stacktrace_drop_levels = 2)
   end
 
@@ -886,11 +908,11 @@ defmodule Application do
 
   ## Options
 
-    * `:type` - if the application should be started in `:permanent`,
-      `:temporary`, or `:transient`. See `t:restart_type/1` for more information.
+    * `:type` - if the application should be started `:temporary` (default),
+      `:permanent`, or `:transient`. See `t:restart_type/1` for more information.
 
     * `:mode` - (since v1.15.0) if the applications should be started serially
-      or concurrently. This option requires Erlang/OTP 26+.
+      (`:serial`, default) or concurrently (`:concurrent`).
 
   """
   @spec ensure_all_started(app | [app], type: restart_type(), mode: :serial | :concurrent) ::
@@ -911,18 +933,7 @@ defmodule Application do
 
   def ensure_all_started(apps, opts) when is_list(apps) and is_list(opts) do
     opts = Keyword.validate!(opts, type: :temporary, mode: :serial)
-
-    if function_exported?(:application, :ensure_all_started, 3) do
-      :application.ensure_all_started(apps, opts[:type], opts[:mode])
-    else
-      # TODO: Remove this clause when we require Erlang/OTP 26+
-      Enum.reduce_while(apps, {:ok, []}, fn app, {:ok, acc} ->
-        case :application.ensure_all_started(app, opts[:type]) do
-          {:ok, apps} -> {:cont, {:ok, apps ++ acc}}
-          {:error, e} -> {:halt, {:error, e}}
-        end
-      end)
-    end
+    :application.ensure_all_started(apps, opts[:type], opts[:mode])
   end
 
   @doc """

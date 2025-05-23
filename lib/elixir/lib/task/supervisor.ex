@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Task.Supervisor do
   @moduledoc """
   A task supervisor.
@@ -74,8 +78,14 @@ defmodule Task.Supervisor do
 
   @typedoc "Option values used by `start_link`"
   @type option ::
-          DynamicSupervisor.option()
+          GenServer.option()
           | DynamicSupervisor.init_option()
+
+  @typedoc """
+  Options given to `async_stream` and `async_stream_nolink` functions.
+  """
+  @typedoc since: "1.17.0"
+  @type async_stream_option :: Task.async_stream_option() | {:shutdown, Supervisor.shutdown()}
 
   @doc false
   def child_spec(opts) when is_list(opts) do
@@ -152,7 +162,7 @@ defmodule Task.Supervisor do
   Starts a task that can be awaited on.
 
   The `supervisor` must be a reference as defined in `Supervisor`.
-  The task will still be linked to the caller, see `Task.async/3` for
+  The task will still be linked to the caller, see `Task.async/1` for
   more information and `async_nolink/3` for a non-linked variant.
 
   Raises an error if `supervisor` has reached the maximum number of
@@ -162,6 +172,7 @@ defmodule Task.Supervisor do
 
     * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
       or an integer indicating the timeout value, defaults to 5000 milliseconds.
+      The tasks must trap exits for the timeout to have an effect.
 
   """
   @spec async(Supervisor.supervisor(), (-> any), Keyword.t()) :: Task.t()
@@ -173,7 +184,7 @@ defmodule Task.Supervisor do
   Starts a task that can be awaited on.
 
   The `supervisor` must be a reference as defined in `Supervisor`.
-  The task will still be linked to the caller, see `Task.async/3` for
+  The task will still be linked to the caller, see `Task.async/1` for
   more information and `async_nolink/3` for a non-linked variant.
 
   Raises an error if `supervisor` has reached the maximum number of
@@ -183,6 +194,7 @@ defmodule Task.Supervisor do
 
     * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
       or an integer indicating the timeout value, defaults to 5000 milliseconds.
+      The tasks must trap exits for the timeout to have an effect.
 
   """
   @spec async(Supervisor.supervisor(), module, atom, [term], Keyword.t()) :: Task.t()
@@ -194,7 +206,7 @@ defmodule Task.Supervisor do
   Starts a task that can be awaited on.
 
   The `supervisor` must be a reference as defined in `Supervisor`.
-  The task won't be linked to the caller, see `Task.async/3` for
+  The task won't be linked to the caller, see `Task.async/1` for
   more information.
 
   Raises an error if `supervisor` has reached the maximum number of
@@ -208,6 +220,7 @@ defmodule Task.Supervisor do
 
     * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
       or an integer indicating the timeout value, defaults to 5000 milliseconds.
+      The tasks must trap exits for the timeout to have an effect.
 
   ## Compatibility with OTP behaviours
 
@@ -280,7 +293,7 @@ defmodule Task.Supervisor do
   Starts a task that can be awaited on.
 
   The `supervisor` must be a reference as defined in `Supervisor`.
-  The task won't be linked to the caller, see `Task.async/3` for
+  The task won't be linked to the caller, see `Task.async/1` for
   more information.
 
   Raises an error if `supervisor` has reached the maximum number of
@@ -342,6 +355,7 @@ defmodule Task.Supervisor do
 
     * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
       or an integer indicating the timeout value. Defaults to `5000` milliseconds.
+      The tasks must trap exits for the timeout to have an effect.
 
   ## Examples
 
@@ -352,8 +366,14 @@ defmodule Task.Supervisor do
 
   """
   @doc since: "1.4.0"
-  @spec async_stream(Supervisor.supervisor(), Enumerable.t(), module, atom, [term], keyword) ::
-          Enumerable.t()
+  @spec async_stream(
+          Supervisor.supervisor(),
+          Enumerable.t(),
+          module,
+          atom,
+          [term],
+          [async_stream_option]
+        ) :: Enumerable.t()
   def async_stream(supervisor, enumerable, module, function, args, options \\ [])
       when is_atom(module) and is_atom(function) and is_list(args) do
     build_stream(supervisor, :link, enumerable, {module, function, args}, options)
@@ -370,8 +390,12 @@ defmodule Task.Supervisor do
   See `async_stream/6` for discussion, options, and examples.
   """
   @doc since: "1.4.0"
-  @spec async_stream(Supervisor.supervisor(), Enumerable.t(), (term -> term), keyword) ::
-          Enumerable.t()
+  @spec async_stream(
+          Supervisor.supervisor(),
+          Enumerable.t(),
+          (term -> term),
+          [async_stream_option]
+        ) :: Enumerable.t()
   def async_stream(supervisor, enumerable, fun, options \\ []) when is_function(fun, 1) do
     build_stream(supervisor, :link, enumerable, fun, options)
   end
@@ -393,14 +417,14 @@ defmodule Task.Supervisor do
           module,
           atom,
           [term],
-          keyword
+          [async_stream_option]
         ) :: Enumerable.t()
   def async_stream_nolink(supervisor, enumerable, module, function, args, options \\ [])
       when is_atom(module) and is_atom(function) and is_list(args) do
     build_stream(supervisor, :nolink, enumerable, {module, function, args}, options)
   end
 
-  @doc """
+  @doc ~S"""
   Returns a stream that runs the given `function` concurrently on each
   element in `enumerable`.
 
@@ -410,10 +434,46 @@ defmodule Task.Supervisor do
   to `async_nolink/3`.
 
   See `async_stream/6` for discussion and examples.
+
+  ## Error handling and cleanup
+
+  Even if tasks are not linked to the caller, there is no risk of leaving dangling tasks
+  running after the stream halts.
+
+  Consider the following example:
+
+      Task.Supervisor.async_stream_nolink(MySupervisor, collection, fun, on_timeout: :kill_task, ordered: false)
+      |> Enum.each(fn
+        {:ok, _} -> :ok
+        {:exit, reason} -> raise "Task exited: #{Exception.format_exit(reason)}"
+      end)
+
+  If one task raises or times out:
+
+    1. the second clause gets called
+    2. an exception is raised
+    3. the stream halts
+    4. all ongoing tasks will be shut down
+
+  Here is another example:
+
+      Task.Supervisor.async_stream_nolink(MySupervisor, collection, fun, on_timeout: :kill_task, ordered: false)
+      |> Stream.filter(&match?({:ok, _}, &1))
+      |> Enum.take(3)
+
+  This will return the three first tasks to succeed, ignoring timeouts and errors, and shut down
+  every ongoing task.
+
+  Just running the stream with `Stream.run/1` on the other hand would ignore errors and process the whole stream.
+
   """
   @doc since: "1.4.0"
-  @spec async_stream_nolink(Supervisor.supervisor(), Enumerable.t(), (term -> term), keyword) ::
-          Enumerable.t()
+  @spec async_stream_nolink(
+          Supervisor.supervisor(),
+          Enumerable.t(),
+          (term -> term),
+          [async_stream_option]
+        ) :: Enumerable.t()
   def async_stream_nolink(supervisor, enumerable, fun, options \\ []) when is_function(fun, 1) do
     build_stream(supervisor, :nolink, enumerable, fun, options)
   end
@@ -442,7 +502,7 @@ defmodule Task.Supervisor do
   Starts a task as a child of the given `supervisor`.
 
       Task.Supervisor.start_child(MyTaskSupervisor, fn ->
-        IO.puts "I am running in a task"
+        IO.puts("I am running in a task")
       end)
 
   Note that the spawned process is not linked to the caller, but
@@ -460,6 +520,7 @@ defmodule Task.Supervisor do
 
     * `:shutdown` - `:brutal_kill` if the task must be killed directly on shutdown
       or an integer indicating the timeout value, defaults to 5000 milliseconds.
+      The task must trap exits for the timeout to have an effect.
 
   """
   @spec start_child(Supervisor.supervisor(), (-> any), keyword) ::
@@ -555,8 +616,15 @@ defmodule Task.Supervisor do
   end
 
   defp build_stream(supervisor, link_type, enumerable, fun, options) do
+    shutdown = Keyword.get(options, :shutdown, 5000)
+
+    if not ((is_integer(shutdown) and shutdown >= 0) or shutdown == :brutal_kill) do
+      raise ArgumentError, ":shutdown must be either a positive integer or :brutal_kill"
+    end
+
+    options = Task.Supervised.validate_stream_options(options)
+
     fn acc, acc_fun ->
-      shutdown = options[:shutdown]
       owner = get_owner(self())
 
       Task.Supervised.stream(enumerable, acc, acc_fun, get_callers(self()), fun, options, fn ->

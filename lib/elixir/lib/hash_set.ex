@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule HashSet do
   @moduledoc """
   Tuple-based HashSet implementation.
@@ -270,21 +274,24 @@ defmodule HashSet do
 end
 
 defimpl Enumerable, for: HashSet do
+  @moduledoc false
+  @moduledoc deprecated: "Use MapSet instead"
+
   def reduce(set, acc, fun) do
     # Avoid warnings about HashSet being deprecated.
-    module = HashSet
+    module = String.to_atom("HashSet")
     module.reduce(set, acc, fun)
   end
 
   def member?(set, term) do
     # Avoid warnings about HashSet being deprecated.
-    module = HashSet
+    module = String.to_atom("HashSet")
     {:ok, module.member?(set, term)}
   end
 
   def count(set) do
     # Avoid warnings about HashSet being deprecated.
-    module = HashSet
+    module = String.to_atom("HashSet")
     {:ok, module.size(set)}
   end
 
@@ -294,9 +301,12 @@ defimpl Enumerable, for: HashSet do
 end
 
 defimpl Collectable, for: HashSet do
+  @moduledoc false
+  @moduledoc deprecated: "Use MapSet instead"
+
   def into(original) do
     # Avoid warnings about HashSet being deprecated.
-    module = HashSet
+    module = String.to_atom("HashSet")
 
     collector_fun = fn
       set, {:cont, term} -> module.put(set, term)
@@ -309,11 +319,13 @@ defimpl Collectable, for: HashSet do
 end
 
 defimpl Inspect, for: HashSet do
+  @moduledoc false
+  @moduledoc deprecated: "Use MapSet instead"
   import Inspect.Algebra
 
   def inspect(set, opts) do
     # Avoid warnings about HashSet being deprecated.
-    module = HashSet
+    module = String.to_atom("HashSet")
     concat(["#HashSet<", Inspect.List.inspect(module.to_list(set), opts), ">"])
   end
 end

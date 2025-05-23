@@ -1,49 +1,70 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Rebar do
   @moduledoc false
+
+  # TODO: Remove on Elixir v1.22 because phx_new and other installers rely on it.
+  @deprecated "Use env_rebar_path/1 instead"
+  def global_rebar_cmd(manager) do
+    env_rebar_path(manager)
+  end
+
+  @deprecated "Use local_rebar_path/1 instead"
+  def local_rebar_cmd(manager) do
+    local_rebar_path(manager)
+  end
+
+  @deprecated "Use rebar_args/2 or available?/1 instead"
+  def rebar_cmd(manager) do
+    global_rebar_cmd(manager) || local_rebar_cmd(manager)
+  end
+
+  @doc """
+  Returns if Rebar is available or not.
+  """
+  def available?(manager) do
+    env_rebar_path(manager) != nil or File.regular?(local_rebar_path(manager))
+  end
+
+  @doc """
+  Receives a Rebar executable and returns how it must be invoked.
+
+  It returns a result even if Rebar is not available.
+  """
+  def rebar_args(:rebar3, args) do
+    rebar = env_rebar_path(:rebar3) || local_rebar_path(:rebar3)
+
+    if match?({:win32, _}, :os.type()) and not String.ends_with?(rebar, ".cmd") do
+      {"escript.exe", [rebar | args]}
+    else
+      {rebar, args}
+    end
+  end
+
+  @doc """
+  Returns the global rebar path.
+  """
+  def env_rebar_path(:rebar3) do
+    System.get_env("MIX_REBAR3")
+  end
 
   @doc """
   Returns the path supposed to host the local copy of `rebar`.
 
-  The rebar3 installation is specific to the Elixir version,
+  The rebar3 installation is specific to the Elixir version and OTP release,
   in order to force updates when new Elixir versions come out.
   """
   def local_rebar_path(:rebar3) do
     [major, minor | _] = String.split(System.version(), ".")
-    Path.join([Mix.Utils.mix_home(), "elixir", "#{major}-#{minor}", "rebar3"])
-  end
 
-  @doc """
-  Returns the path to the global copy of `rebar` defined by the
-  environment variable `MIX_REBAR3`.
-  """
-  def global_rebar_cmd(:rebar3) do
-    if cmd = System.get_env("MIX_REBAR3") do
-      wrap_cmd(cmd)
-    end
-  end
-
-  @doc """
-  Returns the path to the local copy of `rebar`, if one exists.
-  """
-  def local_rebar_cmd(manager) do
-    cmd = local_rebar_path(manager)
-
-    if File.regular?(cmd) do
-      wrap_cmd(cmd)
-    end
-  end
-
-  @doc """
-  Returns the path to the available `rebar` command.
-  """
-  # TODO: Remove on Elixir v1.18 because phx_new and other installers rely on it.
-  def rebar_cmd(:rebar) do
-    Mix.shell().error("[warning] :rebar is no longer supported in Mix, falling back to :rebar3")
-    rebar_cmd(:rebar3)
-  end
-
-  def rebar_cmd(manager) do
-    global_rebar_cmd(manager) || local_rebar_cmd(manager)
+    Path.join([
+      Mix.Utils.mix_home(),
+      "elixir",
+      "#{major}-#{minor}-otp-#{System.otp_release()}",
+      "rebar3"
+    ])
   end
 
   @doc """
@@ -213,19 +234,6 @@ defmodule Mix.Rebar do
     Enum.reduce(binds, :erl_eval.new_bindings(), fn {k, v}, binds ->
       :erl_eval.add_binding(k, v, binds)
     end)
-  end
-
-  defp wrap_cmd(rebar) do
-    cond do
-      not match?({:win32, _}, :os.type()) ->
-        rebar
-
-      String.ends_with?(rebar, ".cmd") ->
-        "\"#{String.replace(rebar, "/", "\\")}\""
-
-      true ->
-        "escript.exe \"#{rebar}\""
-    end
   end
 
   @doc """

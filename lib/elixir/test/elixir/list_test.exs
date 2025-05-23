@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule ListTest do
@@ -82,13 +86,6 @@ defmodule ListTest do
     assert List.last([], 1) == 1
     assert List.last([1]) == 1
     assert List.last([1, 2, 3]) == 3
-  end
-
-  test "zip/1" do
-    assert List.zip([[1, 4], [2, 5], [3, 6]]) == [{1, 2, 3}, {4, 5, 6}]
-    assert List.zip([[1, 4], [2, 5, 0], [3, 6]]) == [{1, 2, 3}, {4, 5, 6}]
-    assert List.zip([[1], [2, 5], [3, 6]]) == [{1, 2, 3}]
-    assert List.zip([[1, 4], [2, 5], []]) == []
   end
 
   test "keyfind/4" do
@@ -283,11 +280,36 @@ defmodule ListTest do
       assert_raise FunctionClauseError, message, fn ->
         List.starts_with?([1 | 2], [1 | 2])
       end
+    end
+  end
 
-      message = "no function clause matching in List.starts_with?/2"
+  describe "ends_with?/2" do
+    test "list and prefix are equal" do
+      assert List.ends_with?([], [])
+      assert List.ends_with?([1], [1])
+      assert List.ends_with?([1, 2, 3], [1, 2, 3])
+    end
 
-      assert_raise FunctionClauseError, message, fn ->
-        List.starts_with?([1, 2], 1)
+    test "proper lists" do
+      refute List.ends_with?([2], [1, 2])
+      assert List.ends_with?([1, 2, 3], [2, 3])
+      refute List.ends_with?([2, 3, 4], [1, 2, 3, 4])
+    end
+
+    test "list is empty" do
+      refute List.ends_with?([], [1])
+      refute List.ends_with?([], [1, 2])
+    end
+
+    test "prefix is empty" do
+      assert List.ends_with?([1], [])
+      assert List.ends_with?([1, 2], [])
+      assert List.ends_with?([1, 2, 3], [])
+    end
+
+    test "only accepts proper lists" do
+      assert_raise ArgumentError, ~r/not a list/, fn ->
+        List.ends_with?([1 | 2], [1 | 2])
       end
     end
   end

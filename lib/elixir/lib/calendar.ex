@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Calendar do
   @moduledoc """
   This module defines the responsibilities for working with
@@ -54,9 +58,20 @@ defmodule Calendar do
   @typedoc """
   Microseconds with stored precision.
 
-  The precision represents the number of digits that must be used when
+  `value` always represents the total value in microseconds.
+
+  The `precision` represents the number of digits that must be used when
   representing the microseconds to external format. If the precision is `0`,
-  it means microseconds must be skipped.
+  it means microseconds must be skipped. If the precision is `6`, it means
+  that `value` represents exactly the number of microseconds to be used.
+
+  ## Examples
+
+    * `{0, 0}` means no microseconds.
+    * `{1, 6}` means 1µs.
+    * `{1000, 6}` means 1000µs (which is 1ms but measured at the microsecond precision).
+    * `{1000, 3}` means 1ms (which is measured at the millisecond precision).
+
   """
   @type microsecond :: {value :: non_neg_integer, precision :: non_neg_integer}
 
@@ -70,14 +85,14 @@ defmodule Calendar do
   @type zone_abbr :: String.t()
 
   @typedoc """
-  The time zone UTC offset in seconds for standard time.
+  The time zone UTC offset in ISO seconds for standard time.
 
   See also `t:std_offset/0`.
   """
   @type utc_offset :: integer
 
   @typedoc """
-  The time zone standard offset in seconds (typically not zero in summer times).
+  The time zone standard offset in ISO seconds (typically not zero in summer times).
 
   It must be added to `t:utc_offset/0` to get the total offset from UTC used for "wall time".
   """
@@ -172,6 +187,15 @@ defmodule Calendar do
   `starting_on` represents the starting day of the week. All
   calendars must support at least the `:default` value. They may
   also support other values representing their days of the week.
+
+  The value of `day_of_week` is an ordinal number meaning that a
+  value of `1` is defined to mean "first day of the week". It is
+  specifically not defined to mean `1` is `Monday`.
+
+  It is a requirement that `first_day_of_week` is less than `last_day_of_week`
+  and that `day_of_week` must be within that range. Therefore it can be said
+  that `day_of_week in first_day_of_week..last_day_of_week//1` must be
+  `true` for all values of `day_of_week`.
   """
   @callback day_of_week(year, month, day, starting_on :: :default | atom) ::
               {day_of_week(), first_day_of_week :: non_neg_integer(),
@@ -338,6 +362,34 @@ defmodule Calendar do
   @doc since: "1.15.0"
   @callback iso_days_to_end_of_day(iso_days) :: iso_days
 
+  @doc """
+  Shifts date by given duration according to its calendar.
+  """
+  @doc since: "1.17.0"
+  @callback shift_date(year, month, day, Duration.t()) :: {year, month, day}
+
+  @doc """
+  Shifts naive datetime by given duration according to its calendar.
+  """
+  @doc since: "1.17.0"
+  @callback shift_naive_datetime(
+              year,
+              month,
+              day,
+              hour,
+              minute,
+              second,
+              microsecond,
+              Duration.t()
+            ) :: {year, month, day, hour, minute, second, microsecond}
+
+  @doc """
+  Shifts time by given duration according to its calendar.
+  """
+  @doc since: "1.17.0"
+  @callback shift_time(hour, minute, second, microsecond, Duration.t()) ::
+              {hour, minute, second, microsecond}
+
   # General Helpers
 
   @doc """
@@ -424,25 +476,30 @@ defmodule Calendar do
       it can't contain the `%X` format and defaults to `"%H:%M:%S"`
       if the option is not received
 
-    * `:am_pm_names` - a function that receives either `:am` or `:pm` and returns
+    * `:am_pm_names` - a function that receives either `:am` or `:pm`
+      (and also the datetime if the function is arity/2) and returns
       the name of the period of the day, if the option is not received it defaults
       to a function that returns `"am"` and `"pm"`, respectively
 
-    *  `:month_names` - a function that receives a number and returns the name of
+    *  `:month_names` - a function that receives a number (and also the
+      datetime if the function is arity/2) and returns the name of
       the corresponding month, if the option is not received it defaults to a
       function that returns the month names in English
 
-    * `:abbreviated_month_names` - a function that receives a number and returns the
+    * `:abbreviated_month_names` - a function that receives a number (and also
+      the datetime if the function is arity/2) and returns the
       abbreviated name of the corresponding month, if the option is not received it
       defaults to a function that returns the abbreviated month names in English
 
-    * `:day_of_week_names` - a function that receives a number and returns the name of
+    * `:day_of_week_names` - a function that receives a number and (and also the
+      datetime if the function is arity/2) returns the name of
       the corresponding day of week, if the option is not received it defaults to a
       function that returns the day of week names in English
 
-    * `:abbreviated_day_of_week_names` - a function that receives a number and returns
-      the abbreviated name of the corresponding day of week, if the option is not received
-      it defaults to a function that returns the abbreviated day of week names in English
+    * `:abbreviated_day_of_week_names` - a function that receives a number (and also
+      the datetime if the function is arity/2) and returns the abbreviated name of
+      the corresponding day of week, if the option is not received it defaults to a
+      function that returns the abbreviated day of week names in English
 
   ## Formatting syntax
 
@@ -476,7 +533,7 @@ defmodule Calendar do
   B      | Full month name                                                         | January
   c      | Preferred date+time representation                                      | 2018-10-17 12:34:56
   d      | Day of the month                                                        | 01, 31
-  f      | Microseconds *(does not support width and padding modifiers)*           | 000000, 999999, 0123
+  f      | Microseconds (uses its precision for width and padding)                 | 000000, 999999, 0123
   H      | Hour using a 24-hour clock                                              | 00, 23
   I      | Hour using a 12-hour clock                                              | 01, 12
   j      | Day of the year                                                         | 001, 366
@@ -497,6 +554,12 @@ defmodule Calendar do
   %      | Literal "%" character                                                   | %
 
   Any other character will be interpreted as an invalid format and raise an error.
+
+  ### `%f` Microseconds
+
+  `%f` does not support width and padding modifiers.  It will be formatted by truncating
+  the microseconds to the precision of the `microseconds` field of the struct, with a
+  minimum precision of 1.
 
   ## Examples
 
@@ -540,6 +603,17 @@ defmodule Calendar do
       ...>  end
       ...>)
       "серпень"
+
+   Microsecond formatting:
+
+      iex> Calendar.strftime(~U[2019-08-26 13:52:06Z], "%y-%m-%d %H:%M:%S.%f")
+      "19-08-26 13:52:06.0"
+
+      iex> Calendar.strftime(~U[2019-08-26 13:52:06.048Z], "%y-%m-%d %H:%M:%S.%f")
+      "19-08-26 13:52:06.048"
+
+      iex> Calendar.strftime(~U[2019-08-26 13:52:06.048531Z], "%y-%m-%d %H:%M:%S.%f")
+      "19-08-26 13:52:06.048531"
 
   """
   @doc since: "1.11.0"
@@ -596,12 +670,12 @@ defmodule Calendar do
     format_modifiers(rest, width, pad, datetime, format_options, acc)
   end
 
-  defp am_pm(hour, format_options) when hour > 11 do
-    format_options.am_pm_names.(:pm)
+  defp am_pm(hour, format_options, datetime) when hour > 11 do
+    apply_format(:pm, format_options.am_pm_names, datetime)
   end
 
-  defp am_pm(hour, format_options) when hour <= 11 do
-    format_options.am_pm_names.(:am)
+  defp am_pm(hour, format_options, datetime) when hour <= 11 do
+    apply_format(:am, format_options.am_pm_names, datetime)
   end
 
   defp default_pad(format) when format in ~c"aAbBpPZ", do: ?\s
@@ -622,7 +696,7 @@ defmodule Calendar do
     result =
       datetime
       |> Date.day_of_week()
-      |> format_options.abbreviated_day_of_week_names.()
+      |> apply_format(format_options.abbreviated_day_of_week_names, datetime)
       |> pad_leading(width, pad)
 
     parse(rest, datetime, format_options, [result | acc])
@@ -633,7 +707,7 @@ defmodule Calendar do
     result =
       datetime
       |> Date.day_of_week()
-      |> format_options.day_of_week_names.()
+      |> apply_format(format_options.day_of_week_names, datetime)
       |> pad_leading(width, pad)
 
     parse(rest, datetime, format_options, [result | acc])
@@ -643,7 +717,7 @@ defmodule Calendar do
   defp format_modifiers("b" <> rest, width, pad, datetime, format_options, acc) do
     result =
       datetime.month
-      |> format_options.abbreviated_month_names.()
+      |> apply_format(format_options.abbreviated_month_names, datetime)
       |> pad_leading(width, pad)
 
     parse(rest, datetime, format_options, [result | acc])
@@ -651,7 +725,10 @@ defmodule Calendar do
 
   # Full month name
   defp format_modifiers("B" <> rest, width, pad, datetime, format_options, acc) do
-    result = datetime.month |> format_options.month_names.() |> pad_leading(width, pad)
+    result =
+      datetime.month
+      |> apply_format(format_options.month_names, datetime)
+      |> pad_leading(width, pad)
 
     parse(rest, datetime, format_options, [result | acc])
   end
@@ -705,7 +782,7 @@ defmodule Calendar do
 
   # Hour using a 12-hour clock
   defp format_modifiers("I" <> rest, width, pad, datetime, format_options, acc) do
-    result = (rem(datetime.hour() + 23, 12) + 1) |> Integer.to_string() |> pad_leading(width, pad)
+    result = (rem(datetime.hour + 23, 12) + 1) |> Integer.to_string() |> pad_leading(width, pad)
     parse(rest, datetime, format_options, [result | acc])
   end
 
@@ -729,7 +806,11 @@ defmodule Calendar do
 
   # "AM" or "PM" (noon is "PM", midnight as "AM")
   defp format_modifiers("p" <> rest, width, pad, datetime, format_options, acc) do
-    result = datetime.hour |> am_pm(format_options) |> String.upcase() |> pad_leading(width, pad)
+    result =
+      datetime.hour
+      |> am_pm(format_options, datetime)
+      |> String.upcase()
+      |> pad_leading(width, pad)
 
     parse(rest, datetime, format_options, [result | acc])
   end
@@ -738,7 +819,7 @@ defmodule Calendar do
   defp format_modifiers("P" <> rest, width, pad, datetime, format_options, acc) do
     result =
       datetime.hour
-      |> am_pm(format_options)
+      |> am_pm(format_options, datetime)
       |> String.downcase()
       |> pad_leading(width, pad)
 
@@ -903,6 +984,18 @@ defmodule Calendar do
 
   defp do_pad_leading(count, padding, acc),
     do: do_pad_leading(count - 1, padding, [padding | acc])
+
+  defp apply_format(term, formatter, _datetime) when is_function(formatter, 1) do
+    formatter.(term)
+  end
+
+  defp apply_format(term, formatter, datetime) when is_function(formatter, 2) do
+    formatter.(term, datetime)
+  end
+
+  defp apply_format(_term, formatter, _datetime) do
+    raise ArgumentError, "formatter functions must be of arity 1 or 2, got: #{inspect(formatter)}"
+  end
 
   defp options(user_options) do
     default_options = %{

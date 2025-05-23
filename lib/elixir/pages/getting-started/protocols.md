@@ -1,6 +1,11 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Protocols
 
-Protocols are a mechanism to achieve polymorphism in Elixir where you want the behaviour to vary depending on the data type. We are already familiar with one way of solving this type of problem: via pattern matching and guard clauses. Consider a simple utility module that would tell us the type of input variable:
+Protocols are a mechanism to achieve polymorphism in Elixir where you want the behavior to vary depending on the data type. We are already familiar with one way of solving this type of problem: via pattern matching and guard clauses. Consider a simple utility module that would tell us the type of input variable:
 
 ```elixir
 defmodule Utility do
@@ -12,7 +17,7 @@ end
 
 If the use of this module were confined to your own project, you would be able to keep defining new `type/1` functions for each new data type. However, this code could be problematic if it was shared as a dependency by multiple apps because there would be no easy way to extend its functionality.
 
-This is where protocols can help us: protocols allow us to extend the original behaviour for as many data types as we need. That's because **dispatching on a protocol is available to any data type that has implemented the protocol** and a protocol can be implemented by anyone, at any time.
+This is where protocols can help us: protocols allow us to extend the original behavior for as many data types as we need. That's because **dispatching on a protocol is available to any data type that has implemented the protocol** and a protocol can be implemented by anyone, at any time.
 
 Here's how we could write the same `Utility.type/1` functionality as a protocol:
 
@@ -42,7 +47,7 @@ iex> Utility.type(123)
 
 With protocols, however, we are no longer stuck having to continuously modify the same module to support more and more data types. For example, we could spread the `defimpl` calls above over multiple files and Elixir will dispatch the execution to the appropriate implementation based on the data type. Functions defined in a protocol may have more than one input, but the **dispatching will always be based on the data type of the first input**.
 
-One of the most common protocols you may encounter is the `String.Chars` protocol: implementing its `to_string/1` function for your custom structs will tell the Elixir kernel how to represent them as strings. We will explore all built-in protocols later. For now, let's implement our own.
+One of the most common protocols you may encounter is the `String.Chars` protocol: implementing its `to_string/1` function for your custom structs will tell the Elixir kernel how to represent them as strings. We will explore all the built-in protocols later. For now, let's implement our own.
 
 ## Example
 
@@ -162,7 +167,7 @@ end
 
 The implementation above is arguably not a reasonable one. For example, it makes no sense to say that the size of a `PID` or an `Integer` is `0`.
 
-However, we should be fine with the implementation for `Any`, in order to use such implementation we would need to tell our struct to explicitly derive the `Size` protocol:
+However, should we be fine with the implementation for `Any`, in order to use such implementation we would need to tell our struct to explicitly derive the `Size` protocol:
 
 ```elixir
 defmodule OtherUser do
@@ -184,7 +189,7 @@ defprotocol Size do
 end
 ```
 
-As we said in the previous section, the implementation of `Size` for `Any` is not one that can apply to any data type. That's one of the reasons why `@fallback_to_any` is an opt-in behaviour. For the majority of protocols, raising an error when a protocol is not implemented is the proper behaviour. That said, assuming we have implemented `Any` as in the previous section:
+As we said in the previous section, the implementation of `Size` for `Any` is not one that can apply to any data type. That's one of the reasons why `@fallback_to_any` is an opt-in behavior. For the majority of protocols, raising an error when a protocol is not implemented is the proper behavior. That said, assuming we have implemented `Any` as in the previous section:
 
 ```elixir
 defimpl Size, for: Any do
@@ -253,4 +258,4 @@ iex> inspect &(&1+2)
 "#Function<6.71889879/1 in :erl_eval.expr/5>"
 ```
 
-There are other protocols in Elixir but this covers the most common ones. You can learn more about protocols and implementations in the `Protocol` module.
+There are other protocols in Elixir, but this covers the most common ones. You can learn more about protocols and implementations in the `Protocol` module.

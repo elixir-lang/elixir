@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Atom do
   @moduledoc """
   Atoms are constants whose values are their own name.
@@ -67,7 +71,7 @@ defmodule Atom do
   ## Examples
 
       iex> Atom.to_charlist(:"An atom")
-      'An atom'
+      ~c"An atom"
 
   """
   @spec to_charlist(atom) :: charlist

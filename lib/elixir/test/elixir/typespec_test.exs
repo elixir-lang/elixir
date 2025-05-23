@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 # Holds tests for both Kernel.Typespec and Code.Typespec
@@ -14,8 +18,8 @@ defmodule TypespecTest do
           unquote(block)
         end
 
-      :code.delete(TypespecSample)
       :code.purge(TypespecSample)
+      :code.delete(TypespecSample)
       bytecode
     end
   end
@@ -75,6 +79,14 @@ defmodule TypespecTest do
                        @type my_type :: %URI.t(){}
                      end
                    end
+
+      assert_raise Kernel.TypespecError,
+                   ~r"unexpected expression in typespec: t\.Foo",
+                   fn ->
+                     test_module do
+                       @type my_type :: t.Foo
+                     end
+                   end
     end
 
     test "invalid function specification" do
@@ -120,7 +132,7 @@ defmodule TypespecTest do
 
     test "redefined type" do
       assert_raise Kernel.TypespecError,
-                   ~r"type foo/0 is already defined in .*test/elixir/typespec_test.exs:126",
+                   ~r"type foo/0 is already defined in .*test/elixir/typespec_test.exs:138",
                    fn ->
                      test_module do
                        @type foo :: atom
@@ -129,7 +141,7 @@ defmodule TypespecTest do
                    end
 
       assert_raise Kernel.TypespecError,
-                   ~r"type foo/2 is already defined in .*test/elixir/typespec_test.exs:136",
+                   ~r"type foo/2 is already defined in .*test/elixir/typespec_test.exs:148",
                    fn ->
                      test_module do
                        @type foo :: atom
@@ -139,7 +151,7 @@ defmodule TypespecTest do
                    end
 
       assert_raise Kernel.TypespecError,
-                   ~r"type foo/0 is already defined in .*test/elixir/typespec_test.exs:145",
+                   ~r"type foo/0 is already defined in .*test/elixir/typespec_test.exs:157",
                    fn ->
                      test_module do
                        @type foo :: atom
@@ -385,6 +397,7 @@ defmodule TypespecTest do
           @type size :: <<_::3>>
           @type unit :: <<_::_*8>>
           @type size_and_unit :: <<_::3, _::_*8>>
+          @type size_prod_unit :: <<_::3*8>>
         end
 
       assert [
@@ -393,6 +406,10 @@ defmodule TypespecTest do
                type: {:size, {:type, _, :binary, [{:integer, _, 3}, {:integer, _, 0}]}, []},
                type:
                  {:size_and_unit, {:type, _, :binary, [{:integer, _, 3}, {:integer, _, 8}]}, []},
+               type:
+                 {:size_prod_unit,
+                  {:type, _, :binary,
+                   [{:op, _, :*, {:integer, _, 3}, {:integer, _, 8}}, {:integer, _, 0}]}, []},
                type: {:unit, {:type, _, :binary, [{:integer, _, 0}, {:integer, _, 8}]}, []}
              ] = types(bytecode)
     end
@@ -400,13 +417,7 @@ defmodule TypespecTest do
     test "@type with invalid binary spec" do
       assert_raise Kernel.TypespecError, ~r"invalid binary specification", fn ->
         test_module do
-          @type my_type :: <<_::3*8>>
-        end
-      end
-
-      assert_raise Kernel.TypespecError, ~r"invalid binary specification", fn ->
-        test_module do
-          @type my_type :: <<_::atom>>
+          @type my_type :: <<_::atom()>>
         end
       end
 
@@ -547,7 +558,7 @@ defmodule TypespecTest do
     end
 
     test "@type with undefined struct" do
-      assert_raise ArgumentError, ~r"ThisModuleDoesNotExist.__struct__/0 is undefined", fn ->
+      assert_raise ArgumentError, ~r"ThisModuleDoesNotExist.__struct__/1 is undefined", fn ->
         test_module do
           @type my_type :: %ThisModuleDoesNotExist{}
         end
@@ -710,7 +721,8 @@ defmodule TypespecTest do
           @type my_type :: (... -> any)
         end
 
-      assert [type: {:my_type, {:type, _, :fun, []}, []}] = types(bytecode)
+      assert [type: {:my_type, {:type, _, :fun, [{:type, _, :any}, {:type, _, :any, []}]}, []}] =
+               types(bytecode)
     end
 
     test "@type with a fun with multiple arguments and return type" do
@@ -818,7 +830,7 @@ defmodule TypespecTest do
 
       bytecode =
         test_module do
-          Module.eval_quoted(__MODULE__, quoted)
+          Code.eval_quoted(quoted, [], module: __MODULE__)
         end
 
       assert [type: {:my_type, {:atom, _, :foo}, []}] = types(bytecode)
@@ -838,6 +850,19 @@ defmodule TypespecTest do
       assert {:remote_type, _, [{:atom, _, Keyword}, {:atom, _, :t}, []]} = kw
       assert {:remote_type, _, kw_with_value_args} = kw_with_value
       assert [{:atom, _, Keyword}, {:atom, _, :t}, [{:var, _, :value}]] = kw_with_value_args
+    end
+
+    test "@type with macro in alias" do
+      bytecode =
+        test_module do
+          defmacro module() do
+            quote do: __MODULE__
+          end
+
+          @type my_type :: module().Foo
+        end
+
+      assert [type: {:my_type, {:atom, _, TypespecTest.TypespecSample.Foo}, []}] = types(bytecode)
     end
 
     test "@type with a reserved signature" do
@@ -1070,8 +1095,8 @@ defmodule TypespecTest do
                 {TypeModuleAttributes, _}}
              ] = TypeModuleAttributes.typep2()
     after
-      :code.delete(TypeModuleAttributes)
       :code.purge(TypeModuleAttributes)
+      :code.delete(TypeModuleAttributes)
     end
 
     test "@spec, @callback, and @macrocallback as module attributes" do
@@ -1129,8 +1154,8 @@ defmodule TypespecTest do
                 {SpecModuleAttributes, _}}
              ] = SpecModuleAttributes.macrocallback()
     after
-      :code.delete(SpecModuleAttributes)
       :code.purge(SpecModuleAttributes)
+      :code.delete(SpecModuleAttributes)
     end
 
     test "@callback" do
@@ -1195,6 +1220,7 @@ defmodule TypespecTest do
           quote(do: @type(binary_type1() :: <<_::_*8>>)),
           quote(do: @type(binary_type2() :: <<_::3>>)),
           quote(do: @type(binary_type3() :: <<_::3, _::_*8>>)),
+          quote(do: @type(binary_type4() :: <<_::3*8>>)),
           quote(do: @type(tuple_type() :: {integer()})),
           quote(do: @type(ftype() :: (-> any()) | (-> integer()) | (integer() -> integer()))),
           quote(do: @type(cl() :: charlist())),
@@ -1223,7 +1249,7 @@ defmodule TypespecTest do
 
       bytecode =
         test_module do
-          Module.eval_quoted(__MODULE__, quoted)
+          Code.eval_quoted(quoted, [], module: __MODULE__)
         end
 
       types = types(bytecode)
@@ -1265,7 +1291,7 @@ defmodule TypespecTest do
 
           def foo(), do: 1
           def foo(arg), do: arg
-          Module.eval_quoted(__MODULE__, quote(do: (unquote_splicing(quoted))))
+          Code.eval_quoted(quote(do: (unquote_splicing(quoted))), [], module: __MODULE__)
         end
 
       specs =
@@ -1283,32 +1309,32 @@ defmodule TypespecTest do
     end
 
     test "spec_to_quoted with maps with __struct__ key" do
-      defmodule A do
+      defmodule StructA do
         defstruct [:key]
       end
 
-      defmodule B do
+      defmodule StructB do
         defstruct [:key]
       end
 
       bytecode =
         test_module do
-          @spec single_struct(%A{}) :: :ok
+          @spec single_struct(%StructA{}) :: :ok
           def single_struct(arg), do: {:ok, arg}
 
-          @spec single_struct_key(%{__struct__: A}) :: :ok
+          @spec single_struct_key(%{__struct__: StructA}) :: :ok
           def single_struct_key(arg), do: {:ok, arg}
 
           @spec single_struct_key_type(%{__struct__: atom()}) :: :ok
           def single_struct_key_type(arg), do: {:ok, arg}
 
-          @spec union_struct(%A{} | %B{}) :: :ok
+          @spec union_struct(%StructA{} | %StructB{}) :: :ok
           def union_struct(arg), do: {:ok, arg}
 
-          @spec union_struct_key(%{__struct__: A | B}) :: :ok
+          @spec union_struct_key(%{__struct__: StructA | StructB}) :: :ok
           def union_struct_key(arg), do: {:ok, arg}
 
-          @spec union_struct_key_type(%{__struct__: atom() | A | binary()}) :: :ok
+          @spec union_struct_key_type(%{__struct__: atom() | StructA | binary()}) :: :ok
           def union_struct_key_type(arg), do: {:ok, arg}
         end
 
@@ -1323,26 +1349,26 @@ defmodule TypespecTest do
 
       assert Code.Typespec.spec_to_quoted(:single_struct, ast_single_struct)
              |> Macro.to_string() ==
-               "single_struct(%TypespecTest.A{key: term()}) :: :ok"
+               "single_struct(%TypespecTest.StructA{key: term()}) :: :ok"
 
       assert Code.Typespec.spec_to_quoted(:single_struct_key, ast_single_struct_key)
              |> Macro.to_string() ==
-               "single_struct_key(%TypespecTest.A{}) :: :ok"
+               "single_struct_key(%TypespecTest.StructA{}) :: :ok"
 
       assert Code.Typespec.spec_to_quoted(:single_struct_key_type, ast_single_struct_key_type)
              |> Macro.to_string() ==
                "single_struct_key_type(%{__struct__: atom()}) :: :ok"
 
       assert Code.Typespec.spec_to_quoted(:union_struct, ast_union_struct) |> Macro.to_string() ==
-               "union_struct(%TypespecTest.A{key: term()} | %TypespecTest.B{key: term()}) :: :ok"
+               "union_struct(%TypespecTest.StructA{key: term()} | %TypespecTest.StructB{key: term()}) :: :ok"
 
       assert Code.Typespec.spec_to_quoted(:union_struct_key, ast_union_struct_key)
              |> Macro.to_string() ==
-               "union_struct_key(%{__struct__: TypespecTest.A | TypespecTest.B}) :: :ok"
+               "union_struct_key(%{__struct__: TypespecTest.StructA | TypespecTest.StructB}) :: :ok"
 
       assert Code.Typespec.spec_to_quoted(:union_struct_key_type, ast_union_struct_key_type)
              |> Macro.to_string() ==
-               "union_struct_key_type(%{__struct__: atom() | TypespecTest.A | binary()}) :: :ok"
+               "union_struct_key_type(%{__struct__: atom() | TypespecTest.StructA | binary()}) :: :ok"
     end
 
     test "non-variables are given as arguments" do
@@ -1486,7 +1512,7 @@ defmodule TypespecTest do
 
       bytecode =
         test_module do
-          Module.eval_quoted(__MODULE__, quoted)
+          Code.eval_quoted(quoted, [], module: __MODULE__)
         end
 
       types = types(bytecode)
@@ -1519,9 +1545,6 @@ defmodule TypespecTest do
           {:literal_struct_all_fields_key_type, _, _} ->
             assert ast_string ==
                      "@type literal_struct_all_fields_key_type() :: %TypespecTest.SomeStruct{key: integer()}"
-
-          {:built_in_fun, _, _} ->
-            assert ast_string == "@type built_in_fun() :: (... -> any())"
 
           {:built_in_nonempty_list, _, _} ->
             assert ast_string == "@type built_in_nonempty_list() :: [...]"
@@ -1582,21 +1605,27 @@ defmodule TypespecTest do
     """)
 
     [type: type] = types(:typespec_test_mod)
-    line = 5
 
     assert Code.Typespec.type_to_quoted(type) ==
-             {:"::", [], [{:t, [], [{:x, [line: line], nil}]}, [{:x, [line: line], nil}]]}
+             {:"::", [],
+              [
+                {:t, [], [{:x, meta(5, 9), nil}]},
+                [{:x, meta(5, 20), nil}]
+              ]}
 
     [{{:f, 1}, [spec]}] = specs(:typespec_test_mod)
-    line = 7
 
     assert Code.Typespec.spec_to_quoted(:f, spec) ==
-             {:when, [line: line],
+             {:when, meta(7, 8),
               [
-                {:"::", [line: line],
-                 [{:f, [line: line], [{:x, [line: line], nil}]}, {:x, [line: line], nil}]},
-                [x: {:var, [line: line], nil}]
+                {:"::", meta(7, 8),
+                 [{:f, meta(7, 8), [{:x, meta(7, 9), nil}]}, {:x, meta(7, 15), nil}]},
+                [x: {:var, meta(7, 8), nil}]
               ]}
+  end
+
+  defp meta(line, column) do
+    [line: line, column: column]
   end
 
   defp erlc(context, module, code) do

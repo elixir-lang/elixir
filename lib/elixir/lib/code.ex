@@ -1,16 +1,20 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Code do
   @moduledoc ~S"""
   Utilities for managing code compilation, code evaluation, and code loading.
 
   This module complements Erlang's [`:code` module](`:code`)
-  to add behaviour which is specific to Elixir. For functions to
+  to add behavior which is specific to Elixir. For functions to
   manipulate Elixir's AST (rather than evaluating it), see the
   `Macro` module.
 
   ## Working with files
 
   This module contains three functions for compiling and evaluating files.
-  Here is a summary of them and their behaviour:
+  Here is a summary of them and their behavior:
 
     * `require_file/2` - compiles a file and tracks its name. It does not
       compile the file again if it has been previously required.
@@ -123,6 +127,11 @@ defmodule Code do
       of the imported function/macro. A :remote_function/:remote_macro event
       may still be emitted for the imported module/name/arity.
 
+    * `{:imported_quoted, meta, module, name, [arity]}` - traced whenever an
+      imported function or macro is processed inside a `quote/2`. `meta` is the
+      call AST metadata, `module` is the module the import is from, followed by
+      the `name` and a list of `arities` of the imported function/macro.
+
     * `{:alias, meta, alias, as, opts}` - traced whenever `alias` is aliased
       to `as`. `meta` is the alias AST metadata and `opts` are the alias options.
 
@@ -158,6 +167,10 @@ defmodule Code do
       of keys to traverse in the application environment and `return` is either
       `{:ok, value}` or `:error`.
 
+    * `:defmodule` - (since v1.16.2) traced as soon as the definition of a module
+      starts. This is invoked early on in the module life cycle, `Module.open?/1`
+      still returns `false` for such traces
+
     * `{:on_module, bytecode, _ignore}` - (since v1.13.0) traced whenever a module
       is defined. This is equivalent to the `@after_compile` callback and invoked
       after any `@after_compile` in the given module. The third element is currently
@@ -176,7 +189,7 @@ defmodule Code do
 
       defmodule MyTracer do
         def trace({:remote_function, _meta, module, name, arity}, env) do
-          IO.puts "#{env.file}:#{env.line} #{inspect(module)}.#{name}/#{arity}"
+          IO.puts("#{env.file}:#{env.line} #{inspect(module)}.#{name}/#{arity}")
           :ok
         end
 
@@ -196,34 +209,58 @@ defmodule Code do
 
   @typedoc """
   Diagnostics returned by the compiler and code evaluation.
+
+  The file and position relate to where the diagnostic should be shown.
+  If there is a file and position, then the diagnostic is precise
+  and you can use the given file and position for generating snippets,
+  IDEs annotations, and so on. An optional span is available with
+  the line and column the diagnostic ends.
+
+  Otherwise, a stacktrace may be given, which you can place your own
+  heuristics to provide better reporting.
+
+  The source field points to the source file the compiler tracked
+  the error to. For example, a file `lib/foo.ex` may embed `.eex`
+  templates from `lib/foo/bar.eex`. A syntax error on the EEx template
+  will point to file `lib/foo/bar.eex` but the source is `lib/foo.ex`.
   """
   @type diagnostic(severity) :: %{
-          required(:file) => Path.t(),
+          required(:source) => Path.t() | nil,
+          required(:file) => Path.t() | nil,
           required(:severity) => severity,
           required(:message) => String.t(),
-          required(:position) => position,
+          required(:position) => position(),
           required(:stacktrace) => Exception.stacktrace(),
-          required(:span) => {non_neg_integer, non_neg_integer} | nil,
+          required(:span) => {line :: pos_integer(), column :: pos_integer()} | nil,
+          optional(:details) => term(),
           optional(any()) => any()
         }
 
   @typedoc "The line. 0 indicates no line."
   @type line() :: non_neg_integer()
-  @type position() :: line() | {pos_integer(), column :: non_neg_integer}
+
+  @typedoc """
+  The position of the diagnostic.
+
+  Can be either a line number or a `{line, column}`.
+  Line and columns numbers are one-based.
+  A position of `0` represents unknown.
+  """
+  @type position() :: line() | {line :: pos_integer(), column :: pos_integer()}
 
   @boolean_compiler_options [
     :docs,
     :debug_info,
     :ignore_already_consolidated,
     :ignore_module_conflict,
-    :relative_paths,
-    :warnings_as_errors
+    :relative_paths
   ]
 
-  @list_compiler_options [:no_warn_undefined, :tracers, :parser_options]
+  @list_compiler_options [:tracers, :parser_options]
 
   @available_compiler_options @boolean_compiler_options ++
-                                @list_compiler_options ++ [:on_undefined_variable]
+                                @list_compiler_options ++
+                                [:on_undefined_variable, :infer_signatures, :no_warn_undefined]
 
   @doc """
   Lists all required files.
@@ -310,7 +347,7 @@ defmodule Code do
 
     * `:cache` - (since v1.15.0) when true, the code path is cached
       the first time it is traversed in order to reduce file system
-      operations. It requires Erlang/OTP 26, otherwise it is a no-op.
+      operations.
 
   """
   @spec append_path(Path.t(), cache: boolean()) :: true | false
@@ -341,7 +378,7 @@ defmodule Code do
 
     * `:cache` - (since v1.15.0) when true, the code path is cached
       the first time it is traversed in order to reduce file system
-      operations. It requires Erlang/OTP 26, otherwise it is a no-op.
+      operations.
 
   """
   @spec prepend_path(Path.t(), cache: boolean()) :: boolean()
@@ -370,7 +407,7 @@ defmodule Code do
 
     * `:cache` - when true, the code path is cached the first time
       it is traversed in order to reduce file system operations.
-      It requires Erlang/OTP 26, otherwise it is a no-op.
+
   """
   @doc since: "1.15.0"
   @spec prepend_paths([Path.t()], cache: boolean()) :: :ok
@@ -399,7 +436,7 @@ defmodule Code do
 
     * `:cache` - when true, the code path is cached the first time
       it is traversed in order to reduce file system operations.
-      It requires Erlang/OTP 26, otherwise it is a no-op.
+
   """
   @doc since: "1.15.0"
   @spec append_paths([Path.t()], cache: boolean()) :: :ok
@@ -479,14 +516,9 @@ defmodule Code do
 
   ## Options
 
-  Options can be:
-
-    * `:file` - the file to be considered in the evaluation
-
-    * `:line` - the line on which the script starts
-
-  Additionally, you may also pass an environment as second argument,
-  so the evaluation happens within that environment.
+  It accepts the same options as `env_for_eval/1`. Additionally, you may
+  also pass an environment as second argument, so the evaluation happens
+  within that environment.
 
   Returns a tuple of the form `{value, binding}`, where `value` is the value
   returned from evaluating `string`. If an error occurs while evaluating
@@ -520,7 +552,8 @@ defmodule Code do
   all imports, requires and aliases defined in the current environment
   will be automatically carried over:
 
-      iex> {result, binding} = Code.eval_string("a + b", [a: 1, b: 2], __ENV__)
+      iex> require Integer
+      iex> {result, binding} = Code.eval_string("if Integer.is_odd(a), do: a + b", [a: 1, b: 2], __ENV__)
       iex> result
       3
       iex> Enum.sort(binding)
@@ -631,15 +664,17 @@ defmodule Code do
 
   ## Options
 
+  Regular options (do not change the AST):
+
     * `:file` - the file which contains the string, used for error
       reporting
 
     * `:line` - the line the string starts, used for error reporting
 
     * `:line_length` - the line length to aim for when formatting
-      the document. Defaults to 98. Note this value is used as
-      guideline but there are situations where it is not enforced.
-      See the "Line length" section below for more information
+      the document. Defaults to 98. This value indicates when an expression
+      should be broken over multiple lines but it is not guaranteed
+      to do so. See the "Line length" section below for more information
 
     * `:locals_without_parens` - a keyword list of name and arity
       pairs that should be kept without parens whenever possible.
@@ -654,28 +689,42 @@ defmodule Code do
       If you set it to `false` later on, `do`-`end` blocks won't be
       converted back to keywords.
 
-    * `:normalize_bitstring_modifiers` (since v1.14.0) - when `true`,
+  Migration options (change the AST), see the "Migration formatting" section below:
+
+    * `:migrate` (since v1.18.0) - when `true`, sets all other migration options
+      to `true` by default. Defaults to `false`.
+
+    * `:migrate_bitstring_modifiers` (since v1.18.0) - when `true`,
       removes unnecessary parentheses in known bitstring
       [modifiers](`<<>>/1`), for example `<<foo::binary()>>`
       becomes `<<foo::binary>>`, or adds parentheses for custom
       modifiers, where `<<foo::custom_type>>` becomes `<<foo::custom_type()>>`.
-      Defaults to `true`. This option changes the AST.
+      Defaults to the value of the `:migrate` option. This option changes the AST.
 
-    * `:normalize_charlists_as_sigils` (since v1.15.0) - when `true`,
+    * `:migrate_call_parens_on_pipe` (since v1.19.0) - when `true`,
+      formats calls on the right-hand side of the pipe operator to always include
+      parentheses, for example `foo |> bar` becomes `foo |> bar()` and
+      `foo |> mod.fun` becomes `foo |> mod.fun()`.
+      Parentheses are always added for qualified calls like `foo |> Bar.bar` even
+      when this option is `false`.
+      Defaults to the value of the `:migrate` option. This option changes the AST.
+
+    * `:migrate_charlists_as_sigils` (since v1.18.0) - when `true`,
       formats charlists as [`~c`](`Kernel.sigil_c/2`) sigils, for example
       `'foo'` becomes `~c"foo"`.
-      Defaults to `true`. This option changes the AST.
+      Defaults to the value of the `:migrate` option. This option changes the AST.
+
+    * `:migrate_unless` (since v1.18.0) - when `true`,
+      rewrites `unless` expressions using `if` with a negated condition, for example
+      `unless foo, do:` becomes `if !foo, do:`.
+      Defaults to the value of the `:migrate` option. This option changes the AST.
 
   ## Design principles
 
   The formatter was designed under three principles.
 
-  First, the formatter never changes the semantics of the code.
+  First, the formatter never changes the semantics of the code by default.
   This means the input AST and the output AST are almost always equivalent.
-  The only cases where the formatter will change the AST is when the input AST
-  would cause *compiler warnings* and the output AST won't. The cases where
-  the formatter changes the AST can be disabled through formatting options
-  if desired.
 
   The second principle is to provide as little configuration as possible.
   This eases the formatter adoption by removing contention points while
@@ -686,8 +735,8 @@ defmodule Code do
   specially because a function is named `defmodule`, `def`, or the like. This
   principle mirrors Elixir's goal of being an extensible language where
   developers can extend the language with new constructs as if they were
-  part of the language. When it is absolutely necessary to change behaviour
-  based on the name, this behaviour should be configurable, such as the
+  part of the language. When it is absolutely necessary to change behavior
+  based on the name, this behavior should be configurable, such as the
   `:locals_without_parens` option.
 
   ## Running the formatter
@@ -770,9 +819,10 @@ defmodule Code do
   ## Line length
 
   Another point about the formatter is that the `:line_length` configuration
-  is a guideline. In many cases, it is not possible for the formatter to break
-  your code apart, which means it will go over the line length. For example,
-  if you have a long string:
+  indicates when an expression should be broken over multiple lines but it is
+  not guaranteed to do so. In many cases, it is not possible for the formatter
+  to break your code apart, which means it will go over the line length.
+  For example, if you have a long string:
 
       "this is a very long string that will go over the line length"
 
@@ -785,15 +835,15 @@ defmodule Code do
   The string concatenation makes the code fit on a single line and also
   gives more options to the formatter.
 
-  This may also appear in do/end blocks, where the `do` keyword (or `->`)
-  may go over the line length because there is no opportunity for the
-  formatter to introduce a line break in a readable way. For example,
-  if you do:
+  This may also appear in keywords such as do/end blocks and operators,
+  where the `do` keyword may go over the line length because there is no
+  opportunity for the formatter to introduce a line break in a readable way.
+  For example, if you do:
 
       case very_long_expression() do
       end
 
-  And only the `do` keyword is above the line length, Elixir **will not**
+  And only the `do` keyword is beyond the line length, Elixir **will not**
   emit this:
 
       case very_long_expression()
@@ -831,7 +881,7 @@ defmodule Code do
     * Newlines before certain operators (such as the pipeline operators)
       and before other operators (such as comparison operators)
 
-  The behaviours above are not guaranteed. We may remove or add new
+  The behaviors above are not guaranteed. We may remove or add new
   rules in the future. The goal of documenting them is to provide better
   understanding on what to expect from the formatter.
 
@@ -908,9 +958,8 @@ defmodule Code do
 
   ## Code comments
 
-  The formatter also handles code comments in a way to guarantee a space
-  is always added between the beginning of the comment (#) and the next
-  character.
+  The formatter handles code comments and guarantees a space is always added
+  between the beginning of the comment (#) and the next character.
 
   The formatter also extracts all trailing comments to their previous line.
   For example, the code below
@@ -922,9 +971,25 @@ defmodule Code do
       # world
       hello
 
-  Because code comments are handled apart from the code representation (AST),
-  there are some situations where code comments are seen as ambiguous by the
-  code formatter. For example, the comment in the anonymous function below
+  While the formatter attempts to preserve comments in most situations,
+  that's not always possible, because code comments are handled apart from
+  the code representation (AST). While the formatter can preserve code
+  comments between expressions and function arguments, the formatter
+  cannot currently preserve them around operators. For example, the following
+  code:
+
+      foo() ||
+        # also check for bar
+        bar()
+
+  will move the code comments to before the operator usage:
+
+      # also check for bar
+      foo() ||
+        bar()
+
+  In some situations, code comments can be seen as ambiguous by the formatter.
+  For example, the comment in the anonymous function below
 
       fn
         arg1 ->
@@ -953,6 +1018,21 @@ defmodule Code do
   ## Newlines
 
   The formatter converts all newlines in code from `\r\n` to `\n`.
+
+  ## Migration formatting
+
+  As part of the Elixir release cycle, deprecations are being introduced,
+  emitting warnings which might require existing code to be changed.
+  In order to reduce the burden on developers when upgrading Elixir to the
+  next version, the formatter exposes some options, disabled by default,
+  in order to automate this process.
+
+  These options should address most of the typical use cases, but given they
+  introduce changes to the AST, there is a non-zero risk for meta-programming
+  heavy projects that relied on a specific AST, or projects that are
+  re-defining functions from the `Kernel`. In such cases, migrations cannot
+  be applied blindly and some extra changes might be needed in order to
+  address the deprecation warnings.
   """
   @doc since: "1.6.0"
   @spec format_string!(binary, keyword) :: iodata
@@ -962,10 +1042,9 @@ defmodule Code do
     to_quoted_opts =
       [
         unescape: false,
-        warn_on_unnecessary_quotes: false,
         literal_encoder: &{:ok, {:__block__, &2, [&1]}},
         token_metadata: true,
-        warnings: false
+        emit_warnings: false
       ] ++ opts
 
     {forms, comments} = string_to_quoted_with_comments!(string, to_quoted_opts)
@@ -996,7 +1075,8 @@ defmodule Code do
   Macro arguments are typically transformed by unquoting them into the
   returned quoted expressions (instead of evaluated).
 
-  See `eval_string/3` for a description of `binding` and `opts`.
+  See `eval_string/3` for a description of arguments and return types.
+  The options are described under `env_for_eval/1`.
 
   ## Examples
 
@@ -1047,6 +1127,8 @@ defmodule Code do
     * `:file` - the file to be considered in the evaluation
 
     * `:line` - the line on which the script starts
+
+    * `:module` - the module to run the environment on
   """
   @doc since: "1.14.0"
   def env_for_eval(env_or_opts), do: :elixir.env_for_eval(env_or_opts)
@@ -1094,6 +1176,10 @@ defmodule Code do
     * `:column` - (since v1.11.0) the starting column of the string being parsed.
       Defaults to 1.
 
+    * `:indentation` - (since v1.19.0) the indentation for the string being parsed.
+      This is useful when the code parsed is embedded within another document.
+      Defaults to 0.
+
     * `:columns` - when `true`, attach a `:column` key to the quoted
       metadata. Defaults to `false`.
 
@@ -1101,7 +1187,7 @@ defmodule Code do
       For example, `"null byte\\t\\x00"` will be kept as is instead of being
       converted to a bitstring literal. Note if you set this option to false, the
       resulting AST is no longer valid, but it can be useful to analyze/transform
-      source code, typically in in combination with `quoted_to_algebra/2`.
+      source code, typically in combination with `quoted_to_algebra/2`.
       Defaults to `true`.
 
     * `:existing_atoms_only` - when `true`, raises an error
@@ -1122,13 +1208,12 @@ defmodule Code do
 
     * `:static_atoms_encoder` - the static atom encoder function, see
       "The `:static_atoms_encoder` function" section below. Note this
-      option overrides the `:existing_atoms_only` behaviour for static
+      option overrides the `:existing_atoms_only` behavior for static
       atoms but `:existing_atoms_only` is still used for dynamic atoms,
       such as atoms with interpolations.
 
-    * `:warn_on_unnecessary_quotes` - when `false`, does not warn
-      when atoms, keywords or calls have unnecessary quotes on
-      them. Defaults to `true`.
+    * `:emit_warnings` (since v1.16.0) - when `false`, does not emit
+      tokenizing/parsing related warnings. Defaults to `true`.
 
   ## `Macro.to_string/2`
 
@@ -1169,6 +1254,14 @@ defmodule Code do
     * atoms used to represent single-letter sigils like `:sigil_X`
       (but multi-letter sigils like `:sigil_XYZ` are encoded).
 
+  ## Examples
+
+      iex> Code.string_to_quoted("1 + 3")
+      {:ok, {:+, [line: 1], [1, 3]}}
+
+      iex> Code.string_to_quoted("1 \ 3")
+      {:error, {[line: 1, column: 4], "syntax error before: ", "\"3\""}}
+
   """
   @spec string_to_quoted(List.Chars.t(), keyword) ::
           {:ok, Macro.t()} | {:error, {location :: keyword, binary | {binary, binary}, binary}}
@@ -1192,6 +1285,7 @@ defmodule Code do
   It returns the AST if it succeeds,
   raises an exception otherwise. The exception is a `TokenMissingError`
   in case a token is missing (usually because the expression is incomplete),
+  `MismatchedDelimiterError` (in case of mismatched opening and closing delimiters) and
   `SyntaxError` otherwise.
 
   Check `string_to_quoted/2` for options information.
@@ -1215,7 +1309,7 @@ defmodule Code do
 
   Comments are maps with the following fields:
 
-    * `:line` - The line number the source code
+    * `:line` - The line number of the source code
 
     * `:text` - The full text of the comment, including the leading `#`
 
@@ -1286,13 +1380,11 @@ defmodule Code do
         {forms, comments}
 
       {:error, {location, error, token}} ->
-        :elixir_errors.parse_error(
-          location,
-          Keyword.get(opts, :file, "nofile"),
-          error,
-          token,
-          {charlist, Keyword.get(opts, :line, 1), Keyword.get(opts, :column, 1)}
-        )
+        file = Keyword.get(opts, :file, "nofile")
+        line = Keyword.get(opts, :line, 1)
+        column = Keyword.get(opts, :column, 1)
+        input = {charlist, line, column, Keyword.get(opts, :indentation, 0)}
+        :elixir_errors.parse_error(location, file, error, token, input)
     end
   end
 
@@ -1302,7 +1394,7 @@ defmodule Code do
     comment = %{
       line: line,
       column: column,
-      previous_eol_count: previous_eol_count(tokens),
+      previous_eol_count: min(previous_eol_count(tokens), last_comment_distance(comments, line)),
       next_eol_count: next_eol_count(rest, 0),
       text: List.to_string(comment)
     }
@@ -1315,6 +1407,9 @@ defmodule Code do
   defp next_eol_count([?\n | rest], count), do: next_eol_count(rest, count + 1)
   defp next_eol_count([?\r, ?\n | rest], count), do: next_eol_count(rest, count + 1)
   defp next_eol_count(_, count), do: count
+
+  defp last_comment_distance([%{line: last_line} | _], line), do: line - last_line
+  defp last_comment_distance([], _line), do: :infinity
 
   defp previous_eol_count([{token, {_, _, count}} | _])
        when token in [:eol, :",", :";"] and count > 0 do
@@ -1500,8 +1595,8 @@ defmodule Code do
 
   ## Examples
 
-      Code.compiler_options(warnings_as_errors: true)
-      #=> %{warnings_as_errors: false}
+      Code.compiler_options(infer_signatures: false)
+      #=> %{infer_signatures: [:elixir]}
 
   """
   @spec compiler_options(Enumerable.t({atom, term})) :: %{optional(atom) => term}
@@ -1528,6 +1623,12 @@ defmodule Code do
   @spec get_compiler_option(atom) :: term
   def get_compiler_option(key) when key in @available_compiler_options do
     :elixir_config.get(key)
+  end
+
+  # TODO: Remove me in Elixir v2.0
+  def get_compiler_option(:warnings_as_errors) do
+    IO.warn(":warnings_as_errors is deprecated as part of Code.get_compiler_option/1")
+    :ok
   end
 
   @doc """
@@ -1558,16 +1659,19 @@ defmodule Code do
       Defaults to `true`.
 
     * `:debug_info` - when `true`, retains debug information in the compiled
-      module. Defaults to `true`.
-      This enables static analysis tools as it allows developers to
-      partially reconstruct the original source code. Therefore, disabling
+      module. This option can also be overridden per module using the `@compile`
+      directive. Defaults to `true`.
+
+      This enables tooling to partially reconstruct the original source code,
+      for instance, to perform static analysis of code. Therefore, disabling
       `:debug_info` is not recommended as it removes the ability of the
       Elixir compiler and other tools to provide feedback. If you want to
       remove the `:debug_info` while deploying, tools like `mix release`
       already do such by default.
-      Additionally, `mix test` disables it via the `:test_elixirc_options`
-      project configuration option.
-      This option can also be overridden per module using the `@compile` directive.
+
+      Other environments, such as `mix test`, automatically disables this
+      via the `:test_elixirc_options` project configuration, as there is
+      typically no need to store debug chunks for test files.
 
     * `:ignore_already_consolidated` (since v1.10.0) - when `true`, does not warn
       when a protocol has already been consolidated and a new implementation is added.
@@ -1576,12 +1680,20 @@ defmodule Code do
     * `:ignore_module_conflict` - when `true`, does not warn when a module has
       already been defined. Defaults to `false`.
 
+    * `:infer_signatures` (since v1.18.0) - a list of applications of which modules
+      should be using during type inference. When `false`, it disables module-local
+      signature inference used when type checking remote calls to the compiled
+      module. Type checking will be executed regardless of the value of this option.
+      Defaults to `true`, which is equivalent to setting it to `[:elixir]` only.
+
+      When setting this option, we recommend running `mix clean` so the current module
+      may be compiled from scratch. `mix test` automatically disables this option via
+      the `:test_elixirc_options` project configuration, as there is typically no need
+      to infer signatures for test files.
+
     * `:relative_paths` - when `true`, uses relative paths in quoted nodes,
       warnings, and errors generated by the compiler. Note disabling this option
       won't affect runtime warnings and errors. Defaults to `true`.
-
-    * `:warnings_as_errors` - causes compilation to fail when warnings are
-      generated. Defaults to `false`.
 
     * `:no_warn_undefined` (since v1.10.0) - list of modules and `{Mod, fun, arity}`
       tuples that will not emit warnings that the module or function does not exist
@@ -1605,8 +1717,9 @@ defmodule Code do
       error. You may be set it to `:warn` if you want undefined variables to
       emit a warning and expand as to a local call to the zero-arity function
       of the same name (for example, `node` would be expanded as `node()`).
-      This `:warn` behaviour only exists for compatibility reasons when working
-      with old dependencies.
+      This `:warn` behavior only exists for compatibility reasons when working
+      with old dependencies, its usage is discouraged and it will be removed
+      in future releases.
 
   It always returns `:ok`. Raises an error for invalid options.
 
@@ -1624,16 +1737,6 @@ defmodule Code do
     end
 
     :elixir_config.put(key, value)
-    :ok
-  end
-
-  def put_compiler_option(:no_warn_undefined, value) do
-    if value != :all and not is_list(value) do
-      raise "compiler option :no_warn_undefined should be a list or the atom :all, " <>
-              "got: #{inspect(value)}"
-    end
-
-    :elixir_config.put(:no_warn_undefined, value)
     :ok
   end
 
@@ -1656,8 +1759,61 @@ defmodule Code do
     :ok
   end
 
-  # TODO: Make this option have no effect on Elixir v2.0
+  def put_compiler_option(:infer_signatures, value) do
+    value =
+      cond do
+        value == false ->
+          false
+
+        value == true ->
+          [:elixir]
+
+        is_list(value) and Enum.all?(value, &is_atom/1) ->
+          value
+
+        true ->
+          raise "compiler option :infer_signatures should be a boolean or a list of applications, got: #{inspect(value)}"
+      end
+
+    :elixir_config.put(:infer_signatures, value)
+    :ok
+  end
+
+  def put_compiler_option(:no_warn_undefined, value) do
+    if value != :all and not is_list(value) do
+      raise "compiler option :no_warn_undefined should be a list or the atom :all, " <>
+              "got: #{inspect(value)}"
+    end
+
+    :elixir_config.put(:no_warn_undefined, value)
+    :ok
+  end
+
+  # TODO: Remove me in Elixir v2.0
+  def put_compiler_option(:warnings_as_errors, _value) do
+    IO.warn(
+      ":warnings_as_errors is deprecated as part of Code.put_compiler_option/2, " <>
+        "instead you must pass it as a --warnings-as-errors flag. " <>
+        "If you need to set it as a default in a mix task, you can also set it under aliases: " <>
+        "[compile: \"compile --warnings-as-errors\"]"
+    )
+
+    :ok
+  end
+
+  # TODO: Remove me in Elixir v2.0
   def put_compiler_option(:on_undefined_variable, value) when value in [:raise, :warn] do
+    if value == :warn do
+      IO.warn_once(
+        {__MODULE__, :on_undefined_variable},
+        fn ->
+          "setting :on_undefined_variable to :warn is deprecated. " <>
+            "The warning behaviour will be removed in future releases"
+        end,
+        3
+      )
+    end
+
     :elixir_config.put(:on_undefined_variable, value)
     :ok
   end
@@ -1695,7 +1851,7 @@ defmodule Code do
 
   Returns a list of tuples where the first element is the module name
   and the second one is its bytecode (as a binary). A `file` can be
-  given as second argument which will be used for reporting warnings
+  given as a second argument which will be used for reporting warnings
   and errors.
 
   **Warning**: `string` can be any Elixir code and code can be executed with
@@ -1939,12 +2095,12 @@ defmodule Code do
   @doc """
   Returns `true` if the module is loaded.
 
-  This function doesn't attempt to load the module. For such behaviour,
+  This function doesn't attempt to load the module. For such behavior,
   `ensure_loaded?/1` can be used.
 
   ## Examples
 
-      iex> Code.loaded?(Atom)
+      iex> Code.loaded?(String)
       true
 
       iex> Code.loaded?(NotYetLoaded)
@@ -2006,7 +2162,11 @@ defmodule Code do
   @spec fetch_docs(module | String.t()) ::
           {:docs_v1, annotation, beam_language, format, module_doc :: doc_content, metadata,
            docs :: [doc_element]}
-          | {:error, :module_not_found | :chunk_not_found | {:invalid_chunk, binary}}
+          | {:error,
+             :module_not_found
+             | :chunk_not_found
+             | {:invalid_chunk, binary}
+             | :invalid_beam}
         when annotation: :erl_anno.anno(),
              beam_language: :elixir | :erlang | atom(),
              doc_content: %{optional(binary) => binary} | :none | :hidden,
@@ -2057,7 +2217,8 @@ defmodule Code do
 
   defp get_beam_and_path(module) do
     with {^module, beam, filename} <- :code.get_object_code(module),
-         {:ok, ^module} <- beam |> :beam_lib.info() |> Keyword.fetch(:module) do
+         info_pairs when is_list(info_pairs) <- :beam_lib.info(beam),
+         {:ok, ^module} <- Keyword.fetch(info_pairs, :module) do
       {beam, filename}
     else
       _ -> :error
@@ -2076,6 +2237,9 @@ defmodule Code do
 
       {:error, :beam_lib, {:file_error, _, :enoent}} ->
         {:error, :module_not_found}
+
+      {:error, :beam_lib, _} ->
+        {:error, :invalid_beam}
     end
   end
 

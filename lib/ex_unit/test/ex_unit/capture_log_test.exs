@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule ExUnit.CaptureLogTest do
@@ -89,6 +93,16 @@ defmodule ExUnit.CaptureLogTest do
       assert output =~ "ABC"
       assert output =~ "DEF"
     end)
+  end
+
+  test "exits don't leak" do
+    Process.flag(:trap_exit, true)
+
+    capture_log(fn ->
+      Logger.error("oh no!")
+    end)
+
+    refute_receive {:EXIT, _, _}, 100
   end
 
   describe "with_log/2" do

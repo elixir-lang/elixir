@@ -1,11 +1,22 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Exception do
   @moduledoc """
-  Functions to format throw/catch/exit and exceptions.
+  Functions for dealing with throw/catch/exit and exceptions.
 
-  Note that stacktraces in Elixir are only available inside
-  catch and rescue by using the `__STACKTRACE__/0` variable.
+  This module also defines the behaviour required by custom
+  exceptions. To define your own, see `defexception/1`.
 
-  Do not rely on the particular format returned by the `format*`
+  ## Formatting functions
+
+  Several functions in this module help format exceptions.
+  Some of these functions expect the stacktrace as argument.
+  The stacktrace is typically available inside catch and
+  rescue by using the `__STACKTRACE__/0` variable.
+
+  Do not rely on the particular format returned by the
   functions in this module. They may be changed in future releases
   in order to better suit Elixir's tool chain. In other words,
   by using the functions in this module it is guaranteed you will
@@ -31,7 +42,21 @@ defmodule Exception do
   @type arity_or_args :: non_neg_integer | list
   @type location :: keyword
 
+  @doc """
+  Receives the arguments given to `raise/2` and returns the exception struct.
+
+  The default implementation accepts either a set of keyword arguments
+  that is merged into the struct or a string to be used as the exception's message.
+  """
   @callback exception(term) :: t
+
+  @doc """
+  Receives the exception struct and must return its message.
+
+  Many exceptions have a message field which by default is accessed
+  by this function. However, if an exception does not have a message field,
+  this function must be explicitly implemented.
+  """
   @callback message(t) :: String.t()
 
   @doc """
@@ -58,6 +83,7 @@ defmodule Exception do
   @doc """
   Gets the message for an `exception`.
   """
+  @spec message(t) :: String.t()
   def message(%module{__exception__: true} = exception) do
     try do
       module.message(exception)
@@ -149,6 +175,21 @@ defmodule Exception do
       [] -> message
       _ -> message <> "\n" <> format_stacktrace(stacktrace)
     end
+  end
+
+  @doc false
+  def __format_message_with_term__(message, term) do
+    inspected =
+      term
+      |> inspect(pretty: true)
+      |> String.split("\n")
+      |> Enum.map(fn
+        "" -> ""
+        line -> "    " <> line
+      end)
+      |> Enum.join("\n")
+
+    message <> "\n\n" <> inspected
   end
 
   @doc """
@@ -324,7 +365,7 @@ defmodule Exception do
   defp rewrite_arg(arg) do
     Macro.prewalk(arg, fn
       {:%{}, meta, [__struct__: Range, first: first, last: last, step: step]} ->
-        {:"..//", meta, [first, last, step]}
+        {:..//, meta, [first, last, step]}
 
       other ->
         other
@@ -385,8 +426,8 @@ defmodule Exception do
 
   defp erl_to_ex(mod, fun, args, meta) do
     case :elixir_rewrite.erl_to_ex(mod, fun, args) do
-      {Kernel, fun, args} -> {fun, meta, args}
-      {mod, fun, args} -> {{:., [], [mod, fun]}, meta, args}
+      {Kernel, fun, args, _} -> {fun, meta, args}
+      {mod, fun, args, _} -> {{:., [], [mod, fun]}, meta, args}
     end
   end
 
@@ -647,6 +688,7 @@ defmodule Exception do
   A stacktrace must be given as an argument. If not, the stacktrace
   is retrieved from `Process.info/2`.
   """
+  @spec format_stacktrace(stacktrace | nil) :: String.t()
   def format_stacktrace(trace \\ nil) do
     trace =
       if trace do
@@ -673,6 +715,7 @@ defmodule Exception do
       #=> "#Function<...>/1"
 
   """
+  @spec format_fa(fun, arity) :: String.t()
   def format_fa(fun, arity) when is_function(fun) do
     "#{inspect(fun)}#{format_arity(arity)}"
   end
@@ -697,6 +740,7 @@ defmodule Exception do
   where func is the name of the enclosing function. Convert to
   "anonymous fn in func/arity"
   """
+  @spec format_mfa(module, atom, arity_or_args) :: String.t()
   def format_mfa(module, fun, arity) when is_atom(module) and is_atom(fun) do
     case Code.Identifier.extract_anonymous_fun_parent(fun) do
       {outer_name, outer_arity} ->
@@ -736,6 +780,7 @@ defmodule Exception do
       ""
 
   """
+  @spec format_file_line(String.t() | nil, non_neg_integer | nil, String.t()) :: String.t()
   def format_file_line(file, line, suffix \\ "") do
     cond do
       is_nil(file) -> ""
@@ -767,6 +812,12 @@ defmodule Exception do
       ""
 
   """
+  @spec format_file_line_column(
+          String.t() | nil,
+          non_neg_integer | nil,
+          non_neg_integer | nil,
+          String.t()
+        ) :: String.t()
   def format_file_line_column(file, line, column, suffix \\ "") do
     cond do
       is_nil(file) -> ""
@@ -780,6 +831,194 @@ defmodule Exception do
     case opts[:column] do
       nil -> format_file_line(Keyword.get(opts, :file), Keyword.get(opts, :line), " ")
       col -> format_file_line_column(Keyword.get(opts, :file), Keyword.get(opts, :line), col, " ")
+    end
+  end
+
+  @doc false
+  def format_delimiter(delimiter) do
+    if delimiter |> Atom.to_string() |> String.contains?(["\"", "'"]),
+      do: delimiter,
+      else: ~s("#{delimiter}")
+  end
+
+  @doc false
+  def format_snippet(
+        {start_line, _start_column} = start_pos,
+        {end_line, end_column} = end_pos,
+        description,
+        file,
+        lines,
+        start_message,
+        end_message
+      )
+      when start_line < end_line do
+    max_digits = digits(end_line)
+    general_padding = max(2, max_digits) + 1
+    padding = n_spaces(general_padding)
+
+    relevant_lines =
+      if end_line - start_line < 5 do
+        line_range(lines, start_pos, end_pos, padding, max_digits, start_message, end_message)
+      else
+        trimmed_inbetween_lines(
+          lines,
+          start_pos,
+          end_pos,
+          padding,
+          max_digits,
+          start_message,
+          end_message
+        )
+      end
+
+    """
+     #{padding}#{red("error:")} #{pad_message(description, padding)}
+     #{padding}│
+    #{relevant_lines}
+     #{padding}│
+     #{padding}└─ #{Path.relative_to_cwd(file)}:#{end_line}:#{end_column}\
+    """
+  end
+
+  def format_snippet(
+        {start_line, start_column},
+        {end_line, end_column},
+        description,
+        file,
+        lines,
+        start_message,
+        end_message
+      )
+      when start_line == end_line do
+    max_digits = digits(end_line)
+    general_padding = max(2, max_digits) + 1
+    padding = n_spaces(general_padding)
+    formatted_line = [line_padding(end_line, max_digits), to_string(end_line), " │ ", hd(lines)]
+
+    mismatched_closing_line =
+      [
+        n_spaces(start_column - 1),
+        red("│"),
+        format_end_message(end_column - start_column, end_message)
+      ]
+
+    unclosed_delimiter_line =
+      [padding, " │ ", format_start_message(start_column, start_message)]
+
+    below_line = [padding, " │ ", mismatched_closing_line, "\n", unclosed_delimiter_line]
+
+    """
+     #{padding}#{red("error:")} #{pad_message(description, padding)}
+     #{padding}│
+    #{formatted_line}
+    #{below_line}
+     #{padding}│
+     #{padding}└─ #{Path.relative_to_cwd(file)}:#{end_line}:#{end_column}\
+    """
+  end
+
+  defp line_padding(line_number, max_digits) do
+    line_digits = digits(line_number)
+
+    spacing =
+      if line_digits == 1 do
+        max(2, max_digits)
+      else
+        max_digits - line_digits + 1
+      end
+
+    n_spaces(spacing)
+  end
+
+  defp n_spaces(n), do: String.duplicate(" ", n)
+
+  defp digits(number, acc \\ 1)
+  defp digits(number, acc) when number < 10, do: acc
+  defp digits(number, acc), do: digits(div(number, 10), acc + 1)
+
+  defp trimmed_inbetween_lines(
+         lines,
+         {start_line, start_column},
+         {end_line, end_column},
+         padding,
+         max_digits,
+         start_message,
+         end_message
+       ) do
+    start_padding = line_padding(start_line, max_digits)
+    end_padding = line_padding(end_line, max_digits)
+    first_line = hd(lines)
+    last_line = List.last(lines)
+
+    """
+    #{start_padding}#{start_line} │ #{first_line}
+     #{padding}│ #{format_start_message(start_column, start_message)}
+     ...
+    #{end_padding}#{end_line} │ #{last_line}
+     #{padding}│ #{format_end_message(end_column, end_message)}\
+    """
+  end
+
+  defp line_range(
+         lines,
+         {start_line, start_column},
+         {end_line, end_column},
+         padding,
+         max_digits,
+         start_message,
+         end_message
+       ) do
+    Enum.zip_with(lines, start_line..end_line, fn line, line_number ->
+      line_padding = line_padding(line_number, max_digits)
+
+      cond do
+        line_number == start_line ->
+          [
+            line_padding,
+            to_string(line_number),
+            " │ ",
+            line,
+            "\n",
+            padding,
+            " │ ",
+            format_start_message(start_column, start_message)
+          ]
+
+        line_number == end_line ->
+          [
+            line_padding,
+            to_string(line_number),
+            " │ ",
+            line,
+            "\n",
+            padding,
+            " │ ",
+            format_end_message(end_column, end_message)
+          ]
+
+        true ->
+          [line_padding, to_string(line_number), " │ ", line]
+      end
+    end)
+    |> Enum.intersperse("\n")
+  end
+
+  defp format_end_message(end_column, message),
+    do: [
+      n_spaces(end_column - 1),
+      red(message)
+    ]
+
+  defp format_start_message(start_column, message),
+    do: [n_spaces(start_column - 1), red(message)]
+
+  defp pad_message(message, padding), do: String.replace(message, "\n", "\n #{padding}")
+
+  defp red(string) do
+    if IO.ANSI.enabled?() do
+      [IO.ANSI.red(), string, IO.ANSI.reset()]
+    else
+      string
     end
   end
 end
@@ -820,7 +1059,12 @@ defmodule ArgumentError do
   An exception raised when an argument to a function is invalid.
 
   You can raise this exception when you want to signal that an argument to
-  a function is invalid.
+  a function is invalid. For example, this exception is raised when calling
+  `Integer.to_string/1` with an invalid argument:
+
+      iex> Integer.to_string(1.0)
+      ** (ArgumentError) errors were found at the given arguments:
+      ...
 
   `ArgumentError` exceptions have a single field, `:message` (a `t:String.t/0`),
   which is public and can be accessed freely when reading or creating `ArgumentError`
@@ -828,44 +1072,6 @@ defmodule ArgumentError do
   """
 
   defexception message: "argument error"
-
-  @impl true
-  def blame(
-        exception,
-        [{:erlang, :apply, [module, function, args], _} | _] = stacktrace
-      ) do
-    message =
-      cond do
-        not proper_list?(args) ->
-          "you attempted to apply a function named #{inspect(function)} on module #{inspect(module)} " <>
-            "with arguments #{inspect(args)}. Arguments (the third argument of apply) must always be a proper list"
-
-        # Note that args may be an empty list even if they were supplied
-        not is_atom(module) and is_atom(function) and args == [] ->
-          "you attempted to apply a function named #{inspect(function)} on #{inspect(module)}. " <>
-            "If you are using Kernel.apply/3, make sure the module is an atom. " <>
-            "If you are using the dot syntax, such as module.function(), " <>
-            "make sure the left-hand side of the dot is a module atom"
-
-        not is_atom(module) ->
-          "you attempted to apply a function on #{inspect(module)}. " <>
-            "Modules (the first argument of apply) must always be an atom"
-
-        not is_atom(function) ->
-          "you attempted to apply a function named #{inspect(function)} on module #{inspect(module)}. " <>
-            "However, #{inspect(function)} is not a valid function name. Function names (the second argument " <>
-            "of apply) must always be an atom"
-      end
-
-    {%{exception | message: message}, stacktrace}
-  end
-
-  def blame(exception, stacktrace) do
-    {exception, stacktrace}
-  end
-
-  defp proper_list?(list) when length(list) >= 0, do: true
-  defp proper_list?(_), do: false
 end
 
 defmodule ArithmeticError do
@@ -875,8 +1081,7 @@ defmodule ArithmeticError do
   For example, this exception is raised if you divide by `0`:
 
       iex> 1 / 0
-      ** (ArithmeticError) bad argument in arithmetic expression: 1 / 0
-
+      ** (ArithmeticError) bad argument in arithmetic expression
   """
 
   defexception message: "bad argument in arithmetic expression"
@@ -922,7 +1127,10 @@ defmodule SystemLimitError do
   @moduledoc """
   An exception raised when a system limit has been reached.
 
-  For example, this can happen if you try to create an atom that is too large.
+  For example, this can happen if you try to create an atom that is too large:
+
+      iex> String.to_atom(String.duplicate("a", 100_000))
+      ** (SystemLimitError) a system limit has been reached
   """
 
   defexception message: "a system limit has been reached"
@@ -933,11 +1141,24 @@ defmodule MismatchedDelimiterError do
   An exception raised when a mismatched delimiter is found when parsing code.
 
   For example:
-  - `[1, 2, 3}`
-  - `fn a -> )`
-  """
 
-  @max_lines_shown 5
+      iex> Code.eval_string("[1, 2, 3}")
+      ** (MismatchedDelimiterError) mismatched delimiter found on nofile:1:9:
+      ...
+
+  The following fields of this exceptions are public and can be accessed freely:
+
+    * `:file` (`t:Path.t/0` or `nil`) - the file where the error occurred, or `nil` if
+      the error occurred in code that did not come from a file
+    * `:line` - the line for the opening delimiter
+    * `:column` - the column for the opening delimiter
+    * `:end_line` - the line for the mismatched closing delimiter
+    * `:end_column` - the column for the mismatched closing delimiter
+    * `:opening_delimiter` - an atom representing the opening delimiter
+    * `:closing_delimiter` - an atom representing the mismatched closing delimiter
+    * `:expected_delimiter` - an atom representing the closing delimiter
+    * `:description` - a description of the mismatched delimiter error
+  """
 
   defexception [
     :file,
@@ -947,6 +1168,7 @@ defmodule MismatchedDelimiterError do
     :end_column,
     :opening_delimiter,
     :closing_delimiter,
+    :expected_delimiter,
     :snippet,
     description: "mismatched delimiter error"
   ]
@@ -958,204 +1180,30 @@ defmodule MismatchedDelimiterError do
         end_line: end_line,
         end_column: end_column,
         description: description,
-        opening_delimiter: opening_delimiter,
-        closing_delimiter: _closing_delimiter,
+        expected_delimiter: expected_delimiter,
         file: file,
         snippet: snippet
       }) do
     start_pos = {start_line, start_column}
     end_pos = {end_line, end_column}
     lines = String.split(snippet, "\n")
-    expected_delimiter = :elixir_tokenizer.terminator(opening_delimiter)
+    expected_delimiter = Exception.format_delimiter(expected_delimiter)
 
-    snippet = format_snippet(start_pos, end_pos, description, file, lines, expected_delimiter)
+    start_message = "└ unclosed delimiter"
+    end_message = ~s/└ mismatched closing delimiter (expected #{expected_delimiter})/
+
+    snippet =
+      Exception.format_snippet(
+        start_pos,
+        end_pos,
+        description,
+        file,
+        lines,
+        start_message,
+        end_message
+      )
+
     format_message(file, end_line, end_column, snippet)
-  end
-
-  defp format_snippet(
-         {start_line, _start_column} = start_pos,
-         {end_line, end_column} = end_pos,
-         description,
-         file,
-         lines,
-         expected_delimiter
-       )
-       when start_line < end_line do
-    max_digits = digits(end_line)
-    general_padding = max(2, max_digits) + 1
-    padding = n_spaces(general_padding)
-
-    relevant_lines =
-      if end_line - start_line < @max_lines_shown do
-        line_range(lines, start_pos, end_pos, padding, max_digits, expected_delimiter)
-      else
-        trimmed_inbetween_lines(
-          lines,
-          start_pos,
-          end_pos,
-          padding,
-          max_digits,
-          expected_delimiter
-        )
-      end
-
-    """
-     #{padding}#{red("error:")} #{pad_message(description, padding)}
-     #{padding}│
-    #{relevant_lines}
-     #{padding}│
-     #{padding}└─ #{Path.relative_to_cwd(file)}:#{end_line}:#{end_column}\
-    """
-  end
-
-  defp format_snippet(
-         {start_line, start_column},
-         {end_line, end_column},
-         description,
-         file,
-         lines,
-         expected_delimiter
-       )
-       when start_line == end_line do
-    max_digits = digits(end_line)
-    general_padding = max(2, max_digits) + 1
-    padding = n_spaces(general_padding)
-
-    line = Enum.fetch!(lines, end_line - 1)
-    formatted_line = [line_padding(end_line, max_digits), to_string(end_line), " │ ", line]
-
-    mismatched_closing_line =
-      [
-        n_spaces(start_column - 1),
-        red("│"),
-        mismatched_closing_delimiter(end_column - start_column, expected_delimiter)
-      ]
-
-    unclosed_delimiter_line =
-      [padding, " │ ", unclosed_delimiter(start_column)]
-
-    below_line = [padding, " │ ", mismatched_closing_line, "\n", unclosed_delimiter_line]
-
-    """
-     #{padding}#{red("error:")} #{pad_message(description, padding)}
-     #{padding}│
-    #{formatted_line}
-    #{below_line}
-     #{padding}│
-     #{padding}└─ #{Path.relative_to_cwd(file)}:#{end_line}:#{end_column}\
-    """
-  end
-
-  defp line_padding(line_number, max_digits) do
-    line_digits = digits(line_number)
-
-    spacing =
-      if line_digits == 1 do
-        max(2, max_digits)
-      else
-        max_digits - line_digits + 1
-      end
-
-    n_spaces(spacing)
-  end
-
-  defp n_spaces(n), do: String.duplicate(" ", n)
-
-  defp digits(number, acc \\ 1)
-  defp digits(number, acc) when number < 10, do: acc
-  defp digits(number, acc), do: digits(div(number, 10), acc + 1)
-
-  defp trimmed_inbetween_lines(
-         lines,
-         {start_line, start_column},
-         {end_line, end_column},
-         padding,
-         max_digits,
-         expected_delimiter
-       ) do
-    start_padding = line_padding(start_line, max_digits)
-    end_padding = line_padding(end_line, max_digits)
-    first_line = Enum.fetch!(lines, start_line - 1)
-    last_line = Enum.fetch!(lines, end_line - 1)
-
-    """
-    #{start_padding}#{start_line} │ #{first_line}
-     #{padding}│ #{unclosed_delimiter(start_column)}
-     ...
-    #{end_padding}#{end_line} │ #{last_line}
-     #{padding}│ #{mismatched_closing_delimiter(end_column, expected_delimiter)}\
-    """
-  end
-
-  defp line_range(
-         lines,
-         {start_line, start_column},
-         {end_line, end_column},
-         padding,
-         max_digits,
-         expected_delimiter
-       ) do
-    start_line = start_line - 1
-    end_line = end_line - 1
-
-    lines
-    |> Enum.slice(start_line..end_line)
-    |> Enum.zip_with(start_line..end_line, fn line, line_number ->
-      line_number = line_number + 1
-      start_line = start_line + 1
-      end_line = end_line + 1
-
-      line_padding = line_padding(line_number, max_digits)
-
-      cond do
-        line_number == start_line ->
-          [
-            line_padding,
-            to_string(line_number),
-            " │ ",
-            line,
-            "\n",
-            padding,
-            " │ ",
-            unclosed_delimiter(start_column)
-          ]
-
-        line_number == end_line ->
-          [
-            line_padding,
-            to_string(line_number),
-            " │ ",
-            line,
-            "\n",
-            padding,
-            " │ ",
-            mismatched_closing_delimiter(end_column, expected_delimiter)
-          ]
-
-        true ->
-          [line_padding, to_string(line_number), " │ ", line]
-      end
-    end)
-    |> Enum.intersperse("\n")
-  end
-
-  defp mismatched_closing_delimiter(end_column, expected_closing_delimiter),
-    do: [
-      n_spaces(end_column - 1),
-      red(~s/└ mismatched closing delimiter (expected "#{expected_closing_delimiter}")/)
-    ]
-
-  defp unclosed_delimiter(start_column),
-    do: [n_spaces(start_column - 1), red("└ unclosed delimiter")]
-
-  defp pad_message(message, padding), do: String.replace(message, "\n", "\n #{padding}")
-
-  defp red(string) do
-    if IO.ANSI.enabled?() do
-      [IO.ANSI.red(), string, IO.ANSI.reset()]
-    else
-      string
-    end
   end
 
   defp format_message(file, line, column, message) do
@@ -1168,13 +1216,19 @@ defmodule SyntaxError do
   @moduledoc """
   An exception raised when there's a syntax error when parsing code.
 
+  For example:
+
+      iex> Code.eval_string("5 + 5h")
+      ** (SyntaxError) invalid syntax found on nofile:1:5:
+      ...
+
   The following fields of this exceptions are public and can be accessed freely:
 
     * `:file` (`t:Path.t/0` or `nil`) - the file where the error occurred, or `nil` if
       the error occurred in code that did not come from a file
-    * `:line` (`t:non_neg_integer/0`) - the line where the error occurred
-    * `:column` (`t:non_neg_integer/0`) - the column where the error occurred
-
+    * `:line` - the line where the error occurred
+    * `:column` - the column where the error occurred
+    * `:description` - a description of the syntax error
   """
 
   defexception [:file, :line, :column, :snippet, description: "syntax error"]
@@ -1189,7 +1243,7 @@ defmodule SyntaxError do
       })
       when not is_nil(snippet) and not is_nil(column) do
     snippet =
-      :elixir_errors.format_snippet({line, column}, file, description, snippet, :error, [], nil)
+      :elixir_errors.format_snippet(:error, {line, column}, file, description, snippet, %{})
 
     format_message(file, line, column, snippet)
   end
@@ -1202,7 +1256,7 @@ defmodule SyntaxError do
         description: description
       }) do
     snippet =
-      :elixir_errors.format_snippet({line, column}, file, description, nil, :error, [], nil)
+      :elixir_errors.format_snippet(:error, {line, column}, file, description, nil, %{})
 
     padded = "   " <> String.replace(snippet, "\n", "\n   ")
     format_message(file, line, column, padded)
@@ -1218,21 +1272,36 @@ defmodule TokenMissingError do
   @moduledoc """
   An exception raised when a token is missing when parsing code.
 
+  For example:
+
+      iex> Code.eval_string("[1, 2, 3")
+      ** (TokenMissingError) token missing on nofile:1:9:
+      ...
+
   The following fields of this exceptions are public and can be accessed freely:
 
     * `:file` (`t:Path.t/0` or `nil`) - the file where the error occurred, or `nil` if
       the error occurred in code that did not come from a file
-    * `:line` (`t:non_neg_integer/0`) - the line where the error occurred
-    * `:column` (`t:non_neg_integer/0`) - the column where the error occurred
+    * `:line` - the line for the opening delimiter
+    * `:column` - the column for the opening delimiter
+    * `:end_line` - the line for the end of the string
+    * `:end_column` - the column for the end of the string
+    * `:opening_delimiter` - an atom representing the opening delimiter
+    * `:expected_delimiter` - an atom representing the expected delimiter
+    * `:description` - a description of the missing token error
 
+  This is mostly raised by Elixir tooling when compiling and evaluating code.
   """
 
   defexception [
     :file,
     :line,
-    :snippet,
     :column,
+    :end_line,
+    :end_column,
+    :snippet,
     :opening_delimiter,
+    :expected_delimiter,
     description: "expression is incomplete"
   ]
 
@@ -1241,14 +1310,40 @@ defmodule TokenMissingError do
         file: file,
         line: line,
         column: column,
+        end_line: end_line,
         description: description,
+        expected_delimiter: expected_delimiter,
         snippet: snippet
       })
-      when not is_nil(snippet) and not is_nil(column) do
-    snippet =
-      :elixir_errors.format_snippet({line, column}, file, description, snippet, :error, [], nil)
+      when not is_nil(snippet) and not is_nil(column) and not is_nil(end_line) do
+    {trimmed, [last_line | _] = reversed_lines} =
+      snippet
+      |> String.split("\n")
+      |> Enum.reverse()
+      |> Enum.split_while(&(&1 == ""))
 
-    format_message(file, line, column, snippet)
+    end_line = end_line - length(trimmed)
+    end_column = String.length(last_line) + 1
+
+    start_pos = {line, column}
+    end_pos = {end_line, end_column}
+    expected_delimiter = Exception.format_delimiter(expected_delimiter)
+
+    start_message = ~s/└ unclosed delimiter/
+    end_message = ~s/└ missing closing delimiter (expected #{expected_delimiter})/
+
+    snippet =
+      Exception.format_snippet(
+        start_pos,
+        end_pos,
+        description,
+        file,
+        Enum.reverse(reversed_lines),
+        start_message,
+        end_message
+      )
+
+    format_message(file, end_line, end_column, snippet)
   end
 
   @impl true
@@ -1256,13 +1351,13 @@ defmodule TokenMissingError do
         file: file,
         line: line,
         column: column,
+        snippet: snippet,
         description: description
       }) do
     snippet =
-      :elixir_errors.format_snippet({line, column}, file, description, nil, :error, [], nil)
+      :elixir_errors.format_snippet(:error, {line, column}, file, description, snippet, %{})
 
-    padded = "   " <> String.replace(snippet, "\n", "\n   ")
-    format_message(file, line, column, padded)
+    format_message(file, line, column, snippet)
   end
 
   defp format_message(file, line, column, message) do
@@ -1275,12 +1370,18 @@ defmodule CompileError do
   @moduledoc """
   An exception raised when there's an error when compiling code.
 
+  For example:
+
+      1 = y
+      ** (CompileError) iex:1: undefined variable "y"
+
   The following fields of this exceptions are public and can be accessed freely:
 
     * `:file` (`t:Path.t/0` or `nil`) - the file where the error occurred, or `nil` if
       the error occurred in code that did not come from a file
     * `:line` (`t:non_neg_integer/0`) - the line where the error occurred
 
+  This is mostly raised by Elixir tooling when compiling and evaluating code.
   """
 
   defexception [:file, :line, description: "compile error"]
@@ -1298,12 +1399,19 @@ defmodule Kernel.TypespecError do
   @moduledoc """
   An exception raised when there's an error in a typespec.
 
+  For example, if your typespec definition points to an invalid type, you get an exception:
+
+      @type my_type :: intger()
+
+  will raise:
+
+      ** (Kernel.TypespecError) type intger/0 undefined
+
   The following fields of this exceptions are public and can be accessed freely:
 
     * `:file` (`t:Path.t/0` or `nil`) - the file where the error occurred, or `nil` if
       the error occurred in code that did not come from a file
     * `:line` (`t:non_neg_integer/0`) - the line where the error occurred
-
   """
 
   defexception [:file, :line, :description]
@@ -1318,6 +1426,16 @@ defmodule Kernel.TypespecError do
 end
 
 defmodule BadFunctionError do
+  @moduledoc """
+  An exception raised when a function is expected, but something else was given.
+
+  For example:
+
+      iex> value = "hello"
+      iex> value.()
+      ** (BadFunctionError) expected a function, got: "hello"
+  """
+
   defexception [:term]
 
   @impl true
@@ -1331,37 +1449,61 @@ defmodule BadFunctionError do
 end
 
 defmodule BadStructError do
+  @moduledoc deprecated:
+               "This exception is deprecated alongside the struct update syntax that raises it"
   defexception [:struct, :term]
 
   @impl true
   def message(exception) do
-    "expected a struct named #{inspect(exception.struct)}, got: #{inspect(exception.term)}"
+    Exception.__format_message_with_term__(
+      "expected a struct named #{inspect(exception.struct)}, got:",
+      exception.term
+    )
   end
 end
 
 defmodule BadMapError do
   @moduledoc """
-  An exception raised when something expected a map, but received something else.
+  An exception raised when a map is expected, but something else was given.
+
+  For example:
+
+      iex> value = "hello"
+      iex> %{value | key: "value"}
+      ** (BadMapError) expected a map, got:
+      ...
   """
 
   defexception [:term]
 
   @impl true
   def message(exception) do
-    "expected a map, got: #{inspect(exception.term)}"
+    Exception.__format_message_with_term__(
+      "expected a map, got:",
+      exception.term
+    )
   end
 end
 
 defmodule BadBooleanError do
   @moduledoc """
-  An exception raised when an operator expected a boolean, but received something else.
+  An exception raised when a boolean is expected, but something else was given.
+
+  This exception is raised by `and` and `or` when the first argument is not a boolean:
+
+      iex> 123 and true
+      ** (BadBooleanError) expected a boolean on left-side of "and", got:
+      ...
   """
 
   defexception [:term, :operator]
 
   @impl true
   def message(exception) do
-    "expected a boolean on left-side of \"#{exception.operator}\", got: #{inspect(exception.term)}"
+    Exception.__format_message_with_term__(
+      "expected a boolean on left-side of \"#{exception.operator}\", got:",
+      exception.term
+    )
   end
 end
 
@@ -1369,13 +1511,15 @@ defmodule MatchError do
   @moduledoc """
   An exception raised when a pattern match (`=/2`) fails.
 
+  For example:
+
+      iex> [_ | _] = []
+      ** (MatchError) no match of right hand side value:
+      ...
+
   The following fields of this exception are public and can be accessed freely:
 
     * `:term` (`t:term/0`) - the term that did not match the pattern
-
-  For example, this exception gets raised for code like this:
-
-      [_ | _] = []
 
   """
 
@@ -1383,7 +1527,10 @@ defmodule MatchError do
 
   @impl true
   def message(exception) do
-    "no match of right hand side value: #{inspect(exception.term)}"
+    Exception.__format_message_with_term__(
+      "no match of right hand side value:",
+      exception.term
+    )
   end
 end
 
@@ -1392,24 +1539,28 @@ defmodule CaseClauseError do
   An exception raised when a term in a `case/2` expression
   does not match any of the defined `->` clauses.
 
+  For example:
+
+      iex> case System.unique_integer() do
+      ...>   bin when is_binary(bin) -> :oops
+      ...>   :ok -> :neither_this_one
+      ...> end
+      ** (CaseClauseError) no case clause matching:
+      ...
+
   The following fields of this exception are public and can be accessed freely:
 
     * `:term` (`t:term/0`) - the term that did not match any of the clauses
-
-  For example, this exception gets raised for a `case/2` like the following:
-
-      case System.unique_integer() do
-        bin when is_binary(bin) -> :oops
-        :ok -> :neither_this_one
-      end
-
   """
 
   defexception [:term]
 
   @impl true
   def message(exception) do
-    "no case clause matching: #{inspect(exception.term)}"
+    Exception.__format_message_with_term__(
+      "no case clause matching:",
+      exception.term
+    )
   end
 end
 
@@ -1418,28 +1569,32 @@ defmodule WithClauseError do
   An exception raised when a term in a `with/1` expression
   does not match any of the defined `->` clauses in its `else`.
 
-  The following fields of this exception are public and can be accessed freely:
-
-    * `:term` (`t:term/0`) - the term that did not match any of the clauses
-
   For example, this exception gets raised for a `with/1` like the following, because
   the `{:ok, 2}` term does not match the `:error` or `{:error, _}` clauses in the
   `else`:
 
-      with {:ok, 1} <- {:ok, 2} do
-        :woah
-      else
-        :error -> :error
-        {:error, _} -> :error
-      end
+      iex> with {:ok, 1} <- {:ok, 2} do
+      ...>   :woah
+      ...> else
+      ...>   :error -> :error
+      ...>   {:error, _} -> :error
+      ...> end
+      ** (WithClauseError) no with clause matching:
+      ...
 
+  The following fields of this exception are public and can be accessed freely:
+
+    * `:term` (`t:term/0`) - the term that did not match any of the clauses
   """
 
   defexception [:term]
 
   @impl true
   def message(exception) do
-    "no with clause matching: #{inspect(exception.term)}"
+    Exception.__format_message_with_term__(
+      "no with clause matching:",
+      exception.term
+    )
   end
 end
 
@@ -1449,11 +1604,11 @@ defmodule CondClauseError do
 
   For example, this exception gets raised for a `cond/1` like the following:
 
-      cond do
-        1 + 1 == 3 -> :woah
-        nil -> "yeah this won't happen
-      end
-
+      iex> cond do
+      ...>   1 + 1 == 3 -> :woah
+      ...>   nil -> "yeah this won't happen"
+      ...> end
+      ** (CondClauseError) no cond clause evaluated to a truthy value
   """
 
   defexception []
@@ -1466,8 +1621,20 @@ end
 
 defmodule TryClauseError do
   @moduledoc """
-  An exception raised when a term in a `try/1` expression
-  does not match any of the defined `->` clauses in its `else`.
+  An exception raised when none of the `else` clauses in a `try/1` match.
+
+  For example:
+
+      iex> try do
+      ...>   :ok
+      ...> rescue
+      ...>   e -> e
+      ...> else
+      ...>   # :ok -> :ok is missing
+      ...>   :not_ok -> :not_ok
+      ...> end
+      ** (TryClauseError) no try clause matching:
+      ...
 
   The following fields of this exception are public and can be accessed freely:
 
@@ -1478,13 +1645,22 @@ defmodule TryClauseError do
 
   @impl true
   def message(exception) do
-    "no try clause matching: #{inspect(exception.term)}"
+    Exception.__format_message_with_term__(
+      "no try clause matching:",
+      exception.term
+    )
   end
 end
 
 defmodule BadArityError do
   @moduledoc """
   An exception raised when a function is called with the wrong number of arguments.
+
+  For example:
+
+      my_function = fn x, y -> x + y end
+      my_function.(42)
+      ** (BadArityError) #Function<41.39164016/2 in :erl_eval.expr/6> with arity 2 called with 1 argument (42)
   """
 
   defexception [:function, :args]
@@ -1507,31 +1683,27 @@ defmodule UndefinedFunctionError do
   @moduledoc """
   An exception raised when a function is invoked that is not defined.
 
+  For example:
+
+      iex> String.non_existing_fun("hello")
+      ** (UndefinedFunctionError) function String.non_existing_fun/1 is undefined or private
+
   The following fields of this exception are public and can be accessed freely:
 
     * `:module` (`t:module/0`) - the module name
     * `:function` (`t:atom/0`) - the function name
     * `:arity` (`t:non_neg_integer/0`) - the arity of the function
-
-  For example, if you try to call `MyMod.non_existing_fun("hello", 1)`,
-  the error would look like:
-
-      %UndefinedFunctionError{
-        module: MyMod,
-        function: :non_existing_fun,
-        arity: 2,
-        # Other private fields...
-      }
-
   """
 
+  @function_threshold 0.77
+  @max_suggestions 5
   defexception [:module, :function, :arity, :reason, :message]
 
   @impl true
   def message(%{message: nil} = exception) do
     %{reason: reason, module: module, function: function, arity: arity} = exception
-    {message, _loaded?} = message(reason, module, function, arity)
-    message
+    {message, hint_type} = message(reason, module, function, arity)
+    message <> if(hint_type == :suggest_module, do: hint_for_missing_alias(module), else: "")
   end
 
   def message(%{message: message}) do
@@ -1541,11 +1713,11 @@ defmodule UndefinedFunctionError do
   defp message(nil, module, function, arity) do
     cond do
       is_nil(function) or is_nil(arity) ->
-        {"undefined function", false}
+        {"undefined function", :suggest_module}
 
       is_nil(module) ->
         formatted_fun = Exception.format_mfa(module, function, arity)
-        {"function #{formatted_fun} is undefined", false}
+        {"function #{formatted_fun} is undefined", :suggest_module}
 
       function_exported?(module, :module_info, 0) ->
         message(:"function not exported", module, function, arity)
@@ -1557,39 +1729,60 @@ defmodule UndefinedFunctionError do
 
   defp message(:"module could not be loaded", module, function, arity) do
     formatted_fun = Exception.format_mfa(module, function, arity)
-    {"function #{formatted_fun} is undefined (module #{inspect(module)} is not available)", false}
+
+    {"function #{formatted_fun} is undefined (module #{inspect(module)} is not available)",
+     :suggest_module}
   end
 
   defp message(:"function not exported", module, function, arity) do
     formatted_fun = Exception.format_mfa(module, function, arity)
-    {"function #{formatted_fun} is undefined or private", true}
+    {"function #{formatted_fun} is undefined or private", :suggest_function}
+  end
+
+  defp message(:"undefined local", nil, function, arity) do
+    {"function #{function}/#{arity} is undefined (there is no such import)", :no_hint}
   end
 
   defp message(reason, module, function, arity) do
     formatted_fun = Exception.format_mfa(module, function, arity)
-    {"function #{formatted_fun} is undefined (#{reason})", false}
+    {"function #{formatted_fun} is undefined (#{reason})", :suggest_module}
   end
 
   @impl true
   def blame(exception, stacktrace) do
     %{reason: reason, module: module, function: function, arity: arity} = exception
-    {message, loaded?} = message(reason, module, function, arity)
-    message = message <> hint(module, function, arity, loaded?)
+    {message, hint_type} = message(reason, module, function, arity)
+    message = message <> hint(module, function, arity, hint_type)
     {%{exception | message: message}, stacktrace}
   end
 
-  defp hint(nil, _function, 0, _loaded?) do
+  defp hint(_, _, _, :no_hint), do: ""
+
+  defp hint(nil, _function, 0, _hint_type) do
     ". If you are using the dot syntax, such as module.function(), " <>
       "make sure the left-hand side of the dot is a module atom"
   end
 
-  defp hint(module, function, arity, true) do
-    behaviour_hint(module, function, arity) <>
-      hint_for_loaded_module(module, function, arity, nil)
+  defp hint(module, function, arity, :suggest_function) do
+    hint_for_behaviour(module, function, arity) <>
+      hint_for_loaded_module(module, function, arity)
   end
 
-  @max_suggestions 5
-  defp hint(module, function, arity, _loaded?) do
+  defp hint(module, function, arity, :suggest_module) do
+    hint_for_missing_module(module, function, arity)
+  end
+
+  defp hint_for_missing_alias(module) do
+    with "Elixir." <> rest <- Atom.to_string(module),
+         false <- rest =~ "." do
+      ". Make sure the module name is correct and has been specified in full (or that an alias has been defined)"
+    else
+      _ -> ""
+    end
+  end
+
+  @doc false
+  def hint_for_missing_module(module, function, arity) do
     downcased_module = downcase_module_name(module)
     stripped_module = module |> Atom.to_string() |> String.replace_leading("Elixir.", "")
 
@@ -1610,9 +1803,9 @@ defmodule UndefinedFunctionError do
           ["\n      * ", Exception.format_mfa(module, function, arity)]
         end)
 
-      IO.iodata_to_binary([". Did you mean:\n", suggestions, "\n"])
+      ". Did you mean:\n#{suggestions}\n"
     else
-      ""
+      hint_for_missing_alias(module)
     end
   end
 
@@ -1629,7 +1822,7 @@ defmodule UndefinedFunctionError do
   end
 
   @doc false
-  def hint_for_loaded_module(module, function, arity, exports) do
+  def hint_for_loaded_module(module, function, arity) do
     cond do
       macro_exported?(module, function, arity) ->
         ". However, there is a macro with the same name and arity. " <>
@@ -1639,7 +1832,7 @@ defmodule UndefinedFunctionError do
         ", #{message}"
 
       true ->
-        IO.iodata_to_binary(did_you_mean(module, function, exports))
+        IO.iodata_to_binary(did_you_mean(module, function))
     end
   end
 
@@ -1650,11 +1843,39 @@ defmodule UndefinedFunctionError do
     end
   end
 
-  @function_threshold 0.77
-  @max_suggestions 5
+  defp hint_for_behaviour(module, function, arity) do
+    case behaviours_for(module) do
+      [] ->
+        ""
 
-  defp did_you_mean(module, function, exports) do
-    exports = exports || exports_for(module)
+      behaviours ->
+        case Enum.find(behaviours, &expects_callback?(&1, function, arity)) do
+          nil -> ""
+          behaviour -> ", but the behaviour #{inspect(behaviour)} expects it to be present"
+        end
+    end
+  rescue
+    # In case the module was removed while we are computing this
+    UndefinedFunctionError -> ""
+  end
+
+  defp behaviours_for(module) do
+    :attributes
+    |> module.module_info()
+    |> Keyword.get(:behaviour, [])
+  end
+
+  defp expects_callback?(behaviour, function, arity) do
+    callbacks =
+      behaviour.behaviour_info(:callbacks) -- behaviour.behaviour_info(:optional_callbacks)
+
+    Enum.member?(callbacks, {function, arity})
+  end
+
+  ## Shared helpers across hints
+
+  defp did_you_mean(module, function) do
+    exports = exports_for(module)
 
     result =
       case Keyword.take(exports, [function]) do
@@ -1684,35 +1905,6 @@ defmodule UndefinedFunctionError do
     ["      * ", Macro.inspect_atom(:remote_call, fun), ?/, Integer.to_string(arity), ?\n]
   end
 
-  defp behaviour_hint(module, function, arity) do
-    case behaviours_for(module) do
-      [] ->
-        ""
-
-      behaviours ->
-        case Enum.find(behaviours, &expects_callback?(&1, function, arity)) do
-          nil -> ""
-          behaviour -> ", but the behaviour #{inspect(behaviour)} expects it to be present"
-        end
-    end
-  rescue
-    # In case the module was removed while we are computing this
-    UndefinedFunctionError -> ""
-  end
-
-  defp behaviours_for(module) do
-    :attributes
-    |> module.module_info()
-    |> Keyword.get(:behaviour, [])
-  end
-
-  defp expects_callback?(behaviour, function, arity) do
-    callbacks =
-      behaviour.behaviour_info(:callbacks) -- behaviour.behaviour_info(:optional_callbacks)
-
-    Enum.member?(callbacks, {function, arity})
-  end
-
   defp exports_for(module) do
     if function_exported?(module, :__info__, 1) do
       module.__info__(:macros) ++ module.__info__(:functions)
@@ -1721,8 +1913,7 @@ defmodule UndefinedFunctionError do
     end
   rescue
     # In case the module was removed while we are computing this
-    UndefinedFunctionError ->
-      []
+    UndefinedFunctionError -> []
   end
 
   defp deprecated_functions_for(module) do
@@ -1733,8 +1924,7 @@ defmodule UndefinedFunctionError do
     end
   rescue
     # In case the module was removed while we are computing this
-    UndefinedFunctionError ->
-      []
+    UndefinedFunctionError -> []
   end
 end
 
@@ -1742,22 +1932,16 @@ defmodule FunctionClauseError do
   @moduledoc """
   An exception raised when a function call doesn't match any defined clause.
 
+  For example:
+
+      iex> URI.parse(:wrong_argument)
+      ** (FunctionClauseError) no function clause matching in URI.parse/1
+
   The following fields of this exception are public and can be accessed freely:
 
     * `:module` (`t:module/0`) - the module name
     * `:function` (`t:atom/0`) - the function name
     * `:arity` (`t:non_neg_integer/0`) - the arity of the function
-
-  For example, if you try to call a function such as `URI.parse/1` with something
-  other than a string, the error would look like:
-
-      %FunctionClauseError{
-        module: URI,
-        function: :parse,
-        arity: 1,
-        # Other private fields...
-      }
-
   """
 
   defexception [:module, :function, :arity, :kind, :args, :clauses]
@@ -1877,11 +2061,15 @@ defmodule Code.LoadError do
   @moduledoc """
   An exception raised when a file cannot be loaded.
 
+  This is typically raised by functions in the `Code` module, for example:
+
+      Code.require_file("missing_file.exs")
+      ** (Code.LoadError) could not load missing_file.exs. Reason: enoent
+
   The following fields of this exception are public and can be accessed freely:
 
     * `:file` (`t:String.t/0`) - the file name
     * `:reason` (`t:term/0`) - the reason why the file could not be loaded
-
   """
 
   defexception [:file, :message, :reason]
@@ -1898,31 +2086,39 @@ defmodule Protocol.UndefinedError do
   @moduledoc """
   An exception raised when a protocol is not implemented for a given value.
 
+  For example:
+
+      iex> Enum.at("A string!", 0)
+      ** (Protocol.UndefinedError) protocol Enumerable not implemented for BitString
+      ...
+
   The following fields of this exception are public and can be accessed freely:
 
     * `:protocol` (`t:module/0`) - the protocol that is not implemented
     * `:value` (`t:term/0`) - the value that does not implement the protocol
-
-  For example, this code:
-
-      Enum.at("A string!", 0)
-
-  would raise the following exception:
-
-      %Protocol.UndefinedError{
-        protocol: Enumerable,
-        value: "A string!",
-        # ...
-      }
-
   """
 
   defexception [:protocol, :value, description: ""]
 
   @impl true
   def message(%{protocol: protocol, value: value, description: description}) do
-    "protocol #{inspect(protocol)} not implemented for #{inspect(value)} of type " <>
-      value_type(value) <> maybe_description(description) <> maybe_available(protocol)
+    inspected =
+      value
+      |> inspect(pretty: true)
+      # Indent only lines with contents on them
+      |> String.replace(~r/^(?=.+)/m, "    ")
+
+    "protocol #{inspect(protocol)} not implemented for " <>
+      value_type(value) <>
+      maybe_description(description) <>
+      maybe_available(protocol) <>
+      """
+
+
+      Got value:
+
+      #{inspected}
+      """
   end
 
   defp value_type(%{__struct__: struct}), do: "#{inspect(struct)} (a struct)"
@@ -1947,7 +2143,7 @@ defmodule Protocol.UndefinedError do
         ". There are no implementations for this protocol."
 
       {:consolidated, types} ->
-        ". This protocol is implemented for the following type(s): " <>
+        ". This protocol is implemented for: " <>
           Enum.map_join(types, ", ", &inspect/1)
 
       :not_consolidated ->
@@ -1961,13 +2157,17 @@ defmodule KeyError do
   An exception raised when a key is not found in a data structure.
 
   For example, this is raised by `Map.fetch!/2` when the given key
-  cannot be found in the given map.
+  cannot be found in the given map:
+
+      iex> map = %{name: "Alice", age: 25}
+      iex> Map.fetch!(map, :first_name)
+      ** (KeyError) key :first_name not found in:
+      ...
 
   The following fields of this exception are public and can be accessed freely:
 
     * `:term` (`t:term/0`) - the data structure that was searched
     * `:key` (`t:term/0`) - the key that was not found
-
   """
 
   defexception [:key, :term, :message]
@@ -1979,21 +2179,26 @@ defmodule KeyError do
   defp message(key, term) do
     message = "key #{inspect(key)} not found"
 
-    if term != nil do
-      message <> " in: #{inspect(term, pretty: true, limit: :infinity)}"
-    else
-      message
+    cond do
+      term == nil ->
+        message
+
+      is_atom(term) and is_atom(key) ->
+        message <>
+          " in: #{inspect(term)} (if instead you want to invoke #{inspect(term)}.#{key}(), " <>
+          "make sure to add parentheses after the function name)"
+
+      true ->
+        Exception.__format_message_with_term__(
+          message <> " in:",
+          term
+        )
     end
   end
 
   @impl true
   def blame(exception = %{message: message}, stacktrace) when is_binary(message) do
     {exception, stacktrace}
-  end
-
-  def blame(exception = %{term: nil}, stacktrace) do
-    message = message(exception.key, exception.term)
-    {%{exception | message: message}, stacktrace}
   end
 
   def blame(exception, stacktrace) do
@@ -2029,7 +2234,7 @@ defmodule KeyError do
 
     case suggestions do
       [] -> []
-      suggestions -> [". Did you mean:\n\n" | format_suggestions(suggestions)]
+      suggestions -> ["\n\nDid you mean:\n\n" | format_suggestions(suggestions)]
     end
   end
 
@@ -2043,6 +2248,15 @@ defmodule KeyError do
 end
 
 defmodule UnicodeConversionError do
+  @moduledoc """
+  An exception raised when converting data to or from Unicode.
+
+  For example:
+
+      iex> String.to_charlist(<<0xFF>>)
+      ** (UnicodeConversionError) invalid encoding starting at <<255>>
+
+  """
   defexception [:encoded, :message]
 
   def exception(opts) do
@@ -2065,15 +2279,86 @@ defmodule UnicodeConversionError do
   end
 end
 
+defmodule MissingApplicationsError do
+  @moduledoc """
+  An exception that is raised when an application depends on one or more
+  missing applications.
+
+  This exception is used by Mix and other tools. It can also be used by library authors
+  when their library only requires an external application (like a dependency) for a subset
+  of features.
+
+  The fields of this exception are public. See `t:t/0`.
+
+  *Available since v1.18.0.*
+
+  ## Examples
+
+      unless Application.spec(:plug, :vsn) do
+        raise MissingApplicationsError,
+          description: "application :plug is required for testing Plug-related functionality",
+          apps: [{:plug, "~> 1.0"}]
+      end
+
+  """
+
+  @moduledoc since: "1.18.0"
+
+  @type t() :: %__MODULE__{
+          apps: [{Application.app(), Version.requirement()}, ...],
+          description: String.t()
+        }
+
+  defexception apps: [], description: "missing applications found"
+
+  @impl true
+  def message(%__MODULE__{apps: apps, description: description}) do
+    # We explicitly format these as tuples so that they're easier to copy-paste
+    # into dependencies.
+    formatted_apps =
+      Enum.map(apps, fn {app_name, requirement} ->
+        ~s(\n  {#{inspect(app_name)}, "#{requirement}"})
+      end)
+
+    """
+    #{description}
+
+    To address this, include these applications as your dependencies:
+    #{formatted_apps}\
+    """
+  end
+end
+
 defmodule Enum.OutOfBoundsError do
   @moduledoc """
   An exception that is raised when a function expects an enumerable to have
   a certain size but finds that it is too small.
 
-  For example, this is raised by `Access.at!/1`.
+  For example:
+
+      iex> Enum.fetch!([1, 2, 3], 5)
+      ** (Enum.OutOfBoundsError) out of bounds error at position 5 when traversing enumerable [1, 2, 3]
   """
 
-  defexception message: "out of bounds error"
+  defexception [:enumerable, :index, :message]
+
+  @impl true
+  def message(exception = %{message: nil}), do: message(exception.index, exception.enumerable)
+  def message(%{message: message}), do: message
+
+  def message(index, enumerable) do
+    "out of bounds error" <>
+      if index do
+        " at position #{index}"
+      else
+        ""
+      end <>
+      if enumerable do
+        " when traversing enumerable #{inspect(enumerable)}"
+      else
+        ""
+      end
+  end
 end
 
 defmodule Enum.EmptyError do
@@ -2081,7 +2366,11 @@ defmodule Enum.EmptyError do
   An exception that is raised when something expects a non-empty enumerable
   but finds an empty one.
 
-  For example, this is raised by `Enum.min/3`.
+  For example:
+
+      iex> Enum.min([])
+      ** (Enum.EmptyError) empty error
+
   """
 
   defexception message: "empty error"
@@ -2090,6 +2379,11 @@ end
 defmodule File.Error do
   @moduledoc """
   An exception that is raised when a file operation fails.
+
+  For example, this exception is raised, when trying to read a non existent file:
+
+      iex> File.read!("nonexistent_file.txt")
+      ** (File.Error) could not read file "nonexistent_file.txt": no such file or directory
 
   The following fields of this exception are public and can be accessed freely:
 
@@ -2118,6 +2412,11 @@ end
 defmodule File.CopyError do
   @moduledoc """
   An exception that is raised when copying a file fails.
+
+  For example, this exception is raised when trying to copy to file or directory that isn't present:
+
+      iex> File.cp_r!("non_existent", "source_dir/subdir")
+      ** (File.CopyError) could not copy recursively from "non_existent" to "source_dir/subdir". non_existent: no such file or directory
 
   The following fields of this exception are public and can be accessed freely:
 
@@ -2148,6 +2447,11 @@ defmodule File.RenameError do
   @moduledoc """
   An exception that is raised when renaming a file fails.
 
+  For example, this exception is raised when trying to rename a file that isn't present:
+
+    iex> File.rename!("source.txt", "target.txt")
+    ** (File.RenameError) could not rename from "source.txt" to "target.txt": no such file or directory
+
   The following fields of this exception are public and can be accessed freely:
 
     * `:source` (`t:Path.t/0`) - the source path
@@ -2177,6 +2481,11 @@ defmodule File.LinkError do
   @moduledoc """
   An exception that is raised when linking a file fails.
 
+  For example, this exception is raised when trying to link to file that isn't present:
+
+      iex> File.ln!("existing.txt", "link.txt")
+      ** (File.LinkError) could not create hard link from "link.txt" to "existing.txt": no such file or directory
+
   The following fields of this exception are public and can be accessed freely:
 
     * `:existing` (`t:Path.t/0`) - the existing file to link
@@ -2191,12 +2500,25 @@ defmodule File.LinkError do
   def message(exception) do
     formatted = IO.iodata_to_binary(:file.format_error(exception.reason))
 
-    "could not #{exception.action} from #{inspect(exception.existing)} to " <>
-      "#{inspect(exception.new)}: #{formatted}"
+    "could not #{exception.action} from #{inspect(exception.new)} to " <>
+      "#{inspect(exception.existing)}: #{formatted}"
   end
 end
 
 defmodule ErlangError do
+  @moduledoc """
+  An exception raised when invoking an Erlang code that errors
+  with a value not handled by Elixir.
+
+  Most common error reasons, such as `:badarg` are automatically
+  converted into exceptions by Elixir. However, you may invoke some
+  code that emits a custom error reason and those get wrapped into
+  `ErlangError`:
+
+      iex> :erlang.error(:some_invalid_error)
+      ** (ErlangError) Erlang error: :some_invalid_error
+  """
+
   defexception [:original, :reason]
 
   @impl true
@@ -2212,9 +2534,39 @@ defmodule ErlangError do
 
   @doc false
   def normalize(:badarg, stacktrace) do
-    case error_info(:badarg, stacktrace, "errors were found at the given arguments") do
-      {:ok, reason, details} -> %ArgumentError{message: reason <> details}
-      :error -> %ArgumentError{}
+    case stacktrace do
+      [{:erlang, :apply, [module, function, args], _} | _] when not is_atom(module) ->
+        message =
+          cond do
+            is_map(module) and is_atom(function) and is_map_key(module, function) ->
+              "you attempted to apply a function named #{inspect(function)} on a map/struct. " <>
+                "If you are using Kernel.apply/3, make sure the module is an atom. " <>
+                if is_function(module[function]) do
+                  "If you are trying to invoke an anonymous function in a map/struct, " <>
+                    "add a dot between the function name and the parenthesis: map.#{function}.()"
+                else
+                  "If you are using the dot syntax, ensure there are no parentheses " <>
+                    "after the field name, such as map.#{function}"
+                end
+
+            is_atom(function) and args == [] ->
+              "you attempted to apply a function named #{inspect(function)} on #{inspect(module)}. " <>
+                "If you are using Kernel.apply/3, make sure the module is an atom. " <>
+                "If you are using the dot syntax, such as module.function(), " <>
+                "make sure the left-hand side of the dot is an atom representing a module"
+
+            true ->
+              "you attempted to apply a function on #{inspect(module)}. " <>
+                "Modules (the first argument of apply) must always be an atom"
+          end
+
+        %ArgumentError{message: message}
+
+      _ ->
+        case error_info(:badarg, stacktrace, "errors were found at the given arguments") do
+          {:ok, reason, details} -> %ArgumentError{message: reason <> details}
+          :error -> %ArgumentError{}
+        end
     end
   end
 
@@ -2357,7 +2709,7 @@ defmodule ErlangError do
           {:ok, reason, IO.iodata_to_binary([":\n\n" | Enum.map(args_errors, &arg_error/1)])}
 
         general = extra[:general] ->
-          {:ok, reason, ": " <> general}
+          {:ok, reason, ": " <> IO.chardata_to_string(general)}
 
         true ->
           :error
@@ -2373,62 +2725,4 @@ defmodule ErlangError do
   defp nth(2), do: "2nd"
   defp nth(3), do: "3rd"
   defp nth(n), do: "#{n}th"
-end
-
-defmodule Inspect.Error do
-  @moduledoc """
-  Raised when a struct cannot be inspected.
-  """
-  @enforce_keys [:exception_module, :exception_message, :stacktrace, :inspected_struct]
-  defexception @enforce_keys
-
-  @impl true
-  def exception(arguments) when is_list(arguments) do
-    exception = Keyword.fetch!(arguments, :exception)
-    exception_module = exception.__struct__
-    exception_message = Exception.message(exception) |> String.trim_trailing("\n")
-    stacktrace = Keyword.fetch!(arguments, :stacktrace)
-    inspected_struct = Keyword.fetch!(arguments, :inspected_struct)
-
-    %Inspect.Error{
-      exception_module: exception_module,
-      exception_message: exception_message,
-      stacktrace: stacktrace,
-      inspected_struct: inspected_struct
-    }
-  end
-
-  @impl true
-  def message(%__MODULE__{
-        exception_module: exception_module,
-        exception_message: exception_message,
-        inspected_struct: inspected_struct
-      }) do
-    ~s'''
-    got #{inspect(exception_module)} with message:
-
-        """
-    #{pad(exception_message, 4)}
-        """
-
-    while inspecting:
-
-    #{pad(inspected_struct, 4)}
-    '''
-  end
-
-  @doc false
-  def pad(message, padding_length)
-      when is_binary(message) and is_integer(padding_length) and padding_length >= 0 do
-    padding = String.duplicate(" ", padding_length)
-
-    message
-    |> String.split("\n")
-    |> Enum.map(fn
-      "" -> "\n"
-      line -> [padding, line, ?\n]
-    end)
-    |> IO.iodata_to_binary()
-    |> String.trim_trailing("\n")
-  end
 end

@@ -1,21 +1,35 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
 defmodule Diff do
   @moduledoc """
   Utilities for comparing build artifacts.
   """
 
-  @known_chunks ~w(
-    abstract_code
-    debug_info
+  @atom_chunks ~w(
+    atoms
     attributes
     compile_info
+    debug_info
     exports
     labeled_exports
     imports
     indexed_imports
     locals
     labeled_locals
-    atoms
   )a
+
+  @binary_chunks ~w(
+    Attr
+    AtU8
+    CInf
+    Dbgi
+    Docs
+    ExCk
+    ExpT
+    ImpT
+    LocT
+  )c
 
   @doc """
   Compares the build artifacts of two build directories.
@@ -81,30 +95,54 @@ defmodule Diff do
   end
 
   defp beam_diff(file1, content1, file2, content2) do
-    with {:ok, {module, chunks1}} <- :beam_lib.chunks(content1, @known_chunks),
-         {:ok, {^module, chunks2}} <- :beam_lib.chunks(content2, @known_chunks),
-         true <- chunks1 != chunks2 do
-      for {chunk1, chunk2} <- Enum.zip(chunks1, chunks2), chunk1 != chunk2 do
+    chunk_diff(content1, content2, @atom_chunks, &inspect(&1, pretty: true, limit: :infinity)) ||
+      chunk_diff(content1, content2, @binary_chunks, &(&1 |> write_tmp() |> xxd_dump())) ||
+      (
         tmp_file1 =
-          chunk1
-          |> inspect(pretty: true, limit: :infinity)
+          file1
+          |> xxd_dump()
           |> write_tmp()
 
         tmp_file2 =
-          chunk2
-          |> inspect(pretty: true, limit: :infinity)
+          file2
+          |> xxd_dump()
           |> write_tmp()
 
         file_diff(tmp_file1, tmp_file2)
+      )
+  end
+
+  defp chunk_diff(content1, content2, names, formatter) do
+    with {:ok, {module, chunks1}} <- :beam_lib.chunks(content1, names),
+         {:ok, {^module, chunks2}} <- :beam_lib.chunks(content2, names),
+         true <- chunks1 != chunks2 do
+      if length(chunks1) != length(chunks2) do
+        """
+        Different chunks:
+        * #{inspect(chunks1)}
+        * #{inspect(chunks2)}
+        """
+      else
+        for {{name1, chunk1}, {name2, chunk2}} <- Enum.zip(chunks1, chunks2),
+            true = name1 == name2,
+            chunk1 != chunk2 do
+          tmp_file1 = chunk1 |> formatter.() |> write_tmp()
+          tmp_file2 = chunk2 |> formatter.() |> write_tmp()
+          [to_string(name1), ?\n, file_diff(tmp_file1, tmp_file2)]
+        end
       end
     else
-      _ ->
-        file_diff(file1, file2)
+      _ -> nil
     end
   end
 
+  defp xxd_dump(file) do
+    {dump, _} = System.cmd("xxd", [file])
+    dump
+  end
+
   defp file_diff(file1, file2) do
-    {diff, _} = System.cmd("diff", [file1, file2])
+    {diff, _} = System.cmd("diff", ["--suppress-common-lines", file1, file2])
     diff
   end
 
@@ -116,24 +154,22 @@ defmodule Diff do
   end
 
   defp assert_dir!(dir) do
-    unless File.dir?(dir) do
+    if not File.dir?(dir) do
       raise ArgumentError, "#{inspect(dir)} is not a directory"
     end
   end
 
   defp write_tmp(content) do
-    filename = generate_tmp_filename()
+    filename = "tmp-#{System.unique_integer([:positive])}"
     File.mkdir_p!("tmp")
     File.write!(Path.join("tmp", filename), content)
     Path.join("tmp", filename)
   end
+end
 
-  defp generate_tmp_filename do
-    sec = :os.system_time(:second)
-    rand = :rand.uniform(999_999_999)
-    scheduler_id = :erlang.system_info(:scheduler_id)
-    "tmp-#{sec}-#{rand}-#{scheduler_id}"
-  end
+if :deterministic not in :compile.env_compiler_options() do
+  IO.puts("Cannot validate if reproducible without setting ERL_COMPILER_OPTIONS=deterministic")
+  System.halt(1)
 end
 
 case System.argv() do

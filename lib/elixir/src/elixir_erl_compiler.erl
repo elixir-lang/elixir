@@ -1,9 +1,14 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 -module(elixir_erl_compiler).
--export([spawn/1, forms/3, noenv_forms/3, erl_to_core/2]).
+-export([spawn/1, noenv_forms/3, erl_to_core/2, env_compiler_options/0]).
 -include("elixir.hrl").
 
 spawn(Fun) ->
   CompilerInfo = get(elixir_compiler_info),
+  {error_handler, ErrorHandler} = erlang:process_info(self(), error_handler),
 
   CodeDiagnostics =
     case get(elixir_code_diagnostics) of
@@ -13,6 +18,7 @@ spawn(Fun) ->
 
   {_, Ref} =
     spawn_monitor(fun() ->
+      erlang:process_flag(error_handler, ErrorHandler),
       put(elixir_compiler_info, CompilerInfo),
       put(elixir_code_diagnostics, CodeDiagnostics),
 
@@ -41,11 +47,16 @@ copy_diagnostics({Head, _}) ->
     {Tail, Log} -> put(elixir_code_diagnostics, {Head ++ Tail, Log})
   end.
 
-forms(Forms, File, Opts) ->
-  compile(Forms, File, Opts ++ compile:env_compiler_options()).
+env_compiler_options() ->
+  case persistent_term:get(?MODULE, undefined) of
+    undefined ->
+      Options = compile:env_compiler_options() -- [warnings_as_errors],
+      persistent_term:put(?MODULE, Options),
+      Options;
 
-noenv_forms(Forms, File, Opts) ->
-  compile(Forms, File, Opts).
+    Options ->
+      Options
+  end.
 
 erl_to_core(Forms, Opts) ->
   %% TODO: Remove parse transform handling on Elixir v2.0
@@ -59,7 +70,7 @@ erl_to_core(Forms, Opts) ->
       end
   end.
 
-compile(Forms, File, Opts) when is_list(Forms), is_list(Opts), is_binary(File) ->
+noenv_forms(Forms, File, Opts) when is_list(Forms), is_list(Opts), is_binary(File) ->
   Source = elixir_utils:characters_to_list(File),
 
   case erl_to_core(Forms, Opts) of
@@ -73,25 +84,34 @@ compile(Forms, File, Opts) when is_list(Forms), is_list(Opts), is_binary(File) -
           format_warnings(Opts, Warnings),
           {Module, Binary};
 
-        {ok, Module, _Binary, _Warnings} ->
-          Message = io_lib:format(
-            "could not compile module ~ts. We expected the compiler to return a .beam binary but "
-            "got something else. This usually happens because ERL_COMPILER_OPTIONS or @compile "
-            "was set to change the compilation outcome in a way that is incompatible with Elixir",
-            [elixir_aliases:inspect(Module)]
-          ),
+        {ok, Module, _, _} ->
+          incompatible_options("could not compile module ~ts", [elixir_aliases:inspect(Module)], File);
 
-          elixir_errors:compile_error([], File, Message);
+        {ok, Module, _} ->
+          incompatible_options("could not compile module ~ts", [elixir_aliases:inspect(Module)], File);
 
         {error, Errors, Warnings} ->
           format_warnings(Opts, Warnings),
-          format_errors(Errors)
+          format_errors(Errors);
+
+        _ ->
+          incompatible_options("could not compile module", [], File)
       end;
 
     {error, CoreErrors, CoreWarnings} ->
       format_warnings(Opts, CoreWarnings),
       format_errors(CoreErrors)
   end.
+
+incompatible_options(Prefix, Args, File) ->
+  Message = io_lib:format(
+    Prefix ++ ". We expected the compiler to return a .beam binary but "
+    "got something else. This usually happens because ERL_COMPILER_OPTIONS or @compile "
+    "was set to change the compilation outcome in a way that is incompatible with Elixir",
+    Args
+  ),
+
+  elixir_errors:compile_error([], File, Message).
 
 format_errors([]) ->
   exit({nocompile, "compilation failed but no error was raised"});
@@ -119,6 +139,12 @@ format_warnings(Opts, Warnings) ->
 handle_file_warning(_, _File, {_Line, v3_core, {map_key_repeated, _}}) -> ok;
 handle_file_warning(_, _File, {_Line, sys_core_fold, {ignored, useless_building}}) -> ok;
 
+%% We skip all of no_match related to no_clause, clause_type, guard, shadow.
+%% Those have too little information and they overlap with the type system.
+%% We keep the remaining ones because the Erlang compiler performs analyses
+%% on literals (including numbers), which the type system does not do.
+handle_file_warning(_, _File, {_Line, sys_core_fold, {nomatch, Reason}}) when is_atom(Reason) -> ok;
+
 %% Ignore all linting errors (only come up on parse transforms)
 handle_file_warning(_, _File, {_Line, erl_lint, _}) -> ok;
 
@@ -136,7 +162,7 @@ handle_file_error(File, {Line, Module, Desc}) ->
 
 %% Mention the capture operator in make_fun
 custom_format(sys_core_fold, {ignored, {no_effect, {erlang, make_fun, 3}}}) ->
-  "the result of the capture operator & (:erlang.make_fun/3) is never used";
+  "the result of the capture operator & (Function.capture/3) is never used";
 
 %% Make no_effect clauses pretty
 custom_format(sys_core_fold, {ignored, {no_effect, {erlang, F, A}}}) ->
@@ -150,10 +176,6 @@ custom_format(sys_core_fold, {ignored, {no_effect, {erlang, F, A}}}) ->
   end,
   io_lib:format(Fmt, Args);
 
-%% Rewrite nomatch to be more generic, it can happen inside if, unless, and the like
-custom_format(sys_core_fold, {nomatch, X}) when X == guard; X == no_clause ->
-  "this check/guard will always yield the same result";
-
 custom_format(sys_core_fold, {nomatch, {shadow, Line, {ErlName, ErlArity}}}) ->
   {Name, Arity} = elixir_utils:erl_fa_to_elixir_fa(ErlName, ErlArity),
 
@@ -161,17 +183,6 @@ custom_format(sys_core_fold, {nomatch, {shadow, Line, {ErlName, ErlArity}}}) ->
     "this clause for ~ts/~B cannot match because a previous clause at line ~B always matches",
     [Name, Arity, Line]
   );
-
-%% Handle literal eval failures
-custom_format(sys_core_fold, {failed, {eval_failure, {Mod, Name, Arity}, Error}}) ->
-  #{'__struct__' := Struct} = 'Elixir.Exception':normalize(error, Error),
-  {ExMod, ExName, ExArgs} = elixir_rewrite:erl_to_ex(Mod, Name, lists:duplicate(Arity, nil)),
-  Call = 'Elixir.Exception':format_mfa(ExMod, ExName, length(ExArgs)),
-  Trimmed = case Call of
-              <<"Kernel.", Rest/binary>> -> Rest;
-              _ -> Call
-            end,
-  ["the call to ", Trimmed, " will fail with ", elixir_aliases:inspect(Struct)];
 
 custom_format([], Desc) ->
   io_lib:format("~p", [Desc]);

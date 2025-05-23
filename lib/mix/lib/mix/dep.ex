@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Dep do
   @moduledoc false
 
@@ -206,7 +210,7 @@ defmodule Mix.Dep do
       end
 
     Enum.each(apps, fn app ->
-      unless Enum.any?(all_deps, &(&1.app == app)) do
+      if not Enum.any?(all_deps, &(&1.app == app)) do
         Mix.raise("Unknown dependency #{app} for environment #{Mix.env()}")
       end
     end)
@@ -257,7 +261,7 @@ defmodule Mix.Dep do
     # If the dependency is not fetchable, then it is never compiled
     # from scratch and therefore it needs the parent configuration
     # files to know when to recompile.
-    config = [inherit_parent_config_files: not scm.fetchable?] ++ config
+    config = [inherit_parent_config_files: not scm.fetchable?()] ++ config
     env = opts[:env] || :prod
     old_env = Mix.env()
 

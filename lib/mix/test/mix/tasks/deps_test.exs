@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.DepsTest do
@@ -57,7 +61,7 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
-  defmodule RawRepoDep do
+  defmodule RawRepoDepApp do
     def project do
       [
         app: :raw_sample,
@@ -215,6 +219,38 @@ defmodule Mix.Tasks.DepsTest do
     end)
   end
 
+  test "compiles deps using os partitions" do
+    System.put_env("MIX_OS_DEPS_COMPILE_PARTITION_COUNT", "2")
+
+    in_fixture("deps_status", fn ->
+      File.write!("mix.exs", """
+      defmodule ParDepsApp do
+        use Mix.Project
+
+        def project do
+          [
+            app: :par_sample,
+            version: "0.1.0",
+            deps: [
+              {:raw_repo, "0.1.0", path: "custom/raw_repo"},
+              {:git_repo, "0.1.0", path: #{inspect(fixture_path("git_repo"))}}
+            ]
+          ]
+        end
+      end
+      """)
+
+      Mix.Project.in_project(:par_sample, ".", fn _ ->
+        output = ExUnit.CaptureIO.capture_io(fn -> Mix.Tasks.Deps.Compile.run([]) end)
+        assert output =~ ~r/\d> Generated git_repo app/
+        assert output =~ ~r/\d> Generated raw_repo app/
+        assert_received {:mix_shell, :info, ["mix deps.compile running across 2 OS processes"]}
+      end)
+    end)
+  after
+    System.delete_env("MIX_OS_DEPS_COMPILE_PARTITION_COUNT")
+  end
+
   test "doesn't compile any umbrella apps if --skip-umbrella-children is given" do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
@@ -279,36 +315,6 @@ defmodule Mix.Tasks.DepsTest do
       # This one is compiled automatically
       refute_received {:mix_shell, :error, ["* noappfile (deps/noappfile)"]}
       refute_received {:mix_shell, :error, ["  could not find an app file at " <> _]}
-    end)
-  end
-
-  test "does not load deps with --no-deps-loading" do
-    in_fixture("deps_status", fn ->
-      Mix.Project.push(SuccessfulDepsApp)
-
-      # Start from scratch!
-      File.rm_rf("_build")
-
-      Mix.Tasks.Deps.Compile.run([])
-      Mix.Tasks.Deps.Loadpaths.run([])
-      assert File.exists?("_build/dev/lib/ok/ebin/ok.app")
-      assert File.exists?("_build/dev/lib/ok/priv/sample")
-
-      Mix.Tasks.Compile.run([])
-      assert to_charlist(Path.expand("_build/dev/lib/ok/ebin/")) in :code.get_path()
-      assert File.exists?("_build/dev/lib/sample/ebin/sample.app")
-
-      # Remove the deps without build_path
-      Mix.ProjectStack.post_config(deps: [])
-      Mix.State.clear_cache()
-      Mix.Project.pop()
-      Mix.Project.push(SuccessfulDepsApp)
-      Code.delete_path("_build/dev/lib/ok/ebin")
-
-      Mix.Tasks.Deps.Loadpaths.run(["--no-deps-loading"])
-      refute to_charlist(Path.expand("_build/dev/lib/ok/ebin/")) in :code.get_path()
-      assert File.exists?("_build/dev/lib/ok/ebin/ok.app")
-      assert File.exists?("_build/dev/lib/sample/ebin/sample.app")
     end)
   end
 
@@ -440,7 +446,7 @@ defmodule Mix.Tasks.DepsTest do
 
   test "sets deps env to prod by default" do
     in_fixture("deps_status", fn ->
-      Mix.Project.push(RawRepoDep)
+      Mix.Project.push(RawRepoDepApp)
 
       Mix.Tasks.Deps.Update.run(["--all"])
       assert_received {:mix_shell, :info, [":raw_repo env is prod"]}
@@ -537,7 +543,7 @@ defmodule Mix.Tasks.DepsTest do
 
   test "fails on diverged dependencies on get/update" do
     in_fixture("deps_status", fn ->
-      Mix.Project.push(ConflictDepsApp)
+      Mix.Project.push(ConflictDepsApp, "mix.exs")
 
       assert_raise Mix.Error, fn ->
         Mix.Tasks.Deps.Loadpaths.run([])
@@ -608,11 +614,11 @@ defmodule Mix.Tasks.DepsTest do
     end)
   end
 
-  @overriding_msg "  the dependency git_repo in mix.exs is overriding"
+  @overriding_msg "  the dependency git_repo in custom/deps_repo/mix.exs is overriding"
 
   test "fails on diverged dependencies even when optional" do
     in_fixture("deps_status", fn ->
-      Mix.Project.push(ConvergedDepsApp)
+      Mix.Project.push(ConvergedDepsApp, "custom/deps_repo/mix.exs")
 
       File.write!("custom/deps_repo/mix.exs", """
       defmodule DepsRepo do
@@ -700,15 +706,15 @@ defmodule Mix.Tasks.DepsTest do
 
   test "converged dependencies errors if not overriding" do
     in_fixture("deps_status", fn ->
-      Mix.Project.push(NonOverriddenDepsApp)
+      Mix.Project.push(NonOverriddenDepsApp, "custom_mix.exs")
 
       assert_raise Mix.Error, fn ->
         Mix.Tasks.Deps.Loadpaths.run([])
       end
 
       receive do
-        {:mix_shell, :error, ["  the dependency git_repo in mix.exs" <> _ = msg]} ->
-          assert msg =~ "In mix.exs:"
+        {:mix_shell, :error, ["  the dependency git_repo in custom_mix.exs" <> _ = msg]} ->
+          assert msg =~ "In custom_mix.exs:"
 
           assert msg =~
                    "{:git_repo, \"0.1.0\", [env: :prod, git: #{inspect(fixture_path("git_repo"))}]}"
@@ -777,7 +783,7 @@ defmodule Mix.Tasks.DepsTest do
 
   test "checks if compile env changed" do
     in_fixture("deps_status", fn ->
-      Mix.Project.push(RawRepoDep)
+      Mix.Project.push(RawRepoDepApp)
       Mix.Tasks.Deps.Loadpaths.run([])
       assert_receive {:mix_shell, :info, ["Generated raw_repo app"]}
       assert Application.spec(:raw_repo, :vsn)
@@ -792,7 +798,7 @@ defmodule Mix.Tasks.DepsTest do
       Application.unload(:raw_repo)
       Mix.ProjectStack.pop()
       Mix.Task.clear()
-      Mix.Project.push(RawRepoDep)
+      Mix.Project.push(RawRepoDepApp)
       purge([RawRepo])
       Mix.Tasks.Loadconfig.load_compile("config/config.exs")
 

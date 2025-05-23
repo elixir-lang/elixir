@@ -1,3 +1,9 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+  SPDX-FileCopyrightText: 2012 Plataformatec
+-->
+
 # Unicode syntax
 
 Elixir supports Unicode throughout the language. This document is a complete reference of how
@@ -17,7 +23,7 @@ The characters allowed in identifiers are the ones specified by Unicode. General
 
 Elixir imposes many restrictions on identifiers for security purposes. For example, the word "josé" can be written in two ways in Unicode: as the combination of the characters `j o s é` and as a combination of the characters `j o s e ́ `, where the accent is its own character. The former is called NFC form and the latter is the NFD form. Elixir normalizes all characters to be the in the NFC form.
 
-Elixir also disallows mixed-scripts in most scenarios. For example, it is not possible to name a variable `аdmin`, where `а` is in Cyrillic and the remaining characters are in Latin. Doing so will raise the following error:
+Elixir also disallows mixed-scripts which are not explicitly separated by `_`. For example, it is not possible to name a variable `аdmin`, where `а` is in Cyrillic and the remaining characters are in Latin. Doing so will raise the following error:
 
 ```text
 ** (SyntaxError) invalid mixed-script identifier found: аdmin
@@ -33,12 +39,6 @@ Mixed-script identifiers are not supported for security reasons. 'аdmin' is mad
 Make sure all characters in the identifier resolve to a single script or a highly
 restrictive script. See https://hexdocs.pm/elixir/unicode-syntax.html for more information.
 ```
-
-The character must either be all in Cyrillic or all in Latin. The only mixed-scripts that Elixir allows, according to the Highly Restrictive Unicode recommendations, are:
-
-  * Latin and Han with Bopomofo
-  * Latin and Japanese
-  * Latin and Korean
 
 Finally, Elixir will also warn on confusable identifiers in the same file. For example, Elixir will emit a warning if you use both variables `а` (Cyrillic) and `а` (Latin) in your code.
 
@@ -81,7 +81,7 @@ Unicode atoms in Elixir follow the identifier rule above with the following modi
   * `<Start>` additionally includes the code point `_` (005F)
   * `<Continue>` additionally includes the code point `@` (0040)
 
-Note atoms can also be quoted, which allows any characters, such as `:"hello elixir"`. All Elixir operators are also valid atoms, such as `:+`, `:@`, `:|>`, and others. The full description of valid atoms is available in the ["Atoms" section in the syntax reference](syntax-reference.html#atoms).
+Note atoms can also be quoted, which allows any characters, such as `:"hello elixir"`. All Elixir operators are also valid atoms, such as `:+`, `:@`, `:|>`, and others. The full description of valid atoms is available in the ["Atoms" section in the syntax reference](syntax-reference.md#atoms).
 
 #### Variables, local calls, and remote calls
 
@@ -136,11 +136,11 @@ Elixir will not warn on confusability for identifiers made up exclusively of cha
 
 ### C3. Mixed Script Detection
 
-Elixir will not allow tokenization of mixed-script identifiers unless the mixings is one of the exceptions defined in UTS 39 5.2, 'Highly Restrictive'. We use the means described in Section 5.1, Mixed-Script Detection, to determine if script mixing is occurring, with the modification documented in the section 'Additional Normalizations', below.
+Elixir will not allow tokenization of mixed-script identifiers unless it is via chunks separated by an underscore, like `http_сервер`. We use the means described in Section 5.1, Mixed-Script Detection, to determine if script mixing is occurring, with the modification documented in the section 'Additional Normalizations', below.
 
-Examples: Elixir allows an identifiers like `幻ㄒㄧㄤ`, even though it includes characters from multiple 'scripts', because those scripts all 'resolve' to Japanese when applying the resolution rules from UTS 39 5.1. It also allows an atom like `:Tシャツ`, the Japanese word for 't-shirt', which incorporates a Latin capital T, because {Latn, Jpan} is one of the allowed script mixings in the definition of 'Highly Restrictive' in UTS 39 5.2, and it 'covers' the string.
+Examples: Elixir allows an identifiers like `幻ㄒㄧㄤ`, even though it includes characters from multiple 'scripts', because those scripts all 'resolve' to Japanese when applying the resolution rules from UTS 39 5.1. When mixing Latin and Japanese scripts, underscores are necessary, as in `:T_シャツ` (the Japanese word for 't-shirt' with an additional underscore separating the letter T).
 
-However, Elixir would prevent tokenization in code like `if аdmin, do: :ok, else: :err`, where the scriptset for the 'a' character is {Cyrillic} but all other characters have scriptsets of {Latin}. The scriptsets fail to resolve, and the scriptsets from the definition of 'Highly Restrictive' in UTS 39 5.2 do not cover the string either, so a descriptive error is shown.
+Elixir does not allow code like `if аdmin, do: :ok, else: :err`, where the scriptset for the 'a' character is {Cyrillic} but all other characters have scriptsets of {Latin}. The scriptsets fail to resolve and a descriptive error is shown.
 
 ### C4, C5 (inapplicable)
 

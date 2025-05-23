@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Shell.IO do
   @moduledoc """
   This is Mix's default shell.
@@ -71,7 +75,7 @@ defmodule Mix.Shell.IO do
   def yes?(message, options \\ []) do
     default = Keyword.get(options, :default, :yes)
 
-    unless default in [:yes, :no] do
+    if default not in [:yes, :no] do
       raise ArgumentError,
             "expected :default to be either :yes or :no, got: #{inspect(default)}"
     end

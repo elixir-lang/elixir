@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Calendar.ISO do
   @moduledoc """
   The default calendar implementation, a Gregorian calendar following ISO 8601.
@@ -18,7 +22,8 @@ defmodule Calendar.ISO do
 
   The standard library supports a minimal set of possible ISO 8601 features.
   Specifically, the parser only supports calendar dates and does not support
-  ordinal and week formats.
+  ordinal and week formats. Additionally, it supports parsing ISO 8601
+  formatted durations, including negative time units and fractional seconds.
 
   By default Elixir only parses extended-formatted date/times. You can opt-in
   to parse basic-formatted date/times.
@@ -29,7 +34,7 @@ defmodule Calendar.ISO do
 
   Elixir does not support reduced accuracy formats (for example, a date without
   the day component) nor decimal precisions in the lowest component (such as
-  `10:01:25,5`). No functions exist to parse ISO 8601 durations or time intervals.
+  `10:01:25,5`).
 
   #### Examples
 
@@ -230,9 +235,9 @@ defmodule Calendar.ISO do
       ]
     end
 
-  defguardp is_year(year) when year in -9999..9999
-  defguardp is_year_BCE(year) when year in -9999..0
-  defguardp is_year_CE(year) when year in 1..9999
+  defguardp is_year(year) when is_integer(year)
+  defguardp is_year_BCE(year) when year <= 0
+  defguardp is_year_CE(year) when year >= 1
   defguardp is_month(month) when month in 1..12
   defguardp is_day(day) when day in 1..31
   defguardp is_hour(hour) when hour in 0..23
@@ -664,6 +669,87 @@ defmodule Calendar.ISO do
   end
 
   @doc """
+  Parses an ISO 8601 formatted duration string to a list of `Duration` compabitble unit pairs.
+
+  See `Duration.from_iso8601/1`.
+  """
+  @doc since: "1.17.0"
+  @spec parse_duration(String.t()) :: {:ok, [Duration.unit_pair()]} | {:error, atom}
+  def parse_duration("P" <> string) when byte_size(string) > 0 do
+    parse_duration_date(string, [], year: ?Y, month: ?M, week: ?W, day: ?D)
+  end
+
+  def parse_duration("+P" <> string) when byte_size(string) > 0 do
+    parse_duration_date(string, [], year: ?Y, month: ?M, week: ?W, day: ?D)
+  end
+
+  def parse_duration("-P" <> string) when byte_size(string) > 0 do
+    with {:ok, fields} <- parse_duration_date(string, [], year: ?Y, month: ?M, week: ?W, day: ?D) do
+      {:ok,
+       Enum.map(fields, fn
+         {:microsecond, {value, precision}} -> {:microsecond, {-value, precision}}
+         {unit, value} -> {unit, -value}
+       end)}
+    end
+  end
+
+  def parse_duration(_) do
+    {:error, :invalid_duration}
+  end
+
+  defp parse_duration_date("", acc, _allowed), do: {:ok, acc}
+
+  defp parse_duration_date("T" <> string, acc, _allowed) when byte_size(string) > 0 do
+    parse_duration_time(string, acc, hour: ?H, minute: ?M, second: ?S)
+  end
+
+  defp parse_duration_date(string, acc, allowed) do
+    with {integer, <<next, rest::binary>>} <- Integer.parse(string),
+         {key, allowed} <- find_unit(allowed, next) do
+      parse_duration_date(rest, [{key, integer} | acc], allowed)
+    else
+      _ -> {:error, :invalid_date_component}
+    end
+  end
+
+  defp parse_duration_time("", acc, _allowed), do: {:ok, acc}
+
+  defp parse_duration_time(string, acc, allowed) do
+    case Integer.parse(string) do
+      {second, <<delimiter, _::binary>> = rest} when delimiter in [?., ?,] ->
+        case parse_microsecond(rest) do
+          {{ms, precision}, "S"} ->
+            ms =
+              case string do
+                "-" <> _ ->
+                  -ms
+
+                _ ->
+                  ms
+              end
+
+            {:ok, [second: second, microsecond: {ms, precision}] ++ acc}
+
+          _ ->
+            {:error, :invalid_time_component}
+        end
+
+      {integer, <<next, rest::binary>>} ->
+        case find_unit(allowed, next) do
+          {key, allowed} -> parse_duration_time(rest, [{key, integer} | acc], allowed)
+          false -> {:error, :invalid_time_component}
+        end
+
+      _ ->
+        {:error, :invalid_time_component}
+    end
+  end
+
+  defp find_unit([{key, unit} | rest], unit), do: {key, rest}
+  defp find_unit([_ | rest], unit), do: find_unit(rest, unit)
+  defp find_unit([], _unit), do: false
+
+  @doc """
   Returns the `t:Calendar.iso_days/0` format of the specified date.
 
   ## Examples
@@ -809,7 +895,7 @@ defmodule Calendar.ISO do
 
   # Converts count of days since 0000-01-01 to {year, month, day} tuple.
   @doc false
-  def date_from_iso_days(days) when days in -3_652_059..3_652_424 do
+  def date_from_iso_days(days) do
     {year, day_of_year} = days_to_year(days)
     extra_day = if leap_year?(year), do: 1, else: 0
     {month, day_in_month} = year_day_to_year_date(extra_day, day_of_year)
@@ -1141,29 +1227,79 @@ defmodule Calendar.ISO do
         hour,
         minute,
         second,
+        microsecond,
+        format \\ :extended
+      ) do
+    time_to_iodata(hour, minute, second, microsecond, format)
+    |> IO.iodata_to_binary()
+  end
+
+  @doc """
+  Converts the given time into a iodata.
+
+  See `time_to_string/5` for more information.
+
+  ## Examples
+
+      iex> data = Calendar.ISO.time_to_iodata(2, 2, 2, {2, 6})
+      iex> IO.iodata_to_binary(data)
+      "02:02:02.000002"
+
+  """
+  @doc since: "1.19.0"
+  @spec time_to_iodata(
+          Calendar.hour(),
+          Calendar.minute(),
+          Calendar.second(),
+          Calendar.microsecond(),
+          :basic | :extended
+        ) :: iodata
+  def time_to_iodata(
+        hour,
+        minute,
+        second,
         {ms_value, ms_precision} = microsecond,
         format \\ :extended
       )
       when is_hour(hour) and is_minute(minute) and is_second(second) and
              is_microsecond(ms_value, ms_precision) and format in [:basic, :extended] do
-    time_to_string_guarded(hour, minute, second, microsecond, format)
+    time_to_iodata_guarded(hour, minute, second, microsecond, format)
   end
 
-  defp time_to_string_guarded(hour, minute, second, {_, 0}, format) do
-    time_to_string_format(hour, minute, second, format)
+  defp time_to_iodata_guarded(hour, minute, second, {_, 0}, format) do
+    time_to_iodata_format(hour, minute, second, format)
   end
 
-  defp time_to_string_guarded(hour, minute, second, {microsecond, precision}, format) do
-    time_to_string_format(hour, minute, second, format) <>
-      "." <> (microsecond |> zero_pad(6) |> binary_part(0, precision))
+  defp time_to_iodata_guarded(hour, minute, second, {microsecond, precision}, format) do
+    [
+      time_to_iodata_format(hour, minute, second, format),
+      ?.
+      | microseconds_to_iodata(microsecond, precision)
+    ]
   end
 
-  defp time_to_string_format(hour, minute, second, :extended) do
-    zero_pad(hour, 2) <> ":" <> zero_pad(minute, 2) <> ":" <> zero_pad(second, 2)
+  @doc false
+  def microseconds_to_iodata(_microsecond, 0), do: []
+  def microseconds_to_iodata(microsecond, 6), do: zero_pad(microsecond, 6)
+
+  def microseconds_to_iodata(microsecond, precision) do
+    num = div(microsecond, scale_factor(precision))
+    zero_pad(num, precision)
   end
 
-  defp time_to_string_format(hour, minute, second, :basic) do
-    zero_pad(hour, 2) <> zero_pad(minute, 2) <> zero_pad(second, 2)
+  defp scale_factor(1), do: 100_000
+  defp scale_factor(2), do: 10_000
+  defp scale_factor(3), do: 1_000
+  defp scale_factor(4), do: 100
+  defp scale_factor(5), do: 10
+  defp scale_factor(6), do: 1
+
+  defp time_to_iodata_format(hour, minute, second, :extended) do
+    [zero_pad(hour, 2), ?:, zero_pad(minute, 2), ?: | zero_pad(second, 2)]
+  end
+
+  defp time_to_iodata_format(hour, minute, second, :basic) do
+    [zero_pad(hour, 2), zero_pad(minute, 2) | zero_pad(second, 2)]
   end
 
   @doc """
@@ -1191,18 +1327,36 @@ defmodule Calendar.ISO do
   @doc since: "1.4.0"
   @spec date_to_string(year, month, day, :basic | :extended) :: String.t()
   @impl true
-  def date_to_string(year, month, day, format \\ :extended)
+  def date_to_string(year, month, day, format \\ :extended) do
+    date_to_iodata(year, month, day, format)
+    |> IO.iodata_to_binary()
+  end
+
+  @doc """
+  Converts the given date into a iodata.
+
+  See `date_to_string/4` for more information.
+
+  ## Examples
+
+      iex> data = Calendar.ISO.date_to_iodata(2015, 2, 28)
+      iex> IO.iodata_to_binary(data)
+      "2015-02-28"
+  """
+  @doc since: "1.19.0"
+  @spec date_to_iodata(year, month, day, :basic | :extended) :: iodata
+  def date_to_iodata(year, month, day, format \\ :extended)
       when is_integer(year) and is_integer(month) and is_integer(day) and
              format in [:basic, :extended] do
-    date_to_string_guarded(year, month, day, format)
+    date_to_iodata_guarded(year, month, day, format)
   end
 
-  defp date_to_string_guarded(year, month, day, :extended) do
-    zero_pad(year, 4) <> "-" <> zero_pad(month, 2) <> "-" <> zero_pad(day, 2)
+  defp date_to_iodata_guarded(year, month, day, :extended) do
+    [zero_pad(year, 4), ?-, zero_pad(month, 2), ?- | zero_pad(day, 2)]
   end
 
-  defp date_to_string_guarded(year, month, day, :basic) do
-    zero_pad(year, 4) <> zero_pad(month, 2) <> zero_pad(day, 2)
+  defp date_to_iodata_guarded(year, month, day, :basic) do
+    [zero_pad(year, 4), zero_pad(month, 2) | zero_pad(day, 2)]
   end
 
   @doc """
@@ -1245,8 +1399,61 @@ defmodule Calendar.ISO do
         microsecond,
         format \\ :extended
       ) do
-    date_to_string(year, month, day, format) <>
-      " " <> time_to_string(hour, minute, second, microsecond, format)
+    naive_datetime_to_iodata(
+      year,
+      month,
+      day,
+      hour,
+      minute,
+      second,
+      microsecond,
+      format
+    )
+    |> IO.iodata_to_binary()
+  end
+
+  @doc """
+  Converts the given naive_datetime into a iodata.
+
+  See `naive_datetime_to_iodata/8` for more information.
+
+  ## Examples
+
+      iex> data = Calendar.ISO.naive_datetime_to_iodata(2015, 2, 28, 1, 2, 3, {4, 6}, :basic)
+      iex> IO.iodata_to_binary(data)
+      "20150228 010203.000004"
+
+      iex> data = Calendar.ISO.naive_datetime_to_iodata(2015, 2, 28, 1, 2, 3, {4, 6}, :extended)
+      iex> IO.iodata_to_binary(data)
+      "2015-02-28 01:02:03.000004"
+
+  """
+  @doc since: "1.19.0"
+  @spec naive_datetime_to_iodata(
+          year,
+          month,
+          day,
+          Calendar.hour(),
+          Calendar.minute(),
+          Calendar.second(),
+          Calendar.microsecond(),
+          :basic | :extended
+        ) :: iodata
+  def naive_datetime_to_iodata(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        microsecond,
+        format \\ :extended
+      ) do
+    [
+      date_to_iodata(year, month, day, format),
+      ?\s
+      | time_to_iodata(hour, minute, second, microsecond, format)
+    ]
   end
 
   @doc """
@@ -1312,20 +1519,89 @@ defmodule Calendar.ISO do
         utc_offset,
         std_offset,
         format \\ :extended
+      ) do
+    datetime_to_iodata(
+      year,
+      month,
+      day,
+      hour,
+      minute,
+      second,
+      microsecond,
+      time_zone,
+      zone_abbr,
+      utc_offset,
+      std_offset,
+      format
+    )
+    |> IO.iodata_to_binary()
+  end
+
+  @doc """
+  Converts the given datetime into a iodata.
+
+  See `datetime_to_iodata/12` for more information.
+
+  ## Examples
+
+      iex> time_zone = "Etc/UTC"
+      iex> data = Calendar.ISO.datetime_to_iodata(2017, 8, 1, 1, 2, 3, {4, 5}, time_zone, "UTC", 0, 0)
+      iex> IO.iodata_to_binary(data)
+      "2017-08-01 01:02:03.00000Z"
+
+  """
+  @doc since: "1.19.0"
+  @spec datetime_to_iodata(
+          year,
+          month,
+          day,
+          Calendar.hour(),
+          Calendar.minute(),
+          Calendar.second(),
+          Calendar.microsecond(),
+          Calendar.time_zone(),
+          Calendar.zone_abbr(),
+          Calendar.utc_offset(),
+          Calendar.std_offset(),
+          :basic | :extended
+        ) :: iodata
+  def datetime_to_iodata(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        microsecond,
+        time_zone,
+        zone_abbr,
+        utc_offset,
+        std_offset,
+        format \\ :extended
       )
       when is_time_zone(time_zone) and is_zone_abbr(zone_abbr) and is_utc_offset(utc_offset) and
              is_std_offset(std_offset) do
-    date_to_string(year, month, day, format) <>
-      " " <>
-      time_to_string(hour, minute, second, microsecond, format) <>
-      offset_to_string(utc_offset, std_offset, time_zone, format) <>
-      zone_to_string(utc_offset, std_offset, zone_abbr, time_zone)
+    [
+      date_to_iodata(year, month, day, format),
+      ?\s,
+      time_to_iodata(hour, minute, second, microsecond, format),
+      offset_to_iodata(utc_offset, std_offset, time_zone, format),
+      zone_to_iodata(utc_offset, std_offset, zone_abbr, time_zone)
+    ]
   end
 
   @doc false
   def offset_to_string(0, 0, "Etc/UTC", _format), do: "Z"
 
-  def offset_to_string(utc, std, _zone, format) do
+  def offset_to_string(utc, std, zone, format) do
+    offset_to_iodata(utc, std, zone, format)
+    |> IO.iodata_to_binary()
+  end
+
+  @doc false
+  def offset_to_iodata(0, 0, "Etc/UTC", _format), do: ?Z
+
+  def offset_to_iodata(utc, std, _zone, format) do
     total = utc + std
     second = abs(total)
     minute = second |> rem(3600) |> div(60)
@@ -1334,15 +1610,15 @@ defmodule Calendar.ISO do
   end
 
   defp format_offset(total, hour, minute, :extended) do
-    sign(total) <> zero_pad(hour, 2) <> ":" <> zero_pad(minute, 2)
+    [sign(total), zero_pad(hour, 2), ?: | zero_pad(minute, 2)]
   end
 
   defp format_offset(total, hour, minute, :basic) do
-    sign(total) <> zero_pad(hour, 2) <> zero_pad(minute, 2)
+    [sign(total), zero_pad(hour, 2) | zero_pad(minute, 2)]
   end
 
-  defp zone_to_string(_, _, _, "Etc/UTC"), do: ""
-  defp zone_to_string(_, _, abbr, zone), do: " " <> abbr <> " " <> zone
+  defp zone_to_iodata(_, _, _, "Etc/UTC"), do: []
+  defp zone_to_iodata(_, _, abbr, zone), do: [?\s, abbr, ?\s | zone]
 
   @doc """
   Determines if the date given is valid according to the proleptic Gregorian calendar.
@@ -1364,7 +1640,7 @@ defmodule Calendar.ISO do
   @spec valid_date?(year, month, day) :: boolean
   def valid_date?(year, month, day)
       when is_integer(year) and is_integer(month) and is_integer(day) do
-    is_year(year) and is_month(month) and day in 1..days_in_month(year, month)
+    is_month(month) and day in 1..days_in_month(year, month)
   end
 
   @doc """
@@ -1403,16 +1679,24 @@ defmodule Calendar.ISO do
     {0, 1}
   end
 
-  defp sign(total) when total < 0, do: "-"
-  defp sign(_), do: "+"
+  defp sign(total) when total < 0, do: ?-
+  defp sign(_), do: ?+
 
-  defp zero_pad(val, count) when val >= 0 do
+  defp zero_pad(val, count) when val >= 0 and count <= 6 do
     num = Integer.to_string(val)
-    :binary.copy("0", max(count - byte_size(num), 0)) <> num
+
+    case max(count - byte_size(num), 0) do
+      0 -> num
+      1 -> ["0" | num]
+      2 -> ["00" | num]
+      3 -> ["000" | num]
+      4 -> ["0000" | num]
+      5 -> ["00000" | num]
+    end
   end
 
   defp zero_pad(val, count) do
-    "-" <> zero_pad(-val, count)
+    [?- | zero_pad(-val, count)]
   end
 
   @doc """
@@ -1455,6 +1739,230 @@ defmodule Calendar.ISO do
     {days, {@parts_per_day - 1, @parts_per_day}}
   end
 
+  @doc """
+  Shifts Date by Duration according to its calendar.
+
+  ## Examples
+
+      iex> Calendar.ISO.shift_date(2016, 1, 3, Duration.new!(month: 2))
+      {2016, 3, 3}
+      iex> Calendar.ISO.shift_date(2016, 2, 29, Duration.new!(month: 1))
+      {2016, 3, 29}
+      iex> Calendar.ISO.shift_date(2016, 1, 31, Duration.new!(month: 1))
+      {2016, 2, 29}
+      iex> Calendar.ISO.shift_date(2016, 1, 31, Duration.new!(year: 4, day: 1))
+      {2020, 2, 1}
+  """
+  @impl true
+  @spec shift_date(year, month, day, Duration.t()) :: {year, month, day}
+  def shift_date(year, month, day, duration) do
+    shift_options = shift_date_options(duration)
+
+    Enum.reduce(shift_options, {year, month, day}, fn
+      {_, 0}, date ->
+        date
+
+      {:month, value}, date ->
+        shift_months(date, value)
+
+      {:day, value}, date ->
+        shift_days(date, value)
+    end)
+  end
+
+  @doc """
+  Shifts NaiveDateTime by Duration according to its calendar.
+
+  ## Examples
+
+      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, Duration.new!(hour: 1))
+      {2016, 1, 3, 1, 0, 0, {0, 0}}
+      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, Duration.new!(hour: 30))
+      {2016, 1, 4, 6, 0, 0, {0, 0}}
+      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, Duration.new!(microsecond: {100, 6}))
+      {2016, 1, 3, 0, 0, 0, {100, 6}}
+  """
+  @impl true
+  @spec shift_naive_datetime(
+          year,
+          month,
+          day,
+          hour,
+          minute,
+          second,
+          microsecond,
+          Duration.t()
+        ) :: {year, month, day, hour, minute, second, microsecond}
+  def shift_naive_datetime(year, month, day, hour, minute, second, microsecond, duration) do
+    shift_options = shift_datetime_options(duration)
+
+    Enum.reduce(shift_options, {year, month, day, hour, minute, second, microsecond}, fn
+      {_, 0}, naive_datetime ->
+        naive_datetime
+
+      {:month, value}, {year, month, day, hour, minute, second, microsecond} ->
+        {new_year, new_month, new_day} = shift_months({year, month, day}, value)
+        {new_year, new_month, new_day, hour, minute, second, microsecond}
+
+      {time_unit, value}, naive_datetime ->
+        shift_time_unit(naive_datetime, value, time_unit)
+    end)
+  end
+
+  @doc """
+  Shifts Time by Duration units according to its calendar.
+
+  ## Examples
+
+      iex> Calendar.ISO.shift_time(13, 0, 0, {0, 0}, Duration.new!(hour: 2))
+      {15, 0, 0, {0, 0}}
+      iex> Calendar.ISO.shift_time(13, 0, 0, {0, 0}, Duration.new!(microsecond: {100, 6}))
+      {13, 0, 0, {100, 6}}
+  """
+  @impl true
+  @spec shift_time(hour, minute, second, microsecond, Duration.t()) ::
+          {hour, minute, second, microsecond}
+  def shift_time(hour, minute, second, microsecond, duration) do
+    shift_options = shift_time_options(duration)
+
+    Enum.reduce(shift_options, {hour, minute, second, microsecond}, fn
+      {_, 0}, time ->
+        time
+
+      {time_unit, value}, time ->
+        shift_time_unit(time, value, time_unit)
+    end)
+  end
+
+  @doc false
+  def shift_days({year, month, day}, days) do
+    {year, month, day} =
+      date_to_iso_days(year, month, day)
+      |> Kernel.+(days)
+      |> date_from_iso_days()
+
+    {year, month, day}
+  end
+
+  defp shift_months({year, month, day}, months) do
+    months_in_year = 12
+    total_months = year * months_in_year + month + months - 1
+
+    new_year = Integer.floor_div(total_months, months_in_year)
+
+    new_month =
+      case rem(total_months, months_in_year) + 1 do
+        new_month when new_month < 1 -> new_month + months_in_year
+        new_month -> new_month
+      end
+
+    new_day = min(day, days_in_month(new_year, new_month))
+
+    {new_year, new_month, new_day}
+  end
+
+  @doc false
+  def shift_time_unit({year, month, day, hour, minute, second, microsecond}, value, unit)
+      when unit in [:second, :millisecond, :microsecond, :nanosecond] or is_integer(unit) do
+    {value, precision} = shift_time_unit_values(value, microsecond)
+
+    {year, month, day, hour, minute, second, {ms_value, _}} =
+      naive_datetime_to_iso_days(year, month, day, hour, minute, second, microsecond)
+      |> shift_time_unit(value, unit)
+      |> naive_datetime_from_iso_days()
+
+    {year, month, day, hour, minute, second, {ms_value, precision}}
+  end
+
+  def shift_time_unit({hour, minute, second, microsecond}, value, unit)
+      when unit in [:second, :millisecond, :microsecond, :nanosecond] or is_integer(unit) do
+    {value, precision} = shift_time_unit_values(value, microsecond)
+
+    {_days, day_fraction} =
+      shift_time_unit({0, time_to_day_fraction(hour, minute, second, microsecond)}, value, unit)
+
+    {hour, minute, second, {microsecond, _}} = time_from_day_fraction(day_fraction)
+
+    {hour, minute, second, {microsecond, precision}}
+  end
+
+  def shift_time_unit({_days, _day_fraction} = iso_days, value, unit)
+      when unit in [:second, :millisecond, :microsecond, :nanosecond] or is_integer(unit) do
+    ppd = System.convert_time_unit(86400, :second, unit)
+    add_day_fraction_to_iso_days(iso_days, value, ppd)
+  end
+
+  defp shift_time_unit_values({0, _}, {_, original_precision}) do
+    {0, original_precision}
+  end
+
+  defp shift_time_unit_values({ms_value, ms_precision}, {_, _}) do
+    {ms_value, ms_precision}
+  end
+
+  defp shift_time_unit_values(value, {_, original_precision}) do
+    {value, original_precision}
+  end
+
+  defp shift_date_options(%Duration{
+         year: year,
+         month: month,
+         week: week,
+         day: day,
+         hour: 0,
+         minute: 0,
+         second: 0,
+         microsecond: {0, _precision}
+       }) do
+    [
+      month: year * 12 + month,
+      day: week * 7 + day
+    ]
+  end
+
+  defp shift_date_options(_duration) do
+    raise ArgumentError,
+          "cannot shift date by time scale unit. Expected :year, :month, :week, :day"
+  end
+
+  defp shift_datetime_options(%Duration{
+         year: year,
+         month: month,
+         week: week,
+         day: day,
+         hour: hour,
+         minute: minute,
+         second: second,
+         microsecond: microsecond
+       }) do
+    [
+      month: year * 12 + month,
+      second: week * 7 * 86400 + day * 86400 + hour * 3600 + minute * 60 + second,
+      microsecond: microsecond
+    ]
+  end
+
+  defp shift_time_options(%Duration{
+         year: 0,
+         month: 0,
+         week: 0,
+         day: 0,
+         hour: hour,
+         minute: minute,
+         second: second,
+         microsecond: microsecond
+       }) do
+    [
+      second: hour * 3600 + minute * 60 + second,
+      microsecond: microsecond
+    ]
+  end
+
+  defp shift_time_options(_duration) do
+    raise ArgumentError,
+          "cannot shift time by date scale unit. Expected :hour, :minute, :second, :microsecond"
+  end
+
   ## Helpers
 
   @doc false
@@ -1485,16 +1993,13 @@ defmodule Calendar.ISO do
   end
 
   defp parse_microsecond("." <> rest) do
-    case parse_microsecond(rest, 0, "") do
-      {"", 0, _} ->
+    case parse_microsecond(rest, 0, []) do
+      {[], 0, _} ->
         :error
 
-      {microsecond, precision, rest} when precision in 1..6 ->
-        pad = String.duplicate("0", 6 - byte_size(microsecond))
-        {{String.to_integer(microsecond <> pad), precision}, rest}
-
-      {microsecond, _precision, rest} ->
-        {{String.to_integer(binary_part(microsecond, 0, 6)), 6}, rest}
+      {microsecond, precision, rest} ->
+        scale = scale_factor(precision)
+        {{:erlang.list_to_integer(microsecond) * scale, precision}, rest}
     end
   end
 
@@ -1506,34 +2011,42 @@ defmodule Calendar.ISO do
     {{0, 0}, rest}
   end
 
-  defp parse_microsecond(<<head, tail::binary>>, precision, acc) when head in ?0..?9,
-    do: parse_microsecond(tail, precision + 1, <<acc::binary, head>>)
+  defp parse_microsecond(<<head, tail::binary>>, 6, acc) when head in ?0..?9,
+    do: parse_microsecond(tail, 6, acc)
 
-  defp parse_microsecond(rest, precision, acc), do: {acc, precision, rest}
+  defp parse_microsecond(<<head, tail::binary>>, precision, acc) when head in ?0..?9,
+    do: parse_microsecond(tail, precision + 1, [head | acc])
+
+  defp parse_microsecond(rest, precision, acc) do
+    {:lists.reverse(acc), precision, rest}
+  end
 
   defp parse_offset(""), do: {nil, ""}
   defp parse_offset("Z"), do: {0, ""}
   defp parse_offset("-00:00"), do: :error
 
-  defp parse_offset(<<?+, hour::2-bytes, ?:, min::2-bytes, rest::binary>>),
-    do: parse_offset(1, hour, min, rest)
+  defp parse_offset(<<?+, h1, h2, ?:, m1, m2, rest::binary>>),
+    do: parse_offset(1, h1, h2, m1, m2, rest)
 
-  defp parse_offset(<<?-, hour::2-bytes, ?:, min::2-bytes, rest::binary>>),
-    do: parse_offset(-1, hour, min, rest)
+  defp parse_offset(<<?-, h1, h2, ?:, m1, m2, rest::binary>>),
+    do: parse_offset(-1, h1, h2, m1, m2, rest)
 
-  defp parse_offset(<<?+, hour::2-bytes, min::2-bytes, rest::binary>>),
-    do: parse_offset(1, hour, min, rest)
+  defp parse_offset(<<?+, h1, h2, m1, m2, rest::binary>>),
+    do: parse_offset(1, h1, h2, m1, m2, rest)
 
-  defp parse_offset(<<?-, hour::2-bytes, min::2-bytes, rest::binary>>),
-    do: parse_offset(-1, hour, min, rest)
+  defp parse_offset(<<?-, h1, h2, m1, m2, rest::binary>>),
+    do: parse_offset(-1, h1, h2, m1, m2, rest)
 
-  defp parse_offset(<<?+, hour::2-bytes, rest::binary>>), do: parse_offset(1, hour, "00", rest)
-  defp parse_offset(<<?-, hour::2-bytes, rest::binary>>), do: parse_offset(-1, hour, "00", rest)
+  defp parse_offset(<<?+, h1, h2, rest::binary>>), do: parse_offset(1, h1, h2, ?0, ?0, rest)
+  defp parse_offset(<<?-, h1, h2, rest::binary>>), do: parse_offset(-1, h1, h2, ?0, ?0, rest)
   defp parse_offset(_), do: :error
 
-  defp parse_offset(sign, hour, min, rest) do
-    with {hour, ""} when hour < 24 <- Integer.parse(hour),
-         {min, ""} when min < 60 <- Integer.parse(min) do
+  defp parse_offset(sign, h1, h2, m1, m2, rest) do
+    with true <- h1 in ?0..?2 and h2 in ?0..?9,
+         true <- m1 in ?0..?5 and m2 in ?0..?9,
+         hour = (h1 - ?0) * 10 + h2 - ?0,
+         min = (m1 - ?0) * 10 + m2 - ?0,
+         true <- hour < 24 do
       {(hour * 60 + min) * 60 * sign, rest}
     else
       _ -> :error
@@ -1642,11 +2155,22 @@ defmodule Calendar.ISO do
 
   defp days_in_previous_years(0), do: 0
 
-  defp days_in_previous_years(year) do
+  # A concise version of the algorithm would use floor_div instead of div.
+  # However, floor_div would check the operands on every operation.
+  # We optimize this by providing a positive and negative version of each algorithm.
+  defp days_in_previous_years(year) when year > 0 do
     previous_year = year - 1
 
-    Integer.floor_div(previous_year, 4) - Integer.floor_div(previous_year, 100) +
-      Integer.floor_div(previous_year, 400) + previous_year * @days_per_nonleap_year +
+    div(previous_year, 4) - div(previous_year, 100) +
+      div(previous_year, 400) + previous_year * @days_per_nonleap_year +
+      @days_per_leap_year
+  end
+
+  defp days_in_previous_years(year) when year < 0 do
+    previous_year = year - 1
+
+    div(year, 4) - div(year, 100) +
+      div(year, 400) - 1 + previous_year * @days_per_nonleap_year +
       @days_per_leap_year
   end
 

@@ -1,9 +1,24 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule FloatTest do
   use ExUnit.Case, async: true
 
   doctest Float
+
+  # TODO remove and replace by assert once we require Erlang/OTP 27+
+  # We can't easily distinguish between -0.0 and +0.0 on previous version
+  defmacrop float_assert({:===, _, [left, right]}) do
+    quote do
+      # note: these are pure functions so no need to use bind_quoted
+      # we favor a useful error message instead
+      assert unquote(left) === unquote(right)
+      assert to_string(unquote(left)) === to_string(unquote(right))
+    end
+  end
 
   test "parse/1" do
     assert Float.parse("12") === {12.0, ""}
@@ -45,39 +60,39 @@ defmodule FloatTest do
   end
 
   test "floor/1" do
-    assert Float.floor(12.524235) === 12.0
-    assert Float.floor(-12.5) === -13.0
-    assert Float.floor(-12.524235) === -13.0
-    assert Float.floor(7.5e3) === 7500.0
-    assert Float.floor(7.5432e3) === 7543.0
-    assert Float.floor(7.5e-3) === 0.0
-    assert Float.floor(-12.32453e4) === -123_246.0
-    assert Float.floor(-12.32453e-10) === -1.0
-    assert Float.floor(0.32453e-10) === 0.0
-    assert Float.floor(-0.32453e-10) === -1.0
-    assert Float.floor(1.32453e-10) === 0.0
+    float_assert Float.floor(12.524235) === 12.0
+    float_assert Float.floor(-12.5) === -13.0
+    float_assert Float.floor(-12.524235) === -13.0
+    float_assert Float.floor(7.5e3) === 7500.0
+    float_assert Float.floor(7.5432e3) === 7543.0
+    float_assert Float.floor(7.5e-3) === 0.0
+    float_assert Float.floor(-12.32453e4) === -123_246.0
+    float_assert Float.floor(-12.32453e-10) === -1.0
+    float_assert Float.floor(0.32453e-10) === 0.0
+    float_assert Float.floor(-0.32453e-10) === -1.0
+    float_assert Float.floor(1.32453e-10) === 0.0
   end
 
   describe "floor/2" do
     test "with 0.0" do
       for precision <- 0..15 do
-        assert Float.floor(0.0, precision) === 0.0
-        assert Float.floor(-0.0, precision) === -0.0
+        float_assert Float.floor(0.0, precision) === 0.0
+        float_assert Float.floor(-0.0, precision) === -0.0
       end
     end
 
     test "floor/2 with precision" do
-      assert Float.floor(12.524235, 0) === 12.0
-      assert Float.floor(-12.524235, 0) === -13.0
+      float_assert Float.floor(12.524235, 0) === 12.0
+      float_assert Float.floor(-12.524235, 0) === -13.0
 
-      assert Float.floor(12.52, 2) === 12.51
-      assert Float.floor(-12.52, 2) === -12.52
+      float_assert Float.floor(12.52, 2) === 12.51
+      float_assert Float.floor(-12.52, 2) === -12.52
 
-      assert Float.floor(12.524235, 2) === 12.52
-      assert Float.floor(-12.524235, 3) === -12.525
+      float_assert Float.floor(12.524235, 2) === 12.52
+      float_assert Float.floor(-12.524235, 3) === -12.525
 
-      assert Float.floor(12.32453e-20, 2) === 0.0
-      assert Float.floor(-12.32453e-20, 2) === -0.01
+      float_assert Float.floor(12.32453e-20, 2) === 0.0
+      float_assert Float.floor(-12.32453e-20, 2) === -0.01
 
       assert_raise ArgumentError, "precision 16 is out of valid range of 0..15", fn ->
         Float.floor(1.1, 16)
@@ -85,68 +100,73 @@ defmodule FloatTest do
     end
 
     test "with subnormal floats" do
-      assert Float.floor(-5.0e-324, 0) === -1.0
-      assert Float.floor(-5.0e-324, 1) === -0.1
-      assert Float.floor(-5.0e-324, 2) === -0.01
-      assert Float.floor(-5.0e-324, 15) === -0.000000000000001
+      float_assert Float.floor(-5.0e-324, 0) === -1.0
+      float_assert Float.floor(-5.0e-324, 1) === -0.1
+      float_assert Float.floor(-5.0e-324, 2) === -0.01
+      float_assert Float.floor(-5.0e-324, 15) === -0.000000000000001
 
       for precision <- 0..15 do
-        assert Float.floor(5.0e-324, precision) === 0.0
+        float_assert Float.floor(5.0e-324, precision) === 0.0
       end
     end
   end
 
   test "ceil/1" do
-    assert Float.ceil(12.524235) === 13.0
-    assert Float.ceil(-12.5) === -12.0
-    assert Float.ceil(-12.524235) === -12.0
-    assert Float.ceil(7.5e3) === 7500.0
-    assert Float.ceil(7.5432e3) === 7544.0
-    assert Float.ceil(7.5e-3) === 1.0
-    assert Float.ceil(-12.32453e4) === -123_245.0
-    assert Float.ceil(-12.32453e-10) === 0.0
-    assert Float.ceil(0.32453e-10) === 1.0
-    assert Float.ceil(-0.32453e-10) === 0.0
-    assert Float.ceil(1.32453e-10) === 1.0
-    assert Float.ceil(0.0) === 0.0
+    float_assert Float.ceil(12.524235) === 13.0
+    float_assert Float.ceil(-12.5) === -12.0
+    float_assert Float.ceil(-12.524235) === -12.0
+    float_assert Float.ceil(7.5e3) === 7500.0
+    float_assert Float.ceil(7.5432e3) === 7544.0
+    float_assert Float.ceil(7.5e-3) === 1.0
+    float_assert Float.ceil(-12.32453e4) === -123_245.0
+    float_assert Float.ceil(-12.32453e-10) === -0.0
+    float_assert Float.ceil(0.32453e-10) === 1.0
+    float_assert Float.ceil(-0.32453e-10) === -0.0
+    float_assert Float.ceil(1.32453e-10) === 1.0
+    float_assert Float.ceil(0.0) === 0.0
   end
 
   describe "ceil/2" do
     test "with 0.0" do
       for precision <- 0..15 do
-        assert Float.ceil(0.0, precision) === 0.0
-        assert Float.ceil(-0.0, precision) === -0.0
+        float_assert Float.ceil(0.0, precision) === 0.0
+        float_assert Float.ceil(-0.0, precision) === -0.0
       end
     end
 
     test "with regular floats" do
-      assert Float.ceil(12.524235, 0) === 13.0
-      assert Float.ceil(-12.524235, 0) === -12.0
+      float_assert Float.ceil(12.524235, 0) === 13.0
+      float_assert Float.ceil(-12.524235, 0) === -12.0
 
-      assert Float.ceil(12.52, 2) === 12.52
-      assert Float.ceil(-12.52, 2) === -12.51
+      float_assert Float.ceil(12.52, 2) === 12.52
+      float_assert Float.ceil(-12.52, 2) === -12.51
 
-      assert Float.ceil(12.524235, 2) === 12.53
-      assert Float.ceil(-12.524235, 3) === -12.524
+      float_assert Float.ceil(12.524235, 2) === 12.53
+      float_assert Float.ceil(-12.524235, 3) === -12.524
 
-      assert Float.ceil(12.32453e-20, 2) === 0.01
-      assert Float.ceil(-12.32453e-20, 2) === 0.0
+      float_assert Float.ceil(12.32453e-20, 2) === 0.01
+      float_assert Float.ceil(-12.32453e-20, 2) === -0.0
 
-      assert Float.ceil(0.0, 2) === 0.0
+      float_assert Float.ceil(0.0, 2) === 0.0
 
       assert_raise ArgumentError, "precision 16 is out of valid range of 0..15", fn ->
         Float.ceil(1.1, 16)
       end
     end
 
+    test "with small floats rounded up to -0.0" do
+      float_assert Float.ceil(-0.1, 0) === -0.0
+      float_assert Float.ceil(-0.01, 1) === -0.0
+    end
+
     test "with subnormal floats" do
-      assert Float.ceil(5.0e-324, 0) === 1.0
-      assert Float.ceil(5.0e-324, 1) === 0.1
-      assert Float.ceil(5.0e-324, 2) === 0.01
-      assert Float.ceil(5.0e-324, 15) === 0.000000000000001
+      float_assert Float.ceil(5.0e-324, 0) === 1.0
+      float_assert Float.ceil(5.0e-324, 1) === 0.1
+      float_assert Float.ceil(5.0e-324, 2) === 0.01
+      float_assert Float.ceil(5.0e-324, 15) === 0.000000000000001
 
       for precision <- 0..15 do
-        assert Float.ceil(-5.0e-324, precision) === -0.0
+        float_assert Float.ceil(-5.0e-324, precision) === -0.0
       end
     end
   end
@@ -154,28 +174,39 @@ defmodule FloatTest do
   describe "round/2" do
     test "with 0.0" do
       for precision <- 0..15 do
-        assert Float.round(0.0, precision) === 0.0
-        assert Float.round(-0.0, precision) === -0.0
+        float_assert Float.round(0.0, precision) === 0.0
+        float_assert Float.round(-0.0, precision) === -0.0
       end
     end
 
     test "with regular floats" do
-      assert Float.round(5.5675, 3) === 5.567
-      assert Float.round(-5.5674, 3) === -5.567
-      assert Float.round(5.5, 3) === 5.5
-      assert Float.round(5.5e-10, 10) === 5.0e-10
-      assert Float.round(5.5e-10, 8) === 0.0
-      assert Float.round(5.0, 0) === 5.0
+      float_assert Float.round(5.5675, 3) === 5.567
+      float_assert Float.round(-5.5674, 3) === -5.567
+      float_assert Float.round(5.5, 3) === 5.5
+      float_assert Float.round(5.5e-10, 10) === 5.0e-10
+      float_assert Float.round(5.5e-10, 8) === 0.0
+      float_assert Float.round(5.0, 0) === 5.0
 
       assert_raise ArgumentError, "precision 16 is out of valid range of 0..15", fn ->
         Float.round(1.1, 16)
       end
     end
 
+    test "with small floats rounded to +0.0 / -0.0" do
+      float_assert Float.round(0.01, 0) === 0.0
+      float_assert Float.round(0.01, 1) === 0.0
+
+      float_assert Float.round(-0.01, 0) === -0.0
+      float_assert Float.round(-0.01, 1) === -0.0
+
+      float_assert Float.round(-0.49999, 0) === -0.0
+      float_assert Float.round(-0.049999, 1) === -0.0
+    end
+
     test "with subnormal floats" do
       for precision <- 0..15 do
-        assert Float.round(5.0e-324, precision) === 0.0
-        assert Float.round(-5.0e-324, precision) === -0.0
+        float_assert Float.round(5.0e-324, precision) === 0.0
+        float_assert Float.round(-5.0e-324, precision) === -0.0
       end
     end
   end

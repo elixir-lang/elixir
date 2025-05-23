@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # try, catch, and rescue
 
 Elixir has three error mechanisms: errors, throws, and exits. In this chapter, we will explore each of them and include remarks about when each should be used.
@@ -104,7 +109,7 @@ Other times, you may fully expect a certain file to exist, and in case it does n
 
 The second approach also works because, as discussed in the [Processes](processes.md) chapter, all Elixir code runs inside processes that are isolated and don't share anything by default. Therefore, an unhandled exception in a process will never crash or corrupt the state of another process. This allows us to define supervisor processes, which are meant to observe when a process terminates unexpectedly, and start a new one in its place.
 
-At the end of the day, "fail fast" / "let it crash" is a way of saying that, when *something _unexpected* happens, it is best to start from scratch within a new process, freshly started by a supervisor, rather than blindly trying to rescue all possible error cases without the full context of when and how they can happen.
+At the end of the day, "fail fast" / "let it crash" is a way of saying that, when *something unexpected* happens, it is best to start from scratch within a new process, freshly started by a supervisor, rather than blindly trying to rescue all possible error cases without the full context of when and how they can happen.
 
 ### Reraise
 
@@ -171,7 +176,28 @@ iex> try do
 "not really"
 ```
 
-Using `try/catch` is already uncommon and using it to catch exits is even rarer.
+`catch` can also be used within a function body without a matching `try`.
+
+```elixir
+defmodule Example do
+  def matched_catch do
+    exit(:timeout)
+  catch
+    :exit, :timeout ->
+      {:error, :timeout}
+  end
+
+  def mismatched_catch do
+    exit(:timeout)
+  catch
+    # Since no clause matches, this catch will have no effect
+    :exit, :explosion ->
+      {:error, :explosion}
+  end
+end
+```
+
+However, using `try/catch` is already uncommon and using it to catch exits is even rarer.
 
 `exit` signals are an important part of the fault tolerant system provided by the Erlang VM. Processes usually run under supervision trees which are themselves processes that listen to `exit` signals from the supervised processes. Once an `exit` signal is received, the supervision strategy kicks in and the supervised process is restarted.
 
@@ -179,7 +205,7 @@ It is exactly this supervision system that makes constructs like `try/catch` and
 
 ## After
 
-Sometimes it's necessary to ensure that a resource is cleaned up after some action that could potentially raise an error. The `try/after` construct allows you to do that. For example, we can open a file and use an `after` clause to close it -- even if something goes wrong:
+Sometimes it's necessary to ensure that a resource is cleaned up after some action that could potentially raise an error. The `try/after` construct allows you to do that. For example, we can open a file and use an `after` clause to close it—even if something goes wrong:
 
 ```elixir
 iex> {:ok, file} = File.open("sample", [:utf8, :write])
@@ -203,7 +229,7 @@ iex> defmodule RunAfter do
 ...>   def without_even_trying do
 ...>     raise "oops"
 ...>   after
-...>     IO.puts "cleaning up!"
+...>     IO.puts("cleaning up!")
 ...>   end
 ...> end
 iex> RunAfter.without_even_trying
@@ -211,7 +237,7 @@ cleaning up!
 ** (RuntimeError) oops
 ```
 
-Elixir will automatically wrap the function body in a `try` whenever one of `after`, `rescue` or `catch` is specified.
+Elixir will automatically wrap the function body in a `try` whenever one of `after`, `rescue` or `catch` is specified. The `after` block handles side effects and does not change the return value from the clauses above it.
 
 ## Else
 

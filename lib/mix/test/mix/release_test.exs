@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Mix.ReleaseTest do
@@ -78,6 +82,11 @@ defmodule Mix.ReleaseTest do
 
       assert release.applications.kernel[:path] == to_charlist(Application.app_dir(:kernel))
       assert release.applications.kernel[:otp_app?]
+    end
+
+    test "does not include erts in applications" do
+      release = from_config!(nil, config(releases: [foo: [applications: [erts: :permanent]]]), [])
+      assert release.applications[:erts] == nil
     end
 
     test "allows release to be given as an anonymous function" do
@@ -659,7 +668,7 @@ defmodule Mix.ReleaseTest do
       assert File.read!(Path.join(destination, "bin/erl")) =~
                ~s|ROOTDIR="${ERL_ROOTDIR:-"$(dirname "$(dirname "$BINDIR")")"}|
 
-      unless match?({:win32, _}, :os.type()) do
+      if not match?({:win32, _}, :os.type()) do
         assert File.lstat!(Path.join(destination, "bin/erl")).mode |> rem(0o1000) == 0o755
       end
 
@@ -686,18 +695,12 @@ defmodule Mix.ReleaseTest do
     test "copies and strips beams" do
       assert copy_ebin(release([]), @eex_ebin, tmp_path("eex_ebin"))
 
-      assert size!(Path.join(@eex_ebin, "eex.app")) ==
-               size!(tmp_path("eex_ebin/eex.app"))
-
       assert size!(Path.join(@eex_ebin, "Elixir.EEx.beam")) >
                size!(tmp_path("eex_ebin/Elixir.EEx.beam"))
     end
 
     test "copies without stripping beams" do
       assert copy_ebin(release(strip_beams: false), @eex_ebin, tmp_path("eex_ebin"))
-
-      assert size!(Path.join(@eex_ebin, "eex.app")) ==
-               size!(tmp_path("eex_ebin/eex.app"))
 
       assert size!(Path.join(@eex_ebin, "Elixir.EEx.beam")) ==
                size!(tmp_path("eex_ebin/Elixir.EEx.beam"))
@@ -730,18 +733,12 @@ defmodule Mix.ReleaseTest do
     test "copies and strips beams" do
       assert copy_app(release(applications: [eex: :permanent]), :eex)
 
-      assert size!(Path.join(@eex_ebin, "eex.app")) ==
-               size!(Path.join(@release_lib, "eex-#{@elixir_version}/ebin/eex.app"))
-
       assert size!(Path.join(@eex_ebin, "Elixir.EEx.beam")) >
                size!(Path.join(@release_lib, "eex-#{@elixir_version}/ebin/Elixir.EEx.beam"))
     end
 
     test "copies without stripping beams" do
       assert copy_app(release(strip_beams: false, applications: [eex: :permanent]), :eex)
-
-      assert size!(Path.join(@eex_ebin, "eex.app")) ==
-               size!(Path.join(@release_lib, "eex-#{@elixir_version}/ebin/eex.app"))
 
       assert size!(Path.join(@eex_ebin, "Elixir.EEx.beam")) ==
                size!(Path.join(@release_lib, "eex-#{@elixir_version}/ebin/Elixir.EEx.beam"))

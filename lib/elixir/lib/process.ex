@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Process do
   @moduledoc """
   Conveniences for working with processes and the process dictionary.
@@ -84,10 +88,13 @@ defmodule Process do
   Tells whether the given process is alive on the local node.
 
   If the process identified by `pid` is alive (that is, it's not exiting and has
-  not exited yet) than this function returns `true`. Otherwise, it returns
+  not exited yet) then this function returns `true`. Otherwise, it returns
   `false`.
 
   `pid` must refer to a process running on the local node or `ArgumentError` is raised.
+  To check whether a process on any node is alive you can use the [`:erpc`](`:erpc`) module.
+
+      :erpc.call(node(pid), Process, :alive?, [pid])
 
   Inlined by the compiler.
   """
@@ -195,7 +202,7 @@ defmodule Process do
   @doc """
   Sends an exit signal with the given `reason` to `pid`.
 
-  The following behaviour applies if `reason` is any term except `:normal`
+  The following behavior applies if `reason` is any term except `:normal`
   or `:kill`:
 
     1. If `pid` is not trapping exits, `pid` will exit with the given
@@ -216,6 +223,16 @@ defmodule Process do
 
   Inlined by the compiler.
 
+  > #### Differences to `Kernel.exit/1` {: .info }
+  >
+  > The functions `Kernel.exit/1` and `Process.exit/2` are
+  > named similarly but provide very different functionalities. The
+  > `Kernel:exit/1` function should be used when the intent is to stop the current
+  > process while `Process.exit/2` should be used when the intent is to send an
+  > exit signal to another process. Note also that `Kernel.exit/1` can be caught
+  > with `try/1` while `Process.exit/2` can only be handled by trapping exits and
+  > when the signal is different than `:kill`.
+
   ## Examples
 
       Process.exit(pid, :kill)
@@ -232,6 +249,12 @@ defmodule Process do
   integer or the atom `:infinity`. When `:infinity` is given,
   the current process will sleep forever, and not
   consume or reply to messages.
+
+  > #### Sleeping limit {: .info }
+  >
+  > Before Elixir v1.18, `sleep/1` did not accept integer timeout values greater
+  > than `16#ffffffff`, that is, `2^32-1`. Since Elixir v1.18, arbitrarily-high integer
+  > values are accepted.
 
   **Use this function with extreme care**. For almost all situations
   where you would use `sleep/1` in Elixir, there is likely a
@@ -299,7 +322,15 @@ defmodule Process do
       end
 
   """
+
+  # Max value for a receive's after clause
+  @max_receive_after 0xFFFFFFFF
+
   @spec sleep(timeout) :: :ok
+  def sleep(timeout) when is_integer(timeout) and timeout > @max_receive_after do
+    receive after: (@max_receive_after -> sleep(timeout - @max_receive_after))
+  end
+
   def sleep(timeout)
       when is_integer(timeout) and timeout >= 0
       when timeout == :infinity do
@@ -504,7 +535,7 @@ defmodule Process do
   If the process is already dead when calling `Process.monitor/1`, a
   `:DOWN` message is delivered immediately.
 
-  See ["The need for monitoring"](https://elixir-lang.org/getting-started/mix-otp/genserver.html#the-need-for-monitoring)
+  See ["The need for monitoring"](genservers.md#the-need-for-monitoring)
   for an example. See `:erlang.monitor/2` for more information.
 
   Inlined by the compiler.
@@ -552,10 +583,15 @@ defmodule Process do
 
       send(pid, {:ping, ref_and_alias})
 
-      receive do: msg -> msg
+      receive do: (msg -> msg)
       #=> :pong
 
-      receive do: msg -> msg
+      ref_and_alias = Process.monitor(pid, alias: :reply_demonitor)
+      #=> #Reference<0.906660723.3006791681.40191>
+
+      send(pid, {:ping, ref_and_alias})
+
+      receive do: (msg -> msg)
       #=> {:DOWN, #Reference<0.906660723.3006791681.40191>, :process, #PID<0.118.0>, :noproc}
 
   """
@@ -624,7 +660,7 @@ defmodule Process do
   exits with a reason other than `:normal` (which is also the exit reason used
   when a process finishes its job) and `pid1` is not trapping exits (see
   `flag/2`), then `pid1` will exit with the same reason as `pid2` and in turn
-  emit an exit signal to all its other linked processes. The behaviour when
+  emit an exit signal to all its other linked processes. The behavior when
   `pid1` is trapping exits is described in `exit/2`.
 
   See `:erlang.link/1` for more information.
@@ -839,13 +875,17 @@ defmodule Process do
     nilify(:erlang.process_info(pid))
   end
 
+  @type process_info_item :: atom | {:dictionary, term}
+  @type process_info_result_item :: {process_info_item, term}
+
   @doc """
   Returns information about the process identified by `pid`,
   or returns `nil` if the process is not alive.
 
   See `:erlang.process_info/2` for more information.
   """
-  @spec info(pid, atom | [atom]) :: {atom, term} | [{atom, term}] | nil
+  @spec info(pid, process_info_item) :: process_info_result_item | nil
+  @spec info(pid, [process_info_item]) :: [process_info_result_item] | nil
   def info(pid, spec)
 
   def info(pid, :registered_name) do
@@ -856,7 +896,7 @@ defmodule Process do
     end
   end
 
-  def info(pid, spec) when is_atom(spec) or is_list(spec) do
+  def info(pid, spec) do
     nilify(:erlang.process_info(pid, spec))
   end
 
@@ -939,6 +979,31 @@ defmodule Process do
   @doc since: "1.15.0"
   @spec unalias(alias) :: boolean
   defdelegate unalias(alias), to: :erlang
+
+  @doc """
+  Add a descriptive term to the current process.
+
+  The term does not need to be unique, and in Erlang/OTP 27+ will be shown in
+  Observer and in crash logs.
+  This label may be useful for identifying a process as one of multiple in a
+  given role, such as `:queue_worker` or `{:live_chat, user_id}`.
+
+  ## Examples
+
+      Process.set_label(:worker)
+      #=> :ok
+
+      Process.set_label({:any, "term"})
+      #=> :ok
+  """
+  @doc since: "1.17.0"
+  @spec set_label(term()) :: :ok
+  def set_label(label) do
+    # TODO: switch to `:proc_lib.set_label/2` when we require Erlang/OTP 27+
+    Process.put(:"$process_label", label)
+    # mimic return value of `:proc_lib.set_label/2`
+    :ok
+  end
 
   @compile {:inline, nilify: 1}
   defp nilify(:undefined), do: nil

@@ -1,10 +1,16 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Tasks.Do do
   use Mix.Task
 
   @shortdoc "Executes the tasks separated by plus"
 
   @moduledoc """
-  Executes the tasks separated by `+`:
+  Executes the tasks separated by `+`, aborting if any task errors.
+
+  Here is an example:
 
       $ mix do compile --list + deps
 
@@ -41,6 +47,16 @@ defmodule Mix.Tasks.Do do
   Since then, the `+` operator has been introduced as a
   separator for better support on Windows terminals.
 
+  ## Error handling
+
+  If any task in the list of tasks exits with an error,
+  no subsequent tasks will be run. For instance:
+
+      $ mix do compile + test
+
+  If the compilation step fails, the tests will not be
+  attempted.
+
   ## Command line options
 
     * `--app` - limit recursive tasks to the given apps.
@@ -49,8 +65,6 @@ defmodule Mix.Tasks.Do do
 
   """
 
-  # TODO: Deprecate using comma on Elixir v1.18
-
   @impl true
   def run(args) do
     Mix.Task.reenable("do")
@@ -58,12 +72,25 @@ defmodule Mix.Tasks.Do do
     {apps, args} = extract_apps_from_args(args)
     show_forgotten_apps_warning(apps)
 
-    Enum.each(gather_commands(args), fn [task | args] ->
-      if apps == [] do
-        Mix.Task.run(task, args)
-      else
-        Mix.Task.run_in_apps(task, apps, args)
-      end
+    Enum.each(gather_commands(args), fn
+      [task | args] ->
+        if apps == [] do
+          Mix.Task.run(task, args)
+        else
+          Mix.Task.run_in_apps(task, apps, args)
+        end
+
+      [] ->
+        Mix.raise("""
+        One of the commands passed to "mix do" is empty. Each command passed to "mix do" must \
+        have at least the task name. These are all invalid:
+
+          mix do
+          mix do my_task +
+          mix do + my_task
+
+        Run "mix help do" for more information.
+        """)
     end)
   end
 
@@ -99,6 +126,10 @@ defmodule Mix.Tasks.Do do
 
   defp gather_commands([head | rest], current, acc)
        when binary_part(head, byte_size(head), -1) == "," do
+    IO.warn(
+      "using commas as separators in \"mix do\" is deprecated, use + between commands instead"
+    )
+
     current =
       case binary_part(head, 0, byte_size(head) - 1) do
         "" -> Enum.reverse(current)

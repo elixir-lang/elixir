@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Tasks.Compile.Erlang do
   use Mix.Task.Compiler
   alias Mix.Compilers.Erlang
@@ -46,11 +50,15 @@ defmodule Mix.Tasks.Compile.Erlang do
   @impl true
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, switches: @switches)
+
     project = Mix.Project.config()
-    source_paths = project[:erlc_paths]
-    Mix.Compilers.Erlang.assert_valid_erlc_paths(source_paths)
-    files = Mix.Utils.extract_files(source_paths, [:erl])
-    do_run(files, opts, project, source_paths)
+
+    Mix.Project.with_build_lock(project, fn ->
+      source_paths = project[:erlc_paths]
+      Mix.Compilers.Erlang.assert_valid_erlc_paths(source_paths)
+      files = Mix.Utils.extract_files(source_paths, [:erl])
+      do_run(files, opts, project, source_paths)
+    end)
   end
 
   defp do_run([], _, _, _), do: {:noop, []}
@@ -60,7 +68,7 @@ defmodule Mix.Tasks.Compile.Erlang do
     compile_path = Erlang.to_erl_file(Mix.Project.compile_path(project))
     erlc_options = project[:erlc_options] || []
 
-    unless is_list(erlc_options) do
+    if not is_list(erlc_options) do
       Mix.raise(":erlc_options should be a list of options, got: #{inspect(erlc_options)}")
     end
 
@@ -80,7 +88,7 @@ defmodule Mix.Tasks.Compile.Erlang do
 
     opts = [parallel: MapSet.new(find_parallel(erls))] ++ opts
 
-    Erlang.compile(manifest(), tuples, opts, fn input, _output ->
+    Erlang.compile_entries(manifest(), tuples, :erl, :beam, opts, fn input, _output ->
       # We're purging the module because a previous compiler (for example, Phoenix)
       # might have already loaded the previous version of it.
       module = input |> Path.basename(".erl") |> String.to_atom()
@@ -106,6 +114,11 @@ defmodule Mix.Tasks.Compile.Erlang do
   @impl true
   def manifests, do: [manifest()]
   defp manifest, do: Path.join(Mix.Project.manifest_path(), @manifest)
+
+  @impl true
+  def diagnostics do
+    Mix.Compilers.Erlang.diagnostics(manifest())
+  end
 
   @impl true
   def clean do

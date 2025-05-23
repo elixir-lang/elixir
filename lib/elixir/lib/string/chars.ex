@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 import Kernel, except: [to_string: 1]
 
 defprotocol String.Chars do
@@ -57,6 +61,6 @@ end
 
 defimpl String.Chars, for: Float do
   def to_string(term) do
-    IO.iodata_to_binary(:io_lib_format.fwrite_g(term))
+    Float.to_string(term)
   end
 end

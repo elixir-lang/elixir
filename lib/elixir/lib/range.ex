@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Range do
   @moduledoc """
   Ranges represent a sequence of zero, one or many, ascending
@@ -172,7 +176,7 @@ defmodule Range do
   one element, which is the number itself.
 
   If `first` is greater than `last`, the range will be decreasing from `first`
-  to `last`, albeit this behaviour is deprecated. Therefore, it is advised to
+  to `last`, albeit this behavior is deprecated. Therefore, it is advised to
   explicitly list the step with `new/3`.
 
   ## Examples
@@ -184,8 +188,22 @@ defmodule Range do
 
   @spec new(limit, limit) :: t
   def new(first, last) when is_integer(first) and is_integer(last) do
-    # TODO: Deprecate inferring a range with a step of -1 on Elixir v1.17
-    step = if first <= last, do: 1, else: -1
+    step =
+      if first <= last do
+        1
+      else
+        # TODO: Remove me on v2.0
+        IO.warn_once(
+          {__MODULE__, :new},
+          fn ->
+            "Range.new/2 and first..last default to a step of -1 when last < first. Use Range.new(first, last, -1) or first..last//-1, or pass 1 if that was your intention"
+          end,
+          3
+        )
+
+        -1
+      end
+
     %Range{first: first, last: last, step: step}
   end
 
@@ -231,8 +249,6 @@ defmodule Range do
       iex> Range.size(1..10//-1)
       0
 
-      iex> Range.size(10..1)
-      10
       iex> Range.size(10..1//-1)
       10
       iex> Range.size(10..1//-2)
@@ -428,7 +444,7 @@ defmodule Range do
 
       iex> Range.disjoint?(1..5, 6..9)
       true
-      iex> Range.disjoint?(5..1, 6..9)
+      iex> Range.disjoint?(5..1//-1, 6..9)
       true
       iex> Range.disjoint?(1..5, 5..9)
       false
@@ -508,92 +524,9 @@ defmodule Range do
 
   @doc false
   @deprecated "Pattern match on first..last//step instead"
-  def range?(term)
-  def range?(first..last) when is_integer(first) and is_integer(last), do: true
+  def range?(%{__struct__: Range, first: first, last: last})
+      when is_integer(first) and is_integer(last),
+      do: true
+
   def range?(_), do: false
-end
-
-defimpl Enumerable, for: Range do
-  def reduce(first..last//step, acc, fun) do
-    reduce(first, last, acc, fun, step)
-  end
-
-  # TODO: Remove me on v2.0
-  def reduce(%{__struct__: Range, first: first, last: last} = range, acc, fun) do
-    step = if first <= last, do: 1, else: -1
-    reduce(Map.put(range, :step, step), acc, fun)
-  end
-
-  defp reduce(_first, _last, {:halt, acc}, _fun, _step) do
-    {:halted, acc}
-  end
-
-  defp reduce(first, last, {:suspend, acc}, fun, step) do
-    {:suspended, acc, &reduce(first, last, &1, fun, step)}
-  end
-
-  defp reduce(first, last, {:cont, acc}, fun, step)
-       when step > 0 and first <= last
-       when step < 0 and first >= last do
-    reduce(first + step, last, fun.(first, acc), fun, step)
-  end
-
-  defp reduce(_, _, {:cont, acc}, _fun, _up) do
-    {:done, acc}
-  end
-
-  def member?(first..last//step, value) when is_integer(value) do
-    if step > 0 do
-      {:ok, first <= value and value <= last and rem(value - first, step) == 0}
-    else
-      {:ok, last <= value and value <= first and rem(value - first, step) == 0}
-    end
-  end
-
-  # TODO: Remove me on v2.0
-  def member?(%{__struct__: Range, first: first, last: last} = range, value)
-      when is_integer(value) do
-    step = if first <= last, do: 1, else: -1
-    member?(Map.put(range, :step, step), value)
-  end
-
-  def member?(_, _value) do
-    {:ok, false}
-  end
-
-  def count(range) do
-    {:ok, Range.size(range)}
-  end
-
-  def slice(first.._//step = range) do
-    {:ok, Range.size(range), &slice(first + &1 * step, step + &3 - 1, &2)}
-  end
-
-  # TODO: Remove me on v2.0
-  def slice(%{__struct__: Range, first: first, last: last} = range) do
-    step = if first <= last, do: 1, else: -1
-    slice(Map.put(range, :step, step))
-  end
-
-  defp slice(_current, _step, 0), do: []
-  defp slice(current, step, remaining), do: [current | slice(current + step, step, remaining - 1)]
-end
-
-defimpl Inspect, for: Range do
-  import Inspect.Algebra
-  import Kernel, except: [inspect: 2]
-
-  def inspect(first..last//1, opts) when last >= first do
-    concat([to_doc(first, opts), "..", to_doc(last, opts)])
-  end
-
-  def inspect(first..last//step, opts) do
-    concat([to_doc(first, opts), "..", to_doc(last, opts), "//", to_doc(step, opts)])
-  end
-
-  # TODO: Remove me on v2.0
-  def inspect(%{__struct__: Range, first: first, last: last} = range, opts) do
-    step = if first <= last, do: 1, else: -1
-    inspect(Map.put(range, :step, step), opts)
-  end
 end

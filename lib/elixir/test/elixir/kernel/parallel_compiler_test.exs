@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 import PathHelpers
@@ -5,6 +9,12 @@ import PathHelpers
 defmodule Kernel.ParallelCompilerTest do
   use ExUnit.Case
   import ExUnit.CaptureIO
+
+  @no_warnings %{compile_warnings: [], runtime_warnings: []}
+
+  defp compile(files, opts \\ []) do
+    Kernel.ParallelCompiler.compile(files, [return_diagnostics: true] ++ opts)
+  end
 
   defp purge(modules) do
     Enum.map(modules, fn mod ->
@@ -38,7 +48,7 @@ defmodule Kernel.ParallelCompilerTest do
 
       profile =
         capture_io(:stderr, fn ->
-          assert {:ok, modules, []} = Kernel.ParallelCompiler.compile(fixtures, profile: :time)
+          assert {:ok, modules, @no_warnings} = compile(fixtures, profile: :time)
 
           assert HelloWorld in modules
         end)
@@ -50,6 +60,45 @@ defmodule Kernel.ParallelCompilerTest do
       assert profile =~ ~r"\[profile\] Finished group pass check of 1 modules in \d+ms"
     after
       purge([HelloWorld])
+    end
+
+    test "immediately loads modules when not writing them to disk" do
+      fixtures =
+        write_tmp(
+          "compile_loads",
+          will_be_loaded: """
+          defmodule WillBeLoaded do
+          end
+          true = Code.loaded?(WillBeLoaded)
+          """
+        )
+
+      assert {:ok, _modules, @no_warnings} = compile(fixtures)
+    end
+
+    test "lazily loads modules when writing them to disk" do
+      fixtures =
+        write_tmp(
+          "compile_lazy_loads",
+          will_be_lazy_loaded: """
+          defmodule WillBeLazyLoaded do
+          end
+          false = Code.loaded?(WillBeLazyLoaded)
+          {:error, _} = Code.ensure_loaded(WillBeLazyLoaded)
+          {:module, _} = Code.ensure_compiled(WillBeLazyLoaded)
+          """,
+          is_autoloaded: """
+          defmodule WillBeAutoLoaded do
+            @compile {:autoload, true}
+          end
+          true = Code.loaded?(WillBeAutoLoaded)
+          """
+        )
+
+      assert {:ok, _modules, @no_warnings} =
+               Kernel.ParallelCompiler.compile_to_path(fixtures, tmp_path("pcload"),
+                 return_diagnostics: true
+               )
     end
 
     test "solves dependencies between modules" do
@@ -76,7 +125,7 @@ defmodule Kernel.ParallelCompilerTest do
         )
 
       assert capture_io(fn ->
-               assert {:ok, modules, []} = Kernel.ParallelCompiler.compile(fixtures)
+               assert {:ok, modules, @no_warnings} = compile(fixtures)
                assert BarParallel in modules
                assert FooParallel in modules
              end) =~ "message_from_foo"
@@ -101,7 +150,7 @@ defmodule Kernel.ParallelCompilerTest do
           """
         )
 
-      assert {:ok, modules, []} = Kernel.ParallelCompiler.compile(fixtures)
+      assert {:ok, modules, @no_warnings} = compile(fixtures)
       assert [BarStruct, FooStruct] = Enum.sort(modules)
     after
       purge([FooStruct, BarStruct])
@@ -125,7 +174,7 @@ defmodule Kernel.ParallelCompilerTest do
           """
         )
 
-      assert {:ok, modules, []} = Kernel.ParallelCompiler.compile(fixtures)
+      assert {:ok, modules, @no_warnings} = compile(fixtures)
       assert [BarStruct, FooStruct] = Enum.sort(modules)
     after
       purge([FooStruct, BarStruct])
@@ -147,8 +196,12 @@ defmodule Kernel.ParallelCompilerTest do
       expected_msg = "Undef.__struct__/1 is undefined, cannot expand struct Undef"
 
       assert capture_io(:stderr, fn ->
-               assert {:error, [{^fixture, 3, msg}, {^fixture, 0, compile_msg}], []} =
-                        Kernel.ParallelCompiler.compile([fixture])
+               assert {:error,
+                       [
+                         %{file: ^fixture, position: {3, 5}, message: msg},
+                         %{file: ^fixture, position: 0, message: compile_msg}
+                       ], @no_warnings} =
+                        compile([fixture])
 
                assert msg =~ expected_msg
                assert compile_msg =~ "cannot compile module Undef (errors have been logged)"
@@ -171,8 +224,8 @@ defmodule Kernel.ParallelCompilerTest do
       expected_msg = "** (KeyError) key :invalid_key not found"
 
       assert capture_io(:stderr, fn ->
-               assert {:error, [{^fixture, 3, msg}], []} =
-                        Kernel.ParallelCompiler.compile([fixture])
+               assert {:error, [%{file: ^fixture, position: 3, message: msg}], @no_warnings} =
+                        compile([fixture])
 
                assert msg =~ expected_msg
              end) =~ expected_msg
@@ -190,10 +243,32 @@ defmodule Kernel.ParallelCompilerTest do
           """
         )
 
-      assert {:ok, [QuickExample], []} = Kernel.ParallelCompiler.compile([fixture])
+      assert {:ok, [QuickExample], @no_warnings} = compile([fixture])
       assert_received {:DOWN, ^ref, _, ^pid, :normal}
     after
       purge([QuickExample])
+    end
+
+    test "does not crash on external reports" do
+      [fixture] =
+        write_tmp(
+          "compile_quoted",
+          quick_example: """
+          defmodule CompileQuoted do
+            try do
+              Code.compile_quoted({:fn, [], [{:->, [], [[], quote(do: unknown_var)]}]})
+            rescue
+              _ -> :ok
+            end
+          end
+          """
+        )
+
+      assert capture_io(:stderr, fn ->
+               assert {:ok, [CompileQuoted], @no_warnings} = compile([fixture])
+             end) =~ "undefined variable \"unknown_var\""
+    after
+      purge([CompileQuoted])
     end
 
     test "does not hang on missing dependencies" do
@@ -216,8 +291,12 @@ defmodule Kernel.ParallelCompilerTest do
         "ThisModuleWillNeverBeAvailable.__struct__/1 is undefined, cannot expand struct ThisModuleWillNeverBeAvailable"
 
       assert capture_io(:stderr, fn ->
-               assert {:error, [{^fixture, 7, msg}, {^fixture, 0, compile_msg}], []} =
-                        Kernel.ParallelCompiler.compile([fixture])
+               assert {:error,
+                       [
+                         %{file: ^fixture, position: {7, 3}, message: msg},
+                         %{file: ^fixture, position: 0, message: compile_msg}
+                       ], @no_warnings} =
+                        compile([fixture])
 
                assert msg =~ expected_msg
 
@@ -245,8 +324,12 @@ defmodule Kernel.ParallelCompilerTest do
         "ThisModuleWillNeverBeAvailable.__struct__/1 is undefined, cannot expand struct ThisModuleWillNeverBeAvailable"
 
       assert capture_io(:stderr, fn ->
-               assert {:error, [{^missing_struct, 2, msg}, {^missing_struct, 0, compile_msg}], []} =
-                        Kernel.ParallelCompiler.compile([missing_struct, depends_on])
+               assert {:error,
+                       [
+                         %{file: ^missing_struct, position: {2, 3}, message: msg},
+                         %{file: ^missing_struct, position: 0, message: compile_msg}
+                       ], @no_warnings} =
+                        compile([missing_struct, depends_on])
 
                assert msg =~ expected_msg
 
@@ -272,8 +355,12 @@ defmodule Kernel.ParallelCompilerTest do
       expected_msg = "module Unknown.Module is not loaded and could not be found"
 
       assert capture_io(:stderr, fn ->
-               assert {:error, [{^missing_import, 2, msg}, {^missing_import, 0, compile_msg}], []} =
-                        Kernel.ParallelCompiler.compile([missing_import, depends_on])
+               assert {:error,
+                       [
+                         %{file: ^missing_import, position: {2, 3}, message: msg},
+                         %{file: ^missing_import, position: 0, message: compile_msg}
+                       ], @no_warnings} =
+                        compile([missing_import, depends_on])
 
                assert msg =~ expected_msg
 
@@ -301,9 +388,13 @@ defmodule Kernel.ParallelCompilerTest do
       msg =
         capture_io(:stderr, fn ->
           fixtures = [foo, bar]
-          assert {:error, [foo_error, bar_error], []} = Kernel.ParallelCompiler.compile(fixtures)
-          assert bar_error == {bar, nil, "deadlocked waiting on module FooDeadlock"}
-          assert foo_error == {foo, nil, "deadlocked waiting on module BarDeadlock"}
+          assert {:error, [bar_error, foo_error], @no_warnings} = compile(fixtures)
+
+          assert %{file: ^bar, position: nil, message: "deadlocked waiting on module FooDeadlock"} =
+                   bar_error
+
+          assert %{file: ^foo, position: nil, message: "deadlocked waiting on module BarDeadlock"} =
+                   foo_error
         end)
 
       assert msg =~ "Compilation failed because of a deadlock between files."
@@ -331,7 +422,7 @@ defmodule Kernel.ParallelCompilerTest do
           """
         )
 
-      assert {:ok, _modules, []} = Kernel.ParallelCompiler.compile([foo, bar])
+      assert {:ok, _modules, @no_warnings} = compile([foo, bar])
       assert Enum.sort([FooCircular, BarCircular]) == [BarCircular, FooCircular]
     after
       purge([FooCircular, BarCircular])
@@ -361,7 +452,7 @@ defmodule Kernel.ParallelCompilerTest do
 
       capture_io(:stderr, fn ->
         fixtures = [foo, bar]
-        assert assert {:ok, modules, []} = Kernel.ParallelCompiler.compile(fixtures)
+        assert {:ok, modules, @no_warnings} = compile(fixtures)
         assert FooAsync in modules
         assert BarAsync in modules
       end)
@@ -389,47 +480,17 @@ defmodule Kernel.ParallelCompilerTest do
 
       capture_io(:stderr, fn ->
         fixtures = [foo, bar]
-        assert {:error, [foo_error, bar_error], []} = Kernel.ParallelCompiler.compile(fixtures)
-        assert {^bar, nil, "deadlocked waiting on module FooAsyncDeadlock"} = bar_error
-        assert {^foo, nil, "deadlocked waiting on pmap [#PID<" <> _} = foo_error
+        assert {:error, [bar_error, foo_error], @no_warnings} = compile(fixtures)
+
+        assert %{
+                 file: ^bar,
+                 position: nil,
+                 message: "deadlocked waiting on module FooAsyncDeadlock"
+               } = bar_error
+
+        assert %{file: ^foo, position: nil, message: "deadlocked waiting on pmap [#PID<" <> _} =
+                 foo_error
       end)
-    end
-
-    test "supports warnings as errors" do
-      warnings_as_errors = Code.get_compiler_option(:warnings_as_errors)
-
-      [fixture] =
-        write_tmp(
-          "warnings_as_errors",
-          warnings_as_errors: """
-          defmodule WarningsSample do
-            def hello(a), do: a
-            def hello(b), do: b
-          end
-          """
-        )
-
-      output = tmp_path("not_to_be_used")
-
-      try do
-        Code.compiler_options(warnings_as_errors: true)
-
-        msg =
-          capture_io(:stderr, fn ->
-            assert {:error, [error], []} =
-                     Kernel.ParallelCompiler.compile_to_path([fixture], output)
-
-            assert {^fixture, 3, "this clause " <> _} = error
-          end)
-
-        assert msg =~
-                 "Compilation failed due to warnings while using the --warnings-as-errors option\n"
-      after
-        Code.compiler_options(warnings_as_errors: warnings_as_errors)
-        purge([WarningsSample])
-      end
-
-      refute File.exists?(output)
     end
 
     test "does not use incorrect line number when error originates in another file" do
@@ -439,24 +500,49 @@ defmodule Kernel.ParallelCompilerTest do
         write_tmp(
           "error_line",
           a: """
-          defmodule A do
+          defmodule PCA do
             def fun(arg), do: arg / 2
           end
           """,
           b: """
-          defmodule B do
+          defmodule PCB do
             def fun(arg) do
-              A.fun(arg)
+              PCA.fun(arg)
               :ok
             end
           end
-          B.fun(:not_a_number)
+          PCB.fun(:not_a_number)
           """
         )
 
       capture_io(:stderr, fn ->
-        assert {:error, [{^b, 0, _}], _} = Kernel.ParallelCompiler.compile([a, b])
+        assert {:error, [%{file: ^b, position: 0, message: _}], _} = compile([a, b])
       end)
+    end
+
+    test "gets both source and file on @file annotations" do
+      File.mkdir_p!(tmp_path())
+
+      [a] =
+        write_tmp(
+          "file_source",
+          a: """
+          defmodule FileAttr do
+            @file "unknown.foo.bar"
+            def fun, do: (unused = :ok)
+          end
+          """
+        )
+
+      capture_io(:stderr, fn ->
+        assert {:ok, [FileAttr], %{compile_warnings: [%{source: ^a, file: file, message: _}]}} =
+                 compile([a])
+
+        assert String.ends_with?(file, "unknown.foo.bar")
+        assert Path.type(file) == :absolute
+      end)
+    after
+      purge([FileAttr])
     end
 
     test "gets correct line number for UndefinedFunctionError" do
@@ -472,7 +558,25 @@ defmodule Kernel.ParallelCompilerTest do
         )
 
       capture_io(:stderr, fn ->
-        assert {:error, [{^fixture, 2, _}], _} = Kernel.ParallelCompiler.compile([fixture])
+        assert {:error, [%{file: ^fixture, position: 2, message: _}], _} = compile([fixture])
+      end)
+    end
+
+    test "gets correct file+line+column number for SyntaxError" do
+      File.mkdir_p!(tmp_path())
+
+      [fixture] =
+        write_tmp("error",
+          error: """
+          raise SyntaxError, file: "foo/bar.ex", line: 3, column: 10
+          """
+        )
+
+      file = Path.absname("foo/bar.ex")
+
+      capture_io(:stderr, fn ->
+        assert {:error, [%{file: ^file, source: ^fixture, position: {3, 10}}], _} =
+                 compile([fixture])
       end)
     end
 
@@ -486,7 +590,7 @@ defmodule Kernel.ParallelCompilerTest do
           """
         )
 
-      assert {:ok, [Dynamic], []} = Kernel.ParallelCompiler.compile(fixtures, dest: "sample")
+      assert {:ok, [Dynamic], @no_warnings} = compile(fixtures, dest: "sample")
     after
       purge([Dynamic])
     end
@@ -509,8 +613,12 @@ defmodule Kernel.ParallelCompilerTest do
       expected_msg = "Undef.__struct__/1 is undefined, cannot expand struct Undef"
 
       assert capture_io(:stderr, fn ->
-               assert {:error, [{^fixture, 3, msg}, {^fixture, 0, compile_msg}], []} =
-                        Kernel.ParallelCompiler.require([fixture])
+               assert {:error,
+                       [
+                         %{file: ^fixture, position: {3, 5}, message: msg},
+                         %{file: ^fixture, position: 0, message: compile_msg}
+                       ], @no_warnings} =
+                        Kernel.ParallelCompiler.require([fixture], return_diagnostics: true)
 
                assert msg =~ expected_msg
                assert compile_msg =~ "cannot compile module Undef (errors have been logged)"
@@ -537,46 +645,18 @@ defmodule Kernel.ParallelCompilerTest do
         "ThisModuleWillNeverBeAvailable.__struct__/1 is undefined, cannot expand struct ThisModuleWillNeverBeAvailable"
 
       assert capture_io(:stderr, fn ->
-               assert {:error, [{^fixture, 7, msg}, {^fixture, 0, compile_msg}], []} =
-                        Kernel.ParallelCompiler.require([fixture])
+               assert {:error,
+                       [
+                         %{file: ^fixture, position: {7, 3}, message: msg},
+                         %{file: ^fixture, position: 0, message: compile_msg}
+                       ], @no_warnings} =
+                        Kernel.ParallelCompiler.require([fixture], return_diagnostics: true)
 
                assert msg =~ expected_msg
 
                assert compile_msg =~
                         "cannot compile module WithBehaviourAndStruct (errors have been logged)"
              end) =~ expected_msg
-    end
-
-    test "supports warnings as errors" do
-      warnings_as_errors = Code.get_compiler_option(:warnings_as_errors)
-
-      [fixture] =
-        write_tmp(
-          "warnings_as_errors",
-          warnings_as_errors: """
-          defmodule WarningsSample do
-            def hello(a), do: a
-            def hello(b), do: b
-          end
-          """
-        )
-
-      try do
-        Code.compiler_options(warnings_as_errors: true)
-
-        msg =
-          capture_io(:stderr, fn ->
-            assert {:error, [error], []} = Kernel.ParallelCompiler.require([fixture])
-
-            assert {^fixture, 3, "this clause " <> _} = error
-          end)
-
-        assert msg =~
-                 "Compilation failed due to warnings while using the --warnings-as-errors option\n"
-      after
-        Code.compiler_options(warnings_as_errors: warnings_as_errors)
-        purge([WarningsSample])
-      end
     end
   end
 end

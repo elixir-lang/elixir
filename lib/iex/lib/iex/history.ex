@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule IEx.History do
   @moduledoc false
 
@@ -45,8 +49,8 @@ defmodule IEx.History do
   end
 
   # Traverses the queue back-to-front if the index is negative.
-  def nth(%History{queue: q, size: size, start: start}, n)
-      when n < 0 and size + n >= start - 1 do
+  def nth(%History{queue: q, size: size}, n)
+      when n < 0 and size + n >= 0 do
     get_nth(:queue.reverse(q), abs(n) - 1)
   end
 
@@ -55,7 +59,7 @@ defmodule IEx.History do
   end
 
   def nth(%History{size: size, start: start}, n) do
-    raise "v(#{n}) is out of bounds, the currently preserved history ranges from #{start} to #{start + size} " <>
+    raise "v(#{n}) is out of bounds, the currently preserved history ranges from #{start} to #{start + size - 1} " <>
             "(or use negative numbers to look from the end)"
   end
 
@@ -91,14 +95,14 @@ defmodule IEx.History do
     {false, state}
   end
 
-  defp prune(%{size: size} = state, counter, limit, collect?) when size - counter < limit do
+  defp prune(%{size: size} = state, counter, limit, collect?) when size <= limit do
     {collect?, %{state | start: counter}}
   end
 
-  defp prune(%{queue: q} = state, counter, limit, collect?) do
+  defp prune(%{queue: q, size: size} = state, counter, limit, collect?) do
     {{:value, entry}, q} = :queue.out(q)
     collect? = collect? || has_binary(entry)
-    prune(%{state | queue: q}, counter + 1, limit, collect?)
+    prune(%{state | queue: q, size: size - 1}, counter + 1, limit, collect?)
   end
 
   # Checks val and each of its elements (if it is a list or a tuple)

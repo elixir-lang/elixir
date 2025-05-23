@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule EEx.SmartEngineTest do
@@ -41,15 +45,6 @@ defmodule EEx.SmartEngineTest do
     end)
 
     assert_received :found
-  end
-
-  test "error with unused \"do\" block without \"<%=\" modifier" do
-    stderr =
-      ExUnit.CaptureIO.capture_io(:stderr, fn ->
-        assert_eval("", "<% if true do %>I'm invisible!<% end %>", assigns: %{})
-      end)
-
-    assert stderr =~ "the contents of this expression won't be output"
   end
 
   defp assert_eval(expected, actual, binding \\ []) do

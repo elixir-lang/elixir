@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.Compile.ErlangTest do
@@ -83,6 +87,7 @@ defmodule Mix.Tasks.Compile.ErlangTest do
   test "continues even if one file fails to compile" do
     in_fixture("compile_erlang", fn ->
       file = Path.absname("src/zzz.erl")
+      source = deterministic_source(file)
 
       File.write!(file, """
       -module(zzz).
@@ -94,7 +99,8 @@ defmodule Mix.Tasks.Compile.ErlangTest do
 
         assert %Mix.Task.Compiler.Diagnostic{
                  compiler_name: "erl_parse",
-                 file: ^file,
+                 file: ^source,
+                 source: ^source,
                  message: "syntax error before: zzz",
                  position: position(2, 5),
                  severity: :error
@@ -109,6 +115,7 @@ defmodule Mix.Tasks.Compile.ErlangTest do
   test "saves warnings between builds" do
     in_fixture("compile_erlang", fn ->
       file = Path.absname("src/has_warning.erl")
+      source = deterministic_source(file)
 
       File.write!(file, """
       -module(has_warning).
@@ -119,26 +126,32 @@ defmodule Mix.Tasks.Compile.ErlangTest do
         assert {:ok, [diagnostic]} = Mix.Tasks.Compile.Erlang.run([])
 
         assert %Mix.Task.Compiler.Diagnostic{
-                 file: ^file,
+                 file: ^source,
+                 source: ^source,
                  compiler_name: "erl_lint",
                  message: "function my_fn/0 is unused",
                  position: position(2, 1),
                  severity: :warning
                } = diagnostic
 
-        # Should return warning without recompiling file
-        assert {:noop, [^diagnostic]} = Mix.Tasks.Compile.Erlang.run(["--verbose"])
-        refute_received {:mix_shell, :info, ["Compiled src/has_warning.erl"]}
+        capture_io(:stderr, fn ->
+          # Should return warning without recompiling file
+          assert {:noop, [^diagnostic]} = Mix.Tasks.Compile.Erlang.run(["--verbose"])
+          refute_received {:mix_shell, :info, ["Compiled src/has_warning.erl"]}
 
-        # Should not return warning after changing file
-        File.write!(file, """
-        -module(has_warning).
-        -export([my_fn/0]).
-        my_fn() -> ok.
-        """)
+          assert [^diagnostic] = Mix.Tasks.Compile.Erlang.diagnostics()
+          assert [^diagnostic] = Mix.Task.Compiler.diagnostics()
 
-        ensure_touched(file)
-        assert {:ok, []} = Mix.Tasks.Compile.Erlang.run([])
+          # Should not return warning after changing file
+          File.write!(file, """
+          -module(has_warning).
+          -export([my_fn/0]).
+          my_fn() -> ok.
+          """)
+
+          ensure_touched(file)
+          assert {:ok, []} = Mix.Tasks.Compile.Erlang.run([])
+        end)
       end)
     end)
   end
@@ -154,13 +167,13 @@ defmodule Mix.Tasks.Compile.ErlangTest do
 
       capture_io(fn -> Mix.Tasks.Compile.Erlang.run([]) end)
 
-      assert capture_io(fn ->
+      assert capture_io(:stderr, fn ->
                assert {:noop, _} = Mix.Tasks.Compile.Erlang.run([])
-             end) =~ ~r"src/has_warning.erl:2:(1:)? warning: function my_fn/0 is unused\n"
+             end) =~ ~r"has_warning.erl:2:(1:)? warning: function my_fn/0 is unused\n"
 
-      assert capture_io(fn ->
+      assert capture_io(:stderr, fn ->
                assert {:noop, _} = Mix.Tasks.Compile.Erlang.run([])
-             end) =~ ~r"src/has_warning.erl:2:(1:)? warning: function my_fn/0 is unused\n"
+             end) =~ ~r"has_warning.erl:2:(1:)? warning: function my_fn/0 is unused\n"
 
       # Should not print old warnings after fixing
       File.write!(file, """
@@ -178,6 +191,39 @@ defmodule Mix.Tasks.Compile.ErlangTest do
     end)
   end
 
+  test "returns syntax error from an Erlang file when --return-errors is set" do
+    in_fixture("no_mixfile", fn ->
+      import ExUnit.CaptureIO
+
+      file = Path.absname("src/a.erl")
+      source = deterministic_source(file)
+
+      File.mkdir!("src")
+
+      File.write!(file, """
+      -module(b).
+      def b(), do: b
+      """)
+
+      capture_io(fn ->
+        assert {:error, [diagnostic]} =
+                 Mix.Tasks.Compile.Erlang.run(["--force", "--return-errors"])
+
+        assert %Mix.Task.Compiler.Diagnostic{
+                 compiler_name: "erl_parse",
+                 file: ^source,
+                 source: ^source,
+                 message: "syntax error before: b",
+                 position: position(2, 5),
+                 severity: :error
+               } = diagnostic
+      end)
+
+      refute File.regular?("ebin/Elixir.A.beam")
+      refute File.regular?("ebin/Elixir.B.beam")
+    end)
+  end
+
   @tag erlc_options: [{:warnings_as_errors, true}]
   test "adds :debug_info to erlc_options by default" do
     in_fixture("compile_erlang", fn ->
@@ -190,5 +236,11 @@ defmodule Mix.Tasks.Compile.ErlangTest do
 
       assert debug_info != :none
     end)
+  end
+
+  if :deterministic in :compile.env_compiler_options() do
+    defp deterministic_source(file), do: Path.basename(file)
+  else
+    defp deterministic_source(file), do: file
   end
 end

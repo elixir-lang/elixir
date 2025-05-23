@@ -1,9 +1,26 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule ExUnit.AssertionError do
   @moduledoc """
   Raised to signal an assertion error.
+
+  This is used by macros such as `ExUnit.Assertions.assert/1`.
   """
 
   @no_value :ex_unit_no_meaningful_value
+
+  @typedoc since: "1.16.0"
+  @type t :: %__MODULE__{
+          left: any,
+          right: any,
+          message: any,
+          expr: any,
+          args: any,
+          doctest: any,
+          context: any
+        }
 
   defexception left: @no_value,
                right: @no_value,
@@ -16,6 +33,7 @@ defmodule ExUnit.AssertionError do
   @doc """
   Indicates no meaningful value for a field.
   """
+  @spec no_value :: atom
   def no_value do
     @no_value
   end
@@ -30,6 +48,11 @@ defmodule ExUnit.MultiError do
   @moduledoc """
   Raised to signal multiple errors happened in a test case.
   """
+
+  @typedoc since: "1.16.0"
+  @type t :: %__MODULE__{
+          errors: [{Exception.kind(), any, Exception.stacktrace()}]
+        }
 
   defexception errors: []
 
@@ -102,6 +125,12 @@ defmodule ExUnit.Assertions do
 
   Even though the match works, `assert` still expects a truth
   value. In such cases, simply use `==/2` or `match?/2`.
+
+  If you need more complex pattern matching using guards, you
+  need to use `match?/2`:
+
+      assert match?([%{id: id} | _] when is_integer(id), records)
+
   """
   defmacro assert({:=, meta, [left, right]} = assertion) do
     code = escape_quoted(:assert, meta, assertion)
@@ -204,7 +233,7 @@ defmodule ExUnit.Assertions do
 
   defmacro refute(assertion) do
     if translated = translate_assertion(:refute, assertion, __CALLER__) do
-      {:!, [], [translated]}
+      {:!, [generated: true], [translated]}
     else
       {args, value} = extract_args(assertion, __CALLER__)
 
@@ -338,6 +367,23 @@ defmodule ExUnit.Assertions do
   end
 
   @doc false
+  def __match__({:when, _, _} = left, right, _, _, _) do
+    suggestion =
+      quote do
+        assert match?(unquote(left), unquote(right))
+      end
+
+    raise ArgumentError, """
+    invalid pattern in assert/1:
+
+    #{Macro.to_string(left) |> Inspect.Error.pad(2)}
+
+    To assert with guards, use match?/2:
+
+    #{Macro.to_string(suggestion) |> Inspect.Error.pad(2)}
+    """
+  end
+
   def __match__(left, right, code, check, caller) do
     left = __expand_pattern__(left, caller)
     vars = collect_vars_from_pattern(left)
@@ -391,7 +437,7 @@ defmodule ExUnit.Assertions do
   end
 
   def assert(value, opts) when is_list(opts) do
-    unless value, do: raise(ExUnit.AssertionError, opts)
+    if !value, do: raise(ExUnit.AssertionError, opts)
     true
   end
 
@@ -399,8 +445,9 @@ defmodule ExUnit.Assertions do
   Asserts that a message matching `pattern` was or is going to be received
   within the `timeout` period, specified in milliseconds.
 
-  Unlike `assert_received`, it has a default `timeout`
-  of 100 milliseconds.
+  Unlike `assert_received`, it has a configurable timeout.
+  The default timeout duration is determined by the `assert_receive_timeout` option,
+  which can be set using `ExUnit.configure/1`. This option defaults to 100 milliseconds.
 
   The `pattern` argument must be a match pattern. Flunks with `failure_message`
   if a message matching `pattern` is not received.
@@ -489,8 +536,12 @@ defmodule ExUnit.Assertions do
         end
       end
 
-    failure_message =
-      failure_message ||
+    on_timeout =
+      if failure_message do
+        quote do
+          flunk(unquote(failure_message))
+        end
+      else
         quote do
           ExUnit.Assertions.__timeout__(
             unquote(Macro.escape(expanded_pattern)),
@@ -500,6 +551,7 @@ defmodule ExUnit.Assertions do
             timeout
           )
         end
+      end
 
     quote do
       timeout = ExUnit.Assertions.__timeout__(unquote(timeout), :assert_receive_timeout)
@@ -508,7 +560,7 @@ defmodule ExUnit.Assertions do
         receive do
           unquote(pattern) -> {received, unquote(mark_as_generated(vars))}
         after
-          timeout -> flunk(unquote(failure_message))
+          timeout -> unquote(on_timeout)
         end
 
       received
@@ -738,7 +790,7 @@ defmodule ExUnit.Assertions do
   ## Examples
 
       assert_raise ArithmeticError, "bad argument in arithmetic expression", fn ->
-        1 + "test"
+        1 / 0
       end
 
       assert_raise RuntimeError, ~r/^today's lucky number is 0\.\d+!$/, fn ->
@@ -760,7 +812,7 @@ defmodule ExUnit.Assertions do
         "expected:\n  #{inspect(message)}\n" <>
         "actual:\n" <> "  #{inspect(Exception.message(error))}"
 
-    unless match?, do: flunk(message)
+    if not match?, do: flunk(message)
 
     error
   end

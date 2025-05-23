@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule Macro.ExternalTest do
@@ -12,6 +16,12 @@ defmodule Macro.ExternalTest do
 
   defmacro oror(left, right) do
     quote(do: unquote(left) || unquote(right))
+  end
+end
+
+defmodule CustomIf do
+  def if(_cond, _expr) do
+    "custom if result"
   end
 end
 
@@ -36,6 +46,10 @@ defmodule MacroTest do
       assert Macro.escape({:a}) == {:{}, [], [:a]}
       assert Macro.escape({:a, :b, :c}) == {:{}, [], [:a, :b, :c]}
       assert Macro.escape({:a, {1, 2, 3}, :c}) == {:{}, [], [:a, {:{}, [], [1, 2, 3]}, :c]}
+
+      # False positives
+      assert Macro.escape({:quote, :foo, [:bar]}) == {:{}, [], [:quote, :foo, [:bar]]}
+      assert Macro.escape({:quote, :foo, [:bar, :baz]}) == {:{}, [], [:quote, :foo, [:bar, :baz]]}
     end
 
     test "escapes maps" do
@@ -126,6 +140,12 @@ defmodule MacroTest do
     test "does not add context to quote" do
       assert Macro.escape({:quote, [], [[do: :foo]]}) == {:{}, [], [:quote, [], [[do: :foo]]]}
     end
+
+    test "inspects container when a reference cannot be escaped" do
+      assert_raise ArgumentError, ~r"~r/foo/ contains a reference", fn ->
+        Macro.escape(%{~r/foo/ | re_pattern: make_ref()})
+      end
+    end
   end
 
   describe "expand_once/2" do
@@ -186,6 +206,16 @@ defmodule MacroTest do
       assert Code.eval_quoted(expanded) == {env.versioned_vars, []}
     end
 
+    test "env in :match context does not expand" do
+      env = %{__ENV__ | line: 0, lexical_tracker: self(), context: :match}
+
+      expanded = Macro.expand_once(quote(do: __ENV__), env)
+      assert expanded == quote(do: __ENV__)
+
+      expanded = Macro.expand_once(quote(do: __ENV__.file), env)
+      assert expanded == quote(do: __ENV__.file)
+    end
+
     defmacro local_macro(), do: raise("ignored")
 
     test "vars" do
@@ -194,7 +224,7 @@ defmodule MacroTest do
     end
 
     defp expand_once_and_clean(quoted, env) do
-      cleaner = &Keyword.drop(&1, [:counter])
+      cleaner = &Keyword.drop(&1, [:counter, :type_check])
 
       quoted
       |> Macro.expand_once(env)
@@ -256,7 +286,7 @@ defmodule MacroTest do
   end
 
   defp expand_and_clean(quoted, env) do
-    cleaner = &Keyword.drop(&1, [:counter])
+    cleaner = &Keyword.drop(&1, [:counter, :type_check])
 
     quoted
     |> Macro.expand(env)
@@ -305,12 +335,22 @@ defmodule MacroTest do
   end
 
   describe "dbg/3" do
+    defmacrop dbg_format_no_newline(ast, options \\ quote(do: [syntax_colors: []])) do
+      quote do
+        ExUnit.CaptureIO.with_io(fn ->
+          try do
+            unquote(Macro.dbg(ast, options, __CALLER__))
+          rescue
+            e -> e
+          end
+        end)
+      end
+    end
+
     defmacrop dbg_format(ast, options \\ quote(do: [syntax_colors: []])) do
       quote do
         {result, formatted} =
-          ExUnit.CaptureIO.with_io(fn ->
-            unquote(Macro.dbg(ast, options, __CALLER__))
-          end)
+          dbg_format_no_newline(unquote(ast), unquote(options))
 
         # Make sure there's an empty line after the output.
         assert String.ends_with?(formatted, "\n\n") or
@@ -320,27 +360,27 @@ defmodule MacroTest do
       end
     end
 
-    test "with a simple expression" do
+    test "simple expression" do
       {result, formatted} = dbg_format(1 + 1)
       assert result == 2
       assert formatted =~ "1 + 1 #=> 2"
     end
 
-    test "with variables" do
+    test "variables" do
       my_var = 1 + 1
       {result, formatted} = dbg_format(my_var)
       assert result == 2
       assert formatted =~ "my_var #=> 2"
     end
 
-    test "with a function call" do
+    test "function call" do
       {result, formatted} = dbg_format(Atom.to_string(:foo))
 
       assert result == "foo"
       assert formatted =~ ~s[Atom.to_string(:foo) #=> "foo"]
     end
 
-    test "with a multiline input" do
+    test "multiline input" do
       {result, formatted} =
         dbg_format(
           case 1 + 1 do
@@ -359,14 +399,16 @@ defmodule MacroTest do
              """
     end
 
-    test "with a pipeline on a single line" do
-      {result, formatted} = dbg_format([:a, :b, :c] |> tl() |> tl |> Kernel.hd())
+    defp abc, do: [:a, :b, :c]
+
+    test "pipeline on a single line" do
+      {result, formatted} = dbg_format(abc() |> tl() |> tl |> Kernel.hd())
       assert result == :c
 
       assert formatted =~ "macro_test.exs"
 
       assert formatted =~ """
-             \n[:a, :b, :c] #=> [:a, :b, :c]
+             \nabc() #=> [:a, :b, :c]
              |> tl() #=> [:b, :c]
              |> tl #=> [:c]
              |> Kernel.hd() #=> :c
@@ -377,10 +419,10 @@ defmodule MacroTest do
       assert formatted =~ ~r/[^\n]\n\n$/
     end
 
-    test "with a pipeline on multiple lines" do
+    test "pipeline on multiple lines" do
       {result, formatted} =
         dbg_format(
-          [:a, :b, :c]
+          abc()
           |> tl()
           |> tl
           |> Kernel.hd()
@@ -391,7 +433,7 @@ defmodule MacroTest do
       assert formatted =~ "macro_test.exs"
 
       assert formatted =~ """
-             \n[:a, :b, :c] #=> [:a, :b, :c]
+             \nabc() #=> [:a, :b, :c]
              |> tl() #=> [:b, :c]
              |> tl #=> [:c]
              |> Kernel.hd() #=> :c
@@ -402,7 +444,7 @@ defmodule MacroTest do
       assert formatted =~ ~r/[^\n]\n\n$/
     end
 
-    test "with simple boolean expressions" do
+    test "simple boolean expressions" do
       {result, formatted} = dbg_format(:rand.uniform() < 0.0 and length([]) == 0)
       assert result == false
 
@@ -414,7 +456,7 @@ defmodule MacroTest do
              """
     end
 
-    test "with left-associative operators" do
+    test "left-associative operators" do
       {result, formatted} = dbg_format(List.first([]) || "yes" || raise("foo"))
       assert result == "yes"
 
@@ -427,7 +469,7 @@ defmodule MacroTest do
              """
     end
 
-    test "with composite boolean expressions" do
+    test "composite boolean expressions" do
       true1 = length([]) == 0
       true2 = length([]) == 0
       {result, formatted} = dbg_format((true1 and true2) or (List.first([]) || true1))
@@ -443,8 +485,65 @@ defmodule MacroTest do
              """
     end
 
-    test "with case" do
-      list = [1, 2, 3]
+    test "boolean expressions that raise" do
+      falsy = length([]) != 0
+      x = 0
+
+      {result, formatted} = dbg_format_no_newline((falsy || x) && 1 / x)
+
+      assert %ArithmeticError{} = result
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             falsy #=> false
+             falsy || x #=> 0
+             """
+    end
+
+    test "block of code" do
+      {result, formatted} =
+        dbg_format(
+          (
+            a = 1
+            b = a + 2
+            a + b
+          )
+        )
+
+      assert result == 4
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             a = 1 #=> 1
+             b = a + 2 #=> 3
+             a + b #=> 4
+             """
+    end
+
+    test "block that raises" do
+      {result, formatted} =
+        dbg_format_no_newline(
+          (
+            a = 1
+            b = a - 1
+            a / b
+          )
+        )
+
+      assert result == %ArithmeticError{}
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             a = 1 #=> 1
+             b = a - 1 #=> 0
+             """
+    end
+
+    test "case" do
+      list = List.flatten([1, 2, 3])
 
       {result, formatted} =
         dbg_format(
@@ -470,7 +569,28 @@ defmodule MacroTest do
              """
     end
 
-    test "with case - guard" do
+    test "case that raises" do
+      x = true
+
+      {result, formatted} =
+        dbg_format(
+          case true and x do
+            true -> raise "oops"
+            false -> :ok
+          end
+        )
+
+      assert %RuntimeError{} = result
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             Case argument:
+             true and x #=> true
+             """
+    end
+
+    test "case with guards" do
       {result, formatted} =
         dbg_format(
           case 0..100//5 do
@@ -503,7 +623,7 @@ defmodule MacroTest do
              """
     end
 
-    test "with cond" do
+    test "cond" do
       map = %{b: 5}
 
       {result, formatted} =
@@ -530,6 +650,260 @@ defmodule MacroTest do
                true -> nil
              end #=> 10
              """
+    end
+
+    test "if expression" do
+      x = true
+      map = %{a: 5, b: 1}
+
+      {result, formatted} =
+        dbg_format(
+          if true and x do
+            map[:a] * 2
+          else
+            map[:b]
+          end
+        )
+
+      assert result == 10
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             If condition:
+             true and x #=> true
+
+             If expression:
+             if true and x do
+               map[:a] * 2
+             else
+               map[:b]
+             end #=> 10
+             """
+    end
+
+    test "if expression that raises" do
+      x = true
+
+      {result, formatted} =
+        dbg_format(
+          if true and x do
+            raise "oops"
+          end
+        )
+
+      assert %RuntimeError{} = result
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             If condition:
+             true and x #=> true
+             """
+    end
+
+    test "if expression without else" do
+      x = true
+      map = %{a: 5, b: 1}
+
+      {result, formatted} =
+        dbg_format(
+          if false and x do
+            map[:a] * 2
+          end
+        )
+
+      assert result == nil
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             If condition:
+             false and x #=> false
+
+             If expression:
+             if false and x do
+               map[:a] * 2
+             end #=> nil
+             """
+    end
+
+    test "custom if definition" do
+      import Kernel, except: [if: 2]
+      import CustomIf, only: [if: 2]
+
+      {result, formatted} =
+        dbg_format(
+          if true do
+            "something"
+          end
+        )
+
+      assert result == "custom if result"
+
+      assert formatted =~ """
+             if true do
+               "something"
+             end #=> "custom if result"
+             """
+    end
+
+    test "with/1 (all clauses match)" do
+      opts = %{width: 10, height: 15}
+
+      {result, formatted} =
+        dbg_format(
+          with {:ok, width} <- Map.fetch(opts, :width),
+               double_width = width * 2,
+               IO.puts("just a side effect"),
+               {:ok, height} <- Map.fetch(opts, :height) do
+            {:ok, double_width * height}
+          end
+        )
+
+      assert result == {:ok, 300}
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             With clauses:
+             Map.fetch(opts, :width) #=> {:ok, 10}
+             width * 2 #=> 20
+             Map.fetch(opts, :height) #=> {:ok, 15}
+
+             With expression:
+             with {:ok, width} <- Map.fetch(opts, :width),
+                  double_width = width * 2,
+                  IO.puts("just a side effect"),
+                  {:ok, height} <- Map.fetch(opts, :height) do
+               {:ok, double_width * height}
+             end #=> {:ok, 300}
+             """
+    end
+
+    test "with/1 (no else)" do
+      opts = %{width: 10}
+
+      {result, formatted} =
+        dbg_format(
+          with {:ok, width} <- Map.fetch(opts, :width),
+               {:ok, height} <- Map.fetch(opts, :height) do
+            {:ok, width * height}
+          end
+        )
+
+      assert result == :error
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             With clauses:
+             Map.fetch(opts, :width) #=> {:ok, 10}
+             Map.fetch(opts, :height) #=> :error
+
+             With expression:
+             with {:ok, width} <- Map.fetch(opts, :width),
+                  {:ok, height} <- Map.fetch(opts, :height) do
+               {:ok, width * height}
+             end #=> :error
+             """
+    end
+
+    test "with/1 (else clause)" do
+      opts = %{width: 10}
+
+      {result, formatted} =
+        dbg_format(
+          with {:ok, width} <- Map.fetch(opts, :width),
+               {:ok, height} <- Map.fetch(opts, :height) do
+            width * height
+          else
+            :error -> 0
+          end
+        )
+
+      assert result == 0
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             With clauses:
+             Map.fetch(opts, :width) #=> {:ok, 10}
+             Map.fetch(opts, :height) #=> :error
+
+             With expression:
+             with {:ok, width} <- Map.fetch(opts, :width),
+                  {:ok, height} <- Map.fetch(opts, :height) do
+               width * height
+             else
+               :error -> 0
+             end #=> 0
+             """
+    end
+
+    test "with/1 (guard)" do
+      opts = %{width: 10, height: 0.0}
+
+      {result, formatted} =
+        dbg_format(
+          with {:ok, width} when is_integer(width) <- Map.fetch(opts, :width),
+               {:ok, height} when is_integer(height) <- Map.fetch(opts, :height) do
+            width * height
+          else
+            _ -> nil
+          end
+        )
+
+      assert result == nil
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             With clauses:
+             Map.fetch(opts, :width) #=> {:ok, 10}
+             Map.fetch(opts, :height) #=> {:ok, 0.0}
+
+             With expression:
+             with {:ok, width} when is_integer(width) <- Map.fetch(opts, :width),
+                  {:ok, height} when is_integer(height) <- Map.fetch(opts, :height) do
+               width * height
+             else
+               _ -> nil
+             end #=> nil
+             """
+    end
+
+    test "with/1 (guard in else)" do
+      opts = %{}
+
+      {result, _formatted} =
+        dbg_format(
+          with {:ok, width} <- Map.fetch(opts, :width) do
+            width
+          else
+            other when is_integer(other) -> :int
+            other when is_atom(other) -> :atom
+          end
+        )
+
+      assert result == :atom
+    end
+
+    test "with/1 respects the WithClauseError" do
+      value = Enum.random([:unexpected])
+
+      error =
+        assert_raise WithClauseError, fn ->
+          ExUnit.CaptureIO.capture_io(fn ->
+            dbg(
+              with :ok <- value do
+                true
+              else
+                :error -> false
+              end
+            )
+          end)
+        end
+
+      assert error.term == :unexpected
     end
 
     test "with \"syntax_colors: []\" it doesn't print any color sequences" do
@@ -560,46 +934,14 @@ defmodule MacroTest do
       assert Macro.to_string(quote do: hello(world)) == "hello(world)"
     end
 
-    test "large number literals" do
-      # with quote
-      assert Macro.to_string(quote do: 576_460_752_303_423_455) == "576_460_752_303_423_455"
-      assert Macro.to_string(quote do: -576_460_752_303_423_455) == "-576_460_752_303_423_455"
-
-      # without quote
-      assert Macro.to_string(576_460_752_303_423_455) == "576_460_752_303_423_455"
-      assert Macro.to_string(-576_460_752_303_423_455) == "-576_460_752_303_423_455"
-    end
-
-    defmodule HTML do
-      defstruct [:string]
-
-      defimpl Inspect do
-        def inspect(%{string: string}, _) do
-          "~HTML[#{string}]"
-        end
-      end
-    end
-
-    defmacro sigil_HTML({:<<>>, _, [string]}, []) do
-      Macro.escape(%HTML{string: string})
-    end
-
-    test "sigils" do
-      assert Macro.to_string(quote(do: ~HTML[hi])) == ~S/~HTML[hi]/
-
-      assert Macro.to_string(
-               quote do
-                 ~HTML"""
-                 hi
-                 """
-               end
-             ) == ~s[~HTML"""\nhi\n"""]
+    test "converts invalid AST with inspect" do
+      assert Macro.to_string(1..3) == "1..3"
     end
   end
 
   describe "to_string/2" do
     defp macro_to_string(var, fun \\ fn _ast, string -> string end) do
-      module = Macro
+      module = String.to_atom("Elixir.Macro")
       module.to_string(var, fun)
     end
 
@@ -926,12 +1268,16 @@ defmodule MacroTest do
     end
 
     test "range" do
-      assert macro_to_string(quote(do: unquote(-1..+2))) == "-1..2"
+      assert macro_to_string(quote(do: -1..+2)) == "-1..+2"
       assert macro_to_string(quote(do: Foo.integer()..3)) == "Foo.integer()..3"
-      assert macro_to_string(quote(do: unquote(-1..+2//-3))) == "-1..2//-3"
+      assert macro_to_string(quote(do: -1..+2//-3)) == "-1..+2//-3"
 
       assert macro_to_string(quote(do: Foo.integer()..3//Bar.bat())) ==
                "Foo.integer()..3//Bar.bat()"
+
+      # invalid AST
+      assert macro_to_string(-1..+2) == "-1..2"
+      assert macro_to_string(-1..+2//-3) == "-1..2//-3"
     end
 
     test "when" do
@@ -1128,65 +1474,6 @@ defmodule MacroTest do
     assert Macro.decompose_call(quote(do: {:foo, :bar, :baz, 42})) == :error
   end
 
-  describe "env" do
-    doctest Macro.Env
-
-    test "inspect" do
-      assert inspect(__ENV__) =~ "#Macro.Env<"
-    end
-
-    test "prune_compile_info" do
-      assert %Macro.Env{lexical_tracker: nil, tracers: []} =
-               Macro.Env.prune_compile_info(%{__ENV__ | lexical_tracker: self(), tracers: [Foo]})
-    end
-
-    test "stacktrace" do
-      env = %{__ENV__ | file: "foo", line: 12}
-
-      assert Macro.Env.stacktrace(env) ==
-               [{__MODULE__, :"test env stacktrace", 1, [file: ~c"foo", line: 12]}]
-
-      env = %{env | function: nil}
-
-      assert Macro.Env.stacktrace(env) == [
-               {__MODULE__, :__MODULE__, 0, [file: ~c"foo", line: 12]}
-             ]
-
-      env = %{env | module: nil}
-
-      assert Macro.Env.stacktrace(env) ==
-               [{:elixir_compiler, :__FILE__, 1, [file: ~c"foo", line: 12]}]
-    end
-
-    test "context modules" do
-      defmodule Foo.Bar do
-        assert __MODULE__ in __ENV__.context_modules
-      end
-
-      assert Foo.Bar in __ENV__.context_modules
-
-      Code.compile_string("""
-      defmodule Foo.Bar.Compiled do
-        true = __MODULE__ in __ENV__.context_modules
-      end
-      """)
-    end
-
-    test "to_match/1" do
-      quote = quote(do: x in [])
-
-      assert {:__block__, [], [{:=, [], [{:_, [], Kernel}, {:x, [], MacroTest}]}, false]} =
-               Macro.expand_once(quote, __ENV__)
-
-      assert Macro.expand_once(quote, Macro.Env.to_match(__ENV__)) == false
-    end
-
-    test "prepend_tracer" do
-      assert %Macro.Env{tracers: [MyCustomTracer | _]} =
-               Macro.Env.prepend_tracer(__ENV__, MyCustomTracer)
-    end
-  end
-
   ## pipe/unpipe
 
   test "pipe/3" do
@@ -1349,29 +1636,41 @@ defmodule MacroTest do
   test "generate_arguments/2" do
     assert Macro.generate_arguments(0, __MODULE__) == []
     assert Macro.generate_arguments(1, __MODULE__) == [{:arg1, [], __MODULE__}]
-    assert Macro.generate_arguments(4, __MODULE__) |> length == 4
+    assert Macro.generate_arguments(4, __MODULE__) |> length() == 4
   end
 
   defp postwalk(ast) do
     Macro.postwalk(ast, [], &{&1, [&1 | &2]}) |> elem(1) |> Enum.reverse()
   end
 
-  test "struct!/2 expands structs multiple levels deep" do
+  test "struct_info!/2 expands structs multiple levels deep" do
     defmodule StructBang do
       defstruct [:a, :b]
 
-      assert Macro.struct!(StructBang, __ENV__) == %{__struct__: StructBang, a: nil, b: nil}
+      assert Macro.struct_info!(StructBang, __ENV__) == [
+               %{field: :a, default: nil},
+               %{field: :b, default: nil}
+             ]
 
       def within_function do
-        assert Macro.struct!(StructBang, __ENV__) == %{__struct__: StructBang, a: nil, b: nil}
+        assert Macro.struct_info!(StructBang, __ENV__) == [
+                 %{field: :a, default: nil},
+                 %{field: :b, default: nil}
+               ]
       end
 
       defmodule Nested do
-        assert Macro.struct!(StructBang, __ENV__) == %{__struct__: StructBang, a: nil, b: nil}
+        assert Macro.struct_info!(StructBang, __ENV__) == [
+                 %{field: :a, default: nil},
+                 %{field: :b, default: nil}
+               ]
       end
     end
 
-    assert Macro.struct!(StructBang, __ENV__) == %{__struct__: StructBang, a: nil, b: nil}
+    assert Macro.struct_info!(StructBang, __ENV__) == [
+             %{field: :a, default: nil},
+             %{field: :b, default: nil}
+           ]
   end
 
   test "prewalker/1" do

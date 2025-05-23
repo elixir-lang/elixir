@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Kernel.SigilsTest do
@@ -27,8 +31,6 @@ defmodule Kernel.SigilsTest do
     assert ~S(f#{o}o) == "f\#{o}o"
     assert ~S(f\#{o}o) == "f\\\#{o}o"
     assert ~S(f\no) == "f\\no"
-    assert ~S(foo\)) == "foo)"
-    assert ~S[foo\]] == "foo]"
   end
 
   test "sigil S newline" do
@@ -39,14 +41,6 @@ bar) in ["foo\\\nbar", "foo\\\r\nbar"]
   test "sigil S with heredoc" do
     assert "  f\#{o}o\\n\n" == ~S"""
              f#{o}o\n
-           """
-  end
-
-  test "sigil S with escaping" do
-    assert "\"" == ~S"\""
-
-    assert "\"\"\"\n" == ~S"""
-           \"""
            """
   end
 

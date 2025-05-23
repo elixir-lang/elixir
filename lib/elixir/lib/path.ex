@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Path do
   @moduledoc """
   This module provides conveniences for manipulating or
@@ -44,17 +48,17 @@ defmodule Path do
   """
   @spec absname(t) :: binary
   def absname(path) do
-    absname(path, File.cwd!())
+    absname(path, &File.cwd!/0)
   end
 
   @doc """
   Builds a path from `relative_to` to `path`.
 
   If `path` is already an absolute path, `relative_to` is ignored. See also
-  `relative_to/3`.
+  `relative_to/3`. `relative_to` is either a path or an anonymous function,
+  which is invoked only when necessary, that returns a path.
 
-  Unlike `expand/2`, no attempt is made to
-  resolve `..`, `.` or `~`.
+  Unlike `expand/2`, no attempt is made to resolve `..`, `.` or `~`.
 
   ## Examples
 
@@ -64,20 +68,37 @@ defmodule Path do
       iex> Path.absname("../x", "bar")
       "bar/../x"
 
+      iex> Path.absname("foo", fn -> "lazy" end)
+      "lazy/foo"
+
   """
-  @spec absname(t, t) :: binary
+  @spec absname(t, t | (-> t)) :: binary
   def absname(path, relative_to) do
     path = IO.chardata_to_string(path)
 
     case type(path) do
       :relative ->
+        relative_to =
+          if is_function(relative_to, 0) do
+            relative_to.()
+          else
+            relative_to
+          end
+
         absname_join([relative_to, path])
 
       :absolute ->
         absname_join([path])
 
       :volumerelative ->
-        relative_to = IO.chardata_to_string(relative_to)
+        relative_to =
+          if is_function(relative_to, 0) do
+            relative_to.()
+          else
+            relative_to
+          end
+          |> IO.chardata_to_string()
+
         absname_vr(split(path), split(relative_to), relative_to)
     end
   end
@@ -155,15 +176,21 @@ defmodule Path do
   Converts the path to an absolute one, expanding
   any `.` and `..` components and a leading `~`.
 
+  If a relative path is provided it is expanded relatively to
+  the current working directory.
+
   ## Examples
 
       Path.expand("/foo/bar/../baz")
       #=> "/foo/baz"
 
+      Path.expand("foo/bar/../baz")
+      #=> "$PWD/foo/baz"
+
   """
   @spec expand(t) :: binary
   def expand(path) do
-    expand_dot(absname(expand_home(path), File.cwd!()))
+    expand_dot(absname(expand_home(path), &File.cwd!/0))
   end
 
   @doc """
@@ -192,7 +219,7 @@ defmodule Path do
   """
   @spec expand(t, t) :: binary
   def expand(path, relative_to) do
-    expand_dot(absname(absname(expand_home(path), expand_home(relative_to)), File.cwd!()))
+    expand_dot(absname(absname(expand_home(path), expand_home(relative_to)), &File.cwd!/0))
   end
 
   @doc """
@@ -244,7 +271,7 @@ defmodule Path do
       Path.relative("/bar/foo.ex")      #=> "bar/foo.ex"
 
   """
-  # Note this function does not expand paths because the behaviour
+  # Note this function does not expand paths because the behavior
   # is ambiguous. If we expand it before converting to relative, then
   # "/usr/../../foo" means "/foo". If we expand it after, it means "../foo".
   # We could expand only relative paths but it is best to say it never
@@ -410,6 +437,8 @@ defmodule Path do
   defp relative_to_unforced(_, _, original), do: join(original)
 
   defp relative_to_forced(path, path, _original), do: "."
+  defp relative_to_forced(["."], _path, _original), do: "."
+  defp relative_to_forced(path, ["."], _original), do: join(path)
   defp relative_to_forced([h | t1], [h | t2], original), do: relative_to_forced(t1, t2, original)
 
   # this should only happen if we have two paths on different drives on windows
@@ -745,9 +774,9 @@ defmodule Path do
   You may call `Path.expand/1` to normalize the path before invoking
   this function.
 
-  A character preceded by \ loses its special meaning.
-  Note that \ must be written as \\ in a string literal.
-  For example, "\\?*" will match any filename starting with ?.
+  A character preceded by `\\` loses its special meaning.
+  Note that `\\` must be written as `\\\\` in a string literal.
+  For example, `"\\\\?*"` will match any filename starting with `?.`.
 
   By default, the patterns `*` and `?` do not match files starting
   with a dot `.`. See the `:match_dot` option in the "Options" section
@@ -859,7 +888,7 @@ defmodule Path do
     * A `..` component would make it so that the path would traverse up above
       the root of `relative_to`.
 
-    * A symbolic link in the path points to something above the root of `cwd`.
+    * A symbolic link in the path points to something above the root of `relative_to`.
 
   ## Examples
 
@@ -881,10 +910,10 @@ defmodule Path do
   """
   @doc since: "1.14.0"
   @spec safe_relative(t, t) :: {:ok, binary} | :error
-  def safe_relative(path, cwd \\ File.cwd!()) do
+  def safe_relative(path, relative_to \\ File.cwd!()) do
     path = IO.chardata_to_string(path)
 
-    case :filelib.safe_relative_path(path, cwd) do
+    case :filelib.safe_relative_path(path, relative_to) do
       :unsafe -> :error
       relative_path -> {:ok, IO.chardata_to_string(relative_path)}
     end

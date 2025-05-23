@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0
+// SPDX-FileCopyrightText: 2021 The Elixir Team
+
 {
   // Consecutive header levels (h1 -> h2 -> h3). We don't care about this.
   "MD001": false,
@@ -17,14 +20,19 @@
   "MD014": false,
   // Multiple headings with the same content. That's fine.
   "MD024": false,
+  // Some headers finish with ! because it refers to a function name
+  "MD026": false,
   // Allow empty line between block quotes. Used by contiguous admonition blocks.
   "MD028": false,
   // Allowed HTML inline elements.
   "MD033": {
     "allowed_elements": [
+      "h1",
       "a",
       "br",
       "img",
+      "picture",
+      "source",
       "noscript",
       "p",
       "script"

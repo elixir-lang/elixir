@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
 Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.EvalTest do
@@ -9,7 +12,7 @@ defmodule Mix.Tasks.EvalTest do
 
   test "does not start applications", context do
     in_tmp(context.test, fn ->
-      expr = "send self(), {:apps, Application.loaded_applications()}"
+      expr = "send self(), {:apps, Application.started_applications()}"
       Mix.Tasks.Eval.run([expr])
       assert_received {:apps, apps}
       refute List.keyfind(apps, :sample, 0)

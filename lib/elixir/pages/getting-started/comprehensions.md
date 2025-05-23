@@ -1,6 +1,11 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Comprehensions
 
-In Elixir, it is common to loop over an Enumerable, often filtering out some results and mapping values into another list. Comprehensions are syntactic sugar for such constructs: they group those common tasks into the `for` special form.
+In Elixir, it is common to loop over an `Enumerable`, often filtering out some results and mapping values into another list. Comprehensions are syntactic sugar for such constructs: they group those common tasks into the `for` special form.
 
 For example, we can map a list of integers into their squared values:
 
@@ -50,7 +55,7 @@ for dir <- dirs,
 end
 ```
 
-Multiple generators can also be used to calculate the cartesian product of two lists:
+Multiple generators can also be used to calculate the Cartesian product of two lists:
 
 ```elixir
 iex> for i <- [:a, :b, :c], j <- [1, 2], do:  {i, j}

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule ExUnit.FiltersTest do
@@ -166,75 +170,157 @@ defmodule ExUnit.FiltersTest do
       %ExUnit.Test{tags: %{line: 13, describe_line: 12}}
     ]
 
-    assert ExUnit.Filters.eval([line: "3"], [:line], %{line: 3, describe_line: 2}, tests) == :ok
-    assert ExUnit.Filters.eval([line: "4"], [:line], %{line: 3, describe_line: 2}, tests) == :ok
-    assert ExUnit.Filters.eval([line: "5"], [:line], %{line: 5, describe_line: nil}, tests) == :ok
-    assert ExUnit.Filters.eval([line: "6"], [:line], %{line: 5, describe_line: nil}, tests) == :ok
-    assert ExUnit.Filters.eval([line: "2"], [:line], %{line: 3, describe_line: 2}, tests) == :ok
-    assert ExUnit.Filters.eval([line: "7"], [:line], %{line: 8, describe_line: 7}, tests) == :ok
-    assert ExUnit.Filters.eval([line: "7"], [:line], %{line: 10, describe_line: 7}, tests) == :ok
+    assert ExUnit.Filters.eval([line: 3], [:line], %{line: 3, describe_line: 2}, tests) == :ok
+    assert ExUnit.Filters.eval([line: 4], [:line], %{line: 3, describe_line: 2}, tests) == :ok
+    assert ExUnit.Filters.eval([line: 5], [:line], %{line: 5, describe_line: nil}, tests) == :ok
+    assert ExUnit.Filters.eval([line: 6], [:line], %{line: 5, describe_line: nil}, tests) == :ok
+    assert ExUnit.Filters.eval([line: 2], [:line], %{line: 3, describe_line: 2}, tests) == :ok
+    assert ExUnit.Filters.eval([line: 7], [:line], %{line: 8, describe_line: 7}, tests) == :ok
+    assert ExUnit.Filters.eval([line: 7], [:line], %{line: 10, describe_line: 7}, tests) == :ok
 
-    assert ExUnit.Filters.eval([line: "1"], [:line], %{line: 3, describe_line: 2}, tests) ==
+    assert ExUnit.Filters.eval([line: 1], [:line], %{line: 3, describe_line: 2}, tests) ==
              {:excluded, "due to line filter"}
 
-    assert ExUnit.Filters.eval([line: "7"], [:line], %{line: 3, describe_line: 2}, tests) ==
+    assert ExUnit.Filters.eval([line: 7], [:line], %{line: 3, describe_line: 2}, tests) ==
              {:excluded, "due to line filter"}
 
-    assert ExUnit.Filters.eval([line: "7"], [:line], %{line: 5, describe_line: nil}, tests) ==
+    assert ExUnit.Filters.eval([line: 7], [:line], %{line: 5, describe_line: nil}, tests) ==
              {:excluded, "due to line filter"}
+  end
+
+  test "evaluating filter uses special rules for location" do
+    tests = [
+      %ExUnit.Test{tags: %{line: 3, describe_line: 2}},
+      %ExUnit.Test{tags: %{line: 5, describe_line: nil}}
+    ]
+
+    assert ExUnit.Filters.eval(
+             [location: "foo_test.exs"],
+             [:line],
+             %{line: 3, describe_line: 2, file: "foo_test.exs"},
+             tests
+           ) == :ok
+
+    assert ExUnit.Filters.eval(
+             [location: "bar_test.exs"],
+             [:line],
+             %{line: 3, describe_line: 2, file: "foo_test.exs"},
+             tests
+           ) == {:excluded, "due to line filter"}
+
+    assert ExUnit.Filters.eval(
+             [location: {"foo_test.exs", 3}],
+             [:line],
+             %{line: 3, describe_line: 2, file: "foo_test.exs"},
+             tests
+           ) == :ok
+
+    assert ExUnit.Filters.eval(
+             [location: {"bar_test.exs", 3}],
+             [:line],
+             %{line: 3, describe_line: 2, file: "foo_test.exs"},
+             tests
+           ) == {:excluded, "due to line filter"}
   end
 
   test "parsing filters" do
     assert ExUnit.Filters.parse(["run"]) == [:run]
     assert ExUnit.Filters.parse(["run:true"]) == [run: "true"]
     assert ExUnit.Filters.parse(["run:test"]) == [run: "test"]
-    assert ExUnit.Filters.parse(["line:9"]) == [line: "9"]
+    assert ExUnit.Filters.parse(["line:9"]) == [line: 9]
+    assert ExUnit.Filters.parse(["location:foo.exs"]) == [location: "foo.exs"]
+    assert ExUnit.Filters.parse(["location:foo.exs:invalid"]) == [location: "foo.exs:invalid"]
+    assert ExUnit.Filters.parse(["location:foo.exs:9"]) == [location: {"foo.exs", 9}]
+    assert ExUnit.Filters.parse(["location:foo.exs:9:11"]) == [location: {"foo.exs", [9, 11]}]
   end
 
   test "file paths with line numbers" do
-    assert ExUnit.Filters.parse_path("test/some/path.exs:123") ==
-             {"test/some/path.exs", [exclude: [:test], include: [line: "123"]]}
+    unix_path = "test/some/path.exs"
+    windows_path = "C:\\some\\path.exs"
+    unix_path_with_dot = "./test/some/path.exs"
 
-    assert ExUnit.Filters.parse_path("test/some/path.exs") == {"test/some/path.exs", []}
+    for path <- [unix_path, windows_path, unix_path_with_dot] do
+      fixed_path = path |> Path.split() |> Path.join() |> Path.relative_to_cwd()
 
-    assert ExUnit.Filters.parse_path("test/some/path.exs:123notreallyalinenumber123") ==
-             {"test/some/path.exs:123notreallyalinenumber123", []}
+      assert ExUnit.Filters.parse_path("#{path}:123") ==
+               {fixed_path, [exclude: [:test], include: [location: {fixed_path, 123}]]}
 
-    assert ExUnit.Filters.parse_path("C:\\some\\path.exs:123") ==
-             {"C:\\some\\path.exs", [exclude: [:test], include: [line: "123"]]}
+      assert ExUnit.Filters.parse_path(path) == {fixed_path, []}
 
-    assert ExUnit.Filters.parse_path("C:\\some\\path.exs") == {"C:\\some\\path.exs", []}
+      assert ExUnit.Filters.parse_path("#{path}:123notreallyalinenumber123") ==
+               {"#{fixed_path}:123notreallyalinenumber123", []}
 
-    assert ExUnit.Filters.parse_path("C:\\some\\path.exs:123notreallyalinenumber123") ==
-             {"C:\\some\\path.exs:123notreallyalinenumber123", []}
+      assert ExUnit.Filters.parse_path("#{path}:123:456") ==
+               {fixed_path, [exclude: [:test], include: [location: {fixed_path, [123, 456]}]]}
 
-    assert ExUnit.Filters.parse_path("test/some/path.exs:123:456") ==
-             {"test/some/path.exs", [exclude: [:test], include: [line: "123", line: "456"]]}
+      assert ExUnit.Filters.parse_path("#{path}:123notalinenumber123:456") ==
+               {"#{fixed_path}:123notalinenumber123",
+                [
+                  exclude: [:test],
+                  include: [location: {"#{fixed_path}:123notalinenumber123", 456}]
+                ]}
 
-    assert ExUnit.Filters.parse_path("C:\\some\\path.exs:123:456") ==
-             {"C:\\some\\path.exs", [exclude: [:test], include: [line: "123", line: "456"]]}
+      output =
+        ExUnit.CaptureIO.capture_io(:stderr, fn ->
+          assert ExUnit.Filters.parse_path("#{path}:123:456notalinenumber456") ==
+                   {fixed_path, [{:exclude, [:test]}, {:include, [location: {fixed_path, 123}]}]}
 
-    assert ExUnit.Filters.parse_path("test/some/path.exs:123notalinenumber123:456") ==
-             {"test/some/path.exs:123notalinenumber123",
-              [exclude: [:test], include: [line: "456"]]}
+          assert ExUnit.Filters.parse_path("#{path}:123:0:-789:456") ==
+                   {fixed_path, [exclude: [:test], include: [location: {fixed_path, [123, 456]}]]}
+        end)
 
-    assert ExUnit.Filters.parse_path("test/some/path.exs:123:456notalinenumber456") ==
-             {"test/some/path.exs:123:456notalinenumber456", []}
+      assert output =~ "invalid line number given as ExUnit filter: 456notalinenumber456"
+      assert output =~ "invalid line number given as ExUnit filter: 0"
+      assert output =~ "invalid line number given as ExUnit filter: -789"
+    end
+  end
 
-    assert ExUnit.Filters.parse_path("C:\\some\\path.exs:123notalinenumber123:456") ==
-             {"C:\\some\\path.exs:123notalinenumber123",
-              [exclude: [:test], include: [line: "456"]]}
+  test "multiple file paths with line numbers" do
+    unix_path = "test/some/path.exs"
+    windows_path = "C:\\some\\path.exs"
+    other_unix_path = "test//some//other_path.exs"
+    other_windows_path = "C:\\some\\other_path.exs"
 
-    assert ExUnit.Filters.parse_path("C:\\some\\path.exs:123:456notalinenumber456") ==
-             {"C:\\some\\path.exs:123:456notalinenumber456", []}
+    for {path, other_path} <- [{unix_path, other_unix_path}, {windows_path, other_windows_path}] do
+      fixed_path = path |> Path.split() |> Path.join()
+      fixed_other_path = other_path |> Path.split() |> Path.join()
 
-    output =
-      ExUnit.CaptureIO.capture_io(:stderr, fn ->
-        assert ExUnit.Filters.parse_path("test/some/path.exs:123:0:-789:456") ==
-                 {"test/some/path.exs", [exclude: [:test], include: [line: "123", line: "456"]]}
-      end)
+      assert ExUnit.Filters.parse_paths([path, other_path]) ==
+               {[fixed_path, fixed_other_path], []}
 
-    assert output =~ "invalid line number given as ExUnit filter: 0"
-    assert output =~ "invalid line number given as ExUnit filter: -789"
+      assert ExUnit.Filters.parse_paths([path, "#{other_path}:456:789"]) ==
+               {[fixed_path, fixed_other_path],
+                [
+                  exclude: [:test],
+                  include: [location: fixed_path, location: {fixed_other_path, [456, 789]}]
+                ]}
+
+      assert ExUnit.Filters.parse_paths(["#{path}:123", "#{other_path}:456"]) ==
+               {[fixed_path, fixed_other_path],
+                [
+                  exclude: [:test],
+                  include: [location: {fixed_path, 123}, location: {fixed_other_path, 456}]
+                ]}
+
+      output =
+        ExUnit.CaptureIO.capture_io(:stderr, fn ->
+          assert ExUnit.Filters.parse_paths([
+                   "#{path}:123:0:-789:456",
+                   "#{other_path}:321:0:-987:654"
+                 ]) ==
+                   {[fixed_path, fixed_other_path],
+                    [
+                      exclude: [:test],
+                      include: [
+                        location: {fixed_path, [123, 456]},
+                        location: {fixed_other_path, [321, 654]}
+                      ]
+                    ]}
+        end)
+
+      assert output =~ "invalid line number given as ExUnit filter: 0"
+      assert output =~ "invalid line number given as ExUnit filter: -789"
+      assert output =~ "invalid line number given as ExUnit filter: -987"
+    end
   end
 end

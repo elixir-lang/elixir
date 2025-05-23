@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Kernel.QuoteTest do
@@ -30,6 +34,17 @@ defmodule Kernel.QuoteTest do
     assert quote(line: true, do: bar(1, 2, 3)) == {:bar, [line: __ENV__.line], [1, 2, 3]}
   end
 
+  test "file line" do
+    assert quote(file: "foo", line: 3, do: bar(1, 2, 3)) ==
+             {:bar, [keep: {"foo", 3}], [1, 2, 3]}
+
+    assert quote(file: "foo", line: false, do: bar(1, 2, 3)) ==
+             {:bar, [keep: {"foo", 0}], [1, 2, 3]}
+
+    assert quote(file: "foo", line: true, do: bar(1, 2, 3)) ==
+             {:bar, [keep: {"foo", __ENV__.line - 1}], [1, 2, 3]}
+  end
+
   test "quote line var" do
     line = __ENV__.line
     assert quote(line: line, do: bar(1, 2, 3)) == {:bar, [line: line], [1, 2, 3]}
@@ -58,6 +73,14 @@ defmodule Kernel.QuoteTest do
       context = nil
       quote(context: context, do: bar)
     end
+  end
+
+  test "quote context bind_quoted" do
+    assert {:__block__, _,
+            [{:=, [], [{:some_var, _, :fallback}, 321]}, {:some_var, _, :fallback}]} =
+             (quote bind_quoted: [some_var: 321], context: __ENV__.context || :fallback do
+                some_var
+              end)
   end
 
   test "operator precedence" do
@@ -118,6 +141,12 @@ defmodule Kernel.QuoteTest do
 
   test "nested quote" do
     assert {:quote, _, [[do: {:unquote, _, _}]]} = quote(do: quote(do: unquote(x)))
+  end
+
+  test "import inside nested quote" do
+    # Check that we can evaluate imports from quote inside quote
+    assert {{:to_string, meta, [123]}, _} = Code.eval_quoted(quote(do: quote(do: to_string(123))))
+    assert meta[:imports] == [{1, Kernel}]
   end
 
   defmacrop nested_quote_in_macro do
@@ -203,15 +232,6 @@ defmodule Kernel.QuoteTest do
 
     map = %{foo: :default}
     assert %{map | unquote_splicing(foo: :bar)} == %{foo: :bar}
-
-    assert Code.eval_string("quote do: %{unquote_splicing foo: :bar}") ==
-             {{:%{}, [], [foo: :bar]}, []}
-
-    assert Code.eval_string("quote do: %{:baz => :bat, unquote_splicing foo: :bar}") ==
-             {{:%{}, [], [{:baz, :bat}, {:foo, :bar}]}, []}
-
-    assert Code.eval_string("quote do: %{foo bar | baz}") ==
-             {{:%{}, [], [{:foo, [], [{:|, [], [{:bar, [], Elixir}, {:baz, [], Elixir}]}]}]}, []}
   end
 
   test "when" do
@@ -367,8 +387,6 @@ defmodule Kernel.QuoteTest.ErrorsTest do
         mod = Kernel.QuoteTest.ErrorsTest
         file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
         assert [{^mod, :will_raise, 2, [file: ^file, line: @line] ++ _} | _] = __STACKTRACE__
-    else
-      _ -> flunk("expected failure")
     end
   end
 
@@ -376,13 +394,12 @@ defmodule Kernel.QuoteTest.ErrorsTest do
   test "outside function error" do
     try do
       will_raise()
+      flunk("expected failure")
     rescue
       RuntimeError ->
         mod = Kernel.QuoteTest.ErrorsTest
         file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
         assert [{^mod, _, _, [file: ^file, line: @line] ++ _} | _] = __STACKTRACE__
-    else
-      _ -> flunk("expected failure")
     end
   end
 end
@@ -772,5 +789,49 @@ defmodule Kernel.QuoteTest.HasUnquoteTest do
       end
 
     refute :elixir_quote.has_unquotes(ast)
+  end
+
+  test "unquote with invalid AST (shallow check)" do
+    for term <- [
+          %{unescaped: :map},
+          1..10,
+          {:bad_meta, nil, []},
+          {:bad_arg, nil, 1},
+          {:bad_tuple},
+          make_ref(),
+          [:improper | :list],
+          [nested: {}]
+        ] do
+      message = """
+      tried to unquote invalid AST: #{inspect(term)}
+      Did you forget to escape term using Macro.escape/1?\
+      """
+
+      assert_raise ArgumentError, message, fn -> quote do: unquote(term) end
+    end
+  end
+
+  test "unquote with invalid AST is not checked deeply" do
+    assert quote do: unquote(foo: [1 | 2]) == [foo: [1 | 2]]
+    assert quote do: unquote(foo: [bar: %{}]) == [foo: [bar: %{}]]
+  end
+
+  test "unquote_splicing with invalid AST" do
+    for args <- [
+          "not_a_list",
+          [:improper | :list],
+          [%{unescaped: :map}],
+          [1..10],
+          [{:bad_meta, nil, []}],
+          [{:bad_arg, nil, 1}],
+          [{:bad_tuple}],
+          [make_ref()],
+          [nested: {}]
+        ] do
+      message =
+        "expected a list with quoted expressions in unquote_splicing/1, got: #{inspect(args)}"
+
+      assert_raise ArgumentError, message, fn -> quote do: [unquote_splicing(args)] end
+    end
   end
 end

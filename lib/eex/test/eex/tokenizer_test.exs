@@ -1,15 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule EEx.TokenizerTest do
   use ExUnit.Case, async: true
 
   @opts [indentation: 0, trim: false]
-
-  test "tokenizer warning" do
-    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
-             EEx.tokenize(~c"foo <% :'bar' %>", @opts)
-           end) =~ "found quoted atom \"bar\" but the quotes are not required"
-  end
 
   test "simple charlists" do
     assert EEx.tokenize(~c"foo", @opts) ==
@@ -132,51 +130,21 @@ defmodule EEx.TokenizerTest do
   end
 
   test "EEx comments" do
-    exprs = [
-      {:text, ~c"foo ", %{column: 1, line: 1}},
-      {:eof, %{column: 16, line: 1}}
-    ]
+    ExUnit.CaptureIO.capture_io(:stderr, fn ->
+      exprs = [
+        {:text, ~c"foo ", %{column: 1, line: 1}},
+        {:eof, %{column: 16, line: 1}}
+      ]
 
-    assert EEx.tokenize(~c"foo <%# true %>", @opts) == {:ok, exprs}
+      assert EEx.tokenize(~c"foo <%# true %>", @opts) == {:ok, exprs}
 
-    exprs = [
-      {:text, ~c"foo ", %{column: 1, line: 1}},
-      {:eof, %{column: 8, line: 2}}
-    ]
+      exprs = [
+        {:text, ~c"foo ", %{column: 1, line: 1}},
+        {:eof, %{column: 8, line: 2}}
+      ]
 
-    assert EEx.tokenize(~c"foo <%#\ntrue %>", @opts) == {:ok, exprs}
-  end
-
-  test "EEx comments with do-end" do
-    exprs = [
-      {:text, ~c"foo ", %{column: 1, line: 1}},
-      {:text, ~c"bar", %{column: 19, line: 1}},
-      {:eof, %{column: 32, line: 1}}
-    ]
-
-    assert EEx.tokenize(~c"foo <%# true do %>bar<%# end %>", @opts) == {:ok, exprs}
-  end
-
-  test "EEx comments inside do-end" do
-    exprs = [
-      {:start_expr, ~c"", ~c" if true do ", %{column: 1, line: 1}},
-      {:text, ~c"bar", %{column: 31, line: 1}},
-      {:end_expr, [], ~c" end ", %{column: 34, line: 1}},
-      {:eof, %{column: 43, line: 1}}
-    ]
-
-    assert EEx.tokenize(~c"<% if true do %><%# comment %>bar<% end %>", @opts) == {:ok, exprs}
-
-    exprs = [
-      {:start_expr, [], ~c" case true do ", %{column: 1, line: 1}},
-      {:middle_expr, ~c"", ~c" true -> ", %{column: 33, line: 1}},
-      {:text, ~c"bar", %{column: 46, line: 1}},
-      {:end_expr, [], ~c" end ", %{column: 49, line: 1}},
-      {:eof, %{column: 58, line: 1}}
-    ]
-
-    assert EEx.tokenize(~c"<% case true do %><%# comment %><% true -> %>bar<% end %>", @opts) ==
-             {:ok, exprs}
+      assert EEx.tokenize(~c"foo <%#\ntrue %>", @opts) == {:ok, exprs}
+    end)
   end
 
   test "EEx multi-line comments" do
@@ -327,15 +295,6 @@ defmodule EEx.TokenizerTest do
     assert EEx.tokenize(template, [trim: true] ++ @opts) == {:ok, exprs}
   end
 
-  test "trim mode with comment" do
-    exprs = [
-      {:text, ~c"\n123", %{column: 19, line: 1}},
-      {:eof, %{column: 4, line: 2}}
-    ]
-
-    assert EEx.tokenize(~c"  <%# comment %>  \n123", [trim: true] ++ @opts) == {:ok, exprs}
-  end
-
   test "trim mode with multi-line comment" do
     exprs = [
       {:comment, ~c" comment ", %{column: 3, line: 1}},
@@ -389,9 +348,6 @@ defmodule EEx.TokenizerTest do
 
     assert EEx.tokenize(~c"foo <% :bar", @opts) ==
              {:error, message, %{column: 5, line: 1}}
-
-    assert EEx.tokenize(~c"<%# true ", @opts) ==
-             {:error, "expected closing '%>' for EEx expression", %{column: 1, line: 1}}
 
     message = """
     expected closing '--%>' for EEx expression

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 # Run it from root as: make compile && bin/elixir lib/ex_unit/examples/one_of_each.exs
 ExUnit.start(seed: 0)
 
@@ -100,7 +104,7 @@ defmodule TestOneOfEach do
 
   test "19. refute a message is received within a timeout" do
     send(self(), {:hello, "Dave"})
-    refute_receive {:hello, _}, 1000
+    refute_receive {:hello, _}, 100
   end
 
   test "20. refute a message is ready to be received" do

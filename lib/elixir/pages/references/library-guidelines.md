@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Library guidelines
 
 This document outlines general guidelines for those writing and publishing
@@ -13,11 +18,7 @@ The project name is given in the `snake_case` convention where all letters are l
 
 Every project has a `mix.exs` file, with instructions on how to build, compile, run tests, and so on. Libraries commonly have a `lib` directory, which includes Elixir source code, and a `test` directory. A `src` directory may also exist for Erlang sources.
 
-For more information on running your project, see the official [Mix & OTP guide](../mix-and-otp/introduction-to-mix.md) or [Mix documentation](`Mix`).
-
-### Applications with supervision tree
-
-The `mix new` command also allows the `--sup` option to scaffold an application with a supervision tree out of the box. We talk about supervision trees later on when discussing one of the common anti-patterns when writing libraries.
+The `mix new` command also allows the `--sup` option to scaffold a new project with a supervision tree out of the box. For more information on running your project, see the official [Mix & OTP guide](../mix-and-otp/introduction-to-mix.md) or [Mix documentation](`Mix`).
 
 ## Publishing
 
@@ -39,8 +40,18 @@ Projects are often made available to other developers [by publishing a Hex packa
 
 ## Dependency handling
 
-When your library is published and used as a dependency, its [lockfile](https://hexdocs.pm/mix/Mix.Project.html#module-configuration) (usually named `mix.lock`) is _ignored by the host project_. Running `mix deps.get` in the host project attempts to get the latest possible versions of your library’s dependencies, as specified by the requirements in the `deps` section of your `mix.exs`. These versions might be greater than those stored in your `mix.lock` (and hence used in your tests / CI).
+When your library is used as a dependency, it runs by default in the `:prod` environment. Therefore, if your library has dependencies that are only useful in development or testing, you want to specify those dependencies with the `:only` option. You can also specify `:optional` dependencies in your library, which are not enforced upon users of your library. In such cases, you should also consider compiling your projects with the `mix compile --no-optional-deps --warnings-as-errors` in your test environments, to ensure your library compiles without warnings even if optional dependencies are missing. See `mix deps` for all available options.
 
-On the other hand, contributors of your library, need a deterministic build, which implies the presence of `mix.lock` in your Version Control System (VCS).
+Keep in mind your library's [lockfile](`Mix.Project#module-configuration`) (usually named `mix.lock`) is _ignored by the host project_. Running `mix deps.get` in the host project attempts to get the latest possible versions of your library’s dependencies, as specified by the requirements in the `deps` section of your `mix.exs`. These versions might be greater than those stored in your `mix.lock` (and hence used in your tests / CI).
 
-The best practice of handling `mix.lock` file therefore would be to keep it in VCS, and run two different Continuous Integration (CI) workflows: the usual deterministic one, and another one, that starts with `mix deps.unlock --all` and always compiles your library and runs tests against latest versions of dependencies. The latter one might be even run nightly or otherwise recurrently to stay notified about any possible issue in regard to dependencies updates.
+On the other hand, contributors of your library, need a deterministic build, which implies the presence of `mix.lock` in your Version Control System (VCS), such as `git`.
+
+If you want to validate both scenarios, you should check the `mix.lock` into version control and run two different Continuous Integration (CI) workflows: one that relies on the `mix.lock` for deterministic builds, and another one, that starts with `mix deps.unlock --all` and always compiles your library and runs tests against latest versions of dependencies. The latter one might be even run nightly or otherwise recurrently to stay notified about any possible issue in regard to dependencies updates.
+
+### Dependency Version Requirements
+
+When depending on other libraries, the dependency version requirements are ultimately up to you. However, you should consider the effects that an overly strict dependency requirement can have on users of your library. Most dependencies adopt [Semantic Versioning](https://semver.org/), and therefore provide reasonable guarantees about what each release contains. For instance, if you use `{:some_dep, “== 0.2.3”}`, this prevents users from using any other version but the one that you specified, which means that they cannot receive bug fix upgrades to that package. When in doubt, use a dependency in the format of `"~> x.y"`. This prevents the user from using a higher major version of the library, but allows them to upgrade to newer minor and patch versions, which should only include bug fixes and non-breaking improvements.
+
+The exception to this is pre 1.0 libraries using [Semantic Versioning](https://semver.org/), which provide [no guarantees](https://semver.org/spec/v2.0.0.html#spec-item-4) about what might change from one version to the next. In this scenario, depending on the full patch version, i.e `"~> 0.1.2"` is a better default.
+
+A common mistake is to use a dependency in the format of `"~> x.y.z"` to express "a version greater than `x.y.z`". For example, if you are depending on `"~> 1.2"`, and the dependency publishes a fix in version `1.2.1` that you need for the next version of your library. If you use `"~> 1.2.1"` to express that dependency, you are preventing users from upgrading to `"1.3.0"` or higher! Instead of `"~> 1.2.1"`, you should use `"~> 1.2 and >= 1.2.1"` as the version requirement. This allows users to use any version less than `2.0`, and greater than `1.2.1`.

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 require Record
 
 defmodule File.Stat do
@@ -60,19 +64,19 @@ defmodule File.Stat do
   defstruct keys
 
   @type t :: %__MODULE__{
-          size: non_neg_integer(),
-          type: :device | :directory | :regular | :other | :symlink,
-          access: :read | :write | :read_write | :none,
-          atime: :calendar.datetime() | integer(),
-          mtime: :calendar.datetime() | integer(),
-          ctime: :calendar.datetime() | integer(),
-          mode: non_neg_integer(),
-          links: non_neg_integer(),
-          major_device: non_neg_integer(),
-          minor_device: non_neg_integer(),
-          inode: non_neg_integer(),
-          uid: non_neg_integer(),
-          gid: non_neg_integer()
+          size: non_neg_integer() | :undefined,
+          type: :device | :directory | :regular | :other | :symlink | :undefined,
+          access: :read | :write | :read_write | :none | :undefined,
+          atime: :calendar.datetime() | integer() | :undefined,
+          mtime: :calendar.datetime() | integer() | :undefined,
+          ctime: :calendar.datetime() | integer() | :undefined,
+          mode: non_neg_integer() | :undefined,
+          links: non_neg_integer() | :undefined,
+          major_device: non_neg_integer() | :undefined,
+          minor_device: non_neg_integer() | :undefined,
+          inode: non_neg_integer() | :undefined,
+          uid: non_neg_integer() | :undefined,
+          gid: non_neg_integer() | :undefined
         }
 
   @doc """

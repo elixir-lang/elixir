@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule GenEvent do
   # Functions from this module are deprecated in elixir_dispatch.
 
@@ -22,7 +26,7 @@ defmodule GenEvent do
   This approach has some shortcomings (it provides no back-pressure for example)
   but can still replace GenEvent for low-profile usages of it. [This blog post
   by José
-  Valim](http://blog.plataformatec.com.br/2016/11/replacing-genevent-by-a-supervisor-genserver/)
+  Valim](https://dashbit.co/blog/replacing-genevent-by-a-supervisor-plus-genserver)
   has more detailed information on this approach.
 
   ### GenStage
@@ -46,8 +50,8 @@ defmodule GenEvent do
   @callback init(args :: term) ::
               {:ok, state}
               | {:ok, state, :hibernate}
-              | {:error, reason :: any}
-            when state: any
+              | {:error, reason :: term}
+            when state: term
 
   @callback handle_event(event :: term, state :: term) ::
               {:ok, new_state}
@@ -507,6 +511,8 @@ defmodule GenEvent do
     {:ok, states, [name, handlers, hib]}
   end
 
+  # Keeping deprecated format_status/2 since the current implementation is not
+  # compatible with format_status/1 and GenEvent is deprecated anyway
   @doc false
   def format_status(opt, status_data) do
     [pdict, sys_state, parent, _debug, [name, handlers, _hib]] = status_data

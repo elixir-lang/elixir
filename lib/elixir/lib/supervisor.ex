@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Supervisor do
   @moduledoc ~S"""
   A behaviour module for implementing supervisors.
@@ -130,11 +134,11 @@ defmodule Supervisor do
       to start the child process. This key is required.
 
     * `:restart` - an atom that defines when a terminated child process
-       should be restarted (see the "Restart values" section below).
+       should be restarted (see the ["Restart values"](#module-restart-values-restart) section below).
        This key is optional and defaults to `:permanent`.
 
     * `:shutdown` - an integer or atom that defines how a child process should
-      be terminated (see the "Shutdown values" section below). This key
+      be terminated (see the ["Shutdown values"](#module-shutdown-values-shutdown) section below). This key
       is optional and defaults to `5_000` if the type is `:worker` or
       `:infinity` if the type is `:supervisor`.
 
@@ -413,10 +417,10 @@ defmodule Supervisor do
   The difference between the two approaches is that a module-based
   supervisor gives you more direct control over how the supervisor
   is initialized. Instead of calling `Supervisor.start_link/2` with
-  a list of child specifications that are automatically initialized, we manually
-  initialize the children by calling `Supervisor.init/2` inside its
-  `c:init/1` callback. `Supervisor.init/2` accepts the same `:strategy`,
-  `:max_restarts`, and `:max_seconds` options as `start_link/2`.
+  a list of child specifications that are implicitly initialized for us,
+  we must explicitly initialize the children by calling `Supervisor.init/2`
+  inside its `c:init/1` callback. `Supervisor.init/2` accepts the same
+  `:strategy`, `:max_restarts`, and `:max_seconds` options as `start_link/2`.
 
   > #### `use Supervisor` {: .info}
   >
@@ -525,7 +529,7 @@ defmodule Supervisor do
       import Supervisor.Spec
       @behaviour Supervisor
 
-      unless Module.has_attribute?(__MODULE__, :doc) do
+      if not Module.has_attribute?(__MODULE__, :doc) do
         @doc """
         Returns a specification to start this module under a supervisor.
 
@@ -595,7 +599,7 @@ defmodule Supervisor do
   @typedoc "The supervisor reference."
   @type supervisor :: pid | name | {atom, node}
 
-  @typedoc "Options given to `start_link/2` and `c:init/1`."
+  @typedoc "Options given to `start_link/2` and `init/2`."
   @type init_option ::
           {:strategy, strategy}
           | {:max_restarts, non_neg_integer}
@@ -986,6 +990,12 @@ defmodule Supervisor do
   value, or if it fails, the child specification is discarded and this function
   returns `{:error, error}` where `error` is a term containing information about
   the error and child specification.
+
+  > #### Order Among Children {: .tip}
+  >
+  > The child specification is **appended** to the children of `supervisor`.
+  > This guarantees that semantics of things such as the `:rest_for_one` strategy
+  > are preserved correctly.
   """
   @spec start_child(
           supervisor,
@@ -998,7 +1008,9 @@ defmodule Supervisor do
   def start_child(supervisor, args) when is_list(args) do
     IO.warn_once(
       {__MODULE__, :start_child},
-      "Supervisor.start_child/2 with a list of args is deprecated, please use DynamicSupervisor instead",
+      fn ->
+        "Supervisor.start_child/2 with a list of args is deprecated, please use DynamicSupervisor instead"
+      end,
       _stacktrace_drop_levels = 2
     )
 

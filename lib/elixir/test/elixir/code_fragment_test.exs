@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule CodeFragmentTest do
@@ -237,6 +240,9 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("Hello::Wor") == {:alias, ~c"Wor"}
       assert CF.cursor_context("Hello..Wor") == {:alias, ~c"Wor"}
 
+      assert CF.cursor_context("hello.World") ==
+               {:alias, {:local_or_var, ~c"hello"}, ~c"World"}
+
       assert CF.cursor_context("__MODULE__.Wor") ==
                {:alias, {:local_or_var, ~c"__MODULE__"}, ~c"Wor"}
 
@@ -365,6 +371,76 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("@hello_wo") == {:module_attribute, ~c"hello_wo"}
     end
 
+    test "keyword or binary operator" do
+      # Literals
+      assert CF.cursor_context("Foo.Bar ") == {:block_keyword_or_binary_operator, ~c""}
+      assert CF.cursor_context("Foo ") == {:block_keyword_or_binary_operator, ~c""}
+      assert CF.cursor_context(":foo ") == {:block_keyword_or_binary_operator, ~c""}
+      assert CF.cursor_context("123 ") == {:block_keyword_or_binary_operator, ~c""}
+      assert CF.cursor_context("nil ") == {:block_keyword_or_binary_operator, ~c""}
+      assert CF.cursor_context("true ") == {:block_keyword_or_binary_operator, ~c""}
+      assert CF.cursor_context("false ") == {:block_keyword_or_binary_operator, ~c""}
+      assert CF.cursor_context("\"foo\" ") == {:block_keyword_or_binary_operator, ~c""}
+      assert CF.cursor_context("'foo' ") == {:block_keyword_or_binary_operator, ~c""}
+
+      # Containers
+      assert CF.cursor_context("(foo) ") == {:block_keyword_or_binary_operator, ~c""}
+      assert CF.cursor_context("[foo] ") == {:block_keyword_or_binary_operator, ~c""}
+      assert CF.cursor_context("{foo} ") == {:block_keyword_or_binary_operator, ~c""}
+      assert CF.cursor_context("<<foo>> ") == {:block_keyword_or_binary_operator, ~c""}
+
+      # False positives
+      assert CF.cursor_context("foo ~>> ") == {:operator_call, ~c"~>>"}
+      assert CF.cursor_context("foo >>> ") == {:operator_call, ~c">>>"}
+    end
+
+    test "keyword from keyword or binary operator" do
+      # Literals
+      assert CF.cursor_context("Foo.Bar do") == {:block_keyword_or_binary_operator, ~c"do"}
+      assert CF.cursor_context("Foo.Bar d") == {:block_keyword_or_binary_operator, ~c"d"}
+      assert CF.cursor_context("Foo d") == {:block_keyword_or_binary_operator, ~c"d"}
+      assert CF.cursor_context(":foo d") == {:block_keyword_or_binary_operator, ~c"d"}
+      assert CF.cursor_context("123 d") == {:block_keyword_or_binary_operator, ~c"d"}
+      assert CF.cursor_context("nil d") == {:block_keyword_or_binary_operator, ~c"d"}
+      assert CF.cursor_context("true d") == {:block_keyword_or_binary_operator, ~c"d"}
+      assert CF.cursor_context("false d") == {:block_keyword_or_binary_operator, ~c"d"}
+      assert CF.cursor_context("\"foo\" d") == {:block_keyword_or_binary_operator, ~c"d"}
+      assert CF.cursor_context("'foo' d") == {:block_keyword_or_binary_operator, ~c"d"}
+
+      # Containers
+      assert CF.cursor_context("(foo) d") == {:block_keyword_or_binary_operator, ~c"d"}
+      assert CF.cursor_context("[foo] d") == {:block_keyword_or_binary_operator, ~c"d"}
+      assert CF.cursor_context("{foo} d") == {:block_keyword_or_binary_operator, ~c"d"}
+      assert CF.cursor_context("<<foo>> d") == {:block_keyword_or_binary_operator, ~c"d"}
+
+      # False positives
+      assert CF.cursor_context("foo ~>> d") == {:local_or_var, ~c"d"}
+      assert CF.cursor_context("foo >>> d") == {:local_or_var, ~c"d"}
+    end
+
+    test "operator from keyword or binary operator" do
+      # Literals
+      assert CF.cursor_context("Foo.Bar +") == {:operator, ~c"+"}
+      assert CF.cursor_context("Foo +") == {:operator, ~c"+"}
+      assert CF.cursor_context(":foo +") == {:operator, ~c"+"}
+      assert CF.cursor_context("123 +") == {:operator, ~c"+"}
+      assert CF.cursor_context("nil +") == {:operator, ~c"+"}
+      assert CF.cursor_context("true +") == {:operator, ~c"+"}
+      assert CF.cursor_context("false +") == {:operator, ~c"+"}
+      assert CF.cursor_context("\"foo\" +") == {:operator, ~c"+"}
+      assert CF.cursor_context("'foo' +") == {:operator, ~c"+"}
+
+      # Containers
+      assert CF.cursor_context("(foo) +") == {:operator, ~c"+"}
+      assert CF.cursor_context("[foo] +") == {:operator, ~c"+"}
+      assert CF.cursor_context("{foo} +") == {:operator, ~c"+"}
+      assert CF.cursor_context("<<foo>> +") == {:operator, ~c"+"}
+
+      # False positives
+      assert CF.cursor_context("foo ~>> +") == {:operator, ~c"+"}
+      assert CF.cursor_context("foo >>> +") == {:operator, ~c"+"}
+    end
+
     test "none" do
       # Punctuation
       assert CF.cursor_context(")") == :none
@@ -396,8 +472,6 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("HelloWór") == :none
       assert CF.cursor_context("@Hello") == :none
       assert CF.cursor_context("Hello(") == :none
-      assert CF.cursor_context("Hello ") == :none
-      assert CF.cursor_context("hello.World") == {:alias, {:local_or_var, ~c"hello"}, ~c"World"}
 
       # Identifier
       assert CF.cursor_context("foo@bar") == :none
@@ -443,12 +517,11 @@ defmodule CodeFragmentTest do
     end
 
     test "column out of range" do
-      assert CF.surround_context("hello", {1, 20}) ==
-               %{begin: {1, 1}, context: {:local_or_var, ~c"hello"}, end: {1, 6}}
+      assert CF.surround_context("hello", {1, 20}) == :none
     end
 
     test "local_or_var" do
-      for i <- 1..9 do
+      for i <- 1..8 do
         assert CF.surround_context("hello_wo", {1, i}) == %{
                  context: {:local_or_var, ~c"hello_wo"},
                  begin: {1, 1},
@@ -456,9 +529,9 @@ defmodule CodeFragmentTest do
                }
       end
 
-      assert CF.surround_context("hello_wo ", {1, 10}) == :none
+      assert CF.surround_context("hello_wo", {1, 9}) == :none
 
-      for i <- 2..10 do
+      for i <- 2..9 do
         assert CF.surround_context(" hello_wo", {1, i}) == %{
                  context: {:local_or_var, ~c"hello_wo"},
                  begin: {1, 2},
@@ -466,9 +539,9 @@ defmodule CodeFragmentTest do
                }
       end
 
-      assert CF.surround_context(" hello_wo ", {1, 11}) == :none
+      assert CF.surround_context(" hello_wo", {1, 10}) == :none
 
-      for i <- 1..7 do
+      for i <- 1..6 do
         assert CF.surround_context("hello!", {1, i}) == %{
                  context: {:local_or_var, ~c"hello!"},
                  begin: {1, 1},
@@ -476,9 +549,9 @@ defmodule CodeFragmentTest do
                }
       end
 
-      assert CF.surround_context("hello! ", {1, 8}) == :none
+      assert CF.surround_context("hello!", {1, 7}) == :none
 
-      for i <- 1..6 do
+      for i <- 1..5 do
         assert CF.surround_context("안녕_세상", {1, i}) == %{
                  context: {:local_or_var, ~c"안녕_세상"},
                  begin: {1, 1},
@@ -486,7 +559,7 @@ defmodule CodeFragmentTest do
                }
       end
 
-      assert CF.surround_context("안녕_세상 ", {1, 6}) == :none
+      assert CF.surround_context("안녕_세상", {1, 6}) == :none
 
       # Keywords are not local or var
       for keyword <- ~w(do end after catch else rescue fn true false nil)c do
@@ -500,38 +573,8 @@ defmodule CodeFragmentTest do
       end
     end
 
-    test "local + operator" do
-      for i <- 1..8 do
-        assert CF.surround_context("hello_wo+", {1, i}) == %{
-                 context: {:local_or_var, ~c"hello_wo"},
-                 begin: {1, 1},
-                 end: {1, 9}
-               }
-      end
-
-      assert CF.surround_context("hello_wo+", {1, 9}) == %{
-               begin: {1, 9},
-               context: {:operator, ~c"+"},
-               end: {1, 10}
-             }
-
-      for i <- 1..9 do
-        assert CF.surround_context("hello_wo +", {1, i}) == %{
-                 context: {:local_or_var, ~c"hello_wo"},
-                 begin: {1, 1},
-                 end: {1, 9}
-               }
-      end
-
-      assert CF.surround_context("hello_wo +", {1, 10}) == %{
-               begin: {1, 10},
-               context: {:operator, ~c"+"},
-               end: {1, 11}
-             }
-    end
-
     test "local call" do
-      for i <- 1..9 do
+      for i <- 1..8 do
         assert CF.surround_context("hello_wo(", {1, i}) == %{
                  context: {:local_call, ~c"hello_wo"},
                  begin: {1, 1},
@@ -539,9 +582,9 @@ defmodule CodeFragmentTest do
                }
       end
 
-      assert CF.surround_context("hello_wo(", {1, 10}) == :none
+      assert CF.surround_context("hello_wo(", {1, 9}) == :none
 
-      for i <- 1..9 do
+      for i <- 1..8 do
         assert CF.surround_context("hello_wo (", {1, i}) == %{
                  context: {:local_call, ~c"hello_wo"},
                  begin: {1, 1},
@@ -549,10 +592,9 @@ defmodule CodeFragmentTest do
                }
       end
 
-      assert CF.surround_context("hello_wo (", {1, 10}) == :none
-      assert CF.surround_context("hello_wo (", {1, 11}) == :none
+      assert CF.surround_context("hello_wo (", {1, 9}) == :none
 
-      for i <- 1..7 do
+      for i <- 1..6 do
         assert CF.surround_context("hello!(", {1, i}) == %{
                  context: {:local_call, ~c"hello!"},
                  begin: {1, 1},
@@ -560,9 +602,9 @@ defmodule CodeFragmentTest do
                }
       end
 
-      assert CF.surround_context("hello!(", {1, 8}) == :none
+      assert CF.surround_context("hello!(", {1, 7}) == :none
 
-      for i <- 1..6 do
+      for i <- 1..5 do
         assert CF.surround_context("안녕_세상(", {1, i}) == %{
                  context: {:local_call, ~c"안녕_세상"},
                  begin: {1, 1},
@@ -570,7 +612,7 @@ defmodule CodeFragmentTest do
                }
       end
 
-      assert CF.surround_context("안녕_세상(", {1, 7}) == :none
+      assert CF.surround_context("안녕_세상(", {1, 6}) == :none
     end
 
     test "local arity" do
@@ -698,7 +740,7 @@ defmodule CodeFragmentTest do
     end
 
     test "alias" do
-      for i <- 1..9 do
+      for i <- 1..8 do
         assert CF.surround_context("HelloWor", {1, i}) == %{
                  context: {:alias, ~c"HelloWor"},
                  begin: {1, 1},
@@ -706,9 +748,9 @@ defmodule CodeFragmentTest do
                }
       end
 
-      assert CF.surround_context("HelloWor ", {1, 10}) == :none
+      assert CF.surround_context("HelloWor", {1, 9}) == :none
 
-      for i <- 2..10 do
+      for i <- 2..9 do
         assert CF.surround_context(" HelloWor", {1, i}) == %{
                  context: {:alias, ~c"HelloWor"},
                  begin: {1, 2},
@@ -716,9 +758,9 @@ defmodule CodeFragmentTest do
                }
       end
 
-      assert CF.surround_context(" HelloWor ", {1, 11}) == :none
+      assert CF.surround_context(" HelloWor", {1, 10}) == :none
 
-      for i <- 1..10 do
+      for i <- 1..9 do
         assert CF.surround_context("Hello.Wor", {1, i}) == %{
                  context: {:alias, ~c"Hello.Wor"},
                  begin: {1, 1},
@@ -726,9 +768,9 @@ defmodule CodeFragmentTest do
                }
       end
 
-      assert CF.surround_context("Hello.Wor ", {1, 11}) == :none
+      assert CF.surround_context("Hello.Wor", {1, 10}) == :none
 
-      for i <- 1..12 do
+      for i <- 1..11 do
         assert CF.surround_context("Hello . Wor", {1, i}) == %{
                  context: {:alias, ~c"Hello.Wor"},
                  begin: {1, 1},
@@ -736,9 +778,9 @@ defmodule CodeFragmentTest do
                }
       end
 
-      assert CF.surround_context("Hello . Wor ", {1, 13}) == :none
+      assert CF.surround_context("Hello . Wor", {1, 12}) == :none
 
-      for i <- 1..16 do
+      for i <- 1..15 do
         assert CF.surround_context("Foo . Bar . Baz", {1, i}) == %{
                  context: {:alias, ~c"Foo.Bar.Baz"},
                  begin: {1, 1},
@@ -770,7 +812,7 @@ defmodule CodeFragmentTest do
                end: {1, 11}
              }
 
-      for i <- 1..15 do
+      for i <- 1..14 do
         assert CF.surround_context("__MODULE__.Foo", {1, i}) == %{
                  context: {:alias, {:local_or_var, ~c"__MODULE__"}, ~c"Foo"},
                  begin: {1, 1},
@@ -778,7 +820,7 @@ defmodule CodeFragmentTest do
                }
       end
 
-      for i <- 1..19 do
+      for i <- 1..18 do
         assert CF.surround_context("__MODULE__.Foo.Sub", {1, i}) == %{
                  context: {:alias, {:local_or_var, ~c"__MODULE__"}, ~c"Foo.Sub"},
                  begin: {1, 1},
@@ -830,7 +872,7 @@ defmodule CodeFragmentTest do
     end
 
     test "attribute submodules" do
-      for i <- 1..10 do
+      for i <- 1..9 do
         assert CF.surround_context("@some.Foo", {1, i}) == %{
                  context: {:alias, {:module_attribute, ~c"some"}, ~c"Foo"},
                  begin: {1, 1},
@@ -838,7 +880,7 @@ defmodule CodeFragmentTest do
                }
       end
 
-      for i <- 1..14 do
+      for i <- 1..13 do
         assert CF.surround_context("@some.Foo.Sub", {1, i}) == %{
                  context: {:alias, {:module_attribute, ~c"some"}, ~c"Foo.Sub"},
                  begin: {1, 1},
@@ -921,7 +963,7 @@ defmodule CodeFragmentTest do
                end: {1, 15}
              }
 
-      for i <- 2..10 do
+      for i <- 2..9 do
         assert CF.surround_context("%HelloWor", {1, i}) == %{
                  context: {:struct, ~c"HelloWor"},
                  begin: {1, 1},
@@ -929,7 +971,7 @@ defmodule CodeFragmentTest do
                }
       end
 
-      assert CF.surround_context("%HelloWor ", {1, 11}) == :none
+      assert CF.surround_context("%HelloWor", {1, 10}) == :none
 
       # With dot
       assert CF.surround_context("%Hello.Wor", {1, 1}) == %{
@@ -938,7 +980,7 @@ defmodule CodeFragmentTest do
                end: {1, 11}
              }
 
-      for i <- 2..11 do
+      for i <- 2..10 do
         assert CF.surround_context("%Hello.Wor", {1, i}) == %{
                  context: {:struct, ~c"Hello.Wor"},
                  begin: {1, 1},
@@ -946,7 +988,7 @@ defmodule CodeFragmentTest do
                }
       end
 
-      assert CF.surround_context("%Hello.Wor ", {1, 12}) == :none
+      assert CF.surround_context("%Hello.Wor", {1, 11}) == :none
 
       # With spaces
       assert CF.surround_context("% Hello . Wor", {1, 1}) == %{
@@ -955,7 +997,7 @@ defmodule CodeFragmentTest do
                end: {1, 14}
              }
 
-      for i <- 2..14 do
+      for i <- 2..13 do
         assert CF.surround_context("% Hello . Wor", {1, i}) == %{
                  context: {:struct, ~c"Hello.Wor"},
                  begin: {1, 1},
@@ -963,7 +1005,7 @@ defmodule CodeFragmentTest do
                }
       end
 
-      assert CF.surround_context("% Hello . Wor ", {1, 15}) == :none
+      assert CF.surround_context("% Hello . Wor", {1, 14}) == :none
     end
 
     test "module attributes" do
@@ -1050,6 +1092,9 @@ defmodule CodeFragmentTest do
                begin: {1, 5},
                end: {1, 6}
              }
+
+      # invalid
+      assert CF.surround_context("->", {1, 2}) == :none
     end
 
     test "sigil" do
@@ -1120,6 +1165,38 @@ defmodule CodeFragmentTest do
       end
     end
 
+    test "capture operator" do
+      assert CF.surround_context("& &123 + 1", {1, 1}) == %{
+               context: {:operator, ~c"&"},
+               begin: {1, 1},
+               end: {1, 2}
+             }
+
+      for i <- 3..6 do
+        assert CF.surround_context("& &123 + 1", {1, i}) == %{
+                 context: {:capture_arg, ~c"&123"},
+                 begin: {1, 3},
+                 end: {1, 7}
+               }
+      end
+    end
+
+    test "capture operator false positive" do
+      assert CF.surround_context("1&&2", {1, 3}) == %{
+               context: {:operator, ~c"&&"},
+               begin: {1, 2},
+               end: {1, 4}
+             }
+
+      assert CF.surround_context("1&&2", {1, 4}) == :none
+
+      assert CF.surround_context("&a", {1, 2}) == %{
+               context: {:local_or_var, ~c"a"},
+               begin: {1, 2},
+               end: {1, 3}
+             }
+    end
+
     test "unquoted atom" do
       for i <- 1..10 do
         assert CF.surround_context(":hello_wor", {1, i}) == %{
@@ -1139,166 +1216,267 @@ defmodule CodeFragmentTest do
 
       assert CF.surround_context(":", {1, 1}) == :none
     end
+
+    test "keyword keys" do
+      for i <- 2..4 do
+        assert CF.surround_context("[foo:", {1, i}) == %{
+                 context: {:key, ~c"foo"},
+                 begin: {1, 2},
+                 end: {1, 5}
+               }
+      end
+
+      for i <- 10..12 do
+        assert CF.surround_context("[foo: 1, bar: 2]", {1, i}) == %{
+                 context: {:key, ~c"bar"},
+                 begin: {1, 10},
+                 end: {1, 13}
+               }
+      end
+
+      assert CF.surround_context("if foo?, do: bar()", {1, 10}) == %{
+               context: {:key, ~c"do"},
+               begin: {1, 10},
+               end: {1, 12}
+             }
+    end
+
+    test "keyword false positives" do
+      assert CF.surround_context("<<foo::", {1, 3}) == %{
+               context: {:local_or_var, ~c"foo"},
+               begin: {1, 3},
+               end: {1, 6}
+             }
+
+      assert CF.surround_context("[foo  :atom", {1, 2}) == %{
+               context: {:local_or_var, ~c"foo"},
+               begin: {1, 2},
+               end: {1, 5}
+             }
+    end
   end
 
   describe "container_cursor_to_quoted/2" do
-    def s2q(arg, opts \\ []), do: Code.string_to_quoted(arg, opts)
-    def cc2q(arg, opts \\ []), do: CF.container_cursor_to_quoted(arg, opts)
+    def s2q!(arg, opts \\ []), do: Code.string_to_quoted!(arg, opts)
+
+    def cc2q!(arg, opts \\ []) do
+      {:ok, res} = CF.container_cursor_to_quoted(arg, opts)
+      res
+    end
 
     test "completes terminators" do
-      assert cc2q("(") == s2q("(__cursor__())")
-      assert cc2q("[") == s2q("[__cursor__()]")
-      assert cc2q("{") == s2q("{__cursor__()}")
-      assert cc2q("<<") == s2q("<<__cursor__()>>")
-      assert cc2q("foo do") == s2q("foo do __cursor__() end")
-      assert cc2q("foo do true else") == s2q("foo do true else __cursor__() end")
+      assert cc2q!("(") == s2q!("(__cursor__())")
+      assert cc2q!("[") == s2q!("[__cursor__()]")
+      assert cc2q!("{") == s2q!("{__cursor__()}")
+      assert cc2q!("<<") == s2q!("<<__cursor__()>>")
+      assert cc2q!("foo do") == s2q!("foo do __cursor__() end")
+      assert cc2q!("foo do true else") == s2q!("foo do true else __cursor__() end")
     end
 
     test "inside interpolation" do
-      assert cc2q(~S|"foo #{(|) == s2q(~S|"foo #{(__cursor__())}"|)
-      assert cc2q(~S|"foo #{"bar #{{|) == s2q(~S|"foo #{"bar #{{__cursor__()}}"}"|)
+      assert cc2q!(~S|"foo #{(|) == s2q!(~S|"foo #{(__cursor__())}"|)
+      assert cc2q!(~S|"foo #{"bar #{{|) == s2q!(~S|"foo #{"bar #{{__cursor__()}}"}"|)
     end
 
     test "keeps operators" do
-      assert cc2q("1 + 2") == s2q("1 + __cursor__()")
-      assert cc2q("&foo") == s2q("&__cursor__()")
-      assert cc2q("&foo/") == s2q("&foo/__cursor__()")
+      assert cc2q!("1 + 2") == s2q!("1 + __cursor__()")
+      assert cc2q!("&foo") == s2q!("&__cursor__()")
+      assert cc2q!("&foo/") == s2q!("&foo/__cursor__()")
     end
 
     test "keeps function calls without parens" do
-      assert cc2q("alias") == s2q("__cursor__()")
-      assert cc2q("alias ") == s2q("alias __cursor__()")
-      assert cc2q("alias foo") == s2q("alias __cursor__()")
-      assert cc2q("alias Foo.Bar") == s2q("alias __cursor__()")
-      assert cc2q("alias Foo.Bar,") == s2q("alias Foo.Bar, __cursor__()")
-      assert cc2q("alias Foo.Bar, as: ") == s2q("alias Foo.Bar, as: __cursor__()")
+      assert cc2q!("alias") == s2q!("__cursor__()")
+      assert cc2q!("alias ") == s2q!("alias __cursor__()")
+      assert cc2q!("alias foo") == s2q!("alias __cursor__()")
+      assert cc2q!("alias Foo.Bar") == s2q!("alias __cursor__()")
+      assert cc2q!("alias Foo.Bar,") == s2q!("alias Foo.Bar, __cursor__()")
+      assert cc2q!("alias Foo.Bar, as: ") == s2q!("alias Foo.Bar, as: __cursor__()")
     end
 
     test "do-end blocks" do
-      assert cc2q("foo do baz") == s2q("foo do __cursor__() end")
-      assert cc2q("foo do bar; baz") == s2q("foo do bar; __cursor__() end")
-      assert cc2q("foo do bar\nbaz") == s2q("foo do bar\n__cursor__() end")
+      assert cc2q!("foo do baz") == s2q!("foo do __cursor__() end")
+      assert cc2q!("foo do bar; baz") == s2q!("foo do bar; __cursor__() end")
+      assert cc2q!("foo do bar\nbaz") == s2q!("foo do bar\n__cursor__() end")
 
-      assert cc2q("foo(bar do baz") == s2q("foo(bar do __cursor__() end)")
-      assert cc2q("foo(bar do baz ") == s2q("foo(bar do baz(__cursor__()) end)")
-      assert cc2q("foo(bar do baz(") == s2q("foo(bar do baz(__cursor__()) end)")
-      assert cc2q("foo(bar do baz bat,") == s2q("foo(bar do baz(bat, __cursor__()) end)")
+      assert cc2q!("foo(bar do baz") == s2q!("foo(bar do __cursor__() end)")
+      assert cc2q!("foo(bar do baz ") == s2q!("foo(bar do baz(__cursor__()) end)")
+      assert cc2q!("foo(bar do baz(") == s2q!("foo(bar do baz(__cursor__()) end)")
+      assert cc2q!("foo(bar do baz bat,") == s2q!("foo(bar do baz(bat, __cursor__()) end)")
 
-      assert {:error, {_, "syntax error before: ", "'end'"}} = cc2q("foo(bar do baz, bat")
+      assert cc2q!("foo(bar do baz, bat", trailing_fragment: " -> :ok end") ==
+               s2q!("foo(bar do baz, __cursor__() -> :ok end)")
     end
 
     test "keyword lists" do
-      assert cc2q("[bar: ") == s2q("[bar: __cursor__()]")
-      assert cc2q("[bar: baz,") == s2q("[bar: baz, __cursor__()]")
-      assert cc2q("[arg, bar: baz,") == s2q("[arg, bar: baz, __cursor__()]")
-      assert cc2q("[arg: val, bar: baz,") == s2q("[arg: val, bar: baz, __cursor__()]")
+      assert cc2q!("[bar: ") == s2q!("[bar: __cursor__()]")
+      assert cc2q!("[bar: baz,") == s2q!("[bar: baz, __cursor__()]")
+      assert cc2q!("[arg, bar: baz,") == s2q!("[arg, bar: baz, __cursor__()]")
+      assert cc2q!("[arg: val, bar: baz,") == s2q!("[arg: val, bar: baz, __cursor__()]")
 
-      assert cc2q("{arg, bar: ") == s2q("{arg, bar: __cursor__()}")
-      assert cc2q("{arg, bar: baz,") == s2q("{arg, bar: baz, __cursor__()}")
-      assert cc2q("{arg: val, bar: baz,") == s2q("{arg: val, bar: baz, __cursor__()}")
+      assert cc2q!("{arg, bar: ") == s2q!("{arg, bar: __cursor__()}")
+      assert cc2q!("{arg, bar: baz,") == s2q!("{arg, bar: baz, __cursor__()}")
 
-      assert cc2q("foo(bar: ") == s2q("foo(bar: __cursor__())")
-      assert cc2q("foo(bar: baz,") == s2q("foo([bar: baz, __cursor__()])")
-      assert cc2q("foo(arg, bar: ") == s2q("foo(arg, bar: __cursor__())")
-      assert cc2q("foo(arg, bar: baz,") == s2q("foo(arg, [bar: baz, __cursor__()])")
-      assert cc2q("foo(arg: val, bar: ") == s2q("foo(arg: val, bar: __cursor__())")
-      assert cc2q("foo(arg: val, bar: baz,") == s2q("foo([arg: val, bar: baz, __cursor__()])")
+      assert cc2q!("foo(bar: ") == s2q!("foo(bar: __cursor__())")
+      assert cc2q!("foo(bar: baz,") == s2q!("foo([bar: baz, __cursor__()])")
+      assert cc2q!("foo(arg, bar: ") == s2q!("foo(arg, bar: __cursor__())")
+      assert cc2q!("foo(arg, bar: baz,") == s2q!("foo(arg, [bar: baz, __cursor__()])")
+      assert cc2q!("foo(arg: val, bar: ") == s2q!("foo(arg: val, bar: __cursor__())")
+      assert cc2q!("foo(arg: val, bar: baz,") == s2q!("foo([arg: val, bar: baz, __cursor__()])")
 
-      assert cc2q("foo bar: ") == s2q("foo(bar: __cursor__())")
-      assert cc2q("foo bar: baz,") == s2q("foo([bar: baz, __cursor__()])")
-      assert cc2q("foo arg, bar: ") == s2q("foo(arg, bar: __cursor__())")
-      assert cc2q("foo arg, bar: baz,") == s2q("foo(arg, [bar: baz, __cursor__()])")
-      assert cc2q("foo arg: val, bar: ") == s2q("foo(arg: val, bar: __cursor__())")
-      assert cc2q("foo arg: val, bar: baz,") == s2q("foo([arg: val, bar: baz, __cursor__()])")
+      assert cc2q!("foo bar: ") == s2q!("foo(bar: __cursor__())")
+      assert cc2q!("foo bar: baz,") == s2q!("foo([bar: baz, __cursor__()])")
+      assert cc2q!("foo arg, bar: ") == s2q!("foo(arg, bar: __cursor__())")
+      assert cc2q!("foo arg, bar: baz,") == s2q!("foo(arg, [bar: baz, __cursor__()])")
+      assert cc2q!("foo arg: val, bar: ") == s2q!("foo(arg: val, bar: __cursor__())")
+      assert cc2q!("foo arg: val, bar: baz,") == s2q!("foo([arg: val, bar: baz, __cursor__()])")
     end
 
     test "maps and structs" do
-      assert cc2q("%") == s2q("__cursor__()")
-      assert cc2q("%{") == s2q("%{__cursor__()}")
-      assert cc2q("%{bar:") == s2q("%{__cursor__()}")
-      assert cc2q("%{bar: ") == s2q("%{bar: __cursor__()}")
-      assert cc2q("%{bar: baz,") == s2q("%{bar: baz, __cursor__()}")
-      assert cc2q("%{foo | ") == s2q("%{foo | __cursor__()}")
-      assert cc2q("%{foo | bar:") == s2q("%{foo | __cursor__()}")
-      assert cc2q("%{foo | bar: ") == s2q("%{foo | bar: __cursor__()}")
-      assert cc2q("%{foo | bar: baz,") == s2q("%{foo | bar: baz, __cursor__()}")
+      assert cc2q!("%") == s2q!("__cursor__()")
+      assert cc2q!("%{") == s2q!("%{__cursor__()}")
+      assert cc2q!("%{bar:") == s2q!("%{__cursor__()}")
+      assert cc2q!("%{bar: ") == s2q!("%{bar: __cursor__()}")
+      assert cc2q!("%{bar: baz,") == s2q!("%{bar: baz, __cursor__()}")
+      assert cc2q!("%{foo | ") == s2q!("%{foo | __cursor__()}")
+      assert cc2q!("%{foo | bar:") == s2q!("%{foo | __cursor__()}")
+      assert cc2q!("%{foo | bar: ") == s2q!("%{foo | bar: __cursor__()}")
+      assert cc2q!("%{foo | bar: baz,") == s2q!("%{foo | bar: baz, __cursor__()}")
 
-      assert cc2q("%Foo") == s2q("__cursor__()")
-      assert cc2q("%Foo{") == s2q("%Foo{__cursor__()}")
-      assert cc2q("%Foo{bar: ") == s2q("%Foo{bar: __cursor__()}")
-      assert cc2q("%Foo{bar: baz,") == s2q("%Foo{bar: baz, __cursor__()}")
-      assert cc2q("%Foo{foo | ") == s2q("%Foo{foo | __cursor__()}")
-      assert cc2q("%Foo{foo | bar:") == s2q("%Foo{foo | __cursor__()}")
-      assert cc2q("%Foo{foo | bar: ") == s2q("%Foo{foo | bar: __cursor__()}")
-      assert cc2q("%Foo{foo | bar: baz,") == s2q("%Foo{foo | bar: baz, __cursor__()}")
+      assert cc2q!("%Foo") == s2q!("__cursor__()")
+      assert cc2q!("%Foo{") == s2q!("%Foo{__cursor__()}")
+      assert cc2q!("%Foo{bar: ") == s2q!("%Foo{bar: __cursor__()}")
+      assert cc2q!("%Foo{bar: baz,") == s2q!("%Foo{bar: baz, __cursor__()}")
+      assert cc2q!("%Foo{foo | ") == s2q!("%Foo{foo | __cursor__()}")
+      assert cc2q!("%Foo{foo | bar:") == s2q!("%Foo{foo | __cursor__()}")
+      assert cc2q!("%Foo{foo | bar: ") == s2q!("%Foo{foo | bar: __cursor__()}")
+      assert cc2q!("%Foo{foo | bar: baz,") == s2q!("%Foo{foo | bar: baz, __cursor__()}")
     end
 
     test "binaries" do
-      assert cc2q("<<") == s2q("<<__cursor__()>>")
-      assert cc2q("<<foo") == s2q("<<__cursor__()>>")
-      assert cc2q("<<foo, bar") == s2q("<<foo, __cursor__()>>")
-      assert cc2q("<<foo, bar::baz") == s2q("<<foo, bar::__cursor__()>>")
+      assert cc2q!("<<") == s2q!("<<__cursor__()>>")
+      assert cc2q!("<<foo") == s2q!("<<__cursor__()>>")
+      assert cc2q!("<<foo, bar") == s2q!("<<foo, __cursor__()>>")
+      assert cc2q!("<<foo, bar::baz") == s2q!("<<foo, bar::__cursor__()>>")
+    end
+
+    test "anonymous functions" do
+      assert cc2q!("(fn", trailing_fragment: "-> end)") == s2q!("(fn __cursor__() -> nil end)")
+
+      assert cc2q!("(fn", trailing_fragment: "-> 1 + 2 end)") ==
+               s2q!("(fn __cursor__() -> 1 + 2 end)")
+
+      assert cc2q!("(fn x", trailing_fragment: "-> :ok end)") ==
+               s2q!("(fn __cursor__() -> :ok end)")
+
+      assert cc2q!("(fn x", trailing_fragment: ", y -> :ok end)") ==
+               s2q!("(fn __cursor__(), y -> :ok end)")
+
+      assert cc2q!("(fn x,", trailing_fragment: "y -> :ok end)") ==
+               s2q!("(fn x, __cursor__() -> :ok end)")
+
+      assert cc2q!("(fn x,", trailing_fragment: "\ny -> :ok end)") ==
+               s2q!("(fn x, __cursor__()\n -> :ok end)")
+
+      assert cc2q!("(fn x, {", trailing_fragment: "y, z} -> :ok end)") ==
+               s2q!("(fn x, {__cursor__(), z} -> :ok end)")
+
+      assert cc2q!("(fn x, {y", trailing_fragment: ", z} -> :ok end)") ==
+               s2q!("(fn x, {__cursor__(), z} -> :ok end)")
+
+      assert cc2q!("(fn x, {y, ", trailing_fragment: "z} -> :ok end)") ==
+               s2q!("(fn x, {y, __cursor__()} -> :ok end)")
+
+      assert cc2q!("(fn x ->", trailing_fragment: ":ok end)") ==
+               s2q!("(fn x -> __cursor__() end)")
+
+      assert cc2q!("(fn x ->", trailing_fragment: "\n:ok end)") ==
+               s2q!("(fn x -> __cursor__() end)")
+
+      assert cc2q!("(fn x when ", trailing_fragment: "-> :ok end)") ==
+               s2q!("(fn x when __cursor__() -> :ok end)")
+
+      assert cc2q!("(fn x when ", trailing_fragment: "->\n:ok end)") ==
+               s2q!("(fn x when __cursor__() -> :ok end)")
+
+      assert cc2q!("(fn") == s2q!("(__cursor__())")
+      assert cc2q!("(fn x") == s2q!("(__cursor__())")
+      assert cc2q!("(fn x,") == s2q!("(__cursor__())")
+      assert cc2q!("(fn x ->") == s2q!("(fn x -> __cursor__() end)")
+      assert cc2q!("(fn x -> x") == s2q!("(fn x -> __cursor__() end)")
+      assert cc2q!("(fn x, y -> x + y") == s2q!("(fn x, y -> x + __cursor__() end)")
+      assert cc2q!("(fn x, y -> x + y end") == s2q!("(__cursor__())")
+    end
+
+    test "do -> end" do
+      assert cc2q!("if do\nx ->\n", trailing_fragment: "y\nz ->\nw\nend") ==
+               s2q!("if do\nx ->\n__cursor__()\nz -> \nw\nend")
+
+      assert cc2q!("if do\nx ->\ny", trailing_fragment: "\nz ->\nw\nend") ==
+               s2q!("if do\nx ->\n__cursor__()\nz -> \nw\nend")
+
+      assert cc2q!("if do\nx ->\ny\n", trailing_fragment: "\nz ->\nw\nend") ==
+               s2q!("if do\nx ->\ny\n__cursor__()\nz -> \nw\nend")
+
+      assert cc2q!("for x <- [], reduce: %{} do\ny, ", trailing_fragment: "-> :ok\nend") ==
+               s2q!("for x <- [], reduce: %{} do\ny, __cursor__() -> :ok\nend")
+
+      assert cc2q!("for x <- [], reduce: %{} do\ny, z when ", trailing_fragment: "-> :ok\nend") ==
+               s2q!("for x <- [], reduce: %{} do\ny, z when __cursor__() -> :ok\nend")
+
+      assert cc2q!("case do\na -> a\nb = ", trailing_fragment: "c -> c\nend") ==
+               s2q!("case do\na -> a\nb = __cursor__() -> c\nend")
     end
 
     test "removes tokens until opening" do
-      assert cc2q("(123") == s2q("(__cursor__())")
-      assert cc2q("[foo") == s2q("[__cursor__()]")
-      assert cc2q("{'foo'") == s2q("{__cursor__()}")
-      assert cc2q("foo do :atom") == s2q("foo do __cursor__() end")
-      assert cc2q("foo(:atom") == s2q("foo(__cursor__())")
+      assert cc2q!("(123") == s2q!("(__cursor__())")
+      assert cc2q!("[foo") == s2q!("[__cursor__()]")
+      assert cc2q!("{'foo'") == s2q!("{__cursor__()}")
+      assert cc2q!("foo do :atom") == s2q!("foo do __cursor__() end")
+      assert cc2q!("foo(:atom") == s2q!("foo(__cursor__())")
     end
 
     test "removes tokens until comma" do
-      assert cc2q("[bar, 123") == s2q("[bar, __cursor__()]")
-      assert cc2q("{bar, 'foo'") == s2q("{bar, __cursor__()}")
-      assert cc2q("<<bar, \"sample\"") == s2q("<<bar, __cursor__()>>")
-      assert cc2q("foo(bar, :atom") == s2q("foo(bar, __cursor__())")
-      assert cc2q("foo bar, :atom") == s2q("foo(bar, __cursor__())")
-    end
-
-    test "removes anonymous functions" do
-      assert cc2q("(fn") == s2q("(__cursor__())")
-      assert cc2q("(fn x") == s2q("(__cursor__())")
-      assert cc2q("(fn x ->") == s2q("(__cursor__())")
-      assert cc2q("(fn x -> x") == s2q("(__cursor__())")
-      assert cc2q("(fn x, y -> x + y") == s2q("(__cursor__())")
-      assert cc2q("(fn x, y -> x + y end") == s2q("(__cursor__())")
+      assert cc2q!("[bar, 123") == s2q!("[bar, __cursor__()]")
+      assert cc2q!("{bar, 'foo'") == s2q!("{bar, __cursor__()}")
+      assert cc2q!("<<bar, \"sample\"") == s2q!("<<bar, __cursor__()>>")
+      assert cc2q!("foo(bar, :atom") == s2q!("foo(bar, __cursor__())")
+      assert cc2q!("foo bar, :atom") == s2q!("foo(bar, __cursor__())")
     end
 
     test "removes closed terminators" do
-      assert cc2q("foo([1, 2, 3]") == s2q("foo(__cursor__())")
-      assert cc2q("foo({1, 2, 3}") == s2q("foo(__cursor__())")
-      assert cc2q("foo((1, 2, 3)") == s2q("foo(__cursor__())")
-      assert cc2q("foo(<<1, 2, 3>>") == s2q("foo(__cursor__())")
-      assert cc2q("foo(bar do :done end") == s2q("foo(__cursor__())")
+      assert cc2q!("foo([1, 2, 3]") == s2q!("foo(__cursor__())")
+      assert cc2q!("foo({1, 2, 3}") == s2q!("foo(__cursor__())")
+      assert cc2q!("foo((1, 2, 3)") == s2q!("foo(__cursor__())")
+      assert cc2q!("foo(<<1, 2, 3>>") == s2q!("foo(__cursor__())")
+      assert cc2q!("foo(bar do :done end") == s2q!("foo(__cursor__())")
     end
 
     test "incomplete expressions" do
-      assert cc2q("foo(123, :") == s2q("foo(123, __cursor__())")
-      assert cc2q("foo(123, %") == s2q("foo(123, __cursor__())")
-      assert cc2q("foo(123, 0x") == s2q("foo(123, __cursor__())")
-      assert cc2q("foo(123, ~") == s2q("foo(123, __cursor__())")
-      assert cc2q("foo(123, ~r") == s2q("foo(123, __cursor__())")
-      assert cc2q("foo(123, ~r/") == s2q("foo(123, __cursor__())")
+      assert cc2q!("foo(123, :") == s2q!("foo(123, __cursor__())")
+      assert cc2q!("foo(123, %") == s2q!("foo(123, __cursor__())")
+      assert cc2q!("foo(123, 0x") == s2q!("foo(123, __cursor__())")
+      assert cc2q!("foo(123, ~") == s2q!("foo(123, __cursor__())")
+      assert cc2q!("foo(123, ~r") == s2q!("foo(123, __cursor__())")
+      assert cc2q!("foo(123, ~r/") == s2q!("foo(123, __cursor__())")
     end
 
     test "no warnings" do
-      assert cc2q(~s"?\\ ") == s2q("__cursor__()")
-      assert cc2q(~s"{fn -> end, ") == s2q("{fn -> nil end, __cursor__()}")
+      assert cc2q!(~s"?\\ ") == s2q!("__cursor__()")
+      assert cc2q!(~s"{fn -> end, ") == s2q!("{fn -> nil end, __cursor__()}")
     end
 
     test "options" do
       opts = [columns: true]
-      assert cc2q("foo(", opts) == s2q("foo(__cursor__())", opts)
-      assert cc2q("foo(123,", opts) == s2q("foo(123,__cursor__())", opts)
+      assert cc2q!("foo(", opts) == s2q!("foo(__cursor__())", opts)
+      assert cc2q!("foo(123,", opts) == s2q!("foo(123,__cursor__())", opts)
 
       opts = [token_metadata: true]
-      assert cc2q("foo(", opts) == s2q("foo(__cursor__())", opts)
-      assert cc2q("foo(123,", opts) == s2q("foo(123,__cursor__())", opts)
+      assert cc2q!("foo(", opts) == s2q!("foo(__cursor__())", opts)
+      assert cc2q!("foo(123,", opts) == s2q!("foo(123,__cursor__())", opts)
 
       opts = [literal_encoder: fn ast, _ -> {:ok, {:literal, ast}} end]
-      assert cc2q("foo(", opts) == s2q("foo(__cursor__())", opts)
-      assert cc2q("foo(123,", opts) == s2q("foo({:literal, 123},__cursor__())", [])
+      assert cc2q!("foo(", opts) == s2q!("foo(__cursor__())", opts)
+      assert cc2q!("foo(123,", opts) == s2q!("foo({:literal, 123},__cursor__())", [])
     end
   end
 end

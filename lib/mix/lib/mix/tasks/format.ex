@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Tasks.Format do
   use Mix.Task
 
@@ -53,6 +57,9 @@ defmodule Mix.Tasks.Format do
 
   ## Task-specific options
 
+    * `--force` - force formatting to happen on all files, instead of
+      relying on cache.
+
     * `--check-formatted` - checks that the file is already formatted.
       This is useful in pre-commit hooks and CI scripts if you want to
       reject contributions with unformatted code. If the check fails,
@@ -74,6 +81,14 @@ defmodule Mix.Tasks.Format do
       This is useful if you are using plugins to support custom filetypes such
       as `.heex`. Without passing this flag, it is assumed that the code being
       passed via stdin is valid Elixir code. Defaults to "stdin.exs".
+
+    * `--migrate` - enables the `:migrate` option, which should be able to
+      automatically fix some deprecation warnings but changes the AST.
+      This should be safe in typical projects, but there is a non-zero risk
+      of breaking code for meta-programming heavy projects that relied on a
+      specific AST. We recommend running this task in its separate commit and
+      reviewing its output before committing. See the "Migration formatting"
+      section in `Code.format_string!/2` for more information.
 
   ## When to format code
 
@@ -180,10 +195,13 @@ defmodule Mix.Tasks.Format do
     no_exit: :boolean,
     dot_formatter: :string,
     dry_run: :boolean,
-    stdin_filename: :string
+    stdin_filename: :string,
+    force: :boolean,
+    migrate: :boolean
   ]
 
-  @manifest "cached_dot_formatter"
+  @manifest_timestamp "format_timestamp"
+  @manifest_dot_formatter "cached_dot_formatter"
   @manifest_vsn 2
 
   @newline "\n"
@@ -216,9 +234,9 @@ defmodule Mix.Tasks.Format do
   @callback format(String.t(), Keyword.t()) :: String.t()
 
   @impl true
-  def run(args) do
+  def run(all_args) do
     cwd = File.cwd!()
-    {opts, args} = OptionParser.parse!(args, strict: @switches)
+    {opts, args} = OptionParser.parse!(all_args, strict: @switches)
     {dot_formatter, formatter_opts} = eval_dot_formatter(cwd, opts)
 
     if opts[:check_equivalent] do
@@ -230,31 +248,65 @@ defmodule Mix.Tasks.Format do
     end
 
     {formatter_opts_and_subs, _sources} =
-      eval_deps_and_subdirectories(cwd, dot_formatter, formatter_opts, [dot_formatter])
+      eval_deps_and_subdirectories(cwd, dot_formatter, formatter_opts, [dot_formatter], opts)
 
-    formatter_opts_and_subs = load_plugins(formatter_opts_and_subs)
+    formatter_opts_and_subs = load_plugins(formatter_opts_and_subs, opts)
+    files = expand_args(args, cwd, dot_formatter, formatter_opts_and_subs, opts)
 
-    args
-    |> expand_args(cwd, dot_formatter, formatter_opts_and_subs, opts)
-    |> Task.async_stream(&format_file(&1, opts), ordered: false, timeout: :infinity)
-    |> Enum.reduce({[], []}, &collect_status/2)
-    |> check!(opts)
+    maybe_cache_timestamps(all_args, files, fn files ->
+      files
+      |> Task.async_stream(&format_file(&1, opts), ordered: false, timeout: :infinity)
+      |> Enum.reduce({[], []}, &collect_status/2)
+      |> check!(opts)
+    end)
   end
 
-  defp load_plugins({formatter_opts, subs}) do
+  defp maybe_cache_timestamps([], files, fun) do
+    if Mix.Project.get() do
+      # We fetch the time from before we read files so any future
+      # change to files are still picked up by the formatter
+      timestamp = System.os_time(:second)
+      dir = Mix.Project.manifest_path()
+      manifest_timestamp = Path.join(dir, @manifest_timestamp)
+      manifest_dot_formatter = Path.join(dir, @manifest_dot_formatter)
+      last_modified = Mix.Utils.last_modified(manifest_timestamp)
+      sources = [Mix.Project.config_mtime(), manifest_dot_formatter, ".formatter.exs"]
+
+      files =
+        if Mix.Utils.stale?(sources, [last_modified]) do
+          files
+        else
+          Enum.filter(files, fn {file, _opts} ->
+            Mix.Utils.last_modified(file) > last_modified
+          end)
+        end
+
+      try do
+        fun.(files)
+      after
+        File.mkdir_p!(dir)
+        File.touch!(manifest_timestamp, timestamp)
+      end
+    else
+      fun.(files)
+    end
+  end
+
+  defp maybe_cache_timestamps([_ | _], files, fun), do: fun.(files)
+
+  defp load_plugins({formatter_opts, subs}, opts) do
     plugins = Keyword.get(formatter_opts, :plugins, [])
 
     if not is_list(plugins) do
       Mix.raise("Expected :plugins to return a list of modules, got: #{inspect(plugins)}")
     end
 
-    if plugins != [] do
-      Mix.Task.run("loadpaths", [])
-    end
-
-    if not Enum.all?(plugins, &Code.ensure_loaded?/1) do
-      Mix.Task.run("compile", [])
-    end
+    plugins =
+      if plugins != [] do
+        Keyword.get(opts, :plugin_loader, &plugin_loader/1).(plugins)
+      else
+        []
+      end
 
     for plugin <- plugins do
       cond do
@@ -287,7 +339,21 @@ defmodule Mix.Tasks.Format do
       end)
 
     {Keyword.put(formatter_opts, :sigils, sigils),
-     Enum.map(subs, fn {path, opts} -> {path, load_plugins(opts)} end)}
+     Enum.map(subs, fn {path, formatter_opts_and_subs} ->
+       {path, load_plugins(formatter_opts_and_subs, opts)}
+     end)}
+  end
+
+  defp plugin_loader(plugins) do
+    if plugins != [] do
+      Mix.Task.run("loadpaths", [])
+    end
+
+    if not Enum.all?(plugins, &Code.ensure_loaded?/1) do
+      Mix.Task.run("compile", [])
+    end
+
+    plugins
   end
 
   @doc """
@@ -295,8 +361,32 @@ defmodule Mix.Tasks.Format do
   be used for the given file.
 
   The function must be called with the contents of the file
-  to be formatted. The options are returned for reflection
-  purposes.
+  to be formatted. Keep in mind that a function is always
+  returned, even if it doesn't match any of the inputs
+  specified in the `formatter.exs`. You can retrieve the
+  `:inputs` from the returned options, alongside the `:root`
+  option, to validate if the returned file matches the given
+  `:root` and `:inputs`.
+
+  ## Options
+
+    * `:deps_paths` (since v1.18.0) - the dependencies path to be used to resolve
+      `import_deps`. It defaults to `Mix.Project.deps_paths`.
+
+    * `:dot_formatter` - use the given file as the `dot_formatter`
+      root. If this option is not specified, it uses the default one.
+      The default one is cached, so use this option only if necessary.
+
+    * `:plugin_loader` (since v1.18.0) - a function that receives a list of plugins,
+      which may or may not yet be loaded, and ensures all of them are
+      loaded. It must return a list of plugins, which is recommended
+      to be the exact same list given as argument. You may choose to
+      skip plugins, but then it means the code will be partially
+      formatted (as in the plugins will be skipped). By default,
+      this function calls `mix loadpaths` and then, if not enough,
+      `mix compile`.
+
+    * `:root` - use the given root as the current working directory.
   """
   @doc since: "1.13.0"
   def formatter_for_file(file, opts \\ []) do
@@ -304,41 +394,42 @@ defmodule Mix.Tasks.Format do
     {dot_formatter, formatter_opts} = eval_dot_formatter(cwd, opts)
 
     {formatter_opts_and_subs, _sources} =
-      eval_deps_and_subdirectories(cwd, dot_formatter, formatter_opts, [dot_formatter])
+      eval_deps_and_subdirectories(cwd, dot_formatter, formatter_opts, [dot_formatter], opts)
 
-    formatter_opts_and_subs = load_plugins(formatter_opts_and_subs)
+    formatter_opts_and_subs = load_plugins(formatter_opts_and_subs, opts)
 
-    find_formatter_and_opts_for_file(Path.expand(file, cwd), formatter_opts_and_subs)
+    find_formatter_and_opts_for_file(Path.expand(file, cwd), cwd, formatter_opts_and_subs)
   end
 
-  @doc """
-  Returns formatter options to be used for the given file.
-  """
-  # TODO: Deprecate on Elixir v1.17
-  @doc deprecated: "Use formatter_for_file/2 instead"
+  @doc false
+  @deprecated "Use formatter_for_file/2 instead"
   def formatter_opts_for_file(file, opts \\ []) do
     {_, formatter_opts} = formatter_for_file(file, opts)
     formatter_opts
   end
 
   defp eval_dot_formatter(cwd, opts) do
-    cond do
-      dot_formatter = opts[:dot_formatter] ->
-        {dot_formatter, eval_file_with_keyword_list(dot_formatter)}
+    {dot_formatter, format_opts} =
+      cond do
+        dot_formatter = opts[:dot_formatter] ->
+          {dot_formatter, eval_file_with_keyword_list(dot_formatter)}
 
-      File.regular?(Path.join(cwd, ".formatter.exs")) ->
-        dot_formatter = Path.join(cwd, ".formatter.exs")
-        {".formatter.exs", eval_file_with_keyword_list(dot_formatter)}
+        File.regular?(Path.join(cwd, ".formatter.exs")) ->
+          dot_formatter = Path.join(cwd, ".formatter.exs")
+          {".formatter.exs", eval_file_with_keyword_list(dot_formatter)}
 
-      true ->
-        {".formatter.exs", []}
-    end
+        true ->
+          {".formatter.exs", []}
+      end
+
+    # the --migrate flag overrides settings from the dot formatter
+    {dot_formatter, Keyword.take(opts, [:migrate]) ++ format_opts}
   end
 
   # This function reads exported configuration from the imported
   # dependencies and subdirectories and deals with caching the result
   # of reading such configuration in a manifest file.
-  defp eval_deps_and_subdirectories(cwd, dot_formatter, formatter_opts, sources) do
+  defp eval_deps_and_subdirectories(cwd, dot_formatter, formatter_opts, sources, opts) do
     deps = Keyword.get(formatter_opts, :import_deps, [])
     subs = Keyword.get(formatter_opts, :subdirectories, [])
 
@@ -353,12 +444,12 @@ defmodule Mix.Tasks.Format do
     if deps == [] and subs == [] do
       {{formatter_opts, []}, sources}
     else
-      manifest = Path.join(Mix.Project.manifest_path(), @manifest)
+      manifest = Path.join(Mix.Project.manifest_path(), @manifest_dot_formatter)
 
       {{locals_without_parens, subdirectories}, sources} =
         maybe_cache_in_manifest(dot_formatter, manifest, fn ->
-          {subdirectories, sources} = eval_subs_opts(subs, cwd, sources)
-          {{eval_deps_opts(deps), subdirectories}, sources}
+          {subdirectories, sources} = eval_subs_opts(subs, cwd, sources, opts)
+          {{eval_deps_opts(deps, opts), subdirectories}, sources}
         end)
 
       formatter_opts =
@@ -404,12 +495,12 @@ defmodule Mix.Tasks.Format do
     {entry, sources}
   end
 
-  defp eval_deps_opts([]) do
+  defp eval_deps_opts([], _opts) do
     []
   end
 
-  defp eval_deps_opts(deps) do
-    deps_paths = Mix.Project.deps_paths()
+  defp eval_deps_opts(deps, opts) do
+    deps_paths = opts[:deps_paths] || Mix.Project.deps_paths()
 
     for dep <- deps,
         dep_path = assert_valid_dep_and_fetch_path(dep, deps_paths),
@@ -421,7 +512,7 @@ defmodule Mix.Tasks.Format do
         do: parenless_call
   end
 
-  defp eval_subs_opts(subs, cwd, sources) do
+  defp eval_subs_opts(subs, cwd, sources, opts) do
     {subs, sources} =
       Enum.flat_map_reduce(subs, sources, fn sub, sources ->
         cwd = Path.expand(sub, cwd)
@@ -435,7 +526,7 @@ defmodule Mix.Tasks.Format do
         formatter_opts = eval_file_with_keyword_list(sub_formatter)
 
         {formatter_opts_and_subs, sources} =
-          eval_deps_and_subdirectories(sub, :in_memory, formatter_opts, sources)
+          eval_deps_and_subdirectories(sub, :in_memory, formatter_opts, sources, opts)
 
         {[{sub, formatter_opts_and_subs}], sources}
       else
@@ -465,7 +556,7 @@ defmodule Mix.Tasks.Format do
   defp eval_file_with_keyword_list(path) do
     {opts, _} = Code.eval_file(path)
 
-    unless Keyword.keyword?(opts) do
+    if not Keyword.keyword?(opts) do
       Mix.raise("Expected #{inspect(path)} to return a keyword list, got: #{inspect(opts)}")
     end
 
@@ -506,11 +597,11 @@ defmodule Mix.Tasks.Format do
         stdin_filename = Path.expand(Keyword.get(opts, :stdin_filename, "stdin.exs"), cwd)
 
         {formatter, _opts} =
-          find_formatter_and_opts_for_file(stdin_filename, {formatter_opts, subs})
+          find_formatter_and_opts_for_file(stdin_filename, cwd, {formatter_opts, subs})
 
         {file, formatter}
       else
-        {formatter, _opts} = find_formatter_and_opts_for_file(file, {formatter_opts, subs})
+        {formatter, _opts} = find_formatter_and_opts_for_file(file, cwd, {formatter_opts, subs})
         {file, formatter}
       end
     end
@@ -576,15 +667,22 @@ defmodule Mix.Tasks.Format do
     if plugins != [], do: plugins, else: nil
   end
 
-  defp find_formatter_and_opts_for_file(file, formatter_opts_and_subs) do
-    formatter_opts = recur_formatter_opts_for_file(file, formatter_opts_and_subs)
-    {find_formatter_for_file(file, formatter_opts), formatter_opts}
+  defp find_formatter_and_opts_for_file(file, root, formatter_opts_and_subs) do
+    {formatter_opts, root} = recur_formatter_opts_for_file(file, root, formatter_opts_and_subs)
+    {find_formatter_for_file(file, formatter_opts), [root: root] ++ formatter_opts}
   end
 
-  defp recur_formatter_opts_for_file(file, {formatter_opts, subs}) do
-    Enum.find_value(subs, formatter_opts, fn {sub, formatter_opts_and_subs} ->
-      if String.starts_with?(file, sub) do
-        recur_formatter_opts_for_file(file, formatter_opts_and_subs)
+  defp recur_formatter_opts_for_file(file, root, {formatter_opts, subs}) do
+    Enum.find_value(subs, {formatter_opts, root}, fn {sub, formatter_opts_and_subs} ->
+      size = byte_size(sub)
+
+      case file do
+        <<prefix::binary-size(^size), dir_separator, _::binary>>
+        when prefix == sub and dir_separator in [?\\, ?/] ->
+          recur_formatter_opts_for_file(file, sub, formatter_opts_and_subs)
+
+        _ ->
+          nil
       end
     end)
   end

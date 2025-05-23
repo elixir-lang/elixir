@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule System do
   @moduledoc """
   The `System` module provides functions that interact directly
@@ -42,7 +46,7 @@ defmodule System do
     * `system_time/0` - the VM view of the `os_time/0`. The system time and operating
       system time may not match in case of time warps although the VM works towards
       aligning them. This time is not monotonic (i.e., it may decrease)
-      as its behaviour is configured [by the VM time warp
+      as its behavior is configured [by the VM time warp
       mode](https://www.erlang.org/doc/apps/erts/time_correction.html#Time_Warp_Modes);
 
     * `monotonic_time/0` - a monotonically increasing time provided
@@ -155,7 +159,7 @@ defmodule System do
     ~c"git rev-parse --short=7 HEAD 2> "
     |> Kernel.++(null)
     |> :os.cmd()
-    |> strip
+    |> strip()
   end
 
   defp revision, do: get_revision()
@@ -304,22 +308,6 @@ defmodule System do
   def no_halt() do
     :elixir_config.get(:no_halt)
   end
-
-  @doc """
-  Waits until the system boots.
-
-  Calling this function blocks until all of ARGV is processed.
-  Inside a release, this means the boot script and then ARGV
-  have been processed. This is only useful for those implementing
-  custom shells/consoles on top of Elixir.
-
-  However, be careful to not invoke this command from within
-  the process that is processing the command line arguments,
-  as doing so would lead to a deadlock.
-  """
-  @doc since: "1.15.0"
-  @spec wait_until_booted() :: :ok
-  defdelegate wait_until_booted(), to: :elixir_config
 
   @doc """
   Current working directory.
@@ -522,7 +510,7 @@ defmodule System do
   in case trapping exists is not supported by the current OS.
 
   The first time a signal is trapped, it will override the
-  default behaviour from the operating system. If the same
+  default behavior from the operating system. If the same
   signal is trapped multiple times, subsequent functions
   given to `trap_signal` will execute *first*. In other
   words, you can consider each function is prepended to
@@ -536,7 +524,7 @@ defmodule System do
     * `:sigusr1` - halts the VM via status code of 1
 
   Therefore, if you add traps to the signals above, the
-  default behaviour above will be executed after all user
+  default behavior above will be executed after all user
   signals.
 
   ## Implementation notes
@@ -955,6 +943,12 @@ defmodule System do
   @doc since: "1.12.0"
   @spec shell(binary, keyword) :: {Collectable.t(), exit_status :: non_neg_integer}
   def shell(command, opts \\ []) when is_binary(command) do
+    command |> String.trim() |> do_shell(opts)
+  end
+
+  defp do_shell("", _opts), do: {"", 0}
+
+  defp do_shell(command, opts) do
     assert_no_null_byte!(command, "System.shell/2")
     {close_stdin?, opts} = Keyword.pop(opts, :close_stdin, false)
 
@@ -1003,7 +997,26 @@ defmodule System do
   ports guarantee stdin/stdout devices will be closed but it does not
   automatically terminate the program. The documentation for the
   `Port` module describes this problem and possible solutions under
-  the "Zombie processes" section.
+  the "Orphan operating system processes" section.
+
+  > #### Windows argument splitting and untrusted arguments {: .warning}
+  >
+  > On Unix systems, arguments are passed to a new operating system
+  > process as an array of strings but on Windows it is up to the child
+  > process to parse them and some Windows programs may apply their own
+  > rules, which are inconsistent with the standard C runtime `argv` parsing
+  >
+  > This is particularly troublesome when invoking `.bat` or `.com` files
+  > as these run implicitly through `cmd.exe`, whose argument parsing is
+  > vulnerable to malicious input and can be used to run arbitrary shell
+  > commands.
+  >
+  > Therefore, if you are running on Windows and you execute batch
+  > files or `.com` applications, you must not pass untrusted input as
+  > arguments to the program. You may avoid accidentally executing them
+  > by explicitly passing the extension of the program you want to run,
+  > such as `.exe`, and double check the program is indeed not a batch
+  > file or `.com` application.
 
   ## Examples
 
@@ -1044,7 +1057,11 @@ defmodule System do
 
     * `:arg0` - sets the command arg0
 
-    * `:stderr_to_stdout` - redirects stderr to stdout when `true`
+    * `:stderr_to_stdout` - redirects stderr to stdout when `true`, no effect
+      if `use_stdio` is `false`.
+
+    * `:use_stdio` - `true` by default, setting it to false allows direct
+      interaction with the terminal from the callee
 
     * `:parallelism` - when `true`, the VM will schedule port tasks to improve
       parallelism in the system. If set to `false`, the VM will try to perform
@@ -1088,7 +1105,7 @@ defmodule System do
   def cmd(command, args, opts \\ []) when is_binary(command) and is_list(args) do
     assert_no_null_byte!(command, "System.cmd/3")
 
-    unless Enum.all?(args, &is_binary/1) do
+    if not Enum.all?(args, &is_binary/1) do
       raise ArgumentError, "all arguments for System.cmd/3 must be binaries"
     end
 
@@ -1105,8 +1122,10 @@ defmodule System do
   end
 
   defp do_cmd(port_init, base_opts, opts) do
+    {use_stdio?, opts} = Keyword.pop(opts, :use_stdio, true)
+
     {into, line, opts} =
-      cmd_opts(opts, [:use_stdio, :exit_status, :binary, :hide] ++ base_opts, "", false)
+      cmd_opts(opts, [:exit_status, :binary, :hide] ++ base_opts, "", false, use_stdio?)
 
     {initial, fun} = Collectable.into(into)
 
@@ -1155,36 +1174,41 @@ defmodule System do
     end
   end
 
-  defp cmd_opts([{:into, any} | t], opts, _into, line),
-    do: cmd_opts(t, opts, any, line)
+  defp cmd_opts([{:into, any} | t], opts, _into, line, stdio?),
+    do: cmd_opts(t, opts, any, line, stdio?)
 
-  defp cmd_opts([{:cd, bin} | t], opts, into, line) when is_binary(bin),
-    do: cmd_opts(t, [{:cd, bin} | opts], into, line)
+  defp cmd_opts([{:cd, bin} | t], opts, into, line, stdio?) when is_binary(bin),
+    do: cmd_opts(t, [{:cd, bin} | opts], into, line, stdio?)
 
-  defp cmd_opts([{:arg0, bin} | t], opts, into, line) when is_binary(bin),
-    do: cmd_opts(t, [{:arg0, bin} | opts], into, line)
+  defp cmd_opts([{:arg0, bin} | t], opts, into, line, stdio?) when is_binary(bin),
+    do: cmd_opts(t, [{:arg0, bin} | opts], into, line, stdio?)
 
-  defp cmd_opts([{:stderr_to_stdout, true} | t], opts, into, line),
-    do: cmd_opts(t, [:stderr_to_stdout | opts], into, line)
+  defp cmd_opts([{:stderr_to_stdout, true} | t], opts, into, line, true),
+    do: cmd_opts(t, [:stderr_to_stdout | opts], into, line, true)
 
-  defp cmd_opts([{:stderr_to_stdout, false} | t], opts, into, line),
-    do: cmd_opts(t, opts, into, line)
+  defp cmd_opts([{:stderr_to_stdout, true} | _], _opts, _into, _line, false),
+    do: raise(ArgumentError, "cannot use \"stderr_to_stdout: true\" and \"use_stdio: false\"")
 
-  defp cmd_opts([{:parallelism, bool} | t], opts, into, line) when is_boolean(bool),
-    do: cmd_opts(t, [{:parallelism, bool} | opts], into, line)
+  defp cmd_opts([{:stderr_to_stdout, false} | t], opts, into, line, stdio?),
+    do: cmd_opts(t, opts, into, line, stdio?)
 
-  defp cmd_opts([{:env, enum} | t], opts, into, line),
-    do: cmd_opts(t, [{:env, validate_env(enum)} | opts], into, line)
+  defp cmd_opts([{:parallelism, bool} | t], opts, into, line, stdio?) when is_boolean(bool),
+    do: cmd_opts(t, [{:parallelism, bool} | opts], into, line, stdio?)
 
-  defp cmd_opts([{:lines, max_line_length} | t], opts, into, _line)
+  defp cmd_opts([{:env, enum} | t], opts, into, line, stdio?),
+    do: cmd_opts(t, [{:env, validate_env(enum)} | opts], into, line, stdio?)
+
+  defp cmd_opts([{:lines, max_line_length} | t], opts, into, _line, stdio?)
        when is_integer(max_line_length) and max_line_length > 0,
-       do: cmd_opts(t, [{:line, max_line_length} | opts], into, true)
+       do: cmd_opts(t, [{:line, max_line_length} | opts], into, true, stdio?)
 
-  defp cmd_opts([{key, val} | _], _opts, _into, _line),
+  defp cmd_opts([{key, val} | _], _opts, _into, _line, _stdio?),
     do: raise(ArgumentError, "invalid option #{inspect(key)} with value #{inspect(val)}")
 
-  defp cmd_opts([], opts, into, line),
-    do: {into, line, opts}
+  defp cmd_opts([], opts, into, line, stdio?) do
+    opt = if stdio?, do: :use_stdio, else: :nouse_stdio
+    {into, line, [opt | opts]}
+  end
 
   defp validate_env(enum) do
     Enum.map(enum, fn
@@ -1219,7 +1243,7 @@ defmodule System do
   This time is monotonically increasing and starts in an unspecified
   point in time.
   """
-  @spec monotonic_time(time_unit) :: integer
+  @spec monotonic_time(time_unit | :native) :: integer
   def monotonic_time(unit) do
     :erlang.monotonic_time(normalize_time_unit(unit))
   end
@@ -1245,7 +1269,7 @@ defmodule System do
   case of time warps although the VM works towards aligning
   them. This time is not monotonic.
   """
-  @spec system_time(time_unit) :: integer
+  @spec system_time(time_unit | :native) :: integer
   def system_time(unit) do
     :erlang.system_time(normalize_time_unit(unit))
   end
@@ -1296,7 +1320,7 @@ defmodule System do
   `monotonic_time/1`), gives the Erlang system time that corresponds
   to that monotonic time.
   """
-  @spec time_offset(time_unit) :: integer
+  @spec time_offset(time_unit | :native) :: integer
   def time_offset(unit) do
     :erlang.time_offset(normalize_time_unit(unit))
   end
@@ -1422,8 +1446,10 @@ defmodule System do
   defp warn(unit, replacement_unit) do
     IO.warn_once(
       {__MODULE__, unit},
-      "deprecated time unit: #{inspect(unit)}. A time unit should be " <>
-        ":second, :millisecond, :microsecond, :nanosecond, or a positive integer",
+      fn ->
+        "deprecated time unit: #{inspect(unit)}. A time unit should be " <>
+          ":second, :millisecond, :microsecond, :nanosecond, or a positive integer"
+      end,
       _stacktrace_drop_levels = 4
     )
 

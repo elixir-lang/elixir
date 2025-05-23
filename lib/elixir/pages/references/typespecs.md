@@ -1,7 +1,18 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+  SPDX-FileCopyrightText: 2012 Plataformatec
+-->
+
 # Typespecs reference
 
-Elixir comes with a notation for declaring types and specifications. This document is a
-reference into their uses and syntax.
+> #### Typespecs are not set-theoretic types {: .warning}
+>
+> Elixir is in the process of implementing its
+> [own type system](./gradual-set-theoretic-types.md) based on set-theoretic types.
+> Typespecs, which are described in the following document, are a distinct notation
+> for declaring types and specifications based on Erlang.
+> Typespecs may be phased out as the set-theoretic type effort moves forward.
 
 Elixir is a dynamically typed language, and as such, type specifications are never used by the compiler to optimize or modify code. Still, using type specifications is useful because:
 
@@ -17,7 +28,7 @@ Type specifications (most often referred to as *typespecs*) are defined in diffe
   * `@callback`
   * `@macrocallback`
 
-In addition, you can use `@typedoc` to describe a custom `@type` definition.
+In addition, you can use `@typedoc` to document a custom `@type` definition.
 
 See the "User-defined types" and "Defining a specification" sub-sections below for more information on defining types and typespecs.
 
@@ -44,9 +55,16 @@ In the example above:
 
 ## Types and their syntax
 
-The syntax Elixir provides for type specifications is similar to [the one in Erlang](https://www.erlang.org/doc/reference_manual/typespec.html). Most of the built-in types provided in Erlang (for example, `pid()`) are expressed in the same way: `pid()` (or simply `pid`). Parameterized types (such as `list(integer)`) are supported as well and so are remote types (such as [`Enum.t()`](`t:Enum.t/0`)). Integers and atom literals are allowed as types (for example, `1`, `:atom`, or `false`). All other types are built out of unions of predefined types. Some shorthands are allowed, such as `[...]`, `<<>>`, and `{...}`.
+The syntax Elixir provides for type specifications is similar to [the one in Erlang](https://www.erlang.org/doc/reference_manual/typespec.html). Most of the built-in types provided in Erlang (for example, `pid()`) are expressed in the same way: `pid()` (or simply `pid`). Parameterized types (such as `list(integer)`) are supported as well and so are remote types (such as [`Enum.t()`](`t:Enum.t/0`)). Integers and atom literals are allowed as types (for example, `1`, `:atom`, or `false`). All other types are built out of unions of predefined types. Some types can also be declared using their syntactical notation, such as `[type]` for lists, `{type1, type2, ...}` for tuples and `<<_ * _>>` for binaries.
 
 The notation to represent the union of types is the pipe `|`. For example, the typespec `type :: atom() | pid() | tuple()` creates a type `type` that can be either an `atom`, a `pid`, or a `tuple`. This is usually called a [sum type](https://en.wikipedia.org/wiki/Tagged_union) in other languages
+
+> #### Differences with set-theoretic types {: .warning}
+>
+> While they do share some similarities, the types below do not map one-to-one
+> to the new types from the set theoretic type system.
+> For example, there is no plan to support subsets of the `integer()` type such
+> as positive, ranges or literals.
 
 ### Basic types
 
@@ -191,13 +209,21 @@ It also allows composition with existing types.
 For example:
 
 ```elixir
-type option :: {:my_option, String.t()} | GenServer.option()
+@type option :: {:my_option, String.t()} | GenServer.option()
 
 @spec start_link([option()]) :: GenServer.on_start()
 def start_link(opts) do
   {my_opts, gen_server_opts} = Keyword.split(opts, [:my_option])
   GenServer.start_link(__MODULE__, my_opts, gen_server_opts)
 end
+```
+
+The following spec syntaxes are equivalent:
+
+```elixir
+@type options [{:name, String.t} | {:max, pos_integer} | {:min, pos_integer}]
+
+@type options [name: String.t, max: pos_integer, min: pos_integer]
 ```
 
 ### User-defined types
@@ -250,18 +276,113 @@ Behaviours in Elixir (and Erlang) are a way to separate and abstract the generic
 
 A behaviour module defines a set of functions and macros (referred to as *callbacks*) that callback modules implementing that behaviour must export. This "interface" identifies the specific part of the component. For example, the `GenServer` behaviour and functions abstract away all the message-passing (sending and receiving) and error reporting that a "server" process will likely want to implement from the specific parts such as the actions that this server process has to perform.
 
-To define a behaviour module, it's enough to define one or more callbacks in that module. To define callbacks, the `@callback` and `@macrocallback` module attributes can be used (for function callbacks and macro callbacks respectively).
+Say we want to implement a bunch of parsers, each parsing structured data: for example, a JSON parser and a MessagePack parser. Each of these two parsers will *behave* the same way: both will provide a `parse/1` function and an `extensions/0` function. The `parse/1` function will return an Elixir representation of the structured data, while the `extensions/0` function will return a list of file extensions that can be used for each type of data (e.g., `.json` for JSON files).
 
-    defmodule MyBehaviour do
-      @callback my_fun(arg :: any) :: any
-      @macrocallback my_macro(arg :: any) :: Macro.t
-    end
+We can create a `Parser` behaviour:
+
+```elixir
+defmodule Parser do
+  @doc """
+  Parses a string.
+  """
+  @callback parse(String.t) :: {:ok, term} | {:error, atom}
+
+  @doc """
+  Lists all supported file extensions.
+  """
+  @callback extensions() :: [String.t]
+end
+```
 
 As seen in the example above, defining a callback is a matter of defining a specification for that callback, made of:
 
-  * the callback name (`my_fun` or `my_macro` in the example)
-  * the arguments that the callback must accept (`arg :: any` in the example)
+  * the callback name (`parse` or `extensions` in the example)
+  * the arguments that the callback must accept (`String.t`)
   * the *expected* type of the callback return value
+
+Modules adopting the `Parser` behaviour will have to implement all the functions defined with the `@callback` attribute. As you can see, `@callback` expects a function name but also a function specification like the ones used with the `@spec` attribute we saw above.
+
+### Implementing behaviours
+
+Implementing a behaviour is straightforward:
+
+```elixir
+defmodule JSONParser do
+  @behaviour Parser
+
+  @impl Parser
+  def parse(str), do: {:ok, "some json " <> str} # ... parse JSON
+
+  @impl Parser
+  def extensions, do: [".json"]
+end
+```
+
+```elixir
+defmodule CSVParser do
+  @behaviour Parser
+
+  @impl Parser
+  def parse(str), do: {:ok, "some csv " <> str} # ... parse CSV
+
+  @impl Parser
+  def extensions, do: [".csv"]
+end
+```
+
+If a module adopting a given behaviour doesn't implement one of the callbacks required by that behaviour, a compile-time warning will be generated.
+
+Furthermore, with `@impl` you can also make sure that you are implementing the **correct** callbacks from the given behaviour in an explicit manner. For example, the following parser implements both `parse` and `extensions`. However, thanks to a typo, `BADParser` is implementing `parse/0` instead of `parse/1`.
+
+```elixir
+defmodule BADParser do
+  @behaviour Parser
+
+  @impl Parser
+  def parse, do: {:ok, "something bad"}
+
+  @impl Parser
+  def extensions, do: ["bad"]
+end
+```
+
+This code generates a warning letting you know that you are mistakenly implementing `parse/0` instead of `parse/1`.
+You can read more about `@impl` in the [module documentation](`Module#module-impl`).
+
+### Using behaviours
+
+Behaviours are useful because you can pass modules around as arguments and you can then *call back* to any of the functions specified in the behaviour. For example, we can have a function that receives a filename, several parsers, and parses the file based on its extension:
+
+```elixir
+@spec parse_path(Path.t(), [module()]) :: {:ok, term} | {:error, atom}
+def parse_path(filename, parsers) do
+  with {:ok, ext} <- parse_extension(filename),
+       {:ok, parser} <- find_parser(ext, parsers),
+       {:ok, contents} <- File.read(filename) do
+    parser.parse(contents)
+  end
+end
+
+defp parse_extension(filename) do
+  if ext = Path.extname(filename) do
+    {:ok, ext}
+  else
+    {:error, :no_extension}
+  end
+end
+
+defp find_parser(ext, parsers) do
+  if parser = Enum.find(parsers, fn parser -> ext in parser.extensions() end) do
+    {:ok, parser}
+  else
+    {:error, :no_matching_parser}
+  end
+end
+```
+
+You could also invoke any parser directly: `CSVParser.parse(...)`.
+
+Note you don't need to define a behaviour in order to dynamically dispatch on a module, but those features often go hand in hand.
 
 ### Optional callbacks
 
@@ -276,35 +397,7 @@ Optional callbacks can be defined through the `@optional_callbacks` module attri
       @optional_callbacks non_vital_fun: 0, non_vital_macro: 1
     end
 
-One example of optional callback in Elixir's standard library is `c:GenServer.format_status/2`.
-
-### Implementing behaviours
-
-To specify that a module implements a given behaviour, the `@behaviour` attribute must be used:
-
-    defmodule MyBehaviour do
-      @callback my_fun(arg :: any) :: any
-    end
-
-    defmodule MyCallbackModule do
-      @behaviour MyBehaviour
-      def my_fun(arg), do: arg
-    end
-
-If a callback module that implements a given behaviour doesn't export all the functions and macros defined by that behaviour, the user will be notified through warnings during the compilation process (no errors will happen).
-
-You can also use the `@impl` attribute before a function to denote that particular function is implementation a behaviour:
-
-    defmodule MyCallbackModule do
-      @behaviour MyBehaviour
-
-      @impl true
-      def my_fun(arg), do: arg
-    end
-
-You can also use `@impl MyBehaviour` to make clearer from which behaviour the callbacks comes from, providing even more context for future readers of your code.
-
-Elixir's standard library contains a few frequently used behaviours such as `GenServer`, `Supervisor`, and `Application`.
+One example of optional callback in Elixir's standard library is `c:GenServer.format_status/1`.
 
 ### Inspecting behaviours
 
@@ -318,6 +411,10 @@ For example, for the `MyBehaviour` module defined in "Optional callbacks" above:
     #=> ["MACRO-non_vital_macro": 2, non_vital_fun: 0]
 
 When using `iex`, the `IEx.Helpers.b/1` helper is also available.
+
+## Pitfalls
+
+There are some known pitfalls when using typespecs, they are documented next.
 
 ## The `string()` type
 

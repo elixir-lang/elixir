@@ -1,6 +1,11 @@
-# alias, require, and import
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
 
-In order to facilitate software reuse, Elixir provides three directives (`alias`, `require` and `import`) plus a macro called `use` summarized below:
+# alias, require, import, and use
+
+In order to facilitate software reuse, Elixir provides three directives (`alias`, `require`, and `import`) plus a macro called `use` summarized below:
 
 ```elixir
 # Alias the module so it can be called as Bar instead of Foo.Bar
@@ -112,7 +117,7 @@ end
 
 In the example above, the imported `List.duplicate/2` is only visible within that specific function. `duplicate/2` won't be available in any other function in that module (or any other module for that matter).
 
-Note that `import`s are generally discouraged in the language. When working on your own code, prefer `alias` to `import`.
+While `import`s can be useful for frameworks and libraries to build abstractions, developers should generally prefer `alias` to `import` on their own codebases, as aliases make the origin of the function being invoked clearer.
 
 ## use
 

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule MapSet do
   @moduledoc """
   Functions that work on sets.
@@ -43,8 +47,7 @@ defmodule MapSet do
   `MapSet`s can also be constructed starting from other collection-type data
   structures: for example, see `MapSet.new/1` or `Enum.into/2`.
 
-  `MapSet` is built on top of Erlang's
-  [`:sets`](https://www.erlang.org/doc/man/sets.html) (version 2). This means
+  `MapSet` is built on top of Erlang's [`:sets`](`:sets`) (version 2). This means
   that they share many properties, including logarithmic time complexity. Erlang
   `:sets` (version 2) are implemented on top of maps, so see the documentation
   for `Map` for more information on its execution time complexity.
@@ -401,7 +404,7 @@ defmodule MapSet do
 
   """
   @doc since: "1.15.0"
-  @spec split_with(MapSet.t(), (any() -> as_boolean(term))) :: {MapSet.t(), MapSet.t()}
+  @spec split_with(MapSet.t(), (term() -> as_boolean(term))) :: {MapSet.t(), MapSet.t()}
   def split_with(%MapSet{map: map}, fun) when is_function(fun, 1) do
     {while_true, while_false} = Map.split_with(map, fn {key, _} -> fun.(key) end)
     {%MapSet{map: while_true}, %MapSet{map: while_false}}
@@ -441,8 +444,8 @@ defmodule MapSet do
   defimpl Inspect do
     import Inspect.Algebra
 
-    def inspect(map_set, opts) do
-      opts = %Inspect.Opts{opts | charlists: :as_lists}
+    def inspect(map_set, %Inspect.Opts{} = opts) do
+      opts = %{opts | charlists: :as_lists}
       concat(["MapSet.new(", Inspect.List.inspect(MapSet.to_list(map_set), opts), ")"])
     end
   end

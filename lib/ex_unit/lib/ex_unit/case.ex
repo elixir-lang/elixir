@@ -1,10 +1,6 @@
-defmodule ExUnit.DuplicateTestError do
-  defexception [:message]
-end
-
-defmodule ExUnit.DuplicateDescribeError do
-  defexception [:message]
-end
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
 
 defmodule ExUnit.Case do
   @moduledoc """
@@ -16,12 +12,23 @@ defmodule ExUnit.Case do
   When used, it accepts the following options:
 
     * `:async` - configures tests in this module to run concurrently with
-      tests in other modules. Tests in the same module never run concurrently.
+      tests in other modules. Tests in the same module never run concurrently
+      (with the exception of tests run via the `:parameterize` option - see below).
       It should be enabled only if tests do not change any global state.
       Defaults to `false`.
 
+    * `:group` (since v1.18.0) - configures the **group** this module belongs to.
+      Tests in the same group never run concurrently. Tests from different
+      groups (or with no groups) can run concurrently when `async: true`
+      is given. By default, this module belongs to no group (defaults to `nil`).
+
     * `:register` - when `false`, does not register this module within
       ExUnit server. This means the module won't run when ExUnit suite runs.
+
+    * `:parameterize` (since v1.18.0) - a list of maps to parameterize tests.
+      If both `:async` and `:parameterize` are given, the different parameters
+      run concurrently. See the "Parameterized tests" section below for more
+      information.
 
   > #### `use ExUnit.Case` {: .info}
   >
@@ -145,30 +152,34 @@ defmodule ExUnit.Case do
   The following tags are set automatically by ExUnit and are
   therefore reserved:
 
-    * `:module` - the module on which the test was defined
+    * `:async` - if the test case is in async mode
 
     * `:file` - the file on which the test was defined
 
     * `:line` - the line on which the test was defined
 
-    * `:test` - the test name
-
-    * `:async` - if the test case is in async mode
+    * `:module` - the module on which the test was defined
 
     * `:registered` - used for `ExUnit.Case.register_attribute/3` values
 
-    * `:describe` - the describe block the test belongs to
+    * `:test` - the test name
 
-    * `:describe_line` - the line the describe block begins on
+    * `:test_group` - the group the test belongs to
 
-    * `:doctest` - the module or the file being doctested (if a doctest)
-
-    * `:doctest_line` - the line the doctest was defined (if a doctest)
-
-    * `:doctest_data` - additional metadata about doctests (if a doctest)
+    * `:test_pid` - the PID of the testing process
 
     * `:test_type` - the test type used when printing test results.
       It is set by ExUnit to `:test`, `:doctest` and so on, but is customizable.
+
+    * `:describe` - the describe block the test belongs to (if in a describe)
+
+    * `:describe_line` - the line the describe block begins on (if in a describe)
+
+    * `:doctest` - the module or the file being doctested (if a doctest)
+
+    * `:doctest_data` - additional metadata about doctests (if a doctest)
+
+    * `:doctest_line` - the line the doctest was defined (if a doctest)
 
   The following tags customize how tests behave:
 
@@ -180,6 +191,41 @@ defmodule ExUnit.Case do
       Accepts `:infinity` as a timeout value.
 
     * `:tmp_dir` - (since v1.11.0) see the "Tmp Dir" section below
+
+  ## Parameterized tests
+
+  Sometimes you want to run the same tests but with different parameters.
+  In ExUnit, it is possible to do so by passing a `:parameterize` key to
+  `ExUnit.Case`. The value must be a list of maps which will be the
+  parameters merged into the test context.
+
+  For example, Elixir has a module called `Registry`, which can have type
+  `:unique` or `:duplicate`, and can control its concurrency factor using
+  the `:partitions` option. If you have a number of tests that *behave the
+  same* across all of those values, you can parameterize those tests with:
+
+      use ExUnit.Case,
+        async: true,
+        parameterize:
+          for(kind <- [:unique, :duplicate],
+              partitions <- [1, 8],
+              do: %{kind: kind, partitions: partitions})
+
+  Then, in your tests, you can access the parameters as part of the context:
+
+      test "starts a registry", %{kind: kind, partitions: partitions} do
+        ...
+      end
+
+  Use parameterized tests with care:
+
+    * Although parameterized tests run concurrently when `async: true` is also given,
+      abuse of parameterized tests may make your test suite slower
+
+    * If you use parameterized tests and then find yourself adding conditionals
+      in your tests to deal with different parameters, then parameterized tests
+      may be the wrong solution to your problem. Consider creating separated
+      tests and sharing logic between them using regular functions
 
   ## Filters
 
@@ -230,7 +276,7 @@ defmodule ExUnit.Case do
   in them (or between tests) are never captured. If you want to suppress these
   messages as well, remove the console backend globally by setting:
 
-      config :logger, backends: []
+      config :logger, :default_handler, false
 
   ## Tmp Dir
 
@@ -258,18 +304,47 @@ defmodule ExUnit.Case do
 
   As with other tags, `:tmp_dir` can also be set as `@moduletag` and
   `@describetag`.
+
+  ## Process Architecture
+
+  An ExUnit test case uses several processes when it runs. These are illustrated below.
+
+  ```mermaid
+  sequenceDiagram
+    participant runner as ExUnit Case
+    runner->>runner: Run setup_all callbacks
+
+    loop Each test
+      create participant test as Test Process
+      runner->>test: Spawn
+      test->>test: Run setup callbacks
+      test->>test: Run test
+      destroy test
+      test-xrunner: Exits
+      runner->>runner: Run on_exit callbacks
+    end
+  ```
+
+    1. First, all `ExUnit.Callbacks.setup_all/1` callbacks run in a single process, sequentially,
+       in the order they were defined.
+
+    2. Then, a new process is spawned for the test itself. In this process, first all
+       `ExUnit.Callbacks.setup/1` callbacks run, in the order they were defined. Then,
+       the test itself is executed.
+
+    3. After the test exits, a new process is spawned to run all `ExUnit.Callbacks.on_exit/2`,
+       in the reverse order they were defined.
+
   """
 
   @type env :: module() | Macro.Env.t()
-
+  @compile {:no_warn_undefined, [IEx.Pry]}
   @reserved [:module, :file, :line, :test, :async, :registered, :describe]
 
   @doc false
   defmacro __using__(opts) do
     quote do
-      unless ExUnit.Case.__register__(__MODULE__, unquote(opts)) do
-        use ExUnit.Callbacks
-      end
+      ExUnit.Case.__register__(__MODULE__, unquote(opts))
 
       import ExUnit.Callbacks
       import ExUnit.Assertions
@@ -278,17 +353,27 @@ defmodule ExUnit.Case do
     end
   end
 
+  @keys [:async, :group, :parameterize, :register]
+
+  @doc false
+  def __keys__(opts), do: Keyword.take(opts, @keys)
+
   @doc false
   def __register__(module, opts) do
-    unless Keyword.keyword?(opts) do
+    if not Keyword.keyword?(opts) do
       raise ArgumentError,
             ~s(the argument passed to "use ExUnit.Case" must be a list of options, ) <>
               ~s(got: #{inspect(opts)})
     end
 
-    registered? = Module.has_attribute?(module, :ex_unit_tests)
+    {register?, opts} = Keyword.pop(opts, :register, true)
+    {next_opts, opts} = Keyword.split(opts, @keys)
 
-    unless registered? do
+    if opts != [] do
+      IO.warn("unknown options given to ExUnit.Case: #{inspect(opts)}")
+    end
+
+    if not Module.has_attribute?(module, :ex_unit_tests) do
       tag_check = Enum.any?([:moduletag, :describetag, :tag], &Module.has_attribute?(module, &1))
 
       if tag_check do
@@ -307,24 +392,17 @@ defmodule ExUnit.Case do
 
       Enum.each(accumulate_attributes, &Module.register_attribute(module, &1, accumulate: true))
 
-      persisted_attributes = [:ex_unit_async]
-
-      Enum.each(persisted_attributes, &Module.register_attribute(module, &1, persist: true))
-
-      if Keyword.get(opts, :register, true) do
+      if register? do
         Module.put_attribute(module, :after_compile, ExUnit.Case)
       end
 
+      ExUnit.Callbacks.__register__(module)
       Module.put_attribute(module, :before_compile, ExUnit.Case)
     end
 
-    async? = opts[:async]
-
-    if is_boolean(async?) or not registered? do
-      Module.put_attribute(module, :ex_unit_async, async? || false)
-    end
-
-    registered?
+    past_opts = Module.get_attribute(module, :ex_unit_module, [])
+    Module.put_attribute(module, :ex_unit_module, Keyword.merge(past_opts, next_opts))
+    :ok
   end
 
   @doc """
@@ -342,7 +420,7 @@ defmodule ExUnit.Case do
 
   """
   defmacro test(message, var \\ quote(do: _), contents) do
-    unless is_tuple(var) do
+    if not is_tuple(var) do
       IO.warn(
         "test context is always a map. The pattern " <>
           "#{inspect(Macro.to_string(var))} will never match",
@@ -351,34 +429,52 @@ defmodule ExUnit.Case do
     end
 
     contents =
-      case contents do
+      case annotate_test(contents, __CALLER__) do
         [do: block] ->
           quote do
             unquote(block)
             :ok
           end
 
-        _ ->
+        contents ->
           quote do
             try(unquote(contents))
             :ok
           end
       end
 
-    var = Macro.escape(var)
-    contents = Macro.escape(contents, unquote: true)
     %{module: mod, file: file, line: line} = __CALLER__
 
-    quote bind_quoted: [
-            var: var,
-            contents: contents,
-            message: message,
-            mod: mod,
-            file: file,
-            line: line
-          ] do
-      name = ExUnit.Case.register_test(mod, file, line, :test, message, [])
-      def unquote(name)(unquote(var)), do: unquote(contents)
+    name =
+      quote do
+        name =
+          ExUnit.Case.register_test(
+            unquote(mod),
+            unquote(file),
+            unquote(line),
+            :test,
+            unquote(message),
+            []
+          )
+      end
+
+    def =
+      {:def, [],
+       [
+         {{:unquote, [], [quote(do: name)]}, [], [var]},
+         [do: contents]
+       ]}
+
+    {:__block__, [], [name, def]}
+  end
+
+  defp annotate_test(contents, caller) do
+    if Application.get_env(:ex_unit, :breakpoints, false) and Keyword.keyword?(contents) do
+      for {key, expr} <- contents do
+        {key, IEx.Pry.annotate_quoted(expr, true, caller)}
+      end
+    else
+      contents
     end
   end
 
@@ -488,29 +584,54 @@ defmodule ExUnit.Case do
   end
 
   @doc false
-  defmacro __before_compile__(env) do
+  defmacro __before_compile__(%{module: module}) do
     tests =
-      env.module
+      module
       |> Module.get_attribute(:ex_unit_tests)
       |> Enum.reverse()
       |> Macro.escape()
 
-    moduletag = Module.get_attribute(env.module, :moduletag)
+    moduletag = Module.get_attribute(module, :moduletag)
 
     tags =
       moduletag
       |> normalize_tags()
       |> validate_tags()
       |> Map.new()
-      |> Map.merge(%{module: env.module, case: env.module})
+
+    opts = Module.get_attribute(module, :ex_unit_module, [])
+    async? = Keyword.get(opts, :async, false)
+    group = Keyword.get(opts, :group, nil)
+    parameterize = Keyword.get(opts, :parameterize, nil)
+
+    if not is_boolean(async?) do
+      raise ArgumentError, ":async must be a boolean, got: #{inspect(async?)}"
+    end
+
+    if not (parameterize == nil or (is_list(parameterize) and Enum.all?(parameterize, &is_map/1))) do
+      raise ArgumentError, ":parameterize must be a list of maps, got: #{inspect(parameterize)}"
+    end
+
+    {setup_all?, callbacks} = ExUnit.Callbacks.__callbacks__(module)
 
     quote do
+      unquote(callbacks)
+
       def __ex_unit__ do
         %ExUnit.TestModule{
           file: __ENV__.file,
           name: __MODULE__,
+          setup_all?: unquote(setup_all?),
           tags: unquote(Macro.escape(tags)),
           tests: unquote(tests)
+        }
+      end
+
+      def __ex_unit__(:config) do
+        %{
+          async?: unquote(async?),
+          group: unquote(Macro.escape(group)),
+          parameterize: unquote(Macro.escape(parameterize))
         }
       end
     end
@@ -519,17 +640,15 @@ defmodule ExUnit.Case do
   @doc false
   def __after_compile__(%{module: module}, _) do
     cond do
-      Process.whereis(ExUnit.Server) == nil ->
-        unless Code.can_await_module_compilation?() do
-          raise "cannot use ExUnit.Case without starting the ExUnit application, " <>
-                  "please call ExUnit.start() or explicitly start the :ex_unit app"
-        end
+      Process.whereis(ExUnit.Server) ->
+        ExUnit.Server.add_module(module, module.__ex_unit__(:config))
 
-      Module.get_attribute(module, :ex_unit_async) ->
-        ExUnit.Server.add_async_module(module)
+      Code.can_await_module_compilation?() ->
+        :ok
 
       true ->
-        ExUnit.Server.add_sync_module(module)
+        raise "cannot use ExUnit.Case without starting the ExUnit application, " <>
+                "please call ExUnit.start() or explicitly start the :ex_unit app"
     end
   end
 
@@ -545,9 +664,9 @@ defmodule ExUnit.Case do
   display. You can use `ExUnit.plural_rule/2` to set a custom
   pluralization.
   """
-  @doc since: "1.10.0"
+  @doc since: "1.11.0"
   def register_test(mod, file, line, test_type, name, tags) do
-    unless Module.has_attribute?(mod, :ex_unit_tests) do
+    if not Module.has_attribute?(mod, :ex_unit_tests) do
       raise "cannot define #{test_type}. Please make sure you have invoked " <>
               "\"use ExUnit.Case\" in the current module"
     end
@@ -567,7 +686,6 @@ defmodule ExUnit.Case do
 
     moduletag = Module.get_attribute(mod, :moduletag)
     tag = Module.delete_attribute(mod, :tag)
-    async = Module.get_attribute(mod, :ex_unit_async)
 
     {name, describe, describe_line, describetag} =
       case Module.get_attribute(mod, :ex_unit_describe) do
@@ -581,7 +699,7 @@ defmodule ExUnit.Case do
       end
 
     if Module.defines?(mod, {name, 1}) do
-      raise ExUnit.DuplicateTestError, ~s("#{name}" is already defined in #{inspect(mod)})
+      raise ArgumentError, ~s("#{name}" is already defined in #{inspect(mod)})
     end
 
     tags =
@@ -592,7 +710,6 @@ defmodule ExUnit.Case do
         line: line,
         file: file,
         registered: registered,
-        async: async,
         describe: describe,
         describe_line: describe_line,
         test_type: test_type
@@ -614,8 +731,8 @@ defmodule ExUnit.Case do
   This function is deprecated in favor of `register_test/6` which performs
   better under tight loops by avoiding `__ENV__`.
   """
-  # TODO: Deprecate on Elixir v1.17
-  @doc deprecated: "Use register_test/6 instead"
+  # TODO: Remove me Elixir v2.0
+  @deprecated "Use register_test/6 instead"
   @doc since: "1.3.0"
   def register_test(%{module: mod, file: file, line: line}, test_type, name, tags) do
     register_test(mod, file, line, test_type, name, tags)
@@ -793,7 +910,7 @@ defmodule ExUnit.Case do
       raise "cannot set tag #{inspect(tag)} because it is reserved by ExUnit"
     end
 
-    unless is_atom(tags[:test_type]) do
+    if not is_atom(tags[:test_type]) do
       raise("value for tag \":test_type\" must be an atom")
     end
 

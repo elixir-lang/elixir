@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule ExUnit.RunnerStats do
   @moduledoc false
 
@@ -36,7 +40,7 @@ defmodule ExUnit.RunnerStats do
       failures: 0,
       skipped: 0,
       excluded: 0,
-      failures_manifest_file: opts[:failures_manifest_file],
+      failures_manifest_path: opts[:failures_manifest_path],
       failures_manifest: FailuresManifest.new(),
       failure_counter: 0,
       pids: []
@@ -69,13 +73,13 @@ defmodule ExUnit.RunnerStats do
     {:noreply, state}
   end
 
-  def handle_cast({:suite_started, _opts}, %{failures_manifest_file: file} = state)
+  def handle_cast({:suite_started, _opts}, %{failures_manifest_path: file} = state)
       when is_binary(file) do
     state = %{state | failures_manifest: FailuresManifest.read(file)}
     {:noreply, state}
   end
 
-  def handle_cast({:suite_finished, _}, %{failures_manifest_file: file} = state)
+  def handle_cast({:suite_finished, _}, %{failures_manifest_path: file} = state)
       when is_binary(file) do
     FailuresManifest.write!(state.failures_manifest, file)
     {:noreply, state}

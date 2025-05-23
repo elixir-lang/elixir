@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule EEx.SyntaxError do
   defexception [:file, :line, :column, :snippet, message: "syntax error"]
 
@@ -317,8 +321,8 @@ defmodule EEx do
 
   ## Examples
 
-      iex> EEx.tokenize('foo', line: 1, column: 1)
-      {:ok, [{:text, 'foo', %{column: 1, line: 1}}, {:eof, %{column: 4, line: 1}}]}
+      iex> EEx.tokenize(~c"foo", line: 1, column: 1)
+      {:ok, [{:text, ~c"foo", %{column: 1, line: 1}}, {:eof, %{column: 4, line: 1}}]}
 
   ## Result
 

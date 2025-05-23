@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.Cheers do
@@ -171,6 +175,56 @@ defmodule Mix.UtilsTest do
 
     test "falls back to user cache dir" do
       assert Mix.Utils.mix_cache() == :filename.basedir(:user_cache, "mix")
+    end
+  end
+
+  describe "write_according_to_opts/3" do
+    test "verify that file writes with backups work as expected" do
+      test_out = "test.out"
+      test_out_bak = "test.out.bak"
+      hello_world = "Hello World!"
+      new_hello_world = "New Hello World!"
+      default_out = "default.out"
+
+      # ignore any error from this call.
+      in_tmp("write to default file", fn ->
+        # no optional override - write to the specified default file
+        assert Mix.Utils.write_according_to_opts!(test_out, [hello_world], []) == test_out
+        assert File.read!(test_out) == hello_world
+
+        # no optional override - write to the specified default file again, with old file backed up
+        assert Mix.Utils.write_according_to_opts!(test_out, [new_hello_world], []) == test_out
+        assert File.read!(test_out) == new_hello_world
+        assert File.read!(test_out_bak) == hello_world
+      end)
+
+      in_tmp("write to optional file override", fn ->
+        # with optional override - write to the specified default file
+        assert Mix.Utils.write_according_to_opts!(default_out, [hello_world], output: test_out) ==
+                 test_out
+
+        assert File.read!(test_out) == hello_world
+
+        # with optional override - write to the specified default file again, with old file backed up
+        assert Mix.Utils.write_according_to_opts!(default_out, [new_hello_world],
+                 output: test_out
+               ) ==
+                 test_out
+
+        assert File.read!(test_out) == new_hello_world
+        assert File.read!(test_out_bak) == hello_world
+      end)
+    end
+
+    test "verify that writing to STDOUT works as expected" do
+      output =
+        ExUnit.CaptureIO.capture_io(fn ->
+          Mix.Utils.write_according_to_opts!("the_file.txt", ["some text"], output: "-")
+        end)
+
+      assert output == "some text"
+
+      refute File.exists?("the_file.txt")
     end
   end
 

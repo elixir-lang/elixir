@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Project do
   @moduledoc """
   Defines and manipulates Mix projects.
@@ -24,7 +28,7 @@ defmodule Mix.Project do
 
   ## Configuration
 
-  In order to configure Mix, the module that `use`s `Mix.Project` should export
+  In order to configure Mix, the module that calls `use Mix.Project` should export
   a `project/0` function that returns a keyword list representing configuration
   for the project.
 
@@ -74,6 +78,14 @@ defmodule Mix.Project do
   Note that different tasks may share the same configuration option. For example,
   the `:erlc_paths` configuration is used by `mix compile.erlang`, `mix compile.yecc`,
   and other tasks.
+
+  > #### Keep `project/0` fast {: .warning}
+  >
+  > `project/0` is called whenever your `mix.exs` is loaded, so heavy
+  > computation should be avoided. If a task requires a potentially complex
+  > configuration value, it should allow its configuration to be set to an
+  > anonymous function or similar, so that it can be invoked only when
+  > needed by the task itself.
 
   ## CLI configuration
 
@@ -163,7 +175,12 @@ defmodule Mix.Project do
   # Only the top of the stack can be accessed.
   @doc false
   def push(module, file \\ nil, app \\ nil) when is_atom(module) do
-    file = file || (module && List.to_string(module.__info__(:compile)[:source]))
+    file =
+      cond do
+        file != nil -> file
+        source = module && module.module_info(:compile)[:source] -> List.to_string(source)
+        true -> "nofile"
+      end
 
     case Mix.ProjectStack.push(module, push_config(module, app), file) do
       :ok ->
@@ -188,13 +205,13 @@ defmodule Mix.Project do
 
       task = String.to_atom(task || config[:default_task] || "run")
 
-      unless System.get_env("MIX_ENV") do
+      if !System.get_env("MIX_ENV") do
         if env = config[:preferred_envs][task] || @preferred_envs[task] || config[:default_env] do
           Mix.env(env)
         end
       end
 
-      unless System.get_env("MIX_TARGET") do
+      if !System.get_env("MIX_TARGET") do
         if target = config[:preferred_targets][task] || config[:default_target] do
           Mix.target(target)
         end
@@ -324,6 +341,11 @@ defmodule Mix.Project do
   This function is usually used in compilation tasks to trigger
   a full recompilation whenever such configuration files change.
   For this reason, the mtime is cached to avoid file system lookups.
+
+  However, for effective used of this function, you must avoid
+  comparing source files with the `config_mtime` itself. Instead,
+  store the previous `config_mtime` and compare it with the new
+  `config_mtime` in order to detect if something is stale.
 
   Note: before Elixir v1.13.0, the `mix.exs` file was also included
   in the mtimes, but not anymore. You can compute its modification
@@ -634,26 +656,23 @@ defmodule Mix.Project do
   (which defaults to `"_build"`) and a subdirectory. The subdirectory
   is built based on two factors:
 
-    * If `:build_per_environment` is set, the subdirectory is the value
-      of `Mix.env/0` (which can be set via `MIX_ENV`). Otherwise it is
-      set to "shared".
+    * If `:build_per_environment` is set (the default), the subdirectory
+      is the value of `Mix.env/0` (which can be set via `MIX_ENV`).
+      Otherwise it is set to "shared".
 
     * If `Mix.target/0` is set (often via the `MIX_TARGET` environment
       variable), it will be used as a prefix to the subdirectory.
 
-  Finally, the environment variables `MIX_BUILD_ROOT` and `MIX_BUILD_PATH`
-  can be used to change the result of this function. `MIX_BUILD_ROOT`
-  overwrites only the root `"_build"` directory while keeping the
-  subdirectory as is. It may be useful to change it for caching reasons,
-  typically during Continuous Integration (CI). `MIX_BUILD_PATH` overrides
-  the build path altogether and it typically used by other build tools
-  that invoke the `mix` CLI.
+  The behaviour of this function can be modified by two environment
+  variables, `MIX_BUILD_ROOT` and `MIX_BUILD_PATH`, see [the Mix
+  documentation for more information](Mix.html#environment-variables).
 
   > #### Naming differences {: .info}
   >
   > Ideally the configuration option `:build_path` would be called
-  > `:build_root`, as it would fully mirror the environment variable.
-  > However, its name is preserved for backwards compatibility.
+  > `:build_root`, as it only sets the root component of the build
+  > path but not the subdirectory. However, its name is preserved
+  > for backwards compatibility.
 
   ## Examples
 
@@ -877,6 +896,54 @@ defmodule Mix.Project do
     end
   end
 
+  @doc """
+  Acquires a lock on the project build path and runs the given function.
+
+  When another process (across all OS processes) is holding the lock,
+  a message is printed and this call blocks until the lock is acquired.
+  This function can also be called if this process already has the
+  lock. In such case the function is executed immediately.
+
+  This lock is primarily useful for compiler tasks that alter the build
+  artifacts to avoid conflicts with a concurrent compilation.
+  """
+  @spec with_build_lock(keyword, (-> term())) :: term()
+  def with_build_lock(config \\ config(), fun) do
+    # To avoid duplicated compilation, we wrap compilation tasks, such
+    # as compile.all, deps.compile, compile.elixir, compile.erlang in
+    # a lock. Note that compile.all covers compile.elixir, but the
+    # latter can still be invoked directly, so we put the lock over
+    # each individual task.
+
+    build_path = build_path(config)
+
+    on_taken = fn os_pid ->
+      Mix.shell().error([
+        IO.ANSI.reset(),
+        "Waiting for lock on the build directory (held by process #{os_pid})"
+      ])
+    end
+
+    Mix.Sync.Lock.with_lock(build_path, fun, on_taken: on_taken)
+  end
+
+  @doc false
+  def with_deps_lock(config \\ config(), fun) do
+    # We wrap operations on the deps directory and on mix.lock to
+    # avoid write conflicts.
+
+    deps_path = deps_path(config)
+
+    on_taken = fn os_pid ->
+      Mix.shell().error([
+        IO.ANSI.reset(),
+        "Waiting for lock on the deps directory (held by process #{os_pid})"
+      ])
+    end
+
+    Mix.Sync.Lock.with_lock(deps_path, fun, on_taken: on_taken)
+  end
+
   # Loads mix.exs in the current directory or loads the project from the
   # mixfile cache and pushes the project onto the project stack.
   defp load_project(app, post_config) do
@@ -917,7 +984,6 @@ defmodule Mix.Project do
   defp default_config do
     [
       aliases: [],
-      build_embedded: false,
       build_per_environment: true,
       build_scm: Mix.SCM.Path,
       config_path: "config/config.exs",
@@ -935,5 +1001,5 @@ defmodule Mix.Project do
 
   @private_config [:build_scm, :deps_app_path, :deps_build_path]
   defp get_project_config(nil), do: []
-  defp get_project_config(atom), do: atom.project |> Keyword.drop(@private_config)
+  defp get_project_config(atom), do: atom.project() |> Keyword.drop(@private_config)
 end

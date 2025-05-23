@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Tasks.Archive.Install do
   use Mix.Task
 
@@ -47,6 +51,9 @@ defmodule Mix.Tasks.Archive.Install do
     * `--submodules` - fetches repository submodules before building archive from
       Git or GitHub
 
+    * `--sparse` - checkout a single directory inside the Git repository and use
+      it as the archive root directory
+
     * `--app` - specifies a custom app name to be used for building the archive
       from Git, GitHub, or Hex
 
@@ -63,6 +70,7 @@ defmodule Mix.Tasks.Archive.Install do
     force: :boolean,
     sha512: :string,
     submodules: :boolean,
+    sparse: :string,
     app: :string,
     organization: :string,
     repo: :string,

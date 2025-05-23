@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.XrefTest do
@@ -63,27 +67,16 @@ defmodule Mix.Tasks.XrefTest do
       }
 
       output = [
-        %{callee: {A, :b, 1}, caller_module: B, file: "lib/b.ex", line: 3}
+        %{callee: {A, :b, 1}, caller_module: B, file: "lib/b.ex", line: 3},
+        %{
+          callee: {:elixir_quote, :shallow_validate_ast, 1},
+          caller_module: A,
+          file: "lib/a.ex",
+          line: 4
+        }
       ]
 
       assert_all_calls(files, output)
-    end
-
-    test "returns empty on cover compiled modules" do
-      files = %{
-        "lib/a.ex" => """
-        defmodule A do
-          def a, do: A.a()
-        end
-        """
-      }
-
-      assert_all_calls(files, [], fn ->
-        :cover.start()
-        :cover.compile_beam_directory(to_charlist(Mix.Project.compile_path()))
-      end)
-    after
-      :cover.stop()
     end
 
     defp assert_all_calls(files, expected, after_compile \\ fn -> :ok end) do
@@ -92,7 +85,7 @@ defmodule Mix.Tasks.XrefTest do
 
         Mix.Task.run("compile")
         after_compile.()
-        xref = Mix.Tasks.Xref
+        xref = String.to_atom("Elixir.Mix.Tasks.Xref")
         assert Enum.sort(xref.calls()) == Enum.sort(expected)
       end)
     end
@@ -212,14 +205,14 @@ defmodule Mix.Tasks.XrefTest do
       end)
     end
 
-    defp assert_callers(opts \\ [], module, files, expected) do
+    defp assert_callers(args \\ [], module, files, expected) do
       in_fixture("no_mixfile", fn ->
         for {file, contents} <- files do
           File.write!(file, contents)
         end
 
         capture_io(:stderr, fn ->
-          assert Mix.Task.run("xref", opts ++ ["callers", module]) == :ok
+          assert Mix.Task.run("xref", args ++ ["callers", module]) == :ok
         end)
 
         assert ^expected = receive_until_no_messages([])
@@ -256,10 +249,9 @@ defmodule Mix.Tasks.XrefTest do
       Generated sample app
       lib/b.ex:2: require A (export)
       lib/b.ex:3: call A.macro/0 (compile)
-      lib/b.ex:4: import A.macro/0 (compile)
+      lib/b.ex:4: import call A.macro/0 (compile)
       lib/b.ex:5: call A.fun/0 (compile)
-      lib/b.ex:6: call A.fun/0 (compile)
-      lib/b.ex:6: import A.fun/0 (compile)
+      lib/b.ex:6: import call A.fun/0 (compile)
       lib/b.ex:7: call A.macro/0 (compile)
       lib/b.ex:8: call A.fun/0 (runtime)
       lib/b.ex:9: struct A (export)
@@ -400,17 +392,17 @@ defmodule Mix.Tasks.XrefTest do
       end
     end
 
-    defp assert_trace(opts \\ [], file, files, expected) do
+    defp assert_trace(args \\ [], file, files, expected) do
       in_fixture("no_mixfile", fn ->
         for {file, contents} <- files do
           File.write!(file, contents)
         end
 
         capture_io(:stderr, fn ->
-          assert Mix.Task.run("xref", opts ++ ["trace", file]) == :ok
+          assert Mix.Task.run("xref", args ++ ["trace", file]) == :ok
         end)
 
-        assert ^expected = receive_until_no_messages([])
+        assert receive_until_no_messages([]) == expected
       end)
     end
   end
@@ -456,14 +448,85 @@ defmodule Mix.Tasks.XrefTest do
       """)
     end
 
+    test "stats with compile label" do
+      assert_graph(["--format", "stats", "--label", "compile"], """
+      Tracked files: 5 (nodes)
+      Compile dependencies: 3 (edges)
+      Exports dependencies: 0 (edges)
+      Runtime dependencies: 3 (edges)
+      Cycles: 1
+
+      Top 5 files with most outgoing dependencies:
+        * lib/c.ex (1)
+        * lib/b.ex (1)
+        * lib/a.ex (1)
+        * lib/e.ex (0)
+        * lib/d.ex (0)
+
+      Top 5 files with most incoming dependencies:
+        * lib/e.ex (1)
+        * lib/d.ex (1)
+        * lib/b.ex (1)
+        * lib/c.ex (0)
+        * lib/a.ex (0)
+      """)
+    end
+
+    test "stats with compile-connected label" do
+      assert_graph(["--format", "stats", "--label", "compile-connected"], """
+      Tracked files: 5 (nodes)
+      Compile dependencies: 3 (edges)
+      Exports dependencies: 0 (edges)
+      Runtime dependencies: 3 (edges)
+      Cycles: 1
+
+      Top 5 files with most outgoing dependencies:
+        * lib/c.ex (1)
+        * lib/b.ex (1)
+        * lib/a.ex (1)
+        * lib/e.ex (0)
+        * lib/d.ex (0)
+
+      Top 5 files with most incoming dependencies:
+        * lib/d.ex (1)
+        * lib/b.ex (1)
+        * lib/e.ex (0)
+        * lib/c.ex (0)
+        * lib/a.ex (0)
+      """)
+    end
+
     test "cycles" do
       assert_graph(["--format", "cycles"], """
       1 cycles found. Showing them in decreasing size:
 
-      Cycle of length 3:
+      Cycle of length 2:
 
+          lib/a.ex (compile)
           lib/b.ex
-          lib/a.ex
+
+      """)
+    end
+
+    test "cycles with compile label require at least one of such type" do
+      assert_graph(["--format", "cycles", "--label", "compile"], """
+      1 cycles found. Showing them in decreasing size:
+
+      Cycle of length 2:
+
+          lib/a.ex (compile)
+          lib/b.ex
+
+      """)
+    end
+
+    test "cycles with compile-connected label is the same as compile" do
+      assert_graph(["--format", "cycles", "--label", "compile-connected"], """
+      1 cycles found. Showing them in decreasing size:
+
+      Cycle of length 2:
+
+          lib/a.ex (compile)
           lib/b.ex
 
       """)
@@ -476,17 +539,28 @@ defmodule Mix.Tasks.XrefTest do
         assert_graph(["--format", "cycles", "--fail-above", "0"], """
         1 cycles found. Showing them in decreasing size:
 
-        Cycle of length 3:
+        Cycle of length 2:
 
-            lib/b.ex
-            lib/a.ex
+            lib/a.ex (compile)
             lib/b.ex
 
         """)
       end
     end
 
-    test "cycles with min cycle size" do
+    test "cycles with min_cycle_size matching actual length" do
+      assert_graph(["--format", "cycles", "--min-cycle-size", "2"], """
+      1 cycles found. Showing them in decreasing size:
+
+      Cycle of length 2:
+
+          lib/a.ex (compile)
+          lib/b.ex
+
+      """)
+    end
+
+    test "cycles with min_cycle_size greater than actual length" do
       assert_graph(["--format", "cycles", "--min-cycle-size", "3"], """
       No cycles found
       """)
@@ -652,16 +726,25 @@ defmodule Mix.Tasks.XrefTest do
     end
 
     test "sources" do
-      assert_graph(~w[--source lib/a.ex --source lib/c.ex], """
-      lib/a.ex
-      `-- lib/b.ex (compile)
-          |-- lib/a.ex
-          |-- lib/c.ex
-          `-- lib/e.ex (compile)
-      lib/c.ex
-      `-- lib/d.ex (compile)
-          `-- lib/e.ex
-      """)
+      assert_graph(
+        ~w[--source lib/a.ex --source lib/c.ex],
+        """
+        lib/a.ex
+        `-- lib/b.ex (compile)
+            |-- lib/a.ex
+            |-- lib/c.ex
+            `-- lib/e.ex (compile)
+        lib/c.ex
+        `-- lib/d.ex (compile)
+            `-- lib/e.ex
+
+        WARNING: Source lib/a.ex is part of a cycle of 2 nodes and this cycle has a compile \
+        dependency. Therefore source and the whole cycle will recompile whenever any of the \
+        files they depend on change. Run "mix xref graph --format stats --label compile-connected" \
+        to print compilation cycles and "mix help xref" for information on removing them
+        """,
+        warnings: true
+      )
     end
 
     test "source with compile label" do
@@ -791,6 +874,14 @@ defmodule Mix.Tasks.XrefTest do
                  "lib/b.ex"
                }
                """
+
+        assert Mix.Task.run("xref", ["graph", "--format", "json", "--output", "xref_graph.json"]) ==
+                 :ok
+
+        assert File.read!("xref_graph.json") ===
+                 String.trim_trailing("""
+                 {"lib/a.ex":{"lib/b.ex":"compile"},"lib/b.ex":{}}
+                 """)
       end)
     end
 
@@ -819,6 +910,14 @@ defmodule Mix.Tasks.XrefTest do
                  "lib/b.ex"
                }
                """
+
+        assert Mix.Task.run("xref", ["graph", "--format", "json", "--output", "xref_graph.json"]) ==
+                 :ok
+
+        assert File.read!("xref_graph.json") ===
+                 String.trim_trailing("""
+                 {"lib/a.ex":{"lib/b.ex":"export"},"lib/b.ex":{}}
+                 """)
       end)
     end
 
@@ -860,6 +959,16 @@ defmodule Mix.Tasks.XrefTest do
           defstruct []
         end
         """)
+
+        output =
+          capture_io(fn ->
+            assert Mix.Task.run("xref", ["graph", "--format", "json", "--output", "-"]) == :ok
+          end)
+
+        assert output ===
+                 String.trim_trailing("""
+                 {"lib/a.ex":{},"lib/b.ex":{}}
+                 """)
 
         output =
           capture_io(fn ->
@@ -912,6 +1021,14 @@ defmodule Mix.Tasks.XrefTest do
                  "lib/b.ex"
                }
                """
+
+        assert Mix.Task.run("xref", ["graph", "--format", "json"]) ==
+                 :ok
+
+        assert File.read!("xref_graph.json") ===
+                 String.trim_trailing("""
+                 {"lib/a.ex":{"lib/b.ex":"compile"},"lib/b.ex":{"lib/a.ex":"compile"}}
+                 """)
       end)
     end
 
@@ -1055,6 +1172,44 @@ defmodule Mix.Tasks.XrefTest do
       """)
     end
 
+    test "dot with cycle" do
+      assert_graph_dot(
+        ~w[],
+        """
+        digraph "xref graph" {
+          "lib/a.ex"
+          "lib/a.ex" -> "lib/b.ex" [label="(compile)"]
+          "lib/b.ex" -> "lib/a.ex"
+          "lib/b.ex" -> "lib/c.ex"
+          "lib/c.ex" -> "lib/d.ex" [label="(compile)"]
+          "lib/d.ex" -> "lib/e.ex"
+          "lib/b.ex" -> "lib/e.ex" [label="(compile)"]
+          "lib/b.ex"
+          "lib/c.ex"
+          "lib/d.ex"
+          "lib/e.ex"
+        }
+        """
+      )
+    end
+
+    test "json with cycle" do
+      assert_graph_json(
+        ~w[],
+        """
+        { "lib/a.ex": { "lib/b.ex": "compile" },
+          "lib/b.ex": { "lib/a.ex": "runtime",
+                        "lib/c.ex": "runtime",
+                        "lib/e.ex": "compile" },
+          "lib/c.ex": { "lib/d.ex": "compile" },
+          "lib/d.ex": { "lib/e.ex": "runtime" },
+          "lib/e.ex": { } }
+        """,
+        # make it easier to read the expected output
+        strip_ws: true
+      )
+    end
+
     @default_files %{
       "lib/a.ex" => """
       defmodule A do
@@ -1088,21 +1243,66 @@ defmodule Mix.Tasks.XrefTest do
       """
     }
 
-    defp assert_graph(opts \\ [], expected, params \\ []) do
+    defp assert_graph_json(args, expected, opts) do
+      assert_graph_io("json", args, expected, opts)
+    end
+
+    defp assert_graph_dot(args, expected, opts \\ []) do
+      assert_graph_io("dot", args, expected, opts)
+    end
+
+    # note that we trim_trailing on expected and output
+    # we also support :strip_ws in opts, which removes all
+    # whitespace from expected (but not output!) before performing
+    # the test.
+    defp assert_graph_io(format, args, expected, opts) do
+      in_fixture("no_mixfile", fn ->
+        Enum.each(opts[:files] || @default_files, fn {path, content} ->
+          File.write!(path, content)
+        end)
+
+        output =
+          String.trim_trailing(
+            capture_io(fn ->
+              assert Mix.Task.run(
+                       "xref",
+                       args ++ ["graph", "--format", format, "--output", "-"]
+                     ) == :ok
+            end)
+          )
+
+        expected =
+          if opts[:strip_ws],
+            do: Regex.replace(~r/\s+/, expected, "", global: true),
+            else: String.trim_trailing(expected)
+
+        assert output === expected
+      end)
+    end
+
+    defp assert_graph(args \\ [], expected, opts \\ []) do
       in_fixture("no_mixfile", fn ->
         nb_files =
-          Enum.count(params[:files] || @default_files, fn {path, content} ->
+          Enum.count(opts[:files] || @default_files, fn {path, content} ->
             File.write!(path, content)
           end)
 
-        assert Mix.Task.run("xref", opts ++ ["graph"]) == :ok
+        assert Mix.Task.run("xref", args ++ ["graph"]) == :ok
         first_line = "Compiling #{nb_files} files (.ex)"
 
         assert [
-                 ^first_line | ["Generated sample app" | result]
+                 ^first_line,
+                 "Generated sample app" | result
                ] = receive_until_no_messages([]) |> String.split("\n")
 
-        assert normalize_graph_output(result |> Enum.join("\n")) == expected
+        result =
+          if Keyword.get(opts, :warnings, false) do
+            result
+          else
+            Enum.take_while(result, &(not String.starts_with?(&1, "WARNING: ")))
+          end
+
+        assert result |> Enum.join("\n") |> normalize_graph_output() == expected
       end)
     end
 

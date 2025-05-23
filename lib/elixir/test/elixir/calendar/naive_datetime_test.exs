@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 Code.require_file("holocene.exs", __DIR__)
 Code.require_file("fakes.exs", __DIR__)
@@ -99,6 +103,9 @@ defmodule NaiveDateTimeTest do
   test "inspect/1" do
     assert inspect(~N[2000-01-01 23:00:07.005]) == "~N[2000-01-01 23:00:07.005]"
     assert inspect(~N[-0100-12-31 23:00:07.005]) == "~N[-0100-12-31 23:00:07.005]"
+
+    assert inspect(%{~N[2000-01-01 23:00:07.005] | year: 99999}) ==
+             "NaiveDateTime.new!(99999, 1, 1, 23, 0, 7, {5000, 3})"
 
     ndt = %{~N[2000-01-01 23:00:07.005] | calendar: FakeCalendar}
     assert inspect(ndt) == "~N[1/1/2000F23::0::7 FakeCalendar]"
@@ -390,5 +397,65 @@ defmodule NaiveDateTimeTest do
 
       assert NaiveDateTime.end_of_day(~N[2000-01-01 23:00:07]) == ~N[2000-01-01 23:59:59]
     end
+  end
+
+  test "shift/2" do
+    naive_datetime = ~N[2000-01-01 00:00:00]
+    assert NaiveDateTime.shift(naive_datetime, year: 1) == ~N[2001-01-01 00:00:00]
+    assert NaiveDateTime.shift(naive_datetime, month: 1) == ~N[2000-02-01 00:00:00]
+    assert NaiveDateTime.shift(naive_datetime, week: 3) == ~N[2000-01-22 00:00:00]
+    assert NaiveDateTime.shift(naive_datetime, day: 2) == ~N[2000-01-03 00:00:00]
+    assert NaiveDateTime.shift(naive_datetime, hour: 6) == ~N[2000-01-01 06:00:00]
+    assert NaiveDateTime.shift(naive_datetime, minute: 30) == ~N[2000-01-01 00:30:00]
+    assert NaiveDateTime.shift(naive_datetime, second: 45) == ~N[2000-01-01 00:00:45]
+    assert NaiveDateTime.shift(naive_datetime, year: -1) == ~N[1999-01-01 00:00:00]
+    assert NaiveDateTime.shift(naive_datetime, month: -1) == ~N[1999-12-01 00:00:00]
+    assert NaiveDateTime.shift(naive_datetime, week: -1) == ~N[1999-12-25 00:00:00]
+    assert NaiveDateTime.shift(naive_datetime, day: -1) == ~N[1999-12-31 00:00:00]
+    assert NaiveDateTime.shift(naive_datetime, hour: -12) == ~N[1999-12-31 12:00:00]
+    assert NaiveDateTime.shift(naive_datetime, minute: -45) == ~N[1999-12-31 23:15:00]
+    assert NaiveDateTime.shift(naive_datetime, second: -30) == ~N[1999-12-31 23:59:30]
+    assert NaiveDateTime.shift(naive_datetime, year: 1, month: 2) == ~N[2001-03-01 00:00:00]
+
+    assert NaiveDateTime.shift(naive_datetime, microsecond: {-500, 6}) ==
+             ~N[1999-12-31 23:59:59.999500]
+
+    assert NaiveDateTime.shift(naive_datetime, microsecond: {500, 6}) ==
+             ~N[2000-01-01 00:00:00.000500]
+
+    assert NaiveDateTime.shift(naive_datetime, microsecond: {100, 6}) ==
+             ~N[2000-01-01 00:00:00.000100]
+
+    assert NaiveDateTime.shift(naive_datetime, microsecond: {100, 4}) ==
+             ~N[2000-01-01 00:00:00.0001]
+
+    assert NaiveDateTime.shift(naive_datetime, month: 2, day: 3, hour: 6, minute: 15) ==
+             ~N[2000-03-04 06:15:00]
+
+    assert NaiveDateTime.shift(naive_datetime,
+             year: 1,
+             month: 2,
+             week: 3,
+             day: 4,
+             hour: 5,
+             minute: 6,
+             second: 7,
+             microsecond: {8, 6}
+           ) == ~N[2001-03-26 05:06:07.000008]
+
+    assert NaiveDateTime.shift(naive_datetime,
+             year: -1,
+             month: -2,
+             week: -3,
+             day: -4,
+             hour: -5,
+             minute: -6,
+             second: -7,
+             microsecond: {-8, 6}
+           ) == ~N[1998-10-06 18:53:52.999992]
+
+    assert_raise ArgumentError,
+                 "unknown unit :months. Expected :year, :month, :week, :day, :hour, :minute, :second, :microsecond",
+                 fn -> NaiveDateTime.shift(~N[2000-01-01 00:00:00], months: 12) end
   end
 end

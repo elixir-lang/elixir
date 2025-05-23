@@ -1,7 +1,11 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule ExUnit.CaseTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: true, group: :group_foo
 
   ExUnit.Case.register_attribute(__MODULE__, :foo)
   ExUnit.Case.register_attribute(__MODULE__, :bar, accumulate: true)
@@ -28,13 +32,15 @@ defmodule ExUnit.CaseTest do
   @tag world: :good
   test "tags", context do
     line = __ENV__.line - 1
-    assert context[:module] == __MODULE__
-    assert context[:case] == __MODULE__
-    assert context[:test] == __ENV__.function |> elem(0)
-    assert context[:line] == line
     assert context[:async] == true
+    assert context[:line] == line
+    assert context[:module] == __MODULE__
+    assert context[:test] == __ENV__.function |> elem(0)
+    assert context[:test_pid] == self()
+    assert context[:test_type] == :test
     assert context[:hello] == true
     assert context[:world] == :good
+    assert context[:test_group] == :group_foo
   end
 
   test "reset tags", context do
@@ -44,6 +50,8 @@ defmodule ExUnit.CaseTest do
 
   # tags are passed to setup_all
   setup_all context do
+    assert context.async
+    assert context.module == __MODULE__
     %{moduletag_from_setup_all: context[:moduletag]}
   end
 
@@ -142,9 +150,26 @@ defmodule ExUnit.CaseTest do
                    end
                  end
   end
+
+  test "warns when using @tag outside of describe" do
+    stderr =
+      ExUnit.CaptureIO.capture_io(:stderr, fn ->
+        defmodule TagOutsideOfDescribe do
+          use ExUnit.Case, register: false
+
+          @tag :foo
+          describe "bar" do
+            test "baz" do
+            end
+          end
+        end
+      end)
+
+    assert stderr =~ "found unused @tag before \"describe\", did you mean to use @describetag?"
+  end
 end
 
-defmodule ExUnit.DoubleCaseTest1 do
+defmodule ExUnit.DoubleCaseTestAsyncFirst do
   use ExUnit.Case, async: true
   use ExUnit.Case
 
@@ -153,25 +178,7 @@ defmodule ExUnit.DoubleCaseTest1 do
   end
 end
 
-defmodule ExUnit.DoubleCaseTest2 do
-  use ExUnit.Case, async: false
-  use ExUnit.Case
-
-  test "async must be false", context do
-    refute context.async
-  end
-end
-
-defmodule ExUnit.DoubleCaseTest3 do
-  use ExUnit.Case, async: true
-  use ExUnit.Case, async: false
-
-  test "async must be false", context do
-    refute context.async
-  end
-end
-
-defmodule ExUnit.DoubleCaseTest4 do
+defmodule ExUnit.DoubleCaseTestAsyncLast do
   use ExUnit.Case
   use ExUnit.Case, async: true
 

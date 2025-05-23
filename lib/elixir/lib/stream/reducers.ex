@@ -1,6 +1,146 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Stream.Reducers do
   # Collection of reducers and utilities shared by Enum and Stream.
   @moduledoc false
+
+  def zip_with(enumerables, zip_fun) when is_function(zip_fun, 1) do
+    if is_list(enumerables) and :lists.all(&is_list/1, enumerables) do
+      &zip_list(enumerables, &1, &2, zip_fun)
+    else
+      &zip_enum(enumerables, &1, &2, zip_fun)
+    end
+  end
+
+  defp zip_list(_enumerables, {:halt, acc}, _fun, _zip_fun) do
+    {:halted, acc}
+  end
+
+  defp zip_list(enumerables, {:suspend, acc}, fun, zip_fun) do
+    {:suspended, acc, &zip_list(enumerables, &1, fun, zip_fun)}
+  end
+
+  defp zip_list([], {:cont, acc}, _fun, _zip_fun), do: {:done, acc}
+
+  defp zip_list(enumerables, {:cont, acc}, fun, zip_fun) do
+    case zip_list_heads_tails(enumerables, [], []) do
+      {heads, tails} -> zip_list(tails, fun.(zip_fun.(heads), acc), fun, zip_fun)
+      :error -> {:done, acc}
+    end
+  end
+
+  defp zip_list_heads_tails([[head | tail] | rest], heads, tails) do
+    zip_list_heads_tails(rest, [head | heads], [tail | tails])
+  end
+
+  defp zip_list_heads_tails([[] | _rest], _heads, _tails) do
+    :error
+  end
+
+  defp zip_list_heads_tails([], heads, tails) do
+    {:lists.reverse(heads), :lists.reverse(tails)}
+  end
+
+  defp zip_enum(enumerables, acc, fun, zip_fun) do
+    step = fn x, acc ->
+      {:suspend, :lists.reverse([x | acc])}
+    end
+
+    enum_funs =
+      Enum.map(enumerables, fn enum ->
+        {&Enumerable.reduce(enum, &1, step), [], :cont}
+      end)
+
+    do_zip_enum(enum_funs, acc, fun, zip_fun)
+  end
+
+  # This implementation of do_zip_enum/4 works for any number of streams to zip
+  defp do_zip_enum(zips, {:halt, acc}, _fun, _zip_fun) do
+    do_zip_close(zips)
+    {:halted, acc}
+  end
+
+  defp do_zip_enum(zips, {:suspend, acc}, fun, zip_fun) do
+    {:suspended, acc, &do_zip_enum(zips, &1, fun, zip_fun)}
+  end
+
+  defp do_zip_enum([], {:cont, acc}, _callback, _zip_fun) do
+    {:done, acc}
+  end
+
+  defp do_zip_enum(zips, {:cont, acc}, callback, zip_fun) do
+    try do
+      do_zip_next(zips, acc, callback, [], [], zip_fun)
+    catch
+      kind, reason ->
+        do_zip_close(zips)
+        :erlang.raise(kind, reason, __STACKTRACE__)
+    else
+      {:next, buffer, acc} ->
+        do_zip_enum(buffer, acc, callback, zip_fun)
+
+      {:done, _acc} = other ->
+        other
+    end
+  end
+
+  # do_zip_next/6 computes the next tuple formed by
+  # the next element of each zipped stream.
+  defp do_zip_next(
+         [{_, [], :halt} | zips],
+         acc,
+         _callback,
+         _yielded_elems,
+         buffer,
+         _zip_fun
+       ) do
+    do_zip_close(:lists.reverse(buffer, zips))
+    {:done, acc}
+  end
+
+  defp do_zip_next([{fun, [], :cont} | zips], acc, callback, yielded_elems, buffer, zip_fun) do
+    case fun.({:cont, []}) do
+      {:suspended, [elem | next_acc], fun} ->
+        next_buffer = [{fun, next_acc, :cont} | buffer]
+        do_zip_next(zips, acc, callback, [elem | yielded_elems], next_buffer, zip_fun)
+
+      {_, [elem | next_acc]} ->
+        next_buffer = [{fun, next_acc, :halt} | buffer]
+        do_zip_next(zips, acc, callback, [elem | yielded_elems], next_buffer, zip_fun)
+
+      {_, []} ->
+        # The current zipped stream terminated, so we close all the streams
+        # and return {:halted, acc} (which is returned as is by do_zip/3).
+        do_zip_close(:lists.reverse(buffer, zips))
+        {:done, acc}
+    end
+  end
+
+  defp do_zip_next(
+         [{fun, zip_acc, zip_op} | zips],
+         acc,
+         callback,
+         yielded_elems,
+         buffer,
+         zip_fun
+       ) do
+    [elem | rest] = zip_acc
+    next_buffer = [{fun, rest, zip_op} | buffer]
+    do_zip_next(zips, acc, callback, [elem | yielded_elems], next_buffer, zip_fun)
+  end
+
+  defp do_zip_next([] = _zips, acc, callback, yielded_elems, buffer, zip_fun) do
+    # "yielded_elems" is a reversed list of results for the current iteration of
+    # zipping. That is to say, the nth element from each of the enums being zipped.
+    # It needs to be reversed and passed to the zipping function so it can do it's thing.
+    {:next, :lists.reverse(buffer), callback.(zip_fun.(:lists.reverse(yielded_elems)), acc)}
+  end
+
+  defp do_zip_close(zips) do
+    :lists.foreach(fn {fun, _, _} -> fun.({:halt, []}) end, zips)
+  end
 
   def chunk_every(chunk_by, enumerable, count, step, leftover) do
     limit = :erlang.max(count, step)
@@ -151,10 +291,10 @@ defmodule Stream.Reducers do
   defmacro reject(callback, fun \\ nil) do
     quote do
       fn entry, acc ->
-        unless unquote(callback).(entry) do
-          next(unquote(fun), entry, acc)
-        else
+        if unquote(callback).(entry) do
           skip(acc)
+        else
+          next(unquote(fun), entry, acc)
         end
       end
     end
@@ -238,10 +378,18 @@ defmodule Stream.Reducers do
     end
   end
 
-  defmacro with_index(fun \\ nil) do
+  defmacro with_index(fun) do
     quote do
       fn entry, acc(head, counter, tail) ->
         next_with_acc(unquote(fun), {entry, counter}, head, counter + 1, tail)
+      end
+    end
+  end
+
+  defmacro with_index(callback, fun) do
+    quote do
+      fn entry, acc(head, counter, tail) ->
+        next_with_acc(unquote(fun), unquote(callback).(entry, counter), head, counter + 1, tail)
       end
     end
   end

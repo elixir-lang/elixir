@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Kernel.DocsTest do
@@ -175,6 +179,8 @@ defmodule Kernel.DocsTest do
     end
 
     test "includes docs for functions, modules, types and callbacks" do
+      line = __ENV__.line
+
       write_beam(
         defmodule SampleDocs do
           @moduledoc "Module doc"
@@ -239,6 +245,12 @@ defmodule Kernel.DocsTest do
           module = Module
           module.add_doc(__MODULE__, __ENV__.line, :def, {:nullary, 0}, [], "add_doc")
           def nullary, do: 0
+
+          defmodule SampleBehaviour do
+            @callback foo(any()) :: any()
+          end
+
+          @behaviour SampleBehaviour
         end
       )
 
@@ -247,7 +259,19 @@ defmodule Kernel.DocsTest do
 
       assert module_doc == "Module doc"
 
-      assert %{authors: "Elixir Contributors", purpose: :test} = module_doc_meta
+      file = String.to_charlist(__ENV__.file)
+
+      source_annos = [:erl_anno.new({line + 3, 19})]
+
+      assert %{
+               # Generated meta
+               source_path: ^file,
+               source_annos: ^source_annos,
+               behaviours: [SampleDocs.SampleBehaviour],
+               # User meta
+               authors: "Elixir Contributors",
+               purpose: :test
+             } = module_doc_meta
 
       [
         callback_bar,
@@ -271,9 +295,16 @@ defmodule Kernel.DocsTest do
       assert {{:callback, :bar, 0}, _, [], :hidden, %{}} = callback_bar
       assert {{:callback, :baz, 2}, _, [], :none, %{}} = callback_baz
 
+      source_annos = [:erl_anno.new({line + 20, 21})]
+
       assert {{:callback, :foo, 1}, _, [], %{"en" => "Callback doc"},
-              %{since: "1.2.3", deprecated: "use baz/2 instead", color: :blue, stable: true}} =
-               callback_foo
+              %{
+                source_annos: ^source_annos,
+                since: "1.2.3",
+                deprecated: "use baz/2 instead",
+                color: :blue,
+                stable: true
+              }} = callback_foo
 
       assert {{:callback, :callback_multi, 1}, _, [], %{"en" => "Callback with multiple clauses"},
               %{}} = callback_multi
@@ -290,8 +321,11 @@ defmodule Kernel.DocsTest do
       assert {{:function, :baz, 1}, _, ["baz(arg)"], %{"en" => "Multiple function head and docs"},
               %{since: "1.2.3"}} = function_baz
 
+      source_annos = [:erl_anno.new({line + 42, 15})]
+
       assert {{:function, :foo, 1}, _, ["foo(arg \\\\ 0)"], %{"en" => "Function doc"},
               %{
+                source_annos: ^source_annos,
                 since: "1.2.3",
                 deprecated: "use baz/2 instead",
                 color: :blue,
@@ -304,8 +338,10 @@ defmodule Kernel.DocsTest do
 
       assert {{:function, :qux, 1}, _, ["qux(bool)"], :hidden, %{}} = function_qux
 
-      assert {{:macro, :is_zero, 1}, _, ["is_zero(v)"], %{"en" => "A guard"}, %{guard: true}} =
-               guard_is_zero
+      source_annos = [:erl_anno.new({line + 60, 20})]
+
+      assert {{:macro, :is_zero, 1}, _, ["is_zero(v)"], %{"en" => "A guard"},
+              %{source_annos: ^source_annos, guard: true}} = guard_is_zero
 
       assert {{:macrocallback, :macrocallback_multi, 1}, _, [],
               %{"en" => "Macrocallback with multiple clauses"}, %{}} = macrocallback_multi
@@ -315,8 +351,14 @@ defmodule Kernel.DocsTest do
 
       assert {{:type, :bar, 1}, _, [], %{"en" => "Opaque type doc"}, %{opaque: true}} = type_bar
 
-      assert {{:type, :foo, 1}, _, [], %{"en" => "Type doc"}, %{since: "1.2.3", color: :red}} =
-               type_foo
+      source_annos = [:erl_anno.new({line + 12, 17})]
+
+      assert {{:type, :foo, 1}, _, [], %{"en" => "Type doc"},
+              %{
+                source_annos: ^source_annos,
+                since: "1.2.3",
+                color: :red
+              }} = type_foo
     end
   end
 
@@ -383,6 +425,8 @@ defmodule Kernel.DocsTest do
   end
 
   test "generated functions are annotated as such" do
+    line = __ENV__.line
+
     write_beam(
       defmodule ToBeUsed do
         defmacro __using__(_) do
@@ -402,8 +446,10 @@ defmodule Kernel.DocsTest do
 
     {:docs_v1, _, _, _, _, _, docs} = Code.fetch_docs(WillBeUsing)
 
+    location = :erl_anno.new(line + 15)
+
     assert [
-             {{:function, :foo, 0}, [generated: true, location: 399], ["foo()"],
+             {{:function, :foo, 0}, [generated: true, location: ^location], ["foo()"],
               %{"en" => "Hello"}, %{}}
            ] = docs
   end

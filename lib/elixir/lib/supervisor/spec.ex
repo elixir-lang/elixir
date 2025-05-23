@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Supervisor.Spec do
   @moduledoc """
   Outdated functions for building child specifications.
@@ -168,7 +172,7 @@ defmodule Supervisor.Spec do
         ) :: {:ok, tuple}
   @deprecated "Use the new child specifications outlined in the Supervisor module instead"
   def supervise(children, options) do
-    unless strategy = options[:strategy] do
+    if !(strategy = options[:strategy]) do
       raise ArgumentError, "expected :strategy option to be given"
     end
 
@@ -194,7 +198,7 @@ defmodule Supervisor.Spec do
   defp assert_unique_ids([id | rest]) do
     if id in rest do
       raise ArgumentError,
-            "duplicated ID #{inspect(id)} found in the supervisor specification, " <>
+            "duplicate ID #{inspect(id)} found in the supervisor specification, " <>
               "please explicitly pass the :id option when defining this worker/supervisor"
     else
       assert_unique_ids(rest)

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Tasks.Clean do
   use Mix.Task
 
@@ -30,14 +34,21 @@ defmodule Mix.Tasks.Clean do
 
     {opts, _, _} = OptionParser.parse(args, switches: @switches)
 
+    Mix.Project.with_build_lock(fn ->
+      do_run(opts)
+    end)
+  end
+
+  defp do_run(opts) do
     # First, we get the tasks. After that, we clean them.
     # This is to avoid a task cleaning a compiler module.
     tasks =
-      for compiler <- [:protocols] ++ Mix.Tasks.Compile.compilers(),
+      for compiler <- Mix.Task.Compiler.compilers(),
           module = Mix.Task.get("compile.#{compiler}"),
           function_exported?(module, :clean, 0),
           do: module
 
+    Mix.Compilers.Protocol.clean()
     Enum.each(tasks, & &1.clean())
 
     build =
@@ -59,7 +70,13 @@ defmodule Mix.Tasks.Clean do
 
   # Loadpaths without checks because compilers may be defined in deps.
   defp loadpaths! do
-    options = ["--no-elixir-version-check", "--no-deps-check", "--no-archives-check"]
+    options = [
+      "--no-elixir-version-check",
+      "--no-deps-check",
+      "--no-archives-check",
+      "--no-listeners"
+    ]
+
     Mix.Task.run("loadpaths", options)
     Mix.Task.reenable("loadpaths")
     Mix.Task.reenable("deps.loadpaths")

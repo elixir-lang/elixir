@@ -1,15 +1,21 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
 name: CI for Markdown content
 
 on:
   push:
     branches:
-      - 'main'
+      - "main"
     paths:
-      - 'lib/**/*.md'
+      - "lib/**/*.md"
   pull_request:
     paths:
-      - 'lib/**/*.md'
+      - "lib/**/*.md"
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   lint:
@@ -18,16 +24,17 @@ jobs:
     strategy:
       fail-fast: false
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 10
 
       - name: Run markdownlint
-        uses: DavidAnson/markdownlint-cli2-action@v11.0.0
+        uses: DavidAnson/markdownlint-cli2-action@992badcdf24e3b8eb7e87ff9287fe931bcb00c6e # v20.0.0
         with:
           globs: |
             lib/elixir/pages/**/*.md
+            README.md

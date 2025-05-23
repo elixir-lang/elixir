@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule IEx.Broker do
   @moduledoc false
   @name __MODULE__
@@ -10,34 +14,10 @@ defmodule IEx.Broker do
   ## Shell API
 
   @doc """
-  Finds the IEx server.
-  """
-  @spec shell :: shell()
-  # TODO: Use shell:whereis() from Erlang/OTP 26+.
-  def shell() do
-    if user = Process.whereis(:user) do
-      if user_drv = get_from_dict(user, :user_drv) do
-        if group = get_from_dict(user_drv, :current_group) do
-          get_from_dict(group, :shell)
-        end
-      end
-    end
-  end
-
-  defp get_from_dict(pid, key) do
-    with {:dictionary, dictionary} <- Process.info(pid, :dictionary),
-         {^key, value} <- List.keyfind(dictionary, key, 0) do
-      value
-    else
-      _ -> nil
-    end
-  end
-
-  @doc """
   Finds the evaluator and server running inside `:user_drv`, on this node exclusively.
   """
   @spec evaluator(shell()) :: {evaluator :: pid, server :: pid} | nil
-  def evaluator(pid \\ shell()) do
+  def evaluator(pid \\ :shell.whereis()) do
     if pid do
       {:dictionary, dictionary} = Process.info(pid, :dictionary)
       {dictionary[:evaluator], pid}
@@ -76,53 +56,12 @@ defmodule IEx.Broker do
   end
 
   @doc """
-  Asks to IO if we want to take over.
-  """
-  def take_over?(location, whereami, opts) do
-    evaluator = opts[:evaluator] || self()
-    message = "Request to pry #{inspect(evaluator)} at #{location}#{whereami}"
-    interrupt = IEx.color(:eval_interrupt, "#{message}\nAllow? [Yn] ")
-    yes?(IO.gets(:stdio, interrupt))
-  end
-
-  defp yes?(string) when is_binary(string),
-    do: String.trim(string) in ["", "y", "Y", "yes", "YES", "Yes"]
-
-  defp yes?(charlist) when is_list(charlist),
-    do: yes?(List.to_string(charlist))
-
-  defp yes?(_), do: false
-
-  @doc """
   Client requests a takeover.
   """
   @spec take_over(binary, iodata, keyword) ::
           {:ok, server :: pid, group_leader :: pid, counter :: integer}
           | {:error, :no_iex | :refused | atom()}
   def take_over(location, whereami, opts) do
-    case take_over_existing(location, whereami, opts) do
-      {:error, :no_iex} ->
-        cond do
-          # TODO: Remove this check on Erlang/OTP 26+ and {:error, :no_iex} return
-          not Code.ensure_loaded?(:prim_tty) ->
-            {:error, :no_iex}
-
-          take_over?(location, whereami, opts) ->
-            case IEx.shell(opts) do
-              {:ok, shell} -> {:ok, shell, Process.group_leader(), 1}
-              {:error, reason} -> {:error, reason}
-            end
-
-          true ->
-            {:error, :refused}
-        end
-
-      other ->
-        other
-    end
-  end
-
-  defp take_over_existing(location, whereami, opts) do
     case GenServer.whereis(@name) do
       nil -> {:error, :no_iex}
       _pid -> GenServer.call(@name, {:take_over, location, whereami, opts}, :infinity)

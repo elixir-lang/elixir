@@ -1,11 +1,16 @@
-defmodule ExUnit.Filters do
-  alias ExUnit.FailuresManifest
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
 
+defmodule ExUnit.Filters do
   @moduledoc """
   Conveniences for parsing and evaluating filters.
   """
+  alias ExUnit.FailuresManifest
 
   @type t :: list({atom, Regex.t() | String.Chars.t()} | atom)
+  @type location :: {:location, {String.t(), pos_integer | [pos_integer, ...]}}
+  @type ex_unit_opts :: [exclude: [:test], include: [location, ...]] | []
 
   @doc """
   Parses filters out of a path.
@@ -14,49 +19,61 @@ defmodule ExUnit.Filters do
   on the command line) includes a line number filter, and if so returns the
   appropriate ExUnit configuration options.
   """
-  @spec parse_path(String.t()) :: {String.t(), Keyword.t()}
-  def parse_path(file) do
-    case extract_line_numbers(file) do
-      {path, []} -> {path, []}
-      {path, line_numbers} -> {path, exclude: [:test], include: line_numbers}
+  @spec parse_path(String.t()) :: {String.t(), ex_unit_opts}
+  # TODO: Deprecate this on Elixir v1.20
+  def parse_path(file_path) do
+    {[parsed_path], ex_unit_opts} = parse_paths([file_path])
+    {parsed_path, ex_unit_opts}
+  end
+
+  @doc """
+  Like `parse_path/1` but for multiple paths.
+
+  ExUnit filter options are combined.
+  """
+  @spec parse_paths([String.t()]) :: {[String.t()], ex_unit_opts}
+  def parse_paths(file_paths) do
+    {parsed_paths, {lines?, locations}} =
+      Enum.map_reduce(file_paths, {false, []}, fn file_path, {lines?, locations} ->
+        {path, location} = extract_location(file_path)
+        {path, {lines? or is_tuple(location), [{:location, location} | locations]}}
+      end)
+
+    ex_unit_opts =
+      if lines?, do: [exclude: [:test], include: Enum.reverse(locations)], else: []
+
+    {parsed_paths, ex_unit_opts}
+  end
+
+  defp extract_location(file_path) do
+    case Path.relative_to_cwd(file_path) |> String.split(":") do
+      [path] ->
+        {path, path}
+
+      [path | parts] ->
+        {path_parts, line_numbers} = Enum.split_while(parts, &(to_line_number(&1) == nil))
+        path = Enum.join([path | path_parts], ":") |> Path.split() |> Path.join()
+        lines = for n <- line_numbers, valid_number = validate_line_number(n), do: valid_number
+
+        case lines do
+          [] -> {path, path}
+          [line] -> {path, {path, line}}
+          lines -> {path, {path, lines}}
+        end
     end
   end
 
-  defp extract_line_numbers(file) do
-    case String.split(file, ":") do
-      [part] ->
-        {part, []}
-
-      parts ->
-        {reversed_line_numbers, reversed_path_parts} =
-          parts
-          |> Enum.reverse()
-          |> Enum.split_while(&match?({_, ""}, Integer.parse(&1)))
-
-        line_numbers =
-          for line_number <- reversed_line_numbers,
-              valid_line_number?(line_number),
-              reduce: [],
-              do: (acc -> [line: line_number] ++ acc)
-
-        path =
-          reversed_path_parts
-          |> Enum.reverse()
-          |> Enum.join(":")
-
-        {path, line_numbers}
+  defp to_line_number(str) do
+    case Integer.parse(str) do
+      {x, ""} when x > 0 -> x
+      _ -> nil
     end
   end
 
-  defp valid_line_number?(arg) do
-    case Integer.parse(arg) do
-      {num, ""} when num > 0 ->
-        true
-
-      _ ->
-        IO.warn("invalid line number given as ExUnit filter: #{arg}", [])
-        false
-    end
+  defp validate_line_number(str) do
+    number = to_line_number(str)
+    number == nil && IO.warn("invalid line number given as ExUnit filter: #{str}", [])
+    number
   end
 
   @doc """
@@ -114,32 +131,53 @@ defmodule ExUnit.Filters do
   ## Examples
 
       iex> ExUnit.Filters.parse(["foo:bar", "baz", "line:9", "bool:true"])
-      [{:foo, "bar"}, :baz, {:line, "9"}, {:bool, "true"}]
+      [{:foo, "bar"}, :baz, {:line, 9}, {:bool, "true"}]
 
   """
   @spec parse([String.t()]) :: t
   def parse(filters) do
     Enum.map(filters, fn filter ->
-      case String.split(filter, ":", parts: 2) do
-        [key, value] -> {String.to_atom(key), value}
+      case :binary.split(filter, ":") do
+        [key, value] -> parse_kv(String.to_atom(key), value)
         [key] -> String.to_atom(key)
       end
     end)
   end
 
+  defp parse_kv(:line, line) when is_binary(line),
+    do: {:line, String.to_integer(line)}
+
+  defp parse_kv(:location, loc) when is_binary(loc),
+    do: {:location, extract_location(loc) |> elem(1)}
+
+  defp parse_kv(key, value), do: {key, value}
+
   @doc """
-  Returns a tuple containing useful information about test failures from the
-  manifest. The tuple contains:
+  Returns failure information from the manifest file.
+
+  It returns either `:all`, meaning all tests should be considered as stale,
+  or a tuple containing:
 
     * A set of files that contain tests that failed the last time they ran.
       The paths are absolute paths.
+
     * A set of test IDs that failed the last time they ran
 
   """
-  @spec failure_info(Path.t()) :: {MapSet.t(Path.t()), MapSet.t(ExUnit.test_id())}
+  @spec failure_info(Path.t()) :: {MapSet.t(Path.t()), MapSet.t(ExUnit.test_id())} | :all
   def failure_info(manifest_file) do
-    manifest = FailuresManifest.read(manifest_file)
-    {FailuresManifest.files_with_failures(manifest), FailuresManifest.failed_test_ids(manifest)}
+    FailuresManifest.info(manifest_file)
+  end
+
+  @doc """
+  Marks the whole suite as failed in the manifest.
+
+  This is useful when the test suite cannot be loaded
+  and there is a desire to make all tests fail.
+  """
+  @spec fail_all!(Path.t()) :: :ok
+  def fail_all!(manifest_file) do
+    FailuresManifest.fail_all!(manifest_file)
   end
 
   @doc """
@@ -176,34 +214,49 @@ defmodule ExUnit.Filters do
   @spec eval(t, t, map, [ExUnit.Test.t()]) ::
           :ok | {:excluded, String.t()} | {:skipped, String.t()}
   def eval(include, exclude, tags, collection) when is_map(tags) do
-    excluded = Enum.find_value(exclude, &has_tag(&1, tags, collection))
-    excluded? = excluded != nil
-    included? = Enum.any?(include, &has_tag(&1, tags, collection))
+    cond do
+      Enum.any?(include, &has_tag(&1, tags, collection)) ->
+        maybe_skipped(include, tags, collection)
 
-    if included? or not excluded? do
-      skip_tag = %{skip: Map.get(tags, :skip, true)}
-      skip_included_explicitly? = Enum.any?(include, &has_tag(&1, skip_tag, collection))
+      excluded = Enum.find_value(exclude, &has_tag(&1, tags, collection)) ->
+        {:excluded, "due to #{excluded} filter"}
 
-      case Map.fetch(tags, :skip) do
-        {:ok, msg} when is_binary(msg) and not skip_included_explicitly? ->
-          {:skipped, msg}
-
-        {:ok, true} when not skip_included_explicitly? ->
-          {:skipped, "due to skip tag"}
-
-        _ ->
-          :ok
-      end
-    else
-      {:excluded, "due to #{excluded} filter"}
+      true ->
+        maybe_skipped(include, tags, collection)
     end
   end
 
-  defp has_tag({:line, line}, %{line: _, describe_line: describe_line} = tags, collection) do
-    line = to_integer(line)
+  defp maybe_skipped(include, tags, collection) do
+    case tags do
+      %{skip: skip} when is_binary(skip) or skip == true ->
+        skip_tags = %{skip: skip}
+        skip_included_explicitly? = Enum.any?(include, &has_tag(&1, skip_tags, collection))
 
+        cond do
+          skip_included_explicitly? -> :ok
+          is_binary(skip) -> {:skipped, skip}
+          skip -> {:skipped, "due to skip tag"}
+        end
+
+      _ ->
+        :ok
+    end
+  end
+
+  defp has_tag({:location, path}, %{file: file}, _collection) when is_binary(path) do
+    String.ends_with?(file, path)
+  end
+
+  defp has_tag({:location, {path, lines}}, %{line: _, describe_line: _} = tags, collection)
+       when is_binary(path) do
+    String.ends_with?(tags.file, path) and
+      lines |> List.wrap() |> Enum.any?(&has_tag({:line, &1}, tags, collection))
+  end
+
+  defp has_tag({:line, line}, %{line: _, describe_line: _} = tags, collection)
+       when is_integer(line) do
     cond do
-      describe_line == line ->
+      tags.describe_line == line ->
         true
 
       describe_block?(line, collection) ->
@@ -234,9 +287,6 @@ defmodule ExUnit.Filters do
   end
 
   defp has_tag(key, tags) when is_atom(key), do: Map.has_key?(tags, key) and key
-
-  defp to_integer(integer) when is_integer(integer), do: integer
-  defp to_integer(integer) when is_binary(integer), do: String.to_integer(integer)
 
   defp compare("Elixir." <> tag1, tag2), do: compare(tag1, tag2)
   defp compare(tag1, "Elixir." <> tag2), do: compare(tag1, tag2)

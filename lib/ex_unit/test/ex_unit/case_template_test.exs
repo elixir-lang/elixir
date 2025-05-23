@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule ExUnit.SampleCase do
@@ -36,7 +40,7 @@ defmodule ExUnit.NestedCase do
 end
 
 defmodule ExUnit.CaseTemplateTest do
-  use ExUnit.SampleCase, async: true
+  use ExUnit.SampleCase, async: true, another_option: 123
   use ExUnit.NestedCase
 
   two = 2

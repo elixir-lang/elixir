@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Kernel.TracersTest do
@@ -10,18 +14,25 @@ defmodule Kernel.TracersTest do
   end
 
   def trace(event, %Macro.Env{} = env) do
-    send(self(), {event, env})
+    for {pid, _} <- Registry.lookup(__MODULE__, :tracers) do
+      send(pid, {event, env})
+    end
+
     :ok
   end
 
   setup_all do
+    start_supervised!({Registry, keys: :duplicate, name: __MODULE__})
     Code.put_compiler_option(:tracers, [__MODULE__])
-    Code.put_compiler_option(:parser_options, columns: true)
 
     on_exit(fn ->
       Code.put_compiler_option(:tracers, [])
-      Code.put_compiler_option(:parser_options, [])
     end)
+  end
+
+  setup do
+    Registry.register(__MODULE__, :tracers, :unused)
+    :ok
   end
 
   test "traces start and stop" do
@@ -29,8 +40,8 @@ defmodule Kernel.TracersTest do
     Foo
     """)
 
-    assert_receive {:start, %{lexical_tracker: pid}} when is_pid(pid)
-    assert_receive {:stop, %{lexical_tracker: pid}} when is_pid(pid)
+    assert_received {:start, %{lexical_tracker: pid}} when is_pid(pid)
+    assert_received {:stop, %{lexical_tracker: pid}} when is_pid(pid)
   end
 
   test "traces alias references" do
@@ -38,7 +49,7 @@ defmodule Kernel.TracersTest do
     Foo
     """)
 
-    assert_receive {{:alias_reference, meta, Foo}, _}
+    assert_received {{:alias_reference, meta, Foo}, _}
     assert meta[:line] == 1
     assert meta[:column] == 1
   end
@@ -52,17 +63,17 @@ defmodule Kernel.TracersTest do
     Bar
     """)
 
-    assert_receive {{:alias, meta, Hello.World, World, []}, _}
+    assert_received {{:alias, meta, Hello.World, World, []}, _}
     assert meta[:line] == 1
     assert meta[:column] == 1
-    assert_receive {{:alias_expansion, meta, World, Hello.World}, _}
+    assert_received {{:alias_expansion, meta, World, Hello.World}, _}
     assert meta[:line] == 2
     assert meta[:column] == 1
 
-    assert_receive {{:alias, meta, Foo, Bar, [as: Bar, warn: true]}, _}
+    assert_received {{:alias, meta, Foo, Bar, [as: Bar, warn: true]}, _}
     assert meta[:line] == 4
     assert meta[:column] == 1
-    assert_receive {{:alias_expansion, meta, Bar, Foo}, _}
+    assert_received {{:alias_expansion, meta, Bar, Foo}, _}
     assert meta[:line] == 5
     assert meta[:column] == 1
   end
@@ -74,17 +85,19 @@ defmodule Kernel.TracersTest do
     {1, ""} = parse("1")
     """)
 
-    assert_receive {{:import, meta, Integer, only: [is_odd: 1, parse: 1]}, _}
+    assert_received {{:import, meta, Integer, only: [is_odd: 1, parse: 1]}, _}
     assert meta[:line] == 1
     assert meta[:column] == 1
 
-    assert_receive {{:imported_macro, meta, Integer, :is_odd, 1}, _}
+    assert_received {{:imported_macro, meta, Integer, :is_odd, 1}, _}
     assert meta[:line] == 2
     assert meta[:column] == 8
 
-    assert_receive {{:imported_function, meta, Integer, :parse, 1}, _}
+    assert_received {{:imported_function, meta, Integer, :parse, 1}, _}
     assert meta[:line] == 3
     assert meta[:column] == 11
+
+    refute_received {{:remote_function, _, Integer, :parse, 1}, _}
   end
 
   test "traces imports via capture" do
@@ -94,17 +107,19 @@ defmodule Kernel.TracersTest do
     &parse/1
     """)
 
-    assert_receive {{:import, meta, Integer, only: [is_odd: 1, parse: 1]}, _}
+    assert_received {{:import, meta, Integer, only: [is_odd: 1, parse: 1]}, _}
     assert meta[:line] == 1
     assert meta[:column] == 1
 
-    assert_receive {{:imported_macro, meta, Integer, :is_odd, 1}, _}
+    assert_received {{:imported_macro, meta, Integer, :is_odd, 1}, _}
     assert meta[:line] == 2
     assert meta[:column] == 2
 
-    assert_receive {{:imported_function, meta, Integer, :parse, 1}, _}
+    assert_received {{:imported_function, meta, Integer, :parse, 1}, _}
     assert meta[:line] == 3
     assert meta[:column] == 2
+
+    refute_received {{:remote_function, _meta, Integer, :parse, 1}, _}
   end
 
   test "traces structs" do
@@ -112,7 +127,7 @@ defmodule Kernel.TracersTest do
     %URI{path: "/"}
     """)
 
-    assert_receive {{:struct_expansion, meta, URI, [:path]}, _}
+    assert_received {{:struct_expansion, meta, URI, [:path]}, _}
     assert meta[:line] == 1
     assert meta[:column] == 1
   end
@@ -125,15 +140,15 @@ defmodule Kernel.TracersTest do
     "foo" = Atom.to_string(:foo)
     """)
 
-    assert_receive {{:remote_macro, meta, Integer, :is_odd, 1}, _}
+    assert_received {{:remote_macro, meta, Integer, :is_odd, 1}, _}
     assert meta[:line] == 2
     assert meta[:column] == 16
 
-    assert_receive {{:remote_function, meta, Integer, :parse, 1}, _}
+    assert_received {{:remote_function, meta, Integer, :parse, 1}, _}
     assert meta[:line] == 3
     assert meta[:column] == 19
 
-    assert_receive {{:remote_function, meta, Atom, :to_string, 1}, _}
+    assert_received {{:remote_function, meta, Atom, :to_string, 1}, _}
     assert meta[:line] == 4
     assert meta[:column] == 14
   end
@@ -145,11 +160,11 @@ defmodule Kernel.TracersTest do
     &Integer.parse/1
     """)
 
-    assert_receive {{:remote_macro, meta, Integer, :is_odd, 1}, _}
+    assert_received {{:remote_macro, meta, Integer, :is_odd, 1}, _}
     assert meta[:line] == 2
     assert meta[:column] == 10
 
-    assert_receive {{:remote_function, meta, Integer, :parse, 1}, _}
+    assert_received {{:remote_function, meta, Integer, :parse, 1}, _}
     assert meta[:line] == 3
     assert meta[:column] == 10
   end
@@ -163,11 +178,11 @@ defmodule Kernel.TracersTest do
     end
     """)
 
-    assert_receive {{:local_macro, meta, :foo, 1}, _}
+    assert_received {{:local_macro, meta, :foo, 1}, _}
     assert meta[:line] == 4
     assert meta[:column] == 21
 
-    assert_receive {{:local_function, meta, :bar, 1}, _}
+    assert_received {{:local_function, meta, :bar, 1}, _}
     assert meta[:line] == 4
     assert meta[:column] == 32
   after
@@ -184,11 +199,11 @@ defmodule Kernel.TracersTest do
     end
     """)
 
-    assert_receive {{:local_macro, meta, :foo, 1}, _}
+    assert_received {{:local_macro, meta, :foo, 1}, _}
     assert meta[:line] == 4
     assert meta[:column] == 21
 
-    assert_receive {{:local_function, meta, :bar, 1}, _}
+    assert_received {{:local_function, meta, :bar, 1}, _}
     assert meta[:line] == 4
     assert meta[:column] == 29
   after
@@ -203,10 +218,34 @@ defmodule Kernel.TracersTest do
     end
     """)
 
-    assert_receive {{:on_module, <<_::binary>>, :none}, %{module: Sample, function: nil}}
+    assert_received {:defmodule, %{module: Sample, function: nil}}
+    assert_received {{:on_module, <<_::binary>>, :none}, %{module: Sample, function: nil}}
   after
     :code.purge(Sample)
     :code.delete(Sample)
+  end
+
+  test "traces dynamic modules" do
+    compile_string("""
+    Module.create(Sample, :ok, __ENV__)
+    """)
+
+    assert_received {:defmodule, %{module: Sample, function: nil}}
+    assert_received {{:on_module, <<_::binary>>, :none}, %{module: Sample, function: nil}}
+  after
+    :code.purge(Sample)
+    :code.delete(Sample)
+  end
+
+  test "traces module attribute expansion" do
+    compile_string("""
+    defmodule TracersModuleAttribute do
+      @module URI
+      @module
+    end
+    """)
+
+    assert_received {{:alias_reference, [line: 3], URI}, %{file: "@module"}}
   end
 
   test "traces string interpolation" do
@@ -215,8 +254,126 @@ defmodule Kernel.TracersTest do
     "foo\#{arg}"
     """)
 
-    assert_receive {{:remote_macro, meta, Kernel, :to_string, 1}, _env}
+    assert_received {{:remote_macro, meta, Kernel, :to_string, 1}, _env}
     assert meta[:from_interpolation]
+  end
+
+  test "traces bracket access" do
+    compile_string("""
+    foo = %{bar: 3}
+    foo[:bar]
+    """)
+
+    assert_received {{:remote_function, meta, Access, :get, 2}, _env}
+    assert meta[:from_brackets]
+
+    compile_string("""
+    defmodule TracerBracketAccess do
+      @foo %{bar: 3}
+      def a() do
+        @foo[:bar]
+      end
+    end
+    """)
+
+    assert_received {{:remote_function, meta, Access, :get, 2}, _env}
+    assert meta[:from_brackets]
+
+    compile_string("""
+    %{bar: 3}[:bar]
+    """)
+
+    assert_received {{:remote_function, meta, Access, :get, 2}, _env}
+    assert meta[:from_brackets]
+  end
+
+  test "traces on_load" do
+    compile_string("""
+    defmodule TracerOnLoad do
+      @on_load :init
+      def init, do: :ok
+    end
+    """)
+
+    assert_received {{:local_function, meta, :init, 0}, _}
+    assert meta[:line] == 1
+  end
+
+  def __before_compile__(_), do: :ok
+  def __after_compile__(_, _), do: :ok
+  def __after_verify__(_), do: :ok
+  def __on_definition__(_, _, _, _, _, _), do: :ok
+
+  test "traces compile time attributes" do
+    compile_string("""
+    defmodule TracerCompileAttributes do
+      @before_compile Kernel.TracersTest
+      @after_compile Kernel.TracersTest
+      @on_definition Kernel.TracersTest
+      @after_verify Kernel.TracersTest
+      def hello, do: :world
+    end
+    """)
+
+    assert_received {{:remote_function, meta, __MODULE__, :__before_compile__, 1}, _}
+    assert meta[:line] == 1
+
+    assert_received {{:remote_function, meta, __MODULE__, :__after_compile__, 2}, _}
+    assert meta[:line] == 1
+
+    assert_received {{:remote_function, meta, __MODULE__, :__after_verify__, 1}, _}
+    assert meta[:line] == 1
+
+    assert_received {{:remote_function, meta, __MODULE__, :__on_definition__, 6}, _}
+    assert meta[:line] == 6
+  end
+
+  test "traces super" do
+    compile_string("""
+    defmodule TracerOverridable do
+      def local(x), do: x
+      defoverridable [local: 1]
+      def local(x), do: super(x)
+
+      defmacro macro(x), do: x
+      defoverridable [macro: 1]
+      defmacro macro(x), do: super(x)
+
+      def capture(x), do: x
+      defoverridable [capture: 1]
+      def capture(x), do: tap(x, &super/1)
+
+      def capture_arg(x), do: x
+      defoverridable [capture_arg: 1]
+      def capture_arg(x), do: tap(x, &super(&1))
+    end
+    """)
+
+    assert_received {{:local_function, _, :"local (overridable 1)", 1}, _}
+    assert_received {{:local_function, _, :"macro (overridable 1)", 1}, _}
+    assert_received {{:local_function, _, :"capture (overridable 1)", 1}, _}
+    assert_received {{:local_function, _, :"capture_arg (overridable 1)", 1}, _}
+    refute_received {{:local_function, _, _, _}, _}
+  end
+
+  test "does not trace bind quoted twice" do
+    compile_string("""
+    quote bind_quoted: [foo: List.flatten([])] do
+      foo
+    end
+    """)
+
+    assert_received {{:remote_function, _, List, :flatten, 1}, _}
+    refute_received {{:remote_function, _, List, :flatten, 1}, _}
+  end
+
+  test "does not trace captures twice" do
+    compile_string("""
+    &List.flatten/1
+    """)
+
+    assert_received {{:remote_function, _, List, :flatten, 1}, _}
+    refute_received {{:remote_function, _, List, :flatten, 1}, _}
   end
 
   """
@@ -238,7 +395,7 @@ defmodule Kernel.TracersTest do
     MacroWithColumn.some_macro(["hello", "world", "!"])
     """)
 
-    assert_receive {{:alias_reference, meta, Enum}, _env}
+    assert_received {{:alias_reference, meta, Enum}, _env}
     refute meta[:column]
   end
 end

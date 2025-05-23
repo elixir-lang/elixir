@@ -1,3 +1,9 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+  SPDX-FileCopyrightText: 2012 Plataformatec
+-->
+
 # Compatibility and deprecations
 
 Elixir is versioned according to a vMAJOR.MINOR.PATCH schema.
@@ -8,12 +14,12 @@ Elixir applies bug fixes only to the latest minor branch. Security patches are a
 
 Elixir version | Support
 :------------- | :-----------------------------
-1.16           | Development
-1.15           | Bug fixes and security patches
+1.19           | Development
+1.18           | Bug fixes and security patches
+1.17           | Security patches only
+1.16           | Security patches only
+1.15           | Security patches only
 1.14           | Security patches only
-1.13           | Security patches only
-1.12           | Security patches only
-1.11           | Security patches only
 
 New releases are announced in the read-only [announcements mailing list](https://groups.google.com/group/elixir-lang-ann). All security releases [will be tagged with `[security]`](https://groups.google.com/forum/#!searchin/elixir-lang-ann/%5Bsecurity%5D%7Csort:date).
 
@@ -21,13 +27,13 @@ There are currently no plans for a major v2 release.
 
 ## Between non-major Elixir versions
 
-Elixir minor and patch releases are backwards compatible: well-defined behaviours and documented APIs in a given version will continue working on future versions.
+Elixir minor and patch releases are backwards compatible: well-defined behaviors and documented APIs in a given version will continue working on future versions.
 
 Although we expect the vast majority of programs to remain compatible over time, it is impossible to guarantee that no future change will break any program. Under some unlikely circumstances, we may introduce changes that break existing code:
 
   * Security: a security issue in the implementation may arise whose resolution requires backwards incompatible changes. We reserve the right to address such security issues.
 
-  * Bugs: if an API has undesired behaviour, a program that depends on the buggy behaviour may break if the bug is fixed. We reserve the right to fix such bugs.
+  * Bugs: if an API has undesired behavior, a program that depends on the buggy behavior may break if the bug is fixed. We reserve the right to fix such bugs.
 
   * Compiler front-end: improvements may be done to the compiler, introducing new warnings for ambiguous modes and providing more detailed error messages. Those can lead to compilation errors (when running with `--warning-as-errors`) or tooling failures when asserting on specific error messages (although one should avoid such). We reserve the right to do such improvements.
 
@@ -43,8 +49,12 @@ Erlang/OTP versioning is independent from the versioning of Elixir. Erlang relea
 
 Elixir version | Supported Erlang/OTP versions
 :------------- | :-------------------------------
+1.19           | 26 - 27
+1.18           | 25 - 27
+1.17           | 25 - 27
+1.16           | 24 - 26
 1.15           | 24 - 26
-1.14           | 23 - 25
+1.14           | 23 - 25 (and Erlang/OTP 26 from v1.14.5)
 1.13           | 22 - 24 (and Erlang/OTP 25 from v1.13.4)
 1.12           | 22 - 24
 1.11           | 21 - 23 (and Erlang/OTP 24 from v1.11.4)
@@ -80,6 +90,23 @@ The first column is the version the feature was hard deprecated. The second colu
 
 Version | Deprecated feature                                  | Replaced by (available since)
 :-------| :-------------------------------------------------- | :---------------------------------------------------------------
+[v1.19] | CLI configuration in `def project` inside `mix.exs` | Moving it to `def cli` (v1.14)
+[v1.19] | Using `,` to separate tasks in `mix do`             | Using `+` (v1.14)
+[v1.19] | Logger's `:backends` configuration                  | Logger's `:default_handler` configuration (v1.15)
+[v1.19] | Passing a callback to `File.cp`/`File.cp_r`         | The `:on_conflict` option (v1.14)
+[v1.18] | `<%#` in EEx                                        | `<%!--` (v1.14) or `<% #` (v1.0)
+[v1.18] | `handle_text/2` callback in EEx                     | `handle_text/3` (v1.14)
+[v1.18] | Returning 2-arity fun from `Enumerable.slice/1`     | Returning 3-arity (v1.14)
+[v1.18] | Ranges with negative steps in `Range.new/2`         | Explicit steps in ranges (v1.11)
+[v1.18] | `Tuple.append/2`                                    | `Tuple.insert_at/3` (v1.0)
+[v1.18] | `mix cmd --app APP`                                 | `mix do --app APP` (v1.14)
+[v1.18] | `List.zip/1`                                        | `Enum.zip/1` (v1.0)
+[v1.18] | `Module.eval_quoted/3`                              | `Code.eval_quoted/3` (v1.0)
+[v1.17] | Single-quoted charlists (`'foo'`)                   | `~c"foo"` (v1.0)
+[v1.17] | `left..right` in patterns and guards                | `left..right//step` (v1.11)
+[v1.17] | `ExUnit.Case.register_test/4`                       | `register_test/6` (v1.10)
+[v1.17] | `:all` in `IO.read/2` and `IO.binread/2`            | `:eof` (v1.13)
+[v1.16] | `~R/.../`                                           | `~r/.../` (v1.0)
 [v1.16] | Ranges with negative steps in `Enum.slice/2`        | Explicit steps in ranges (v1.11)
 [v1.16] | Ranges with negative steps in `String.slice/2`      | Explicit steps in ranges (v1.11)
 [v1.15] | `Calendar.ISO.day_of_week/3`                        | `Calendar.ISO.day_of_week/4` (v1.11)
@@ -206,4 +233,7 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.13]: https://github.com/elixir-lang/elixir/blob/v1.13/CHANGELOG.md#4-hard-deprecations
 [v1.14]: https://github.com/elixir-lang/elixir/blob/v1.14/CHANGELOG.md#4-hard-deprecations
 [v1.15]: https://github.com/elixir-lang/elixir/blob/v1.15/CHANGELOG.md#4-hard-deprecations
-[v1.16]: https://github.com/elixir-lang/elixir/blob/main/CHANGELOG.md#4-hard-deprecations
+[v1.16]: https://github.com/elixir-lang/elixir/blob/v1.16/CHANGELOG.md#4-hard-deprecations
+[v1.17]: https://github.com/elixir-lang/elixir/blob/v1.17/CHANGELOG.md#4-hard-deprecations
+[v1.18]: https://github.com/elixir-lang/elixir/blob/v1.18/CHANGELOG.md#4-hard-deprecations
+[v1.19]: https://github.com/elixir-lang/elixir/blob/main/CHANGELOG.md#4-hard-deprecations

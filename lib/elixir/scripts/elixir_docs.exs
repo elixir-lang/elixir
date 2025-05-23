@@ -1,7 +1,12 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 # Returns config for Elixir docs (exclusively)
 canonical = System.fetch_env!("CANONICAL")
 
 [
+  assets: %{"lib/elixir/pages/images" => "assets"},
   extras: [
     "lib/elixir/pages/getting-started/introduction.md",
     "lib/elixir/pages/getting-started/basic-types.md",
@@ -34,6 +39,7 @@ canonical = System.fetch_env!("CANONICAL")
     "lib/elixir/pages/anti-patterns/process-anti-patterns.md",
     "lib/elixir/pages/anti-patterns/macro-anti-patterns.md",
     "lib/elixir/pages/references/compatibility-and-deprecations.md",
+    "lib/elixir/pages/references/gradual-set-theoretic-types.md",
     "lib/elixir/pages/references/library-guidelines.md",
     "lib/elixir/pages/references/naming-conventions.md",
     "lib/elixir/pages/references/operators.md",
@@ -72,11 +78,15 @@ canonical = System.fetch_env!("CANONICAL")
     "Mix & OTP": ~r"pages/mix-and-otp/.*\.md$",
     References: ~r"pages/references/.*\.md$"
   ],
-  groups_for_functions: [
+  groups_for_docs: [
     Guards: &(&1[:guard] == true)
   ],
   skip_undefined_reference_warnings_on: [
     "lib/elixir/pages/references/compatibility-and-deprecations.md"
+  ],
+  skip_code_autolink_to: [
+    "Enumerable.List",
+    "Inspect.MapSet"
   ],
   formatters: ["html", "epub"],
   groups_for_modules: [
@@ -88,10 +98,12 @@ canonical = System.fetch_env!("CANONICAL")
       Bitwise,
       Date,
       DateTime,
+      Duration,
       Exception,
       Float,
       Function,
       Integer,
+      JSON,
       Module,
       NaiveDateTime,
       Record,
@@ -152,6 +164,7 @@ canonical = System.fetch_env!("CANONICAL")
     Protocols: [
       Collectable,
       Enumerable,
+      JSON.Encoder,
       Inspect,
       Inspect.Algebra,
       Inspect.Opts,
@@ -182,13 +195,19 @@ canonical = System.fetch_env!("CANONICAL")
   before_closing_body_tag: fn
     :html ->
       """
-      <script src="https://cdn.jsdelivr.net/npm/mermaid@10.2.3/dist/mermaid.min.js"></script>
+      <script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.min.js"></script>
       <script>
-        document.addEventListener("DOMContentLoaded", function () {
-          mermaid.initialize({
-            startOnLoad: false,
-            theme: document.body.className.includes("dark") ? "dark" : "default"
-          });
+        let initialized = false;
+
+        window.addEventListener("exdoc:loaded", () => {
+          if (!initialized) {
+            mermaid.initialize({
+              startOnLoad: false,
+              theme: document.body.className.includes("dark") ? "dark" : "default"
+            });
+            initialized = true;
+          }
+
           let id = 0;
           for (const codeEl of document.querySelectorAll("pre code.mermaid")) {
             const preEl = codeEl.parentElement;

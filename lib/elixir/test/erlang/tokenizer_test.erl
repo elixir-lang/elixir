@@ -1,3 +1,7 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 -module(tokenizer_test).
 -include_lib("eunit/include/eunit.hrl").
 
@@ -5,8 +9,8 @@ tokenize(String) ->
   tokenize(String, []).
 
 tokenize(String, Opts) ->
-  {ok, _Line, _Column, _Warnings, Result} = elixir_tokenizer:tokenize(String, 1, Opts),
-  Result.
+  {ok, _Line, _Column, _Warnings, Result, []} = elixir_tokenizer:tokenize(String, 1, Opts),
+  lists:reverse(Result).
 
 tokenize_error(String) ->
   {error, Error, _, _, _} = elixir_tokenizer:tokenize(String, 1, []),
@@ -61,7 +65,7 @@ unquoted_atom_test() ->
   [{atom, {1, 1, _}, '&&'}] = tokenize(":&&").
 
 quoted_atom_test() ->
-  [{atom_quoted, {1, 1, nil}, 'foo bar'}] = tokenize(":\"foo bar\"").
+  [{atom_quoted, {1, 1, $"}, 'foo bar'}] = tokenize(":\"foo bar\"").
 
 oversized_atom_test() ->
   OversizedAtom = string:copies("a", 256),
@@ -109,10 +113,6 @@ identifier_test() ->
 module_macro_test() ->
   [{identifier, {1, 1, _}, '__MODULE__'}] = tokenize("__MODULE__").
 
-triple_dot_test() ->
-  [{identifier, {1, 1, _}, '...'}] = tokenize("..."),
-  [{'.', {1, 1, nil}}, {identifier, {1, 3, _}, '..'}] = tokenize(". ..").
-
 dot_test() ->
   [{identifier, {1, 1, _}, foo},
    {'.', {1, 4, nil}},
@@ -159,16 +159,14 @@ aliases_test() ->
 
 string_test() ->
   [{bin_string, {1, 1, nil}, [<<"foo">>]}] = tokenize("\"foo\""),
-  [{bin_string, {1, 1, nil}, [<<"f\"">>]}] = tokenize("\"f\\\"\""),
-  [{list_string, {1, 1, nil}, [<<"foo">>]}] = tokenize("'foo'").
+  [{bin_string, {1, 1, nil}, [<<"f\"">>]}] = tokenize("\"f\\\"\"").
 
 heredoc_test() ->
   [{bin_heredoc, {1, 1, nil}, 0, [<<"heredoc\n">>]}] = tokenize("\"\"\"\nheredoc\n\"\"\""),
   [{bin_heredoc, {1, 1, nil}, 1, [<<"heredoc\n">>]}, {';', {3, 5, 0}}] = tokenize("\"\"\"\n heredoc\n \"\"\";").
 
 empty_string_test() ->
-  [{bin_string, {1, 1, nil}, [<<>>]}] = tokenize("\"\""),
-  [{list_string, {1, 1, nil}, [<<>>]}] = tokenize("''").
+  [{bin_string, {1, 1, nil}, [<<>>]}] = tokenize("\"\"").
 
 concat_test() ->
   [{identifier, {1, 1, _}, x},

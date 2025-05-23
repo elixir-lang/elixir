@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Release do
   @moduledoc """
   Defines the release structure and convenience for assembling releases.
@@ -68,14 +72,14 @@ defmodule Mix.Release do
   @safe_modes [:permanent, :temporary, :transient]
   @unsafe_modes [:load, :none]
   @additional_chunks ~w(Attr)c
-  @copy_app_dirs ["priv"]
+  @copy_app_dirs ["priv", "include"]
 
   @doc false
   @spec from_config!(atom, keyword, keyword) :: t
   def from_config!(name, config, overrides) do
     {name, apps, opts} = find_release(name, config)
 
-    unless Atom.to_string(name) =~ ~r/^[a-z][a-z0-9_]*$/ do
+    if not (Atom.to_string(name) =~ ~r/^[a-z][a-z0-9_]*$/) do
       Mix.raise(
         "Invalid release name. A release name must start with a lowercase ASCII letter, " <>
           "followed by lowercase ASCII letters, numbers, or underscores, got: #{inspect(name)}"
@@ -153,7 +157,7 @@ defmodule Mix.Release do
       version_path: Path.join([path, "releases", version]),
       erts_source: erts_source,
       erts_version: erts_version,
-      applications: loaded_apps,
+      applications: Map.delete(loaded_apps, :erts),
       boot_scripts: %{start: start_boot, start_clean: start_clean_boot},
       config_providers: config_providers,
       options: opts,
@@ -433,7 +437,7 @@ defmodule Mix.Release do
   the `:elixir` application configuration in `sys_config` to be
   read during boot and trigger the providers.
 
-  It uses the following release options to customize its behaviour:
+  It uses the following release options to customize its behavior:
 
     * `:reboot_system_after_config`
     * `:start_distribution_during_config`
@@ -755,6 +759,7 @@ defmodule Mix.Release do
   @doc """
   Finds a template path for the release.
   """
+  @spec rel_templates_path(t, Path.t()) :: binary
   def rel_templates_path(release, path) do
     Path.join(release.options[:rel_templates_path] || "rel", path)
   end
@@ -850,10 +855,13 @@ defmodule Mix.Release do
         source_file = Path.join(source, file)
         target_file = Path.join(target, file)
 
-        with true <- is_list(strip_options) and String.ends_with?(file, ".beam"),
-             {:ok, binary} <- strip_beam(File.read!(source_file), strip_options) do
-          File.write!(target_file, binary)
-        else
+        case Path.extname(file) do
+          ".beam" ->
+            process_beam_file(source_file, target_file, strip_options)
+
+          ".app" ->
+            process_app_file(source_file, target_file)
+
           _ ->
             # Use File.cp!/3 to preserve file mode for any executables stored
             # in the ebin directory.
@@ -864,6 +872,23 @@ defmodule Mix.Release do
       true
     else
       _ -> false
+    end
+  end
+
+  defp process_beam_file(source_file, target_file, strip_options) do
+    with true <- is_list(strip_options),
+         {:ok, binary} <- strip_beam(File.read!(source_file), strip_options) do
+      File.write!(target_file, binary)
+    else
+      _ -> File.cp!(source_file, target_file)
+    end
+  end
+
+  defp process_app_file(source_file, target_file) do
+    with {:ok, [{:application, app, info}]} <- :file.consult(source_file) do
+      File.write!(target_file, :io_lib.format("~tp.~n", [{:application, app, info}]))
+    else
+      _ -> File.cp!(source_file, target_file)
     end
   end
 

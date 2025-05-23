@@ -1,3 +1,7 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 % Handle string and string-like interpolations.
 -module(elixir_interpolation).
 -export([extract/6, unescape_string/1, unescape_string/2,
@@ -33,7 +37,17 @@ extract([$\n | Rest], Buffer, Output, Line, _Column, Scope, Interpol, Last) ->
   extract_nl(Rest, [$\n | Buffer], Output, Line, Scope, Interpol, Last);
 
 extract([$\\, Last | Rest], Buffer, Output, Line, Column, Scope, Interpol, Last) ->
-  extract(Rest, [Last | Buffer], Output, Line, Column+2, Scope, Interpol, Last);
+  NewScope =
+    %% TODO: Remove this on Elixir v2.0
+    case Interpol of
+      true ->
+        Scope;
+      false ->
+        Msg = "using \\~ts to escape the closing of an uppercase sigil is deprecated, please use another delimiter or a lowercase sigil instead",
+        prepend_warning(Line, Column, io_lib:format(Msg, [[Last]]), Scope)
+    end,
+
+  extract(Rest, [Last | Buffer], Output, Line, Column+2, NewScope, Interpol, Last);
 
 extract([$\\, Last, Last, Last | Rest], Buffer, Output, Line, Column, Scope, Interpol, [Last, Last, Last] = All) ->
   extract(Rest, [Last, Last, Last | Buffer], Output, Line, Column+4, Scope, Interpol, All);
@@ -52,11 +66,12 @@ extract([$#, ${ | Rest], Buffer, Output, Line, Column, Scope, true, Last) ->
       extract(NewRest, [], Output2, EndLine, EndColumn + 1, NewScope, true, Last);
     {error, Reason, _, _, _} ->
       {error, Reason};
-    {ok, EndLine, EndColumn, Warnings, Tokens} when Scope#elixir_tokenizer.cursor_completion /= false ->
+    {ok, EndLine, EndColumn, Warnings, Tokens, Terminators} when Scope#elixir_tokenizer.cursor_completion /= false ->
       NewScope = Scope#elixir_tokenizer{warnings=Warnings, cursor_completion=noprune},
-      Output2 = build_interpol(Line, Column, EndLine, EndColumn, Tokens, Output1),
+      {CursorTerminators, _} = cursor_complete(EndLine, EndColumn, Terminators),
+      Output2 = build_interpol(Line, Column, EndLine, EndColumn, lists:reverse(Tokens, CursorTerminators), Output1),
       extract([], [], Output2, EndLine, EndColumn, NewScope, true, Last);
-    {ok, _, _, _, _} ->
+    {ok, _, _, _, _, _} ->
       {error, {string, Line, Column, "missing interpolation terminator: \"}\"", []}}
   end;
 
@@ -80,7 +95,10 @@ extract_char(Rest, Buffer, Output, Line, Column, Scope, Interpol, Last) ->
       Pos = io_lib:format(". If you want to use such character, use it in its escaped ~ts form instead", [Token]),
       {error, {?LOC(Line, Column), {Pre, Pos}, Token}};
 
-    [Char | NewRest] ->
+    [Char | NewRest] when is_list(Char) ->
+      extract(NewRest, lists:reverse(Char, Buffer), Output, Line, Column + 1, Scope, Interpol, Last);
+
+    [Char | NewRest] when is_integer(Char) ->
       extract(NewRest, [Char | Buffer], Output, Line, Column + 1, Scope, Interpol, Last);
 
     [] ->
@@ -97,12 +115,22 @@ extract_nl(Rest, Buffer, Output, Line, Scope, Interpol, [H,H,H] = Last) ->
       extract(NewRest, NewBuffer, Output, Line + 1, Column, Scope, Interpol, Last)
   end;
 extract_nl(Rest, Buffer, Output, Line, Scope, Interpol, Last) ->
-  extract(Rest, Buffer, Output, Line + 1, 1, Scope, Interpol, Last).
+  extract(Rest, Buffer, Output, Line + 1, Scope#elixir_tokenizer.column, Scope, Interpol, Last).
 
 strip_horizontal_space([H | T], Buffer, Counter) when H =:= $\s; H =:= $\t ->
   strip_horizontal_space(T, [H | Buffer], Counter + 1);
 strip_horizontal_space(T, Buffer, Counter) ->
   {T, Buffer, Counter}.
+
+cursor_complete(Line, Column, Terminators) ->
+  lists:mapfoldl(
+    fun({Start, _, _}, AccColumn) ->
+      End = elixir_tokenizer:terminator(Start),
+      {{End, {Line, AccColumn, nil}}, AccColumn + length(erlang:atom_to_list(End))}
+    end,
+    Column,
+    Terminators
+  ).
 
 %% Unescape a series of tokens as returned by extract.
 
@@ -279,3 +307,6 @@ build_string(Buffer, Output) -> [lists:reverse(Buffer) | Output].
 
 build_interpol(Line, Column, EndLine, EndColumn, Buffer, Output) ->
   [{{Line, Column, nil}, {EndLine, EndColumn, nil}, Buffer} | Output].
+
+prepend_warning(Line, Column, Msg, #elixir_tokenizer{warnings=Warnings} = Scope) ->
+  Scope#elixir_tokenizer{warnings = [{{Line, Column}, Msg} | Warnings]}.

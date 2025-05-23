@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 # Convenience helpers for showing docs, specs, types
 # and opening modules. Invoked directly from IEx.Helpers.
 defmodule IEx.Introspection do
@@ -11,44 +15,50 @@ defmodule IEx.Introspection do
   Decomposes an introspection call into `{mod, fun, arity}`,
   `{mod, fun}` or `mod`.
   """
-  def decompose({:/, _, [call, arity]} = term, context) do
+  def decompose(atom, _context) when is_atom(atom), do: atom
+
+  def decompose({:__aliases__, _, _} = module, context) do
+    Macro.expand(module, context)
+  end
+
+  def decompose({:/, _, [call, arity]}, context) do
     case Macro.decompose_call(call) do
       {_mod, :__info__, []} when arity == 1 ->
-        {:{}, [], [Module, :__info__, 1]}
+        {Module, :__info__, 1}
 
       {mod, fun, []} ->
-        {:{}, [], [mod, fun, arity]}
+        {Macro.expand(mod, context), fun, arity}
 
       {fun, []} ->
-        {:{}, [], [find_decompose_fun_arity(fun, arity, context), fun, arity]}
+        {find_decompose_fun_arity(fun, arity, context), fun, arity}
 
       _ ->
-        term
+        :error
     end
   end
 
   def decompose(call, context) do
     case Macro.decompose_call(call) do
       {_mod, :__info__, []} ->
-        Macro.escape({Module, :__info__, 1})
-
-      {mod, fun, []} ->
-        {mod, fun}
+        {Module, :__info__, 1}
 
       {maybe_sigil, [_, _]} ->
         case Atom.to_string(maybe_sigil) do
           "sigil_" <> _ ->
-            {:{}, [], [find_decompose_fun_arity(maybe_sigil, 2, context), maybe_sigil, 2]}
+            {find_decompose_fun_arity(maybe_sigil, 2, context), maybe_sigil, 2}
 
           _ ->
-            call
+            :error
         end
+
+      {mod, fun, []} ->
+        {Macro.expand(mod, context), fun}
 
       {fun, []} ->
         {find_decompose_fun(fun, context), fun}
 
       _ ->
-        call
+        :error
     end
   end
 
@@ -97,7 +107,7 @@ defmodule IEx.Introspection do
     case open_mfa(module, :__info__, 1) do
       {source, nil, _} -> open(source)
       {_, tuple, _} -> open(tuple)
-      :error -> puts_error("Could not open: #{inspect(module)}. Module is not available.")
+      {:error, reason} -> puts_error("Could not open #{inspect(module)}, #{reason}")
     end
 
     dont_display_result()
@@ -107,14 +117,14 @@ defmodule IEx.Introspection do
     case open_mfa(module, function, :*) do
       {_, _, nil} ->
         puts_error(
-          "Could not open: #{inspect(module)}.#{function}. Function/macro is not available."
+          "Could not open #{inspect(module)}.#{function}, function/macro is not available"
         )
 
       {_, _, tuple} ->
         open(tuple)
 
-      :error ->
-        puts_error("Could not open: #{inspect(module)}.#{function}. Module is not available.")
+      {:error, reason} ->
+        puts_error("Could not open #{inspect(module)}.#{function}, #{reason}")
     end
 
     dont_display_result()
@@ -125,16 +135,14 @@ defmodule IEx.Introspection do
     case open_mfa(module, function, arity) do
       {_, _, nil} ->
         puts_error(
-          "Could not open: #{inspect(module)}.#{function}/#{arity}. Function/macro is not available."
+          "Could not open #{inspect(module)}.#{function}/#{arity}, function/macro is not available"
         )
 
       {_, _, tuple} ->
         open(tuple)
 
-      :error ->
-        puts_error(
-          "Could not open: #{inspect(module)}.#{function}/#{arity}. Module is not available."
-        )
+      {:error, reason} ->
+        puts_error("Could not open #{inspect(module)}.#{function}/#{arity}, #{reason}")
     end
 
     dont_display_result()
@@ -143,7 +151,7 @@ defmodule IEx.Introspection do
   def open({file, line}) when is_binary(file) and is_integer(line) do
     cond do
       not File.regular?(file) ->
-        puts_error("Could not open: #{inspect(file)}. File is not available.")
+        puts_error("Could not open #{inspect(file)}, file is not available.")
 
       editor = System.get_env("ELIXIR_EDITOR") || System.get_env("EDITOR") ->
         command =
@@ -174,12 +182,19 @@ defmodule IEx.Introspection do
   end
 
   defp open_mfa(module, fun, arity) do
-    with {:module, _} <- Code.ensure_loaded(module),
-         source when is_list(source) <- module.module_info(:compile)[:source] do
-      source = rewrite_source(module, source)
-      open_abstract_code(module, fun, arity, source)
-    else
-      _ -> :error
+    case Code.ensure_loaded(module) do
+      {:module, _} ->
+        case module.module_info(:compile)[:source] do
+          [_ | _] = source ->
+            source = rewrite_source(module, source)
+            open_abstract_code(module, fun, arity, source)
+
+          _ ->
+            {:error, "source code is not available"}
+        end
+
+      _ ->
+        {:error, "module is not available"}
     end
   end
 
@@ -259,10 +274,11 @@ defmodule IEx.Introspection do
     case Code.ensure_loaded(module) do
       {:module, _} ->
         case Code.fetch_docs(module) do
-          {:docs_v1, _, :erlang, _, _, _, _} = erl_docs ->
+          # TODO remove once we require Erlang/OTP 27+
+          {:docs_v1, _, :erlang, "application/erlang+html", _, _, _} = erl_docs ->
             :shell_docs.render(module, erl_docs) |> IO.puts()
 
-          {:docs_v1, _, _, format, %{} = doc, metadata, _} ->
+          {:docs_v1, _, _, format, doc, metadata, _} when is_map(doc) or doc == :none ->
             print_doc([inspect(module)], [], format, doc, metadata)
 
           {:docs_v1, _, _, _, _, _, _} ->
@@ -378,7 +394,8 @@ defmodule IEx.Introspection do
     spec = get_spec(mod, fun, arity)
 
     cond do
-      language == :erlang ->
+      # TODO remove once we require Erlang/OTP 27+
+      language == :erlang and format == "application/erlang+html" ->
         print_erlang_doc(mod, fun, arity, docs_v1)
         :ok
 
@@ -628,7 +645,6 @@ defmodule IEx.Introspection do
   defp format_callback({{kind, name, _arity}, specs}) do
     Enum.map(specs, fn spec ->
       Typespec.spec_to_quoted(name, spec)
-      |> Macro.prewalk(&drop_macro_env/1)
       |> format_typespec(kind, 0)
     end)
   end
@@ -657,17 +673,13 @@ defmodule IEx.Introspection do
     format_typespec(callbacks, :optional_callbacks, 0)
   end
 
-  defp drop_macro_env({name, meta, [{:"::", _, [_, {{:., _, [Macro.Env, :t]}, _, _}]} | args]}),
-    do: {name, meta, args}
-
-  defp drop_macro_env(other), do: other
-
   @doc """
   Prints the types for the given module and type documentation.
   """
   def t(module) when is_atom(module) do
     case :code.get_doc(module) do
-      {:ok, {:docs_v1, _, :erlang, _, _, _, _} = erl_docs} ->
+      # TODO remove once we require Erlang/OTP 27+
+      {:ok, {:docs_v1, _, :erlang, "application/erlang+html", _, _, _} = erl_docs} ->
         :shell_docs.render_type(module, erl_docs) |> IO.puts()
 
       _ ->
@@ -690,7 +702,8 @@ defmodule IEx.Introspection do
 
   def t({module, type}) when is_atom(module) and is_atom(type) do
     case get_docs(module, [:type]) do
-      {:erlang, _, _, erl_docs} ->
+      # TODO remove once we require Erlang/OTP 27+
+      {:erlang, "application/erlang+html", _, erl_docs} ->
         case :shell_docs.render_type(module, type, erl_docs) do
           {:error, :type_missing} -> types_not_found_or_private("#{inspect(module)}.#{type}")
           iodata -> IO.puts(iodata)
@@ -724,7 +737,8 @@ defmodule IEx.Introspection do
 
   def t({module, type, arity}) when is_atom(module) and is_atom(type) and is_integer(arity) do
     case get_docs(module, [:type]) do
-      {:erlang, _, _, erl_docs} ->
+      # TODO remove once we require Erlang/OTP 27+
+      {:erlang, "application/erlang+html", _, erl_docs} ->
         case :shell_docs.render_type(module, type, arity, erl_docs) do
           {:error, :type_missing} -> types_not_found_or_private("#{inspect(module)}.#{type}")
           chardata -> IO.puts(chardata)

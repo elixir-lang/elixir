@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule StringTest do
@@ -254,6 +258,7 @@ defmodule StringTest do
 
   test "capitalize/1" do
     assert String.capitalize("") == ""
+    assert String.capitalize("1") == "1"
     assert String.capitalize("abc") == "Abc"
     assert String.capitalize("ABC") == "Abc"
     assert String.capitalize("c b a") == "C b a"
@@ -781,7 +786,7 @@ defmodule StringTest do
     end
 
     assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
-             assert String.slice("elixir", 0..-2) == "elixi"
+             assert String.slice("elixir", 0..-2//-1) == "elixi"
            end) =~ "negative steps are not supported in String.slice/2, pass 0..-2//1 instead"
   end
 
@@ -808,6 +813,50 @@ defmodule StringTest do
     assert String.slice("a·̀ͯ‿.⁀:", 0..-2//2) == "a‿⁀"
   end
 
+  test "byte_slice/2" do
+    # ASCII
+    assert String.byte_slice("elixir", 0, 6) == "elixir"
+    assert String.byte_slice("elixir", 0, 5) == "elixi"
+    assert String.byte_slice("elixir", 1, 4) == "lixi"
+    assert String.byte_slice("elixir", 0, 10) == "elixir"
+    assert String.byte_slice("elixir", -3, 10) == "xir"
+    assert String.byte_slice("elixir", -10, 10) == "elixir"
+    assert String.byte_slice("elixir", 1, 0) == ""
+    assert String.byte_slice("elixir", 10, 10) == ""
+
+    # 2 byte
+    assert String.byte_slice("héllò", 1, 4) == "éll"
+    assert String.byte_slice("héllò", 1, 5) == "éll"
+    assert String.byte_slice("héllò", 1, 6) == "éllò"
+    assert String.byte_slice("héllò", 2, 4) == "llò"
+
+    # 3 byte
+    assert String.byte_slice("hかllか", 1, 4) == "かl"
+    assert String.byte_slice("hかllか", 1, 5) == "かll"
+    assert String.byte_slice("hかllか", 1, 6) == "かll"
+    assert String.byte_slice("hかllか", 1, 7) == "かll"
+    assert String.byte_slice("hかllか", 1, 8) == "かllか"
+    assert String.byte_slice("hかllか", 2, 4) == "ll"
+    assert String.byte_slice("hかllか", 2, 5) == "llか"
+
+    # 4 byte
+    assert String.byte_slice("h😍ll😍", 1, 4) == "😍"
+    assert String.byte_slice("h😍ll😍", 1, 5) == "😍l"
+    assert String.byte_slice("h😍ll😍", 1, 6) == "😍ll"
+    assert String.byte_slice("h😍ll😍", 1, 7) == "😍ll"
+    assert String.byte_slice("h😍ll😍", 1, 8) == "😍ll"
+    assert String.byte_slice("h😍ll😍", 1, 9) == "😍ll"
+    assert String.byte_slice("h😍ll😍", 1, 10) == "😍ll😍"
+    assert String.byte_slice("h😍ll😍", 2, 5) == "ll"
+    assert String.byte_slice("h😍ll😍", 2, 6) == "ll😍"
+
+    # Already truncated
+    assert String.byte_slice(<<178, "ll", 178>>, 0, 10) == "ll"
+
+    # Already invalid
+    assert String.byte_slice(<<255, "ll", 255>>, 0, 10) == <<255, "ll", 255>>
+  end
+
   test "valid?/1" do
     assert String.valid?("afds")
     assert String.valid?("øsdfh")
@@ -824,6 +873,33 @@ defmodule StringTest do
 
     refute String.valid?(<<0xFFFF::16>>, :fast_ascii)
     refute String.valid?("asdasdasd" <> <<0xFFFF::16>>, :fast_ascii)
+  end
+
+  test "replace_invalid" do
+    assert String.replace_invalid("") === ""
+    assert String.replace_invalid(<<0xFF>>) === "�"
+    assert String.replace_invalid(<<0xFF, 0xFF, 0xFF>>) === "���"
+
+    # Valid ASCII
+    assert String.replace_invalid("hello") === "hello"
+
+    # Valid UTF-8
+    assert String.replace_invalid("こんにちは") === "こんにちは"
+
+    # 2/3 byte truncated "ề"
+    assert String.replace_invalid(<<225, 187>>) === "�"
+    assert String.replace_invalid("nem rán b" <> <<225, 187>> <> " bề") === "nem rán b� bề"
+
+    # 2/4 byte truncated "😔"
+    assert String.replace_invalid(<<240, 159>>) === "�"
+    assert String.replace_invalid("It's so over " <> <<240, 159>>) === "It's so over �"
+
+    # 3/4 byte truncated "😃"
+    assert String.replace_invalid(<<240, 159, 152>>) === "�"
+    assert String.replace_invalid("We're so back " <> <<240, 159, 152>>) === "We're so back �"
+
+    # 3 byte overlong "e"
+    assert String.replace_invalid(<<0b11100000, 0b10000001, 0b10100101>>) === "���"
   end
 
   test "chunk/2 with :valid trait" do
@@ -899,6 +975,9 @@ defmodule StringTest do
 
     three = fn -> "3" end
     assert_raise ArgumentError, fn -> String.to_float(three.()) end
+
+    dot_three = fn -> ".3" end
+    assert_raise ArgumentError, fn -> String.to_float(dot_three.()) end
   end
 
   test "jaro_distance/2" do
@@ -910,7 +989,7 @@ defmodule StringTest do
     assert String.jaro_distance("marhha", "martha") == 0.888888888888889
     assert String.jaro_distance("dwayne", "duane") == 0.8222222222222223
     assert String.jaro_distance("dixon", "dicksonx") == 0.7666666666666666
-    assert String.jaro_distance("xdicksonx", "dixon") == 0.7851851851851852
+    assert String.jaro_distance("xdicksonx", "dixon") == 0.7518518518518519
     assert String.jaro_distance("shackleford", "shackelford") == 0.9696969696969697
     assert String.jaro_distance("dunningham", "cunnigham") == 0.8962962962962964
     assert String.jaro_distance("nichleson", "nichulson") == 0.9259259259259259
@@ -927,6 +1006,7 @@ defmodule StringTest do
     assert String.jaro_distance("jon", "john") == 0.9166666666666666
     assert String.jaro_distance("jon", "jan") == 0.7777777777777777
     assert String.jaro_distance("семена", "стремя") == 0.6666666666666666
+    assert String.jaro_distance("Sunday", "Saturday") == 0.7194444444444444
   end
 
   test "myers_difference/2" do

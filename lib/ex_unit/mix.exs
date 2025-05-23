@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule ExUnit.MixProject do
   use Mix.Project
 
@@ -30,10 +34,12 @@ defmodule ExUnit.MixProject do
         rand_algorithm: :exsss,
         refute_receive_timeout: 100,
         slowest: 0,
+        slowest_modules: 0,
         stacktrace_depth: 20,
         timeout: 60000,
         trace: false,
-        after_suite: []
+        after_suite: [],
+        repeat_until_failure: 0
       ]
     ]
   end

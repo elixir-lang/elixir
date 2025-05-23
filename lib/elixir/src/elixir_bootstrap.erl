@@ -1,3 +1,7 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 %% An Erlang module that behaves like an Elixir module
 %% used for bootstrapping.
 -module(elixir_bootstrap).
@@ -18,9 +22,9 @@
 'MACRO-defmacro'(Caller, Call, Expr) -> define(Caller, defmacro, Call, Expr).
 'MACRO-defmacrop'(Caller, Call, Expr) -> define(Caller, defmacrop, Call, Expr).
 
-'MACRO-defmodule'(_Caller, Alias, [{do, Block}]) ->
+'MACRO-defmodule'({Line, _S, _E} = _Caller, Alias, [{do, Block}]) ->
   Escaped = elixir_quote:escape(Block, none, false),
-  Args = [Alias, Escaped, [], false, env()],
+  Args = [[{line, Line}], Alias, Escaped, [], false, env()],
   {{'.', [], [elixir_module, compile]}, [], Args}.
 
 '__info__'(functions) ->
@@ -50,7 +54,7 @@ define({Line, _S, #{module := Module} = E}, Kind, Call, Expr) ->
         Key
     end,
 
-  Args = [Kind, Store, elixir_locals:cache_env(E#{line := Line})],
+  Args = [Kind, Store, elixir_module:cache_env(E#{line := Line})],
   {{'.', [], [elixir_def, store_definition]}, [], Args}.
 
 unless_loaded(Fun, Args, Callback) ->

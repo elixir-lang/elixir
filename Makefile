@@ -1,12 +1,16 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 PREFIX ?= /usr/local
 TEST_FILES ?= "*_test.exs"
 SHARE_PREFIX ?= $(PREFIX)/share
 MAN_PREFIX ?= $(SHARE_PREFIX)/man
-#CANONICAL := MAJOR.MINOR/
-CANONICAL ?= main/
+CANONICAL := main/
 ELIXIRC := bin/elixirc --ignore-module-conflict $(ELIXIRC_OPTS)
+ELIXIRC_MIN_SIG := $(ELIXIRC) -e 'Code.put_compiler_option :infer_signatures, []'
 ERLC := erlc -I lib/elixir/include
-ERL_MAKE := if [ -n "$(ERLC_OPTS)" ]; then ERL_COMPILER_OPTIONS=$(ERLC_OPTS) erl -make; else erl -make; fi
+ERL_MAKE := erl -make
 ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
 GENERATE_APP := $(CURDIR)/lib/elixir/scripts/generate_app.escript
 VERSION := $(strip $(shell cat VERSION))
@@ -18,19 +22,19 @@ INSTALL_DIR = $(INSTALL) -m755 -d
 INSTALL_DATA = $(INSTALL) -m644
 INSTALL_PROGRAM = $(INSTALL) -m755
 GIT_REVISION = $(strip $(shell git rev-parse HEAD 2> /dev/null ))
-GIT_TAG = $(strip $(shell head="$(call GIT_REVISION)"; git tag --points-at $$head 2> /dev/null | tail -1) )
+GIT_TAG = $(strip $(shell head="$(call GIT_REVISION)"; git tag --points-at $$head 2> /dev/null | grep -v latest | tail -1))
 SOURCE_DATE_EPOCH_PATH = lib/elixir/tmp/ebin_reproducible
 SOURCE_DATE_EPOCH_FILE = $(SOURCE_DATE_EPOCH_PATH)/SOURCE_DATE_EPOCH
 
-.PHONY: install compile erlang elixir unicode app build_plt clean_plt dialyze test check_reproducible clean clean_residual_files format install_man clean_man docs Docs.zip Precompiled.zip zips
+.PHONY: cover install install_man build_plt clean_plt dialyze test check_reproducible clean clean_elixir clean_man format docs Docs.zip Precompiled.zip zips
 .NOTPARALLEL:
 
 #==> Functions
 
 define CHECK_ERLANG_RELEASE
-	erl -noshell -eval '{V,_} = string:to_integer(erlang:system_info(otp_release)), io:fwrite("~s", [is_integer(V) and (V >= 24)])' -s erlang halt | grep -q '^true'; \
+	erl -noshell -eval '{V,_} = string:to_integer(erlang:system_info(otp_release)), io:fwrite("~s", [is_integer(V) and (V >= 26)])' -s erlang halt | grep -q '^true'; \
 		if [ $$? != 0 ]; then \
-		  echo "At least Erlang/OTP 24.0 is required to build Elixir"; \
+		  echo "At least Erlang/OTP 26.0 is required to build Elixir"; \
 		  exit 1; \
 		fi
 endef
@@ -49,6 +53,10 @@ lib/$(1)/ebin/Elixir.$(2).beam: $(wildcard lib/$(1)/lib/*.ex) $(wildcard lib/$(1
 test_$(1): test_formatted $(1)
 	@ echo "==> $(1) (ex_unit)"
 	$(Q) cd lib/$(1) && ../../bin/elixir -r "test/test_helper.exs" -pr "test/**/$(TEST_FILES)";
+
+cover/ex_unit_$(1).coverdata:
+	$(Q) COVER="1" $(MAKE) test_$(1)
+cover/combined.coverdata: cover/ex_unit_$(1).coverdata
 endef
 
 define WRITE_SOURCE_DATE_EPOCH
@@ -66,17 +74,21 @@ endef
 #==> Compilation tasks
 
 APP := lib/elixir/ebin/elixir.app
+EEX := lib/eex/ebin/Elixir.EEx.beam
+ELIXIR := lib/elixir/ebin/elixir.beam
 PARSER := lib/elixir/src/elixir_parser.erl
 KERNEL := lib/elixir/ebin/Elixir.Kernel.beam
 UNICODE := lib/elixir/ebin/Elixir.String.Unicode.beam
 
 default: compile
 
-compile: erlang $(APP) elixir
+compile: erlang elixir
 
-erlang: $(PARSER)
+erlang: $(ELIXIR)
+$(ELIXIR): $(PARSER) lib/elixir/src/*
 	$(Q) if [ ! -f $(APP) ]; then $(call CHECK_ERLANG_RELEASE); fi
 	$(Q) cd lib/elixir && mkdir -p ebin && $(ERL_MAKE)
+	$(Q) $(GENERATE_APP) $(VERSION)
 
 $(PARSER): lib/elixir/src/elixir_parser.yrl
 	$(Q) erlc -o $@ +'{verbose,true}' +'{report,true}' $<
@@ -84,29 +96,27 @@ $(PARSER): lib/elixir/src/elixir_parser.yrl
 # Since Mix depends on EEx and EEx depends on Mix,
 # we first compile EEx without the .app file,
 # then Mix, and then compile EEx fully
-elixir: stdlib lib/eex/ebin/Elixir.EEx.beam mix ex_unit logger eex iex
+elixir: stdlib $(EEX) mix ex_unit logger eex iex
+stdlib: $(KERNEL) $(UNICODE) $(APP)
 
-stdlib: $(KERNEL) VERSION
-$(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex lib/elixir/lib/*/*/*.ex
+$(KERNEL): lib/elixir/src/* lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex lib/elixir/lib/*/*/*.ex VERSION
 	$(Q) if [ ! -f $(KERNEL) ]; then \
 		echo "==> bootstrap (compile)"; \
 		$(ERL) -s elixir_compiler bootstrap -s erlang halt; \
+		"$(MAKE)" unicode; \
 	fi
-	$(Q) "$(MAKE)" unicode
 	@ echo "==> elixir (compile)";
-	$(Q) cd lib/elixir && ../../$(ELIXIRC) "lib/**/*.ex" -o ebin;
-	$(Q) "$(MAKE)" app
+	$(Q) cd lib/elixir && ../../$(ELIXIRC_MIN_SIG) "lib/**/*.ex" -o ebin;
 
-app: $(APP)
 $(APP): lib/elixir/src/elixir.app.src lib/elixir/ebin VERSION $(GENERATE_APP)
-	$(Q) $(GENERATE_APP) $< $@ $(VERSION)
+	$(Q) $(GENERATE_APP) $(VERSION)
 
 unicode: $(UNICODE)
 $(UNICODE): lib/elixir/unicode/*
 	@ echo "==> unicode (compile)";
-	$(Q) $(ELIXIRC) lib/elixir/unicode/unicode.ex -o lib/elixir/ebin;
-	$(Q) $(ELIXIRC) lib/elixir/unicode/security.ex -o lib/elixir/ebin;
-	$(Q) $(ELIXIRC) lib/elixir/unicode/tokenizer.ex -o lib/elixir/ebin;
+	$(Q) $(ELIXIRC_MIN_SIG) lib/elixir/unicode/unicode.ex -o lib/elixir/ebin;
+	$(Q) $(ELIXIRC_MIN_SIG) lib/elixir/unicode/tokenizer.ex -o lib/elixir/ebin;
+	$(Q) $(ELIXIRC_MIN_SIG) lib/elixir/unicode/security.ex -o lib/elixir/ebin;
 
 $(eval $(call APP_TEMPLATE,ex_unit,ExUnit))
 $(eval $(call APP_TEMPLATE,logger,Logger))
@@ -145,6 +155,7 @@ check_reproducible: compile
 	$(Q) mv lib/iex/ebin/* lib/iex/tmp/ebin_reproducible/
 	$(Q) mv lib/logger/ebin/* lib/logger/tmp/ebin_reproducible/
 	$(Q) mv lib/mix/ebin/* lib/mix/tmp/ebin_reproducible/
+	$(Q) rm -rf lib/*/ebin
 	SOURCE_DATE_EPOCH=$(call READ_SOURCE_DATE_EPOCH) "$(MAKE)" compile
 	$(Q) echo "Diffing..."
 	$(Q) bin/elixir lib/elixir/scripts/diff.exs lib/elixir/ebin/ lib/elixir/tmp/ebin_reproducible/
@@ -155,16 +166,10 @@ check_reproducible: compile
 	$(Q) bin/elixir lib/elixir/scripts/diff.exs lib/mix/ebin/ lib/mix/tmp/ebin_reproducible/
 	$(Q) echo "Builds are reproducible"
 
-clean:
+clean: clean_man
 	rm -rf ebin
 	rm -rf lib/*/ebin
 	rm -rf $(PARSER)
-	$(Q) "$(MAKE)" clean_residual_files
-
-clean_elixir:
-	$(Q) rm -f lib/*/ebin/Elixir.*.beam
-
-clean_residual_files:
 	rm -rf lib/*/_build/
 	rm -rf lib/*/tmp/
 	rm -rf lib/elixir/test/ebin/
@@ -174,13 +179,15 @@ clean_residual_files:
 	rm -rf lib/mix/test/fixtures/git_sparse_repo/
 	rm -rf lib/mix/test/fixtures/archive/ebin/
 	rm -f erl_crash.dump
-	$(Q) "$(MAKE)" clean_man
+	rm -rf cover
+
+clean_elixir:
+	$(Q) rm -f lib/*/ebin/Elixir.*.beam
 
 #==> Documentation tasks
 
-LOGO_PATH = $(shell test -f ../docs/logo.png && echo "--logo ../docs/logo.png")
 SOURCE_REF = $(shell tag="$(call GIT_TAG)" revision="$(call GIT_REVISION)"; echo "$${tag:-$$revision}")
-DOCS_COMPILE = CANONICAL=$(CANONICAL) bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" --main "$(3)" --source-url "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" $(call LOGO_PATH) --output doc/$(2) --canonical "https://hexdocs.pm/$(2)/$(CANONICAL)" --homepage-url "https://elixir-lang.org/docs.html" $(4)
+DOCS_COMPILE = CANONICAL=$(CANONICAL) bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" --main "$(3)" --source-url "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" --logo lib/elixir/pages/images/logo.png --output doc/$(2) --canonical "https://hexdocs.pm/$(2)/$(CANONICAL)" --homepage-url "https://elixir-lang.org/docs.html" $(DOCS_OPTIONS) $(4)
 DOCS_CONFIG = bin/elixir lib/elixir/scripts/docs_config.exs "$(1)"
 
 docs: compile ../ex_doc/bin/ex_doc docs_elixir docs_eex docs_mix docs_iex docs_ex_unit docs_logger
@@ -190,7 +197,6 @@ docs_elixir: compile ../ex_doc/bin/ex_doc
 	$(Q) rm -rf doc/elixir
 	$(call DOCS_COMPILE,Elixir,elixir,Kernel,--config "lib/elixir/scripts/elixir_docs.exs")
 	$(call DOCS_CONFIG,elixir)
-	cp -R lib/elixir/pages/images doc/elixir
 
 docs_eex: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (eex)"
@@ -223,19 +229,19 @@ docs_logger: compile ../ex_doc/bin/ex_doc
 	$(call DOCS_CONFIG,logger)
 
 ../ex_doc/bin/ex_doc:
-	@ echo "ex_doc is not found in ../ex_doc as expected. See README for more information."
+	@ echo "ex_doc is not found in ../ex_doc as expected. See CONTRIBUTING.md for more information."
 	@ false
 
 #==> Zip tasks
 
 Docs.zip: docs
 	rm -f Docs.zip
-	zip -9 -r Docs.zip CHANGELOG.md doc NOTICE LICENSE README.md
+	zip -9 -r Docs.zip CHANGELOG.md doc LICENSE README.md
 	@ echo "Docs file created $(CURDIR)/Docs.zip"
 
 Precompiled.zip: build_man compile
 	rm -f Precompiled.zip
-	zip -9 -r Precompiled.zip bin CHANGELOG.md lib/*/ebin lib/*/lib LICENSE Makefile man NOTICE README.md VERSION
+	zip -9 -r Precompiled.zip bin CHANGELOG.md lib/*/ebin lib/*/lib LICENSE Makefile man README.md VERSION
 	@ echo "Precompiled file created $(CURDIR)/Precompiled.zip"
 
 #==> Test tasks
@@ -286,6 +292,15 @@ test_stdlib: compile
 		cd lib/elixir && ../../bin/elixir --sname primary -r "test/elixir/test_helper.exs" -pr "test/elixir/**/$(TEST_FILES)"; \
 	fi
 
+cover/ex_unit_elixir.coverdata:
+	$(Q) COVER="1" $(MAKE) test_stdlib
+cover/combined.coverdata: cover/ex_unit_elixir.coverdata
+
+cover/combined.coverdata:
+	bin/elixir ./lib/elixir/scripts/cover.exs
+
+cover: cover/combined.coverdata
+
 #==> Dialyzer tasks
 
 DIALYZER_OPTS = --no_check_plt --fullpath -Werror_handling -Wunmatched_returns -Wunderspecs
@@ -308,17 +323,15 @@ dialyze: compile $(PLT)
 
 build_man: man/iex.1 man/elixir.1
 
-man/iex.1:
-	$(Q) cp man/iex.1.in man/iex.1
-	$(Q) sed -i.bak "/{COMMON}/r man/common" man/iex.1
-	$(Q) sed -i.bak "/{COMMON}/d" man/iex.1
-	$(Q) rm -f man/iex.1.bak
+define BUILD_MANPAGES
+man/$(APP).1:
+	$(Q) cp man/$(APP).1.in man/$(APP).1
+	$(Q) sed -i.bak "/{COMMON}/r man/common" man/$(APP).1
+	$(Q) sed -i.bak "/{COMMON}/d" man/$(APP).1
+	$(Q) rm -f man/$(APP).1.bak
+endef
 
-man/elixir.1:
-	$(Q) cp man/elixir.1.in man/elixir.1
-	$(Q) sed -i.bak "/{COMMON}/r man/common" man/elixir.1
-	$(Q) sed -i.bak "/{COMMON}/d" man/elixir.1
-	$(Q) rm -f man/elixir.1.bak
+$(foreach APP, elixir iex, $(eval $(BUILD_MANPAGES)))
 
 clean_man:
 	rm -f man/elixir.1

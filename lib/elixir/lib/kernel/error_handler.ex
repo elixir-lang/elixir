@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 # Implement error_handler pattern for Erlang
 # which is integrated with Kernel.ParallelCompiler
 defmodule Kernel.ErrorHandler do
@@ -37,7 +41,15 @@ defmodule Kernel.ErrorHandler do
     :erlang.garbage_collect(self())
 
     receive do
-      {^ref, value} -> value
+      {^ref, {:loading, pid}} ->
+        ref = :erlang.monitor(:process, pid)
+
+        receive do
+          {:DOWN, ^ref, _, _, _} -> :found
+        end
+
+      {^ref, value} ->
+        value
     end
   end
 end

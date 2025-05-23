@@ -1,3 +1,7 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 {'src/*', [
   warn_unused_vars,
   warn_export_all,
@@ -9,8 +13,8 @@
   warn_deprecated_function,
   warn_obsolete_guard,
   warn_exported_vars,
-  %% warn_missing_spec,
-  %% warn_untyped_record,
+  %% Enable this when we require Erlang/OTP 27+
+  %% warnings_as_errors,
   debug_info,
   {outdir, "ebin/"}
 ]}.

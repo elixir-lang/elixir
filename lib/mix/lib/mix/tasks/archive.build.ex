@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Tasks.Archive.Build do
   use Mix.Task
 
@@ -63,7 +67,7 @@ defmodule Mix.Tasks.Archive.Build do
     if project && Keyword.get(opts, :compile, true) do
       # We only care about the archive ebin, so we disable protocol
       # consolidation to avoid further changes to the environment.
-      Mix.Task.run(:compile, ["--no-protocol-consolidation" | args])
+      Mix.Task.run(:compile, ["--no-consolidate-protocols" | args])
     end
 
     source =
@@ -100,7 +104,7 @@ defmodule Mix.Tasks.Archive.Build do
           Mix.raise("Cannot create archive without output file, please pass -o as an option")
       end
 
-    unless File.dir?(source) do
+    if not File.dir?(source) do
       Mix.raise("Expected archive source #{inspect(source)} to be a directory")
     end
 

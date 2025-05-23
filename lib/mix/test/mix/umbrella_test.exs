@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Mix.UmbrellaTest do
@@ -272,10 +276,27 @@ defmodule Mix.UmbrellaTest do
   test "compile for umbrella as dependency" do
     in_fixture("umbrella_dep", fn ->
       Mix.Project.in_project(:umbrella_dep, ".", fn _ ->
-        Mix.Task.run("deps.compile")
+        Mix.Task.run("compile")
         assert Bar.bar() == "hello world"
       end)
     end)
+  end
+
+  test "compile for umbrella as dependency with os partitions" do
+    System.put_env("MIX_OS_DEPS_COMPILE_PARTITION_COUNT", "2")
+
+    in_fixture("umbrella_dep", fn ->
+      Mix.Project.in_project(:umbrella_dep, ".", fn _ ->
+        output = ExUnit.CaptureIO.capture_io(fn -> Mix.Task.run("compile") end)
+        assert output =~ ~r/\d> :foo env is prod/
+        assert output =~ ~r/\d> :bar env is prod/
+
+        assert_received {:mix_shell, :info, ["mix deps.compile running across 2 OS processes"]}
+        assert Bar.bar() == "hello world"
+      end)
+    end)
+  after
+    System.delete_env("MIX_OS_DEPS_COMPILE_PARTITION_COUNT")
   end
 
   defmodule CycleDeps do
@@ -347,14 +368,14 @@ defmodule Mix.UmbrellaTest do
           def project do
             [app: :bar,
              version: "0.1.0",
-             aliases: ["compile.all": fn _ -> Mix.shell().info "no compile bar" end]]
+             aliases: ["compile.elixir": fn _ -> Mix.shell().info "no compile bar" end]]
           end
         end
         """)
 
         Mix.Task.run("compile", ["--verbose"])
         assert_receive {:mix_shell, :info, ["no compile bar"]}
-        refute_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+        refute_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}, 100
       end)
     end)
   end
@@ -569,17 +590,14 @@ defmodule Mix.UmbrellaTest do
 
         Mix.Task.run("compile")
         assert File.regular?("_build/dev/lib/bar/consolidated/Elixir.Foo.beam")
-        assert Mix.Tasks.Compile.Protocols.run([]) == :noop
+        assert Mix.Tasks.Compile.Elixir.run([]) == {:noop, []}
 
         # Mark protocol as outdated
         File.touch!("_build/dev/lib/bar/consolidated/Elixir.Foo.beam", {{2010, 1, 1}, {0, 0, 0}})
-
-        ensure_touched(
-          "_build/dev/lib/foo/ebin/Elixir.Foo.beam",
-          "_build/dev/lib/bar/.mix/compile.protocols"
-        )
-
-        assert Mix.Tasks.Compile.Protocols.run([]) == :ok
+        force_recompilation("../foo/lib/foo.ex")
+        ensure_touched("../foo/lib/foo.ex", "_build/dev/lib/bar/.mix/compile.elixir")
+        Mix.Task.clear()
+        Mix.Task.run("compile")
 
         # Check new timestamp
         mtime = File.stat!("_build/dev/lib/bar/consolidated/Elixir.Foo.beam").mtime

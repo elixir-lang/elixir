@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Tasks.Run do
   use Mix.Task
 
@@ -21,7 +25,7 @@ defmodule Mix.Tasks.Run do
       $ mix run -e "DbUtils.delete_old_records()" -- arg1 arg2 arg3
 
   In both cases, the command-line arguments for the script or expression
-  are available in `System.argv/0`. This mirror the command line interface
+  are available in `System.argv/0`. This mirrors the command line interface
   in the `elixir` executable.
 
   For starting long running systems, one typically passes the `--no-halt`
@@ -53,6 +57,7 @@ defmodule Mix.Tasks.Run do
     * `--no-deps-check` - does not check dependencies
     * `--no-elixir-version-check` - does not check the Elixir version from mix.exs
     * `--no-halt` - does not halt the system after running the command
+    * `--no-listeners` - does not start Mix listeners
     * `--no-mix-exs` - allows the command to run even if there is no mix.exs
     * `--no-start` - does not start applications after compilation
 
@@ -73,6 +78,7 @@ defmodule Mix.Tasks.Run do
           halt: :boolean,
           compile: :boolean,
           deps_check: :boolean,
+          listeners: :boolean,
           start: :boolean,
           archives_check: :boolean,
           elixir_version_check: :boolean,
@@ -83,7 +89,7 @@ defmodule Mix.Tasks.Run do
       )
 
     run(args, opts, head, &Code.eval_string/1, &Code.require_file/1)
-    unless Keyword.get(opts, :halt, true), do: System.no_halt(true)
+    if not Keyword.get(opts, :halt, true), do: System.no_halt(true)
     Mix.Task.reenable("run")
     :ok
   end
@@ -170,7 +176,7 @@ defmodule Mix.Tasks.Run do
     require_runner =
       if opts[:parallel] do
         fn files ->
-          case Kernel.ParallelCompiler.require(files) do
+          case Kernel.ParallelCompiler.require(files, return_diagnostics: true) do
             {:ok, _, _} -> :ok
             {:error, _, _} -> exit({:shutdown, 1})
           end

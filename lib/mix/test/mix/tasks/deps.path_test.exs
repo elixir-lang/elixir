@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.DepsPathTest do
@@ -25,16 +29,6 @@ defmodule Mix.Tasks.DepsPathTest do
         ]
       ]
     end
-  end
-
-  @tag apps: [:raw_sample]
-  test "does not mark for compilation on get/update" do
-    in_fixture("deps_status", fn ->
-      Mix.Project.push(DepsApp)
-
-      Mix.Tasks.Deps.Get.run(["--all"])
-      refute File.exists?("custom/raw_repo/.fetch")
-    end)
   end
 
   @tag apps: [:raw_sample]

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 [
   inputs: [
     "lib/*/{lib,scripts,unicode,test}/**/*.{ex,exs}",
@@ -13,7 +17,9 @@
     assert_same: 2,
 
     # Errors tests
-    assert_eval_raise: 3
-  ],
-  normalize_bitstring_modifiers: false
+    assert_eval_raise: 3,
+
+    # Float tests
+    float_assert: 1
+  ]
 ]

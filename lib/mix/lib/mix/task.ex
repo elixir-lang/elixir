@@ -1,12 +1,22 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Task do
   @moduledoc """
   Provides conveniences for creating, loading, and manipulating Mix tasks.
 
-  A Mix task can be defined by `use Mix.Task` in a module whose name
-  begins with `Mix.Tasks.` and which defines the `run/1` function.
+  To create a new Mix task, you'll need to:
+
+    1. Create a module whose name begins with `Mix.Tasks.` (for example,
+       `Mix.Tasks.MyTask`).
+    2. Call `use Mix.Task` in that module.
+    3. Implement the `Mix.Task` behaviour in that module (that is,
+       implement the `c:run/1` callback).
+
   Typically, task modules live inside the `lib/mix/tasks/` directory,
   and their file names use dot separators instead of underscores
-  (e.g. `deps.clean.ex`) - although ultimately the file name is not
+  (for example, `deps.clean.ex`) - although ultimately the file name is not
   relevant.
 
   For example:
@@ -69,14 +79,22 @@ defmodule Mix.Task do
 
       @requirements ["app.config"]
 
-  Tasks typically depend on the `"app.config"` task, when they
-  need to access code from the current project with all apps
-  already configured, or the "app.start" task, when they also
-  need those apps to be already started:
+  A task will typically depend on one of the following tasks:
 
-      @requirements ["app.start"]
+    * ["loadpaths"](`Mix.Tasks.Loadpaths`) - this ensures
+      dependencies are available and compiled. If you are publishing
+      a task as part of a library to be used by others, and your
+      task does not need to interact with the user code in any way,
+      this is the recommended requirement
 
-  You can also run tasks directly with `run/2`.
+    * ["app.config"](`Mix.Tasks.App.Config`) - additionally compiles
+      and load the runtime configuration for the current project. If
+      you are creating a task to be used within your application or
+      as part of a library, which must invoke or interact with the
+      user code, this is the minimum recommended requirement
+
+    * ["app.start"](`Mix.Tasks.App.Start`) - additionally starts the
+      supervision tree of the current project and its dependencies
 
   ### `@recursive`
 
@@ -97,7 +115,18 @@ defmodule Mix.Task do
   shown is the `@moduledoc` of the task's module.
   """
 
+  @typedoc """
+  The name of a task.
+
+  For example, `"deps.clean"` or `:"deps.clean"`.
+  """
   @type task_name :: String.t() | atom
+
+  @typedoc """
+  The module that implements a Mix task.
+
+  For example, `Mix.Tasks.MyTask`.
+  """
   @type task_module :: atom
 
   @doc """
@@ -231,6 +260,9 @@ defmodule Mix.Task do
     Mix.ProjectStack.recursing() != nil
   end
 
+  @doc """
+  Available for backwards compatibility.
+  """
   @deprecated "Configure the environment in your mix.exs"
   defdelegate preferred_cli_env(task), to: Mix.CLI
 
@@ -369,7 +401,7 @@ defmodule Mix.Task do
   @doc since: "1.14.0"
   @spec run_in_apps(task_name, [atom], [any]) :: any
   def run_in_apps(task, apps, args \\ []) do
-    unless Mix.Project.umbrella?() do
+    if !Mix.Project.umbrella?() do
       Mix.raise(
         "Could not run #{inspect(task)} with the --app option because this is not an umbrella project"
       )
@@ -484,14 +516,29 @@ defmodule Mix.Task do
   end
 
   defp with_debug(task, args, proj, fun) do
-    if Mix.debug?() do
-      shell = Mix.shell()
-      shell.info(["-> Running mix ", task_to_string(task, args), project_to_string(proj)])
-      {time, res} = :timer.tc(fun)
-      shell.info(["<- Ran mix ", task, " in ", Integer.to_string(div(time, 1000)), "ms"])
-      res
-    else
-      fun.()
+    cond do
+      Mix.debug?() ->
+        shell = Mix.shell()
+        shell.info(["-> Running mix ", task_to_string(task, args), project_to_string(proj)])
+        {time, res} = :timer.tc(fun)
+        shell.info(["<- Ran mix ", task, " in ", Integer.to_string(div(time, 1000)), "ms"])
+        res
+
+      opts = profile_opts_for(task) ->
+        shell = Mix.shell()
+        shell.info(["-> Profiling mix ", task_to_string(task, args), project_to_string(proj)])
+        Mix.Tasks.Profile.Tprof.profile(fun, opts)
+
+      true ->
+        fun.()
+    end
+  end
+
+  defp profile_opts_for(task) do
+    {opts, tasks} = Mix.State.get(:profile, {[], []})
+
+    if task in tasks do
+      opts
     end
   end
 

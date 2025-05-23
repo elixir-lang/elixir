@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule IEx.HelpersTest do
@@ -13,9 +17,9 @@ defmodule IEx.HelpersTest do
     end
 
     test "shows current location for custom envs" do
-      whereami = capture_iex("whereami()", [], env: %{__ENV__ | line: 3})
-      assert whereami =~ "test/iex/helpers_test.exs:3"
-      assert whereami =~ "3: defmodule IEx.HelpersTest do"
+      whereami = capture_iex("whereami()", [], env: %{__ENV__ | line: 7})
+      assert whereami =~ "test/iex/helpers_test.exs:7"
+      assert whereami =~ "7: defmodule IEx.HelpersTest do"
     end
 
     test "prints message when location is not available" do
@@ -35,45 +39,45 @@ defmodule IEx.HelpersTest do
     end
 
     test "sets up a breakpoint with capture syntax" do
-      assert break!(URI.decode_query() / 2) == 1
-      assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 1}]
+      assert break!(PryExampleModule.two() / 2) == 1
+      assert IEx.Pry.breaks() == [{1, PryExampleModule, {:two, 2}, 1}]
     end
 
     test "sets up a breakpoint with call syntax" do
-      assert break!(URI.decode_query(_, %{})) == 1
-      assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 1}]
+      assert break!(PryExampleModule.two(_, %{})) == 1
+      assert IEx.Pry.breaks() == [{1, PryExampleModule, {:two, 2}, 1}]
     end
 
     test "sets up a breakpoint with guards syntax" do
-      assert break!(URI.decode_query(_, map) when is_map(map)) == 1
-      assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 1}]
+      assert break!(PryExampleModule.two(_, map) when is_map(map)) == 1
+      assert IEx.Pry.breaks() == [{1, PryExampleModule, {:two, 2}, 1}]
     end
 
     test "sets up a breakpoint on the given module" do
-      assert break!(URI, :decode_query, 2) == 1
-      assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 1}]
+      assert break!(PryExampleModule, :two, 2) == 1
+      assert IEx.Pry.breaks() == [{1, PryExampleModule, {:two, 2}, 1}]
     end
 
     test "resets breaks on the given ID" do
-      assert break!(URI, :decode_query, 2) == 1
+      assert break!(PryExampleModule, :two, 2) == 1
       assert reset_break(1) == :ok
-      assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 0}]
+      assert IEx.Pry.breaks() == [{1, PryExampleModule, {:two, 2}, 0}]
     end
 
     test "resets breaks on the given module" do
-      assert break!(URI, :decode_query, 2) == 1
-      assert reset_break(URI, :decode_query, 2) == :ok
-      assert IEx.Pry.breaks() == [{1, URI, {:decode_query, 2}, 0}]
+      assert break!(PryExampleModule, :two, 2) == 1
+      assert reset_break(PryExampleModule, :two, 2) == :ok
+      assert IEx.Pry.breaks() == [{1, PryExampleModule, {:two, 2}, 0}]
     end
 
     test "removes breaks in the given module" do
-      assert break!(URI.decode_query() / 2) == 1
-      assert remove_breaks(URI) == :ok
+      assert break!(PryExampleModule.two() / 2) == 1
+      assert remove_breaks(PryExampleModule) == :ok
       assert IEx.Pry.breaks() == []
     end
 
     test "removes breaks on all modules" do
-      assert break!(URI.decode_query() / 2) == 1
+      assert break!(PryExampleModule.two() / 2) == 1
       assert remove_breaks() == :ok
       assert IEx.Pry.breaks() == []
     end
@@ -81,7 +85,7 @@ defmodule IEx.HelpersTest do
     test "errors when setting up a breakpoint with invalid guard" do
       assert capture_io(:stderr, fn ->
                assert_raise CompileError, fn ->
-                 break!(URI.decode_query(_, map) when is_whatever(map))
+                 break!(PryExampleModule.two(_, map) when is_whatever(map))
                end
              end) =~ "cannot find or invoke local is_whatever/1"
     end
@@ -94,44 +98,44 @@ defmodule IEx.HelpersTest do
 
     test "errors when setting up a break for unknown function" do
       assert_raise RuntimeError,
-                   "could not set breakpoint, unknown function/macro URI.unknown/2",
-                   fn -> break!(URI, :unknown, 2) end
+                   "could not set breakpoint, unknown function/macro #{inspect(PryExampleModule)}.unknown/2",
+                   fn -> break!(PryExampleModule, :unknown, 2) end
     end
 
     test "errors for non-Elixir modules" do
       assert_raise RuntimeError,
-                   "could not set breakpoint, module :elixir was not written in Elixir",
-                   fn -> break!(:elixir, :unknown, 2) end
+                   "could not set breakpoint, module :maps was not written in Elixir",
+                   fn -> break!(:maps, :unknown, 2) end
     end
 
     test "prints table with breaks" do
-      break!(URI, :decode_query, 2)
+      break!(PryExampleModule, :two, 2)
 
       assert capture_io(fn -> breaks() end) == """
 
-              ID   Module.function/arity   Pending stops
-             ---- ----------------------- ---------------
-              1    URI.decode_query/2      1
+              ID   Module.function/arity    Pending stops
+             ---- ------------------------ ---------------
+              1    PryExampleModule.two/2   1
 
              """
 
-      assert capture_io(fn -> URI.decode_query("foo=bar", %{}) end) != ""
+      assert capture_io(fn -> PryExampleModule.two("foo=bar", %{}) end) != ""
 
       assert capture_io(fn -> breaks() end) == """
 
-              ID   Module.function/arity   Pending stops
-             ---- ----------------------- ---------------
-              1    URI.decode_query/2      0
+              ID   Module.function/arity    Pending stops
+             ---- ------------------------ ---------------
+              1    PryExampleModule.two/2   0
 
              """
 
-      assert capture_io(fn -> URI.decode_query("foo=bar", %{}) end) == ""
+      assert capture_io(fn -> PryExampleModule.two("foo=bar", %{}) end) == ""
 
       assert capture_io(fn -> breaks() end) == """
 
-              ID   Module.function/arity   Pending stops
-             ---- ----------------------- ---------------
-              1    URI.decode_query/2      0
+              ID   Module.function/arity    Pending stops
+             ---- ------------------------ ---------------
+              1    PryExampleModule.two/2   0
 
              """
     end
@@ -142,11 +146,13 @@ defmodule IEx.HelpersTest do
   end
 
   describe "open" do
+    @describetag :requires_source
     @iex_helpers "iex/lib/iex/helpers.ex"
     @elixir_erl "elixir/src/elixir.erl"
-    @lists_erl "#{:code.lib_dir(:stdlib, :src)}/lists.erl"
+    @lists_erl Application.app_dir(:stdlib, "src/lists.erl")
     @httpc_erl "src/http_client/httpc.erl"
     @editor System.get_env("ELIXIR_EDITOR")
+    @example_module_path "lib/iex/test/test_helper.exs"
 
     test "opens __FILE__ and __LINE__" do
       System.put_env("ELIXIR_EDITOR", "echo __LINE__:__FILE__")
@@ -158,39 +164,48 @@ defmodule IEx.HelpersTest do
     end
 
     test "opens Elixir module" do
-      assert capture_iex("open(IEx.Helpers)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:1$/
+      assert capture_iex("open(HelperExampleModule)") |> maybe_trim_quotes() =~
+               ~r/#{@example_module_path}:\d+$/
     end
 
+    @tag :require_ast
     test "opens function" do
       assert capture_iex("open(h)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:\d+$/
     end
 
+    @tag :require_ast
     test "opens function/arity" do
       assert capture_iex("open(b/1)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:\d+$/
       assert capture_iex("open(h/0)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:\d+$/
     end
 
     test "opens module.function" do
-      assert capture_iex("open(IEx.Helpers.b)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:\d+$/
-      assert capture_iex("open(IEx.Helpers.h)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:\d+$/
+      assert capture_iex("open(HelperExampleModule.fun)") |> maybe_trim_quotes() =~
+               ~r/#{@example_module_path}:\d+$/
+
+      assert capture_iex("open(HelperExampleModule.macro)") |> maybe_trim_quotes() =~
+               ~r/#{@example_module_path}:\d+$/
     end
 
     test "opens module.function/arity" do
-      assert capture_iex("open(IEx.Helpers.b/1)") |> maybe_trim_quotes() =~
-               ~r/#{@iex_helpers}:\d+$/
+      assert capture_iex("open(HelperExampleModule.fun/1)") |> maybe_trim_quotes() =~
+               ~r/#{@example_module_path}:\d+$/
 
-      assert capture_iex("open(IEx.Helpers.h/0)") |> maybe_trim_quotes() =~
-               ~r/#{@iex_helpers}:\d+$/
+      assert capture_iex("open(HelperExampleModule.macro/1)") |> maybe_trim_quotes() =~
+               ~r/#{@example_module_path}:\d+$/
     end
 
+    @tag :require_ast
     test "opens Erlang module" do
       assert capture_iex("open(:elixir)") |> maybe_trim_quotes() =~ ~r/#{@elixir_erl}:\d+$/
     end
 
+    @tag :require_ast
     test "opens Erlang module.function" do
       assert capture_iex("open(:elixir.start)") |> maybe_trim_quotes() =~ ~r/#{@elixir_erl}:\d+$/
     end
 
+    @tag :require_ast
     test "opens Erlang module.function/arity" do
       assert capture_iex("open(:elixir.start/2)") |> maybe_trim_quotes() =~
                ~r/#{@elixir_erl}:\d+$/
@@ -235,35 +250,35 @@ defmodule IEx.HelpersTest do
     end
 
     test "errors if module is not available" do
-      assert capture_iex("open(:unknown)") == "Could not open: :unknown. Module is not available."
+      assert capture_iex("open(:unknown)") == "Could not open :unknown, module is not available"
     end
 
     test "errors if module.function is not available" do
       assert capture_iex("open(:unknown.unknown)") ==
-               "Could not open: :unknown.unknown. Module is not available."
+               "Could not open :unknown.unknown, module is not available"
 
       assert capture_iex("open(:elixir.unknown)") ==
-               "Could not open: :elixir.unknown. Function/macro is not available."
+               "Could not open :elixir.unknown, function/macro is not available"
 
       assert capture_iex("open(:lists.unknown)") ==
-               "Could not open: :lists.unknown. Function/macro is not available."
+               "Could not open :lists.unknown, function/macro is not available"
 
       assert capture_iex("open(:httpc.unknown)") ==
-               "Could not open: :httpc.unknown. Function/macro is not available."
+               "Could not open :httpc.unknown, function/macro is not available"
     end
 
     test "errors if module.function/arity is not available" do
       assert capture_iex("open(:unknown.start/10)") ==
-               "Could not open: :unknown.start/10. Module is not available."
+               "Could not open :unknown.start/10, module is not available"
 
       assert capture_iex("open(:elixir.start/10)") ==
-               "Could not open: :elixir.start/10. Function/macro is not available."
+               "Could not open :elixir.start/10, function/macro is not available"
 
       assert capture_iex("open(:lists.reverse/10)") ==
-               "Could not open: :lists.reverse/10. Function/macro is not available."
+               "Could not open :lists.reverse/10, function/macro is not available"
 
       assert capture_iex("open(:httpc.request/10)") ==
-               "Could not open: :httpc.request/10. Function/macro is not available."
+               "Could not open :httpc.request/10, function/macro is not available"
     end
 
     test "errors if module is in-memory" do
@@ -289,7 +304,7 @@ defmodule IEx.HelpersTest do
 
     test "errors when given {file, line} is not available" do
       assert capture_iex("open({~s[foo], 3})") =~
-               "Could not open: \"foo\". File is not available."
+               "Could not open \"foo\", file is not available"
     end
 
     defp maybe_trim_quotes(string) do
@@ -332,20 +347,81 @@ defmodule IEx.HelpersTest do
       assert help =~ "Welcome to Interactive Elixir"
     end
 
+    @tag :erlang_doc
     test "prints Erlang module documentation" do
       captured = capture_io(fn -> h(:timer) end)
       assert captured =~ "This module provides useful functions related to time."
     end
 
+    @tag :erlang_doc
     test "prints Erlang module function specs" do
       captured = capture_io(fn -> h(:timer.sleep() / 1) end)
-      assert captured =~ ":timer.sleep/1"
-      assert captured =~ "-spec sleep(Time) -> ok when Time :: timeout()."
+
+      # TODO remove once we require Erlang/OTP 27+
+      if System.otp_release() < "27" do
+        assert captured =~ ":timer.sleep/1"
+        assert captured =~ "-spec sleep(Time) -> ok when Time :: timeout()."
+      else
+        assert captured =~ "sleep(Time)"
+        assert captured =~ "@spec sleep(time) :: :ok when time: "
+      end
     end
 
+    @tag :erlang_doc
     test "handles non-existing Erlang module function" do
       captured = capture_io(fn -> h(:timer.baz() / 1) end)
-      assert captured =~ "No documentation for :timer.baz was found"
+
+      # TODO remove once we require Erlang/OTP 27+
+      if System.otp_release() < "27" do
+        assert captured =~ "No documentation for :timer.baz was found"
+      else
+        assert captured =~ "No documentation for :timer.baz/1 was found"
+      end
+    end
+
+    @tag :erlang_doc
+    # TODO remove once we require Erlang/OTP 27+
+    @tag skip: System.otp_release() < "27"
+    test "erlang -moduledoc" do
+      filename = "sample.erl"
+
+      code = ~s'''
+      -module(sample).
+      -moduledoc "Module documentation.".
+      '''
+
+      with_file(filename, code, fn ->
+        assert c(filename, ".") == [:sample]
+
+        help = capture_iex("h(:sample)")
+        assert help =~ "Module documentation."
+      end)
+    after
+      cleanup_modules([:sample])
+    end
+
+    @tag :erlang_doc
+    # TODO remove once we require Erlang/OTP 27+
+    @tag skip: System.otp_release() < "27"
+    test "erlang -doc" do
+      filename = "sample.erl"
+
+      code = ~s'''
+      -module(sample).
+      -export([hello/0]).
+
+      -doc "Function documentation.".
+      hello() -> world.
+      '''
+
+      with_file(filename, code, fn ->
+        assert c(filename, ".") == [:sample]
+
+        help = capture_iex("h(:sample.hello)")
+        assert help =~ "Function documentation."
+      end)
+    after
+      cleanup_modules([:sample])
     end
 
     test "prints module documentation" do
@@ -802,7 +878,7 @@ defmodule IEx.HelpersTest do
 
       assert capture_io(fn -> b(NoMix.run()) end) == "Could not load module NoMix, got: nofile\n"
 
-      assert capture_io(fn -> b(Exception.message() / 1) end) ==
+      assert capture_io(fn -> b(Exception.message() / 1) end) =~
                "@callback message(t()) :: String.t()\n\n"
 
       assert capture_io(fn -> b(:gen_server.handle_cast() / 2) end) =~
@@ -1008,23 +1084,47 @@ defmodule IEx.HelpersTest do
       cleanup_modules([TypeSample])
     end
 
-    test "prints all types in erlang module" do
+    @tag :erlang_doc
+    test "prints all types in Erlang module" do
       captured = capture_io(fn -> t(:queue) end)
-      assert captured =~ "-type queue() :: queue(_)"
-      assert captured =~ "-opaque queue(Item)"
+
+      # TODO remove once we require Erlang/OTP 27+
+      if System.otp_release() < "27" do
+        assert captured =~ "-type queue() :: queue(_)"
+        assert captured =~ "-opaque queue(Item)"
+      else
+        assert captured =~ "@type queue() :: queue(_)"
+        assert captured =~ "@opaque queue(item)"
+      end
     end
 
-    test "prints single type from erlang module" do
+    @tag :erlang_doc
+    test "prints single type from Erlang module" do
       captured = capture_io(fn -> t(:erlang.iovec()) end)
-      assert captured =~ "-type iovec() :: [binary()]"
+
+      # TODO remove once we require Erlang/OTP 27+
+      if System.otp_release() < "27" do
+        assert captured =~ "-type iovec() :: [binary()]"
+      else
+        assert captured =~ "@type iovec() :: [binary()]"
+      end
+
       assert captured =~ "A list of binaries."
 
       captured = capture_io(fn -> t(:erlang.iovec() / 0) end)
-      assert captured =~ "-type iovec() :: [binary()]"
+
+      # TODO remove once we require Erlang/OTP 27+
+      if System.otp_release() < "27" do
+        assert captured =~ "-type iovec() :: [binary()]"
+      else
+        assert captured =~ "@type iovec() :: [binary()]"
+      end
+
       assert captured =~ "A list of binaries."
     end
 
-    test "handles non-existing types from erlang module" do
+    @tag :erlang_doc
+    test "handles non-existing types from Erlang module" do
       captured = capture_io(fn -> t(:erlang.foo()) end)
       assert captured =~ "No type information for :erlang.foo was found or :erlang.foo is private"
 
@@ -1041,6 +1141,29 @@ defmodule IEx.HelpersTest do
       assert capture_iex("1\n2\nv(2)") == "1\n2\n2"
       assert capture_iex("1\n2\nv(2)") == capture_iex("1\n2\nv(-1)")
       assert capture_iex("1\n2\nv(2)") == capture_iex("1\n2\nv()")
+    end
+
+    test "returns proper error when trying to access history out of bounds" do
+      # We evaluate 22 statements as 20 is the current limit for iex history
+      assert capture_iex("""
+             \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n
+             v(1)
+             """) =~
+               "(RuntimeError) v(1) is out of bounds, the currently preserved history ranges from 3 to 22"
+    end
+
+    test "negative lookup works properly after crashes" do
+      capture =
+        capture_iex("""
+            \n
+            \n
+            \n
+            Process.exit(self(), :some_reason)\n
+            :target_value
+            v(-1)
+        """)
+
+      assert capture |> String.split("\n") |> List.last() == ":target_value"
     end
   end
 
@@ -1139,7 +1262,7 @@ defmodule IEx.HelpersTest do
 
       with_file(["dot-iex-1", "dot-iex-2"], [dot_1, dot_2], fn ->
         assert capture_io(:stderr, fn ->
-                 assert capture_iex(":ok", [], dot_iex_path: "dot-iex-1") == ":ok"
+                 assert capture_iex(":ok", [], dot_iex: "dot-iex-1") == ":ok"
                end) =~ "dot-iex-2 was already imported, skipping circular file imports"
       end)
     end
@@ -1327,16 +1450,20 @@ defmodule IEx.HelpersTest do
     @tag :capture_log
     test "loads a given module on the given nodes" do
       assert nl([node()], :lists) == {:ok, [{:nonode@nohost, :error, :sticky_directory}]}
-      assert nl([node()], Enum) == {:ok, [{:nonode@nohost, :loaded, Enum}]}
+
+      assert nl([node()], HelperExampleModule) ==
+               {:ok, [{:nonode@nohost, :loaded, HelperExampleModule}]}
 
       assert nl(:nonexistent_module) == {:error, :nofile}
 
-      assert nl([:nosuchnode@badhost], Enum) ==
+      assert nl([:nosuchnode@badhost], HelperExampleModule) ==
                {:ok, [{:nosuchnode@badhost, :badrpc, :noconnection}]}
     end
   end
 
   describe "r" do
+    @describetag :requires_source
+
     test "raises when reloading a nonexistent module" do
       assert_raise ArgumentError, "could not load nor find module: :nonexistent_module", fn ->
         r(:nonexistent_module)
@@ -1514,6 +1641,37 @@ defmodule IEx.HelpersTest do
     end
   end
 
+  describe "process_info/1" do
+    test "returns information about a process" do
+      result = capture_io(fn -> process_info(self()) end)
+
+      assert result =~ "Process #{inspect(self())}"
+      assert result =~ "## Overview"
+      assert result =~ "Initial call"
+      assert result =~ "## Memory"
+      assert result =~ "## Current stacktrace"
+      assert result =~ "IEx.Helpers.process_info/1"
+
+      refute result =~ "## Links"
+      refute result =~ "## Monitors"
+    end
+
+    test "includes process links and monitors" do
+      pid =
+        spawn_link(fn ->
+          Process.register(self(), :iex_process_info_link_test)
+          Process.sleep(:infinity)
+        end)
+
+      Process.monitor(pid)
+
+      result = capture_io(fn -> process_info(self()) end)
+      assert result =~ "## Links"
+      assert result =~ "## Monitors"
+      assert result =~ ":iex_process_info_link_test"
+    end
+  end
+
   defp test_module_code do
     """
     defmodule Sample do
@@ -1554,7 +1712,7 @@ defmodule IEx.HelpersTest do
     Enum.each(mods, fn mod ->
       File.rm("#{mod}.beam")
       :code.purge(mod)
-      true = :code.delete(mod)
+      :code.delete(mod)
     end)
   end
 

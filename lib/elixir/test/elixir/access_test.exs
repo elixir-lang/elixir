@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule AccessTest do
@@ -286,6 +290,71 @@ defmodule AccessTest do
     test "chains" do
       input = %{list: [%{greeting: "hi"}]}
       assert get_in(input, [:list, Access.at!(0), :greeting]) == "hi"
+    end
+  end
+
+  describe "values/0" do
+    @test_map %{a: 1, b: 2, c: 3, d: 4}
+    @test_list [a: 1, b: 2, c: 3, d: 4]
+
+    test "retrieves values in a map" do
+      assert [1, 2, 3, 4] = get_in(@test_map, [Access.values()]) |> Enum.sort()
+    end
+
+    test "retrieves values in a keyword list" do
+      assert [1, 2, 3, 4] = get_in(@test_list, [Access.values()])
+    end
+
+    test "gets and updates values in a map" do
+      assert {gets, %{a: 3, b: 4, c: 5, d: 6}} =
+               get_and_update_in(@test_map, [Access.values()], fn n -> {n + 1, n + 2} end)
+
+      assert [2, 3, 4, 5] = Enum.sort(gets)
+    end
+
+    test "gets and updates values in a keyword list" do
+      assert {[2, 3, 4, 5], [a: 3, b: 4, c: 5, d: 6]} =
+               get_and_update_in(@test_list, [Access.values()], fn n -> {n + 1, n + 2} end)
+    end
+
+    test "pops values from a map" do
+      assert {gets, %{c: 4, d: 5}} =
+               get_and_update_in(@test_map, [Access.values()], fn n ->
+                 if(n > 2, do: {-n, n + 1}, else: :pop)
+               end)
+
+      assert [-4, -3, 1, 2] = Enum.sort(gets)
+    end
+
+    test "pops values from a keyword list" do
+      assert {[1, 2, -3, -4], [c: 4, d: 5]} =
+               get_and_update_in(@test_list, [Access.values()], fn n ->
+                 if(n > 2, do: {-n, n + 1}, else: :pop)
+               end)
+    end
+
+    test "raises when not given a map or a keyword list" do
+      message = ~r[^Access.values/0 expected a map or a keyword list, got: .*]
+
+      assert_raise RuntimeError, message, fn ->
+        get_in(123, [Access.values()])
+      end
+
+      assert_raise RuntimeError, message, fn ->
+        get_and_update_in(:some_atom, [Access.values()], fn x -> {x, x} end)
+      end
+
+      assert_raise RuntimeError, message, fn ->
+        get_in([:a, :b, :c], [Access.values()])
+      end
+
+      assert_raise RuntimeError, message, fn ->
+        get_in([{:a, :b, :c}, {:d, :e, :f}], [Access.values()])
+      end
+
+      assert_raise RuntimeError, message, fn ->
+        get_in([{1, 2}, {3, 4}], [Access.values()])
+      end
     end
   end
 end

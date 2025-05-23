@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Enum cheatsheet
 
 A quick reference into the `Enum` module, a module for working with collections (known as enumerables). Most of the examples below use the following data structure:
@@ -15,7 +20,7 @@ Some examples use the [`string =~ part`](`=~/2`) operator, which checks the stri
 ## Predicates
 {: .col-2}
 
-### [any?(enum, fun)](`Enum.any?/2`)
+### [`any?(enum, fun)`](`Enum.any?/2`)
 
 ```elixir
 iex> Enum.any?(cart, & &1.fruit == "orange")
@@ -31,7 +36,7 @@ iex> Enum.any?([], & &1.fruit == "orange")
 false
 ```
 
-### [all?(enum, fun)](`Enum.all?/2`)
+### [`all?(enum, fun)`](`Enum.all?/2`)
 
 ```elixir
 iex> Enum.all?(cart, & &1.count > 0)
@@ -47,7 +52,7 @@ iex> Enum.all?([], & &1.count > 0)
 true
 ```
 
-### [member?(enum, value)](`Enum.member?/2`)
+### [`member?(enum, value)`](`Enum.member?/2`)
 
 ```elixir
 iex> Enum.member?(cart, %{fruit: "apple", count: 3})
@@ -65,7 +70,7 @@ iex> :something_else in cart
 false
 ```
 
-### [empty?(enum)](`Enum.empty?/1`)
+### [`empty?(enum)`](`Enum.empty?/1`)
 
 ```elixir
 iex> Enum.empty?(cart)
@@ -77,7 +82,7 @@ true
 ## Filtering
 {: .col-2}
 
-### [filter(enum, fun)](`Enum.filter/2`)
+### [`filter(enum, fun)`](`Enum.filter/2`)
 
 ```elixir
 iex> Enum.filter(cart, &(&1.fruit =~ "o"))
@@ -89,7 +94,7 @@ iex> Enum.filter(cart, &(&1.fruit =~ "e"))
 ]
 ```
 
-### [reject(enum, fun)](`Enum.reject/2`)
+### [`reject(enum, fun)`](`Enum.reject/2`)
 
 ```elixir
 iex> Enum.reject(cart, &(&1.fruit =~ "o"))
@@ -99,7 +104,20 @@ iex> Enum.reject(cart, &(&1.fruit =~ "o"))
 ]
 ```
 
-### [Comprehension](`for/1`)
+### [`flat_map(enum, fun)`](`Enum.flat_map/2`)
+
+This function (also listed [below](#concatenating-flattening)) can
+be used to transform and filter in one pass, returning empty lists
+to exclude results:
+
+```elixir
+iex> Enum.flat_map(cart, fn item ->
+...>   if item.count > 1, do: [item.fruit], else: []
+...> end)
+["apple", "orange"]
+```
+
+### [`Comprehension`](`for/1`)
 
 Filtering can also be done with comprehensions:
 
@@ -125,7 +143,7 @@ iex> for %{count: 1, fruit: fruit} <- cart do
 ## Mapping
 {: .col-2}
 
-### [map(enum, fun)](`Enum.map/2`)
+### [`map(enum, fun)`](`Enum.map/2`)
 
 ```elixir
 iex> Enum.map(cart, & &1.fruit)
@@ -140,7 +158,7 @@ iex> Enum.map(cart, fn item ->
 ]
 ```
 
-### [map_every(enum, nth, fun)](`Enum.map_every/3`)
+### [`map_every(enum, nth, fun)`](`Enum.map_every/3`)
 
 ```elixir
 iex> Enum.map_every(cart, 2, fn item ->
@@ -153,7 +171,7 @@ iex> Enum.map_every(cart, 2, fn item ->
 ]
 ```
 
-### [Comprehension](`for/1`)
+### [`Comprehension`](`for/1`)
 
 Mapping can also be done with comprehensions:
 
@@ -176,7 +194,7 @@ iex> for item <- cart, item.fruit =~ "e" do
 ## Side-effects
 {: .col-2}
 
-### [each(enum, fun)](`Enum.each/2`)
+### [`each(enum, fun)`](`Enum.each/2`)
 
 ```elixir
 iex> Enum.each(cart, &IO.puts(&1.fruit))
@@ -191,7 +209,7 @@ orange
 ## Accumulating
 {: .col-2}
 
-### [reduce(enum, acc, fun)](`Enum.reduce/3`)
+### [`reduce(enum, acc, fun)`](`Enum.reduce/3`)
 
 ```elixir
 iex> Enum.reduce(cart, 0, fn item, acc ->
@@ -200,7 +218,7 @@ iex> Enum.reduce(cart, 0, fn item, acc ->
 10
 ```
 
-### [map_reduce(enum, acc, fun)](`Enum.map_reduce/3`)
+### [`map_reduce(enum, acc, fun)`](`Enum.map_reduce/3`)
 
 ```elixir
 iex> Enum.map_reduce(cart, 0, fn item, acc ->
@@ -209,7 +227,7 @@ iex> Enum.map_reduce(cart, 0, fn item, acc ->
 {["apple", "banana", "orange"], 10}
 ```
 
-### [scan(enum, acc, fun)](`Enum.scan/3`)
+### [`scan(enum, acc, fun)`](`Enum.scan/3`)
 
 ```elixir
 iex> Enum.scan(cart, 0, fn item, acc ->
@@ -218,7 +236,7 @@ iex> Enum.scan(cart, 0, fn item, acc ->
 [3, 4, 10]
 ```
 
-### [reduce_while(enum, acc, fun)](`Enum.reduce_while/3`)
+### [`reduce_while(enum, acc, fun)`](`Enum.reduce_while/3`)
 
 ```elixir
 iex> Enum.reduce_while(cart, 0, fn item, acc ->
@@ -231,7 +249,7 @@ iex> Enum.reduce_while(cart, 0, fn item, acc ->
 4
 ```
 
-### [Comprehension](`for/1`)
+### [`Comprehension`](`for/1`)
 
 Reducing can also be done with comprehensions:
 
@@ -254,7 +272,7 @@ iex> for item <- cart, item.fruit =~ "e", reduce: 0 do
 ## Aggregations
 {: .col-2}
 
-### [count(enum)](`Enum.count/1`)
+### [`count(enum)`](`Enum.count/1`)
 
 ```elixir
 iex> Enum.count(cart)
@@ -263,14 +281,14 @@ iex> Enum.count(cart)
 
 See `Enum.count_until/2` to count until a limit.
 
-### [frequencies(enum)](`Enum.frequencies/1`)
+### [`frequencies(enum)`](`Enum.frequencies/1`)
 
 ```elixir
 iex> Enum.frequencies(["apple", "banana", "orange", "apple"])
 %{"apple" => 2, "banana" => 1, "orange" => 1}
 ```
 
-### [frequencies_by(enum, key_fun)](`Enum.frequencies_by/2`)
+### [`frequencies_by(enum, key_fun)`](`Enum.frequencies_by/2`)
 
 Frequencies of the last letter of the fruit:
 
@@ -279,7 +297,7 @@ iex> Enum.frequencies_by(cart, &String.last(&1.fruit))
 %{"a" => 1, "e" => 2}
 ```
 
-### [count(enum, fun)](`Enum.count/2`)
+### [`count(enum, fun)`](`Enum.count/2`)
 
 ```elixir
 iex> Enum.count(cart, &(&1.fruit =~ "e"))
@@ -290,24 +308,42 @@ iex> Enum.count(cart, &(&1.fruit =~ "y"))
 
 See `Enum.count_until/3` to count until a limit with a function.
 
-### [sum(enum)](`Enum.sum/1`)
+### [`sum(enum)`](`Enum.sum/1`)
 
 ```elixir
 iex> cart |> Enum.map(& &1.count) |> Enum.sum()
 10
 ```
 
-### [product(enum)](`Enum.product/1`)
+Note: this should typically be done in one pass using `Enum.sum_by/2`.
+
+### [`sum_by(enum, mapper)`](`Enum.sum_by/2`)
+
+```elixir
+iex> Enum.sum_by(cart, & &1.count)
+10
+```
+
+### [`product(enum)`](`Enum.product/1`)
 
 ```elixir
 iex> cart |> Enum.map(& &1.count) |> Enum.product()
 18
 ```
 
+Note: this should typically be done in one pass using `Enum.product_by/2`.
+
+### [`product_by(enum, mapper)`](`Enum.product_by/2`)
+
+```elixir
+iex> Enum.product_by(cart, & &1.count)
+18
+```
+
 ## Sorting
 {: .col-2}
 
-### [sort(enum, sorter \\\\ :asc)](`Enum.sort/2`)
+### [`sort(enum, sorter \\ :asc)`](`Enum.sort/2`)
 
 ```elixir
 iex> cart |> Enum.map(& &1.fruit) |> Enum.sort()
@@ -318,7 +354,7 @@ iex> cart |> Enum.map(& &1.fruit) |> Enum.sort(:desc)
 
 When sorting structs, use `Enum.sort/2` with a module as sorter.
 
-### [sort_by(enum, mapper, sorter \\\\ :asc)](`Enum.sort_by/2`)
+### [`sort_by(enum, mapper, sorter \\ :asc)`](`Enum.sort_by/2`)
 
 ```elixir
 iex> Enum.sort_by(cart, & &1.count)
@@ -337,7 +373,7 @@ iex> Enum.sort_by(cart, & &1.count, :desc)
 
 When the sorted by value is a struct, use `Enum.sort_by/3` with a module as sorter.
 
-### [min(enum)](`Enum.min/1`)
+### [`min(enum)`](`Enum.min/1`)
 
 ```elixir
 iex> cart |> Enum.map(& &1.count) |> Enum.min()
@@ -346,7 +382,7 @@ iex> cart |> Enum.map(& &1.count) |> Enum.min()
 
 When comparing structs, use `Enum.min/2` with a module as sorter.
 
-### [min_by(enum, mapper)](`Enum.min_by/2`)
+### [`min_by(enum, mapper)`](`Enum.min_by/2`)
 
 ```elixir
 iex> Enum.min_by(cart, & &1.count)
@@ -355,7 +391,7 @@ iex> Enum.min_by(cart, & &1.count)
 
 When comparing structs, use `Enum.min_by/3` with a module as sorter.
 
-### [max(enum)](`Enum.max/1`)
+### [`max(enum)`](`Enum.max/1`)
 
 ```elixir
 iex> cart |> Enum.map(& &1.count) |> Enum.max()
@@ -364,7 +400,7 @@ iex> cart |> Enum.map(& &1.count) |> Enum.max()
 
 When comparing structs, use `Enum.max/2` with a module as sorter.
 
-### [max_by(enum, mapper)](`Enum.max_by/2`)
+### [`max_by(enum, mapper)`](`Enum.max_by/2`)
 
 ```elixir
 iex> Enum.max_by(cart, & &1.count)
@@ -376,21 +412,21 @@ When comparing structs, use `Enum.max_by/3` with a module as sorter.
 ## Concatenating & flattening
 {: .col-2}
 
-### [concat(enums)](`Enum.concat/1`)
+### [`concat(enums)`](`Enum.concat/1`)
 
 ```elixir
 iex> Enum.concat([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
 [1, 2, 3, 4, 5, 6, 7, 8, 9]
 ```
 
-### [concat(left, right)](`Enum.concat/2`)
+### [`concat(left, right)`](`Enum.concat/2`)
 
 ```elixir
 iex> Enum.concat([1, 2, 3], [4, 5, 6])
 [1, 2, 3, 4, 5, 6]
 ```
 
-### [flat_map(enum, fun)](`Enum.flat_map/2`)
+### [`flat_map(enum, fun)`](`Enum.flat_map/2`)
 
 ```elixir
 iex> Enum.flat_map(cart, fn item ->
@@ -400,7 +436,7 @@ iex> Enum.flat_map(cart, fn item ->
  "orange", "orange", "orange", "orange", "orange"]
 ```
 
-### [flat_map_reduce(enum, acc, fun)](`Enum.flat_map_reduce/3`)
+### [`flat_map_reduce(enum, acc, fun)`](`Enum.flat_map_reduce/3`)
 
 ```elixir
 iex> Enum.flat_map_reduce(cart, 0, fn item, acc ->
@@ -412,7 +448,7 @@ iex> Enum.flat_map_reduce(cart, 0, fn item, acc ->
   "orange", "orange", "orange", "orange", "orange"], 10}
 ```
 
-### [Comprehension](`for/1`)
+### [`Comprehension`](`for/1`)
 
 Flattening can also be done with comprehensions:
 
@@ -428,7 +464,7 @@ iex> for item <- cart,
 ## Conversion
 {: .col-2}
 
-### [into(enum, collectable)](`Enum.into/2`)
+### [`into(enum, collectable)`](`Enum.into/2`)
 
 ```elixir
 iex> pairs = [{"apple", 3}, {"banana", 1}, {"orange", 6}]
@@ -436,7 +472,7 @@ iex> Enum.into(pairs, %{})
 %{"apple" => 3, "banana" => 1, "orange" => 6}
 ```
 
-### [into(enum, collectable, transform)](`Enum.into/3`)
+### [`into(enum, collectable, transform)`](`Enum.into/3`)
 
 ```elixir
 iex> Enum.into(cart, %{}, fn item ->
@@ -445,14 +481,14 @@ iex> Enum.into(cart, %{}, fn item ->
 %{"apple" => 3, "banana" => 1, "orange" => 6}
 ```
 
-### [to_list(enum)](`Enum.to_list/1`)
+### [`to_list(enum)`](`Enum.to_list/1`)
 
 ```elixir
 iex> Enum.to_list(1..5)
 [1, 2, 3, 4, 5]
 ```
 
-### [Comprehension](`for/1`)
+### [`Comprehension`](`for/1`)
 
 Conversion can also be done with comprehensions:
 
@@ -466,7 +502,7 @@ iex> for item <- cart, into: %{} do
 ## Duplicates & uniques
 {: .col-2}
 
-### [dedup(enum)](`Enum.dedup/1`)
+### [`dedup(enum)`](`Enum.dedup/1`)
 
 `dedup` only removes contiguous duplicates:
 
@@ -475,7 +511,7 @@ iex> Enum.dedup([1, 2, 2, 3, 3, 3, 1, 2, 3])
 [1, 2, 3, 1, 2, 3]
 ```
 
-### [dedup_by(enum, fun)](`Enum.dedup_by/2`)
+### [`dedup_by(enum, fun)`](`Enum.dedup_by/2`)
 
 Remove contiguous entries given a property:
 
@@ -489,7 +525,7 @@ iex> Enum.dedup_by(cart, & &1.count < 5)
 ]
 ```
 
-### [uniq(enum)](`Enum.uniq/1`)
+### [`uniq(enum)`](`Enum.uniq/1`)
 
 `uniq` applies to the whole collection:
 
@@ -500,7 +536,7 @@ iex> Enum.uniq([1, 2, 2, 3, 3, 3, 1, 2, 3])
 
 Comprehensions also support the `uniq: true` option.
 
-### [uniq_by(enum, fun)](`Enum.uniq_by/2`)
+### [`uniq_by(enum, fun)`](`Enum.uniq_by/2`)
 
 Get entries which are unique by the last letter of the fruit:
 
@@ -515,7 +551,7 @@ iex> Enum.uniq_by(cart, &String.last(&1.fruit))
 ## Indexing
 {: .col-2}
 
-### [at(enum, index, default \\\\ nil)](`Enum.at/2`)
+### [`at(enum, index, default \\ nil)`](`Enum.at/2`)
 
 ```elixir
 iex> Enum.at(cart, 0)
@@ -528,7 +564,7 @@ iex> Enum.at(cart, 10, :none)
 
 Accessing a list by index in a loop is discouraged.
 
-### [fetch(enum, index)](`Enum.fetch/2`)
+### [`fetch(enum, index)`](`Enum.fetch/2`)
 
 ```elixir
 iex> Enum.fetch(cart, 0)
@@ -537,7 +573,7 @@ iex> Enum.fetch(cart, 10)
 :error
 ```
 
-### [fetch!(enum, index)](`Enum.fetch!/2`)
+### [`fetch!(enum, index)`](`Enum.fetch!/2`)
 
 ```elixir
 iex> Enum.fetch!(cart, 0)
@@ -546,7 +582,7 @@ iex> Enum.fetch!(cart, 10)
 ** (Enum.OutOfBoundsError) out of bounds error
 ```
 
-### [with_index(enum)](`Enum.with_index/1`)
+### [`with_index(enum)`](`Enum.with_index/1`)
 
 ```elixir
 iex> Enum.with_index(cart)
@@ -557,7 +593,7 @@ iex> Enum.with_index(cart)
 ]
 ```
 
-### [with_index(enum, fun)](`Enum.with_index/2`)
+### [`with_index(enum, fun)`](`Enum.with_index/2`)
 
 ```elixir
 iex> Enum.with_index(cart, fn item, index ->
@@ -573,7 +609,7 @@ iex> Enum.with_index(cart, fn item, index ->
 ## Finding
 {: .col-2}
 
-### [find(enum, default \\\\ nil, fun)](`Enum.find/2`)
+### [`find(enum, default \\ nil, fun)`](`Enum.find/2`)
 
 ```elixir
 iex> Enum.find(cart, &(&1.fruit =~ "o"))
@@ -584,7 +620,7 @@ iex> Enum.find(cart, :none, &(&1.fruit =~ "y"))
 :none
 ```
 
-### [find_index(enum, fun)](`Enum.find_index/2`)
+### [`find_index(enum, fun)`](`Enum.find_index/2`)
 
 ```elixir
 iex> Enum.find_index(cart, &(&1.fruit =~ "o"))
@@ -593,7 +629,7 @@ iex> Enum.find_index(cart, &(&1.fruit =~ "y"))
 nil
 ```
 
-### [find_value(enum, default \\\\ nil, fun)](`Enum.find_value/2`)
+### [`find_value(enum, default \\ nil, fun)`](`Enum.find_value/2`)
 
 ```elixir
 iex> Enum.find_value(cart, fn item ->
@@ -609,7 +645,7 @@ iex> Enum.find_value(cart, :none, fn item ->
 ## Grouping
 {: .col-2}
 
-### [group_by(enum, key_fun)](`Enum.group_by/2`)
+### [`group_by(enum, key_fun)`](`Enum.group_by/2`)
 
 Group by the last letter of the fruit:
 
@@ -624,7 +660,7 @@ iex> Enum.group_by(cart, &String.last(&1.fruit))
 }
 ```
 
-### [group_by(enum, key_fun, value_fun)](`Enum.group_by/3`)
+### [`group_by(enum, key_fun, value_fun)`](`Enum.group_by/3`)
 
 Group by the last letter of the fruit with custom value:
 
@@ -636,31 +672,31 @@ iex> Enum.group_by(cart, &String.last(&1.fruit), & &1.fruit)
 }
 ```
 
-## Joining & interpersing
+## Joining & interspersing
 {: .col-2}
 
-### [join(enum, joiner \\\\ "")](`Enum.join/2`)
+### [`join(enum, joiner \\ "")`](`Enum.join/2`)
 
 ```elixir
 iex> Enum.join(["apple", "banana", "orange"], ", ")
 "apple, banana, orange"
 ```
 
-### [map_join(enum, joiner \\\\ "", mapper)](`Enum.map_join/3`)
+### [`map_join(enum, joiner \\ "", mapper)`](`Enum.map_join/3`)
 
 ```elixir
 iex> Enum.map_join(cart, ", ", & &1.fruit)
 "apple, banana, orange"
 ```
 
-### [intersperse(enum, separator \\\\ "")](`Enum.intersperse/2`)
+### [`intersperse(enum, separator \\ "")`](`Enum.intersperse/2`)
 
 ```elixir
 iex> Enum.intersperse(["apple", "banana", "orange"], ", ")
 ["apple", ", ", "banana", ", ", "orange"]
 ```
 
-### [map_intersperse(enum, separator \\\\ "", mapper)](`Enum.map_intersperse/3`)
+### [`map_intersperse(enum, separator \\ "", mapper)`](`Enum.map_intersperse/3`)
 
 ```elixir
 iex> Enum.map_intersperse(cart, ", ", & &1.fruit)
@@ -670,7 +706,7 @@ iex> Enum.map_intersperse(cart, ", ", & &1.fruit)
 ## Slicing
 {: .col-2}
 
-### [slice(enum, index_range)](`Enum.slice/2`)
+### [`slice(enum, index_range)`](`Enum.slice/2`)
 
 ```elixir
 iex> Enum.slice(cart, 0..1)
@@ -690,7 +726,7 @@ iex> Enum.slice(cart, -2..-1)
 ]
 ```
 
-### [slice(enum, start_index, amount)](`Enum.slice/3`)
+### [`slice(enum, start_index, amount)`](`Enum.slice/3`)
 
 ```elixir
 iex> Enum.slice(cart, 1, 2)
@@ -700,24 +736,24 @@ iex> Enum.slice(cart, 1, 2)
 ]
 ```
 
-### [slide(enum, range_or_single_index, insertion_index)](`Enum.slide/3`)
+### [`slide(enum, range_or_single_index, insertion_index)`](`Enum.slide/3`)
 
 ```elixir
 fruits = ["apple", "banana", "grape", "orange", "pear"]
 iex> Enum.slide(fruits, 2, 0)
 ["grape", "apple", "banana", "orange", "pear"]
 iex> Enum.slide(fruits, 2, 4)
-["apple", "banana", "orange", "pear", "grape", ]
+["apple", "banana", "orange", "pear", "grape"]
 iex> Enum.slide(fruits, 1..3, 0)
 ["banana", "grape", "orange", "apple", "pear"]
 iex> Enum.slide(fruits, 1..3, 4)
-["banana", "pear", "grape", "orange", "apple"]
+["apple", "pear", "banana", "grape", "orange"]
 ```
 
 ## Reversing
 {: .col-2}
 
-### [reverse(enum)](`Enum.reverse/1`)
+### [`reverse(enum)`](`Enum.reverse/1`)
 
 ```elixir
 iex> Enum.reverse(cart)
@@ -728,7 +764,7 @@ iex> Enum.reverse(cart)
 ]
 ```
 
-### [reverse(enum, tail)](`Enum.reverse/2`)
+### [`reverse(enum, tail)`](`Enum.reverse/2`)
 
 ```elixir
 iex> Enum.reverse(cart, [:this_will_be, :the_tail])
@@ -741,7 +777,7 @@ iex> Enum.reverse(cart, [:this_will_be, :the_tail])
 ]
 ```
 
-### [reverse_slice(enum, start_index, count)](`Enum.reverse_slice/3`)
+### [`reverse_slice(enum, start_index, count)`](`Enum.reverse_slice/3`)
 
 ```elixir
 iex> Enum.reverse_slice(cart, 1, 2)
@@ -755,7 +791,7 @@ iex> Enum.reverse_slice(cart, 1, 2)
 ## Splitting
 {: .col-2}
 
-### [split(enum, amount)](`Enum.split/2`)
+### [`split(enum, amount)`](`Enum.split/2`)
 
 ```elixir
 iex> Enum.split(cart, 1)
@@ -777,7 +813,7 @@ iex> Enum.split(cart, -1)
  [%{fruit: "orange", count: 6}]}
 ```
 
-### [split_while(enum, fun)](`Enum.split_while/2`)
+### [`split_while(enum, fun)`](`Enum.split_while/2`)
 
 Stops splitting as soon as it is false:
 
@@ -790,7 +826,7 @@ iex> Enum.split_while(cart, &(&1.fruit =~ "e"))
  ]}
 ```
 
-### [split_with(enum, fun)](`Enum.split_with/2`)
+### [`split_with(enum, fun)`](`Enum.split_with/2`)
 
 Splits the whole collection:
 
@@ -806,7 +842,7 @@ iex> Enum.split_with(cart, &(&1.fruit =~ "e"))
 ## Splitting (drop and take)
 {: .col-2}
 
-### [drop(enum, amount)](`Enum.drop/2`)
+### [`drop(enum, amount)`](`Enum.drop/2`)
 
 ```elixir
 iex> Enum.drop(cart, 1)
@@ -820,17 +856,20 @@ Negative indexes count from the back:
 
 ```elixir
 iex> Enum.drop(cart, -1)
-[%{fruit: "orange", count: 6}]
+[
+  %{fruit: "apple", count: 3},
+  %{fruit: "banana", count: 1}
+]
 ```
 
-### [drop_every(enum, nth)](`Enum.drop_every/2`)
+### [`drop_every(enum, nth)`](`Enum.drop_every/2`)
 
 ```elixir
 iex> Enum.drop_every(cart, 2)
 [%{fruit: "banana", count: 1}]
 ```
 
-### [drop_while(enum, fun)](`Enum.drop_while/2`)
+### [`drop_while(enum, fun)`](`Enum.drop_while/2`)
 
 ```elixir
 iex> Enum.drop_while(cart, &(&1.fruit =~ "e"))
@@ -840,7 +879,7 @@ iex> Enum.drop_while(cart, &(&1.fruit =~ "e"))
 ]
 ```
 
-### [take(enum, amount)](`Enum.take/2`)
+### [`take(enum, amount)`](`Enum.take/2`)
 
 ```elixir
 iex> Enum.take(cart, 1)
@@ -851,13 +890,10 @@ Negative indexes count from the back:
 
 ```elixir
 iex> Enum.take(cart, -1)
-[
-  %{fruit: "apple", count: 3},
-  %{fruit: "banana", count: 1}
-]
+[%{fruit: "orange", count: 6}]
 ```
 
-### [take_every(enum, nth)](`Enum.take_every/2`)
+### [`take_every(enum, nth)`](`Enum.take_every/2`)
 
 ```elixir
 iex> Enum.take_every(cart, 2)
@@ -867,7 +903,7 @@ iex> Enum.take_every(cart, 2)
 ]
 ```
 
-### [take_while(enum, fun)](`Enum.take_while/2`)
+### [`take_while(enum, fun)`](`Enum.take_while/2`)
 
 ```elixir
 iex> Enum.take_while(cart, &(&1.fruit =~ "e"))
@@ -877,7 +913,7 @@ iex> Enum.take_while(cart, &(&1.fruit =~ "e"))
 ## Random
 {: .col-2}
 
-### [random(enum)](`Enum.random/1`)
+### [`random(enum)`](`Enum.random/1`)
 
 Results will vary on every call:
 
@@ -886,7 +922,7 @@ iex> Enum.random(cart)
 %{fruit: "orange", count: 6}
 ```
 
-### [take_random(enum, count)](`Enum.take_random/2`)
+### [`take_random(enum, count)`](`Enum.take_random/2`)
 
 Results will vary on every call:
 
@@ -898,7 +934,7 @@ iex> Enum.take_random(cart, 2)
 ]
 ```
 
-### [shuffle(enum)](`Enum.shuffle/1`)
+### [`shuffle(enum)`](`Enum.shuffle/1`)
 
 Results will vary on every call:
 
@@ -914,7 +950,7 @@ iex> Enum.shuffle(cart)
 ## Chunking
 {: .col-2}
 
-### [chunk_by(enum, fun)](`Enum.chunk_by/2`)
+### [`chunk_by(enum, fun)`](`Enum.chunk_by/2`)
 
 ```elixir
 iex> Enum.chunk_by(cart, &String.length(&1.fruit))
@@ -927,7 +963,7 @@ iex> Enum.chunk_by(cart, &String.length(&1.fruit))
 ]
 ```
 
-### [chunk_every(enum, count)](`Enum.chunk_every/2`)
+### [`chunk_every(enum, count)`](`Enum.chunk_every/2`)
 
 ```elixir
 iex> Enum.chunk_every(cart, 2)
@@ -940,7 +976,7 @@ iex> Enum.chunk_every(cart, 2)
 ]
 ```
 
-### [chunk_every(enum, count, step, leftover \\\\ [])](`Enum.chunk_every/2`)
+### [`chunk_every(enum, count, step, leftover \\ [])`](`Enum.chunk_every/2`)
 
 ```elixir
 iex> Enum.chunk_every(cart, 2, 2, [:elements, :to_complete])
@@ -972,7 +1008,7 @@ See `Enum.chunk_while/4` for custom chunking.
 ## Zipping
 {: .col-2}
 
-### [zip(enum1, enum2)](`Enum.zip/2`)
+### [`zip(enum1, enum2)`](`Enum.zip/2`)
 
 ```elixir
 iex> fruits = ["apple", "banana", "orange"]
@@ -983,7 +1019,7 @@ iex> Enum.zip(fruits, counts)
 
 See `Enum.zip/1` for zipping many collections at once.
 
-### [zip_with(enum1, enum2, fun)](`Enum.zip_with/2`)
+### [`zip_with(enum1, enum2, fun)`](`Enum.zip_with/2`)
 
 ```elixir
 iex> fruits = ["apple", "banana", "orange"]
@@ -1000,7 +1036,7 @@ iex> Enum.zip_with(fruits, counts, fn fruit, count ->
 
 See `Enum.zip_with/2` for zipping many collections at once.
 
-### [zip_reduce(left, right, acc, fun)](`Enum.zip_reduce/4`)
+### [`zip_reduce(left, right, acc, fun)`](`Enum.zip_reduce/4`)
 
 ```elixir
 iex> fruits = ["apple", "banana", "orange"]
@@ -1014,7 +1050,7 @@ iex> Enum.zip_reduce(fruits, counts, 0, fn fruit, count, acc ->
 
 See `Enum.zip_reduce/3` for zipping many collections at once.
 
-### [unzip(list)](`Enum.unzip/1`)
+### [`unzip(list)`](`Enum.unzip/1`)
 
 ```elixir
 iex> cart |> Enum.map(&{&1.fruit, &1.count}) |> Enum.unzip()

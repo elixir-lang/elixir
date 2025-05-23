@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Code.Typespec do
   @moduledoc false
 
@@ -25,11 +29,6 @@ defmodule Code.Typespec do
     else
       {:when, meta, [spec, vars]}
     end
-  end
-
-  def spec_to_quoted(name, {:type, anno, :fun, []}) when is_atom(name) do
-    meta = meta(anno)
-    {:"::", meta, [{name, meta, []}, quote(do: term)]}
   end
 
   def spec_to_quoted(name, {:type, anno, :bounded_fun, [type, constrs]}) when is_atom(name) do
@@ -175,7 +174,8 @@ defmodule Code.Typespec do
 
   defp get_module_and_beam(module) when is_atom(module) do
     with {^module, beam, _filename} <- :code.get_object_code(module),
-         {:ok, ^module} <- beam |> :beam_lib.info() |> Keyword.fetch(:module) do
+         info_pairs when is_list(info_pairs) <- :beam_lib.info(beam),
+         {:ok, ^module} <- Keyword.fetch(info_pairs, :module) do
       {module, beam}
     else
       _ -> :error
@@ -287,7 +287,6 @@ defmodule Code.Typespec do
   end
 
   defp typespec_to_quoted({:type, anno, :binary, [arg1, arg2]}) do
-    [arg1, arg2] = for arg <- [arg1, arg2], do: typespec_to_quoted(arg)
     line = meta(anno)[:line]
 
     case {typespec_to_quoted(arg1), typespec_to_quoted(arg2)} do
@@ -316,10 +315,6 @@ defmodule Code.Typespec do
     [{:->, meta(anno), [[typespec_to_quoted(args)], typespec_to_quoted(result)]}]
   end
 
-  defp typespec_to_quoted({:type, anno, :fun, []}) do
-    typespec_to_quoted({:type, anno, :fun, [{:type, anno, :any}, {:type, anno, :any, []}]})
-  end
-
   defp typespec_to_quoted({:type, anno, :range, [left, right]}) do
     {:.., meta(anno), [typespec_to_quoted(left), typespec_to_quoted(right)]}
   end
@@ -337,8 +332,12 @@ defmodule Code.Typespec do
     {erl_to_ex_var(var), meta(anno), nil}
   end
 
-  defp typespec_to_quoted({:op, anno, op, arg}) do
+  defp typespec_to_quoted({:op, anno, op, arg}) when op in [:+, :-] do
     {op, meta(anno), [typespec_to_quoted(arg)]}
+  end
+
+  defp typespec_to_quoted({:op, anno, :*, arg1, arg2}) do
+    {:*, meta(anno), [typespec_to_quoted(arg1), typespec_to_quoted(arg2)]}
   end
 
   defp typespec_to_quoted({:remote_type, anno, [mod, name, args]}) do
@@ -419,5 +418,13 @@ defmodule Code.Typespec do
     :error
   end
 
-  defp meta(anno), do: [line: :erl_anno.line(anno)]
+  defp meta(anno) do
+    case :erl_anno.location(anno) do
+      {line, column} ->
+        [line: line, column: column]
+
+      line when is_integer(line) ->
+        [line: line]
+    end
+  end
 end

@@ -1,28 +1,8 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
-
-# This is to temporarily test some inconsistencies in
-# the error ArgumentError messages.
-# Remove MyArgumentError and replace the calls to:
-# - MyArgumentError with ArgumentError
-# - MyArgumentError.culprit() with Atom.to_string("Foo")
-# in Erlang/OTP 25
-defmodule MyArgumentError do
-  defexception message: "argument error"
-
-  @impl true
-  def message(_) do
-    """
-    errors were found at the given arguments:
-
-      * 1st argument: not an atom
-    """
-  end
-
-  def culprit() do
-    raise = fn -> raise(MyArgumentError) end
-    raise.()
-  end
-end
 
 defmodule Inspect.AtomTest do
   use ExUnit.Case, async: true
@@ -155,6 +135,8 @@ defmodule Inspect.BitStringTest do
     assert inspect(" ゆんゆん") == "\" ゆんゆん\""
     # BOM
     assert inspect("\uFEFFhello world") == "\"\\uFEFFhello world\""
+    # Invisible characters
+    assert inspect("\u2063") == "\"\\u2063\""
   end
 
   test "infer" do
@@ -467,20 +449,20 @@ defmodule Inspect.MapTest do
     defstruct @enforce_keys
 
     defimpl Inspect do
-      def inspect(%Failing{name: _name}, _) do
-        MyArgumentError.culprit()
+      def inspect(%Failing{name: name}, _) do
+        Atom.to_string(name)
       end
     end
   end
 
   test "safely inspect bad implementation" do
-    assert_raise MyArgumentError, ~r/errors were found at the given arguments:/, fn ->
-      raise(MyArgumentError)
+    assert_raise ArgumentError, ~r/argument error/, fn ->
+      raise(ArgumentError)
     end
 
     message = ~s'''
     #Inspect.Error<
-      got MyArgumentError with message:
+      got ArgumentError with message:
 
           """
           errors were found at the given arguments:
@@ -499,7 +481,7 @@ defmodule Inspect.MapTest do
   test "safely inspect bad implementation disables colors" do
     message = ~s'''
     #Inspect.Error<
-      got MyArgumentError with message:
+      got ArgumentError with message:
 
           """
           errors were found at the given arguments:
@@ -520,7 +502,7 @@ defmodule Inspect.MapTest do
 
   test "unsafely inspect bad implementation" do
     exception_message = ~s'''
-    got MyArgumentError with message:
+    got ArgumentError with message:
 
         """
         errors were found at the given arguments:
@@ -538,10 +520,7 @@ defmodule Inspect.MapTest do
     rescue
       exception in Inspect.Error ->
         assert Exception.message(exception) =~ exception_message
-        assert [{MyArgumentError, fun_name, 0, [{:file, _}, {:line, _} | _]} | _] = __STACKTRACE__
-
-        assert fun_name in [:"-culprit/0-fun-0-", :culprit]
-        assert Exception.message(exception) =~ exception_message
+        assert [{:erlang, :atom_to_binary, [_], [_ | _]} | _] = __STACKTRACE__
     else
       _ -> flunk("expected failure")
     end
@@ -551,16 +530,20 @@ defmodule Inspect.MapTest do
     # Inspect.Error is raised here when we tried to print the error message
     # called by another exception (Protocol.UndefinedError in this case)
     exception_message = ~s'''
-    protocol Enumerable not implemented for #Inspect.Error<
-      got MyArgumentError with message:
+    protocol Enumerable not implemented for Inspect.MapTest.Failing (a struct)
 
-          """
-          errors were found at the given arguments:
+    Got value:
 
-            * 1st argument: not an atom
-          """
+        #Inspect.Error<
+          got ArgumentError with message:
 
-      while inspecting:
+              """
+              errors were found at the given arguments:
+
+                * 1st argument: not an atom
+              """
+
+          while inspecting:
 
     '''
 
@@ -597,9 +580,11 @@ defmodule Inspect.MapTest do
   end
 
   test "Exception.message/1 with bad implementation" do
+    failing = %Failing{name: "Foo"}
+
     message = ~s'''
     #Inspect.Error<
-      got MyArgumentError with message:
+      got ArgumentError with message:
 
           """
           errors were found at the given arguments:
@@ -614,10 +599,9 @@ defmodule Inspect.MapTest do
 
     {my_argument_error, stacktrace} =
       try do
-        MyArgumentError.culprit()
+        atom_to_string(Process.get(:unused, failing.name))
       rescue
-        e ->
-          {e, __STACKTRACE__}
+        e -> {e, __STACKTRACE__}
       end
 
     inspected =
@@ -629,8 +613,12 @@ defmodule Inspect.MapTest do
         )
       )
 
-    assert inspect(%Failing{name: "Foo"}, custom_options: [sort_maps: true]) =~ message
+    assert inspect(failing, custom_options: [sort_maps: true]) =~ message
     assert inspected =~ message
+  end
+
+  defp atom_to_string(atom) do
+    Atom.to_string(atom)
   end
 
   test "exception" do
@@ -727,6 +715,17 @@ defmodule Inspect.MapTest do
                  end
   end
 
+  test "passing a non-list to the :only option" do
+    assert_raise ArgumentError,
+                 "invalid value :not_a_list in :only when deriving the Inspect protocol for Inspect.MapTest.StructInvalidListInOnlyOption (expected a list)",
+                 fn ->
+                   defmodule StructInvalidListInOnlyOption do
+                     @derive {Inspect, only: :not_a_list}
+                     defstruct [:a, :b]
+                   end
+                 end
+  end
+
   defmodule StructWithExceptOption do
     @derive {Inspect, except: [:b, :c]}
     defstruct [:a, :b, :c, :d]
@@ -784,6 +783,20 @@ defmodule Inspect.MapTest do
     assert inspect(struct) ==
              "#Inspect.MapTest.StructWithExceptOptionalAndOrder<d: nil, a: nil, ...>"
   end
+
+  defmodule StructWithOptionalAll do
+    @derive {Inspect, optional: :all}
+    defstruct [:a, :b, :c, :d]
+  end
+
+  test "struct with :optional set to :all" do
+    struct = %StructWithOptionalAll{a: 1, b: 2}
+
+    assert inspect(struct) == "%Inspect.MapTest.StructWithOptionalAll{a: 1, b: 2}"
+
+    struct = %StructWithOptionalAll{}
+    assert inspect(struct) == "%Inspect.MapTest.StructWithOptionalAll{}"
+  end
 end
 
 defmodule Inspect.OthersTest do
@@ -820,8 +833,8 @@ defmodule Inspect.OthersTest do
     Application.put_env(:elixir, :anony, V.fun())
     Application.put_env(:elixir, :named, &V.fun/0)
 
-    :code.delete(V)
     :code.purge(V)
+    :code.delete(V)
 
     anony = Application.get_env(:elixir, :anony)
     named = Application.get_env(:elixir, :named)
@@ -865,8 +878,6 @@ defmodule Inspect.OthersTest do
 
   test "regex" do
     assert inspect(~r(foo)m) == "~r/foo/m"
-
-    assert inspect(~R'#{2,}') == ~S"~r/\#{2,}/"
     assert inspect(~r[\\\#{2,}]iu) == ~S"~r/\\\#{2,}/iu"
 
     assert inspect(Regex.compile!("a\\/b")) == "~r/a\\/b/"
@@ -879,7 +890,7 @@ defmodule Inspect.OthersTest do
     assert inspect(~r/hi/, syntax_colors: [regex: :red]) == "\e[31m~r/hi/\e[0m"
 
     assert inspect(Regex.compile!("foo", "i")) == "~r/foo/i"
-    assert inspect(Regex.compile!("foo", [:caseless])) == ~S'Regex.compile!("foo", [:caseless])'
+    assert inspect(Regex.compile!("foo", [:ucp])) == ~S'Regex.compile!("foo", [:ucp])'
   end
 
   test "inspect_fun" do
@@ -947,7 +958,11 @@ defmodule Inspect.CustomProtocolTest do
     got Protocol.UndefinedError with message:
 
         """
-        protocol Inspect.CustomProtocolTest.CustomInspect not implemented for %Inspect.CustomProtocolTest.MissingImplementation{} of type Inspect.CustomProtocolTest.MissingImplementation (a struct)
+        protocol Inspect.CustomProtocolTest.CustomInspect not implemented for Inspect.CustomProtocolTest.MissingImplementation (a struct)
+
+        Got value:
+
+            %Inspect.CustomProtocolTest.MissingImplementation{}
         """
 
     while inspecting:
@@ -974,7 +989,11 @@ defmodule Inspect.CustomProtocolTest do
       got Protocol.UndefinedError with message:
 
           """
-          protocol Inspect.CustomProtocolTest.CustomInspect not implemented for %Inspect.CustomProtocolTest.MissingImplementation{} of type Inspect.CustomProtocolTest.MissingImplementation (a struct)
+          protocol Inspect.CustomProtocolTest.CustomInspect not implemented for Inspect.CustomProtocolTest.MissingImplementation (a struct)
+
+          Got value:
+
+              %Inspect.CustomProtocolTest.MissingImplementation{}
           """
 
       while inspecting:

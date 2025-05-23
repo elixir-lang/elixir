@@ -1,8 +1,12 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Tasks.Local.Hex do
   use Mix.Task
 
-  @hex_list_path "/installs/hex-1.x.csv"
-  @hex_archive_path "/installs/[ELIXIR_VERSION]/hex-[HEX_VERSION].ez"
+  @hex_list_path "/installs/hex.csv"
+  @hex_archive_path "/installs/[ELIXIR_VERSION]/hex-[HEX_VERSION]-otp-[OTP_RELEASE].ez"
 
   @shortdoc "Installs Hex locally"
 
@@ -37,6 +41,7 @@ defmodule Mix.Tasks.Local.Hex do
   used for fetching Hex, set the `HEX_BUILDS_URL` environment variable.
   """
   @switches [if_missing: :boolean, force: :boolean]
+  @compile {:no_warn_undefined, {Hex, :version, 0}}
 
   @impl true
   def run(argv) do
@@ -46,8 +51,7 @@ defmodule Mix.Tasks.Local.Hex do
     should_install? =
       if Keyword.get(opts, :if_missing, false) do
         if version do
-          not Code.ensure_loaded?(Hex) or
-            Version.compare(apply(Hex, :version, []), version) == :gt
+          not Code.ensure_loaded?(Hex) or Version.compare(Hex.version(), version) == :gt
         else
           not Code.ensure_loaded?(Hex)
         end
@@ -68,16 +72,13 @@ defmodule Mix.Tasks.Local.Hex do
   defp run_install(version, argv) do
     hex_url = Mix.Hex.url()
 
-    {elixir_version, hex_version, sha512} =
-      Mix.Local.find_matching_versions_from_signed_csv!(
-        "Hex",
-        version,
-        hex_url <> @hex_list_path
-      )
+    {elixir_version, hex_version, sha512, otp_release} =
+      Mix.Local.find_matching_versions!("Hex", version, hex_url <> @hex_list_path)
 
     url =
       (hex_url <> @hex_archive_path)
       |> String.replace("[ELIXIR_VERSION]", elixir_version)
+      |> String.replace("[OTP_RELEASE]", otp_release)
       |> String.replace("[HEX_VERSION]", hex_version)
 
     # Unload the Hex module we loaded earlier to avoid conflicts when Hex is updated

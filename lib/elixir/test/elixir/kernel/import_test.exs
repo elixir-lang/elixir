@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Kernel.ImportTest do
@@ -219,7 +223,7 @@ defmodule Kernel.ImportTest do
   end
 
   test "import lexical on case" do
-    case true do
+    case Process.get(:unused, true) do
       false ->
         import List
         flatten([1, [2], 3])
@@ -243,7 +247,7 @@ defmodule Kernel.ImportTest do
   end
 
   test "import lexical on with" do
-    with true <- false do
+    with [_ | _] <- List.flatten([]) do
       import List
       flatten([1, [2], 3])
       flunk()

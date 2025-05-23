@@ -1,5 +1,8 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+
 -module(iex).
--export([cli/0]).
+-export([start/0, start/2, shell/0, sync_remote/2]).
 
 %% Manual tests for changing the CLI boot.
 %%
@@ -24,27 +27,56 @@
 %% 4. Finally, in some other circumstances, printing messages may become
 %%    borked. This can be verified with:
 %%
-%%      $ iex -e ":logger.info('foo~nbar', [])"
+%%      $ iex -e ":logger.info(~c'foo~nbar', [])"
 %%
 %% By the time those instructions have been written, all tests above pass.
-cli() ->
+
+start() ->
+  start([], {elixir_utils, noop, []}).
+
+start(Opts, MFA) ->
+  {ok, _} = application:ensure_all_started(elixir),
+  {ok, _} = application:ensure_all_started(iex),
+
   spawn(fun() ->
-    elixir_config:wait_until_booted(),
-    (shell:whereis() =:= undefined) andalso start_shell()
+    case init:notify_when_started(self()) of
+      started -> ok;
+      _ -> init:wait_until_started()
+    end,
+
+    ok = io:setopts([{binary, true}, {encoding, unicode}]),
+    'Elixir.IEx.Server':run_from_shell(Opts, MFA)
   end).
 
-start_shell() ->
+shell() ->
   Args = init:get_plain_arguments(),
-  Opts = [{remote, get_remsh(Args)}, {dot_iex_path, get_dot_iex(Args)}, {on_eof, halt}],
 
-  case 'Elixir.IEx':shell(Opts) of
-    {ok, _Shell} ->
-      ok;
+  case get_remsh(Args) of
+    nil ->
+      start_mfa(Args, {elixir, start_cli, []});
 
-    {error, Reason} ->
-      io:format(standard_error, "Could not start IEx CLI due to reason: ~tp", [Reason]),
-      erlang:halt(1)
+    Remote ->
+      Ref = make_ref(),
+
+      Parent =
+        spawn_link(fun() ->
+          receive
+            {'begin', Ref, Other} ->
+              elixir:start_cli(),
+              Other ! {done, Ref}
+          end
+        end),
+
+      {remote, Remote, start_mfa(Args, {?MODULE, sync_remote, [Parent, Ref]})}
   end.
+
+sync_remote(Parent, Ref) ->
+  Parent ! {'begin', Ref, self()},
+  receive {done, Ref} -> ok end.
+
+start_mfa(Args, MFA) ->
+  Opts = [{dot_iex, get_dot_iex(Args)}, {on_eof, halt}],
+  {?MODULE, start, [Opts, MFA]}.
 
 get_dot_iex(["--dot-iex", H | _]) -> elixir_utils:characters_to_binary(H);
 get_dot_iex([_ | T]) -> get_dot_iex(T);

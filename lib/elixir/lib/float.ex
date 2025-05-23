@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 import Kernel, except: [round: 1]
 
 defmodule Float do
@@ -139,6 +143,8 @@ defmodule Float do
       iex> Float.parse("56.5xyz")
       {56.5, "xyz"}
 
+      iex> Float.parse(".12")
+      :error
       iex> Float.parse("pi")
       :error
       iex> Float.parse("1.7976931348623159e+308")
@@ -162,43 +168,53 @@ defmodule Float do
   end
 
   defp parse_unsigned(<<digit, rest::binary>>) when digit in ?0..?9,
-    do: parse_unsigned(rest, false, false, <<digit>>)
+    do: parse_unsigned(rest, false, false, [digit])
 
   defp parse_unsigned(binary) when is_binary(binary), do: :error
 
   defp parse_unsigned(<<digit, rest::binary>>, dot?, e?, acc) when digit in ?0..?9,
-    do: parse_unsigned(rest, dot?, e?, <<acc::binary, digit>>)
+    do: parse_unsigned(rest, dot?, e?, [digit | acc])
 
   defp parse_unsigned(<<?., digit, rest::binary>>, false, false, acc) when digit in ?0..?9,
-    do: parse_unsigned(rest, true, false, <<acc::binary, ?., digit>>)
+    do: parse_unsigned(rest, true, false, [digit, ?. | acc])
 
   defp parse_unsigned(<<exp_marker, digit, rest::binary>>, dot?, false, acc)
        when exp_marker in ~c"eE" and digit in ?0..?9,
-       do: parse_unsigned(rest, true, true, <<add_dot(acc, dot?)::binary, ?e, digit>>)
+       do: parse_unsigned(rest, true, true, [digit, ?e | add_dot(acc, dot?)])
 
   defp parse_unsigned(<<exp_marker, sign, digit, rest::binary>>, dot?, false, acc)
        when exp_marker in ~c"eE" and sign in ~c"-+" and digit in ?0..?9,
-       do: parse_unsigned(rest, true, true, <<add_dot(acc, dot?)::binary, ?e, sign, digit>>)
+       do: parse_unsigned(rest, true, true, [digit, sign, ?e | add_dot(acc, dot?)])
 
   # When floats are expressed in scientific notation, :erlang.binary_to_float/1 can raise an
   # ArgumentError if the e exponent is too big. For example, "1.0e400". Because of this, we
   # rescue the ArgumentError here and return an error.
   defp parse_unsigned(rest, dot?, true = _e?, acc) do
-    :erlang.binary_to_float(add_dot(acc, dot?))
+    acc
+    |> add_dot(dot?)
+    |> :lists.reverse()
+    |> :erlang.list_to_float()
   rescue
     ArgumentError -> :error
   else
     float -> {float, rest}
   end
 
-  defp parse_unsigned(rest, dot?, false = _e?, acc),
-    do: {:erlang.binary_to_float(add_dot(acc, dot?)), rest}
+  defp parse_unsigned(rest, dot?, false = _e?, acc) do
+    float =
+      acc
+      |> add_dot(dot?)
+      |> :lists.reverse()
+      |> :erlang.list_to_float()
+
+    {float, rest}
+  end
 
   defp add_dot(acc, true), do: acc
-  defp add_dot(acc, false), do: acc <> ".0"
+  defp add_dot(acc, false), do: [?0, ?. | acc]
 
   @doc """
-  Rounds a float to the largest number less than or equal to `num`.
+  Rounds a float to the largest float less than or equal to `number`.
 
   `floor/2` also accepts a precision to round a floating-point value down
   to an arbitrary number of fractional digits (between 0 and 15).
@@ -210,7 +226,7 @@ defmodule Float do
 
   ## Known issues
 
-  The behaviour of `floor/2` for floats can be surprising. For example:
+  The behavior of `floor/2` for floats can be surprising. For example:
 
       iex> Float.floor(12.52, 2)
       12.51
@@ -218,7 +234,7 @@ defmodule Float do
   One may have expected it to floor to 12.52. This is not a bug.
   Most decimal fractions cannot be represented as a binary floating point
   and therefore the number above is internally represented as 12.51999999,
-  which explains the behaviour above.
+  which explains the behavior above.
 
   ## Examples
 
@@ -246,7 +262,7 @@ defmodule Float do
   end
 
   @doc """
-  Rounds a float to the smallest integer greater than or equal to `num`.
+  Rounds a float to the smallest float greater than or equal to `number`.
 
   `ceil/2` also accepts a precision to round a floating-point value down
   to an arbitrary number of fractional digits (between 0 and 15).
@@ -254,7 +270,7 @@ defmodule Float do
   The operation is performed on the binary floating point, without a
   conversion to decimal.
 
-  The behaviour of `ceil/2` for floats can be surprising. For example:
+  The behavior of `ceil/2` for floats can be surprising. For example:
 
       iex> Float.ceil(-12.52, 2)
       -12.51
@@ -262,7 +278,7 @@ defmodule Float do
   One may have expected it to ceil to -12.52. This is not a bug.
   Most decimal fractions cannot be represented as a binary floating point
   and therefore the number above is internally represented as -12.51999999,
-  which explains the behaviour above.
+  which explains the behavior above.
 
   This function always returns floats. `Kernel.trunc/1` may be used instead to
   truncate the result to an integer afterwards.
@@ -275,6 +291,8 @@ defmodule Float do
       -56.0
       iex> Float.ceil(34.251, 2)
       34.26
+      iex> Float.ceil(-0.01)
+      -0.0
 
   """
   @spec ceil(float, precision_range) :: float
@@ -305,7 +323,7 @@ defmodule Float do
 
   ## Known issues
 
-  The behaviour of `round/2` for floats can be surprising. For example:
+  The behavior of `round/2` for floats can be surprising. For example:
 
       iex> Float.round(5.5675, 3)
       5.567
@@ -313,8 +331,8 @@ defmodule Float do
   One may have expected it to round to the half up 5.568. This is not a bug.
   Most decimal fractions cannot be represented as a binary floating point
   and therefore the number above is internally represented as 5.567499999,
-  which explains the behaviour above. If you want exact rounding for decimals,
-  you must use a decimal library. The behaviour above is also in accordance
+  which explains the behavior above. If you want exact rounding for decimals,
+  you must use a decimal library. The behavior above is also in accordance
   to reference implementations, such as "Correctly Rounded Binary-Decimal and
   Decimal-Binary Conversions" by David M. Gay.
 
@@ -332,6 +350,8 @@ defmodule Float do
       -6.0
       iex> Float.round(12.341444444444441, 15)
       12.341444444444441
+      iex> Float.round(-0.01)
+      -0.0
 
   """
   @spec round(float, precision_range) :: float
@@ -340,8 +360,13 @@ defmodule Float do
   # and could be implemented in the future.
   def round(float, precision \\ 0)
 
+  def round(float, 0) when float == 0.0, do: float
+
   def round(float, 0) when is_float(float) do
-    float |> :erlang.round() |> :erlang.float()
+    case float |> :erlang.round() |> :erlang.float() do
+      zero when zero == 0.0 and float < 0.0 -> -0.0
+      rounded -> rounded
+    end
   end
 
   def round(float, precision) when is_float(float) and precision in @precision_range do
@@ -365,6 +390,8 @@ defmodule Float do
         case rounding do
           :ceil when sign === 0 -> 1 / power_of_10(precision)
           :floor when sign === 1 -> -1 / power_of_10(precision)
+          :ceil when sign === 1 -> minus_zero()
+          :half_up when sign === 1 -> minus_zero()
           _ -> 0.0
         end
 
@@ -394,6 +421,9 @@ defmodule Float do
         boundary = den <<< 52
 
         cond do
+          num == 0 and sign == 1 ->
+            minus_zero()
+
           num == 0 ->
             0.0
 
@@ -407,6 +437,11 @@ defmodule Float do
         end
     end
   end
+
+  # TODO remove once we require Erlang/OTP 27+
+  # This function tricks the compiler to avoid this bug in previous versions:
+  # https://github.com/elixir-lang/elixir/blob/main/lib/elixir/lib/float.ex#L408-L412
+  defp minus_zero, do: -0.0
 
   defp decompose(significant, initial) do
     decompose(significant, 1, 0, initial)
@@ -556,27 +591,23 @@ defmodule Float do
   Returns a charlist which corresponds to the shortest text representation
   of the given float.
 
-  The underlying algorithm changes depending on the Erlang/OTP version:
-
-    * For OTP >= 24, it uses the algorithm presented in "Ryū: fast
-      float-to-string conversion" in Proceedings of the SIGPLAN '2018
-      Conference on Programming Language Design and Implementation.
-
-    * For OTP < 24, it uses the algorithm presented in "Printing Floating-Point
-      Numbers Quickly and Accurately" in Proceedings of the SIGPLAN '1996
-      Conference on Programming Language Design and Implementation.
+  It uses the algorithm presented in "Ryū: fast float-to-string conversion"
+  in Proceedings of the SIGPLAN '2018 Conference on Programming Language
+  Design and Implementation.
 
   For a configurable representation, use `:erlang.float_to_list/2`.
+
+  Inlined by the compiler.
 
   ## Examples
 
       iex> Float.to_charlist(7.0)
-      '7.0'
+      ~c"7.0"
 
   """
   @spec to_charlist(float) :: charlist
-  def to_charlist(float) when is_float(float) do
-    :io_lib_format.fwrite_g(float)
+  def to_charlist(float) do
+    :erlang.float_to_list(float, [:short])
   end
 
   @doc """
@@ -595,6 +626,8 @@ defmodule Float do
 
   For a configurable representation, use `:erlang.float_to_binary/2`.
 
+  Inlined by the compiler.
+
   ## Examples
 
       iex> Float.to_string(7.0)
@@ -602,8 +635,8 @@ defmodule Float do
 
   """
   @spec to_string(float) :: String.t()
-  def to_string(float) when is_float(float) do
-    IO.iodata_to_binary(:io_lib_format.fwrite_g(float))
+  def to_string(float) do
+    :erlang.float_to_binary(float, [:short])
   end
 
   @doc false

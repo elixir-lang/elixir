@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Mix.ProjectTest do
@@ -120,7 +124,7 @@ defmodule Mix.ProjectTest do
 
   test "builds the project structure without symlinks" do
     in_fixture("archive", fn ->
-      config = [deps_app_path: Path.expand("_build/archive"), build_embedded: true]
+      config = [deps_app_path: Path.expand("_build/archive")]
       assert Mix.Project.build_structure(config) == :ok
       assert File.dir?("_build/archive/ebin")
       assert {:error, _} = :file.read_link("_build/archive/ebin")

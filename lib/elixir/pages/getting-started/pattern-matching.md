@@ -1,10 +1,15 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Pattern matching
 
-In this chapter, we will learn why the `=` operator in Elixir is called the match operator and how to use it to pattern match inside data structures. We will learn about the pin operator `^` used to access previously bound values.
+In this chapter, we will learn why the [`=`](`=/2`) operator in Elixir is called the match operator and how to use it to pattern match inside data structures. We will learn about the pin operator [`^`](`^/1`) used to access previously bound values.
 
 ## The match operator
 
-We have used the `=` operator a couple times to assign variables in Elixir:
+We have used the [`=`](`=/2`) operator a couple times to assign variables in Elixir:
 
 ```elixir
 iex> x = 1
@@ -13,7 +18,7 @@ iex> x
 1
 ```
 
-In Elixir, the `=` operator is actually called *the match operator*. Let's see why:
+In Elixir, the [`=`](`=/2`) operator is actually called *the match operator*. Let's see why:
 
 ```elixir
 iex> x = 1
@@ -26,7 +31,7 @@ iex> 2 = x
 
 Notice that `1 = x` is a valid expression, and it matched because both the left and right side are equal to 1. When the sides do not match, a `MatchError` is raised.
 
-A variable can only be assigned on the left side of `=`:
+A variable can only be assigned on the left side of [`=`](`=/2`):
 
 ```elixir
 iex> 1 = unknown
@@ -92,7 +97,7 @@ iex> tail
 [2, 3]
 ```
 
-Similar to the `hd/1` and `tl/1` functions, we can't match an empty list with a head and tail pattern:
+Similar to the [`hd`](`hd/1`) and [`tl`](`tl/1`) functions, we can't match an empty list with a head and tail pattern:
 
 ```elixir
 iex> [head | tail] = []
@@ -123,7 +128,7 @@ iex> x = 2
 
 However, there are times when we don't want variables to be rebound.
 
-Use the pin operator `^` when you want to pattern match against a variable's *existing value* rather than rebinding the variable.
+Use the pin operator [`^`](`^/1`) when you want to pattern match against a variable's *existing value* rather than rebinding the variable.
 
 ```elixir
 iex> x = 1

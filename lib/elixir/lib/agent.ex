@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Agent do
   @moduledoc """
   Agents are a simple abstraction around state.
@@ -207,7 +211,7 @@ defmodule Agent do
   @doc false
   defmacro __using__(opts) do
     quote location: :keep, bind_quoted: [opts: opts] do
-      unless Module.has_attribute?(__MODULE__, :doc) do
+      if not Module.has_attribute?(__MODULE__, :doc) do
         @doc """
         Returns a specification to start this module under a supervisor.
 
@@ -284,7 +288,7 @@ defmodule Agent do
   instead of an anonymous function; `fun` in `module` will be called with the
   given arguments `args` to initialize the state.
   """
-  @spec start_link(module, atom, [any], GenServer.options()) :: on_start
+  @spec start_link(module, atom, [term], GenServer.options()) :: on_start
   def start_link(module, fun, args, options \\ []) do
     GenServer.start_link(Agent.Server, {module, fun, args}, options)
   end
@@ -311,7 +315,7 @@ defmodule Agent do
 
   See `start_link/4` for more information.
   """
-  @spec start(module, atom, [any], GenServer.options()) :: on_start
+  @spec start(module, atom, [term], GenServer.options()) :: on_start
   def start(module, fun, args, options \\ []) do
     GenServer.start(Agent.Server, {module, fun, args}, options)
   end
@@ -348,7 +352,7 @@ defmodule Agent do
   instead of an anonymous function. The state is added as first
   argument to the given list of arguments.
   """
-  @spec get(agent, module, atom, [term], timeout) :: any
+  @spec get(agent, module, atom, [term], timeout) :: term
   def get(agent, module, fun, args, timeout \\ 5000) do
     GenServer.call(agent, {:get, {module, fun, args}}, timeout)
   end
@@ -389,7 +393,7 @@ defmodule Agent do
   instead of an anonymous function. The state is added as first
   argument to the given list of arguments.
   """
-  @spec get_and_update(agent, module, atom, [term], timeout) :: any
+  @spec get_and_update(agent, module, atom, [term], timeout) :: term
   def get_and_update(agent, module, fun, args, timeout \\ 5000) do
     GenServer.call(agent, {:get_and_update, {module, fun, args}}, timeout)
   end

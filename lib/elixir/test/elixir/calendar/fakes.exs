@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule FakeCalendar do
   def time_to_string(hour, minute, second, _), do: "#{hour}::#{minute}::#{second}"
   def date_to_string(year, month, day), do: "#{day}/#{month}/#{year}"
@@ -53,6 +57,22 @@ defmodule FakeTimeZoneDatabase do
     until_wall: ~N[2019-10-27 03:00:00]
   }
 
+  @time_zone_period_usla_summer_2018 %{
+    std_offset: 3600,
+    utc_offset: -28800,
+    zone_abbr: "PDT",
+    from_wall: ~N[2018-03-11 02:00:00],
+    until_wall: ~N[2018-11-04 02:00:00]
+  }
+
+  @time_zone_period_usla_winter_2018_2019 %{
+    std_offset: 0,
+    utc_offset: -28800,
+    zone_abbr: "PST",
+    from_wall: ~N[2018-11-04 02:00:00],
+    until_wall: ~N[2019-03-10 03:00:00]
+  }
+
   @spec time_zone_period_from_utc_iso_days(Calendar.iso_days(), Calendar.time_zone()) ::
           {:ok, TimeZoneDatabase.time_zone_period()} | {:error, :time_zone_not_found}
   @impl true
@@ -103,13 +123,23 @@ defmodule FakeTimeZoneDatabase do
   end
 
   defp time_zone_periods_from_utc("America/Los_Angeles", erl_datetime)
-       when erl_datetime >= {{2018, 3, 11}, {10, 0, 0}} and
-              erl_datetime < {{2018, 11, 4}, {9, 0, 0}} do
+       when erl_datetime >= {{2018, 3, 11}, {2, 0, 0}} and
+              erl_datetime < {{2018, 11, 4}, {2, 0, 0}} do
+    {:ok, @time_zone_period_usla_summer_2018}
+  end
+
+  defp time_zone_periods_from_utc("America/Los_Angeles", erl_datetime)
+       when erl_datetime >= {{2018, 11, 4}, {2, 0, 0}} and
+              erl_datetime < {{2019, 3, 10}, {3, 0, 0}} do
+    {:ok, @time_zone_period_usla_winter_2018_2019}
+  end
+
+  defp time_zone_periods_from_utc("Etc/UTC", _erl_datetime) do
     {:ok,
      %{
-       std_offset: 3600,
-       utc_offset: -28800,
-       zone_abbr: "PDT"
+       std_offset: 0,
+       utc_offset: 0,
+       zone_abbr: "UTC"
      }}
   end
 
@@ -149,6 +179,18 @@ defmodule FakeTimeZoneDatabase do
     {:ok, @time_zone_period_cph_summer_2019}
   end
 
+  defp time_zone_periods_from_wall("America/Los_Angeles", erl_datetime)
+       when erl_datetime >= {{2018, 3, 11}, {2, 0, 0}} and
+              erl_datetime < {{2018, 11, 4}, {2, 0, 0}} do
+    {:ok, @time_zone_period_usla_summer_2018}
+  end
+
+  defp time_zone_periods_from_wall("America/Los_Angeles", erl_datetime)
+       when erl_datetime >= {{2018, 11, 4}, {3, 0, 0}} and
+              erl_datetime < {{2019, 3, 10}, {3, 0, 0}} do
+    {:ok, @time_zone_period_usla_winter_2018_2019}
+  end
+
   defp time_zone_periods_from_wall("Europe/Copenhagen", erl_datetime)
        when erl_datetime >= {{2015, 3, 29}, {3, 0, 0}} and
               erl_datetime < {{2015, 10, 25}, {3, 0, 0}} do
@@ -168,6 +210,15 @@ defmodule FakeTimeZoneDatabase do
        std_offset: 3600,
        utc_offset: 3600,
        zone_abbr: "CEST"
+     }}
+  end
+
+  defp time_zone_periods_from_wall("Etc/UTC", _erl_datetime) do
+    {:ok,
+     %{
+       std_offset: 0,
+       utc_offset: 0,
+       zone_abbr: "UTC"
      }}
   end
 

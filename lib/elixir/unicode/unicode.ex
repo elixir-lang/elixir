@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 # How to update the Unicode files
 #
 # Unicode files can be found in https://www.unicode.org/Public/VERSION_NUMBER/ where
@@ -150,7 +154,7 @@ case_ignorable_categories = :binary.compile_pattern(["Mn", "Me", "Cf", "Lm", "Sk
 
 defmodule String.Unicode do
   @moduledoc false
-  def version, do: {15, 1, 0}
+  def version, do: {16, 0, 0}
 
   [unconditional_mappings, _conditional_mappings] =
     Path.join(__DIR__, "SpecialCasing.txt")

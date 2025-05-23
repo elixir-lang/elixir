@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Code.Formatter.CallsTest do
@@ -164,6 +168,11 @@ defmodule Code.Formatter.CallsTest do
       """
 
       assert_format bad, good, @short_length
+    end
+
+    test "for maps" do
+      assert_same "a(%{x: 1})", @short_length
+      assert_format "ab(%{x: 1})", "ab(%{\n  x: 1\n})", @short_length
     end
   end
 
@@ -590,6 +599,7 @@ defmodule Code.Formatter.CallsTest do
       assert_same ~S[Kernel.+(1, 2)]
       assert_same ~S[:erlang.+(1, 2)]
       assert_same ~S[foo."bar baz"(1, 2)]
+      assert_same ~S[foo."bar\nbaz"(1, 2)]
     end
 
     test "splits on arguments and dot on line limit" do

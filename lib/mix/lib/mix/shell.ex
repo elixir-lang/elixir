@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Shell do
   @moduledoc """
   Defines `Mix.Shell` contract.
@@ -40,7 +44,7 @@ defmodule Mix.Shell do
 
     * `:env` - environment options to the executed command
 
-    * `:cd` - (since v1.11.0) the directory to run the command in
+    * `:cd` *(since v1.11.0)* - the directory to run the command in
 
   All the built-in shells support these.
   """
@@ -90,27 +94,31 @@ defmodule Mix.Shell do
   end
 
   @doc """
-  Executes the given `command` as a shell command and
-  invokes the `callback` for the streamed response.
+  Executes the given `command` and invokes the `callback` for the streamed response.
 
-  This is most commonly used by shell implementations
-  but can also be invoked directly.
+  `command` is either a string, to be executed as a `System.shell/2` command,
+  or a `{executable, args}` to be executed via `System.cmd/3`.
 
-  `callback` takes the output data of the command. Its
-  return value is ignored.
+  `callback` takes the output data of the command. Its return value is ignored.
+
+  This function is most commonly used by `Mix.Shell` implementations but can
+  also be invoked directly.
 
   ## Options
 
-    * `:cd` - (since v1.11.0) the directory to run the command in
+    * `:cd` *(since v1.11.0)* - the directory to run the command in
 
-    * `:stderr_to_stdout` - redirects stderr to stdout, defaults to true
+    * `:stderr_to_stdout` - redirects stderr to stdout, defaults to true, unless use_stdio is set to false
+
+    * `:use_stdio` - controls whether the command should use stdin / stdout / stdrr, defaults to true
 
     * `:env` - a list of environment variables, defaults to `[]`
 
     * `:quiet` - overrides the callback to no-op
 
   """
-  @spec cmd(String.t(), keyword, (binary -> term)) :: exit_status :: non_neg_integer
+  @spec cmd(String.t() | {String.t(), [String.t()]}, keyword, (binary -> term)) ::
+          exit_status :: non_neg_integer
   def cmd(command, options \\ [], callback) when is_function(callback, 1) do
     callback =
       if options[:quiet] do
@@ -119,13 +127,20 @@ defmodule Mix.Shell do
         callback
       end
 
+    use_stdio = Keyword.get(options, :use_stdio, true)
+
     options =
       options
-      |> Keyword.take([:cd, :stderr_to_stdout, :env])
+      |> Keyword.take([:cd, :stderr_to_stdout, :env, :use_stdio])
       |> Keyword.put(:into, %Mix.Shell{callback: callback})
-      |> Keyword.put_new(:stderr_to_stdout, true)
+      |> Keyword.put_new(:stderr_to_stdout, use_stdio)
 
-    {_, status} = System.shell(command, options)
+    {_, status} =
+      case command do
+        {command, args} -> System.cmd(command, args, options)
+        command when is_binary(command) -> System.shell(command, options)
+      end
+
     status
   end
 

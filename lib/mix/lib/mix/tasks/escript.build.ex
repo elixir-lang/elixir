@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Tasks.Escript.Build do
   use Mix.Task
   import Bitwise, only: [|||: 2]
@@ -24,7 +28,7 @@ defmodule Mix.Tasks.Escript.Build do
   developers and not as a deployment mechanism. For running live
   systems, consider using `mix run` or building releases. See
   the `Application` module for more information on systems
-  life-cycles.
+  life cycles.
 
   All of the configuration defined in `config/config.exs` will
   be included as part of the escript. `config/runtime.exs` is also
@@ -35,11 +39,6 @@ defmodule Mix.Tasks.Escript.Build do
   This task also removes documentation and debugging chunks from
   the compiled `.beam` files to reduce the size of the escript.
   If this is not desired, check the `:strip_beams` option.
-
-  > #### `priv` directory support {: .warning}
-  >
-  > escripts do not support projects and dependencies
-  > that need to store or read artifacts from the priv directory.
 
   ## Command line options
 
@@ -94,6 +93,11 @@ defmodule Mix.Tasks.Escript.Build do
     * `:emu_args` - emulator arguments to embed in the escript file.
       Defaults to `""`.
 
+    * `:include_priv_for` - a list of application names (atoms) specifying
+      applications which priv directory should be included in the resulting
+      escript archive. Currently the expected way of accessing priv files
+      in an escript is via `:escript.extract/2`. Defaults to `[]`.
+
   There is one project-level option that affects how the escript is generated:
 
     * `language: :elixir | :erlang` - set it to `:erlang` for Erlang projects
@@ -147,7 +151,7 @@ defmodule Mix.Tasks.Escript.Build do
     filename = escript_opts[:path] || script_name
     main = escript_opts[:main_module]
 
-    unless main do
+    if !main do
       error_message =
         "Could not generate escript, please set :main_module " <>
           "in your project configuration (under :escript option) to a module that implements main/1"
@@ -155,7 +159,7 @@ defmodule Mix.Tasks.Escript.Build do
       Mix.raise(error_message)
     end
 
-    unless Code.ensure_loaded?(main) do
+    if not Code.ensure_loaded?(main) do
       error_message =
         "Could not generate escript, module #{main} defined as " <>
           ":main_module could not be loaded"
@@ -185,11 +189,16 @@ defmodule Mix.Tasks.Escript.Build do
 
     escript_mod = String.to_atom(Atom.to_string(app) <> "_escript")
 
+    include_priv_for = MapSet.new(escript_opts[:include_priv_for] || [])
+
     beam_paths =
-      [project_files(), deps_files(), core_files(escript_opts, language)]
+      [
+        project_files(project, include_priv_for),
+        deps_files(include_priv_for),
+        core_files(escript_opts, language, include_priv_for)
+      ]
       |> Stream.concat()
-      |> prepare_beam_paths()
-      |> Map.merge(consolidated_paths(project))
+      |> replace_consolidated_paths(project)
 
     tuples = gen_main(project, escript_mod, main, app, language) ++ read_beams(beam_paths)
     tuples = if strip_options, do: strip_beams(tuples, strip_options), else: tuples
@@ -213,13 +222,25 @@ defmodule Mix.Tasks.Escript.Build do
     :ok
   end
 
-  defp project_files() do
-    get_files(Mix.Project.app_path())
+  defp project_files(project, include_priv_for) do
+    get_files(Mix.Project.app_path(), project[:app] in include_priv_for)
   end
 
-  defp get_files(app) do
-    Path.wildcard("#{app}/ebin/*.{app,beam}") ++
-      (Path.wildcard("#{app}/priv/**/*") |> Enum.filter(&File.regular?/1))
+  defp get_files(app_path, include_priv?) do
+    paths = Path.wildcard("#{app_path}/ebin/*.{app,beam}")
+
+    paths =
+      if include_priv? do
+        paths ++ (Path.wildcard("#{app_path}/priv/**/*") |> Enum.filter(&File.regular?/1))
+      else
+        paths
+      end
+
+    apps_dir = Path.dirname(app_path)
+
+    for path <- paths do
+      {Path.relative_to(path, apps_dir), path}
+    end
   end
 
   defp set_perms(filename) do
@@ -227,14 +248,14 @@ defmodule Mix.Tasks.Escript.Build do
     :ok = File.chmod(filename, stat.mode ||| 0o111)
   end
 
-  defp deps_files() do
+  defp deps_files(include_priv_for) do
     deps = Mix.Dep.cached()
-    Enum.flat_map(deps, fn dep -> get_files(dep.opts[:build]) end)
+    Enum.flat_map(deps, fn dep -> get_files(dep.opts[:build], dep.app in include_priv_for) end)
   end
 
-  defp core_files(escript_opts, language) do
+  defp core_files(escript_opts, language, include_priv_for) do
     if Keyword.get(escript_opts, :embed_elixir, language == :elixir) do
-      Enum.flat_map([:elixir | extra_apps()], &app_files/1)
+      Enum.flat_map([:elixir | extra_apps()], &app_files(&1, include_priv_for))
     else
       []
     end
@@ -269,15 +290,11 @@ defmodule Mix.Tasks.Escript.Build do
     end
   end
 
-  defp app_files(app) do
+  defp app_files(app, include_priv_for) do
     case :code.where_is_file(~c"#{app}.app") do
       :non_existing -> Mix.raise("Could not find application #{app}")
-      file -> get_files(Path.dirname(Path.dirname(file)))
+      file -> get_files(Path.dirname(Path.dirname(file)), app in include_priv_for)
     end
-  end
-
-  defp prepare_beam_paths(paths) do
-    for path <- paths, into: %{}, do: {Path.basename(path), path}
   end
 
   defp read_beams(items) do
@@ -305,14 +322,31 @@ defmodule Mix.Tasks.Escript.Build do
     end
   end
 
-  defp consolidated_paths(config) do
+  defp replace_consolidated_paths(files, config) do
+    # We could write modules to a consolidated/ directory and prepend
+    # it to code path using VM args. However, when Erlang Escript
+    # boots, it prepends all second-level ebin/ directories to the
+    # path, so the unconsolidated modules would take precedence.
+    #
+    # Instead of writing consolidated/ into the archive, we replace
+    # the protocol modules with their consolidated version in their
+    # usual location. As a side benefit, this reduces the Escript
+    # file size, since we do not include the unconsolidated modules.
+
     if config[:consolidate_protocols] do
-      Mix.Project.consolidation_path(config)
-      |> Path.join("*")
-      |> Path.wildcard()
-      |> prepare_beam_paths()
+      consolidation_path = Mix.Project.consolidation_path(config)
+
+      consolidated =
+        consolidation_path
+        |> Path.join("*")
+        |> Path.wildcard()
+        |> Map.new(fn path -> {Path.basename(path), path} end)
+
+      for {zip_path, path} <- files do
+        {zip_path, consolidated[Path.basename(path)] || path}
+      end
     else
-      %{}
+      files
     end
   end
 
@@ -346,7 +380,7 @@ defmodule Mix.Tasks.Escript.Build do
       quote do
         @spec main(OptionParser.argv()) :: any
         def main(args) do
-          unquote(main_body_for(language, module, app, compile_config, runtime_config))
+          unquote(main_body_for(language, module, compile_config, runtime_config))
         end
 
         defp load_config(config) do
@@ -359,33 +393,8 @@ defmodule Mix.Tasks.Escript.Build do
           :ok
         end
 
-        defp start_app(nil) do
-          :ok
-        end
-
-        defp start_app(app) do
-          case :application.ensure_all_started(app) do
-            {:ok, _} ->
-              :ok
-
-            {:error, {app, reason}} ->
-              formatted_error =
-                case :code.ensure_loaded(Application) do
-                  {:module, Application} -> Application.format_error(reason)
-                  {:error, _} -> :io_lib.format(~c"~p", [reason])
-                end
-
-              error_message = [
-                "ERROR! Could not start application ",
-                :erlang.atom_to_binary(app, :utf8),
-                ": ",
-                formatted_error,
-                ?\n
-              ]
-
-              io_error(error_message)
-              :erlang.halt(1)
-          end
+        defp start_app() do
+          unquote(start_app_for(app))
         end
 
         defp io_error(message) do
@@ -397,7 +406,7 @@ defmodule Mix.Tasks.Escript.Build do
     [{~c"#{name}.beam", binary}]
   end
 
-  defp main_body_for(:elixir, module, app, compile_config, runtime_config) do
+  defp main_body_for(:elixir, module, compile_config, runtime_config) do
     config =
       if runtime_config do
         quote do
@@ -422,7 +431,7 @@ defmodule Mix.Tasks.Escript.Build do
           args = Enum.map(args, &List.to_string(&1))
           System.argv(args)
           load_config(unquote(config))
-          start_app(unquote(app))
+          start_app()
           Kernel.CLI.run(fn _ -> unquote(module).main(args) end)
 
         error ->
@@ -432,11 +441,42 @@ defmodule Mix.Tasks.Escript.Build do
     end
   end
 
-  defp main_body_for(:erlang, module, app, compile_config, _runtime_config) do
+  defp main_body_for(:erlang, module, compile_config, _runtime_config) do
     quote do
       load_config(unquote(compile_config))
-      start_app(unquote(app))
+      start_app()
       unquote(module).main(args)
+    end
+  end
+
+  defp start_app_for(nil) do
+    :ok
+  end
+
+  defp start_app_for(app) do
+    quote do
+      case :application.ensure_all_started(unquote(app)) do
+        {:ok, _} ->
+          :ok
+
+        {:error, {app, reason}} ->
+          formatted_error =
+            case :code.ensure_loaded(Application) do
+              {:module, Application} -> Application.format_error(reason)
+              {:error, _} -> :io_lib.format(~c"~p", [reason])
+            end
+
+          error_message = [
+            "ERROR! Could not start application ",
+            :erlang.atom_to_binary(app, :utf8),
+            ": ",
+            formatted_error,
+            ?\n
+          ]
+
+          io_error(error_message)
+          :erlang.halt(1)
+      end
     end
   end
 end

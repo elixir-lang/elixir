@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.Deps.TreeTest do
@@ -29,6 +33,18 @@ defmodule Mix.Tasks.Deps.TreeTest do
     end
   end
 
+  defmodule UmbrellaApp do
+    def project do
+      [
+        app: :sample,
+        version: "0.1.0",
+        deps: [
+          {:umbrella_dep, in_umbrella: true}
+        ]
+      ]
+    end
+  end
+
   test "shows the dependency tree", context do
     in_tmp(context.test, fn ->
       Mix.Project.push(ConvergedDepsApp)
@@ -53,6 +69,17 @@ defmodule Mix.Tasks.Deps.TreeTest do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         Mix.Task.run("deps.tree", ["--format", "pretty"])
+        assert_received {:mix_shell, :info, ["foo"]}
+        assert_received {:mix_shell, :info, ["bar"]}
+        assert_received {:mix_shell, :info, ["└── foo (../foo)"]}
+      end)
+    end)
+  end
+
+  test "filters umbrella deps only with --umbrella-only" do
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project(:umbrella, ".", fn _ ->
+        Mix.Task.run("deps.tree", ["--format", "pretty", "--umbrella-only"])
         assert_received {:mix_shell, :info, ["foo"]}
         assert_received {:mix_shell, :info, ["bar"]}
         assert_received {:mix_shell, :info, ["└── foo (../foo)"]}

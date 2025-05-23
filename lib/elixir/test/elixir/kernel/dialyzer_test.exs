@@ -1,9 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Kernel.DialyzerTest do
   use ExUnit.Case, async: true
 
   @moduletag :dialyzer
+  @moduletag :require_ast
   import PathHelpers
 
   setup_all do
@@ -17,7 +22,7 @@ defmodule Kernel.DialyzerTest do
       |> String.to_charlist()
 
     # Some OSs (like Windows) do not provide the HOME environment variable.
-    unless System.get_env("HOME") do
+    if !System.get_env("HOME") do
       System.put_env("HOME", System.user_home())
     end
 
@@ -25,6 +30,8 @@ defmodule Kernel.DialyzerTest do
     mods = [
       :elixir,
       :elixir_env,
+      :elixir_erl_pass,
+      :maps,
       ArgumentError,
       Atom,
       Code,
@@ -39,6 +46,7 @@ defmodule Kernel.DialyzerTest do
       Macro,
       Macro.Env,
       Module,
+      Protocol,
       String,
       String.Chars
     ]
@@ -48,7 +56,9 @@ defmodule Kernel.DialyzerTest do
 
     # Compile Dialyzer fixtures
     source_files = Path.wildcard(Path.join(fixture_path("dialyzer"), "*"))
-    {:ok, _, _} = Kernel.ParallelCompiler.compile_to_path(source_files, dir)
+
+    {:ok, _, _} =
+      Kernel.ParallelCompiler.compile_to_path(source_files, dir, return_diagnostics: true)
 
     {:ok, [base_dir: dir, base_plt: plt]}
   end
@@ -111,28 +121,6 @@ defmodule Kernel.DialyzerTest do
     assert_dialyze_no_warnings!(context)
   end
 
-  test "no warnings on struct update", context do
-    copy_beam!(context, Dialyzer.StructUpdate)
-    assert_dialyze_no_warnings!(context)
-  end
-
-  @tag warnings: [:specdiffs]
-  test "no warnings on protocol calls with opaque types", context do
-    alias Dialyzer.ProtocolOpaque
-
-    copy_beam!(context, ProtocolOpaque)
-    copy_beam!(context, ProtocolOpaque.Entity)
-    copy_beam!(context, ProtocolOpaque.Entity.Any)
-    copy_beam!(context, ProtocolOpaque.Duck)
-    assert_dialyze_no_warnings!(context)
-
-    # Also ensure no warnings after consolidation.
-    Code.prepend_path(context.base_dir)
-    {:ok, binary} = Protocol.consolidate(ProtocolOpaque.Entity, [ProtocolOpaque.Duck, Any])
-    File.write!(Path.join(context.outdir, "#{ProtocolOpaque.Entity}.beam"), binary)
-    assert_dialyze_no_warnings!(context)
-  end
-
   test "no warnings on and/2 and or/2", context do
     copy_beam!(context, Dialyzer.BooleanCheck)
     assert_dialyze_no_warnings!(context)
@@ -155,6 +143,16 @@ defmodule Kernel.DialyzerTest do
 
   test "no warnings on with/else", context do
     copy_beam!(context, Dialyzer.With)
+    assert_dialyze_no_warnings!(context)
+  end
+
+  test "no warnings on with when else has a no_return type", context do
+    copy_beam!(context, Dialyzer.WithNoReturn)
+    assert_dialyze_no_warnings!(context)
+  end
+
+  test "no warnings on with when multiple else clauses and one is a no_return", context do
+    copy_beam!(context, Dialyzer.WithThrowingElse)
     assert_dialyze_no_warnings!(context)
   end
 

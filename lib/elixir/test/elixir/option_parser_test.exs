@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule OptionParserTest do
@@ -106,6 +110,15 @@ defmodule OptionParserTest do
     assert_raise OptionParser.ParseError, "1 error found!\n--foo : Unknown option", fn ->
       argv = ["--source", "from_docs/", "--foo", "show"]
       OptionParser.parse!(argv, strict: [source: :string, docs: :string])
+    end
+  end
+
+  test "parse!/2 raises an exception for an unknown option using strict when it is only off by underscores" do
+    msg = "1 error found!\n--docs_bar : Unknown option. Did you mean --docs-bar?"
+
+    assert_raise OptionParser.ParseError, msg, fn ->
+      argv = ["--source", "from_docs/", "--docs_bar", "show"]
+      OptionParser.parse!(argv, strict: [source: :string, docs_bar: :string])
     end
   end
 
@@ -419,10 +432,9 @@ end
 defmodule OptionsParserDeprecationsTest do
   use ExUnit.Case, async: true
 
-  @warning ~r[not passing the :switches or :strict option to OptionParser is deprecated]
-
   def assert_deprecated(fun) do
-    assert ExUnit.CaptureIO.capture_io(:stderr, fun) =~ @warning
+    assert ExUnit.CaptureIO.capture_io(:stderr, fun) =~
+             "not passing the :switches or :strict option to OptionParser is deprecated"
   end
 
   test "parses boolean option" do

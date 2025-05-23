@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Config do
   @moduledoc ~S"""
   A simple keyword-based configuration API.
@@ -41,14 +45,15 @@ defmodule Config do
   > application environment is effectively a global storage. Also note that
   > the `config/config.exs` of a library is not evaluated when the library is
   > used as a dependency, as configuration is always meant to configure the
-  > current project. For more information, read our [library guidelines](library-guidelines.md).
+  > current project. For more information, see ["Using application configuration for
+  > libraries"](design-anti-patterns.md#using-application-configuration-for-libraries).
 
   ## Migrating from `use Mix.Config`
 
   The `Config` module in Elixir was introduced in v1.9 as a replacement to
-  `Mix.Config`, which was specific to Mix and has been deprecated.
+  `use Mix.Config`, which was specific to Mix and has been deprecated.
 
-  You can leverage `Config` instead of `Mix.Config` in three steps. The first
+  You can leverage `Config` instead of `use Mix.Config` in three steps. The first
   step is to replace `use Mix.Config` at the top of your config files by
   `import Config`.
 
@@ -82,11 +87,11 @@ defmodule Config do
         ...
       end
 
-  The only files where you may access functions from the `Mix` module are
-  the `mix.exs` file and inside custom Mix tasks, which always within the
-  `Mix.Tasks` namespace.
+  The only places where you may access functions from the `Mix` module are
+  the `mix.exs` file and inside custom Mix tasks, which are always within
+  the `Mix.Tasks` namespace.
 
-  ## config/runtime.exs
+  ## `config/runtime.exs`
 
   For runtime configuration, you can use the `config/runtime.exs` file.
   It is executed right before applications start in both Mix and releases
@@ -130,7 +135,6 @@ defmodule Config do
 
       config :logger,
         level: :warn,
-        backends: [:console]
 
       config :logger,
         level: :info,
@@ -138,12 +142,12 @@ defmodule Config do
 
   will have a final configuration for `:logger` of:
 
-      [level: :info, backends: [:console], truncate: 1024]
+      [level: :info, truncate: 1024]
 
   """
   @doc since: "1.9.0"
   def config(root_key, opts) when is_atom(root_key) and is_list(opts) do
-    unless Keyword.keyword?(opts) do
+    if not Keyword.keyword?(opts) do
       raise ArgumentError, "config/2 expected a keyword list, got: #{inspect(opts)}"
     end
 
@@ -195,10 +199,36 @@ defmodule Config do
   end
 
   @doc """
+  Reads the configuration for the given root key.
+
+  This function only reads the configuration from a previous
+  `config/2` or `config/3` call. If `root_key` points to an
+  application, it does not read its actual application environment.
+  Its main use case is to make it easier to access and share
+  configuration values across files.
+
+  If the `root_key` was not configured, it returns `nil`.
+
+  ## Examples
+
+      # In config/config.exs
+      config :my_app, foo: :bar
+
+      # In config/dev.exs
+      config :another_app, foo: read_config(:my_app)[:foo] || raise "missing parent configuration"
+
+  """
+  @doc since: "1.18.0"
+  def read_config(root_key) when is_atom(root_key) do
+    get_config!()[root_key]
+  end
+
+  @doc """
   Returns the environment this configuration file is executed on.
 
   In Mix projects this function returns the environment this configuration
-  file is executed on. In releases, the environment when `mix release` ran.
+  file is executed on. 
+  In releases, returns the `MIX_ENV` specified when running `mix release`.
 
   This is most often used to execute conditional code:
 

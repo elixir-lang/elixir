@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Structs
 
 We learned about maps [in earlier chapters](keywords-and-maps.md):
@@ -68,6 +73,8 @@ iex> name
 iex> %User{} = %{}
 ** (MatchError) no match of right hand side value: %{}
 ```
+
+For more details on creating, updating, and pattern matching structs, see the documentation for `%/2`.
 
 ## Structs are bare maps underneath
 

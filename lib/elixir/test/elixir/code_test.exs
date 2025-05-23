@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule CodeTest do
@@ -95,12 +99,12 @@ defmodule CodeTest do
       sample = """
       defmodule CodeTest.UnknownRemoteCall do
         def perform do
-          UnkownModule.foo()
+          UnknownModule.foo()
         end
       end
       """
 
-      assert {_, [%{position: {3, 17}}]} =
+      assert {_, [%{position: {3, 19}}]} =
                Code.with_diagnostics(fn ->
                  quoted = Code.string_to_quoted!(sample, columns: true)
                  Code.eval_quoted(quoted, [])
@@ -181,25 +185,23 @@ defmodule CodeTest do
       end
     end
 
-    if System.otp_release() >= "25" do
-      test "includes eval file in stacktrace" do
-        try do
-          Code.eval_string("<<a::size(b)>>", [a: :a, b: :b], file: "myfile")
-        rescue
-          _ ->
-            assert Exception.format_stacktrace(__STACKTRACE__) =~ "myfile:1"
-        end
+    test "includes eval file in stacktrace" do
+      try do
+        Code.eval_string("<<a::size(b)>>", [a: :a, b: :b], file: "myfile")
+      rescue
+        _ ->
+          assert Exception.format_stacktrace(__STACKTRACE__) =~ "myfile:1"
+      end
 
-        try do
-          Code.eval_string(
-            "Enum.map([a: :a, b: :b], fn {a, b} -> <<a::size(b)>> end)",
-            [],
-            file: "myfile"
-          )
-        rescue
-          _ ->
-            assert Exception.format_stacktrace(__STACKTRACE__) =~ "myfile:1"
-        end
+      try do
+        Code.eval_string(
+          "Enum.map([a: :a, b: :b], fn {a, b} -> <<a::size(b)>> end)",
+          [],
+          file: "myfile"
+        )
+      rescue
+        _ ->
+          assert Exception.format_stacktrace(__STACKTRACE__) =~ "myfile:1"
       end
     end
 
@@ -211,30 +213,6 @@ defmodule CodeTest do
       assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
                assert Code.eval_string("1 + 2", [], env) == {3, []}
              end) =~ "an __ENV__ with outdated compilation information was given to eval"
-    end
-
-    test "emits checker warnings" do
-      output =
-        ExUnit.CaptureIO.capture_io(:stderr, fn ->
-          Code.eval_string(File.read!(fixture_path("checker_warning.exs")), [])
-        end)
-
-      assert output =~ "incompatible types"
-    after
-      :code.purge(CodeTest.CheckerWarning)
-      :code.delete(CodeTest.CheckerWarning)
-    end
-
-    test "captures checker diagnostics" do
-      {{{:module, _, _, _}, _}, diagnostics} =
-        Code.with_diagnostics(fn ->
-          Code.eval_string(File.read!(fixture_path("checker_warning.exs")), [])
-        end)
-
-      assert [%{message: "incompatible types:" <> _}] = diagnostics
-    after
-      :code.purge(CodeTest.CheckerWarning)
-      :code.delete(CodeTest.CheckerWarning)
     end
 
     test "formats diagnostic file paths as relatives" do
@@ -252,6 +230,7 @@ defmodule CodeTest do
                  message: "undefined variable \"x\"",
                  position: 1,
                  file: "nofile",
+                 source: "nofile",
                  stacktrace: [],
                  severity: :error
                }
@@ -300,7 +279,7 @@ defmodule CodeTest do
 
       quoted = quote(do: alias(:dict, as: MyDict))
       {:dict, [], env} = Code.eval_quoted_with_env(quoted, [], env)
-      assert Macro.Env.fetch_alias(env, :MyDict) == {:ok, :dict}
+      assert Keyword.fetch(env.aliases, Elixir.MyDict) == {:ok, :dict}
     end
 
     test "manages env vars" do
@@ -336,6 +315,19 @@ defmodule CodeTest do
 
       assert fun.(quote(do: fn -> var!(x, :foo) end), [{{:x, :foo}, 2}, {{:y, :foo}, 3}]) ==
                {[{{:x, :foo}, 2}], [x: :foo]}
+    end
+
+    test "undefined function" do
+      env = Code.env_for_eval(__ENV__)
+      quoted = quote do: foo()
+
+      assert_exception(
+        UndefinedFunctionError,
+        ["** (UndefinedFunctionError) function foo/0 is undefined (there is no such import)"],
+        fn ->
+          Code.eval_quoted_with_env(quoted, [], env)
+        end
+      )
     end
 
     defmodule Tracer do
@@ -386,47 +378,6 @@ defmodule CodeTest do
       assert Code.compile_file(fixture_path("code_sample.exs")) == []
       refute fixture_path("code_sample.exs") in Code.required_files()
     end
-
-    test "emits checker warnings" do
-      output =
-        ExUnit.CaptureIO.capture_io(:stderr, fn ->
-          Code.compile_file(fixture_path("checker_warning.exs"))
-        end)
-
-      assert output =~ "incompatible types"
-    after
-      :code.purge(CodeTest.CheckerWarning)
-      :code.delete(CodeTest.CheckerWarning)
-    end
-
-    test "captures checker diagnostics" do
-      {[{CodeTest.CheckerWarning, _}], diagnostics} =
-        Code.with_diagnostics(fn ->
-          Code.compile_file(fixture_path("checker_warning.exs"))
-        end)
-
-      assert [%{message: "incompatible types:" <> _}] = diagnostics
-    after
-      :code.purge(CodeTest.CheckerWarning)
-      :code.delete(CodeTest.CheckerWarning)
-    end
-
-    test "captures checker diagnostics with logging" do
-      output =
-        ExUnit.CaptureIO.capture_io(:stderr, fn ->
-          {[{CodeTest.CheckerWarning, _}], diagnostics} =
-            Code.with_diagnostics([log: true], fn ->
-              Code.compile_file(fixture_path("checker_warning.exs"))
-            end)
-
-          assert [%{message: "incompatible types:" <> _}] = diagnostics
-        end)
-
-      assert output =~ "incompatible types"
-    after
-      :code.purge(CodeTest.CheckerWarning)
-      :code.delete(CodeTest.CheckerWarning)
-    end
   end
 
   test "require_file/1" do
@@ -441,7 +392,7 @@ defmodule CodeTest do
     Code.unrequire_files([fixture_path("code_sample.exs")])
   end
 
-  test "string_to_quoted!/2 errors take lines and columns into account" do
+  test "string_to_quoted!/2 errors take lines/columns/indentation into account" do
     assert_exception(
       SyntaxError,
       ["nofile:1:5:", "syntax error before:", "1 + * 3", "^"],
@@ -468,9 +419,9 @@ defmodule CodeTest do
 
     assert_exception(
       SyntaxError,
-      ["nofile:11:5:", "syntax error before:", "1 + * 3", "^"],
+      ["nofile:11:15:", "syntax error before:", "1 + * 3", "^"],
       fn ->
-        Code.string_to_quoted!(":ok\n1 + * 3", line: 10, column: 3)
+        Code.string_to_quoted!(":ok\n1 + * 3", line: 10, column: 3, indentation: 10)
       end
     )
   end
@@ -483,18 +434,89 @@ defmodule CodeTest do
   end
 
   test "string_to_quoted returns error on incomplete escaped string" do
-    assert Code.string_to_quoted("\"\\") ==
-             {:error,
-              {[line: 1, column: 3], "missing terminator: \" (for string starting at line 1)", ""}}
+    assert {:error, {meta, "missing terminator: \" (for string starting at line 1)", ""}} =
+             Code.string_to_quoted("\"\\")
+
+    assert meta[:line] == 1
+    assert meta[:column] == 1
+    assert meta[:end_line] == 1
+    assert meta[:end_column] == 3
   end
 
+  test "string_to_quoted with comments" do
+    assert Code.string_to_quoted_with_comments("""
+           # top
+           [
+             # before
+
+             # right-before
+             expr, # middle
+             # right-after
+
+             # after
+           ]
+           # bottom
+           """) ==
+             {
+               :ok,
+               [{:expr, [line: 6], nil}],
+               [
+                 %{
+                   column: 1,
+                   line: 1,
+                   next_eol_count: 1,
+                   previous_eol_count: 1,
+                   text: "# top"
+                 },
+                 %{
+                   column: 3,
+                   line: 3,
+                   next_eol_count: 2,
+                   previous_eol_count: 1,
+                   text: "# before"
+                 },
+                 %{
+                   column: 3,
+                   line: 5,
+                   next_eol_count: 1,
+                   previous_eol_count: 2,
+                   text: "# right-before"
+                 },
+                 %{
+                   column: 9,
+                   line: 6,
+                   next_eol_count: 1,
+                   previous_eol_count: 0,
+                   text: "# middle"
+                 },
+                 %{
+                   column: 3,
+                   line: 7,
+                   next_eol_count: 2,
+                   previous_eol_count: 1,
+                   text: "# right-after"
+                 },
+                 %{
+                   column: 3,
+                   line: 9,
+                   next_eol_count: 1,
+                   previous_eol_count: 2,
+                   text: "# after"
+                 },
+                 %{
+                   column: 1,
+                   line: 11,
+                   next_eol_count: 1,
+                   previous_eol_count: 1,
+                   text: "# bottom"
+                 }
+               ]
+             }
+  end
+
+  @tag :requires_source
   test "compile source" do
     assert __MODULE__.__info__(:compile)[:source] == String.to_charlist(__ENV__.file)
-  end
-
-  test "compile info returned with source accessible through keyword module" do
-    compile = __MODULE__.__info__(:compile)
-    assert Keyword.get(compile, :source) != nil
   end
 
   describe "compile_string/1" do
@@ -504,18 +526,6 @@ defmodule CodeTest do
     after
       :code.purge(CompileSimpleSample)
       :code.delete(CompileSimpleSample)
-    end
-
-    test "emits checker warnings" do
-      output =
-        ExUnit.CaptureIO.capture_io(:stderr, fn ->
-          Code.compile_string(File.read!(fixture_path("checker_warning.exs")))
-        end)
-
-      assert output =~ "incompatible types"
-    after
-      :code.purge(CodeTest.CheckerWarning)
-      :code.delete(CodeTest.CheckerWarning)
     end
 
     test "works across lexical scopes" do
@@ -633,7 +643,7 @@ defmodule Code.SyncTest do
 
   import PathHelpers
 
-  if :erlang.system_info(:otp_release) >= ~c"26" do
+  if System.otp_release() >= "26" do
     defp assert_cached(path) do
       assert find_path(path) != :nocache
     end
@@ -708,11 +718,17 @@ defmodule Code.SyncTest do
   end
 
   test "purges compiler modules" do
-    quoted = quote(do: Agent.start_link(fn -> :ok end))
+    quoted = quote(do: :ok)
     Code.compile_quoted(quoted)
 
     {:ok, claimed} = Code.purge_compiler_modules()
     assert claimed > 0
+
+    {:ok, claimed} = Code.purge_compiler_modules()
+    assert claimed == 0
+
+    quoted = quote(do: Agent.start_link(fn -> :ok end))
+    Code.compile_quoted(quoted)
 
     {:ok, claimed} = Code.purge_compiler_modules()
     assert claimed == 0

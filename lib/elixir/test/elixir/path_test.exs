@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule PathTest do
@@ -234,20 +238,20 @@ defmodule PathTest do
 
     assert Path.relative_to_cwd(Path.dirname(File.cwd!()), force: true) == ".."
 
-    [slash | splitted_cwd] = Path.split(File.cwd!())
-    relative_to_root = List.duplicate("..", length(splitted_cwd))
+    [slash | split_cwd] = Path.split(File.cwd!())
+    relative_to_root = List.duplicate("..", length(split_cwd))
 
     assert Path.relative_to_cwd(slash) == slash
     assert Path.relative_to_cwd(slash, force: true) == Path.join(relative_to_root)
   end
 
   test "absname/1,2" do
-    assert Path.absname("/") |> strip_drive_letter_if_windows == "/"
-    assert Path.absname("/foo") |> strip_drive_letter_if_windows == "/foo"
-    assert Path.absname("/./foo") |> strip_drive_letter_if_windows == "/foo"
-    assert Path.absname("/foo/bar") |> strip_drive_letter_if_windows == "/foo/bar"
-    assert Path.absname("/foo/bar/") |> strip_drive_letter_if_windows == "/foo/bar"
-    assert Path.absname("/foo/bar/../bar") |> strip_drive_letter_if_windows == "/foo/bar/../bar"
+    assert Path.absname("/") |> strip_drive_letter_if_windows() == "/"
+    assert Path.absname("/foo") |> strip_drive_letter_if_windows() == "/foo"
+    assert Path.absname("/./foo") |> strip_drive_letter_if_windows() == "/foo"
+    assert Path.absname("/foo/bar") |> strip_drive_letter_if_windows() == "/foo/bar"
+    assert Path.absname("/foo/bar/") |> strip_drive_letter_if_windows() == "/foo/bar"
+    assert Path.absname("/foo/bar/../bar") |> strip_drive_letter_if_windows() == "/foo/bar/../bar"
 
     assert Path.absname("bar", "/foo") == "/foo/bar"
     assert Path.absname("bar/", "/foo") == "/foo/bar"
@@ -273,33 +277,33 @@ defmodule PathTest do
   end
 
   test "expand/1,2" do
-    assert Path.expand("/") |> strip_drive_letter_if_windows == "/"
-    assert Path.expand("/foo/../..") |> strip_drive_letter_if_windows == "/"
-    assert Path.expand("/foo") |> strip_drive_letter_if_windows == "/foo"
-    assert Path.expand("/./foo") |> strip_drive_letter_if_windows == "/foo"
-    assert Path.expand("/../foo") |> strip_drive_letter_if_windows == "/foo"
-    assert Path.expand("/foo/bar") |> strip_drive_letter_if_windows == "/foo/bar"
-    assert Path.expand("/foo/bar/") |> strip_drive_letter_if_windows == "/foo/bar"
-    assert Path.expand("/foo/bar/.") |> strip_drive_letter_if_windows == "/foo/bar"
-    assert Path.expand("/foo/bar/../bar") |> strip_drive_letter_if_windows == "/foo/bar"
+    assert Path.expand("/") |> strip_drive_letter_if_windows() == "/"
+    assert Path.expand("/foo/../..") |> strip_drive_letter_if_windows() == "/"
+    assert Path.expand("/foo") |> strip_drive_letter_if_windows() == "/foo"
+    assert Path.expand("/./foo") |> strip_drive_letter_if_windows() == "/foo"
+    assert Path.expand("/../foo") |> strip_drive_letter_if_windows() == "/foo"
+    assert Path.expand("/foo/bar") |> strip_drive_letter_if_windows() == "/foo/bar"
+    assert Path.expand("/foo/bar/") |> strip_drive_letter_if_windows() == "/foo/bar"
+    assert Path.expand("/foo/bar/.") |> strip_drive_letter_if_windows() == "/foo/bar"
+    assert Path.expand("/foo/bar/../bar") |> strip_drive_letter_if_windows() == "/foo/bar"
 
-    assert Path.expand("bar", "/foo") |> strip_drive_letter_if_windows == "/foo/bar"
-    assert Path.expand("bar/", "/foo") |> strip_drive_letter_if_windows == "/foo/bar"
-    assert Path.expand("bar/.", "/foo") |> strip_drive_letter_if_windows == "/foo/bar"
-    assert Path.expand("bar/../bar", "/foo") |> strip_drive_letter_if_windows == "/foo/bar"
+    assert Path.expand("bar", "/foo") |> strip_drive_letter_if_windows() == "/foo/bar"
+    assert Path.expand("bar/", "/foo") |> strip_drive_letter_if_windows() == "/foo/bar"
+    assert Path.expand("bar/.", "/foo") |> strip_drive_letter_if_windows() == "/foo/bar"
+    assert Path.expand("bar/../bar", "/foo") |> strip_drive_letter_if_windows() == "/foo/bar"
 
     drive_letter =
-      Path.expand("../bar/../bar", "/foo/../foo/../foo") |> strip_drive_letter_if_windows
+      Path.expand("../bar/../bar", "/foo/../foo/../foo") |> strip_drive_letter_if_windows()
 
     assert drive_letter == "/bar"
 
     drive_letter =
       Path.expand([~c"..", ?/, "bar/../bar"], ~c"/foo/../foo/../foo")
-      |> strip_drive_letter_if_windows
+      |> strip_drive_letter_if_windows()
 
     assert "/bar" == drive_letter
 
-    assert Path.expand("/..") |> strip_drive_letter_if_windows == "/"
+    assert Path.expand("/..") |> strip_drive_letter_if_windows() == "/"
 
     assert Path.expand("bar/../bar", "foo") == Path.expand("foo/bar")
   end
@@ -316,6 +320,8 @@ defmodule PathTest do
     assert Path.relative_to("./foo/../bar/..", File.cwd!()) == "."
 
     # both relative
+    assert Path.relative_to("usr/local/foo", ".") == "usr/local/foo"
+    assert Path.relative_to(".", "usr/local/foo") == "."
     assert Path.relative_to("usr/local/foo", "usr/local") == "foo"
     assert Path.relative_to("usr/local/foo", "etc") == "../usr/local/foo"
     assert Path.relative_to(~c"usr/local/foo", "etc") == "../usr/local/foo"

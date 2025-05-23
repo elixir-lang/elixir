@@ -1,3 +1,9 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+  SPDX-FileCopyrightText: 2012 Plataformatec
+-->
+
 # Operators reference
 
 This document is a complete reference of operators in Elixir, how they are parsed, how they can be defined, and how they can be overridden.
@@ -22,7 +28,7 @@ Operator                                       | Associativity
 `&&` `&&&` `and`                               | Left
 `\|\|` `\|\|\|` `or`                           | Left
 `=`                                            | Right
-`&`                                            | Unary
+`&`, `...`                                     | Unary
 `=>` (valid only inside `%{}`)                 | Right
 `\|`                                           | Right
 `::`                                           | Right
@@ -64,7 +70,7 @@ Finally, these operators appear in the precedence table above but are only meani
   * `=>` - see [`%{}`](`%{}/1`)
   * `when` - see [Guards](patterns-and-guards.md#guards)
   * `<-` - see [`for`](`for/1`) and [`with`](`with/1`)
-  * `\\` - see [Default arguments](Kernel.html#def/2-default-arguments)
+  * `\\` - see [Default arguments](`Kernel#def/2-default-arguments`)
 
 ## Comparison operators
 
@@ -131,8 +137,9 @@ The following is a table of all the operators that Elixir is capable of parsing,
   * `<~>`
   * `+++`
   * `---`
+  * `...`
 
-The following operators are used by the `Bitwise` module when imported: [`&&&`](`Bitwise.&&&/2`), [`<<<`](`Bitwise.<<</2`), [`>>>`](`Bitwise.>>>/2`), and [`|||`](`Bitwise.|||/2`). See the documentation for `Bitwise` for more information.
+The following operators are used by the `Bitwise` module when imported: [`&&&`](`Bitwise.&&&/2`), [`<<<`](`Bitwise.<<</2`), [`>>>`](`Bitwise.>>>/2`), and [`|||`](`Bitwise.|||/2`). See the `Bitwise` documentation for more information.
 
 Note that the Elixir community generally discourages custom operators. They can be hard to read and even more to understand, as they don't have a descriptive name like functions do. That said, some specific cases or custom domain specific languages (DSLs) may justify these practices.
 

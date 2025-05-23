@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule ExUnit.RegisterTest do
@@ -15,7 +19,15 @@ defmodule ExUnit.RegisterTest do
     defmodule SingularTestTypeCase do
       use ExUnit.Case
 
-      :"property is true" = ExUnit.Case.register_test(__ENV__, :property, "is true", [])
+      :"property is true" =
+        ExUnit.Case.register_test(
+          __ENV__.module,
+          __ENV__.file,
+          __ENV__.line,
+          :property,
+          "is true",
+          []
+        )
 
       def unquote(:"property is true")(_) do
         assert succeed()
@@ -43,13 +55,29 @@ defmodule ExUnit.RegisterTest do
     defmodule PluralTestTypeCase do
       use ExUnit.Case
 
-      :"property is true" = ExUnit.Case.register_test(__ENV__, :property, "is true", [])
+      :"property is true" =
+        ExUnit.Case.register_test(
+          __ENV__.module,
+          __ENV__.file,
+          __ENV__.line,
+          :property,
+          "is true",
+          []
+        )
 
       def unquote(:"property is true")(_) do
         assert succeed()
       end
 
-      :"property is also true" = ExUnit.Case.register_test(__ENV__, :property, "is also true", [])
+      :"property is also true" =
+        ExUnit.Case.register_test(
+          __ENV__.module,
+          __ENV__.file,
+          __ENV__.line,
+          :property,
+          "is also true",
+          []
+        )
 
       def unquote(:"property is also true")(_) do
         assert succeed()

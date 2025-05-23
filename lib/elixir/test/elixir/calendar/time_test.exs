@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 Code.require_file("holocene.exs", __DIR__)
 Code.require_file("fakes.exs", __DIR__)
@@ -89,5 +93,40 @@ defmodule TimeTest do
     assert Time.truncate(~T[01:01:01.00012], :millisecond) == ~T[01:01:01.000]
 
     assert Time.truncate(~T[01:01:01.123456], :second) == ~T[01:01:01]
+  end
+
+  test "add/3" do
+    time = ~T[00:00:00.0]
+
+    assert Time.add(time, 1, :hour) == ~T[01:00:00.0]
+
+    assert Time.add(time, 1, 10) == ~T[00:00:00.100000]
+
+    assert_raise ArgumentError, ~r/Expected :hour, :minute, :second/, fn ->
+      Time.add(time, 1, 0)
+    end
+  end
+
+  test "shift/2" do
+    time = ~T[00:00:00.0]
+    assert Time.shift(time, hour: 1) == ~T[01:00:00.0]
+    assert Time.shift(time, hour: 25) == ~T[01:00:00.0]
+    assert Time.shift(time, minute: 25) == ~T[00:25:00.0]
+    assert Time.shift(time, second: 50) == ~T[00:00:50.0]
+    assert Time.shift(time, microsecond: {150, 6}) == ~T[00:00:00.000150]
+    assert Time.shift(time, microsecond: {1000, 4}) == ~T[00:00:00.0010]
+    assert Time.shift(time, hour: 2, minute: 65, second: 5) == ~T[03:05:05.0]
+
+    assert_raise ArgumentError,
+                 "unsupported unit :day. Expected :hour, :minute, :second, :microsecond",
+                 fn -> Time.shift(time, day: 1) end
+
+    assert_raise ArgumentError,
+                 "unknown unit :hours. Expected :hour, :minute, :second, :microsecond",
+                 fn -> Time.shift(time, hours: 12) end
+
+    assert_raise ArgumentError,
+                 "cannot shift time by date scale unit. Expected :hour, :minute, :second, :microsecond",
+                 fn -> Time.shift(time, %Duration{day: 1}) end
   end
 end

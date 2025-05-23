@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Logger.Backends.HandlerTest do
   use Logger.Case
   @moduletag :logger
@@ -58,7 +62,9 @@ defmodule Logger.Backends.HandlerTest do
   end
 
   test "add_translator/1 and remove_translator/1 for logger formats" do
+    refute {CustomTranslator, :t} in Application.fetch_env!(:logger, :translators)
     assert Logger.add_translator({CustomTranslator, :t})
+    assert {CustomTranslator, :t} in Application.fetch_env!(:logger, :translators)
 
     assert capture_log(fn ->
              :logger.info(~c"hello: ~p", [:ok])

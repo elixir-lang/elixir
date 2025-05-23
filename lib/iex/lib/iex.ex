@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule IEx do
   @moduledoc ~S"""
   Elixir's interactive shell.
@@ -26,10 +30,6 @@ defmodule IEx do
   of `__foo__`.
 
   Autocomplete is available by default on Windows shells from Erlang/OTP 26.
-  In earlier versions, you may need to pass the `--werl` option when starting
-  IEx, such as `iex --werl` (or `iex.bat --werl` if using PowerShell).
-  `--werl` may be permanently enabled by setting the `IEX_WITH_WERL`
-  environment variable to `1`.
 
   ## Encoding and coloring
 
@@ -115,7 +115,7 @@ defmodule IEx do
       iex(1)> [1, [2], 3]
       [1, [2], 3]
 
-  To prevent this behaviour breaking valid code where the subsequent line
+  To prevent this behavior breaking valid code where the subsequent line
   begins with a binary operator, such as `|>/2` or `++/2` , IEx automatically
   treats such lines as if they were prepended with `IEx.Helpers.v/0`, which
   returns the value of the previous expression, if available.
@@ -226,7 +226,7 @@ defmodule IEx do
   alternate between them. Let's give it a try:
 
       User switch command
-       --> s 'Elixir.IEx'
+       --> s iex
        --> c
 
   The command above will start a new shell and connect to it.
@@ -325,10 +325,10 @@ defmodule IEx do
 
   ## The .iex.exs file
 
-  When starting, IEx looks for a local `.iex.exs` file (located in the current
-  working directory), then for a global `.iex.exs` file located inside the
-  directory pointed by the `IEX_HOME` environment variable (which defaults
-  to `~`) and loads the first one it finds (if any).
+  When starting, IEx looks for a configured path, then for a local `.iex.exs` file
+  (located in the current working directory), then for a global `.iex.exs` file
+  located inside the directory pointed by the `IEX_HOME` environment variable
+  (which defaults to `~`) and loads the first one it finds (if any).
 
   The code in the chosen `.iex.exs` file is evaluated line by line in the shell's
   context, as if each line were being typed in the shell. For instance, any modules
@@ -360,8 +360,9 @@ defmodule IEx do
       iex(1)> value
       13
 
-  It is possible to load another file by supplying the `--dot-iex` option
-  to IEx. See `iex --help`.
+  It is possible to load another file by configuring the `iex` application's `dot_iex`
+  value (`config :iex, dot_iex: "PATH"` or `IEx.configure(dot_iex: "PATH")`)
+  or supplying the `--dot-iex` option to IEx. See `iex --help`.
 
   In case of remote nodes, the location of the `.iex.exs` files are taken
   relative to the user that started the application, not to the user that
@@ -394,13 +395,15 @@ defmodule IEx do
 
   The supported options are:
 
-    * `:colors`
-    * `:inspect`
-    * `:width`
-    * `:history_size`
-    * `:default_prompt`
+    * `:auto_reload`
     * `:alive_prompt`
+    * `:colors`
+    * `:default_prompt`
+    * `:dot_iex`
+    * `:history_size`
+    * `:inspect`
     * `:parser`
+    * `:width`
 
   They are discussed individually in the sections below.
 
@@ -506,6 +509,17 @@ defmodule IEx do
   > changed when Erlang/OTP introduced multiline editing. If you
   > support earlier Elixir versions, you can normalize the inputs
   > by calling `to_charlist/1`.
+
+  ## `.iex`
+
+  Configure the file loaded into your IEx session when it starts.
+  See more information [in the `.iex.exs` documentation](`m:IEx#module-the-iex-exs-file`).
+
+  ## Auto reloading
+
+  When set to `true`, the `:auto_reload` option automatically purges
+  in-memory modules when they get invalidated by a concurrent compilation
+  happening in the Operating System.
   """
   @spec configure(keyword()) :: :ok
   def configure(options) do
@@ -711,7 +725,7 @@ defmodule IEx do
   defp __break__!(ast, module, fun, args, guards, stops, env) do
     module = Macro.expand(module, env)
 
-    unless is_atom(module) do
+    if not is_atom(module) do
       raise_unknown_break_ast!(ast)
     end
 
@@ -856,68 +870,10 @@ defmodule IEx do
 
   ## CLI
 
-  # This is a callback invoked by Erlang shell utilities
-  # when someone presses Ctrl+G and adds `s 'Elixir.IEx'`.
+  # TODO: Remove me on Elixir v1.20+
   @doc false
-  def start(opts \\ [], mfa \\ {IEx, :dont_display_result, []}) do
-    # TODO: Expose this as iex:start() instead on Erlang/OTP 26+
-    # TODO: Keep only this branch, delete optional args and mfa,
-    # and delete IEx.Server.run_from_shell/2 on Erlang/OTP 26+
-    if Code.ensure_loaded?(:prim_tty) do
-      spawn(fn ->
-        {:ok, _} = Application.ensure_all_started(:iex)
-        :ok = :io.setopts(binary: true, encoding: :unicode)
-        _ = for fun <- Enum.reverse(after_spawn()), do: fun.()
-        IEx.Server.run([register: false] ++ opts)
-      end)
-    else
-      spawn(fn ->
-        case :init.notify_when_started(self()) do
-          :started -> :ok
-          _ -> :init.wait_until_started()
-        end
-
-        {:ok, _} = Application.ensure_all_started(:iex)
-        :ok = :io.setopts(binary: true, encoding: :unicode)
-        _ = for fun <- Enum.reverse(after_spawn()), do: fun.()
-        IEx.Server.run_from_shell(opts, mfa)
-      end)
-    end
-  end
-
-  # TODO: Make this public when we require Erlang/OTP 26+
-  @compile {:no_warn_undefined, {:shell, :start_interactive, 1}}
-
-  @doc false
-  def shell(opts) do
-    {remote, opts} = Keyword.pop(opts, :remote)
-    ref = make_ref()
-    mfa = {__MODULE__, :__shell__, [self(), ref, opts]}
-
-    shell =
-      if remote do
-        {:remote, to_charlist(remote), mfa}
-      else
-        mfa
-      end
-
-    case :shell.start_interactive(shell) do
-      :ok ->
-        receive do
-          {^ref, shell} -> {:ok, shell}
-        after
-          15_000 -> {:error, :timeout}
-        end
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
-  @doc false
-  def __shell__(parent, ref, opts) do
-    pid = start(opts)
-    send(parent, {ref, pid})
-    pid
+  def start do
+    IO.warn("Use \"s iex\" instead")
+    :iex.start()
   end
 end

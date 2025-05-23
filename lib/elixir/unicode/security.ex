@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
 defmodule String.Tokenizer.Security do
   @moduledoc false
 
@@ -53,7 +56,7 @@ defmodule String.Tokenizer.Security do
       {line, _, previous_name} when name != previous_name ->
         {:warn,
          "confusable identifier: '#{name}' looks like '#{previous_name}' on line #{line}, " <>
-           "but they are written using different characters"}
+           "but they are written using different characters" <> dir_compare(name, previous_name)}
 
       _ ->
         {:ok, Map.put(skeletons, skeleton, info)}
@@ -106,7 +109,85 @@ defmodule String.Tokenizer.Security do
     #    the specified data, producing a string of exemplar characters.
     #  - Reapply NFD." (UTS 39 section 4, skeleton definition)
     :unicode.characters_to_nfd_list(s)
-    |> Enum.map(&confusable_prototype/1)
+    |> bidi_skeleton()
     |> :unicode.characters_to_nfd_list()
+  end
+
+  # Unicode 15 adds bidiSkeleton because, w/RTL codepoints, idents that
+  # aren't confusable LTR *are* confusable in most places human review
+  # occurs (editors/browsers, thanks to bidi algo, UAX9).
+  #
+  # The solution is to detect spans with reversed visual direction,
+  # and reverse those, so that the input we check for confusability
+  # matches the perceived sequence instead of the byte sequence.
+  #
+  # (we need this regardless of script mixing, because direction-neutral
+  # chars like _ or 0..9 can mix w/RTL chars).
+  def bidi_skeleton(s) do
+    # UTS39-28 4:
+    #
+    # Bidirectional confusability is costlier to check than
+    # confusability, as [unicode bidi algo] must be applied.
+    # [...] a fast path can be used: [...] if X has no characters
+    # w/bidi classes R or AL, bidiSkeleton(X) = skeleton(X)
+    if match?([_, _ | _], s) and any_rtl?(s) do
+      unbidify(s) |> Enum.map(&confusable_prototype/1)
+    else
+      Enum.map(s, &confusable_prototype/1)
+    end
+  end
+
+  defp any_rtl?(s), do: Enum.any?(s, &(:rtl == String.Tokenizer.dir(&1)))
+
+  defp dir_compare(a, b) do
+    """
+    #{if any_rtl?(a), do: "\n\n" <> dir_breakdown(a)}
+    #{if any_rtl?(b), do: dir_breakdown(b)}
+    """
+  end
+
+  defp dir_breakdown(s) do
+    init = "'#{s}' includes right-to-left characters:\n"
+
+    init <>
+      for codepoint <- s, into: "" do
+        hex = :io_lib.format(~c"~4.16.0B", [codepoint])
+        "  \\u#{hex} #{[codepoint]} #{String.Tokenizer.dir(codepoint)}\n"
+      end
+  end
+
+  # make charlist match visual order by reversing spans of {rtl, neutral}
+  # and attaching neutral characters and weak number types according to uax9
+  #
+  #  UTS39-28 4: '[...] if the strings are known not to contain explicit
+  #   directional formatting characters[...], the algorithm can
+  #   be drastically simplified, [...], obviating the need for
+  #   the [...] stack of the [unicode bidi algo]'
+  def unbidify(chars) when is_list(chars) do
+    {neutrals, direction, last_part, acc} =
+      Enum.reduce(chars, {[], :ltr, [], []}, fn head, {neutrals, part_dir, part, acc} ->
+        # https://www.unicode.org/reports/tr9/#W2
+        case String.Tokenizer.dir(head) do
+          :weak_number ->
+            {[], part_dir, [head] ++ neutrals ++ part, acc}
+
+          :neutral ->
+            {[head | neutrals], part_dir, part, acc}
+
+          ^part_dir ->
+            {[], part_dir, [head | neutrals] ++ part, acc}
+
+          :ltr when part_dir == :rtl ->
+            {[], :ltr, [head | neutrals], Enum.reverse(part, acc)}
+
+          :rtl when part_dir == :ltr ->
+            {[], :rtl, [head], neutrals ++ part ++ acc}
+        end
+      end)
+
+    case direction do
+      :ltr -> Enum.reverse(acc, Enum.reverse(neutrals ++ last_part))
+      :rtl -> Enum.reverse(acc, neutrals ++ last_part)
+    end
   end
 end

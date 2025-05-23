@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule DynamicSupervisorTest do
@@ -139,14 +143,6 @@ defmodule DynamicSupervisorTest do
 
       {:ok, pid} = DynamicSupervisor.start_link(strategy: :one_for_one)
       assert :proc_lib.initial_call(pid) == {:supervisor, Supervisor.Default, [:Argument__1]}
-    end
-
-    test "returns the callback module" do
-      {:ok, pid} = Supervisor.start_link([], strategy: :one_for_one)
-      assert :supervisor.get_callback_module(pid) == Supervisor.Default
-
-      {:ok, pid} = DynamicSupervisor.start_link(strategy: :one_for_one)
-      assert :supervisor.get_callback_module(pid) == Supervisor.Default
     end
   end
 

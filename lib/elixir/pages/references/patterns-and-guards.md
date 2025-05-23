@@ -1,3 +1,9 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+  SPDX-FileCopyrightText: 2012 Plataformatec
+-->
+
 # Patterns and guards
 
 Elixir provides pattern matching, which allows us to assert on the shape or extract values from data structures. Patterns are often augmented with guards, which give developers the ability to perform more complex checks, albeit limited.
@@ -159,13 +165,13 @@ iex> [head | tail] = []
 Given charlists are represented as a list of integers, one can also perform prefix matches on charlists using the list concatenation operator ([`++`](`++/2`)):
 
 ```elixir
-iex> 'hello ' ++ world = 'hello world'
-'hello world'
+iex> ~c"hello " ++ world = ~c"hello world"
+~c"hello world"
 iex> world
-'world'
+~c"world"
 ```
 
-Which is equivalent to matching on `[?h, ?e, ?l, ?l, ?o, ?\s | world]`. Suffix matches (`hello ++ ' world'`) are not valid patterns.
+Which is equivalent to matching on `[?h, ?e, ?l, ?l, ?o, ?\s | world]`. Suffix matches (`hello ++ ~c" world"`) are not valid patterns.
 
 ### Maps
 
@@ -270,20 +276,20 @@ Suffix matches (`hello <> " world"`) are not valid patterns.
 
 Guards are a way to augment pattern matching with more complex checks. They are allowed in a predefined set of constructs where pattern matching is allowed, such as function definitions, case clauses, and others.
 
-Not all expressions are allowed in guard clauses, but only a handful of them. This is a deliberate choice. This way, Elixir (and Erlang) can make sure that nothing bad happens while executing guards and no mutations happen anywhere. It also allows the compiler to optimize the code related to guards efficiently.
+Not all expressions are allowed in guard clauses, but only a handful of them. This is a deliberate choice. This way, Elixir (through Erlang) ensures that all guards are predictable (no mutations or other side-effects) and they can be optimized and performed efficiently.
 
 ### List of allowed functions and operators
 
-You can find the built-in list of guards [in the `Kernel` module](Kernel.html#guards). Here is an overview:
+You can find the built-in list of guards [in the `Kernel` module](`Kernel#guards`). Here is an overview:
 
   * comparison operators ([`==`](`==/2`), [`!=`](`!=/2`), [`===`](`===/2`), [`!==`](`!==/2`),
-    [`<`](`</2`), [`<=`](`<=/2`), [`>`](`>/2`), [`>=`](`>=/2`))
+    [`<`](`</2`), [`<=`](`<=/2`), [`>`](`>/2`), [`>=`](`>=/2`)), [`max`](`max/2`), [`min`](`min/2`)
   * strictly boolean operators ([`and`](`and/2`), [`or`](`or/2`), [`not`](`not/1`)). Note [`&&`](`&&/2`), [`||`](`||/2`), and [`!`](`!/1`) sibling operators are **not allowed** as they're not *strictly* boolean - meaning they don't require arguments to be booleans
   * arithmetic unary operators ([`+`](`+/1`), [`-`](`-/1`))
   * arithmetic binary operators ([`+`](`+/2`), [`-`](`-/2`), [`*`](`*/2`), [`/`](`//2`))
   * [`in`](`in/2`) and [`not in`](`in/2`) operators (as long as the right-hand side is a list or a range)
   * "type-check" functions (`is_list/1`, `is_number/1`, and the like)
-  * functions that work on built-in datatypes (`abs/1`, `hd/1`, `map_size/1`, and others)
+  * functions that work on built-in data types (`abs/1`, `hd/1`, `map_size/1`, and others)
   * the `map.field` syntax
 
 The module `Bitwise` also includes a handful of [Erlang bitwise operations as guards](Bitwise.html#guards).

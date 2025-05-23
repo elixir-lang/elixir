@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
 defmodule Mix.AppLoader do
   @moduledoc false
 
@@ -33,12 +36,17 @@ defmodule Mix.AppLoader do
     manifest = manifest(config)
     modified = Mix.Utils.last_modified(manifest)
 
+    # We depend both on the lockfile via compile.lock (a build artifact) via
+    # `config_mtime` and `project_file`. Ideally we compare the `project_file`
+    # timestamp (a source artifact) against its old timestamp (instead of the
+    # manifest timestamp which is a build artifact), but at the moment there
+    # is no trivial place to store it.
     if Mix.Utils.stale?([Mix.Project.config_mtime(), Mix.Project.project_file()], [modified]) do
       manifest
     else
       List.first(
         for %{app: app, scm: scm, opts: opts} <- Mix.Dep.cached(),
-            not scm.fetchable?,
+            not scm.fetchable?(),
             Mix.Utils.last_modified(Path.join([opts[:build], "ebin", "#{app}.app"])) >
               modified do
           manifest

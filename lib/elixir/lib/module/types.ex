@@ -1,53 +1,384 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Module.Types do
   @moduledoc false
+  alias Module.Types.{Descr, Expr, Pattern, Helpers}
 
-  defmodule Error do
-    defexception [:message]
-  end
+  # The mode controls what happens on function application when
+  # there are gradual arguments. Non-gradual arguments always
+  # perform subtyping and return its output (OUT).
+  #
+  #   * :strict - Requires types signatures (not implemented).
+  #     * Strong arrows with gradual performs subtyping and returns OUT
+  #     * Weak arrows with gradual performs subtyping and returns OUT
+  #
+  #   * :static - Type signatures have been given.
+  #     * Strong arrows with gradual performs compatibility and returns OUT
+  #     * Weak arrows with gradual performs compatibility and returns dynamic()
+  #
+  #   * :dynamic - Type signatures have not been given.
+  #     * Strong arrows with gradual performs compatibility and returns dynamic(OUT)
+  #     * Weak arrows with gradual performs compatibility and returns dynamic()
+  #
+  #   * :infer - Same as :dynamic but skips remote calls.
+  #
+  #   * :traversal - Focused mostly on traversing AST, skips most type system
+  #     operations. Used by macros and when skipping inference.
+  #
+  # The mode may also control exhaustiveness checks in the future (to be decided).
+  # We may also want for applications with subtyping in dynamic mode to always
+  # intersect with dynamic, but this mode may be too lax (to be decided based on
+  # feedback).
+  @modes [:static, :dynamic, :infer, :traversal]
 
-  import Module.Types.Helpers
-  alias Module.Types.{Expr, Pattern, Unify}
+  # These functions are not inferred because they are added/managed by the compiler
+  @no_infer [behaviour_info: 1]
 
   @doc false
-  def warnings(module, file, defs, no_warn_undefined, cache) do
-    stack = stack()
+  def infer(module, file, attrs, defs, private, used_private, env, {_, cache}) do
+    # We don't care about inferring signatures for protocols,
+    # those will be replaced anyway. There is also nothing to
+    # infer if there is no cache system, we only do traversals.
+    infer_signatures? =
+      :elixir_config.get(:infer_signatures) != false and cache != nil and not protocol?(attrs)
 
-    Enum.flat_map(defs, fn {{fun, arity} = function, kind, meta, clauses} ->
-      context = context(with_file_meta(meta, file), module, function, no_warn_undefined, cache)
+    impl = impl_for(attrs)
 
-      Enum.flat_map(clauses, fn {_meta, args, guards, body} ->
-        def_expr = {kind, meta, [guards_to_expr(guards, {fun, [], args})]}
+    finder =
+      fn fun_arity ->
+        case :lists.keyfind(fun_arity, 1, defs) do
+          {_, kind, _, _} = clause ->
+            {infer_mode(kind, infer_signatures?), clause, default_domain(fun_arity, impl)}
 
-        try do
-          warnings_from_clause(args, guards, body, def_expr, stack, context)
-        rescue
-          e ->
-            def_expr = {kind, meta, [guards_to_expr(guards, {fun, [], args}), [do: body]]}
-
-            error =
-              Error.exception("""
-              found error while checking types for #{Exception.format_mfa(module, fun, arity)}:
-
-              #{Exception.format_banner(:error, e, __STACKTRACE__)}\
-
-              The exception happened while checking this code:
-
-              #{Macro.to_string(def_expr)}
-
-              In case it is a bug, please report it at: https://github.com/elixir-lang/elixir/issues
-              """)
-
-            reraise error, __STACKTRACE__
+          false ->
+            false
         end
+      end
+
+    handler = fn meta, fun_arity, stack, context ->
+      case local_handler(meta, fun_arity, stack, context, finder) do
+        false ->
+          undefined_function!(:undefined_function, meta, fun_arity, stack, env)
+          false
+
+        {kind, _, _} = triplet ->
+          if (kind == :defmacro or kind == :defmacrop) and not Keyword.has_key?(meta, :super) do
+            undefined_function!(:incorrect_dispatch, meta, fun_arity, stack, env)
+            false
+          else
+            triplet
+          end
+      end
+    end
+
+    stack = stack(:infer, file, module, {:__info__, 1}, env, cache, handler)
+
+    {types, %{local_sigs: reachable_sigs} = context} =
+      for {fun_arity, kind, meta, _clauses} = def <- defs,
+          kind in [:def, :defmacro],
+          reduce: {[], context()} do
+        {types, context} ->
+          # Optimized version of finder, since we already the definition
+          finder = fn _ ->
+            {infer_mode(kind, infer_signatures?), def, default_domain(fun_arity, impl)}
+          end
+
+          {_kind, inferred, context} = local_handler(meta, fun_arity, stack, context, finder)
+
+          if infer_signatures? and kind == :def and fun_arity not in @no_infer do
+            {[{fun_arity, inferred} | types], context}
+          else
+            {types, context}
+          end
+      end
+
+    # Now traverse all used privates to find any other private that have been used by them.
+    context =
+      %{local_sigs: used_sigs} =
+      for fun_arity <- used_private, reduce: context do
+        context ->
+          {_kind, _inferred, context} = local_handler([], fun_arity, stack, context, finder)
+          context
+      end
+
+    {unreachable, _context} =
+      Enum.reduce(private, {[], context}, fn
+        {fun_arity, kind, _meta, _defaults} = info, {unreachable, context} ->
+          warn_unused_def(info, used_sigs, env)
+
+          # Find anything undefined within unused functions
+          {_kind, _inferred, context} = local_handler([], fun_arity, stack, context, finder)
+
+          # defp is reachable if used, defmacrop only if directly invoked
+          private_sigs = if kind == :defp, do: used_sigs, else: reachable_sigs
+
+          if is_map_key(private_sigs, fun_arity) do
+            {unreachable, context}
+          else
+            {[fun_arity | unreachable], context}
+          end
       end)
-    end)
+
+    {Map.new(types), unreachable}
   end
 
-  defp with_file_meta(meta, file) do
-    case Keyword.fetch(meta, :file) do
-      {:ok, {meta_file, _}} -> meta_file
-      :error -> file
+  defp infer_mode(kind, infer_signatures?) do
+    if infer_signatures? and kind in [:def, :defp], do: :infer, else: :traversal
+  end
+
+  defp protocol?(attrs) do
+    List.keymember?(attrs, :__protocol__, 0)
+  end
+
+  defp impl_for(attrs) do
+    case List.keyfind(attrs, :__impl__, 0) do
+      {:__impl__, [protocol: protocol, for: for]} ->
+        if Code.ensure_loaded?(protocol) and function_exported?(protocol, :behaviour_info, 1) do
+          {for, protocol.behaviour_info(:callbacks)}
+        else
+          nil
+        end
+
+      _ ->
+        nil
     end
+  end
+
+  defp default_domain({_, arity} = fun_arity, impl) do
+    with {for, callbacks} <- impl,
+         true <- fun_arity in callbacks do
+      [Descr.dynamic(Module.Types.Of.impl(for)) | List.duplicate(Descr.dynamic(), arity - 1)]
+    else
+      _ -> List.duplicate(Descr.dynamic(), arity)
+    end
+  end
+
+  defp undefined_function!(reason, meta, {fun, arity}, stack, env) do
+    env = %{env | function: stack.function, file: stack.file}
+    tuple = {reason, {fun, arity}, stack.module}
+    :elixir_errors.module_error(Helpers.with_span(meta, fun), env, __MODULE__, tuple)
+  end
+
+  defp warn_unused_def({_fun_arity, _kind, false, _}, _used, _env) do
+    :ok
+  end
+
+  defp warn_unused_def({fun_arity, kind, meta, 0}, used, env) do
+    case is_map_key(used, fun_arity) do
+      true -> :ok
+      false -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_def, fun_arity, kind})
+    end
+
+    :ok
+  end
+
+  defp warn_unused_def({tuple, kind, meta, default}, used, env) when default > 0 do
+    {name, arity} = tuple
+    min = arity - default
+    max = arity
+
+    case min_reachable_default(max, min, :none, name, used) do
+      :none -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_def, tuple, kind})
+      ^min -> :ok
+      ^max -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_args, tuple})
+      diff -> :elixir_errors.file_warn(meta, env, __MODULE__, {:unused_args, tuple, diff})
+    end
+
+    :ok
+  end
+
+  defp min_reachable_default(max, min, last, name, used) when max >= min do
+    fun_arity = {name, max}
+
+    case is_map_key(used, fun_arity) do
+      true -> min_reachable_default(max - 1, min, max, name, used)
+      false -> min_reachable_default(max - 1, min, last, name, used)
+    end
+  end
+
+  defp min_reachable_default(_max, _min, last, _name, _used) do
+    last
+  end
+
+  @doc false
+  def warnings(module, file, attrs, defs, no_warn_undefined, cache) do
+    impl = impl_for(attrs)
+
+    finder = fn fun_arity ->
+      case :lists.keyfind(fun_arity, 1, defs) do
+        {_, _, _, _} = clause -> {:dynamic, clause, default_domain(fun_arity, impl)}
+        false -> false
+      end
+    end
+
+    handler = &local_handler(&1, &2, &3, &4, finder)
+    stack = stack(:dynamic, file, module, {:__info__, 1}, no_warn_undefined, cache, handler)
+
+    context =
+      Enum.reduce(defs, context(), fn {fun_arity, _kind, meta, _clauses} = def, context ->
+        # Optimized version of finder, since we already the definition
+        finder = fn _ -> {:dynamic, def, default_domain(fun_arity, impl)} end
+        {_kind, _inferred, context} = local_handler(meta, fun_arity, stack, context, finder)
+        context
+      end)
+
+    context = warn_unused_clauses(defs, stack, context)
+    context.warnings
+  end
+
+  defp warn_unused_clauses(defs, stack, context) do
+    for {fun_arity, pending} <- context.local_used,
+        pending != [],
+        {_fun_arity, kind, meta, clauses} = List.keyfind(defs, fun_arity, 0),
+        not Keyword.get(meta, :from_super, false),
+        reduce: context do
+      context ->
+        {_kind, info, mapping} = Map.fetch!(context.local_sigs, fun_arity)
+
+        clauses_indexes =
+          for type_index <- pending,
+              not skip_unused_clause?(info, type_index),
+              {clause_index, ^type_index} <- mapping,
+              do: clause_index
+
+        Enum.reduce(clauses_indexes, context, fn clause_index, context ->
+          {meta, _args, _guards, _body} = Enum.fetch!(clauses, clause_index)
+          stack = %{stack | function: fun_arity}
+          Helpers.warn(__MODULE__, {:unused_clause, kind, fun_arity}, meta, stack, context)
+        end)
+    end
+  end
+
+  defp skip_unused_clause?(info, type_index) do
+    case info do
+      # If an inferred clause returns an empty type, then the reverse arrow
+      # will never propagate its domain up, which may lead to the clause never
+      # being invoked.
+      {:infer, _, inferred} ->
+        {_args_types, return} = Enum.fetch!(inferred, type_index)
+        Descr.empty?(return)
+
+      _ ->
+        false
+    end
+  end
+
+  defp local_handler(_meta, fun_arity, stack, context, finder) do
+    case context.local_sigs do
+      %{^fun_arity => {kind, inferred, _mapping}} ->
+        {kind, inferred, context}
+
+      %{^fun_arity => kind} when is_atom(kind) ->
+        {kind, :none, context}
+
+      local_sigs ->
+        case finder.(fun_arity) do
+          {mode, {fun_arity, kind, meta, clauses}, expected} ->
+            context = put_in(context.local_sigs, Map.put(local_sigs, fun_arity, kind))
+
+            {inferred, mapping, context} =
+              local_handler(fun_arity, kind, meta, clauses, expected, mode, stack, context)
+
+            context =
+              update_in(context.local_sigs, &Map.put(&1, fun_arity, {kind, inferred, mapping}))
+
+            {kind, inferred, context}
+
+          false ->
+            false
+        end
+    end
+  end
+
+  defp local_handler(fun_arity, kind, meta, clauses, expected, mode, stack, context) do
+    {fun, _arity} = fun_arity
+    stack = stack |> fresh_stack(mode, fun_arity) |> with_file_meta(meta)
+
+    {_, _, mapping, clauses_types, clauses_context} =
+      Enum.reduce(clauses, {0, 0, [], [], context}, fn
+        {meta, args, guards, body}, {index, total, mapping, inferred, context} ->
+          context = fresh_context(context)
+
+          try do
+            {trees, context} =
+              Pattern.of_head(args, guards, expected, {:infer, expected}, meta, stack, context)
+
+            {return_type, context} =
+              Expr.of_expr(body, Descr.term(), body, stack, context)
+
+            args_types =
+              if stack.mode == :traversal do
+                expected
+              else
+                Pattern.of_domain(trees, expected, context)
+              end
+
+            {type_index, inferred} =
+              add_inferred(inferred, args_types, return_type, total - 1, [])
+
+            if type_index == -1 do
+              {index + 1, total + 1, [{index, total} | mapping], inferred, context}
+            else
+              {index + 1, total, [{index, type_index} | mapping], inferred, context}
+            end
+          rescue
+            e ->
+              internal_error!(e, __STACKTRACE__, kind, meta, fun, args, guards, body, stack)
+          end
+      end)
+
+    domain =
+      case clauses_types do
+        [_] ->
+          nil
+
+        _ ->
+          clauses_types
+          |> Enum.map(fn {args, _} -> args end)
+          |> Enum.zip_with(fn types -> Enum.reduce(types, &Descr.union/2) end)
+      end
+
+    inferred = {:infer, domain, Enum.reverse(clauses_types)}
+    {inferred, mapping, restore_context(clauses_context, context)}
+  end
+
+  # We check for term equality of types as an optimization
+  # to reduce the amount of check we do at runtime.
+  defp add_inferred([{args, existing_return} | tail], args, return, index, acc),
+    do: {index, Enum.reverse(acc, [{args, Descr.union(existing_return, return)} | tail])}
+
+  defp add_inferred([head | tail], args, return, index, acc),
+    do: add_inferred(tail, args, return, index - 1, [head | acc])
+
+  defp add_inferred([], args, return, -1, acc),
+    do: {-1, [{args, return} | Enum.reverse(acc)]}
+
+  defp with_file_meta(stack, meta) do
+    case Keyword.fetch(meta, :file) do
+      {:ok, {meta_file, _}} -> %{stack | file: meta_file}
+      :error -> stack
+    end
+  end
+
+  defp internal_error!(e, trace, kind, meta, fun, args, guards, body, stack) do
+    def_expr = {kind, meta, [guards_to_expr(guards, {fun, [], args}), [do: body]]}
+
+    exception =
+      RuntimeError.exception("""
+      found error while checking types for #{Exception.format_mfa(stack.module, fun, length(args))}:
+
+      #{Exception.format_banner(:error, e, trace)}\
+
+      The exception happened while checking this code:
+
+      #{Macro.to_string(def_expr)}
+
+      Please report this bug at: https://github.com/elixir-lang/elixir/issues
+      """)
+
+    reraise exception, trace
   end
 
   defp guards_to_expr([], left) do
@@ -58,473 +389,107 @@ defmodule Module.Types do
     guards_to_expr(guards, {:when, [], [left, guard]})
   end
 
-  defp warnings_from_clause(args, guards, body, def_expr, stack, context) do
-    head_stack = Unify.push_expr_stack(def_expr, stack)
-
-    with {:ok, _types, context} <- Pattern.of_head(args, guards, head_stack, context),
-         {:ok, _type, context} <- Expr.of_expr(body, :dynamic, stack, context) do
-      context.warnings
-    else
-      {:error, {type, error, context}} ->
-        [error_to_warning(type, error, context) | context.warnings]
-    end
-  end
-
   @doc false
-  def context(file, module, function, no_warn_undefined, cache) do
+  def stack(mode, file, module, function, no_warn_undefined, cache, handler)
+      when mode in @modes do
     %{
+      # The fallback meta used for literals in patterns and guards
+      meta: [],
       # File of module
       file: file,
       # Module of definitions
       module: module,
       # Current function
       function: function,
-      # List of calls to not warn on as undefined
+      # Handling of undefined remote calls. May be one of:
+      #
+      # * List of calls to not warn on as undefined
+      #
+      # * The atom `:all` to not mark anything as undefined
+      #
+      # * A Macro.Env struct to not mark anything as undefined
+      #   also used to extract structs from
+      #
       no_warn_undefined: no_warn_undefined,
-      # A list of cached modules received from the parallel compiler
+      # A tuple with cache information (may be nil)
       cache: cache,
-      # Expression variable to type variable
-      vars: %{},
-      # Type variable to expression variable
-      types_to_vars: %{},
-      # Type variable to type
-      types: %{},
-      # Trace of all variables that have been refined to a type,
-      # including the type they were refined to, why, and where
-      traces: %{},
-      # Counter to give type variables unique names
-      counter: 0,
-      # Track if a variable was inferred from a type guard function such is_tuple/1
-      # or a guard function that fails such as elem/2, possible values are:
-      # `:guarded` when `is_tuple(x)`
-      # `:guarded` when `is_tuple and elem(x, 0)`
-      # `:fail` when `elem(x, 0)`
-      guard_sources: %{},
-      # A list with all warnings from the running the code
-      warnings: []
+      # The mode to be used, see the @modes attribute
+      mode: mode,
+      # The function for handling local calls
+      local_handler: handler,
+      # Control if variable refinement is enabled.
+      # It is disabled only on dynamic dispatches.
+      refine_vars: true
     }
   end
 
   @doc false
-  def stack() do
+  def context() do
     %{
-      # Stack of variables we have refined during unification,
-      # used for creating relevant traces
-      unify_stack: [],
-      # Last expression we have recursed through during inference,
-      # used for tracing
-      last_expr: nil,
-      # When false do not add a trace when a type variable is refined,
-      # useful when merging contexts where the variables already have traces
-      trace: true,
-      # There are two factors that control how we track guards.
-      #
-      # * consider_type_guards?: if type guards should be considered.
-      #   This applies only at the root and root-based "and" and "or" nodes.
-      #
-      # * keep_guarded? - if a guarded clause should remain as guarded
-      #   even on failure. Used on the right side of and.
-      #
-      type_guards: {_consider_type_guards? = true, _keep_guarded? = false},
-      # Context used to determine if unification is bi-directional, :expr
-      # is directional, :pattern is bi-directional
-      context: nil
+      # A list of all warnings found so far
+      warnings: [],
+      # All vars and their types
+      vars: %{},
+      # Variables and arguments from patterns
+      pattern_info: nil,
+      # If type checking has found an error/failure
+      failed: false,
+      # Local signatures used by local handler
+      local_sigs: %{},
+      # Track which clauses have been used across private local calls
+      local_used: %{}
     }
   end
 
-  ## ERROR TO WARNING
-
-  # Collect relevant information from context and traces to report error
-  def error_to_warning(:unable_apply, {mfa, args, expected, signature, stack}, context) do
-    {fun, arity} = context.function
-    location = {context.file, get_position(stack), {context.module, fun, arity}}
-
-    traces = type_traces(stack, context)
-    {[signature | args], traces} = lift_all_types([signature | args], traces, context)
-    error = {:unable_apply, mfa, args, expected, signature, {location, stack.last_expr, traces}}
-    {Module.Types, error, location}
+  defp fresh_stack(stack, mode, function) when mode in @modes do
+    %{stack | mode: mode, function: function}
   end
 
-  def error_to_warning(:unable_unify, {left, right, stack}, context) do
-    {fun, arity} = context.function
-    location = {context.file, get_position(stack), {context.module, fun, arity}}
-
-    traces = type_traces(stack, context)
-    {[left, right], traces} = lift_all_types([left, right], traces, context)
-    error = {:unable_unify, left, right, {location, stack.last_expr, traces}}
-    {Module.Types, error, location}
+  defp fresh_context(context) do
+    %{context | vars: %{}, failed: false}
   end
 
-  defp get_position(stack) do
-    get_meta(stack.last_expr)
+  defp restore_context(later_context, %{vars: vars, failed: failed}) do
+    %{later_context | vars: vars, failed: failed}
   end
 
-  # Collect relevant traces from context.traces using stack.unify_stack
-  defp type_traces(stack, context) do
-    # TODO: Do we need the unify_stack or is enough to only get the last variable
-    #       in the stack since we get related variables anyway?
-    stack =
-      stack.unify_stack
-      |> Enum.flat_map(&[&1 | related_variables(&1, context.types)])
-      |> Enum.uniq()
+  ## Diagnostics
 
-    Enum.flat_map(stack, fn var_index ->
-      with %{^var_index => traces} <- context.traces,
-           %{^var_index => expr_var} <- context.types_to_vars do
-        Enum.map(traces, &tag_trace(expr_var, &1, context))
-      else
-        _other -> []
-      end
-    end)
+  def format_diagnostic({:unused_clause, kind, {fun, arity}}) do
+    %{
+      message: "this clause of #{kind} #{fun}/#{arity} is never used"
+    }
   end
 
-  defp related_variables(var, types) do
-    Enum.flat_map(types, fn
-      {related_var, {:var, ^var}} ->
-        [related_var | related_variables(related_var, types)]
+  ## Module errors
 
-      _ ->
-        []
-    end)
-  end
+  def format_error({:unused_args, {name, arity}}),
+    do:
+      "default values for the optional arguments in the private function #{name}/#{arity} are never used"
 
-  # Tag if trace is for a concrete type or type variable
-  defp tag_trace(var, {type, expr, location}, context) do
-    with {:var, var_index} <- type,
-         %{^var_index => expr_var} <- context.types_to_vars do
-      {:var, var, expr_var, expr, location}
-    else
-      _ -> {:type, var, type, expr, location}
-    end
-  end
+  def format_error({:unused_args, {name, arity}, count}) when arity - count == 1,
+    do:
+      "the default value for the last optional argument in the private function #{name}/#{arity} is never used"
 
-  defp lift_all_types(types, traces, context) do
-    trace_types = for({:type, _, type, _, _} <- traces, do: type)
-    {types, lift_context} = Unify.lift_types(types, context)
-    {trace_types, _lift_context} = Unify.lift_types(trace_types, lift_context)
+  def format_error({:unused_args, {name, arity}, count}),
+    do:
+      "the default values for the last #{arity - count} optional arguments in the private function #{name}/#{arity} are never used"
 
-    {traces, []} =
-      Enum.map_reduce(traces, trace_types, fn
-        {:type, var, _, expr, location}, [type | acc] -> {{:type, var, type, expr, location}, acc}
-        other, acc -> {other, acc}
-      end)
+  def format_error({:unused_def, {name, arity}, :defp}),
+    do: "function #{name}/#{arity} is unused"
 
-    {types, traces}
-  end
+  def format_error({:unused_def, {name, arity}, :defmacrop}),
+    do: "macro #{name}/#{arity} is unused"
 
-  ## FORMAT WARNINGS
+  def format_error({:undefined_function, {f, a}, _})
+      when {f, a} in [__info__: 1, behaviour_info: 1, module_info: 1, module_info: 0],
+      do:
+        "undefined function #{f}/#{a} (this function is auto-generated by the compiler and must always be called as a remote, as in __MODULE__.#{f}/#{a})"
 
-  def format_warning({:unable_apply, mfa, args, expected, signature, {location, expr, traces}}) do
-    {original_module, original_function, arity} = mfa
-    {_, _, args} = mfa_or_fa = erl_to_ex(original_module, original_function, args, [])
-    {module, function, ^arity} = call_to_mfa(mfa_or_fa)
-    format_mfa = Exception.format_mfa(module, function, arity)
-    {traces, [] = _hints} = format_traces(traces, [], false)
+  def format_error({:undefined_function, {f, a}, module}),
+    do:
+      "undefined function #{f}/#{a} (expected #{inspect(module)} to define such a function or for it to be imported, but none are available)"
 
-    clauses =
-      Enum.map(signature, fn {ins, out} ->
-        {_, _, ins} = erl_to_ex(original_module, original_function, ins, [])
-
-        {:fun, [{ins, out}]}
-        |> Unify.format_type(false)
-        |> IO.iodata_to_binary()
-        |> binary_slice(1..-2//1)
-      end)
-
-    [
-      "expected #{format_mfa} to have signature:\n\n    ",
-      Enum.map_join(args, ", ", &Unify.format_type(&1, false)),
-      " -> #{Unify.format_type(expected, false)}",
-      "\n\nbut it has signature:\n\n    ",
-      indent(Enum.join(clauses, "\n")),
-      "\n\n",
-      format_expr(expr, location),
-      traces,
-      "Conflict found at"
-    ]
-  end
-
-  def format_warning({:unable_unify, left, right, {location, expr, traces}}) do
-    if map_type?(left) and map_type?(right) and match?({:ok, _, _}, missing_field(left, right)) do
-      {:ok, atom, known_atoms} = missing_field(left, right)
-
-      # Drop the last trace which is the expression map.foo
-      traces = Enum.drop(traces, 1)
-      {traces, hints} = format_traces(traces, [left, right], true)
-
-      [
-        "undefined field \"#{atom}\" ",
-        format_expr(expr, location),
-        "expected one of the following fields: ",
-        Enum.join(Enum.sort(known_atoms), ", "),
-        "\n\n",
-        traces,
-        format_message_hints(hints),
-        "Conflict found at"
-      ]
-    else
-      simplify_left? = simplify_type?(left, right)
-      simplify_right? = simplify_type?(right, left)
-
-      {traces, hints} = format_traces(traces, [left, right], simplify_left? or simplify_right?)
-
-      [
-        "incompatible types:\n\n    ",
-        Unify.format_type(left, simplify_left?),
-        " !~ ",
-        Unify.format_type(right, simplify_right?),
-        "\n\n",
-        format_expr(expr, location),
-        traces,
-        format_message_hints(hints),
-        "Conflict found at"
-      ]
-    end
-  end
-
-  defp missing_field(
-         {:map, [{:required, {:atom, atom} = type, _}, {:optional, :dynamic, :dynamic}]},
-         {:map, fields}
-       ) do
-    matched_missing_field(fields, type, atom)
-  end
-
-  defp missing_field(
-         {:map, fields},
-         {:map, [{:required, {:atom, atom} = type, _}, {:optional, :dynamic, :dynamic}]}
-       ) do
-    matched_missing_field(fields, type, atom)
-  end
-
-  defp missing_field(_, _), do: :error
-
-  defp matched_missing_field(fields, type, atom) do
-    if List.keymember?(fields, type, 1) do
-      :error
-    else
-      known_atoms = for {_, {:atom, atom}, _} <- fields, do: atom
-      {:ok, atom, known_atoms}
-    end
-  end
-
-  defp format_traces([], _types, _simplify?) do
-    {[], []}
-  end
-
-  defp format_traces(traces, types, simplify?) do
-    traces
-    |> Enum.uniq()
-    |> Enum.reverse()
-    |> Enum.map_reduce([], fn
-      {:type, var, type, expr, location}, hints ->
-        {hint, hints} = format_type_hint(type, types, expr, hints)
-
-        trace = [
-          "where \"",
-          Macro.to_string(var),
-          "\" was given the type ",
-          Unify.format_type(type, simplify?),
-          hint,
-          " in:\n\n    # ",
-          format_location(location),
-          "    ",
-          indent(expr_to_string(expr)),
-          "\n\n"
-        ]
-
-        {trace, hints}
-
-      {:var, var1, var2, expr, location}, hints ->
-        trace = [
-          "where \"",
-          Macro.to_string(var1),
-          "\" was given the same type as \"",
-          Macro.to_string(var2),
-          "\" in:\n\n    # ",
-          format_location(location),
-          "    ",
-          indent(expr_to_string(expr)),
-          "\n\n"
-        ]
-
-        {trace, hints}
-    end)
-  end
-
-  defp format_location({file, position, _mfa}) do
-    format_location({file, position[:line]})
-  end
-
-  defp format_location({file, line}) do
-    file = Path.relative_to_cwd(file)
-    line = if line, do: [Integer.to_string(line)], else: []
-    [file, ?:, line, ?\n]
-  end
-
-  defp simplify_type?(type, other) do
-    map_like_type?(type) and not map_like_type?(other)
-  end
-
-  ## EXPRESSION FORMATTING
-
-  defp format_expr(nil, _location) do
-    []
-  end
-
-  defp format_expr(expr, location) do
-    [
-      "in expression:\n\n    # ",
-      format_location(location),
-      "    ",
-      indent(expr_to_string(expr)),
-      "\n\n"
-    ]
-  end
-
-  @doc false
-  def expr_to_string(expr) do
-    expr
-    |> reverse_rewrite()
-    |> Macro.to_string()
-  end
-
-  defp reverse_rewrite(guard) do
-    Macro.prewalk(guard, fn
-      {{:., _, [mod, fun]}, meta, args} -> erl_to_ex(mod, fun, args, meta)
-      other -> other
-    end)
-  end
-
-  defp erl_to_ex(mod, fun, args, meta) do
-    case :elixir_rewrite.erl_to_ex(mod, fun, args) do
-      {Kernel, fun, args} -> {fun, meta, args}
-      {mod, fun, args} -> {{:., [], [mod, fun]}, meta, args}
-    end
-  end
-
-  ## Hints
-
-  defp format_message_hints(hints) do
-    hints
-    |> Enum.uniq()
-    |> Enum.reverse()
-    |> Enum.map(&[format_message_hint(&1), "\n"])
-  end
-
-  defp format_message_hint(:inferred_dot) do
-    """
-    HINT: "var.field" (without parentheses) implies "var" is a map() while \
-    "var.fun()" (with parentheses) implies "var" is an atom()
-    """
-  end
-
-  defp format_message_hint(:inferred_bitstring_spec) do
-    """
-    HINT: all expressions given to binaries are assumed to be of type \
-    integer() unless said otherwise. For example, <<expr>> assumes "expr" \
-    is an integer. Pass a modifier, such as <<expr::float>> or <<expr::binary>>, \
-    to change the default behaviour.
-    """
-  end
-
-  defp format_message_hint({:sized_and_unsize_tuples, {size, var}}) do
-    """
-    HINT: use pattern matching or "is_tuple(#{Macro.to_string(var)}) and \
-    tuple_size(#{Macro.to_string(var)}) == #{size}" to guard a sized tuple.
-    """
-  end
-
-  defp format_type_hint(type, types, expr, hints) do
-    case format_type_hint(type, types, expr) do
-      {message, hint} -> {message, [hint | hints]}
-      :error -> {[], hints}
-    end
-  end
-
-  defp format_type_hint(type, types, expr) do
-    cond do
-      dynamic_map_dot?(type, expr) ->
-        {" (due to calling var.field)", :inferred_dot}
-
-      dynamic_remote_call?(type, expr) ->
-        {" (due to calling var.fun())", :inferred_dot}
-
-      inferred_bitstring_spec?(type, expr) ->
-        {[], :inferred_bitstring_spec}
-
-      message = sized_and_unsize_tuples(expr, types) ->
-        {[], {:sized_and_unsize_tuples, message}}
-
-      true ->
-        :error
-    end
-  end
-
-  defp dynamic_map_dot?(type, expr) do
-    with true <- map_type?(type),
-         {{:., _meta1, [_map, _field]}, meta2, []} <- expr,
-         true <- Keyword.get(meta2, :no_parens, false) do
-      true
-    else
-      _ -> false
-    end
-  end
-
-  defp dynamic_remote_call?(type, expr) do
-    with true <- atom_type?(type),
-         {{:., _meta1, [_module, _field]}, meta2, []} <- expr,
-         false <- Keyword.get(meta2, :no_parens, false) do
-      true
-    else
-      _ -> false
-    end
-  end
-
-  defp inferred_bitstring_spec?(type, expr) do
-    with true <- integer_type?(type),
-         {:<<>>, _, args} <- expr,
-         true <- Enum.any?(args, &match?({:"::", [{:inferred_bitstring_spec, true} | _], _}, &1)) do
-      true
-    else
-      _ -> false
-    end
-  end
-
-  defp sized_and_unsize_tuples({{:., _, [:erlang, :is_tuple]}, _, [var]}, types) do
-    case Enum.find(types, &match?({:tuple, _, _}, &1)) do
-      {:tuple, size, _} ->
-        {size, var}
-
-      nil ->
-        nil
-    end
-  end
-
-  defp sized_and_unsize_tuples(_expr, _types) do
-    nil
-  end
-
-  ## Formatting helpers
-
-  defp indent(string) do
-    String.replace(string, "\n", "\n    ")
-  end
-
-  defp map_type?({:map, _}), do: true
-  defp map_type?(_other), do: false
-
-  defp map_like_type?({:map, _}), do: true
-  defp map_like_type?({:union, union}), do: Enum.any?(union, &map_like_type?/1)
-  defp map_like_type?(_other), do: false
-
-  defp atom_type?(:atom), do: true
-  defp atom_type?({:atom, _}), do: false
-  defp atom_type?({:union, union}), do: Enum.all?(union, &atom_type?/1)
-  defp atom_type?(_other), do: false
-
-  defp integer_type?(:integer), do: true
-  defp integer_type?(_other), do: false
-
-  defp call_to_mfa({{:., _, [mod, fun]}, _, args}), do: {mod, fun, length(args)}
-  defp call_to_mfa({fun, _, args}) when is_atom(fun), do: {Kernel, fun, length(args)}
+  def format_error({:incorrect_dispatch, {f, a}, _module}),
+    do: "cannot invoke macro #{f}/#{a} before its definition"
 end

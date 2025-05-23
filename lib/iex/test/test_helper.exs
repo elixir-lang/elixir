@@ -1,4 +1,12 @@
-assert_timeout = String.to_integer(System.get_env("ELIXIR_ASSERT_TIMEOUT") || "500")
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
+# Beam files compiled on demand
+path = Path.expand("../tmp/beams", __DIR__)
+File.rm_rf!(path)
+File.mkdir_p!(path)
+Code.prepend_path(path)
 System.put_env("ELIXIR_EDITOR", "echo")
 
 {:ok, _} = Application.ensure_all_started(:iex)
@@ -7,11 +15,35 @@ IEx.configure(colors: [enabled: false])
 {line_exclude, line_include} =
   if line = System.get_env("LINE"), do: {[:test], [line: line]}, else: {[], []}
 
+erlang_doc_exclude =
+  if match?({:docs_v1, _, _, _, %{}, _, _}, Code.fetch_docs(:array)) do
+    []
+  else
+    IO.puts("Erlang/OTP compiled without docs, some tests are excluded...")
+    [:erlang_doc]
+  end
+
+source_exclude =
+  if :deterministic in :compile.env_compiler_options() do
+    [:requires_source]
+  else
+    []
+  end
+
+Code.require_file("../../elixir/scripts/cover_record.exs", __DIR__)
+
+cover_exclude =
+  if CoverageRecorder.maybe_record("iex") do
+    [:require_ast]
+  else
+    []
+  end
+
 ExUnit.start(
-  assert_receive_timeout: assert_timeout,
   trace: !!System.get_env("TRACE"),
   include: line_include,
-  exclude: line_exclude
+  exclude: line_exclude ++ erlang_doc_exclude ++ source_exclude ++ cover_exclude,
+  assert_receive_timeout: String.to_integer(System.get_env("ELIXIR_ASSERT_TIMEOUT", "300"))
 )
 
 defmodule IEx.Case do
@@ -44,13 +76,13 @@ defmodule IEx.Case do
     end
   end
 
-  keys = [:default_prompt, :alive_prompt, :inspect, :colors, :history_size]
-  @iex_env Application.get_all_env(:iex) |> Keyword.take(keys)
+  @keys [:default_prompt, :alive_prompt, :inspect, :colors, :history_size, :dot_iex]
+  @iex_env Application.get_all_env(:iex) |> Keyword.take(@keys)
 
   setup do
     on_exit(fn ->
       env = @iex_env
-      Enum.each(env, fn {k, _} -> Application.delete_env(:iex, k) end)
+      Enum.each(@keys, &Application.delete_env(:iex, &1))
       IEx.configure(env)
     end)
 
@@ -71,7 +103,7 @@ defmodule IEx.Case do
     IEx.configure(options)
 
     ExUnit.CaptureIO.capture_io([input: input, capture_prompt: capture_prompt], fn ->
-      server_options = Keyword.put_new(server_options, :dot_iex_path, "")
+      server_options = Keyword.put_new(server_options, :dot_iex, "")
       IEx.Server.run(server_options)
     end)
     |> strip_iex()
@@ -84,3 +116,36 @@ defmodule IEx.Case do
     |> String.trim()
   end
 end
+
+defmodule PathHelpers do
+  def write_beam({:module, name, bin, _} = res) do
+    File.mkdir_p!(unquote(path))
+    beam_path = Path.join(unquote(path), Atom.to_string(name) <> ".beam")
+    File.write!(beam_path, bin)
+
+    :code.purge(name)
+    :code.delete(name)
+
+    res
+  end
+end
+
+PathHelpers.write_beam(
+  defmodule HelperExampleModule do
+    def fun(_arg), do: :ok
+    defmacro macro(_arg), do: :ok
+  end
+)
+
+PathHelpers.write_beam(
+  defmodule PryExampleModule do
+    def one(_arg), do: :ok
+    def two(_arg1, _arg2), do: :ok
+  end
+)
+
+PathHelpers.write_beam(
+  defmodule PryExampleStruct do
+    defstruct one: nil
+  end
+)

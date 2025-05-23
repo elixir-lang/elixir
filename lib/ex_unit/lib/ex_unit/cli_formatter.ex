@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule ExUnit.CLIFormatter do
   @moduledoc false
   use GenServer
@@ -8,14 +12,17 @@ defmodule ExUnit.CLIFormatter do
   ## Callbacks
 
   def init(opts) do
-    print_filters(Keyword.take(opts, [:include, :exclude]))
+    IO.puts("Running ExUnit with seed: #{opts[:seed]}, max_cases: #{opts[:max_cases]}")
+    print_filters(opts, :exclude)
+    print_filters(opts, :include)
+    IO.puts("")
 
     config = %{
-      seed: opts[:seed],
       trace: opts[:trace],
       colors: colors(opts),
       width: get_terminal_width(),
       slowest: opts[:slowest],
+      slowest_modules: opts[:slowest_modules],
       test_counter: %{},
       test_timings: [],
       failure_counter: 0,
@@ -34,7 +41,7 @@ defmodule ExUnit.CLIFormatter do
   def handle_cast({:suite_finished, times_us}, config) do
     test_type_counts = collect_test_type_counts(config)
 
-    if test_type_counts > 0 && config.excluded_counter == test_type_counts do
+    if test_type_counts == 0 and config.excluded_counter > 0 do
       IO.puts(invalid("All tests have been excluded.", config))
     end
 
@@ -43,6 +50,10 @@ defmodule ExUnit.CLIFormatter do
 
     if config.slowest > 0 do
       IO.puts(format_slowest_tests(config, times_us.run))
+    end
+
+    if config.slowest_modules > 0 do
+      IO.puts(format_slowest_modules(config, times_us.run))
     end
 
     print_summary(config, false)
@@ -65,7 +76,8 @@ defmodule ExUnit.CLIFormatter do
     {:noreply, update_test_timings(config, test)}
   end
 
-  def handle_cast({:test_finished, %ExUnit.Test{state: {:excluded, _}} = test}, config) do
+  def handle_cast({:test_finished, %ExUnit.Test{state: {:excluded, reason}} = test}, config)
+      when is_binary(reason) do
     if config.trace, do: IO.puts(trace_test_excluded(test))
 
     test_counter = update_test_counter(config.test_counter, test)
@@ -74,7 +86,8 @@ defmodule ExUnit.CLIFormatter do
     {:noreply, config}
   end
 
-  def handle_cast({:test_finished, %ExUnit.Test{state: {:skipped, _}} = test}, config) do
+  def handle_cast({:test_finished, %ExUnit.Test{state: {:skipped, reason}} = test}, config)
+      when is_binary(reason) do
     if config.trace do
       IO.puts(skipped(trace_test_skipped(test), config))
     else
@@ -87,7 +100,11 @@ defmodule ExUnit.CLIFormatter do
     {:noreply, config}
   end
 
-  def handle_cast({:test_finished, %ExUnit.Test{state: {:invalid, _}} = test}, config) do
+  def handle_cast(
+        {:test_finished,
+         %ExUnit.Test{state: {:invalid, %ExUnit.TestModule{state: {:failed, _}}}} = test},
+        config
+      ) do
     if config.trace do
       IO.puts(invalid(trace_test_result(test), config))
     else
@@ -124,9 +141,14 @@ defmodule ExUnit.CLIFormatter do
     {:noreply, update_test_timings(config, test)}
   end
 
-  def handle_cast({:module_started, %ExUnit.TestModule{name: name, file: file}}, config) do
-    if config.trace() do
+  def handle_cast({:module_started, %ExUnit.TestModule{} = module}, config) do
+    if config.trace do
+      %{name: name, file: file, parameters: parameters} = module
       IO.puts("\n#{inspect(name)} [#{Path.relative_to_cwd(file)}]")
+
+      if parameters != %{} do
+        IO.puts("Parameters: #{inspect(parameters)}")
+      end
     end
 
     {:noreply, config}
@@ -238,6 +260,10 @@ defmodule ExUnit.CLIFormatter do
     end
   end
 
+  defp update_test_counter(test_counter, %{state: {:excluded, _reason}}) do
+    test_counter
+  end
+
   defp update_test_counter(test_counter, %{tags: %{test_type: test_type}}) do
     Map.update(test_counter, test_type, 1, &(&1 + 1))
   end
@@ -260,13 +286,49 @@ defmodule ExUnit.CLIFormatter do
     ]
   end
 
+  defp format_slowest_modules(%{slowest_modules: slowest, test_timings: timings}, run_us) do
+    slowest_tests =
+      timings
+      |> Enum.group_by(
+        fn %{module: module, tags: tags} ->
+          {module, tags.file}
+        end,
+        fn %{time: time} -> time end
+      )
+      |> Enum.into([], fn {{module, trace_test_file_line}, timings} ->
+        {module, trace_test_file_line, Enum.sum(timings)}
+      end)
+      |> Enum.sort_by(fn {_module, _, sum_timings} -> sum_timings end, :desc)
+      |> Enum.take(slowest)
+
+    slowest_us =
+      Enum.reduce(slowest_tests, 0, fn {_module, _, sum_timings}, acc ->
+        acc + sum_timings
+      end)
+
+    slowest_time = slowest_us |> normalize_us() |> format_us()
+    percentage = Float.round(slowest_us / run_us * 100, 1)
+
+    [
+      "\nTop #{slowest} slowest (#{slowest_time}s), #{percentage}% of total time:\n\n"
+      | Enum.map(slowest_tests, &format_slow_module/1)
+    ]
+  end
+
   defp format_slow_test(%ExUnit.Test{time: time, module: module} = test) do
     "#{trace_test_started(test)} (#{inspect(module)}) (#{format_us(time)}ms) " <>
       "[#{trace_test_file_line(test)}]\n"
   end
 
-  defp update_test_timings(%{slowest: slowest} = config, %ExUnit.Test{} = test) do
-    if slowest > 0 do
+  defp format_slow_module({module, test_file_path, timings}) do
+    "#{inspect(module)} (#{format_us(timings)}ms)\n [#{Path.relative_to_cwd(test_file_path)}]\n"
+  end
+
+  defp update_test_timings(
+         %{slowest: slowest, slowest_modules: slowest_modules} = config,
+         %ExUnit.Test{} = test
+       ) do
+    if slowest > 0 or slowest_modules > 0 do
       # Do not store logs, as they are not used for timings and consume memory.
       update_in(config.test_timings, &[%{test | logs: ""} | &1])
     else
@@ -277,16 +339,13 @@ defmodule ExUnit.CLIFormatter do
   ## Printing
 
   defp print_summary(config, force_failures?) do
-    formatted_test_type_counts = format_test_type_counts(config)
     test_type_counts = collect_test_type_counts(config)
+    test_counter = test_counter_or_default(config, test_type_counts)
+    formatted_test_type_counts = format_test_type_counts(test_counter)
     failure_pl = pluralize(config.failure_counter, "failure", "failures")
 
     message =
       "#{formatted_test_type_counts}#{config.failure_counter} #{failure_pl}"
-      |> if_true(
-        config.excluded_counter > 0,
-        &(&1 <> ", #{config.excluded_counter} excluded")
-      )
       |> if_true(
         config.invalid_counter > 0,
         &(&1 <> ", #{config.invalid_counter} invalid")
@@ -294,6 +353,10 @@ defmodule ExUnit.CLIFormatter do
       |> if_true(
         config.skipped_counter > 0,
         &(&1 <> ", " <> skipped("#{config.skipped_counter} skipped", config))
+      )
+      |> if_true(
+        config.excluded_counter > 0,
+        &(&1 <> " (#{config.excluded_counter} excluded)")
       )
 
     cond do
@@ -309,22 +372,16 @@ defmodule ExUnit.CLIFormatter do
       true ->
         IO.puts(success(message, config))
     end
-
-    IO.puts("\nRandomized with seed #{config.seed}")
   end
 
   defp if_true(value, false, _fun), do: value
   defp if_true(value, true, fun), do: fun.(value)
 
-  defp print_filters(include: [], exclude: []) do
-    :ok
-  end
-
-  defp print_filters(include: include, exclude: exclude) do
-    if exclude != [], do: IO.puts(format_filters(exclude, :exclude))
-    if include != [], do: IO.puts(format_filters(include, :include))
-    IO.puts("")
-    :ok
+  defp print_filters(opts, key) do
+    case opts[key] do
+      [] -> :ok
+      filters -> IO.puts(format_filters(filters, key))
+    end
   end
 
   defp print_failure(formatted, config) do
@@ -336,13 +393,22 @@ defmodule ExUnit.CLIFormatter do
     IO.puts(formatted)
   end
 
-  defp format_test_type_counts(%{test_counter: test_counter} = _config) do
+  defp format_test_type_counts(test_counter) do
     test_counter
     |> Enum.sort()
     |> Enum.map(fn {test_type, count} ->
       type_pluralized = pluralize(count, test_type, ExUnit.plural_rule(test_type |> to_string()))
+
       "#{count} #{type_pluralized}, "
     end)
+  end
+
+  defp test_counter_or_default(_config, 0) do
+    %{test: 0}
+  end
+
+  defp test_counter_or_default(%{test_counter: test_counter} = _config, _test_type_counts) do
+    test_counter
   end
 
   defp collect_test_type_counts(%{test_counter: test_counter} = _config) do
@@ -365,7 +431,7 @@ defmodule ExUnit.CLIFormatter do
 
   defp colorize_doc(escape, doc, %{colors: colors}) do
     if colors[:enabled] do
-      Inspect.Algebra.color(doc, escape, %Inspect.Opts{syntax_colors: colors})
+      Inspect.Algebra.color_doc(doc, escape, %Inspect.Opts{syntax_colors: colors})
     else
       doc
     end

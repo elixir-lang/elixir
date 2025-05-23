@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule RecordTest do
@@ -341,6 +345,20 @@ defmodule RecordTest do
     end
   end
 
+  test "docs metadata" do
+    import PathHelpers
+
+    write_beam(
+      defmodule Metadata do
+        Record.defrecord(:user, foo: 0, bar: "baz")
+      end
+    )
+
+    {:docs_v1, 352, :elixir, "text/markdown", _, %{}, docs} = Code.fetch_docs(RecordTest.Metadata)
+    {{:macro, :user, 1}, _meta, _sig, _docs, metadata} = List.keyfind(docs, {:macro, :user, 1}, 0)
+    assert %{record: {:user, [foo: 0, bar: "baz"]}} = metadata
+  end
+
   describe "warnings" do
     import ExUnit.CaptureIO
 
@@ -374,8 +392,8 @@ defmodule RecordTest do
     end
 
     defp purge(module) when is_atom(module) do
-      :code.delete(module)
       :code.purge(module)
+      :code.delete(module)
     end
   end
 end

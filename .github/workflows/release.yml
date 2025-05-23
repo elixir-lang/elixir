@@ -1,25 +1,33 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
 name: Release
 
 on:
   push:
+    branches:
+      - main
+      - v*.*
     tags:
       - v*
 
 env:
   ELIXIR_OPTS: "--warnings-as-errors"
-  ERLC_OPTS: "warnings_as_errors"
   LANG: C.UTF-8
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   create_draft_release:
     runs-on: ubuntu-22.04
+    permissions:
+      contents: write
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Create draft release
+        if: github.ref_type != 'branch'
         run: |
           gh release create \
             --repo ${{ github.repository }} \
@@ -27,43 +35,386 @@ jobs:
             --notes '' \
             --draft \
             ${{ github.ref_name }}
-  release_pre_built:
-    needs: create_draft_release
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        if: github.ref_type == 'branch'
+        with:
+          fetch-depth: 50
+
+      - name: Update ${{ github.ref_name }}-latest
+        if: github.ref_type == 'branch'
+        run: |
+          ref_name=${{ github.ref_name }}-latest
+
+          if ! gh release view $ref_name; then
+            gh release create \
+              --latest=false \
+              --title $ref_name \
+              --notes "Automated release for latest ${{ github.ref_name }}." \
+              $ref_name
+          fi
+
+          git tag $ref_name --force
+          git push origin $ref_name --force
+
+  build:
+    name: "Build Elixir"
+
     strategy:
       fail-fast: true
       matrix:
         include:
-          - otp: 24
-            otp_version: '24.3'
-          - otp: 25
-            otp_version: '25.3'
           - otp: 26
-            otp_version: '26.0'
+            otp_version: "26.0"
+          - otp: 27
+            otp_version: "27.0"
+          - otp: 28
+            otp_version: "28.0"
             build_docs: build_docs
+
     runs-on: ubuntu-22.04
+
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 50
-      - uses: ./.github/workflows/release_pre_built
+
+      - name: "Build Release"
+        uses: ./.github/workflows/release_pre_built
         with:
           otp_version: ${{ matrix.otp_version }}
           otp: ${{ matrix.otp }}
           build_docs: ${{ matrix.build_docs }}
+
+      - name: Create Docs Hashes
+        if: matrix.build_docs
+        run: |
+          shasum -a 1   Docs.zip > Docs.zip.sha1sum
+          shasum -a 256 Docs.zip > Docs.zip.sha256sum
+
+      - name: "Upload linux release artifacts"
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: build-linux-elixir-otp-${{ matrix.otp }}
+          path: elixir-otp-${{ matrix.otp }}.zip
+
+      - name: "Upload windows release artifacts"
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: build-windows-elixir-otp-${{ matrix.otp }}
+          path: elixir-otp-${{ matrix.otp }}.exe
+
+      - name: "Upload doc artifacts"
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: matrix.build_docs
+        with:
+          name: Docs
+          path: Docs.zip*
+
+  sign:
+    needs: [build]
+    strategy:
+      fail-fast: true
+      matrix:
+        otp: [26, 27, 28]
+        flavor: [windows, linux]
+
+    env:
+      RELEASE_FILE: elixir-otp-${{ matrix.otp }}.${{ matrix.flavor == 'linux' && 'zip' || 'exe' }}
+
+    runs-on: ${{ matrix.flavor == 'linux' && 'ubuntu-22.04' || 'windows-2022' }}
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: "Download build"
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: build-${{ matrix.flavor }}-elixir-otp-${{ matrix.otp }}
+
+      - name: "Sign files with Trusted Signing"
+        uses: azure/trusted-signing-action@0d74250c661747df006298d0fb49944c10f16e03 # v0.5.1
+        if: github.repository == 'elixir-lang/elixir' && matrix.flavor == 'windows'
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          # AZURE_TENANT_ID and AZURE_CLIENT_ID should stay the same,
+          # but AZURE_CLIENT_SECRET has expiration date. When it expires go to
+          # App Registrations / <app> / Certificates & secrets,
+          # click (+) New client secret, note the "Value" (not "Secret ID")
+          # and update it:
+          #
+          #     $ gh --repo elixir-lang/elixir secret set AZURE_CLIENT_SECRET
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: https://eus.codesigning.azure.net/
+          trusted-signing-account-name: trusted-signing-elixir
+          certificate-profile-name: Elixir
+          files-folder: ${{ github.workspace }}
+          files-folder-filter: exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      - name: Create Release Hashes
+        if: matrix.flavor == 'windows'
+        shell: pwsh
+        run: |
+          $sha1 = Get-FileHash "$env:RELEASE_FILE" -Algorithm SHA1
+          $sha1.Hash.ToLower() + "  " + $env:RELEASE_FILE | Out-File "$env:RELEASE_FILE.sha1sum"
+
+          $sha256 = Get-FileHash "$env:RELEASE_FILE" -Algorithm SHA256
+          $sha256.Hash.ToLower() + "  " + $env:RELEASE_FILE | Out-File "$env:RELEASE_FILE.sha256sum"
+
+      - name: Create Release Hashes
+        if: matrix.flavor == 'linux'
+        shell: bash
+        run: |
+          shasum -a 1   "$RELEASE_FILE" > "${RELEASE_FILE}.sha1sum"
+          shasum -a 256 "$RELEASE_FILE" > "${RELEASE_FILE}.sha256sum"
+
+      - name: "Upload linux release artifacts"
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: sign-${{ matrix.flavor }}-elixir-otp-${{ matrix.otp }}
+          path: ${{ env.RELEASE_FILE }}*
+
+  sbom:
+    name: Generate SBoM
+
+    needs: [build, sign]
+
+    runs-on: ubuntu-24.04
+
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+
+    steps:
+      - name: Use HTTPS instead of SSH for Git cloning
+        id: git-config
+        shell: bash
+        run: git config --global url.https://github.com/.insteadOf ssh://git@github.com/
+
+      - name: Checkout project
+        id: checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: "Download Build Artifacts"
+        id: download-build-artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: "{sign-*-elixir-otp-*,Docs}"
+          merge-multiple: true
+          path: /tmp/build-artifacts/
+
+      - name: "Run OSS Review Toolkit"
+        id: ort
+        uses: ./.github/workflows/ort
+        with:
+          report-formats: "CycloneDx,SpdxDocument"
+          version: "${{ github.ref_type	== 'tag' && github.ref_name || github.sha }}"
+
+      - name: Attest Distribution Assets with SBoM
+        id: attest-sbom
+        uses: actions/attest-sbom@115c3be05ff3974bcbd596578934b3f9ce39bf68 # v2.2.0
+        with:
+          subject-path: |
+            /tmp/build-artifacts/{elixir-otp-*.*,Docs.zip}
+            ${{ steps.ort.outputs.results-sbom-cyclonedx-xml-path }}
+            ${{ steps.ort.outputs.results-sbom-cyclonedx-json-path }}
+            ${{ steps.ort.outputs.results-sbom-spdx-yml-path }}
+            ${{ steps.ort.outputs.results-sbom-spdx-json-path }}
+          sbom-path: "${{ steps.ort.outputs.results-sbom-spdx-json-path }}"
+
+      - name: "Copy SBoM provenance"
+        id: sbom-provenance
+        shell: bash
+        run: |
+          mkdir attestations
+
+          for FILE in /tmp/build-artifacts/{elixir-otp-*.*,Docs.zip}; do
+            cp "$ATTESTATION" "attestations/$(basename "$FILE").sigstore"
+          done
+
+          cp "$ATTESTATION" "attestations/$(basename "${{ steps.ort.outputs.results-sbom-cyclonedx-xml-path }}").sigstore"
+          cp "$ATTESTATION" "attestations/$(basename "${{ steps.ort.outputs.results-sbom-cyclonedx-json-path }}").sigstore"
+          cp "$ATTESTATION" "attestations/$(basename "${{ steps.ort.outputs.results-sbom-spdx-yml-path }}").sigstore"
+          cp "$ATTESTATION" "attestations/$(basename "${{ steps.ort.outputs.results-sbom-spdx-json-path }}").sigstore"
+        env:
+          ATTESTATION: "${{ steps.attest-sbom.outputs.bundle-path }}"
+
+      - name: "Assemble Release SBoM Artifacts"
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: "SBoM"
+          path: |
+            ${{ steps.ort.outputs.results-sbom-cyclonedx-xml-path }}
+            ${{ steps.ort.outputs.results-sbom-cyclonedx-json-path }}
+            ${{ steps.ort.outputs.results-sbom-spdx-yml-path }}
+            ${{ steps.ort.outputs.results-sbom-spdx-json-path }}
+
+      - name: "Assemble Distribution Attestations"
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: "Attestations"
+          path: "attestations/*.sigstore"
+
+  upload-release:
+    needs: [create_draft_release, build, sign, sbom]
+    runs-on: ubuntu-22.04
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: "{sign-*-elixir-otp-*,Docs,SBoM,Attestations}"
+          merge-multiple: true
+
       - name: Upload Pre-built
+        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload --clobber "${{ github.ref_name }}" \
-            elixir-otp-${{ matrix.otp }}.zip \
-            elixir-otp-${{ matrix.otp }}.zip.sha{1,256}sum \
-            elixir-otp-${{ matrix.otp }}.exe \
-            elixir-otp-${{ matrix.otp }}.exe.sha{1,256}sum
-      - name: Upload Docs to GitHub
-        if: ${{ matrix.build_docs }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release upload --clobber "${{ github.ref_name }}" \
+          if [ "${{ github.ref_type }}" == "branch" ]; then
+            tag=${{ github.ref_name }}-latest
+          else
+            tag="${{ github.ref_name }}"
+          fi
+
+          gh release upload \
+            --repo ${{ github.repository }} \
+            --clobber \
+            "$tag" \
+            elixir-otp-*.zip \
+            elixir-otp-*.zip.sha{1,256}sum \
+            elixir-otp-*.zip.sigstore \
+            elixir-otp-*.exe \
+            elixir-otp-*.exe.sha{1,256}sum \
+            elixir-otp-*.exe.sigstore \
             Docs.zip \
-            Docs.zip.sha{1,256}sum
+            Docs.zip.sha{1,256}sum \
+            Docs.zip.sigstore \
+            bom.*
+
+  upload-builds-hex-pm:
+    needs: [build, sign]
+    runs-on: ubuntu-22.04
+    concurrency: builds-hex-pm
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.HEX_AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.HEX_AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: ${{ secrets.HEX_AWS_REGION }}
+      AWS_S3_BUCKET: ${{ secrets.HEX_AWS_S3_BUCKET }}
+      FASTLY_REPO_SERVICE_ID: ${{ secrets.HEX_FASTLY_REPO_SERVICE_ID }}
+      FASTLY_BUILDS_SERVICE_ID: ${{ secrets.HEX_FASTLY_BUILDS_SERVICE_ID }}
+      FASTLY_KEY: ${{ secrets.HEX_FASTLY_KEY }}
+      OTP_GENERIC_VERSION: "25"
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: "{sign-*-elixir-otp-*,Docs}"
+          merge-multiple: true
+
+      - name: Init purge keys file
+        run: |
+          touch purge_keys.txt
+
+      - name: Upload Precompiled to S3
+        run: |
+          ref_name=${{ github.ref_name }}
+
+          for zip in $(find . -type f -name 'elixir-otp-*.zip' | sed 's/^\.\///'); do
+            dest=${zip/elixir/${ref_name}}
+            surrogate_key=${dest/.zip$/}
+
+            aws s3 cp "${zip}" "s3://${AWS_S3_BUCKET}/builds/elixir/${dest}" \
+              --cache-control "public,max-age=3600" \
+              --metadata "{\"surrogate-key\":\"builds builds/elixir builds/elixir/${surrogate_key}\",\"surrogate-control\":\"public,max-age=604800\"}"
+            echo "builds/elixir/${surrogate_key}" >> purge_keys.txt
+
+            if [ "$zip" == "elixir-otp-${OTP_GENERIC_VERSION}.zip" ]; then
+              aws s3 cp "${zip}" "s3://${AWS_S3_BUCKET}/builds/elixir/${ref_name}.zip" \
+                --cache-control "public,max-age=3600" \
+                --metadata "{\"surrogate-key\":\"builds builds/elixir builds/elixir/${ref_name}\",\"surrogate-control\":\"public,max-age=604800\"}"
+              echo builds/elixir/${ref_name} >> purge_keys.txt
+            fi
+          done
+
+      - name: Upload Docs to S3
+        run: |
+          version=$(echo ${{ github.ref_name }} | sed -e 's/^v//g')
+
+          unzip Docs.zip
+
+          for f in doc/*; do
+            if [ -d "$f" ]; then
+              app=$(echo "$f" | sed s/"doc\/"//)
+              tarball="${app}-${version}.tar.gz"
+              surrogate_key="docs/${app}-${version}"
+
+              tar -czf "${tarball}" -C "doc/${app}" .
+              aws s3 cp "${tarball}" "s3://${AWS_S3_BUCKET}/docs/${tarball}" \
+                --cache-control "public,max-age=3600" \
+                --metadata "{\"surrogate-key\":\"${surrogate_key}\",\"surrogate-control\":\"public,max-age=604800\"}"
+              echo "${surrogate_key}" >> ../purge_keys.txt
+            fi
+          done
+
+      - name: Update builds txt
+        run: |
+          date="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          ref_name=${{ github.ref_name }}
+
+          aws s3 cp "s3://${AWS_S3_BUCKET}/builds/elixir/builds.txt" builds.txt || true
+          touch builds.txt
+
+          for sha256_file in $(find . -name 'elixir-otp-*.zip.sha256sum' | sed 's/^\.\///'); do
+            otp_version=$(echo "${sha256_file}" | sed -r 's/^elixir-otp-([[:digit:]]+)\.zip\.sha256sum/otp-\1/')
+            build_sha256=$(cut -d ' ' -f 1 "${sha256_file}")
+
+            sed -i "/^${ref_name}-${otp_version} /d" builds.txt
+            echo -e "${ref_name}-${otp_version} ${{ github.sha }} ${date} ${build_sha256} \n$(cat builds.txt)" > builds.txt
+
+            if [ "${otp_version}" == "otp-${OTP_GENERIC_VERSION}" ]; then
+              sed -i "/^${ref_name} /d" builds.txt
+              echo -e "${ref_name} ${{ github.sha }} ${date} ${build_sha256} \n$(cat builds.txt)" > builds.txt
+            fi
+          done
+
+          sort -u -k1,1 -o builds.txt builds.txt
+          aws s3 cp builds.txt "s3://${AWS_S3_BUCKET}/builds/elixir/builds.txt" \
+            --cache-control "public,max-age=3600" \
+            --metadata '{"surrogate-key":"builds builds/elixir builds/elixir/txt","surrogate-control":"public,max-age=604800"}'
+
+          echo 'builds/elixir/txt' >> purge_keys.txt
+
+      - name: Flush cache
+        if: github.repository == 'elixir-lang/elixir'
+        run: |
+          function purge_key() {
+            curl \
+               -X POST \
+               -H "Fastly-Key: ${FASTLY_KEY}" \
+               -H "Accept: application/json" \
+               -H "Content-Length: 0" \
+               "https://api.fastly.com/service/$1/purge/$2"
+          }
+
+          function purge() {
+            purge_key ${FASTLY_REPO_SERVICE_ID} $1
+            purge_key ${FASTLY_BUILDS_SERVICE_ID} $1
+            sleep 2
+            purge_key ${FASTLY_REPO_SERVICE_ID} $1
+            purge_key ${FASTLY_BUILDS_SERVICE_ID} $1
+            sleep 2
+            purge_key ${FASTLY_REPO_SERVICE_ID} $1
+            purge_key ${FASTLY_BUILDS_SERVICE_ID} $1
+          }
+
+          for key in $(cat purge_keys.txt); do
+            purge "${key}"
+          done

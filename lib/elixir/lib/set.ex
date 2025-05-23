@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Set do
   @moduledoc ~S"""
   Generic API for sets.
@@ -90,7 +94,7 @@ defmodule Set do
     if target1 == target2 do
       target1.intersection(set1, set2)
     else
-      Enumerable.reduce(set1, {:cont, target1.new}, fn v, acc ->
+      Enumerable.reduce(set1, {:cont, target1.new()}, fn v, acc ->
         {:cont, if(target2.member?(set2, v), do: target1.put(acc, v), else: acc)}
       end)
       |> elem(1)

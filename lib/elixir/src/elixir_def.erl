@@ -1,3 +1,7 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 % Holds the logic responsible for function definitions (def(p) and defmacro(p)).
 -module(elixir_def).
 -export([setup/1, reset_last/1, local_for/5, external_for/5,
@@ -37,6 +41,7 @@ fun_for(Meta, Module, Name, Arity, Kinds, External) ->
     {[{_, Kind, LocalMeta, _, _, _}], ClausesPairs} ->
       case (Kinds == all) orelse (lists:member(Kind, Kinds)) of
         true ->
+          (Kind == defmacrop) andalso track_defmacrop(Module, Tuple),
           Local = {value, fun(Fun, Args) -> invoke_local(Meta, Module, Fun, Args, External) end},
           Clauses = [Clause || {_, Clause} <- ClausesPairs],
           elixir_erl:definition_to_anonymous(Kind, LocalMeta, Clauses, Local, External);
@@ -59,6 +64,10 @@ invoke_local(Meta, Module, ErlName, Args, External) ->
     Fun ->
       apply(Fun, Args)
   end.
+
+track_defmacrop(Module, FunArity) ->
+  {_, Bag} = elixir_module:data_tables(Module),
+  ets:insert(Bag, {used_private, FunArity}).
 
 invoke_external(Meta, Mod, Name, Args, E) ->
   is_map(E) andalso elixir_env:trace({require, Meta, Mod, []}, E),
@@ -128,34 +137,35 @@ head_and_definition_meta(_, _Meta, _HeadDefaults, [{_, _, HeadMeta, _} | _]) ->
 %% Section for storing definitions
 
 store_definition(Kind, {Call, Body}, Pos) ->
-  E = elixir_locals:get_cached_env(Pos),
+  E = elixir_module:get_cached_env(Pos),
   store_definition(Kind, false, Call, Body, E);
 store_definition(Kind, Key, Pos) ->
-  #{module := Module} = E = elixir_locals:get_cached_env(Pos),
+  #{module := Module} = E = elixir_module:get_cached_env(Pos),
   {Call, Body} = elixir_module:read_cache(Module, Key),
   store_definition(Kind, true, Call, Body, E).
 
 store_definition(Kind, HasNoUnquote, Call, Body, #{line := Line} = E) ->
   {NameAndArgs, Guards} = elixir_utils:extract_guards(Call),
 
-  {Name, Args} = case NameAndArgs of
-    {N, _, A} when is_atom(N), is_atom(A) -> {N, []};
-    {N, _, A} when is_atom(N), is_list(A) -> {N, A};
+  {Name, Meta, Args} = case NameAndArgs of
+    {N, M, A} when is_atom(N), is_atom(A) -> {N, M, []};
+    {N, M, A} when is_atom(N), is_list(A) -> {N, M, A};
     _ -> elixir_errors:file_error([{line, Line}], E, ?MODULE, {invalid_def, Kind, NameAndArgs})
   end,
-
-  %% Now that we have verified the call format,
-  %% extract meta information like file and context.
-  {_, Meta, _} = Call,
 
   Context = case lists:keyfind(context, 1, Meta) of
     {context, _} = ContextPair -> [ContextPair];
     _ -> []
   end,
 
-  Generated = case lists:keyfind(generated, 1, Meta) of
-    {generated, true} -> ?generated(Context);
+  Column = case lists:keyfind(column, 1, Meta) of
+    {column, _} = ColumnPair -> [ColumnPair | Context];
     _ -> Context
+  end,
+
+  Generated = case lists:keyfind(generated, 1, Meta) of
+    {generated, true} = GeneratedPair -> [GeneratedPair | Column];
+    _ -> Column
   end,
 
   CheckClauses = if
@@ -209,7 +219,6 @@ store_definition(Meta, Kind, CheckClauses, Name, Arity, DefaultsArgs, Guards, Bo
              Clause <- def_to_clauses(Kind, Meta, Args, Guards, Body, E)],
 
   DefaultsLength = length(Defaults),
-  elixir_locals:record_defaults(Tuple, Kind, Module, DefaultsLength, Meta),
   check_previous_defaults(Meta, Module, Name, Arity, Kind, DefaultsLength, E),
 
   store_definition(CheckClauses, Kind, Meta, Name, Arity, File,
@@ -217,7 +226,7 @@ store_definition(Meta, Kind, CheckClauses, Name, Arity, DefaultsArgs, Guards, Bo
   [store_definition(none, Kind, Meta, Name, length(DefaultArgs), File,
                     Module, 0, [Default]) || {_, DefaultArgs, _, _} = Default <- Defaults],
 
-  run_on_definition_callbacks(Kind, Module, Name, DefaultsArgs, Guards, Body, E),
+  run_on_definition_callbacks(Meta, Kind, Module, Name, DefaultsArgs, Guards, Body, E),
   Tuple.
 
 env_for_expansion(Kind, Tuple, E) when Kind =:= defmacro; Kind =:= defmacrop ->
@@ -262,10 +271,13 @@ def_to_clauses(Kind, Meta, Args, Guards, Body, E) ->
       elixir_errors:file_error(Meta, E, elixir_expand, {missing_option, Kind, [do]})
   end.
 
-run_on_definition_callbacks(Kind, Module, Name, Args, Guards, Body, E) ->
+run_on_definition_callbacks(Meta, Kind, Module, Name, Args, Guards, Body, E) ->
   {_, Bag} = elixir_module:data_tables(Module),
   Callbacks = ets:lookup_element(Bag, {accumulate, on_definition}, 2),
-  _ = [Mod:Fun(E, Kind, Name, Args, Guards, Body) || {Mod, Fun} <- lists:reverse(Callbacks)],
+  _ = [begin
+    elixir_env:trace({remote_function, Meta, Mod, Fun, 6}, E),
+    Mod:Fun(E, Kind, Name, Args, Guards, Body)
+  end || {Mod, Fun} <- lists:reverse(Callbacks)],
   ok.
 
 store_definition(CheckClauses, Kind, Meta, Name, Arity, File, Module, Defaults, Clauses)
@@ -309,7 +321,7 @@ unpack_defaults(Kind, Meta, Name, Args, S, E) ->
 unpack_expanded(Kind, Meta, Name, [{'\\\\', DefaultMeta, [Expr, _]} | T] = List, VersionOffset, Acc, Clauses) ->
   Base = match_defaults(Acc, length(Acc) + VersionOffset, []),
   {Args, Invoke} = extract_defaults(List, length(Base) + VersionOffset, [], []),
-  Clause = {Meta, Base ++ Args, [], {super, [{super, {Kind, Name}} | DefaultMeta], Base ++ Invoke}},
+  Clause = {Meta, Base ++ Args, [], {super, [{super, {Kind, Name}}, {default, true} | DefaultMeta], Base ++ Invoke}},
   unpack_expanded(Kind, Meta, Name, T, VersionOffset, [Expr | Acc], [Clause | Clauses]);
 unpack_expanded(Kind, Meta, Name, [H | T], VersionOffset, Acc, Clauses) ->
   unpack_expanded(Kind, Meta, Name, T, VersionOffset, [H | Acc], Clauses);
@@ -494,7 +506,7 @@ format_error({invalid_def, Kind, NameAndArgs}) ->
   io_lib:format("invalid syntax in ~ts ~ts", [Kind, 'Elixir.Macro':to_string(NameAndArgs)]);
 
 format_error(invalid_args_for_function_head) ->
-  "only variables and \\\\ are allowed as arguments in function head.\n"
+  "patterns are not allowed in function head, only variables and default arguments (using \\\\)\n"
   "\n"
   "If you did not intend to define a function head, make sure your function "
   "definition has the proper syntax by wrapping the arguments in parentheses "
@@ -512,4 +524,4 @@ format_error({module_info, Kind, Arity}) ->
 
 format_error({is_record, Kind}) ->
   io_lib:format("cannot define ~ts is_record/2 due to compatibility "
-                "issues with the Erlang compiler (it is a known limitation)", [Kind]).
+                "with the Erlang compiler (it is a known limitation)", [Kind]).

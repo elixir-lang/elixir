@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defprotocol IEx.Info do
   @fallback_to_any true
 
@@ -31,12 +35,12 @@ defprotocol IEx.Info do
     * `"Data type"`: Name of the data type. Usually the name of the module
        defining the data type.
     * `"Description"`: One or a few sentences describing what the data type represents.
-    * `"Reference modules`: One or a few comma-separated module names that focus
+    * `"Reference modules"`: One or a few comma-separated module names that focus
       on working with this datatype.
 
   Other recommended sections are:
 
-    * `"Raw representation`: showing another way of writing the passed `term`.
+    * `"Raw representation"`: showing another way of writing the passed `term`.
       This is mostly relevant for data-structures whose `String.Chars`-implementations
       make use of sigils or other syntactic sugar.
   """
@@ -89,7 +93,7 @@ defimpl IEx.Info, for: Atom do
 
       {^atom, beam, _path} ->
         info = :beam_lib.info(beam)
-        Keyword.fetch(info, :module) == {:ok, atom}
+        is_list(info) and Keyword.fetch(info, :module) == {:ok, atom}
     end
   end
 
@@ -207,9 +211,9 @@ defimpl IEx.Info, for: List do
   defp info_improper_list(_improper_list) do
     description = """
     This is what is referred to as an "improper list". An improper list is a
-    list which its last tail is not to an empty list. For example: [1, 2, 3]
-    is a proper list, as it is equivalent to [1, 2, 3 | []], as opposed to
-    [1, 2 | 3] which is an improper list since its last tail returns 3.
+    list whose last tail is not an empty list. For example: [1, 2, 3] is a
+    proper list, as it is equivalent to [1, 2, 3 | []], as opposed to
+    [1, 2 | 3] which is an improper list since its last tail is 3.
     """
 
     [

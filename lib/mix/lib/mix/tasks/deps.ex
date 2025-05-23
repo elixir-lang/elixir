@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Tasks.Deps do
   use Mix.Task
 
@@ -62,7 +66,10 @@ defmodule Mix.Tasks.Deps do
     * `:app` - when set to `false`, does not read the app file for this
       dependency. By default, the app file is read
 
-    * `:env` - the environment (as an atom) to run the dependency on; defaults to `:prod`
+    * `:env` - the environment (as an atom) to run the dependency on.
+      While your current project runs in `:dev` by default, dependencies
+      defaults to `:prod` (except for `:in_umbrella` dependencies, see
+      below)
 
     * `:compile` - a command (string) to compile the dependency; defaults to a `mix`,
       `rebar` or `make` command
@@ -73,18 +80,23 @@ defmodule Mix.Tasks.Deps do
       use the optional dependency. However, if the other project includes
       the optional dependency on its own, the requirements and options
       specified here will also be applied. Optional dependencies will _not_
-      be started by the application.
+      be started by the application. You should consider compiling your
+      projects with the `mix compile --no-optional-deps --warnings-as-errors`
+      during test, to ensure your project compiles without warnings even
+      if optional dependencies are missing
 
     * `:only` - the dependency is made available only in the given environments,
       useful when declaring dev- or test-only dependencies; by default the
       dependency will be available in all environments. The value of this option
       can either be a single environment (like `:dev`) or a list of environments
-      (like `[:dev, :test]`)
+      (like `[:dev, :test]`). Keep in mind that your project runs in the `:dev`
+      environment by default, however, all of your dependencies run in the `:prod`
+      environment (unless the `:env` option above is given)
 
     * `:targets` - the dependency is made available only for the given targets.
-      By default the dependency will be available in all environments. The value
+      By default the dependency will be available in all targets. The value
       of this option can either be a single target (like `:host`) or a list of
-      environments (like `[:host, :rpi3]`)
+      targets (like `[:host, :rpi3]`)
 
     * `:override` - if set to `true` the dependency will override any other
       definitions of itself by other dependencies
@@ -107,6 +119,14 @@ defmodule Mix.Tasks.Deps do
     * `:system_env` - an enumerable of key-value tuples of binaries to be set
       as environment variables when loading or compiling the dependency
 
+  When a project is used as a dependency, it runs by default in the `:prod`
+  environment. Therefore, if your project has dependencies that are only
+  useful in development or testing, you want to specify those dependencies with
+  the `:only` option above. You can also specify `:optional` dependencies
+  in your project, which are not enforced upon users of your library, as outlined
+  above. Finally, the [lockfile](`Mix.Project#module-configuration`) (usually
+  named `mix.lock`) is ignored when a project is used as a dependency.
+
   ### Git options (`:git`)
 
     * `:git` - the Git repository URI
@@ -117,9 +137,14 @@ defmodule Mix.Tasks.Deps do
     * `:submodules` - when `true`, initialize submodules for the repo
     * `:sparse` - checkout a single directory inside the Git repository and use it
       as your Mix dependency. Search "sparse Git checkouts" for more information.
-    * `:subdir` - (since v1.13.0) search for the project in the given directory
+    * `:subdir` *(since v1.13.0)* - search for the project in the given directory
       relative to the git checkout. This is similar to `:sparse` option but instead
       of a doing a sparse checkout it does a full checkout.
+    * `:depth` *(since v1.17.0)* - creates a shallow clone of the Git repository,
+      limiting the history to the specified number of commits. This can significantly
+      improve clone speed for large repositories when full history is not needed.
+      The value must be a positive integer, typically `1`. When using `:depth` with
+      `:ref`, a fully spelled hex object name (a 40-character SHA-1 hash) is required.
 
   If your Git repository requires authentication, such as basic username:password
   HTTP authentication via URLs, it can be achieved via Git configuration, keeping
@@ -128,17 +153,21 @@ defmodule Mix.Tasks.Deps do
       $ git config --global url."https://YOUR_USER:YOUR_PASS@example.com/".insteadOf "https://example.com/"
 
   For more information, see the `git config` documentation:
-  https://git-scm.com/docs/git-config#git-config-urlltbasegtinsteadOf
+  https://git-scm.com/docs/git-config#Documentation/git-config.txt-urlltbasegtinsteadOf
 
   ### Path options (`:path`)
 
-    * `:path`        - the path for the dependency
+    * `:path` - the path for the dependency
     * `:in_umbrella` - when `true`, sets a path dependency pointing to
-      "../#{app}", sharing the same environment as the current application
+      `"../#{app}"`, sharing the same environment as the current application
 
   ### Hex options (`:hex`)
 
-  See the [Hex usage documentation](https://hex.pm/docs/usage) for Hex options.
+    * `:hex` - the name of the package, which defaults to the application name
+    * `:repo` - the repository to fetch the package from, used by remote or
+      private repositories. Defaults to the global "hexpm" repository
+    * `:warn_if_outdated` - warn if there is a more recent version of the package
+      published on Hex.pm
 
   ## Deps task
 

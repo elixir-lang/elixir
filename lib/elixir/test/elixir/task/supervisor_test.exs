@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Task.SupervisorTest do
@@ -383,7 +387,7 @@ defmodule Task.SupervisorTest do
       Process.flag(:trap_exit, true)
 
       assert supervisor
-             |> Task.Supervisor.async_stream(4..1, &sleep/1, @opts)
+             |> Task.Supervisor.async_stream(4..1//-1, &sleep/1, @opts)
              |> Enum.to_list() == [ok: 4, ok: 3, ok: 2, ok: 1]
     end
 
@@ -477,6 +481,14 @@ defmodule Task.SupervisorTest do
              |> Task.Supervisor.async_stream(1..8, &exit/1, opts)
              |> Enum.take(4) == [exit: {1, 1}, exit: {2, 2}, exit: {3, 3}, exit: {4, 4}]
     end
+
+    test "does not allow streaming with invalid :shutdown", %{supervisor: supervisor} do
+      message = ":shutdown must be either a positive integer or :brutal_kill"
+
+      assert_raise ArgumentError, message, fn ->
+        Task.Supervisor.async_stream(supervisor, [], fn _ -> :ok end, shutdown: :unknown)
+      end
+    end
   end
 
   describe "async_stream_nolink" do
@@ -504,7 +516,7 @@ defmodule Task.SupervisorTest do
 
     test "streams an enumerable with slowest first", %{supervisor: supervisor} do
       assert supervisor
-             |> Task.Supervisor.async_stream_nolink(4..1, &sleep/1, @opts)
+             |> Task.Supervisor.async_stream_nolink(4..1//-1, &sleep/1, @opts)
              |> Enum.to_list() == [ok: 4, ok: 3, ok: 2, ok: 1]
     end
 

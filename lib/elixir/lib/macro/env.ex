@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Macro.Env do
   @moduledoc """
   A struct that holds compile time environment information.
@@ -6,9 +10,15 @@ defmodule Macro.Env do
   `__ENV__/0`. Inside macros, the caller environment can be
   accessed as `__CALLER__/0`.
 
-  An instance of `Macro.Env` must not be modified by hand. If you need to
-  create a custom environment to pass to `Code.eval_quoted/3`, use the
-  following trick:
+  The majority of the functions in this module are provided
+  for low-level tools, which need to integrate with the Elixir
+  compiler, such as language servers and embedded languages.
+  For regular usage in Elixir code and macros, you must use
+  the `Macro` module instead. In particular, avoid modifying
+  the `Macro.Env` struct directly and prefer to use high-level
+  constructs, such as a `import`, `aliases`, and so forth to
+  build your own environment. For example, to build a custom
+  environment, you can define a function such as:
 
       def make_custom_env do
         import SomeModule, only: [some_function: 2], warn: false
@@ -16,10 +26,9 @@ defmodule Macro.Env do
         __ENV__
       end
 
-  You may then call `make_custom_env()` to get a struct with the desired
-  imports and aliases included.
+  ## Struct fields
 
-  It contains the following fields:
+  The `Macro.Env` struct contains the following fields:
 
     * `context` - the context of the environment; it can be `nil`
       (default context), `:guard` (inside a guard) or `:match` (inside a match)
@@ -97,8 +106,10 @@ defmodule Macro.Env do
   ]
 
   # Define the __struct__ callbacks by hand for bootstrap reasons.
-  {struct, [], kv, body} = Kernel.Utils.defstruct(__MODULE__, fields, false, __ENV__)
-  def __struct__(), do: unquote(:elixir_quote.escape(struct, false, :none))
+  {_struct, [], escaped_struct, kv, body} =
+    Kernel.Utils.defstruct(__MODULE__, fields, false, __ENV__)
+
+  def __struct__(), do: unquote(escaped_struct)
   def __struct__(unquote(kv)), do: unquote(body)
 
   @doc """
@@ -163,43 +174,13 @@ defmodule Macro.Env do
     [file: file, line: line]
   end
 
-  @doc """
-  Fetches the alias for the given atom.
-
-  Returns `{:ok, alias}` if the alias exists, `:error`
-  otherwise.
-
-  ## Examples
-
-      iex> alias Foo.Bar, as: Baz
-      iex> Baz
-      Foo.Bar
-      iex> Macro.Env.fetch_alias(__ENV__, :Baz)
-      {:ok, Foo.Bar}
-      iex> Macro.Env.fetch_alias(__ENV__, :Unknown)
-      :error
-
-  """
-  @doc since: "1.13.0"
-  @spec fetch_alias(t, atom) :: {:ok, atom} | :error
-  def fetch_alias(env, atom)
-
+  # TODO: Deprecate on Elixir 1.21 in favor of expand_alias/4
+  @doc false
   def fetch_alias(%{__struct__: Macro.Env, aliases: aliases}, atom) when is_atom(atom),
     do: Keyword.fetch(aliases, :"Elixir.#{atom}")
 
-  @doc """
-  Fetches the macro alias for the given atom.
-
-  Returns `{:ok, macro_alias}` if the alias exists, `:error`
-  otherwise.
-
-  A macro alias is only used inside quoted expansion. See
-  `fetch_alias/2` for a more general example.
-  """
-  @doc since: "1.13.0"
-  @spec fetch_macro_alias(t, atom) :: {:ok, atom} | :error
-  def fetch_macro_alias(env, atom)
-
+  # TODO: Deprecate on Elixir 1.21 in favor of expand_alias/4
+  @doc false
   def fetch_macro_alias(%{__struct__: Macro.Env, macro_aliases: aliases}, atom)
       when is_atom(atom),
       do: Keyword.fetch(aliases, :"Elixir.#{atom}")
@@ -211,6 +192,14 @@ defmodule Macro.Env do
   It returns a list of two element tuples in the shape of
   `{:function | :macro, module}`. The elements in the list
   are in no particular order and the order is not guaranteed.
+
+  > #### Use only for introspection {: .warning}
+  >
+  > This function does not emit compiler tracing events,
+  > which may block the compiler from correctly tracking
+  > dependencies. Use this function for reflection purposes
+  > but to do not use it to expand imports into qualified
+  > calls. Instead, use `expand_import/5`.
 
   ## Examples
 
@@ -303,8 +292,337 @@ defmodule Macro.Env do
     %{env | tracers: [tracer | tracers]}
   end
 
+  trace_option = """
+  `:trace` - when set to `false`, it disables compilation tracers and
+  lexical tracker. This option must only be used by language servers and
+  other tools that need to introspect code without affecting how it is compiled.
+  Disabling tracer inside macros or regular code expansion is extremely
+  discouraged as it blocks the compiler from accurately tracking dependencies\
+  """
+
   @doc """
-  Returns a `Macro.Env` in the match context.
+  Defines the given `module` as required in the environment.
+
+  It does not check or assert the module is available.
+  This is used by tools which need to mimic the Elixir compiler.
+  The appropriate `:require` compiler tracing event will be emitted.
+
+  ## Additional options
+
+  It accepts the same options as `Kernel.SpecialForm.require/2` plus:
+
+    * #{trace_option}
+
+  ## Examples
+
+      iex> env = __ENV__
+      iex> Macro.Env.required?(env, Integer)
+      false
+      iex> {:ok, env} = Macro.Env.define_require(env, [line: 10], Integer)
+      iex> Macro.Env.required?(env, Integer)
+      true
+
+  If the `:as` option is given, it will also define an alias:
+
+      iex> env = __ENV__
+      iex> {:ok, env} = Macro.Env.define_require(env, [line: 10], Foo.Bar, as: Baz)
+      iex> Macro.Env.expand_alias(env, [], [:Baz])
+      {:alias, Foo.Bar}
+
+  """
+  @doc since: "1.17.0"
+  @spec define_require(t, Macro.metadata(), module) :: {:ok, t}
+  def define_require(env, meta, module, opts \\ [])
+      when is_list(meta) and is_atom(module) and is_list(opts) do
+    {trace, opts} = Keyword.pop(opts, :trace, true)
+    env = :elixir_aliases.require(meta, module, opts, env, trace)
+    result = :elixir_aliases.alias(meta, module, false, opts, env, trace)
+    maybe_define_error(result, :elixir_aliases)
+  end
+
+  @doc """
+  Defines the given `module` as imported in the environment.
+
+  It assumes `module` is available. This is used by tools which
+  need to mimic the Elixir compiler. The appropriate `:import`
+  compiler tracing event will be emitted.
+
+  ## Additional options
+
+  It accepts the same options as `Kernel.SpecialForm.import/2` plus:
+
+    * `:emit_warnings` - emit warnings found when defining imports
+
+    * #{trace_option}
+
+    * `:info_callback` - a function to use instead of `c:Module.__info__/1`.
+      The function will be invoked with `:functions` or `:macros` argument.
+      It has to return a list of `{function, arity}` key value pairs.
+      If it fails, it defaults to using module metadata based on `module_info/1`.
+
+  ## Examples
+
+      iex> env = __ENV__
+      iex> Macro.Env.lookup_import(env, {:flatten, 1})
+      []
+      iex> {:ok, env} = Macro.Env.define_import(env, [line: 10], List)
+      iex> Macro.Env.lookup_import(env, {:flatten, 1})
+      [{:function, List}]
+
+  It accepts the same options as `Kernel.SpecialForm.import/2`:
+
+      iex> env = __ENV__
+      iex> Macro.Env.lookup_import(env, {:is_odd, 1})
+      []
+      iex> {:ok, env} = Macro.Env.define_import(env, [line: 10], Integer, only: :macros)
+      iex> Macro.Env.lookup_import(env, {:is_odd, 1})
+      [{:macro, Integer}]
+
+  ## Info callback override
+
+      iex> env = __ENV__
+      iex> Macro.Env.lookup_import(env, {:flatten, 1})
+      []
+      iex> {:ok, env} = Macro.Env.define_import(env, [line: 10], SomeModule, [info_callback: fn :functions -> [{:flatten, 1}]; :macros -> [{:some, 2}]; end])
+      iex> Macro.Env.lookup_import(env, {:flatten, 1})
+      [{:function, SomeModule}]
+      iex> Macro.Env.lookup_import(env, {:some, 2})
+      [{:macro, SomeModule}]
+
+  """
+  @doc since: "1.17.0"
+  @spec define_import(t, Macro.metadata(), module, keyword) :: {:ok, t} | {:error, String.t()}
+  def define_import(env, meta, module, opts \\ [])
+      when is_list(meta) and is_atom(module) and is_list(opts) do
+    {trace, opts} = Keyword.pop(opts, :trace, true)
+    {warnings, opts} = Keyword.pop(opts, :emit_warnings, true)
+    {info_callback, opts} = Keyword.pop(opts, :info_callback, &module.__info__/1)
+
+    result = :elixir_import.import(meta, module, opts, env, warnings, trace, info_callback)
+    maybe_define_error(result, :elixir_import)
+  end
+
+  @doc """
+  Defines the given `as` an alias to `module` in the environment.
+
+  This is used by tools which need to mimic the Elixir compiler.
+  The appropriate `:alias` compiler tracing event will be emitted.
+
+  ## Additional options
+
+  It accepts the same options as `Kernel.SpecialForm.alias/2` plus:
+
+    * #{trace_option}
+
+  ## Examples
+
+      iex> env = __ENV__
+      iex> Macro.Env.expand_alias(env, [], [:Baz])
+      :error
+      iex> {:ok, env} = Macro.Env.define_alias(env, [line: 10], Foo.Bar, as: Baz)
+      iex> Macro.Env.expand_alias(env, [], [:Baz])
+      {:alias, Foo.Bar}
+      iex> Macro.Env.expand_alias(env, [], [:Baz, :Bat])
+      {:alias, Foo.Bar.Bat}
+
+  If no `:as` option is given, the alias will be inferred from the module:
+
+      iex> env = __ENV__
+      iex> {:ok, env} = Macro.Env.define_alias(env, [line: 10], Foo.Bar)
+      iex> Macro.Env.expand_alias(env, [], [:Bar])
+      {:alias, Foo.Bar}
+
+  If it is not possible to infer one, an error is returned:
+
+      iex> Macro.Env.define_alias(__ENV__, [line: 10], :an_atom)
+      {:error,
+       "alias cannot be inferred automatically for module: :an_atom, " <>
+         "please use the :as option. Implicit aliasing is only supported with Elixir modules"}
+
+  """
+  @doc since: "1.17.0"
+  @spec define_alias(t, Macro.metadata(), module, keyword) :: {:ok, t} | {:error, String.t()}
+  def define_alias(env, meta, module, opts \\ [])
+      when is_list(meta) and is_atom(module) and is_list(opts) do
+    {trace, opts} = Keyword.pop(opts, :trace, true)
+    result = :elixir_aliases.alias(meta, module, true, opts, env, trace)
+    maybe_define_error(result, :elixir_aliases)
+  end
+
+  defp maybe_define_error({:ok, _info, env}, _mod),
+    do: {:ok, env}
+
+  defp maybe_define_error({:error, reason}, mod),
+    do: {:error, Kernel.to_string(mod.format_error(reason))}
+
+  @doc """
+  Expands an alias given by the alias segments.
+
+  It returns `{:alias, alias}` if the segments is a list
+  of atoms and an alias was found. Returns `:error` otherwise.
+
+  This expansion may emit the `:alias_expansion` trace event
+  but it does not emit the `:alias_reference` one.
+
+  ## Options
+
+    * #{trace_option}
+
+  ## Examples
+
+      iex> alias List, as: MyList
+      iex> Macro.Env.expand_alias(__ENV__, [], [:MyList])
+      {:alias, List}
+      iex> Macro.Env.expand_alias(__ENV__, [], [:MyList, :Nested])
+      {:alias, List.Nested}
+
+  If there is no alias or the alias starts with `Elixir.`
+  (which disables aliasing), then `:error` is returned:
+
+      iex> alias List, as: MyList
+      iex> Macro.Env.expand_alias(__ENV__, [], [:Elixir, MyList])
+      :error
+      iex> Macro.Env.expand_alias(__ENV__, [], [:AnotherList])
+      :error
+
+  """
+  @doc since: "1.17.0"
+  @spec expand_alias(t, keyword, [atom()], keyword) ::
+          {:alias, atom()} | :error
+  def expand_alias(env, meta, list, opts \\ [])
+      when is_list(meta) and is_list(list) and is_list(opts) do
+    trace = Keyword.get(opts, :trace, true)
+
+    case :elixir_aliases.expand(meta, list, env, trace) do
+      atom when is_atom(atom) -> {:alias, atom}
+      [_ | _] -> :error
+    end
+  end
+
+  @doc """
+  Expands an import given by `name` and `arity`.
+
+  If the import points to a macro, it returns a tuple
+  with the module and a function that expands the macro.
+  The function expects the metadata to be attached to the
+  expansion and the arguments of the macro.
+
+  If the import points to a function, it returns a tuple
+  with the module and the function name.
+
+  If any import is found, the appropriate compiler tracing
+  event will be emitted.
+
+  Otherwise returns `{:error, reason}`.
+
+  ## Options
+
+    * `:allow_locals` - when set to `false`, it does not attempt to capture
+      local macros defined in the current module in `env`
+
+    * `:check_deprecations` - when set to `false`, does not check for deprecations
+      when expanding macros
+
+    * #{trace_option}
+
+  """
+  @doc since: "1.17.0"
+  @spec expand_import(t, keyword, atom(), arity(), keyword) ::
+          {:macro, module(), (Macro.metadata(), args :: [Macro.t()] -> Macro.t())}
+          | {:function, module(), atom()}
+          | {:error, :not_found | {:conflict, module()} | {:ambiguous, [module()]}}
+  def expand_import(env, meta, name, arity, opts \\ [])
+      when is_list(meta) and is_atom(name) and is_integer(arity) and is_list(opts) do
+    case :elixir_import.special_form(name, arity) do
+      true ->
+        {:error, :not_found}
+
+      false ->
+        allow_locals = Keyword.get(opts, :allow_locals, true)
+        trace = Keyword.get(opts, :trace, true)
+        module = env.module
+
+        extra =
+          case allow_locals and function_exported?(module, :__info__, 1) do
+            true -> [{module, module.__info__(:macros)}]
+            false -> []
+          end
+
+        case :elixir_dispatch.expand_import(meta, name, arity, env, extra, allow_locals, trace) do
+          {:macro, receiver, expander} ->
+            {:macro, receiver, wrap_expansion(receiver, expander, meta, name, arity, env, opts)}
+
+          {:function, receiver, name} ->
+            {:function, receiver, name}
+
+          error ->
+            {:error, error}
+        end
+    end
+  end
+
+  @doc """
+  Expands a require given by `module`, `name`, and `arity`.
+
+  If the require points to a macro and the module has been
+  required, it returns a tuple with the module and a function
+  that expands the macro. The function expects the metadata
+  to be attached to the expansion and the arguments of the macro.
+  The appropriate `:remote_macro` compiler tracing event will
+  be emitted if a macro is found (note a `:remote_function`
+  event is not emitted in `:error` cases).
+
+  Otherwise returns `:error`.
+
+  ## Options
+
+    * `:check_deprecations` - when set to `false`, does not check for deprecations
+      when expanding macros
+
+    * #{trace_option}
+
+  """
+  @doc since: "1.17.0"
+  @spec expand_require(t, keyword, module(), atom(), arity(), keyword) ::
+          {:macro, module(), (Macro.metadata(), args :: [Macro.t()] -> Macro.t())}
+          | :error
+  def expand_require(env, meta, module, name, arity, opts \\ [])
+      when is_list(meta) and is_atom(module) and is_atom(name) and is_integer(arity) and
+             is_list(opts) do
+    trace = Keyword.get(opts, :trace, true)
+
+    case :elixir_dispatch.expand_require(meta, module, name, arity, env, trace) do
+      {:macro, receiver, expander} ->
+        {:macro, receiver, wrap_expansion(receiver, expander, meta, name, arity, env, opts)}
+
+      :error ->
+        :error
+    end
+  end
+
+  defp wrap_expansion(receiver, expander, meta, name, arity, env, opts) do
+    fn expansion_meta, args ->
+      if Keyword.get(opts, :check_deprecations, true) do
+        :elixir_dispatch.check_deprecated(:macro, meta, receiver, name, arity, env)
+      end
+
+      quoted = expander.(args, env)
+      next = :elixir_module.next_counter(env.module)
+      :elixir_quote.linify_with_context_counter(expansion_meta, {receiver, next}, quoted)
+    end
+  end
+
+  @doc """
+  Returns an environment in the guard context.
+  """
+  @doc since: "1.17.0"
+  @spec to_guard(t) :: t
+  def to_guard(%{__struct__: Macro.Env} = env) do
+    %{env | context: :guard}
+  end
+
+  @doc """
+  Returns an environment in the match context.
   """
   @spec to_match(t) :: t
   def to_match(%{__struct__: Macro.Env} = env) do

@@ -1,10 +1,15 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule ExUnit.Callbacks do
   @moduledoc ~S"""
   Defines ExUnit callbacks.
 
   This module defines the `setup/1`, `setup/2`, `setup_all/1`, and
-  `setup_all/2` callbacks, as well as the `on_exit/2`, `start_supervised/2`
-  and `stop_supervised/1` functions.
+  `setup_all/2` macros, as well as process lifecycle and management
+  functions, such as `on_exit/2`, `start_supervised/2`, `stop_supervised/1`
+  and `start_link_supervised!/2`.
 
   The setup callbacks may be used to define [test fixtures](https://en.wikipedia.org/wiki/Test_fixture#Software)
   and run any initialization code which help bring the system into a known
@@ -21,8 +26,8 @@ defmodule ExUnit.Callbacks do
   naming a local function, a `{module, function}` tuple, or a list of atoms/tuples.
 
   Both can opt to receive the current context by specifying it
-  as parameter if defined by a block. Functions used to define a test
-  setup must accept the context as single argument.
+  as a parameter if defined by a block. Functions used to define a test
+  setup must accept the context as a single argument.
 
   A test module can define multiple `setup` and `setup_all` callbacks,
   and they are invoked in order of appearance.
@@ -45,7 +50,7 @@ defmodule ExUnit.Callbacks do
   linked to the test process will also exit, although asynchronously. Therefore
   it is preferred to use `start_supervised/2` to guarantee synchronous termination.
 
-  Here is a rundown of the life-cycle of the test process:
+  Here is a rundown of the life cycle of the test process:
 
     1. the test process is spawned
     2. it runs `setup/2` callbacks
@@ -56,13 +61,15 @@ defmodule ExUnit.Callbacks do
 
   ## Context
 
-  If `setup_all` or `setup` return a keyword list, a map, or a tuple in the shape
-  of `{:ok, keyword() | map()}`, the keyword list or map will be merged into the
-  current context and will be available in all subsequent `setup_all`,
-  `setup`, and the `test` itself.
+  `setup_all` or `setup` may return one of:
 
-  Returning `:ok` leaves the context unchanged (in `setup` and `setup_all`
-  callbacks).
+    * the atom `:ok`
+    * a keyword list or map
+    * a tuple in the shape of `{:ok, keyword() | map()}`
+
+  If a keyword list or map is returned, it will be merged into the current context
+  and will be available in all subsequent `setup_all`, `setup`, and the `test`
+  itself.
 
   Returning anything else from `setup_all` will force all tests to fail,
   while a bad response from `setup` causes the current test to fail.
@@ -163,22 +170,31 @@ defmodule ExUnit.Callbacks do
   """
 
   @doc false
-  defmacro __using__(_) do
-    quote do
-      @ex_unit_describe nil
-      @ex_unit_setup []
-      @ex_unit_setup_all []
-      @ex_unit_used_describes %{}
-
-      @before_compile unquote(__MODULE__)
-      import unquote(__MODULE__)
-    end
+  def __register__(module) do
+    Module.put_attribute(module, :ex_unit_describe, nil)
+    Module.put_attribute(module, :ex_unit_setup, [])
+    Module.put_attribute(module, :ex_unit_setup_all, [])
+    Module.put_attribute(module, :ex_unit_used_describes, %{})
   end
 
   @doc false
-  defmacro __before_compile__(env) do
-    used_describes = Module.get_attribute(env.module, :ex_unit_used_describes)
-    [compile_setup(env, :setup, used_describes), compile_setup(env, :setup_all, %{})]
+  def __callbacks__(module) do
+    setup = Module.get_attribute(module, :ex_unit_setup)
+    setup_all = Module.get_attribute(module, :ex_unit_setup_all)
+    used_describes = Module.get_attribute(module, :ex_unit_used_describes)
+
+    code =
+      quote do
+        unquote(compile_setup(:setup, setup, used_describes))
+        unquote(compile_setup(:setup_all, setup_all, %{}))
+      end
+
+    {setup_all != [], code}
+  end
+
+  @doc false
+  defmacro __before_compile__(%{module: module}) do
+    __callbacks__(module)
   end
 
   @doc """
@@ -240,7 +256,7 @@ defmodule ExUnit.Callbacks do
 
   """
   defmacro setup(context, block) do
-    unless Keyword.keyword?(block) and Keyword.has_key?(block, :do) do
+    if not (Keyword.keyword?(block) and Keyword.has_key?(block, :do)) do
       raise ArgumentError,
             "setup/2 requires a block as the second argument after the context, got: #{Macro.to_string(block)}"
     end
@@ -375,7 +391,7 @@ defmodule ExUnit.Callbacks do
 
   """
   defmacro setup_all(context, block) do
-    unless Keyword.keyword?(block) and Keyword.has_key?(block, :do) do
+    if not (Keyword.keyword?(block) and Keyword.has_key?(block, :do)) do
       raise ArgumentError,
             "setup_all/2 requires a block as the second argument after the context, got: #{Macro.to_string(block)}"
     end
@@ -520,6 +536,13 @@ defmodule ExUnit.Callbacks do
   See the `Supervisor` module for a discussion on child specifications
   and the available specification keys.
 
+  The started process is not linked to the test process and a crash will
+  not necessarily fail the test. To start and link a process to guarantee
+  that any crash would also fail the test use `start_link_supervised!/2`.
+
+  This function returns `{:ok, pid}` in case of success, otherwise it
+  returns `{:error, reason}`.
+
   The advantage of starting a process under the test supervisor is that
   it is guaranteed to exit before the next test starts. Therefore, you
   don't need to remove the process at the end of your tests via
@@ -528,12 +551,13 @@ defmodule ExUnit.Callbacks do
   test, as simply shutting down the process would cause it to be restarted
   according to its `:restart` value.
 
-  The started process is not linked to the test process and a crash will
-  not necessarily fail the test. To start and link a process to guarantee
-  that any crash would also fail the test use `start_link_supervised!/2`.
-
-  This function returns `{:ok, pid}` in case of success, otherwise it
-  returns `{:error, reason}`.
+  Finally, since Elixir v1.17.0, the test supervisor has both `$ancestors`
+  and `$callers` key in its process dictionary pointing to the test process.
+  This means developers can invoke `Process.get(:"$callers", [])` in their
+  `start_link` function and forward it to the spawned process, which may set
+  `Process.put(:"$callers", callers)` during its initialization. This may be
+  useful in projects who track process ownership during tests. You can learn
+  more about these keys in [the `Task` module](`Task#module-ancestor-and-caller-tracking`).
   """
   @doc since: "1.5.0"
   @spec start_supervised(Supervisor.child_spec() | module | {module, term}, keyword) ::
@@ -549,14 +573,7 @@ defmodule ExUnit.Callbacks do
       end
 
     child_spec = Supervisor.child_spec(child_spec_or_module, opts)
-
-    case Supervisor.start_child(sup, child_spec) do
-      {:error, {:already_started, _pid}} ->
-        {:error, {:duplicate_child_name, child_spec.id}}
-
-      other ->
-        other
-    end
+    Supervisor.start_child(sup, child_spec)
   end
 
   @doc """
@@ -595,6 +612,19 @@ defmodule ExUnit.Callbacks do
 
   Note that if the started process terminates before it is linked to the test process,
   this function will exit with reason `:noproc`.
+
+  > #### To link or not to link {: .warning}
+  >
+  > When using `start_link_supervised!/2`, the test process will be linked to the
+  > spawned processes. When the test process exits, it exits with reason `:shutdown`,
+  > and the crash signal propagates to all linked processes virtually simultaneously,
+  > which can lead to processes terminating in an unpredictable order if they are not
+  > trapping exits. This is particularly problematic when you have processes that the
+  > test starts with `start_link_supervised!/2` and that depend on each other.
+  >
+  > If you need guaranteed shutdown order, use `start_supervised!/2`. This way the
+  > test process exiting does not affect the started processes, and they will be shut down
+  > *by the test supervisor* in reverse order, ensuring graceful termination.
   """
   @doc since: "1.14.0"
   @spec start_link_supervised!(Supervisor.child_spec() | module | {module, term}, keyword) ::
@@ -725,7 +755,7 @@ defmodule ExUnit.Callbacks do
 
   defp raise_merge_failed!(mod, kind, return_value) do
     raise "expected ExUnit #{kind} callback in #{inspect(mod)} to " <>
-            "return :ok | keyword | map, got #{inspect(return_value)} instead"
+            "return the atom :ok, a keyword, or a map, got #{inspect(return_value)} instead"
   end
 
   defp raise_merge_reserved!(mod, kind, key, value) do
@@ -751,7 +781,7 @@ defmodule ExUnit.Callbacks do
         raise ArgumentError, "describe name must be a string, got: #{inspect(message)}"
 
       is_map_key(used_describes, message) ->
-        raise ExUnit.DuplicateDescribeError,
+        raise ArgumentError,
               "describe #{inspect(message)} is already defined in #{inspect(module)}"
 
       true ->
@@ -760,6 +790,10 @@ defmodule ExUnit.Callbacks do
 
     if Module.get_attribute(module, :describetag) != [] do
       raise "@describetag must be set inside describe/2 blocks"
+    end
+
+    if Module.get_attribute(module, :tag) != [] do
+      IO.warn("found unused @tag before \"describe\", did you mean to use @describetag?")
     end
 
     setup = Module.get_attribute(module, :ex_unit_setup)
@@ -795,11 +829,8 @@ defmodule ExUnit.Callbacks do
     {name, body}
   end
 
-  defp compile_setup(env, kind, describes) do
-    calls =
-      env.module
-      |> Module.get_attribute(:"ex_unit_#{kind}")
-      |> compile_setup(kind)
+  defp compile_setup(kind, value, describes) do
+    calls = compile_setup(value, kind)
 
     describe_clauses =
       for {describe, callback} <- describes,

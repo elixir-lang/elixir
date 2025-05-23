@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Kernel.WithTest do
@@ -9,7 +13,7 @@ defmodule Kernel.WithTest do
   end
 
   test "matching with" do
-    assert with(_..42 <- 1..42, do: :ok) == :ok
+    assert with(_..42//_ <- 1..42, do: :ok) == :ok
     assert with({:ok, res} <- error(), do: res) == :error
     assert with({:ok, _} = res <- ok(42), do: elem(res, 1)) == 42
   end
@@ -23,6 +27,30 @@ defmodule Kernel.WithTest do
   test "pin matching with" do
     key = :ok
     assert with({^key, res} <- ok(42), do: res) == 42
+  end
+
+  test "pin matching with multiple else" do
+    key = :error
+
+    first_else =
+      with nil <- error() do
+        :ok
+      else
+        ^key -> :pinned
+        _other -> :other
+      end
+
+    assert first_else == :pinned
+
+    second_else =
+      with nil <- ok(42) do
+        :ok
+      else
+        ^key -> :pinned
+        _other -> :other
+      end
+
+    assert second_else == :other
   end
 
   test "two levels with" do
@@ -102,7 +130,7 @@ defmodule Kernel.WithTest do
     end
 
     assert_raise RuntimeError, fn ->
-      with({:ok, res} <- ok(42), res = res + oops(), do: res)
+      with({:ok, res} <- ok(42), oops(), do: res)
     end
   end
 
@@ -125,7 +153,7 @@ defmodule Kernel.WithTest do
   end
 
   test "else conditions with match error" do
-    assert_raise WithClauseError, "no with clause matching: :error", fn ->
+    assert_raise WithClauseError, "no with clause matching:\n\n    :error", fn ->
       with({:ok, res} <- error(), do: res, else: ({:error, error} -> error))
     end
   end

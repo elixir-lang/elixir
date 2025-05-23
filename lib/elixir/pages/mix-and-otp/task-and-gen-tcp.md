@@ -1,6 +1,11 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Task and gen_tcp
 
-In this chapter, we are going to learn how to use [Erlang's `:gen_tcp` module](http://www.erlang.org/doc/man/gen_tcp.html) to serve requests. This provides a great opportunity to explore Elixir's `Task` module. In future chapters, we will expand our server so that it can actually serve the commands.
+In this chapter, we are going to learn how to use Erlang's [`:gen_tcp` module](`:gen_tcp`) to serve requests. This provides a great opportunity to explore Elixir's `Task` module. In future chapters, we will expand our server so that it can actually serve the commands.
 
 ## Echo server
 
@@ -157,7 +162,7 @@ say me
 say me
 ```
 
-Yes, it works! However, does it *scale*?
+Yes, it works! However, can it handle more than one client?
 
 Try to connect two telnet clients at the same time. When you do so, you will notice that the second client doesn't echo:
 
@@ -232,7 +237,7 @@ defp loop_acceptor(socket) do
 end
 ```
 
-You might notice that we added a line, `:ok = :gen_tcp.controlling_process(client, pid)`. This makes the child process the "controlling process" of the `client` socket. If we didn't do this, the acceptor would bring down all the clients if it crashed because sockets would be tied to the process that accepted them (which is the default behaviour).
+You might notice that we added a line, `:ok = :gen_tcp.controlling_process(client, pid)`. This makes the child process the "controlling process" of the `client` socket. If we didn't do this, the acceptor would bring down all the clients if it crashed because sockets would be tied to the process that accepted them (which is the default behavior).
 
 Start a new server with `PORT=4040 mix run --no-halt` and we can now open up many concurrent telnet clients. You will also notice that quitting a client does not bring the acceptor down. Excellent!
 
@@ -284,7 +289,7 @@ In this case, the answer is yes: if the acceptor crashes, there is no need to cr
 
 However, there is still one concern left, which are the restart strategies. Tasks, by default, have the `:restart` value set to `:temporary`, which means they are not restarted. This is an excellent default for the connections started via the `Task.Supervisor`, as it makes no sense to restart a failed connection, but it is a bad choice for the acceptor. If the acceptor crashes, we want to bring the acceptor up and running again.
 
-Let's fix this. We know that for a child of shape `{Task, fun}`, Elixir will invoke `Task.child_spec(fun)` to retrieve the underlying child specification. Therefore, one might imagine that to change the `{Task, fun}` specificatio to have a `:restart` of `:permanent`, we would need to change the `Task` module. However, that's impossible to do, as the `Task` module is defined as part of Elixir's standard library (and even if it was possible, it is unlikely it would be a good idea).
+Let's fix this. We know that for a child of shape `{Task, fun}`, Elixir will invoke `Task.child_spec(fun)` to retrieve the underlying child specification. Therefore, one might imagine that to change the `{Task, fun}` specification to have a `:restart` of `:permanent`, we would need to change the `Task` module. However, that's impossible to do, as the `Task` module is defined as part of Elixir's standard library (and even if it was possible, it is unlikely it would be a good idea).
 Luckily, this can be done by using `Supervisor.child_spec/2`, which allows us to configure a child specification with new values. Let's rewrite `start/2` in `KVServer.Application` once more:
 
 ```elixir
@@ -302,5 +307,9 @@ Luckily, this can be done by using `Supervisor.child_spec/2`, which allows us to
 ```
 
 Now we have an always running acceptor that starts temporary task processes under an always running task supervisor.
+
+## Wrapping up
+
+In this chapter, we implemented a basic TCP acceptor while exploring concurrency and fault-tolerance. Our acceptor can manage concurrent connections, but it is still not ready for production. Production-ready TCP servers run a pool of acceptors, each with their own supervisor. Elixir's `PartitionSupervisor` might be used to partition and scale the acceptor, but it is out of scope for this guide. In practice, you will use existing packages tailored for this use-case, such as [Ranch](https://github.com/ninenines/ranch) (in Erlang) or [Thousand Island](https://github.com/mtrudel/thousand_island) (in Elixir).
 
 In the next chapter, we will start parsing the client requests and sending responses, finishing our server.

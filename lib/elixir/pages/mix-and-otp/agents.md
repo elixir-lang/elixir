@@ -1,6 +1,11 @@
-# Agent
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
 
-In this guide, we will learn how to keep and share state between multiple entities. If you have previous programming experience, you may think of globally shared variables, but the model we will learn here is quite different. The next chapters will generalize the concepts introduced here.
+# Simple state management with agents
+
+In this chapter, we will learn how to keep and share state between multiple entities. If you have previous programming experience, you may think of globally shared variables, but the model we will learn here is quite different. The next chapters will generalize the concepts introduced here.
 
 If you have skipped the *Getting Started* guide or read it long ago, be sure to re-read the [Processes](../getting-started/processes.md) chapter. We will use it as a starting point.
 
@@ -9,7 +14,7 @@ If you have skipped the *Getting Started* guide or read it long ago, be sure to 
 Elixir is an immutable language where nothing is shared by default. If we want to share information, which can be read and modified from multiple places, we have two main options in Elixir:
 
   * Using processes and message passing
-  * [ETS (Erlang Term Storage)](http://www.erlang.org/doc/man/ets.html)
+  * [ETS (Erlang Term Storage)](`:ets`)
 
 We covered processes in the *Getting Started* guide. ETS (Erlang Term Storage) is a new topic that we will explore in later chapters. When it comes to processes though, we rarely hand-roll our own, instead we use the abstractions available in Elixir and OTP:
 
@@ -17,11 +22,11 @@ We covered processes in the *Getting Started* guide. ETS (Erlang Term Storage) i
   * `GenServer` — "Generic servers" (processes) that encapsulate state, provide sync and async calls, support code reloading, and more.
   * `Task` — Asynchronous units of computation that allow spawning a process and potentially retrieving its result at a later time.
 
-We will explore most of these abstractions in this guide. Keep in mind that they are all implemented on top of processes using the basic features provided by the VM, like `send/2`, `receive/1`, `spawn/1` and `Process.link/1`.
+We will explore these abstractions as we move forward. Keep in mind that they are all implemented on top of processes using the basic features provided by the VM, like `send/2`, `receive/1`, `spawn/1` and `Process.link/1`.
 
 Here, we will use agents, and create a module named `KV.Bucket`, responsible for storing our key-value entries in a way that allows them to be read and modified by other processes.
 
-## Agents
+## Agents 101
 
 `Agent`s are simple wrappers around state. If all you want from a process is to keep state, agents are a great fit. Let's start a `iex` session inside the project with:
 
@@ -120,11 +125,11 @@ defmodule KV.Bucket do
 end
 ```
 
-The first step in our implementation is to call `use Agent`. Most of the functionality we will learn in this guide, such as `GenServer` and `Supervisor`, follow this pattern. For all of them, calling `use` generates a `child_spec/1` function with default configuration, which will be handy when we start supervising processes in chapter 4.
+The first step in our implementation is to call `use Agent`. Most of the functionality we will learn, such as `GenServer` and `Supervisor`, follow this pattern. For all of them, calling `use` generates a `child_spec/1` function with default configuration, which will be handy when we start supervising processes in chapter 4.
 
 Then we define a `start_link/1` function, which will effectively start the agent. It is a convention to define a `start_link/1` function that always accepts a list of options. We don't plan on using any options right now, but we might later on. We then proceed to call `Agent.start_link/1`, which receives an anonymous function that returns the Agent's initial state.
 
-We are keeping a map inside the agent to store our keys and values. Getting and putting values on the map is done with the Agent API and the capture operator `&`, introduced in [the Getting Started guide](../getting-started/modules-and-functions.md#function-capturing). The agent passes its state to the anonymous function via the `&1` argument when `Agent.get/2` and `Agent.update/2` are called.
+We are keeping a map inside the agent to store our keys and values. Getting and putting values on the map is done with the Agent API and the capture operator `&`, introduced in [the Getting Started guide](../getting-started/anonymous-functions.md#the-capture-operator). The agent passes its state to the anonymous function via the `&1` argument when `Agent.get/2` and `Agent.update/2` are called.
 
 Now that the `KV.Bucket` module has been defined, our test should pass! You can try it yourself by running: `mix test`.
 
@@ -187,8 +192,8 @@ Before we move on to the next chapter, let's discuss the client/server dichotomy
 
 ```elixir
 def delete(bucket, key) do
-  Agent.get_and_update(bucket, fn dict ->
-    Map.pop(dict, key)
+  Agent.get_and_update(bucket, fn map ->
+    Map.pop(map, key)
   end)
 end
 ```
@@ -200,9 +205,9 @@ This distinction is important. If there are expensive actions to be done, you mu
 ```elixir
 def delete(bucket, key) do
   Process.sleep(1000) # puts client to sleep
-  Agent.get_and_update(bucket, fn dict ->
+  Agent.get_and_update(bucket, fn map ->
     Process.sleep(1000) # puts server to sleep
-    Map.pop(dict, key)
+    Map.pop(map, key)
   end)
 end
 ```

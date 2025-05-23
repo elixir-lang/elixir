@@ -1,3 +1,9 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+  SPDX-FileCopyrightText: 2012 Plataformatec
+-->
+
 # Syntax reference
 
 Elixir syntax was designed to have a straightforward conversion to an abstract syntax tree (AST). This means the Elixir syntax is mostly uniform with a handful of "syntax sugar" constructs to reduce the noise in common Elixir idioms.
@@ -37,7 +43,7 @@ To learn more about all Unicode characters allowed in atom, see the [Unicode syn
 
 Single-line strings in Elixir are written between double-quotes, such as `"foo"`. Any double-quote inside the string must be escaped with `\ `. Strings support Unicode characters and are stored as UTF-8 encoded binaries.
 
-Multi-line strings in Elixir are written with three double-quotes, and can have unescaped quotes within them. The resulting string will end with a newline. The indentation of the last `"""` is used to strip indentation from the inner string. For example:
+Multi-line strings in Elixir are called heredocs. They are written with three double-quotes, and can have unescaped quotes within them. The resulting string will end with a newline. The indentation of the last `"""` is used to strip indentation from the inner string. For example:
 
 ```elixir
 iex> test = """
@@ -60,9 +66,16 @@ Strings are always represented as themselves in the AST.
 
 ### Charlists
 
-Charlists in Elixir are written in single-quotes, such as `'foo'`. Any single-quote inside the string must be escaped with `\ `. Charlists are made of non-negative integers, where each integer represents a Unicode code point.
+Charlists are lists of non-negative integers where each integer represents a Unicode code point.
 
+```elixir
+iex(6)> 'abc' === [97, 98, 99]
+true
+```
+
+Charlists are written in single-quotes, such as `'foo'`. Any single-quote inside the string must be escaped with `\ `.
 Multi-line charlists are written with three single-quotes (`'''`), the same way multi-line strings are.
+However, this syntax is deprecated in favor of the charlist sigil `~c`.
 
 Charlists are always represented as themselves in the AST.
 
@@ -76,7 +89,7 @@ Data structures such as lists, tuples, and binaries are marked respectively by t
 
 Maps use the `%{...}` notation and each key-value is given by pairs marked with `=>`, such as `%{"hello" => 1, 2 => "world"}`.
 
-Both keyword lists (list of two-element tuples where the first element is atom) and maps with atom keys support a keyword notation where the colon character `:` is moved to the end of the atom. `%{hello: "world"}` is equivalent to `%{:hello => "world"}` and `[foo: :bar]` is equivalent to `[{:foo, :bar}]`. This notation is a syntax sugar that emits the same AST representation. It will be explained in later sections.
+Both keyword lists (list of two-element tuples where the first element is an atom) and maps with atom keys support a keyword notation where the colon character `:` is moved to the end of the atom. `%{hello: "world"}` is equivalent to `%{:hello => "world"}` and `[foo: :bar]` is equivalent to `[{:foo, :bar}]`. We discuss keywords in later sections.
 
 ### Structs
 
@@ -92,7 +105,7 @@ Variables in Elixir must start with an underscore or a Unicode letter that is no
 
 ### Non-qualified calls (local calls)
 
-Non-qualified calls, such as `add(1, 2)`, must start with characters and then follow the same rules as as variables, which are optionally followed by parentheses, and then arguments.
+Non-qualified calls, such as `add(1, 2)`, must start with characters and then follow the same rules as variables, which are optionally followed by parentheses, and then arguments.
 
 Parentheses are required for zero-arity calls (i.e. calls without arguments), to avoid ambiguity with variables. If parentheses are used, they must immediately follow the function name *without spaces*. For example, `add (1, 2)` is a syntax error, since `(1, 2)` is treated as an invalid block which is attempted to be given as a single argument to `add`.
 
@@ -104,7 +117,7 @@ As many programming languages, Elixir also support operators as non-qualified ca
 
 ### Qualified calls (remote calls)
 
-Qualified calls, such as `Math.add(1, 2)`, must start with characters and then follow the same rules as as variables, which are optionally followed by parentheses, and then arguments. Qualified calls also support operators, such as `Kernel.+(1, 2)`. Elixir also allows the function name to be written between double- or single-quotes, allowing any character in between the quotes, such as `Math."++add++"(1, 2)`.
+Qualified calls, such as `Math.add(1, 2)`, must start with characters and then follow the same rules as variables, which are optionally followed by parentheses, and then arguments. Qualified calls also support operators, such as `Kernel.+(1, 2)`. Elixir also allows the function name to be written between double- or single-quotes, allowing any character in between the quotes, such as `Math."++add++"(1, 2)`.
 
 Similar to non-qualified calls, parentheses have different meaning for zero-arity calls (i.e. calls without arguments). If parentheses are used, such as `mod.fun()`, it means a function call. If parenthesis are skipped, such as `map.field`, it means accessing a field of a map.
 
@@ -391,110 +404,9 @@ end
 #=> {{:., [], [{:__aliases__, [], [:Foo]}, :{}]}, [], [{:__aliases__, [], [:Bar]}, {:__aliases__, [], [:Baz]}]}
 ```
 
-## Optional syntax
-
-All of the constructs above are part of Elixir's syntax and have their own representation as part of the Elixir AST. This section will discuss the remaining constructs that are alternative representations of the constructs above. In other words, the constructs below can be represented in more than one way in your Elixir code and retain AST equivalence. We call this "Optional Syntax".
-
-For a lightweight introduction to Elixir's Optional Syntax, [see this document](https://elixir-lang.org/getting-started/optional-syntax.html). Below we continue with a more complete reference.
-
-### Integers in other bases and Unicode code points
-
-Elixir allows integers to contain `_` to separate digits and provides conveniences to represent integers in other bases:
-
-```elixir
-1_000_000
-#=> 1000000
-
-0xABCD
-#=> 43981 (Hexadecimal base)
-
-0o01234567
-#=> 342391 (Octal base)
-
-0b10101010
-#=> 170 (Binary base)
-
-?é
-#=> 233 (Unicode code point)
-```
-
-Those constructs exist only at the syntax level. All of the examples above are represented as their underlying integers in the AST.
-
-### Access syntax
-
-The access syntax is represented as a call to `Access.get/2`:
-
-```elixir
-quote do
-  opts[arg]
-end
-#=> {{:., [], [Access, :get]}, [], [{:opts, [], Elixir}, {:arg, [], Elixir}]}
-```
-
-### Optional parentheses
-
-Elixir provides optional parentheses on local and remote calls with one or more arguments:
-
-```elixir
-quote do
-  sum 1, 2, 3
-end
-#=> {:sum, [], [1, 2, 3]}
-```
-
-The above is treated the same as `sum(1, 2, 3)` by the parser. You can remove the parentheses on all calls with at least one argument.
-
-You can also skip parentheses on qualified calls, such as `Foo.bar 1, 2, 3`. Parentheses are required when invoking anonymous functions, such as `f.(1, 2, 3)`.
-
-In practice, developers prefer to add parentheses to most of their calls. They are skipped mainly in Elixir's control-flow constructs, such as `defmodule`, `if`, `case`, etc, and in certain DSLs.
-
-### Keywords
-
-Keywords in Elixir are a list of tuples of two elements, where the first element is an atom. Using the base constructs, they would be represented as:
-
-```elixir
-[{:foo, 1}, {:bar, 2}]
-```
-
-However, Elixir introduces a syntax sugar where the keywords above may be written as follows:
-
-```elixir
-[foo: 1, bar: 2]
-```
-
-Atoms with foreign characters, such as whitespace, must be wrapped in quotes. This rule applies to keywords as well:
-
-```elixir
-[{:"foo bar", 1}, {:"bar baz", 2}] == ["foo bar": 1, "bar baz": 2]
-```
-
-Remember that, because lists and two-element tuples are quoted literals, by definition keywords are also literals (in fact, the only reason tuples with two elements are quoted literals is to support keywords as literals).
-
-In order to be valid keyword syntax, `:` cannot be preceded by any whitespace (`foo : 1` is invalid) and has to be followed by whitespace (`foo:1` is invalid).
-
-### Keywords as last arguments
-
-Elixir also supports a syntax where if the last argument of a call is a keyword list then the square brackets can be skipped. This means that the following:
-
-```elixir
-if(condition, do: this, else: that)
-```
-
-is the same as
-
-```elixir
-if(condition, [do: this, else: that])
-```
-
-which in turn is the same as
-
-```elixir
-if(condition, [{:do, this}, {:else, that}])
-```
-
 ### `do`-`end` blocks
 
-The last syntax convenience are `do`-`end` blocks. `do`-`end` blocks are equivalent to keywords as the last argument of a function call, where the block contents are wrapped in parentheses. For example:
+Elixir's `do`-`end` blocks are equivalent to keywords as the last argument of a function call, where the block contents are wrapped in parentheses. For example:
 
 ```elixir
 if true do
@@ -510,31 +422,11 @@ is the same as:
 if(true, do: (this), else: (that))
 ```
 
-which we have explored in the previous section.
-
-Parentheses are important to support multiple expressions. This:
-
-```elixir
-if true do
-  this
-  that
-end
-```
-
-is the same as:
-
-```elixir
-if(true, do: (
-  this
-  that
-))
-```
-
-Inside `do`-`end` blocks you may introduce other keywords, such as `else` used in the `if` above. The supported keywords between `do`-`end` are static and are:
+While the construct above does not require custom nodes in Elixir's AST, they are restricted only to certain keywords, listed next:
 
   * `after`
   * `catch`
   * `else`
   * `rescue`
 
-You can see them being used in constructs such as `receive`, `try`, and others.
+You will find them in constructs such as `receive`, `try`, and others. You can also find more examples in [the Optional Syntax chapter](../getting-started/optional-syntax.md).

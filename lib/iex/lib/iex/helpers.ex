@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule IEx.Helpers do
   @moduledoc """
   Welcome to Interactive Elixir. You are currently
@@ -22,33 +26,45 @@ defmodule IEx.Helpers do
 
   There are many other helpers available, here are some examples:
 
-    * `b/1`            - prints callbacks info and docs for a given module
-    * `c/1`            - compiles a file
-    * `c/2`            - compiles a file and writes bytecode to the given path
-    * `cd/1`           - changes the current directory
-    * `clear/0`        - clears the screen
-    * `exports/1`      - shows all exports (functions + macros) in a module
-    * `flush/0`        - flushes all messages sent to the shell
-    * `h/0`            - prints this help message
-    * `h/1`            - prints help for the given module, function or macro
-    * `i/0`            - prints information about the last value
-    * `i/1`            - prints information about the given term
-    * `ls/0`           - lists the contents of the current directory
-    * `ls/1`           - lists the contents of the specified directory
-    * `open/1`         - opens the source for the given module or function in your editor
-    * `pid/1`          - creates a PID from a string
-    * `pid/3`          - creates a PID with the 3 integer arguments passed
-    * `port/1`         - creates a port from a string
-    * `port/2`         - creates a port with the 2 non-negative integers passed
-    * `pwd/0`          - prints the current working directory
-    * `r/1`            - recompiles the given module's source file
-    * `recompile/0`    - recompiles the current project
-    * `ref/1`          - creates a reference from a string
-    * `ref/4`          - creates a reference with the 4 integer arguments passed
-    * `runtime_info/0` - prints runtime info (versions, memory usage, stats)
-    * `t/1`            - prints the types for the given module or function
-    * `v/0`            - retrieves the last value from the history
-    * `v/1`            - retrieves the nth value from the history
+    * `b/1`             - prints callbacks info and docs for a given module
+    * `c/1`             - compiles a file
+    * `c/2`             - compiles a file and writes bytecode to the given path
+    * `cd/1`            - changes the current directory
+    * `clear/0`         - clears the screen
+    * `exports/1`       - shows all exports (functions + macros) in a module
+    * `flush/0`         - flushes all messages sent to the shell
+    * `h/0`             - prints this help message
+    * `h/1`             - prints help for the given module, function or macro
+    * `i/0`             - prints information about the last value
+    * `i/1`             - prints information about the given term
+    * `ls/0`            - lists the contents of the current directory
+    * `ls/1`            - lists the contents of the specified directory
+    * `open/1`          - opens the source for the given module or function in your editor
+    * `pid/1`           - creates a PID from a string
+    * `pid/3`           - creates a PID with the 3 integer arguments passed
+    * `port/1`          - creates a port from a string
+    * `port/2`          - creates a port with the 2 non-negative integers passed
+    * `process_info/1`  - returns information about the given process
+    * `pwd/0`           - prints the current working directory
+    * `r/1`             - recompiles the given module's source file
+    * `recompile/0`     - recompiles the current project
+    * `ref/1`           - creates a reference from a string
+    * `ref/4`           - creates a reference with the 4 integer arguments passed
+    * `runtime_info/0`  - prints runtime info (versions, memory usage, stats)
+    * `t/1`             - prints the types for the given module or function
+    * `v/0`             - retrieves the last value from the history
+    * `v/1`             - retrieves the nth value from the history
+
+  There are also several helpers available when debugging, such as:
+
+    * `break!/2`        - sets a breakpoint at `Module.function/arity`
+    * `breaks/0`        - prints all breakpoints to the terminal
+    * `c/0`             - a shortcut for `continue/0`
+    * `continue/0`      - continues execution of the current process
+    * `n/0`             - a shortcut for `next/0`
+    * `next/0`          - goes to the next line of the current breakpoint
+    * `remove_breaks/0` - removes all breakpoints and instrumentation from all modules
+    * `whereami/1`      - prints the current location and stacktrace in a pry session
 
   Help for all of those functions can be consulted directly from
   the command line using the `h/1` helper itself. Try:
@@ -69,17 +85,22 @@ defmodule IEx.Helpers do
   import IEx, only: [dont_display_result: 0]
 
   @doc """
-  Recompiles the current Mix project.
+  Recompiles the current Mix project or Mix install
+  dependencies.
 
-  This helper only works when IEx is started with a Mix
-  project, for example, `iex -S mix`. Note this function
-  simply recompiles Elixir modules, without reloading
-  configuration, recompiling dependencies, or restarting
-  applications.
+  This helper requires either `Mix.install/2` to have been
+  called within the current IEx session or for IEx to be
+  started alongside, for example, `iex -S mix`.
 
-  Therefore, any long running process may crash on recompilation,
-  as changed modules will be temporarily removed and recompiled,
-  without going through the proper code change callback.
+  In the `Mix.install/1` case, it will recompile any outdated
+  path dependency declared during install. Within a project,
+  it will recompile any outdated module.
+
+  Note this function simply recompiles Elixir modules, without
+  reloading configuration or restarting applications. This means
+  any long running process may crash on recompilation, as changed
+  modules will be temporarily removed and recompiled, without
+  going through the proper code change callback.
 
   If you want to reload a single module, consider using
   `r(ModuleName)` instead.
@@ -93,21 +114,59 @@ defmodule IEx.Helpers do
 
   """
   def recompile(options \\ []) do
-    if mix_started?() do
-      config = Mix.Project.config()
-      consolidation = Mix.Project.consolidation_path(config)
-      reenable_tasks(config)
+    cond do
+      not mix_started?() ->
+        IO.puts(IEx.color(:eval_error, "Mix is not running. Please start IEx with: iex -S mix"))
+        :error
 
-      force? = Keyword.get(options, :force, false)
-      args = ["--purge-consolidation-path-if-stale", "--return-errors", consolidation]
-      args = if force?, do: ["--force" | args], else: args
+      Mix.installed?() ->
+        Mix.in_install_project(fn ->
+          # TODO: remove this once Mix requires Hex with the fix from
+          # https://github.com/hexpm/hex/pull/1015
+          # Context: Mix.install/1 starts :hex if necessary and stops
+          # it afterwards. Calling compile here may require hex to be
+          # started and that should happen automatically, but because
+          # of a bug it is not (fixed in the linked PR).
+          _ = Application.ensure_all_started(:hex)
 
-      {result, _} = Mix.Task.run("compile", args)
-      result
-    else
-      IO.puts(IEx.color(:eval_error, "Mix is not running. Please start IEx with: iex -S mix"))
-      :error
+          do_recompile(options)
+          # Just as with Mix.install/2 we clear all task invocations,
+          # so that we can recompile the dependencies again next time
+          Mix.Task.clear()
+          :ok
+        end)
+
+      true ->
+        project = Mix.Project.get()
+
+        if is_nil(project) or
+             project.__info__(:compile)[:source] == String.to_charlist(Path.absname("mix.exs")) do
+          Mix.Project.with_build_lock(fn ->
+            purge_result = IEx.MixListener.purge()
+
+            case do_recompile(options) do
+              :noop -> purge_result
+              compile_result -> compile_result
+            end
+          end)
+        else
+          message = "Cannot recompile because the current working directory changed"
+          IO.puts(IEx.color(:eval_error, message))
+        end
     end
+  end
+
+  defp do_recompile(options) do
+    config = Mix.Project.config()
+    consolidation = Mix.Project.consolidation_path(config)
+    reenable_tasks(config)
+
+    force? = Keyword.get(options, :force, false)
+    args = ["--purge-consolidation-path-if-stale", consolidation, "--return-errors"]
+    args = if force?, do: ["--force" | args], else: args
+
+    {result, _} = Mix.Task.run("compile", args)
+    result
   end
 
   defp mix_started? do
@@ -115,11 +174,8 @@ defmodule IEx.Helpers do
   end
 
   defp reenable_tasks(config) do
-    Mix.Task.reenable("compile")
-    Mix.Task.reenable("compile.all")
-    Mix.Task.reenable("compile.protocols")
     compilers = config[:compilers] || Mix.compilers()
-    Enum.each(compilers, &Mix.Task.reenable("compile.#{&1}"))
+    Mix.Task.Compiler.reenable(compilers: compilers)
   end
 
   @doc """
@@ -127,12 +183,18 @@ defmodule IEx.Helpers do
 
   It expects a list of files to compile and an optional path to write
   the compiled code to. By default files are in-memory compiled.
-  To write compiled files to the current directory, an empty string
-  can be given.
+  To write compiled files to the current directory, `"."` can be given.
 
   It returns the names of the compiled modules.
 
   If you want to recompile an existing module, check `r/1` instead.
+
+  > #### Remote compilation {: .warning}
+  >
+  > When compiling code, warnings and errors may be printed to standard error.
+  > However, when connecting to a remote node, the standard error output is not
+  > redirected to the client. This means that compilation failures will be written
+  > to the logs or the output terminal of the machine you connect to.
 
   ## Examples
 
@@ -152,13 +214,13 @@ defmodule IEx.Helpers do
   def c(files, path \\ :in_memory) when is_binary(path) or path == :in_memory do
     files = List.wrap(files)
 
-    unless Enum.all?(files, &is_binary/1) do
+    if not Enum.all?(files, &is_binary/1) do
       raise ArgumentError, "expected a binary or a list of binaries as argument"
     end
 
     {found, not_found} = Enum.split_with(files, &File.exists?/1)
 
-    unless Enum.empty?(not_found) do
+    if not Enum.empty?(not_found) do
       raise ArgumentError, "could not find files #{Enum.join(not_found, ", ")}"
     end
 
@@ -276,7 +338,7 @@ defmodule IEx.Helpers do
   """
   defmacro open(term) do
     quote do
-      IEx.Introspection.open(unquote(IEx.Introspection.decompose(term, __CALLER__)))
+      IEx.Introspection.open(unquote(decompose(term, __CALLER__)))
     end
   end
 
@@ -305,7 +367,7 @@ defmodule IEx.Helpers do
   """
   defmacro h(term) do
     quote do
-      IEx.Introspection.h(unquote(IEx.Introspection.decompose(term, __CALLER__)))
+      IEx.Introspection.h(unquote(decompose(term, __CALLER__)))
     end
   end
 
@@ -324,7 +386,7 @@ defmodule IEx.Helpers do
   """
   defmacro b(term) do
     quote do
-      IEx.Introspection.b(unquote(IEx.Introspection.decompose(term, __CALLER__)))
+      IEx.Introspection.b(unquote(decompose(term, __CALLER__)))
     end
   end
 
@@ -349,7 +411,7 @@ defmodule IEx.Helpers do
   """
   defmacro t(term) do
     quote do
-      IEx.Introspection.t(unquote(IEx.Introspection.decompose(term, __CALLER__)))
+      IEx.Introspection.t(unquote(decompose(term, __CALLER__)))
     end
   end
 
@@ -409,7 +471,7 @@ defmodule IEx.Helpers do
 
     sources =
       Enum.map(modules, fn module ->
-        unless Code.ensure_loaded?(module) do
+        if not Code.ensure_loaded?(module) do
           raise ArgumentError, "could not load nor find module: #{inspect(module)}"
         end
 
@@ -437,7 +499,9 @@ defmodule IEx.Helpers do
 
     elixir =
       if elixir != [] do
-        {:ok, modules, _warning} = Kernel.ParallelCompiler.compile(elixir)
+        {:ok, modules, _warning} =
+          Kernel.ParallelCompiler.compile(elixir, return_diagnostics: true)
+
         modules
       else
         []
@@ -494,6 +558,13 @@ defmodule IEx.Helpers do
     dont_display_result()
   end
 
+  defp decompose(term, context) do
+    case IEx.Introspection.decompose(term, context) do
+      :error -> term
+      m_mf_mfa -> Macro.escape(m_mf_mfa)
+    end
+  end
+
   # Given any "term", this function returns all the protocols in
   # :code.get_path() implemented by the data structure of such term, in the form
   # of a binary like "Protocol1, Protocol2, Protocol3".
@@ -530,13 +601,13 @@ defmodule IEx.Helpers do
   def runtime_info(topic) when is_atom(topic) and topic in @runtime_info_topics do
     topic
     |> List.wrap()
-    |> runtime_info
+    |> runtime_info()
   end
 
   def runtime_info(topics) when is_list(topics) do
     topics
     |> Enum.uniq()
-    |> print_runtime_info
+    |> print_runtime_info()
   end
 
   defp print_runtime_info(topics) do
@@ -757,6 +828,168 @@ defmodule IEx.Helpers do
 
   defp pad_key(key), do: String.pad_trailing(key, 21, " ")
 
+  @process_info_keys_and_labels [
+    {:initial_call, "Initial call"},
+    {:dictionary, "Dictionary"},
+    {:registered_name, "Registered name"},
+    {:current_function, "Current function"},
+    {:status, "Status"},
+    {:message_queue_len, "Message queue length"},
+    {:trap_exit, "Trap exit"},
+    {:priority, "Priority"},
+    {:group_leader, "Group leader"},
+    {:reductions, "Reductions"},
+    {:links, "Links"},
+    {:monitors, "Monitors"},
+    {:memory, "Memory"},
+    {:total_heap_size, "Total heap size"},
+    {:heap_size, "Heap size"},
+    {:stack_size, "Stack size"},
+    {:current_stacktrace, "Current stacktrace"}
+  ]
+  @process_info_keys Enum.map(@process_info_keys_and_labels, fn {key, _} -> key end)
+  @process_info_label_mapping Map.new(@process_info_keys_and_labels)
+
+  @doc """
+  Prints information about the given process.
+
+  Includes a generic overview and details such as the linked and monitored processes,
+  the memory usage and the current stacktrace.
+
+  ## Examples
+
+      iex> process_info(self())
+      ...
+      iex> process_info({:via, Registry, {MyApp.Registry, :name}})
+      ...
+
+  """
+  @doc since: "1.19.0"
+  def process_info(pid) do
+    with pid when is_pid(pid) <- GenServer.whereis(pid),
+         info when is_list(info) <-
+           :erpc.call(node(pid), :erlang, :process_info, [pid, @process_info_keys]) do
+      info = Map.new(info)
+
+      IO.puts(IEx.color(:eval_result, ["\n# Process ", inspect(pid)]))
+
+      print_process_overview(info)
+      print_process_links(info[:links])
+      print_process_monitors(info[:monitors])
+      print_process_memory(info)
+      print_process_stacktrace(info[:current_stacktrace])
+    else
+      _ ->
+        IO.puts(
+          IEx.color(
+            :eval_error,
+            "Failed to get process info. Either the process was not found or is not alive."
+          )
+        )
+    end
+
+    dont_display_result()
+  end
+
+  defp print_process_overview(info) do
+    print_pane("Overview")
+
+    for key <- [
+          :initial_call,
+          :current_function,
+          :registered_name,
+          :status,
+          :message_queue_len,
+          :group_leader,
+          :priority,
+          :trap_exit,
+          :reductions
+        ] do
+      print_entry(
+        @process_info_label_mapping[key],
+        inspect(info[key], printable_limit: 256, limit: 5)
+      )
+    end
+  end
+
+  defp print_process_links([]), do: :ok
+
+  defp print_process_links(ports_and_pids) do
+    print_pane("Links")
+
+    for link <- ports_and_pids do
+      print_entry(inspect(link), pid_or_port_details(link))
+    end
+  end
+
+  defp print_process_monitors([]), do: :ok
+
+  defp print_process_monitors(monitors) do
+    print_pane("Monitors")
+
+    for {_, pid_or_port} <- monitors do
+      print_entry(inspect(pid_or_port), pid_or_port_details(pid_or_port))
+    end
+  end
+
+  defp print_process_memory(info) do
+    print_pane("Memory")
+
+    for key <- [:memory, :total_heap_size, :heap_size, :stack_size] do
+      print_entry(@process_info_label_mapping[key], format_bytes(info[key]))
+    end
+  end
+
+  defp print_process_stacktrace([]), do: :ok
+
+  defp print_process_stacktrace(stacktrace) do
+    print_pane("Current stacktrace")
+
+    IO.puts(IEx.color(:eval_info, Exception.format_stacktrace(stacktrace)))
+  end
+
+  defp pid_or_port_details(pid) when is_pid(pid), do: to_process_details(pid)
+  defp pid_or_port_details(name) when is_atom(name), do: to_process_details(name)
+  defp pid_or_port_details(port) when is_port(port), do: to_port_details(port)
+  defp pid_or_port_details(reference) when is_reference(reference), do: reference
+
+  defp to_process_details(pid) when is_pid(pid) do
+    case Process.info(pid, [:initial_call, :dictionary, :registered_name]) do
+      [{:initial_call, initial_call}, {:dictionary, dictionary}, {:registered_name, name}] ->
+        initial_call = Keyword.get(dictionary, :"$initial_call", initial_call)
+
+        format_registered_name(name) ||
+          format_process_label(Keyword.get(dictionary, :"$process_label")) ||
+          format_initial_call(initial_call)
+
+      _ ->
+        "-"
+    end
+  end
+
+  defp to_process_details(name) when is_atom(name) do
+    Process.whereis(name)
+    |> to_process_details()
+  end
+
+  defp format_process_label(nil), do: nil
+  defp format_process_label(label) when is_binary(label), do: label
+  defp format_process_label(label), do: inspect(label)
+
+  defp format_registered_name([]), do: nil
+  defp format_registered_name(name), do: inspect(name)
+
+  defp format_initial_call({:supervisor, mod, arity}), do: Exception.format_mfa(mod, :init, arity)
+  defp format_initial_call({m, f, a}), do: Exception.format_mfa(m, f, a)
+  defp format_initial_call(nil), do: nil
+
+  defp to_port_details(port) when is_port(port) do
+    case Port.info(port, :name) do
+      {:name, name} -> name
+      _ -> "-"
+    end
+  end
+
   @doc """
   Clears out all messages sent to the shell's inbox and prints them out.
   """
@@ -974,6 +1207,14 @@ defmodule IEx.Helpers do
   end
 
   @doc """
+  A shortcut for `continue/0`.
+  """
+  @doc since: "1.17.0"
+  def c do
+    continue()
+  end
+
+  @doc """
   Sets up a breakpoint in the AST of shape `Module.function/arity`
   with the given number of `stops`.
 
@@ -1073,7 +1314,7 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Sets the number of pending stops in the breakpoint
+  Resets the number of pending stops in the breakpoint
   with the given `id` to zero.
 
   Returns `:ok` if there is such breakpoint ID. `:not_found`
@@ -1087,7 +1328,7 @@ defmodule IEx.Helpers do
   defdelegate reset_break(id), to: IEx.Pry
 
   @doc """
-  Sets the number of pending stops in the given module,
+  Resets the number of pending stops in the given module,
   function and arity to zero.
 
   If the module is not instrumented or if the given function
@@ -1291,8 +1532,11 @@ defmodule IEx.Helpers do
     end
   end
 
-  defp compile_elixir(exs, :in_memory), do: Kernel.ParallelCompiler.compile(exs)
-  defp compile_elixir(exs, path), do: Kernel.ParallelCompiler.compile_to_path(exs, path)
+  defp compile_elixir(exs, :in_memory),
+    do: Kernel.ParallelCompiler.compile(exs, return_diagnostics: true)
+
+  defp compile_elixir(exs, path),
+    do: Kernel.ParallelCompiler.compile_to_path(exs, path, return_diagnostics: true)
 
   # Compiles and loads an Erlang source file, returns {module, binary}
   defp compile_erlang(source) do
@@ -1326,6 +1570,7 @@ defmodule IEx.Helpers do
       #PID<0.0.0>
 
   """
+  @spec pid(binary | atom) :: pid()
   def pid("#PID<" <> string) do
     :erlang.list_to_pid(~c"<#{string}")
   end
@@ -1353,6 +1598,7 @@ defmodule IEx.Helpers do
       #PID<0.64.2048>
 
   """
+  @spec pid(non_neg_integer, non_neg_integer, non_neg_integer) :: pid()
   def pid(x, y, z)
       when is_integer(x) and x >= 0 and is_integer(y) and y >= 0 and is_integer(z) and z >= 0 do
     :erlang.list_to_pid(
@@ -1372,6 +1618,7 @@ defmodule IEx.Helpers do
 
   """
   @doc since: "1.8.0"
+  @spec port(binary) :: port()
   def port(string) when is_binary(string) do
     :erlang.list_to_port(~c"#Port<#{string}>")
   end
@@ -1388,6 +1635,7 @@ defmodule IEx.Helpers do
 
   """
   @doc since: "1.8.0"
+  @spec port(non_neg_integer, non_neg_integer) :: port()
   def port(major, minor)
       when is_integer(major) and major >= 0 and is_integer(minor) and minor >= 0 do
     :erlang.list_to_port(
@@ -1405,6 +1653,7 @@ defmodule IEx.Helpers do
 
   """
   @doc since: "1.6.0"
+  @spec ref(binary) :: reference()
   def ref(string) when is_binary(string) do
     :erlang.list_to_ref(~c"#Ref<#{string}>")
   end
@@ -1419,6 +1668,7 @@ defmodule IEx.Helpers do
 
   """
   @doc since: "1.6.0"
+  @spec ref(non_neg_integer, non_neg_integer, non_neg_integer, non_neg_integer) :: reference()
   def ref(w, x, y, z)
       when is_integer(w) and w >= 0 and is_integer(x) and x >= 0 and is_integer(y) and y >= 0 and
              is_integer(z) and z >= 0 do
@@ -1476,7 +1726,8 @@ defmodule IEx.Helpers do
 
   defp get_beam_and_path(module) do
     with {^module, beam, filename} <- :code.get_object_code(module),
-         {:ok, ^module} <- beam |> :beam_lib.info() |> Keyword.fetch(:module) do
+         info_pairs when is_list(info_pairs) <- :beam_lib.info(beam),
+         {:ok, ^module} <- Keyword.fetch(info_pairs, :module) do
       {beam, filename}
     else
       _ -> :error

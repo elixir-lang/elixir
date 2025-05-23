@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.HelpTest do
@@ -29,20 +33,6 @@ defmodule Mix.Tasks.HelpTest do
     end
   end
 
-  test "help lists all aliases", context do
-    in_tmp(context.test, fn ->
-      Mix.Project.push(Aliases)
-
-      Mix.Tasks.Help.run([])
-
-      assert_received {:mix_shell, :info, ["mix h" <> message]}
-      assert message =~ ~r/# Alias defined in mix.exs/
-
-      assert_received {:mix_shell, :info, ["mix c" <> message]}
-      assert message =~ ~r/# Alias defined in mix.exs/
-    end)
-  end
-
   test "help --names", context do
     in_tmp(context.test, fn ->
       Mix.Project.push(Aliases)
@@ -63,11 +53,50 @@ defmodule Mix.Tasks.HelpTest do
         aliases: [
           h: "hello",
           p: &inspect/1,
+          foo: &foo/1,
+          bar: fn _ -> :ok end,
           help: ["help", "hello"],
-          "nested.h": [&Mix.shell().info(inspect(&1)), "h foo bar"]
+          "nested.h": [&Mix.shell().info(inspect(&1)), "h foo bar"],
+          other: [
+            "format --check-formatted",
+            fn _ -> :ok end,
+            &foo/1,
+            "help"
+          ]
         ]
       ]
     end
+
+    defp foo(_), do: :ok
+  end
+
+  test "help lists all aliases", context do
+    in_tmp(context.test, fn ->
+      Mix.Project.push(ComplexAliases)
+
+      Mix.Tasks.Help.run([])
+
+      assert_received {:mix_shell, :info, ["mix h" <> message]}
+      assert message =~ ~r/# Alias for hello/
+
+      assert_received {:mix_shell, :info, ["mix p" <> message]}
+      assert message =~ ~r/# Alias for &inspect\/1/
+
+      assert_received {:mix_shell, :info, ["mix foo" <> message]}
+      assert message =~ ~r/# Alias for &foo\/1/
+
+      assert_received {:mix_shell, :info, ["mix bar" <> message]}
+      assert message =~ ~r/# Alias for a function/
+
+      assert_received {:mix_shell, :info, ["mix help" <> message]}
+      assert message =~ ~r/# Alias for help, hello/
+
+      assert_received {:mix_shell, :info, ["mix nested.h" <> message]}
+      assert message =~ ~r/# Alias for a function, h foo bar/
+
+      assert_received {:mix_shell, :info, ["mix other" <> message]}
+      assert message =~ ~r/# Alias for format --check-formatted, a function, &foo\/1, help/
+    end)
   end
 
   test "help ALIAS", context do
@@ -80,7 +109,8 @@ defmodule Mix.Tasks.HelpTest do
         end)
 
       assert output =~ "mix h\n\n"
-      assert output =~ "Alias for \"hello\"\n"
+      assert output =~ "Alias for\n\n"
+      assert output =~ "    \"hello\"\n"
       assert output =~ ~r/^Location: mix.exs/m
 
       output =
@@ -89,7 +119,8 @@ defmodule Mix.Tasks.HelpTest do
         end)
 
       assert output =~ "mix p\n\n"
-      assert output =~ "Alias for &Kernel.inspect/1\n"
+      assert output =~ "Alias for\n\n"
+      assert output =~ "    &Kernel.inspect/1\n"
       assert output =~ ~r/^Location: mix.exs/m
 
       output =
@@ -98,7 +129,9 @@ defmodule Mix.Tasks.HelpTest do
         end)
 
       assert output =~ "mix help\n\n"
-      assert output =~ "Alias for [\"help\", \"hello\"]\n"
+      assert output =~ "Alias for\n\n"
+      assert output =~ "    [\"help\",\n"
+      assert output =~ "    \"hello\"]\n"
       assert output =~ ~r/^Location: mix.exs/m
 
       output =
@@ -107,7 +140,8 @@ defmodule Mix.Tasks.HelpTest do
         end)
 
       assert output =~ "mix nested.h\n\n"
-      assert output =~ ~r/Alias for \[#Function/
+      assert output =~ "Alias for\n\n"
+      assert output =~ ~r/    \[#Function/
       assert output =~ ~r/^Location: mix.exs/m
     end)
   end
@@ -149,7 +183,8 @@ defmodule Mix.Tasks.HelpTest do
         end)
 
       assert output =~ "mix compile\n\n"
-      assert output =~ "Alias for \"compile\"\n"
+      assert output =~ "Alias for\n\n"
+      assert output =~ "\"compile\"\n"
       assert output =~ ~r/^Location: mix.exs/m
 
       assert output =~
@@ -158,6 +193,86 @@ defmodule Mix.Tasks.HelpTest do
       assert output =~ "## Command line options"
       assert output =~ ~r/^Location:/m
     end)
+  end
+
+  test "help Elixir MODULE", context do
+    in_tmp(context.test, fn ->
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["Mix"])
+        end)
+
+      assert output =~
+               "Mix is a build tool that provides tasks for creating, compiling, and testing\nElixir projects, managing its dependencies, and more."
+    end)
+  end
+
+  test "help Elixir NESTED MODULE", context do
+    in_tmp(context.test, fn ->
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["IO.ANSI"])
+        end)
+
+      assert output =~ "Functionality to render ANSI escape sequences."
+    end)
+  end
+
+  test "help Erlang MODULE", context do
+    otp_docs? = match?({:docs_v1, _, _, _, _, _, _}, Code.fetch_docs(:math))
+
+    in_tmp(context.test, fn ->
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run([":math"])
+        end)
+
+      if otp_docs? do
+        assert output =~
+                 "This module provides an interface to a number of mathematical"
+      else
+        assert output =~ ":math was not compiled with docs"
+      end
+    end)
+  end
+
+  test "help FUNCTION/0", context do
+    in_tmp(context.test, fn ->
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["DateTime.utc_now()"])
+        end)
+
+      assert output =~ "Returns the current datetime in UTC"
+    end)
+  end
+
+  test "help FUNCTION/1", context do
+    in_tmp(context.test, fn ->
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["Enum.all?/1"])
+        end)
+
+      assert output =~ "Returns `true` if all elements in `enumerable` are truthy."
+    end)
+  end
+
+  test "help NESTED MODULE FUNCTION/3", context do
+    in_tmp(context.test, fn ->
+      output =
+        capture_io(fn ->
+          Mix.Tasks.Help.run(["IO.ANSI.color/3"])
+        end)
+
+      assert output =~ "Sets the foreground color from individual RGB values"
+    end)
+  end
+
+  test "help ERROR" do
+    assert_raise Mix.Error, "Invalid expression: Foo.bar(~s[baz])", fn ->
+      Mix.Tasks.Help.run(["Foo.bar(~s[baz])"])
+    end
   end
 
   test "help --search PATTERN", context do
@@ -172,7 +287,7 @@ defmodule Mix.Tasks.HelpTest do
 
       Mix.Tasks.Help.run(["--search", "h"])
       assert_received {:mix_shell, :info, ["mix h" <> message]}
-      assert message =~ ~r/# Alias defined in mix.exs/
+      assert message =~ ~r/# Alias for hello/
     end)
   end
 
@@ -190,6 +305,21 @@ defmodule Mix.Tasks.HelpTest do
         end)
 
       assert output == ""
+    end)
+  end
+
+  test "help --aliases", context do
+    in_tmp(context.test, fn ->
+      Mix.Project.push(Aliases)
+
+      Mix.Tasks.Help.run(["--aliases"])
+      assert_received {:mix_shell, :info, ["mix h" <> message]}
+      assert message =~ ~r/# Alias for hello/
+
+      assert_received {:mix_shell, :info, ["mix c" <> message]}
+      assert message =~ ~r/# Alias for compile/
+
+      refute_received {:mix_shell, :info, ["mix deps" <> _]}
     end)
   end
 

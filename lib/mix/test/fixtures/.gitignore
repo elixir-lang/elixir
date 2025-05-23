@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 # Remember to update Makefile "clean_residual_files" target for any modifications
 # made in this file.
 /deps_on_git_repo/

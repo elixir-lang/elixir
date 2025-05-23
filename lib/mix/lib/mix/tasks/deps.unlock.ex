@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Tasks.Deps.Unlock do
   use Mix.Task
 
@@ -27,6 +31,12 @@ defmodule Mix.Tasks.Deps.Unlock do
     Mix.Project.get!()
     {opts, apps, _} = OptionParser.parse(args, switches: @switches)
 
+    Mix.Project.with_deps_lock(fn ->
+      do_run(opts, apps)
+    end)
+  end
+
+  defp do_run(opts, apps) do
     cond do
       opts[:all] ->
         Mix.Dep.Lock.write(%{})
@@ -35,7 +45,7 @@ defmodule Mix.Tasks.Deps.Unlock do
         lock = Mix.Dep.Lock.read()
         unused_apps = unused_apps(lock)
 
-        unless unused_apps == [] do
+        if unused_apps != [] do
           Mix.raise("""
           Unused dependencies in mix.lock file:
 
@@ -47,7 +57,7 @@ defmodule Mix.Tasks.Deps.Unlock do
         lock = Mix.Dep.Lock.read()
         unused_apps = unused_apps(lock)
 
-        unless unused_apps == [] do
+        if unused_apps != [] do
           unlock(lock, unused_apps)
         end
 
@@ -92,7 +102,7 @@ defmodule Mix.Tasks.Deps.Unlock do
   end
 
   defp unlock(lock, apps) do
-    unless apps == [] do
+    if apps != [] do
       lock |> Map.drop(apps) |> Mix.Dep.Lock.write()
 
       Mix.shell().info("""

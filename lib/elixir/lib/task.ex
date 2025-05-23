@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Task do
   @moduledoc """
   Conveniences for spawning and awaiting tasks.
@@ -40,14 +44,42 @@ defmodule Task do
        as they are *always* sent. If you are not expecting a reply,
        consider using `Task.start_link/1` as detailed below.
 
-    2. async tasks link the caller and the spawned process. This
+    2. Async tasks link the caller and the spawned process. This
        means that, if the caller crashes, the task will crash
        too and vice-versa. This is on purpose: if the process
        meant to receive the result no longer exists, there is
-       no purpose in completing the computation.
+       no purpose in completing the computation. If this is not
+       desired, you will want to use supervised tasks, described
+       in a subsequent section.
 
-       If this is not desired, you will want to use supervised
-       tasks, described next.
+  ## Tasks are processes
+
+  Tasks are processes and so data will need to be completely copied
+  to them. Take the following code as an example:
+
+      large_data = fetch_large_data()
+      task = Task.async(fn -> do_some_work(large_data) end)
+      res = do_some_other_work()
+      res + Task.await(task)
+
+  The code above copies over all of `large_data`, which can be
+  resource intensive depending on the size of the data.
+  There are two ways to address this.
+
+  First, if you need to access only part of `large_data`,
+  consider extracting it before the task:
+
+      large_data = fetch_large_data()
+      subset_data = large_data.some_field
+      task = Task.async(fn -> do_some_work(subset_data) end)
+
+  Alternatively, if you can move the data loading altogether
+  to the task, it may be even better:
+
+      task = Task.async(fn ->
+        large_data = fetch_large_data()
+        do_some_work(large_data)
+      end)
 
   ## Dynamically supervised tasks
 
@@ -107,14 +139,14 @@ defmodule Task do
 
   With `Task.Supervisor`, it is easy to dynamically start tasks across nodes:
 
-      # On the remote node named :remote@local
+      # First on the remote node named :remote@local
       Task.Supervisor.start_link(name: MyApp.DistSupervisor)
 
-      # On the client
+      # Then on the local client node
       supervisor = {MyApp.DistSupervisor, :remote@local}
       Task.Supervisor.async(supervisor, MyMod, :my_fun, [arg1, arg2, arg3])
 
-  Note that, when working with distributed tasks, one should use the
+  Note that, as above, when working with distributed tasks, one should use the
   `Task.Supervisor.async/5` function that expects explicit module, function,
   and arguments, instead of `Task.Supervisor.async/3` that works with anonymous
   functions. That's because anonymous functions expect the same module version
@@ -265,6 +297,17 @@ defmodule Task do
   """
   @opaque ref :: reference()
 
+  @typedoc """
+  Options given to `async_stream` functions.
+  """
+  @typedoc since: "1.17.0"
+  @type async_stream_option ::
+          {:max_concurrency, pos_integer()}
+          | {:ordered, boolean()}
+          | {:timeout, timeout()}
+          | {:on_timeout, :exit | :kill_task}
+          | {:zip_input_on_exit, boolean()}
+
   defguardp is_timeout(timeout)
             when timeout == :infinity or (is_integer(timeout) and timeout >= 0)
 
@@ -290,7 +333,7 @@ defmodule Task do
   @doc false
   defmacro __using__(opts) do
     quote location: :keep, bind_quoted: [opts: opts] do
-      unless Module.has_attribute?(__MODULE__, :doc) do
+      if not Module.has_attribute?(__MODULE__, :doc) do
         @doc """
         Returns a specification to start this module under a supervisor.
 
@@ -571,7 +614,7 @@ defmodule Task do
     * `:zip_input_on_exit` - (since v1.14.0) adds the original
       input to `:exit` tuples. The value emitted for that task is
       `{:exit, {input, reason}}`, where `input` is the collection element
-      that caused an exited during processing. Defaults to `false`.
+      that caused an exit during processing. Defaults to `false`.
 
   ## Example
 
@@ -653,7 +696,8 @@ defmodule Task do
   example above.
   """
   @doc since: "1.4.0"
-  @spec async_stream(Enumerable.t(), module, atom, [term], keyword) :: Enumerable.t()
+  @spec async_stream(Enumerable.t(), module, atom, [term], [async_stream_option]) ::
+          Enumerable.t()
   def async_stream(enumerable, module, function_name, args, options \\ [])
       when is_atom(module) and is_atom(function_name) and is_list(args) do
     build_stream(enumerable, {module, function_name, args}, options)
@@ -676,19 +720,21 @@ defmodule Task do
 
       iex> strings = ["long string", "longer string", "there are many of these"]
       iex> stream = Task.async_stream(strings, fn text -> text |> String.codepoints() |> Enum.count() end)
-      iex> Enum.reduce(stream, 0, fn {:ok, num}, acc -> num + acc end)
+      iex> Enum.sum_by(stream, fn {:ok, num} -> num end)
       47
 
   See `async_stream/5` for discussion, options, and more examples.
   """
   @doc since: "1.4.0"
-  @spec async_stream(Enumerable.t(), (term -> term), keyword) :: Enumerable.t()
+  @spec async_stream(Enumerable.t(), (term -> term), [async_stream_option]) :: Enumerable.t()
   def async_stream(enumerable, fun, options \\ [])
       when is_function(fun, 1) and is_list(options) do
     build_stream(enumerable, fun, options)
   end
 
   defp build_stream(enumerable, fun, options) do
+    options = Task.Supervised.validate_stream_options(options)
+
     fn acc, acc_fun ->
       owner = get_owner(self())
 
@@ -800,14 +846,14 @@ defmodule Task do
           Process.demonitor(ref, [:flush])
 
           {url, state} = pop_in(state.tasks[ref])
-          IO.puts "Got #{inspect(result)} for URL #{inspect url}"
+          IO.puts("Got #{inspect(result)} for URL #{inspect url}")
           {:noreply, state}
         end
 
         # If the task fails...
         def handle_info({:DOWN, ref, _, _, reason}, state) do
           {url, state} = pop_in(state.tasks[ref])
-          IO.puts "URL #{inspect url} failed with reason #{inspect(reason)}"
+          IO.puts("URL #{inspect url} failed with reason #{inspect(reason)}")
           {:noreply, state}
         end
       end
@@ -1109,7 +1155,8 @@ defmodule Task do
     * `{:ok, term}` if the task has successfully reported its
       result back in the given time interval
     * `{:exit, reason}` if the task has died
-    * `nil` if the task keeps running past the timeout
+    * `nil` if the task keeps running, either because a limit
+      has been reached or past the timeout
 
   Check `yield/2` for more information.
 
@@ -1152,7 +1199,7 @@ defmodule Task do
   given time. All other tasks will have been shut down using
   the `Task.shutdown/2` call.
 
-  As a convenience, you can achieve a similar behaviour to above
+  As a convenience, you can achieve a similar behavior to above
   by specifying the `:on_timeout` option to be `:kill_task` (or
   `:ignore`). See `Task.await_many/2` if you would rather exit
   the caller process on timeout.
@@ -1161,6 +1208,10 @@ defmodule Task do
 
   The second argument is either a timeout or options, which defaults
   to this:
+
+    * `:limit` - the maximum amount of tasks to wait for.
+      If the limit is reached before the timeout, this function
+      returns immediately without triggering the `:on_timeout` behaviour
 
     * `:timeout` - the maximum amount of time (in milliseconds or `:infinity`)
       each task is allowed to execute for. Defaults to `5000`.
@@ -1173,7 +1224,11 @@ defmodule Task do
       * `:kill_task` - the task that timed out is killed.
   """
   @spec yield_many([t], timeout) :: [{t, {:ok, term} | {:exit, term} | nil}]
-  @spec yield_many([t], timeout: timeout, on_timeout: :nothing | :ignore | :kill_task) ::
+  @spec yield_many([t],
+          limit: pos_integer(),
+          timeout: timeout,
+          on_timeout: :nothing | :ignore | :kill_task
+        ) ::
           [{t, {:ok, term} | {:exit, term} | nil}]
   def yield_many(tasks, opts \\ [])
 
@@ -1182,9 +1237,6 @@ defmodule Task do
   end
 
   def yield_many(tasks, opts) when is_list(opts) do
-    on_timeout = Keyword.get(opts, :on_timeout, :nothing)
-    timeout = Keyword.get(opts, :timeout, 5_000)
-
     refs =
       Map.new(tasks, fn %Task{ref: ref, owner: owner} = task ->
         if owner != self() do
@@ -1194,6 +1246,9 @@ defmodule Task do
         {ref, nil}
       end)
 
+    on_timeout = Keyword.get(opts, :on_timeout, :nothing)
+    timeout = Keyword.get(opts, :timeout, 5_000)
+    limit = Keyword.get(opts, :limit, map_size(refs))
     timeout_ref = make_ref()
 
     timer_ref =
@@ -1202,16 +1257,17 @@ defmodule Task do
       end
 
     try do
-      yield_many(map_size(refs), refs, timeout_ref, timer_ref)
+      yield_many(limit, refs, timeout_ref, timer_ref)
     catch
       {:noconnection, reason} ->
         exit({reason, {__MODULE__, :yield_many, [tasks, timeout]}})
     else
-      refs ->
+      {timed_out?, refs} ->
         for task <- tasks do
           value =
             with nil <- Map.fetch!(refs, task.ref) do
               case on_timeout do
+                _ when not timed_out? -> nil
                 :nothing -> nil
                 :kill_task -> shutdown(task, :brutal_kill)
                 :ignore -> ignore(task)
@@ -1226,7 +1282,7 @@ defmodule Task do
   defp yield_many(0, refs, timeout_ref, timer_ref) do
     timer_ref && Process.cancel_timer(timer_ref)
     receive do: (^timeout_ref -> :ok), after: (0 -> :ok)
-    refs
+    {false, refs}
   end
 
   defp yield_many(limit, refs, timeout_ref, timer_ref) do
@@ -1243,7 +1299,7 @@ defmodule Task do
         end
 
       ^timeout_ref ->
-        refs
+        {true, refs}
     end
   end
 

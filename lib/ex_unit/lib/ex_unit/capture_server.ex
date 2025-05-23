@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule ExUnit.CaptureServer do
   @moduledoc false
   @compile {:no_warn_undefined, Logger}
@@ -227,16 +231,39 @@ defmodule ExUnit.CaptureServer do
   ## :logger handler callback.
 
   def log(event, _config) do
-    for {_ref, string_io, level, formatter_mod, formatter_config} <- :ets.tab2list(@ets),
-        :logger.compare_levels(event.level, level) in [:gt, :eq] do
-      chardata = formatter_mod.format(event, formatter_config)
-      # There is a race condition where the capture_log is removed
-      # but another process is attempting to log to string io device
-      # that no longer exists, so we wrap it in try/catch.
-      try do
-        IO.write(string_io, chardata)
-      rescue
-        _ -> :ok
+    {:trap_exit, trapping_exits?} = Process.info(self(), :trap_exit)
+
+    tasks =
+      :ets.tab2list(@ets)
+      |> Enum.filter(fn {_ref, _string_io, level, _formatter_mod, _formatter_config} ->
+        :logger.compare_levels(event.level, level) in [:gt, :eq]
+      end)
+      |> Enum.group_by(
+        fn {_ref, _string_io, _level, formatter_mod, formatter_config} ->
+          {formatter_mod, formatter_config}
+        end,
+        fn {_ref, string_io, _level, _formatter_mod, _formatter_config} ->
+          string_io
+        end
+      )
+      |> Enum.map(fn {{formatter_mod, formatter_config}, string_ios} ->
+        Task.async(fn ->
+          chardata = formatter_mod.format(event, formatter_config)
+
+          # Simply send, do not wait for reply
+          for string_io <- string_ios do
+            send(string_io, {:io_request, self(), make_ref(), {:put_chars, :unicode, chardata}})
+          end
+        end)
+      end)
+
+    Task.await_many(tasks)
+
+    if trapping_exits? do
+      for %{pid: pid} <- tasks do
+        receive do
+          {:EXIT, ^pid, _} -> :ok
+        end
       end
     end
 

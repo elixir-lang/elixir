@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule KeywordTest do
@@ -21,11 +25,7 @@ defmodule KeywordTest do
   end
 
   test "implements (almost) all functions in Map" do
-    assert Map.__info__(:functions) -- Keyword.__info__(:functions) == [
-             from_struct: 1,
-             intersect: 2,
-             intersect: 3
-           ]
+    assert Map.__info__(:functions) -- Keyword.__info__(:functions) == [from_struct: 1]
   end
 
   test "get_and_update/3 raises on bad return value from the argument function" do
@@ -70,11 +70,11 @@ defmodule KeywordTest do
     assert Keyword.replace!([a: 1, b: 2, a: 3, b: 4], :a, 1) == [a: 1, b: 2, b: 4]
     assert Keyword.replace!([a: 1, b: 2, c: 3, b: 4], :b, :new) == [a: 1, b: :new, c: 3]
 
-    assert_raise KeyError, "key :b not found in: []", fn ->
+    assert_raise KeyError, "key :b not found in:\n\n    []", fn ->
       Keyword.replace!([], :b, :new)
     end
 
-    assert_raise KeyError, "key :c not found in: [a: 1, b: 2, a: 3]", fn ->
+    assert_raise KeyError, "key :c not found in:\n\n    [a: 1, b: 2, a: 3]", fn ->
       Keyword.replace!([a: 1, b: 2, a: 3], :c, :new)
     end
   end

@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Macros
 
 Even though Elixir attempts its best to provide a safe environment for macros, most of the responsibility of writing clean code with macros falls on developers. Macros are harder to write than ordinary Elixir functions, and it's considered to be bad style to use them when they're not necessary. Write macros responsibly.
@@ -26,7 +31,7 @@ defmodule Unless do
 end
 ```
 
-The function receives the arguments and passes them to `if/2`. However, as we learned in the [previous guide](quote-and-unquote.html), the macro will receive quoted expressions, inject them into the quote, and finally return another quoted expression.
+The function receives the arguments and passes them to `if/2`. However, as we learned in the [previous guide](quote-and-unquote.md), the macro will receive quoted expressions, inject them into the quote, and finally return another quoted expression.
 
 Let's start `iex` with the module above:
 
@@ -38,9 +43,9 @@ and play with those definitions:
 
 ```elixir
 iex> require Unless
-iex> Unless.macro_unless(true, do: IO.puts "this should never be printed")
+iex> Unless.macro_unless(true, do: IO.puts("this should never be printed"))
 nil
-iex> Unless.fun_unless(true, do: IO.puts "this should never be printed")
+iex> Unless.fun_unless(true, do: IO.puts("this should never be printed"))
 "this should never be printed"
 nil
 ```
@@ -50,7 +55,7 @@ In our *macro* implementation, the sentence was not printed, although it was pri
 In other words, when invoked as:
 
 ```elixir
-Unless.macro_unless(true, do: IO.puts "this should never be printed")
+Unless.macro_unless(true, do: IO.puts("this should never be printed"))
 ```
 
 Our `macro_unless` macro received the following:
@@ -84,17 +89,20 @@ end
 
 `Macro.expand_once/2` receives a quoted expression and expands it according to the current environment. In this case, it expanded/invoked the `Unless.macro_unless/2` macro and returned its result. We then proceeded to convert the returned quoted expression to a string and print it (we will talk about `__ENV__` later in this chapter).
 
-That's what macros are all about. They are about receiving quoted expressions and transforming them into something else. In fact, `unless/2` in Elixir is implemented as a macro:
+That's what macros are all about. They are about receiving quoted expressions and transforming them into something else.
+In fact, `if/2` in Elixir is implemented as a macro:
 
 ```elixir
-defmacro unless(clause, do: expression) do
+defmacro if(clause, do: expression) do
   quote do
-    if(!unquote(clause), do: unquote(expression))
+    case unquote(clause) do
+      x when x in [false, nil] -> nil
+      _ -> unquote(expression)
   end
 end
 ```
 
-Constructs such as `unless/2`, `defmacro/2`, `def/2`, `defprotocol/2`, and many others used throughout the Elixir standard library are written in pure Elixir, often as a macro. This means that the constructs being used to build the language can be used by developers to extend the language to the domains they are working on.
+Constructs such as `if/2`, `defmacro/2`, `def/2`, `defprotocol/2`, and many others used throughout the Elixir standard library are written in pure Elixir, often as a macro. This means that the constructs being used to build the language can be used by developers to extend the language to the domains they are working on.
 
 We can define any function and macro we want, including ones that override the built-in definitions provided by Elixir. The only exceptions are Elixir special forms which are not implemented in Elixir and therefore cannot be overridden. The full list of special forms is available in `Kernel.SpecialForms`.
 
@@ -223,7 +231,7 @@ It is important that a macro is defined before its usage. Failing to define a ma
 
 ```elixir
 iex> defmodule Sample do
-...>  def four, do: two + two
+...>  def four, do: two() + two()
 ...>  defmacrop two, do: 2
 ...> end
 ** (CompileError) iex:2: function two/0 undefined

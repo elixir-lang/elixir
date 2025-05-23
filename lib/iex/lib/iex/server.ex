@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule IEx.Server do
   @moduledoc """
   The IEx.Server.
@@ -61,7 +65,9 @@ defmodule IEx.Server do
   defp shell_loop(opts, pid, ref) do
     receive do
       {:take_over, take_pid, take_ref, take_location, take_whereami, take_opts} ->
-        if take_over?(take_pid, take_ref, take_location, take_whereami, take_opts, 1) do
+        IO.puts(IEx.color(:eval_interrupt, "Break reached: #{take_location}#{take_whereami}"))
+
+        if take_over?(take_pid, take_ref, 1, true) do
           run_without_registration(init_state(opts), take_opts, nil)
         else
           shell_loop(opts, pid, ref)
@@ -272,17 +278,6 @@ defmodule IEx.Server do
   end
 
   defp handle_common(
-         {:DOWN, evaluator_ref, :process, evaluator, :normal},
-         state,
-         evaluator,
-         evaluator_ref,
-         input,
-         _callback
-       ) do
-    rerun(state, [], evaluator, evaluator_ref, input)
-  end
-
-  defp handle_common(
          {:DOWN, evaluator_ref, :process, evaluator, reason},
          state,
          evaluator,
@@ -308,7 +303,10 @@ defmodule IEx.Server do
   end
 
   defp take_over?(take_pid, take_ref, take_location, take_whereami, take_opts, counter) do
-    answer = IEx.Broker.take_over?(take_location, take_whereami, take_opts)
+    evaluator = take_opts[:evaluator] || self()
+    message = "Request to pry #{inspect(evaluator)} at #{take_location}#{take_whereami}"
+    interrupt = IEx.color(:eval_interrupt, "#{message}\nAllow? [Yn] ")
+    answer = yes?(IO.gets(:stdio, interrupt))
     take_over?(take_pid, take_ref, counter, answer)
   end
 
@@ -325,6 +323,14 @@ defmodule IEx.Server do
         false
     end
   end
+
+  defp yes?(string) when is_binary(string),
+    do: String.trim(string) in ["", "y", "Y", "yes", "YES", "Yes"]
+
+  defp yes?(charlist) when is_list(charlist),
+    do: yes?(List.to_string(charlist))
+
+  defp yes?(_), do: false
 
   ## State
 
@@ -344,13 +350,13 @@ defmodule IEx.Server do
       prefix: prefix,
       on_eof: on_eof,
       expand_fun: expand_fun,
-      evaluator_options: Keyword.take(opts, [:dot_iex_path])
+      evaluator_options: Keyword.take(opts, [:dot_iex])
     }
   end
 
   # For the state, reset only reset the parser state.
   # The counter will continue going up as the input process is shared.
-  # The opts can also set "dot_iex_path" and the "evaluator" itself,
+  # The opts can also set "dot_iex" and the "evaluator" itself,
   # but those are not stored: they are temporary to whatever is rerunning.
   # Once the rerunning session restarts, we keep the same evaluator_options
   # and rollback to a new evaluator.

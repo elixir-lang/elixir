@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.Compile.AppTest do
@@ -71,36 +75,47 @@ defmodule Mix.Tasks.Compile.AppTest do
       assert Mix.Tasks.Compile.App.run([]) == {:ok, []}
 
       properties = parse_resource_file(:sample)
+      assert Application.spec(:sample, :vsn) == ~c"0.1.0"
       assert properties[:vsn] == ~c"0.1.0"
       assert properties[:modules] == [A, B]
       assert properties[:applications] == [:kernel, :stdlib, :elixir]
       refute Keyword.has_key?(properties, :compile_env)
 
+      Application.unload(:sample)
       assert Mix.Tasks.Compile.App.run([]) == {:noop, []}
+      assert Application.spec(:sample, :vsn) == ~c"0.1.0"
     end)
   end
 
   test "generates .app file with compile_env" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
+      File.mkdir_p!("config")
+      File.write!("config/config.exs", "[]")
+      Mix.Task.run("loadconfig")
+
+      reset_config = fn ->
+        Mix.ProjectStack.reset_config_mtime()
+        ensure_touched("config/config.exs", "_build/dev/lib/sample/ebin/sample.app")
+      end
 
       Mix.ProjectStack.compile_env([{:app, :key, :error}])
       assert Mix.Tasks.Compile.App.run([]) == {:ok, []}
       assert parse_resource_file(:sample)[:compile_env] == [{:app, :key, :error}]
 
       # No-op with untouched unset compile_env
-      assert Mix.Tasks.Compile.App.run([]) == {:noop, []}
-
-      # No-op with same compile_env
-      Mix.ProjectStack.compile_env([{:app, :key, :error}])
-      assert Mix.Tasks.Compile.App.run([]) == {:noop, []}
+      reset_config.()
+      assert Mix.Tasks.Compile.App.run([]) == {:ok, []}
+      assert parse_resource_file(:sample)[:compile_env] == [{:app, :key, :error}]
 
       # Recompiles with new compile_env
+      reset_config.()
       Mix.ProjectStack.compile_env([{:app, :another, :error}])
       assert Mix.Tasks.Compile.App.run([]) == {:ok, []}
       assert parse_resource_file(:sample)[:compile_env] == [{:app, :another, :error}]
 
       # Keeps compile_env if forcing
+      reset_config.()
       assert Mix.Tasks.Compile.App.run(["--force"]) == {:ok, []}
       assert parse_resource_file(:sample)[:compile_env] == [{:app, :another, :error}]
     end)
@@ -114,6 +129,7 @@ defmodule Mix.Tasks.Compile.AppTest do
       Mix.Tasks.Compile.App.run([])
 
       properties = parse_resource_file(:custom_project)
+      assert Application.spec(:custom_project, :vsn) == ~c"0.2.0"
       assert properties[:vsn] == ~c"0.2.0"
       assert properties[:maxT] == :infinity
       assert properties[:optional_applications] == [:ex_unit, :mix]

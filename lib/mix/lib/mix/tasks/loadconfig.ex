@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Tasks.Loadconfig do
   use Mix.Task
 
@@ -9,10 +13,12 @@ defmodule Mix.Tasks.Loadconfig do
       $ mix loadconfig path/to/config.exs
 
   Any configuration file loaded with `loadconfig` is treated
-  as a compile-time configuration.
+  as a compile-time configuration. This means all application
+  keys are merged into their respective applications, however
+  the values themselves are not deep merged.
 
-  Note that "config/config.exs" is always loaded automatically
-  by the Mix CLI when it boots. "config/runtime.exs" is loaded
+  `config/config.exs` is **always loaded automatically**
+  by the Mix CLI when it boots. `config/runtime.exs` is loaded
   automatically by `mix app.config` before starting the current
   application. Therefore there is no need to load those config
   files directly.
@@ -34,10 +40,10 @@ defmodule Mix.Tasks.Loadconfig do
   end
 
   defp load_default do
-    config = Mix.Project.config()
+    config_path = Mix.Project.config()[:config_path]
 
-    if File.regular?(config[:config_path]) or config[:config_path] != "config/config.exs" do
-      load_compile(config[:config_path])
+    if config_path != nil and (File.regular?(config_path) or config_path != "config/config.exs") do
+      load_compile(config_path)
     else
       []
     end

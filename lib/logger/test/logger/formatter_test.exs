@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Logger.FormatterTest do
   use Logger.Case, async: true
 
@@ -64,7 +68,7 @@ defmodule Logger.FormatterTest do
         )
 
       assert %{
-               level: :warn,
+               level: :warning,
                msg: {:string, "foo"},
                meta: %{
                  mfa: {Logger.Formatter, :compile, 1}
@@ -73,6 +77,25 @@ defmodule Logger.FormatterTest do
              |> format(formatter)
              |> IO.chardata_to_string() =~
                "module=Logger.Formatter function=compile/1 mfa=Logger.Formatter.compile/1"
+    end
+
+    test "handles invalid :time in metadata" do
+      {_, formatter} =
+        new(
+          format: "\n$time $message\n",
+          colors: [enabled: false]
+        )
+
+      assert %{
+               level: :warning,
+               msg: {:string, "message"},
+               meta: %{
+                 mfa: {Logger.Formatter, :compile, 1},
+                 time: "invalid"
+               }
+             }
+             |> format(formatter)
+             |> IO.chardata_to_string() =~ ~r"\d\d\d message"
     end
   end
 

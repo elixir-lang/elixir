@@ -1,11 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Tasks.Deps.Get do
   use Mix.Task
 
-  @shortdoc "Gets all out of date dependencies"
+  @shortdoc "Fetches unavailable and out of date dependencies"
 
   @moduledoc """
-  Gets all out of date dependencies, i.e. dependencies
-  that are not available or have an invalid lock.
+  Fetches unavailable and out of date dependencies.
 
   ## Command line options
 
@@ -17,7 +20,7 @@ defmodule Mix.Tasks.Deps.Get do
 
   @impl true
   def run(args) do
-    unless "--no-archives-check" in args do
+    if "--no-archives-check" not in args do
       Mix.Task.run("archive.check", args)
     end
 
@@ -26,6 +29,12 @@ defmodule Mix.Tasks.Deps.Get do
     {opts, _, _} =
       OptionParser.parse(args, switches: [only: :string, target: :string, check_locked: :boolean])
 
+    Mix.Project.with_deps_lock(fn ->
+      do_run(opts)
+    end)
+  end
+
+  defp do_run(opts) do
     fetch_opts =
       for {switch, key} <- [only: :env, target: :target, check_locked: :check_locked],
           value = opts[switch],
@@ -34,7 +43,7 @@ defmodule Mix.Tasks.Deps.Get do
     apps = Mix.Dep.Fetcher.all(%{}, Mix.Dep.Lock.read(), fetch_opts)
 
     if apps == [] do
-      Mix.shell().info("All dependencies are up to date")
+      Mix.shell().info("All dependencies have been fetched")
     else
       :ok
     end

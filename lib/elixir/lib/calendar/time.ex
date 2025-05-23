@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Time do
   @moduledoc """
   A Time struct and functions.
@@ -31,9 +35,10 @@ defmodule Time do
 
   Comparisons in Elixir using `==/2`, `>/2`, `</2` and similar are structural
   and based on the `Time` struct fields. For proper comparison between
-  times, use the `compare/2` function. The existence of the `compare/2`
-  function in this module also allows using `Enum.min/2` and `Enum.max/2`
-  functions to get the minimum and maximum time of an `Enum`. For example:
+  times, use the `compare/2`, `after?/2` and `before?/2` functions.
+  The existence of the `compare/2` function in this module also allows
+  using `Enum.min/2` and `Enum.max/2` functions to get the minimum and
+  maximum time of an `Enum`. For example:
 
       iex> Enum.min([~T[23:00:07.001], ~T[10:00:07.001]], Time)
       ~T[10:00:07.001]
@@ -50,11 +55,14 @@ defmodule Time do
           calendar: Calendar.calendar()
         }
 
-  @parts_per_day 86_400_000_000
   @seconds_per_day 24 * 60 * 60
 
   @doc """
   Returns the current time in UTC.
+
+  You can pass a time unit to automatically truncate the resulting time.
+
+  The default unit if none gets passed is `:native` which results on a default resolution of microseconds.
 
   ## Examples
 
@@ -62,11 +70,42 @@ defmodule Time do
       iex> time.hour >= 0
       true
 
+      iex> time = Time.utc_now(:second)
+      iex> time.microsecond
+      {0, 0}
+
   """
   @doc since: "1.4.0"
-  @spec utc_now(Calendar.calendar()) :: t
-  def utc_now(calendar \\ Calendar.ISO) do
-    {:ok, _, time, microsecond} = Calendar.ISO.from_unix(:os.system_time(), :native)
+  @spec utc_now(Calendar.calendar() | :native | :microsecond | :millisecond | :second) :: t
+  def utc_now(calendar_or_time_unit \\ Calendar.ISO) do
+    case calendar_or_time_unit do
+      unit when unit in [:native, :microsecond, :millisecond, :second] ->
+        utc_now(unit, Calendar.ISO)
+
+      calendar ->
+        utc_now(:native, calendar)
+    end
+  end
+
+  @doc """
+  Returns the current time in UTC, supporting a precision and a specific calendar.
+
+  ## Examples
+
+      iex> time = Time.utc_now(:microsecond, Calendar.ISO)
+      iex> time.hour >= 0
+      true
+
+      iex> time = Time.utc_now(:second, Calendar.ISO)
+      iex> time.microsecond
+      {0, 0}
+
+  """
+  @doc since: "1.19.0"
+  @spec utc_now(:native | :microsecond | :millisecond | :second, Calendar.calendar()) :: t
+  def utc_now(time_unit, calendar)
+      when time_unit in [:native, :microsecond, :millisecond, :second] do
+    {:ok, _, time, microsecond} = Calendar.ISO.from_unix(System.os_time(time_unit), time_unit)
     {hour, minute, second} = time
 
     iso_time = %Time{
@@ -116,7 +155,7 @@ defmodule Time do
           Calendar.hour(),
           Calendar.minute(),
           Calendar.second(),
-          Calendar.microsecond() | non_neg_integer,
+          Calendar.microsecond() | non_neg_integer(),
           Calendar.calendar()
         ) :: {:ok, t} | {:error, atom}
   def new(hour, minute, second, microsecond \\ {0, 0}, calendar \\ Calendar.ISO)
@@ -356,13 +395,21 @@ defmodule Time do
 
   ## Examples
 
+      iex> Time.from_erl({23, 30, 15})
+      {:ok, ~T[23:30:15]}
+      iex> Time.from_erl({23, 30, 15}, 5000)
+      {:ok, ~T[23:30:15.005000]}
       iex> Time.from_erl({23, 30, 15}, {5000, 3})
       {:ok, ~T[23:30:15.005]}
       iex> Time.from_erl({24, 30, 15})
       {:error, :invalid_time}
 
   """
-  @spec from_erl(:calendar.time(), Calendar.microsecond(), Calendar.calendar()) ::
+  @spec from_erl(
+          :calendar.time(),
+          Calendar.microsecond() | non_neg_integer(),
+          Calendar.calendar()
+        ) ::
           {:ok, t} | {:error, atom}
   def from_erl(tuple, microsecond \\ {0, 0}, calendar \\ Calendar.ISO)
 
@@ -378,6 +425,8 @@ defmodule Time do
 
       iex> Time.from_erl!({23, 30, 15})
       ~T[23:30:15]
+      iex> Time.from_erl!({23, 30, 15}, 5000)
+      ~T[23:30:15.005000]
       iex> Time.from_erl!({23, 30, 15}, {5000, 3})
       ~T[23:30:15.005]
       iex> Time.from_erl!({24, 30, 15})
@@ -500,6 +549,8 @@ defmodule Time do
       iex> result.microsecond
       {21000, 3}
 
+  To shift a time by a `Duration` and according to its underlying calendar, use `Time.shift/2`.
+
   """
   @doc since: "1.6.0"
   @spec add(Calendar.time(), integer, :hour | :minute | System.time_unit()) :: t
@@ -515,13 +566,26 @@ defmodule Time do
 
   def add(%{calendar: calendar, microsecond: {_, precision}} = time, amount_to_add, unit)
       when is_integer(amount_to_add) do
-    amount_to_add = System.convert_time_unit(amount_to_add, unit, :microsecond)
-    total = time_to_microseconds(time) + amount_to_add
-    parts = Integer.mod(total, @parts_per_day)
+    valid? =
+      if is_integer(unit),
+        do: unit > 0,
+        else: unit in ~w(second millisecond microsecond nanosecond)a
+
+    if not valid? do
+      raise ArgumentError,
+            "unsupported time unit. Expected :hour, :minute, :second, :millisecond, :microsecond, :nanosecond, or a positive integer, got #{inspect(unit)}"
+    end
+
+    %{hour: hour, minute: minute, second: second, microsecond: microsecond} = time
+
     precision = max(Calendar.ISO.time_unit_to_precision(unit), precision)
 
-    {hour, minute, second, {microsecond, _}} =
-      calendar.time_from_day_fraction({parts, @parts_per_day})
+    {hour, minute, second, {microsecond, _precision}} =
+      Calendar.ISO.shift_time_unit(
+        {hour, minute, second, microsecond},
+        amount_to_add,
+        unit
+      )
 
     %Time{
       hour: hour,
@@ -532,19 +596,91 @@ defmodule Time do
     }
   end
 
-  defp time_to_microseconds(%{
-         calendar: Calendar.ISO,
-         hour: 0,
-         minute: 0,
-         second: 0,
-         microsecond: {0, _}
-       }) do
-    0
+  @doc """
+  Shifts given `time` by `duration` according to its calendar.
+
+  Available duration units are: `:hour`, `:minute`, `:second`, `:microsecond`.
+
+  When using the default ISO calendar, durations are collapsed to seconds and
+  microseconds before they are applied.
+
+  Raises an `ArgumentError` when called with date scale units.
+
+  ## Examples
+
+      iex> Time.shift(~T[01:00:15], hour: 12)
+      ~T[13:00:15]
+      iex> Time.shift(~T[01:35:00], hour: 6, minute: -15)
+      ~T[07:20:00]
+      iex> Time.shift(~T[01:15:00], second: 125)
+      ~T[01:17:05]
+      iex> Time.shift(~T[01:00:15], microsecond: {100, 6})
+      ~T[01:00:15.000100]
+      iex> Time.shift(~T[01:15:00], Duration.new!(second: 65))
+      ~T[01:16:05]
+
+  """
+  @doc since: "1.17.0"
+  @spec shift(Calendar.time(), Duration.t() | [unit_pair]) :: t
+        when unit_pair:
+               {:hour, integer}
+               | {:minute, integer}
+               | {:second, integer}
+               | {:microsecond, {integer, 0..6}}
+  def shift(%{calendar: calendar} = time, duration) do
+    %{hour: hour, minute: minute, second: second, microsecond: microsecond} = time
+
+    {hour, minute, second, microsecond} =
+      calendar.shift_time(hour, minute, second, microsecond, __duration__!(duration))
+
+    %Time{
+      calendar: calendar,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond
+    }
   end
 
-  defp time_to_microseconds(time) do
-    iso_days = {0, to_day_fraction(time)}
-    Calendar.ISO.iso_days_to_unit(iso_days, :microsecond)
+  @doc false
+  def __duration__!(%Duration{} = duration) do
+    duration
+  end
+
+  # This part is inlined by the compiler on constant values
+  def __duration__!(unit_pairs) do
+    Enum.each(unit_pairs, &validate_duration_unit!/1)
+    struct!(Duration, unit_pairs)
+  end
+
+  defp validate_duration_unit!({:microsecond, {ms, precision}})
+       when is_integer(ms) and precision in 0..6 do
+    :ok
+  end
+
+  defp validate_duration_unit!({:microsecond, microsecond}) do
+    raise ArgumentError,
+          "unsupported value #{inspect(microsecond)} for :microsecond. Expected a tuple {ms, precision} where precision is an integer from 0 to 6"
+  end
+
+  defp validate_duration_unit!({unit, _value}) when unit in [:year, :month, :week, :day] do
+    raise ArgumentError,
+          "unsupported unit #{inspect(unit)}. Expected :hour, :minute, :second, :microsecond"
+  end
+
+  defp validate_duration_unit!({unit, _value})
+       when unit not in [:hour, :minute, :second, :microsecond] do
+    raise ArgumentError,
+          "unknown unit #{inspect(unit)}. Expected :hour, :minute, :second, :microsecond"
+  end
+
+  defp validate_duration_unit!({_unit, value}) when is_integer(value) do
+    :ok
+  end
+
+  defp validate_duration_unit!({unit, value}) do
+    raise ArgumentError,
+          "unsupported value #{inspect(value)} for #{inspect(unit)}. Expected an integer"
   end
 
   @doc """
@@ -711,15 +847,8 @@ defmodule Time do
   @doc since: "1.5.0"
   @spec convert!(Calendar.time(), Calendar.calendar()) :: t
   def convert!(time, calendar) do
-    case convert(time, calendar) do
-      {:ok, value} ->
-        value
-
-      {:error, reason} ->
-        raise ArgumentError,
-              "cannot convert #{inspect(time)} to target calendar #{inspect(calendar)}, " <>
-                "reason: #{inspect(reason)}"
-    end
+    {:ok, value} = convert(time, calendar)
+    value
   end
 
   @doc """

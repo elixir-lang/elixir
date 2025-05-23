@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule EEx.Compiler do
   @moduledoc false
 
@@ -48,8 +52,14 @@ defmodule EEx.Compiler do
     end
   end
 
-  # TODO: Deprecate this on Elixir v1.18
+  # TODO: Remove me on Elixir v2.0
   defp tokenize(~c"<%#" ++ t, line, column, state, buffer, acc) do
+    IO.warn("<%# is deprecated, use <%!-- or add a space between <% and # instead",
+      line: line,
+      column: column,
+      file: state.file
+    )
+
     case expr(t, line, column + 3, state, []) do
       {:error, message} ->
         {:error, message, %{line: line, column: column}}
@@ -71,12 +81,10 @@ defmodule EEx.Compiler do
       {:ok, expr, new_line, new_column, rest} ->
         {key, expr} =
           case :elixir_tokenizer.tokenize(expr, 1, file: "eex", check_terminators: false) do
-            {:ok, _line, _column, warnings, tokens} ->
-              Enum.each(Enum.reverse(warnings), fn {location, msg} ->
-                :elixir_errors.erl_warn(location, state.file, msg)
-              end)
-
-              token_key(tokens, expr)
+            {:ok, _line, _column, _warnings, rev_tokens, []} ->
+              # We ignore warnings because the code will be tokenized
+              # again later with the right line+column info
+              token_key(rev_tokens, expr)
 
             {:error, _, _, _, _} ->
               {:expr, expr}
@@ -166,8 +174,8 @@ defmodule EEx.Compiler do
   end
 
   # Receives tokens and check if it is a start, middle or an end token.
-  defp token_key(tokens, expr) do
-    case {tokens, tokens |> Enum.reverse() |> drop_eol()} do
+  defp token_key(rev_tokens, expr) do
+    case {Enum.reverse(rev_tokens), drop_eol(rev_tokens)} do
       {[{:end, _} | _], [{:do, _} | _]} ->
         {:middle_expr, expr}
 
@@ -296,11 +304,19 @@ defmodule EEx.Compiler do
       source: source,
       line: line,
       quoted: [],
-      parser_options: parser_options,
+      parser_options: [indentation: indentation] ++ parser_options,
       indentation: indentation
     }
 
     init = state.engine.init(opts)
+
+    if function_exported?(state.engine, :handle_text, 2) and
+         not function_exported?(state.engine, :handle_text, 3) do
+      IO.warn(
+        "#{inspect(state.engine)}.handle_text/2 is deprecated, implement handle_text/3 instead"
+      )
+    end
+
     generate_buffer(tokens, init, [], state)
   end
 
@@ -318,8 +334,7 @@ defmodule EEx.Compiler do
         meta = [line: meta.line, column: meta.column]
         state.engine.handle_text(buffer, meta, IO.chardata_to_string(chars))
       else
-        # TODO: Deprecate this branch on Elixir v1.18.
-        # We should most likely move this check to init to emit the deprecation once.
+        # TODO: Remove this on Elixir v2.0. The deprecation is on init.
         state.engine.handle_text(buffer, IO.chardata_to_string(chars))
       end
 
@@ -342,13 +357,6 @@ defmodule EEx.Compiler do
          scope,
          state
        ) do
-    if mark == ~c"" do
-      message =
-        "the contents of this expression won't be output unless the EEx block starts with \"<%=\""
-
-      :elixir_errors.erl_warn({meta.line, meta.column}, state.file, message)
-    end
-
     {rest, line, contents} = look_ahead_middle(rest, meta.line, chars) || {rest, meta.line, chars}
     start_line = meta.line
     start_column = column(meta.column, mark)
@@ -360,6 +368,13 @@ defmodule EEx.Compiler do
         [{contents, start_line, start_column} | scope],
         %{state | quoted: [], line: line}
       )
+
+    if mark == ~c"" and not match?({:=, _, [_, _]}, contents) do
+      message =
+        "the contents of this expression won't be output unless the EEx block starts with \"<%=\""
+
+      :elixir_errors.erl_warn({meta.line, meta.column}, state.file, message)
+    end
 
     buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), contents)
     generate_buffer(rest, buffer, scope, state)

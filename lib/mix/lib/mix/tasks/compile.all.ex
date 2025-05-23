@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Tasks.Compile.All do
   use Mix.Task.Compiler
 
@@ -12,12 +16,19 @@ defmodule Mix.Tasks.Compile.All do
   @impl true
   def run(args) do
     Mix.Project.get!()
+
     config = Mix.Project.config()
 
+    Mix.Project.with_build_lock(config, fn ->
+      do_run(config, args)
+    end)
+  end
+
+  defp do_run(config, args) do
     # Compute the app cache if it is stale and we are
     # not compiling from a dependency.
     app_cache =
-      unless "--from-mix-deps-compile" in args do
+      if "--from-mix-deps-compile" not in args do
         Mix.AppLoader.stale_cache(config)
       end
 
@@ -45,6 +56,12 @@ defmodule Mix.Tasks.Compile.All do
 
     Code.prepend_paths(loaded_paths -- current_paths, cache: true)
 
+    # Add the current compilation path. compile.elixir and compile.erlang
+    # will also add this path, but only if they run, so we always add it
+    # here too. Furthermore, we don't cache it as we may still write to it.
+    compile_path = to_charlist(Mix.Project.compile_path())
+    Code.prepend_path(compile_path)
+
     result =
       if "--no-compile" in args do
         Mix.Task.reenable("compile.all")
@@ -53,24 +70,16 @@ defmodule Mix.Tasks.Compile.All do
         # Build the project structure so we can write down compiled files.
         Mix.Project.build_structure(config)
 
-        with_logger_app(config, fn ->
-          config
-          |> Mix.Tasks.Compile.compilers()
-          |> compile(args, :noop, [])
-        end)
+        config
+        |> Mix.Task.Compiler.compilers()
+        |> compile(args, :noop, [])
       end
 
     if app_cache do
       Mix.AppLoader.write_cache(app_cache, Map.new(loaded_modules))
     end
 
-    # Add the current compilation path. compile.elixir and compile.erlang
-    # will also add this path, but only if they run, so we always add it
-    # here too. Furthermore, we don't cache it as we may still write to it.
-    compile_path = to_charlist(Mix.Project.compile_path())
-    _ = Code.prepend_path(compile_path)
-
-    unless "--no-app-loading" in args do
+    if "--no-app-loading" not in args do
       app = config[:app]
 
       with {:ok, properties} <- Mix.AppLoader.load_app(app, "#{compile_path}/#{app}.app"),
@@ -82,18 +91,6 @@ defmodule Mix.Tasks.Compile.All do
     end
 
     result
-  end
-
-  defp with_logger_app(config, fun) do
-    app = Keyword.fetch!(config, :app)
-    logger_config_app = Application.get_env(:logger, :compile_time_application)
-
-    try do
-      Logger.configure(compile_time_application: app)
-      fun.()
-    after
-      Logger.configure(compile_time_application: logger_config_app)
-    end
   end
 
   defp compile([], _, status, diagnostics) do

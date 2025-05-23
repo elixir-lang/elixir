@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule IEx.InteractionTest do
@@ -5,7 +9,7 @@ defmodule IEx.InteractionTest do
 
   test "whole output" do
     assert capture_io("IO.puts \"Hello world\"", fn ->
-             IEx.Server.run(dot_iex_path: "")
+             IEx.Server.run(dot_iex: "")
            end) =~
              "Interactive Elixir (#{System.version()}) - press Ctrl+C to exit (type h() ENTER for help)" <>
                "\niex(1)> Hello world\n:ok\niex(2)>"
@@ -25,7 +29,7 @@ defmodule IEx.InteractionTest do
 
     expected = """
     ** (SyntaxError) invalid syntax found on iex:1:4:
-        \e[31merror: \e[0msyntax error before: '='
+        \e[31merror:\e[0m syntax error before: '='
         │
       1 │ a += 2
         │ \e[31m   ^\e[0m
@@ -93,7 +97,8 @@ defmodule IEx.InteractionTest do
     output = capture_iex(input)
 
     assert output =~ "** (TokenMissingError) token missing on iex:1:"
-    assert output =~ "incomplete expression"
+    assert output =~ "error:"
+    assert output =~ "incomplete expression\n"
     assert output =~ "iex:1"
   end
 
@@ -192,6 +197,16 @@ defmodule IEx.InteractionTest do
              ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) shell process exited with reason: {:bye, \[:world\]}"
   end
 
+  test "receive normal exits" do
+    assert capture_iex("spawn_link(fn -> exit(:normal) end); Process.sleep(1000)") =~ ":ok"
+
+    assert capture_iex("spawn_link(fn -> exit(:shutdown) end); Process.sleep(1000)") =~
+             ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) shell process exited with reason: shutdown"
+
+    assert capture_iex("spawn_link(fn -> exit({:shutdown, :bye}) end); Process.sleep(1000)") =~
+             ~r"\*\* \(EXIT from #PID<\d+\.\d+\.\d+>\) shell process exited with reason: shutdown: :bye"
+  end
+
   test "receive exit from exception" do
     # use exit/1 to fake an error so that an error message
     # is not sent to the error logger.
@@ -212,11 +227,30 @@ defmodule IEx.InteractionTest do
   end
 
   test "blames function clause error" do
+    import PathHelpers
+
+    write_beam(
+      defmodule ExampleModule do
+        def fun(:valid), do: :ok
+      end
+    )
+
+    content = capture_iex("IEx.InteractionTest.ExampleModule.fun(:invalid)")
+
+    assert content =~
+             "** (FunctionClauseError) no function clause matching in IEx.InteractionTest.ExampleModule.fun/1"
+
+    assert content =~
+             "The following arguments were given to IEx.InteractionTest.ExampleModule.fun/1"
+
+    assert content =~ ":invalid"
+    assert content =~ "def fun(-:valid-)"
+
+    assert content =~
+             ~r"test/iex/interaction_test.exs:\d+: IEx\.InteractionTest\.ExampleModule\.fun/1"
+
     content = capture_iex("Access.fetch(:foo, :bar)")
-    assert content =~ "** (FunctionClauseError) no function clause matching in Access.fetch/2"
-    assert content =~ "The following arguments were given to Access.fetch/2"
-    assert content =~ ":foo"
-    assert content =~ "def fetch(-%module{} = container-, key)"
+
     assert content =~ ~r"\(elixir #{System.version()}\) lib/access\.ex:\d+: Access\.fetch/2"
   end
 
@@ -251,7 +285,7 @@ defmodule IEx.InteractionTest do
         my_variable = 42
         """)
 
-      assert capture_iex("{my_fun_single(), my_variable}", [], dot_iex_path: path) ==
+      assert capture_iex("{my_fun_single(), my_variable}", [], dot_iex: path) ==
                "{:single, 42}"
     end
 
@@ -269,7 +303,22 @@ defmodule IEx.InteractionTest do
         write_dot_iex!(tmp_dir, "dot-iex", "import_file \"#{tmp_dir}/dot-iex-1\"\nmy_variable=13")
 
       input = "nested_var\nmy_variable\nmy_fun_nested()"
-      assert capture_iex(input, [], dot_iex_path: path) == "42\n13\n:nested"
+      assert capture_iex(input, [], dot_iex: path) == "42\n13\n:nested"
+    end
+
+    @tag :tmp_dir
+    test "configured .iex", %{tmp_dir: tmp_dir} do
+      path =
+        write_dot_iex!(tmp_dir, "configured-dot-iex", """
+        defmodule ConfiguredDotIEx do
+          def my_fun_single, do: :single
+        end
+        import ConfiguredDotIEx
+        my_variable = 42
+        """)
+
+      assert capture_iex("{my_fun_single(), my_variable}", [dot_iex: path], dot_iex: nil) ==
+               "{:single, 42}"
     end
   end
 

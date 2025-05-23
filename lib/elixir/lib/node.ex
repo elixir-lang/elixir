@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Node do
   @moduledoc """
   Functions related to VM nodes.
@@ -20,7 +24,7 @@ defmodule Node do
   named and started via the command line by using the `--sname` and
   `--name` flags. If you need to use this function to dynamically
   name a node, please make sure the `epmd` operating system process
-  is running by calling `epmd -daemon`.
+  is running by calling `epmd -daemon`, such as `System.cmd("epmd", ["-daemon"])`.
 
   Invoking this function when the distribution has already been started,
   either via the command line interface or dynamically, will return an
@@ -28,11 +32,59 @@ defmodule Node do
 
   ## Examples
 
-      {:ok, pid} = Node.start(:example, :shortnames, 15000)
+      {:ok, pid} = Node.start(:example, name_domain: :shortnames, hidden: true)
 
+  ## Options
+
+  Currently supported options are:
+
+  * `:name_domain` - determines the host name part of the node name. If `:longnames`,
+    fully qualified domain names will be   used which also is the default.
+    If `:shortnames`, only the short name of the host will be used.
+
+  * `:net_ticktime` - The tick time to use in seconds. Defaults to the value of the
+    `net_ticktime` configuration under Erlang's `kernel` application.
+    See [the `kernel` documentation](https://www.erlang.org/doc/apps/kernel/kernel_app.html)
+    for more information.
+
+  * `net_tickintensity` - The tick intensity to use. Defaults to the value of the
+    `net_tickintensity` configuration under Erlang's `kernel` application.
+    See [the `kernel` documentation](https://www.erlang.org/doc/apps/kernel/kernel_app.html)
+    for more information.
+
+  * `:dist_listen` - Enable or disable listening for incoming connections.
+    Defaults to the value given to the `--erl` flag, otherwise it defaults to `true`.
+    Note that `dist_listen: false` implies `hidden: true`.
+
+  * `:hidden` - Enable or disable hidden node. Defaults to `true` if the `--hidden`
+    flag is given to `elixir`'s CLI (or via the `--erl` flag), otherwise it
+    defaults to `false`.
+
+  If `name` is set to `:undefined`, the distribution will be started to request a
+  dynamic node name from the first node it connects to. Setting `name` to
+  `:undefined` also implies options `dist_listen: false, hidden: true`.
   """
-  @spec start(node, :longnames | :shortnames, non_neg_integer) :: {:ok, pid} | {:error, term}
-  def start(name, type \\ :longnames, tick_time \\ 15000) do
+  @spec start(node,
+          name_domain: :shortnames | :longnames,
+          net_ticktime: pos_integer(),
+          net_tickintensity: 4..1000,
+          dist_listen: boolean(),
+          hidden: boolean()
+        ) :: {:ok, pid} | {:error, term}
+  def start(name, opts \\ [])
+
+  def start(name, opts) when is_list(opts) do
+    :net_kernel.start(name, Map.new(opts))
+  end
+
+  # TODO: Deprecate me on Elixir v1.23
+  def start(name, type) when is_atom(type) do
+    :net_kernel.start([name, type, 15_000])
+  end
+
+  # TODO: Deprecate me on Elixir v1.23
+  @doc false
+  def start(name, type, tick_time) do
     :net_kernel.start([name, type, tick_time])
   end
 
@@ -40,7 +92,7 @@ defmodule Node do
   Turns a distributed node into a non-distributed node.
 
   For other nodes in the network, this is the same as the node going down.
-  Only possible when the node was started with `Node.start/3`, otherwise
+  Only possible when the node was started with `Node.start/2`, otherwise
   returns `{:error, :not_allowed}`. Returns `{:error, :not_found}` if the
   local node is not alive.
   """
@@ -219,7 +271,7 @@ defmodule Node do
 
   If `node` does not exist, a useless PID is returned.
 
-  For the list of available options, see `:erlang.spawn/4`.
+  For the list of available options, see `:erlang.spawn_opt/5`.
 
   Inlined by the compiler.
   """

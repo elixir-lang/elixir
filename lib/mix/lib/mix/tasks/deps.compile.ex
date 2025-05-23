@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Tasks.Deps.Compile do
   use Mix.Task
 
@@ -31,6 +35,24 @@ defmodule Mix.Tasks.Deps.Compile do
   recompiled without propagating those changes upstream. To ensure
   `b` is included in the compilation step, pass `--include-children`.
 
+  ## Compiling dependencies across multiple OS processes
+
+  If you set the environment variable `MIX_OS_DEPS_COMPILE_PARTITION_COUNT`
+  to a number greater than 1, Mix will start multiple operating system
+  processes to compile your dependencies concurrently.
+
+  While Mix and Rebar compile all files within a given project in parallel,
+  enabling this environment variable can still yield useful gains in several
+  cases, such as when compiling dependencies with native code, dependencies
+  that must download assets, or dependencies where the compilation time is not
+  evenly distributed (for example, one file takes much longer to compile than
+  all others).
+
+  While most configuration in Mix is done via command line flags, this particular
+  environment variable exists because the best number will vary per machine
+  (and often per project too). The environment variable also makes it more accessible
+  to enable concurrent compilation in CI and also during `Mix.install/2` commands.
+
   ## Command line options
 
     * `--force` - force compilation of deps
@@ -48,91 +70,108 @@ defmodule Mix.Tasks.Deps.Compile do
 
   @impl true
   def run(args) do
-    unless "--no-archives-check" in args do
+    if "--no-archives-check" not in args do
       Mix.Task.run("archive.check", args)
     end
 
     Mix.Project.get!()
-    deps = Mix.Dep.load_and_cache()
+    config = Mix.Project.config()
 
-    case OptionParser.parse(args, switches: @switches) do
-      {opts, [], _} ->
-        compile(filter_available_and_local_deps(deps), opts)
+    Mix.Project.with_build_lock(config, fn ->
+      deps = Mix.Dep.load_and_cache()
 
-      {opts, tail, _} ->
-        compile(Mix.Dep.filter_by_name(tail, deps, opts), opts)
-    end
+      case OptionParser.parse(args, switches: @switches) do
+        {opts, [], _} ->
+          compile(filter_available_and_local_deps(deps), opts)
+
+        {opts, tail, _} ->
+          compile(Mix.Dep.filter_by_name(tail, deps, opts), opts)
+      end
+    end)
   end
 
   @doc false
   def compile(deps, options \\ []) do
-    shell = Mix.shell()
-    config = Mix.Project.deps_config()
     Mix.Task.run("deps.precompile")
+    force? = Keyword.get(options, :force, false)
 
-    compiled =
+    deps =
       deps
       |> reject_umbrella_children(options)
       |> reject_local_deps(options)
-      |> Enum.map(fn %Mix.Dep{app: app, status: status, opts: opts, scm: scm} = dep ->
-        check_unavailable!(app, scm, status)
-        maybe_clean(dep, options)
 
-        compiled? =
-          cond do
-            not is_nil(opts[:compile]) ->
-              do_compile(dep, config)
+    count = System.get_env("MIX_OS_DEPS_COMPILE_PARTITION_COUNT", "0") |> String.to_integer()
 
-            Mix.Dep.mix?(dep) ->
-              do_mix(dep, config)
+    compiled? =
+      if count > 1 and length(deps) > 1 do
+        Mix.shell().info("mix deps.compile running across #{count} OS processes")
+        Mix.Tasks.Deps.Partition.server(deps, count, force?)
+      else
+        config = Mix.Project.deps_config()
+        true in Enum.map(deps, &compile_single(&1, force?, config))
+      end
 
-            Mix.Dep.make?(dep) ->
-              do_make(dep, config)
-
-            dep.manager == :rebar3 ->
-              do_rebar3(dep, config)
-
-            true ->
-              shell.error(
-                "Could not compile #{inspect(app)}, no \"mix.exs\", \"rebar.config\" or \"Makefile\" " <>
-                  "(pass :compile as an option to customize compilation, set it to \"false\" to do nothing)"
-              )
-
-              false
-          end
-
-        # We should touch fetchable dependencies even if they
-        # did not compile otherwise they will always be marked
-        # as stale, even when there is nothing to do.
-        fetchable? = touch_fetchable(scm, opts[:build])
-
-        compiled? and fetchable?
-      end)
-
-    if true in compiled, do: Mix.Task.run("will_recompile"), else: :ok
+    if compiled?, do: Mix.Task.run("will_recompile"), else: :ok
   end
 
-  defp maybe_clean(dep, opts) do
+  @doc false
+  def compile_single(%Mix.Dep{} = dep, force?, config) do
+    %{app: app, status: status, opts: opts, scm: scm} = dep
+    check_unavailable!(app, scm, status)
+
     # If a dependency was marked as fetched or with an out of date lock
     # or missing the app file, we always compile it from scratch.
-    if Keyword.get(opts, :force, false) or Mix.Dep.compilable?(dep) do
+    if force? or Mix.Dep.compilable?(dep) do
       File.rm_rf!(Path.join([Mix.Project.build_path(), "lib", Atom.to_string(dep.app)]))
     end
-  end
 
-  defp touch_fetchable(scm, path) do
-    if scm.fetchable? do
-      path = Path.join(path, ".mix")
-      File.mkdir_p!(path)
-      File.touch!(Path.join(path, "compile.fetch"))
-      true
-    else
-      false
+    compiled? =
+      cond do
+        not is_nil(opts[:compile]) ->
+          do_compile(dep, config)
+
+        Mix.Dep.mix?(dep) ->
+          do_mix(dep, config)
+
+        Mix.Dep.make?(dep) ->
+          do_make(dep, config)
+
+        dep.manager == :rebar3 ->
+          do_rebar3(dep, config)
+
+        true ->
+          Mix.shell().error(
+            "Could not compile #{inspect(app)}, no \"mix.exs\", \"rebar.config\" or \"Makefile\" " <>
+              "(pass :compile as an option to customize compilation, set it to \"false\" to do nothing)"
+          )
+
+          false
+      end
+
+    if compiled? do
+      config
+      |> Mix.Project.build_path()
+      |> Mix.Sync.PubSub.broadcast(fn ->
+        info = %{
+          app: dep.app,
+          scm: dep.scm,
+          manager: dep.manager,
+          os_pid: System.pid()
+        }
+
+        {:dep_compiled, info}
+      end)
     end
+
+    # We should touch fetchable dependencies even if they
+    # did not compile otherwise they will always be marked
+    # as stale, even when there is nothing to do.
+    fetchable? = touch_fetchable(scm, opts[:build])
+    compiled? and fetchable?
   end
 
   defp check_unavailable!(app, scm, {:unavailable, path}) do
-    if scm.fetchable? do
+    if scm.fetchable?() do
       Mix.raise(
         "Cannot compile dependency #{inspect(app)} because " <>
           "it isn't available, run \"mix deps.get\" first"
@@ -148,6 +187,17 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp check_unavailable!(_, _, _) do
     :ok
+  end
+
+  defp touch_fetchable(scm, path) do
+    if scm.fetchable?() do
+      path = Path.join(path, ".mix")
+      File.mkdir_p!(path)
+      File.touch!(Path.join(path, "compile.fetch"))
+      true
+    else
+      false
+    end
   end
 
   defp do_mix(dep, _config) do
@@ -180,6 +230,10 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp do_rebar3(%Mix.Dep{opts: opts} = dep, config) do
+    if not Mix.Rebar.available?(:rebar3) do
+      handle_rebar_not_found(dep)
+    end
+
     dep_path = opts[:dest]
     build_path = opts[:build]
     File.mkdir_p!(build_path)
@@ -202,13 +256,20 @@ defmodule Mix.Tasks.Deps.Compile do
     env = [
       # REBAR_BARE_COMPILER_OUTPUT_DIR is only honored by rebar3 >= 3.14
       {"REBAR_BARE_COMPILER_OUTPUT_DIR", build_path},
+      {"REBAR_SKIP_PROJECT_PLUGINS", "true"},
       {"REBAR_CONFIG", config_path},
       {"REBAR_PROFILE", "prod"},
       {"TERM", "dumb"}
     ]
 
-    cmd = "#{rebar_cmd(dep)} bare compile --paths #{lib_path}"
-    do_command(dep, config, cmd, false, env)
+    {exec, args} = Mix.Rebar.rebar_args(:rebar3, ["bare", "compile", "--paths", lib_path])
+
+    if Mix.shell().cmd({exec, args}, opts_for_cmd(dep, config, env)) != 0 do
+      Mix.raise(
+        "Could not compile dependency #{inspect(dep.app)}, \"#{Enum.join([exec | args], " ")}\" command failed. " <>
+          deps_compile_feedback(dep.app)
+      )
+    end
 
     # Check if we have any new symlinks after compilation
     for dir <- ~w(include priv src),
@@ -226,10 +287,6 @@ defmodule Mix.Tasks.Deps.Compile do
     |> Mix.Rebar.serialize_config()
   end
 
-  defp rebar_cmd(%Mix.Dep{manager: manager} = dep) do
-    Mix.Rebar.rebar_cmd(manager) || handle_rebar_not_found(dep)
-  end
-
   defp handle_rebar_not_found(%Mix.Dep{app: app, manager: manager}) do
     shell = Mix.shell()
 
@@ -241,7 +298,7 @@ defmodule Mix.Tasks.Deps.Compile do
       "Shall I install #{manager}? (if running non-interactively, " <>
         "use \"mix local.rebar --force\")"
 
-    unless shell.yes?(install_question) do
+    if not shell.yes?(install_question) do
       error_message =
         "Could not find \"#{manager}\" to compile " <>
           "dependency #{inspect(app)}, please ensure \"#{manager}\" is available"
@@ -250,13 +307,16 @@ defmodule Mix.Tasks.Deps.Compile do
     end
 
     Mix.Tasks.Local.Rebar.run(["--force"])
-    Mix.Rebar.local_rebar_cmd(manager) || Mix.raise("\"#{manager}\" installation failed")
+
+    if not Mix.Rebar.available?(manager) do
+      Mix.raise("\"#{manager}\" installation failed")
+    end
   end
 
   defp do_make(dep, config) do
     command = make_command(dep)
-    do_command(dep, config, command, true, [{"IS_DEP", "1"}])
-    build_structure(dep, config)
+    shell_cmd!(dep, config, command, [{"IS_DEP", "1"}])
+    build_symlink_structure(dep, config)
     true
   end
 
@@ -284,30 +344,32 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp do_compile(%Mix.Dep{opts: opts} = dep, config) do
     if command = opts[:compile] do
-      do_command(dep, config, command, true)
-      build_structure(dep, config)
+      shell_cmd!(dep, config, command)
+      build_symlink_structure(dep, config)
       true
     else
       false
     end
   end
 
-  defp do_command(dep, config, command, print_app?, env \\ []) do
-    %Mix.Dep{app: app, system_env: system_env, opts: opts} = dep
-
-    env = [{"ERL_LIBS", Path.join(config[:deps_build_path], "lib")} | system_env] ++ env
-
-    if Mix.shell().cmd(command, env: env, print_app: print_app?, cd: opts[:dest]) != 0 do
+  defp shell_cmd!(%Mix.Dep{app: app} = dep, config, command, env \\ []) do
+    if Mix.shell().cmd(command, [print_app: true] ++ opts_for_cmd(dep, config, env)) != 0 do
       Mix.raise(
         "Could not compile dependency #{inspect(app)}, \"#{command}\" command failed. " <>
           deps_compile_feedback(app)
       )
     end
 
-    true
+    :ok
   end
 
-  defp build_structure(%Mix.Dep{opts: opts}, config) do
+  defp opts_for_cmd(dep, config, env) do
+    %Mix.Dep{system_env: system_env, opts: opts} = dep
+    env = [{"ERL_LIBS", Path.join(config[:deps_build_path], "lib")} | system_env] ++ env
+    [env: env, cd: opts[:dest]]
+  end
+
+  defp build_symlink_structure(%Mix.Dep{opts: opts}, config) do
     config = Keyword.put(config, :deps_app_path, opts[:build])
     Mix.Project.build_structure(config, symlink_ebin: true, source: opts[:dest])
     Code.prepend_path(Path.join(opts[:build], "ebin"), cache: true)
@@ -339,13 +401,13 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp filter_available_and_local_deps(deps) do
     Enum.filter(deps, fn dep ->
-      Mix.Dep.available?(dep) or not dep.scm.fetchable?
+      Mix.Dep.available?(dep) or not dep.scm.fetchable?()
     end)
   end
 
   defp reject_local_deps(deps, options) do
     if options[:skip_local_deps] do
-      Enum.filter(deps, fn %{scm: scm} -> scm.fetchable? end)
+      Enum.filter(deps, fn %{scm: scm} -> scm.fetchable?() end)
     else
       deps
     end

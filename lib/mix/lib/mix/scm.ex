@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.SCM do
   @moduledoc """
   This module provides helper functions and defines the
@@ -129,6 +133,14 @@ defmodule Mix.SCM do
   """
   def available do
     Mix.State.get(:scm)
+  end
+
+  @doc """
+  Deletes the given SCM from the list of available SCMs.
+  """
+  @doc since: "1.16.2"
+  def delete(mod) when is_atom(mod) do
+    Mix.State.update(:scm, &List.delete(&1, mod))
   end
 
   @doc """

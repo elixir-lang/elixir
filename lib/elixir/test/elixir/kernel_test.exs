@@ -1,18 +1,25 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule KernelTest do
   use ExUnit.Case, async: true
 
-  doctest Kernel
+  # Skip these doctests are they emit warnings
+  doctest Kernel,
+    except:
+      [===: 2, !==: 2, and: 2, or: 2] ++
+        [is_exception: 1, is_exception: 2, is_nil: 1, is_struct: 1, is_non_struct_map: 1]
 
   def id(arg), do: arg
   def id(arg1, arg2), do: {arg1, arg2}
-  def empty_list(), do: []
   def empty_map, do: %{}
 
   defp purge(module) do
-    :code.delete(module)
     :code.purge(module)
+    :code.delete(module)
   end
 
   defp assert_eval_raise(error, msg, string) do
@@ -86,24 +93,19 @@ defmodule KernelTest do
   test "=~/2" do
     assert "abcd" =~ ~r/c(d)/ == true
     assert "abcd" =~ ~r/e/ == false
-    assert "abcd" =~ ~R/c(d)/ == true
-    assert "abcd" =~ ~R/e/ == false
 
     string = "^ab+cd*$"
     assert string =~ "ab+" == true
     assert string =~ "bb" == false
 
     assert "abcd" =~ ~r// == true
-    assert "abcd" =~ ~R// == true
     assert "abcd" =~ "" == true
 
     assert "" =~ ~r// == true
-    assert "" =~ ~R// == true
     assert "" =~ "" == true
 
     assert "" =~ "abcd" == false
     assert "" =~ ~r/abcd/ == false
-    assert "" =~ ~R/abcd/ == false
 
     assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
       1234 =~ "hello"
@@ -114,7 +116,7 @@ defmodule KernelTest do
     end
 
     assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
-      1234 =~ ~R"hello"
+      1234 =~ ~r"hello"
     end
 
     assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
@@ -207,6 +209,10 @@ defmodule KernelTest do
 
   defmodule User do
     assert is_map(defstruct name: "john")
+    # Ensure we keep the line information around.
+    # It is important for debugging tools, ExDoc, etc.
+    {:v1, :def, anno, _clauses} = Module.get_definition(__MODULE__, {:__struct__, 1})
+    anno[:line] == __ENV__.line - 4
   end
 
   test "struct/1 and struct/2" do
@@ -302,8 +308,8 @@ defmodule KernelTest do
     assert (false and true) == false
     assert (false and 0) == false
     assert (false and raise("oops")) == false
-    assert ((x = true) and not x) == false
-    assert_raise BadBooleanError, fn -> 0 and 1 end
+    assert ((x = Process.get(:unused, true)) and not x) == false
+    assert_raise BadBooleanError, fn -> Process.get(:unused, 0) and 1 end
   end
 
   test "or/2" do
@@ -314,25 +320,27 @@ defmodule KernelTest do
     assert (false or false) == false
     assert (false or true) == true
     assert (false or 0) == 0
-    assert ((x = false) or not x) == true
-    assert_raise BadBooleanError, fn -> 0 or 1 end
+    assert ((x = Process.get(:unused, false)) or not x) == true
+    assert_raise BadBooleanError, fn -> Process.get(:unused, 0) or 1 end
   end
 
-  defp struct?(arg) when is_struct(arg), do: true
-  defp struct?(_arg), do: false
+  defp delegate_is_struct(arg), do: is_struct(arg)
+
+  defp guarded_is_struct(arg) when is_struct(arg), do: true
+  defp guarded_is_struct(_arg), do: false
 
   defp struct_or_map?(arg) when is_struct(arg) or is_map(arg), do: true
   defp struct_or_map?(_arg), do: false
 
   test "is_struct/1" do
-    assert is_struct(%{}) == false
-    assert is_struct([]) == false
-    assert is_struct(%Macro.Env{}) == true
-    assert is_struct(%{__struct__: "foo"}) == false
-    assert struct?(%Macro.Env{}) == true
-    assert struct?(%{__struct__: "foo"}) == false
-    assert struct?([]) == false
-    assert struct?(%{}) == false
+    assert delegate_is_struct(%{}) == false
+    assert delegate_is_struct([]) == false
+    assert delegate_is_struct(%Macro.Env{}) == true
+    assert delegate_is_struct(%{__struct__: "foo"}) == false
+    assert guarded_is_struct(%Macro.Env{}) == true
+    assert guarded_is_struct(%{__struct__: "foo"}) == false
+    assert guarded_is_struct([]) == false
+    assert guarded_is_struct(%{}) == false
   end
 
   test "is_struct/1 and other match works" do
@@ -341,8 +349,10 @@ defmodule KernelTest do
     assert struct_or_map?(10) == false
   end
 
-  defp struct?(arg, name) when is_struct(arg, name), do: true
-  defp struct?(_arg, _name), do: false
+  defp delegate_is_struct(arg, name), do: is_struct(arg, name)
+
+  defp guarded_is_struct(arg, name) when is_struct(arg, name), do: true
+  defp guarded_is_struct(_arg, _name), do: false
 
   defp struct_or_map?(arg, name) when is_struct(arg, name) or is_map(arg), do: true
   defp struct_or_map?(_arg, _name), do: false
@@ -350,16 +360,16 @@ defmodule KernelTest do
   defp not_atom(), do: "not atom"
 
   test "is_struct/2" do
-    assert is_struct(%{}, Macro.Env) == false
-    assert is_struct([], Macro.Env) == false
-    assert is_struct(%Macro.Env{}, Macro.Env) == true
-    assert is_struct(%Macro.Env{}, URI) == false
-    assert struct?(%Macro.Env{}, Macro.Env) == true
-    assert struct?(%Macro.Env{}, URI) == false
-    assert struct?(%{__struct__: "foo"}, "foo") == false
-    assert struct?(%{__struct__: "foo"}, Macro.Env) == false
-    assert struct?([], Macro.Env) == false
-    assert struct?(%{}, Macro.Env) == false
+    assert delegate_is_struct(%{}, Macro.Env) == false
+    assert delegate_is_struct([], Macro.Env) == false
+    assert delegate_is_struct(%Macro.Env{}, Macro.Env) == true
+    assert delegate_is_struct(%Macro.Env{}, URI) == false
+    assert guarded_is_struct(%Macro.Env{}, Macro.Env) == true
+    assert guarded_is_struct(%Macro.Env{}, URI) == false
+    assert guarded_is_struct(%{__struct__: "foo"}, "foo") == false
+    assert guarded_is_struct(%{__struct__: "foo"}, Macro.Env) == false
+    assert guarded_is_struct([], Macro.Env) == false
+    assert guarded_is_struct(%{}, Macro.Env) == false
 
     assert_raise ArgumentError, "argument error", fn ->
       is_struct(%{}, not_atom())
@@ -372,21 +382,48 @@ defmodule KernelTest do
     assert struct_or_map?(%Macro.Env{}, Macro.Env) == true
   end
 
-  defp exception?(arg) when is_exception(arg), do: true
-  defp exception?(_arg), do: false
+  defp delegate_is_non_struct_map(arg), do: is_non_struct_map(arg)
+
+  defp guarded_is_non_struct_map(arg) when is_non_struct_map(arg), do: true
+  defp guarded_is_non_struct_map(_arg), do: false
+
+  defp non_struct_map_or_struct?(arg) when is_non_struct_map(arg) or is_struct(arg), do: true
+  defp non_struct_map_or_struct?(_arg), do: false
+
+  test "is_non_struct_map/1" do
+    assert delegate_is_non_struct_map(%{}) == true
+    assert delegate_is_non_struct_map([]) == false
+    assert delegate_is_non_struct_map(%Macro.Env{}) == false
+    assert delegate_is_non_struct_map(%{__struct__: "foo"}) == true
+    assert guarded_is_non_struct_map(%Macro.Env{}) == false
+    assert guarded_is_non_struct_map(%{__struct__: "foo"}) == true
+    assert guarded_is_non_struct_map([]) == false
+    assert guarded_is_non_struct_map(%{}) == true
+  end
+
+  test "is_non_struct_map/1 and other match works" do
+    assert non_struct_map_or_struct?(%Macro.Env{}) == true
+    assert non_struct_map_or_struct?(%{}) == true
+    assert non_struct_map_or_struct?(10) == false
+  end
+
+  defp delegate_is_exception(arg), do: is_exception(arg)
+
+  defp guarded_is_exception(arg) when is_exception(arg), do: true
+  defp guarded_is_exception(_arg), do: false
 
   defp exception_or_map?(arg) when is_exception(arg) or is_map(arg), do: true
   defp exception_or_map?(_arg), do: false
 
   test "is_exception/1" do
-    assert is_exception(%{}) == false
-    assert is_exception([]) == false
-    assert is_exception(%RuntimeError{}) == true
-    assert is_exception(%{__exception__: "foo"}) == false
-    assert exception?(%RuntimeError{}) == true
-    assert exception?(%{__exception__: "foo"}) == false
-    assert exception?([]) == false
-    assert exception?(%{}) == false
+    assert delegate_is_exception(%{}) == false
+    assert delegate_is_exception([]) == false
+    assert delegate_is_exception(%RuntimeError{}) == true
+    assert delegate_is_exception(%{__exception__: "foo"}) == false
+    assert guarded_is_exception(%RuntimeError{}) == true
+    assert guarded_is_exception(%{__exception__: "foo"}) == false
+    assert guarded_is_exception([]) == false
+    assert guarded_is_exception(%{}) == false
   end
 
   test "is_exception/1 and other match works" do
@@ -395,26 +432,28 @@ defmodule KernelTest do
     assert exception_or_map?(10) == false
   end
 
-  defp exception?(arg, name) when is_exception(arg, name), do: true
-  defp exception?(_arg, _name), do: false
+  defp delegate_is_exception(arg, name), do: is_exception(arg, name)
+
+  defp guarded_is_exception(arg, name) when is_exception(arg, name), do: true
+  defp guarded_is_exception(_arg, _name), do: false
 
   defp exception_or_map?(arg, name) when is_exception(arg, name) or is_map(arg), do: true
   defp exception_or_map?(_arg, _name), do: false
 
   test "is_exception/2" do
-    assert is_exception(%{}, RuntimeError) == false
-    assert is_exception([], RuntimeError) == false
-    assert is_exception(%RuntimeError{}, RuntimeError) == true
-    assert is_exception(%RuntimeError{}, Macro.Env) == false
-    assert exception?(%RuntimeError{}, RuntimeError) == true
-    assert exception?(%RuntimeError{}, Macro.Env) == false
-    assert exception?(%{__exception__: "foo"}, "foo") == false
-    assert exception?(%{__exception__: "foo"}, RuntimeError) == false
-    assert exception?([], RuntimeError) == false
-    assert exception?(%{}, RuntimeError) == false
+    assert delegate_is_exception(%{}, RuntimeError) == false
+    assert delegate_is_exception([], RuntimeError) == false
+    assert delegate_is_exception(%RuntimeError{}, RuntimeError) == true
+    assert delegate_is_exception(%RuntimeError{}, Macro.Env) == false
+    assert guarded_is_exception(%RuntimeError{}, RuntimeError) == true
+    assert guarded_is_exception(%RuntimeError{}, Macro.Env) == false
+    assert guarded_is_exception(%{__exception__: "foo"}, "foo") == false
+    assert guarded_is_exception(%{__exception__: "foo"}, RuntimeError) == false
+    assert guarded_is_exception([], RuntimeError) == false
+    assert guarded_is_exception(%{}, RuntimeError) == false
 
     assert_raise ArgumentError, "argument error", fn ->
-      is_exception(%{}, not_atom())
+      delegate_is_exception(%{}, not_atom())
     end
   end
 
@@ -426,10 +465,6 @@ defmodule KernelTest do
 
   test "then/2" do
     assert 1 |> then(fn x -> x * 2 end) == 2
-
-    assert_raise BadArityError, fn ->
-      1 |> then(fn x, y -> x * y end)
-    end
   end
 
   test "if/2 boolean optimization does not leak variables during expansion" do
@@ -447,6 +482,8 @@ defmodule KernelTest do
   end
 
   describe "in/2" do
+    # This test may take a long time on machine with low resources
+    @tag timeout: 120_000
     test "too large list in guards" do
       defmodule TooLargeList do
         @list Enum.map(1..1024, & &1)
@@ -539,28 +576,6 @@ defmodule KernelTest do
       assert fun_in(17.0) == :none
     end
 
-    def dynamic_in(x, y, z) when x in y..z, do: true
-    def dynamic_in(_x, _y, _z), do: false
-
-    test "in dynamic range function guard" do
-      assert dynamic_in(1, 1, 3)
-      assert dynamic_in(2, 1, 3)
-      assert dynamic_in(3, 1, 3)
-
-      assert dynamic_in(1, 3, 1)
-      assert dynamic_in(2, 3, 1)
-      assert dynamic_in(3, 3, 1)
-
-      refute dynamic_in(0, 1, 3)
-      refute dynamic_in(4, 1, 3)
-      refute dynamic_in(0, 3, 1)
-      refute dynamic_in(4, 3, 1)
-
-      refute dynamic_in(2, 1.0, 3)
-      refute dynamic_in(2, 1, 3.0)
-      refute dynamic_in(2.0, 1, 3)
-    end
-
     def dynamic_step_in(x, y, z, w) when x in y..z//w, do: true
     def dynamic_step_in(_x, _y, _z, _w), do: false
 
@@ -602,7 +617,7 @@ defmodule KernelTest do
       assert case_in(1, 1..3) == true
       assert case_in(2, 1..3) == true
       assert case_in(3, 1..3) == true
-      assert case_in(-3, -1..-3) == true
+      assert case_in(-3, -1..-3//-1) == true
     end
 
     def map_dot(map) when map.field, do: true
@@ -761,6 +776,9 @@ defmodule KernelTest do
 
       assert expand_to_string(quote(do: foo in 1..1)) ==
                ":erlang.\"=:=\"(foo, 1)"
+
+      assert expand_to_string(quote(do: 2 in 1..3)) ==
+               ":erlang.andalso(:erlang.is_integer(2), :erlang.andalso(:erlang.>=(2, 1), :erlang.\"=<\"(2, 3)))"
     end
 
     defp expand_to_string(ast, environment_or_context \\ __ENV__)
@@ -787,7 +805,7 @@ defmodule KernelTest do
 
     test ":struct" do
       assert Kernel.__info__(:struct) == nil
-      assert hd(URI.__info__(:struct)) == %{field: :scheme, required: false}
+      assert [%{field: :scheme, default: nil} | _] = URI.__info__(:struct)
     end
 
     test "others" do
@@ -956,6 +974,22 @@ defmodule KernelTest do
       defstruct [:foo, :bar]
     end
 
+    test "get_in/1" do
+      users = %{"john" => %{age: 27}, :meg => %{age: 23}}
+      assert get_in(users["john"][:age]) == 27
+      assert get_in(users["dave"][:age]) == nil
+      assert get_in(users["john"].age) == 27
+      assert get_in(users["dave"].age) == nil
+      assert get_in(users.meg[:age]) == 23
+      assert get_in(users.meg.age) == 23
+
+      is_nil = nil
+      assert get_in(is_nil.age) == nil
+
+      assert_raise KeyError, ~r"key :unknown not found", fn -> get_in(users.unknown) end
+      assert_raise KeyError, ~r"key :unknown not found", fn -> get_in(users.meg.unknown) end
+    end
+
     test "get_in/2" do
       users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
       assert get_in(users, ["john", :age]) == 27
@@ -966,20 +1000,12 @@ defmodule KernelTest do
       assert get_in(map, ["fruits", by_index(0)]) == "banana"
       assert get_in(map, ["fruits", by_index(3)]) == nil
       assert get_in(map, ["unknown", by_index(3)]) == nil
-
-      assert_raise FunctionClauseError, fn ->
-        get_in(users, [])
-      end
     end
 
     test "put_in/3" do
       users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
       assert put_in(users, ["john", :age], 28) == %{"john" => %{age: 28}, "meg" => %{age: 23}}
-
-      assert_raise FunctionClauseError, fn ->
-        put_in(users, [], %{})
-      end
 
       assert_raise ArgumentError, "could not put/update key \"john\" on a nil value", fn ->
         put_in(nil, ["john", :age], 28)
@@ -1012,10 +1038,6 @@ defmodule KernelTest do
 
       assert update_in(users, ["john", :age], &(&1 + 1)) ==
                %{"john" => %{age: 28}, "meg" => %{age: 23}}
-
-      assert_raise FunctionClauseError, fn ->
-        update_in(users, [], fn _ -> %{} end)
-      end
 
       assert_raise ArgumentError, "could not put/update key \"john\" on a nil value", fn ->
         update_in(nil, ["john", :age], fn _ -> %{} end)
@@ -1065,10 +1087,6 @@ defmodule KernelTest do
 
       assert get_and_update_in(map, ["unknown", by_index(3)], &{&1, []}) ==
                {:oops, %{"fruits" => ["banana", "apple", "orange"], "unknown" => []}}
-
-      assert_raise FunctionClauseError, fn ->
-        update_in(users, [], fn _ -> %{} end)
-      end
     end
 
     test "get_and_update_in/2" do
@@ -1098,19 +1116,14 @@ defmodule KernelTest do
     test "pop_in/2" do
       users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
 
-      assert pop_in(users, ["john", :age]) == {27, %{"john" => %{}, "meg" => %{age: 23}}}
+      assert pop_in(users, ["john", :age]) ==
+               {27, %{"john" => %{}, "meg" => %{age: 23}}}
 
-      assert pop_in(users, ["bob", :age]) == {nil, %{"john" => %{age: 27}, "meg" => %{age: 23}}}
+      assert pop_in(users, ["bob", :age]) ==
+               {nil, %{"john" => %{age: 27}, "meg" => %{age: 23}}}
 
-      assert pop_in([], [:foo, :bar]) == {nil, []}
-
-      assert_raise FunctionClauseError, fn ->
-        pop_in(users, [])
-      end
-
-      assert_raise FunctionClauseError, "no function clause matching in Kernel.pop_in/2", fn ->
-        pop_in(users, :not_a_list)
-      end
+      assert pop_in([], [:foo, :bar]) ==
+               {nil, []}
     end
 
     test "pop_in/2 with paths" do
@@ -1131,6 +1144,8 @@ defmodule KernelTest do
 
     test "pop_in/1" do
       users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+
+      assert pop_in(users["john"]) == {%{age: 27}, %{"meg" => %{age: 23}}}
 
       assert pop_in(users["john"][:age]) == {27, %{"john" => %{}, "meg" => %{age: 23}}}
       assert pop_in(users["john"][:name]) == {nil, %{"john" => %{age: 27}, "meg" => %{age: 23}}}
@@ -1209,11 +1224,11 @@ defmodule KernelTest do
     end
 
     test "local call" do
-      assert [1, [2], 3] |> List.flatten() |> local == [2, 4, 6]
+      assert [1, [2], 3] |> List.flatten() |> local() == [2, 4, 6]
     end
 
     test "with capture" do
-      assert Enum.map([1, 2, 3], &(&1 |> twice |> twice)) == [4, 8, 12]
+      assert Enum.map([1, 2, 3], &(&1 |> twice() |> twice())) == [4, 8, 12]
     end
 
     test "with anonymous functions" do
@@ -1354,7 +1369,7 @@ defmodule KernelTest do
     assert is_map_key(Map.new(a: 1), :a) == true
 
     assert_raise BadMapError, fn ->
-      is_map_key(empty_list(), :a)
+      is_map_key(Process.get(:unused, []), :a)
     end
 
     case Map.new(a: 1) do
@@ -1376,7 +1391,7 @@ defmodule KernelTest do
   test "tl/1" do
     assert tl([:one]) == []
     assert tl([1, 2, 3]) == [2, 3]
-    assert_raise ArgumentError, fn -> tl(empty_list()) end
+    assert_raise ArgumentError, fn -> tl(Process.get(:unused, [])) end
 
     assert tl([:a | :b]) == :b
     assert tl([:a, :b | :c]) == [:b | :c]
@@ -1384,7 +1399,7 @@ defmodule KernelTest do
 
   test "hd/1" do
     assert hd([1, 2, 3, 4]) == 1
-    assert_raise ArgumentError, fn -> hd(empty_list()) end
+    assert_raise ArgumentError, fn -> hd(Process.get(:unused, [])) end
     assert hd([1 | 2]) == 1
   end
 
@@ -1509,6 +1524,75 @@ defmodule KernelTest do
       assert_eval_raise(ArgumentError, Regex.compile!(message), """
       {:ok, dbg()} = make_ref()
       """)
+    end
+  end
+
+  describe "to_timeout/1" do
+    test "works with keyword lists" do
+      assert to_timeout(hour: 2) == 1000 * 60 * 60 * 2
+      assert to_timeout(minute: 74) == 1000 * 60 * 74
+      assert to_timeout(second: 1293) == 1_293_000
+      assert to_timeout(millisecond: 1_234_123) == 1_234_123
+
+      assert to_timeout(hour: 2, minute: 30) == 1000 * 60 * 60 * 2 + 1000 * 60 * 30
+      assert to_timeout(minute: 30, hour: 2) == 1000 * 60 * 60 * 2 + 1000 * 60 * 30
+      assert to_timeout(minute: 74, second: 30) == 1000 * 60 * 74 + 1000 * 30
+    end
+
+    test "raises on invalid values with keyword lists" do
+      for unit <- [:hour, :minute, :second, :millisecond],
+          value <- [-1, 1.0, :not_an_int] do
+        message =
+          "timeout component #{inspect(unit)} must be a non-negative integer, " <>
+            "got: #{inspect(value)}"
+
+        assert_raise ArgumentError, message, fn -> to_timeout([{unit, value}]) end
+      end
+    end
+
+    test "raises on invalid keys with keyword lists" do
+      message =
+        "timeout component :not_a_unit is not a valid timeout component, valid values are: " <>
+          ":week, :day, :hour, :minute, :second, :millisecond"
+
+      assert_raise ArgumentError, message, fn -> to_timeout(minute: 3, not_a_unit: 1) end
+    end
+
+    test "raises on duplicated components with keyword lists" do
+      assert_raise ArgumentError, "timeout component :minute is duplicated", fn ->
+        to_timeout(minute: 3, hour: 2, minute: 1)
+      end
+    end
+
+    test "works with durations" do
+      assert to_timeout(Duration.new!(hour: 2)) == 1000 * 60 * 60 * 2
+      assert to_timeout(Duration.new!(minute: 74)) == 1000 * 60 * 74
+      assert to_timeout(Duration.new!(second: 1293)) == 1_293_000
+      assert to_timeout(Duration.new!(microsecond: {1_234_123, 4})) == 1_234
+
+      assert to_timeout(Duration.new!(hour: 2, minute: 30)) == 1000 * 60 * 60 * 2 + 1000 * 60 * 30
+      assert to_timeout(Duration.new!(minute: 30, hour: 2)) == 1000 * 60 * 60 * 2 + 1000 * 60 * 30
+      assert to_timeout(Duration.new!(minute: 74, second: 30)) == 1000 * 60 * 74 + 1000 * 30
+    end
+
+    test "raises on durations with non-zero months or days" do
+      message = "duration with a non-zero month cannot be reliably converted to timeouts"
+
+      assert_raise ArgumentError, message, fn ->
+        to_timeout(Duration.new!(month: 3))
+      end
+
+      message = "duration with a non-zero year cannot be reliably converted to timeouts"
+
+      assert_raise ArgumentError, message, fn ->
+        to_timeout(Duration.new!(year: 1))
+      end
+    end
+
+    test "works with timeouts" do
+      assert to_timeout(1_000) == 1_000
+      assert to_timeout(0) == 0
+      assert to_timeout(:infinity) == :infinity
     end
   end
 end

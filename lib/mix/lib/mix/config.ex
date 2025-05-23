@@ -1,5 +1,10 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Config do
   @moduledoc false
+  @moduledoc deprecated: "Use the Config module instead"
 
   @deprecated "Use the Config module instead"
   defmacro __using__(_) do

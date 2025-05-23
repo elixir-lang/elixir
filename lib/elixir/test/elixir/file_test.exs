@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule FileTest do
@@ -14,7 +18,7 @@ defmodule FileTest do
     # Following Erlang's underlying implementation
     #
     # Renaming files
-    # :ok               -> rename file to existing file default behaviour
+    # :ok               -> rename file to existing file default behavior
     # {:error, :eisdir} -> rename file to existing empty dir
     # {:error, :eisdir} -> rename file to existing non-empty dir
     # :ok               -> rename file to non-existing location
@@ -26,7 +30,7 @@ defmodule FileTest do
     # :ok                -> rename dir to non-existing leaf location
     # {:error, ??}       -> rename dir to non-existing parent location
     # :ok                -> rename dir to itself
-    # :ok                -> rename dir to existing empty dir default behaviour
+    # :ok                -> rename dir to existing empty dir default behavior
     # {:error, :eexist}  -> rename dir to existing empty dir
     # {:error, :einval}  -> rename parent dir to existing sub dir
     # {:error, :einval}  -> rename parent dir to non-existing sub dir
@@ -35,7 +39,7 @@ defmodule FileTest do
     # other tests
     # {:error, :enoent} -> rename unknown source
     # :ok               -> rename preserves mode
-    test "rename file to existing file default behaviour" do
+    test "rename file to existing file default behavior" do
       src = tmp_fixture_path("file.txt")
       dest = tmp_path("tmp.file")
 
@@ -128,7 +132,7 @@ defmodule FileTest do
       end
     end
 
-    test "rename! file to existing file default behaviour" do
+    test "rename! file to existing file default behavior" do
       src = tmp_fixture_path("file.txt")
       dest = tmp_path("tmp.file")
 
@@ -256,7 +260,7 @@ defmodule FileTest do
       end
     end
 
-    test "rename dir to existing empty dir default behaviour" do
+    test "rename dir to existing empty dir default behavior" do
       src = tmp_fixture_path("cp_r")
       dest = tmp_path("tmp")
 
@@ -431,11 +435,13 @@ defmodule FileTest do
       try do
         assert File.exists?(dest)
 
-        assert File.cp(src, dest, fn src_file, dest_file ->
-                 assert src_file == src
-                 assert dest_file == dest
-                 false
-               end) == :ok
+        assert File.cp(src, dest,
+                 on_conflict: fn src_file, dest_file ->
+                   assert src_file == src
+                   assert dest_file == dest
+                   false
+                 end
+               ) == :ok
 
         assert File.read!(dest) == "hello"
       after
@@ -560,7 +566,7 @@ defmodule FileTest do
 
       try do
         File.touch!(dest)
-        assert File.cp_r(src, dest) |> io_error?
+        assert File.cp_r(src, dest) |> io_error?()
       after
         File.rm_rf(dest)
       end
@@ -686,8 +692,8 @@ defmodule FileTest do
     end
 
     test "cp_r with src dir and dest dir using lists" do
-      src = fixture_path("cp_r") |> to_charlist
-      dest = tmp_path("tmp") |> to_charlist
+      src = fixture_path("cp_r") |> to_charlist()
+      dest = tmp_path("tmp") |> to_charlist()
 
       File.mkdir(dest)
 
@@ -734,11 +740,13 @@ defmodule FileTest do
       try do
         assert File.exists?(tmp_path("tmp/a/1.txt"))
 
-        File.cp_r(src, dest, fn src_file, dest_file ->
-          assert src_file == fixture_path("cp_r/a/1.txt")
-          assert dest_file == tmp_path("tmp/a/1.txt")
-          false
-        end)
+        File.cp_r(src, dest,
+          on_conflict: fn src_file, dest_file ->
+            assert src_file == fixture_path("cp_r/a/1.txt")
+            assert dest_file == tmp_path("tmp/a/1.txt")
+            false
+          end
+        )
 
         assert File.read!(tmp_path("tmp/a/1.txt")) == "hello"
       after
@@ -790,7 +798,7 @@ defmodule FileTest do
       assert src_mode == dest_mode
 
       # On overwrite
-      File.cp!(src, dest, fn _, _ -> true end)
+      File.cp!(src, dest, on_conflict: fn _, _ -> true end)
       %File.Stat{mode: src_mode} = File.stat!(src)
       %File.Stat{mode: dest_mode} = File.stat!(dest)
       assert src_mode == dest_mode
@@ -1012,7 +1020,7 @@ defmodule FileTest do
     end
 
     test "mkdir with list" do
-      fixture = tmp_path("tmp_test") |> to_charlist
+      fixture = tmp_path("tmp_test") |> to_charlist()
 
       try do
         refute File.exists?(fixture)
@@ -1083,7 +1091,7 @@ defmodule FileTest do
     end
 
     test "mkdir_p with nested directory and list" do
-      base = tmp_path("tmp_test") |> to_charlist
+      base = tmp_path("tmp_test") |> to_charlist()
       fixture = Path.join(base, "test")
       refute File.exists?(base)
 
@@ -1140,6 +1148,28 @@ defmodule FileTest do
 
       assert_raise File.Error, message, fn ->
         File.mkdir_p!(invalid)
+      end
+    end
+
+    @tag :unix
+    test "mkdir_p with non-accessible parent directory" do
+      fixture = tmp_path("tmp_test_parent")
+
+      try do
+        refute File.exists?(fixture)
+        assert File.mkdir_p!(fixture) == :ok
+        %File.Stat{mode: orig_mode} = File.stat!(fixture)
+        assert File.chmod!(fixture, 0o000) == :ok
+
+        child = Path.join(fixture, "child")
+        refute File.exists?(child)
+
+        assert File.mkdir_p(child) == {:error, :eacces}
+        refute File.exists?(child)
+
+        assert File.chmod!(fixture, orig_mode) == :ok
+      after
+        File.rm_rf(fixture)
       end
     end
   end
@@ -1287,7 +1317,7 @@ defmodule FileTest do
     end
 
     test "rm_rf with charlist" do
-      fixture = tmp_path("tmp") |> to_charlist
+      fixture = tmp_path("tmp") |> to_charlist()
       File.mkdir(fixture)
       File.cp_r!(fixture_path("cp_r"), fixture)
 
@@ -1794,7 +1824,7 @@ defmodule FileTest do
         stat = File.stat!(fixture)
         assert stat.mode == 0o100666
 
-        unless windows?() do
+        if not windows?() do
           assert File.chmod(fixture, 0o100777) == :ok
           stat = File.stat!(fixture)
           assert stat.mode == 0o100777
@@ -1814,7 +1844,7 @@ defmodule FileTest do
         stat = File.stat!(fixture)
         assert stat.mode == 0o100666
 
-        unless windows?() do
+        if not windows?() do
           assert File.chmod!(fixture, 0o100777) == :ok
           stat = File.stat!(fixture)
           assert stat.mode == 0o100777

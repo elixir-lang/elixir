@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Config.ProviderTest do
@@ -41,8 +45,9 @@ defmodule Config.ProviderTest do
              {:elixir, [:unknown, :nested, :key], {:ok, :value}}
            ]) == :ok
 
-    assert Config.Provider.validate_compile_env([{:elixir, [:unknown, :nested, :unknown], :error}]) ==
-             :ok
+    assert Config.Provider.validate_compile_env([
+             {:elixir, [:unknown, :nested, :unknown], :error}
+           ]) == :ok
 
     assert {:error, msg} =
              Config.Provider.validate_compile_env([{:elixir, [:unknown, :nested], :error}])

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Keyword do
   @moduledoc """
   A keyword list is a list that consists exclusively of two-element tuples.
@@ -6,7 +10,7 @@ defmodule Keyword do
   The second element, known as the *value*, can be any term.
 
   Keywords are mostly used to work with optional values. For a general introduction
-  to keywords and how the compare with maps, see our [Keyword and Maps](keywords-and-maps.md)
+  to keywords and how they compare with maps, see our [Keyword and Maps](keywords-and-maps.md)
   guide.
 
   ## Examples
@@ -102,6 +106,9 @@ defmodule Keyword do
   @type key :: atom
   @type value :: any
 
+  @typedoc since: "1.17.0"
+  @type default :: any
+
   @type t :: [{key, value}]
   @type t(value) :: [{key, value}]
 
@@ -112,6 +119,8 @@ defmodule Keyword do
 
       iex> Keyword.from_keys([:foo, :bar, :baz], :atom)
       [foo: :atom, bar: :atom, baz: :atom]
+      iex> Keyword.from_keys([], :atom)
+      []
 
   """
   @doc since: "1.14.0"
@@ -386,7 +395,7 @@ defmodule Keyword do
       3
 
   """
-  @spec get(t, key, value) :: value
+  @spec get(t, key, default) :: value | default
   def get(keywords, key, default \\ nil) when is_list(keywords) and is_atom(key) do
     case :lists.keyfind(key, 1, keywords) do
       {^key, value} -> value
@@ -520,7 +529,8 @@ defmodule Keyword do
       iex> Keyword.get_and_update!([a: 1], :b, fn current_value ->
       ...>   {current_value, "new value!"}
       ...> end)
-      ** (KeyError) key :b not found in: [a: 1]
+      ** (KeyError) key :b not found in:
+      ...
 
       iex> Keyword.get_and_update!([a: 1], :a, fn _ ->
       ...>   :pop
@@ -587,7 +597,8 @@ defmodule Keyword do
       iex> Keyword.fetch!([a: 1], :a)
       1
       iex> Keyword.fetch!([a: 1], :b)
-      ** (KeyError) key :b not found in: [a: 1]
+      ** (KeyError) key :b not found in:
+      ...
 
   """
   @spec fetch!(t, key) :: value
@@ -731,6 +742,10 @@ defmodule Keyword do
 
       iex> Keyword.delete_first([a: 1, b: 2, a: 3], :a)
       [b: 2, a: 3]
+
+      iex> Keyword.delete_first([a: 1, b: 2, b: 3], :b)
+      [a: 1, b: 3]
+
       iex> Keyword.delete_first([b: 2], :a)
       [b: 2]
 
@@ -749,10 +764,6 @@ defmodule Keyword do
 
   defp delete_first_key([{_, _} = pair | tail], key) do
     [pair | delete_first_key(tail, key)]
-  end
-
-  defp delete_first_key([], _key) do
-    []
   end
 
   @doc """
@@ -870,7 +881,8 @@ defmodule Keyword do
       [a: 1, b: :new, c: 3]
 
       iex> Keyword.replace!([a: 1], :b, 2)
-      ** (KeyError) key :b not found in: [a: 1]
+      ** (KeyError) key :b not found in:
+      ...
 
   """
   @doc since: "1.5.0"
@@ -954,6 +966,36 @@ defmodule Keyword do
   def equal?(left, right) when is_list(left) and is_list(right) do
     :lists.sort(left) === :lists.sort(right)
   end
+
+  @doc """
+  Intersects two keyword lists, returning a keyword with the common keys.
+
+  By default, it returns the values of the intersected keys in `keyword2`.
+  The keys are returned in the order found in `keyword1`.
+
+  ## Examples
+
+      iex> Keyword.intersect([a: 1, b: 2], [b: "b", c: "c"])
+      [b: "b"]
+
+      iex> Keyword.intersect([a: 1, b: 2], [b: 2, c: 3], fn _k, v1, v2 ->
+      ...>   v1 + v2
+      ...> end)
+      [b: 4]
+
+  """
+  @doc since: "1.17.0"
+  @spec intersect(keyword, keyword, (key, value, value -> value)) :: keyword
+  def intersect(keyword1, keyword2, fun \\ fn _key, _v1, v2 -> v2 end)
+
+  def intersect([{k, v1} | keyword1], keyword2, fun) do
+    case :lists.keyfind(k, 1, keyword2) do
+      {_, v2} -> [{k, fun.(k, v1, v2)} | intersect(keyword1, keyword2, fun)]
+      false -> intersect(keyword1, keyword2, fun)
+    end
+  end
+
+  def intersect([], _keyword2, _fun), do: []
 
   @doc """
   Merges two keyword lists into one.
@@ -1096,7 +1138,8 @@ defmodule Keyword do
       [a: 1, b: 4, c: 3]
 
       iex> Keyword.update!([a: 1], :b, &(&1 * 2))
-      ** (KeyError) key :b not found in: [a: 1]
+      ** (KeyError) key :b not found in:
+      ...
 
   """
   @spec update!(t, key, (current_value :: value -> new_value :: value)) :: t
@@ -1287,7 +1330,7 @@ defmodule Keyword do
       {1, []}
 
   """
-  @spec pop(t, key, value) :: {value, t}
+  @spec pop(t, key, default) :: {value | default, t}
   def pop(keywords, key, default \\ nil) when is_list(keywords) and is_atom(key) do
     case fetch(keywords, key) do
       {:ok, value} -> {value, delete(keywords, key)}
@@ -1309,7 +1352,8 @@ defmodule Keyword do
       iex> Keyword.pop!([a: 1, a: 2], :a)
       {1, []}
       iex> Keyword.pop!([a: 1], :b)
-      ** (KeyError) key :b not found in: [a: 1]
+      ** (KeyError) key :b not found in:
+      ...
 
   """
   @doc since: "1.10.0"
@@ -1403,7 +1447,7 @@ defmodule Keyword do
       {1, [a: 2]}
 
   """
-  @spec pop_first(t, key, value) :: {value, t}
+  @spec pop_first(t, key, default) :: {value | default, t}
   def pop_first(keywords, key, default \\ nil) when is_list(keywords) and is_atom(key) do
     case :lists.keytake(key, 1, keywords) do
       {:value, {^key, value}, rest} -> {value, rest}

@@ -1,10 +1,14 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 -module(elixir_env).
 -include("elixir.hrl").
 -export([
-  new/0, to_caller/1, with_vars/2, reset_vars/1, env_to_ex/1, set_prematch_from_config/1,
+  new/0, to_caller/1, merge_vars/2, with_vars/2, reset_vars/1, env_to_ex/1,
   reset_unused_vars/1, check_unused_vars/2, merge_and_check_unused_vars/3, calculate_span/2,
   trace/2, format_error/1,
-  reset_read/2, prepare_write/1, close_write/2
+  reset_read/2, prepare_write/1, prepare_write/2, close_write/2
 ]).
 
 new() ->
@@ -32,7 +36,7 @@ trace(Event, #{tracers := Tracers} = E) ->
 
 to_caller({Line, #elixir_ex{vars={Read, _}}, Env}) ->
   Env#{line := Line, versioned_vars := Read};
-to_caller(#{} = Env) ->
+to_caller(#{'__struct__' := 'Elixir.Macro.Env'} = Env) ->
   Env.
 
 with_vars(Env, Vars) when is_list(Vars) ->
@@ -45,21 +49,30 @@ with_vars(Env, #{} = Vars) ->
 reset_vars(Env) ->
   Env#{versioned_vars := #{}}.
 
-set_prematch_from_config(#elixir_ex{} = S) ->
-  S#elixir_ex{prematch=elixir_config:get(on_undefined_variable)}.
-
 %% CONVERSIONS
 
 env_to_ex(#{context := match, versioned_vars := Vars}) ->
   Counter = map_size(Vars),
-  #elixir_ex{prematch={Vars, Counter, none}, vars={Vars, false}, unused={#{}, Counter}};
+  #elixir_ex{
+    prematch={Vars, {#{}, []}, Counter},
+    vars={Vars, false},
+    unused={#{}, Counter}
+  };
 env_to_ex(#{versioned_vars := Vars}) ->
-  set_prematch_from_config(#elixir_ex{vars={Vars, false}, unused={#{}, map_size(Vars)}}).
+  #elixir_ex{
+    vars={Vars, false},
+    unused={#{}, map_size(Vars)}
+  }.
 
 %% VAR HANDLING
 
 reset_read(#elixir_ex{vars={_, Write}} = S, #elixir_ex{vars={Read, _}}) ->
   S#elixir_ex{vars={Read, Write}}.
+
+prepare_write(S, #{context := nil}) ->
+  prepare_write(S);
+prepare_write(S, _) ->
+  S.
 
 prepare_write(#elixir_ex{vars={Read, _}} = S) ->
   S#elixir_ex{vars={Read, Read}}.
@@ -86,7 +99,7 @@ reset_unused_vars(#elixir_ex{unused={_Unused, Version}} = S) ->
 
 check_unused_vars(#elixir_ex{unused={Unused, _Version}}, E) ->
   [elixir_errors:file_warn(calculate_span(Meta, Name), E, ?MODULE, {unused_var, Name, Overridden}) ||
-    {{{Name, nil}, _}, {Meta, Overridden}} <- maps:to_list(Unused), is_unused_var(Name)],
+    {{{Name, _Kind}, _Count}, {Meta, Overridden}} <- maps:to_list(Unused), is_unused_var(Name)],
   E.
 
 calculate_span(Meta, Name) ->
@@ -115,8 +128,8 @@ merge_and_check_unused_vars(Current, Unused, ClauseUnused, E) ->
           Acc
       end;
 
-    ({{Name, Kind}, _Count}, {Meta, Overridden}, Acc) ->
-      case (Kind == nil) andalso is_unused_var(Name) of
+    ({{Name, _Kind}, _Count}, {Meta, Overridden}, Acc) ->
+      case is_unused_var(Name) of
         true ->
           Warn = {unused_var, Name, Overridden},
           elixir_errors:file_warn(Meta, E, ?MODULE, Warn);

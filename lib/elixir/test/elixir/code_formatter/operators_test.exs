@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Code.Formatter.OperatorsTest do
@@ -63,6 +67,15 @@ defmodule Code.Formatter.OperatorsTest do
       assert_format "not !1", "not (!1)"
       assert_format "not(!1)", "not (!1)"
       assert_format "not(1 + 1)", "not (1 + 1)"
+      assert_format "-(2**2)", "-(2 ** 2)"
+    end
+
+    test "wraps operand in ambiguous calls" do
+      assert_same "def -(2 ** 2)"
+      assert_same "def -var"
+      assert_format "def (-(2 ** 2))", "def -(2 ** 2)"
+      assert_format "def --var", "def -- var"
+      assert_format "def -+var", "def -(+var)"
     end
 
     test "does not wrap operand if it is a nestable operator" do
@@ -414,6 +427,9 @@ defmodule Code.Formatter.OperatorsTest do
 
     test "with multiple of the same entry and right associative" do
       assert_same "foo ++ bar ++ baz"
+      assert_format "foo -- bar -- baz", "foo -- (bar -- baz)"
+      assert_same "foo +++ bar +++ baz"
+      assert_format "foo --- bar --- baz", "foo --- (bar --- baz)"
 
       bad = "a ++ b ++ c"
 
@@ -936,6 +952,7 @@ defmodule Code.Formatter.OperatorsTest do
       assert_format "&(Mod.foo/1)", "&Mod.foo/1"
       assert_format "&(Mod.++/1)", "&Mod.++/1"
       assert_format ~s[&(Mod."foo bar"/1)], ~s[&Mod."foo bar"/1]
+      assert_format ~S[&(Mod."foo\nbar"/1)], ~S[&Mod."foo\nbar"/1]
 
       # Invalid
       assert_format "& Mod.foo/bar", "&(Mod.foo() / bar)"

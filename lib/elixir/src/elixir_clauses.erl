@@ -1,26 +1,179 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 %% Handle code related to args, guard and -> matching for case,
 %% fn, receive and friends. try is handled in elixir_try.
 -module(elixir_clauses).
--export([match/5, clause/6, def/3, head/3,
+-export([parallel_match/4, match/6, clause/6, def/3, head/4,
          'case'/4, 'receive'/4, 'try'/4, 'cond'/4, with/4,
          format_error/1]).
 -import(elixir_errors, [file_error/4, file_warn/4]).
 -include("elixir.hrl").
 
-match(Fun, Expr, AfterS, _BeforeS, #{context := match} = E) ->
-  Fun(Expr, AfterS, E);
-match(Fun, Expr, AfterS, BeforeS, E) ->
+%% Deal with parallel matches and loops in variables
+
+parallel_match(Meta, Expr, S, #{context := match} = E) ->
+  #elixir_ex{vars={_Read, Write}} = S,
+  Matches = unpack_match(Expr, Meta, [], E),
+
+  {[{_, EHead} | ETail], EWrites, SM, EM} =
+    lists:foldl(fun({EMeta, Match}, {AccMatches, AccWrites, SI, EI}) ->
+      #elixir_ex{vars={Read, _Write}} = SI,
+      {EMatch, SM, EM} = elixir_expand:expand(Match, SI#elixir_ex{vars={Read, #{}}}, EI),
+      #elixir_ex{vars={_, EWrite}} = SM,
+      {[{EMeta, EMatch} | AccMatches], [EWrite | AccWrites], SM, EM}
+    end, {[], [], S, E}, Matches),
+
+  EMatch =
+    lists:foldl(fun({EMeta, EMatch}, Acc) ->
+      {'=', EMeta, [EMatch, Acc]}
+    end, EHead, ETail),
+
+  #elixir_ex{vars={VRead, _}, prematch={PRead, Cycles, PInfo}} = SM,
+  {PCycles, PWrites} = store_cycles(EWrites, Cycles, #{}),
+  VWrite = (Write /= false) andalso elixir_env:merge_vars(Write, PWrites),
+  {EMatch, SM#elixir_ex{vars={VRead, VWrite}, prematch={PRead, PCycles, PInfo}}, EM}.
+
+unpack_match({'=', Meta, [{_, VarMeta, _} = Node, Node]}, _Meta, Acc, E) ->
+  %% TODO: remove this clause on Elixir v1.23
+  file_warn(VarMeta, ?key(E, file), ?MODULE, {duplicate_match, Node}),
+  unpack_match(Node, Meta, Acc, E);
+unpack_match({'=', Meta, [Left, Right]}, _Meta, Acc, E) ->
+  unpack_match(Left, Meta, unpack_match(Right, Meta, Acc, E), E);
+unpack_match(Node, Meta, Acc, _E) ->
+  [{Meta, Node} | Acc].
+
+store_cycles([Write | Writes], {Cycles, SkipList}, Acc) ->
+  %% Compute the variables this parallel pattern depends on
+  DependsOn = lists:foldl(fun maps:merge/2, Acc, Writes),
+
+  %% For each variable on a sibling, we store it inside the graph (Cycles).
+  %% The graph will by definition have at least one degree cycles. We need
+  %% to find variables which depend on each other more than once (tagged as
+  %% error below) and also all second-degree (or later) cycles. In other
+  %% words, take this code:
+  %%
+  %%     {x = y, x = {:ok, y}} = expr()
+  %%
+  %% The first parallel match will say we store the following cycle:
+  %%
+  %%     #{{x,nil} => #{{y,nil} => 1}, {y,nil} => #{{x,nil} => 0}}
+  %%
+  %% That's why one degree cycles are allowed. However, once we go
+  %% over the next parallel pattern, we will have:
+  %%
+  %%     #{{x,nil} => #{{y,nil} => error}, {y,nil} => #{{x,nil} => error}}
+  %%
+  AccCycles =
+    maps:fold(fun(Pair, _, AccCycles) ->
+      maps:update_with(Pair, fun(Current) ->
+        maps:merge_with(fun(_, _, _) -> error end, Current, DependsOn)
+      end, DependsOn, AccCycles)
+    end, Cycles, Write),
+
+  %% The SkipList keeps variables that are seen as defined together by other
+  %% nodes. Those must be skipped on the graph traversal, as they will always
+  %% contain cycles between them. For example:
+  %%
+  %%     {{a} = b} = c = expr()
+  %%
+  %% In the example above, c sees "a" and "b" as defined together and therefore
+  %% one should not point to the other when looking for cycles.
+  AccSkipList =
+    case map_size(DependsOn) > 1 of
+      true -> [DependsOn | SkipList];
+      false -> SkipList
+    end,
+
+  store_cycles(Writes, {AccCycles, AccSkipList}, maps:merge(Acc, Write));
+store_cycles([], Cycles, Acc) ->
+  {Cycles, Acc}.
+
+validate_cycles({Cycles, SkipList}, Meta, Expr, E) ->
+  maps:fold(fun(Current, _DependsOn, Seen) ->
+    recur_cycles(Cycles, Current, root, Seen, SkipList, Meta, Expr, E)
+  end, #{}, Cycles).
+
+recur_cycles(Cycles, Current, Source, Seen, SkipList, Meta, Expr, E) ->
+  case is_map_key(Current, Seen) of
+    true ->
+      Seen;
+
+    false ->
+      case maps:get(Current, Cycles) of
+        #{Current := _} ->
+          file_error(Meta, E, ?MODULE, {recursive, [Current], Expr});
+
+        DependsOn ->
+          %% We traverse over the skip list. For each entry that contains ourselves,
+          %% we will split the remaining variables in two groups: one which we have
+          %% direct dependencies and skip once and ones that we always skip.
+          %%
+          %% For example, take `foo = {bar = {baz, bat}}`. `baz` and `bat` never depend
+          %% on each other, so we always skip `baz` and `bat` whenever any of them are
+          %% seen. However, while `bar` is in the same group as `baz` and `bat` (from the
+          %% point of view of `foo`), it depends on them, so it only skips once.
+          {OnceKeys, AlwaysKeys} =
+            lists:foldl(fun
+              (#{Current := _} = Skip, Acc) ->
+                maps:fold(fun(K, _, {AccOnce, AccAlways}) ->
+                  case DependsOn of
+                    #{K := _} -> {[K | AccOnce], AccAlways};
+                    #{} -> {AccOnce, [K | AccAlways]}
+                  end
+                end, Acc, Skip);
+              (_Skip, Acc) ->
+                Acc
+            end, {[], []}, SkipList),
+
+          NewSeen = maps:merge(maps:from_keys(AlwaysKeys, false), maps:put(Current, true, Seen)),
+
+          maps:fold(fun
+            (Key, error, _See) ->
+              file_error(Meta, E, ?MODULE, {recursive, [Current, Key], Expr});
+
+            %% Never go back to the node that we came from (as we can always one hop).
+            (Key, _, AccSeen) when Key =:= Source ->
+              AccSeen;
+
+            (Key, _, AccSeen) ->
+              case lists:member(Key, OnceKeys) of
+                true ->
+                  AccSeen;
+
+                false when map_get(Key, Seen) ->
+                  file_error(Meta, E, ?MODULE, {recursive, [Current | maps:keys(Seen)], Expr});
+
+                false ->
+                  recur_cycles(Cycles, Key, Current, AccSeen, SkipList, Meta, Expr, E)
+              end
+          end, NewSeen, DependsOn)
+      end
+  end.
+
+%% Match
+
+match(Fun, Meta, Expr, AfterS, BeforeS, #{context := nil} = E) ->
   #elixir_ex{vars=Current, unused={_, Counter} = Unused} = AfterS,
   #elixir_ex{vars={Read, _}, prematch=Prematch} = BeforeS,
 
   CallS = BeforeS#elixir_ex{
-    prematch={Read, Counter, none},
+    prematch={Read, {#{}, []}, Counter},
     unused=Unused,
     vars=Current
   },
 
   CallE = E#{context := match},
-  {EExpr, #elixir_ex{vars=NewCurrent, unused=NewUnused}, EE} = Fun(Expr, CallS, CallE),
+  {EExpr, SE, EE} = Fun(Expr, CallS, CallE),
+
+  #elixir_ex{
+    vars=NewCurrent,
+    unused=NewUnused,
+    prematch={_, Cycles, _}
+  } = SE,
+
+  validate_cycles(Cycles, Meta, {match, Expr}, E),
 
   EndS = AfterS#elixir_ex{
     prematch=Prematch,
@@ -32,35 +185,34 @@ match(Fun, Expr, AfterS, BeforeS, E) ->
   {EExpr, EndS, EndE}.
 
 def({Meta, Args, Guards, Body}, S, E) ->
-  {EArgs, SA, EA} = elixir_expand:expand_args(Args, S#elixir_ex{prematch={#{}, 0, none}}, E#{context := match}),
-  {EGuards, SG, EG} = guard(Guards, SA#elixir_ex{prematch=raise}, EA#{context := guard}),
-  {EBody, SB, EB} = elixir_expand:expand(Body, elixir_env:set_prematch_from_config(SG), EG#{context := nil}),
+  {EArgs, SA, EA} = elixir_expand:expand_args(Args, S#elixir_ex{prematch={#{}, {#{}, []}, 0}}, E#{context := match}),
+  #elixir_ex{prematch={_, Cycles, _}} = SA,
+  validate_cycles(Cycles, Meta, {?key(E, function), Args}, E),
+  {EGuards, SG, EG} = guard(Guards, SA#elixir_ex{prematch=none}, EA#{context := guard}),
+  {EBody, SB, EB} = elixir_expand:expand(Body, SG, EG#{context := nil}),
   elixir_env:check_unused_vars(SB, EB),
   {Meta, EArgs, EGuards, EBody}.
 
-clause(Meta, Kind, Fun, {'->', ClauseMeta, [_, _]} = Clause, S, E) when is_function(Fun, 4) ->
-  clause(Meta, Kind, fun(X, SA, EA) -> Fun(ClauseMeta, X, SA, EA) end, Clause, S, E);
 clause(_Meta, _Kind, Fun, {'->', Meta, [Left, Right]}, S, E) ->
-  {ELeft, SL, EL}  = Fun(Left, S, E),
+  {ELeft, SL, EL}  = case is_function(Fun, 4) of
+    true -> Fun(Meta, Left, S, E);
+    false -> Fun(Left, S, E)
+  end,
   {ERight, SR, ER} = elixir_expand:expand(Right, SL, EL),
   {{'->', Meta, [ELeft, ERight]}, SR, ER};
 clause(Meta, Kind, _Fun, _, _, E) ->
   file_error(Meta, E, ?MODULE, {bad_or_missing_clauses, Kind}).
 
-head([{'when', Meta, [_ | _] = All}], S, E) ->
+head(Meta, [{'when', WhenMeta, [_ | _] = All}], S, E) ->
   {Args, Guard} = elixir_utils:split_last(All),
-  Prematch = S#elixir_ex.prematch,
+  guarded_head(Meta, WhenMeta, Args, Guard, S, E);
+head(Meta, Args, S, E) ->
+  match(fun elixir_expand:expand_args/3, Meta, Args, S, S, E).
 
-  {{EArgs, EGuard}, SG, EG} =
-    match(fun(ok, SM, EM) ->
-      {EArgs, SA, EA} = elixir_expand:expand_args(Args, SM, EM),
-      {EGuard, SG, EG} = guard(Guard, SA#elixir_ex{prematch=Prematch}, EA#{context := guard}),
-      {{EArgs, EGuard}, SG, EG}
-    end, ok, S, S, E),
-
-  {[{'when', Meta, EArgs ++ [EGuard]}], SG, EG};
-head(Args, S, E) ->
-  match(fun elixir_expand:expand_args/3, Args, S, S, E).
+guarded_head(Meta, WhenMeta, Args, Guard, S, E) ->
+  {EArgs, SA, EA} = match(fun elixir_expand:expand_args/3, Meta, Args, S, S, E),
+  {EGuard, SG, EG} = guard(Guard, SA, EA#{context := guard}),
+  {[{'when', WhenMeta, EArgs ++ [EGuard]}], SG, EG#{context := nil}}.
 
 guard({'when', Meta, [Left, Right]}, S, E) ->
   {ELeft, SL, EL}  = guard(Left, S, E),
@@ -99,7 +251,7 @@ warn_zero_length_guard(_, _) ->
   {Case, SA, E}.
 
 expand_case(Meta, {'do', _} = Do, S, E) ->
-  Fun = expand_head(Meta, 'case', 'do'),
+  Fun = expand_head('case', 'do'),
   expand_clauses(Meta, 'case', Fun, Do, S, E);
 expand_case(Meta, {Key, _}, _S, E) ->
   file_error(Meta, E, ?MODULE, {unexpected_option, 'case', Key}).
@@ -141,7 +293,7 @@ expand_cond(Meta, {Key, _}, _S, E) ->
 expand_receive(_Meta, {'do', {'__block__', _, []}} = Do, S, _E) ->
   {Do, S};
 expand_receive(Meta, {'do', _} = Do, S, E) ->
-  Fun = expand_head(Meta, 'receive', 'do'),
+  Fun = expand_head('receive', 'do'),
   expand_clauses(Meta, 'receive', Fun, Do, S, E);
 expand_receive(Meta, {'after', [_]} = After, S, E) ->
   Fun = expand_one(Meta, 'receive', 'after', fun elixir_expand:expand_args/3),
@@ -169,11 +321,16 @@ with(Meta, Args, S, E) ->
 
   {{with, Meta, EExprs ++ [[{do, EDo} | EOpts]]}, S3, E}.
 
-expand_with({'<-', Meta, [Left, Right]}, {S, E, _HasMatch}) ->
+expand_with({'<-', Meta, [Left, Right]}, {S, E, HasMatch}) ->
   {ERight, SR, ER} = elixir_expand:expand(Right, S, E),
   SM = elixir_env:reset_read(SR, S),
-  {[ELeft], SL, EL} = head([Left], SM, ER),
-  {{'<-', Meta, [ELeft, ERight]}, {SL, EL, true}};
+  {[ELeft], SL, EL} = head(Meta, [Left], SM, ER),
+  NewHasMatch =
+    case ELeft of
+      {Var, _, Ctx} when is_atom(Var), is_atom(Ctx) -> HasMatch;
+      _ -> true
+    end,
+  {{'<-', Meta, [ELeft, ERight]}, {SL, EL, NewHasMatch}};
 expand_with(Expr, {S, E, HasMatch}) ->
   {EExpr, SE, EE} = elixir_expand:expand(Expr, S, E),
   {EExpr, {SE, EE, HasMatch}}.
@@ -194,7 +351,7 @@ expand_with_else(Meta, Opts, S, E, HasMatch) ->
         HasMatch -> ok;
         true -> file_warn(Meta, ?key(E, file), ?MODULE, unmatchable_else_in_with)
       end,
-      Fun = expand_head(Meta, 'with', 'else'),
+      Fun = expand_head('with', 'else'),
       {EPair, SE} = expand_clauses(Meta, 'with', Fun, Pair, S, E),
       {[EPair], RestOpts, SE};
     false ->
@@ -236,7 +393,7 @@ expand_try(_Meta, {'after', Expr}, S, E) ->
   {EExpr, SE, EE} = elixir_expand:expand(Expr, elixir_env:reset_unused_vars(S), E),
   {{'after', EExpr}, elixir_env:merge_and_check_unused_vars(SE, S, EE)};
 expand_try(Meta, {'else', _} = Else, S, E) ->
-  Fun = expand_head(Meta, 'try', 'else'),
+  Fun = expand_head('try', 'else'),
   expand_clauses(Meta, 'try', Fun, Else, S, E);
 expand_try(Meta, {'catch', _} = Catch, S, E) ->
   expand_clauses_with_stacktrace(Meta, fun expand_catch/4, Catch, S, E);
@@ -251,10 +408,17 @@ expand_clauses_with_stacktrace(Meta, Fun, Clauses, S, E) ->
   {Ret, SE} = expand_clauses(Meta, 'try', Fun, Clauses, SS, E),
   {Ret, SE#elixir_ex{stacktrace=OldStacktrace}}.
 
-expand_catch(_Meta, [_] = Args, S, E) ->
-  head(Args, S, E);
-expand_catch(_Meta, [_, _] = Args, S, E) ->
-  head(Args, S, E);
+expand_catch(Meta, [{'when', _, [_, _, _, _ | _]}], _, E) ->
+  Error = {wrong_number_of_args_for_clause, "one or two args", origin(Meta, 'try'), 'catch'},
+  file_error(Meta, E, ?MODULE, Error);
+expand_catch(Meta, [{'when', WhenMeta, [Arg1, Arg2, Guard]}], S, E) ->
+  guarded_head(Meta, WhenMeta, [Arg1, Arg2], Guard, S, E);
+expand_catch(Meta, [{'when', WhenMeta, [Arg1, Guard]}], S, E) ->
+  guarded_head(Meta, WhenMeta, [throw, Arg1], Guard, S, E);
+expand_catch(Meta, [Arg], S, E) ->
+  head(Meta, [throw, Arg], S, E);
+expand_catch(Meta, [_, _] = Args, S, E) ->
+  head(Meta, Args, S, E);
 expand_catch(Meta, _, _, E) ->
   Error = {wrong_number_of_args_for_clause, "one or two args", origin(Meta, 'try'), 'catch'},
   file_error(Meta, E, ?MODULE, Error).
@@ -271,21 +435,21 @@ expand_rescue(Meta, _, _, E) ->
   file_error(Meta, E, ?MODULE, Error).
 
 %% rescue var
-expand_rescue({Name, _, Atom} = Var, S, E) when is_atom(Name), is_atom(Atom) ->
-  match(fun elixir_expand:expand/3, Var, S, S, E);
+expand_rescue({Name, Meta, Atom} = Var, S, E) when is_atom(Name), is_atom(Atom) ->
+  match(fun elixir_expand:expand/3, Meta, Var, S, S, E);
 
 %% rescue Alias => _ in [Alias]
 expand_rescue({'__aliases__', _, [_ | _]} = Alias, S, E) ->
   expand_rescue({in, [], [{'_', [], ?key(E, module)}, Alias]}, S, E);
 
 %% rescue var in _
-expand_rescue({in, _, [{Name, _, VarContext} = Var, {'_', _, UnderscoreContext}]}, S, E)
+expand_rescue({in, _, [{Name, Meta, VarContext} = Var, {'_', _, UnderscoreContext}]}, S, E)
     when is_atom(Name), is_atom(VarContext), is_atom(UnderscoreContext) ->
-  match(fun elixir_expand:expand/3, Var, S, S, E);
+  match(fun elixir_expand:expand/3, Meta, Var, S, S, E);
 
 %% rescue var in (list() or atom())
 expand_rescue({in, Meta, [Left, Right]}, S, E) ->
-  {ELeft, SL, EL}  = match(fun elixir_expand:expand/3, Left, S, S, E),
+  {ELeft, SL, EL}  = match(fun elixir_expand:expand/3, Meta, Left, S, S, E),
   {ERight, SR, ER} = elixir_expand:expand(Right, SL, EL),
 
   case ELeft of
@@ -316,13 +480,13 @@ normalize_rescue(Other) ->
 
 %% Expansion helpers
 
-expand_head(Meta, Kind, Key) ->
+expand_head(Kind, Key) ->
   fun
-    ([{'when', _, [_, _, _ | _]}], _, E) ->
+    (Meta, [{'when', _, [_, _, _ | _]}], _, E) ->
       file_error(Meta, E, ?MODULE, {wrong_number_of_args_for_clause, "one argument", Kind, Key});
-    ([_] = Args, S, E) ->
-      head(Args, S, E);
-    (_, _, E) ->
+    (Meta, [_] = Args, S, E) ->
+      head(Meta, Args, S, E);
+    (Meta, _, _, E) ->
       file_error(Meta, E, ?MODULE, {wrong_number_of_args_for_clause, "one argument", Kind, Key})
   end.
 
@@ -376,13 +540,43 @@ origin(Meta, Default) ->
     false -> Default
   end.
 
+format_error({duplicate_match, Expr}) ->
+  String = 'Elixir.Macro':to_string(Expr),
+  io_lib:format(
+    "this pattern is matched against itself inside a match: ~ts = ~ts",
+    [String, String]
+  );
+
+format_error({recursive, Vars, TypeExpr}) ->
+  Code =
+    case TypeExpr of
+      {match, Expr} -> 'Elixir.Macro':to_string(Expr);
+      {{Name, _Arity}, Args} -> 'Elixir.Macro':to_string({Name, [], Args})
+    end,
+
+  Message =
+    case lists:map(fun({Name, Context}) -> elixir_utils:var_info(Name, Context) end, lists:sort(Vars)) of
+      [Var] ->
+        io_lib:format("the variable ~ts is defined in function of itself", [Var]);
+      [Var1, Var2] ->
+        io_lib:format("the variable ~ts is defined recursively in function of ~ts", [Var1, Var2]);
+      [Head | Tail] ->
+        List = lists:foldl(fun(X, Acc) -> [Acc, $,, $\s, X] end, Head, Tail),
+        io_lib:format("the following variables form a cycle: ~ts", [List])
+    end,
+
+  io_lib:format(
+    "recursive variable definition in patterns:~n~n~ts~n~n~ts",
+    [Code, Message]
+  );
+
 format_error({bad_or_missing_clauses, {Kind, Key}}) ->
   io_lib:format("expected -> clauses for :~ts in \"~ts\"", [Key, Kind]);
 format_error({bad_or_missing_clauses, Kind}) ->
   io_lib:format("expected -> clauses in \"~ts\"", [Kind]);
 
 format_error({duplicated_clauses, Kind, Key}) ->
-  io_lib:format("duplicated :~ts clauses given for \"~ts\"", [Key, Kind]);
+  io_lib:format("duplicate :~ts clauses given for \"~ts\"", [Key, Kind]);
 
 format_error({unexpected_option, Kind, Option}) ->
   io_lib:format("unexpected option ~ts in \"~ts\"", ['Elixir.Macro':to_string(Option), Kind]);

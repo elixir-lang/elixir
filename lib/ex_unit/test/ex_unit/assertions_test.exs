@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule ExUnit.AssertionsTest.Value do
@@ -78,7 +82,8 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert with message when value is falsy" do
     try do
-      "This should never be tested" = assert Value.falsy(), "This should be truthy"
+      assert Value.falsy(), "This should be truthy"
+      flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
         "This should be truthy" = error.message
@@ -87,7 +92,8 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert when value evaluates to falsy" do
     try do
-      "This should never be tested" = assert Value.falsy()
+      assert Value.falsy()
+      flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
         "assert Value.falsy()" = error.expr |> Macro.to_string()
@@ -110,7 +116,8 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert arguments are not kept for operators" do
     try do
-      "This should never be tested" = assert !Value.truthy()
+      assert !Value.truthy()
+      flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
         false = is_list(error.args)
@@ -119,7 +126,8 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert with equality" do
     try do
-      "This should never be tested" = assert 1 + 1 == 1
+      assert 1 + 1 == 1
+      flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
         1 = error.right
@@ -130,7 +138,8 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert with equality in reverse" do
     try do
-      "This should never be tested" = assert 1 == 1 + 1
+      assert 1 == 1 + 1
+      flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
         1 = error.left
@@ -199,8 +208,8 @@ defmodule ExUnit.AssertionsTest do
              """)
            end) =~ "variable \"var\" is unused"
   after
-    :code.delete(ExSample)
     :code.purge(ExSample)
+    :code.delete(ExSample)
   end
 
   test "assert match with quote on left-side" do
@@ -256,16 +265,66 @@ defmodule ExUnit.AssertionsTest do
     end
   end
 
+  test "assert match with `when` in the pattern fails" do
+    message = """
+    invalid pattern in assert\/1:
+
+      x when is_map(x)
+
+    To assert with guards, use match?/2:
+
+      assert match?(x when is_map(x), %{})
+    """
+
+    assert_raise ArgumentError, message, fn ->
+      Code.eval_string("""
+      defmodule AssertGuard do
+        import ExUnit.Assertions
+
+        def run do
+          assert (x when is_map(x)) = %{}
+        end
+      end
+      """)
+    end
+  after
+    :code.purge(AssertGuard)
+    :code.delete(AssertGuard)
+  end
+
+  test "assert match with __ENV__ in the pattern" do
+    message =
+      ExUnit.CaptureIO.capture_io(:stderr, fn ->
+        assert_raise CompileError, fn ->
+          Code.eval_string("""
+          defmodule EnvMatch do
+            import ExUnit.Assertions
+
+            def run do
+              assert __ENV__ = %{}
+            end
+          end
+          """)
+        end
+      end)
+
+    assert message =~ "invalid pattern in match, __ENV__ is not allowed in matches"
+  after
+    :code.purge(EnvMatch)
+    :code.delete(EnvMatch)
+  end
+
   test "assert match?" do
     true = assert match?({2, 1}, Value.tuple())
 
     try do
-      "This should never be tested" = assert match?({:ok, _}, error(true))
+      assert match?({:ok, _}, Process.get(:unused, :ok))
+      flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
         "match (match?) failed" = error.message
-        "assert match?({:ok, _}, error(true))" = Macro.to_string(error.expr)
-        "{:error, true}" = Macro.to_string(error.right)
+        "assert match?({:ok, _}, Process.get(:unused, :ok))" = Macro.to_string(error.expr)
+        ":ok" = Macro.to_string(error.right)
     end
   end
 
@@ -273,7 +332,8 @@ defmodule ExUnit.AssertionsTest do
     true = assert match?(tuple when is_tuple(tuple), Value.tuple())
 
     try do
-      "This should never be tested" = assert match?(tuple when not is_tuple(tuple), error(true))
+      assert match?(tuple when not is_tuple(tuple), error(true))
+      flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
         "match (match?) failed" = error.message
@@ -288,7 +348,8 @@ defmodule ExUnit.AssertionsTest do
     false = refute match?({1, 1}, Value.tuple())
 
     try do
-      "This should never be tested" = refute match?({:error, _}, error(true))
+      refute match?({:error, _}, error(true))
+      flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
         "match (match?) succeeded, but should have failed" = error.message
@@ -301,7 +362,8 @@ defmodule ExUnit.AssertionsTest do
     a = 1
 
     try do
-      "This should never be tested" = assert(match?({^a, 1}, Value.tuple()))
+      assert(match?({^a, 1}, Value.tuple()))
+      flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
         "match (match?) failed\nThe following variables were pinned:\n  a = 1" = error.message
@@ -314,7 +376,8 @@ defmodule ExUnit.AssertionsTest do
     a = 2
 
     try do
-      "This should never be tested" = refute(match?({^a, 1}, Value.tuple()))
+      refute(match?({^a, 1}, Value.tuple()))
+      flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
         """
@@ -410,7 +473,8 @@ defmodule ExUnit.AssertionsTest do
     send(self(), {:status, :invalid})
 
     try do
-      "This should never be tested" = assert_received {:status, ^status}
+      assert_received {:status, ^status}
+      flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
         """
@@ -430,7 +494,8 @@ defmodule ExUnit.AssertionsTest do
     send(self(), {:status, :invalid, :invalid})
 
     try do
-      "This should never be tested" = assert_received {:status, ^status, ^status}
+      assert_received {:status, ^status, ^status}
+      flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
         """
@@ -452,7 +517,8 @@ defmodule ExUnit.AssertionsTest do
     send(self(), {:status, :invalid, :invalid})
 
     try do
-      "This should never be tested" = assert_received {:status, ^status, ^other_status}
+      assert_received {:status, ^status, ^other_status}
+      flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
         """
@@ -470,7 +536,8 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert received when empty mailbox" do
     try do
-      "This should never be tested" = assert_received :hello
+      assert_received :hello
+      flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
         "Assertion failed, no matching message after 0ms\nThe process mailbox is empty." =
@@ -484,7 +551,8 @@ defmodule ExUnit.AssertionsTest do
     send(self(), {:message, :not_expected, :at_all})
 
     try do
-      "This should never be tested" = assert_received :hello
+      assert_received :hello
+      flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
         """
@@ -501,7 +569,8 @@ defmodule ExUnit.AssertionsTest do
     for i <- 1..11, do: send(self(), {:message, i})
 
     try do
-      "This should never be tested" = assert_received x when x == :hello
+      assert_received x when x == :hello
+      flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
         """
@@ -532,14 +601,15 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "refute receive waits" do
-    false = refute_receive :hello
+    false = refute_receive :hello, 100
   end
 
   test "refute received when equal" do
     send(self(), :hello)
 
     try do
-      "This should never be tested" = refute_received :hello
+      refute_received :hello
+      flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
         "Unexpectedly received message :hello (which matched :hello)" = error.message
@@ -552,7 +622,8 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert in when is not member" do
     try do
-      "This should never be tested" = assert ~c"foo" in ~c"bar"
+      assert ~c"foo" in ~c"bar"
+      flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
         ~c"foo" = error.left
@@ -567,7 +638,8 @@ defmodule ExUnit.AssertionsTest do
 
   test "refute in when is member" do
     try do
-      "This should never be tested" = refute ~c"foo" in [~c"foo", ~c"bar"]
+      refute ~c"foo" in [~c"foo", ~c"bar"]
+      flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
         ~c"foo" = error.left
@@ -619,7 +691,8 @@ defmodule ExUnit.AssertionsTest do
 
   test "refute match when no match" do
     try do
-      "This should never be tested" = refute _ = ok(true)
+      refute _ = ok(true)
+      flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
         "refute _ = ok(true)" = Macro.to_string(error.expr)
@@ -633,11 +706,12 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert regex match when no match" do
     try do
-      "This should never be tested" = assert "foo" =~ ~r/a/
+      assert "foo" =~ ~r/a/
+      flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
         "foo" = error.left
-        ~r{a} = error.right
+        %Regex{} = error.right
     end
   end
 
@@ -647,16 +721,18 @@ defmodule ExUnit.AssertionsTest do
 
   test "refute regex match when match" do
     try do
-      "This should never be tested" = refute "foo" =~ ~r/o/
+      refute "foo" =~ ~r/o/
+      flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
         "foo" = error.left
-        ~r"o" = error.right
+        %Regex{} = error.right
     end
   end
 
   test "assert raise with no error" do
-    "This should never be tested" = assert_raise ArgumentError, fn -> nil end
+    assert_raise ArgumentError, fn -> nil end
+    flunk("This should never be tested")
   rescue
     error in [ExUnit.AssertionError] ->
       "Expected exception ArgumentError but nothing was raised" = error.message
@@ -745,7 +821,8 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert greater-than operator error" do
-    "This should never be tested" = assert 1 > 2
+    assert 1 > 2
+    flunk("This should never be tested")
   rescue
     error in [ExUnit.AssertionError] ->
       1 = error.left
@@ -758,7 +835,8 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert less or equal than operator error" do
-    "This should never be tested" = assert 2 <= 1
+    assert 2 <= 1
+    flunk("This should never be tested")
   rescue
     error in [ExUnit.AssertionError] ->
       "assert 2 <= 1" = Macro.to_string(error.expr)
@@ -772,7 +850,8 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert operator with custom message" do
-    "This should never be tested" = assert 1 > 2, "assertion"
+    assert 1 > 2, "assertion"
+    flunk("This should never be tested")
   rescue
     error in [ExUnit.AssertionError] ->
       "assertion" = error.message
@@ -780,7 +859,8 @@ defmodule ExUnit.AssertionsTest do
 
   test "assert lack of equality" do
     try do
-      "This should never be tested" = assert "one" != "one"
+      assert "one" != "one"
+      flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
         "Assertion with != failed, both sides are exactly equal" = error.message
@@ -788,7 +868,8 @@ defmodule ExUnit.AssertionsTest do
     end
 
     try do
-      "This should never be tested" = assert 2 != 2.0
+      assert 2 != 2.0
+      flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
         "Assertion with != failed" = error.message
@@ -799,7 +880,8 @@ defmodule ExUnit.AssertionsTest do
 
   test "refute equality" do
     try do
-      "This should never be tested" = refute "one" == "one"
+      refute "one" == "one"
+      flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
         "Refute with == failed, both sides are exactly equal" = error.message
@@ -807,7 +889,8 @@ defmodule ExUnit.AssertionsTest do
     end
 
     try do
-      "This should never be tested" = refute 2 == 2.0
+      refute 2 == 2.0
+      flunk("This should never be tested")
     rescue
       error in [ExUnit.AssertionError] ->
         "Refute with == failed" = error.message
@@ -831,7 +914,8 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert in delta error" do
-    "This should never be tested" = assert_in_delta(10, 12, 1)
+    assert_in_delta(10, 12, 1)
+    flunk("This should never be tested")
   rescue
     error in [ExUnit.AssertionError] ->
       "Expected the difference between 10 and 12 (2) to be less than or equal to 1" =
@@ -839,7 +923,8 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert in delta with message" do
-    "This should never be tested" = assert_in_delta(10, 12, 1, "test message")
+    assert_in_delta(10, 12, 1, "test message")
+    flunk("This should never be tested")
   rescue
     error in [ExUnit.AssertionError] ->
       "test message" = error.message
@@ -850,14 +935,16 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "refute in delta error" do
-    "This should never be tested" = refute_in_delta(10, 11, 2)
+    refute_in_delta(10, 11, 2)
+    flunk("This should never be tested")
   rescue
     error in [ExUnit.AssertionError] ->
       "Expected the difference between 10 and 11 (1) to be more than 2" = error.message
   end
 
   test "refute in delta with message" do
-    "This should never be tested" = refute_in_delta(10, 11, 2, "test message")
+    refute_in_delta(10, 11, 2, "test message")
+    flunk("This should never be tested")
   rescue
     error in [ExUnit.AssertionError] ->
       "test message (difference between 10 and 11 is less than 2)" = error.message
@@ -897,21 +984,24 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "flunk" do
-    "This should never be tested" = flunk()
+    flunk()
+    flunk("This should never be tested")
   rescue
     error in [ExUnit.AssertionError] ->
       "Flunked!" = error.message
   end
 
   test "flunk with message" do
-    "This should never be tested" = flunk("This should raise an error")
+    flunk("This should raise an error")
+    flunk("This should never be tested")
   rescue
     error in [ExUnit.AssertionError] ->
       "This should raise an error" = error.message
   end
 
   test "flunk with wrong argument type" do
-    "This should never be tested" = flunk(["flunk takes a binary, not a list"])
+    flunk(["flunk takes a binary, not a list"])
+    flunk("This should never be tested")
   rescue
     error ->
       "no function clause matching in ExUnit.Assertions.flunk/1" =

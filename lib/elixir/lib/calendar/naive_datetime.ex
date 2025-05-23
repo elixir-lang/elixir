@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule NaiveDateTime do
   @moduledoc """
   A NaiveDateTime struct (without a time zone) and functions.
@@ -36,10 +40,10 @@ defmodule NaiveDateTime do
 
   Comparisons in Elixir using `==/2`, `>/2`, `</2` and similar are structural
   and based on the `NaiveDateTime` struct fields. For proper comparison
-  between naive datetimes, use the `compare/2` function. The existence of the
-  `compare/2` function in this module also allows using `Enum.min/2` and
-  `Enum.max/2` functions to get the minimum and maximum naive datetime of an
-  `Enum`. For example:
+  between naive datetimes, use the `compare/2`, `after?/2` and `before?/2` functions.
+  The existence of the `compare/2` function in this module also allows
+  using `Enum.min/2` and `Enum.max/2` functions to get the minimum and
+  maximum naive datetime of an `Enum`. For example:
 
       iex> Enum.min([~N[2020-01-01 23:00:07], ~N[2000-01-01 23:00:07]], NaiveDateTime)
       ~N[2000-01-01 23:00:07]
@@ -110,30 +114,12 @@ defmodule NaiveDateTime do
   @spec utc_now(Calendar.calendar() | :native | :microsecond | :millisecond | :second) :: t
   def utc_now(calendar_or_time_unit \\ Calendar.ISO)
 
-  def utc_now(Calendar.ISO) do
-    {:ok, {year, month, day}, {hour, minute, second}, microsecond} =
-      Calendar.ISO.from_unix(:os.system_time(), :native)
-
-    %NaiveDateTime{
-      year: year,
-      month: month,
-      day: day,
-      hour: hour,
-      minute: minute,
-      second: second,
-      microsecond: microsecond,
-      calendar: Calendar.ISO
-    }
-  end
-
   def utc_now(time_unit) when time_unit in [:microsecond, :millisecond, :second, :native] do
     utc_now(time_unit, Calendar.ISO)
   end
 
   def utc_now(calendar) do
-    calendar
-    |> DateTime.utc_now()
-    |> DateTime.to_naive()
+    utc_now(:native, calendar)
   end
 
   @doc """
@@ -158,7 +144,20 @@ defmodule NaiveDateTime do
   @spec utc_now(:native | :microsecond | :millisecond | :second, Calendar.calendar()) :: t
   def utc_now(time_unit, calendar)
       when time_unit in [:native, :microsecond, :millisecond, :second] do
-    DateTime.utc_now(time_unit, calendar) |> DateTime.to_naive()
+    {:ok, {year, month, day}, {hour, minute, second}, microsecond} =
+      Calendar.ISO.from_unix(System.os_time(time_unit), time_unit)
+
+    %NaiveDateTime{
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond,
+      calendar: Calendar.ISO
+    }
+    |> convert!(calendar)
   end
 
   @doc """
@@ -252,7 +251,7 @@ defmodule NaiveDateTime do
           Calendar.hour(),
           Calendar.minute(),
           Calendar.second(),
-          Calendar.microsecond() | non_neg_integer,
+          Calendar.microsecond() | non_neg_integer(),
           Calendar.calendar()
         ) :: {:ok, t} | {:error, atom}
   def new(year, month, day, hour, minute, second, microsecond \\ {0, 0}, calendar \\ Calendar.ISO)
@@ -317,7 +316,7 @@ defmodule NaiveDateTime do
           Calendar.hour(),
           Calendar.minute(),
           Calendar.second(),
-          Calendar.microsecond() | non_neg_integer,
+          Calendar.microsecond() | non_neg_integer(),
           Calendar.calendar()
         ) :: t
   def new!(
@@ -448,6 +447,8 @@ defmodule NaiveDateTime do
       iex> NaiveDateTime.add(dt, 21, :second)
       ~N[2000-02-29 23:00:28]
 
+  To shift a naive datetime by a `Duration` and according to its underlying calendar, use `NaiveDateTime.shift/2`.
+
   """
   @doc since: "1.4.0"
   @spec add(Calendar.naive_datetime(), integer, :day | :hour | :minute | System.time_unit()) :: t
@@ -466,23 +467,21 @@ defmodule NaiveDateTime do
   end
 
   def add(
-        %{microsecond: {_, precision}, calendar: calendar} = naive_datetime,
+        %{calendar: calendar, microsecond: {_, precision}} = naive_datetime,
         amount_to_add,
         unit
       )
       when is_integer(amount_to_add) do
-    if not is_integer(unit) and
-         unit not in ~w(second millisecond microsecond nanosecond)a do
+    if not is_integer(unit) and unit not in ~w(second millisecond microsecond nanosecond)a do
       raise ArgumentError,
             "unsupported time unit. Expected :day, :hour, :minute, :second, :millisecond, :microsecond, :nanosecond, or a positive integer, got #{inspect(unit)}"
     end
 
-    ppd = System.convert_time_unit(86400, :second, unit)
     precision = max(Calendar.ISO.time_unit_to_precision(unit), precision)
 
     naive_datetime
     |> to_iso_days()
-    |> Calendar.ISO.add_day_fraction_to_iso_days(amount_to_add, ppd)
+    |> Calendar.ISO.shift_time_unit(amount_to_add, unit)
     |> from_iso_days(calendar, precision)
   end
 
@@ -570,6 +569,83 @@ defmodule NaiveDateTime do
     units2 = naive_datetime2 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(unit)
     units1 - units2
   end
+
+  @doc """
+  Shifts given `naive_datetime` by `duration` according to its calendar.
+
+  Allowed units are: `:year`, `:month`, `:week`, `:day`, `:hour`, `:minute`, `:second`, `:microsecond`.
+
+  When using the default ISO calendar, durations are collapsed and
+  applied in the order of months, then seconds and microseconds:
+
+  * when shifting by 1 year and 2 months the date is actually shifted by 14 months
+  * weeks, days and smaller units are collapsed into seconds and microseconds
+
+  When shifting by month, days are rounded down to the nearest valid date.
+
+  ## Examples
+
+      iex> NaiveDateTime.shift(~N[2016-01-31 00:00:00], month: 1)
+      ~N[2016-02-29 00:00:00]
+      iex> NaiveDateTime.shift(~N[2016-01-31 00:00:00], year: 4, day: 1)
+      ~N[2020-02-01 00:00:00]
+      iex> NaiveDateTime.shift(~N[2016-01-31 00:00:00], year: -2, day: 1)
+      ~N[2014-02-01 00:00:00]
+      iex> NaiveDateTime.shift(~N[2016-01-31 00:00:00], second: 45)
+      ~N[2016-01-31 00:00:45]
+      iex> NaiveDateTime.shift(~N[2016-01-31 00:00:00], microsecond: {100, 6})
+      ~N[2016-01-31 00:00:00.000100]
+
+      # leap years
+      iex> NaiveDateTime.shift(~N[2024-02-29 00:00:00], year: 1)
+      ~N[2025-02-28 00:00:00]
+      iex> NaiveDateTime.shift(~N[2024-02-29 00:00:00], year: 4)
+      ~N[2028-02-29 00:00:00]
+
+      # rounding down
+      iex> NaiveDateTime.shift(~N[2015-01-31 00:00:00], month: 1)
+      ~N[2015-02-28 00:00:00]
+
+  """
+  @doc since: "1.17.0"
+  @spec shift(Calendar.naive_datetime(), Duration.duration()) :: t
+  def shift(%{calendar: calendar} = naive_datetime, duration) do
+    %{
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond
+    } = naive_datetime
+
+    {year, month, day, hour, minute, second, microsecond} =
+      calendar.shift_naive_datetime(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        microsecond,
+        __duration__!(duration)
+      )
+
+    %NaiveDateTime{
+      calendar: calendar,
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond
+    }
+  end
+
+  @doc false
+  defdelegate __duration__!(params), to: Duration, as: :new!
 
   @doc """
   Returns the given naive datetime with the microsecond field truncated to the
@@ -681,6 +757,9 @@ defmodule NaiveDateTime do
 
   @doc """
   Converts the given naive datetime to a string according to its calendar.
+
+  For readability, this function follows the RFC3339 suggestion of removing
+  the "T" separator between the date and time components.
 
   ### Examples
 
@@ -855,6 +934,19 @@ defmodule NaiveDateTime do
 
   def to_iso8601(%{calendar: Calendar.ISO} = naive_datetime, format)
       when format in [:basic, :extended] do
+    naive_datetime
+    |> to_iso8601_iodata(format)
+    |> IO.iodata_to_binary()
+  end
+
+  def to_iso8601(%{calendar: _} = naive_datetime, format)
+      when format in [:basic, :extended] do
+    naive_datetime
+    |> convert!(Calendar.ISO)
+    |> to_iso8601(format)
+  end
+
+  defp to_iso8601_iodata(naive_datetime, format) do
     %{
       year: year,
       month: month,
@@ -865,14 +957,11 @@ defmodule NaiveDateTime do
       microsecond: microsecond
     } = naive_datetime
 
-    Calendar.ISO.date_to_string(year, month, day, format) <>
-      "T" <> Calendar.ISO.time_to_string(hour, minute, second, microsecond, format)
-  end
-
-  def to_iso8601(%{calendar: _} = naive_datetime, format) when format in [:basic, :extended] do
-    naive_datetime
-    |> convert!(Calendar.ISO)
-    |> to_iso8601(format)
+    [
+      Calendar.ISO.date_to_iodata(year, month, day, format),
+      ?T,
+      Calendar.ISO.time_to_iodata(hour, minute, second, microsecond, format)
+    ]
   end
 
   @doc """
@@ -916,6 +1005,8 @@ defmodule NaiveDateTime do
 
       iex> NaiveDateTime.from_erl({{2000, 1, 1}, {13, 30, 15}})
       {:ok, ~N[2000-01-01 13:30:15]}
+      iex> NaiveDateTime.from_erl({{2000, 1, 1}, {13, 30, 15}}, 5000)
+      {:ok, ~N[2000-01-01 13:30:15.005000]}
       iex> NaiveDateTime.from_erl({{2000, 1, 1}, {13, 30, 15}}, {5000, 3})
       {:ok, ~N[2000-01-01 13:30:15.005]}
       iex> NaiveDateTime.from_erl({{2000, 13, 1}, {13, 30, 15}})
@@ -924,7 +1015,11 @@ defmodule NaiveDateTime do
       {:error, :invalid_date}
 
   """
-  @spec from_erl(:calendar.datetime(), Calendar.microsecond(), Calendar.calendar()) ::
+  @spec from_erl(
+          :calendar.datetime(),
+          Calendar.microsecond() | non_neg_integer(),
+          Calendar.calendar()
+        ) ::
           {:ok, t} | {:error, atom}
   def from_erl(tuple, microsecond \\ {0, 0}, calendar \\ Calendar.ISO)
 
@@ -943,13 +1038,19 @@ defmodule NaiveDateTime do
 
       iex> NaiveDateTime.from_erl!({{2000, 1, 1}, {13, 30, 15}})
       ~N[2000-01-01 13:30:15]
+      iex> NaiveDateTime.from_erl!({{2000, 1, 1}, {13, 30, 15}}, 5000)
+      ~N[2000-01-01 13:30:15.005000]
       iex> NaiveDateTime.from_erl!({{2000, 1, 1}, {13, 30, 15}}, {5000, 3})
       ~N[2000-01-01 13:30:15.005]
       iex> NaiveDateTime.from_erl!({{2000, 13, 1}, {13, 30, 15}})
       ** (ArgumentError) cannot convert {{2000, 13, 1}, {13, 30, 15}} to naive datetime, reason: :invalid_date
 
   """
-  @spec from_erl!(:calendar.datetime(), Calendar.microsecond(), Calendar.calendar()) :: t
+  @spec from_erl!(
+          :calendar.datetime(),
+          Calendar.microsecond() | non_neg_integer(),
+          Calendar.calendar()
+        ) :: t
   def from_erl!(tuple, microsecond \\ {0, 0}, calendar \\ Calendar.ISO) do
     case from_erl(tuple, microsecond, calendar) do
       {:ok, value} ->
@@ -976,11 +1077,28 @@ defmodule NaiveDateTime do
   """
   @doc since: "1.11.0"
   @spec from_gregorian_seconds(integer(), Calendar.microsecond(), Calendar.calendar()) :: t
-  def from_gregorian_seconds(
-        seconds,
-        {microsecond, precision} \\ {0, 0},
-        calendar \\ Calendar.ISO
-      )
+  def from_gregorian_seconds(seconds, microsecond_precision \\ {0, 0}, calendar \\ Calendar.ISO)
+
+  def from_gregorian_seconds(seconds, {microsecond, precision}, Calendar.ISO)
+      when is_integer(seconds) do
+    {days, seconds} = div_rem(seconds, 24 * 60 * 60)
+    {hours, seconds} = div_rem(seconds, 60 * 60)
+    {minutes, seconds} = div_rem(seconds, 60)
+    {year, month, day} = Calendar.ISO.date_from_iso_days(days)
+
+    %NaiveDateTime{
+      calendar: Calendar.ISO,
+      year: year,
+      month: month,
+      day: day,
+      hour: hours,
+      minute: minutes,
+      second: seconds,
+      microsecond: {microsecond, precision}
+    }
+  end
+
+  def from_gregorian_seconds(seconds, {microsecond, precision}, calendar)
       when is_integer(seconds) do
     iso_days = Calendar.ISO.gregorian_seconds_to_iso_days(seconds, microsecond)
 
@@ -997,6 +1115,17 @@ defmodule NaiveDateTime do
       second: second,
       microsecond: {microsecond, precision}
     }
+  end
+
+  defp div_rem(int1, int2) do
+    div = div(int1, int2)
+    rem = int1 - div * int2
+
+    if rem >= 0 do
+      {div, rem}
+    else
+      {div - 1, rem + int2}
+    end
   end
 
   @doc """
@@ -1145,6 +1274,10 @@ defmodule NaiveDateTime do
           {:ok, t} | {:error, :incompatible_calendars}
 
   # Keep it multiline for proper function clause errors.
+  def convert(%NaiveDateTime{calendar: calendar} = ndt, calendar) do
+    {:ok, ndt}
+  end
+
   def convert(
         %{
           calendar: calendar,
@@ -1176,7 +1309,7 @@ defmodule NaiveDateTime do
     if Calendar.compatible_calendars?(ndt_calendar, calendar) do
       result_naive_datetime =
         naive_datetime
-        |> to_iso_days
+        |> to_iso_days()
         |> from_iso_days(calendar, precision)
 
       {:ok, result_naive_datetime}
@@ -1346,10 +1479,15 @@ defmodule NaiveDateTime do
         calendar: calendar
       } = naive_datetime
 
-      formatted =
-        calendar.naive_datetime_to_string(year, month, day, hour, minute, second, microsecond)
+      if calendar != Calendar.ISO or year in -9999..9999 do
+        formatted =
+          calendar.naive_datetime_to_string(year, month, day, hour, minute, second, microsecond)
 
-      "~N[" <> formatted <> suffix(calendar) <> "]"
+        "~N[" <> formatted <> suffix(calendar) <> "]"
+      else
+        "NaiveDateTime.new!(#{Integer.to_string(year)}, #{Integer.to_string(month)}, #{Integer.to_string(day)}, " <>
+          "#{Integer.to_string(hour)}, #{Integer.to_string(minute)}, #{Integer.to_string(second)}, #{inspect(microsecond)})"
+      end
     end
 
     defp suffix(Calendar.ISO), do: ""

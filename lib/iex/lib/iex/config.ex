@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule IEx.Config do
   @moduledoc false
   use Agent
@@ -11,7 +15,9 @@ defmodule IEx.Config do
     :default_prompt,
     :alive_prompt,
     :width,
-    :parser
+    :parser,
+    :dot_iex,
+    :auto_reload
   ]
 
   # Generate a continuation prompt based on IEx prompt.
@@ -90,6 +96,14 @@ defmodule IEx.Config do
       :error ->
         IO.ANSI.enabled?()
     end
+  end
+
+  def dot_iex() do
+    Application.get_env(:iex, :dot_iex)
+  end
+
+  def auto_reload?() do
+    Application.fetch_env!(:iex, :auto_reload)
   end
 
   # Used by default on evaluation cycle
@@ -195,6 +209,8 @@ defmodule IEx.Config do
   defp validate_option({:alive_prompt, new}) when is_binary(new), do: :ok
   defp validate_option({:width, new}) when is_integer(new), do: :ok
   defp validate_option({:parser, tuple}) when tuple_size(tuple) == 3, do: :ok
+  defp validate_option({:dot_iex, path}) when is_binary(path), do: :ok
+  defp validate_option({:auto_reload, enabled}) when is_boolean(enabled), do: :ok
 
   defp validate_option(option) do
     raise ArgumentError, "invalid configuration #{inspect(option)}"

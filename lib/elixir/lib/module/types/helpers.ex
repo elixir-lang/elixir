@@ -1,6 +1,17 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Module.Types.Helpers do
   # AST and enumeration helpers.
   @moduledoc false
+
+  ## AST helpers
+
+  @doc """
+  Returns true if the mode cares about warnings.
+  """
+  defguard is_warning(stack) when stack.mode not in [:traversal, :infer]
 
   @doc """
   Guard function to check if an AST node is a variable.
@@ -15,9 +26,20 @@ defmodule Module.Types.Helpers do
   end
 
   @doc """
-  Returns unique identifier for the current assignment of the variable.
+  Unpacks a list into head elements and tail.
   """
-  def var_name({_name, meta, _context}), do: Keyword.fetch!(meta, :version)
+  def unpack_list([{:|, _, [head, tail]}], acc), do: {Enum.reverse([head | acc]), tail}
+  def unpack_list([head], acc), do: {Enum.reverse([head | acc]), []}
+  def unpack_list([head | tail], acc), do: unpack_list(tail, [head | acc])
+
+  @doc """
+  Unpacks a match into several matches.
+  """
+  def unpack_match({:=, _, [left, right]}, acc),
+    do: unpack_match(left, unpack_match(right, acc))
+
+  def unpack_match(node, acc),
+    do: [node | acc]
 
   @doc """
   Returns the AST metadata.
@@ -26,171 +48,407 @@ defmodule Module.Types.Helpers do
   def get_meta(_other), do: []
 
   @doc """
-  Like `Enum.reduce/3` but only continues while `fun` returns `{:ok, acc}`
-  and stops on `{:error, reason}`.
+  Attaches span information.
   """
-  def reduce_ok(list, acc, fun) do
-    do_reduce_ok(list, acc, fun)
+  def with_span(meta, name) do
+    :elixir_env.calculate_span(meta, name)
   end
 
-  defp do_reduce_ok([head | tail], acc, fun) do
-    case fun.(head, acc) do
-      {:ok, acc} ->
-        do_reduce_ok(tail, acc, fun)
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
-  defp do_reduce_ok([], acc, _fun), do: {:ok, acc}
+  ## Warnings
 
   @doc """
-  Like `Enum.unzip/1` but only continues while `fun` returns `{:ok, elem1, elem2}`
-  and stops on `{:error, reason}`.
+  Converts an itneger into ordinal.
   """
-  def unzip_ok(list) do
-    do_unzip_ok(list, [], [])
-  end
-
-  defp do_unzip_ok([{:ok, head1, head2} | tail], acc1, acc2) do
-    do_unzip_ok(tail, [head1 | acc1], [head2 | acc2])
-  end
-
-  defp do_unzip_ok([{:error, reason} | _tail], _acc1, _acc2), do: {:error, reason}
-
-  defp do_unzip_ok([], acc1, acc2), do: {:ok, Enum.reverse(acc1), Enum.reverse(acc2)}
-
-  @doc """
-  Like `Enum.map/2` but only continues while `fun` returns `{:ok, elem}`
-  and stops on `{:error, reason}`.
-  """
-  def map_ok(list, fun) do
-    do_map_ok(list, [], fun)
-  end
-
-  defp do_map_ok([head | tail], acc, fun) do
-    case fun.(head) do
-      {:ok, elem} ->
-        do_map_ok(tail, [elem | acc], fun)
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
-  defp do_map_ok([], acc, _fun), do: {:ok, Enum.reverse(acc)}
-
-  @doc """
-  Like `Enum.map_reduce/3` but only continues while `fun` returns `{:ok, elem, acc}`
-  and stops on `{:error, reason}`.
-  """
-  def map_reduce_ok(list, acc, fun) do
-    do_map_reduce_ok(list, {[], acc}, fun)
-  end
-
-  defp do_map_reduce_ok([head | tail], {list, acc}, fun) do
-    case fun.(head, acc) do
-      {:ok, elem, acc} ->
-        do_map_reduce_ok(tail, {[elem | list], acc}, fun)
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
-  defp do_map_reduce_ok([], {list, acc}, _fun), do: {:ok, Enum.reverse(list), acc}
-
-  @doc """
-  Like `Enum.flat_map/2` but only continues while `fun` returns `{:ok, list}`
-  and stops on `{:error, reason}`.
-  """
-  def flat_map_ok(list, fun) do
-    do_flat_map_ok(list, [], fun)
-  end
-
-  defp do_flat_map_ok([head | tail], acc, fun) do
-    case fun.(head) do
-      {:ok, elem} ->
-        do_flat_map_ok(tail, [elem | acc], fun)
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
-  defp do_flat_map_ok([], acc, _fun), do: {:ok, Enum.reverse(Enum.concat(acc))}
-
-  @doc """
-  Like `Enum.flat_map_reduce/3` but only continues while `fun` returns `{:ok, list, acc}`
-  and stops on `{:error, reason}`.
-  """
-  def flat_map_reduce_ok(list, acc, fun) do
-    do_flat_map_reduce_ok(list, {[], acc}, fun)
-  end
-
-  defp do_flat_map_reduce_ok([head | tail], {list, acc}, fun) do
-    case fun.(head, acc) do
-      {:ok, elems, acc} ->
-        do_flat_map_reduce_ok(tail, {[elems | list], acc}, fun)
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
-  defp do_flat_map_reduce_ok([], {list, acc}, _fun),
-    do: {:ok, Enum.reverse(Enum.concat(list)), acc}
-
-  @doc """
-  Given a list of `[{:ok, term()} | {:error, term()}]` it returns a list of
-  errors `{:error, [term()]}` in case of at least one error or `{:ok, [term()]}`
-  if there are no errors.
-  """
-  def oks_or_errors(list) do
-    case Enum.split_with(list, &match?({:ok, _}, &1)) do
-      {oks, []} -> {:ok, Enum.map(oks, fn {:ok, ok} -> ok end)}
-      {_oks, errors} -> {:error, Enum.map(errors, fn {:error, error} -> error end)}
+  def integer_to_ordinal(i) do
+    case rem(i, 10) do
+      1 when rem(i, 100) != 11 -> "#{i}st"
+      2 when rem(i, 100) != 12 -> "#{i}nd"
+      3 when rem(i, 100) != 13 -> "#{i}rd"
+      _ -> "#{i}th"
     end
   end
 
   @doc """
-  Combines a list of guard expressions `when x when y when z` to an expression
-  combined with `or`, `x or y or z`.
+  Formatted hints in typing errors.
   """
-  # TODO: Remove this and let multiple when be treated as multiple clauses,
-  #       meaning they will be intersection types
-  def guards_to_or([]) do
-    []
+  def format_hints(hints) do
+    hints
+    |> Enum.uniq()
+    |> Enum.map(fn
+      :inferred_bitstring_spec ->
+        """
+
+        #{hint()} all expressions given to binaries are assumed to be of type \
+        integer() unless said otherwise. For example, <<expr>> assumes "expr" \
+        is an integer. Pass a modifier, such as <<expr::float>> or <<expr::binary>>, \
+        to change the default behavior.
+        """
+
+      :dot ->
+        """
+
+        #{hint()} "var.field" (without parentheses) means "var" is a map() while \
+        "var.fun()" (with parentheses) means "var" is an atom()
+        """
+
+      :interpolation ->
+        """
+
+        #{hint()} string interpolation uses the String.Chars protocol to \
+        convert a data structure into a string. Either convert the data type into a \
+        string upfront or implement the protocol accordingly
+        """
+
+      :generator ->
+        """
+
+        #{hint()} for-comprehensions use the Enumerable protocol to traverse \
+        data structures. Either convert the data type into a list (or another Enumerable) \
+        or implement the protocol accordingly
+        """
+
+      :into ->
+        """
+
+        #{hint()} the :into option in for-comprehensions use the Collectable protocol to \
+        build its result. Either pass a valid data type or implement the protocol accordingly
+        """
+
+      :anonymous_rescue ->
+        """
+
+        #{hint()} when you rescue without specifying exception names, \
+        the variable is assigned a type of a struct but all of its fields are unknown. \
+        If you are trying to access an exception's :message key, either specify the \
+        exception names or use `Exception.message/1`.
+        """
+    end)
   end
 
-  def guards_to_or(guards) do
-    Enum.reduce(guards, fn guard, acc -> {{:., [], [:erlang, :orelse]}, [], [guard, acc]} end)
+  defp hint, do: :elixir_errors.prefix(:hint)
+
+  @doc """
+  Collect traces from variables in expression.
+
+  This information is exposed to language servers and
+  therefore must remain backwards compatible.
+  """
+  def collect_traces(expr, %{vars: vars}) do
+    {_, versions} =
+      Macro.prewalk(expr, %{}, fn
+        {var_name, meta, var_context}, versions when is_atom(var_name) and is_atom(var_context) ->
+          version = meta[:version]
+
+          case vars do
+            %{^version => %{off_traces: off_traces, name: name, context: context}} ->
+              {:ok,
+               Map.put(versions, version, %{
+                 type: :variable,
+                 name: name,
+                 context: context,
+                 traces: collect_var_traces(expr, off_traces)
+               })}
+
+            _ ->
+              {:ok, versions}
+          end
+
+        node, versions ->
+          {node, versions}
+      end)
+
+    versions
+    |> Map.values()
+    |> Enum.sort_by(& &1.name)
+  end
+
+  defp collect_var_traces(parent_expr, traces) do
+    traces
+    |> Enum.reject(fn {expr, _file, type} ->
+      # As an optimization do not care about dynamic terms
+      type == %{dynamic: :term} or expr == parent_expr
+    end)
+    |> case do
+      [] -> traces
+      filtered -> filtered
+    end
+    |> Enum.reverse()
+    |> Enum.map(fn {expr, file, type} ->
+      meta = get_meta(expr)
+
+      # This information is exposed to language servers and
+      # therefore must remain backwards compatible.
+      %{
+        file: file,
+        meta: meta,
+        formatted_expr: expr_to_string(expr),
+        formatted_hints: format_hints(expr_hints(expr)),
+        formatted_type: Module.Types.Descr.to_quoted_string(type, collapse_structs: true)
+      }
+    end)
+    |> Enum.sort_by(&{&1.meta[:line], &1.meta[:column]})
+    |> Enum.dedup()
+  end
+
+  defp expr_hints(expr) do
+    case expr do
+      {:<<>>, [inferred_bitstring_spec: true] ++ _meta, _} ->
+        [:inferred_bitstring_spec]
+
+      {_, meta, _} ->
+        case meta[:type_check] do
+          :anonymous_rescue -> [:anonymous_rescue]
+          _ -> []
+        end
+
+      _ ->
+        []
+    end
   end
 
   @doc """
-  Like `Enum.zip/1` but will zip multiple lists together instead of only two.
+  Format previously collected traces.
   """
-  def zip_many(lists) do
-    zip_many(lists, [], [[]])
+  def format_traces(traces) do
+    Enum.map(traces, &format_trace/1)
   end
 
-  defp zip_many([], [], [[] | acc]) do
-    map_reverse(acc, [], &Enum.reverse/1)
+  defp format_trace(%{type: :variable, name: name, context: context, traces: traces}) do
+    traces =
+      for trace <- traces do
+        location =
+          trace.file
+          |> Path.relative_to_cwd()
+          |> Exception.format_file_line(trace.meta[:line], trace.meta[:column])
+          |> String.replace_suffix(":", "")
+
+        [
+          """
+
+              # type: #{indent(trace.formatted_type, 4)}
+              # from: #{location}
+              \
+          """,
+          indent(trace.formatted_expr, 4),
+          ?\n,
+          trace.formatted_hints
+        ]
+      end
+
+    type_or_types = pluralize(traces, "type", "types")
+    ["\nwhere #{format_var(name, context)} was given the #{type_or_types}:\n" | traces]
   end
 
-  defp zip_many([], remain, [last | acc]) do
-    zip_many(Enum.reverse(remain), [], [[] | [last | acc]])
+  @doc """
+  Formats a var for pretty printing.
+  """
+  def format_var({var, _, context}), do: format_var(var, context)
+  def format_var(var, nil), do: "\"#{var}\""
+  def format_var(var, context), do: "\"#{var}\" (context #{inspect(context)})"
+
+  defp pluralize([_], singular, _plural), do: singular
+  defp pluralize(_, _singular, plural), do: plural
+
+  @doc """
+  Converts the given expression to a string,
+  translating inlined Erlang calls back to Elixir.
+
+  We also undo some macro expressions done by the Kernel module.
+  """
+  def expr_to_string(expr, opts \\ []) do
+    string = prewalk_expr_to_string(expr, opts)
+
+    case expr do
+      {_, meta, _} ->
+        case meta[:type_check] do
+          :anonymous_rescue ->
+            "rescue " <> string
+
+          :rescue ->
+            "rescue " <> string
+
+          {:invoked_as, mod, fun, arity} ->
+            string <> "\n#=> invoked as " <> Exception.format_mfa(mod, fun, arity)
+
+          _ ->
+            string
+        end
+
+      _ ->
+        string
+    end
   end
 
-  defp zip_many([[] | _], remain, [last | acc]) do
-    zip_many(Enum.reverse(remain), [], [last | acc])
+  defp prewalk_expr_to_string(expr, opts) do
+    collapse_structs? = Keyword.get(opts, :collapse_structs, true)
+
+    expr
+    |> Macro.prewalk(fn
+      {:%, _, [Range, {:%{}, _, fields}]} = node ->
+        case :lists.usort(fields) do
+          [first: first, last: last, step: step] ->
+            quote do
+              unquote(first)..unquote(last)//unquote(step)
+            end
+
+          _ ->
+            node
+        end
+
+      {:%, struct_meta, [struct, {:%{}, map_meta, fields}]} = node
+      when collapse_structs? ->
+        try do
+          struct.__info__(:struct)
+        rescue
+          _ -> node
+        else
+          infos ->
+            filtered =
+              for {field, value} <- fields, not matches_default?(infos, field, value) do
+                {field, value}
+              end
+
+            if length(fields) != length(filtered) do
+              {:%, struct_meta, [struct, {:%{}, map_meta, [{:..., [], []} | filtered]}]}
+            else
+              node
+            end
+        end
+
+      {{:., _, [Elixir.String.Chars, :to_string]}, meta, [arg]} ->
+        {:to_string, meta, [arg]}
+
+      {{:., _, [Elixir.List.Chars, :to_charlist]}, meta, [arg]} ->
+        {:to_charlist, meta, [arg]}
+
+      {{:., _, [mod, fun]}, meta, args} ->
+        erl_to_ex(mod, fun, args, meta)
+
+      {:case, meta, [expr, [do: clauses]]} = case ->
+        if meta[:type_check] == :expr do
+          case clauses do
+            [
+              {:->, _,
+               [
+                 [
+                   {:when, _,
+                    [
+                      {var, _, Kernel},
+                      {{:., _, [:erlang, :orelse]}, _,
+                       [
+                         {{:., _, [:erlang, :"=:="]}, _, [{var, _, Kernel}, false]},
+                         {{:., _, [:erlang, :"=:="]}, _, [{var, _, Kernel}, nil]}
+                       ]}
+                    ]}
+                 ],
+                 else_block
+               ]},
+              {:->, _, [[{:_, _, Kernel}], do_block]}
+            ] ->
+              {:if, meta, [expr, [do: do_block, else: else_block]]}
+
+            [
+              {:->, _, [[false], else_block]},
+              {:->, _, [[true], do_block]}
+            ] ->
+              {:if, meta, [expr, [do: do_block, else: else_block]]}
+
+            _ ->
+              case
+          end
+        else
+          case
+        end
+
+      other ->
+        other
+    end)
+    |> Macro.to_string()
   end
 
-  defp zip_many([[elem | list1] | list2], remain, [last | acc]) do
-    zip_many(list2, [list1 | remain], [[elem | last] | acc])
+  defp matches_default?(infos, field, value) do
+    case Enum.find(infos, &(&1.field == field)) do
+      %{default: default} -> Macro.escape(default) == value
+      _ -> false
+    end
   end
 
-  defp map_reverse([], acc, _fun), do: acc
-  defp map_reverse([head | tail], acc, fun), do: map_reverse(tail, [fun.(head) | acc], fun)
+  defp erl_to_ex(
+         :erlang,
+         :error,
+         [expr, :none, [error_info: {:%{}, _, [module: Exception]}]],
+         meta
+       ) do
+    {:raise, meta, [expr]}
+  end
+
+  defp erl_to_ex(mod, fun, args, meta) do
+    case :elixir_rewrite.erl_to_ex(mod, fun, args) do
+      {Kernel, fun, args, _} -> {fun, meta, args}
+      {mod, fun, args, _} -> {{:., [], [mod, fun]}, meta, args}
+    end
+  end
+
+  @doc """
+  Indents new lines.
+  """
+  def indent(content, count) do
+    String.replace(content, "\n", "\n" <> String.duplicate(" ", count))
+  end
+
+  @doc """
+  Emits a warning.
+  """
+  def warn(module, warning, meta, stack, context) do
+    if Keyword.get(meta, :generated, false) do
+      context
+    else
+      effectively_warn(module, warning, meta, stack, context)
+    end
+  end
+
+  defp effectively_warn(module, warning, meta, stack, context) do
+    {fun, arity} = stack.function
+    location = {stack.file, meta, {stack.module, fun, arity}}
+    %{context | warnings: [{module, warning, location} | context.warnings]}
+  end
+
+  @doc """
+  Emits an error.
+
+  In practice an error is a warning that halts other errors from being collected.
+  """
+  def error(module, warning, meta, stack, context) do
+    case context do
+      %{failed: true} ->
+        context
+
+      %{failed: false} ->
+        if Keyword.get(meta, :generated, false) do
+          context
+        else
+          effectively_warn(module, warning, meta, stack, %{context | failed: true})
+        end
+    end
+  end
+
+  @doc """
+  The type to return when there is an error.
+  """
+  def error_type, do: Module.Types.Descr.dynamic()
+
+  ## Enum helpers
+
+  def zip_map_reduce(args1, args2, acc, fun) do
+    zip_map_reduce(args1, args2, [], acc, fun)
+  end
+
+  defp zip_map_reduce([arg1 | args1], [arg2 | args2], list, acc, fun) do
+    {item, acc} = fun.(arg1, arg2, acc)
+    zip_map_reduce(args1, args2, [item | list], acc, fun)
+  end
+
+  defp zip_map_reduce([], [], list, acc, _fun) do
+    {Enum.reverse(list), acc}
+  end
 end

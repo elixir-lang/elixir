@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Kernel.ImplTest do
@@ -202,28 +206,41 @@ defmodule Kernel.ImplTest do
   end
 
   test "warns for @impl true with callback name not in behaviour" do
-    assert capture_err(fn ->
-             Code.eval_string("""
-             defmodule Kernel.ImplTest.ImplAttributes do
-               @behaviour Kernel.ImplTest.Behaviour
-               @impl true
-               def bar(), do: :ok
-             end
-             """)
-           end) =~
+    message =
+      capture_err(fn ->
+        Code.eval_string("""
+        defmodule Kernel.ImplTest.ImplAttributes do
+          @behaviour Kernel.ImplTest.Behaviour
+          @impl true
+          def bar(), do: :ok
+        end
+        """)
+      end)
+
+    assert message =~
              "got \"@impl true\" for function bar/0 but no behaviour specifies such callback"
+
+    assert message =~ "The known callbacks are"
+    assert message =~ "* Kernel.ImplTest.Behaviour.foo/0 (function)"
   end
 
   test "warns for @impl true with macro callback name not in behaviour" do
-    assert capture_err(fn ->
-             Code.eval_string("""
-             defmodule Kernel.ImplTest.ImplAttributes do
-               @behaviour Kernel.ImplTest.MacroBehaviour
-               @impl true
-               defmacro foo(), do: :ok
-             end
-             """)
-           end) =~ "got \"@impl true\" for macro foo/0 but no behaviour specifies such callback"
+    message =
+      capture_err(fn ->
+        Code.eval_string("""
+        defmodule Kernel.ImplTest.ImplAttributes do
+          @behaviour Kernel.ImplTest.MacroBehaviour
+          @impl true
+          defmacro foo(), do: :ok
+        end
+        """)
+      end)
+
+    assert message =~
+             "got \"@impl true\" for macro foo/0 but no behaviour specifies such callback"
+
+    assert message =~ "The known callbacks are"
+    assert message =~ "* Kernel.ImplTest.MacroBehaviour.bar/0 (macro)"
   end
 
   test "warns for @impl true with callback kind not in behaviour" do

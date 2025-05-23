@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Logger.Backends.ConsoleTest do
   use Logger.Case
 
@@ -5,9 +9,11 @@ defmodule Logger.Backends.ConsoleTest do
   import ExUnit.CaptureIO
 
   setup_all do
-    Application.put_env(:logger, :backends, [Logger.Backends.Console])
-    Logger.App.stop()
-    Application.start(:logger)
+    capture_io(:stderr, fn ->
+      Application.put_env(:logger, :backends, [Logger.Backends.Console])
+      Logger.App.stop()
+      Application.start(:logger)
+    end)
 
     on_exit(fn ->
       Application.delete_env(:logger, :backends)

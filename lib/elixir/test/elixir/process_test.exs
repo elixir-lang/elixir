@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule ProcessTest do
@@ -55,6 +59,12 @@ defmodule ProcessTest do
 
   test "sleep/1" do
     assert Process.sleep(0) == :ok
+  end
+
+  test "sleep/1 with 2^32" do
+    {pid, monitor_ref} = spawn_monitor(fn -> Process.sleep(2 ** 32) end)
+    refute_receive {:DOWN, ^monitor_ref, :process, ^pid, {:timeout_value, _trace}}, 100
+    Process.exit(pid, :kill)
   end
 
   test "info/2" do
@@ -120,7 +130,7 @@ defmodule ProcessTest do
       end)
 
     true = Process.exit(pid, :normal)
-    refute_receive {:EXIT, ^pid, :normal}
+    refute_receive {:EXIT, ^pid, :normal}, 100
     assert Process.alive?(pid)
 
     # now exit the process for real so it doesn't hang around
@@ -167,6 +177,20 @@ defmodule ProcessTest do
       send(server, {:ping, alias})
       assert_receive :pong
       refute_receive :extra_pong, 20
+    end
+  end
+
+  describe "set_label/1" do
+    @compile {:no_warn_undefined, :proc_lib}
+
+    test "sets a process label, compatible with OTP 27+ `:proc_lib.get_label/1`" do
+      label = {:some_label, :rand.uniform(99999)}
+      assert :ok = Process.set_label(label)
+
+      # TODO: Remove this when we require Erlang/OTP 27+
+      if System.otp_release() >= "27" do
+        assert :proc_lib.get_label(self()) == label
+      end
     end
   end
 

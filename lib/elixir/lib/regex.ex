@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Regex do
   @moduledoc ~S"""
   Provides regular expressions for Elixir.
@@ -7,7 +11,7 @@ defmodule Regex do
   in the [`:re` module documentation](`:re`).
 
   Regular expressions in Elixir can be created using the sigils
-  `~r` (see `sigil_r/2`) or `~R` (see `sigil_R/2`):
+  `~r` (see `sigil_r/2`):
 
       # A simple regular expression that matches foo anywhere in the string
       ~r/foo/
@@ -15,15 +19,11 @@ defmodule Regex do
       # A regular expression with case insensitive and Unicode options
       ~r/foo/iu
 
-  Regular expressions created via sigils are pre-compiled and stored
-  in the `.beam` file. Note that this may be a problem if you are precompiling
-  Elixir, see the "Precompilation" section for more information.
-
   A Regex is represented internally as the `Regex` struct. Therefore,
   `%Regex{}` can be used whenever there is a need to match on them.
-  Keep in mind that all of the structs fields are private. There is
-  also not guarantee two regular expressions from the same source are
-  equal, for example:
+  Keep in mind that all of the structs fields are private. And since
+  regexes are compiled, there is no guarantee two regular expressions
+  from the same source are equal, for example:
 
       ~r/(?<foo>.)(?<bar>.)/ == ~r/(?<foo>.)(?<bar>.)/
 
@@ -33,6 +33,37 @@ defmodule Regex do
   compare those directly:
 
       ~r/(?<foo>.)(?<bar>.)/.source == ~r/(?<foo>.)(?<bar>.)/.source
+
+  ## Escapes
+
+  Escape sequences are split into two categories.
+
+  ### Non-printing characters
+
+    * `\a` - Alarm, that is, the BEL character (hex 07)
+    * `\e` - Escape (hex 1B)
+    * `\f` - Form feed (hex 0C)
+    * `\n` - Line feed (hex 0A)
+    * `\r` - Carriage return (hex 0D)
+    * `\t` - Tab (hex 09)
+    * `\xhh` - Character with hex code hh
+    * `\x{hhh..}` - Character with hex code hhh..
+
+  `\u` and `\U` are not supported. Other escape sequences, such as `\ddd`
+  for octals, are supported but discouraged.
+
+  ### Generic character types
+
+    * `\d` - Any decimal digit
+    * `\D` - Any character that is not a decimal digit
+    * `\h` - Any horizontal whitespace character
+    * `\H` - Any character that is not a horizontal whitespace character
+    * `\s` - Any whitespace character
+    * `\S` - Any character that is not a whitespace character
+    * `\v` - Any vertical whitespace character
+    * `\V` - Any character that is not a vertical whitespace character
+    * `\w` - Any "word" character
+    * `\W` - Any "non-word" character
 
   ## Modifiers
 
@@ -53,22 +84,13 @@ defmodule Regex do
       each line; use `\A` and `\z` to match the end or beginning of the string
 
     * `:extended` (x) - whitespace characters are ignored except when escaped
-      and allow `#` to delimit comments
+      or within `[..]`, and allow `#` to delimit comments
 
     * `:firstline` (f) - forces the unanchored pattern to match before or at the
       first newline, though the matched text may continue over the newline
 
     * `:ungreedy` (U) - inverts the "greediness" of the regexp
       (the previous `r` option is deprecated in favor of `U`)
-
-  The options not available are:
-
-    * `:anchored` - not available, use `^` or `\A` instead
-    * `:dollar_endonly` - not available, use `\z` instead
-    * `:no_auto_capture` - not available, use `?:` instead
-    * `:newline` - not available, use `(*CR)` or `(*LF)` or `(*CRLF)` or
-      `(*ANYCRLF)` or `(*ANY)` at the beginning of the regexp according to the
-      `:re` documentation
 
   ## Captures
 
@@ -91,7 +113,7 @@ defmodule Regex do
     * `:all_names` - captures all named subpattern matches in the Regex as a list
       ordered **alphabetically** by the names of the subpatterns
 
-    * `list(binary)` - a list of named captures to capture
+    * `list(binary | atom)` - a list of named captures to capture
 
   ## Character classes
 
@@ -121,10 +143,10 @@ defmodule Regex do
 
   There is another character class, `ascii`, that erroneously matches
   Latin-1 characters instead of the 0-127 range specified by POSIX. This
-  cannot be fixed without altering the behaviour of other classes, so we
+  cannot be fixed without altering the behavior of other classes, so we
   recommend matching the range with `[\\0-\x7f]` instead.
 
-  Note the behaviour of those classes may change according to the Unicode
+  Note the behavior of those classes may change according to the Unicode
   and other modifiers:
 
       iex> String.match?("josé", ~r/^[[:lower:]]+$/)
@@ -136,26 +158,11 @@ defmodule Regex do
       iex> Regex.replace(~r/\s/u, "Unicode\u00A0spaces", "-")
       "Unicode-spaces"
 
-  ## Precompilation
-
-  Regular expressions built with sigil are precompiled and stored in `.beam`
-  files. Precompiled regexes will be checked in runtime and may work slower
-  between operating systems and OTP releases. This is rarely a problem, as most Elixir code
-  shared during development is compiled on the target (such as dependencies,
-  archives, and escripts) and, when running in production, the code must either
-  be compiled on the target (via `mix compile` or similar) or released on the
-  host (via `mix releases` or similar) with a matching OTP, operating system
-  and architecture as the target.
-
-  If you know you are running on a different system than the current one and
-  you are doing multiple matches with the regex, you can manually invoke
-  `Regex.recompile/1` or `Regex.recompile!/1` to perform a runtime version
-  check and recompile the regex if necessary.
   """
 
-  defstruct re_pattern: nil, source: "", opts: "", re_version: ""
+  defstruct re_pattern: nil, source: "", opts: []
 
-  @type t :: %__MODULE__{re_pattern: term, source: binary, opts: binary | [term]}
+  @type t :: %__MODULE__{re_pattern: term, source: binary, opts: [term]}
 
   defmodule CompileError do
     @moduledoc """
@@ -178,52 +185,40 @@ defmodule Regex do
 
   ## Examples
 
-      iex> Regex.compile("foo")
-      {:ok, ~r/foo/}
+      Regex.compile("foo")
+      #=> {:ok, ~r/foo/}
 
-      iex> Regex.compile("*foo")
-      {:error, {'nothing to repeat', 0}}
+      Regex.compile("foo", "i")
+      #=> {:ok, ~r/foo/i}
 
-      iex> Regex.compile("foo", "i")
-      {:ok, ~r/foo/i}
-
-      iex> Regex.compile("foo", [:caseless])
-      {:ok, Regex.compile!("foo", [:caseless])}
+      Regex.compile("*foo")
+      #=> {:error, {~c"quantifier does not follow a repeatable item", 0}}
 
   """
-  @spec compile(binary, binary | [term]) :: {:ok, t} | {:error, any}
-  def compile(source, options \\ "") when is_binary(source) do
-    compile(source, options, version())
+  @spec compile(binary, binary | [term]) :: {:ok, t} | {:error, term}
+  def compile(source, opts \\ "") when is_binary(source) do
+    do_compile(source, opts)
   end
 
-  defp compile(source, options, version) when is_binary(options) do
-    case translate_options(options, []) do
+  defp do_compile(source, opts) when is_binary(opts) do
+    case translate_options(opts, []) do
       {:error, rest} ->
         {:error, {:invalid_option, rest}}
 
-      translated_options ->
-        compile(source, translated_options, options, version)
+      translated_opts ->
+        do_compile(source, translated_opts)
     end
   end
 
-  defp compile(source, options, version) when is_list(options) do
-    compile(source, options, "", version)
-  end
-
-  defp compile(source, opts, doc_opts, version) do
+  defp do_compile(source, opts) when is_list(opts) do
     case :re.compile(source, opts) do
       {:ok, re_pattern} ->
-        doc_opts = format_doc_opts(doc_opts, opts)
-        {:ok, %Regex{re_pattern: re_pattern, re_version: version, source: source, opts: doc_opts}}
+        {:ok, %Regex{re_pattern: re_pattern, source: source, opts: opts}}
 
       error ->
         error
     end
   end
-
-  defp format_doc_opts(_doc_opts = "", _opts = []), do: ""
-  defp format_doc_opts(_doc_opts = "", opts), do: opts
-  defp format_doc_opts(doc_opts, _opts), do: doc_opts
 
   @doc """
   Compiles the regular expression and raises `Regex.CompileError` in case of errors.
@@ -242,38 +237,29 @@ defmodule Regex do
   This checks the version stored in the regular expression
   and recompiles the regex in case of version mismatch.
   """
+  # Remove me on Elixir v1.22
+  @doc deprecated: "It can be removed and it has no effect"
   @doc since: "1.4.0"
-  @spec recompile(t) :: {:ok, t} | {:error, any}
   def recompile(%Regex{} = regex) do
-    version = version()
-
-    case regex do
-      %{re_version: ^version} ->
-        {:ok, regex}
-
-      _ ->
-        %{source: source, opts: opts} = regex
-        compile(source, opts, version)
-    end
+    {:ok, regex}
   end
 
   @doc """
   Recompiles the existing regular expression and raises `Regex.CompileError` in case of errors.
   """
+  # Remove me on Elixir v1.22
+  @doc deprecated: "It can be removed and it has no effect"
   @doc since: "1.4.0"
-  @spec recompile!(t) :: t
   def recompile!(regex) do
-    case recompile(regex) do
-      {:ok, regex} -> regex
-      {:error, {reason, at}} -> raise Regex.CompileError, "#{reason} at position #{at}"
-    end
+    regex
   end
 
   @doc """
   Returns the version of the underlying Regex engine.
   """
+  # Remove me on Elixir v1.22
+  @doc deprecated: "Use :re.version() instead"
   @doc since: "1.4.0"
-  @spec version :: term()
   def version do
     {:re.version(), :erlang.system_info(:endian)}
   end
@@ -312,7 +298,7 @@ defmodule Regex do
 
     * `:return` - when set to `:index`, returns byte index and match length.
       Defaults to `:binary`.
-    * `:capture` - what to capture in the result. Check the moduledoc for `Regex`
+    * `:capture` - what to capture in the result. See the ["Captures" section](#module-captures)
       to see the possible capture values.
     * `:offset` - (since v1.12.0) specifies the starting offset to match in the given string.
       Defaults to zero.
@@ -327,6 +313,12 @@ defmodule Regex do
 
       iex> Regex.run(~r/c(d)/, "abcd", return: :index)
       [{2, 2}, {3, 1}]
+
+      iex> Regex.run(~r/c(d)/, "abcd", capture: :first)
+      ["cd"]
+
+      iex> Regex.run(~r/c(?<foo>d)/, "abcd", capture: ["foo", "bar"])
+      ["d", ""]
 
   """
   @spec run(t, binary, [term]) :: nil | [binary] | [{integer, integer}]
@@ -363,8 +355,15 @@ defmodule Regex do
       iex> Regex.named_captures(~r/a(?<foo>b)c(?<bar>d)/, "efgh")
       nil
 
+  You can also retrieve indexes from the named captures. This is particularly
+  useful if you want to know if a named capture matched or not:
+
+      iex> Regex.named_captures(~r/a(?<foo>b)c(?<bar>d)?/, "abc", return: :index)
+      %{"bar" => {-1, 0}, "foo" => {1, 1}}
+
+  You can then use `binary_part/3` to fetch the relevant part from the given string.
   """
-  @spec named_captures(t, String.t(), [term]) :: map | nil
+  @spec named_captures(t, String.t(), keyword) :: map | nil
   def named_captures(regex, string, options \\ []) when is_binary(string) do
     names = names(regex)
     options = Keyword.put(options, :capture, names)
@@ -395,23 +394,98 @@ defmodule Regex do
   end
 
   @doc """
-  Returns the regex options, as a string or list depending on how
-  it was compiled.
+  Returns the regex options.
 
   See the documentation of `Regex.compile/2` for more information.
 
   ## Examples
 
       iex> Regex.opts(~r/foo/m)
-      "m"
+      [:multiline]
 
       iex> Regex.opts(Regex.compile!("foo", [:caseless]))
       [:caseless]
 
   """
-  @spec opts(t) :: String.t() | [term]
+  @spec opts(t) :: [term]
   def opts(%Regex{opts: opts}) do
     opts
+  end
+
+  @doc """
+  Returns the pattern as an embeddable string.
+
+  If the pattern was compiled with an option which cannot be represented
+  as an embeddable modifier in the current version of PCRE and strict is true
+  (the default) then an ArgumentError exception will be raised.
+
+  When the `:strict` option is false the pattern will be returned as though
+  any offending options had not be used and the function will not raise any
+  exceptions.
+
+  Embeddable modifiers/options are currently:
+
+    * 'i' - `:caseless`
+    * 'm' - `:multiline`
+    * 's' - `:dotall, {:newline, :anycrlf}`
+    * 'x' - `:extended`
+
+  Unembeddable modifiers are:
+
+    * 'f' - `:firstline`
+    * 'U' - `:ungreedy`
+    * 'u' - `:unicode, :ucp`
+
+  Any other regex compilation option not listed here is considered unembeddable
+  and will raise an exception unless the `:strict` option is false.
+
+  ## Examples
+      iex> Regex.to_embed(~r/foo/)
+      "(?-imsx:foo)"
+
+      iex> Regex.to_embed(~r/^foo/m)
+      "(?m-isx:^foo)"
+
+      iex> Regex.to_embed(~r/foo # comment/ix)
+      "(?ix-ms:foo # comment\\n)"
+
+      iex> Regex.to_embed(~r/foo/iu)
+      ** (ArgumentError) regex compiled with options [:ucp, :unicode] which cannot be represented as an embedded pattern in this version of PCRE
+
+      iex> Regex.to_embed(~r/foo/imsxu, strict: false)
+      "(?imsx:foo\\n)"
+
+  """
+  @doc since: "1.19.0"
+  @spec to_embed(t, strict: boolean()) :: String.t()
+  def to_embed(%Regex{source: source, opts: regex_opts}, embed_opts \\ []) do
+    strict = Keyword.get(embed_opts, :strict, true)
+
+    modifiers =
+      case embeddable_modifiers(regex_opts) do
+        {:ok, modifiers} ->
+          modifiers
+
+        {:error, modifiers, untranslatable} ->
+          if strict do
+            raise ArgumentError,
+                  "regex compiled with options #{inspect(untranslatable)} which cannot be " <>
+                    "represented as an embedded pattern in this version of PCRE"
+          else
+            modifiers
+          end
+      end
+
+    disabled = [?i, ?m, ?s, ?x] -- modifiers
+
+    disabled = if disabled != [], do: "-#{disabled}", else: ""
+
+    # Future proof option ordering consistency by sorting
+    modifiers = Enum.sort(modifiers)
+
+    nl = if Enum.member?(regex_opts, :extended), do: "\n", else: ""
+
+    "(?#{modifiers}#{disabled}:#{source}#{nl})"
   end
 
   @doc """
@@ -424,24 +498,13 @@ defmodule Regex do
 
   """
   @spec names(t) :: [String.t()]
-  def names(%Regex{re_pattern: compiled, re_version: version, source: source}) do
-    re_pattern =
-      case version() do
-        ^version ->
-          compiled
-
-        _ ->
-          {:ok, recompiled} = :re.compile(source)
-          recompiled
-      end
-
+  def names(%Regex{re_pattern: re_pattern}) do
     {:namelist, names} = :re.inspect(re_pattern, :namelist)
     names
   end
 
   @doc ~S"""
-  Same as `run/3`, but scans the target several times collecting all
-  matches of the regular expression.
+  Same as `run/3` but returns all non-overlapping matches of the regular expression.
 
   A list of lists is returned, where each entry in the primary list represents a
   match and each entry in the secondary list represents the captured contents.
@@ -450,7 +513,7 @@ defmodule Regex do
 
     * `:return` - when set to `:index`, returns byte index and match length.
       Defaults to `:binary`.
-    * `:capture` - what to capture in the result. Check the moduledoc for `Regex`
+    * `:capture` - what to capture in the result. See the ["Captures" section](#module-captures)
       to see the possible capture values.
     * `:offset` - (since v1.12.0) specifies the starting offset to match in the given string.
       Defaults to zero.
@@ -466,11 +529,20 @@ defmodule Regex do
       iex> Regex.scan(~r/e/, "abcd")
       []
 
+      iex> Regex.scan(~r/ab|bc|cd/, "abcd")
+      [["ab"], ["cd"]]
+
+      iex> Regex.scan(~r/ab|bc|cd/, "abbccd")
+      [["ab"], ["bc"], ["cd"]]
+
       iex> Regex.scan(~r/\p{Sc}/u, "$, £, and €")
       [["$"], ["£"], ["€"]]
 
       iex> Regex.scan(~r/=+/, "=ü†ƒ8===", return: :index)
       [[{0, 1}], [{9, 3}]]
+
+      iex> Regex.scan(~r/c(d|e)/, "abcd abce", capture: :first)
+      [["cd"], ["ce"]]
 
   """
   @spec scan(t(), String.t(), [term()]) :: [[String.t()]] | [[{integer(), integer()}]]
@@ -489,15 +561,8 @@ defmodule Regex do
     end
   end
 
-  defp safe_run(
-         %Regex{re_pattern: compiled, source: source, re_version: version, opts: compile_opts},
-         string,
-         options
-       ) do
-    case version() do
-      ^version -> :re.run(string, compiled, options)
-      _ -> :re.run(string, source, translate_options(compile_opts, options))
-    end
+  defp safe_run(%Regex{re_pattern: re_pattern}, string, options) do
+    :re.run(string, re_pattern, options)
   end
 
   @doc """
@@ -516,7 +581,7 @@ defmodule Regex do
 
     * `:on` - specifies which captures to split the string on, and in what
       order. Defaults to `:first` which means captures inside the regex do not
-      affect the splitting process. Check the moduledoc for `Regex`
+      affect the splitting process. See the ["Captures" section](#module-captures)
       to see the possible capture values.
 
     * `:include_captures` - when `true`, includes in the result the matches of
@@ -525,28 +590,31 @@ defmodule Regex do
 
   ## Examples
 
-      iex> Regex.split(~r{-}, "a-b-c")
+      iex> Regex.split(~r/-/, "a-b-c")
       ["a", "b", "c"]
 
-      iex> Regex.split(~r{-}, "a-b-c", parts: 2)
+      iex> Regex.split(~r/-/, "a-b-c", parts: 2)
       ["a", "b-c"]
 
-      iex> Regex.split(~r{-}, "abc")
+      iex> Regex.split(~r/-/, "abc")
       ["abc"]
 
-      iex> Regex.split(~r{}, "abc")
+      iex> Regex.split(~r//, "abc")
       ["", "a", "b", "c", ""]
 
-      iex> Regex.split(~r{a(?<second>b)c}, "abc")
+      iex> Regex.split(~r/a(?<second>b)c/, "abc")
       ["", ""]
 
-      iex> Regex.split(~r{a(?<second>b)c}, "abc", on: [:second])
+      iex> Regex.split(~r/a(?<second>b)c/, "abc", on: [:second])
       ["a", "c"]
 
-      iex> Regex.split(~r{(x)}, "Elixir", include_captures: true)
+      iex> Regex.split(~r/(x)/, "Elixir", include_captures: true)
       ["Eli", "x", "ir"]
 
-      iex> Regex.split(~r{a(?<second>b)c}, "abc", on: [:second], include_captures: true)
+      iex> Regex.split(~r/a(?<second>b)c/, "abc", on: [:second], include_captures: true)
+      ["a", "b", "c"]
+
+      iex> Regex.split(~r/-/, "-a-b--c", trim: true)
       ["a", "b", "c"]
 
   """
@@ -609,10 +677,15 @@ defmodule Regex do
     <<_::binary-size(^offset), part::binary-size(^keep), match::binary-size(^length), _::binary>> =
       string
 
-    if keep == 0 and trim do
-      [match | do_split([h | t], string, new_offset, counter - 1, trim, true)]
-    else
-      [part, match | do_split([h | t], string, new_offset, counter - 1, trim, true)]
+    cond do
+      keep == 0 and (offset != 0 and length == 0) ->
+        do_split([h | t], string, new_offset, counter - 1, trim, true)
+
+      keep == 0 and trim ->
+        [match | do_split([h | t], string, new_offset, counter - 1, trim, true)]
+
+      true ->
+        [part, match | do_split([h | t], string, new_offset, counter - 1, trim, true)]
     end
   end
 
@@ -620,7 +693,7 @@ defmodule Regex do
     new_offset = pos + length
     keep = pos - offset
 
-    if keep == 0 and trim do
+    if keep == 0 and (trim or (offset != 0 and length == 0)) do
       do_split([h | t], string, new_offset, counter, trim, false)
     else
       <<_::binary-size(^offset), part::binary-size(^keep), _::binary>> = string
@@ -678,7 +751,8 @@ defmodule Regex do
       "Abcadc"
 
   """
-  @spec replace(t, String.t(), String.t() | (... -> String.t()), [term]) :: String.t()
+  @spec replace(t, String.t(), String.t() | (... -> String.t()), global: boolean()) ::
+          String.t()
   def replace(%Regex{} = regex, string, replacement, options \\ [])
       when is_binary(string) and is_list(options) do
     opts = if Keyword.get(options, :global) != false, do: [:global], else: []
@@ -852,28 +926,37 @@ defmodule Regex do
 
   # Helpers
 
-  @doc false
-  # Unescape map function used by Macro.unescape_string.
-  def unescape_map(:newline), do: true
-  def unescape_map(?f), do: ?\f
-  def unescape_map(?n), do: ?\n
-  def unescape_map(?r), do: ?\r
-  def unescape_map(?t), do: ?\t
-  def unescape_map(?v), do: ?\v
-  def unescape_map(?a), do: ?\a
-  def unescape_map(_), do: false
+  # translate options to modifiers as required for emedding
+  defp embeddable_modifiers(list), do: embeddable_modifiers(list, [], [])
 
-  # Private Helpers
+  defp embeddable_modifiers([:dotall, {:newline, :anycrlf} | t], acc, err),
+    do: embeddable_modifiers(t, [?s | acc], err)
+
+  defp embeddable_modifiers([:caseless | t], acc, err),
+    do: embeddable_modifiers(t, [?i | acc], err)
+
+  defp embeddable_modifiers([:extended | t], acc, err),
+    do: embeddable_modifiers(t, [?x | acc], err)
+
+  defp embeddable_modifiers([:multiline | t], acc, err),
+    do: embeddable_modifiers(t, [?m | acc], err)
+
+  defp embeddable_modifiers([option | t], acc, err),
+    do: embeddable_modifiers(t, acc, [option | err])
+
+  defp embeddable_modifiers([], acc, []), do: {:ok, acc}
+  defp embeddable_modifiers([], acc, err), do: {:error, acc, err}
+
+  # translate modifiers to options
+
+  defp translate_options(<<?s, t::binary>>, acc),
+    do: translate_options(t, [:dotall, {:newline, :anycrlf} | acc])
 
   defp translate_options(<<?u, t::binary>>, acc), do: translate_options(t, [:unicode, :ucp | acc])
   defp translate_options(<<?i, t::binary>>, acc), do: translate_options(t, [:caseless | acc])
   defp translate_options(<<?x, t::binary>>, acc), do: translate_options(t, [:extended | acc])
   defp translate_options(<<?f, t::binary>>, acc), do: translate_options(t, [:firstline | acc])
   defp translate_options(<<?U, t::binary>>, acc), do: translate_options(t, [:ungreedy | acc])
-
-  defp translate_options(<<?s, t::binary>>, acc),
-    do: translate_options(t, [:dotall, {:newline, :anycrlf} | acc])
-
   defp translate_options(<<?m, t::binary>>, acc), do: translate_options(t, [:multiline | acc])
 
   defp translate_options(<<?r, t::binary>>, acc) do
@@ -882,5 +965,5 @@ defmodule Regex do
   end
 
   defp translate_options(<<>>, acc), do: acc
-  defp translate_options(rest, _acc), do: {:error, rest}
+  defp translate_options(t, _acc), do: {:error, t}
 end

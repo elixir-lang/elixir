@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 # This module keeps a lock file and the manifest for the lock file.
 # The lockfile keeps the latest dependency information while the
 # manifest is used whenever a dependency is affected via any of the
@@ -11,7 +15,7 @@ defmodule Mix.Dep.Lock do
   """
   @spec read(Path.t()) :: map()
   def read(lockfile \\ lockfile()) do
-    opts = [file: lockfile, warn_on_unnecessary_quotes: false]
+    opts = [file: lockfile, emit_warnings: false]
 
     with {:ok, contents} <- File.read(lockfile),
          assert_no_merge_conflicts_in_lockfile(lockfile, contents),
@@ -30,7 +34,7 @@ defmodule Mix.Dep.Lock do
   def write(map, opts \\ []) do
     lockfile = opts[:file] || lockfile()
 
-    unless map == read() do
+    if map != read() do
       if Keyword.get(opts, :check_locked, false) do
         Mix.raise(
           "Your #{lockfile} is out of date and must be updated without the --check-locked flag"

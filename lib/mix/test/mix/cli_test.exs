@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Mix.CLITest do
@@ -240,6 +244,7 @@ defmodule Mix.CLITest do
     System.delete_env("MIX_EXS")
   end
 
+  @tag :cover
   @tag tmp_dir: "new_with_tests"
   test "new with tests and cover", %{tmp_dir: tmp_dir} do
     File.cd!(tmp_dir, fn ->

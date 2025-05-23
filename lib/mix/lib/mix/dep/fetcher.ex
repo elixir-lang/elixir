@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 # Module responsible for fetching (getting/updating)
 # dependencies from their sources.
 #
@@ -50,7 +54,11 @@ defmodule Mix.Dep.Fetcher do
 
     cond do
       # Dependencies that cannot be fetched are always compiled afterwards
-      not scm.fetchable? ->
+      not scm.fetchable?() ->
+        if not scm.checked_out?(opts) do
+          Mix.shell().error("warning: missing dependency #{format_dep(dep)}")
+        end
+
         {dep, [app | acc], lock}
 
       # If the dependency is not available or we have a lock mismatch
@@ -65,17 +73,7 @@ defmodule Mix.Dep.Fetcher do
           end
 
         if new do
-          # There is a race condition where if you compile deps
-          # and then immediately update them, we would not detect
-          # a mismatch with .mix/compile.fetch, so we go ahead and
-          # delete all of them.
-          Mix.Project.build_path()
-          |> Path.dirname()
-          |> Path.join("*/lib/#{dep.app}/.mix/compile.fetch")
-          |> Path.wildcard(match_dot: true)
-          |> Enum.each(&File.rm/1)
-
-          File.touch!(Path.join(opts[:dest], ".fetch"))
+          mark_as_fetched([dep])
           dep = put_in(dep.opts[:lock], new)
           {dep, [app | acc], Map.put(lock, app, new)}
         else
@@ -123,14 +121,16 @@ defmodule Mix.Dep.Fetcher do
   end
 
   defp mark_as_fetched(deps) do
-    # If the dependency is fetchable, we are going to write a .fetch
-    # file to it. Each build, regardless of the environment and location,
-    # will compared against this .fetch file to know if the dependency
-    # needs recompiling.
-    _ =
-      for %Mix.Dep{scm: scm, opts: opts} <- deps, scm.fetchable?() do
-        File.touch!(Path.join(opts[:dest], ".fetch"))
-      end
+    build_path =
+      Mix.Project.build_path()
+      |> Path.dirname()
+
+    for %Mix.Dep{app: app, scm: scm} <- deps, scm.fetchable?() do
+      build_path
+      |> Path.join("*/lib/#{app}/.mix/compile.fetch")
+      |> Path.wildcard(match_dot: true)
+      |> Enum.each(&File.rm/1)
+    end
 
     :ok
   end

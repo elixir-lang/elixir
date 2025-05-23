@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule ExUnit.CaptureLog do
   @moduledoc ~S"""
   Functionality to capture logs for testing.
@@ -42,16 +46,20 @@ defmodule ExUnit.CaptureLog do
   @doc """
   Captures Logger messages generated when evaluating `fun`.
 
-  Returns the binary which is the captured output.
+  Returns the binary which is the captured output. The captured log
+  messages will be formatted using `Logger.default_formatter/1`. Any
+  option, besides the `:level`, will be forwarded as an override to
+  the default formatter.
 
-  This function mutes the `:console` backend and captures any log
+  This function mutes the default logger handler and captures any log
   messages sent to Logger from the calling processes. It is possible
   to ensure explicit log messages from other processes are captured
   by waiting for their exit or monitor signal.
 
-  Note that when the `async` is set to `true`, the messages from another
-  test might be captured. This is OK as long you consider such cases in
-  your assertions.
+  Note that when the `async` is set to `true` on `use ExUnit.Case`,
+  messages from other tests might be captured. This is OK as long
+  you consider such cases in your assertions, typically by using
+  the `=~/2` operator to perform partial matches.
 
   It is possible to configure the level to capture with `:level`,
   which will set the capturing level for the duration of the
@@ -62,10 +70,6 @@ defmodule ExUnit.CaptureLog do
   Therefore, if `Logger.level/0` is set to a higher level than the one
   configured in this function, no message will be captured.
   The behaviour is undetermined if async tests change Logger level.
-
-  The format, metadata and colors can be configured with `:format`,
-  `:metadata` and `:colors` respectively. These three options
-  defaults to the `:console` backend configuration parameters.
 
   To get the result of the evaluation along with the captured log,
   use `with_log/2`.
@@ -94,7 +98,7 @@ defmodule ExUnit.CaptureLog do
 
   """
   @doc since: "1.13.0"
-  @spec with_log(keyword, (-> result)) :: {result, String.t()} when result: any
+  @spec with_log(keyword, (-> result)) :: {result, log :: String.t()} when result: any
   def with_log(opts \\ [], fun) when is_list(opts) do
     opts =
       if opts[:level] == :warn do

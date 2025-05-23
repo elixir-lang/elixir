@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Kernel.WarningTest do
@@ -48,12 +52,6 @@ defmodule Kernel.WarningTest do
     end)
   end
 
-  defp capture_quoted(source) do
-    capture_err(fn ->
-      Code.string_to_quoted!(source, columns: true)
-    end)
-  end
-
   defp capture_compile(source) do
     capture_err(fn ->
       quoted = Code.string_to_quoted!(source, columns: true)
@@ -62,14 +60,14 @@ defmodule Kernel.WarningTest do
   end
 
   defmacro will_warn do
-    quote file: "demo" do
+    quote file: "demo", line: true do
       %{dup: 1, dup: 2}
     end
   end
 
   test "warnings from macro" do
     assert_warn_eval(
-      ["demo:66\n", "key :dup will be overridden in map\n"],
+      ["demo:64\n", "key :dup will be overridden in map\n"],
       """
       import Kernel.WarningTest
       will_warn()
@@ -93,13 +91,6 @@ defmodule Kernel.WarningTest do
   end
 
   describe "unicode identifier security" do
-    test "prevents Restricted codepoints in identifiers" do
-      exception = assert_raise SyntaxError, fn -> Code.string_to_quoted!("_shibㅤ = 1") end
-
-      assert Exception.message(exception) =~
-               "unexpected token: \"ㅤ\" (column 6, code point U+3164)"
-    end
-
     test "warns on confusables" do
       assert_warn_quoted(
         ["nofile:1:6", "confusable identifier: 'a' looks like 'а' on line 1"],
@@ -139,67 +130,38 @@ defmodule Kernel.WarningTest do
                "confusable identifier: 'a' looks like 'а' on line 1"
     end
 
-    test "prevents unsafe script mixing in identifiers" do
-      exception =
-        assert_raise SyntaxError, fn ->
-          Code.string_to_quoted!("if аdmin_, do: :ok, else: :err")
-        end
+    test "warns on LTR-confusables" do
+      # warning outputs in byte order (vs bidi algo display order, uax9), mentions presence of rtl
+      assert_warn_quoted(
+        ["nofile:1:9", "'_1א' looks like '_א1'", "right-to-left characters"],
+        "_א1 and _1א"
+      )
 
-      assert Exception.message(exception) =~ "nofile:1:9:"
-      assert Exception.message(exception) =~ "invalid mixed-script identifier found: аdmin"
-
-      for s <- [
-            "\\u0430 а {Cyrillic}",
-            "\\u0064 d {Latin}",
-            "\\u006D m {Latin}",
-            "\\u0069 i {Latin}",
-            "\\u006E n {Latin}",
-            "\\u005F _"
-          ] do
-        assert Exception.message(exception) =~ s
-      end
-
-      # includes suggestion about what to change
-      assert Exception.message(exception) =~ """
-             Hint: You could write the above in a similar way that is accepted by Elixir:
-             """
-
-      assert Exception.message(exception) =~ """
-             "admin_" (code points 0x00061 0x00064 0x0006D 0x00069 0x0006E 0x0005F)
-             """
-
-      # a is in cyrillic
-      assert_raise SyntaxError, ~r/mixed/, fn -> Code.string_to_quoted!("[аdmin: 1]") end
-      assert_raise SyntaxError, ~r/mixed/, fn -> Code.string_to_quoted!("[{:аdmin, 1}]") end
-      assert_raise SyntaxError, ~r/mixed/, fn -> Code.string_to_quoted!("quote do: аdmin(1)") end
-      assert_raise SyntaxError, ~r/mixed/, fn -> Code.string_to_quoted!("рос_api = 1") end
-
-      # T is in cyrillic
-      assert_raise SyntaxError, ~r/mixed/, fn -> Code.string_to_quoted!("[Тシャツ: 1]") end
-    end
-
-    test "allows legitimate script mixing" do
-      # writing systems that legitimately mix multiple scripts, and Common chars like _
-      assert capture_eval("幻ㄒㄧㄤ = 1") == ""
-      assert capture_eval("幻ㄒㄧㄤ1 = 1") == ""
-      assert capture_eval("__सवव_1? = 1") == ""
-
-      # uts39 5.2 allowed 'highly restrictive' script mixing, like 't-shirt' in Jpan:
-      assert capture_quoted(":Tシャツ") == ""
-
-      # elixir's normalizations combine scriptsets of the 'from' and 'to' characters,
-      # ex: {Common} MICRO => {Greek} MU == {Common, Greek}; Common intersects w/all
-      assert capture_quoted("μs") == ""
+      assert_warn_quoted(
+        [
+          "'a_1א' includes right-to-left characters",
+          "\\u0061 a ltr",
+          "\\u005F _ neutral",
+          "\\u0031 1 weak_number",
+          "\\u05D0 א rtl",
+          "'a_א1' includes right-to-left characters:",
+          "\\u0061 a ltr",
+          "\\u005F _ neutral",
+          "\\u05D0 א rtl",
+          "\\u0031 1 weak_number"
+        ],
+        "a_א1 or a_1א"
+      )
     end
   end
 
   test "operators formed by many of the same character followed by that character" do
     assert_warn_eval(
       [
-        "nofile:1:11",
-        "found \"...\" followed by \".\", please use parens around \"...\" instead"
+        "nofile:1:12",
+        "found \"+++\" followed by \"+\", please use a space between \"+++\" and the next \"+\""
       ],
-      "quote do: ....()"
+      "quote do: 1++++1"
     )
   end
 
@@ -232,13 +194,49 @@ defmodule Kernel.WarningTest do
       )
 
       assert_warn_eval(
-        ["nofile:1:3", "found quoted keyword \"foo\" but the quotes are not required"],
+        ["nofile:1:2", "found quoted keyword \"foo\" but the quotes are not required"],
         ~s/["foo": :bar]/
       )
 
       assert_warn_eval(
         ["nofile:1:9", "found quoted call \"length\" but the quotes are not required"],
         ~s/[Kernel."length"([])]/
+      )
+    end
+  end
+
+  describe "deprecated single quotes in atoms" do
+    test "warns for single quotes in atoms" do
+      assert_warn_eval(
+        [
+          "nofile:1:1",
+          "single quotes around atoms are deprecated. Use double quotes instead"
+        ],
+        ~s/:'a+b'/
+      )
+    end
+
+    test "warns twice for single and unnecessary atom quotes" do
+      assert_warn_eval(
+        [
+          "nofile:1:1",
+          "single quotes around atoms are deprecated. Use double quotes instead",
+          "nofile:1:1",
+          "found quoted atom \"ab\" but the quotes are not required"
+        ],
+        ~s/:'ab'/
+      )
+    end
+
+    test "warns twice for single and unnecessary call quotes" do
+      assert_warn_eval(
+        [
+          "nofile:1:9",
+          "single quotes around calls are deprecated. Use double quotes instead",
+          "nofile:1:9",
+          "found quoted call \"length\" but the quotes are not required"
+        ],
+        ~s/[Kernel.'length'([])]/
       )
     end
   end
@@ -302,6 +300,20 @@ defmodule Kernel.WarningTest do
       end
       """
     )
+  after
+    purge(Sample)
+  end
+
+  test "duplicate pattern" do
+    output =
+      capture_eval("""
+      defmodule Sample do
+        var = quote(do: x)
+        def hello(unquote(var) = unquote(var)), do: unquote(var)
+      end
+      """)
+
+    assert output =~ "this pattern is matched against itself inside a match: x = x"
   after
     purge(Sample)
   end
@@ -463,17 +475,6 @@ defmodule Kernel.WarningTest do
       fn x -> match?(x, :value) end
       """
     )
-
-    assert_warn_eval(
-      [
-        "nofile:1",
-        "variable \"&1\" is unused (this might happen when using a capture argument as a pattern)",
-        "variable \"&1\" is unused (this might happen when using a capture argument as a pattern)"
-      ],
-      """
-      &match?(&1, :value)
-      """
-    )
   end
 
   test "useless literal" do
@@ -601,7 +602,7 @@ defmodule Kernel.WarningTest do
 
   test "unused function" do
     assert_warn_eval(
-      ["nofile:2: ", "function hello/0 is unused\n"],
+      ["nofile:2:8: ", "function hello/0 is unused\n"],
       """
       defmodule Sample1 do
         defp hello, do: nil
@@ -610,7 +611,7 @@ defmodule Kernel.WarningTest do
     )
 
     assert_warn_eval(
-      ["nofile:2: ", "function hello/1 is unused\n"],
+      ["nofile:2:8: ", "function hello/1 is unused\n"],
       """
       defmodule Sample2 do
         defp hello(0), do: hello(1)
@@ -620,7 +621,7 @@ defmodule Kernel.WarningTest do
     )
 
     assert_warn_eval(
-      ["nofile:4: ", "function c/2 is unused\n"],
+      ["nofile:4:8: ", "function c/2 is unused\n"],
       ~S"""
       defmodule Sample3 do
         def a, do: nil
@@ -632,7 +633,7 @@ defmodule Kernel.WarningTest do
     )
 
     assert_warn_eval(
-      ["nofile:3: ", "function b/2 is unused\n"],
+      ["nofile:3:8: ", "function b/2 is unused\n"],
       ~S"""
       defmodule Sample4 do
         def a, do: nil
@@ -643,7 +644,7 @@ defmodule Kernel.WarningTest do
     )
 
     assert_warn_eval(
-      ["nofile:3: ", "function b/0 is unused\n"],
+      ["nofile:3:8: ", "function b/0 is unused\n"],
       ~S"""
       defmodule Sample5 do
         def a, do: nil
@@ -658,9 +659,9 @@ defmodule Kernel.WarningTest do
   test "unused cyclic functions" do
     assert_warn_eval(
       [
-        "nofile:2: ",
+        "nofile:2:8: ",
         "function a/0 is unused\n",
-        "nofile:3: ",
+        "nofile:3:8: ",
         "function b/0 is unused\n"
       ],
       """
@@ -676,7 +677,7 @@ defmodule Kernel.WarningTest do
 
   test "unused macro" do
     assert_warn_eval(
-      ["nofile:2: ", "macro hello/0 is unused"],
+      ["nofile:2:13: ", "macro hello/0 is unused"],
       """
       defmodule Sample do
         defmacrop hello, do: nil
@@ -685,7 +686,7 @@ defmodule Kernel.WarningTest do
     )
 
     assert_warn_eval(
-      ["nofile:2: ", "macro hello/0 is unused\n"],
+      ["nofile:2:13: ", "macro hello/0 is unused\n"],
       ~S"""
       defmodule Sample2 do
         defmacrop hello do
@@ -715,7 +716,10 @@ defmodule Kernel.WarningTest do
 
   test "unused default args" do
     assert_warn_eval(
-      ["nofile:3: ", "default values for the optional arguments in b/3 are never used"],
+      [
+        "nofile:3:8: ",
+        "default values for the optional arguments in the private function b/3 are never used"
+      ],
       ~S"""
       defmodule Sample1 do
         def a, do: b(1, 2, 3)
@@ -726,8 +730,8 @@ defmodule Kernel.WarningTest do
 
     assert_warn_eval(
       [
-        "nofile:3: ",
-        "the default value for the last optional argument in b/3 is never used"
+        "nofile:3:8: ",
+        "the default value for the last optional argument in the private function b/3 is never used"
       ],
       ~S"""
       defmodule Sample2 do
@@ -739,8 +743,8 @@ defmodule Kernel.WarningTest do
 
     assert_warn_eval(
       [
-        "nofile:3: ",
-        "the default values for the last 2 optional arguments in b/4 are never used"
+        "nofile:3:8: ",
+        "the default values for the last 2 optional arguments in the private function b/4 are never used"
       ],
       ~S"""
       defmodule Sample3 do
@@ -758,7 +762,10 @@ defmodule Kernel.WarningTest do
            """) == ""
 
     assert_warn_eval(
-      ["nofile:3: ", "the default value for the last optional argument in b/3 is never used"],
+      [
+        "nofile:3:8: ",
+        "the default value for the last optional argument in the private function b/3 is never used"
+      ],
       ~S"""
       defmodule Sample5 do
         def a, do: b(1, 2)
@@ -802,6 +809,19 @@ defmodule Kernel.WarningTest do
     )
   end
 
+  test "conditional import" do
+    assert capture_err(fn ->
+             defmodule KernelTest.ConditionalImport do
+               if false do
+                 import Map, only: [new: 0]
+                 def fun, do: new()
+               end
+             end
+           end) == ""
+  after
+    purge(Sample)
+  end
+
   test "unused import of one of the functions in :only" do
     assert_warn_compile(
       [
@@ -823,16 +843,42 @@ defmodule Kernel.WarningTest do
 
   test "unused import of any of the functions in :only" do
     assert_warn_compile(
-      ["nofile:2:3", "unused import String"],
+      ["nofile:1:1", "unused import String"],
       """
-      defmodule Sample do
-        import String, only: [upcase: 1, downcase: 1]
-        def a, do: nil
-      end
+      import String, only: [upcase: 1, downcase: 1]
       """
     )
+  end
+
+  test "unused import inside dynamic module" do
+    import List, only: [flatten: 1], warn: false
+
+    assert capture_err(fn ->
+             defmodule Sample do
+               import String, only: [downcase: 1]
+
+               def world do
+                 flatten([1, 2, 3])
+               end
+             end
+           end) =~ "unused import String"
   after
     purge(Sample)
+  end
+
+  def with(a, b, c), do: [a, b, c]
+
+  test "import matches special form" do
+    assert_warn_compile(
+      [
+        "nofile:1:1",
+        "cannot import Kernel.WarningTest.with/3 because it conflicts with Elixir special forms"
+      ],
+      """
+      import Kernel.WarningTest, only: [with: 3]
+      :ok = with true <- true, true <- true, do: :ok
+      """
+    )
   end
 
   test "duplicated function on import options" do
@@ -853,6 +899,17 @@ defmodule Kernel.WarningTest do
       end
       """
     )
+  end
+
+  test "conditional alias" do
+    assert capture_err(fn ->
+             defmodule KernelTest.ConditionaAlias do
+               if false do
+                 alias Map, as: M
+                 def fun, do: M.new()
+               end
+             end
+           end) == ""
   end
 
   test "unused alias" do
@@ -884,31 +941,15 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "unused inside dynamic module" do
-    import List, only: [flatten: 1], warn: false
-
-    assert capture_err(fn ->
-             defmodule Sample do
-               import String, only: [downcase: 1]
-
-               def world do
-                 flatten([1, 2, 3])
-               end
-             end
-           end) =~ "unused import String"
-  after
-    purge(Sample)
-  end
-
   test "duplicate map keys" do
     assert_warn_eval(
       [
         "key :a will be overridden in map",
-        "nofile:4:11\n",
+        "nofile:4:10\n",
         "key :m will be overridden in map",
-        "nofile:5:11\n",
+        "nofile:5:10\n",
         "key 1 will be overridden in map",
-        "nofile:6:11\n"
+        "nofile:6:10\n"
       ],
       """
       defmodule DuplicateMapKeys do
@@ -922,25 +963,6 @@ defmodule Kernel.WarningTest do
     )
 
     assert map_size(%{System.unique_integer() => 1, System.unique_integer() => 2}) == 2
-  end
-
-  test "unused guard" do
-    assert_warn_eval(
-      ["nofile:5\n", "this check/guard will always yield the same result"],
-      """
-      defmodule Sample do
-        def atom_case do
-          v = "bc"
-          case v do
-            _ when is_atom(v) -> :ok
-            _ -> :fail
-          end
-        end
-      end
-      """
-    )
-  after
-    purge(Sample)
   end
 
   test "length(list) == 0 in guard" do
@@ -992,7 +1014,7 @@ defmodule Kernel.WarningTest do
   test "late function heads" do
     assert_warn_eval(
       [
-        "nofile:4\n",
+        "nofile:4:7\n",
         "function head for def add/2 must come at the top of its direct implementation"
       ],
       """
@@ -1060,7 +1082,7 @@ defmodule Kernel.WarningTest do
   test "clause not match" do
     assert_warn_eval(
       [
-        "nofile:3\n",
+        "nofile:3:7\n",
         ~r"this clause( for hello/0)? cannot match because a previous clause at line 2 always matches"
       ],
       """
@@ -1099,6 +1121,10 @@ defmodule Kernel.WarningTest do
     purge(UseSample)
   end
 
+  test "deprecated closing sigil delimiter" do
+    assert_warn_eval(["nofile:1:7", "deprecated"], "~S(foo\\))")
+  end
+
   test "deprecated not left in right" do
     assert_warn_eval(["nofile:1:7", "deprecated"], "not 1 in [1, 2, 3]")
   end
@@ -1107,7 +1133,7 @@ defmodule Kernel.WarningTest do
     message = "def hello/1 has multiple clauses and also declares default values"
 
     assert_warn_eval(
-      ["nofile:3\n", message],
+      ["nofile:3:7\n", message],
       ~S"""
       defmodule Sample1 do
         def hello(arg), do: arg
@@ -1117,7 +1143,7 @@ defmodule Kernel.WarningTest do
     )
 
     assert_warn_eval(
-      ["nofile:3\n", message],
+      ["nofile:3:7\n", message],
       ~S"""
       defmodule Sample2 do
         def hello(_arg)
@@ -1131,7 +1157,7 @@ defmodule Kernel.WarningTest do
 
   test "clauses with default should use header" do
     assert_warn_eval(
-      ["nofile:3\n", "def hello/1 has multiple clauses and also declares default values"],
+      ["nofile:3:7\n", "def hello/1 has multiple clauses and also declares default values"],
       ~S"""
       defmodule Sample do
         def hello(arg \\ 0), do: arg
@@ -1145,7 +1171,7 @@ defmodule Kernel.WarningTest do
 
   test "unused with local with overridable" do
     assert_warn_eval(
-      ["nofile:3: ", "function world/0 is unused"],
+      ["nofile:3:8: ", "function world/0 is unused"],
       """
       defmodule Sample do
         def hello, do: world()
@@ -1170,18 +1196,6 @@ defmodule Kernel.WarningTest do
         @foo
       end
       """
-    )
-  after
-    purge(Sample)
-  end
-
-  test "parens on nullary remote call" do
-    assert_warn_eval(
-      [
-        "nofile:1:8",
-        "parentheses are required for function calls with no arguments, got: System.version"
-      ],
-      "System.version"
     )
   after
     purge(Sample)
@@ -1263,22 +1277,9 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "in guard empty list" do
-    assert_warn_eval(
-      ["nofile:2\n", "this check/guard will always yield the same result"],
-      """
-      defmodule Sample do
-        def a(x) when x in [], do: x
-      end
-      """
-    )
-  after
-    purge(Sample)
-  end
-
   test "no effect operator" do
     assert_warn_eval(
-      ["nofile:3\n", "use of operator != has no effect"],
+      ["nofile:3:7\n", "use of operator != has no effect"],
       """
       defmodule Sample do
         def a(x) do
@@ -1290,28 +1291,6 @@ defmodule Kernel.WarningTest do
     )
   after
     purge(Sample)
-  end
-
-  test "eval failure warning" do
-    assert_warn_eval(
-      ["nofile:2\n", "the call to Atom.to_string/1 will fail with ArgumentError"],
-      """
-      defmodule Sample1 do
-        def foo, do: Atom.to_string "abc"
-      end
-      """
-    )
-
-    assert_warn_eval(
-      ["nofile:2\n", "the call to +/2 will fail with ArithmeticError"],
-      """
-      defmodule Sample2 do
-        def foo, do: 1 + nil
-      end
-      """
-    )
-  after
-    purge([Sample1, Sample2])
   end
 
   test "undefined function for behaviour" do
@@ -1379,7 +1358,7 @@ defmodule Kernel.WarningTest do
     assert_warn_eval(
       [
         "nofile:9: ",
-        "conflicting behaviours found. function foo/0 is required by Sample1 and Sample2 (in module Sample3)"
+        "conflicting behaviours found. Callback function foo/0 is defined by both Sample1 and Sample2 (in module Sample3)"
       ],
       """
       defmodule Sample1 do
@@ -1396,6 +1375,39 @@ defmodule Kernel.WarningTest do
       end
       """
     )
+  after
+    purge([Sample1, Sample2, Sample3])
+  end
+
+  test "conflicting behaviour (but one optional callback)" do
+    message =
+      capture_compile("""
+      defmodule Sample1 do
+        @callback foo :: term
+      end
+
+      defmodule Sample2 do
+        @callback foo :: term
+        @callback bar :: term
+        @optional_callbacks foo: 0
+      end
+
+      defmodule Sample3 do
+        @behaviour Sample1
+        @behaviour Sample2
+
+        @impl Sample1
+        def foo, do: 1
+        @impl Sample2
+        def bar, do: 2
+      end
+      """)
+
+    assert message =~
+             "conflicting behaviours found. Callback function foo/0 is defined by both Sample1 and Sample2 (in module Sample3)"
+
+    refute message =~ "module attribute @impl was not set"
+    refute message =~ "this behaviour does not specify such callback"
   after
     purge([Sample1, Sample2, Sample3])
   end
@@ -1483,7 +1495,7 @@ defmodule Kernel.WarningTest do
   test "ungrouped def name" do
     assert_warn_eval(
       [
-        "nofile:4\n",
+        "nofile:4:7\n",
         "clauses with the same name should be grouped together, \"def foo/2\" was previously defined (nofile:2)"
       ],
       """
@@ -1501,7 +1513,7 @@ defmodule Kernel.WarningTest do
   test "ungrouped def name and arity" do
     assert_warn_eval(
       [
-        "nofile:4\n",
+        "nofile:4:7\n",
         "clauses with the same name and arity (number of arguments) should be grouped together, \"def foo/2\" was previously defined (nofile:2)"
       ],
       """
@@ -1571,16 +1583,11 @@ defmodule Kernel.WarningTest do
         @doc "Something"
         @doc "Another"
         def foo, do: :ok
-
-        Module.eval_quoted(__MODULE__, quote(do: @doc false))
-        @doc "Doc"
-        def bar, do: :ok
       end
       """)
 
     assert output =~ "redefining @doc attribute previously set at line 2"
     assert output =~ "nofile:3: Sample (module)"
-    refute output =~ "nofile:7: "
   after
     purge(Sample)
   end
@@ -1619,22 +1626,39 @@ defmodule Kernel.WarningTest do
   end
 
   test "reserved doc metadata keys" do
-    output =
-      capture_eval("""
-      defmodule Sample do
-        @typedoc opaque: false
-        @type t :: binary
+    {output, diagnostics} =
+      Code.with_diagnostics([log: true], fn ->
+        capture_eval("""
+        defmodule Sample do
+          @typedoc opaque: false
+          @type t :: binary
 
-        @doc defaults: 3, since: "1.2.3"
-        def foo(a), do: a
-      end
-      """)
+          @doc defaults: 3, since: "1.2.3"
+          def foo(a), do: a
+        end
+        """)
+      end)
 
     assert output =~ "ignoring reserved documentation metadata key: :opaque"
     assert output =~ "nofile:2: "
     assert output =~ "ignoring reserved documentation metadata key: :defaults"
     assert output =~ "nofile:5: "
     refute output =~ ":since"
+
+    assert [
+             %{
+               message: "ignoring reserved documentation metadata key: :opaque",
+               position: 2,
+               file: "nofile",
+               severity: :warning
+             },
+             %{
+               message: "ignoring reserved documentation metadata key: :defaults",
+               position: 5,
+               file: "nofile",
+               severity: :warning
+             }
+           ] = diagnostics
   after
     purge(Sample)
   end
@@ -1912,7 +1936,9 @@ defmodule Kernel.WarningTest do
   end
 
   test "variable is being expanded to function call (on_undefined_variable: warn)" do
-    Code.put_compiler_option(:on_undefined_variable, :warn)
+    capture_io(:stderr, fn ->
+      Code.put_compiler_option(:on_undefined_variable, :warn)
+    end)
 
     output =
       capture_eval("""
@@ -1973,7 +1999,7 @@ defmodule Kernel.WarningTest do
 
   test "catch comes before rescue in def" do
     assert_warn_eval(
-      ["nofile:2\n", ~s("catch" should always come after "rescue" in def)],
+      ["nofile:2:7\n", ~s("catch" should always come after "rescue" in def)],
       """
       defmodule Sample do
         def foo do
@@ -2019,7 +2045,7 @@ defmodule Kernel.WarningTest do
 
   test "unused private guard" do
     assert_warn_eval(
-      ["nofile:2: ", "macro foo/2 is unused\n"],
+      ["nofile:2:13: ", "macro foo/2 is unused\n"],
       """
       defmodule Sample do
         defguardp foo(bar, baz) when bar + baz
@@ -2033,7 +2059,7 @@ defmodule Kernel.WarningTest do
   test "defguard overriding defmacro" do
     assert_warn_eval(
       [
-        "nofile:3\n",
+        "nofile:3:12\n",
         ~r"this clause( for foo/1)? cannot match because a previous clause at line 2 always matches"
       ],
       """
@@ -2050,7 +2076,7 @@ defmodule Kernel.WarningTest do
   test "defmacro overriding defguard" do
     assert_warn_eval(
       [
-        "nofile:3\n",
+        "nofile:3:12\n",
         ~r"this clause( for foo/1)? cannot match because a previous clause at line 2 always matches"
       ],
       """
@@ -2062,26 +2088,6 @@ defmodule Kernel.WarningTest do
     )
   after
     purge(Sample)
-  end
-
-  test "struct comparisons" do
-    expressions = [
-      ~s(~N"2018-01-28 12:00:00"),
-      ~s(~T"12:00:00"),
-      ~s(~D"2018-01-28"),
-      "%File.Stat{}"
-    ]
-
-    for op <- [:<, :>, :<=, :>=],
-        expression <- expressions do
-      assert capture_err(fn ->
-               Code.eval_string("x #{op} #{expression}", x: 1)
-             end) =~ "invalid comparison with struct literal #{expression}"
-
-      assert capture_err(fn ->
-               Code.eval_string("#{expression} #{op} x", x: 1)
-             end) =~ "invalid comparison with struct literal #{expression}"
-    end
   end
 
   test "deprecated GenServer super on callbacks" do
@@ -2115,32 +2121,9 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "nested comparison operators" do
-    message =
-      capture_compile("""
-       1 < 3 < 5
-      """)
-
-    assert message =~ "nofile:1:8\n"
-    assert message =~ "Elixir does not support nested comparisons"
-    assert message =~ "1 < 3 < 5"
-
-    message =
-      capture_compile("""
-        x = 5
-        y = 7
-        1 < x < y < 10
-      """)
-
-    assert message =~ "Elixir does not support nested comparisons"
-    assert message =~ "1 < x < y < 10"
-    assert message =~ "nofile:3:9\n"
-    assert message =~ "nofile:3:13\n"
-  end
-
   test "def warns if only clause is else" do
     assert_warn_compile(
-      ["nofile:2\n", "\"else\" shouldn't be used as the only clause in \"def\""],
+      ["nofile:2:7\n", "\"else\" shouldn't be used as the only clause in \"def\""],
       """
       defmodule Sample do
         def foo do
@@ -2193,15 +2176,15 @@ defmodule Kernel.WarningTest do
 
   test "defstruct warns with duplicate keys" do
     assert_warn_eval(
-      ["nofile:2: TestMod", "duplicate key :foo found in struct"],
+      ["nofile:2: Sample", "duplicate key :foo found in struct"],
       """
-      defmodule TestMod do
+      defmodule Sample do
         defstruct [:foo, :bar, foo: 1]
       end
       """
     )
   after
-    purge(TestMod)
+    purge(Sample)
   end
 
   test "deprecate nullary remote zero-arity capture with parens" do
@@ -2219,6 +2202,25 @@ defmodule Kernel.WarningTest do
       &System.pid()/0
       """
     )
+  end
+
+  test "deprecate &module.fun/arity captures with complex expressions as modules" do
+    assert_warn_eval(
+      [
+        "nofile:2:",
+        """
+        expected the module in &module.fun/arity to expand to a variable or an atom, got: hd(modules)
+        You can either compute the module name outside of & or convert it to a regular anonymous function.
+        """
+      ],
+      """
+      defmodule Sample do
+        def foo(modules), do: &hd(modules).module_info/0
+      end
+      """
+    )
+  after
+    purge(Sample)
   end
 
   defp assert_compile_error(messages, string) do
@@ -2240,7 +2242,7 @@ defmodule Kernel.WarningTest do
   end
 
   defp purge(module) when is_atom(module) do
-    :code.delete(module)
     :code.purge(module)
+    :code.delete(module)
   end
 end

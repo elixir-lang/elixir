@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule IO do
   @moduledoc ~S"""
   Functions handling input/output (IO).
@@ -11,6 +15,8 @@ defmodule IO do
   functions will convert those types to string via the `String.Chars` protocol
   (as shown in typespecs). For more information on chardata, see the
   "IO data" section below.
+
+  The functions of this module use UNIX-style naming where possible.
 
   ## IO devices
 
@@ -125,11 +131,20 @@ defmodule IO do
   defguardp is_device(term) when is_atom(term) or is_pid(term)
   defguardp is_iodata(data) when is_list(data) or is_binary(data)
 
-  @doc """
+  @doc ~S"""
   Reads from the IO `device`.
 
-  The `device` is iterated by the given number of characters, line by line if
-  `:line` is given, or until `:eof`.
+  The `device` is iterated as specified by the `line_or_chars` argument:
+
+    * if `line_or_chars` is an integer, it represents a number of bytes. The device is
+      iterated by that number of bytes. This should be the preferred mode for reading
+      non-textual inputs.
+
+    * if `line_or_chars` is `:line`, the device is iterated line by line.
+      CRLF newlines  ("\r\n") are automatically normalized to "\n".
+
+    * if `line_or_chars` is `:eof` (since v1.13), the device is iterated until `:eof`.
+      If the device is already at the end, it returns `:eof` itself.
 
   It returns:
 
@@ -145,8 +160,10 @@ defmodule IO do
   @spec read(device, :eof | :line | non_neg_integer) :: chardata | nodata
   def read(device \\ :stdio, line_or_chars)
 
-  # TODO: Deprecate me on v1.17
+  # TODO: Remove me on v2.0
   def read(device, :all) do
+    IO.warn("IO.read(device, :all) is deprecated, use IO.read(device, :eof) instead")
+
     with :eof <- read(device, :eof) do
       with [_ | _] = opts <- :io.getopts(device),
            false <- Keyword.get(opts, :binary, true) do
@@ -169,20 +186,20 @@ defmodule IO do
     :io.get_chars(map_dev(device), ~c"", count)
   end
 
-  @doc """
+  @doc ~S"""
   Reads from the IO `device`. The operation is Unicode unsafe.
 
   The `device` is iterated as specified by the `line_or_chars` argument:
 
     * if `line_or_chars` is an integer, it represents a number of bytes. The device is
-      iterated by that number of bytes.
+      iterated by that number of bytes. This should be the preferred mode for reading
+      non-textual inputs.
 
     * if `line_or_chars` is `:line`, the device is iterated line by line.
+      CRLF newlines  ("\r\n") are automatically normalized to "\n".
 
-    * if `line_or_chars` is `:eof`, the device is iterated until `:eof`. `line_or_chars`
-      can only be `:eof` since Elixir 1.13.0. `:eof` replaces the deprecated `:all`,
-      with the difference that `:all` returns `""` on end of file, while `:eof` returns
-      `:eof` itself.
+    * if `line_or_chars` is `:eof` (since v1.13), the device is iterated until `:eof`.
+      If the device is already at the end, it returns `:eof` itself.
 
   It returns:
 
@@ -200,8 +217,9 @@ defmodule IO do
   @spec binread(device, :eof | :line | non_neg_integer) :: iodata | nodata
   def binread(device \\ :stdio, line_or_chars)
 
-  # TODO: Deprecate me on v1.17
+  # TODO: Remove me on v2.0
   def binread(device, :all) do
+    IO.warn("IO.binread(device, :all) is deprecated, use IO.binread(device, :eof) instead")
     with :eof <- binread(device, :eof), do: ""
   end
 
@@ -282,6 +300,8 @@ defmodule IO do
   By default, the `device` is the standard output. It returns `:ok`
   if it succeeds.
 
+  Trivia: `puts` is shorthand for `put string`.
+
   ## Examples
 
       IO.puts("Hello World!")
@@ -308,17 +328,20 @@ defmodule IO do
       entry from the compilation environment will be used
 
     * a keyword list with at least the `:file` option representing
-      a single stacktrace entry (since v1.14.0). The `:line`, `:module`,
-      `:function` options are also supported
+      a single stacktrace entry (since v1.14.0). The `:line`, `:column`,
+      `:module`, and `:function` options are also supported
 
-  This function also notifies the compiler a warning was printed
-  (in case --warnings-as-errors was enabled). It returns `:ok`
-  if it succeeds.
+  This function notifies the compiler a warning was printed
+  and emits a compiler diagnostic (`t:Code.diagnostic/1`).
+  The diagnostic will include precise file and location information
+  if a `Macro.Env` is given or those values have been passed as
+  keyword list, but not for stacktraces, as they are often imprecise.
+
+  It returns `:ok` if it succeeds.
 
   ## Examples
 
-      stacktrace = [{MyApp, :main, 1, [file: 'my_app.ex', line: 4]}]
-      IO.warn("variable bar is unused", stacktrace)
+      IO.warn("variable bar is unused", module: MyApp, function: {:main, 1}, line: 4, file: "my_app.ex")
       #=> warning: variable bar is unused
       #=>   my_app.ex:4: MyApp.main/1
 
@@ -337,15 +360,22 @@ defmodule IO do
 
   def warn(message, [{_, _} | _] = keyword) do
     if file = keyword[:file] do
-      warn(
-        message,
-        %{
+      line = keyword[:line]
+      column = keyword[:column]
+      position = if line && column, do: {line, column}, else: line
+      message = to_chardata(message)
+
+      stacktrace =
+        Macro.Env.stacktrace(%{
           __ENV__
           | module: keyword[:module],
             function: keyword[:function],
-            line: keyword[:line],
+            line: line,
             file: file
-        }
+        })
+
+      :elixir_errors.emit_diagnostic(:warning, position, file, message, stacktrace,
+        read_snippet: true
       )
     else
       warn(message, [])
@@ -368,7 +398,7 @@ defmodule IO do
     stacktrace = Enum.drop(stacktrace, stacktrace_drop_levels)
 
     if :elixir_config.warn(key, stacktrace) do
-      warn(message, stacktrace)
+      warn(message.(), stacktrace)
     else
       :ok
     end
@@ -398,7 +428,7 @@ defmodule IO do
   end
 
   @doc """
-  Inspects and writes the given `item` to the device.
+  Inspects and writes the given `item` to the standard output.
 
   It's important to note that it returns the given `item` unchanged.
   This makes it possible to "spy" on values by inserting an
@@ -414,6 +444,7 @@ defmodule IO do
   The label will be printed before the inspected `item`.
 
   See `Inspect.Opts` for a full list of remaining formatting options.
+  To print to other IO devices, see `IO.inspect/3`
 
   ## Examples
 
@@ -546,6 +577,8 @@ defmodule IO do
       for instance, `{:error, :estale}` if reading from an
       NFS volume
 
+  Trivia: `gets` is shorthand for `get string`.
+
   ## Examples
 
   To display "What is your name?" as a prompt and await user input:
@@ -567,17 +600,19 @@ defmodule IO do
 
   """
   @doc since: "1.12.0"
+  @spec stream() :: Enumerable.t(String.t())
   def stream, do: stream(:stdio, :line)
 
-  @doc """
+  @doc ~S"""
   Converts the IO `device` into an `IO.Stream`.
 
   An `IO.Stream` implements both `Enumerable` and
   `Collectable`, allowing it to be used for both read
   and write.
 
-  The `device` is iterated by the given number of characters or line by line if
-  `:line` is given.
+  The `device` is iterated by the given number of characters
+  or line by line if `:line` is given. In case `:line` is given,
+  "\r\n" is automatically normalized to "\n".
 
   This reads from the IO as UTF-8. Check out
   `IO.binstream/2` to handle the IO as a raw binary.
@@ -597,11 +632,11 @@ defmodule IO do
 
   Another example where you might want to collect a user input
   every new line and break on an empty line, followed by removing
-  redundant new line characters (`"\\n"`):
+  redundant new line characters (`"\n"`):
 
       IO.stream(:stdio, :line)
-      |> Enum.take_while(&(&1 != "\\n"))
-      |> Enum.map(&String.replace(&1, "\\n", ""))
+      |> Enum.take_while(&(&1 != "\n"))
+      |> Enum.map(&String.replace(&1, "\n", ""))
 
   """
   @spec stream(device, :line | pos_integer) :: Enumerable.t()
@@ -620,23 +655,27 @@ defmodule IO do
 
   """
   @doc since: "1.12.0"
+  @spec binstream() :: Enumerable.t(binary)
   def binstream, do: binstream(:stdio, :line)
 
-  @doc """
+  @doc ~S"""
   Converts the IO `device` into an `IO.Stream`. The operation is Unicode unsafe.
 
   An `IO.Stream` implements both `Enumerable` and
   `Collectable`, allowing it to be used for both read
   and write.
 
-  The `device` is iterated by the given number of bytes or line by line if
-  `:line` is given. This reads from the IO device as a raw binary.
+  The `device` is iterated by the given number of bytes or line
+  by line if `:line` is given. In case `:line` is given, "\r\n"
+  is automatically normalized to "\n". Passing the number of bytes
+  should be the preferred mode for reading non-textual inputs.
 
   Note that an IO stream has side effects and every time
   you go over the stream you may get different results.
 
-  Finally, do not use this function on IO devices in Unicode
-  mode as it will return the wrong result.
+  This reads from the IO device as a raw binary. Therefore,
+  do not use this function on IO devices in Unicode mode as
+  it will return the wrong result.
 
   `binstream/0` has been introduced in Elixir v1.12.0,
   while `binstream/2` has been available since v1.0.0.

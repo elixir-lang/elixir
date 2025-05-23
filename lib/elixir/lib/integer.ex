@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Integer do
   @moduledoc """
   Functions for working with integers.
@@ -161,7 +165,7 @@ defmodule Integer do
   @doc since: "1.4.0"
   @spec floor_div(integer, neg_integer | pos_integer) :: integer
   def floor_div(dividend, divisor) do
-    if dividend * divisor < 0 and rem(dividend, divisor) != 0 do
+    if :erlang.xor(dividend < 0, divisor < 0) and rem(dividend, divisor) != 0 do
       div(dividend, divisor) - 1
     else
       div(dividend, divisor)
@@ -189,13 +193,16 @@ defmodule Integer do
   @spec digits(integer, pos_integer) :: [integer, ...]
   def digits(integer, base \\ 10)
       when is_integer(integer) and is_integer(base) and base >= 2 do
-    do_digits(integer, base, [])
+    case integer do
+      0 -> [0]
+      _integer -> digits(integer, base, [])
+    end
   end
 
-  defp do_digits(integer, base, acc) when abs(integer) < base, do: [integer | acc]
+  defp digits(0, _base, acc), do: acc
 
-  defp do_digits(integer, base, acc),
-    do: do_digits(div(integer, base), base, [rem(integer, base) | acc])
+  defp digits(integer, base, acc),
+    do: digits(div(integer, base), base, [rem(integer, base) | acc])
 
   @doc """
   Returns the integer represented by the ordered `digits`.
@@ -217,16 +224,16 @@ defmodule Integer do
   """
   @spec undigits([integer], pos_integer) :: integer
   def undigits(digits, base \\ 10) when is_list(digits) and is_integer(base) and base >= 2 do
-    do_undigits(digits, base, 0)
+    undigits(digits, base, 0)
   end
 
-  defp do_undigits([], _base, acc), do: acc
+  defp undigits([], _base, acc), do: acc
 
-  defp do_undigits([digit | _], base, _) when is_integer(digit) and digit >= base,
+  defp undigits([digit | _], base, _) when is_integer(digit) and digit >= base,
     do: raise(ArgumentError, "invalid digit #{digit} in base #{base}")
 
-  defp do_undigits([digit | tail], base, acc) when is_integer(digit),
-    do: do_undigits(tail, base, acc * base + digit)
+  defp undigits([digit | tail], base, acc) when is_integer(digit),
+    do: undigits(tail, base, acc * base + digit)
 
   @doc """
   Parses a text representation of an integer.
@@ -362,25 +369,25 @@ defmodule Integer do
   ## Examples
 
       iex> Integer.to_charlist(123)
-      '123'
+      ~c"123"
 
       iex> Integer.to_charlist(+456)
-      '456'
+      ~c"456"
 
       iex> Integer.to_charlist(-789)
-      '-789'
+      ~c"-789"
 
       iex> Integer.to_charlist(0123)
-      '123'
+      ~c"123"
 
       iex> Integer.to_charlist(100, 16)
-      '64'
+      ~c"64"
 
       iex> Integer.to_charlist(-100, 16)
-      '-64'
+      ~c"-64"
 
       iex> Integer.to_charlist(882_681_651, 36)
-      'ELIXIR'
+      ~c"ELIXIR"
 
   """
   @spec to_charlist(integer, 2..36) :: charlist

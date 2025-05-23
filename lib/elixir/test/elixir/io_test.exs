@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule IOTest do
@@ -21,17 +25,17 @@ defmodule IOTest do
 
   test "read all charlist" do
     {:ok, file} = File.open(Path.expand(~c"fixtures/multiline_file.txt", __DIR__), [:charlist])
-    assert ~c"this is the first line\nthis is the second line\n" == IO.read(file, :all)
+    assert ~c"this is the first line\nthis is the second line\n" == IO.read(file, :eof)
     assert File.close(file) == :ok
   end
 
   test "read empty file" do
     {:ok, file} = File.open(Path.expand(~c"fixtures/cp_mode", __DIR__), [])
-    assert IO.read(file, :all) == ""
+    assert IO.read(file, :eof) == :eof
     assert File.close(file) == :ok
 
     {:ok, file} = File.open(Path.expand(~c"fixtures/cp_mode", __DIR__), [:charlist])
-    assert IO.read(file, :all) == ~c""
+    assert IO.read(file, :eof) == :eof
     assert File.close(file) == :ok
   end
 
@@ -41,9 +45,9 @@ defmodule IOTest do
     assert File.close(file) == :ok
   end
 
-  test "binread all" do
+  test "binread eof" do
     {:ok, file} = File.open(Path.expand(~c"fixtures/file.bin", __DIR__))
-    assert "LF\nCR\rCRLF\r\nLFCR\n\r" == IO.binread(file, :all)
+    assert "LF\nCR\rCRLF\r\nLFCR\n\r" == IO.binread(file, :eof)
     assert File.close(file) == :ok
   end
 
@@ -96,13 +100,6 @@ defmodule IOTest do
     assert File.close(file) == :ok
   end
 
-  test "read with all" do
-    {:ok, file} = File.open(Path.expand(~c"fixtures/file.txt", __DIR__))
-    assert "FOO\n" == IO.read(file, :all)
-    assert "" == IO.read(file, :all)
-    assert File.close(file) == :ok
-  end
-
   test "read with eof" do
     {:ok, file} = File.open(Path.expand(~c"fixtures/file.txt", __DIR__))
     assert "FOO\n" == IO.read(file, :eof)
@@ -128,13 +125,6 @@ defmodule IOTest do
     {:ok, file} = File.open(Path.expand(~c"fixtures/utf8.txt", __DIR__), [:utf8])
     assert "Русский\n" == IO.read(file, :line)
     assert "日\n" == IO.read(file, :line)
-    assert File.close(file) == :ok
-  end
-
-  test "binread with all" do
-    {:ok, file} = File.open(Path.expand(~c"fixtures/utf8.txt", __DIR__))
-    assert "Русский\n日\n" == IO.binread(file, :all)
-    assert "" == IO.binread(file, :all)
     assert File.close(file) == :ok
   end
 

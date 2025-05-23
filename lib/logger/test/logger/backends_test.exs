@@ -1,6 +1,11 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
 defmodule Logger.BackendsTest do
   use Logger.Case
   require Logger
+
+  import ExUnit.CaptureIO
 
   defmodule MyBackend do
     @behaviour :gen_event
@@ -66,7 +71,10 @@ defmodule Logger.BackendsTest do
   end
 
   test "logs or writes to stderr on failed call on sync mode" do
-    Logger.configure(sync_threshold: 0)
+    capture_io(:stderr, fn ->
+      Logger.configure(sync_threshold: 0)
+    end)
+
     assert {:ok, _} = Logger.add_backend({MyBackend, self()})
 
     assert capture_log(fn ->
@@ -84,7 +92,10 @@ defmodule Logger.BackendsTest do
   end
 
   test "logs when discarding messages" do
-    assert :ok = Logger.configure(discard_threshold: 5)
+    capture_io(:stderr, fn ->
+      assert :ok = Logger.configure(discard_threshold: 5)
+    end)
+
     Logger.add_backend({MyBackend, self()})
 
     capture_log(fn ->

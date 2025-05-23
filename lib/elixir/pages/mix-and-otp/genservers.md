@@ -1,6 +1,11 @@
-# GenServer
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
 
-In the [previous chapter](../agents.md), we used agents to represent our buckets. In the [introduction to mix](../introduction-to-mix.md), we specified we would like to name each bucket so we can do the following:
+# Client-server communication with GenServer
+
+In the [previous chapter](agents.md), we used agents to represent our buckets. In the [introduction to mix](introduction-to-mix.md), we specified we would like to name each bucket so we can do the following:
 
 ```elixir
 CREATE shopping
@@ -41,7 +46,7 @@ Please read the `GenServer` module documentation for an overview if you haven't 
 
 ## GenServer callbacks
 
-A GenServer is a process that invokes a limited set of functions under specific conditions. When we used a `Agent`, we would keep both the client code and the server code side by side, like this:
+A GenServer is a process that invokes a limited set of functions under specific conditions. When we used an `Agent`, we would keep both the client code and the server code side by side, like this:
 
 ```elixir
 def put(bucket, key, value) do
@@ -124,7 +129,7 @@ iex> {:ok, registry} = GenServer.start_link(KV.Registry, :ok)
 {:ok, #PID<0.136.0>}
 iex> GenServer.cast(registry, {:create, "shopping"})
 :ok
-iex> {:ok, bk} = GenServer.call(registry, {:lookup, "shopping"})
+iex> {:ok, bucket} = GenServer.call(registry, {:lookup, "shopping"})
 {:ok, #PID<0.174.0>}
 ```
 
@@ -258,7 +263,7 @@ iex> flush()
 
 Note `Process.monitor(pid)` returns a unique reference that allows us to match upcoming messages to that monitoring reference. After we stop the agent, we can `flush/0` all messages and notice a `:DOWN` message arrived, with the exact reference returned by `monitor`, notifying that the bucket process exited with reason `:normal`.
 
-Let's reimplement the server callbacks to fix the bug and make the test pass. First, we will modify the GenServer state to two dictionaries: one that contains `name -> pid` and another that holds `ref -> name`. Then we need to monitor the buckets on `handle_cast/2` as well as implement a `handle_info/2` callback to handle the monitoring messages. The full server callbacks implementation is shown below:
+Let's reimplement the server callbacks to fix the bug and make the test pass. First, we will modify the GenServer state to two maps: one that contains `name -> pid` and another that holds `ref -> name`. Then we need to monitor the buckets on `handle_cast/2` as well as implement a `handle_info/2` callback to handle the monitoring messages. The full server callbacks implementation is shown below:
 
 ```elixir
 ## Server callbacks
@@ -320,7 +325,7 @@ So far we have used three callbacks: `handle_call/3`, `handle_cast/2` and `handl
 
 Since any message, including the ones sent via `send/2`, go to `handle_info/2`, there is a chance that unexpected messages will arrive to the server. Therefore, if we don't define the catch-all clause, those messages could cause our registry to crash, because no clause would match. We don't need to worry about such cases for `handle_call/3` and `handle_cast/2` though. Calls and casts are only done via the `GenServer` API, so an unknown message is quite likely a developer mistake.
 
-To help developers remember the differences between call, cast and info, the supported return values and more, we have a tiny [GenServer cheat sheet](/downloads/cheatsheets/gen-server.pdf).
+To help developers remember the differences between call, cast and info, the supported return values and more, we have a tiny [GenServer cheat sheet](https://elixir-lang.org/downloads/cheatsheets/gen-server.pdf).
 
 ## Monitors or links?
 

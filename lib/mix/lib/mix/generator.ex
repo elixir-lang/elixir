@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Generator do
   @moduledoc """
   Conveniences for working with paths and generating content.
@@ -27,6 +31,13 @@ defmodule Mix.Generator do
 
     if opts[:force] || overwrite?(path, contents) do
       File.mkdir_p!(Path.dirname(path))
+
+      contents =
+        case opts[:format_elixir] do
+          true -> [Code.format_string!(contents), ?\n]
+          _ -> contents
+        end
+
       File.write!(path, contents)
       true
     else
@@ -94,6 +105,7 @@ defmodule Mix.Generator do
 
     * `:force` - forces copying without a shell prompt
     * `:quiet` - does not log command output
+    * `:format_elixir` (since v1.18.0) - if `true`, apply formatter to the generated file
 
   ## Examples
 
@@ -152,7 +164,7 @@ defmodule Mix.Generator do
   end
 
   defp log(color, command, message, opts) do
-    unless opts[:quiet] do
+    if !opts[:quiet] do
       Mix.shell().info([color, "* #{command} ", :reset, message])
     end
   end

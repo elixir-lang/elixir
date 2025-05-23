@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule StreamTest do
@@ -314,14 +318,14 @@ defmodule StreamTest do
     send(pid, {:stream, 1})
     send(pid, {:stream, 2})
     send(pid, {:stream, 3})
-    refute_receive {:stream, 1}
+    refute_receive {:stream, 1}, 100
 
     send(pid, {:stream, 4})
     assert_receive {:stream, 1}
 
     send(pid, {:stream, 5})
     assert_receive {:stream, 2}
-    refute_receive {:stream, 3}
+    refute_receive {:stream, 3}, 100
   end
 
   test "drop_every/2" do
@@ -1046,6 +1050,38 @@ defmodule StreamTest do
     assert Process.get(__MODULE__) == 10
   end
 
+  test "transform/5 does not halt twice" do
+    resource_start = fn -> 0 end
+
+    resource_next = fn current ->
+      if current < 5 do
+        {[current], current + 1}
+      else
+        {:halt, current}
+      end
+    end
+
+    resource_after = fn _ ->
+      send(self(), {:halted, :resource})
+    end
+
+    transform_next = fn current, index -> {[current + 1], index} end
+    transform_last = fn index -> {:halt, index} end
+
+    transform_after = fn _ ->
+      send(self(), {:halted, :transform})
+    end
+
+    Stream.resource(resource_start, resource_next, resource_after)
+    |> Stream.transform(fn -> 1 end, transform_next, transform_last, transform_after)
+    |> Stream.run()
+
+    assert_received {:halted, :resource}
+    assert_received {:halted, :transform}
+    refute_received {:halted, :resource}
+    refute_received {:halted, :transform}
+  end
+
   test "scan/2" do
     stream = Stream.scan(1..5, &(&1 + &2))
     assert lazy?(stream)
@@ -1426,6 +1462,10 @@ defmodule StreamTest do
     stream = Stream.intersperse(1..10, 0)
     list = Enum.to_list(stream)
     assert Enum.zip(list, list) == Enum.zip(stream, stream)
+  end
+
+  test "inspect/1" do
+    "#Stream<[enum: 1..10, funs: " <> _ = Stream.map(1..10, & &1) |> inspect()
   end
 
   defp lazy?(stream) do

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
 defmodule Code.Fragment do
   @moduledoc """
   This module provides conveniences for analyzing fragments of
@@ -31,7 +34,7 @@ defmodule Code.Fragment do
       :expr
 
       iex> Code.Fragment.cursor_context("hello_wor")
-      {:local_or_var, 'hello_wor'}
+      {:local_or_var, ~c"hello_wor"}
 
   ## Return values
 
@@ -42,6 +45,9 @@ defmodule Code.Fragment do
       a nested one, where `inside_alias` is an expression `{:module_attribute, charlist}`
       or `{:local_or_var, charlist}` and `charlist` is a static part
       Examples are `__MODULE__.Submodule` or `@hello.Submodule`
+
+    * `{:block_keyword_or_binary_operator, charlist}` - may be a block keyword (do, end, after,
+      catch, else, rescue) or a binary operator
 
     * `{:dot, inside_dot, charlist}` - the context is a dot
       where `inside_dot` is either a `{:var, charlist}`, `{:alias, charlist}`,
@@ -136,6 +142,7 @@ defmodule Code.Fragment do
   @spec cursor_context(List.Chars.t(), keyword()) ::
           {:alias, charlist}
           | {:alias, inside_alias, charlist}
+          | {:block_keyword_or_binary_operator, charlist}
           | {:dot, inside_dot, charlist}
           | {:dot_arity, inside_dot, charlist}
           | {:dot_call, inside_dot, charlist}
@@ -185,15 +192,15 @@ defmodule Code.Fragment do
     cursor_context(to_charlist(other), opts)
   end
 
-  @operators ~c"\\<>+-*/:=|&~^%!"
-  @starter_punctuation ~c",([{;"
-  @non_starter_punctuation ~c")]}\"'.$"
+  @operators ~c"\\<>+-*/:=|&~^%!$"
+  @starting_punctuation ~c",([{;"
+  @closing_punctuation ~c")]}\"'"
   @space ~c"\t\s"
   @trailing_identifier ~c"?!"
   @tilde_op_prefix ~c"<=~"
 
   @non_identifier @trailing_identifier ++
-                    @operators ++ @starter_punctuation ++ @non_starter_punctuation ++ @space
+                    @operators ++ @starting_punctuation ++ @closing_punctuation ++ @space ++ [?.]
 
   @textual_operators ~w(when not and or in)c
   @keywords ~w(do end after else catch rescue fn true false nil)c
@@ -223,11 +230,11 @@ defmodule Code.Fragment do
       # A local arity definition
       [?/ | rest] -> arity_to_cursor_context(strip_spaces(rest, spaces + 1))
       # Starting a new expression
-      [h | _] when h in @starter_punctuation -> {:expr, 0}
-      # It is a local or remote call without parens
-      rest when spaces > 0 -> call_to_cursor_context({rest, spaces})
+      [h | _] when h in @starting_punctuation -> {:expr, 0}
+      # It is keyword, binary operator, a local or remote call without parens
+      rest when spaces > 0 -> closing_or_call_to_cursor_context({rest, spaces})
       # It is an identifier
-      _ -> identifier_to_cursor_context(reverse, 0, false)
+      _ -> identifier_to_cursor_context(reverse, spaces, false)
     end
   end
 
@@ -263,6 +270,14 @@ defmodule Code.Fragment do
           {{:operator, acc}, count} -> {{:operator_call, acc}, count}
           {_, _} -> {:none, 0}
         end
+    end
+  end
+
+  defp closing_or_call_to_cursor_context({reverse, spaces}) do
+    if closing?(reverse) do
+      {{:block_keyword_or_binary_operator, ~c""}, 0}
+    else
+      call_to_cursor_context({reverse, spaces})
     end
   end
 
@@ -317,11 +332,41 @@ defmodule Code.Fragment do
           {~c"." ++ rest, count} when rest == [] or hd(rest) != ?. ->
             dot(rest, count + 1, acc)
 
-          _ ->
-            {{:local_or_var, acc}, count}
+          {rest, rest_count} ->
+            response =
+              if rest_count > count and closing?(rest),
+                do: :block_keyword_or_binary_operator,
+                else: :local_or_var
+
+            {{response, acc}, count}
         end
+
+      {:capture_arg, acc, count} ->
+        {{:capture_arg, acc}, count}
     end
   end
+
+  # If it is a closing punctuation
+  defp closing?([h | _]) when h in @closing_punctuation, do: true
+  # Closing bitstring (but deal with operators)
+  defp closing?([?>, ?> | rest]), do: rest == [] or hd(rest) not in [?>, ?~]
+  # Keywords
+  defp closing?(rest) do
+    case split_non_identifier(rest, []) do
+      {~c"nil", _} -> true
+      {~c"true", _} -> true
+      {~c"false", _} -> true
+      {[digit | _], _} when digit in ?0..?9 -> true
+      {[upper | _], _} when upper in ?A..?Z -> true
+      {[_ | _], [?: | rest]} -> rest == [] or hd(rest) != ?:
+      {_, _} -> false
+    end
+  end
+
+  defp split_non_identifier([h | t], acc) when h not in @non_identifier,
+    do: split_non_identifier(t, [h | acc])
+
+  defp split_non_identifier(rest, acc), do: {acc, rest}
 
   defp identifier([?? | rest], count), do: check_identifier(rest, count + 1, [??])
   defp identifier([?! | rest], count), do: check_identifier(rest, count + 1, [?!])
@@ -360,6 +405,14 @@ defmodule Code.Fragment do
 
   defp rest_identifier([?? | _], _count, _acc) do
     :none
+  end
+
+  defp rest_identifier([?& | tail] = rest, count, acc) when tail == [] or hd(tail) != ?& do
+    if Enum.all?(acc, &(&1 in ?0..?9)) do
+      {:capture_arg, [?& | acc], count + 1}
+    else
+      tokenize_identifier(rest, count, acc)
+    end
   end
 
   defp rest_identifier(rest, count, acc) do
@@ -481,15 +534,15 @@ defmodule Code.Fragment do
 
   defp operator(rest, count, acc, _call_op?) do
     case :elixir_tokenizer.tokenize(acc, 1, 1, []) do
-      {:ok, _, _, _, [{:atom, _, _}]} ->
+      {:ok, _, _, _, [{:atom, _, _}], []} ->
         {{:unquoted_atom, tl(acc)}, count}
 
-      {:ok, _, _, _, [{_, _, op}]} ->
+      {:ok, _, _, _, [{_, _, op}], []} ->
         {rest, dot_count} = strip_spaces(rest, count)
 
         cond do
           Code.Identifier.unary_op(op) == :error and Code.Identifier.binary_op(op) == :error ->
-            :none
+            {:none, 0}
 
           match?([?. | rest] when rest == [] or hd(rest) != ?., rest) ->
             dot(tl(rest), dot_count + 1, acc)
@@ -547,7 +600,7 @@ defmodule Code.Fragment do
   ## Examples
 
       iex> Code.Fragment.surround_context("foo", {1, 1})
-      %{begin: {1, 1}, context: {:local_or_var, 'foo'}, end: {1, 4}}
+      %{begin: {1, 1}, context: {:local_or_var, ~c"foo"}, end: {1, 4}}
 
   ## Differences to `cursor_context/2`
 
@@ -562,13 +615,13 @@ defmodule Code.Fragment do
       `local_call`/`local_arity` and `local_or_var`, since the latter can
       be a local or variable
 
-    * `@` when not followed by any identifier is returned as `{:operator, '@'}`
-      (in contrast to `{:module_attribute, ''}` in `cursor_context/2`
+    * `@` when not followed by any identifier is returned as `{:operator, ~c"@"}`
+      (in contrast to `{:module_attribute, ~c""}` in `cursor_context/2`
 
-    * This function never returns empty sigils `{:sigil, ''}` or empty structs
-      `{:struct, ''}` as context
+    * This function never returns empty sigils `{:sigil, ~c""}` or empty structs
+      `{:struct, ~c""}` as context
 
-    * This function returns keywords as `{:keyword, 'do'}`
+    * This function returns keywords as `{:keyword, ~c"do"}`
 
     * This function never returns `:expr`
 
@@ -590,14 +643,17 @@ defmodule Code.Fragment do
                | {:sigil, charlist}
                | {:struct, inside_struct}
                | {:unquoted_atom, charlist}
-               | {:keyword, charlist},
+               | {:keyword, charlist}
+               | {:key, charlist}
+               | {:capture_arg, charlist},
              inside_dot:
                {:alias, charlist}
                | {:alias, inside_alias, charlist}
                | {:dot, inside_dot, charlist}
                | {:module_attribute, charlist}
                | {:unquoted_atom, charlist}
-               | {:var, charlist},
+               | {:var, charlist}
+               | :expr,
              inside_alias:
                {:local_or_var, charlist}
                | {:module_attribute, charlist},
@@ -635,15 +691,24 @@ defmodule Code.Fragment do
     {reversed_pre, post} = adjust_position(reversed_pre, post)
 
     case take_identifier(post, []) do
-      :none ->
+      {_, [], _} ->
         maybe_operator(reversed_pre, post, line, opts)
 
       {:identifier, reversed_post, rest} ->
-        {rest, _} = strip_spaces(rest, 0)
+        {keyword_key?, rest} =
+          case rest do
+            [?: | tail] when tail == [] or hd(tail) in @space ->
+              {true, rest}
+
+            _ ->
+              {rest, _} = strip_spaces(rest, 0)
+              {false, rest}
+          end
+
         reversed = reversed_post ++ reversed_pre
 
         case codepoint_cursor_context(reversed, opts) do
-          {{:struct, acc}, offset} when acc != [] ->
+          {{:struct, acc}, offset} ->
             build_surround({:struct, acc}, reversed, line, offset)
 
           {{:alias, acc}, offset} ->
@@ -654,6 +719,9 @@ defmodule Code.Fragment do
 
           {{:dot, _, [_ | _]} = dot, offset} ->
             build_surround(dot, reversed, line, offset)
+
+          {{:local_or_var, acc}, offset} when keyword_key? ->
+            build_surround({:key, acc}, reversed, line, offset)
 
           {{:local_or_var, acc}, offset} when hd(rest) == ?( ->
             build_surround({:local_call, acc}, reversed, line, offset)
@@ -681,6 +749,9 @@ defmodule Code.Fragment do
 
           {{:unquoted_atom, acc}, offset} ->
             build_surround({:unquoted_atom, acc}, reversed, line, offset)
+
+          {{:capture_arg, acc}, offset} ->
+            build_surround({:capture_arg, acc}, reversed, line, offset)
 
           _ ->
             maybe_operator(reversed_pre, post, line, opts)
@@ -714,6 +785,16 @@ defmodule Code.Fragment do
         reversed = reversed_post ++ reversed_pre
 
         case codepoint_cursor_context(reversed, opts) do
+          {{:operator, ~c"&"}, offset} when hd(rest) in ?0..?9 ->
+            arg = Enum.take_while(rest, &(&1 in ?0..?9))
+
+            build_surround(
+              {:capture_arg, ~c"&" ++ arg},
+              :lists.reverse(arg, reversed),
+              line,
+              offset + length(arg)
+            )
+
           {{:operator, acc}, offset} ->
             build_surround({:operator, acc}, reversed, line, offset)
 
@@ -748,27 +829,11 @@ defmodule Code.Fragment do
     do: take_identifier(t, [h | acc])
 
   defp take_identifier(rest, acc) do
-    {stripped, _} = strip_spaces(rest, 0)
-
-    with [?. | t] <- stripped,
+    with {[?. | t], _} <- strip_spaces(rest, 0),
          {[h | _], _} when h in ?A..?Z <- strip_spaces(t, 0) do
       take_alias(rest, acc)
     else
-      # Consider it an identifier if we are at the end of line
-      # or if we have spaces not followed by . (call) or / (arity)
-      _ when acc == [] and (rest == [] or (hd(rest) in @space and hd(stripped) not in ~c"/.")) ->
-        {:identifier, acc, rest}
-
-      # If we are immediately followed by a container, we are still part of the identifier.
-      # We don't consider << as it _may_ be an operator.
-      _ when acc == [] and hd(stripped) in ~c"({[" ->
-        {:identifier, acc, rest}
-
-      _ when acc == [] ->
-        :none
-
-      _ ->
-        {:identifier, acc, rest}
+      _ -> {:identifier, acc, rest}
     end
   end
 
@@ -1076,6 +1141,13 @@ defmodule Code.Fragment do
       iex> Code.Fragment.container_cursor_to_quoted("foo +")
       {:ok, {:+, [line: 1], [{:foo, [line: 1], nil}, {:__cursor__, [line: 1], []}]}}
 
+  In order to parse the left-side of `->` properly, which appears both
+  in anonymous functions and do-end blocks, the trailing fragment option
+  must be given with the rest of the contents:
+
+      iex> Code.Fragment.container_cursor_to_quoted("fn x", trailing_fragment: " -> :ok end")
+      {:ok, {:fn, [line: 1], [{:->, [line: 1], [[{:__cursor__, [line: 1], []}], :ok]}]}}
+
   ## Options
 
     * `:file` - the filename to be reported in case of parsing errors.
@@ -1098,14 +1170,117 @@ defmodule Code.Fragment do
     * `:literal_encoder` - a function to encode literals in the AST.
       See the documentation for `Code.string_to_quoted/2` for more information.
 
+    * `:trailing_fragment` (since v1.18.0) - the rest of the contents after
+      the cursor. This is necessary to correctly complete anonymous functions
+      and the left-hand side of `->`
+
   """
   @doc since: "1.13.0"
   @spec container_cursor_to_quoted(List.Chars.t(), keyword()) ::
           {:ok, Macro.t()} | {:error, {location :: keyword, binary | {binary, binary}, binary}}
   def container_cursor_to_quoted(fragment, opts \\ []) do
-    opts =
-      Keyword.take(opts, [:file, :line, :column, :columns, :token_metadata, :literal_encoder])
+    {trailing_fragment, opts} = Keyword.pop(opts, :trailing_fragment)
+    opts = Keyword.take(opts, [:columns, :token_metadata, :literal_encoder])
+    opts = [check_terminators: {:cursor, []}, emit_warnings: false] ++ opts
 
-    Code.string_to_quoted(fragment, [cursor_completion: true, warnings: false] ++ opts)
+    file = Keyword.get(opts, :file, "nofile")
+    line = Keyword.get(opts, :line, 1)
+    column = Keyword.get(opts, :column, 1)
+
+    case :elixir_tokenizer.tokenize(to_charlist(fragment), line, column, opts) do
+      {:ok, line, column, _warnings, rev_tokens, rev_terminators}
+      when trailing_fragment == nil ->
+        {rev_tokens, rev_terminators} =
+          with [close, open, {_, _, :__cursor__} = cursor | rev_tokens] <- rev_tokens,
+               {_, [_ | after_fn]} <- Enum.split_while(rev_terminators, &(elem(&1, 0) != :fn)),
+               true <- maybe_missing_stab?(rev_tokens, false),
+               [_ | rev_tokens] <- Enum.drop_while(rev_tokens, &(elem(&1, 0) != :fn)) do
+            {[close, open, cursor | rev_tokens], after_fn}
+          else
+            _ -> {rev_tokens, rev_terminators}
+          end
+
+        tokens = reverse_tokens(line, column, rev_tokens, rev_terminators)
+        :elixir.tokens_to_quoted(tokens, file, opts)
+
+      {:ok, line, column, _warnings, rev_tokens, rev_terminators} ->
+        tokens =
+          with {before_start, [_ | _] = after_start} <-
+                 Enum.split_while(rev_terminators, &(elem(&1, 0) not in [:do, :fn])),
+               true <- maybe_missing_stab?(rev_tokens, true),
+               opts =
+                 Keyword.put(opts, :check_terminators, {:cursor, before_start}),
+               {:error, {meta, _, ~c"end"}, _rest, _warnings, trailing_rev_tokens} <-
+                 :elixir_tokenizer.tokenize(to_charlist(trailing_fragment), line, column, opts) do
+            trailing_tokens =
+              reverse_tokens(meta[:line], meta[:column], trailing_rev_tokens, after_start)
+
+            # If the cursor has its own line, then we do not trim new lines trailing tokens.
+            # Otherwise we want to drop any newline so we drop the next tokens after eol.
+            trailing_tokens =
+              case rev_tokens do
+                [_close, _open, {_, _, :__cursor__}, {:eol, _} | _] -> trailing_tokens
+                _ -> Enum.drop_while(trailing_tokens, &match?({:eol, _}, &1))
+              end
+
+            Enum.reverse(rev_tokens, drop_tokens(trailing_tokens, 0))
+          else
+            _ -> reverse_tokens(line, column, rev_tokens, rev_terminators)
+          end
+
+        :elixir.tokens_to_quoted(tokens, file, opts)
+
+      {:error, info, _rest, _warnings, _so_far} ->
+        {:error, :elixir.format_token_error(info)}
+    end
   end
+
+  defp reverse_tokens(line, column, tokens, terminators) do
+    {terminators, _} =
+      Enum.map_reduce(terminators, column, fn {start, _, _}, column ->
+        atom = :elixir_tokenizer.terminator(start)
+
+        {{atom, {line, column, nil}}, column + length(Atom.to_charlist(atom))}
+      end)
+
+    Enum.reverse(tokens, terminators)
+  end
+
+  # Otherwise we drop all tokens, trying to build a minimal AST
+  # for cursor completion.
+  defp drop_tokens([{:"}", _} | _] = tokens, 0), do: tokens
+  defp drop_tokens([{:"]", _} | _] = tokens, 0), do: tokens
+  defp drop_tokens([{:")", _} | _] = tokens, 0), do: tokens
+  defp drop_tokens([{:">>", _} | _] = tokens, 0), do: tokens
+  defp drop_tokens([{:end, _} | _] = tokens, 0), do: tokens
+  defp drop_tokens([{:",", _} | _] = tokens, 0), do: tokens
+  defp drop_tokens([{:";", _} | _] = tokens, 0), do: tokens
+  defp drop_tokens([{:eol, _} | _] = tokens, 0), do: tokens
+  defp drop_tokens([{:stab_op, _, :->} | _] = tokens, 0), do: tokens
+
+  defp drop_tokens([{:"}", _} | tokens], counter), do: drop_tokens(tokens, counter - 1)
+  defp drop_tokens([{:"]", _} | tokens], counter), do: drop_tokens(tokens, counter - 1)
+  defp drop_tokens([{:")", _} | tokens], counter), do: drop_tokens(tokens, counter - 1)
+  defp drop_tokens([{:">>", _} | tokens], counter), do: drop_tokens(tokens, counter - 1)
+  defp drop_tokens([{:end, _} | tokens], counter), do: drop_tokens(tokens, counter - 1)
+
+  defp drop_tokens([{:"{", _} | tokens], counter), do: drop_tokens(tokens, counter + 1)
+  defp drop_tokens([{:"[", _} | tokens], counter), do: drop_tokens(tokens, counter + 1)
+  defp drop_tokens([{:"(", _} | tokens], counter), do: drop_tokens(tokens, counter + 1)
+  defp drop_tokens([{:"<<", _} | tokens], counter), do: drop_tokens(tokens, counter + 1)
+  defp drop_tokens([{:fn, _} | tokens], counter), do: drop_tokens(tokens, counter + 1)
+  defp drop_tokens([{:do, _} | tokens], counter), do: drop_tokens(tokens, counter + 1)
+
+  defp drop_tokens([_ | tokens], counter), do: drop_tokens(tokens, counter)
+  defp drop_tokens([], 0), do: []
+
+  defp maybe_missing_stab?([{:after, _} | _], _stab_choice?), do: true
+  defp maybe_missing_stab?([{:do, _} | _], _stab_choice?), do: true
+  defp maybe_missing_stab?([{:fn, _} | _], _stab_choice?), do: true
+  defp maybe_missing_stab?([{:else, _} | _], _stab_choice?), do: true
+  defp maybe_missing_stab?([{:catch, _} | _], _stab_choice?), do: true
+  defp maybe_missing_stab?([{:rescue, _} | _], _stab_choice?), do: true
+  defp maybe_missing_stab?([{:stab_op, _, :->} | _], stab_choice?), do: stab_choice?
+  defp maybe_missing_stab?([_ | tail], stab_choice?), do: maybe_missing_stab?(tail, stab_choice?)
+  defp maybe_missing_stab?([], _stab_choice?), do: false
 end

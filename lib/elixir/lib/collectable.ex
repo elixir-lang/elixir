@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defprotocol Collectable do
   @moduledoc """
   A protocol to traverse data structures.
@@ -94,10 +98,10 @@ end
 
 defimpl Collectable, for: List do
   def into(list) do
-    # TODO: Change the behaviour so the into always comes last on Elixir v2.0
+    # TODO: Change the behavior so the into always comes last on Elixir v2.0
     if list != [] do
       IO.warn(
-        "the Collectable protocol is deprecated for non-empty lists. The behaviour of " <>
+        "the Collectable protocol is deprecated for non-empty lists. The behavior of " <>
           "Enum.into/2 and \"for\" comprehensions with an :into option is incorrect " <>
           "when collecting into non-empty lists. If you're collecting into a non-empty keyword " <>
           "list, consider using Keyword.merge/2 instead. If you're collecting into a non-empty " <>
@@ -140,6 +144,10 @@ defimpl Collectable, for: BitString do
 
       __acc, :halt ->
         :ok
+
+      _acc, {:cont, other} ->
+        raise ArgumentError,
+              "collecting into a binary requires a bitstring, got: #{inspect(other)}"
     end
 
     {[binary], fun}
@@ -155,6 +163,10 @@ defimpl Collectable, for: BitString do
 
       _acc, :halt ->
         :ok
+
+      _acc, {:cont, other} ->
+        raise ArgumentError,
+              "collecting into a bitstring requires a bitstring, got: #{inspect(other)}"
     end
 
     {bitstring, fun}
@@ -172,6 +184,10 @@ defimpl Collectable, for: Map do
 
       _map_acc, :halt ->
         :ok
+
+      _map_acc, {:cont, other} ->
+        raise ArgumentError,
+              "collecting into a map requires {key, value} tuples, got: #{inspect(other)}"
     end
 
     {map, fun}

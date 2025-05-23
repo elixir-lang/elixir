@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 import Kernel, except: [destructure: 2, defdelegate: 2, defstruct: 2]
 
 defmodule Kernel.Utils do
@@ -36,14 +40,14 @@ defmodule Kernel.Utils do
     if is_list(funs) do
       IO.warn(
         "passing a list to Kernel.defdelegate/2 is deprecated, please define each delegate separately",
-        Macro.Env.stacktrace(env)
+        env
       )
     end
 
     if Keyword.has_key?(opts, :append_first) do
       IO.warn(
         "Kernel.defdelegate/2 :append_first option is deprecated",
-        Macro.Env.stacktrace(env)
+        env
       )
     end
 
@@ -103,7 +107,7 @@ defmodule Kernel.Utils do
   def defstruct(module, fields, bootstrapped?, env) do
     {set, bag} = :elixir_module.data_tables(module)
 
-    if :ets.member(set, :__struct__) do
+    if :ets.member(set, {:elixir, :struct}) do
       raise ArgumentError,
             "defstruct has already been called for " <>
               "#{Kernel.inspect(module)}, defstruct can only be called once per module"
@@ -119,8 +123,10 @@ defmodule Kernel.Utils do
 
     mapper = fn
       {key, val} when is_atom(key) ->
+        key == :__struct__ and raise(ArgumentError, "cannot set :__struct__ in struct definition")
+
         try do
-          :elixir_quote.escape(val, false, :none)
+          :elixir_quote.escape(val, :none, false)
         rescue
           e in [ArgumentError] ->
             raise ArgumentError, "invalid value for struct field #{key}, " <> Exception.message(e)
@@ -129,6 +135,7 @@ defmodule Kernel.Utils do
         end
 
       key when is_atom(key) ->
+        key == :__struct__ and raise(ArgumentError, "cannot set :__struct__ in struct definition")
         {key, nil}
 
       other ->
@@ -163,23 +170,24 @@ defmodule Kernel.Utils do
     end
 
     :lists.foreach(foreach, enforce_keys)
-    struct = :maps.put(:__struct__, module, :maps.from_list(fields))
+    struct = :maps.from_list([__struct__: module] ++ fields)
+    escaped_struct = :elixir_quote.escape(struct, :none, false)
 
     body =
       case bootstrapped? do
         true ->
           case enforce_keys do
             [] ->
-              quote do
-                Enum.reduce(kv, @__struct__, fn {key, val}, map ->
+              quote line: 0, generated: true do
+                Enum.reduce(kv, unquote(escaped_struct), fn {key, val}, map ->
                   %{map | key => val}
                 end)
               end
 
             _ ->
-              quote do
+              quote line: 0, generated: true do
                 {map, keys} =
-                  Enum.reduce(kv, {@__struct__, unquote(enforce_keys)}, fn
+                  Enum.reduce(kv, {unquote(escaped_struct), unquote(enforce_keys)}, fn
                     {key, val}, {map, keys} ->
                       {%{map | key => val}, List.delete(keys, key)}
                   end)
@@ -197,10 +205,10 @@ defmodule Kernel.Utils do
           end
 
         false ->
-          quote do
+          quote line: 0, generated: true do
             :lists.foldl(
               fn {key, val}, acc -> %{acc | key => val} end,
-              @__struct__,
+              unquote(escaped_struct),
               kv
             )
           end
@@ -208,17 +216,13 @@ defmodule Kernel.Utils do
 
     case enforce_keys -- :maps.keys(struct) do
       [] ->
-        # The __struct__ field is used for expansion and for loading remote structs
-        :ets.insert(set, {:__struct__, struct, nil, []})
-
-        # Store all field metadata to go into __info__(:struct)
         mapper = fn {key, val} ->
-          %{field: key, default: val, required: :lists.member(key, enforce_keys)}
+          %{field: key, default: val}
         end
 
         :ets.insert(set, {{:elixir, :struct}, :lists.map(mapper, fields)})
         derive = :lists.map(fn {_, value} -> value end, :ets.take(bag, {:accumulate, :derive}))
-        {struct, :lists.reverse(derive), quote(do: kv), body}
+        {struct, :lists.reverse(derive), escaped_struct, quote(do: kv), body}
 
       error_keys ->
         raise ArgumentError,
@@ -289,7 +293,7 @@ defmodule Kernel.Utils do
   macro.
 
   Secondly, if the expression is being used outside of a guard, we want to unquote
-  `value`, but only once, and then re-use the unquoted form throughout the expression.
+  `value`, but only once, and then reuse the unquoted form throughout the expression.
 
   This helper does exactly that: takes the AST for an expression and a list of
   variable references it should be aware of, and rewrites it into a new expression
@@ -330,8 +334,11 @@ defmodule Kernel.Utils do
 
     quote do
       case Macro.Env.in_guard?(__CALLER__) do
-        true -> unquote(literal_quote(unquote_every_ref(expr, vars)))
-        false -> unquote(literal_quote(unquote_refs_once(expr, vars, env.module)))
+        true ->
+          unquote(literal_quote(unquote_every_ref(expr, vars), []))
+
+        false ->
+          unquote(literal_quote(unquote_refs_once(expr, vars, env.module), generated: true))
       end
     end
   end
@@ -396,8 +403,8 @@ defmodule Kernel.Utils do
     end
   end
 
-  defp literal_quote(ast) do
-    {:quote, [], [[do: ast]]}
+  defp literal_quote(ast, args) do
+    {:quote, [], [args, [do: ast]]}
   end
 
   defp literal_unquote(ast) do

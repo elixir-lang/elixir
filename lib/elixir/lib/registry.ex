@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Registry do
   @moduledoc ~S"""
   A local, decentralized and scalable key-value process storage.
@@ -18,7 +22,7 @@ defmodule Registry do
   implementation. We explore some of those use cases below.
 
   The registry may also be transparently partitioned, which provides
-  more scalable behaviour for running registries on highly concurrent
+  more scalable behavior for running registries on highly concurrent
   environments with thousands or millions of entries.
 
   ## Using in `:via`
@@ -27,8 +31,8 @@ defmodule Registry do
   `Registry.start_link/1`, it can be used to register and access named
   processes using the `{:via, Registry, {registry, key}}` tuple:
 
-      {:ok, _} = Registry.start_link(keys: :unique, name: Registry.ViaTest)
-      name = {:via, Registry, {Registry.ViaTest, "agent"}}
+      {:ok, _} = Registry.start_link(keys: :unique, name: MyApp.Registry)
+      name = {:via, Registry, {MyApp.Registry, "agent"}}
       {:ok, _} = Agent.start_link(fn -> 0 end, name: name)
       Agent.get(name, & &1)
       #=> 0
@@ -39,22 +43,33 @@ defmodule Registry do
   In the previous example, we were not interested in associating a value to the
   process:
 
-      Registry.lookup(Registry.ViaTest, "agent")
+      Registry.lookup(MyApp.Registry, "agent")
       #=> [{self(), nil}]
 
   However, in some cases it may be desired to associate a value to the process
   using the alternate `{:via, Registry, {registry, key, value}}` tuple:
 
-      {:ok, _} = Registry.start_link(keys: :unique, name: Registry.ViaTest)
-      name = {:via, Registry, {Registry.ViaTest, "agent", :hello}}
+      {:ok, _} = Registry.start_link(keys: :unique, name: MyApp.Registry)
+      name = {:via, Registry, {MyApp.Registry, "agent", :hello}}
       {:ok, agent_pid} = Agent.start_link(fn -> 0 end, name: name)
-      Registry.lookup(Registry.ViaTest, "agent")
+
+      Registry.lookup(MyApp.Registry, "agent")
       #=> [{agent_pid, :hello}]
+
+      name_without_meta = {:via, Registry, {MyApp.Registry, "agent"}}
+      Agent.update(name_without_meta, fn x -> x + 1 end)
+      Agent.get(name_without_meta, & &1)
+      #=> 1
+
+  > #### With *and* without metadata {: .tip}
+  >
+  > When using the version of `:via` tuples with *metadata*, you can still use the version
+  > **without** metadata to look up the process.
 
   To this point, we have been starting `Registry` using `start_link/1`.
   Typically the registry is started as part of a supervision tree though:
 
-      {Registry, keys: :unique, name: Registry.ViaTest}
+      {Registry, keys: :unique, name: MyApp.Registry}
 
   Only registries with unique keys can be used in `:via`. If the name is
   already taken, the case-specific `start_link` function (`Agent.start_link/2`
@@ -331,7 +346,7 @@ defmodule Registry do
   def start_link(options) do
     keys = Keyword.get(options, :keys)
 
-    unless keys in @keys do
+    if keys not in @keys do
       raise ArgumentError,
             "expected :keys to be given and be one of :unique or :duplicate, got: #{inspect(keys)}"
     end
@@ -350,27 +365,27 @@ defmodule Registry do
 
     meta = Keyword.get(options, :meta, [])
 
-    unless Keyword.keyword?(meta) do
+    if not Keyword.keyword?(meta) do
       raise ArgumentError, "expected :meta to be a keyword list, got: #{inspect(meta)}"
     end
 
     partitions = Keyword.get(options, :partitions, 1)
 
-    unless is_integer(partitions) and partitions >= 1 do
+    if not (is_integer(partitions) and partitions >= 1) do
       raise ArgumentError,
             "expected :partitions to be a positive integer, got: #{inspect(partitions)}"
     end
 
     listeners = Keyword.get(options, :listeners, [])
 
-    unless is_list(listeners) and Enum.all?(listeners, &is_atom/1) do
+    if not (is_list(listeners) and Enum.all?(listeners, &is_atom/1)) do
       raise ArgumentError,
             "expected :listeners to be a list of named processes, got: #{inspect(listeners)}"
     end
 
     compressed = Keyword.get(options, :compressed, false)
 
-    unless is_boolean(compressed) do
+    if not is_boolean(compressed) do
       raise ArgumentError,
             "expected :compressed to be a boolean, got: #{inspect(compressed)}"
     end
@@ -471,7 +486,7 @@ defmodule Registry do
   """
   @doc since: "1.4.0"
   @spec dispatch(registry, key, dispatcher, keyword) :: :ok
-        when dispatcher: (entries :: [{pid, value}] -> term) | {module(), atom(), [any()]}
+        when dispatcher: (entries :: [{pid, value}] -> term) | {module(), atom(), [term()]}
   def dispatch(registry, key, mfa_or_fun, opts \\ [])
       when is_atom(registry) and is_function(mfa_or_fun, 1)
       when is_atom(registry) and tuple_size(mfa_or_fun) == 3 do
@@ -607,6 +622,65 @@ defmodule Registry do
             pair <- safe_lookup_second(key_ets!(registry, partition), key),
             do: pair
     end
+  end
+
+  @doc """
+  Out-of-band locking of the given `lock_key` for the duration of `function`.
+
+  Only one function can execute under the same `lock_key` at a given
+  time. The given function always runs in the caller process.
+
+  The `lock_key` has its own namespace and therefore does not clash or
+  overlap with the regular registry keys. In other words, locking works
+  out-of-band from the regular Registry operations. See the "Use cases"
+  section below.
+
+  Locking behaves the same regardless of the registry type.
+
+  ## Use cases
+
+  The Registry is safe and concurrent out-of-the-box. You are not required
+  to use this function when interacting with the Registry. Furthermore,
+  `Registry` with `:unique` keys can already act as a process-lock for any
+  given key. For example, you can ensure only one process runs at a given
+  time for a given `:key` by doing:
+
+      name = {:via, Registry, {MyApp.Registry, :key, :value}}
+
+      # Do not attempt to start if we are already running
+      if pid = GenServer.whereis(name) do
+        pid
+      else
+        case GenServer.start_link(__MODULE__, :ok, name: name) do
+          {:ok, pid} -> pid
+          {:error, {:already_started, pid}} -> pid
+        end
+      end
+
+  Process locking gives you plenty of flexibility and fault isolation and
+  is enough for most cases.
+
+  This function is useful only when spawning processes is not an option,
+  for example, when copying the data to another process could be too
+  expensive. Or when the work must be done within the current process
+  for other reasons. In such cases, this function provides a scalable
+  mechanism for managing locks on top of the registry's infrastructure.
+
+  ## Examples
+
+      iex> Registry.start_link(keys: :unique, name: Registry.LockTest)
+      iex> Registry.lock(Registry.LockTest, :hello, fn -> :ok end)
+      :ok
+      iex> Registry.lock(Registry.LockTest, :world, fn -> self() end)
+      self()
+
+  """
+  @doc since: "1.18.0"
+  def lock(registry, lock_key, function)
+      when is_atom(registry) and is_function(function, 0) do
+    {_kind, partitions, _, pid_ets, _} = info!(registry)
+    {pid_server, _pid_ets} = pid_ets || pid_ets!(registry, lock_key, partitions)
+    Registry.Partition.lock(pid_server, lock_key, function)
   end
 
   @doc """
@@ -757,28 +831,28 @@ defmodule Registry do
   In the example below we register the current process and look it up
   both from itself and other processes:
 
-      iex> Registry.start_link(keys: :unique, name: Registry.UniqueLookupTest)
-      iex> Registry.values(Registry.UniqueLookupTest, "hello", self())
+      iex> Registry.start_link(keys: :unique, name: Registry.UniqueValuesTest)
+      iex> Registry.values(Registry.UniqueValuesTest, "hello", self())
       []
-      iex> {:ok, _} = Registry.register(Registry.UniqueLookupTest, "hello", :world)
-      iex> Registry.values(Registry.UniqueLookupTest, "hello", self())
+      iex> {:ok, _} = Registry.register(Registry.UniqueValuesTest, "hello", :world)
+      iex> Registry.values(Registry.UniqueValuesTest, "hello", self())
       [:world]
-      iex> Task.async(fn -> Registry.values(Registry.UniqueLookupTest, "hello", self()) end) |> Task.await()
+      iex> Task.async(fn -> Registry.values(Registry.UniqueValuesTest, "hello", self()) end) |> Task.await()
       []
       iex> parent = self()
-      iex> Task.async(fn -> Registry.values(Registry.UniqueLookupTest, "hello", parent) end) |> Task.await()
+      iex> Task.async(fn -> Registry.values(Registry.UniqueValuesTest, "hello", parent) end) |> Task.await()
       [:world]
 
   The same applies to duplicate registries:
 
-      iex> Registry.start_link(keys: :duplicate, name: Registry.DuplicateLookupTest)
-      iex> Registry.values(Registry.DuplicateLookupTest, "hello", self())
+      iex> Registry.start_link(keys: :duplicate, name: Registry.DuplicateValuesTest)
+      iex> Registry.values(Registry.DuplicateValuesTest, "hello", self())
       []
-      iex> {:ok, _} = Registry.register(Registry.DuplicateLookupTest, "hello", :world)
-      iex> Registry.values(Registry.DuplicateLookupTest, "hello", self())
+      iex> {:ok, _} = Registry.register(Registry.DuplicateValuesTest, "hello", :world)
+      iex> Registry.values(Registry.DuplicateValuesTest, "hello", self())
       [:world]
-      iex> {:ok, _} = Registry.register(Registry.DuplicateLookupTest, "hello", :another)
-      iex> Enum.sort(Registry.values(Registry.DuplicateLookupTest, "hello", self()))
+      iex> {:ok, _} = Registry.register(Registry.DuplicateValuesTest, "hello", :another)
+      iex> Enum.sort(Registry.values(Registry.DuplicateValuesTest, "hello", self()))
       [:another, :world]
 
   """
@@ -1182,8 +1256,8 @@ defmodule Registry do
   def count(registry) when is_atom(registry) do
     case key_info!(registry) do
       {_kind, partitions, nil} ->
-        Enum.reduce(0..(partitions - 1), 0, fn partition_index, acc ->
-          acc + safe_size(key_ets!(registry, partition_index))
+        Enum.sum_by(0..(partitions - 1), fn partition_index ->
+          safe_size(key_ets!(registry, partition_index))
         end)
 
       {_kind, 1, key_ets} ->
@@ -1258,9 +1332,8 @@ defmodule Registry do
         :ets.select_count(key_ets, spec)
 
       {:duplicate, partitions, _key_ets} ->
-        Enum.reduce(0..(partitions - 1), 0, fn partition_index, acc ->
-          count = :ets.select_count(key_ets!(registry, partition_index), spec)
-          acc + count
+        Enum.sum_by(0..(partitions - 1), fn partition_index ->
+          :ets.select_count(key_ets!(registry, partition_index), spec)
         end)
     end
   end
@@ -1301,16 +1374,16 @@ defmodule Registry do
       iex> Registry.start_link(keys: :unique, name: Registry.SelectAllTest)
       iex> {:ok, _} = Registry.register(Registry.SelectAllTest, "hello", :value)
       iex> {:ok, _} = Registry.register(Registry.SelectAllTest, "world", :value)
-      iex> Registry.select(Registry.SelectAllTest, [{{:"$1", :"$2", :"$3"}, [], [{{:"$1", :"$2", :"$3"}}]}])
-      [{"world", self(), :value}, {"hello", self(), :value}]
+      iex> Registry.select(Registry.SelectAllTest, [{{:"$1", :"$2", :"$3"}, [], [{{:"$1", :"$2", :"$3"}}]}]) |> Enum.sort()
+      [{"hello", self(), :value}, {"world", self(), :value}]
 
-  Get all keys in the registry:
+  If you want to get keys, you can pass a separate selector:
 
-      iex> Registry.start_link(keys: :unique, name: Registry.SelectAllTest)
-      iex> {:ok, _} = Registry.register(Registry.SelectAllTest, "hello", :value)
-      iex> {:ok, _} = Registry.register(Registry.SelectAllTest, "world", :value)
-      iex> Registry.select(Registry.SelectAllTest, [{{:"$1", :_, :_}, [], [:"$1"]}])
-      ["world", "hello"]
+      iex> Registry.start_link(keys: :unique, name: Registry.SelectKeysTest)
+      iex> {:ok, _} = Registry.register(Registry.SelectKeysTest, "hello", :value)
+      iex> {:ok, _} = Registry.register(Registry.SelectKeysTest, "world", :value)
+      iex> Registry.select(Registry.SelectKeysTest, [{{:"$1", :_, :_}, [], [:"$1"]}]) |> Enum.sort()
+      ["hello", "world"]
 
   """
   @doc since: "1.9.0"
@@ -1352,9 +1425,8 @@ defmodule Registry do
 
     case key_info!(registry) do
       {_kind, partitions, nil} ->
-        Enum.reduce(0..(partitions - 1), 0, fn partition_index, acc ->
-          count = :ets.select_count(key_ets!(registry, partition_index), spec)
-          acc + count
+        Enum.sum_by(0..(partitions - 1), fn partition_index ->
+          :ets.select_count(key_ets!(registry, partition_index), spec)
         end)
 
       {_kind, 1, key_ets} ->
@@ -1435,7 +1507,7 @@ defmodule Registry do
   end
 
   defp unlink_if_unregistered(pid_server, pid_ets, self) do
-    unless :ets.member(pid_ets, self) do
+    if not :ets.member(pid_ets, self) do
       Process.unlink(pid_server)
     end
   end
@@ -1502,7 +1574,7 @@ defmodule Registry.Partition do
   @moduledoc false
 
   # This process owns the equivalent key and pid ETS tables
-  # and is responsible for monitoring processes that map to
+  # and is responsible for linking to processes that map to
   # its own pid table.
   use GenServer
   @all_info -1
@@ -1527,11 +1599,23 @@ defmodule Registry.Partition do
   @doc """
   Starts the registry partition.
 
-  The process is only responsible for monitoring, demonitoring
-  and cleaning up when monitored processes crash.
+  The process is only responsible for linking and cleaning up when processes crash.
   """
   def start_link(registry, arg) do
     GenServer.start_link(__MODULE__, arg, name: registry)
+  end
+
+  @doc """
+  Runs function with a lock.
+  """
+  def lock(pid, key, lock) do
+    ref = GenServer.call(pid, {:lock, key})
+
+    try do
+      lock.()
+    after
+      send(pid, {:unlock, key, ref})
+    end
   end
 
   ## Callbacks
@@ -1554,7 +1638,7 @@ defmodule Registry.Partition do
       true = :ets.insert(registry, {i, key_ets, {self(), pid_ets}})
     end
 
-    {:ok, pid_ets}
+    {:ok, {pid_ets, %{}}}
   end
 
   # The key partition is a set for unique keys,
@@ -1588,7 +1672,21 @@ defmodule Registry.Partition do
     {:reply, :ok, state}
   end
 
-  def handle_info({:EXIT, pid, _reason}, ets) do
+  def handle_call({:lock, key}, from, {ets, lock}) do
+    lock =
+      case lock do
+        %{^key => queue} ->
+          Map.put(lock, key, :queue.in(from, queue))
+
+        %{} ->
+          go(from, key)
+          Map.put(lock, key, :queue.new())
+      end
+
+    {:noreply, {ets, lock}}
+  end
+
+  def handle_info({:EXIT, pid, _reason}, {ets, lock}) do
     entries = :ets.take(ets, pid)
 
     for {_pid, key, key_ets, _counter} <- entries do
@@ -1609,6 +1707,47 @@ defmodule Registry.Partition do
       end
     end
 
-    {:noreply, ets}
+    {:noreply, {ets, lock}}
+  end
+
+  def handle_info({{:unlock, key}, _ref, :process, _pid, _reason}, state) do
+    unlock(key, state)
+  end
+
+  def handle_info({:unlock, key, ref}, state) do
+    Process.demonitor(ref, [:flush])
+    unlock(key, state)
+  end
+
+  defp unlock(key, {ets, lock}) do
+    %{^key => queue} = lock
+
+    lock =
+      case dequeue(queue, key) do
+        :empty -> Map.delete(lock, key)
+        {:not_empty, queue} -> Map.put(lock, key, queue)
+      end
+
+    {:noreply, {ets, lock}}
+  end
+
+  defp dequeue(queue, key) do
+    case :queue.out(queue) do
+      {:empty, _} ->
+        :empty
+
+      {{:value, {pid, _tag} = from}, queue} ->
+        if node(pid) != node() or Process.alive?(pid) do
+          go(from, key)
+          {:not_empty, queue}
+        else
+          dequeue(queue, key)
+        end
+    end
+  end
+
+  defp go({pid, _tag} = from, key) do
+    ref = Process.monitor(pid, tag: {:unlock, key})
+    GenServer.reply(from, ref)
   end
 end

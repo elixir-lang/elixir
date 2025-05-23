@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule ConfigTest do
@@ -62,6 +66,16 @@ defmodule ConfigTest do
 
     config :app, Repo, key: :other
     assert config() == [app: [{Repo, other: :value, key: :other}]]
+  end
+
+  test "read_config/1" do
+    assert read_config(:lager) == nil
+
+    config :lager, key: :value
+    assert read_config(:lager) == [key: :value]
+
+    config :lager, other: :value
+    assert read_config(:lager) == [key: :value, other: :value]
   end
 
   @tag env: :dev

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Kernel.ParserTest do
@@ -6,9 +9,15 @@ defmodule Kernel.ParserTest do
   describe "nullary ops" do
     test "in expressions" do
       assert parse!("..") == {:.., [line: 1], []}
+      assert parse!("...") == {:..., [line: 1], []}
     end
 
-    test "raises on ambiguous uses" do
+    test "in capture" do
+      assert parse!("&../0") == {:&, [line: 1], [{:/, [line: 1], [{:.., [line: 1], nil}, 0]}]}
+      assert parse!("&.../0") == {:&, [line: 1], [{:/, [line: 1], [{:..., [line: 1], nil}, 0]}]}
+    end
+
+    test "raises on ambiguous uses when also binary" do
       assert_raise SyntaxError, ~r/syntax error before: do/, fn ->
         parse!("if .. do end")
       end
@@ -21,6 +30,37 @@ defmodule Kernel.ParserTest do
       assert parse!("f @: :ok") == {:f, [line: 1], [[@: :ok]]}
     end
 
+    test "in maps" do
+      assert parse!("%{+foo, bar => bat, ...baz}") ==
+               {:%{}, [line: 1],
+                [
+                  {:+, [line: 1], [{:foo, [line: 1], nil}]},
+                  {{:bar, [line: 1], nil}, {:bat, [line: 1], nil}},
+                  {:..., [line: 1], [{:baz, [line: 1], nil}]}
+                ]}
+    end
+
+    test "ambiguous ops" do
+      assert parse!("f -var") ==
+               {:f, [ambiguous_op: nil, line: 1], [{:-, [line: 1], [{:var, [line: 1], nil}]}]}
+
+      assert parse!("f -(var)") ==
+               {:f, [ambiguous_op: nil, line: 1], [{:-, [line: 1], [{:var, [line: 1], nil}]}]}
+
+      assert parse!("f +-var") ==
+               {:f, [{:ambiguous_op, nil}, {:line, 1}],
+                [{:+, [line: 1], [{:-, [line: 1], [{:var, [line: 1], nil}]}]}]}
+
+      assert parse!("f - var") ==
+               {:-, [line: 1], [{:f, [line: 1], nil}, {:var, [line: 1], nil}]}
+
+      assert parse!("f --var") ==
+               {:--, [line: 1], [{:f, [line: 1], nil}, {:var, [line: 1], nil}]}
+
+      assert parse!("(f ->var)") ==
+               [{:->, [line: 1], [[{:f, [line: 1], nil}], {:var, [line: 1], nil}]}]
+    end
+
     test "ambiguous ops in keywords" do
       assert parse!("f(+: :ok)") == {:f, [line: 1], [[+: :ok]]}
       assert parse!("f +: :ok") == {:f, [line: 1], [[+: :ok]]}
@@ -29,13 +69,13 @@ defmodule Kernel.ParserTest do
 
   describe "ternary ops" do
     test "root" do
-      assert parse!("1..2//3") == {:"..//", [line: 1], [1, 2, 3]}
-      assert parse!("(1..2)//3") == {:"..//", [line: 1], [1, 2, 3]}
+      assert parse!("1..2//3") == {:..//, [line: 1], [1, 2, 3]}
+      assert parse!("(1..2)//3") == {:..//, [line: 1], [1, 2, 3]}
     end
 
     test "with do-blocks" do
       assert parse!("foo do end..bar do end//baz do end") == {
-               :"..//",
+               :..//,
                [line: 1],
                [
                  {:foo, [line: 1], [[do: {:__block__, [], []}]]},
@@ -47,7 +87,7 @@ defmodule Kernel.ParserTest do
 
     test "with no parens" do
       assert parse!("1..foo do end//bar bat") == {
-               :"..//",
+               :..//,
                [line: 1],
                [
                  1,
@@ -89,6 +129,49 @@ defmodule Kernel.ParserTest do
       # that are Common-script and non-ASCII
       # assert Code.eval_string("_ℕ𝕩 = 1") == {1, [{:"_ℕ𝕩", 1}]}
     end
+
+    test "handles graphemes inside quoted identifiers" do
+      string_to_quoted =
+        fn code ->
+          Code.string_to_quoted!(code,
+            token_metadata: true,
+            literal_encoder: &{:ok, {:__block__, &2, [&1]}},
+            emit_warnings: false
+          )
+        end
+
+      assert {
+               {:., _, [{:foo, _, nil}, :"➡️"]},
+               [no_parens: true, delimiter: ~S["], line: 1],
+               []
+             } = string_to_quoted.(~S|foo."➡️"|)
+
+      assert {
+               {:., _, [{:foo, _, nil}, :"➡️"]},
+               [no_parens: true, delimiter: ~S['], line: 1],
+               []
+             } = string_to_quoted.(~S|foo.'➡️'|)
+
+      assert {:__block__, [delimiter: ~S["], line: 1], [:"➡️"]} = string_to_quoted.(~S|:"➡️"|)
+
+      assert {:__block__, [delimiter: ~S['], line: 1], [:"➡️"]} = string_to_quoted.(~S|:'➡️'|)
+
+      assert {:__block__, [closing: [line: 1], line: 1],
+              [
+                [
+                  {{:__block__, [delimiter: ~S["], format: :keyword, line: 1], [:"➡️"]},
+                   {:x, [line: 1], nil}}
+                ]
+              ]} = string_to_quoted.(~S|["➡️": x]|)
+
+      assert {:__block__, [closing: [line: 1], line: 1],
+              [
+                [
+                  {{:__block__, [delimiter: ~S['], format: :keyword, line: 1], [:"➡️"]},
+                   {:x, [line: 1], nil}}
+                ]
+              ]} = string_to_quoted.(~S|['➡️': x]|)
+    end
   end
 
   describe "strings/sigils" do
@@ -128,13 +211,26 @@ defmodule Kernel.ParserTest do
       meta = [delimiter: "\"\"\"", line: 1]
       args = {:sigil_MAT, meta, [{:<<>>, [indentation: 0, line: 1], ["1,2,3\n"]}, []]}
       assert string_to_quoted.("~MAT\"\"\"\n1,2,3\n\"\"\"") == args
+
+      args = {:sigil_FOO1, meta, [{:<<>>, [indentation: 0, line: 1], ["1,2,3\n"]}, []]}
+      assert string_to_quoted.("~FOO1\"\"\"\n1,2,3\n\"\"\"") == args
+
+      args = {:sigil_BAR321, meta, [{:<<>>, [indentation: 0, line: 1], ["1,2,3\n"]}, []]}
+      assert string_to_quoted.("~BAR321\"\"\"\n1,2,3\n\"\"\"") == args
+
+      args = {:sigil_I18N, meta, [{:<<>>, [indentation: 0, line: 1], ["1,2,3\n"]}, []]}
+      assert string_to_quoted.("~I18N\"\"\"\n1,2,3\n\"\"\"") == args
     end
 
     test "invalid multi-letter sigils" do
       msg =
-        ~r/invalid sigil name, it should be either a one-letter lowercase letter or a sequence of uppercase letters only/
+        ~r/invalid sigil name, it should be either a one-letter lowercase letter or an uppercase letter optionally followed by uppercase letters and digits/
 
       assert_syntax_error(["nofile:1:1:", msg], "~Regex/foo/")
+
+      assert_syntax_error(["nofile:1:1:", msg], "~FOo1{bar]")
+
+      assert_syntax_error(["nofile:1:1:", msg], "~foo1{bar]")
     end
 
     test "sigil newlines" do
@@ -291,6 +387,16 @@ defmodule Kernel.ParserTest do
                 {[line: 1, column: 1], "atom length must be less than system limit: ", atom}}
     end
 
+    test "avoids crashes on invalid AST" do
+      encoder = fn atom, _meta -> {:ok, {:atom, [], [atom]}} end
+
+      assert {:error, {_, "missing terminator: )", ""}} =
+               Code.string_to_quoted("Module(", static_atoms_encoder: encoder)
+
+      assert {:error, {_, "syntax error before: ", "'('"}} =
+               Code.string_to_quoted("Module()", static_atoms_encoder: encoder)
+    end
+
     test "may return errors" do
       encoder = fn _atom, _meta ->
         {:error, "Invalid atom name"}
@@ -332,13 +438,21 @@ defmodule Kernel.ParserTest do
       nfc_abba = [225, 98, 98, 224]
       nfd_abba = [97, 769, 98, 98, 97, 768]
       context = [line: 1, column: 8]
-      expr = "'ábbà' = 1"
+      expr = "\"ábbà\" = 1"
 
       assert string_to_quoted.(String.normalize(expr, :nfc)) ==
-               {:ok, {:=, context, [nfc_abba, 1]}}
+               {:ok, {:=, context, [List.to_string(nfc_abba), 1]}}
 
       assert string_to_quoted.(String.normalize(expr, :nfd)) ==
-               {:ok, {:=, context, [nfd_abba, 1]}}
+               {:ok, {:=, context, [List.to_string(nfd_abba), 1]}}
+    end
+
+    test "handles maps and structs" do
+      assert Code.string_to_quoted("%{}", columns: true) ==
+               {:ok, {:%{}, [line: 1, column: 1], []}}
+
+      assert Code.string_to_quoted("%:atom{}", columns: true) ==
+               {:ok, {:%, [line: 1, column: 1], [:atom, {:%{}, [line: 1, column: 7], []}]}}
     end
   end
 
@@ -383,11 +497,142 @@ defmodule Kernel.ParserTest do
            line: 4,
            column: 1
          ], []},
-        {:five, [closing: [line: 7, column: 6], line: 7, column: 1], []}
+        {:five,
+         [
+           end_of_expression: [newlines: 1, line: 7, column: 7],
+           closing: [line: 7, column: 6],
+           line: 7,
+           column: 1
+         ], []}
       ]
 
       assert Code.string_to_quoted!(file, token_metadata: true, columns: true) ==
                {:__block__, [], args}
+    end
+
+    test "adds end_of_expression to the right hand side of ->" do
+      file = """
+      case true do
+        :foo -> bar(); two()
+        :baz -> bat()
+      end
+      """
+
+      assert Code.string_to_quoted!(file, token_metadata: true) ==
+               {:case,
+                [
+                  end_of_expression: [newlines: 1, line: 4],
+                  do: [line: 1],
+                  end: [line: 4],
+                  line: 1
+                ],
+                [
+                  true,
+                  [
+                    do: [
+                      {:->, [line: 2],
+                       [
+                         [:foo],
+                         {:__block__, [],
+                          [
+                            {:bar,
+                             [
+                               end_of_expression: [newlines: 0, line: 2],
+                               closing: [line: 2],
+                               line: 2
+                             ], []},
+                            {:two,
+                             [
+                               end_of_expression: [newlines: 1, line: 2],
+                               closing: [line: 2],
+                               line: 2
+                             ], []}
+                          ]}
+                       ]},
+                      {:->, [line: 3],
+                       [
+                         [:baz],
+                         {:bat,
+                          [
+                            end_of_expression: [newlines: 1, line: 3],
+                            closing: [line: 3],
+                            line: 3
+                          ], []}
+                       ]}
+                    ]
+                  ]
+                ]}
+    end
+
+    test "end of expression with literal" do
+      file = """
+      a do
+        d ->
+          (
+            b -> c
+          )
+      end
+      """
+
+      assert Code.string_to_quoted!(file,
+               token_metadata: true,
+               literal_encoder: &{:ok, {:__block__, &2, [&1]}}
+             ) ==
+               {:a,
+                [
+                  end_of_expression: [newlines: 1, line: 6],
+                  do: [line: 1],
+                  end: [line: 6],
+                  line: 1
+                ],
+                [
+                  [
+                    {{:__block__, [line: 1], [:do]},
+                     [
+                       {:->, [newlines: 1, line: 2],
+                        [
+                          [{:d, [line: 2], nil}],
+                          {:__block__,
+                           [
+                             end_of_expression: [newlines: 1, line: 5],
+                             newlines: 1,
+                             closing: [line: 5],
+                             line: 3
+                           ],
+                           [
+                             [
+                               {:->, [line: 4],
+                                [
+                                  [{:b, [line: 4], nil}],
+                                  {:c, [end_of_expression: [newlines: 1, line: 4], line: 4], nil}
+                                ]}
+                             ]
+                           ]}
+                        ]}
+                     ]}
+                  ]
+                ]}
+    end
+
+    test "does not add end of expression to ->" do
+      file = """
+      case true do
+        :foo -> :bar
+        :baz -> :bat
+      end\
+      """
+
+      assert Code.string_to_quoted!(file, token_metadata: true) ==
+               {:case, [do: [line: 1], end: [line: 4], line: 1],
+                [
+                  true,
+                  [
+                    do: [
+                      {:->, [line: 2], [[:foo], :bar]},
+                      {:->, [line: 3], [[:baz], :bat]}
+                    ]
+                  ]
+                ]}
     end
 
     test "adds pairing information" do
@@ -404,6 +649,143 @@ defmodule Kernel.ParserTest do
       assert string_to_quoted.("foo(\n) do\nend") ==
                {:foo, [do: [line: 2], end: [line: 3], newlines: 1, closing: [line: 2], line: 1],
                 [[do: {:__block__, [], []}]]}
+
+      assert string_to_quoted.("foo(\n)(\n)") ==
+               {{:foo, [newlines: 1, closing: [line: 2], line: 1], []},
+                [newlines: 1, closing: [line: 3], line: 1], []}
+    end
+
+    test "adds opening and closing information for single-expression block" do
+      file = "1 + (2 + 3)"
+
+      assert Code.string_to_quoted!(file, token_metadata: true, columns: true) ==
+               {:+, [line: 1, column: 3],
+                [
+                  1,
+                  {:+,
+                   [
+                     parens: [line: 1, column: 5, closing: [line: 1, column: 11]],
+                     line: 1,
+                     column: 8
+                   ], [2, 3]}
+                ]}
+
+      file = "1 + ((2 + 3))"
+
+      assert Code.string_to_quoted!(file, token_metadata: true, columns: true) ==
+               {:+, [line: 1, column: 3],
+                [
+                  1,
+                  {:+,
+                   [
+                     parens: [line: 1, column: 5, closing: [line: 1, column: 13]],
+                     parens: [line: 1, column: 6, closing: [line: 1, column: 12]],
+                     line: 1,
+                     column: 9
+                   ], [2, 3]}
+                ]}
+    end
+
+    test "adds opening and closing information for empty block" do
+      string_to_quoted =
+        &Code.string_to_quoted!(&1, token_metadata: true, columns: true, emit_warnings: false)
+
+      file = "()"
+
+      assert string_to_quoted.(file) ==
+               {:__block__, [parens: [line: 1, column: 1, closing: [line: 1, column: 2]]], []}
+
+      file = "(())"
+
+      assert string_to_quoted.(file) ==
+               {:__block__,
+                [
+                  parens: [line: 1, column: 1, closing: [line: 1, column: 4]],
+                  parens: [line: 1, column: 2, closing: [line: 1, column: 3]]
+                ], []}
+
+      file = """
+      (
+        # Foo
+        (
+          # Bar
+        )
+      )
+      """
+
+      assert string_to_quoted.(file) ==
+               {:__block__,
+                [
+                  end_of_expression: [newlines: 1, line: 6, column: 2],
+                  parens: [line: 1, column: 1, closing: [line: 6, column: 1]],
+                  end_of_expression: [newlines: 1, line: 5, column: 4],
+                  parens: [line: 3, column: 3, closing: [line: 5, column: 3]]
+                ], []}
+    end
+
+    test "adds opening and closing information for stab arguments" do
+      file = "fn () -> x end "
+
+      assert Code.string_to_quoted!(file, token_metadata: true, columns: true) ==
+               {:fn, [closing: [line: 1, column: 12], line: 1, column: 1],
+                [
+                  {:->,
+                   [
+                     parens: [line: 1, column: 4, closing: [line: 1, column: 5]],
+                     line: 1,
+                     column: 7
+                   ], [[], {:x, [line: 1, column: 10], nil}]}
+                ]}
+
+      file = "fn (x, y) -> x end "
+
+      assert Code.string_to_quoted!(file, token_metadata: true, columns: true) ==
+               {
+                 :fn,
+                 [{:closing, [line: 1, column: 16]}, {:line, 1}, {:column, 1}],
+                 [
+                   {:->,
+                    [
+                      parens: [line: 1, column: 4, closing: [line: 1, column: 9]],
+                      line: 1,
+                      column: 11
+                    ],
+                    [
+                      [{:x, [line: 1, column: 5], nil}, {:y, [line: 1, column: 8], nil}],
+                      {:x, [line: 1, column: 14], nil}
+                    ]}
+                 ]
+               }
+
+      file = "if true do (x, y) -> x end"
+
+      assert Code.string_to_quoted!(file, token_metadata: true, columns: true) ==
+               {
+                 :if,
+                 [
+                   {:do, [line: 1, column: 9]},
+                   {:end, [line: 1, column: 24]},
+                   {:line, 1},
+                   {:column, 1}
+                 ],
+                 [
+                   true,
+                   [
+                     do: [
+                       {:->,
+                        [
+                          parens: [line: 1, column: 12, closing: [line: 1, column: 17]],
+                          line: 1,
+                          column: 19
+                        ],
+                        [
+                          [{:x, [line: 1, column: 13], nil}, {:y, [line: 1, column: 16], nil}],
+                          {:x, [line: 1, column: 22], nil}
+                        ]}
+                     ]
+                   ]
+                 ]
+               }
     end
 
     test "with :literal_encoder" do
@@ -411,7 +793,6 @@ defmodule Kernel.ParserTest do
       string_to_quoted = &Code.string_to_quoted!(&1, opts)
 
       assert string_to_quoted.(~s("one")) == {:__block__, [delimiter: "\"", line: 1], ["one"]}
-      assert string_to_quoted.("'one'") == {:__block__, [delimiter: "'", line: 1], [~c"one"]}
       assert string_to_quoted.("?é") == {:__block__, [token: "?é", line: 1], [233]}
       assert string_to_quoted.("0b10") == {:__block__, [token: "0b10", line: 1], [2]}
       assert string_to_quoted.("12") == {:__block__, [token: "12", line: 1], [12]}
@@ -420,6 +801,9 @@ defmodule Kernel.ParserTest do
       assert string_to_quoted.("12.3") == {:__block__, [token: "12.3", line: 1], [12.3]}
       assert string_to_quoted.("nil") == {:__block__, [line: 1], [nil]}
       assert string_to_quoted.(":one") == {:__block__, [line: 1], [:one]}
+
+      assert string_to_quoted.("true") == {:__block__, [line: 1], [true]}
+      assert string_to_quoted.(":true") == {:__block__, [format: :atom, line: 1], [true]}
 
       assert string_to_quoted.("[one: :two]") == {
                :__block__,
@@ -439,18 +823,25 @@ defmodule Kernel.ParserTest do
       assert string_to_quoted.(~s("""\nhello\n""")) ==
                {:__block__, [delimiter: ~s["""], indentation: 0, line: 1], ["hello\n"]}
 
-      assert string_to_quoted.("'''\nhello\n'''") ==
-               {:__block__, [delimiter: ~s['''], indentation: 0, line: 1], [~c"hello\n"]}
-
       assert string_to_quoted.(~s[fn (1) -> "hello" end]) ==
                {:fn, [closing: [line: 1], line: 1],
                 [
                   {:->, [line: 1],
                    [
-                     [{:__block__, [token: "1", line: 1, closing: [line: 1], line: 1], [1]}],
+                     [
+                       {:__block__,
+                        [
+                          parens: [line: 1, closing: [line: 1]],
+                          token: "1",
+                          line: 1
+                        ], [1]}
+                     ],
                      {:__block__, [delimiter: "\"", line: 1], ["hello"]}
                    ]}
                 ]}
+
+      assert string_to_quoted.("(1)") ==
+               {:__block__, [parens: [line: 1, closing: [line: 1]], token: "1", line: 1], [1]}
     end
 
     test "adds identifier_location for qualified identifiers" do
@@ -489,82 +880,37 @@ defmodule Kernel.ParserTest do
       assert string_to_quoted.("foo.\nBar\n.\nBaz") ==
                {:__aliases__, [last: [line: 4], line: 1], [{:foo, [line: 1], nil}, :Bar, :Baz]}
     end
-  end
 
-  describe "token missing errors" do
-    test "missing paren" do
-      assert_token_missing(
-        ["nofile:1:9:", "missing terminator: ) (for \"(\" starting at line 1)"],
-        ~c"case 1 ("
-      )
-    end
+    test "adds metadata about assoc operator position in maps" do
+      opts = [
+        literal_encoder: &{:ok, {:__block__, &2, [&1]}},
+        token_metadata: true,
+        columns: true
+      ]
 
-    test "dot terminator" do
-      assert_token_missing(
-        ["nofile:1:9:", "missing terminator: \" (for function name starting at line 1)"],
-        ~c"foo.\"bar"
-      )
-    end
+      string_to_quoted = &Code.string_to_quoted!(&1, opts)
 
-    test "sigil terminator" do
-      assert_token_missing(
-        ["nofile:3:1:", "missing terminator: \" (for sigil ~r\" starting at line 1)"],
-        ~c"~r\"foo\n\n"
-      )
+      file = "%{:key => 1, {} => {}}"
 
-      assert_token_missing(
-        ["nofile:3:1:", "missing terminator: } (for sigil ~r{ starting at line 1)"],
-        ~c"~r{foo\n\n"
-      )
-    end
-
-    test "string terminator" do
-      assert_token_missing(
-        ["nofile:1:5:", "missing terminator: \" (for string starting at line 1)"],
-        ~c"\"bar"
-      )
-    end
-
-    test "heredoc with incomplete interpolation" do
-      assert_token_missing(
-        [
-          "nofile:2:1:",
-          ~s/missing interpolation terminator: "}" (for heredoc starting at line 1)/
-        ],
-        ~c"\"\"\"\n\#{\n"
-      )
-    end
-
-    test "heredoc terminator" do
-      assert_token_missing(
-        ["nofile:2:4:", ~s/missing terminator: """ (for heredoc starting at line 1)/],
-        ~c"\"\"\"\nbar"
-      )
-
-      assert_token_missing(
-        ["nofile:2:7:", ~s/missing terminator: """ (for heredoc starting at line 1)/],
-        ~c"\"\"\"\nbar\"\"\""
-      )
-    end
-
-    test "missing end" do
-      assert_token_missing(
-        ["nofile:1:9:", "missing terminator: end \(for \"do\" starting at line 1\)"],
-        ~c"foo do 1"
-      )
-
-      assert_token_missing(
-        [~s/HINT: it looks like the "do" on line 2 does not have a matching "end"/],
-        ~c"""
-        defmodule MyApp do
-          def one do
-          # end
-
-          def two do
-          end
-        end
-        """
-      )
+      assert string_to_quoted.(file) ==
+               {
+                 :%{},
+                 [closing: [line: 1, column: 22], line: 1, column: 1],
+                 [
+                   {{:__block__, [assoc: [line: 1, column: 8], line: 1, column: 3], [:key]},
+                    {:__block__, [token: "1", line: 1, column: 11], [1]}},
+                   {
+                     {:{},
+                      [
+                        assoc: [line: 1, column: 17],
+                        closing: [line: 1, column: 15],
+                        line: 1,
+                        column: 14
+                      ], []},
+                     {:{}, [closing: [line: 1, column: 21], line: 1, column: 20], []}
+                   }
+                 ]
+               }
     end
   end
 
@@ -819,7 +1165,8 @@ defmodule Kernel.ParserTest do
 
       assert_syntax_error(
         [
-          "HINT: the \"end\" on line 2 may not have a matching \"do\" defined before it (based on indentation)"
+          "hint:",
+          "the \"end\" on line 2 may not have a matching \"do\" defined before it (based on indentation)"
         ],
         ~c"""
         defmodule MyApp do
@@ -831,7 +1178,8 @@ defmodule Kernel.ParserTest do
 
       assert_syntax_error(
         [
-          "HINT: the \"end\" on line 3 may not have a matching \"do\" defined before it (based on indentation)"
+          "hint:",
+          "the \"end\" on line 3 may not have a matching \"do\" defined before it (based on indentation)"
         ],
         ~c"""
         defmodule MyApp do
@@ -846,7 +1194,8 @@ defmodule Kernel.ParserTest do
 
       assert_syntax_error(
         [
-          "HINT: the \"end\" on line 6 may not have a matching \"do\" defined before it (based on indentation)"
+          "hint:",
+          "the \"end\" on line 6 may not have a matching \"do\" defined before it (based on indentation)"
         ],
         ~c"""
         defmodule MyApp do
@@ -876,9 +1225,9 @@ defmodule Kernel.ParserTest do
       msg = &["nofile:1:9:", "syntax error before: sigil ~s starting with content '#{&1}'"]
 
       assert_syntax_error(msg.("bar baz"), ~c"~s(foo) ~s(bar baz)")
-      # assert_syntax_error(msg.(""), ~c"~s(foo) ~s()")
-      # assert_syntax_error(msg.("bar "), ~c"~s(foo) ~s(bar \#{:baz})")
-      # assert_syntax_error(msg.(""), ~c"~s(foo) ~s(\#{:bar} baz)")
+      assert_syntax_error(msg.(""), ~c"~s(foo) ~s()")
+      assert_syntax_error(msg.("bar "), ~c"~s(foo) ~s(bar \#{:baz})")
+      assert_syntax_error(msg.(""), ~c"~s(foo) ~s(\#{:bar} baz)")
     end
 
     test "invalid do" do
@@ -936,8 +1285,7 @@ defmodule Kernel.ParserTest do
     end
 
     test "invalid map/struct" do
-      assert_syntax_error(["nofile:1:5:", "syntax error before: '}'"], ~c"%{:a}")
-      assert_syntax_error(["nofile:1:11:", "syntax error before: '}'"], ~c"%{{:a, :b}}")
+      assert_syntax_error(["nofile:1:15:", "syntax error before: '}'"], ~c"%{foo bar, baz}")
       assert_syntax_error(["nofile:1:8:", "syntax error before: '{'"], ~c"%{a, b}{a: :b}")
     end
 
@@ -1133,17 +1481,17 @@ defmodule Kernel.ParserTest do
 
       assert_syntax_error(
         ["atom length must be less than system limit: "],
-        ~s[:"#{atom}"]
+        ~s{:"#{atom}"}
+      )
+
+      assert_syntax_error(
+        ["atom length must be less than system limit: "],
+        ~s{["#{atom}": 123]}
       )
     end
   end
 
   defp parse!(string), do: Code.string_to_quoted!(string)
-
-  defp assert_token_missing(given_messages, string) do
-    e = assert_raise TokenMissingError, fn -> parse!(string) end
-    assert_exception_msg(e, given_messages)
-  end
 
   defp assert_syntax_error(given_messages, source) do
     e = assert_raise SyntaxError, fn -> parse!(source) end

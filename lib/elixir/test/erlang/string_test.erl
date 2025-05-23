@@ -1,3 +1,7 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 -module(string_test).
 -include("../../src/elixir.hrl").
 -include_lib("eunit/include/eunit.hrl").
@@ -80,49 +84,46 @@ extract_interpolations_with_invalid_expression_inside_interpolation_test() ->
 
 %% Bin strings
 
-empty_bin_string_test() ->
+empty_test() ->
   {<<"">>, _} = eval("\"\"").
 
-simple_bin_string_test() ->
-  {<<"foo">>, _} = eval("\"foo\"").
-
-bin_string_with_double_quotes_test() ->
+string_with_double_quotes_test() ->
   {<<"f\"o\"o">>, _} = eval("\"f\\\"o\\\"o\"").
 
-bin_string_with_newline_test() ->
+string_with_newline_test() ->
   {<<"f\no">>, _} = eval("\"f\no\"").
 
-bin_string_with_slash_test() ->
+string_with_slash_test() ->
   {<<"f\\o">>, _} = eval("\"f\\\\o\"").
 
-bin_string_with_bell_character_test() ->
+string_with_bell_character_test() ->
   {<<"f\ao">>, _} = eval("\"f\ao\"").
 
-bin_string_with_interpolation_test() ->
+string_with_interpolation_test() ->
   {<<"foo">>, _} = eval("\"f#{\"o\"}o\"").
 
-bin_string_with_another_string_inside_string_inside_interpolation_test() ->
+string_with_another_string_inside_string_inside_interpolation_test() ->
   {<<"fbaro">>, _} = eval("\"f#{\"b#{\"a\"}r\"}o\"").
 
-bin_string_with_another_string_with_curly_inside_interpolation_test() ->
+string_with_another_string_with_curly_inside_interpolation_test() ->
   {<<"fb}ro">>, _} = eval("\"f#{\"b}r\"}o\"").
 
-bin_string_with_atom_with_separator_inside_interpolation_test() ->
+string_with_atom_with_separator_inside_interpolation_test() ->
   {<<"f}o">>, _} = eval("\"f#{\"}\"}o\"").
 
-bin_string_with_lower_case_hex_interpolation_test() ->
+string_with_lower_case_hex_interpolation_test() ->
   {<<"jklmno">>, _} = eval("\"\\x6a\\x6b\\x6c\\x6d\\x6e\\x6f\"").
 
-bin_string_with_upper_case_hex_interpolation_test() ->
+string_with_upper_case_hex_interpolation_test() ->
   {<<"jklmno">>, _} = eval("\"\\x6A\\x6B\\x6C\\x6D\\x6E\\x6F\"").
 
-bin_string_without_interpolation_and_escaped_test() ->
+string_without_interpolation_and_escaped_test() ->
   {<<"f#o">>, _} = eval("\"f\\#o\"").
 
-bin_string_with_escaped_interpolation_test() ->
+string_with_escaped_interpolation_test() ->
   {<<"f#{'o}o">>, _} = eval("\"f\\#{'o}o\"").
 
-bin_string_with_the_end_of_line_slash_test() ->
+string_with_the_end_of_line_slash_test() ->
   {<<"fo">>, _} = eval("\"f\\\no\""),
   {<<"fo">>, _} = eval("\"f\\\r\no\"").
 
@@ -133,57 +134,7 @@ invalid_string_interpolation_test() ->
 unterminated_string_interpolation_test() ->
   ?assertError(#{'__struct__' := 'Elixir.TokenMissingError'}, eval("\"foo")).
 
-%% List strings
-
-empty_list_string_test() ->
-  {[], _} = eval("\'\'").
-
-simple_list_string_test() ->
-  {"foo", _} = eval("'foo'").
-
-list_string_with_double_quotes_test() ->
-  {"f'o'o", _} = eval("'f\\'o\\'o'").
-
-list_string_with_newline_test() ->
-  {"f\no", _} = eval("'f\no'").
-
-list_string_with_slash_test() ->
-  {"f\\o", _} = eval("'f\\\\o'").
-
-list_string_with_bell_character_test() ->
-  {"f\ao", _} = eval("'f\ao'").
-
-list_string_with_interpolation_test() ->
-  {"foo", _} = eval("'f#{\"o\"}o'").
-
-list_string_with_another_string_with_curly_inside_interpolation_test() ->
-  {"fb}ro", _} = eval("'f#{\"b}r\"}o'").
-
-list_string_with_atom_with_separator_inside_interpolation_test() ->
-  {"f}o", _} = eval("'f#{\"}\"}o'").
-
-list_string_with_lower_case_hex_interpolation_test() ->
-  {"JKLMNO", _} = eval("'\\x4a\\x4b\\x4c\\x4d\\x4e\\x4f'").
-
-list_string_with_upper_case_hex_interpolation_test() ->
-  {"JKLMNO", _} = eval("'\\x4A\\x4B\\x4C\\x4D\\x4E\\x4F'").
-
-list_string_without_interpolation_and_escaped_test() ->
-  {"f#o", _} = eval("'f\\#o'").
-
-list_string_with_escaped_interpolation_test() ->
-  {"f#{\"o}o", _} = eval("'f\\#{\"o}o'").
-
-list_string_with_the_end_of_line_slash_test() ->
-  {"fo", _} = eval("'f\\\no'"),
-  {"fo", _} = eval("'f\\\r\no'").
-
 char_test() ->
   {99, []} = eval("?1 + ?2"),
   {10, []} = eval("?\\n"),
   {40, []} = eval("?(").
-
-%% Binaries
-
-bitstr_with_int_test() ->
-  {<<"fdo">>, _} = eval("<< \"f\", 50+50, \"o\" >>").

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule OptionParser do
   @moduledoc """
   Functions for parsing command line arguments.
@@ -134,7 +138,7 @@ defmodule OptionParser do
   Switches can be specified with modifiers, which change how
   they behave. The following modifiers are supported:
 
-    * `:keep` - keeps duplicated elements instead of overriding them;
+    * `:keep` - keeps duplicate elements instead of overriding them;
       works with all types except `:count`. Specifying `switch_name: :keep`
       assumes the type of `:switch_name` will be `:string`.
 
@@ -152,44 +156,47 @@ defmodule OptionParser do
   ### Parsing unknown switches
 
   When the `:switches` option is given, `OptionParser` will attempt to parse
-  unknown switches:
+  unknown switches.
+
+  Switches without an argument will be set to `true`:
 
       iex> OptionParser.parse(["--debug"], switches: [key: :string])
       {[debug: true], [], []}
 
   Even though we haven't specified `--debug` in the list of switches, it is part
-  of the returned options. This would also work:
+  of the returned options. The same happens for switches followed by another switch:
+
+      iex> OptionParser.parse(["--debug", "--ok"], switches: [])
+      {[debug: true, ok: true], [], []}
+
+  Switches followed by a value will be assigned the value, as a string:
 
       iex> OptionParser.parse(["--debug", "value"], switches: [key: :string])
       {[debug: "value"], [], []}
 
-  Switches followed by a value will be assigned the value, as a string. Switches
-  without an argument will be set automatically to `true`. Since we cannot assert
-  the type of the switch value, it is preferred to use the `:strict` option that
-  accepts only known switches and always verify their types.
+  Since we cannot assert the type of the switch value, it is preferred to use the
+  `:strict` option that accepts only known switches and always verify their types.
 
   If you do want to parse unknown switches, remember that Elixir converts switches
-  to atoms. Since atoms are not garbage-collected, OptionParser will only parse
-  switches that translate to atoms used by the runtime to avoid leaking atoms.
-  For instance, the code below will discard the `--option-parser-example` switch
-  because the `:option_parser_example` atom is never used anywhere:
+  to atoms. Since atoms are not garbage-collected, to avoid creating new ones,
+  OptionParser by default only parses switches that translate to existing atoms.
+  The code below discards the `--option-parser-example` switch because the
+  `:option_parser_example` atom is never used anywhere:
 
-      OptionParser.parse(["--option-parser-example"], switches: [debug: :boolean])
-      # The :option_parser_example atom is not used anywhere below
+      iex> OptionParser.parse(["--option-parser-example"], switches: [])
+      {[], [], []}
 
-  However, the code below would work as long as `:option_parser_example` atom is
-  used at some point later (or earlier) **in the same module**. For example:
+  If a switch corresponds to an existing Elixir atom, whether from your
+  code, a dependency or from Elixir itself, it will be accepted. However,
+  it is best to not rely on external code, and always define the atoms
+  you want to parse in the same module that calls `OptionParser` itself,
+  as direct arguments to the `:switches` or `:strict` options.
 
-      {opts, _, _} = OptionParser.parse(["--option-parser-example"], switches: [debug: :boolean])
-      # ... then somewhere in the same module you access it ...
-      opts[:option_parser_example]
-
-  In other words, Elixir will only parse options that are used by the runtime,
-  ignoring all others. If you would like to parse all switches, regardless if
-  they exist or not, you can force creation of atoms by passing
-  `allow_nonexistent_atoms: true` as option. Use this option with care. It is
-  only useful when you are building command-line applications that receive
-  dynamically-named arguments and must be avoided in long-running systems.
+  If you would like to parse all switches, regardless if they exist or not,
+  you can force creation of atoms by passing `allow_nonexistent_atoms: true`
+  as option. Use this option with care. It is only useful when you are building
+  command-line applications that receive dynamically-named arguments and must
+  be avoided in long-running systems.
 
   ## Aliases
 
@@ -862,7 +869,13 @@ defmodule OptionParser do
 
   defp format_error({option, nil}, opts, types) do
     if type = get_type(option, opts, types) do
-      "#{option} : Missing argument of type #{type}"
+      if String.contains?(option, "_") do
+        msg = "#{option} : Unknown option"
+
+        msg <> ". Did you mean #{String.replace(option, "_", "-")}?"
+      else
+        "#{option} : Missing argument of type #{type}"
+      end
     else
       msg = "#{option} : Unknown option"
 

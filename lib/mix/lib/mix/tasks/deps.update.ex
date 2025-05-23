@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Tasks.Deps.Update do
   use Mix.Task
 
@@ -36,7 +40,7 @@ defmodule Mix.Tasks.Deps.Update do
 
   @impl true
   def run(args) do
-    unless "--no-archives-check" in args do
+    if "--no-archives-check" not in args do
       Mix.Task.run("archive.check", args)
     end
 
@@ -45,6 +49,12 @@ defmodule Mix.Tasks.Deps.Update do
     {opts, rest, _} =
       OptionParser.parse(args, switches: [all: :boolean, only: :string, target: :string])
 
+    Mix.Project.with_deps_lock(fn ->
+      do_run(opts, rest)
+    end)
+  end
+
+  defp do_run(opts, rest) do
     fetch_opts =
       for {switch, key} <- [only: :env, target: :target],
           value = opts[switch],

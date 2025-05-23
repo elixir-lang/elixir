@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Version do
   @moduledoc ~S"""
   Functions for parsing and matching versions against requirements.
@@ -686,7 +690,7 @@ end
 
 defimpl Inspect, for: Version.Requirement do
   def inspect(%Version.Requirement{source: source}, opts) do
-    colorized = Inspect.Algebra.color("\"" <> source <> "\"", :string, opts)
+    colorized = Inspect.Algebra.color_doc("\"" <> source <> "\"", :string, opts)
 
     Inspect.Algebra.concat(["Version.parse_requirement!(", colorized, ")"])
   end

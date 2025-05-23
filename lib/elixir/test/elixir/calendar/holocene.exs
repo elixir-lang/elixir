@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Calendar.Holocene do
   # This calendar is used to test conversions between calendars.
   # It implements the Holocene calendar, which is based on the
@@ -154,4 +158,20 @@ defmodule Calendar.Holocene do
 
   @impl true
   defdelegate iso_days_to_end_of_day(iso_days), to: Calendar.ISO
+
+  # The Holocene calendar extends most year and day count guards implemented in the ISO calendars.
+  @impl true
+  def shift_date(_year, _month, _day, _duration) do
+    raise "shift_date/4 not implemented"
+  end
+
+  @impl true
+  def shift_naive_datetime(_year, _month, _day, _hour, _minute, _second, _microsecond, _duration) do
+    raise "shift_naive_datetime/8 not implemented"
+  end
+
+  @impl true
+  def shift_time(_hour, _minute, _second, _microsecond, _duration) do
+    raise "shift_time/5 not implemented"
+  end
 end

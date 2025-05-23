@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.FormatTest do
@@ -183,6 +187,9 @@ defmodule Mix.Tasks.FormatTest do
 
   test "uses inputs and configuration from .formatter.exs", context do
     in_tmp(context.test, fn ->
+      # We need a project in order to enable caching
+      Mix.Project.push(__MODULE__.FormatWithDepsApp)
+
       File.write!(".formatter.exs", """
       [
         inputs: ["a.ex"],
@@ -198,6 +205,17 @@ defmodule Mix.Tasks.FormatTest do
 
       assert File.read!("a.ex") == """
              foo bar(baz)
+             """
+
+      File.write!(".formatter.exs", """
+      [inputs: ["a.ex"]]
+      """)
+
+      ensure_touched(".formatter.exs", "_build/dev/lib/format_with_deps/.mix/format_timestamp")
+      Mix.Tasks.Format.run([])
+
+      assert File.read!("a.ex") == """
+             foo(bar(baz))
              """
     end)
   end
@@ -496,6 +514,31 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
+  test "customizes plugin loading", context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["a.ex"],
+        plugins: [UnknownPlugin],
+      ]
+      """)
+
+      File.write!("a.ex", """
+      foo bar baz
+      """)
+
+      assert_raise Mix.NoProjectError, fn ->
+        Mix.Tasks.Format.formatter_for_file("a.ex")
+      end
+
+      assert_raise Mix.Error, "Formatter plugin UnknownPlugin cannot be found", fn ->
+        Mix.Tasks.Format.formatter_for_file("a.ex", plugin_loader: fn plugins -> plugins end)
+      end
+
+      assert Mix.Tasks.Format.formatter_for_file("a.ex", plugin_loader: fn _plugins -> [] end)
+    end)
+  end
+
   test "uses extension plugins with --stdin-filename", context do
     in_tmp(context.test, fn ->
       File.write!(".formatter.exs", """
@@ -517,6 +560,18 @@ defmodule Mix.Tasks.FormatTest do
                bar
                baz
                """)
+    end)
+  end
+
+  test "respects the --migrate flag", context do
+    in_tmp(context.test, fn ->
+      File.write!("a.ex", "unless foo, do: 'bar'\n")
+
+      Mix.Tasks.Format.run(["a.ex"])
+      assert File.read!("a.ex") == "unless foo, do: 'bar'\n"
+
+      Mix.Tasks.Format.run(["a.ex", "--migrate"])
+      assert File.read!("a.ex") == "if !foo, do: ~c\"bar\"\n"
     end)
   end
 
@@ -557,7 +612,7 @@ defmodule Mix.Tasks.FormatTest do
 
       root = File.cwd!()
 
-      {formatter_function, _options} =
+      {formatter_function, options} =
         File.cd!("lib", fn ->
           Mix.Tasks.Format.formatter_for_file("lib/a.ex", root: root)
         end)
@@ -567,16 +622,25 @@ defmodule Mix.Tasks.FormatTest do
              """) == """
              foo bar(baz)
              """
+
+      assert options[:root] == root
     end)
   end
 
   test "reads exported configuration from subdirectories", context do
     in_tmp(context.test, fn ->
       File.write!(".formatter.exs", """
-      [subdirectories: ["lib"]]
+      [subdirectories: ["li", "lib"]]
       """)
 
+      # We also create a directory called li to ensure files
+      # from lib won't accidentally match on li.
+      File.mkdir_p!("li")
       File.mkdir_p!("lib")
+
+      File.write!("li/.formatter.exs", """
+      [inputs: "**/*", locals_without_parens: [other_fun: 2]]
+      """)
 
       File.write!("lib/.formatter.exs", """
       [inputs: "a.ex", locals_without_parens: [my_fun: 2]]
@@ -584,12 +648,14 @@ defmodule Mix.Tasks.FormatTest do
 
       # Should hit the formatter
       {formatter, formatter_opts} = Mix.Tasks.Format.formatter_for_file("lib/extra/a.ex")
-      assert Keyword.get(formatter_opts, :locals_without_parens) == [my_fun: 2]
+      assert formatter_opts[:root] == Path.expand("lib")
+      assert formatter_opts[:locals_without_parens] == [my_fun: 2]
       assert formatter.("my_fun 1, 2") == "my_fun 1, 2\n"
 
       # Another directory should not hit the formatter
       {formatter, formatter_opts} = Mix.Tasks.Format.formatter_for_file("test/a.ex")
-      assert Keyword.get(formatter_opts, :locals_without_parens) == []
+      assert formatter_opts[:root] == Path.expand(".")
+      assert formatter_opts[:locals_without_parens] == []
       assert formatter.("my_fun 1, 2") == "my_fun(1, 2)\n"
 
       File.write!("lib/a.ex", """
@@ -660,7 +726,14 @@ defmodule Mix.Tasks.FormatTest do
       File.touch!(manifest_path, {{2010, 1, 1}, {0, 0, 0}})
 
       {_, formatter_opts} = Mix.Tasks.Format.formatter_for_file("a.ex")
-      assert [my_fun: 2] = Keyword.get(formatter_opts, :locals_without_parens)
+      assert [my_fun: 2] = formatter_opts[:locals_without_parens]
+
+      # Check the deps_path option is respected
+      assert_raise Mix.Error, ~r"Unknown dependency :my_dep given to :import_deps", fn ->
+        # Let's check that the manifest gets updated if it's stale.
+        File.touch!(manifest_path, {{2010, 1, 1}, {0, 0, 0}})
+        Mix.Tasks.Format.formatter_for_file("a.ex", deps_paths: %{})
+      end
 
       Mix.Tasks.Format.run(["a.ex"])
       assert File.stat!(manifest_path).mtime > {{2010, 1, 1}, {0, 0, 0}}
@@ -670,6 +743,7 @@ defmodule Mix.Tasks.FormatTest do
   test "reads exported configuration from dependencies and subdirectories", context do
     in_tmp(context.test, fn ->
       Mix.Project.push(__MODULE__.FormatWithDepsApp)
+      format_timestamp = "_build/dev/lib/format_with_deps/.mix/format_timestamp"
 
       File.mkdir_p!("deps/my_dep/")
 
@@ -717,6 +791,8 @@ defmodule Mix.Tasks.FormatTest do
       """)
 
       File.touch!("lib/sub/.formatter.exs", {{2038, 1, 1}, {0, 0, 0}})
+      File.touch!(format_timestamp, {{2010, 1, 1}, {0, 0, 0}})
+
       Mix.Tasks.Format.run([])
 
       assert File.read!("lib/sub/a.ex") == """
@@ -737,10 +813,13 @@ defmodule Mix.Tasks.FormatTest do
       """)
 
       File.touch!("lib/extra/.formatter.exs", {{2038, 1, 1}, {0, 0, 0}})
+      File.touch!(format_timestamp, {{2010, 1, 1}, {0, 0, 0}})
+
       Mix.Tasks.Format.run([])
 
       {_, formatter_opts} = Mix.Tasks.Format.formatter_for_file("lib/extra/a.ex")
-      assert [other_fun: 1] = Keyword.get(formatter_opts, :locals_without_parens)
+      assert formatter_opts[:root] == Path.expand("lib/extra")
+      assert formatter_opts[:locals_without_parens] == [other_fun: 1]
 
       assert File.read!("lib/extra/a.ex") == """
              my_fun(:foo, :bar)

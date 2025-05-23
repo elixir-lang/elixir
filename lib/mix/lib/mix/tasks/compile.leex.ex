@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Tasks.Compile.Leex do
   use Mix.Task.Compiler
   alias Mix.Compilers.Erlang
@@ -51,7 +55,7 @@ defmodule Mix.Tasks.Compile.Leex do
 
     leex_options = project[:leex_options] || []
 
-    unless is_list(leex_options) do
+    if not is_list(leex_options) do
       Mix.raise(":leex_options should be a list of options, got: #{inspect(leex_options)}")
     end
 
@@ -65,9 +69,9 @@ defmodule Mix.Tasks.Compile.Leex do
 
   defp preload(project) do
     # TODO: Remove me in Elixir v2.0
-    unless :leex in List.wrap(project[:compilers]) do
-      IO.warn(
-        "in order to compile .xrl files, you must add \"compilers: [:leex] ++ Mix.compilers()\" to the \"def project\" section of your mix.exs"
+    if :leex not in List.wrap(project[:compilers]) do
+      Mix.shell().error(
+        "warning: in order to compile .xrl files, you must add \"compilers: [:leex] ++ Mix.compilers()\" to the \"def project\" section of #{project[:app]}'s mix.exs"
       )
     end
 

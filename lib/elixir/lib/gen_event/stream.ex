@@ -1,5 +1,10 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule GenEvent.Stream do
   @moduledoc false
+  @moduledoc deprecated: "This functionality is no longer supported"
   defstruct manager: nil, timeout: :infinity
 
   @type t :: %__MODULE__{manager: GenEvent.manager(), timeout: timeout}
@@ -46,6 +51,9 @@ defmodule GenEvent.Stream do
 end
 
 defimpl Enumerable, for: GenEvent.Stream do
+  @moduledoc false
+  @moduledoc deprecated: "This functionality is no longer supported"
+
   def reduce(stream, acc, fun) do
     start_fun = fn -> start(stream) end
     next_fun = &next(stream, &1)

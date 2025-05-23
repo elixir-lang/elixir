@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Tasks.Profile.Cprof do
   use Mix.Task
 
@@ -6,7 +10,7 @@ defmodule Mix.Tasks.Profile.Cprof do
   @moduledoc """
   Profiles the given file or expression using Erlang's `cprof` tool.
 
-  `cprof` can be useful when you want to discover the bottlenecks related
+  [`:cprof`](`:cprof`) can be useful when you want to discover the bottlenecks related
   to function calls.
 
   Before running the code, it invokes the `app.start` task which compiles

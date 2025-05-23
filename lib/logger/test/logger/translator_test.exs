@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Logger.TranslatorTest do
   use Logger.Case
 
@@ -18,6 +22,11 @@ defmodule Logger.TranslatorTest do
 
     def handle_call(:error, _, _) do
       raise "oops"
+    end
+
+    def handle_call({:execute, fun}, _, state) do
+      fun.()
+      {:reply, :ok, state}
     end
 
     def handle_call(:error_on_down, {pid, _}, _) do
@@ -42,6 +51,11 @@ defmodule Logger.TranslatorTest do
       raise "oops"
     end
 
+    def handle_call({:execute, fun}, state) do
+      fun.()
+      {:ok, :ok, state}
+    end
+
     def handle_info(_msg, state) do
       {:ok, state}
     end
@@ -52,6 +66,63 @@ defmodule Logger.TranslatorTest do
 
     def terminate(_reason, _state) do
       :ok
+    end
+  end
+
+  defmodule MyGenStatem do
+    @behaviour :gen_statem
+
+    @impl true
+    def callback_mode, do: :state_functions
+
+    @impl true
+    def init(args) do
+      {:ok, :started, args}
+    end
+
+    def started(:cast, :error, _) do
+      raise "oops"
+    end
+
+    def started({:call, _}, :exit, _) do
+      exit(:oops)
+    end
+
+    def started({:call, _}, :error, _) do
+      raise "oops"
+    end
+
+    def started({:call, from}, {:execute, fun}, data) do
+      fun.()
+      {:keep_state_and_data, {:reply, from, {:started, data}}}
+    end
+
+    def started({:call, {pid, _}}, :error_on_down, _) do
+      mon = Process.monitor(pid)
+      assert_receive {:DOWN, ^mon, _, _, _}
+      raise "oops"
+    end
+  end
+
+  defmodule MyGenStatemHandleEvent do
+    @behaviour :gen_statem
+
+    @impl true
+    def callback_mode, do: :handle_event_function
+
+    @impl true
+    def init(state) do
+      {:ok, :no_state, state}
+    end
+
+    @impl true
+    def handle_event({:call, _}, :error, :no_state, _data) do
+      raise "oops"
+    end
+
+    @impl :gen_statem
+    def format_status(_opts, [_pdict, _, state]) do
+      state
     end
   end
 
@@ -69,23 +140,27 @@ defmodule Logger.TranslatorTest do
   end
 
   setup_all do
-    sasl_reports? = Application.get_env(:logger, :handle_sasl_reports, false)
-    Application.put_env(:logger, :handle_sasl_reports, true)
+    config = Application.get_all_env(:logger)
 
-    # Shutdown the application
-    Logger.App.stop()
+    config
+    |> Keyword.put(:handle_sasl_reports, true)
+    |> put_logger_config()
 
-    # And start it without warnings
-    Application.put_env(:logger, :level, :error)
-    Application.start(:logger)
-    Application.delete_env(:logger, :level)
-    Logger.configure(level: :debug)
+    on_exit(fn -> restore_logger_config(config) end)
+  end
 
-    on_exit(fn ->
-      Application.put_env(:logger, :handle_sasl_reports, sasl_reports?)
-      Logger.App.stop()
-      Application.start(:logger)
-    end)
+  setup context do
+    test_overrides = Map.get(context, :logger_config, [])
+    existing_config = Application.get_all_env(:logger)
+
+    case Keyword.merge(existing_config, test_overrides) do
+      ^existing_config ->
+        :ok
+
+      new_config ->
+        put_logger_config(new_config)
+        on_exit(fn -> restore_logger_config(existing_config) end)
+    end
   end
 
   setup do
@@ -108,8 +183,8 @@ defmodule Logger.TranslatorTest do
            ** (RuntimeError) oops
            """
 
-    assert_receive {:event, {:string, ["GenServer " <> _ | _]}, gen_server_metadata}
-    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
+    assert_receive {:event, {:report, %{label: {:gen_server, :terminate}}}, gen_server_metadata}
+    assert_receive {:event, {:report, %{label: {:proc_lib, :crash}}}, process_metadata}
 
     assert {%RuntimeError{message: "oops"}, [_ | _]} = gen_server_metadata[:crash_reason]
     assert {%RuntimeError{message: "oops"}, [_ | _]} = process_metadata[:crash_reason]
@@ -125,8 +200,8 @@ defmodule Logger.TranslatorTest do
     {:ok, pid} = GenServer.start(MyGenServer, :ok, name: config.test)
     capture_log(:info, fn -> catch_exit(GenServer.call(pid, :error)) end)
 
-    assert_receive {:event, {:string, ["GenServer " <> _ | _]}, gen_server_metadata}
-    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
+    assert_receive {:event, {:report, %{label: {:gen_server, :terminate}}}, gen_server_metadata}
+    assert_receive {:event, {:report, %{label: {:proc_lib, :crash}}}, process_metadata}
 
     assert gen_server_metadata[:registered_name] == config.test
     assert process_metadata[:registered_name] == config.test
@@ -136,11 +211,25 @@ defmodule Logger.TranslatorTest do
     {:ok, pid} = GenServer.start(MyGenServer, :ok, name: {:global, config.test})
     capture_log(:info, fn -> catch_exit(GenServer.call(pid, :error)) end)
 
-    assert_receive {:event, {:string, ["GenServer " <> _ | _]}, gen_server_metadata}
-    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
+    assert_receive {:event, {:report, %{label: {:gen_server, :terminate}}}, gen_server_metadata}
+    assert_receive {:event, {:report, %{label: {:proc_lib, :crash}}}, process_metadata}
 
     assert gen_server_metadata[:registered_name] == config.test
     refute Map.has_key?(process_metadata, :registered_name)
+  end
+
+  @tag skip: System.otp_release() < "27"
+  test "translates GenServer crashes with process label" do
+    {:ok, pid} = GenServer.start(MyGenServer, :ok)
+    :ok = GenServer.call(pid, {:execute, fn -> Process.set_label({:any, "term"}) end})
+
+    assert capture_log(:info, fn -> catch_exit(GenServer.call(pid, :error)) end) =~ ~r"""
+           \[error\] GenServer #PID<\d+\.\d+\.\d+> terminating
+           \*\* \(RuntimeError\) oops
+           .*
+           Process Label: {:any, \"term\"}
+           Last message \(from #PID<\d+\.\d+\.\d+>\): :error
+           """s
   end
 
   test "translates GenServer crashes with custom inspect options" do
@@ -171,8 +260,8 @@ defmodule Logger.TranslatorTest do
            .*
            """s
 
-    assert_receive {:event, {:string, [["GenServer " <> _ | _] | _]}, gen_server_metadata}
-    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
+    assert_receive {:event, {:report, %{label: {:gen_server, :terminate}}}, gen_server_metadata}
+    assert_receive {:event, {:report, %{label: {:proc_lib, :crash}}}, process_metadata}
 
     assert {%RuntimeError{message: "oops"}, [_ | _]} = gen_server_metadata[:crash_reason]
     assert {%RuntimeError{message: "oops"}, [_ | _]} = process_metadata[:crash_reason]
@@ -241,8 +330,8 @@ defmodule Logger.TranslatorTest do
              assert_receive {:DOWN, ^mon, _, _, _}
            end) =~ "Client"
 
-    assert_receive {:event, {:string, [["GenServer " <> _ | _] | _]}, _gen_server_metadata}
-    assert_receive {:event, {:string, ["Process " | _]}, _process_metadata}
+    assert_receive {:event, {:report, %{label: {:gen_server, :terminate}}}, _gen_server_metadata}
+    assert_receive {:event, {:report, %{label: {:proc_lib, :crash}}}, _process_metadata}
   end
 
   test "translates :gen_event crashes" do
@@ -257,7 +346,7 @@ defmodule Logger.TranslatorTest do
            ** (RuntimeError) oops
            """
 
-    assert_receive {:event, {:string, [":gen_event handler " <> _ | _]}, metadata}
+    assert_receive {:event, {:report, %{label: {:gen_event, :terminate}}}, metadata}
     assert {%RuntimeError{message: "oops"}, [_ | _]} = metadata[:crash_reason]
     refute Map.has_key?(metadata, :initial_call)
     refute Map.has_key?(metadata, :registered_name)
@@ -275,9 +364,28 @@ defmodule Logger.TranslatorTest do
            ** (RuntimeError) oops
            """
 
-    assert_receive {:event, {:string, [":gen_event handler " <> _ | _]}, metadata}
+    assert_receive {:event, {:report, %{label: {:gen_event, :terminate}}}, metadata}
     assert {%RuntimeError{message: "oops"}, [_ | _]} = metadata[:crash_reason]
     assert metadata[:registered_name] == config.test
+  end
+
+  @tag skip: System.otp_release() < "27"
+  test "translates :gen_event crashes with process label" do
+    {:ok, pid} = :gen_event.start()
+    :ok = :gen_event.add_handler(pid, MyGenEvent, :ok)
+
+    fun = fn -> Process.set_label({:any, "term"}) end
+    :ok = :gen_event.call(pid, MyGenEvent, {:execute, fun})
+
+    assert capture_log(:info, fn ->
+             :gen_event.call(pid, MyGenEvent, :error)
+           end) =~ ~r"""
+           \[error\] :gen_event handler Logger.TranslatorTest.MyGenEvent installed in #PID<\d+\.\d+\.\d+> terminating
+           \*\* \(RuntimeError\) oops
+           .*
+           Process Label: {:any, "term"}
+           Last message: :error
+           """s
   end
 
   test "translates :gen_event crashes on debug" do
@@ -294,8 +402,208 @@ defmodule Logger.TranslatorTest do
            State: :ok
            """s
 
-    assert_receive {:event, {:string, [[":gen_event handler " <> _ | _] | _]}, metadata}
+    assert_receive {:event, {:report, %{label: {:gen_event, :terminate}}}, metadata}
     assert {%RuntimeError{message: "oops"}, [_ | _]} = metadata[:crash_reason]
+  end
+
+  test "translates :gen_statem crashes" do
+    {:ok, pid} = :gen_statem.start(MyGenStatem, :ok, [])
+
+    assert capture_log(:info, fn ->
+             catch_exit(:gen_statem.call(pid, :error))
+           end) =~ """
+           [error] :gen_statem #{inspect(pid)} terminating
+           ** (RuntimeError) oops
+           """
+
+    assert_receive {:event, {:report, %{label: {:gen_statem, :terminate}}}, gen_statem_metadata}
+    assert_receive {:event, {:report, %{label: {:proc_lib, :crash}}}, process_metadata}
+
+    assert {%RuntimeError{message: "oops"}, [_ | _]} = gen_statem_metadata[:crash_reason]
+    assert {%RuntimeError{message: "oops"}, [_ | _]} = process_metadata[:crash_reason]
+
+    refute Map.has_key?(gen_statem_metadata, :initial_call)
+    assert process_metadata[:initial_call] == {MyGenStatem, :init, 1}
+
+    refute Map.has_key?(gen_statem_metadata, :registered_name)
+    refute Map.has_key?(process_metadata, :registered_name)
+  end
+
+  test "translates :gen_statem crashes with local name", config do
+    {:ok, pid} = :gen_statem.start({:local, config.test}, MyGenStatem, :ok, [])
+    capture_log(:info, fn -> catch_exit(:gen_statem.call(pid, :error)) end)
+
+    assert_receive {:event, {:report, %{label: {:gen_statem, :terminate}}}, gen_statem_metadata}
+    assert_receive {:event, {:report, %{label: {:proc_lib, :crash}}}, process_metadata}
+
+    assert gen_statem_metadata[:registered_name] == config.test
+    assert process_metadata[:registered_name] == config.test
+  end
+
+  test "translates :gen_statem crashes with global name", config do
+    {:ok, pid} = :gen_statem.start({:global, config.test}, MyGenStatem, :ok, [])
+    capture_log(:info, fn -> catch_exit(:gen_statem.call(pid, :error)) end)
+
+    assert_receive {:event, {:report, %{label: {:gen_statem, :terminate}}}, gen_statem_metadata}
+    assert_receive {:event, {:report, %{label: {:proc_lib, :crash}}}, process_metadata}
+
+    assert gen_statem_metadata[:registered_name] == config.test
+    refute Map.has_key?(process_metadata, :registered_name)
+  end
+
+  @tag skip: System.otp_release() < "27"
+  test "translates :gen_statem crashes with process label" do
+    {:ok, pid} = :gen_statem.start(MyGenStatem, :ok, [])
+
+    {:started, :ok} =
+      :gen_statem.call(pid, {:execute, fn -> Process.set_label({:any, "term"}) end})
+
+    assert capture_log(:info, fn -> catch_exit(:gen_statem.call(pid, :error)) end) =~ ~r"""
+           \[error\] :gen_statem #PID<\d+\.\d+\.\d+> terminating
+           \*\* \(RuntimeError\) oops
+           .*
+           Process Label: {:any, \"term\"}
+           Queue: .*
+           Postponed: \[\]
+           """s
+  end
+
+  test "translates :gen_statem crashes with custom inspect options" do
+    {:ok, pid} = :gen_statem.start(MyGenStatem, List.duplicate(:ok, 1000), [])
+    Application.put_env(:logger, :translator_inspect_opts, limit: 3)
+
+    assert capture_log(:debug, fn ->
+             catch_exit(:gen_statem.call(pid, :error))
+           end) =~ """
+           State: {:started, [:ok, ...]}
+           """
+  after
+    Application.put_env(:logger, :translator_inspect_opts, [])
+  end
+
+  test "translates :gen_statem crashes on debug" do
+    {:ok, pid} = :gen_statem.start(MyGenStatem, :ok, [])
+
+    assert capture_log(:debug, fn ->
+             catch_exit(GenServer.call(pid, :error))
+           end) =~ ~r"""
+           \[error\] :gen_statem #PID<\d+\.\d+\.\d+> terminating
+           \*\* \(RuntimeError\) oops
+           .*
+           Queue: .*
+           Postponed: \[\]
+           State: {:started, :ok}
+           Callback mode: :state_functions, state_enter: false
+           Client #PID<\d+\.\d+\.\d+> is alive
+           .*
+           """s
+
+    assert_receive {:event, {:report, %{label: {:gen_statem, :terminate}}}, gen_statem_metadata}
+    assert_receive {:event, {:report, %{label: {:proc_lib, :crash}}}, process_metadata}
+
+    assert {%RuntimeError{message: "oops"}, [_ | _]} = gen_statem_metadata[:crash_reason]
+    assert {%RuntimeError{message: "oops"}, [_ | _]} = process_metadata[:crash_reason]
+  end
+
+  test "translates :gen_statem crashed with named client on debug" do
+    {:ok, pid} = :gen_statem.start(MyGenStatem, :ok, [])
+
+    assert capture_log(:debug, fn ->
+             Process.register(self(), :named_client)
+             catch_exit(:gen_statem.call(pid, :error))
+           end) =~ ~r"""
+           \[error\] :gen_statem #PID<\d+\.\d+\.\d+> terminating
+           \*\* \(RuntimeError\) oops
+           .*
+           Queue: .*
+           Postponed: \[\]
+           State: {:started, :ok}
+           Callback mode: :state_functions, state_enter: false
+           Client :named_client is alive
+           .*
+           """s
+  end
+
+  test "translates :gen_statem crashes with dead client on debug" do
+    {:ok, pid} = :gen_statem.start(MyGenStatem, :ok, [])
+
+    assert capture_log(:debug, fn ->
+             mon = Process.monitor(pid)
+
+             spawn_link(fn ->
+               catch_exit(:gen_statem.call(pid, :error_on_down, 0))
+             end)
+
+             assert_receive {:DOWN, ^mon, _, _, _}
+           end) =~ ~r"""
+           \[error\] :gen_statem #PID<\d+\.\d+\.\d+> terminating
+           \*\* \(RuntimeError\) oops
+           .*
+           Queue: .*
+           Postponed: \[\]
+           State: {:started, :ok}
+           Callback mode: :state_functions, state_enter: false
+           Client #PID<\d+\.\d+\.\d+> is dead
+           """s
+  end
+
+  test "translates :gen_statem crashes with no client" do
+    {:ok, pid} = :gen_statem.start(MyGenStatem, :ok, [])
+
+    assert capture_log(:debug, fn ->
+             mon = Process.monitor(pid)
+             :gen_statem.cast(pid, :error)
+             assert_receive {:DOWN, ^mon, _, _, _}
+           end) =~ ~r"""
+           \[error\] :gen_statem #PID<\d+\.\d+\.\d+> terminating
+           \*\* \(RuntimeError\) oops
+           .*
+           Queue: .*
+           Postponed: \[\]
+           State: {:started, :ok}
+           Callback mode: :state_functions, state_enter: false
+           """s
+  end
+
+  test "translates :gen_statem crashes with no client on debug" do
+    {:ok, pid} = :gen_statem.start(MyGenStatem, :ok, [])
+
+    refute capture_log(:debug, fn ->
+             mon = Process.monitor(pid)
+             :gen_statem.cast(pid, :error)
+             assert_receive {:DOWN, ^mon, _, _, _}
+           end) =~ "Client"
+
+    assert_receive {:event, {:report, %{label: {:gen_statem, :terminate}}}, _gen_statem_metadata}
+    assert_receive {:event, {:report, %{label: {:proc_lib, :crash}}}, _process_metadata}
+  end
+
+  test "translates :gen_statem crashes when callback_mode is :handle_event_function" do
+    {:ok, pid} = :gen_statem.start(MyGenStatemHandleEvent, :ok, [])
+
+    assert capture_log(:debug, fn ->
+             catch_exit(:gen_statem.call(pid, :error))
+           end) =~ ~r"""
+           \[error\] :gen_statem #PID<\d+\.\d+\.\d+> terminating
+           \*\* \(RuntimeError\) oops
+           .*
+           Queue: .*
+           Postponed: \[\]
+           State: :ok
+           Callback mode: .*, state_enter: false
+           """s
+
+    assert_receive {:event, {:report, %{label: {:gen_statem, :terminate}}}, gen_statem_metadata}
+    assert_receive {:event, {:report, %{label: {:proc_lib, :crash}}}, process_metadata}
+
+    assert {%RuntimeError{message: "oops"}, [_ | _]} = gen_statem_metadata[:crash_reason]
+    assert {%RuntimeError{message: "oops"}, [_ | _]} = process_metadata[:crash_reason]
+
+    refute Map.has_key?(gen_statem_metadata, :initial_call)
+    assert process_metadata[:initial_call] == {MyGenStatemHandleEvent, :init, 1}
+
+    refute Map.has_key?(gen_statem_metadata, :registered_name)
+    refute Map.has_key?(process_metadata, :registered_name)
   end
 
   test "translates Task crashes" do
@@ -314,7 +622,7 @@ defmodule Logger.TranslatorTest do
                Args: \[#PID<\d+\.\d+\.\d+>\]
            """s
 
-    assert_receive {:event, {:string, ["Task " <> _ | _]}, task_metadata}
+    assert_receive {:event, {:report, %{label: {Task.Supervisor, :terminating}}}, task_metadata}
     assert {%RuntimeError{message: "oops"}, [_ | _]} = task_metadata[:crash_reason]
     assert [parent] == task_metadata[:callers]
     refute Map.has_key?(task_metadata, :initial_call)
@@ -335,7 +643,7 @@ defmodule Logger.TranslatorTest do
                Args: \[\]
            """s
 
-    assert_receive {:event, {:string, ["Task " <> _ | _]}, task_metadata}
+    assert_receive {:event, {:report, %{label: {Task.Supervisor, :terminating}}}, task_metadata}
     assert [parent] == task_metadata[:callers]
     assert {%UndefinedFunctionError{function: :undef}, [_ | _]} = task_metadata[:crash_reason]
   end
@@ -355,7 +663,7 @@ defmodule Logger.TranslatorTest do
                Args: \[\]
            """s
 
-    assert_receive {:event, {:string, ["Task " <> _ | _]}, task_metadata}
+    assert_receive {:event, {:report, %{label: {Task.Supervisor, :terminating}}}, task_metadata}
     assert [parent] == task_metadata[:callers]
     assert {%UndefinedFunctionError{function: :undef}, [_ | _]} = task_metadata[:crash_reason]
   end
@@ -383,7 +691,7 @@ defmodule Logger.TranslatorTest do
                Args: \[%ErlangError{.*}\]
            """s
 
-    assert_receive {:event, {:string, ["Task " <> _ | _]}, task_metadata}
+    assert_receive {:event, {:report, %{label: {Task.Supervisor, :terminating}}}, task_metadata}
     assert [parent] == task_metadata[:callers]
     assert {%ErlangError{original: :foo}, [_ | _]} = task_metadata[:crash_reason]
   end
@@ -403,7 +711,7 @@ defmodule Logger.TranslatorTest do
                Args: \[:badarg\]
            """s
 
-    assert_receive {:event, {:string, ["Task " <> _ | _]}, task_metadata}
+    assert_receive {:event, {:report, %{label: {Task.Supervisor, :terminating}}}, task_metadata}
     assert [parent] == task_metadata[:callers]
     assert {%ArgumentError{message: "argument error"}, [_ | _]} = task_metadata[:crash_reason]
   end
@@ -423,9 +731,32 @@ defmodule Logger.TranslatorTest do
                Args: \[:abnormal\]
            """s
 
-    assert_receive {:event, {:string, ["Task " <> _ | _]}, task_metadata}
+    assert_receive {:event, {:report, %{label: {Task.Supervisor, :terminating}}}, task_metadata}
     assert [parent] == task_metadata[:callers]
     assert {:abnormal, [_ | _]} = task_metadata[:crash_reason]
+  end
+
+  test "translates Task crashes with process label" do
+    fun = fn ->
+      Process.set_label({:any, "term"})
+      raise "oops"
+    end
+
+    {:ok, pid} = Task.start_link(__MODULE__, :task, [self(), fun])
+
+    assert capture_log(fn ->
+             ref = Process.monitor(pid)
+             send(pid, :go)
+             receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
+           end) =~
+             ~r"""
+             \[error\] Task #{inspect(pid)} started from #{inspect(self())} terminating
+             \*\* \(RuntimeError\) oops
+             .*
+             Process Label: {:any, \"term\"}
+             Function: &Logger.TranslatorTest.task\/2
+                 Args: \[#PID<\d+\.\d+\.\d+>\, .*]
+             """s
   end
 
   test "translates application start" do
@@ -482,7 +813,7 @@ defmodule Logger.TranslatorTest do
            Ancestors: \[#PID<\d+\.\d+\.\d+>\]
            """s
 
-    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
+    assert_receive {:event, {:report, %{label: {:proc_lib, :crash}}}, process_metadata}
 
     assert is_pid(process_metadata[:pid])
     assert is_list(process_metadata[:ancestors])
@@ -526,7 +857,34 @@ defmodule Logger.TranslatorTest do
            Ancestors: \[#PID<\d+\.\d+\.\d+>\]
            """s
 
-    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
+    assert_receive {:event, {:report, %{label: {:proc_lib, :crash}}}, process_metadata}
+    assert {%RuntimeError{message: "oops"}, [_ | _]} = process_metadata[:crash_reason]
+  end
+
+  @tag skip: System.otp_release() < "27"
+  test "translates :proc_lib crashes with process label" do
+    fun = fn ->
+      Process.set_label({:any, "term"})
+      raise "oops"
+    end
+
+    pid = :proc_lib.spawn_link(__MODULE__, :task, [self(), fun])
+
+    assert capture_log(:info, fn ->
+             ref = Process.monitor(pid)
+             send(pid, :message)
+             send(pid, :go)
+             receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
+           end) =~ ~r"""
+           \[error\] Process #PID<\d+\.\d+\.\d+> terminating
+           \*\* \(RuntimeError\) oops
+           .*
+           Initial Call: Logger.TranslatorTest.task/2
+           Process Label: {:any, \"term\"}
+           Ancestors: \[#PID<\d+\.\d+\.\d+>\]
+           """s
+
+    assert_receive {:event, {:report, %{label: {:proc_lib, :crash}}}, process_metadata}
     assert {%RuntimeError{message: "oops"}, [_ | _]} = process_metadata[:crash_reason]
   end
 
@@ -550,7 +908,7 @@ defmodule Logger.TranslatorTest do
            Ancestors: \[#PID<\d+\.\d+\.\d+>\]
            """s
 
-    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
+    assert_receive {:event, {:report, %{label: {:proc_lib, :crash}}}, process_metadata}
     assert {%RuntimeError{message: "oops"}, [_ | _]} = process_metadata[:crash_reason]
   end
 
@@ -598,13 +956,13 @@ defmodule Logger.TranslatorTest do
   test "translates Supervisor progress" do
     {:ok, pid} = Supervisor.start_link([], strategy: :one_for_one)
 
-    assert capture_log(:info, fn ->
+    assert capture_log(:debug, fn ->
              ref = Process.monitor(pid)
              Supervisor.start_child(pid, worker(Task, [__MODULE__, :sleep, [self()]]))
              Process.exit(pid, :normal)
              receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
            end) =~ ~r"""
-           \[info\] Child Task of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) started
+           \[(debug|info)\] Child Task of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) started
            Pid: #PID<\d+\.\d+\.\d+>
            Start Call: Task.start_link\(Logger.TranslatorTest, :sleep, \[#PID<\d+\.\d+\.\d+>\]\)
            """
@@ -613,36 +971,36 @@ defmodule Logger.TranslatorTest do
   test "translates Supervisor progress with name" do
     {:ok, pid} = Supervisor.start_link([], strategy: :one_for_one, name: __MODULE__)
 
-    assert capture_log(:info, fn ->
+    assert capture_log(:debug, fn ->
              ref = Process.monitor(pid)
              Supervisor.start_child(pid, worker(Task, [__MODULE__, :sleep, [self()]]))
              Process.exit(pid, :normal)
              receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
            end) =~ ~r"""
-           \[info\] Child Task of Supervisor Logger.TranslatorTest started
+           \[(debug|info)\] Child Task of Supervisor Logger.TranslatorTest started
            """
 
     {:ok, pid} = Supervisor.start_link([], strategy: :one_for_one, name: {:global, __MODULE__})
 
-    assert capture_log(:info, fn ->
+    assert capture_log(:debug, fn ->
              ref = Process.monitor(pid)
              Supervisor.start_child(pid, worker(Task, [__MODULE__, :sleep, [self()]]))
              Process.exit(pid, :normal)
              receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
            end) =~ ~r"""
-           \[info\] Child Task of Supervisor Logger.TranslatorTest started
+           \[(debug|info)\] Child Task of Supervisor Logger.TranslatorTest started
            """
 
     {:ok, pid} =
       Supervisor.start_link([], strategy: :one_for_one, name: {:via, :global, __MODULE__})
 
-    assert capture_log(:info, fn ->
+    assert capture_log(:debug, fn ->
              ref = Process.monitor(pid)
              Supervisor.start_child(pid, worker(Task, [__MODULE__, :sleep, [self()]]))
              Process.exit(pid, :normal)
              receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
            end) =~ ~r"""
-           \[info\] Child Task of Supervisor Logger.TranslatorTest started
+           \[(debug|info)\] Child Task of Supervisor Logger.TranslatorTest started
            """
   end
 
@@ -693,7 +1051,7 @@ defmodule Logger.TranslatorTest do
            Start Call: Logger.TranslatorTest.undef\(\)
            """s
 
-    assert_receive {:event, {:string, ["Child " | _]}, _child_metadata}
+    assert_receive {:event, {:report, %{label: {:supervisor, :start_error}}}, _child_metadata}
   end
 
   test "translates Supervisor reports terminated" do
@@ -710,9 +1068,12 @@ defmodule Logger.TranslatorTest do
            Start Call: Task.start_link\(Kernel, :exit, \[:stop\]\)
            """
 
-    assert_receive {:event, {:string, ["Task " <> _ | _]}, task_metadata}
-    assert_receive {:event, {:string, ["Child " | _]}, _child_metadata}
-    assert_receive {:event, {:string, ["Child ", "Task" | _]}, _child_task_metadata}
+    assert_receive {:event, {:report, %{label: {Task.Supervisor, :terminating}}}, task_metadata}
+    assert_receive {:event, {:report, %{label: {:supervisor, :shutdown}}}, _child_metadata}
+
+    assert_receive {:event, {:report, %{label: {:supervisor, :child_terminated}}},
+                    _child_task_metadata}
+
     assert {:stop, [_ | _]} = task_metadata[:crash_reason]
   end
 
@@ -729,9 +1090,12 @@ defmodule Logger.TranslatorTest do
            Start Call: Task.start_link\(Kernel, :exit, \[:stop\]\)
            """
 
-    assert_receive {:event, {:string, ["Task " <> _ | _]}, task_metadata}
-    assert_receive {:event, {:string, ["Child " | _]}, _child_metadata}
-    assert_receive {:event, {:string, ["Child ", "Task" | _]}, _child_task_metadata}
+    assert_receive {:event, {:report, %{label: {Task.Supervisor, :terminating}}}, task_metadata}
+    assert_receive {:event, {:report, %{label: {:supervisor, :shutdown}}}, _child_metadata}
+
+    assert_receive {:event, {:report, %{label: {:supervisor, :child_terminated}}},
+                    _child_task_metadata}
+
     assert {:stop, [_ | _]} = task_metadata[:crash_reason]
   end
 
@@ -747,7 +1111,7 @@ defmodule Logger.TranslatorTest do
            Start Call: Logger.TranslatorTest.abnormal\(\)
            """
 
-    assert_receive {:event, {:string, ["Child " | _]}, _child_metadata}
+    assert_receive {:event, {:report, %{label: {:supervisor, :shutdown_error}}}, _child_metadata}
   end
 
   test "translates Supervisor reports abnormal shutdown on debug" do
@@ -767,7 +1131,7 @@ defmodule Logger.TranslatorTest do
            Type: :worker
            """
 
-    assert_receive {:event, {:string, ["Child " | _]}, _child_metadata}
+    assert_receive {:event, {:report, %{label: {:supervisor, :shutdown_error}}}, _child_metadata}
   end
 
   test "translates DynamicSupervisor reports abnormal shutdown" do
@@ -786,7 +1150,7 @@ defmodule Logger.TranslatorTest do
            Start Call: Logger.TranslatorTest.abnormal\(\)
            """
 
-    assert_receive {:event, {:string, ["Child " | _]}, _child_metadata}
+    assert_receive {:event, {:report, %{label: {:supervisor, :shutdown_error}}}, _child_metadata}
   end
 
   test "translates DynamicSupervisor reports abnormal shutdown including extra_arguments" do
@@ -807,7 +1171,7 @@ defmodule Logger.TranslatorTest do
            Start Call: Logger.TranslatorTest.abnormal\(:extra, :args\)
            """
 
-    assert_receive {:event, {:string, ["Child " | _]}, _child_metadata}
+    assert_receive {:event, {:report, %{label: {:supervisor, :shutdown_error}}}, _child_metadata}
   end
 
   test "translates named DynamicSupervisor reports abnormal shutdown" do
@@ -826,7 +1190,7 @@ defmodule Logger.TranslatorTest do
            Start Call: Logger.TranslatorTest.abnormal\(\)
            """
 
-    assert_receive {:event, {:string, ["Child " | _]}, _child_metadata}
+    assert_receive {:event, {:report, %{label: {:supervisor, :shutdown_error}}}, _child_metadata}
   end
 
   test "translates :supervisor_bridge progress" do
@@ -855,8 +1219,8 @@ defmodule Logger.TranslatorTest do
            Start Module: Logger.TranslatorTest.MyBridge
            """
 
-    assert_receive {:event, {:string, ["Task " <> _ | _]}, task_metadata}
-    assert_receive {:event, {:string, ["Child of Supervisor " | _]}, _child_metadata}
+    assert_receive {:event, {:report, %{label: {:proc_lib, :crash}}}, task_metadata}
+    assert_receive {:event, {:report, %{label: {:gen_server, :terminate}}}, _child_metadata}
     assert {:stop, [_ | _]} = task_metadata[:crash_reason]
   end
 
@@ -894,15 +1258,24 @@ defmodule Logger.TranslatorTest do
       end)
 
     assert log =~ ~s(Start Call: Logger.TranslatorTest.WeirdFunctionNamesGenServer."start link"/?)
-    assert_receive {:event, {:string, ["GenServer " <> _ | _]}, server_metadata}
-    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
-    assert_receive {:event, {:string, ["Child " | _]}, _child_metadata}
+    assert_receive {:event, {:report, %{label: {:gen_server, :terminate}}}, server_metadata}
+    assert_receive {:event, {:report, %{label: {:proc_lib, :crash}}}, process_metadata}
+
+    assert_receive {:event, {:report, %{label: {:supervisor, :child_terminated}}},
+                    _child_metadata}
 
     assert {%RuntimeError{message: "oops"}, [_ | _]} = server_metadata[:crash_reason]
     assert {%RuntimeError{message: "oops"}, [_ | _]} = process_metadata[:crash_reason]
   after
     :code.purge(WeirdFunctionNamesGenServer)
     :code.delete(WeirdFunctionNamesGenServer)
+  end
+
+  @tag logger_config: [handle_otp_reports: false]
+  test "drops events if otp report handling is switched off" do
+    {:ok, pid} = GenServer.start(MyGenServer, :ok)
+    catch_exit(GenServer.call(pid, :error))
+    refute_receive {:event, _, _}, 100
   end
 
   def task(parent, fun \\ fn -> raise "oops" end) do
@@ -957,5 +1330,26 @@ defmodule Logger.TranslatorTest do
 
   defp worker(name, args, opts \\ []) do
     Enum.into(opts, %{id: name, start: {name, opts[:function] || :start_link, args}})
+  end
+
+  defp put_logger_config(new_config) do
+    Application.put_all_env(logger: new_config)
+
+    Logger.App.stop()
+
+    # Shutdown the application
+    Logger.App.stop()
+
+    # And start it without warnings
+    Application.put_env(:logger, :level, :error)
+    Application.start(:logger)
+    Application.delete_env(:logger, :level)
+    Logger.configure(level: :debug)
+  end
+
+  defp restore_logger_config(config) do
+    Application.put_all_env(logger: config)
+    Logger.App.stop()
+    Application.start(:logger)
   end
 end

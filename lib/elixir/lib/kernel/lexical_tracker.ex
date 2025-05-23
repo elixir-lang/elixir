@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 # This is an Elixir module responsible for tracking references
 # to modules, remote dispatches, and the usage of
 # aliases/imports/requires in the Elixir scope.
@@ -8,12 +12,31 @@ defmodule Kernel.LexicalTracker do
   @moduledoc false
   @timeout :infinity
   @behaviour :gen_server
+  @warn_key 0
 
   @doc """
   Returns all references in this lexical scope.
   """
   def references(pid) do
     :gen_server.call(pid, :references, @timeout)
+  end
+
+  @doc """
+  Invoked during module expansion to annotate an alias
+  must be warned if unused.
+  """
+  def warn_alias(pid, meta, alias, module) do
+    :gen_server.cast(pid, {:warn_alias, alias, meta})
+    module
+  end
+
+  @doc """
+  Invoked during module expansion to annotate an import
+  must be warned if unused.
+  """
+  def warn_import(pid, module) do
+    :gen_server.cast(pid, {:warn_import, module})
+    module
   end
 
   # Internal API
@@ -37,11 +60,6 @@ defmodule Kernel.LexicalTracker do
   @doc false
   def add_import(pid, module, fas, meta, warn) when is_atom(module) do
     :gen_server.cast(pid, {:add_import, module, fas, meta, warn})
-  end
-
-  @doc false
-  def add_alias(pid, module, meta, warn) when is_atom(module) do
-    :gen_server.cast(pid, {:add_alias, module, meta, warn})
   end
 
   @doc false
@@ -93,16 +111,12 @@ defmodule Kernel.LexicalTracker do
 
   @doc false
   def collect_unused_imports(pid) do
-    unused(pid, :unused_imports)
+    :gen_server.call(pid, :unused_imports, @timeout)
   end
 
   @doc false
   def collect_unused_aliases(pid) do
-    unused(pid, :unused_aliases)
-  end
-
-  defp unused(pid, tag) do
-    :gen_server.call(pid, tag, @timeout)
+    :gen_server.call(pid, :unused_aliases, @timeout)
   end
 
   # Callbacks
@@ -123,11 +137,17 @@ defmodule Kernel.LexicalTracker do
 
   @doc false
   def handle_call(:unused_aliases, _from, state) do
-    {:reply, Enum.sort(state.aliases), state}
+    aliases = for {alias, meta} when is_list(meta) <- state.aliases, do: {alias, meta}
+    {:reply, Enum.sort(aliases), state}
   end
 
   def handle_call(:unused_imports, _from, state) do
-    {:reply, Enum.sort(state.imports), state}
+    imports =
+      for {module, %{@warn_key => _} = map} <- state.imports do
+        {module, Map.delete(map, @warn_key)}
+      end
+
+    {:reply, Enum.sort(imports), state}
   end
 
   def handle_call(:references, _from, state) do
@@ -171,8 +191,8 @@ defmodule Kernel.LexicalTracker do
     {:noreply, %{state | imports: imports, references: references}}
   end
 
-  def handle_cast({:alias_dispatch, module}, %{aliases: aliases} = state) do
-    {:noreply, %{state | aliases: Map.delete(aliases, module)}}
+  def handle_cast({:alias_dispatch, module}, state) do
+    {:noreply, put_in(state.aliases[module], :used)}
   end
 
   def handle_cast({:import_quoted, module, function, arities}, state) do
@@ -210,20 +230,19 @@ defmodule Kernel.LexicalTracker do
   end
 
   def handle_cast({:add_import, module, fas, meta, warn}, state) do
-    if warn do
-      imports = for module_or_fa <- [module | fas], do: {module_or_fa, meta}, into: %{}
-      {:noreply, put_in(state.imports[module], imports)}
-    else
-      {:noreply, state}
+    keys = if warn, do: [@warn_key, module | fas], else: [module | fas]
+    {:noreply, put_in(state.imports[module], Map.from_keys(keys, meta))}
+  end
+
+  def handle_cast({:warn_alias, alias, meta}, %{aliases: aliases} = state) do
+    case aliases do
+      %{^alias => :used} -> {:noreply, state}
+      %{} -> {:noreply, %{state | aliases: Map.put(aliases, alias, meta)}}
     end
   end
 
-  def handle_cast({:add_alias, module, meta, warn}, state) do
-    if warn do
-      {:noreply, put_in(state.aliases[module], meta)}
-    else
-      {:noreply, state}
-    end
+  def handle_cast({:warn_import, module}, state) do
+    {:noreply, put_in(state.imports[module][@warn_key], true)}
   end
 
   @doc false

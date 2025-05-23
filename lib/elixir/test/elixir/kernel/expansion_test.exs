@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Kernel.ExpansionTarget do
@@ -140,26 +144,6 @@ defmodule Kernel.ExpansionTest do
   end
 
   describe "import" do
-    test "raises on invalid options" do
-      message = ~r"invalid :only option for import, expected a keyword list with integer values"
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: import(Kernel, only: [invalid: nil])))
-      end)
-
-      message = ~r"invalid :except option for import, expected a keyword list with integer values"
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: import(Kernel, except: [invalid: nil])))
-      end)
-
-      message = ~r/invalid options for import, expected a keyword list, got: "invalid_options"/
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: import(Kernel, "invalid_options")))
-      end)
-    end
-
     test "raises on conflicting options" do
       message =
         ~r":only and :except can only be given together to import when :only is :functions, :macros, or :sigils"
@@ -207,6 +191,71 @@ defmodule Kernel.ExpansionTest do
       {output, env} = expand_env(quote(do: _ = 1), __ENV__)
       assert output == quote(do: _ = 1)
       assert Macro.Env.vars(env) == []
+    end
+
+    test "errors on directly recursive definitions" do
+      assert_compile_error(
+        ~r"""
+        recursive variable definition in patterns:
+
+        \{x = \{:ok, x\}\}
+
+        the variable "x" \(context Kernel.ExpansionTest\) is defined in function of itself
+        """,
+        fn -> expand(quote(do: {x = {:ok, x}} = :ok)) end
+      )
+
+      assert_compile_error(
+        ~r"""
+        recursive variable definition in patterns:
+
+        \{\{x, y\} = \{y, x\}\}
+
+        the variable "x" \(context Kernel.ExpansionTest\) is defined in function of itself
+        """,
+        fn -> expand(quote(do: {{x, y} = {y, x}} = :ok)) end
+      )
+
+      assert_compile_error(
+        ~r"""
+        recursive variable definition in patterns:
+
+        \{\{:x, y\} = \{x, :y\}, x = y\}
+
+        the variable "x" \(context Kernel.ExpansionTest\) is defined recursively in function of "y" \(context Kernel.ExpansionTest\)
+        """,
+        fn -> expand(quote(do: {{:x, y} = {x, :y}, x = y} = :ok)) end
+      )
+
+      assert_compile_error(
+        ~r"""
+        recursive variable definition in patterns:
+
+        \{x = y, y = z, z = x\}
+
+        the following variables form a cycle: "x" \(context Kernel.ExpansionTest\), "y" \(context Kernel.ExpansionTest\), "z" \(context Kernel.ExpansionTest\)
+        """,
+        fn -> expand(quote(do: {x = y, y = z, z = x} = :ok)) end
+      )
+    end
+
+    test "complex recursive variable definitions" do
+      assert expand(
+               quote do:
+                       {%{type: type, client_id: client_id} = message,
+                        %{type: type, client_id: client_id} = state} = :ok
+             )
+
+      assert_compile_error(
+        ~r"recursive variable definition in patterns",
+        fn ->
+          expand(
+            quote do:
+                    {%{type: type, client_id: client_id} = message,
+                     %{type: type, client_id: client_id} = state, client_id = type} = :ok
+          )
+        end
+      )
     end
   end
 
@@ -434,7 +483,7 @@ defmodule Kernel.ExpansionTest do
 
     test "in matches" do
       assert_compile_error(
-        ~r"cannot find or invoke local foo/1 inside match. .+ Called as: foo\(:bar\)",
+        ~r"cannot find or invoke local foo/1 inside a match. .+ Called as: foo\(:bar\)",
         fn ->
           expand(quote(do: foo(:bar) = :bar))
         end
@@ -465,6 +514,11 @@ defmodule Kernel.ExpansionTest do
         end
 
       assert expand(before_expansion) == after_expansion
+    end
+
+    test "invalid metadata" do
+      assert expand({:foo, [imports: 2, context: :unknown], [1, 2]}) ==
+               {:foo, [imports: 2, context: :unknown], [1, 2]}
     end
   end
 
@@ -608,17 +662,25 @@ defmodule Kernel.ExpansionTest do
       assert expand(quote(do: %x{} = 1)) == quote(do: %x{} = 1)
     end
 
-    test "unknown ^keys in structs" do
-      message = ~r"unknown key \^my_key for struct Kernel\.ExpansionTest\.User"
+    test "invalid keys in structs" do
+      assert_compile_error(~r"invalid key :erlang\.\+\(1, 2\) for struct", fn ->
+        expand(
+          quote do
+            %User{(1 + 2) => :my_value}
+          end
+        )
+      end)
+    end
+
+    test "unknown key in structs" do
+      message = ~r"unknown key :foo for struct Kernel\.ExpansionTest\.User"
 
       assert_compile_error(message, fn ->
-        code =
+        expand(
           quote do
-            my_key = :my_key
-            %User{^my_key => :my_value} = %{}
+            %User{foo: :my_value} = %{}
           end
-
-        expand(code)
+        )
       end)
     end
   end
@@ -660,12 +722,6 @@ defmodule Kernel.ExpansionTest do
   describe "anonymous calls" do
     test "expands base and args" do
       assert expand(quote(do: a.(b))) == quote(do: a().(b()))
-    end
-
-    test "raises on atom base" do
-      assert_compile_error(~r"invalid function call :foo.()", fn ->
-        expand(quote(do: :foo.(a)))
-      end)
     end
   end
 
@@ -725,10 +781,10 @@ defmodule Kernel.ExpansionTest do
         expand(quote(do: [1] ++ 2 ++ [3] = [1, 2, 3]))
       end)
 
-      assert {:=, _, [-1, {{:., _, [:erlang, :-]}, _, [1]}]} =
+      assert {:=, _, [-1, -1]} =
                expand(quote(do: -1 = -1))
 
-      assert {:=, _, [1, {{:., _, [:erlang, :+]}, _, [1]}]} =
+      assert {:=, _, [1, 1]} =
                expand(quote(do: +1 = +1))
 
       assert {:=, _, [[{:|, _, [1, [{:|, _, [2, 3]}]]}], [1, 2, 3]]} =
@@ -737,13 +793,13 @@ defmodule Kernel.ExpansionTest do
 
     test "in guards" do
       message =
-        ~r"cannot invoke remote function Hello.something_that_does_not_exist/1 inside guard"
+        ~r"cannot invoke remote function Hello.something_that_does_not_exist/1 inside a guard"
 
       assert_compile_error(message, fn ->
         expand(quote(do: fn arg when Hello.something_that_does_not_exist(arg) -> arg end))
       end)
 
-      message = ~r"cannot invoke remote function :erlang.make_ref/0 inside guard"
+      message = ~r"cannot invoke remote function :erlang.make_ref/0 inside a guard"
 
       assert_compile_error(message, fn ->
         expand(quote(do: fn arg when make_ref() -> arg end))
@@ -751,7 +807,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "in guards with bitstrings" do
-      message = ~r"cannot invoke remote function String.Chars.to_string/1 inside guards"
+      message = ~r"cannot invoke remote function String.Chars.to_string/1 inside a guard"
 
       assert_compile_error(message, fn ->
         expand(quote(do: fn arg when "#{arg}foo" == "argfoo" -> arg end))
@@ -961,6 +1017,11 @@ defmodule Kernel.ExpansionTest do
         ~r"when using :reduce with comprehensions, the do block must be written using acc -> expr clauses",
         fn -> expand(quote(do: for(x <- 1..3, reduce: %{}, do: (acc, x -> x)))) end
       )
+
+      assert_compile_error(
+        ~r"when using :reduce with comprehensions, the do block must be written using acc -> expr clauses",
+        fn -> expand(quote(do: for(x <- 1..3, reduce: %{}, do: (acc, x when 1 == 1 -> x)))) end
+      )
     end
 
     test "raise error for unknown options" do
@@ -1140,13 +1201,24 @@ defmodule Kernel.ExpansionTest do
       assert expand(quote(do: &unknown(&1, &2))) == {:&, [], [{:/, [], [{:unknown, [], nil}, 2]}]}
     end
 
+    test "keeps position meta on & variables" do
+      assert expand(Code.string_to_quoted!("& &1")) |> clean_meta([:counter]) ==
+               {:fn, [{:line, 1}],
+                [{:->, [{:line, 1}], [[{:capture, [line: 1], nil}], {:capture, [line: 1], nil}]}]}
+    end
+
+    test "removes no_parens when expanding 0-arity capture to fn" do
+      assert expand(quote(do: &foo().bar/0)) ==
+               quote(do: fn -> foo().bar() end)
+    end
+
     test "expands remotes" do
       assert expand(quote(do: &List.flatten/2)) ==
                quote(do: &:"Elixir.List".flatten/2)
-               |> clean_meta([:imports, :context, :no_parens])
+               |> clean_meta([:imports, :context])
 
       assert expand(quote(do: &Kernel.is_atom/1)) ==
-               quote(do: &:erlang.is_atom/1) |> clean_meta([:imports, :context, :no_parens])
+               quote(do: &:erlang.is_atom/1) |> clean_meta([:imports, :context])
     end
 
     test "expands macros" do
@@ -1162,7 +1234,7 @@ defmodule Kernel.ExpansionTest do
           fn -> 17 end
         end
 
-      assert clean_meta(expand(before_expansion), [:import, :context, :no_parens]) ==
+      assert clean_meta(expand(before_expansion), [:imports, :context, :no_parens]) ==
                after_expansion
     end
 
@@ -1403,7 +1475,7 @@ defmodule Kernel.ExpansionTest do
         expand(quote(do: cond([])))
       end)
 
-      assert_compile_error(~r"duplicated :do clauses given for \"cond\"", fn ->
+      assert_compile_error(~r"duplicate :do clauses given for \"cond\"", fn ->
         expand(quote(do: cond(do: (x -> x), do: (y -> y))))
       end)
     end
@@ -1575,7 +1647,7 @@ defmodule Kernel.ExpansionTest do
         expand(quote(do: case(e, [])))
       end)
 
-      assert_compile_error(~r"duplicated :do clauses given for \"case\"", fn ->
+      assert_compile_error(~r"duplicate :do clauses given for \"case\"", fn ->
         expand(quote(do: case(e, do: (x -> x), do: (y -> y))))
       end)
     end
@@ -1775,11 +1847,11 @@ defmodule Kernel.ExpansionTest do
         expand(quote(do: receive([])))
       end)
 
-      assert_compile_error(~r"duplicated :do clauses given for \"receive\"", fn ->
+      assert_compile_error(~r"duplicate :do clauses given for \"receive\"", fn ->
         expand(quote(do: receive(do: (x -> x), do: (y -> y))))
       end)
 
-      assert_compile_error(~r"duplicated :after clauses given for \"receive\"", fn ->
+      assert_compile_error(~r"duplicate :after clauses given for \"receive\"", fn ->
         code =
           quote do
             receive do
@@ -1906,6 +1978,32 @@ defmodule Kernel.ExpansionTest do
       assert expand(before_expansion) == after_expansion
     end
 
+    test "expands catch with when" do
+      before_expansion =
+        quote do
+          try do
+            x
+          catch
+            x when x -> z = :erlang.-(x)
+          end
+
+          z
+        end
+
+      after_expansion =
+        quote do
+          try do
+            x()
+          catch
+            :throw, x when x -> z = :erlang.-(x)
+          end
+
+          z()
+        end
+
+      assert expand(before_expansion) == after_expansion
+    end
+
     test "expands after" do
       before_expansion =
         quote do
@@ -2012,11 +2110,11 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "expects at most one clause" do
-      assert_compile_error(~r"duplicated :do clauses given for \"try\"", fn ->
+      assert_compile_error(~r"duplicate :do clauses given for \"try\"", fn ->
         expand(quote(do: try(do: e, do: f)))
       end)
 
-      assert_compile_error(~r"duplicated :rescue clauses given for \"try\"", fn ->
+      assert_compile_error(~r"duplicate :rescue clauses given for \"try\"", fn ->
         code =
           quote do
             try do
@@ -2031,7 +2129,7 @@ defmodule Kernel.ExpansionTest do
         expand(code)
       end)
 
-      assert_compile_error(~r"duplicated :after clauses given for \"try\"", fn ->
+      assert_compile_error(~r"duplicate :after clauses given for \"try\"", fn ->
         code =
           quote do
             try do
@@ -2046,7 +2144,7 @@ defmodule Kernel.ExpansionTest do
         expand(code)
       end)
 
-      assert_compile_error(~r"duplicated :else clauses given for \"try\"", fn ->
+      assert_compile_error(~r"duplicate :else clauses given for \"try\"", fn ->
         code =
           quote do
             try do
@@ -2061,7 +2159,7 @@ defmodule Kernel.ExpansionTest do
         expand(code)
       end)
 
-      assert_compile_error(~r"duplicated :catch clauses given for \"try\"", fn ->
+      assert_compile_error(~r"duplicate :catch clauses given for \"try\"", fn ->
         code =
           quote do
             try do
@@ -2132,6 +2230,19 @@ defmodule Kernel.ExpansionTest do
               x
             catch
               _, _, _ -> :ok
+            end
+          end
+
+        expand(code)
+      end)
+
+      assert_compile_error(message, fn ->
+        code =
+          quote do
+            try do
+              x
+            catch
+              _, _, _ when 1 == 1 -> :ok
             end
           end
 
@@ -2275,81 +2386,18 @@ defmodule Kernel.ExpansionTest do
                quote(do: <<foo::integer>> = baz = <<bar()::integer>>)
                |> clean_bit_modifiers()
 
-      assert expand(quote(do: <<foo>> = {<<baz>>} = bar())) |> clean_meta([:alignment]) ==
-               quote(do: <<foo::integer>> = {<<baz::integer>>} = bar())
+      assert expand(quote(do: <<foo>> = <<bar>> = baz)) |> clean_meta([:alignment]) ==
+               quote(do: <<foo::integer>> = <<bar::integer>> = baz())
                |> clean_bit_modifiers()
+    end
 
-      message = ~r"binary patterns cannot be matched in parallel using \"=\""
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: <<foo>> = <<baz>> = bar()))
-      end)
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: <<foo>> = qux = <<baz>> = bar()))
-      end)
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: {<<foo>>} = {qux} = {<<baz>>} = bar()))
-      end)
-
-      assert expand(quote(do: {:foo, <<foo>>} = {<<baz>>, :baz} = bar()))
-
-      # two-element tuples are special cased
-      assert_compile_error(message, fn ->
-        expand(quote(do: {:foo, <<foo>>} = {:foo, <<baz>>} = bar()))
-      end)
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: %{foo: <<foo>>} = %{baz: <<qux>>, foo: <<baz>>} = bar()))
-      end)
-
-      assert expand(quote(do: %{foo: <<foo>>} = %{baz: <<baz>>} = bar()))
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: %_{foo: <<foo>>} = %_{foo: <<baz>>} = bar()))
-      end)
-
-      assert expand(quote(do: %_{foo: <<foo>>} = %_{baz: <<baz>>} = bar()))
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: %_{foo: <<foo>>} = %{foo: <<baz>>} = bar()))
-      end)
-
-      assert expand(quote(do: %_{foo: <<foo>>} = %{baz: <<baz>>} = bar()))
-
-      assert_compile_error(message, fn ->
-        code =
-          quote do
-            case bar() do
-              <<foo>> = <<baz>> -> nil
-            end
-          end
-
-        expand(code)
-      end)
-
-      assert_compile_error(message, fn ->
-        code =
-          quote do
-            case bar() do
-              <<foo>> = qux = <<baz>> -> nil
-            end
-          end
-
-        expand(code)
-      end)
-
-      assert_compile_error(message, fn ->
-        code =
-          quote do
-            case bar() do
-              [<<foo>>] = [<<baz>>] -> nil
-            end
-          end
-
-        expand(code)
-      end)
+    test "invalid match" do
+      assert_compile_error(
+        "a bitstring only accepts binaries, numbers, and variables inside a match",
+        fn ->
+          expand(quote(do: <<%{}>> = foo()))
+        end
+      )
     end
 
     test "nested match" do
@@ -2360,16 +2408,6 @@ defmodule Kernel.ExpansionTest do
              |> clean_meta([:alignment]) ==
                quote(do: <<45::integer, <<_::integer, _::binary>> = rest()::binary>>)
                |> clean_bit_modifiers()
-
-      message = ~r"cannot pattern match inside a bitstring that is already in match"
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: <<bar = baz>> = foo()))
-      end)
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: <<?-, <<_, _::binary>> = rest::binary>> = foo()))
-      end)
     end
 
     test "inlines binaries inside interpolation" do
@@ -2731,7 +2769,7 @@ defmodule Kernel.ExpansionTest do
       end)
 
       assert_compile_error(
-        ~r"cannot find or invoke local foo/0 inside bitstring size specifier",
+        ~r"cannot find or invoke local foo/0 inside a bitstring size specifier",
         fn ->
           code =
             quote do
@@ -2742,7 +2780,7 @@ defmodule Kernel.ExpansionTest do
         end
       )
 
-      message = ~r"anonymous call is not allowed in bitstring size specifier"
+      message = ~r"anonymous call is not allowed inside a bitstring size specifier"
 
       assert_compile_error(message, fn ->
         code =
@@ -2753,7 +2791,7 @@ defmodule Kernel.ExpansionTest do
         expand(code, [])
       end)
 
-      message = ~r"cannot invoke remote function in bitstring size specifier"
+      message = ~r"cannot invoke remote function inside a bitstring size specifier"
 
       assert_compile_error(message, fn ->
         code =
@@ -2765,7 +2803,7 @@ defmodule Kernel.ExpansionTest do
         expand(code, [])
       end)
 
-      message = ~r"cannot invoke remote function Foo.bar/0 inside bitstring size specifier"
+      message = ~r"cannot invoke remote function Foo.bar/0 inside a bitstring size specifier"
 
       assert_compile_error(message, fn ->
         code =
@@ -2798,16 +2836,6 @@ defmodule Kernel.ExpansionTest do
 
       assert_compile_error(~r"conflicting unit specification for bit field", fn ->
         expand(quote(do: <<x::bitstring-unit(2)>>))
-      end)
-    end
-
-    test "raises for invalid literals" do
-      assert_compile_error(~r"invalid literal :foo in <<>>", fn ->
-        expand(quote(do: <<:foo>>))
-      end)
-
-      assert_compile_error(~r"invalid literal \[\] in <<>>", fn ->
-        expand(quote(do: <<[]::size(8)>>))
       end)
     end
 
@@ -2866,11 +2894,11 @@ defmodule Kernel.ExpansionTest do
 
   test "handles invalid expressions" do
     assert_compile_error(~r"invalid quoted expression: {1, 2, 3}", fn ->
-      expand_env(quote(do: unquote({1, 2, 3})), __ENV__)
+      expand_env({1, 2, 3}, __ENV__)
     end)
 
     assert_compile_error(~r"invalid quoted expression: #Function\<", fn ->
-      expand(quote(do: unquote({:sample, fn -> nil end})))
+      expand({:sample, fn -> nil end})
     end)
 
     assert_compile_error(~r"invalid pattern in match", fn ->
@@ -2913,43 +2941,6 @@ defmodule Kernel.ExpansionTest do
 
     assert_compile_error(~r"misplaced operator ->", fn ->
       expand(quote(do: (foo -> bar)))
-    end)
-
-    message = ~r/"wrong_fun" cannot handle clauses with the ->/
-
-    assert_compile_error(message, fn ->
-      code =
-        quote do
-          wrong_fun do
-            _ -> :ok
-          end
-        end
-
-      expand(code)
-    end)
-
-    assert_compile_error(message, fn ->
-      code =
-        quote do
-          wrong_fun do
-            foo -> bar
-          after
-            :ok
-          end
-        end
-
-      expand(code)
-    end)
-
-    assert_compile_error(~r/"length" cannot handle clauses with the ->/, fn ->
-      code =
-        quote do
-          length do
-            _ -> :ok
-          end
-        end
-
-      expand(code)
     end)
   end
 

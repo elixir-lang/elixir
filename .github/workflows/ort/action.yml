@@ -1,0 +1,99 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
+name: "Run OSS Review Toolkit"
+description: "Runs OSS Review Toolkit & generates SBoMs"
+inputs:
+  report-formats:
+    description: "ORT Report Formats"
+    required: true
+  fail-on-violation:
+    description: "Whether to fail on violation."
+    required: false
+    default: false
+  upload-reports:
+    description: "Whether to upload all reports"
+    required: false
+    default: false
+  version:
+    description: "Elixir Version (Tag / SHA)"
+    required: true
+
+outputs:
+  results-path:
+    description: "See oss-review-toolkit/ort-ci-github-action action"
+    value: "${{ steps.ort.outputs.results-path }}"
+  results-sbom-cyclonedx-xml-path:
+    description: "See oss-review-toolkit/ort-ci-github-action action"
+    value: "${{ steps.ort.outputs.results-sbom-cyclonedx-xml-path }}"
+  results-sbom-cyclonedx-json-path:
+    description: "See oss-review-toolkit/ort-ci-github-action action"
+    value: "${{ steps.ort.outputs.results-sbom-cyclonedx-json-path }}"
+  results-sbom-spdx-yml-path:
+    description: "See oss-review-toolkit/ort-ci-github-action action"
+    value: "${{ steps.ort.outputs.results-sbom-spdx-yml-path }}"
+  results-sbom-spdx-json-path:
+    description: "See oss-review-toolkit/ort-ci-github-action action"
+    value: "${{ steps.ort.outputs.results-sbom-spdx-json-path }}"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Fetch Default ORT Config
+      id: fetch-default-ort-config
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      with:
+        repository: oss-review-toolkit/ort-config
+        ref: "main"
+        path: ".ort-config"
+
+    - name: Setup ORT Config
+      id: setup-ort-config
+      shell: bash
+      run: |
+        mkdir -p "/$HOME/.ort/"
+
+        # Move Fetched Default Config into Place
+        mv .ort-config "$HOME/.ort/config"
+        
+        # Append Global ORT Config
+        cat .ort/config/config.yml >> "$HOME/.ort/config/config.yml"
+        
+        # Override Default Evaluator Rules
+        cp .ort/config/evaluator.rules.kts "$HOME/.ort/config/evaluator.rules.kts"
+
+        # Set Version in SPDX & Config
+        sed -i "s/# elixir-version-insert/versionInfo: '${ELIXIR_VERSION}'/" project.spdx.yml
+        sed -i -E "s/(\"SpdxDocumentFile:The Elixir Team:.+:)\"/\1${ELIXIR_VERSION}\"/" .ort.yml
+        sed -i "s|https://github.com/elixir-lang/elixir.git|${ELIXIR_REPO}@${ELIXIR_VERSION}|" project.spdx.yml
+      env:
+        ELIXIR_VERSION: "${{ inputs.version }}"
+        ELIXIR_REPO: "${{ github.server_url }}/${{ github.repository }}.git"
+
+    - name: "Cache ScanCode"
+      uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
+      with:
+        path: "~/.cache/scancode-tk"
+        key: ${{ runner.os }}-scancode
+
+    - name: Run OSS Review Toolkit
+      id: ort
+      uses: oss-review-toolkit/ort-ci-github-action@1805edcf1f4f55f35ae6e4d2d9795ccfb29b6021 # v1.1.0
+      with:
+        image: ghcr.io/oss-review-toolkit/ort-minimal:54.0.0
+        run: >-
+          labels,
+          cache-dependencies,
+          cache-scan-results,
+          analyzer,
+          scanner,
+          advisor,
+          evaluator,
+          reporter,
+          ${{ inputs.upload-reports == 'true' && 'upload-results' || '' }}
+        fail-on: "${{ inputs.fail-on-violation == 'true' && 'violations,issues' || '' }}"
+        report-formats: "${{ inputs.report-formats }}"
+        ort-cli-report-args: >-
+          -O CycloneDX=output.file.formats=json,xml
+          -O SpdxDocument=outputFileFormats=JSON,YAML
+        sw-version: "${{ inputs.version }}"

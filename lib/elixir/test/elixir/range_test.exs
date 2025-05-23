@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule RangeTest do
@@ -5,8 +9,8 @@ defmodule RangeTest do
 
   doctest Range
 
-  defp reverse(first..last) do
-    last..first
+  defp reverse(first..last//step) do
+    last..first//-step
   end
 
   defp assert_disjoint(r1, r2) do
@@ -30,16 +34,19 @@ defmodule RangeTest do
 
   test "new" do
     assert Range.new(1, 3) == 1..3//1
-    assert Range.new(3, 1) == 3..1//-1
     assert Range.new(1, 3, 2) == 1..3//2
     assert Range.new(3, 1, -2) == 3..1//-2
+
+    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+             assert Range.new(3, 1) == 3..1//-1
+           end) =~ "default to a step of -1"
   end
 
   test "fields" do
     assert (1..3).first == 1
     assert (1..3).last == 3
     assert (1..3).step == 1
-    assert (3..1).step == -1
+    assert (3..1//-1).step == -1
     assert (1..3//2).step == 2
   end
 
@@ -47,7 +54,7 @@ defmodule RangeTest do
     assert inspect(1..3) == "1..3"
     assert inspect(1..3//2) == "1..3//2"
 
-    assert inspect(3..1) == "3..1//-1"
+    assert inspect(3..1//-1) == "3..1//-1"
     assert inspect(3..1//1) == "3..1//1"
   end
 
@@ -59,7 +66,7 @@ defmodule RangeTest do
 
   test "in guard equality" do
     case {1, 1..1} do
-      {n, range} when range == n..n -> true
+      {n, range} when range == n..n//1 -> true
     end
   end
 

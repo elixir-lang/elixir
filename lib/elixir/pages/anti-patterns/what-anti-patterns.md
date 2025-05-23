@@ -1,12 +1,19 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # What are anti-patterns?
 
-Anti-patterns describe common mistakes or indicators of potential problems in code.
+Anti-patterns describe common mistakes or indicators of problems in code.
 They are also known as "code smells".
 
-The goal of these guides is to document known anti-patterns found in Elixir software
-and teach developers how to identify and correct them. If an existing piece of code
-matches an anti-pattern, it does not mean your code must be rewritten. However, you
-should take its potential pitfalls and alternatives into consideration.
+The goal of these guides is to document potential anti-patterns found in Elixir software
+and teach developers how to identify them and their pitfalls. If an existing piece
+of code matches an anti-pattern, it does not mean your code must be rewritten.
+Sometimes, even if a snippet matches a potential anti-pattern and its limitations,
+it may be the best approach to the problem at hand. No codebase is free of anti-patterns
+and one should not aim to remove all of them.
 
 The anti-patterns in these guides are broken into 4 main categories:
 
@@ -34,5 +41,8 @@ Each anti-pattern is documented using the following structure:
   * **Refactoring:** Ways to change your code to improve its qualities. Examples of refactored
     code are presented to illustrate these changes.
 
-The initial catalog of anti-patterns was proposed by Lucas Vegi and Marco Tulio Valente, from [ASERG/DCC/UFMG](http://aserg.labsoft.dcc.ufmg.br/). For more info, see [Understanding Code Smells in Elixir Functional Language](https://github.com/lucasvegi/Elixir-Code-Smells/blob/main/etc/2023-emse-code-smells-elixir.pdf)
-and [the associated code repository](https://github.com/lucasvegi/Elixir-Code-Smells).
+An additional section with "Additional Remarks" may be provided. Those may include known scenarios where the anti-pattern does not apply.
+
+The initial catalog of anti-patterns was proposed by Lucas Vegi and Marco Tulio Valente, from [ASERG/DCC/UFMG](http://aserg.labsoft.dcc.ufmg.br/). For more info, see [Understanding Code Smells in Elixir Functional Language](https://github.com/lucasvegi/Elixir-Code-Smells/blob/main/etc/2023-emse-code-smells-elixir.pdf) and [the associated code repository](https://github.com/lucasvegi/Elixir-Code-Smells).
+
+Additionally, the Security Working Group of the [Erlang Ecosystem Foundation](https://security.erlef.org) publishes [documents with security resources and best-practices of both Erlang and Elixir, including detailed guides for web applications](https://security.erlef.org).

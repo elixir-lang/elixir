@@ -1,8 +1,18 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
+%% REUSE-IgnoreStart
+Header "%% SPDX-License-Identifier: Apache-2.0"
+"%% SPDX-FileCopyrightText: 2021 The Elixir Team"
+"%% SPDX-FileCopyrightText: 2012 Plataformatec".
+%% REUSE-IgnoreEnd
+
 Nonterminals
   grammar expr_list
   expr container_expr block_expr access_expr
   no_parens_expr no_parens_zero_expr no_parens_one_expr no_parens_one_ambig_expr
-  bracket_expr bracket_at_expr bracket_arg matched_expr unmatched_expr
+  bracket_expr bracket_at_expr bracket_arg matched_expr unmatched_expr sub_matched_expr
   unmatched_op_expr matched_op_expr no_parens_op_expr no_parens_many_expr
   comp_op_eol at_op_eol unary_op_eol and_op_eol or_op_eol capture_op_eol
   dual_op_eol mult_op_eol power_op_eol concat_op_eol xor_op_eol pipe_op_eol
@@ -12,8 +22,8 @@ Nonterminals
   list list_args open_bracket close_bracket
   tuple open_curly close_curly
   bitstring open_bit close_bit
-  map map_op map_close map_args struct_expr struct_op
-  assoc_op_eol assoc_expr assoc_base assoc_update assoc_update_kw assoc
+  map map_op map_base_expr map_close map_args
+  assoc_op_eol assoc_expr assoc_base assoc assoc_update assoc_update_kw
   container_args_base container_args
   call_args_parens_expr call_args_parens_base call_args_parens parens_call
   call_args_no_parens_one call_args_no_parens_ambig call_args_no_parens_expr
@@ -23,7 +33,7 @@ Nonterminals
   kw_eol kw_base kw_data kw_call call_args_no_parens_kw_expr call_args_no_parens_kw
   dot_op dot_alias dot_bracket_identifier dot_call_identifier
   dot_identifier dot_op_identifier dot_do_identifier dot_paren_identifier
-  do_block fn_eoe do_eoe end_eoe block_eoe block_item block_list
+  do_block fn_eoe do_eoe block_eoe block_item block_list
   .
 
 Terminals
@@ -32,7 +42,7 @@ Terminals
   fn 'end' alias
   atom atom_quoted atom_safe atom_unsafe bin_string list_string sigil
   bin_heredoc list_heredoc
-  comp_op at_op unary_op and_op or_op arrow_op match_op in_op in_match_op
+  comp_op at_op unary_op and_op or_op arrow_op match_op in_op in_match_op ellipsis_op
   type_op dual_op mult_op power_op concat_op range_op xor_op pipe_op stab_op when_op
   capture_int capture_op assoc_op rel_op ternary_op dot_call_op
   'true' 'false' 'nil' 'do' eol ';' ',' '.'
@@ -65,12 +75,13 @@ Right     60 type_op_eol.     %% ::
 Right     70 pipe_op_eol.     %% |
 Right     80 assoc_op_eol.    %% =>
 Nonassoc  90 capture_op_eol.  %% &
+Nonassoc  90 ellipsis_op.     %% ...
 Right    100 match_op_eol.    %% =
 Left     120 or_op_eol.       %% ||, |||, or
 Left     130 and_op_eol.      %% &&, &&&, and
 Left     140 comp_op_eol.     %% ==, !=, =~, ===, !==
 Left     150 rel_op_eol.      %% <, >, <=, >=
-Left     160 arrow_op_eol.    %% |>, <<<, >>>, <<~, ~>>, <~, ~>, <~>, <|>
+Left     160 arrow_op_eol.    %% <<<, >>>, |>, <<~, ~>>, <~, ~>, <~>, <|>
 Left     170 in_op_eol.       %% in, not in
 Left     180 xor_op_eol.      %% ^^^
 Right    190 ternary_op_eol.  %% //
@@ -90,8 +101,8 @@ Nonassoc 330 dot_identifier.
 grammar -> eoe : {'__block__', meta_from_token('$1'), []}.
 grammar -> expr_list : build_block(reverse('$1')).
 grammar -> eoe expr_list : build_block(reverse('$2')).
-grammar -> expr_list eoe : build_block(reverse('$1')).
-grammar -> eoe expr_list eoe : build_block(reverse('$2')).
+grammar -> expr_list eoe : build_block(reverse(annotate_eoe('$2', '$1'))).
+grammar -> eoe expr_list eoe : build_block(reverse(annotate_eoe('$3', '$2'))).
 grammar -> '$empty' : {'__block__', [], []}.
 
 % Note expressions are on reverse order
@@ -145,10 +156,9 @@ matched_expr -> matched_expr matched_op_expr : build_op('$1', '$2').
 matched_expr -> unary_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> at_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> capture_op_eol matched_expr : build_unary_op('$1', '$2').
+matched_expr -> ellipsis_op matched_expr : build_unary_op('$1', '$2').
 matched_expr -> no_parens_one_expr : '$1'.
-matched_expr -> no_parens_zero_expr : '$1'.
-matched_expr -> access_expr : '$1'.
-matched_expr -> access_expr kw_identifier : error_invalid_kw_identifier('$2').
+matched_expr -> sub_matched_expr : '$1'.
 
 unmatched_expr -> matched_expr unmatched_op_expr : build_op('$1', '$2').
 unmatched_expr -> unmatched_expr matched_op_expr : build_op('$1', '$2').
@@ -157,12 +167,14 @@ unmatched_expr -> unmatched_expr no_parens_op_expr : warn_no_parens_after_do_op(
 unmatched_expr -> unary_op_eol expr : build_unary_op('$1', '$2').
 unmatched_expr -> at_op_eol expr : build_unary_op('$1', '$2').
 unmatched_expr -> capture_op_eol expr : build_unary_op('$1', '$2').
+unmatched_expr -> ellipsis_op expr : build_unary_op('$1', '$2').
 unmatched_expr -> block_expr : '$1'.
 
 no_parens_expr -> matched_expr no_parens_op_expr : build_op('$1', '$2').
 no_parens_expr -> unary_op_eol no_parens_expr : build_unary_op('$1', '$2').
 no_parens_expr -> at_op_eol no_parens_expr : build_unary_op('$1', '$2').
 no_parens_expr -> capture_op_eol no_parens_expr : build_unary_op('$1', '$2').
+no_parens_expr -> ellipsis_op no_parens_expr : build_unary_op('$1', '$2').
 no_parens_expr -> no_parens_one_ambig_expr : '$1'.
 no_parens_expr -> no_parens_many_expr : '$1'.
 
@@ -190,6 +202,10 @@ matched_op_expr -> pipe_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> comp_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> rel_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> arrow_op_eol matched_expr : {'$1', '$2'}.
+
+%% We warn exclusively for |> and friends because they are used
+%% in other languages with lower precedence than function application,
+%% which can be the source of confusion.
 matched_op_expr -> arrow_op_eol no_parens_one_expr : warn_pipe('$1', '$2'), {'$1', '$2'}.
 
 unmatched_op_expr -> match_op_eol unmatched_expr : {'$1', '$2'}.
@@ -228,9 +244,7 @@ no_parens_op_expr -> when_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> pipe_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> comp_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> rel_op_eol no_parens_expr : {'$1', '$2'}.
-no_parens_op_expr -> arrow_op_eol no_parens_expr : {'$1', '$2'}.
-no_parens_op_expr -> arrow_op_eol no_parens_one_ambig_expr : warn_pipe('$1', '$2'), {'$1', '$2'}.
-no_parens_op_expr -> arrow_op_eol no_parens_many_expr : warn_pipe('$1', '$2'), {'$1', '$2'}.
+no_parens_op_expr -> arrow_op_eol no_parens_expr : warn_pipe('$1', '$2'), {'$1', '$2'}.
 
 %% Allow when (and only when) with keywords
 no_parens_op_expr -> when_op_eol call_args_no_parens_kw : {'$1', '$2'}.
@@ -243,8 +257,14 @@ no_parens_many_expr -> dot_identifier call_args_no_parens_many_strict : build_no
 
 no_parens_one_expr -> dot_op_identifier call_args_no_parens_one : build_no_parens('$1', '$2').
 no_parens_one_expr -> dot_identifier call_args_no_parens_one : build_no_parens('$1', '$2').
-no_parens_zero_expr -> dot_do_identifier : build_no_parens('$1', nil).
-no_parens_zero_expr -> dot_identifier : build_no_parens('$1', nil).
+no_parens_zero_expr -> dot_do_identifier : build_identifier('$1').
+no_parens_zero_expr -> dot_identifier : build_identifier('$1').
+
+sub_matched_expr -> no_parens_zero_expr : '$1'.
+sub_matched_expr -> range_op : build_nullary_op('$1').
+sub_matched_expr -> ellipsis_op : build_nullary_op('$1').
+sub_matched_expr -> access_expr : '$1'.
+sub_matched_expr -> access_expr kw_identifier : error_invalid_kw_identifier('$2').
 
 %% From this point on, we just have constructs that can be
 %% used with the access syntax. Note that (dot_)identifier
@@ -253,13 +273,11 @@ no_parens_zero_expr -> dot_identifier : build_no_parens('$1', nil).
 access_expr -> bracket_at_expr : '$1'.
 access_expr -> bracket_expr : '$1'.
 access_expr -> capture_int int : build_unary_op('$1', number_value('$2')).
-access_expr -> fn_eoe stab end_eoe : build_fn('$1', '$2', '$3').
-access_expr -> open_paren stab close_paren : build_paren_stab('$1', '$2', '$3').
-access_expr -> open_paren stab ';' close_paren : build_paren_stab('$1', '$2', '$4').
-access_expr -> open_paren ';' stab ';' close_paren : build_paren_stab('$1', '$3', '$5').
-access_expr -> open_paren ';' stab close_paren : build_paren_stab('$1', '$3', '$4').
+access_expr -> fn_eoe stab_eoe 'end' : build_fn('$1', '$2', '$3').
+access_expr -> open_paren stab_eoe ')' : build_paren_stab('$1', '$2', '$3').
+access_expr -> open_paren ';' stab_eoe ')' : build_paren_stab('$1', '$3', '$4').
 access_expr -> open_paren ';' close_paren : build_paren_stab('$1', [], '$3').
-access_expr -> empty_paren : warn_empty_paren('$1'), {'__block__', [], []}.
+access_expr -> empty_paren : warn_empty_paren('$1'), {'__block__', parens_meta('$1'), []}.
 access_expr -> int : handle_number(number_value('$1'), '$1', ?exprs('$1')).
 access_expr -> flt : handle_number(number_value('$1'), '$1', ?exprs('$1')).
 access_expr -> char : handle_number(?exprs('$1'), '$1', number_value('$1')).
@@ -275,13 +293,12 @@ access_expr -> bin_heredoc : build_bin_heredoc('$1').
 access_expr -> list_heredoc : build_list_heredoc('$1').
 access_expr -> bitstring : '$1'.
 access_expr -> sigil : build_sigil('$1').
-access_expr -> atom : handle_literal(?exprs('$1'), '$1').
-access_expr -> atom_quoted : handle_literal(?exprs('$1'), '$1', delimiter(<<$">>)).
-access_expr -> atom_safe : build_quoted_atom('$1', true, delimiter(<<$">>)).
-access_expr -> atom_unsafe : build_quoted_atom('$1', false, delimiter(<<$">>)).
+access_expr -> atom : handle_literal(?exprs('$1'), '$1', atom_colon_meta('$1')).
+access_expr -> atom_quoted : handle_literal(?exprs('$1'), '$1', atom_delimiter_meta('$1')).
+access_expr -> atom_safe : build_quoted_atom('$1', true, atom_delimiter_meta('$1')).
+access_expr -> atom_unsafe : build_quoted_atom('$1', false, atom_delimiter_meta('$1')).
 access_expr -> dot_alias : '$1'.
 access_expr -> parens_call : '$1'.
-access_expr -> range_op : build_nullary_op('$1').
 
 %% Also used by maps and structs
 parens_call -> dot_call_identifier call_args_parens : build_parens('$1', '$2', {[], []}).
@@ -292,19 +309,19 @@ bracket_arg -> open_bracket container_expr close_bracket : build_access_arg('$1'
 bracket_arg -> open_bracket container_expr ',' close_bracket : build_access_arg('$1', '$2', '$4').
 bracket_arg -> open_bracket container_expr ',' container_args close_bracket : error_too_many_access_syntax('$3').
 
-bracket_expr -> dot_bracket_identifier bracket_arg : build_access(build_no_parens('$1', nil), '$2').
+bracket_expr -> dot_bracket_identifier bracket_arg : build_access(build_identifier('$1'), meta_with_from_brackets('$2')).
 bracket_expr -> access_expr bracket_arg : build_access('$1', meta_with_from_brackets('$2')).
 
 bracket_at_expr -> at_op_eol dot_bracket_identifier bracket_arg :
-                     build_access(build_unary_op('$1', build_no_parens('$2', nil)), '$3').
+                     build_access(build_unary_op('$1', build_identifier('$2')), meta_with_from_brackets('$3')).
 bracket_at_expr -> at_op_eol access_expr bracket_arg :
-                     build_access(build_unary_op('$1', '$2'), '$3').
+                     build_access(build_unary_op('$1', '$2'), meta_with_from_brackets('$3')).
 
 %% Blocks
 
 do_block -> do_eoe 'end' :
               {do_end_meta('$1', '$2'), [[{handle_literal(do, '$1'), {'__block__', [], []}}]]}.
-do_block -> do_eoe stab end_eoe :
+do_block -> do_eoe stab_eoe 'end' :
               {do_end_meta('$1', '$3'), [[{handle_literal(do, '$1'), build_stab('$2')}]]}.
 do_block -> do_eoe block_list 'end' :
               {do_end_meta('$1', '$3'), [[{handle_literal(do, '$1'), {'__block__', [], []}} | '$2']]}.
@@ -321,9 +338,6 @@ fn_eoe -> 'fn' eoe : next_is_eol('$1', '$2').
 do_eoe -> 'do' : '$1'.
 do_eoe -> 'do' eoe : '$1'.
 
-end_eoe -> 'end' : '$1'.
-end_eoe -> eoe 'end' : '$2'.
-
 block_eoe -> block_identifier : '$1'.
 block_eoe -> block_identifier eoe : '$1'.
 
@@ -331,22 +345,22 @@ stab -> stab_expr : ['$1'].
 stab -> stab eoe stab_expr : ['$3' | annotate_eoe('$2', '$1')].
 
 stab_eoe -> stab : '$1'.
-stab_eoe -> stab eoe : '$1'.
+stab_eoe -> stab eoe : annotate_eoe('$2', '$1').
 
 stab_expr -> expr :
                '$1'.
 stab_expr -> stab_op_eol_and_expr :
                build_op([], '$1').
 stab_expr -> empty_paren stab_op_eol_and_expr :
-               build_op([], '$2').
+               build_op_with_meta([], '$2', parens_meta('$1')).
 stab_expr -> empty_paren when_op expr stab_op_eol_and_expr :
-               build_op([{'when', meta_from_token('$2'), ['$3']}], '$4').
+               build_op_with_meta([{'when', meta_from_token('$2'), ['$3']}], '$4', parens_meta('$1')).
 stab_expr -> call_args_no_parens_all stab_op_eol_and_expr :
                build_op(unwrap_when(unwrap_splice('$1')), '$2').
 stab_expr -> stab_parens_many stab_op_eol_and_expr :
-               build_op(unwrap_splice('$1'), '$2').
+               build_op_with_meta(unwrap_splice(element(2, '$1')), '$2', parens_meta('$1')).
 stab_expr -> stab_parens_many when_op expr stab_op_eol_and_expr :
-               build_op([{'when', meta_from_token('$2'), unwrap_splice('$1') ++ ['$3']}], '$4').
+               build_op_with_meta([{'when', meta_from_token('$2'), unwrap_splice(element(2, '$1')) ++ ['$3']}], '$4', parens_meta('$1')).
 
 stab_op_eol_and_expr -> stab_op_eol expr : {'$1', '$2'}.
 stab_op_eol_and_expr -> stab_op_eol : warn_empty_stab_clause('$1'), {'$1', handle_literal(nil, '$1')}.
@@ -366,7 +380,7 @@ open_paren -> '(' eol  : next_is_eol('$1', '$2').
 close_paren -> ')'     : '$1'.
 close_paren -> eol ')' : '$2'.
 
-empty_paren -> open_paren ')' : '$1'.
+empty_paren -> open_paren ')' : {'$1', '$2'}.
 
 open_bracket  -> '['     : '$1'.
 open_bracket  -> '[' eol : next_is_eol('$1', '$2').
@@ -511,8 +525,8 @@ call_args_no_parens_many_strict -> call_args_no_parens_many : '$1'.
 call_args_no_parens_many_strict -> open_paren call_args_no_parens_kw close_paren : error_no_parens_strict('$1').
 call_args_no_parens_many_strict -> open_paren call_args_no_parens_many close_paren : error_no_parens_strict('$1').
 
-stab_parens_many -> open_paren call_args_no_parens_kw close_paren : ['$2'].
-stab_parens_many -> open_paren call_args_no_parens_many close_paren : '$2'.
+stab_parens_many -> open_paren call_args_no_parens_kw close_paren : {'$1', ['$2'], '$3'}.
+stab_parens_many -> open_paren call_args_no_parens_many close_paren : {'$1', '$2', '$3'}.
 
 % Containers
 
@@ -549,12 +563,12 @@ call_args_parens -> open_paren call_args_parens_base ',' kw_call close_paren :
 
 % KV
 
-kw_eol -> kw_identifier : handle_literal(?exprs('$1'), '$1', [{format, keyword}]).
-kw_eol -> kw_identifier eol : handle_literal(?exprs('$1'), '$1', [{format, keyword}]).
-kw_eol -> kw_identifier_safe : build_quoted_atom('$1', true, [{format, keyword}]).
-kw_eol -> kw_identifier_safe eol : build_quoted_atom('$1', true, [{format, keyword}]).
-kw_eol -> kw_identifier_unsafe : build_quoted_atom('$1', false, [{format, keyword}]).
-kw_eol -> kw_identifier_unsafe eol : build_quoted_atom('$1', false, [{format, keyword}]).
+kw_eol -> kw_identifier : handle_literal(?exprs('$1'), '$1', kw_identifier_meta('$1')).
+kw_eol -> kw_identifier eol : handle_literal(?exprs('$1'), '$1', kw_identifier_meta('$1')).
+kw_eol -> kw_identifier_safe : build_quoted_atom('$1', true, kw_identifier_meta('$1')).
+kw_eol -> kw_identifier_safe eol : build_quoted_atom('$1', true, kw_identifier_meta('$1')).
+kw_eol -> kw_identifier_unsafe : build_quoted_atom('$1', false, kw_identifier_meta('$1')).
+kw_eol -> kw_identifier_unsafe eol : build_quoted_atom('$1', false, kw_identifier_meta('$1')).
 
 kw_base -> kw_eol container_expr : [{'$1', '$2'}].
 kw_base -> kw_base ',' kw_eol container_expr : [{'$3', '$4'} | '$1'].
@@ -587,27 +601,30 @@ list -> open_bracket list_args close_bracket : build_list('$1', '$2', '$3').
 % Tuple
 
 tuple -> open_curly '}' : build_tuple('$1', [], '$2').
-tuple -> open_curly kw_data '}' : bad_keyword('$1', tuple).
+tuple -> open_curly kw_data '}' : bad_keyword('$1', tuple, "'{'").
 tuple -> open_curly container_args close_curly :  build_tuple('$1', '$2', '$3').
 
 % Bitstrings
 
 bitstring -> open_bit '>>' : build_bit('$1', [], '$2').
-bitstring -> open_bit kw_data '>>' : bad_keyword('$1', bitstring).
+bitstring -> open_bit kw_data '>>' : bad_keyword('$1', bitstring, "'<<'").
 bitstring -> open_bit container_args close_bit : build_bit('$1', '$2', '$3').
 
 % Map and structs
 
+map_base_expr -> sub_matched_expr : '$1'.
+map_base_expr -> at_op_eol map_base_expr : build_unary_op('$1', '$2').
+map_base_expr -> unary_op_eol map_base_expr : build_unary_op('$1', '$2').
+map_base_expr -> ellipsis_op map_base_expr : build_unary_op('$1', '$2').
+
 assoc_op_eol -> assoc_op : '$1'.
 assoc_op_eol -> assoc_op eol : '$1'.
 
-assoc_expr -> matched_expr assoc_op_eol matched_expr : {'$1', '$3'}.
-assoc_expr -> unmatched_expr assoc_op_eol unmatched_expr : {'$1', '$3'}.
-assoc_expr -> matched_expr assoc_op_eol unmatched_expr : {'$1', '$3'}.
-assoc_expr -> unmatched_expr assoc_op_eol matched_expr : {'$1', '$3'}.
-assoc_expr -> dot_identifier : build_identifier('$1', nil).
-assoc_expr -> no_parens_one_expr : '$1'.
-assoc_expr -> parens_call : '$1'.
+assoc_expr -> matched_expr assoc_op_eol matched_expr : {with_assoc_meta('$1', '$2'), '$3'}.
+assoc_expr -> unmatched_expr assoc_op_eol unmatched_expr : {with_assoc_meta('$1', '$2'), '$3'}.
+assoc_expr -> matched_expr assoc_op_eol unmatched_expr : {with_assoc_meta('$1', '$2'), '$3'}.
+assoc_expr -> unmatched_expr assoc_op_eol matched_expr : {with_assoc_meta('$1', '$2'), '$3'}.
+assoc_expr -> map_base_expr : '$1'.
 
 assoc_update -> matched_expr pipe_op_eol assoc_expr : {'$2', '$1', ['$3']}.
 assoc_update -> unmatched_expr pipe_op_eol assoc_expr : {'$2', '$1', ['$3']}.
@@ -635,18 +652,9 @@ map_args -> open_curly assoc_update ',' close_curly : build_map_update('$1', '$2
 map_args -> open_curly assoc_update ',' map_close : build_map_update('$1', '$2', element(2, '$4'), element(1, '$4')).
 map_args -> open_curly assoc_update_kw close_curly : build_map_update('$1', '$2', '$3', []).
 
-struct_op -> '%' : '$1'.
-struct_expr -> atom : handle_literal(?exprs('$1'), '$1', []).
-struct_expr -> atom_quoted : handle_literal(?exprs('$1'), '$1', delimiter(<<$">>)).
-struct_expr -> dot_alias : '$1'.
-struct_expr -> dot_identifier : build_identifier('$1', nil).
-struct_expr -> at_op_eol struct_expr : build_unary_op('$1', '$2').
-struct_expr -> unary_op_eol struct_expr : build_unary_op('$1', '$2').
-struct_expr -> parens_call : '$1'.
-
 map -> map_op map_args : '$2'.
-map -> struct_op struct_expr map_args : {'%', meta_from_token('$1'), ['$2', '$3']}.
-map -> struct_op struct_expr eol map_args : {'%', meta_from_token('$1'), ['$2', '$4']}.
+map -> '%' map_base_expr map_args : {'%', meta_from_token('$1'), ['$2', '$3']}.
+map -> '%' map_base_expr eol map_args : {'%', meta_from_token('$1'), ['$2', '$4']}.
 
 Erlang code.
 
@@ -674,7 +682,7 @@ meta_from_location({Line, Column, _}) ->
 do_end_meta(Do, End) ->
   case ?token_metadata() of
     true ->
-      [{do, meta_from_location(?location(Do))}, {'end', meta_from_location(?location(End))}];
+      [{do, meta_from_token(Do)}, {'end', meta_from_token(End)}];
     false ->
       []
   end.
@@ -682,7 +690,7 @@ do_end_meta(Do, End) ->
 meta_from_token_with_closing(Begin, End) ->
   case ?token_metadata() of
     true ->
-      [{closing, meta_from_location(?location(End))} | meta_from_token(Begin)];
+      [{closing, meta_from_token(End)} | meta_from_token(Begin)];
     false ->
       meta_from_token(Begin)
   end.
@@ -720,6 +728,10 @@ number_value({_, {_, _, Value}, _}) ->
   Value.
 
 %% Operators
+
+build_op_with_meta(Left, {Op, Right}, Meta) ->
+  {Op1, OpMeta, Args} = build_op(Left, Op, Right),
+  {Op1, Meta ++ OpMeta, Args}.
 
 build_op(Left, {Op, Right}) ->
   build_op(Left, Op, Right).
@@ -780,19 +792,34 @@ build_map_update(Left, {Pipe, Struct, Map}, Right, Extra) ->
 
 %% Blocks
 
-build_block([{unquote_splicing, _, [_]}]=Exprs) ->
-  {'__block__', [], Exprs};
-build_block([Expr]) ->
+build_block(Exprs) -> build_block(Exprs, none).
+
+build_block([{unquote_splicing, _, [_]}]=Exprs, BeforeAfter) ->
+  {'__block__', block_meta(BeforeAfter), Exprs};
+build_block([{Op, ExprMeta, Args}], {Before, After}) ->
+  ExprMetaWithExtra =
+    case ?token_metadata() of
+      true ->
+        ParensEntry = meta_from_token(Before) ++ [{closing, meta_from_token(After)}],
+        [{parens, ParensEntry} | ExprMeta];
+      false ->
+        ExprMeta
+    end,
+  {Op, ExprMetaWithExtra, Args};
+build_block([Expr], _BeforeAfter) ->
   Expr;
-build_block(Exprs) ->
-  {'__block__', [], Exprs}.
+build_block(Exprs, BeforeAfter) ->
+  {'__block__', block_meta(BeforeAfter), Exprs}.
+
+block_meta(none) -> [];
+block_meta({Before, After}) -> meta_from_token_with_closing(Before, After).
 
 %% Newlines
 
 newlines_pair(Left, Right) ->
   case ?token_metadata() of
     true ->
-      newlines(?location(Left), [{closing, meta_from_location(?location(Right))}]);
+      newlines(?location(Left), [{closing, meta_from_token(Right)}]);
     false ->
       []
   end.
@@ -819,7 +846,7 @@ annotate_eoe(Token, Stack) ->
         {{_, Location}, [{'->', StabMeta, [StabArgs, {Left, Meta, Right}]} | Rest]} when is_list(Meta) ->
           [{'->', StabMeta, [StabArgs, {Left, [{end_of_expression, end_of_expression(Location)} | Meta], Right}]} | Rest];
 
-        {{_, Location}, [{Left, Meta, Right} | Rest]} when is_list(Meta) ->
+        {{_, Location}, [{Left, Meta, Right} | Rest]} when is_list(Meta), Left =/= '->' ->
           [{Left, [{end_of_expression, end_of_expression(Location)} | Meta], Right} | Rest];
 
         _ ->
@@ -869,8 +896,15 @@ build_dot_container(Dot, Left, Right, Extra) ->
 
 build_dot(Dot, Left, {_, Location, _} = Right) ->
   Meta = meta_from_token(Dot),
-  IdentifierLocation = meta_from_location(Location),
-  {'.', Meta, IdentifierLocation, [Left, extract_identifier(Right)]}.
+  IdentifierMeta0 = meta_from_location(Location),
+  IdentifierMeta1 =
+    case Location of
+      {_Line, _Column, Delimiter} when is_integer(Delimiter) ->
+        delimiter(<<Delimiter>>) ++ IdentifierMeta0;
+      _ ->
+        IdentifierMeta0
+    end,
+  {'.', Meta, IdentifierMeta1, [Left, extract_identifier(Right)]}.
 
 extract_identifier({Kind, _, Identifier}) when
     Kind == identifier; Kind == bracket_identifier; Kind == paren_identifier;
@@ -881,41 +915,41 @@ extract_identifier({Kind, _, Identifier}) when
 
 build_nested_parens(Dot, Args1, {Args2Meta, Args2}, {BlockMeta, Block}) ->
   Identifier = build_parens(Dot, Args1, {[], []}),
-  Meta = BlockMeta ++ Args2Meta ++ ?meta(Identifier),
+  %% Take line and column meta from the call target node
+  LocationMeta = lists:filter(fun({Key, _}) -> Key == line orelse Key == column end, ?meta(Identifier)),
+  Meta = BlockMeta ++ Args2Meta ++ LocationMeta,
   {Identifier, Meta, append_non_empty(Args2, Block)}.
 
 build_parens(Expr, {ArgsMeta, Args}, {BlockMeta, Block}) ->
-  {BuiltExpr, BuiltMeta, BuiltArgs} = build_identifier(Expr, append_non_empty(Args, Block)),
+  {BuiltExpr, BuiltMeta, BuiltArgs} = build_call(Expr, append_non_empty(Args, Block)),
   {BuiltExpr, BlockMeta ++ ArgsMeta ++ BuiltMeta, BuiltArgs}.
 
 build_no_parens_do_block(Expr, Args, {BlockMeta, Block}) ->
-  {BuiltExpr, BuiltMeta, BuiltArgs} = build_no_parens(Expr, Args ++ Block),
+  {BuiltExpr, BuiltMeta, BuiltArgs} = build_call(Expr, Args ++ Block),
   {BuiltExpr, BlockMeta ++ BuiltMeta, BuiltArgs}.
 
 build_no_parens(Expr, Args) ->
-  build_identifier(Expr, Args).
+  build_call(Expr, Args).
 
-build_identifier({'.', Meta, IdentifierLocation, DotArgs}, nil) ->
-  {{'.', Meta, DotArgs}, [{no_parens, true} | IdentifierLocation], []};
+build_identifier({'.', Meta, IdentifierMeta, DotArgs}) ->
+  {{'.', Meta, DotArgs}, [{no_parens, true} | IdentifierMeta], []};
 
-build_identifier({'.', Meta, IdentifierLocation, DotArgs}, Args) ->
-  {{'.', Meta, DotArgs}, IdentifierLocation, Args};
-
-build_identifier({'.', Meta, _} = Dot, nil) ->
+build_identifier({'.', Meta, _} = Dot) ->
   {Dot, [{no_parens, true} | Meta], []};
 
-build_identifier({'.', Meta, _} = Dot, Args) ->
+build_identifier({_, Location, Identifier}) ->
+  {Identifier, meta_from_location(Location), nil}.
+
+build_call({'.', Meta, IdentifierMeta, DotArgs}, Args) ->
+  {{'.', Meta, DotArgs}, IdentifierMeta, Args};
+
+build_call({'.', Meta, _} = Dot, Args) ->
   {Dot, Meta, Args};
 
-build_identifier({op_identifier, Location, Identifier}, [Arg]) ->
+build_call({op_identifier, Location, Identifier}, [Arg]) ->
   {Identifier, [{ambiguous_op, nil} | meta_from_location(Location)], [Arg]};
 
-%% TODO: Either remove ... or make it an operator on v2.0
-build_identifier({_, {Line, Column, _} = Location, '...'}, Args) when is_list(Args) ->
-  warn({Line, Column}, "... is no longer supported as a function call and it must receive no arguments"),
-  {'...', meta_from_location(Location), Args};
-
-build_identifier({_, Location, Identifier}, Args) ->
+build_call({_, Location, Identifier}, Args) ->
   {Identifier, meta_from_location(Location), Args}.
 
 %% Fn
@@ -1007,6 +1041,24 @@ build_quoted_atom({_, Location, Args}, Safe, ExtraMeta) ->
 binary_to_atom_op(true)  -> binary_to_existing_atom;
 binary_to_atom_op(false) -> binary_to_atom.
 
+atom_colon_meta({atom, _Location, Atom}) when Atom =:= true orelse Atom =:= false orelse Atom =:= nil ->
+  [{format, atom}];
+atom_colon_meta(_) ->
+  [].
+
+atom_delimiter_meta({_Kind, {_Line, _Column, Delimiter}, _Args}) ->
+  case ?token_metadata() of
+    true -> [{delimiter, <<Delimiter>>}];
+    false -> []
+  end.
+
+kw_identifier_meta({_Kind, {_Line, _Column, Delimiter}, _Args}) ->
+  Meta = [{format, keyword}],
+  case ?token_metadata() of
+    true when is_integer(Delimiter) -> [{delimiter, <<Delimiter>>} | Meta];
+    _ -> Meta
+  end.
+
 charlist_parts(Parts) ->
   [charlist_part(Part) || Part <- Parts].
 charlist_part(Binary) when is_binary(Binary) ->
@@ -1065,11 +1117,9 @@ build_stab(Stab) ->
 build_paren_stab(_Before, [{Op, _, [_]}]=Exprs, _After) when ?rearrange_uop(Op) ->
   {'__block__', [], Exprs};
 build_paren_stab(Before, Stab, After) ->
-  case build_stab(Stab) of
-    {'__block__', Meta, Block} ->
-      {'__block__', Meta ++ meta_from_token_with_closing(Before, After), Block};
-    Other ->
-      Other
+  case check_stab(Stab, none) of
+    block -> build_block(reverse(Stab), {Before, After});
+    stab -> handle_literal(collect_stab(Stab, [], []), Before, newlines_pair(Before, After))
   end.
 
 collect_stab([{'->', Meta, [Left, Right]} | T], Exprs, Stabs) ->
@@ -1102,6 +1152,27 @@ unwrap_when(Args) ->
       Args
   end.
 
+parens_meta({Open, Close}) ->
+  case ?token_metadata() of
+    true ->
+      ParensEntry = meta_from_token(Open) ++ [{closing, meta_from_token(Close)}],
+      [{parens, ParensEntry}];
+    false ->
+      []
+  end;
+parens_meta({Open, _Args, Close}) ->
+  parens_meta({Open, Close}).
+
+with_assoc_meta({Target, Meta, Args}, AssocToken) ->
+  case ?token_metadata() of
+    true ->
+      {Target, [{assoc, meta_from_token(AssocToken)} | Meta], Args};
+    false ->
+      {Target, Meta, Args}
+  end;
+
+with_assoc_meta(Left, _AssocToken) -> Left.
+
 %% Warnings and errors
 
 return_error({Line, Column, _}, ErrorMessage, ErrorToken) ->
@@ -1122,11 +1193,11 @@ error_bad_atom(Token) ->
     "If the '.' was meant to be part of the atom's name, "
     "the atom name must be quoted. Syntax error before: ", "'.'").
 
-bad_keyword(Token, Context) ->
+bad_keyword(Token, Context, StartString) ->
   return_error(?location(Token),
     "unexpected keyword list inside " ++ atom_to_list(Context) ++ ". "
     "Did you mean to write a map (using %{...}) or a list (using [...]) instead? "
-    "Syntax error after: ", "'{'").
+    "Syntax error after: ", StartString).
 
 maybe_bad_keyword_call_follow_up(_Token, KW, {'__cursor__', _, []} = Expr) ->
   reverse([Expr | KW]);
@@ -1253,7 +1324,7 @@ warn_nested_no_parens_keyword(Key, Value) when is_atom(Key) ->
 warn_nested_no_parens_keyword(_Key, _Value) ->
   ok.
 
-warn_empty_paren({_, {Line, Column, _}}) ->
+warn_empty_paren({{_, {Line, Column, _}}, _}) ->
   warn(
     {Line, Column},
     "invalid expression (). "

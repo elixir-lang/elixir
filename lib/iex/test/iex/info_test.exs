@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule IEx.InfoTest do
@@ -19,12 +23,17 @@ defmodule IEx.InfoTest do
     test "loaded module (without docs)" do
       info = Info.info(Foo)
       assert get_key(info, "Data type") == "Atom"
-      assert get_key(info, "Source") == Path.relative_to_cwd(__ENV__.file)
 
       assert get_key(info, "Description") ==
                "Call IEx.InfoTest.Foo.module_info() to access metadata."
 
       assert get_key(info, "Raw representation") == ~s(:"Elixir.IEx.InfoTest.Foo")
+    end
+
+    @tag :requires_source
+    test "loaded module (with source)" do
+      info = Info.info(Foo)
+      assert get_key(info, "Source") == Path.relative_to_cwd(__ENV__.file)
     end
 
     test "loaded module (with docs)" do
@@ -236,6 +245,12 @@ defmodule IEx.InfoTest do
     assert get_key(info, "Description")
     assert get_key(info, "Raw representation") == "%Range{first: 1, last: 10, step: 2}"
     assert get_key(info, "Reference modules") == "Range"
+  end
+
+  test "maps" do
+    info = Info.info(%{foo: "bar"})
+    assert get_key(info, "Data type") == "Map"
+    assert get_key(info, "Reference modules") == "Map"
   end
 
   test "structs" do

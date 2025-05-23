@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Kernel.GuardTest do
@@ -58,6 +62,18 @@ defmodule Kernel.GuardTest do
       assert MacrosInGuards.is_foobar(:foo)
       assert MacrosInGuards.is_foobar(:bar)
       refute MacrosInGuards.is_foobar(:baz)
+    end
+
+    defmodule UnquotedInGuardCall do
+      @value :foo
+
+      defguard unquote(String.to_atom("is_#{@value}"))(x) when x == unquote(@value)
+    end
+
+    test "guards names can be defined dynamically using unquote" do
+      require UnquotedInGuardCall
+      assert UnquotedInGuardCall.is_foo(:foo)
+      refute UnquotedInGuardCall.is_foo(:bar)
     end
 
     defmodule GuardsInGuards do
@@ -311,7 +327,7 @@ defmodule Kernel.GuardTest do
       end
 
       assert_compile_error(
-        "cannot invoke remote function :erlang\.is_record/2 inside guards",
+        "cannot invoke remote function :erlang\.is_record/2 inside a guard",
         fn ->
           defmodule IsRecord2Usage do
             defguard foo(rec) when :erlang.is_record(rec, :tag)
@@ -320,7 +336,7 @@ defmodule Kernel.GuardTest do
       )
 
       assert_compile_error(
-        "cannot invoke remote function :erlang\.is_record/3 inside guards",
+        "cannot invoke remote function :erlang\.is_record/3 inside a guard",
         fn ->
           defmodule IsRecord3Usage do
             defguard foo(rec) when :erlang.is_record(rec, :tag, 7)
@@ -329,7 +345,7 @@ defmodule Kernel.GuardTest do
       )
 
       assert_compile_error(
-        ~r"cannot invoke remote function :erlang\.\+\+/2 inside guards",
+        ~r"cannot invoke remote function :erlang\.\+\+/2 inside a guard",
         fn ->
           defmodule ListSubtractionUsage do
             defguard foo(list) when list ++ []
@@ -338,7 +354,7 @@ defmodule Kernel.GuardTest do
       )
 
       assert_compile_error(
-        "cannot invoke remote function :erlang\.\-\-/2 inside guards",
+        "cannot invoke remote function :erlang\.\-\-/2 inside a guard",
         fn ->
           defmodule ListSubtractionUsage do
             defguard foo(list) when list -- []
@@ -419,7 +435,7 @@ defmodule Kernel.GuardTest do
       end)
 
       assert_compile_error(
-        "cannot invoke remote function in guards. " <>
+        "cannot invoke remote function inside a guard. " <>
           "If you want to do a map lookup instead, please remove parens from map.field()",
         fn ->
           defmodule MapDot do
@@ -428,7 +444,7 @@ defmodule Kernel.GuardTest do
         end
       )
 
-      assert_compile_error("cannot invoke remote function Module.fun/0 inside guards", fn ->
+      assert_compile_error("cannot invoke remote function Module.fun/0 inside a guard", fn ->
         defmodule MapDot do
           def map_dot(map) when Module.fun(), do: true
         end

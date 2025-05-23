@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
+ort:
+  enableRepositoryPackageCurations: true
+
+  scanner:
+    skipConcluded: false
+    includeFilesWithoutFindings: true
+
+  analyzer:
+    allowDynamicVersions: true
+    enabledPackageManagers: [SpdxDocumentFile]
+    skipExcluded: true

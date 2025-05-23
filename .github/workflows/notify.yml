@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
 name: Notify
 
 on:
@@ -10,16 +13,16 @@ permissions:
 
 jobs:
   notify:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     name: Notify
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 50
-      - uses: erlef/setup-beam@v1
+      - uses: erlef/setup-beam@5304e04ea2b355f03681464e683d92e3b2f18451 # v1.18.2
         with:
-          otp-version: '25.0'
-          elixir-version: '1.14.0'
+          otp-version: "27.3"
+          elixir-version: "1.18.3"
       - name: Run Elixir script
         env:
           ELIXIR_FORUM_TOKEN: ${{ secrets.ELIXIR_FORUM_TOKEN }}

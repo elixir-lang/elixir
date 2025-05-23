@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
 defmodule Mix.Tasks.Test.Coverage do
   use Mix.Task
 
@@ -11,9 +14,9 @@ defmodule Mix.Tasks.Test.Coverage do
 
   ## Line coverage
 
-  Elixir uses Erlang's [`:cover`](https://www.erlang.org/doc/man/cover.html)
-  for its default test coverage. Erlang coverage is done by tracking
-  *executable lines of code*. This implies blank lines, code comments,
+  Elixir uses Erlang's [`:cover`](`:cover`) for its default test coverage.
+  Erlang coverage is done by tracking *executable lines of code*.
+  This implies blank lines, code comments,
   function signatures, and patterns are not necessarily executable and
   therefore won't be tracked in coverage reports. Code in macros are
   also often executed at compilation time, and therefore may not be covered.
@@ -265,7 +268,8 @@ defmodule Mix.Tasks.Test.Coverage do
     end
   end
 
-  defp generate_cover_results(opts) do
+  @doc false
+  def generate_cover_results(opts) do
     {:result, ok, _fail} = :cover.analyse(:coverage, :line)
     ignore = opts[:ignore_modules] || []
     modules = Enum.reject(:cover.modules(), &ignored?(&1, ignore))
@@ -288,9 +292,17 @@ defmodule Mix.Tasks.Test.Coverage do
     output = Keyword.get(opts, :output, "cover")
     File.mkdir_p!(output)
 
-    for mod <- modules do
-      {:ok, _} = :cover.analyse_to_file(mod, ~c"#{output}/#{mod}.html", [:html])
-    end
+    modules
+    |> Enum.map(fn mod ->
+      pid = :cover.async_analyse_to_file(mod, ~c"#{output}/#{mod}.html", [:html])
+      Process.monitor(pid)
+    end)
+    |> Enum.each(fn ref ->
+      receive do
+        {:DOWN, ^ref, :process, _pid, _reason} ->
+          :ok
+      end
+    end)
 
     Mix.shell().info("Generated HTML coverage results in #{inspect(output)} directory")
   end
@@ -348,11 +360,18 @@ defmodule Mix.Tasks.Test.Coverage do
 
   defp print_summary(results, totals, opts) when is_list(opts) do
     threshold = get_threshold(opts)
-    Mix.shell().info("Percentage | Module")
-    Mix.shell().info("-----------|--------------------------")
-    results |> Enum.sort() |> Enum.each(&display(&1, threshold))
-    Mix.shell().info("-----------|--------------------------")
-    display({totals, "Total"}, threshold)
+
+    results =
+      results |> Enum.sort() |> Enum.map(fn {coverage, module} -> {coverage, inspect(module)} end)
+
+    name_max_length = results |> Enum.map(&String.length(elem(&1, 1))) |> Enum.max() |> max(10)
+    name_separator = String.duplicate("-", name_max_length)
+
+    Mix.shell().info("| Percentage | #{String.pad_trailing("Module", name_max_length)} |")
+    Mix.shell().info("|------------|-#{name_separator}-|")
+    Enum.each(results, &display(&1, threshold, name_max_length))
+    Mix.shell().info("|------------|-#{name_separator}-|")
+    display({totals, "Total"}, threshold, name_max_length)
     Mix.shell().info("")
   end
 
@@ -363,14 +382,16 @@ defmodule Mix.Tasks.Test.Coverage do
     Mix.shell().info("")
   end
 
-  defp display({percentage, name}, threshold) do
+  defp display({percentage, name}, threshold, pad_length) do
     Mix.shell().info([
+      "| ",
       color(percentage, threshold),
       format_number(percentage, 9),
       "%",
       :reset,
       " | ",
-      format_name(name)
+      String.pad_trailing(name, pad_length),
+      " |"
     ])
   end
 
@@ -383,9 +404,6 @@ defmodule Mix.Tasks.Test.Coverage do
     do: format_number(number / 1, length)
 
   defp format_number(number, length), do: :io_lib.format("~#{length}.2f", [number])
-
-  defp format_name(name) when is_binary(name), do: name
-  defp format_name(mod) when is_atom(mod), do: inspect(mod)
 
   defp get_threshold(true), do: @default_threshold
   defp get_threshold(opts), do: Keyword.get(opts, :threshold, @default_threshold)

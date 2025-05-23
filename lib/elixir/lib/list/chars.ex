@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defprotocol List.Chars do
   @moduledoc ~S"""
   The `List.Chars` protocol is responsible for
@@ -58,6 +62,6 @@ end
 
 defimpl List.Chars, for: Float do
   def to_charlist(term) do
-    :io_lib_format.fwrite_g(term)
+    Float.to_charlist(term)
   end
 end

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Code.Normalizer.QuotedASTTest do
@@ -172,6 +175,20 @@ defmodule Code.Normalizer.QuotedASTTest do
              ) == ~s[~S"""\n"123"\n"""]
     end
 
+    test "regression: invalid sigil calls" do
+      assert quoted_to_string(quote do: sigil_r(<<"foo", 123>>, [])) ==
+               "sigil_r(<<\"foo\", 123>>, [])"
+
+      assert quoted_to_string(quote do: sigil_r(<<"foo">>, :invalid_modifiers)) ==
+               "sigil_r(\"foo\", :invalid_modifiers)"
+
+      assert quoted_to_string(quote do: sigil_r(<<"foo">>, [:invalid_modifier])) ==
+               "sigil_r(\"foo\", [:invalid_modifier])"
+
+      assert quoted_to_string(quote do: sigil_r(<<"foo">>, [])) == "~r\"foo\""
+      assert quoted_to_string(quote do: sigil_r(<<"foo">>, [?a, ?b, ?c])) == "~r\"foo\"abc"
+    end
+
     test "tuple" do
       assert quoted_to_string(quote do: {1, 2}) == "{1, 2}"
       assert quoted_to_string(quote do: {1}) == "{1}"
@@ -224,11 +241,6 @@ defmodule Code.Normalizer.QuotedASTTest do
       """
 
       assert quoted_to_string(quoted) <> "\n" == expected
-    end
-
-    test "invalid block" do
-      assert quoted_to_string({:__block__, [], {:bar, [], []}}) ==
-               "{:__block__, [], {:bar, [], []}}"
     end
 
     test "not in" do
@@ -396,12 +408,16 @@ defmodule Code.Normalizer.QuotedASTTest do
     end
 
     test "range" do
-      assert quoted_to_string(quote(do: unquote(-1..+2))) == "-1..2"
+      assert quoted_to_string(quote(do: -1..+2)) == "-1..+2"
       assert quoted_to_string(quote(do: Foo.integer()..3)) == "Foo.integer()..3"
-      assert quoted_to_string(quote(do: unquote(-1..+2//-3))) == "-1..2//-3"
+      assert quoted_to_string(quote(do: -1..+2//-3)) == "-1..+2//-3"
 
       assert quoted_to_string(quote(do: Foo.integer()..3//Bar.bat())) ==
                "Foo.integer()..3//Bar.bat()"
+
+      # invalid AST
+      assert quoted_to_string(-1..+2) == "-1..2"
+      assert quoted_to_string(-1..+2//-3) == "-1..2//-3"
     end
 
     test "when" do
@@ -533,6 +549,10 @@ defmodule Code.Normalizer.QuotedASTTest do
                "\e[34m[\e[0m\e[32ma:\e[0m \e[33m1\e[0m, \e[32mb:\e[0m \e[33m2\e[0m\e[34m]\e[0m"
     end
 
+    test "keyword list with :do as operand" do
+      assert quoted_to_string(quote(do: a = [do: 1])) == "a = [do: 1]"
+    end
+
     test "interpolation" do
       assert quoted_to_string(quote(do: "foo#{bar}baz")) == ~S["foo#{bar}baz"]
     end
@@ -616,6 +636,36 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(quote(do: foo |> [bar: :baz])) == "foo |> [bar: :baz]"
     end
 
+    test "keyword arg with cursor" do
+      input = "def foo, do: :bar, __cursor__()"
+      expected = "def foo, [{:do, :bar}, __cursor__()]"
+
+      ast = Code.string_to_quoted!(input)
+      assert quoted_to_string(ast) == expected
+
+      encoder = &{:ok, {:__block__, &2, [&1]}}
+      ast = Code.string_to_quoted!(input, literal_encoder: encoder)
+      assert quoted_to_string(ast) == expected
+
+      ast = Code.string_to_quoted!(input, token_metadata: true)
+      assert quoted_to_string(ast) == expected
+
+      ast = Code.string_to_quoted!(input, literal_encoder: encoder, token_metadata: true)
+      assert quoted_to_string(ast) == expected
+    end
+
+    test "keyword arg with literal encoder and no metadata" do
+      input = """
+      foo(Bar) do
+        :ok
+      end
+      """
+
+      encoder = &{:ok, {:__block__, &2, [&1]}}
+      ast = Code.string_to_quoted!(input, literal_encoder: encoder)
+      assert quoted_to_string(ast) == "foo(Bar, do: :ok)"
+    end
+
     test "list in module attribute" do
       assert quoted_to_string(
                quote do
@@ -682,28 +732,6 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(~c"\x00\x01\x10") == ~S/[0, 1, 16]/
     end
 
-    test "charlists with interpolations" do
-      # using string_to_quoted to avoid the formatter fixing the charlists
-
-      assert Code.string_to_quoted!(~S/'one #{2} three'/) |> quoted_to_string(escape: false) ==
-               ~S/~c"one #{2} three"/
-
-      assert Code.string_to_quoted!(~S/'one #{2} three'/) |> quoted_to_string() ==
-               ~S/~c"one #{2} three"/
-
-      assert Code.string_to_quoted!(~S/'one\n\'#{2}\'\nthree'/) |> quoted_to_string(escape: false) ==
-               ~s[~c"one\n'\#{2}'\nthree"]
-
-      assert Code.string_to_quoted!(~S/'one\n\'#{2}\'\nthree'/) |> quoted_to_string() ==
-               ~S[~c"one\n'#{2}'\nthree"]
-
-      assert Code.string_to_quoted!(~S/'one\n"#{2}"\nthree'/) |> quoted_to_string(escape: false) ==
-               ~s[~c"one\n\\"\#{2}\\"\nthree"]
-
-      assert Code.string_to_quoted!(~S/'one\n"#{2}"\nthree'/) |> quoted_to_string() ==
-               ~S[~c"one\n\"#{2}\"\nthree"]
-    end
-
     test "atoms" do
       assert quoted_to_string(quote(do: :"a\nb\tc"), escape: false) == ~s/:"a\nb\tc"/
       assert quoted_to_string(quote(do: :"a\nb\tc")) == ~S/:"a\nb\tc"/
@@ -747,6 +775,23 @@ defmodule Code.Normalizer.QuotedASTTest do
 
       assert quoted_to_string(quote(do: :erlang.binary_to_atom(<<1>>, :utf8))) ==
                ~S":erlang.binary_to_atom(<<1>>, :utf8)"
+    end
+  end
+
+  describe "quoted_to_algebra/2 with invalid" do
+    test "block" do
+      assert quoted_to_string({:__block__, [], {:bar, [], []}}) ==
+               "{:__block__, [], {:bar, [], []}}"
+
+      assert quoted_to_string({:foo, [], [{:do, :ok}, :not_keyword]}) ==
+               "foo({:do, :ok}, :not_keyword)"
+
+      assert quoted_to_string({:foo, [], [[{:do, :ok}, :not_keyword]]}) ==
+               "foo([{:do, :ok}, :not_keyword])"
+    end
+
+    test "ode" do
+      assert quoted_to_string(1..3) == "1..3"
     end
   end
 

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule ProtocolTest do
@@ -26,11 +30,12 @@ defmodule ProtocolTest do
   @with_any_binary with_any_binary
 
   defprotocol Derivable do
-    def ok(a)
-  end
+    @undefined_impl_description "you should try harder"
 
-  defimpl Derivable, for: Any do
-    defmacro __deriving__(module, struct, options) do
+    @impl true
+    defmacro __deriving__(module, options) do
+      struct = Macro.struct!(module, __CALLER__)
+
       quote do
         defimpl Derivable, for: unquote(module) do
           def ok(arg) do
@@ -40,6 +45,10 @@ defmodule ProtocolTest do
       end
     end
 
+    def ok(a)
+  end
+
+  defimpl Derivable, for: Any do
     def ok(arg) do
       {:ok, arg}
     end
@@ -101,22 +110,32 @@ defmodule ProtocolTest do
     assert Sample.impl_for(%ImplStruct{}) == Sample.ProtocolTest.ImplStruct
     assert Sample.impl_for(%ImplStructExplicitFor{}) == Sample.ProtocolTest.ImplStructExplicitFor
     assert Sample.impl_for(%NoImplStruct{}) == nil
+    assert is_nil(Sample.impl_for(%{__struct__: nil}))
   end
 
   test "protocol implementation with Any and struct fallbacks" do
     assert WithAny.impl_for(%NoImplStruct{}) == WithAny.Any
-    # Derived
-    assert WithAny.impl_for(%ImplStruct{}) == ProtocolTest.WithAny.ProtocolTest.ImplStruct
+    assert WithAny.impl_for(%{__struct__: nil}) == WithAny.Any
     assert WithAny.impl_for(%{__struct__: "foo"}) == WithAny.Map
     assert WithAny.impl_for(%{}) == WithAny.Map
     assert WithAny.impl_for(self()) == WithAny.Any
+
+    # Derived
+    assert WithAny.impl_for(%ImplStruct{}) == ProtocolTest.WithAny.ProtocolTest.ImplStruct
   end
 
   test "protocol not implemented" do
-    message = "protocol ProtocolTest.Sample not implemented for :foo of type Atom"
+    message =
+      """
+      protocol ProtocolTest.Sample not implemented for Atom
+
+      Got value:
+
+          :foo
+      """
 
     assert_raise Protocol.UndefinedError, message, fn ->
-      sample = Sample
+      sample = String.to_atom("Elixir.ProtocolTest.Sample")
       sample.ok(:foo)
     end
   end
@@ -133,6 +152,20 @@ defmodule ProtocolTest do
       end
     )
 
+    write_beam(
+      defimpl SampleDocsProto, for: List do
+        def ok(_), do: true
+      end
+    )
+
+    write_beam(
+      defimpl SampleDocsProto, for: Map do
+        @moduledoc "for map"
+
+        def ok(_), do: true
+      end
+    )
+
     {:docs_v1, _, _, _, _, _, docs} = Code.fetch_docs(SampleDocsProto)
 
     assert {{:type, :t, 0}, _, [], %{"en" => type_doc}, _} = List.keyfind(docs, {:type, :t, 0}, 0)
@@ -143,6 +176,10 @@ defmodule ProtocolTest do
 
     deprecated = SampleDocsProto.__info__(:deprecated)
     assert [{{:ok, 1}, "Reason"}] = deprecated
+
+    {:docs_v1, _, _, _, :hidden, _, _} = Code.fetch_docs(SampleDocsProto.List)
+    {:docs_v1, _, _, _, moduledoc, _, _} = Code.fetch_docs(SampleDocsProto.Map)
+    assert moduledoc == %{"en" => "for map"}
   end
 
   @compile {:no_warn_undefined, WithAll}
@@ -154,11 +191,15 @@ defmodule ProtocolTest do
   end
 
   test "protocol defines callbacks" do
-    assert [{:type, 13, :fun, args}] = get_callbacks(@sample_binary, :ok, 1)
-    assert args == [{:type, 13, :product, [{:user_type, 13, :t, []}]}, {:type, 13, :boolean, []}]
+    assert [{:type, {17, 13}, :fun, args}] = get_callbacks(@sample_binary, :ok, 1)
 
-    assert [{:type, 23, :fun, args}] = get_callbacks(@with_any_binary, :ok, 1)
-    assert args == [{:type, 23, :product, [{:user_type, 23, :t, []}]}, {:type, 23, :term, []}]
+    assert args == [
+             {:type, {17, 13}, :product, [{:user_type, {17, 16}, :t, []}]},
+             {:type, {17, 22}, :boolean, []}
+           ]
+
+    assert [{:type, 27, :fun, args}] = get_callbacks(@with_any_binary, :ok, 1)
+    assert args == [{:type, 27, :product, [{:user_type, 27, :t, []}]}, {:type, 27, :term, []}]
   end
 
   test "protocol defines t/0 type with documentation" do
@@ -254,10 +295,12 @@ defmodule ProtocolTest do
     struct = %ImplStruct{a: 1, b: 1}
     assert Derivable.ok(struct) == {:ok, struct, %ImplStruct{}, []}
 
-    assert_raise Protocol.UndefinedError, fn ->
-      struct = %NoImplStruct{a: 1, b: 1}
-      Derivable.ok(struct)
-    end
+    assert_raise Protocol.UndefinedError,
+                 ~r"protocol ProtocolTest.Derivable not implemented for ProtocolTest.NoImplStruct \(a struct\), you should try harder",
+                 fn ->
+                   struct = %NoImplStruct{a: 1, b: 1}
+                   Derivable.ok(struct)
+                 end
   end
 
   test "derives protocol explicitly with options" do
@@ -283,6 +326,7 @@ defmodule ProtocolTest do
     assert Derivable.ok(struct) == {:ok, struct, struct(InlineStruct), :oops}
   end
 
+  @tag :requires_source
   test "derived implementation keeps local file/line info" do
     assert ProtocolTest.WithAny.ProtocolTest.ImplStruct.__info__(:compile)[:source] ==
              String.to_charlist(__ENV__.file)

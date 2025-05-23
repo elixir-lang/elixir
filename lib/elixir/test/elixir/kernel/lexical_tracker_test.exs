@@ -1,9 +1,14 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Kernel.LexicalTrackerTest do
   use ExUnit.Case, async: true
 
   alias Kernel.LexicalTracker, as: D
+  defstruct used_by_tests: :ok
 
   setup do
     {:ok, pid} = D.start_link()
@@ -52,7 +57,6 @@ defmodule Kernel.LexicalTrackerTest do
   end
 
   test "can add aliases", config do
-    D.add_alias(config[:pid], String, 1, true)
     D.alias_dispatch(config[:pid], String)
     assert D.references(config[:pid]) == {[], [], [], []}
   end
@@ -93,18 +97,19 @@ defmodule Kernel.LexicalTrackerTest do
   end
 
   test "unused aliases", config do
-    D.add_alias(config[:pid], String, 1, true)
-    assert D.collect_unused_aliases(config[:pid]) == [{String, 1}]
+    D.warn_alias(config[:pid], [], String, String)
+    assert D.collect_unused_aliases(config[:pid]) == [{String, []}]
   end
 
   test "used aliases are not unused", config do
-    D.add_alias(config[:pid], String, 1, true)
+    D.warn_alias(config[:pid], [], String, String)
     D.alias_dispatch(config[:pid], String)
     assert D.collect_unused_aliases(config[:pid]) == []
   end
 
-  test "aliases with no warn are not unused", config do
-    D.add_alias(config[:pid], String, 1, false)
+  test "used aliases are not unused in reverse order", config do
+    D.alias_dispatch(config[:pid], String)
+    D.warn_alias(config[:pid], [], String, String)
     assert D.collect_unused_aliases(config[:pid]) == []
   end
 
@@ -411,7 +416,7 @@ defmodule Kernel.LexicalTrackerTest do
       assert URI in runtime
     end
 
-    test "Macro.struct! adds an export dependency" do
+    test "Macro.struct_info! adds an export dependency" do
       {{compile, exports, runtime, _}, _binding} =
         Code.eval_string("""
         defmodule Kernel.LexicalTrackerTest.MacroStruct do
@@ -420,7 +425,7 @@ defmodule Kernel.LexicalTrackerTest do
           # mechanism to make this expansion become a compile-time one.
           # However, in some cases, such as typespecs, we don't necessarily
           # want the compile-time dependency to happen.
-          Macro.struct!(:"Elixir.URI", __ENV__)
+          Macro.struct_info!(:"Elixir.URI", __ENV__)
           Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
         end |> elem(3)
         """)
@@ -453,7 +458,7 @@ defmodule Kernel.LexicalTrackerTest do
         Code.eval_string("""
         defmodule Kernel.LexicalTrackerTest.PatternGuardsCompile do
           %URI{} = URI.parse("/")
-          case 1..3 do
+          case Range.new(1, 3) do
             range when is_struct(range, Range) -> :ok
           end
           Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
@@ -501,12 +506,12 @@ defmodule Kernel.LexicalTrackerTest do
       {{compile, exports, runtime, _}, _binding} =
         Code.eval_string("""
         defmodule Kernel.LexicalTrackerTest.Defmacro do
-          defmacro uri() do
-            Macro.escape(URI.parse("/hello"))
+          defmacro uri(path) do
+            Macro.escape(URI.parse(path))
           end
 
           def fun() do
-            uri()
+            uri("/hello")
           end
 
           Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
@@ -516,6 +521,73 @@ defmodule Kernel.LexicalTrackerTest do
       assert URI in compile
       refute URI in exports
       refute URI in runtime
+    end
+
+    test "imported functions from quote adds dependencies" do
+      {{compile, exports, runtime, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.QuotedFun do
+          import URI
+
+          defmacro parse_root() do
+            quote do
+              parse("/")
+            end
+          end
+        end
+
+        defmodule Kernel.LexicalTrackerTest.UsingQuotedFun do
+          require Kernel.LexicalTrackerTest.QuotedFun, as: QF
+          QF.parse_root()
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      assert URI in compile
+      refute URI in exports
+      refute URI in runtime
+    end
+
+    test "imported macro from quote adds dependencies" do
+      {{compile, exports, runtime, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.QuotedMacro do
+          import Config
+
+          defmacro config_env() do
+            quote do
+              config_env()
+            end
+          end
+        end
+
+        defmodule Kernel.LexicalTrackerTest.UsingQuotedMacro do
+          require Kernel.LexicalTrackerTest.QuotedMacro, as: QM
+          def fun(), do: QM.config_env()
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      assert Config in compile
+      refute Config in exports
+      refute Config in runtime
+    end
+
+    test "defimpl does not add dependencies on for only on impl" do
+      {{compile, exports, runtime, _}, _binding} =
+        Code.eval_string("""
+        defimpl String.Chars, for: Kernel.LexicalTrackerTest do
+          def to_string(val), do: val.used_by_tests
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      refute String.Chars in compile
+      assert String.Chars in exports
+
+      refute Kernel.LexicalTrackerTest in compile
+      refute Kernel.LexicalTrackerTest in exports
+      refute Kernel.LexicalTrackerTest in runtime
     end
   end
 end

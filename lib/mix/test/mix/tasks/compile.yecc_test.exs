@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.Compile.YeccTest do
@@ -26,6 +30,7 @@ defmodule Mix.Tasks.Compile.YeccTest do
         assert %Mix.Task.Compiler.Diagnostic{
                  compiler_name: "yecc",
                  file: ^file,
+                 source: ^file,
                  message: message,
                  position: position(1, 5),
                  severity: :error
@@ -56,6 +61,7 @@ defmodule Mix.Tasks.Compile.YeccTest do
         assert %Mix.Task.Compiler.Diagnostic{
                  compiler_name: "yecc",
                  file: ^file,
+                 source: ^file,
                  message: "conflicts: 1 shift/reduce, 0 reduce/reduce",
                  position: 0,
                  severity: :warning
@@ -73,6 +79,7 @@ defmodule Mix.Tasks.Compile.YeccTest do
         assert %Mix.Task.Compiler.Diagnostic{
                  compiler_name: "yecc",
                  file: ^file,
+                 source: ^file,
                  message: "conflicts: 1 shift/reduce, 0 reduce/reduce",
                  position: 0,
                  severity: :warning

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Port do
   @moduledoc ~S"""
   Functions for interacting with the external world through ports.
@@ -16,7 +20,7 @@ defmodule Port do
       iex> send(port, {self(), :close})
       :ok
       iex> flush()
-      {#Port<0.1464>, :closed}
+      {#Port<0.1444>, :closed}
       :ok
 
   In the example above, we have created a new port that executes the
@@ -79,6 +83,27 @@ defmodule Port do
   are for advanced usage within the VM. Also consider using `System.cmd/3`
   if all you want is to execute a program and retrieve its return value.
 
+  > #### Windows argument splitting and untrusted arguments {: .warning}
+  >
+  > On Unix systems, arguments are passed to a new operating system
+  > process as an array of strings but on Windows it is up to the child
+  > process to parse them and some Windows programs may apply their own
+  > rules, which are inconsistent with the standard C runtime `argv` parsing
+  >
+  > This is particularly troublesome when invoking `.bat` or `.com` files
+  > as these run implicitly through `cmd.exe`, whose argument parsing is
+  > vulnerable to malicious input and can be used to run arbitrary shell
+  > commands.
+  >
+  > Therefore, if you are running on Windows and you execute batch
+  > files or `.com` applications, you must not pass untrusted input as
+  > arguments to the program. You may avoid accidentally executing them
+  > by explicitly passing the extension of the program you want to run,
+  > such as `.exe`, and double check the program is indeed not a batch
+  > file or `.com` application.
+  >
+  > This affects both `spawn` and `spawn_executable`.
+
   ### spawn
 
   The `:spawn` tuple receives a binary that is going to be executed as a
@@ -117,22 +142,22 @@ defmodule Port do
   reimplementing core part of the Runtime System, such as the `:user` and
   `:shell` processes.
 
-  ## Zombie operating system processes
+  ## Orphan operating system processes
 
   A port can be closed via the `close/1` function or by sending a `{pid, :close}`
   message. However, if the VM crashes, a long-running program started by the port
   will have its stdin and stdout channels closed but **it won't be automatically
   terminated**.
 
-  While most Unix command line tools will exit once its communication channels
-  are closed, not all command line applications will do so. You can easily check
+  While some Unix command line tools will exit once its parent process
+  terminates, not all command line applications will do so. You can easily check
   this by starting the port and then shutting down the VM and inspecting your
   operating system to see if the port process is still running.
 
-  While we encourage graceful termination by detecting if stdin/stdout has been
-  closed, we do not always have control over how third-party software terminates.
-  In those cases, you can wrap the application in a script that checks for stdin.
-  Here is such script that has been verified to work on bash shells:
+  We do not always have control over how third-party software terminates.
+  If necessary, one workaround is to wrap the child application in a script that
+  checks whether stdin has been closed.  Here is such a script that has been
+  verified to work on bash shells:
 
       #!/usr/bin/env bash
 

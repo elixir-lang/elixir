@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule ExUnit.CallbacksTest do
@@ -102,7 +106,7 @@ defmodule ExUnit.CallbacksTest do
     end
 
     assert capture_io(fn -> ExUnit.run() end) =~
-             "** (MatchError) no match of right hand side value: :error"
+             "** (MatchError) no match of right hand side value:"
   end
 
   test "doesn't choke on setup_all errors" do
@@ -121,7 +125,7 @@ defmodule ExUnit.CallbacksTest do
     end
 
     assert capture_io(fn -> ExUnit.run() end) =~
-             "** (MatchError) no match of right hand side value: :error"
+             "** (MatchError) no match of right hand side value:"
   end
 
   test "doesn't choke on setup_all exits" do
@@ -171,7 +175,7 @@ defmodule ExUnit.CallbacksTest do
     end
 
     assert capture_io(fn -> ExUnit.run() end) =~
-             "** (MatchError) no match of right hand side value: :error"
+             "** (MatchError) no match of right hand side value:"
   end
 
   test "doesn't choke when on_exit exits" do
@@ -394,7 +398,7 @@ defmodule ExUnit.CallbacksTest do
 
     assert output =~
              "** (RuntimeError) expected ExUnit setup callback in " <>
-               "ExUnit.CallbacksTest.SetupErrorTest to return :ok | keyword | map, " <>
+               "ExUnit.CallbacksTest.SetupErrorTest to return the atom :ok, a keyword, or a map, " <>
                "got {:ok, \"foo\"} instead"
 
     # Make sure that at least the right file where the setup/setup_all call is defined is included
@@ -414,7 +418,7 @@ defmodule ExUnit.CallbacksTest do
 
     assert output =~
              "** (RuntimeError) expected ExUnit setup_all callback in " <>
-               "ExUnit.CallbacksTest.SetupAllErrorTest to return :ok | keyword | map, " <>
+               "ExUnit.CallbacksTest.SetupAllErrorTest to return the atom :ok, a keyword, or a map, " <>
                "got {:ok, \"foo\"} instead"
 
     # Make sure that at least the right file where the setup/setup_all call is defined is included
@@ -446,10 +450,14 @@ defmodule ExUnit.CallbacksNoTests do
   use ExUnit.Case, async: true
 
   setup_all do
-    raise "never run"
+    if :rand.uniform() >= 0 do
+      raise "never run"
+    end
   end
 
   setup do
-    raise "never run"
+    if :rand.uniform() >= 0 do
+      raise "never run"
+    end
   end
 end

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
 defmodule Logger.Backends.Internal do
   @moduledoc false
 
@@ -98,7 +101,7 @@ defmodule Logger.Backends.Internal do
   ## Supervisor callbacks
 
   defp ensure_started() do
-    unless Process.whereis(@name) do
+    if !Process.whereis(@name) do
       Supervisor.start_child(Logger.Supervisor, __MODULE__)
     end
 

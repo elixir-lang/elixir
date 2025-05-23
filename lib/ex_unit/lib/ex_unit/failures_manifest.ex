@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule ExUnit.FailuresManifest do
   @moduledoc false
 
@@ -7,20 +11,6 @@ defmodule ExUnit.FailuresManifest do
 
   @spec new() :: t
   def new, do: %{}
-
-  @spec files_with_failures(t) :: MapSet.t(Path.t())
-  def files_with_failures(%{} = manifest) do
-    manifest
-    |> Map.values()
-    |> MapSet.new()
-  end
-
-  @spec failed_test_ids(t) :: MapSet.t(ExUnit.test_id())
-  def failed_test_ids(%{} = manifest) do
-    manifest
-    |> Map.keys()
-    |> MapSet.new()
-  end
 
   @spec put_test(t, ExUnit.Test.t()) :: t
   def put_test(%{} = manifest, %ExUnit.Test{state: {ignored_state, _}})
@@ -44,21 +34,43 @@ defmodule ExUnit.FailuresManifest do
     File.write!(file, binary)
   end
 
+  @spec fail_all!(Path.t()) :: :ok
+  def fail_all!(file) when is_binary(file) do
+    binary = :erlang.term_to_binary({@manifest_vsn, :all})
+    Path.dirname(file) |> File.mkdir_p!()
+    File.write!(file, binary)
+  end
+
   @spec read(Path.t()) :: t
   def read(file) when is_binary(file) do
     with {:ok, binary} <- File.read(file),
-         {:ok, {@manifest_vsn, manifest}} when is_map(manifest) <- safe_binary_to_term(binary) do
+         {:ok, {@manifest_vsn, %{} = manifest}} <- safe_binary_to_term(binary) do
       manifest
     else
       _ -> new()
     end
   end
 
+  @spec info(Path.t()) :: {MapSet.t(Path.t()), MapSet.t(ExUnit.test_id())} | :all
+  def info(file) when is_binary(file) do
+    with {:ok, binary} <- File.read(file),
+         {:ok, {@manifest_vsn, manifest}} <- safe_binary_to_term(binary) do
+      case manifest do
+        :all ->
+          :all
+
+        %{} ->
+          {manifest |> Map.values() |> MapSet.new(), manifest |> Map.keys() |> MapSet.new()}
+      end
+    else
+      _ -> {MapSet.new(), MapSet.new()}
+    end
+  end
+
   defp safe_binary_to_term(binary) do
     {:ok, :erlang.binary_to_term(binary)}
   rescue
-    ArgumentError ->
-      :error
+    ArgumentError -> :error
   end
 
   defp prune_deleted_tests(manifest) do

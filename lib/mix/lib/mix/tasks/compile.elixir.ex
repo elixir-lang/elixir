@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Tasks.Compile.Elixir do
   use Mix.Task.Compiler
 
@@ -10,7 +14,9 @@ defmodule Mix.Tasks.Compile.Elixir do
   Elixir is smart enough to recompile only files that have changed
   and their dependencies. This means if `lib/a.ex` is invoking
   a function defined over `lib/b.ex` at compile time, whenever
-  `lib/b.ex` changes, `lib/a.ex` is also recompiled.
+  `lib/b.ex` changes, `lib/a.ex` is also recompiled. More details
+  about dependencies between files can be found in the documentation
+  of [`mix xref`](`Mix.Tasks.Xref`).
 
   Note Elixir considers a file as changed if its source file has
   changed on disk since the last compilation AND its contents are
@@ -62,13 +68,16 @@ defmodule Mix.Tasks.Compile.Elixir do
     * `--ignore-module-conflict` - does not emit warnings if a module was previously defined
     * `--long-compilation-threshold N` - sets the "long compilation" threshold
       (in seconds) to `N` (see the docs for `Kernel.ParallelCompiler.compile/2`)
+    * `--long-verification-threshold N` - sets the "long verification" threshold
+      (in seconds) to `N` (see the docs for `Kernel.ParallelCompiler.compile/2`)
+    * `--no-verification` - disables code verification, such as unused functions,
+      deprecation warnings, and type checking. It must be used alongside `MIX_DEBUG=1`
     * `--purge-consolidation-path-if-stale PATH` - deletes and purges modules in the
       given protocol consolidation path if compilation is required
     * `--profile` - if set to `time`, outputs timing information of compilation steps
     * `--tracer` - adds a compiler tracer in addition to any specified in the `mix.exs` file
     * `--verbose` - prints each file being compiled
-    * `--warnings-as-errors` - treats warnings in the current project as errors and
-      return a non-zero exit status
+    * `--warnings-as-errors` - exit with non-zero status if compilation has one or more warnings
 
   ## Configuration
 
@@ -76,9 +85,9 @@ defmodule Mix.Tasks.Compile.Elixir do
       Defaults to `["lib"]`.
 
     * `:elixirc_options` - compilation options that apply to Elixir's compiler.
-      See `Code.put_compiler_option/2` for a complete list of options. These
-      options are often overridable from the command line using the switches
-      above.
+      It supports many of the options above  plus the options listed in
+      `Code.put_compiler_option/2`. In case conflicting options are given,
+      the ones given through the command line are used.
 
     * `[xref: [exclude: ...]]` - a list of `module` or `{module, function, arity}`
       that should not be warned on in case on undefined modules or undefined
@@ -89,14 +98,17 @@ defmodule Mix.Tasks.Compile.Elixir do
   @switches [
     force: :boolean,
     docs: :boolean,
+    consolidate_protocols: :boolean,
     warnings_as_errors: :boolean,
     ignore_module_conflict: :boolean,
     debug_info: :boolean,
     verbose: :boolean,
     long_compilation_threshold: :integer,
+    long_verification_threshold: :integer,
     purge_consolidation_path_if_stale: :string,
     profile: :string,
     all_warnings: :boolean,
+    verification: :boolean,
     tracer: :keep
   ]
 
@@ -109,7 +121,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     dest = Mix.Project.compile_path(project)
     srcs = project[:elixirc_paths]
 
-    unless is_list(srcs) do
+    if not is_list(srcs) do
       Mix.raise(":elixirc_paths should be a list of paths, got: #{inspect(srcs)}")
     end
 
@@ -123,19 +135,29 @@ defmodule Mix.Tasks.Compile.Elixir do
       |> tracers_opts(tracers)
       |> profile_opts()
 
+    opts =
+      if "--no-protocol-consolidation" in args do
+        # TODO: Deprecate me on Elixir v1.23
+        Keyword.put(opts, :consolidate_protocols, false)
+      else
+        opts ++ Keyword.take(project, [:consolidate_protocols])
+      end
+
     # Having compilations racing with other is most undesired,
-    # so we wrap the compiler in a lock. Ideally we would use
-    # flock in the future.
-    Mix.State.lock(__MODULE__, fn ->
-      Mix.Compilers.Elixir.compile(
-        manifest,
-        srcs,
-        dest,
-        cache_key,
-        Mix.Tasks.Compile.Erlang.manifests(),
-        Mix.Tasks.Compile.Erlang.modules(),
-        opts
-      )
+    # so we wrap the compiler in a lock.
+
+    with_logger_app(project, fn ->
+      Mix.Project.with_build_lock(project, fn ->
+        Mix.Compilers.Elixir.compile(
+          manifest,
+          srcs,
+          dest,
+          cache_key,
+          Mix.Tasks.Compile.Erlang.manifests(),
+          Mix.Tasks.Compile.Erlang.modules(),
+          opts
+        )
+      end)
     end)
   end
 
@@ -144,9 +166,27 @@ defmodule Mix.Tasks.Compile.Elixir do
   defp manifest, do: Path.join(Mix.Project.manifest_path(), @manifest)
 
   @impl true
+  def diagnostics do
+    Mix.Compilers.Elixir.diagnostics(manifest())
+  end
+
+  @impl true
   def clean do
     dest = Mix.Project.compile_path()
     Mix.Compilers.Elixir.clean(manifest(), dest)
+  end
+
+  # Run this operation in compile.elixir as the compiler can be called directly
+  defp with_logger_app(config, fun) do
+    app = Keyword.fetch!(config, :app)
+    logger_config_app = Application.get_env(:logger, :compile_time_application)
+
+    try do
+      Application.put_env(:logger, :compile_time_application, app)
+      fun.()
+    after
+      Application.put_env(:logger, :compile_time_application, logger_config_app)
+    end
   end
 
   defp xref_exclude_opts(opts, project) do

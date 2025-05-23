@@ -1,17 +1,21 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Kernel.BinaryTest do
   use ExUnit.Case, async: true
 
   test "heredoc" do
-    assert 7 == __ENV__.line
+    assert 11 == __ENV__.line
 
     assert "foo\nbar\n" == """
            foo
            bar
            """
 
-    assert 14 == __ENV__.line
+    assert 18 == __ENV__.line
 
     assert "foo\nbar \"\"\"\n" == """
            foo
@@ -27,11 +31,11 @@ defmodule Kernel.BinaryTest do
   end
 
   test "heredoc with interpolation" do
-    assert "31\n" == """
+    assert "35\n" == """
            #{__ENV__.line}
            """
 
-    assert "\n36\n" == """
+    assert "\n40\n" == """
 
            #{__ENV__.line}
            """
@@ -119,7 +123,7 @@ defmodule Kernel.BinaryTest do
       Code.eval_string(~s["foo" <> 1])
     end
 
-    message = ~r"left argument of <> operator inside a match"
+    message = ~r"cannot perform prefix match because the left operand of <> has unknown size."
 
     assert_raise ArgumentError, message, fn ->
       Code.eval_string(~s[a <> "b" = "ab"])
@@ -127,20 +131,6 @@ defmodule Kernel.BinaryTest do
 
     assert_raise ArgumentError, message, fn ->
       Code.eval_string(~s["a" <> b <> "c" = "abc"])
-    end
-
-    assert_raise ArgumentError, message, fn ->
-      Code.eval_string(~s[
-        a = "a"
-        ^a <> "b" = "ab"
-      ])
-    end
-
-    assert_raise ArgumentError, message, fn ->
-      Code.eval_string(~s[
-        b = "b"
-        "a" <> ^b <> "c" = "abc"
-      ])
     end
   end
 
@@ -206,12 +196,6 @@ defmodule Kernel.BinaryTest do
     assert_compile_error(message, fn ->
       Code.eval_string(~s[<<"foo"::float>>])
     end)
-
-    message = "invalid literal ~c\"foo\""
-
-    assert_compile_error(message, fn ->
-      Code.eval_string(~s[<<'foo'::binary>>])
-    end)
   end
 
   @bitstring <<"foo", 16::4>>
@@ -267,6 +251,34 @@ defmodule Kernel.BinaryTest do
 
     foo = %{bar: 5}
     assert <<1::size((^foo).bar)>> = <<1::5>>
+  end
+
+  test "bitsyntax size with pinned integer" do
+    a = 1
+    b = <<2, 3>>
+    assert <<^a, ^b::binary>> = <<1, 2, 3>>
+  end
+
+  test "automatic size computation of matched bitsyntax variable" do
+    var = "foo"
+    <<^var::binary, rest::binary>> = "foobar"
+    assert rest == "bar"
+
+    <<^var::bytes, rest::bytes>> = "foobar"
+    assert rest == "bar"
+
+    ^var <> rest = "foobar"
+    assert rest == "bar"
+
+    var = <<0, 1>>
+    <<^var::bitstring, rest::bitstring>> = <<0, 1, 2, 3>>
+    assert rest == <<2, 3>>
+
+    <<^var::bits, rest::bits>> = <<0, 1, 2, 3>>
+    assert rest == <<2, 3>>
+
+    ^var <> rest = <<0, 1, 2, 3>>
+    assert rest == <<2, 3>>
   end
 
   defmacro signed_16 do

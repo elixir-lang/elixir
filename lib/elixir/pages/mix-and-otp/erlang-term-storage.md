@@ -1,4 +1,9 @@
-# ETS
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
+# Speeding up with ETS
 
 Every time we need to look up a bucket, we need to send a message to the registry. In case our registry is being accessed concurrently by multiple processes, the registry may become a bottleneck!
 
@@ -8,7 +13,7 @@ In this chapter, we will learn about ETS (Erlang Term Storage) and how to use it
 
 ## ETS as a cache
 
-ETS allows us to store any Elixir term in an in-memory table. Working with ETS tables is done via [Erlang's `:ets` module](http://www.erlang.org/doc/man/ets.html):
+ETS allows us to store any Elixir term in an in-memory table. Working with ETS tables is done via [Erlang's `:ets` module](`:ets`):
 
 ```elixir
 iex> table = :ets.new(:buckets_registry, [:set, :protected])

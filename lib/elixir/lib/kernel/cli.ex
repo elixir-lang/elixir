@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Kernel.CLI do
   @moduledoc false
 
@@ -9,6 +13,7 @@ defmodule Kernel.CLI do
     compile: [],
     no_halt: false,
     compiler_options: [],
+    warnings_as_errors: false,
     errors: [],
     verbose_compile: false,
     profile: nil,
@@ -195,7 +200,7 @@ defmodule Kernel.CLI do
   end
 
   @elixir_internals [:elixir, :elixir_aliases, :elixir_expand, :elixir_compiler, :elixir_module] ++
-                      [:elixir_clauses, :elixir_lexical, :elixir_def, :elixir_map, :elixir_locals] ++
+                      [:elixir_clauses, :elixir_lexical, :elixir_def, :elixir_map] ++
                       [:elixir_erl, :elixir_erl_clauses, :elixir_erl_compiler, :elixir_erl_pass] ++
                       [Kernel.ErrorHandler, Module.ParallelChecker]
 
@@ -294,6 +299,16 @@ defmodule Kernel.CLI do
     parse_argv(t, %{config | commands: [{:parallel_require, h} | config.commands]})
   end
 
+  defp parse_argv([~c"--color" | t], config) do
+    Application.put_env(:elixir, :ansi_enabled, true)
+    parse_argv(t, config)
+  end
+
+  defp parse_argv([~c"--no-color" | t], config) do
+    Application.put_env(:elixir, :ansi_enabled, false)
+    parse_argv(t, config)
+  end
+
   ## Compiler
 
   defp parse_argv([~c"-o", h | t], %{mode: :elixirc} = config) do
@@ -315,8 +330,7 @@ defmodule Kernel.CLI do
   end
 
   defp parse_argv([~c"--warnings-as-errors" | t], %{mode: :elixirc} = config) do
-    compiler_options = [{:warnings_as_errors, true} | config.compiler_options]
-    parse_argv(t, %{config | compiler_options: compiler_options})
+    parse_argv(t, %{config | warnings_as_errors: true})
   end
 
   defp parse_argv([~c"--verbose" | t], %{mode: :elixirc} = config) do
@@ -326,6 +340,8 @@ defmodule Kernel.CLI do
   defp parse_argv([~c"--profile", "time" | t], %{mode: :elixirc} = config) do
     parse_argv(t, %{config | profile: :time})
   end
+
+  ## IEx
 
   defp parse_argv([~c"--dbg", backend | t], %{mode: :iex} = config) do
     case backend do
@@ -343,6 +359,21 @@ defmodule Kernel.CLI do
 
   defp parse_argv([~c"--dot-iex", _ | t], %{mode: :iex} = config), do: parse_argv(t, config)
   defp parse_argv([~c"--remsh", _ | t], %{mode: :iex} = config), do: parse_argv(t, config)
+
+  ## Erlang flags
+
+  defp parse_argv([~c"--boot", _ | t], config), do: parse_argv(t, config)
+  defp parse_argv([~c"--boot-var", _, _ | t], config), do: parse_argv(t, config)
+  defp parse_argv([~c"--cookie", _ | t], config), do: parse_argv(t, config)
+  defp parse_argv([~c"--hidden" | t], config), do: parse_argv(t, config)
+  defp parse_argv([~c"--erl-config", _ | t], config), do: parse_argv(t, config)
+  defp parse_argv([~c"--logger-otp-reports", _ | t], config), do: parse_argv(t, config)
+  defp parse_argv([~c"--logger-sasl-reports", _ | t], config), do: parse_argv(t, config)
+  defp parse_argv([~c"--name", _ | t], config), do: parse_argv(t, config)
+  defp parse_argv([~c"--sname", _ | t], config), do: parse_argv(t, config)
+  defp parse_argv([~c"--vm-args", _ | t], config), do: parse_argv(t, config)
+  defp parse_argv([~c"--erl", _ | t], config), do: parse_argv(t, config)
+  defp parse_argv([~c"--pipe-to", _, _ | t], config), do: parse_argv(t, config)
 
   ## Fallback
 
@@ -450,7 +481,7 @@ defmodule Kernel.CLI do
 
     if files != [] do
       wrapper(fn ->
-        case Kernel.ParallelCompiler.require(files) do
+        case Kernel.ParallelCompiler.require(files, return_diagnostics: true) do
           {:ok, _, _} -> :ok
           {:error, _, _} -> exit({:shutdown, 1})
         end
@@ -462,8 +493,7 @@ defmodule Kernel.CLI do
 
   defp process_command({:compile, patterns}, config) do
     # If ensuring the dir returns an error no files will be found.
-    # TODO: Use :filelib.ensure_path/1 once we require Erlang/OTP 25+
-    _ = :filelib.ensure_dir(:filename.join(config.output, "."))
+    _ = :filelib.ensure_path(config.output)
 
     case filter_multiple_patterns(patterns) do
       {:ok, []} ->
@@ -483,15 +513,15 @@ defmodule Kernel.CLI do
               ]
             end
 
-          profile_opts =
-            if config.profile do
-              [profile: config.profile]
-            else
-              []
-            end
-
           output = IO.chardata_to_string(config.output)
-          opts = verbose_opts ++ profile_opts
+
+          opts =
+            verbose_opts ++
+              [
+                profile: config.profile,
+                warnings_as_errors: config.warnings_as_errors,
+                return_diagnostics: true
+              ]
 
           case Kernel.ParallelCompiler.compile_to_path(files, output, opts) do
             {:ok, _, _} -> :ok

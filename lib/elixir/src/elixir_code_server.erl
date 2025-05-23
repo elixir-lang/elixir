@@ -1,3 +1,7 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 -module(elixir_code_server).
 -export([call/1, cast/1]).
 -export([start_link/0, init/1, handle_call/3, handle_cast/2,
@@ -91,19 +95,39 @@ handle_cast({unrequire_files, Files}, Config) ->
   Unrequired = maps:without(Files, Current),
   {noreply, Config#elixir_code_server{required=Unrequired}};
 
-handle_cast({return_compiler_module, Module, Purgeable}, Config) ->
+handle_cast({return_compiler_module, Module}, Config) ->
+  {Used, Unused, Counter} = Config#elixir_code_server.mod_pool,
+  ModPool = {[Module | Used], Unused, Counter},
+  {noreply, Config#elixir_code_server{mod_pool=ModPool}};
+
+handle_cast(purge_compiler_modules, Config) ->
   {Used, Unused, Counter} = Config#elixir_code_server.mod_pool,
 
-  ModPool =
-    case Purgeable of
-      true -> {Used, [Module | Unused], Counter};
-      false -> {[Module | Used], Unused, Counter}
-    end,
+  case Used of
+    [] -> ok;
+    _ ->
+      %% Purging modules became more expensive in Erlang/OTP 27+,
+      %% so we accumulate them all during compilation and then
+      %% purge them asynchronously, especially because they can
+      %% block the code server. Ideally we would purge them in
+      %% batches, but that's not supported at the moment.
+      Opts = [{monitor, [{tag, {purged, Used}}]}],
+      erlang:spawn_opt(fun() ->
+        [code:purge(Module) || Module <- Used],
+        ok
+      end, Opts)
+  end,
 
+  ModPool = {[], Unused, Counter},
   {noreply, Config#elixir_code_server{mod_pool=ModPool}};
 
 handle_cast(Request, Config) ->
   {stop, {badcast, Request}, Config}.
+
+handle_info({{purged, Purged}, _Ref, process, _Pid, _Reason}, Config) ->
+  {Used, Unused, Counter} = Config#elixir_code_server.mod_pool,
+  ModPool = {Used, Purged ++ Unused, Counter},
+  {noreply, Config#elixir_code_server{mod_pool=ModPool}};
 
 handle_info({'DOWN', Ref, process, _Pid, _Reason}, Config) ->
   {noreply, undefmodule(Ref, Config)};

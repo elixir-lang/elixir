@@ -1,3 +1,7 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 %% Convenience functions used throughout elixir source code
 %% for ast manipulation and querying.
 -module(elixir_utils).
@@ -6,11 +10,19 @@
   characters_to_list/1, characters_to_binary/1, relative_to_cwd/1,
   macro_name/1, returns_boolean/1, caller/4, meta_keep/1,
   read_file_type/1, read_file_type/2, read_link_type/1, read_posix_mtime_and_size/1,
-  change_posix_time/2, change_universal_time/2,
-  guard_op/2, extract_splat_guards/1, extract_guards/1,
-  erlang_comparison_op_to_elixir/1, erl_fa_to_elixir_fa/2]).
+  change_posix_time/2, change_universal_time/2, var_info/2,
+  guard_op/2, guard_info/1, extract_splat_guards/1, extract_guards/1,
+  erlang_comparison_op_to_elixir/1, erl_fa_to_elixir_fa/2, jaro_similarity/2]).
 -include("elixir.hrl").
 -include_lib("kernel/include/file.hrl").
+
+var_info(Name, Kind) when Kind == nil; is_integer(Kind) ->
+  io_lib:format("\"~ts\"", [Name]);
+var_info(Name, Kind) ->
+  io_lib:format("\"~ts\" (context ~ts)", [Name, elixir_aliases:inspect(Kind)]).
+
+guard_info(#elixir_ex{prematch={_, _, {bitsize, _}}}) -> "bitstring size specifier";
+guard_info(_) -> "guard".
 
 macro_name(Macro) ->
   list_to_atom("MACRO-" ++ atom_to_list(Macro)).
@@ -223,3 +235,86 @@ returns_boolean({'__block__', _, Exprs}) ->
   returns_boolean(lists:last(Exprs));
 
 returns_boolean(_) -> false.
+
+
+% TODO: Remove me when we require Erlang/OTP 27+
+% This is a polyfill for older versions, copying the code from
+% https://github.com/erlang/otp/pull/7879
+-spec jaro_similarity(String1, String2) -> Similarity when
+      String1 :: unicode:chardata(),
+      String2 :: unicode:chardata(),
+      Similarity :: float(). %% Between +0.0 and 1.0
+jaro_similarity(A0, B0) ->
+    {A, ALen} = str_to_gcl_and_length(A0),
+    {B, BLen} = str_to_indexmap(B0),
+    Dist = max(ALen, BLen) div 2,
+    {AM, BM} = jaro_match(A, B, -Dist, Dist, [], []),
+    if
+        ALen =:= 0 andalso BLen =:= 0 ->
+            1.0;
+        ALen =:= 0 orelse BLen =:= 0 ->
+            0.0;
+        AM =:= [] ->
+            0.0;
+        true ->
+            {M,T} = jaro_calc_mt(AM, BM, 0, 0),
+            (M/ALen + M/BLen + (M-T/2)/M) / 3
+    end.
+
+jaro_match([A|As], B0, Min, Max, AM, BM) ->
+    case jaro_detect(maps:get(A, B0, []), Min, Max) of
+        false ->
+            jaro_match(As, B0, Min+1, Max+1, AM, BM);
+        {J, Remain} ->
+            B = B0#{A => Remain},
+            jaro_match(As, B, Min+1, Max+1, [A|AM], add_rsorted({J,A},BM))
+    end;
+jaro_match(_A, _B, _Min, _Max, AM, BM) ->
+    {AM, BM}.
+
+jaro_detect([Idx|Rest], Min, Max) when Min < Idx, Idx < Max ->
+    {Idx, Rest};
+jaro_detect([Idx|Rest], Min, Max) when Idx < Max ->
+    jaro_detect(Rest, Min, Max);
+jaro_detect(_, _, _) ->
+    false.
+
+jaro_calc_mt([CharA|AM], [{_, CharA}|BM], M, T) ->
+    jaro_calc_mt(AM, BM, M+1, T);
+jaro_calc_mt([_|AM], [_|BM], M, T) ->
+    jaro_calc_mt(AM, BM, M+1, T+1);
+jaro_calc_mt([], [], M, T) ->
+    {M, T}.
+
+
+%% Returns GC list and length
+str_to_gcl_and_length(S0) ->
+    gcl_and_length(unicode_util:gc(S0), [], 0).
+
+gcl_and_length([C|Str], Acc, N) ->
+    gcl_and_length(unicode_util:gc(Str), [C|Acc], N+1);
+gcl_and_length([], Acc, N) ->
+    {lists:reverse(Acc), N};
+gcl_and_length({error, Err}, _, _) ->
+    error({badarg, Err}).
+
+%% Returns GC map with index and length
+str_to_indexmap(S) ->
+    [M|L] = str_to_map(unicode_util:gc(S), 0),
+    {M,L}.
+
+str_to_map([], L) -> [#{}|L];
+str_to_map([G | Gs], I) ->
+    [M|L] = str_to_map(unicode_util:gc(Gs), I+1),
+    [maps:put(G, [I | maps:get(G, M, [])], M)| L];
+str_to_map({error,Error}, _) ->
+    error({badarg, Error}).
+
+%% Add in decreasing order
+add_rsorted(A, [H|_]=BM) when A > H ->
+    [A|BM];
+add_rsorted(A, [H|BM]) ->
+    [H|add_rsorted(A,BM)];
+add_rsorted(A, []) ->
+    [A].
+

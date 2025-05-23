@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # IO and the file system
 
 This chapter introduces the input/output mechanisms, file-system-related tasks, and related modules such as `IO`, `File`, and `Path`. The IO system provides a great opportunity to shed some light on some philosophies and curiosities of Elixir and the Erlang VM.
@@ -27,6 +32,10 @@ hello world
 
 The `File` module contains functions that allow us to open files as IO devices. By default, files are opened in binary mode, which requires developers to use the specific `IO.binread/2` and `IO.binwrite/2` functions from the `IO` module:
 
+> #### Potential data loss warning {: .warning}
+>
+> The following code opens a file for writing. If an existing file is available at the given path, its contents will be deleted.
+
 ```elixir
 iex> {:ok, file} = File.open("path/to/file/hello", [:write])
 {:ok, #PID<0.47.0>}
@@ -38,7 +47,7 @@ iex> File.read("path/to/file/hello")
 {:ok, "world"}
 ```
 
-A file can also be opened with `:utf8` encoding, which tells the `File` module to interpret the bytes read from the file as UTF-8-encoded bytes.
+The file could be opened with the `:append` option, instead of `:write`, to preserve its contents. You may also pass the `:utf8` option, which tells the `File` module to interpret the bytes read from the file as UTF-8-encoded bytes.
 
 Besides functions for opening, reading and writing files, the `File` module has many functions to work with the file system. Those functions are named after their UNIX equivalents. For example, `File.rm/1` can be used to remove files, `File.mkdir/1` to create directories, `File.mkdir_p/1` to create directories and all their parent chain. There are even `File.cp_r/2` and `File.rm_rf/1` to respectively copy and remove files and directories recursively (i.e., copying and removing the contents of the directories too).
 
@@ -96,7 +105,7 @@ With this, we have covered the main modules that Elixir provides for dealing wit
 You may have noticed that `File.open/2` returns a tuple like `{:ok, pid}`:
 
 ```elixir
-iex> {:ok, file} = File.open("hello", [:write])
+iex> {:ok, file} = File.open("hello")
 {:ok, #PID<0.47.0>}
 ```
 
@@ -118,7 +127,9 @@ Let's see in more detail what happens when you request `IO.write(pid, binary)`. 
 
 ```elixir
 iex> pid = spawn(fn ->
-...>  receive do: (msg -> IO.inspect(msg))
+...>   receive do
+...>     msg -> IO.inspect(msg)
+...>   end
 ...> end)
 #PID<0.57.0>
 iex> IO.write(pid, "hello")
@@ -129,7 +140,7 @@ iex> IO.write(pid, "hello")
 
 After `IO.write/2`, we can see the request sent by the `IO` module printed out (a four-elements tuple). Soon after that, we see that it fails since the `IO` module expected some kind of result, which we did not supply.
 
-By modeling IO devices with processes, the Erlang VM allows is to even read and write to files across nodes. Neat!
+By modeling IO devices with processes, the Erlang VM allows us to even read and write to files across nodes. Neat!
 
 ## `iodata` and `chardata`
 
@@ -186,32 +197,12 @@ The difference between "iodata" and "chardata" is precisely what said integer re
 iex> IO.puts([?O, ?l, ?á, ?\s, "Mary", ?!])
 ```
 
-Overall, integers in a list may represent either a bunch of bytes or a bunch of characters and which one to use depends on the encoding of the IO device. If the file is opened without encoding, the file is expected to be in raw mode, and the functions in the `IO` module starting with `bin*` must be used. Those functions expect an `iodata` as an argument, where integers in the list would represent bytes.
-
-On the other hand, the default IO device (`:stdio`) and files opened with `:utf8` encoding work with the remaining functions in the `IO` module. Those functions expect a `chardata` as an argument, where integers represent codepoints.
-
-Although this is a subtle difference, you only need to worry about these details if you intend to pass lists containing integers to those functions. If you pass binaries, or list of binaries, then there is no ambiguity.
-
-Finally, there is one last construct called charlist, which [we discussed in earlier chapters](binaries-strings-and-charlists.md). Charlists are a special case of chardata where all values are integers representing Unicode codepoints. They can be created with the `~c` sigil:
-
-```elixir
-iex> ~c"hello"
-~c"hello"
-```
-
-Charlists mostly show up when interfacing with Erlang, as some Erlang APIs use charlist as their representation for strings. For this reason, any list containing printable ASCII codepoints will be printed as a charlist:
-
-```elixir
-iex> [?a, ?b, ?c]
-~c"abc"
-```
+Charlists, such as `~c"hello world"`, are lists of integers, and therefore are chardata.
 
 We packed a lot into this small section, so let's break it down:
 
   * iodata and chardata are lists of binaries and integers. Those binaries and integers can be arbitrarily nested inside lists. Their goal is to give flexibility and performance when working with IO devices and files;
 
   * the choice between iodata and chardata depends on the encoding of the IO device. If the file is opened without encoding, the file expects iodata, and the functions in the `IO` module starting with `bin*` must be used. The default IO device (`:stdio`) and files opened with `:utf8` encoding expect chardata and work with the remaining functions in the `IO` module;
-
-  * charlists are a special case of chardata, where it exclusively uses a list of integers Unicode codepoints. They can be created with the `~c` sigil. Lists of integers are automatically printed using the `~c` sigil if all integers in a list represent printable ASCII codepoints.
 
 This finishes our tour of IO devices and IO related functionality. We have learned about three Elixir modules - `IO`, `File`, and `Path` - as well as how the VM uses processes for the underlying IO mechanisms and how to use `chardata` and `iodata` for IO operations.

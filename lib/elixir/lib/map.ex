@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Map do
   @moduledoc """
   Maps are the "go to" key-value data structure in Elixir.
@@ -14,7 +18,7 @@ defmodule Map do
   in the example above has a different order than the map that was created).
 
   Maps do not impose any restriction on the key type: anything can be a key in a
-  map. As a key-value structure, maps do not allow duplicated keys. Keys are
+  map. As a key-value structure, maps do not allow duplicate keys. Keys are
   compared using the exact-equality operator (`===/2`). If colliding keys are defined
   in a map literal, the last one prevails.
 
@@ -50,7 +54,8 @@ defmodule Map do
       map.foo
       #=> "bar"
       map.non_existing_key
-      ** (KeyError) key :non_existing_key not found in: %{baz: "bong", foo: "bar"}
+      ** (KeyError) key :non_existing_key not found in:
+      ...
 
   > #### Avoid parentheses {: .warning}
   >
@@ -96,11 +101,11 @@ defmodule Map do
       iex> %{map | one: "one"}
       %{one: "one", two: 2}
 
-  Or any other key:
+  Or any other keys:
 
-      iex> other_map = %{"three" => 3, "four" => 4}
-      iex> %{other_map | "three" => "three"}
-      %{"four" => 4, "three" => "three"}
+      iex> other_map = %{"three" => 3, "four" => 4, "five" => 5}
+      iex> %{other_map | "three" => "three", "four" => "four"}
+      %{"five" => 5, "four" => "four", "three" => "three"}
 
   When a key that does not exist in the map is updated a `KeyError` exception will be raised:
 
@@ -128,6 +133,8 @@ defmodule Map do
   @doc """
   Builds a map from the given `keys` and the fixed `value`.
 
+  Inlined by the compiler.
+
   ## Examples
 
       iex> Map.from_keys([1, 2, 3], :number)
@@ -136,9 +143,7 @@ defmodule Map do
   """
   @doc since: "1.14.0"
   @spec from_keys([key], value) :: map
-  def from_keys(keys, value) do
-    :maps.from_keys(keys, value)
-  end
+  defdelegate from_keys(keys, value), to: :maps
 
   @doc """
   Returns all keys from `map`.
@@ -147,7 +152,7 @@ defmodule Map do
 
   ## Examples
 
-      iex> Map.keys(%{a: 1, b: 2})
+      Map.keys(%{a: 1, b: 2})
       [:a, :b]
 
   """
@@ -161,7 +166,7 @@ defmodule Map do
 
   ## Examples
 
-      iex> Map.values(%{a: 1, b: 2})
+      Map.values(%{a: 1, b: 2})
       [1, 2]
 
   """
@@ -384,7 +389,8 @@ defmodule Map do
       %{a: 3, b: 2}
 
       iex> Map.replace!(%{a: 1}, :b, 2)
-      ** (KeyError) key :b not found in: %{a: 1}
+      ** (KeyError) key :b not found in:
+      ...
 
   """
   @doc since: "1.5.0"
@@ -709,10 +715,10 @@ defmodule Map do
   end
 
   @doc """
-  Removes the value associated with `key` in `map` and returns the value
-  and the updated map, or it raises if `key` is not present.
+  Removes and returns the value associated with `key` in `map` alongside
+  the updated map, or raises if `key` is not present.
 
-  Behaves the same as `pop/3` but raises if `key` is not present in `map`.
+  Behaves the same as `pop/3` but raises a `KeyError` exception if `key` is not present in `map`.
 
   ## Examples
 
@@ -721,7 +727,8 @@ defmodule Map do
       iex> Map.pop!(%{a: 1, b: 2}, :a)
       {1, %{b: 2}}
       iex> Map.pop!(%{a: 1}, :b)
-      ** (KeyError) key :b not found in: %{a: 1}
+      ** (KeyError) key :b not found in:
+      ...
 
   """
   @doc since: "1.10.0"
@@ -907,7 +914,8 @@ defmodule Map do
       %{a: 2}
 
       iex> Map.update!(%{a: 1}, :b, &(&1 * 2))
-      ** (KeyError) key :b not found in: %{a: 1}
+      ** (KeyError) key :b not found in:
+      ...
 
   """
   @spec update!(map, key, (existing_value :: value -> new_value :: value)) :: map
@@ -982,7 +990,8 @@ defmodule Map do
       iex> Map.get_and_update!(%{a: 1}, :b, fn current_value ->
       ...>   {current_value, "new value!"}
       ...> end)
-      ** (KeyError) key :b not found in: %{a: 1}
+      ** (KeyError) key :b not found in:
+      ...
 
       iex> Map.get_and_update!(%{a: 1}, :a, fn _ ->
       ...>   :pop
@@ -1011,9 +1020,8 @@ defmodule Map do
   @doc """
   Converts a `struct` to map.
 
-  It accepts the struct module or a struct itself and
-  simply removes the `__struct__` field from the given struct
-  or from a new struct generated from the given module.
+  It accepts a struct and simply removes the `__struct__` field
+  from the given struct.
 
   ## Example
 
@@ -1021,15 +1029,13 @@ defmodule Map do
         defstruct [:name]
       end
 
-      Map.from_struct(User)
-      #=> %{name: nil}
-
       Map.from_struct(%User{name: "john"})
       #=> %{name: "john"}
 
   """
   @spec from_struct(atom | struct) :: map
   def from_struct(struct) when is_atom(struct) do
+    IO.warn("Map.from_struct/1 with a module is deprecated, please pass a struct instead")
     delete(struct.__struct__(), :__struct__)
   end
 

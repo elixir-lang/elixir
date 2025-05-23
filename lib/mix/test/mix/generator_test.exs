@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Mix.GeneratorTest do
@@ -145,6 +149,13 @@ defmodule Mix.GeneratorTest do
         create_file("foo", "WORLD")
         assert File.read!("foo") == "HELLO"
         assert_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
+      end)
+    end
+
+    test "with `format_elixir: true`" do
+      in_tmp("create_file", fn ->
+        create_file("foo", "%{ foo:  :bar }", format_elixir: true)
+        assert File.read!("foo") == "%{foo: :bar}\n"
       end)
     end
   end

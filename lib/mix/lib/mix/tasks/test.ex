@@ -1,9 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Tasks.Test do
   use Mix.Task
 
   alias Mix.Compilers.Test, as: CT
 
-  @compile {:no_warn_undefined, [ExUnit, ExUnit.Filters]}
+  @compile {:no_warn_undefined, [IEx, ExUnit, ExUnit.Filters]}
   @shortdoc "Runs a project's tests"
   @recursive true
 
@@ -36,6 +40,7 @@ defmodule Mix.Tasks.Test do
   a summary at the end, as seen below:
 
       $ mix test
+      Running ExUnit with seed: 646219, max_cases: 16
       ...
 
         1) test greets the world (FooTest)
@@ -51,8 +56,6 @@ defmodule Mix.Tasks.Test do
 
       Finished in 0.05 seconds (0.00s async, 0.05s sync)
       1 doctest, 11 tests, 1 failure
-
-      Randomized with seed 646219
 
   For each test, the test suite will print a dot. Failed tests
   are printed immediately in the format described in the next
@@ -109,11 +112,17 @@ defmodule Mix.Tasks.Test do
     * `--all-warnings` (`--no-all-warnings`) - prints all warnings, including previous compilations
       (default is true except on errors)
 
-    * `--color` - enables color in the output
+    * `-b`, `--breakpoints` *(since v1.17.0)* - sets a breakpoint at the beginning
+      of every test. The debugger goes line-by-line and can access all variables
+      and imports (but not local functions). You can press `n` for the next line
+      and `c` for the next test. This automatically sets `--trace`
+
+    * `--color` - enables color in ExUnit formatting results
 
     * `--cover` - runs coverage tool. See "Coverage" section below
 
-    * `--exclude` - excludes tests that match the filter
+    * `--exclude` - excludes tests that match the filter. This option may be given
+      several times to apply different filters, such as `--exclude ci --exclude slow`
 
     * `--exit-status` - use an alternate exit status to use when the test suite
       fails (default is 2).
@@ -128,7 +137,8 @@ defmodule Mix.Tasks.Test do
     * `--formatter` - sets the formatter module that will print the results.
       Defaults to ExUnit's built-in CLI formatter
 
-    * `--include` - includes tests that match the filter
+    * `--include` - includes tests that match the filter. This option may be given
+      several times to apply different filters, such as `--include ci --include slow`
 
     * `--listen-on-stdin` - runs tests, and then listens on stdin. It will
       re-run tests once a newline is received. See the "File system watchers"
@@ -139,6 +149,9 @@ defmodule Mix.Tasks.Test do
 
     * `--max-failures` - the suite stops evaluating tests when this number of test
       failures is reached. It runs all tests if omitted
+
+    * `--max-requires` - sets the maximum number of test files to compile in parallel.
+      Setting this to 1 will compile test files sequentially.
 
     * `--no-archives-check` - does not check archives
 
@@ -163,16 +176,28 @@ defmodule Mix.Tasks.Test do
     * `--preload-modules` - preloads all modules defined in applications
 
     * `--profile-require time` - profiles the time spent to require test files.
-      Used only for debugging. The test suite does not run.
+      Used only for debugging. The test suite does not run
 
-    * `--raise` - raises if the test suite failed
+    * `--raise` - immediately raises if the test suite fails, instead of continuing
+      the execution of other Mix tasks
+
+    * `--repeat-until-failure` *(since v1.17.0)* - sets the number of repetitions for running
+      the suite until it fails. This is useful for debugging flaky tests within the same instance
+      of the Erlang VM. For example, `--repeat-until-failure 10000` repeats the test suite
+      up to 10000 times until the first failure. This can be combined with `--max-failures 1`
+      to immediately stop if one test fails. However, if there is any leftover global state
+      after running the tests, re-running the suite may trigger unrelated failures.
 
     * `--seed` - seeds the random number generator used to randomize the order of tests;
       `--seed 0` disables randomization so the tests in a single file will always be ran
       in the same order they were defined in
 
-    * `--slowest` - prints timing information for the N slowest tests.
-      Automatically sets `--trace` and `--preload-modules`
+    * `--slowest` - prints timing information for the N slowest tests. Includes time spent in
+     `ExUnit.Callbacks.setup/1`. Automatically sets `--trace` and `--preload-modules`
+
+    * `--slowest-modules` *(since v1.17.0)* - prints timing information for the N slowest
+      modules. Includes time spent in `ExUnit.Callbacks.setup/1`. Automatically sets
+      `--trace` and `--preload-modules`
 
     * `--stale` - runs only tests which reference modules that changed since the
       last time tests were ran with `--stale`. You can read more about this option
@@ -183,9 +208,17 @@ defmodule Mix.Tasks.Test do
     * `--trace` - runs tests with detailed reporting. Automatically sets `--max-cases` to `1`.
       Note that in trace mode test timeouts will be ignored as timeout is set to `:infinity`
 
-    * `--warnings-as-errors` - (since v1.12.0) treats warnings as errors and returns a non-zero
-      exit status. This option only applies to test files. To treat warnings as errors during
-      compilation and during tests, run:
+    * `--warnings-as-errors` *(since v1.12.0)* - treats compilation warnings (from loading the
+      test suite) as errors and returns an exit status of 1 if the test suite would otherwise
+      pass. If the test suite fails and also include warnings as errors, the exit
+      status returned will be the value of the `--exit-status` option, which
+      defaults to 2, plus one. Therefore in the default case, this will be exit status 3.
+
+      Note that failures reported by `--warnings-as-errors` cannot be retried with the
+      `--failed` flag.
+
+      This option only applies to test files. To treat warnings as errors during compilation and
+      during tests, run:
           MIX_ENV=test mix do compile --warnings-as-errors + test --warnings-as-errors
 
   ## Configuration
@@ -196,17 +229,37 @@ defmodule Mix.Tasks.Test do
       mechanism. See the "Coverage" section for more information
 
     * `:test_elixirc_options` - the compiler options to used when
-      loading/compiling test files. By default it disables the debug chunk
-      and docs chunk
+      loading/compiling test files. By default it disables the debug chunk,
+      docs chunk, and module type inference
 
     * `:test_paths` - list of paths containing test files. Defaults to
-      `["test"]` if the `test` directory exists; otherwise, it defaults to `[]`.
+      `["test"]` if the `test` directory exists, otherwise, it defaults to `[]`.
       It is expected that all test paths contain a `test_helper.exs` file
 
-    * `:test_pattern` - a pattern to load test files. Defaults to `*_test.exs`
+    * `:test_pattern` - a pattern to find potential test files.
+      Defaults to `*.{ex,exs}`.
 
-    * `:warn_test_pattern` - a pattern to match potentially misnamed test files
-      and display a warning. Defaults to `*_test.ex`
+      In Elixir versions earlier than 1.19.0, this option defaulted to `*_test.exs`,
+      but to allow better warnings for misnamed test files, it since matches any
+      Elixir file and expects those to be filtered by `:test_load_filters` and
+      `:test_ignore_filters`.
+
+    * `:test_load_filters` - a list of files, regular expressions or one-arity
+      functions to restrict which files matched by the `:test_pattern` are loaded.
+      Defaults to `[&String.ends_with?(&1, "_test.exs")]`. Paths are relative to
+      the project root and separated by `/`, even on Windows.
+
+    * `:test_ignore_filters` - a list of files, regular expressions or one-arity
+      functions to restrict which files matched by the `:test_pattern`, but not loaded
+      by `:test_load_filters`, trigger a warning for a potentially misnamed test file.
+
+      Mix ignores files ending in `_helper.exs` by default, as well as any file
+      included in the project's `:elixirc_paths`. This ensures that any helper
+      or test support files are not triggering a warning.
+
+      Any extra filters configured in the project are appended to the defaults.
+      Warnings can be disabled by setting this option to `[fn _ -> true end]`.
+      Paths are relative to the project root and separated by `/`, even on Windows.
 
   ## Coloring
 
@@ -410,6 +463,7 @@ defmodule Mix.Tasks.Test do
 
   @switches [
     all_warnings: :boolean,
+    breakpoints: :boolean,
     force: :boolean,
     color: :boolean,
     cover: :boolean,
@@ -417,6 +471,7 @@ defmodule Mix.Tasks.Test do
     trace: :boolean,
     max_cases: :integer,
     max_failures: :integer,
+    max_requires: :integer,
     include: :keep,
     exclude: :keep,
     seed: :integer,
@@ -433,18 +488,21 @@ defmodule Mix.Tasks.Test do
     listen_on_stdin: :boolean,
     formatter: :keep,
     slowest: :integer,
+    slowest_modules: :integer,
     partitions: :integer,
     preload_modules: :boolean,
     warnings_as_errors: :boolean,
     profile_require: :string,
-    exit_status: :integer
+    exit_status: :integer,
+    repeat_until_failure: :integer
   ]
 
   @cover [output: "cover", tool: Mix.Tasks.Test.Coverage]
 
   @impl true
   def run(args) do
-    {opts, files} = OptionParser.parse!(args, strict: @switches)
+    {opts, files} = OptionParser.parse!(args, strict: @switches, aliases: [b: :breakpoints])
+    opts = put_manifest_file(opts)
 
     if not Mix.Task.recursing?() do
       do_run(opts, args, files)
@@ -476,14 +534,14 @@ defmodule Mix.Tasks.Test do
   end
 
   defp relative_app_file_exists?(file) do
-    {file, _} = ExUnit.Filters.parse_path(file)
+    {[file], _} = ExUnit.Filters.parse_paths([file])
     File.exists?(Path.join("../..", file))
   end
 
   defp do_run(opts, args, files) do
     _ = Mix.Project.get!()
 
-    unless System.get_env("MIX_ENV") || Mix.env() == :test do
+    if System.get_env("MIX_ENV") == nil && Mix.env() != :test do
       Mix.raise("""
       "mix test" is running in the \"#{Mix.env()}\" environment. If you are \
       running tests from within another command, you can either:
@@ -538,53 +596,107 @@ defmodule Mix.Tasks.Test do
     # Start the app and configure ExUnit with command line options
     # before requiring test_helper.exs so that the configuration is
     # available in test_helper.exs
-    Mix.shell().print_app
+    Mix.shell().print_app()
     app_start_args = if opts[:slowest], do: ["--preload-modules" | args], else: args
     Mix.Task.run("app.start", app_start_args)
 
     # The test helper may change the Mix.shell(), so revert it whenever we raise and after suite
     shell = Mix.shell()
+    test_elixirc_options = project[:test_elixirc_options] || []
+
+    {test_elixirc_options, opts} =
+      cond do
+        not Keyword.get(opts, :breakpoints, false) ->
+          {test_elixirc_options, opts}
+
+        IEx.started?() ->
+          {Keyword.put(test_elixirc_options, :debug_info, true), opts}
+
+        true ->
+          Mix.shell().error("you must run \"iex -S mix test\" when using -b/--breakpoints")
+          {test_elixirc_options, Keyword.delete(opts, :breakpoints)}
+      end
 
     # Configure ExUnit now and then again so the task options override test_helper.exs
     {ex_unit_opts, allowed_files} = process_ex_unit_opts(opts)
     ExUnit.configure(ex_unit_opts)
 
+    warnings_as_errors? = Keyword.get(opts, :warnings_as_errors, false)
+    exit_status = Keyword.fetch!(ex_unit_opts, :exit_status)
+
+    # Prepare and extract all files to require and run
     test_paths = project[:test_paths] || default_test_paths()
-    Enum.each(test_paths, &require_test_helper(shell, &1))
-    ExUnit.configure(merge_helper_opts(ex_unit_opts))
+    test_pattern = project[:test_pattern] || "*.{ex,exs}"
 
-    # Finally parse, require and load the files
-    test_elixirc_options = project[:test_elixirc_options] || []
-    test_files = parse_files(files, shell, test_paths)
-    test_pattern = project[:test_pattern] || "*_test.exs"
-    warn_test_pattern = project[:warn_test_pattern] || "*_test.ex"
+    # Warn about deprecated warn configuration
+    if project[:warn_test_pattern] do
+      Mix.shell().info("""
+      warning: the `:warn_test_pattern` configuration is deprecated and will be ignored. \
+      Use `:test_load_filters` and `:test_ignore_filters` instead.
+      """)
+    end
 
-    files_with_matched_path = Mix.Utils.extract_files(test_files, test_pattern)
+    {test_files, test_opts} =
+      if files != [], do: ExUnit.Filters.parse_paths(files), else: {test_paths, []}
+
+    # get a list of all files in the test folders, which we filter by the test_load_filters
+    {potential_test_files, directly_included_test_files} = extract_files(test_files, test_pattern)
+
+    {load_files, _ignored_files, warn_files} =
+      classify_test_files(potential_test_files, project)
+
+    # ensure that files given as direct argument to mix test are loaded,
+    # even if the test_load_filters don't match
+    load_files =
+      if files != [],
+        do: Enum.uniq(load_files ++ directly_included_test_files),
+        else: load_files
 
     matched_test_files =
-      files_with_matched_path
+      load_files
       |> filter_to_allowed_files(allowed_files)
       |> filter_by_partition(shell, partitions)
 
-    display_warn_test_pattern(
-      test_files,
-      test_pattern,
-      files_with_matched_path,
-      warn_test_pattern
-    )
+    warn_files != [] && warn_misnamed_test_files(warn_files)
 
-    case CT.require_and_run(matched_test_files, test_paths, test_elixirc_options, opts) do
-      {:ok, %{excluded: excluded, failures: failures, total: total}} ->
+    try do
+      Enum.each(test_paths, &require_test_helper(shell, &1))
+      # test_opts always wins because those are given via args
+      ExUnit.configure(ex_unit_opts |> merge_helper_opts() |> Keyword.merge(test_opts))
+      CT.require_and_run(matched_test_files, test_paths, test_elixirc_options, opts)
+    catch
+      kind, reason ->
+        # Also mark the whole suite as failed
+        file = Keyword.fetch!(opts, :failures_manifest_path)
+        ExUnit.Filters.fail_all!(file)
+        :erlang.raise(kind, reason, __STACKTRACE__)
+    else
+      {:ok, %{excluded: excluded, failures: failures, warnings?: warnings?, total: total}} ->
         Mix.shell(shell)
         cover && cover.()
 
         cond do
+          warnings_as_errors? and warnings? and failures == 0 ->
+            message =
+              "\nERROR! Test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
+
+            IO.puts(:stderr, IO.ANSI.format([:red, message]))
+
+            System.at_exit(fn _ ->
+              exit({:shutdown, 1})
+            end)
+
           failures > 0 and opts[:raise] ->
             raise_with_shell(shell, "\"mix test\" failed")
 
+          warnings_as_errors? and warnings? and failures > 0 ->
+            System.at_exit(fn _ ->
+              exit({:shutdown, exit_status + 1})
+            end)
+
           failures > 0 ->
             System.at_exit(fn _ ->
-              exit({:shutdown, Keyword.fetch!(ex_unit_opts, :exit_status)})
+              exit({:shutdown, exit_status})
             end)
 
           excluded == total and Keyword.has_key?(opts, :only) ->
@@ -612,6 +724,33 @@ defmodule Mix.Tasks.Test do
     end
   end
 
+  # similar to Mix.Utils.extract_files/2, but returns a list of directly included test files,
+  # that should be not filtered by the test_load_filters, e.g.
+  # mix test test/some_file.exs
+  defp extract_files(paths, pattern) do
+    {files, directly_included} =
+      for path <- paths, reduce: {[], []} do
+        {acc, directly_included} ->
+          case :elixir_utils.read_file_type(path) do
+            {:ok, :directory} ->
+              {[Path.wildcard("#{path}/**/#{pattern}") | acc], directly_included}
+
+            {:ok, :regular} ->
+              {[path | acc], [path | directly_included]}
+
+            _ ->
+              {acc, directly_included}
+          end
+      end
+
+    files =
+      files
+      |> List.flatten()
+      |> Enum.uniq()
+
+    {files, directly_included}
+  end
+
   defp raise_with_shell(shell, message) do
     Mix.shell(shell)
     Mix.raise(message)
@@ -631,17 +770,68 @@ defmodule Mix.Tasks.Test do
     end
   end
 
-  defp display_warn_test_pattern(test_files, test_pattern, matched_test_files, warn_test_pattern) do
-    files = Mix.Utils.extract_files(test_files, warn_test_pattern) -- matched_test_files
+  defp classify_test_files(potential_test_files, project) do
+    test_load_filters = project[:test_load_filters] || [&String.ends_with?(&1, "_test.exs")]
+    elixirc_paths = project[:elixirc_paths] || []
 
-    for file <- files do
-      Mix.shell().info(
-        "warning: #{file} does not match #{inspect(test_pattern)} and won't be loaded"
-      )
-    end
+    # ignore any _helper.exs files and files that are compiled (test support files)
+    test_ignore_filters =
+      [
+        &String.ends_with?(&1, "_helper.exs"),
+        fn file -> Enum.any?(elixirc_paths, &String.starts_with?(file, &1)) end
+      ] ++ Keyword.get(project, :test_ignore_filters, [])
+
+    {to_load, to_ignore, to_warn} =
+      for file <- potential_test_files, reduce: {[], [], []} do
+        {to_load, to_ignore, to_warn} ->
+          cond do
+            any_file_matches?(file, test_load_filters) ->
+              {[file | to_load], to_ignore, to_warn}
+
+            any_file_matches?(file, test_ignore_filters) ->
+              {to_load, [file | to_ignore], to_warn}
+
+            true ->
+              {to_load, to_ignore, [file | to_warn]}
+          end
+      end
+
+    # get the files back in the original order
+    {Enum.reverse(to_load), Enum.reverse(to_ignore), Enum.reverse(to_warn)}
+  end
+
+  defp any_file_matches?(file, filters) do
+    Enum.any?(filters, fn filter ->
+      case filter do
+        regex when is_struct(regex, Regex) ->
+          Regex.match?(regex, file)
+
+        binary when is_binary(binary) ->
+          file == binary
+
+        fun when is_function(fun, 1) ->
+          fun.(file)
+      end
+    end)
+  end
+
+  defp warn_misnamed_test_files(ignored) do
+    Mix.shell().info("""
+    warning: the following files do not match any of the configured `:test_load_filters` / `:test_ignore_filters`:
+
+    #{Enum.join(ignored, "\n")}
+
+    This might indicate a typo in a test file name (for example, using "foo_tests.exs" instead of "foo_test.exs").
+
+    You can adjust which files trigger this warning by configuring the `:test_ignore_filters` option in your
+    Mix project's configuration. To disable the warning entirely, set that option to false.
+
+    For more information, run `mix help test`.
+    """)
   end
 
   @option_keys [
+    :breakpoints,
     :trace,
     :max_cases,
     :max_failures,
@@ -652,10 +842,12 @@ defmodule Mix.Tasks.Test do
     :formatters,
     :colors,
     :slowest,
-    :failures_manifest_file,
+    :slowest_modules,
+    :failures_manifest_path,
     :only_test_ids,
     :test_location_relative_path,
-    :exit_status
+    :exit_status,
+    :repeat_until_failure
   ]
 
   @doc false
@@ -678,38 +870,13 @@ defmodule Mix.Tasks.Test do
 
   defp merge_helper_opts(opts) do
     # The only options that are additive from app env are the excludes
-    merge_opts(opts, :exclude)
-  end
-
-  defp merge_opts(opts, key) do
-    value = List.wrap(Application.get_env(:ex_unit, key, []))
-    Keyword.update(opts, key, value, &Enum.uniq(&1 ++ value))
+    value = List.wrap(Application.get_env(:ex_unit, :exclude, []))
+    Keyword.update(opts, :exclude, value, &Enum.uniq(&1 ++ value))
   end
 
   defp default_opts(opts) do
-    # Set autorun to false because Mix
-    # automatically runs the test suite for us.
+    # Set autorun to false because Mix automatically runs the test suite for us.
     [autorun: false] ++ opts
-  end
-
-  defp parse_files([], _shell, test_paths) do
-    test_paths
-  end
-
-  defp parse_files([single_file], _shell, _test_paths) do
-    # Check if the single file path matches test/path/to_test.exs:123. If it does,
-    # apply "--only line:123" and trim the trailing :123 part.
-    {single_file, opts} = ExUnit.Filters.parse_path(single_file)
-    ExUnit.configure(opts)
-    [single_file]
-  end
-
-  defp parse_files(files, shell, _test_paths) do
-    if Enum.any?(files, &match?({_, [_ | _]}, ExUnit.Filters.parse_path(&1))) do
-      raise_with_shell(shell, "Line numbers can only be used when running a single test file")
-    else
-      files
-    end
   end
 
   defp parse_filters(opts, key) do
@@ -751,17 +918,29 @@ defmodule Mix.Tasks.Test do
 
   @manifest_file_name ".mix_test_failures"
 
+  defp put_manifest_file(opts) do
+    Keyword.put_new_lazy(
+      opts,
+      :failures_manifest_path,
+      fn -> Path.join(Mix.Project.manifest_path(), @manifest_file_name) end
+    )
+  end
+
   defp manifest_opts(opts) do
-    manifest_file = Path.join(Mix.Project.manifest_path(), @manifest_file_name)
-    opts = Keyword.put(opts, :failures_manifest_file, manifest_file)
+    manifest_file = Keyword.fetch!(opts, :failures_manifest_path)
 
     if opts[:failed] do
       if opts[:stale] do
         Mix.raise("Combining --failed and --stale is not supported.")
       end
 
-      {allowed_files, failed_ids} = ExUnit.Filters.failure_info(manifest_file)
-      {Keyword.put(opts, :only_test_ids, failed_ids), allowed_files}
+      case ExUnit.Filters.failure_info(manifest_file) do
+        {allowed_files, failed_ids} ->
+          {Keyword.put(opts, :only_test_ids, failed_ids), allowed_files}
+
+        :all ->
+          {opts, nil}
+      end
     else
       {opts, nil}
     end
@@ -780,7 +959,7 @@ defmodule Mix.Tasks.Test do
     partition = System.get_env("MIX_TEST_PARTITION")
 
     case partition && Integer.parse(partition) do
-      {partition, ""} when partition in 1..total ->
+      {partition, ""} when partition in 1..total//1 ->
         partition = partition - 1
 
         # We sort the files because Path.wildcard does not guarantee

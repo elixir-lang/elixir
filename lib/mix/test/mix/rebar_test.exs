@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Mix.RebarTest do
@@ -74,6 +78,8 @@ defmodule Mix.RebarTest do
     end
 
     test "parses Rebar dependencies" do
+      assert parse_dep(:git_rebar) == {:git_rebar, override: true}
+
       assert parse_dep({:git_rebar, ~c"~> 1.0"}) == {:git_rebar, "~> 1.0", override: true}
 
       assert parse_dep({:git_rebar, ~c"~> 1.0", {:pkg, :rebar_fork}}) ==
@@ -82,19 +88,23 @@ defmodule Mix.RebarTest do
       assert parse_dep({:git_rebar, {:pkg, :rebar_fork}}) ==
                {:git_rebar, override: true, hex: :rebar_fork}
 
-      assert parse_dep({:git_rebar, ~c"0.1..*", {:git, @git_rebar_charlist, :main}}) ==
-               {:git_rebar, ~r"0.1..*", override: true, git: @git_rebar_string, ref: "main"}
-
       assert parse_dep({:git_rebar, {:git, @git_rebar_charlist, :main}}) ==
                {:git_rebar, override: true, git: @git_rebar_string, ref: "main"}
 
-      assert parse_dep({:git_rebar, ~c"0.1..*", {:git, @git_rebar_charlist}, [:raw]}) ==
-               {:git_rebar, ~r"0.1..*", override: true, git: @git_rebar_string, compile: false}
+      assert {:git_rebar, regex, override: true, git: @git_rebar_string, compile: false} =
+               parse_dep({:git_rebar, ~c"0.1..*", {:git, @git_rebar_charlist}, [:raw]})
 
-      assert parse_dep({:git_rebar, ~c"", {:git, @git_rebar_charlist, {:ref, ~c"64691eb"}}}) ==
-               {:git_rebar, ~r"", override: true, git: @git_rebar_string, ref: "64691eb"}
+      assert Regex.source(regex) == "0.1..*"
 
-      assert parse_dep(:git_rebar) == {:git_rebar, override: true}
+      assert {:git_rebar, regex, override: true, git: @git_rebar_string, ref: "main"} =
+               parse_dep({:git_rebar, ~c"0.1..*", {:git, @git_rebar_charlist, :main}})
+
+      assert Regex.source(regex) == "0.1..*"
+
+      assert {:git_rebar, regex, override: true, git: @git_rebar_string, ref: "64691eb"} =
+               parse_dep({:git_rebar, ~c"", {:git, @git_rebar_charlist, {:ref, ~c"64691eb"}}})
+
+      assert Regex.source(regex) == ""
     end
   end
 
@@ -219,7 +229,7 @@ defmodule Mix.RebarTest do
     # We run only on Unix because Windows has a hard time
     # removing the Rebar executable after executed.
     @tag :unix
-    test "applies variables from :system_env option when compiling dependencies" do
+    test "applies variables from :system_env option on config/compilation" do
       in_tmp("applies variables from system_env", fn ->
         Mix.Project.push(RebarAsDepWithEnv)
 
@@ -231,6 +241,27 @@ defmodule Mix.RebarTest do
 
         assert {:ok, "rebar3"} = File.read(expected_file)
       end)
+    end
+
+    # We run only on Unix because Windows has a hard time
+    # removing the Rebar executable after executed.
+    @tag :unix
+    test "gets and compiles dependencies with MIX_REBAR3 with spaces" do
+      in_tmp("rebar3 env with spaces", fn ->
+        File.cp!(Mix.Rebar.local_rebar_path(:rebar3), "rebar3")
+        System.put_env("MIX_REBAR3", Path.absname("rebar3"))
+        assert Mix.Rebar.rebar_args(:rebar3, []) |> elem(0) =~ " "
+
+        Mix.Project.push(RebarAsDep)
+        Mix.Tasks.Deps.Get.run([])
+        assert_received {:mix_shell, :info, ["* Getting git_rebar " <> _]}
+
+        Mix.Tasks.Deps.Compile.run([])
+        assert_received {:mix_shell, :run, ["===> Compiling git_rebar\n"]}
+        assert_received {:mix_shell, :run, ["===> Compiling rebar_dep\n"]}
+      end)
+    after
+      System.delete_env("MIX_REBAR3")
     end
 
     test "gets and compiles dependencies with Mix" do

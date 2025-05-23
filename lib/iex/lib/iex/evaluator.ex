@@ -1,5 +1,11 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule IEx.Evaluator do
   @moduledoc false
+
+  alias IEx.Config
 
   @doc """
   Eval loop for an IEx session. Its responsibilities include:
@@ -71,7 +77,7 @@ defmodule IEx.Evaluator do
       opts[:file],
       "incomplete expression",
       "",
-      {~c"", Keyword.get(opts, :line, 1), Keyword.get(opts, :column, 1)}
+      {~c"", Keyword.get(opts, :line, 1), Keyword.get(opts, :column, 1), 0}
     )
   end
 
@@ -107,7 +113,7 @@ defmodule IEx.Evaluator do
           file,
           error,
           token,
-          {input, line, column}
+          {input, line, column, 0}
         )
     end
   end
@@ -236,7 +242,9 @@ defmodule IEx.Evaluator do
       ref: ref
     }
 
-    case opts[:dot_iex_path] do
+    dot_iex = opts[:dot_iex] || Config.dot_iex()
+
+    case dot_iex do
       "" -> state
       path -> load_dot_iex(state, path)
     end
@@ -247,9 +255,10 @@ defmodule IEx.Evaluator do
       if path do
         [path]
       else
-        Enum.map([".", System.get_env("IEX_HOME", "~")], fn dir ->
-          dir |> Path.join(".iex.exs") |> Path.expand()
-        end)
+        # Do not assume there is a $HOME
+        for dir <- [".", System.get_env("IEX_HOME") || System.user_home()],
+            dir != nil,
+            do: dir |> Path.join(".iex.exs") |> Path.expand()
       end
 
     path = Enum.find(candidates, &File.regular?/1)
@@ -311,7 +320,7 @@ defmodule IEx.Evaluator do
     forms = add_if_undefined_apply_to_vars(forms, env)
     {result, binding, env} = eval_expr_by_expr(forms, binding, env)
 
-    unless result == IEx.dont_display_result() do
+    if result != IEx.dont_display_result() do
       io_inspect(result)
     end
 
@@ -408,36 +417,14 @@ defmodule IEx.Evaluator do
     end
   end
 
-  if System.otp_release() >= "25" do
-    defp prune_stacktrace(stack) do
-      stack
-      |> Enum.reverse()
-      |> Enum.drop_while(&(elem(&1, 0) != :elixir_eval))
-      |> Enum.reverse()
-      |> case do
-        [] -> stack
-        stack -> stack
-      end
-    end
-  else
-    @elixir_internals [:elixir, :elixir_expand, :elixir_compiler, :elixir_module] ++
-                        [:elixir_clauses, :elixir_lexical, :elixir_def, :elixir_map] ++
-                        [:elixir_erl, :elixir_erl_clauses, :elixir_erl_pass] ++
-                        [Kernel.ErrorHandler, Module.ParallelChecker]
-
-    defp prune_stacktrace(stacktrace) do
-      # The order in which each drop_while is listed is important.
-      # For example, the user may call Code.eval_string/2 in IEx
-      # and if there is an error we should not remove erl_eval
-      # and eval_bits information from the user stacktrace.
-      stacktrace
-      |> Enum.reverse()
-      |> Enum.drop_while(&(elem(&1, 0) == :proc_lib))
-      |> Enum.drop_while(&(elem(&1, 0) == __MODULE__))
-      |> Enum.drop_while(&(elem(&1, 0) in [Code, Module.ParallelChecker, :elixir]))
-      |> Enum.drop_while(&(elem(&1, 0) in [:erl_eval, :eval_bits]))
-      |> Enum.reverse()
-      |> Enum.reject(&(elem(&1, 0) in @elixir_internals))
+  defp prune_stacktrace(stack) do
+    stack
+    |> Enum.reverse()
+    |> Enum.drop_while(&(elem(&1, 0) != :elixir_eval))
+    |> Enum.reverse()
+    |> case do
+      [] -> stack
+      stack -> stack
     end
   end
 end

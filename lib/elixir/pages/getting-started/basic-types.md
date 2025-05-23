@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Basic types
 
 In this chapter we will learn more about Elixir basic types: integers, floats, booleans, atoms, and strings. Other data types, such as lists and tuples, will be explored in the next chapter.
@@ -26,7 +31,7 @@ iex> 10 / 2
 5.0
 ```
 
-Notice that `10 / 2` returned a float `5.0` instead of an integer `5`. This is expected. In Elixir, the operator `/` always returns a float. If you want to do integer division or get the division remainder, you can invoke the `div` and `rem` functions:
+Notice that `10 / 2` returned a float `5.0` instead of an integer `5`. This is expected. In Elixir, the operator [`/`](`//2`) always returns a float. If you want to do integer division or get the division remainder, you can invoke the [`div`](`div/2`) and [`rem`](`rem/2`) functions:
 
 ```elixir
 iex> div(10, 2)
@@ -61,7 +66,7 @@ iex> 1.0e-10
 
 Floats in Elixir are 64-bit precision.
 
-You can invoke the `round` function to get the closest integer to a given float, or the `trunc` function to get the integer part of a float.
+You can invoke the [`round`](`round/1`) function to get the closest integer to a given float, or the [`trunc`](`trunc/1`) function to get the integer part of a float.
 
 ```elixir
 iex> round(3.58)
@@ -70,7 +75,7 @@ iex> trunc(3.58)
 3
 ```
 
-Finally, we work with different data types, we will learn Elixir provides several predicate functions to check for the type of a value. For example, the `is_integer` can be used to check if a value is an integer or not:
+Finally, we work with different data types, we will learn Elixir provides several predicate functions to check for the type of a value. For example, [`is_integer`](`is_integer/1`) can be used to check if a value is an integer or not:
 
 ```elixir
 iex> is_integer(1)
@@ -79,33 +84,7 @@ iex> is_integer(2.0)
 false
 ```
 
-You can also use `is_float` or `is_number` to check, respectively, if an argument is an a float, or either an integer or float.
-
-## Identifying functions and documentation
-
-Before we move on to the next data type, let's talk about how Elixir identity functions.
-
-Functions in Elixir are identified by both their name and their arity. The arity of a function describes the number of arguments that the function takes. From this point on we will use both the function name and its arity to describe functions throughout the documentation. `trunc/1` identifies the function which is named `trunc` and takes `1` argument, whereas `trunc/2` identifies a different (nonexistent) function with the same name but with an arity of `2`.
-
-We can also use this syntax to access documentation. The Elixir shell defines the `h` function, which you can use to access documentation for any function. For example, typing `h trunc/1` is going to print the documentation for the `trunc/1` function:
-
-```elixir
-iex> h trunc/1
-                             def trunc()
-
-Returns the integer part of number.
-```
-
-`h trunc/1` works because it is defined in the `Kernel` module. All functions in the `Kernel` module are automatically imported into our namespace. Most often you will also include the module name when looking up for documentation for a given function:
-
-```elixir
-iex> h Kernel.trunc/1
-                             def trunc()
-
-Returns the integer part of number.
-```
-
-You can use the module+function to lookup for anything, including operators (try `h Kernel.+/2`). Invoking `h` without arguments displays the documentation for `IEx.Helpers`, which is where `h` and other functionality is defined.
+You can also use [`is_float`](`is_float/1`) or [`is_number`](`is_number/1`) to check, respectively, if an argument is a float, or either an integer or float.
 
 ## Booleans and `nil`
 
@@ -118,7 +97,7 @@ iex> true == false
 false
 ```
 
-Elixir also provides three boolean operators: `or/2`, `and/2`, and `not/1`. These operators are strict in the sense that they expect something that evaluates to a boolean (`true` or `false`) as their first argument:
+Elixir also provides three boolean operators: [`or`](`or/2`), [`and`](`and/2`), and [`not`](`not/1`). These operators are strict in the sense that they expect something that evaluates to a boolean (`true` or `false`) as their first argument:
 
 ```elixir
 iex> true and true
@@ -143,7 +122,7 @@ iex> true or raise("This error will never be raised")
 true
 ```
 
-Elixir also provides the concept of `nil`, to indicate the absence of a value, and a set of logical operators that also manipulate `nil`: `||/2`, `&&/2`, and `!/1`. For these operators, `false` and `nil` are considered "falsy", all other valuesare considered "truthy":
+Elixir also provides the concept of `nil`, to indicate the absence of a value, and a set of logical operators that also manipulate `nil`: `||/2`, `&&/2`, and `!/1`. For these operators, `false` and `nil` are considered "falsy", all other values are considered "truthy":
 
 ```elixir
 # or
@@ -166,6 +145,10 @@ false
 iex> !nil
 true
 ```
+
+Similarly, values like `0` and `""`, which some other programming languages consider to be "falsy", are also "truthy" in Elixir.
+
+As a rule of thumb, use `and`, `or` and `not` when you are expecting booleans. If any of the arguments are non-boolean, use `&&`, `||` and `!`.
 
 ## Atoms
 
@@ -215,7 +198,7 @@ iex> "hellö"
 
 > Note: if you are running on Windows, there is a chance your terminal does not use UTF-8 by default. You can change the encoding of your current session by running `chcp 65001` before entering IEx.
 
-You can concatenate two strings with the `<>/2` operator:
+You can concatenate two strings with the [`<>`](`<>/2`) operator:
 
 ```elixir
 iex> "hello " <> "world!"
@@ -227,7 +210,7 @@ Elixir also supports string interpolation:
 ```elixir
 iex> string = "world"
 iex> "hello #{string}!"
-"hello world"
+"hello world!"
 ```
 
 String concatenation requires both sides to be strings but interpolation supports any data type that may be converted to a string:
@@ -248,7 +231,7 @@ iex> "hello\nworld"
 "hello\nworld"
 ```
 
-You can print a string using the `IO.puts/1` function from the `IO` module:
+You can print a string using the [`IO.puts`](`IO.puts/1`) function from the `IO` module:
 
 ```elixir
 iex> IO.puts("hello\nworld")
@@ -257,7 +240,7 @@ world
 :ok
 ```
 
-Notice that the `IO.puts/1` function returns the atom `:ok` after printing.
+Notice that the [`IO.puts`](`IO.puts/1`) function returns the atom `:ok` after printing.
 
 Strings in Elixir are represented internally by contiguous sequences of bytes known as binaries:
 
@@ -273,7 +256,7 @@ iex> byte_size("hellö")
 6
 ```
 
-Notice that the number of bytes in that string is 6, even though it has 5 graphemes. That's because the grapheme "ö" takes 2 bytes to be represented in UTF-8. We can get the actual length of the string, based on the number of graphemes, by using the `String.length/1` function:
+Notice that the number of bytes in that string is 6, even though it has 5 graphemes. That's because the grapheme "ö" takes 2 bytes to be represented in UTF-8. We can get the actual length of the string, based on the number of graphemes, by using the [`String.length`](`String.length/1`) function:
 
 ```elixir
 iex> String.length("hellö")
@@ -289,7 +272,7 @@ iex> String.upcase("hellö")
 
 ## Structural comparison
 
-Elixir also provides `==`, `!=`, `<=`, `>=`, `<` and `>` as comparison operators. We can compare numbers:
+Elixir also provides [`==`](`==/2`), [`!=`](`!=/2`), [`<=`](`<=/2`), [`>=`](`>=/2`), [`<`](`</2`) and [`>`](`>/2`) as comparison operators. We can compare numbers:
 
 ```elixir
 iex> 1 == 1
@@ -318,13 +301,13 @@ iex> 1 == 2.0
 false
 ```
 
-However, you can use the strict comparison operator `===` and `!==` if you want to distinguish between integers and floats (that's the only difference between these operators):
+However, you can use the strict comparison operator [`===`](`===/2`) and [`!==`](`!==/2`) if you want to distinguish between integers and floats:
 
 ```elixir
 iex> 1 === 1.0
 false
 ```
 
-The comparison operators in Elixir can compare across any data type. We say these operators perform _structural comparison_. For more information, you can read our documentation on [Structural vs Semantic comparisons](Kernel.html#module-structural-comparison).
+The comparison operators in Elixir can compare across any data type. We say these operators perform _structural comparison_. For more information, you can read our documentation on [Structural vs Semantic comparisons](`Kernel#module-structural-comparison`).
 
 Elixir also provides data-types for expressing collections, such as lists and tuples, which we learn next. When we talk about concurrency and fault-tolerance via processes, we will also discuss ports, pids, and references, but that will come on later chapters. Let's move forward.

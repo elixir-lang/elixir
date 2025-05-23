@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Tasks.Help do
   use Mix.Task
 
@@ -12,8 +16,8 @@ defmodule Mix.Tasks.Help do
       $ mix help ALIAS            - prints the definition for the given alias
       $ mix help TASK             - prints full docs for the given task
       $ mix help --search PATTERN - prints all tasks and aliases that contain PATTERN in the name
-      $ mix help --names          - prints all task names and aliases
-                                  (useful for autocompleting)
+      $ mix help --names          - prints all task names and aliases (useful for autocompletion)
+      $ mix help --aliases        - prints all aliases
 
   ## Colors
 
@@ -52,6 +56,7 @@ defmodule Mix.Tasks.Help do
     display_default_task_doc(max)
     display_doc_list(docs, max)
     display_iex_task_doc(max)
+    Mix.shell().info("\nUse \"mix help <TASK>\" for more information on a particular command.")
   end
 
   def run(["--names"]) do
@@ -69,6 +74,16 @@ defmodule Mix.Tasks.Help do
     end
   end
 
+  def run(["--aliases"]) do
+    loadpaths!()
+
+    aliases = load_aliases()
+
+    {docs, max} = build_doc_list([], aliases)
+
+    display_doc_list(docs, max)
+  end
+
   def run(["--search", pattern]) do
     loadpaths!()
 
@@ -81,6 +96,30 @@ defmodule Mix.Tasks.Help do
 
   def run(["--search"]) do
     Mix.raise("Unexpected arguments, expected \"mix help --search PATTERN\"")
+  end
+
+  @compile {:no_warn_undefined, IEx.Introspection}
+
+  def run([module = <<first, _::binary>>]) when first in ?A..?Z or first == ?: do
+    loadpaths!()
+
+    iex_colors = Application.get_env(:iex, :colors, [])
+    mix_colors = Application.get_env(:mix, :colors, [])
+
+    try do
+      Application.put_env(:iex, :colors, mix_colors)
+
+      module
+      |> Code.string_to_quoted!()
+      |> IEx.Introspection.decompose(__ENV__)
+      |> case do
+        :error -> Mix.raise("Invalid expression: #{module}")
+        decomposition -> decomposition
+      end
+      |> IEx.Introspection.h()
+    after
+      Application.put_env(:iex, :colors, iex_colors)
+    end
   end
 
   def run([task]) do
@@ -108,7 +147,13 @@ defmodule Mix.Tasks.Help do
 
   # Loadpaths without checks because tasks may be defined in deps.
   defp loadpaths! do
-    args = ["--no-elixir-version-check", "--no-deps-check", "--no-archives-check"]
+    args = [
+      "--no-elixir-version-check",
+      "--no-deps-check",
+      "--no-archives-check",
+      "--no-listeners"
+    ]
+
     Mix.Task.run("loadpaths", args)
     Mix.Task.reenable("loadpaths")
     Mix.Task.reenable("deps.loadpaths")
@@ -194,12 +239,34 @@ defmodule Mix.Tasks.Help do
   end
 
   defp build_alias_doc_list(aliases) do
-    Enum.reduce(aliases, {[], 0}, fn {alias_name, _task_name}, {docs, max} ->
-      doc = "Alias defined in mix.exs"
+    Enum.reduce(aliases, {[], 0}, fn {alias_name, task}, {docs, max} ->
+      doc = alias_doc(task)
       task = "mix " <> alias_name
       {[{task, doc} | docs], max(byte_size(task), max)}
     end)
   end
+
+  defp alias_doc(task) do
+    "Alias for " <> format_alias_doc(task)
+  end
+
+  defp format_alias_doc(task), do: Enum.map_join(List.wrap(task), ", ", &format_alias_task/1)
+
+  defp format_alias_task(task) when is_binary(task), do: task
+
+  defp format_alias_task(task) when is_function(task) do
+    info = Function.info(task)
+    name = Atom.to_string(info[:name])
+
+    cond do
+      info[:type] == :remote -> inspect(task)
+      info[:type] == :local and String.contains?(name, "/") -> "a function"
+      true -> "&#{name}/#{info[:arity]}"
+    end
+  end
+
+  # for invalid aliases
+  defp format_alias_task(task), do: inspect(task)
 
   defp verbose_doc(task) do
     aliases = load_aliases()
@@ -221,7 +288,18 @@ defmodule Mix.Tasks.Help do
   end
 
   defp alias_doc(task_name, note) do
-    {"Alias for " <> inspect(task_name), "mix.exs", note}
+    alias_doc = """
+    Alias for
+
+        #{format_alias(task_name)}
+    """
+
+    {alias_doc, "mix.exs", note}
+  end
+
+  defp format_alias(task) do
+    inspect(task, pretty: true, width: 0)
+    |> String.replace("\n", "\n    ")
   end
 
   defp task_doc(task) do

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Logger.Translator do
   @moduledoc """
   Default translation for Erlang log messages.
@@ -40,6 +44,9 @@ defmodule Logger.Translator do
 
   @doc """
   Built-in translation function.
+
+  This function is an implementation of the `c:translate/4` callback.
+  For arguments and return value of this function, see that callback.
   """
   def translate(min_level, level, kind, message)
 
@@ -50,6 +57,9 @@ defmodule Logger.Translator do
 
       {:gen_event, :terminate} ->
         report_gen_event_terminate(min_level, report)
+
+      {:gen_statem, :terminate} ->
+        report_gen_statem_terminate(min_level, report)
 
       _ ->
         :skip
@@ -96,7 +106,8 @@ defmodule Logger.Translator do
            starter: starter,
            function: function,
            args: args,
-           reason: reason
+           reason: reason,
+           process_label: process_label
          }}
       ) do
     opts = Application.get_env(:logger, :translator_inspect_opts)
@@ -105,9 +116,16 @@ defmodule Logger.Translator do
     metadata = [crash_reason: reason] ++ registered_name(name)
 
     msg =
-      ["Task #{inspect(name)} started from #{inspect(starter)} terminating"] ++
-        [formatted, "\nFunction: #{inspect(function, opts)}"] ++
+      ["\nFunction: #{inspect(function, opts)}"] ++
         ["\n    Args: #{inspect(args, opts)}"]
+
+    msg =
+      case process_label do
+        :undefined -> msg
+        _ -> ["\nProcess Label: #{inspect(process_label, opts)}"] ++ msg
+      end
+
+    msg = ["Task #{inspect(name)} started from #{inspect(starter)} terminating", formatted] ++ msg
 
     {:ok, msg, metadata}
   end
@@ -183,8 +201,7 @@ defmodule Logger.Translator do
   end
 
   def translate(_min_level, :debug, :report, {:logger, [formatter_error: formatter] ++ data}) do
-    # TODO: Remove :catched once we require Erlang/OTP 25+
-    case data[:caught] || data[:catched] do
+    case data[:caught] do
       {:throw, {:error, good, bad}, stacktrace} ->
         message =
           "bad return value from Logger formatter #{inspect(formatter)}, " <>
@@ -217,8 +234,17 @@ defmodule Logger.Translator do
     {formatted, reason} = format_reason(reason)
     metadata = [crash_reason: reason] ++ registered_name(name)
 
+    label_msg =
+      case report do
+        %{process_label: process_label} when process_label != :undefined ->
+          ["\nProcess Label: ", inspect(process_label, inspect_opts)]
+
+        _ ->
+          []
+      end
+
     msg =
-      ["GenServer ", inspect(name), " terminating", formatted] ++
+      ["GenServer ", inspect(name), " terminating", formatted, label_msg] ++
         ["\nLast message", format_last_message_from(client), ": ", inspect(last, inspect_opts)]
 
     if min_level == :debug do
@@ -249,12 +275,69 @@ defmodule Logger.Translator do
     {formatted, reason} = format_reason(reason)
     metadata = [crash_reason: reason] ++ registered_name(name)
 
+    label_msg =
+      case report do
+        %{process_label: process_label} when process_label != :undefined ->
+          ["\nProcess Label: ", inspect(process_label, inspect_opts)]
+
+        _ ->
+          []
+      end
+
     msg =
       [":gen_event handler ", inspect(handler), " installed in ", inspect(name), " terminating"] ++
-        [formatted, "\nLast message: ", inspect(last, inspect_opts)]
+        [formatted, label_msg, "\nLast message: ", inspect(last, inspect_opts)]
 
     if min_level == :debug do
       {:ok, [msg, "\nState: ", inspect(state, inspect_opts)], metadata}
+    else
+      {:ok, msg, metadata}
+    end
+  end
+
+  defp report_gen_statem_terminate(min_level, report) do
+    inspect_opts = Application.get_env(:logger, :translator_inspect_opts)
+
+    %{
+      client_info: client,
+      name: name,
+      reason: {kind, reason, stack},
+      state: state,
+      queue: queue,
+      postponed: postponed,
+      callback_mode: callback_mode,
+      state_enter: state_enter?
+    } = report
+
+    {reason, stack} = exit_reason(kind, reason, stack)
+    {formatted, reason} = format_reason({reason, stack})
+    metadata = [crash_reason: reason] ++ registered_name(name)
+
+    label_msg =
+      case report do
+        %{process_label: process_label} when process_label != :undefined ->
+          ["\nProcess Label: ", inspect(process_label, inspect_opts)]
+
+        _ ->
+          []
+      end
+
+    msg =
+      [":gen_statem ", inspect(name), " terminating", formatted, label_msg] ++
+        ["\nQueue: #{inspect(queue, inspect_opts)}"] ++
+        ["\nPostponed: #{inspect(postponed, inspect_opts)}"]
+
+    if min_level == :debug do
+      msg = [
+        msg,
+        "\nState: ",
+        inspect(state, inspect_opts),
+        "\nCallback mode: ",
+        "#{inspect(callback_mode, inspect_opts)}, state_enter: #{state_enter?}"
+        | format_client_info(client)
+      ]
+
+      {:ok, msg, metadata}
     else
       {:ok, msg, metadata}
     end
@@ -404,11 +487,9 @@ defmodule Logger.Translator do
   end
 
   defp report_crash(min_level, crashed, extra, linked) do
-    [
-      {:pid, pid},
-      {:registered_name, name},
-      {:error_info, {kind, reason, stack}} | crashed
-    ] = crashed
+    {pid, crashed} = Keyword.pop_first(crashed, :pid)
+    {name, crashed} = Keyword.pop_first(crashed, :registered_name)
+    {{kind, reason, stack}, crashed} = Keyword.pop_first(crashed, :error_info)
 
     dictionary = crashed[:dictionary]
     reason = Exception.normalize(kind, reason, stack)
@@ -457,6 +538,14 @@ defmodule Logger.Translator do
 
   defp crash_info(min_level, [{:ancestors, ancestors} | debug], prefix) do
     [prefix, "Ancestors: ", inspect(ancestors) | crash_info(min_level, debug, prefix)]
+  end
+
+  defp crash_info(min_level, [{:process_label, :undefined} | info], prefix) do
+    crash_info(min_level, info, prefix)
+  end
+
+  defp crash_info(min_level, [{:process_label, label} | debug], prefix) do
+    [prefix, "Process Label: ", inspect(label) | crash_info(min_level, debug, prefix)]
   end
 
   defp crash_info(:debug, debug, prefix) do

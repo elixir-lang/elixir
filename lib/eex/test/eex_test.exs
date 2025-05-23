@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 require EEx
@@ -198,15 +202,6 @@ defmodule EExTest do
       assert_eval("foo baz", "foo <%= if false do %>bar<% else %>baz<% end %>")
     end
 
-    test "embedded code with comments in do end" do
-      assert_eval("foo bar", "foo <%= case true do %><%# comment %><% true -> %>bar<% end %>")
-
-      assert_eval(
-        "foo\n\nbar\n",
-        "foo\n<%= case true do %>\n<%# comment %>\n<% true -> %>\nbar\n<% end %>"
-      )
-    end
-
     test "embedded code with multi-line comments in do end" do
       assert_eval("foo bar", "foo <%= case true do %><%!-- comment --%><% true -> %>bar<% end %>")
 
@@ -283,6 +278,19 @@ defmodule EExTest do
 
       assert_raise EEx.SyntaxError, message, fn ->
         EEx.compile_string("foo <%= bar", file: Path.join(File.cwd!(), "foobar.eex"))
+      end
+    end
+
+    test "when <%!-- is not closed" do
+      message = """
+      my_file.eex:1:5: expected closing '--%>' for EEx expression
+        |
+      1 | foo <%!-- bar
+        |     ^\
+      """
+
+      assert_raise EEx.SyntaxError, message, fn ->
+        EEx.compile_string("foo <%!-- bar", file: "my_file.eex")
       end
     end
 
@@ -476,17 +484,13 @@ defmodule EExTest do
       end
     end
 
-    test "when middle expression has a modifier" do
-      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
-               EEx.compile_string("foo <%= if true do %>true<%= else %>false<% end %>")
-             end) =~ ~s[unexpected beginning of EEx tag \"<%=\" on \"<%= else %>\"]
-    end
+    test "when trying to use marker '|' without implementation" do
+      msg =
+        ~r/unsupported EEx syntax <%| %> \(the syntax is valid but not supported by the current EEx engine\)/
 
-    test "when end expression has a modifier" do
-      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
-               EEx.compile_string("foo <%= if true do %>true<% else %>false<%= end %>")
-             end) =~
-               ~s[unexpected beginning of EEx tag \"<%=\" on \"<%= end %>\"]
+      assert_raise EEx.SyntaxError, msg, fn ->
+        EEx.compile_string("<%| true %>")
+      end
     end
 
     test "when trying to use marker '/' without implementation" do
@@ -498,17 +502,59 @@ defmodule EExTest do
       end
     end
 
-    test "when trying to use marker '|' without implementation" do
-      msg =
-        ~r/unsupported EEx syntax <%| %> \(the syntax is valid but not supported by the current EEx engine\)/
+    test "from Elixir parser" do
+      line = __ENV__.line + 6
 
-      assert_raise EEx.SyntaxError, msg, fn ->
-        EEx.compile_string("<%| true %>")
-      end
+      message =
+        assert_raise TokenMissingError, fn ->
+          EEx.compile_string(
+            """
+            <li>
+              <strong>Some:</strong>
+              <%= true && @some[ %>
+            </li>
+            """,
+            file: __ENV__.file,
+            line: line,
+            indentation: 12
+          )
+        end
+
+      assert message |> Exception.message() |> strip_ansi() =~ """
+                  │
+              514 │                   true && @some[\s
+                  │                                │ └ missing closing delimiter (expected "]")
+                  │                                └ unclosed delimiter
+             """
     end
-  end
 
-  describe "error messages" do
+    test "from Elixir parser with line breaks" do
+      line = __ENV__.line + 6
+
+      message =
+        assert_raise TokenMissingError, fn ->
+          EEx.compile_string(
+            """
+            <li>
+              <strong>Some:</strong>
+              <%= true &&
+                @some[ %>
+            </li>
+            """,
+            file: __ENV__.file,
+            line: line,
+            indentation: 12
+          )
+        end
+
+      assert message |> Exception.message() |> strip_ansi() =~ """
+                  │
+              #{line + 3} │                 @some[\s
+                  │                      │ └ missing closing delimiter (expected "]")
+                  │                      └ unclosed delimiter
+             """
+    end
+
     test "honor line numbers" do
       assert_raise EEx.SyntaxError,
                    "nofile:100:6: expected closing '%>' for EEx expression",
@@ -529,18 +575,40 @@ defmodule EExTest do
         EEx.compile_string("foo <%= bar", file: "my_file.eex")
       end
     end
+  end
 
-    test "when <%!-- is not closed" do
-      message = """
-      my_file.eex:1:5: expected closing '--%>' for EEx expression
-        |
-      1 | foo <%!-- bar
-        |     ^\
-      """
+  describe "warnings" do
+    test "when middle expression has a modifier" do
+      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+               EEx.compile_string("foo <%= if true do %>true<%= else %>false<% end %>")
+             end) =~ ~s[unexpected beginning of EEx tag \"<%=\" on \"<%= else %>\"]
+    end
 
-      assert_raise EEx.SyntaxError, message, fn ->
-        EEx.compile_string("foo <%!-- bar", file: "my_file.eex")
-      end
+    test "when end expression has a modifier" do
+      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+               EEx.compile_string("foo <%= if true do %>true<% else %>false<%= end %>")
+             end) =~
+               ~s[unexpected beginning of EEx tag \"<%=\" on \"<%= end %>\"]
+    end
+
+    test "unused \"do\" block without \"<%=\" modifier" do
+      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+               EEx.compile_string("<% if true do %>I'm invisible!<% end %>")
+             end) =~ "the contents of this expression won't be output"
+
+      # These are fine though
+      EEx.compile_string("<% foo = fn -> %>Hello<% end %>")
+      EEx.compile_string("<% foo = if true do %>Hello<% end %>")
+    end
+
+    test "from tokenizer" do
+      warning =
+        ExUnit.CaptureIO.capture_io(:stderr, fn ->
+          EEx.compile_string(~s'<%= :"foo" %>', file: "tokenizer.ex")
+        end)
+
+      assert warning =~ "found quoted atom \"foo\" but the quotes are not required"
+      assert warning =~ "tokenizer.ex:1:5"
     end
   end
 
@@ -751,38 +819,31 @@ defmodule EExTest do
     end
 
     test "line and column meta" do
-      parser_options = Code.get_compiler_option(:parser_options)
-      Code.put_compiler_option(:parser_options, columns: true)
+      indentation = 12
 
-      try do
-        indentation = 12
+      ast =
+        EEx.compile_string(
+          """
+          <%= f() %> <% f() %>
+            <%= f fn -> %>
+              <%= f() %>
+            <% end %>
+          """,
+          indentation: indentation
+        )
 
-        ast =
-          EEx.compile_string(
-            """
-            <%= f() %> <% f() %>
-              <%= f fn -> %>
-                <%= f() %>
-              <% end %>
-            """,
-            indentation: indentation
-          )
+      {_, calls} =
+        Macro.prewalk(ast, [], fn
+          {:f, meta, _args} = expr, acc -> {expr, [meta | acc]}
+          other, acc -> {other, acc}
+        end)
 
-        {_, calls} =
-          Macro.prewalk(ast, [], fn
-            {:f, meta, _args} = expr, acc -> {expr, [meta | acc]}
-            other, acc -> {other, acc}
-          end)
-
-        assert Enum.reverse(calls) == [
-                 [line: 1, column: indentation + 5],
-                 [line: 1, column: indentation + 15],
-                 [line: 2, column: indentation + 7],
-                 [line: 3, column: indentation + 9]
-               ]
-      after
-        Code.put_compiler_option(:parser_options, parser_options)
-      end
+      assert Enum.reverse(calls) == [
+               [line: 1, column: indentation + 5],
+               [line: 1, column: indentation + 15],
+               [line: 2, column: indentation + 7],
+               [line: 3, column: indentation + 9]
+             ]
     end
   end
 
@@ -856,13 +917,13 @@ defmodule EExTest do
       file = to_charlist(Path.relative_to_cwd(__ENV__.file))
 
       assert EExTest.Compiled.before_compile() ==
-               {7, {EExTest.Compiled, :before_compile, 0, [file: file, line: 7]}}
+               {11, {EExTest.Compiled, :before_compile, 0, [file: file, line: 11]}}
 
       assert EExTest.Compiled.after_compile() ==
-               {21, {EExTest.Compiled, :after_compile, 0, [file: file, line: 21]}}
+               {25, {EExTest.Compiled, :after_compile, 0, [file: file, line: 25]}}
 
       assert EExTest.Compiled.unknown() ==
-               {26, {EExTest.Compiled, :unknown, 0, [file: ~c"unknown", line: 26]}}
+               {30, {EExTest.Compiled, :unknown, 0, [file: ~c"unknown", line: 30]}}
     end
   end
 
@@ -938,6 +999,12 @@ defmodule EExTest do
         parser_options: [static_atoms_encoder: atoms_encoder]
       )
     end
+  end
+
+  @strip_ansi [IO.ANSI.green(), IO.ANSI.red(), IO.ANSI.reset()]
+
+  defp strip_ansi(doc) do
+    String.replace(doc, @strip_ansi, "")
   end
 
   defp assert_eval(expected, actual, binding \\ [], opts \\ []) do

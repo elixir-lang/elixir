@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Access do
   @moduledoc """
   Key-based access to data structures.
@@ -35,61 +39,74 @@ defmodule Access do
       iex> nil[:a]
       nil
 
-  The access syntax can also be used with the `Kernel.put_in/2`,
-  `Kernel.update_in/2` and `Kernel.get_and_update_in/2` macros
-  to allow values to be set in nested data structures:
-
-      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
-      iex> put_in(users["john"][:age], 28)
-      %{"john" => %{age: 28}, "meg" => %{age: 23}}
-
   ## Maps and structs
 
   While the access syntax is allowed in maps via `map[key]`,
   if your map is made of predefined atom keys, you should prefer
   to access those atom keys with `map.key` instead of `map[key]`,
   as `map.key` will raise if the key is missing (which is not
-  supposed to happen if the keys are predefined).
+  supposed to happen if the keys are predefined) or if `map` is
+  `nil`.
 
   Similarly, since structs are maps and structs have predefined
   keys, they only allow the `struct.key` syntax and they do not
-  allow the `struct[key]` access syntax. `Access.key/1` can also
-  be used to construct dynamic access to structs and maps.
+  allow the `struct[key]` access syntax.
 
-  In a nutshell, when using `put_in/2` and friends:
+  In other words, the `map[key]` syntax is loose, returning `nil`
+  for missing keys, while the `map.key` syntax is strict, raising
+  for both nil values and missing keys.
 
-      put_in(struct_or_map.key, :value)
-      put_in(keyword_or_map[:key], :value)
+  To bridge this gap, Elixir provides the `get_in/1` and `get_in/2`
+  functions, which are capable of traversing nested data structures,
+  even in the presence of `nil`s:
 
-  When using `put_in/3` and friends:
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> get_in(users["john"].age)
+      27
+      iex> get_in(users["unknown"].age)
+      nil
 
-      put_in(struct_or_map, [Access.key!(:key)], :value)
-      put_in(keyword_or_map, [:key], :value)
+  Notice how, even if no user was found, `get_in/1` returned `nil`.
+  Outside of `get_in/1`, trying to access the field `.age` on `nil`
+  would raise.
 
-  This covers the dual nature of maps in Elixir, as they can be
-  either for structured data or as a key-value store. See the `Map`
-  module for more information.
+  The `get_in/2` function takes one step further by allowing
+  different accessors to be mixed in. For example, given a user
+  map with the `:name` and `:languages` keys, here is how to
+  access the name of all programming languages:
 
-  ## Nested data structures
+        iex> languages = [
+        ...>   %{name: "elixir", type: :functional},
+        ...>   %{name: "c", type: :procedural}
+        ...> ]
+        iex> user = %{name: "john", languages: languages}
+        iex> get_in(user, [:languages, Access.all(), :name])
+        ["elixir", "c"]
 
-  Both key-based access syntaxes can be used with the nested update
-  functions and macros in `Kernel`, such as `Kernel.get_in/2`,
-  `Kernel.put_in/3`, `Kernel.update_in/3`, `Kernel.pop_in/2`, and
-  `Kernel.get_and_update_in/3`.
+  This module provides convenience functions for traversing other
+  structures, like tuples and lists. As we will see next, they can
+  even be used to update nested data structures.
 
-  For example, to update a map inside another map:
+  If you want to learn more about the dual nature of maps in Elixir,
+  as they can be either for structured data or as a key-value store,
+  see the `Map` module.
+
+  ## Updating nested data structures
+
+  The access syntax can also be used with the `Kernel.put_in/2`,
+  `Kernel.update_in/2`, `Kernel.get_and_update_in/2`, and `Kernel.pop_in/1`
+  macros to further manipulate values in nested data structures:
 
       iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
       iex> put_in(users["john"].age, 28)
       %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
-  This module provides convenience functions for traversing other
-  structures, like tuples and lists. These functions can be used
-  in all the `Access`-related functions and macros in `Kernel`.
-
-  For instance, given a user map with the `:name` and `:languages`
-  keys, here is how to deeply traverse the map and convert all
-  language names to uppercase:
+  As shown in the previous section, you can also use the
+  `Kernel.put_in/3`, `Kernel.update_in/3`, `Kernel.pop_in/2`, and
+  `Kernel.get_and_update_in/3` functions to provide nested
+  custom accessors. For instance, given a user map with the
+  `:name` and `:languages` keys, here is how to deeply traverse
+  the map and convert all language names to uppercase:
 
       iex> languages = [
       ...>   %{name: "elixir", type: :functional},
@@ -337,7 +354,7 @@ defmodule Access do
     Accessing a list by index is typically discouraged in Elixir, \
     instead we prefer to use the Enum module to manipulate lists \
     as a whole. If you really must access a list element by index, \
-    you can Enum.at/1 or the functions in the List module\
+    you can use Enum.at/2 or the functions in the List module\
     """
   end
 
@@ -405,8 +422,8 @@ defmodule Access do
 
     Accessing a list by index is typically discouraged in Elixir, \
     instead we prefer to use the Enum module to manipulate lists \
-    as a whole. If you really must mostify a list element by index, \
-    you can Access.at/1 or the functions in the List module\
+    as a whole. If you really must modify a list element by index, \
+    you can use Access.at/1 or the functions in the List module\
     """
   end
 
@@ -500,8 +517,8 @@ defmodule Access do
   An error is raised if the accessed structure is not a map or a struct:
 
       iex> get_in([], [Access.key(:foo)])
-      ** (BadMapError) expected a map, got: []
-
+      ** (BadMapError) expected a map, got:
+      ...
   """
   @spec key(key, term) :: access_fun(data :: struct | map, current_value :: term)
   def key(key, default \\ nil) do
@@ -539,7 +556,8 @@ defmodule Access do
       iex> pop_in(map, [Access.key!(:user), Access.key!(:name)])
       {"john", %{user: %{}}}
       iex> get_in(map, [Access.key!(:user), Access.key!(:unknown)])
-      ** (KeyError) key :unknown not found in: %{name: \"john\"}
+      ** (KeyError) key :unknown not found in:
+      ...
 
   The examples above could be partially written as:
 
@@ -552,7 +570,7 @@ defmodule Access do
       {"john", %{user: %{name: "JOHN"}}}
 
   However, it is not possible to remove fields using the dot notation,
-  as it is implified those fields must also be present. In any case,
+  as it is implied those fields must also be present. In any case,
   `Access.key!/1` is useful when the key is not known in advance
   and must be accessed dynamically.
 
@@ -794,7 +812,7 @@ defmodule Access do
       iex> get_in([:a, :b, :c], [Access.at!(2)])
       :c
       iex> get_in([:a, :b, :c], [Access.at!(3)])
-      ** (Enum.OutOfBoundsError) out of bounds error
+      ** (Enum.OutOfBoundsError) out of bounds error at position 3 when traversing enumerable [:a, :b, :c]
 
   """
   @doc since: "1.11.0"
@@ -806,12 +824,14 @@ defmodule Access do
   defp at!(:get, data, index, next) when is_list(data) do
     case Enum.fetch(data, index) do
       {:ok, value} -> next.(value)
-      :error -> raise Enum.OutOfBoundsError
+      :error -> raise Enum.OutOfBoundsError, index: index, enumerable: data
     end
   end
 
   defp at!(:get_and_update, data, index, next) when is_list(data) do
-    get_and_update_at(data, index, next, [], fn -> raise Enum.OutOfBoundsError end)
+    get_and_update_at(data, index, next, [], fn ->
+      raise Enum.OutOfBoundsError, index: index, enumerable: data
+    end)
   end
 
   defp at!(_op, data, _index, _next) do
@@ -979,6 +999,93 @@ defmodule Access do
     raise ArgumentError, "Access.slice/1 expected a list, got: #{inspect(data)}"
   end
 
+  @doc """
+  Returns a function that accesses all values in a map or a keyword list.
+
+  The returned function is typically passed as an accessor to `Kernel.get_in/2`,
+  `Kernel.get_and_update_in/3`, and friends.
+
+  ## Examples
+
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> get_in(users, [Access.values(), :age]) |> Enum.sort()
+      [23, 27]
+      iex> update_in(users, [Access.values(), :age], fn age -> age + 1 end)
+      %{"john" => %{age: 28}, "meg" => %{age: 24}}
+      iex> put_in(users, [Access.values(), :planet], "Earth")
+      %{"john" => %{age: 27, planet: "Earth"}, "meg" => %{age: 23, planet: "Earth"}}
+
+  Values in keyword lists can be accessed as well:
+
+      iex> users = [john: %{age: 27}, meg: %{age: 23}]
+      iex> get_and_update_in(users, [Access.values(), :age], fn age -> {age, age + 1} end)
+      {[27, 23], [john: %{age: 28}, meg: %{age: 24}]}
+
+  By returning `:pop` from an accessor function, you can remove the accessed key and value
+  from the map or keyword list:
+
+      iex> require Integer
+      iex> numbers = [one: 1, two: 2, three: 3, four: 4]
+      iex> get_and_update_in(numbers, [Access.values()], fn num ->
+      ...>   if Integer.is_even(num), do: :pop, else: {num, to_string(num)}
+      ...> end)
+      {[1, 2, 3, 4], [one: "1", three: "3"]}
+
+  An error is raised if the accessed structure is not a map nor a keyword list:
+
+      iex> get_in([1, 2, 3], [Access.values()])
+      ** (RuntimeError) Access.values/0 expected a map or a keyword list, got: [1, 2, 3]
+  """
+  @doc since: "1.19.0"
+  @spec values() :: Access.access_fun(data :: map() | keyword(), current_value :: list())
+  def values do
+    &values/3
+  end
+
+  defp values(:get, data = %{}, next) do
+    Enum.map(data, fn {_key, value} -> next.(value) end)
+  end
+
+  defp values(:get_and_update, data = %{}, next) do
+    {reverse_gets, updated_data} =
+      Enum.reduce(data, {[], %{}}, fn {key, value}, {gets, data_acc} ->
+        case next.(value) do
+          {get, update} -> {[get | gets], Map.put(data_acc, key, update)}
+          :pop -> {[value | gets], data_acc}
+        end
+      end)
+
+    {Enum.reverse(reverse_gets), updated_data}
+  end
+
+  defp values(op, data = [], next) do
+    values_keyword(op, data, next)
+  end
+
+  defp values(op, data = [{key, _value} | _tail], next) when is_atom(key) do
+    values_keyword(op, data, next)
+  end
+
+  defp values(_op, data, _next) do
+    raise "Access.values/0 expected a map or a keyword list, got: #{inspect(data)}"
+  end
+
+  defp values_keyword(:get, data, next) do
+    Enum.map(data, fn {key, value} when is_atom(key) -> next.(value) end)
+  end
+
+  defp values_keyword(:get_and_update, data, next) do
+    {reverse_gets, reverse_updated_data} =
+      Enum.reduce(data, {[], []}, fn {key, value}, {gets, data_acc} when is_atom(key) ->
+        case next.(value) do
+          {get, update} -> {[get | gets], [{key, update} | data_acc]}
+          :pop -> {[value | gets], data_acc}
+        end
+      end)
+
+    {Enum.reverse(reverse_gets), Enum.reverse(reverse_updated_data)}
+  end
+
   defp normalize_range(%Range{first: first, last: last, step: step}, list)
        when first < 0 or last < 0 do
     count = length(list)
@@ -1012,5 +1119,81 @@ defmodule Access do
 
   defp get_and_update_slice([], _range, _next, updates, gets, _index) do
     {:lists.reverse(gets), :lists.reverse(updates)}
+  end
+
+  @doc ~S"""
+  Returns a function that accesses the first element of a list that matches the provided predicate.
+
+  The returned function is typically passed as an accessor to `Kernel.get_in/2`,
+  `Kernel.get_and_update_in/3`, and friends.
+
+  ## Examples
+
+      iex> list = [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]
+      iex> get_in(list, [Access.find(&(&1.salary > 20)), :name])
+      "francine"
+      iex> get_and_update_in(list, [Access.find(&(&1.salary <= 40)), :name], fn prev ->
+      ...>   {prev, String.upcase(prev)}
+      ...> end)
+      {"john", [%{name: "JOHN", salary: 10}, %{name: "francine", salary: 30}]}
+
+  `find/1` can also be used to pop the first found element out of a list or
+  a key inside of a list:
+
+      iex> list = [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]
+      iex> pop_in(list, [Access.find(&(&1.salary <= 40))])
+      {%{name: "john", salary: 10}, [%{name: "francine", salary: 30}]}
+
+  When no match is found, nil is returned and the update function is never called
+
+      iex> list = [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]
+      iex> get_in(list, [Access.find(&(&1.salary >= 50)), :name])
+      nil
+      iex> get_and_update_in(list, [Access.find(&(&1.salary >= 50)), :name], fn prev ->
+      ...>   {prev, String.upcase(prev)}
+      ...> end)
+      {nil, [%{name: "john", salary: 10}, %{name: "francine", salary: 30}]}
+
+  An error is raised if the predicate is not a function or is of the incorrect arity:
+
+      iex> get_in([], [Access.find(5)])
+      ** (FunctionClauseError) no function clause matching in Access.find/1
+
+  An error is raised if the accessed structure is not a list:
+
+      iex> get_in(%{}, [Access.find(fn a -> a == 10 end)])
+      ** (RuntimeError) Access.find/1 expected a list, got: %{}
+  """
+  @doc since: "1.17.0"
+  @spec find((term -> as_boolean(term))) :: access_fun(data :: list, current_value :: term)
+  def find(predicate) when is_function(predicate, 1) do
+    fn op, data, next -> find(op, data, predicate, next) end
+  end
+
+  defp find(:get, data, predicate, next) when is_list(data) do
+    data |> Enum.find(predicate) |> next.()
+  end
+
+  defp find(:get_and_update, data, predicate, next) when is_list(data) do
+    get_and_update_find(data, [], predicate, next)
+  end
+
+  defp find(_op, data, _predicate, _next) do
+    raise "Access.find/1 expected a list, got: #{inspect(data)}"
+  end
+
+  defp get_and_update_find([], updates, _predicate, _next) do
+    {nil, :lists.reverse(updates)}
+  end
+
+  defp get_and_update_find([head | rest], updates, predicate, next) do
+    if predicate.(head) do
+      case next.(head) do
+        {get, update} -> {get, :lists.reverse([update | updates], rest)}
+        :pop -> {head, :lists.reverse(updates, rest)}
+      end
+    else
+      get_and_update_find(rest, [head | updates], predicate, next)
+    end
   end
 end

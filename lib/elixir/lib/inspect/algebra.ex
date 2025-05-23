@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Inspect.Opts do
   @moduledoc """
   Defines the options used by the `Inspect` protocol.
@@ -143,9 +147,8 @@ defmodule Inspect.Opts do
   function as this must be controlled by applications. Libraries
   should instead define their own structs with custom inspect
   implementations. If a library must change the default inspect
-  function, then it is best to define to ask users of your library
-  to explicitly call `default_inspect_fun/1` with your function of
-  choice.
+  function, then it is best to ask users of your library to explicitly
+  call `default_inspect_fun/1` with your function of choice.
 
   The default is `Inspect.inspect/2`.
 
@@ -234,8 +237,8 @@ defmodule Inspect.Algebra do
   Flex breaks, however, are re-evaluated on every occurrence and may still
   be rendered flat. See `break/1` and `flex_break/1` for more information.
 
-  This implementation also adds `force_unfit/1` and `next_break_fits/2` which
-  give more control over the document fitting.
+  This implementation also adds `force_unfit/1` and optimistic/pessimistic
+  groups which give more control over the document fitting.
 
     [0]: https://lindig.github.io/papers/strictly-pretty-2000.pdf
 
@@ -244,7 +247,6 @@ defmodule Inspect.Algebra do
   @container_separator ","
   @tail_separator " |"
   @newline "\n"
-  @next_break_fits :enabled
 
   # Functional interface to "doc" records
 
@@ -288,7 +290,7 @@ defmodule Inspect.Algebra do
     quote do: {:doc_break, unquote(break), unquote(mode)}
   end
 
-  @typep doc_group :: {:doc_group, t, :inherit | :self}
+  @typep doc_group :: {:doc_group, t, :normal | :optimistic | :pessimistic | :inherit}
   defmacrop doc_group(group, mode) do
     quote do: {:doc_group, unquote(group), unquote(mode)}
   end
@@ -331,9 +333,10 @@ defmodule Inspect.Algebra do
                   (is_tuple(doc) and elem(doc, 0) in @docs)
 
   defguardp is_limit(limit) when limit == :infinity or (is_integer(limit) and limit >= 0)
-  defguardp is_width(limit) when limit == :infinity or (is_integer(limit) and limit >= 0)
+  defguardp is_width(width) when width == :infinity or (is_integer(width) and width >= 0)
 
   # Elixir + Inspect.Opts conveniences
+  # These have the _doc suffix.
 
   @doc """
   Converts an Elixir term to an algebra document
@@ -355,14 +358,14 @@ defmodule Inspect.Algebra do
           # we won't try to render any failed instruct when building
           # the error message.
           if Process.get(:inspect_trap) do
-            Inspect.Map.inspect(struct, opts)
+            Inspect.Map.inspect_as_map(struct, opts)
           else
             try do
               Process.put(:inspect_trap, true)
 
               inspected_struct =
                 struct
-                |> Inspect.Map.inspect(%{
+                |> Inspect.Map.inspect_as_map(%{
                   opts
                   | syntax_colors: [],
                     inspect_fun: Inspect.Opts.default_inspect_fun()
@@ -389,7 +392,7 @@ defmodule Inspect.Algebra do
           end
       end
     else
-      Inspect.Map.inspect(struct, opts)
+      Inspect.Map.inspect_as_map(struct, opts)
     end
   end
 
@@ -439,7 +442,7 @@ defmodule Inspect.Algebra do
 
   """
   @doc since: "1.6.0"
-  @spec container_doc(t, [any], t, Inspect.Opts.t(), (term, Inspect.Opts.t() -> t), keyword()) ::
+  @spec container_doc(t, [term], t, Inspect.Opts.t(), (term, Inspect.Opts.t() -> t), keyword()) ::
           t
   def container_doc(left, collection, right, inspect_opts, fun, opts \\ [])
       when is_doc(left) and is_list(collection) and is_doc(right) and is_function(fun, 2) and
@@ -456,7 +459,7 @@ defmodule Inspect.Algebra do
           container_each(collection, inspect_opts.limit, inspect_opts, fun, [], break == :maybe)
 
         flex? = simple? or break == :flex
-        docs = fold_doc(docs, &join(&1, &2, flex?, separator))
+        docs = fold(docs, &join(&1, &2, flex?, separator))
 
         case flex? do
           true -> group(concat(concat(left, nest(docs, 1)), right))
@@ -526,6 +529,32 @@ defmodule Inspect.Algebra do
     container_doc(left, docs, right, inspect, fun, separator: separator)
   end
 
+  # TODO: Deprecate me on Elixir v1.23
+  @doc deprecated: "Use color_doc/3 instead"
+  def color(doc, key, opts) do
+    color_doc(doc, key, opts)
+  end
+
+  @doc ~S"""
+  Colors a document if the `color_key` has a color in the options.
+  """
+  @doc since: "1.18.0"
+  @spec color_doc(t, Inspect.Opts.color_key(), Inspect.Opts.t()) :: t
+  def color_doc(doc, color_key, %Inspect.Opts{syntax_colors: syntax_colors}) when is_doc(doc) do
+    if precolor = Keyword.get(syntax_colors, color_key) do
+      postcolor = Keyword.get(syntax_colors, :reset, :reset)
+      concat(doc_color(doc, ansi(precolor)), doc_color(empty(), ansi(postcolor)))
+    else
+      doc
+    end
+  end
+
+  defp ansi(color) do
+    color
+    |> IO.ANSI.format_fragment(true)
+    |> IO.iodata_to_binary()
+  end
+
   # Algebra API
 
   @doc """
@@ -589,6 +618,21 @@ defmodule Inspect.Algebra do
     doc_cons(doc1, doc2)
   end
 
+  @doc ~S"""
+  Disable any rendering limit while rendering the given document.
+
+  ## Examples
+
+      iex> doc = Inspect.Algebra.glue("hello", "world") |> Inspect.Algebra.group()
+      iex> Inspect.Algebra.format(doc, 10)
+      ["hello", "\n", "world"]
+      iex> doc = Inspect.Algebra.no_limit(doc)
+      iex> Inspect.Algebra.format(doc, 10)
+      ["hello", " ", "world"]
+
+  """
+  @doc since: "1.14.0"
+  @spec no_limit(t) :: t
   def no_limit(doc) do
     doc_limit(doc, :infinity)
   end
@@ -605,21 +649,16 @@ defmodule Inspect.Algebra do
   """
   @spec concat([t]) :: t
   def concat(docs) when is_list(docs) do
-    fold_doc(docs, &concat(&1, &2))
+    fold(docs, &concat(&1, &2))
   end
 
   @doc ~S"""
-  Colors a document if the `color_key` has a color in the options.
+  Colors a document with the given color (preceding the document itself).
   """
-  @doc since: "1.4.0"
-  @spec color(t, Inspect.Opts.color_key(), Inspect.Opts.t()) :: t
-  def color(doc, color_key, %Inspect.Opts{syntax_colors: syntax_colors}) when is_doc(doc) do
-    if precolor = Keyword.get(syntax_colors, color_key) do
-      postcolor = Keyword.get(syntax_colors, :reset, :reset)
-      concat(doc_color(doc, precolor), doc_color(empty(), postcolor))
-    else
-      doc
-    end
+  @doc since: "1.18.0"
+  @spec color(t, binary) :: t
+  def color(doc, color) when is_doc(doc) and is_binary(color) do
+    doc_color(doc, color)
   end
 
   @doc ~S"""
@@ -704,48 +743,11 @@ defmodule Inspect.Algebra do
 
   @doc """
   Considers the next break as fit.
-
-  `mode` can be `:enabled` or `:disabled`. When `:enabled`,
-  it will consider the document as fit as soon as it finds
-  the next break, effectively cancelling the break. It will
-  also ignore any `force_unfit/1` in search of the next break.
-
-  When disabled, it behaves as usual and it will ignore
-  any further `next_break_fits/2` instruction.
-
-  ## Examples
-
-  This is used by Elixir's code formatter to avoid breaking
-  code at some specific locations. For example, consider this
-  code:
-
-      some_function_call(%{..., key: value, ...})
-
-  Now imagine that this code does not fit its line. The code
-  formatter introduces breaks inside `(` and `)` and inside
-  `%{` and `}`. Therefore the document would break as:
-
-      some_function_call(
-        %{
-          ...,
-          key: value,
-          ...
-        }
-      )
-
-  The formatter wraps the algebra document representing the
-  map in `next_break_fits/1` so the code is formatted as:
-
-      some_function_call(%{
-        ...,
-        key: value,
-        ...
-      })
-
   """
-  @doc since: "1.6.0"
+  # TODO: Deprecate me on Elixir v1.23
+  @doc deprecated: "Pass the optimistic/pessimistic type to group/2 instead"
   @spec next_break_fits(t, :enabled | :disabled) :: doc_fits
-  def next_break_fits(doc, mode \\ @next_break_fits)
+  def next_break_fits(doc, mode \\ :enabled)
       when is_doc(doc) and mode in [:enabled, :disabled] do
     doc_fits(doc, mode)
   end
@@ -832,10 +834,31 @@ defmodule Inspect.Algebra do
   Returns a group containing the specified document `doc`.
 
   Documents in a group are attempted to be rendered together
-  to the best of the renderer ability.
+  to the best of the renderer ability. If there are `break/1`s
+  in the group and the group does not fit the given width,
+  the breaks are converted into lines. Otherwise the breaks
+  are rendered as text based on their string contents.
 
-  The group mode can also be set to `:inherit`, which means it
-  automatically breaks if the parent group has broken too.
+  There are three types of groups, described next.
+
+  ## Group modes
+
+    * `:normal` - the group fits if it fits within the given width
+
+    * `:optimistic` - the group fits if it fits within the given
+      width. However, when nested within another group, the parent
+      group will assume this group fits as long as it has a single
+      break, even if the optimistic group has a `force_unfit/1`
+      document within it. Overall, this has an effect similar
+      to swapping the order groups break. For example, if you have
+      a `parent_group(child_group)` and they do not fit, the parent
+      converts breaks into newlines first, allowing the child to compute
+      if it fits. However, if the child group is optimistic and it
+      has breaks, then the parent assumes it fits, leaving the overall
+      fitting decision to the child
+
+    * `:pessimistic` - the group fits if it fits within the given
+      width. However it disables any optimistic group within it
 
   ## Examples
 
@@ -862,10 +885,50 @@ defmodule Inspect.Algebra do
       iex> Inspect.Algebra.format(doc, 6)
       ["Hello,", "\n", "A", "\n", "B"]
 
+  ## Mode examples
+
+  The different groups modes are used by Elixir's code formatter
+  to avoid breaking code at some specific locations. For example,
+  consider this code:
+
+      some_function_call(%{..., key: value, ...})
+
+  Now imagine that this code does not fit its line. The code
+  formatter introduces breaks inside `(` and `)` and inside
+  `%{` and `}`, each within their own group. Therefore the
+  document would break as:
+
+      some_function_call(
+        %{
+          ...,
+          key: value,
+          ...
+        }
+      )
+
+  To address this, the formatter marks the inner group as optimistic.
+  This means the first group, which is `(...)` will consider the document
+  fits and avoids adding breaks around the parens. So overall the code
+  is formatted as:
+
+      some_function_call(%{
+        ...,
+        key: value,
+        ...
+      })
+
   """
-  @spec group(t, :self | :inherit) :: doc_group
-  def group(doc, mode \\ :self) when is_doc(doc) do
-    doc_group(doc, mode)
+  @spec group(t, :normal | :optimistic | :pessimistic) :: doc_group
+  def group(doc, mode \\ :normal) when is_doc(doc) do
+    doc_group(
+      doc,
+      case mode do
+        # TODO: Deprecate :self and :inherit on Elixir v1.23
+        :self -> :normal
+        :inherit -> :inherit
+        mode when mode in [:normal, :optimistic, :pessimistic] -> mode
+      end
+    )
   end
 
   @doc ~S"""
@@ -919,6 +982,10 @@ defmodule Inspect.Algebra do
   @spec line(t, t) :: t
   def line(doc1, doc2), do: concat(doc1, concat(line(), doc2))
 
+  # TODO: Deprecate me on Elixir v1.23
+  @doc deprecated: "Use fold/2 instead"
+  def fold_doc(docs, folder_fun), do: fold(docs, folder_fun)
+
   @doc ~S"""
   Folds a list of documents into a document using the given folder function.
 
@@ -930,21 +997,22 @@ defmodule Inspect.Algebra do
 
       iex> docs = ["A", "B", "C"]
       iex> docs =
-      ...>   Inspect.Algebra.fold_doc(docs, fn doc, acc ->
+      ...>   Inspect.Algebra.fold(docs, fn doc, acc ->
       ...>     Inspect.Algebra.concat([doc, "!", acc])
       ...>   end)
       iex> Inspect.Algebra.format(docs, 80)
       ["A", "!", "B", "!", "C"]
 
   """
-  @spec fold_doc([t], (t, t -> t)) :: t
-  def fold_doc(docs, folder_fun)
+  @doc since: "1.18.0"
+  @spec fold([t], (t, t -> t)) :: t
+  def fold(docs, folder_fun)
 
-  def fold_doc([], _folder_fun), do: empty()
-  def fold_doc([doc], _folder_fun), do: doc
+  def fold([], _folder_fun), do: empty()
+  def fold([doc], _folder_fun), do: doc
 
-  def fold_doc([doc | docs], folder_fun) when is_function(folder_fun, 2),
-    do: folder_fun.(doc, fold_doc(docs, folder_fun))
+  def fold([doc | docs], folder_fun) when is_function(folder_fun, 2),
+    do: folder_fun.(doc, fold(docs, folder_fun))
 
   @doc ~S"""
   Formats a given document for a given width.
@@ -975,7 +1043,7 @@ defmodule Inspect.Algebra do
   #   * flat - represents a document with breaks as flats (a break may fit, as it may break)
   #   * break - represents a document with breaks as breaks (a break always fits, since it breaks)
   #
-  # The following modes are exclusive to fitting:
+  # These other two modes only affect fitting:
   #
   #   * flat_no_break - represents a document with breaks as flat not allowed to enter in break mode
   #   * break_no_flat - represents a document with breaks as breaks not allowed to enter in flat mode
@@ -989,7 +1057,10 @@ defmodule Inspect.Algebra do
           entries
         ) :: boolean()
         when entries:
-               maybe_improper_list({integer(), mode(), t()}, {:tail, boolean(), entries} | [])
+               maybe_improper_list(
+                 {integer(), mode(), t()} | :group_over,
+                 {:tail, boolean(), entries} | []
+               )
 
   # We need at least a break to consider the document does not fit since a
   # large document without breaks has no option but fitting its current line.
@@ -1000,6 +1071,14 @@ defmodule Inspect.Algebra do
   defp fits?(_, _, _, []), do: true
   defp fits?(w, k, _, {:tail, b?, t}), do: fits?(w, k, b?, t)
 
+  ## Group over
+  # If we get to the end of the group and if fits, it is because
+  # something already broke elsewhere, so we can consider the group
+  # fits. This only appears when checking if a flex break and fitting.
+
+  defp fits?(_w, _k, b?, [:group_over | _]),
+    do: b?
+
   ## Flat no break
 
   defp fits?(w, k, b?, [{i, _, doc_fits(x, :disabled)} | t]),
@@ -1008,9 +1087,18 @@ defmodule Inspect.Algebra do
   defp fits?(w, k, b?, [{i, :flat_no_break, doc_fits(x, _)} | t]),
     do: fits?(w, k, b?, [{i, :flat_no_break, x} | t])
 
+  defp fits?(w, k, b?, [{i, _, doc_group(x, :pessimistic)} | t]),
+    do: fits?(w, k, b?, [{i, :flat_no_break, x} | t])
+
+  defp fits?(w, k, b?, [{i, :flat_no_break, doc_group(x, _)} | t]),
+    do: fits?(w, k, b?, [{i, :flat_no_break, x} | t])
+
   ## Breaks no flat
 
   defp fits?(w, k, b?, [{i, _, doc_fits(x, :enabled)} | t]),
+    do: fits?(w, k, b?, [{i, :break_no_flat, x} | t])
+
+  defp fits?(w, k, b?, [{i, _, doc_group(x, :optimistic)} | t]),
     do: fits?(w, k, b?, [{i, :break_no_flat, x} | t])
 
   defp fits?(w, k, b?, [{i, :break_no_flat, doc_force(x)} | t]),
@@ -1057,20 +1145,20 @@ defmodule Inspect.Algebra do
   @spec format(
           width :: non_neg_integer() | :infinity,
           column :: non_neg_integer(),
-          [{integer, mode, t}]
+          [{integer, mode, t} | :group_over]
         ) :: [binary]
   defp format(_, _, []), do: []
   defp format(w, k, [{_, _, :doc_nil} | t]), do: format(w, k, t)
   defp format(w, _, [{i, _, :doc_line} | t]), do: [indent(i) | format(w, i, t)]
   defp format(w, k, [{i, m, doc_cons(x, y)} | t]), do: format(w, k, [{i, m, x}, {i, m, y} | t])
-  defp format(w, k, [{i, m, doc_color(x, c)} | t]), do: [ansi(c) | format(w, k, [{i, m, x} | t])]
+  defp format(w, k, [{i, m, doc_color(x, c)} | t]), do: [c | format(w, k, [{i, m, x} | t])]
   defp format(w, k, [{_, _, doc_string(s, l)} | t]), do: [s | format(w, k + l, t)]
   defp format(w, k, [{_, _, s} | t]) when is_binary(s), do: [s | format(w, k + byte_size(s), t)]
   defp format(w, k, [{i, m, doc_force(x)} | t]), do: format(w, k, [{i, m, x} | t])
   defp format(w, k, [{i, m, doc_fits(x, _)} | t]), do: format(w, k, [{i, m, x} | t])
   defp format(w, _, [{i, _, doc_collapse(max)} | t]), do: collapse(format(w, i, t), max, 0, i)
 
-  # Flex breaks are not conditional to the mode
+  # Flex breaks are conditional to the document and the mode
   defp format(w, k, [{i, m, doc_break(s, :flex)} | t]) do
     k = k + byte_size(s)
 
@@ -1100,15 +1188,28 @@ defmodule Inspect.Algebra do
   end
 
   # Groups must do the fitting decision.
+  defp format(w, k, [:group_over | t]) do
+    format(w, k, t)
+  end
+
+  # TODO: Deprecate me in Elixir v1.23
   defp format(w, k, [{i, :break, doc_group(x, :inherit)} | t]) do
     format(w, k, [{i, :break, x} | t])
   end
 
+  defp format(w, k, [{i, :flat, doc_group(x, :optimistic)} | t]) do
+    if w == :infinity or fits?(w, k, false, [{i, :flat, x} | t]) do
+      format(w, k, [{i, :flat, x}, :group_over | t])
+    else
+      format(w, k, [{i, :break, x}, :group_over | t])
+    end
+  end
+
   defp format(w, k, [{i, _, doc_group(x, _)} | t]) do
     if w == :infinity or fits?(w, k, false, [{i, :flat, x}]) do
-      format(w, k, [{i, :flat, x} | t])
+      format(w, k, [{i, :flat, x}, :group_over | t])
     else
-      format(w, k, [{i, :break, x} | t])
+      format(w, k, [{i, :break, x}, :group_over | t])
     end
   end
 
@@ -1136,10 +1237,6 @@ defmodule Inspect.Algebra do
   defp apply_nesting(_, k, :cursor), do: k
   defp apply_nesting(_, _, :reset), do: 0
   defp apply_nesting(i, _, j), do: i + j
-
-  defp ansi(color) do
-    IO.ANSI.format_fragment(color, true)
-  end
 
   defp indent(0), do: @newline
   defp indent(i), do: @newline <> :binary.copy(" ", i)

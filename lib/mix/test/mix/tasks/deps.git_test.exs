@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.DepsGitTest do
@@ -79,6 +83,21 @@ defmodule Mix.Tasks.DepsGitTest do
     end)
   end
 
+  test "gets with short ref" do
+    [<<short_sha1::binary-size(8), _::binary>>, _ | _] = get_git_repo_revs("git_repo")
+    Process.put(:git_repo_opts, ref: short_sha1)
+
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(GitApp)
+
+      Mix.Tasks.Deps.Get.run([])
+      message = "* Getting git_repo (#{fixture_path("git_repo")} - #{short_sha1})"
+      assert_received {:mix_shell, :info, [^message]}
+
+      refute_received {:mix_shell, :error, _}
+    end)
+  end
+
   @tag :git_sparse
   test "gets and updates Git repos with sparse checkout" do
     Process.put(:git_repo_opts, sparse: "sparse_dir")
@@ -147,17 +166,17 @@ defmodule Mix.Tasks.DepsGitTest do
       assert_received {:mix_shell, :info, [^message]}
 
       assert File.exists?("deps/deps_on_git_repo/mix.exs")
-      assert File.rm("deps/deps_on_git_repo/.fetch") == :ok
       assert File.exists?("deps/git_repo/mix.exs")
-      assert File.rm("deps/git_repo/.fetch") == :ok
 
       # Compile the dependencies
       Mix.Tasks.Deps.Compile.run([])
+      assert File.exists?("_build/dev/lib/deps_on_git_repo/.mix/compile.fetch")
+      assert File.exists?("_build/dev/lib/git_repo/.mix/compile.fetch")
 
       # Now update children and make sure it propagates
       Mix.Tasks.Deps.Update.run(["git_repo"])
-      assert File.exists?("deps/deps_on_git_repo/.fetch")
-      assert File.exists?("deps/git_repo/.fetch")
+      refute File.exists?("_build/dev/lib/deps_on_git_repo/.mix/compile.fetch")
+      refute File.exists?("_build/dev/lib/git_repo/.mix/compile.fetch")
 
       # Clear tasks to recompile Git repo but unload it so...
       purge([GitRepo])
@@ -192,7 +211,7 @@ defmodule Mix.Tasks.DepsGitTest do
     purge([GitRepo, GitRepo.MixProject])
   end
 
-  test "all dependencies are up to date" do
+  test "all dependencies have been fetched" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(GitApp)
 
@@ -201,7 +220,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert_received {:mix_shell, :info, [^message]}
 
       Mix.Tasks.Deps.Get.run([])
-      assert_received {:mix_shell, :info, ["All dependencies are up to date"]}
+      assert_received {:mix_shell, :info, ["All dependencies have been fetched"]}
     end)
   after
     purge([GitRepo, GitRepo.MixProject])
@@ -252,7 +271,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert_raise Mix.Error, fn -> Mix.Tasks.Deps.Loadpaths.run([]) end
 
       # Flush the errors we got, move to a clean slate
-      Mix.shell().flush
+      Mix.shell().flush()
       Mix.Task.clear()
 
       # Calling get should update the dependency
@@ -281,7 +300,7 @@ defmodule Mix.Tasks.DepsGitTest do
       refute File.exists?("deps/git_repo/lib/git_repo.ex")
 
       # Flush the errors we got, move to a clean slate
-      Mix.shell().flush
+      Mix.shell().flush()
       Mix.Task.clear()
       Process.delete(:git_repo_opts)
       Mix.Project.pop()
@@ -309,7 +328,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert File.exists?("deps/git_repo/lib/git_repo.ex")
 
       # Flush the errors we got, move to a clean slate
-      Mix.shell().flush
+      Mix.shell().flush()
       Mix.Task.clear()
       Process.put(:git_repo_opts, sparse: "sparse_dir")
       Mix.Project.pop()
@@ -381,9 +400,14 @@ defmodule Mix.Tasks.DepsGitTest do
       Mix.State.clear_cache()
       purge([DepsOnGitRepo.MixProject])
 
+      # Write to the checkout location to ensure it is replaced
+      File.mkdir_p!("deps/deps_on_git_repo/lib")
+      File.write!("deps/deps_on_git_repo/lib/deps_on_git_repo.ex", "# WILL BE OVERRIDDEN")
+
       Mix.Tasks.Deps.Update.run(["deps_on_git_repo"])
       assert File.exists?("deps/git_repo/lib/git_repo.ex")
       assert File.read!("mix.lock") =~ last
+      assert File.read!("deps/deps_on_git_repo/lib/deps_on_git_repo.ex") =~ "GitRepo.hello()"
       refute File.exists?("_build/dev/lib/git_repo/.mix/compile.fetch")
     end)
   after
@@ -408,10 +432,15 @@ defmodule Mix.Tasks.DepsGitTest do
       Mix.State.clear_cache()
       purge([DepsOnGitRepo.MixProject])
 
+      # Write to the checkout location to ensure it is replaced
+      File.mkdir_p!("deps/deps_on_git_repo/lib")
+      File.write!("deps/deps_on_git_repo/lib/deps_on_git_repo.ex", "# WILL BE OVERRIDDEN")
+
       Mix.Dep.Lock.write(%{deps_on_git_repo: {:git, fixture_path("deps_on_git_repo"), last, []}})
       Mix.Tasks.Deps.Get.run([])
       assert File.exists?("deps/git_repo/lib/git_repo.ex")
       assert File.read!("mix.lock") =~ last
+      assert File.read!("deps/deps_on_git_repo/lib/deps_on_git_repo.ex") =~ "GitRepo.hello()"
       refute File.exists?("_build/dev/lib/git_repo/.mix/compile.fetch")
     end)
   after
@@ -476,6 +505,227 @@ defmodule Mix.Tasks.DepsGitTest do
     end)
   after
     purge([GitRepo, GitRepo.MixProject])
+  end
+
+  describe "Git depth option" do
+    @describetag :git_depth
+
+    test "gets and updates Git repos with depth option" do
+      Process.put(:git_repo_opts, depth: 1)
+
+      in_fixture("no_mixfile", fn ->
+        Mix.Project.push(GitApp)
+
+        Mix.Tasks.Deps.Get.run([])
+        message = "* Getting git_repo (#{fixture_path("git_repo")})"
+        assert_received {:mix_shell, :info, [^message]}
+        assert_shallow("deps/git_repo", 1)
+
+        # Expand depth
+        update_dep(depth: 2)
+        Mix.Tasks.Deps.Get.run([])
+        assert_shallow("deps/git_repo", 2)
+
+        # Reduce depth
+        update_dep(depth: 1)
+        Mix.Tasks.Deps.Get.run([])
+        assert_shallow("deps/git_repo", 1)
+      end)
+    end
+
+    test "with tag" do
+      Process.put(:git_repo_opts, depth: 1, tag: "with_module")
+
+      in_fixture("no_mixfile", fn ->
+        Mix.Project.push(GitApp)
+
+        Mix.Tasks.Deps.Get.run([])
+        message = "* Getting git_repo (#{fixture_path("git_repo")} - with_module)"
+        assert_received {:mix_shell, :info, [^message]}
+        assert_shallow("deps/git_repo", 1)
+      end)
+    end
+
+    test "with branch" do
+      Process.put(:git_repo_opts, depth: 1, branch: "main")
+
+      in_fixture("no_mixfile", fn ->
+        Mix.Project.push(GitApp)
+
+        Mix.Tasks.Deps.Get.run([])
+        message = "* Getting git_repo (#{fixture_path("git_repo")} - main)"
+        assert_received {:mix_shell, :info, [^message]}
+        assert_shallow("deps/git_repo", 1)
+      end)
+    end
+
+    test "with ref" do
+      [sha1, _ | _] = get_git_repo_revs("git_repo")
+
+      Process.put(:git_repo_opts, depth: 1, ref: sha1)
+
+      in_fixture("no_mixfile", fn ->
+        Mix.Project.push(GitApp)
+
+        Mix.Tasks.Deps.Get.run([])
+        message = "* Getting git_repo (#{fixture_path("git_repo")} - #{sha1})"
+        assert_received {:mix_shell, :info, [^message]}
+        assert_shallow("deps/git_repo", 1)
+      end)
+    end
+
+    test "raises with short ref" do
+      # When fetching, Git requires a fully spelled hex object name. We prevent
+      # this failure mode by validating the ref length.
+      #
+      # If Git ever changes such that it can resolve a short ref in a shallow
+      # fetch, we can update our docs and this test to reflect that.
+      #
+      # https://git-scm.com/docs/git-fetch#Documentation/git-fetch.txt-ltrefspecgt
+      # https://stackoverflow.com/a/43136160
+      [<<short_sha1::binary-size(8), _::binary>>, _ | _] = get_git_repo_revs("git_repo")
+
+      Process.put(:git_repo_opts, depth: 1, ref: short_sha1)
+
+      in_fixture("no_mixfile", fn ->
+        Mix.Project.push(GitApp)
+        exception = assert_raise Mix.Error, fn -> Mix.Tasks.Deps.Get.run([]) end
+        assert Exception.message(exception) =~ "a full commit hash is required"
+      end)
+    end
+
+    test "changing refspec updates retaining depth" do
+      [last, first | _] = get_git_repo_revs("git_repo")
+
+      Process.put(:git_repo_opts, ref: first, depth: 1)
+
+      in_fixture("no_mixfile", fn ->
+        Mix.Project.push(GitApp)
+
+        Mix.Tasks.Deps.Get.run([])
+        message = "* Getting git_repo (#{fixture_path("git_repo")} - #{first})"
+        assert_received {:mix_shell, :info, [^message]}
+        assert_shallow("deps/git_repo", 1)
+        assert File.read!("mix.lock") =~ first
+
+        # Change refspec
+        update_dep(ref: last, depth: 1)
+        Mix.Tasks.Deps.Get.run([])
+        assert_shallow("deps/git_repo", 1)
+        assert File.read!("mix.lock") =~ last
+      end)
+    end
+
+    test "removing depth retains shallow repository" do
+      # For compatibility and simplicity, we follow Git's behavior and do not
+      # attempt to unshallow an existing repository. This should not be a
+      # problem, because all we guarantee is that the correct source code is
+      # available whenever mix.exs or mix.lock change. If one wanted to have a
+      # full clone, they can always run `deps.clean` and `deps.get` again.
+      Process.put(:git_repo_opts, depth: 1)
+
+      in_fixture("no_mixfile", fn ->
+        Mix.Project.push(GitApp)
+
+        Mix.Tasks.Deps.Get.run([])
+        message = "* Getting git_repo (#{fixture_path("git_repo")})"
+        assert_received {:mix_shell, :info, [^message]}
+        assert_shallow("deps/git_repo", 1)
+
+        # Remove depth
+        update_dep([])
+        Mix.Tasks.Deps.Get.run([])
+        refute File.read!("mix.lock") =~ "depth:"
+        assert File.exists?("deps/git_repo/.git/shallow")
+
+        assert System.cmd("git", ~w[--git-dir=deps/git_repo/.git rev-list --count HEAD]) ==
+                 {"1\n", 0}
+      end)
+    end
+
+    @tag :git_sparse
+    test "with sparse checkout" do
+      Process.put(:git_repo_opts, sparse: "sparse_dir", depth: 1)
+
+      in_fixture("no_mixfile", fn ->
+        Mix.Project.push(GitApp)
+
+        Mix.Tasks.Deps.Get.run([])
+        message = "* Getting git_repo (#{fixture_path("git_repo")})"
+        assert_received {:mix_shell, :info, [^message]}
+        assert_shallow("deps/git_repo", 1)
+
+        refute File.exists?("deps/git_repo/mix.exs")
+        assert File.exists?("deps/git_repo/sparse_dir/mix.exs")
+        assert File.read!("mix.lock") =~ "sparse: \"sparse_dir\""
+      end)
+    end
+
+    test "with subdir" do
+      Process.put(:git_repo_opts, subdir: "sparse_dir", depth: 1)
+
+      in_fixture("no_mixfile", fn ->
+        Mix.Project.push(GitApp)
+
+        Mix.Tasks.Deps.Get.run([])
+        message = "* Getting git_repo (#{fixture_path("git_repo")})"
+        assert_received {:mix_shell, :info, [^message]}
+        assert_shallow("deps/git_repo", 1)
+
+        assert File.exists?("deps/git_repo/mix.exs")
+        assert File.exists?("deps/git_repo/sparse_dir/mix.exs")
+        assert File.read!("mix.lock") =~ "subdir: \"sparse_dir\""
+      end)
+    end
+
+    test "does not affect submodules depth" do
+      # The expectation is that we can add an explicit option in the future,
+      # just like git-clone has `--shallow-submodules`.
+      Process.put(:git_repo_opts, submodules: true, depth: 1)
+
+      in_fixture("no_mixfile", fn ->
+        Mix.Project.push(GitApp)
+
+        Mix.Tasks.Deps.Get.run([])
+        message = "* Getting git_repo (#{fixture_path("git_repo")})"
+        assert_received {:mix_shell, :info, [^message]}
+        assert_shallow("deps/git_repo", 1)
+
+        assert File.read!("mix.lock") =~ "submodules: true"
+        # TODO: assert submodule is not shallow. This would likely require
+        # changes to the fixtures. Apparently, not even the submodules-specific
+        # tests check that the cloned repo contains submodules as expected.
+      end)
+    end
+
+    defp update_dep(git_repo_opts) do
+      # Flush the errors we got, move to a clean slate
+      Mix.shell().flush()
+      Mix.Task.clear()
+      Process.put(:git_repo_opts, git_repo_opts)
+      Mix.Project.pop()
+      Mix.Project.push(GitApp)
+    end
+
+    defp assert_shallow(repo_path, depth) do
+      assert File.read!("mix.lock") =~ "depth: #{depth}"
+
+      # Check if the repository is a shallow clone
+      assert File.exists?(repo_path <> "/.git/shallow")
+
+      # Check the number of commits in the current branch.
+      #
+      # We could consider all branches with `git rev-list --count --all`, as in
+      # practice there should be only a single branch. However, the test fixture
+      # sets up two branches, and that brings us to an interesting situation:
+      # instead of guaranteeing that the `:depth` option would keep the
+      # repository lean even after refspec changes, we only guarantee the number
+      # of commits in the current branch, perhaps leaving more objects around
+      # than strictly necessary. This allows us to keep the implementation
+      # simple, while still providing a reasonable guarantee.
+      assert System.cmd("git", ~w[--git-dir=#{repo_path}/.git rev-list --count HEAD]) ==
+               {"#{depth}\n", 0}
+    end
   end
 
   defp refresh(post_config) do

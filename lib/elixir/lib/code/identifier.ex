@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Code.Identifier do
   @moduledoc false
 
@@ -13,7 +17,7 @@ defmodule Code.Identifier do
   @spec unary_op(atom) :: {:non_associative, precedence :: pos_integer} | :error
   def unary_op(op) do
     cond do
-      op in [:&] -> {:non_associative, 90}
+      op in [:&, :...] -> {:non_associative, 90}
       op in [:!, :^, :not, :+, :-, :"~~~"] -> {:non_associative, 300}
       op in [:@] -> {:non_associative, 320}
       true -> :error
@@ -44,7 +48,6 @@ defmodule Code.Identifier do
       op in [:|>, :<<<, :>>>, :<~, :~>, :<<~, :~>>, :<~>, :"<|>"] -> {:left, 160}
       op in [:in] -> {:left, 170}
       op in [:"^^^"] -> {:left, 180}
-      op in [:"//"] -> {:right, 190}
       op in [:++, :--, :.., :<>, :+++, :---] -> {:right, 200}
       op in [:+, :-] -> {:left, 210}
       op in [:*, :/] -> {:left, 220}
@@ -72,11 +75,11 @@ defmodule Code.Identifier do
   Escapes the given identifier.
   """
   @spec escape(binary(), char() | nil, :infinity | non_neg_integer, (char() -> iolist() | false)) ::
-          {escaped :: iolist(), remaining :: binary()}
+          {escaped :: binary(), remaining :: binary()}
   def escape(binary, char, limit \\ :infinity, fun \\ &escape_map/1)
-      when ((char in 0..0x10FFFF or is_nil(char)) and limit == :infinity) or
+      when (is_binary(binary) and ((char in 0..0x10FFFF or is_nil(char)) and limit == :infinity)) or
              (is_integer(limit) and limit >= 0) do
-    escape(binary, char, limit, [], fun)
+    escape(binary, char, limit, <<>>, fun)
   end
 
   defp escape(<<_, _::binary>> = binary, _char, 0, acc, _fun) do
@@ -84,64 +87,96 @@ defmodule Code.Identifier do
   end
 
   defp escape(<<char, t::binary>>, char, count, acc, fun) do
-    escape(t, char, decrement(count), [acc | [?\\, char]], fun)
+    escape(t, char, decrement(count), <<acc::binary, ?\\, char>>, fun)
   end
 
   defp escape(<<?#, ?{, t::binary>>, char, count, acc, fun) do
-    escape(t, char, decrement(count), [acc | [?\\, ?#, ?{]], fun)
+    escape(t, char, decrement(count), <<acc::binary, ?\\, ?#, ?{>>, fun)
   end
 
   defp escape(<<h::utf8, t::binary>>, char, count, acc, fun) do
-    escaped = if value = fun.(h), do: value, else: escape_char(h)
-    escape(t, char, decrement(count), [acc | escaped], fun)
+    if value = fun.(h) do
+      value = IO.iodata_to_binary(value)
+      escape(t, char, decrement(count), <<acc::binary, value::binary>>, fun)
+    else
+      escape(t, char, decrement(count), escape_char(h, acc), fun)
+    end
   end
 
   defp escape(<<a::4, b::4, t::binary>>, char, count, acc, fun) do
-    escape(t, char, decrement(count), [acc | [?\\, ?x, to_hex(a), to_hex(b)]], fun)
+    escape(t, char, decrement(count), <<acc::binary, ?\\, ?x, to_hex(a), to_hex(b)>>, fun)
   end
 
   defp escape(<<>>, _char, _count, acc, _fun) do
     {acc, <<>>}
   end
 
-  defp escape_char(0), do: [?\\, ?0]
+  defp escape_char(0, acc), do: <<acc::binary, ?\\, ?0>>
 
-  @escaped_bom :binary.bin_to_list("\\uFEFF")
-  defp escape_char(65279), do: @escaped_bom
+  defp escape_char(char, acc)
+       # Some characters that are confusing (zero-width / alternative spaces) are displayed
+       # using their unicode representation:
+       # https://en.wikipedia.org/wiki/Universal_Character_Set_characters#Special-purpose_characters
 
-  defp escape_char(char)
+       # BOM
+       when char == 0xFEFF
+       # Mathematical invisibles
+       when char in 0x2061..0x2064
+       # Bidirectional neutral
+       when char in [0x061C, 0x200E, 0x200F]
+       # Bidirectional general (source of vulnerabilities)
+       when char in 0x202A..0x202E
+       when char in 0x2066..0x2069
+       # Interlinear annotations
+       when char in 0xFFF9..0xFFFC
+       # Zero-width joiners and non-joiners
+       when char in [0x200C, 0x200D, 0x034F]
+       # Non-break space / zero-width space
+       when char in [0x00A0, 0x200B, 0x2060]
+       # Line/paragraph separators
+       when char in [0x2028, 0x2029]
+       # Spaces
+       when char in 0x2000..0x200A
+       when char == 0x205F do
+    <<a::4, b::4, c::4, d::4>> = <<char::16>>
+    <<acc::binary, ?\\, ?u, to_hex(a), to_hex(b), to_hex(c), to_hex(d)>>
+  end
+
+  defp escape_char(char, acc)
        when char in 0x20..0x7E
        when char in 0xA0..0xD7FF
        when char in 0xE000..0xFFFD
        when char in 0x10000..0x10FFFF do
-    <<char::utf8>>
+    <<acc::binary, char::utf8>>
   end
 
-  defp escape_char(char) when char < 0x100 do
+  defp escape_char(char, acc) when char < 0x100 do
     <<a::4, b::4>> = <<char::8>>
-    [?\\, ?x, to_hex(a), to_hex(b)]
+    <<acc::binary, ?\\, ?x, to_hex(a), to_hex(b)>>
   end
 
-  defp escape_char(char) when char < 0x10000 do
+  defp escape_char(char, acc) when char < 0x10000 do
     <<a::4, b::4, c::4, d::4>> = <<char::16>>
-    [?\\, ?x, ?{, to_hex(a), to_hex(b), to_hex(c), to_hex(d), ?}]
+    <<acc::binary, ?\\, ?x, ?{, to_hex(a), to_hex(b), to_hex(c), to_hex(d), ?}>>
   end
 
-  defp escape_char(char) when char < 0x1000000 do
+  defp escape_char(char, acc) when char < 0x1000000 do
     <<a::4, b::4, c::4, d::4, e::4, f::4>> = <<char::24>>
-    [?\\, ?x, ?{, to_hex(a), to_hex(b), to_hex(c), to_hex(d), to_hex(e), to_hex(f), ?}]
+
+    <<acc::binary, ?\\, ?x, ?{, to_hex(a), to_hex(b), to_hex(c), to_hex(d), to_hex(e), to_hex(f),
+      ?}>>
   end
 
-  defp escape_map(?\a), do: [?\\, ?a]
-  defp escape_map(?\b), do: [?\\, ?b]
-  defp escape_map(?\d), do: [?\\, ?d]
-  defp escape_map(?\e), do: [?\\, ?e]
-  defp escape_map(?\f), do: [?\\, ?f]
-  defp escape_map(?\n), do: [?\\, ?n]
-  defp escape_map(?\r), do: [?\\, ?r]
-  defp escape_map(?\t), do: [?\\, ?t]
-  defp escape_map(?\v), do: [?\\, ?v]
-  defp escape_map(?\\), do: [?\\, ?\\]
+  defp escape_map(?\a), do: "\\a"
+  defp escape_map(?\b), do: "\\b"
+  defp escape_map(?\d), do: "\\d"
+  defp escape_map(?\e), do: "\\e"
+  defp escape_map(?\f), do: "\\f"
+  defp escape_map(?\n), do: "\\n"
+  defp escape_map(?\r), do: "\\r"
+  defp escape_map(?\t), do: "\\t"
+  defp escape_map(?\v), do: "\\v"
+  defp escape_map(?\\), do: "\\\\"
   defp escape_map(_), do: false
 
   @compile {:inline, to_hex: 1, decrement: 1}

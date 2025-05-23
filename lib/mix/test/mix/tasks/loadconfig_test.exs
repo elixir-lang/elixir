@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.LoadconfigTest do
@@ -61,6 +65,11 @@ defmodule Mix.Tasks.LoadconfigTest do
         Mix.Task.run("loadconfig", [])
       end
     end)
+  end
+
+  test "is a no-op with nil custom config_path" do
+    Mix.ProjectStack.post_config(config_path: nil)
+    assert Mix.Task.run("loadconfig", []) == []
   end
 
   test "updates config files and config mtime", context do

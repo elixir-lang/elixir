@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Code.Formatter.GeneralTest do
@@ -294,6 +298,28 @@ defmodule Code.Formatter.GeneralTest do
       """
 
       assert_same code, @short_length
+    end
+
+    test "keeps parens if argument includes keyword list" do
+      assert_same """
+      fn [] when is_integer(x) ->
+        x + 42
+      end
+      """
+
+      bad = """
+      fn (input: x) when is_integer(x) ->
+        x + 42
+      end
+      """
+
+      good = """
+      fn [input: x] when is_integer(x) ->
+        x + 42
+      end
+      """
+
+      assert_format bad, good
     end
 
     test "with a single clause, followed by a newline, and can fit in one line" do

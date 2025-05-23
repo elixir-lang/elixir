@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.Compile.LeexTest do
@@ -24,6 +28,7 @@ defmodule Mix.Tasks.Compile.LeexTest do
         assert %Mix.Task.Compiler.Diagnostic{
                  compiler_name: "leex",
                  file: ^file,
+                 source: ^file,
                  message: "missing Definitions",
                  position: 1,
                  severity: :error

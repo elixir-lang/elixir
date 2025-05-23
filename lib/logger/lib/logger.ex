@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Logger do
   @moduledoc ~S"""
   A logger for Elixir applications.
@@ -13,15 +17,18 @@ defmodule Logger do
 
     * Supports both message-based and structural logging.
 
+    * Integrate with Erlang's [`:logger`](`:logger`) and
+      support custom filters and handlers.
+
     * Formats and truncates messages on the client
-      to avoid clogging `Logger` backends.
+      to avoid clogging `Logger` handlers.
 
-    * Alternates between sync and async modes to remain
-      performant when required but also apply back-pressure
-      when under stress.
-
-    * Support for custom filters and handlers as provided by
-      Erlang's `:logger`.
+    * Provides multiple forms of [overload protection](https://www.erlang.org/doc/apps/kernel/logger_chapter.html#protecting-the-handler-from-overload):
+      * keeps track of its message queue and switches to sync mode to apply
+        back pressure or even drop messages
+      * limits the number of logs emitted defaulting to 500 per second
+      * optionally allows to terminate and restart it if the message queue length
+        or memory thresholds are exceeded
 
     * Allows overriding the logging level for a specific module,
       application or process.
@@ -65,7 +72,7 @@ defmodule Logger do
 
   For example, `:info` takes precedence over `:debug`. If your log
   level is set to `:info`, then all `:info`, `:notice` and above will
-  be passed to backends. If your log level is set to `:alert`, only
+  be passed to handlers. If your log level is set to `:alert`, only
   `:alert` and `:emergency` will be printed.
 
   ## Message
@@ -102,8 +109,8 @@ defmodule Logger do
 
   Furthermore, metadata can be set per process with `Logger.metadata/1`.
 
-  Some metadata, however, is always added automatically by Logger
-  whenever possible. Those are:
+  Some metadata, however, may be added automatically by Logger whenever
+  possible. Those are:
 
     * `:application` - the current application
 
@@ -119,6 +126,10 @@ defmodule Logger do
 
     * `:registered_name` - the process registered name as an atom
 
+    * `:process_label` - (available from Erlang/OTP 27+) an arbitrary term
+      which can be added to a process with `Process.set_label/1` for
+      debugging purposes
+
     * `:domain` - a list of domains for the logged message. For example,
       all Elixir reports default to `[:elixir]`. Erlang reports may start
       with `[:otp]` or `[:sasl]`
@@ -126,20 +137,20 @@ defmodule Logger do
     * `:crash_reason` - a two-element tuple with the throw/error/exit reason
       as first argument and the stacktrace as second. A throw will always be
       `{:nocatch, term}`. An error is always an `Exception` struct. All other
-      entries are exits. The console backend ignores this metadata by default
-      but it can be useful to other backends, such as the ones that report
+      entries are exits. The default formatter ignores this metadata by default
+      but it can be useful to certain handlers, such as the ones that report
       errors to third-party services
 
   There are two special metadata keys, `:module` and `:function`, which
   extract the relevant bits from `:mfa`.
 
-  Note that all metadata is optional and may not always be available.
-  The `:mfa`, `:file`, `:line`, and similar metadata are automatically
-  included when using `Logger` macros. `Logger.bare_log/3` does not include
-  any metadata beyond the `:pid` by default. Other metadata, such as
+  The metadata keys above may not always be available. The `:mfa`, `:file`,
+  `:line`, and similar metadata are automatically included when using `Logger`
+  macros, but not when using `Logger.bare_log/3`. Other metadata, such as
   `:crash_reason`, `:initial_call`, and `:registered_name` are available
   only inside behaviours such as GenServer, Supervisor, and others.
 
+  It is also possible to pass metadata on a particular Logger invocation.
   For example, you might wish to include a custom `:error_code` metadata in
   your logs:
 
@@ -191,9 +202,11 @@ defmodule Logger do
       should be logged. Defaults to `false`. This option only has an effect
       if `:handle_otp_reports` is true.
 
-     * `:metadata` - global primary metadata to be included in all log messages.
-      Defaults to `[]`. This can be overridden at the process level with `metadata/1`
-      or each on log call as desired.
+    * `:metadata` - key-value pairs of global primary metadata to be included
+      in all log messages. Defaults to `[]`. The default formatter writes to
+      standard out and therefore cannot print all metadata. See
+      [`Logger.Formatter`'s documentation](`m:Logger.Formatter#module-metadata`)
+      for more information.
 
   For example, to configure `Logger` to redirect all Erlang messages using a
   `config/config.exs` file:
@@ -222,13 +235,30 @@ defmodule Logger do
           compress_on_rotate: true
         ]
 
-  See [`:logger_std_h`](`:logger_std_h`) for all relevant configuration,
-  including overload protection. Or set `:default_handler` to false to
-  disable the default logging altogether:
+  You can find a complete reference on all handler options
+  [on Erlang/OTP docs](`t::logger_handler.config/0`). Here is Elixir's
+  default configuration for the default handler:
+
+      [
+        # Do not log messages from other nodes
+        filters: [{&:logger_filters.remote_gl/2, :stop}],
+        filter_default: :log,
+        formatter: &Logger.default_formatter/0,
+        level: :all,
+        module: :logger_std_h
+      ]
+
+  The `:config` customizes a specific handler module. The default handler
+  is [`:logger_std_h`](`:logger_std_h`), which logs to standard IO, and you
+  call find all relevant configuration in its module documentation, including
+  information overload protection.
+
+  You may also set `:default_handler` to false to disable the default logging
+  altogether:
 
       config :logger, :default_handler, false
 
-  How to add new handlers is covered in later sections.
+  How to add more handlers besides the default one is covered in later sections.
 
   > #### Keywords or maps {: .tip}
   >
@@ -275,8 +305,8 @@ defmodule Logger do
       Remember that if you want to purge log calls from a dependency, the
       dependency must be recompiled.
 
-  For example, to configure the `:backends` and purge all calls that happen
-  at compile time with level lower than `:info` in a `config/config.exs` file:
+  For example, to purge all calls that happen at compile time with level
+  lower than `:info` in a `config/config.exs` file:
 
       config :logger,
         compile_time_purge_matching: [
@@ -300,7 +330,7 @@ defmodule Logger do
 
     * `:level` - the logging level. Attempting to log any message
       with severity less than the configured level will simply
-      cause the message to be ignored. Keep in mind that each backend
+      cause the message to be ignored. Keep in mind that each handler
       may have its specific level, too. In addition to levels mentioned
       above it also supports 2 "meta-levels":
 
@@ -311,7 +341,8 @@ defmodule Logger do
     * `:translator_inspect_opts` - when translating OTP reports and
       errors, the last message and state must be inspected in the
       error reports. This configuration allow developers to change
-      how much and how the data should be inspected.
+      how much and how the data should be inspected. See `Kernel.inspect/2`
+      for more information on the available options.
 
   For example, to configure the `:level` options in a `config/config.exs`
   file:
@@ -326,13 +357,18 @@ defmodule Logger do
   ## Erlang/OTP handlers
 
   Handlers represent the ability to integrate into the logging system to
-  handle each logged message/event. Elixir automatically configures the
-  default handler, but you can use Erlang's [`:logger`](`:logger`) module
-  to add other handlers too.
+  handle each logged message/event.
 
-  Erlang/OTP handlers must be listed under your own application.
-  For example, to setup an additional handler, so you write to
-  console and file:
+  ### Built-in handlers
+
+  Elixir's Logger automatically sets a default handler based on Erlang's
+  `:logger_std_h`, which you can configure using the `:default_handler` boot
+  configuration outlined above. You may also attach additional handlers
+  when you boot your application.
+
+  To do so, you must list a series of handlers under the `:logger` key
+  of your application configuration. For example, to setup an additional
+  handler that writes to a file:
 
       config :my_app, :logger, [
         {:handler, :file_log, :logger_std_h, %{
@@ -350,25 +386,51 @@ defmodule Logger do
 
   Each handler has the shape `{:handler, name, handler_module, config_map}`.
   Once defined, a handler can be explicitly attached in your
-  `c:Application.start/2` callback with `add_handlers/1`:
+  `c:Application.start/2` callback, typically in `lib/my_app/application.ex`
+  with `Logger.add_handlers/1`:
 
       Logger.add_handlers(:my_app)
 
-  You can also develop your own handlers. Handlers run in the same
+  You can also add, remove, and update handlers at runtime with the help
+  of the Erlang's [`:logger`](`:logger`) module.
+
+  ### Custom handlers
+
+  You may also develop your own handlers. Handlers run in the same
   process as the process logging the message/event. This gives developers
   flexibility but they should avoid performing any long running action in
   such handlers, as it may slow down the action being executed considerably.
-  At the moment, there is no built-in overload protection for Erlang handlers,
-  so it is your responsibility to implement it.
 
-  Alternatively, you can use the
-  [`:logger_backends`](https://github.com/elixir-lang/logger_backends) project.
-  It sets up a log handler with overload protection and allows incoming events
-  to be dispatched to multiple backends.
+  You must implement the [`:logger_handler`](`:logger_handler`) behaviour
+  to define custom handlers, which has only one required callback:
+
+      defmodule MyApp.CustomHandler do
+        @behaviour :logger_handler
+
+        def log(event, _config) do
+          IO.inspect(event)
+        end
+      end
+
+  Then you must define the handler in your configuration file:
+
+      config :my_app, :logger, [
+        {:handler, :my_handler, MyApp.CustomHandler, _config = %{}}
+      ]
+
+  And attach it on your application start using `Logger.add_handlers/1`,
+  as in the previous section.
+
+  Note there is no built-in overload protection for Erlang handlers,
+  so it is your responsibility to implement it if necessary. One alternative is
+  to use the [`:logger_backends`](https://github.com/elixir-lang/logger_backends)
+  project, which sets up a log handler with overload protection and allows
+  incoming events to be dispatched to multiple backends, although one must be
+  careful for backends to not become a bottleneck during logging.
 
   ### Filtering
 
-  You can add filters to Erlang's `:logger`. For example, to filter out logs
+  You can add filters to any handler. For example, to filter out logs
   that contain a particular string, you could create a module:
 
       defmodule LogFilter do
@@ -387,8 +449,12 @@ defmodule Logger do
         end
       end
 
-  Then, when you start your application, such as in the
-  `c:Application.start/2` callback:
+  It may return `:log` (to log the message), `:stop` (to not log the
+  message), or `:ignore` (to ignore the filter).
+
+  Then you can attach the filter, either as a primary filter (which
+  applies to all handlers), or to a specific handler, when you start
+  your application, such as in the `c:Application.start/2` callback:
 
       :logger.add_primary_filter(:word_filter, {&LogFilter.filter/2, []})
 
@@ -397,7 +463,7 @@ defmodule Logger do
   Prior to Elixir v1.15, custom logging could be achieved with Logger
   backends. The main API for writing Logger backends have been moved to
   the [`:logger_backends`](https://github.com/elixir-lang/logger_backends)
-  project. However, the backends are still part of Elixir for backwards
+  project. However, the backends API is still part of Elixir for backwards
   compatibility.
 
   Important remarks:
@@ -428,9 +494,12 @@ defmodule Logger do
       Backends, you can still set `backends: [Logger.Backends.Console]` and place
       the configuration under `config :logger, Logger.Backends.Console`. Although
       consider using the [`:logger_backends`](https://github.com/elixir-lang/logger_backends)
-      project in such case, as `Logger.Backends.Console` itself will be deprecated
+      project in such cases, as `Logger.Backends.Console` itself will be deprecated
       in future releases
 
+    * `Logger.Backends` only receive `:debug`, `:info`, `:warning`, and `:error`
+      messages. `:notice` maps to `:info`. `:warn` maps to `:warnings`.
+      All others map to `:error`
   """
 
   @type level ::
@@ -441,6 +510,13 @@ defmodule Logger do
   @new_erlang_levels [:emergency, :alert, :critical, :warning, :notice]
   @levels [:error, :info, :debug] ++ @new_erlang_levels
   @metadata :logger_level
+
+  @doc ~S"""
+  Returns all the available levels.
+  """
+  @doc since: "1.16.0"
+  @spec levels() :: [level(), ...]
+  def levels(), do: @levels
 
   @doc ~S"""
   Returns the default formatter used by Logger.
@@ -490,9 +566,8 @@ defmodule Logger do
   with the exception of setting a key to `nil`, which will remove that key
   from the metadata.
 
-  Note not all keys can be set as metadata. The metadata automatically added
-  by Logger, as declared in the module documentation, will always override
-  custom one.
+  Note some metadata keys are reserved and cannot be overridden. See
+  [the module documentation](#module-metadata) for more information.
   """
   @spec metadata(metadata) :: :ok
   def metadata(keyword) do
@@ -546,7 +621,7 @@ defmodule Logger do
 
       delete_process_level(pid)
   """
-  # TODO: Deprecate me on v1.18
+  # TODO: Deprecate me on v1.20
   @doc deprecated: "Use Logger.delete_process_level(pid) instead"
   @spec enable(pid) :: :ok
   def enable(pid) when pid == self() do
@@ -562,7 +637,7 @@ defmodule Logger do
 
       put_process_level(pid, :none)
   """
-  # TODO: Deprecate me on v1.18
+  # TODO: Deprecate me on v1.20
   @doc deprecated: "Use Logger.put_process_level(pid, :none) instead"
   @spec disable(pid) :: :ok
   def disable(pid) when pid == self() do
@@ -574,7 +649,7 @@ defmodule Logger do
 
   Currently the only accepted PID is `self()`.
   """
-  # TODO: Deprecate me on v1.18
+  # TODO: Deprecate me on v1.20
   @doc deprecated: "Use Logger.get_process_level(pid) instead"
   @spec enabled?(pid) :: boolean
   def enabled?(pid) when pid == self() do
@@ -586,7 +661,7 @@ defmodule Logger do
 
   The `Logger` level can be changed via `configure/1`.
   """
-  @spec level() :: level()
+  @spec level() :: level() | :all | :none
   def level() do
     %{level: level} = :logger.get_primary_config()
 
@@ -647,10 +722,23 @@ defmodule Logger do
       end
     end
 
-    # TODO: Deprecate passing backend options to configure on Elixir v1.19
     case Keyword.take(options, @backend_options) do
-      [] -> :ok
-      backend_options -> Logger.Backends.Internal.configure(backend_options)
+      [] ->
+        :ok
+
+      backend_options ->
+        for {key, _} <- backend_options do
+          IO.warn_once(
+            {__MODULE__, :configure, key},
+            fn ->
+              "setting #{inspect(key)} in Logger.configure/2 is deprecated, " <>
+                "add the :logger_backends dependency and configure it instead"
+            end,
+            3
+          )
+        end
+
+        Logger.Backends.Internal.configure(backend_options)
     end
 
     :ok
@@ -659,8 +747,11 @@ defmodule Logger do
   @doc """
   Flushes the logger.
 
-  This guarantees all log handlers are flushed. This is useful
-  for testing and it should not be called in production code.
+  This guarantees all logger handlers flush to disk or storage.
+  This is useful for testing but it should be avoided in production,
+  as it could force logger handlers to drop whatever they are doing
+  and flush, even if continuing to buffer would be the most performant
+  option.
   """
   @spec flush :: :ok
   def flush do
@@ -757,9 +848,11 @@ defmodule Logger do
 
   Currently the only accepted PID is `self()`.
 
-  This will take priority over the primary level set, so it can be
-  used to increase or decrease verbosity of some parts of the running system.
+  Different from `put_module_level/2`, the process level doesn't take priority
+  over the global level, but instead works alongside it. Effectively, the higher
+  logger level is used.
   """
+  @doc since: "1.15.0"
   @spec put_process_level(pid(), level() | :all | :none) :: :ok
   def put_process_level(pid, level) when pid == self() do
     Process.put(@metadata, elixir_level_to_erlang_level(level))
@@ -774,6 +867,7 @@ defmodule Logger do
   The returned value will be the effective value used. If no value
   was set for a given process, then `nil` is returned.
   """
+  @doc since: "1.15.0"
   @spec get_process_level(pid) :: level() | :all | :none | nil
   def get_process_level(pid) when pid == self() do
     Process.get(@metadata, nil)
@@ -784,6 +878,7 @@ defmodule Logger do
 
   Currently the only accepted PID is `self()`.
   """
+  @doc since: "1.15.0"
   @spec delete_process_level(pid()) :: :ok
   def delete_process_level(pid) when pid == self() do
     Process.delete(@metadata)
@@ -807,7 +902,7 @@ defmodule Logger do
   @doc """
   Adds a new backend.
   """
-  # TODO: Deprecate this on Elixir v1.19
+  # TODO: Deprecate this on Elixir v1.20
   @doc deprecated: "Use LoggerBackends.add/2 from :logger_backends dependency"
   def add_backend(backend, opts \\ []) do
     Logger.Backends.Internal.add(backend, opts)
@@ -816,7 +911,7 @@ defmodule Logger do
   @doc """
   Removes a backend.
   """
-  # TODO: Deprecate this on Elixir v1.19
+  # TODO: Deprecate this on Elixir v1.20
   @doc deprecated: "Use LoggerBackends.remove/2 from :logger_backends dependency"
   def remove_backend(backend, opts \\ []) do
     Logger.Backends.Internal.remove(backend, opts)
@@ -825,7 +920,7 @@ defmodule Logger do
   @doc """
   Configures the given backend.
   """
-  # TODO: Deprecate this on Elixir v1.19
+  # TODO: Deprecate this on Elixir v1.20
   @doc deprecated: "Use LoggerBackends.configure/2 from :logger_backends dependency"
   def configure_backend(:console, options) when is_list(options) do
     options = Keyword.merge(Application.get_env(:logger, :console, []), options)
@@ -857,9 +952,12 @@ defmodule Logger do
 
   defp update_translators(updater) do
     :elixir_config.serial(fn ->
+      translators = updater.(Application.fetch_env!(:logger, :translators))
+      Application.put_env(:logger, :translators, translators)
+
       with %{filters: filters} <- :logger.get_primary_config(),
            {{_, {fun, config}}, filters} <- List.keytake(filters, :logger_translator, 0) do
-        config = update_in(config.translators, updater)
+        config = %{config | translators: translators}
         :ok = :logger.set_primary_config(:filters, filters ++ [logger_translator: {fun, config}])
       end
     end)
@@ -877,17 +975,20 @@ defmodule Logger do
   """
   @spec bare_log(level, message | (-> message | {message, keyword}), keyword) :: :ok
   def bare_log(level, message_or_fun, metadata \\ []) do
-    case __should_log__(level, nil) do
-      nil -> :ok
-      level -> __do_log__(level, message_or_fun, %{}, Map.new(metadata))
+    level = elixir_level_to_erlang_level(level)
+
+    if :logger_config.allow(level) do
+      __do_log__(level, message_or_fun, %{}, Map.new(metadata))
     end
+
+    :ok
   end
 
   @doc false
   def __should_log__(level, module) do
     level = elixir_level_to_erlang_level(level)
 
-    if :logger.allow(level, module) do
+    if :logger_config.allow(level, module) do
       level
     end
   end
@@ -933,37 +1034,21 @@ defmodule Logger do
 
   defp add_elixir_domain(metadata), do: Map.put(metadata, :domain, [:elixir])
 
-  translations = %{
-    emergency: :error,
-    alert: :error,
-    critical: :error,
-    notice: :info
-  }
-
   for level <- @levels do
     report = [something: :reported, this: level]
-
-    extra =
-      if translation = translations[level] do
-        """
-
-
-        This is reported as \"#{translation}\" in Elixir's
-        logger backends for backwards compatibility reasons.
-
-        """
-      end
+    metadata = [user_id: 42, request_id: "xU32kFa"]
+    article = if level in [:info, :error, :alert, :emergency], do: "an", else: "a"
 
     @doc """
-    Logs a #{level} message.
+    Logs #{article} #{level} message.
 
-    Returns `:ok`.#{extra}
+    Returns `:ok`.
 
     ## Examples
 
     Logging a message (string or iodata):
 
-        Logger.#{level}("this is a #{level} message")
+        Logger.#{level}("this is #{article} #{level} message")
 
     Report message (maps or keywords):
 
@@ -973,6 +1058,13 @@ defmodule Logger do
         # as map
         Logger.#{level}(#{inspect(Map.new(report))})
 
+    Report message with metadata (maps or keywords):
+
+        # as a keyword list
+        Logger.#{level}("this is #{article} #{level} message", #{inspect(metadata)})
+
+        # as map
+        Logger.#{level}("this is #{article} #{level} message", #{inspect(Map.new(metadata))})
     """
 
     # Only macros generated for the "new" Erlang levels are available since 1.11.0. Other

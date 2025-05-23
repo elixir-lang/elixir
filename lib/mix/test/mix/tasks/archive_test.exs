@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.ArchiveTest do
@@ -151,6 +155,8 @@ defmodule Mix.Tasks.ArchiveTest do
       true = Application.compile_env!(:git_repo, :archive_config)
 
       defmodule GitRepo.Archive do
+        @compile {:autoload, true}
+
         def hello do
           "World"
         end
@@ -172,10 +178,10 @@ defmodule Mix.Tasks.ArchiveTest do
       assert File.dir?(tmp_path("userhome/.mix/archives/git_repo-0.1.0/git_repo-0.1.0/ebin"))
     end)
   after
-    purge([GitRepo.Archive, GitRepo.MixProject])
+    purge([GitRepo.Archive, GitRepo.MixProject, Mix.Local.Installer.MixProject])
   end
 
-  test "archive install, update, and uninstall life-cycle" do
+  test "archive install, update, and uninstall life cycle" do
     in_fixture("archive", fn ->
       # Install previous version
       Mix.Tasks.Archive.Build.run(["--no-elixir-version-check"])

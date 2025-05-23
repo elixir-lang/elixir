@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule ModuleTest.ToBeUsed do
@@ -18,8 +22,10 @@ defmodule ModuleTest.ToBeUsed do
 
   defmacro __after_compile__(%Macro.Env{module: ModuleTest.ToUse} = env, bin)
            when is_binary(bin) do
+    # Ensure module is not longer tracked as being loaded
+    false = __MODULE__ in :elixir_module.compiler_modules()
     [] = Macro.Env.vars(env)
-    # IO.puts "HELLO"
+    :ok
   end
 
   defmacro callback(env) do
@@ -33,7 +39,7 @@ end
 
 defmodule ModuleTest.ToUse do
   # Moving the next line around can make tests fail
-  36 = __ENV__.line
+  42 = __ENV__.line
   var = 1
   # Not available in callbacks
   _ = var
@@ -51,13 +57,6 @@ defmodule ModuleTest do
   Module.register_attribute(__MODULE__, :register_example, accumulate: true, persist: true)
   @register_example :it_works
   @register_example :still_works
-
-  contents =
-    quote do
-      def eval_quoted_info, do: {__MODULE__, __ENV__.file, __ENV__.line}
-    end
-
-  Module.eval_quoted(__MODULE__, contents, [], file: "sample.ex", line: 13)
 
   defp purge(module) do
     :code.purge(module)
@@ -124,33 +123,11 @@ defmodule ModuleTest do
     assert :code.which(__MODULE__) == ~c""
   end
 
-  ## Eval
-
-  test "executes eval_quoted definitions" do
-    assert eval_quoted_info() == {ModuleTest, "sample.ex", 13}
-  end
-
-  test "resets last definition information on eval" do
-    # This should not emit any warning
-    defmodule LastDefinition do
-      def foo(0), do: 0
-
-      Module.eval_quoted(
-        __ENV__,
-        quote do
-          def bar, do: :ok
-        end
-      )
-
-      def foo(1), do: 1
-    end
-  end
+  ## Callbacks
 
   test "retrieves line from use callsite" do
-    assert ModuleTest.ToUse.line() == 41
+    assert ModuleTest.ToUse.line() == 47
   end
-
-  ## Callbacks
 
   test "executes custom before_compile callback" do
     assert ModuleTest.ToUse.callback_value(true) == true
@@ -224,14 +201,6 @@ defmodule ModuleTest do
   test "inside function attributes" do
     assert @some_attribute == [1]
     assert @other_attribute == [3, 2, 1]
-  end
-
-  test "@compile autoload attribute" do
-    defmodule NoAutoload do
-      @compile {:autoload, false}
-    end
-
-    refute Code.loaded?(NoAutoload)
   end
 
   ## Naming
@@ -330,6 +299,16 @@ defmodule ModuleTest do
     refute __ENV__.aliases[Elixir.ModuleTest]
     refute __ENV__.aliases[Elixir.NonAtomAlias]
     assert Elixir.ModuleTest.NonAtomAlias.hello() == :world
+  end
+
+  test "does not leak alias from Elixir root alias" do
+    defmodule Elixir.ModuleTest.ElixirRootAlias do
+      def hello, do: :world
+    end
+
+    refute __ENV__.aliases[Elixir.ModuleTest]
+    refute __ENV__.aliases[Elixir.ElixirRootAlias]
+    assert Elixir.ModuleTest.ElixirRootAlias.hello() == :world
   end
 
   test "does not warn on captured underscored vars" do
@@ -445,9 +424,18 @@ defmodule ModuleTest do
   end
 
   test "compiles to core" do
-    {:ok, {Atom, [{~c"Dbgi", dbgi}]}} = Atom |> :code.which() |> :beam_lib.chunks([~c"Dbgi"])
+    import PathHelpers
+
+    write_beam(
+      defmodule ExampleModule do
+      end
+    )
+
+    {:ok, {ExampleModule, [{~c"Dbgi", dbgi}]}} =
+      ExampleModule |> :code.which() |> :beam_lib.chunks([~c"Dbgi"])
+
     {:debug_info_v1, backend, data} = :erlang.binary_to_term(dbgi)
-    {:ok, core} = backend.debug_info(:core_v1, Atom, data, [])
+    {:ok, core} = backend.debug_info(:core_v1, ExampleModule, data, [])
     assert is_tuple(core)
   end
 
@@ -511,12 +499,14 @@ defmodule ModuleTest do
     in_module do
       def foo(a, b), do: a + b
 
-      assert {:v1, :def, _,
+      assert {:v1, :def, def_meta,
               [
-                {_, [{:a, _, nil}, {:b, _, nil}], [],
+                {clause_meta, [{:a, _, nil}, {:b, _, nil}], [],
                  {{:., _, [:erlang, :+]}, _, [{:a, _, nil}, {:b, _, nil}]}}
               ]} = Module.get_definition(__MODULE__, {:foo, 2})
 
+      assert [line: _, column: _] = Keyword.take(def_meta, [:line, :column])
+      assert [line: _, column: _] = Keyword.take(clause_meta, [:line, :column])
       assert {:v1, :def, _, []} = Module.get_definition(__MODULE__, {:foo, 2}, skip_clauses: true)
 
       assert Module.delete_definition(__MODULE__, {:foo, 2})
@@ -553,9 +543,10 @@ defmodule ModuleTest do
   end
 
   describe "get_attribute/3" do
-    test "returns a list when the attribute is marked as `accummulate: true`" do
+    test "returns a list when the attribute is marked as `accumulate: true`" do
       in_module do
         Module.register_attribute(__MODULE__, :value, accumulate: true)
+        assert Module.get_attribute(__MODULE__, :value) == []
         Module.put_attribute(__MODULE__, :value, 1)
         assert Module.get_attribute(__MODULE__, :value) == [1]
         Module.put_attribute(__MODULE__, :value, 2)
@@ -570,6 +561,19 @@ defmodule ModuleTest do
         assert Module.get_attribute(__MODULE__, :attribute, :default) == 1
         Module.put_attribute(__MODULE__, :attribute, nil)
         assert Module.get_attribute(__MODULE__, :attribute, :default) == nil
+      end
+    end
+
+    test "returns the value of the attribute if persisted" do
+      in_module do
+        Module.register_attribute(__MODULE__, :value, persist: true)
+        assert Module.get_attribute(__MODULE__, :value, 123) == 123
+        Module.put_attribute(__MODULE__, :value, 1)
+        assert Module.get_attribute(__MODULE__, :value) == 1
+        Module.put_attribute(__MODULE__, :value, 2)
+        assert Module.get_attribute(__MODULE__, :value) == 2
+        Module.delete_attribute(__MODULE__, :value)
+        assert Module.get_attribute(__MODULE__, :value, 123) == 123
       end
     end
 

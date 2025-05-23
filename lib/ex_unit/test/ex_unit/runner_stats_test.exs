@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule ExUnit.RunnerStatsTest do
@@ -5,7 +9,7 @@ defmodule ExUnit.RunnerStatsTest do
 
   alias ExUnit.{FailuresManifest, RunnerStats}
 
-  @failures_manifest_file "ex_unit_failures_manifest.elixir"
+  @failures_manifest_path "ex_unit_failures_manifest.elixir"
 
   describe "stats tracking" do
     test "counts total, failures, skipped, and excluded tests" do
@@ -111,7 +115,7 @@ defmodule ExUnit.RunnerStatsTest do
     end
   end
 
-  defp simulate_suite(opts \\ [failures_manifest_file: @failures_manifest_file], fun) do
+  defp simulate_suite(opts \\ [failures_manifest_path: @failures_manifest_path], fun) do
     {:ok, pid} = GenServer.start_link(RunnerStats, opts)
     GenServer.cast(pid, {:suite_started, opts})
 
@@ -159,11 +163,11 @@ defmodule ExUnit.RunnerStatsTest do
 
   defp state_for(:passed), do: nil
   defp state_for(:failed), do: {:failed, []}
-  defp state_for(:invalid), do: {:invalid, TestModule}
+  defp state_for(:invalid), do: {:invalid, %ExUnit.TestModule{}}
   defp state_for(:skipped), do: {:skipped, "reason"}
   defp state_for(:excluded), do: {:excluded, "reason"}
 
   defp read_failures_manifest do
-    FailuresManifest.read(@failures_manifest_file)
+    FailuresManifest.read(@failures_manifest_path)
   end
 end

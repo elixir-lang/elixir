@@ -1,3 +1,10 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
+# NOTE: As this is a utils file it should not contain hard coded files
+# everything should be parameterized.
+
 defmodule Mix.Utils do
   @moduledoc false
 
@@ -257,6 +264,76 @@ defmodule Mix.Utils do
     |> Enum.uniq()
   end
 
+  @doc """
+  Handles writing the contents to either STDOUT or to a file, as specified
+  by the :output keyword in opts, defaulting to the provided default_file_spec.
+
+  If the resolved file specification is "-" then the contents is written to STDOUT,
+  otherwise if the file already exists it is renamed with a ".bak" suffix before
+  the contents is written.  The underlying IO operations will throw an exception
+  if there is an error.
+
+  Returns the name of the file written to, or "-" if the output was to STDOUT.
+  This function is made public mostly for testing.
+  """
+  @spec write_according_to_opts!(Path.t(), iodata(), keyword) :: Path.t()
+  def write_according_to_opts!(default_file_spec, contents, opts) do
+    file_spec = Keyword.get(opts, :output, default_file_spec)
+
+    if file_spec == "-" do
+      IO.write(contents)
+    else
+      if File.exists?(file_spec) do
+        new_file_spec = "#{file_spec}.bak"
+        File.rename!(file_spec, new_file_spec)
+      end
+
+      File.write!(file_spec, contents)
+    end
+
+    # return the file_spec just in case the caller has a use for it.
+    file_spec
+  end
+
+  @doc """
+  Outputs the given tree according to the callback as a two level
+  map of maps in JSON format.
+
+  The callback will be invoked for each node and it
+  must return a `{printed, children}` tuple.
+
+  If the `:output` option is `-` then prints to standard output,
+  see write_according_to_opts!/3 for details.
+  """
+  @spec write_json_tree!(Path.t(), [node], (node -> {formatted_node, [node]}), keyword) ::
+          Path.t()
+        when node: term()
+  def write_json_tree!(default_file_spec, nodes, callback, opts \\ []) do
+    src_map = build_json_tree(_src_map = %{}, nodes, callback)
+    write_according_to_opts!(default_file_spec, JSON.encode_to_iodata!(src_map), opts)
+  end
+
+  defp build_json_tree(src_map, [], _callback), do: src_map
+
+  defp build_json_tree(src_map, nodes, callback) do
+    Enum.reduce(nodes, src_map, fn node, src_map ->
+      {{name, _}, children} = callback.(node)
+
+      if Map.has_key?(src_map, name) do
+        src_map
+      else
+        sink_map =
+          Enum.reduce(children, %{}, fn {name, info}, sink_map ->
+            info = if info == nil, do: "runtime", else: Atom.to_string(info)
+            Map.put(sink_map, name, info)
+          end)
+
+        Map.put(src_map, name, sink_map)
+        |> build_json_tree(children, callback)
+      end
+    end)
+  end
+
   @type formatted_node :: {name :: String.Chars.t(), edge_info :: String.Chars.t()}
 
   @doc """
@@ -309,7 +386,7 @@ defmodule Mix.Utils do
   end
 
   defp depth(_pretty?, []), do: ""
-  defp depth(pretty?, depth), do: Enum.reverse(depth) |> tl |> Enum.map(&entry(pretty?, &1))
+  defp depth(pretty?, depth), do: Enum.reverse(depth) |> tl() |> Enum.map(&entry(pretty?, &1))
 
   defp entry(false, true), do: "|   "
   defp entry(false, false), do: "    "
@@ -329,7 +406,8 @@ defmodule Mix.Utils do
   The callback will be invoked for each node and it
   must return a `{printed, children}` tuple.
 
-  If `path` is `-`, prints the output to standard output.
+  If the `:output` option is `-` then prints to standard output,
+  see write_according_to_opts!/3 for details.
   """
   @spec write_dot_graph!(
           Path.t(),
@@ -337,17 +415,12 @@ defmodule Mix.Utils do
           [node],
           (node -> {formatted_node, [node]}),
           keyword
-        ) :: :ok
+        ) :: Path.t()
         when node: term()
-  def write_dot_graph!(path, title, nodes, callback, _opts \\ []) do
+  def write_dot_graph!(default_file_spec, title, nodes, callback, opts \\ []) do
     {dot, _} = build_dot_graph(make_ref(), nodes, MapSet.new(), callback)
     contents = ["digraph ", quoted(title), " {\n", dot, "}\n"]
-
-    if path == "-" do
-      IO.write(contents)
-    else
-      File.write!(path, contents)
-    end
+    write_according_to_opts!(default_file_spec, contents, opts)
   end
 
   defp build_dot_graph(_parent, [], seen, _callback), do: {[], seen}
@@ -512,7 +585,7 @@ defmodule Mix.Utils do
           do_symlink_or_copy(source, target, link)
 
         {:error, _} ->
-          unless File.dir?(target) do
+          if not File.dir?(target) do
             File.rm_rf!(target)
           end
 
@@ -552,9 +625,7 @@ defmodule Mix.Utils do
   ## Options
 
     * `:sha512` - checks against the given SHA-512 checksum. Returns
-      `{:checksum, message}` in case it fails. This option is required
-      for URLs unless the `:unsafe_uri` is given (WHICH IS NOT RECOMMENDED
-      unless another security mechanism is in place, such as private keys)
+      `{:checksum, message}` in case it fails
 
     * `:timeout` - times out the request after the given milliseconds.
       Returns `{:remote, timeout_message}` if it fails. Defaults to 60
@@ -572,8 +643,7 @@ defmodule Mix.Utils do
       url?(path) ->
         task =
           Task.async(fn ->
-            with :ok <- require_checksum(opts),
-                 {:ok, binary} <- read_httpc(path) do
+            with {:ok, binary} <- read_httpc(path) do
               checksum(binary, opts)
             end
           end)
@@ -596,19 +666,6 @@ defmodule Mix.Utils do
   end
 
   @checksums [:sha512]
-
-  defp require_checksum(opts) do
-    cond do
-      Keyword.take(opts, @checksums) != [] ->
-        :ok
-
-      Keyword.get(opts, :unsafe_uri) ->
-        :ok
-
-      true ->
-        {:checksum, "fetching from URIs require a checksum to be given"}
-    end
-  end
 
   defp checksum(binary, opts) do
     Enum.find_value(@checksums, {:ok, binary}, fn hash ->
@@ -655,23 +712,22 @@ defmodule Mix.Utils do
     headers = [{~c"user-agent", ~c"Mix/#{System.version()}"}]
     request = {:binary.bin_to_list(path), headers}
 
-    # Use the system certificates if available, otherwise skip peer verification
-    # TODO: Always use system certificates when OTP >= 25.1 is required
-    ssl_options =
-      if Code.ensure_loaded?(:httpc) and function_exported?(:httpc, :ssl_verify_host_options, 1) do
-        try do
-          apply(:httpc, :ssl_verify_host_options, [true])
-        rescue
-          _ ->
-            Mix.shell().error(
-              "warning: failed to load system certificates. SSL peer verification will be skipped but downloads are still verified with a checksum"
-            )
-
-            [verify: :verify_none]
-        end
-      else
-        [verify: :verify_none]
+    # allow override of system CA certs to support running on managed networks
+    # using an SSL proxy etc. Piggy back on Hex defined environment variable
+    # rather than creating a new one, as these are almost always going to be
+    # set and used together.
+    cacert_opt =
+      case System.get_env("HEX_CACERTS_PATH") do
+        nil -> {:cacerts, :public_key.cacerts_get()}
+        file -> {:cacertfile, file}
       end
+
+    # Use the system certificates
+    ssl_options = [
+      cacert_opt,
+      verify: :verify_peer,
+      customize_hostname_check: [match_fun: :public_key.pkix_verify_hostname_match_fun(:https)]
+    ]
 
     # We are using relaxed: true because some servers is returning a Location
     # header with relative paths, which does not follow the spec. This would
@@ -691,6 +747,11 @@ defmodule Mix.Utils do
         when inet in [:inet, :inet6] and
                reason in [:ehostunreach, :enetunreach, :eprotonosupport, :nxdomain] ->
           :httpc.set_options([ipfamily: fallback(inet)], :mix)
+          request |> httpc_request(http_options) |> httpc_response()
+
+        {:error, {:failed_connect, [{:to_address, _}, {inet, _, reason}]}}
+        when inet in [:inet, :inet6] and elem(reason, 0) == :tls_alert ->
+          http_options = put_in(http_options, [:ssl, :middlebox_comp_mode], false)
           request |> httpc_request(http_options) |> httpc_response()
 
         response ->

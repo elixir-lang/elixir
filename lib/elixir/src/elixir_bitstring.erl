@@ -1,6 +1,10 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 -module(elixir_bitstring).
 -export([expand/5, format_error/1, validate_spec/2]).
--import(elixir_errors, [function_error/4, file_error/4]).
+-import(elixir_errors, [function_error/4]).
 -include("elixir.hrl").
 
 expand_match(Expr, {S, OriginalS}, E) ->
@@ -12,11 +16,6 @@ expand(Meta, Args, S, E, RequireSize) ->
     match ->
       {EArgs, Alignment, {SA, _}, EA} =
         expand(Meta, fun expand_match/3, Args, [], {S, S}, E, 0, RequireSize),
-
-      case find_match(EArgs) of
-        false -> ok;
-        Match -> file_error(Meta, EA, ?MODULE, {nested_match, Match})
-      end,
 
       {{'<<>>', [{alignment, Alignment} | Meta], EArgs}, SA, EA};
     _ ->
@@ -31,17 +30,24 @@ expand(Meta, Args, S, E, RequireSize) ->
 expand(_BitstrMeta, _Fun, [], Acc, S, E, Alignment, _RequireSize) ->
   {lists:reverse(Acc), Alignment, S, E};
 expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, S, E, Alignment, RequireSize) ->
-  {ELeft, {SL, OriginalS}, EL} = expand_expr(Meta, Left, Fun, S, E),
+  {ELeft, {SL, OriginalS}, EL} = expand_expr(Left, Fun, S, E),
+  validate_expr(ELeft, Meta, E),
 
   MatchOrRequireSize = RequireSize or is_match_size(T, EL),
   EType = expr_type(ELeft),
-  {ERight, EAlignment, SS, ES} = expand_specs(EType, Meta, Right, SL, OriginalS, EL, MatchOrRequireSize),
+  ExpectSize = case ELeft of
+    _ when not MatchOrRequireSize -> optional;
+    {'^', _, [{_, _, _}]} -> {infer, ELeft};
+    _ -> required
+  end,
+  {ERight, EAlignment, SS, ES} = expand_specs(EType, Meta, Right, SL, OriginalS, EL, ExpectSize),
 
   EAcc = concat_or_prepend_bitstring(Meta, ELeft, ERight, Acc, ES, MatchOrRequireSize),
   expand(BitstrMeta, Fun, T, EAcc, {SS, OriginalS}, ES, alignment(Alignment, EAlignment), RequireSize);
 expand(BitstrMeta, Fun, [H | T], Acc, S, E, Alignment, RequireSize) ->
   Meta = extract_meta(H, BitstrMeta),
-  {ELeft, {SS, OriginalS}, ES} = expand_expr(Meta, H, Fun, S, E),
+  {ELeft, {SS, OriginalS}, ES} = expand_expr(H, Fun, S, E),
+  validate_expr(ELeft, Meta, E),
 
   MatchOrRequireSize = RequireSize or is_match_size(T, ES),
   EType = expr_type(ELeft),
@@ -131,23 +137,29 @@ compute_alignment(_, _, _) -> unknown.
 %% If we are inside a match/guard, we inline interpolations explicitly,
 %% otherwise they are inlined by elixir_rewrite.erl.
 
-expand_expr(_Meta, {{'.', _, [Mod, to_string]}, _, [Arg]} = AST, Fun, S, #{context := Context} = E)
+expand_expr({{'.', _, [Mod, to_string]}, _, [Arg]} = AST, Fun, S, #{context := Context} = E)
     when Context /= nil, (Mod == 'Elixir.Kernel') orelse (Mod == 'Elixir.String.Chars') ->
   case Fun(Arg, S, E) of
     {EBin, SE, EE} when is_binary(EBin) -> {EBin, SE, EE};
     _ -> Fun(AST, S, E) % Let it raise
   end;
-expand_expr(Meta, Component, Fun, S, E) ->
-  case Fun(Component, S, E) of
-    {EComponent, _, ErrorE} when is_list(EComponent); is_atom(EComponent) ->
-      file_error(Meta, ErrorE, ?MODULE, {invalid_literal, EComponent});
-    {_, _, _} = Expanded ->
-      Expanded
-  end.
+expand_expr(Component, Fun, S, E) ->
+  Fun(Component, S, E).
+
+validate_expr(Expr, Meta, #{context := match} = E) ->
+  case Expr of
+    {Var, _Meta, Ctx} when is_atom(Var), is_atom(Ctx) -> ok;
+    {'<<>>', _, _} -> ok;
+    {'^', _, _} -> ok;
+    _ when is_number(Expr); is_binary(Expr) -> ok;
+    _ -> function_error(extract_meta(Expr, Meta), E, ?MODULE, {unknown_match, Expr})
+  end;
+validate_expr(_Expr, _Meta, _E) ->
+  ok.
 
 %% Expands and normalizes types of a bitstring.
 
-expand_specs(ExprType, Meta, Info, S, OriginalS, E, RequireSize) ->
+expand_specs(ExprType, Meta, Info, S, OriginalS, E, ExpectSize) ->
   Default =
     #{size => default,
       unit => default,
@@ -158,11 +170,17 @@ expand_specs(ExprType, Meta, Info, S, OriginalS, E, RequireSize) ->
     expand_each_spec(Meta, unpack_specs(Info, []), Default, S, OriginalS, E),
 
   MergedType = type(Meta, ExprType, Type, E),
-  validate_size_required(Meta, RequireSize, ExprType, MergedType, Size, ES),
+  validate_size_required(Meta, ExpectSize, ExprType, MergedType, Size, ES),
   SizeAndUnit = size_and_unit(Meta, ExprType, Size, Unit, ES),
   Alignment = compute_alignment(MergedType, Size, Unit),
 
-  [H | T] = build_spec(Meta, Size, Unit, MergedType, Endianness, Sign, SizeAndUnit, ES),
+  MaybeInferredSize = case {ExpectSize, MergedType, SizeAndUnit} of
+    {{infer, PinnedVar}, binary, []} -> [{size, Meta, [{{'.', Meta, [erlang, byte_size]}, Meta, [PinnedVar]}]}];
+    {{infer, PinnedVar}, bitstring, []} -> [{size, Meta, [{{'.', Meta, [erlang, bit_size]}, Meta, [PinnedVar]}]}];
+    _ -> SizeAndUnit
+  end,
+
+  [H | T] = build_spec(Meta, Size, Unit, MergedType, Endianness, Sign, MaybeInferredSize, ES),
   {lists:foldl(fun(I, Acc) -> {'-', Meta, [Acc, I]} end, H, T), Alignment, SS, ES}.
 
 type(_, default, default, _) ->
@@ -262,9 +280,9 @@ expand_spec_arg(Expr, S, _OriginalS, E) when is_atom(Expr); is_integer(Expr) ->
   {Expr, S, E};
 expand_spec_arg(Expr, S, OriginalS, #{context := match} = E) ->
   %% We can only access variables that are either on prematch or not in original
-  #elixir_ex{prematch={PreRead, PreCounter, _} = OldPre} = S,
+  #elixir_ex{prematch={PreRead, PreCycle, _} = OldPre} = S,
   #elixir_ex{vars={OriginalRead, _}} = OriginalS,
-  NewPre = {PreRead, PreCounter, {bitsize, OriginalRead}},
+  NewPre = {PreRead, PreCycle, {bitsize, OriginalRead}},
   {EExpr, SE, EE} = elixir_expand:expand(Expr, S#elixir_ex{prematch=NewPre}, E#{context := guard}),
   {EExpr, SE#elixir_ex{prematch=OldPre}, EE#{context := match}};
 expand_spec_arg(Expr, S, OriginalS, E) ->
@@ -276,7 +294,7 @@ validate_spec_arg(Meta, unit, Value, _S, _OriginalS, E) when not is_integer(Valu
 validate_spec_arg(_Meta, _Key, _Value, _S, _OriginalS, _E) ->
   ok.
 
-validate_size_required(Meta, true, default, Type, default, E) when Type == binary; Type == bitstring ->
+validate_size_required(Meta, required, default, Type, default, E) when Type == binary; Type == bitstring ->
   function_error(Meta, E, ?MODULE, unsized_binary),
   ok;
 validate_size_required(_, _, _, _, _, _) ->
@@ -347,18 +365,6 @@ valid_float_size(_) -> false.
 add_spec(default, Spec) -> Spec;
 add_spec(Key, Spec) -> [{Key, [], nil} | Spec].
 
-find_match([{'=', _, [_Left, _Right]} = Expr | _Rest]) ->
-  Expr;
-find_match([{_, _, Args} | Rest]) when is_list(Args) ->
-  case find_match(Args) of
-    false -> find_match(Rest);
-    Match -> Match
-  end;
-find_match([_Arg | Rest]) ->
-  find_match(Rest);
-find_match([]) ->
-  false.
-
 format_error({unaligned_binary, Expr}) ->
   Message = "expected ~ts to be a binary but its number of bits is not divisible by 8",
   io_lib:format(Message, ['Elixir.Macro':to_string(Expr)]);
@@ -385,32 +391,27 @@ format_error(bittype_signed) ->
 format_error(bittype_unit) ->
   "integer and float types require a size specifier if the unit specifier is given";
 format_error({bittype_float_size, Other}) ->
-  Message =
-    case erlang:system_info(otp_release) >= "24" of
-      true -> "16, 32, or 64";
-      false -> "32 or 64"
-    end,
-  io_lib:format("float requires size*unit to be ~s (default), got: ~p", [Message, Other]);
-format_error({invalid_literal, Literal}) ->
-  io_lib:format("invalid literal ~ts in <<>>", ['Elixir.Macro':to_string(Literal)]);
+  io_lib:format("float requires size*unit to be 16, 32, or 64 (default), got: ~p", [Other]);
 format_error({undefined_bittype, Expr}) ->
   io_lib:format("unknown bitstring specifier: ~ts", ['Elixir.Macro':to_string(Expr)]);
 format_error({unknown_bittype, Name}) ->
   io_lib:format("bitstring specifier \"~ts\" does not exist and is being expanded to \"~ts()\","
-                " please use parentheses to remove the ambiguity", [Name, Name]);
+                " please use parentheses to remove the ambiguity.\n"
+                "You may run \"mix format --migrate\" to fix this warning automatically.", [Name, Name]);
 format_error({parens_bittype, Name}) ->
     io_lib:format("extra parentheses on a bitstring specifier \"~ts()\" have been deprecated. "
-    "Please remove the parentheses: \"~ts\"",
+    "Please remove the parentheses: \"~ts\".\n"
+    "You may run \"mix format --migrate\" to fix this warning automatically."
+    ,
     [Name, Name]);
 format_error({bittype_mismatch, Val1, Val2, Where}) ->
   io_lib:format("conflicting ~ts specification for bit field: \"~p\" and \"~p\"", [Where, Val1, Val2]);
 format_error({bad_unit_argument, Unit}) ->
   io_lib:format("unit in bitstring expects an integer as argument, got: ~ts",
                 ['Elixir.Macro':to_string(Unit)]);
-format_error({nested_match, Expr}) ->
+format_error({unknown_match, Expr}) ->
   Message =
-    "cannot pattern match inside a bitstring "
-      "that is already in match, got: ~ts",
+    "a bitstring only accepts binaries, numbers, and variables inside a match, got: ~ts",
   io_lib:format(Message, ['Elixir.Macro':to_string(Expr)]);
 format_error({undefined_var_in_spec, Var}) ->
   Message =

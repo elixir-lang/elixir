@@ -1,10 +1,15 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 # Beam files compiled on demand
 path = Path.expand("../../tmp/beams", __DIR__)
 File.rm_rf!(path)
 File.mkdir_p!(path)
 Code.prepend_path(path)
 
-Code.compiler_options(debug_info: true)
+Application.put_env(:elixir, :ansi_enabled, true)
+Code.compiler_options(debug_info: true, infer_signatures: [:elixir])
 
 defmodule PathHelpers do
   def fixture_path() do
@@ -23,34 +28,38 @@ defmodule PathHelpers do
     Path.join(tmp_path(), extra)
   end
 
-  def elixir(args) do
-    run_cmd(elixir_executable(), args)
+  def elixir(args, executable_extension \\ "") do
+    run_cmd(elixir_executable(executable_extension), args)
   end
 
-  def elixir_executable do
-    executable_path("elixir")
+  def elixir_executable(extension \\ "") do
+    executable_path("elixir", extension)
   end
 
-  def elixirc(args) do
-    run_cmd(elixirc_executable(), args)
+  def elixirc(args, executable_extension \\ "") do
+    run_cmd(elixirc_executable(executable_extension), args)
   end
 
-  def elixirc_executable do
-    executable_path("elixirc")
+  def elixirc_executable(extension \\ "") do
+    executable_path("elixirc", extension)
   end
 
-  def iex(args) do
-    run_cmd(iex_executable(), args)
+  def iex(args, executable_extension \\ "") do
+    run_cmd(iex_executable(executable_extension), args)
   end
 
-  def iex_executable do
-    executable_path("iex")
+  def iex_executable(extension \\ "") do
+    executable_path("iex", extension)
   end
 
   def write_beam({:module, name, bin, _} = res) do
     File.mkdir_p!(unquote(path))
     beam_path = Path.join(unquote(path), Atom.to_string(name) <> ".beam")
     File.write!(beam_path, bin)
+
+    :code.purge(name)
+    :code.delete(name)
+
     res
   end
 
@@ -60,8 +69,8 @@ defmodule PathHelpers do
     |> :unicode.characters_to_binary()
   end
 
-  defp executable_path(name) do
-    Path.expand("../../../../bin/#{name}#{executable_extension()}", __DIR__)
+  defp executable_path(name, extension) do
+    Path.expand("../../../../bin/#{name}#{extension}", __DIR__)
   end
 
   if match?({:win32, _}, :os.type()) do
@@ -91,7 +100,6 @@ defmodule CodeFormatterHelpers do
   end
 end
 
-assert_timeout = String.to_integer(System.get_env("ELIXIR_ASSERT_TIMEOUT") || "500")
 epmd_exclude = if match?({:win32, _}, :os.type()), do: [epmd: true], else: []
 os_exclude = if PathHelpers.windows?(), do: [unix: true], else: [windows: true]
 
@@ -108,9 +116,27 @@ distributed_exclude =
     [distributed: true]
   end
 
+source_exclude =
+  if :deterministic in :compile.env_compiler_options() do
+    [:requires_source]
+  else
+    []
+  end
+
+Code.require_file("../../scripts/cover_record.exs", __DIR__)
+
+cover_exclude =
+  if CoverageRecorder.maybe_record("elixir") do
+    [:require_ast]
+  else
+    []
+  end
+
 ExUnit.start(
   trace: !!System.get_env("TRACE"),
-  assert_receive_timeout: assert_timeout,
-  exclude: epmd_exclude ++ os_exclude ++ line_exclude ++ distributed_exclude,
-  include: line_include
+  exclude:
+    epmd_exclude ++
+      os_exclude ++ line_exclude ++ distributed_exclude ++ source_exclude ++ cover_exclude,
+  include: line_include,
+  assert_receive_timeout: String.to_integer(System.get_env("ELIXIR_ASSERT_TIMEOUT", "300"))
 )

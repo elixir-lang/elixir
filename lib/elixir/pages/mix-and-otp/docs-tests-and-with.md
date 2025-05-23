@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Doctests, patterns, and with
 
 In this chapter, we will implement the code that parses the commands we described in the first chapter:
@@ -88,7 +93,7 @@ def parse(line) do
 end
 ```
 
-Our implementation splits the line on whitespace and then matches the command against a list. Using `String.split/1` means our commands will be whitespace-insensitive. Leading and trailing whitespace won't matter, nor will consecutive spaces between words. Let's add some new doctests to test this behaviour along with the other commands:
+Our implementation splits the line on whitespace and then matches the command against a list. Using `String.split/1` means our commands will be whitespace-insensitive. Leading and trailing whitespace won't matter, nor will consecutive spaces between words. Let's add some new doctests to test this behavior along with the other commands:
 
 ```elixir
 @doc ~S"""
@@ -371,7 +376,7 @@ defmodule KVServerTest do
 
   setup do
     opts = [:binary, packet: :line, active: false]
-    {:ok, socket} = :gen_tcp.connect('localhost', 4040, opts)
+    {:ok, socket} = :gen_tcp.connect(~c"localhost", 4040, opts)
     %{socket: socket}
   end
 

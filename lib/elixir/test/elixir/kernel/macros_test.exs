@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Kernel.MacrosTest.Nested do
@@ -63,7 +67,7 @@ defmodule Kernel.MacrosTest do
   end
 
   test "macros cannot be called dynamically" do
-    x = Nested
+    x = String.to_atom("Elixir.Nested")
     assert_raise UndefinedFunctionError, fn -> x.func() end
   end
 

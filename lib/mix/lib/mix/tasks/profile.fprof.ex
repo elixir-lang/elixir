@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Tasks.Profile.Fprof do
   use Mix.Task
 
@@ -6,7 +10,7 @@ defmodule Mix.Tasks.Profile.Fprof do
   @moduledoc """
   Profiles the given file or expression using Erlang's `fprof` tool.
 
-  `fprof` can be useful when you want to discover the bottlenecks of a
+  [`:fprof`](`:fprof`) can be useful when you want to discover the bottlenecks of a
   sequential code.
 
   Before running the code, it invokes the `app.start` task which compiles
@@ -93,7 +97,7 @@ defmodule Mix.Tasks.Profile.Fprof do
   ## Caveats
 
   You should be aware that the code being profiled is running in an anonymous
-  function which is invoked by [`:fprof` module](https://www.erlang.org/doc/man/fprof.html).
+  function which is invoked by [`:fprof` module](`:fprof`).
   Thus, you'll see some additional entries in your profile output,
   such as `:fprof` calls, an anonymous
   function with high ACC time, or an `:undefined` function which represents

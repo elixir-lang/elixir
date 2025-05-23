@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Tasks.Cmd do
   use Mix.Task
 
@@ -33,12 +37,9 @@ defmodule Mix.Tasks.Cmd do
 
   ## Command line options
 
-    * `--app` - limit running the command to the given app.
-      This option is currently deprecated in favor of `mix do --app`
+    * `--cd` *(since v1.10.4)* - the directory to run the command in
 
-    * `--cd` - (since v1.10.4) the directory to run the command in
-
-  ## Zombie operating system processes
+  ## Orphan operating system processes
 
   Beware that the Erlang VM does not terminate child processes
   when it shuts down. Therefore, if you use `mix cmd` to start
@@ -47,7 +48,7 @@ defmodule Mix.Tasks.Cmd do
 
   A solution is to make sure the child processes listen to the
   standard input and terminate when standard input is closed.
-  We discuss this topic at length in the "Zombie operating system processes"
+  We discuss this topic at length in the "Orphan operating system processes"
   of the `Port` module documentation.
   """
 
@@ -60,16 +61,23 @@ defmodule Mix.Tasks.Cmd do
   def run(args) do
     {opts, args} = OptionParser.parse_head!(args, strict: @switches)
 
-    # TODO: Deprecate `--app` flag in Elixir v1.18
+    if args == [] do
+      Mix.raise("Expected at least one argument in mix cmd")
+    end
+
     apps =
       opts
       |> Keyword.get_values(:app)
       |> Enum.map(&String.to_atom/1)
 
+    if apps != [] do
+      IO.warn("the --app in mix cmd is deprecated. Use mix do --app instead.")
+    end
+
     if apps == [] or Mix.Project.config()[:app] in apps do
       cmd_opts = Keyword.take(opts, [:cd])
 
-      case Mix.shell().cmd(Enum.join(args, " "), cmd_opts) do
+      case Mix.shell().cmd({hd(args), tl(args)}, cmd_opts) do
         0 -> :ok
         status -> exit(status)
       end

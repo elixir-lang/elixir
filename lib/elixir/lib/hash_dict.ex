@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule HashDict do
   @moduledoc """
   Tuple-based HashDict implementation.
@@ -256,15 +260,18 @@ defmodule HashDict do
 end
 
 defimpl Enumerable, for: HashDict do
+  @moduledoc false
+  @moduledoc deprecated: "Use Map instead"
+
   def reduce(dict, acc, fun) do
     # Avoid warnings about HashDict being deprecated.
-    module = HashDict
+    module = String.to_atom("HashDict")
     module.reduce(dict, acc, fun)
   end
 
   def member?(dict, {key, value}) do
     # Avoid warnings about HashDict being deprecated.
-    module = HashDict
+    module = String.to_atom("HashDict")
     {:ok, match?({:ok, ^value}, module.fetch(dict, key))}
   end
 
@@ -274,7 +281,7 @@ defimpl Enumerable, for: HashDict do
 
   def count(dict) do
     # Avoid warnings about HashDict being deprecated.
-    module = HashDict
+    module = String.to_atom("HashDict")
     {:ok, module.size(dict)}
   end
 
@@ -284,9 +291,12 @@ defimpl Enumerable, for: HashDict do
 end
 
 defimpl Collectable, for: HashDict do
+  @moduledoc false
+  @moduledoc deprecated: "Use Map instead"
+
   def into(original) do
     # Avoid warnings about HashDict being deprecated.
-    module = HashDict
+    module = String.to_atom("HashDict")
 
     collector_fun = fn
       dict, {:cont, {key, value}} -> module.put(dict, key, value)
@@ -299,11 +309,13 @@ defimpl Collectable, for: HashDict do
 end
 
 defimpl Inspect, for: HashDict do
+  @moduledoc false
+  @moduledoc deprecated: "Use Map instead"
   import Inspect.Algebra
 
   def inspect(dict, opts) do
     # Avoid warnings about HashDict being deprecated.
-    module = HashDict
+    module = String.to_atom("HashDict")
     concat(["#HashDict<", Inspect.List.inspect(module.to_list(dict), opts), ">"])
   end
 end

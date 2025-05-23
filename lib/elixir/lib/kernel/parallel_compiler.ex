@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Kernel.ParallelCompiler do
   @moduledoc """
   A module responsible for compiling and requiring files in parallel.
@@ -18,23 +22,36 @@ defmodule Kernel.ParallelCompiler do
   # TODO: Deprecate this on Elixir v1.20.
   @doc deprecated: "Use `pmap/2` instead"
   def async(fun) when is_function(fun, 0) do
+    {ref, task} = inner_async(fun)
+    send(task.pid, ref)
+    task
+  end
+
+  defp inner_async(fun) do
     case :erlang.get(:elixir_compiler_info) do
       {compiler_pid, file_pid} ->
+        ref = make_ref()
         file = :erlang.get(:elixir_compiler_file)
         dest = :erlang.get(:elixir_compiler_dest)
 
         {:error_handler, error_handler} = :erlang.process_info(self(), :error_handler)
-        {_parent, checker} = Module.ParallelChecker.get()
+        {_parent, cache} = Module.ParallelChecker.get()
 
-        Task.async(fn ->
-          send(compiler_pid, {:async, self()})
-          Module.ParallelChecker.put(compiler_pid, checker)
-          :erlang.put(:elixir_compiler_info, {compiler_pid, file_pid})
-          :erlang.put(:elixir_compiler_file, file)
-          dest != :undefined and :erlang.put(:elixir_compiler_dest, dest)
-          :erlang.process_flag(:error_handler, error_handler)
-          fun.()
-        end)
+        task =
+          Task.async(fn ->
+            Module.ParallelChecker.put(compiler_pid, cache)
+            :erlang.put(:elixir_compiler_info, {compiler_pid, file_pid})
+            :erlang.put(:elixir_compiler_file, file)
+            dest != :undefined and :erlang.put(:elixir_compiler_dest, dest)
+            :erlang.process_flag(:error_handler, error_handler)
+
+            receive do
+              ^ref -> fun.()
+            end
+          end)
+
+        send(compiler_pid, {:async, task.pid})
+        {ref, task}
 
       :undefined ->
         raise ArgumentError,
@@ -52,41 +69,29 @@ defmodule Kernel.ParallelCompiler do
   """
   @doc since: "1.16.0"
   def pmap(collection, fun) when is_function(fun, 1) do
-    parent = self()
     ref = make_ref()
 
     # We spawn a series of tasks for parallel processing.
-    # The tasks notify themselves to the compiler.
-    tasks =
+    # The tasks are waiting until we give the go ahead.
+    refs_tasks =
       Enum.map(collection, fn item ->
-        async(fn ->
-          send(parent, {ref, self()})
-
-          receive do
-            ^ref -> fun.(item)
-          end
-        end)
+        inner_async(fn -> fun.(item) end)
       end)
-
-    # Then the tasks notify us. This is important because if
-    # we wait before the tasks notify the compiler, we may be
-    # released as there is nothing else running.
-    on =
-      for %{pid: pid} <- tasks do
-        receive do
-          {^ref, ^pid} -> pid
-        end
-      end
 
     # Notify the compiler we are waiting on the tasks.
     {compiler_pid, file_pid} = :erlang.get(:elixir_compiler_info)
     defining = :elixir_module.compiler_modules()
+    on = Enum.map(refs_tasks, fn {_ref, %{pid: pid}} -> pid end)
     send(compiler_pid, {:waiting, :pmap, self(), ref, file_pid, on, defining, :raise})
 
     # Now we allow the tasks to run. This step is not strictly
     # necessary but it makes compilation more deterministic by
     # only allowing tasks to run once we are waiting.
-    Enum.each(on, &send(&1, ref))
+    tasks =
+      Enum.map(refs_tasks, fn {ref, task} ->
+        send(task.pid, ref)
+        task
+      end)
 
     # Await tasks and notify the compiler they are done. We could
     # have the tasks report directly to the compiler, which in turn
@@ -121,12 +126,22 @@ defmodule Kernel.ParallelCompiler do
 
   ## Options
 
+    * `:after_compile` - invoked after all modules are compiled, but before
+      they are verified. If the files are being written to disk, such as in
+      `compile_to_path/3`, this will be invoked after the files are written
+
     * `:each_file` - for each file compiled, invokes the callback passing the
       file
 
     * `:each_long_compilation` - for each file that takes more than a given
       timeout (see the `:long_compilation_threshold` option) to compile, invoke
-      this callback passing the file as its argument
+      this callback passing the file as its argument (and optionally the PID
+      of the process compiling the file)
+
+    * `:each_long_verification` (since v1.19.0) - for each file that takes more
+      than a given timeout (see the `:long_verification_threshold` option) to
+      compile, invoke this callback passing the module as its argument (and
+      optionally the PID of the process verifying the module)
 
     * `:each_module` - for each module compiled, invokes the callback passing
       the file, module and the module bytecode
@@ -138,11 +153,18 @@ defmodule Kernel.ParallelCompiler do
       * `{:runtime, modules, warnings}` - to stop compilation and verify the list
         of modules because dependent modules have changed
 
-    * `:long_compilation_threshold` - the timeout (in seconds) to check for modules
+    * `:long_compilation_threshold` - the timeout (in seconds) to check for files
       taking too long to compile. For each file that exceeds the threshold, the
-      `:each_long_compilation` callback is invoked. From Elixir v1.11, only the time
-      spent compiling the actual module is taken into account by the threshold, the
-      time spent waiting is not considered. Defaults to `10` seconds.
+      `:each_long_compilation` callback is invoked. Defaults to `10` seconds.
+
+    * `:long_verification_threshold` (since v1.19.0) - the timeout (in seconds) to
+      check for modules taking too long to compile. For each module that exceeds the
+      threshold, the `:each_long_verification` callback is invoked. Defaults to
+      `10` seconds.
+
+    * `:verification` (since v1.19.0) - if code verification, such as unused functions,
+      deprecation warnings, and type checking should run. Defaults to `true`.
+      We recommend disabling it only for debugging purposes.
 
     * `:profile` - if set to `:time` measure the compilation time of each compilation cycle
        and group pass checker
@@ -156,6 +178,10 @@ defmodule Kernel.ParallelCompiler do
 
     * `:return_diagnostics` (since v1.15.0) - returns maps with information instead of
       a list of warnings and returns diagnostics as maps instead of tuples
+
+    * `:max_concurrency` - the maximum number of files to compile in parallel.
+      Setting this option to 1 will compile files sequentially.
+      Defaults to the number of schedulers online, or at least 2.
 
   """
   @doc since: "1.6.0"
@@ -176,7 +202,7 @@ defmodule Kernel.ParallelCompiler do
           {:ok, [atom], [warning] | info()}
           | {:error, [error] | [Code.diagnostic(:error)], [warning] | info()}
   def compile_to_path(files, path, options \\ []) when is_binary(path) and is_list(options) do
-    spawn_workers(files, {:compile, path}, options)
+    spawn_workers(files, {:compile, path}, Keyword.put(options, :dest, path))
   end
 
   @doc """
@@ -203,6 +229,10 @@ defmodule Kernel.ParallelCompiler do
     * `:each_module` - for each module compiled, invokes the callback passing
       the file, module and the module bytecode
 
+    * `:max_concurrency` - the maximum number of files to compile in parallel.
+      Setting this option to 1 will compile files sequentially.
+      Defaults to the number of schedulers online, or at least 2.
+
   """
   @doc since: "1.6.0"
   @spec require([Path.t()], keyword()) ::
@@ -213,7 +243,7 @@ defmodule Kernel.ParallelCompiler do
   end
 
   @doc false
-  # TODO: Deprecate me on Elixir v1.19
+  @deprecated "Use Code.print_diagnostic/2 instead"
   def print_warning({file, location, warning}) do
     :elixir_errors.print_warning(location, file, warning)
   end
@@ -238,42 +268,25 @@ defmodule Kernel.ParallelCompiler do
 
   defp spawn_workers(files, output, options) do
     {:module, _} = :code.ensure_loaded(Kernel.ErrorHandler)
-    schedulers = max(:erlang.system_info(:schedulers_online), 2)
-    {:ok, checker} = Module.ParallelChecker.start_link(schedulers)
+
+    schedulers =
+      Keyword.get_lazy(options, :max_concurrency, fn ->
+        max(:erlang.system_info(:schedulers_online), 2)
+      end)
+
+    {:ok, cache} = Module.ParallelChecker.start_link(options)
 
     {status, modules_or_errors, info} =
       try do
-        outcome = spawn_workers(schedulers, checker, files, output, options)
-        {outcome, Code.get_compiler_option(:warnings_as_errors)}
-      else
-        {{:ok, _, %{runtime_warnings: r_warnings, compile_warnings: c_warnings} = info}, true}
-        when r_warnings != [] or c_warnings != [] ->
-          message =
-            "Compilation failed due to warnings while using the --warnings-as-errors option"
-
-          IO.puts(:stderr, message)
-          errors = Enum.map(r_warnings ++ c_warnings, &Map.replace!(&1, :severity, :error))
-          {:error, errors, %{info | runtime_warnings: [], compile_warnings: []}}
-
-        {{:ok, outcome, info}, _} ->
-          beam_timestamp = Keyword.get(options, :beam_timestamp)
-          {:ok, write_module_binaries(outcome, output, beam_timestamp), info}
-
-        {{:error, errors, info}, true} ->
-          %{runtime_warnings: r_warnings, compile_warnings: c_warnings} = info
-          info = %{info | runtime_warnings: [], compile_warnings: []}
-          {:error, c_warnings ++ r_warnings ++ errors, info}
-
-        {{:error, errors, info}, _} ->
-          {:error, errors, info}
+        spawn_workers(schedulers, cache, files, output, options)
       after
-        Module.ParallelChecker.stop(checker)
+        Module.ParallelChecker.stop(cache)
       end
 
-    # TODO: Require this to be set from Elixir v1.19
     if Keyword.get(options, :return_diagnostics, false) do
       {status, modules_or_errors, info}
     else
+      IO.warn("you must pass return_diagnostics: true when invoking Kernel.ParallelCompiler")
       to_tuples = &Enum.map(&1, fn diag -> {diag.file, diag.position, diag.message} end)
 
       modules_or_errors =
@@ -289,7 +302,9 @@ defmodule Kernel.ParallelCompiler do
 
     {outcome, state} =
       spawn_workers(files, %{}, %{}, [], %{}, [], [], %{
+        beam_timestamp: Keyword.get(options, :beam_timestamp),
         dest: Keyword.get(options, :dest),
+        after_compile: Keyword.get(options, :after_compile, fn -> :ok end),
         each_cycle: Keyword.get(options, :each_cycle, fn -> {:runtime, [], []} end),
         each_file: Keyword.get(options, :each_file, fn _, _ -> :ok end) |> each_file(),
         each_long_compilation: Keyword.get(options, :each_long_compilation, fn _file -> :ok end),
@@ -299,7 +314,8 @@ defmodule Kernel.ParallelCompiler do
         timer_ref: timer_ref,
         long_compilation_threshold: threshold,
         schedulers: schedulers,
-        checker: checker
+        checker: checker,
+        verification?: Keyword.get(options, :verification, true)
       })
 
     Process.cancel_timer(state.timer_ref)
@@ -327,55 +343,56 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp write_module_binaries(result, {:compile, path}, timestamp) do
-    Enum.flat_map(result, fn
-      {{:module, module}, binary} when is_binary(binary) ->
-        full_path = Path.join(path, Atom.to_string(module) <> ".beam")
-        File.write!(full_path, binary)
-        if timestamp, do: File.touch!(full_path, timestamp)
-        [module]
+    File.mkdir_p!(path)
+    Code.prepend_path(path)
 
-      _ ->
-        []
-    end)
+    for {{:module, module}, {binary, _}} when is_binary(binary) <- result do
+      full_path = Path.join(path, Atom.to_string(module) <> ".beam")
+      File.write!(full_path, binary)
+      if timestamp, do: File.touch!(full_path, timestamp)
+      module
+    end
   end
 
   defp write_module_binaries(result, _output, _timestamp) do
-    for {{:module, module}, binary} when is_binary(binary) <- result, do: module
+    for {{:module, module}, {binary, _}} when is_binary(binary) <- result, do: module
   end
 
   ## Verification
 
   defp verify_modules(result, compile_warnings, dependent_modules, state) do
-    runtime_warnings = maybe_check_modules(result, dependent_modules, state)
+    modules = write_module_binaries(result, state.output, state.beam_timestamp)
+    _ = state.after_compile.()
+
+    runtime_warnings =
+      if state.verification? do
+        profile(
+          state,
+          fn ->
+            num_modules = length(modules) + length(dependent_modules)
+            "group pass check of #{num_modules} modules"
+          end,
+          fn -> Module.ParallelChecker.verify(state.checker, dependent_modules) end
+        )
+      else
+        []
+      end
+
     info = %{compile_warnings: Enum.reverse(compile_warnings), runtime_warnings: runtime_warnings}
-    {{:ok, result, info}, state}
-  end
-
-  defp maybe_check_modules(result, runtime_modules, state) do
-    %{profile: profile, checker: checker} = state
-
-    compiled_modules =
-      for {{:module, module}, binary} when is_binary(binary) <- result,
-          do: module
-
-    profile_checker(profile, compiled_modules, runtime_modules, fn ->
-      Module.ParallelChecker.verify(checker, runtime_modules)
-    end)
+    {{:ok, modules, info}, state}
   end
 
   defp profile_init(:time), do: {:time, System.monotonic_time(), 0}
   defp profile_init(nil), do: :none
 
-  defp profile_checker({:time, _, _}, compiled_modules, runtime_modules, fun) do
+  defp profile(%{profile: :none}, _what, fun), do: fun.()
+
+  defp profile(%{profile: {:time, _, _}}, what, fun) do
     {time, result} = :timer.tc(fun)
     time = div(time, 1000)
-    num_modules = length(compiled_modules) + length(runtime_modules)
-    IO.puts(:stderr, "[profile] Finished group pass check of #{num_modules} modules in #{time}ms")
+    what = if is_binary(what), do: what, else: what.()
+    IO.puts(:stderr, "[profile] Finished #{what} in #{time}ms")
     result
-  end
-
-  defp profile_checker(:none, _compiled_modules, _runtime_modules, fun) do
-    fun.()
   end
 
   ## Compiler worker spawning
@@ -413,20 +430,20 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp spawn_workers([file | queue], spawned, waiting, files, result, warnings, errors, state) do
-    %{output: output, dest: dest, checker: checker} = state
+    %{output: output, dest: dest, checker: cache} = state
     parent = self()
     file = Path.expand(file)
 
     {pid, ref} =
       :erlang.spawn_monitor(fn ->
-        Module.ParallelChecker.put(parent, checker)
+        Module.ParallelChecker.put(parent, cache)
         :erlang.put(:elixir_compiler_info, {parent, self()})
         :erlang.put(:elixir_compiler_file, file)
 
         try do
           case output do
-            {:compile, path} -> compile_file(file, path, parent)
-            :compile -> compile_file(file, dest, parent)
+            {:compile, _} -> compile_file(file, dest, false, parent)
+            :compile -> compile_file(file, dest, true, parent)
             :require -> require_file(file, parent)
           end
         catch
@@ -455,16 +472,25 @@ defmodule Kernel.ParallelCompiler do
   # No more queue, nothing waiting, this cycle is done
   defp spawn_workers([], spawned, waiting, files, result, warnings, errors, state)
        when map_size(spawned) == 0 and map_size(waiting) == 0 do
-    [] = errors
+    # Print any spurious error that we may have found
+    Enum.map(errors, fn {diagnostic, read_snippet} ->
+      :elixir_errors.print_diagnostic(diagnostic, read_snippet)
+    end)
+
     [] = files
-    cycle_return = each_cycle_return(state.each_cycle.())
+
+    cycle_return =
+      profile(state, "cycle resolution", fn -> each_cycle_return(state.each_cycle.()) end)
+
     state = cycle_timing(result, state)
 
     case cycle_return do
       {:runtime, dependent_modules, extra_warnings} ->
+        :elixir_code_server.cast(:purge_compiler_modules)
         verify_modules(result, extra_warnings ++ warnings, dependent_modules, state)
 
       {:compile, [], extra_warnings} ->
+        :elixir_code_server.cast(:purge_compiler_modules)
         verify_modules(result, extra_warnings ++ warnings, [], state)
 
       {:compile, more, extra_warnings} ->
@@ -499,19 +525,22 @@ defmodule Kernel.ParallelCompiler do
     # Finally, note there is no difference between hard and raise, the
     # difference is where the raise is happening, inside the compiler
     # or in the caller.
-    waiting_list = Map.to_list(waiting)
-
     deadlocked =
-      deadlocked(waiting_list, :soft, false) ||
-        deadlocked(waiting_list, :soft, true) ||
-        deadlocked(waiting_list, :hard, false) ||
-        without_definition(waiting_list, files)
+      profile(state, "deadlock resolution", fn ->
+        waiting_list = Map.to_list(waiting)
+
+        deadlocked(waiting_list, :soft, false) ||
+          deadlocked(waiting_list, :soft, true) ||
+          deadlocked(waiting_list, :hard, false) ||
+          without_definition(waiting_list, files)
+      end)
 
     if deadlocked do
       spawn_workers(deadlocked, spawned, waiting, files, result, warnings, errors, state)
     else
-      deadlock_errors = handle_deadlock(waiting, files)
-      {return_error(deadlock_errors ++ errors, warnings), state}
+      return_error(warnings, errors, state, fn ->
+        handle_deadlock(waiting, files)
+      end)
     end
   end
 
@@ -520,9 +549,9 @@ defmodule Kernel.ParallelCompiler do
     wait_for_messages([], spawned, waiting, files, result, warnings, errors, state)
   end
 
-  defp compile_file(file, path, parent) do
+  defp compile_file(file, path, force_load?, parent) do
     :erlang.process_flag(:error_handler, Kernel.ErrorHandler)
-    :erlang.put(:elixir_compiler_dest, path)
+    :erlang.put(:elixir_compiler_dest, {path, force_load?})
     :elixir_compiler.file(file, &each_file(&1, &2, parent))
   end
 
@@ -556,7 +585,7 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp count_modules(result) do
-    Enum.count(result, &match?({{:module, _}, binary} when is_binary(binary), &1))
+    Enum.count(result, &match?({{:module, _}, {binary, _}} when is_binary(binary), &1))
   end
 
   defp each_cycle_return({kind, modules, warnings}), do: {kind, modules, warnings}
@@ -623,19 +652,37 @@ defmodule Kernel.ParallelCompiler do
           state
         )
 
-      {:module_available, child, ref, file, module, binary} ->
-        state.each_module.(file, module, binary)
+      {{:module_loaded, module}, _ref, _type, _pid, _reason} ->
+        result =
+          Map.update!(result, {:module, module}, fn {binary, _loader} -> {binary, true} end)
 
-        # Release the module loader which is waiting for an ack
+        spawn_workers(queue, spawned, waiting, files, result, warnings, errors, state)
+
+      {:module_available, child, ref, file, module, binary, loaded?} ->
+        state.each_module.(file, module, binary)
         send(child, {ref, :ack})
-        {available, result} = update_result(result, :module, module, binary)
+
+        {available, load_status} =
+          case Map.get(result, {:module, module}) do
+            [_ | _] = pids when loaded? ->
+              {Enum.map(pids, &{&1, :found}), loaded?}
+
+            # When compiling files to disk, we only load the module
+            # if other modules are waiting for it.
+            [_ | _] = pids ->
+              pid = load_module(module, binary, state.dest)
+              {Enum.map(pids, &{&1, {:loading, pid}}), pid}
+
+            _ ->
+              {[], loaded?}
+          end
 
         spawn_workers(
           available ++ queue,
           spawned,
           waiting,
           files,
-          result,
+          Map.put(result, {:module, module}, {binary, load_status}),
           warnings,
           errors,
           state
@@ -654,7 +701,9 @@ defmodule Kernel.ParallelCompiler do
 
         {waiting, files, result} =
           if not is_list(available_or_pending) or on in defining do
-            send(child_pid, {ref, :found})
+            # If what we are waiting on was defined but not loaded, we do it now.
+            {reply, result} = load_pending(kind, on, result, state)
+            send(child_pid, {ref, reply})
             {waiting, files, result}
           else
             waiting = Map.put(waiting, child_pid, {kind, ref, file_pid, on, defining, deadlock})
@@ -681,12 +730,13 @@ defmodule Kernel.ParallelCompiler do
         state = %{state | timer_ref: timer_ref}
         spawn_workers(queue, spawned, waiting, files, result, warnings, errors, state)
 
-      {:diagnostic, %{severity: :warning} = diagnostic} ->
-        warnings = [Module.ParallelChecker.format_diagnostic_file(diagnostic) | warnings]
+      {:diagnostic, %{severity: :warning, file: file} = diagnostic, read_snippet} ->
+        :elixir_errors.print_diagnostic(diagnostic, read_snippet)
+        warnings = [%{diagnostic | file: file && Path.absname(file)} | warnings]
         wait_for_messages(queue, spawned, waiting, files, result, warnings, errors, state)
 
-      {:diagnostic, %{severity: :error} = diagnostic} ->
-        errors = [Module.ParallelChecker.format_diagnostic_file(diagnostic) | errors]
+      {:diagnostic, %{severity: :error} = diagnostic, read_snippet} ->
+        errors = [{diagnostic, read_snippet} | errors]
         wait_for_messages(queue, spawned, waiting, files, result, warnings, errors, state)
 
       {:file_ok, child_pid, ref, file, lexical} ->
@@ -706,10 +756,13 @@ defmodule Kernel.ParallelCompiler do
         spawn_workers(queue, new_spawned, waiting, new_files, result, warnings, errors, state)
 
       {:file_error, child_pid, file, {kind, reason, stack}} ->
-        print_error(file, kind, reason, stack)
         {_file, _new_spawned, new_files} = discard_file_pid(spawned, files, child_pid)
         terminate(new_files)
-        {return_error([to_error(file, kind, reason, stack) | errors], warnings), state}
+
+        return_error(warnings, errors, state, fn ->
+          print_error(file, kind, reason, stack)
+          [to_error(file, kind, reason, stack)]
+        end)
 
       {:DOWN, ref, :process, pid, reason} when is_map_key(spawned, ref) ->
         # async spawned processes have no file, so we always have to delete the ref directly
@@ -718,18 +771,79 @@ defmodule Kernel.ParallelCompiler do
         {file, spawned, files} = discard_file_pid(spawned, files, pid)
 
         if file do
-          print_error(file.file, :exit, reason, [])
           terminate(files)
-          {return_error([to_error(file.file, :exit, reason, []) | errors], warnings), state}
+
+          return_error(warnings, errors, state, fn ->
+            print_error(file.file, :exit, reason, [])
+            [to_error(file.file, :exit, reason, [])]
+          end)
         else
           wait_for_messages(queue, spawned, waiting, files, result, warnings, errors, state)
         end
     end
   end
 
-  defp return_error(errors, warnings) do
+  defp return_error(warnings, errors, state, fun) do
+    # Also prune compiler modules in case of errors
+    :elixir_code_server.cast(:purge_compiler_modules)
+
+    errors =
+      Enum.map(errors, fn {%{file: file} = diagnostic, read_snippet} ->
+        :elixir_errors.print_diagnostic(diagnostic, read_snippet)
+        %{diagnostic | file: file && Path.absname(file)}
+      end)
+
     info = %{compile_warnings: Enum.reverse(warnings), runtime_warnings: []}
-    {:error, Enum.reverse(errors), info}
+    {{:error, Enum.reverse(errors, fun.()), info}, state}
+  end
+
+  defp load_pending(kind, module, result, state) do
+    case result do
+      %{{:module, ^module} => {binary, load_status}}
+      when kind in [:module, :struct] and is_binary(binary) ->
+        case load_status do
+          true ->
+            {:found, result}
+
+          false ->
+            pid = load_module(module, binary, state.dest)
+            result = Map.put(result, {:module, module}, {binary, pid})
+            {{:loading, pid}, result}
+
+          pid when is_pid(pid) ->
+            {{:loading, pid}, result}
+        end
+
+      _ ->
+        {:found, result}
+    end
+  end
+
+  # We load modules in a separate process to avoid blocking
+  # the parallel compiler. We store the PID of this process and
+  # all entries monitor it to know once the module is loaded.
+  defp load_module(module, binary, dest) do
+    {pid, _ref} =
+      :erlang.spawn_opt(
+        fn ->
+          beam_location =
+            case dest do
+              nil ->
+                []
+
+              dest ->
+                :filename.join(
+                  :elixir_utils.characters_to_list(dest),
+                  Atom.to_charlist(module) ++ ~c".beam"
+                )
+            end
+
+          :code.load_binary(module, beam_location, binary)
+        end,
+        monitor: [tag: {:module_loaded, module}]
+      )
+
+    pid
   end
 
   defp update_result(result, kind, module, value) do
@@ -762,7 +876,12 @@ defmodule Kernel.ParallelCompiler do
     compiling = System.convert_time_unit(data.compiling, :native, :millisecond)
 
     if not data.warned and compiling >= state.long_compilation_threshold do
-      state.each_long_compilation.(data.file)
+      if is_function(state.each_long_compilation, 2) do
+        state.each_long_compilation.(data.file, data.pid)
+      else
+        state.each_long_compilation.(data.file)
+      end
+
       %{data | warned: true}
     else
       data
@@ -859,9 +978,12 @@ defmodule Kernel.ParallelCompiler do
     )
 
     for {file, _, description, stacktrace} <- deadlock do
+      file = Path.absname(file)
+
       %{
         severity: :error,
-        file: Path.absname(file),
+        file: file,
+        source: file,
         position: nil,
         message: description,
         stacktrace: stacktrace,
@@ -889,50 +1011,64 @@ defmodule Kernel.ParallelCompiler do
     ])
   end
 
-  defp to_error(file, kind, reason, stack) do
-    line = get_line(file, reason, stack)
-    file = Path.absname(file)
+  defp to_error(source, kind, reason, stack) do
+    {file, line, span} = get_snippet_info(source, reason, stack)
+    source = Path.absname(source)
     message = :unicode.characters_to_binary(Kernel.CLI.format_error(kind, reason, stack))
 
     %{
-      file: file,
+      file: file || source,
+      source: source,
       position: line || 0,
       message: message,
       severity: :error,
       stacktrace: stack,
-      span: nil
+      span: span,
+      details: {kind, reason}
     }
   end
 
-  defp get_line(_file, %{line: line, column: column}, _stack)
+  defp get_snippet_info(
+         _file,
+         %{file: file, line: line, column: column, end_line: end_line, end_column: end_column},
+         _stack
+       )
+       when is_integer(line) and line > 0 and is_integer(column) and column >= 0 and
+              is_integer(end_line) and end_line > 0 and is_integer(end_column) and end_column >= 0 do
+    {Path.absname(file), {line, column}, {end_line, end_column}}
+  end
+
+  defp get_snippet_info(_file, %{file: file, line: line, column: column}, _stack)
        when is_integer(line) and line > 0 and is_integer(column) and column >= 0 do
-    {line, column}
+    {Path.absname(file), {line, column}, nil}
   end
 
-  defp get_line(_file, %{line: line}, _stack) when is_integer(line) and line > 0 do
-    line
+  defp get_snippet_info(_file, %{line: line}, _stack) when is_integer(line) and line > 0 do
+    {nil, line, nil}
   end
 
-  defp get_line(file, :undef, [{_, _, _, []}, {_, _, _, info} | _]) do
-    if Keyword.get(info, :file) == to_charlist(Path.relative_to_cwd(file)) do
-      Keyword.get(info, :line)
-    end
+  defp get_snippet_info(file, :undef, [{_, _, _, []}, {_, _, _, info} | _]) do
+    get_snippet_info_from_stacktrace_info(info, file)
   end
 
-  defp get_line(file, _reason, [{_, _, _, [file: expanding]}, {_, _, _, info} | _])
+  defp get_snippet_info(file, _reason, [{_, _, _, [file: expanding]}, {_, _, _, info} | _])
        when expanding in [~c"expanding macro", ~c"expanding struct"] do
-    if Keyword.get(info, :file) == to_charlist(Path.relative_to_cwd(file)) do
-      Keyword.get(info, :line)
-    end
+    get_snippet_info_from_stacktrace_info(info, file)
   end
 
-  defp get_line(file, _reason, [{_, _, _, info} | _]) do
-    if Keyword.get(info, :file) == to_charlist(Path.relative_to_cwd(file)) do
-      Keyword.get(info, :line)
-    end
+  defp get_snippet_info(file, _reason, [{_, _, _, info} | _]) do
+    get_snippet_info_from_stacktrace_info(info, file)
   end
 
-  defp get_line(_, _, _) do
-    nil
+  defp get_snippet_info(_, _, _) do
+    {nil, nil, nil}
+  end
+
+  defp get_snippet_info_from_stacktrace_info(info, file) do
+    if Keyword.get(info, :file) == to_charlist(Path.relative_to_cwd(file)) do
+      {nil, Keyword.get(info, :line), nil}
+    else
+      {nil, nil, nil}
+    end
   end
 end

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.Profile.FprofTest do
@@ -9,8 +13,8 @@ defmodule Mix.Tasks.Profile.FprofTest do
   test "profiles evaluated expression", context do
     in_tmp(context.test, fn ->
       assert capture_io(fn ->
-               Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new() end)"])
-             end) =~ ~r(MapSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
+               Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new(1..3) end)"])
+             end) =~ ~r(MapSet\.new/1 *5 *\d+\.\d{3} *\d+\.\d{3})
     end)
   end
 
@@ -19,36 +23,36 @@ defmodule Mix.Tasks.Profile.FprofTest do
       profile_script_name = "profile_script.ex"
 
       File.write!(profile_script_name, """
-      Enum.each(1..5, fn(_) -> MapSet.new() end)
+      Enum.each(1..5, fn(_) -> MapSet.new(1..3) end)
       """)
 
       assert capture_io(fn ->
                Fprof.run([profile_script_name])
-             end) =~ ~r(MapSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
+             end) =~ ~r(MapSet\.new/1 *5 *\d+\.\d{3} *\d+\.\d{3})
     end)
   end
 
   test "expands callers", context do
     in_tmp(context.test, fn ->
       assert capture_io(fn ->
-               Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new() end)", "--callers"])
-             end) =~ ~r(MapSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3} +<--)
+               Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new(1..3) end)", "--callers"])
+             end) =~ ~r(MapSet\.new/1 *5 *\d+\.\d{3} *\d+\.\d{3} +<--)
     end)
   end
 
   test "writes traces to file", context do
     in_tmp(context.test, fn ->
       assert capture_io(fn ->
-               expr = "Enum.each(1..5, fn(_) -> MapSet.new() end)"
+               expr = "Enum.each(1..5, fn(_) -> MapSet.new(1..3) end)"
                Fprof.run(["-e", expr, "--trace-to-file"])
-             end) =~ ~r(MapSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
+             end) =~ ~r(MapSet\.new/1 *5 *\d+\.\d{3} *\d+\.\d{3})
     end)
   end
 
   test "expands processes", context do
     in_tmp(context.test, fn ->
       expr =
-        "spawn(fn -> Process.sleep(:infinity) end); Enum.each(1..5, fn(_) -> MapSet.new() end)"
+        "spawn(fn -> Process.sleep(:infinity) end); Enum.each(1..5, fn(_) -> MapSet.new(1..3) end)"
 
       output = capture_io(fn -> Fprof.run(["-e", expr, "--details"]) end)
       assert output =~ ~r/#{:erlang.pid_to_list(self())} +\d+ +\d+\.\d{3}/
@@ -60,15 +64,15 @@ defmodule Mix.Tasks.Profile.FprofTest do
 
   test "sort options", context do
     in_tmp(context.test, fn ->
-      expr = "Enum.each(1..5, fn(_) -> MapSet.new() end)"
+      expr = "Enum.each(1..5, fn(_) -> MapSet.new(1..3) end)"
 
       assert capture_io(fn -> Fprof.run(["-e", expr, "--sort", "acc"]) end) =~
-               ~r(MapSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
+               ~r(MapSet\.new/1 *5 *\d+\.\d{3} *\d+\.\d{3})
 
-      expr = "Enum.each(1..5, fn(_) -> MapSet.new() end)"
+      expr = "Enum.each(1..5, fn(_) -> MapSet.new(1..3) end)"
 
       assert capture_io(fn -> Fprof.run(["-e", expr, "--sort", "own"]) end) =~
-               ~r(MapSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
+               ~r(MapSet\.new/1 *5 *\d+\.\d{3} *\d+\.\d{3})
     end)
   end
 
@@ -99,11 +103,11 @@ defmodule Mix.Tasks.Profile.FprofTest do
   test "warmup", context do
     in_tmp(context.test, fn ->
       assert capture_io(fn ->
-               Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new() end)"])
+               Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new(1..3) end)"])
              end) =~ "Warmup..."
 
       refute capture_io(fn ->
-               Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new() end)", "--no-warmup"])
+               Fprof.run(["-e", "Enum.each(1..5, fn(_) -> MapSet.new(1..3) end)", "--no-warmup"])
              end) =~ "Warmup..."
     end)
   end

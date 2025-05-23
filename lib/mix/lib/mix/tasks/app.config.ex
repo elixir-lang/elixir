@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
 defmodule Mix.Tasks.App.Config do
   use Mix.Task
 
@@ -50,7 +53,7 @@ defmodule Mix.Tasks.App.Config do
     #
     # Therefore we let the application that owns the build path
     # to ultimately perform the check.
-    unless config[:build_path] do
+    if !config[:build_path] do
       check_configured()
     end
   end

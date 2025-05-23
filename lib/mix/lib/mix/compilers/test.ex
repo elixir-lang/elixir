@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Compilers.Test do
   @moduledoc false
 
@@ -6,7 +10,6 @@ defmodule Mix.Compilers.Test do
   import Record
 
   defrecordp :source,
-    source: nil,
     compile_references: [],
     runtime_references: [],
     external: []
@@ -14,7 +17,7 @@ defmodule Mix.Compilers.Test do
   # Necessary to avoid warnings during bootstrap
   @compile {:no_warn_undefined, ExUnit}
   @stale_manifest "compile.test_stale"
-  @manifest_vsn 1
+  @manifest_vsn 2
 
   @doc """
   Requires and runs test files.
@@ -23,7 +26,9 @@ defmodule Mix.Compilers.Test do
   test patterns, the test paths, and the opts from the test task.
   """
   def require_and_run(matched_test_files, test_paths, elixirc_opts, opts) do
-    elixirc_opts = Keyword.merge([docs: false, debug_info: false], elixirc_opts)
+    elixirc_opts =
+      Keyword.merge([docs: false, debug_info: false, infer_signatures: false], elixirc_opts)
+
     previous_opts = Code.compiler_options(elixirc_opts)
 
     try do
@@ -35,12 +40,20 @@ defmodule Mix.Compilers.Test do
 
   defp require_and_run(matched_test_files, test_paths, opts) do
     stale = opts[:stale]
+    max_requires = opts[:max_requires]
 
     {test_files, stale_manifest_pid, parallel_require_callbacks} =
       if stale do
         set_up_stale(matched_test_files, test_paths, opts)
       else
         {matched_test_files, nil, []}
+      end
+
+    shared_require_options =
+      if max_requires do
+        [max_concurrency: max_requires, return_diagnostics: true]
+      else
+        [return_diagnostics: true]
       end
 
     Application.ensure_all_started(:ex_unit)
@@ -59,39 +72,38 @@ defmodule Mix.Compilers.Test do
         end
 
       Keyword.get(opts, :profile_require) == "time" ->
-        Kernel.ParallelCompiler.require(test_files, profile: :time)
+        Kernel.ParallelCompiler.require(test_files, [profile: :time] ++ shared_require_options)
         :noop
 
       true ->
         task = ExUnit.async_run()
-        warnings_as_errors? = Keyword.get(opts, :warnings_as_errors, false)
         seed = Application.fetch_env!(:ex_unit, :seed)
         rand_algorithm = Application.fetch_env!(:ex_unit, :rand_algorithm)
         test_files = shuffle(seed, rand_algorithm, test_files)
 
         try do
-          failed? =
-            case Kernel.ParallelCompiler.require(test_files, parallel_require_callbacks) do
-              {:ok, _, [_ | _]} when warnings_as_errors? -> true
-              {:ok, _, _} -> false
-              {:error, _, _} -> exit({:shutdown, 1})
+          parallel_require_options = shared_require_options ++ parallel_require_callbacks
+
+          warnings? =
+            case Kernel.ParallelCompiler.require(test_files, parallel_require_options) do
+              {:ok, _, %{compile_warnings: c, runtime_warnings: r}}
+              when c != [] or r != [] ->
+                true
+
+              {:ok, _, _} ->
+                false
+
+              {:error, _, _} ->
+                exit({:shutdown, 1})
             end
 
           %{failures: failures} = results = ExUnit.await_run(task)
 
           if failures == 0 do
-            if failed? do
-              message =
-                "\nERROR! Test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
-
-              IO.puts(:stderr, IO.ANSI.format([:red, message]))
-              exit({:shutdown, 1})
-            end
-
             agent_write_manifest(stale_manifest_pid)
           end
 
-          {:ok, results}
+          {:ok, Map.put(results, :warnings?, warnings?)}
         catch
           kind, reason ->
             # In case there is an error, shut down the runner task
@@ -107,10 +119,10 @@ defmodule Mix.Compilers.Test do
   defp set_up_stale(matched_test_files, test_paths, opts) do
     manifest = manifest()
     modified = Mix.Utils.last_modified(manifest)
-    all_sources = read_manifest()
+    test_sources = read_manifest()
 
     removed =
-      for source(source: source) <- all_sources, source not in matched_test_files, do: source
+      for {source, _} <- test_sources, source not in matched_test_files, do: source
 
     test_helpers = Enum.map(test_paths, &Path.join(&1, "test_helper.exs"))
     sources = [Mix.Project.config_mtime(), Mix.Project.project_file() | test_helpers]
@@ -121,17 +133,17 @@ defmodule Mix.Compilers.Test do
         # Let's just require everything
         matched_test_files
       else
-        sources_mtimes = mtimes(all_sources)
+        sources_mtimes = mtimes(test_sources)
 
         # Otherwise let's start with the new sources
         # Plus the sources that have changed in disk
         for(
           source <- matched_test_files,
-          not List.keymember?(all_sources, source, source(:source)),
+          not is_map_key(test_sources, source),
           do: source
         ) ++
           for(
-            source(source: source, external: external) <- all_sources,
+            {source, source(external: external)} <- test_sources,
             times = Enum.map([source | external], &Map.fetch!(sources_mtimes, &1)),
             Mix.Utils.stale?(times, [modified]),
             do: source
@@ -139,7 +151,7 @@ defmodule Mix.Compilers.Test do
       end
 
     stale = MapSet.new(changed -- removed)
-    sources = update_stale_sources(all_sources, removed, changed)
+    sources = update_stale_sources(test_sources, removed, changed)
 
     test_files_to_run =
       sources
@@ -181,7 +193,7 @@ defmodule Mix.Compilers.Test do
   ## Setup helpers
 
   defp mtimes(sources) do
-    Enum.reduce(sources, %{}, fn source(source: source, external: external), map ->
+    Enum.reduce(sources, %{}, fn {source, source(external: external)}, map ->
       Enum.reduce([source | external], map, fn file, map ->
         Map.put_new_lazy(map, file, fn -> Mix.Utils.last_modified(file) end)
       end)
@@ -189,11 +201,8 @@ defmodule Mix.Compilers.Test do
   end
 
   defp update_stale_sources(sources, removed, changed) do
-    sources = Enum.reject(sources, fn source(source: source) -> source in removed end)
-
-    sources =
-      Enum.reduce(changed, sources, &List.keystore(&2, &1, source(:source), source(source: &1)))
-
+    sources = Map.drop(sources, removed)
+    sources = Enum.reduce(changed, sources, &Map.put(&2, &1, source()))
     sources
   end
 
@@ -206,20 +215,20 @@ defmodule Mix.Compilers.Test do
       [@manifest_vsn | sources] = manifest() |> File.read!() |> :erlang.binary_to_term()
       sources
     rescue
-      _ -> []
+      _ -> %{}
     end
   end
 
-  defp write_manifest([]) do
+  defp write_manifest(test_sources) when test_sources == %{} do
     File.rm(manifest())
     :ok
   end
 
-  defp write_manifest(sources) do
+  defp write_manifest(test_sources = %{}) do
     manifest = manifest()
     File.mkdir_p!(Path.dirname(manifest))
 
-    manifest_data = :erlang.term_to_binary([@manifest_vsn | sources], [:compressed])
+    manifest_data = :erlang.term_to_binary([@manifest_vsn | test_sources], [:compressed])
     File.write!(manifest, manifest_data)
   end
 
@@ -234,7 +243,7 @@ defmodule Mix.Compilers.Test do
       {elixir_modules, elixir_sources} = CE.read_manifest(elixir_manifest)
 
       stale_modules =
-        for CE.module(module: module) <- elixir_modules,
+        for {module, _} <- elixir_modules,
             beam = Path.join(compile_path, Atom.to_string(module) <> ".beam"),
             Mix.Utils.stale?([beam], [test_manifest]),
             do: module,
@@ -242,9 +251,8 @@ defmodule Mix.Compilers.Test do
 
       stale_modules = find_all_dependent_on(stale_modules, elixir_modules, elixir_sources)
 
-      for module <- stale_modules,
-          source(source: source, runtime_references: r, compile_references: c) <- test_sources,
-          module in r or module in c,
+      for {source, source(runtime_references: r, compile_references: c)} <- test_sources,
+          Enum.any?(r, &(&1 in stale_modules)) or Enum.any?(c, &(&1 in stale_modules)),
           do: source,
           into: MapSet.new()
     else
@@ -252,30 +260,30 @@ defmodule Mix.Compilers.Test do
     end
   end
 
-  defp find_all_dependent_on(modules, all_modules, sources, resolved \\ MapSet.new()) do
+  defp find_all_dependent_on(modules, elixir_modules, elixir_sources, resolved \\ MapSet.new()) do
     new_modules =
       for module <- modules,
           module not in resolved,
-          dependent_module <- dependent_modules(module, all_modules, sources),
+          dependent_module <- dependent_modules(module, elixir_modules, elixir_sources),
           do: dependent_module,
           into: modules
 
     if MapSet.size(new_modules) == MapSet.size(modules) do
       new_modules
     else
-      find_all_dependent_on(new_modules, all_modules, sources, modules)
+      find_all_dependent_on(new_modules, elixir_modules, elixir_sources, modules)
     end
   end
 
   defp dependent_modules(module, modules, sources) do
-    for CE.source(
-          source: source,
-          runtime_references: r,
-          compile_references: c,
-          export_references: e
-        ) <- sources,
+    for {source,
+         CE.source(
+           runtime_references: r,
+           compile_references: c,
+           export_references: e
+         )} <- sources,
         module in r or module in c or module in e,
-        CE.module(sources: sources, module: dependent_module) <- modules,
+        {dependent_module, CE.module(sources: sources)} <- modules,
         source in sources,
         do: dependent_module
   end
@@ -288,8 +296,8 @@ defmodule Mix.Compilers.Test do
     if external != [] do
       Agent.update(pid, fn sources ->
         file = Path.relative_to(file, cwd)
-        {source, sources} = List.keytake(sources, file, source(:source))
-        [source(source, external: external ++ source(source, :external)) | sources]
+        source(external: current_external) = source = Map.fetch!(sources, file)
+        Map.put(sources, file, source(source, external: external ++ current_external))
       end)
     end
 
@@ -299,19 +307,18 @@ defmodule Mix.Compilers.Test do
   defp each_file(pid, cwd, file, lexical) do
     Agent.update(pid, fn sources ->
       file = Path.relative_to(file, cwd)
-      {source, sources} = List.keytake(sources, file, source(:source))
 
       {compile_references, export_references, runtime_references, _compile_env} =
         Kernel.LexicalTracker.references(lexical)
 
       source =
         source(
-          source,
+          Map.fetch!(sources, file),
           compile_references: compile_references ++ export_references,
           runtime_references: runtime_references
         )
 
-      [source | sources]
+      Map.put(sources, file, source)
     end)
   end
 

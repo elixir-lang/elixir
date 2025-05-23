@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule ExUnit.Runner do
   @moduledoc false
 
@@ -42,7 +46,11 @@ defmodule ExUnit.Runner do
 
     start_time = System.monotonic_time()
     EM.suite_started(config.manager, opts)
-    async_stop_time = async_loop(config, %{}, false)
+
+    modules_to_restore =
+      if Keyword.fetch!(opts, :repeat_until_failure) > 0, do: {[], []}, else: nil
+
+    {async_stop_time, modules_to_restore} = async_loop(config, %{}, false, modules_to_restore)
     stop_time = System.monotonic_time()
 
     if max_failures_reached?(config) do
@@ -61,7 +69,7 @@ defmodule ExUnit.Runner do
     EM.stop(config.manager)
     after_suite_callbacks = Application.fetch_env!(:ex_unit, :after_suite)
     Enum.each(after_suite_callbacks, fn callback -> callback.(stats) end)
-    stats
+    {stats, modules_to_restore}
   end
 
   defp configure(opts, manager, runner_pid, stats_pid) do
@@ -92,22 +100,24 @@ defmodule ExUnit.Runner do
     |> Keyword.put(:include, include)
   end
 
-  defp async_loop(config, running, async_once?) do
+  defp async_loop(config, running, async_once?, modules_to_restore) do
     available = config.max_cases - map_size(running)
 
     cond do
       # No modules available, wait for one
       available <= 0 ->
         running = wait_until_available(config, running)
-        async_loop(config, running, async_once?)
+        async_loop(config, running, async_once?, modules_to_restore)
 
       # Slots are available, start with async modules
-      modules = ExUnit.Server.take_async_modules(available) ->
-        running = spawn_modules(config, modules, running)
-        async_loop(config, running, true)
+      async_modules = ExUnit.Server.take_async_modules(available) ->
+        running = spawn_modules(config, async_modules, true, running)
+        modules_to_restore = maybe_store_modules(modules_to_restore, :async, async_modules)
+        async_loop(config, running, true, modules_to_restore)
 
       true ->
         sync_modules = ExUnit.Server.take_sync_modules()
+        modules_to_restore = maybe_store_modules(modules_to_restore, :sync, sync_modules)
 
         # Wait for all async modules
         0 =
@@ -118,12 +128,12 @@ defmodule ExUnit.Runner do
         async_stop_time = if async_once?, do: System.monotonic_time(), else: nil
 
         # Run all sync modules directly
-        for module <- sync_modules do
-          running = spawn_modules(config, [module], %{})
+        for pair <- sync_modules do
+          running = spawn_modules(config, [{nil, [pair]}], false, %{})
           running != %{} and wait_until_available(config, running)
         end
 
-        async_stop_time
+        {async_stop_time, modules_to_restore}
     end
   end
 
@@ -151,18 +161,28 @@ defmodule ExUnit.Runner do
     end
   end
 
-  defp spawn_modules(_config, [], running) do
+  defp spawn_modules(_config, [], _async, running) do
     running
   end
 
-  defp spawn_modules(config, [module | modules], running) do
+  defp spawn_modules(config, [{group, [_ | _] = modules} | groups], async?, running) do
     if max_failures_reached?(config) do
       running
     else
-      {pid, ref} = spawn_monitor(fn -> run_module(config, module) end)
-      spawn_modules(config, modules, Map.put(running, ref, pid))
+      {pid, ref} =
+        spawn_monitor(fn ->
+          Enum.each(modules, fn {module, params} ->
+            run_module(config, module, async?, group, params)
+          end)
+        end)
+
+      spawn_modules(config, groups, async?, Map.put(running, ref, pid))
     end
   end
+
+  defp maybe_store_modules(nil, _type, _modules), do: nil
+  defp maybe_store_modules({async, sync}, :async, modules), do: {async ++ modules, sync}
+  defp maybe_store_modules({async, sync}, :sync, modules), do: {async, sync ++ modules}
 
   ## Stacktrace
 
@@ -211,20 +231,21 @@ defmodule ExUnit.Runner do
 
   ## Running modules
 
-  defp run_module(config, module) do
-    test_module = module.__ex_unit__()
+  defp run_module(config, module, async?, group, params) do
+    test_module = %{module.__ex_unit__() | parameters: params}
     EM.module_started(config.manager, test_module)
 
     # Prepare tests, selecting which ones should be run or skipped
-    tests = prepare_tests(config, test_module.tests)
-    {excluded_and_skipped_tests, to_run_tests} = Enum.split_with(tests, & &1.state)
+    {to_run_tests, excluded_and_skipped_tests} =
+      prepare_tests(config, async?, group, test_module.tests)
 
     for excluded_or_skipped_test <- excluded_and_skipped_tests do
       EM.test_started(config.manager, excluded_or_skipped_test)
       EM.test_finished(config.manager, excluded_or_skipped_test)
     end
 
-    {test_module, invalid_tests, finished_tests} = run_module(config, test_module, to_run_tests)
+    {test_module, invalid_tests, finished_tests} =
+      run_module_tests(config, test_module, async?, to_run_tests)
 
     pending_tests =
       case process_max_failures(config, test_module) do
@@ -251,87 +272,114 @@ defmodule ExUnit.Runner do
     end
   end
 
-  defp prepare_tests(config, tests) do
+  defp prepare_tests(config, async?, group, tests) do
     tests = shuffle(config, tests)
     include = config.include
     exclude = config.exclude
     test_ids = config.only_test_ids
 
-    for test <- tests, include_test?(test_ids, test) do
-      tags = Map.merge(test.tags, %{test: test.name, module: test.module})
+    {to_run, to_skip} =
+      for test <- tests, include_test?(test_ids, test), reduce: {[], []} do
+        {to_run, to_skip} ->
+          tags =
+            Map.merge(test.tags, %{
+              test: test.name,
+              module: test.module,
+              async: async?,
+              test_group: group
+            })
 
-      case ExUnit.Filters.eval(include, exclude, tags, tests) do
-        :ok -> %{test | tags: tags}
-        excluded_or_skipped -> %{test | state: excluded_or_skipped}
+          case ExUnit.Filters.eval(include, exclude, tags, tests) do
+            :ok -> {[%{test | tags: tags} | to_run], to_skip}
+            excluded_or_skipped -> {to_run, [%{test | state: excluded_or_skipped} | to_skip]}
+          end
       end
-    end
+
+    {Enum.reverse(to_run), Enum.reverse(to_skip)}
   end
 
   defp include_test?(test_ids, test) do
     test_ids == nil or MapSet.member?(test_ids, {test.module, test.name})
   end
 
-  defp run_module(_config, test_module, []) do
+  defp run_module_tests(_config, test_module, _async?, []) do
     {test_module, [], []}
   end
 
-  defp run_module(config, test_module, tests) do
-    {module_pid, module_ref} = run_setup_all(test_module, self())
+  defp run_module_tests(config, test_module, async?, tests) do
+    Process.put(@current_key, test_module)
+    %ExUnit.TestModule{name: module, tags: tags, parameters: params} = test_module
+    context = tags |> Map.merge(params) |> Map.merge(%{module: module, async: async?})
 
-    {test_module, invalid_tests, finished_tests} =
+    config
+    |> run_setup_all(test_module, context, fn context ->
+      if max_failures_reached?(config),
+        do: [],
+        else: run_tests(config, tests, test_module.parameters, context)
+    end)
+    |> case do
+      {{:ok, finished_tests}, test_module} ->
+        {test_module, [], finished_tests}
+
+      {:error, test_module} ->
+        {test_module, Enum.map(tests, &%{&1 | state: {:invalid, test_module}}), []}
+    end
+  end
+
+  defp run_setup_all(
+         _config,
+         %ExUnit.TestModule{setup_all?: false} = test_module,
+         context,
+         callback
+       ) do
+    {{:ok, callback.(context)}, test_module}
+  end
+
+  defp run_setup_all(config, %ExUnit.TestModule{name: module} = test_module, context, callback) do
+    parent_pid = self()
+
+    {module_pid, module_ref} =
+      spawn_monitor(fn ->
+        ExUnit.OnExitHandler.register(self())
+
+        result =
+          try do
+            {:ok, module.__ex_unit__(:setup_all, context)}
+          catch
+            kind, error ->
+              failed = failed(kind, error, prune_stacktrace(__STACKTRACE__))
+              {:error, %{test_module | state: failed}}
+          end
+
+        send(parent_pid, {self(), :setup_all, result})
+
+        # We keep the process alive so all of its resources
+        # stay alive until we run all tests in this case.
+        ref = Process.monitor(parent_pid)
+
+        receive do
+          {^parent_pid, :exit} -> :ok
+          {:DOWN, ^ref, _, _, _} -> :ok
+        end
+      end)
+
+    {ok_or_error, test_module} =
       receive do
         {^module_pid, :setup_all, {:ok, context}} ->
-          finished_tests =
-            if max_failures_reached?(config), do: [], else: run_tests(config, tests, context)
-
+          finished_tests = callback.(context)
           :ok = exit_setup_all(module_pid, module_ref)
-          {test_module, [], finished_tests}
+          {{:ok, finished_tests}, test_module}
 
         {^module_pid, :setup_all, {:error, test_module}} ->
-          invalid_tests = mark_tests_invalid(tests, test_module)
           :ok = exit_setup_all(module_pid, module_ref)
-          {test_module, invalid_tests, []}
+          {:error, test_module}
 
         {:DOWN, ^module_ref, :process, ^module_pid, error} ->
-          invalid_tests = mark_tests_invalid(tests, test_module)
-          test_module = %{test_module | state: failed({:EXIT, module_pid}, error, [])}
-          {test_module, invalid_tests, []}
+          {:error, %{test_module | state: failed({:EXIT, module_pid}, error, [])}}
       end
 
     timeout = get_timeout(config, %{})
-    {exec_on_exit(test_module, module_pid, timeout), invalid_tests, finished_tests}
-  end
-
-  defp mark_tests_invalid(tests, test_module) do
-    Enum.map(tests, &%{&1 | state: {:invalid, test_module}})
-  end
-
-  defp run_setup_all(%ExUnit.TestModule{name: module} = test_module, parent_pid) do
-    Process.put(@current_key, test_module)
-
-    spawn_monitor(fn ->
-      ExUnit.OnExitHandler.register(self())
-
-      result =
-        try do
-          {:ok, module.__ex_unit__(:setup_all, test_module.tags)}
-        catch
-          kind, error ->
-            failed = failed(kind, error, prune_stacktrace(__STACKTRACE__))
-            {:error, %{test_module | state: failed}}
-        end
-
-      send(parent_pid, {self(), :setup_all, result})
-
-      # We keep the process alive so all of its resources
-      # stay alive until we run all tests in this case.
-      ref = Process.monitor(parent_pid)
-
-      receive do
-        {^parent_pid, :exit} -> :ok
-        {:DOWN, ^ref, _, _, _} -> :ok
-      end
-    end)
+    {ok_or_error, exec_on_exit(test_module, module_pid, timeout)}
   end
 
   defp exit_setup_all(pid, ref) do
@@ -342,8 +390,9 @@ defmodule ExUnit.Runner do
     end
   end
 
-  defp run_tests(config, tests, context) do
+  defp run_tests(config, tests, params, context) do
     Enum.reduce_while(tests, [], fn test, acc ->
+      test = %{test | parameters: params}
       Process.put(@current_key, test)
 
       case run_test(config, test, context) do
@@ -388,14 +437,15 @@ defmodule ExUnit.Runner do
     spawn_monitor(fn ->
       ExUnit.OnExitHandler.register(self())
       generate_test_seed(seed, test, rand_algorithm)
-      capture_log = Map.get(test.tags, :capture_log, capture_log)
+      context = context |> Map.merge(test.tags) |> Map.put(:test_pid, self())
+      capture_log = Map.get(context, :capture_log, capture_log)
 
       {time, test} =
         :timer.tc(
           maybe_capture_log(capture_log, test, fn ->
-            tags = maybe_create_tmp_dir(test.tags, test)
+            context = maybe_create_tmp_dir(context, test)
 
-            case exec_test_setup(test, Map.merge(context, tags)) do
+            case exec_test_setup(test, context) do
               {:ok, context} -> exec_test(test, context)
               {:error, test} -> test
             end
@@ -570,8 +620,10 @@ defmodule ExUnit.Runner do
     tags
   end
 
-  defp short_hash(module, test_name) do
-    (module <> "/" <> test_name)
+  defp short_hash(module, test_name, parameters) do
+    suffix = if parameters == %{}, do: "", else: :erlang.term_to_binary(parameters)
+
+    (module <> "/" <> test_name <> suffix)
     |> :erlang.md5()
     |> Base.encode16(case: :lower)
     |> binary_slice(0..7)
@@ -583,7 +635,7 @@ defmodule ExUnit.Runner do
 
     module = escape_path(module_string)
     name = escape_path(name_string)
-    short_hash = short_hash(module_string, name_string)
+    short_hash = short_hash(module_string, name_string, test.parameters)
 
     path = ["tmp", module, "#{name}-#{short_hash}", extra_path] |> Path.join() |> Path.expand()
     File.rm_rf!(path)

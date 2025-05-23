@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule TaskTest do
@@ -601,6 +605,37 @@ defmodule TaskTest do
                [{task1, {:ok, :result}}, {task2, nil}, {task3, {:exit, :normal}}]
     end
 
+    test "returns results from multiple tasks with limit" do
+      task1 = %Task{ref: make_ref(), owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
+      task2 = %Task{ref: make_ref(), owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
+      task3 = %Task{ref: make_ref(), owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
+
+      send(self(), {task1.ref, :result})
+      send(self(), {:DOWN, task3.ref, :process, self(), :normal})
+
+      assert Task.yield_many([task1, task2, task3], limit: 1, timeout: :infinity) ==
+               [{task1, {:ok, :result}}, {task2, nil}, {task3, nil}]
+
+      assert Task.yield_many([task2, task3], limit: 1, timeout: :infinity) ==
+               [{task2, nil}, {task3, {:exit, :normal}}]
+    end
+
+    test "returns results from multiple tasks with limit and on timeout" do
+      Process.flag(:trap_exit, true)
+      task1 = Task.async(fn -> Process.sleep(:infinity) end)
+      task2 = Task.async(fn -> :done end)
+
+      assert Task.yield_many([task1, task2], timeout: :infinity, on_timeout: :kill_task, limit: 1) ==
+               [{task1, nil}, {task2, {:ok, :done}}]
+
+      assert Process.alive?(task1.pid)
+
+      assert Task.yield_many([task1], timeout: 0, on_timeout: :kill_task, limit: 1) ==
+               [{task1, nil}]
+
+      refute Process.alive?(task1.pid)
+    end
+
     test "returns results on infinity timeout" do
       task1 = %Task{ref: make_ref(), owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
       task2 = %Task{ref: make_ref(), owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
@@ -811,13 +846,13 @@ defmodule TaskTest do
     test "streams an enumerable with ordered: false" do
       opts = [max_concurrency: 1, ordered: false]
 
-      assert 4..1
+      assert 4..1//-1
              |> Task.async_stream(&sleep(&1 * 100), opts)
              |> Enum.to_list() == [ok: 400, ok: 300, ok: 200, ok: 100]
 
       opts = [max_concurrency: 4, ordered: false]
 
-      assert 4..1
+      assert 4..1//-1
              |> Task.async_stream(&sleep(&1 * 100), opts)
              |> Enum.to_list() == [ok: 100, ok: 200, ok: 300, ok: 400]
     end
@@ -838,7 +873,19 @@ defmodule TaskTest do
 
     test "does not allow streaming with max_concurrency = 0" do
       assert_raise ArgumentError, ":max_concurrency must be an integer greater than zero", fn ->
-        Task.async_stream([1], fn _ -> :ok end, max_concurrency: 0) |> Enum.to_list()
+        Task.async_stream([1], fn _ -> :ok end, max_concurrency: 0)
+      end
+    end
+
+    test "does not allow streaming with invalid :on_timeout" do
+      assert_raise ArgumentError, ":on_timeout must be either :exit or :kill_task", fn ->
+        Task.async_stream([1], fn _ -> :ok end, on_timeout: :unknown)
+      end
+    end
+
+    test "does not allow streaming with invalid :timeout" do
+      assert_raise ArgumentError, ":timeout must be either a positive integer or :infinity", fn ->
+        Task.async_stream([1], fn _ -> :ok end, timeout: :unknown)
       end
     end
 
@@ -883,6 +930,16 @@ defmodule TaskTest do
       assert_receive 2
       assert_receive 3
     end
+
+    test "wrapping a flat_map/concat with a haltable stream" do
+      result =
+        Stream.take([:foo, :bar], 1)
+        |> Stream.concat([1, 2])
+        |> Task.async_stream(& &1)
+        |> Enum.to_list()
+
+      assert result == [ok: :foo, ok: 1, ok: 2]
+    end
   end
 
   for {desc, concurrency} <- [==: 4, <: 2, >: 8] do
@@ -912,7 +969,7 @@ defmodule TaskTest do
       test "streams an enumerable with slowest first" do
         Process.flag(:trap_exit, true)
 
-        assert 4..1
+        assert 4..1//-1
                |> Task.async_stream(&sleep/1, @opts)
                |> Enum.to_list() == [ok: 4, ok: 3, ok: 2, ok: 1]
       end
@@ -955,7 +1012,7 @@ defmodule TaskTest do
       end
 
       test "is zippable with slowest first" do
-        task = 4..1 |> Task.async_stream(&sleep/1, @opts) |> Stream.map(&elem(&1, 1))
+        task = 4..1//-1 |> Task.async_stream(&sleep/1, @opts) |> Stream.map(&elem(&1, 1))
         assert Enum.zip(task, task) == [{4, 4}, {3, 3}, {2, 2}, {1, 1}]
       end
 
@@ -976,7 +1033,7 @@ defmodule TaskTest do
       end
 
       test "with inner halt and slowest first" do
-        assert 8..1
+        assert 8..1//-1
                |> Stream.take(4)
                |> Task.async_stream(&sleep/1, @opts)
                |> Enum.to_list() == [ok: 8, ok: 7, ok: 6, ok: 5]
@@ -997,7 +1054,7 @@ defmodule TaskTest do
       end
 
       test "with outer halt and slowest first" do
-        assert 8..1
+        assert 8..1//-1
                |> Task.async_stream(&sleep/1, @opts)
                |> Enum.take(4) == [ok: 8, ok: 7, ok: 6, ok: 5]
       end
@@ -1054,6 +1111,70 @@ defmodule TaskTest do
                |> Task.async_stream(&exit/1, opts)
                |> Enum.take(4) == [exit: {1, 1}, exit: {2, 2}, exit: {3, 3}, exit: {4, 4}]
       end
+    end
+  end
+
+  describe "default :logger reporter" do
+    setup do
+      translator = :logger.get_primary_config().filters[:logger_translator]
+      assert :ok = :logger.remove_primary_filter(:logger_translator)
+      on_exit(fn -> :logger.add_primary_filter(:logger_translator, translator) end)
+    end
+
+    test "logs a terminated task" do
+      parent = self()
+      {:ok, pid} = Task.start_link(__MODULE__, :task, [parent])
+
+      assert ExUnit.CaptureLog.capture_log(fn ->
+               ref = Process.monitor(pid)
+               send(pid, :go)
+               receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
+             end) =~ ~r"""
+             \[error\] \*\* Task #PID<\d+\.\d+\.\d+> terminating
+             \*\* Started from #PID<\d+\.\d+\.\d+>
+             \*\* When function  == &TaskTest.task/1
+             \*\*      arguments == \[#PID<\d+\.\d+\.\d+>\]
+             \*\* Reason for termination ==\s
+             \*\* {%RuntimeError{message: "oops"},
+             """
+    end
+
+    test "logs a terminated task with a process label" do
+      fun = fn ->
+        Process.set_label({:any, "term"})
+        raise "oops"
+      end
+
+      parent = self()
+      {:ok, pid} = Task.start_link(__MODULE__, :task, [parent, fun])
+
+      assert ExUnit.CaptureLog.capture_log(fn ->
+               ref = Process.monitor(pid)
+               send(pid, :go)
+               receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
+             end) =~ ~r"""
+             \[error\] \*\* Task #PID<\d+\.\d+\.\d+> terminating
+             \*\* Process Label == {:any, "term"}
+             \*\* Started from #PID<\d+\.\d+\.\d+>
+             \*\* When function  == &TaskTest.task/2
+             \*\*      arguments == \[#PID<\d+\.\d+\.\d+>,
+              #Function<.+>\]
+             \*\* Reason for termination ==\s
+             \*\* {%RuntimeError{message: "oops"},
+             """
+    end
+  end
+
+  def task(parent, fun \\ fn -> raise "oops" end) do
+    mon = Process.monitor(parent)
+    Process.unlink(parent)
+
+    receive do
+      :go ->
+        fun.()
+
+      {:DOWN, ^mon, _, _, _} ->
+        exit(:shutdown)
     end
   end
 end

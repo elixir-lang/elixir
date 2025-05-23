@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule DateTime do
   @moduledoc """
   A datetime implementation with a time zone.
@@ -13,8 +17,8 @@ defmodule DateTime do
 
   Remember, comparisons in Elixir using `==/2`, `>/2`, `</2` and friends
   are structural and based on the DateTime struct fields. For proper
-  comparison between datetimes, use the `compare/2` function. The
-  existence of the `compare/2` function in this module also allows
+  comparison between datetimes, use the `compare/2`, `after?/2` and `before?/2` functions.
+  The existence of the `compare/2` function in this module also allows
   using `Enum.min/2` and `Enum.max/2` functions to get the minimum and
   maximum datetime of an `Enum`. For example:
 
@@ -28,7 +32,12 @@ defmodule DateTime do
   ## Time zone database
 
   Many functions in this module require a time zone database.
-  By default, it uses the default time zone database returned by
+  A time zone database is a record of the UTC offsets that its locales have
+  used at various times in the past, are using, and are expected to use in the
+  future.
+  Because those plans can change, it needs to be periodically updated.
+
+  By default, `DateTime` uses the default time zone database returned by
   `Calendar.get_time_zone_database/0`, which defaults to
   `Calendar.UTCOnlyTimeZoneDatabase` which only handles "Etc/UTC"
   datetimes and returns `{:error, :utc_only_time_zone_database}`
@@ -43,7 +52,7 @@ defmodule DateTime do
     * [`zoneinfo`](https://github.com/smartrent/zoneinfo) -
       recommended for embedded devices
 
-  To use them, first make sure it is added as a dependency in `mix.exs`.
+  To use one of them, first make sure it is added as a dependency in `mix.exs`.
   It can then be configured either via configuration:
 
       config :elixir, :time_zone_database, Tz.TimeZoneDatabase
@@ -60,7 +69,7 @@ defmodule DateTime do
   a date and time at a given time zone". To understand precisely
   what we mean, let's see an example.
 
-  Imagine someone in Poland wants to schedule a meeting with someone
+  Imagine someone in Poland who wants to schedule a meeting with someone
   in Brazil in the next year. The meeting will happen at 2:30 AM
   in the Polish time zone. At what time will the meeting happen in
   Brazil?
@@ -83,14 +92,14 @@ defmodule DateTime do
   not a problem, because time zone rules do not change for past
   events.
 
-  To make matters worse, it may be that the 2:30 AM in Polish time
+  To make matters worse, it may be that 2:30 AM in Polish time
   does not actually even exist or it is ambiguous. If a certain
   time zone observes "Daylight Saving Time", they will move their
   clock forward once a year. When this happens, there is a whole
   hour that does not exist. Then, when they move the clock back,
   there is a certain hour that will happen twice. So if you want to
   schedule a meeting when this shift back happens, you would need to
-  explicitly say which occurence of 2:30 AM you mean: the one in
+  explicitly say which occurrence of 2:30 AM you mean: the one in
   "Summer Time", which occurs before the shift, or the one
   in "Standard Time", which occurs after it. Applications that are
   date and time sensitive need to take these scenarios into account
@@ -169,6 +178,9 @@ defmodule DateTime do
   You can also pass a time unit to automatically
   truncate the resulting datetime. This is available
   since v1.15.0.
+
+  The default unit if none gets passed is `:native`,
+  which results on a default resolution of microseconds.
 
   ## Examples
 
@@ -371,13 +383,12 @@ defmodule DateTime do
   @doc """
   Converts the given Unix time to `DateTime`.
 
-  The integer can be given in different unit
-  according to `System.convert_time_unit/3` and it will
-  be converted to microseconds internally. Up to
-  253402300799 seconds is supported.
+  The integer can be given in different unit, according to `System.convert_time_unit/3`,
+  and it will be converted to microseconds internally, which is the maximum precision
+  supported by `DateTime`. In other words, any precision higher than microseconds will
+  lead to truncation.
 
-  Unix times are always in UTC and therefore the DateTime
-  will be returned in UTC.
+  Unix times are always in UTC. Therefore the DateTime will be returned in UTC.
 
   ## Examples
 
@@ -873,8 +884,10 @@ defmodule DateTime do
   The `datetime` is expected to be using the ISO calendar
   with a year greater than or equal to 0.
 
-  It will return the integer with the given unit,
-  according to `System.convert_time_unit/3`.
+  It will return the integer with the given unit, according
+  to `System.convert_time_unit/3`. If the given unit is different
+  than microseconds, the returned value will be either truncated
+  or padded accordingly.
 
   ## Examples
 
@@ -894,7 +907,7 @@ defmodule DateTime do
       -17412508655
 
   """
-  @spec to_unix(Calendar.datetime(), System.time_unit()) :: integer
+  @spec to_unix(Calendar.datetime(), :native | System.time_unit()) :: integer
   def to_unix(datetime, unit \\ :second)
 
   def to_unix(%{utc_offset: utc_offset, std_offset: std_offset} = datetime, unit) do
@@ -1022,9 +1035,12 @@ defmodule DateTime do
   By default, `DateTime.to_iso8601/2` returns datetimes formatted in the "extended"
   format, for human readability. It also supports the "basic" format through passing the `:basic` option.
 
-  Only supports converting datetimes which are in the ISO calendar,
-  attempting to convert datetimes from other calendars will raise.
   You can also optionally specify an offset for the formatted string.
+  If none is given, the one in the given `datetime` is used.
+
+  Only supports converting datetimes which are in the ISO calendar.
+  If another calendar is given, it is automatically converted to ISO.
+  It raises if not possible.
 
   WARNING: the ISO 8601 datetime format does not contain the time zone nor
   its abbreviation, which means information is lost when converting to such
@@ -1080,8 +1096,21 @@ defmodule DateTime do
   @spec to_iso8601(Calendar.datetime(), :basic | :extended, nil | integer()) :: String.t()
   def to_iso8601(datetime, format \\ :extended, offset \\ nil)
 
-  def to_iso8601(%{calendar: Calendar.ISO} = datetime, format, nil)
+  def to_iso8601(%{calendar: Calendar.ISO} = datetime, format, offset)
       when format in [:extended, :basic] do
+    datetime
+    |> to_iso8601_iodata(format, offset)
+    |> IO.iodata_to_binary()
+  end
+
+  def to_iso8601(%{calendar: _} = datetime, format, offset)
+      when format in [:extended, :basic] do
+    datetime
+    |> convert!(Calendar.ISO)
+    |> to_iso8601(format, offset)
+  end
+
+  defp to_iso8601_iodata(datetime, format, nil) do
     %{
       year: year,
       month: month,
@@ -1095,35 +1124,51 @@ defmodule DateTime do
       std_offset: std_offset
     } = datetime
 
-    datetime_to_string(year, month, day, hour, minute, second, microsecond, format) <>
-      Calendar.ISO.offset_to_string(utc_offset, std_offset, time_zone, format)
+    [
+      datetime_to_iodata(year, month, day, hour, minute, second, microsecond, format),
+      Calendar.ISO.offset_to_iodata(utc_offset, std_offset, time_zone, format)
+    ]
   end
 
-  def to_iso8601(
-        %{calendar: Calendar.ISO, microsecond: {_, precision}, time_zone: "Etc/UTC"} = datetime,
-        format,
-        0
-      )
-      when format in [:extended, :basic] do
+  defp to_iso8601_iodata(
+         %{microsecond: {_, precision}, time_zone: "Etc/UTC"} = datetime,
+         format,
+         0
+       ) do
     {year, month, day, hour, minute, second, {microsecond, _}} = shift_by_offset(datetime, 0)
 
-    datetime_to_string(year, month, day, hour, minute, second, {microsecond, precision}, format) <>
-      "Z"
+    [
+      datetime_to_iodata(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        {microsecond, precision},
+        format
+      ),
+      ?Z
+    ]
   end
 
-  def to_iso8601(%{calendar: Calendar.ISO} = datetime, format, offset)
-      when format in [:extended, :basic] do
+  defp to_iso8601_iodata(datetime, format, offset) do
     {_, precision} = datetime.microsecond
     {year, month, day, hour, minute, second, {microsecond, _}} = shift_by_offset(datetime, offset)
 
-    datetime_to_string(year, month, day, hour, minute, second, {microsecond, precision}, format) <>
-      Calendar.ISO.offset_to_string(offset, 0, nil, format)
-  end
-
-  def to_iso8601(%{calendar: _} = datetime, format, offset) when format in [:extended, :basic] do
-    datetime
-    |> convert!(Calendar.ISO)
-    |> to_iso8601(format, offset)
+    [
+      datetime_to_iodata(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        {microsecond, precision},
+        format
+      ),
+      Calendar.ISO.offset_to_iodata(offset, 0, nil, format)
+    ]
   end
 
   defp shift_by_offset(%{calendar: calendar} = datetime, offset) do
@@ -1136,10 +1181,12 @@ defmodule DateTime do
     |> calendar.naive_datetime_from_iso_days()
   end
 
-  defp datetime_to_string(year, month, day, hour, minute, second, microsecond, format) do
-    Calendar.ISO.date_to_string(year, month, day, format) <>
-      "T" <>
-      Calendar.ISO.time_to_string(hour, minute, second, microsecond, format)
+  defp datetime_to_iodata(year, month, day, hour, minute, second, microsecond, format) do
+    [
+      Calendar.ISO.date_to_iodata(year, month, day, format),
+      ?T,
+      Calendar.ISO.time_to_iodata(hour, minute, second, microsecond, format)
+    ]
   end
 
   @doc """
@@ -1338,6 +1385,11 @@ defmodule DateTime do
   @doc """
   Converts the given `datetime` to a string according to its calendar.
 
+  Unfortunately, there is no standard that specifies rendering of a
+  datetime with its complete time zone information, so Elixir uses a
+  custom (but relatively common) representation which appends the time
+  zone abbreviation and full name to the datetime.
+
   ### Examples
 
       iex> dt = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CET",
@@ -1494,6 +1546,11 @@ defmodule DateTime do
 
   ## Examples
 
+      iex> DateTime.diff(~U[2024-01-15 10:00:10Z], ~U[2024-01-15 10:00:00Z])
+      10
+
+  This function also considers timezone offsets:
+
       iex> dt1 = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
       ...>                 hour: 23, minute: 0, second: 7, microsecond: {0, 0},
       ...>                 utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
@@ -1542,11 +1599,13 @@ defmodule DateTime do
     end
 
     naive_diff =
-      (datetime1 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(unit)) -
-        (datetime2 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(unit))
+      (datetime1 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(:microsecond)) -
+        (datetime2 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(:microsecond))
 
     offset_diff = utc_offset2 + std_offset2 - (utc_offset1 + std_offset1)
-    naive_diff + System.convert_time_unit(offset_diff, :second, unit)
+
+    System.convert_time_unit(naive_diff, :microsecond, unit) +
+      System.convert_time_unit(offset_diff, :second, unit)
   end
 
   @doc """
@@ -1557,10 +1616,10 @@ defmodule DateTime do
   `t:System.time_unit/0`. It defaults to `:second`. Negative values
   will move backwards in time.
 
-  This function always consider the unit to be computed according
+  This function always considers the unit to be computed according
   to the `Calendar.ISO`.
 
-  This function uses relies on a contiguous representation of time,
+  This function relies on a contiguous representation of time,
   ignoring the wall time and timezone changes. For example, if you add
   one day when there are summer time/daylight saving time changes,
   it will also change the time forward or backward by one hour,
@@ -1605,6 +1664,8 @@ defmodule DateTime do
       iex> result.microsecond
       {21000, 3}
 
+  To shift a datetime by a `Duration` and according to its underlying calendar, use `DateTime.shift/3`.
+
   """
   @doc since: "1.8.0"
   @spec add(
@@ -1633,30 +1694,28 @@ defmodule DateTime do
     add(datetime, amount_to_add * 60, :second, time_zone_database)
   end
 
-  def add(datetime, amount_to_add, unit, time_zone_database) when is_integer(amount_to_add) do
+  def add(%{calendar: calendar} = datetime, amount_to_add, unit, time_zone_database)
+      when is_integer(amount_to_add) do
     %{
+      microsecond: {_, precision},
+      time_zone: time_zone,
       utc_offset: utc_offset,
-      std_offset: std_offset,
-      calendar: calendar,
-      microsecond: {_, precision}
+      std_offset: std_offset
     } = datetime
 
-    if not is_integer(unit) and
-         unit not in ~w(second millisecond microsecond nanosecond)a do
+    if not is_integer(unit) and unit not in ~w(second millisecond microsecond nanosecond)a do
       raise ArgumentError,
             "unsupported time unit. Expected :day, :hour, :minute, :second, :millisecond, :microsecond, :nanosecond, or a positive integer, got #{inspect(unit)}"
     end
 
-    ppd = System.convert_time_unit(86400, :second, unit)
-    total_offset = System.convert_time_unit(utc_offset + std_offset, :second, unit)
     precision = max(Calendar.ISO.time_unit_to_precision(unit), precision)
 
     result =
       datetime
       |> to_iso_days()
-      # Subtract total offset in order to get UTC and add the integer for the addition
-      |> Calendar.ISO.add_day_fraction_to_iso_days(amount_to_add - total_offset, ppd)
-      |> shift_zone_for_iso_days_utc(calendar, precision, datetime.time_zone, time_zone_database)
+      |> Calendar.ISO.shift_time_unit(amount_to_add, unit)
+      |> apply_tz_offset(utc_offset + std_offset)
+      |> shift_zone_for_iso_days_utc(calendar, precision, time_zone, time_zone_database)
 
     case result do
       {:ok, result_datetime} ->
@@ -1668,6 +1727,152 @@ defmodule DateTime do
                 "database #{inspect(time_zone_database)}), reason: #{inspect(error)}"
     end
   end
+
+  @doc """
+  Shifts given `datetime` by `duration` according to its calendar.
+
+  Allowed units are: `:year`, `:month`, `:week`, `:day`, `:hour`, `:minute`, `:second`, `:microsecond`.
+
+  This operation is equivalent to shifting the datetime wall clock
+  (in other words, the value as someone in that timezone would see
+  on their watch), then applying the time zone offset to convert it
+  to UTC, and finally computing the new timezone in case of shifts.
+  This ensures `shift/3` always returns a valid datetime.
+
+  On the other hand, time zones that observe "Daylight Saving Time"
+  or other changes, across summer/winter time will add/remove hours
+  from the resulting datetime:
+
+      dt = DateTime.new!(~D[2019-03-31], ~T[01:00:00], "Europe/Copenhagen")
+      DateTime.shift(dt, hour: 1)
+      #=> #DateTime<2019-03-31 03:00:00+02:00 CEST Europe/Copenhagen>
+
+      dt = DateTime.new!(~D[2018-11-04], ~T[00:00:00], "America/Los_Angeles")
+      DateTime.shift(dt, hour: 2)
+      #=> #DateTime<2018-11-04 01:00:00-08:00 PST America/Los_Angeles>
+
+  In case you don't want these changes to happen automatically or you
+  want to surface time zone conflicts to the user, you can shift
+  the datetime as a naive datetime and then use `from_naive/2`:
+
+      dt |> NaiveDateTime.shift(duration) |> DateTime.from_naive(dt.time_zone)
+
+  When using the default ISO calendar, durations are collapsed and
+  applied in the order of months, then seconds and microseconds:
+
+  * when shifting by 1 year and 2 months the date is actually shifted by 14 months
+  * weeks, days and smaller units are collapsed into seconds and microseconds
+
+  When shifting by month, days are rounded down to the nearest valid date.
+
+  ## Examples
+
+      iex> DateTime.shift(~U[2016-01-01 00:00:00Z], month: 2)
+      ~U[2016-03-01 00:00:00Z]
+      iex> DateTime.shift(~U[2016-01-01 00:00:00Z], year: 1, week: 4)
+      ~U[2017-01-29 00:00:00Z]
+      iex> DateTime.shift(~U[2016-01-01 00:00:00Z], minute: -25)
+      ~U[2015-12-31 23:35:00Z]
+      iex> DateTime.shift(~U[2016-01-01 00:00:00Z], minute: 5, microsecond: {500, 4})
+      ~U[2016-01-01 00:05:00.0005Z]
+
+      # leap years
+      iex> DateTime.shift(~U[2024-02-29 00:00:00Z], year: 1)
+      ~U[2025-02-28 00:00:00Z]
+      iex> DateTime.shift(~U[2024-02-29 00:00:00Z], year: 4)
+      ~U[2028-02-29 00:00:00Z]
+
+      # rounding down
+      iex> DateTime.shift(~U[2015-01-31 00:00:00Z], month: 1)
+      ~U[2015-02-28 00:00:00Z]
+
+  """
+  @doc since: "1.17.0"
+  @spec shift(Calendar.datetime(), Duration.duration(), Calendar.time_zone_database()) :: t
+  def shift(datetime, duration, time_zone_database \\ Calendar.get_time_zone_database())
+
+  def shift(%{calendar: calendar, time_zone: "Etc/UTC"} = datetime, duration, _time_zone_database) do
+    %{
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond
+    } = datetime
+
+    {year, month, day, hour, minute, second, microsecond} =
+      calendar.shift_naive_datetime(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        microsecond,
+        __duration__!(duration)
+      )
+
+    %DateTime{
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond,
+      time_zone: "Etc/UTC",
+      zone_abbr: "UTC",
+      std_offset: 0,
+      utc_offset: 0
+    }
+  end
+
+  def shift(%{calendar: calendar} = datetime, duration, time_zone_database) do
+    %{
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond,
+      std_offset: std_offset,
+      utc_offset: utc_offset,
+      time_zone: time_zone
+    } = datetime
+
+    {year, month, day, hour, minute, second, {_, precision} = microsecond} =
+      calendar.shift_naive_datetime(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        microsecond,
+        __duration__!(duration)
+      )
+
+    result =
+      calendar.naive_datetime_to_iso_days(year, month, day, hour, minute, second, microsecond)
+      |> apply_tz_offset(utc_offset + std_offset)
+      |> shift_zone_for_iso_days_utc(calendar, precision, time_zone, time_zone_database)
+
+    case result do
+      {:ok, result_datetime} ->
+        result_datetime
+
+      {:error, error} ->
+        raise ArgumentError,
+              "cannot shift #{inspect(datetime)} to #{inspect(duration)} (with time zone " <>
+                "database #{inspect(time_zone_database)}), reason: #{inspect(error)}"
+    end
+  end
+
+  @doc false
+  defdelegate __duration__!(params), to: Duration, as: :new!
 
   @doc """
   Returns the given datetime with the microsecond field truncated to the given
@@ -1746,7 +1951,7 @@ defmodule DateTime do
     if Calendar.compatible_calendars?(dt_calendar, calendar) do
       result_datetime =
         datetime
-        |> to_iso_days
+        |> to_iso_days()
         |> from_iso_days(datetime, calendar, precision)
 
       {:ok, result_datetime}
@@ -1925,7 +2130,8 @@ defmodule DateTime do
         )
 
       case datetime do
-        %{utc_offset: 0, std_offset: 0, time_zone: "Etc/UTC"} ->
+        %{utc_offset: 0, std_offset: 0, time_zone: "Etc/UTC", year: year}
+        when calendar != Calendar.ISO or year in -9999..9999 ->
           "~U[" <> formatted <> suffix(calendar) <> "]"
 
         _ ->

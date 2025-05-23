@@ -1,7 +1,12 @@
 #!/bin/sh
+
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 set -e
 
-ELIXIR_VERSION=1.16.0-dev
+ELIXIR_VERSION=1.19.0-dev
 
 if [ $# -eq 0 ] || { [ $# -eq 1 ] && { [ "$1" = "--help" ] || [ "$1" = "-h" ]; }; }; then
   cat <<USAGE >&2
@@ -18,13 +23,13 @@ Usage: $(basename "$0") [options] [.exs file] [data]
   -pz "PATH"                   Appends the given path to Erlang code path (*)
   -v, --version                Prints Erlang/OTP and Elixir versions (standalone)
 
+  --color, --no-color          Enables or disables ANSI coloring
   --erl "SWITCHES"             Switches to be passed down to Erlang (*)
   --eval "COMMAND"             Evaluates the given command, same as -e (*)
   --logger-otp-reports BOOL    Enables or disables OTP reporting
   --logger-sasl-reports BOOL   Enables or disables SASL reporting
   --no-halt                    Does not halt the Erlang VM after execution
   --short-version              Prints Elixir version (standalone)
-  --werl                       Uses Erlang's Windows shell GUI (Windows only)
 
 Options given after the .exs file or -- are passed down to the executed code.
 Options can be passed to the Erlang runtime using \$ELIXIR_ERL_OPTIONS or --erl.
@@ -112,10 +117,10 @@ while [ $I -le $LENGTH ]; do
         C=1
         MODE="iex"
         ;;
-    -v|--no-halt|--dbg)
+    -v|--no-halt|--color|--no-color)
         C=1
         ;;
-    -e|-r|-pr|-pa|-pz|--eval|--remsh|--dot-iex)
+    -e|-r|-pr|-pa|-pz|--eval|--remsh|--dot-iex|--dbg)
         C=2
         ;;
     --rpc-eval)
@@ -182,10 +187,6 @@ while [ $I -le $LENGTH ]; do
           echo "--pipe-to : LOGDIR cannot be a switch" >&2 && exit 1
         fi
         ;;
-    --werl)
-        S=1
-        if [ "$OS" = "Windows_NT" ]; then ERL_EXEC="werl"; fi
-        ;;
     *)
         while [ $I -le $LENGTH ]; do
           I=$((I + 1))
@@ -218,17 +219,14 @@ SELF=$(readlink_f "$0")
 SCRIPT_PATH=$(dirname "$SELF")
 
 if [ "$OSTYPE" = "cygwin" ]; then SCRIPT_PATH=$(cygpath -m "$SCRIPT_PATH"); fi
-
-if [ "$OS" != "Windows_NT" ] && [ -z "$NO_COLOR" ]; then
-  if test -t 1 -a -t 2; then ERL="-elixir ansi_enabled true $ERL"; fi
-fi
+if [ "$MODE" != "iex" ]; then ERL="-s elixir start_cli $ERL"; fi
 
 # One MAY change ERTS_BIN= but you MUST NOT change
 # ERTS_BIN=$ERTS_BIN as it is handled by Elixir releases.
 ERTS_BIN=
 ERTS_BIN="$ERTS_BIN"
 
-set -- "$ERTS_BIN$ERL_EXEC" -noshell -elixir_root "$SCRIPT_PATH"/../lib -pa "$SCRIPT_PATH"/../lib/elixir/ebin $ELIXIR_ERL_OPTIONS -s elixir start_$MODE $ERL "$@"
+set -- "$ERTS_BIN$ERL_EXEC" -noshell -elixir_root "$SCRIPT_PATH"/../lib -pa "$SCRIPT_PATH"/../lib/elixir/ebin $ELIXIR_ERL_OPTIONS $ERL "$@"
 
 if [ -n "$RUN_ERL_PIPE" ]; then
   ESCAPED=""

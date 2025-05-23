@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule StringIO do
   @moduledoc """
   Controls an IO device process that wraps a string.
@@ -185,6 +189,12 @@ defmodule StringIO do
   @impl true
   def handle_info({:io_request, from, reply_as, req}, state) do
     state = io_request(from, reply_as, req, state)
+    {:noreply, state}
+  end
+
+  # Fail fast if someone tries to use it with a File API
+  def handle_info({:file_request, from, reply_as, _req}, state) do
+    send(from, {:file_reply, reply_as, {:error, :enotsup}})
     {:noreply, state}
   end
 

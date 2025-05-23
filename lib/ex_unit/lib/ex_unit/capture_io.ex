@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule ExUnit.CaptureIO do
   @moduledoc ~S"""
   Functionality to capture IO for testing.
@@ -29,15 +33,15 @@ defmodule ExUnit.CaptureIO do
 
   Returns the binary which is the captured output.
 
-  By default, `capture_io` replaces the `group_leader` (`:stdio`)
-  for the current process. Capturing the group leader is done per
-  process and therefore can be done concurrently.
+  By default, `capture_io` replaces the `Process.group_leader/0` of the current
+  process, which is the process used by default for all IO operations. Capturing
+  the group leader of the current process is safe to run concurrently, under
+  `async: true` tests. You may also explicitly capture the group leader of
+  another process, however that is not safe to do concurrently.
 
-  However, the capturing of any other named device, such as `:stderr`,
-  happens globally and persists until the function has ended. While this means
-  it is safe to run your tests with `async: true` in many cases, captured output
-  may include output from a different test and care must be taken when using
-  `capture_io` with a named process asynchronously.
+  You may also capture any other named IO device, such as `:stderr`. This is
+  also safe to run concurrently but, if several tests are writing to the same
+  device at once, captured output may include output from a different test.
 
   A developer can set a string as an input. The default input is an empty
   string. If capturing a named device asynchronously, an input can only be given
@@ -51,15 +55,28 @@ defmodule ExUnit.CaptureIO do
 
   ## IO devices
 
-  You may capture the IO from any registered IO device. The device name given
-  must be an atom representing the name of a registered process. In addition,
-  Elixir provides two shortcuts:
+  You may capture the IO of the group leader of any process, by passing a `pid`
+  as argument, or from any registered IO device given as an `atom`. Here are
+  some example values:
 
-    * `:stdio` - a shortcut for `:standard_io`, which maps to
-      the current `Process.group_leader/0` in Erlang
+    * `:stdio`, `:standard_io` - a shortcut for capturing the group leader
+      of the current process. It is equivalent to passing `self()` as the
+      first argument. This is safe to run concurrently and captures only
+      the of the current process or any child process spawned inside the
+      given function
 
-    * `:stderr` - a shortcut for the named process `:standard_error`
-      provided in Erlang
+    * `:stderr`, `:standard_error` - captures all IO to standard error
+      (represented internally by an Erlang process named `:standard_error`).
+      This is safe to run concurrently but it will capture the output
+      of any other test writing to the same named device
+
+    * any other atom - captures all IO to the given device given by the
+      atom. This is safe to run concurrently but it will capture the output
+      of any other test writing to the same named device
+
+    * any other pid (since v1.17.0) - captures all IO to the group leader
+      of the given process. This option is not safe to run concurrently
+      if the pid is not `self()`. Tests using this value must set `async: true`
 
   ## Options
 
@@ -91,10 +108,10 @@ defmodule ExUnit.CaptureIO do
       ...> end) == "this is input"
       true
 
-  Note it is fine to use `==` with standard IO, because the content is captured
-  per test process. However, `:stderr` is shared across all tests, so you will
-  want to use `=~` instead of `==` for assertions on `:stderr` if your tests
-  are async:
+  Note it is fine to use `==` with `:stdio` (the default IO device), because
+  the content is captured per test process. However, `:stderr` is shared
+  across all tests, so you will want to use `=~` instead of `==` for assertions
+  on `:stderr` if your tests are async:
 
       iex> capture_io(:stderr, fn -> IO.write(:stderr, "john") end) =~ "john"
       true
@@ -109,6 +126,14 @@ defmodule ExUnit.CaptureIO do
 
   Otherwise, if the standard error of any other test is captured, the test will
   fail.
+
+  To capture the IO from another process, you can pass a `pid`:
+
+      capture_io(GenServer.whereis(MyServer), fn ->
+        GenServer.call(MyServer, :do_something)
+      end)
+
+  Tests that directly capture a PID cannot run concurrently.
 
   ## Returning values
 
@@ -127,21 +152,18 @@ defmodule ExUnit.CaptureIO do
 
   See `capture_io/1` for more information.
   """
-  @spec capture_io(atom() | String.t() | keyword(), (-> any())) :: String.t()
-  def capture_io(device_input_or_options, fun)
+  @spec capture_io(atom() | pid() | String.t() | keyword(), (-> any())) :: String.t()
+  def capture_io(device_pid_input_or_options, fun)
 
-  def capture_io(device, fun) when is_atom(device) and is_function(fun, 0) do
-    {_result, capture} = with_io(device, fun)
+  def capture_io(device_or_pid, fun)
+      when (is_atom(device_or_pid) or is_pid(device_or_pid)) and is_function(fun, 0) do
+    {_result, capture} = with_io(device_or_pid, fun)
     capture
   end
 
-  def capture_io(input, fun) when is_binary(input) and is_function(fun, 0) do
-    {_result, capture} = with_io(input, fun)
-    capture
-  end
-
-  def capture_io(options, fun) when is_list(options) and is_function(fun, 0) do
-    {_result, capture} = with_io(options, fun)
+  def capture_io(input_or_options, fun)
+      when (is_binary(input_or_options) or is_list(input_or_options)) and is_function(fun, 0) do
+    {_result, capture} = with_io(input_or_options, fun)
     capture
   end
 
@@ -150,18 +172,11 @@ defmodule ExUnit.CaptureIO do
 
   See `capture_io/1` for more information.
   """
-  @spec capture_io(atom(), String.t() | keyword(), (-> any())) :: String.t()
-  def capture_io(device, input_or_options, fun)
-
-  def capture_io(device, input, fun)
-      when is_atom(device) and is_binary(input) and is_function(fun, 0) do
-    {_result, capture} = with_io(device, input, fun)
-    capture
-  end
-
-  def capture_io(device, options, fun)
-      when is_atom(device) and is_list(options) and is_function(fun, 0) do
-    {_result, capture} = with_io(device, options, fun)
+  @spec capture_io(atom() | pid(), String.t() | keyword(), (-> any())) :: String.t()
+  def capture_io(device_or_pid, input_or_options, fun)
+      when (is_atom(device_or_pid) or is_pid(device_or_pid)) and
+             (is_binary(input_or_options) or is_list(input_or_options)) and is_function(fun, 0) do
+    {_result, capture} = with_io(device_or_pid, input_or_options, fun)
     capture
   end
 
@@ -194,11 +209,15 @@ defmodule ExUnit.CaptureIO do
   See `with_io/1` for more information.
   """
   @doc since: "1.13.0"
-  @spec with_io(atom() | String.t() | keyword(), (-> any())) :: {any(), String.t()}
-  def with_io(device_input_or_options, fun)
+  @spec with_io(atom() | pid() | String.t() | keyword(), (-> any())) :: {any(), String.t()}
+  def with_io(device_pid_input_or_options, fun)
 
   def with_io(device, fun) when is_atom(device) and is_function(fun, 0) do
     with_io(device, [], fun)
+  end
+
+  def with_io(pid, fun) when is_pid(pid) and is_function(fun, 0) do
+    with_io(pid, [], fun)
   end
 
   def with_io(input, fun) when is_binary(input) and is_function(fun, 0) do
@@ -215,12 +234,12 @@ defmodule ExUnit.CaptureIO do
   See `with_io/1` for more information.
   """
   @doc since: "1.13.0"
-  @spec with_io(atom(), String.t() | keyword(), (-> any())) :: {any(), String.t()}
-  def with_io(device, input_or_options, fun)
+  @spec with_io(atom() | pid(), String.t() | keyword(), (-> any())) :: {any(), String.t()}
+  def with_io(device_or_pid, input_or_options, fun)
 
   def with_io(device, input, fun)
       when is_atom(device) and is_binary(input) and is_function(fun, 0) do
-    with_io(device, [input: input], fun)
+    do_with_io(map_dev(device), [input: input], fun)
   end
 
   def with_io(device, options, fun)
@@ -228,27 +247,40 @@ defmodule ExUnit.CaptureIO do
     do_with_io(map_dev(device), options, fun)
   end
 
-  defp map_dev(:stdio), do: :standard_io
+  def with_io(pid, input, fun)
+      when is_pid(pid) and is_binary(input) and is_function(fun, 0) do
+    do_with_io(pid, [input: input], fun)
+  end
+
+  def with_io(pid, options, fun)
+      when is_pid(pid) and is_list(options) and is_function(fun, 0) do
+    do_with_io(pid, options, fun)
+  end
+
+  defp map_dev(:standard_io), do: self()
+  defp map_dev(:stdio), do: self()
   defp map_dev(:stderr), do: :standard_error
   defp map_dev(other), do: other
 
-  defp do_with_io(:standard_io, options, fun) do
+  defp do_with_io(pid, options, fun) when is_pid(pid) do
     prompt_config = Keyword.get(options, :capture_prompt, true)
     encoding = Keyword.get(options, :encoding, :unicode)
     input = Keyword.get(options, :input, "")
 
-    original_gl = Process.group_leader()
+    {:group_leader, original_gl} =
+      Process.info(pid, :group_leader) || {:group_leader, Process.group_leader()}
+
     {:ok, capture_gl} = StringIO.open(input, capture_prompt: prompt_config, encoding: encoding)
 
     try do
-      Process.group_leader(self(), capture_gl)
+      Process.group_leader(pid, capture_gl)
       do_capture_gl(capture_gl, fun)
     after
-      Process.group_leader(self(), original_gl)
+      Process.group_leader(pid, original_gl)
     end
   end
 
-  defp do_with_io(device, options, fun) do
+  defp do_with_io(device, options, fun) when is_atom(device) do
     input = Keyword.get(options, :input, "")
     encoding = Keyword.get(options, :encoding, :unicode)
 

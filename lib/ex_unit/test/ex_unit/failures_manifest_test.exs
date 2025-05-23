@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule ExUnit.FailuresManifestTest do
@@ -9,30 +13,41 @@ defmodule ExUnit.FailuresManifestTest do
   @skipped {:skipped, "reason"}
   @excluded {:excluded, "reason"}
   @failed {:failed, []}
-  @invalid {:invalid, SomeMod}
+  @invalid {:invalid, %ExUnit.TestModule{}}
+  @manifest_path "example.manifest"
 
-  describe "files_with_failures/1" do
-    test "returns the set of files with failures" do
+  describe "info/1" do
+    @tag :tmp_dir
+    test "returns the sets of files and test IDs with failures", context do
       manifest =
         new()
-        |> put_test(new_test(@failed, "file_1"))
-        |> put_test(new_test(@failed, "file_2"))
-        |> put_test(new_test(@passed, "file_3"))
-        |> put_test(new_test(@failed, "file_1"))
+        |> put_test(failed_1 = new_test(@failed, context))
+        |> put_test(failed_2 = new_test(@failed, context))
+        |> put_test(new_test(@passed, context))
+        |> put_test(invalid_1 = new_test(@invalid, context))
 
-      assert files_with_failures(manifest) == MapSet.new(["file_1", "file_2"])
+      File.cd!(context.tmp_dir, fn ->
+        write!(manifest, @manifest_path)
+
+        assert info(@manifest_path) ==
+                 {MapSet.new([context.file]),
+                  MapSet.new([test_id(failed_1), test_id(failed_2), test_id(invalid_1)])}
+      end)
     end
-  end
 
-  describe "failed_test_ids/1" do
-    test "returns the set of failed test IDs" do
-      manifest =
-        new()
-        |> put_test(failed_1 = new_test(@failed))
-        |> put_test(__passed = new_test(@passed))
-        |> put_test(failed_2 = new_test(@invalid))
+    @tag :tmp_dir
+    test "returns all when the whole suite should be considered as failed", context do
+      File.cd!(context.tmp_dir, fn ->
+        fail_all!(@manifest_path)
+        assert info(@manifest_path) == :all
+      end)
+    end
 
-      assert failed_test_ids(manifest) == MapSet.new([test_id(failed_1), test_id(failed_2)])
+    @tag :tmp_dir
+    test "returns no information when loading a file that does not exit", context do
+      path = Path.join(context.tmp_dir, "missing.manifest")
+      refute File.exists?(path)
+      assert info(path) == {MapSet.new(), MapSet.new()}
     end
   end
 
@@ -92,8 +107,6 @@ defmodule ExUnit.FailuresManifestTest do
       assert put_test(context.manifest, test) == context.manifest
     end
   end
-
-  @manifest_path "example.manifest"
 
   describe "write!/2" do
     @tag :tmp_dir
@@ -172,7 +185,6 @@ defmodule ExUnit.FailuresManifestTest do
         assert write!(manifest, @manifest_path) == :ok
         assert {vsn, ^manifest} = @manifest_path |> File.read!() |> :erlang.binary_to_term()
         File.write!(@manifest_path, :erlang.term_to_binary({vsn + 1, manifest}))
-
         assert read(@manifest_path) == new()
       end)
     end

@@ -1,7 +1,14 @@
 #!/usr/bin/env escript
+
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 %% -*- erlang -*-
 
-main([Source, Target, Version]) ->
+main([Version]) ->
+  Source = "lib/elixir/src/elixir.app.src",
+  Target = "lib/elixir/ebin/elixir.app",
   {ok, [{application, Name, Props0}]} = file:consult(Source),
   Ebin = filename:dirname(Target),
   Files = filelib:wildcard(filename:join(Ebin, "*.beam")),

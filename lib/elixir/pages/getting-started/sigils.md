@@ -1,8 +1,13 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Sigils
 
 Elixir provides double-quoted strings as well as a concept called charlists, which are defined using the `~c"hello world"` sigil syntax. In this chapter, we will learn more about sigils and how to define our own.
 
-One of Elixir's goals is extensibility: developers should be able to extend the language to fit any particular domain. Sigils provide the foundation for extending the language with custom textual representations. Sigils start with the tilde (`~`) character which is followed by a one lower-case letter or several upper-case ones and then a delimiter. Optionally, modifiers can be added after the final delimiter.
+One of Elixir's goals is extensibility: developers should be able to extend the language to fit any particular domain. Sigils provide the foundation for extending the language with custom textual representations. Sigils start with the tilde (`~`) character which is followed by either a single lower-case letter or one or more upper-case letters, and then a delimiter. Optional modifiers are added after the final delimiter.
 
 ## Regular expressions
 
@@ -210,7 +215,7 @@ iex> time_zone
 As hinted at the beginning of this chapter, sigils in Elixir are extensible. In fact, using the sigil `~r/foo/i` is equivalent to calling `sigil_r` with a binary and a char list as the argument:
 
 ```elixir
-iex> sigil_r(<<"foo">>, ~c"i")
+iex> sigil_r(<<"foo">>, [?i])
 ~r"foo"i
 ```
 
@@ -235,6 +240,6 @@ iex> ~i(42)n
 -42
 ```
 
-Custom sigils may be either a single lowercase character or several uppercase characters.
+Custom sigils may be either a single lowercase character, or an uppercase character followed by more uppercase characters and digits.
 
-Sigils can also be used to do compile-time work with the help of macros. For example, regular expressions in Elixir are compiled into an efficient representation during compilation of the source code, therefore skipping this step at runtime. If you're interested in the subject, we recommend you learn more about macros and check out how sigils are implemented in the `Kernel` module (where the `sigil_*` functions are defined).
+Sigils can also be used to do compile-time work with the help of macros. For example, regular expressions in Elixir are compiled into an efficient representation during compilation of the source code, therefore skipping this step at runtime. If you're interested in the subject, you can learn more about macros and check out how sigils are implemented in the `Kernel` module (where the `sigil_*` functions are defined).

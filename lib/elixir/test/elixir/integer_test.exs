@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule IntegerTest do
@@ -49,11 +53,6 @@ defmodule IntegerTest do
   test "mod/2 raises ArithmeticError when divisor is 0" do
     assert_raise ArithmeticError, fn -> Integer.mod(3, 0) end
     assert_raise ArithmeticError, fn -> Integer.mod(-50, 0) end
-  end
-
-  test "mod/2 raises ArithmeticError when non-integers used as arguments" do
-    assert_raise ArithmeticError, fn -> Integer.mod(3.0, 2) end
-    assert_raise ArithmeticError, fn -> Integer.mod(20, 1.2) end
   end
 
   test "floor_div/2" do
@@ -189,7 +188,7 @@ defmodule IntegerTest do
   end
 
   test "to_charlist/2" do
-    module = Integer
+    module = String.to_atom("Elixir.Integer")
 
     assert Integer.to_charlist(42) == ~c"42"
     assert Integer.to_charlist(+42) == ~c"42"

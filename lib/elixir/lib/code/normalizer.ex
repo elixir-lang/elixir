@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
 defmodule Code.Normalizer do
   @moduledoc false
 
@@ -58,7 +61,7 @@ defmodule Code.Normalizer do
       {:.., meta, [left, right]}
     else
       step = do_normalize(step, state)
-      {:"..//", meta, [left, right, step]}
+      {:..//, meta, [left, right, step]}
     end
   end
 
@@ -96,6 +99,7 @@ defmodule Code.Normalizer do
   end
 
   # Charlists with interpolations
+  # TODO: Remove this clause on Elixir v2.0 once single-quoted charlists are removed
   defp do_normalize({{:., dot_meta, [List, :to_charlist]}, call_meta, [parts]} = quoted, state) do
     if list_interpolated?(parts) do
       parts =
@@ -125,20 +129,15 @@ defmodule Code.Normalizer do
     {:., meta, [Access, :get]}
   end
 
-  # Only normalize the left side of the dot operator
   # The right hand side is an atom in the AST but it's not an atom literal, so
-  # it should not be wrapped
-  defp do_normalize({:., meta, [left, right]}, state) do
+  # it should not be wrapped. However, it should be escaped if applicable.
+  defp do_normalize({:., meta, [left, right]}, state) when is_atom(right) do
     meta = patch_meta_line(meta, state.parent_meta)
 
     left = do_normalize(left, %{state | parent_meta: meta})
+    right = maybe_escape_literal(right, state)
 
     {:., meta, [left, right]}
-  end
-
-  # A list of left to right arrows is not considered as a list literal, so it's not wrapped
-  defp do_normalize([{:->, _, [_ | _]} | _] = quoted, state) do
-    normalize_args(quoted, state)
   end
 
   # left -> right
@@ -169,9 +168,6 @@ defmodule Code.Normalizer do
           right = normalize_map_args(right, state)
           [{:|, pipe_meta, [left, right]}]
 
-        [{_, _, _} = call] ->
-          [do_normalize(call, state)]
-
         args ->
           normalize_map_args(args, state)
       end
@@ -181,16 +177,17 @@ defmodule Code.Normalizer do
 
   # Sigils
   defp do_normalize({sigil, meta, [{:<<>>, _, args} = string, modifiers]} = quoted, state)
-       when is_list(args) and is_atom(sigil) do
-    case Atom.to_string(sigil) do
-      "sigil_" <> _ ->
-        meta =
-          meta
-          |> patch_meta_line(state.parent_meta)
-          |> Keyword.put_new(:delimiter, "\"")
+       when is_atom(sigil) and is_list(args) and is_list(modifiers) do
+    with "sigil_" <> _ <- Atom.to_string(sigil),
+         true <- binary_interpolated?(args),
+         true <- List.ascii_printable?(modifiers) do
+      meta =
+        meta
+        |> patch_meta_line(state.parent_meta)
+        |> Keyword.put_new(:delimiter, "\"")
 
-        {sigil, meta, [do_normalize(string, %{state | parent_meta: meta}), modifiers]}
-
+      {sigil, meta, [do_normalize(string, %{state | parent_meta: meta}), modifiers]}
+    else
       _ ->
         normalize_call(quoted, state)
     end
@@ -295,21 +292,18 @@ defmodule Code.Normalizer do
   # Lists
   defp normalize_literal(list, meta, state) when is_list(list) do
     if list != [] and List.ascii_printable?(list) do
-      # It's a charlist
-      list =
+      # It's a charlist, we normalize it as a ~C sigil
+      string =
         if state.escape do
-          {string, _} = Code.Identifier.escape(IO.chardata_to_string(list), nil)
-          IO.iodata_to_binary(string) |> to_charlist()
+          {iolist, _} = Code.Identifier.escape(IO.chardata_to_string(list), nil)
+          IO.iodata_to_binary(iolist)
         else
-          list
+          List.to_string(list)
         end
 
-      meta =
-        meta
-        |> Keyword.put_new(:delimiter, "'")
-        |> patch_meta_line(state.parent_meta)
+      meta = patch_meta_line([delimiter: "\""], state.parent_meta)
 
-      {:__block__, meta, [list]}
+      {:sigil_c, meta, [{:<<>>, [], [string]}, []]}
     else
       meta =
         if line = state.parent_meta[:line] do
@@ -349,29 +343,44 @@ defmodule Code.Normalizer do
         meta
       end
 
+    last = List.last(args)
+
     cond do
-      Keyword.has_key?(meta, :do) or match?([{{:__block__, _, [:do]}, _} | _], List.last(args)) ->
+      not allow_keyword?(form, arity) ->
+        args = normalize_args(args, %{state | parent_meta: meta})
+        {form, meta, args}
+
+      Keyword.has_key?(meta, :do) ->
         # def foo do :ok end
         # def foo, do: :ok
         normalize_kw_blocks(form, meta, args, state)
 
-      match?([{:do, _} | _], List.last(args)) ->
+      match?([{:do, _} | _], last) and Keyword.keyword?(last) ->
         # Non normalized kw blocks
-        line = state.parent_meta[:line]
+        line = state.parent_meta[:line] || meta[:line]
         meta = meta ++ [do: [line: line], end: [line: line]]
         normalize_kw_blocks(form, meta, args, state)
 
-      allow_keyword?(form, arity) ->
+      true ->
         args = normalize_args(args, %{state | parent_meta: meta})
         {last_arg, leading_args} = List.pop_at(args, -1, [])
 
         last_args =
           case last_arg do
-            {:__block__, _, [[{{:__block__, key_meta, _}, _} | _]] = last_args} ->
-              if key_meta[:format] == :keyword do
-                last_args
-              else
-                [last_arg]
+            {:__block__, _meta, [[{{:__block__, key_meta, _}, _} | _] = keyword]} ->
+              cond do
+                key_meta[:format] == :keyword ->
+                  [keyword]
+
+                block_keyword?(keyword) ->
+                  [
+                    Enum.map(keyword, fn {{:__block__, meta, args}, value} ->
+                      {{:__block__, [format: :keyword] ++ meta, args}, value}
+                    end)
+                  ]
+
+                true ->
+                  [last_arg]
               end
 
             [] ->
@@ -382,12 +391,14 @@ defmodule Code.Normalizer do
           end
 
         {form, meta, leading_args ++ last_args}
-
-      true ->
-        args = normalize_args(args, %{state | parent_meta: meta})
-        {form, meta, args}
     end
   end
+
+  defp block_keyword?([{{:__block__, _, [key]}, _val} | tail]) when is_atom(key),
+    do: block_keyword?(tail)
+
+  defp block_keyword?([]), do: true
+  defp block_keyword?(_), do: false
 
   defp allow_keyword?(:when, 2), do: true
   defp allow_keyword?(:{}, _), do: false

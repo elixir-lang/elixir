@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule GenServer do
   @moduledoc """
   A behaviour module for implementing the server of a client-server relation.
@@ -9,14 +13,10 @@ defmodule GenServer do
   tracing and error reporting. It will also fit into a supervision tree.
 
   ```mermaid
-  graph TD
-      GenServer
-      GenServer -. reply -.-> A
-      GenServer -. reply -.-> B
-      GenServer -. reply -.-> C
-      A(Client #1) -- request --> GenServer
-      B(Client #2) -- request --> GenServer
-      C(Client #3) -- request --> GenServer
+  graph BT
+      C(Client #3) ~~~ B(Client #2) ~~~ A(Client #1)
+      A & B & C -->|request| GenServer
+      GenServer -.->|reply| A & B & C
   ```
 
   ## Example
@@ -207,14 +207,16 @@ defmodule GenServer do
   The generated `child_spec/1` can be customized with the following options:
 
     * `:id` - the child specification identifier, defaults to the current module
-    * `:restart` - when the child should be restarted, defaults to `:permanent`
-    * `:shutdown` - how to shut down the child, either immediately or by giving it time to shut down
+    * [`:restart`](`m:Supervisor#module-restart-values-restart`) - when the
+      child should be restarted, defaults to `:permanent`
+    * [`:shutdown`](`m:Supervisor#module-shutdown-values-shutdown`) - how to
+      shut down the child, either immediately or by giving it time to shut down
 
   For example:
 
       use GenServer, restart: :transient, shutdown: 10_000
 
-  See the "Child specification" section in the `Supervisor` module for more
+  See the ["Child specification"](`m:Supervisor#module-child_spec-1-function`) section in the `Supervisor` module for more
   detailed information. The `@doc` annotation immediately preceding
   `use GenServer` will be attached to the generated `child_spec/1` function.
 
@@ -268,6 +270,14 @@ defmodule GenServer do
   atoms, as atoms are never garbage-collected and therefore dynamically
   generated atoms won't be garbage-collected. For such cases, you can
   set up your own local registry by using the `Registry` module.
+
+  For example:
+
+      {:ok, _} = Registry.start_link(keys: :unique, name: :stacks)
+      name = {:via, Registry, {:stacks, "stack 1"}}
+      {:ok, _pid} = GenServer.start_link(Stack, "hello", name: name)
+      GenServer.whereis(name)
+      #=> #PID<0.150.0>
 
   ## Receiving "regular" messages
 
@@ -404,7 +414,7 @@ defmodule GenServer do
       or is suspended, the parent PID, the debugger state, and the state of
       the behaviour module, which includes the callback module state
       (as returned by `:sys.get_state/2`). It's possible to change how this
-      status is represented by defining the optional `c:GenServer.format_status/2`
+      status is represented by defining the optional `c:GenServer.format_status/1`
       callback.
     * `:sys.trace/3` - prints all the system events to `:stdio`.
     * `:sys.statistics/3` - manages collection of process statistics.
@@ -419,7 +429,7 @@ defmodule GenServer do
   Let's see how we could use those functions for debugging the stack server
   we defined earlier.
 
-      iex> {:ok, pid} = Stack.start_link([])
+      iex> {:ok, pid} = Stack.start_link("")
       iex> :sys.statistics(pid, true) # turn on collecting process statistics
       iex> :sys.trace(pid, true) # turn on event printing
       iex> Stack.push(pid, 1)
@@ -475,7 +485,7 @@ defmodule GenServer do
   guide provides a tutorial-like introduction. The documentation and links
   in Erlang can also provide extra insight.
 
-    * [GenServer - Elixir's Getting Started Guide](https://elixir-lang.org/getting-started/mix-otp/genserver.html)
+    * [GenServer - Elixir's Getting Started Guide](genservers.md)
     * [`:gen_server` module documentation](`:gen_server`)
     * [gen_server Behaviour - OTP Design Principles](https://www.erlang.org/doc/design_principles/gen_server_concepts.html)
     * [Clients and Servers - Learn You Some Erlang for Great Good!](http://learnyousomeerlang.com/clients-and-servers)
@@ -527,8 +537,8 @@ defmodule GenServer do
               {:ok, state}
               | {:ok, state, timeout | :hibernate | {:continue, continue_arg :: term}}
               | :ignore
-              | {:stop, reason :: any}
-            when state: any
+              | {:stop, reason :: term}
+            when state: term
 
   @doc """
   Invoked to handle synchronous `call/3` messages. `call/3` will block until a
@@ -763,22 +773,39 @@ defmodule GenServer do
             when old_vsn: term | {:down, term}
 
   @doc """
-  Invoked in some cases to retrieve a formatted version of the `GenServer` status:
+  This function is called by a `GenServer` process in the following situations:
 
-    * one of `:sys.get_status/1` or `:sys.get_status/2` is invoked to get the
-      status of the `GenServer`; in such cases, `reason` is `:normal`
+    * [`:sys.get_status/1,2`](`:sys.get_status/1`) is invoked to get the `GenServer` status.
+    * The `GenServer` process terminates abnormally and logs an error.
 
-    * the `GenServer` terminates abnormally and logs an error; in such cases,
-      `reason` is `:terminate`
+  This callback is used to limit the status of the process returned by
+  [`:sys.get_status/1,2`](`:sys.get_status/1`) or sent to logger.
 
-  This callback can be useful to control the *appearance* of the status of the
-  `GenServer`. For example, it can be used to return a compact representation of
-  the `GenServer`'s state to avoid having large state terms printed.
+  The callback gets a map `status` describing the current status and shall return
+  a map `new_status` with the same keys, but it may transform some values.
 
-  `pdict_and_state` is a two-elements list `[pdict, state]` where `pdict` is a
-  list of `{key, value}` tuples representing the current process dictionary of
-  the `GenServer` and `state` is the current state of the `GenServer`.
+  Two possible use cases for this callback is to remove sensitive information
+  from the state to prevent it from being printed in log files, or to compact
+  large irrelevant status items that would only clutter the logs.
+
+  ## Example
+
+      @impl GenServer
+      def format_status(status) do
+        Map.new(status, fn
+          {:state, state} -> {:state, Map.delete(state, :private_key)}
+          {:message, {:password, _}} -> {:message, {:password, "redacted"}}
+          key_value -> key_value
+        end)
+      end
+
   """
+  @doc since: "1.17.0"
+  @callback format_status(status :: :gen_server.format_status()) ::
+              new_status :: :gen_server.format_status()
+
+  # TODO: Remove this on v2.0
+  @doc deprecated: "Use format_status/1 callback instead"
   @callback format_status(reason, pdict_and_state :: list) :: term
             when reason: :normal | :terminate
 
@@ -787,6 +814,7 @@ defmodule GenServer do
                       handle_info: 2,
                       handle_cast: 2,
                       handle_call: 3,
+                      format_status: 1,
                       format_status: 2,
                       handle_continue: 2
 
@@ -831,7 +859,7 @@ defmodule GenServer do
     quote location: :keep, bind_quoted: [opts: opts] do
       @behaviour GenServer
 
-      unless Module.has_attribute?(__MODULE__, :doc) do
+      if not Module.has_attribute?(__MODULE__, :doc) do
         @doc """
         Returns a specification to start this module under a supervisor.
 
@@ -931,7 +959,7 @@ defmodule GenServer do
   end
 
   defmacro __before_compile__(env) do
-    unless Module.defines?(env.module, {:init, 1}) do
+    if not Module.defines?(env.module, {:init, 1}) do
       message = """
       function init/1 required by behaviour GenServer is not implemented \
       (in module #{inspect(env.module)}).
@@ -1004,7 +1032,7 @@ defmodule GenServer do
   or `:ignore`, the process is terminated and this function returns
   `{:error, reason}` or `:ignore`, respectively.
   """
-  @spec start_link(module, any, options) :: on_start
+  @spec start_link(module, term, options) :: on_start
   def start_link(module, init_arg, options \\ []) when is_atom(module) and is_list(options) do
     do_start(:link, module, init_arg, options)
   end
@@ -1014,7 +1042,7 @@ defmodule GenServer do
 
   See `start_link/3` for more information.
   """
-  @spec start(module, any, options) :: on_start
+  @spec start(module, term, options) :: on_start
   def start(module, init_arg, options \\ []) when is_atom(module) and is_list(options) do
     do_start(:nolink, module, init_arg, options)
   end
@@ -1105,10 +1133,6 @@ defmodule GenServer do
     case whereis(server) do
       nil ->
         exit({:noproc, {__MODULE__, :call, [server, request, timeout]}})
-
-      # TODO: remove this clause when we require Erlang/OTP 25+
-      pid when pid == self() ->
-        exit({:calling_self, {__MODULE__, :call, [server, request, timeout]}})
 
       pid ->
         try do

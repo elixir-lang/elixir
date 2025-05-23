@@ -1,542 +1,346 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
 Code.require_file("type_helper.exs", __DIR__)
 
 defmodule Module.Types.PatternTest do
   use ExUnit.Case, async: true
 
-  alias Module.Types
-  alias Module.Types.{Unify, Pattern}
+  import TypeHelper
+  import Module.Types.Descr
 
-  defmacrop quoted_pattern(patterns) do
-    quote do
-      {patterns, true} = unquote(Macro.escape(expand_head(patterns, true)))
-
-      Pattern.of_pattern(patterns, new_stack(), new_context())
-      |> lift_result()
-    end
-  end
-
-  defmacrop quoted_pattern_with_diagnostics(patterns) do
-    {ast, diagnostics} = Code.with_diagnostics(fn -> expand_head(patterns, true) end)
-
-    quote do
-      {patterns, true} = unquote(Macro.escape(ast))
-
-      result =
-        Pattern.of_pattern(patterns, new_stack(), new_context())
-        |> lift_result()
-
-      {result, unquote(Macro.escape(diagnostics))}
-    end
-  end
-
-  defmacrop quoted_head(patterns, guards \\ []) do
-    quote do
-      {patterns, guards} = unquote(Macro.escape(expand_head(patterns, guards)))
-
-      Pattern.of_head(patterns, guards, new_stack(), new_context())
-      |> lift_result()
-    end
-  end
-
-  defp expand_head(patterns, guards) do
-    fun =
-      quote do
-        fn unquote(patterns) when unquote(guards) -> :ok end
-      end
-
-    fun =
-      Macro.prewalk(fun, fn
-        {var, meta, nil} -> {var, meta, __MODULE__}
-        other -> other
-      end)
-
-    {ast, _, _} = :elixir_expand.expand(fun, :elixir_env.env_to_ex(__ENV__), __ENV__)
-    {:fn, _, [{:->, _, [[{:when, _, [patterns, guards]}], _]}]} = ast
-    {patterns, guards}
-  end
-
-  defp new_context() do
-    Types.context("types_test.ex", TypesTest, {:test, 0}, [], Module.ParallelChecker.test_cache())
-  end
-
-  defp new_stack() do
-    %{
-      Types.stack()
-      | last_expr: {:foo, [], nil}
-    }
-  end
-
-  defp lift_result({:ok, types, context}) when is_list(types) do
-    {types, _context} = Unify.lift_types(types, context)
-    {:ok, types}
-  end
-
-  defp lift_result({:ok, type, context}) do
-    {[type], _context} = Unify.lift_types([type], context)
-    {:ok, type}
-  end
-
-  defp lift_result({:error, {type, reason, _context}}) do
-    {:error, {type, reason}}
-  end
-
-  defmodule :"Elixir.Module.Types.PatternTest.Struct" do
-    defstruct foo: :atom, bar: 123, baz: %{}
-  end
-
-  describe "patterns" do
-    test "literal" do
-      assert quoted_pattern(true) == {:ok, {:atom, true}}
-      assert quoted_pattern(false) == {:ok, {:atom, false}}
-      assert quoted_pattern(:foo) == {:ok, {:atom, :foo}}
-      assert quoted_pattern(0) == {:ok, :integer}
-      assert quoted_pattern(+0.0) == {:ok, :float}
-      assert quoted_pattern(-0.0) == {:ok, :float}
-      assert quoted_pattern("foo") == {:ok, :binary}
-
-      assert {{:ok, :float}, [diagnostic]} = quoted_pattern_with_diagnostics(0.0)
-
-      assert diagnostic.message =~
-               "pattern matching on 0.0 is equivalent to matching only on +0.0"
+  describe "variables" do
+    test "captures variables from simple assignment in head" do
+      assert typecheck!([x = :foo], x) == dynamic(atom([:foo]))
+      assert typecheck!([:foo = x], x) == dynamic(atom([:foo]))
     end
 
-    test "list" do
-      assert quoted_pattern([]) == {:ok, {:list, :dynamic}}
-      assert quoted_pattern([_]) == {:ok, {:list, :dynamic}}
-      assert quoted_pattern([123]) == {:ok, {:list, :integer}}
-      assert quoted_pattern([123, 456]) == {:ok, {:list, :integer}}
-      assert quoted_pattern([123, _]) == {:ok, {:list, :dynamic}}
-      assert quoted_pattern([_, 456]) == {:ok, {:list, :dynamic}}
-      assert quoted_pattern([123 | []]) == {:ok, {:list, :integer}}
-      assert quoted_pattern([123, "foo"]) == {:ok, {:list, {:union, [:integer, :binary]}}}
-      assert quoted_pattern([123 | ["foo"]]) == {:ok, {:list, {:union, [:integer, :binary]}}}
-
-      # TODO: improper list?
-      assert quoted_pattern([123 | 456]) == {:ok, {:list, :integer}}
-      assert quoted_pattern([123, 456 | 789]) == {:ok, {:list, :integer}}
-      assert quoted_pattern([123 | "foo"]) == {:ok, {:list, {:union, [:integer, :binary]}}}
-      assert quoted_pattern([123 | _]) == {:ok, {:list, :dynamic}}
-      assert quoted_pattern([_ | [456]]) == {:ok, {:list, :dynamic}}
-      assert quoted_pattern([_ | _]) == {:ok, {:list, :dynamic}}
-
-      assert quoted_pattern([] ++ []) == {:ok, {:list, :dynamic}}
-      assert quoted_pattern([_] ++ _) == {:ok, {:list, :dynamic}}
-      assert quoted_pattern([123] ++ [456]) == {:ok, {:list, :integer}}
-      assert quoted_pattern([123] ++ _) == {:ok, {:list, :dynamic}}
-      assert quoted_pattern([123] ++ ["foo"]) == {:ok, {:list, {:union, [:integer, :binary]}}}
-    end
-
-    test "tuple" do
-      assert quoted_pattern({}) == {:ok, {:tuple, 0, []}}
-      assert quoted_pattern({:a}) == {:ok, {:tuple, 1, [{:atom, :a}]}}
-      assert quoted_pattern({:a, 123}) == {:ok, {:tuple, 2, [{:atom, :a}, :integer]}}
-    end
-
-    test "map" do
-      assert quoted_pattern(%{}) == {:ok, {:map, [{:optional, :dynamic, :dynamic}]}}
-
-      assert quoted_pattern(%{a: :b}) ==
-               {:ok,
-                {:map, [{:required, {:atom, :a}, {:atom, :b}}, {:optional, :dynamic, :dynamic}]}}
-
-      assert quoted_pattern(%{123 => a}) ==
-               {:ok,
-                {:map,
-                 [
-                   {:required, :integer, {:var, 0}},
-                   {:optional, :dynamic, :dynamic}
-                 ]}}
-
-      assert quoted_pattern(%{123 => :foo, 456 => :bar}) ==
-               {:ok,
-                {:map,
-                 [
-                   {:required, :integer, :dynamic},
-                   {:optional, :dynamic, :dynamic}
-                 ]}}
-
-      assert {:error, {:unable_unify, {:integer, {:atom, :foo}, _}}} =
-               quoted_pattern(%{a: a = 123, b: a = :foo})
-    end
-
-    test "struct" do
-      assert {:ok, {:map, fields}} = quoted_pattern(%:"Elixir.Module.Types.PatternTest.Struct"{})
-
-      assert Enum.sort(fields) == [
-               {:required, {:atom, :__struct__}, {:atom, Module.Types.PatternTest.Struct}},
-               {:required, {:atom, :bar}, :dynamic},
-               {:required, {:atom, :baz}, :dynamic},
-               {:required, {:atom, :foo}, :dynamic}
-             ]
-
-      assert {:ok, {:map, fields}} =
-               quoted_pattern(%:"Elixir.Module.Types.PatternTest.Struct"{foo: 123, bar: :atom})
-
-      assert Enum.sort(fields) ==
-               [
-                 {:required, {:atom, :__struct__}, {:atom, Module.Types.PatternTest.Struct}},
-                 {:required, {:atom, :bar}, {:atom, :atom}},
-                 {:required, {:atom, :baz}, :dynamic},
-                 {:required, {:atom, :foo}, :integer}
-               ]
-    end
-
-    test "struct var" do
-      assert quoted_pattern(%var{}) ==
-               {:ok,
-                {:map,
-                 [{:required, {:atom, :__struct__}, :atom}, {:optional, :dynamic, :dynamic}]}}
-
-      assert quoted_pattern(%var{foo: 123}) ==
-               {:ok,
-                {:map,
-                 [
-                   {:required, {:atom, :__struct__}, :atom},
-                   {:required, {:atom, :foo}, :integer},
-                   {:optional, :dynamic, :dynamic}
-                 ]}}
-
-      assert quoted_pattern(%var{foo: var}) ==
-               {:ok,
-                {:map,
-                 [
-                   {:required, {:atom, :__struct__}, :atom},
-                   {:required, {:atom, :foo}, :atom},
-                   {:optional, :dynamic, :dynamic}
-                 ]}}
-    end
-
-    defmacrop custom_type do
-      quote do: 1 * 8 - big - signed - integer
-    end
-
-    test "binary" do
-      assert quoted_pattern(<<"foo"::binary>>) == {:ok, :binary}
-      assert quoted_pattern(<<123::integer>>) == {:ok, :binary}
-      assert quoted_pattern(<<foo::little>>) == {:ok, :binary}
-      assert quoted_pattern(<<foo::integer>>) == {:ok, :binary}
-      assert quoted_pattern(<<foo::integer-little>>) == {:ok, :binary}
-      assert quoted_pattern(<<foo::little-integer>>) == {:ok, :binary}
-      assert quoted_pattern(<<123::utf8>>) == {:ok, :binary}
-      assert quoted_pattern(<<"foo"::utf8>>) == {:ok, :binary}
-      assert quoted_pattern(<<foo::custom_type()>>) == {:ok, :binary}
-
-      assert quoted_pattern({<<foo::integer>>, foo}) == {:ok, {:tuple, 2, [:binary, :integer]}}
-      assert quoted_pattern({<<foo::binary>>, foo}) == {:ok, {:tuple, 2, [:binary, :binary]}}
-      assert quoted_pattern({<<foo::utf8>>, foo}) == {:ok, {:tuple, 2, [:binary, :integer]}}
-
-      assert {:error, {:unable_unify, {:binary, :integer, _}}} =
-               quoted_pattern(<<foo::binary-0, foo::integer>>)
-    end
-
-    test "variables" do
-      assert quoted_pattern(foo) == {:ok, {:var, 0}}
-      assert quoted_pattern({foo}) == {:ok, {:tuple, 1, [{:var, 0}]}}
-      assert quoted_pattern({foo, bar}) == {:ok, {:tuple, 2, [{:var, 0}, {:var, 1}]}}
-
-      assert quoted_pattern(_) == {:ok, :dynamic}
-      assert quoted_pattern({_ = 123, _}) == {:ok, {:tuple, 2, [:integer, :dynamic]}}
-    end
-
-    test "assignment" do
-      assert quoted_pattern(x = y) == {:ok, {:var, 0}}
-      assert quoted_pattern(x = 123) == {:ok, :integer}
-      assert quoted_pattern({foo}) == {:ok, {:tuple, 1, [{:var, 0}]}}
-      assert quoted_pattern({x = y}) == {:ok, {:tuple, 1, [{:var, 0}]}}
-
-      assert quoted_pattern(x = y = 123) == {:ok, :integer}
-      assert quoted_pattern(x = 123 = y) == {:ok, :integer}
-
-      assert {:error, {:unable_unify, {{:tuple, 1, [var: 0]}, {:var, 0}, _}}} =
-               quoted_pattern({x} = x)
-    end
-  end
-
-  describe "heads" do
-    test "variable" do
-      assert quoted_head([a]) == {:ok, [{:var, 0}]}
-      assert quoted_head([a, b]) == {:ok, [{:var, 0}, {:var, 1}]}
-      assert quoted_head([a, a]) == {:ok, [{:var, 0}, {:var, 0}]}
-
-      assert {:ok, [{:var, 0}, {:var, 0}], _} =
-               Pattern.of_head(
-                 [{:a, [version: 0], :foo}, {:a, [version: 0], :foo}],
-                 [],
-                 new_stack(),
-                 new_context()
+    test "captures variables from simple assignment in =" do
+      assert typecheck!(
+               (
+                 x = :foo
+                 x
                )
+             ) == atom([:foo])
+    end
 
-      assert {:ok, [{:var, 0}, {:var, 1}], _} =
-               Pattern.of_head(
-                 [{:a, [version: 0], :foo}, {:a, [version: 1], :foo}],
-                 [],
-                 new_stack(),
-                 new_context()
+    test "refines information across patterns" do
+      assert typecheck!([%y{}, %x{}, x = y, x = Point], y) == dynamic(atom([Point]))
+    end
+
+    test "repeated refinements are ignored on reporting" do
+      assert typeerror!([{name, arity}, arity = 123], hd(Atom.to_charlist(name))) |> strip_ansi() ==
+               ~l"""
+               incompatible types given to Kernel.hd/1:
+
+                   hd(Atom.to_charlist(name))
+
+               given types:
+
+                   empty_list() or non_empty_list(integer())
+
+               but expected one of:
+
+                   non_empty_list(term(), term())
+
+               where "name" was given the type:
+
+                   # type: dynamic()
+                   # from: types_test.ex
+                   {name, arity}
+               """
+    end
+
+    test "errors on conflicting refinements" do
+      assert typeerror!([a = b, a = :foo, b = :bar], {a, b}) ==
+               ~l"""
+               the following pattern will never match:
+
+                   a = b
+
+               where "a" was given the type:
+
+                   # type: dynamic(:foo)
+                   # from: types_test.ex:LINE-1
+                   a = :foo
+
+               where "b" was given the type:
+
+                   # type: dynamic(:bar)
+                   # from: types_test.ex:LINE-1
+                   b = :bar
+               """
+    end
+
+    test "can be accessed even if they don't match" do
+      assert typeerror!(
+               (
+                 # This will never match, info should not be "corrupted"
+                 [info | _] = __ENV__.function
+                 info
                )
+             ) =~ "the following pattern will never match"
     end
 
-    test "assignment" do
-      assert quoted_head([x = y, x = y]) == {:ok, [{:var, 0}, {:var, 0}]}
-      assert quoted_head([x = y, y = x]) == {:ok, [{:var, 0}, {:var, 0}]}
+    test "does not check underscore" do
+      assert typecheck!(_ = raise("oops")) == none()
+    end
+  end
 
-      assert quoted_head([x = :foo, x = y, y = z]) ==
-               {:ok, [{:atom, :foo}, {:atom, :foo}, {:atom, :foo}]}
+  describe "=" do
+    test "precedence does not matter" do
+      uri_type = typecheck!([x = %URI{}], x)
 
-      assert quoted_head([x = y, y = :foo, y = z]) ==
-               {:ok, [{:atom, :foo}, {:atom, :foo}, {:atom, :foo}]}
+      assert typecheck!(
+               (
+                 x = %URI{} = URI.new!("/")
+                 x
+               )
+             ) == uri_type
 
-      assert quoted_head([x = y, y = z, z = :foo]) ==
-               {:ok, [{:atom, :foo}, {:atom, :foo}, {:atom, :foo}]}
-
-      assert {:error, {:unable_unify, {{:tuple, 1, [var: 1]}, {:var, 0}, _}}} =
-               quoted_head([{x} = y, {y} = x])
+      assert typecheck!(
+               (
+                 %URI{} = x = URI.new!("/")
+                 x
+               )
+             ) == uri_type
     end
 
-    test "guards" do
-      assert quoted_head([x], [is_binary(x)]) == {:ok, [:binary]}
-
-      assert quoted_head([x, y], [is_binary(x) and is_atom(y)]) ==
-               {:ok, [:binary, :atom]}
-
-      assert quoted_head([x], [is_binary(x) or is_atom(x)]) ==
-               {:ok, [{:union, [:binary, :atom]}]}
-
-      assert quoted_head([x, x], [is_integer(x)]) == {:ok, [:integer, :integer]}
-
-      assert quoted_head([x = 123], [is_integer(x)]) == {:ok, [:integer]}
-
-      assert quoted_head([x], [is_boolean(x) or is_atom(x)]) ==
-               {:ok, [:atom]}
-
-      assert quoted_head([x], [is_atom(x) or is_boolean(x)]) ==
-               {:ok, [:atom]}
-
-      assert quoted_head([x], [is_tuple(x) or is_atom(x)]) ==
-               {:ok, [{:union, [:tuple, :atom]}]}
-
-      assert quoted_head([x], [is_boolean(x) and is_atom(x)]) ==
-               {:ok, [{:union, [atom: true, atom: false]}]}
-
-      assert quoted_head([x], [is_atom(x) > :foo]) == {:ok, [var: 0]}
-
-      assert quoted_head([x, y], [is_atom(x) or is_integer(y)]) ==
-               {:ok, [{:var, 0}, {:var, 1}]}
-
-      assert quoted_head([x], [is_atom(x) or is_atom(x)]) ==
-               {:ok, [:atom]}
-
-      assert quoted_head([x, y], [(is_atom(x) and is_atom(y)) or (is_atom(x) and is_integer(y))]) ==
-               {:ok, [:atom, union: [:atom, :integer]]}
-
-      assert quoted_head([x, y], [is_atom(x) or is_integer(x)]) ==
-               {:ok, [union: [:atom, :integer], var: 0]}
-
-      assert quoted_head([x, y], [is_atom(y) or is_integer(y)]) ==
-               {:ok, [{:var, 0}, {:union, [:atom, :integer]}]}
-
-      assert quoted_head([x], [true == false or is_integer(x)]) ==
-               {:ok, [var: 0]}
-
-      assert {:error, {:unable_unify, {:binary, :integer, _}}} =
-               quoted_head([x], [is_binary(x) and is_integer(x)])
-
-      assert {:error, {:unable_unify, {:tuple, :atom, _}}} =
-               quoted_head([x], [is_tuple(x) and is_atom(x)])
-
-      assert {:error, {:unable_unify, {{:atom, true}, :tuple, _}}} =
-               quoted_head([x], [is_tuple(is_atom(x))])
+    test "refines types" do
+      assert typecheck!(
+               [x, foo = :foo, bar = 123],
+               (
+                 {^foo, ^bar} = x
+                 x
+               )
+             ) == dynamic(tuple([atom([:foo]), integer()]))
     end
 
-    test "guard downcast" do
-      assert {:error, _} = quoted_head([x], [is_atom(x) and is_boolean(x)])
+    test "reports incompatible types" do
+      assert typeerror!([x = {:ok, _}], [_ | _] = x) == ~l"""
+             the following pattern will never match:
+
+                 [_ | _] = x
+
+             because the right-hand side has type:
+
+                 dynamic({:ok, term()})
+
+             where "x" was given the type:
+
+                 # type: dynamic({:ok, term()})
+                 # from: types_test.ex:LINE
+                 x = {:ok, _}
+             """
+    end
+  end
+
+  describe "structs" do
+    test "variable name" do
+      assert typecheck!([%x{}], x) == dynamic(atom())
     end
 
-    test "guard and" do
-      assert quoted_head([], [(true and 1) > 0]) == {:ok, []}
+    test "variable name fields" do
+      assert typecheck!([x = %_{}], x.__struct__) == dynamic(atom())
+      assert typecheck!([x = %_{}], x) == dynamic(open_map(__struct__: atom()))
 
-      assert quoted_head(
-               [struct],
-               [is_map_key(struct, :map) and map_size(:erlang.map_get(:map, struct))]
-             ) == {:ok, [{:map, [{:optional, :dynamic, :dynamic}]}]}
+      assert typecheck!([x = %m{}, m = Point], x) ==
+               dynamic(open_map(__struct__: atom([Point])))
+
+      assert typecheck!([m = Point, x = %m{}], x) ==
+               dynamic(open_map(__struct__: atom([Point])))
+
+      assert typeerror!([m = 123], %^m{} = %Point{}) ==
+               ~l"""
+               expected an atom as struct name:
+
+                   %^m{}
+
+               got type:
+
+                   integer()
+
+               where "m" was given the type:
+
+                   # type: integer()
+                   # from: types_test.ex:LINE-1
+                   m = 123
+               """
     end
 
-    test "intersection functions" do
-      assert quoted_head([x], [+x]) == {:ok, [{:union, [:integer, :float]}]}
-      assert quoted_head([x], [x + 1]) == {:ok, [{:union, [:float, :integer]}]}
-      assert quoted_head([x], [x + 1.0]) == {:ok, [{:union, [:integer, :float]}]}
+    test "fields in guards" do
+      assert typeerror!([x = %Point{}], x.foo_bar, :ok) ==
+               ~l"""
+               unknown key .foo_bar in expression:
+
+                   x.foo_bar
+
+               the given type does not have the given key:
+
+                   dynamic(%Point{x: term(), y: term(), z: term()})
+
+               where "x" was given the type:
+
+                   # type: dynamic(%Point{})
+                   # from: types_test.ex:LINE-1
+                   x = %Point{}
+               """
+    end
+  end
+
+  describe "maps" do
+    test "fields in patterns" do
+      assert typecheck!([x = %{foo: :bar}], x) == dynamic(open_map(foo: atom([:bar])))
+      assert typecheck!([x = %{123 => 456}], x) == dynamic(open_map())
+      assert typecheck!([x = %{123 => 456, foo: :bar}], x) == dynamic(open_map(foo: atom([:bar])))
     end
 
-    test "nested calls with intersections in guards" do
-      assert quoted_head([x], [:erlang.rem(x, 2)]) == {:ok, [:integer]}
-      assert quoted_head([x], [:erlang.rem(x + x, 2)]) == {:ok, [:integer]}
+    test "fields in guards" do
+      assert typecheck!([x = %{foo: :bar}], x.bar, x) == dynamic(open_map(foo: atom([:bar])))
+    end
+  end
 
-      assert quoted_head([x], [:erlang.bnot(+x)]) == {:ok, [:integer]}
-      assert quoted_head([x], [:erlang.bnot(x + 1)]) == {:ok, [:integer]}
+  describe "tuples" do
+    test "in patterns" do
+      assert typecheck!([x = {:ok, 123}], x) == dynamic(tuple([atom([:ok]), integer()]))
+      assert typecheck!([{:x, y} = {x, :y}], {x, y}) == dynamic(tuple([atom([:x]), atom([:y])]))
+    end
+  end
 
-      assert quoted_head([x], [is_integer(1 + x - 1)]) == {:ok, [:integer]}
+  describe "lists" do
+    test "in patterns" do
+      assert typecheck!([x = [1, 2, 3]], x) ==
+               dynamic(non_empty_list(integer()))
 
-      assert quoted_head([x], [is_integer(1 + x - 1) and is_integer(1 + x - 1)]) ==
-               {:ok, [:integer]}
+      assert typecheck!([x = [1, 2, 3 | y], y = :foo], x) ==
+               dynamic(non_empty_list(integer(), atom([:foo])))
 
-      assert quoted_head([x], [1 - x >= 0]) == {:ok, [{:union, [:float, :integer]}]}
-      assert quoted_head([x], [1 - x >= 0 and 1 - x < 0]) == {:ok, [{:union, [:float, :integer]}]}
+      assert typecheck!([x = [1, 2, 3 | y], y = [1.0, 2.0, 3.0]], x) ==
+               dynamic(non_empty_list(union(integer(), float())))
 
-      assert {:error,
-              {:unable_apply,
-               {_, [{:var, 0}, :float], _,
-                [
-                  {[:integer, :integer], :integer},
-                  {[:float, {:union, [:integer, :float]}], :float},
-                  {[{:union, [:integer, :float]}, :float], :float}
-                ], _}}} = quoted_head([x], [:erlang.bnot(x + 1.0)])
+      assert typecheck!([x = [:ok | z]], {x, z}) ==
+               dynamic(tuple([non_empty_list(term(), term()), term()]))
+
+      assert typecheck!([x = [y | z]], {x, y, z}) ==
+               dynamic(tuple([non_empty_list(term(), term()), term(), term()]))
     end
 
-    test "erlang-only guards" do
-      assert quoted_head([x], [:erlang.size(x)]) ==
-               {:ok, [{:union, [:binary, :tuple]}]}
+    test "in patterns through ++" do
+      assert typecheck!([x = [] ++ []], x) == dynamic(empty_list())
+
+      assert typecheck!([x = [] ++ y, y = :foo], x) ==
+               dynamic(atom([:foo]))
+
+      assert typecheck!([x = [1, 2, 3] ++ y, y = :foo], x) ==
+               dynamic(non_empty_list(integer(), atom([:foo])))
+
+      assert typecheck!([x = [1, 2, 3] ++ y, y = [1.0, 2.0, 3.0]], x) ==
+               dynamic(non_empty_list(union(integer(), float())))
     end
 
-    test "failing guard functions" do
-      assert quoted_head([x], [length([])]) == {:ok, [{:var, 0}]}
+    test "with lists inside tuples inside lists" do
+      assert typecheck!([[node_1 = {[arg]}, node_2 = {[arg]}]], {node_1, node_2, arg})
+             |> equal?(
+               dynamic(
+                 tuple([
+                   tuple([non_empty_list(term())]),
+                   tuple([non_empty_list(term())]),
+                   term()
+                 ])
+               )
+             )
+    end
+  end
 
-      assert {:error,
-              {:unable_apply,
-               {{:erlang, :length, 1}, [{:atom, :foo}], _, [{[{:list, :dynamic}], :integer}], _}}} =
-               quoted_head([x], [length(:foo)])
-
-      assert {:error,
-              {:unable_apply,
-               {_, [{:union, [{:atom, true}, {:atom, false}]}], _,
-                [{[{:list, :dynamic}], :integer}], _}}} = quoted_head([x], [length(is_tuple(x))])
-
-      assert {:error,
-              {:unable_apply,
-               {_, [:integer, {:union, [{:atom, true}, {:atom, false}]}], _,
-                [{[:integer, :tuple], :dynamic}], _}}} = quoted_head([x], [elem(is_tuple(x), 0)])
-
-      assert {:error,
-              {:unable_apply,
-               {_, [{:union, [{:atom, true}, {:atom, false}]}, :integer], _,
-                [
-                  {[:integer, :integer], :integer},
-                  {[:float, {:union, [:integer, :float]}], :float},
-                  {[{:union, [:integer, :float]}, :float], :float}
-                ], _}}} = quoted_head([x], [elem({}, is_tuple(x))])
-
-      assert quoted_head([x], [elem({}, 1)]) == {:ok, [var: 0]}
-
-      assert quoted_head([x], [elem(x, 1) == :foo]) == {:ok, [:tuple]}
-
-      assert quoted_head([x], [is_tuple(x) and elem(x, 1)]) == {:ok, [:tuple]}
-
-      assert quoted_head([x], [length(x) == 0 or elem(x, 1)]) == {:ok, [{:list, :dynamic}]}
-
-      assert quoted_head([x], [
-               (is_list(x) and length(x) == 0) or (is_tuple(x) and elem(x, 1))
-             ]) ==
-               {:ok, [{:union, [{:list, :dynamic}, :tuple]}]}
-
-      assert quoted_head([x], [
-               (length(x) == 0 and is_list(x)) or (elem(x, 1) and is_tuple(x))
-             ]) == {:ok, [{:list, :dynamic}]}
-
-      assert quoted_head([x], [elem(x, 1) or is_atom(x)]) == {:ok, [:tuple]}
-
-      assert quoted_head([x], [is_atom(x) or elem(x, 1)]) == {:ok, [{:union, [:atom, :tuple]}]}
-
-      assert quoted_head([x, y], [elem(x, 1) and is_atom(y)]) == {:ok, [:tuple, :atom]}
-
-      assert quoted_head([x, y], [elem(x, 1) or is_atom(y)]) == {:ok, [:tuple, {:var, 0}]}
-
-      assert {:error, {:unable_unify, {:tuple, :atom, _}}} =
-               quoted_head([x], [elem(x, 1) and is_atom(x)])
+  describe "binaries" do
+    test "ok" do
+      assert typecheck!([<<x>>], x) == integer()
+      assert typecheck!([<<x::float>>], x) == float()
+      assert typecheck!([<<x::binary>>], x) == binary()
+      assert typecheck!([<<x::utf8>>], x) == integer()
     end
 
-    test "map" do
-      assert quoted_head([%{true: false} = foo, %{} = foo]) ==
-               {:ok,
-                [
-                  {:map,
-                   [{:required, {:atom, true}, {:atom, false}}, {:optional, :dynamic, :dynamic}]},
-                  {:map,
-                   [{:required, {:atom, true}, {:atom, false}}, {:optional, :dynamic, :dynamic}]}
-                ]}
-
-      assert quoted_head([%{true: bool}], [is_boolean(bool)]) ==
-               {:ok,
-                [
-                  {:map,
-                   [
-                     {:required, {:atom, true}, {:union, [atom: true, atom: false]}},
-                     {:optional, :dynamic, :dynamic}
-                   ]}
-                ]}
-
-      assert quoted_head([%{true: true} = foo, %{false: false} = foo]) ==
-               {:ok,
-                [
-                  {:map,
-                   [
-                     {:required, {:atom, false}, {:atom, false}},
-                     {:required, {:atom, true}, {:atom, true}},
-                     {:optional, :dynamic, :dynamic}
-                   ]},
-                  {:map,
-                   [
-                     {:required, {:atom, false}, {:atom, false}},
-                     {:required, {:atom, true}, {:atom, true}},
-                     {:optional, :dynamic, :dynamic}
-                   ]}
-                ]}
-
-      assert {:error,
-              {:unable_unify,
-               {{:map, [{:required, {:atom, true}, {:atom, true}}]},
-                {:map, [{:required, {:atom, true}, {:atom, false}}]},
-                _}}} = quoted_head([%{true: false} = foo, %{true: true} = foo])
+    test "nested" do
+      assert typecheck!([<<0, <<x::bitstring>>::binary>>], x) == binary()
     end
 
-    test "binary in guards" do
-      assert quoted_head([a, b], [byte_size(a <> b) > 0]) ==
-               {:ok, [:binary, :binary]}
+    test "error" do
+      assert typeerror!([<<x::binary-size(2), x::float>>], x) == ~l"""
+             incompatible types assigned to "x":
 
-      assert quoted_head([map], [byte_size(map.a <> map.b) > 0]) ==
-               {:ok, [map: [{:optional, :dynamic, :dynamic}]]}
+                 binary() !~ float()
+
+             where "x" was given the types:
+
+                 # type: binary()
+                 # from: types_test.ex:LINE
+                 <<x::binary-size(2), ...>>
+
+                 # type: float()
+                 # from: types_test.ex:LINE
+                 <<..., x::float>>
+             """
+
+      assert typeerror!([<<x::float, x>>], x) == ~l"""
+             incompatible types assigned to "x":
+
+                 float() !~ integer()
+
+             where "x" was given the types:
+
+                 # type: float()
+                 # from: types_test.ex:LINE
+                 <<x::float, ...>>
+
+                 # type: integer()
+                 # from: types_test.ex:LINE
+                 <<..., x>>
+
+             #{hints(:inferred_bitstring_spec)}
+             """
     end
 
-    test "struct var guard" do
-      assert quoted_head([%var{}], [is_atom(var)]) ==
-               {:ok,
-                [
-                  {:map,
-                   [{:required, {:atom, :__struct__}, :atom}, {:optional, :dynamic, :dynamic}]}
-                ]}
-
-      assert {:error, {:unable_unify, {:atom, :integer, _}}} =
-               quoted_head([%var{}], [is_integer(var)])
+    test "pin inference" do
+      assert typecheck!(
+               [x, y],
+               (
+                 <<^x>> = y
+                 x
+               )
+             ) == dynamic(integer())
     end
 
-    test "tuple_size/1" do
-      assert quoted_head([x], [tuple_size(x) == 0]) == {:ok, [{:tuple, 0, []}]}
-      assert quoted_head([x], [0 == tuple_size(x)]) == {:ok, [{:tuple, 0, []}]}
-      assert quoted_head([x], [tuple_size(x) == 2]) == {:ok, [{:tuple, 2, [:dynamic, :dynamic]}]}
-      assert quoted_head([x], [is_tuple(x) and tuple_size(x) == 0]) == {:ok, [{:tuple, 0, []}]}
-      assert quoted_head([x], [tuple_size(x) == 0 and is_tuple(x)]) == {:ok, [{:tuple, 0, []}]}
+    test "size ok" do
+      assert typecheck!([<<x, y, _::size(x - y)>>], :ok) == atom([:ok])
+    end
 
-      assert quoted_head([x = {y}], [is_integer(y) and tuple_size(x) == 1]) ==
-               {:ok, [{:tuple, 1, [:integer]}]}
+    test "size error" do
+      assert typeerror!([<<x::float, _::size(x)>>], :ok) ==
+               ~l"""
+               expected an integer in binary size:
 
-      assert {:error, {:unable_unify, {{:tuple, 0, []}, :integer, _}}} =
-               quoted_head([x], [tuple_size(x) == 0 and is_integer(x)])
+                   size(x)
 
-      assert {:error, {:unable_unify, {{:tuple, 0, []}, :integer, _}}} =
-               quoted_head([x], [is_integer(x) and tuple_size(x) == 0])
+               got type:
 
-      assert {:error, {:unable_unify, {{:tuple, 0, []}, :integer, _}}} =
-               quoted_head([x], [is_tuple(x) and tuple_size(x) == 0 and is_integer(x)])
+                   float()
 
-      assert {:error, {:unable_unify, {{:tuple, 1, [:dynamic]}, {:tuple, 0, []}, _}}} =
-               quoted_head([x = {}], [tuple_size(x) == 1])
+               where "x" was given the type:
+
+                   # type: float()
+                   # from: types_test.ex:LINE-1
+                   <<x::float, ...>>
+               """
+    end
+
+    test "size pin inference" do
+      assert typecheck!(
+               [x, y],
+               (
+                 <<_::size(^x)>> = y
+                 x
+               )
+             ) == dynamic(integer())
     end
   end
 end

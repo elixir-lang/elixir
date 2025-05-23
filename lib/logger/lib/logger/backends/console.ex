@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Logger.Backends.Console do
   @moduledoc ~S"""
   A logger backend that logs messages by printing them to the console.
@@ -28,7 +32,7 @@ defmodule Logger.Backends.Console do
             output: nil,
             ref: nil
 
-  # TODO: Deprecate me on Elixir v1.19
+  # TODO: Deprecate me on Elixir v1.20
   @impl true
   def init(atom) when is_atom(atom) do
     config = read_env()
@@ -152,7 +156,6 @@ defmodule Logger.Backends.Console do
 
     warning =
       Keyword.get_lazy(colors, :warning, fn ->
-        # TODO: Deprecate :warn option on Elixir v1.19
         if warn = Keyword.get(colors, :warn) do
           warn
         else

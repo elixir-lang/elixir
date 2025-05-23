@@ -1,17 +1,21 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Tasks.Compile.App do
   use Mix.Task.Compiler
 
   @recursive true
 
   @moduledoc """
-  Writes an .app file.
+  Writes a `.app` file.
 
-  An `.app` file is a file containing Erlang terms that defines
+  A `.app` file is a file containing Erlang terms that defines
   your application. Mix automatically generates this file based on
   your `mix.exs` configuration.
 
   In order to generate the `.app` file, Mix expects your project
-  to have both `:app` and `:version` keys. Furthermore, you can
+  to have both the `:app` and `:version` keys. Furthermore, you can
   configure the generated application by defining an `application/0`
   function in your `mix.exs` that returns a keyword list.
 
@@ -78,14 +82,26 @@ defmodule Mix.Tasks.Compile.App do
       technically valid in any resource file, but it is only effective for
       applications with a callback module. Defaults to `:infinity`.
 
-  Besides the options above, `.app` files also expect other options like
-  `:modules` and `:vsn`, but these are automatically added by Mix.
+  Besides the options above, `.app` files also expect other options
+  like `:modules` and `:vsn`, but these are automatically added by Mix.
+  The complete list can be found on [Erlang's application
+  specification](https://www.erlang.org/doc/man/app).
+
+  From Elixir v1.17 onwards, the application .app file is also loaded
+  whenever the task runs.
 
   ## Command line options
 
     * `--force` - forces compilation regardless of modification times
     * `--compile-path` - where to find `.beam` files and write the
       resulting `.app` file, defaults to `Mix.Project.compile_path/0`
+
+  ## Configuration
+
+    * `:reliable_dir_mtime` - this task relies on the operating system
+      changing the mtime on a directory whenever a file is added or removed.
+      You can set this option to false if your system does not provide
+      reliable mtimes. Defaults to false on Windows.
 
   ## Phases
 
@@ -125,46 +141,69 @@ defmodule Mix.Tasks.Compile.App do
   @impl true
   def run(args) do
     {opts, _, _} = OptionParser.parse(args, switches: [force: :boolean, compile_path: :string])
-
     project = Mix.Project.get!()
     config = Mix.Project.config()
 
     app = Keyword.get(config, :app)
     version = Keyword.get(config, :version)
+    validate_app!(app)
+    validate_version!(version)
 
-    validate_app(app)
-    validate_version(version)
+    compile_path = Keyword.get_lazy(opts, :compile_path, &Mix.Project.compile_path/0)
+    target = Path.join(compile_path, "#{app}.app")
 
-    path = Keyword.get_lazy(opts, :compile_path, &Mix.Project.compile_path/0)
-    modules = modules_from(Path.wildcard("#{path}/*.beam")) |> Enum.sort()
-
-    target = Path.join(path, "#{app}.app")
-    sources = [Mix.Project.config_mtime(), Mix.Project.project_file()]
+    # If configurations changed, we may have changed compile_env.
+    # If compile_path changed, we may have added or removed files.
+    # If the project changed, we may have changed other properties.
+    new_mtime =
+      Mix.Project.config_mtime()
+      |> max(Mix.Utils.last_modified(Mix.Project.project_file()))
+      |> max(Mix.Utils.last_modified(compile_path))
 
     current_properties = current_app_properties(target)
-    compile_env = load_compile_env(current_properties)
 
-    if opts[:force] || Mix.Utils.stale?(sources, [target]) ||
-         app_changed?(current_properties, modules, compile_env) do
+    {changed?, modules} =
+      cond do
+        opts[:force] || new_mtime > Mix.Utils.last_modified(target) ->
+          {true, nil}
+
+        Keyword.get(config, :reliable_dir_mtime, fn -> not match?({:win32, _}, :os.type()) end) ->
+          {false, nil}
+
+        true ->
+          modules = modules_from(compile_path)
+          {modules != Keyword.get(current_properties, :modules, []), modules}
+      end
+
+    if changed? do
       properties =
         [
           description: to_charlist(config[:description] || app),
-          modules: modules,
           registered: [],
           vsn: to_charlist(version)
         ]
         |> merge_project_application(project)
-        |> validate_properties!()
         |> handle_extra_applications(config)
-        |> add_compile_env(compile_env)
+        |> add_compile_env(current_properties)
+        |> add_modules(modules, compile_path)
 
       contents = :io_lib.format("~p.~n", [{:application, app, properties}])
+      :application.load({:application, app, properties})
 
       Mix.Project.ensure_structure()
       File.write!(target, IO.chardata_to_string(contents))
+      File.touch!(target, new_mtime)
+
+      # If we just created the .app file, it will have touched
+      # the directory mtime, so we need to reset it.
+      if current_properties == [] do
+        File.touch!(compile_path, new_mtime)
+      end
+
       Mix.shell().info("Generated #{app} app")
       {:ok, []}
     else
+      :application.load({:application, app, current_properties})
       {:noop, []}
     end
   end
@@ -176,56 +215,54 @@ defmodule Mix.Tasks.Compile.App do
     end
   end
 
-  defp load_compile_env(current_properties) do
-    case Mix.ProjectStack.compile_env(nil) do
-      nil -> Keyword.get(current_properties, :compile_env, [])
-      list -> list
-    end
-  end
+  defp validate_app!(app) when is_atom(app), do: :ok
 
-  defp app_changed?(properties, mods, compile_env) do
-    Keyword.get(properties, :modules, []) != mods or
-      Keyword.get(properties, :compile_env, []) != compile_env
-  end
-
-  defp validate_app(app) when is_atom(app), do: :ok
-
-  defp validate_app(app) do
-    ensure_present(:app, app)
+  defp validate_app!(app) do
+    ensure_present!(:app, app)
     Mix.raise("Expected :app to be an atom, got: #{inspect(app)}")
   end
 
-  defp validate_version(version) do
-    ensure_present(:version, version)
+  defp validate_version!(version) do
+    ensure_present!(:version, version)
 
-    unless is_binary(version) and match?({:ok, _}, Version.parse(version)) do
+    if not (is_binary(version) and match?({:ok, _}, Version.parse(version))) do
       Mix.raise(
         "Expected :version to be a valid Version, got: #{inspect(version)} (see the Version module for more information)"
       )
     end
   end
 
-  defp ensure_present(name, nil) do
+  defp ensure_present!(name, nil) do
     Mix.raise("Please ensure mix.exs file has the #{inspect(name)} in the project definition")
   end
 
-  defp ensure_present(_name, _val), do: :ok
+  defp ensure_present!(_name, _val), do: :ok
 
-  defp modules_from(beams) do
-    Enum.map(beams, &(&1 |> Path.basename() |> Path.rootname(".beam") |> String.to_atom()))
+  defp modules_from(path) do
+    case File.ls(path) do
+      {:ok, entries} ->
+        Enum.sort(
+          for entry <- entries,
+              String.ends_with?(entry, ".beam"),
+              do: entry |> binary_part(0, byte_size(entry) - 5) |> String.to_atom()
+        )
+
+      {:error, _} ->
+        []
+    end
   end
 
   defp merge_project_application(best_guess, project) do
     if function_exported?(project, :application, 0) do
       project_application = project.application()
 
-      unless Keyword.keyword?(project_application) do
+      if not Keyword.keyword?(project_application) do
         Mix.raise(
           "Application configuration returned from application/0 should be a keyword list"
         )
       end
 
-      Keyword.merge(best_guess, project_application)
+      Keyword.merge(best_guess, validate_properties!(project_application))
     else
       best_guess
     end
@@ -234,7 +271,7 @@ defmodule Mix.Tasks.Compile.App do
   defp validate_properties!(properties) do
     Enum.each(properties, fn
       {:description, value} ->
-        unless is_list(value) do
+        if not is_list(value) do
           Mix.raise(
             "Application description (:description) is not a character list, got: " <>
               inspect(value)
@@ -242,17 +279,17 @@ defmodule Mix.Tasks.Compile.App do
         end
 
       {:id, value} ->
-        unless is_list(value) do
+        if not is_list(value) do
           Mix.raise("Application ID (:id) is not a character list, got: " <> inspect(value))
         end
 
       {:vsn, value} ->
-        unless is_list(value) do
+        if not is_list(value) do
           Mix.raise("Application vsn (:vsn) is not a character list, got: " <> inspect(value))
         end
 
       {:maxT, value} ->
-        unless value == :infinity or is_integer(value) do
+        if not (value == :infinity or is_integer(value)) do
           Mix.raise(
             "Application maximum time (:maxT) is not an integer or :infinity, got: " <>
               inspect(value)
@@ -260,14 +297,14 @@ defmodule Mix.Tasks.Compile.App do
         end
 
       {:modules, value} ->
-        unless is_list(value) and Enum.all?(value, &is_atom(&1)) do
+        if not (is_list(value) and Enum.all?(value, &is_atom(&1))) do
           Mix.raise(
             "Application modules (:modules) should be a list of atoms, got: " <> inspect(value)
           )
         end
 
       {:registered, value} ->
-        unless is_list(value) and Enum.all?(value, &is_atom(&1)) do
+        if not (is_list(value) and Enum.all?(value, &is_atom(&1))) do
           Mix.raise(
             "Application registered processes (:registered) should be a list of atoms, got: " <>
               inspect(value)
@@ -275,7 +312,7 @@ defmodule Mix.Tasks.Compile.App do
         end
 
       {:included_applications, value} ->
-        unless is_list(value) and Enum.all?(value, &is_atom(&1)) do
+        if not (is_list(value) and Enum.all?(value, &is_atom(&1))) do
           Mix.raise(
             "Application included applications (:included_applications) should be a list of atoms, got: " <>
               inspect(value)
@@ -283,7 +320,7 @@ defmodule Mix.Tasks.Compile.App do
         end
 
       {:extra_applications, value} ->
-        unless is_list(value) and Enum.all?(value, &typed_app?(&1)) do
+        if not (is_list(value) and Enum.all?(value, &typed_app?(&1))) do
           Mix.raise(
             "Application extra applications (:extra_applications) should be a list of atoms or " <>
               "{app, :required | :optional} pairs, got: " <> inspect(value)
@@ -291,7 +328,7 @@ defmodule Mix.Tasks.Compile.App do
         end
 
       {:applications, value} ->
-        unless is_list(value) and Enum.all?(value, &typed_app?(&1)) do
+        if not (is_list(value) and Enum.all?(value, &typed_app?(&1))) do
           Mix.raise(
             "Application applications (:applications) should be a list of atoms or " <>
               "{app, :required | :optional} pairs, got: " <> inspect(value)
@@ -299,14 +336,14 @@ defmodule Mix.Tasks.Compile.App do
         end
 
       {:env, value} ->
-        unless Keyword.keyword?(value) do
+        if not Keyword.keyword?(value) do
           Mix.raise(
             "Application environment (:env) should be a keyword list, got: " <> inspect(value)
           )
         end
 
       {:start_phases, value} ->
-        unless Keyword.keyword?(value) do
+        if not Keyword.keyword?(value) do
           Mix.raise(
             "Application start phases (:start_phases) should be a keyword list, got: " <>
               inspect(value)
@@ -336,11 +373,31 @@ defmodule Mix.Tasks.Compile.App do
   defp typed_app?({app, type}) when is_atom(app) and type in [:required, :optional], do: true
   defp typed_app?(_), do: false
 
-  defp add_compile_env(properties, []), do: properties
-  defp add_compile_env(properties, compile_env), do: [compile_env: compile_env] ++ properties
+  defp add_compile_env(properties, current_properties) do
+    # If someone calls compile.elixir and then compile.app across two
+    # separate OS calls, then the compile_env won't be properly reflected.
+    # This is ok because compile_env is not used for correctness. It is
+    # simply to catch possible errors early.
+    case Mix.ProjectStack.compile_env(nil) do
+      nil -> Keyword.take(current_properties, [:compile_env]) ++ properties
+      [] -> properties
+      compile_env -> Keyword.put(properties, :compile_env, compile_env)
+    end
+  end
+
+  defp add_modules(properties, modules, compile_path) do
+    Keyword.put_new_lazy(properties, :modules, fn -> modules || modules_from(compile_path) end)
+  end
 
   defp handle_extra_applications(properties, config) do
     {extra, properties} = Keyword.pop(properties, :extra_applications, [])
+
+    if extra != [] and Keyword.has_key?(properties, :applications) do
+      Mix.shell().error(
+        "both :extra_applications and :applications was found in your mix.exs. " <>
+          "You most likely want to remove the :applications key, as all applications are derived from your dependencies"
+      )
+    end
 
     {all, optional} =
       project_apps(properties, config, extra, fn ->

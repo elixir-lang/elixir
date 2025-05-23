@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule URITest do
@@ -277,6 +281,32 @@ defmodule URITest do
     test "preserves an empty query" do
       assert URI.new!("http://foo.com/?").query == ""
     end
+
+    test "without scheme, undefined port after host translates to nil" do
+      assert URI.new!("//https://www.example.com") ==
+               %URI{
+                 scheme: nil,
+                 userinfo: nil,
+                 host: "https",
+                 port: nil,
+                 path: "//www.example.com",
+                 query: nil,
+                 fragment: nil
+               }
+    end
+
+    test "with scheme, undefined port after host translates to nil" do
+      assert URI.new!("myscheme://myhost:/path/info") ==
+               %URI{
+                 scheme: "myscheme",
+                 userinfo: nil,
+                 host: "myhost",
+                 port: nil,
+                 path: "/path/info",
+                 query: nil,
+                 fragment: nil
+               }
+    end
   end
 
   test "http://http://http://@http://http://?http://#http://" do
@@ -347,141 +377,325 @@ defmodule URITest do
                  fn -> %URI{host: "foo.com", path: "hello/123"} |> URI.to_string() end
   end
 
-  test "merge/2" do
-    assert_raise ArgumentError, "you must merge onto an absolute URI", fn ->
-      URI.merge("/relative", "")
+  describe "merge/2" do
+    test "with valid paths" do
+      assert URI.merge("http://google.com/foo", "http://example.com/baz")
+             |> to_string() == "http://example.com/baz"
+
+      assert URI.merge("http://google.com/foo", "http://example.com/.././bar/../../baz")
+             |> to_string() == "http://example.com/baz"
+
+      assert URI.merge("http://google.com/foo", "//example.com/baz")
+             |> to_string() == "http://example.com/baz"
+
+      assert URI.merge("http://google.com/foo", URI.new!("//example.com/baz"))
+             |> to_string() == "http://example.com/baz"
+
+      assert URI.merge("http://google.com/foo", "//example.com/.././bar/../../../baz")
+             |> to_string() == "http://example.com/baz"
+
+      assert URI.merge("http://example.com", URI.new!("/foo"))
+             |> to_string() == "http://example.com/foo"
+
+      assert URI.merge("http://example.com", URI.new!("/.././bar/../../../baz"))
+             |> to_string() == "http://example.com/baz"
+
+      base = URI.new!("http://example.com/foo/bar")
+      assert URI.merge(base, "") |> to_string() == "http://example.com/foo/bar"
+      assert URI.merge(base, "#fragment") |> to_string() == "http://example.com/foo/bar#fragment"
+      assert URI.merge(base, "?query") |> to_string() == "http://example.com/foo/bar?query"
+      assert URI.merge(base, %URI{}) |> to_string() == "http://example.com/foo/bar"
+
+      assert URI.merge(base, %URI{fragment: "fragment"})
+             |> to_string() == "http://example.com/foo/bar#fragment"
+
+      base = URI.new!("http://example.com")
+      assert URI.merge(base, "/foo") |> to_string() == "http://example.com/foo"
+      assert URI.merge(base, "foo") |> to_string() == "http://example.com/foo"
+
+      base = URI.new!("http://example.com/foo/bar")
+      assert URI.merge(base, "/baz") |> to_string() == "http://example.com/baz"
+      assert URI.merge(base, "baz") |> to_string() == "http://example.com/foo/baz"
+      assert URI.merge(base, "../baz") |> to_string() == "http://example.com/baz"
+      assert URI.merge(base, ".././baz") |> to_string() == "http://example.com/baz"
+      assert URI.merge(base, "./baz") |> to_string() == "http://example.com/foo/baz"
+      assert URI.merge(base, "bar/./baz") |> to_string() == "http://example.com/foo/bar/baz"
+
+      base = URI.new!("http://example.com/foo/bar/")
+      assert URI.merge(base, "/baz") |> to_string() == "http://example.com/baz"
+      assert URI.merge(base, "baz") |> to_string() == "http://example.com/foo/bar/baz"
+      assert URI.merge(base, "../baz") |> to_string() == "http://example.com/foo/baz"
+      assert URI.merge(base, ".././baz") |> to_string() == "http://example.com/foo/baz"
+      assert URI.merge(base, "./baz") |> to_string() == "http://example.com/foo/bar/baz"
+      assert URI.merge(base, "bar/./baz") |> to_string() == "http://example.com/foo/bar/bar/baz"
+
+      base = URI.new!("http://example.com/foo/bar/baz")
+      assert URI.merge(base, "../../foobar") |> to_string() == "http://example.com/foobar"
+      assert URI.merge(base, "../../../foobar") |> to_string() == "http://example.com/foobar"
+
+      assert URI.merge(base, "../../../../../../foobar") |> to_string() ==
+               "http://example.com/foobar"
+
+      base = URI.new!("http://example.com/foo/../bar")
+      assert URI.merge(base, "baz") |> to_string() == "http://example.com/baz"
+
+      base = URI.new!("http://example.com/foo/./bar")
+      assert URI.merge(base, "baz") |> to_string() == "http://example.com/foo/baz"
+
+      base = URI.new!("http://example.com/foo?query1")
+      assert URI.merge(base, "?query2") |> to_string() == "http://example.com/foo?query2"
+      assert URI.merge(base, "") |> to_string() == "http://example.com/foo?query1"
+
+      base = URI.new!("http://example.com/foo#fragment1")
+      assert URI.merge(base, "#fragment2") |> to_string() == "http://example.com/foo#fragment2"
+      assert URI.merge(base, "") |> to_string() == "http://example.com/foo"
+
+      page_url = "https://example.com/guide/"
+      image_url = "https://images.example.com/t/1600x/https://images.example.com/foo.jpg"
+
+      assert URI.merge(URI.new!(page_url), URI.new!(image_url)) |> to_string() ==
+               "https://images.example.com/t/1600x/https://images.example.com/foo.jpg"
     end
 
-    assert URI.merge("http://google.com/foo", "http://example.com/baz")
-           |> to_string == "http://example.com/baz"
+    test "error on relative base" do
+      assert_raise ArgumentError, "you must merge onto an absolute URI", fn ->
+        URI.merge("/relative", "")
+      end
+    end
 
-    assert URI.merge("http://google.com/foo", "http://example.com/.././bar/../../baz")
-           |> to_string == "http://example.com/baz"
+    test "base without host" do
+      assert URI.merge("tag:example", "foo") |> to_string == "tag:foo"
+      assert URI.merge("tag:example", "#fragment") |> to_string == "tag:example#fragment"
+    end
 
-    assert URI.merge("http://google.com/foo", "//example.com/baz")
-           |> to_string == "http://example.com/baz"
+    test "base without host and path" do
+      assert URI.merge("ex:", "test") |> to_string() == "ex:test"
+      assert URI.merge("ex:", "a/b/c") |> to_string() == "ex:a/b/c"
+      assert URI.merge("ex:", "a/b/./../c") |> to_string() == "ex:a/c"
+      assert URI.merge("ex:", "test?query=value") |> to_string() == "ex:test?query=value"
+      assert URI.merge("mailto:", "user@example.com") |> to_string() == "mailto:user@example.com"
+      assert URI.merge("urn:isbn", "0451450523") |> to_string() == "urn:0451450523"
+    end
 
-    assert URI.merge("http://google.com/foo", "//example.com/.././bar/../../../baz")
-           |> to_string == "http://example.com/baz"
+    test "with RFC examples" do
+      # These are examples from:
+      #
+      # https://www.rfc-editor.org/rfc/rfc3986#section-5.4.1
+      # https://www.rfc-editor.org/rfc/rfc3986#section-5.4.2
+      #
+      # They are taken verbatim from the above document for easy comparison
 
-    assert URI.merge("http://example.com", URI.new!("/foo"))
-           |> to_string == "http://example.com/foo"
+      base = "http://a/b/c/d;p?q"
 
-    assert URI.merge("http://example.com", URI.new!("/.././bar/../../../baz"))
-           |> to_string == "http://example.com/baz"
+      rel_and_result = %{
+        "g:h" => "g:h",
+        "g" => "http://a/b/c/g",
+        "./g" => "http://a/b/c/g",
+        "g/" => "http://a/b/c/g/",
+        "/g" => "http://a/g",
+        "//g" => "http://g",
+        "?y" => "http://a/b/c/d;p?y",
+        "g?y" => "http://a/b/c/g?y",
+        "#s" => "http://a/b/c/d;p?q#s",
+        "g#s" => "http://a/b/c/g#s",
+        "g?y#s" => "http://a/b/c/g?y#s",
+        ";x" => "http://a/b/c/;x",
+        "g;x" => "http://a/b/c/g;x",
+        "g;x?y#s" => "http://a/b/c/g;x?y#s",
+        "" => "http://a/b/c/d;p?q",
+        "." => "http://a/b/c/",
+        "./" => "http://a/b/c/",
+        ".." => "http://a/b/",
+        "../" => "http://a/b/",
+        "../g" => "http://a/b/g",
+        "../.." => "http://a/",
+        "../../" => "http://a/",
+        "../../g" => "http://a/g",
+        "../../../g" => "http://a/g",
+        "../../../../g" => "http://a/g",
+        "/./g" => "http://a/g",
+        "/../g" => "http://a/g",
+        "g." => "http://a/b/c/g.",
+        ".g" => "http://a/b/c/.g",
+        "g.." => "http://a/b/c/g..",
+        "..g" => "http://a/b/c/..g",
+        "./../g" => "http://a/b/g",
+        "./g/." => "http://a/b/c/g/",
+        "g/./h" => "http://a/b/c/g/h",
+        "g/../h" => "http://a/b/c/h",
+        "g;x=1/./y" => "http://a/b/c/g;x=1/y",
+        "g;x=1/../y" => "http://a/b/c/y",
+        "g?y/./x" => "http://a/b/c/g?y/./x",
+        "g?y/../x" => "http://a/b/c/g?y/../x",
+        "g#s/./x" => "http://a/b/c/g#s/./x",
+        "g#s/../x" => "http://a/b/c/g#s/../x",
+        "http:g" => "http:g"
+      }
 
-    base = URI.new!("http://example.com/foo/bar")
-    assert URI.merge(base, "") |> to_string == "http://example.com/foo/bar"
-    assert URI.merge(base, "#fragment") |> to_string == "http://example.com/foo/bar#fragment"
-    assert URI.merge(base, "?query") |> to_string == "http://example.com/foo/bar?query"
-    assert URI.merge(base, %URI{}) |> to_string == "http://example.com/foo/bar"
+      for {rel, result} <- rel_and_result do
+        assert URI.merge(base, rel) |> URI.to_string() == result
+      end
+    end
 
-    assert URI.merge(base, %URI{fragment: "fragment"})
-           |> to_string == "http://example.com/foo/bar#fragment"
+    test "with W3C examples" do
+      # These examples are from the W3C JSON-LD test suite:
+      #
+      # https://w3c.github.io/json-ld-api/tests/toRdf-manifest#t0124
+      # https://w3c.github.io/json-ld-api/tests/toRdf-manifest#t0125
+      # https://w3c.github.io/json-ld-api/tests/toRdf-manifest#t0123
 
-    base = URI.new!("http://example.com")
-    assert URI.merge(base, "/foo") |> to_string == "http://example.com/foo"
-    assert URI.merge(base, "foo") |> to_string == "http://example.com/foo"
+      base1 = "http://a/bb/ccc/."
 
-    base = URI.new!("http://example.com/foo/bar")
-    assert URI.merge(base, "/baz") |> to_string == "http://example.com/baz"
-    assert URI.merge(base, "baz") |> to_string == "http://example.com/foo/baz"
-    assert URI.merge(base, "../baz") |> to_string == "http://example.com/baz"
-    assert URI.merge(base, ".././baz") |> to_string == "http://example.com/baz"
-    assert URI.merge(base, "./baz") |> to_string == "http://example.com/foo/baz"
-    assert URI.merge(base, "bar/./baz") |> to_string == "http://example.com/foo/bar/baz"
+      rel_and_result1 = %{
+        "g:h" => "g:h",
+        "g" => "http://a/bb/ccc/g",
+        "./g" => "http://a/bb/ccc/g",
+        "g/" => "http://a/bb/ccc/g/",
+        "/g" => "http://a/g",
+        "//g" => "http://g",
+        "?y" => "http://a/bb/ccc/.?y",
+        "g?y" => "http://a/bb/ccc/g?y",
+        "#s" => "http://a/bb/ccc/.#s",
+        "g#s" => "http://a/bb/ccc/g#s",
+        "g?y#s" => "http://a/bb/ccc/g?y#s",
+        ";x" => "http://a/bb/ccc/;x",
+        "g;x" => "http://a/bb/ccc/g;x",
+        "g;x?y#s" => "http://a/bb/ccc/g;x?y#s",
+        "" => "http://a/bb/ccc/.",
+        "." => "http://a/bb/ccc/",
+        "./" => "http://a/bb/ccc/",
+        ".." => "http://a/bb/",
+        "../" => "http://a/bb/",
+        "../g" => "http://a/bb/g",
+        "../.." => "http://a/",
+        "../../" => "http://a/",
+        "../../g" => "http://a/g",
+        "../../../g" => "http://a/g",
+        "../../../../g" => "http://a/g",
+        "/./g" => "http://a/g",
+        "/../g" => "http://a/g",
+        "g." => "http://a/bb/ccc/g.",
+        ".g" => "http://a/bb/ccc/.g",
+        "g.." => "http://a/bb/ccc/g..",
+        "..g" => "http://a/bb/ccc/..g",
+        "./../g" => "http://a/bb/g",
+        "./g/." => "http://a/bb/ccc/g/",
+        "g/./h" => "http://a/bb/ccc/g/h",
+        "g/../h" => "http://a/bb/ccc/h",
+        "g;x=1/./y" => "http://a/bb/ccc/g;x=1/y",
+        "g;x=1/../y" => "http://a/bb/ccc/y",
+        "g?y/./x" => "http://a/bb/ccc/g?y/./x",
+        "g?y/../x" => "http://a/bb/ccc/g?y/../x",
+        "g#s/./x" => "http://a/bb/ccc/g#s/./x",
+        "g#s/../x" => "http://a/bb/ccc/g#s/../x",
+        "http:g" => "http:g"
+      }
 
-    base = URI.new!("http://example.com/foo/bar/")
-    assert URI.merge(base, "/baz") |> to_string == "http://example.com/baz"
-    assert URI.merge(base, "baz") |> to_string == "http://example.com/foo/bar/baz"
-    assert URI.merge(base, "../baz") |> to_string == "http://example.com/foo/baz"
-    assert URI.merge(base, ".././baz") |> to_string == "http://example.com/foo/baz"
-    assert URI.merge(base, "./baz") |> to_string == "http://example.com/foo/bar/baz"
-    assert URI.merge(base, "bar/./baz") |> to_string == "http://example.com/foo/bar/bar/baz"
+      for {rel, result} <- rel_and_result1 do
+        assert URI.merge(base1, rel) |> URI.to_string() == result
+      end
 
-    base = URI.new!("http://example.com/foo/bar/baz")
-    assert URI.merge(base, "../../foobar") |> to_string == "http://example.com/foobar"
-    assert URI.merge(base, "../../../foobar") |> to_string == "http://example.com/foobar"
-    assert URI.merge(base, "../../../../../../foobar") |> to_string == "http://example.com/foobar"
+      base2 = "http://a/bb/ccc/.."
 
-    base = URI.new!("http://example.com/foo/../bar")
-    assert URI.merge(base, "baz") |> to_string == "http://example.com/baz"
+      rel_and_result2 = %{
+        "g:h" => "g:h",
+        "g" => "http://a/bb/ccc/g",
+        "./g" => "http://a/bb/ccc/g",
+        "g/" => "http://a/bb/ccc/g/",
+        "/g" => "http://a/g",
+        "//g" => "http://g",
+        "?y" => "http://a/bb/ccc/..?y",
+        "g?y" => "http://a/bb/ccc/g?y",
+        "#s" => "http://a/bb/ccc/..#s",
+        "g#s" => "http://a/bb/ccc/g#s",
+        "g?y#s" => "http://a/bb/ccc/g?y#s",
+        ";x" => "http://a/bb/ccc/;x",
+        "g;x" => "http://a/bb/ccc/g;x",
+        "g;x?y#s" => "http://a/bb/ccc/g;x?y#s",
+        "" => "http://a/bb/ccc/..",
+        "." => "http://a/bb/ccc/",
+        "./" => "http://a/bb/ccc/",
+        ".." => "http://a/bb/",
+        "../" => "http://a/bb/",
+        "../g" => "http://a/bb/g",
+        "../.." => "http://a/",
+        "../../" => "http://a/",
+        "../../g" => "http://a/g",
+        "../../../g" => "http://a/g",
+        "../../../../g" => "http://a/g",
+        "/./g" => "http://a/g",
+        "/../g" => "http://a/g",
+        "g." => "http://a/bb/ccc/g.",
+        ".g" => "http://a/bb/ccc/.g",
+        "g.." => "http://a/bb/ccc/g..",
+        "..g" => "http://a/bb/ccc/..g",
+        "./../g" => "http://a/bb/g",
+        "./g/." => "http://a/bb/ccc/g/",
+        "g/./h" => "http://a/bb/ccc/g/h",
+        "g/../h" => "http://a/bb/ccc/h",
+        "g;x=1/./y" => "http://a/bb/ccc/g;x=1/y",
+        "g;x=1/../y" => "http://a/bb/ccc/y",
+        "g?y/./x" => "http://a/bb/ccc/g?y/./x",
+        "g?y/../x" => "http://a/bb/ccc/g?y/../x",
+        "g#s/./x" => "http://a/bb/ccc/g#s/./x",
+        "g#s/../x" => "http://a/bb/ccc/g#s/../x",
+        "http:g" => "http:g"
+      }
 
-    base = URI.new!("http://example.com/foo/./bar")
-    assert URI.merge(base, "baz") |> to_string == "http://example.com/foo/baz"
+      for {rel, result} <- rel_and_result2 do
+        assert URI.merge(base2, rel) |> URI.to_string() == result
+      end
 
-    base = URI.new!("http://example.com/foo?query1")
-    assert URI.merge(base, "?query2") |> to_string == "http://example.com/foo?query2"
-    assert URI.merge(base, "") |> to_string == "http://example.com/foo?query1"
+      base3 = "http://a/bb/ccc/../d;p?q"
 
-    base = URI.new!("http://example.com/foo#fragment1")
-    assert URI.merge(base, "#fragment2") |> to_string == "http://example.com/foo#fragment2"
-    assert URI.merge(base, "") |> to_string == "http://example.com/foo"
+      rel_and_result = %{
+        "g:h" => "g:h",
+        "g" => "http://a/bb/g",
+        "./g" => "http://a/bb/g",
+        "g/" => "http://a/bb/g/",
+        "/g" => "http://a/g",
+        "//g" => "http://g",
+        "?y" => "http://a/bb/ccc/../d;p?y",
+        "g?y" => "http://a/bb/g?y",
+        "#s" => "http://a/bb/ccc/../d;p?q#s",
+        "g#s" => "http://a/bb/g#s",
+        "g?y#s" => "http://a/bb/g?y#s",
+        ";x" => "http://a/bb/;x",
+        "g;x" => "http://a/bb/g;x",
+        "g;x?y#s" => "http://a/bb/g;x?y#s",
+        "" => "http://a/bb/ccc/../d;p?q",
+        "." => "http://a/bb/",
+        "./" => "http://a/bb/",
+        ".." => "http://a/",
+        "../" => "http://a/",
+        "../g" => "http://a/g",
+        "../.." => "http://a/",
+        "../../" => "http://a/",
+        "../../g" => "http://a/g",
+        "../../../g" => "http://a/g",
+        "../../../../g" => "http://a/g",
+        "/./g" => "http://a/g",
+        "/../g" => "http://a/g",
+        "g." => "http://a/bb/g.",
+        ".g" => "http://a/bb/.g",
+        "g.." => "http://a/bb/g..",
+        "..g" => "http://a/bb/..g",
+        "./../g" => "http://a/g",
+        "./g/." => "http://a/bb/g/",
+        "g/./h" => "http://a/bb/g/h",
+        "g/../h" => "http://a/bb/h",
+        "g;x=1/./y" => "http://a/bb/g;x=1/y",
+        "g;x=1/../y" => "http://a/bb/y",
+        "g?y/./x" => "http://a/bb/g?y/./x",
+        "g?y/../x" => "http://a/bb/g?y/../x",
+        "g#s/./x" => "http://a/bb/g#s/./x",
+        "g#s/../x" => "http://a/bb/g#s/../x",
+        "http:g" => "http:g"
+      }
 
-    page_url = "https://example.com/guide/"
-    image_url = "https://images.example.com/t/1600x/https://images.example.com/foo.jpg"
-
-    assert URI.merge(URI.new!(page_url), URI.new!(image_url)) |> to_string ==
-             "https://images.example.com/t/1600x/https://images.example.com/foo.jpg"
-  end
-
-  test "merge/2 (with RFC examples)" do
-    # These are examples from:
-    #
-    # https://www.rfc-editor.org/rfc/rfc3986#section-5.4.1
-    # https://www.rfc-editor.org/rfc/rfc3986#section-5.4.2
-    #
-    # They are taken verbatim from the above document for easy comparison
-
-    base = "http://a/b/c/d;p?q"
-
-    rel_and_result = %{
-      "g:h" => "g:h",
-      "g" => "http://a/b/c/g",
-      "./g" => "http://a/b/c/g",
-      "g/" => "http://a/b/c/g/",
-      "/g" => "http://a/g",
-      "//g" => "http://g",
-      "?y" => "http://a/b/c/d;p?y",
-      "g?y" => "http://a/b/c/g?y",
-      "#s" => "http://a/b/c/d;p?q#s",
-      "g#s" => "http://a/b/c/g#s",
-      "g?y#s" => "http://a/b/c/g?y#s",
-      ";x" => "http://a/b/c/;x",
-      "g;x" => "http://a/b/c/g;x",
-      "g;x?y#s" => "http://a/b/c/g;x?y#s",
-      "" => "http://a/b/c/d;p?q",
-      "." => "http://a/b/c/",
-      "./" => "http://a/b/c/",
-      ".." => "http://a/b/",
-      "../" => "http://a/b/",
-      "../g" => "http://a/b/g",
-      "../.." => "http://a/",
-      "../../" => "http://a/",
-      "../../g" => "http://a/g",
-      "../../../g" => "http://a/g",
-      "../../../../g" => "http://a/g",
-      "/./g" => "http://a/g",
-      "/../g" => "http://a/g",
-      "g." => "http://a/b/c/g.",
-      ".g" => "http://a/b/c/.g",
-      "g.." => "http://a/b/c/g..",
-      "..g" => "http://a/b/c/..g",
-      "./../g" => "http://a/b/g",
-      "./g/." => "http://a/b/c/g/",
-      "g/./h" => "http://a/b/c/g/h",
-      "g/../h" => "http://a/b/c/h",
-      "g;x=1/./y" => "http://a/b/c/g;x=1/y",
-      "g;x=1/../y" => "http://a/b/c/y",
-      "g?y/./x" => "http://a/b/c/g?y/./x",
-      "g?y/../x" => "http://a/b/c/g?y/../x",
-      "g#s/./x" => "http://a/b/c/g#s/./x",
-      "g#s/../x" => "http://a/b/c/g#s/../x",
-      "http:g" => "http:g"
-    }
-
-    for {rel, result} <- rel_and_result do
-      assert URI.merge(base, rel) |> URI.to_string() == result
+      for {rel, result} <- rel_and_result do
+        assert URI.merge(base3, rel) |> URI.to_string() == result
+      end
     end
   end
 
@@ -827,8 +1041,8 @@ defmodule URITest do
 
     test "merges empty path" do
       base = URI.parse("http://example.com")
-      assert URI.merge(base, "/foo") |> to_string == "http://example.com/foo"
-      assert URI.merge(base, "foo") |> to_string == "http://example.com/foo"
+      assert URI.merge(base, "/foo") |> to_string() == "http://example.com/foo"
+      assert URI.merge(base, "foo") |> to_string() == "http://example.com/foo"
     end
   end
 end

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Tasks.Profile.Eprof do
   use Mix.Task
 
@@ -6,7 +10,7 @@ defmodule Mix.Tasks.Profile.Eprof do
   @moduledoc """
   Profiles the given file or expression using Erlang's `eprof` tool.
 
-  `:eprof` provides time information of each function call and can be useful
+  [`:eprof`](`:eprof`) provides time information of each function call and can be useful
   when you want to discover the bottlenecks related to this.
 
   Before running the code, it invokes the `app.start` task which compiles
@@ -82,7 +86,7 @@ defmodule Mix.Tasks.Profile.Eprof do
   ## Caveats
 
   You should be aware that the code being profiled is running in an anonymous
-  function which is invoked by [`:eprof` module](https://www.erlang.org/doc/man/eprof.html).
+  function which is invoked by [`:eprof` module](`:eprof`).
   Thus, you'll see some additional entries in your profile output. It is also
   important to note that the profiler is stopped as soon as the code has finished running,
   and this may need special attention, when: running asynchronous code as function calls which were
@@ -94,7 +98,7 @@ defmodule Mix.Tasks.Profile.Eprof do
   some performance impact on the execution, but the impact is considerably lower than
   `Mix.Tasks.Profile.Fprof`. If you have a large system try to profile a limited
   scenario or focus on the main modules or processes. Another alternative is to use
-  `Mix.Tasks.Profile.Cprof` that uses `:cprof` and has a low performance degradation effect.
+  `Mix.Tasks.Profile.Cprof` that uses [`:cprof`](`:cprof`) and has a low performance degradation effect.
   """
 
   @switches [
@@ -181,6 +185,8 @@ defmodule Mix.Tasks.Profile.Eprof do
     * `:calls` - filters out any results with a call count lower than this
     * `:time` - filters out any results that took lower than specified (in µs)
     * `:sort` - sort the results by `:time` or `:calls` (default: `:time`)
+    * `:warmup` - if the code should be warmed up before profiling (default: `true`)
+    * `:set_on_spawn` - if newly spawned processes should be measured (default: `true`)
 
   """
   @spec profile((-> result), keyword()) :: result when result: any()
@@ -198,7 +204,9 @@ defmodule Mix.Tasks.Profile.Eprof do
     end
 
     :eprof.start()
-    {:ok, return_value} = :eprof.profile([], fun, Keyword.get(opts, :matching, {:_, :_, :_}))
+    matching = Keyword.get(opts, :matching, {:_, :_, :_})
+    set_on_spawn = Keyword.get(opts, :set_on_spawn, true)
+    {:ok, return_value} = :eprof.profile([], fun, matching, set_on_spawn: set_on_spawn)
 
     results =
       Enum.map(:eprof.dump(), fn {pid, call_results} ->
@@ -220,9 +228,9 @@ defmodule Mix.Tasks.Profile.Eprof do
     calls_opt = Keyword.get(opts, :calls, 0)
     time_opt = Keyword.get(opts, :time, 0)
 
-    call_results
-    |> Stream.filter(fn {_mfa, {count, _time}} -> count >= calls_opt end)
-    |> Stream.filter(fn {_mfa, {_count, time}} -> time >= time_opt end)
+    Enum.filter(call_results, fn {_mfa, {count, time}} ->
+      count >= calls_opt and time >= time_opt
+    end)
   end
 
   defp sort_results(call_results, opts) do
@@ -303,14 +311,9 @@ defmodule Mix.Tasks.Profile.Eprof do
     max_lengths = Enum.map(header, &String.length/1)
 
     Enum.reduce(rows, max_lengths, fn row, max_lengths ->
-      Stream.map(row, &String.length/1)
-      |> Stream.zip(max_lengths)
-      |> Enum.map(&max/1)
+      Enum.zip_with(row, max_lengths, fn cell, length -> String.length(cell) |> max(length) end)
     end)
   end
-
-  defp max({a, b}) when a >= b, do: a
-  defp max({_, b}), do: b
 
   @format "~-*s ~*s ~*s ~*s ~*s~n"
 

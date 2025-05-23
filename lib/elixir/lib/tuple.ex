@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Tuple do
   @moduledoc """
   Functions for working with tuples.
@@ -87,22 +91,8 @@ defmodule Tuple do
     :erlang.insert_element(index + 1, tuple, value)
   end
 
-  @doc """
-  Inserts an element at the end of a tuple.
-
-  Returns a new tuple with the element appended at the end, and contains
-  the elements in `tuple` followed by `value` as the last element.
-
-  Inlined by the compiler.
-
-  ## Examples
-
-      iex> tuple = {:foo, :bar}
-      iex> Tuple.append(tuple, :baz)
-      {:foo, :bar, :baz}
-
-  """
-  @spec append(tuple, term) :: tuple
+  @doc false
+  @deprecated "Use insert_at instead"
   def append(tuple, value) do
     :erlang.append_element(tuple, value)
   end

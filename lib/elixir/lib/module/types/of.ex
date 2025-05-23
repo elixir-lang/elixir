@@ -1,138 +1,354 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+
 defmodule Module.Types.Of do
   # Typing functionality shared between Expr and Pattern.
   # Generic AST and Enum helpers go to Module.Types.Helpers.
   @moduledoc false
+  import Module.Types.{Helpers, Descr}
 
   @prefix quote(do: ...)
   @suffix quote(do: ...)
 
-  alias Module.ParallelChecker
+  @integer_or_float union(integer(), float())
+  @integer_or_binary union(integer(), binary())
+  @integer integer()
+  @float float()
+  @binary binary()
 
-  import Module.Types.Helpers
-  import Module.Types.Unify
-
-  # There are important assumptions on how we work with maps.
-  #
-  # First, the keys in the map must be ordered by subtyping.
-  #
-  # Second, optional keys must be a superset of the required
-  # keys, i.e. %{required(atom) => integer, optional(:foo) => :bar}
-  # is forbidden.
-  #
-  # Third, in order to preserve co/contra-variance, a supertype
-  # must satisfy its subtypes. I.e. %{foo: :bar, atom() => :baz}
-  # is forbidden, it must be %{foo: :bar, atom() => :baz | :bar}.
-  #
-  # Once we support user declared maps, we need to validate these
-  # assumptions.
+  ## Variables
 
   @doc """
-  Handles open maps (with dynamic => dynamic).
+  Fetches the type of a defined variable.
   """
-  def open_map(args, stack, context, of_fun) do
-    with {:ok, pairs, context} <- map_pairs(args, stack, context, of_fun) do
-      # If we match on a map such as %{"foo" => "bar"}, we cannot
-      # assert that %{binary() => binary()}, since we are matching
-      # only a single binary of infinite possible values. Therefore,
-      # the correct would be to match it to %{binary() => binary() | var}.
-      #
-      # We can skip this in two cases:
-      #
-      #   1. If the key is a singleton, then we know that it has no
-      #      other value than the current one
-      #
-      #   2. If the value is a variable, then there is no benefit in
-      #      creating another variable, so we can skip it
-      #
-      # For now, we skip generating the var itself and introduce
-      # :dynamic instead.
-      pairs =
-        for {key, value} <- pairs, not has_unbound_var?(key, context) do
-          if singleton?(key, context) or match?({:var, _}, value) do
-            {key, value}
-          else
-            {key, to_union([value, :dynamic], context)}
-          end
+  def var({_name, meta, _context}, context) do
+    version = Keyword.fetch!(meta, :version)
+    %{vars: %{^version => %{type: type}}} = context
+    type
+  end
+
+  @doc """
+  Marks a variable with error.
+  """
+  def error_var(var, context) do
+    {var_name, meta, var_context} = var
+    version = Keyword.fetch!(meta, :version)
+
+    data = %{
+      type: error_type(),
+      name: var_name,
+      context: var_context,
+      off_traces: []
+    }
+
+    put_in(context.vars[version], data)
+  end
+
+  @doc """
+  Refines a variable that already exists (in a body).
+
+  This only happens if the var contains a gradual type,
+  or if we are doing a guard analysis or occurrence typing.
+  Returns `true` if there was a refinement, `false` otherwise.
+  """
+  def refine_body_var({_, meta, _}, type, expr, stack, context) do
+    version = Keyword.fetch!(meta, :version)
+    %{vars: %{^version => %{type: old_type, off_traces: off_traces} = data} = vars} = context
+
+    if gradual?(old_type) and type not in [term(), dynamic()] do
+      case compatible_intersection(old_type, type) do
+        {:ok, new_type} when new_type != old_type ->
+          data = %{
+            data
+            | type: new_type,
+              off_traces: new_trace(expr, new_type, stack, off_traces)
+          }
+
+          {new_type, %{context | vars: %{vars | version => data}}}
+
+        _ ->
+          {old_type, context}
+      end
+    else
+      {old_type, context}
+    end
+  end
+
+  @doc """
+  Refines the type of a variable.
+
+  Since this happens in a head, we use intersection
+  because we want to refine types. Otherwise we should
+  use compatibility.
+  """
+  def refine_head_var(var, type, expr, stack, context) do
+    {var_name, meta, var_context} = var
+    version = Keyword.fetch!(meta, :version)
+
+    case context.vars do
+      %{^version => %{type: old_type, off_traces: off_traces} = data} = vars ->
+        new_type = intersection(type, old_type)
+
+        data = %{
+          data
+          | type: new_type,
+            off_traces: new_trace(expr, type, stack, off_traces)
+        }
+
+        context = %{context | vars: %{vars | version => data}}
+
+        # We need to return error otherwise it leads to cascading errors
+        if empty?(new_type) do
+          {:error, error_type(),
+           error({:refine_head_var, old_type, type, var, context}, meta, stack, context)}
+        else
+          {:ok, new_type, context}
         end
 
-      triplets = pairs_to_unions(pairs, [], context) ++ [{:optional, :dynamic, :dynamic}]
-      {:ok, {:map, triplets}, context}
+      %{} = vars ->
+        data = %{
+          type: type,
+          name: var_name,
+          context: var_context,
+          off_traces: new_trace(expr, type, stack, [])
+        }
+
+        context = %{context | vars: Map.put(vars, version, data)}
+        {:ok, type, context}
+    end
+  end
+
+  defp new_trace(nil, _type, _stack, traces),
+    do: traces
+
+  defp new_trace(expr, type, stack, traces),
+    do: [{expr, stack.file, type} | traces]
+
+  ## Implementations
+
+  impls = [
+    {Atom, atom()},
+    {BitString, binary()},
+    {Float, float()},
+    {Function, fun()},
+    {Integer, integer()},
+    {List, union(empty_list(), non_empty_list(term(), term()))},
+    {Map, open_map(__struct__: if_set(negation(atom())))},
+    {Port, port()},
+    {PID, pid()},
+    {Reference, reference()},
+    {Tuple, tuple()},
+    {Any, term()}
+  ]
+
+  for {for, type} <- impls do
+    def impl(unquote(for)), do: unquote(Macro.escape(type))
+  end
+
+  def impl(struct) do
+    # Elixir did not strictly require the implementation to be available, so we need a fallback.
+    # TODO: Assume implementation is available on Elixir v2.0.
+    if info = Code.ensure_loaded?(struct) && struct.__info__(:struct) do
+      struct_type(struct, info)
+    else
+      open_map(__struct__: atom([struct]))
+    end
+  end
+
+  ## Map/structs
+
+  @doc """
+  Handles fetching a map key.
+  """
+  def map_fetch(expr, type, field, stack, context) when is_atom(field) do
+    case map_fetch(type, field) do
+      {_optional?, value_type} ->
+        {value_type, context}
+
+      reason ->
+        {error_type(), error({reason, expr, type, field, context}, elem(expr, 1), stack, context)}
     end
   end
 
   @doc """
-  Handles closed maps (without dynamic => dynamic).
+  Builds a closed map.
   """
-  def closed_map(args, stack, context, of_fun) do
-    with {:ok, pairs, context} <- map_pairs(args, stack, context, of_fun) do
-      {:ok, {:map, closed_to_unions(pairs, context)}, context}
-    end
+  def closed_map(pairs, expected, stack, context, of_fun) do
+    {pairs_types, context} = pairs(pairs, expected, stack, context, of_fun)
+
+    map =
+      permutate_map(pairs_types, stack, fn fallback, _keys, pairs ->
+        # TODO: Use the fallback type to actually indicate if open or closed.
+        if fallback == none(), do: closed_map(pairs), else: dynamic(open_map(pairs))
+      end)
+
+    {map, context}
   end
 
-  defp map_pairs(pairs, stack, context, of_fun) do
-    map_reduce_ok(pairs, context, fn {key, value}, context ->
-      with {:ok, key_type, context} <- of_fun.(key, :dynamic, stack, context),
-           {:ok, value_type, context} <- of_fun.(value, :dynamic, stack, context),
-           do: {:ok, {key_type, value_type}, context}
+  @doc """
+  Computes the types of key-value pairs.
+  """
+  def pairs(pairs, _expected, %{mode: :traversal} = stack, context, of_fun) do
+    Enum.map_reduce(pairs, context, fn {key, value}, context ->
+      {_key_type, context} = of_fun.(key, term(), stack, context)
+      {value_type, context} = of_fun.(value, term(), stack, context)
+      {{true, :none, value_type}, context}
     end)
   end
 
-  defp closed_to_unions([{key, value}], _context), do: [{:required, key, value}]
+  def pairs(pairs, expected, stack, context, of_fun) do
+    Enum.map_reduce(pairs, context, fn {key, value}, context ->
+      {dynamic_key?, keys, context} = finite_key_type(key, stack, context, of_fun)
 
-  defp closed_to_unions(pairs, context) do
-    case Enum.split_with(pairs, fn {key, _value} -> has_unbound_var?(key, context) end) do
-      {[], pairs} -> pairs_to_unions(pairs, [], context)
-      {[_ | _], pairs} -> pairs_to_unions([{:dynamic, :dynamic} | pairs], [], context)
+      expected_value_type =
+        with [key] <- keys, {_, expected_value_type} <- map_fetch(expected, key) do
+          expected_value_type
+        else
+          _ -> term()
+        end
+
+      {value_type, context} = of_fun.(value, expected_value_type, stack, context)
+      {{dynamic_key? or gradual?(value_type), keys, value_type}, context}
+    end)
+  end
+
+  defp finite_key_type(key, _stack, context, _of_fun) when is_atom(key) do
+    {false, [key], context}
+  end
+
+  defp finite_key_type(key, stack, context, of_fun) do
+    {key_type, context} = of_fun.(key, term(), stack, context)
+
+    case atom_fetch(key_type) do
+      {:finite, list} -> {gradual?(key_type), list, context}
+      _ -> {gradual?(key_type), :none, context}
     end
   end
 
-  defp pairs_to_unions([{key, value} | ahead], behind, context) do
-    {matched_ahead, values} = find_matching_values(ahead, key, [], [])
-
-    # In case nothing matches, use the original ahead
-    ahead = matched_ahead || ahead
-
-    all_values =
-      [value | values] ++
-        find_subtype_values(ahead, key, context) ++
-        find_subtype_values(behind, key, context)
-
-    pairs_to_unions(ahead, [{key, to_union(all_values, context)} | behind], context)
-  end
-
-  defp pairs_to_unions([], acc, context) do
-    acc
-    |> Enum.sort(&subtype?(elem(&1, 0), elem(&2, 0), context))
-    |> Enum.map(fn {key, value} -> {:required, key, value} end)
-  end
-
-  defp find_subtype_values(pairs, key, context) do
-    for {pair_key, pair_value} <- pairs, subtype?(pair_key, key, context), do: pair_value
-  end
-
-  defp find_matching_values([{key, value} | ahead], key, acc, values) do
-    find_matching_values(ahead, key, acc, [value | values])
-  end
-
-  defp find_matching_values([{_, _} = pair | ahead], key, acc, values) do
-    find_matching_values(ahead, key, [pair | acc], values)
-  end
-
-  defp find_matching_values([], _key, acc, [_ | _] = values), do: {Enum.reverse(acc), values}
-  defp find_matching_values([], _key, _acc, []), do: {nil, []}
-
   @doc """
-  Handles structs.
+  Builds permutation of maps according to the given pairs types.
   """
-  def struct(struct, meta, context) do
-    context = remote(struct, :__struct__, 0, meta, context)
+  def permutate_map(_pairs_types, %{mode: :traversal}, _of_map) do
+    dynamic()
+  end
 
-    entries =
-      for key <- Map.keys(struct.__struct__()), key != :__struct__ do
-        {:required, {:atom, key}, :dynamic}
+  def permutate_map(pairs_types, _stack, of_map) do
+    {dynamic?, fallback, single, multiple, assert} =
+      Enum.reduce(pairs_types, {false, none(), [], [], []}, fn
+        {dynamic_pair?, keys, value_type}, {dynamic?, fallback, single, multiple, assert} ->
+          dynamic? = dynamic? or dynamic_pair?
+
+          case keys do
+            :none ->
+              fallback = union(fallback, value_type)
+
+              {fallback, assert} =
+                Enum.reduce(single, {fallback, assert}, fn {key, type}, {fallback, assert} ->
+                  {union(fallback, type), [key | assert]}
+                end)
+
+              {fallback, assert} =
+                Enum.reduce(multiple, {fallback, assert}, fn {keys, type}, {fallback, assert} ->
+                  {union(fallback, type), keys ++ assert}
+                end)
+
+              {dynamic?, fallback, [], [], assert}
+
+            # Because a multiple key may override single keys, we can only
+            # collect single keys while there are no multiples.
+            [key] when multiple == [] ->
+              {dynamic?, fallback, [{key, value_type} | single], multiple, assert}
+
+            keys ->
+              {dynamic?, fallback, single, [{keys, value_type} | multiple], assert}
+          end
+      end)
+
+    map =
+      case Enum.reverse(multiple) do
+        [] ->
+          of_map.(fallback, Enum.uniq(assert), Enum.reverse(single))
+
+        [{keys, type} | tail] ->
+          for key <- keys, t <- cartesian_map(tail) do
+            of_map.(fallback, Enum.uniq(assert), Enum.reverse(single, [{key, type} | t]))
+          end
+          |> Enum.reduce(&union/2)
       end
 
-    {:ok, {:map, [{:required, {:atom, :__struct__}, {:atom, struct}} | entries]}, context}
+    if dynamic?, do: dynamic(map), else: map
+  end
+
+  defp cartesian_map(lists) do
+    case lists do
+      [] ->
+        [[]]
+
+      [{keys, type} | tail] ->
+        for key <- keys, t <- cartesian_map(tail), do: [{key, type} | t]
+    end
+  end
+
+  @doc """
+  Handles instantiation of a new struct.
+  """
+  # TODO: Type check the fields match the struct
+  def struct_instance(struct, args, expected, meta, %{mode: mode} = stack, context, of_fun)
+      when is_atom(struct) do
+    {_info, context} = struct_info(struct, meta, stack, context)
+
+    # The compiler has already checked the keys are atoms and which ones are required.
+    {args_types, context} =
+      Enum.map_reduce(args, context, fn {key, value}, context when is_atom(key) ->
+        value_type =
+          with true <- mode != :traversal,
+               {_, expected_value_type} <- map_fetch(expected, key) do
+            expected_value_type
+          else
+            _ -> term()
+          end
+
+        {type, context} = of_fun.(value, value_type, stack, context)
+        {{key, type}, context}
+      end)
+
+    {closed_map([{:__struct__, atom([struct])} | args_types]), context}
+  end
+
+  @doc """
+  Returns `__info__(:struct)` information about a struct.
+  """
+  def struct_info(struct, meta, stack, context) do
+    case stack.no_warn_undefined do
+      %Macro.Env{} = env ->
+        case :elixir_map.maybe_load_struct_info(meta, struct, [], false, env) do
+          {:ok, info} -> {info, context}
+          {:error, desc} -> raise ArgumentError, List.to_string(:elixir_map.format_error(desc))
+        end
+
+      _ ->
+        # Fetch the signature to validate for warnings.
+        {_, context} = Module.Types.Apply.signature(struct, :__struct__, 0, meta, stack, context)
+
+        info =
+          struct.__info__(:struct) ||
+            raise "expected #{inspect(struct)} to return struct metadata, but got none"
+
+        {info, context}
+    end
+  end
+
+  @doc """
+  Builds a type from the struct info.
+  """
+  # TODO: This function should not receive args_types once
+  # we introduce typed structs. They are only used by exceptions.
+  def struct_type(struct, info, args_types \\ []) do
+    term = dynamic()
+    pairs = for %{field: field} <- info, do: {field, term}
+    pairs = [{:__struct__, atom([struct])} | pairs]
+    pairs = if args_types == [], do: pairs, else: pairs ++ args_types
+    closed_map(pairs)
   end
 
   ## Binary
@@ -143,223 +359,281 @@ defmodule Module.Types.Of do
   In the stack, we add nodes such as <<expr>>, <<..., expr>>, etc,
   based on the position of the expression within the binary.
   """
-  def binary([], _stack, context, _of_fun) do
-    {:ok, context}
+  def binary([], _kind, _stack, context) do
+    context
   end
 
-  def binary([head], stack, context, of_fun) do
-    head_stack = push_expr_stack({:<<>>, get_meta(head), [head]}, stack)
-    binary_segment(head, head_stack, context, of_fun)
+  def binary([head], kind, stack, context) do
+    binary_segment(head, kind, [head], stack, context)
   end
 
-  def binary([head | tail], stack, context, of_fun) do
-    head_stack = push_expr_stack({:<<>>, get_meta(head), [head, @suffix]}, stack)
+  def binary([head | tail], kind, stack, context) do
+    context = binary_segment(head, kind, [head, @suffix], stack, context)
+    binary_many(tail, kind, stack, context)
+  end
 
-    case binary_segment(head, head_stack, context, of_fun) do
-      {:ok, context} -> binary_many(tail, stack, context, of_fun)
-      {:error, reason} -> {:error, reason}
+  defp binary_many([last], kind, stack, context) do
+    binary_segment(last, kind, [@prefix, last], stack, context)
+  end
+
+  defp binary_many([head | tail], kind, stack, context) do
+    context = binary_segment(head, kind, [@prefix, head, @suffix], stack, context)
+    binary_many(tail, kind, stack, context)
+  end
+
+  # If the segment is a literal, the compiler has already checked its validity,
+  # so we just skip it.
+  defp binary_segment({:"::", _meta, [left, _right]}, _kind, _args, _stack, context)
+       when is_binary(left) or is_number(left) do
+    context
+  end
+
+  defp binary_segment({:"::", meta, [left, right]}, kind, args, stack, context) do
+    type = specifier_type(kind, right)
+    expr = {:<<>>, meta, args}
+
+    {actual, context} =
+      case kind do
+        :match ->
+          Module.Types.Pattern.of_match_var(left, type, expr, stack, context)
+
+        :guard ->
+          Module.Types.Pattern.of_guard(left, type, expr, stack, context)
+
+        :expr ->
+          left = annotate_interpolation(left, right)
+          Module.Types.Expr.of_expr(left, type, expr, stack, context)
+      end
+
+    if compatible?(actual, type) do
+      specifier_size(kind, right, stack, context)
+    else
+      error = {:badbinary, kind, meta, expr, type, actual, context}
+      error(error, meta, stack, context)
     end
   end
 
-  defp binary_many([last], stack, context, of_fun) do
-    last_stack = push_expr_stack({:<<>>, get_meta(last), [@prefix, last]}, stack)
-    binary_segment(last, last_stack, context, of_fun)
+  defp annotate_interpolation(
+         {{:., _, [String.Chars, :to_string]} = dot, meta, [arg]},
+         {:binary, _, nil}
+       ) do
+    {dot, [type_check: :interpolation] ++ meta, [arg]}
   end
 
-  defp binary_many([head | tail], stack, context, of_fun) do
-    head_stack = push_expr_stack({:<<>>, get_meta(head), [@prefix, head, @suffix]}, stack)
+  defp annotate_interpolation(left, _right) do
+    left
+  end
 
-    case binary_segment(head, head_stack, context, of_fun) do
-      {:ok, context} -> binary_many(tail, stack, context, of_fun)
-      {:error, reason} -> {:error, reason}
+  defp specifier_type(kind, {:-, _, [left, _right]}), do: specifier_type(kind, left)
+  defp specifier_type(:match, {:utf8, _, _}), do: @integer
+  defp specifier_type(:match, {:utf16, _, _}), do: @integer
+  defp specifier_type(:match, {:utf32, _, _}), do: @integer
+  defp specifier_type(:match, {:float, _, _}), do: @float
+  defp specifier_type(_kind, {:float, _, _}), do: @integer_or_float
+  defp specifier_type(_kind, {:utf8, _, _}), do: @integer_or_binary
+  defp specifier_type(_kind, {:utf16, _, _}), do: @integer_or_binary
+  defp specifier_type(_kind, {:utf32, _, _}), do: @integer_or_binary
+  defp specifier_type(_kind, {:integer, _, _}), do: @integer
+  defp specifier_type(_kind, {:bits, _, _}), do: @binary
+  defp specifier_type(_kind, {:bitstring, _, _}), do: @binary
+  defp specifier_type(_kind, {:bytes, _, _}), do: @binary
+  defp specifier_type(_kind, {:binary, _, _}), do: @binary
+  defp specifier_type(_kind, _specifier), do: @integer
+
+  defp specifier_size(kind, {:-, _, [left, right]}, stack, context) do
+    specifier_size(kind, right, stack, specifier_size(kind, left, stack, context))
+  end
+
+  defp specifier_size(:expr, {:size, _, [arg]} = expr, stack, context)
+       when not is_integer(arg) do
+    {actual, context} = Module.Types.Expr.of_expr(arg, integer(), expr, stack, context)
+    compatible_size(actual, expr, stack, context)
+  end
+
+  defp specifier_size(_pattern_or_guard, {:size, _, [arg]} = expr, stack, context)
+       when not is_integer(arg) do
+    {actual, context} = Module.Types.Pattern.of_guard(arg, integer(), expr, stack, context)
+    compatible_size(actual, expr, stack, context)
+  end
+
+  defp specifier_size(_kind, _specifier, _stack, context) do
+    context
+  end
+
+  defp compatible_size(actual, expr, stack, context) do
+    if compatible?(actual, integer()) do
+      context
+    else
+      error = {:badsize, expr, actual, context}
+      error(error, elem(expr, 1), stack, context)
     end
   end
 
-  defp binary_segment({:"::", _meta, [expr, specifiers]}, stack, context, of_fun) do
-    expected_type =
-      collect_binary_specifier(specifiers, &binary_type(stack.context, &1)) || :integer
-
-    utf? = collect_binary_specifier(specifiers, &utf_type?/1)
-    float? = collect_binary_specifier(specifiers, &float_type?/1)
-
-    # Special case utf and float specifiers because they can be two types as literals
-    # but only a specific type as a variable in a pattern
-    cond do
-      stack.context == :pattern and utf? and is_binary(expr) ->
-        {:ok, context}
-
-      stack.context == :pattern and float? and is_integer(expr) ->
-        {:ok, context}
-
-      true ->
-        with {:ok, type, context} <- of_fun.(expr, expected_type, stack, context),
-             {:ok, _type, context} <- unify(type, expected_type, stack, context),
-             do: {:ok, context}
-    end
-  end
-
-  # Collect binary type specifiers,
-  # from `<<pattern::integer-size(10)>>` collect `integer`
-  defp collect_binary_specifier({:-, _meta, [left, right]}, fun) do
-    collect_binary_specifier(left, fun) || collect_binary_specifier(right, fun)
-  end
-
-  defp collect_binary_specifier(other, fun) do
-    fun.(other)
-  end
-
-  defp binary_type(:expr, {:float, _, _}), do: {:union, [:integer, :float]}
-  defp binary_type(:expr, {:utf8, _, _}), do: {:union, [:integer, :binary]}
-  defp binary_type(:expr, {:utf16, _, _}), do: {:union, [:integer, :binary]}
-  defp binary_type(:expr, {:utf32, _, _}), do: {:union, [:integer, :binary]}
-  defp binary_type(:pattern, {:utf8, _, _}), do: :integer
-  defp binary_type(:pattern, {:utf16, _, _}), do: :integer
-  defp binary_type(:pattern, {:utf32, _, _}), do: :integer
-  defp binary_type(:pattern, {:float, _, _}), do: :float
-  defp binary_type(_context, {:integer, _, _}), do: :integer
-  defp binary_type(_context, {:bits, _, _}), do: :binary
-  defp binary_type(_context, {:bitstring, _, _}), do: :binary
-  defp binary_type(_context, {:bytes, _, _}), do: :binary
-  defp binary_type(_context, {:binary, _, _}), do: :binary
-  defp binary_type(_context, _specifier), do: nil
-
-  defp utf_type?({specifier, _, _}), do: specifier in [:utf8, :utf16, :utf32]
-  defp utf_type?(_), do: false
-
-  defp float_type?({:float, _, _}), do: true
-  defp float_type?(_), do: false
-
-  ## Remote
+  ## Modules
 
   @doc """
-  Handles remote calls.
+  Returns modules in a type.
+
+  The call information is used on report reporting.
   """
-  def remote(module, fun, arity, meta, context) when is_atom(module) do
-    # TODO: In the future we may want to warn for modules defined
-    # in the local context
-    if Keyword.get(meta, :context_module, false) do
-      context
-    else
-      ParallelChecker.preload_module(context.cache, module)
-      check_export(module, fun, arity, meta, context)
+  def modules(type, fun, arity, hints \\ [], expr, meta, stack, context) do
+    case atom_fetch(type) do
+      {_, mods} ->
+        {mods, context}
+
+      :error ->
+        warning = {:badmodule, expr, type, fun, arity, hints, context}
+        {[], error(warning, meta, stack, context)}
     end
   end
 
-  def remote(_module, _fun, _arity, _meta, context), do: context
+  ## Warning
 
-  defp check_export(module, fun, arity, meta, context) do
-    case ParallelChecker.fetch_export(context.cache, module, fun, arity) do
-      {:ok, mode, :def, reason} ->
-        check_deprecated(mode, module, fun, arity, reason, meta, context)
-
-      {:ok, mode, :defmacro, reason} ->
-        context = warn(meta, context, {:unrequired_module, module, fun, arity})
-        check_deprecated(mode, module, fun, arity, reason, meta, context)
-
-      {:error, :module} ->
-        if warn_undefined?(module, fun, arity, context) do
-          warn(meta, context, {:undefined_module, module, fun, arity})
-        else
-          context
-        end
-
-      {:error, :function} ->
-        if warn_undefined?(module, fun, arity, context) do
-          exports = ParallelChecker.all_exports(context.cache, module)
-          warn(meta, context, {:undefined_function, module, fun, arity, exports})
-        else
-          context
-        end
-    end
+  defp error(warning, meta, stack, context) do
+    error(__MODULE__, warning, meta, stack, context)
   end
 
-  defp check_deprecated(:elixir, module, fun, arity, reason, meta, context) do
-    if reason do
-      warn(meta, context, {:deprecated, module, fun, arity, reason})
-    else
-      context
-    end
+  def format_diagnostic({:refine_head_var, old_type, new_type, var, context}) do
+    traces = collect_traces(var, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          incompatible types assigned to #{format_var(var)}:
+
+              #{to_quoted_string(old_type)} !~ #{to_quoted_string(new_type)}
+          """,
+          format_traces(traces)
+        ])
+    }
   end
 
-  defp check_deprecated(:erlang, module, fun, arity, _reason, meta, context) do
-    case :otp_internal.obsolete(module, fun, arity) do
-      {:deprecated, string} when is_list(string) ->
-        reason = string |> List.to_string() |> :string.titlecase()
-        warn(meta, context, {:deprecated, module, fun, arity, reason})
+  def format_diagnostic({:badbinary, kind, meta, expr, expected_type, actual_type, context}) do
+    type = if kind == :match, do: "matching", else: "construction"
+    hints = if meta[:inferred_bitstring_spec], do: [:inferred_bitstring_spec], else: []
+    traces = collect_traces(expr, context)
 
-      {:deprecated, string, removal} when is_list(string) and is_list(removal) ->
-        reason = string |> List.to_string() |> :string.titlecase()
-        reason = "It will be removed in #{removal}. #{reason}"
-        warn(meta, context, {:deprecated, module, fun, arity, reason})
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          incompatible types in binary #{type}:
 
-      _ ->
-        context
-    end
+              #{expr_to_string(expr) |> indent(4)}
+
+          got type:
+
+              #{to_quoted_string(actual_type) |> indent(4)}
+
+          but expected type:
+
+              #{to_quoted_string(expected_type) |> indent(4)}
+          """,
+          format_traces(traces),
+          format_hints(hints)
+        ])
+    }
   end
 
-  # The protocol code dispatches to unknown modules, so we ignore them here.
-  #
-  #     try do
-  #       SomeProtocol.Atom.__impl__
-  #     rescue
-  #       ...
-  #     end
-  #
-  # But for protocols we don't want to traverse the protocol code anyway.
-  # TODO: remove this clause once we no longer traverse the protocol code.
-  defp warn_undefined?(_module, :__impl__, 1, _context), do: false
-  defp warn_undefined?(_module, :module_info, 0, _context), do: false
-  defp warn_undefined?(_module, :module_info, 1, _context), do: false
-  defp warn_undefined?(:erlang, :orelse, 2, _context), do: false
-  defp warn_undefined?(:erlang, :andalso, 2, _context), do: false
+  def format_diagnostic({:badsize, expr, type, context}) do
+    traces = collect_traces(expr, context)
 
-  defp warn_undefined?(_, _, _, %{no_warn_undefined: :all}) do
-    false
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          expected an integer in binary size:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          got type:
+
+              #{to_quoted_string(type) |> indent(4)}
+          """,
+          format_traces(traces)
+        ])
+    }
   end
 
-  defp warn_undefined?(module, fun, arity, context) do
-    not Enum.any?(context.no_warn_undefined, &(&1 == module or &1 == {module, fun, arity}))
+  def format_diagnostic({:badmodule, expr, type, fun, arity, hints, context}) do
+    traces = collect_traces(expr, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          expected a module (an atom) when invoking #{fun}/#{arity} in expression:
+
+              #{expr_to_string(expr) |> indent(4)}
+          """,
+          empty_if(dot_var?(expr), """
+
+          but got type:
+
+              #{to_quoted_string(type) |> indent(4)}
+          """),
+          format_traces(traces),
+          format_hints(hints)
+        ])
+    }
   end
 
-  defp warn(meta, context, warning) do
-    {fun, arity} = context.function
-    location = {context.file, meta, {context.module, fun, arity}}
-    %{context | warnings: [{__MODULE__, warning, location} | context.warnings]}
+  def format_diagnostic({:badmap, expr, type, key, context}) do
+    traces = collect_traces(expr, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          expected a map or struct when accessing .#{key} in expression:
+
+              #{expr_to_string(expr) |> indent(4)}
+          """,
+          empty_if(dot_var?(expr), """
+
+          but got type:
+
+              #{to_quoted_string(type) |> indent(4)}
+          """),
+          format_traces(traces),
+          format_hints([:dot])
+        ])
+    }
   end
 
-  ## Warning formatting
+  def format_diagnostic({:badkey, expr, type, key, context}) do
+    traces = collect_traces(expr, context)
 
-  def format_warning({:undefined_module, module, fun, arity}) do
-    [
-      Exception.format_mfa(module, fun, arity),
-      " is undefined (module ",
-      inspect(module),
-      " is not available or is yet to be defined)"
-    ]
+    %{
+      details: %{typing_traces: traces},
+      span: expr |> get_meta() |> :elixir_env.calculate_span(key) |> Keyword.get(:span),
+      message:
+        IO.iodata_to_binary([
+          """
+          unknown key .#{key} in expression:
+
+              #{expr_to_string(expr, collapse_structs: false) |> indent(4)}
+
+          the given type does not have the given key:
+
+              #{to_quoted_string(type, collapse_structs: false) |> indent(4)}
+          """,
+          format_traces(traces)
+        ])
+    }
   end
 
-  def format_warning({:undefined_function, module, fun, arity, exports}) do
-    [
-      Exception.format_mfa(module, fun, arity),
-      " is undefined or private",
-      UndefinedFunctionError.hint_for_loaded_module(module, fun, arity, exports)
-    ]
+  defp dot_var?(expr) do
+    match?({{:., _, [var, _fun]}, _, _args} when is_var(var), expr)
   end
 
-  def format_warning({:deprecated, module, fun, arity, reason}) do
-    [
-      Exception.format_mfa(module, fun, arity),
-      " is deprecated. ",
-      reason
-    ]
-  end
-
-  def format_warning({:unrequired_module, module, fun, arity}) do
-    [
-      "you must require ",
-      inspect(module),
-      " before invoking the macro ",
-      Exception.format_mfa(module, fun, arity)
-    ]
+  defp empty_if(condition, content) do
+    if condition, do: "", else: content
   end
 end

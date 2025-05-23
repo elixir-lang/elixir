@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Tasks.Compile.Yecc do
   use Mix.Task.Compiler
   alias Mix.Compilers.Erlang
@@ -52,7 +56,7 @@ defmodule Mix.Tasks.Compile.Yecc do
 
     yecc_options = project[:yecc_options] || []
 
-    unless is_list(yecc_options) do
+    if not is_list(yecc_options) do
       Mix.raise(":yecc_options should be a list of options, got: #{inspect(yecc_options)}")
     end
 
@@ -66,9 +70,9 @@ defmodule Mix.Tasks.Compile.Yecc do
 
   defp preload(project) do
     # TODO: Remove me in Elixir v2.0
-    unless :yecc in List.wrap(project[:compilers]) do
-      IO.warn(
-        "in order to compile .yrl files, you must add \"compilers: [:yecc] ++ Mix.compilers()\" to the \"def project\" section of your mix.exs"
+    if :yecc not in List.wrap(project[:compilers]) do
+      Mix.shell().error(
+        "warning: in order to compile .yrl files, you must add \"compilers: [:yecc] ++ Mix.compilers()\" to the \"def project\" section of #{project[:app]}'s mix.exs"
       )
     end
 

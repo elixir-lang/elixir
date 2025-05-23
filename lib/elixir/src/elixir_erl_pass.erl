@@ -1,6 +1,10 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 %% Translate Elixir quoted expressions to Erlang Abstract Format.
 -module(elixir_erl_pass).
--export([translate/3, translate_args/3]).
+-export([translate/3, translate_args/3, no_parens_remote/2, parens_map_field/2]).
 -include("elixir.hrl").
 
 %% =
@@ -185,9 +189,15 @@ translate({for, Meta, [_ | _] = Args}, _Ann, S) ->
   elixir_erl_for:translate(Meta, Args, S);
 
 translate({with, Meta, [_ | _] = Args}, _Ann, S) ->
+  Ann = ?ann(Meta),
   {Exprs, [{do, Do} | Opts]} = elixir_utils:split_last(Args),
-  {ElseClause, SE} = translate_with_else(Meta, Opts, S),
-  translate_with_do(Exprs, ?ann(Meta), Do, ElseClause, SE);
+  {ElseClause, MaybeFun, SE} = translate_with_else(Meta, Opts, S),
+  {Case, SD} = translate_with_do(Exprs, Ann, Do, ElseClause, SE),
+
+  case MaybeFun of
+    nil -> {Case, SD};
+    FunAssign -> {{block, Ann, [FunAssign, Case]}, SD}
+  end;
 
 %% Variables
 
@@ -231,12 +241,13 @@ translate({{'.', _, [Left, Right]}, Meta, []}, _Ann, S)
   TRight = {atom, Ann, Right},
 
   Generated = erl_anno:set_generated(true, Ann),
-  {Var, SV} = elixir_erl_var:build('_', SL),
+  {InnerVar, SI} = elixir_erl_var:build('_', SL),
+  TInnerVar = {var, Generated, InnerVar},
+  {Var, SV} = elixir_erl_var:build('_', SI),
   TVar = {var, Generated, Var},
 
   case proplists:get_value(no_parens, Meta, false) of
     true ->
-      TError = {tuple, Ann, [{atom, Ann, badkey}, TRight, TVar]},
       {{'case', Generated, TLeft, [
         {clause, Generated,
           [{map, Ann, [{map_field_exact, Ann, TRight, TVar}]}],
@@ -244,24 +255,20 @@ translate({{'.', _, [Left, Right]}, Meta, []}, _Ann, S)
           [TVar]},
         {clause, Generated,
           [TVar],
-          [[
-            ?remote(Generated, erlang, is_atom, [TVar]),
-            {op, Generated, '=/=', TVar, {atom, Generated, nil}},
-            {op, Generated, '=/=', TVar, {atom, Generated, true}},
-            {op, Generated, '=/=', TVar, {atom, Generated, false}}
-          ]],
-          [{call, Generated, {remote, Generated, TVar, TRight}, []}]},
-        {clause, Generated,
-          [TVar],
           [],
-          [?remote(Ann, erlang, error, [TError])]}
+          [{'case', Generated, ?remote(Generated, elixir_erl_pass, no_parens_remote, [TVar, TRight]), [
+            {clause, Generated,
+             [{tuple, Generated, [{atom, Generated, ok}, TInnerVar]}], [], [TInnerVar]},
+            {clause, Generated,
+             [{tuple, Generated, [{atom, Generated, error}, TInnerVar]}], [], [?remote(Ann, erlang, error, [TInnerVar])]}
+          ]}]}
       ]}, SV};
     false ->
       {{'case', Generated, TLeft, [
         {clause, Generated,
           [{map, Ann, [{map_field_exact, Ann, TRight, TVar}]}],
           [],
-          [TVar]},
+          [?remote(Generated, elixir_erl_pass, parens_map_field, [TRight, TVar])]},
         {clause, Generated,
           [TVar],
           [],
@@ -298,9 +305,16 @@ translate(Other, Ann, S) ->
 
 translate_case(Meta, Expr, Opts, S) ->
   Ann = ?ann(Meta),
-  Clauses = elixir_erl_clauses:get_clauses(do, Opts, match),
   {TExpr, SE} = translate(Expr, Ann, S),
-  {TClauses, SC} = elixir_erl_clauses:clauses(Clauses, SE),
+  Clauses = elixir_erl_clauses:get_clauses(do, Opts, match),
+  RClauses =
+    %% For constructs that optimize booleans, we mark them as generated
+    %% to avoid reports from the Erlang compiler but specially Dialyzer.
+    case lists:member({optimize_boolean, true}, Meta) of
+      true -> [{N, ?generated(M), H, B} || {N, M, H, B} <- Clauses];
+      false -> Clauses
+    end,
+  {TClauses, SC} = elixir_erl_clauses:clauses(RClauses, SE),
   {{'case', Ann, TExpr, TClauses}, SC}.
 
 translate_list([{'|', _, [Left, Right]}], Ann, List, Acc) ->
@@ -402,48 +416,39 @@ returns_boolean(Condition, Body) ->
 %% with
 
 translate_with_else(Meta, [], S) ->
-  Generated = ?ann(?generated(Meta)),
+  Ann = ?ann(Meta),
   {VarName, SC} = elixir_erl_var:build('_', S),
-  Var = {var, Generated, VarName},
-  {{clause, Generated, [Var], [], [Var]}, SC};
+  Var = {var, Ann, VarName},
+  Generated = erl_anno:set_generated(true, Ann),
+  {{clause, Generated, [Var], [], [Var]}, nil, SC};
 translate_with_else(Meta, [{'else', [{'->', _, [[{Var, VarMeta, Kind}], Clause]}]}], S) when is_atom(Var), is_atom(Kind) ->
   Ann = ?ann(Meta),
-  Generated = erl_anno:set_generated(true, Ann),
   {ElseVarErl, SV} = elixir_erl_var:translate(VarMeta, Var, Kind, S#elixir_erl{context=match}),
   {TranslatedClause, SC} = translate(Clause, Ann, SV#elixir_erl{context=nil}),
-  {{clause, Generated, [ElseVarErl], [], [TranslatedClause]}, SC};
+  Clauses = [{clause, Ann, [ElseVarErl], [], [TranslatedClause]}],
+  with_else_closure(Meta, Clauses, SC);
 translate_with_else(Meta, [{'else', Else}], S) ->
   Generated = ?generated(Meta),
-  {ElseVarEx, ElseVarErl, SE} = elixir_erl_var:assign(Generated, S),
-  {RaiseVar, _, SV} = elixir_erl_var:assign(Generated, SE),
+  {RaiseVar, _, SV} = elixir_erl_var:assign(Generated, S),
 
   RaiseExpr = {{'.', Generated, [erlang, error]}, Generated, [{else_clause, RaiseVar}]},
   RaiseClause = {'->', Generated, [[RaiseVar], RaiseExpr]},
-  GeneratedElse = [build_generated_clause(Generated, ElseClause) || ElseClause <- Else],
 
-  Case = {'case', Generated, [ElseVarEx, [{do, GeneratedElse ++ [RaiseClause]}]]},
-  {TranslatedCase, SC} = translate(Case, ?ann(Meta), SV),
-  {{clause, ?ann(Generated), [ElseVarErl], [], [TranslatedCase]}, SC}.
+  Clauses = elixir_erl_clauses:get_clauses('else', [{'else', Else ++ [RaiseClause]}], match),
+  {TranslatedClauses, SC} = elixir_erl_clauses:clauses(Clauses, SV#elixir_erl{extra=pin_guard}),
+  with_else_closure(Generated, TranslatedClauses, SC#elixir_erl{extra=SV#elixir_erl.extra}).
 
-build_generated_clause(Generated, {'->', _, [Args, Clause]}) ->
-  NewArgs = [build_generated_clause_arg(Generated, Arg) || Arg <- Args],
-  {'->', Generated, [NewArgs, Clause]}.
+with_else_closure(Meta, TranslatedClauses, S) ->
+  Ann = ?ann(Meta),
+  {_, FunErlVar, SC} = elixir_erl_var:assign(Meta, S),
+  {_, ArgErlVar, SA} = elixir_erl_var:assign(Meta, SC),
+  Generated = erl_anno:set_generated(true, Ann),
+  FunAssign = {match, Ann, FunErlVar, {'fun', Generated, {clauses, TranslatedClauses}}},
+  FunCall = {call, Ann, FunErlVar, [ArgErlVar]},
+  {{clause, Generated, [ArgErlVar], [], [FunCall]}, FunAssign, SA}.
 
-build_generated_clause_arg(Generated, Arg) ->
-  {Expr, Guards} = elixir_utils:extract_guards(Arg),
-  NewGuards = [build_generated_guard(Generated, Guard) || Guard <- Guards],
-  concat_guards(Generated, Expr, NewGuards).
-
-build_generated_guard(Generated, {{'.', _, _} = Call, _, Args}) ->
-  {Call, Generated, [build_generated_guard(Generated, Arg) || Arg <- Args]};
-build_generated_guard(_, Expr) ->
-  Expr.
-
-concat_guards(_Meta, Expr, []) ->
-  Expr;
-concat_guards(Meta, Expr, [Guard | Tail]) ->
-  {'when', Meta, [Expr, concat_guards(Meta, Guard, Tail)]}.
-
+translate_with_do([{'<-', Meta, [{Var, _, Ctx} = Left, Expr]} | Rest], Ann, Do, Else, S) when is_atom(Var), is_atom(Ctx) ->
+  translate_with_do([{'=', Meta, [Left, Expr]} | Rest], Ann, Do, Else, S);
 translate_with_do([{'<-', Meta, [Left, Expr]} | Rest], _Ann, Do, Else, S) ->
   Ann = ?ann(Meta),
   {Args, Guards} = elixir_utils:extract_guards(Left),
@@ -451,9 +456,8 @@ translate_with_do([{'<-', Meta, [Left, Expr]} | Rest], _Ann, Do, Else, S) ->
   {TArgs, SA} = elixir_erl_clauses:match(Ann, fun translate/3, Args, SR),
   TGuards = elixir_erl_clauses:guards(Ann, Guards, SA#elixir_erl.extra_guards, SA),
   {TBody, SB} = translate_with_do(Rest, Ann, Do, Else, SA#elixir_erl{extra_guards=[]}),
-
   Clause = {clause, Ann, [TArgs], TGuards, unblock(TBody)},
-  {{'case', erl_anno:set_generated(true, Ann), TExpr, [Clause, Else]}, SB};
+  {{'case', Ann, TExpr, [Clause, Else]}, SB};
 translate_with_do([Expr | Rest], Ann, Do, Else, S) ->
   {TExpr, TS} = translate(Expr, Ann, S),
   {TRest, RS} = translate_with_do(Rest, Ann, Do, Else, TS),
@@ -476,6 +480,7 @@ translate_struct(Ann, Name, {'%{}', _, [{'|', _, [Update, Assocs]}]}, S) ->
   Map = {map, Ann, [{map_field_exact, Ann, {atom, Ann, '__struct__'}, {atom, Ann, Name}}]},
 
   Match = {match, Ann, Var, Map},
+  %% Once this is removed, we should remove badstruct handling from elixir_erl_try
   Error = {tuple, Ann, [{atom, Ann, badstruct}, {atom, Ann, Name}, Var]},
 
   {TUpdate, TU} = translate(Update, Ann, VS),
@@ -612,23 +617,91 @@ translate_remote(maps, merge, Meta, [Map1, Map2], S) ->
   end;
 translate_remote(Left, Right, Meta, Args, S) ->
   Ann = ?ann(Meta),
-  {TLeft, SL} = translate(Left, Ann, S),
-  {TArgs, SA} = translate_args(Args, Ann, SL),
 
-  Arity  = length(Args),
-  TRight = {atom, Ann, Right},
-
-  %% Rewrite Erlang function calls as operators so they
-  %% work in guards, matches and so on.
-  case (Left == erlang) andalso elixir_utils:guard_op(Right, Arity) of
-    true ->
+  case rewrite_strategy(Left, Right, Args) of
+    guard_op ->
+      {TArgs, SA} = translate_args(Args, Ann, S),
+      %% Rewrite Erlang function calls as operators so they
+      %% work in guards, matches and so on.
       case TArgs of
         [TOne]       -> {{op, Ann, Right, TOne}, SA};
         [TOne, TTwo] -> {{op, Ann, Right, TOne, TTwo}, SA}
       end;
-    false ->
+    {inline_pure, Result} ->
+      translate(Result, Ann, S);
+    {inline_args, NewArgs} ->
+      {TLeft, SL} = translate(Left, Ann, S),
+      {TArgs, SA} = translate_args(NewArgs, Ann, SL),
+      TRight = {atom, Ann, Right},
+      {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, SA};
+    none ->
+      {TLeft, SL} = translate(Left, Ann, S),
+      {TArgs, SA} = translate_args(Args, Ann, SL),
+      TRight = {atom, Ann, Right},
       {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, SA}
   end.
+
+rewrite_strategy(erlang, Right, Args) ->
+  Arity  = length(Args),
+  case elixir_utils:guard_op(Right, Arity) of
+    true -> guard_op;
+    false -> none
+  end;
+rewrite_strategy(Left, shift, [Struct, Opts | RestArgs]) when
+  Left == 'Elixir.Date';
+  Left == 'Elixir.DateTime';
+  Left == 'Elixir.NaiveDateTime';
+  Left == 'Elixir.Time'
+->
+  case basic_type_arg(Opts) of
+    true ->
+      try
+        {inline_args, [Struct, Left:'__duration__!'(Opts) | RestArgs]}
+      catch _:_ ->
+        % fail silently, will fail at runtime
+        none
+      end;
+    false ->
+      none
+  end;
+rewrite_strategy(Left, Right, Args) ->
+  case inline_pure_function(Left, Right) andalso basic_type_arg(Args) of
+    true ->
+      try
+        {inline_pure, apply(Left, Right, Args)}
+      catch _:_ ->
+        % fail silently, will fail at runtime
+        none
+      end;
+    false ->
+      none
+  end.
+
+inline_pure_function('Elixir.Duration', 'new!') -> true;
+inline_pure_function('Elixir.MapSet', new) -> true;
+inline_pure_function('Elixir.String', length) -> true;
+inline_pure_function('Elixir.String', graphemes) -> true;
+inline_pure_function('Elixir.String', codepoints) -> true;
+inline_pure_function('Elixir.String', split) -> true;
+inline_pure_function('Elixir.Kernel', to_timeout) -> true;
+inline_pure_function('Elixir.URI', new) -> true;
+inline_pure_function('Elixir.URI', 'new!') -> true;
+inline_pure_function('Elixir.URI', parse) -> true;
+inline_pure_function('Elixir.URI', encode_query) -> true;
+inline_pure_function('Elixir.URI', encode_www_form) -> true;
+inline_pure_function('Elixir.URI', decode) -> true;
+inline_pure_function('Elixir.URI', decode_www_for) -> true;
+inline_pure_function('Elixir.Version', parse) -> true;
+inline_pure_function('Elixir.Version', 'parse!') -> true;
+inline_pure_function('Elixir.Version', parse_requirement) -> true;
+inline_pure_function('Elixir.Version', 'parse_requirement!') -> true;
+inline_pure_function(_Left, _Right) -> false.
+
+% we do not want to try and inline calls which might depend on protocols that might be overridden later
+basic_type_arg(Term) when is_number(Term); is_atom(Term); is_binary(Term) -> true;
+basic_type_arg(List) when is_list(List) -> lists:all(fun basic_type_arg/1, List);
+basic_type_arg({Left, Right}) -> basic_type_arg(Left) and basic_type_arg(Right);
+basic_type_arg(_) -> false.
 
 generate_struct_name_guard([{map_field_exact, Ann, {atom, _, '__struct__'} = Key, Var} | Rest], Acc, S0) ->
   {ModuleVarName, S1} = elixir_erl_var:build('_', S0),
@@ -640,3 +713,33 @@ generate_struct_name_guard([{map_field_exact, Ann, {atom, _, '__struct__'} = Key
   {lists:reverse(Acc, [{map_field_exact, Ann, Key, Match} | Rest]), S2};
 generate_struct_name_guard([Field | Rest], Acc, S) ->
   generate_struct_name_guard(Rest, [Field | Acc], S).
+
+%% TODO: Make this a runtime error on Elixir v2.0
+no_parens_remote(nil, _Key) -> {error, {badmap, nil}};
+no_parens_remote(false, _Key) -> {error, {badmap, false}};
+no_parens_remote(true, _Key) -> {error, {badmap, false}};
+no_parens_remote(Atom, Fun) when is_atom(Atom) ->
+  Message = fun() ->
+    io_lib:format(
+      "using map.field notation (without parentheses) to invoke function ~ts.~ts() is deprecated, "
+      "you must add parentheses instead: remote.function()",
+      [elixir_aliases:inspect(Atom), Fun]
+    )
+  end,
+  'Elixir.IO':warn_once(?MODULE, Message, 3),
+  {ok, apply(Atom, Fun, [])};
+no_parens_remote(#{} = Map, Key) ->
+  {error, {badkey, Key, Map}};
+no_parens_remote(Other, _Key) ->
+  {error, {badmap, Other}}.
+
+parens_map_field(Key, Value) ->
+  Message = fun() ->
+    io_lib:format(
+      "using module.function() notation (with parentheses) to fetch map field ~ts is deprecated, "
+      "you must remove the parentheses: map.field",
+      [elixir_aliases:inspect(Key)]
+    )
+  end,
+  'Elixir.IO':warn_once(?MODULE, Message, 3),
+  Value.

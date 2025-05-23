@@ -1,3 +1,7 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 -module(atom_test).
 -export([kv/1]).
 -include_lib("eunit/include/eunit.hrl").
@@ -17,7 +21,7 @@ atom_with_punctuation_test() ->
   {'...', []} = eval(":...").
 
 atom_quoted_call_test() ->
-  {3, []} = eval("Kernel.'+'(1, 2)").
+  {3, []} = eval("Kernel.\"+\"(1, 2)").
 
 kv_with_quotes_test() ->
   {'foo bar', []} = eval(":atom_test.kv(\"foo bar\": nil)").
@@ -29,7 +33,6 @@ kv_with_interpolation_test() ->
 
 quoted_atom_test() ->
   {'+', []} = eval(":\"+\""),
-  {'+', []} = eval(":'+'"),
   {'foo bar', []} = eval(":\"foo bar\"").
 
 atom_with_interpolation_test() ->

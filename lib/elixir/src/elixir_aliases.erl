@@ -1,6 +1,10 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 -module(elixir_aliases).
--export([inspect/1, last/1, concat/1, safe_concat/1, format_error/1,
-         ensure_loaded/3, expand/2, expand_or_concat/2, store/5]).
+-export([inspect/1, concat/1, safe_concat/1, format_error/1,
+         ensure_loaded/3, expand/4, expand_or_concat/4, alias/6, require/5]).
 -include("elixir.hrl").
 
 inspect(Atom) when is_atom(Atom) ->
@@ -9,12 +13,60 @@ inspect(Atom) when is_atom(Atom) ->
     false -> 'Elixir.Macro':inspect_atom(literal, Atom)
   end.
 
-%% Store an alias in the given scope
-store(Meta, New, New, _TOpts, #{aliases := Aliases, macro_aliases := MacroAliases}) ->
-  {remove_alias(New, Aliases), remove_macro_alias(Meta, New, MacroAliases)};
-store(Meta, New, Old, TOpts, #{aliases := Aliases, macro_aliases := MacroAliases} = E) ->
-  elixir_env:trace({alias, Meta, Old, New, TOpts}, E),
-  {store_alias(New, Old, Aliases), store_macro_alias(Meta, New, Old, MacroAliases)}.
+require(Meta, Ref, Opts, E, Trace) ->
+  Trace andalso elixir_env:trace({require, Meta, Ref, Opts}, E),
+  E#{requires := ordsets:add_element(Ref, ?key(E, requires))}.
+
+alias(Meta, Ref, IncludeByDefault, Opts, E, Trace) ->
+  #{aliases := Aliases, macro_aliases := MacroAliases} = E,
+
+  case expand_as(lists:keyfind(as, 1, Opts), IncludeByDefault, Ref) of
+    {ok, Ref} ->
+      {ok, false,
+       E#{aliases := remove_alias(Ref, Aliases),
+          macro_aliases := remove_macro_alias(Meta, Ref, MacroAliases)}};
+
+    {ok, New} ->
+      Trace andalso elixir_env:trace({alias, Meta, Ref, New, Opts}, E),
+      {ok, New,
+       E#{aliases := store_alias(New, Ref, Aliases),
+          macro_aliases := store_macro_alias(Meta, New, Ref, MacroAliases)}};
+
+    none ->
+      {ok, false, E};
+
+    {error, Reason} ->
+      {error, Reason}
+  end.
+
+expand_as({as, Atom}, _IncludeByDefault, _Ref) when is_atom(Atom), not is_boolean(Atom) ->
+  case atom_to_list(Atom) of
+    "Elixir." ++ ([FirstLetter | _] = Rest) when FirstLetter >= $A, FirstLetter =< $Z ->
+      case string:tokens(Rest, ".") of
+        [_] ->
+          {ok, Atom};
+        _ ->
+          {error, {invalid_alias_for_as, nested_alias, Atom}}
+      end;
+    _ ->
+      {error, {invalid_alias_for_as, not_alias, Atom}}
+  end;
+expand_as({as, Other}, _IncludeByDefault, _Ref) ->
+  {error, {invalid_alias_for_as, not_alias, Other}};
+expand_as(false, true, Ref) ->
+  case atom_to_list(Ref) of
+    ("Elixir." ++ [FirstLetter | _]) = List when FirstLetter >= $A, FirstLetter =< $Z ->
+      Last = last(lists:reverse(List), []),
+      {ok, list_to_atom("Elixir." ++ Last)};
+    _ ->
+      {error, {invalid_alias_module, Ref}}
+  end;
+expand_as(false, false, _Ref) ->
+  none.
+
+last([$. | _], Acc) -> Acc;
+last([H | T], Acc)  -> last(T, [H | Acc]);
+last([], Acc)       -> Acc.
 
 store_alias(New, Old, Aliases) ->
   lists:keystore(New, 1, Aliases, {New, Old}).
@@ -41,20 +93,23 @@ remove_macro_alias(Meta, Atom, Aliases) ->
 %% Expand an alias. It returns an atom (meaning that there
 %% was an expansion) or a list of atoms.
 
-expand({'__aliases__', _Meta, ['Elixir' | _] = List}, _E) ->
-  concat(List);
+expand(_Meta, ['Elixir' | _] = List, _E, _Trace) ->
+  List;
 
-expand({'__aliases__', Meta, _} = Alias, #{aliases := Aliases, macro_aliases := MacroAliases} = E) ->
+expand(_Meta, [H | _] = List, _E, _Trace) when not is_atom(H) ->
+  List;
+
+expand(Meta, List, #{aliases := Aliases, macro_aliases := MacroAliases} = E, Trace) ->
   case lists:keyfind(alias, 1, Meta) of
     {alias, false} ->
-      expand(Alias, MacroAliases, E);
+      expand(Meta, List, MacroAliases, E, Trace);
     {alias, Atom} when is_atom(Atom) ->
       Atom;
     false ->
-      expand(Alias, Aliases, E)
+      expand(Meta, List, Aliases, E, Trace)
   end.
 
-expand({'__aliases__', Meta, [H | T]}, Aliases, E) when is_atom(H) ->
+expand(Meta, [H | T], Aliases, E, Trace) ->
   Lookup  = list_to_atom("Elixir." ++ atom_to_list(H)),
 
   Counter = case lists:keyfind(counter, 1, Meta) of
@@ -65,20 +120,17 @@ expand({'__aliases__', Meta, [H | T]}, Aliases, E) when is_atom(H) ->
   case lookup(Lookup, Aliases, Counter) of
     Lookup -> [H | T];
     Atom ->
-      elixir_env:trace({alias_expansion, Meta, Lookup, Atom}, E),
+      Trace andalso elixir_env:trace({alias_expansion, Meta, Lookup, Atom}, E),
       case T of
         [] -> Atom;
         _  -> concat([Atom | T])
       end
-  end;
-
-expand({'__aliases__', _Meta, List}, _Aliases, _E) ->
-  List.
+  end.
 
 %% Expands or concat if possible.
 
-expand_or_concat(Aliases, E) ->
-  case expand(Aliases, E) of
+expand_or_concat(Meta, List, E, Trace) ->
+  case expand(Meta, List, E, Trace) of
     [H | T] when is_atom(H) -> concat([H | T]);
     AtomOrList -> AtomOrList
   end.
@@ -116,21 +168,6 @@ wait_for_module(Module) ->
     undefined -> not_found;
     _ -> 'Elixir.Kernel.ErrorHandler':ensure_compiled(Module, module, hard)
   end.
-
-%% Receives an atom and returns the last bit as an alias.
-
-last(Atom) ->
-  case atom_to_list(Atom) of
-    ("Elixir." ++ [FirstLetter | _]) = List when FirstLetter >= $A, FirstLetter =< $Z ->
-      Last = last(lists:reverse(List), []),
-      {ok, list_to_atom("Elixir." ++ Last)};
-    _ ->
-      error
-  end.
-
-last([$. | _], Acc) -> Acc;
-last([H | T], Acc)  -> last(T, [H | Acc]);
-last([], Acc)       -> Acc.
 
 %% Receives a list of atoms, binaries or lists
 %% representing modules and concatenates them.
@@ -170,6 +207,19 @@ lookup(Else, List, Counter) ->
   end.
 
 %% Errors
+
+format_error({invalid_alias_module, Ref}) ->
+  io_lib:format("alias cannot be inferred automatically for module: ~ts, please use the :as option. Implicit aliasing is only supported with Elixir modules",
+                ['Elixir.Macro':to_string(Ref)]);
+
+format_error({invalid_alias_for_as, Reason, Value}) ->
+  ExpectedGot =
+    case Reason of
+      not_alias -> "expected an alias, got";
+      nested_alias -> "expected a simple alias, got nested alias"
+    end,
+  io_lib:format("invalid value for option :as, ~ts: ~ts",
+                [ExpectedGot, 'Elixir.Macro':to_string(Value)]);
 
 format_error({unloaded_module, Module}) ->
   io_lib:format("module ~ts is not loaded and could not be found", [inspect(Module)]);

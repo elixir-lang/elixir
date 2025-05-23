@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule MapTest do
@@ -6,8 +10,7 @@ defmodule MapTest do
   doctest Map
 
   @sample %{a: 1, b: 2}
-
-  defp sample, do: @sample
+  defp sample, do: Process.get(:unused, %{a: 1, b: 2})
 
   test "maps in attributes" do
     assert @sample == %{a: 1, b: 2}
@@ -82,7 +85,7 @@ defmodule MapTest do
 
   test "map_size/1" do
     assert map_size(%{}) == 0
-    assert map_size(@sample) == 2
+    assert map_size(sample()) == 2
   end
 
   test "new/1" do
@@ -222,11 +225,11 @@ defmodule MapTest do
     assert Map.replace!(map, :b, 10) == %{c: 3, b: 10, a: 1}
     assert Map.replace!(map, :a, 1) == map
 
-    assert_raise KeyError, ~r/key :x not found in: %{.*a: 1.*}/, fn ->
+    assert_raise KeyError, ~r/key :x not found in:\n\n    %{.*a: 1.*}/, fn ->
       Map.replace!(map, :x, 10)
     end
 
-    assert_raise KeyError, "key :x not found in: %{}", fn ->
+    assert_raise KeyError, "key :x not found in:\n\n    %{}", fn ->
       Map.replace!(%{}, :x, 10)
     end
   end
@@ -279,31 +282,15 @@ defmodule MapTest do
   end
 
   defmodule ExternalUser do
-    def __struct__ do
-      %{__struct__: __MODULE__, name: "john", age: 27}
-    end
-
-    def __struct__(kv) do
-      Enum.reduce(kv, __struct__(), fn {k, v}, acc -> :maps.update(k, v, acc) end)
-    end
+    defstruct name: "john", age: 27
   end
-
-  defp empty_map(), do: %{}
 
   test "structs" do
     assert %ExternalUser{} == %{__struct__: ExternalUser, name: "john", age: 27}
-
     assert %ExternalUser{name: "meg"} == %{__struct__: ExternalUser, name: "meg", age: 27}
-
-    user = %ExternalUser{}
-    assert %ExternalUser{user | name: "meg"} == %{__struct__: ExternalUser, name: "meg", age: 27}
 
     %ExternalUser{name: name} = %ExternalUser{}
     assert name == "john"
-
-    assert_raise BadStructError, "expected a struct named MapTest.ExternalUser, got: %{}", fn ->
-      %ExternalUser{empty_map() | name: "meg"}
-    end
   end
 
   describe "structs with variable name" do
@@ -331,12 +318,11 @@ defmodule MapTest do
       end
     end
 
-    defp foo(), do: "foo"
     defp destruct1(%module{}), do: module
     defp destruct2(%_{}), do: :ok
 
     test "does not match" do
-      invalid_struct = %{__struct__: foo()}
+      invalid_struct = Process.get(:unused, %{__struct__: "foo"})
 
       assert_raise CaseClauseError, fn ->
         case invalid_struct do
@@ -351,7 +337,7 @@ defmodule MapTest do
       end
 
       assert_raise CaseClauseError, fn ->
-        foo = foo()
+        foo = Process.get(:unused, "foo")
 
         case invalid_struct do
           %^foo{} -> :ok
@@ -376,7 +362,7 @@ defmodule MapTest do
       end
 
       assert_raise MatchError, fn ->
-        foo = foo()
+        foo = Process.get(:unused, "foo")
         %^foo{} = invalid_struct
       end
     end
@@ -407,6 +393,15 @@ defmodule MapTest do
       end
 
     assert quoted == {:%, [], [User, {:%{}, [], [{:foo, 1}]}]}
+  end
+
+  test "structs with bitstring defaults" do
+    defmodule WithBitstring do
+      defstruct bitstring: <<255, 127::7>>
+    end
+
+    info = Macro.struct_info!(WithBitstring, __ENV__)
+    assert info == [%{default: <<255, 127::7>>, field: :bitstring}]
   end
 
   test "defstruct can only be used once in a module" do

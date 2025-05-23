@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule ExUnit.DiffTest do
@@ -8,6 +12,10 @@ defmodule ExUnit.DiffTest do
 
   defmodule User do
     defstruct [:name, :age]
+  end
+
+  defmodule Customer do
+    defstruct [:address, :age, :first_name, :language, :last_name, :notifications]
   end
 
   defmodule Person do
@@ -126,10 +134,11 @@ defmodule ExUnit.DiffTest do
     assert env_binding == expected_binding
   end
 
+  @terminal_width 80
   defp to_diff(side, sign) do
     side
     |> Diff.to_algebra(&diff_wrapper(&1, sign))
-    |> Algebra.format(:infinity)
+    |> Algebra.format(@terminal_width)
     |> IO.iodata_to_binary()
   end
 
@@ -228,6 +237,7 @@ defmodule ExUnit.DiffTest do
     refute_diff([:a, :b, :c] = [:a, :b, :x], "[:a, :b, -:c-]", "[:a, :b, +:x+]")
     refute_diff([:a, :x, :c] = [:a, :b, :c], "[:a, -:x-, :c]", "[:a, +:b+, :c]")
     refute_diff([:a, :d, :b, :c] = [:a, :b, :c, :d], "[:a, -:d-, :b, :c]", "[:a, :b, :c, +:d+]")
+    refute_diff([:b, :c] = [:a, :b, :c], "[:b, :c]", "[+:a+, :b, :c]")
 
     refute_diff([:a, :b, :c] = [:a, :b, []], "[:a, :b, -:c-]", "[:a, :b, +[]+]")
     refute_diff([:a, :b, []] = [:a, :b, :c], "[:a, :b, -[]-]", "[:a, :b, +:c+]")
@@ -251,7 +261,12 @@ defmodule ExUnit.DiffTest do
     refute_diff([:a, [:c, :b]] = [:a, [:b, :c]], "[:a, [-:c-, :b]]", "[:a, [:b, +:c+]]")
     refute_diff(:a = [:a, [:b, :c]], "-:a-", "+[:a, [:b, :c]]+")
 
-    pins = %{{:a, nil} => :a, {:b, nil} => :b, {:list_ab, nil} => [:a, :b]}
+    pins = %{
+      {:a, nil} => :a,
+      {:b, nil} => :b,
+      {:list_ab, nil} => [:a, :b],
+      {:list_tuple, nil} => [{:foo}]
+    }
 
     assert_diff(x = [], [x: []], pins)
     assert_diff(x = [:a, :b], [x: [:a, :b]], pins)
@@ -282,6 +297,9 @@ defmodule ExUnit.DiffTest do
 
     refute_diff([:a, :b] = :a, "-[:a, :b]-", "+:a+")
     refute_diff([:foo] = [:foo, {:a, :b, :c}], "[:foo]", "[:foo, +{:a, :b, :c}+]")
+
+    refute_diff([{:foo}] = [{:bar}], "[{-:foo-}]", "[{+:bar+}]")
+    refute_diff(^list_tuple = [{:bar}], "-^list_tuple-", "[{+:bar+}]", pins)
   end
 
   test "improper lists" do
@@ -317,6 +335,8 @@ defmodule ExUnit.DiffTest do
       "[[[[], \"Hello-,- \"] | \"world\"] | \"!\"]",
       "[[[[], \"Hello \"] | \"world\"] | \"!\"]"
     )
+
+    refute_diff(:foo = %{bar: [:a | :b]}, "", "")
   end
 
   test "proper lists" do
@@ -337,7 +357,7 @@ defmodule ExUnit.DiffTest do
     )
 
     refute_diff([:a, :b | [:c]] = [:a, :b], "[:a, :b | [-:c-]]", "[:a, :b]")
-    refute_diff([:a, :b | []] = [:a, :b, :c], "[:a, :b | -[]-]", "[:a, :b, +:c+]")
+    refute_diff([:a, :b | []] = [:a, :b, :c], "[:a, :b | []]", "[:a, :b, +:c+]")
     refute_diff([:a, :b | [:c, :d]] = [:a, :b, :c], "[:a, :b | [:c, -:d-]]", "[:a, :b, :c]")
     refute_diff([:a, :b | [:c, :d]] = [:a], "[:a, -:b- | [-:c-, -:d-]]", "[:a]")
 
@@ -567,6 +587,12 @@ defmodule ExUnit.DiffTest do
     refute_diff(%{a: 1, b: 12} == %{a: 1, b: 2}, "%{a: 1, b: -1-2}", "%{a: 1, b: 2}")
     refute_diff(%{a: 1, b: 2} == %{a: 1, b: 12}, "%{a: 1, b: 2}", "%{a: 1, b: +1+2}")
     refute_diff(%{a: 1, b: 2} == %{a: 1, c: 2}, "%{a: 1, -b: 2-}", "%{a: 1, +c: 2+}")
+
+    refute_diff(
+      %{name: {:a, :b, :c}} == :error,
+      "-%{name: {:a, :b, :c}}",
+      "+:error+"
+    )
   end
 
   test "structs" do
@@ -674,13 +700,49 @@ defmodule ExUnit.DiffTest do
     refute_diff(
       %User{age: %Date{}} = struct,
       ~s/%ExUnit.DiffTest.User{age: %-Date-{}}/,
-      ~s/%ExUnit.DiffTest.User{age: %+DateTime+{calendar: Calendar.ISO, day: 30, hour: 13, microsecond: {253158, 6}, minute: 49, month: 7, second: 59, std_offset: 0, time_zone: "Etc\/UTC", utc_offset: 0, year: 2020, zone_abbr: "UTC"}, name: nil}/
+      """
+      %ExUnit.DiffTest.User{
+        age: %+DateTime+{
+          calendar: Calendar.ISO,
+          day: 30,
+          hour: 13,
+          microsecond: {253158, 6},
+          minute: 49,
+          month: 7,
+          second: 59,
+          std_offset: 0,
+          time_zone: "Etc\/UTC",
+          utc_offset: 0,
+          year: 2020,
+          zone_abbr: "UTC"
+        },
+        name: nil
+      }\
+      """
     )
 
     refute_diff(
       %{age: %Date{}} = struct,
       ~s/%{age: %-Date-{}}/,
-      ~s/%ExUnit.DiffTest.User{age: %+DateTime+{calendar: Calendar.ISO, day: 30, hour: 13, microsecond: {253158, 6}, minute: 49, month: 7, second: 59, std_offset: 0, time_zone: "Etc\/UTC", utc_offset: 0, year: 2020, zone_abbr: "UTC"}, name: nil}/
+      """
+      %ExUnit.DiffTest.User{
+        age: %+DateTime+{
+          calendar: Calendar.ISO,
+          day: 30,
+          hour: 13,
+          microsecond: {253158, 6},
+          minute: 49,
+          month: 7,
+          second: 59,
+          std_offset: 0,
+          time_zone: \"Etc/UTC\",
+          utc_offset: 0,
+          year: 2020,
+          zone_abbr: \"UTC\"
+        },
+        name: nil
+      }\
+      """
     )
   end
 
@@ -826,6 +888,106 @@ defmodule ExUnit.DiffTest do
       "%{-__struct__: Date-, -unknown: :field-}",
       "%{}"
     )
+  end
+
+  test "maps in lists" do
+    map = %{
+      "address" => %{
+        "street" => "123 Main St",
+        "zip" => "62701"
+      },
+      "age" => 30,
+      "first_name" => "John",
+      "language" => "en-US",
+      "last_name" => "Doe",
+      "notifications" => true
+    }
+
+    refute_diff(
+      [map] == [],
+      """
+      [
+        -%{
+          "address" => %{"street" => "123 Main St", "zip" => "62701"},
+          "age" => 30,
+          "first_name" => "John",
+          "language" => "en-US",
+          "last_name" => "Doe",
+          "notifications" => true
+        }-
+      ]\
+      """,
+      "[]"
+    )
+
+    refute_diff(
+      [] == [map],
+      "[]",
+      """
+      [
+        +%{
+          "address" => %{"street" => "123 Main St", "zip" => "62701"},
+          "age" => 30,
+          "first_name" => "John",
+          "language" => "en-US",
+          "last_name" => "Doe",
+          "notifications" => true
+        }+
+      ]\
+      """
+    )
+
+    assert_diff([map] == [map], [])
+  end
+
+  test "structs in lists" do
+    customer = %Customer{
+      address: %{
+        "street" => "123 Main St",
+        "zip" => "62701"
+      },
+      age: 30,
+      first_name: "John",
+      language: "en-US",
+      last_name: "Doe",
+      notifications: true
+    }
+
+    refute_diff(
+      [customer] == [],
+      """
+      [
+        -%ExUnit.DiffTest.Customer{
+          address: %{"street" => "123 Main St", "zip" => "62701"},
+          age: 30,
+          first_name: "John",
+          language: "en-US",
+          last_name: "Doe",
+          notifications: true
+        }-
+      ]\
+      """,
+      "[]"
+    )
+
+    refute_diff(
+      [] == [customer],
+      "[]",
+      """
+      [
+        +%ExUnit.DiffTest.Customer{
+          address: %{"street" => "123 Main St", "zip" => "62701"},
+          age: 30,
+          first_name: "John",
+          language: "en-US",
+          last_name: "Doe",
+          notifications: true
+        }+
+      ]\
+      """
+    )
+
+    assert_diff([customer] == [customer], [])
   end
 
   test "maps and structs with escaped values" do
@@ -978,6 +1140,12 @@ defmodule ExUnit.DiffTest do
       "-<<trap::binary-size(3)>> <> \"baz\"-",
       "+\"foobar\"+"
     )
+
+    refute_diff(
+      "hello " <> <<_::binary-size(6)>> = "hello world",
+      "\"hello \" <> -<<_::binary-size(6)>>-",
+      "\"hello +world+\""
+    )
   end
 
   test "underscore" do
@@ -1074,8 +1242,18 @@ defmodule ExUnit.DiffTest do
 
     refute_diff(
       {ref1, ref2} == {ref2, ref1},
-      "{-#{inspect_ref1}-, -#{inspect_ref2}-}",
-      "{+#{inspect_ref2}+, +#{inspect_ref1}+}"
+      """
+      {
+        -#{inspect_ref1}-,
+        -#{inspect_ref2}-
+      }\
+      """,
+      """
+      {
+        +#{inspect_ref2}+,
+        +#{inspect_ref1}+
+      }\
+      """
     )
 
     refute_diff(
@@ -1092,7 +1270,16 @@ defmodule ExUnit.DiffTest do
 
     refute_diff(ref1 == :a, "-#{inspect_ref1}-", "+:a+")
     refute_diff({ref1, ref2} == :a, "-{#{inspect_ref1}, #{inspect_ref2}}", "+:a+")
-    refute_diff(%{ref1 => ref2} == :a, "-%{#{inspect_ref1} => #{inspect_ref2}}", "+:a+")
+
+    refute_diff(
+      %{ref1 => ref2} == :a,
+      """
+      -%{
+        #{inspect_ref1} => #{inspect_ref2}
+      }\
+      """,
+      "+:a+"
+    )
 
     refute_diff(
       %Opaque{data: ref1} == :a,
@@ -1133,7 +1320,16 @@ defmodule ExUnit.DiffTest do
     refute_diff(identity == :a, "-#{inspect}-", "+:a+")
     refute_diff({identity, identity} == :a, "-{#{inspect}, #{inspect}}", "+:a+")
     refute_diff({identity, :a} == {:a, identity}, "{-#{inspect}-, -:a-}", "{+:a+, +#{inspect}+}")
-    refute_diff(%{identity => identity} == :a, "-%{#{inspect} => #{inspect}}", "+:a+")
+
+    refute_diff(
+      %{identity => identity} == :a,
+      """
+      -%{
+        #{inspect} => #{inspect}
+      }-\
+      """,
+      "+:a+"
+    )
 
     refute_diff(
       (&String.to_charlist/1) == (&String.unknown/1),

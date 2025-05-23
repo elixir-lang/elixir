@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule SupervisorTest do
@@ -250,7 +254,7 @@ defmodule SupervisorTest do
     end
   end
 
-  test "child life-cycle" do
+  test "child life cycle" do
     {:ok, pid} = Supervisor.start_link([], strategy: :one_for_one)
 
     assert Supervisor.which_children(pid) == []
@@ -277,7 +281,7 @@ defmodule SupervisorTest do
   end
 
   defp wait_until_registered(name) do
-    unless Process.whereis(name) do
+    if !Process.whereis(name) do
       wait_until_registered(name)
     end
   end

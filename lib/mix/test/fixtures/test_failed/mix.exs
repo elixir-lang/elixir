@@ -5,7 +5,7 @@ defmodule TestFailed.MixProject do
     [
       app: :test_only_failures,
       version: "0.0.1",
-      test_pattern: "*_test_failed.exs"
+      test_load_filters: [~r/.*_test_failed\.exs/]
     ]
   end
 end

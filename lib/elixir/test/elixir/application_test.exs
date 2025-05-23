@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule ApplicationTest do
@@ -78,6 +82,7 @@ defmodule ApplicationTest do
       assert Application.put_env(:elixir, :unknown, nested: [key: :value]) == :ok
 
       assert compile_env(@app, :unknown, :default) == [nested: [key: :value]]
+      assert_received {:compile_env, :elixir, [:unknown], {:ok, [nested: [key: :value]]}}
       assert compile_env(:elixir, :unknown, :default) == [nested: [key: :value]]
       assert_received {:compile_env, :elixir, [:unknown], {:ok, [nested: [key: :value]]}}
 
@@ -85,6 +90,7 @@ defmodule ApplicationTest do
       assert_received {:compile_env, :elixir, [:unknown], {:ok, [nested: [key: :value]]}}
 
       assert compile_env!(@app, :unknown) == [nested: [key: :value]]
+      assert_received {:compile_env, :elixir, [:unknown], {:ok, [nested: [key: :value]]}}
       assert compile_env!(:elixir, :unknown) == [nested: [key: :value]]
       assert_received {:compile_env, :elixir, [:unknown], {:ok, [nested: [key: :value]]}}
 

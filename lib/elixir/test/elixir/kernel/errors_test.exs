@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Kernel.ErrorsTest do
@@ -49,7 +53,7 @@ defmodule Kernel.ErrorsTest do
   test "undefined function" do
     assert_compile_error(
       [
-        "hello.ex:4: ",
+        "hello.ex:4:5: ",
         "undefined function bar/0 (expected Kernel.ErrorsTest.BadForm to define such a function or for it to be imported, but none are available)"
       ],
       ~c"""
@@ -123,6 +127,17 @@ defmodule Kernel.ErrorsTest do
     )
   end
 
+  test "undefined function within unused function" do
+    assert_compile_error(
+      ["nofile:2:8", "undefined function bar/0"],
+      ~c"""
+      defmodule Sample do
+        defp foo, do: bar()
+      end
+      """
+    )
+  end
+
   test "undefined non-local function" do
     assert_compile_error(
       ["nofile:1:1", "undefined function call/2 (there is no such import)"],
@@ -144,11 +159,27 @@ defmodule Kernel.ErrorsTest do
     )
   end
 
+  test "recursive variables on definition" do
+    assert_compile_error(
+      [
+        "nofile:2:7: ",
+        "recursive variable definition in patterns:",
+        "foo(x = y, y = z, z = x)",
+        "the following variables form a cycle: \"x\", \"y\", \"z\""
+      ],
+      ~c"""
+      defmodule Kernel.ErrorsTest.RecursiveVars do
+        def foo(x = y, y = z, z = x), do: {x, y, z}
+      end
+      """
+    )
+  end
+
   test "function without definition" do
     assert_compile_error(
-      ["nofile:2: ", "implementation not provided for predefined def foo/0"],
+      ["nofile:2:7: ", "implementation not provided for predefined def foo/0"],
       ~c"""
-      defmodule Kernel.ErrorsTest.FunctionWithoutDefition do
+      defmodule Kernel.ErrorsTest.FunctionWithoutDefinition do
         def foo
       end
       """
@@ -174,9 +205,9 @@ defmodule Kernel.ErrorsTest do
 
   test "guard without definition" do
     assert_compile_error(
-      ["nofile:2: ", "implementation not provided for predefined defmacro foo/1"],
+      ["nofile:2:12: ", "implementation not provided for predefined defmacro foo/1"],
       ~c"""
-      defmodule Kernel.ErrorsTest.GuardWithoutDefition do
+      defmodule Kernel.ErrorsTest.GuardWithoutDefinition do
         defguard foo(bar)
       end
       """
@@ -185,7 +216,7 @@ defmodule Kernel.ErrorsTest do
 
   test "literal on map and struct" do
     assert_compile_error(
-      ["nofile:1:11", "expected key-value pairs in a map, got: put_in(foo.bar.baz, nil)"],
+      ["nofile:1:10", "expected key-value pairs in a map, got: put_in(foo.bar.baz, nil)"],
       ~c"foo = 1; %{put_in(foo.bar.baz, nil), foo}"
     )
   end
@@ -223,7 +254,7 @@ defmodule Kernel.ErrorsTest do
       )
 
       assert_compile_error(
-        ["nofile:1:1", "BadStruct.__struct__/0 is undefined, cannot expand struct BadStruct"],
+        ["nofile:1:1", "BadStruct.__struct__/1 is undefined, cannot expand struct BadStruct"],
         ~c"%BadStruct{} = %{}"
       )
 
@@ -233,21 +264,9 @@ defmodule Kernel.ErrorsTest do
       defmodule BadStructType do
         def __struct__, do: :invalid
         def __struct__(_), do: :invalid
-
-        assert_raise ArgumentError, bad_struct_type_error, fn ->
-          Macro.struct!(__MODULE__, __ENV__)
-        end
       end
 
-      assert_compile_error(
-        bad_struct_type_error,
-        ~c"%#{BadStructType}{} = %{}"
-      )
-
-      assert_compile_error(
-        bad_struct_type_error,
-        ~c"%#{BadStructType}{}"
-      )
+      assert_compile_error(bad_struct_type_error, ~c"%#{BadStructType}{}")
 
       assert_raise ArgumentError, bad_struct_type_error, fn ->
         struct(BadStructType)
@@ -282,21 +301,9 @@ defmodule Kernel.ErrorsTest do
       defmodule MissingStructKey do
         def __struct__, do: %{}
         def __struct__(_), do: %{}
-
-        assert_raise ArgumentError, missing_struct_key_error, fn ->
-          Macro.struct!(__MODULE__, __ENV__)
-        end
       end
 
-      assert_compile_error(
-        missing_struct_key_error,
-        ~c"%#{MissingStructKey}{} = %{}"
-      )
-
-      assert_compile_error(
-        missing_struct_key_error,
-        ~c"%#{MissingStructKey}{}"
-      )
+      assert_compile_error(missing_struct_key_error, ~c"%#{MissingStructKey}{}")
 
       assert_raise ArgumentError, missing_struct_key_error, fn ->
         struct(MissingStructKey)
@@ -312,21 +319,9 @@ defmodule Kernel.ErrorsTest do
       defmodule InvalidStructKey do
         def __struct__, do: %{__struct__: 1}
         def __struct__(_), do: %{__struct__: 1}
-
-        assert_raise ArgumentError, invalid_struct_key_error, fn ->
-          Macro.struct!(__MODULE__, __ENV__)
-        end
       end
 
-      assert_compile_error(
-        invalid_struct_key_error,
-        ~c"%#{InvalidStructKey}{} = %{}"
-      )
-
-      assert_compile_error(
-        invalid_struct_key_error,
-        ~c"%#{InvalidStructKey}{}"
-      )
+      assert_compile_error(invalid_struct_key_error, ~c"%#{InvalidStructKey}{}")
 
       assert_raise ArgumentError, invalid_struct_key_error, fn ->
         struct(InvalidStructKey)
@@ -344,21 +339,9 @@ defmodule Kernel.ErrorsTest do
       defmodule InvalidStructName do
         def __struct__, do: %{__struct__: InvalidName}
         def __struct__(_), do: %{__struct__: InvalidName}
-
-        assert_raise ArgumentError, invalid_struct_name_error, fn ->
-          Macro.struct!(__MODULE__, __ENV__)
-        end
       end
 
-      assert_compile_error(
-        invalid_struct_name_error,
-        ~c"%#{InvalidStructName}{} = %{}"
-      )
-
-      assert_compile_error(
-        invalid_struct_name_error,
-        ~c"%#{InvalidStructName}{}"
-      )
+      assert_compile_error(invalid_struct_name_error, ~c"%#{InvalidStructName}{}")
 
       assert_raise ArgumentError, invalid_struct_name_error, fn ->
         struct(InvalidStructName)
@@ -463,7 +446,7 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid case clauses" do
     assert_compile_error(
-      ["nofile:1:1", "expected one argument for :do clauses (->) in \"case\""],
+      ["nofile:1:37", "expected one argument for :do clauses (->) in \"case\""],
       ~c"case nil do 0, z when not is_nil(z) -> z end"
     )
   end
@@ -473,7 +456,7 @@ defmodule Kernel.ErrorsTest do
       assert_eval_raise TokenMissingError,
                         [
                           "nofile:1:5:",
-                          ~r/missing terminator: end \(for "fn" starting at line 1\)/
+                          ~r/missing terminator: end/
                         ],
                         ~c"fn 1"
 
@@ -490,22 +473,22 @@ defmodule Kernel.ErrorsTest do
     assert_eval_raise TokenMissingError,
                       [
                         "nofile:1:25:",
-                        "missing terminator: end (for \"do\" starting at line 1)",
+                        "missing terminator: end",
                         "defmodule ShowSnippet do\n",
-                        "^"
+                        "└ unclosed delimiter"
                       ],
                       ~c"defmodule ShowSnippet do"
   end
 
   test "don't show snippet when error line is empty" do
     assert_eval_raise TokenMissingError,
-                      ["nofile:3:1:", "missing terminator: end (for \"do\" starting at line 1)"],
+                      ["nofile:1:25:", "missing terminator: end"],
                       ~c"defmodule ShowSnippet do\n\n"
   end
 
   test "function local conflict" do
     assert_compile_error(
-      ["nofile:3: ", "imported Kernel.&&/2 conflicts with local function"],
+      ["nofile:3:9: ", "imported Kernel.&&/2 conflicts with local function"],
       ~c"""
       defmodule Kernel.ErrorsTest.FunctionLocalConflict do
         def other, do: 1 && 2
@@ -611,7 +594,7 @@ defmodule Kernel.ErrorsTest do
   test "function definition with alias" do
     assert_compile_error(
       [
-        "nofile:2\n",
+        "nofile:2:7\n",
         "function names should start with lowercase characters or underscore, invalid name Bar"
       ],
       ~c"""
@@ -634,14 +617,23 @@ defmodule Kernel.ErrorsTest do
       end
       """
     )
+
+    assert_compile_error(
+      ["nofile:3:17", "function exit/1 imported from both :erlang and Kernel, call is ambiguous"],
+      ~c"""
+      defmodule Kernel.ErrorsTest.FunctionImportConflict do
+        import :erlang, only: [exit: 1], warn: false
+        def foo, do: &exit/1
+      end
+      """
+    )
   end
 
   test "ensure valid import :only option" do
     assert_compile_error(
       [
         "nofile:3:3",
-        "invalid :only option for import, expected value to be an atom " <>
-          ":functions, :macros, or a list literal, got: x"
+        "invalid :only option for import, expected value to be an atom :functions, :macros, or a literal keyword list of function names with arity as values, got: x"
       ],
       ~c"""
       defmodule Kernel.ErrorsTest.Only do
@@ -656,8 +648,8 @@ defmodule Kernel.ErrorsTest do
     assert_compile_error(
       [
         "nofile:3:3",
-        "invalid :except option for import, expected value to be a list " <>
-          "literal, got: Module.__get_attribute__(Kernel.ErrorsTest.Only, :x, 3, true)"
+        "invalid :except option for import, expected value to be a literal keyword list of function names " <>
+          "with arity as values, got: Module.__get_attribute__(Kernel.ErrorsTest.Only, :x, 3, true)"
       ],
       ~c"""
       defmodule Kernel.ErrorsTest.Only do
@@ -670,7 +662,7 @@ defmodule Kernel.ErrorsTest do
 
   test "def defmacro clause change" do
     assert_compile_error(
-      ["nofile:3\n", "defmacro foo/1 already defined as def in nofile:2"],
+      ["nofile:3:12\n", "defmacro foo/1 already defined as def in nofile:2"],
       ~c"""
       defmodule Kernel.ErrorsTest.DefDefmacroClauseChange do
         def foo(1), do: 1
@@ -692,21 +684,13 @@ defmodule Kernel.ErrorsTest do
 
   test "internal function overridden" do
     assert_compile_error(
-      ["nofile:2\n", "cannot define def __info__/1 as it is automatically defined by Elixir"],
+      ["nofile:2:7\n", "cannot define def __info__/1 as it is automatically defined by Elixir"],
       ~c"""
       defmodule Kernel.ErrorsTest.InternalFunctionOverridden do
         def __info__(_), do: []
       end
       """
     )
-  end
-
-  test "no macros" do
-    assert_compile_error(["nofile:2:3", "could not load macros from module :lists"], ~c"""
-    defmodule Kernel.ErrorsTest.NoMacros do
-      import :lists, only: :macros
-    end
-    """)
   end
 
   test "invalid macro" do
@@ -763,19 +747,32 @@ defmodule Kernel.ErrorsTest do
     )
   end
 
-  test "already compiled module" do
-    assert_eval_raise ArgumentError,
-                      [
-                        "could not call Module.eval_quoted/4 because the module Record is already compiled"
-                      ],
-                      ~c"Module.eval_quoted Record, quote(do: 1), [], file: __ENV__.file"
-  end
-
-  test "@compile inline with undefined function" do
+  test "invalid @compile inline" do
     assert_compile_error(
-      ["nofile:1: ", "inlined function foo/1 undefined"],
+      ["nofile:1: ", "undefined function foo/1 given to @compile :inline"],
       ~c"defmodule Test do @compile {:inline, foo: 1} end"
     )
+
+    assert_compile_error(
+      ["nofile:1: ", "macro foo/1 given to @compile :inline"],
+      ~c"defmodule Test do @compile {:inline, foo: 1}; defmacro foo(_), do: :ok end"
+    )
+  end
+
+  test "invalid @nifs attribute" do
+    assert_compile_error(
+      ["nofile:1: ", "undefined function foo/1 given to @nifs"],
+      ~c"defmodule Test do @nifs [foo: 1] end"
+    )
+
+    assert_compile_error(
+      ["nofile:1: ", "undefined function foo/1 given to @nifs"],
+      ~c"defmodule Test do @nifs [foo: 1]; defmacro foo(_) end"
+    )
+
+    assert_eval_raise ArgumentError,
+                      ["@nifs is a built-in module attribute"],
+                      ~c"defmodule Test do @nifs :not_an_option end"
   end
 
   test "invalid @dialyzer options" do
@@ -825,7 +822,7 @@ defmodule Kernel.ErrorsTest do
 
   test "wrong kind for @on_load attribute" do
     assert_compile_error(
-      ["nofile:1: ", "expected @on_load function foo/0 to be a function, got \"defmacro\""],
+      ["nofile:1: ", "macro foo/0 given to @on_load"],
       ~c"""
       defmodule PrivateOnLoadFunction do
         @on_load :foo
@@ -858,13 +855,13 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "function head with guard" do
-    assert_compile_error(["nofile:2: ", "missing :do option in \"def\""], ~c"""
+    assert_compile_error(["nofile:2:7: ", "missing :do option in \"def\""], ~c"""
     defmodule Kernel.ErrorsTest.BodyessFunctionWithGuard do
       def foo(n) when is_number(n)
     end
     """)
 
-    assert_compile_error(["nofile:2: ", "missing :do option in \"def\""], ~c"""
+    assert_compile_error(["nofile:2:7: ", "missing :do option in \"def\""], ~c"""
     defmodule Kernel.ErrorsTest.BodyessFunctionWithGuard do
       def foo(n) when is_number(n), true
     end
@@ -873,7 +870,10 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid args for function head" do
     assert_compile_error(
-      ["nofile:2: ", "only variables and \\\\ are allowed as arguments in function head."],
+      [
+        "nofile:2:7: ",
+        "patterns are not allowed in function head, only variables and default arguments (using \\\\)"
+      ],
       ~c"""
       defmodule Kernel.ErrorsTest.InvalidArgsForBodylessClause do
         def foo(nil)
@@ -948,7 +948,7 @@ defmodule Kernel.ErrorsTest do
 
   test "failed remote call stacktrace includes file/line info" do
     try do
-      bad_remote_call(1)
+      bad_remote_call(Process.get(:unused, 1))
     rescue
       ArgumentError ->
         assert [
@@ -971,11 +971,11 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "duplicate map keys" do
-    assert_compile_error(["nofile:1:4", "key :a will be overridden in map"], """
+    assert_compile_error(["nofile:1:3", "key :a will be overridden in map"], """
       %{a: :b, a: :c} = %{a: :c}
     """)
 
-    assert_compile_error(["nofile:1:4", "key :a will be overridden in map"], """
+    assert_compile_error(["nofile:1:3", "key :a will be overridden in map"], """
       %{a: :b, a: :c, a: :d} = %{a: :c}
     """)
   end

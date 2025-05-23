@@ -1,3 +1,8 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Enumerables and Streams
 
 While Elixir allows us to write recursive code, most operations we perform on collections is done with the help of the `Enum` and `Stream` modules. Let's learn how.
@@ -13,7 +18,7 @@ iex> Enum.map(%{1 => 2, 3 => 4}, fn {k, v} -> k * v end)
 [2, 12]
 ```
 
-The `Enum` module provides a huge range of functions to transform, sort, group, filter and retrieve items from enumerables. It is one of the modules developers use frequently in their Elixir code. For a general overview of all functions in the `Enum` module, see [the `Enum` cheatsheet](enum-cheat.html).
+The `Enum` module provides a huge range of functions to transform, sort, group, filter and retrieve items from enumerables. It is one of the modules developers use frequently in their Elixir code. For a general overview of all functions in the `Enum` module, see [the `Enum` cheatsheet](enum-cheat.cheatmd).
 
 Elixir also provides ranges (see `Range`), which are also enumerable:
 
@@ -95,30 +100,14 @@ iex> Enum.take(stream, 10)
 [1, 2, 3, 1, 2, 3, 1, 2, 3, 1]
 ```
 
-On the other hand, `Stream.unfold/2` can be used to generate values from a given initial value:
-
-```elixir
-iex> stream = Stream.unfold("hełło", &String.next_codepoint/1)
-#Function<39.75994740/2 in Stream.unfold/2>
-iex> Enum.take(stream, 3)
-["h", "e", "ł"]
-```
-
 Another interesting function is `Stream.resource/3` which can be used to wrap around resources, guaranteeing they are opened right before enumeration and closed afterwards, even in the case of failures. For example, `File.stream!/1` builds on top of `Stream.resource/3` to stream files:
 
 ```elixir
-iex> stream = File.stream!("path/to/file")
-%File.Stream{
-  line_or_bytes: :line,
-  modes: [:raw, :read_ahead, :binary],
-  path: "path/to/file",
-  raw: true
-}
-iex> Enum.take(stream, 10)
+iex> "path/to/file" |> File.stream!() |> Enum.take(10)
 ```
 
 The example above will fetch the first 10 lines of the file you have selected. This means streams can be very useful for handling large files or even slow resources like network resources.
 
-The `Enum` and `Stream` modules provide a wide-range functions but know all of them at heart. Familiarize yourself with `Enum.map/2`, `Enum.reduce/3` and other functions with either `map` or `reduce` in their names, and you will naturally build an intuition around the most important use cases. You may also focus on the `Enum` module first and only move to `Stream` for the particular scenarios where laziness is required, to either deal with slow resources or large, possibly infinite, collections.
+The `Enum` and `Stream` modules provide a wide range of functions, but you don't have to know all of them by heart. Familiarize yourself with `Enum.map/2`, `Enum.reduce/3` and other functions with either `map` or `reduce` in their names, and you will naturally build an intuition around the most important use cases. You may also focus on the `Enum` module first and only move to `Stream` for the particular scenarios where laziness is required, to either deal with slow resources or large, possibly infinite, collections.
 
 Next, we'll look at a feature central to Elixir, Processes, which allows us to write concurrent, parallel and distributed programs in an easy and understandable way.

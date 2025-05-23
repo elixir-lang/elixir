@@ -1,69 +1,186 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 %% Module responsible for handling imports and conflicts
 %% between local functions and imports.
 %% For imports dispatch, please check elixir_dispatch.
 -module(elixir_import).
--export([import/4, special_form/2, format_error/1]).
+-export([import/6, import/7, special_form/2,
+         record/4, ensure_no_local_conflict/3,
+         format_error/1]).
+-compile(inline_list_funcs).
 -include("elixir.hrl").
 
-import(Meta, Ref, Opts, E) ->
-  {Functions, Macros, Added} =
-    case keyfind(only, Opts) of
-      {only, functions} ->
-        {Added1, Funs} = import_functions(Meta, Ref, Opts, E),
-        {Funs, keydelete(Ref, ?key(E, macros)), Added1};
-      {only, macros} ->
-        {Added2, Macs} = import_macros(true, Meta, Ref, Opts, E),
-        {keydelete(Ref, ?key(E, functions)), Macs, Added2};
-      {only, sigils} ->
-        {Added1, Funs} = import_sigil_functions(Meta, Ref, Opts, E),
-        {Added2, Macs} = import_sigil_macros(Meta, Ref, Opts, E),
-        {Funs, Macs, Added1 or Added2};
-      {only, List} when is_list(List) ->
-        {Added1, Funs} = import_functions(Meta, Ref, Opts, E),
-        {Added2, Macs} = import_macros(false, Meta, Ref, Opts, E),
-        {Funs, Macs, Added1 or Added2};
-      {only, Other} ->
-        elixir_errors:file_error(Meta, E, ?MODULE, {invalid_option, only, Other});
-      false ->
-        {Added1, Funs} = import_functions(Meta, Ref, Opts, E),
-        {Added2, Macs} = import_macros(false, Meta, Ref, Opts, E),
-        {Funs, Macs, Added1 or Added2}
+import(Meta, Ref, Opts, E, Warn, Trace) ->
+  import(Meta, Ref, Opts, E, Warn, Trace, fun Ref:'__info__'/1).
+
+import(Meta, Ref, Opts, E, Warn, Trace, InfoCallback) ->
+  case import_only_except(Meta, Ref, Opts, E, Warn, InfoCallback) of
+    {Functions, Macros, Added} ->
+      Trace andalso elixir_env:trace({import, Meta, Ref, Opts}, E),
+      EI = E#{functions := Functions, macros := Macros},
+      {ok, Added, elixir_aliases:require(Meta, Ref, Opts, EI, Trace)};
+
+    {error, Reason} ->
+      {error, Reason}
+  end.
+
+import_only_except(Meta, Ref, Opts, E, Warn, InfoCallback) ->
+  MaybeOnly = lists:keyfind(only, 1, Opts),
+
+  case lists:keyfind(except, 1, Opts) of
+    false ->
+      import_only_except(Meta, Ref, MaybeOnly, false, E, Warn, InfoCallback);
+
+    {except, DupExcept} when is_list(DupExcept) ->
+      case ensure_keyword_list(DupExcept) of
+        ok ->
+          Except = ensure_no_duplicates(DupExcept, except, Meta, E, Warn),
+          import_only_except(Meta, Ref, MaybeOnly, Except, E, Warn, InfoCallback);
+
+        error ->
+          {error, {invalid_option, except, DupExcept}}
+      end;
+
+    {except, Other} ->
+      {error, {invalid_option, except, Other}}
+  end.
+
+import_only_except(Meta, Ref, MaybeOnly, Except, E, Warn, InfoCallback) ->
+  case MaybeOnly of
+    {only, functions} ->
+      {Added1, _Used1, Funs} = import_functions(Meta, Ref, Except, E, Warn, InfoCallback),
+      {Funs, keydelete(Ref, ?key(E, macros)), Added1};
+
+    {only, macros} ->
+      {Added2, _Used2, Macs} = import_macros(Meta, Ref, Except, E, Warn, InfoCallback),
+      {keydelete(Ref, ?key(E, functions)), Macs, Added2};
+
+    {only, sigils} ->
+      {Added1, _Used1, Funs} = import_sigil_functions(Meta, Ref, Except, E, Warn, InfoCallback),
+      {Added2, _Used2, Macs} = import_sigil_macros(Meta, Ref, Except, E, Warn, InfoCallback),
+      {Funs, Macs, Added1 or Added2};
+
+    {only, DupOnly} when is_list(DupOnly) ->
+      case ensure_keyword_list(DupOnly) of
+        ok when Except =:= false ->
+          Only = ensure_no_duplicates(DupOnly, only, Meta, E, Warn),
+          {Added1, Used1, Funs} = import_listed_functions(Meta, Ref, Only, E, Warn, InfoCallback),
+          {Added2, Used2, Macs} = import_listed_macros(Meta, Ref, Only, E, Warn, InfoCallback),
+          [Warn andalso elixir_errors:file_warn(Meta, E, ?MODULE, {invalid_import, {Ref, Name, Arity}}) ||
+            {Name, Arity} <- (Only -- Used1) -- Used2],
+          {Funs, Macs, Added1 or Added2};
+
+        ok ->
+          {error, only_and_except_given};
+
+        error ->
+          {error, {invalid_option, only, DupOnly}}
+      end;
+
+    {only, Other} ->
+      {error, {invalid_option, only, Other}};
+
+    false ->
+      {Added1, _Used1, Funs} = import_functions(Meta, Ref, Except, E, Warn, InfoCallback),
+      {Added2, _Used2, Macs} = import_macros(Meta, Ref, Except, E, Warn, InfoCallback),
+      {Funs, Macs, Added1 or Added2}
+  end.
+
+import_listed_functions(Meta, Ref, Only, E, Warn, InfoCallback) ->
+  New = intersection(Only, get_functions(Ref, InfoCallback)),
+  calculate_key(Meta, Ref, ?key(E, functions), New, E, Warn).
+
+import_listed_macros(Meta, Ref, Only, E, Warn, InfoCallback) ->
+  New = intersection(Only, get_macros(InfoCallback)),
+  calculate_key(Meta, Ref, ?key(E, macros), New, E, Warn).
+
+import_functions(Meta, Ref, Except, E, Warn, InfoCallback) ->
+  calculate_except(Meta, Ref, Except, ?key(E, functions), E, Warn, fun() ->
+    get_functions(Ref, InfoCallback)
+  end).
+
+import_macros(Meta, Ref, Except, E, Warn, InfoCallback) ->
+  calculate_except(Meta, Ref, Except, ?key(E, macros), E, Warn, fun() ->
+    get_macros(InfoCallback)
+  end).
+
+import_sigil_functions(Meta, Ref, Except, E, Warn, InfoCallback) ->
+  calculate_except(Meta, Ref, Except, ?key(E, functions), E, Warn, fun() ->
+    filter_sigils(InfoCallback(functions))
+  end).
+
+import_sigil_macros(Meta, Ref, Except, E, Warn, InfoCallback) ->
+  calculate_except(Meta, Ref, Except, ?key(E, macros), E, Warn, fun() ->
+    filter_sigils(InfoCallback(macros))
+  end).
+
+calculate_except(Meta, Key, false, Old, E, Warn, Existing) ->
+  New = remove_underscored(Existing()),
+  calculate_key(Meta, Key, Old, New, E, Warn);
+
+calculate_except(Meta, Key, Except, Old, E, Warn, Existing) ->
+  %% We are not checking existence of exports listed in :except
+  %% option on purpose: to support backwards compatible code.
+  %% For example, "import String, except: [trim: 1]"
+  %% should work across all Elixir versions.
+  New =
+    case lists:keyfind(Key, 1, Old) of
+      false -> remove_underscored(Existing()) -- Except;
+      {Key, OldImports} -> OldImports -- Except
     end,
+  calculate_key(Meta, Key, Old, New, E, Warn).
 
-  elixir_env:trace({import, [{imported, Added} | Meta], Ref, Opts}, E),
-  {Functions, Macros}.
+calculate_key(Meta, Key, Old, New, E, Warn) ->
+  case ordsets:from_list(New) of
+    [] ->
+      {false, [], keydelete(Key, Old)};
+    Set  ->
+      FinalSet = ensure_no_special_form_conflict(Set, Key, Meta, E, Warn),
+      {true, FinalSet, [{Key, FinalSet} | keydelete(Key, Old)]}
+  end.
 
-import_functions(Meta, Ref, Opts, E) ->
-  calculate(Meta, Ref, Opts, ?key(E, functions), ?key(E, file), fun() ->
-    get_functions(Ref)
-  end).
+%% Record function calls for local conflicts
 
-import_macros(Force, Meta, Ref, Opts, E) ->
-  calculate(Meta, Ref, Opts, ?key(E, macros), ?key(E, file), fun() ->
-    case fetch_macros(Ref) of
-      {ok, Macros} ->
-        Macros;
-      error when Force ->
-        elixir_errors:file_error(Meta, E, ?MODULE, {no_macros, Ref});
-      error ->
-        []
-    end
-  end).
+record(_Tuple, Receiver, Module, Function)
+  when Function == nil; Module == Receiver -> false;
+record(Tuple, Receiver, Module, _Function) ->
+  try
+    {Set, _Bag} = elixir_module:data_tables(Module),
+    ets:insert(Set, {{import, Tuple}, Receiver}),
+    true
+  catch
+    error:badarg -> false
+  end.
 
-import_sigil_functions(Meta, Ref, Opts, E) ->
-  calculate(Meta, Ref, Opts, ?key(E, functions), ?key(E, file), fun() ->
-    filter_sigils(get_functions(Ref))
-  end).
+ensure_no_local_conflict('Elixir.Kernel', _All, _E) ->
+  ok;
+ensure_no_local_conflict(Module, AllDefinitions, E) ->
+  {Set, _} = elixir_module:data_tables(Module),
 
-import_sigil_macros(Meta, Ref, Opts, E) ->
-  calculate(Meta, Ref, Opts, ?key(E, macros), ?key(E, file), fun() ->
-    case fetch_macros(Ref) of
-      {ok, Macros} ->
-        filter_sigils(Macros);
-      error ->
-        []
-    end
-  end).
+  [try
+     Receiver = ets:lookup_element(Set, {import, Pair}, 2),
+     elixir_errors:module_error(Meta, E, ?MODULE, {import_conflict, Receiver, Pair})
+   catch
+    error:badarg -> false
+   end || {Pair, _, Meta, _} <- AllDefinitions].
+
+%% Retrieve functions and macros from modules
+
+get_functions(Module, InfoCallback) ->
+  try
+    InfoCallback(functions)
+  catch
+    error:undef -> remove_internals(Module:module_info(exports))
+  end.
+
+get_macros(InfoCallback) ->
+  try
+    InfoCallback(macros)
+  catch
+    error:undef -> []
+  end.
 
 filter_sigils(Funs) ->
   lists:filter(fun is_sigil/1, Funs).
@@ -74,7 +191,10 @@ is_sigil({Name, 2}) ->
       case Letters of
         [L] when L >= $a, L =< $z -> true;
         [] -> false;
-        Letters -> lists:all(fun(L) -> L >= $A andalso L =< $Z end, Letters)
+        [H|T] when H >= $A, H =< $Z ->
+              lists:all(fun(L) -> (L >= $0 andalso L =< $9)
+                                  orelse (L>= $A andalso L =< $Z)
+                        end, T)
       end;
     _ ->
       false
@@ -82,107 +202,31 @@ is_sigil({Name, 2}) ->
 is_sigil(_) ->
   false.
 
-%% Calculates the imports based on only and except
+%% VALIDATION HELPERS\
 
-calculate(Meta, Key, Opts, Old, File, Existing) ->
-  New = case keyfind(only, Opts) of
-    {only, DupOnly} when is_list(DupOnly) ->
-      ensure_keyword_list(Meta, File, DupOnly, only),
-      Only = ensure_no_duplicates(Meta, File, DupOnly, only),
+ensure_keyword_list([]) ->
+  ok;
+ensure_keyword_list([{Key, Value} | Rest]) when is_atom(Key), is_integer(Value) ->
+  ensure_keyword_list(Rest);
+ensure_keyword_list(_Other) ->
+  error.
 
-      case keyfind(except, Opts) of
-        false -> ok;
-        _ -> elixir_errors:file_error(Meta, File, ?MODULE, only_and_except_given)
-      end,
+ensure_no_special_form_conflict(Set, Key, Meta, E, Warn) ->
+  lists:filter(fun({Name, Arity}) ->
+    case special_form(Name, Arity) of
+      true  ->
+        Warn andalso elixir_errors:file_warn(Meta, E, ?MODULE, {special_form_conflict, {Key, Name, Arity}}),
+        false;
+      false ->
+        true
+    end
+  end, Set).
 
-      [elixir_errors:file_warn(Meta, File, ?MODULE, {invalid_import, {Key, Name, Arity}}) ||
-       {Name, Arity} <- Only -- get_exports(Key)],
-
-      intersection(Only, Existing());
-
-    _ ->
-      case keyfind(except, Opts) of
-        false ->
-          remove_underscored(Existing());
-
-        {except, DupExcept} when is_list(DupExcept) ->
-          ensure_keyword_list(Meta, File, DupExcept, except),
-          Except = ensure_no_duplicates(Meta, File, DupExcept, except),
-          %% We are not checking existence of exports listed in :except option
-          %% on purpose: to support backwards compatible code.
-          %% For example, "import String, except: [trim: 1]"
-          %% should work across all Elixir versions.
-          case keyfind(Key, Old) of
-            false -> remove_underscored(Existing()) -- Except;
-            {Key, OldImports} -> OldImports -- Except
-          end;
-
-        {except, Other} ->
-          elixir_errors:file_error(Meta, File, ?MODULE, {invalid_option, except, Other})
-      end
-  end,
-
-  %% Normalize the data before storing it
-  case ordsets:from_list(New) of
-    [] ->
-      {false, keydelete(Key, Old)};
-    Set  ->
-      ensure_no_special_form_conflict(Meta, File, Key, Set),
-      {true, [{Key, Set} | keydelete(Key, Old)]}
-  end.
-
-%% Retrieve functions and macros from modules
-
-get_exports(Module) ->
-  get_functions(Module) ++ get_macros(Module).
-
-get_functions(Module) ->
-  try
-    Module:'__info__'(functions)
-  catch
-    error:undef -> remove_internals(Module:module_info(exports))
-  end.
-
-get_macros(Module) ->
-  case fetch_macros(Module) of
-    {ok, Macros} ->
-      Macros;
-    error ->
-      []
-  end.
-
-fetch_macros(Module) ->
-  try
-    {ok, Module:'__info__'(macros)}
-  catch
-    error:undef -> error
-  end.
-
-%% VALIDATION HELPERS
-
-ensure_no_special_form_conflict(Meta, File, Key, [{Name, Arity} | T]) ->
-  case special_form(Name, Arity) of
-    true  ->
-      elixir_errors:file_error(Meta, File, ?MODULE, {special_form_conflict, {Key, Name, Arity}});
-    false ->
-      ensure_no_special_form_conflict(Meta, File, Key, T)
-  end;
-
-ensure_no_special_form_conflict(_Meta, _File, _Key, []) -> ok.
-
-ensure_keyword_list(_Meta, _File, [], _Kind) -> ok;
-
-ensure_keyword_list(Meta, File, [{Key, Value} | Rest], Kind) when is_atom(Key), is_integer(Value) ->
-  ensure_keyword_list(Meta, File, Rest, Kind);
-
-ensure_keyword_list(Meta, File, _Other, Kind) ->
-  elixir_errors:file_error(Meta, File, ?MODULE, {invalid_option, Kind}).
-
-ensure_no_duplicates(Meta, File, Option, Kind) ->
+ensure_no_duplicates(Option, Kind, Meta, E, Warn) ->
   lists:foldl(fun({Name, Arity}, Acc) ->
     case lists:member({Name, Arity}, Acc) of
       true ->
-        elixir_errors:file_warn(Meta, File, ?MODULE, {duplicated_import, {Kind, Name, Arity}}),
+        Warn andalso elixir_errors:file_warn(Meta, E, ?MODULE, {duplicated_import, {Kind, Name, Arity}}),
         Acc;
       false ->
         [{Name, Arity} | Acc]
@@ -202,30 +246,27 @@ format_error({invalid_import, {Receiver, Name, Arity}}) ->
   io_lib:format("cannot import ~ts.~ts/~B because it is undefined or private",
     [elixir_aliases:inspect(Receiver), Name, Arity]);
 
-format_error({invalid_option, Option}) ->
-  Message = "invalid :~s option for import, expected a keyword list with integer values",
-  io_lib:format(Message, [Option]);
-
 format_error({invalid_option, only, Value}) ->
   Message = "invalid :only option for import, expected value to be an atom :functions, :macros"
-  ", or a list literal, got: ~s",
+  ", or a literal keyword list of function names with arity as values, got: ~s",
   io_lib:format(Message, ['Elixir.Macro':to_string(Value)]);
 
 format_error({invalid_option, except, Value}) ->
-  Message = "invalid :except option for import, expected value to be a list literal, got: ~s",
+  Message = "invalid :except option for import, expected value to be a literal keyword list of function names with arity as values, got: ~s",
   io_lib:format(Message, ['Elixir.Macro':to_string(Value)]);
 
 format_error({special_form_conflict, {Receiver, Name, Arity}}) ->
-  io_lib:format("cannot import ~ts.~ts/~B because it conflicts with Elixir special forms",
+  io_lib:format("cannot import ~ts.~ts/~B because it conflicts with Elixir special forms, the import has been discarded",
     [elixir_aliases:inspect(Receiver), Name, Arity]);
 
 format_error({no_macros, Module}) ->
-  io_lib:format("could not load macros from module ~ts", [elixir_aliases:inspect(Module)]).
+  io_lib:format("could not load macros from module ~ts", [elixir_aliases:inspect(Module)]);
+
+format_error({import_conflict, Receiver, {Name, Arity}}) ->
+  io_lib:format("imported ~ts.~ts/~B conflicts with local function",
+    [elixir_aliases:inspect(Receiver), Name, Arity]).
 
 %% LIST HELPERS
-
-keyfind(Key, List) ->
-  lists:keyfind(Key, 1, List).
 
 keydelete(Key, List) ->
   lists:keydelete(Key, 1, List).
@@ -260,7 +301,9 @@ special_form('%', 2) -> true;
 special_form('|', 2) -> true;
 special_form('.', 2) -> true;
 special_form('::', 2) -> true;
+special_form('__aliases__', _) -> true;
 special_form('__block__', _) -> true;
+special_form('__cursor__', _) -> true;
 special_form('->', _) -> true;
 special_form('<<>>', _) -> true;
 special_form('{}', _) -> true;
@@ -276,7 +319,6 @@ special_form('__CALLER__', 0) -> true;
 special_form('__STACKTRACE__', 0) -> true;
 special_form('__MODULE__', 0) -> true;
 special_form('__DIR__', 0) -> true;
-special_form('__aliases__', _) -> true;
 special_form('quote', 1) -> true;
 special_form('quote', 2) -> true;
 special_form('unquote', 1) -> true;

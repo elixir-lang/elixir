@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Kernel.SpecialFormsTest do
@@ -68,12 +72,10 @@ defmodule Kernel.SpecialFormsTest do
       end
     end
 
-    def false_fun(), do: false
-
     test "cond_clause error keeps line number in stacktrace" do
       try do
         cond do
-          false_fun() -> :ok
+          Process.get(:unused, false) -> :ok
         end
       rescue
         _ ->

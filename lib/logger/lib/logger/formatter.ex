@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 import Kernel, except: [inspect: 2]
 
 defmodule Logger.Formatter do
@@ -14,11 +18,9 @@ defmodule Logger.Formatter do
         format: "\n$time $metadata[$level] $message\n",
         metadata: [:user_id]
 
+  You can also use `Logger.Formatter.new/1` to create your own formatter,
+  which can then be passed as a formatter to any [`:logger_handler`](`:logger_handler`).
   See `Logger.Formatter.new/1` for all configuration options.
-
-  You can also build your own instances of this formatter by calling
-  `new/1` and setting at the formatter of any `:logger` handler by
-  settings its `:formatter` key to `Logger.Formatter.new(options)`.
 
   This module also provides several conveniences for those who wish
   to [write their custom logger formatters](https://www.erlang.org/doc/apps/kernel/logger_chapter.html#formatters).
@@ -74,6 +76,22 @@ defmodule Logger.Formatter do
   to the current process. The user can configure the backend to choose
   which metadata it wants to print and it will replace the `$metadata`
   value.
+
+  > #### When is user metadata printed? {: .warning}
+  >
+  > The default Logger formatter requires the user's metadata to meet
+  > one of the following conditions to be printed:
+  >
+  >   * Be a string (`is_binary/1`)
+  >   * Be a number (either `is_integer/1` or `is_float/1`)
+  >   * Be a PID
+  >   * Be an atom
+  >   * Be a reference
+  >   * Be a port
+  >   * Implement the `String.Chars` protocol (except for charlists)
+  >
+  > If none of the conditions above are `true`, the given metadata get
+  > discarded.
   """
 
   @type date :: {1970..10000, 1..12, 1..31}
@@ -103,8 +121,8 @@ defmodule Logger.Formatter do
       the metadata and must return `t:IO.chardata/0`.
       See the module docs for more information on `:format`.
 
-    * `:metadata` - the metadata to be printed by `$metadata`.
-      Defaults to an empty list (no metadata).
+    * `:metadata` - a list of metadata keys to be printed by
+      `$metadata`. Defaults to an empty list (no metadata).
       Setting `:metadata` to `:all` prints all metadata. See
       the "Metadata" section in the `Logger` documentation for
       more information.
@@ -134,6 +152,7 @@ defmodule Logger.Formatter do
   The color of the message can also be configured per message via
   the `:ansi_color` metadata.
   """
+  @spec new(keyword) :: formatter when formatter: term
   def new(options \\ []) do
     template = compile(options[:format])
     colors = colors(options[:colors] || [])
@@ -152,26 +171,16 @@ defmodule Logger.Formatter do
   end
 
   defp colors(colors) do
-    warning =
-      Keyword.get_lazy(colors, :warning, fn ->
-        # TODO: Deprecate :warn option on Elixir v1.19
-        if warn = Keyword.get(colors, :warn) do
-          warn
-        else
-          :yellow
-        end
-      end)
-
     %{
       emergency: Keyword.get(colors, :error, :red),
       alert: Keyword.get(colors, :error, :red),
       critical: Keyword.get(colors, :error, :red),
       error: Keyword.get(colors, :error, :red),
-      warning: warning,
+      warning: Keyword.get(colors, :warning, :yellow),
       notice: Keyword.get(colors, :info, :normal),
       info: Keyword.get(colors, :info, :normal),
       debug: Keyword.get(colors, :debug, :cyan),
-      enabled: Keyword.get(colors, :enabled, IO.ANSI.enabled?())
+      enabled: Keyword.get(colors, :enabled, &IO.ANSI.enabled?/0)
     }
   end
 
@@ -185,7 +194,12 @@ defmodule Logger.Formatter do
       truncate: truncate
     } = config
 
-    system_time = Map.get_lazy(meta, :time, fn -> :os.system_time(:microsecond) end)
+    system_time =
+      case meta do
+        %{time: time} when is_integer(time) and time >= 0 -> time
+        _ -> :os.system_time(:microsecond)
+      end
+
     date_time_ms = system_time_to_date_time_ms(system_time, utc_log?)
 
     meta_list =
@@ -212,11 +226,15 @@ defmodule Logger.Formatter do
 
   defp format_fa(fun, arity), do: [Atom.to_string(fun), "/", Integer.to_string(arity)]
 
-  defp colorize(data, _level, %{enabled: false}, _md), do: data
+  defp colorize(data, level, %{enabled: enabled} = colors, md) do
+    case if(is_function(enabled, 0), do: enabled.(), else: enabled) do
+      true ->
+        color = md[:ansi_color] || Map.fetch!(colors, level)
+        [IO.ANSI.format_fragment(color, true), data | IO.ANSI.reset()]
 
-  defp colorize(data, level, %{enabled: true} = colors, md) do
-    color = md[:ansi_color] || Map.fetch!(colors, level)
-    [IO.ANSI.format_fragment(color, true), data | IO.ANSI.reset()]
+      false ->
+        data
+    end
   end
 
   @doc """

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.ReleaseTest do
@@ -392,7 +396,7 @@ defmodule Mix.Tasks.ReleaseTest do
           config_target: config_target(),
           mode: :code.get_mode()
 
-        config :release_test, :encoding, {:runtime, :_μ, :"£", "£", '£'}
+        config :release_test, :encoding, {:runtime, :_μ, :"£", "£", ~c"£"}
         """)
 
         root = Path.absname("_build/dev/rel/runtime_config")
@@ -782,6 +786,40 @@ defmodule Mix.Tasks.ReleaseTest do
 
         Mix.Task.rerun("release", ["--overwrite"])
         assert_received {:mix_shell, :info, ["* assembling release_test-0.1.0 on MIX_ENV=dev"]}
+      end)
+    end)
+  end
+
+  @tag :unix
+  test "works properly with an absolute symlink to release" do
+    in_fixture("release_test", fn ->
+      Mix.Project.in_project(:release_test, ".", fn _ ->
+        Mix.Task.run("release")
+
+        File.ln_s!(
+          Path.absname("_build/#{Mix.env()}/rel/release_test/bin/release_test"),
+          Path.absname("release_test")
+        )
+
+        script = Path.absname("release_test")
+        {hello_world, 0} = System.cmd(script, ["eval", "IO.puts :hello_world"])
+        assert String.trim_trailing(hello_world) == "hello_world"
+      end)
+    end)
+  end
+
+  @tag :unix
+  test "works properly with a relative symlink to release" do
+    in_fixture("release_test", fn ->
+      Mix.Project.in_project(:release_test, ".", fn _ ->
+        Mix.Task.run("release")
+
+        File.mkdir!("bin")
+        File.ln_s!("../_build/#{Mix.env()}/rel/release_test/bin/release_test", "bin/release_test")
+
+        script = Path.absname("bin/release_test")
+        {hello_world, 0} = System.cmd(script, ["eval", "IO.puts :hello_world"])
+        assert String.trim_trailing(hello_world) == "hello_world"
       end)
     end)
   end

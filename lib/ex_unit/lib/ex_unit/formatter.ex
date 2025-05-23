@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule ExUnit.Formatter do
   @moduledoc """
   Helper functions for formatting and the formatting protocols.
@@ -29,6 +33,10 @@ defmodule ExUnit.Formatter do
     * `{:sigquit, [test | test_module]}` -
       the VM is going to shutdown. It receives the test cases (or test
       module in case of `setup_all`) still running.
+
+    * `:max_failures_reached` -
+      the test run has been aborted due to reaching max failures limit set
+      with `:max_failures` option
 
   The formatter will also receive the following events but they are deprecated
   and should be ignored:
@@ -66,6 +74,98 @@ defmodule ExUnit.Formatter do
           async: pos_integer | nil,
           load: pos_integer | nil
         }
+
+  @typedoc """
+  Key passed to a formatter callback to format a diff.
+
+  See `t:formatter_callback/0`.
+  """
+  @typedoc since: "1.16.0"
+  @type formatter_callback_diff_key ::
+          :diff_delete
+          | :diff_delete_whitespace
+          | :diff_insert
+          | :diff_insert_whitespace
+
+  @typedoc """
+  Key passed to a formatter callback to format information.
+
+  See `t:formatter_callback/0`.
+  """
+  @typedoc since: "1.16.0"
+  @type formatter_callback_info_key ::
+          :extra_info
+          | :error_info
+          | :test_module_info
+          | :test_info
+          | :parameters_info
+          | :location_info
+          | :stacktrace_info
+          | :blame_diff
+
+  @typedoc """
+  A function that this module calls to format various things.
+
+  You can pass this functions to various functions in this module, and use it
+  to customize the formatting of the output. For example, ExUnit's CLI formatter
+  uses this callback to colorize output.
+
+  ## Keys
+
+  The possible keys are:
+
+    * `:diff_enabled?` - whether diffing is enabled. It receives a boolean
+      indicating whether diffing is enabled by default and returns a boolean
+      indicating whether diffing should be enabled for the current test.
+
+    * `:diff_delete` and `:diff_delete_whitespace` - Should format a diff deletion,
+      with or without whitespace respectively.
+
+    * `:diff_insert` and `:diff_insert_whitespace` - Should format a diff insertion,
+      with or without whitespace respectively.
+
+    * `:extra_info` - Should format optional extra labels, such as the `"code: "` label
+      that precedes code to show.
+
+    * `:error_info` - Should format error information.
+
+    * `:test_module_info` - Should format test module information. The message returned
+    when this key is passed precedes messages such as `"failure on setup_all callback [...]"`.
+
+    * `:test_info` - Should format test information.
+
+    * `:parameters_info` - Should format test parameters.
+
+    * `:location_info` - Should format test location information.
+
+    * `:stacktrace_info` - Should format stacktrace information.
+
+    * `:blame_diff` - Should format a string of code.
+
+  ## Examples
+
+  For example, to format errors as *red strings* and everything else as is, you could define
+  a formatter callback function like this:
+
+      formatter_callback = fn
+        :error_info, msg -> [:red, msg, :reset] |> IO.ANSI.format() |> IO.iodata_to_binary()
+        _key, value -> value
+      end
+
+  """
+  @typedoc since: "1.16.0"
+  @type formatter_callback ::
+          (:diff_enabled?, boolean -> boolean)
+          | (formatter_callback_diff_key, Inspect.Algebra.t() -> Inspect.Algebra.t())
+          | (formatter_callback_info_key, String.t() -> String.t())
+
+  @typedoc """
+  Width for formatting.
+
+  For example, see `format_assertion_diff/4`.
+  """
+  @typedoc since: "1.16.0"
+  @type width :: non_neg_integer | :infinity
 
   import Exception, only: [format_stacktrace_entry: 1, format_file_line: 3]
 
@@ -140,22 +240,43 @@ defmodule ExUnit.Formatter do
       iex> format_filters([run: true, slow: false], :include)
       "Including tags: [run: true, slow: false]"
 
+      iex> format_filters([list: [61, 62, 63]], :exclude)
+      "Excluding tags: [list: [61, 62, 63]]"
+
   """
   @spec format_filters(keyword, atom) :: String.t()
   def format_filters(filters, type) do
     case type do
-      :exclude -> "Excluding tags: #{inspect(filters)}"
-      :include -> "Including tags: #{inspect(filters)}"
+      :exclude -> "Excluding tags: #{inspect(filters, charlists: :as_lists)}"
+      :include -> "Including tags: #{inspect(filters, charlists: :as_lists)}"
     end
   end
 
-  @doc """
-  Receives a test and formats its failure.
+  @doc ~S"""
+  Receives a test and formats its failures.
+
+  ## Examples
+
+      iex> failure = {:error, catch_error(raise "oops"), _stacktrace = []}
+      iex> formatter_cb = fn _key, value -> value end
+      iex> test = %ExUnit.Test{name: :"it works", module: MyTest, tags: %{file: "file.ex", line: 7}}
+      iex> format_test_failure(test, [failure], 1, 80, formatter_cb)
+      "  1) it works (MyTest)\n     file.ex:7\n     ** (RuntimeError) oops\n"
+
   """
+  @spec format_test_failure(
+          test,
+          [failure],
+          non_neg_integer,
+          width,
+          formatter_callback
+        ) :: String.t()
+        when failure: {atom, term, Exception.stacktrace()}
   def format_test_failure(test, failures, counter, width, formatter) do
-    %ExUnit.Test{name: name, module: module, tags: tags} = test
+    %ExUnit.Test{name: name, module: module, tags: tags, parameters: parameters} = test
 
     test_info(with_counter(counter, "#{name} (#{inspect(module)})"), formatter) <>
+      test_parameters(parameters, formatter) <>
       test_location(with_location(tags), formatter) <>
       Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->
         {text, stack} = format_kind_reason(test, kind, reason, stack, width, formatter)
@@ -171,13 +292,31 @@ defmodule ExUnit.Formatter do
     format_test_all_failure(test_case, failures, counter, width, formatter)
   end
 
-  @doc """
+  @doc ~S"""
   Receives a test module and formats its failure.
+
+  ## Examples
+
+      iex> failure = {:error, catch_error(raise "oops"), _stacktrace = []}
+      iex> formatter_cb = fn _key, value -> value end
+      iex> test_module = %ExUnit.TestModule{name: Hello}
+      iex> format_test_all_failure(test_module, [failure], 1, 80, formatter_cb)
+      "  1) Hello: failure on setup_all callback, all tests have been invalidated\n     ** (RuntimeError) oops\n"
+
   """
+  @spec format_test_all_failure(
+          ExUnit.TestModule.t(),
+          [failure],
+          non_neg_integer,
+          width,
+          formatter_callback
+        ) :: String.t()
+        when failure: {atom, term, Exception.stacktrace()}
   def format_test_all_failure(test_module, failures, counter, width, formatter) do
-    name = test_module.name
+    %{name: name, parameters: parameters} = test_module
 
     test_module_info(with_counter(counter, "#{inspect(name)}: "), formatter) <>
+      test_parameters(parameters, formatter) <>
       Enum.map_join(Enum.with_index(failures), "", fn {{kind, reason, stack}, index} ->
         {text, stack} = format_kind_reason(test_module, kind, reason, stack, width, formatter)
         failure_header(failures, index) <> text <> format_stacktrace(stack, name, nil, formatter)
@@ -276,7 +415,25 @@ defmodule ExUnit.Formatter do
   It expects the assertion error, the `padding_size`
   for formatted content, the width (may be `:infinity`),
   and the formatter callback function.
+
+  ## Examples
+
+      iex> error = assert_raise ExUnit.AssertionError, fn -> assert [1, 2] == [1, 3] end
+      iex> formatter_cb = fn
+      ...>   :diff_enabled?, _ -> true
+      ...>   _key, value -> value
+      ...> end
+      iex> keyword = format_assertion_diff(error, 5, 80, formatter_cb)
+      iex> for {key, val} <- keyword, do: {key, IO.iodata_to_binary(val)}
+      [left: "[1, 2]", right: "[1, 3]"]
+
   """
+  @spec format_assertion_diff(
+          ExUnit.AssertionError.t(),
+          non_neg_integer,
+          width,
+          formatter_callback
+        ) :: keyword
   def format_assertion_diff(assert_error, padding_size, width, formatter)
 
   def format_assertion_diff(%ExUnit.AssertionError{context: {:mailbox, _pins, []}}, _, _, _) do
@@ -324,7 +481,19 @@ defmodule ExUnit.Formatter do
     content_width = if width == :infinity, do: width, else: width - padding_size
 
     case format_diff(left, right, context, formatter) do
-      {result, env} ->
+      {nil, hints} when is_atom(context) ->
+        {if_value(left, inspect), if_value(right, inspect), hints}
+
+      {nil, hints} ->
+        left =
+          Macro.prewalk(left, fn
+            {_, [original: original], _} -> original
+            other -> other
+          end)
+
+        {if_value(left, &code_multiline(&1, padding_size)), if_value(right, inspect), hints}
+
+      {result, hints} ->
         left =
           result.left
           |> Diff.to_algebra(&colorize_diff_delete(&1, formatter))
@@ -337,30 +506,23 @@ defmodule ExUnit.Formatter do
           |> Algebra.nest(padding_size)
           |> Algebra.format(content_width)
 
-        {left, right, Enum.map(env.hints, &{:hint, format_hint(&1)})}
+        {left, right, hints}
+    end
+  end
 
-      nil when is_atom(context) ->
-        {if_value(left, inspect), if_value(right, inspect), []}
-
-      nil ->
-        left =
-          Macro.prewalk(left, fn
-            {_, [original: original], _} -> original
-            other -> other
-          end)
-
-        {if_value(left, &code_multiline(&1, padding_size)), if_value(right, inspect), []}
+  defp format_diff(left, right, context, formatter) do
+    if has_value?(left) and has_value?(right) do
+      {result, env} = find_diff(left, right, context)
+      result = if formatter.(:diff_enabled?, false), do: result
+      hints = Enum.map(env.hints, &{:hint, format_hint(&1)})
+      {result, hints}
+    else
+      {nil, []}
     end
   end
 
   defp format_hint(:equivalent_but_different_strings) do
     "you are comparing strings that have the same visual representation but are made of different Unicode codepoints"
-  end
-
-  defp format_diff(left, right, context, formatter) do
-    if has_value?(left) and has_value?(right) and formatter.(:diff_enabled?, false) do
-      find_diff(left, right, context)
-    end
   end
 
   defp colorize_diff_delete(doc, formatter) do
@@ -562,6 +724,15 @@ defmodule ExUnit.Formatter do
 
   defp test_info(msg, nil), do: msg <> "\n"
   defp test_info(msg, formatter), do: test_info(formatter.(:test_info, msg), nil)
+
+  defp test_parameters(params, _formatter) when params == %{}, do: ""
+  defp test_parameters(params, nil) when is_binary(params), do: "     " <> params <> "\n"
+
+  defp test_parameters(params, nil) when is_map(params),
+    do: test_parameters("Parameters: #{inspect(params)}", nil)
+
+  defp test_parameters(params, formatter),
+    do: test_parameters(formatter.(:parameters_info, params), nil)
 
   defp test_location(msg, nil), do: "     " <> msg <> "\n"
   defp test_location(msg, formatter), do: test_location(formatter.(:location_info, msg), nil)

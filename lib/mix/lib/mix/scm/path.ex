@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.SCM.Path do
   @behaviour Mix.SCM
   @moduledoc false
@@ -28,6 +32,13 @@ defmodule Mix.SCM.Path do
           Mix.shell().error("""
           warning: in-umbrella application #{inspect(app)} has the flag :override \
           set to true, but the flag has no effect when running from the umbrella root
+          """)
+        end
+
+        if opts[:optional] do
+          Mix.shell().error("""
+          warning: in-umbrella application #{inspect(app)} has the flag :optional \
+          set to true, but the flag is not supported for umbrella dependencies
           """)
         end
 

@@ -1,11 +1,13 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule IO.StreamError do
-  defexception [:reason, :message]
+  defexception [:reason]
 
   @impl true
-  def exception(opts) do
-    reason = opts[:reason]
-    formatted = IO.iodata_to_binary(:file.format_error(reason))
-    %IO.StreamError{message: "error during streaming: #{formatted}", reason: reason}
+  def message(%{reason: reason}) do
+    "error during streaming: #{inspect(reason)}"
   end
 end
 

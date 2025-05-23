@@ -1,6 +1,10 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 %% Elixir compiler front-end to the Erlang backend.
 -module(elixir_compiler).
--export([string/3, quoted/3, bootstrap/0, file/2, compile/3]).
+-export([string/3, quoted/3, bootstrap/0, file/2, compile/4]).
 -include("elixir.hrl").
 
 string(Contents, File, Callback) ->
@@ -16,7 +20,7 @@ quoted(Forms, File, Callback) ->
 
     elixir_lexical:run(
       Env,
-      fun (LexicalEnv) -> maybe_fast_compile(Forms, [], LexicalEnv) end,
+      fun (LexicalEnv) -> maybe_fast_compile(Forms, LexicalEnv) end,
       fun (#{lexical_tracker := Pid}) -> Callback(File, Pid) end
     ),
 
@@ -32,26 +36,26 @@ file(File, Callback) ->
 %% Evaluates the given code through the Erlang compiler.
 %% It may end-up evaluating the code if it is deemed a
 %% more efficient strategy depending on the code snippet.
-maybe_fast_compile(Forms, Args, E) ->
+maybe_fast_compile(Forms, E) ->
   case (?key(E, module) == nil) andalso allows_fast_compilation(Forms) andalso
         (not elixir_config:is_bootstrap()) of
     true  -> fast_compile(Forms, E);
-    false -> compile(Forms, Args, E)
+    false -> compile(Forms, [], [], E)
   end,
   ok.
 
-compile(Quoted, ArgsList, #{line := Line} = E) ->
+compile(Quoted, ArgsList, CompilerOpts, #{line := Line} = E) ->
   Block = no_tail_optimize([{line, Line}], Quoted),
   {Expanded, SE, EE} = elixir_expand:expand(Block, elixir_env:env_to_ex(E), E),
   elixir_env:check_unused_vars(SE, EE),
 
-  {Module, Fun, Purgeable} =
-    elixir_erl_compiler:spawn(fun() -> spawned_compile(Expanded, E) end),
+  {Module, Fun, LabelledLocals} =
+    elixir_erl_compiler:spawn(fun() -> spawned_compile(Expanded, CompilerOpts, E) end),
 
   Args = list_to_tuple(ArgsList),
-  {dispatch(Module, Fun, Args, Purgeable), SE, EE}.
+  {dispatch(Module, Fun, Args, LabelledLocals), SE, EE}.
 
-spawned_compile(ExExprs, #{line := Line, file := File} = E) ->
+spawned_compile(ExExprs, CompilerOpts, #{line := Line, file := File} = E) ->
   {Vars, S} = elixir_erl_var:from_env(E),
   {ErlExprs, _} = elixir_erl_pass:translate(ExExprs, erl_anno:new(Line), S),
 
@@ -59,15 +63,24 @@ spawned_compile(ExExprs, #{line := Line, file := File} = E) ->
   Fun = code_fun(?key(E, module)),
   Forms = code_mod(Fun, ErlExprs, Line, File, Module, Vars),
 
-  {Module, Binary} = elixir_erl_compiler:noenv_forms(Forms, File, [nowarn_nomatch, no_bool_opt, no_ssa_opt]),
+  {Module, Binary} = elixir_erl_compiler:noenv_forms(Forms, File, [nowarn_nomatch | CompilerOpts]),
   code:load_binary(Module, "", Binary),
-  {Module, Fun, is_purgeable(Module, Binary)}.
+  {Module, Fun, is_purgeable(Binary)}.
+
+is_purgeable(<<"FOR1", _Size:32, "BEAM", Rest/binary>>) ->
+  do_is_purgeable(Rest).
+
+do_is_purgeable(<<>>) -> true;
+do_is_purgeable(<<"LocT", 4:32, 0:32, _/binary>>) -> true;
+do_is_purgeable(<<"LocT", _:32, _/binary>>) -> false;
+do_is_purgeable(<<_:4/binary, Size:32, Beam/binary>>) ->
+  <<_:(4 * trunc((Size+3) / 4))/binary, Rest/binary>> = Beam,
+  do_is_purgeable(Rest).
 
 dispatch(Module, Fun, Args, Purgeable) ->
   Res = Module:Fun(Args),
   code:delete(Module),
-  Purgeable andalso code:purge(Module),
-  return_compiler_module(Module, Purgeable),
+  Purgeable andalso return_compiler_module(Module),
   Res.
 
 code_fun(nil) -> '__FILE__';
@@ -92,11 +105,8 @@ code_mod(Fun, Expr, Line, File, Module, Vars) when is_binary(File), is_integer(L
 retrieve_compiler_module() ->
   elixir_code_server:call(retrieve_compiler_module).
 
-return_compiler_module(Module, Purgeable) ->
-  elixir_code_server:cast({return_compiler_module, Module, Purgeable}).
-
-is_purgeable(Module, Binary) ->
-  beam_lib:chunks(Binary, [labeled_locals]) == {ok, {Module, [{labeled_locals, []}]}}.
+return_compiler_module(Module) ->
+  elixir_code_server:cast({return_compiler_module, Module}).
 
 allows_fast_compilation({'__block__', _, Exprs}) ->
   lists:all(fun allows_fast_compilation/1, Exprs);
@@ -111,8 +121,8 @@ fast_compile({defmodule, Meta, [Mod, [{do, Block}]]}, NoLineE) ->
   E = NoLineE#{line := ?line(Meta)},
 
   Expanded = case Mod of
-    {'__aliases__', _, _} ->
-      case elixir_aliases:expand_or_concat(Mod, E) of
+    {'__aliases__', AliasMeta, List} ->
+      case elixir_aliases:expand_or_concat(AliasMeta, List, E, true) of
         Receiver when is_atom(Receiver) -> Receiver;
         _ -> 'Elixir.Macro':expand(Mod, E)
       end;
@@ -122,7 +132,7 @@ fast_compile({defmodule, Meta, [Mod, [{do, Block}]]}, NoLineE) ->
   end,
 
   ContextModules = [Expanded | ?key(E, context_modules)],
-  elixir_module:compile(Expanded, Block, [], false, E#{context_modules := ContextModules}).
+  elixir_module:compile(Meta, Expanded, Block, [], false, E#{context_modules := ContextModules}).
 
 no_tail_optimize(Meta, Block) ->
   {'__block__', Meta, [
@@ -137,11 +147,12 @@ bootstrap() ->
   {ok, _} = application:ensure_all_started(elixir),
   elixir_config:static(#{bootstrap => true}),
   elixir_config:put(docs, false),
-  elixir_config:put(relative_paths, false),
   elixir_config:put(ignore_module_conflict, true),
   elixir_config:put(on_undefined_variable, raise),
-  elixir_config:put(tracers, []),
   elixir_config:put(parser_options, []),
+  elixir_config:put(relative_paths, false),
+  elixir_config:put(tracers, []),
+  elixir_config:put(infer_signatures, []),
   {Init, Main} = bootstrap_files(),
   {ok, Cwd} = file:get_cwd(),
   Lib = filename:join(Cwd, "lib/elixir/lib"),
@@ -165,6 +176,7 @@ bootstrap_files() ->
     [
      <<"kernel/utils.ex">>,
      <<"macro/env.ex">>,
+     <<"range.ex">>,
      <<"keyword.ex">>,
      <<"module.ex">>,
      <<"list.ex">>,
@@ -183,20 +195,20 @@ bootstrap_files() ->
     ],
     [
      <<"list/chars.ex">>,
-     <<"module/locals_tracker.ex">>,
+     <<"bitwise.ex">>,
      <<"module/parallel_checker.ex">>,
-     <<"module/types/behaviour.ex">>,
+     <<"module/behaviour.ex">>,
      <<"module/types/helpers.ex">>,
-     <<"module/types/unify.ex">>,
+     <<"module/types/descr.ex">>,
      <<"module/types/of.ex">>,
      <<"module/types/pattern.ex">>,
+     <<"module/types/apply.ex">>,
      <<"module/types/expr.ex">>,
      <<"module/types.ex">>,
      <<"exception.ex">>,
      <<"path.ex">>,
      <<"file.ex">>,
      <<"map.ex">>,
-     <<"range.ex">>,
      <<"access.ex">>,
      <<"io.ex">>,
      <<"system.ex">>,

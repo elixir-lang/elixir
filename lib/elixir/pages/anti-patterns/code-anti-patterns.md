@@ -1,8 +1,13 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Code-related anti-patterns
 
-This document outlines anti-patterns related to your code and particular Elixir idioms and features.
+This document outlines potential anti-patterns related to your code and particular Elixir idioms and features.
 
-## Comments
+## Comments overuse
 
 #### Problem
 
@@ -34,7 +39,8 @@ You could refactor the code above like this:
 @five_min_in_seconds 60 * 5
 
 defp unix_five_min_from_now do
-  unix_now = DateTime.to_unix(DateTime.utc_now(), :second)
+  now = DateTime.utc_now()
+  unix_now = DateTime.to_unix(now, :second)
   unix_now + @five_min_in_seconds
 end
 ```
@@ -45,119 +51,15 @@ We removed the unnecessary comments. We also added a `@five_min_in_seconds` modu
 
 Elixir makes a clear distinction between **documentation** and code comments. The language has built-in first-class support for documentation through `@doc`, `@moduledoc`, and more. See the ["Writing documentation"](../getting-started/writing-documentation.md) guide for more information.
 
-## Long parameter list
-
-#### Problem
-
-In a functional language like Elixir, functions tend to explicitly receive all inputs and return all relevant outputs, instead of relying on mutations or side-effects. As functions grow in complexity, the amount of arguments (parameters) they need to work with may grow, to a point the function's interface becomes confusing and prone to errors during use.
-
-#### Example
-
-In the following example, the `loan/6` functions takes too many arguments, causing its interface to be confusing and potentially leading developers to introduce errors during calls to this function.
-
-```elixir
-defmodule Library do
-  # Too many parameters that can be grouped!
-  def loan(user_name, email, password, user_alias, book_title, book_ed) do
-    ...
-  end
-end
-```
-
-#### Refactoring
-
-To address this anti-pattern, related arguments can be grouped using maps, structs, or even tuples. This effectively reduces the number of arguments, simplifying the function's interface. In the case of `loan/6`, its arguments were grouped into two different maps, thereby reducing its arity to `loan/2`:
-
-```elixir
-defmodule Library do
-  def loan(%{name: name, email: email, password: password, alias: alias} = user, %{title: title, ed: ed} = book) do
-    ...
-  end
-end
-```
-
-In some cases, the function with too many arguments may be a private function, which gives us more flexibility over how to separate the function arguments. One possible suggestion for such scenarios is to split the arguments in two maps (or tuples): one map keeps the data that may change, and the other keeps the data that won't change (read-only). This gives us a mechanical option to refactor the code.
-
-Other times, a function may legitimately take half a dozen or more completely unrelated arguments. This may suggest the function is trying to do too much and would be better broken into multiple functions, each responsible for a smaller piece of the overall responsibility.
-
-## Complex branching
-
-#### Problem
-
-When a function assumes the responsibility of handling multiple errors alone, it can increase its cyclomatic complexity (metric of control-flow) and become incomprehensible. This situation can configure a specific instance of "Long function", a traditional anti-pattern, but has implications of its own. Under these circumstances, this function could get very confusing, difficult to maintain and test, and therefore bug-proneness.
-
-#### Example
-
-An example of this anti-pattern is when a function uses the `case` control-flow structure or other similar constructs (for example, `cond` or `receive`) to handle variations of a return type. This practice can make the function more complex, long, and difficult to understand, as shown next.
-
-```elixir
-def get_customer(customer_id) do
-  case SomeHTTPClient.get("/customers/#{customer_id}") do
-    {:ok, %{status: 200, body: body}} ->
-      case Jason.decode(body) do
-        {:ok, decoded} ->
-          %{
-            "first_name" => first_name,
-            "last_name" => last_name,
-            "company" => company
-          } = decoded
-
-          customer =
-            %Customer{
-              id: customer_id,
-              name: "#{first_name} #{last_name}",
-              company: company
-            }
-
-          {:ok, customer}
-
-        {:error, _} ->
-          {:error, "invalid response body"}
-      end
-
-    {:error, %{status: status, body: body}} ->
-      case Jason.decode(body) do
-        %{"error" => message} when is_binary(message) ->
-          {:error, message}
-
-        %{} ->
-          {:error, "invalid response with status #{status}"}
-      end
-  end
-end
-```
-
-The code above is complex because the `case` clauses are long and often have their own branching logic in them. With the clauses spread out, it is hard to understand what each clause does individually and it is hard to see all of the different scenarios your code pattern matches on.
-
-#### Refactoring
-
-As shown below, in this situation, instead of concentrating all error handling within the same function, creating complex branches, it is better to delegate each branch to a different private function. In this way, the code will be cleaner and more readable.
-
-```elixir
-def get_customer(customer_id) do
-  case SomeHTTPClient.get("/customers/#{customer_id}") do
-    {:ok, %{status: 200, body: body}} ->
-      http_customer_to_struct(customer_id, body)
-
-    {:error, %{status: status, body: body}} ->
-      http_error(status, body)
-  end
-end
-```
-
-Both `http_customer_to_struct(customer_id, body)` and `http_error(status, body)` above contains the previous branches refactored into private functions.
-
-It is worth noting that this refactoring is trivial to perform in Elixir because clauses cannot define variables or otherwise affect their parent scope. Therefore, extracting any clause or branch to a private function is a matter of gathering all variables used in that branch and passing them as arguments to the new function.
-
 ## Complex `else` clauses in `with`
 
 #### Problem
 
-This anti-pattern refers to `with` statements that flatten all its error clauses into a single complex `else` block. This situation is harmful to the code readability and maintainability because difficult to know from which clause the error value came.
+This anti-pattern refers to `with` expressions that flatten all its error clauses into a single complex `else` block. This situation is harmful to the code readability and maintainability because it's difficult to know from which clause the error value came.
 
 #### Example
 
-An example of this anti-pattern, as shown below, is a function `open_decoded_file/1` that reads a Base64-encoded string content from a file and returns a decoded binary string. This function uses a `with` statement that needs to handle two possible errors, all of which are concentrated in a single complex `else` block.
+An example of this anti-pattern, as shown below, is a function `open_decoded_file/1` that reads a Base64-encoded string content from a file and returns a decoded binary string. This function uses a `with` expression that needs to handle two possible errors, all of which are concentrated in a single complex `else` block.
 
 ```elixir
 def open_decoded_file(path) do
@@ -171,7 +73,7 @@ def open_decoded_file(path) do
 end
 ```
 
-In the code above, it is unclear how each pattern on the left side of `<-` relates to their error at the end. The more patterns in a `with`, the less clear the code gets, and the more likely unrelated failures will overlap each other.
+In the code above, it is unclear how each pattern on the left side of `<-` relates to their error at the end. The more patterns in a `with`, the less clear the code gets, and the more likely it is that unrelated failures will overlap each other.
 
 #### Refactoring
 
@@ -204,11 +106,11 @@ end
 
 #### Problem
 
-When we use multi-clause functions, it is possible to extract values in the clauses for further usage and for pattern matching/guard checking. This extraction itself does not represent an anti-pattern, but when you have too many clauses or too many arguments, it becomes hard to know which extracted parts are used for pattern/guards and what is used only inside the function body. This anti-pattern is related to [Unrelated multi-clause function](design-anti-patterns.md#unrelated-multi-clause-function), but with implications of its own. It impairs the code readability in a different way.
+When we use multi-clause functions, it is possible to extract values in the clauses for further usage and for pattern matching/guard checking. This extraction itself does not represent an anti-pattern, but when you have *extractions made across several clauses and several arguments of the same function*, it becomes hard to know which extracted parts are used for pattern/guards and what is used only inside the function body. This anti-pattern is related to [Unrelated multi-clause function](design-anti-patterns.md#unrelated-multi-clause-function), but with implications of its own. It impairs the code readability in a different way.
 
 #### Example
 
-The multi-clause function `drive/1` is extracting fields of an `%User{}` struct for usage in the clause expression (`age`) and for usage in the function body (`name`). Ideally, a function should not mix pattern matching extractions for usage in its guard expressions and also in its body.
+The multi-clause function `drive/1` is extracting fields of an `%User{}` struct for usage in the clause expression (`age`) and for usage in the function body (`name`):
 
 ```elixir
 def drive(%User{name: name, age: age}) when age >= 18 do
@@ -220,7 +122,7 @@ def drive(%User{name: name, age: age}) when age < 18 do
 end
 ```
 
-While the example is small and looks like a clear code, try to imagine a situation where `drive/1` was more complex, having many more clauses, arguments, and extractions.
+While the example above is small and does not constitute an anti-pattern, it is an example of mixed extraction and pattern matching. A situation where `drive/1` was more complex, having many more clauses, arguments, and extractions, would make it hard to know at a glance which variables are used for pattern/guards and which ones are not.
 
 #### Refactoring
 
@@ -238,123 +140,13 @@ def drive(%User{age: age} = user) when age < 18 do
 end
 ```
 
-## Dynamic map fields access
-
-#### Problem
-
-In Elixir, it is possible to access values from `Map`s, which are key-value data structures, either statically or dynamically. When trying to dynamically access the value of a key from a map, if the informed key does not exist, `nil` is returned. This return can be confusing and does not allow developers to conclude whether the key is non-existent in the map or just has no bound value. In this way, this anti-pattern may cause bugs in the code.
-
-#### Example
-
-The function `plot/1` tries to draw a graphic to represent the position of a point in a cartesian plane. This function receives a parameter of `Map` type with the point attributes, which can be a point of a 2D or 3D cartesian coordinate system. This function uses dynamic access to retrieve values for the map keys:
-
-```elixir
-defmodule Graphics do
-  def plot(point) do
-    # Some other code...
-
-    # Dynamic access to use point values
-    {point[:x], point[:y], point[:z]}
-  end
-end
-```
-
-```elixir
-iex> point_2d = %{x: 2, y: 3}
-%{x: 2, y: 3}
-iex> point_3d = %{x: 5, y: 6, z: nil}
-%{x: 5, y: 6, z: nil}
-iex> Graphics.plot(point_2d)
-{2, 3, nil}   # <= ambiguous return
-iex> Graphics.plot(point_3d)
-{5, 6, nil}
-```
-
-As can be seen in the example above, even when the key `:z` does not exist in the map (`point_2d`), dynamic access returns the value `nil`. This return can be dangerous because of its ambiguity. It is not possible to conclude from it whether the map has the key `:z` or not. If the function relies on the return value to make decisions about how to plot a point, this can be problematic and even cause errors when testing the code.
-
-#### Refactoring
-
-To remove this anti-pattern, whenever a map has keys of `Atom` type, replace the dynamic access to its values by the `map.field`syntax. When a non-existent key is statically accessed, Elixir raises an error immediately, allowing developers to find bugs faster. The next code illustrates the refactoring of `plot/1`, removing this anti-pattern:
-
-```elixir
-defmodule Graphics do
-  def plot(point) do
-    # Some other code...
-
-    # Strict access to use point values
-    {point.x, point.y, point.z}
-  end
-end
-```
-
-```elixir
-iex> point_2d = %{x: 2, y: 3}
-%{x: 2, y: 3}
-iex> point_3d = %{x: 5, y: 6, z: nil}
-%{x: 5, y: 6, z: nil}
-iex> Graphics.plot(point_2d)
-** (KeyError) key :z not found in: %{x: 2, y: 3} # <= explicitly warns that
-  graphic.ex:6: Graphics.plot/1                  # <= the :z key does not exist!
-iex> Graphics.plot(point_3d)
-{5, 6, nil}
-```
-
-As shown below, another alternative to refactor this anti-pattern is to use pattern matching:
-
-```elixir
-defmodule Graphics do
-  def plot(%{x: x, y: y, z: z}) do
-    # Some other code...
-
-    # Strict access to use point values
-    {x, y, z}
-  end
-end
-```
-
-```elixir
-iex> point_2d = %{x: 2, y: 3}
-%{x: 2, y: 3}
-iex> point_3d = %{x: 5, y: 6, z: nil}
-%{x: 5, y: 6, z: nil}
-iex> Graphics.plot(point_2d)
-** (FunctionClauseError)  no function clause matching in Graphics.plot/1
-  graphic.ex:2: Graphics.plot/1                  # <= the :z key does not exist!
-iex> Graphics.plot(point_3d)
-{5, 6, nil}
-```
-
-Another alternative is to use structs. By default, structs only support static access to its fields, promoting cleaner patterns:
-
-```elixir
-defmodule Point.2D do
-  @enforce_keys [:x, :y]
-  defstruct [x: nil, y: nil]
-end
-```
-
-```elixir
-iex> point = %Point.2D{x: 2, y: 3}
-%Point.2D{x: 2, y: 3}
-iex> point.x   # <= strict access to use point values
-2
-iex> point.z   # <= trying to access a non-existent key
-** (KeyError) key :z not found in: %Point{x: 2, y: 3}
-iex> point[:x] # <= by default, struct does not support dynamic access
-** (UndefinedFunctionError) ... (Point does not implement the Access behaviour)
-```
-
-#### Additional remarks
-
-This anti-pattern was formerly known as [Accessing non-existent Map/Struct fields](https://github.com/lucasvegi/Elixir-Code-Smells#accessing-non-existent-mapstruct-fields).
-
 ## Dynamic atom creation
 
 #### Problem
 
-An `Atom` is an Elixir basic type whose value is its own name. Atoms are often useful to identify resources or express the state, or result, of an operation. Creating atoms dynamically is not an anti-pattern by itself; however, atoms are not garbage collected by the Erlang Virtual Machine, so values of this type live in memory during a software's entire execution lifetime. The Erlang VM limits the number of atoms that can exist in an application by default to *1_048_576*, which is more than enough to cover all atoms defined in a program, but attempts to serve as an early limit for applications which are "leaking atoms" through dynamic creation.
+An `Atom` is an Elixir basic type whose value is its own name. Atoms are often useful to identify resources or express the state, or result, of an operation. Creating atoms dynamically is not an anti-pattern by itself. However, atoms are not garbage collected by the Erlang Virtual Machine, so values of this type live in memory during a software's entire execution lifetime. The Erlang VM limits the number of atoms that can exist in an application by default to *1_048_576*, which is more than enough to cover all atoms defined in a program, but attempts to serve as an early limit for applications which are "leaking atoms" through dynamic creation.
 
-For these reason, creating atoms dynamically can be considered an anti-pattern when the developer has no control over how many atoms will be created during the software execution. This unpredictable scenario can expose the software to unexpected behaviour caused by excessive memory usage, or even by reaching the maximum number of *atoms* possible.
+For these reasons, creating atoms dynamically can be considered an anti-pattern when the developer has no control over how many atoms will be created during the software execution. This unpredictable scenario can expose the software to unexpected behavior caused by excessive memory usage, or even by reaching the maximum number of *atoms* possible.
 
 #### Example
 
@@ -433,7 +225,7 @@ defmodule MyRequestHandler do
 end
 ```
 
-All valid statuses all defined as atoms within the same module, and that's enough. If you want to be explicit, you could also have a function that lists them:
+All valid statuses are defined as atoms within the same module, and that's enough. If you want to be explicit, you could also have a function that lists them:
 
 ```elixir
 def valid_statuses do
@@ -443,15 +235,238 @@ end
 
 However, keep in mind using a module attribute or defining the atoms in the module body, outside of a function, are not sufficient, as the module body is only executed during compilation and it is not necessarily part of the compiled module loaded at runtime.
 
-## Namespace trespassing
-
-TODO.
-
-## Speculative assumptions
+## Long parameter list
 
 #### Problem
 
-Overall, Elixir systems are composed of many supervised processes, so the effects of an error are localized to a single process, not propagating to the entire application. A supervisor will detect the failing process, report it, and possibly restart it. This means Elixir developers do not need to program defensively, making assumptions we have not really planned for, such as being able to return incorrect values instead of forcing a crash. These speculative assumptions can give a false impression that the code is working correctly.
+In a functional language like Elixir, functions tend to explicitly receive all inputs and return all relevant outputs, instead of relying on mutations or side-effects. As functions grow in complexity, the amount of arguments (parameters) they need to work with may grow, to a point where the function's interface becomes confusing and prone to errors during use.
+
+#### Example
+
+In the following example, the `loan/6` functions takes too many arguments, causing its interface to be confusing and potentially leading developers to introduce errors during calls to this function.
+
+```elixir
+defmodule Library do
+  # Too many parameters that can be grouped!
+  def loan(user_name, email, password, user_alias, book_title, book_ed) do
+    ...
+  end
+end
+```
+
+#### Refactoring
+
+To address this anti-pattern, related arguments can be grouped using key-value data structures, such as maps, structs, or even keyword lists in the case of optional arguments. This effectively reduces the number of arguments and the key-value data structures adds clarity to the caller.
+
+For this particular example, the arguments to `loan/6` can be grouped into two different maps, thereby reducing its arity to `loan/2`:
+
+```elixir
+defmodule Library do
+  def loan(%{name: name, email: email, password: password, alias: alias} = user, %{title: title, ed: ed} = book) do
+    ...
+  end
+end
+```
+
+In some cases, the function with too many arguments may be a private function, which gives us more flexibility over how to separate the function arguments. One possible suggestion for such scenarios is to split the arguments in two maps (or tuples): one map keeps the data that may change, and the other keeps the data that won't change (read-only). This gives us a mechanical option to refactor the code.
+
+Other times, a function may legitimately take half a dozen or more completely unrelated arguments. This may suggest the function is trying to do too much and would be better broken into multiple functions, each responsible for a smaller piece of the overall responsibility.
+
+## Namespace trespassing
+
+#### Problem
+
+This anti-pattern manifests when a package author or a library defines modules outside of its "namespace". A library should use its name as a "prefix" for all of its modules. For example, a package named `:my_lib` should define all of its modules within the `MyLib` namespace, such as `MyLib.User`, `MyLib.SubModule`, `MyLib.Application`, and `MyLib` itself.
+
+This is important because the Erlang VM can only load one instance of a module at a time. So if there are multiple libraries that define the same module, then they are incompatible with each other due to this limitation. By always using the library name as a prefix, it avoids module name clashes due to the unique prefix.
+
+#### Example
+
+This problem commonly manifests when writing an extension of another library. For example, imagine you are writing a package that adds authentication to [Plug](https://github.com/elixir-plug/plug) called `:plug_auth`. You must avoid defining modules within the `Plug` namespace:
+
+```elixir
+defmodule Plug.Auth do
+  # ...
+end
+```
+
+Even if `Plug` does not currently define a `Plug.Auth` module, it may add such a module in the future, which would ultimately conflict with `plug_auth`'s definition.
+
+#### Refactoring
+
+Given the package is named `:plug_auth`, it must define modules inside the `PlugAuth` namespace:
+
+```elixir
+defmodule PlugAuth do
+  # ...
+end
+```
+
+#### Additional remarks
+
+There are few known exceptions to this anti-pattern:
+
+  * [Protocol implementations](`Kernel.defimpl/2`) are, by design, defined under the protocol namespace
+
+  * In some scenarios, the namespace owner may allow exceptions to this rule. For example, in Elixir itself, you defined [custom Mix tasks](`Mix.Task`) by placing them under the `Mix.Tasks` namespace, such as `Mix.Tasks.PlugAuth`
+
+  * If you are the maintainer for both `plug` and `plug_auth`, then you may allow `plug_auth` to define modules with the `Plug` namespace, such as `Plug.Auth`. However, you are responsible for avoiding or managing any conflicts that may arise in the future
+
+## Non-assertive map access
+
+#### Problem
+
+In Elixir, it is possible to access values from `Map`s, which are key-value data structures, either statically or dynamically.
+
+When a key is expected to exist in a map, it must be accessed using the `map.key` notation, making it clear to developers (and the compiler) that the key must exist. If the key does not exist, an exception is raised (and in some cases also compiler warnings). This is also known as the static notation, as the key is known at the time of writing the code.
+
+When a key is optional, the `map[:key]` notation must be used instead. This way, if the informed key does not exist, `nil` is returned. This is the dynamic notation, as it also supports dynamic key access, such as `map[some_var]`.
+
+When you use `map[:key]` to access a key that always exists in the map, you are making the code less clear for developers and for the compiler, as they now need to work with the assumption the key may not be there. This mismatch may also make it harder to track certain bugs. If the key is unexpectedly missing, you will have a `nil` value propagate through the system, instead of raising on map access.
+
+##### Table: Comparison of map access notations
+
+| Access notation | Key exists | Key doesn't exist | Use case |
+| --------------- | ---------- | ----------------- | -------- |
+| `map.key` | Returns the value | Raises `KeyError` | Structs and maps with known atom keys |
+| `map[:key]` | Returns the value | Returns `nil` | Any `Access`-based data structure, optional keys |
+
+#### Example
+
+The function `plot/1` tries to draw a graphic to represent the position of a point in a Cartesian plane. This function receives a parameter of `Map` type with the point attributes, which can be a point of a 2D or 3D Cartesian coordinate system. This function uses dynamic access to retrieve values for the map keys:
+
+```elixir
+defmodule Graphics do
+  def plot(point) do
+    # Some other code...
+    {point[:x], point[:y], point[:z]}
+  end
+end
+```
+
+```elixir
+iex> point_2d = %{x: 2, y: 3}
+%{x: 2, y: 3}
+iex> point_3d = %{x: 5, y: 6, z: 7}
+%{x: 5, y: 6, z: 7}
+iex> Graphics.plot(point_2d)
+{2, 3, nil}
+iex> Graphics.plot(point_3d)
+{5, 6, 7}
+```
+
+Given we want to plot both 2D and 3D points, the behavior above is expected. But what happens if we forget to pass a point with either `:x` or `:y`?
+
+```elixir
+iex> bad_point = %{y: 3, z: 4}
+%{y: 3, z: 4}
+iex> Graphics.plot(bad_point)
+{nil, 3, 4}
+```
+
+The behavior above is unexpected because our function should not work with points without a `:x` key. This leads to subtle bugs, as we may now pass `nil` to another function, instead of raising early on, as shown next:
+
+```iex
+iex> point_without_x = %{y: 10}
+%{y: 10}
+iex> {x, y, _} = Graphics.plot(point_without_x)
+{nil, 10, nil}
+iex> distance_from_origin = :math.sqrt(x * x + y * y)
+** (ArithmeticError) bad argument in arithmetic expression
+    :erlang.*(nil, nil)
+```
+
+The error above occurs later in the code because `nil` (from missing `:x`) is invalid for arithmetic operations, making it harder to identify the original issue.
+
+#### Refactoring
+
+To remove this anti-pattern, we must use the dynamic `map[:key]` syntax and the static `map.key` notation according to our requirements. We expect `:x` and `:y` to always exist, but not `:z`. The next code illustrates the refactoring of `plot/1`, removing this anti-pattern:
+
+```elixir
+defmodule Graphics do
+  def plot(point) do
+    # Some other code...
+    {point.x, point.y, point[:z]}
+  end
+end
+```
+
+```elixir
+iex> Graphics.plot(point_2d)
+{2, 3, nil}
+iex> Graphics.plot(bad_point)
+** (KeyError) key :x not found in: %{y: 3, z: 4}
+  graphic.ex:4: Graphics.plot/1
+```
+
+This is beneficial because:
+
+1. It makes your expectations clear to others reading the code
+2. It fails fast when required data is missing
+3. It allows the compiler to provide warnings when accessing non-existent fields, particularly in compile-time structures like structs
+
+Overall, the usage of `map.key` and `map[:key]` encode important information about your data structure, allowing developers to be clear about their intent. The `Access` module documentation also provides useful reference on this topic. You can also consider the `Map` module when working with maps of any keys, which contains functions for fetching keys (with or without default values), updating and removing keys, traversals, and more.
+
+An alternative to refactor this anti-pattern is to use pattern matching, defining explicit clauses for 2D vs 3D points:
+
+```elixir
+defmodule Graphics do
+  # 3d
+  def plot(%{x: x, y: y, z: z}) do
+    # Some other code...
+    {x, y, z}
+  end
+
+  # 2d
+  def plot(%{x: x, y: y}) do
+    # Some other code...
+    {x, y}
+  end
+end
+```
+
+Pattern-matching is specially useful when matching over multiple keys as well as on the values themselves at once. In the example above, the code will not only extract the values but also verify that the required keys exist. If we try to call `plot/1` with a map that doesn't have the required keys, we'll get a `FunctionClauseError`:
+
+```elixir
+iex> incomplete_point = %{x: 5}
+%{x: 5}
+iex> Graphics.plot(incomplete_point)
+** (FunctionClauseError) no function clause matching in Graphics.plot/1
+
+    The following arguments were given to Graphics.plot/1:
+
+        # 1
+        %{x: 5}
+```
+
+Another option is to use structs. By default, structs only support static access to its fields. In such scenarios, you may consider defining structs for both 2D and 3D points:
+
+```elixir
+defmodule Point2D do
+  @enforce_keys [:x, :y]
+  defstruct [x: nil, y: nil]
+end
+```
+
+Generally speaking, structs are useful when sharing data structures across modules, at the cost of adding a compile time dependency between these modules. If module `A` uses a struct defined in module `B`, `A` must be recompiled if the fields in the struct `B` change.
+
+In summary, Elixir provides several ways to access map values, each with different behaviors:
+
+1. **Static access** (`map.key`): Fails fast when keys are missing, ideal for structs and maps with known atom keys
+2. **Dynamic access** (`map[:key]`): Works with any `Access` data structure, suitable for optional fields, returns nil for missing keys
+3. **Pattern matching**: Provides a powerful way to both extract values and ensure required map/struct keys exist in one operation
+
+Choosing the right approach depends if the keys are known upfront or not. Static access and pattern matching are mostly equivalent (although pattern matching allows you to match on multiple keys at once, including matching on the struct name).
+
+#### Additional remarks
+
+This anti-pattern was formerly known as [Accessing non-existent map/struct fields](https://github.com/lucasvegi/Elixir-Code-Smells#accessing-non-existent-mapstruct-fields).
+
+## Non-assertive pattern matching
+
+#### Problem
+
+Overall, Elixir systems are composed of many supervised processes, so the effects of an error are localized to a single process, and don't propagate to the entire application. A supervisor detects the failing process, reports it, and possibly restarts it. This anti-pattern arises when developers write defensive or imprecise code, capable of returning incorrect values which were not planned for, instead of programming in an assertive style through pattern matching and guards.
 
 #### Example
 
@@ -471,7 +486,7 @@ end
 ```
 
 ```elixir
-# URL query string according to with the planned format - OK!
+# URL query string with the planned format - OK!
 iex> Extract.get_value("name=Lucas&university=UFMG&lab=ASERG", "lab")
 "ASERG"
 iex> Extract.get_value("name=Lucas&university=UFMG&lab=ASERG", "university")
@@ -483,7 +498,7 @@ iex> Extract.get_value("name=Lucas&university=institution=UFMG&lab=ASERG", "univ
 
 #### Refactoring
 
-To remove this anti-pattern, `get_value/2` can be refactored through the use of pattern matching. So, if an unexpected URL query string format is used, the function will crash instead of returning an invalid value. This behaviour, shown below, will allow clients to decide how to handle these errors and will not give a false impression that the code is working correctly when unexpected values are extracted:
+To remove this anti-pattern, `get_value/2` can be refactored through the use of pattern matching. So, if an unexpected URL query string format is used, the function will crash instead of returning an invalid value. This behavior, shown below, allows clients to decide how to handle these errors and doesn't give a false impression that the code is working correctly when unexpected values are extracted:
 
 ```elixir
 defmodule Extract do
@@ -499,7 +514,7 @@ end
 ```
 
 ```elixir
-# URL query string according to with the planned format - OK!
+# URL query string with the planned format - OK!
 iex> Extract.get_value("name=Lucas&university=UFMG&lab=ASERG", "name")
 "Lucas"
 # Unplanned URL query string format - Crash explaining the problem to the client!
@@ -511,4 +526,111 @@ iex> Extract.get_value("name=Lucas&university&lab=ASERG", "university")
   extract.ex:7: anonymous fn/2 in Extract.get_value/2 # <= left hand: [key, value] pair
 ```
 
-The goal is to promote an assertive style of programming where you handle the known cases. Once an unexpected scenario arises in production, you can decide to address it accordingly, based on the needs of the code using actual examples, or conclude the scenario is indeed expected and the exception is the desired choice.
+Elixir and pattern matching promote an assertive style of programming where you handle the known cases. Once an unexpected scenario arises, you can decide to address it accordingly based on practical examples, or conclude the scenario is indeed invalid and the exception is the desired choice.
+
+`case/2` is another important construct in Elixir that help us write assertive code, by matching on specific patterns. For example, if a function returns `{:ok, ...}` or `{:error, ...}`, prefer to explicitly match on both patterns:
+
+```elixir
+case some_function(arg) do
+  {:ok, value} -> # ...
+  {:error, _} -> # ...
+end
+```
+
+In particular, avoid matching solely on `_`, as shown below:
+
+```elixir
+case some_function(arg) do
+  {:ok, value} -> # ...
+  _ -> # ...
+end
+```
+
+ Matching on `_` is less clear in intent and it may hide bugs if `some_function/1` adds new return values in the future.
+
+#### Additional remarks
+
+This anti-pattern was formerly known as [Speculative assumptions](https://github.com/lucasvegi/Elixir-Code-Smells#speculative-assumptions).
+
+## Non-assertive truthiness
+
+#### Problem
+
+Elixir provides the concept of truthiness: `nil` and `false` are considered "falsy" and all other values are "truthy". Many constructs in the language, such as `&&/2`, `||/2`, and `!/1` handle truthy and falsy values. Using those operators is not an anti-pattern. However, using those operators when all operands are expected to be booleans, may be an anti-pattern.
+
+#### Example
+
+The simplest scenario where this anti-pattern manifests is in conditionals, such as:
+
+```elixir
+if is_binary(name) && is_integer(age) do
+  # ...
+else
+  # ...
+end
+```
+
+Given both operands of `&&/2` are booleans, the code is more generic than necessary, and potentially unclear.
+
+#### Refactoring
+
+To remove this anti-pattern, we can replace `&&/2`, `||/2`, and `!/1` by `and/2`, `or/2`, and `not/1` respectively. These operators assert at least their first argument is a boolean:
+
+```elixir
+if is_binary(name) and is_integer(age) do
+  # ...
+else
+  # ...
+end
+```
+
+This technique may be particularly important when working with Erlang code. Erlang does not have the concept of truthiness. It never returns `nil`, instead its functions may return `:error` or `:undefined` in places an Elixir developer would return `nil`. Therefore, to avoid accidentally interpreting `:undefined` or `:error` as a truthy value, you may prefer to use `and/2`, `or/2`, and `not/1` exclusively when interfacing with Erlang APIs.
+
+## Structs with 32 fields or more
+
+#### Problem
+
+Structs in Elixir are implemented as compile-time maps, which have a predefined amount of fields. When structs have 32 or more fields, their internal representation in the Erlang Virtual Machines changes, potentially leading to bloating and higher memory usage.
+
+#### Example
+
+Any struct with 32 or more fields will be problematic:
+
+```elixir
+defmodule MyExample do
+  defstruct [
+    :field1,
+    :field2,
+    ...,
+    :field35
+  ]
+end
+```
+
+The Erlang VM has two internal representations for maps: a flat map and a hash map. A flat map is represented internally as two tuples: one tuple containing the keys and another tuple holding the values. Whenever you update a flat map, the tuple keys are shared, reducing the amount of memory used by the update. A hash map has a more complex structure, which is efficient for a large amount of keys, but it does not share the key space.
+
+Maps of up to 32 keys are represented as flat maps. All others are hash map. Structs *are* maps (with a metadata field called `__struct__`) and so any struct with fewer than 32 fields is represented as a flat map. This allows us to optimize several struct operations, as we never add or remove fields to structs, we simply update them.
+
+Furthermore, structs of the same name "instantiated" in the same module will share the same "tuple keys" at compilation times, as long as they have fewer than 32 fields. For example, in the following code:
+
+```elixir
+defmodule Example do
+  def users do
+    [%User{name: "John"}, %User{name: "Meg"}, ...]
+  end
+end
+```
+
+All user structs will point to the same tuple keys at compile-time, also reducing the memory cost of instantiating structs with `%MyStruct{...}` notation. This optimization is also not available if the struct has 32 keys or more.
+
+#### Refactoring
+
+Removing this anti-pattern, in a nutshell, requires ensuring your struct has fewer than 32 fields. There are a few techniques you could apply:
+
+  * If the struct has "optional" fields, for example, fields which are initialized with nil, you could nest all optional fields into other field, called `:metadata`, `:optionals`, or similar. This could lead to benefits such as being able to use pattern matching to check if a field exists or not, instead of relying on `nil` values
+
+  * You could nest structs, by storing structs within other fields. Fields that are rarely read or written to are good candidates to be moved to a nested struct
+
+  * You could nest fields as tuples. For example, if two fields are always read or updated together, they could be moved to a tuple (or another composite data structure)
+
+The challenge is to balance the changes above with API ergonomics, in particular, when fields may be frequently read and written to.

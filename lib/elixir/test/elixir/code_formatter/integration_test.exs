@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Code.Formatter.IntegrationTest do
@@ -459,6 +463,16 @@ defmodule Code.Formatter.IntegrationTest do
                  ]}
               )
     """
+  end
+
+  test "nested tuples as lines" do
+    assert_same """
+                {:ok,
+                 {1, 2, 3,
+                  4, 5}} =
+                  call()
+                """,
+                line_length: 10
   end
 
   test "first argument in a call without parens with comments" do

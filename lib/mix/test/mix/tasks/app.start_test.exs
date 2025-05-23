@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.App.StartTest do
@@ -12,6 +16,8 @@ defmodule Mix.Tasks.App.StartTest do
       [applications: [:logger]]
     end
   end
+
+  @moduletag :capture_log
 
   test "compiles and starts the project" do
     in_fixture("no_mixfile", fn ->
@@ -30,10 +36,9 @@ defmodule Mix.Tasks.App.StartTest do
       assert File.regular?("_build/dev/lib/app_start_sample/ebin/Elixir.A.beam")
       assert File.regular?("_build/dev/lib/app_start_sample/ebin/app_start_sample.app")
 
-      assert Code.loaded?(A)
+      refute Code.loaded?(A)
       refute List.keyfind(Application.started_applications(), :app_start_sample, 0)
       assert List.keyfind(Application.started_applications(), :logger, 0)
-      purge([A])
 
       Mix.Task.reenable("app.config")
       Mix.Task.reenable("app.start")
@@ -42,6 +47,8 @@ defmodule Mix.Tasks.App.StartTest do
       assert List.keyfind(Application.started_applications(), :app_start_sample, 0)
       assert List.keyfind(Application.started_applications(), :logger, 0)
     end)
+  after
+    Application.stop(:app_start_sample)
   end
 
   describe "unit tests" do

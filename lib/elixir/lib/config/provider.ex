@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Config.Provider do
   @moduledoc """
   Specifies a provider API that loads configuration during boot.
@@ -312,7 +316,7 @@ defmodule Config.Provider do
            """
            the application #{inspect(app)} has a different value set #{path(key, path)} \
            during runtime compared to compile time. Since this application environment entry was \
-           marked as compile time, this difference can lead to different behaviour than expected:
+           marked as compile time, this difference can lead to different behavior than expected:
 
              * Compile time value #{return_to_text(compile_return)}
              * Runtime value #{return_to_text(runtime_return)}

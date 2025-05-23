@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule Kernel.RaiseTest do
@@ -17,12 +21,12 @@ defmodule Kernel.RaiseTest do
       try do
         raise "a"
       rescue
-        _ -> hd(__STACKTRACE__)
+        _ -> Enum.fetch!(__STACKTRACE__, 0)
       end
 
     file = __ENV__.file |> Path.relative_to_cwd() |> String.to_charlist()
 
-    assert {__MODULE__, :"test raise preserves the stacktrace", _, [file: ^file, line: 18] ++ _} =
+    assert {__MODULE__, :"test raise preserves the stacktrace", _, [file: ^file, line: 22] ++ _} =
              stacktrace
   end
 
@@ -163,16 +167,6 @@ defmodule Kernel.RaiseTest do
     end
   end
 
-  test "reraise with invalid stacktrace" do
-    try do
-      reraise %RuntimeError{message: "message"}, {:oops, @trace}
-    rescue
-      ArgumentError ->
-        {name, arity} = __ENV__.function
-        assert [{__MODULE__, ^name, ^arity, _} | _] = __STACKTRACE__
-    end
-  end
-
   describe "rescue" do
     test "runtime error" do
       result =
@@ -190,7 +184,7 @@ defmodule Kernel.RaiseTest do
         try do
           raise "an exception"
         rescue
-          AnotherError -> true
+          ArgumentError -> true
         catch
           :error, _ -> false
         end
@@ -352,18 +346,19 @@ defmodule Kernel.RaiseTest do
         end
 
       assert result ==
-               "function DoNotExist.for_sure/0 is undefined (module DoNotExist is not available)"
+               "function DoNotExist.for_sure/0 is undefined (module DoNotExist is not available). " <>
+                 "Make sure the module name is correct and has been specified in full (or that an alias has been defined)"
     end
 
     test "function clause error" do
       result =
         try do
-          zero(1)
+          Access.get(:ok, :error)
         rescue
           x in [FunctionClauseError] -> Exception.message(x)
         end
 
-      assert result == "no function clause matching in Kernel.RaiseTest.zero/1"
+      assert result == "no function clause matching in Access.get/3"
     end
 
     test "badarg error" do
@@ -405,7 +400,7 @@ defmodule Kernel.RaiseTest do
 
       result =
         try do
-          fun.(1, 2)
+          Process.get(:unused, fun).(1, 2)
         rescue
           x in [BadArityError] -> Exception.message(x)
         end
@@ -434,8 +429,8 @@ defmodule Kernel.RaiseTest do
 
       fun = BadFunction.Missing.fun()
 
-      :code.delete(BadFunction.Missing)
       :code.purge(BadFunction.Missing)
+      :code.delete(BadFunction.Missing)
 
       defmodule BadFunction.Missing do
         def fun, do: fn -> :another end
@@ -443,36 +438,38 @@ defmodule Kernel.RaiseTest do
 
       :code.purge(BadFunction.Missing)
 
-      result =
-        try do
-          fun.()
-        rescue
-          x in [BadFunctionError] -> Exception.message(x)
-        end
-
-      assert result =~
-               ~r/function #Function<[0-9]\.[0-9]*\/0[^>]*> is invalid, likely because it points to an old version of the code/
+      try do
+        fun.()
+      rescue
+        x in [BadFunctionError] ->
+          assert Exception.message(x) =~
+                   ~r/function #Function<[0-9]\.[0-9]*\/0[^>]*> is invalid, likely because it points to an old version of the code/
+      else
+        _ -> flunk("this should not be invoked")
+      end
     end
 
     test "badmatch error" do
-      x = :example
-
       result =
         try do
-          ^x = zero(0)
+          [] = Range.to_list(1000_000..1_000_009)
         rescue
           x in [MatchError] -> Exception.message(x)
         end
 
-      assert result == "no match of right hand side value: 0"
-    end
+      assert result ==
+               """
+               no match of right hand side value:
 
-    defp empty_map(), do: %{}
+                   [1000000, 1000001, 1000002, 1000003, 1000004, 1000005, 1000006, 1000007,
+                    1000008, 1000009]\
+               """
+    end
 
     test "bad key error" do
       result =
         try do
-          %{empty_map() | foo: :bar}
+          %{Process.get(:unused, %{}) | foo: :bar}
         rescue
           x in [KeyError] -> Exception.message(x)
         end
@@ -481,34 +478,34 @@ defmodule Kernel.RaiseTest do
 
       result =
         try do
-          empty_map().foo
+          Process.get(:unused, %{}).foo
         rescue
           x in [KeyError] -> Exception.message(x)
         end
 
-      assert result == "key :foo not found in: %{}"
+      assert result == "key :foo not found in:\n\n    %{}"
     end
 
     test "bad map error" do
       result =
         try do
-          %{zero(0) | foo: :bar}
+          %{Process.get(:unused, 0) | foo: :bar}
         rescue
           x in [BadMapError] -> Exception.message(x)
         end
 
-      assert result == "expected a map, got: 0"
+      assert result == "expected a map, got:\n\n    0"
     end
 
     test "bad boolean error" do
       result =
         try do
-          1 and true
+          Process.get(:unused, 1) and true
         rescue
           x in [BadBooleanError] -> Exception.message(x)
         end
 
-      assert result == "expected a boolean on left-side of \"and\", got: 1"
+      assert result == "expected a boolean on left-side of \"and\", got:\n\n    1"
     end
 
     test "case clause error" do
@@ -516,21 +513,21 @@ defmodule Kernel.RaiseTest do
 
       result =
         try do
-          case zero(0) do
+          case Process.get(:unused, 0) do
             ^x -> nil
           end
         rescue
           x in [CaseClauseError] -> Exception.message(x)
         end
 
-      assert result == "no case clause matching: 0"
+      assert result == "no case clause matching:\n\n    0"
     end
 
     test "cond clause error" do
       result =
         try do
           cond do
-            !zero(0) -> :ok
+            !Process.get(:unused, 0) -> :ok
           end
         rescue
           x in [CondClauseError] -> Exception.message(x)
@@ -557,7 +554,7 @@ defmodule Kernel.RaiseTest do
           x in [TryClauseError] -> Exception.message(x)
         end
 
-      assert result == "no try clause matching: :example"
+      assert result == "no try clause matching:\n\n    :example"
     end
 
     test "undefined function error as Erlang error" do
@@ -569,7 +566,8 @@ defmodule Kernel.RaiseTest do
         end
 
       assert result ==
-               "function DoNotExist.for_sure/0 is undefined (module DoNotExist is not available)"
+               "function DoNotExist.for_sure/0 is undefined (module DoNotExist is not available). " <>
+                 "Make sure the module name is correct and has been specified in full (or that an alias has been defined)"
     end
   end
 
@@ -586,8 +584,7 @@ defmodule Kernel.RaiseTest do
       end
 
     assert result ==
-             "function DoNotExist.for_sure/0 is undefined (module DoNotExist is not available)"
+             "function DoNotExist.for_sure/0 is undefined (module DoNotExist is not available). " <>
+               "Make sure the module name is correct and has been specified in full (or that an alias has been defined)"
   end
-
-  defp zero(0), do: 0
 end

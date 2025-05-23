@@ -1,42 +1,32 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule RegexTest do
   use ExUnit.Case, async: true
 
-  @re_21_3_little %Regex{
-    re_pattern:
-      {:re_pattern, 1, 0, 0,
-       <<69, 82, 67, 80, 94, 0, 0, 0, 0, 0, 0, 0, 17, 0, 0, 0, 255, 255, 255, 255, 255, 255, 255,
-         255, 99, 0, 0, 0, 0, 0, 1, 0, 0, 0, 64, 0, 6, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 102, 111, 111, 0, 131, 0, 20, 29, 99, 133,
-         0, 7, 0, 1, 29, 100, 119, 0, 5, 29, 101, 120, 0, 12, 120, 0, 20, 0>>},
-    re_version: {"8.42 2018-03-20", :little},
-    source: "c(?<foo>d|e)"
-  }
-
-  @re_21_3_big %Regex{
-    re_pattern:
-      {:re_pattern, 1, 0, 0,
-       <<80, 67, 82, 69, 0, 0, 0, 86, 0, 0, 0, 0, 0, 0, 0, 17, 255, 255, 255, 255, 255, 255, 255,
-         255, 0, 99, 0, 0, 0, 0, 0, 1, 0, 0, 0, 56, 0, 6, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-         0, 0, 0, 0, 0, 0, 1, 102, 111, 111, 0, 131, 0, 20, 29, 99, 133, 0, 7, 0, 1, 29, 100, 119,
-         0, 5, 29, 101, 120, 0, 12, 120, 0, 20, 0>>},
-    re_version: {"8.42 2018-03-20", :big},
-    source: "c(?<foo>d|e)"
-  }
-
-  @re_19_3_little %Regex{
-    re_pattern:
-      {:re_pattern, 1, 0, 0,
-       <<69, 82, 67, 80, 94, 0, 0, 0, 0, 0, 0, 0, 17, 0, 0, 0, 255, 255, 255, 255, 255, 255, 255,
-         255, 99, 0, 0, 0, 0, 0, 1, 0, 0, 0, 64, 0, 6, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 102, 111, 111, 0, 125, 0, 20, 29, 99, 127,
-         0, 7, 0, 1, 29, 100, 113, 0, 5, 29, 101, 114, 0, 12, 114, 0, 20, 0>>},
-    re_version: {"8.33 2013-05-29", :little},
-    source: "c(?<foo>d|e)"
-  }
-
   doctest Regex
+
+  if System.otp_release() >= "28" do
+    test "module attribute" do
+      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+               defmodule ModAttr do
+                 @regex ~r/example/
+                 def regex, do: @regex
+
+                 @bare_regex :erlang.term_to_binary(@regex)
+                 def bare_regex, do: :erlang.binary_to_term(@bare_regex)
+
+                 # We don't rewrite outside of functions
+                 assert @regex.re_pattern == :erlang.binary_to_term(@bare_regex).re_pattern
+               end
+
+               assert ModAttr.regex().re_pattern != ModAttr.bare_regex().re_pattern
+             end) =~ "storing and reading regexes from module attributes is deprecated"
+    end
+  end
 
   test "multiline" do
     refute Regex.match?(~r/^b$/, "a\nb\nc")
@@ -68,19 +58,9 @@ defmodule RegexTest do
   test "literal source" do
     assert Regex.source(Regex.compile!("foo")) == "foo"
     assert Regex.source(~r"foo") == "foo"
-    assert Regex.re_pattern(Regex.compile!("foo")) == Regex.re_pattern(~r"foo")
 
     assert Regex.source(Regex.compile!("\a\b\d\e\f\n\r\s\t\v")) == "\a\b\d\e\f\n\r\s\t\v"
-    assert Regex.source(~r<\a\b\d\e\f\n\r\s\t\v>) == "\a\\b\\d\\e\f\n\r\\s\t\v"
-
-    assert Regex.re_pattern(Regex.compile!("\a\b\d\e\f\n\r\s\t\v")) ==
-             Regex.re_pattern(~r"\a\010\177\033\f\n\r \t\v")
-
-    assert Regex.source(Regex.compile!("\a\\b\\d\e\f\n\r\\s\t\v")) == "\a\\b\\d\e\f\n\r\\s\t\v"
-    assert Regex.source(~r<\a\\b\\d\\e\f\n\r\\s\t\v>) == "\a\\\\b\\\\d\\\\e\f\n\r\\\\s\t\v"
-
-    assert Regex.re_pattern(Regex.compile!("\a\\b\\d\e\f\n\r\\s\t\v")) ==
-             Regex.re_pattern(~r"\a\b\d\e\f\n\r\s\t\v")
+    assert Regex.source(~r<\a\b\d\e\f\n\r\s\t\v>) == "\\a\\b\\d\\e\\f\\n\\r\\s\\t\\v"
   end
 
   test "Unicode" do
@@ -119,19 +99,9 @@ defmodule RegexTest do
     end
   end
 
-  test "recompile/1" do
-    new_regex = ~r/foo/
-    {:ok, %Regex{}} = Regex.recompile(new_regex)
-    assert %Regex{} = Regex.recompile!(new_regex)
-
-    old_regex = Map.delete(~r/foo/, :re_version)
-    {:ok, %Regex{}} = Regex.recompile(old_regex)
-    assert %Regex{} = Regex.recompile!(old_regex)
-  end
-
   test "opts/1" do
-    assert Regex.opts(Regex.compile!("foo", "i")) == "i"
-    assert Regex.opts(Regex.compile!("foo", [:caseless])) == [:caseless]
+    assert Regex.opts(Regex.compile!("foo", "i")) == [:caseless]
+    assert Regex.opts(Regex.compile!("foo", [:ucp])) == [:ucp]
   end
 
   test "names/1" do
@@ -159,10 +129,6 @@ defmodule RegexTest do
     assert Regex.named_captures(~r/c(.)/, "cat") == %{}
   end
 
-  test "sigil R" do
-    assert Regex.match?(~R/f#{1,3}o/, "f#o")
-  end
-
   test "run/2" do
     assert Regex.run(~r"c(d)", "abcd") == ["cd", "d"]
     assert Regex.run(~r"e", "abcd") == nil
@@ -186,16 +152,6 @@ defmodule RegexTest do
     assert Regex.run(~r"bar", "foobar", offset: 2, return: :index) == [{3, 3}]
   end
 
-  test "run/3 with regexes compiled in different systems" do
-    assert Regex.run(@re_21_3_little, "abcd abce", capture: :all_names) == ["d"]
-    assert Regex.run(@re_21_3_big, "abcd abce", capture: :all_names) == ["d"]
-    assert Regex.run(@re_19_3_little, "abcd abce", capture: :all_names) == ["d"]
-  end
-
-  test "run/3 with regexes with options compiled in different systems" do
-    assert Regex.run(%{~r/foo/i | re_version: "bad version"}, "FOO") == ["FOO"]
-  end
-
   test "scan/2" do
     assert Regex.scan(~r"c(d|e)", "abcd abce") == [["cd", "d"], ["ce", "e"]]
     assert Regex.scan(~r"c(?:d|e)", "abcd abce") == [["cd"], ["ce"]]
@@ -212,16 +168,6 @@ defmodule RegexTest do
   test "scan/2 with :offset" do
     assert Regex.scan(~r"^foo", "foobar", offset: 0) == [["foo"]]
     assert Regex.scan(~r"^foo", "foobar", offset: 1) == []
-  end
-
-  test "scan/2 with regexes compiled in different systems" do
-    assert Regex.scan(@re_21_3_little, "abcd abce", capture: :all_names) == [["d"], ["e"]]
-    assert Regex.scan(@re_21_3_big, "abcd abce", capture: :all_names) == [["d"], ["e"]]
-    assert Regex.scan(@re_19_3_little, "abcd abce", capture: :all_names) == [["d"], ["e"]]
-  end
-
-  test "scan/2 with regexes with options compiled in different systems" do
-    assert Regex.scan(%{~r/foo/i | re_version: "bad version"}, "FOO") == [["FOO"]]
   end
 
   test "split/2,3" do
@@ -241,6 +187,8 @@ defmodule RegexTest do
     assert Regex.split(~r" ", " foo bar baz ", trim: true) == ["foo", "bar", "baz"]
     assert Regex.split(~r" ", " foo bar baz ", parts: 2) == ["", "foo bar baz "]
     assert Regex.split(~r" ", " foo bar baz ", trim: true, parts: 2) == ["foo", "bar baz "]
+
+    assert Regex.split(~r/b\K/, "ababab") == ["ab", "ab", "ab", ""]
   end
 
   test "split/3 with the :on option" do
@@ -290,6 +238,16 @@ defmodule RegexTest do
 
     assert Regex.split(~r/[Ei]/, "Elixir", include_captures: true, parts: 3, trim: true) ==
              ["E", "l", "i", "xir"]
+
+    assert Regex.split(~r/b\Kc/, "abcabc", include_captures: true) == ["ab", "c", "ab", "c", ""]
+    assert Regex.split(~r/(b\K)/, "abab", include_captures: true) == ["ab", "", "ab", "", ""]
+
+    assert Regex.split(~r/(b\K)/, "abab", include_captures: true, trim: true) == [
+             "ab",
+             "",
+             "ab",
+             ""
+           ]
   end
 
   test "replace/3,4" do

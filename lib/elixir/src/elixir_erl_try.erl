@@ -1,3 +1,7 @@
+%% SPDX-License-Identifier: Apache-2.0
+%% SPDX-FileCopyrightText: 2021 The Elixir Team
+%% SPDX-FileCopyrightText: 2012 Plataformatec
+
 -module(elixir_erl_try).
 -export([clauses/3]).
 -include("elixir.hrl").
@@ -23,6 +27,8 @@ each_clause({'catch', Meta, Raw, Expr}, S) ->
   {Args, Guards} = elixir_utils:extract_splat_guards(Raw),
 
   Match =
+    %% Elixir v1.17 and earlier emitted single argument
+    %% and may still be processed via debug_info
     case Args of
       [X] -> [throw, X];
       [X, Y] -> [X, Y]

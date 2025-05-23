@@ -1,16 +1,21 @@
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
 # Process-related anti-patterns
 
-This document outlines anti-patterns related to processes and process-based abstractions.
+This document outlines potential anti-patterns related to processes and process-based abstractions.
 
 ## Code organization by process
 
 #### Problem
 
-This anti-pattern refers to code that is unnecessarily organized by processes. A process itself does not represent an anti-pattern, but it should only be used to model runtime properties (such as concurrency, access to shared resources, and event scheduling). When you use a process for code organization, it can create bottlenecks in the system.
+This anti-pattern refers to code that is unnecessarily organized by processes. A process itself does not represent an anti-pattern, but it should only be used to model runtime properties (such as concurrency, access to shared resources, error isolation, etc). When you use a process for code organization, it can create bottlenecks in the system.
 
 #### Example
 
-An example of this anti-pattern, as shown below, is a module that implements arithmetic operations (like `add` and `subtract`) by means of a `GenSever` process. If the number of calls to this single process grows, this code organization can compromise the system performance, therefore becoming a bottleneck.
+An example of this anti-pattern, as shown below, is a module that implements arithmetic operations (like `add` and `subtract`) by means of a `GenServer` process. If the number of calls to this single process grows, this code organization can compromise the system performance, therefore becoming a bottleneck.
 
 ```elixir
 defmodule Calculator do
@@ -188,6 +193,60 @@ iex> Foo.Bucket.get(bucket, "milk")
 
 This anti-pattern was formerly known as [Agent obsession](https://github.com/lucasvegi/Elixir-Code-Smells/tree/main#agent-obsession).
 
+## Sending unnecessary data
+
+#### Problem
+
+Sending a message to a process can be an expensive operation if the message is big enough. That's because that message will be fully copied to the receiving process, which may be CPU and memory intensive. This is due to Erlang's "share nothing" architecture, where each process has its own memory, which simplifies and speeds up garbage collection.
+
+This is more obvious when using `send/2`, `GenServer.call/3`, or the initial data in `GenServer.start_link/3`. Notably this also happens when using `spawn/1`, `Task.async/1`, `Task.async_stream/3`, and so on. It is more subtle here as the anonymous function passed to these functions captures the variables it references, and all captured variables will be copied over. By doing this, you can accidentally send way more data to a process than you actually need.
+
+#### Example
+
+Imagine you were to implement some simple reporting of IP addresses that made requests against your application. You want to do this asynchronously and not block processing, so you decide to use `spawn/1`. It may seem like a good idea to hand over the whole connection because we might need more data later. However passing the connection results in copying a lot of unnecessary data like the request body, params, etc.
+
+```elixir
+# log_request_ip send the ip to some external service
+spawn(fn -> log_request_ip(conn) end)
+```
+
+This problem also occurs when accessing only the relevant parts:
+
+```elixir
+spawn(fn -> log_request_ip(conn.remote_ip) end)
+```
+
+This will still copy over all of `conn`, because the `conn` variable is being captured inside the spawned function. The function then extracts the `remote_ip` field, but only after the whole `conn` has been copied over.
+
+`send/2` and the `GenServer` APIs also rely on message passing. In the example below, the `conn` is once again copied to the underlying `GenServer`:
+
+```elixir
+GenServer.cast(pid, {:report_ip_address, conn})
+```
+
+#### Refactoring
+
+This anti-pattern has many potential remedies:
+
+  * Limit the data you send to the absolute necessary minimum instead of sending an entire struct. For example, don't send an entire `conn` struct if all you need is a couple of fields.
+
+  * If the only process that needs data is the one you are sending to, consider making the process fetch that data instead of passing it.
+
+  * Some abstractions, such as [`:persistent_term`](`:persistent_term`), allows you to share data between processes, as long as such data changes infrequently.
+
+In our case, limiting the input data is a reasonable strategy. If all we need *right now* is the IP address, then let's only work with that and make sure we're only passing the IP address into the closure, like so:
+
+```elixir
+ip_address = conn.remote_ip
+spawn(fn -> log_request_ip(ip_address) end)
+```
+
+Or in the `GenServer` case:
+
+```elixir
+GenServer.cast(pid, {:report_ip_address, conn.remote_ip})
+```
+
 ## Unsupervised processes
 
 #### Problem
@@ -207,7 +266,9 @@ defmodule Counter do
   use GenServer
 
   @doc "Starts a counter process."
-  def start(initial_value, name \\ __MODULE__) when is_integer(initial_value) do
+  def start_link(opts \\ []) do
+    initial_value = Keyword.get(opts, :initial_value, 0)
+    name = Keyword.get(opts, :name, __MODULE__)
     GenServer.start(__MODULE__, initial_value, name: name)
   end
 
@@ -217,7 +278,7 @@ defmodule Counter do
   end
 
   @doc "Bumps the value of the given counter."
-  def bump(value, pid_name \\ __MODULE__) do
+  def bump(pid_name \\ __MODULE__, value) do
     GenServer.call(pid_name, {:bump, value})
   end
 
@@ -238,23 +299,23 @@ end
 ```
 
 ```elixir
-iex> Counter.start(0)
+iex> Counter.start_link()
 {:ok, #PID<0.115.0>}
 iex> Counter.get()
 0
-iex> Counter.start(15, :other_counter)
+iex> Counter.start_link(initial_value: 15, name: :other_counter)
 {:ok, #PID<0.120.0>}
 iex> Counter.get(:other_counter)
 15
-iex> Counter.bump(-3, :other_counter)
+iex> Counter.bump(:other_counter, -3)
 12
-iex> Counter.bump(7)
+iex> Counter.bump(Counter, 7)
 7
 ```
 
 #### Refactoring
 
-To ensure that clients of a library have full control over their systems, regardless of the number of processes used and the lifetime of each one, all processes must be started inside a supervision tree. As shown below, this code uses a `Supervisor` as a supervision tree. When this Elixir application is started, two different counters (`Counter` and `:other_counter`) are also started as child processes of the `Supervisor` named `App.Supervisor`. Both are initialized to `0`. By means of this supervision tree, it is possible to manage the lifecycle of all child processes (stopping or restarting each one), improving the visibility of the entire app.
+To ensure that clients of a library have full control over their systems, regardless of the number of processes used and the lifetime of each one, all processes must be started inside a supervision tree. As shown below, this code uses a `Supervisor` as a supervision tree. When this Elixir application is started, two different counters (`Counter` and `:other_counter`) are also started as child processes of the `Supervisor` named `App.Supervisor`. One is initialized with `0`, the other with `15`. By means of this supervision tree, it is possible to manage the life cycle of all child processes (stopping or restarting each one), improving the visibility of the entire app.
 
 ```elixir
 defmodule SupervisedProcess.Application do
@@ -263,8 +324,13 @@ defmodule SupervisedProcess.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      %{id: Counter, start: {Counter, :start, [0]}},
-      %{id: :other_counter, start: {Counter, :start, [0, :other_counter]}}
+      # With the default values for counter and name
+      Counter,
+      # With custom values for counter, name, and a custom ID
+      Supervisor.child_spec(
+        {Counter, name: :other_counter, initial_value: 15},
+        id: :other_counter
+      )
     ]
 
     Supervisor.start_link(children, strategy: :one_for_one, name: App.Supervisor)
@@ -278,8 +344,8 @@ iex> Supervisor.count_children(App.Supervisor)
 iex> Counter.get(Counter)
 0
 iex> Counter.get(:other_counter)
-0
-iex> Counter.bump(7, Counter)
+15
+iex> Counter.bump(Counter, 7)
 7
 iex> Supervisor.terminate_child(App.Supervisor, Counter)
 iex> Supervisor.count_children(App.Supervisor) # Only one active child

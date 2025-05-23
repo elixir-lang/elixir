@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule ExUnit do
   @moduledoc """
   Unit testing framework for Elixir.
@@ -11,11 +15,11 @@ defmodule ExUnit do
       # 1) Start ExUnit.
       ExUnit.start()
 
-      # 2) Create a new test module (test case) and use "ExUnit.Case".
+      # 2) Create a new test module and use "ExUnit.Case".
       defmodule AssertionTest do
-        # 3) Note that we pass "async: true", this runs the test case
-        #    concurrently with other test cases. The individual tests
-        #    within each test case are still run serially.
+        # 3) Note that we pass "async: true", this runs the tests in the
+        #    test module concurrently with other test modules. The
+        #    individual tests within each test module are still run serially.
         use ExUnit.Case, async: true
 
         # 4) Use the "test" macro instead of "def" for clarity.
@@ -70,7 +74,11 @@ defmodule ExUnit do
 
   """
   @type state ::
-          nil | {:excluded, binary} | {:failed, failed} | {:invalid, module} | {:skipped, binary}
+          nil
+          | {:excluded, binary}
+          | {:failed, failed}
+          | {:invalid, ExUnit.TestModule.t()}
+          | {:skipped, binary}
 
   @typedoc "The error state returned by `ExUnit.Test` and `ExUnit.TestModule`"
   @type failed :: [{Exception.kind(), reason :: term, Exception.stacktrace()}]
@@ -97,9 +105,10 @@ defmodule ExUnit do
       * `:time` - the duration in microseconds of the test's runtime
       * `:tags` - the test tags
       * `:logs` - the captured logs
+      * `:parameters` - the test parameters
 
     """
-    defstruct [:name, :case, :module, :state, time: 0, tags: %{}, logs: ""]
+    defstruct [:name, :case, :module, :state, time: 0, tags: %{}, logs: "", parameters: %{}]
 
     # TODO: Remove the `:case` field on v2.0
     @type t :: %__MODULE__{
@@ -109,7 +118,8 @@ defmodule ExUnit do
             state: ExUnit.state(),
             time: non_neg_integer,
             tags: map,
-            logs: String.t()
+            logs: String.t(),
+            parameters: map
           }
   end
 
@@ -119,20 +129,28 @@ defmodule ExUnit do
 
     It is received by formatters and contains the following fields:
 
-      * `:file`  - (since v1.11.0) the file of the test module
+      * `:file` - (since v1.11.0) the file of the test module
 
-      * `:name`  - the test module name
+      * `:name` - the test module name
+
+      * `:parameters` - (since v1.18.0) the test module parameters
+
+      * `:setup_all?` - (since v1.18.0) if the test module requires a setup all
 
       * `:state` - the test error state (see `t:ExUnit.state/0`)
+
+      * `:tags` - all tags in this module
 
       * `:tests` - all tests in this module
 
     """
-    defstruct [:file, :name, :state, tags: %{}, tests: []]
+    defstruct [:file, :name, :setup_all?, :state, parameters: %{}, tags: %{}, tests: []]
 
     @type t :: %__MODULE__{
             file: binary(),
             name: module,
+            parameters: map(),
+            setup_all?: boolean(),
             state: ExUnit.state(),
             tags: map,
             tests: [ExUnit.Test.t()]
@@ -148,6 +166,16 @@ defmodule ExUnit do
   end
 
   defmodule TimeoutError do
+    @moduledoc """
+    Exception raised when a test times out.
+    """
+
+    @typedoc since: "1.16.0"
+    @type t :: %__MODULE__{
+            timeout: non_neg_integer,
+            type: String.t()
+          }
+
     defexception [:timeout, :type]
 
     @impl true
@@ -202,8 +230,9 @@ defmodule ExUnit do
       System.at_exit(fn
         0 ->
           time = ExUnit.Server.modules_loaded(false)
+          seed = Application.get_env(:ex_unit, :seed)
           options = persist_defaults(configuration())
-          %{failures: failures} = ExUnit.Runner.run(options, time)
+          %{failures: failures} = maybe_repeated_run(options, seed, time)
 
           if failures > 0 do
             System.at_exit(fn _ -> exit({:shutdown, Keyword.fetch!(options, :exit_status)}) end)
@@ -231,7 +260,11 @@ defmodule ExUnit do
 
     * `:capture_log` - if ExUnit should default to keeping track of log messages
       and print them on test failure. Can be overridden for individual tests via
-      `@tag capture_log: false`. Defaults to `false`;
+      `@tag capture_log: false`. This can also be configured to a specific level
+      with `capture_log: [level: LEVEL]`, to capture all logs but only keep those
+      above `LEVEL`. Note that `on_exit` and `setup_all` callbacks may still log,
+      as they run outside of the testing process. To silent those, you can use
+      `ExUnit.CaptureLog.capture_log/2` or consider disabling logging altogether.
 
     * `:colors` - a keyword list of color options to be used by some formatters:
       * `:enabled` - boolean option to enable colors, defaults to `IO.ANSI.enabled?/0`;
@@ -256,7 +289,7 @@ defmodule ExUnit do
     * `:exit_status` - specifies an alternate exit status to use when the test
       suite fails. Defaults to 2;
 
-    * `:failures_manifest_file` - specifies a path to the file used to store failures
+    * `:failures_manifest_path` - specifies a path to the file used to store failures
       between runs;
 
     * `:formatters` - the formatters that will print results,
@@ -283,8 +316,8 @@ defmodule ExUnit do
 
     * `:rand_algorithm` - algorithm to be used when generating the test seed.
       Available algorithms can be found in Erlang's
-      [`:rand`](https://www.erlang.org/doc/man/rand.html) documentation (see
-      [`:rand.builting_arg/0`](https://www.erlang.org/doc/man/rand.html#type-builtin_alg)).
+      [`:rand`](`:rand`) documentation (see
+      [`:rand.builting_arg/0`](https://www.erlang.org/doc/apps/stdlib/rand.html#t:builtin_alg/0)).
       Available since v1.16.0. Before v1.16.0, the algorithm was hard-coded to
       `:exs1024`. On Elixir v1.16.0 and after, the default changed to `:exsss`;
 
@@ -293,12 +326,16 @@ defmodule ExUnit do
 
     * `:seed` - an integer seed value to randomize the test suite. This seed
       is also mixed with the test module and name to create a new unique seed
-      on every test, which is automatically fed into the `:rand` module. This
-      provides randomness between tests, but predictable and reproducible
+      on every test, which is automatically fed into the [`:rand`](`:rand`) module.
+      This provides randomness between tests, but predictable and reproducible
       results. A `:seed` of `0` will disable randomization and the tests in each
       file will always run in the order that they were defined in;
 
     * `:slowest` - prints timing information for the N slowest tests. Running
+      ExUnit with slow test reporting automatically runs in `trace` mode. It
+      is disabled by default;
+
+    * `:slowest_modules` - prints timing information for the N slowest test modules. Running
       ExUnit with slow test reporting automatically runs in `trace` mode. It
       is disabled by default;
 
@@ -379,18 +416,17 @@ defmodule ExUnit do
   @spec run([module()]) :: suite_result()
   def run(additional_modules \\ []) do
     for module <- additional_modules do
-      module_attributes = module.__info__(:attributes)
-
-      if true in Keyword.get(module_attributes, :ex_unit_async, []) do
-        ExUnit.Server.add_async_module(module)
+      if Code.ensure_loaded?(module) and function_exported?(module, :__ex_unit__, 1) do
+        ExUnit.Server.add_module(module, module.__ex_unit__(:config))
       else
-        ExUnit.Server.add_sync_module(module)
+        raise(ArgumentError, "#{inspect(module)} is not a ExUnit.Case module")
       end
     end
 
     _ = ExUnit.Server.modules_loaded(additional_modules != [])
+    seed = Application.get_env(:ex_unit, :seed)
     options = persist_defaults(configuration())
-    ExUnit.Runner.run(options, nil)
+    maybe_repeated_run(options, seed, nil)
   end
 
   @doc """
@@ -402,10 +438,11 @@ defmodule ExUnit do
   @doc since: "1.12.0"
   @spec async_run() :: Task.t()
   def async_run() do
+    seed = Application.get_env(:ex_unit, :seed)
     options = persist_defaults(configuration())
 
     Task.async(fn ->
-      ExUnit.Runner.run(options, nil)
+      maybe_repeated_run(options, seed, nil)
     end)
   end
 
@@ -449,8 +486,7 @@ defmodule ExUnit do
   def fetch_test_supervisor() do
     case ExUnit.OnExitHandler.get_supervisor(self()) do
       {:ok, nil} ->
-        opts = [strategy: :one_for_one, max_restarts: 1_000_000, max_seconds: 1]
-        {:ok, sup} = Supervisor.start_link([], opts)
+        {:ok, sup} = ExUnit.OnExitHandler.Supervisor.start_link([])
         ExUnit.OnExitHandler.put_supervisor(self(), sup)
         {:ok, sup}
 
@@ -467,6 +503,31 @@ defmodule ExUnit do
   defp persist_defaults(config) do
     config |> Keyword.take([:max_cases, :seed, :trace]) |> configure()
     config
+  end
+
+  defp maybe_repeated_run(options, seed, load_us) do
+    repeat = Keyword.fetch!(options, :repeat_until_failure)
+    maybe_repeated_run(options, seed, load_us, repeat)
+  end
+
+  defp maybe_repeated_run(options, seed, load_us, repeat) do
+    case ExUnit.Runner.run(options, load_us) do
+      {%{failures: 0}, {async_modules, sync_modules}}
+      when repeat > 0 and (sync_modules != [] or async_modules != []) ->
+        ExUnit.Server.restore_modules(async_modules, sync_modules)
+
+        # Clear the seed if it was generated
+        if seed == nil do
+          Application.delete_env(:ex_unit, :seed)
+        end
+
+        # Re-run configuration
+        options = persist_defaults(configuration())
+        maybe_repeated_run(options, seed, load_us, repeat - 1)
+
+      {stats, _} ->
+        stats
+    end
   end
 
   defp put_seed(opts) do
@@ -487,7 +548,7 @@ defmodule ExUnit do
   end
 
   defp put_slowest(opts) do
-    if opts[:slowest] > 0 do
+    if opts[:slowest] > 0 or opts[:slowest_modules] > 0 do
       Keyword.put(opts, :trace, true)
     else
       opts

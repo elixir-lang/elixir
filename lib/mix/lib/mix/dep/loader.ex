@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 # This module is responsible for loading dependencies
 # of the current project. This module and its functions
 # are private to Mix.
@@ -12,7 +16,7 @@ defmodule Mix.Dep.Loader do
   are included as children.
 
   By default, it will filter all dependencies that does not match
-  current environment, behaviour can be overridden via options.
+  current environment, behavior can be overridden via options.
   """
   def children(locked?) do
     mix_children(Mix.Project.config(), locked?, []) ++ Mix.Dep.Umbrella.unloaded()
@@ -167,7 +171,7 @@ defmodule Mix.Dep.Loader do
   end
 
   defp with_scm_and_app(app, req, opts, original, locked?) do
-    unless Keyword.keyword?(opts) do
+    if not Keyword.keyword?(opts) do
       invalid_dep_format(original)
     end
 
@@ -192,7 +196,7 @@ defmodule Mix.Dep.Loader do
         {scm, opts}
       end
 
-    unless scm do
+    if !scm do
       Mix.raise(
         "Could not find an SCM for dependency #{inspect(app)} from #{inspect(Mix.Project.get())}"
       )
@@ -332,7 +336,7 @@ defmodule Mix.Dep.Loader do
   defp rebar_dep(dep, children, manager, locked?) do
     %Mix.Dep{app: app, opts: opts, extra: overrides} = dep
 
-    if locked? and is_nil(Mix.Rebar.rebar_cmd(manager)) do
+    if locked? and not Mix.Rebar.available?(manager) do
       Mix.Tasks.Local.Rebar.run(["--force"])
     end
 
@@ -358,7 +362,7 @@ defmodule Mix.Dep.Loader do
   end
 
   defp mix_children(config, locked?, opts) do
-    from = Path.absname("mix.exs")
+    from = Mix.Project.project_file()
 
     (config[:deps] || [])
     |> Enum.map(&to_dep(&1, from, _manager = nil, locked?))
@@ -403,15 +407,7 @@ defmodule Mix.Dep.Loader do
   end
 
   defp recently_fetched?(%Mix.Dep{opts: opts, scm: scm}) do
-    scm.fetchable? &&
-      Mix.Utils.stale?(
-        join_stale(opts, :dest, ".fetch"),
-        join_stale(opts, :build, ".mix/compile.fetch")
-      )
-  end
-
-  defp join_stale(opts, key, file) do
-    [Path.join(opts[key], file)]
+    scm.fetchable?() and not File.exists?(Path.join(opts[:build], ".mix/compile.fetch"))
   end
 
   defp app_status(app_path, app, req) do

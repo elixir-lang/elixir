@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("test_helper.exs", __DIR__)
 
 defmodule SystemTest do
@@ -110,7 +114,8 @@ defmodule SystemTest do
         env: %{"foo" => "bar", "baz" => nil},
         arg0: "echo",
         stderr_to_stdout: true,
-        parallelism: true
+        parallelism: true,
+        use_stdio: true
       ]
 
       assert {["hello\r\n"], 0} = System.cmd("cmd", ~w[/c echo hello], opts)
@@ -127,7 +132,7 @@ defmodule SystemTest do
         # There is a bug in OTP where find_executable is finding
         # entries on the current directory. If this is the case,
         # we should avoid the assertion below.
-        unless System.find_executable(@echo) do
+        if !System.find_executable(@echo) do
           assert :enoent = catch_error(System.cmd(@echo, ~w[/c echo hello]))
         end
 
@@ -146,7 +151,8 @@ defmodule SystemTest do
         cd: File.cwd!(),
         env: %{"foo" => "bar", "baz" => nil},
         stderr_to_stdout: true,
-        parallelism: true
+        parallelism: true,
+        use_stdio: true
       ]
 
       assert {["bar\r\n"], 0} = System.shell("echo %foo%", opts)
@@ -167,10 +173,28 @@ defmodule SystemTest do
         env: %{"foo" => "bar", "baz" => nil},
         arg0: "echo",
         stderr_to_stdout: true,
-        parallelism: true
+        parallelism: true,
+        use_stdio: true
       ]
 
       assert {["hello\n"], 0} = System.cmd("echo", ["hello"], opts)
+    end
+
+    test "cmd/3 (can't use `use_stdio: false, stderr_to_stdout: true`)" do
+      opts = [
+        into: [],
+        cd: File.cwd!(),
+        env: %{"foo" => "bar", "baz" => nil},
+        arg0: "echo",
+        stderr_to_stdout: true,
+        use_stdio: false
+      ]
+
+      message = ~r"cannot use \"stderr_to_stdout: true\" and \"use_stdio: false\""
+
+      assert_raise ArgumentError, message, fn ->
+        System.cmd("echo", ["hello"], opts)
+      end
     end
 
     test "cmd/3 by line" do
@@ -192,7 +216,7 @@ defmodule SystemTest do
         # There is a bug in OTP where find_executable is finding
         # entries on the current directory. If this is the case,
         # we should avoid the assertion below.
-        unless System.find_executable(@echo) do
+        if !System.find_executable(@echo) do
           assert :enoent = catch_error(System.cmd(@echo, ["hello"]))
         end
 
@@ -209,6 +233,11 @@ defmodule SystemTest do
       assert {"1\n2\n", 0} = System.shell("x=1; echo $x; echo '2'")
     end
 
+    test "shell/1 with empty string" do
+      assert {"", 0} = System.shell("")
+      assert {"", 0} = System.shell("  ")
+    end
+
     @tag timeout: 1_000
     test "shell/1 returns when command awaits input" do
       assert {"", 0} = System.shell("cat", close_stdin: true)
@@ -223,7 +252,8 @@ defmodule SystemTest do
         into: [],
         cd: File.cwd!(),
         env: %{"foo" => "bar", "baz" => nil},
-        stderr_to_stdout: true
+        stderr_to_stdout: true,
+        use_stdio: true
       ]
 
       assert {["bar\n"], 0} = System.shell("echo $foo", opts)

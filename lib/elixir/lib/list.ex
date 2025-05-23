@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule List do
   @moduledoc """
   Linked lists hold zero, one, or more elements in the chosen order.
@@ -107,7 +111,7 @@ defmodule List do
   charlists in IEx when you encounter them, which shows you the type, description
   and also the raw representation in one single summary.
 
-  The rationale behind this behaviour is to better support
+  The rationale behind this behavior is to better support
   Erlang libraries which may return text as charlists
   instead of Elixir strings. In Erlang, charlists are the default
   way of handling strings, while in Elixir it's binaries. One
@@ -633,26 +637,38 @@ defmodule List do
     [other]
   end
 
-  @doc """
-  Zips corresponding elements from each list in `list_of_lists`.
-
-  The zipping finishes as soon as any list terminates.
-
-  ## Examples
-
-      iex> List.zip([[1, 2], [3, 4], [5, 6]])
-      [{1, 3, 5}, {2, 4, 6}]
-
-      iex> List.zip([[1, 2], [3], [5, 6]])
-      [{1, 3, 5}]
-
-  """
-  @spec zip([list]) :: [tuple]
+  @deprecated "Use Enum.zip/1 instead"
+  # We keep the old implementation because it also supported lists
+  # of tuples, even though this was not included in its @spec.
   def zip([]), do: []
+  def zip(list_of_lists) when is_list(list_of_lists), do: do_zip(list_of_lists, [])
 
-  def zip(list_of_lists) when is_list(list_of_lists) do
-    do_zip(list_of_lists, [])
+  defp do_zip(list, acc) do
+    converter = fn x, acc -> do_zip_each(to_list(x), acc) end
+
+    case :lists.mapfoldl(converter, [], list) do
+      {_, nil} ->
+        :lists.reverse(acc)
+
+      {mlist, heads} ->
+        do_zip(mlist, [to_tuple(:lists.reverse(heads)) | acc])
+    end
   end
+
+  defp do_zip_each(_, nil) do
+    {nil, nil}
+  end
+
+  defp do_zip_each([head | tail], acc) do
+    {tail, [head | acc]}
+  end
+
+  defp do_zip_each([], _) do
+    {nil, nil}
+  end
+
+  defp to_list(tuple) when is_tuple(tuple), do: Tuple.to_list(tuple)
+  defp to_list(list) when is_list(list), do: list
 
   @doc ~S"""
   Checks if `list` is a charlist made only of printable ASCII characters.
@@ -895,7 +911,7 @@ defmodule List do
   end
 
   @doc """
-  Returns `true` if `list` starts with the given `prefix` list; otherwise returns `false`.
+  Returns `true` if `list` starts with the given `prefix` list, otherwise returns `false`.
 
   If `prefix` is an empty list, it returns `true`.
 
@@ -923,6 +939,34 @@ defmodule List do
   def starts_with?([head | tail], [head | prefix_tail]), do: starts_with?(tail, prefix_tail)
   def starts_with?(list, []) when is_list(list), do: true
   def starts_with?(list, [_ | _]) when is_list(list), do: false
+
+  @doc """
+  Returns `true` if `list` ends with the given `suffix` list, otherwise returns `false`.
+
+  If `suffix` is an empty list, it returns `true`.
+
+  ### Examples
+
+      iex> List.ends_with?([1, 2, 3], [2, 3])
+      true
+
+      iex> List.ends_with?([1, 2], [1, 2, 3])
+      false
+
+      iex> List.ends_with?([:alpha], [])
+      true
+
+      iex> List.ends_with?([], [:alpha])
+      false
+
+  """
+  @doc since: "1.18.0"
+  @spec ends_with?(nonempty_list, nonempty_list) :: boolean
+  @spec ends_with?(list, []) :: true
+  @spec ends_with?([], nonempty_list) :: false
+  def ends_with?(list, suffix) do
+    :lists.suffix(suffix, list)
+  end
 
   @doc """
   Converts a charlist to an atom.
@@ -1372,33 +1416,4 @@ defmodule List do
   defp do_pop_at([head | tail], index, default, acc) do
     do_pop_at(tail, index - 1, default, [head | acc])
   end
-
-  # zip
-
-  defp do_zip(list, acc) do
-    converter = fn x, acc -> do_zip_each(to_list(x), acc) end
-
-    case :lists.mapfoldl(converter, [], list) do
-      {_, nil} ->
-        :lists.reverse(acc)
-
-      {mlist, heads} ->
-        do_zip(mlist, [to_tuple(:lists.reverse(heads)) | acc])
-    end
-  end
-
-  defp do_zip_each(_, nil) do
-    {nil, nil}
-  end
-
-  defp do_zip_each([head | tail], acc) do
-    {tail, [head | acc]}
-  end
-
-  defp do_zip_each([], _) do
-    {nil, nil}
-  end
-
-  defp to_list(tuple) when is_tuple(tuple), do: Tuple.to_list(tuple)
-  defp to_list(list) when is_list(list), do: list
 end

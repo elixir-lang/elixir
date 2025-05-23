@@ -1,4 +1,9 @@
-# Supervisor and application
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  SPDX-FileCopyrightText: 2021 The Elixir Team
+-->
+
+# Supervision trees and applications
 
 In the previous chapter about `GenServer`, we implemented `KV.Registry` to manage buckets. At some point, we started monitoring buckets so we were able to take action whenever a `KV.Bucket` crashed. Although the change was relatively small, it introduced a question which is frequently asked by Elixir developers: what happens when something fails?
 
@@ -12,7 +17,7 @@ Therefore, an Elixir developer prefers to "let it crash" or "fail fast". And one
 
 For example, imagine your computer, router, printer, or whatever device is not working properly. How often do you fix it by restarting it? Once we restart the device, we reset the device back to its initial state, which is well-tested and guaranteed to work. In Elixir, we apply this same approach to software: whenever a process crashes, we start a new process to perform the same job as the crashed process.
 
-In Elixir, this is done by a Supervisor. A Supervisor is a process that supervises other processes and restarts them whenever they crash. To do so, Supervisors manage the whole life-cycle of any supervised processes, including startup and shutdown.
+In Elixir, this is done by a Supervisor. A Supervisor is a process that supervises other processes and restarts them whenever they crash. To do so, Supervisors manage the whole life cycle of any supervised processes, including startup and shutdown.
 
 In this chapter, we will learn how to put those concepts into practice by supervising the `KV.Registry` process. After all, if something goes wrong with the registry, the whole registry is lost and no bucket could ever be found! To address this, we will define a `KV.Supervisor` module that guarantees that our `KV.Registry` is up and running at any given moment.
 

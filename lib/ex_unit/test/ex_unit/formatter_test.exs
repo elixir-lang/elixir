@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule ExUnit.FormatterTest do
@@ -82,7 +86,9 @@ defmodule ExUnit.FormatterTest do
 
     failure = [{:exit, {{error, stack}, {:mod, :fun, []}}, []}]
 
-    assert trim_multiline_whitespace(format_test_failure(test(), failure, 1, 80, &formatter/2)) =~
+    format = trim_multiline_whitespace(format_test_failure(test(), failure, 1, 80, &formatter/2))
+
+    assert format =~
              """
                1) world (Hello)
                   test/ex_unit/formatter_test.exs:1
@@ -97,11 +103,16 @@ defmodule ExUnit.FormatterTest do
 
                            # 2
                            :bar
-
-                       Attempted function clauses (showing 5 out of 5):
-
-                           def fetch(%module{} = container, key)
              """
+
+    if Access not in :cover.modules() do
+      assert format =~
+               """
+                         Attempted function clauses (showing 5 out of 5):
+
+                             def fetch(%module{} = container, key)
+               """
+    end
   end
 
   test "formats test exits with assertion mfa" do
@@ -173,11 +184,16 @@ defmodule ExUnit.FormatterTest do
 
                            # 2
                            :bar
-
-                       Attempted function clauses (showing 5 out of 5):
-
-                           def fetch(%module{} = container, key)
              """
+
+    if Access not in :cover.modules() do
+      assert format =~
+               """
+                         Attempted function clauses (showing 5 out of 5):
+
+                             def fetch(%module{} = container, key)
+               """
+    end
 
     assert format =~ ~r"lib/access.ex:\d+: Access.fetch/2"
   end
@@ -219,7 +235,7 @@ defmodule ExUnit.FormatterTest do
   end
 
   test "formats test errors with code snippets" do
-    stack = {Hello, :world, 1, [file: __ENV__.file, line: 3]}
+    stack = {Hello, :world, 1, [file: __ENV__.file, line: 7]}
     failure = [{:error, catch_error(raise "oops"), [stack]}]
 
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
@@ -228,6 +244,31 @@ defmodule ExUnit.FormatterTest do
                 ** (RuntimeError) oops
                 code: defmodule ExUnit.FormatterTest do
            """
+  end
+
+  test "formats test errors with parameters" do
+    failure = [{:error, catch_error(raise "oops"), []}]
+
+    assert format_test_failure(%{test() | parameters: %{foo: :bar}}, failure, 1, 80, &formatter/2) =~
+             """
+               1) world (Hello)
+                  Parameters: %{foo: :bar}
+                  test/ex_unit/formatter_test.exs:1
+                  ** (RuntimeError) oops
+             """
+
+    formatter = fn
+      :parameters_info, map -> Map.put(map, :more, :keys)
+      key, val -> formatter(key, val)
+    end
+
+    assert format_test_failure(%{test() | parameters: %{foo: :bar}}, failure, 1, 80, formatter) =~
+             """
+               1) world (Hello)
+                  Parameters: #{inspect(%{foo: :bar, more: :keys})}
+                  test/ex_unit/formatter_test.exs:1
+                  ** (RuntimeError) oops
+             """
   end
 
   test "formats stacktraces" do
@@ -306,6 +347,9 @@ defmodule ExUnit.FormatterTest do
                 right: "#{unquote(nfd_hello)}"
                 hint:  you are comparing strings that have the same visual representation but are made of different Unicode codepoints
            """
+
+    assert format_test_failure(test(), failure, 1, 80, &diff_formatter/2) ==
+             format_test_failure(test(), failure, 1, 80, &formatter/2)
 
     assert format_assertion_diff(assertion_error, 0, :infinity, &diff_formatter/2)
            |> kw_to_string() ==
@@ -386,11 +430,16 @@ defmodule ExUnit.FormatterTest do
 
                     # 2
                     :bar
-
-                Attempted function clauses (showing 5 out of 5):
-
-                    def fetch(%module{} = container, key)
            """
+
+    if Access not in :cover.modules() do
+      assert failure =~
+               """
+                    Attempted function clauses (showing 5 out of 5):
+
+                        def fetch(%module{} = container, key)
+               """
+    end
 
     assert failure =~ ~r"\(elixir #{System.version()}\) lib/access\.ex:\d+: Access\.fetch/2"
   end
@@ -478,41 +527,49 @@ defmodule ExUnit.FormatterTest do
            """
   end
 
+  test "formats assertions with nested improper list diffing" do
+    failure = [{:error, catch_assertion(assert :foo = %{bar: [1 | 2]}), []}]
+
+    assert format_test_all_failure(test_module(), failure, 1, :infinity, &diff_formatter/2) =~ """
+           match (=) failed
+                code:  assert :foo = %{bar: [1 | 2]}
+                left:  :foo
+                right: %{bar: [1 | 2]}
+           """
+  end
+
   defmodule BadInspect do
     defstruct key: 0
 
     defimpl Inspect do
-      def inspect(struct, opts) when is_atom(opts) do
-        struct.unknown
+      def inspect(_struct, opts) when is_atom(opts) do
+        raise "the clause above should never match"
       end
     end
   end
 
   test "inspect failure" do
-    failure = [{:error, catch_assertion(assert :will_fail == %BadInspect{}), []}]
+    failure = [{:error, catch_assertion(assert :will_fail == struct!(BadInspect)), []}]
 
-    message = ~S'''
-      got FunctionClauseError with message:
-
-          """
-          no function clause matching in Inspect.ExUnit.FormatterTest.BadInspect.inspect/2
-          """
-
-      while inspecting:
-
-          %{__struct__: ExUnit.FormatterTest.BadInspect, key: 0}
-
-      Stacktrace:
-    '''
-
-    assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
+    assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ ~s'''
              1) world (Hello)
                 test/ex_unit/formatter_test.exs:1
                 Assertion with == failed
-                code:  assert :will_fail == %BadInspect{}
+                code:  assert :will_fail == struct!(BadInspect)
                 left:  :will_fail
-                right: #Inspect.Error<\n#{message}\
-           """
+                right: #Inspect.Error<
+             got FunctionClauseError with message:
+
+                 """
+                 no function clause matching in Inspect.ExUnit.FormatterTest.BadInspect.inspect/2
+                 """
+
+             while inspecting:
+
+                 #{inspect(%BadInspect{}, structs: false)}
+
+             Stacktrace:
+           '''
   end
 
   defmodule BadMessage do

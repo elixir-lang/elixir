@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule IEx.ServerTest do
@@ -8,7 +12,7 @@ defmodule IEx.ServerTest do
   describe "options" do
     test "prefix" do
       assert capture_io(fn ->
-               IEx.Server.run(prefix: "custom", dot_iex_path: "")
+               IEx.Server.run(prefix: "custom", dot_iex: "")
              end) =~ "custom(1)> "
     end
 
@@ -141,7 +145,7 @@ defmodule IEx.ServerTest do
 
       assert capture_io(:stderr, fn ->
                {server, evaluator} =
-                 pry_session(config.test, "Y\nmy_variable", dot_iex_path: path)
+                 pry_session(config.test, "Y\nmy_variable", dot_iex: path)
 
                client = pry_request([server])
                send(evaluator, :run)
@@ -159,7 +163,7 @@ defmodule IEx.ServerTest do
       File.write!(path, "my_variable = 144")
 
       {server, evaluator} =
-        pry_session(config.test, "Y\ncontinue\nmy_variable", dot_iex_path: path)
+        pry_session(config.test, "Y\ncontinue\nmy_variable", dot_iex: path)
 
       client = pry_request([server])
       send(evaluator, :run)
@@ -167,7 +171,7 @@ defmodule IEx.ServerTest do
       assert Task.await(server) =~ "144"
       assert Task.await(client) == {:ok, false}
 
-      {server, evaluator} = pry_session(config.test, "Y\nnext\nmy_variable", dot_iex_path: path)
+      {server, evaluator} = pry_session(config.test, "Y\nnext\nmy_variable", dot_iex: path)
 
       client = pry_request([server])
       send(evaluator, :run)

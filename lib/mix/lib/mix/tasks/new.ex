@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule Mix.Tasks.New do
   use Mix.Task
   import Mix.Generator
@@ -69,7 +73,7 @@ defmodule Mix.Tasks.New do
         check_mod_name_validity!(mod)
         check_mod_name_availability!(mod)
 
-        unless path == "." do
+        if path != "." do
           check_directory_existence!(path)
           File.mkdir_p!(path)
         end
@@ -195,7 +199,7 @@ defmodule Mix.Tasks.New do
   end
 
   defp invalid_app(name) do
-    unless name =~ ~r/^[a-z][a-z0-9_]*$/ do
+    if not (name =~ ~r/^[a-z][a-z0-9_]*$/) do
       "Application name must start with a lowercase ASCII letter, followed by " <>
         "lowercase ASCII letters, numbers, or underscores, got: #{inspect(name)}"
     end
@@ -210,7 +214,7 @@ defmodule Mix.Tasks.New do
   end
 
   defp check_mod_name_validity!(name) do
-    unless name =~ ~r/^[A-Z]\w*(\.[A-Z]\w*)*$/ do
+    if not (name =~ ~r/^[A-Z]\w*(\.[A-Z]\w*)*$/) do
       Mix.raise(
         "Module name must be a valid Elixir alias (for example: Foo.Bar), got: #{inspect(name)}"
       )
@@ -311,8 +315,8 @@ defmodule Mix.Tasks.New do
   # Where third-party dependencies like ExDoc output generated docs.
   /doc/
 
-  # Ignore .fetch files in case you like to edit your project deps locally.
-  /.fetch
+  # Temporary files, for example, from tests.
+  /tmp/
 
   # If the VM crashes, it generates a dump, let's ignore it too.
   erl_crash.dump
@@ -323,8 +327,6 @@ defmodule Mix.Tasks.New do
   # Ignore package tarball (built via "mix hex.build").
   <%= @app %>-*.tar
   <% end %>
-  # Temporary files, for example, from tests.
-  /tmp/
   """)
 
   embed_template(:mix_exs, """
@@ -432,8 +434,10 @@ defmodule Mix.Tasks.New do
 
   # Sample configuration:
   #
-  #     config :logger, :console,
-  #       level: :info,
+  #     config :logger, :default_handler,
+  #       level: :info
+  #
+  #     config :logger, :default_formatter,
   #       format: "$date $time [$level] $metadata$message\n",
   #       metadata: [:user_id]
   #

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule DynamicSupervisor do
   @moduledoc ~S"""
   A supervisor optimized to only start children dynamically.
@@ -215,10 +219,7 @@ defmodule DynamicSupervisor do
           extra_arguments: [term()]
         }
 
-  @typedoc "Options given to `start_link` functions"
-  @type option :: GenServer.option()
-
-  @typedoc "Options given to `start_link` and `init/1` functions"
+  @typedoc "Options given to `start_link/1` and `init/1` functions"
   @type init_option ::
           {:strategy, strategy()}
           | {:max_restarts, non_neg_integer()}
@@ -229,7 +230,14 @@ defmodule DynamicSupervisor do
   @typedoc "Supported strategies"
   @type strategy :: :one_for_one
 
-  @typedoc "Return values of `start_child` functions"
+  @typedoc """
+  Return values of `start_child` functions.
+
+  Unlike `Supervisor`, this module ignores the child spec ids, so
+  `{:error, {:already_started, pid}}` is not returned for child specs given with the same id.
+  `{:error, {:already_started, pid}}` is returned however if a duplicate name is used when using
+  [name registration](`m:GenServer#module-name-registration`).
+  """
   @type on_start_child ::
           {:ok, pid}
           | {:ok, pid, info :: term}
@@ -277,7 +285,7 @@ defmodule DynamicSupervisor do
   defmacro __using__(opts) do
     quote location: :keep, bind_quoted: [opts: opts] do
       @behaviour DynamicSupervisor
-      unless Module.has_attribute?(__MODULE__, :doc) do
+      if not Module.has_attribute?(__MODULE__, :doc) do
         @doc """
         Returns a specification to start this module under a supervisor.
 
@@ -345,9 +353,11 @@ defmodule DynamicSupervisor do
       specified in the child spec given to `start_child/2`. Defaults to
       an empty list.
 
+    * Any of the standard [GenServer options](`t:GenServer.option/0`)
+
   """
   @doc since: "1.6.0"
-  @spec start_link([option | init_option]) :: Supervisor.on_start()
+  @spec start_link([init_option | GenServer.option()]) :: Supervisor.on_start()
   def start_link(options) when is_list(options) do
     keys = [:extra_arguments, :max_children, :max_seconds, :max_restarts, :strategy]
     {sup_opts, start_opts} = Keyword.split(options, keys)
@@ -381,9 +391,15 @@ defmodule DynamicSupervisor do
   Note that a supervisor started with this function is linked to the parent
   process and exits not only on crashes but also if the parent process exits
   with `:normal` reason.
+
+  ## Options
+
+  This function accepts any regular [`GenServer` options](`t:GenServer.option/0`).
+  Options specific to `DynamicSupervisor` must be returned from the `c:init/1`
+  callback.
   """
   @doc since: "1.6.0"
-  @spec start_link(module, term, [option]) :: Supervisor.on_start()
+  @spec start_link(module, term, [GenServer.option()]) :: Supervisor.on_start()
   def start_link(module, init_arg, opts \\ []) do
     GenServer.start_link(__MODULE__, {module, init_arg, opts[:name]}, opts)
   end
@@ -391,11 +407,13 @@ defmodule DynamicSupervisor do
   @doc """
   Dynamically adds a child specification to `supervisor` and starts that child.
 
-  `child_spec` should be a valid child specification as detailed in the
-  "Child specification" section of the documentation for `Supervisor`. The child
-  process will be started as defined in the child specification. Note that while
+  `child_spec` should be a valid [child specification](`m:Supervisor#module-child-specification`).
+  The child process will be started as defined in the child specification. Note that while
   the `:id` field is still required in the spec, the value is ignored and
-  therefore does not need to be unique.
+  therefore does not need to be unique. Unlike `Supervisor`, this module does not
+  return `{:error, {:already_started, pid}}` for child specs given with the same id.
+  `{:error, {:already_started, pid}}` is returned however if a duplicate name is
+  used when using [name registration](`m:GenServer#module-name-registration`).
 
   If the child process start function returns `{:ok, child}` or `{:ok, child,
   info}`, then child specification and PID are added to the supervisor and
@@ -1134,15 +1152,6 @@ defmodule DynamicSupervisor do
       shutdown: shutdown,
       child_type: type
     ]
-  end
-
-  @impl true
-  def format_status(:terminate, [_pdict, state]) do
-    state
-  end
-
-  def format_status(_, [_pdict, %{mod: mod} = state]) do
-    [data: [{~c"State", state}], supervisor: [{~c"Callback", mod}]]
   end
 
   ## Helpers

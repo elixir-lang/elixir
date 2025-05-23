@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Local.InstallerTest do
@@ -26,54 +30,82 @@ defmodule Mix.Local.InstallerTest do
     assert config[:app] == :git_repo
     assert config[:deps_path] =~ ~r/mix-local-installer-fetcher-.*\/deps/
     assert config[:lockfile] =~ ~r/mix-local-installer-fetcher-.*\/mix.lock/
+  after
+    purge([GitRepo.MixProject, Mix.Local.Installer.MixProject])
   end
 
   test "parse_args Git" do
     args = ["git", "https://example.com/user/repo.git"]
-    opts = [git: "https://example.com/user/repo.git", submodules: nil]
+    opts = [git: "https://example.com/user/repo.git", submodules: nil, sparse: nil]
 
     assert Mix.Local.Installer.parse_args(args, []) == {:fetcher, {:"new package", opts}}
   end
 
   test "parse_args Git branch" do
     args = ["git", "https://example.com/user/repo.git", "branch", "not_main"]
-    opts = [branch: "not_main", git: "https://example.com/user/repo.git", submodules: nil]
+
+    opts = [
+      branch: "not_main",
+      git: "https://example.com/user/repo.git",
+      submodules: nil,
+      sparse: nil
+    ]
 
     assert Mix.Local.Installer.parse_args(args, []) == {:fetcher, {:"new package", opts}}
   end
 
   test "parse_args Git ref" do
     args = ["git", "https://example.com/user/repo.git", "ref", "not_main"]
-    opts = [ref: "not_main", git: "https://example.com/user/repo.git", submodules: nil]
+
+    opts = [
+      ref: "not_main",
+      git: "https://example.com/user/repo.git",
+      submodules: nil,
+      sparse: nil
+    ]
 
     assert Mix.Local.Installer.parse_args(args, []) == {:fetcher, {:"new package", opts}}
   end
 
   test "parse_args Git tag" do
     args = ["git", "https://example.com/user/repo.git", "tag", "not_main"]
-    opts = [tag: "not_main", git: "https://example.com/user/repo.git", submodules: nil]
+
+    opts = [
+      tag: "not_main",
+      git: "https://example.com/user/repo.git",
+      submodules: nil,
+      sparse: nil
+    ]
 
     assert Mix.Local.Installer.parse_args(args, []) == {:fetcher, {:"new package", opts}}
   end
 
   test "parse_args Git submodules" do
     args = ["git", "https://example.com/user/repo.git"]
-    opts = [git: "https://example.com/user/repo.git", submodules: true]
+    opts = [git: "https://example.com/user/repo.git", submodules: true, sparse: nil]
 
     assert Mix.Local.Installer.parse_args(args, submodules: true) ==
              {:fetcher, {:"new package", opts}}
   end
 
+  test "parse_args Git sparse" do
+    args = ["git", "https://example.com/user/repo.git"]
+    opts = [git: "https://example.com/user/repo.git", submodules: nil, sparse: "foo"]
+
+    assert Mix.Local.Installer.parse_args(args, sparse: "foo") ==
+             {:fetcher, {:"new package", opts}}
+  end
+
   test "parse_args Git app" do
     args = ["git", "https://example.com/user/repo.git"]
-    opts = [git: "https://example.com/user/repo.git", submodules: nil]
+    opts = [git: "https://example.com/user/repo.git", submodules: nil, sparse: nil]
 
     assert Mix.Local.Installer.parse_args(args, app: "my_app") == {:fetcher, {:my_app, opts}}
   end
 
   test "parse_args GitHub" do
     args = ["github", "user/repo"]
-    opts = [git: "https://github.com/user/repo.git", submodules: nil]
+    opts = [git: "https://github.com/user/repo.git", submodules: nil, sparse: nil]
 
     assert Mix.Local.Installer.parse_args(args, []) == {:fetcher, {:"new package", opts}}
   end

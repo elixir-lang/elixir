@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 import Kernel, except: [inspect: 1]
 import Inspect.Algebra
 
@@ -60,9 +64,11 @@ defprotocol Inspect do
 
     * `:except` - remove the given fields when inspecting.
 
-    * `:optional` - (since v1.14.0) do not include a field if it
-      matches its default value. This can be used to simplify the
-      struct representation at the cost of hiding information.
+    * `:optional` - (since v1.14.0) a list of fields that should not be
+      included when they match their default value. This can be used to
+      simplify the struct representation at the cost of hiding
+      information. Since v1.19.0, the `:all` atom can be passed to
+      mark all fields as optional.
 
   Whenever `:only` or `:except` are used to restrict fields,
   the struct will be printed using the `#User<...>` notation,
@@ -78,7 +84,15 @@ defprotocol Inspect do
       #=> #User<id: 1, name: "Jane", ...>
 
   If you use only the `:optional` option, the struct will still be
-  printed as `%User{...}`.
+  printed as a valid struct.
+
+      defmodule Point do
+        @derive {Inspect, optional: [:z]}
+        defstruct [x: 0, y: 0, z: 0]
+      end
+
+      inspect(%Point{x: 1})
+      %Point{x: 1, y: 0}
 
   ## Custom implementation
 
@@ -117,18 +131,127 @@ defprotocol Inspect do
 
   In case there is an error while your structure is being inspected,
   Elixir will raise an `ArgumentError` error and will automatically fall back
-  to a raw representation for printing the structure.
+  to a raw representation for printing the structure. Furthermore, you
+  must be careful when debugging your own Inspect implementation, as calls
+  to `IO.inspect/2` or `dbg/1` may trigger an infinite loop (as in order to
+  inspect/debug the data structure, you must call `inspect` itself).
 
-  You can, however, access the underlying error by invoking the `Inspect`
-  implementation directly. For example, to test `Inspect.MapSet` above,
-  you can invoke it as:
+  Here are some tips:
 
-      Inspect.MapSet.inspect(MapSet.new(), %Inspect.Opts{})
+    * For debugging, use `IO.inspect/2` with the `structs: false` option,
+      which disables custom printing and avoids calling the Inspect
+      implementation recursively
+
+    * To access the underlying error on your custom `Inspect` implementation,
+      you may invoke the protocol directly. For example, we could invoke the
+      `Inspect.MapSet` implementation above as:
+
+          Inspect.MapSet.inspect(MapSet.new(), %Inspect.Opts{})
 
   """
 
   # Handle structs in Any
   @fallback_to_any true
+
+  @impl true
+  defmacro __deriving__(module, options) do
+    info = Macro.struct_info!(module, __CALLER__)
+    fields = Enum.sort(Enum.map(info, & &1.field) -- [:__exception__, :__struct__])
+
+    only = Keyword.get(options, :only, fields)
+    except = Keyword.get(options, :except, [])
+
+    :ok = validate_option(:only, only, fields, module)
+    :ok = validate_option(:except, except, fields, module)
+
+    optional =
+      case Keyword.get(options, :optional, []) do
+        :all ->
+          fields
+
+        optional ->
+          :ok = validate_option(:optional, optional, fields, module)
+          optional
+      end
+
+    inspect_module =
+      if fields == Enum.sort(only) and except == [] do
+        Inspect.Map
+      else
+        Inspect.Any
+      end
+
+    filtered_fields =
+      fields
+      |> Enum.reject(&(&1 in except))
+      |> Enum.filter(&(&1 in only))
+
+    filtered_guard =
+      quote do
+        var!(field) in unquote(filtered_fields)
+      end
+
+    field_guard =
+      if optional == [] do
+        filtered_guard
+      else
+        optional_map =
+          for field <- optional, into: %{} do
+            default = Enum.find(info, %{}, &(&1.field == field)) |> Map.get(:default, nil)
+            {field, default}
+          end
+
+        quote do
+          unquote(filtered_guard) and
+            not case unquote(Macro.escape(optional_map)) do
+              %{^var!(field) => var!(default)} ->
+                var!(default) == Map.get(var!(struct), var!(field))
+
+              %{} ->
+                false
+            end
+        end
+      end
+
+    quote do
+      defimpl Inspect, for: unquote(module) do
+        def inspect(var!(struct), var!(opts)) do
+          var!(infos) =
+            for %{field: var!(field)} = var!(info) <- unquote(module).__info__(:struct),
+                unquote(field_guard),
+                do: var!(info)
+
+          var!(name) = Macro.inspect_atom(:literal, unquote(module))
+
+          unquote(inspect_module).inspect_as_struct(
+            var!(struct),
+            var!(name),
+            var!(infos),
+            var!(opts)
+          )
+        end
+      end
+    end
+  end
+
+  defp validate_option(option, option_list, fields, module) do
+    if not is_list(option_list) do
+      raise ArgumentError,
+            "invalid value #{Kernel.inspect(option_list)} in #{Kernel.inspect(option)} " <>
+              "when deriving the Inspect protocol for #{Kernel.inspect(module)} " <>
+              "(expected a list)"
+    end
+
+    case option_list -- fields do
+      [] ->
+        :ok
+
+      unknown_fields ->
+        raise ArgumentError,
+              "unknown fields #{Kernel.inspect(unknown_fields)} in #{Kernel.inspect(option)} " <>
+                "when deriving the Inspect protocol for #{Kernel.inspect(module)}"
+    end
+  end
 
   @doc """
   Converts `term` into an algebra document.
@@ -146,7 +269,7 @@ defimpl Inspect, for: Atom do
   require Macro
 
   def inspect(atom, opts) do
-    color(Macro.inspect_atom(:literal, atom), color_key(atom), opts)
+    color_doc(Macro.inspect_atom(:literal, atom), color_key(atom), opts)
   end
 
   defp color_key(atom) when is_boolean(atom), do: :boolean
@@ -166,7 +289,7 @@ defimpl Inspect, for: BitString do
           {escaped, _} -> [?", escaped, ?", " <> ..."]
         end
 
-      color(IO.iodata_to_binary(inspected), :string, opts)
+      color_doc(IO.iodata_to_binary(inspected), :string, opts)
     else
       inspect_bitstring(term, opts)
     end
@@ -177,12 +300,12 @@ defimpl Inspect, for: BitString do
   end
 
   defp inspect_bitstring("", opts) do
-    color("<<>>", :binary, opts)
+    color_doc("<<>>", :binary, opts)
   end
 
   defp inspect_bitstring(bitstring, opts) do
-    left = color("<<", :binary, opts)
-    right = color(">>", :binary, opts)
+    left = color_doc("<<", :binary, opts)
+    right = color_doc(">>", :binary, opts)
     inner = each_bit(bitstring, opts.limit, opts)
     group(concat(concat(left, nest(inner, 2)), right))
   end
@@ -219,7 +342,7 @@ end
 
 defimpl Inspect, for: List do
   def inspect([], opts) do
-    color("[]", :list, opts)
+    color_doc("[]", :list, opts)
   end
 
   # TODO: Remove :char_list and :as_char_lists handling on v2.0
@@ -250,9 +373,9 @@ defimpl Inspect, for: List do
         lists
       end
 
-    open = color("[", :list, opts)
-    sep = color(",", :list, opts)
-    close = color("]", :list, opts)
+    open = color_doc("[", :list, opts)
+    sep = color_doc(",", :list, opts)
+    close = color_doc("]", :list, opts)
 
     cond do
       lists == :as_charlists or (lists == :infer and List.ascii_printable?(term, printable_limit)) ->
@@ -262,7 +385,7 @@ defimpl Inspect, for: List do
             {escaped, _} -> [?~, ?c, ?", escaped, ?", " ++ ..."]
           end
 
-        color(IO.iodata_to_binary(inspected), :charlist, opts)
+        color_doc(IO.iodata_to_binary(inspected), :charlist, opts)
 
       keyword?(term) ->
         container_doc(open, term, close, opts, &keyword/2, separator: sep, break: :strict)
@@ -274,7 +397,7 @@ defimpl Inspect, for: List do
 
   @doc false
   def keyword({key, value}, opts) do
-    key = color(Macro.inspect_atom(:key, key), :atom, opts)
+    key = color_doc(Macro.inspect_atom(:key, key), :atom, opts)
     concat(key, concat(" ", to_doc(value, opts)))
   end
 
@@ -292,9 +415,9 @@ end
 
 defimpl Inspect, for: Tuple do
   def inspect(tuple, opts) do
-    open = color("{", :tuple, opts)
-    sep = color(",", :tuple, opts)
-    close = color("}", :tuple, opts)
+    open = color_doc("{", :tuple, opts)
+    sep = color_doc(",", :tuple, opts)
+    close = color_doc("}", :tuple, opts)
     container_opts = [separator: sep, break: :flex]
     container_doc(open, Tuple.to_list(tuple), close, opts, &to_doc/2, container_opts)
   end
@@ -302,6 +425,10 @@ end
 
 defimpl Inspect, for: Map do
   def inspect(map, opts) do
+    inspect_as_map(map, opts)
+  end
+
+  def inspect_as_map(map, opts) do
     list =
       if Keyword.get(opts.custom_options, :sort_maps) do
         map |> Map.to_list() |> :lists.sort()
@@ -313,14 +440,14 @@ defimpl Inspect, for: Map do
       if Inspect.List.keyword?(list) do
         &Inspect.List.keyword/2
       else
-        sep = color(" => ", :map, opts)
+        sep = color_doc(" => ", :map, opts)
         &to_assoc(&1, &2, sep)
       end
 
     map_container_doc(list, "", opts, fun)
   end
 
-  def inspect(map, name, infos, opts) do
+  def inspect_as_struct(map, name, infos, opts) do
     fun = fn %{field: field}, opts -> Inspect.List.keyword({field, Map.get(map, field)}, opts) end
     map_container_doc(infos, name, opts, fun)
   end
@@ -330,9 +457,9 @@ defimpl Inspect, for: Map do
   end
 
   defp map_container_doc(list, name, opts, fun) do
-    open = color("%" <> name <> "{", :map, opts)
-    sep = color(",", :map, opts)
-    close = color("}", :map, opts)
+    open = color_doc("%" <> name <> "{", :map, opts)
+    sep = color_doc(",", :map, opts)
+    close = color_doc("}", :map, opts)
     container_doc(open, list, close, opts, fun, separator: sep, break: :strict)
   end
 end
@@ -340,7 +467,7 @@ end
 defimpl Inspect, for: Integer do
   def inspect(term, %Inspect.Opts{base: base} = opts) do
     inspected = Integer.to_string(term, base_to_value(base)) |> prepend_prefix(base)
-    color(inspected, :number, opts)
+    color_doc(inspected, :number, opts)
   end
 
   defp base_to_value(base) do
@@ -378,33 +505,47 @@ defimpl Inspect, for: Float do
       if abs >= 1.0 and abs < 1.0e16 and trunc(float) == float do
         [Integer.to_string(trunc(float)), ?., ?0]
       else
-        :io_lib_format.fwrite_g(float)
+        Float.to_charlist(float)
       end
 
-    color(IO.iodata_to_binary(formatted), :number, opts)
+    color_doc(IO.iodata_to_binary(formatted), :number, opts)
   end
 end
 
 defimpl Inspect, for: Regex do
   def inspect(regex = %{opts: regex_opts}, opts) when is_list(regex_opts) do
-    concat([
-      "Regex.compile!(",
-      Inspect.BitString.inspect(regex.source, opts),
-      ", ",
-      Inspect.List.inspect(regex_opts, opts),
-      ")"
-    ])
+    case translate_options(regex_opts, []) do
+      :error ->
+        concat([
+          "Regex.compile!(",
+          Inspect.BitString.inspect(regex.source, opts),
+          ", ",
+          Inspect.List.inspect(regex_opts, opts),
+          ")"
+        ])
+
+      translated_opts ->
+        {escaped, _} =
+          regex.source
+          |> normalize(<<>>)
+          |> Identifier.escape(?/, :infinity, &escape_map/1)
+
+        source = IO.iodata_to_binary([?~, ?r, ?/, escaped, ?/, translated_opts])
+        color_doc(source, :regex, opts)
+    end
   end
 
-  def inspect(regex, opts) do
-    {escaped, _} =
-      regex.source
-      |> normalize(<<>>)
-      |> Identifier.escape(?/, :infinity, &escape_map/1)
+  defp translate_options([:dotall, {:newline, :anycrlf} | t], acc),
+    do: translate_options(t, [?s | acc])
 
-    source = IO.iodata_to_binary([?~, ?r, ?/, escaped, ?/, regex.opts])
-    color(source, :regex, opts)
-  end
+  defp translate_options([:unicode, :ucp | t], acc), do: translate_options(t, [?u | acc])
+  defp translate_options([:caseless | t], acc), do: translate_options(t, [?i | acc])
+  defp translate_options([:extended | t], acc), do: translate_options(t, [?x | acc])
+  defp translate_options([:firstline | t], acc), do: translate_options(t, [?f | acc])
+  defp translate_options([:ungreedy | t], acc), do: translate_options(t, [?U | acc])
+  defp translate_options([:multiline | t], acc), do: translate_options(t, [?m | acc])
+  defp translate_options([], acc), do: acc
+  defp translate_options(_t, _acc), do: :error
 
   defp normalize(<<?\\, ?\\, rest::binary>>, acc), do: normalize(rest, <<acc::binary, ?\\, ?\\>>)
   defp normalize(<<?\\, ?/, rest::binary>>, acc), do: normalize(rest, <<acc::binary, ?/>>)
@@ -440,7 +581,7 @@ defimpl Inspect, for: Function do
 
       match?(@elixir_compiler ++ _, Atom.to_charlist(mod)) ->
         if function_exported?(mod, :__RELATIVE__, 0) do
-          "#Function<#{uniq(fun_info)} in file:#{mod.__RELATIVE__}>"
+          "#Function<#{uniq(fun_info)} in file:#{mod.__RELATIVE__()}>"
         else
           default_inspect(mod, fun_info)
         end
@@ -475,36 +616,6 @@ defimpl Inspect, for: Function do
   end
 end
 
-defimpl Inspect, for: Inspect.Error do
-  @impl true
-  def inspect(%{stacktrace: stacktrace} = inspect_error, _opts) do
-    message = Exception.message(inspect_error)
-    format_output(message, stacktrace)
-  end
-
-  defp format_output(message, [_ | _] = stacktrace) do
-    stacktrace = Exception.format_stacktrace(stacktrace)
-
-    """
-    #Inspect.Error<
-    #{Inspect.Error.pad(message, 2)}
-
-      Stacktrace:
-
-    #{stacktrace}
-    >\
-    """
-  end
-
-  defp format_output(message, []) do
-    """
-    #Inspect.Error<
-      #{Inspect.Error.pad(message, 2)}
-    >\
-    """
-  end
-end
-
 defimpl Inspect, for: PID do
   def inspect(pid, _opts) do
     "#PID" <> IO.iodata_to_binary(:erlang.pid_to_list(pid))
@@ -525,96 +636,41 @@ defimpl Inspect, for: Reference do
 end
 
 defimpl Inspect, for: Any do
-  defmacro __deriving__(module, struct, options) do
-    fields = Map.keys(struct) -- [:__exception__, :__struct__]
-    only = Keyword.get(options, :only, fields)
-    except = Keyword.get(options, :except, [])
-    optional = Keyword.get(options, :optional, [])
-
-    :ok = validate_option(:only, only, fields, module)
-    :ok = validate_option(:except, except, fields, module)
-    :ok = validate_option(:optional, optional, fields, module)
-
-    inspect_module =
-      if fields == only and except == [] do
-        Inspect.Map
-      else
-        Inspect.Any
-      end
-
-    filtered_fields =
-      fields
-      |> Enum.reject(&(&1 in except))
-      |> Enum.filter(&(&1 in only))
-
-    optional? =
-      if optional == [] do
-        false
-      else
-        optional_map = for field <- optional, into: %{}, do: {field, Map.fetch!(struct, field)}
-
-        quote do
-          case unquote(Macro.escape(optional_map)) do
-            %{^var!(field) => var!(default)} ->
-              var!(default) == Map.get(var!(struct), var!(field))
-
-            %{} ->
-              false
-          end
-        end
-      end
-
-    quote do
-      defimpl Inspect, for: unquote(module) do
-        def inspect(var!(struct), var!(opts)) do
-          var!(infos) =
-            for %{field: var!(field)} = var!(info) <- unquote(module).__info__(:struct),
-                var!(field) in unquote(filtered_fields) and not unquote(optional?),
-                do: var!(info)
-
-          var!(name) = Macro.inspect_atom(:literal, unquote(module))
-          unquote(inspect_module).inspect(var!(struct), var!(name), var!(infos), var!(opts))
-        end
-      end
-    end
-  end
-
-  defp validate_option(option, option_list, fields, module) do
-    case option_list -- fields do
-      [] ->
-        :ok
-
-      unknown_fields ->
-        raise ArgumentError,
-              "unknown fields #{Kernel.inspect(unknown_fields)} in #{Kernel.inspect(option)} " <>
-                "when deriving the Inspect protocol for #{Kernel.inspect(module)}"
-    end
-  end
-
   def inspect(%module{} = struct, opts) do
     try do
-      {module.__struct__(), module.__info__(:struct)}
+      module.__info__(:struct)
     rescue
-      _ -> Inspect.Map.inspect(struct, opts)
+      _ -> Inspect.Map.inspect_as_map(struct, opts)
     else
-      {dunder, fields} ->
-        if Map.keys(dunder) == Map.keys(struct) do
-          infos =
-            for %{field: field} = info <- fields,
-                field not in [:__struct__, :__exception__],
-                do: info
+      info ->
+        if valid_struct?(info, struct) do
+          info =
+            for %{field: field} = map <- info,
+                field != :__exception__,
+                do: map
 
-          Inspect.Map.inspect(struct, Macro.inspect_atom(:literal, module), infos, opts)
+          Inspect.Map.inspect_as_struct(struct, Macro.inspect_atom(:literal, module), info, opts)
         else
-          Inspect.Map.inspect(struct, opts)
+          Inspect.Map.inspect_as_map(struct, opts)
         end
     end
   end
 
-  def inspect(map, name, infos, opts) do
-    open = color("#" <> name <> "<", :map, opts)
-    sep = color(",", :map, opts)
-    close = color(">", :map, opts)
+  defp valid_struct?(info, struct), do: valid_struct?(info, struct, map_size(struct) - 1)
+
+  defp valid_struct?([%{field: field} | info], struct, count) when is_map_key(struct, field),
+    do: valid_struct?(info, struct, count - 1)
+
+  defp valid_struct?([], _struct, 0),
+    do: true
+
+  defp valid_struct?(_fields, _struct, _count),
+    do: false
+
+  def inspect_as_struct(map, name, infos, opts) do
+    open = color_doc("#" <> name <> "<", :map, opts)
+    sep = color_doc(",", :map, opts)
+    close = color_doc(">", :map, opts)
 
     fun = fn
       %{field: field}, opts -> Inspect.List.keyword({field, Map.get(map, field)}, opts)
@@ -622,6 +678,25 @@ defimpl Inspect, for: Any do
     end
 
     container_doc(open, infos ++ [:...], close, opts, fun, separator: sep, break: :strict)
+  end
+end
+
+defimpl Inspect, for: Range do
+  import Inspect.Algebra
+  import Kernel, except: [inspect: 2]
+
+  def inspect(first..last//1, opts) when last >= first do
+    concat([to_doc(first, opts), "..", to_doc(last, opts)])
+  end
+
+  def inspect(first..last//step, opts) do
+    concat([to_doc(first, opts), "..", to_doc(last, opts), "//", to_doc(step, opts)])
+  end
+
+  # TODO: Remove me on v2.0
+  def inspect(%{__struct__: Range, first: first, last: last} = range, opts) do
+    step = if first <= last, do: 1, else: -1
+    inspect(Map.put(range, :step, step), opts)
   end
 end
 

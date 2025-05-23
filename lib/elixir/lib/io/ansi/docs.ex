@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 defmodule IO.ANSI.Docs do
   @moduledoc false
 
@@ -50,6 +54,10 @@ defmodule IO.ANSI.Docs do
   """
   @spec print_headings([String.t()], keyword) :: :ok
   def print_headings(headings, options \\ []) do
+    # It's possible for some of the headings to contain newline characters (`\n`), so in order to prevent it from
+    # breaking the output from `print_headings/2`, as `print_headings/2` tries to pad the whole heading, we first split
+    # any heading containgin newline characters into multiple headings, that way each one is padded on its own.
+    headings = Enum.flat_map(headings, fn heading -> String.split(heading, "\n") end)
     options = Keyword.merge(default_options(), options)
     newline_after_block(options)
     width = options[:width]
@@ -172,12 +180,17 @@ defmodule IO.ANSI.Docs do
     process_code(rest, [line], indent, options)
   end
 
-  defp process(["```" <> _line | rest], text, indent, options) do
-    process_fenced_code_block(rest, text, indent, options, _delimiter = "```")
+  defp process(["```mermaid" <> _line | rest], text, indent, options) do
+    write_text(text, indent, options)
+
+    rest
+    |> Enum.drop_while(&(&1 != "```"))
+    |> Enum.drop(1)
+    |> process([], indent, options)
   end
 
-  defp process(["~~~" <> _line | rest], text, indent, options) do
-    process_fenced_code_block(rest, text, indent, options, _delimiter = "~~~")
+  defp process(["```" <> _line | rest], text, indent, options) do
+    process_fenced_code_block(rest, text, indent, options, _delimiter = "```")
   end
 
   defp process(["<!--" <> line | rest], text, indent, options) do
@@ -211,10 +224,6 @@ defmodule IO.ANSI.Docs do
   end
 
   ### Quotes
-
-  defp process_quote([], lines, indent, options) do
-    write_quote(lines, indent, options, false)
-  end
 
   defp process_quote([">", ">" <> line | rest], lines, indent, options) do
     write_quote(lines, indent, options, true)
@@ -345,7 +354,7 @@ defmodule IO.ANSI.Docs do
     |> String.split(@spaces)
     |> write_with_wrap(options[:width] - byte_size(indent), indent, no_wrap, prefix)
 
-    unless no_wrap, do: newline_after_block(options)
+    if !no_wrap, do: newline_after_block(options)
   end
 
   defp format_text(text, options) do
@@ -355,10 +364,6 @@ defmodule IO.ANSI.Docs do
   end
 
   ### Code blocks
-
-  defp process_code([], code, indent, options) do
-    write_code(code, indent, options)
-  end
 
   # Blank line between code blocks
   defp process_code(["", "    " <> line | rest], code, indent, options) do
@@ -384,7 +389,7 @@ defmodule IO.ANSI.Docs do
   end
 
   defp process_fenced_code([line | rest], code, indent, options, delimiter) do
-    if line === delimiter do
+    if line == delimiter do
       process_code(rest, code, indent, options)
     else
       process_fenced_code(rest, [line | code], indent, options, delimiter)
@@ -436,7 +441,7 @@ defmodule IO.ANSI.Docs do
       col
       |> String.trim()
       |> String.replace("\\\|", "|")
-      |> handle_links
+      |> handle_links()
       |> handle_inline(options)
 
     {col, length_without_escape(col, 0)}
@@ -609,8 +614,8 @@ defmodule IO.ANSI.Docs do
 
   defp handle_links(text) do
     text
-    |> remove_square_brackets_in_link
-    |> escape_underlines_in_link
+    |> remove_square_brackets_in_link()
+    |> escape_underlines_in_link()
   end
 
   defp escape_underlines_in_link(text) do

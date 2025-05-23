@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../test_helper.exs", __DIR__)
 
 defmodule IEx.AutocompleteTest do
@@ -180,9 +184,34 @@ defmodule IEx.AutocompleteTest do
     assert expand(~c"IEx.Xyz") == {:no, ~c"", []}
   end
 
+  test "block keywords" do
+    assert expand(~c"if true do") == {:yes, ~c"", [~c"do"]}
+    assert expand(~c"if true a") == {:yes, ~c"", [~c"after", ~c"and/2"]}
+    assert expand(~c"if true d") == {:yes, ~c"o", []}
+    assert expand(~c"if true e") == {:yes, ~c"", [~c"end", ~c"else"]}
+  end
+
+  test "block keywords or operators" do
+    {:yes, ~c"", hints} = expand(~c"if true ")
+    assert ~c"do" in hints
+    assert ~c"else" in hints
+    assert ~c"+/2" in hints
+    assert ~c"and/2" in hints
+  end
+
   test "function completion" do
     assert expand(~c"System.ve") == {:yes, ~c"rsion", []}
     assert expand(~c":ets.fun2") == {:yes, ~c"ms", []}
+  end
+
+  test "function completion with groups" do
+    {:yes, ~c"", [exports, guards]} = expand(~c"Kernel.i")
+    assert %{title: ~c"Exports", elems: [~c"if/2", ~c"inspect/1", ~c"inspect/2"]} = exports
+    assert %{title: ~c"Guards", elems: [_ | _]} = guards
+
+    {:yes, ~c"", [guards, exports]} = expand(~c"Kernel.in")
+    assert %{title: ~c"Guards", elems: [~c"in/2"]} = guards
+    assert %{title: ~c"Exports", elems: [~c"inspect/1", ~c"inspect/2"]} = exports
   end
 
   test "function completion with arity" do
@@ -415,7 +444,10 @@ defmodule IEx.AutocompleteTest do
 
     assert {:yes, ~c"ry: ", []} = expand(~c"%URI{path: \"foo\", que")
     assert {:no, [], []} = expand(~c"%URI{path: \"foo\", unkno")
-    assert {:no, [], []} = expand(~c"%Unkown{path: \"foo\", unkno")
+    assert {:no, [], []} = expand(~c"%Unknown{path: \"foo\", unkno")
+
+    assert {:yes, [], _} = expand(~c"%__MODULE__{")
+    assert {:yes, [], _} = expand(~c"%__MODULE__.Some{")
   end
 
   test "completion for struct keys in update syntax" do
@@ -429,7 +461,20 @@ defmodule IEx.AutocompleteTest do
 
     assert {:yes, ~c"ry: ", []} = expand(~c"%URI{var | path: \"foo\", que")
     assert {:no, [], []} = expand(~c"%URI{var | path: \"foo\", unkno")
-    assert {:no, [], []} = expand(~c"%Unkown{var | path: \"foo\", unkno")
+    assert {:no, [], []} = expand(~c"%Unknown{var | path: \"foo\", unkno")
+
+    eval("var = %URI{}")
+
+    assert {:yes, ~c"", entries} = expand(~c"%{var | ")
+    assert ~c"path:" in entries
+    assert ~c"query:" in entries
+
+    assert {:yes, ~c"", entries} = expand(~c"%{var | path: \"foo\",")
+    assert ~c"path:" not in entries
+    assert ~c"query:" in entries
+
+    assert {:yes, ~c"ry: ", []} = expand(~c"%{var | path: \"foo\", que")
+    assert {:no, [], []} = expand(~c"%URI{var | path: \"foo\", unkno")
   end
 
   test "completion for map keys in update syntax" do
@@ -492,11 +537,8 @@ defmodule IEx.AutocompleteTest do
 
     eval("import Enum; import Protocol")
 
-    assert ExUnit.CaptureIO.capture_io(fn ->
-             send(self(), expand(~c"reduce("))
-           end) == "\nreduce(enumerable, acc, fun)"
-
-    assert_received {:yes, ~c"", [~c"reduce(enumerable, fun)"]}
+    assert expand(~c"reduce(") ==
+             {:yes, ~c"", [~c"reduce(enumerable, fun)", ~c"reduce(enumerable, acc, fun)"]}
 
     assert expand(~c"take(") == {:yes, ~c"", [~c"take(enumerable, amount)"]}
     assert expand(~c"derive(") == {:yes, ~c"", [~c"derive(protocol, module, options \\\\ [])"]}

@@ -1,3 +1,7 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2021 The Elixir Team
+# SPDX-FileCopyrightText: 2012 Plataformatec
+
 Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule IO.ANSI.DocsTest do
@@ -27,11 +31,19 @@ defmodule IO.ANSI.DocsTest do
 
     test "multiple entries formatted" do
       result = format_headings(["foo", "bar"])
-      assert :binary.matches(result, "\e[0m\n\e[7m\e[33m") |> length == 2
+      assert :binary.matches(result, "\e[0m\n\e[7m\e[33m") |> length() == 2
       assert String.starts_with?(result, "\e[0m\n\e[7m\e[33m")
       assert String.ends_with?(result, "\e[0m\n\e[0m")
       assert String.contains?(result, " foo ")
       assert String.contains?(result, " bar ")
+    end
+
+    test "is correctly formatted when newline character is present" do
+      result = format_headings(["foo\nbar"])
+      assert :binary.matches(result, "\e[0m\n\e[7m\e[33m") |> length() == 2
+      assert ["\e[0m", foo_line, bar_line, "\e[0m"] = String.split(result, "\n")
+      assert Regex.match?(~r/\e\[7m\e\[33m +foo +\e\[0m/, foo_line)
+      assert Regex.match?(~r/\e\[7m\e\[33m +bar +\e\[0m/, bar_line)
     end
   end
 
@@ -179,8 +191,11 @@ defmodule IO.ANSI.DocsTest do
       assert result == "line\n\e[0m\n\e[36m    code\n    code2\e[0m\n\e[0m\nline2\n\e[0m"
       result = format_markdown("line\n```elixir\ncode\ncode2\n```\nline2\n")
       assert result == "line\n\e[0m\n\e[36m    code\n    code2\e[0m\n\e[0m\nline2\n\e[0m"
-      result = format_markdown("line\n~~~elixir\ncode\n```\n~~~\nline2\n")
-      assert result == "line\n\e[0m\n\e[36m    code\n    ```\e[0m\n\e[0m\nline2\n\e[0m"
+    end
+
+    test "mermaid fenced code block is discarded" do
+      result = format_markdown("line\n```mermaid\ncode\ncode2\n```\nline2\n")
+      assert result == "line\n\e[0m\nline2\n\e[0m"
     end
 
     test "* list is converted" do
