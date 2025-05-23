@@ -77,6 +77,11 @@ defmodule TimeTest do
     assert Time.compare(time1, time2) == :eq
     assert Time.compare(time1, time3) == :lt
     assert Time.compare(time3, time2) == :gt
+
+    time1_holocene = ~T[01:01:01.005 Calendar.Holocene]
+    assert Time.compare(time1_holocene, time1) == :eq
+    assert Time.compare(time1_holocene, time2) == :eq
+    assert Time.compare(time1_holocene, time3) == :lt
   end
 
   test "before?/2 and after?/2" do
