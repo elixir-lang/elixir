@@ -250,7 +250,7 @@ defmodule Logger do
 
   The `:config` customizes a specific handler module. The default handler
   is [`:logger_std_h`](`:logger_std_h`), which logs to standard IO, and you
-  call find all relevant configuration in its module documentation, including
+  can find all relevant configuration in its module documentation, including
   information overload protection.
 
   You may also set `:default_handler` to false to disable the default logging
