@@ -1112,8 +1112,8 @@ defmodule GenServer do
   arrives or a timeout occurs. `c:handle_call/3` will be called on the server
   to handle the request.
 
-  `server` can be any of the values described in the "Name registration"
-  section of the documentation for this module.
+  `server` can be a PID or any of the other values described in the
+  "Name registration" section of the documentation for this module.
 
   ## Timeouts
 
