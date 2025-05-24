@@ -324,6 +324,39 @@ defmodule Code do
     unrequire_files(files)
   end
 
+  @doc ~S"""
+  Returns the list of lines in the given string, preserving their line endings.
+
+  Only the line endings recognized by the Elixir compiler are
+  considered, namely `\r\n` and `\n`. If you would like the retrieve
+  lines without their line endings, use `String.split(string, ["\r\n", "\n"])`.
+
+  ## Examples
+
+      iex> Code.lines("foo\r\nbar\r\nbaz")
+      ["foo\r\n", "bar\r\n", "baz"]
+
+      iex> Code.lines("foo\nbar\nbaz")
+      ["foo\n", "bar\n", "baz"]
+
+      iex> Code.lines("")
+      [""]
+
+  """
+  @doc since: "1.19.0"
+  def lines(string) do
+    lines(string, <<>>)
+  end
+
+  defp lines(<<?\n, rest::binary>>, acc),
+    do: [<<acc::binary, ?\n>> | lines(rest, <<>>)]
+
+  defp lines(<<char, rest::binary>>, acc),
+    do: lines(rest, <<acc::binary, char>>)
+
+  defp lines(<<>>, acc),
+    do: [acc]
+
   @doc """
   Appends a path to the Erlang VM code path list.
 
