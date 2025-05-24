@@ -472,19 +472,27 @@ defmodule Module.Types.Apply do
   Returns the type of a remote capture.
   """
   def remote_capture(modules, fun, arity, meta, stack, context) do
-    # TODO: We cannot return the unions of functions. Do we forbid this?
-    # Do we check it is always the same return type? Do we simply say it is a function?
-    if stack.mode == :traversal do
+    # TODO: Do we check when the union of functions is invalid?
+    # TODO: Deal with :infer types
+    if stack.mode == :traversal or modules == [] do
       {dynamic(fun(arity)), context}
     else
-      context =
-        Enum.reduce(
-          modules,
-          context,
-          &(signature(&1, fun, arity, meta, stack, &2) |> elem(1))
-        )
+      {type, fallback?, context} =
+        Enum.reduce(modules, {none(), false, context}, fn module, {type, fallback?, context} ->
+          case signature(module, fun, arity, meta, stack, context) do
+            {{:strong, _, clauses}, context} ->
+              {union(type, fun_from_non_overlapping_clauses(clauses)), fallback?, context}
 
-      {dynamic(fun(arity)), context}
+            {_, context} ->
+              {type, true, context}
+          end
+        end)
+
+      if fallback? do
+        {dynamic(fun(arity)), context}
+      else
+        {type, context}
+      end
     end
   end
 
@@ -496,10 +504,10 @@ defmodule Module.Types.Apply do
 
     * `:none` - no typing information found.
 
-    * `{:infer, domain or nil, clauses}` - clauses from inferences. You must check all
-      all clauses and return the union between them. They are dynamic
-      and they can only be converted into arrows by computing the union
-      of all arguments.
+    * `{:infer, domain or nil, clauses}` - clauses from inferences.
+      You must check all all clauses and return the union between them.
+      They are dynamic and they can only be converted into arrows by
+      computing the union of all arguments.
 
     * `{:strong, domain or nil, clauses}` - clauses from signatures. So far
       these are strong arrows with non-overlapping domains

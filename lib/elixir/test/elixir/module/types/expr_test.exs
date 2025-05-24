@@ -422,6 +422,17 @@ defmodule Module.Types.ExprTest do
     end
   end
 
+  describe "remote capture" do
+    test "strong" do
+      assert typecheck!(&String.to_atom/1) == fun([binary()], atom())
+    end
+
+    test "unknown" do
+      assert typecheck!(&Module.Types.ExprTest.__ex_unit__/1) == dynamic(fun(1))
+      assert typecheck!([x], &x.something/1) == dynamic(fun(1))
+    end
+  end
+
   describe "binaries" do
     test "inference" do
       assert typecheck!(
