@@ -1652,7 +1652,7 @@ defmodule File do
 
   @doc """
   Same as `rm_rf/1` but raises a `File.Error` exception in case of failures,
-  otherwise the list of files or directories removed.
+  otherwise returns the list of files or directories removed.
 
   ## Examples
 
