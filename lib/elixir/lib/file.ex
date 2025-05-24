@@ -256,14 +256,6 @@ defmodule File do
   Missing parent directories are not created.
   Returns `:ok` if successful, or `{:error, reason}` if an error occurs.
 
-  ## Examples
-
-        File.mkdir("test/unit")
-        #=> :ok
-
-        File.mkdir("non/existing")
-        #=> {:error, :enoent}
-
   Typical error reasons are:
 
     * `:eacces`  - missing search or write permissions for the parent
@@ -273,6 +265,14 @@ defmodule File do
     * `:enospc`  - there is no space left on the device
     * `:enotdir` - a component of `path` is not a directory;
       on some platforms, `:enoent` is returned instead
+
+  ## Examples
+
+      File.mkdir("test/unit")
+      #=> :ok
+
+      File.mkdir("non/existing")
+      #=> {:error, :enoent}
   """
   @spec mkdir(Path.t()) :: :ok | {:error, posix | :badarg}
   def mkdir(path) do
@@ -311,14 +311,6 @@ defmodule File do
   Missing parent directories are created. Returns `:ok` if successful, or
   `{:error, reason}` if an error occurs.
 
-  ## Examples
-
-      File.mkdir_p("non/existing/parents")
-      #=> :ok
-
-      File.mkdir_p("/usr/sbin/temp")
-      #=> {:error, :eperm}
-
   Typical error reasons are:
 
     * `:eacces`  - missing search or write permissions for the parent
@@ -326,6 +318,14 @@ defmodule File do
     * `:enospc`  - there is no space left on the device
     * `:enotdir` - a component of `path` is not a directory
     * `:eperm`   - missed required permisions
+
+  ## Examples
+
+      File.mkdir_p("non/existing/parents")
+      #=> :ok
+
+      File.mkdir_p("/usr/sbin/temp")
+      #=> {:error, :eperm}
   """
   @spec mkdir_p(Path.t()) :: :ok | {:error, posix | :badarg}
   def mkdir_p(path) do
@@ -388,14 +388,6 @@ defmodule File do
   Returns `{:ok, binary}`, where `binary` is a binary data object that contains the contents
   of `path`, or `{:error, reason}` if an error occurs.
 
-  ## Examples
-
-      File.read("hello.txt")
-      #=> {:ok, "world"}
-
-      File.read("non_existing.txt")
-      #=> {:error, :enoent}
-
   Typical error reasons:
 
     * `:enoent`  - the file does not exist
@@ -407,6 +399,14 @@ defmodule File do
     * `:enomem`  - there is not enough memory for the contents of the file
 
   You can use `:file.format_error/1` to get a descriptive string of the error.
+
+  ## Examples
+
+      File.read("hello.txt")
+      #=> {:ok, "world"}
+
+      File.read("non_existing.txt")
+      #=> {:error, :enoent}
   """
   @spec read(Path.t()) :: {:ok, binary} | {:error, posix | :badarg | :terminated | :system_limit}
   def read(path) do
@@ -424,7 +424,6 @@ defmodule File do
 
       File.read!("non_existing.txt")
       ** (File.Error) could not read file "non_existing.txt": no such file or directory
-
   """
   @spec read!(Path.t()) :: binary
   def read!(path) do
@@ -443,14 +442,6 @@ defmodule File do
   `File.Stat` struct. Returns `{:error, reason}` with
   the same reasons as `read/1` if a failure occurs.
 
-  ## Examples
-
-      File.stat("hello.txt")
-      #=> {:ok, %File.Stat{...}}
-
-      File.stat("non_existing.txt", time: :posix)
-      #=> {:error, :enoent}
-
   ## Options
 
   The accepted options are:
@@ -466,6 +457,14 @@ defmodule File do
 
   Note: Since file times are stored in POSIX time format on most operating systems,
   it is faster to retrieve file information with the `time: :posix` option.
+
+  ## Examples
+
+      File.stat("hello.txt")
+      #=> {:ok, %File.Stat{...}}
+
+      File.stat("non_existing.txt", time: :posix)
+      #=> {:error, :enoent}
   """
   @spec stat(Path.t(), stat_options) :: {:ok, File.Stat.t()} | {:error, posix | :badarg}
   def stat(path, opts \\ []) do
@@ -513,14 +512,6 @@ defmodule File do
 
   For more details, see `:file.read_link_info/2`.
 
-  ## Examples
-
-      File.lstat("link_to_hello")
-      #=> {:ok, %File.Stat{type: :symlink, ...}}
-
-      File.lstat("non_existing.txt", time: :posix)
-      #=> {:error, :enoent}
-
   ## Options
 
   The accepted options are:
@@ -535,6 +526,14 @@ defmodule File do
 
   Note: Since file times are stored in POSIX time format on most operating systems,
   it is faster to retrieve file information with the `time: :posix` option.
+
+  ## Examples
+
+      File.lstat("link_to_hello")
+      #=> {:ok, %File.Stat{type: :symlink, ...}}
+
+      File.lstat("non_existing.txt", time: :posix)
+      #=> {:error, :enoent}
   """
   @spec lstat(Path.t(), stat_options) :: {:ok, File.Stat.t()} | {:error, posix | :badarg}
   def lstat(path, opts \\ []) do
@@ -583,6 +582,12 @@ defmodule File do
 
   For more details, see `:file.read_link/1`.
 
+  Typical error reasons are:
+
+    * `:einval` - path is not a symbolic link
+    * `:enoent` - path does not exist
+    * `:enotsup` - symbolic links are not supported on the current platform
+
   ## Examples
 
       File.read_link("link_to_hello")
@@ -590,13 +595,6 @@ defmodule File do
 
       File.read_link("hello.txt")
       #=> {:error, :einval}
-
-  Typical error reasons are:
-
-    * `:einval` - path is not a symbolic link
-    * `:enoent` - path does not exist
-    * `:enotsup` - symbolic links are not supported on the current platform
-
   """
   @doc since: "1.5.0"
   @spec read_link(Path.t()) :: {:ok, binary} | {:error, posix | :badarg}
@@ -872,6 +870,9 @@ defmodule File do
   checks on both source and destination and it also preserves
   the file mode after copy.
 
+  Typical error reasons are the same as in `open/2`,
+  `read/1` and `write/3`.
+
   ## Examples
 
       File.copy("hello.txt", "hello_copy.txt")
@@ -879,9 +880,6 @@ defmodule File do
 
       File.copy("non_existing.txt", "copy.txt")
       #=> {:error, :enoent}
-
-  Typical error reasons are the same as in `open/2`,
-  `read/1` and `write/3`.
   """
   @spec copy(Path.t() | io_device, Path.t() | io_device, pos_integer | :infinity) ::
           {:ok, non_neg_integer} | {:error, posix | :badarg | :terminated}
@@ -1000,6 +998,14 @@ defmodule File do
   explicitly disallow copying to a destination which is a directory,
   and an error will be returned if tried.
 
+  ## Options
+
+    * `:on_conflict` - (since v1.14.0) Invoked when a file already exists in the destination.
+      The function receives arguments for `source_file` and `destination_file`. It should
+      return `true` if the existing file should be overwritten, `false` if otherwise.
+      The default callback returns `true`. On earlier versions, this callback could be
+      given as third argument, but such behavior is now deprecated.
+
   ## Examples
 
       File.cp("hello.txt", "hello_copy.txt")
@@ -1012,15 +1018,6 @@ defmodule File do
 
       File.cp("non_existing.txt", "copy.txt")
       #=> {:error, :enoent}
-
-  ## Options
-
-    * `:on_conflict` - (since v1.14.0) Invoked when a file already exists in the destination.
-      The function receives arguments for `source_file` and `destination_file`. It should
-      return `true` if the existing file should be overwritten, `false` if otherwise.
-      The default callback returns `true`. On earlier versions, this callback could be
-      given as third argument, but such behavior is now deprecated.
-
   """
   @spec cp(Path.t(), Path.t(), on_conflict: on_conflict_callback) ::
           :ok | {:error, posix | :badarg | :terminated}
@@ -1354,14 +1351,6 @@ defmodule File do
   the functions in `IO` to write to the file will yield much better performance
   than calling this function multiple times.
 
-  ## Examples
-
-      File.write("hello.txt", "world!")
-      #=> :ok
-
-      File.write("temp", "world!")
-      #=> {:error, :eisdir}
-
   Typical error reasons are:
 
     * `:enoent`  - a component of the file name does not exist
@@ -1372,7 +1361,16 @@ defmodule File do
       the parent directories
     * `:eisdir`  - the named file is a directory
 
-  Check `File.open/2` for other available options.
+  Check `File.open/2` for the list of available `modes`.
+
+  ## Examples
+
+      File.write("hello.txt", "world!")
+      #=> :ok
+
+      File.write("temp", "world!")
+      #=> {:error, :eisdir}
+
   """
   @spec write(Path.t(), iodata, [mode]) ::
           :ok | {:error, posix | :badarg | :terminated | :system_limit}
@@ -1430,7 +1428,6 @@ defmodule File do
 
       File.rm("tmp_dir/")
       #=> {:error, :eperm}
-
   """
   @spec rm(Path.t()) :: :ok | {:error, posix | :badarg}
   def rm(path) do
@@ -1800,14 +1797,14 @@ defmodule File do
   is given. For this reason, we do not recommend passing
   `:delayed_write` to this function.
 
+  See `open/2` for the list of available `modes`.
+
   ## Examples
 
       File.open("file.txt", [:read, :write], fn file ->
         IO.read(file, :line)
       end)
       #=> {:ok, "file content"}
-
-  See `open/2` for the list of available `modes`.
   """
   @spec open(Path.t(), [mode | :ram], (io_device | file_descriptor -> res)) ::
           {:ok, res} | {:error, posix | :badarg | :system_limit}
@@ -1857,14 +1854,14 @@ defmodule File do
 
   If it succeeds opening the file, it returns the `function` result on the IO device.
 
+  See `open/2` for the list of available `modes`.
+
   ## Examples
 
       File.open!("file.txt", [:read, :write], fn file ->
         IO.read(file, :line)
       end)
       #=> "file content"
-
-  See `open/2` for the list of available `modes`.
   """
   @spec open!(Path.t(), [mode | :ram], (io_device | file_descriptor -> res)) :: res when res: var
   def open!(path, modes, function) do
@@ -2146,6 +2143,8 @@ defmodule File do
   that is skipped whenever enumerating the stream (if both `:read_offset`
   and `:trim_bom` are given, the offset is skipped after the BOM).
 
+  See `Stream.run/1` for an example of streaming into a file.
+
   ## Examples
 
       # Read a utf8 text file which may include BOM
@@ -2155,8 +2154,6 @@ defmodule File do
       # Read in 2048 byte chunks rather than lines
       File.stream!("./test/test.data", 2048)
       #=> %File.Stream{path: "./test/test.data", ...}
-
-  See `Stream.run/1` for an example of streaming into a file.
   """
   @spec stream!(Path.t(), :line | pos_integer, [stream_mode]) :: File.Stream.t()
   def stream!(path, line_or_bytes, modes)
@@ -2175,14 +2172,6 @@ defmodule File do
   Changes the `mode` for a given `file`.
 
   Returns `:ok` on success, or `{:error, reason}` on failure.
-
-  ## Examples
-
-      File.chmod("hello.txt", 0o755)
-      #=> :ok
-
-      File.chmod("non_existing.txt", 0o755)
-      #=> {:error, :enoent}
 
   ## Permissions
 
@@ -2204,6 +2193,14 @@ defmodule File do
   write, read and execute permission to the owner
   and both read and execute permission to group
   and others.
+
+  ## Examples
+
+      File.chmod("hello.txt", 0o755)
+      #=> :ok
+
+      File.chmod("non_existing.txt", 0o755)
+      #=> {:error, :enoent}
   """
   @spec chmod(Path.t(), non_neg_integer) :: :ok | {:error, posix | :badarg}
   def chmod(path, mode) do
