@@ -354,7 +354,7 @@ defmodule GenServer do
       defmodule Counter do
         use GenServer
 
-        @timeout 5000
+        @timeout to_timeout(second: 5)
 
         @impl true
         def init(count) do
