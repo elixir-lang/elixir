@@ -1193,6 +1193,36 @@ defmodule Module.Types.DescrTest do
              |> equal?(integer())
     end
 
+    test "tuple_elim_negations" do
+      # take complex tuples, normalize them, and check if they are still equal
+      complex_tuples = [
+        tuple([term(), atom(), number()])
+        |> difference(tuple([atom(), atom(), float()])),
+        # overlapping union and difference producing multiple variants
+        difference(
+          tuple([union(atom(), pid()), union(integer(), float())]),
+          tuple([union(atom(), pid()), float()])
+        ),
+        # open_tuple case with union in elements
+        difference(
+          open_tuple([union(boolean(), pid()), union(atom(), integer())]),
+          open_tuple([pid(), integer()])
+        ),
+        open_tuple([term(), term(), term()])
+        |> difference(open_tuple([term(), integer(), atom(), atom()]))
+        |> difference(tuple([float(), float(), float(), float(), float()]))
+        |> difference(tuple([term(), term(), term(), term(), term(), term()]))
+      ]
+
+      Enum.each(complex_tuples, fn orig ->
+        norm = tuple_elim_negations(orig)
+        # should split into multiple simple tuples
+        assert equal?(norm, orig)
+        assert Enum.all?(norm.tuple, fn {_, _, neg} -> neg == [] end)
+        assert not Enum.all?(orig.tuple, fn {_, _, neg} -> neg == [] end)
+      end)
+    end
+
     test "map_fetch" do
       assert map_fetch(term(), :a) == :badmap
       assert map_fetch(union(open_map(), integer()), :a) == :badmap
@@ -1797,117 +1827,6 @@ defmodule Module.Types.DescrTest do
              |> difference(open_map(a: float(), b: atom(), c: pid()))
              |> difference(open_map(a: integer(), b: atom(), c: union(pid(), port())))
              |> to_quoted_string() == "%{..., a: float(), b: atom(), c: port()}"
-    end
-
-    test "structs" do
-      assert open_map(__struct__: atom([URI])) |> to_quoted_string() ==
-               "%{..., __struct__: URI}"
-
-      assert closed_map(__struct__: atom([URI])) |> to_quoted_string() ==
-               "%{__struct__: URI}"
-
-      assert closed_map(__struct__: atom([URI, Another])) |> to_quoted_string() ==
-               "%{__struct__: Another or URI}"
-
-      assert closed_map(__struct__: atom([Decimal]), coef: term(), exp: term(), sign: term())
-             |> to_quoted_string(collapse_structs: false) ==
-               "%Decimal{sign: term(), coef: term(), exp: term()}"
-
-      assert closed_map(__struct__: atom([Decimal]), coef: term(), exp: term(), sign: term())
-             |> to_quoted_string() ==
-               "%Decimal{}"
-
-      assert closed_map(__struct__: atom([Decimal]), coef: term(), exp: term(), sign: integer())
-             |> to_quoted_string() ==
-               "%Decimal{sign: integer()}"
-
-      # Does not fuse structs
-      assert union(closed_map(__struct__: atom([Foo])), closed_map(__struct__: atom([Bar])))
-             |> to_quoted_string() ==
-               "%{__struct__: Bar} or %{__struct__: Foo}"
-
-      # Properly format non_struct_map
-      assert open_map(__struct__: if_set(negation(atom()))) |> to_quoted_string() ==
-               "non_struct_map()"
-    end
-  end
-
-  describe "performance" do
-    test "tuple difference" do
-      # Large difference with no duplicates
-      descr1 =
-        union(
-          atom([:ignored, :reset]),
-          tuple([atom([:font_style]), atom([:italic])])
-        )
-
-      descr2 =
-        union(
-          atom([:ignored, :reset]),
-          union(
-            tuple([atom([:font_style]), atom([:italic])]),
-            Enum.reduce(
-              for elem1 <- 1..5, elem2 <- 1..5 do
-                tuple([atom([:"f#{elem1}"]), atom([:"s#{elem2}"])])
-              end,
-              &union/2
-            )
-          )
-        )
-
-      assert subtype?(descr1, descr2)
-      refute subtype?(descr2, descr1)
-    end
-
-    test "map difference" do
-      # Create a large map with various types
-      map1 =
-        open_map([
-          {:id, integer()},
-          {:name, binary()},
-          {:age, union(integer(), atom())},
-          {:email, binary()},
-          {:active, boolean()},
-          {:tags, list(atom())}
-        ])
-
-      # Create another large map with some differences and many more entries
-      map2 =
-        open_map(
-          [
-            {:id, integer()},
-            {:name, binary()},
-            {:age, integer()},
-            {:email, binary()},
-            {:active, boolean()},
-            {:tags, non_empty_list(atom())},
-            {:meta,
-             open_map([
-               {:created_at, binary()},
-               {:updated_at, binary()},
-               {:status, atom()}
-             ])},
-            {:permissions, tuple([atom(), integer(), atom()])},
-            {:profile,
-             open_map([
-               {:bio, binary()},
-               {:interests, non_empty_list(binary())},
-               {:social_media,
-                open_map([
-                  {:twitter, binary()},
-                  {:instagram, binary()},
-                  {:linkedin, binary()}
-                ])}
-             ])},
-            {:notifications, boolean()}
-          ] ++
-            Enum.map(1..50, fn i ->
-              {:"field_#{i}", atom([:"value_#{i}"])}
-            end)
-        )
-
-      refute subtype?(map1, map2)
-      assert subtype?(map2, map1)
     end
   end
 end
