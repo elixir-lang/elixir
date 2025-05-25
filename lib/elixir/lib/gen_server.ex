@@ -349,6 +349,42 @@ defmodule GenServer do
       message arriving, `handle_info/2` is called with `:timeout` as the first
       argument.
 
+  For example:
+
+      defmodule Counter do
+        use GenServer
+
+        @timeout 5000
+
+        @impl true
+        def init(count) do
+          {:ok, count, @timeout}
+        end
+
+        @impl true
+        def handle_call(:succ, _from, count) do
+          new_count = count + 1
+          {:reply, new_count, new_count, @timeout}
+        end
+
+        @impl true
+        def handle_info(:timeout, count) do
+          {:stop, :normal, count}
+        end
+      end
+
+  A `Counter` server will exit with `:normal` if there are no messages in 5 seconds
+  after the initialization or after the last `succ` call:
+
+
+      {:ok, counter_pid} = GenServer.start(Counter, 50)
+      GenServer.call(counter_pid, :succ)
+      #=> 51
+
+      # After 5 secs
+      Process.alive?(counter_pid)
+      #=> false
+
   ## When (not) to use a GenServer
 
   So far, we have learned that a `GenServer` can be used as a supervised process
