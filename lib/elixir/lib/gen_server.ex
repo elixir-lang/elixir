@@ -376,7 +376,6 @@ defmodule GenServer do
   A `Counter` server will exit with `:normal` if there are no messages in 5 seconds
   after the initialization or after the last `succ` call:
 
-
       {:ok, counter_pid} = GenServer.start(Counter, 50)
       GenServer.call(counter_pid, :succ)
       #=> 51
