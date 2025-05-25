@@ -561,8 +561,16 @@ defmodule Regex do
     end
   end
 
-  defp safe_run(%Regex{re_pattern: re_pattern}, string, options) do
-    :re.run(string, re_pattern, options)
+  defp safe_run(%Regex{re_pattern: re_pattern} = regex, string, options) do
+    # TODO: Remove me when Erlang/OTP 28+ is required
+    # This allows regexes precompiled on Erlang/OTP 27- to work on Erlang/OTP 28+
+    with true <- :erlang.system_info(:otp_release) >= [?2, ?8],
+         {:re_pattern, _, _, _, <<_::bitstring>>} <- re_pattern do
+      %Regex{source: source, opts: compile_opts} = regex
+      :re.run(string, source, compile_opts ++ options)
+    else
+      _ -> :re.run(string, re_pattern, options)
+    end
   end
 
   @doc """
