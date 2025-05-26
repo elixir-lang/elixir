@@ -1193,6 +1193,36 @@ defmodule Module.Types.DescrTest do
              |> equal?(integer())
     end
 
+    test "tuple_elim_negations" do
+      # take complex tuples, normalize them, and check if they are still equal
+      complex_tuples = [
+        tuple([term(), atom(), number()])
+        |> difference(tuple([atom(), atom(), float()])),
+        # overlapping union and difference producing multiple variants
+        difference(
+          tuple([union(atom(), pid()), union(integer(), float())]),
+          tuple([union(atom(), pid()), float()])
+        ),
+        # open_tuple case with union in elements
+        difference(
+          open_tuple([union(boolean(), pid()), union(atom(), integer())]),
+          open_tuple([pid(), integer()])
+        ),
+        open_tuple([term(), term(), term()])
+        |> difference(open_tuple([term(), integer(), atom(), atom()]))
+        |> difference(tuple([float(), float(), float(), float(), float()]))
+        |> difference(tuple([term(), term(), term(), term(), term(), term()]))
+      ]
+
+      Enum.each(complex_tuples, fn orig ->
+        norm = tuple_elim_negations(orig)
+        # should split into multiple simple tuples
+        assert equal?(norm, orig)
+        assert Enum.all?(norm.tuple, fn {_, _, neg} -> neg == [] end)
+        assert not Enum.all?(orig.tuple, fn {_, _, neg} -> neg == [] end)
+      end)
+    end
+
     test "map_fetch" do
       assert map_fetch(term(), :a) == :badmap
       assert map_fetch(union(open_map(), integer()), :a) == :badmap
