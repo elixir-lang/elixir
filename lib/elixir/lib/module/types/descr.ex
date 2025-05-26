@@ -3252,25 +3252,6 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # defp tuple_eliminate_negations(dnf) do
-  #   Enum.flat_map(dnf, [], fn
-  #     {tag, elements, []} -> [{tag, elements, []}]
-
-  #     {tag, elements, negs} ->
-  #       # for each negation, we reduce it on {tag, elements} which produces a union of {tag, elements}
-  #       # then we take this list and remove the next negation from it
-  #       Enum.reduce(negs, [{tag, elements, []}], fn
-  #         {neg_tag, neg_elements}, acc ->
-
-  #           Enum.flat_map(acc, fn {tag, elements, negs} ->
-  #             Enum.map(neg_elements, fn neg_element ->
-  #               {tag, elements, [{neg_tag, neg_element} | negs]}
-  #             end)
-  #           end)
-  #         end)
-  #   end)
-  # end
-
   @doc """
   Delete an element from the tuple.
 
