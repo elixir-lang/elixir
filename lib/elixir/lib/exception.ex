@@ -2541,7 +2541,7 @@ defmodule ErlangError do
             is_map(module) and is_atom(function) and is_map_key(module, function) ->
               "you attempted to apply a function named #{inspect(function)} on a map/struct. " <>
                 "If you are using Kernel.apply/3, make sure the module is an atom. " <>
-                if is_function(module[function]) do
+                if is_function(Map.get(module, function)) do
                   "If you are trying to invoke an anonymous function in a map/struct, " <>
                     "add a dot between the function name and the parenthesis: map.#{function}.()"
                 else
