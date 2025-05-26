@@ -57,9 +57,11 @@ Configuration files provide a mechanism for us to configure the environment of a
 
   * `config/config.exs` — this file is read at build time, before we compile our application and before we even load our dependencies. This means we can't access the code in our application nor in our dependencies. However, it means we can control how they are compiled
 
-  * `config/runtime.exs` — this file is read after our application and dependencies are compiled and therefore it can configure how our application works at runtime. If you want to read system environment variables (via `System.get_env/1`) or any sort of external configuration, this is the appropriate place to do so
+  * `config/runtime.exs` — this file is read after our application and dependencies are compiled and therefore it can configure how our application works at runtime. If you want to read system environment variables (via `System.get_env/1`) or access external configuration, this is the appropriate place to do so
 
-For example, we can configure IEx default prompt to another value. Let's create the `config/runtime.exs` file with the following content:
+You can learn more about configuration in the `Config` and `Config.Provider` modules. For now, let's see an example.
+
+We can configure IEx default prompt to another value by creating a `config/runtime.exs` file with the following content:
 
 ```elixir
 import Config

@@ -626,8 +626,8 @@ defmodule Mix.Tasks.Release do
 
   ### Runtime configuration
 
-  To enable runtime configuration in your release, all you need to do is
-  to create a file named `config/runtime.exs`:
+  To enable runtime configuration in your release, create a file named
+  `config/runtime.exs`:
 
       import Config
       config :my_app, :secret_key, System.fetch_env!("MY_APP_SECRET_KEY")
