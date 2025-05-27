@@ -505,7 +505,7 @@ defmodule Module.Types.Apply do
     * `:none` - no typing information found.
 
     * `{:infer, domain or nil, clauses}` - clauses from inferences.
-      You must check all all clauses and return the union between them.
+      You must check all clauses and return the union between them.
       They are dynamic and they can only be converted into arrows by
       computing the union of all arguments.
 
