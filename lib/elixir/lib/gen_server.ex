@@ -532,6 +532,13 @@ defmodule GenServer do
   Returning `{:stop, reason}` will cause `start_link/3` to return
   `{:error, reason}` and the process to exit with reason `reason` without
   entering the loop or calling `c:terminate/2`.
+
+  ## Examples
+
+      @impl GenServer
+      def init(list) when is_list(list) do
+        {:ok, %{size: Enum.count(list), values: list}}
+      end
   """
   @callback init(init_arg :: term) ::
               {:ok, state}
@@ -602,6 +609,18 @@ defmodule GenServer do
 
   This callback is optional. If one is not implemented, the server will fail
   if a call is performed against it.
+
+  ## Examples
+
+      @impl GenServer
+      def handle_call(:pop, _from, %{size: size} = state) when size <= 0 do
+        {:reply, nil, state}
+      end
+
+      @impl GenServer
+      def handle_call(:pop, _from, %{values: [hd | tl]} = state) do
+        {:reply, hd, %{state | size: state.size - 1, values: tl}}
+      end
   """
   @callback handle_call(request :: term, from, state :: term) ::
               {:reply, reply, new_state}
@@ -640,6 +659,13 @@ defmodule GenServer do
 
   This callback is optional. If one is not implemented, the server will fail
   if a cast is performed against it.
+
+  ## Examples
+
+      @impl GenServer
+      def handle_cast({:push, element}, state) do
+        {:noreply, %{state | size: state.size + 1, values: [element | state.values]}}
+      end
   """
   @callback handle_cast(request :: term, state :: term) ::
               {:noreply, new_state}
@@ -657,6 +683,23 @@ defmodule GenServer do
 
   This callback is optional. If one is not implemented, the received message
   will be logged.
+
+  ## Examples
+
+      @impl GenServer
+      def handle_info(:do_work, state) do
+        :ok = do_work()
+        Process.send_after(self(), :do_work, to_timeout(minute: 10))
+
+        {:noreply, state}
+      end
+
+      @impl GenServer
+      def handle_info(:timeout, state) do
+        Logger.warning("Server is stopping by timeout")
+
+        {:stop, :normal, state}
+      end
   """
   @callback handle_info(msg :: :timeout | term, state :: term) ::
               {:noreply, new_state}
@@ -674,6 +717,15 @@ defmodule GenServer do
 
   This callback is optional. If one is not implemented, the server will fail
   if a continue instruction is used.
+
+  ## Examples
+
+      @impl GenServer
+      def handle_continue({:connect, connect_params}, state) do
+        {:ok, connection} = MyApp.Connection.establish(connect_params)
+
+        {:noreply, Map.put(state, :connection, connection)
+      end
   """
   @callback handle_continue(continue_arg, state :: term) ::
               {:noreply, new_state}
@@ -742,6 +794,13 @@ defmodule GenServer do
   logged.
 
   This callback is optional.
+
+  ## Examples
+
+      @impl GenServer
+      def terminate(_reason, %{connection: connection}) do
+        MyApp.Connection.close(connection)
+      end
   """
   @callback terminate(reason, state :: term) :: term
             when reason: :normal | :shutdown | {:shutdown, term} | term
@@ -766,6 +825,17 @@ defmodule GenServer do
   with its previous state. Therefore this callback does not usually contain side effects.
 
   This callback is optional.
+
+  ## Examples
+
+  In the folowing example we change the state structure from a list to a map
+  containing the list itself and its size:
+
+      @impl GenServer
+      def code_change(_old, values, _extra) do
+        {:ok, %{size: Enum.count(state), values: values}}
+      end
+
   """
   @callback code_change(old_vsn, state :: term, extra :: term) ::
               {:ok, new_state :: term}
@@ -787,6 +857,8 @@ defmodule GenServer do
   Two possible use cases for this callback is to remove sensitive information
   from the state to prevent it from being printed in log files, or to compact
   large irrelevant status items that would only clutter the logs.
+
+  This callback is optional.
 
   ## Example
 
