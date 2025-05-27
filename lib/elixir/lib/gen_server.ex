@@ -1305,9 +1305,9 @@ defmodule GenServer do
 
   ## Examples
 
-    Assuming the `Stack` GenServer mentioned in the docs for the `GenServer`
-    module is registered as `Stack` in the `:"foo@my-machine"` and
-  `:"bar@my-machine"` nodes:
+  Assuming the `Stack` GenServer mentioned in the docs for the `GenServer`
+  module is registered as `Stack` in the `:"foo@my-machine"` and
+`:"bar@my-machine"` nodes:
 
       GenServer.abcast([:"foo@my-machine", :"bar@my-machine"], Stack, {:push, "qux"})
       #=> :abcast
