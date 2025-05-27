@@ -133,11 +133,11 @@ defmodule Mix.Tasks.CompileTest do
       assert {:noop, []} = Mix.Task.run("compile")
       refute File.regular?("_build/dev/lib/sample/ebin/Elixir.Z1.beam")
 
-      assert :ok = Mix.Task.Compiler.reenable(compilers: [])
+      assert :ok = Mix.Task.Compiler.reenable([])
       assert {:noop, []} = Mix.Task.run("compile")
       refute File.regular?("_build/dev/lib/sample/ebin/Elixir.Z1.beam")
 
-      assert :ok = Mix.Task.Compiler.reenable(compilers: ["erlang"])
+      assert :ok = Mix.Task.Compiler.reenable(["erlang"])
       assert {:noop, []} = Mix.Task.run("compile")
       refute File.regular?("_build/dev/lib/sample/ebin/Elixir.Z1.beam")
 
@@ -151,11 +151,11 @@ defmodule Mix.Tasks.CompileTest do
       end
       """)
 
-      assert :ok = Mix.Task.Compiler.reenable(compilers: [:erlang])
+      assert :ok = Mix.Task.Compiler.reenable([:erlang])
       assert {:noop, []} = Mix.Task.run("compile")
       refute File.regular?("_build/dev/lib/sample/ebin/Elixir.Z2.beam")
 
-      assert :ok = Mix.Task.Compiler.reenable(compilers: [:elixir])
+      assert :ok = Mix.Task.Compiler.reenable([:elixir])
       assert {:ok, []} = Mix.Task.run(:compile)
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.Z2.beam")
     end)

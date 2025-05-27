@@ -175,7 +175,7 @@ defmodule IEx.Helpers do
 
   defp reenable_tasks(config) do
     compilers = config[:compilers] || Mix.compilers()
-    Mix.Task.Compiler.reenable(compilers: compilers)
+    Mix.Task.Compiler.reenable(compilers)
   end
 
   @doc """

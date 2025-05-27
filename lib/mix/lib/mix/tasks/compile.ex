@@ -140,7 +140,12 @@ defmodule Mix.Tasks.Compile do
     {res, diagnostics} =
       Mix.Task.run("compile.all", args)
       |> List.wrap()
-      |> Enum.map(&Mix.Task.Compiler.normalize(&1, :all))
+      |> Enum.map(
+        &case &1 do
+          :noop -> {:noop, []}
+          {status, diagnostics} -> {status, diagnostics}
+        end
+      )
       |> Enum.reduce({:noop, []}, &merge_diagnostics/2)
 
     config = Mix.Project.config()
