@@ -758,6 +758,10 @@ defmodule Module.Types.DescrTest do
     end
 
     test "static" do
+      # Full static
+      assert fun_apply(fun(), [integer()]) == {:ok, term()}
+      assert fun_apply(difference(fun(), fun(2)), [integer()]) == {:ok, term()}
+
       # Basic function application scenarios
       assert fun_apply(fun([integer()], atom()), [integer()]) == {:ok, atom()}
       assert fun_apply(fun([integer()], atom()), [float()]) == :badarg
@@ -820,6 +824,10 @@ defmodule Module.Types.DescrTest do
     defp dynamic_fun(args, return), do: dynamic(fun(args, return))
 
     test "dynamic" do
+      # Full dynamic
+      assert fun_apply(dynamic(), [integer()]) == {:ok, dynamic()}
+      assert fun_apply(difference(dynamic(), integer()), [integer()]) == {:ok, dynamic()}
+
       # Basic function application scenarios
       assert fun_apply(dynamic_fun([integer()], atom()), [integer()]) == {:ok, dynamic(atom())}
       assert fun_apply(dynamic_fun([integer()], atom()), [float()]) == :badarg

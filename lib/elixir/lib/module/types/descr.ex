@@ -717,39 +717,6 @@ defmodule Module.Types.Descr do
         do: {type, [], []}
   end
 
-  ## Funs
-
-  @doc """
-  Checks if a function type with the specified arity exists in the descriptor.
-
-  1. If there is no dynamic component:
-     - The static part must be a non-empty function type of the given arity
-
-  2. If there is a dynamic component:
-     - Either the static part is a non-empty function type of the given arity, or
-     - The static part is empty and the dynamic part contains functions of the given arity
-  """
-  # TODO: REMOVE ME
-  def fun_fetch(:term, _arity), do: :error
-
-  def fun_fetch(%{} = descr, arity) when is_integer(arity) do
-    case :maps.take(:dynamic, descr) do
-      :error ->
-        if not empty?(descr) and fun_only?(descr, arity), do: :ok, else: :error
-
-      {dynamic, static} ->
-        empty_static? = empty?(static)
-
-        cond do
-          not empty_static? -> if fun_only?(static, arity), do: :ok, else: :error
-          empty_static? and not empty?(intersection(dynamic, fun(arity))) -> :ok
-          true -> :error
-        end
-    end
-  end
-
-  defp fun_only?(descr, arity), do: empty?(difference(descr, fun(arity)))
-
   ## Atoms
 
   # The atom component of a type consists of pairs `{tag, set}` where `set` is a
@@ -984,22 +951,26 @@ defmodule Module.Types.Descr do
   @doc """
   Applies a function type to a list of argument types.
 
-  Returns the result type if the application is valid, or `:badarg` if not.
+  Returns `{:ok, result}` if the application is valid
+  or one `:badarg`, `:badfun`, `{:badarity, arities}` if not.
 
   Handles both static and dynamic function types:
+
   1. For static functions: checks exact argument types
   2. For dynamic functions: computes result based on both static and dynamic parts
   3. For mixed static/dynamic: computes all valid combinations
 
-  # Function application formula for dynamic types:
-  #   τ◦τ′ = (lower_bound(τ) ◦ upper_bound(τ′)) ∨ (dynamic(upper_bound(τ) ◦ lower_bound(τ′)))
-  #
-  # Where:
-  # - τ is a dynamic function type
-  # - τ′ are the arguments
-  # - ◦ is function application
-  #
-  # For more details, see Definition 6.15 in https://vlanvin.fr/papers/thesis.pdf
+  ## Function application formula for dynamic types
+
+      τ◦τ′ = (lower_bound(τ) ◦ upper_bound(τ′)) ∨ (dynamic(upper_bound(τ) ◦ lower_bound(τ′)))
+
+  Where:
+
+  - τ is a dynamic function type
+  - τ′ are the arguments
+  - ◦ is function application
+
+  For more details, see Definition 6.15 in https://vlanvin.fr/papers/thesis.pdf
 
   ## Examples
 
@@ -1027,6 +998,13 @@ defmodule Module.Types.Descr do
           else
             :badfun
           end
+
+        # Optimize the cases where dynamic closes over all function types
+        {:term, fun_static} when fun_static == %{} ->
+          {:ok, dynamic()}
+
+        {%{fun: @fun_top}, fun_static} when fun_static == %{} ->
+          {:ok, dynamic()}
 
         {fun_dynamic, fun_static} ->
           if fun_only?(fun_static) do

@@ -610,6 +610,19 @@ defmodule Module.Types.Apply do
     not Enum.any?(stack.no_warn_undefined, &(&1 == module or &1 == {module, fun, arity}))
   end
 
+  ## Funs
+
+  def fun_apply(fun_type, args_types, call, stack, context) do
+    case fun_apply(fun_type, args_types) do
+      {:ok, res} ->
+        {res, context}
+
+      reason ->
+        error = {{:badapply, reason}, args_types, fun_type, call, context}
+        {error_type(), error(__MODULE__, error, elem(call, 1), stack, context)}
+    end
+  end
+
   ## Local
 
   def local_domain(fun, args, expected, meta, stack, context) do
@@ -804,6 +817,64 @@ defmodule Module.Types.Apply do
   end
 
   ## Diagnostics
+
+  def format_diagnostic({{:badapply, reason}, args_types, fun_type, expr, context}) do
+    traces =
+      if reason == :badarg do
+        collect_traces(expr, context)
+      else
+        # In case there the type itself is invalid,
+        # we limit the trace.
+        collect_traces(elem(expr, 0), context)
+      end
+
+    message =
+      case reason do
+        :badarg ->
+          """
+          expected a #{length(args_types)}-arity function on call:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          but got type:
+
+              #{to_quoted_string(fun_type) |> indent(4)}
+          """
+
+        {:badarity, arities} ->
+          info =
+            case arities do
+              [arity] -> "function with arity #{arity}"
+              _ -> "function with arities #{Enum.join(arities, ",")}"
+            end
+
+          """
+          expected a #{length(args_types)}-arity function on call:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          but got #{info}:
+
+              #{to_quoted_string(fun_type) |> indent(4)}
+          """
+
+        :badfun ->
+          """
+          expected a #{length(args_types)}-arity function on call:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          but got type:
+
+              #{to_quoted_string(fun_type) |> indent(4)}
+          """
+      end
+
+    %{
+      details: %{typing_traces: traces},
+      message: IO.iodata_to_binary([message, format_traces(traces)])
+    }
+  end
 
   def format_diagnostic({:badlocal, {_, domain, clauses}, args_types, expr, context}) do
     domain = domain(domain, clauses)
