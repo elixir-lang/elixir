@@ -1103,6 +1103,16 @@ defmodule GenServer do
   `{:error, reason}`. Otherwise, if it returns `{:stop, reason}`
   or `:ignore`, the process is terminated and this function returns
   `{:error, reason}` or `:ignore`, respectively.
+
+  ## Examples
+
+      {:ok, stack_pid} = GenServer.start_link(Stack, "foo,bar,baz")
+      Process.alive?(stack_pid)
+      #=> true
+
+      GenServer.start_link(Stack, "foo,bar,baz", name: "invalid name")
+      ** (ArgumentError) expected :name option to be one of the following:
+      ...
   """
   @spec start_link(module, term, options) :: on_start
   def start_link(module, init_arg, options \\ []) when is_atom(module) and is_list(options) do
@@ -1113,6 +1123,12 @@ defmodule GenServer do
   Starts a `GenServer` process without links (outside of a supervision tree).
 
   See `start_link/3` for more information.
+
+  ## Examples
+
+      {:ok, stack_pid} = GenServer.start(Stack, "foo,bar,baz")
+      Process.alive?(stack_pid)
+      #=> true
   """
   @spec start(module, term, options) :: on_start
   def start(module, init_arg, options \\ []) when is_atom(module) and is_list(options) do
@@ -1157,7 +1173,17 @@ defmodule GenServer do
   This function keeps OTP semantics regarding error reporting.
   If the reason is any other than `:normal`, `:shutdown` or
   `{:shutdown, _}`, an error report is logged.
-  """
+
+  ## Examples
+
+      {:ok, stack_pid} = GenServer.start(Stack, "foo,bar,baz")
+      GenServer.stop(stack_pid)
+      #=> :ok
+
+      GenServer.stop(:non_existing)
+      ** (exit) exited in: GenServer.stop(:non_existing, :normal, :infinity)
+      ...
+"""
   @spec stop(server, reason :: term, timeout) :: :ok
   def stop(server, reason \\ :normal, timeout \\ :infinity) do
     case whereis(server) do
@@ -1198,6 +1224,14 @@ defmodule GenServer do
   queue. The caller must in this case be prepared for this and discard any such
   garbage messages that are two-element tuples with a reference as the first
   element.
+
+  ## Examples
+
+      {:ok, stack_pid} = GenServer.start(Stack, "foo,bar,baz")
+      GenServer.call(stack_pid, :pop)
+      #=> "foo"
+      GenServer.call(stack_pid, :pop, to_timeout(second: 5))
+      #=> "bar"
   """
   @spec call(server, term, timeout) :: term
   def call(server, request, timeout \\ 5000)
@@ -1228,6 +1262,12 @@ defmodule GenServer do
 
   `server` can be any of the values described in the "Name registration"
   section of the documentation for this module.
+
+  ## Examples
+
+      {:ok, stack_pid} = GenServer.start(Stack, "foo,bar,baz")
+      GenServer.cast(stack_pid, {:push, "qux"})
+      #=> :ok
   """
   @spec cast(server, term) :: :ok
   def cast(server, request)
@@ -1262,6 +1302,15 @@ defmodule GenServer do
   server name does not exist.
 
   See `multi_call/4` for more information.
+
+  ## Examples
+
+    Assuming the `Stack` GenServer mentioned in the docs for the `GenServer`
+    module is registered as `Stack` in the `:"foo@my-machine"` and
+  `:"bar@my-machine"` nodes:
+
+      GenServer.abcast([:"foo@my-machine", :"bar@my-machine"], Stack, {:push, "qux"})
+      #=> :abcast
   """
   @spec abcast([node], name :: atom, term) :: :abcast
   def abcast(nodes \\ [node() | Node.list()], name, request)
