@@ -985,7 +985,8 @@ defmodule Kernel.ParallelCompiler do
     IO.puts(
       :stderr,
       "\nEnsure there are no compile-time dependencies between those files " <>
-        "and that the modules they reference exist and are correctly named\n"
+        "(such as structs or macros) and that the modules they reference exist " <>
+        "and are correctly named\n"
     )
 
     for {file, position, _, description, stacktrace} <- deadlock do
