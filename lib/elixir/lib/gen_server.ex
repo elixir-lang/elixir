@@ -1183,7 +1183,7 @@ defmodule GenServer do
       GenServer.stop(:non_existing)
       ** (exit) exited in: GenServer.stop(:non_existing, :normal, :infinity)
       ...
-"""
+  """
   @spec stop(server, reason :: term, timeout) :: :ok
   def stop(server, reason \\ :normal, timeout \\ :infinity) do
     case whereis(server) do
