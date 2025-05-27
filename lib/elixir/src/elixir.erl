@@ -209,16 +209,8 @@ env_for_eval(#{lexical_tracker := Pid} = Env) ->
   end;
 env_for_eval(Opts) when is_list(Opts) ->
   Env = elixir_env:new(),
-
-  Line = case lists:keyfind(line, 1, Opts) of
-    {line, LineOpt} when is_integer(LineOpt) -> LineOpt;
-    false -> ?key(Env, line)
-  end,
-
-  File = case lists:keyfind(file, 1, Opts) of
-    {file, FileOpt} when is_binary(FileOpt) -> FileOpt;
-    false -> ?key(Env, file)
-  end,
+  Line = elixir_utils:get_line(Opts, Env),
+  File = elixir_utils:get_file(Opts, Env),
 
   Module = case lists:keyfind(module, 1, Opts) of
     {module, ModuleOpt} when is_atom(ModuleOpt) -> ModuleOpt;
