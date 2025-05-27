@@ -830,6 +830,7 @@ defmodule Module.Types.Apply do
 
     message =
       case reason do
+        # TODO: Return the domain here
         :badarg ->
           """
           expected a #{length(args_types)}-arity function on call:

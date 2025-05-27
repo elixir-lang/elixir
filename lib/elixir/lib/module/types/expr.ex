@@ -51,7 +51,7 @@ defmodule Module.Types.Expr do
   @stacktrace list(
                 union(
                   tuple([atom(), atom(), args_or_arity, extra_info]),
-                  tuple([dynamic(fun()), args_or_arity, extra_info])
+                  tuple([fun(), args_or_arity, extra_info])
                 )
               )
 
@@ -449,10 +449,10 @@ defmodule Module.Types.Expr do
     {dynamic(), context}
   end
 
-  # TODO: fun.(args)
   def of_expr({{:., _, [fun]}, _, args} = call, _expected, _expr, stack, context) do
     {fun_type, context} = of_expr(fun, fun(length(args)), call, stack, context)
 
+    # TODO: Perform inference based on the strong domain of a function
     {args_types, context} =
       Enum.map_reduce(args, context, &of_expr(&1, @pending, &1, stack, &2))
 

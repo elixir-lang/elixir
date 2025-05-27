@@ -1000,11 +1000,11 @@ defmodule Module.Types.Descr do
           end
 
         # Optimize the cases where dynamic closes over all function types
-        # {:term, fun_static} when fun_static == %{} ->
-        #   {:ok, dynamic()}
+        {:term, fun_static} when fun_static == %{} ->
+          {:ok, dynamic()}
 
-        # {%{fun: @fun_top}, fun_static} when fun_static == %{} ->
-        #   {:ok, dynamic()}
+        {%{fun: @fun_top}, fun_static} when fun_static == %{} ->
+          {:ok, dynamic()}
 
         {fun_dynamic, fun_static} ->
           if fun_only?(fun_static) do
