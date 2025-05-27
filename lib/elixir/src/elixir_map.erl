@@ -137,7 +137,7 @@ load_struct_info(Meta, Name, Assocs, E) ->
 
 maybe_load_struct_info(Meta, Name, Assocs, Trace, E) ->
   try
-    case is_open(Name, E) andalso lookup_struct_info_from_data_tables(Name) of
+    case is_open(Name, Meta, E) andalso lookup_struct_info_from_data_tables(Name) of
       %% If I am accessing myself and there is no attribute,
       %% don't invoke the fallback to avoid calling loaded code.
       false when ?key(E, module) =:= Name -> nil;
@@ -185,7 +185,7 @@ load_struct(Meta, Name, Assocs, E) ->
 
 maybe_load_struct(Meta, Name, Assocs, E) ->
   try
-    case is_open(Name, E) andalso elixir_def:external_for(Meta, Name, '__struct__', 1, [def]) of
+    case is_open(Name, Meta, E) andalso elixir_def:external_for(Meta, Name, '__struct__', 1, [def]) of
       %% If I am accessing myself and there is no __struct__ function,
       %% don't invoke the fallback to avoid calling loaded code.
       false when ?key(E, module) =:= Name ->
@@ -232,17 +232,17 @@ assert_struct_assocs(Meta, Assocs, E) ->
   [function_error(Meta, E, ?MODULE, {invalid_key_for_struct, K})
    || {K, _} <- Assocs, not is_atom(K)].
 
-is_open(Name, E) ->
-  in_context(Name, E) orelse ((code:ensure_loaded(Name) /= {module, Name}) andalso wait_for_struct(Name)).
+is_open(Name, Meta, E) ->
+  in_context(Name, E) orelse ((code:ensure_loaded(Name) /= {module, Name}) andalso wait_for_struct(Name, Meta, E)).
 
 in_context(Name, E) ->
   %% We also include the current module because it won't be present
   %% in context module in case the module name is defined dynamically.
   lists:member(Name, [?key(E, module) | ?key(E, context_modules)]).
 
-wait_for_struct(Module) ->
+wait_for_struct(Module, Meta, E) ->
   (erlang:get(elixir_compiler_info) /= undefined) andalso
-    ('Elixir.Kernel.ErrorHandler':ensure_compiled(Module, struct, hard) =:= found).
+    ('Elixir.Kernel.ErrorHandler':ensure_compiled(Module, struct, hard, elixir_utils:get_line(Meta, E)) =:= found).
 
 detail_undef(Name, E) ->
   case in_context(Name, E) andalso (?key(E, function) == nil) of

@@ -2078,7 +2078,7 @@ defmodule Code do
     case :code.ensure_loaded(module) do
       {:error, :nofile} = error ->
         if can_await_module_compilation?() do
-          case Kernel.ErrorHandler.ensure_compiled(module, :module, mode) do
+          case Kernel.ErrorHandler.ensure_compiled(module, :module, mode, nil) do
             :found -> {:module, module}
             :deadlock -> {:error, :unavailable}
             :not_found -> {:error, :nofile}

@@ -82,7 +82,7 @@ defmodule Kernel.ParallelCompiler do
     {compiler_pid, file_pid} = :erlang.get(:elixir_compiler_info)
     defining = :elixir_module.compiler_modules()
     on = Enum.map(refs_tasks, fn {_ref, %{pid: pid}} -> pid end)
-    send(compiler_pid, {:waiting, :pmap, self(), ref, file_pid, on, defining, :raise})
+    send(compiler_pid, {:waiting, :pmap, self(), ref, file_pid, nil, on, defining, :raise})
 
     # Now we allow the tasks to run. This step is not strictly
     # necessary but it makes compilation more deterministic by
@@ -416,7 +416,7 @@ defmodule Kernel.ParallelCompiler do
   defp spawn_workers([{pid, found} | t], spawned, waiting, files, result, warnings, errors, state) do
     {files, waiting} =
       case Map.pop(waiting, pid) do
-        {{kind, ref, file_pid, on, _defining, _deadlock}, waiting} ->
+        {%{kind: kind, ref: ref, file_pid: file_pid, on: on}, waiting} ->
           send(pid, {ref, found})
           {update_timing(files, file_pid, {:waiting, kind, on}), waiting}
 
@@ -607,7 +607,7 @@ defmodule Kernel.ParallelCompiler do
   defp without_definition(waiting_list, files) do
     nilify_empty_or_sort(
       for %{pid: file_pid} <- files,
-          {pid, {_, _, ^file_pid, on, _, _}} <- waiting_list,
+          {pid, %{file_pid: ^file_pid, on: on}} <- waiting_list,
           is_atom(on) and not defining?(on, waiting_list),
           do: {pid, :not_found}
     )
@@ -615,14 +615,14 @@ defmodule Kernel.ParallelCompiler do
 
   defp deadlocked(waiting_list, type, defining?) do
     nilify_empty_or_sort(
-      for {pid, {_, _, _, on, _, ^type}} <- waiting_list,
+      for {pid, %{on: on, deadlock: ^type}} <- waiting_list,
           is_atom(on) and defining?(on, waiting_list) == defining?,
           do: {pid, :deadlock}
     )
   end
 
   defp defining?(on, waiting_list) do
-    Enum.any?(waiting_list, fn {_, {_, _, _, _, defining, _}} -> on in defining end)
+    Enum.any?(waiting_list, fn {_, %{defining: defining}} -> on in defining end)
   end
 
   defp nilify_empty_or_sort([]), do: nil
@@ -689,11 +689,12 @@ defmodule Kernel.ParallelCompiler do
         )
 
       # If we are simply requiring files, we do not add to waiting.
-      {:waiting, _kind, child, ref, _file_pid, _on, _defining, _deadlock} when output == :require ->
+      {:waiting, _kind, child, ref, _file_pid, _position, _on, _defining, _deadlock}
+      when output == :require ->
         send(child, {ref, :not_found})
         spawn_workers(queue, spawned, waiting, files, result, warnings, errors, state)
 
-      {:waiting, kind, child_pid, ref, file_pid, on, defining, deadlock} ->
+      {:waiting, kind, child_pid, ref, file_pid, position, on, defining, deadlock} ->
         # If we already got what we were waiting for, do not put it on waiting.
         # If we're waiting on ourselves, send :found so that we can crash with
         # a better error.
@@ -706,7 +707,17 @@ defmodule Kernel.ParallelCompiler do
             send(child_pid, {ref, reply})
             {waiting, files, result}
           else
-            waiting = Map.put(waiting, child_pid, {kind, ref, file_pid, on, defining, deadlock})
+            waiting =
+              Map.put(waiting, child_pid, %{
+                kind: kind,
+                ref: ref,
+                file_pid: file_pid,
+                position: position,
+                on: on,
+                defining: defining,
+                deadlock: deadlock
+              })
+
             files = update_timing(files, file_pid, :compiling)
             result = Map.put(result, {kind, on}, [child_pid | available_or_pending])
             {waiting, files, result}
@@ -760,7 +771,7 @@ defmodule Kernel.ParallelCompiler do
         terminate(new_files)
 
         return_error(warnings, errors, state, fn ->
-          print_error(file, kind, reason, stack)
+          print_error(file, nil, kind, reason, stack)
           [to_error(file, kind, reason, stack)]
         end)
 
@@ -774,7 +785,7 @@ defmodule Kernel.ParallelCompiler do
           terminate(files)
 
           return_error(warnings, errors, state, fn ->
-            print_error(file.file, :exit, reason, [])
+            print_error(file.file, nil, :exit, reason, [])
             [to_error(file.file, :exit, reason, [])]
           end)
         else
@@ -949,11 +960,11 @@ defmodule Kernel.ParallelCompiler do
         {:current_stacktrace, stacktrace} = Process.info(pid, :current_stacktrace)
         Process.exit(pid, :kill)
 
-        {kind, _, _, on, _, _} = Map.fetch!(waiting, pid)
+        %{kind: kind, on: on, position: position} = Map.fetch!(waiting, pid)
         description = "deadlocked waiting on #{kind} #{inspect(on)}"
         error = CompileError.exception(description: description, file: nil, line: nil)
-        print_error(file, :error, error, stacktrace)
-        {Path.relative_to_cwd(file), on, description, stacktrace}
+        print_error(file, position, :error, error, stacktrace)
+        {Path.relative_to_cwd(file), position, on, description, stacktrace}
       end
 
     IO.puts(:stderr, """
@@ -967,7 +978,7 @@ defmodule Kernel.ParallelCompiler do
       |> Enum.map(&(&1 |> elem(0) |> String.length()))
       |> Enum.max()
 
-    for {file, mod, _, _} <- deadlock do
+    for {file, _, mod, _, _} <- deadlock do
       IO.puts(:stderr, ["  ", String.pad_leading(file, max), " => " | inspect(mod)])
     end
 
@@ -977,14 +988,14 @@ defmodule Kernel.ParallelCompiler do
         "and that the modules they reference exist and are correctly named\n"
     )
 
-    for {file, _, description, stacktrace} <- deadlock do
+    for {file, position, _, description, stacktrace} <- deadlock do
       file = Path.absname(file)
 
       %{
         severity: :error,
         file: file,
         source: file,
-        position: nil,
+        position: position,
         message: description,
         stacktrace: stacktrace,
         span: nil
@@ -1004,9 +1015,11 @@ defmodule Kernel.ParallelCompiler do
     :ok
   end
 
-  defp print_error(file, kind, reason, stack) do
+  defp print_error(file, position, kind, reason, stack) do
+    position = if is_integer(position), do: ":#{position}", else: ""
+
     IO.write(:stderr, [
-      "\n== Compilation error in file #{Path.relative_to_cwd(file)} ==\n",
+      "\n== Compilation error in file #{Path.relative_to_cwd(file)}#{position} ==\n",
       Kernel.CLI.format_error(kind, reason, stack)
     ])
   end

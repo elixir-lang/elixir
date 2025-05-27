@@ -380,7 +380,7 @@ defmodule Kernel.ParallelCompilerTest do
           """,
           bar: """
           defmodule BarDeadlock do
-            FooDeadlock.__info__(:module)
+            %FooDeadlock{}
           end
           """
         )
@@ -390,7 +390,7 @@ defmodule Kernel.ParallelCompilerTest do
           fixtures = [foo, bar]
           assert {:error, [bar_error, foo_error], @no_warnings} = compile(fixtures)
 
-          assert %{file: ^bar, position: nil, message: "deadlocked waiting on module FooDeadlock"} =
+          assert %{file: ^bar, position: 2, message: "deadlocked waiting on struct FooDeadlock"} =
                    bar_error
 
           assert %{file: ^foo, position: nil, message: "deadlocked waiting on module BarDeadlock"} =
@@ -402,8 +402,8 @@ defmodule Kernel.ParallelCompilerTest do
       assert msg =~ "parallel_deadlock/bar.ex => FooDeadlock"
       assert msg =~ ~r"== Compilation error in file .+parallel_deadlock/foo\.ex =="
       assert msg =~ "** (CompileError) deadlocked waiting on module BarDeadlock"
-      assert msg =~ ~r"== Compilation error in file .+parallel_deadlock/bar\.ex =="
-      assert msg =~ "** (CompileError) deadlocked waiting on module FooDeadlock"
+      assert msg =~ ~r"== Compilation error in file .+parallel_deadlock/bar\.ex:2 =="
+      assert msg =~ "** (CompileError) deadlocked waiting on struct FooDeadlock"
     end
 
     test "does not deadlock from Code.ensure_compiled" do
