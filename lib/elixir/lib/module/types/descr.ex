@@ -1000,15 +1000,21 @@ defmodule Module.Types.Descr do
           end
 
         # Optimize the cases where dynamic closes over all function types
-        {:term, fun_static} when fun_static == %{} ->
-          {:ok, dynamic()}
+        # {:term, fun_static} when fun_static == %{} ->
+        #   {:ok, dynamic()}
 
-        {%{fun: @fun_top}, fun_static} when fun_static == %{} ->
-          {:ok, dynamic()}
+        # {%{fun: @fun_top}, fun_static} when fun_static == %{} ->
+        #   {:ok, dynamic()}
 
         {fun_dynamic, fun_static} ->
           if fun_only?(fun_static) do
-            fun_apply_with_strategy(fun_static, fun_dynamic, arguments)
+            with :badarg <- fun_apply_with_strategy(fun_static, fun_dynamic, arguments) do
+              if compatible?(fun, fun(arguments, term())) do
+                {:ok, dynamic()}
+              else
+                :badarg
+              end
+            end
           else
             :badfun
           end
@@ -1106,11 +1112,19 @@ defmodule Module.Types.Descr do
   #
   # This function is used internally by `fun_apply_*`, and others to
   # ensure consistent handling of function types in all operations.
+  defp fun_normalize(:term, arity, mode) do
+    fun_normalize(%{fun: @fun_top}, arity, mode)
+  end
+
   defp fun_normalize(%{fun: bdd}, arity, mode) do
     {domain, arrows, bad_arities} =
       Enum.reduce(fun_get(bdd), {term(), [], []}, fn
-        {[{args, _} | _] = pos_funs, neg_funs}, {domain, arrows, bad_arities} ->
-          arrow_arity = length(args)
+        {pos_funs, neg_funs}, {domain, arrows, bad_arities} ->
+          arrow_arity =
+            case pos_funs do
+              [{args, _} | _] -> length(args)
+              _ -> arity
+            end
 
           cond do
             arrow_arity != arity ->
@@ -1393,8 +1407,6 @@ defmodule Module.Types.Descr do
   end
 
   # Converts a function BDD (Binary Decision Diagram) to its quoted representation.
-  defp fun_to_quoted(:fun, _opts), do: [{:fun, [], []}]
-
   defp fun_to_quoted(bdd, opts) do
     arrows = fun_get(bdd)
 

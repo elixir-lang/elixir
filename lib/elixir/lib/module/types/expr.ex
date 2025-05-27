@@ -51,7 +51,7 @@ defmodule Module.Types.Expr do
   @stacktrace list(
                 union(
                   tuple([atom(), atom(), args_or_arity, extra_info]),
-                  tuple([fun(), args_or_arity, extra_info])
+                  tuple([dynamic(fun()), args_or_arity, extra_info])
                 )
               )
 
