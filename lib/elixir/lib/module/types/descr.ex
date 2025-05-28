@@ -144,7 +144,7 @@ defmodule Module.Types.Descr do
   def args_to_domain(types) when is_list(types), do: tuple(types)
 
   @doc """
-  Converts the domain to arguments.
+  Converts the domain to a list of arguments.
 
   The domain is expected to be closed tuples. They may have complex negations
   which are then simplified to a union of positive tuple literals only.
@@ -156,27 +156,39 @@ defmodule Module.Types.Descr do
 
   Internally it uses `tuple_reduce/4` with concatenation as the join function
   and a transform that is simply the identity.
+
+  The list of arguments can be flattened into a broad domain by calling:
+
+      |> Enum.zip_with(fn types -> Enum.reduce(types, &union/2) end)
   """
   def domain_to_args(descr) do
     case :maps.take(:dynamic, descr) do
       :error ->
-        {tuple_elim_negations_static(descr), []}
+        tuple_elim_negations_static(descr, &Function.identity/1)
 
       {dynamic, static} ->
-        {tuple_elim_negations_static(static), tuple_elim_negations_static(dynamic)}
+        tuple_elim_negations_static(static, &Function.identity/1) ++
+          tuple_elim_negations_static(dynamic, fn elems -> Enum.map(elems, &dynamic/1) end)
     end
   end
 
   # Call tuple_reduce to build the simple union of tuples that come from each map literal.
   # Thus, initial is `[]`, join is concatenation, and the transform of a map literal
   # with no negations is just to keep the map literal as is.
-  defp tuple_elim_negations_static(%{tuple: dnf} = descr) when map_size(descr) == 1 do
+  defp tuple_elim_negations_static(%{tuple: dnf} = descr, transform) when map_size(descr) == 1 do
     tuple_reduce(dnf, [], &Kernel.++/2, fn :closed, elements ->
-      [elements]
+      [transform.(elements)]
     end)
   end
 
-  defp tuple_elim_negations_static(descr) when descr == %{}, do: []
+  defp tuple_elim_negations_static(descr, _transform) when descr == %{}, do: []
+
+  defp domain_to_flat_args(domain, arity) do
+    case domain_to_args(domain) do
+      [] -> List.duplicate(none(), arity)
+      args -> Enum.zip_with(args, fn types -> Enum.reduce(types, &union/2) end)
+    end
+  end
 
   ## Optional
 
@@ -987,7 +999,12 @@ defmodule Module.Types.Descr do
   Applies a function type to a list of argument types.
 
   Returns `{:ok, result}` if the application is valid
-  or one `:badarg`, `:badfun`, `{:badarity, arities}` if not.
+  or one `{:badarg, to_succeed_domain}`, `:badfun`,
+  `{:badarity, arities}` if not.
+
+  Note the domain returned by `:badarg` is not the strong
+  domain, but the domain that must be satisfied for the
+  function application to succeed.
 
   Handles both static and dynamic function types:
 
@@ -1059,11 +1076,11 @@ defmodule Module.Types.Descr do
            fun_normalize_both(fun_static, fun_dynamic, arity) do
       cond do
         empty?(args_domain) ->
-          {:badarg, domain}
+          {:badarg, domain_to_flat_args(domain, arity)}
 
         not subtype?(args_domain, domain) ->
           if static? or not compatible?(fun, fun(arguments, term())) do
-            {:badarg, domain}
+            {:badarg, domain_to_flat_args(domain, arity)}
           else
             {:ok, dynamic()}
           end

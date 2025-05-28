@@ -761,13 +761,13 @@ defmodule Module.Types.DescrTest do
 
     test "static" do
       # Full static
-      assert fun_apply(fun(), [integer()]) == :badarg
-      assert fun_apply(difference(fun(), none_fun(2)), [integer()]) == :badarg
+      assert fun_apply(fun(), [integer()]) == {:badarg, [none()]}
+      assert fun_apply(difference(fun(), none_fun(2)), [integer()]) == {:badarg, [none()]}
 
       # Basic function application scenarios
       assert fun_apply(fun([integer()], atom()), [integer()]) == {:ok, atom()}
-      assert fun_apply(fun([integer()], atom()), [float()]) == :badarg
-      assert fun_apply(fun([integer()], atom()), [term()]) == :badarg
+      assert fun_apply(fun([integer()], atom()), [float()]) == {:badarg, [integer()]}
+      assert fun_apply(fun([integer()], atom()), [term()]) == {:badarg, [integer()]}
       assert fun_apply(fun([integer()], none()), [integer()]) == {:ok, none()}
       assert fun_apply(fun([integer()], term()), [integer()]) == {:ok, term()}
 
@@ -826,7 +826,7 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(fun, [dynamic(integer())]) |> elem(1) |> equal?(atom())
       assert fun_apply(fun, [dynamic(number())]) == {:ok, dynamic()}
       assert fun_apply(fun, [integer()]) == {:ok, dynamic()}
-      assert fun_apply(fun, [float()]) == :badarg
+      assert fun_apply(fun, [float()]) == {:badarg, [dynamic(integer())]}
     end
 
     defp dynamic_fun(args, return), do: dynamic(fun(args, return))
@@ -926,7 +926,7 @@ defmodule Module.Types.DescrTest do
         )
 
       assert fun_args |> fun_apply([atom()]) == {:ok, dynamic()}
-      assert fun_args |> fun_apply([integer()]) == :badarg
+      assert fun_args |> fun_apply([integer()]) == {:badarg, [dynamic(atom())]}
 
       # Badfun
       assert union(
@@ -1254,14 +1254,10 @@ defmodule Module.Types.DescrTest do
         )
       ]
 
-      multi_args_to_domain = fn args ->
-        Enum.reduce(args, none(), &union(args_to_domain(&1), &2))
-      end
-
       Enum.each(complex_tuples, fn domain ->
-        {static, dynamic} = domain_to_args(domain)
+        args = domain_to_args(domain)
 
-        assert union(multi_args_to_domain.(static), dynamic(multi_args_to_domain.(dynamic)))
+        assert Enum.reduce(args, none(), &union(args_to_domain(&1), &2))
                |> equal?(domain)
       end)
     end
