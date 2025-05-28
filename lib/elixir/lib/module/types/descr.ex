@@ -1116,6 +1116,7 @@ defmodule Module.Types.Descr do
           {:badarg, domain_to_flat_args(domain, arity)}
 
         not subtype?(args_domain, domain) ->
+          # TODO: This compatibility check is not enough
           if static? or not compatible?(fun, fun(arguments, term())) do
             {:badarg, domain_to_flat_args(domain, arity)}
           else
@@ -1126,6 +1127,7 @@ defmodule Module.Types.Descr do
           {:ok, fun_apply_static(arguments, static_arrows, false)}
 
         static_arrows == [] ->
+          # TODO: We need to validate this within the theory
           {:ok, dynamic(fun_apply_static(arguments, dynamic_arrows, false))}
 
         true ->
