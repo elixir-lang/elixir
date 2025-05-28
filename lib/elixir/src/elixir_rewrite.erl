@@ -44,13 +44,16 @@
   inner_rewrite(erl_to_ex, _Meta, ErlMod, ErlFun, ErlArgs) -> {ExMod, ExFun, ExArgs, fun(ErlArgs) -> ExArgs end}
 ).
 
-erl_to_ex(Mod, Fun, Args) ->
+erl_to_ex(Mod, Fun, Args) when is_list(Args) ->
   case inner_inline(erl_to_ex, Mod, Fun, length(Args)) of
     false -> inner_rewrite(erl_to_ex, [], Mod, Fun, Args);
     {ExMod, ExFun} -> {ExMod, ExFun, Args, fun identity/1}
-  end.
+  end;
 
-%% Inline  rules
+erl_to_ex(Mod, Fun, Arity) when is_integer(Arity) ->
+  inner_inline(erl_to_ex, Mod, Fun, Arity).
+
+%% Inline rules
 %%
 %% Inline rules are straightforward, they keep the same
 %% number and order of arguments and show up on captures.

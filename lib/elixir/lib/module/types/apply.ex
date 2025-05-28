@@ -472,8 +472,6 @@ defmodule Module.Types.Apply do
   Returns the type of a remote capture.
   """
   def remote_capture(modules, fun, arity, meta, stack, context) do
-    # TODO: Do we check when the union of functions is invalid?
-    # TODO: Deal with :infer types
     if stack.mode == :traversal or modules == [] do
       {dynamic(fun(arity)), context}
     else
@@ -482,6 +480,9 @@ defmodule Module.Types.Apply do
           case signature(module, fun, arity, meta, stack, context) do
             {{:strong, _, clauses}, context} ->
               {union(type, fun_from_non_overlapping_clauses(clauses)), fallback?, context}
+
+            {{:infer, _, clauses}, context} when length(clauses) <= @max_clauses ->
+              {union(type, fun_from_overlapping_clauses(clauses)), fallback?, context}
 
             {_, context} ->
               {type, true, context}
@@ -610,6 +611,19 @@ defmodule Module.Types.Apply do
     not Enum.any?(stack.no_warn_undefined, &(&1 == module or &1 == {module, fun, arity}))
   end
 
+  ## Funs
+
+  def fun_apply(fun_type, args_types, call, stack, context) do
+    case fun_apply(fun_type, args_types) do
+      {:ok, res} ->
+        {res, context}
+
+      reason ->
+        error = {{:badapply, reason}, args_types, fun_type, call, context}
+        {error_type(), error(__MODULE__, error, elem(call, 1), stack, context)}
+    end
+  end
+
   ## Local
 
   def local_domain(fun, args, expected, meta, stack, context) do
@@ -682,13 +696,25 @@ defmodule Module.Types.Apply do
       {_kind, _info, context} when stack.mode == :traversal ->
         {dynamic(fun(arity)), context}
 
-      {kind, _info, context} ->
-        if stack.mode != :infer and kind == :defp do
-          # Mark all clauses as used, as the function is being exported.
-          {dynamic(fun(arity)), put_in(context.local_used[fun_arity], [])}
-        else
-          {dynamic(fun(arity)), context}
-        end
+      {kind, info, context} ->
+        result =
+          case info do
+            {:infer, _, clauses} when length(clauses) <= @max_clauses ->
+              fun_from_overlapping_clauses(clauses)
+
+            _ ->
+              dynamic(fun(arity))
+          end
+
+        context =
+          if stack.mode != :infer and kind == :defp do
+            # Mark all clauses as used, as the function is being exported.
+            put_in(context.local_used[fun_arity], [])
+          else
+            context
+          end
+
+        {result, context}
     end
   end
 
@@ -804,6 +830,78 @@ defmodule Module.Types.Apply do
   end
 
   ## Diagnostics
+
+  def format_diagnostic({{:badapply, reason}, args_types, fun_type, expr, context}) do
+    traces =
+      case reason do
+        # Include arguments in traces in case of badarg
+        {:badarg, _} -> collect_traces(expr, context)
+        # Otherwise just the fun
+        _ -> collect_traces(elem(expr, 0), context)
+      end
+
+    message =
+      case reason do
+        {:badarg, domain} ->
+          """
+          incompatible types given on function application:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          given types:
+
+              #{args_to_quoted_string(args_types, domain, &Function.identity/1) |> indent(4)}
+
+          but function has type:
+
+              #{to_quoted_string(fun_type) |> indent(4)}
+          """
+
+        :badarg ->
+          """
+          expected a #{length(args_types)}-arity function on call:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          but got type:
+
+              #{to_quoted_string(fun_type) |> indent(4)}
+          """
+
+        {:badarity, arities} ->
+          info =
+            case arities do
+              [arity] -> "function with arity #{arity}"
+              _ -> "function with arities #{Enum.join(arities, ",")}"
+            end
+
+          """
+          expected a #{length(args_types)}-arity function on call:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          but got #{info}:
+
+              #{to_quoted_string(fun_type) |> indent(4)}
+          """
+
+        :badfun ->
+          """
+          expected a #{length(args_types)}-arity function on call:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          but got type:
+
+              #{to_quoted_string(fun_type) |> indent(4)}
+          """
+      end
+
+    %{
+      details: %{typing_traces: traces},
+      message: IO.iodata_to_binary([message, format_traces(traces)])
+    }
+  end
 
   def format_diagnostic({:badlocal, {_, domain, clauses}, args_types, expr, context}) do
     domain = domain(domain, clauses)

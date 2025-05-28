@@ -10,7 +10,7 @@ end
 defmodule Module.Types.DescrTest do
   use ExUnit.Case, async: true
 
-  import Module.Types.Descr
+  import Module.Types.Descr, except: [fun: 1]
 
   describe "union" do
     test "bitmap" do
@@ -111,7 +111,7 @@ defmodule Module.Types.DescrTest do
 
     test "fun" do
       assert equal?(union(fun(), fun()), fun())
-      assert equal?(union(fun(), fun(1)), fun())
+      assert equal?(union(fun(), none_fun(1)), fun())
 
       dynamic_fun = intersection(fun(), dynamic())
       assert equal?(union(dynamic_fun, fun()), fun())
@@ -335,7 +335,7 @@ defmodule Module.Types.DescrTest do
     end
 
     test "function" do
-      assert not empty?(intersection(negation(fun(2)), negation(fun(3))))
+      assert not empty?(intersection(negation(none_fun(2)), negation(none_fun(3))))
     end
   end
 
@@ -528,19 +528,19 @@ defmodule Module.Types.DescrTest do
 
     test "fun" do
       for arity <- [0, 1, 2, 3] do
-        assert empty?(difference(fun(arity), fun(arity)))
+        assert empty?(difference(none_fun(arity), none_fun(arity)))
       end
 
       assert empty?(difference(fun(), fun()))
-      assert empty?(difference(fun(3), fun()))
-      refute empty?(difference(fun(), fun(1)))
-      refute empty?(difference(fun(2), fun(3)))
-      assert empty?(intersection(fun(2), fun(3)))
+      assert empty?(difference(none_fun(3), fun()))
+      refute empty?(difference(fun(), none_fun(1)))
+      refute empty?(difference(none_fun(2), none_fun(3)))
+      assert empty?(intersection(none_fun(2), none_fun(3)))
 
-      f1f2 = union(fun(1), fun(2))
-      assert f1f2 |> difference(fun(1)) |> difference(fun(2)) |> empty?()
-      assert fun(1) |> difference(difference(f1f2, fun(2))) |> empty?()
-      assert f1f2 |> difference(fun(1)) |> equal?(fun(2))
+      f1f2 = union(none_fun(1), none_fun(2))
+      assert f1f2 |> difference(none_fun(1)) |> difference(none_fun(2)) |> empty?()
+      assert none_fun(1) |> difference(difference(f1f2, none_fun(2))) |> empty?()
+      assert f1f2 |> difference(none_fun(1)) |> equal?(none_fun(2))
 
       assert fun([integer()], term()) |> difference(fun([none()], term())) |> empty?()
     end
@@ -742,26 +742,90 @@ defmodule Module.Types.DescrTest do
 
     test "fun" do
       refute empty?(fun())
-      refute empty?(fun(1))
+      refute empty?(none_fun(1))
       refute empty?(fun([integer()], atom()))
 
-      assert empty?(intersection(fun(1), fun(2)))
-      refute empty?(intersection(fun(), fun(1)))
-      assert empty?(difference(fun(1), union(fun(1), fun(2))))
+      assert empty?(intersection(none_fun(1), none_fun(2)))
+      refute empty?(intersection(fun(), none_fun(1)))
+      assert empty?(difference(none_fun(1), union(none_fun(1), none_fun(2))))
+    end
+  end
+
+  describe "function creation" do
+    test "fun_from_non_overlapping_clauses" do
+      assert fun_from_non_overlapping_clauses([{[integer()], atom()}, {[float()], binary()}]) ==
+               intersection(fun([integer()], atom()), fun([float()], binary()))
+    end
+
+    test "fun_from_overlapping_clauses" do
+      # No overlap
+      assert fun_from_overlapping_clauses([{[integer()], atom()}, {[float()], binary()}])
+             |> equal?(
+               fun_from_non_overlapping_clauses([{[integer()], atom()}, {[float()], binary()}])
+             )
+
+      # Subsets
+      assert fun_from_overlapping_clauses([{[integer()], atom()}, {[number()], binary()}])
+             |> equal?(
+               fun_from_non_overlapping_clauses([
+                 {[integer()], union(atom(), binary())},
+                 {[float()], binary()}
+               ])
+             )
+
+      assert fun_from_overlapping_clauses([{[number()], binary()}, {[integer()], atom()}])
+             |> equal?(
+               fun_from_non_overlapping_clauses([
+                 {[integer()], union(atom(), binary())},
+                 {[float()], binary()}
+               ])
+             )
+
+      # Partial
+      assert fun_from_overlapping_clauses([
+               {[union(integer(), pid())], atom()},
+               {[union(float(), pid())], binary()}
+             ])
+             |> equal?(
+               fun_from_non_overlapping_clauses([
+                 {[integer()], atom()},
+                 {[float()], binary()},
+                 {[pid()], union(atom(), binary())}
+               ])
+             )
+
+      # Difference
+      assert fun_from_overlapping_clauses([
+               {[integer(), union(pid(), atom())], atom()},
+               {[number(), pid()], binary()}
+             ])
+             |> equal?(
+               fun_from_non_overlapping_clauses([
+                 {[float(), pid()], binary()},
+                 {[integer(), atom()], atom()},
+                 {[integer(), pid()], union(atom(), binary())}
+               ])
+             )
     end
   end
 
   describe "function application" do
+    defp none_fun(arity), do: fun(List.duplicate(none(), arity), term())
+
     test "non funs" do
       assert fun_apply(term(), [integer()]) == :badfun
-      assert fun_apply(union(integer(), fun(1)), [integer()]) == :badfun
+      assert fun_apply(union(integer(), none_fun(1)), [integer()]) == :badfun
     end
 
     test "static" do
+      # Full static
+      assert fun_apply(fun(), [integer()]) == {:badarg, [none()]}
+      assert fun_apply(difference(fun(), none_fun(2)), [integer()]) == {:badarg, [none()]}
+
       # Basic function application scenarios
       assert fun_apply(fun([integer()], atom()), [integer()]) == {:ok, atom()}
-      assert fun_apply(fun([integer()], atom()), [float()]) == :badarg
-      assert fun_apply(fun([integer()], atom()), [term()]) == :badarg
+      assert fun_apply(fun([integer()], atom()), [float()]) == {:badarg, [integer()]}
+      assert fun_apply(fun([integer()], atom()), [term()]) == {:badarg, [integer()]}
       assert fun_apply(fun([integer()], none()), [integer()]) == {:ok, none()}
       assert fun_apply(fun([integer()], term()), [integer()]) == {:ok, term()}
 
@@ -772,7 +836,13 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(fun([integer()], integer()), [term(), term()]) == {:badarity, [1]}
       assert fun_apply(fun([integer(), atom()], boolean()), [integer()]) == {:badarity, [2]}
 
-      # Function intersection tests - basic
+      # Function intersection tests (no overlap)
+      fun0 = intersection(fun([integer()], atom()), fun([float()], binary()))
+      assert fun_apply(fun0, [integer()]) == {:ok, atom()}
+      assert fun_apply(fun0, [float()]) == {:ok, binary()}
+      assert fun_apply(fun0, [union(integer(), float())]) == {:ok, union(atom(), binary())}
+
+      # Function intersection tests (overlap)
       fun1 = intersection(fun([integer()], atom()), fun([number()], term()))
       assert fun_apply(fun1, [integer()]) == {:ok, atom()}
       assert fun_apply(fun1, [float()]) == {:ok, term()}
@@ -812,18 +882,23 @@ defmodule Module.Types.DescrTest do
 
       fun = fun([dynamic(integer())], atom())
       assert fun_apply(fun, [dynamic(integer())]) |> elem(1) |> equal?(atom())
-      assert fun_apply(fun, [dynamic(number())]) == :badarg
-      assert fun_apply(fun, [integer()]) == :badarg
-      assert fun_apply(fun, [float()]) == :badarg
+      assert fun_apply(fun, [dynamic(number())]) == {:ok, dynamic()}
+      assert fun_apply(fun, [integer()]) == {:ok, dynamic()}
+      assert fun_apply(fun, [float()]) == {:badarg, [dynamic(integer())]}
     end
 
     defp dynamic_fun(args, return), do: dynamic(fun(args, return))
 
     test "dynamic" do
+      # Full dynamic
+      assert fun_apply(dynamic(), [integer()]) == {:ok, dynamic()}
+      assert fun_apply(dynamic(none_fun(1)), [integer()]) == {:ok, dynamic()}
+      assert fun_apply(difference(dynamic(), none_fun(2)), [integer()]) == {:ok, dynamic()}
+
       # Basic function application scenarios
       assert fun_apply(dynamic_fun([integer()], atom()), [integer()]) == {:ok, dynamic(atom())}
-      assert fun_apply(dynamic_fun([integer()], atom()), [float()]) == :badarg
-      assert fun_apply(dynamic_fun([integer()], atom()), [term()]) == :badarg
+      assert fun_apply(dynamic_fun([integer()], atom()), [float()]) == {:ok, dynamic()}
+      assert fun_apply(dynamic_fun([integer()], atom()), [term()]) == {:ok, dynamic()}
       assert fun_apply(dynamic_fun([integer()], none()), [integer()]) == {:ok, dynamic(none())}
       assert fun_apply(dynamic_fun([integer()], term()), [integer()]) == {:ok, dynamic()}
 
@@ -833,7 +908,7 @@ defmodule Module.Types.DescrTest do
       fun = dynamic_fun([integer()], binary())
       assert fun_apply(fun, [integer()]) == {:ok, dynamic(binary())}
       assert fun_apply(fun, [dynamic(integer())]) == {:ok, dynamic(binary())}
-      assert fun_apply(fun, [dynamic(atom())]) == :badarg
+      assert fun_apply(fun, [dynamic(atom())]) == {:ok, dynamic()}
 
       # Arity mismatches
       assert fun_apply(dynamic_fun([integer()], integer()), [term(), term()]) == {:badarity, [1]}
@@ -908,20 +983,20 @@ defmodule Module.Types.DescrTest do
           dynamic_fun([integer()], binary())
         )
 
-      assert fun_args |> fun_apply([atom()]) == :badarg
-      assert fun_args |> fun_apply([integer()]) == :badarg
+      assert fun_args |> fun_apply([atom()]) == {:ok, dynamic()}
+      assert fun_args |> fun_apply([integer()]) == {:badarg, [dynamic(atom())]}
 
       # Badfun
       assert union(
                fun([atom()], integer()),
-               dynamic_fun([integer()], binary()) |> intersection(fun(2))
+               dynamic_fun([integer()], binary()) |> intersection(none_fun(2))
              )
              |> fun_apply([atom()])
              |> elem(1)
              |> equal?(integer())
 
       assert union(
-               fun([atom()], integer()) |> intersection(fun(2)),
+               fun([atom()], integer()) |> intersection(none_fun(2)),
                dynamic_fun([integer()], binary())
              )
              |> fun_apply([integer()]) == {:ok, dynamic(binary())}
@@ -1225,7 +1300,7 @@ defmodule Module.Types.DescrTest do
              |> equal?(integer())
     end
 
-    test "tuple_elim_negations" do
+    test "domain_to_args" do
       # take complex tuples, normalize them, and check if they are still equal
       complex_tuples = [
         tuple([term(), atom(), number()])
@@ -1234,24 +1309,14 @@ defmodule Module.Types.DescrTest do
         difference(
           tuple([union(atom(), pid()), union(integer(), float())]),
           tuple([union(atom(), pid()), float()])
-        ),
-        # open_tuple case with union in elements
-        difference(
-          open_tuple([union(boolean(), pid()), union(atom(), integer())]),
-          open_tuple([pid(), integer()])
-        ),
-        open_tuple([term(), term(), term()])
-        |> difference(open_tuple([term(), integer(), atom(), atom()]))
-        |> difference(tuple([float(), float(), float(), float(), float()]))
-        |> difference(tuple([term(), term(), term(), term(), term(), term()]))
+        )
       ]
 
-      Enum.each(complex_tuples, fn orig ->
-        norm = tuple_elim_negations(orig)
-        # should split into multiple simple tuples
-        assert equal?(norm, orig)
-        assert Enum.all?(norm.tuple, fn {_, _, neg} -> neg == [] end)
-        assert not Enum.all?(orig.tuple, fn {_, _, neg} -> neg == [] end)
+      Enum.each(complex_tuples, fn domain ->
+        args = domain_to_args(domain)
+
+        assert Enum.reduce(args, none(), &union(args_to_domain(&1), &2))
+               |> equal?(domain)
       end)
     end
 
@@ -1736,7 +1801,7 @@ defmodule Module.Types.DescrTest do
 
     test "function" do
       assert fun() |> to_quoted_string() == "fun()"
-      assert fun(1) |> to_quoted_string() == "(none() -> term())"
+      assert none_fun(1) |> to_quoted_string() == "(none() -> term())"
 
       assert fun([dynamic(integer())], float()) |> to_quoted_string() ==
                "dynamic((none() -> float())) or (integer() -> float())"
