@@ -133,6 +133,43 @@ defmodule Module.Types.Descr do
   end
 
   @doc """
+  Creates a function from overlapping function clauses.
+  """
+  def fun_from_overlapping_clauses(args_clauses) do
+    domain_clauses =
+      Enum.reduce(args_clauses, [], fn {args, return}, acc ->
+        pivot_overlapping_clause(args_to_domain(args), return, acc)
+      end)
+
+    funs =
+      for {domain, return} <- domain_clauses,
+          args <- domain_to_args(domain),
+          do: fun(args, return)
+
+    Enum.reduce(funs, &intersection/2)
+  end
+
+  defp pivot_overlapping_clause(domain, return, [{acc_domain, acc_return} | acc]) do
+    common = intersection(domain, acc_domain)
+
+    if empty?(common) do
+      [{acc_domain, acc_return} | pivot_overlapping_clause(domain, return, acc)]
+    else
+      [{common, union(return, acc_return)} | acc]
+      |> prepend_to_unless_empty(difference(domain, common), return)
+      |> prepend_to_unless_empty(difference(acc_domain, common), acc_return)
+    end
+  end
+
+  defp pivot_overlapping_clause(domain, return, []) do
+    [{domain, return}]
+  end
+
+  defp prepend_to_unless_empty(acc, domain, return) do
+    if empty?(domain), do: acc, else: [{domain, return} | acc]
+  end
+
+  @doc """
   Converts a list of arguments into a domain.
 
   Tuples represent function domains, using unions to combine parameters.

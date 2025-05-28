@@ -472,7 +472,6 @@ defmodule Module.Types.Apply do
   Returns the type of a remote capture.
   """
   def remote_capture(modules, fun, arity, meta, stack, context) do
-    # TODO: Deal with :infer types
     if stack.mode == :traversal or modules == [] do
       {dynamic(fun(arity)), context}
     else
@@ -481,6 +480,9 @@ defmodule Module.Types.Apply do
           case signature(module, fun, arity, meta, stack, context) do
             {{:strong, _, clauses}, context} ->
               {union(type, fun_from_non_overlapping_clauses(clauses)), fallback?, context}
+
+            {{:infer, _, clauses}, context} when length(clauses) <= @max_clauses ->
+              {union(type, fun_from_overlapping_clauses(clauses)), fallback?, context}
 
             {_, context} ->
               {type, true, context}
@@ -694,13 +696,25 @@ defmodule Module.Types.Apply do
       {_kind, _info, context} when stack.mode == :traversal ->
         {dynamic(fun(arity)), context}
 
-      {kind, _info, context} ->
-        if stack.mode != :infer and kind == :defp do
-          # Mark all clauses as used, as the function is being exported.
-          {dynamic(fun(arity)), put_in(context.local_used[fun_arity], [])}
-        else
-          {dynamic(fun(arity)), context}
-        end
+      {kind, info, context} ->
+        result =
+          case info do
+            {:infer, _, clauses} when length(clauses) <= @max_clauses ->
+              fun_from_overlapping_clauses(clauses)
+
+            _ ->
+              dynamic(fun(arity))
+          end
+
+        context =
+          if stack.mode != :infer and kind == :defp do
+            # Mark all clauses as used, as the function is being exported.
+            put_in(context.local_used[fun_arity], [])
+          else
+            context
+          end
+
+        {result, context}
     end
   end
 

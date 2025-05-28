@@ -751,6 +751,64 @@ defmodule Module.Types.DescrTest do
     end
   end
 
+  describe "function creation" do
+    test "fun_from_non_overlapping_clauses" do
+      assert fun_from_non_overlapping_clauses([{[integer()], atom()}, {[float()], binary()}]) ==
+               intersection(fun([integer()], atom()), fun([float()], binary()))
+    end
+
+    test "fun_from_overlapping_clauses" do
+      # No overlap
+      assert fun_from_overlapping_clauses([{[integer()], atom()}, {[float()], binary()}])
+             |> equal?(
+               fun_from_non_overlapping_clauses([{[integer()], atom()}, {[float()], binary()}])
+             )
+
+      # Subsets
+      assert fun_from_overlapping_clauses([{[integer()], atom()}, {[number()], binary()}])
+             |> equal?(
+               fun_from_non_overlapping_clauses([
+                 {[integer()], union(atom(), binary())},
+                 {[float()], binary()}
+               ])
+             )
+
+      assert fun_from_overlapping_clauses([{[number()], binary()}, {[integer()], atom()}])
+             |> equal?(
+               fun_from_non_overlapping_clauses([
+                 {[integer()], union(atom(), binary())},
+                 {[float()], binary()}
+               ])
+             )
+
+      # Partial
+      assert fun_from_overlapping_clauses([
+               {[union(integer(), pid())], atom()},
+               {[union(float(), pid())], binary()}
+             ])
+             |> equal?(
+               fun_from_non_overlapping_clauses([
+                 {[integer()], atom()},
+                 {[float()], binary()},
+                 {[pid()], union(atom(), binary())}
+               ])
+             )
+
+      # Difference
+      assert fun_from_overlapping_clauses([
+               {[integer(), union(pid(), atom())], atom()},
+               {[number(), pid()], binary()}
+             ])
+             |> equal?(
+               fun_from_non_overlapping_clauses([
+                 {[float(), pid()], binary()},
+                 {[integer(), atom()], atom()},
+                 {[integer(), pid()], union(atom(), binary())}
+               ])
+             )
+    end
+  end
+
   describe "function application" do
     defp none_fun(arity), do: fun(List.duplicate(none(), arity), term())
 

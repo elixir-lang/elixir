@@ -449,6 +449,7 @@ defmodule Module.Types.ExprTest do
   describe "remote capture" do
     test "strong" do
       assert typecheck!(&String.to_atom/1) == fun([binary()], atom())
+      assert typecheck!(&:erlang.element/2) == fun([integer(), open_tuple([])], dynamic())
     end
 
     test "unknown" do
