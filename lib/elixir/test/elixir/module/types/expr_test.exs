@@ -139,7 +139,7 @@ defmodule Module.Types.ExprTest do
              ) == dynamic(fun(2))
     end
 
-    test "incompatible" do
+    test "bad function" do
       assert typeerror!([%x{}, a1, a2], x.(a1, a2)) == ~l"""
              expected a 2-arity function on call:
 
@@ -154,6 +154,30 @@ defmodule Module.Types.ExprTest do
                  # type: dynamic(atom())
                  # from: types_test.ex:LINE
                  %x{}
+             """
+    end
+
+    test "bad arity" do
+      assert typeerror!([a1, a2], (&String.to_integer/1).(a1, a2)) == ~l"""
+             expected a 2-arity function on call:
+
+                 (&String.to_integer/1).(a1, a2)
+
+             but got function with arity 1:
+
+                 (binary() -> integer())
+             """
+    end
+
+    test "bad argument" do
+      assert typeerror!([%a{}], (&String.to_integer/1).(a)) == ~l"""
+             expected a 2-arity function on call:
+
+                 (&String.to_integer/1).(a1, a2)
+
+             but got function with arity 1:
+
+                 (binary() -> integer())
              """
     end
   end

@@ -472,7 +472,6 @@ defmodule Module.Types.Apply do
   Returns the type of a remote capture.
   """
   def remote_capture(modules, fun, arity, meta, stack, context) do
-    # TODO: Do we check when the union of functions is invalid?
     # TODO: Deal with :infer types
     if stack.mode == :traversal or modules == [] do
       {dynamic(fun(arity)), context}
@@ -829,14 +828,17 @@ defmodule Module.Types.Apply do
 
     message =
       case reason do
-        # TODO: Return the domain here
-        {:badarg, _} ->
+        {:badarg, domain} ->
           """
-          expected a #{length(args_types)}-arity function on call:
+          incompatible types given on function application:
 
               #{expr_to_string(expr) |> indent(4)}
 
-          but got type:
+          given types:
+
+              #{args_to_quoted_string(args_types, domain, &Function.identity/1) |> indent(4)}
+
+          but function has type:
 
               #{to_quoted_string(fun_type) |> indent(4)}
           """

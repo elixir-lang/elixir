@@ -324,6 +324,15 @@ defmodule Module.Types.Helpers do
       {{:., _, [mod, fun]}, meta, args} ->
         erl_to_ex(mod, fun, args, meta)
 
+      {:&, amp_meta, [{:/, slash_meta, [{{:., dot_meta, [mod, fun]}, call_meta, []}, arity]}]} ->
+        {mod, fun} =
+          case :elixir_rewrite.erl_to_ex(mod, fun, arity) do
+            {mod, fun} -> {mod, fun}
+            false -> {mod, fun}
+          end
+
+        {:&, amp_meta, [{:/, slash_meta, [{{:., dot_meta, [mod, fun]}, call_meta, []}, arity]}]}
+
       {:case, meta, [expr, [do: clauses]]} = case ->
         if meta[:type_check] == :expr do
           case clauses do
