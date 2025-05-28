@@ -208,7 +208,8 @@ defmodule Exception do
   normalize it. If the `error` argument is an Elixir exception, this function will invoke
   the optional `c:blame/2` callback on the exception module if it is implemented.
   Unlike `message/1`, this function will not rescue errors - if the callback raises an exception,
-  the error will propagate to the caller.
+  the error will propagate to the caller. It is your choice if you want to rescue and return
+  the original exception, return a different exception, or let it cascade.
   """
   @doc since: "1.5.0"
   @spec blame(:error, any, stacktrace) :: {t, stacktrace}
