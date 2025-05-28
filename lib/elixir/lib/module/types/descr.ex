@@ -133,15 +133,50 @@ defmodule Module.Types.Descr do
   end
 
   @doc """
+  Converts a list of arguments into a domain.
+
   Tuples represent function domains, using unions to combine parameters.
 
-  Example: for functions (integer, float ->:ok) and (float, integer -> :error)
-  domain isn't {integer|float,integer|float} as that would incorrectly accept {float,float}
-  Instead, it is {integer,float} or {float,integer}
-
-  Made public for testing.
+  Example: for functions (integer(), float() -> :ok) and (float(), integer() -> :error)
+  domain isn't `{integer() or float(), integer() or float()}` as that would incorrectly
+  accept `{float(), float()}`, instead it is `{integer(), float()} or {float(), integer()}`.
   """
-  def domain_descr(types) when is_list(types), do: tuple(types)
+  def args_to_domain(types) when is_list(types), do: tuple(types)
+
+  @doc """
+  Converts the domain to arguments.
+
+  The domain is expected to be closed tuples. They may have complex negations
+  which are then simplified to a union of positive tuple literals only.
+
+  * For static tuple types: eliminates all negations from the DNF representation.
+
+  * For gradual tuple types: processes both dynamic and static components separately,
+    then combines them.
+
+  Internally it uses `tuple_reduce/4` with concatenation as the join function
+  and a transform that is simply the identity.
+  """
+  def domain_to_args(descr) do
+    case :maps.take(:dynamic, descr) do
+      :error ->
+        {tuple_elim_negations_static(descr), []}
+
+      {dynamic, static} ->
+        {tuple_elim_negations_static(static), tuple_elim_negations_static(dynamic)}
+    end
+  end
+
+  # Call tuple_reduce to build the simple union of tuples that come from each map literal.
+  # Thus, initial is `[]`, join is concatenation, and the transform of a map literal
+  # with no negations is just to keep the map literal as is.
+  defp tuple_elim_negations_static(%{tuple: dnf} = descr) when map_size(descr) == 1 do
+    tuple_reduce(dnf, [], &Kernel.++/2, fn :closed, elements ->
+      [elements]
+    end)
+  end
+
+  defp tuple_elim_negations_static(descr) when descr == %{}, do: []
 
   ## Optional
 
@@ -988,80 +1023,71 @@ defmodule Module.Types.Descr do
   end
 
   def fun_apply(fun, arguments) do
-    if empty?(domain_descr(arguments)) do
-      :badarg
-    else
-      case :maps.take(:dynamic, fun) do
-        :error ->
-          if fun_only?(fun) do
-            fun_apply_with_strategy(fun, nil, arguments)
-          else
-            :badfun
-          end
+    case :maps.take(:dynamic, fun) do
+      :error ->
+        if fun_only?(fun) do
+          fun_apply_with_strategy(fun, fun, nil, arguments)
+        else
+          :badfun
+        end
 
-        # Optimize the cases where dynamic closes over all function types
-        {:term, fun_static} when fun_static == %{} ->
-          {:ok, dynamic()}
+      # Optimize the cases where dynamic closes over all function types
+      {:term, fun_static} when fun_static == %{} ->
+        {:ok, dynamic()}
 
-        {%{fun: @fun_top}, fun_static} when fun_static == %{} ->
-          {:ok, dynamic()}
+      {%{fun: @fun_top}, fun_static} when fun_static == %{} ->
+        {:ok, dynamic()}
 
-        {fun_dynamic, fun_static} ->
-          if fun_only?(fun_static) do
-            with :badarg <- fun_apply_with_strategy(fun_static, fun_dynamic, arguments) do
-              if compatible?(fun, fun(arguments, term())) do
-                {:ok, dynamic()}
-              else
-                :badarg
-              end
-            end
-          else
-            :badfun
-          end
-      end
+      {fun_dynamic, fun_static} ->
+        if fun_only?(fun_static) do
+          fun_apply_with_strategy(fun, fun_static, fun_dynamic, arguments)
+        else
+          :badfun
+        end
     end
   end
 
   defp fun_only?(descr), do: empty?(Map.delete(descr, :fun))
 
-  defp fun_apply_with_strategy(fun_static, fun_dynamic, arguments) do
+  defp fun_apply_with_strategy(fun, fun_static, fun_dynamic, arguments) do
     args_dynamic? = any_dynamic?(arguments)
+    args_domain = args_to_domain(arguments)
+    static? = fun_dynamic == nil and not args_dynamic?
     arity = length(arguments)
 
-    # For non-dynamic function and arguments, just return the static result
-    if fun_dynamic == nil and not args_dynamic? do
-      with {:ok, static_domain, static_arrows} <- fun_normalize(fun_static, arity, :static) do
-        if subtype?(domain_descr(arguments), static_domain) do
+    with {:ok, domain, static_arrows, dynamic_arrows} <-
+           fun_normalize_both(fun_static, fun_dynamic, arity) do
+      cond do
+        empty?(args_domain) ->
+          {:badarg, domain}
+
+        not subtype?(args_domain, domain) ->
+          if static? or not compatible?(fun, fun(arguments, term())) do
+            {:badarg, domain}
+          else
+            {:ok, dynamic()}
+          end
+
+        static? ->
           {:ok, fun_apply_static(arguments, static_arrows, false)}
-        else
-          :badarg
-        end
-      end
-    else
-      with {:ok, domain, static_arrows, dynamic_arrows} <-
-             fun_normalize_both(fun_static, fun_dynamic, arity) do
-        cond do
-          not subtype?(domain_descr(arguments), domain) ->
-            :badarg
 
-          static_arrows == [] ->
-            {:ok, dynamic(fun_apply_static(arguments, dynamic_arrows, false))}
+        static_arrows == [] ->
+          {:ok, dynamic(fun_apply_static(arguments, dynamic_arrows, false))}
 
-          true ->
-            # For dynamic cases, combine static and dynamic results
-            {static_args, dynamic_args, maybe_empty?} =
-              if args_dynamic? do
-                {Enum.map(arguments, &upper_bound/1), Enum.map(arguments, &lower_bound/1), true}
-              else
-                {arguments, arguments, false}
-              end
+        true ->
+          # For dynamic cases, combine static and dynamic results
+          {static_args, dynamic_args, maybe_empty?} =
+            if args_dynamic? do
+              {Enum.map(arguments, &upper_bound/1), Enum.map(arguments, &lower_bound/1), true}
+            else
+              {arguments, arguments, false}
+            end
 
-            {:ok,
-             union(
-               fun_apply_static(static_args, static_arrows, false),
-               dynamic(fun_apply_static(dynamic_args, dynamic_arrows, maybe_empty?))
-             )}
-        end
+          {:ok,
+           union(
+             fun_apply_static(static_args, static_arrows, false),
+             dynamic(fun_apply_static(dynamic_args, dynamic_arrows, maybe_empty?))
+           )}
       end
     end
   end
@@ -1137,7 +1163,7 @@ defmodule Module.Types.Descr do
               # Calculate domain from all positive functions
               path_domain =
                 Enum.reduce(pos_funs, none(), fn {args, _}, acc ->
-                  union(acc, domain_descr(args))
+                  union(acc, args_to_domain(args))
                 end)
 
               {intersection(domain, path_domain), [pos_funs | arrows], bad_arities}
@@ -1161,7 +1187,7 @@ defmodule Module.Types.Descr do
   end
 
   defp fun_apply_static(arguments, arrows, maybe_empty?) do
-    type_args = domain_descr(arguments)
+    type_args = args_to_domain(arguments)
 
     # Optimization: short-circuits when inner loop is none() or outer loop is term()
     if maybe_empty? and empty?(type_args) do
@@ -1202,7 +1228,7 @@ defmodule Module.Types.Descr do
 
   defp aux_apply(result, input, returns_reached, [{dom, ret} | arrow_intersections]) do
     # Calculate the part of the input not covered by this arrow's domain
-    dom_subtract = difference(input, domain_descr(dom))
+    dom_subtract = difference(input, args_to_domain(dom))
 
     # Refine the return type by intersecting with this arrow's return type
     ret_refine = intersection(returns_reached, ret)
@@ -1298,7 +1324,7 @@ defmodule Module.Types.Descr do
           # function's domain is a supertype of the positive domain and if the phi function
           # determines emptiness.
           length(neg_arguments) == positive_arity and
-            subtype?(domain_descr(neg_arguments), positive_domain) and
+            subtype?(args_to_domain(neg_arguments), positive_domain) and
             phi_starter(neg_arguments, negation(neg_return), positives)
         end)
     end
@@ -1311,10 +1337,10 @@ defmodule Module.Types.Descr do
     positives
     |> Enum.reduce_while({:empty, none()}, fn
       {args, _}, {:empty, _} ->
-        {:cont, {length(args), domain_descr(args)}}
+        {:cont, {length(args), args_to_domain(args)}}
 
       {args, _}, {arity, dom} when length(args) == arity ->
-        {:cont, {arity, union(dom, domain_descr(args))}}
+        {:cont, {arity, union(dom, args_to_domain(args))}}
 
       {_args, _}, {_arity, _} ->
         {:halt, {:empty, none()}}
@@ -3091,6 +3117,9 @@ defmodule Module.Types.Descr do
     end)
   end
 
+  @doc """
+  Returns all of the values that are part of a tuple.
+  """
   def tuple_values(descr) do
     case :maps.take(:dynamic, descr) do
       :error ->
@@ -3181,46 +3210,6 @@ defmodule Module.Types.Descr do
       end
     )
   end
-
-  @doc """
-  Converts a tuple type to a simple union by eliminating negations.
-
-  Takes a tuple type with complex negations and simplifies it to a union of
-  positive tuple literals only.
-
-  For static tuple types: eliminates all negations from the DNF representation.
-  For gradual tuple types: processes both dynamic and static components separately,
-  then combines them.
-
-  Uses `tuple_reduce/4` with concatenation as the join function and a transform
-  that is simply the identity.
-
-  Returns the descriptor unchanged for non-tuple types, or a descriptor with
-  simplified tuple DNF containing only positive literals. If simplification
-  results in an empty tuple list, removes the `:tuple` key entirely.
-  """
-  def tuple_elim_negations(descr) do
-    case :maps.take(:dynamic, descr) do
-      :error ->
-        tuple_elim_negations_static(descr)
-
-      {dynamic, static} ->
-        tuple_elim_negations_static(static)
-        |> union(dynamic(tuple_elim_negations_static(dynamic)))
-    end
-  end
-
-  # Call tuple_reduce to build the simple union of tuples that come from each map literal.
-  # Thus, initial is `[]`, join is concatenation, and the transform of a map literal
-  # with no negations is just to keep the map literal as is.
-  defp tuple_elim_negations_static(%{tuple: dnf} = descr) do
-    case tuple_reduce(dnf, [], &Kernel.++/2, fn tag, elements -> [{tag, elements, []}] end) do
-      [] -> Map.delete(descr, :tuple)
-      new_dnf -> %{descr | tuple: new_dnf}
-    end
-  end
-
-  defp tuple_elim_negations_static(descr), do: descr
 
   defp tuple_pop_index(tag, elements, index) do
     case List.pop_at(elements, index) do

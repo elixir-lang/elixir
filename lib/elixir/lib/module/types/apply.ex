@@ -820,17 +820,27 @@ defmodule Module.Types.Apply do
 
   def format_diagnostic({{:badapply, reason}, args_types, fun_type, expr, context}) do
     traces =
-      if reason == :badarg do
-        collect_traces(expr, context)
-      else
-        # In case there the type itself is invalid,
-        # we limit the trace.
-        collect_traces(elem(expr, 0), context)
+      case reason do
+        # Include arguments in traces in case of badarg
+        {:badarg, _} -> collect_traces(expr, context)
+        # Otherwise just the fun
+        _ -> collect_traces(elem(expr, 0), context)
       end
 
     message =
       case reason do
         # TODO: Return the domain here
+        {:badarg, _} ->
+          """
+          expected a #{length(args_types)}-arity function on call:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          but got type:
+
+              #{to_quoted_string(fun_type) |> indent(4)}
+          """
+
         :badarg ->
           """
           expected a #{length(args_types)}-arity function on call:
