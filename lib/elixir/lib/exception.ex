@@ -82,6 +82,11 @@ defmodule Exception do
 
   @doc """
   Gets the message for an `exception`.
+
+  This function will invoke the `c:message/1` callback on the exception
+  module to retrieve the message. If the callback raises an exception or
+  returns a non-binary value, this function will rescue the error and
+  return a descriptive error message instead.
   """
   @spec message(t) :: String.t()
   def message(%module{__exception__: true} = exception) do
@@ -153,7 +158,7 @@ defmodule Exception do
   end
 
   @doc """
-  Normalizes and formats throw/errors/exits and stacktraces.
+  Normalizes and formats throws/errors/exits and stacktraces.
 
   It relies on `format_banner/3` and `format_stacktrace/1`
   to generate the final format.
@@ -193,14 +198,18 @@ defmodule Exception do
   end
 
   @doc """
-  Attaches information to exceptions for extra debugging.
+  Attaches information to throws/errors/exits for extra debugging.
 
   This operation is potentially expensive, as it reads data
   from the file system, parses beam files, evaluates code and
   so on.
 
-  If the exception module implements the optional `c:blame/2`
-  callback, it will be invoked to perform the computation.
+  If `kind` argument is `:error` and the `error` is an Erlang exception, this function will
+  normalize it. If the `error` argument is an Elixir exception, this function will invoke
+  the optional `c:blame/2` callback on the exception module if it is implemented.
+  Unlike `message/1`, this function will not rescue errors - if the callback raises an exception,
+  the error will propagate to the caller. It is your choice if you want to rescue and return
+  the original exception, return a different exception, or let it cascade.
   """
   @doc since: "1.5.0"
   @spec blame(:error, any, stacktrace) :: {t, stacktrace}
