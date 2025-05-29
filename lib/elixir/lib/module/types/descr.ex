@@ -527,28 +527,34 @@ defmodule Module.Types.Descr do
       {:term, [], []}
     else
       # Dynamic always come first for visibility
-      {dynamic, descr} =
+      {dynamic, static} =
         case :maps.take(:dynamic, descr) do
-          :error -> {[], descr}
-          {:term, descr} -> {to_quoted(:dynamic, :term, opts), descr}
-          {dynamic, descr} -> {to_quoted(:dynamic, difference(dynamic, descr), opts), descr}
+          :error -> {%{}, descr}
+          {:term, static} -> {:term, static}
+          {dynamic, static} -> {difference(dynamic, static), static}
         end
 
+      {static, dynamic, extra} = fun_denormalize(static, dynamic, opts)
+
       # Merge empty list and list together if they both exist
-      {extra, descr} =
-        case descr do
+      {extra, static} =
+        case static do
           %{list: list, bitmap: bitmap} when (bitmap &&& @bit_empty_list) != 0 ->
-            descr = descr |> Map.delete(:list) |> Map.replace!(:bitmap, bitmap - @bit_empty_list)
-            {list_to_quoted(list, true, opts), descr}
+            static =
+              static
+              |> Map.delete(:list)
+              |> Map.replace!(:bitmap, bitmap - @bit_empty_list)
+
+            {list_to_quoted(list, true, opts) ++ extra, static}
 
           %{} ->
-            {[], descr}
+            {extra, static}
         end
 
       unions =
-        dynamic ++
+        to_quoted(:dynamic, dynamic, opts) ++
           Enum.sort(
-            extra ++ Enum.flat_map(descr, fn {key, value} -> to_quoted(key, value, opts) end)
+            extra ++ Enum.flat_map(static, fn {key, value} -> to_quoted(key, value, opts) end)
           )
 
       case unions do
@@ -564,7 +570,7 @@ defmodule Module.Types.Descr do
   defp to_quoted(:map, dnf, opts), do: map_to_quoted(dnf, opts)
   defp to_quoted(:list, dnf, opts), do: list_to_quoted(dnf, false, opts)
   defp to_quoted(:tuple, dnf, opts), do: tuple_to_quoted(dnf, opts)
-  defp to_quoted(:fun, dnf, opts), do: fun_to_quoted(dnf, opts)
+  defp to_quoted(:fun, bdd, opts), do: fun_to_quoted(bdd, opts)
 
   @doc """
   Converts a descr to its quoted string representation.
@@ -1488,21 +1494,139 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # Converts a function BDD (Binary Decision Diagram) to its quoted representation.
-  defp fun_to_quoted(bdd, opts) do
-    arrows = fun_get(bdd)
+  # Converts the static and dynamic parts of descr to its quoted
+  # representation. The goal here is to the opposite of fun_descr
+  # and put static and dynamic parts back together to improve
+  # pretty printing.
+  defp fun_denormalize(%{fun: static_bdd} = static, %{fun: dynamic_bdd} = dynamic, opts) do
+    static_pos = fun_get_pos(static_bdd)
+    dynamic_pos = fun_get_pos(dynamic_bdd)
 
-    for {positives, negatives} <- arrows, not fun_empty?(positives, negatives) do
-      fun_intersection_to_quoted(positives, opts)
+    if static_pos != [] and dynamic_pos != [] do
+      {dynamic_pos, static_pos} = fun_denormalize_pos(dynamic_pos, static_pos)
+
+      quoted =
+        if dynamic_pos == [] do
+          fun_pos_to_quoted(static_pos, opts)
+        else
+          {:or, [],
+           [
+             {:dynamic, [], [fun_pos_to_quoted(dynamic_pos, opts)]},
+             fun_pos_to_quoted(static_pos, opts)
+           ]}
+        end
+
+      {Map.delete(static, :fun), Map.delete(dynamic, :fun), [quoted]}
+    else
+      {static, dynamic, []}
     end
-    |> case do
+  end
+
+  defp fun_denormalize(static, dynamic, _opts) do
+    {static, dynamic, []}
+  end
+
+  defp fun_denormalize_pos(dynamic_unions, static_unions) do
+    Enum.reduce(dynamic_unions, {[], static_unions}, fn
+      # Handle fun() types accordingly
+      [], {dynamic_unions, static_unions} ->
+        {[[] | dynamic_unions], static_unions}
+
+      dynamic_intersections, {dynamic_unions, static_unions} ->
+        {dynamic_intersections, static_unions} =
+          Enum.reduce(dynamic_intersections, {[], static_unions}, fn
+            {args, return}, {acc, static_unions} ->
+              case fun_denormalize_arrow(args, return, static_unions) do
+                {:ok, static_unions} -> {acc, static_unions}
+                :error -> {[{args, return} | acc], static_unions}
+              end
+          end)
+
+        if dynamic_intersections == [] do
+          {dynamic_unions, static_unions}
+        else
+          {[dynamic_intersections | dynamic_unions], static_unions}
+        end
+    end)
+  end
+
+  defp fun_denormalize_arrow(dynamic_args, dynamic_return, static_unions) do
+    pivot(static_unions, [], fn static_intersections ->
+      pivot(static_intersections, [], fn {static_args, static_return} ->
+        if subtype?(static_return, dynamic_return) and args_subtype?(dynamic_args, static_args) do
+          args =
+            Enum.zip_with(static_args, dynamic_args, fn static_arg, dynamic_arg ->
+              union(dynamic(difference(static_arg, dynamic_arg)), dynamic_arg)
+            end)
+
+          return = union(dynamic(difference(dynamic_return, static_return)), static_return)
+          {:ok, {args, return}}
+        else
+          :error
+        end
+      end)
+    end)
+  end
+
+  defp arrow_subtype?(left_args, left_return, right_args, right_return) do
+    subtype?(right_return, left_return) and args_subtype?(left_args, right_args)
+  end
+
+  defp args_subtype?(left_args, right_args) do
+    Enum.zip_reduce(left_args, right_args, true, fn left, right, acc ->
+      acc and subtype?(left, right)
+    end)
+  end
+
+  defp pivot([head | tail], acc, fun) do
+    case fun.(head) do
+      {:ok, value} -> {:ok, acc ++ [value | tail]}
+      :error -> pivot(tail, [head | acc], fun)
+    end
+  end
+
+  defp pivot([], _acc, _fun), do: :error
+
+  # Converts a function BDD (Binary Decision Diagram) to its quoted representation
+  defp fun_to_quoted(bdd, opts) do
+    case fun_get_pos(bdd) do
       [] -> []
-      multiple -> [Enum.reduce(multiple, &{:or, [], [&2, &1]})]
+      pos -> [fun_pos_to_quoted(pos, opts)]
     end
+  end
+
+  defp fun_get_pos(bdd) do
+    for {pos, negs} <- fun_get(bdd), not fun_empty?(pos, negs) do
+      fun_filter_subset(pos, [])
+    end
+  end
+
+  defp fun_filter_subset([], acc), do: acc
+
+  defp fun_filter_subset([{args, return} | tail], acc) do
+    # If another arrow is a subset of the current one, we skip it
+    if Enum.any?(tail, fn {other_args, other_return} ->
+         arrow_subtype?(other_args, other_return, args, return)
+       end) or
+         Enum.any?(acc, fn {other_args, other_return} ->
+           arrow_subtype?(other_args, other_return, args, return)
+         end) do
+      fun_filter_subset(tail, acc)
+    else
+      fun_filter_subset(tail, [{args, return} | acc])
+    end
+  end
+
+  defp fun_pos_to_quoted([_ | _] = pos, opts) do
+    pos
+    |> Enum.sort()
+    |> Enum.map(&fun_intersection_to_quoted(&1, opts))
+    |> Enum.reduce(&{:or, [], [&2, &1]})
   end
 
   defp fun_intersection_to_quoted(intersection, opts) do
     intersection
+    |> Enum.sort()
     |> Enum.map(fn {args, ret} ->
       {:__block__, [],
        [[{:->, [], [Enum.map(args, &to_quoted(&1, opts)), to_quoted(ret, opts)]}]]}
@@ -1904,6 +2028,9 @@ defmodule Module.Types.Descr do
 
   defp dynamic_to_quoted(descr, opts) do
     cond do
+      descr == %{} ->
+        []
+
       term_type?(descr) ->
         [{:dynamic, [], []}]
 
