@@ -122,6 +122,22 @@ defmodule Module.Types.Helpers do
         If you are trying to access an exception's :message key, either specify the \
         exception names or use `Exception.message/1`.
         """
+
+      :empty_union_domain ->
+        """
+
+        #{hint()} the function has an empty domain and therefore cannot be applied to \
+        any argument. This may happen when you have a union of functions, which means \
+        the only valid argument to said function are types that satisfy all sides of \
+        the union (which may be none)
+        """
+
+      :empty_domain ->
+        """
+
+        #{hint()} the function has an empty domain and therefore cannot be applied to \
+        any argument
+        """
     end)
   end
 
