@@ -180,6 +180,12 @@ defmodule IO.ANSI do
   @doc "Image: positive. Normal foreground and background."
   defsequence.(:reverse_off, 27, "m")
 
+  @doc "Reveal: Not concealed."
+  defsequence.(:reveal, 28, "m")
+
+  @doc "Not crossed-out."
+  defsequence.(:not_crossed_out, 29, "m")
+
   colors = [:black, :red, :green, :yellow, :blue, :magenta, :cyan, :white]
 
   for {color, code} <- Enum.with_index(colors) do
