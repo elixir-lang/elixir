@@ -1803,24 +1803,48 @@ defmodule Module.Types.DescrTest do
       assert fun() |> to_quoted_string() == "fun()"
       assert none_fun(1) |> to_quoted_string() == "(none() -> term())"
 
-      assert fun([dynamic(integer())], float()) |> to_quoted_string() ==
-               "dynamic((none() -> float())) or (integer() -> float())"
-
-      assert fun([integer(), float()], dynamic()) |> to_quoted_string() ==
-               "dynamic((integer(), float() -> term())) or (integer(), float() -> none())"
-
       assert fun([integer(), float()], boolean()) |> to_quoted_string() ==
                "(integer(), float() -> boolean())"
 
       assert fun([integer()], boolean())
              |> union(fun([float()], boolean()))
              |> to_quoted_string() ==
-               "(float() -> boolean()) or (integer() -> boolean())"
+               "(integer() -> boolean()) or (float() -> boolean())"
 
       assert fun([integer()], boolean())
              |> intersection(fun([float()], boolean()))
              |> to_quoted_string() ==
                "(integer() -> boolean()) and (float() -> boolean())"
+    end
+
+    test "function with dynamic signatures" do
+      assert fun([dynamic(atom())], float()) |> to_quoted_string() ==
+               "(dynamic(atom()) -> float())"
+
+      assert fun([integer(), float()], dynamic(atom())) |> to_quoted_string() ==
+               "(integer(), float() -> dynamic(atom()))"
+
+      domain_part = fun([dynamic(atom()) |> union(integer()), binary()], float())
+
+      assert domain_part |> to_quoted_string() ==
+               "(dynamic(atom()) or integer(), binary() -> float())"
+
+      codomain_part = fun([pid(), float()], dynamic(atom()) |> union(integer()))
+
+      assert codomain_part |> to_quoted_string() ==
+               "(pid(), float() -> dynamic(atom()) or integer())"
+
+      assert union(domain_part, codomain_part) |> to_quoted_string() ==
+               """
+               (dynamic(atom()) or integer(), binary() -> float()) or
+                 (pid(), float() -> dynamic(atom()) or integer())\
+               """
+
+      assert intersection(domain_part, codomain_part) |> to_quoted_string() ==
+               """
+               (dynamic(atom()) or integer(), binary() -> float()) and
+                 (pid(), float() -> dynamic(atom()) or integer())\
+               """
     end
 
     test "map" do
