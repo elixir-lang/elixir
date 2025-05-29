@@ -903,7 +903,7 @@ defmodule Mix do
       {deps, config, system_env, consolidate_protocols?}
       |> :erlang.term_to_binary()
       |> :erlang.md5()
-      |> Base.encode16(case: :lower)
+      |> Base.url_encode64(case: :lower, padding: false)
 
     force? = System.get_env("MIX_INSTALL_FORCE") in ["1", "true"] or Keyword.fetch!(opts, :force)
 
@@ -1079,7 +1079,7 @@ defmodule Mix do
       System.get_env("MIX_INSTALL_DIR") ||
         Path.join(Mix.Utils.mix_cache(), "installs")
 
-    version = "elixir-#{System.version()}-erts-#{:erlang.system_info(:version)}"
+    version = "ex-#{System.version()}-erl-#{:erlang.system_info(:version)}"
     Path.join([install_root, version, cache_id])
   end
 
