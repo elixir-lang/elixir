@@ -832,18 +832,10 @@ defmodule Module.Types.Apply do
   ## Diagnostics
 
   def format_diagnostic({{:badapply, reason}, args_types, fun_type, expr, context}) do
-    traces =
-      case reason do
-        # Include arguments in traces in case of badarg
-        {:badarg, _} -> collect_traces(expr, context)
-        # Otherwise just the fun
-        _ -> collect_traces(elem(expr, 0), context)
-      end
-
-    message =
+    {message, to_trace, hints} =
       case reason do
         {:badarg, domain} ->
-          """
+          message = """
           incompatible types given on function application:
 
               #{expr_to_string(expr) |> indent(4)}
@@ -857,16 +849,15 @@ defmodule Module.Types.Apply do
               #{to_quoted_string(fun_type) |> indent(4)}
           """
 
-        :badarg ->
-          """
-          expected a #{length(args_types)}-arity function on call:
+          hints =
+            cond do
+              not empty?(args_to_domain(domain)) -> []
+              match?({:or, _, _}, to_quoted(fun_type)) -> [:empty_union_domain]
+              true -> [:empty_domain]
+            end
 
-              #{expr_to_string(expr) |> indent(4)}
-
-          but got type:
-
-              #{to_quoted_string(fun_type) |> indent(4)}
-          """
+          # When there is an argument error, we trace the arguments
+          {message, elem(expr, 2), hints}
 
         {:badarity, arities} ->
           info =
@@ -875,7 +866,7 @@ defmodule Module.Types.Apply do
               _ -> "function with arities #{Enum.join(arities, ",")}"
             end
 
-          """
+          message = """
           expected a #{length(args_types)}-arity function on call:
 
               #{expr_to_string(expr) |> indent(4)}
@@ -885,8 +876,10 @@ defmodule Module.Types.Apply do
               #{to_quoted_string(fun_type) |> indent(4)}
           """
 
+          {message, elem(expr, 0), []}
+
         :badfun ->
-          """
+          message = """
           expected a #{length(args_types)}-arity function on call:
 
               #{expr_to_string(expr) |> indent(4)}
@@ -895,11 +888,15 @@ defmodule Module.Types.Apply do
 
               #{to_quoted_string(fun_type) |> indent(4)}
           """
+
+          {message, elem(expr, 0), []}
       end
+
+    traces = collect_traces(to_trace, context)
 
     %{
       details: %{typing_traces: traces},
-      message: IO.iodata_to_binary([message, format_traces(traces)])
+      message: IO.iodata_to_binary([message, format_traces(traces), format_hints(hints)])
     }
   end
 

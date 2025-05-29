@@ -184,6 +184,36 @@ defmodule Module.Types.ExprTest do
 
                  (binary() -> integer())
              """
+
+      assert typeerror!(
+               [x],
+               (if x do
+                  &String.to_integer/1
+                else
+                  &List.to_integer/1
+                end).(:foo)
+             )
+             |> strip_ansi() == ~l"""
+             incompatible types given on function application:
+
+                 (if x do
+                    &String.to_integer/1
+                  else
+                    &List.to_integer/1
+                  end).(:foo)
+
+             given types:
+
+                 :foo
+
+             but function has type:
+
+                 (binary() -> integer()) or (non_empty_list(integer()) -> integer())
+
+             hint: the function has an empty domain and therefore cannot be applied to any argument. \
+             This may happen when you have a union of functions, which means the only valid argument \
+             to said function are types that satisfy all sides of the union (which may be none)
+             """
     end
   end
 
