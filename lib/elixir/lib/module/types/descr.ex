@@ -1618,6 +1618,8 @@ defmodule Module.Types.Descr do
   end
 
   defp fun_pos_to_quoted([_ | _] = pos, opts) do
+    opts = Keyword.put(opts, :skip_dynamic_for_indivisible, false)
+
     pos
     |> Enum.sort()
     |> Enum.map(&fun_intersection_to_quoted(&1, opts))
@@ -2034,7 +2036,7 @@ defmodule Module.Types.Descr do
       term_type?(descr) ->
         [{:dynamic, [], []}]
 
-      single = indivisible_bitmap(descr) ->
+      single = indivisible_bitmap(descr, opts) ->
         [single]
 
       true ->
@@ -2045,8 +2047,9 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp indivisible_bitmap(descr) do
-    with %{bitmap: bitmap} when map_size(descr) == 1 <- descr,
+  defp indivisible_bitmap(descr, opts) do
+    with true <- Keyword.get(opts, :skip_dynamic_for_indivisible, true),
+         %{bitmap: bitmap} when map_size(descr) == 1 <- descr,
          [single] <- bitmap_to_quoted(bitmap) do
       single
     else
