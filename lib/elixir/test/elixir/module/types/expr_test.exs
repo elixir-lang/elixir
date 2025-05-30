@@ -25,8 +25,6 @@ defmodule Module.Types.ExprTest do
     assert typecheck!("foo") == binary()
     assert typecheck!([]) == empty_list()
     assert typecheck!(%{}) == closed_map([])
-    assert typecheck!(& &1) == dynamic(fun(1))
-    assert typecheck!(fn -> :ok end) == dynamic(fun(0))
   end
 
   test "generated" do
@@ -129,7 +127,7 @@ defmodule Module.Types.ExprTest do
   end
 
   describe "funs" do
-    test "infers funs" do
+    test "infers calls" do
       assert typecheck!(
                [x],
                (
@@ -137,6 +135,27 @@ defmodule Module.Types.ExprTest do
                  x
                )
              ) == dynamic(fun(2))
+    end
+
+    test "infers functions" do
+      assert typecheck!(& &1) == fun([dynamic()], dynamic())
+      assert typecheck!(fn -> :ok end) == fun([], atom([:ok]))
+
+      assert typecheck!(fn
+               <<"ok">>, {} -> :ok
+               <<"error">>, {} -> :error
+               [_ | _], %{} -> :list
+             end) ==
+               intersection(
+                 fun(
+                   [dynamic(non_empty_list(term(), term())), dynamic(open_map())],
+                   atom([:list])
+                 ),
+                 fun(
+                   [dynamic(binary()), dynamic(tuple([]))],
+                   atom([:ok, :error])
+                 )
+               )
     end
 
     test "bad function" do

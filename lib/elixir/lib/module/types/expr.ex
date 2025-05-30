@@ -319,7 +319,7 @@ defmodule Module.Types.Expr do
     else
       clauses
     end
-    |> of_clauses([case_type], expected, expr, info, stack, {none(), context})
+    |> of_clauses([case_type], expected, expr, info, stack, context, none())
     |> dynamic_unless_static(stack)
   end
 
@@ -328,8 +328,20 @@ defmodule Module.Types.Expr do
     [{:->, _, [head, _]} | _] = clauses
     {patterns, _guards} = extract_head(head)
     domain = Enum.map(patterns, fn _ -> dynamic() end)
-    {_acc, context} = of_clauses(clauses, domain, @pending, nil, :fn, stack, {none(), context})
-    {dynamic(fun(length(patterns))), context}
+
+    if stack.mode == :traversal do
+      {_acc, context} = of_clauses(clauses, domain, @pending, nil, :fn, stack, context, none())
+      {dynamic(fun(length(patterns))), context}
+    else
+      {acc, context} =
+        of_clauses_fun(clauses, domain, @pending, nil, :fn, stack, context, [], fn
+          trees, body, context, acc ->
+            args = Pattern.of_domain(trees, domain, context)
+            add_inferred(acc, args, body)
+        end)
+
+      {fun_from_overlapping_clauses(acc), context}
+    end
   end
 
   def of_expr({:try, _meta, [[do: body] ++ blocks]}, expected, expr, stack, original) do
@@ -340,7 +352,7 @@ defmodule Module.Types.Expr do
       if else_block do
         {type, context} = of_expr(body, @pending, body, stack, original)
         info = {:try_else, type}
-        of_clauses(else_block, [type], expected, expr, info, stack, {none(), context})
+        of_clauses(else_block, [type], expected, expr, info, stack, context, none())
       else
         of_expr(body, expected, expr, stack, original)
       end
@@ -364,15 +376,8 @@ defmodule Module.Types.Expr do
           end)
 
         {:catch, clauses}, {acc, context} ->
-          of_clauses(
-            clauses,
-            [@try_catch, dynamic()],
-            expected,
-            expr,
-            :try_catch,
-            stack,
-            {acc, context}
-          )
+          args = [@try_catch, dynamic()]
+          of_clauses(clauses, args, expected, expr, :try_catch, stack, context, acc)
       end)
       |> dynamic_unless_static(stack)
 
@@ -392,8 +397,8 @@ defmodule Module.Types.Expr do
       {:do, {:__block__, _, []}}, acc_context ->
         acc_context
 
-      {:do, clauses}, acc_context ->
-        of_clauses(clauses, [dynamic()], expected, expr, :receive, stack, acc_context)
+      {:do, clauses}, {acc, context} ->
+        of_clauses(clauses, [dynamic()], expected, expr, :receive, stack, context, acc)
 
       {:after, [{:->, meta, [[timeout], body]}] = after_expr}, {acc, context} ->
         {timeout_type, context} = of_expr(timeout, @timeout_type, after_expr, stack, context)
@@ -420,7 +425,7 @@ defmodule Module.Types.Expr do
       {reduce_type, context} = of_expr(reduce, expected, expr, stack, context)
       # TODO: We need to type check against dynamic() instead of using reduce_type
       # because this is recursive. We need to infer the block type first.
-      of_clauses(block, [dynamic()], expected, expr, :for_reduce, stack, {reduce_type, context})
+      of_clauses(block, [dynamic()], expected, expr, :for_reduce, stack, context, reduce_type)
     else
       # TODO: Use the collectable protocol for the output
       into = Keyword.get(opts, :into, [])
@@ -665,7 +670,7 @@ defmodule Module.Types.Expr do
 
   defp with_option({:else, clauses}, stack, context, _original) do
     {_, context} =
-      of_clauses(clauses, [dynamic()], @pending, nil, :with_else, stack, {none(), context})
+      of_clauses(clauses, [dynamic()], @pending, nil, :with_else, stack, context, none())
 
     context
   end
@@ -723,22 +728,27 @@ defmodule Module.Types.Expr do
   defp dynamic_unless_static({_, _} = output, %{mode: :static}), do: output
   defp dynamic_unless_static({type, context}, %{mode: _}), do: {dynamic(type), context}
 
-  defp of_clauses(clauses, domain, expected, expr, info, %{mode: mode} = stack, {acc, original}) do
+  defp of_clauses(clauses, domain, expected, expr, info, %{mode: mode} = stack, context, acc) do
+    fun =
+      if mode == :traversal do
+        fn _, _, _, _ -> dynamic() end
+      else
+        fn _trees, result, _context, acc -> union(result, acc) end
+      end
+
+    of_clauses_fun(clauses, domain, expected, expr, info, stack, context, acc, fun)
+  end
+
+  defp of_clauses_fun(clauses, domain, expected, expr, info, stack, original, acc, fun) do
     %{failed: failed?} = original
 
     Enum.reduce(clauses, {acc, original}, fn {:->, meta, [head, body]}, {acc, context} ->
       {failed?, context} = reset_failed(context, failed?)
       {patterns, guards} = extract_head(head)
-      {_trees, context} = Pattern.of_head(patterns, guards, domain, info, meta, stack, context)
+      {trees, context} = Pattern.of_head(patterns, guards, domain, info, meta, stack, context)
 
-      {body, context} = of_expr(body, expected, expr || body, stack, context)
-      context = context |> set_failed(failed?) |> reset_vars(original)
-
-      if mode == :traversal do
-        {dynamic(), context}
-      else
-        {union(acc, body), context}
-      end
+      {result, context} = of_expr(body, expected, expr || body, stack, context)
+      {fun.(trees, result, context, acc), context |> set_failed(failed?) |> reset_vars(original)}
     end)
   end
 
@@ -769,6 +779,15 @@ defmodule Module.Types.Expr do
 
   defp repack_match(left_expr, right_expr),
     do: {left_expr, right_expr}
+
+  defp add_inferred([{args, existing_return} | tail], args, return),
+    do: [{args, union(existing_return, return)} | tail]
+
+  defp add_inferred([head | tail], args, return),
+    do: [head | add_inferred(tail, args, return)]
+
+  defp add_inferred([], args, return),
+    do: [{args, return}]
 
   ## Warning formatting
 
