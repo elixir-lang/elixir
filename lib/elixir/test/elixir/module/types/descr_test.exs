@@ -1818,6 +1818,9 @@ defmodule Module.Types.DescrTest do
     end
 
     test "function with dynamic signatures" do
+      assert fun([dynamic(integer())], float()) |> to_quoted_string() ==
+               "(dynamic(integer()) -> float())"
+
       assert fun([dynamic(atom())], float()) |> to_quoted_string() ==
                "(dynamic(atom()) -> float())"
 
