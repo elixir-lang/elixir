@@ -4366,9 +4366,16 @@ defmodule Kernel do
   Returns `true` if `module` is loaded and contains a
   public `function` with the given `arity`, otherwise `false`.
 
-  Note that this function does not load the module in case
-  it is not loaded. Check `Code.ensure_loaded/1` for more
-  information.
+  > Unloaded modules {: .warning } 
+  >
+  > This function does *not* load the module in case
+  > it is not loaded.  In particular, `mix test` does not load modules
+  > by default, so testing this function may cause irreproducible
+  > results depending on if the target module was compiled due to
+  > code changes.
+  >
+  > See `Code.ensure_loaded/1` for more
+  > information.
 
   Inlined by the compiler.
 
