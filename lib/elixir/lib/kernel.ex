@@ -4370,6 +4370,8 @@ defmodule Kernel do
   >
   > This function does *not* load the module in case it is not loaded
   > and Elixir lazily loads modules by default (except on releases).
+  > This may yield unexpected results in testing when module
+  > usage order is random.
   >
   > See `Code.ensure_loaded/1` for more information.
 
