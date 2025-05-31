@@ -903,7 +903,7 @@ defmodule Mix do
       {deps, config, system_env, consolidate_protocols?}
       |> :erlang.term_to_binary()
       |> :erlang.md5()
-      |> Base.url_encode64(case: :lower, padding: false)
+      |> Base.url_encode64(padding: false)
 
     force? = System.get_env("MIX_INSTALL_FORCE") in ["1", "true"] or Keyword.fetch!(opts, :force)
 
