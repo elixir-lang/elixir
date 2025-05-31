@@ -4515,9 +4515,14 @@ defmodule Kernel do
   Returns `true` if `module` is loaded and contains a
   public `function` with the given `arity`, otherwise `false`.
 
-  Note that this function does not load the module in case
-  it is not loaded. Check `Code.ensure_loaded/1` for more
-  information.
+  > ### Unloaded modules {: .warning } 
+  >
+  > This function does *not* load the module in case it is not loaded
+  > and Elixir lazily loads modules by default (except on releases).
+  > This may yield unexpected results in testing when module
+  > usage order is random.
+  >
+  > See `Code.ensure_loaded/1` for more information.
 
   Inlined by the compiler.
 
