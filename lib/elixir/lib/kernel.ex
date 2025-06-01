@@ -4515,12 +4515,18 @@ defmodule Kernel do
   Returns `true` if `module` is loaded and contains a
   public `function` with the given `arity`, otherwise `false`.
 
-  > ### Unloaded modules {: .warning } 
+  > ### Unloaded modules {: .warning}
   >
   > This function does *not* load the module in case it is not loaded
   > and Elixir lazily loads modules by default (except on releases).
-  > This may yield unexpected results in testing when module
-  > usage order is random.
+  >
+  > This may lead to unexpected behaviour as the result of this function
+  > may depend if another code has happened to load the given module
+  > as argument beforehand. For example, this could manifest in `mix test`
+  > by having tests that fail when running in isolation or depending on the
+  > test seed. For those reasons, it is recommended to always check for
+  > `Code.ensure_loaded?/1` before `function_exported?/3`, unless you are
+  > certain the module has been loaded before.
   >
   > See `Code.ensure_loaded/1` for more information.
 
@@ -4528,13 +4534,13 @@ defmodule Kernel do
 
   ## Examples
 
-      iex> function_exported?(Enum, :map, 2)
+      iex> Code.ensure_loaded?(Enum) and function_exported?(Enum, :map, 2)
       true
 
-      iex> function_exported?(Enum, :map, 10)
+      iex> Code.ensure_loaded?(Enum) and function_exported?(Enum, :map, 10)
       false
 
-      iex> function_exported?(List, :to_string, 1)
+      iex> Code.ensure_loaded?(List) and function_exported?(List, :to_string, 1)
       true
   """
   @spec function_exported?(module, atom, arity) :: boolean
@@ -4547,18 +4553,18 @@ defmodule Kernel do
   public `macro` with the given `arity`, otherwise `false`.
 
   Note that this function does not load the module in case
-  it is not loaded. Check `Code.ensure_loaded/1` for more
-  information.
+  it is not loaded. See the notes under `function_exported?/3`
+  for more information.
 
   If `module` is an Erlang module (as opposed to an Elixir module), this
   function always returns `false`.
 
   ## Examples
 
-      iex> macro_exported?(Kernel, :use, 2)
+      iex> Code.ensure_loaded?(Kernel) and macro_exported?(Kernel, :use, 2)
       true
 
-      iex> macro_exported?(:erlang, :abs, 1)
+      iex> Code.ensure_loaded?(:erlang) and macro_exported?(:erlang, :abs, 1)
       false
 
   """
