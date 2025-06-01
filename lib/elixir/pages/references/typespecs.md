@@ -388,6 +388,11 @@ Note you don't need to define a behaviour in order to dynamically dispatch on a 
 
 Optional callbacks are callbacks that callback modules may implement if they want to, but are not required to. Usually, behaviour modules know if they should call those callbacks based on configuration, or they check if the callbacks are defined with `function_exported?/3` or `macro_exported?/3`.
 
+> Testing Optional Callbacks {: .warning }
+>
+> `mix test` may exhibit unexpected behaviour when testing a conditional call to an optional callback gated
+> on `function_exported?/3`, see the documentation on this function for details.
+
 Optional callbacks can be defined through the `@optional_callbacks` module attribute, which has to be a keyword list with function or macro name as key and arity as value. For example:
 
     defmodule MyBehaviour do
