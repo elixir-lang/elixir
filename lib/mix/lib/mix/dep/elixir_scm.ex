@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2021 The Elixir Team
 # SPDX-FileCopyrightText: 2012 Plataformatec
 
-# Manifest file where we treat Elixir and SCMs as a dependency.
+# Manifest file where we treat Erlang/OTP, Elixir and SCMs as a dependency.
 defmodule Mix.Dep.ElixirSCM do
   @moduledoc false
   @manifest "compile.elixir_scm"
@@ -12,12 +12,11 @@ defmodule Mix.Dep.ElixirSCM do
     Path.join(manifest_path, @manifest)
   end
 
-  def update(manifest_path \\ Mix.Project.manifest_path()) do
-    config = Mix.Project.config()
+  def update(manifest_path \\ Mix.Project.manifest_path(), scm) do
     File.mkdir_p!(manifest_path)
 
     manifest_data =
-      {@manifest_vsn, {System.version(), :erlang.system_info(:otp_release)}, config[:build_scm]}
+      {@manifest_vsn, {System.version(), :erlang.system_info(:otp_release)}, scm}
       |> :erlang.term_to_binary()
 
     File.write!(manifest(manifest_path), manifest_data)

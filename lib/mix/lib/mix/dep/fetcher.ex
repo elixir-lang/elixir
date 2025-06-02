@@ -127,7 +127,7 @@ defmodule Mix.Dep.Fetcher do
 
     for %Mix.Dep{app: app, scm: scm} <- deps, scm.fetchable?() do
       build_path
-      |> Path.join("*/lib/#{app}/.mix/compile.fetch")
+      |> Path.join("*/lib/#{app}/.mix/compile.elixir_scm")
       |> Path.wildcard(match_dot: true)
       |> Enum.each(&File.rm/1)
     end

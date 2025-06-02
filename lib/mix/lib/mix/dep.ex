@@ -384,8 +384,8 @@ defmodule Mix.Dep do
     end
   end
 
-  def format_status(%Mix.Dep{status: {:elixirlock, _}}) do
-    "the dependency was built with an out-of-date Elixir version, run \"#{mix_env_var()}mix deps.compile\""
+  def format_status(%Mix.Dep{status: {:vsnlock, _}}) do
+    "the dependency was built with an out-of-date Erlang/Elixir version, run \"#{mix_env_var()}mix deps.compile\""
   end
 
   def format_status(%Mix.Dep{status: {:scmlock, _}}) do
@@ -448,7 +448,7 @@ defmodule Mix.Dep do
 
     case Mix.Dep.ElixirSCM.read(Path.join(build_path, ".mix")) do
       {:ok, old_vsn, _} when old_vsn != vsn ->
-        %{dep | status: {:elixirlock, old_vsn}}
+        %{dep | status: {:vsnlock, old_vsn}}
 
       {:ok, _, old_scm} when old_scm != scm ->
         %{dep | status: {:scmlock, old_scm}}
@@ -485,7 +485,7 @@ defmodule Mix.Dep do
   @doc """
   Returns `true` if the dependency is compilable.
   """
-  def compilable?(%Mix.Dep{status: {:elixirlock, _}}), do: true
+  def compilable?(%Mix.Dep{status: {:vsnlock, _}}), do: true
   def compilable?(%Mix.Dep{status: {:noappfile, {_, _}}}), do: true
   def compilable?(%Mix.Dep{status: {:scmlock, _}}), do: true
   def compilable?(%Mix.Dep{status: :compile}), do: true

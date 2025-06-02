@@ -191,9 +191,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp touch_fetchable(scm, path) do
     if scm.fetchable?() do
-      path = Path.join(path, ".mix")
-      File.mkdir_p!(path)
-      File.touch!(Path.join(path, "compile.fetch"))
+      Mix.Dep.ElixirSCM.update(Path.join(path, ".mix"), scm)
       true
     else
       false
