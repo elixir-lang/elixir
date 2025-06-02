@@ -336,11 +336,17 @@ defmodule Inspect.ListTest do
   end
 
   test "nested" do
-    assert inspect(Enum.reduce(1..100, [0], &[&2, Integer.to_string(&1)]), limit: 5) ==
-             "[[[[[[...], ...], \"97\"], \"98\"], \"99\"], \"100\"]"
+    assert inspect(Enum.reduce(1..5, [0], &[&2, &1]), limit: 5) ==
+             "[[[[[[...], ...], ...], ...], ...], ...]"
 
-    assert inspect(Enum.reduce(1..100, [0], &[&2 | Integer.to_string(&1)]), limit: 5) ==
-             "[[[[[[...] | \"96\"] | \"97\"] | \"98\"] | \"99\"] | \"100\"]"
+    assert inspect(Enum.reduce(1..5, [0], &[&2, &1]), limit: 10) ==
+             "[[[[[[0], 1], 2], 3], 4], ...]"
+
+    assert inspect(Enum.reduce(1..6, [0], &[&2, &1]), limit: 10) ==
+             "[[[[[[[0], 1], 2], 3], ...], ...], ...]"
+
+    assert inspect(Enum.reduce(1..100, [0], &[&2 | &1]), limit: 5) ==
+             "[[[[[[...] | 96] | 97] | 98] | 99] | 100]"
   end
 
   test "codepoints" do

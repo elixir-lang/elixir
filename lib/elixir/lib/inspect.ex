@@ -99,8 +99,10 @@ defprotocol Inspect do
   You can also define your custom protocol implementation by
   defining the `inspect/2` function. The function receives the
   entity to be inspected followed by the inspecting options,
-  represented by the struct `Inspect.Opts`. Building of the
-  algebra document is done with `Inspect.Algebra`.
+  represented by the struct `Inspect.Opts` and it must return
+  an algebra document alongside the updated options (or, optionally,
+  just the algebra document). Building of the algebra document
+  is done with `Inspect.Algebra`.
 
   Many times, inspecting a structure can be implemented in function
   of existing entities. For example, here is `MapSet`'s `inspect/2`
@@ -110,7 +112,8 @@ defprotocol Inspect do
         import Inspect.Algebra
 
         def inspect(map_set, opts) do
-          concat(["MapSet.new(", Inspect.List.inspect(MapSet.to_list(map_set), opts), ")"])
+          {doc, opts} = Inspect.List.inspect(MapSet.to_list(map_set), opts)
+          {concat(["MapSet.new(", doc, ")"]), opts}
         end
       end
 
@@ -148,6 +151,9 @@ defprotocol Inspect do
 
           Inspect.MapSet.inspect(MapSet.new(), %Inspect.Opts{})
 
+      Note that, from Elixir v1.19, the inspect protocol was augmented to
+      allow a two-element tuple with the document and the updated options
+      to be returned from the protocol.
   """
 
   # Handle structs in Any
@@ -261,7 +267,8 @@ defprotocol Inspect do
   `Inspect.Algebra.to_doc/2` should be preferred as it handles structs
   and exceptions.
   """
-  @spec inspect(t, Inspect.Opts.t()) :: Inspect.Algebra.t()
+  @spec inspect(t, Inspect.Opts.t()) ::
+          Inspect.Algebra.t() | {Inspect.Algebra.t(), Inspect.Opts.t()}
   def inspect(term, opts)
 end
 
@@ -303,11 +310,13 @@ defimpl Inspect, for: BitString do
     color_doc("<<>>", :binary, opts)
   end
 
-  defp inspect_bitstring(bitstring, opts) do
+  defp inspect_bitstring(bitstring, %{limit: limit} = opts) do
     left = color_doc("<<", :binary, opts)
     right = color_doc(">>", :binary, opts)
-    inner = each_bit(bitstring, opts.limit, opts)
-    group(concat(concat(left, nest(inner, 2)), right))
+    inner = each_bit(bitstring, limit, opts)
+    doc = group(concat(concat(left, nest(inner, 2)), right))
+    new_limit = if limit == :infinity, do: limit, else: max(0, limit - byte_size(bitstring))
+    {doc, %{opts | limit: new_limit}}
   end
 
   defp each_bit(_, 0, _) do
@@ -388,17 +397,21 @@ defimpl Inspect, for: List do
         color_doc(IO.iodata_to_binary(inspected), :charlist, opts)
 
       keyword?(term) ->
-        container_doc(open, term, close, opts, &keyword/2, separator: sep, break: :strict)
+        container_doc_with_opts(open, term, close, opts, &keyword/2,
+          separator: sep,
+          break: :strict
+        )
 
       true ->
-        container_doc(open, term, close, opts, &to_doc/2, separator: sep)
+        container_doc_with_opts(open, term, close, opts, &to_doc_with_opts/2, separator: sep)
     end
   end
 
   @doc false
   def keyword({key, value}, opts) do
     key = color_doc(Macro.inspect_atom(:key, key), :atom, opts)
-    concat(key, concat(" ", to_doc(value, opts)))
+    {doc, opts} = to_doc_with_opts(value, opts)
+    {concat(key, concat(" ", doc)), opts}
   end
 
   @doc false
@@ -419,7 +432,15 @@ defimpl Inspect, for: Tuple do
     sep = color_doc(",", :tuple, opts)
     close = color_doc("}", :tuple, opts)
     container_opts = [separator: sep, break: :flex]
-    container_doc(open, Tuple.to_list(tuple), close, opts, &to_doc/2, container_opts)
+
+    container_doc_with_opts(
+      open,
+      Tuple.to_list(tuple),
+      close,
+      opts,
+      &to_doc_with_opts/2,
+      container_opts
+    )
   end
 end
 
@@ -453,14 +474,16 @@ defimpl Inspect, for: Map do
   end
 
   defp to_assoc({key, value}, opts, sep) do
-    concat(concat(to_doc(key, opts), sep), to_doc(value, opts))
+    {key_doc, opts} = to_doc_with_opts(key, opts)
+    {value_doc, opts} = to_doc_with_opts(value, opts)
+    {concat(concat(key_doc, sep), value_doc), opts}
   end
 
   defp map_container_doc(list, name, opts, fun) do
     open = color_doc("%" <> name <> "{", :map, opts)
     sep = color_doc(",", :map, opts)
     close = color_doc("}", :map, opts)
-    container_doc(open, list, close, opts, fun, separator: sep, break: :strict)
+    container_doc_with_opts(open, list, close, opts, fun, separator: sep, break: :strict)
   end
 end
 
@@ -518,9 +541,9 @@ defimpl Inspect, for: Regex do
       :error ->
         concat([
           "Regex.compile!(",
-          Inspect.BitString.inspect(regex.source, opts),
+          to_doc(regex.source, opts),
           ", ",
-          Inspect.List.inspect(regex_opts, opts),
+          to_doc(regex_opts, opts),
           ")"
         ])
 
