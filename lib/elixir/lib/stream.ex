@@ -1800,6 +1800,7 @@ defimpl Inspect, for: Stream do
 
   def inspect(%{enum: enum, funs: funs}, opts) do
     inner = [enum: enum, funs: :lists.reverse(funs)]
-    concat(["#Stream<", to_doc(inner, opts), ">"])
+    {doc, opts} = to_doc_with_opts(inner, opts)
+    {concat(["#Stream<", doc, ">"]), opts}
   end
 end

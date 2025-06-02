@@ -46,9 +46,8 @@ defmodule Inspect.Opts do
     * `:limit` - limits the number of items that are inspected for tuples,
       bitstrings, maps, lists and any other collection of items, with the exception of
       printable strings and printable charlists which use the `:printable_limit` option.
-      If you don't want to limit the number of items to a particular number,
-      use `:infinity`. It accepts a positive integer or `:infinity`.
-      Defaults to `50`.
+      It accepts a positive integer or `:infinity`. It defaults to 100 since
+      `Elixir v1.19.0`, as it has better defaults to deal with nested collections.
 
     * `:pretty` - if set to `true` enables pretty printing. Defaults to `false`.
 
@@ -91,7 +90,7 @@ defmodule Inspect.Opts do
             charlists: :infer,
             custom_options: [],
             inspect_fun: &Inspect.inspect/2,
-            limit: 50,
+            limit: 100,
             pretty: false,
             printable_limit: 4096,
             safe: true,
@@ -332,7 +331,6 @@ defmodule Inspect.Algebra do
            when is_binary(doc) or doc in [:doc_nil, :doc_line] or
                   (is_tuple(doc) and elem(doc, 0) in @docs)
 
-  defguardp is_limit(limit) when limit == :infinity or (is_integer(limit) and limit >= 0)
   defguardp is_width(width) when width == :infinity or (is_integer(width) and width >= 0)
 
   # Elixir + Inspect.Opts conveniences
@@ -341,11 +339,28 @@ defmodule Inspect.Algebra do
   @doc """
   Converts an Elixir term to an algebra document
   according to the `Inspect` protocol.
+
+  In practice, one must prefer to use `to_doc_with_opts/2`
+  over this function, as `to_doc_with_opts/2` returns the
+  updated options from inspection.
   """
   @spec to_doc(any, Inspect.Opts.t()) :: t
-  def to_doc(term, opts)
+  def to_doc(term, opts) do
+    to_doc_with_opts(term, opts) |> elem(0)
+  end
 
-  def to_doc(%_{} = struct, %Inspect.Opts{inspect_fun: fun} = opts) do
+  @doc """
+  Converts an Elixir term to an algebra document
+  according to the `Inspect` protocol, alongside the updated options.
+
+  This function is used when implementing the inspect protocol for
+  a given type and you must convert nested terms to documents too.
+  """
+  @doc since: "1.19.0"
+  @spec to_doc_with_opts(any, Inspect.Opts.t()) :: {t, Inspect.Opts.t()}
+  def to_doc_with_opts(term, opts)
+
+  def to_doc_with_opts(%_{} = struct, %Inspect.Opts{inspect_fun: fun} = opts) do
     if opts.structs do
       try do
         fun.(struct, opts)
@@ -363,13 +378,15 @@ defmodule Inspect.Algebra do
             try do
               Process.put(:inspect_trap, true)
 
-              inspected_struct =
-                struct
-                |> Inspect.Map.inspect_as_map(%{
+              {doc_struct, _opts} =
+                Inspect.Map.inspect_as_map(struct, %{
                   opts
                   | syntax_colors: [],
                     inspect_fun: Inspect.Opts.default_inspect_fun()
                 })
+
+              inspected_struct =
+                doc_struct
                 |> format(opts.width)
                 |> IO.iodata_to_binary()
 
@@ -394,10 +411,29 @@ defmodule Inspect.Algebra do
     else
       Inspect.Map.inspect_as_map(struct, opts)
     end
+    |> pack_opts(opts)
   end
 
-  def to_doc(arg, %Inspect.Opts{inspect_fun: fun} = opts) do
-    fun.(arg, opts)
+  def to_doc_with_opts(arg, %Inspect.Opts{inspect_fun: fun} = opts) do
+    fun.(arg, opts) |> pack_opts(opts)
+  end
+
+  defp pack_opts({_doc, %Inspect.Opts{}} = doc_opts, _opts), do: doc_opts
+  defp pack_opts(doc, opts), do: {doc, opts}
+
+  @doc ~S"""
+  Wraps `collection` in `left` and `right` according to limit and contents
+  and returns only the container document.
+
+  In practice, one must prefer to use `container_doc_with_opts/6`
+  over this function, as `container_doc_with_opts/6` returns the
+  updated options from inspection.
+  """
+  @doc since: "1.6.0"
+  @spec container_doc(t, [term], t, Inspect.Opts.t(), (term, Inspect.Opts.t() -> t), keyword()) ::
+          t
+  def container_doc(left, collection, right, inspect_opts, fun, opts \\ []) do
+    container_doc_with_opts(left, collection, right, inspect_opts, fun, opts) |> elem(0)
   end
 
   @doc ~S"""
@@ -412,6 +448,8 @@ defmodule Inspect.Algebra do
   The limit in the given `inspect_opts` is respected and when reached this
   function stops processing and outputs `"..."` instead.
 
+  It returns a tuple with the algebra document and the updated options.
+
   ## Options
 
     * `:separator` - the separator used between each doc
@@ -423,79 +461,99 @@ defmodule Inspect.Algebra do
 
       iex> inspect_opts = %Inspect.Opts{limit: :infinity}
       iex> fun = fn i, _opts -> to_string(i) end
-      iex> doc = Inspect.Algebra.container_doc("[", Enum.to_list(1..5), "]", inspect_opts, fun)
+      iex> {doc, _opts} = Inspect.Algebra.container_doc_with_opts("[", Enum.to_list(1..5), "]", inspect_opts, fun)
       iex> Inspect.Algebra.format(doc, 5) |> IO.iodata_to_binary()
       "[1,\n 2,\n 3,\n 4,\n 5]"
 
       iex> inspect_opts = %Inspect.Opts{limit: 3}
       iex> fun = fn i, _opts -> to_string(i) end
-      iex> doc = Inspect.Algebra.container_doc("[", Enum.to_list(1..5), "]", inspect_opts, fun)
+      iex> {doc, _opts} = Inspect.Algebra.container_doc_with_opts("[", Enum.to_list(1..5), "]", inspect_opts, fun)
       iex> Inspect.Algebra.format(doc, 20) |> IO.iodata_to_binary()
       "[1, 2, 3, ...]"
 
       iex> inspect_opts = %Inspect.Opts{limit: 3}
       iex> fun = fn i, _opts -> to_string(i) end
       iex> opts = [separator: "!"]
-      iex> doc = Inspect.Algebra.container_doc("[", Enum.to_list(1..5), "]", inspect_opts, fun, opts)
+      iex> {doc, _opts} = Inspect.Algebra.container_doc_with_opts("[", Enum.to_list(1..5), "]", inspect_opts, fun, opts)
       iex> Inspect.Algebra.format(doc, 20) |> IO.iodata_to_binary()
       "[1! 2! 3! ...]"
 
   """
-  @doc since: "1.6.0"
-  @spec container_doc(t, [term], t, Inspect.Opts.t(), (term, Inspect.Opts.t() -> t), keyword()) ::
-          t
-  def container_doc(left, collection, right, inspect_opts, fun, opts \\ [])
+  @doc since: "1.19.0"
+  @spec container_doc_with_opts(
+          t,
+          [term],
+          t,
+          Inspect.Opts.t(),
+          (term, Inspect.Opts.t() -> t),
+          keyword()
+        ) ::
+          {t, Inspect.Opts.t()}
+  def container_doc_with_opts(left, collection, right, inspect_opts, fun, opts \\ [])
       when is_doc(left) and is_list(collection) and is_doc(right) and is_function(fun, 2) and
              is_list(opts) do
     case collection do
       [] ->
-        concat(left, right)
+        {concat(left, right), inspect_opts}
 
       _ ->
         break = Keyword.get(opts, :break, :maybe)
         separator = Keyword.get(opts, :separator, @container_separator)
 
-        {docs, simple?} =
-          container_each(collection, inspect_opts.limit, inspect_opts, fun, [], break == :maybe)
+        {docs, simple?, inspect_opts} =
+          container_each(collection, inspect_opts, fun, [], break == :maybe)
 
         flex? = simple? or break == :flex
         docs = fold(docs, &join(&1, &2, flex?, separator))
 
-        case flex? do
-          true -> group(concat(concat(left, nest(docs, 1)), right))
-          false -> group(glue(nest(glue(left, "", docs), 2), "", right))
-        end
+        group =
+          case flex? do
+            true -> group(concat(concat(left, nest(docs, 1)), right))
+            false -> group(glue(nest(glue(left, "", docs), 2), "", right))
+          end
+
+        {group, inspect_opts}
     end
   end
 
-  defp container_each([], _limit, _opts, _fun, acc, simple?) do
-    {:lists.reverse(acc), simple?}
+  defp container_each([], opts, _fun, acc, simple?) do
+    {:lists.reverse(acc), simple?, opts}
   end
 
-  defp container_each(_, 0, _opts, _fun, acc, simple?) do
-    {:lists.reverse(["..." | acc]), simple?}
+  defp container_each(_, opts, _fun, acc, simple?) when opts.limit <= 0 do
+    {:lists.reverse(["..." | acc]), simple?, opts}
   end
 
-  defp container_each([term | terms], limit, opts, fun, acc, simple?)
-       when is_list(terms) and is_limit(limit) do
-    new_limit = decrement(limit)
-    doc = fun.(term, %{opts | limit: new_limit})
-    limit = if doc == :doc_nil, do: limit, else: new_limit
-    container_each(terms, limit, opts, fun, [doc | acc], simple? and simple?(doc))
+  defp container_each([term | terms], opts, fun, acc, simple?) when is_list(terms) do
+    {doc, opts} = call_container_fun(fun, term, opts)
+    container_each(terms, opts, fun, [doc | acc], simple? and simple?(doc))
   end
 
-  defp container_each([left | right], limit, opts, fun, acc, simple?) when is_limit(limit) do
-    limit = decrement(limit)
-    left = fun.(left, %{opts | limit: limit})
-    right = fun.(right, %{opts | limit: limit})
+  defp container_each([left | right], opts, fun, acc, simple?) do
+    {left, opts} = call_container_fun(fun, left, opts)
+    {right, _opts} = call_container_fun(fun, right, opts)
     simple? = simple? and simple?(left) and simple?(right)
-
     doc = join(left, right, simple?, @tail_separator)
-    {:lists.reverse([doc | acc]), simple?}
+    {:lists.reverse([doc | acc]), simple?, opts}
   end
 
-  defp decrement(:infinity), do: :infinity
-  defp decrement(counter), do: counter - 1
+  defp call_container_fun(fun, term, %{limit: bounded} = opts)
+       when bounded <= 0 or bounded == :infinity do
+    case fun.(term, opts) do
+      {doc, %Inspect.Opts{} = opts} -> {doc, opts}
+      doc -> {doc, opts}
+    end
+  end
+
+  defp call_container_fun(fun, term, %{limit: limit} = opts) do
+    changed_opts = %{opts | limit: limit - 1}
+
+    case fun.(term, changed_opts) do
+      {doc, %Inspect.Opts{} = opts} -> {doc, opts}
+      :doc_nil -> {:doc_nil, opts}
+      doc -> {doc, changed_opts}
+    end
+  end
 
   defp join(:doc_nil, :doc_nil, _, _), do: :doc_nil
   defp join(left, :doc_nil, _, _), do: left

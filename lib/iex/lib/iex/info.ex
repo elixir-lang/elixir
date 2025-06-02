@@ -444,6 +444,10 @@ defimpl IEx.Info, for: [Date, Time, DateTime, NaiveDateTime, Regex] do
   defp raw_inspect(value) do
     value
     |> Inspect.Any.inspect(%Inspect.Opts{})
+    |> case do
+      {doc, %Inspect.Opts{}} -> doc
+      doc -> doc
+    end
     |> Inspect.Algebra.format(:infinity)
     |> IO.iodata_to_binary()
   end
@@ -468,6 +472,10 @@ defimpl IEx.Info, for: Range do
   defp raw_inspect(value) do
     value
     |> Inspect.Any.inspect(%Inspect.Opts{})
+    |> case do
+      {doc, %Inspect.Opts{}} -> doc
+      doc -> doc
+    end
     |> Inspect.Algebra.format(:infinity)
     |> IO.iodata_to_binary()
   end
