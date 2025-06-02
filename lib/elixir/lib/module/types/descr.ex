@@ -1086,7 +1086,7 @@ defmodule Module.Types.Descr do
     case :maps.take(:dynamic, fun) do
       :error ->
         if fun_only?(fun) do
-          fun_apply_with_strategy(fun, fun, nil, arguments)
+          fun_apply_with_strategy(fun, nil, arguments)
         else
           :badfun
         end
@@ -1100,7 +1100,7 @@ defmodule Module.Types.Descr do
 
       {fun_dynamic, fun_static} ->
         if fun_only?(fun_static) do
-          fun_apply_with_strategy(fun, fun_static, fun_dynamic, arguments)
+          fun_apply_with_strategy(fun_static, fun_dynamic, arguments)
         else
           :badfun
         end
@@ -1109,7 +1109,7 @@ defmodule Module.Types.Descr do
 
   defp fun_only?(descr), do: empty?(Map.delete(descr, :fun))
 
-  defp fun_apply_with_strategy(fun, fun_static, fun_dynamic, arguments) do
+  defp fun_apply_with_strategy(fun_static, fun_dynamic, arguments) do
     args_dynamic? = any_dynamic?(arguments)
     args_domain = args_to_domain(arguments)
     static? = fun_dynamic == nil and not args_dynamic?
@@ -1122,8 +1122,7 @@ defmodule Module.Types.Descr do
           {:badarg, domain_to_flat_args(domain, arity)}
 
         not subtype?(args_domain, domain) ->
-          # TODO: This compatibility check is not enough
-          if static? or not compatible?(fun, fun(arguments, term())) do
+          if static? or not compatible?(args_domain, domain) do
             {:badarg, domain_to_flat_args(domain, arity)}
           else
             {:ok, dynamic()}
@@ -1174,7 +1173,7 @@ defmodule Module.Types.Descr do
       :badfun ->
         case fun_normalize(fun_dynamic, arity, :dynamic) do
           {:ok, dynamic_domain, dynamic_arrows} ->
-            {:ok, dynamic_domain, [], dynamic_arrows}
+            {:ok, union(dynamic_domain, dynamic()), [], dynamic_arrows}
 
           error ->
             error

@@ -826,6 +826,8 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(fun([integer()], atom()), [integer()]) == {:ok, atom()}
       assert fun_apply(fun([integer()], atom()), [float()]) == {:badarg, [integer()]}
       assert fun_apply(fun([integer()], atom()), [term()]) == {:badarg, [integer()]}
+      assert fun_apply(fun([integer()], atom()), [dynamic()]) == {:ok, dynamic()}
+
       assert fun_apply(fun([integer()], none()), [integer()]) == {:ok, none()}
       assert fun_apply(fun([integer()], term()), [integer()]) == {:ok, term()}
 
