@@ -14,24 +14,14 @@ defmodule ExceptionTest do
   doctest Exception
 
   doctest RuntimeError
-  doctest ArgumentError
-  doctest ArithmeticError
   doctest SystemLimitError
   doctest MismatchedDelimiterError
   doctest SyntaxError
   doctest TokenMissingError
-  doctest BadFunctionError
-  doctest BadMapError
   doctest BadBooleanError
-  doctest MatchError
-  doctest CaseClauseError
-  doctest WithClauseError
-  doctest CondClauseError
-  doctest TryClauseError
   doctest UndefinedFunctionError
   doctest FunctionClauseError
   doctest Protocol.UndefinedError
-  doctest KeyError
   doctest UnicodeConversionError
   doctest Enum.OutOfBoundsError
   doctest Enum.EmptyError

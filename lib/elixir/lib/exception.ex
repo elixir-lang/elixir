@@ -1694,7 +1694,8 @@ defmodule UndefinedFunctionError do
 
   For example:
 
-      iex> String.non_existing_fun("hello")
+      # Let's use apply/3 as otherwise Elixir emits a compile-time warning
+      iex> apply(String, :non_existing_fun, ["hello"])
       ** (UndefinedFunctionError) function String.non_existing_fun/1 is undefined or private
 
   The following fields of this exception are public and can be accessed freely:
