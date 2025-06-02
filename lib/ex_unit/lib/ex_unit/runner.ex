@@ -44,26 +44,11 @@ defmodule ExUnit.Runner do
     config = configure(opts, manager, self(), stats_pid)
     :erlang.system_flag(:backtrace_depth, Keyword.fetch!(opts, :stacktrace_depth))
 
-    modules_to_restore =
-      if Keyword.fetch!(opts, :repeat_until_failure) > 0, do: {[], []}, else: nil
-
-    modules_to_restore =
-      if not opts[:dry_run] do
-        do_run(config, modules_to_restore, opts, load_us)
-      else
-        nil
-      end
-
-    stats = ExUnit.RunnerStats.stats(stats_pid)
-    EM.stop(config.manager)
-    after_suite_callbacks = Application.fetch_env!(:ex_unit, :after_suite)
-    Enum.each(after_suite_callbacks, fn callback -> callback.(stats) end)
-    {stats, modules_to_restore}
-  end
-
-  defp do_run(config, modules_to_restore, opts, load_us) do
     start_time = System.monotonic_time()
     EM.suite_started(config.manager, opts)
+
+    modules_to_restore =
+      if Keyword.fetch!(opts, :repeat_until_failure) > 0, do: {[], []}, else: nil
 
     {async_stop_time, modules_to_restore} = async_loop(config, %{}, false, modules_to_restore)
     stop_time = System.monotonic_time()
@@ -80,7 +65,11 @@ defmodule ExUnit.Runner do
     times_us = %{async: async_us, load: load_us, run: run_us}
     EM.suite_finished(config.manager, times_us)
 
-    modules_to_restore
+    stats = ExUnit.RunnerStats.stats(stats_pid)
+    EM.stop(config.manager)
+    after_suite_callbacks = Application.fetch_env!(:ex_unit, :after_suite)
+    Enum.each(after_suite_callbacks, fn callback -> callback.(stats) end)
+    {stats, modules_to_restore}
   end
 
   defp configure(opts, manager, runner_pid, stats_pid) do
@@ -316,6 +305,10 @@ defmodule ExUnit.Runner do
 
   defp run_module_tests(_config, test_module, _async?, []) do
     {test_module, [], []}
+  end
+
+  defp run_module_tests(%{dry_run: true}, test_module, _async?, tests) do
+    {test_module, [], tests}
   end
 
   defp run_module_tests(config, test_module, async?, tests) do

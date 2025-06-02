@@ -716,38 +716,35 @@ defmodule Mix.Tasks.TestTest do
     end
   end
 
-  # TODO: Get to pass after deciding on implementation
-  @tag :skip
   describe "--dry-run" do
-    test "prints which tests would run without executing them" do
+    test "works with --stale" do
       in_fixture("test_stale", fn ->
-        File.write!("test/dry_run_test.exs", """
+        File.write!("test/dry_run_test_stale.exs", """
         defmodule DryRunTest do
           use ExUnit.Case
 
-          test "passing test" do
+          test "new test" do
             assert true
-          end
-
-          test "failing test" do
-            assert false
           end
         end
         """)
 
-        assert {output, 0} = mix_code(["test", "--dry-run", "--stale"])
-        assert output =~ "DRY RUN"
-        assert output =~ "test/dry_run_test.exs"
-        refute output =~ "Finished in"
+        output = mix(["test", "--dry-run", "--stale"])
+
+        assert output =~ "Test dry run:"
+        assert output =~ "test/dry_run_test_stale.exs:4"
+        assert output =~ "0 tests, 0 failures (dry run)"
       end)
     end
 
-    test "prints message when no tests would run" do
-      in_fixture("test_stale", fn ->
-        assert {output, 0} = mix_code(["test", "--dry-run", "non_existent_test.exs"])
-        assert output =~ "DRY RUN"
-        assert output =~ "No tests would run"
-        refute output =~ "Finished in"
+    test "works with --failed" do
+      in_fixture("test_failed", fn ->
+        _initial_run = mix(["test"])
+        output = mix(["test", "--dry-run", "--failed"])
+
+        assert output =~ "Test dry run:"
+        assert output =~ "test/passing_and_failing_test_failed.exs:5"
+        assert output =~ "0 tests, 0 failures (dry run)"
       end)
     end
   end
