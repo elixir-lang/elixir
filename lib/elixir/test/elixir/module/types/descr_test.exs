@@ -826,13 +826,20 @@ defmodule Module.Types.DescrTest do
       assert fun_apply(fun([integer()], atom()), [integer()]) == {:ok, atom()}
       assert fun_apply(fun([integer()], atom()), [float()]) == {:badarg, [integer()]}
       assert fun_apply(fun([integer()], atom()), [term()]) == {:badarg, [integer()]}
-      assert fun_apply(fun([integer()], atom()), [dynamic()]) == {:ok, dynamic()}
 
+      # Return types
       assert fun_apply(fun([integer()], none()), [integer()]) == {:ok, none()}
       assert fun_apply(fun([integer()], term()), [integer()]) == {:ok, term()}
 
       # Dynamic args
       assert fun_apply(fun([term()], term()), [dynamic()]) == {:ok, term()}
+
+      assert fun_apply(fun([integer()], atom()), [dynamic(integer())])
+             |> elem(1)
+             |> equal?(atom())
+
+      assert fun_apply(fun([integer()], atom()), [dynamic(float())]) == {:badarg, [integer()]}
+      assert fun_apply(fun([integer()], atom()), [dynamic(term())]) == {:ok, dynamic()}
 
       # Arity mismatches
       assert fun_apply(fun([integer()], integer()), [term(), term()]) == {:badarity, [1]}
