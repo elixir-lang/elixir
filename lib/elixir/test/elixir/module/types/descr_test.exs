@@ -1812,6 +1812,13 @@ defmodule Module.Types.DescrTest do
       assert fun() |> to_quoted_string() == "fun()"
       assert none_fun(1) |> to_quoted_string() == "(none() -> term())"
 
+      assert none_fun(1)
+             |> intersection(none_fun(2))
+             |> to_quoted_string() == "none()"
+
+      assert fun([integer()], atom()) |> intersection(none_fun(1)) |> to_quoted_string() ==
+               "(integer() -> atom())"
+
       assert fun([integer(), float()], boolean()) |> to_quoted_string() ==
                "(integer(), float() -> boolean())"
 

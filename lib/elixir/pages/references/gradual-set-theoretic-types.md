@@ -101,9 +101,9 @@ This function also has the type `(boolean() -> boolean())`, because it receives 
 
 At this point, you may ask, why not a union? As a real-world example, take a t-shirt with green and yellow stripes. We can say the t-shirt belongs to the set of "t-shirts with green color". We can also say the t-shirt belongs to the set of "t-shirts with yellow color". Let's see the difference between unions and intersections:
 
-  * `(t_shirts_with_green() or t_shirts_with_yellow())` - contains t-shirts with either green or yellow, such as green, green and red, green and yellow, yellow, yellow and red, etc.
+  * `(t_shirts_with_green() or t_shirts_with_yellow())` - contains t-shirts with either green or yellow, such as green, green and red, green and yellow, but also only yellow, yellow and red, etc.
 
-  * `(t_shirts_with_green() and t_shirts_with_yellow())` - contains t-shirts with both green and yellow (and also other colors)
+  * `(t_shirts_with_green() and t_shirts_with_yellow())` - contains t-shirts with both green and yellow (and maybe other colors)
 
 Since the t-shirt has both colors, we say it belongs to the intersection of both sets. The same way that a function that goes from `(integer() -> integer())` and `(boolean() -> boolean())` is also an intersection. In practice, it does not make sense to define the union of two functions in Elixir, so the compiler will always point to the right direction.
 

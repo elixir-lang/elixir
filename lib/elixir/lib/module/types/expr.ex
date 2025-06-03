@@ -455,7 +455,7 @@ defmodule Module.Types.Expr do
   end
 
   def of_expr({{:., _, [fun]}, _, args} = call, _expected, _expr, stack, context) do
-    {fun_type, context} = of_expr(fun, fun(length(args)), call, stack, context)
+    {fun_type, context} = of_expr(fun, dynamic(fun(length(args))), call, stack, context)
 
     # TODO: Perform inference based on the strong domain of a function
     {args_types, context} =

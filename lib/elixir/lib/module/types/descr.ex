@@ -111,13 +111,15 @@ defmodule Module.Types.Descr do
   Creates the top function type for the given arity,
   where all arguments are none() and return is term().
 
+  This function cannot be applied to, unless it is made dynamic.
+
   ## Examples
 
       fun(1)
       #=> (none -> term)
 
       fun(2)
-      #=> Creates (none, none) -> term
+      #=> Creates (none, none -> term)
   """
   def fun(arity) when is_integer(arity) and arity >= 0 do
     fun(List.duplicate(none(), arity), term())
@@ -1464,23 +1466,60 @@ defmodule Module.Types.Descr do
   defp fun_intersection(bdd1, bdd2) do
     case {bdd1, bdd2} do
       # Base cases
-      {_, :fun_bottom} -> :fun_bottom
-      {:fun_bottom, _} -> :fun_bottom
-      {:fun_top, bdd} -> bdd
-      {bdd, :fun_top} -> bdd
+      {_, :fun_bottom} ->
+        :fun_bottom
+
+      {:fun_bottom, _} ->
+        :fun_bottom
+
+      {:fun_top, bdd} ->
+        bdd
+
+      {bdd, :fun_top} ->
+        bdd
+
       # Optimizations
       # If intersecting with a single positive or negative function, we insert
       # it at the root instead of merging the trees (this avoids going down the
       # whole bdd).
-      {bdd, {fun, :fun_top, :fun_bottom}} -> {fun, bdd, :fun_bottom}
-      {bdd, {fun, :fun_bottom, :fun_top}} -> {fun, :fun_bottom, bdd}
-      {{fun, :fun_top, :fun_bottom}, bdd} -> {fun, bdd, :fun_bottom}
-      {{fun, :fun_bottom, :fun_top}, bdd} -> {fun, :fun_bottom, bdd}
+      {bdd, {{args, return} = fun, :fun_top, :fun_bottom}} ->
+        # If intersecting with the top type for that arity, no-op
+        if return == :term and Enum.all?(args, &(&1 == %{})) and
+             matching_arity?(bdd, length(args)) do
+          bdd
+        else
+          {fun, bdd, :fun_bottom}
+        end
+
+      {bdd, {fun, :fun_bottom, :fun_top}} ->
+        {fun, :fun_bottom, bdd}
+
+      {{{args, return} = fun, :fun_top, :fun_bottom}, bdd} ->
+        # If intersecting with the top type for that arity, no-op
+        if return == :term and Enum.all?(args, &(&1 == %{})) and
+             matching_arity?(bdd, length(args)) do
+          bdd
+        else
+          {fun, bdd, :fun_bottom}
+        end
+
+      {{fun, :fun_bottom, :fun_top}, bdd} ->
+        {fun, :fun_bottom, bdd}
+
       # General cases
-      {{fun, l1, r1}, {fun, l2, r2}} -> {fun, fun_intersection(l1, l2), fun_intersection(r1, r2)}
-      {{fun, l, r}, bdd} -> {fun, fun_intersection(l, bdd), fun_intersection(r, bdd)}
+      {{fun, l1, r1}, {fun, l2, r2}} ->
+        {fun, fun_intersection(l1, l2), fun_intersection(r1, r2)}
+
+      {{fun, l, r}, bdd} ->
+        {fun, fun_intersection(l, bdd), fun_intersection(r, bdd)}
     end
   end
+
+  defp matching_arity?({{args, _return}, l, r}, arity) do
+    length(args) == arity and matching_arity?(l, arity) and matching_arity?(r, arity)
+  end
+
+  defp matching_arity?(_, _arity), do: true
 
   defp fun_difference(bdd1, bdd2) do
     case {bdd1, bdd2} do

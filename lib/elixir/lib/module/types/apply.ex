@@ -472,28 +472,33 @@ defmodule Module.Types.Apply do
   Returns the type of a remote capture.
   """
   def remote_capture(modules, fun, arity, meta, stack, context) do
-    if stack.mode == :traversal or modules == [] do
-      {dynamic(fun(arity)), context}
-    else
-      {type, fallback?, context} =
-        Enum.reduce(modules, {none(), false, context}, fn module, {type, fallback?, context} ->
-          case signature(module, fun, arity, meta, stack, context) do
-            {{:strong, _, clauses}, context} ->
-              {union(type, fun_from_non_overlapping_clauses(clauses)), fallback?, context}
+    cond do
+      stack.mode == :traversal ->
+        {dynamic(), context}
 
-            {{:infer, _, clauses}, context} when length(clauses) <= @max_clauses ->
-              {union(type, fun_from_overlapping_clauses(clauses)), fallback?, context}
-
-            {_, context} ->
-              {type, true, context}
-          end
-        end)
-
-      if fallback? do
+      modules == [] ->
         {dynamic(fun(arity)), context}
-      else
-        {type, context}
-      end
+
+      true ->
+        {type, fallback?, context} =
+          Enum.reduce(modules, {none(), false, context}, fn module, {type, fallback?, context} ->
+            case signature(module, fun, arity, meta, stack, context) do
+              {{:strong, _, clauses}, context} ->
+                {union(type, fun_from_non_overlapping_clauses(clauses)), fallback?, context}
+
+              {{:infer, _, clauses}, context} when length(clauses) <= @max_clauses ->
+                {union(type, fun_from_overlapping_clauses(clauses)), fallback?, context}
+
+              {_, context} ->
+                {type, true, context}
+            end
+          end)
+
+        if fallback? do
+          {dynamic(fun(arity)), context}
+        else
+          {type, context}
+        end
     end
   end
 

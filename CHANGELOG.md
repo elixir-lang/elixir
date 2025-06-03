@@ -94,6 +94,44 @@ but expected a type that implements the Enumerable protocol, it must be one of:
     ) or fun() or list(term()) or non_struct_map()
 ```
 
+### Type checking and inference of anonymous functions
+
+Elixir v1.19 can now type infer and type check anonymous functions. Here is a trivial example:
+
+```elixir
+defmodule Example do
+  def run do
+    fun = fn %{} -> :map end
+    fun.("hello")
+  end
+end
+```
+
+The example above has an obvious typing violation, as the anonymous function expects a map but a string is given. With Elixir v1.19, the following warning is now printed:
+
+```
+    warning: incompatible types given on function application:
+
+        fun.("hello")
+
+    given types:
+
+        binary()
+
+    but function has type:
+
+        (dynamic(map()) -> :map)
+
+    typing violation found at:
+    │
+  6 │     fun.("hello")
+    │        ~
+    │
+    └─ mod.exs:6:8: Example.run/0
+```
+
+Function captures, such as `&String.to_integer/1`, will also propagate the type as of Elixir v1.19, arising more opportunity for Elixir's type system to catch bugs in our programs.
+
 ## Faster compile times in large projects
 
 This release includes two compiler improvements that can lead up to 4x faster builds in large codebases.

@@ -234,6 +234,28 @@ defmodule Module.Types.ExprTest do
              to said function are types that satisfy all sides of the union (which may be none)
              """
     end
+
+    test "bad arguments from inferred type" do
+      assert typeerror!(
+               (
+                 fun = fn %{} -> :map end
+                 fun.(:error)
+               )
+             )
+             |> strip_ansi() == """
+             incompatible types given on function application:
+
+                 fun.(:error)
+
+             given types:
+
+                 :error
+
+             but function has type:
+
+                 (dynamic(map()) -> :map)
+             """
+    end
   end
 
   describe "remotes" do
