@@ -112,17 +112,19 @@ defprotocol Inspect do
         import Inspect.Algebra
 
         def inspect(map_set, opts) do
-          {doc, opts} = Inspect.List.inspect(MapSet.to_list(map_set), opts)
+          {doc, opts} = to_doc_with_opts(MapSet.to_list(map_set), opts)
           {concat(["MapSet.new(", doc, ")"]), opts}
         end
       end
 
-  The [`concat/1`](`Inspect.Algebra.concat/1`) function comes from
-  `Inspect.Algebra` and it concatenates algebra documents together.
+  First [`to_doc_with_opts/2`](`Inspect.Algebra.to_doc_with_opts/2`) is
+  used to convert another data structure into its algebra document and
+  then [`concat/1`](`Inspect.Algebra.concat/1`) concatenates algebra
+  documents together.
+
   In the example above it is concatenating the string `"MapSet.new("`,
-  the document returned by `Inspect.Algebra.to_doc/2`, and the final
-  string `")"`. Therefore, the MapSet with the numbers 1, 2, and 3
-  will be printed as:
+  the document returned by `to_doc_with_opts/2`, and the final string `")"`.
+  Therefore, the MapSet with the numbers 1, 2, and 3 will be printed as:
 
       iex> MapSet.new([1, 2, 3], fn x -> x * 2 end)
       MapSet.new([2, 4, 6])

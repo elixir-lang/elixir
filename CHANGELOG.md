@@ -174,6 +174,33 @@ While fetching your dependencies and compiling an Elixir dependency in itself al
 
 By setting `MIX_OS_DEPS_COMPILE_PARTITION_COUNT` to a number greater than 1, Mix will now compile multiple dependencies at the same time, using separate OS processes. Empirical testing shows that setting it to half of the number of cores on your machine is enough to maximize resource usage. The exact speed up will depend on the number of dependencies and the number of machine cores, although some reports mention up to 4x faster compilation times. If you plan to enable it on CI or build servers, keep in mind it will most likely have a direct impact on memory usage too.
 
+## Improved pretty printing algorithm
+
+Elixir v1.19 ships with a new pretty printing implementation that tracks limits as a whole, instead of per depth. Previous versions would track limits per depth. For example, if you had a list of lists of 4 elements and a limit of 5, it be pretty printed as follows:
+
+```elixir
+[
+  [1, 2, 3],
+  [1, 2, ...],
+  [1, ...],
+  [...],
+  ...
+]
+```
+
+While this allows for more information to be shown at different nesting levels, which is useful for complex data structures, it lead to some pathological cases where the `limit` option had little effect in actual filtering the amount of data shown. The new implementation decouples the limit handling from depth, decreasing it as it goes. Therefore, the list above with the same limit in Elixir v1.19 is now printed as:
+
+```elixir
+[
+  [1, 2, 3],
+  ...
+]
+```
+
+The outer list is the first element, the first nested list is the second, followed by three numbers, reaching the limit. This gives developers more precise control over pretty printing.
+
+Given this may reduce the amount of data printed by default, the default limit has also been increased from 50 to 100. We may further increase it in upcoming releases based on community feedback.
+
 ## OpenChain certification
 
 Elixir v1.19 is also our first release following OpenChain compliance, [as previously announced](https://elixir-lang.org/blog/2025/02/26/elixir-openchain-certification/). In a nutshell:
@@ -196,12 +223,15 @@ These additions offer greater transparency into the components and licenses of e
   * [Code] Add `:indentation` option to `Code.string_to_quoted/2`
   * [Code.Fragment] Preserve more block content around cursor in `container_cursor_to_quoted`
   * [Code.Fragment] Add `:block_keyword_or_binary_operator` to `Code.Fragment` for more precise suggestions after operators and closing terminators
+  * [Code.Fragment] Add `Code.Fragment.lines/1`
   * [Enum] Provide more information on `Enum.OutOfBoundsError`
   * [Inspect] Allow `optional: :all` when deriving Inspect
   * [Inspect.Algebra] Add optimistic/pessimistic groups as a simplified implementation of `next_break_fits`
+  * [IO.ANSI] Add ANSI codes to turn off conceal and crossed_out
   * [Kernel] Allow controlling which applications are used during inference
   * [Kernel] Support `min/2` and `max/2` as guards
   * [Kernel.ParallelCompiler] Add `each_long_verification_threshold` which invokes a callback when type checking a module takes too long
+  * [Kernel.ParallelCompiler] Include lines in `== Compilation error in file ... ==` slogans
   * [Macro] Print debugging results from `Macro.dbg/3` as they happen, instead of once at the end
   * [Module] Do not automatically load modules after their compilation, guaranteeing a more consistent compile time experience and drastically improving compilation times
   * [Protocol] Type checking of protocols dispatch and implementations
@@ -217,6 +247,7 @@ These additions offer greater transparency into the components and licenses of e
 
 #### IEx
 
+  * [IEx] Support multi-line prompts (due to this feature, `:continuation_prompt` and `:alive_continuation_prompt` are no longer supported as IEx configuration)
   * [IEx.Autocomplete] Functions annotated with `@doc group: "Name"` metadata will appear within their own groups in autocompletion
 
 #### Mix
@@ -229,6 +260,7 @@ These additions offer greater transparency into the components and licenses of e
   * [mix test] Allow to distinguish the exit status between warnings as errors and test failures
   * [mix xref graph] Add support for `--format json`
   * [mix xref graph] Emit a warning if `--source` is part of a cycle
+  * [M ix.Task.Compiler] Add `Mix.Task.Compiler.run/2`
 
 ### 2. Bug fixes
 
@@ -236,6 +268,7 @@ These additions offer greater transparency into the components and licenses of e
 
   * [DateTime] Do not truncate microseconds regardless of precision in `DateTime.diff/3`
   * [File] Properly handle permissions errors cascading from parent in `File.mkdir_p/1`
+  * [Kernel] `not_a_map.key` now raises `BadMapError` for consistency with other map operations
   * [Regex] Fix `Regex.split/2` returning too many results when the chunk being split on was empty (which can happen when using features such as `/K`)
   * [Stream] Ensure `Stream.transform/5` respects suspend command when its inner stream halts
   * [URI] Several fixes to `URI.merge/2` related to trailing slashes, trailing dots, and hostless base URIs
@@ -244,6 +277,7 @@ These additions offer greater transparency into the components and licenses of e
 
   * [mix cmd] Preserve argument quoting in subcommands
   * [mix format] Ensure the formatter does not go over the specified limit in certain corner cases
+  * [mix release] Fix `RELEASE_SYS_CONFIG` for Windows 11
   * [mix test] Preserve files with no longer filter on `mix test`
   * [mix xref graph] Provide more consistent output by considering strong connected components only when computing graphs
 
