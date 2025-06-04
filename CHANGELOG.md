@@ -18,7 +18,7 @@ def add_foo_and_bar(data) do
 end
 ```
 
-Elixir now infers that the function expects a `map` as first argument, and the map must have the keys `.foo` and `.bar` which values of either `integer()` or `float()`. The return type will be either `integer()` or `float()`.
+Elixir now infers that the function expects a `map` as first argument, and the map must have the keys `.foo` and `.bar` whose values are either `integer()` or `float()`. The return type will be either `integer()` or `float()`.
 
 Here is another example:
 
@@ -168,19 +168,19 @@ end
 MyLib.SomeModule.something_else()
 ```
 
-The reason this fails is because `@on_load` callbacks are invoked within the code server and therefore they have limited ability to load additional modules. It is generally advisable to limit invocation of external modules during `@on_load` callbacks but, in case it is strictly necessary, you can set `@compile {:autoload, true}` in the invoked module to addresses this issue in a forward and backwards compatible manner.
+The reason this fails is because `@on_load` callbacks are invoked within the code server and therefore they have limited ability to load additional modules. It is generally advisable to limit invocation of external modules during `@on_load` callbacks but, in case it is strictly necessary, you can set `@compile {:autoload, true}` in the invoked module to address this issue in a forward and backwards compatible manner.
 
 ### Parallel compilation of dependencies
 
 This release introduces a variable called `MIX_OS_DEPS_COMPILE_PARTITION_COUNT`, which instructs `mix deps.compile` to compile dependencies in parallel.
 
-While fetching your dependencies and compiling an Elixir dependency in itself already happened in parallel, there were pathological cases where performance would be left on the table, such as compiling dependencies with native code or dependencies where one or two large file would take over most of the compilation time.
+While fetching dependencies and compiling individual Elixir dependencies already happened in parallel, there were pathological cases where performance would be left on the table, such as compiling dependencies with native code or dependencies where one or two large file would take over most of the compilation time.
 
 By setting `MIX_OS_DEPS_COMPILE_PARTITION_COUNT` to a number greater than 1, Mix will now compile multiple dependencies at the same time, using separate OS processes. Empirical testing shows that setting it to half of the number of cores on your machine is enough to maximize resource usage. The exact speed up will depend on the number of dependencies and the number of machine cores, although some reports mention up to 4x faster compilation times. If you plan to enable it on CI or build servers, keep in mind it will most likely have a direct impact on memory usage too.
 
 ## Improved pretty printing algorithm
 
-Elixir v1.19 ships with a new pretty printing implementation that tracks limits as a whole, instead of per depth. Previous versions would track limits per depth. For example, if you had a list of lists of 4 elements and a limit of 5, it be pretty printed as follows:
+Elixir v1.19 ships with a new pretty printing implementation that tracks limits as a whole, instead of per depth. Previous versions would track limits per depth. For example, if you had a list of lists of 4 elements and a limit of 5, it would be pretty printed as follows:
 
 ```elixir
 [
@@ -192,7 +192,7 @@ Elixir v1.19 ships with a new pretty printing implementation that tracks limits 
 ]
 ```
 
-While this allows for more information to be shown at different nesting levels, which is useful for complex data structures, it lead to some pathological cases where the `limit` option had little effect in actual filtering the amount of data shown. The new implementation decouples the limit handling from depth, decreasing it as it goes. Therefore, the list above with the same limit in Elixir v1.19 is now printed as:
+This allows for more information to be shown at different nesting levels, which is useful for complex data structures. But it led to some pathological cases where the limit option had little effect on actually filtering the amount of data shown. The new implementation decouples the limit handling from depth, decreasing it as it goes. Therefore, the list above with the same limit in Elixir v1.19 is now printed as:
 
 ```elixir
 [
