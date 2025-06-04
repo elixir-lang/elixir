@@ -192,7 +192,7 @@ Elixir v1.19 ships with a new pretty printing implementation that tracks limits 
 ]
 ```
 
-This allows for more information to be shown at different nesting levels, which is useful for complex data structures. But it led to some pathological cases where the limit option had little effect on actually filtering the amount of data shown. The new implementation decouples the limit handling from depth, decreasing it as it goes. Therefore, the list above with the same limit in Elixir v1.19 is now printed as:
+This allows for more information to be shown at different nesting levels, which is useful for complex data structures. But it led to some pathological cases where the `limit` option had little effect on actually filtering the amount of data shown. The new implementation decouples the limit handling from depth, decreasing it as it goes. Therefore, the list above with the same limit in Elixir v1.19 is now printed as:
 
 ```elixir
 [
