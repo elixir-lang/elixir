@@ -132,6 +132,10 @@ The example above has an obvious typing violation, as the anonymous function exp
 
 Function captures, such as `&String.to_integer/1`, will also propagate the type as of Elixir v1.19, arising more opportunity for Elixir's type system to catch bugs in our programs.
 
+### Acknowledgements
+
+The type system was made possible thanks to a partnership between [CNRS](https://www.cnrs.fr/) and [Remote](https://remote.com/). The development work is currently sponsored by [Fresha](https://www.fresha.com/), [Starfish*](https://starfish.team/), and [Dashbit](https://dashbit.co/).
+
 ## Faster compile times in large projects
 
 This release includes two compiler improvements that can lead up to 4x faster builds in large codebases.
@@ -209,6 +213,8 @@ Elixir v1.19 is also our first release following OpenChain compliance, [as previ
   * Each release is attested along with the Source SBoM.
 
 These additions offer greater transparency into the components and licenses of each release, supporting more rigorous supply chain requirements.
+
+This work was performed by Jonatan Männchen and sponsored by the Erlang Ecosystem Foundation.
 
 ## v1.19.0-dev
 
