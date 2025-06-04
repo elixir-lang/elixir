@@ -849,7 +849,12 @@ defmodule Module.Types.DescrTest do
       fun0 = intersection(fun([integer()], atom()), fun([float()], binary()))
       assert fun_apply(fun0, [integer()]) == {:ok, atom()}
       assert fun_apply(fun0, [float()]) == {:ok, binary()}
-      assert fun_apply(fun0, [union(integer(), float())]) == {:ok, union(atom(), binary())}
+      assert fun_apply(fun0, [number()]) == {:ok, union(atom(), binary())}
+
+      assert fun_apply(fun0, [dynamic(integer())]) |> elem(1) |> equal?(atom())
+      assert fun_apply(fun0, [dynamic(float())]) |> elem(1) |> equal?(binary())
+      assert fun_apply(fun0, [dynamic(number())]) |> elem(1) |> equal?(union(atom(), binary()))
+      assert fun_apply(fun0, [dynamic()]) == {:ok, dynamic()}
 
       # Function intersection tests (overlap)
       fun1 = intersection(fun([integer()], atom()), fun([number()], term()))
