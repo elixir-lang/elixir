@@ -537,9 +537,13 @@ defmodule Module.Types.Descr do
             {:term, static, []}
 
           {dynamic, static} ->
-            # Denormalize functions before we do the difference
-            {static, dynamic, extra} = fun_denormalize(static, dynamic, opts)
-            {difference(dynamic, static), static, extra}
+            if term_type?(dynamic) do
+              {:term, static, []}
+            else
+              # Denormalize functions before we do the difference
+              {static, dynamic, extra} = fun_denormalize(static, dynamic, opts)
+              {difference(dynamic, static), static, extra}
+            end
         end
 
       # Merge empty list and list together if they both exist
@@ -2095,7 +2099,10 @@ defmodule Module.Types.Descr do
       descr == %{} ->
         []
 
-      term_type?(descr) ->
+      # We check for :term literally instead of using term_type?
+      # because we check for term_type? in to_quoted before we
+      # compute the difference(dynamic, static).
+      descr == :term ->
         [{:dynamic, [], []}]
 
       single = indivisible_bitmap(descr, opts) ->
