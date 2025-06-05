@@ -528,15 +528,19 @@ defmodule Module.Types.Descr do
     if term_type?(descr) do
       {:term, [], []}
     else
-      # Dynamic always come first for visibility
-      {dynamic, static} =
+      {dynamic, static, extra} =
         case :maps.take(:dynamic, descr) do
-          :error -> {%{}, descr}
-          {:term, static} -> {:term, static}
-          {dynamic, static} -> {difference(dynamic, static), static}
-        end
+          :error ->
+            {%{}, descr, []}
 
-      {static, dynamic, extra} = fun_denormalize(static, dynamic, opts)
+          {:term, static} ->
+            {:term, static, []}
+
+          {dynamic, static} ->
+            # Denormalize functions before we do the difference
+            {static, dynamic, extra} = fun_denormalize(static, dynamic, opts)
+            {difference(dynamic, static), static, extra}
+        end
 
       # Merge empty list and list together if they both exist
       {extra, static} =
@@ -553,6 +557,7 @@ defmodule Module.Types.Descr do
             {extra, static}
         end
 
+      # Dynamic always come first for visibility
       unions =
         to_quoted(:dynamic, dynamic, opts) ++
           Enum.sort(
@@ -1464,6 +1469,42 @@ defmodule Module.Types.Descr do
   end
 
   defp fun_intersection(bdd1, bdd2) do
+    # If intersecting with the top type for that arity, no-op
+    case {bdd1, bdd2} do
+      {bdd, {{args, return} = fun, :fun_top, :fun_bottom}} when is_tuple(bdd) ->
+        if return == :term and Enum.all?(args, &(&1 == %{})) and
+             matching_arity_left?(bdd, length(args)) do
+          bdd
+        else
+          {fun, bdd, :fun_bottom}
+        end
+
+      {{{args, return} = fun, :fun_top, :fun_bottom}, bdd} when is_tuple(bdd) ->
+        if return == :term and Enum.all?(args, &(&1 == %{})) and
+             matching_arity_left?(bdd, length(args)) do
+          bdd
+        else
+          {fun, bdd, :fun_bottom}
+        end
+
+      _ ->
+        fun_intersection_recur(bdd1, bdd2)
+    end
+  end
+
+  defp matching_arity_left?({{args, _return}, l, r}, arity) do
+    length(args) == arity and matching_arity_left?(l, arity) and matching_arity_right?(r, arity)
+  end
+
+  defp matching_arity_left?(_, _arity), do: true
+
+  defp matching_arity_right?({_, l, r}, arity) do
+    matching_arity_left?(l, arity) and matching_arity_right?(r, arity)
+  end
+
+  defp matching_arity_right?(_, _arity), do: true
+
+  defp fun_intersection_recur(bdd1, bdd2) do
     case {bdd1, bdd2} do
       # Base cases
       {_, :fun_bottom} ->
@@ -1482,44 +1523,26 @@ defmodule Module.Types.Descr do
       # If intersecting with a single positive or negative function, we insert
       # it at the root instead of merging the trees (this avoids going down the
       # whole bdd).
-      {bdd, {{args, return} = fun, :fun_top, :fun_bottom}} ->
-        # If intersecting with the top type for that arity, no-op
-        if return == :term and Enum.all?(args, &(&1 == %{})) and
-             matching_arity?(bdd, length(args)) do
-          bdd
-        else
-          {fun, bdd, :fun_bottom}
-        end
+      {bdd, {fun, :fun_top, :fun_bottom}} ->
+        {fun, bdd, :fun_bottom}
 
       {bdd, {fun, :fun_bottom, :fun_top}} ->
         {fun, :fun_bottom, bdd}
 
-      {{{args, return} = fun, :fun_top, :fun_bottom}, bdd} ->
-        # If intersecting with the top type for that arity, no-op
-        if return == :term and Enum.all?(args, &(&1 == %{})) and
-             matching_arity?(bdd, length(args)) do
-          bdd
-        else
-          {fun, bdd, :fun_bottom}
-        end
+      {{fun, :fun_top, :fun_bottom}, bdd} ->
+        {fun, bdd, :fun_bottom}
 
       {{fun, :fun_bottom, :fun_top}, bdd} ->
         {fun, :fun_bottom, bdd}
 
       # General cases
       {{fun, l1, r1}, {fun, l2, r2}} ->
-        {fun, fun_intersection(l1, l2), fun_intersection(r1, r2)}
+        {fun, fun_intersection_recur(l1, l2), fun_intersection_recur(r1, r2)}
 
       {{fun, l, r}, bdd} ->
-        {fun, fun_intersection(l, bdd), fun_intersection(r, bdd)}
+        {fun, fun_intersection_recur(l, bdd), fun_intersection_recur(r, bdd)}
     end
   end
-
-  defp matching_arity?({{args, _return}, l, r}, arity) do
-    length(args) == arity and matching_arity?(l, arity) and matching_arity?(r, arity)
-  end
-
-  defp matching_arity?(_, _arity), do: true
 
   defp fun_difference(bdd1, bdd2) do
     case {bdd1, bdd2} do
@@ -1541,7 +1564,7 @@ defmodule Module.Types.Descr do
     dynamic_pos = fun_get_pos(dynamic_bdd)
 
     if static_pos != [] and dynamic_pos != [] do
-      {dynamic_pos, static_pos} = fun_denormalize_pos(dynamic_pos, static_pos)
+      {static_pos, dynamic_pos} = fun_denormalize_pos(static_pos, dynamic_pos)
 
       quoted =
         if dynamic_pos == [] do
@@ -1564,50 +1587,51 @@ defmodule Module.Types.Descr do
     {static, dynamic, []}
   end
 
-  defp fun_denormalize_pos(dynamic_unions, static_unions) do
-    Enum.reduce(dynamic_unions, {[], static_unions}, fn
+  defp fun_denormalize_pos(static_unions, dynamic_unions) do
+    Enum.map_reduce(static_unions, dynamic_unions, fn
       # Handle fun() types accordingly
-      [], {dynamic_unions, static_unions} ->
-        {[[] | dynamic_unions], static_unions}
+      [], dynamic_unions ->
+        {[], List.delete(dynamic_unions, [])}
 
-      dynamic_intersections, {dynamic_unions, static_unions} ->
-        {dynamic_intersections, static_unions} =
-          Enum.reduce(dynamic_intersections, {[], static_unions}, fn
-            {args, return}, {acc, static_unions} ->
-              case fun_denormalize_arrow(args, return, static_unions) do
-                {:ok, static_unions} -> {acc, static_unions}
-                :error -> {[{args, return} | acc], static_unions}
-              end
-          end)
-
-        if dynamic_intersections == [] do
-          {dynamic_unions, static_unions}
-        else
-          {[dynamic_intersections | dynamic_unions], static_unions}
+      static_intersections, dynamic_unions ->
+        case pivot(dynamic_unions, [], &fun_denormalize_intersections(static_intersections, &1)) do
+          {match, dynamic_unions} -> {match, dynamic_unions}
+          :error -> {static_intersections, dynamic_unions}
         end
     end)
   end
 
-  defp fun_denormalize_arrow(dynamic_args, dynamic_return, static_unions) do
-    pivot(static_unions, [], fn static_intersections ->
-      pivot(static_intersections, [], fn {static_args, static_return} ->
-        if subtype?(static_return, dynamic_return) and args_subtype?(dynamic_args, static_args) do
-          args =
-            Enum.zip_with(static_args, dynamic_args, fn static_arg, dynamic_arg ->
-              union(dynamic(difference(static_arg, dynamic_arg)), dynamic_arg)
-            end)
-
-          return = union(dynamic(difference(dynamic_return, static_return)), static_return)
-          {:ok, {args, return}}
-        else
-          :error
-        end
-      end)
-    end)
+  defp fun_denormalize_intersections(statics, dynamics) do
+    if length(statics) == length(dynamics) do
+      fun_denormalize_intersections(statics, dynamics, [])
+    else
+      :error
+    end
   end
+
+  # We assume those pairs are always formed in the same order
+  defp fun_denormalize_intersections(
+         [{static_args, static_return} | statics],
+         [{dynamic_args, dynamic_return} | dynamics],
+         acc
+       ) do
+    if subtype?(static_return, dynamic_return) and args_subtype?(dynamic_args, static_args) do
+      args =
+        Enum.zip_with(static_args, dynamic_args, fn static_arg, dynamic_arg ->
+          union(dynamic(static_arg), dynamic_arg)
+        end)
+
+      return = union(dynamic(dynamic_return), static_return)
+      fun_denormalize_intersections(statics, dynamics, [{args, return} | acc])
+    else
+      :error
+    end
+  end
+
+  defp fun_denormalize_intersections([], [], acc), do: {:ok, acc}
 
   defp arrow_subtype?(left_args, left_return, right_args, right_return) do
-    subtype?(right_return, left_return) and args_subtype?(left_args, right_args)
+    subtype?(left_return, right_return) and args_subtype?(right_args, left_args)
   end
 
   defp args_subtype?(left_args, right_args) do
@@ -1618,7 +1642,7 @@ defmodule Module.Types.Descr do
 
   defp pivot([head | tail], acc, fun) do
     case fun.(head) do
-      {:ok, value} -> {:ok, acc ++ [value | tail]}
+      {:ok, value} -> {value, acc ++ tail}
       :error -> pivot(tail, [head | acc], fun)
     end
   end

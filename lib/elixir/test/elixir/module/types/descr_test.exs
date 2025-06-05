@@ -1821,9 +1821,6 @@ defmodule Module.Types.DescrTest do
              |> intersection(none_fun(2))
              |> to_quoted_string() == "none()"
 
-      assert fun([integer()], atom()) |> intersection(none_fun(1)) |> to_quoted_string() ==
-               "(integer() -> atom())"
-
       assert fun([integer(), float()], boolean()) |> to_quoted_string() ==
                "(integer(), float() -> boolean())"
 
@@ -1836,6 +1833,17 @@ defmodule Module.Types.DescrTest do
              |> intersection(fun([float()], boolean()))
              |> to_quoted_string() ==
                "(integer() -> boolean()) and (float() -> boolean())"
+    end
+
+    test "function with optimized intersections" do
+      assert fun([integer()], atom()) |> intersection(none_fun(1)) |> to_quoted_string() ==
+               "(integer() -> atom())"
+
+      assert fun([integer()], atom())
+             |> difference(none_fun(2))
+             |> intersection(none_fun(1))
+             |> to_quoted_string() ==
+               "(integer() -> atom())"
     end
 
     test "function with dynamic signatures" do
