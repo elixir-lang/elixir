@@ -3,6 +3,10 @@
 
 Code.require_file("type_helper.exs", __DIR__)
 
+defmodule NoFieldsStruct do
+  defstruct []
+end
+
 defmodule Decimal do
   defstruct [:sign, :coef, :exp]
 end
@@ -1994,6 +1998,9 @@ defmodule Module.Types.DescrTest do
 
       assert closed_map(__struct__: atom([URI])) |> to_quoted_string() ==
                "%{__struct__: URI}"
+
+      assert closed_map(__struct__: atom([NoFieldsStruct])) |> to_quoted_string() ==
+               "%NoFieldsStruct{}"
 
       assert closed_map(__struct__: atom([URI, Another])) |> to_quoted_string() ==
                "%{__struct__: Another or URI}"

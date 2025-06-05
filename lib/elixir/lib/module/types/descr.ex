@@ -2855,7 +2855,7 @@ defmodule Module.Types.Descr do
       :closed ->
         with %{__struct__: struct_descr} <- fields,
              {_, [struct]} <- atom_fetch(struct_descr),
-             [_ | _] = info <- maybe_struct(struct),
+             info when is_list(info) <- maybe_struct(struct),
              true <- map_size(fields) == length(info) + 1,
              true <- Enum.all?(info, &is_map_key(fields, &1.field)) do
           collapse? = Keyword.get(opts, :collapse_structs, true)
@@ -2873,7 +2873,8 @@ defmodule Module.Types.Descr do
              {:%{}, [], map_fields_to_quoted(tag, fields, opts)}
            ]}
         else
-          _ -> {:%{}, [], map_fields_to_quoted(tag, Enum.sort(fields), opts)}
+          _ ->
+            {:%{}, [], map_fields_to_quoted(tag, Enum.sort(fields), opts)}
         end
 
       :open ->
