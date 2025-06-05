@@ -528,50 +528,57 @@ defmodule Module.Types.Descr do
     if term_type?(descr) do
       {:term, [], []}
     else
-      {dynamic, static, extra} =
-        case :maps.take(:dynamic, descr) do
-          :error ->
-            {%{}, descr, []}
+      non_term_type_to_quoted(descr, opts)
+    end
+  end
 
-          {:term, static} ->
+  defp non_term_type_to_quoted(descr, opts) do
+    {dynamic, static, extra} =
+      case :maps.take(:dynamic, descr) do
+        :error ->
+          {%{}, descr, []}
+
+        {:term, static} ->
+          {:term, static, []}
+
+        {dynamic, static} ->
+          # Computing term_type?(difference(dynamic, static)) can be
+          # expensive, so we check for term type before hand and check
+          # for :term exclusively in dynamic_to_quoted/2.
+          if term_type?(dynamic) do
             {:term, static, []}
-
-          {dynamic, static} ->
-            if term_type?(dynamic) do
-              {:term, static, []}
-            else
-              # Denormalize functions before we do the difference
-              {static, dynamic, extra} = fun_denormalize(static, dynamic, opts)
-              {difference(dynamic, static), static, extra}
-            end
-        end
-
-      # Merge empty list and list together if they both exist
-      {extra, static} =
-        case static do
-          %{list: list, bitmap: bitmap} when (bitmap &&& @bit_empty_list) != 0 ->
-            static =
-              static
-              |> Map.delete(:list)
-              |> Map.replace!(:bitmap, bitmap - @bit_empty_list)
-
-            {list_to_quoted(list, true, opts) ++ extra, static}
-
-          %{} ->
-            {extra, static}
-        end
-
-      # Dynamic always come first for visibility
-      unions =
-        to_quoted(:dynamic, dynamic, opts) ++
-          Enum.sort(
-            extra ++ Enum.flat_map(static, fn {key, value} -> to_quoted(key, value, opts) end)
-          )
-
-      case unions do
-        [] -> {:none, [], []}
-        unions -> Enum.reduce(unions, &{:or, [], [&2, &1]})
+          else
+            # Denormalize functions before we do the difference
+            {static, dynamic, extra} = fun_denormalize(static, dynamic, opts)
+            {difference(dynamic, static), static, extra}
+          end
       end
+
+    # Merge empty list and list together if they both exist
+    {extra, static} =
+      case static do
+        %{list: list, bitmap: bitmap} when (bitmap &&& @bit_empty_list) != 0 ->
+          static =
+            static
+            |> Map.delete(:list)
+            |> Map.replace!(:bitmap, bitmap - @bit_empty_list)
+
+          {list_to_quoted(list, true, opts) ++ extra, static}
+
+        %{} ->
+          {extra, static}
+      end
+
+    # Dynamic always come first for visibility
+    unions =
+      to_quoted(:dynamic, dynamic, opts) ++
+        Enum.sort(
+          extra ++ Enum.flat_map(static, fn {key, value} -> to_quoted(key, value, opts) end)
+        )
+
+    case unions do
+      [] -> {:none, [], []}
+      unions -> Enum.reduce(unions, &{:or, [], [&2, &1]})
     end
   end
 
@@ -2109,7 +2116,7 @@ defmodule Module.Types.Descr do
         [single]
 
       true ->
-        case to_quoted(descr, opts) do
+        case non_term_type_to_quoted(descr, opts) do
           {:none, _meta, []} = none -> [none]
           descr -> [{:dynamic, [], [descr]}]
         end
