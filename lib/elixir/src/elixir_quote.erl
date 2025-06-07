@@ -165,13 +165,13 @@ do_escape(BitString, _) when is_bitstring(BitString) ->
 
 do_escape(Map, Q) when is_map(Map) ->
   TT =
-    [case extract_value_ref(V) of
-      Ref when is_reference(Ref) ->
+    [case do_quote_map_value(V, Q) of
+      {ok, QV} ->
+        {do_quote(K, Q), QV};
+      {error, Ref} ->
         argument_error(<<('Elixir.Kernel':inspect(Map, []))/binary, " contains a reference (",
                          ('Elixir.Kernel':inspect(Ref, []))/binary, ") and therefore it cannot be escaped ",
-                         "(it must be defined within a function instead). ", (bad_escape_hint())/binary>>);
-      _ ->
-        {do_quote(K, Q), do_quote(V, Q)}
+                         "(it must be defined within a function instead). ", (bad_escape_hint())/binary>>)
      end || {K, V} <- lists:sort(maps:to_list(Map))],
   {'%{}', [], TT};
 
@@ -206,15 +206,16 @@ do_escape(Fun, _) when is_function(Fun) ->
 do_escape(Other, _) ->
   bad_escape(Other).
 
-extract_value_ref(Ref) when is_reference(Ref) -> Ref;
-extract_value_ref(Tuple) when is_tuple(Tuple) -> extract_value_ref_from_tuple(Tuple, 1);
-extract_value_ref(_) -> nil.
+do_quote_map_value(Ref, _Q) when is_reference(Ref) -> {error, Ref};
+do_quote_map_value(Tuple, Q) when is_tuple(Tuple) -> do_quote_map_value_tuple(Tuple, Q, 1);
+do_quote_map_value(Value, Q) -> {ok, do_quote(Value, Q)}.
 
-extract_value_ref_from_tuple(Tuple, Index) when Index > tuple_size(Tuple) -> nil;
-extract_value_ref_from_tuple(Tuple, Index) ->
+do_quote_map_value_tuple(Tuple, Q, Index) when Index > tuple_size(Tuple) ->
+  {ok, do_quote(Tuple, Q)};
+do_quote_map_value_tuple(Tuple, Q, Index) ->
   case element(Index, Tuple) of
-    Ref when is_reference(Ref) -> Ref;
-    _ -> extract_value_ref_from_tuple(Tuple, Index + 1)
+    Ref when is_reference(Ref) -> {error, Ref};
+    _ -> do_quote_map_value_tuple(Tuple, Q, Index + 1)
   end.
 
 bad_escape(Arg) ->
