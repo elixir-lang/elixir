@@ -697,8 +697,11 @@ defmodule Mix.Tasks.Format do
     do: path |> Path.expand() |> Path.wildcard(match_dot: true) |> Enum.filter(&File.regular?/1)
 
   defp elixir_format(content, formatter_opts) do
-    case Code.format_string!(content, formatter_opts) do
-      [] -> ""
+    content
+    |> Code.format_string!(formatter_opts)
+    |> IO.iodata_to_binary()
+    |> case do
+      "" -> ""
       formatted_content -> IO.iodata_to_binary([formatted_content, ?\n])
     end
   end

@@ -546,7 +546,7 @@ defmodule CodeTest do
   end
 
   test "format_string/2 returns empty iodata for empty string" do
-    assert Code.format_string!("") == []
+    assert Code.format_string!("") == ""
   end
 
   test "ensure_loaded?/1" do

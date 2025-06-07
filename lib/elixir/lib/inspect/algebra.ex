@@ -192,7 +192,7 @@ defmodule Inspect.Algebra do
 
       iex> doc = Inspect.Algebra.concat(Inspect.Algebra.empty(), "foo")
       iex> Inspect.Algebra.format(doc, 80)
-      ["foo"]
+      "foo"
 
   The functions `nest/2`, `space/2` and `line/2` help you put the
   document together into a rigid structure. However, the document
@@ -205,7 +205,7 @@ defmodule Inspect.Algebra do
       iex> doc = Inspect.Algebra.glue("a", " ", "b")
       iex> doc = Inspect.Algebra.group(doc)
       iex> Inspect.Algebra.format(doc, 80)
-      ["a", " ", "b"]
+      "a b"
 
   Note that the break was represented as is, because we haven't reached
   a line limit. Once we do, it is replaced by a newline:
@@ -213,7 +213,7 @@ defmodule Inspect.Algebra do
       iex> doc = Inspect.Algebra.glue(String.duplicate("a", 20), " ", "b")
       iex> doc = Inspect.Algebra.group(doc)
       iex> Inspect.Algebra.format(doc, 10)
-      ["aaaaaaaaaaaaaaaaaaaa", "\n", "b"]
+      "aaaaaaaaaaaaaaaaaaaa\nb"
 
   This module uses the byte size to compute how much space there is
   left. If your document contains strings, then those need to be
@@ -279,7 +279,7 @@ defmodule Inspect.Algebra do
     quote do: [unquote(left) | unquote(right)]
   end
 
-  @typep doc_string :: {:doc_string, t, non_neg_integer}
+  @typep doc_string :: {:doc_string, binary, non_neg_integer}
   defmacrop doc_string(string, length) do
     quote do: {:doc_string, unquote(string), unquote(length)}
   end
@@ -665,7 +665,7 @@ defmodule Inspect.Algebra do
       iex> doc = Inspect.Algebra.glue("olá", " ", "mundo")
       iex> doc = Inspect.Algebra.group(doc)
       iex> Inspect.Algebra.format(doc, 9)
-      ["olá", "\n", "mundo"]
+      "olá\nmundo"
 
   However, if we use `string`, then the string length is
   used, instead of byte size, correctly fitting:
@@ -674,7 +674,7 @@ defmodule Inspect.Algebra do
       iex> doc = Inspect.Algebra.glue(string, " ", "mundo")
       iex> doc = Inspect.Algebra.group(doc)
       iex> Inspect.Algebra.format(doc, 9)
-      ["olá", " ", "mundo"]
+      "olá mundo"
 
   """
   @doc since: "1.6.0"
@@ -690,7 +690,7 @@ defmodule Inspect.Algebra do
 
       iex> doc = Inspect.Algebra.concat("hello", "world")
       iex> Inspect.Algebra.format(doc, 80)
-      ["hello", "world"]
+      "helloworld"
 
   """
   @spec concat(t, t) :: t
@@ -705,10 +705,10 @@ defmodule Inspect.Algebra do
 
       iex> doc = Inspect.Algebra.glue("hello", "world") |> Inspect.Algebra.group()
       iex> Inspect.Algebra.format(doc, 10)
-      ["hello", "\n", "world"]
+      "hello\nworld"
       iex> doc = Inspect.Algebra.no_limit(doc)
       iex> Inspect.Algebra.format(doc, 10)
-      ["hello", " ", "world"]
+      "hello world"
 
   """
   @doc since: "1.14.0"
@@ -724,7 +724,7 @@ defmodule Inspect.Algebra do
 
       iex> doc = Inspect.Algebra.concat(["a", "b", "c"])
       iex> Inspect.Algebra.format(doc, 80)
-      ["a", "b", "c"]
+      "abc"
 
   """
   @spec concat([t]) :: t
@@ -758,7 +758,7 @@ defmodule Inspect.Algebra do
       iex> doc = Inspect.Algebra.nest(Inspect.Algebra.glue("hello", "world"), 5)
       iex> doc = Inspect.Algebra.group(doc)
       iex> Inspect.Algebra.format(doc, 5)
-      ["hello", "\n     ", "world"]
+      "hello\n     world"
 
   """
   @spec nest(t, non_neg_integer | :cursor | :reset, :always | :break) :: doc_nest | t
@@ -794,7 +794,7 @@ defmodule Inspect.Algebra do
 
       iex> doc = Inspect.Algebra.concat(["a", Inspect.Algebra.break("\t"), "b"])
       iex> Inspect.Algebra.format(doc, 80)
-      ["a", "\t", "b"]
+      "a\tb"
 
   Note that the break was represented with the given string, because we didn't
   reach a line limit. Once we do, it is replaced by a newline:
@@ -803,7 +803,7 @@ defmodule Inspect.Algebra do
       iex> doc = Inspect.Algebra.concat([String.duplicate("a", 20), break, "b"])
       iex> doc = Inspect.Algebra.group(doc)
       iex> Inspect.Algebra.format(doc, 10)
-      ["aaaaaaaaaaaaaaaaaaaa", "\n", "b"]
+      "aaaaaaaaaaaaaaaaaaaa\nb"
 
   """
   @spec break(binary) :: doc_break
@@ -898,11 +898,11 @@ defmodule Inspect.Algebra do
 
       iex> doc = Inspect.Algebra.glue("hello", "world")
       iex> Inspect.Algebra.format(doc, 80)
-      ["hello", " ", "world"]
+      "hello world"
 
       iex> doc = Inspect.Algebra.glue("hello", "\t", "world")
       iex> Inspect.Algebra.format(doc, 80)
-      ["hello", "\t", "world"]
+      "hello\tworld"
 
   """
   @spec glue(t, binary, t) :: t
@@ -961,9 +961,9 @@ defmodule Inspect.Algebra do
       ...>     )
       ...>   )
       iex> Inspect.Algebra.format(doc, 80)
-      ["Hello,", " ", "A", " ", "B"]
+      "Hello, A B"
       iex> Inspect.Algebra.format(doc, 6)
-      ["Hello,", "\n", "A", "\n", "B"]
+      "Hello,\nA\nB"
 
   ## Mode examples
 
@@ -1018,7 +1018,7 @@ defmodule Inspect.Algebra do
 
       iex> doc = Inspect.Algebra.space("Hughes", "Wadler")
       iex> Inspect.Algebra.format(doc, 5)
-      ["Hughes", " ", "Wadler"]
+      "Hughes Wadler"
 
   """
   @spec space(t, t) :: t
@@ -1040,7 +1040,7 @@ defmodule Inspect.Algebra do
       ...>     "Wadler"
       ...>   )
       iex> Inspect.Algebra.format(doc, 80)
-      ["Hughes", "\n", "Wadler"]
+      "Hughes\nWadler"
 
   """
   @doc since: "1.6.0"
@@ -1056,7 +1056,7 @@ defmodule Inspect.Algebra do
 
       iex> doc = Inspect.Algebra.line("Hughes", "Wadler")
       iex> Inspect.Algebra.format(doc, 80)
-      ["Hughes", "\n", "Wadler"]
+      "Hughes\nWadler"
 
   """
   @spec line(t, t) :: t
@@ -1081,7 +1081,7 @@ defmodule Inspect.Algebra do
       ...>     Inspect.Algebra.concat([doc, "!", acc])
       ...>   end)
       iex> Inspect.Algebra.format(docs, 80)
-      ["A", "!", "B", "!", "C"]
+      "A!B!C"
 
   """
   @doc since: "1.18.0"
@@ -1115,7 +1115,7 @@ defmodule Inspect.Algebra do
   """
   @spec format(t, non_neg_integer | :infinity) :: iodata
   def format(doc, width) when is_doc(doc) and is_width(width) do
-    format(width, 0, [{0, :flat, doc}])
+    format(width, 0, [{0, :flat, doc}], <<>>)
   end
 
   # Type representing the document mode to be rendered:
@@ -1225,85 +1225,104 @@ defmodule Inspect.Algebra do
   @spec format(
           width :: non_neg_integer() | :infinity,
           column :: non_neg_integer(),
-          [{integer, mode, t} | :group_over]
-        ) :: [binary]
-  defp format(_, _, []), do: []
-  defp format(w, k, [{_, _, doc_nil()} | t]), do: format(w, k, t)
-  defp format(w, _, [{i, _, doc_line()} | t]), do: [indent(i) | format(w, i, t)]
-  defp format(w, k, [{i, m, doc_cons(x, y)} | t]), do: format(w, k, [{i, m, x}, {i, m, y} | t])
-  defp format(w, k, [{i, m, doc_color(x, c)} | t]), do: [c | format(w, k, [{i, m, x} | t])]
-  defp format(w, k, [{_, _, doc_string(s, l)} | t]), do: [s | format(w, k + l, t)]
-  defp format(w, k, [{_, _, s} | t]) when is_binary(s), do: [s | format(w, k + byte_size(s), t)]
-  defp format(w, k, [{i, m, doc_force(x)} | t]), do: format(w, k, [{i, m, x} | t])
-  defp format(w, k, [{i, m, doc_fits(x, _)} | t]), do: format(w, k, [{i, m, x} | t])
-  defp format(w, _, [{i, _, doc_collapse(max)} | t]), do: collapse(format(w, i, t), max, 0, i)
+          [{integer, mode, t} | :group_over],
+          binary
+        ) :: iodata
+  defp format(_, _, [], acc), do: acc
+
+  defp format(w, k, [{_, _, doc_nil()} | t], acc),
+    do: format(w, k, t, acc)
+
+  defp format(w, _, [{i, _, doc_line()} | t], acc),
+    do: format(w, i, t, <<acc::binary, indent(i)::binary>>)
+
+  defp format(w, k, [{i, m, doc_cons(x, y)} | t], acc),
+    do: format(w, k, [{i, m, x}, {i, m, y} | t], acc)
+
+  defp format(w, k, [{i, m, doc_color(x, c)} | t], acc),
+    do: format(w, k, [{i, m, x} | t], <<acc::binary, c::binary>>)
+
+  defp format(w, k, [{_, _, doc_string(s, l)} | t], acc),
+    do: format(w, k + l, t, <<acc::binary, s::binary>>)
+
+  defp format(w, k, [{_, _, s} | t], acc) when is_binary(s),
+    do: format(w, k + byte_size(s), t, <<acc::binary, s::binary>>)
+
+  defp format(w, k, [{i, m, doc_force(x)} | t], acc),
+    do: format(w, k, [{i, m, x} | t], acc)
+
+  defp format(w, k, [{i, m, doc_fits(x, _)} | t], acc),
+    do: format(w, k, [{i, m, x} | t], acc)
+
+  defp format(w, _, [{i, _, doc_collapse(max)} | t], acc),
+    do: [acc | collapse(List.wrap(format(w, i, t, <<>>)), max, 0, i)]
 
   # Flex breaks are conditional to the document and the mode
-  defp format(w, k, [{i, m, doc_break(s, :flex)} | t]) do
+  defp format(w, k, [{i, m, doc_break(s, :flex)} | t], acc) do
     k = k + byte_size(s)
 
     if w == :infinity or m == :flat or fits?(w, k, true, t) do
-      [s | format(w, k, t)]
+      format(w, k, t, <<acc::binary, s::binary>>)
     else
-      [indent(i) | format(w, i, t)]
+      format(w, i, t, <<acc::binary, indent(i)::binary>>)
     end
   end
 
   # Strict breaks are conditional to the mode
-  defp format(w, k, [{i, mode, doc_break(s, :strict)} | t]) do
+  defp format(w, k, [{i, mode, doc_break(s, :strict)} | t], acc) do
     if mode == :break do
-      [indent(i) | format(w, i, t)]
+      format(w, i, t, <<acc::binary, indent(i)::binary>>)
     else
-      [s | format(w, k + byte_size(s), t)]
+      format(w, k + byte_size(s), t, <<acc::binary, s::binary>>)
     end
   end
 
   # Nesting is conditional to the mode.
-  defp format(w, k, [{i, mode, doc_nest(x, j, nest)} | t]) do
+  defp format(w, k, [{i, mode, doc_nest(x, j, nest)} | t], acc) do
     if nest == :always or (nest == :break and mode == :break) do
-      format(w, k, [{apply_nesting(i, k, j), mode, x} | t])
+      format(w, k, [{apply_nesting(i, k, j), mode, x} | t], acc)
     else
-      format(w, k, [{i, mode, x} | t])
+      format(w, k, [{i, mode, x} | t], acc)
     end
   end
 
   # Groups must do the fitting decision.
-  defp format(w, k, [:group_over | t]) do
-    format(w, k, t)
+  defp format(w, k, [:group_over | t], acc) do
+    format(w, k, t, acc)
   end
 
   # TODO: Deprecate me in Elixir v1.23
-  defp format(w, k, [{i, :break, doc_group(x, :inherit)} | t]) do
-    format(w, k, [{i, :break, x} | t])
+  defp format(w, k, [{i, :break, doc_group(x, :inherit)} | t], acc) do
+    format(w, k, [{i, :break, x} | t], acc)
   end
 
-  defp format(w, k, [{i, :flat, doc_group(x, :optimistic)} | t]) do
+  defp format(w, k, [{i, :flat, doc_group(x, :optimistic)} | t], acc) do
     if w == :infinity or fits?(w, k, false, [{i, :flat, x} | t]) do
-      format(w, k, [{i, :flat, x}, :group_over | t])
+      format(w, k, [{i, :flat, x}, :group_over | t], acc)
     else
-      format(w, k, [{i, :break, x}, :group_over | t])
+      format(w, k, [{i, :break, x}, :group_over | t], acc)
     end
   end
 
-  defp format(w, k, [{i, _, doc_group(x, _)} | t]) do
+  defp format(w, k, [{i, _, doc_group(x, _)} | t], acc) do
     if w == :infinity or fits?(w, k, false, [{i, :flat, x}]) do
-      format(w, k, [{i, :flat, x}, :group_over | t])
+      format(w, k, [{i, :flat, x}, :group_over | t], acc)
     else
-      format(w, k, [{i, :break, x}, :group_over | t])
+      format(w, k, [{i, :break, x}, :group_over | t], acc)
     end
   end
 
   # Limit is set to infinity and then reverts
-  defp format(w, k, [{i, m, doc_limit(x, :infinity)} | t]) when w != :infinity do
-    format(:infinity, k, [{i, :flat, x}, {i, m, doc_limit(empty(), w)} | t])
+  defp format(w, k, [{i, m, doc_limit(x, :infinity)} | t], acc) when w != :infinity do
+    format(:infinity, k, [{i, :flat, x}, {i, m, doc_limit(empty(), w)} | t], acc)
   end
 
-  defp format(_w, k, [{i, m, doc_limit(x, w)} | t]) do
-    format(w, k, [{i, m, x} | t])
+  defp format(_w, k, [{i, m, doc_limit(x, w)} | t], acc) do
+    format(w, k, [{i, m, x} | t], acc)
   end
 
-  defp collapse(["\n" <> _ | t], max, count, i) do
-    collapse(t, max, count + 1, i)
+  defp collapse(["\n" <> rest | t], max, count, i) do
+    collapse([strip_whitespace(rest) | t], max, count + 1, i)
   end
 
   defp collapse(["" | t], max, count, i) do
@@ -1311,8 +1330,11 @@ defmodule Inspect.Algebra do
   end
 
   defp collapse(t, max, count, i) do
-    [:binary.copy("\n", min(max, count)) <> :binary.copy(" ", i) | t]
+    [:binary.copy("\n", min(max, count)), :binary.copy(" ", i) | t]
   end
+
+  defp strip_whitespace(" " <> rest), do: strip_whitespace(rest)
+  defp strip_whitespace(rest), do: rest
 
   defp apply_nesting(_, k, :cursor), do: k
   defp apply_nesting(_, _, :reset), do: 0
