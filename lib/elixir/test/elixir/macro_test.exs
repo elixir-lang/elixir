@@ -143,7 +143,7 @@ defmodule MacroTest do
 
     test "inspects container when a reference cannot be escaped" do
       assert_raise ArgumentError, ~r"~r/foo/ contains a reference", fn ->
-        Macro.escape(%{~r/foo/ | re_pattern: make_ref()})
+        Macro.escape(%{~r/foo/ | re_pattern: {:re_pattern, 0, 0, 0, make_ref()}})
       end
     end
   end
