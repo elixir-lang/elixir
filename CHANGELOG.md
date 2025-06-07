@@ -8,28 +8,6 @@
 
 ## Type system improvements
 
-### More type inference
-
-Elixir now performs inference of whole functions. The best way to show the new capabilities are with examples. Take the following code:
-
-```elixir
-def add_foo_and_bar(data) do
-  data.foo + data.bar
-end
-```
-
-Elixir now infers that the function expects a `map` as first argument, and the map must have the keys `.foo` and `.bar` whose values are either `integer()` or `float()`. The return type will be either `integer()` or `float()`.
-
-Here is another example:
-
-```elixir
-def sum_to_string(a, b) do
-  Integer.to_string(a + b)
-end
-```
-
-Even though the `+` operator works with both integers and floats, Elixir infers that `a` and `b` must be both integers, as the result of `+` is given to a function that expects an integer. The inferred type information is then used during type checking to find possible typing errors.
-
 ### Type checking of protocol dispatch and implementations
 
 This release also adds type checking when dispatching and implementing protocols.
