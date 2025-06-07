@@ -165,12 +165,12 @@ do_escape(BitString, _) when is_bitstring(BitString) ->
 
 do_escape(Map, Q) when is_map(Map) ->
   TT =
-    [if
-      is_reference(V) ->
+    [case extract_value_ref(V) of
+      Ref when is_reference(Ref) ->
         argument_error(<<('Elixir.Kernel':inspect(Map, []))/binary, " contains a reference (",
-                         ('Elixir.Kernel':inspect(V, []))/binary, ") and therefore it cannot be escaped ",
+                         ('Elixir.Kernel':inspect(Ref, []))/binary, ") and therefore it cannot be escaped ",
                          "(it must be defined within a function instead). ", (bad_escape_hint())/binary>>);
-      true ->
+      _ ->
         {do_quote(K, Q), do_quote(V, Q)}
      end || {K, V} <- lists:sort(maps:to_list(Map))],
   {'%{}', [], TT};
@@ -205,6 +205,17 @@ do_escape(Fun, _) when is_function(Fun) ->
 
 do_escape(Other, _) ->
   bad_escape(Other).
+
+extract_value_ref(Ref) when is_reference(Ref) -> Ref;
+extract_value_ref(Tuple) when is_tuple(Tuple) -> extract_value_ref_from_tuple(Tuple, 1);
+extract_value_ref(_) -> nil.
+
+extract_value_ref_from_tuple(Tuple, Index) when Index > tuple_size(Tuple) -> nil;
+extract_value_ref_from_tuple(Tuple, Index) ->
+  case element(Index, Tuple) of
+    Ref when is_reference(Ref) -> Ref;
+    _ -> extract_value_ref_from_tuple(Tuple, Index + 1)
+  end.
 
 bad_escape(Arg) ->
   argument_error(<<"cannot escape ", ('Elixir.Kernel':inspect(Arg, []))/binary, ". ",
