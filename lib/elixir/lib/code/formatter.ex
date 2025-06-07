@@ -2500,16 +2500,16 @@ defmodule Code.Formatter do
 
   # Relying on the inner document is brittle and error prone.
   # It would be best if we had a mechanism to apply this.
-  defp concat_to_last_group({:doc_cons, left, right}, concat) do
-    {:doc_cons, left, concat_to_last_group(right, concat)}
+  defp concat_to_last_group([left | right], concat) do
+    [left | concat_to_last_group(right, concat)]
   end
 
   defp concat_to_last_group({:doc_group, group, mode}, concat) do
-    {:doc_group, {:doc_cons, group, concat}, mode}
+    {:doc_group, concat(group, concat), mode}
   end
 
   defp concat_to_last_group(other, concat) do
-    {:doc_cons, other, concat}
+    concat(other, concat)
   end
 
   defp ungroup_if_group({:doc_group, group, _mode}), do: group

@@ -326,7 +326,7 @@ defimpl Inspect, for: BitString do
   end
 
   defp each_bit(<<>>, _counter, _opts) do
-    :doc_nil
+    Inspect.Algebra.empty()
   end
 
   defp each_bit(<<h::8>>, _counter, opts) do

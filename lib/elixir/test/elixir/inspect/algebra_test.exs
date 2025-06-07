@@ -40,7 +40,7 @@ defmodule Inspect.AlgebraTest do
 
   test "empty doc" do
     # Consistent with definitions
-    assert empty() == :doc_nil
+    assert empty() == []
 
     # Consistent formatting
     assert render(empty(), 80) == ""
@@ -74,7 +74,7 @@ defmodule Inspect.AlgebraTest do
 
   test "glue doc" do
     # Consistent with definitions
-    assert glue("a", "->", "b") == {:doc_cons, "a", {:doc_cons, {:doc_break, "->", :strict}, "b"}}
+    assert glue("a", "->", "b") == ["a", {:doc_break, "->", :strict} | "b"]
     assert glue("a", "b") == glue("a", " ", "b")
 
     # Wrong argument type
@@ -84,7 +84,7 @@ defmodule Inspect.AlgebraTest do
   test "flex glue doc" do
     # Consistent with definitions
     assert flex_glue("a", "->", "b") ==
-             {:doc_cons, "a", {:doc_cons, {:doc_break, "->", :flex}, "b"}}
+             ["a", {:doc_break, "->", :flex} | "b"]
 
     assert flex_glue("a", "b") == flex_glue("a", " ", "b")
 
@@ -107,13 +107,13 @@ defmodule Inspect.AlgebraTest do
 
   test "space doc" do
     # Consistent with definitions
-    assert space("a", "b") == {:doc_cons, "a", {:doc_cons, " ", "b"}}
+    assert space("a", "b") == ["a", " " | "b"]
   end
 
   test "always nest doc" do
     # Consistent with definitions
     assert nest(empty(), 1) == {:doc_nest, empty(), 1, :always}
-    assert nest(empty(), 0) == :doc_nil
+    assert nest(empty(), 0) == []
 
     # Wrong argument type
     assert_raise FunctionClauseError, fn -> nest("foo", empty()) end
@@ -127,7 +127,7 @@ defmodule Inspect.AlgebraTest do
   test "break nest doc" do
     # Consistent with definitions
     assert nest(empty(), 1, :break) == {:doc_nest, empty(), 1, :break}
-    assert nest(empty(), 0, :break) == :doc_nil
+    assert nest(empty(), 0, :break) == []
 
     # Wrong argument type
     assert_raise FunctionClauseError, fn -> nest("foo", empty(), :break) end
@@ -188,7 +188,7 @@ defmodule Inspect.AlgebraTest do
 
   test "line doc" do
     # Consistent with definitions
-    assert line("a", "b") == {:doc_cons, "a", {:doc_cons, :doc_line, "b"}}
+    assert line("a", "b") == ["a", :doc_line | "b"]
 
     # Consistent formatting
     assert render(line(glue("aaa", "bbb"), glue("ccc", "ddd")), 10) == "aaa bbb\nccc ddd"

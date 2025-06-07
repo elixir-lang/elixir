@@ -181,8 +181,8 @@ defmodule Inspect.Algebra do
   additions, like support for binary nodes and a break mode that
   maximises use of horizontal space.
 
-      iex> Inspect.Algebra.empty()
-      :doc_nil
+      iex> Inspect.Algebra.line()
+      :doc_line
 
       iex> "foo"
       "foo"
@@ -251,18 +251,33 @@ defmodule Inspect.Algebra do
 
   @type t ::
           binary
-          | :doc_line
-          | :doc_nil
+          | doc_nil
+          | doc_cons
+          | doc_line
           | doc_break
           | doc_collapse
           | doc_color
-          | doc_cons
           | doc_fits
           | doc_force
           | doc_group
           | doc_nest
           | doc_string
           | doc_limit
+
+  @typep doc_nil :: []
+  defmacrop doc_nil do
+    []
+  end
+
+  @typep doc_line :: :doc_line
+  defmacrop doc_line do
+    :doc_line
+  end
+
+  @typep doc_cons :: nonempty_improper_list(t, t)
+  defmacrop doc_cons(left, right) do
+    quote do: [unquote(left) | unquote(right)]
+  end
 
   @typep doc_string :: {:doc_string, t, non_neg_integer}
   defmacrop doc_string(string, length) do
@@ -272,11 +287,6 @@ defmodule Inspect.Algebra do
   @typep doc_limit :: {:doc_limit, t, pos_integer | :infinity}
   defmacrop doc_limit(doc, limit) do
     quote do: {:doc_limit, unquote(doc), unquote(limit)}
-  end
-
-  @typep doc_cons :: {:doc_cons, t, t}
-  defmacrop doc_cons(left, right) do
-    quote do: {:doc_cons, unquote(left), unquote(right)}
   end
 
   @typep doc_nest :: {:doc_nest, t, :cursor | :reset | non_neg_integer, :always | :break}
@@ -328,7 +338,7 @@ defmodule Inspect.Algebra do
   ]
 
   defguard is_doc(doc)
-           when is_binary(doc) or doc in [:doc_nil, :doc_line] or
+           when is_list(doc) or is_binary(doc) or doc == doc_line() or
                   (is_tuple(doc) and elem(doc, 0) in @docs)
 
   defguardp is_width(width) when width == :infinity or (is_integer(width) and width >= 0)
@@ -508,8 +518,8 @@ defmodule Inspect.Algebra do
 
         group =
           case flex? do
-            true -> group(concat(concat(left, nest(docs, 1)), right))
-            false -> group(glue(nest(glue(left, "", docs), 2), "", right))
+            true -> doc_group(concat(concat(left, nest(docs, 1)), right), :normal)
+            false -> doc_group(glue(nest(glue(left, "", docs), 2), "", right), :normal)
           end
 
         {group, inspect_opts}
@@ -550,21 +560,21 @@ defmodule Inspect.Algebra do
 
     case fun.(term, changed_opts) do
       {doc, %Inspect.Opts{} = opts} -> {doc, opts}
-      :doc_nil -> {:doc_nil, opts}
+      doc_nil() -> {doc_nil(), opts}
       doc -> {doc, changed_opts}
     end
   end
 
-  defp join(:doc_nil, :doc_nil, _, _), do: :doc_nil
-  defp join(left, :doc_nil, _, _), do: left
-  defp join(:doc_nil, right, _, _), do: right
+  defp join(doc_nil(), doc_nil(), _, _), do: doc_nil()
+  defp join(left, doc_nil(), _, _), do: left
+  defp join(doc_nil(), right, _, _), do: right
   defp join(left, right, true, sep), do: flex_glue(concat(left, sep), right)
   defp join(left, right, false, sep), do: glue(concat(left, sep), right)
 
   defp simple?(doc_cons(left, right)), do: simple?(left) and simple?(right)
   defp simple?(doc_color(doc, _)), do: simple?(doc)
   defp simple?(doc_string(_, _)), do: true
-  defp simple?(:doc_nil), do: true
+  defp simple?(doc_nil()), do: true
   defp simple?(other), do: is_binary(other)
 
   @doc false
@@ -615,17 +625,29 @@ defmodule Inspect.Algebra do
 
   # Algebra API
 
+  @compile {:inline,
+            empty: 0,
+            concat: 2,
+            break: 0,
+            break: 1,
+            glue: 2,
+            glue: 3,
+            flex_break: 0,
+            flex_break: 1,
+            flex_glue: 2,
+            flex_glue: 3}
+
   @doc """
   Returns a document entity used to represent nothingness.
 
   ## Examples
 
       iex> Inspect.Algebra.empty()
-      :doc_nil
+      []
 
   """
-  @spec empty() :: :doc_nil
-  def empty, do: :doc_nil
+  @spec empty() :: doc_nil()
+  def empty, do: doc_nil()
 
   @doc ~S"""
   Creates a document represented by string.
@@ -1023,7 +1045,7 @@ defmodule Inspect.Algebra do
   """
   @doc since: "1.6.0"
   @spec line() :: t
-  def line(), do: :doc_line
+  def line(), do: doc_line()
 
   @doc ~S"""
   Inserts a mandatory linebreak between two documents.
@@ -1163,20 +1185,20 @@ defmodule Inspect.Algebra do
     do: fits?(w, k, b?, [{i, :break_no_flat, x} | t])
 
   defp fits?(_, _, _, [{_, :break_no_flat, doc_break(_, _)} | _]), do: true
-  defp fits?(_, _, _, [{_, :break_no_flat, :doc_line} | _]), do: true
+  defp fits?(_, _, _, [{_, :break_no_flat, doc_line()} | _]), do: true
 
   ## Breaks
 
   defp fits?(_, _, _, [{_, :break, doc_break(_, _)} | _]), do: true
-  defp fits?(_, _, _, [{_, :break, :doc_line} | _]), do: true
+  defp fits?(_, _, _, [{_, :break, doc_line()} | _]), do: true
 
   defp fits?(w, k, b?, [{i, :break, doc_group(x, _)} | t]),
     do: fits?(w, k, b?, [{i, :flat, x} | {:tail, b?, t}])
 
   ## Catch all
 
-  defp fits?(w, _, _, [{i, _, :doc_line} | t]), do: fits?(w, i, false, t)
-  defp fits?(w, k, b?, [{_, _, :doc_nil} | t]), do: fits?(w, k, b?, t)
+  defp fits?(w, _, _, [{i, _, doc_line()} | t]), do: fits?(w, i, false, t)
+  defp fits?(w, k, b?, [{_, _, doc_nil()} | t]), do: fits?(w, k, b?, t)
   defp fits?(w, _, b?, [{i, _, doc_collapse(_)} | t]), do: fits?(w, i, b?, t)
   defp fits?(w, k, b?, [{i, m, doc_color(x, _)} | t]), do: fits?(w, k, b?, [{i, m, x} | t])
   defp fits?(w, k, b?, [{_, _, doc_string(_, l)} | t]), do: fits?(w, k + l, b?, t)
@@ -1206,8 +1228,8 @@ defmodule Inspect.Algebra do
           [{integer, mode, t} | :group_over]
         ) :: [binary]
   defp format(_, _, []), do: []
-  defp format(w, k, [{_, _, :doc_nil} | t]), do: format(w, k, t)
-  defp format(w, _, [{i, _, :doc_line} | t]), do: [indent(i) | format(w, i, t)]
+  defp format(w, k, [{_, _, doc_nil()} | t]), do: format(w, k, t)
+  defp format(w, _, [{i, _, doc_line()} | t]), do: [indent(i) | format(w, i, t)]
   defp format(w, k, [{i, m, doc_cons(x, y)} | t]), do: format(w, k, [{i, m, x}, {i, m, y} | t])
   defp format(w, k, [{i, m, doc_color(x, c)} | t]), do: [c | format(w, k, [{i, m, x} | t])]
   defp format(w, k, [{_, _, doc_string(s, l)} | t]), do: [s | format(w, k + l, t)]
