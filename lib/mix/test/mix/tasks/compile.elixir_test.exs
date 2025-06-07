@@ -1139,16 +1139,16 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
-  test "recompiles modules with async tracking" do
+  test "recompiles modules with pmap tracking" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
 
       File.write!("lib/a.ex", """
-      Kernel.ParallelCompiler.async(fn ->
+      Kernel.ParallelCompiler.pmap([:ok], fn :ok ->
         defmodule A do
           def fun, do: :ok
         end
-      end) |> Task.await()
+      end)
       """)
 
       File.write!("lib/b.ex", """

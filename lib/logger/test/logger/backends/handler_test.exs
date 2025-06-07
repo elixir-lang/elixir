@@ -38,7 +38,10 @@ defmodule Logger.Backends.HandlerTest do
 
     # Explicitly use add to make sure that root is dynamically started
     Application.start(:logger)
-    Logger.Backends.Internal.add(Logger.Backends.Console)
+
+    ExUnit.CaptureIO.capture_io(:stderr, fn ->
+      Logger.Backends.Internal.add(Logger.Backends.Console)
+    end)
 
     on_exit(fn ->
       Application.delete_env(:logger, :default_handler)
@@ -96,7 +99,7 @@ defmodule Logger.Backends.HandlerTest do
   end
 
   test "converts Erlang metadata" do
-    Logger.configure_backend(Logger.Backends.Console,
+    Logger.Backends.Internal.configure(Logger.Backends.Console,
       metadata: [:file, :line, :module, :function]
     )
 
@@ -110,7 +113,7 @@ defmodule Logger.Backends.HandlerTest do
     assert message =~ "file=file.erl"
     assert message =~ "line=13"
   after
-    Logger.configure_backend(Logger.Backends.Console, metadata: [])
+    Logger.Backends.Internal.configure(Logger.Backends.Console, metadata: [])
   end
 
   test "uses reporting callback with Elixir inspection" do
@@ -132,7 +135,7 @@ defmodule Logger.Backends.HandlerTest do
   end
 
   test "include Erlang severity level information" do
-    Logger.configure_backend(Logger.Backends.Console, metadata: [:erl_level])
+    Logger.Backends.Internal.configure(Logger.Backends.Console, metadata: [:erl_level])
 
     assert capture_log(fn -> :logger.emergency(~c"ok") end) =~ "erl_level=emergency"
     assert capture_log(fn -> :logger.alert(~c"ok") end) =~ "erl_level=alert"
@@ -147,7 +150,7 @@ defmodule Logger.Backends.HandlerTest do
       assert capture_log(fn -> :logger.log(level, ~c"ok") end) =~ "erl_level=#{level}"
     end)
   after
-    Logger.configure_backend(Logger.Backends.Console, metadata: [])
+    Logger.Backends.Internal.configure(Logger.Backends.Console, metadata: [])
   end
 
   test "respects translator_inspect_opts for reports" do

@@ -90,6 +90,11 @@ The first column is the version the feature was hard deprecated. The second colu
 
 Version | Deprecated feature                                  | Replaced by (available since)
 :-------| :-------------------------------------------------- | :---------------------------------------------------------------
+[v1.20] | `<<x::size(y)>>` in patterns without `^`            | `<<x::size(^y)>>`
+[v1.20] | `File.stream!(path, modes, lines_or_bytes)`         | `File.stream!(path, lines_or_bytes, modes)`
+[v1.20] | `Kernel.ParallelCompiler.async/1`                   | `Kernel.ParallelCompiler.pmap/2`
+[v1.20] | `Logger.*_backend` functions                        | The `LoggerBackends` module from `:logger_backends` package
+[v1.20] | `Logger.enable/1` / `Logger.disable/1`              | `Logger.put_process_level/1` and `Logger.delete_process_level/1`
 [v1.19] | CLI configuration in `def project` inside `mix.exs` | Moving it to `def cli` (v1.14)
 [v1.19] | Using `,` to separate tasks in `mix do`             | Using `+` (v1.14)
 [v1.19] | Logger's `:backends` configuration                  | Logger's `:default_handler` configuration (v1.15)

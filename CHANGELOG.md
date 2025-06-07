@@ -44,6 +44,17 @@ The type system was made possible thanks to a partnership between [CNRS](https:/
 
 ### 4. Hard deprecations
 
+#### Elixir
+
+  * [File] `File.stream!(path, modes, lines_or_bytes)` is deprecated in favor of the correct order in `File.stream!(path, lines_or_bytes, modes)`
+  * [Kernel] Matching on the size inside a bit pattern now requires the pin operator for consistency, such as `<<x::size(^existing_var)>>`
+  * [Kernel.ParallelCompiler] `Kernel.ParallelCompiler.async/1` is deprecated in favor of `Kernel.ParallelCompiler.pmap/2`, which is more performant and deals better with edge cases
+
+#### Logger
+
+  * [Logger] `Logger.*_backend` functions are deprecated in favor of handlers. If you really want to keep on using backends, see the `:logger_backends` package
+  * [Logger] `Logger.enable/1` and `Logger.disable/1` have been deprecated in favor of `Logger.put_process_level/1` and `Logger.delete_process_level/1`
+
 ## v1.19
 
 The CHANGELOG for v1.19 releases can be found [in the v1.19 branch](https://github.com/elixir-lang/elixir/blob/v1.19/CHANGELOG.md).

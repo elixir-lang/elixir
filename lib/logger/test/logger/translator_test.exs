@@ -823,7 +823,7 @@ defmodule Logger.TranslatorTest do
 
   test "skips :proc_lib crashes with disabled metadata" do
     fun = fn ->
-      Logger.disable(self())
+      Logger.put_process_level(self(), :none)
       raise "oops"
     end
 

@@ -2159,7 +2159,12 @@ defmodule File do
   def stream!(path, line_or_bytes, modes)
 
   def stream!(path, modes, line_or_bytes) when is_list(modes) do
-    # TODO: Deprecate this on Elixir v1.20
+    # TODO: Remove me on Elixir 2.0
+    IO.warn(
+      "File.stream!(path, modes, line_or_byte) is deprecated, " <>
+        "invoke File.stream!(path, line_or_bytes, modes) instead"
+    )
+
     stream!(path, line_or_bytes, modes)
   end
 

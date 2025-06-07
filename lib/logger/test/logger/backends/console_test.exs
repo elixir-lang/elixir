@@ -25,7 +25,7 @@ defmodule Logger.Backends.ConsoleTest do
   setup do
     on_exit(fn ->
       :ok =
-        Logger.configure_backend(
+        Logger.Backends.Internal.configure(
           Logger.Backends.Console,
           format: nil,
           device: :user,
@@ -37,23 +37,27 @@ defmodule Logger.Backends.ConsoleTest do
   end
 
   test "does not start when there is no user" do
-    :ok = Logger.remove_backend(Logger.Backends.Console)
+    :ok = Logger.Backends.Internal.remove(Logger.Backends.Console)
     user = Process.whereis(:user)
 
     try do
       Process.unregister(:user)
 
-      assert :gen_event.add_handler(Logger, Logger.Backends.Console, Logger.Backends.Console) ==
-               {:error, :ignore}
+      ExUnit.CaptureIO.capture_io(:stderr, fn ->
+        assert :gen_event.add_handler(Logger, Logger.Backends.Console, Logger.Backends.Console) ==
+                 {:error, :ignore}
+      end)
     after
       Process.register(user, :user)
     end
   after
-    {:ok, _} = Logger.add_backend(Logger.Backends.Console)
+    ExUnit.CaptureIO.capture_io(:stderr, fn ->
+      {:ok, _} = Logger.Backends.Internal.add(Logger.Backends.Console)
+    end)
   end
 
   test "may use another device" do
-    Logger.configure_backend(Logger.Backends.Console, device: :standard_error)
+    Logger.Backends.Internal.configure(Logger.Backends.Console, device: :standard_error)
 
     assert capture_io(:standard_error, fn ->
              Logger.debug("hello")
@@ -62,13 +66,13 @@ defmodule Logger.Backends.ConsoleTest do
   end
 
   test "configures format" do
-    Logger.configure_backend(Logger.Backends.Console, format: "$message [$level]")
+    Logger.Backends.Internal.configure(Logger.Backends.Console, format: "$message [$level]")
 
     assert capture_log(fn -> Logger.debug("hello") end) =~ "hello [debug]"
   end
 
   test "configures metadata" do
-    Logger.configure_backend(Logger.Backends.Console,
+    Logger.Backends.Internal.configure(Logger.Backends.Console,
       format: "$metadata$message",
       metadata: [:user_id]
     )
@@ -81,7 +85,7 @@ defmodule Logger.Backends.ConsoleTest do
   end
 
   test "logs initial_call as metadata" do
-    Logger.configure_backend(Logger.Backends.Console,
+    Logger.Backends.Internal.configure(Logger.Backends.Console,
       format: "$metadata$message",
       metadata: [:initial_call]
     )
@@ -91,7 +95,7 @@ defmodule Logger.Backends.ConsoleTest do
   end
 
   test "logs domain as metadata" do
-    Logger.configure_backend(Logger.Backends.Console,
+    Logger.Backends.Internal.configure(Logger.Backends.Console,
       format: "$metadata$message",
       metadata: [:domain]
     )
@@ -101,7 +105,7 @@ defmodule Logger.Backends.ConsoleTest do
   end
 
   test "logs mfa as metadata" do
-    Logger.configure_backend(Logger.Backends.Console,
+    Logger.Backends.Internal.configure(Logger.Backends.Console,
       format: "$metadata$message",
       metadata: [:mfa]
     )
@@ -114,13 +118,17 @@ defmodule Logger.Backends.ConsoleTest do
   end
 
   test "ignores crash_reason metadata when configured with metadata: :all" do
-    Logger.configure_backend(Logger.Backends.Console, format: "$metadata$message", metadata: :all)
+    Logger.Backends.Internal.configure(Logger.Backends.Console,
+      format: "$metadata$message",
+      metadata: :all
+    )
+
     Logger.metadata(crash_reason: {%RuntimeError{message: "oops"}, []})
     assert capture_log(fn -> Logger.debug("hello") end) =~ "hello"
   end
 
   test "configures formatter to {module, function} tuple" do
-    Logger.configure_backend(Logger.Backends.Console, format: {__MODULE__, :format})
+    Logger.Backends.Internal.configure(Logger.Backends.Console, format: {__MODULE__, :format})
 
     assert capture_log(fn -> Logger.debug("hello") end) =~ "my_format: hello"
   end
@@ -130,7 +138,11 @@ defmodule Logger.Backends.ConsoleTest do
   end
 
   test "configures metadata to :all" do
-    Logger.configure_backend(Logger.Backends.Console, format: "$metadata", metadata: :all)
+    Logger.Backends.Internal.configure(Logger.Backends.Console,
+      format: "$metadata",
+      metadata: :all
+    )
+
     Logger.metadata(user_id: 11)
     Logger.metadata(dynamic_metadata: 5)
 
@@ -147,7 +159,11 @@ defmodule Logger.Backends.ConsoleTest do
 
   test "provides metadata defaults" do
     metadata = [:file, :line, :module, :function]
-    Logger.configure_backend(Logger.Backends.Console, format: "$metadata", metadata: metadata)
+
+    Logger.Backends.Internal.configure(Logger.Backends.Console,
+      format: "$metadata",
+      metadata: metadata
+    )
 
     %{module: mod, function: {name, arity}, file: file, line: line} = __ENV__
     log = capture_log(fn -> Logger.debug("hello") end)
@@ -156,13 +172,13 @@ defmodule Logger.Backends.ConsoleTest do
   end
 
   test "configures level" do
-    Logger.configure_backend(Logger.Backends.Console, level: :info)
+    Logger.Backends.Internal.configure(Logger.Backends.Console, level: :info)
 
     assert capture_log(fn -> Logger.debug("hello") end) == ""
   end
 
   test "filter by notice" do
-    Logger.configure_backend(Logger.Backends.Console, level: :notice)
+    Logger.Backends.Internal.configure(Logger.Backends.Console, level: :notice)
 
     assert capture_log(fn -> Logger.debug("hello") end) == ""
     assert capture_log(fn -> Logger.info("hello") end) == ""
@@ -174,12 +190,15 @@ defmodule Logger.Backends.ConsoleTest do
   end
 
   test "configures colors" do
-    Logger.configure_backend(Logger.Backends.Console, format: "$message", colors: [enabled: true])
+    Logger.Backends.Internal.configure(Logger.Backends.Console,
+      format: "$message",
+      colors: [enabled: true]
+    )
 
     assert capture_log(fn -> Logger.debug("hello") end) ==
              IO.ANSI.cyan() <> "hello" <> IO.ANSI.reset()
 
-    Logger.configure_backend(Logger.Backends.Console, colors: [debug: :magenta])
+    Logger.Backends.Internal.configure(Logger.Backends.Console, colors: [debug: :magenta])
 
     assert capture_log(fn -> Logger.debug("hello") end) ==
              IO.ANSI.magenta() <> "hello" <> IO.ANSI.reset()
@@ -187,7 +206,7 @@ defmodule Logger.Backends.ConsoleTest do
     assert capture_log(fn -> Logger.info("hello") end) ==
              IO.ANSI.normal() <> "hello" <> IO.ANSI.reset()
 
-    Logger.configure_backend(Logger.Backends.Console, colors: [info: :cyan])
+    Logger.Backends.Internal.configure(Logger.Backends.Console, colors: [info: :cyan])
 
     assert capture_log(fn -> Logger.info("hello") end) ==
              IO.ANSI.cyan() <> "hello" <> IO.ANSI.reset()
@@ -195,7 +214,7 @@ defmodule Logger.Backends.ConsoleTest do
     assert capture_log(fn -> Logger.warning("hello") end) ==
              IO.ANSI.yellow() <> "hello" <> IO.ANSI.reset()
 
-    Logger.configure_backend(Logger.Backends.Console, colors: [warning: :magenta])
+    Logger.Backends.Internal.configure(Logger.Backends.Console, colors: [warning: :magenta])
 
     assert capture_log(fn -> Logger.warning("hello") end) ==
              IO.ANSI.magenta() <> "hello" <> IO.ANSI.reset()
@@ -203,14 +222,17 @@ defmodule Logger.Backends.ConsoleTest do
     assert capture_log(fn -> Logger.error("hello") end) ==
              IO.ANSI.red() <> "hello" <> IO.ANSI.reset()
 
-    Logger.configure_backend(Logger.Backends.Console, colors: [error: :cyan])
+    Logger.Backends.Internal.configure(Logger.Backends.Console, colors: [error: :cyan])
 
     assert capture_log(fn -> Logger.error("hello") end) ==
              IO.ANSI.cyan() <> "hello" <> IO.ANSI.reset()
   end
 
   test "uses colors from metadata" do
-    Logger.configure_backend(Logger.Backends.Console, format: "$message", colors: [enabled: true])
+    Logger.Backends.Internal.configure(Logger.Backends.Console,
+      format: "$message",
+      colors: [enabled: true]
+    )
 
     assert capture_log(fn -> Logger.log(:error, "hello", ansi_color: :yellow) end) ==
              IO.ANSI.yellow() <> "hello" <> IO.ANSI.reset()

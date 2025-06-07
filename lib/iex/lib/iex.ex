@@ -867,13 +867,4 @@ defmodule IEx do
 
   @doc false
   def dont_display_result, do: :"do not show this result in output"
-
-  ## CLI
-
-  # TODO: Remove me on Elixir v1.20+
-  @doc false
-  def start do
-    IO.warn("Use \"s iex\" instead")
-    :iex.start()
-  end
 end

@@ -19,8 +19,8 @@ defmodule Kernel.ParallelCompiler do
   @doc """
   Starts a task for parallel compilation.
   """
-  # TODO: Deprecate this on Elixir v1.20.
-  @doc deprecated: "Use `pmap/2` instead"
+  # TODO: Remove me on Elixir 2.0
+  @deprecated "Use `pmap/2` instead"
   def async(fun) when is_function(fun, 0) do
     {ref, task} = inner_async(fun)
     send(task.pid, ref)

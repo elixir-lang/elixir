@@ -35,6 +35,12 @@ defmodule Logger.Backends.Console do
   # TODO: Deprecate me on Elixir v1.20
   @impl true
   def init(atom) when is_atom(atom) do
+    IO.warn(
+      "Logger.Backends.Console is deprecated, " <>
+        "you should migrate to the new :console handler, " <>
+        "see Logger.Backends.Console docs for more information"
+    )
+
     config = read_env()
     device = Keyword.get(config, :device, :user)
 

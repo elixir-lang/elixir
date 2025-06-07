@@ -242,19 +242,19 @@ defmodule ExUnit.FiltersTest do
     for path <- [unix_path, windows_path, unix_path_with_dot] do
       fixed_path = path |> Path.split() |> Path.join() |> Path.relative_to_cwd()
 
-      assert ExUnit.Filters.parse_path("#{path}:123") ==
-               {fixed_path, [exclude: [:test], include: [location: {fixed_path, 123}]]}
+      assert ExUnit.Filters.parse_paths(["#{path}:123"]) ==
+               {[fixed_path], [exclude: [:test], include: [location: {fixed_path, 123}]]}
 
-      assert ExUnit.Filters.parse_path(path) == {fixed_path, []}
+      assert ExUnit.Filters.parse_paths([path]) == {[fixed_path], []}
 
-      assert ExUnit.Filters.parse_path("#{path}:123notreallyalinenumber123") ==
-               {"#{fixed_path}:123notreallyalinenumber123", []}
+      assert ExUnit.Filters.parse_paths(["#{path}:123notreallyalinenumber123"]) ==
+               {["#{fixed_path}:123notreallyalinenumber123"], []}
 
-      assert ExUnit.Filters.parse_path("#{path}:123:456") ==
-               {fixed_path, [exclude: [:test], include: [location: {fixed_path, [123, 456]}]]}
+      assert ExUnit.Filters.parse_paths(["#{path}:123:456"]) ==
+               {[fixed_path], [exclude: [:test], include: [location: {fixed_path, [123, 456]}]]}
 
-      assert ExUnit.Filters.parse_path("#{path}:123notalinenumber123:456") ==
-               {"#{fixed_path}:123notalinenumber123",
+      assert ExUnit.Filters.parse_paths(["#{path}:123notalinenumber123:456"]) ==
+               {["#{fixed_path}:123notalinenumber123"],
                 [
                   exclude: [:test],
                   include: [location: {"#{fixed_path}:123notalinenumber123", 456}]
@@ -262,11 +262,13 @@ defmodule ExUnit.FiltersTest do
 
       output =
         ExUnit.CaptureIO.capture_io(:stderr, fn ->
-          assert ExUnit.Filters.parse_path("#{path}:123:456notalinenumber456") ==
-                   {fixed_path, [{:exclude, [:test]}, {:include, [location: {fixed_path, 123}]}]}
+          assert ExUnit.Filters.parse_paths(["#{path}:123:456notalinenumber456"]) ==
+                   {[fixed_path],
+                    [{:exclude, [:test]}, {:include, [location: {fixed_path, 123}]}]}
 
-          assert ExUnit.Filters.parse_path("#{path}:123:0:-789:456") ==
-                   {fixed_path, [exclude: [:test], include: [location: {fixed_path, [123, 456]}]]}
+          assert ExUnit.Filters.parse_paths(["#{path}:123:0:-789:456"]) ==
+                   {[fixed_path],
+                    [exclude: [:test], include: [location: {fixed_path, [123, 456]}]]}
         end)
 
       assert output =~ "invalid line number given as ExUnit filter: 456notalinenumber456"

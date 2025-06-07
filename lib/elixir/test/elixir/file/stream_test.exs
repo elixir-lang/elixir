@@ -17,8 +17,8 @@ defmodule File.StreamTest do
     :erpc.call(node, File, :stream!, [src, lines_or_bytes_or_modes])
   end
 
-  defp stream!(node, src, lines_or_bytes, modes) do
-    :erpc.call(node, File, :stream!, [src, lines_or_bytes, modes])
+  defp stream!(node, src, modes, lines_or_bytes) do
+    :erpc.call(node, File, :stream!, [src, modes, lines_or_bytes])
   end
 
   distributed_node = :"secondary@#{node() |> Atom.to_string() |> :binary.split("@") |> tl()}"
@@ -46,7 +46,7 @@ defmodule File.StreamTest do
         assert stream.modes == [:raw, {:read_ahead, 5000}, :binary]
         assert stream.raw
 
-        stream = stream!(@node, src, [:utf8], 10)
+        stream = stream!(@node, src, 10, [:utf8])
         assert %File.Stream{} = stream
         assert stream.modes == [{:encoding, :utf8}, :binary]
         refute stream.raw
@@ -148,29 +148,29 @@ defmodule File.StreamTest do
         src = fixture_path("file.txt")
 
         assert @node
-               |> stream!(src, [{:read_offset, 0}])
+               |> stream!(src, read_offset: 0)
                |> Enum.take(1) == ["FOO\n"]
 
         assert @node
-               |> stream!(src, [{:read_offset, 1}])
+               |> stream!(src, read_offset: 1)
                |> Enum.take(1) == ["OO\n"]
 
         assert @node
-               |> stream!(src, [{:read_offset, 4}])
+               |> stream!(src, read_offset: 4)
                |> Enum.take(1) == []
 
-        assert @node |> stream!(src, 1, [{:read_offset, 1}]) |> Enum.count() == 3
-        assert @node |> stream!(src, 1, [{:read_offset, 4}]) |> Enum.count() == 0
+        assert @node |> stream!(src, 1, read_offset: 1) |> Enum.count() == 3
+        assert @node |> stream!(src, 1, read_offset: 4) |> Enum.count() == 0
       end
 
       test "applies offset after trimming BOM" do
         src = fixture_path("utf8_bom.txt")
 
         assert @node
-               |> stream!(src, [:trim_bom, {:read_offset, 4}])
+               |> stream!(src, [:trim_bom, read_offset: 4])
                |> Enum.take(1) == ["сский\n"]
 
-        assert @node |> stream!(src, 1, [:trim_bom, {:read_offset, 4}]) |> Enum.count() == 15
+        assert @node |> stream!(src, 1, [:trim_bom, read_offset: 4]) |> Enum.count() == 15
       end
 
       test "keeps BOM when raw" do
@@ -196,7 +196,7 @@ defmodule File.StreamTest do
                |> Enum.take(1) == ["Русский\n"]
 
         assert @node
-               |> stream!(src, [:trim_bom], 1)
+               |> stream!(src, 1, [:trim_bom])
                |> Enum.take(5) == [<<208>>, <<160>>, <<209>>, <<131>>, <<209>>]
 
         assert @node |> stream!(src, [:trim_bom]) |> Enum.count() == 2
@@ -208,11 +208,11 @@ defmodule File.StreamTest do
         src = fixture_path("utf8_bom.txt")
 
         assert @node
-               |> stream!(src, [{:encoding, :utf8}])
+               |> stream!(src, encoding: :utf8)
                |> Enum.take(1) == [<<239, 187, 191>> <> "Русский\n"]
 
         assert @node
-               |> stream!(src, 1, [{:encoding, :utf8}])
+               |> stream!(src, 1, encoding: :utf8)
                |> Enum.take(9) == ["\uFEFF", "Р", "у", "с", "с", "к", "и", "й", "\n"]
       end
 

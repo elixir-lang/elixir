@@ -12,24 +12,20 @@ defmodule ExUnit.Filters do
   @type location :: {:location, {String.t(), pos_integer | [pos_integer, ...]}}
   @type ex_unit_opts :: [exclude: [:test], include: [location, ...]] | []
 
-  @doc """
-  Parses filters out of a path.
-
-  Determines whether a given file path (supplied to ExUnit/Mix as arguments
-  on the command line) includes a line number filter, and if so returns the
-  appropriate ExUnit configuration options.
-  """
-  @spec parse_path(String.t()) :: {String.t(), ex_unit_opts}
-  # TODO: Deprecate this on Elixir v1.20
+  # TODO: Remove me on Elixir v2.0
+  @doc false
+  @deprecated "Use parse_paths/1 instead"
   def parse_path(file_path) do
     {[parsed_path], ex_unit_opts} = parse_paths([file_path])
     {parsed_path, ex_unit_opts}
   end
 
   @doc """
-  Like `parse_path/1` but for multiple paths.
+  Parses filters out of a path.
 
-  ExUnit filter options are combined.
+  Determines whether a given file path (supplied to ExUnit/Mix as arguments
+  on the command line) includes a line number filter, and if so returns the
+  appropriate ExUnit configuration options.
   """
   @spec parse_paths([String.t()]) :: {[String.t()], ex_unit_opts}
   def parse_paths(file_paths) do
