@@ -43,16 +43,6 @@ defmodule Module.Types.ExprTest do
       assert typecheck!([x], [:ok | x]) == dynamic(non_empty_list(term(), term()))
     end
 
-    test "inference" do
-      assert typecheck!(
-               [x, y, z],
-               (
-                 List.to_integer([x, y | z])
-                 {x, y, z}
-               )
-             ) == dynamic(tuple([integer(), integer(), list(integer())]))
-    end
-
     test "hd" do
       assert typecheck!([x = [123, :foo]], hd(x)) == dynamic(union(atom([:foo]), integer()))
       assert typecheck!([x = [123 | :foo]], hd(x)) == dynamic(integer())
@@ -127,16 +117,6 @@ defmodule Module.Types.ExprTest do
   end
 
   describe "funs" do
-    test "infers calls" do
-      assert typecheck!(
-               [x],
-               (
-                 x.(1, 2)
-                 x
-               )
-             ) == dynamic(fun(2))
-    end
-
     test "infers functions" do
       assert typecheck!(& &1) == fun([dynamic()], dynamic())
       assert typecheck!(fn -> :ok end) == fun([], atom([:ok]))
@@ -261,53 +241,6 @@ defmodule Module.Types.ExprTest do
   describe "remotes" do
     test "dynamic calls" do
       assert typecheck!([%x{}], x.foo_bar()) == dynamic()
-    end
-
-    test "infers atoms" do
-      assert typecheck!(
-               [x],
-               (
-                 x.foo_bar()
-                 x
-               )
-             ) == dynamic(atom())
-
-      assert typecheck!(
-               [x],
-               (
-                 x.foo_bar(123)
-                 x
-               )
-             ) == dynamic(atom())
-
-      assert typecheck!(
-               [x],
-               (
-                 &x.foo_bar/1
-                 x
-               )
-             ) == dynamic(atom())
-    end
-
-    test "infers maps" do
-      assert typecheck!(
-               [x],
-               (
-                 :foo = x.foo_bar
-                 123 = x.baz_bat
-                 x
-               )
-             ) == dynamic(open_map(foo_bar: atom([:foo]), baz_bat: integer()))
-    end
-
-    test "infers args" do
-      assert typecheck!(
-               [x, y],
-               (
-                 z = Integer.to_string(x + y)
-                 {x, y, z}
-               )
-             ) == dynamic(tuple([integer(), integer(), binary()]))
     end
 
     test "undefined function warnings" do
@@ -535,16 +468,6 @@ defmodule Module.Types.ExprTest do
   end
 
   describe "binaries" do
-    test "inference" do
-      assert typecheck!(
-               [x, y],
-               (
-                 <<x::float-size(y)>>
-                 {x, y}
-               )
-             ) == dynamic(tuple([union(float(), integer()), integer()]))
-    end
-
     test "warnings" do
       assert typeerror!([<<x::binary-size(2)>>], <<x::float>>) ==
                ~l"""
@@ -642,16 +565,6 @@ defmodule Module.Types.ExprTest do
     test "creating tuples" do
       assert typecheck!({:ok, 123}) == tuple([atom([:ok]), integer()])
       assert typecheck!([x], {:ok, x}) == dynamic(tuple([atom([:ok]), term()]))
-    end
-
-    test "inference" do
-      assert typecheck!(
-               [x, y],
-               (
-                 {:ok, :error} = {x, y}
-                 {x, y}
-               )
-             ) == dynamic(tuple([atom([:ok]), atom([:error])]))
     end
 
     test "elem/2" do
@@ -1458,16 +1371,6 @@ defmodule Module.Types.ExprTest do
              ) == dynamic(atom([:ok, :error, :timeout]))
     end
 
-    test "infers type for timeout" do
-      assert typecheck!(
-               [x],
-               receive do
-               after
-                 x -> x
-               end
-             ) == dynamic(union(integer(), atom([:infinity])))
-    end
-
     test "resets branches" do
       assert typecheck!(
                [x, timeout = :infinity],
@@ -1854,16 +1757,6 @@ defmodule Module.Types.ExprTest do
                """
     end
 
-    test "infers binary generators" do
-      assert typecheck!(
-               [x],
-               (
-                 for <<_ <- x>>, do: :ok
-                 x
-               )
-             ) == dynamic(binary())
-    end
-
     test ":into" do
       assert typecheck!([binary], for(<<x <- binary>>, do: x)) == list(integer())
       assert typecheck!([binary], for(<<x <- binary>>, do: x, into: [])) == list(integer())
@@ -1900,20 +1793,6 @@ defmodule Module.Types.ExprTest do
                  _ -> 2.0
                end
              ) == union(atom([:ok]), union(integer(), float()))
-    end
-
-    test ":reduce inference" do
-      assert typecheck!(
-               [list, x],
-               (
-                 123 =
-                   for _ <- list, reduce: x do
-                     x -> x
-                   end
-
-                 x
-               )
-             ) == dynamic(integer())
     end
   end
 

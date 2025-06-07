@@ -419,7 +419,7 @@ defmodule Module.Types do
       local_handler: handler,
       # Control if variable refinement is enabled.
       # It is disabled only on dynamic dispatches.
-      refine_vars: true
+      refine_vars: false
     }
   end
 

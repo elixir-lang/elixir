@@ -51,20 +51,6 @@ defmodule Module.Types.InferTest do
     assert types[{:fun4, 4}] == {:infer, nil, [{args, atom([:ok])}]}
   end
 
-  test "infer types from expressions", config do
-    types =
-      infer config do
-        def fun(x) do
-          x.foo + x.bar
-        end
-      end
-
-    number = union(integer(), float())
-
-    assert types[{:fun, 1}] ==
-             {:infer, nil, [{[dynamic(open_map(foo: number, bar: number))], dynamic(number)}]}
-  end
-
   test "infer with Elixir built-in", config do
     types =
       infer config do
@@ -93,33 +79,6 @@ defmodule Module.Types.InferTest do
                 {[dynamic(binary())], atom([:two, :three, :four])},
                 {[dynamic(atom([:error]))], atom([:five])}
               ]}
-  end
-
-  test "infers return types from private functions", config do
-    types =
-      infer config do
-        def pub(x), do: priv(x)
-        defp priv(:ok), do: :ok
-        defp priv(:error), do: :error
-      end
-
-    assert types[{:pub, 1}] ==
-             {:infer, nil, [{[dynamic(atom([:ok, :error]))], dynamic(atom([:ok, :error]))}]}
-
-    assert types[{:priv, 1}] == nil
-  end
-
-  test "infers return types from super functions", config do
-    types =
-      infer config do
-        def pub(:ok), do: :ok
-        def pub(:error), do: :error
-        defoverridable pub: 1
-        def pub(x), do: super(x)
-      end
-
-    assert types[{:pub, 1}] ==
-             {:infer, nil, [{[dynamic(atom([:ok, :error]))], dynamic(atom([:ok, :error]))}]}
   end
 
   test "infers return types even with loops", config do
