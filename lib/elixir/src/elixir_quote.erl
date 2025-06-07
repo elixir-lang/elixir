@@ -162,7 +162,7 @@ do_escape(BitString, _) when is_bitstring(BitString) ->
 do_escape(Map, Q) when is_map(Map) ->
   TT =
     [if
-      is_reference(V) ->
+      ?OTP_RELEASE >= 28, is_reference(V) ->
         argument_error(<<('Elixir.Kernel':inspect(Map, []))/binary, " contains a reference (",
                          ('Elixir.Kernel':inspect(V, []))/binary, ") and therefore it cannot be escaped ",
                          "(it must be defined within a function instead). ", (bad_escape_hint())/binary>>);
