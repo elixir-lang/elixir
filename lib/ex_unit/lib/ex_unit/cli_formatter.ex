@@ -18,6 +18,7 @@ defmodule ExUnit.CLIFormatter do
     IO.puts("")
 
     config = %{
+      dry_run: opts[:dry_run],
       trace: opts[:trace],
       colors: colors(opts),
       width: get_terminal_width(),
@@ -154,7 +155,16 @@ defmodule ExUnit.CLIFormatter do
     {:noreply, config}
   end
 
-  def handle_cast({:module_finished, %ExUnit.TestModule{state: nil}}, config) do
+  def handle_cast({:module_finished, %ExUnit.TestModule{state: nil} = module}, config) do
+    if config.dry_run do
+      IO.puts("Test dry run:")
+      file_path = Path.relative_to_cwd(module.file)
+
+      Enum.each(module.tests, fn test ->
+        IO.puts("#{file_path}:#{test.tags.line}")
+      end)
+    end
+
     {:noreply, config}
   end
 
@@ -356,7 +366,11 @@ defmodule ExUnit.CLIFormatter do
       )
       |> if_true(
         config.excluded_counter > 0,
-        &(&1 <> " (#{config.excluded_counter} excluded)")
+        &(&1 <> ", (#{config.excluded_counter} excluded)")
+      )
+      |> if_true(
+        config.dry_run == true,
+        &(&1 <> " (dry run)")
       )
 
     cond do
