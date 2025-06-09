@@ -292,7 +292,7 @@ For convenience, the markup notation to generate the admonition block above is t
 
 #### Problem
 
-This anti-pattern is the opposite of ["Compile-time dependencies"](#compile-time-dependencies) and it happens when a compile-time dependency is accidentally bypassed, making the Elixir compiler unable track dependencies and recompile files correctly. This happens when building aliases (in other words, module names) dynamically, either within a module or within a macro.
+This anti-pattern is the opposite of ["Compile-time dependencies"](#compile-time-dependencies) and it happens when a compile-time dependency is accidentally bypassed, making the Elixir compiler unable to track dependencies and recompile files correctly. This happens when building aliases (in other words, module names) dynamically, either within a module or within a macro.
 
 #### Example
 
