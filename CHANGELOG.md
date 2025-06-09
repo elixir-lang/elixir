@@ -194,7 +194,7 @@ These additions offer greater transparency into the components and licenses of e
 
 This work was performed by Jonatan Männchen and sponsored by the Erlang Ecosystem Foundation.
 
-## v1.19.0-dev
+## v1.19.0-rc.0 (2025-06-09)
 
 ### 1. Enhancements
 
