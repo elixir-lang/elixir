@@ -53,7 +53,7 @@ The type system was made possible thanks to a partnership between [CNRS](https:/
 #### Logger
 
   * [Logger] `Logger.*_backend` functions are deprecated in favor of handlers. If you really want to keep on using backends, see the `:logger_backends` package
-  * [Logger] `Logger.enable/1` and `Logger.disable/1` have been deprecated in favor of `Logger.put_process_level/1` and `Logger.delete_process_level/1`
+  * [Logger] `Logger.enable/1` and `Logger.disable/1` have been deprecated in favor of `Logger.put_process_level/2` and `Logger.delete_process_level/1`
 
 ## v1.19
 
