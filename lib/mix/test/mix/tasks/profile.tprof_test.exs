@@ -83,9 +83,22 @@ defmodule Mix.Tasks.Profile.TprofTest do
 
   test "sorts based on memory per call", context do
     in_tmp(context.test, fn ->
-      assert capture_io(fn ->
-               Tprof.run(["--type", "memory", "--sort", "per_call", "-e", @expr])
-             end) =~ ~r/\n:erlang\.integer_to_binary\/1.*\nEnum\.each\/2/s
+      result = capture_io(fn ->
+        Tprof.run(["--type", "memory", "--sort", "per_call", "-e", @expr])
+      end)
+
+      # TODO: Remove when we require Erlang 28 exclusively
+      otp_release =
+        :otp_release
+        |> :erlang.system_info()
+        |> List.to_integer()
+
+      if otp_release < 28 do
+        assert result =~ ~r/\n:erlang\.integer_to_binary\/1.*\nEnum\.each\/2/s
+      else
+        assert result =~ ~r/\n:erlang\.integer_to_binary\/1[^\n]+3\.\d{2}\n/
+        assert result =~ ~r/\nEnum\.each\/2[^\n]+3\.\d{2}\n/
+      end
     end)
   end
 
