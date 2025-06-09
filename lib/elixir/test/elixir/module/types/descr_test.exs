@@ -614,6 +614,12 @@ defmodule Module.Types.DescrTest do
       assert subtype?(closed_map(a: term()), closed_map(a: if_set(term())))
     end
 
+    test "optional" do
+      refute subtype?(if_set(none()), term())
+      refute subtype?(if_set(term()), term())
+      assert subtype?(if_set(term()), if_set(term()))
+    end
+
     test "list" do
       refute subtype?(non_empty_list(integer()), difference(list(number()), list(integer())))
       assert subtype?(list(term(), boolean()), list(term(), atom()))
