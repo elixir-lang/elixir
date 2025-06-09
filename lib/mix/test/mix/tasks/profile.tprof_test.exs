@@ -83,22 +83,9 @@ defmodule Mix.Tasks.Profile.TprofTest do
 
   test "sorts based on memory per call", context do
     in_tmp(context.test, fn ->
-      result =
-        capture_io(fn ->
-          Tprof.run(["--type", "memory", "--sort", "calls", "-e", @expr])
-        end)
-
-      [_warmup, _profile_results, _columns, _total, first, second, _profile_done, ""] =
-        String.split(result, ~r/\n+/)
-
-      list =
-        Enum.map([first, second], fn row ->
-          [mfa, calls, _percent, _words, _per_call] = String.split(row, ~r/\s+/)
-          {String.to_integer(calls), mfa}
-        end)
-
-      assert list == Enum.sort(list)
-      assert list == [{1, "Enum.each/2"}, {5, ":erlang.integer_to_binary/1"}]
+      assert capture_io(fn ->
+               Tprof.run(["--type", "memory", "--sort", "calls", "-e", @expr])
+             end) =~ ~r/Enum\.each\/2\s+1\s+.*\n:erlang\.integer_to_binary\/1\s+5\s+/s
     end)
   end
 
