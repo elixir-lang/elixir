@@ -1168,17 +1168,26 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "fails on invalid else option" do
-      assert_compile_error(~r"expected -> clauses for :else in \"with\"", fn ->
-        expand(quote(do: with(_ <- true, do: :ok, else: [:error])))
-      end)
+      assert_compile_error(
+        ~r"invalid \"else\" block in \"with\", it expects \"pattern -> expr\" clauses",
+        fn ->
+          expand(quote(do: with(_ <- true, do: :ok, else: [:error])))
+        end
+      )
 
-      assert_compile_error(~r"expected -> clauses for :else in \"with\"", fn ->
-        expand(quote(do: with(_ <- true, do: :ok, else: :error)))
-      end)
+      assert_compile_error(
+        ~r"invalid \"else\" block in \"with\", it expects \"pattern -> expr\" clauses",
+        fn ->
+          expand(quote(do: with(_ <- true, do: :ok, else: :error)))
+        end
+      )
 
-      assert_compile_error(~r"expected -> clauses for :else in \"with\"", fn ->
-        expand(quote(do: with(_ <- true, do: :ok, else: [])))
-      end)
+      assert_compile_error(
+        ~r"invalid \"else\" block in \"with\", it expects \"pattern -> expr\" clauses",
+        fn ->
+          expand(quote(do: with(_ <- true, do: :ok, else: [])))
+        end
+      )
     end
 
     test "fails for invalid options" do
@@ -1484,24 +1493,30 @@ defmodule Kernel.ExpansionTest do
         expand(quote(do: cond([])))
       end)
 
-      assert_compile_error(~r"duplicate :do clauses given for \"cond\"", fn ->
+      assert_compile_error(~r"duplicate \"do\" clauses given for \"cond\"", fn ->
         expand(quote(do: cond(do: (x -> x), do: (y -> y))))
       end)
     end
 
     test "expects clauses" do
-      assert_compile_error(~r"expected -> clauses for :do in \"cond\"", fn ->
-        expand(quote(do: cond(do: :ok)))
-      end)
+      assert_compile_error(
+        ~r"invalid \"do\" block in \"cond\", it expects \"pattern -> expr\" clauses",
+        fn ->
+          expand(quote(do: cond(do: :ok)))
+        end
+      )
 
-      assert_compile_error(~r"expected -> clauses for :do in \"cond\"", fn ->
-        expand(quote(do: cond(do: [:not, :clauses])))
-      end)
+      assert_compile_error(
+        ~r"invalid \"do\" block in \"cond\", it expects \"pattern -> expr\" clauses",
+        fn ->
+          expand(quote(do: cond(do: [:not, :clauses])))
+        end
+      )
     end
 
     test "expects one argument in clauses" do
       assert_compile_error(
-        ~r"expected one argument for :do clauses \(->\) in \"cond\"",
+        ~r"expected one argument for \"do\" clauses \(->\) in \"cond\"",
         fn ->
           code =
             quote do
@@ -1656,38 +1671,44 @@ defmodule Kernel.ExpansionTest do
         expand(quote(do: case(e, [])))
       end)
 
-      assert_compile_error(~r"duplicate :do clauses given for \"case\"", fn ->
+      assert_compile_error(~r"duplicate \"do\" clauses given for \"case\"", fn ->
         expand(quote(do: case(e, do: (x -> x), do: (y -> y))))
       end)
     end
 
     test "expects clauses" do
-      assert_compile_error(~r"expected -> clauses for :do in \"case\"", fn ->
-        code =
-          quote do
-            case e do
-              x
+      assert_compile_error(
+        ~r"invalid \"do\" block in \"case\", it expects \"pattern -> expr\" clauses",
+        fn ->
+          code =
+            quote do
+              case e do
+                x
+              end
             end
-          end
 
-        expand(code)
-      end)
+          expand(code)
+        end
+      )
 
-      assert_compile_error(~r"expected -> clauses for :do in \"case\"", fn ->
-        code =
-          quote do
-            case e do
-              [:not, :clauses]
+      assert_compile_error(
+        ~r"invalid \"do\" block in \"case\", it expects \"pattern -> expr\" clauses",
+        fn ->
+          code =
+            quote do
+              case e do
+                [:not, :clauses]
+              end
             end
-          end
 
-        expand(code)
-      end)
+          expand(code)
+        end
+      )
     end
 
     test "expects exactly one argument in clauses" do
       assert_compile_error(
-        ~r"expected one argument for :do clauses \(->\) in \"case\"",
+        ~r"expected one argument for \"do\" clauses \(->\) in \"case\"",
         fn ->
           code =
             quote do
@@ -1856,11 +1877,11 @@ defmodule Kernel.ExpansionTest do
         expand(quote(do: receive([])))
       end)
 
-      assert_compile_error(~r"duplicate :do clauses given for \"receive\"", fn ->
+      assert_compile_error(~r"duplicate \"do\" clauses given for \"receive\"", fn ->
         expand(quote(do: receive(do: (x -> x), do: (y -> y))))
       end)
 
-      assert_compile_error(~r"duplicate :after clauses given for \"receive\"", fn ->
+      assert_compile_error(~r"duplicate \"after\" clauses given for \"receive\"", fn ->
         code =
           quote do
             receive do
@@ -1877,32 +1898,38 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "expects clauses" do
-      assert_compile_error(~r"expected -> clauses for :do in \"receive\"", fn ->
-        code =
-          quote do
-            receive do
-              x
+      assert_compile_error(
+        ~r"invalid \"do\" block in \"receive\", it expects \"pattern -> expr\" clauses",
+        fn ->
+          code =
+            quote do
+              receive do
+                x
+              end
             end
-          end
 
-        expand(code)
-      end)
+          expand(code)
+        end
+      )
 
-      assert_compile_error(~r"expected -> clauses for :do in \"receive\"", fn ->
-        code =
-          quote do
-            receive do
-              [:not, :clauses]
+      assert_compile_error(
+        ~r"invalid \"do\" block in \"receive\", it expects \"pattern -> expr\" clauses",
+        fn ->
+          code =
+            quote do
+              receive do
+                [:not, :clauses]
+              end
             end
-          end
 
-        expand(code)
-      end)
+          expand(code)
+        end
+      )
     end
 
     test "expects on argument for do/after clauses" do
       assert_compile_error(
-        ~r"expected one argument for :do clauses \(->\) in \"receive\"",
+        ~r"expected one argument for \"do\" clauses \(->\) in \"receive\"",
         fn ->
           code =
             quote do
@@ -1915,7 +1942,7 @@ defmodule Kernel.ExpansionTest do
         end
       )
 
-      message = ~r"expected one argument for :after clauses \(->\) in \"receive\""
+      message = ~r"expected one argument for \"after\" clauses \(->\) in \"receive\""
 
       assert_compile_error(message, fn ->
         code =
@@ -2119,11 +2146,11 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "expects at most one clause" do
-      assert_compile_error(~r"duplicate :do clauses given for \"try\"", fn ->
+      assert_compile_error(~r"duplicate \"do\" clauses given for \"try\"", fn ->
         expand(quote(do: try(do: e, do: f)))
       end)
 
-      assert_compile_error(~r"duplicate :rescue clauses given for \"try\"", fn ->
+      assert_compile_error(~r"duplicate \"rescue\" clauses given for \"try\"", fn ->
         code =
           quote do
             try do
@@ -2138,7 +2165,7 @@ defmodule Kernel.ExpansionTest do
         expand(code)
       end)
 
-      assert_compile_error(~r"duplicate :after clauses given for \"try\"", fn ->
+      assert_compile_error(~r"duplicate \"after\" clauses given for \"try\"", fn ->
         code =
           quote do
             try do
@@ -2153,7 +2180,7 @@ defmodule Kernel.ExpansionTest do
         expand(code)
       end)
 
-      assert_compile_error(~r"duplicate :else clauses given for \"try\"", fn ->
+      assert_compile_error(~r"duplicate \"else\" clauses given for \"try\"", fn ->
         code =
           quote do
             try do
@@ -2168,7 +2195,7 @@ defmodule Kernel.ExpansionTest do
         expand(code)
       end)
 
-      assert_compile_error(~r"duplicate :catch clauses given for \"try\"", fn ->
+      assert_compile_error(~r"duplicate \"catch\" clauses given for \"try\"", fn ->
         code =
           quote do
             try do
@@ -2198,7 +2225,7 @@ defmodule Kernel.ExpansionTest do
 
     test "expects exactly one argument in rescue clauses" do
       assert_compile_error(
-        ~r"expected one argument for :rescue clauses \(->\) in \"try\"",
+        ~r"expected one argument for \"rescue\" clauses \(->\) in \"try\"",
         fn ->
           code =
             quote do
@@ -2230,7 +2257,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "expects one or two args for catch clauses" do
-      message = ~r"expected one or two args for :catch clauses \(->\) in \"try\""
+      message = ~r"expected one or two args for \"catch\" clauses \(->\) in \"try\""
 
       assert_compile_error(message, fn ->
         code =
@@ -2260,128 +2287,155 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "expects clauses for rescue, else, catch" do
-      assert_compile_error(~r"expected -> clauses for :rescue in \"try\"", fn ->
-        code =
-          quote do
-            try do
-              e
-            rescue
-              x
+      assert_compile_error(
+        ~r"invalid \"rescue\" block in \"try\", it expects \"pattern -> expr\" clauses",
+        fn ->
+          code =
+            quote do
+              try do
+                e
+              rescue
+                x
+              end
             end
-          end
 
-        expand(code)
-      end)
+          expand(code)
+        end
+      )
 
-      assert_compile_error(~r"expected -> clauses for :rescue in \"try\"", fn ->
-        code =
-          quote do
-            try do
-              e
-            rescue
-              [:not, :clauses]
+      assert_compile_error(
+        ~r"invalid \"rescue\" block in \"try\", it expects \"pattern -> expr\" clauses",
+        fn ->
+          code =
+            quote do
+              try do
+                e
+              rescue
+                [:not, :clauses]
+              end
             end
-          end
 
-        expand(code)
-      end)
+          expand(code)
+        end
+      )
 
-      assert_compile_error(~r"expected -> clauses for :rescue in \"try\"", fn ->
-        code =
-          quote do
-            try do
-              e
-            rescue
-              []
+      assert_compile_error(
+        ~r"invalid \"rescue\" block in \"try\", it expects \"pattern -> expr\" clauses",
+        fn ->
+          code =
+            quote do
+              try do
+                e
+              rescue
+                []
+              end
             end
-          end
 
-        expand(code)
-      end)
+          expand(code)
+        end
+      )
 
-      assert_compile_error(~r"expected -> clauses for :catch in \"try\"", fn ->
-        code =
-          quote do
-            try do
-              e
-            catch
-              x
+      assert_compile_error(
+        ~r"invalid \"catch\" block in \"try\", it expects \"pattern -> expr\" clauses",
+        fn ->
+          code =
+            quote do
+              try do
+                e
+              catch
+                x
+              end
             end
-          end
 
-        expand(code)
-      end)
+          expand(code)
+        end
+      )
 
-      assert_compile_error(~r"expected -> clauses for :catch in \"try\"", fn ->
-        code =
-          quote do
-            try do
-              e
-            catch
-              [:not, :clauses]
+      assert_compile_error(
+        ~r"invalid \"catch\" block in \"try\", it expects \"pattern -> expr\" clauses",
+        fn ->
+          code =
+            quote do
+              try do
+                e
+              catch
+                [:not, :clauses]
+              end
             end
-          end
 
-        expand(code)
-      end)
+          expand(code)
+        end
+      )
 
-      assert_compile_error(~r"expected -> clauses for :catch in \"try\"", fn ->
-        code =
-          quote do
-            try do
-              e
-            catch
-              []
+      assert_compile_error(
+        ~r"invalid \"catch\" block in \"try\", it expects \"pattern -> expr\" clauses",
+        fn ->
+          code =
+            quote do
+              try do
+                e
+              catch
+                []
+              end
             end
-          end
 
-        expand(code)
-      end)
+          expand(code)
+        end
+      )
 
-      assert_compile_error(~r"expected -> clauses for :else in \"try\"", fn ->
-        code =
-          quote do
-            try do
-              e
-            catch
-              _ -> :ok
-            else
-              x
+      assert_compile_error(
+        ~r"invalid \"else\" block in \"try\", it expects \"pattern -> expr\" clauses",
+        fn ->
+          code =
+            quote do
+              try do
+                e
+              catch
+                _ -> :ok
+              else
+                x
+              end
             end
-          end
 
-        expand(code)
-      end)
+          expand(code)
+        end
+      )
 
-      assert_compile_error(~r"expected -> clauses for :else in \"try\"", fn ->
-        code =
-          quote do
-            try do
-              e
-            catch
-              _ -> :ok
-            else
-              [:not, :clauses]
+      assert_compile_error(
+        ~r"invalid \"else\" block in \"try\", it expects \"pattern -> expr\" clauses",
+        fn ->
+          code =
+            quote do
+              try do
+                e
+              catch
+                _ -> :ok
+              else
+                [:not, :clauses]
+              end
             end
-          end
 
-        expand(code)
-      end)
+          expand(code)
+        end
+      )
 
-      assert_compile_error(~r"expected -> clauses for :else in \"try\"", fn ->
-        code =
-          quote do
-            try do
-              e
-            catch
-              _ -> :ok
-            else
-              []
+      assert_compile_error(
+        ~r"invalid \"else\" block in \"try\", it expects \"pattern -> expr\" clauses",
+        fn ->
+          code =
+            quote do
+              try do
+                e
+              catch
+                _ -> :ok
+              else
+                []
+              end
             end
-          end
 
-        expand(code)
-      end)
+          expand(code)
+        end
+      )
     end
   end
 
