@@ -413,6 +413,17 @@ defmodule ModuleTest do
     assert map.module == ModuleCreateDebugInfo
   end
 
+  test "uses the debug_info chunk when explicitly set to true" do
+    {:module, ModuleCreateDebugInfoTrue, binary, _} =
+      Module.create(ModuleCreateDebugInfoTrue, quote(do: @compile({:debug_info, true})), __ENV__)
+
+    {:ok, {_, [debug_info: {:debug_info_v1, backend, data}]}} =
+      :beam_lib.chunks(binary, [:debug_info])
+
+    {:ok, map} = backend.debug_info(:elixir_v1, ModuleCreateDebugInfoTrue, data, [])
+    assert map.module == ModuleCreateDebugInfoTrue
+  end
+
   test "uses the debug_info chunk even if debug_info is set to false" do
     {:module, ModuleCreateNoDebugInfo, binary, _} =
       Module.create(ModuleCreateNoDebugInfo, quote(do: @compile({:debug_info, false})), __ENV__)
