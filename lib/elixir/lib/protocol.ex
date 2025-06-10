@@ -669,7 +669,7 @@ defmodule Protocol do
 
             {Descr.term(), clauses, clauses}
           else
-            {domain, clauses ++ [{[not_domain], Descr.atom([nil])}], clauses}
+            {domain, [{[Descr.term()], Descr.atom()}], clauses}
           end
       end
 

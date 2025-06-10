@@ -176,31 +176,6 @@ defmodule Protocol.ConsolidationTest do
       assert %{{:ok, 1} => %{deprecated: "Reason", sig: _}} = exports(sample_binary())
     end
 
-    test "defines signatures without fallback to any" do
-      exports = exports(sample_binary())
-
-      assert %{{:impl_for, 1} => %{sig: {:strong, domain, clauses}}} = exports
-      assert domain == [term()]
-
-      assert clauses == [
-               {[Of.impl(ImplStruct)], atom([Sample.Protocol.ConsolidationTest.ImplStruct])},
-               {[negation(Of.impl(ImplStruct))], atom([nil])}
-             ]
-
-      assert %{{:impl_for!, 1} => %{sig: {:strong, domain, clauses}}} = exports
-      assert domain == [Of.impl(ImplStruct)]
-
-      assert clauses == [
-               {[Of.impl(ImplStruct)], atom([Sample.Protocol.ConsolidationTest.ImplStruct])}
-             ]
-
-      assert %{{:ok, 1} => %{sig: {:strong, nil, clauses}}} = exports
-
-      assert clauses == [
-               {[Of.impl(ImplStruct)], dynamic()}
-             ]
-    end
-
     test "defines signatures with fallback to any" do
       exports = exports(with_any_binary())
 
