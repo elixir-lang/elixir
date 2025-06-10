@@ -306,6 +306,6 @@ format_error(ignored_struct_key_in_struct) ->
   "key :__struct__ is ignored when using structs";
 format_error({deprecated_update, Struct, MapUpdate}) ->
   io_lib:format("the struct update syntax is deprecated:\n\n~ts\n\n"
-                "Instead, prefer to pattern matching on structs when the variable is first defined and "
+                "Instead, prefer to use pattern matching on structs when the variable is first defined and "
                 "use the regular map update syntax instead:\n\n~ts\n",
                 ['Elixir.Macro':to_string({'%', [], [Struct, MapUpdate]}), 'Elixir.Macro':to_string(MapUpdate)]).

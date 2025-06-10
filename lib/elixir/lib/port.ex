@@ -78,7 +78,7 @@ defmodule Port do
 
   The port can be opened through four main mechanisms.
 
-  As a short summary, prefer to using the `:spawn` and `:spawn_executable`
+  As a short summary, prefer to use the `:spawn` and `:spawn_executable`
   options mentioned below. The other two options, `:spawn_driver` and `:fd`
   are for advanced usage within the VM. Also consider using `System.cmd/3`
   if all you want is to execute a program and retrieve its return value.
