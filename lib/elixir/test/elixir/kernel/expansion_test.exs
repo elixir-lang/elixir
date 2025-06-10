@@ -806,6 +806,15 @@ defmodule Kernel.ExpansionTest do
       end)
     end
 
+    test "in guards with macros" do
+      message =
+        ~r"you must require the moduleInteger before invoking macro Integer.is_even/1 inside a guard"
+
+      assert_compile_error(message, fn ->
+        expand(quote(do: fn arg when Integer.is_even(arg) -> arg end))
+      end)
+    end
+
     test "in guards with bitstrings" do
       message = ~r"cannot invoke remote function String.Chars.to_string/1 inside a guard"
 
