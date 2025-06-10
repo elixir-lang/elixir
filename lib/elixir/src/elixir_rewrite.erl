@@ -355,14 +355,22 @@ allowed_guard(Right, Arity) ->
   erl_internal:guard_bif(Right, Arity) orelse elixir_utils:guard_op(Right, Arity).
 
 format_error({invalid_guard, Receiver, Right, Arity, Context}) ->
-  io_lib:format("cannot invoke remote function ~ts.~ts/~B inside a ~ts",
+  io_lib:format(cannot_invoke_or_maybe_require(Receiver, Right, Arity) ++ " ~ts.~ts/~B inside a ~ts",
                 ['Elixir.Macro':to_string(Receiver), Right, Arity, Context]);
 format_error({invalid_match, Receiver, Right, Arity}) ->
-  io_lib:format("cannot invoke remote function ~ts.~ts/~B inside a match",
+  io_lib:format(cannot_invoke_or_maybe_require(Receiver, Right, Arity) ++ " ~ts.~ts/~B inside a match",
                 ['Elixir.Macro':to_string(Receiver), Right, Arity]);
 format_error({invalid_match_append, Arg}) ->
   io_lib:format("invalid argument for ++ operator inside a match, expected a literal proper list, got: ~ts",
                 ['Elixir.Macro':to_string(Arg)]).
+
+cannot_invoke_or_maybe_require(Receiver, Fun, Arity) ->
+  try
+    true = lists:member({Fun, Arity}, Receiver:'__info__'(macros)),
+    ["you must require the module", 'Elixir.Macro':to_string(Receiver), " before invoking macro"]
+  catch
+    _:_ -> "cannot invoke remote function"
+  end.
 
 is_always_string({{'.', _, [Module, Function]}, _, Args}) ->
   is_always_string(Module, Function, length(Args));
