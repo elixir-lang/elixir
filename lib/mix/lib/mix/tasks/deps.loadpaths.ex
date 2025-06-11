@@ -75,9 +75,11 @@ defmodule Mix.Tasks.Deps.Loadpaths do
 
     Code.prepend_paths(Enum.flat_map(all, &Mix.Dep.load_paths/1), cache: true)
 
-    # For now we only allow listeners defined in dependencies, so
-    # we start them right after adding adding deps to the path
-    if "--no-listeners" not in args do
+    # For now we only allow listeners defined in dependencies,
+    # so we start them right after adding adding deps to the path,
+    # as long as we are sure they have been compiled
+    if "--listeners" in args or
+         ("--no-listeners" not in args and "--no-deps-check" not in args) do
       Mix.PubSub.start_listeners()
     end
 

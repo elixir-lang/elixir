@@ -656,26 +656,23 @@ defmodule Mix.Project do
   (which defaults to `"_build"`) and a subdirectory. The subdirectory
   is built based on two factors:
 
-    * If `:build_per_environment` is set, the subdirectory is the value
-      of `Mix.env/0` (which can be set via `MIX_ENV`). Otherwise it is
-      set to "shared".
+    * If `:build_per_environment` is set (the default), the subdirectory
+      is the value of `Mix.env/0` (which can be set via `MIX_ENV`).
+      Otherwise it is set to "shared".
 
     * If `Mix.target/0` is set (often via the `MIX_TARGET` environment
       variable), it will be used as a prefix to the subdirectory.
 
-  Finally, the environment variables `MIX_BUILD_ROOT` and `MIX_BUILD_PATH`
-  can be used to change the result of this function. `MIX_BUILD_ROOT`
-  overwrites only the root `"_build"` directory while keeping the
-  subdirectory as is. It may be useful to change it for caching reasons,
-  typically during Continuous Integration (CI). `MIX_BUILD_PATH` overrides
-  the build path altogether and it typically used by other build tools
-  that invoke the `mix` CLI.
+  The behaviour of this function can be modified by two environment
+  variables, `MIX_BUILD_ROOT` and `MIX_BUILD_PATH`, see [the Mix
+  documentation for more information](Mix.html#environment-variables).
 
   > #### Naming differences {: .info}
   >
   > Ideally the configuration option `:build_path` would be called
-  > `:build_root`, as it would fully mirror the environment variable.
-  > However, its name is preserved for backwards compatibility.
+  > `:build_root`, as it only sets the root component of the build
+  > path but not the subdirectory. However, its name is preserved
+  > for backwards compatibility.
 
   ## Examples
 

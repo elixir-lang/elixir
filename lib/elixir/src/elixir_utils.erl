@@ -5,7 +5,7 @@
 %% Convenience functions used throughout elixir source code
 %% for ast manipulation and querying.
 -module(elixir_utils).
--export([get_line/1, generated/1,
+-export([get_line/1, get_line/2, get_file/2, generated/1,
   split_last/1, split_opts/1, noop/0, var_context/2,
   characters_to_list/1, characters_to_binary/1, relative_to_cwd/1,
   macro_name/1, returns_boolean/1, caller/4, meta_keep/1,
@@ -174,6 +174,18 @@ get_line(Opts) when is_list(Opts) ->
   case lists:keyfind(line, 1, Opts) of
     {line, Line} when is_integer(Line) -> Line;
     _ -> 0
+  end.
+
+get_line(Meta, Env) when is_list(Meta) ->
+  case lists:keyfind(line, 1, Meta) of
+    {line, LineOpt} when is_integer(LineOpt) -> LineOpt;
+    false -> ?key(Env, line)
+  end.
+
+get_file(Meta, Env) when is_list(Meta) ->
+  case lists:keyfind(file, 1, Meta) of
+    {file, FileOpt} when is_binary(FileOpt) -> FileOpt;
+    false -> ?key(Env, file)
   end.
 
 generated([{generated, true} | _] = Meta) -> Meta;

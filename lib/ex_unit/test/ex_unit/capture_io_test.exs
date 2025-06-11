@@ -182,38 +182,38 @@ defmodule ExUnit.CaptureIOTest do
 
     test "with get password" do
       capture_io(fn ->
-        assert :io.get_password() == :eof
+        assert :io.get_password(Process.group_leader()) == :eof
       end)
 
       capture_io("", fn ->
-        assert :io.get_password() == :eof
+        assert :io.get_password(Process.group_leader()) == :eof
       end)
 
       capture_io("abc", fn ->
-        assert :io.get_password() == "abc"
-        assert :io.get_password() == :eof
+        assert :io.get_password(Process.group_leader()) == "abc"
+        assert :io.get_password(Process.group_leader()) == :eof
       end)
 
       capture_io("abc\n", fn ->
-        assert :io.get_password() == "abc\n"
-        assert :io.get_password() == :eof
+        assert :io.get_password(Process.group_leader()) == "abc\n"
+        assert :io.get_password(Process.group_leader()) == :eof
       end)
 
       capture_io("\n", fn ->
-        assert :io.get_password() == "\n"
-        assert :io.get_password() == :eof
+        assert :io.get_password(Process.group_leader()) == "\n"
+        assert :io.get_password(Process.group_leader()) == :eof
       end)
 
       capture_io("a\nb", fn ->
-        assert :io.get_password() == "a\n"
-        assert :io.get_password() == "b"
-        assert :io.get_password() == :eof
+        assert :io.get_password(Process.group_leader()) == "a\n"
+        assert :io.get_password(Process.group_leader()) == "b"
+        assert :io.get_password(Process.group_leader()) == :eof
       end)
 
       capture_io("あい\nう", fn ->
-        assert :io.get_password() == "あい\n"
-        assert :io.get_password() == "う"
-        assert :io.get_password() == :eof
+        assert :io.get_password(Process.group_leader()) == "あい\n"
+        assert :io.get_password(Process.group_leader()) == "う"
+        assert :io.get_password(Process.group_leader()) == :eof
       end)
     end
 

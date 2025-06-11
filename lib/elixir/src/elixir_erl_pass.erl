@@ -248,7 +248,6 @@ translate({{'.', _, [Left, Right]}, Meta, []}, _Ann, S)
 
   case proplists:get_value(no_parens, Meta, false) of
     true ->
-      TError = {tuple, Ann, [{atom, Ann, badkey}, TRight, TVar]},
       {{'case', Generated, TLeft, [
         {clause, Generated,
           [{map, Ann, [{map_field_exact, Ann, TRight, TVar}]}],
@@ -261,7 +260,7 @@ translate({{'.', _, [Left, Right]}, Meta, []}, _Ann, S)
             {clause, Generated,
              [{tuple, Generated, [{atom, Generated, ok}, TInnerVar]}], [], [TInnerVar]},
             {clause, Generated,
-             [{var, Generated, '_'}], [], [?remote(Ann, erlang, error, [TError])]}
+             [{tuple, Generated, [{atom, Generated, error}, TInnerVar]}], [], [?remote(Ann, erlang, error, [TInnerVar])]}
           ]}]}
       ]}, SV};
     false ->
@@ -716,9 +715,9 @@ generate_struct_name_guard([Field | Rest], Acc, S) ->
   generate_struct_name_guard(Rest, [Field | Acc], S).
 
 %% TODO: Make this a runtime error on Elixir v2.0
-no_parens_remote(nil, _Fun) -> error;
-no_parens_remote(false, _Fun) -> error;
-no_parens_remote(true, _Fun) -> error;
+no_parens_remote(nil, _Key) -> {error, {badmap, nil}};
+no_parens_remote(false, _Key) -> {error, {badmap, false}};
+no_parens_remote(true, _Key) -> {error, {badmap, false}};
 no_parens_remote(Atom, Fun) when is_atom(Atom) ->
   Message = fun() ->
     io_lib:format(
@@ -729,8 +728,10 @@ no_parens_remote(Atom, Fun) when is_atom(Atom) ->
   end,
   'Elixir.IO':warn_once(?MODULE, Message, 3),
   {ok, apply(Atom, Fun, [])};
-no_parens_remote(_Other, _Fun) ->
-  error.
+no_parens_remote(#{} = Map, Key) ->
+  {error, {badkey, Key, Map}};
+no_parens_remote(Other, _Key) ->
+  {error, {badmap, Other}}.
 
 parens_map_field(Key, Value) ->
   Message = fun() ->

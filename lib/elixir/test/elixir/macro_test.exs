@@ -140,6 +140,12 @@ defmodule MacroTest do
     test "does not add context to quote" do
       assert Macro.escape({:quote, [], [[do: :foo]]}) == {:{}, [], [:quote, [], [[do: :foo]]]}
     end
+
+    test "inspects container when a reference cannot be escaped" do
+      assert_raise ArgumentError, ~r"~r/foo/ contains a reference", fn ->
+        Macro.escape(%{~r/foo/ | re_pattern: {:re_pattern, 0, 0, 0, make_ref()}})
+      end
+    end
   end
 
   describe "expand_once/2" do

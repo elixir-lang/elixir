@@ -25,8 +25,6 @@ defmodule Module.Types.ExprTest do
     assert typecheck!("foo") == binary()
     assert typecheck!([]) == empty_list()
     assert typecheck!(%{}) == closed_map([])
-    assert typecheck!(& &1) == dynamic(fun(1))
-    assert typecheck!(fn -> :ok end) == dynamic(fun(0))
   end
 
   test "generated" do
@@ -129,7 +127,7 @@ defmodule Module.Types.ExprTest do
   end
 
   describe "funs" do
-    test "infers funs" do
+    test "infers calls" do
       assert typecheck!(
                [x],
                (
@@ -139,7 +137,28 @@ defmodule Module.Types.ExprTest do
              ) == dynamic(fun(2))
     end
 
-    test "incompatible" do
+    test "infers functions" do
+      assert typecheck!(& &1) == fun([dynamic()], dynamic())
+      assert typecheck!(fn -> :ok end) == fun([], atom([:ok]))
+
+      assert typecheck!(fn
+               <<"ok">>, {} -> :ok
+               <<"error">>, {} -> :error
+               [_ | _], %{} -> :list
+             end) ==
+               intersection(
+                 fun(
+                   [dynamic(non_empty_list(term(), term())), dynamic(open_map())],
+                   atom([:list])
+                 ),
+                 fun(
+                   [dynamic(binary()), dynamic(tuple([]))],
+                   atom([:ok, :error])
+                 )
+               )
+    end
+
+    test "bad function" do
       assert typeerror!([%x{}, a1, a2], x.(a1, a2)) == ~l"""
              expected a 2-arity function on call:
 
@@ -154,6 +173,99 @@ defmodule Module.Types.ExprTest do
                  # type: dynamic(atom())
                  # from: types_test.ex:LINE
                  %x{}
+             """
+    end
+
+    test "bad arity" do
+      assert typeerror!([a1, a2], (&String.to_integer/1).(a1, a2)) == ~l"""
+             expected a 2-arity function on call:
+
+                 (&String.to_integer/1).(a1, a2)
+
+             but got function with arity 1:
+
+                 (binary() -> integer())
+             """
+    end
+
+    test "bad argument" do
+      assert typeerror!([], (&String.to_integer/1).(:foo))
+             |> strip_ansi() == ~l"""
+             incompatible types given on function application:
+
+                 (&String.to_integer/1).(:foo)
+
+             given types:
+
+                 :foo
+
+             but function has type:
+
+                 (binary() -> integer())
+             """
+
+      assert typeerror!(
+               [x],
+               (if x do
+                  &String.to_integer/1
+                else
+                  &List.to_integer/1
+                end).(:foo)
+             )
+             |> strip_ansi() == ~l"""
+             incompatible types given on function application:
+
+                 (if x do
+                    &String.to_integer/1
+                  else
+                    &List.to_integer/1
+                  end).(:foo)
+
+             given types:
+
+                 :foo
+
+             but function has type:
+
+                 (binary() -> integer()) or (non_empty_list(integer()) -> integer())
+
+             hint: the function has an empty domain and therefore cannot be applied to any argument. \
+             This may happen when you have a union of functions, which means the only valid argument \
+             to said function are types that satisfy all sides of the union (which may be none)
+             """
+    end
+
+    test "bad arguments from inferred type" do
+      assert typeerror!(
+               (
+                 fun = fn %{} -> :map end
+                 fun.(:error)
+               )
+             )
+             |> strip_ansi() == """
+             incompatible types given on function application:
+
+                 fun.(:error)
+
+             given types:
+
+                 :error
+
+             but function has type:
+
+                 (dynamic(map()) -> :map)
+             """
+    end
+
+    test "capture printing" do
+      assert typeerror!(123 = &{:ok, &1}) == """
+             the following pattern will never match:
+
+                 123 = &{:ok, &1}
+
+             because the right-hand side has type:
+
+                 (dynamic() -> dynamic({:ok, term()}))
              """
     end
   end
@@ -419,6 +531,18 @@ defmodule Module.Types.ExprTest do
                      List
                    end
              """
+    end
+  end
+
+  describe "remote capture" do
+    test "strong" do
+      assert typecheck!(&String.to_atom/1) == fun([binary()], atom())
+      assert typecheck!(&:erlang.element/2) == fun([integer(), open_tuple([])], dynamic())
+    end
+
+    test "unknown" do
+      assert typecheck!(&Module.Types.ExprTest.__ex_unit__/1) == dynamic(fun(1))
+      assert typecheck!([x], &x.something/1) == dynamic(fun(1))
     end
   end
 

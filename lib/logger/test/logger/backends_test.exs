@@ -37,25 +37,28 @@ defmodule Logger.BackendsTest do
   end
 
   test "add_backend/1 and remove_backend/1" do
-    assert {:ok, _pid} = Logger.add_backend(Logger.Backends.Console)
-    assert Logger.add_backend(Logger.Backends.Console) == {:error, :already_present}
-    assert :ok = Logger.remove_backend(Logger.Backends.Console)
-    assert Logger.remove_backend(Logger.Backends.Console) == {:error, :not_found}
+    ExUnit.CaptureIO.capture_io(:stderr, fn ->
+      assert {:ok, _pid} = Logger.Backends.Internal.add(Logger.Backends.Console)
+    end)
+
+    assert Logger.Backends.Internal.add(Logger.Backends.Console) == {:error, :already_present}
+    assert :ok = Logger.Backends.Internal.remove(Logger.Backends.Console)
+    assert Logger.Backends.Internal.remove(Logger.Backends.Console) == {:error, :not_found}
   end
 
   test "add_backend/1 with {module, id}" do
-    assert {:ok, _} = Logger.add_backend({MyBackend, self()})
-    assert {:error, :already_present} = Logger.add_backend({MyBackend, self()})
-    assert :ok = Logger.remove_backend({MyBackend, self()})
+    assert {:ok, _} = Logger.Backends.Internal.add({MyBackend, self()})
+    assert {:error, :already_present} = Logger.Backends.Internal.add({MyBackend, self()})
+    assert :ok = Logger.Backends.Internal.remove({MyBackend, self()})
   end
 
   test "add_backend/1 with unknown backend" do
     assert {:error, {{:EXIT, {:undef, [_ | _]}}, _}} =
-             Logger.add_backend({UnknownBackend, self()})
+             Logger.Backends.Internal.add({UnknownBackend, self()})
   end
 
   test "logs or writes to stderr on failed call on async mode" do
-    assert {:ok, _} = Logger.add_backend({MyBackend, self()})
+    assert {:ok, _} = Logger.Backends.Internal.add({MyBackend, self()})
 
     assert capture_log(fn ->
              ExUnit.CaptureIO.capture_io(:stderr, fn ->
@@ -67,7 +70,7 @@ defmodule Logger.BackendsTest do
 
     Logger.flush()
   after
-    Logger.remove_backend({MyBackend, self()})
+    Logger.Backends.Internal.remove({MyBackend, self()})
   end
 
   test "logs or writes to stderr on failed call on sync mode" do
@@ -75,7 +78,7 @@ defmodule Logger.BackendsTest do
       Logger.configure(sync_threshold: 0)
     end)
 
-    assert {:ok, _} = Logger.add_backend({MyBackend, self()})
+    assert {:ok, _} = Logger.Backends.Internal.add({MyBackend, self()})
 
     assert capture_log(fn ->
              ExUnit.CaptureIO.capture_io(:stderr, fn ->
@@ -88,7 +91,7 @@ defmodule Logger.BackendsTest do
     Logger.flush()
   after
     Logger.configure(sync_threshold: 20)
-    Logger.remove_backend({MyBackend, :hello})
+    Logger.Backends.Internal.remove({MyBackend, :hello})
   end
 
   test "logs when discarding messages" do
@@ -96,7 +99,7 @@ defmodule Logger.BackendsTest do
       assert :ok = Logger.configure(discard_threshold: 5)
     end)
 
-    Logger.add_backend({MyBackend, self()})
+    Logger.Backends.Internal.add({MyBackend, self()})
 
     capture_log(fn ->
       :sys.suspend(Logger)
@@ -112,7 +115,7 @@ defmodule Logger.BackendsTest do
                       _time, _metadata}}}
   after
     :sys.resume(Logger)
-    Logger.remove_backend({MyBackend, self()})
+    Logger.Backends.Internal.remove({MyBackend, self()})
     assert :ok = Logger.configure(discard_threshold: 500)
   end
 

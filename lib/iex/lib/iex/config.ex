@@ -13,14 +13,36 @@ defmodule IEx.Config do
     :inspect,
     :history_size,
     :default_prompt,
-    :continuation_prompt,
     :alive_prompt,
-    :alive_continuation_prompt,
     :width,
     :parser,
     :dot_iex,
     :auto_reload
   ]
+
+  # Generate a continuation prompt based on IEx prompt.
+  # This is set as global configuration on app start.
+  def prompt(prompt) do
+    case Enum.split_while(prompt, &(&1 != ?()) do
+      # It is not the default Elixir shell, so we use the default prompt
+      {_, []} ->
+        List.duplicate(?\s, max(0, prompt_width(prompt) - 3)) ++ ~c".. "
+
+      {left, right} ->
+        List.duplicate(?., prompt_width(left)) ++ right
+    end
+  end
+
+  # TODO: Remove this when we require Erlang/OTP 27+
+  @compile {:no_warn_undefined, :prim_tty}
+  @compile {:no_warn_undefined, :shell}
+  defp prompt_width(prompt) do
+    if function_exported?(:prim_tty, :npwcwidthstring, 1) do
+      :prim_tty.npwcwidthstring(prompt)
+    else
+      :shell.prompt_width(prompt)
+    end
+  end
 
   # Read API
 
@@ -53,20 +75,12 @@ defmodule IEx.Config do
     Application.fetch_env!(:iex, :default_prompt)
   end
 
-  def continuation_prompt() do
-    Application.get_env(:iex, :continuation_prompt, default_prompt())
-  end
-
   def alive_prompt() do
     Application.fetch_env!(:iex, :alive_prompt)
   end
 
-  def alive_continuation_prompt() do
-    Application.get_env(:iex, :alive_continuation_prompt, alive_prompt())
-  end
-
   def parser() do
-    Application.get_env(:iex, :parser, {IEx.Evaluator, :parse, []})
+    Application.fetch_env!(:iex, :parser)
   end
 
   def color(color) do
@@ -85,13 +99,7 @@ defmodule IEx.Config do
   end
 
   defp colors_enabled?(colors) do
-    case Keyword.fetch(colors, :enabled) do
-      {:ok, enabled} ->
-        enabled
-
-      :error ->
-        IO.ANSI.enabled?()
-    end
+    Keyword.get_lazy(colors, :enabled, &IO.ANSI.enabled?/0)
   end
 
   def dot_iex() do
@@ -202,9 +210,7 @@ defmodule IEx.Config do
   defp validate_option({:inspect, new}) when is_list(new), do: :ok
   defp validate_option({:history_size, new}) when is_integer(new), do: :ok
   defp validate_option({:default_prompt, new}) when is_binary(new), do: :ok
-  defp validate_option({:continuation_prompt, new}) when is_binary(new), do: :ok
   defp validate_option({:alive_prompt, new}) when is_binary(new), do: :ok
-  defp validate_option({:alive_continuation_prompt, new}) when is_binary(new), do: :ok
   defp validate_option({:width, new}) when is_integer(new), do: :ok
   defp validate_option({:parser, tuple}) when tuple_size(tuple) == 3, do: :ok
   defp validate_option({:dot_iex, path}) when is_binary(path), do: :ok

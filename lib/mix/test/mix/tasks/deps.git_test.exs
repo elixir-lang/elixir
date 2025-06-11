@@ -170,13 +170,13 @@ defmodule Mix.Tasks.DepsGitTest do
 
       # Compile the dependencies
       Mix.Tasks.Deps.Compile.run([])
-      assert File.exists?("_build/dev/lib/deps_on_git_repo/.mix/compile.fetch")
-      assert File.exists?("_build/dev/lib/git_repo/.mix/compile.fetch")
+      assert File.exists?("_build/dev/lib/deps_on_git_repo/.mix/compile.elixir_scm")
+      assert File.exists?("_build/dev/lib/git_repo/.mix/compile.elixir_scm")
 
       # Now update children and make sure it propagates
       Mix.Tasks.Deps.Update.run(["git_repo"])
-      refute File.exists?("_build/dev/lib/deps_on_git_repo/.mix/compile.fetch")
-      refute File.exists?("_build/dev/lib/git_repo/.mix/compile.fetch")
+      refute File.exists?("_build/dev/lib/deps_on_git_repo/.mix/compile.elixir_scm")
+      refute File.exists?("_build/dev/lib/git_repo/.mix/compile.elixir_scm")
 
       # Clear tasks to recompile Git repo but unload it so...
       purge([GitRepo])
@@ -408,7 +408,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert File.exists?("deps/git_repo/lib/git_repo.ex")
       assert File.read!("mix.lock") =~ last
       assert File.read!("deps/deps_on_git_repo/lib/deps_on_git_repo.ex") =~ "GitRepo.hello()"
-      refute File.exists?("_build/dev/lib/git_repo/.mix/compile.fetch")
+      refute File.exists?("_build/dev/lib/git_repo/.mix/compile.elixir_scm")
     end)
   after
     purge([GitRepo, GitRepo.MixProject])
@@ -441,7 +441,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert File.exists?("deps/git_repo/lib/git_repo.ex")
       assert File.read!("mix.lock") =~ last
       assert File.read!("deps/deps_on_git_repo/lib/deps_on_git_repo.ex") =~ "GitRepo.hello()"
-      refute File.exists?("_build/dev/lib/git_repo/.mix/compile.fetch")
+      refute File.exists?("_build/dev/lib/git_repo/.mix/compile.elixir_scm")
     end)
   after
     purge([GitRepo, GitRepo.MixProject])

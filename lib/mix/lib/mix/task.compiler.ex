@@ -268,9 +268,39 @@ defmodule Mix.Task.Compiler do
     end)
   end
 
-  # Normalize the compiler result to a diagnostic tuple.
-  @doc false
-  def normalize(result, name) do
+  @doc """
+  Runs the given list of compilers with the given arguments.
+
+  It returns a `{status, diagnostics}` tuple. If a compiler
+  errors, following compilers do not run.
+  """
+  @doc since: "1.19.0"
+  def run(compilers, args) do
+    run(compilers, args, :noop, [])
+  end
+
+  defp run([], _, status, diagnostics) do
+    {status, diagnostics}
+  end
+
+  defp run([compiler | rest], args, status, diagnostics) do
+    {new_status, new_diagnostics} = run_compiler(compiler, args)
+    diagnostics = diagnostics ++ new_diagnostics
+
+    case new_status do
+      :error -> {:error, diagnostics}
+      :ok -> run(rest, args, :ok, diagnostics)
+      :noop -> run(rest, args, status, diagnostics)
+    end
+  end
+
+  defp run_compiler(compiler, args) do
+    result = normalize(Mix.Task.run("compile.#{compiler}", args), compiler)
+    Enum.reduce(Mix.ProjectStack.pop_after_compiler(compiler), result, & &1.(&2))
+  end
+
+  # Normalize the compiler result to a diagnostic tuple
+  defp normalize(result, name) do
     case result do
       {status, diagnostics} when status in [:ok, :noop, :error] and is_list(diagnostics) ->
         {status, diagnostics}
@@ -328,10 +358,10 @@ defmodule Mix.Task.Compiler do
   re-enables `"compile"` and `"compile.all"`.
   """
   @doc since: "1.19.0"
-  @spec reenable(compilers: compilers) :: :ok when compilers: :all | [atom()]
-  def reenable(opts \\ []) do
+  @spec reenable(compilers) :: :ok when compilers: :all | [atom()]
+  def reenable(compilers \\ :all) do
     compilers =
-      case Keyword.get(opts, :compilers, :all) do
+      case compilers do
         :all -> Mix.Task.Compiler.compilers()
         list when is_list(list) -> list
       end

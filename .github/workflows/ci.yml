@@ -26,13 +26,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - otp_version: "27.1"
+          - otp_version: "28.0"
             deterministic: true
-          - otp_version: "27.1"
+          - otp_version: "28.0"
             erlc_opts: "warnings_as_errors"
             coverage: true
-          - otp_version: "27.1"
+          - otp_version: "28.0"
             otp_latest: true
+            erlc_opts: "warnings_as_errors"
+          - otp_version: "27.3"
             erlc_opts: "warnings_as_errors"
           - otp_version: "27.0"
             erlc_opts: "warnings_as_errors"
@@ -51,7 +53,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 50
-      - uses: erlef/setup-beam@5304e04ea2b355f03681464e683d92e3b2f18451 # v1.18.2
+      - uses: erlef/setup-beam@8aa8a857c6be0daae6e97272bb299d5b942675a4 # v1.19.0
         with:
           otp-version: ${{ matrix.otp_version }}
       - name: Set ERL_COMPILER_OPTIONS
@@ -104,7 +106,7 @@ jobs:
     name: Windows Server 2019, Erlang/OTP ${{ matrix.otp_version }}
     strategy:
       matrix:
-        otp_version: ["26.2", "27.3"]
+        otp_version: ["26.2", "27.3", "28.0"]
     runs-on: windows-2022
     steps:
       - name: Configure Git
@@ -112,7 +114,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 50
-      - uses: erlef/setup-beam@5304e04ea2b355f03681464e683d92e3b2f18451 # v1.18.2
+      - uses: erlef/setup-beam@8aa8a857c6be0daae6e97272bb299d5b942675a4 # v1.19.0
         with:
           otp-version: ${{ matrix.otp_version }}
       - name: Compile Elixir

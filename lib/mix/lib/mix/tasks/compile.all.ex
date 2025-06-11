@@ -62,7 +62,7 @@ defmodule Mix.Tasks.Compile.All do
     compile_path = to_charlist(Mix.Project.compile_path())
     Code.prepend_path(compile_path)
 
-    result =
+    {status, diagnostics} =
       if "--no-compile" in args do
         Mix.Task.reenable("compile.all")
         {:noop, []}
@@ -72,8 +72,12 @@ defmodule Mix.Tasks.Compile.All do
 
         config
         |> Mix.Task.Compiler.compilers()
-        |> compile(args, :noop, [])
+        |> Mix.Task.Compiler.run(args)
       end
+
+    if status == :error and "--return-errors" not in args do
+      exit({:shutdown, 1})
+    end
 
     if app_cache do
       Mix.AppLoader.write_cache(app_cache, Map.new(loaded_modules))
@@ -90,36 +94,7 @@ defmodule Mix.Tasks.Compile.All do
       end
     end
 
-    result
-  end
-
-  defp compile([], _, status, diagnostics) do
     {status, diagnostics}
-  end
-
-  defp compile([compiler | rest], args, status, diagnostics) do
-    {new_status, new_diagnostics} = run_compiler(compiler, args)
-    diagnostics = diagnostics ++ new_diagnostics
-
-    case new_status do
-      :error ->
-        if "--return-errors" not in args do
-          exit({:shutdown, 1})
-        end
-
-        {:error, diagnostics}
-
-      :ok ->
-        compile(rest, args, :ok, diagnostics)
-
-      :noop ->
-        compile(rest, args, status, diagnostics)
-    end
-  end
-
-  defp run_compiler(compiler, args) do
-    result = Mix.Task.Compiler.normalize(Mix.Task.run("compile.#{compiler}", args), compiler)
-    Enum.reduce(Mix.ProjectStack.pop_after_compiler(compiler), result, & &1.(&2))
   end
 
   def project_apps(config) do

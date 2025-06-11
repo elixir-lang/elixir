@@ -156,6 +156,36 @@ defmodule Module.Types.IntegrationTest do
                dynamic(open_map())
     end
 
+    test "writes exports with inferred function types" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def captured, do: &to_capture/1
+          defp to_capture(<<"ok">>), do: :ok
+          defp to_capture(<<"error">>), do: :error
+          defp to_capture([_ | _]), do: :list
+        end
+        """
+      }
+
+      modules = compile_modules(files)
+      exports = read_chunk(modules[A]).exports |> Map.new()
+
+      return = fn name, arity ->
+        pair = {name, arity}
+        %{^pair => %{sig: {:infer, nil, [{_, return}]}}} = exports
+        return
+      end
+
+      assert return.(:captured, 0)
+             |> equal?(
+               fun_from_non_overlapping_clauses([
+                 {[dynamic(binary())], atom([:ok, :error])},
+                 {[dynamic(non_empty_list(term(), term()))], atom([:list])}
+               ])
+             )
+    end
+
     test "writes exports for implementations" do
       files = %{
         "pi.ex" => """

@@ -409,12 +409,9 @@ defmodule Kernel.RaiseTest do
     end
 
     test "badfun error" do
-      # Avoid "invalid function call" warning
-      x = fn -> :example end
-
       result =
         try do
-          x.().(2)
+          Process.get(:unused, :example).(2)
         rescue
           x in [BadFunctionError] -> Exception.message(x)
         end
@@ -537,12 +534,10 @@ defmodule Kernel.RaiseTest do
     end
 
     test "try clause error" do
-      f = fn -> :example end
-
       result =
         try do
           try do
-            f.()
+            Process.get(:unused, :example)
           rescue
             _exception ->
               :ok

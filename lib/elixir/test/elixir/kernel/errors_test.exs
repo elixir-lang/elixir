@@ -446,7 +446,7 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid case clauses" do
     assert_compile_error(
-      ["nofile:1:37", "expected one argument for :do clauses (->) in \"case\""],
+      ["nofile:1:37", "expected one argument for \"do\" clauses (->) in \"case\""],
       ~c"case nil do 0, z when not is_nil(z) -> z end"
     )
   end
@@ -870,7 +870,10 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid args for function head" do
     assert_compile_error(
-      ["nofile:2:7: ", "only variables and \\\\ are allowed as arguments in function head."],
+      [
+        "nofile:2:7: ",
+        "patterns are not allowed in function head, only variables and default arguments (using \\\\)"
+      ],
       ~c"""
       defmodule Kernel.ErrorsTest.InvalidArgsForBodylessClause do
         def foo(nil)
@@ -956,15 +959,18 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "def fails when rescue, else or catch don't have clauses" do
-    assert_compile_error(~r"expected -> clauses for :rescue in \"def\"", """
-    defmodule Example do
-      def foo do
-        bar()
-      rescue
-        baz()
+    assert_compile_error(
+      ~r"invalid \"rescue\" block in \"def\", it expects \"pattern -> expr\" clauses",
+      """
+      defmodule Example do
+        def foo do
+          bar()
+        rescue
+          baz()
+        end
       end
-    end
-    """)
+      """
+    )
   end
 
   test "duplicate map keys" do

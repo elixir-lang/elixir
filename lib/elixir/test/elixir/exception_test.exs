@@ -13,6 +13,24 @@ defmodule ExceptionTest do
 
   doctest Exception
 
+  doctest RuntimeError
+  doctest SystemLimitError
+  doctest MismatchedDelimiterError
+  doctest SyntaxError
+  doctest TokenMissingError
+  doctest BadBooleanError
+  doctest UndefinedFunctionError
+  doctest FunctionClauseError
+  doctest Protocol.UndefinedError
+  doctest UnicodeConversionError
+  doctest Enum.OutOfBoundsError
+  doctest Enum.EmptyError
+  doctest File.Error
+  doctest File.CopyError
+  doctest File.RenameError
+  doctest File.LinkError
+  doctest ErlangError
+
   test "message/1" do
     defmodule BadException do
       def message(exception) do
@@ -696,12 +714,6 @@ defmodule ExceptionTest do
     test "annotates undefined function clause error with otp obsolete hints" do
       assert blame_message(:erlang, & &1.hash(1, 2)) ==
                "function :erlang.hash/2 is undefined or private, use erlang:phash2/2 instead"
-    end
-
-    test "annotates undefined key error with nil hints" do
-      assert blame_message(nil, & &1.foo) ==
-               "key :foo not found in: nil\n\nIf you are using the dot syntax, " <>
-                 "such as map.field, make sure the left-hand side of the dot is a map"
     end
 
     test "annotates undefined function clause error with nil hints" do

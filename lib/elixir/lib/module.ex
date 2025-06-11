@@ -23,20 +23,20 @@ defmodule Module do
   ### `@after_compile`
 
   A hook that will be invoked right after the current module is compiled.
-  Accepts a module or a `{module, function_name}`. See the "Compile callbacks"
+  Accepts a module or a `{module, function_name}`. See the ["Compile callbacks"](#module-compile-callbacks)
   section below.
 
   ### `@after_verify` (since v1.14.0)
 
   A hook that will be invoked right after the current module is verified for
   undefined functions, deprecations, etc. Accepts a module or a `{module, function_name}`.
-  See the "Compile callbacks" section below.
+  See the ["Compile callbacks"](#module-compile-callbacks) section below.
 
   ### `@before_compile`
 
   A hook that will be invoked before the module is compiled.
   Accepts a module or a `{module, function_or_macro_name}` tuple.
-  See the "Compile callbacks" section below.
+  See the ["Compile callbacks"](#module-compile-callbacks) section below.
 
   ### `@behaviour`
 
@@ -124,7 +124,7 @@ defmodule Module do
   ### `@compile`
 
   Defines options for module compilation. This is used to configure
-  both Elixir and Erlang compilers, as any other compilation pass
+  both Elixir and Erlang compilers, as well as any other compilation pass
   added by external tools. For example:
 
       defmodule MyModule do
@@ -136,7 +136,7 @@ defmodule Module do
       end
 
   Multiple uses of `@compile` will accumulate instead of overriding
-  previous ones. See the "Compile options" section below.
+  previous ones. See the ["Compile options"](#module-compile-options) section below.
 
   ### `@deprecated` (since v1.6.0)
 
@@ -726,7 +726,7 @@ defmodule Module do
   @doc """
   Returns information about module attributes used by Elixir.
 
-  See the "Module attributes" section in the module documentation for more
+  See the ["Module attributes"](#module-module-attributes) section in the module documentation for more
   information on each attribute.
 
   ## Examples
@@ -945,6 +945,12 @@ defmodule Module do
 
   It handles binaries and atoms.
 
+  > #### Untracked compile-time dependencies {. :warning}
+  >
+  > Use this function with care, as dynamically defining
+  > module names at compilation time may lead to
+  > [untracked compile-time dependencies](macro-anti-patterns.md#untracked-compile-time-dependencies).
+
   ## Examples
 
       iex> Module.concat([Foo, Bar])
@@ -964,6 +970,12 @@ defmodule Module do
 
   It handles binaries and atoms. If one of the aliases
   is nil, it is discarded.
+
+  > #### Untracked compile-time dependencies {. :warning}
+  >
+  > Use this function with care, as dynamically defining
+  > module names at compilation time may lead to
+  > [untracked compile-time dependencies](macro-anti-patterns.md#untracked-compile-time-dependencies).
 
   ## Examples
 
@@ -990,6 +1002,12 @@ defmodule Module do
   If the alias was not referenced yet, fails with `ArgumentError`.
   It handles binaries and atoms.
 
+  > #### Untracked compile-time dependencies {. :warning}
+  >
+  > Use this function with care, as dynamically defining
+  > module names at compilation time may lead to
+  > [untracked compile-time dependencies](macro-anti-patterns.md#untracked-compile-time-dependencies).
+
   ## Examples
 
       iex> Module.safe_concat([List, Chars])
@@ -1007,6 +1025,12 @@ defmodule Module do
 
   If the alias was not referenced yet, fails with `ArgumentError`.
   It handles binaries and atoms.
+
+  > #### Untracked compile-time dependencies {. :warning}
+  >
+  > Use this function with care, as dynamically defining
+  > module names at compilation time may lead to
+  > [untracked compile-time dependencies](macro-anti-patterns.md#untracked-compile-time-dependencies).
 
   ## Examples
 

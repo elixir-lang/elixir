@@ -8,9 +8,10 @@
 
 ## Shipping a new version
 
-1. Update version in /VERSION, bin/elixir, bin/elixir.bat, and bin/elixir.ps1
+1. Update version in /VERSION, bin/elixir, and bin/elixir.bat
 
 2. Ensure /CHANGELOG.md is updated, versioned and add the current date
+
    - If this release addresses any publicly known security vulnerabilities with
      assigned CVEs, add a "Security" section to `CHANGELOG.md`. For example:
      ```md
@@ -34,7 +35,7 @@
 
 ### In the new branch
 
-1. Comment the `CANONICAL=` in /Makefile
+1. Comment out `CANONICAL := main/` in /Makefile
 
 2. Update tables in /SECURITY.md and "Compatibility and Deprecations"
 
@@ -42,7 +43,7 @@
 
 ### Back in main
 
-1. Bump /VERSION file, bin/elixir, bin/elixir.bat, and bin/elixir.ps1
+1. Bump /VERSION file, bin/elixir, and bin/elixir.bat
 
 2. Start new /CHANGELOG.md
 

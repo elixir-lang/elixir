@@ -735,6 +735,17 @@ defmodule Kernel do
   Returns `true` if `term` is a floating-point number, otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> is_float(2.15)
+      true
+
+      iex> is_float(3.45e5)
+      true
+
+      iex> is_float(5)
+      false
   """
   @doc guard: true
   @spec is_float(term) :: boolean
@@ -786,6 +797,14 @@ defmodule Kernel do
   Returns `true` if `term` is an integer, otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> is_integer(5)
+      true
+
+      iex> is_integer(5.0)
+      false
   """
   @doc guard: true
   @spec is_integer(term) :: boolean
@@ -797,6 +816,17 @@ defmodule Kernel do
   Returns `true` if `term` is a list with zero or more elements, otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> is_list([1, 2, 3])
+      true
+
+      iex> is_list(key: :sum, value: 3)
+      true
+
+      iex> is_list({1, 2, 3})
+      false
   """
   @doc guard: true
   @spec is_list(term) :: boolean
@@ -809,6 +839,17 @@ defmodule Kernel do
   otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> is_number(2.15)
+      true
+
+      iex> is_number(5)
+      true
+
+      iex> is_number(:one)
+      false
   """
   @doc guard: true
   @spec is_number(term) :: boolean
@@ -820,6 +861,18 @@ defmodule Kernel do
   Returns `true` if `term` is a PID (process identifier), otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> {:ok, agent_pid} = Agent.start_link(fn -> 0 end)
+      iex> is_pid(agent_pid)
+      true
+
+      iex> is_pid(self())
+      true
+
+      iex> is_pid(:pid)
+      false
   """
   @doc guard: true
   @spec is_pid(term) :: boolean
@@ -831,6 +884,15 @@ defmodule Kernel do
   Returns `true` if `term` is a port identifier, otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> [port | _] = Port.list()
+      iex> is_port(port)
+      true
+
+      iex> is_port(:port)
+      false
   """
   @doc guard: true
   @spec is_port(term) :: boolean
@@ -842,6 +904,15 @@ defmodule Kernel do
   Returns `true` if `term` is a reference, otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> ref = make_ref()
+      iex> is_reference(ref)
+      true
+
+      iex> is_reference(:ref)
+      false
   """
   @doc guard: true
   @spec is_reference(term) :: boolean
@@ -853,6 +924,17 @@ defmodule Kernel do
   Returns `true` if `term` is a tuple, otherwise returns `false`.
 
   Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> is_tuple({1, 2, 3})
+      true
+
+      iex> is_tuple({})
+      true
+
+      iex> is_tuple(true)
+      false
   """
   @doc guard: true
   @spec is_tuple(term) :: boolean
@@ -4433,21 +4515,32 @@ defmodule Kernel do
   Returns `true` if `module` is loaded and contains a
   public `function` with the given `arity`, otherwise `false`.
 
-  Note that this function does not load the module in case
-  it is not loaded. Check `Code.ensure_loaded/1` for more
-  information.
+  > ### Unloaded modules {: .warning}
+  >
+  > This function does *not* load the module in case it is not loaded
+  > and Elixir lazily loads modules by default (except on releases).
+  >
+  > This may lead to unexpected behaviour as the result of this function
+  > may depend if another code has happened to load the given module
+  > as argument beforehand. For example, this could manifest in `mix test`
+  > by having tests that fail when running in isolation or depending on the
+  > test seed. For those reasons, it is recommended to always check for
+  > `Code.ensure_loaded?/1` before `function_exported?/3`, unless you are
+  > certain the module has been loaded before.
+  >
+  > See `Code.ensure_loaded/1` for more information.
 
   Inlined by the compiler.
 
   ## Examples
 
-      iex> function_exported?(Enum, :map, 2)
+      iex> Code.ensure_loaded?(Enum) and function_exported?(Enum, :map, 2)
       true
 
-      iex> function_exported?(Enum, :map, 10)
+      iex> Code.ensure_loaded?(Enum) and function_exported?(Enum, :map, 10)
       false
 
-      iex> function_exported?(List, :to_string, 1)
+      iex> Code.ensure_loaded?(List) and function_exported?(List, :to_string, 1)
       true
   """
   @spec function_exported?(module, atom, arity) :: boolean
@@ -4460,18 +4553,18 @@ defmodule Kernel do
   public `macro` with the given `arity`, otherwise `false`.
 
   Note that this function does not load the module in case
-  it is not loaded. Check `Code.ensure_loaded/1` for more
-  information.
+  it is not loaded. See the notes under `function_exported?/3`
+  for more information.
 
   If `module` is an Erlang module (as opposed to an Elixir module), this
   function always returns `false`.
 
   ## Examples
 
-      iex> macro_exported?(Kernel, :use, 2)
+      iex> Code.ensure_loaded?(Kernel) and macro_exported?(Kernel, :use, 2)
       true
 
-      iex> macro_exported?(:erlang, :abs, 1)
+      iex> Code.ensure_loaded?(:erlang) and macro_exported?(:erlang, :abs, 1)
       false
 
   """

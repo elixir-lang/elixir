@@ -164,10 +164,11 @@ do_escape(BitString, _) when is_bitstring(BitString) ->
   end;
 
 do_escape(Map, Q) when is_map(Map) ->
-  TT = do_quote(lists:sort(maps:to_list(Map)), Q),
+  TT = [escape_map_key_value(K, V, Map, Q) || {K, V} <- lists:sort(maps:to_list(Map))],
   {'%{}', [], TT};
 
-do_escape([], _) -> [];
+do_escape([], _) ->
+  [];
 
 do_escape([H | T], #elixir_quote{unquote=false} = Q) ->
   do_quote_simple_list(T, do_quote(H, Q), Q);
@@ -197,10 +198,35 @@ do_escape(Fun, _) when is_function(Fun) ->
 do_escape(Other, _) ->
   bad_escape(Other).
 
+escape_map_key_value(K, V, Map, Q) ->
+  MaybeRef = if
+    is_reference(V) -> V;
+    is_tuple(V) -> find_tuple_ref(V, 1);
+    true -> nil
+  end,
+  if
+    is_reference(MaybeRef) ->
+      argument_error(<<('Elixir.Kernel':inspect(Map, []))/binary, " contains a reference (",
+                        ('Elixir.Kernel':inspect(MaybeRef, []))/binary, ") and therefore it cannot be escaped ",
+                        "(it must be defined within a function instead). ", (bad_escape_hint())/binary>>);
+    true ->
+      {do_quote(K, Q), do_quote(V, Q)}
+    end.
+
+find_tuple_ref(Tuple, Index) when Index > tuple_size(Tuple) -> nil;
+find_tuple_ref(Tuple, Index) ->
+  case element(Index, Tuple) of
+    Ref when is_reference(Ref) -> Ref;
+    _ -> find_tuple_ref(Tuple, Index + 1)
+  end.
+
 bad_escape(Arg) ->
   argument_error(<<"cannot escape ", ('Elixir.Kernel':inspect(Arg, []))/binary, ". ",
-                   "The supported values are: lists, tuples, maps, atoms, numbers, bitstrings, ",
-                   "PIDs and remote functions in the format &Mod.fun/arity">>).
+                   (bad_escape_hint())/binary>>).
+
+bad_escape_hint() ->
+  <<"The supported values are: lists, tuples, maps, atoms, numbers, bitstrings, ",
+    "PIDs and remote functions in the format &Mod.fun/arity">>.
 
 %% Quote entry points
 

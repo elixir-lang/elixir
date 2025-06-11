@@ -61,6 +61,8 @@ defmodule Mix.Tasks.Compile do
     * `--erl-config` - path to an Erlang term file that will be loaded as Mix config
     * `--force` - forces compilation
     * `--list` - lists all enabled compilers
+    * `--listeners` - starts Mix listeners (they are started by default,
+      unless `--no-listeners` or `--no-deps-check` are given)
     * `--no-app-loading` - does not load .app resource file after compilation
     * `--no-archives-check` - skips checking of archives
     * `--no-compile` - does not actually compile, only loads code and perform checks
@@ -140,7 +142,12 @@ defmodule Mix.Tasks.Compile do
     {res, diagnostics} =
       Mix.Task.run("compile.all", args)
       |> List.wrap()
-      |> Enum.map(&Mix.Task.Compiler.normalize(&1, :all))
+      |> Enum.map(
+        &case &1 do
+          :noop -> {:noop, []}
+          {status, diagnostics} -> {status, diagnostics}
+        end
+      )
       |> Enum.reduce({:noop, []}, &merge_diagnostics/2)
 
     config = Mix.Project.config()

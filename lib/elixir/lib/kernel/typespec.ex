@@ -877,7 +877,15 @@ defmodule Kernel.Typespec do
 
   defp typespec({:fun, meta, args}, vars, caller, state) do
     {args, state} = :lists.mapfoldl(&typespec(&1, vars, caller, &2), state, args)
-    {{:type, location(meta), :fun, args}, state}
+
+    if args != [] do
+      IO.warn(
+        "fun/#{length(args)} is not valid in typespecs. Either specify fun() or use (... -> return) instead",
+        caller
+      )
+    end
+
+    {{:type, location(meta), :fun, []}, state}
   end
 
   defp typespec({:..., _meta, _args}, _vars, caller, _state) do

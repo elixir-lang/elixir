@@ -122,10 +122,27 @@ defmodule Module.Types.Helpers do
         If you are trying to access an exception's :message key, either specify the \
         exception names or use `Exception.message/1`.
         """
+
+      :empty_union_domain ->
+        """
+
+        #{hint()} the function has an empty domain and therefore cannot be applied to \
+        any argument. This may happen when you have a union of functions, which means \
+        the only valid argument to said function are types that satisfy all sides of \
+        the union (which may be none)
+        """
+
+      :empty_domain ->
+        """
+
+        #{hint()} the function has an empty domain and therefore cannot be applied to \
+        any argument
+        """
     end)
   end
 
-  defp hint, do: :elixir_errors.prefix(:hint)
+  @doc "The hint prefix"
+  def hint, do: :elixir_errors.prefix(:hint)
 
   @doc """
   Collect traces from variables in expression.
@@ -165,7 +182,7 @@ defmodule Module.Types.Helpers do
   defp collect_var_traces(parent_expr, traces) do
     traces
     |> Enum.reject(fn {expr, _file, type} ->
-      # As an otimization do not care about dynamic terms
+      # As an optimization do not care about dynamic terms
       type == %{dynamic: :term} or expr == parent_expr
     end)
     |> case do
@@ -324,6 +341,22 @@ defmodule Module.Types.Helpers do
       {{:., _, [mod, fun]}, meta, args} ->
         erl_to_ex(mod, fun, args, meta)
 
+      {:fn, meta, [{:->, _, [_args, return]}]} = expr ->
+        if meta[:capture] do
+          {:&, meta, [return]}
+        else
+          expr
+        end
+
+      {:&, amp_meta, [{:/, slash_meta, [{{:., dot_meta, [mod, fun]}, call_meta, []}, arity]}]} ->
+        {mod, fun} =
+          case :elixir_rewrite.erl_to_ex(mod, fun, arity) do
+            {mod, fun} -> {mod, fun}
+            false -> {mod, fun}
+          end
+
+        {:&, amp_meta, [{:/, slash_meta, [{{:., dot_meta, [mod, fun]}, call_meta, []}, arity]}]}
+
       {:case, meta, [expr, [do: clauses]]} = case ->
         if meta[:type_check] == :expr do
           case clauses do
@@ -358,6 +391,13 @@ defmodule Module.Types.Helpers do
           end
         else
           case
+        end
+
+      {var, meta, context} = expr when is_atom(var) and is_atom(context) ->
+        if is_integer(meta[:capture]) do
+          {:&, meta, [meta[:capture]]}
+        else
+          expr
         end
 
       other ->

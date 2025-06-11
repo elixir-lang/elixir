@@ -760,25 +760,9 @@ defmodule Enum do
   @doc since: "1.12.0"
   @spec count_until(t, pos_integer) :: non_neg_integer
   def count_until(enumerable, limit) when is_integer(limit) and limit > 0 do
-    stop_at = limit - 1
-
-    case Enumerable.count(enumerable) do
-      {:ok, value} ->
-        Kernel.min(value, limit)
-
-      {:error, module} ->
-        enumerable
-        |> module.reduce(
-          {:cont, 0},
-          fn
-            _, ^stop_at ->
-              {:halt, limit}
-
-            _, acc ->
-              {:cont, acc + 1}
-          end
-        )
-        |> elem(1)
+    case enumerable do
+      list when is_list(list) -> count_until_list(list, limit, 0)
+      _ -> count_until_enum(enumerable, limit)
     end
   end
 
@@ -797,24 +781,10 @@ defmodule Enum do
   @doc since: "1.12.0"
   @spec count_until(t, (element -> as_boolean(term)), pos_integer) :: non_neg_integer
   def count_until(enumerable, fun, limit) when is_integer(limit) and limit > 0 do
-    stop_at = limit - 1
-
-    Enumerable.reduce(enumerable, {:cont, 0}, fn
-      entry, ^stop_at ->
-        if fun.(entry) do
-          {:halt, limit}
-        else
-          {:cont, stop_at}
-        end
-
-      entry, acc ->
-        if fun.(entry) do
-          {:cont, acc + 1}
-        else
-          {:cont, acc}
-        end
-    end)
-    |> elem(1)
+    case enumerable do
+      list when is_list(list) -> count_until_list(list, fun, limit, 0)
+      _ -> count_until_enum(enumerable, fun, limit)
+    end
   end
 
   @doc """
@@ -2864,14 +2834,19 @@ defmodule Enum do
   end
 
   @doc """
-  Applies the given function to each element in the `enumerable`,
-  storing the result in a list and passing it as the accumulator
-  for the next computation. Uses the first element in the `enumerable`
-  as the starting value.
+  Passes each element from `enumerable` to the `fun` as the first argument,
+  stores the `fun` result in a list and passes the result as the second argument
+  for the next computation.
+
+  The `fun` isn't applied for the first element of the `enumerable`,
+  the element is taken as it is.
 
   ## Examples
 
-      iex> Enum.scan(1..5, &(&1 + &2))
+      iex> Enum.scan(["a", "b", "c", "d", "e"], fn element, acc -> element <> String.first(acc) end)
+      ["a", "ba", "cb", "dc", "ed"]
+
+      iex> Enum.scan(1..5, fn element, acc -> element + acc end)
       [1, 3, 6, 10, 15]
 
   """
@@ -2891,13 +2866,18 @@ defmodule Enum do
   end
 
   @doc """
-  Applies the given function to each element in the `enumerable`,
-  storing the result in a list and passing it as the accumulator
-  for the next computation. Uses the given `acc` as the starting value.
+  Passes each element from `enumerable` to the `fun` as the first argument,
+  stores the `fun` result in a list and passes the result as the second argument
+  for the next computation.
+
+  Passes the given `acc` as the second argument for the `fun` with the first element.
 
   ## Examples
 
-      iex> Enum.scan(1..5, 0, &(&1 + &2))
+      iex> Enum.scan(["a", "b", "c", "d", "e"], "_", fn element, acc -> element <> String.first(acc) end)
+      ["a_", "ba", "cb", "dc", "ed"]
+
+      iex> Enum.scan(1..5, 0, fn element, acc -> element + acc end)
       [1, 3, 6, 10, 15]
 
   """
@@ -3944,8 +3924,9 @@ defmodule Enum do
   If an integer offset is given as `fun_or_offset`, it will index from the given
   offset instead of from zero.
 
-  If a function is given as `fun_or_offset`, it will index by invoking the function
-  for each element and index (zero-based) of the enumerable.
+  If a 2-arity function is given as `fun_or_offset`, the function will be invoked
+  for each element in `enumerable` as the first argument and with a zero-based
+  index as the second. `with_index/2` returns a list with the result of each invocation.
 
   ## Examples
 
@@ -4056,10 +4037,10 @@ defmodule Enum do
   key in the left map and the matching key in the right map, but there is no such
   guarantee because map keys are not ordered! Consider the following:
 
-      left =  %{:a => 1, 1 => 3}
+      left = %{:a => 1, 1 => 3}
       right = %{:a => 1, :b => :c}
       Enum.zip(left, right)
-      # [{{1, 3}, {:a, 1}}, {{:a, 1}, {:b, :c}}]
+      #=> [{{1, 3}, {:a, 1}}, {{:a, 1}, {:b, :c}}]
 
   As you can see `:a` does not get paired with `:a`. If this is what you want,
   you should use `Map.merge/3`.
@@ -4132,8 +4113,11 @@ defmodule Enum do
       iex> Enum.zip_reduce([1, 2], [3, 4], 0, fn x, y, acc -> x + y + acc end)
       10
 
-      iex> Enum.zip_reduce([1, 2], [3, 4], [], fn x, y, acc -> [x + y | acc] end)
-      [6, 4]
+  If one of the lists has more entries than the others,
+  those entries are discarded:
+
+      iex> Enum.zip_reduce([1, 2, 3], [4, 5], [], fn x, y, acc -> [x + y | acc] end)
+      [7, 5]
   """
   @doc since: "1.12.0"
   @spec zip_reduce(t, t, acc, (enum1_elem :: term, enum2_elem :: term, acc -> acc)) :: acc
@@ -4169,7 +4153,10 @@ defmodule Enum do
       ...> end)
       [{1, 2, 3}, {1, 2, 3}]
 
-      iex> enums = [[1, 2], [a: 3, b: 4], [5, 6]]
+  If one of the lists has more entries than the others,
+  those entries are discarded:
+
+      iex> enums = [[1, 2], [a: 3, b: 4], [5, 6, 7]]
       ...> Enum.zip_reduce(enums, [], fn elements, acc ->
       ...>   [List.to_tuple(elements) | acc]
       ...> end)
@@ -4351,6 +4338,64 @@ defmodule Enum do
   defp concat_enum(enum) do
     fun = &[&1 | &2]
     enum |> reduce([], &reduce(&1, &2, fun)) |> :lists.reverse()
+  end
+
+  # count_until
+
+  @compile {:inline, count_until_list: 3}
+
+  defp count_until_list([], _limit, acc), do: acc
+
+  defp count_until_list([_head | tail], limit, acc) do
+    case acc + 1 do
+      ^limit -> limit
+      acc -> count_until_list(tail, limit, acc)
+    end
+  end
+
+  defp count_until_enum(enumerable, limit) do
+    case Enumerable.count(enumerable) do
+      {:ok, value} ->
+        Kernel.min(value, limit)
+
+      {:error, module} ->
+        module.reduce(enumerable, {:cont, 0}, fn _entry, acc ->
+          case acc + 1 do
+            ^limit -> {:halt, limit}
+            acc -> {:cont, acc}
+          end
+        end)
+        |> elem(1)
+    end
+  end
+
+  @compile {:inline, count_until_list: 4}
+
+  defp count_until_list([], _fun, _limit, acc), do: acc
+
+  defp count_until_list([head | tail], fun, limit, acc) do
+    if fun.(head) do
+      case acc + 1 do
+        ^limit -> limit
+        acc -> count_until_list(tail, fun, limit, acc)
+      end
+    else
+      count_until_list(tail, fun, limit, acc)
+    end
+  end
+
+  defp count_until_enum(enumerable, fun, limit) do
+    Enumerable.reduce(enumerable, {:cont, 0}, fn entry, acc ->
+      if fun.(entry) do
+        case acc + 1 do
+          ^limit -> {:halt, limit}
+          acc -> {:cont, acc}
+        end
+      else
+        {:cont, acc}
+      end
+    end)
+    |> elem(1)
   end
 
   # dedup

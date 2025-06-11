@@ -407,7 +407,7 @@ defmodule Mix.Dep.Loader do
   end
 
   defp recently_fetched?(%Mix.Dep{opts: opts, scm: scm}) do
-    scm.fetchable?() and not File.exists?(Path.join(opts[:build], ".mix/compile.fetch"))
+    scm.fetchable?() and not File.exists?(Path.join(opts[:build], ".mix/compile.elixir_scm"))
   end
 
   defp app_status(app_path, app, req) do

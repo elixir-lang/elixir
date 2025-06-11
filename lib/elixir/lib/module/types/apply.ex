@@ -211,11 +211,11 @@ defmodule Module.Types.Apply do
         {:erlang, :rem, [{[integer(), integer()], integer()}]},
         {:erlang, :round, [{[union(integer(), float())], integer()}]},
         {:erlang, :self, [{[], pid()}]},
-        {:erlang, :spawn, [{[fun()], pid()}]},
+        {:erlang, :spawn, [{[fun(0)], pid()}]},
         {:erlang, :spawn, [{mfargs, pid()}]},
-        {:erlang, :spawn_link, [{[fun()], pid()}]},
+        {:erlang, :spawn_link, [{[fun(0)], pid()}]},
         {:erlang, :spawn_link, [{mfargs, pid()}]},
-        {:erlang, :spawn_monitor, [{[fun()], tuple([reference(), pid()])}]},
+        {:erlang, :spawn_monitor, [{[fun(0)], tuple([reference(), pid()])}]},
         {:erlang, :spawn_monitor, [{mfargs, tuple([reference(), pid()])}]},
         {:erlang, :tuple_size, [{[open_tuple([])], integer()}]},
         {:erlang, :trunc, [{[union(integer(), float())], integer()}]},
@@ -472,19 +472,33 @@ defmodule Module.Types.Apply do
   Returns the type of a remote capture.
   """
   def remote_capture(modules, fun, arity, meta, stack, context) do
-    # TODO: We cannot return the unions of functions. Do we forbid this?
-    # Do we check it is always the same return type? Do we simply say it is a function?
-    if stack.mode == :traversal do
-      {dynamic(fun()), context}
-    else
-      context =
-        Enum.reduce(
-          modules,
-          context,
-          &(signature(&1, fun, arity, meta, stack, &2) |> elem(1))
-        )
+    cond do
+      stack.mode == :traversal ->
+        {dynamic(), context}
 
-      {dynamic(fun()), context}
+      modules == [] ->
+        {dynamic(fun(arity)), context}
+
+      true ->
+        {type, fallback?, context} =
+          Enum.reduce(modules, {none(), false, context}, fn module, {type, fallback?, context} ->
+            case signature(module, fun, arity, meta, stack, context) do
+              {{:strong, _, clauses}, context} ->
+                {union(type, fun_from_non_overlapping_clauses(clauses)), fallback?, context}
+
+              {{:infer, _, clauses}, context} when length(clauses) <= @max_clauses ->
+                {union(type, fun_from_overlapping_clauses(clauses)), fallback?, context}
+
+              {_, context} ->
+                {type, true, context}
+            end
+          end)
+
+        if fallback? do
+          {dynamic(fun(arity)), context}
+        else
+          {type, context}
+        end
     end
   end
 
@@ -496,10 +510,10 @@ defmodule Module.Types.Apply do
 
     * `:none` - no typing information found.
 
-    * `{:infer, domain or nil, clauses}` - clauses from inferences. You must check all
-      all clauses and return the union between them. They are dynamic
-      and they can only be converted into arrows by computing the union
-      of all arguments.
+    * `{:infer, domain or nil, clauses}` - clauses from inferences.
+      You must check all clauses and return the union between them.
+      They are dynamic and they can only be converted into arrows by
+      computing the union of all arguments.
 
     * `{:strong, domain or nil, clauses}` - clauses from signatures. So far
       these are strong arrows with non-overlapping domains
@@ -602,6 +616,19 @@ defmodule Module.Types.Apply do
     not Enum.any?(stack.no_warn_undefined, &(&1 == module or &1 == {module, fun, arity}))
   end
 
+  ## Funs
+
+  def fun_apply(fun_type, args_types, call, stack, context) do
+    case fun_apply(fun_type, args_types) do
+      {:ok, res} ->
+        {res, context}
+
+      reason ->
+        error = {{:badapply, reason}, args_types, fun_type, call, context}
+        {error_type(), error(__MODULE__, error, elem(call, 1), stack, context)}
+    end
+  end
+
   ## Local
 
   def local_domain(fun, args, expected, meta, stack, context) do
@@ -669,18 +696,30 @@ defmodule Module.Types.Apply do
 
     case stack.local_handler.(meta, fun_arity, stack, context) do
       false ->
-        {dynamic(fun()), context}
+        {dynamic(fun(arity)), context}
 
       {_kind, _info, context} when stack.mode == :traversal ->
-        {dynamic(fun()), context}
+        {dynamic(fun(arity)), context}
 
-      {kind, _info, context} ->
-        if stack.mode != :infer and kind == :defp do
-          # Mark all clauses as used, as the function is being exported.
-          {dynamic(fun()), put_in(context.local_used[fun_arity], [])}
-        else
-          {dynamic(fun()), context}
-        end
+      {kind, info, context} ->
+        result =
+          case info do
+            {:infer, _, clauses} when length(clauses) <= @max_clauses ->
+              fun_from_overlapping_clauses(clauses)
+
+            _ ->
+              dynamic(fun(arity))
+          end
+
+        context =
+          if stack.mode != :infer and kind == :defp do
+            # Mark all clauses as used, as the function is being exported.
+            put_in(context.local_used[fun_arity], [])
+          else
+            context
+          end
+
+        {result, context}
     end
   end
 
@@ -796,6 +835,75 @@ defmodule Module.Types.Apply do
   end
 
   ## Diagnostics
+
+  def format_diagnostic({{:badapply, reason}, args_types, fun_type, expr, context}) do
+    {message, to_trace, hints} =
+      case reason do
+        {:badarg, domain} ->
+          message = """
+          incompatible types given on function application:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          given types:
+
+              #{args_to_quoted_string(args_types, domain, &Function.identity/1) |> indent(4)}
+
+          but function has type:
+
+              #{to_quoted_string(fun_type) |> indent(4)}
+          """
+
+          hints =
+            cond do
+              not empty?(args_to_domain(domain)) -> []
+              match?({:or, _, _}, to_quoted(fun_type)) -> [:empty_union_domain]
+              true -> [:empty_domain]
+            end
+
+          # When there is an argument error, we trace the arguments
+          {message, elem(expr, 2), hints}
+
+        {:badarity, arities} ->
+          info =
+            case arities do
+              [arity] -> "function with arity #{arity}"
+              _ -> "function with arities #{Enum.join(arities, ",")}"
+            end
+
+          message = """
+          expected a #{length(args_types)}-arity function on call:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          but got #{info}:
+
+              #{to_quoted_string(fun_type) |> indent(4)}
+          """
+
+          {message, elem(expr, 0), []}
+
+        :badfun ->
+          message = """
+          expected a #{length(args_types)}-arity function on call:
+
+              #{expr_to_string(expr) |> indent(4)}
+
+          but got type:
+
+              #{to_quoted_string(fun_type) |> indent(4)}
+          """
+
+          {message, elem(expr, 0), []}
+      end
+
+    traces = collect_traces(to_trace, context)
+
+    %{
+      details: %{typing_traces: traces},
+      message: IO.iodata_to_binary([message, format_traces(traces), format_hints(hints)])
+    }
+  end
 
   def format_diagnostic({:badlocal, {_, domain, clauses}, args_types, expr, context}) do
     domain = domain(domain, clauses)

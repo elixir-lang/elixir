@@ -1818,6 +1818,20 @@ defmodule Kernel.WarningTest do
       purge([Sample1, Sample2, Sample3])
     end
 
+    test "invalid fun" do
+      assert_warn_eval(
+        [
+          "nofile:2: ",
+          "fun/1 is not valid in typespecs. Either specify fun() or use (... -> return) instead"
+        ],
+        """
+        defmodule InvalidFunType do
+          @type my_type :: fun(integer())
+        end
+        """
+      )
+    end
+
     test "invalid type annotations" do
       assert_warn_eval(
         [

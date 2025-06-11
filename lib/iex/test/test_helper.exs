@@ -10,7 +10,7 @@ Code.prepend_path(path)
 System.put_env("ELIXIR_EDITOR", "echo")
 
 {:ok, _} = Application.ensure_all_started(:iex)
-IEx.configure(colors: [enabled: false])
+IEx.configure(colors: [enabled: false], dot_iex: "/path/to/unknown/file")
 
 {line_exclude, line_include} =
   if line = System.get_env("LINE"), do: {[:test], [line: line]}, else: {[], []}
@@ -103,7 +103,6 @@ defmodule IEx.Case do
     IEx.configure(options)
 
     ExUnit.CaptureIO.capture_io([input: input, capture_prompt: capture_prompt], fn ->
-      server_options = Keyword.put_new(server_options, :dot_iex, "")
       IEx.Server.run(server_options)
     end)
     |> strip_iex()

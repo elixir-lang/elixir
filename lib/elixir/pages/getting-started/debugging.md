@@ -115,7 +115,7 @@ When using `IEx`, you may pass `--dbg pry` as an option to "stop" the code execu
 $ iex --dbg pry
 ```
 
-Or to debug inside a of a project:
+Or to debug inside of a project:
 
 ```console
 $ iex --dbg pry -S mix

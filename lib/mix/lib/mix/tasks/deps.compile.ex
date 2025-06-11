@@ -191,9 +191,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp touch_fetchable(scm, path) do
     if scm.fetchable?() do
-      path = Path.join(path, ".mix")
-      File.mkdir_p!(path)
-      File.touch!(Path.join(path, "compile.fetch"))
+      Mix.Dep.ElixirSCM.update(Path.join(path, ".mix"), scm)
       true
     else
       false
@@ -229,9 +227,9 @@ defmodule Mix.Tasks.Deps.Compile do
     end)
   end
 
-  defp do_rebar3(%Mix.Dep{opts: opts} = dep, config) do
-    if not Mix.Rebar.available?(:rebar3) do
-      handle_rebar_not_found(dep)
+  defp do_rebar3(%Mix.Dep{opts: opts, manager: manager} = dep, config) do
+    if not Mix.Rebar.available?(manager) do
+      Mix.Tasks.Local.Rebar.run(["--force"])
     end
 
     dep_path = opts[:dest]
@@ -285,32 +283,6 @@ defmodule Mix.Tasks.Deps.Compile do
     dep.extra
     |> Mix.Rebar.dependency_config()
     |> Mix.Rebar.serialize_config()
-  end
-
-  defp handle_rebar_not_found(%Mix.Dep{app: app, manager: manager}) do
-    shell = Mix.shell()
-
-    shell.info(
-      "Could not find \"#{manager}\", which is needed to build dependency #{inspect(app)}"
-    )
-
-    install_question =
-      "Shall I install #{manager}? (if running non-interactively, " <>
-        "use \"mix local.rebar --force\")"
-
-    if not shell.yes?(install_question) do
-      error_message =
-        "Could not find \"#{manager}\" to compile " <>
-          "dependency #{inspect(app)}, please ensure \"#{manager}\" is available"
-
-      Mix.raise(error_message)
-    end
-
-    Mix.Tasks.Local.Rebar.run(["--force"])
-
-    if not Mix.Rebar.available?(manager) do
-      Mix.raise("\"#{manager}\" installation failed")
-    end
   end
 
   defp do_make(dep, config) do

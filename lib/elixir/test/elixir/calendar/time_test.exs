@@ -38,6 +38,18 @@ defmodule TimeTest do
     end
   end
 
+  test "to_iso8601/2" do
+    time1 = ~T[23:00:07.005]
+    assert Time.to_iso8601(time1) == "23:00:07.005"
+    assert Time.to_iso8601(Map.from_struct(time1)) == "23:00:07.005"
+    assert Time.to_iso8601(time1, :basic) == "230007.005"
+
+    time2 = ~T[23:00:07.005 Calendar.Holocene]
+    assert Time.to_iso8601(time2) == "23:00:07.005"
+    assert Time.to_iso8601(Map.from_struct(time2)) == "23:00:07.005"
+    assert Time.to_iso8601(time2, :basic) == "230007.005"
+  end
+
   test "to_string/1" do
     time = ~T[23:00:07.005]
     assert to_string(time) == "23:00:07.005"
@@ -65,6 +77,11 @@ defmodule TimeTest do
     assert Time.compare(time1, time2) == :eq
     assert Time.compare(time1, time3) == :lt
     assert Time.compare(time3, time2) == :gt
+
+    time1_holocene = ~T[01:01:01.005 Calendar.Holocene]
+    assert Time.compare(time1_holocene, time1) == :eq
+    assert Time.compare(time1_holocene, time2) == :eq
+    assert Time.compare(time1_holocene, time3) == :lt
   end
 
   test "before?/2 and after?/2" do
@@ -76,6 +93,26 @@ defmodule TimeTest do
 
     assert Time.after?(time2, time1)
     assert not Time.after?(time1, time2)
+  end
+
+  test "diff/3" do
+    time1 = ~T[05:02:01.234]
+    time2 = ~T[10:00:04.123]
+    time1_holocene = ~T[05:02:01.234 Calendar.Holocene]
+
+    assert Time.diff(time1, time2) == -17883
+    assert Time.diff(time1, time2, :hour) == -4
+    assert Time.diff(time1, time2, :minute) == -298
+    assert Time.diff(time1, time2, :second) == -17883
+    assert Time.diff(time1, time2, :millisecond) == -17_882_889
+    assert Time.diff(time1, time2, :microsecond) == -17_882_889_000
+
+    assert Time.diff(time1_holocene, time2) == -17883
+    assert Time.diff(time1_holocene, time2, :hour) == -4
+    assert Time.diff(time1_holocene, time2, :minute) == -298
+    assert Time.diff(time1_holocene, time2, :second) == -17883
+    assert Time.diff(time1_holocene, time2, :millisecond) == -17_882_889
+    assert Time.diff(time1_holocene, time2, :microsecond) == -17_882_889_000
   end
 
   test "truncate/2" do
@@ -128,5 +165,13 @@ defmodule TimeTest do
     assert_raise ArgumentError,
                  "cannot shift time by date scale unit. Expected :hour, :minute, :second, :microsecond",
                  fn -> Time.shift(time, %Duration{day: 1}) end
+
+    assert_raise ArgumentError,
+                 "unsupported value nil for :minute. Expected an integer",
+                 fn -> Time.shift(time, minute: nil) end
+
+    assert_raise ArgumentError,
+                 ~r/unsupported value 1 for :microsecond. Expected a tuple \{ms, precision\}/,
+                 fn -> Time.shift(time, microsecond: 1) end
   end
 end

@@ -571,18 +571,16 @@ format_error({recursive, Vars, TypeExpr}) ->
   );
 
 format_error({bad_or_missing_clauses, {Kind, Key}}) ->
-  io_lib:format("expected -> clauses for :~ts in \"~ts\"", [Key, Kind]);
-format_error({bad_or_missing_clauses, Kind}) ->
-  io_lib:format("expected -> clauses in \"~ts\"", [Kind]);
+  io_lib:format("invalid \"~ts\" block in \"~ts\", it expects \"pattern -> expr\" clauses", [Key, Kind]);
 
 format_error({duplicated_clauses, Kind, Key}) ->
-  io_lib:format("duplicate :~ts clauses given for \"~ts\"", [Key, Kind]);
+  io_lib:format("duplicate \"~ts\" clauses given for \"~ts\"", [Key, Kind]);
 
 format_error({unexpected_option, Kind, Option}) ->
   io_lib:format("unexpected option ~ts in \"~ts\"", ['Elixir.Macro':to_string(Option), Kind]);
 
 format_error({wrong_number_of_args_for_clause, Expected, Kind, Key}) ->
-  io_lib:format("expected ~ts for :~ts clauses (->) in \"~ts\"", [Expected, Key, Kind]);
+  io_lib:format("expected ~ts for \"~ts\" clauses (->) in \"~ts\"", [Expected, Key, Kind]);
 
 format_error(multiple_after_clauses_in_receive) ->
   "expected a single -> clause for :after in \"receive\"";

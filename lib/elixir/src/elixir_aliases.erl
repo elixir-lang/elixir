@@ -148,7 +148,7 @@ ensure_loaded(Meta, Module, E) ->
       ok;
 
     _ ->
-      case wait_for_module(Module) of
+      case wait_for_module(Module, Meta, E) of
         found ->
           ok;
 
@@ -163,10 +163,10 @@ ensure_loaded(Meta, Module, E) ->
       end
   end.
 
-wait_for_module(Module) ->
+wait_for_module(Module, Meta, E) ->
   case erlang:get(elixir_compiler_info) of
     undefined -> not_found;
-    _ -> 'Elixir.Kernel.ErrorHandler':ensure_compiled(Module, module, hard)
+    _ -> 'Elixir.Kernel.ErrorHandler':ensure_compiled(Module, module, hard, elixir_utils:get_line(Meta, E))
   end.
 
 %% Receives a list of atoms, binaries or lists

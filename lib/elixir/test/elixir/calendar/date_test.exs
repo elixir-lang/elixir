@@ -91,6 +91,10 @@ defmodule DateTest do
     assert Date.compare(date4, date5) == :gt
     assert Date.compare(date5, date4) == :lt
     assert Date.compare(date5, date5) == :eq
+
+    assert_raise ArgumentError,
+                 ~r/cannot compare .*\n\n.* their calendars have incompatible day rollover moments/,
+                 fn -> Date.compare(date1, %{date2 | calendar: FakeCalendar}) end
   end
 
   test "before?/2 and after?/2" do
@@ -180,10 +184,14 @@ defmodule DateTest do
            |> Date.convert!(Calendar.Holocene)
            |> Date.convert!(Calendar.ISO) == ~D[2000-01-01]
 
-    assert Date.convert(~D[2016-02-03], FakeCalendar) == {:error, :incompatible_calendars}
-
     assert Date.convert(~N[2000-01-01 00:00:00], Calendar.Holocene) ==
              {:ok, Calendar.Holocene.date(12000, 01, 01)}
+
+    assert Date.convert(~D[2016-02-03], FakeCalendar) == {:error, :incompatible_calendars}
+
+    assert_raise ArgumentError,
+                 "cannot convert ~D[2016-02-03] to target calendar FakeCalendar, reason: :incompatible_calendars",
+                 fn -> Date.convert!(~D[2016-02-03], FakeCalendar) end
   end
 
   test "add/2" do
@@ -214,6 +222,10 @@ defmodule DateTest do
     date2 = Calendar.Holocene.date(12000, 01, 14)
     assert Date.diff(date1, date2) == -13
     assert Date.diff(date2, date1) == 13
+
+    assert_raise ArgumentError,
+                 ~r/cannot calculate the difference between .* because their calendars are not compatible/,
+                 fn -> Date.diff(date1, %{date2 | calendar: FakeCalendar}) end
   end
 
   test "shift/2" do
@@ -250,6 +262,10 @@ defmodule DateTest do
                  fn -> Date.shift(~D[2012-01-01], months: 12) end
 
     assert_raise ArgumentError,
+                 "unsupported value nil for :day. Expected an integer",
+                 fn -> Date.shift(~D[2012-02-29], year: 1, day: nil) end
+
+    assert_raise ArgumentError,
                  "cannot shift date by time scale unit. Expected :year, :month, :week, :day",
                  fn -> Date.shift(~D[2012-02-29], %Duration{second: 86400}) end
 
@@ -265,5 +281,19 @@ defmodule DateTest do
       date = Calendar.Holocene.date(10000, 01, 01)
       Date.shift(date, month: 1)
     end
+  end
+
+  test "utc_today/1" do
+    date = Date.utc_today()
+    assert date.year > 2020
+    assert date.calendar == Calendar.ISO
+
+    date = Date.utc_today(Calendar.ISO)
+    assert date.year > 2020
+    assert date.calendar == Calendar.ISO
+
+    date = Date.utc_today(Calendar.Holocene)
+    assert date.year > 12020
+    assert date.calendar == Calendar.Holocene
   end
 end

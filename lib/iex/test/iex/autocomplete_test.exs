@@ -17,8 +17,8 @@ defmodule IEx.AutocompleteTest do
     ExUnit.CaptureIO.capture_io(fn ->
       evaluator = Process.get(:evaluator)
       Process.group_leader(evaluator, Process.group_leader())
-      send(evaluator, {:eval, self(), line <> "\n", 1, ""})
-      assert_receive {:evaled, _, _, _}
+      send(evaluator, {:eval, self(), Code.string_to_quoted!(line <> "\n"), 1})
+      assert_receive {:evaled, _, _}
     end)
   end
 

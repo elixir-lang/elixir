@@ -14,12 +14,12 @@ Elixir applies bug fixes only to the latest minor branch. Security patches are a
 
 Elixir version | Support
 :------------- | :-----------------------------
-1.19           | Development
-1.18           | Bug fixes and security patches
+1.20           | Development
+1.19           | Bug fixes and security patches
+1.18           | Security patches only
 1.17           | Security patches only
 1.16           | Security patches only
 1.15           | Security patches only
-1.14           | Security patches only
 
 New releases are announced in the read-only [announcements mailing list](https://groups.google.com/group/elixir-lang-ann). All security releases [will be tagged with `[security]`](https://groups.google.com/forum/#!searchin/elixir-lang-ann/%5Bsecurity%5D%7Csort:date).
 
@@ -49,8 +49,9 @@ Erlang/OTP versioning is independent from the versioning of Elixir. Erlang relea
 
 Elixir version | Supported Erlang/OTP versions
 :------------- | :-------------------------------
-1.19           | 26 - 27
-1.18           | 25 - 27
+1.20           | 26 - 28
+1.19           | 26 - 28
+1.18           | 25 - 27 (and Erlang/OTP 28 from v1.18.4)
 1.17           | 25 - 27
 1.16           | 24 - 26
 1.15           | 24 - 26
@@ -90,6 +91,11 @@ The first column is the version the feature was hard deprecated. The second colu
 
 Version | Deprecated feature                                  | Replaced by (available since)
 :-------| :-------------------------------------------------- | :---------------------------------------------------------------
+[v1.20] | `<<x::size(y)>>` in patterns without `^`            | `<<x::size(^y)>>`
+[v1.20] | `File.stream!(path, modes, lines_or_bytes)`         | `File.stream!(path, lines_or_bytes, modes)`
+[v1.20] | `Kernel.ParallelCompiler.async/1`                   | `Kernel.ParallelCompiler.pmap/2`
+[v1.20] | `Logger.*_backend` functions                        | The `LoggerBackends` module from `:logger_backends` package
+[v1.20] | `Logger.enable/1` / `Logger.disable/1`              | `Logger.put_process_level/2` and `Logger.delete_process_level/1`
 [v1.19] | CLI configuration in `def project` inside `mix.exs` | Moving it to `def cli` (v1.14)
 [v1.19] | Using `,` to separate tasks in `mix do`             | Using `+` (v1.14)
 [v1.19] | Logger's `:backends` configuration                  | Logger's `:default_handler` configuration (v1.15)
@@ -236,4 +242,5 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.16]: https://github.com/elixir-lang/elixir/blob/v1.16/CHANGELOG.md#4-hard-deprecations
 [v1.17]: https://github.com/elixir-lang/elixir/blob/v1.17/CHANGELOG.md#4-hard-deprecations
 [v1.18]: https://github.com/elixir-lang/elixir/blob/v1.18/CHANGELOG.md#4-hard-deprecations
-[v1.19]: https://github.com/elixir-lang/elixir/blob/main/CHANGELOG.md#4-hard-deprecations
+[v1.19]: https://github.com/elixir-lang/elixir/blob/v1.19/CHANGELOG.md#4-hard-deprecations
+[v1.20]: https://github.com/elixir-lang/elixir/blob/main/CHANGELOG.md#4-hard-deprecations

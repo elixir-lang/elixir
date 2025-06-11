@@ -62,7 +62,7 @@ defmodule Kernel.AliasTest do
     result = alias unquote(Inspect).{Opts, Algebra}
     assert result == [Inspect.Opts, Inspect.Algebra]
     assert %Opts{} == %Inspect.Opts{}
-    assert Algebra.empty() == :doc_nil
+    assert Algebra.empty() == []
   end
 
   test "alias removal" do

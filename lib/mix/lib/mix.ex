@@ -331,20 +331,20 @@ defmodule Mix do
     * `MIX_ARCHIVES` - specifies the directory into which the archives should be installed
       (default: `~/.mix/archives`)
 
-    * `MIX_BUILD_PATH` - sets the project `Mix.Project.build_path/0` config.
-      This option must always point to a subdirectory inside a temporary directory.
-      For instance, never "/tmp" or "_build" but "_build/PROD" or "/tmp/PROD", as
-      required by Mix. This environment variable is used mostly by external build
-      tools. For your CI servers, you likely want to use `MIX_BUILD_ROOT` below.
+    * `MIX_BUILD_PATH` - sets the project `Mix.Project.build_path/0`, including the
+      current environment, such as "/path/to/project/_build/dev". This environment
+      variable is used mostly by external build tools who need enforce a build
+      directory independent of `MIX_ENV` and `MIX_TARGET`. For your CI servers,
+      you likely want to use `MIX_BUILD_ROOT` below.
 
     * `MIX_BUILD_ROOT` - sets the root directory where build artifacts should be
-      written to. For example, "_build". If `MIX_BUILD_PATH` is set, this option
-      is ignored.
+      written to. For example, "/path/to/_build". If `MIX_BUILD_PATH` is set,
+      this option is ignored.
 
     * `MIX_DEBUG` - outputs debug information about each task before running it
 
     * `MIX_DEPS_PATH` - sets the project `Mix.Project.deps_path/0` config for the
-      current project (default: `deps`)
+      current project, as an absolute path, such as `/path/to/project/deps`
 
     * `MIX_ENV` - specifies which environment should be used. See [Environments](#module-environments)
 
@@ -903,7 +903,7 @@ defmodule Mix do
       {deps, config, system_env, consolidate_protocols?}
       |> :erlang.term_to_binary()
       |> :erlang.md5()
-      |> Base.encode16(case: :lower)
+      |> Base.url_encode64(padding: false)
 
     force? = System.get_env("MIX_INSTALL_FORCE") in ["1", "true"] or Keyword.fetch!(opts, :force)
 
@@ -1079,7 +1079,7 @@ defmodule Mix do
       System.get_env("MIX_INSTALL_DIR") ||
         Path.join(Mix.Utils.mix_cache(), "installs")
 
-    version = "elixir-#{System.version()}-erts-#{:erlang.system_info(:version)}"
+    version = "ex-#{System.version()}-erl-#{:erlang.system_info(:version)}"
     Path.join([install_root, version, cache_id])
   end
 

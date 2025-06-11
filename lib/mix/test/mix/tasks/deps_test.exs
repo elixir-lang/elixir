@@ -740,7 +740,7 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Task.clear()
 
       msg =
-        "  the dependency was built with an out-of-date Elixir version, run \"mix deps.compile\""
+        "  the dependency was built with an out-of-date Erlang/Elixir version, run \"mix deps.compile\""
 
       Mix.Tasks.Deps.run([])
       assert_received {:mix_shell, :info, [^msg]}

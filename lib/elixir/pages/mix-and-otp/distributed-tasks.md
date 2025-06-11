@@ -124,6 +124,7 @@ Distributed tasks are exactly the same as supervised tasks. The only difference 
 Now, let's start two named nodes again, but inside the `:kv` application:
 
 ```console
+$ cd apps/kv
 $ iex --sname foo -S mix
 $ iex --sname bar -S mix
 ```
@@ -231,9 +232,10 @@ The first test invokes `Kernel.node/0`, which returns the name of the current no
 
 The second test checks that the code raises for unknown entries.
 
-In order to run the first test, we need to have two nodes running. Move into `apps/kv` and let's restart the node named `bar` which is going to be used by tests.
+In order to run the first test, we need to have two nodes running. Let's move into `apps/kv` and restart the node named `bar` which is going to be used by tests. This way, `bar` will not load the `:kv_server` app and leave the port available for `foo` and tests.
 
 ```console
+$ cd apps/kv
 $ iex --sname bar -S mix
 ```
 
