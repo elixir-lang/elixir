@@ -21,6 +21,8 @@ defmodule Mix.Tasks.Loadpaths do
 
   ## Command line options
 
+    * `--listeners` - starts Mix listeners (they are started by default,
+      unless `--no-listeners` or `--no-deps-check` are given)
     * `--no-archives-check` - does not check archives
     * `--no-compile` - does not compile dependencies, only check and load them
     * `--no-deps-check` - does not check dependencies, only load available ones
