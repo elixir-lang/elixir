@@ -131,7 +131,7 @@ capture_expr(Meta, Expr, S, E, Escaped, ArgsType) ->
       {expand, Fn, S, E};
     {EExpr, EDict} ->
       EVars = validate(Meta, EDict, 1, E),
-      Fn = {fn, Meta, [{'->', Meta, [EVars, EExpr]}]},
+      Fn = {fn, [{capture, true} | Meta], [{'->', Meta, [EVars, EExpr]}]},
       {expand, Fn, S, E}
   end.
 
@@ -154,7 +154,7 @@ escape({'&', Meta, [Pos]}, E, Dict) when is_integer(Pos), Pos > 0 ->
       {Var, Dict};
     error ->
       Next = elixir_module:next_counter(?key(E, module)),
-      Var = {capture, [{counter, Next} | Meta], nil},
+      Var = {capture, [{counter, Next}, {capture, Pos} | Meta], nil},
       {Var, orddict:store(Pos, Var, Dict)}
   end;
 escape({'&', Meta, [Pos]}, E, _Dict) when is_integer(Pos) ->

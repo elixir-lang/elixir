@@ -141,7 +141,8 @@ defmodule Module.Types.Helpers do
     end)
   end
 
-  defp hint, do: :elixir_errors.prefix(:hint)
+  @doc "The hint prefix"
+  def hint, do: :elixir_errors.prefix(:hint)
 
   @doc """
   Collect traces from variables in expression.
@@ -340,6 +341,13 @@ defmodule Module.Types.Helpers do
       {{:., _, [mod, fun]}, meta, args} ->
         erl_to_ex(mod, fun, args, meta)
 
+      {:fn, meta, [{:->, _, [_args, return]}]} = expr ->
+        if meta[:capture] do
+          {:&, meta, [return]}
+        else
+          expr
+        end
+
       {:&, amp_meta, [{:/, slash_meta, [{{:., dot_meta, [mod, fun]}, call_meta, []}, arity]}]} ->
         {mod, fun} =
           case :elixir_rewrite.erl_to_ex(mod, fun, arity) do
@@ -383,6 +391,13 @@ defmodule Module.Types.Helpers do
           end
         else
           case
+        end
+
+      {var, meta, context} = expr when is_atom(var) and is_atom(context) ->
+        if is_integer(meta[:capture]) do
+          {:&, meta, [meta[:capture]]}
+        else
+          expr
         end
 
       other ->
