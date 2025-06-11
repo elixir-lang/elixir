@@ -900,7 +900,9 @@ defmodule Module.Types.ExprTest do
                  # from: types_test.ex:LINE
                  x
 
-             hint: when defining the variable "x", you must also pattern match on "%Date{}". Given pattern matching is enough to catch typing errors, you may optionally convert the struct update into a map update. For example, instead of:
+             when defining the variable "x", you must also pattern match on "%Date{}".
+
+             hint: given pattern matching is enough to catch typing errors, you may optionally convert the struct update into a map update. For example, instead of:
 
                  user = some_fun()
                  %User{user | name: "John Doe"}
@@ -927,7 +929,7 @@ defmodule Module.Types.ExprTest do
                  # from: types_test.ex:LINE
                  &1
 
-             hint: instead of using &1, you must define an anonymous function, define a variable and pattern match on "%Date{}"\
+             instead of using &1, you must define an anonymous function, define a variable and pattern match on "%Date{}".
              """
 
       # When we don't know the type of expression
@@ -940,7 +942,7 @@ defmodule Module.Types.ExprTest do
 
                  dynamic()
 
-             hint: you must assign "SomeMod.fun()" to variable and pattern match on "%Date{}".\
+             you must assign "SomeMod.fun()" to variable and pattern match on "%Date{}".
              """
     end
 

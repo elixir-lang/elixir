@@ -810,7 +810,7 @@ defmodule Module.Types.Expr do
     {:%, _, [module, {:%{}, _, [{:|, _, [map, _]}]}]} = expr
     traces = collect_traces(map, context)
 
-    suggestion =
+    fix =
       case map do
         {var, meta, context} when is_atom(var) and is_atom(context) ->
           if capture = meta[:capture] do
@@ -839,9 +839,11 @@ defmodule Module.Types.Expr do
           format_traces(traces),
           """
 
-          #{hint()} #{suggestion}. Given pattern matching is enough to catch typing errors, \
-          you may optionally convert the struct update into a map update. For example, \
-          instead of:
+          #{fix}.
+
+          #{hint()} given pattern matching is enough to catch typing errors, \
+          you may optionally convert the struct update into a map update. For \
+          example, instead of:
 
               user = some_fun()
               %User{user | name: "John Doe"}
