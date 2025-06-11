@@ -1739,8 +1739,9 @@ defmodule Module.Types.DescrTest do
 
       {:ok, type} = map_delete(difference(open_map(), open_map(a: not_set())), :a)
       assert equal?(type, open_map(a: not_set()))
+    end
 
-      ## Delete from maps with domain
+    test "map_delete with atom fallback" do
       assert closed_map([{:a, integer()}, {:b, atom()}, {{:domain_key, :atom}, pid()}])
              |> map_delete(:a) ==
                {:ok, closed_map([{:a, not_set()}, {:b, atom()}, {{:domain_key, :atom}, pid()}])}
