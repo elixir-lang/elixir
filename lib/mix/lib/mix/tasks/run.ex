@@ -49,6 +49,8 @@ defmodule Mix.Tasks.Run do
   ## Command-line options
 
     * `--eval`, `-e` - evaluates the given code
+    * `--listeners` - starts Mix listeners (they are started by default,
+      unless `--no-listeners` or `--no-deps-check` are given)
     * `--require`, `-r` - executes the given pattern/file
     * `--parallel`, `-p` - makes all requires parallel
     * `--preload-modules` - preloads all modules defined in applications
