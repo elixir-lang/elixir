@@ -472,24 +472,9 @@ translate_struct_var_name(Ann, Name, Args, S0) ->
   {TArgs1, S2} = generate_struct_name_guard(TArgs0, [], S1),
   {{map, MapAnn, TArgs1}, S2}.
 
-translate_struct(Ann, Name, {'%{}', _, [{'|', _, [Update, Assocs]}]}, S) ->
-  Generated = erl_anno:set_generated(true, Ann),
-  {VarName, VS} = elixir_erl_var:build('_', S),
-
-  Var = {var, Ann, VarName},
-  Map = {map, Ann, [{map_field_exact, Ann, {atom, Ann, '__struct__'}, {atom, Ann, Name}}]},
-
-  Match = {match, Ann, Var, Map},
-  %% Once this is removed, we should remove badstruct handling from elixir_erl_try
-  Error = {tuple, Ann, [{atom, Ann, badstruct}, {atom, Ann, Name}, Var]},
-
-  {TUpdate, TU} = translate(Update, Ann, VS),
-  {TAssocs, TS} = translate_map(Ann, Assocs, {ok, Var}, TU),
-
-  {{'case', Generated, TUpdate, [
-    {clause, Ann, [Match], [], [TAssocs]},
-    {clause, Generated, [Var], [], [?remote(Ann, erlang, error, [Error])]}
-  ]}, TS};
+translate_struct(Ann, _Name, {'%{}', _, [{'|', Meta, [Update, Assocs]}]}, S) ->
+  {TUpdate, SU} = translate(Update, Ann, S),
+  translate_map(?ann(Meta), Assocs, {ok, TUpdate}, SU);
 translate_struct(Ann, Name, {'%{}', _, Assocs}, S) ->
   translate_map(Ann, [{'__struct__', Name}] ++ Assocs, none, S).
 

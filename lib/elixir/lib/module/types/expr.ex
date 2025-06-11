@@ -231,21 +231,36 @@ defmodule Module.Types.Expr do
   # %Struct{map | ...}
   # This syntax is deprecated, so we simply traverse.
   def of_expr(
-        {:%, _, [_, {:%{}, _, [{:|, _, [map, args]}]}]} = struct,
+        {:%, meta, [module, {:%{}, _, [{:|, _, [map, pairs]}]}]} = struct,
         _expected,
         expr,
         stack,
         context
       ) do
-    {_, context} = of_expr(map, term(), struct, stack, context)
+    {map_type, context} = of_expr(map, term(), struct, stack, context)
 
     context =
-      Enum.reduce(args, context, fn {key, value}, context when is_atom(key) ->
-        {_, context} = of_expr(value, term(), expr, stack, context)
+      if stack.mode == :traversal do
         context
-      end)
+      else
+        with {false, struct_key_type} <- map_fetch(map_type, :__struct__),
+             {:finite, [^module]} <- atom_fetch(struct_key_type) do
+          context
+        else
+          _ ->
+            error(__MODULE__, {:badupdate, map_type, struct, context}, meta, stack, context)
+        end
+      end
 
-    {dynamic(), context}
+    Enum.reduce(pairs, {map_type, context}, fn {key, value}, {acc, context} ->
+      # TODO: Once we support typed structs, we need to type check them here
+      {type, context} = of_expr(value, term(), expr, stack, context)
+
+      case map_fetch_and_put(acc, key, type) do
+        {_value, acc} -> {acc, context}
+        _ -> {acc, context}
+      end
+    end)
   end
 
   # %{...}
@@ -790,6 +805,57 @@ defmodule Module.Types.Expr do
     do: [{args, return}]
 
   ## Warning formatting
+
+  def format_diagnostic({:badupdate, type, expr, context}) do
+    {:%, _, [module, {:%{}, _, [{:|, _, [map, _]}]}]} = expr
+    traces = collect_traces(map, context)
+
+    fix =
+      case map do
+        {var, meta, context} when is_atom(var) and is_atom(context) ->
+          if capture = meta[:capture] do
+            "instead of using &#{capture}, you must define an anonymous function, define a variable and pattern match on \"%#{inspect(module)}{}\""
+          else
+            "when defining the variable \"#{Macro.to_string(map)}\", you must also pattern match on \"%#{inspect(module)}{}\""
+          end
+
+        _ ->
+          "you must assign \"#{Macro.to_string(map)}\" to variable and pattern match on \"%#{inspect(module)}{}\""
+      end
+
+    %{
+      details: %{typing_traces: traces},
+      message:
+        IO.iodata_to_binary([
+          """
+          a struct for #{inspect(module)} is expected on struct update:
+
+              #{expr_to_string(expr, collapse_structs: false) |> indent(4)}
+
+          but got type:
+
+              #{to_quoted_string(type) |> indent(4)}
+          """,
+          format_traces(traces),
+          """
+
+          #{fix}.
+
+          #{hint()} given pattern matching is enough to catch typing errors, \
+          you may optionally convert the struct update into a map update. For \
+          example, instead of:
+
+              user = some_fun()
+              %User{user | name: "John Doe"}
+
+          it is enough to write:
+
+              %User{} = user = some_fun()
+              %{user | name: "John Doe"}
+          """
+        ])
+    }
+  end
 
   def format_diagnostic({:badmap, type, expr, context}) do
     traces = collect_traces(expr, context)

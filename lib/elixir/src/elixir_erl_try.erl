@@ -184,11 +184,6 @@ erl_rescue_guard_for(Meta, Var, 'Elixir.TryClauseError') ->
           erl_tuple_size(Meta, Var, 2),
           erl_record_compare(Meta, Var, try_clause));
 
-erl_rescue_guard_for(Meta, Var, 'Elixir.BadStructError') ->
-  erl_and(Meta,
-          erl_tuple_size(Meta, Var, 3),
-          erl_record_compare(Meta, Var, badstruct));
-
 erl_rescue_guard_for(Meta, Var, 'Elixir.BadMapError') ->
   erl_and(Meta,
           erl_tuple_size(Meta, Var, 2),

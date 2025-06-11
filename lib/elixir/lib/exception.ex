@@ -1457,20 +1457,6 @@ defmodule BadFunctionError do
   end
 end
 
-defmodule BadStructError do
-  @moduledoc deprecated:
-               "This exception is deprecated alongside the struct update syntax that raises it"
-  defexception [:struct, :term]
-
-  @impl true
-  def message(exception) do
-    Exception.__format_message_with_term__(
-      "expected a struct named #{inspect(exception.struct)}, got:",
-      exception.term
-    )
-  end
-end
-
 defmodule BadMapError do
   @moduledoc """
   An exception raised when a map is expected, but something else was given.
@@ -2603,10 +2589,6 @@ defmodule ErlangError do
 
   def normalize({:badfun, term}, _stacktrace) do
     %BadFunctionError{term: term}
-  end
-
-  def normalize({:badstruct, struct, term}, _stacktrace) do
-    %BadStructError{struct: struct, term: term}
   end
 
   def normalize({:badmatch, term}, _stacktrace) do
