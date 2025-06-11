@@ -284,7 +284,7 @@ This work was performed by Jonatan Männchen and sponsored by the Erlang Ecosyst
   * [Code] The `on_undefined_variable: :warn` is deprecated. Relying on undefined variables becoming function calls will not be supported in the future
   * [File] Passing a callback as third argument to `File.cp/3` is deprecated, pass it as a `on_conflict: callback` option instead
   * [File] Passing a callback as third argument to `File.cp_r/3` is deprecated, pass it as a `on_conflict: callback` option instead
-  * [Kernel] The struct update syntax, such as `%URI{uri | path: "/foo/bar"}` is deprecated in favor of pattern matching on the struct when the variable is defined and then using the map update syntax `%{uri | path: "/foo/bar"}`. Thanks to the type system, pattern matching on structs can find more errors, more reliably
+  * [Kernel] The struct update syntax, such as `%URI{uri | path: "/foo/bar"}`, now requires the given variable (or expression) to explicitly pattern match on the struct before it can be updated. This is because, thanks to the type system, pattern matching on structs can find more errors, more reliably, and we want to promote its usage. Once pattern matching is added, you may optionally convert the struct update syntax into the map update syntax `%{uri | path: "/foo/bar"}` with no less of typing guarantees
   * [Kernel.ParallelCompiler] Passing `return_diagnostics: true` as an option is required on `compile`, `compile_to_path` and `require`
 
 #### Logger
