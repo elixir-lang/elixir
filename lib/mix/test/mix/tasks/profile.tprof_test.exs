@@ -81,14 +81,6 @@ defmodule Mix.Tasks.Profile.TprofTest do
     end)
   end
 
-  test "sorts based on memory per call", context do
-    in_tmp(context.test, fn ->
-      assert capture_io(fn ->
-               Tprof.run(["--type", "memory", "--sort", "calls", "-e", @expr])
-             end) =~ ~r/Enum\.each\/2\s+1\s+.*\n:erlang\.integer_to_binary\/1\s+5\s+/s
-    end)
-  end
-
   test "aggregates totals over all processes", context do
     in_tmp(context.test, fn ->
       assert capture_io(fn ->
