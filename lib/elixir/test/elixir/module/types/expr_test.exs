@@ -236,6 +236,18 @@ defmodule Module.Types.ExprTest do
                  (dynamic(map()) -> :map)
              """
     end
+
+    test "capture printing" do
+      assert typeerror!(123 = &{:ok, &1}) == """
+             the following pattern will never match:
+
+                 123 = &{:ok, &1}
+
+             because the right-hand side has type:
+
+                 (dynamic() -> dynamic({:ok, term()}))
+             """
+    end
   end
 
   describe "remotes" do

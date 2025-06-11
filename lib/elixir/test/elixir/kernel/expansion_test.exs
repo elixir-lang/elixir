@@ -1212,8 +1212,14 @@ defmodule Kernel.ExpansionTest do
 
     test "keeps position meta on & variables" do
       assert expand(Code.string_to_quoted!("& &1")) |> clean_meta([:counter]) ==
-               {:fn, [{:line, 1}],
-                [{:->, [{:line, 1}], [[{:capture, [line: 1], nil}], {:capture, [line: 1], nil}]}]}
+               {:fn, [capture: true, line: 1],
+                [
+                  {:->, [line: 1],
+                   [
+                     [{:capture, [capture: 1, line: 1], nil}],
+                     {:capture, [capture: 1, line: 1], nil}
+                   ]}
+                ]}
     end
 
     test "removes no_parens when expanding 0-arity capture to fn" do
