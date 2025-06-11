@@ -283,7 +283,7 @@ defmodule Module.Types.DescrTest do
       assert empty?(intersection(closed_map(a: integer()), closed_map(a: atom())))
     end
 
-    test "map with domain key types" do
+    test "map with domain keys" do
       # %{..., int => t1, atom => t2} and %{int => t3}
       # intersection is %{int => t1 and t3, atom => none}
       map1 = open_map([{{:domain_key, :integer}, integer()}, {{:domain_key, :atom}, atom()}])
@@ -533,7 +533,7 @@ defmodule Module.Types.DescrTest do
              |> equal?(open_map(a: integer()))
     end
 
-    test "map with domain key types" do
+    test "map with domain keys" do
       # Non-overlapping domain keys
       t1 = closed_map([{{:domain_key, :integer}, atom()}])
       t2 = closed_map([{{:domain_key, :atom}, binary()}])
@@ -1881,7 +1881,7 @@ defmodule Module.Types.DescrTest do
       assert equal?(type, atom())
     end
 
-    test "map put with key type" do
+    test "map_put with domain keys" do
       # Using a literal key or an expression of that singleton key is the same
       assert map_refresh(empty_map(), atom([:a]), integer()) == {:ok, closed_map(a: integer())}
 
