@@ -18,7 +18,7 @@ expand_map(Meta, Args, S, E) ->
   validate_kv(Meta, EArgs, Args, E),
   {{'%{}', Meta, EArgs}, SE, EE}.
 
-expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs} = Right, S, #{context := Context} = E) ->
+expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, S, #{context := Context} = E) ->
   CleanMapArgs = delete_struct_key(Meta, MapArgs, E),
   {[ELeft, ERight], SE, EE} = elixir_expand:expand_args([Left, {'%{}', MapMeta, CleanMapArgs}], S, E),
 
@@ -29,7 +29,6 @@ expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs} = Right, S, #{context := Con
           %% The update syntax for structs is deprecated,
           %% so we return only the update syntax downstream.
           %% TODO: Remove me on Elixir v2.0
-          file_warn(MapMeta, ?key(E, file), ?MODULE, {deprecated_update, ELeft, Right}),
           _ = load_struct_info(Meta, ELeft, Assocs, EE),
           {{'%', Meta, [ELeft, ERight]}, SE, EE};
 
@@ -303,9 +302,4 @@ format_error({invalid_key_for_struct, Key}) ->
   io_lib:format("invalid key ~ts for struct, struct keys must be atoms, got: ",
                 ['Elixir.Macro':to_string(Key)]);
 format_error(ignored_struct_key_in_struct) ->
-  "key :__struct__ is ignored when using structs";
-format_error({deprecated_update, Struct, MapUpdate}) ->
-  io_lib:format("the struct update syntax is deprecated:\n\n~ts\n\n"
-                "Instead, prefer to pattern match on structs when the variable is first defined and "
-                "use the regular map update syntax instead:\n\n~ts\n",
-                ['Elixir.Macro':to_string({'%', [], [Struct, MapUpdate]}), 'Elixir.Macro':to_string(MapUpdate)]).
+  "key :__struct__ is ignored when using structs".
