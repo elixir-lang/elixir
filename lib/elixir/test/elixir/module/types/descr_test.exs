@@ -1593,8 +1593,9 @@ defmodule Module.Types.DescrTest do
 
       assert union(dynamic(open_map(a: atom())), open_map(a: integer()))
              |> map_fetch(:a) == {false, union(dynamic(atom()), integer())}
+    end
 
-      # With domains
+    test "map_fetch with domain keys" do
       integer_to_atom = open_map([{{:domain_key, :integer}, atom()}])
       assert map_fetch(integer_to_atom, :foo) == :badkey
 
