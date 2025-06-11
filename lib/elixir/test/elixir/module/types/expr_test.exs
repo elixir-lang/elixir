@@ -872,17 +872,23 @@ defmodule Module.Types.ExprTest do
     end
 
     test "updating structs" do
+      integer_date_type =
+        dynamic(
+          closed_map(
+            __struct__: atom([Date]),
+            day: integer(),
+            calendar: term(),
+            month: term(),
+            year: term()
+          )
+        )
+
       # When we know the type
       assert typecheck!([], %Date{Date.new!(1, 1, 1) | day: 31}) ==
-               dynamic(
-                 closed_map(
-                   __struct__: atom([Date]),
-                   day: integer(),
-                   calendar: term(),
-                   month: term(),
-                   year: term()
-                 )
-               )
+               integer_date_type
+
+      assert typecheck!([], %Date{%Date{Date.new!(1, 1, 1) | day: 13} | day: 31}) ==
+               integer_date_type
 
       # When we don't know the type of var
       assert typeerror!([x], %Date{x | day: 31}) == ~l"""
