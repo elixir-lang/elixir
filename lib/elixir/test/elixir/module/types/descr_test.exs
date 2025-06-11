@@ -1746,7 +1746,6 @@ defmodule Module.Types.DescrTest do
              |> map_delete(:a) ==
                {:ok, closed_map([{:a, not_set()}, {:b, atom()}, {{:domain_key, :atom}, pid()}])}
     end
-    
     # TODO: operator t\[t']
     # test "map_delete with domain keys" do
     #   t1 = closed_map([{:a, pid()}, {{:domain_key, :integer}, number()}])
