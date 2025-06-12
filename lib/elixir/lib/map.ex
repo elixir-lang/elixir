@@ -316,9 +316,11 @@ defmodule Map do
 
       iex> Map.fetch!(%{a: 1}, :a)
       1
-      iex> Map.fetch!(%{a: 1}, :b)
-      ** (KeyError) key :b not found in:
-      ...
+
+  When the key is missing, an exception is raised:
+      
+      Map.fetch!(%{a: 1}, :b)
+      ** (KeyError) key :b not found in: %{a: 1}
 
   """
   @spec fetch!(map, key) :: value
