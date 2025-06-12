@@ -253,6 +253,7 @@ This work was performed by Jonatan Männchen and sponsored by the Erlang Ecosyst
   * [DateTime] Do not truncate microseconds regardless of precision in `DateTime.diff/3`
   * [File] Properly handle permissions errors cascading from parent in `File.mkdir_p/1`
   * [Kernel] `not_a_map.key` now raises `BadMapError` for consistency with other map operations
+  * [Protocol] `defstruct/1` and `defexception/1` are now disabled inside `defprotocol` as to not allow defining structs/exceptions alongside a protocol
   * [Regex] Fix `Regex.split/2` returning too many results when the chunk being split on was empty (which can happen when using features such as `/K`)
   * [Stream] Ensure `Stream.transform/5` respects suspend command when its inner stream halts
   * [URI] Several fixes to `URI.merge/2` related to trailing slashes, trailing dots, and hostless base URIs
