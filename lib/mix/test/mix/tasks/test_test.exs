@@ -716,6 +716,39 @@ defmodule Mix.Tasks.TestTest do
     end
   end
 
+  describe "--dry-run" do
+    test "works with --stale" do
+      in_fixture("test_stale", fn ->
+        File.write!("test/dry_run_test_stale.exs", """
+        defmodule DryRunTest do
+          use ExUnit.Case
+
+          test "new test" do
+            assert true
+          end
+        end
+        """)
+
+        output = mix(["test", "--dry-run", "--stale"])
+
+        assert output =~ "Test dry run:"
+        assert output =~ "test/dry_run_test_stale.exs:4"
+        assert output =~ "0 tests, 0 failures (dry run)"
+      end)
+    end
+
+    test "works with --failed" do
+      in_fixture("test_failed", fn ->
+        _initial_run = mix(["test"])
+        output = mix(["test", "--dry-run", "--failed"])
+
+        assert output =~ "Test dry run:"
+        assert output =~ "test/passing_and_failing_test_failed.exs:5"
+        assert output =~ "0 tests, 0 failures (dry run)"
+      end)
+    end
+  end
+
   defp receive_until_match(port, expected, acc) do
     receive do
       {^port, {:data, output}} ->
