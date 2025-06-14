@@ -628,7 +628,8 @@ translate_remote(Left, Right, Meta, Args, S) ->
         [TOne, TTwo] -> {{op, Ann, Right, TOne, TTwo}, SA}
       end;
     {inline_pure, Result} ->
-      translate(Result, Ann, S);
+      Generated = erl_anno:set_generated(true, Ann),
+      translate(Result, Generated, S);
     {inline_args, NewArgs} ->
       {TLeft, SL} = translate(Left, Ann, S),
       {TArgs, SA} = translate_args(NewArgs, Ann, SL),
