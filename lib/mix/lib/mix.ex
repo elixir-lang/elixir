@@ -884,6 +884,7 @@ defmodule Mix do
         config: [],
         config_path: nil,
         consolidate_protocols: true,
+        compilers: nil,
         elixir: nil,
         force: false,
         lockfile: nil,
@@ -898,6 +899,12 @@ defmodule Mix do
     system_env = Keyword.fetch!(opts, :system_env)
     consolidate_protocols? = Keyword.fetch!(opts, :consolidate_protocols)
     start_applications? = Keyword.fetch!(opts, :start_applications)
+
+    compilers =
+      case Keyword.fetch!(opts, :compilers) do
+        nil -> [:elixir]
+        [_ | _] = compilers -> compilers
+      end
 
     id =
       {deps, config, system_env, consolidate_protocols?}
@@ -923,7 +930,8 @@ defmodule Mix do
         dynamic_config = [
           deps: deps,
           consolidate_protocols: consolidate_protocols?,
-          config_path: config_path
+          config_path: config_path,
+          compilers: compilers
         ]
 
         :ok =
@@ -1093,7 +1101,6 @@ defmodule Mix do
       app: @mix_install_app,
       erlc_paths: [],
       elixirc_paths: [],
-      compilers: [:elixir],
       prune_code_paths: false
     ] ++ dynamic_config
   end

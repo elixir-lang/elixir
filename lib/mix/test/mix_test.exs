@@ -43,7 +43,7 @@ defmodule MixTest do
       assert Protocol.consolidated?(InstallTest.Protocol)
 
       assert_received {:mix_shell, :info, ["==> install_test"]}
-      assert_received {:mix_shell, :info, ["Compiling 2 files (.ex)"]}
+      assert_received {:mix_shell, :info, ["Compiling 3 files (.ex)"]}
       assert_received {:mix_shell, :info, ["Generated install_test app"]}
       refute_received _
 
@@ -71,7 +71,7 @@ defmodule MixTest do
 
       assert File.dir?(Path.join(tmp_dir, "installs"))
       assert_received {:mix_shell, :info, ["==> install_test"]}
-      assert_received {:mix_shell, :info, ["Compiling 2 files (.ex)"]}
+      assert_received {:mix_shell, :info, ["Compiling 3 files (.ex)"]}
       assert_received {:mix_shell, :info, ["Generated install_test app"]}
       refute_received _
 
@@ -361,7 +361,7 @@ defmodule MixTest do
         ])
 
         assert_received {:mix_shell, :info, ["==> install_test"]}
-        assert_received {:mix_shell, :info, ["Compiling 2 files (.ex)"]}
+        assert_received {:mix_shell, :info, ["Compiling 3 files (.ex)"]}
         assert_received {:mix_shell, :info, ["Generated install_test app"]}
         refute_received _
 
@@ -428,6 +428,29 @@ defmodule MixTest do
       end)
     after
       System.delete_env("MIX_INSTALL_RESTORE_PROJECT_DIR")
+    end
+
+    test "custom compilers", %{tmp_dir: tmp_dir} do
+      Mix.install(
+        [
+          {:install_test, path: Path.join(tmp_dir, "install_test")}
+        ],
+        compilers: [:elixir, :install_test]
+      )
+
+      assert File.dir?(Path.join(tmp_dir, "installs"))
+
+      assert Protocol.consolidated?(InstallTest.Protocol)
+
+      assert_received {:mix_shell, :info, ["==> install_test"]}
+      assert_received {:mix_shell, :info, ["Compiling 3 files (.ex)"]}
+      assert_received {:mix_shell, :info, ["Generated install_test app"]}
+      assert_received {:mix_shell, :info, ["==> mix_install"]}
+      assert_received {:mix_shell, :info, ["Hello from custom compiler!"]}
+      refute_received _
+
+      assert List.keyfind(Application.started_applications(), :install_test, 0)
+      assert apply(InstallTest, :hello, []) == :world
     end
 
     test "installed?", %{tmp_dir: tmp_dir} do
@@ -506,6 +529,20 @@ defmodule MixTest do
       File.write!("#{tmp_dir}/install_test/lib/install_test_protocol.ex", """
       defprotocol InstallTest.Protocol do
         def foo(x)
+      end
+      """)
+
+      File.mkdir_p!("#{tmp_dir}/install_test/lib/mix/tasks/compile/")
+
+      File.write!("#{tmp_dir}/install_test/lib/mix/tasks/compile/install_test.ex", """
+      defmodule Mix.Tasks.Compile.InstallTest do
+        use Mix.Task.Compiler
+
+        def run(_args) do
+          Mix.shell().info("Hello from custom compiler!")
+
+          :noop
+        end
       end
       """)
 
