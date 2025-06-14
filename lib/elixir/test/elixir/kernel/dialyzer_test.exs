@@ -32,6 +32,7 @@ defmodule Kernel.DialyzerTest do
       :elixir_env,
       :elixir_erl_pass,
       :maps,
+      :sets,
       ArgumentError,
       Atom,
       Code,
@@ -45,6 +46,7 @@ defmodule Kernel.DialyzerTest do
       List,
       Macro,
       Macro.Env,
+      MapSet,
       Module,
       Protocol,
       String,
@@ -173,6 +175,11 @@ defmodule Kernel.DialyzerTest do
 
   test "no warning on ExUnit assertions", context do
     copy_beam!(context, Dialyzer.Assertions)
+    assert_dialyze_no_warnings!(context)
+  end
+
+  test "no warning on inlined calls returning opaque", context do
+    copy_beam!(context, Dialyzer.OpaqueInline)
     assert_dialyze_no_warnings!(context)
   end
 
