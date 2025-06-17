@@ -281,7 +281,15 @@ defmodule Keyword do
   end
 
   defp validate([], values1, values2, acc, []) do
-    {:ok, move_pairs!(values1, move_pairs!(values2, acc))}
+    list = move_pairs!(values1, move_pairs!(values2, acc))
+
+    {has_duplicate, duplicate_key} = find_duplicate_keys(list)
+
+    if has_duplicate do
+      {:error, [duplicate_key]}
+    else
+      {:ok, list}
+    end
   end
 
   defp validate([], _values1, _values2, _acc, bad_keys) do
@@ -310,6 +318,29 @@ defmodule Keyword do
   defp move_pairs!([other | _], _) do
     raise ArgumentError,
           "expected the second argument to be a list of atoms or tuples, got: #{inspect(other)}"
+  end
+
+  defp find_duplicate_keys([]) do
+    {false, nil}
+  end
+
+  defp find_duplicate_keys(l) do
+    [{k, _} | t] = List.keysort(l, 0)
+    # on a sorted list, we'll only have to check consecutive elements
+    # for duplicates
+    find_duplicate_keys(t, k)
+  end
+
+  defp find_duplicate_keys([], _k) do
+    {false, nil}
+  end
+
+  defp find_duplicate_keys([{k, _} | _t], k) do
+    {true, k}
+  end
+
+  defp find_duplicate_keys([{h, _} | t], _k) do
+    find_duplicate_keys(t, h)
   end
 
   @doc """
