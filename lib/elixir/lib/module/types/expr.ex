@@ -340,7 +340,7 @@ defmodule Module.Types.Expr do
             add_inferred(acc, args, body)
         end)
 
-      {fun_from_overlapping_clauses(acc), context}
+      {fun_from_inferred_clauses(acc), context}
     end
   end
 

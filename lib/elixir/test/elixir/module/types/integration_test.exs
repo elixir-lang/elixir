@@ -180,8 +180,8 @@ defmodule Module.Types.IntegrationTest do
       assert return.(:captured, 0)
              |> equal?(
                fun_from_non_overlapping_clauses([
-                 {[dynamic(binary())], atom([:ok, :error])},
-                 {[dynamic(non_empty_list(term(), term()))], atom([:list])}
+                 {[binary()], dynamic(atom([:ok, :error]))},
+                 {[non_empty_list(term(), term())], dynamic(atom([:list]))}
                ])
              )
     end

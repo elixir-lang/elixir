@@ -137,18 +137,20 @@ defmodule Module.Types.Descr do
   @doc """
   Creates a function from overlapping function clauses.
   """
-  def fun_from_overlapping_clauses(args_clauses) do
+  def fun_from_inferred_clauses(args_clauses) do
     domain_clauses =
       Enum.reduce(args_clauses, [], fn {args, return}, acc ->
-        pivot_overlapping_clause(args_to_domain(args), return, acc)
+        domain = args |> Enum.map(&upper_bound/1) |> args_to_domain()
+        pivot_overlapping_clause(domain, upper_bound(return), acc)
       end)
 
     funs =
       for {domain, return} <- domain_clauses,
           args <- domain_to_args(domain),
-          do: fun(args, return)
+          do: fun(args, dynamic(return))
 
     Enum.reduce(funs, &intersection/2)
+    # dynamic(fun())
   end
 
   defp pivot_overlapping_clause(domain, return, [{acc_domain, acc_return} | acc]) do
@@ -200,10 +202,10 @@ defmodule Module.Types.Descr do
   def domain_to_args(descr) do
     case :maps.take(:dynamic, descr) do
       :error ->
-        tuple_elim_negations_static(descr, &Function.identity/1)
+        tuple_elim_negations_static(descr, & &1)
 
       {dynamic, static} ->
-        tuple_elim_negations_static(static, &Function.identity/1) ++
+        tuple_elim_negations_static(static, & &1) ++
           tuple_elim_negations_static(dynamic, fn elems -> Enum.map(elems, &dynamic/1) end)
     end
   end
@@ -2115,9 +2117,6 @@ defmodule Module.Types.Descr do
 
   defp dynamic_to_quoted(descr, opts) do
     cond do
-      descr == %{} ->
-        []
-
       # We check for :term literally instead of using term_type?
       # because we check for term_type? in to_quoted before we
       # compute the difference(dynamic, static).
@@ -2126,6 +2125,9 @@ defmodule Module.Types.Descr do
 
       single = indivisible_bitmap(descr, opts) ->
         [single]
+
+      empty?(descr) ->
+        []
 
       true ->
         case non_term_type_to_quoted(descr, opts) do
