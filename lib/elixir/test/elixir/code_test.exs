@@ -514,6 +514,48 @@ defmodule CodeTest do
              }
   end
 
+  test "string_to_quoted handles unescape errors properly" do
+    # Test invalid hex escape character
+    assert {:error, {meta, message, token}} = Code.string_to_quoted("a.'\\xg'")
+
+    assert meta[:line] == 1
+    assert meta[:column] == 3
+
+    assert message ==
+             "invalid hex escape character, expected \\xHH where H is a hexadecimal digit. Syntax error after: "
+
+    assert token == "\\x"
+
+    # Test invalid Unicode escape character
+    assert {:error, {meta2, message2, token2}} = Code.string_to_quoted("a.'\\ug'")
+
+    assert meta2[:line] == 1
+    assert meta2[:column] == 3
+
+    assert message2 ==
+             "invalid Unicode escape character, expected \\uHHHH or \\u{H*} where H is a hexadecimal digit. Syntax error after: "
+
+    assert token2 == "\\u"
+
+    # Test invalid Unicode code point (surrogate pair)
+    assert {:error, {meta3, message3, token3}} = Code.string_to_quoted("a.'\\u{D800}'")
+
+    assert meta3[:line] == 1
+    assert meta3[:column] == 3
+
+    assert message3 == "invalid or reserved Unicode code point \\u{D800}. Syntax error after: "
+    assert token3 == "\\u"
+
+    # Test Unicode code point beyond valid range
+    assert {:error, {meta4, message4, token4}} = Code.string_to_quoted("a.'\\u{110000}'")
+
+    assert meta4[:line] == 1
+    assert meta4[:column] == 3
+
+    assert message4 == "invalid or reserved Unicode code point \\u{110000}. Syntax error after: "
+    assert token4 == "\\u"
+  end
+
   @tag :requires_source
   test "compile source" do
     assert __MODULE__.__info__(:compile)[:source] == String.to_charlist(__ENV__.file)
