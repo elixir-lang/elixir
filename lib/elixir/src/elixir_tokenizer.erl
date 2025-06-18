@@ -948,17 +948,22 @@ handle_dot([$., H | T] = Original, Line, Column, DotInfo, BaseScope, Tokens) whe
           InterScope
       end,
 
-      {ok, [UnescapedPart]} = unescape_tokens([Part], Line, Column, NewScope),
+      case unescape_tokens([Part], Line, Column, NewScope) of
+        {ok, [UnescapedPart]} ->
+          case unsafe_to_atom(UnescapedPart, Line, Column, NewScope) of
+            {ok, Atom} ->
+              Token = check_call_identifier(Line, Column, H, Atom, Rest),
+              TokensSoFar = add_token_with_eol({'.', DotInfo}, Tokens),
+              tokenize(Rest, NewLine, NewColumn, NewScope, [Token | TokensSoFar]);
 
-      case unsafe_to_atom(UnescapedPart, Line, Column, NewScope) of
-        {ok, Atom} ->
-          Token = check_call_identifier(Line, Column, H, Atom, Rest),
-          TokensSoFar = add_token_with_eol({'.', DotInfo}, Tokens),
-          tokenize(Rest, NewLine, NewColumn, NewScope, [Token | TokensSoFar]);
+            {error, Reason} ->
+              error(Reason, Original, NewScope, Tokens)
+          end;
 
         {error, Reason} ->
           error(Reason, Original, NewScope, Tokens)
       end;
+
     {_NewLine, _NewColumn, _Parts, Rest, NewScope} ->
       Message = "interpolation is not allowed when calling function/macro. Found interpolation in a call starting with: ",
       error({?LOC(Line, Column), Message, [H]}, Rest, NewScope, Tokens);
