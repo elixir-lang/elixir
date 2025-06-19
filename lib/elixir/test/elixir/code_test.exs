@@ -514,6 +514,27 @@ defmodule CodeTest do
              }
   end
 
+  test "string_to_quoted raises UnicodeConversionError for invalid UTF-8 in quoted atoms and function calls" do
+    invalid_utf8_cases = [
+      # Quoted atom
+      ~S{:"\xFF"},
+      ~S{:'\xFF'},
+      # Quoted function call
+      ~S{foo."\xFF"()},
+      ~S{foo.'\xFF'()}
+    ]
+
+    for code <- invalid_utf8_cases do
+      assert_raise UnicodeConversionError, fn ->
+        Code.string_to_quoted!(code)
+      end
+
+      assert_raise UnicodeConversionError, fn ->
+        Code.string_to_quoted!(code, existing_atoms_only: true)
+      end
+    end
+  end
+
   @tag :requires_source
   test "compile source" do
     assert __MODULE__.__info__(:compile)[:source] == String.to_charlist(__ENV__.file)
