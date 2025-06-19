@@ -1037,18 +1037,42 @@ unsafe_to_atom(Binary, Line, Column, #elixir_tokenizer{existing_atoms_only=true}
   try
     {ok, binary_to_existing_atom(Binary, utf8)}
   catch
-    error:badarg -> {error, {?LOC(Line, Column), "unsafe atom does not exist: ", elixir_utils:characters_to_list(Binary)}}
+    error:badarg -> 
+      % Check if it's a UTF-8 issue by trying to convert to list
+      elixir_utils:characters_to_list(Binary),
+      % If we get here, it's not a UTF-8 issue
+      {error, {?LOC(Line, Column), "unsafe atom does not exist: ", elixir_utils:characters_to_list(Binary)}}
   end;
-unsafe_to_atom(Binary, _Line, _Column, #elixir_tokenizer{}) when is_binary(Binary) ->
-  {ok, binary_to_atom(Binary, utf8)};
+unsafe_to_atom(Binary, Line, Column, #elixir_tokenizer{}) when is_binary(Binary) ->
+  try
+    {ok, binary_to_atom(Binary, utf8)}
+  catch
+    error:badarg ->
+      % Try to convert using elixir_utils to get proper UnicodeConversionError
+      elixir_utils:characters_to_list(Binary),
+      % If we get here, it's not a UTF-8 issue, so it's some other badarg
+      {error, {?LOC(Line, Column), "invalid atom: ", elixir_utils:characters_to_list(Binary)}}
+  end;
 unsafe_to_atom(List, Line, Column, #elixir_tokenizer{existing_atoms_only=true}) when is_list(List) ->
   try
     {ok, list_to_existing_atom(List)}
   catch
-    error:badarg -> {error, {?LOC(Line, Column), "unsafe atom does not exist: ", List}}
+    error:badarg ->
+      % Try to convert using elixir_utils to get proper UnicodeConversionError
+      elixir_utils:characters_to_binary(List),
+      % If we get here, it's not a UTF-8 issue
+      {error, {?LOC(Line, Column), "unsafe atom does not exist: ", List}}
   end;
-unsafe_to_atom(List, _Line, _Column, #elixir_tokenizer{}) when is_list(List) ->
-  {ok, list_to_atom(List)}.
+unsafe_to_atom(List, Line, Column, #elixir_tokenizer{}) when is_list(List) ->
+  try
+    {ok, list_to_atom(List)}
+  catch
+    error:badarg ->
+      % Try to convert using elixir_utils to get proper UnicodeConversionError
+      elixir_utils:characters_to_binary(List),
+      % If we get here, it's not a UTF-8 issue, so it's some other badarg
+      {error, {?LOC(Line, Column), "invalid atom: ", List}}
+  end.
 
 collect_modifiers([H | T], Buffer) when ?is_downcase(H) or ?is_upcase(H) or ?is_digit(H) ->
   collect_modifiers(T, [H | Buffer]);
