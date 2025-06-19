@@ -51,7 +51,7 @@ The reason behind supporting different delimiters is to provide a way to write l
 
 ## Strings, charlists, and word lists sigils
 
-Besides regular expressions, Elixir ships with three other sigils.
+Elixir ships with three sigils for building textual data structures. These allow you to choose an appropriate delimiter for your literal text such that you do not have to worry about escaping.
 
 ### Strings
 
@@ -89,9 +89,9 @@ iex> ~w(foo bar bat)a
 [:foo, :bar, :bat]
 ```
 
-## Interpolation and escaping in string sigils
+## Interpolation and escaping in textual sigils
 
-Elixir supports some sigil variants to deal with escaping characters and interpolation. In particular, uppercase letters sigils do not perform interpolation nor escaping. For example, although both `~s` and `~S` will return strings, the former allows escape codes and interpolation while the latter does not:
+Elixir supports some sigil variants to deal with escaping characters and interpolation. In particular, uppercase-letter textual sigils do not perform interpolation nor escaping. For example, although both `~s` and `~S` will return strings, the former allows escape codes and interpolation while the latter does not:
 
 ```elixir
 iex> ~s(String with escape codes \x26 #{"inter" <> "polation"})
@@ -100,7 +100,7 @@ iex> ~S(String without escape codes \x26 without #{interpolation})
 "String without escape codes \\x26 without \#{interpolation}"
 ```
 
-The following escape codes can be used in strings and charlists:
+The following escape codes can be used in textual sigils:
 
   * `\\` – single backslash
   * `\a` – bell/alert
