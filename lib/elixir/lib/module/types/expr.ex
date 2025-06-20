@@ -461,7 +461,11 @@ defmodule Module.Types.Expr do
     {args_types, context} =
       Enum.map_reduce(args, context, &of_expr(&1, @pending, &1, stack, &2))
 
-    Apply.fun_apply(fun_type, args_types, call, stack, context)
+    if stack.mode == :traversal do
+      {dynamic(), context}
+    else
+      Apply.fun_apply(fun_type, args_types, call, stack, context)
+    end
   end
 
   def of_expr({{:., _, [callee, key_or_fun]}, meta, []} = call, expected, expr, stack, context)
