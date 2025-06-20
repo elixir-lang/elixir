@@ -719,8 +719,8 @@ defmodule Mix.Tasks.TestTest do
   describe "--dry-run" do
     test "works with --stale" do
       in_fixture("test_stale", fn ->
-        File.write!("test/dry_run_test_stale.exs", """
-        defmodule DryRunTest do
+        File.write!("test/dry_run_one_test_stale.exs", """
+        defmodule DryRunOneTest do
           use ExUnit.Case
 
           test "new test" do
@@ -729,11 +729,29 @@ defmodule Mix.Tasks.TestTest do
         end
         """)
 
+        File.write!("test/dry_run_two_test_stale.exs", """
+        defmodule DryRunTwoTest do
+          use ExUnit.Case
+
+          @tag :skip
+          test "skipped test" do
+            assert true
+          end
+        end
+        """)
+
         output = mix(["test", "--dry-run", "--stale"])
 
-        assert output =~ "Test dry run:"
-        assert output =~ "test/dry_run_test_stale.exs:4"
-        assert output =~ "0 tests, 0 failures (dry run)"
+        assert output =~ "Tests that would be executed:"
+        assert output =~ "test/a_test_stale.exs:4"
+        assert output =~ "test/b_test_stale.exs:4"
+        assert output =~ "test/dry_run_one_test_stale.exs:4"
+        refute output =~ "test/dry_run_two_test_stale.exs:5"
+        assert output =~ "1 test, 0 failures, 1 skipped"
+
+        # Tests are still marked as stale
+        output = mix(["test", "--dry-run", "--stale"])
+        assert output =~ "1 test, 0 failures, 1 skipped"
       end)
     end
 
@@ -742,9 +760,14 @@ defmodule Mix.Tasks.TestTest do
         _initial_run = mix(["test"])
         output = mix(["test", "--dry-run", "--failed"])
 
-        assert output =~ "Test dry run:"
+        assert output =~ "Tests that would be executed:"
+        assert output =~ "test/only_failing_test_failed.exs:4"
         assert output =~ "test/passing_and_failing_test_failed.exs:5"
-        assert output =~ "0 tests, 0 failures (dry run)"
+        assert output =~ "0 tests, 0 failures"
+
+        # Tests are still marked as failed
+        output = mix(["test", "--dry-run", "failed"])
+        assert output =~ "0 tests, 0 failures"
       end)
     end
   end
