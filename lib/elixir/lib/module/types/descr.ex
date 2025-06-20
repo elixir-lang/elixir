@@ -2962,16 +2962,20 @@ defmodule Module.Types.Descr do
 
   defp tuple_descr([value | rest], acc, dynamic?) do
     # Check if the static part is empty
-    static_empty? = case value do
-      %{dynamic: _} -> false  # Has dynamic component, check static separately
-      _ -> empty?(value)
-    end
+    static_empty? =
+      case value do
+        # Has dynamic component, check static separately
+        %{dynamic: _} -> false
+        _ -> empty?(value)
+      end
 
     if static_empty? do
       :empty
     else
       case :maps.take(:dynamic, value) do
-        :error -> tuple_descr(rest, [value | acc], dynamic?)
+        :error ->
+          tuple_descr(rest, [value | acc], dynamic?)
+
         {dynamic, _static} ->
           # Check if dynamic component is empty
           if empty?(dynamic) do
@@ -3059,8 +3063,8 @@ defmodule Module.Types.Descr do
     if (tag == :closed and n < m) or (neg_tag == :closed and n > m) do
       [{tag, elements}]
     else
-      tuple_elim_content([], tag, elements, neg_elements)
-         ++ tuple_elim_size(n, m, tag, elements, neg_tag)
+      tuple_elim_content([], tag, elements, neg_elements) ++
+        tuple_elim_size(n, m, tag, elements, neg_tag)
     end
   end
 
@@ -3095,11 +3099,13 @@ defmodule Module.Types.Descr do
     |> Enum.reduce([], fn i, acc ->
       [{:closed, tuple_fill(elements, i)} | acc]
     end)
-    |> Kernel.++(if neg_tag == :open do
-      []
-    else
-      [{:open, tuple_fill(elements, m + 1)}]
-    end)
+    |> Kernel.++(
+      if neg_tag == :open do
+        []
+      else
+        [{:open, tuple_fill(elements, m + 1)}]
+      end
+    )
   end
 
   defp tuple_union(dnf1, dnf2) do
@@ -3260,7 +3266,7 @@ defmodule Module.Types.Descr do
     end
   end
 
-@doc """
+  @doc """
   Fetches the type of the value returned by accessing `index` on `tuple`
   with the assumption that the descr is exclusively a tuple (or dynamic).
 

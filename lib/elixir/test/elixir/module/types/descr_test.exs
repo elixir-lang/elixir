@@ -1205,7 +1205,7 @@ defmodule Module.Types.DescrTest do
 
       # Test deleting from a union of tuples
       assert tuple_delete_at(union(tuple([integer(), atom()]), tuple([float(), binary()])), 1)
-              |> equal?(tuple([union(integer(), float())]))
+             |> equal?(tuple([union(integer(), float())]))
 
       # Test deleting from an intersection of tuples
       assert intersection(tuple([integer(), atom()]), tuple([term(), boolean()]))
@@ -1301,7 +1301,6 @@ defmodule Module.Types.DescrTest do
       assert tuple_values(tuple()) == term()
       assert tuple_values(open_tuple([integer()])) == term()
       assert tuple_values(tuple([integer(), atom()])) == union(integer(), atom())
-
 
       assert tuple_values(union(tuple([float(), pid()]), tuple([reference()]))) ==
                union(float(), union(pid(), reference()))
