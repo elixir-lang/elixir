@@ -30,7 +30,7 @@ defmodule Module.Types.Descr do
   @atom_top {:negation, :sets.new(version: 2)}
   @map_top [{:open, %{}, []}]
   @non_empty_list_top [{:term, :term, []}]
-  @tuple_top [{:open, [], []}]
+  @tuple_top [{:open, []}]
   @map_empty [{:closed, %{}, []}]
 
   @none %{}
@@ -46,7 +46,7 @@ defmodule Module.Types.Descr do
   @not_non_empty_list Map.delete(@term, :list)
   @not_list Map.replace!(@not_non_empty_list, :bitmap, @bit_top - @bit_empty_list)
 
-  @empty_intersection [0, @none]
+  @empty_intersection [0, @none, []]
   @empty_difference [0, []]
 
   # Type definitions
@@ -193,9 +193,6 @@ defmodule Module.Types.Descr do
   * For gradual tuple types: processes both dynamic and static components separately,
     then combines them.
 
-  Internally it uses `tuple_reduce/4` with concatenation as the join function
-  and a transform that is simply the identity.
-
   The list of arguments can be flattened into a broad domain by calling:
 
       |> Enum.zip_with(fn types -> Enum.reduce(types, &union/2) end)
@@ -211,13 +208,8 @@ defmodule Module.Types.Descr do
     end
   end
 
-  # Call tuple_reduce to build the simple union of tuples that come from each map literal.
-  # Thus, initial is `[]`, join is concatenation, and the transform of a map literal
-  # with no negations is just to keep the map literal as is.
   defp tuple_elim_negations_static(%{tuple: dnf} = descr, transform) when map_size(descr) == 1 do
-    tuple_reduce(dnf, [], &Kernel.++/2, fn :closed, elements ->
-      [transform.(elements)]
-    end)
+    Enum.map(dnf, fn {:closed, elements} -> transform.(elements) end)
   end
 
   defp tuple_elim_negations_static(descr, _transform) when descr == %{}, do: []
@@ -529,19 +521,18 @@ defmodule Module.Types.Descr do
         not Map.has_key?(descr, :atom) and
           not Map.has_key?(descr, :bitmap) and
           not Map.has_key?(descr, :optional) and
+          not Map.has_key?(descr, :tuple) and
           (not Map.has_key?(descr, :map) or map_empty?(descr.map)) and
           (not Map.has_key?(descr, :list) or list_empty?(descr.list)) and
-          (not Map.has_key?(descr, :tuple) or tuple_empty?(descr.tuple)) and
           (not Map.has_key?(descr, :fun) or fun_empty?(descr.fun))
     end
   end
 
-  # For atom, bitmap, and optional, if the key is present,
+  # For atom, bitmap, tuple, and optional, if the key is present,
   # then they are not empty,
   defp empty_key?(:fun, value), do: fun_empty?(value)
   defp empty_key?(:map, value), do: map_empty?(value)
   defp empty_key?(:list, value), do: list_empty?(value)
-  defp empty_key?(:tuple, value), do: tuple_empty?(value)
   defp empty_key?(_, _value), do: false
 
   @doc """
@@ -2959,6 +2950,7 @@ defmodule Module.Types.Descr do
 
   defp tuple_descr(tag, fields) do
     case tuple_descr(fields, [], false) do
+      :empty -> %{}
       {fields, true} -> %{dynamic: %{tuple: tuple_new(tag, Enum.reverse(fields))}}
       {_, false} -> %{tuple: tuple_new(tag, fields)}
     end
@@ -2969,9 +2961,29 @@ defmodule Module.Types.Descr do
   end
 
   defp tuple_descr([value | rest], acc, dynamic?) do
-    case :maps.take(:dynamic, value) do
-      :error -> tuple_descr(rest, [value | acc], dynamic?)
-      {dynamic, _static} -> tuple_descr(rest, [dynamic | acc], true)
+    # Check if the static part is empty
+    static_empty? =
+      case value do
+        # Has dynamic component, check static separately
+        %{dynamic: _} -> false
+        _ -> empty?(value)
+      end
+
+    if static_empty? do
+      :empty
+    else
+      case :maps.take(:dynamic, value) do
+        :error ->
+          tuple_descr(rest, [value | acc], dynamic?)
+
+        {dynamic, _static} ->
+          # Check if dynamic component is empty
+          if empty?(dynamic) do
+            :empty
+          else
+            tuple_descr(rest, [dynamic | acc], true)
+          end
+      end
     end
   end
 
@@ -2979,16 +2991,16 @@ defmodule Module.Types.Descr do
     {acc, dynamic?}
   end
 
-  defp tuple_new(tag, elements), do: [{tag, elements, []}]
+  defp tuple_new(tag, elements), do: [{tag, elements}]
 
   defp tuple_intersection(dnf1, dnf2) do
-    for {tag1, elements1, negs1} <- dnf1,
-        {tag2, elements2, negs2} <- dnf2,
+    for {tag1, elements1} <- dnf1,
+        {tag2, elements2} <- dnf2,
         reduce: [] do
       acc ->
         case tuple_literal_intersection(tag1, elements1, tag2, elements2) do
           {tag, elements} ->
-            entry = {tag, elements, negs1 ++ negs2}
+            entry = {tag, elements}
 
             case :lists.member(entry, acc) do
               true -> acc
@@ -2998,10 +3010,6 @@ defmodule Module.Types.Descr do
           :empty ->
             acc
         end
-    end
-    |> case do
-      [] -> 0
-      acc -> acc
     end
   end
 
@@ -3038,27 +3046,66 @@ defmodule Module.Types.Descr do
   end
 
   defp tuple_difference(dnf1, dnf2) do
-    Enum.reduce(dnf2, dnf1, fn {tag2, elements2, negs2}, dnf1 ->
-      Enum.reduce(dnf1, [], fn {tag1, elements1, negs1}, acc ->
-        # Prune negations that have no values in common
-        acc =
-          case tuple_literal_intersection(tag1, elements1, tag2, elements2) do
-            :empty -> [{tag1, elements1, negs1}] ++ acc
-            _ -> [{tag1, elements1, [{tag2, elements2} | negs1]}] ++ acc
-          end
-
-        Enum.reduce(negs2, acc, fn {neg_tag2, neg_elements2}, inner_acc ->
-          case tuple_literal_intersection(tag1, elements1, neg_tag2, neg_elements2) do
-            :empty -> inner_acc
-            {tag, fields} -> [{tag, fields, negs1} | inner_acc]
-          end
-        end)
+    Enum.reduce(dnf2, dnf1, fn {tag2, elements2}, dnf1 ->
+      Enum.reduce(dnf1, [], fn {tag1, elements1}, acc ->
+        tuple_eliminate_single_negation(tag1, elements1, {tag2, elements2}) ++ acc
       end)
     end)
-    |> case do
-      [] -> 0
-      acc -> acc
+  end
+
+  defp tuple_eliminate_single_negation(tag, elements, {neg_tag, neg_elements}) do
+    n = length(elements)
+    m = length(neg_elements)
+
+    # Scenarios where the difference is guaranteed to be empty:
+    # 1. When removing larger tuples from a fixed-size positive tuple
+    # 2. When removing smaller tuples from larger tuples
+    if (tag == :closed and n < m) or (neg_tag == :closed and n > m) do
+      [{tag, elements}]
+    else
+      tuple_elim_content([], tag, elements, neg_elements) ++
+        tuple_elim_size(n, m, tag, elements, neg_tag)
     end
+  end
+
+  # Eliminates negations according to tuple content.
+  defp tuple_elim_content(_acc, _tag, _elements, []), do: []
+
+  # Subtracts each element of a negative tuple to build a new tuple with the difference.
+  # Example: {number(), atom()} and not {float(), :foo} contains types {integer(), :foo}
+  # as well as {float(), atom() and not :foo}
+  # Same process as tuple_elements_empty?
+  defp tuple_elim_content(acc, tag, elements, [neg_type | neg_elements]) do
+    {ty, elements} = List.pop_at(elements, 0, term())
+    diff = difference(ty, neg_type)
+
+    res = tuple_elim_content([ty | acc], tag, elements, neg_elements)
+
+    if empty?(diff) do
+      res
+    else
+      [{tag, Enum.reverse(acc, [diff | elements])} | res]
+    end
+  end
+
+  # Eliminates negations according to size
+  # Example: {integer(), ...} and not {term(), term(), ...} contains {integer()}
+  # The tuples to consider are all those of size n to m - 1, and if the negative tuple is
+  # closed, we also need to consider tuples of size greater than m + 1.
+  defp tuple_elim_size(_, _, :closed, _, _), do: []
+
+  defp tuple_elim_size(n, m, :open, elements, neg_tag) do
+    n..(m - 1)//1
+    |> Enum.reduce([], fn i, acc ->
+      [{:closed, tuple_fill(elements, i)} | acc]
+    end)
+    |> Kernel.++(
+      if neg_tag == :open do
+        []
+      else
+        [{:open, tuple_fill(elements, m + 1)}]
+      end
+    )
   end
 
   defp tuple_union(dnf1, dnf2) do
@@ -3076,14 +3123,14 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp maybe_optimize_tuple_union({tag1, pos1, []} = tuple1, {tag2, pos2, []} = tuple2) do
+  defp maybe_optimize_tuple_union({tag1, pos1} = tuple1, {tag2, pos2} = tuple2) do
     case tuple_union_optimization_strategy(tag1, pos1, tag2, pos2) do
       :all_equal ->
         tuple1
 
       {:one_index_difference, index, v1, v2} ->
         new_pos = List.replace_at(pos1, index, union(v1, v2))
-        {tag1, new_pos, []}
+        {tag1, new_pos}
 
       :left_subtype_of_right ->
         tuple2
@@ -3164,9 +3211,8 @@ defmodule Module.Types.Descr do
 
   defp tuple_to_quoted(dnf, opts) do
     dnf
-    |> tuple_simplify()
     |> tuple_fusion()
-    |> Enum.map(&tuple_each_to_quoted(&1, opts))
+    |> Enum.map(&tuple_literal_to_quoted(&1, opts))
   end
 
   # Given a dnf of tuples, fuses the tuple unions when possible,
@@ -3178,14 +3224,9 @@ defmodule Module.Types.Descr do
     # 2. Group tuples by size and tag
     # 3. Try fusions for each group until no fusion is found
     # 4. Merge the groups back into a dnf
-    {without_negs, with_negs} = Enum.split_with(dnf, fn {_tag, _elems, negs} -> negs == [] end)
-
-    without_negs =
-      without_negs
-      |> Enum.group_by(fn {tag, elems, _} -> {tag, length(elems)} end)
-      |> Enum.flat_map(fn {_, tuples} -> tuple_non_negated_fuse(tuples) end)
-
-    without_negs ++ with_negs
+    dnf
+    |> Enum.group_by(fn {tag, elems} -> {tag, length(elems)} end)
+    |> Enum.flat_map(fn {_, tuples} -> tuple_non_negated_fuse(tuples) end)
   end
 
   defp tuple_non_negated_fuse(tuples) do
@@ -3202,20 +3243,6 @@ defmodule Module.Types.Descr do
       [fused | rest]
     else
       [candidate | tuple_fuse_with_first_fusible(tuple, rest)]
-    end
-  end
-
-  defp tuple_each_to_quoted({tag, positive_tuple, negative_tuples}, opts) do
-    case negative_tuples do
-      [] ->
-        tuple_literal_to_quoted({tag, positive_tuple}, opts)
-
-      _ ->
-        negative_tuples
-        |> non_empty_map_or(&tuple_literal_to_quoted(&1, opts))
-        |> Kernel.then(
-          &{:and, [], [tuple_literal_to_quoted({tag, positive_tuple}, opts), {:not, [], [&1]}]}
-        )
     end
   end
 
@@ -3237,56 +3264,6 @@ defmodule Module.Types.Descr do
     else
       elements ++ List.duplicate(term(), pad_length)
     end
-  end
-
-  # Check if a tuple represented in DNF is empty
-  defp tuple_empty?(dnf) do
-    Enum.all?(dnf, fn {tag, pos, negs} -> tuple_empty?(tag, pos, negs) end)
-  end
-
-  # No negations, so not empty unless there's an empty type
-  defp tuple_empty?(_, pos, []), do: Enum.any?(pos, &empty?/1)
-  # Open empty negation makes it empty
-  defp tuple_empty?(_, _, [{:open, []} | _]), do: true
-  # Open positive can't be emptied by a single closed negative
-  defp tuple_empty?(:open, pos, [{:closed, _}]), do: Enum.any?(pos, &empty?/1)
-
-  defp tuple_empty?(tag, elements, [{neg_tag, neg_elements} | negs]) do
-    n = length(elements)
-    m = length(neg_elements)
-
-    # Scenarios where the difference is guaranteed to be empty:
-    # 1. When removing larger tuples from a fixed-size positive tuple
-    # 2. When removing smaller tuples from larger tuples
-    if (tag == :closed and n < m) or (neg_tag == :closed and n > m) do
-      tuple_empty?(tag, elements, negs)
-    else
-      tuple_elements_empty?([], tag, elements, neg_elements, negs) and
-        tuple_compatibility(n, m, tag, elements, neg_tag, negs)
-    end
-  end
-
-  # Recursively check elements for emptiness
-  defp tuple_elements_empty?(_, _, _, [], _), do: true
-
-  defp tuple_elements_empty?(acc, tag, elements, [neg_type | neg_elements], negs) do
-    # Handles the case where {tag, elements} is an open tuple, like {:open, []}
-    {ty, elements} = List.pop_at(elements, 0, term())
-    diff = difference(ty, neg_type)
-
-    (empty?(diff) or tuple_empty?(tag, Enum.reverse(acc, [diff | elements]), negs)) and
-      tuple_elements_empty?([ty | acc], tag, elements, neg_elements, negs)
-  end
-
-  # Determines if the set difference is empty when:
-  # - Positive tuple: {tag, elements} of size n
-  # - Negative tuple: open or closed tuples of size m
-  defp tuple_compatibility(n, m, tag, elements, neg_tag, negs) do
-    # The tuples to consider are all those of size n to m - 1, and if the negative tuple is
-    # closed, we also need to consider tuples of size greater than m + 1.
-    tag == :closed or
-      (Enum.all?(n..(m - 1)//1, &tuple_empty?(:closed, tuple_fill(elements, &1), negs)) and
-         (neg_tag == :open or tuple_empty?(:open, tuple_fill(elements, m + 1), negs)))
   end
 
   @doc """
@@ -3367,43 +3344,23 @@ defmodule Module.Types.Descr do
 
   defp tuple_fetch_static(descr, index) when is_integer(index) do
     case descr do
-      :term ->
-        {true, term()}
-
-      %{tuple: tuple} ->
-        tuple_get(tuple, index)
-        |> pop_optional_static()
-
-      %{} ->
-        {false, none()}
+      :term -> {true, term()}
+      %{tuple: tuple} -> tuple_get(tuple, index) |> pop_optional_static()
+      %{} -> {false, none()}
     end
   end
 
   defp tuple_get(dnf, index) do
     Enum.reduce(dnf, none(), fn
-      # Optimization: if there are no negatives, just return the type at that index.
-      {tag, elements, []}, acc ->
-        Enum.at(elements, index, tag_to_type(tag)) |> union(acc)
-
-      {tag, elements, negs}, acc ->
-        {fst, snd} = tuple_pop_index(tag, elements, index)
-
-        case tuple_split_negative(negs, index) do
-          :empty ->
-            acc
-
-          negative ->
-            negative
-            |> pair_make_disjoint()
-            |> pair_eliminate_negations_fst(fst, snd)
-            |> union(acc)
-        end
+      {tag, elements}, acc -> Enum.at(elements, index, tag_to_type(tag)) |> union(acc)
     end)
   end
 
   @doc """
   Returns all of the values that are part of a tuple.
   """
+  def tuple_values(descr) when descr == %{}, do: :badtuple
+
   def tuple_values(descr) do
     case :maps.take(:dynamic, descr) do
       :error ->
@@ -3424,98 +3381,14 @@ defmodule Module.Types.Descr do
   end
 
   defp process_tuples_values(dnf) do
-    tuple_reduce(dnf, none(), &union/2, fn tag, elements ->
+    Enum.reduce(dnf, none(), fn {tag, elements}, acc ->
       cond do
         Enum.any?(elements, &empty?/1) -> none()
         tag == :open -> term()
         tag == :closed -> Enum.reduce(elements, none(), &union/2)
       end
+      |> union(acc)
     end)
-  end
-
-  defp tuple_reduce(dnf, initial, join, transform) do
-    Enum.reduce(dnf, initial, fn {tag, elements, negs}, acc ->
-      join.(acc, tuple_reduce(tag, elements, negs, initial, join, transform))
-    end)
-  end
-
-  defp tuple_reduce(tag, elements, [], _init, _join, transform), do: transform.(tag, elements)
-  defp tuple_reduce(_tag, _elements, [{:open, []} | _], initial, _join, _transform), do: initial
-
-  defp tuple_reduce(tag, elements, [{neg_tag, neg_elements} | negs], initial, join, transform) do
-    n = length(elements)
-    m = length(neg_elements)
-
-    if (tag == :closed and n < m) or (neg_tag == :closed and n > m) do
-      tuple_reduce(tag, elements, negs, initial, join, transform)
-    else
-      # Those two functions eliminate the negations, transforming into
-      # a union of tuples to compute their values.
-      elim_content([], tag, elements, neg_elements, negs, initial, join, transform)
-      |> join.(elim_size(n, m, tag, elements, neg_tag, negs, initial, join, transform))
-    end
-  end
-
-  # Eliminates negations according to tuple content.
-  # This means that there are no more neg_elements to subtract -- end the recursion.
-  defp elim_content(_acc, _tag, _elements, [], _, initial, _join, _transform), do: initial
-
-  # Subtracts each element of a negative tuple to build a new tuple with the difference.
-  # Example: {number(), atom()} and not {float(), :foo} contains types {integer(), :foo}
-  # as well as {float(), atom() and not :foo}
-  # Same process as tuple_elements_empty?
-  defp elim_content(acc, tag, elements, [neg_type | neg_elements], negs, init, join, transform) do
-    {ty, elements} = List.pop_at(elements, 0, term())
-    diff = difference(ty, neg_type)
-
-    if empty?(diff) do
-      init
-    else
-      tuple_reduce(tag, Enum.reverse(acc, [diff | elements]), negs, init, join, transform)
-    end
-    |> join.(elim_content([ty | acc], tag, elements, neg_elements, negs, init, join, transform))
-  end
-
-  # Eliminates negations according to size
-  # Example: {integer(), ...} and not {term(), term(), ...} contains {integer()}
-  defp elim_size(_, _, :closed, _, _, _, initial, _join, _transfo), do: initial
-
-  defp elim_size(n, m, tag, elements, neg_tag, negs, initial, join, transform) do
-    n..(m - 1)//1
-    |> Enum.reduce(initial, fn i, acc ->
-      tuple_reduce(:closed, tuple_fill(elements, i), negs, initial, join, transform)
-      |> join.(acc)
-    end)
-    |> join.(
-      if neg_tag == :open do
-        initial
-      else
-        tuple_reduce(tag, tuple_fill(elements, m + 1), negs, initial, join, transform)
-      end
-    )
-  end
-
-  defp tuple_pop_index(tag, elements, index) do
-    case List.pop_at(elements, index) do
-      {nil, _} -> {tag_to_type(tag), %{tuple: [{tag, elements, []}]}}
-      {type, rest} -> {type, %{tuple: [{tag, rest, []}]}}
-    end
-  end
-
-  defp tuple_split_negative(negs, index) do
-    Enum.reduce_while(negs, [], fn
-      {:open, []}, _acc -> {:halt, :empty}
-      {tag, elements}, acc -> {:cont, [tuple_pop_index(tag, elements, index) | acc]}
-    end)
-  end
-
-  # Use heuristics to simplify a tuple dnf for pretty printing.
-  defp tuple_simplify(dnf) do
-    for {tag, elements, negs} <- dnf,
-        not tuple_empty?([{tag, elements, negs}]) do
-      n = length(elements)
-      {tag, elements, Enum.reject(negs, &tuple_empty_negation?(tag, n, &1))}
-    end
   end
 
   @doc """
@@ -3568,25 +3441,7 @@ defmodule Module.Types.Descr do
 
   # Takes a static map type and removes an index from it.
   defp tuple_delete_static(%{tuple: dnf}, index) do
-    Enum.reduce(dnf, none(), fn
-      # Optimization: if there are no negatives, we can directly remove the element
-      {tag, elements, []}, acc ->
-        union(acc, %{tuple: tuple_new(tag, List.delete_at(elements, index))})
-
-      {tag, elements, negs}, acc ->
-        {fst, snd} = tuple_pop_index(tag, elements, index)
-
-        case tuple_split_negative(negs, index) do
-          :empty ->
-            acc
-
-          negative ->
-            negative
-            |> pair_make_disjoint()
-            |> pair_eliminate_negations_snd(fst, snd)
-            |> union(acc)
-        end
-    end)
+    %{tuple: Enum.map(dnf, fn {tag, elements} -> {tag, List.delete_at(elements, index)} end)}
   end
 
   # If there is no map part to this static type, there is nothing to delete.
@@ -3650,31 +3505,21 @@ defmodule Module.Types.Descr do
 
   defp tuple_insert_static(descr, index, type) do
     Map.update!(descr, :tuple, fn dnf ->
-      Enum.map(dnf, fn {tag, elements, negs} ->
-        {tag, List.insert_at(elements, index, type),
-         Enum.map(negs, fn {neg_tag, neg_elements} ->
-           {neg_tag, List.insert_at(neg_elements, index, type)}
-         end)}
+      Enum.map(dnf, fn {tag, elements} ->
+        {tag, List.insert_at(elements, index, type)}
       end)
     end)
   end
 
-  # Remove useless negations, which denote tuples of incompatible sizes.
-  defp tuple_empty_negation?(tag, n, {neg_tag, neg_elements}) do
-    m = length(neg_elements)
-    (tag == :closed and n < m) or (neg_tag == :closed and n > m)
-  end
-
   defp tuple_of_size_at_least(n) when is_integer(n) and n >= 0 do
-    tuple_descr(:open, List.duplicate(term(), n))
+    %{tuple: tuple_new(:open, List.duplicate(term(), n))}
   end
 
   defp tuple_of_size_at_least_static?(descr, index) do
     case descr do
       %{tuple: dnf} ->
         Enum.all?(dnf, fn
-          {_, elements, []} -> length(elements) >= index
-          entry -> subtype?(%{tuple: [entry]}, tuple_of_size_at_least(index))
+          {_, elements} -> length(elements) >= index
         end)
 
       %{} ->
