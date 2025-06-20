@@ -150,7 +150,6 @@ defmodule Module.Types.Descr do
           do: fun(args, dynamic(return))
 
     Enum.reduce(funs, &intersection/2)
-    # dynamic(fun())
   end
 
   defp pivot_overlapping_clause(domain, return, [{acc_domain, acc_return} | acc]) do
@@ -202,19 +201,19 @@ defmodule Module.Types.Descr do
   def domain_to_args(descr) do
     case :maps.take(:dynamic, descr) do
       :error ->
-        tuple_elim_negations_static(descr, & &1)
+        unwrap_domain_tuple(descr, fn {:closed, elems} -> elems end)
 
       {dynamic, static} ->
-        tuple_elim_negations_static(static, & &1) ++
-          tuple_elim_negations_static(dynamic, fn elems -> Enum.map(elems, &dynamic/1) end)
+        unwrap_domain_tuple(static, fn {:closed, elems} -> elems end) ++
+          unwrap_domain_tuple(dynamic, fn {:closed, elems} -> Enum.map(elems, &dynamic/1) end)
     end
   end
 
-  defp tuple_elim_negations_static(%{tuple: dnf} = descr, transform) when map_size(descr) == 1 do
-    Enum.map(dnf, fn {:closed, elements} -> transform.(elements) end)
+  defp unwrap_domain_tuple(%{tuple: dnf} = descr, transform) when map_size(descr) == 1 do
+    Enum.map(dnf, transform)
   end
 
-  defp tuple_elim_negations_static(descr, _transform) when descr == %{}, do: []
+  defp unwrap_domain_tuple(descr, _transform) when descr == %{}, do: []
 
   defp domain_to_flat_args(domain, arity) do
     case domain_to_args(domain) do
