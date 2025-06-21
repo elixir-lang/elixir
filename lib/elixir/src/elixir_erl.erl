@@ -593,15 +593,12 @@ get_moduledoc_meta(Set) ->
 
 get_docs(Set, Module, Definitions, Kind) ->
   [{Key,
-    maybe_generated(erl_anno:new(Line), Ctx),
+    erl_anno:new(Line),
     [signature_to_binary(Module, Name, Signature)],
     doc_value(Doc, Name),
     Meta#{source_annos => [?ann(DefinitionMeta)]}
    } || {{Name, Arity}, DefinitionMeta} <- Definitions,
-        {Key, Ctx, Line, Signature, Doc, Meta} <- ets:lookup(Set, {Kind, Name, Arity})].
-
-maybe_generated(Ann, nil) -> Ann;
-maybe_generated(Ann, _Ctx) -> erl_anno:set_generated(true, Ann).
+        {Key, _Ctx, Line, Signature, Doc, Meta} <- ets:lookup(Set, {Kind, Name, Arity})].
 
 get_callback_docs(Set, Callbacks) ->
   [{Key,
