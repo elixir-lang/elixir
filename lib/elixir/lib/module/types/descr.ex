@@ -137,16 +137,17 @@ defmodule Module.Types.Descr do
   @doc """
   Creates a function from overlapping function clauses.
   """
-  def fun_from_overlapping_clauses(args_clauses) do
+  def fun_from_inferred_clauses(args_clauses) do
     domain_clauses =
       Enum.reduce(args_clauses, [], fn {args, return}, acc ->
-        pivot_overlapping_clause(args_to_domain(args), return, acc)
+        domain = args |> Enum.map(&upper_bound/1) |> args_to_domain()
+        pivot_overlapping_clause(domain, upper_bound(return), acc)
       end)
 
     funs =
       for {domain, return} <- domain_clauses,
           args <- domain_to_args(domain),
-          do: fun(args, return)
+          do: fun(args, dynamic(return))
 
     Enum.reduce(funs, &intersection/2)
   end
@@ -200,19 +201,19 @@ defmodule Module.Types.Descr do
   def domain_to_args(descr) do
     case :maps.take(:dynamic, descr) do
       :error ->
-        tuple_elim_negations_static(descr, &Function.identity/1)
+        unwrap_domain_tuple(descr, fn {:closed, elems} -> elems end)
 
       {dynamic, static} ->
-        tuple_elim_negations_static(static, &Function.identity/1) ++
-          tuple_elim_negations_static(dynamic, fn elems -> Enum.map(elems, &dynamic/1) end)
+        unwrap_domain_tuple(static, fn {:closed, elems} -> elems end) ++
+          unwrap_domain_tuple(dynamic, fn {:closed, elems} -> Enum.map(elems, &dynamic/1) end)
     end
   end
 
-  defp tuple_elim_negations_static(%{tuple: dnf} = descr, transform) when map_size(descr) == 1 do
-    Enum.map(dnf, fn {:closed, elements} -> transform.(elements) end)
+  defp unwrap_domain_tuple(%{tuple: dnf} = descr, transform) when map_size(descr) == 1 do
+    Enum.map(dnf, transform)
   end
 
-  defp tuple_elim_negations_static(descr, _transform) when descr == %{}, do: []
+  defp unwrap_domain_tuple(descr, _transform) when descr == %{}, do: []
 
   defp domain_to_flat_args(domain, arity) do
     case domain_to_args(domain) do
@@ -2115,9 +2116,6 @@ defmodule Module.Types.Descr do
 
   defp dynamic_to_quoted(descr, opts) do
     cond do
-      descr == %{} ->
-        []
-
       # We check for :term literally instead of using term_type?
       # because we check for term_type? in to_quoted before we
       # compute the difference(dynamic, static).
@@ -2126,6 +2124,9 @@ defmodule Module.Types.Descr do
 
       single = indivisible_bitmap(descr, opts) ->
         [single]
+
+      empty?(descr) ->
+        []
 
       true ->
         case non_term_type_to_quoted(descr, opts) do

@@ -138,24 +138,37 @@ defmodule Module.Types.ExprTest do
     end
 
     test "infers functions" do
-      assert typecheck!(& &1) == fun([dynamic()], dynamic())
-      assert typecheck!(fn -> :ok end) == fun([], atom([:ok]))
+      assert typecheck!(& &1) |> equal?(fun([term()], dynamic()))
+
+      assert typecheck!(fn -> :ok end) |> equal?(fun([], dynamic(atom([:ok]))))
 
       assert typecheck!(fn
                <<"ok">>, {} -> :ok
                <<"error">>, {} -> :error
                [_ | _], %{} -> :list
-             end) ==
+             end)
+             |> equal?(
                intersection(
                  fun(
-                   [dynamic(non_empty_list(term(), term())), dynamic(open_map())],
-                   atom([:list])
+                   [non_empty_list(term(), term()), open_map()],
+                   dynamic(atom([:list]))
                  ),
                  fun(
-                   [dynamic(binary()), dynamic(tuple([]))],
-                   atom([:ok, :error])
+                   [binary(), tuple([])],
+                   dynamic(atom([:ok, :error]))
                  )
                )
+             )
+    end
+
+    test "application" do
+      assert typecheck!(
+               [map],
+               (fn
+                  %{a: a} = data -> %{data | b: a}
+                  data -> data
+                end).(map)
+             ) == dynamic()
     end
 
     test "bad function" do
@@ -253,7 +266,7 @@ defmodule Module.Types.ExprTest do
 
              but function has type:
 
-                 (dynamic(map()) -> :map)
+                 (map() -> dynamic(:map))
              """
     end
 
@@ -265,7 +278,7 @@ defmodule Module.Types.ExprTest do
 
              because the right-hand side has type:
 
-                 (dynamic() -> dynamic({:ok, term()}))
+                 (term() -> dynamic({:ok, term()}))
              """
     end
   end
