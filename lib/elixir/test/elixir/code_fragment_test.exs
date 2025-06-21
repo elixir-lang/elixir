@@ -562,14 +562,20 @@ defmodule CodeFragmentTest do
       assert CF.surround_context("안녕_세상", {1, 6}) == :none
 
       # Keywords are not local or var
-      for keyword <- ~w(do end after catch else rescue fn true false nil)c do
-        keyword_length = length(keyword) + 1
-
-        assert %{
-                 context: {:keyword, ^keyword},
+      for keyword <- ~w(do end after catch else rescue fn true false nil)c,
+          length = length(keyword),
+          i <- 1..length do
+        assert CF.surround_context(keyword, {1, i}) == %{
+                 context: {:keyword, keyword},
                  begin: {1, 1},
-                 end: {1, ^keyword_length}
-               } = CF.surround_context(keyword, {1, 1})
+                 end: {1, length + 1}
+               }
+
+        assert CF.surround_context(~c"Foo " ++ keyword, {1, 4 + i}) == %{
+                 context: {:keyword, keyword},
+                 begin: {1, 5},
+                 end: {1, length + 5}
+               }
       end
     end
 
@@ -663,6 +669,12 @@ defmodule CodeFragmentTest do
                  context: {:operator, String.to_charlist(op)},
                  begin: {1, 1},
                  end: {1, byte_size(op) + 1}
+               }
+
+        assert CF.surround_context("Foo #{op}", {1, 4 + i}) == %{
+                 context: {:operator, String.to_charlist(op)},
+                 begin: {1, 5},
+                 end: {1, byte_size(op) + 5}
                }
       end
     end
