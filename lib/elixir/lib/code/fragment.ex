@@ -771,6 +771,12 @@ defmodule Code.Fragment do
           {{:local_or_var, acc}, offset} ->
             build_surround({:local_or_var, acc}, reversed, line, offset)
 
+          {{:block_keyword_or_binary_operator, acc}, offset} when acc in @textual_operators ->
+            build_surround({:operator, acc}, reversed, line, offset)
+
+          {{:block_keyword_or_binary_operator, acc}, offset} when acc in @keywords ->
+            build_surround({:keyword, acc}, reversed, line, offset)
+
           {{:module_attribute, ~c""}, offset} ->
             build_surround({:operator, ~c"@"}, reversed, line, offset)
 
