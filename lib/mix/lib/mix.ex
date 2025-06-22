@@ -884,7 +884,7 @@ defmodule Mix do
         config: [],
         config_path: nil,
         consolidate_protocols: true,
-        compilers: nil,
+        compilers: [:elixir],
         elixir: nil,
         force: false,
         lockfile: nil,
@@ -899,12 +899,7 @@ defmodule Mix do
     system_env = Keyword.fetch!(opts, :system_env)
     consolidate_protocols? = Keyword.fetch!(opts, :consolidate_protocols)
     start_applications? = Keyword.fetch!(opts, :start_applications)
-
-    compilers =
-      case Keyword.fetch!(opts, :compilers) do
-        nil -> [:elixir]
-        [_ | _] = compilers -> compilers
-      end
+    compilers = Keyword.fetch!(opts, :compilers)
 
     id =
       {deps, config, system_env, consolidate_protocols?}
