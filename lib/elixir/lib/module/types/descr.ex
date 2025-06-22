@@ -26,6 +26,8 @@ defmodule Module.Types.Descr do
   @bit_top (1 <<< 7) - 1
   @bit_number @bit_integer ||| @bit_float
 
+  defmacrop domain_key(key), do: {:domain_key, key}
+
   @domain_key_types [
     :binary,
     :empty_list,
@@ -109,7 +111,7 @@ defmodule Module.Types.Descr do
       :closed,
       [],
       Enum.map(@domain_key_types, fn key_type ->
-        {{:domain_key, key_type}, if_set(default)}
+        {domain_key(key_type), if_set(default)}
       end)
     )
   end
@@ -2284,8 +2286,8 @@ defmodule Module.Types.Descr do
 
   defp tag_to_type(:open), do: term_or_optional()
   defp tag_to_type(:closed), do: not_set()
-  defp tag_to_type({:closed, domain}), do: Map.get(domain, {:domain_key, :atom}, not_set())
-  defp tag_to_type({:open, domain}), do: Map.get(domain, {:domain_key, :atom}, term_or_optional())
+  defp tag_to_type({:closed, domain}), do: Map.get(domain, domain_key(:atom), not_set())
+  defp tag_to_type({:open, domain}), do: Map.get(domain, domain_key(:atom), term_or_optional())
 
   defguardp is_optional_static(map)
             when is_map(map) and is_map_key(map, :optional)
@@ -2520,15 +2522,15 @@ defmodule Module.Types.Descr do
     new_domains =
       for domain_key <- @domain_key_types, reduce: %{} do
         acc_domains ->
-          type1 = Map.get(domains1, {:domain_key, domain_key}, default1)
-          type2 = Map.get(domains2, {:domain_key, domain_key}, default2)
+          type1 = Map.get(domains1, domain_key(domain_key), default1)
+          type2 = Map.get(domains2, domain_key(domain_key), default2)
 
           inter = intersection(type1, type2)
 
           if empty?(inter) do
             acc_domains
           else
-            Map.put(acc_domains, {:domain_key, domain_key}, inter)
+            Map.put(acc_domains, domain_key(domain_key), inter)
           end
       end
 
@@ -2853,17 +2855,17 @@ defmodule Module.Types.Descr do
         :open
 
       :closed ->
-        {:closed, %{{:domain_key, domain} => if_set(type)}}
+        {:closed, %{domain_key(domain) => if_set(type)}}
 
       {:open, domains} ->
-        if Map.has_key?(domains, {:domain_key, domain}) do
-          {:open, Map.update!(domains, {:domain_key, domain}, &union(&1, type))}
+        if Map.has_key?(domains, domain_key(domain)) do
+          {:open, Map.update!(domains, domain_key(domain), &union(&1, type))}
         else
           {:open, domains}
         end
 
       {:closed, domains} ->
-        {:closed, Map.update(domains, {:domain_key, domain}, if_set(type), &union(&1, type))}
+        {:closed, Map.update(domains, domain_key(domain), if_set(type), &union(&1, type))}
     end
   end
 
@@ -3024,7 +3026,7 @@ defmodule Module.Types.Descr do
 
       key_type, acc ->
         # Note: we could stop if we reach term()_or_optional()
-        Map.get(domains, {:domain_key, key_type}, tag_to_type(tag)) |> union(acc)
+        Map.get(domains, domain_key(key_type), tag_to_type(tag)) |> union(acc)
     end)
   end
 
@@ -3116,7 +3118,7 @@ defmodule Module.Types.Descr do
         tag_to_type(tag) |> union(acc)
 
       # Optimization: if there are no negatives and domains exists, return its value
-      {{_tag, %{{:domain_key, ^key_domain} => value}}, _fields, []}, acc ->
+      {{_tag, %{domain_key(^key_domain) => value}}, _fields, []}, acc ->
         value |> union(acc)
 
       # Optimization: if there are no negatives and the key does not exist, return the default type.
@@ -3323,9 +3325,9 @@ defmodule Module.Types.Descr do
         true
 
       {{:closed, pos_domains}, {:closed, neg_domains}} ->
-        Enum.all?(pos_domains, fn {{:domain_key, key}, type} ->
+        Enum.all?(pos_domains, fn {domain_key(key), type} ->
           subtype?(type, not_set()) ||
-            case Map.get(neg_domains, {:domain_key, key}) do
+            case Map.get(neg_domains, domain_key(key)) do
               nil -> false
               neg_type -> subtype?(type, neg_type)
             end
@@ -3333,8 +3335,8 @@ defmodule Module.Types.Descr do
 
       # Closed positive with open negative domains
       {{:closed, pos_domains}, {:open, neg_domains}} ->
-        Enum.all?(pos_domains, fn {{:domain_key, key}, pos_type} ->
-          case Map.get(neg_domains, {:domain_key, key}) do
+        Enum.all?(pos_domains, fn {domain_key(key), pos_type} ->
+          case Map.get(neg_domains, domain_key(key)) do
             # Key not in both, so condition passes
             nil -> true
             neg_type -> subtype?(pos_type, neg_type)
@@ -3345,8 +3347,8 @@ defmodule Module.Types.Descr do
       {{:open, pos_domains}, {:closed, neg_domains}} ->
         # All keys in positive domains must be in negative and be subtypes
         positive_check =
-          Enum.all?(pos_domains, fn {{:domain_key, key}, pos_type} ->
-            case Map.get(neg_domains, {:domain_key, key}) do
+          Enum.all?(pos_domains, fn {domain_key(key), pos_type} ->
+            case Map.get(neg_domains, domain_key(key)) do
               # Key not in negative map
               nil -> false
               neg_type -> subtype?(pos_type, neg_type)
@@ -3356,20 +3358,20 @@ defmodule Module.Types.Descr do
         # Negative must contain all domain key types
         negative_check =
           Enum.all?(@domain_key_types, fn domain_key ->
-            domain_key_present = Map.has_key?(neg_domains, {:domain_key, domain_key})
-            pos_has_key = Map.has_key?(pos_domains, {:domain_key, domain_key})
+            domain_key_present = Map.has_key?(neg_domains, domain_key(domain_key))
+            pos_has_key = Map.has_key?(pos_domains, domain_key(domain_key))
 
             domain_key_present &&
               (pos_has_key ||
-                 subtype?(term_or_optional(), Map.get(neg_domains, {:domain_key, domain_key})))
+                 subtype?(term_or_optional(), Map.get(neg_domains, domain_key(domain_key))))
           end)
 
         positive_check && negative_check
 
       # Both open domains
       {{:open, pos_domains}, {:open, neg_domains}} ->
-        Enum.all?(neg_domains, fn {{:domain_key, key}, neg_type} ->
-          case Map.get(pos_domains, {:domain_key, key}) do
+        Enum.all?(neg_domains, fn {domain_key(key), neg_type} ->
+          case Map.get(pos_domains, domain_key(key)) do
             nil -> subtype?(term_or_optional(), neg_type)
             pos_type -> subtype?(pos_type, neg_type)
           end
@@ -3378,7 +3380,7 @@ defmodule Module.Types.Descr do
       # Open map with open negative domains
       {:open, {:open, neg_domains}} ->
         # Every present domain key type in the negative domains is at least term_or_optional()
-        Enum.all?(neg_domains, fn {{:domain_key, _}, type} ->
+        Enum.all?(neg_domains, fn {domain_key(_), type} ->
           subtype?(term_or_optional(), type)
         end)
 
@@ -3386,7 +3388,7 @@ defmodule Module.Types.Descr do
       {:open, {:closed, neg_domains}} ->
         # The domains must include all possible domain key types, and they must be at least term_or_optional()
         Enum.all?(@domain_key_types, fn domain_key ->
-          case Map.get(neg_domains, {:domain_key, domain_key}) do
+          case Map.get(neg_domains, domain_key(domain_key)) do
             # Not all domain keys are present
             nil -> false
             type -> subtype?(term_or_optional(), type)
@@ -3396,7 +3398,7 @@ defmodule Module.Types.Descr do
       # Closed positive domains with closed negative tag
       {{:closed, pos_domains}, :closed} ->
         # Every present domain key type is a subtype of not_set()
-        Enum.all?(pos_domains, fn {{:domain_key, _}, type} ->
+        Enum.all?(pos_domains, fn {domain_key(_), type} ->
           subtype?(type, not_set())
         end)
 
@@ -3404,7 +3406,7 @@ defmodule Module.Types.Descr do
       {{:open, pos_domains}, :closed} ->
         # The pos_domains must include all possible domain key types, and they must be subtypes of not_set()
         Enum.all?(@domain_key_types, fn domain_key ->
-          case Map.get(pos_domains, {:domain_key, domain_key}) do
+          case Map.get(pos_domains, domain_key(domain_key)) do
             # Not all domain keys are present
             nil -> false
             type -> subtype?(type, not_set())
@@ -3424,7 +3426,7 @@ defmodule Module.Types.Descr do
   # returns {if_set(integer()), %{integer() => if_set(binary())}}
   # If the domain is not present, use the tag to type as default.
   defp map_pop_domain({tag, domains}, fields, domain_key) do
-    case :maps.take({:domain_key, domain_key}, domains) do
+    case :maps.take(domain_key(domain_key), domains) do
       {value, domains} -> {value, %{map: map_new(tag, fields, domains)}}
       :error -> {tag_to_type(tag), %{map: map_new(tag, fields, domains)}}
     end
@@ -3583,7 +3585,7 @@ defmodule Module.Types.Descr do
 
   def map_literal_to_quoted({{:closed, domains}, fields}, opts) do
     domain_fields =
-      for {{:domain_key, domain_type}, value_type} <- domains do
+      for {domain_key(domain_type), value_type} <- domains do
         key = {:string, [], ["#{domain_type}() => "]}
         {key, to_quoted(value_type, opts)}
       end
@@ -3594,7 +3596,7 @@ defmodule Module.Types.Descr do
 
   def map_literal_to_quoted({{:open, domains}, fields}, opts) do
     domain_fields =
-      for {{:domain_key, domain_type}, value_type} <- domains do
+      for {domain_key(domain_type), value_type} <- domains do
         key = {:string, [], ["#{domain_type}() => "]}
         {key, to_quoted(value_type, opts)}
       end
@@ -4612,14 +4614,14 @@ defmodule Module.Types.Descr do
   # Helpers for domain key validation
   defp split_domain_key_pairs(pairs) do
     Enum.split_with(pairs, fn
-      {{:domain_key, _}, _} -> false
+      {domain_key(_), _} -> false
       _ -> true
     end)
   end
 
   defp validate_domain_keys(pairs) do
     # Check if domain keys are valid and don't overlap
-    domains = Enum.map(pairs, fn {{:domain_key, domain}, _} -> domain end)
+    domains = Enum.map(pairs, fn {domain_key(domain), _} -> domain end)
 
     if length(domains) != length(Enum.uniq(domains)) do
       raise ArgumentError, "Domain key types should not overlap"
