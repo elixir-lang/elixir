@@ -2284,10 +2284,46 @@ defmodule Module.Types.Descr do
     {acc, dynamic?}
   end
 
+  # TODO: Rename this to tuple_tag_to_type
   defp tag_to_type(:open), do: term_or_optional()
   defp tag_to_type(:closed), do: not_set()
-  defp tag_to_type({:closed, domain}), do: Map.get(domain, domain_key(:atom), not_set())
-  defp tag_to_type({:open, domain}), do: Map.get(domain, domain_key(:atom), term_or_optional())
+
+  # Rename this to map_key_tag_to_type
+  defp map_key_tag_to_type(:open), do: term_or_optional()
+  defp map_key_tag_to_type(:closed), do: not_set()
+  defp map_key_tag_to_type({:closed, domain}), do: Map.get(domain, domain_key(:atom), not_set())
+
+  defp map_key_tag_to_type({:open, domain}),
+    do: Map.get(domain, domain_key(:atom), term_or_optional())
+
+  # Helpers for domain key validation
+  # TODO: Merge this and the next clause into one
+  defp split_domain_key_pairs(pairs) do
+    Enum.split_with(pairs, fn
+      {domain_key(_), _} -> false
+      _ -> true
+    end)
+  end
+
+  defp validate_domain_keys(pairs) do
+    # Check if domain keys are valid and don't overlap
+    domains = Enum.map(pairs, fn {domain_key(domain), _} -> domain end)
+
+    if length(domains) != length(Enum.uniq(domains)) do
+      raise ArgumentError, "Domain key types should not overlap"
+    end
+
+    # Check that all domain keys are valid
+    invalid_domains = Enum.reject(domains, &(&1 in @domain_key_types))
+
+    if invalid_domains != [] do
+      raise ArgumentError,
+            "Invalid domain key types: #{inspect(invalid_domains)}. " <>
+              "Valid types are: #{inspect(@domain_key_types)}"
+    end
+
+    Enum.map(pairs, fn {key, type} -> {key, if_set(type)} end)
+  end
 
   defguardp is_optional_static(map)
             when is_map(map) and is_map_key(map, :optional)
@@ -2474,8 +2510,8 @@ defmodule Module.Types.Descr do
     # For a closed map with domains intersected with an open map with domains:
     # 1. The result is closed (more restrictive)
     # 2. We need to check each domain in the open map against the closed map
-    default1 = tag_to_type(tag1)
-    default2 = tag_to_type(tag2)
+    default1 = map_key_tag_to_type(tag1)
+    default2 = map_key_tag_to_type(tag2)
 
     # Compute the new domain
     tag = map_domain_intersection(tag1, tag2)
@@ -2486,27 +2522,10 @@ defmodule Module.Types.Descr do
     # 3. If key is only in map2, compute non empty intersection with atom1
     # We do that by computing intersection on all key labels in both map1 and map2,
     # using default values when a key is not present.
-    keys1_set = :sets.from_list(Map.keys(map1), version: 2)
-    keys2_set = :sets.from_list(Map.keys(map2), version: 2)
-
-    # Combine all unique keys using :sets.union
-    all_keys_set = :sets.union(keys1_set, keys2_set)
-    all_keys = :sets.to_list(all_keys_set)
-
-    new_fields =
-      for key <- all_keys do
-        in_map1? = Map.has_key?(map1, key)
-        in_map2? = Map.has_key?(map2, key)
-
-        cond do
-          in_map1? and in_map2? -> {key, non_empty_intersection!(map1[key], map2[key])}
-          in_map1? -> {key, non_empty_intersection!(map1[key], default2)}
-          in_map2? -> {key, non_empty_intersection!(default1, map2[key])}
-        end
-      end
-      |> :maps.from_list()
-
-    {tag, new_fields}
+    {tag,
+     symmetrical_merge(map1, default1, map2, default2, fn _key, v1, v2 ->
+       non_empty_intersection!(v1, v2)
+     end)}
   end
 
   # Compute the intersection of two tags or tag-domain pairs.
@@ -2516,8 +2535,8 @@ defmodule Module.Types.Descr do
   defp map_domain_intersection(tag, :open), do: tag
 
   defp map_domain_intersection({tag1, domains1}, {tag2, domains2}) do
-    default1 = tag_to_type(tag1)
-    default2 = tag_to_type(tag2)
+    default1 = map_key_tag_to_type(tag1)
+    default2 = map_key_tag_to_type(tag2)
 
     new_domains =
       for domain_key <- @domain_key_types, reduce: %{} do
@@ -2568,7 +2587,7 @@ defmodule Module.Types.Descr do
       {:open, fields2, []}, dnf1 when map_size(fields2) == 1 ->
         Enum.reduce(dnf1, [], fn {tag1, fields1, negs1}, acc ->
           {key, value, _rest} = :maps.next(:maps.iterator(fields2))
-          t_diff = difference(Map.get(fields1, key, tag_to_type(tag1)), value)
+          t_diff = difference(Map.get(fields1, key, map_key_tag_to_type(tag1)), value)
 
           if empty?(t_diff) do
             acc
@@ -2641,7 +2660,11 @@ defmodule Module.Types.Descr do
   # Optimization: if the key does not exist in the map, avoid building
   # if_set/not_set pairs and return the popped value directly.
   defp map_fetch_static(%{map: [{tag, fields, []}]}, key) when not is_map_key(fields, key) do
-    tag_to_type(tag) |> pop_optional_static()
+    case tag do
+      :open -> {true, term()}
+      :closed -> {true, none()}
+      other -> map_key_tag_to_type(other) |> pop_optional_static()
+    end
   end
 
   # Takes a map dnf and returns the union of types it can take for a given key.
@@ -2655,7 +2678,7 @@ defmodule Module.Types.Descr do
 
       # Optimization: if there are no negatives and the key does not exist, return the default one.
       {tag, %{}, []}, acc ->
-        tag_to_type(tag) |> union(acc)
+        map_key_tag_to_type(tag) |> union(acc)
 
       {tag, fields, negs}, acc ->
         {fst, snd} = map_pop_key(tag, fields, key)
@@ -3026,7 +3049,7 @@ defmodule Module.Types.Descr do
 
       key_type, acc ->
         # Note: we could stop if we reach term()_or_optional()
-        Map.get(domains, domain_key(key_type), tag_to_type(tag)) |> union(acc)
+        Map.get(domains, domain_key(key_type), map_key_tag_to_type(tag)) |> union(acc)
     end)
   end
 
@@ -3115,7 +3138,7 @@ defmodule Module.Types.Descr do
     dnf
     |> Enum.reduce(none(), fn
       {tag, _fields, []}, acc when is_atom(tag) ->
-        tag_to_type(tag) |> union(acc)
+        map_key_tag_to_type(tag) |> union(acc)
 
       # Optimization: if there are no negatives and domains exists, return its value
       {{_tag, %{domain_key(^key_domain) => value}}, _fields, []}, acc ->
@@ -3123,7 +3146,7 @@ defmodule Module.Types.Descr do
 
       # Optimization: if there are no negatives and the key does not exist, return the default type.
       {{tag, %{}}, _fields, []}, acc ->
-        tag_to_type(tag) |> union(acc)
+        map_key_tag_to_type(tag) |> union(acc)
 
       {tag, fields, negs}, acc ->
         {fst, snd} = map_pop_domain(tag, fields, key_domain)
@@ -3252,8 +3275,8 @@ defmodule Module.Types.Descr do
 
   defp map_empty?(tag, fields, [{neg_tag, neg_fields} | negs]) do
     if map_check_domain_keys(tag, neg_tag) do
-      atom_default = tag_to_type(tag)
-      neg_atom_default = tag_to_type(neg_tag)
+      atom_default = map_key_tag_to_type(tag)
+      neg_atom_default = map_key_tag_to_type(neg_tag)
 
       (Enum.all?(neg_fields, fn {neg_key, neg_type} ->
          cond do
@@ -3418,7 +3441,7 @@ defmodule Module.Types.Descr do
   defp map_pop_key(tag, fields, key) do
     case :maps.take(key, fields) do
       {value, fields} -> {value, %{map: map_new(tag, fields)}}
-      :error -> {tag_to_type(tag), %{map: map_new(tag, fields)}}
+      :error -> {map_key_tag_to_type(tag), %{map: map_new(tag, fields)}}
     end
   end
 
@@ -3428,12 +3451,12 @@ defmodule Module.Types.Descr do
   defp map_pop_domain({tag, domains}, fields, domain_key) do
     case :maps.take(domain_key(domain_key), domains) do
       {value, domains} -> {value, %{map: map_new(tag, fields, domains)}}
-      :error -> {tag_to_type(tag), %{map: map_new(tag, fields, domains)}}
+      :error -> {map_key_tag_to_type(tag), %{map: map_new(tag, fields, domains)}}
     end
   end
 
   defp map_pop_domain(tag, fields, _domain_key),
-    do: {tag_to_type(tag), %{map: map_new(tag, fields)}}
+    do: {map_key_tag_to_type(tag), %{map: map_new(tag, fields)}}
 
   defp map_split_negative(negs, key) do
     Enum.reduce_while(negs, [], fn
@@ -4532,9 +4555,9 @@ defmodule Module.Types.Descr do
 
   ## Map helpers
 
+  # Erlang maps:merge_with/3 has to preserve the order in combiner.
+  # We don't care about the order, so we have a faster implementation.
   defp symmetrical_merge(left, right, fun) do
-    # Erlang maps:merge_with/3 has to preserve the order in combiner.
-    # We don't care about the order, so we have a faster implementation.
     if map_size(left) > map_size(right) do
       iterator_merge(:maps.next(:maps.iterator(right)), left, fun)
     else
@@ -4554,9 +4577,44 @@ defmodule Module.Types.Descr do
 
   defp iterator_merge(:none, map, _fun), do: map
 
+  # Perform a symmetrical merge with default values
+  defp symmetrical_merge(left, left_default, right, right_default, fun) do
+    iterator = :maps.next(:maps.iterator(left))
+    iterator_merge_left(iterator, left_default, right, right_default, %{}, fun)
+  end
+
+  defp iterator_merge_left({key, v1, iterator}, v1_default, map, v2_default, acc, fun) do
+    value =
+      case map do
+        %{^key => v2} -> fun.(key, v1, v2)
+        %{} -> fun.(key, v1, v2_default)
+      end
+
+    acc = Map.put(acc, key, value)
+    iterator_merge_left(:maps.next(iterator), v1_default, map, v2_default, acc, fun)
+  end
+
+  defp iterator_merge_left(:none, v1_default, map, _v2_default, acc, fun) do
+    iterator_merge_right(:maps.next(:maps.iterator(map)), v1_default, acc, fun)
+  end
+
+  defp iterator_merge_right({key, v2, iterator}, v1_default, acc, fun) do
+    acc =
+      case acc do
+        %{^key => _} -> acc
+        %{} -> Map.put(acc, key, fun.(key, v1_default, v2))
+      end
+
+    iterator_merge_right(:maps.next(iterator), v1_default, acc, fun)
+  end
+
+  defp iterator_merge_right(:none, _v1_default, acc, _fun) do
+    acc
+  end
+
+  # Erlang maps:intersect_with/3 has to preserve the order in combiner.
+  # We don't care about the order, so we have a faster implementation.
   defp symmetrical_intersection(left, right, fun) do
-    # Erlang maps:intersect_with/3 has to preserve the order in combiner.
-    # We don't care about the order, so we have a faster implementation.
     if map_size(left) > map_size(right) do
       iterator_intersection(:maps.next(:maps.iterator(right)), left, [], fun)
     else
@@ -4609,33 +4667,5 @@ defmodule Module.Types.Descr do
 
   defp non_empty_map_or([head | tail], fun) do
     Enum.reduce(tail, fun.(head), &{:or, [], [&2, fun.(&1)]})
-  end
-
-  # Helpers for domain key validation
-  defp split_domain_key_pairs(pairs) do
-    Enum.split_with(pairs, fn
-      {domain_key(_), _} -> false
-      _ -> true
-    end)
-  end
-
-  defp validate_domain_keys(pairs) do
-    # Check if domain keys are valid and don't overlap
-    domains = Enum.map(pairs, fn {domain_key(domain), _} -> domain end)
-
-    if length(domains) != length(Enum.uniq(domains)) do
-      raise ArgumentError, "Domain key types should not overlap"
-    end
-
-    # Check that all domain keys are valid
-    invalid_domains = Enum.reject(domains, &(&1 in @domain_key_types))
-
-    if invalid_domains != [] do
-      raise ArgumentError,
-            "Invalid domain key types: #{inspect(invalid_domains)}. " <>
-              "Valid types are: #{inspect(@domain_key_types)}"
-    end
-
-    Enum.map(pairs, fn {key, type} -> {key, if_set(type)} end)
   end
 end
