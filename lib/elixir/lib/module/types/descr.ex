@@ -46,12 +46,15 @@ defmodule Module.Types.Descr do
   ]
 
   # Remark: those are explicit BDD constructors. The functional constructors are `bdd_new/1` and `bdd_new/3`.
-  @fun_top :bdd_top
+  @fun_top {:negation, %{}}
   @atom_top {:negation, :sets.new(version: 2)}
   @map_top {:open, %{}}
   @non_empty_list_top {:term, :term}
   @tuple_top {:open, []}
   @map_empty {:closed, %{}}
+
+  # The top BDD for each arity.
+  @fun_bdd_top :bdd_top
 
   @none %{}
   @term %{
@@ -146,7 +149,7 @@ defmodule Module.Types.Descr do
       #=> Creates (none, none -> term)
   """
   def fun(arity) when is_integer(arity) and arity >= 0 do
-    fun(List.duplicate(none(), arity), term())
+    %{fun: {:union, %{arity => @fun_bdd_top}}}
   end
 
   @doc """
@@ -1070,7 +1073,7 @@ defmodule Module.Types.Descr do
   # * Representation:
   #   - fun(): Top function type (leaf 1)
   #   - Function literals: {[t1, ..., tn], t} where [t1, ..., tn] are argument types and t is return type
-  #   - Normalized form for function applications: {domain, arrows} is produced by `fun_normalize/3`
+  #   - Normalized form for function applications: {domain, arrows} is produced by `fun_normalize/2`
 
   # * Examples:
   #   - fun([integer()], atom()): A function from integer to atom
@@ -1079,7 +1082,7 @@ defmodule Module.Types.Descr do
   # Note: Function domains are expressed as tuple types. We use separate representations
   # rather than unary functions with tuple domains to handle special cases like representing
   # functions of a specific arity (e.g., (none,none->term) for arity 2).
-  defp fun_new(inputs, output), do: bdd_leaf(inputs, output)
+  defp fun_new(arity, inputs, output), do: {:union, %{arity => bdd_leaf(inputs, output)}}
 
   # Creates a function type from a list of inputs and an output
   # where the inputs and/or output may be dynamic.
@@ -1093,8 +1096,9 @@ defmodule Module.Types.Descr do
   #   For `dynamic(integer())`, it is `integer()`.
   # - `lower_bound(t)` extracts the lower bound (most specific type) of a gradual type.
   defp fun_descr(args, output) when is_list(args) do
-    dynamic_arguments? = any_dynamic?(args)
-    dynamic_output? = match?(%{dynamic: _}, output)
+    arity = length(args)
+    dynamic_arguments? = Enum.any?(args, &gradual?/1)
+    dynamic_output? = gradual?(output)
 
     if dynamic_arguments? or dynamic_output? do
       input_static = if dynamic_arguments?, do: Enum.map(args, &upper_bound/1), else: args
@@ -1104,12 +1108,12 @@ defmodule Module.Types.Descr do
       output_dynamic = if dynamic_output?, do: upper_bound(output), else: output
 
       %{
-        fun: fun_new(input_static, output_static),
-        dynamic: %{fun: fun_new(input_dynamic, output_dynamic)}
+        fun: fun_new(arity, input_static, output_static),
+        dynamic: %{fun: fun_new(arity, input_dynamic, output_dynamic)}
       }
     else
       # No dynamic components, use standard function type
-      %{fun: fun_new(args, output)}
+      %{fun: fun_new(arity, args, output)}
     end
   end
 
@@ -1161,9 +1165,7 @@ defmodule Module.Types.Descr do
       iex> fun_apply(fun([dynamic()], atom()), [dynamic()])
       {:ok, atom()}
   """
-  def fun_apply(:term, _arguments) do
-    :badfun
-  end
+  def fun_apply(:term, _arguments), do: :badfun
 
   def fun_apply(fun, arguments) do
     case :maps.take(:dynamic, fun) do
@@ -1174,28 +1176,28 @@ defmodule Module.Types.Descr do
           :badfun
         end
 
-      # Optimize the cases where dynamic closes over all function types
-      {:term, fun_static} when fun_static == %{} ->
-        {:ok, dynamic()}
-
-      {%{fun: @fun_top}, fun_static} when fun_static == %{} ->
-        {:ok, dynamic()}
-
       {fun_dynamic, fun_static} ->
-        if fun_only?(fun_static) do
-          fun_apply_with_strategy(fun_static, fun_dynamic, arguments)
-        else
-          :badfun
+        cond do
+          fun_static == %{} and fun_closes_all?(fun_dynamic) ->
+            {:ok, dynamic()}
+
+          fun_only?(fun_static) ->
+            fun_apply_with_strategy(fun_static, fun_dynamic, arguments)
+
+          true ->
+            :badfun
         end
     end
   end
 
   defp fun_only?(descr), do: empty?(Map.delete(descr, :fun))
+  defp fun_closes_all?(:term), do: true
+  defp fun_closes_all?(%{fun: {:negation, map}}), do: map == %{}
+  defp fun_closes_all?(_), do: false
 
   defp fun_apply_with_strategy(fun_static, fun_dynamic, arguments) do
-    args_dynamic? = any_dynamic?(arguments)
     args_domain = args_to_domain(arguments)
-    static? = fun_dynamic == nil and not args_dynamic?
+    static? = fun_dynamic == nil and Enum.all?(arguments, fn arg -> not gradual?(arg) end)
     arity = length(arguments)
 
     with {:ok, domain, static_arrows, dynamic_arrows} <-
@@ -1205,11 +1207,9 @@ defmodule Module.Types.Descr do
           {:badarg, domain_to_flat_args(domain, arity)}
 
         not subtype?(args_domain, domain) ->
-          if static? or not compatible?(args_domain, domain) do
-            {:badarg, domain_to_flat_args(domain, arity)}
-          else
-            {:ok, dynamic()}
-          end
+          if static? or not compatible?(args_domain, domain),
+            do: {:badarg, domain_to_flat_args(domain, arity)},
+            else: {:ok, dynamic()}
 
         static? ->
           {:ok, fun_apply_static(arguments, static_arrows)}
@@ -1232,15 +1232,13 @@ defmodule Module.Types.Descr do
     end
   end
 
-  defp any_dynamic?(arguments), do: Enum.any?(arguments, &match?(%{dynamic: _}, &1))
-
   defp fun_normalize_both(fun_static, fun_dynamic, arity) do
-    case fun_normalize(fun_static, arity, :static) do
+    case fun_normalize(fun_static, arity) do
       {:ok, static_domain, static_arrows} when fun_dynamic == nil ->
         {:ok, static_domain, static_arrows, static_arrows}
 
       {:ok, static_domain, static_arrows} when fun_dynamic != nil ->
-        case fun_normalize(fun_dynamic, arity, :dynamic) do
+        case fun_normalize(fun_dynamic, arity) do
           {:ok, dynamic_domain, dynamic_arrows} ->
             domain = union(dynamic_domain, dynamic(static_domain))
             {:ok, domain, static_arrows, dynamic_arrows}
@@ -1250,7 +1248,7 @@ defmodule Module.Types.Descr do
         end
 
       :badfun ->
-        case fun_normalize(fun_dynamic, arity, :dynamic) do
+        case fun_normalize(fun_dynamic, arity) do
           {:ok, dynamic_domain, dynamic_arrows} ->
             {:ok, union(dynamic_domain, dynamic()), [], dynamic_arrows}
 
@@ -1278,50 +1276,35 @@ defmodule Module.Types.Descr do
   #
   # This function is used internally by `fun_apply_*`, and others to
   # ensure consistent handling of function types in all operations.
-  defp fun_normalize(:term, arity, mode) do
-    fun_normalize(%{fun: @fun_top}, arity, mode)
+  defp fun_normalize(:term, arity), do: fun_normalize(fun(arity), arity)
+
+  # In that case, we transform the {:negation, _} into a single union
+  # where we add the previous negatives into the specified arity.
+  defp fun_normalize(%{fun: {:negation, _}} = neg_fun, arity) do
+    fun_normalize(intersection(fun(arity), neg_fun), arity)
   end
 
-  defp fun_normalize(%{fun: bdd}, arity, mode) do
-    {domain, arrows, bad_arities} =
-      Enum.reduce(fun_bdd_to_dnf(bdd), {term(), [], []}, fn
-        {pos_funs, _neg_funs}, {domain, arrows, bad_arities} ->
-          arrow_arity =
-            case pos_funs do
-              [{args, _} | _] -> length(args)
-              _ -> arity
-            end
+  defp fun_normalize(%{fun: {:union, bdds}}, arity) do
+    case :maps.take(arity, bdds) do
+      {bdd, _rest} ->
+        {domain, arrows} =
+          Enum.reduce(fun_bdd_to_pos_dnf(arity, bdd), {term(), []}, fn pos_funs,
+                                                                       {domain, arrows} ->
+            {intersection(domain, fetch_domain(pos_funs)), [pos_funs | arrows]}
+          end)
 
-          cond do
-            arrow_arity != arity ->
-              {domain, arrows, [arrow_arity | bad_arities]}
+        if arrows == [] do
+          {:badarity, :maps.keys(bdds)}
+        else
+          {:ok, domain, arrows}
+        end
 
-            true ->
-              # Calculate domain from all positive functions
-              path_domain =
-                Enum.reduce(pos_funs, none(), fn {args, _}, acc ->
-                  union(acc, args_to_domain(args))
-                end)
-
-              {intersection(domain, path_domain), [pos_funs | arrows], bad_arities}
-          end
-      end)
-
-    case {arrows, bad_arities} do
-      {[], []} ->
-        :badfun
-
-      {arrows, [_ | _] = bad_arities} when mode == :static or arrows == [] ->
-        {:badarity, Enum.uniq(bad_arities)}
-
-      {_, _} ->
-        {:ok, domain, arrows}
+      :error ->
+        {:badarity, :maps.keys(bdds)}
     end
   end
 
-  defp fun_normalize(%{}, _arity, _mode) do
-    :badfun
-  end
+  defp fun_normalize(%{}, _arity), do: :badfun
 
   defp fun_apply_static(arguments, arrows) do
     type_args = args_to_domain(arguments)
@@ -1337,11 +1320,9 @@ defmodule Module.Types.Descr do
     type_input = args_to_domain(input_arguments)
 
     Enum.reduce(arrows, none(), fn {args, ret}, acc_return ->
-      if empty?(intersection(args_to_domain(args), type_input)) do
-        acc_return
-      else
-        union(acc_return, ret)
-      end
+      if empty?(intersection(args_to_domain(args), type_input)),
+        do: acc_return,
+        else: union(acc_return, ret)
     end)
   end
 
@@ -1378,11 +1359,9 @@ defmodule Module.Types.Descr do
     # e.g. (integer()->atom()) and (float()->pid()) when applied to number() should unite
     # both atoms and pids in the result.
     result =
-      if empty?(dom_subtract) do
-        result
-      else
-        aux_apply(result, dom_subtract, returns_reached, arrow_intersections)
-      end
+      if empty?(dom_subtract),
+        do: result,
+        else: aux_apply(result, dom_subtract, returns_reached, arrow_intersections)
 
     # 2. Return type refinement
     # The result type is also refined (intersected) in the sense that, if several arrows match
@@ -1397,82 +1376,46 @@ defmodule Module.Types.Descr do
   # Takes all the paths from the root to the leaves finishing with a 1,
   # and compile into tuples of positive and negative nodes. Positive nodes are
   # those followed by a left path, negative nodes are those followed by a right path.
-  defp fun_bdd_to_dnf(bdd) do
-    bdd_to_dnf(bdd)
-    |> Enum.filter(fn {pos, neg} -> not fun_line_empty?(pos, neg) end)
+  defp fun_bdd_to_dnf(bdd),
+    do: bdd_to_dnf(bdd) |> Enum.filter(fn {pos, neg} -> not fun_line_empty?(pos, neg) end)
+
+  # Check if all functions types for all arities are empty.
+  defp fun_empty?({:negation, _}), do: false
+
+  defp fun_empty?({:union, repr}) do
+    Enum.all?(repr, fn {_ar, bdd} ->
+      Enum.all?(bdd_to_dnf(bdd), fn {pos, neg} -> fun_line_empty?(pos, neg) end)
+    end)
   end
 
-  # Checks if a function type is empty.
+  # A function type {positives, negatives} is empty if there exists a negative
+  # function that negates the whole positive intersection
   #
-  # A function type is empty if:
-  # 1. It is the empty type (0)
-  # 2. For each path in the BDD (Binary Decision Diagram) from root to leaf ending in 1,
-  #    the intersection of positive functions and the negation of negative functions is empty.
-  #
-  # For example:
-  # - `fun(1)` is not empty
-  # - `fun(1) and not fun(1)` is empty
-  # - `fun(integer() -> atom()) and not fun(none() -> term())` is empty
-  # - `fun(integer() -> atom()) and not fun(atom() -> integer())` is not empty
-  defp fun_empty?(bdd) do
-    bdd_to_dnf(bdd)
-    |> Enum.all?(fn {pos, neg} -> fun_line_empty?(pos, neg) end)
-  end
-
-  # Checks if a function type represented by positive and negative function literals is empty.
-
-  # A function type {positives, negatives} is empty if either:
-  # 1. The positive functions have different arities (incompatible function types)
-  # 2. There exists a negative function that negates the whole positive intersection
-
   ## Examples
   #
   # - `{[fun(1)], []}` is not empty
-  # - `{[fun(1), fun(2)], []}` is empty (different arities)
   # - `{[fun(integer() -> atom())], [fun(none() -> term())]}` is empty
-  # - `{[], _}` (representing the top function type fun()) is never empty
   defp fun_line_empty?([], _), do: false
 
   defp fun_line_empty?(positives, negatives) do
-    case fetch_arity_and_domain(positives) do
-      # If there are functions with different arities in positives, then the function type is empty
-      {:empty, _} ->
-        true
-
-      {positive_arity, positive_domain} ->
-        # Check if any negative function negates the whole positive intersection
-        # e.g. (integer() -> atom()) is negated by:
-        #
-        # * (none() -> term())
-        # * (none() -> atom())
-        # * (integer() -> term())
-        # * (integer() -> atom())
-        Enum.any?(negatives, fn {neg_arguments, neg_return} ->
-          # Filter positives to only those with matching arity, then check if the negative
-          # function's domain is a supertype of the positive domain and if the phi function
-          # determines emptiness.
-          length(neg_arguments) == positive_arity and
-            subtype?(args_to_domain(neg_arguments), positive_domain) and
-            phi_starter(neg_arguments, neg_return, positives)
-        end)
-    end
+    # Check if any negative function negates the whole positive intersection
+    # e.g. (integer() -> atom()) is negated by:
+    #
+    # * (none() -> term())
+    # * (none() -> atom())
+    # * (integer() -> term())
+    # * (integer() -> atom())
+    Enum.any?(negatives, fn {neg_arguments, neg_return} ->
+      # Check if the negative function's domain is a supertype of the positive
+      # domain and if the phi function determines emptiness.
+      subtype?(args_to_domain(neg_arguments), fetch_domain(positives)) and
+        phi_starter(neg_arguments, neg_return, positives)
+    end)
   end
 
-  # Checks the list of arrows positives and returns {:empty, nil} if there exists two arrows with
-  # different arities. Otherwise, it returns {arity, domain} with domain the union of all domains of
-  # the arrows in positives.
-  defp fetch_arity_and_domain(positives) do
-    positives
-    |> Enum.reduce_while({:empty, none()}, fn
-      {args, _}, {:empty, _} ->
-        {:cont, {length(args), args_to_domain(args)}}
-
-      {args, _}, {arity, dom} when length(args) == arity ->
-        {:cont, {arity, union(dom, args_to_domain(args))}}
-
-      {_args, _}, {_arity, _} ->
-        {:halt, {:empty, none()}}
-    end)
+  # Returns the union of all domains of the arrows in the intersection of positives.
+  defp fetch_domain(positives) do
+    Enum.reduce(positives, none(), fn {args, _}, acc -> union(acc, args_to_domain(args)) end)
   end
 
   # Implements the Φ (phi) function for determining function subtyping relationships.
@@ -1503,17 +1446,10 @@ defmodule Module.Types.Descr do
         fun_apply_static(arguments, [positives]) |> subtype?(return)
 
       _ ->
-        n = length(arguments)
-        # Arity mismatch: functions with different arities cannot be subtypes
-        # of the target function type (arguments -> return)
-        if Enum.any?(positives, fn {args, _ret} -> length(args) != n end) do
-          false
-        else
-          # Initialize memoization cache for the recursive phi computation
-          arguments = Enum.map(arguments, &{false, &1})
-          {result, _cache} = phi(arguments, {false, negation(return)}, positives, %{})
-          result
-        end
+        # Initialize memoization cache for the recursive phi computation
+        arguments = Enum.map(arguments, &{false, &1})
+        {result, _cache} = phi(arguments, {false, negation(return)}, positives, %{})
+        result
     end
   end
 
@@ -1589,78 +1525,117 @@ defmodule Module.Types.Descr do
       all_disjoint_arguments?(rest)
   end
 
-  defp fun_union(bdd1, bdd2), do: bdd_union(bdd1, bdd2)
-
-  defp fun_intersection(bdd1, bdd2) do
-    cond do
-      # If intersecting with the top type for that arity, no-op
-      is_tuple(bdd2) and fun_top?(bdd2, bdd1) -> bdd2
-      is_tuple(bdd1) and fun_top?(bdd1, bdd2) -> bdd1
-      true -> bdd_intersection(bdd1, bdd2)
+  # For all integers keys in fun_repr1, fun_repr2, call fun_bdd_union on the values that are in
+  # both, else return the single value.
+  defp fun_union({tag1, repr1}, {tag2, repr2}) do
+    case {tag1, tag2} do
+      {:union, :union} -> {:union, fun_repr_union(repr1, repr2)}
+      {:negation, :negation} -> {:negation, fun_repr_intersection(repr1, repr2)}
+      {:union, :negation} -> {:negation, fun_repr_difference(repr2, repr1)}
+      {:negation, :union} -> {:negation, fun_repr_difference(repr1, repr2)}
     end
   end
 
-  defp fun_difference(bdd1, bdd2), do: bdd_difference(bdd1, bdd2)
+  # For all integer keys that are both in fun_repr1 and fun_repr2, call fun_bdd_intersection
+  # on the values that are in both, else discard.
+  defp fun_intersection({tag1, repr1}, {tag2, repr2}) do
+    {tag, repr} =
+      case {tag1, tag2} do
+        {:union, :union} -> {:union, fun_repr_intersection(repr1, repr2)}
+        {:negation, :negation} -> {:negation, fun_repr_union(repr1, repr2)}
+        {:union, :negation} -> {:union, fun_repr_difference(repr1, repr2)}
+        {:negation, :union} -> {:union, fun_repr_difference(repr2, repr1)}
+      end
 
-  defp fun_top?(bdd, other_bdd) do
-    case bdd_expand(other_bdd) do
-      {{args, return}, :bdd_top, :bdd_bot, :bdd_bot} ->
-        return == :term and Enum.all?(args, &(&1 == %{})) and
-          matching_arity_left?(bdd, length(args))
-
-      _ ->
-        false
-    end
+    if tag == :union and map_size(repr) == 0, do: 0, else: {tag, repr}
   end
 
-  defp matching_arity_left?({args, _return}, arity) do
-    length(args) == arity
+  defp fun_difference({tag1, repr1}, {tag2, repr2}) do
+    {tag, repr} =
+      case {tag1, tag2} do
+        {:union, :union} -> {:union, fun_repr_difference(repr1, repr2)}
+        {:negation, :negation} -> {:union, fun_repr_difference(repr2, repr1)}
+        {:union, :negation} -> {:union, fun_repr_intersection(repr1, repr2)}
+        {:negation, :union} -> {:negation, fun_repr_union(repr1, repr2)}
+      end
+
+    if tag == :union and map_size(repr) == 0, do: 0, else: {tag, repr}
   end
 
-  defp matching_arity_left?({{args, _return}, l, u, r}, arity) do
-    length(args) == arity and matching_arity_left?(l, arity) and matching_arity_left?(u, arity) and
-      matching_arity_right?(r, arity)
+  defp fun_repr_union(repr1, repr2) do
+    symmetrical_merge(repr1, repr2, fn _arity, v1, v2 -> bdd_union(v1, v2) end)
   end
 
-  defp matching_arity_left?(_, _arity), do: true
-
-  defp matching_arity_right?({_, l, u, r}, arity) do
-    matching_arity_left?(l, arity) and matching_arity_left?(u, arity) and
-      matching_arity_right?(r, arity)
+  defp fun_repr_intersection(repr1, repr2) do
+    symmetrical_intersection(repr1, repr2, fn _arity, v1, v2 -> bdd_intersection(v1, v2) end)
   end
 
-  defp matching_arity_right?(_, _arity), do: true
+  defp fun_repr_difference(repr1, repr2) do
+    :maps.fold(
+      fn arity, bdd2, acc ->
+        case acc do
+          %{^arity => bdd1} ->
+            diff = bdd_difference(bdd1, bdd2)
+            if diff in @empty_difference, do: Map.delete(acc, arity), else: %{acc | arity => diff}
+
+          %{} ->
+            acc
+        end
+      end,
+      repr1,
+      repr2
+    )
+  end
 
   # Converts the static and dynamic parts of descr to its quoted
   # representation. The goal here is to the opposite of fun_descr
   # and put static and dynamic parts back together to improve
   # pretty printing.
-  defp fun_denormalize(%{fun: static_bdd} = static, %{fun: dynamic_bdd} = dynamic, opts) do
-    static_pos = fun_bdd_to_pos_dnf(static_bdd)
-    dynamic_pos = fun_bdd_to_pos_dnf(dynamic_bdd)
-
-    if static_pos != [] and dynamic_pos != [] do
-      {static_pos, dynamic_pos} = fun_denormalize_pos(static_pos, dynamic_pos)
-
-      quoted =
-        if dynamic_pos == [] do
-          fun_pos_to_quoted(static_pos, opts)
+  defp fun_denormalize(%{fun: {:union, static_repr}}, %{fun: {:union, dynamic_repr}}, opts) do
+    # Denormalize each arity
+    for {arity, static_bdd} <- static_repr,
+        {^arity, dynamic_bdd} <- dynamic_repr,
+        reduce: {static_repr, dynamic_repr, []} do
+      {statics, dynamics, acc} ->
+        with {:ok, quoted} <- fun_denormalize_arity(arity, static_bdd, dynamic_bdd, opts) do
+          {Map.delete(statics, arity), Map.delete(dynamics, arity), [quoted | acc]}
         else
-          {:or, [],
-           [
-             {:dynamic, [], [fun_pos_to_quoted(dynamic_pos, opts)]},
-             fun_pos_to_quoted(static_pos, opts)
-           ]}
+          _ -> {statics, dynamics, acc}
         end
-
-      {Map.delete(static, :fun), Map.delete(dynamic, :fun), [quoted]}
-    else
-      {static, dynamic, []}
     end
   end
 
-  defp fun_denormalize(static, dynamic, _opts) do
-    {static, dynamic, []}
+  # If not unions of functions, do not try to denormalize.
+  defp fun_denormalize(static_repr, dynamic_repr, _opts) do
+    {static_repr, dynamic_repr, []}
+  end
+
+  defp fun_denormalize_arity(arity, static_bdd, dynamic_bdd, opts) do
+    static_pos = fun_bdd_to_pos_dnf(arity, static_bdd)
+    dynamic_pos = fun_bdd_to_pos_dnf(arity, dynamic_bdd)
+
+    cond do
+      static_pos == [] or dynamic_pos == [] ->
+        :error
+
+      true ->
+        {static_pos, dynamic_pos} = fun_denormalize_pos(static_pos, dynamic_pos)
+
+        quoted =
+          case dynamic_pos do
+            [] ->
+              fun_pos_to_quoted(static_pos, opts)
+
+            _ ->
+              {:or, [],
+               [
+                 {:dynamic, [], [fun_pos_to_quoted(dynamic_pos, opts)]},
+                 fun_pos_to_quoted(static_pos, opts)
+               ]}
+          end
+
+        {:ok, quoted}
+    end
   end
 
   defp fun_denormalize_pos(static_unions, dynamic_unions) do
@@ -1727,14 +1702,22 @@ defmodule Module.Types.Descr do
   defp pivot([], _acc, _fun), do: :error
 
   # Converts a function BDD (Binary Decision Diagram) to its quoted representation
-  defp fun_to_quoted(bdd, opts) do
-    case fun_bdd_to_pos_dnf(bdd) do
-      [] -> []
-      pos -> [fun_pos_to_quoted(pos, opts)]
-    end
+  defp fun_to_quoted({:negation, _bdds}, _opts), do: [{:fun, [], []}]
+
+  defp fun_to_quoted({:union, bdds}, opts) do
+    for {arity, bdd} <- bdds,
+        pos = fun_bdd_to_pos_dnf(arity, bdd),
+        pos != [],
+        do: fun_pos_to_quoted(pos, opts)
   end
 
-  defp fun_bdd_to_pos_dnf(bdd) do
+  defp fun_bdd_to_pos_dnf(arity, :bdd_top) do
+    args = List.duplicate(none(), arity)
+    ret = term()
+    [[{args, ret}]]
+  end
+
+  defp fun_bdd_to_pos_dnf(_arity, bdd) do
     fun_bdd_to_dnf(bdd)
     |> Enum.map(fn {pos, _negs} -> pos end)
     |> fun_eliminate_unions([])
