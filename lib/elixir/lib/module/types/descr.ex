@@ -63,6 +63,11 @@ defmodule Module.Types.Descr do
   @not_non_empty_list Map.delete(@term, :list)
   @not_list Map.replace!(@not_non_empty_list, :bitmap, @bit_top - @bit_empty_list)
 
+  @not_set %{optional: 1}
+  @term_or_optional Map.put(@term, :optional, 1)
+  @term_or_dynamic_optional Map.put(@term, :dynamic, %{optional: 1})
+  @not_atom_or_optional Map.delete(@term_or_optional, :atom)
+
   @empty_intersection [0, @none]
   @empty_difference [0, []]
 
@@ -88,12 +93,11 @@ defmodule Module.Types.Descr do
 
   def closed_map(pairs) do
     {regular_pairs, domain_pairs} = split_domain_key_pairs(pairs)
-    # Validate domain keys and make their types optional
     domain_pairs = validate_domain_keys(domain_pairs)
 
     if domain_pairs == [],
       do: map_descr(:closed, regular_pairs),
-      else: map_descr(:closed, regular_pairs, domain_pairs)
+      else: map_descr(domain_pairs, regular_pairs)
   end
 
   def empty_list(), do: %{bitmap: @bit_empty_list}
@@ -104,26 +108,20 @@ defmodule Module.Types.Descr do
   def non_empty_list(type, tail \\ @empty_list), do: list_descr(type, tail, false)
 
   def open_map(), do: %{map: @map_top}
+  def open_map(pairs), do: open_map(pairs, @term_or_optional, false)
+  def open_map(pairs, default), do: open_map(pairs, if_set(default), true)
 
-  @doc "A map (closed or open is the same) with a default type %{term() => default}"
-  def map_with_default(default) do
-    map_descr(
-      :closed,
-      [],
-      Enum.map(@domain_key_types, fn key_type ->
-        {domain_key(key_type), if_set(default)}
-      end)
-    )
-  end
-
-  def open_map(pairs) do
+  defp open_map(pairs, default, force?) do
     {regular_pairs, domain_pairs} = split_domain_key_pairs(pairs)
-    # Validate domain keys and make their types optional
     domain_pairs = validate_domain_keys(domain_pairs)
 
-    if domain_pairs == [],
-      do: map_descr(:open, regular_pairs),
-      else: map_descr(:open, regular_pairs, domain_pairs)
+    if domain_pairs != [] or force?,
+      do:
+        Map.new(@domain_key_types, fn key_type -> {domain_key(key_type), default} end)
+        |> Map.merge(Map.new(domain_pairs))
+        |> Map.to_list()
+        |> map_descr(regular_pairs),
+      else: map_descr(:open, regular_pairs)
   end
 
   def open_tuple(elements, _fallback \\ term()), do: tuple_descr(:open, elements)
@@ -289,16 +287,11 @@ defmodule Module.Types.Descr do
   # is equivalent to `%{:foo => integer() or not_set()}`.
   #
   # `not_set()` has no meaning outside of map types.
-
-  @not_set %{optional: 1}
-  @term_or_optional Map.put(@term, :optional, 1)
-  @term_or_dynamic_optional Map.put(@term, :dynamic, %{optional: 1})
-  @not_atom_or_optional Map.delete(@term_or_optional, :atom)
-
   def not_set(), do: @not_set
+
   def if_set(:term), do: term_or_optional()
-  # actually, if type contains a :dynamic part, :optional gets added there because
-  # the dynamic
+
+  # If type contains a :dynamic part, :optional gets added there.
   def if_set(type) do
     case type do
       %{dynamic: dyn} -> Map.put(%{type | dynamic: Map.put(dyn, :optional, 1)}, :optional, 1)
@@ -2245,7 +2238,7 @@ defmodule Module.Types.Descr do
   # The type %{..., atom() => integer()} represents maps with atom keys bound to integers,
   # and other keys bound to any type, represented by {{:closed, %{atom: integer()}}, %{}, []}.
 
-  defp map_descr(tag, fields) do
+  defp map_descr(tag, fields) when is_atom(tag) do
     case map_descr_pairs(fields, [], false) do
       {fields, true} ->
         %{dynamic: %{map: map_new(tag, fields |> Enum.reverse() |> :maps.from_list())}}
@@ -2255,7 +2248,7 @@ defmodule Module.Types.Descr do
     end
   end
 
-  def map_descr(tag, fields, domains) do
+  defp map_descr(domains, fields) do
     {fields, fields_dynamic?} = map_descr_pairs(fields, [], false)
     {domains, domains_dynamic?} = map_descr_pairs(domains, [], false)
 
@@ -2263,9 +2256,9 @@ defmodule Module.Types.Descr do
     domains_map = :maps.from_list(if domains_dynamic?, do: Enum.reverse(domains), else: domains)
 
     if fields_dynamic? or domains_dynamic? do
-      %{dynamic: %{map: map_new(tag, fields_map, domains_map)}}
+      %{dynamic: %{map: map_new(:closed, fields_map, domains_map)}}
     else
-      %{map: map_new(tag, fields_map, domains_map)}
+      %{map: map_new(:closed, fields_map, domains_map)}
     end
   end
 

@@ -14,8 +14,16 @@ end
 defmodule Module.Types.DescrTest do
   use ExUnit.Case, async: true
 
-  defmacrop domain_key(key), do: {:domain_key, key}
   import Module.Types.Descr, except: [fun: 1]
+
+  defmacrop domain_key(key), do: {:domain_key, key}
+
+  defp number(), do: union(integer(), float())
+  defp empty_tuple(), do: tuple([])
+  defp tuple_of_size_at_least(n) when is_integer(n), do: open_tuple(List.duplicate(term(), n))
+  defp tuple_of_size(n) when is_integer(n) and n >= 0, do: tuple(List.duplicate(term(), n))
+  defp list(elem_type, tail_type), do: union(empty_list(), non_empty_list(elem_type, tail_type))
+  defp map_with_default(descr), do: open_map([], if_set(descr))
 
   describe "union" do
     test "bitmap" do
@@ -343,8 +351,6 @@ defmodule Module.Types.DescrTest do
       assert equal?(intersection(t1, t2), empty_map())
     end
 
-    defp number(), do: union(integer(), float())
-
     test "list" do
       assert intersection(list(term()), list(term())) == list(term())
       assert intersection(list(integer()), list(integer())) == list(integer())
@@ -455,10 +461,6 @@ defmodule Module.Types.DescrTest do
       assert empty?(difference(none(), dynamic()))
       assert empty?(difference(dynamic(integer()), integer()))
     end
-
-    defp empty_tuple(), do: tuple([])
-    defp tuple_of_size_at_least(n) when is_integer(n), do: open_tuple(List.duplicate(term(), n))
-    defp tuple_of_size(n) when is_integer(n) and n >= 0, do: tuple(List.duplicate(term(), n))
 
     test "tuple" do
       assert empty?(difference(open_tuple([atom()]), open_tuple([term()])))
@@ -580,8 +582,6 @@ defmodule Module.Types.DescrTest do
       # (%{:a => number} and not %{:a => float}) is %{:a => integer}
       assert equal?(difference(a_number, atom_to_float), closed_map(a: integer()))
     end
-
-    defp list(elem_type, tail_type), do: union(empty_list(), non_empty_list(elem_type, tail_type))
 
     test "list" do
       # Basic list type differences
