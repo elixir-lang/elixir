@@ -54,7 +54,7 @@ defmodule Task.Supervised do
       # 4. The calling process has not exited and so does not send its monitor reference
       # 5. The spawned task waits forever for the monitor reference so it can begin
       #
-      # We have solved this by specifying a timeout of 5000 seconds.
+      # We have solved this by specifying a timeout of 5000 milliseconds.
       # Given no work is done in the client between the task start and
       # sending the reference, 5000 should be enough to not raise false
       # negatives unless the nodes are indeed not available.
