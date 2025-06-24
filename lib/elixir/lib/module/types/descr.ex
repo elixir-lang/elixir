@@ -29,18 +29,18 @@ defmodule Module.Types.Descr do
   defmacrop domain_key(key), do: {:domain_key, key}
 
   @domain_key_types [
-    :binary,
-    :empty_list,
-    :integer,
-    :float,
-    :pid,
-    :port,
-    :reference,
-    :fun,
-    :atom,
-    :tuple,
-    :map,
-    :list
+    {:domain_key, :binary},
+    {:domain_key, :empty_list},
+    {:domain_key, :integer},
+    {:domain_key, :float},
+    {:domain_key, :pid},
+    {:domain_key, :port},
+    {:domain_key, :reference},
+    {:domain_key, :fun},
+    {:domain_key, :atom},
+    {:domain_key, :tuple},
+    {:domain_key, :map},
+    {:domain_key, :list}
   ]
 
   @fun_top :fun_top
@@ -90,40 +90,16 @@ defmodule Module.Types.Descr do
   def atom(as), do: %{atom: atom_new(as)}
   def atom(), do: %{atom: @atom_top}
   def binary(), do: %{bitmap: @bit_binary}
-
-  def closed_map(pairs) do
-    {regular_pairs, domain_pairs} = split_domain_key_pairs(pairs)
-    domain_pairs = validate_domain_keys(domain_pairs)
-
-    if domain_pairs == [],
-      do: map_descr(:closed, regular_pairs),
-      else: map_descr(domain_pairs, regular_pairs)
-  end
-
+  def closed_map(pairs), do: map_descr(:closed, pairs, @term_or_optional, false)
   def empty_list(), do: %{bitmap: @bit_empty_list}
   def empty_map(), do: %{map: @map_empty}
   def integer(), do: %{bitmap: @bit_integer}
   def float(), do: %{bitmap: @bit_float}
   def list(type), do: list_descr(type, @empty_list, true)
   def non_empty_list(type, tail \\ @empty_list), do: list_descr(type, tail, false)
-
   def open_map(), do: %{map: @map_top}
-  def open_map(pairs), do: open_map(pairs, @term_or_optional, false)
-  def open_map(pairs, default), do: open_map(pairs, if_set(default), true)
-
-  defp open_map(pairs, default, force?) do
-    {regular_pairs, domain_pairs} = split_domain_key_pairs(pairs)
-    domain_pairs = validate_domain_keys(domain_pairs)
-
-    if domain_pairs != [] or force?,
-      do:
-        Map.new(@domain_key_types, fn key_type -> {domain_key(key_type), default} end)
-        |> Map.merge(Map.new(domain_pairs))
-        |> Map.to_list()
-        |> map_descr(regular_pairs),
-      else: map_descr(:open, regular_pairs)
-  end
-
+  def open_map(pairs), do: map_descr(:open, pairs, @term_or_optional, false)
+  def open_map(pairs, default), do: map_descr(:open, pairs, if_set(default), true)
   def open_tuple(elements, _fallback \\ term()), do: tuple_descr(:open, elements)
   def pid(), do: %{bitmap: @bit_pid}
   def port(), do: %{bitmap: @bit_port}
@@ -2238,43 +2214,56 @@ defmodule Module.Types.Descr do
   # The type %{..., atom() => integer()} represents maps with atom keys bound to integers,
   # and other keys bound to any type, represented by {{:closed, %{atom: integer()}}, %{}, []}.
 
-  defp map_descr(tag, fields) when is_atom(tag) do
-    case map_descr_pairs(fields, [], false) do
-      {fields, true} ->
-        %{dynamic: %{map: map_new(tag, fields |> Enum.reverse() |> :maps.from_list())}}
+  defp map_descr(tag, pairs, default, force?) do
+    {fields, domains, dynamic?} = map_descr_pairs(pairs, [], %{}, false)
 
-      {_, false} ->
-        %{map: map_new(tag, :maps.from_list(fields))}
+    map_new =
+      if domains != %{} or force? do
+        domains =
+          if tag == :open do
+            Enum.reduce(@domain_key_types, domains, &Map.put_new(&2, &1, default))
+          else
+            domains
+          end
+
+        map_new({tag, domains}, fields)
+      else
+        map_new(tag, fields)
+      end
+
+    case dynamic? do
+      true -> %{dynamic: %{map: map_new}}
+      false -> %{map: map_new}
     end
   end
 
-  defp map_descr(domains, fields) do
-    {fields, fields_dynamic?} = map_descr_pairs(fields, [], false)
-    {domains, domains_dynamic?} = map_descr_pairs(domains, [], false)
+  # TOD: Double check if we indeed want the union here
+  defp map_put_domain(domain, key, value) do
+    Map.update(domain, key, if_set(value), &union(&1, value))
+  end
 
-    fields_map = :maps.from_list(if fields_dynamic?, do: Enum.reverse(fields), else: fields)
-    domains_map = :maps.from_list(if domains_dynamic?, do: Enum.reverse(domains), else: domains)
-
-    if fields_dynamic? or domains_dynamic? do
-      %{dynamic: %{map: map_new(:closed, fields_map, domains_map)}}
-    else
-      %{map: map_new(:closed, fields_map, domains_map)}
+  defp map_descr_pairs([{key, :term} | rest], fields, domain, dynamic?) do
+    case is_atom(key) do
+      true -> map_descr_pairs(rest, [{key, :term} | fields], domain, dynamic?)
+      false -> map_descr_pairs(rest, fields, map_put_domain(domain, key, :term), dynamic?)
     end
   end
 
-  defp map_descr_pairs([{key, :term} | rest], acc, dynamic?) do
-    map_descr_pairs(rest, [{key, :term} | acc], dynamic?)
-  end
+  defp map_descr_pairs([{key, value} | rest], fields, domain, dynamic?) do
+    {value, dynamic?} =
+      case :maps.take(:dynamic, value) do
+        :error -> {value, dynamic?}
+        {dynamic, _static} -> {dynamic, true}
+      end
 
-  defp map_descr_pairs([{key, value} | rest], acc, dynamic?) do
-    case :maps.take(:dynamic, value) do
-      :error -> map_descr_pairs(rest, [{key, value} | acc], dynamic?)
-      {dynamic, _static} -> map_descr_pairs(rest, [{key, dynamic} | acc], true)
+    case is_atom(key) do
+      true -> map_descr_pairs(rest, [{key, value} | fields], domain, dynamic?)
+      false -> map_descr_pairs(rest, fields, map_put_domain(domain, key, value), dynamic?)
     end
   end
 
-  defp map_descr_pairs([], acc, dynamic?) do
-    {acc, dynamic?}
+  defp map_descr_pairs([], fields, domain, dynamic?) do
+    {fields |> Enum.reverse() |> :maps.from_list(), domain, dynamic?}
   end
 
   # TODO: Rename this to tuple_tag_to_type
@@ -2289,40 +2278,10 @@ defmodule Module.Types.Descr do
   defp map_key_tag_to_type({:open, domain}),
     do: Map.get(domain, domain_key(:atom), term_or_optional())
 
-  # Helpers for domain key validation
-  # TODO: Merge this and the next clause into one
-  defp split_domain_key_pairs(pairs) do
-    Enum.split_with(pairs, fn
-      {domain_key(_), _} -> false
-      _ -> true
-    end)
-  end
-
-  defp validate_domain_keys(pairs) do
-    # Check if domain keys are valid and don't overlap
-    domains = Enum.map(pairs, fn {domain_key(domain), _} -> domain end)
-
-    if length(domains) != length(Enum.uniq(domains)) do
-      raise ArgumentError, "Domain key types should not overlap"
-    end
-
-    # Check that all domain keys are valid
-    invalid_domains = Enum.reject(domains, &(&1 in @domain_key_types))
-
-    if invalid_domains != [] do
-      raise ArgumentError,
-            "Invalid domain key types: #{inspect(invalid_domains)}. " <>
-              "Valid types are: #{inspect(@domain_key_types)}"
-    end
-
-    Enum.map(pairs, fn {key, type} -> {key, if_set(type)} end)
-  end
-
   defguardp is_optional_static(map)
             when is_map(map) and is_map_key(map, :optional)
 
   defp map_new(tag, fields = %{}), do: [{tag, fields, []}]
-  defp map_new(tag, fields = %{}, domains = %{}), do: [{{tag, domains}, fields, []}]
 
   defp map_only?(descr), do: empty?(Map.delete(descr, :map))
 
@@ -2534,15 +2493,15 @@ defmodule Module.Types.Descr do
     new_domains =
       for domain_key <- @domain_key_types, reduce: %{} do
         acc_domains ->
-          type1 = Map.get(domains1, domain_key(domain_key), default1)
-          type2 = Map.get(domains2, domain_key(domain_key), default2)
+          type1 = Map.get(domains1, domain_key, default1)
+          type2 = Map.get(domains2, domain_key, default2)
 
           inter = intersection(type1, type2)
 
           if empty?(inter) do
             acc_domains
           else
-            Map.put(acc_domains, domain_key(domain_key), inter)
+            Map.put(acc_domains, domain_key, inter)
           end
       end
 
@@ -2781,8 +2740,8 @@ defmodule Module.Types.Descr do
             {:atom, atom_key}, acc ->
               map_refresh_atom(acc, atom_key, type)
 
-            key, acc ->
-              map_refresh_domain(acc, key, type)
+            domain_key, acc ->
+              map_refresh_domain(acc, domain_key, type)
           end)
 
         {:ok, new_descr}
@@ -2861,27 +2820,27 @@ defmodule Module.Types.Descr do
         considered_keys
         |> :sets.to_list()
         |> Enum.reduce(descr, fn key, acc -> map_refresh_key(acc, key, type) end)
-        |> map_refresh_domain(:atom, type)
+        |> map_refresh_domain(domain_key(:atom), type)
     end
   end
 
-  def map_refresh_tag(tag, domain, type) do
+  def map_refresh_tag(tag, domain_key, type) do
     case tag do
       :open ->
         :open
 
       :closed ->
-        {:closed, %{domain_key(domain) => if_set(type)}}
+        {:closed, %{domain_key => if_set(type)}}
 
       {:open, domains} ->
-        if Map.has_key?(domains, domain_key(domain)) do
-          {:open, Map.update!(domains, domain_key(domain), &union(&1, type))}
+        if Map.has_key?(domains, domain_key) do
+          {:open, Map.update!(domains, domain_key, &union(&1, type))}
         else
           {:open, domains}
         end
 
       {:closed, domains} ->
-        {:closed, Map.update(domains, domain_key(domain), if_set(type), &union(&1, type))}
+        {:closed, Map.update(domains, domain_key, if_set(type), &union(&1, type))}
     end
   end
 
@@ -3007,21 +2966,22 @@ defmodule Module.Types.Descr do
         cond do
           type_kind == :atom -> [{:atom, type} | acc]
           type_kind == :bitmap -> bitmap_to_domain_keys(type) ++ acc
-          not empty?(%{type_kind => type}) -> [type_kind | acc]
+          not empty?(%{type_kind => type}) -> [domain_key(type_kind) | acc]
           true -> acc
         end
     end
   end
 
+  # TODO: Optimize this
   defp bitmap_to_domain_keys(bitmap) do
     [
-      if((bitmap &&& @bit_binary) != 0, do: :binary),
-      if((bitmap &&& @bit_empty_list) != 0, do: :empty_list),
-      if((bitmap &&& @bit_integer) != 0, do: :integer),
-      if((bitmap &&& @bit_float) != 0, do: :float),
-      if((bitmap &&& @bit_pid) != 0, do: :pid),
-      if((bitmap &&& @bit_port) != 0, do: :port),
-      if((bitmap &&& @bit_reference) != 0, do: :reference)
+      if((bitmap &&& @bit_binary) != 0, do: domain_key(:binary)),
+      if((bitmap &&& @bit_empty_list) != 0, do: domain_key(:empty_list)),
+      if((bitmap &&& @bit_integer) != 0, do: domain_key(:integer)),
+      if((bitmap &&& @bit_float) != 0, do: domain_key(:float)),
+      if((bitmap &&& @bit_pid) != 0, do: domain_key(:pid)),
+      if((bitmap &&& @bit_port) != 0, do: domain_key(:port)),
+      if((bitmap &&& @bit_reference) != 0, do: domain_key(:reference))
     ]
     |> Enum.reject(&is_nil/1)
   end
@@ -3042,7 +3002,7 @@ defmodule Module.Types.Descr do
 
       key_type, acc ->
         # Note: we could stop if we reach term()_or_optional()
-        Map.get(domains, domain_key(key_type), map_key_tag_to_type(tag)) |> union(acc)
+        Map.get(domains, key_type, map_key_tag_to_type(tag)) |> union(acc)
     end)
   end
 
@@ -3053,8 +3013,8 @@ defmodule Module.Types.Descr do
       {:atom, atom_type}, acc ->
         map_get_atom(dnf, atom_type) |> union(acc)
 
-      key_type, acc ->
-        map_get_domain(dnf, key_type) |> union(acc)
+      domain_key, acc ->
+        map_get_domain(dnf, domain_key) |> union(acc)
     end)
   end
 
@@ -3107,7 +3067,7 @@ defmodule Module.Types.Descr do
             union(type, acc)
           end
         end)
-        |> union(map_get_domain(dnf, :atom))
+        |> union(map_get_domain(dnf, domain_key(:atom)))
     end
   end
 
@@ -3127,14 +3087,14 @@ defmodule Module.Types.Descr do
   end
 
   # Take a map dnf and return the union of types for the given key domain.
-  def map_get_domain(dnf, key_domain) when is_atom(key_domain) do
+  def map_get_domain(dnf, domain_key(_) = domain_key) do
     dnf
     |> Enum.reduce(none(), fn
       {tag, _fields, []}, acc when is_atom(tag) ->
         map_key_tag_to_type(tag) |> union(acc)
 
       # Optimization: if there are no negatives and domains exists, return its value
-      {{_tag, %{domain_key(^key_domain) => value}}, _fields, []}, acc ->
+      {{_tag, %{^domain_key => value}}, _fields, []}, acc ->
         value |> union(acc)
 
       # Optimization: if there are no negatives and the key does not exist, return the default type.
@@ -3142,9 +3102,9 @@ defmodule Module.Types.Descr do
         map_key_tag_to_type(tag) |> union(acc)
 
       {tag, fields, negs}, acc ->
-        {fst, snd} = map_pop_domain(tag, fields, key_domain)
+        {fst, snd} = map_pop_domain(tag, fields, domain_key)
 
-        case map_split_negative_domain(negs, key_domain) do
+        case map_split_negative_domain(negs, domain_key) do
           :empty ->
             acc
 
@@ -3374,12 +3334,12 @@ defmodule Module.Types.Descr do
         # Negative must contain all domain key types
         negative_check =
           Enum.all?(@domain_key_types, fn domain_key ->
-            domain_key_present = Map.has_key?(neg_domains, domain_key(domain_key))
-            pos_has_key = Map.has_key?(pos_domains, domain_key(domain_key))
+            domain_key_present = Map.has_key?(neg_domains, domain_key)
+            pos_has_key = Map.has_key?(pos_domains, domain_key)
 
             domain_key_present &&
               (pos_has_key ||
-                 subtype?(term_or_optional(), Map.get(neg_domains, domain_key(domain_key))))
+                 subtype?(term_or_optional(), Map.get(neg_domains, domain_key)))
           end)
 
         positive_check && negative_check
@@ -3404,7 +3364,7 @@ defmodule Module.Types.Descr do
       {:open, {:closed, neg_domains}} ->
         # The domains must include all possible domain key types, and they must be at least term_or_optional()
         Enum.all?(@domain_key_types, fn domain_key ->
-          case Map.get(neg_domains, domain_key(domain_key)) do
+          case Map.get(neg_domains, domain_key) do
             # Not all domain keys are present
             nil -> false
             type -> subtype?(term_or_optional(), type)
@@ -3422,7 +3382,7 @@ defmodule Module.Types.Descr do
       {{:open, pos_domains}, :closed} ->
         # The pos_domains must include all possible domain key types, and they must be subtypes of not_set()
         Enum.all?(@domain_key_types, fn domain_key ->
-          case Map.get(pos_domains, domain_key(domain_key)) do
+          case Map.get(pos_domains, domain_key) do
             # Not all domain keys are present
             nil -> false
             type -> subtype?(type, not_set())
@@ -3442,9 +3402,9 @@ defmodule Module.Types.Descr do
   # returns {if_set(integer()), %{integer() => if_set(binary())}}
   # If the domain is not present, use the tag to type as default.
   defp map_pop_domain({tag, domains}, fields, domain_key) do
-    case :maps.take(domain_key(domain_key), domains) do
-      {value, domains} -> {value, %{map: map_new(tag, fields, domains)}}
-      :error -> {map_key_tag_to_type(tag), %{map: map_new(tag, fields, domains)}}
+    case :maps.take(domain_key, domains) do
+      {value, domains} -> {value, %{map: map_new({tag, domains}, fields)}}
+      :error -> {map_key_tag_to_type(tag), %{map: map_new({tag, domains}, fields)}}
     end
   end
 
