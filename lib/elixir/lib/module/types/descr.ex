@@ -138,7 +138,7 @@ defmodule Module.Types.Descr do
   Creates a function from overlapping function clauses.
   """
   def fun_from_inferred_clauses(args_clauses) do
-    if false do
+    if true do
       domain_clauses =
         Enum.reduce(args_clauses, [], fn {args, return}, acc ->
           domain = args |> Enum.map(&upper_bound/1) |> args_to_domain()
@@ -1187,6 +1187,7 @@ defmodule Module.Types.Descr do
 
         static_arrows == [] ->
           # TODO: We need to validate this within the theory
+          arguments = Enum.map(arguments, &upper_bound/1)
           {:ok, dynamic(fun_apply_static(arguments, dynamic_arrows, false))}
 
         true ->
@@ -1305,22 +1306,25 @@ defmodule Module.Types.Descr do
     type_args = args_to_domain(arguments)
 
     # Optimization: short-circuits when inner loop is none() or outer loop is term()
-    if maybe_empty? and empty?(type_args) do
-      Enum.reduce_while(arrows, none(), fn intersection_of_arrows, acc ->
-        Enum.reduce_while(intersection_of_arrows, term(), fn
-          {_dom, _ret}, acc when acc == @none -> {:halt, acc}
-          {_dom, ret}, acc -> {:cont, intersection(acc, ret)}
+    result =
+      if maybe_empty? and empty?(type_args) do
+        Enum.reduce_while(arrows, none(), fn intersection_of_arrows, acc ->
+          Enum.reduce_while(intersection_of_arrows, term(), fn
+            {_dom, _ret}, acc when acc == @none -> {:halt, acc}
+            {_dom, ret}, acc -> {:cont, intersection(acc, ret)}
+          end)
+          |> case do
+            :term -> {:halt, :term}
+            inner -> {:cont, union(inner, acc)}
+          end
         end)
-        |> case do
-          :term -> {:halt, :term}
-          inner -> {:cont, union(inner, acc)}
-        end
-      end)
-    else
-      Enum.reduce(arrows, none(), fn intersection_of_arrows, acc ->
-        aux_apply(acc, type_args, term(), intersection_of_arrows)
-      end)
-    end
+      else
+        Enum.reduce(arrows, none(), fn intersection_of_arrows, acc ->
+          aux_apply(acc, type_args, term(), intersection_of_arrows)
+        end)
+      end
+
+    result
   end
 
   # Helper function for function application that handles the application of
@@ -1337,11 +1341,32 @@ defmodule Module.Types.Descr do
   # - arrow_intersections: The list of function arrows to process
 
   # For more details, see Definitions 2.20 or 6.11 in https://vlanvin.fr/papers/thesis.pdf
-  defp aux_apply(result, _input, rets_reached, []) do
+  defp aux_apply(result, _input, rets_reached, arrow_intersections, depth \\ 0)
+
+  defp aux_apply(result, _input, rets_reached, [], depth) do
     if subtype?(rets_reached, result), do: result, else: union(result, rets_reached)
   end
 
-  defp aux_apply(result, input, returns_reached, [{dom, ret} | arrow_intersections]) do
+  defp aux_apply(result, input, returns_reached, [{dom, ret} | arrow_intersections], depth) do
+    # Performance warning thresholds
+    if Map.has_key?(input, :dynamic) do
+      IO.puts("aux_apply called with dynamic input")
+      raise "aux_apply called with dynamic input"
+    end
+
+    max_depth = 15
+
+    if depth > max_depth do
+      IO.puts("PERFORMANCE WARNING: aux_apply depth #{depth} (threshold: #{max_depth})")
+      IO.puts("aux_apply [depth:#{depth}]")
+      IO.puts("input: #{inspect(input)}")
+      IO.puts("returns_reached: #{inspect(returns_reached)}")
+      IO.puts("dom: #{inspect(dom)}")
+      IO.puts("ret: #{inspect(ret)}")
+      IO.puts("arrow_intersections: #{inspect(arrow_intersections)}")
+      IO.puts("--------------------------------")
+    end
+
     # Calculate the part of the input not covered by this arrow's domain
     dom_subtract = difference(input, args_to_domain(dom))
 
@@ -1359,7 +1384,7 @@ defmodule Module.Types.Descr do
       if empty?(dom_subtract) do
         result
       else
-        aux_apply(result, dom_subtract, returns_reached, arrow_intersections)
+        aux_apply(result, dom_subtract, returns_reached, arrow_intersections, depth + 1)
       end
 
     # 2. Return type refinement
@@ -1369,7 +1394,7 @@ defmodule Module.Types.Descr do
 
     # e.g. (integer()->atom()) and (integer()->pid()) when applied to integer()
     # should result in (atom() ∩ pid()), which is none().
-    aux_apply(result, input, ret_refine, arrow_intersections)
+    aux_apply(result, input, ret_refine, arrow_intersections, depth + 1)
   end
 
   # Takes all the paths from the root to the leaves finishing with a 1,
@@ -1556,6 +1581,7 @@ defmodule Module.Types.Descr do
     # and that applying the input type of the arrow to the intersection gives sth that is a subtype of the return type of the arrow
     if all_non_empty_domains?(positives) and all_non_empty_domains?([{arguments, return}]) do
       return = negation(return)
+
       type_positives =
         Enum.map(positives, fn {args, ret} -> fun(args, ret) end) |> Enum.reduce(&intersection/2)
 
@@ -1563,29 +1589,12 @@ defmodule Module.Types.Descr do
       result = fun_apply_static(arguments, static_arrows, false)
 
       r = subtype?(result, return)
+
       if r do
         r
       else
         false
       end
-
-      # positives_domain =
-      #   Enum.reduce(positives, none(), fn {args, _ret}, acc ->
-      #     union(acc, args_to_domain(args))
-      #   end)
-
-      # 1. the positives domain must be a supertype of the domain of the arrow
-      # result1 = subtype?(args_to_domain(arguments), positives_domain)
-
-      # if result1 do
-      #   # 2. if we apply the input type of the arrow to the intersection, the result must be a subtype of the return type of the arrow
-      #   # 2.a) build the intersection of positives
-
-      #   # 2.b) check that the result is a subtype of the return type of the arrow
-      #   result2 = subtype?(apply_result, return)
-      # else
-      #   false
-      # end
     else
       # Show the caller of this function
       # IO.puts("Starting phi starter with arguments: #{inspect(arguments)}")
@@ -1602,7 +1611,6 @@ defmodule Module.Types.Descr do
       #       acc + Enum.sum(Enum.map(args, &descr_size/1)) + descr_size(ret)
       #     end)
       #   )
-
 
       # start_time = DateTime.utc_now()
 
@@ -3265,7 +3273,8 @@ defmodule Module.Types.Descr do
   defp tuple_difference(dnf1, dnf2) do
     Enum.reduce(dnf2, dnf1, fn {tag2, elements2}, dnf1 ->
       Enum.reduce(dnf1, [], fn {tag1, elements1}, acc ->
-        tuple_eliminate_single_negation(tag1, elements1, {tag2, elements2}) ++ acc
+        tuple_eliminate_single_negation(tag1, elements1, {tag2, elements2})
+        |> tuple_union(acc)
       end)
     end)
   end
@@ -3280,8 +3289,10 @@ defmodule Module.Types.Descr do
     if (tag == :closed and n < m) or (neg_tag == :closed and n > m) do
       [{tag, elements}]
     else
-      tuple_elim_content([], tag, elements, neg_elements) ++
+      tuple_union(
+        tuple_elim_content([], tag, elements, neg_elements),
         tuple_elim_size(n, m, tag, elements, neg_tag)
+      )
     end
   end
 
@@ -3945,4 +3956,6 @@ defmodule Module.Types.Descr do
   defp non_empty_map_or([head | tail], fun) do
     Enum.reduce(tail, fun.(head), &{:or, [], [&2, fun.(&1)]})
   end
+
+  # Performance tracking helpers for aux_apply
 end
