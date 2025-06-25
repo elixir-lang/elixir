@@ -138,22 +138,18 @@ defmodule Module.Types.Descr do
   Creates a function from overlapping function clauses.
   """
   def fun_from_inferred_clauses(args_clauses) do
-    if true do
-      domain_clauses =
-        Enum.reduce(args_clauses, [], fn {args, return}, acc ->
-          domain = args |> Enum.map(&upper_bound/1) |> args_to_domain()
-          pivot_overlapping_clause(domain, upper_bound(return), acc)
-        end)
+    domain_clauses =
+      Enum.reduce(args_clauses, [], fn {args, return}, acc ->
+        domain = args |> Enum.map(&upper_bound/1) |> args_to_domain()
+        pivot_overlapping_clause(domain, upper_bound(return), acc)
+      end)
 
-      funs =
-        for {domain, return} <- domain_clauses,
-            args <- domain_to_args(domain),
-            do: fun(args, dynamic(return))
+    funs =
+      for {domain, return} <- domain_clauses,
+          args <- domain_to_args(domain),
+          do: fun(args, dynamic(return))
 
-      Enum.reduce(funs, &intersection/2)
-    else
-      dynamic(fun())
-    end
+    Enum.reduce(funs, &intersection/2)
   end
 
   defp pivot_overlapping_clause(domain, return, [{acc_domain, acc_return} | acc]) do
@@ -515,9 +511,6 @@ defmodule Module.Types.Descr do
   def empty?(:term), do: false
 
   def empty?(%{} = descr) do
-    # IO.puts("empty?")
-
-    # IO.puts("checking if the type is empty")
     case :maps.get(:dynamic, descr, descr) do
       :term ->
         false
@@ -526,13 +519,6 @@ defmodule Module.Types.Descr do
         true
 
       descr ->
-        # cond do
-        #   not (Map.has_key?(descr, :tuple) or Map.has_key?(descr, :list) or Map.has_key?(descr, :fun)) ->
-        #     IO.puts("descr: #{inspect(descr)}")
-        #   true ->
-        #     :ok
-        # end
-
         not Map.has_key?(descr, :atom) and
           not Map.has_key?(descr, :bitmap) and
           not Map.has_key?(descr, :optional) and
@@ -542,8 +528,6 @@ defmodule Module.Types.Descr do
           (not Map.has_key?(descr, :fun) or fun_empty?(descr.fun))
     end
   end
-
-  # defp ahah(), do: IO.puts("empty?")
 
   # For atom, bitmap, tuple, and optional, if the key is present,
   # then they are not empty,
@@ -1341,34 +1325,13 @@ defmodule Module.Types.Descr do
   # - arrow_intersections: The list of function arrows to process
 
   # For more details, see Definitions 2.20 or 6.11 in https://vlanvin.fr/papers/thesis.pdf
-  defp aux_apply(result, _input, rets_reached, arrow_intersections, depth \\ 0)
-
-  defp aux_apply(result, _input, rets_reached, [], depth) do
+  defp aux_apply(result, _input, rets_reached, []) do
     if subtype?(rets_reached, result), do: result, else: union(result, rets_reached)
   end
 
-  defp aux_apply(result, input, returns_reached, [{dom, ret} | arrow_intersections], depth) do
-    # Performance warning thresholds
-    if Map.has_key?(input, :dynamic) do
-      IO.puts("aux_apply called with dynamic input")
-      raise "aux_apply called with dynamic input"
-    end
-
-    max_depth = 15
-
-    if depth > max_depth do
-      IO.puts("PERFORMANCE WARNING: aux_apply depth #{depth} (threshold: #{max_depth})")
-      IO.puts("aux_apply [depth:#{depth}]")
-      IO.puts("input: #{inspect(input)}")
-      IO.puts("returns_reached: #{inspect(returns_reached)}")
-      IO.puts("dom: #{inspect(dom)}")
-      IO.puts("ret: #{inspect(ret)}")
-      IO.puts("arrow_intersections: #{inspect(arrow_intersections)}")
-      IO.puts("--------------------------------")
-    end
-
+  defp aux_apply(result, input, returns_reached, [{args, ret} | arrow_intersections]) do
     # Calculate the part of the input not covered by this arrow's domain
-    dom_subtract = difference(input, args_to_domain(dom))
+    dom_subtract = difference(input, args_to_domain(args))
 
     # Refine the return type by intersecting with this arrow's return type
     ret_refine = intersection(returns_reached, ret)
@@ -1384,7 +1347,7 @@ defmodule Module.Types.Descr do
       if empty?(dom_subtract) do
         result
       else
-        aux_apply(result, dom_subtract, returns_reached, arrow_intersections, depth + 1)
+        aux_apply(result, dom_subtract, returns_reached, arrow_intersections)
       end
 
     # 2. Return type refinement
@@ -1394,7 +1357,7 @@ defmodule Module.Types.Descr do
 
     # e.g. (integer()->atom()) and (integer()->pid()) when applied to integer()
     # should result in (atom() ∩ pid()), which is none().
-    aux_apply(result, input, ret_refine, arrow_intersections, depth + 1)
+    aux_apply(result, input, ret_refine, arrow_intersections)
   end
 
   # Takes all the paths from the root to the leaves finishing with a 1,
@@ -1423,8 +1386,6 @@ defmodule Module.Types.Descr do
   # - `fun(integer() -> atom()) and not fun(none() -> term())` is empty
   # - `fun(integer() -> atom()) and not fun(atom() -> integer())` is not empty
   defp fun_empty?(bdd) do
-    # IO.puts("fun_empty?")
-    # IO.puts("on bdd: #{inspect(bdd)}")
     case bdd do
       :fun_bottom -> true
       :fun_top -> false
@@ -1467,7 +1428,7 @@ defmodule Module.Types.Descr do
           # determines emptiness.
           length(neg_arguments) == positive_arity and
             subtype?(args_to_domain(neg_arguments), positive_domain) and
-            phi_starter(neg_arguments, negation(neg_return), positives)
+            phi_starter(neg_arguments, neg_return, positives)
         end)
     end
   end
@@ -1504,116 +1465,20 @@ defmodule Module.Types.Descr do
   # Returns true if the intersection of the positives is a subtype of (t1,...,tn)->(not t).
   #
   # See [Castagna and Lanvin (2024)](https://arxiv.org/abs/2408.14345), Theorem 4.2.
-  # def descr_size(:term), do: 1
-
-  # def descr_size(%{} = descr) do
-  #   Enum.reduce(descr, 0, fn {key, value}, acc ->
-  #     acc + descr_size(key, value)
-  #   end)
-  # end
-
-  # def descr_size(:tuple, dnf) do
-  #   Enum.sum(Enum.map(dnf, fn {tag, elems} -> length(elems) end))
-  # end
-
-  # def descr_size(:fun, bdd), do: bdd_size(bdd)
-
-  # def descr_size(:map, dnf) do
-  #   Enum.reduce(dnf, 0, fn {tag, pos, negs}, acc ->
-  #     acc + 1 + length(negs)
-  #   end)
-  # end
-
-  # def descr_size(:list, dnf) do
-  #   Enum.reduce(dnf, 0, fn {_, last, negs}, acc ->
-  #     acc + 1 + length(negs)
-  #   end)
-  # end
-
-  # def descr_size(_, _), do: 1
-
-  # defp bdd_size({fun, l, r}) do
-  #   bdd_size(l) + bdd_size(r) + 1
-  # end
-
-  # defp bdd_size(:fun_top), do: 1
-  # defp bdd_size(:fun_bottom), do: 0
-
-  # defp list_dnf_size(dnf) do
-  #   Enum.reduce(dnf, 0, fn {_, _, negs}, acc ->
-  #     1 + length(negs)
-  #   end)
-  # end
-
-  # defp all_distinct_non_empty_domains?([{args, _ret}]) do
-  #   not empty?(args_to_domain(args))
-  # end
-
-  # defp all_distinct_non_empty_domains?(positives) do
-  #   # For each two elements of positives, their domains are distinct
-  #   for {args1, _ret1} <- positives,
-  #       {args2, _ret2} <- positives,
-  #       args1 != args2,
-  #       reduce: true do
-  #     acc ->
-  #       # 1. check there are no empty args
-  #       dom1 = args_to_domain(args1)
-  #       dom2 = args_to_domain(args2)
-  #       if empty?(dom1) or empty?(dom2) do
-  #         false
-  #       else
-  #         d = disjoint?(dom1, dom2)
-  #         if not d do
-  #         end
-  #         acc and d
-  #       end
-  #   end
-  # end
-
   defp all_non_empty_domains?(positives) do
     Enum.all?(positives, fn {args, _ret} -> not empty?(args_to_domain(args)) end)
   end
 
   defp phi_starter(arguments, return, positives) do
-    ### SPECIAL CASE: all the positives (intersection) functions have distinct domains
-    # In that case, checking subtyping of it with a single arrow is simply:
-    # checking that the union of the domains of the positives is a supertype of the domain of the arrow
-    # and that applying the input type of the arrow to the intersection gives sth that is a subtype of the return type of the arrow
+    ### SPECIAL CASE: all the positives (intersection) functions have non-empty arguments
+    # In that case, checking subtyping of it with a single arrow is simply checking that the union
+    # of the domains of the positives is a supertype of the domain of the arrow
+    # and that applying the input type of the arrow to the intersection gives sth that
+    # is a subtype of the return type of the arrow
     if all_non_empty_domains?(positives) and all_non_empty_domains?([{arguments, return}]) do
-      return = negation(return)
-
-      type_positives =
-        Enum.map(positives, fn {args, ret} -> fun(args, ret) end) |> Enum.reduce(&intersection/2)
-
-      {:ok, _dom, static_arrows} = fun_normalize(type_positives, length(arguments), :static)
-      result = fun_apply_static(arguments, static_arrows, false)
-
-      r = subtype?(result, return)
-
-      if r do
-        r
-      else
-        false
-      end
+      fun_apply_static(arguments, [positives], false)
+      |> subtype?(return)
     else
-      # Show the caller of this function
-      # IO.puts("Starting phi starter with arguments: #{inspect(arguments)}")
-      # IO.puts("Starting phi starter with return: #{inspect(return)}")
-      # IO.puts("Starting phi starter with positives: #{inspect(positives)}")
-      # Total size of the descrs in arguments, return, and positives
-      # total_size =
-      #   arguments
-      #   |> Enum.map(&descr_size/1)
-      #   |> Enum.sum()
-      #   |> Kernel.+(descr_size(return))
-      #   |> Kernel.+(
-      #     Enum.reduce(positives, 0, fn {args, ret}, acc ->
-      #       acc + Enum.sum(Enum.map(args, &descr_size/1)) + descr_size(ret)
-      #     end)
-      #   )
-
-      # start_time = DateTime.utc_now()
-
       n = length(arguments)
       # Arity mismatch: if there is one positive function with a different arity,
       # then it cannot be a subtype of the (arguments->type) functions.
@@ -1621,34 +1486,18 @@ defmodule Module.Types.Descr do
         false
       else
         # Initialize memoization cache
-        # 1. check that the domain is a subtype of the union of all
-        # the domains of the positives
-        # domain = args_to_domain(arguments)
-        # positives_domain = Enum.reduce(positives, none(), fn {args, _ret}, acc -> union(acc, args_to_domain(args)) end)
-        # if not subtype?(domain, positives_domain) do
-        #   false
-        # else
-        # 2. check that the return type is a subtype of the union of all
-        # the return types of the positives
-
         Process.put(:phi_cache, %{})
         arguments = Enum.map(arguments, &{false, &1})
-        {result, call_count} = phi(arguments, {false, return}, positives, 0)
-        cache_size = map_size(Process.get(:phi_cache, %{}))
-        # Recursive calls
-
-        result
+        phi(arguments, {false, negation(return)}, positives)
       end
-
-      # end
     end
   end
 
-  defp phi(args, {b, t}, [], call_count) do
-    {Enum.any?(args, fn {bool, typ} -> bool and empty?(typ) end) or (b and empty?(t)), call_count}
+  defp phi(args, {b, t}, []) do
+    Enum.any?(args, fn {bool, typ} -> bool and empty?(typ) end) or (b and empty?(t))
   end
 
-  defp phi(args, {b, ret}, [{arguments, return} | rest_positive], call_count) do
+  defp phi(args, {b, ret}, [{arguments, return} | rest_positive]) do
     # Create cache key from function arguments
     cache_key = {args, {b, ret}, [{arguments, return} | rest_positive]}
     cache = Process.get(:phi_cache, %{})
@@ -1656,29 +1505,28 @@ defmodule Module.Types.Descr do
     case Map.get(cache, cache_key) do
       nil ->
         # Compute result and cache it
-        {result1, call_count1} =
-          phi(args, {true, intersection(ret, return)}, rest_positive, call_count + 1)
+        result1 = phi(args, {true, intersection(ret, return)}, rest_positive)
 
         if not result1 do
           Process.put(:phi_cache, Map.put(cache, cache_key, false))
-          {false, call_count}
+          false
         else
           # This doesn't stop if one intermediate result is false?
-          {result2, call_count2} =
+          result2 =
             Enum.with_index(arguments)
-            |> Enum.reduce_while({true, call_count1}, fn {type, index}, {acc_result, acc_count} ->
-              {new_result, new_count} =
+            |> Enum.reduce_while(true, fn {type, index}, acc_result ->
+              new_result =
                 List.update_at(args, index, fn {_, arg} -> {true, difference(arg, type)} end)
-                |> phi({b, ret}, rest_positive, acc_count + 1)
+                |> phi({b, ret}, rest_positive)
 
               if new_result do
-                {:cont, {acc_result and new_result, new_count}}
+                {:cont, acc_result and new_result}
               else
-                {:halt, {false, new_count}}
+                {:halt, false}
               end
             end)
 
-          result = {result1 and result2, call_count2}
+          result = result1 and result2
           Process.put(:phi_cache, Map.put(cache, cache_key, result))
           result
         end
@@ -2038,7 +1886,6 @@ defmodule Module.Types.Descr do
   end
 
   defp list_difference(dnf1, dnf2) do
-    # IO.puts("list_difference")
     Enum.reduce(dnf2, dnf1, fn {t2, last2, negs2}, acc_dnf1 ->
       last2 = list_tail_unfold(last2)
 
@@ -2068,10 +1915,6 @@ defmodule Module.Types.Descr do
   defp list_empty?(@non_empty_list_top), do: false
 
   defp list_empty?(dnf) do
-    # IO.puts("list_empty?")
-    # IO.puts("on dnf: #{inspect(dnf)}")
-    # IO.puts("the dnf has #{length(dnf)} elements")
-    # IO.puts("i count #{Enum.reduce(dnf, 0, fn {_, _, negs}, acc -> acc + length(negs) end)} negations")
     Enum.all?(dnf, fn {list_type, last_type, negs} ->
       last_type = list_tail_unfold(last_type)
 
@@ -2903,7 +2746,6 @@ defmodule Module.Types.Descr do
   # Since the algorithm is recursive, we implement the short-circuiting
   # as throw/catch.
   defp map_empty?(dnf) do
-    # IO.puts("map_empty?")
     Enum.all?(dnf, fn {tag, pos, negs} -> map_empty?(tag, pos, negs) end)
   end
 
