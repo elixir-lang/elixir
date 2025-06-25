@@ -371,55 +371,66 @@ defmodule Inspect.Algebra do
   def to_doc_with_opts(term, opts)
 
   def to_doc_with_opts(%_{} = struct, %Inspect.Opts{inspect_fun: fun} = opts) do
-    if opts.structs do
-      try do
-        fun.(struct, opts)
-      rescue
-        caught_exception ->
-          # Because we try to raise a nice error message in case
-          # we can't inspect a struct, there is a chance the error
-          # message itself relies on the struct being printed, so
-          # we need to trap the inspected messages to guarantee
-          # we won't try to render any failed instruct when building
-          # the error message.
-          if Process.get(:inspect_trap) do
-            Inspect.Map.inspect_as_map(struct, opts)
-          else
-            try do
-              Process.put(:inspect_trap, true)
+    # TODO Convert opts.structs to :default | :as_structs | :as_maps in v2
+    cond do
+      opts.structs ->
+        try do
+          fun.(struct, opts)
+        rescue
+          caught_exception ->
+            # Because we try to raise a nice error message in case
+            # we can't inspect a struct, there is a chance the error
+            # message itself relies on the struct being printed, so
+            # we need to trap the inspected messages to guarantee
+            # we won't try to render any failed instruct when building
+            # the error message.
+            if Process.get(:inspect_trap) do
+              Inspect.Map.inspect_as_map(struct, opts)
+            else
+              try do
+                Process.put(:inspect_trap, true)
 
-              {doc_struct, _opts} =
-                Inspect.Map.inspect_as_map(struct, %{
-                  opts
-                  | syntax_colors: [],
-                    inspect_fun: Inspect.Opts.default_inspect_fun()
-                })
+                {doc_struct, _opts} =
+                  Inspect.Map.inspect_as_map(struct, %{
+                    opts
+                    | syntax_colors: [],
+                      inspect_fun: Inspect.Opts.default_inspect_fun()
+                  })
 
-              inspected_struct =
-                doc_struct
-                |> format(opts.width)
-                |> IO.iodata_to_binary()
+                inspected_struct =
+                  doc_struct
+                  |> Inspect.Map.inspect_as_map(%{
+                    opts
+                    | syntax_colors: [],
+                      inspect_fun: Inspect.Opts.default_inspect_fun()
+                  })
+                  |> format(opts.width)
+                  |> IO.iodata_to_binary()
 
-              inspect_error =
-                Inspect.Error.exception(
-                  exception: caught_exception,
-                  stacktrace: __STACKTRACE__,
-                  inspected_struct: inspected_struct
-                )
+                inspect_error =
+                  Inspect.Error.exception(
+                    exception: caught_exception,
+                    stacktrace: __STACKTRACE__,
+                    inspected_struct: inspected_struct
+                  )
 
-              if opts.safe do
-                opts = %{opts | inspect_fun: Inspect.Opts.default_inspect_fun()}
-                Inspect.inspect(inspect_error, opts)
-              else
-                reraise(inspect_error, __STACKTRACE__)
+                if opts.safe do
+                  opts = %{opts | inspect_fun: Inspect.Opts.default_inspect_fun()}
+                  Inspect.inspect(inspect_error, opts)
+                else
+                  reraise(inspect_error, __STACKTRACE__)
+                end
+              after
+                Process.delete(:inspect_trap)
               end
-            after
-              Process.delete(:inspect_trap)
             end
-          end
-      end
-    else
-      Inspect.Map.inspect_as_map(struct, opts)
+        end
+
+      not opts.structs and Keyword.get(opts.custom_options, :raw_structs) ->
+        Inspect.Any.inspect(struct, opts)
+
+      not opts.structs ->
+        Inspect.Map.inspect_as_map(struct, opts)
     end
     |> pack_opts(opts)
   end
