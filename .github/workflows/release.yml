@@ -113,6 +113,7 @@ jobs:
 
   sign:
     needs: [build]
+    environment: release
     strategy:
       fail-fast: true
       matrix:
@@ -126,6 +127,7 @@ jobs:
 
     permissions:
       contents: write
+      id-token: write
 
     steps:
       - name: "Download build"
@@ -133,23 +135,20 @@ jobs:
         with:
           name: build-${{ matrix.flavor }}-elixir-otp-${{ matrix.otp }}
 
+      - name: Log in to Azure
+        if: ${{ matrix.flavor == 'windows' && vars.AZURE_TRUSTED_SIGNING_ACCOUNT_NAME }}
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5 # v2.3.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       - name: "Sign files with Trusted Signing"
         uses: azure/trusted-signing-action@0d74250c661747df006298d0fb49944c10f16e03 # v0.5.1
-        if: github.repository == 'elixir-lang/elixir' && matrix.flavor == 'windows'
+        if: ${{ matrix.flavor == 'windows' && vars.AZURE_TRUSTED_SIGNING_ACCOUNT_NAME }}
         with:
-          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          # AZURE_TENANT_ID and AZURE_CLIENT_ID should stay the same,
-          # but AZURE_CLIENT_SECRET has expiration date. When it expires go to
-          # App Registrations / <app> / Certificates & secrets,
-          # click (+) New client secret, note the "Value" (not "Secret ID")
-          # and update it:
-          #
-          #     $ gh --repo elixir-lang/elixir secret set AZURE_CLIENT_SECRET
-          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
           endpoint: https://eus.codesigning.azure.net/
-          trusted-signing-account-name: trusted-signing-elixir
-          certificate-profile-name: Elixir
+          trusted-signing-account-name: ${{ vars.AZURE_TRUSTED_SIGNING_ACCOUNT_NAME }}
+          certificate-profile-name: ${{ vars.AZURE_CERTIFICATE_PROFILE_NAME }}
           files-folder: ${{ github.workspace }}
           files-folder-filter: exe
           file-digest: SHA256
