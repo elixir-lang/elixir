@@ -1290,25 +1290,22 @@ defmodule Module.Types.Descr do
     type_args = args_to_domain(arguments)
 
     # Optimization: short-circuits when inner loop is none() or outer loop is term()
-    result =
-      if maybe_empty? and empty?(type_args) do
-        Enum.reduce_while(arrows, none(), fn intersection_of_arrows, acc ->
-          Enum.reduce_while(intersection_of_arrows, term(), fn
-            {_dom, _ret}, acc when acc == @none -> {:halt, acc}
-            {_dom, ret}, acc -> {:cont, intersection(acc, ret)}
-          end)
-          |> case do
-            :term -> {:halt, :term}
-            inner -> {:cont, union(inner, acc)}
-          end
+    if maybe_empty? and empty?(type_args) do
+      Enum.reduce_while(arrows, none(), fn intersection_of_arrows, acc ->
+        Enum.reduce_while(intersection_of_arrows, term(), fn
+          {_dom, _ret}, acc when acc == @none -> {:halt, acc}
+          {_dom, ret}, acc -> {:cont, intersection(acc, ret)}
         end)
-      else
-        Enum.reduce(arrows, none(), fn intersection_of_arrows, acc ->
-          aux_apply(acc, type_args, term(), intersection_of_arrows)
-        end)
-      end
-
-    result
+        |> case do
+          :term -> {:halt, :term}
+          inner -> {:cont, union(inner, acc)}
+        end
+      end)
+    else
+      Enum.reduce(arrows, none(), fn intersection_of_arrows, acc ->
+        aux_apply(acc, type_args, term(), intersection_of_arrows)
+      end)
+    end
   end
 
   # Helper function for function application that handles the application of
@@ -1465,32 +1462,31 @@ defmodule Module.Types.Descr do
   # Returns true if the intersection of the positives is a subtype of (t1,...,tn)->(not t).
   #
   # See [Castagna and Lanvin (2024)](https://arxiv.org/abs/2408.14345), Theorem 4.2.
-  defp all_non_empty_domains?(positives) do
-    Enum.all?(positives, fn {args, _ret} -> not empty?(args_to_domain(args)) end)
-  end
-
   defp phi_starter(arguments, return, positives) do
-    ### SPECIAL CASE: all the positives (intersection) functions have non-empty arguments
-    # In that case, checking subtyping of it with a single arrow is simply checking that the union
-    # of the domains of the positives is a supertype of the domain of the arrow
-    # and that applying the input type of the arrow to the intersection gives sth that
-    # is a subtype of the return type of the arrow
-    if all_non_empty_domains?(positives) and all_non_empty_domains?([{arguments, return}]) do
+    # Optimization: When all positive functions have non-empty domains,
+    # we can simplify the phi function check to a direct subtyping test.
+    # This avoids the expensive recursive phi computation by checking only that applying the
+    # input to the positive intersection yields a subtype of the return
+    if all_non_empty_domains?([{arguments, return} | positives]) do
       fun_apply_static(arguments, [positives], false)
       |> subtype?(return)
     else
       n = length(arguments)
-      # Arity mismatch: if there is one positive function with a different arity,
-      # then it cannot be a subtype of the (arguments->type) functions.
+      # Arity mismatch: functions with different arities cannot be subtypes
+      # of the target function type (arguments -> return)
       if Enum.any?(positives, fn {args, _ret} -> length(args) != n end) do
         false
       else
-        # Initialize memoization cache
+        # Initialize memoization cache for the recursive phi computation
         Process.put(:phi_cache, %{})
         arguments = Enum.map(arguments, &{false, &1})
         phi(arguments, {false, negation(return)}, positives)
       end
     end
+  end
+
+  defp all_non_empty_domains?(positives) do
+    Enum.all?(positives, fn {args, _ret} -> not empty?(args_to_domain(args)) end)
   end
 
   defp phi(args, {b, t}, []) do
@@ -3798,6 +3794,4 @@ defmodule Module.Types.Descr do
   defp non_empty_map_or([head | tail], fun) do
     Enum.reduce(tail, fun.(head), &{:or, [], [&2, fun.(&1)]})
   end
-
-  # Performance tracking helpers for aux_apply
 end
