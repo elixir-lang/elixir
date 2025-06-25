@@ -46,9 +46,9 @@ The type system was made possible thanks to a partnership between [CNRS](https:/
 
 #### Elixir
 
-  * [File] `File.stream!(path, modes, lines_or_bytes)` is deprecated in favor of the correct order in `File.stream!(path, lines_or_bytes, modes)`
+  * [File] `File.stream!(path, modes, lines_or_bytes)` is deprecated in favor of `File.stream!(path, lines_or_bytes, modes)`
   * [Kernel] Matching on the size inside a bit pattern now requires the pin operator for consistency, such as `<<x::size(^existing_var)>>`
-  * [Kernel.ParallelCompiler] `Kernel.ParallelCompiler.async/1` is deprecated in favor of `Kernel.ParallelCompiler.pmap/2`, which is more performant and deals better with edge cases
+  * [Kernel.ParallelCompiler] `Kernel.ParallelCompiler.async/1` is deprecated in favor of `Kernel.ParallelCompiler.pmap/2`, which is more performant and addresses known limitations
 
 #### Logger
 
