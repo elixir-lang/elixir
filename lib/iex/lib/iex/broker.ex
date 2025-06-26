@@ -158,7 +158,7 @@ defmodule IEx.Broker do
   defp local_or_remote_shell() do
     Enum.find_value([node() | Node.list()], fn node ->
       try do
-        :erpc.call(node, IEx.Broker, :shell, [])
+        :erpc.call(node, :shell, :whereis, [])
       catch
         _, _ -> nil
       end
