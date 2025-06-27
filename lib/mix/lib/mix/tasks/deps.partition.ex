@@ -67,6 +67,7 @@ defmodule Mix.Tasks.Deps.Partition do
     ]
 
     options = [
+      :exit_status,
       :binary,
       :hide,
       :use_stdio,
@@ -164,12 +165,10 @@ defmodule Mix.Tasks.Deps.Partition do
         send_deps_and_server_loop([client | available], busy, deps, status)
 
       {:tcp_closed, socket} ->
-        shutdown_clients(available ++ busy)
-        Mix.raise("mix deps.partition #{inspect(socket)} closed unexpectedly")
+        tcp_failed!("closed unexpectedly", socket, available, busy)
 
       {:tcp_error, socket, error} ->
-        shutdown_clients(available ++ busy)
-        Mix.raise("mix deps.partition #{inspect(socket)} errored: #{inspect(error)}")
+        tcp_failed!("errored: #{inspect(error)}", socket, available, busy)
 
       {port, {:data, {eol, data}}} ->
         with %{index: index} <-
@@ -189,6 +188,26 @@ defmodule Mix.Tasks.Deps.Partition do
     end
   end
 
+  defp tcp_failed!(message, socket, available, busy) do
+    {%{port: port} = client, busy} = pop_with(busy, &(&1.socket == socket))
+
+    # Let's make sure it has all been written out
+    # but don't wait for more than 5 seconds if it
+    # gets stuck for some unknown reason
+    receive do
+      {^port, {:exit_status, _}} -> :ok
+    after
+      5_000 -> Mix.shell().error("Timed out waiting for port exit #{inspect(port)}")
+    end
+
+    shutdown_clients(available ++ busy ++ [client])
+
+    Mix.raise(
+      "mix deps.partition #{inspect(socket)} #{message} " <>
+        "(set MIX_OS_DEPS_COMPILE_PARTITION_COUNT=1 to run in serial)"
+    )
+  end
+
   defp shutdown_clients(clients) do
     Enum.each(clients, fn %{socket: socket, port: port, index: index} ->
       if Mix.debug?() do
@@ -201,18 +220,22 @@ defmodule Mix.Tasks.Deps.Partition do
   end
 
   defp close_port(port, prefix) do
-    receive do
-      {^port, {:data, {:eol, data}}} -> [prefix, data, ?\n | close_port(port, prefix)]
-      {^port, {:data, {:noeol, data}}} -> [data | close_port(port, prefix)]
-    after
-      0 ->
-        try do
-          Port.close(port)
-        catch
-          _, _ -> :ok
-        end
+    try do
+      Port.close(port)
+    catch
+      _, _ -> :ok
+    end
 
-        []
+    loop_close_port(port, prefix)
+  end
+
+  defp loop_close_port(port, prefix) do
+    receive do
+      {^port, {:data, {:eol, data}}} -> [prefix, data, ?\n | loop_close_port(port, prefix)]
+      {^port, {:data, {:noeol, data}}} -> [data | loop_close_port(port, prefix)]
+      {^port, {:exit_status, _}} -> loop_close_port(port, prefix)
+    after
+      0 -> []
     end
   end
 
