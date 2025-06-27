@@ -18,6 +18,7 @@ defmodule ExUnit.CLIFormatter do
     IO.puts("")
 
     config = %{
+      dry_run: opts[:dry_run],
       trace: opts[:trace],
       colors: colors(opts),
       width: get_terminal_width(),
@@ -35,6 +36,8 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def handle_cast({:suite_started, _opts}, config) do
+    if config.dry_run, do: IO.puts(extra_info("Tests that would be executed:", config))
+
     {:noreply, config}
   end
 
@@ -154,7 +157,15 @@ defmodule ExUnit.CLIFormatter do
     {:noreply, config}
   end
 
-  def handle_cast({:module_finished, %ExUnit.TestModule{state: nil}}, config) do
+  def handle_cast({:module_finished, %ExUnit.TestModule{state: nil} = module}, config) do
+    if config.dry_run do
+      file_path = Path.relative_to_cwd(module.file)
+
+      Enum.each(module.tests, fn test ->
+        IO.puts("#{file_path}:#{test.tags.line}")
+      end)
+    end
+
     {:noreply, config}
   end
 
@@ -451,6 +462,10 @@ defmodule ExUnit.CLIFormatter do
 
   defp failure(msg, config) do
     colorize(:failure, msg, config)
+  end
+
+  defp extra_info(msg, config) do
+    colorize(:extra_info, msg, config)
   end
 
   # Diff formatting
