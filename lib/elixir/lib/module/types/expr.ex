@@ -355,7 +355,7 @@ defmodule Module.Types.Expr do
             add_inferred(acc, args, body)
         end)
 
-      {fun_from_overlapping_clauses(acc), context}
+      {fun_from_inferred_clauses(acc), context}
     end
   end
 
@@ -476,7 +476,11 @@ defmodule Module.Types.Expr do
     {args_types, context} =
       Enum.map_reduce(args, context, &of_expr(&1, @pending, &1, stack, &2))
 
-    Apply.fun_apply(fun_type, args_types, call, stack, context)
+    if stack.mode == :traversal do
+      {dynamic(), context}
+    else
+      Apply.fun_apply(fun_type, args_types, call, stack, context)
+    end
   end
 
   def of_expr({{:., _, [callee, key_or_fun]}, meta, []} = call, expected, expr, stack, context)

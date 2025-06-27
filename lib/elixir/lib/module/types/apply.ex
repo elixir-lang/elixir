@@ -487,7 +487,7 @@ defmodule Module.Types.Apply do
                 {union(type, fun_from_non_overlapping_clauses(clauses)), fallback?, context}
 
               {{:infer, _, clauses}, context} when length(clauses) <= @max_clauses ->
-                {union(type, fun_from_overlapping_clauses(clauses)), fallback?, context}
+                {union(type, fun_from_inferred_clauses(clauses)), fallback?, context}
 
               {_, context} ->
                 {type, true, context}
@@ -705,7 +705,7 @@ defmodule Module.Types.Apply do
         result =
           case info do
             {:infer, _, clauses} when length(clauses) <= @max_clauses ->
-              fun_from_overlapping_clauses(clauses)
+              fun_from_inferred_clauses(clauses)
 
             _ ->
               dynamic(fun(arity))
