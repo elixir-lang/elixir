@@ -342,6 +342,13 @@ defmodule Mix.Tasks.Deps.Compile do
     src = Path.join(build, "_gleam_artefacts")
     File.mkdir(Path.join(build, "ebin"))
 
+    # Remove per-environment segment from the path since ProjectStack.push below will append it
+    build_path =
+      Mix.Project.build_path()
+      |> Path.split()
+      |> Enum.drop(-1)
+      |> Path.join()
+
     config =
       Mix.Project.deps_config()
       |> Keyword.merge(
@@ -350,8 +357,7 @@ defmodule Mix.Tasks.Deps.Compile do
         deps: toml.deps,
         build_per_environment: true,
         lockfile: "mix.lock",
-        # Remove per-environment segment from the path since ProjectStack.push below will append it
-        build_path: Mix.Project.build_path() |> Path.split() |> Enum.drop(-1) |> Path.join(),
+        build_path: build_path,
         build_scm: dep.scm,
         deps_path: deps_path,
         deps_app_path: build,
@@ -360,10 +366,10 @@ defmodule Mix.Tasks.Deps.Compile do
         erlc_include_path: Path.join(build, "include")
       )
 
-    env = dep.opts[:env] || :prod
     old_env = Mix.env()
 
     try do
+      env = dep.opts[:env] || :prod
       Mix.env(env)
       Mix.ProjectStack.push(dep.app, config, "nofile")
 

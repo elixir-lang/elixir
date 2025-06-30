@@ -281,7 +281,9 @@ defmodule Mix.Tasks.Compile.App do
 
   defp merge_project_application(best_guess, _project, application) do
     if not Keyword.keyword?(application) do
-      Mix.raise("Application configuration passed as :application should be a keyword list")
+      Mix.raise(
+        "Application configuration passed as :application should be a keyword list, , got: #{inspect(application)}"
+      )
     end
 
     Keyword.merge(best_guess, validate_properties!(application))

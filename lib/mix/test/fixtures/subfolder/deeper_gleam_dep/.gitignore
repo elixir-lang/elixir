@@ -1,7 +1,7 @@
 # The directory Mix will write compiled artifacts to.
 /_build/
 
-# The directory gleam will write compiled artifacts to.
+# The directory Gleam will write compiled artifacts to.
 /build/
 
 # If the VM crashes, it generates a dump, let's ignore it too.
