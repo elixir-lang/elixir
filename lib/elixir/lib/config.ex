@@ -98,6 +98,12 @@ defmodule Config do
   (assembled with `mix release`).
   """
 
+  @type config_opts :: [
+          imports: [Path.t()] | :disabled,
+          env: atom(),
+          target: atom()
+        ]
+
   @opts_key {__MODULE__, :opts}
   @config_key {__MODULE__, :config}
   @imports_key {__MODULE__, :imports}
@@ -306,7 +312,7 @@ defmodule Config do
   end
 
   @doc false
-  @spec __eval__!(Path.t(), binary(), keyword) :: {keyword, [Path.t()] | :disabled}
+  @spec __eval__!(Path.t(), binary(), config_opts) :: {keyword, [Path.t()] | :disabled}
   def __eval__!(file, content, opts \\ []) when is_binary(file) and is_list(opts) do
     env = Keyword.get(opts, :env)
     target = Keyword.get(opts, :target)

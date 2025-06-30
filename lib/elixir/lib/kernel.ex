@@ -2456,7 +2456,7 @@ defmodule Kernel do
   See the "Deriving" section of the documentation of the `Inspect`
   protocol for more information.
   """
-  @spec inspect(Inspect.t(), keyword) :: String.t()
+  @spec inspect(Inspect.t(), [Inspect.Opts.new_opt()]) :: String.t()
   def inspect(term, opts \\ []) when is_list(opts) do
     opts = Inspect.Opts.new(opts)
 

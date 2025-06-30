@@ -17,6 +17,11 @@ defmodule StringIO do
 
   """
 
+  @type open_opts :: [
+          capture_prompt: boolean(),
+          encoding: :unicode | :latin1
+        ]
+
   # We're implementing the GenServer behaviour instead of using the
   # `use GenServer` macro, because we don't want the `child_spec/1`
   # function as it doesn't make sense to be started under a supervisor.
@@ -59,7 +64,7 @@ defmodule StringIO do
 
   """
   @doc since: "1.7.0"
-  @spec open(binary, keyword, (pid -> res)) :: {:ok, res} when res: var
+  @spec open(binary, open_opts, (pid -> res)) :: {:ok, res} when res: var
   def open(string, options, function)
       when is_binary(string) and is_list(options) and is_function(function, 1) do
     {:ok, pid} = GenServer.start(__MODULE__, {self(), string, options}, [])
@@ -83,7 +88,8 @@ defmodule StringIO do
   If options are provided, the result will be `{:ok, pid}`, returning the
   IO device created. The option `:capture_prompt`, when set to `true`, causes
   prompts (which are specified as arguments to `IO.get*` functions) to be
-  included in the device's output.
+  included in the device's output. See `options/3` for the list of supported
+  options.
 
   If a function is provided, the device will be created and sent to the
   function. When the function returns, the device will be closed. The final
@@ -111,7 +117,7 @@ defmodule StringIO do
       {:ok, {"", "The input was foo"}}
 
   """
-  @spec open(binary, keyword) :: {:ok, pid}
+  @spec open(binary, open_opts) :: {:ok, pid}
   @spec open(binary, (pid -> res)) :: {:ok, res} when res: var
   def open(string, options_or_function \\ [])
 

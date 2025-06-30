@@ -155,9 +155,32 @@ defmodule Code.Formatter do
 
   @do_end_keywords [:rescue, :catch, :else, :after]
 
+  @typedoc """
+  Options for `to_algebra/2`.
+
+  These options include all the standard code formatting options plus
+  additional context like comments and syntax highlighting colors.
+  """
+  @type to_algebra_opt ::
+          {:comments, [term()]}
+          | {:syntax_colors, keyword()}
+          | {:sigils, keyword()}
+          | {:file, binary()}
+          | {:line, pos_integer()}
+          | {:line_length, pos_integer()}
+          | {:locals_without_parens, keyword()}
+          | {:force_do_end_blocks, boolean()}
+          | {:migrate, boolean()}
+          | {:migrate_bitstring_modifiers, boolean()}
+          | {:migrate_call_parens_on_pipe, boolean()}
+          | {:migrate_charlists_as_sigils, boolean()}
+          | {:migrate_unless, boolean()}
+          | {atom(), term()}
+
   @doc """
   Converts the quoted expression into an algebra document.
   """
+  @spec to_algebra(Macro.t(), [to_algebra_opt]) :: Inspect.Algebra.t()
   def to_algebra(quoted, opts \\ []) do
     comments = Keyword.get(opts, :comments, [])
 

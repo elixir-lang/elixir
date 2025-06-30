@@ -10,6 +10,22 @@ defmodule EEx.Compiler do
   @h_spaces [?\s, ?\t]
   @all_spaces [?\s, ?\t, ?\n, ?\r]
 
+  @typedoc """
+  Options for EEx compilation functions.
+
+  These options control various aspects of EEx template compilation including
+  file information, parsing behavior, and the template engine to use.
+  """
+  @type compile_opts :: [
+          file: String.t(),
+          line: pos_integer(),
+          column: pos_integer(),
+          indentation: non_neg_integer(),
+          trim: boolean(),
+          parser_options: Code.parser_opts(),
+          engine: module()
+        ]
+
   @doc """
   Tokenize EEx contents.
   """
@@ -290,7 +306,7 @@ defmodule EEx.Compiler do
   and the engine together by handling the tokens and invoking
   the engine every time a full expression or text is received.
   """
-  @spec compile([EEx.token()], String.t(), keyword) :: Macro.t()
+  @spec compile([EEx.token()], String.t(), compile_opts) :: Macro.t()
   def compile(tokens, source, opts) do
     file = opts[:file] || "nofile"
     line = opts[:line] || 1

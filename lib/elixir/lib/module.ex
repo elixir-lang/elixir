@@ -687,6 +687,16 @@ defmodule Module do
   @type definition :: {atom, arity}
   @type def_kind :: :def | :defp | :defmacro | :defmacrop
 
+  @type create_opts :: [
+          file: binary(),
+          line: pos_integer(),
+          generated: boolean()
+        ]
+
+  @type get_definition_opts :: [
+          skip_clauses: boolean()
+        ]
+
   @extra_error_msg_defines? "Use Kernel.function_exported?/3 and Kernel.macro_exported?/3 " <>
                               "to check for public functions and macros instead"
 
@@ -918,7 +928,7 @@ defmodule Module do
   when defining the module, while `Kernel.defmodule/2`
   automatically uses the environment it is invoked at.
   """
-  @spec create(module, Macro.t(), Macro.Env.t() | keyword) :: {:module, module, binary, term}
+  @spec create(module, Macro.t(), Macro.Env.t() | create_opts) :: {:module, module, binary, term}
   def create(module, quoted, opts)
 
   def create(module, quoted, %Macro.Env{} = env) when is_atom(module) do
@@ -1423,7 +1433,7 @@ defmodule Module do
       only an interest in fetching the kind and the metadata
 
   """
-  @spec get_definition(module, definition, keyword) ::
+  @spec get_definition(module, definition, get_definition_opts) ::
           {:v1, def_kind, meta :: keyword,
            [{meta :: keyword, arguments :: [Macro.t()], guards :: [Macro.t()], Macro.t()}]}
           | nil

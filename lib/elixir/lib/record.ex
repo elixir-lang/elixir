@@ -45,6 +45,13 @@ defmodule Record do
   a module by calling `Code.fetch_docs/1`.
   """
 
+  @type extract_opts :: [
+          from: binary(),
+          from_lib: binary(),
+          includes: [binary()],
+          macros: keyword()
+        ]
+
   @doc """
   Extracts record information from an Erlang file.
 
@@ -102,7 +109,7 @@ defmodule Record do
       ]
 
   """
-  @spec extract(name :: atom, keyword) :: keyword
+  @spec extract(name :: atom, extract_opts) :: keyword
   def extract(name, opts) when is_atom(name) and is_list(opts) do
     Record.Extractor.extract(name, opts)
   end
@@ -119,7 +126,7 @@ defmodule Record do
   Accepts the same options as listed for `Record.extract/2`.
 
   """
-  @spec extract_all(keyword) :: [{name :: atom, keyword}]
+  @spec extract_all(extract_opts) :: [{name :: atom, keyword}]
   def extract_all(opts) when is_list(opts) do
     Record.Extractor.extract_all(opts)
   end
