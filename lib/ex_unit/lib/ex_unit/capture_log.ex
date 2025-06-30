@@ -43,6 +43,10 @@ defmodule ExUnit.CaptureLog do
 
   @compile {:no_warn_undefined, Logger}
 
+  @type capture_log_opts :: [
+          level: Logger.level() | nil
+        ]
+
   @doc """
   Captures Logger messages generated when evaluating `fun`.
 
@@ -74,7 +78,7 @@ defmodule ExUnit.CaptureLog do
   To get the result of the evaluation along with the captured log,
   use `with_log/2`.
   """
-  @spec capture_log(keyword, (-> any)) :: String.t()
+  @spec capture_log(capture_log_opts, (-> any)) :: String.t()
   def capture_log(opts \\ [], fun) do
     {_, log} = with_log(opts, fun)
     log
@@ -98,7 +102,7 @@ defmodule ExUnit.CaptureLog do
 
   """
   @doc since: "1.13.0"
-  @spec with_log(keyword, (-> result)) :: {result, log :: String.t()} when result: any
+  @spec with_log(capture_log_opts, (-> result)) :: {result, log :: String.t()} when result: any
   def with_log(opts \\ [], fun) when is_list(opts) do
     opts =
       if opts[:level] == :warn do

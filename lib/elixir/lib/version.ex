@@ -118,6 +118,8 @@ defmodule Version do
   @type build :: String.t() | nil
   @type t :: %__MODULE__{major: major, minor: minor, patch: patch, pre: pre, build: build}
 
+  @type match_opts :: [allow_pre: boolean()]
+
   defmodule Requirement do
     @moduledoc """
     A struct that holds version requirement information.
@@ -296,7 +298,7 @@ defmodule Version do
       ** (Version.InvalidRequirementError) invalid requirement: "== == 1.0.0"
 
   """
-  @spec match?(version, requirement, keyword) :: boolean
+  @spec match?(version, requirement, match_opts) :: boolean
   def match?(version, requirement, opts \\ [])
 
   def match?(version, requirement, opts) when is_binary(requirement) do

@@ -8,6 +8,14 @@
 defmodule Mix.Dep.Converger do
   @moduledoc false
 
+  @typedoc """
+  Options for `converge/1` and `converge/4`.
+  """
+  @type converge_opts :: [
+          env: atom(),
+          target: atom()
+        ]
+
   @doc """
   Topologically sorts the given dependencies.
   """
@@ -72,6 +80,7 @@ defmodule Mix.Dep.Converger do
 
   See `Mix.Dep.Loader.children/1` for options.
   """
+  @spec converge(converge_opts) :: [Mix.Dep.t()]
   def converge(opts \\ []) do
     converge(nil, nil, opts, &{&1, &2, &3}) |> elem(0)
   end
@@ -89,6 +98,7 @@ defmodule Mix.Dep.Converger do
 
   See `Mix.Dep.Loader.children/1` for options.
   """
+  @spec converge(term(), map() | nil, converge_opts, function()) :: {[Mix.Dep.t()], term(), map()}
   def converge(acc, lock, opts, callback) do
     {deps, acc, lock} = all(acc, lock, opts, callback)
     if remote = Mix.RemoteConverger.get(), do: remote.post_converge()

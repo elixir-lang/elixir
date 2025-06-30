@@ -11,6 +11,11 @@ defmodule Mix.Shell.IO do
 
   @behaviour Mix.Shell
 
+  @typedoc """
+  Options for `yes?/2`.
+  """
+  @type yes_opts :: [default: :yes | :no]
+
   @doc """
   Prints the current application to the shell if it
   was not printed yet.
@@ -72,6 +77,7 @@ defmodule Mix.Shell.IO do
       end
 
   """
+  @spec yes?(String.t(), yes_opts) :: boolean()
   def yes?(message, options \\ []) do
     default = Keyword.get(options, :default, :yes)
 

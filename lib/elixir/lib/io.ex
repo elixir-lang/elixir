@@ -128,6 +128,37 @@ defmodule IO do
   @type nodata :: {:error, term} | :eof
   @type chardata :: String.t() | maybe_improper_list(char | chardata, String.t() | [])
 
+  @type inspect_opts :: [
+          label: term,
+          base: :decimal | :binary | :hex | :octal,
+          binaries: :infer | :as_binaries | :as_strings,
+          charlists: :infer | :as_lists | :as_charlists,
+          char_lists: :infer,
+          custom_options: keyword,
+          inspect_fun: (any, Inspect.Opts.t() -> Inspect.Algebra.t()),
+          limit: non_neg_integer | :infinity,
+          pretty: boolean,
+          printable_limit: non_neg_integer | :infinity,
+          safe: boolean,
+          structs: boolean,
+          syntax_colors: [{atom, IO.ANSI.ansidata()}],
+          width: non_neg_integer | :infinity
+        ]
+
+  @typedoc """
+  Stacktrace information as keyword options for `warn/2`.
+
+  At least `:file` is required. Other options are optional and used
+  to provide more precise location information.
+  """
+  @type warn_stacktrace_opts :: [
+          file: String.t(),
+          line: pos_integer(),
+          column: pos_integer(),
+          module: module(),
+          function: {atom(), arity()}
+        ]
+
   defguardp is_device(term) when is_atom(term) or is_pid(term)
   defguardp is_iodata(data) when is_list(data) or is_binary(data)
 
@@ -346,7 +377,10 @@ defmodule IO do
       #=>   my_app.ex:4: MyApp.main/1
 
   """
-  @spec warn(chardata | String.Chars.t(), Exception.stacktrace() | keyword() | Macro.Env.t()) ::
+  @spec warn(
+          chardata | String.Chars.t(),
+          Exception.stacktrace() | warn_stacktrace_opts() | Macro.Env.t()
+        ) ::
           :ok
   def warn(message, stacktrace_info)
 
@@ -476,7 +510,7 @@ defmodule IO do
       after: [2, 4, 6]
 
   """
-  @spec inspect(item, keyword) :: item when item: var
+  @spec inspect(item, inspect_opts) :: item when item: var
   def inspect(item, opts \\ []) do
     inspect(:stdio, item, opts)
   end
@@ -486,7 +520,7 @@ defmodule IO do
 
   See `inspect/2` for a full list of options.
   """
-  @spec inspect(device, item, keyword) :: item when item: var
+  @spec inspect(device, item, inspect_opts) :: item when item: var
   def inspect(device, item, opts) when is_device(device) and is_list(opts) do
     label = if label = opts[:label], do: [to_chardata(label), ": "], else: []
     opts = Inspect.Opts.new(opts)

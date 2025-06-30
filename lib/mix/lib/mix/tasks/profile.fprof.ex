@@ -114,6 +114,16 @@ defmodule Mix.Tasks.Profile.Fprof do
   this should provide more realistic insights into bottlenecks.
   """
 
+  @typedoc """
+  Options for the fprof profiler.
+  """
+  @type profile_opts :: [
+          callers: boolean(),
+          details: boolean(),
+          sort: :acc | :own,
+          trace_to_file: boolean()
+        ]
+
   @switches [
     parallel: :boolean,
     require: :keep,
@@ -184,7 +194,7 @@ defmodule Mix.Tasks.Profile.Fprof do
       usage for larger workloads.
 
   """
-  @spec profile((-> result), keyword()) :: result when result: any()
+  @spec profile((-> result), profile_opts()) :: result when result: any()
   def profile(fun, opts \\ []) when is_function(fun, 0) do
     Mix.ensure_application!(:runtime_tools)
     Mix.ensure_application!(:tools)

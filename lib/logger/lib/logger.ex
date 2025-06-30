@@ -507,6 +507,30 @@ defmodule Logger do
   @type report :: map() | keyword()
   @type message :: :unicode.chardata() | String.Chars.t() | report()
   @type metadata :: keyword()
+
+  @type configure_opts :: [
+          level: level(),
+          translator_inspect_opts: Inspect.Opts.t(),
+          sync_threshold: non_neg_integer(),
+          discard_threshold: non_neg_integer(),
+          truncate: non_neg_integer() | :infinity,
+          utc_log: boolean()
+        ]
+
+  @type formatter_opts :: [
+          colors: [
+            enabled: boolean(),
+            debug: atom(),
+            info: atom(),
+            warning: atom(),
+            error: atom()
+          ],
+          format: String.t() | {module(), atom()},
+          metadata: :all | [atom()],
+          truncate: pos_integer() | :infinity,
+          utc_log: boolean()
+        ]
+
   @new_erlang_levels [:emergency, :alert, :critical, :warning, :notice]
   @levels [:error, :info, :debug] ++ @new_erlang_levels
   @metadata :logger_level
@@ -552,7 +576,7 @@ defmodule Logger do
   instead.
   """
   @doc since: "1.15.0"
-  @spec default_formatter(keyword) :: {module, :logger.formatter_config()}
+  @spec default_formatter(formatter_opts) :: {module, :logger.formatter_config()}
   def default_formatter(overrides \\ []) when is_list(overrides) do
     Application.get_env(:logger, :default_formatter, [])
     |> Keyword.merge(overrides)
@@ -712,7 +736,7 @@ defmodule Logger do
     :translator_inspect_opts
   ]
   @backend_options [:sync_threshold, :discard_threshold, :truncate, :utc_log]
-  @spec configure(keyword) :: :ok
+  @spec configure(configure_opts) :: :ok
   def configure(options) do
     for {k, v} <- options do
       cond do
@@ -973,7 +997,7 @@ defmodule Logger do
   anonymous functions to `bare_log/3` and they will only be evaluated
   if there is something to be logged.
   """
-  @spec bare_log(level, message | (-> message | {message, keyword}), keyword) :: :ok
+  @spec bare_log(level, message | (-> message | {message, keyword}), metadata) :: :ok
   def bare_log(level, message_or_fun, metadata \\ []) do
     level = elixir_level_to_erlang_level(level)
 

@@ -298,6 +298,15 @@ defmodule String do
           | [nonempty_binary]
           | (compiled_search_pattern :: :binary.cp())
 
+  @type split_opts :: [
+          parts: pos_integer() | :infinity,
+          trim: boolean()
+        ]
+
+  @type splitter_opts :: [trim: boolean()]
+
+  @type replace_opts :: [global: boolean()]
+
   @conditional_mappings [:greek, :turkic]
 
   @doc """
@@ -502,7 +511,8 @@ defmodule String do
       ["a", "b", " c  "]
 
   """
-  @spec split(t, pattern | Regex.t(), keyword) :: [t]
+  @spec split(t, pattern, split_opts()) :: [t]
+  @spec split(t, Regex.t(), Regex.split_opts()) :: [t]
   def split(string, pattern, options \\ [])
 
   def split(string, %Regex{} = pattern, options) when is_binary(string) and is_list(options) do
@@ -607,7 +617,7 @@ defmodule String do
       ["1", "2", "3", "4"]
 
   """
-  @spec splitter(t, pattern, keyword) :: Enumerable.t()
+  @spec splitter(t, pattern, splitter_opts) :: Enumerable.t()
   def splitter(string, pattern, options \\ [])
 
   def splitter(string, "", options) when is_binary(string) and is_list(options) do
@@ -1616,7 +1626,7 @@ defmodule String do
       "é"
 
   """
-  @spec replace(t, pattern | Regex.t(), t | (t -> t | iodata), keyword) :: t
+  @spec replace(t, pattern | Regex.t(), t | (t -> t | iodata), replace_opts) :: t
   def replace(subject, pattern, replacement, options \\ [])
       when is_binary(subject) and
              (is_binary(replacement) or is_function(replacement, 1)) and

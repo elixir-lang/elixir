@@ -111,6 +111,16 @@ defmodule Config.Provider do
   """
   @type config_path :: {:system, binary(), binary()} | binary()
 
+  @typedoc """
+  Options for `init/3`.
+  """
+  @type init_opts :: [
+          extra_config: config(),
+          prune_runtime_sys_config_after_boot: boolean(),
+          reboot_system_after_config: boolean(),
+          validate_compile_env: [{atom(), [atom()], term()}]
+        ]
+
   @doc """
   Invoked when initializing a config provider.
 
@@ -196,6 +206,7 @@ defmodule Config.Provider do
   @reboot_mode_key :config_provider_reboot_mode
 
   @doc false
+  @spec init([{module(), term()}], config_path(), init_opts()) :: config()
   def init(providers, config_path, opts \\ []) when is_list(providers) and is_list(opts) do
     validate_config_path!(config_path)
     providers = for {provider, init} <- providers, do: {provider, provider.init(init)}

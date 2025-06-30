@@ -248,6 +248,49 @@ defmodule Code do
   """
   @type position() :: line() | {line :: pos_integer(), column :: pos_integer()}
 
+  @typedoc """
+  Options for code formatting functions.
+  """
+  @type format_opts :: [
+          file: binary(),
+          line: pos_integer(),
+          line_length: pos_integer(),
+          locals_without_parens: keyword(),
+          force_do_end_blocks: boolean(),
+          migrate: boolean(),
+          migrate_bitstring_modifiers: boolean(),
+          migrate_call_parens_on_pipe: boolean(),
+          migrate_charlists_as_sigils: boolean(),
+          migrate_unless: boolean()
+        ]
+
+  @typedoc """
+  Options for parsing functions that convert strings to quoted expressions.
+  """
+  @type parser_opts :: [
+          file: binary(),
+          line: pos_integer(),
+          column: pos_integer(),
+          indentation: non_neg_integer(),
+          columns: boolean(),
+          unescape: boolean(),
+          existing_atoms_only: boolean(),
+          token_metadata: boolean(),
+          literal_encoder: (term(), Macro.metadata() -> term()),
+          static_atoms_encoder: (atom() -> term()),
+          emit_warnings: boolean()
+        ]
+
+  @typedoc """
+  Options for environment evaluation functions like eval_string/3 and eval_quoted/3.
+  """
+  @type env_eval_opts :: [
+          file: binary(),
+          line: pos_integer(),
+          module: module(),
+          prune_binding: boolean()
+        ]
+
   @boolean_compiler_options [
     :docs,
     :debug_info,
@@ -560,7 +603,7 @@ defmodule Code do
       [a: 1, b: 2]
 
   """
-  @spec eval_string(List.Chars.t(), binding, Macro.Env.t() | keyword) :: {term, binding}
+  @spec eval_string(List.Chars.t(), binding, Macro.Env.t() | env_eval_opts) :: {term, binding}
   def eval_string(string, binding \\ [], opts \\ [])
 
   def eval_string(string, binding, %Macro.Env{} = env) do
@@ -615,7 +658,8 @@ defmodule Code do
 
   """
   @doc since: "1.15.0"
-  @spec with_diagnostics(keyword(), (-> result)) :: {result, [diagnostic(:warning | :error)]}
+  @spec with_diagnostics([log: boolean()], (-> result)) ::
+          {result, [diagnostic(:warning | :error)]}
         when result: term()
   def with_diagnostics(opts \\ [], fun) do
     value = :erlang.get(:elixir_code_diagnostics)
@@ -648,7 +692,7 @@ defmodule Code do
       Defaults to `true`.
   """
   @doc since: "1.15.0"
-  @spec print_diagnostic(diagnostic(:warning | :error), keyword()) :: :ok
+  @spec print_diagnostic(diagnostic(:warning | :error), snippet: boolean()) :: :ok
   def print_diagnostic(diagnostic, opts \\ []) do
     read_snippet? = Keyword.get(opts, :snippet, true)
     :elixir_errors.print_diagnostic(diagnostic, read_snippet?)
@@ -1035,7 +1079,7 @@ defmodule Code do
   address the deprecation warnings.
   """
   @doc since: "1.6.0"
-  @spec format_string!(binary, keyword) :: iodata
+  @spec format_string!(binary, format_opts) :: iodata
   def format_string!(string, opts \\ []) when is_binary(string) and is_list(opts) do
     line_length = Keyword.get(opts, :line_length, 98)
 
@@ -1060,7 +1104,7 @@ defmodule Code do
   available options.
   """
   @doc since: "1.6.0"
-  @spec format_file!(binary, keyword) :: iodata
+  @spec format_file!(binary, format_opts) :: iodata
   def format_file!(file, opts \\ []) when is_binary(file) and is_list(opts) do
     string = File.read!(file)
     formatted = format_string!(string, [file: file, line: 1] ++ opts)
@@ -1098,7 +1142,7 @@ defmodule Code do
       [a: 1, b: 2]
 
   """
-  @spec eval_quoted(Macro.t(), binding, Macro.Env.t() | keyword) :: {term, binding}
+  @spec eval_quoted(Macro.t(), binding, Macro.Env.t() | env_eval_opts) :: {term, binding}
   def eval_quoted(quoted, binding \\ [], env_or_opts \\ []) do
     {value, binding, _env} =
       eval_verify(:eval_quoted, [quoted, binding, env_for_eval(env_or_opts)])
@@ -1129,8 +1173,15 @@ defmodule Code do
     * `:line` - the line on which the script starts
 
     * `:module` - the module to run the environment on
+
+    * `:prune_binding` - (since v1.14.2) prune binding to keep only
+      variables read or written by the evaluated code. Note that
+      variables used by modules are always pruned, even if later used
+      by the modules. You can submit to the `:on_module` tracer event
+      and access the variables used by the module from its environment.
   """
   @doc since: "1.14.0"
+  @spec env_for_eval(Macro.Env.t() | env_eval_opts) :: Macro.Env.t()
   def env_for_eval(env_or_opts), do: :elixir.env_for_eval(env_or_opts)
 
   @doc """
@@ -1144,15 +1195,11 @@ defmodule Code do
 
   ## Options
 
-    * `:prune_binding` - (since v1.14.2) prune binding to keep only
-      variables read or written by the evaluated code. Note that
-      variables used by modules are always pruned, even if later used
-      by the modules. You can submit to the `:on_module` tracer event
-      and access the variables used by the module from its environment.
+  It accepts the same options as `env_for_eval/1`.
 
   """
   @doc since: "1.14.0"
-  @spec eval_quoted_with_env(Macro.t(), binding, Macro.Env.t(), keyword) ::
+  @spec eval_quoted_with_env(Macro.t(), binding, Macro.Env.t(), env_eval_opts) ::
           {term, binding, Macro.Env.t()}
   def eval_quoted_with_env(quoted, binding, %Macro.Env{} = env, opts \\ [])
       when is_list(binding) do
@@ -1263,7 +1310,7 @@ defmodule Code do
       {:error, {[line: 1, column: 4], "syntax error before: ", "\"3\""}}
 
   """
-  @spec string_to_quoted(List.Chars.t(), keyword) ::
+  @spec string_to_quoted(List.Chars.t(), parser_opts) ::
           {:ok, Macro.t()} | {:error, {location :: keyword, binary | {binary, binary}, binary}}
   def string_to_quoted(string, opts \\ []) when is_list(opts) do
     file = Keyword.get(opts, :file, "nofile")
@@ -1290,7 +1337,7 @@ defmodule Code do
 
   Check `string_to_quoted/2` for options information.
   """
-  @spec string_to_quoted!(List.Chars.t(), keyword) :: Macro.t()
+  @spec string_to_quoted!(List.Chars.t(), parser_opts) :: Macro.t()
   def string_to_quoted!(string, opts \\ []) when is_list(opts) do
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
@@ -1341,7 +1388,7 @@ defmodule Code do
 
   """
   @doc since: "1.13.0"
-  @spec string_to_quoted_with_comments(List.Chars.t(), keyword) ::
+  @spec string_to_quoted_with_comments(List.Chars.t(), parser_opts) ::
           {:ok, Macro.t(), list(map())} | {:error, {location :: keyword, term, term}}
   def string_to_quoted_with_comments(string, opts \\ []) when is_list(opts) do
     charlist = to_charlist(string)
@@ -1371,7 +1418,7 @@ defmodule Code do
   Check `string_to_quoted/2` for options information.
   """
   @doc since: "1.13.0"
-  @spec string_to_quoted_with_comments!(List.Chars.t(), keyword) :: {Macro.t(), list(map())}
+  @spec string_to_quoted_with_comments!(List.Chars.t(), parser_opts) :: {Macro.t(), list(map())}
   def string_to_quoted_with_comments!(string, opts \\ []) do
     charlist = to_charlist(string)
 
@@ -1456,6 +1503,9 @@ defmodule Code do
 
   ## Options
 
+  This function accepts all options supported by `format_string!/2` for controlling
+  code formatting, plus these additional options:
+
     * `:comments` - the list of comments associated with the quoted expression.
       Defaults to `[]`. It is recommended that both `:token_metadata` and
       `:literal_encoder` options are given to `string_to_quoted_with_comments/2`
@@ -1466,17 +1516,14 @@ defmodule Code do
       `string_to_quoted/2`, setting this option to `false` will prevent it from
       escaping the sequences twice. Defaults to `true`.
 
-    * `:locals_without_parens` - a keyword list of name and arity
-      pairs that should be kept without parens whenever possible.
-      The arity may be the atom `:*`, which implies all arities of
-      that name. The formatter already includes a list of functions
-      and this option augments this list.
-
-    * `:syntax_colors` - a keyword list of colors the output is colorized.
-      See `Inspect.Opts` for more information.
+  See `format_string!/2` for the full list of formatting options including 
+  `:file`, `:line`, `:line_length`, `:locals_without_parens`, `:force_do_end_blocks`,
+  `:syntax_colors`, and all migration options like `:migrate_charlists_as_sigils`.
   """
   @doc since: "1.13.0"
-  @spec quoted_to_algebra(Macro.t(), keyword) :: Inspect.Algebra.t()
+  @spec quoted_to_algebra(Macro.t(), [
+          Code.Formatter.to_algebra_opt() | Code.Normalizer.normalize_opt()
+        ]) :: Inspect.Algebra.t()
   def quoted_to_algebra(quoted, opts \\ []) do
     quoted
     |> Code.Normalizer.normalize(opts)

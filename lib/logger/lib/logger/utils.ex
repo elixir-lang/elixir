@@ -127,6 +127,12 @@ defmodule Logger.Utils do
   For information about format scanning and how to consume them,
   check `:io_lib.scan_format/2`.
   """
+  @spec scan_inspect(
+          atom() | binary() | charlist(),
+          list(),
+          non_neg_integer() | :infinity,
+          Inspect.Opts.t()
+        ) :: [:io_lib.format_spec()]
   def scan_inspect(format, args, truncate, opts \\ %Inspect.Opts{})
 
   def scan_inspect(format, args, truncate, opts) when is_atom(format) do

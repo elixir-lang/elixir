@@ -162,6 +162,22 @@ defmodule Calendar do
   """
   @type time_zone_database :: module()
 
+  @typedoc """
+  Options for formatting dates and times with `strftime/3`.
+  """
+  @type strftime_opts :: [
+          preferred_datetime: String.t(),
+          preferred_date: String.t(),
+          preferred_time: String.t(),
+          am_pm_names: (:am | :pm -> String.t()) | (:am | :pm, map() -> String.t()),
+          month_names: (pos_integer() -> String.t()) | (pos_integer(), map() -> String.t()),
+          abbreviated_month_names:
+            (pos_integer() -> String.t()) | (pos_integer(), map() -> String.t()),
+          day_of_week_names: (pos_integer() -> String.t()) | (pos_integer(), map() -> String.t()),
+          abbreviated_day_of_week_names:
+            (pos_integer() -> String.t()) | (pos_integer(), map() -> String.t())
+        ]
+
   @doc """
   Returns how many days there are in the given month of the given year.
   """
@@ -617,7 +633,7 @@ defmodule Calendar do
 
   """
   @doc since: "1.11.0"
-  @spec strftime(map(), String.t(), keyword()) :: String.t()
+  @spec strftime(map(), String.t(), strftime_opts()) :: String.t()
   def strftime(date_or_time_or_datetime, string_format, user_options \\ [])
       when is_map(date_or_time_or_datetime) and is_binary(string_format) do
     parse(

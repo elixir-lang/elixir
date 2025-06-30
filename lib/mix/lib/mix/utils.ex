@@ -276,7 +276,7 @@ defmodule Mix.Utils do
   Returns the name of the file written to, or "-" if the output was to STDOUT.
   This function is made public mostly for testing.
   """
-  @spec write_according_to_opts!(Path.t(), iodata(), keyword) :: Path.t()
+  @spec write_according_to_opts!(Path.t(), iodata(), write_opts) :: Path.t()
   def write_according_to_opts!(default_file_spec, contents, opts) do
     file_spec = Keyword.get(opts, :output, default_file_spec)
 
@@ -305,7 +305,7 @@ defmodule Mix.Utils do
   If the `:output` option is `-` then prints to standard output,
   see write_according_to_opts!/3 for details.
   """
-  @spec write_json_tree!(Path.t(), [node], (node -> {formatted_node, [node]}), keyword) ::
+  @spec write_json_tree!(Path.t(), [node], (node -> {formatted_node, [node]}), write_opts) ::
           Path.t()
         when node: term()
   def write_json_tree!(default_file_spec, nodes, callback, opts \\ []) do
@@ -336,13 +336,36 @@ defmodule Mix.Utils do
 
   @type formatted_node :: {name :: String.Chars.t(), edge_info :: String.Chars.t()}
 
+  @typedoc """
+  Options for `write_according_to_opts!/3`, `write_json_tree!/4`, and `write_dot_graph!/5`.
+  """
+  @type write_opts :: [
+          output: String.t()
+        ]
+
+  @typedoc """
+  Options for `print_tree/3`.
+  """
+  @type print_tree_opts :: [
+          format: String.t()
+        ]
+
+  @typedoc """
+  Options for `read_path/2`.
+  """
+  @type read_path_opts :: [
+          timeout: pos_integer(),
+          sha512: String.t()
+        ]
+
   @doc """
   Prints the given tree according to the callback.
 
   The callback will be invoked for each node and it
   must return a `{printed, children}` tuple.
   """
-  @spec print_tree([node], (node -> {formatted_node, [node]}), keyword) :: :ok when node: term()
+  @spec print_tree([node], (node -> {formatted_node, [node]}), print_tree_opts) :: :ok
+        when node: term()
   def print_tree(nodes, callback, opts \\ []) do
     pretty? =
       case Keyword.get(opts, :format) do
@@ -414,7 +437,7 @@ defmodule Mix.Utils do
           String.t(),
           [node],
           (node -> {formatted_node, [node]}),
-          keyword
+          write_opts
         ) :: Path.t()
         when node: term()
   def write_dot_graph!(default_file_spec, title, nodes, callback, opts \\ []) do
@@ -632,7 +655,7 @@ defmodule Mix.Utils do
       seconds
 
   """
-  @spec read_path(String.t(), keyword) ::
+  @spec read_path(String.t(), read_path_opts) ::
           {:ok, binary}
           | :badpath
           | {:remote, String.t()}

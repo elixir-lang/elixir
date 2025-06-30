@@ -164,6 +164,11 @@ defmodule Regex do
 
   @type t :: %__MODULE__{re_pattern: term, source: binary, opts: [term]}
 
+  @type named_captures_opts :: [
+          return: :binary | :index,
+          offset: non_neg_integer()
+        ]
+
   defmodule CompileError do
     @moduledoc """
     An exception raised when a regular expression could not be compiled.
@@ -321,7 +326,7 @@ defmodule Regex do
       ["d", ""]
 
   """
-  @spec run(t, binary, [term]) :: nil | [binary] | [{integer, integer}]
+  @spec run(t, binary, capture_opts) :: nil | [binary] | [{integer, integer}]
   def run(regex, string, options \\ [])
 
   def run(%Regex{} = regex, string, options) when is_binary(string) do
@@ -343,6 +348,8 @@ defmodule Regex do
 
     * `:return` - when set to `:index`, returns byte index and match length.
       Defaults to `:binary`.
+    * `:offset` - (since v1.12.0) specifies the starting offset to match in the given string.
+      Defaults to zero.
 
   ## Examples
 
@@ -363,7 +370,7 @@ defmodule Regex do
 
   You can then use `binary_part/3` to fetch the relevant part from the given string.
   """
-  @spec named_captures(t, String.t(), keyword) :: map | nil
+  @spec named_captures(t, String.t(), named_captures_opts) :: map | nil
   def named_captures(regex, string, options \\ []) when is_binary(string) do
     names = names(regex)
     options = Keyword.put(options, :capture, names)
@@ -545,7 +552,7 @@ defmodule Regex do
       [["cd"], ["ce"]]
 
   """
-  @spec scan(t(), String.t(), [term()]) :: [[String.t()]] | [[{integer(), integer()}]]
+  @spec scan(t(), String.t(), capture_opts) :: [[String.t()]] | [[{integer(), integer()}]]
   def scan(regex, string, options \\ [])
 
   def scan(%Regex{} = regex, string, options) when is_binary(string) do
@@ -572,6 +579,25 @@ defmodule Regex do
       _ -> :re.run(string, re_pattern, options)
     end
   end
+
+  @typedoc """
+  Options for regex functions that capture matches.
+  """
+  @type capture_opts :: [
+          return: :binary | :index,
+          capture: :all | :first | :all_but_first | :none | :all_names | [binary() | atom()],
+          offset: non_neg_integer()
+        ]
+
+  @typedoc """
+  Options for `split/3`.
+  """
+  @type split_opts :: [
+          parts: pos_integer() | :infinity,
+          trim: boolean(),
+          on: :first | :all | :all_but_first | :none | :all_names | [atom() | integer()],
+          include_captures: boolean()
+        ]
 
   @doc """
   Splits the given target based on the given pattern and in the given number of
@@ -626,7 +652,7 @@ defmodule Regex do
       ["a", "b", "c"]
 
   """
-  @spec split(t, String.t(), [term]) :: [String.t()]
+  @spec split(t, String.t(), split_opts) :: [String.t()]
   def split(regex, string, options \\ [])
 
   def split(%Regex{}, "", opts) do

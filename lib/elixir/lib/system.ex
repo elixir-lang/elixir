@@ -113,6 +113,28 @@ defmodule System do
           | :sigusr1
           | :sigusr2
 
+  @type cmd_opts :: [
+          into: Collectable.t(),
+          lines: pos_integer(),
+          cd: Path.t(),
+          env: [{binary(), binary() | nil}],
+          arg0: binary(),
+          stderr_to_stdout: boolean(),
+          use_stdio: boolean(),
+          parallelism: boolean()
+        ]
+
+  @type shell_opts :: [
+          into: Collectable.t(),
+          lines: pos_integer(),
+          cd: Path.t(),
+          env: [{binary(), binary() | nil}],
+          stderr_to_stdout: boolean(),
+          use_stdio: boolean(),
+          parallelism: boolean(),
+          close_stdin: boolean()
+        ]
+
   @vm_signals [:sigquit, :sigterm, :sigusr1]
   @os_signals [:sighup, :sigabrt, :sigalrm, :sigusr2, :sigchld, :sigstop, :sigtstp]
   @signals @vm_signals ++ @os_signals
@@ -941,7 +963,7 @@ defmodule System do
       immediately terminate. Defaults to false.
   """
   @doc since: "1.12.0"
-  @spec shell(binary, keyword) :: {Collectable.t(), exit_status :: non_neg_integer}
+  @spec shell(binary, shell_opts) :: {Collectable.t(), exit_status :: non_neg_integer}
   def shell(command, opts \\ []) when is_binary(command) do
     command |> String.trim() |> do_shell(opts)
   end
@@ -1101,7 +1123,7 @@ defmodule System do
   If you desire to execute a trusted command inside a shell, with pipes,
   redirecting and so on, please check `shell/2`.
   """
-  @spec cmd(binary, [binary], keyword) :: {Collectable.t(), exit_status :: non_neg_integer}
+  @spec cmd(binary, [binary], cmd_opts) :: {Collectable.t(), exit_status :: non_neg_integer}
   def cmd(command, args, opts \\ []) when is_binary(command) and is_list(args) do
     assert_no_null_byte!(command, "System.cmd/3")
 

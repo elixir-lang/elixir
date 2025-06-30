@@ -7,6 +7,12 @@ defmodule Mix.Generator do
   Conveniences for working with paths and generating content.
   """
 
+  @type generator_opts :: [
+          force: boolean(),
+          quiet: boolean(),
+          format_elixir: boolean()
+        ]
+
   @doc ~S"""
   Creates a file with the given contents.
 
@@ -17,6 +23,7 @@ defmodule Mix.Generator do
 
     * `:force` - forces creation without a shell prompt
     * `:quiet` - does not log command output
+    * `:format_elixir` (since v1.18.0) - if `true`, apply formatter to the generated file
 
   ## Examples
 
@@ -25,7 +32,7 @@ defmodule Mix.Generator do
       true
 
   """
-  @spec create_file(Path.t(), iodata, keyword) :: boolean()
+  @spec create_file(Path.t(), iodata, generator_opts) :: boolean()
   def create_file(path, contents, opts \\ []) when is_binary(path) do
     log(:green, :creating, Path.relative_to_cwd(path), opts)
 
@@ -62,7 +69,7 @@ defmodule Mix.Generator do
       true
 
   """
-  @spec create_directory(Path.t(), keyword) :: true
+  @spec create_directory(Path.t(), quiet: boolean()) :: true
   def create_directory(path, options \\ []) when is_binary(path) do
     log(:green, "creating", Path.relative_to_cwd(path), options)
     File.mkdir_p!(path)
@@ -79,6 +86,7 @@ defmodule Mix.Generator do
 
     * `:force` - forces copying without a shell prompt
     * `:quiet` - does not log command output
+    * `:format_elixir` (since v1.18.0) - if `true`, apply formatter to the generated file
 
   ## Examples
 
@@ -88,7 +96,7 @@ defmodule Mix.Generator do
 
   """
   @doc since: "1.9.0"
-  @spec copy_file(Path.t(), Path.t(), keyword) :: boolean()
+  @spec copy_file(Path.t(), Path.t(), generator_opts) :: boolean()
   def copy_file(source, target, options \\ []) do
     create_file(target, File.read!(source), options)
   end
@@ -116,7 +124,7 @@ defmodule Mix.Generator do
 
   """
   @doc since: "1.9.0"
-  @spec copy_template(Path.t(), Path.t(), keyword, keyword) :: boolean()
+  @spec copy_template(Path.t(), Path.t(), keyword, generator_opts) :: boolean()
   def copy_template(source, target, assigns, options \\ []) do
     create_file(target, EEx.eval_file(source, assigns: assigns), options)
   end

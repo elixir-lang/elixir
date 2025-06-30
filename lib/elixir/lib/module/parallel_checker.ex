@@ -11,9 +11,20 @@ defmodule Module.ParallelChecker do
   @type warning() :: term()
   @type mode() :: :erlang | :elixir | :protocol
 
+  @typedoc """
+  Options for `start_link/1`.
+  """
+  @type start_link_opts :: [
+          {:max_concurrency, pos_integer()}
+          | {:long_verification_threshold, pos_integer()}
+          | {:each_long_verification, (module() -> term()) | (module(), pid() -> term())}
+          | {atom(), term()}
+        ]
+
   @doc """
   Initializes the parallel checker process.
   """
+  @spec start_link(start_link_opts()) :: {:ok, cache()}
   def start_link(opts \\ []) do
     :proc_lib.start_link(__MODULE__, :init, [opts])
   end

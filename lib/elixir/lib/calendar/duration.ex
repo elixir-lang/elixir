@@ -161,6 +161,22 @@ defmodule Duration do
   """
   @type duration :: t | [unit_pair]
 
+  @typedoc """
+  Options for `Duration.to_string/2`.
+  """
+  @type to_string_opts :: [
+          units: [
+            year: String.t(),
+            month: String.t(),
+            week: String.t(),
+            day: String.t(),
+            hour: String.t(),
+            minute: String.t(),
+            second: String.t()
+          ],
+          separator: String.t()
+        ]
+
   @microseconds_per_second 1_000_000
 
   @doc """
@@ -436,6 +452,7 @@ defmodule Duration do
 
   """
   @doc since: "1.18.0"
+  @spec to_string(t, to_string_opts) :: String.t()
   def to_string(%Duration{} = duration, opts \\ []) do
     units = Keyword.get(opts, :units, [])
     separator = Keyword.get(opts, :separator, " ")

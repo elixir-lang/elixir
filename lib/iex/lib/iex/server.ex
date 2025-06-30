@@ -14,6 +14,14 @@ defmodule IEx.Server do
 
   """
 
+  @type run_opts :: [
+          prefix: String.t(),
+          env: Macro.Env.t(),
+          binding: keyword(),
+          on_eof: :stop_evaluator | :halt,
+          register: boolean()
+        ]
+
   @doc false
   defstruct parser_state: [],
             counter: 1,
@@ -35,7 +43,7 @@ defmodule IEx.Server do
 
   """
   @doc since: "1.8.0"
-  @spec run(keyword) :: :ok
+  @spec run(run_opts) :: :ok
   def run(opts) when is_list(opts) do
     if Keyword.get(opts, :register, true) do
       IEx.Broker.register(self())

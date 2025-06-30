@@ -70,6 +70,42 @@ defmodule Macro.Env do
   @typep tracers :: [module]
   @typep versioned_vars :: %{optional(variable) => var_version :: non_neg_integer}
 
+  @type define_import_opts :: [
+          trace: boolean(),
+          emit_warnings: boolean(),
+          info_callback: (atom() -> [{atom(), arity()}]),
+          only: :functions | :macros | [{atom(), arity()}],
+          except: [{atom(), arity()}],
+          warn: boolean()
+        ]
+
+  @type define_alias_opts :: [
+          trace: boolean(),
+          as: atom(),
+          warn: boolean()
+        ]
+
+  @type define_require_opts :: [
+          trace: boolean(),
+          as: atom(),
+          warn: boolean()
+        ]
+
+  @type expand_alias_opts :: [
+          trace: boolean()
+        ]
+
+  @type expand_import_opts :: [
+          allow_locals: boolean(),
+          check_deprecations: boolean(),
+          trace: boolean()
+        ]
+
+  @type expand_require_opts :: [
+          check_deprecations: boolean(),
+          trace: boolean()
+        ]
+
   @type t :: %{
           __struct__: __MODULE__,
           aliases: aliases,
@@ -331,7 +367,7 @@ defmodule Macro.Env do
 
   """
   @doc since: "1.17.0"
-  @spec define_require(t, Macro.metadata(), module) :: {:ok, t}
+  @spec define_require(t, Macro.metadata(), module, define_require_opts) :: {:ok, t}
   def define_require(env, meta, module, opts \\ [])
       when is_list(meta) and is_atom(module) and is_list(opts) do
     {trace, opts} = Keyword.pop(opts, :trace, true)
@@ -391,7 +427,8 @@ defmodule Macro.Env do
 
   """
   @doc since: "1.17.0"
-  @spec define_import(t, Macro.metadata(), module, keyword) :: {:ok, t} | {:error, String.t()}
+  @spec define_import(t, Macro.metadata(), module, define_import_opts) ::
+          {:ok, t} | {:error, String.t()}
   def define_import(env, meta, module, opts \\ [])
       when is_list(meta) and is_atom(module) and is_list(opts) do
     {trace, opts} = Keyword.pop(opts, :trace, true)
@@ -441,7 +478,8 @@ defmodule Macro.Env do
 
   """
   @doc since: "1.17.0"
-  @spec define_alias(t, Macro.metadata(), module, keyword) :: {:ok, t} | {:error, String.t()}
+  @spec define_alias(t, Macro.metadata(), module, define_alias_opts) ::
+          {:ok, t} | {:error, String.t()}
   def define_alias(env, meta, module, opts \\ [])
       when is_list(meta) and is_atom(module) and is_list(opts) do
     {trace, opts} = Keyword.pop(opts, :trace, true)
@@ -487,7 +525,7 @@ defmodule Macro.Env do
 
   """
   @doc since: "1.17.0"
-  @spec expand_alias(t, keyword, [atom()], keyword) ::
+  @spec expand_alias(t, keyword, [atom()], expand_alias_opts) ::
           {:alias, atom()} | :error
   def expand_alias(env, meta, list, opts \\ [])
       when is_list(meta) and is_list(list) and is_list(opts) do
@@ -527,7 +565,7 @@ defmodule Macro.Env do
 
   """
   @doc since: "1.17.0"
-  @spec expand_import(t, keyword, atom(), arity(), keyword) ::
+  @spec expand_import(t, keyword, atom(), arity(), expand_import_opts) ::
           {:macro, module(), (Macro.metadata(), args :: [Macro.t()] -> Macro.t())}
           | {:function, module(), atom()}
           | {:error, :not_found | {:conflict, module()} | {:ambiguous, [module()]}}
@@ -583,7 +621,7 @@ defmodule Macro.Env do
 
   """
   @doc since: "1.17.0"
-  @spec expand_require(t, keyword, module(), atom(), arity(), keyword) ::
+  @spec expand_require(t, keyword, module(), atom(), arity(), expand_require_opts) ::
           {:macro, module(), (Macro.metadata(), args :: [Macro.t()] -> Macro.t())}
           | :error
   def expand_require(env, meta, module, name, arity, opts \\ [])

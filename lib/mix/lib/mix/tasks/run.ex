@@ -65,6 +65,19 @@ defmodule Mix.Tasks.Run do
 
   """
 
+  @typedoc """
+  Options for the internal `run/5` function.
+
+  These options are typically parsed from command-line arguments.
+  """
+  @type run_opts :: [
+          {:parallel_require, String.t()}
+          | {:eval, String.t()}
+          | {:require, String.t()}
+          | {:parallel, boolean()}
+          | {:config, String.t()}
+        ]
+
   @impl true
   def run(args) do
     {opts, head} =
@@ -99,7 +112,7 @@ defmodule Mix.Tasks.Run do
   @doc false
   @spec run(
           OptionParser.argv(),
-          keyword,
+          run_opts,
           OptionParser.argv(),
           (String.t() -> term()),
           (String.t() -> term())

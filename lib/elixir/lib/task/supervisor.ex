@@ -87,6 +87,18 @@ defmodule Task.Supervisor do
   @typedoc since: "1.17.0"
   @type async_stream_option :: Task.async_stream_option() | {:shutdown, Supervisor.shutdown()}
 
+  @typedoc """
+  Options for `async/3`, `async/5`, `async_nolink/3`, and `async_nolink/5` functions.
+  """
+  @type async_opts :: [
+          shutdown: :brutal_kill | timeout()
+        ]
+
+  @type start_child_opts :: [
+          restart: :temporary | :transient | :permanent,
+          shutdown: :brutal_kill | timeout()
+        ]
+
   @doc false
   def child_spec(opts) when is_list(opts) do
     id =
@@ -175,7 +187,7 @@ defmodule Task.Supervisor do
       The tasks must trap exits for the timeout to have an effect.
 
   """
-  @spec async(Supervisor.supervisor(), (-> any), Keyword.t()) :: Task.t()
+  @spec async(Supervisor.supervisor(), (-> any), async_opts) :: Task.t()
   def async(supervisor, fun, options \\ []) do
     async(supervisor, :erlang, :apply, [fun, []], options)
   end
@@ -197,7 +209,7 @@ defmodule Task.Supervisor do
       The tasks must trap exits for the timeout to have an effect.
 
   """
-  @spec async(Supervisor.supervisor(), module, atom, [term], Keyword.t()) :: Task.t()
+  @spec async(Supervisor.supervisor(), module, atom, [term], async_opts) :: Task.t()
   def async(supervisor, module, fun, args, options \\ []) do
     async(supervisor, :link, module, fun, args, options)
   end
@@ -284,7 +296,7 @@ defmodule Task.Supervisor do
       end
 
   """
-  @spec async_nolink(Supervisor.supervisor(), (-> any), Keyword.t()) :: Task.t()
+  @spec async_nolink(Supervisor.supervisor(), (-> any), async_opts) :: Task.t()
   def async_nolink(supervisor, fun, options \\ []) do
     async_nolink(supervisor, :erlang, :apply, [fun, []], options)
   end
@@ -303,7 +315,7 @@ defmodule Task.Supervisor do
   as the `:restart` option (the default), as `async_nolink/5` keeps a
   direct reference to the task which is lost if the task is restarted.
   """
-  @spec async_nolink(Supervisor.supervisor(), module, atom, [term], Keyword.t()) :: Task.t()
+  @spec async_nolink(Supervisor.supervisor(), module, atom, [term], async_opts) :: Task.t()
   def async_nolink(supervisor, module, fun, args, options \\ []) do
     async(supervisor, :nolink, module, fun, args, options)
   end
@@ -523,7 +535,7 @@ defmodule Task.Supervisor do
       The task must trap exits for the timeout to have an effect.
 
   """
-  @spec start_child(Supervisor.supervisor(), (-> any), keyword) ::
+  @spec start_child(Supervisor.supervisor(), (-> any), start_child_opts) ::
           DynamicSupervisor.on_start_child()
   def start_child(supervisor, fun, options \\ []) do
     restart = options[:restart]
@@ -538,7 +550,7 @@ defmodule Task.Supervisor do
   Similar to `start_child/3` except the task is specified
   by the given `module`, `fun` and `args`.
   """
-  @spec start_child(Supervisor.supervisor(), module, atom, [term], keyword) ::
+  @spec start_child(Supervisor.supervisor(), module, atom, [term], start_child_opts) ::
           DynamicSupervisor.on_start_child()
   def start_child(supervisor, module, fun, args, options \\ [])
       when is_atom(fun) and is_list(args) do

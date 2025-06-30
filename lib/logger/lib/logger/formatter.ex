@@ -99,6 +99,20 @@ defmodule Logger.Formatter do
   @type date_time_ms :: {date, time_ms}
 
   @type pattern :: :date | :level | :levelpad | :message | :metadata | :node | :time
+
+  @type new_opts :: [
+          colors: [
+            enabled: boolean(),
+            debug: atom(),
+            info: atom(),
+            warning: atom(),
+            error: atom()
+          ],
+          format: String.t() | {module(), atom()},
+          metadata: :all | [atom()],
+          truncate: pos_integer() | :infinity,
+          utc_log: boolean()
+        ]
   @valid_patterns [:time, :date, :message, :level, :node, :metadata, :levelpad]
   @default_pattern "\n$time $metadata[$level] $message\n"
   @replacement "�"
@@ -152,7 +166,7 @@ defmodule Logger.Formatter do
   The color of the message can also be configured per message via
   the `:ansi_color` metadata.
   """
-  @spec new(keyword) :: formatter when formatter: term
+  @spec new(new_opts) :: formatter when formatter: term
   def new(options \\ []) do
     template = compile(options[:format])
     colors = colors(options[:colors] || [])
