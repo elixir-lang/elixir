@@ -13,8 +13,8 @@ version = "1.0.0"
 # https://gleam.run/writing-gleam/gleam-toml/.
 
 [dependencies]
-gleam_stdlib = ">= 0.44.0 and < 2.0.0"
-gleam_otp = ">= 0.16.1 and < 1.0.0"
+gleam_stdlib = "0.59.0"
+gleam_otp = "0.16.1"
 
 [dev-dependencies]
 gleeunit = ">= 1.0.0 and < 2.0.0"
