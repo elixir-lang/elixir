@@ -169,6 +169,12 @@ defmodule ExUnit.Callbacks do
       end
   """
 
+  @type child_spec_overrides :: [
+          restart: :permanent | :transient | :temporary,
+          shutdown: :brutal_kill | timeout(),
+          type: :worker | :supervisor
+        ]
+
   @doc false
   def __register__(module) do
     Module.put_attribute(module, :ex_unit_describe, nil)
@@ -560,7 +566,7 @@ defmodule ExUnit.Callbacks do
   more about these keys in [the `Task` module](`Task#module-ancestor-and-caller-tracking`).
   """
   @doc since: "1.5.0"
-  @spec start_supervised(Supervisor.child_spec() | module | {module, term}, keyword) ::
+  @spec start_supervised(Supervisor.child_spec() | module | {module, term}, child_spec_overrides) ::
           Supervisor.on_start_child()
   def start_supervised(child_spec_or_module, opts \\ []) do
     sup =
@@ -581,7 +587,8 @@ defmodule ExUnit.Callbacks do
   not started properly.
   """
   @doc since: "1.6.0"
-  @spec start_supervised!(Supervisor.child_spec() | module | {module, term}, keyword) :: pid
+  @spec start_supervised!(Supervisor.child_spec() | module | {module, term}, child_spec_overrides) ::
+          pid
   def start_supervised!(child_spec_or_module, opts \\ []) do
     case start_supervised(child_spec_or_module, opts) do
       {:ok, pid} ->
@@ -627,7 +634,10 @@ defmodule ExUnit.Callbacks do
   > *by the test supervisor* in reverse order, ensuring graceful termination.
   """
   @doc since: "1.14.0"
-  @spec start_link_supervised!(Supervisor.child_spec() | module | {module, term}, keyword) ::
+  @spec start_link_supervised!(
+          Supervisor.child_spec() | module | {module, term},
+          child_spec_overrides
+        ) ::
           pid
   def start_link_supervised!(child_spec_or_module, opts \\ []) do
     pid = start_supervised!(child_spec_or_module, opts)

@@ -51,6 +51,13 @@ defmodule Module.Types.Descr do
 
   # Type definitions
 
+  @typedoc """
+  Options for `to_quoted/2`.
+  """
+  @type to_quoted_opts :: [
+          collapse_structs: boolean()
+        ]
+
   defguard is_descr(descr) when is_map(descr) or descr == :term
 
   defp descr_key?(:term, _key), do: true
@@ -552,6 +559,7 @@ defmodule Module.Types.Descr do
     * `:collapse_structs` - do not show struct fields that match
       their default type
   """
+  @spec to_quoted(term(), to_quoted_opts) :: Macro.t()
   def to_quoted(descr, opts \\ []) do
     if term_type?(descr) do
       {:term, [], []}
@@ -620,7 +628,13 @@ defmodule Module.Types.Descr do
 
   @doc """
   Converts a descr to its quoted string representation.
+
+  ## Options
+
+    * `:collapse_structs` - do not show struct fields that match
+      their default type
   """
+  @spec to_quoted(term(), to_quoted_opts) :: String.t()
   def to_quoted_string(descr, opts \\ []) do
     descr
     |> to_quoted(opts)

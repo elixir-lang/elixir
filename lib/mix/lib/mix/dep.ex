@@ -79,6 +79,13 @@ defmodule Mix.Dep do
           system_env: keyword
         }
 
+  @typedoc """
+  Options for `filter_by_name/3`.
+  """
+  @type filter_by_name_opts :: [
+          include_children: boolean()
+        ]
+
   @doc """
   Returns loaded dependencies from the cache for the current environment.
 
@@ -197,6 +204,7 @@ defmodule Mix.Dep do
 
   Raises if any of the names are missing.
   """
+  @spec filter_by_name([atom() | String.t()], [t()], filter_by_name_opts) :: [t()]
   def filter_by_name(given, all_deps, opts \\ []) do
     # Ensure all apps are atoms
     apps = to_app_names(given)

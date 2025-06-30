@@ -197,6 +197,15 @@ defmodule Macro do
   @typedoc "A captured remote function in the format of &Mod.fun/arity"
   @type captured_remote_function :: fun
 
+  @type escape_opts :: [
+          unquote: boolean(),
+          prune_metadata: boolean()
+        ]
+
+  @type inspect_atom_opts :: [
+          escape: (binary(), char() -> binary())
+        ]
+
   @doc """
   Breaks a pipeline expression into a list.
 
@@ -835,7 +844,7 @@ defmodule Macro do
   bound), while `quote/2` produces syntax trees for
   expressions.
   """
-  @spec escape(term, keyword) :: t()
+  @spec escape(term, escape_opts) :: t()
   def escape(expr, opts \\ []) do
     unquote = Keyword.get(opts, :unquote, false)
     kind = if Keyword.get(opts, :prune_metadata, false), do: :prune_metadata, else: :none
@@ -2399,7 +2408,7 @@ defmodule Macro do
 
   """
   @doc since: "1.14.0"
-  @spec inspect_atom(:literal | :key | :remote_call, atom, keyword) :: binary
+  @spec inspect_atom(:literal | :key | :remote_call, atom, inspect_atom_opts) :: binary
   def inspect_atom(source_format, atom, opts \\ [])
 
   def inspect_atom(:literal, atom, _opts) when is_nil(atom) or is_boolean(atom) do

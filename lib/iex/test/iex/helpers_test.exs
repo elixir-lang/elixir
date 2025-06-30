@@ -967,7 +967,7 @@ defmodule IEx.HelpersTest do
 
   describe "t" do
     test "prints when there is no type information or the type is private" do
-      assert capture_io(fn -> t(IEx) end) == "No type information for IEx was found\n"
+      assert capture_io(fn -> t(List) end) == "No type information for List was found\n"
 
       assert capture_io(fn -> t(Enum.doesnt_exist()) end) ==
                "No type information for Enum.doesnt_exist was found or " <>

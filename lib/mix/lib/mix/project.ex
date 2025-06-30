@@ -158,6 +158,22 @@ defmodule Mix.Project do
 
   """
 
+  @type build_structure_opts :: [
+          symlink_ebin: boolean(),
+          source: String.t()
+        ]
+
+  @typedoc """
+  Options for dependency traversal functions.
+
+  These options control how dependency trees are traversed and filtered
+  in functions like `deps_scms/1`, `deps_paths/1`, and `deps_tree/1`.
+  """
+  @type deps_traversal_opts :: [
+          depth: pos_integer(),
+          parents: [atom()]
+        ]
+
   @doc false
   defmacro __using__(_) do
     quote do
@@ -540,7 +556,7 @@ defmodule Mix.Project do
 
   """
   @doc since: "1.10.0"
-  @spec deps_scms(keyword) :: %{optional(atom) => Mix.SCM.t()}
+  @spec deps_scms(deps_traversal_opts) :: %{optional(atom) => Mix.SCM.t()}
   def deps_scms(opts \\ []) when is_list(opts) do
     traverse_deps(opts, fn %{scm: scm} -> scm end)
   end
@@ -561,7 +577,7 @@ defmodule Mix.Project do
       #=> %{foo: "deps/foo", bar: "custom/path/dep"}
 
   """
-  @spec deps_paths(keyword) :: %{optional(atom) => Path.t()}
+  @spec deps_paths(deps_traversal_opts) :: %{optional(atom) => Path.t()}
   def deps_paths(opts \\ []) when is_list(opts) do
     traverse_deps(opts, fn %{opts: opts} -> opts[:dest] end)
   end
@@ -583,7 +599,7 @@ defmodule Mix.Project do
 
   """
   @doc since: "1.15.0"
-  @spec deps_tree(keyword) :: %{optional(atom) => [atom]}
+  @spec deps_tree(deps_traversal_opts) :: %{optional(atom) => [atom]}
   def deps_tree(opts \\ []) when is_list(opts) do
     traverse_deps(opts, fn %{deps: deps} -> Enum.map(deps, & &1.app) end)
   end
@@ -843,8 +859,11 @@ defmodule Mix.Project do
 
     * `:symlink_ebin` - symlink ebin instead of copying it
 
+    * `:source` - the source directory to copy from.
+      Defaults to the current working directory.
+
   """
-  @spec build_structure(keyword, keyword) :: :ok
+  @spec build_structure(keyword, build_structure_opts) :: :ok
   def build_structure(config \\ config(), opts \\ []) do
     source = opts[:source] || File.cwd!()
     target = app_path(config)
@@ -878,7 +897,7 @@ defmodule Mix.Project do
 
   `opts` are the same options that can be passed to `build_structure/2`.
   """
-  @spec ensure_structure(keyword, keyword) :: :ok
+  @spec ensure_structure(keyword, build_structure_opts) :: :ok
   def ensure_structure(config \\ config(), opts \\ []) do
     if File.exists?(app_path(config)) do
       :ok

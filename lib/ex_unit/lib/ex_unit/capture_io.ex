@@ -28,6 +28,12 @@ defmodule ExUnit.CaptureIO do
 
   """
 
+  @type capture_io_opts :: [
+          input: String.t(),
+          capture_prompt: boolean(),
+          encoding: :unicode | :latin1
+        ]
+
   @doc """
   Captures IO generated when evaluating `fun`.
 
@@ -152,7 +158,7 @@ defmodule ExUnit.CaptureIO do
 
   See `capture_io/1` for more information.
   """
-  @spec capture_io(atom() | pid() | String.t() | keyword(), (-> any())) :: String.t()
+  @spec capture_io(atom() | pid() | String.t() | capture_io_opts, (-> any())) :: String.t()
   def capture_io(device_pid_input_or_options, fun)
 
   def capture_io(device_or_pid, fun)
@@ -172,7 +178,7 @@ defmodule ExUnit.CaptureIO do
 
   See `capture_io/1` for more information.
   """
-  @spec capture_io(atom() | pid(), String.t() | keyword(), (-> any())) :: String.t()
+  @spec capture_io(atom() | pid(), String.t() | capture_io_opts, (-> any())) :: String.t()
   def capture_io(device_or_pid, input_or_options, fun)
       when (is_atom(device_or_pid) or is_pid(device_or_pid)) and
              (is_binary(input_or_options) or is_list(input_or_options)) and is_function(fun, 0) do
@@ -209,7 +215,7 @@ defmodule ExUnit.CaptureIO do
   See `with_io/1` for more information.
   """
   @doc since: "1.13.0"
-  @spec with_io(atom() | pid() | String.t() | keyword(), (-> any())) :: {any(), String.t()}
+  @spec with_io(atom() | pid() | String.t() | capture_io_opts, (-> any())) :: {any(), String.t()}
   def with_io(device_pid_input_or_options, fun)
 
   def with_io(device, fun) when is_atom(device) and is_function(fun, 0) do
@@ -234,7 +240,7 @@ defmodule ExUnit.CaptureIO do
   See `with_io/1` for more information.
   """
   @doc since: "1.13.0"
-  @spec with_io(atom() | pid(), String.t() | keyword(), (-> any())) :: {any(), String.t()}
+  @spec with_io(atom() | pid(), String.t() | capture_io_opts, (-> any())) :: {any(), String.t()}
   def with_io(device_or_pid, input_or_options, fun)
 
   def with_io(device, input, fun)

@@ -115,11 +115,28 @@ defmodule Inspect.Opts do
           width: non_neg_integer | :infinity
         }
 
+  @typedoc """
+  Options for building an `Inspect.Opts` struct with `new/1`.
+  """
+  @type new_opt ::
+          {:base, :decimal | :binary | :hex | :octal}
+          | {:binaries, :infer | :as_binaries | :as_strings}
+          | {:charlists, :infer | :as_lists | :as_charlists}
+          | {:custom_options, keyword}
+          | {:inspect_fun, (any, t -> Inspect.Algebra.t())}
+          | {:limit, non_neg_integer | :infinity}
+          | {:pretty, boolean}
+          | {:printable_limit, non_neg_integer | :infinity}
+          | {:safe, boolean}
+          | {:structs, boolean}
+          | {:syntax_colors, [{color_key, IO.ANSI.ansidata()}]}
+          | {:width, non_neg_integer | :infinity}
+
   @doc """
   Builds an `Inspect.Opts` struct.
   """
   @doc since: "1.13.0"
-  @spec new(keyword()) :: t
+  @spec new([new_opt()]) :: t
   def new(opts) do
     struct(%Inspect.Opts{inspect_fun: default_inspect_fun()}, opts)
   end
@@ -324,6 +341,14 @@ defmodule Inspect.Algebra do
     quote do: {:doc_color, unquote(doc), unquote(color)}
   end
 
+  @typedoc """
+  Options for container documents.
+  """
+  @type container_opts :: [
+          separator: String.t(),
+          break: :strict | :flex | :maybe
+        ]
+
   @docs [
     :doc_break,
     :doc_collapse,
@@ -440,7 +465,14 @@ defmodule Inspect.Algebra do
   updated options from inspection.
   """
   @doc since: "1.6.0"
-  @spec container_doc(t, [term], t, Inspect.Opts.t(), (term, Inspect.Opts.t() -> t), keyword()) ::
+  @spec container_doc(
+          t,
+          [term],
+          t,
+          Inspect.Opts.t(),
+          (term, Inspect.Opts.t() -> t),
+          container_opts()
+        ) ::
           t
   def container_doc(left, collection, right, inspect_opts, fun, opts \\ []) do
     container_doc_with_opts(left, collection, right, inspect_opts, fun, opts) |> elem(0)
@@ -496,7 +528,7 @@ defmodule Inspect.Algebra do
           t,
           Inspect.Opts.t(),
           (term, Inspect.Opts.t() -> t),
-          keyword()
+          container_opts()
         ) ::
           {t, Inspect.Opts.t()}
   def container_doc_with_opts(left, collection, right, inspect_opts, fun, opts \\ [])
