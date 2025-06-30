@@ -128,22 +128,7 @@ defmodule IO do
   @type nodata :: {:error, term} | :eof
   @type chardata :: String.t() | maybe_improper_list(char | chardata, String.t() | [])
 
-  @type inspect_opts :: [
-          label: term,
-          base: :decimal | :binary | :hex | :octal,
-          binaries: :infer | :as_binaries | :as_strings,
-          charlists: :infer | :as_lists | :as_charlists,
-          char_lists: :infer,
-          custom_options: keyword,
-          inspect_fun: (any, Inspect.Opts.t() -> Inspect.Algebra.t()),
-          limit: non_neg_integer | :infinity,
-          pretty: boolean,
-          printable_limit: non_neg_integer | :infinity,
-          safe: boolean,
-          structs: boolean,
-          syntax_colors: [{atom, IO.ANSI.ansidata()}],
-          width: non_neg_integer | :infinity
-        ]
+  @type inspect_opts :: [Inspect.Opts.new_opt() | {:label, term}]
 
   @typedoc """
   Stacktrace information as keyword options for `warn/2`.

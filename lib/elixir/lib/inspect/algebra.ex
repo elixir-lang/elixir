@@ -118,26 +118,25 @@ defmodule Inspect.Opts do
   @typedoc """
   Options for building an `Inspect.Opts` struct with `new/1`.
   """
-  @type new_opts :: [
-          base: :decimal | :binary | :hex | :octal,
-          binaries: :infer | :as_binaries | :as_strings,
-          charlists: :infer | :as_lists | :as_charlists,
-          custom_options: keyword,
-          inspect_fun: (any, t -> Inspect.Algebra.t()),
-          limit: non_neg_integer | :infinity,
-          pretty: boolean,
-          printable_limit: non_neg_integer | :infinity,
-          safe: boolean,
-          structs: boolean,
-          syntax_colors: [{color_key, IO.ANSI.ansidata()}],
-          width: non_neg_integer | :infinity
-        ]
+  @type new_opt ::
+          {:base, :decimal | :binary | :hex | :octal}
+          | {:binaries, :infer | :as_binaries | :as_strings}
+          | {:charlists, :infer | :as_lists | :as_charlists}
+          | {:custom_options, keyword}
+          | {:inspect_fun, (any, t -> Inspect.Algebra.t())}
+          | {:limit, non_neg_integer | :infinity}
+          | {:pretty, boolean}
+          | {:printable_limit, non_neg_integer | :infinity}
+          | {:safe, boolean}
+          | {:structs, boolean}
+          | {:syntax_colors, [{color_key, IO.ANSI.ansidata()}]}
+          | {:width, non_neg_integer | :infinity}
 
   @doc """
   Builds an `Inspect.Opts` struct.
   """
   @doc since: "1.13.0"
-  @spec new(new_opts()) :: t
+  @spec new([new_opt()]) :: t
   def new(opts) do
     struct(%Inspect.Opts{inspect_fun: default_inspect_fun()}, opts)
   end
