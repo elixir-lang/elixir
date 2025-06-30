@@ -95,6 +95,15 @@ defmodule Mix.Tasks.Profile.Cprof do
   (for example, 2147483647 in a 32-bit host).
   """
 
+  @typedoc """
+  Options for the cprof profiler.
+  """
+  @type profile_opts :: [
+          matching: {module() | :_, atom() | :_, arity() | :_},
+          limit: non_neg_integer(),
+          module: module()
+        ]
+
   @switches [
     parallel: :boolean,
     require: :keep,
@@ -172,7 +181,7 @@ defmodule Mix.Tasks.Profile.Cprof do
     * `:module` - filters out any results not pertaining to the given module
 
   """
-  @spec profile((-> result), keyword()) :: result when result: any()
+  @spec profile((-> result), profile_opts()) :: result when result: any()
   def profile(fun, opts \\ []) when is_function(fun, 0) do
     Mix.ensure_application!(:tools)
     {return_value, num_matched_functions, analysis_result} = profile_and_analyse(fun, opts)

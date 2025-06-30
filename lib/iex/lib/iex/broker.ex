@@ -9,6 +9,13 @@ defmodule IEx.Broker do
   @type take_ref :: {takeover_ref :: reference(), server_ref :: reference()}
   @type shell :: pid | nil
 
+  @typedoc """
+  Options for `take_over/3`.
+  """
+  @type take_over_opts :: [
+          evaluator: pid()
+        ]
+
   use GenServer
 
   ## Shell API
@@ -58,7 +65,7 @@ defmodule IEx.Broker do
   @doc """
   Client requests a takeover.
   """
-  @spec take_over(binary, iodata, keyword) ::
+  @spec take_over(binary, iodata, take_over_opts) ::
           {:ok, server :: pid, group_leader :: pid, counter :: integer}
           | {:error, :no_iex | :refused | atom()}
   def take_over(location, whereami, opts) do

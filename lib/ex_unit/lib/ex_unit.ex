@@ -93,6 +93,50 @@ defmodule ExUnit do
 
   @type test_id :: {module, name :: atom}
 
+  @typedoc """
+  Configuration options for ExUnit.
+
+  See `configure/1` for detailed documentation of each option.
+  """
+  @type configure_opts :: [
+          {:assert_receive_timeout, non_neg_integer()}
+          | {:autorun, boolean()}
+          | {:capture_log, boolean() | [level: Logger.level()]}
+          | {:colors,
+             [
+               enabled: boolean(),
+               success: atom(),
+               invalid: atom(),
+               skipped: atom(),
+               failure: atom(),
+               error_info: atom(),
+               extra_info: atom(),
+               location_info: [atom()],
+               diff_insert: atom(),
+               diff_insert_whitespace: IO.ANSI.ansidata(),
+               diff_delete: atom(),
+               diff_delete_whitespace: IO.ANSI.ansidata()
+             ]}
+          | {:exclude, keyword()}
+          | {:exit_status, non_neg_integer()}
+          | {:failures_manifest_path, String.t()}
+          | {:formatters, [module()]}
+          | {:include, keyword()}
+          | {:max_cases, pos_integer()}
+          | {:max_failures, pos_integer() | :infinity}
+          | {:only_test_ids, [test_id()]}
+          | {:rand_algorithm, atom()}
+          | {:refute_receive_timeout, non_neg_integer()}
+          | {:seed, non_neg_integer()}
+          | {:slowest, non_neg_integer()}
+          | {:slowest_modules, non_neg_integer()}
+          | {:stacktrace_depth, non_neg_integer()}
+          | {:timeout, pos_integer()}
+          | {:trace, boolean()}
+          | {:test_location_relative_path, String.t()}
+          | {atom(), term()}
+        ]
+
   defmodule Test do
     @moduledoc """
     A struct that keeps information about the test.
@@ -218,7 +262,7 @@ defmodule ExUnit do
   If you want to run tests manually, you can set the `:autorun` option
   to `false` and use `run/0` to run tests.
   """
-  @spec start(Keyword.t()) :: :ok
+  @spec start(configure_opts()) :: :ok
   def start(options \\ []) do
     {:ok, _} = Application.ensure_all_started(:ex_unit)
 
@@ -357,7 +401,7 @@ defmodule ExUnit do
   and these options can then be used in places such as custom formatters. These
   other options will be ignored by ExUnit itself.
   """
-  @spec configure(Keyword.t()) :: :ok
+  @spec configure(configure_opts()) :: :ok
   def configure(options) when is_list(options) do
     Enum.each(options, fn {k, v} ->
       Application.put_env(:ex_unit, k, v)

@@ -8,13 +8,32 @@ defmodule Logger.Backends.Internal do
   @name __MODULE__
   @type backend :: :gen_event.handler()
 
+  @typedoc """
+  Configuration options for Logger backends.
+
+  These are the built-in backend options that can be configured at runtime.
+  """
+  @type backend_config_opts :: [
+          sync_threshold: pos_integer(),
+          discard_threshold: pos_integer() | :infinity,
+          truncate: pos_integer() | :infinity,
+          utc_log: boolean()
+        ]
+
+  @typedoc """
+  Options for `add/2` and `remove/2` operations.
+  """
+  @type add_remove_opts :: [
+          flush: boolean()
+        ]
+
   @doc """
   Apply runtime configuration to all backends.
 
   See the module doc for more information.
   """
   @backend_options [:sync_threshold, :discard_threshold, :truncate, :utc_log]
-  @spec configure(keyword) :: :ok
+  @spec configure(backend_config_opts) :: :ok
   def configure(options) do
     ensure_started()
     Logger.Backends.Config.configure(Keyword.take(options, @backend_options))
@@ -65,7 +84,7 @@ defmodule Logger.Backends.Internal do
       {:ok, _pid} = Logger.add_backend(MyBackend, flush: true)
 
   """
-  @spec add(backend, keyword) :: Supervisor.on_start_child()
+  @spec add(backend, add_remove_opts) :: Supervisor.on_start_child()
   def add(backend, opts \\ []) do
     ensure_started()
     _ = if opts[:flush], do: Logger.flush()
@@ -91,7 +110,7 @@ defmodule Logger.Backends.Internal do
       to `Logger` are processed before the backend is removed
 
   """
-  @spec remove(backend, keyword) :: :ok | {:error, term}
+  @spec remove(backend, add_remove_opts) :: :ok | {:error, term}
   def remove(backend, opts \\ []) do
     ensure_started()
     _ = if opts[:flush], do: Logger.flush()

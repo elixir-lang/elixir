@@ -101,6 +101,18 @@ defmodule Mix.Tasks.Profile.Eprof do
   `Mix.Tasks.Profile.Cprof` that uses [`:cprof`](`:cprof`) and has a low performance degradation effect.
   """
 
+  @typedoc """
+  Options for the eprof profiler.
+  """
+  @type profile_opts :: [
+          matching: {module() | :_, atom() | :_, arity() | :_},
+          calls: non_neg_integer(),
+          time: non_neg_integer(),
+          sort: :time | :calls,
+          warmup: boolean(),
+          set_on_spawn: boolean()
+        ]
+
   @switches [
     parallel: :boolean,
     require: :keep,
@@ -189,7 +201,7 @@ defmodule Mix.Tasks.Profile.Eprof do
     * `:set_on_spawn` - if newly spawned processes should be measured (default: `true`)
 
   """
-  @spec profile((-> result), keyword()) :: result when result: any()
+  @spec profile((-> result), profile_opts()) :: result when result: any()
   def profile(fun, opts \\ []) when is_function(fun, 0) do
     Mix.ensure_application!(:tools)
     {return_value, results} = profile_and_analyse(fun, opts)

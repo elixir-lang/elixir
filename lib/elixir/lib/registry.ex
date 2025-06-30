@@ -242,6 +242,11 @@ defmodule Registry do
           {:register, registry, key, registry_partition :: pid, value}
           | {:unregister, registry, key, registry_partition :: pid}
 
+  @typedoc """
+  Options used for `dispatch/4`.
+  """
+  @type dispatch_opts :: [parallel: boolean()]
+
   ## Via callbacks
 
   @doc false
@@ -483,9 +488,15 @@ defmodule Registry do
 
   See the module documentation for examples of using the `dispatch/3`
   function for building custom dispatching or a pubsub system.
+
+  ## Options
+
+    * `:parallel` - if `true`, the dispatching is done in parallel
+      across all partitions. Defaults to `false`.
+
   """
   @doc since: "1.4.0"
-  @spec dispatch(registry, key, dispatcher, keyword) :: :ok
+  @spec dispatch(registry, key, dispatcher, dispatch_opts) :: :ok
         when dispatcher: (entries :: [{pid, value}] -> term) | {module(), atom(), [term()]}
   def dispatch(registry, key, mfa_or_fun, opts \\ [])
       when is_atom(registry) and is_function(mfa_or_fun, 1)

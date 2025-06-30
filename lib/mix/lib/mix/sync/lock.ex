@@ -73,6 +73,13 @@ defmodule Mix.Sync.Lock do
   @probe_data_size byte_size(@probe_data)
   @probe_timeout_ms 5_000
 
+  @typedoc """
+  Options for `with_lock/3`.
+  """
+  @type with_lock_opts :: [
+          on_taken: (String.t() -> any())
+        ]
+
   @doc """
   Acquires a lock identified by the given key.
 
@@ -95,7 +102,7 @@ defmodule Mix.Sync.Lock do
       is successfully acquired by this process.
 
   """
-  @spec with_lock(iodata(), (-> term()), keyword()) :: term()
+  @spec with_lock(iodata(), (-> term()), with_lock_opts()) :: term()
   def with_lock(key, fun, opts \\ []) do
     opts = Keyword.validate!(opts, [:on_taken])
 

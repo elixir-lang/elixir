@@ -7,6 +7,29 @@ defmodule Mix.Shell do
   Defines `Mix.Shell` contract.
   """
 
+  @type cmd_opts :: [
+          {:print_app, boolean()}
+          | {:stderr_to_stdout, boolean()}
+          | {:quiet, boolean()}
+          | {:env, [{String.t(), String.t()}]}
+          | {:cd, String.t()}
+          | {atom(), term()}
+        ]
+
+  @type yes_opts :: [
+          {:default, :yes | :no}
+          | {atom(), term()}
+        ]
+
+  @type stream_cmd_opts :: [
+          {:cd, String.t()}
+          | {:stderr_to_stdout, boolean()}
+          | {:use_stdio, boolean()}
+          | {:env, [{String.t(), String.t()}]}
+          | {:quiet, boolean()}
+          | {atom(), term()}
+        ]
+
   @doc false
   defstruct [:callback]
 
@@ -48,7 +71,7 @@ defmodule Mix.Shell do
 
   All the built-in shells support these.
   """
-  @callback cmd(command :: String.t(), options :: keyword) :: integer
+  @callback cmd(command :: String.t(), options :: cmd_opts) :: integer
 
   @doc """
   Prompts the user for input.
@@ -69,7 +92,7 @@ defmodule Mix.Shell do
 
     * `:default` - `:yes` or `:no` (the default is `:yes`)
   """
-  @callback yes?(message :: binary, options :: keyword) :: boolean
+  @callback yes?(message :: binary, options :: yes_opts) :: boolean
 
   @doc """
   Prints the current application to the shell if
@@ -117,7 +140,7 @@ defmodule Mix.Shell do
     * `:quiet` - overrides the callback to no-op
 
   """
-  @spec cmd(String.t() | {String.t(), [String.t()]}, keyword, (binary -> term)) ::
+  @spec cmd(String.t() | {String.t(), [String.t()]}, stream_cmd_opts, (binary -> term)) ::
           exit_status :: non_neg_integer
   def cmd(command, options \\ [], callback) when is_function(callback, 1) do
     callback =

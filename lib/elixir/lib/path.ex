@@ -22,6 +22,8 @@ defmodule Path do
   """
   @type t :: IO.chardata()
 
+  @type relative_to_opts :: [force: boolean()]
+
   @doc """
   Converts the given path to an absolute one.
 
@@ -401,7 +403,7 @@ defmodule Path do
       Path.relative_to("../foo", "/usr/local")     #=> "../foo"
 
   """
-  @spec relative_to(t, t, keyword) :: binary
+  @spec relative_to(t, t, relative_to_opts) :: binary
   def relative_to(path, cwd, opts \\ []) when is_list(opts) do
     os_type = major_os_type()
     split_path = split(path)
@@ -479,7 +481,7 @@ defmodule Path do
 
   Check `relative_to/3` for the supported options.
   """
-  @spec relative_to_cwd(t, keyword) :: binary
+  @spec relative_to_cwd(t, relative_to_opts) :: binary
   def relative_to_cwd(path, opts \\ []) when is_list(opts) do
     case :file.get_cwd() do
       {:ok, base} -> relative_to(path, IO.chardata_to_string(base), opts)
@@ -801,7 +803,7 @@ defmodule Path do
       Path.wildcard("projects/*/ebin/**/*.{beam,app}")
 
   """
-  @spec wildcard(t, keyword) :: [binary]
+  @spec wildcard(t, match_dot: boolean()) :: [binary]
   def wildcard(glob, opts \\ []) when is_list(opts) do
     mod = if Keyword.get(opts, :match_dot), do: :file, else: Path.Wildcard
 

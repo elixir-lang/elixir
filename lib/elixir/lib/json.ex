@@ -328,6 +328,22 @@ defmodule JSON do
           | {:invalid_byte, non_neg_integer(), byte()}
           | {:unexpected_sequence, non_neg_integer(), binary()}
 
+  @typedoc """
+  Decoders for customizing JSON decoding behavior.
+  """
+  @type decoders :: [
+          array_start: (term() -> term()),
+          array_push: (term(), term() -> term()),
+          array_finish: (term(), term() -> {term(), term()}),
+          object_start: (term() -> term()),
+          object_push: (term(), term(), term() -> term()),
+          object_finish: (term(), term() -> {term(), term()}),
+          float: (String.t() -> term()),
+          integer: (String.t() -> term()),
+          string: (String.t() -> term()),
+          null: term()
+        ]
+
   @doc ~S"""
   Decodes the given JSON.
 
@@ -381,7 +397,7 @@ defmodule JSON do
 
   For streaming decoding, see Erlang's [`:json`](`:json`) module.
   """
-  @spec decode(binary(), term(), keyword()) ::
+  @spec decode(binary(), term(), decoders()) ::
           {term(), term(), binary()} | {:error, decode_error_reason()}
   def decode(binary, acc, decoders) when is_binary(binary) and is_list(decoders) do
     decoders = Keyword.put_new(decoders, :null, nil)

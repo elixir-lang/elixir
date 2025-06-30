@@ -9,6 +9,14 @@
 defmodule Mix.Dep.Lock do
   @moduledoc false
 
+  @typedoc """
+  Options for `write/2`.
+  """
+  @type write_opts :: [
+          file: Path.t(),
+          check_locked: boolean()
+        ]
+
   @doc """
   Reads the lockfile, returns a map containing
   each app name and its current lock information.
@@ -30,7 +38,7 @@ defmodule Mix.Dep.Lock do
   @doc """
   Receives a map and writes it as the latest lock.
   """
-  @spec write(map(), keyword) :: :ok
+  @spec write(map(), write_opts) :: :ok
   def write(map, opts \\ []) do
     lockfile = opts[:file] || lockfile()
 

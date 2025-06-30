@@ -223,15 +223,55 @@ defmodule Mix.Tasks.Format do
     ins: [text: :green, space: :green_background]
   ]
 
+  @typedoc """
+  Options passed to plugin `features/1` callback.
+
+  These are the same formatter options from `.formatter.exs` configuration,
+  allowing plugins to access formatting settings when determining their capabilities.
+  """
+  @type features_opts :: [
+          inputs: [String.t()],
+          plugins: [module()],
+          subdirectories: [String.t()],
+          import_deps: [atom()],
+          export: keyword(),
+          locals_without_parens: keyword(),
+          line_length: pos_integer(),
+          normalize_bitstring_modifiers: boolean(),
+          normalize_charlists_as_binaries: boolean()
+        ]
+
+  @typedoc """
+  Options passed to plugin `format/2` callback.
+
+  These options include context-specific information about what is being formatted
+  (sigil, extension, file) along with all the standard formatter configuration options.
+  """
+  @type format_opts :: [
+          {:sigil, atom()}
+          | {:modifiers, charlist()}
+          | {:extension, String.t()}
+          | {:file, String.t()}
+          | {:inputs, [String.t()]}
+          | {:plugins, [module()]}
+          | {:subdirectories, [String.t()]}
+          | {:import_deps, [atom()]}
+          | {:export, keyword()}
+          | {:locals_without_parens, keyword()}
+          | {:line_length, pos_integer()}
+          | {:normalize_bitstring_modifiers, boolean()}
+          | {:normalize_charlists_as_binaries, boolean()}
+        ]
+
   @doc """
   Returns which features this plugin should plug into.
   """
-  @callback features(Keyword.t()) :: [sigils: [atom()], extensions: [binary()]]
+  @callback features(features_opts) :: [sigils: [atom()], extensions: [binary()]]
 
   @doc """
   Receives a string to be formatted with options and returns said string.
   """
-  @callback format(String.t(), Keyword.t()) :: String.t()
+  @callback format(String.t(), format_opts) :: String.t()
 
   @impl true
   def run(all_args) do
@@ -356,6 +396,16 @@ defmodule Mix.Tasks.Format do
     plugins
   end
 
+  @typedoc """
+  Options for `formatter_for_file/2`.
+  """
+  @type formatter_for_file_opts :: [
+          deps_paths: %{atom() => String.t()},
+          dot_formatter: String.t(),
+          plugin_loader: ([module()] -> [module()]),
+          root: String.t()
+        ]
+
   @doc """
   Returns a formatter function and the formatter options to
   be used for the given file.
@@ -389,6 +439,8 @@ defmodule Mix.Tasks.Format do
     * `:root` - use the given root as the current working directory.
   """
   @doc since: "1.13.0"
+  @spec formatter_for_file(String.t(), formatter_for_file_opts) ::
+          {(String.t() -> String.t()), keyword()}
   def formatter_for_file(file, opts \\ []) do
     cwd = Keyword.get_lazy(opts, :root, &File.cwd!/0)
     {dot_formatter, formatter_opts} = eval_dot_formatter(cwd, opts)
@@ -809,8 +861,18 @@ defmodule Mix.Tasks.Format do
     end)
   end
 
+  @typedoc """
+  Options for `text_diff_format/3`.
+  """
+  @type text_diff_format_opts :: [
+          after: non_neg_integer(),
+          before: non_neg_integer(),
+          color: boolean(),
+          line: pos_integer()
+        ]
+
   @doc false
-  @spec text_diff_format(String.t(), String.t()) :: iolist()
+  @spec text_diff_format(String.t(), String.t(), text_diff_format_opts) :: iolist()
   def text_diff_format(old, new, opts \\ [])
 
   def text_diff_format(code, code, _opts), do: []
