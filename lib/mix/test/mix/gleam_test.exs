@@ -28,8 +28,8 @@ defmodule Mix.GleamTest do
       config = Mix.Gleam.load_config(path)
 
       expected = [
-        {:gleam_stdlib, ">= 0.44.0 and < 2.0.0"},
-        {:gleam_otp, ">= 0.16.1 and < 1.0.0"},
+        {:gleam_stdlib, "0.59.0"},
+        {:gleam_otp, "0.16.1"},
         {:gleeunit, ">= 1.0.0 and < 2.0.0", only: [:dev, :test]}
       ]
 

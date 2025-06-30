@@ -14,4 +14,4 @@ version = "1.0.0"
 
 [dependencies]
 gleam_dep = { path = "../../gleam_dep" }
-gleam_stdlib = ">= 0.59.0 and < 1.0.0"
+gleam_stdlib = "0.59.0"
