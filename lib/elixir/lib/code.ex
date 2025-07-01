@@ -251,18 +251,27 @@ defmodule Code do
   @typedoc """
   Options for code formatting functions.
   """
-  @type format_opts :: [
-          file: binary(),
-          line: pos_integer(),
-          line_length: pos_integer(),
-          locals_without_parens: keyword(),
-          force_do_end_blocks: boolean(),
-          migrate: boolean(),
-          migrate_bitstring_modifiers: boolean(),
-          migrate_call_parens_on_pipe: boolean(),
-          migrate_charlists_as_sigils: boolean(),
-          migrate_unless: boolean()
-        ]
+  @type format_opt ::
+          {:file, binary()}
+          | {:line, pos_integer()}
+          | {:line_length, pos_integer()}
+          | {:locals_without_parens, keyword()}
+          | {:force_do_end_blocks, boolean()}
+          | {:migrate, boolean()}
+          | {:migrate_bitstring_modifiers, boolean()}
+          | {:migrate_call_parens_on_pipe, boolean()}
+          | {:migrate_charlists_as_sigils, boolean()}
+          | {:migrate_unless, boolean()}
+          | {atom(), term()}
+
+  @typedoc """
+  Options for `quoted_to_algebra/2`.
+  """
+  @type quoted_to_algebra_opt ::
+          {:line, pos_integer() | nil}
+          | {:escape, boolean()}
+          | {:locals_without_parens, keyword()}
+          | {:comments, [term()]}
 
   @typedoc """
   Options for parsing functions that convert strings to quoted expressions.
@@ -1079,7 +1088,7 @@ defmodule Code do
   address the deprecation warnings.
   """
   @doc since: "1.6.0"
-  @spec format_string!(binary, format_opts) :: iodata
+  @spec format_string!(binary, [format_opt]) :: iodata
   def format_string!(string, opts \\ []) when is_binary(string) and is_list(opts) do
     line_length = Keyword.get(opts, :line_length, 98)
 
@@ -1104,7 +1113,7 @@ defmodule Code do
   available options.
   """
   @doc since: "1.6.0"
-  @spec format_file!(binary, format_opts) :: iodata
+  @spec format_file!(binary, [format_opt]) :: iodata
   def format_file!(file, opts \\ []) when is_binary(file) and is_list(opts) do
     string = File.read!(file)
     formatted = format_string!(string, [file: file, line: 1] ++ opts)
@@ -1516,14 +1525,13 @@ defmodule Code do
       `string_to_quoted/2`, setting this option to `false` will prevent it from
       escaping the sequences twice. Defaults to `true`.
 
-  See `format_string!/2` for the full list of formatting options including 
+  See `format_string!/2` for the full list of formatting options including
   `:file`, `:line`, `:line_length`, `:locals_without_parens`, `:force_do_end_blocks`,
   `:syntax_colors`, and all migration options like `:migrate_charlists_as_sigils`.
   """
   @doc since: "1.13.0"
-  @spec quoted_to_algebra(Macro.t(), [
-          Code.Formatter.to_algebra_opt() | Code.Normalizer.normalize_opt()
-        ]) :: Inspect.Algebra.t()
+  @spec quoted_to_algebra(Macro.t(), [format_opt() | quoted_to_algebra_opt()]) ::
+          Inspect.Algebra.t()
   def quoted_to_algebra(quoted, opts \\ []) do
     quoted
     |> Code.Normalizer.normalize(opts)

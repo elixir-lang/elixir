@@ -6,13 +6,6 @@ defmodule Module.Types.Helpers do
   # AST and enumeration helpers.
   @moduledoc false
 
-  @typedoc """
-  Options for `expr_to_string/2`.
-  """
-  @type expr_to_string_opts :: [
-          collapse_structs: boolean()
-        ]
-
   ## AST helpers
 
   @doc """
@@ -278,8 +271,11 @@ defmodule Module.Types.Helpers do
   translating inlined Erlang calls back to Elixir.
 
   We also undo some macro expressions done by the Kernel module.
+
+  ## Options
+
+    * `:collapse_structs` - when false, show structs full representation
   """
-  @spec expr_to_string(Macro.t(), expr_to_string_opts) :: String.t()
   def expr_to_string(expr, opts \\ []) do
     string = prewalk_expr_to_string(expr, opts)
 

@@ -921,8 +921,7 @@ defmodule Mix.Release do
   ## Options
 
     * `:keep` - a list of additional chunk names (as strings) to keep in the
-      stripped BEAM file. These will be added to the significant chunks
-      determined by `:beam_lib.significant_chunks/0`
+      stripped BEAM file beyond those required by Erlang/Elixir
 
     * `:compress` - when `true`, the resulting BEAM file will be compressed
       using gzip. Defaults to `false`
