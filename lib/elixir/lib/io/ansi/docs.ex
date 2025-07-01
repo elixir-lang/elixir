@@ -5,6 +5,20 @@
 defmodule IO.ANSI.Docs do
   @moduledoc false
 
+  @type print_opts :: [
+          enabled: boolean(),
+          doc_bold: [IO.ANSI.ansicode()],
+          doc_code: [IO.ANSI.ansicode()],
+          doc_headings: [IO.ANSI.ansicode()],
+          doc_metadata: [IO.ANSI.ansicode()],
+          doc_quote: [IO.ANSI.ansicode()],
+          doc_inline_code: [IO.ANSI.ansicode()],
+          doc_table_heading: [IO.ANSI.ansicode()],
+          doc_title: [IO.ANSI.ansicode()],
+          doc_underline: [IO.ANSI.ansicode()],
+          width: pos_integer()
+        ]
+
   @bullet_text_unicode "• "
   @bullet_text_ascii "* "
   @bullets [?*, ?-, ?+]
@@ -30,7 +44,7 @@ defmodule IO.ANSI.Docs do
   Values for the color settings are strings with
   comma-separated ANSI values.
   """
-  @spec default_options() :: keyword
+  @spec default_options() :: print_opts
   def default_options do
     [
       enabled: true,
@@ -52,7 +66,7 @@ defmodule IO.ANSI.Docs do
 
   See `default_options/0` for docs on the supported options.
   """
-  @spec print_headings([String.t()], keyword) :: :ok
+  @spec print_headings([String.t()], print_opts) :: :ok
   def print_headings(headings, options \\ []) do
     # It's possible for some of the headings to contain newline characters (`\n`), so in order to prevent it from
     # breaking the output from `print_headings/2`, as `print_headings/2` tries to pad the whole heading, we first split
@@ -77,7 +91,7 @@ defmodule IO.ANSI.Docs do
 
   See `default_options/0` for docs on the supported options.
   """
-  @spec print_metadata(map, keyword) :: :ok
+  @spec print_metadata(map, print_opts) :: :ok
   def print_metadata(metadata, options \\ []) when is_map(metadata) do
     options = Keyword.merge(default_options(), options)
     print_each_metadata(metadata, options) && IO.write("\n")
@@ -115,7 +129,7 @@ defmodule IO.ANSI.Docs do
 
   It takes a set of `options` defined in `default_options/0`.
   """
-  @spec print(term(), String.t(), keyword) :: :ok
+  @spec print(term(), String.t(), print_opts) :: :ok
   def print(doc, format, options \\ [])
 
   def print(doc, "text/markdown", options) when is_binary(doc) and is_list(options) do

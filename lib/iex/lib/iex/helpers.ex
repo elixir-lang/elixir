@@ -113,6 +113,7 @@ defmodule IEx.Helpers do
     * `:force` - when `true`, forces the application to recompile
 
   """
+  @spec recompile(force: boolean()) :: :ok | :error | :noop
   def recompile(options \\ []) do
     cond do
       not mix_started?() ->

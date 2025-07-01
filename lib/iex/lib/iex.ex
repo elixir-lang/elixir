@@ -390,6 +390,78 @@ defmodule IEx do
 
   """
 
+  @typedoc """
+  Color settings used by the IEx shell.
+  """
+  @type colors_opts :: [
+          enabled: boolean(),
+          eval_result: IO.ANSI.ansidata(),
+          eval_info: IO.ANSI.ansidata(),
+          eval_error: IO.ANSI.ansidata(),
+          eval_interrupt: IO.ANSI.ansidata(),
+          stack_info: IO.ANSI.ansidata(),
+          blame_diff: IO.ANSI.ansidata(),
+          ls_directory: IO.ANSI.ansidata(),
+          ls_device: IO.ANSI.ansidata(),
+          doc_code: IO.ANSI.ansidata(),
+          doc_inline_code: IO.ANSI.ansidata(),
+          doc_headings: IO.ANSI.ansidata(),
+          doc_title: IO.ANSI.ansidata(),
+          doc_bold: IO.ANSI.ansidata(),
+          doc_underline: IO.ANSI.ansidata(),
+          syntax_colors: syntax_colors_opts() | false
+        ]
+
+  @typedoc """
+  Syntax coloring settings for inspected expressions.
+  """
+  @type syntax_colors_opts :: [
+          atom: IO.ANSI.ansidata(),
+          binary: IO.ANSI.ansidata(),
+          boolean: IO.ANSI.ansidata(),
+          charlist: IO.ANSI.ansidata(),
+          list: IO.ANSI.ansidata(),
+          map: IO.ANSI.ansidata(),
+          nil: IO.ANSI.ansidata(),
+          number: IO.ANSI.ansidata(),
+          string: IO.ANSI.ansidata(),
+          tuple: IO.ANSI.ansidata(),
+          variable: IO.ANSI.ansidata(),
+          call: IO.ANSI.ansidata(),
+          operator: IO.ANSI.ansidata(),
+          reset: IO.ANSI.ansidata()
+        ]
+
+  @typedoc """
+  Inspect settings used by the IEx shell.
+  """
+  @type inspect_opts :: [
+          base: :binary | :decimal | :octal | :hex,
+          binaries: :infer | :as_binaries | :as_strings,
+          charlists: :infer | :as_charlists | :as_lists,
+          custom_options: keyword(),
+          inspect_fun: (term(), Inspect.Opts.t() -> Inspect.Algebra.t()),
+          limit: pos_integer() | :infinity,
+          pretty: boolean(),
+          printable_limit: pos_integer() | :infinity,
+          safe: boolean(),
+          structs: boolean(),
+          syntax_colors: syntax_colors_opts(),
+          width: pos_integer() | :infinity
+        ]
+
+  @type configure_opts :: [
+          auto_reload: boolean(),
+          alive_prompt: String.t(),
+          colors: colors_opts(),
+          default_prompt: String.t(),
+          dot_iex: String.t() | nil,
+          history_size: integer(),
+          inspect: inspect_opts(),
+          parser: {module(), atom(), [any()]},
+          width: pos_integer()
+        ]
+
   @doc """
   Configures IEx.
 
@@ -521,7 +593,7 @@ defmodule IEx do
   in-memory modules when they get invalidated by a concurrent compilation
   happening in the Operating System.
   """
-  @spec configure(keyword()) :: :ok
+  @spec configure(configure_opts) :: :ok
   def configure(options) do
     IEx.Config.configure(options)
   end

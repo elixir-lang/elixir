@@ -424,6 +424,25 @@ defmodule Mix do
 
   """
 
+  @typedoc """
+  Options for `install/2`.
+
+  See the `install/2` function documentation for detailed information about each option.
+  """
+  @type install_opts :: [
+          force: boolean(),
+          verbose: boolean(),
+          consolidate_protocols: boolean(),
+          elixir: String.t(),
+          system_env: Enum.t(),
+          config: keyword(),
+          config_path: String.t() | atom(),
+          lockfile: String.t() | atom(),
+          start_applications: boolean(),
+          compilers: [atom()],
+          runtime_config: keyword()
+        ]
+
   @mix_install_project Mix.InstallProject
   @mix_install_app :mix_install
   @mix_install_app_string Atom.to_string(@mix_install_app)
@@ -845,6 +864,10 @@ defmodule Mix do
   if `:force` is enabled.
   """
   @doc since: "1.12.0"
+  @spec install(
+          [atom() | {atom(), String.t()} | {atom(), String.t(), keyword()} | {atom(), keyword()}],
+          install_opts()
+        ) :: :ok
   def install(deps, opts \\ [])
 
   def install(deps, opts) when is_list(deps) and is_list(opts) do
@@ -884,6 +907,7 @@ defmodule Mix do
         config: [],
         config_path: nil,
         consolidate_protocols: true,
+        compilers: [:elixir],
         elixir: nil,
         force: false,
         lockfile: nil,
@@ -898,6 +922,7 @@ defmodule Mix do
     system_env = Keyword.fetch!(opts, :system_env)
     consolidate_protocols? = Keyword.fetch!(opts, :consolidate_protocols)
     start_applications? = Keyword.fetch!(opts, :start_applications)
+    compilers = Keyword.fetch!(opts, :compilers)
 
     id =
       {deps, config, system_env, consolidate_protocols?}
@@ -923,7 +948,8 @@ defmodule Mix do
         dynamic_config = [
           deps: deps,
           consolidate_protocols: consolidate_protocols?,
-          config_path: config_path
+          config_path: config_path,
+          compilers: compilers
         ]
 
         :ok =
@@ -1093,7 +1119,6 @@ defmodule Mix do
       app: @mix_install_app,
       erlc_paths: [],
       elixirc_paths: [],
-      compilers: [:elixir],
       prune_code_paths: false
     ] ++ dynamic_config
   end

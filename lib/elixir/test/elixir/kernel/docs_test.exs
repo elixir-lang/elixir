@@ -430,7 +430,7 @@ defmodule Kernel.DocsTest do
     write_beam(
       defmodule ToBeUsed do
         defmacro __using__(_) do
-          quote do
+          quote generated: true do
             @doc "Hello"
             def foo, do: :bar
           end
@@ -446,11 +446,12 @@ defmodule Kernel.DocsTest do
 
     {:docs_v1, _, _, _, _, _, docs} = Code.fetch_docs(WillBeUsing)
 
-    location = :erl_anno.new(line + 15)
+    doc_anno = :erl_anno.new(line + 15)
+    source_anno = :erl_anno.set_generated(true, :erl_anno.new(line + 15))
 
     assert [
-             {{:function, :foo, 0}, [generated: true, location: ^location], ["foo()"],
-              %{"en" => "Hello"}, %{}}
+             {{:function, :foo, 0}, ^doc_anno, ["foo()"], %{"en" => "Hello"},
+              %{source_annos: [^source_anno]}}
            ] = docs
   end
 end

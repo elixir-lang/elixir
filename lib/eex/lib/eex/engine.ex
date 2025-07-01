@@ -17,6 +17,10 @@ defmodule EEx.Engine do
   @doc """
   Called at the beginning of every template.
 
+  It receives the options during compilation, including the
+  ones managed by EEx, such as `:line` and `:file`, as well
+  as custom engine options.
+
   It must return the initial state.
   """
   @callback init(opts :: keyword) :: state

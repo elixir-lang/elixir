@@ -62,7 +62,16 @@ defmodule IEx.AutocompleteTest do
     assert expand(~c"t String") == {:yes, ~c"", [~c"String", ~c"StringIO"]}
 
     assert expand(~c"t String.") ==
-             {:yes, ~c"", [~c"codepoint/0", ~c"grapheme/0", ~c"pattern/0", ~c"t/0"]}
+             {:yes, ~c"",
+              [
+                ~c"codepoint/0",
+                ~c"grapheme/0",
+                ~c"pattern/0",
+                ~c"replace_opts/0",
+                ~c"split_opts/0",
+                ~c"splitter_opts/0",
+                ~c"t/0"
+              ]}
 
     assert expand(~c"t String.grap") == {:yes, ~c"heme", []}
     assert expand(~c"t  String.grap") == {:yes, ~c"heme", []}
@@ -85,7 +94,16 @@ defmodule IEx.AutocompleteTest do
     assert expand(~c"t(String") == {:yes, ~c"", [~c"String", ~c"StringIO"]}
 
     assert expand(~c"t(String.") ==
-             {:yes, ~c"", [~c"codepoint/0", ~c"grapheme/0", ~c"pattern/0", ~c"t/0"]}
+             {:yes, ~c"",
+              [
+                ~c"codepoint/0",
+                ~c"grapheme/0",
+                ~c"pattern/0",
+                ~c"replace_opts/0",
+                ~c"split_opts/0",
+                ~c"splitter_opts/0",
+                ~c"t/0"
+              ]}
 
     assert expand(~c"t(String.grap") == {:yes, ~c"heme", []}
   end

@@ -46,6 +46,12 @@ defmodule Config.Reader do
 
   @behaviour Config.Provider
 
+  @type config_opts :: [
+          imports: [Path.t()] | :disabled,
+          env: atom(),
+          target: atom()
+        ]
+
   @impl true
   def init(opts) when is_list(opts) do
     {path, opts} = Keyword.pop!(opts, :path)
@@ -68,7 +74,7 @@ defmodule Config.Reader do
   Accepts the same options as `read!/2`.
   """
   @doc since: "1.11.0"
-  @spec eval!(Path.t(), binary, keyword) :: keyword
+  @spec eval!(Path.t(), binary, config_opts) :: keyword
   def eval!(file, contents, opts \\ [])
       when is_binary(file) and is_binary(contents) and is_list(opts) do
     Config.__eval__!(Path.expand(file), contents, opts) |> elem(0)
@@ -90,7 +96,7 @@ defmodule Config.Reader do
 
   """
   @doc since: "1.9.0"
-  @spec read!(Path.t(), keyword) :: keyword
+  @spec read!(Path.t(), config_opts) :: keyword
   def read!(file, opts \\ []) when is_binary(file) and is_list(opts) do
     file = Path.expand(file)
     Config.__eval__!(file, File.read!(file), opts) |> elem(0)
@@ -104,7 +110,7 @@ defmodule Config.Reader do
   option cannot be disabled in `read_imports!/2`.
   """
   @doc since: "1.9.0"
-  @spec read_imports!(Path.t(), keyword) :: {keyword, [Path.t()]}
+  @spec read_imports!(Path.t(), config_opts) :: {keyword, [Path.t()]}
   def read_imports!(file, opts \\ []) when is_binary(file) and is_list(opts) do
     if opts[:imports] == :disabled do
       raise ArgumentError, ":imports must be a list of paths"

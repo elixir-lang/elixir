@@ -8,10 +8,12 @@ defmodule URI do
 
   This module provides functions for working with URIs (for example, parsing
   URIs or encoding query strings). The functions in this module are implemented
-  according to [RFC 3986](https://tools.ietf.org/html/rfc3986).
+  according to [RFC 3986](https://tools.ietf.org/html/rfc3986) and it also
+  provides additional functionality for handling "application/x-www-form-urlencoded"
+  segments.
 
-  Additionally, the Erlang [`:uri_string` module](`:uri_string`) provides certain functionalities,
-  such as RFC 3986 compliant URI normalization.
+  Additionally, the Erlang [`:uri_string` module](`:uri_string`) provides additional
+  functionality such as RFC 3986 compliant URI normalization.
   """
 
   @doc """
@@ -501,9 +503,9 @@ defmodule URI do
   defp hex_to_dec(_n), do: nil
 
   @doc """
-  Creates a new URI struct from a URI or a string.
+  Creates a new URI struct by parsing and validating a string or from an existing URI.
 
-  If a `%URI{}` struct is given, it returns `{:ok, uri}`. If a string is
+  If a `%URI{}` struct is given, it returns `{:ok, uri}` as is. If a string is
   given, it will parse and validate it. If the string is valid, it returns
   `{:ok, uri}`, otherwise it returns `{:error, part}` with the invalid part
   of the URI. For parsing URIs without further validation, see `parse/1`.

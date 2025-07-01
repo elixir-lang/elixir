@@ -14,6 +14,7 @@ defmodule Code.Normalizer do
   Wraps literals in the quoted expression to conform to the AST format expected
   by the formatter.
   """
+  @spec normalize(Macro.t(), keyword()) :: Macro.t()
   def normalize(quoted, opts \\ []) do
     line = Keyword.get(opts, :line, nil)
     escape = Keyword.get(opts, :escape, true)

@@ -118,6 +118,19 @@ defmodule EEx do
           | {:expr | :start_expr | :middle_expr | :end_expr, marker, charlist, metadata}
           | {:eof, metadata}
 
+  @type tokenize_opt ::
+          {:file, binary()}
+          | {:line, line}
+          | {:column, column}
+          | {:indentation, non_neg_integer}
+          | {:trim, boolean()}
+
+  @type compile_opt ::
+          tokenize_opt
+          | {:engine, module()}
+          | {:parser_options, Code.parser_opts()}
+          | {atom(), term()}
+
   @doc """
   Generates a function definition from the given string.
 
@@ -128,6 +141,7 @@ defmodule EEx do
   template.
 
   The supported `options` are described [in the module docs](#module-options).
+  Additional options are passed to the underlying engine.
 
   ## Examples
 
@@ -220,7 +234,7 @@ defmodule EEx do
       "3"
 
   """
-  @spec compile_string(String.t(), keyword) :: Macro.t()
+  @spec compile_string(String.t(), [compile_opt]) :: Macro.t()
   def compile_string(source, options \\ []) when is_binary(source) and is_list(options) do
     case tokenize(source, options) do
       {:ok, tokens} ->
@@ -259,7 +273,7 @@ defmodule EEx do
       #=> "3"
 
   """
-  @spec compile_file(Path.t(), keyword) :: Macro.t()
+  @spec compile_file(Path.t(), [compile_opt]) :: Macro.t()
   def compile_file(filename, options \\ []) when is_list(options) do
     filename = IO.chardata_to_string(filename)
     options = Keyword.merge([file: filename, line: 1], options)
@@ -277,7 +291,7 @@ defmodule EEx do
       "foo baz"
 
   """
-  @spec eval_string(String.t(), keyword, keyword) :: String.t()
+  @spec eval_string(String.t(), keyword, [compile_opt]) :: String.t()
   def eval_string(source, bindings \\ [], options \\ [])
       when is_binary(source) and is_list(bindings) and is_list(options) do
     compiled = compile_string(source, options)
@@ -299,7 +313,7 @@ defmodule EEx do
       #=> "foo baz"
 
   """
-  @spec eval_file(Path.t(), keyword, keyword) :: String.t()
+  @spec eval_file(Path.t(), keyword, [compile_opt]) :: String.t()
   def eval_file(filename, bindings \\ [], options \\ [])
       when is_list(bindings) and is_list(options) do
     filename = IO.chardata_to_string(filename)
@@ -339,7 +353,7 @@ defmodule EEx do
   Note new tokens may be added in the future.
   """
   @doc since: "1.14.0"
-  @spec tokenize([char()] | String.t(), opts :: keyword) ::
+  @spec tokenize([char()] | String.t(), [tokenize_opt]) ::
           {:ok, [token()]} | {:error, String.t(), metadata()}
   def tokenize(contents, opts \\ []) do
     EEx.Compiler.tokenize(contents, opts)

@@ -271,6 +271,10 @@ defmodule Module.Types.Helpers do
   translating inlined Erlang calls back to Elixir.
 
   We also undo some macro expressions done by the Kernel module.
+
+  ## Options
+
+    * `:collapse_structs` - when false, show structs full representation
   """
   def expr_to_string(expr, opts \\ []) do
     string = prewalk_expr_to_string(expr, opts)

@@ -68,6 +68,23 @@ defmodule Mix.Release do
           steps: [(t -> t) | :assemble, ...]
         }
 
+  @typedoc """
+  Options for stripping BEAM files.
+  """
+  @type strip_beam_opts :: [
+          keep: [String.t()],
+          compress: boolean()
+        ]
+
+  @typedoc """
+  Erlang/OTP sys.config structure.
+
+  A list of tuples where each tuple contains an application name and its
+  configuration as a keyword list. This is the standard format for Erlang
+  application configuration.
+  """
+  @type sys_config :: [{application(), keyword()}]
+
   @default_apps [kernel: :permanent, stdlib: :permanent, elixir: :permanent, sasl: :permanent]
   @safe_modes [:permanent, :temporary, :transient]
   @unsafe_modes [:load, :none]
@@ -445,7 +462,7 @@ defmodule Mix.Release do
 
   In case there are no config providers, it doesn't change `sys_config`.
   """
-  @spec make_sys_config(t, keyword(), Config.Provider.config_path()) ::
+  @spec make_sys_config(t, sys_config(), Config.Provider.config_path()) ::
           :ok | {:error, String.t()}
   def make_sys_config(release, sys_config, config_provider_path) do
     {sys_config, runtime_config?} =
@@ -900,8 +917,25 @@ defmodule Mix.Release do
 
   The exact chunks that are kept are not documented and may change in
   future versions.
+
+  ## Options
+
+    * `:keep` - a list of additional chunk names (as strings) to keep in the
+      stripped BEAM file beyond those required by Erlang/Elixir
+
+    * `:compress` - when `true`, the resulting BEAM file will be compressed
+      using gzip. Defaults to `false`
+
+  ## Examples
+
+      # Strip with default options
+      Mix.Release.strip_beam(beam_binary)
+
+      # Keep additional chunks and compress
+      Mix.Release.strip_beam(beam_binary, keep: ["Docs", "ChunkName"], compress: true)
+
   """
-  @spec strip_beam(binary(), keyword()) :: {:ok, binary()} | {:error, :beam_lib, term()}
+  @spec strip_beam(binary(), strip_beam_opts()) :: {:ok, binary()} | {:error, :beam_lib, term()}
   def strip_beam(binary, options \\ []) when is_list(options) do
     chunks_to_keep = options[:keep] |> List.wrap() |> Enum.map(&String.to_charlist/1)
     all_chunks = Enum.uniq(@additional_chunks ++ :beam_lib.significant_chunks() ++ chunks_to_keep)

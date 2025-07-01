@@ -11,6 +11,26 @@ defmodule Code.Fragment do
 
   @type position :: {line :: pos_integer(), column :: pos_integer()}
 
+  @typedoc """
+  Options for cursor context functions.
+
+  Currently, these options are not used but reserved for future extensibility.
+  """
+  @type cursor_opts :: []
+
+  @typedoc """
+  Options for converting code fragments to quoted expressions.
+  """
+  @type container_cursor_to_quoted_opts :: [
+          file: String.t(),
+          line: pos_integer(),
+          column: pos_integer(),
+          columns: boolean(),
+          token_metadata: boolean(),
+          literal_encoder: (term(), Macro.metadata() -> term()),
+          trailing_fragment: String.t()
+        ]
+
   @doc ~S"""
   Returns the list of lines in the given string, preserving their line endings.
 
@@ -172,7 +192,7 @@ defmodule Code.Fragment do
   references, and more.
   """
   @doc since: "1.13.0"
-  @spec cursor_context(List.Chars.t(), keyword()) ::
+  @spec cursor_context(List.Chars.t(), cursor_opts()) ::
           {:alias, charlist}
           | {:alias, inside_alias, charlist}
           | {:block_keyword_or_binary_operator, charlist}
@@ -662,7 +682,7 @@ defmodule Code.Fragment do
   of examples and their return values.
   """
   @doc since: "1.13.0"
-  @spec surround_context(List.Chars.t(), position(), keyword()) ::
+  @spec surround_context(List.Chars.t(), position(), cursor_opts()) ::
           %{begin: position, end: position, context: context} | :none
         when context:
                {:alias, charlist}
@@ -770,6 +790,12 @@ defmodule Code.Fragment do
 
           {{:local_or_var, acc}, offset} ->
             build_surround({:local_or_var, acc}, reversed, line, offset)
+
+          {{:block_keyword_or_binary_operator, acc}, offset} when acc in @textual_operators ->
+            build_surround({:operator, acc}, reversed, line, offset)
+
+          {{:block_keyword_or_binary_operator, acc}, offset} when acc in @keywords ->
+            build_surround({:keyword, acc}, reversed, line, offset)
 
           {{:module_attribute, ~c""}, offset} ->
             build_surround({:operator, ~c"@"}, reversed, line, offset)
@@ -1209,7 +1235,7 @@ defmodule Code.Fragment do
 
   """
   @doc since: "1.13.0"
-  @spec container_cursor_to_quoted(List.Chars.t(), keyword()) ::
+  @spec container_cursor_to_quoted(List.Chars.t(), container_cursor_to_quoted_opts()) ::
           {:ok, Macro.t()} | {:error, {location :: keyword, binary | {binary, binary}, binary}}
   def container_cursor_to_quoted(fragment, opts \\ []) do
     {trailing_fragment, opts} = Keyword.pop(opts, :trailing_fragment)

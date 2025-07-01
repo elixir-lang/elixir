@@ -23,10 +23,27 @@ defmodule Mix.Local.Installer do
           | {:url, url :: binary}
           | {:fetcher, dep_spec :: tuple}
 
+  @typedoc """
+  Options for installer functions.
+
+  These options are used by various installer functions to control behavior
+  during installation, parsing, and uninstallation.
+  """
+  @type installer_opts :: [
+          app: String.t(),
+          submodules: boolean(),
+          sparse: String.t(),
+          force: boolean(),
+          sha512: String.t(),
+          organization: String.t(),
+          repo: String.t(),
+          timeout: pos_integer()
+        ]
+
   @doc """
   Checks that the `install_spec` and `opts` are supported by the respective module.
   """
-  @callback check_install_spec(install_spec, opts :: keyword) :: :ok | {:error, String.t()}
+  @callback check_install_spec(install_spec, opts :: installer_opts) :: :ok | {:error, String.t()}
 
   @doc """
   Returns a list of already installed version of the same artifact.
@@ -37,7 +54,7 @@ defmodule Mix.Local.Installer do
   Builds a local artifact either from a remote dependency or for
   the current project.
   """
-  @callback build(install_spec, opts :: Keyword.t()) :: Path.t()
+  @callback build(install_spec, opts :: installer_opts) :: Path.t()
 
   @doc """
   The installation itself.
@@ -175,7 +192,7 @@ defmodule Mix.Local.Installer do
   @doc """
   Receives `argv` and `opts` from options parsing and returns an `install_spec`.
   """
-  @spec parse_args([String.t()], keyword) :: install_spec | {:error, String.t()}
+  @spec parse_args([String.t()], installer_opts) :: install_spec | {:error, String.t()}
   def parse_args(argv, opts)
 
   def parse_args([], _opts) do

@@ -16,6 +16,38 @@ defmodule Kernel.ParallelCompiler do
   @type warning() :: {file :: Path.t(), Code.position(), message :: String.t()}
   @type error() :: {file :: Path.t(), Code.position(), message :: String.t()}
 
+  @typedoc """
+  Options for parallel compilation functions.
+  """
+  @type compile_opts :: [
+          after_compile: (-> term()),
+          each_file: (Path.t() -> term()),
+          each_long_compilation: (Path.t() -> term()) | (Path.t(), pid() -> term()),
+          each_long_verification: (module() -> term()) | (module(), pid() -> term()),
+          each_module: (Path.t(), module(), binary() -> term()),
+          each_cycle: ([module()], [Code.diagnostic(:warning)] ->
+                         {:compile, [module()], [Code.diagnostic(:warning)]}
+                         | {:runtime, [module()], [Code.diagnostic(:warning)]}),
+          long_compilation_threshold: pos_integer(),
+          long_verification_threshold: pos_integer(),
+          verification: boolean(),
+          profile: :time,
+          dest: Path.t(),
+          beam_timestamp: term(),
+          return_diagnostics: boolean(),
+          max_concurrency: pos_integer()
+        ]
+
+  @typedoc """
+  Options for requiring files in parallel.
+  """
+  @type require_opts :: [
+          each_file: (Path.t() -> term()),
+          each_module: (Path.t(), module(), binary() -> term()),
+          max_concurrency: pos_integer(),
+          return_diagnostics: boolean()
+        ]
+
   @doc """
   Starts a task for parallel compilation.
   """
@@ -185,7 +217,7 @@ defmodule Kernel.ParallelCompiler do
 
   """
   @doc since: "1.6.0"
-  @spec compile([Path.t()], keyword()) ::
+  @spec compile([Path.t()], compile_opts()) ::
           {:ok, [atom], [warning] | info()}
           | {:error, [error] | [Code.diagnostic(:error)], [warning] | info()}
   def compile(files, options \\ []) when is_list(options) do
@@ -198,7 +230,7 @@ defmodule Kernel.ParallelCompiler do
   See `compile/2` for more information.
   """
   @doc since: "1.6.0"
-  @spec compile_to_path([Path.t()], Path.t(), keyword()) ::
+  @spec compile_to_path([Path.t()], Path.t(), compile_opts()) ::
           {:ok, [atom], [warning] | info()}
           | {:error, [error] | [Code.diagnostic(:error)], [warning] | info()}
   def compile_to_path(files, path, options \\ []) when is_binary(path) and is_list(options) do
@@ -233,9 +265,12 @@ defmodule Kernel.ParallelCompiler do
       Setting this option to 1 will compile files sequentially.
       Defaults to the number of schedulers online, or at least 2.
 
+    * `:return_diagnostics` - when `true`, returns structured diagnostics
+      as maps instead of the legacy format. Defaults to `false`.
+
   """
   @doc since: "1.6.0"
-  @spec require([Path.t()], keyword()) ::
+  @spec require([Path.t()], require_opts()) ::
           {:ok, [atom], [warning] | info()}
           | {:error, [error] | [Code.diagnostic(:error)], [warning] | info()}
   def require(files, options \\ []) when is_list(options) do

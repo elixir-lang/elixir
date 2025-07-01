@@ -7,6 +7,17 @@ defmodule Mix.Compilers.Erlang do
 
   @manifest_vsn 1
 
+  @typedoc """
+  Options for `compile/6`.
+  """
+  @type compile_opts :: [
+          all_warnings: boolean(),
+          force: boolean(),
+          parallel: MapSet.t(Path.t()),
+          preload: (-> term()),
+          verbose: boolean()
+        ]
+
   @doc """
   Compiles the given `mappings`.
 
@@ -18,12 +29,16 @@ defmodule Mix.Compilers.Erlang do
 
   ## Options
 
+    * `:all_warnings` - a flag to disable showing all previous warnings
+
     * `:force` - forces compilation regardless of modification times
 
     * `:parallel` - a mapset of files to compile in parallel
 
     * `:preload` - any code that must be preloaded if any pending
       entry needs to be compiled
+
+    * `:verbose` - a flag to enable verbose printing
 
   ## Examples
 
@@ -58,6 +73,14 @@ defmodule Mix.Compilers.Erlang do
   `{:error, errors, warnings}` in case of error. This function returns
   `{status, diagnostics}` as specified in `Mix.Task.Compiler`.
   """
+  @spec compile(
+          Path.t(),
+          [{Path.t(), Path.t()}],
+          atom(),
+          atom(),
+          compile_opts,
+          (Path.t(), Path.t() -> {:ok, term(), [term()]} | {:error, [term()], [term()]})
+        ) :: {Mix.Task.Compiler.status(), [Mix.Task.Compiler.Diagnostic.t()]}
   def compile(manifest, mappings, src_ext, dest_ext, opts, callback)
       when is_atom(src_ext) and is_atom(dest_ext) and is_list(opts) do
     force = opts[:force]

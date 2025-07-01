@@ -52,11 +52,14 @@ defmodule Mix.Shell.Quiet do
       the prompt instead. Defaults to `:yes`.
 
   """
+  @spec yes?(String.t(), Mix.Shell.IO.yes_opts()) :: boolean()
   defdelegate yes?(message, options \\ []), to: Mix.Shell.IO
 
   @doc """
   Executes the given command quietly without outputting anything.
   """
+  @spec cmd(String.t() | {String.t(), [String.t()]}, Mix.Shell.stream_cmd_opts()) ::
+          exit_status :: non_neg_integer
   def cmd(command, opts \\ []) do
     Mix.Shell.cmd(command, opts, fn data -> data end)
   end

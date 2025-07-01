@@ -144,6 +144,21 @@ defmodule Mix.Tasks.Profile.Tprof do
   which is more limited but has a lower footprint.
   """
 
+  @typedoc """
+  Options for the tprof profiler.
+  """
+  @type profile_opts :: [
+          matching: {module() | :_, atom() | :_, arity() | :_},
+          type: :time | :memory | :calls,
+          calls: non_neg_integer(),
+          time: non_neg_integer(),
+          memory: non_neg_integer(),
+          sort: :calls | :per_call | :time | :memory,
+          report: :process | :total,
+          warmup: boolean(),
+          set_on_spawn: boolean()
+        ]
+
   @switches [
     parallel: :boolean,
     require: :keep,
@@ -260,7 +275,7 @@ defmodule Mix.Tasks.Profile.Tprof do
     * `:set_on_spawn` - if newly spawned processes should be measured (default: `true`)
 
   """
-  @spec profile((-> result), keyword()) :: result when result: any()
+  @spec profile((-> result), profile_opts()) :: result when result: any()
   def profile(fun, opts \\ []) when is_function(fun, 0) do
     Mix.ensure_application!(:tools)
     {type, return_value, results} = profile_and_analyse(fun, opts)

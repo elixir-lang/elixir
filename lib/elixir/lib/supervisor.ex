@@ -659,6 +659,19 @@ defmodule Supervisor do
   @typedoc since: "1.16.0"
   @type module_spec :: {module(), args :: term()} | module()
 
+  @typedoc """
+  Options for overriding child specification fields.
+  """
+  @type child_spec_overrides :: [
+          id: atom() | term(),
+          start: {module(), atom(), [term()]},
+          restart: restart(),
+          shutdown: shutdown(),
+          type: type(),
+          modules: [module()] | :dynamic,
+          significant: boolean()
+        ]
+
   @doc """
   Starts a supervisor with the given children.
 
@@ -896,7 +909,7 @@ defmodule Supervisor do
       #=>   start: {Agent, :start_link, [fn -> :ok end]}}
 
   """
-  @spec child_spec(child_spec() | module_spec(), keyword()) :: child_spec()
+  @spec child_spec(child_spec() | module_spec(), child_spec_overrides()) :: child_spec()
   def child_spec(module_or_map, overrides)
 
   def child_spec({_, _, _, _, _, _} = tuple, _overrides) do

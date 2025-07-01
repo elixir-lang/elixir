@@ -158,6 +158,7 @@ defmodule Code.Formatter do
   @doc """
   Converts the quoted expression into an algebra document.
   """
+  @spec to_algebra(Macro.t(), keyword()) :: Inspect.Algebra.t()
   def to_algebra(quoted, opts \\ []) do
     comments = Keyword.get(opts, :comments, [])
 
