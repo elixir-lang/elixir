@@ -8,7 +8,7 @@ defmodule Mix.Tasks.Compile.Yecc do
 
   @recursive true
   @manifest "compile.yecc"
-  @switches [force: :boolean, all_warnings: :boolean]
+  @switches [force: :boolean, verbose: :boolean, all_warnings: :boolean]
 
   # These options can't be controlled with :yecc_options.
   @forced_opts [report: true, return: true]
@@ -30,6 +30,7 @@ defmodule Mix.Tasks.Compile.Yecc do
     * `--all-warnings` (`--no-all-warnings`) - prints all warnings, including previous compilations
       (default is true except on errors)
     * `--force` - forces compilation regardless of modification times
+    * `--verbose` - prints verbose output
 
   ## Configuration
 

@@ -30,6 +30,7 @@ defmodule Mix.Tasks.Compile.Leex do
     * `--all-warnings` (`--no-all-warnings`) - prints all warnings, including previous compilations
       (default is true except on errors)
     * `--force` - forces compilation regardless of modification times
+    * `--verbose` - prints verbose output
 
   ## Configuration
 

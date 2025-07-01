@@ -8,7 +8,7 @@ defmodule Mix.Tasks.Compile.Erlang do
 
   @recursive true
   @manifest "compile.erlang"
-  @switches [force: :boolean, all_warnings: :boolean]
+  @switches [force: :boolean, verbose: :boolean, all_warnings: :boolean]
 
   @moduledoc """
   Compiles Erlang source files.
@@ -23,6 +23,7 @@ defmodule Mix.Tasks.Compile.Erlang do
     * `--all-warnings` (`--no-all-warnings`) - prints all warnings, including previous compilations
       (default is true except on errors)
     * `--force` - forces compilation regardless of modification times
+    * `--verbose` - prints verbose output
 
   ## Configuration
 
